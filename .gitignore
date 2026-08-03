@@ -1,0 +1,16 @@
+.DS_Store
+.idea/
+.vscode/
+*.iml
+
+**/.gradle/
+**/build/
+**/out/
+
+**/node_modules/
+**/.next/
+**/coverage/
+
+**/.env
+**/.env.*
+!**/.env.example
