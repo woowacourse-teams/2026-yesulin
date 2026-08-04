@@ -28,10 +28,10 @@ export function MswProvider({ children }: { children: React.ReactNode }) {
 
 function AdminLoadingScreen() {
   return (
-    <main className="grid min-h-screen place-items-center bg-[#f6f5f2] px-6">
+    <main className="grid min-h-screen place-items-center bg-surface px-6">
       <div className="text-center">
-        <div className="mx-auto h-10 w-10 animate-pulse rounded-2xl bg-[#171717]" />
-        <p className="mt-4 text-sm font-medium text-[#67645e]">공연 관리 환경을 준비하고 있어요.</p>
+        <div className="mx-auto h-10 w-10 animate-pulse rounded-2xl bg-brand" />
+        <p className="mt-4 text-sm font-medium text-muted">공연 관리 환경을 준비하고 있어요.</p>
       </div>
     </main>
   );

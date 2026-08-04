@@ -1,97 +1,135 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --surface: #f7f7f5;
-  --surface-2: #ededeb;
-  --card: #ffffff;
-  --muted: #666a6d;
-  --border: #dededb;
-  --border-strong: #bfc0bc;
-  --primary: #171717;
-  --secondary: #f2f2f0;
-  --sidebar: #f7f7f5;
-  --sidebar-accent: #f7ff54;
-  --sidebar-foreground: #171717;
-  --accent: #f7ff54;
-  --accent-strong: #e5ee3f;
-  --success: #2e7d56;
-  --danger: #d93b38;
-  --shadow-elev-1: 0 1px 2px 0 rgb(0 0 0 / 0.04), 0 1px 3px 0 rgb(0 0 0 / 0.03);
+  --ink: #16151a;
+  --ink-60: #5c5a63;
+  --ink-40: #8c8a93;
+  --ink-20: #c8c6ce;
+  --line: #e4e2e8;
+  --line-soft: #efedf2;
+  --paper: #fbfafc;
+  --white: #ffffff;
+
+  --brand: #b72d54;
+  --brand-strong: #ce3a63;
+  --brand-soft: #fbeef2;
+  --brand-soft-strong: #f7e1e8;
+  --brand-line: #efc9d5;
+
+  --pass: #1f7a5c;
+  --pass-bg: #e6f4ee;
+  --fail: #9a3131;
+  --fail-bg: #f8ecec;
+  --absent: #5a5a62;
+  --absent-bg: #efeef1;
+  --etc: #4b4098;
+  --etc-bg: #edebf9;
+  --pending: #6b6975;
+  --pending-bg: #f2f1f4;
+  --warn: #8a6410;
+  --warn-bg: #fcf3df;
+  --upcoming: #2e6db4;
+  --upcoming-bg: #eaf1fb;
+
+  --sidebar-width: 250px;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-surface: var(--surface);
-  --color-surface-2: var(--surface-2);
-  --color-card: var(--card);
-  --color-muted: var(--muted);
-  --color-border: var(--border);
-  --color-border-strong: var(--border-strong);
-  --color-primary: var(--primary);
-  --color-secondary: var(--secondary);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-accent: var(--accent);
-  --color-accent-strong: var(--accent-strong);
-  --color-success: var(--success);
-  --color-danger: var(--danger);
+  --color-background: var(--white);
+  --color-card: var(--white);
+  --color-surface: var(--paper);
+  --color-foreground: var(--ink);
+  --color-muted: var(--ink-40);
+  --color-muted-strong: var(--ink-60);
+  --color-muted-soft: var(--ink-20);
+  --color-border: var(--line);
+  --color-border-soft: var(--line-soft);
+
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-soft-strong: var(--brand-soft-strong);
+  --color-brand-line: var(--brand-line);
+
+  --color-pass: var(--pass);
+  --color-pass-bg: var(--pass-bg);
+  --color-fail: var(--fail);
+  --color-fail-bg: var(--fail-bg);
+  --color-absent: var(--absent);
+  --color-absent-bg: var(--absent-bg);
+  --color-etc: var(--etc);
+  --color-etc-bg: var(--etc-bg);
+  --color-pending: var(--pending);
+  --color-pending-bg: var(--pending-bg);
+  --color-warn: var(--warn);
+  --color-warn-bg: var(--warn-bg);
+  --color-upcoming: var(--upcoming);
+  --color-upcoming-bg: var(--upcoming-bg);
+
   --font-sans: "Pretendard Variable", "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  --shadow-elev-1: var(--shadow-elev-1);
+  --radius-control: 6px;
 }
 
-* {
-  box-sizing: border-box;
-  border-color: var(--border);
+/*
+ * 아래 기본 스타일은 반드시 @layer base 안에 둔다. 레이어 밖에 두면 계단식에서
+ * 레이어에 속한 모든 규칙을 이기기 때문에, Tailwind 유틸리티(text-white,
+ * border-brand 등)가 통째로 무시된다.
+ */
+@layer base {
+  * {
+    box-sizing: border-box;
+    border-color: var(--line);
+  }
+
+  html {
+    background: var(--paper);
+  }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+    color: inherit;
+  }
+
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid var(--brand-line);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: var(--brand-soft);
+    color: var(--ink);
+  }
 }
 
-html {
-  background: var(--background);
-}
-
-body {
-  margin: 0;
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans);
-  font-feature-settings: "ss01", "cv11";
-  text-rendering: optimizeLegibility;
-}
-
-button,
-input,
-select,
-textarea {
-  font: inherit;
-}
-
-button,
-a {
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-}
-
-button:focus-visible,
-a:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--accent-strong) 75%, transparent);
-  outline-offset: 2px;
-}
-
-h1,
-h2,
-h3 {
-  text-wrap: balance;
-}
-
-::selection {
-  background: var(--accent);
-  color: var(--foreground);
+@layer utilities {
+  /* 숫자를 세로로 정렬해 목록·통계에서 자릿수가 흔들리지 않게 한다 */
+  .num {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

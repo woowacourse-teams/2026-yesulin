@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { PerformanceList } from "@/components/performances/performance-list";
+import { PerformancePicker } from "@/components/screening/performance-picker";
 
 export const metadata: Metadata = {
   title: "공연 관리",
 };
 
 export default function PerformancesPage() {
-  return <PerformanceList />;
+  return <PerformancePicker />;
 }
