@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { getPostings } from "@/features/screening/api";
 import { postingEntryHref, screeningRoutes } from "@/features/screening/routes";
 import type { PerformanceId, PostingSummary } from "@/features/screening/types";
@@ -11,12 +11,17 @@ import {
   PickerCard,
   PickerCardBlocked,
   PickerDescription,
+  PickerEmpty,
   PickerProgress,
+  PickerGrid,
+  PickerHeader,
   PickerScreen,
   PickerState,
   PickerStats,
   PickerTitle,
 } from "./picker-card";
+import { CreatePageButton } from "./create-form";
+import { PostingCreateModal } from "./posting-create-modal";
 import { PhaseTag } from "./status-badge";
 import { PickerSkeleton, ScreenError } from "./screen-status";
 import { useToast } from "./toast";
@@ -31,14 +36,16 @@ function deadlineText(posting: PostingSummary) {
 
 function stateText(posting: PostingSummary) {
   if (posting.allRoundsClosed) return "전형 종료";
+  if (posting.applicantCount === 0) return "지원자 대기";
   return posting.pendingReviewCount > 0
     ? `검토 대기 ${posting.pendingReviewCount}명`
     : "검토 완료, 마감 대기";
 }
 
 export function PostingPicker({ performanceId }: { performanceId: PerformanceId }) {
+  const [createOpen, setCreateOpen] = useState(false);
   const load = useCallback(() => getPostings(performanceId), [performanceId]);
-  const { data, error, loading } = useScreeningQuery(
+  const { data, error, loading, reload } = useScreeningQuery(
     performanceId,
     load,
     "공고를 불러오지 못했습니다.",
@@ -50,8 +57,8 @@ export function PostingPicker({ performanceId }: { performanceId: PerformanceId 
     <>
       <Breadcrumb
         items={[
-          { icon: "🏠", label: "전체 공연", href: screeningRoutes.performances },
-          { icon: data?.performance.icon ?? "🎭", label: data?.performance.title ?? "공연" },
+          { label: "전체 공연", href: screeningRoutes.performances },
+          { label: data?.performance.title ?? "공연" },
         ]}
       />
       {loading ? <PickerSkeleton /> : null}
@@ -61,15 +68,22 @@ export function PostingPicker({ performanceId }: { performanceId: PerformanceId 
         </div>
       ) : null}
       {data ? (
-        <PickerScreen
-          title="어떤 공고의 지원자를 보시겠어요?"
-          subtitle={`${data.performance.title} · 공고 ${data.postings.length}건`}
-        >
-          {data.postings.map((posting) => {
+        <PickerScreen>
+          <PickerHeader
+            title="어떤 공고의 지원자를 보시겠어요?"
+            subtitle={`${data.performance.title} · 공고 ${data.postings.length}건`}
+          >
+            <CreatePageButton onClick={() => setCreateOpen(true)}>공고 추가</CreatePageButton>
+          </PickerHeader>
+          <PickerGrid>
+            {data.postings.length === 0 ? (
+              <PickerEmpty>아직 등록된 공고가 없습니다.<br />우측 상단의 공고 추가를 눌러 첫 모집을 시작하세요.</PickerEmpty>
+            ) : null}
+            {data.postings.map((posting) => {
             const body = (
               <>
                 <div>
-                  <PickerTitle icon={posting.icon}>
+                  <PickerTitle>
                     {posting.title}
                     <PhaseTag phase={posting.phase} />
                   </PickerTitle>
@@ -109,8 +123,18 @@ export function PostingPicker({ performanceId }: { performanceId: PerformanceId 
                 {body}
               </PickerCard>
             );
-          })}
+            })}
+          </PickerGrid>
         </PickerScreen>
+      ) : null}
+      {createOpen && data ? (
+        <PostingCreateModal
+          performanceId={performanceId}
+          performanceTitle={data.performance.title}
+          roleTemplates={data.roleTemplates}
+          onClose={() => setCreateOpen(false)}
+          onCreated={reload}
+        />
       ) : null}
     </>
   );

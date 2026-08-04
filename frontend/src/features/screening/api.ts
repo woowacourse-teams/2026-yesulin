@@ -11,6 +11,7 @@ import type {
   ScreeningBoardResponse,
   ScreeningTree,
 } from "./types";
+import type { CreatePerformanceRequest, CreatePostingRequest } from "./creation-types";
 
 const API_BASE_PATH = "/api/screening";
 
@@ -73,6 +74,20 @@ export function saveReview(body: SaveReviewRequest) {
 
 export function closeRound(body: CloseRoundRequest) {
   return request<ScreeningBoardResponse>("/round/close", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function createPerformance(body: CreatePerformanceRequest) {
+  return request<PerformanceListResponse>("/performance", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function createPosting(body: CreatePostingRequest) {
+  return request<PostingListResponse>("/posting", {
     method: "POST",
     body: JSON.stringify(body),
   });

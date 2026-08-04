@@ -80,9 +80,9 @@ export function ActionBar() {
         type="button"
         aria-label="선택 해제"
         onClick={clearSelection}
-        className="px-2 py-1 text-base text-white/55 hover:text-white"
+        className="px-2 py-1 text-[12px] text-white/55 hover:text-white"
       >
-        ✕
+        선택 해제
       </button>
     </div>
   );

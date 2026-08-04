@@ -65,12 +65,6 @@ export function DetailGallery({
           onClick={onPlayVideo}
           className="mt-3.5 flex w-full items-center gap-[11px] rounded-lg border border-border bg-card px-[13px] py-3 text-left transition-colors hover:border-brand-line hover:bg-brand-soft"
         >
-          <span
-            aria-hidden="true"
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand pl-0.5 text-[11px] text-white"
-          >
-            ▶
-          </span>
           <span className="min-w-0">
             <b className="block text-[13.5px] font-semibold">연기 영상 보기</b>
             <span className="block break-all text-[11px] text-muted">{applicant.videoUrl}</span>

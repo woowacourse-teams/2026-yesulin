@@ -1,6 +1,5 @@
 "use client";
 
-import { ROUND_LABELS } from "@/features/screening/labels";
 import type { WorkMode } from "@/features/screening/filters";
 import { useBoard } from "./board-context";
 import { CloseRoundModal } from "./close-round-modal";
@@ -15,6 +14,9 @@ export function WorkSplit() {
     useBoard();
   const counts = board.rounds.find((state) => state.round === board.round)?.counts;
   if (!counts) return null;
+  const currentIndex = board.rounds.findIndex((state) => state.round === board.round);
+  const currentName = board.rounds[currentIndex]?.name ?? `${board.round}차 전형`;
+  const nextName = board.rounds[currentIndex + 1]?.name;
 
   const canClose = !roundClosed && counts.all > 0 && counts.pending === 0;
 
@@ -51,7 +53,7 @@ export function WorkSplit() {
         <div className="ml-auto flex items-center gap-2.5 py-2">
           {roundClosed ? (
             <span className="rounded-full bg-pass-bg px-[11px] py-[5px] text-xs font-semibold text-pass">
-              {ROUND_LABELS[board.round]} 마감됨 · 합격 {counts.pass}명
+              {currentName} 마감됨 · 합격 {counts.pass}명
             </span>
           ) : (
             <>
@@ -66,8 +68,7 @@ export function WorkSplit() {
                 onClick={() => setClosePrompt("manual")}
                 className="whitespace-nowrap rounded-control bg-foreground px-[13px] py-1.5 text-[12.5px] font-semibold text-white hover:bg-black disabled:cursor-not-allowed disabled:bg-border disabled:text-muted"
               >
-                {ROUND_LABELS[board.round]} 마감하고{" "}
-                {board.round < 3 ? `${ROUND_LABELS[(board.round + 1) as 2 | 3]} 시작` : "전형 종료"}
+                {currentName} 마감하고 {nextName ? `${nextName} 시작` : "전형 종료"}
               </button>
             </>
           )}

@@ -39,19 +39,16 @@ export function ScreeningBoard({ roleId }: { roleId: RoleId }) {
     <>
       <Breadcrumb
         items={[
-          { icon: "🏠", label: "전체 공연", href: screeningRoutes.performances },
+          { label: "전체 공연", href: screeningRoutes.performances },
           {
-            icon: board?.performance.icon ?? "🎭",
             label: board?.performance.title ?? "공연",
             href: board ? screeningRoutes.performance(board.performance.id) : undefined,
           },
           {
-            icon: board?.posting.icon ?? "📄",
             label: board?.posting.title ?? "공고",
             href: board ? screeningRoutes.posting(board.posting.id) : undefined,
           },
           {
-            icon: board?.posting.isOpenCall ? "👥" : "🎫",
             label: board?.role.name ?? "배역",
           },
         ]}

@@ -50,7 +50,7 @@ export function ApplicantDetail() {
                 title={`배역 조건: ${board.role.description}`}
                 className="whitespace-nowrap rounded-full bg-fail-bg px-[7px] py-0.5 text-[11px] font-semibold text-fail"
               >
-                ⚠️ 조건 불일치 ({mismatchText(applicant.mismatchReasons)})
+                조건 불일치 ({mismatchText(applicant.mismatchReasons)})
               </span>
             ) : null}
             <StatusBadge status={applicant.review.status} memo={applicant.review.memo} />
@@ -61,17 +61,17 @@ export function ApplicantDetail() {
               onClick={() => {
                 if (!openPrintWindow([applicant], board.performance)) toast(POPUP_BLOCKED);
               }}
-              className="rounded-md px-2 py-1 text-[19px] leading-none text-muted hover:bg-border-soft hover:text-foreground"
+              className="rounded-md px-2 py-1 text-[12px] text-muted hover:bg-border-soft hover:text-foreground"
             >
-              🖨️
+              인쇄
             </button>
             <button
               type="button"
               aria-label="닫기"
               onClick={close}
-              className="rounded-md px-2 py-1 text-[21px] leading-none text-muted hover:bg-border-soft hover:text-foreground"
+              className="rounded-md px-2 py-1 text-[12px] text-muted hover:bg-border-soft hover:text-foreground"
             >
-              ✕
+              닫기
             </button>
           </div>
         </header>

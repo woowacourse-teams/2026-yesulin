@@ -53,9 +53,9 @@ export function VideoModal({ applicant, onClose }: { applicant: Applicant; onClo
           type="button"
           onClick={onClose}
           aria-label="영상 닫기"
-          className="px-1.5 py-[3px] text-lg leading-none text-white/60 hover:text-white"
+          className="px-1.5 py-[3px] text-xs text-white/60 hover:text-white"
         >
-          ✕
+          닫기
         </button>
       </div>
 
@@ -104,9 +104,9 @@ export function VideoModal({ applicant, onClose }: { applicant: Applicant; onClo
               type="button"
               onClick={() => setPlaying(true)}
               aria-label="재생"
-              className="relative grid h-[76px] w-[76px] place-items-center rounded-full bg-brand/95 pl-[5px] text-2xl text-white shadow-[0_6px_24px_rgba(0,0,0,0.4)] transition-transform hover:scale-105 hover:bg-brand"
-            >
-              ▶
+            className="relative grid h-[76px] w-[76px] place-items-center rounded-full bg-brand/95 text-sm font-semibold text-white shadow-[0_6px_24px_rgba(0,0,0,0.4)] transition-transform hover:scale-105 hover:bg-brand"
+          >
+              재생
             </button>
           </div>
         )}

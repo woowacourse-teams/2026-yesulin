@@ -60,7 +60,7 @@ export function ApplicantCards({ rows }: { rows: readonly Applicant[] }) {
                 </span>
                 {applicant.mismatchReasons.length > 0 ? (
                   <span className="mt-1 block text-[10.5px] font-semibold text-fail">
-                    ⚠️ 조건 불일치 ({mismatchText(applicant.mismatchReasons)})
+                    조건 불일치 ({mismatchText(applicant.mismatchReasons)})
                   </span>
                 ) : null}
               </span>

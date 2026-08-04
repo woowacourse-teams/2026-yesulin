@@ -5,6 +5,10 @@ import type {
   SaveReviewRequest,
   ScreeningBoardResponse,
 } from "@/features/screening/types";
+import type {
+  CreatePerformanceRequest,
+  CreatePostingRequest,
+} from "@/features/screening/creation-types";
 import { performanceId, postingId, roleId, ROUND_NUMBERS } from "@/features/screening/types";
 import { findPerformance, findPosting, findRole, roundStatesOf } from "./screening/aggregate";
 import {
@@ -12,18 +16,30 @@ import {
   toPerformanceRef,
   toPerformanceSummary,
   toPostingRef,
+  toPostingListResponse,
   toPostingSummary,
   toRoleSummary,
   toScreeningTree,
 } from "./screening/serialize";
 import { CATALOG } from "./screening/catalog";
 import { countsFor } from "./screening/aggregate";
-import { activeRound, isRoundClosed, markRoundClosed, poolFor, reviewOf } from "./screening/store";
+import {
+  activeRound,
+  isRoundClosed,
+  markRoundClosed,
+  poolFor,
+  reviewOf,
+  roundNumbersForRole,
+} from "./screening/store";
+import { addPerformance, addPosting } from "./screening/create";
 
 const apiPath = "/api/screening";
 
 const notFound = (message: string) => HttpResponse.json({ message }, { status: 404 });
 const badRequest = (message: string) => HttpResponse.json({ message }, { status: 400 });
+
+const hasText = (value: unknown): value is string =>
+  typeof value === "string" && value.trim().length > 0;
 
 const isRoundNumber = (value: number): value is RoundNumber =>
   ROUND_NUMBERS.some((round) => round === value);
@@ -71,10 +87,27 @@ export const handlers = [
     const performance = findPerformance(performanceId(String(params.performanceId)));
     if (!performance) return notFound("공연을 찾을 수 없습니다.");
 
-    return HttpResponse.json({
-      performance: toPerformanceRef(performance),
-      postings: performance.postings.map(toPostingSummary),
-    });
+    return HttpResponse.json(toPostingListResponse(performance));
+  }),
+
+  http.post(`${apiPath}/performance`, async ({ request }) => {
+    await delay(240);
+    const body = (await request.json()) as CreatePerformanceRequest;
+    if (!hasText(body.posterUrl)) return badRequest("공연 포스터를 선택해 주세요.");
+    if (!hasText(body.title)) return badRequest("공연 제목을 입력해 주세요.");
+    if (!hasText(body.venue)) return badRequest("공연 장소를 입력해 주세요.");
+    if (!Array.isArray(body.roles) || body.roles.length === 0) {
+      return badRequest("배역을 하나 이상 추가해 주세요.");
+    }
+    if (body.roles.some((role) => !hasText(role.name))) {
+      return badRequest("모든 배역의 이름을 입력해 주세요.");
+    }
+    if (body.roles.some((role) => role.ageMin < 0 || role.ageMax < role.ageMin)) {
+      return badRequest("배역의 나이 조건을 확인해 주세요.");
+    }
+
+    addPerformance(body);
+    return HttpResponse.json({ performances: CATALOG.map(toPerformanceSummary) }, { status: 201 });
   }),
 
   http.get(`${apiPath}/posting/:postingId`, async ({ params }) => {
@@ -90,6 +123,53 @@ export const handlers = [
       posting: toPostingSummary(posting),
       roles: posting.roles.map((role) => toRoleSummary(role, posting)),
     });
+  }),
+
+  http.post(`${apiPath}/posting`, async ({ request }) => {
+    await delay(260);
+    const body = (await request.json()) as CreatePostingRequest;
+    const performance = findPerformance(body.performanceId);
+    if (!performance) return notFound("공연을 찾을 수 없습니다.");
+    if (!hasText(body.title)) return badRequest("공고 제목을 입력해 주세요.");
+    if (!hasText(body.recruitmentStart) || !hasText(body.recruitmentEnd)) {
+      return badRequest("모집 기간을 입력해 주세요.");
+    }
+    if (body.recruitmentStart > body.recruitmentEnd) {
+      return badRequest("모집 종료일은 시작일보다 빠를 수 없습니다.");
+    }
+    if (!Array.isArray(body.roles) || body.roles.length === 0) {
+      return badRequest("모집할 배역을 하나 이상 선택해 주세요.");
+    }
+    if (body.roles.some((role) => role.quota < 1)) {
+      return badRequest("배역별 모집 인원은 1명 이상이어야 합니다.");
+    }
+    const templateIds = new Set(performance.roleTemplates.map((role) => role.id));
+    if (body.roles.some((role) => !templateIds.has(role.templateId))) {
+      return badRequest("공연에 등록되지 않은 배역이 포함되어 있습니다.");
+    }
+    if (!Array.isArray(body.rounds) || body.rounds.length < 2 || body.rounds.length > 3) {
+      return badRequest("전형은 2개 이상 3개 이하로 설정해 주세요.");
+    }
+    if (body.rounds.some((round, index) => round.round !== index + 1 || !hasText(round.name))) {
+      return badRequest("전형 이름과 차수 순서를 확인해 주세요.");
+    }
+    const dates = body.rounds.map((round) => round.date);
+    if (
+      dates.some((date) => !hasText(date)) ||
+      dates[0]! < body.recruitmentEnd ||
+      dates.some((date, index) => index > 0 && date < dates[index - 1]!)
+    ) {
+      return badRequest("전형 일정은 모집 종료 이후 차수 순서대로 입력해 주세요.");
+    }
+    if (
+      !Array.isArray(body.applicationFields) ||
+      body.applicationFields.filter((field) => field.enabled).some((field) => !hasText(field.label))
+    ) {
+      return badRequest("지원서 항목 이름을 확인해 주세요.");
+    }
+
+    addPosting(performance, body);
+    return HttpResponse.json(toPostingListResponse(performance), { status: 201 });
   }),
 
   http.get(`${apiPath}/role/:roleId`, async ({ params, request }) => {
@@ -146,7 +226,9 @@ export const handlers = [
     if (counts.pending > 0) return badRequest("검토 대기 중인 지원자가 남아 마감할 수 없습니다.");
 
     markRoundClosed(body.roleId, body.round);
-    const nextRound = (body.round < 3 ? body.round + 1 : body.round) as RoundNumber;
+    const rounds = roundNumbersForRole(body.roleId);
+    const currentIndex = rounds.indexOf(body.round);
+    const nextRound = rounds[currentIndex + 1] ?? body.round;
 
     const board = buildBoard(body.roleId, nextRound);
     return board ? HttpResponse.json(board) : notFound("배역을 찾을 수 없습니다.");

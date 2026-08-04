@@ -36,6 +36,17 @@ export const markRoundClosed = (role: RoleId, round: RoundNumber) => {
 export const applicantsOfRole = (role: RoleId): readonly MockApplicant[] =>
   APPLICANTS.filter((applicant) => applicant.roleId === role);
 
+/** 공고에서 설정한 전형 차수. 기존 목 공고는 3차 전형을 기본값으로 사용한다. */
+export function roundNumbersForRole(role: RoleId): readonly RoundNumber[] {
+  for (const performance of CATALOG) {
+    const posting = performance.postings.find((candidate) =>
+      candidate.roles.some((item) => item.id === role),
+    );
+    if (posting) return posting.rounds?.map((round) => round.round) ?? ROUND_NUMBERS;
+  }
+  return ROUND_NUMBERS;
+}
+
 /**
  * 해당 차수에 심사할 대상. 1차는 전원, 2차부터는 직전 차수를 마감했을 때만
  * 그 차수 합격자가 넘어온다. 마감 전에는 비어 있다.
@@ -50,13 +61,15 @@ export function poolFor(role: RoleId, round: RoundNumber): readonly MockApplican
 
 /** 아직 마감되지 않은 가장 이른 차수. 전부 마감이면 마지막 차수를 반환한다. */
 export function activeRound(role: RoleId): RoundNumber {
-  for (const round of ROUND_NUMBERS) {
+  const rounds = roundNumbersForRole(role);
+  for (const round of rounds) {
     if (!isRoundClosed(role, round)) return round;
   }
-  return 3;
+  return rounds.at(-1) ?? 1;
 }
 
-export const allRoundsClosed = (role: RoleId) => ROUND_NUMBERS.every((round) => isRoundClosed(role, round));
+export const allRoundsClosed = (role: RoleId) =>
+  roundNumbersForRole(role).every((round) => isRoundClosed(role, round));
 
 /** 지난 시즌 공고는 전 차수 심사 이력이 채워진 상태로 시작한다. */
 function seedFinishedPostings() {
@@ -65,10 +78,11 @@ function seedFinishedPostings() {
       if (!posting.finished) continue;
 
       for (const role of posting.roles) {
-        for (const round of ROUND_NUMBERS) {
+        for (const round of roundNumbersForRole(role.id)) {
           const pool = poolFor(role.id, round);
           if (pool.length > 0) {
-            const keep = round === 3 ? role.quota : Math.max(role.quota, Math.ceil(pool.length / 2));
+            const isLast = round === roundNumbersForRole(role.id).at(-1);
+            const keep = isLast ? role.quota : Math.max(role.quota, Math.ceil(pool.length / 2));
             pool.forEach((applicant, index) => {
               reviewOf(applicant.id, round).status = index < keep ? "PASS" : "FAIL";
             });

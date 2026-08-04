@@ -109,7 +109,7 @@ export function ApplicantTable({
                             title={`조건 불일치: ${mismatchText(applicant.mismatchReasons)}`}
                             className="ml-[5px] text-[10.5px] font-semibold text-fail"
                           >
-                            ⚠️
+                            조건 불일치
                           </span>
                         ) : null}
                       </span>

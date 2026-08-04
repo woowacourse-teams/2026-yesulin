@@ -1,3 +1,5 @@
+import type { PerformanceRoleTemplate } from "./creation-types";
+
 /**
  * 지원자 심사 도메인 모델.
  *
@@ -68,7 +70,7 @@ export type Review = {
 
 export type PerformanceSummary = {
   readonly id: PerformanceId;
-  readonly icon: string;
+  readonly posterUrl: string;
   readonly title: string;
   readonly venue: string;
   readonly postingCount: number;
@@ -81,7 +83,6 @@ export type PerformanceSummary = {
 export type PostingSummary = {
   readonly id: PostingId;
   readonly performanceId: PerformanceId;
-  readonly icon: string;
   readonly title: string;
   readonly deadline: string;
   readonly phase: PostingPhase;
@@ -166,13 +167,12 @@ export type RoundState = {
 
 export type PerformanceRef = {
   readonly id: PerformanceId;
-  readonly icon: string;
+  readonly posterUrl: string;
   readonly title: string;
 };
 
 export type PostingRef = {
   readonly id: PostingId;
-  readonly icon: string;
   readonly title: string;
   readonly isOpenCall: boolean;
 };
@@ -184,14 +184,13 @@ export type ScreeningTree = {
 
 export type ScreeningTreeNode = {
   readonly id: PerformanceId;
-  readonly icon: string;
+  readonly posterUrl: string;
   readonly title: string;
   readonly postings: readonly ScreeningTreePosting[];
 };
 
 export type ScreeningTreePosting = {
   readonly id: PostingId;
-  readonly icon: string;
   readonly title: string;
   readonly phase: PostingPhase;
   readonly applicantCount: number;
@@ -206,6 +205,7 @@ export type PerformanceListResponse = {
 
 export type PostingListResponse = {
   readonly performance: PerformanceRef;
+  readonly roleTemplates: readonly PerformanceRoleTemplate[];
   readonly postings: readonly PostingSummary[];
 };
 

@@ -4,6 +4,7 @@ import type {
   PerformanceRef,
   PerformanceSummary,
   PostingRef,
+  PostingListResponse,
   PostingSummary,
   Review,
   RoleSummary,
@@ -48,13 +49,12 @@ const applicantsOfPerformance = (performance: CatalogPerformance) =>
 
 export const toPerformanceRef = (performance: CatalogPerformance): PerformanceRef => ({
   id: performance.id,
-  icon: performance.icon,
+  posterUrl: performance.posterUrl,
   title: performance.title,
 });
 
 export const toPostingRef = (posting: CatalogPosting): PostingRef => ({
   id: posting.id,
-  icon: posting.icon,
   title: posting.title,
   isOpenCall: posting.isOpenCall,
 });
@@ -64,7 +64,7 @@ export function toPerformanceSummary(performance: CatalogPerformance): Performan
 
   return {
     id: performance.id,
-    icon: performance.icon,
+    posterUrl: performance.posterUrl,
     title: performance.title,
     venue: performance.venue,
     postingCount: performance.postings.length,
@@ -81,7 +81,6 @@ export function toPostingSummary(posting: CatalogPosting): PostingSummary {
   return {
     id: posting.id,
     performanceId: posting.performanceId,
-    icon: posting.icon,
     title: posting.title,
     deadline: posting.deadline,
     phase: postingPhase(posting),
@@ -94,6 +93,16 @@ export function toPostingSummary(posting: CatalogPosting): PostingSummary {
     progress: postingProgress(posting),
     previewPhotoUrls: previewPhotos(applicants),
     soleRoleId: soleRoleIdOf(posting),
+  };
+}
+
+export function toPostingListResponse(
+  performance: CatalogPerformance,
+): PostingListResponse {
+  return {
+    performance: toPerformanceRef(performance),
+    roleTemplates: performance.roleTemplates,
+    postings: performance.postings.map(toPostingSummary),
   };
 }
 
@@ -169,11 +178,10 @@ export function toScreeningTree(): ScreeningTree {
   return {
     performances: CATALOG.map((performance) => ({
       id: performance.id,
-      icon: performance.icon,
+      posterUrl: performance.posterUrl,
       title: performance.title,
       postings: performance.postings.map((posting) => ({
         id: posting.id,
-        icon: posting.icon,
         title: posting.title,
         phase: postingPhase(posting),
         applicantCount: applicantsOfPosting(posting).length,

@@ -79,7 +79,7 @@ export function FilterBar() {
                 : "border-border bg-card text-muted"
             }`}
           >
-            {gender === "FEMALE" ? "♀" : "♂"}
+            {gender === "FEMALE" ? "여" : "남"}
           </button>
         ))}
       </div>
@@ -101,7 +101,7 @@ export function FilterBar() {
             : "border-warn-bg bg-card text-muted-strong hover:border-warn"
         }`}
       >
-        ⚠️ 조건 불일치만<span className="num ml-1 opacity-55">{mismatches}</span>
+        조건 불일치만<span className="num ml-1 opacity-55">{mismatches}</span>
       </button>
 
       <button
@@ -187,9 +187,9 @@ function NumericFilter({ field }: { field: NumericField }) {
         type="button"
         aria-label={`${meta.label} 조건 제거`}
         onClick={() => update(null)}
-        className="px-1.5 py-0.5 text-sm leading-none text-muted"
+        className="px-1.5 py-0.5 text-[11px] leading-none text-muted"
       >
-        ✕
+        삭제
       </button>
     </span>
   );

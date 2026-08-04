@@ -67,7 +67,7 @@ export function DetailProfile({ applicant }: { applicant: Applicant }) {
                       <span
                         title={review.note}
                         className="truncate text-xs text-muted"
-                      >{`📝 ${review.note}`}</span>
+                      >{review.note}</span>
                     ) : null}
                   </>
                 ) : (

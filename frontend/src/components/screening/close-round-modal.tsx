@@ -1,7 +1,5 @@
 "use client";
 
-import { ROUND_LABELS } from "@/features/screening/labels";
-import type { RoundNumber } from "@/features/screening/types";
 import { useBoard } from "./board-context";
 import {
   DialogFooter,
@@ -26,8 +24,11 @@ export function CloseRoundModal({
   if (!counts) return null;
 
   const round = board.round;
-  const isFinal = round === 3;
-  const nextLabel = isFinal ? "전형 종료하기" : `${ROUND_LABELS[(round + 1) as RoundNumber]}로 넘어가기`;
+  const currentIndex = board.rounds.findIndex((state) => state.round === round);
+  const currentName = board.rounds[currentIndex]?.name ?? `${round}차 전형`;
+  const nextName = board.rounds[currentIndex + 1]?.name;
+  const isFinal = !nextName;
+  const nextLabel = isFinal ? "전형 종료하기" : `${nextName}로 넘어가기`;
 
   return (
     <ModalShell
@@ -38,12 +39,12 @@ export function CloseRoundModal({
     >
       <DialogHeader
         id={TITLE_ID}
-        title={`${board.role.name} · ${ROUND_LABELS[round]} ${auto ? "검토 완료" : "마감"}`}
+        title={`${board.role.name} · ${currentName} ${auto ? "검토 완료" : "마감"}`}
         subtitle={
           auto
             ? isFinal
               ? "전형을 종료하시겠습니까?"
-              : `${ROUND_LABELS[(round + 1) as RoundNumber]}로 넘어가시겠습니까?`
+              : `${nextName}로 넘어가시겠습니까?`
             : `${counts.all}명 심사 완료`
         }
       />
@@ -58,7 +59,7 @@ export function CloseRoundModal({
         <dl className="mb-3.5 grid grid-cols-[88px_1fr] gap-x-3 gap-y-[9px] text-[13.5px]">
           <dt className="text-muted">합격</dt>
           <dd className="num">
-            {counts.pass}명 {isFinal ? "→ 최종 합격" : `→ ${ROUND_LABELS[(round + 1) as RoundNumber]}로 이동`}
+            {counts.pass}명 {isFinal ? "→ 최종 합격" : `→ ${nextName}로 이동`}
           </dd>
           <dt className="text-muted">불합격</dt>
           <dd className="num">{counts.fail}명</dd>
@@ -80,7 +81,7 @@ export function CloseRoundModal({
           결과 연락은 서비스가 보내지 않습니다. 검토 완료 탭에서 연락처를 복사해 직접 연락해 주세요.
         </p>
         <p className="rounded-control bg-warn-bg px-[11px] py-2 text-xs text-warn">
-          {isFinal ? "종료하면" : "넘어가면"} {ROUND_LABELS[round]} 결과를 더 이상 변경할 수 없습니다. 다른
+          {isFinal ? "종료하면" : "넘어가면"} {currentName} 결과를 더 이상 변경할 수 없습니다. 다른
           배역 전형에는 영향이 없습니다.
         </p>
       </div>

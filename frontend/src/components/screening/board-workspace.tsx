@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { closeRound, saveReview } from "@/features/screening/api";
 import { applyFilters, initialFilters, type ScreeningFilters } from "@/features/screening/filters";
-import { ROUND_LABELS, STATUS_LABELS } from "@/features/screening/labels";
+import { STATUS_LABELS } from "@/features/screening/labels";
 import type {
   Applicant,
   ApplicationId,
@@ -152,7 +152,9 @@ export function BoardWorkspace({
   );
 
   const closeCurrentRound = useCallback(async () => {
-    const finishing = board.round === 3;
+    const currentIndex = board.rounds.findIndex((state) => state.round === board.round);
+    const nextState = board.rounds[currentIndex + 1];
+    const finishing = !nextState;
     const next = await run(
       () => closeRound({ roleId: board.role.id, round: board.round }),
       "차수를 마감하지 못했습니다.",
@@ -161,9 +163,9 @@ export function BoardWorkspace({
     toast(
       finishing
         ? "전형이 종료되었습니다"
-        : `${ROUND_LABELS[(board.round + 1) as RoundNumber]}가 시작되었습니다`,
+        : `${nextState.name}가 시작되었습니다`,
     );
-  }, [board.role.id, board.round, run, toast]);
+  }, [board.role.id, board.round, board.rounds, run, toast]);
 
   const value: BoardContextValue = {
     board,

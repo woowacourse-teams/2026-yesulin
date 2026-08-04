@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getScreeningTree } from "@/features/screening/api";
 import { PHASE_LABELS } from "@/features/screening/labels";
 import { postingEntryHref, screeningRoutes } from "@/features/screening/routes";
+import { SCREENING_TREE_CHANGED } from "@/features/screening/events";
 import type { ScreeningTree, ScreeningTreeNode } from "@/features/screening/types";
 import { PhaseTag } from "@/components/screening/status-badge";
 
@@ -36,11 +38,16 @@ export function ScreeningTreeNav() {
 
   useEffect(() => {
     let active = true;
-    getScreeningTree().then((response) => {
-      if (active) setTree(response);
-    });
+    const load = () => {
+      getScreeningTree().then((response) => {
+        if (active) setTree(response);
+      });
+    };
+    load();
+    window.addEventListener(SCREENING_TREE_CHANGED, load);
     return () => {
       active = false;
+      window.removeEventListener(SCREENING_TREE_CHANGED, load);
     };
   }, []);
 
@@ -129,7 +136,16 @@ function TreeBranch({
               : "text-foreground hover:bg-border-soft"
           }`}
         >
-          <span className="shrink-0 text-sm">{performance.icon}</span>
+          <span className="relative h-7 w-5 shrink-0 overflow-hidden rounded-[3px] bg-surface">
+            <Image
+              src={performance.posterUrl}
+              alt=""
+              fill
+              unoptimized
+              sizes="20px"
+              className="object-cover"
+            />
+          </span>
           <span className="flex-1 truncate">{performance.title}</span>
         </Link>
       </div>
@@ -151,7 +167,6 @@ function TreeBranch({
                   active ? "bg-brand-soft font-semibold text-brand" : "text-muted-strong hover:bg-border-soft hover:text-foreground"
                 }`}
               >
-                <span className="shrink-0 text-xs opacity-85">{posting.icon}</span>
                 <span className="min-w-0 flex-1 truncate">{posting.title}</span>
                 <PhaseTag phase={posting.phase} />
                 <span className={`num shrink-0 text-[10.5px] ${active ? "text-brand/75" : "text-muted"}`}>
@@ -170,11 +185,9 @@ function Caret({ open, small = false }: { open: boolean; small?: boolean }) {
   return (
     <span
       aria-hidden="true"
-      className={`inline-block w-3.5 text-center transition-transform ${small ? "text-[9px]" : "text-[10px]"} ${
+      className={`inline-block h-0 w-0 border-y-transparent border-l-current transition-transform ${small ? "border-y-[3px] border-l-[5px]" : "border-y-4 border-l-[6px]"} ${
         open ? "rotate-90" : ""
       }`}
-    >
-      ▶
-    </span>
+    />
   );
 }

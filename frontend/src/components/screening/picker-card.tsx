@@ -5,22 +5,46 @@ import Link from "next/link";
 const CARD_CLASS =
   "flex flex-col gap-[9px] rounded-[10px] border border-border bg-card p-4 text-left transition-[border-color,box-shadow] duration-150 hover:border-brand-line hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)]";
 
-export function PickerScreen({
+export function PickerScreen({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mx-auto max-w-[1080px] px-4 pb-16 pt-[34px] md:px-6">
+      {children}
+    </div>
+  );
+}
+
+export function PickerHeader({
   title,
   subtitle,
   children,
 }: {
   title: string;
   subtitle: string;
-  children: React.ReactNode;
+  children?: React.ReactNode;
 }) {
   return (
-    <div className="mx-auto max-w-[1080px] px-4 pb-16 pt-[34px] md:px-6">
-      <h1 className="text-[23px] font-bold tracking-[-0.03em]">{title}</h1>
-      <p className="mb-6 mt-[5px] text-[13.5px] text-muted">{subtitle}</p>
-      <div className="grid gap-[13px] [grid-template-columns:repeat(auto-fill,minmax(258px,1fr))]">
-        {children}
+    <div className="mb-6 flex flex-wrap items-start gap-4">
+      <div className="min-w-0 flex-1">
+        <h1 className="text-[23px] font-bold tracking-[-0.03em]">{title}</h1>
+        <p className="mt-[5px] text-[13.5px] text-muted">{subtitle}</p>
       </div>
+      {children}
+    </div>
+  );
+}
+
+export function PickerGrid({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="grid gap-[13px] [grid-template-columns:repeat(auto-fill,minmax(258px,1fr))]">
+      {children}
+    </div>
+  );
+}
+
+export function PickerEmpty({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="col-span-full rounded-[10px] border border-dashed border-muted-soft bg-card px-6 py-12 text-center text-[13px] leading-relaxed text-muted">
+      {children}
     </div>
   );
 }
@@ -48,14 +72,9 @@ export function PickerCardBlocked({
   );
 }
 
-export function PickerTitle({ icon, children }: { icon?: string; children: React.ReactNode }) {
+export function PickerTitle({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-2 text-[16.5px] font-bold tracking-[-0.02em]">
-      {icon ? (
-        <span aria-hidden="true" className="shrink-0 text-[19px] leading-none">
-          {icon}
-        </span>
-      ) : null}
       {children}
     </div>
   );

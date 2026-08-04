@@ -8,10 +8,9 @@ import type {
   RoundNumber,
   RoundState,
 } from "@/features/screening/types";
-import { ROUND_NUMBERS } from "@/features/screening/types";
 import type { CatalogPerformance, CatalogPosting, CatalogRole } from "./catalog";
 import { CATALOG, ROUND_NAMES } from "./catalog";
-import { activeRound, isRoundClosed, poolFor, reviewOf } from "./store";
+import { activeRound, isRoundClosed, poolFor, reviewOf, roundNumbersForRole } from "./store";
 
 export const findPerformance = (id: PerformanceId): CatalogPerformance | undefined =>
   CATALOG.find((performance) => performance.id === id);
@@ -61,12 +60,14 @@ export const progressOf = (counts: ReviewCounts): ReviewProgress => ({
 });
 
 export function roundStatesOf(role: RoleId): readonly RoundState[] {
-  return ROUND_NUMBERS.map((round) => {
+  const found = findRole(role);
+  const configured = found?.posting.rounds;
+  return roundNumbersForRole(role).map((round, index, rounds) => {
     const counts = countsFor(role, round);
     return {
       round,
-      name: ROUND_NAMES[round],
-      open: round === 1 || isRoundClosed(role, (round - 1) as RoundNumber),
+      name: configured?.find((item) => item.round === round)?.name || ROUND_NAMES[round],
+      open: index === 0 || isRoundClosed(role, rounds[index - 1]!),
       closed: isRoundClosed(role, round),
       counts,
       progress: progressOf(counts),
@@ -93,7 +94,7 @@ export const pendingCountOf = (posting: CatalogPosting) =>
 
 export const postingAllRoundsClosed = (posting: CatalogPosting) =>
   posting.roles.length > 0 &&
-  posting.roles.every((role) => ROUND_NUMBERS.every((round) => isRoundClosed(role.id, round)));
+  posting.roles.every((role) => roundNumbersForRole(role.id).every((round) => isRoundClosed(role.id, round)));
 
 /**
  * 접수 상태(OPEN/UPCOMING/CLOSED)와 전 배역 마감 여부를 합쳐 4단계로 파생한다.

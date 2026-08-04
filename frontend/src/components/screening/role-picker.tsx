@@ -11,6 +11,8 @@ import {
   PickerCard,
   PickerDescription,
   PickerProgress,
+  PickerGrid,
+  PickerHeader,
   PickerScreen,
   PickerState,
   PickerStats,
@@ -23,6 +25,7 @@ const HOT_RATE = 10;
 
 function stateText(role: RoleSummary) {
   if (role.allRoundsClosed) return "전형 종료";
+  if (role.applicantCount === 0) return "지원자 대기";
   const round = ROUND_LABELS[role.activeRound];
   return role.counts.pending > 0
     ? `${round} · 검토 대기 ${role.counts.pending}명`
@@ -37,13 +40,12 @@ export function RolePicker({ postingId }: { postingId: PostingId }) {
     <>
       <Breadcrumb
         items={[
-          { icon: "🏠", label: "전체 공연", href: screeningRoutes.performances },
+          { label: "전체 공연", href: screeningRoutes.performances },
           {
-            icon: data?.performance.icon ?? "🎭",
             label: data?.performance.title ?? "공연",
             href: data ? screeningRoutes.performance(data.performance.id) : undefined,
           },
-          { icon: data?.posting.icon ?? "📄", label: data?.posting.title ?? "공고" },
+          { label: data?.posting.title ?? "공고" },
         ]}
       />
       {loading ? <PickerSkeleton /> : null}
@@ -53,11 +55,13 @@ export function RolePicker({ postingId }: { postingId: PostingId }) {
         </div>
       ) : null}
       {data ? (
-        <PickerScreen
-          title="어떤 배역의 지원자를 보시겠어요?"
-          subtitle="배역마다 전형이 따로 진행됩니다. 차수가 배역별로 독립 관리됩니다."
-        >
-          {data.roles.map((role) => {
+        <PickerScreen>
+          <PickerHeader
+            title="어떤 배역의 지원자를 보시겠어요?"
+            subtitle="배역마다 전형이 따로 진행됩니다. 차수가 배역별로 독립 관리됩니다."
+          />
+          <PickerGrid>
+            {data.roles.map((role) => {
             const rate = role.quota > 0 ? role.applicantCount / role.quota : 0;
 
             return (
@@ -91,7 +95,8 @@ export function RolePicker({ postingId }: { postingId: PostingId }) {
                 </PickerState>
               </PickerCard>
             );
-          })}
+            })}
+          </PickerGrid>
         </PickerScreen>
       ) : null}
     </>

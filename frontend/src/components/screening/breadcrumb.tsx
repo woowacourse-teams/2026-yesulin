@@ -1,7 +1,6 @@
 import Link from "next/link";
 
 export type CrumbItem = {
-  readonly icon: string;
   readonly label: string;
   /** 마지막 항목은 href 없이 현재 위치로 표시된다. */
   readonly href?: string;
@@ -21,21 +20,15 @@ export function Breadcrumb({ items }: { items: readonly CrumbItem[] }) {
             {item.href ? (
               <Link
                 href={item.href}
-                className="inline-flex max-w-[280px] items-center gap-1.5 whitespace-nowrap rounded-[5px] px-2 py-1 text-[13.5px] text-muted-strong transition-colors hover:bg-border-soft hover:text-foreground"
+                className="inline-flex max-w-[280px] items-center whitespace-nowrap rounded-[5px] px-2 py-1 text-[13.5px] text-muted-strong transition-colors hover:bg-border-soft hover:text-foreground"
               >
-                <span aria-hidden="true" className="text-sm leading-none">
-                  {item.icon}
-                </span>
                 <span className="truncate">{item.label}</span>
               </Link>
             ) : (
               <span
                 aria-current="page"
-                className="inline-flex max-w-[280px] items-center gap-1.5 whitespace-nowrap rounded-[5px] px-2 py-1 text-[13.5px] font-semibold text-foreground"
+                className="inline-flex max-w-[280px] items-center whitespace-nowrap rounded-[5px] px-2 py-1 text-[13.5px] font-semibold text-foreground"
               >
-                <span aria-hidden="true" className="text-sm leading-none">
-                  {item.icon}
-                </span>
                 <span className="truncate">{item.label}</span>
               </span>
             )}
