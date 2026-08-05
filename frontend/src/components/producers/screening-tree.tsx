@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getScreeningTree } from "@/features/screening/api";
@@ -130,22 +129,12 @@ function TreeBranch({
         <Link
           href={screeningRoutes.performance(performance.id)}
           aria-current={activePerformance && !activePostingId ? "page" : undefined}
-          className={`flex flex-1 items-center gap-[7px] whitespace-nowrap rounded-md py-[7px] pl-0.5 pr-2 text-left text-[13px] font-semibold transition-colors ${
+          className={`flex flex-1 items-center whitespace-nowrap rounded-md px-2 py-[7px] text-left text-[13px] font-semibold transition-colors ${
             activePerformance && !activePostingId
               ? "bg-brand-soft text-brand"
               : "text-foreground hover:bg-border-soft"
           }`}
         >
-          <span className="relative h-7 w-5 shrink-0 overflow-hidden rounded-[3px] bg-surface">
-            <Image
-              src={performance.posterUrl}
-              alt=""
-              fill
-              unoptimized
-              sizes="20px"
-              className="object-cover"
-            />
-          </span>
           <span className="flex-1 truncate">{performance.title}</span>
         </Link>
       </div>

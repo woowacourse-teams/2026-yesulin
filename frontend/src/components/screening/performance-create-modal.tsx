@@ -16,6 +16,7 @@ import {
 import { emptyRoleDraft, PerformanceRoleEditor, type RoleDraft } from "./performance-role-editor";
 
 const TITLE_ID = "performance-create-title";
+const MAX_POSTER_SIZE_BYTES = 30 * 1024 * 1024;
 
 export function PerformanceCreateModal({
   onClose,
@@ -69,8 +70,8 @@ export function PerformanceCreateModal({
       setError("이미지 파일만 포스터로 등록할 수 있습니다.");
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      setError("포스터 이미지는 5MB 이하로 선택해 주세요.");
+    if (file.size > MAX_POSTER_SIZE_BYTES) {
+      setError("포스터 이미지는 30MB 이하로 선택해 주세요.");
       return;
     }
     const reader = new FileReader();
@@ -119,7 +120,7 @@ export function PerformanceCreateModal({
                   />
                 </label>
                 {posterName ? <span className="block truncate text-[10.5px] text-muted">{posterName}</span> : null}
-                <span className="mt-1.5 block text-[11.5px] text-muted">JPG, PNG, WEBP · 최대 5MB</span>
+                <span className="mt-1.5 block text-[11.5px] text-muted">JPG, PNG, WEBP · 최대 30MB</span>
               </div>
               <div className="grid content-start gap-3">
                 <CreateField label="공연 제목">

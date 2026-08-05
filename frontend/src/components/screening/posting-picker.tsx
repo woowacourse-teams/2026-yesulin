@@ -10,7 +10,6 @@ import { FacePile } from "./applicant-photo";
 import {
   PickerCard,
   PickerCardBlocked,
-  PickerDescription,
   PickerEmpty,
   PickerProgress,
   PickerGrid,
@@ -28,10 +27,10 @@ import { useToast } from "./toast";
 
 const UPCOMING_NOTICE = "아직 시작 전인 공고입니다. 모집이 시작되면 열람할 수 있습니다.";
 
-function deadlineText(posting: PostingSummary) {
-  if (posting.phase === "UPCOMING") return `시작 예정 · ${posting.deadline}`;
-  if (posting.phase === "OPEN") return `모집 중 · 마감 ${posting.deadline}`;
-  return `접수 마감 · ${posting.deadline}`;
+function recruitmentState(posting: PostingSummary) {
+  if (posting.phase === "UPCOMING") return "시작 예정";
+  if (posting.phase === "OPEN") return "모집 중";
+  return "접수 마감";
 }
 
 function stateText(posting: PostingSummary) {
@@ -82,24 +81,30 @@ export function PostingPicker({ performanceId }: { performanceId: PerformanceId 
             {data.postings.map((posting) => {
             const body = (
               <>
-                <div>
+                <div className="border-b border-border-soft pb-3">
                   <PickerTitle>
                     {posting.title}
                     <PhaseTag phase={posting.phase} />
                   </PickerTitle>
-                  <PickerDescription>
-                    {deadlineText(posting)} ·{" "}
-                    {posting.isOpenCall ? "배역 구분 없음" : `배역 ${posting.roleCount}개`}
-                  </PickerDescription>
                 </div>
-                <PickerStats
-                  primary={{ value: posting.applicantCount, unit: "명 지원" }}
-                  secondary={{ value: posting.quotaTotal, unit: "명 모집" }}
-                />
-                <FacePile urls={posting.previewPhotoUrls} />
-                {posting.progress.total > 0 && !posting.allRoundsClosed ? (
-                  <PickerProgress percent={posting.progress.percent} />
-                ) : null}
+                <div className="grid grid-cols-[1fr_1.1fr_0.9fr] divide-x divide-border-soft overflow-hidden rounded-lg border border-border-soft bg-surface">
+                  <PostingMeta label="모집 상태" value={recruitmentState(posting)} />
+                  <PostingMeta label="마감일" value={posting.deadline} numeric />
+                  <PostingMeta
+                    label="모집 배역"
+                    value={posting.isOpenCall ? "구분 없음" : `${posting.roleCount}개`}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <PickerStats
+                    primary={{ value: posting.applicantCount, unit: "명 지원" }}
+                    secondary={{ value: posting.quotaTotal, unit: "명 모집" }}
+                  />
+                  <FacePile urls={posting.previewPhotoUrls} />
+                  {posting.progress.total > 0 && !posting.allRoundsClosed ? (
+                    <PickerProgress percent={posting.progress.percent} />
+                  ) : null}
+                </div>
                 <PickerState
                   tone={
                     posting.allRoundsClosed
@@ -137,5 +142,24 @@ export function PostingPicker({ performanceId }: { performanceId: PerformanceId 
         />
       ) : null}
     </>
+  );
+}
+
+function PostingMeta({
+  label,
+  value,
+  numeric = false,
+}: {
+  label: string;
+  value: string;
+  numeric?: boolean;
+}) {
+  return (
+    <span className="min-w-0 px-2.5 py-2.5">
+      <span className="block text-[10.5px] font-medium text-muted">{label}</span>
+      <b className={`${numeric ? "num" : ""} mt-1 block truncate text-[12.5px] font-semibold text-foreground`}>
+        {value}
+      </b>
+    </span>
   );
 }

@@ -20,18 +20,18 @@ export function ProducerShell({ children }: { children: React.ReactNode }) {
       <aside className="fixed bottom-0 left-0 top-0 z-30 hidden flex-col overflow-y-auto overflow-x-hidden border-r border-border bg-card lg:flex lg:w-[var(--sidebar-width)]">
         <Link
           href={screeningRoutes.performances}
-          className="flex items-center gap-2.5 whitespace-nowrap px-4 pb-[13px] pt-[15px]"
+          aria-label="예술in 공연 관리 홈"
+          className="flex px-4 pb-3 pt-3"
         >
-          <span className="relative inline-flex h-7 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md bg-white ring-1 ring-black/10">
+          <span className="relative block h-14 w-[118px] shrink-0 overflow-hidden">
             <Image
-              src="/images/yesulin-logo-mark.png"
-              alt=""
-              width={56}
-              height={28}
-              className="h-full w-full object-contain"
+              src="/images/yesulin-logo-transparent.png"
+              alt="예술in"
+              fill
+              sizes="118px"
+              className="object-cover object-center"
             />
           </span>
-          <span className="text-base font-bold tracking-[-0.02em] text-brand">예술in</span>
         </Link>
 
         <ScreeningTreeNav />
