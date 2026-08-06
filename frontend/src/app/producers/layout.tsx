@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { MswProvider } from "@/components/mocks/msw-provider";
 import { ProducerShell } from "@/components/producers/producer-shell";
-import { ToastProvider } from "@/components/screening/toast";
+import { ToastProvider } from "@/components/auditions/toast";
 
 export const metadata: Metadata = {
   title: "공연사 관리자",

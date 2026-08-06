@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { PrimaryButton } from "@/components/screening/ui-controls";
-import { useToast } from "@/components/screening/toast";
+import { PrimaryButton } from "@/components/auditions/ui-controls";
+import { useToast } from "@/components/auditions/toast";
 import { AuthInput, PasswordInput, RoleField, type AccountRole } from "./auth-fields";
 import { AuthNoticeDialog, type AuthNotice } from "./auth-notice-dialog";
 import { ProducerSignupFields } from "./producer-signup-fields";

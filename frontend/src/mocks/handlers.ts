@@ -3,14 +3,14 @@ import type {
   CloseRoundRequest,
   RoundNumber,
   SaveReviewRequest,
-  ScreeningBoardResponse,
-} from "@/features/screening/types";
+  AuditionBoardResponse,
+} from "@/features/auditions/types";
 import type {
   CreatePerformanceRequest,
   CreatePostingRequest,
-} from "@/features/screening/creation-types";
-import { performanceId, postingId, roleId, ROUND_NUMBERS } from "@/features/screening/types";
-import { findPerformance, findPosting, findRole, roundStatesOf } from "./screening/aggregate";
+} from "@/features/auditions/creation-types";
+import { performanceId, postingId, roleId, ROUND_NUMBERS } from "@/features/auditions/types";
+import { findPerformance, findPosting, findRole, roundStatesOf } from "./auditions/aggregate";
 import {
   toApplicant,
   toPerformanceRef,
@@ -19,10 +19,10 @@ import {
   toPostingListResponse,
   toPostingSummary,
   toRoleSummary,
-  toScreeningTree,
-} from "./screening/serialize";
-import { CATALOG } from "./screening/catalog";
-import { countsFor } from "./screening/aggregate";
+  toAuditionTree,
+} from "./auditions/serialize";
+import { CATALOG } from "./auditions/catalog";
+import { countsFor } from "./auditions/aggregate";
 import {
   activeRound,
   isRoundClosed,
@@ -30,10 +30,10 @@ import {
   poolFor,
   reviewOf,
   roundNumbersForRole,
-} from "./screening/store";
-import { addPerformance, addPosting } from "./screening/create";
+} from "./auditions/store";
+import { addPerformance, addPosting } from "./auditions/create";
 
-const apiPath = "/api/screening";
+const apiPath = "/api/auditions";
 
 const notFound = (message: string) => HttpResponse.json({ message }, { status: 404 });
 const badRequest = (message: string) => HttpResponse.json({ message }, { status: 400 });
@@ -50,7 +50,7 @@ function parseRound(raw: string): RoundNumber | null {
 }
 
 /** 심사 화면 한 벌. 상태를 바꾼 뒤에도 같은 모양으로 되돌려 클라이언트를 갱신한다. */
-function buildBoard(rawRoleId: string, round: RoundNumber): ScreeningBoardResponse | null {
+function buildBoard(rawRoleId: string, round: RoundNumber): AuditionBoardResponse | null {
   const found = findRole(roleId(rawRoleId));
   if (!found) return null;
 
@@ -74,7 +74,7 @@ function buildBoard(rawRoleId: string, round: RoundNumber): ScreeningBoardRespon
 export const handlers = [
   http.get(`${apiPath}/tree`, async () => {
     await delay(180);
-    return HttpResponse.json(toScreeningTree());
+    return HttpResponse.json(toAuditionTree());
   }),
 
   http.get(`${apiPath}/performance`, async () => {
@@ -168,8 +168,11 @@ export const handlers = [
       return badRequest("지원서 항목 이름을 확인해 주세요.");
     }
 
-    addPosting(performance, body);
-    return HttpResponse.json(toPostingListResponse(performance), { status: 201 });
+    const createdPosting = addPosting(performance, body);
+    return HttpResponse.json({
+      ...toPostingListResponse(performance),
+      createdPostingId: createdPosting.id,
+    }, { status: 201 });
   }),
 
   http.get(`${apiPath}/role/:roleId`, async ({ params, request }) => {

@@ -67,25 +67,25 @@ npm run start
 frontend/src/
 ├── app/
 │   └── producers/                  공연사 관리자 라우트
-├── features/screening/             JSX 없는 심사 도메인·API 계층
+├── features/auditions/             JSX 없는 심사 도메인·API 계층
 ├── components/
 │   ├── producers/                  관리자 셸과 사이드바
-│   ├── screening/                  심사 UI
+│   ├── audition/                  심사 UI
 │   └── mocks/                      MSW 초기화 컴포넌트
 └── mocks/                          MSW 핸들러와 인메모리 목 데이터
 ```
 
 주요 파일:
 
-- `features/screening/types.ts`: 도메인 모델과 요청·응답 타입
-- `features/screening/api.ts`: `/api/screening` REST 요청
-- `features/screening/routes.ts`: 관리자 화면 경로
-- `components/screening/board-workspace.tsx`: 심사 화면 상태와 액션의 중심
-- `components/screening/board-context.tsx`: 심사 하위 UI의 공유 인터페이스
+- `features/auditions/types.ts`: 도메인 모델과 요청·응답 타입
+- `features/auditions/api.ts`: `/api/auditions` REST 요청
+- `features/auditions/routes.ts`: 관리자 화면 경로
+- `components/auditions/board-workspace.tsx`: 심사 화면 상태와 액션의 중심
+- `components/auditions/board-context.tsx`: 심사 하위 UI의 공유 인터페이스
 - `mocks/handlers.ts`: 실제 백엔드가 맞춰야 할 목 API 동작
 - `app/globals.css`: Tailwind 테마와 전역 디자인 토큰
 
-라우트 파일은 URL 파라미터를 변환해 화면 컴포넌트에 전달하는 얇은 계층으로 유지한다. 비즈니스 규칙은 `features/screening/`, 화면 표현은 `components/screening/`에 둔다.
+라우트 파일은 URL 파라미터를 변환해 화면 컴포넌트에 전달하는 얇은 계층으로 유지한다. 비즈니스 규칙은 `features/auditions/`, 화면 표현은 `components/auditions/`에 둔다.
 
 ## 도메인과 화면 규칙
 
@@ -107,9 +107,9 @@ Performance 공연
 
 ## API와 MSW 규칙
 
-- API 경로는 절대 URL이 아닌 `/api/screening/**` 상대 경로를 사용한다.
+- API 경로는 절대 URL이 아닌 `/api/auditions/**` 상대 경로를 사용한다.
 - 클라이언트는 공연사 식별자를 요청에 넣지 않는다.
-- `PATCH /api/screening/review`와 `POST /api/screening/round/close`는 갱신된 `ScreeningBoardResponse` 전체를 반환한다.
+- `PATCH /api/auditions/review`와 `POST /api/auditions/round/close`는 갱신된 `AuditionBoardResponse` 전체를 반환한다.
 - 변경 응답을 받은 클라이언트는 별도 재조회 대신 새 보드로 상태를 교체한다.
 - 기본 개발 환경에서는 MSW를 사용하며 `NEXT_PUBLIC_API_MOCKING=disabled`일 때 비활성화한다.
 - 목 심사 상태는 브라우저 메모리에 있어 새로고침하면 초기화된다.

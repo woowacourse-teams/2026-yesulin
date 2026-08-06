@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ToastProvider } from "@/components/screening/toast";
+import { ToastProvider } from "@/components/auditions/toast";
 
 export const metadata: Metadata = {
   robots: { index: false, follow: false },

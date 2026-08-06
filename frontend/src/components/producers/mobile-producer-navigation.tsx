@@ -4,10 +4,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { ModalShell } from "@/components/screening/modal-shell";
-import { screeningRoutes } from "@/features/screening/routes";
+import { ModalShell } from "@/components/auditions/modal-shell";
+import { auditionRoutes } from "@/features/auditions/routes";
 import { ProducerAccountPanel } from "./producer-account-panel";
-import { ScreeningTreeNav } from "./screening-tree";
+import { AuditionTreeNav } from "./audition-tree";
 
 const TITLE_ID = "mobile-producer-navigation-title";
 
@@ -38,7 +38,7 @@ function MobileProducerNavigationPanel() {
           </span>
         </button>
         <Link
-          href={screeningRoutes.performances}
+          href={auditionRoutes.performances}
           className="flex min-h-11 min-w-0 items-center rounded-control px-1"
         >
           <span className="relative block h-9 w-[76px] shrink-0 overflow-hidden">
@@ -78,7 +78,7 @@ function MobileProducerNavigationPanel() {
             </button>
           </header>
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-2">
-            <ScreeningTreeNav onNavigate={() => setOpen(false)} />
+            <AuditionTreeNav onNavigate={() => setOpen(false)} />
           </div>
           <ProducerAccountPanel />
         </div>

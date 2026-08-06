@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { PrimaryButton } from "@/components/screening/ui-controls";
-import { useToast } from "@/components/screening/toast";
+import { PrimaryButton } from "@/components/auditions/ui-controls";
+import { useToast } from "@/components/auditions/toast";
 import { AuthNoticeDialog, type AuthNotice } from "./auth-notice-dialog";
 import { AuthInput, PasswordInput, RoleField, type AccountRole } from "./auth-fields";
 import { SocialButtons } from "./social-buttons";

@@ -1,10 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
-import { PHASE_LABELS } from "@/features/screening/labels";
-import { screeningRoutes } from "@/features/screening/routes";
-import { POSTING_PHASES } from "@/features/screening/types";
-import { PhaseTag } from "@/components/screening/status-badge";
-import { ScreeningTreeNav } from "./screening-tree";
+import { PHASE_LABELS } from "@/features/auditions/labels";
+import { auditionRoutes } from "@/features/auditions/routes";
+import { POSTING_PHASES } from "@/features/auditions/types";
+import { PhaseTag } from "@/components/auditions/status-badge";
+import { AuditionTreeNav } from "./audition-tree";
 import { SidebarResizer } from "./sidebar-resizer";
 import { MobileProducerNavigation } from "./mobile-producer-navigation";
 import { ProducerAccountPanel } from "./producer-account-panel";
@@ -21,7 +21,7 @@ export function ProducerShell({ children }: { children: React.ReactNode }) {
 
       <aside className="fixed bottom-0 left-0 top-0 z-30 hidden flex-col overflow-y-auto overflow-x-hidden border-r border-sidebar-line bg-sidebar text-sidebar-text lg:flex lg:w-[var(--sidebar-width)]">
         <Link
-          href={screeningRoutes.performances}
+          href={auditionRoutes.performances}
           aria-label="예술in 공연 관리 홈"
           className="flex px-4 pb-3 pt-3"
         >
@@ -37,7 +37,7 @@ export function ProducerShell({ children }: { children: React.ReactNode }) {
           </span>
         </Link>
 
-        <ScreeningTreeNav />
+        <AuditionTreeNav />
 
         <div className="mt-auto flex flex-col gap-2 border-t border-sidebar-line px-4 py-3 text-xs text-sidebar-muted">
           <div className="flex flex-wrap gap-1.5">

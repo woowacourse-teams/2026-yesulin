@@ -87,19 +87,19 @@ Performance  공연(작품)
 
 ## API 계약
 
-모든 경로는 `/api/screening` 아래에 둔다.
+모든 경로는 `/api/auditions` 아래에 둔다.
 
 | 기능 | 메서드 | 경로 |
 | --- | --- | --- |
-| 사이드바 트리 | `GET` | `/api/screening/tree` |
-| 공연 목록 | `GET` | `/api/screening/performance` |
-| 공연 추가 | `POST` | `/api/screening/performance` |
-| 공고 목록 | `GET` | `/api/screening/performance/{performanceId}` |
-| 배역 목록 | `GET` | `/api/screening/posting/{postingId}` |
-| 공고 추가 | `POST` | `/api/screening/posting` |
-| 심사 화면 | `GET` | `/api/screening/role/{roleId}?round={1\|2\|3}` |
-| 심사 결과·메모 저장 | `PATCH` | `/api/screening/review` |
-| 차수 마감 | `POST` | `/api/screening/round/close` |
+| 사이드바 트리 | `GET` | `/api/auditions/tree` |
+| 공연 목록 | `GET` | `/api/auditions/performance` |
+| 공연 추가 | `POST` | `/api/auditions/performance` |
+| 공고 목록 | `GET` | `/api/auditions/performance/{performanceId}` |
+| 배역 목록 | `GET` | `/api/auditions/posting/{postingId}` |
+| 공고 추가 | `POST` | `/api/auditions/posting` |
+| 심사 화면 | `GET` | `/api/auditions/role/{roleId}?round={1\|2\|3}` |
+| 심사 결과·메모 저장 | `PATCH` | `/api/auditions/review` |
+| 차수 마감 | `POST` | `/api/auditions/round/close` |
 
 ### 조회 규칙
 
@@ -182,18 +182,21 @@ Performance  공연(작품)
 - 1차 전형은 모집 종료일보다 빠를 수 없고 이후 일정은 차수 순서대로 입력한다.
 - 현재 MVP는 기존 심사 화면과 맞춰 전형을 2개 이상 3개 이하로 받는다. 입력한 전형만 심사 스테퍼와 마감 흐름에 노출한다.
 - 지원서 기본 항목과 사용자 정의 항목은 모두 사용 여부와 필수 여부를 독립적으로 저장한다.
-- 성공하면 해당 공연의 갱신된 `PostingListResponse`를 돌려준다.
+- 성공하면 해당 공연의 갱신된 `PostingListResponse`와 새 공고의 `createdPostingId`를 돌려준다.
+- 공연사 화면은 `createdPostingId`로 `${origin}/apply/{postingId}` 형식의 공개 지원서 링크를 만들고, 생성 성공 화면에서 OTR 등 외부 공고에 붙여 넣을 수 있도록 복사 기능을 제공한다.
+- 생성 이후에도 공연의 공고 카드, 공고의 배역 선택 화면과 지원자 심사 화면 상단에서 같은 공개 지원서 링크를 다시 복사할 수 있다.
+- `/apply/{postingId}`의 실제 지원서 작성 화면은 지원자용 공개 화면 구현 단계에서 연결한다.
 
 ## MSW 운영 방식
 
 - 핸들러: `frontend/src/mocks/handlers.ts`
-- 목 데이터·상태: `frontend/src/mocks/screening/`
+- 목 데이터·상태: `frontend/src/mocks/auditions/`
   - `catalog.ts` — 공연·공고·배역 원본
   - `create.ts` — 공연·공고 생성과 식별자·진행 단계 생성
   - `applicants.ts` — 시드 고정 난수로 만든 지원서
   - `store.ts` — 심사 결과와 차수 마감 상태(브라우저 메모리)
   - `aggregate.ts` / `serialize.ts` — 집계와 응답 변환
-- **시드를 고정**했다(`SCREENING_SEED = 20260803`). 새로고침해도 같은 인원·통계가 나와야 화면을 비교할 수 있다.
+- **시드를 고정**했다(`AUDITION_SEED = 20260803`). 새로고침해도 같은 인원·통계가 나와야 화면을 비교할 수 있다.
 - 목 데이터는 브라우저 메모리에 있으므로 새로고침하면 심사 결과와 마감 상태가 초기화된다.
 - 추가한 공연·공고도 브라우저 메모리에만 있으므로 새로고침하면 사라진다.
 - 지난 시즌 공고(`finished: true`)는 전 차수 심사 이력이 채워진 상태로 시작한다. 마감된 화면이 어떻게 보이는지 바로 확인하기 위해서다.

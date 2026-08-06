@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { PerformancePicker } from "@/components/screening/performance-picker";
+import { PerformancePicker } from "@/components/auditions/performance-picker";
 
 export const metadata: Metadata = {
   title: "공연 관리",
