@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { createPosting } from "@/features/auditions/api";
 import {
-  APPLICATION_FIELD_OPTIONS,
+  defaultApplicationFields,
   type ApplicationFieldInput,
   type PerformanceRoleTemplate,
   type AuditionRoundInput,
@@ -29,15 +29,7 @@ import { PostingCreatedPanel, POSTING_CREATED_TITLE_ID } from "./posting-created
 const TITLE_ID = "posting-create-title";
 const ROLES_ERROR_ID = "posting-roles-error";
 const FORM_ERROR_ID = "posting-create-error";
-const INITIALLY_DISABLED = new Set(["SCHOOL", "MOTIVATION"]);
-const INITIAL_FIELDS: readonly ApplicationFieldInput[] = APPLICATION_FIELD_OPTIONS.map((field) => ({
-  id: field.key,
-  key: field.key,
-  label: field.label,
-  enabled: !INITIALLY_DISABLED.has(field.key),
-  required: field.defaultRequired,
-  custom: false,
-}));
+const INITIAL_FIELDS: readonly ApplicationFieldInput[] = defaultApplicationFields();
 const INITIAL_ROUNDS: readonly AuditionRoundInput[] = [
   { round: 1, name: "서류 심사", date: "", note: "온라인 서류 심사" },
   { round: 2, name: "대면 오디션", date: "", note: "대면 오디션" },

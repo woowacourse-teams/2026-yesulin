@@ -1,5 +1,7 @@
 import type { PerformanceId } from "@/features/auditions/types";
 import { performanceId, postingId } from "@/features/auditions/types";
+import { defaultApplicationFields } from "@/features/auditions/creation-types";
+import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
 import type { CatalogPerformance } from "./catalog-model";
 import { role, template } from "./catalog-model";
 
@@ -10,6 +12,22 @@ const HAMLET_LAWYER = performanceId("p2");
 const HANGOVER = performanceId("p3");
 const SPEED_SCANDAL = performanceId("p4");
 const RUN_TO_FAMILY = performanceId("p5");
+
+const HIGH_LIFE_APPLICATION_FIELDS: readonly ApplicationFieldInput[] = [
+  ...defaultApplicationFields(),
+  {
+    id: "custom-specialty",
+    label: "특기",
+    enabled: true,
+    required: false,
+    custom: true,
+    section: "CUSTOM",
+    inputType: "TEXT",
+    order: 10,
+    layout: "FULL",
+    config: { placeholder: "연기, 노래, 악기 등 특기를 입력해 주세요." },
+  },
+];
 
 export const CATALOG: CatalogPerformance[] = [
   {
@@ -34,6 +52,7 @@ export const CATALOG: CatalogPerformance[] = [
         { round: 1, name: "1차 서류", date: "2026-08-10", note: "이메일 서류 심사" },
         { round: 2, name: "2차 연기 오디션", date: "2026-08-12", note: "서류 합격자 개별 안내" },
       ],
+      applicationFields: HIGH_LIFE_APPLICATION_FIELDS,
       applicationGuide: "자유 양식 지원서를 ninejin6485@naver.com으로 제출",
     }],
   },
@@ -64,7 +83,7 @@ export const CATALOG: CatalogPerformance[] = [
     roleTemplates: [template("p3_t1", "전체 지원자", "배역 구분 없이 지원", "ANY", 20, 55)],
     postings: [{
       id: postingId("po5"), performanceId: HANGOVER,
-      title: "2026 하반기 팀 오디션", deadline: "09.19", status: "OPEN",
+      title: "2026 하반기 팀 오디션", deadline: "09.19", status: "UPCOMING",
       isOpenCall: true, finished: false,
       recruitmentStart: "2026-08-07", recruitmentEnd: "2026-09-19",
       roles: [role("po5_r1", "전체 지원자", "배역 구분 없이 지원", 6, "ANY", 20, 55, 15)],

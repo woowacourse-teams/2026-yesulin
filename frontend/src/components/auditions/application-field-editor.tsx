@@ -18,9 +18,21 @@ export function ApplicationFieldEditor({
 
   const addCustom = () => {
     const id = `custom-${Date.now()}`;
+    const order = Math.max(0, ...fields.map((field) => field.order)) + 10;
     onChange([
       ...fields,
-      { id, label: "", enabled: true, required: false, custom: true },
+      {
+        id,
+        label: "",
+        enabled: true,
+        required: false,
+        custom: true,
+        section: "CUSTOM",
+        inputType: "TEXT",
+        order,
+        layout: "FULL",
+        config: { placeholder: "답변을 입력해 주세요." },
+      },
     ]);
   };
 

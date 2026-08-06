@@ -78,12 +78,24 @@ Performance  공연(작품)
 | 공고 선택 | `/producers/performances/{performanceId}` |
 | 배역 선택 | `/producers/postings/{postingId}` |
 | 지원자 심사 | `/producers/roles/{roleId}` |
+| 공개 공고 상세 | `/apply/{postingId}` |
 
 식별자가 전역 유일하므로 계층을 URL에 중첩하지 않는다. 상위 정보(공연·공고)는 각 응답이 함께 내려줘 브레드크럼으로 복원한다.
 
 건너뛰기 규칙: **배역 구분이 없는 공고(`isOpenCall`)이거나 배역이 하나뿐이면** 배역 선택 화면을 건너뛰고 바로 심사 화면으로 들어간다. 서버가 `soleRoleId`로 알려준다.
 
 공연사 관리자 화면은 검색 엔진에 노출하지 않는다. `/producers` 레이아웃에 `noindex`, `nofollow`를 적용한다.
+
+### 공개 공고 상세 (프론트엔드 목)
+
+- `/apply/{postingId}`는 로그인 없이 공고 정보, 공연사 정보, 모집 배역, 전형 일정, 제출 자료를 보여준다.
+- 진행 중 공고는 여러 배역 가운데 하나를 선택한 뒤 하단 또는 데스크톱 요약 패널의 `지원하기` CTA를 사용할 수 있다. 배역 구분이 없거나 하나뿐인 공고는 선택을 건너뛴다.
+- `UPCOMING`은 `모집 시작 전`, `CLOSED`는 `지원 마감` CTA로 비활성화한다. 존재하지 않는 식별자는 링크 확인 방법을 안내하는 오류 화면을 보여준다.
+- `지원하기`는 공고의 `applicationFields`에서 파생한 지원서로 이동한다. 현재는 `BASIC`(기본 정보), `MATERIALS`(사진·영상), `CAREER`(경력), `CUSTOM`(공고별 추가 질문) 섹션을 렌더링하며, 활성 필드가 없는 섹션은 단계와 본문에서 모두 제외한다. `INTRODUCTION`은 후속 작업이다.
+- 사진은 JPG·PNG·WEBP와 파일당 10MB만 허용하며, 추가 직후 `업로드 중`에서 `업로드 완료`로 목 상태가 전환된다. 최대 4장을 등록하고, 첫 사진 또는 사용자가 지정한 사진이 대표 사진이다. 삭제는 브라우저 메모리의 미리보기만 제거한다.
+- 영상은 URL 파싱 후 실제 호스트가 `youtube.com`, `www.youtube.com`, `m.youtube.com`, `youtu.be`인 일반·단축·Shorts·embed URL만 인정한다. 유효한 링크에는 연결 상태와 삭제 동작을 표시한다. 경력은 최대 10개까지 작품명·맡은 배역·연도를 반복 입력하거나 `경력 없음`을 선택할 수 있다.
+- 검토 화면은 영역별 수정, 개인정보 수집·이용 동의, 전체 필수값 재검사를 제공한다. 제출 중에는 영역 수정과 동의 변경을 막는다. 동의 후 성공·실패 목 상태를 확인할 수 있으며, 성공하면 `MOCK-` 접수번호·처리 시각·공연·공고·배역을 표시하고 실제 서버나 공연사에 전달되지 않았음을 명시한다. 실제 파일 업로드와 제출 API는 아직 없다.
+- 현재는 `features/applications/public-posting.ts`가 기존 목 카탈로그에서 공개용 읽기 모델을 만들며, 지원서 작성·제출 API나 백엔드 변경은 없다.
 
 ## API 계약
 
@@ -169,9 +181,9 @@ Performance  공연(작품)
     { "round": 2, "name": "대면 오디션", "date": "2026-09-05", "note": "연습실 A" }
   ],
   "applicationFields": [
-    { "id": "NAME", "key": "NAME", "label": "이름", "enabled": true, "required": true, "custom": false },
-    { "id": "PHONE", "key": "PHONE", "label": "연락처", "enabled": true, "required": false, "custom": false },
-    { "id": "custom-1", "label": "특기", "enabled": true, "required": false, "custom": true }
+    { "id": "NAME", "key": "NAME", "label": "이름", "enabled": true, "required": true, "custom": false, "section": "BASIC", "inputType": "TEXT", "order": 10, "layout": "HALF", "config": { "placeholder": "이름을 입력해 주세요." } },
+    { "id": "GENDER", "key": "GENDER", "label": "성별", "enabled": true, "required": true, "custom": false, "section": "BASIC", "inputType": "SELECT", "order": 40, "layout": "HALF", "config": { "options": ["여성", "남성", "응답하지 않음"] } },
+    { "id": "custom-1", "label": "특기", "enabled": true, "required": false, "custom": true, "section": "CUSTOM", "inputType": "TEXT", "order": 10, "layout": "FULL", "config": { "placeholder": "특기를 입력해 주세요." } }
   ],
   "applicationGuide": "프로필 사진은 최근 6개월 이내 촬영본을 첨부해 주세요."
 }
@@ -182,10 +194,12 @@ Performance  공연(작품)
 - 1차 전형은 모집 종료일보다 빠를 수 없고 이후 일정은 차수 순서대로 입력한다.
 - 현재 MVP는 기존 심사 화면과 맞춰 전형을 2개 이상 3개 이하로 받는다. 입력한 전형만 심사 스테퍼와 마감 흐름에 노출한다.
 - 지원서 기본 항목과 사용자 정의 항목은 모두 사용 여부와 필수 여부를 독립적으로 저장한다.
+- 각 지원서 항목은 `section`(BASIC, CUSTOM, CAREER, MATERIALS, INTRODUCTION), `inputType`, `order`, `layout`(FULL, HALF), `config`을 함께 저장한다. `config`은 placeholder, 선택지, 글자 수와 복합 입력의 하위 필드를 담는다.
+- 공개 지원서가 지원하는 섹션은 현재 BASIC, MATERIALS, CAREER, CUSTOM이다. 활성 필드가 하나도 없으면 해당 단계는 표시하지 않는다. INTRODUCTION 렌더링과 실제 제출 API는 후속 작업이다.
 - 성공하면 해당 공연의 갱신된 `PostingListResponse`와 새 공고의 `createdPostingId`를 돌려준다.
 - 공연사 화면은 `createdPostingId`로 `${origin}/apply/{postingId}` 형식의 공개 지원서 링크를 만들고, 생성 성공 화면에서 OTR 등 외부 공고에 붙여 넣을 수 있도록 복사 기능을 제공한다.
 - 생성 이후에도 공연의 공고 카드, 공고의 배역 선택 화면과 지원자 심사 화면 상단에서 같은 공개 지원서 링크를 다시 복사할 수 있다.
-- `/apply/{postingId}`의 실제 지원서 작성 화면은 지원자용 공개 화면 구현 단계에서 연결한다.
+- `/apply/{postingId}`는 목 카탈로그의 기본 공고에서 공개 상세와 지원서 작성·검토·목 접수 완료 흐름을 연결한다. 새로 생성한 공고 연결과 실제 제출 저장은 후속 작업이다.
 
 ## MSW 운영 방식
 
@@ -223,7 +237,7 @@ Performance  공연(작품)
 - 필터가 클라이언트 전용이라 지원자가 크게 늘면 서버 필터·페이징이 필요하다.
 - 목록 정렬은 접수 순서 그대로다. 정렬 기준 선택은 아직 없다.
 - 공연·공고를 수정·삭제하거나 공연 배역 템플릿을 나중에 편집하는 화면은 없다.
-- 생성한 공고는 지원자가 0명인 상태로 시작하며 실제 공개·접수 화면은 아직 없다.
+- 생성한 공고는 지원자가 0명인 상태로 시작한다. 공개 공고 상세와 지원서 폼은 목 카탈로그의 기본 공고에서만 확인할 수 있으며, 사진은 브라우저 메모리 미리보기만 제공한다. 제출 성공·실패와 접수번호도 브라우저 메모리 목 상태이며, 실제 제출 저장과 새로 만든 공고의 공개 상세 연결은 아직 없다.
 - 인쇄는 브라우저 인쇄 대화상자를 그대로 쓴다. 팝업이 차단되면 토스트로 안내만 한다.
 
 ## 작업 후 문서화

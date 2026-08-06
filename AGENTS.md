@@ -19,13 +19,13 @@
 ```text
 2026-yesulin/
 ├── backend/    Spring Boot 애플리케이션
-├── frontend/   공연사 관리자용 Next.js 애플리케이션
+├── frontend/   공연사 관리자·지원자 공개 화면을 제공하는 Next.js 애플리케이션
 └── docs/       프로젝트 운영 문서와 공연 관리 스펙
 ```
 
-루트 `README.md`에 적힌 `frontend-producer/`, `frontend-applicant/` 분리는 장래 구상이며 현재 실제 프론트엔드 코드는 모두 `frontend/`에 있다. 지원자용 공개 화면은 아직 없다.
+루트 `README.md`에 적힌 `frontend-producer/`, `frontend-applicant/` 분리는 장래 구상이며 현재 실제 프론트엔드 코드는 모두 `frontend/`에 있다. 지원자 공개 화면은 `/apply/{postingId}`에서 목 데이터로 동작한다.
 
-현재 프론트엔드는 지원자용 서비스 소개 랜딩과 공연사 서비스 소개 랜딩, 인증 UI, 공연사 관리자의 지원자 심사 흐름을 제공한다. 심사 화면에서 필요한 타입과 API 계약을 먼저 확정하고 향후 백엔드가 이를 구현하는 계약 우선 방식이다. 지원자용 공고 탐색·지원 화면은 아직 없다.
+현재 프론트엔드는 지원자·공연사 서비스 소개 랜딩, 인증 UI, 공연사 관리자의 지원자 심사 흐름과 지원자용 공개 공고 상세·지원서 작성·검토·목 접수 완료 흐름을 제공한다. 공개 지원서는 실제 저장이나 공연사 전달 없이 프론트엔드 목 상태만 검증한다. 심사 화면에서 필요한 타입과 API 계약을 먼저 확정하고 향후 백엔드가 이를 구현하는 계약 우선 방식이다.
 
 ## 먼저 읽을 문서
 
@@ -66,11 +66,14 @@ npm run start
 ```text
 frontend/src/
 ├── app/
+│   ├── apply/[postingId]/          지원자 공개 공고·지원서 라우트
 │   └── producers/                  공연사 관리자 라우트
 ├── features/auditions/             JSX 없는 심사 도메인·API 계층
+├── features/applications/          공개 공고 읽기 모델·지원서 규칙
 ├── components/
 │   ├── producers/                  관리자 셸과 사이드바
-│   ├── audition/                  심사 UI
+│   ├── auditions/                 심사 UI
+│   ├── applications/              지원자 공개 공고·지원서 UI
 │   └── mocks/                      MSW 초기화 컴포넌트
 └── mocks/                          MSW 핸들러와 인메모리 목 데이터
 ```
@@ -80,8 +83,11 @@ frontend/src/
 - `features/auditions/types.ts`: 도메인 모델과 요청·응답 타입
 - `features/auditions/api.ts`: `/api/auditions` REST 요청
 - `features/auditions/routes.ts`: 관리자 화면 경로
+- `features/applications/public-posting.ts`: 목 카탈로그에서 공개 공고 읽기 모델 생성
+- `features/applications/application-form-state.ts`: 지원서 검증과 목 제출 상태 규칙
 - `components/auditions/board-workspace.tsx`: 심사 화면 상태와 액션의 중심
 - `components/auditions/board-context.tsx`: 심사 하위 UI의 공유 인터페이스
+- `components/applications/public-application-context.tsx`: 공개 지원서 상태와 액션의 공유 인터페이스
 - `mocks/handlers.ts`: 실제 백엔드가 맞춰야 할 목 API 동작
 - `app/globals.css`: Tailwind 테마와 전역 디자인 토큰
 
