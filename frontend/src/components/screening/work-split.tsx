@@ -3,6 +3,7 @@
 import type { WorkMode } from "@/features/screening/filters";
 import { useBoard } from "./board-context";
 import { CloseRoundModal } from "./close-round-modal";
+import { PrimaryButton } from "./ui-controls";
 
 const TABS = [
   { mode: "PENDING", label: "검토 대기" },
@@ -22,7 +23,7 @@ export function WorkSplit() {
 
   return (
     <>
-      <div className="flex flex-wrap items-center border-b border-border bg-card px-4 md:px-6">
+      <div className="flex flex-wrap items-center border-b border-border bg-transparent px-4 md:px-6 xl:px-8">
         {TABS.map((tab) => {
           const active = filters.work === tab.mode;
           return (
@@ -62,14 +63,13 @@ export function WorkSplit() {
                   ? `검토 대기 ${counts.pending}명이 남아 마감할 수 없습니다`
                   : "검토를 모두 마쳤습니다"}
               </span>
-              <button
-                type="button"
+              <PrimaryButton
                 disabled={!canClose}
                 onClick={() => setClosePrompt("manual")}
-                className="whitespace-nowrap rounded-control bg-foreground px-[13px] py-1.5 text-[12.5px] font-semibold text-white hover:bg-black disabled:cursor-not-allowed disabled:bg-border disabled:text-muted"
+                className="whitespace-nowrap lg:min-h-9 lg:px-3 lg:text-[13px]"
               >
                 {currentName} 마감하고 {nextName ? `${nextName} 시작` : "전형 종료"}
-              </button>
+              </PrimaryButton>
             </>
           )}
         </div>

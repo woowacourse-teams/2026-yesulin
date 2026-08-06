@@ -63,7 +63,7 @@ export function PostingPicker({ performanceId }: { performanceId: PerformanceId 
       {loading ? <PickerSkeleton /> : null}
       {error ? (
         <div className="p-4 md:p-6">
-          <ScreenError message={error} />
+          <ScreenError message={error} onRetry={reload} />
         </div>
       ) : null}
       {data ? (
@@ -72,11 +72,17 @@ export function PostingPicker({ performanceId }: { performanceId: PerformanceId 
             title="어떤 공고의 지원자를 보시겠어요?"
             subtitle={`${data.performance.title} · 공고 ${data.postings.length}건`}
           >
-            <CreatePageButton onClick={() => setCreateOpen(true)}>공고 추가</CreatePageButton>
+            {data.postings.length > 0 ? (
+              <CreatePageButton onClick={() => setCreateOpen(true)}>공고 추가</CreatePageButton>
+            ) : null}
           </PickerHeader>
           <PickerGrid>
             {data.postings.length === 0 ? (
-              <PickerEmpty>아직 등록된 공고가 없습니다.<br />우측 상단의 공고 추가를 눌러 첫 모집을 시작하세요.</PickerEmpty>
+              <PickerEmpty
+                title="아직 등록된 공고가 없습니다"
+                description="모집 기간과 배역, 전형 일정을 설정해 첫 모집을 시작하세요."
+                action={<CreatePageButton onClick={() => setCreateOpen(true)}>첫 공고 추가</CreatePageButton>}
+              />
             ) : null}
             {data.postings.map((posting) => {
             const body = (

@@ -1,8 +1,8 @@
 import type { ApplicationFieldInput } from "@/features/screening/creation-types";
-import { createInputClass } from "./create-form";
+import { FieldInput } from "./ui-controls";
 
 const fieldCardClass =
-  "flex min-w-0 items-center gap-2 rounded-control border border-border bg-card px-3 py-2.5";
+  "flex min-h-12 min-w-0 items-center gap-2 rounded-control border border-border bg-card px-3 py-2.5";
 
 export function ApplicationFieldEditor({
   fields,
@@ -29,7 +29,7 @@ export function ApplicationFieldEditor({
       <div className="grid gap-2 sm:grid-cols-2">
         {fields.filter((field) => !field.custom).map((field) => (
           <div key={field.id} className={fieldCardClass}>
-            <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-[12.5px]">
+            <label className="flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-2 text-base md:min-h-0 md:text-[12.5px]">
               <input
                 type="checkbox"
                 checked={field.enabled}
@@ -51,18 +51,20 @@ export function ApplicationFieldEditor({
       </div>
 
       {fields.some((field) => field.custom) ? (
-        <div className="space-y-2 rounded-lg border border-border bg-surface p-3">
-          <p className="text-[12px] font-semibold text-muted-strong">직접 추가한 항목</p>
+        <div className="space-y-2 rounded-card border border-border bg-surface p-4">
+          <p className="text-sm font-semibold text-muted-strong">직접 추가한 항목</p>
           {fields.filter((field) => field.custom).map((field, index) => (
             <div key={field.id} className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
-              <input
+              <FieldInput
                 required
                 autoFocus={index === fields.filter((item) => item.custom).length - 1}
+                name={`application-field-${field.id}`}
+                autoComplete="off"
                 value={field.label}
                 onChange={(event) => patch(field.id, { label: event.target.value })}
                 placeholder="예: 특기, 개인 SNS 주소"
                 aria-label="사용자 정의 지원서 항목 이름"
-                className={`${createInputClass} min-w-52 flex-1`}
+                className="min-w-52 flex-1"
               />
               <RequirementSelect
                 required={field.required}
@@ -72,7 +74,7 @@ export function ApplicationFieldEditor({
               <button
                 type="button"
                 onClick={() => remove(field.id)}
-                className="h-9 rounded-control border border-border bg-card px-3 text-[12px] text-muted-strong hover:border-muted-soft hover:text-foreground"
+                className="min-h-11 rounded-control border border-border bg-card px-3 text-base text-muted-strong hover:border-muted-soft hover:text-foreground md:h-9 md:min-h-0 md:text-[12px]"
               >
                 삭제
               </button>
@@ -84,7 +86,7 @@ export function ApplicationFieldEditor({
       <button
         type="button"
         onClick={addCustom}
-        className="w-full rounded-control border border-dashed border-muted-soft bg-card px-3 py-2.5 text-[12.5px] font-semibold text-muted-strong hover:border-brand-line hover:bg-brand-soft hover:text-brand"
+        className="min-h-11 w-full rounded-control border border-dashed border-muted-soft bg-card px-3 py-2.5 text-base font-semibold text-muted-strong hover:border-brand-line hover:bg-brand-soft hover:text-brand md:text-[12.5px]"
       >
         지원서 항목 추가
       </button>
@@ -109,7 +111,7 @@ function RequirementSelect({
       disabled={disabled}
       value={required ? "required" : "optional"}
       onChange={(event) => onChange(event.target.value === "required")}
-      className="h-8 shrink-0 rounded-control border border-border bg-card px-2 text-[11.5px] text-muted-strong disabled:cursor-not-allowed disabled:opacity-40"
+      className="min-h-11 shrink-0 rounded-control border border-border bg-card px-2 text-base text-muted-strong disabled:cursor-not-allowed disabled:opacity-40 md:h-8 md:min-h-0 md:text-[11.5px]"
     >
       <option value="required">필수</option>
       <option value="optional">선택</option>

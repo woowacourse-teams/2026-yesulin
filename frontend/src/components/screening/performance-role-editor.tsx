@@ -1,6 +1,7 @@
 import type { RoleGender } from "@/features/screening/types";
 import { ROLE_GENDER_LABELS } from "@/features/screening/labels";
-import { CreateField, createInputClass } from "./create-form";
+import { CreateField } from "./create-form";
+import { FieldInput, FieldSelect } from "./ui-controls";
 
 export type RoleDraft = {
   readonly key: number;
@@ -35,15 +36,15 @@ export function PerformanceRoleEditor({
   return (
     <div className="space-y-3">
       {roles.map((role, index) => (
-        <div key={role.key} className="rounded-lg border border-border bg-surface p-3.5">
+        <div key={role.key} className="rounded-card border border-border bg-surface p-4">
           <div className="mb-3 flex items-center justify-between">
-            <b className="text-[12.5px]">배역 {index + 1}</b>
+            <b className="text-base md:text-[12.5px]">배역 {index + 1}</b>
             {roles.length > 1 ? (
               <button
                 type="button"
                 aria-label={`배역 ${index + 1} 삭제`}
                 onClick={() => onChange(roles.filter((candidate) => candidate.key !== role.key))}
-                className="text-xs text-muted hover:text-fail"
+                className="min-h-11 px-2 text-base text-muted hover:text-fail md:min-h-0 md:text-xs"
               >
                 삭제
               </button>
@@ -52,53 +53,55 @@ export function PerformanceRoleEditor({
 
           <div className="grid gap-3 md:grid-cols-2">
             <CreateField label="배역 이름">
-              <input
+              <FieldInput
                 required
+                name={`role-${role.key}-name`}
+                autoComplete="off"
                 value={role.name}
                 onChange={(event) => patchRole(role.key, { name: event.target.value })}
                 placeholder="예: 서연, 앙상블"
-                className={createInputClass}
               />
             </CreateField>
             <CreateField label="한 줄 설명">
-              <input
+              <FieldInput
                 required
+                name={`role-${role.key}-description`}
+                autoComplete="off"
                 value={role.description}
                 onChange={(event) => patchRole(role.key, { description: event.target.value })}
                 placeholder="예: 여 · 20대 초중반"
-                className={createInputClass}
               />
             </CreateField>
             <CreateField label="성별 조건">
-              <select
+              <FieldSelect
+                name={`role-${role.key}-gender`}
                 value={role.gender}
                 onChange={(event) => patchRole(role.key, { gender: event.target.value as RoleGender })}
-                className={createInputClass}
               >
                 {(["ANY", "FEMALE", "MALE"] as const).map((gender) => (
                   <option key={gender} value={gender}>{ROLE_GENDER_LABELS[gender]}</option>
                 ))}
-              </select>
+              </FieldSelect>
             </CreateField>
             <div className="grid grid-cols-2 gap-2">
               <CreateField label="최소 나이">
-                <input
+                <FieldInput
                   required
                   type="number"
+                  name={`role-${role.key}-age-min`}
                   min={0}
                   value={role.ageMin}
                   onChange={(event) => patchRole(role.key, { ageMin: Number(event.target.value) })}
-                  className={createInputClass}
                 />
               </CreateField>
               <CreateField label="최대 나이">
-                <input
+                <FieldInput
                   required
                   type="number"
+                  name={`role-${role.key}-age-max`}
                   min={role.ageMin}
                   value={role.ageMax}
                   onChange={(event) => patchRole(role.key, { ageMax: Number(event.target.value) })}
-                  className={createInputClass}
                 />
               </CreateField>
             </div>
@@ -109,7 +112,7 @@ export function PerformanceRoleEditor({
       <button
         type="button"
         onClick={() => onChange([...roles, emptyRoleDraft()])}
-        className="w-full rounded-control border border-dashed border-muted-soft py-2.5 text-[12.5px] font-semibold text-muted-strong hover:border-brand-line hover:text-brand"
+        className="min-h-11 w-full rounded-control border border-dashed border-muted-soft py-2.5 text-base font-semibold text-muted-strong hover:border-brand-line hover:bg-brand-soft hover:text-brand md:text-sm"
       >
         배역 추가
       </button>

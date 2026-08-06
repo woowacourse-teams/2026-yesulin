@@ -25,9 +25,9 @@ export function ActionBar() {
   const picked = board.applicants.filter((applicant) => selected.has(applicant.id));
 
   return (
-    <div className="fixed bottom-5 left-1/2 z-40 flex max-w-[calc(100vw-32px)] -translate-x-1/2 flex-wrap items-center gap-[9px] rounded-[10px] bg-foreground py-[9px] pl-[18px] pr-2.5 text-white shadow-[0_8px_28px_rgba(0,0,0,0.22)] lg:left-[calc(50%+var(--sidebar-width)/2)] lg:max-w-[calc(100vw-280px)]">
+    <div className="glass-surface-dark fixed bottom-[max(20px,env(safe-area-inset-bottom))] left-1/2 z-40 flex max-w-[calc(100vw-32px)] -translate-x-1/2 flex-wrap items-center gap-2 rounded-card border px-3 py-2.5 text-white lg:left-[calc(50%+var(--sidebar-width)/2)] lg:max-w-[calc(100vw-300px)]">
       <span className="whitespace-nowrap text-[13px] font-semibold">
-        <span className="text-[#FF9FBB]">{selected.size}</span>명 선택
+        <span className="text-brand-line">{selected.size}</span>명 선택
       </span>
 
       <Separator />
@@ -45,7 +45,7 @@ export function ActionBar() {
                 status,
               );
             }}
-            className="whitespace-nowrap rounded-[5px] bg-white/12 px-[11px] py-1.5 text-[12.5px] hover:bg-white/25 disabled:opacity-50"
+            className="min-h-9 whitespace-nowrap rounded-control bg-white/10 px-3 py-1.5 text-[13px] font-semibold transition-[background-color,opacity,transform] duration-150 hover:bg-white/20 active:scale-[0.97] disabled:pointer-events-none disabled:bg-white/5 disabled:text-white/45"
           >
             {STATUS_LABELS[status]}
           </button>
@@ -56,9 +56,9 @@ export function ActionBar() {
       <button
         type="button"
         onClick={() => {
-          if (!openPrintWindow(picked, board.performance)) toast(POPUP_BLOCKED);
+          if (!openPrintWindow(picked, board.performance)) toast(POPUP_BLOCKED, { type: "error" });
         }}
-        className="whitespace-nowrap rounded-[5px] bg-white/12 px-[11px] py-1.5 text-[12.5px] hover:bg-white/25"
+        className="min-h-9 whitespace-nowrap rounded-control bg-white/10 px-3 py-1.5 text-[13px] font-semibold transition-[background-color,transform] duration-150 hover:bg-white/20 active:scale-[0.97]"
       >
         인쇄 · PDF
       </button>
@@ -69,7 +69,7 @@ export function ActionBar() {
           <button
             type="button"
             onClick={() => openContacts(picked)}
-            className="whitespace-nowrap rounded-[5px] bg-brand px-[11px] py-1.5 text-[12.5px] hover:bg-brand-strong"
+            className="min-h-9 whitespace-nowrap rounded-control bg-brand px-3 py-1.5 text-[13px] font-semibold transition-[background-color,transform] duration-150 hover:bg-brand-strong active:scale-[0.97] active:bg-brand-pressed"
           >
             연락처 모아보기
           </button>
@@ -80,7 +80,7 @@ export function ActionBar() {
         type="button"
         aria-label="선택 해제"
         onClick={clearSelection}
-        className="px-2 py-1 text-[12px] text-white/55 hover:text-white"
+        className="min-h-9 rounded-control px-3 py-1 text-[13px] text-white/65 transition-[background-color,color,transform] duration-150 hover:bg-white/10 hover:text-white active:scale-[0.97]"
       >
         선택 해제
       </button>

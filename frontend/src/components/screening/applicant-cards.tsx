@@ -10,17 +10,17 @@ export function ApplicantCards({ rows }: { rows: readonly Applicant[] }) {
   const { selected, toggleSelected, openApplicant } = useBoard();
 
   return (
-    <div className="grid gap-2.5 [grid-template-columns:repeat(auto-fill,minmax(126px,1fr))] sm:gap-3 sm:[grid-template-columns:repeat(auto-fill,minmax(152px,1fr))]">
+    <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(132px,1fr))] sm:[grid-template-columns:repeat(auto-fill,minmax(150px,1fr))] 2xl:[grid-template-columns:repeat(auto-fill,minmax(158px,1fr))]">
       {rows.map((applicant, index) => {
         const picked = selected.has(applicant.id);
 
         return (
           <div
             key={applicant.id}
-            className={`relative overflow-hidden rounded-lg border bg-card transition-[border-color,box-shadow] ${
+            className={`relative min-w-0 overflow-hidden rounded-card border transition-[background-color,border-color,box-shadow,transform] duration-150 active:scale-[0.995] ${
               picked
-                ? "border-brand shadow-[0_0_0_2px_var(--brand-line)]"
-                : "border-border hover:border-muted-soft hover:shadow-[0_3px_12px_rgba(0,0,0,0.06)]"
+                ? "border-brand bg-brand-soft shadow-[0_0_0_2px_var(--brand-line)]"
+                : "border-border bg-card hover:border-brand-line hover:shadow-[var(--shadow-1)]"
             }`}
           >
             <button
@@ -33,7 +33,7 @@ export function ApplicantCards({ rows }: { rows: readonly Applicant[] }) {
                   photo={applicant.photos[0]}
                   alt={`${applicant.name} 프로필 사진`}
                   sizes="(min-width: 640px) 152px, 126px"
-                  priority={index < 6}
+                  priority={index === 0}
                 />
                 {applicant.photos.length > 1 ? (
                   <span className="absolute right-[7px] top-[7px] z-2 rounded-full bg-foreground/65 px-1.5 py-0.5 text-[10.5px] font-semibold text-white">
@@ -52,21 +52,21 @@ export function ApplicantCards({ rows }: { rows: readonly Applicant[] }) {
                 ) : null}
               </span>
               <span className="block px-[9px] pb-[9px] pt-2">
-                <span className="block text-[13.5px] font-semibold tracking-[-0.01em]">
+                <span className="block text-base font-semibold tracking-[-0.01em] lg:text-[13.5px]">
                   {applicant.name}
                 </span>
-                <span className="num mt-px block text-[11.5px] text-muted">
+                <span className="num mt-px block text-base text-muted lg:text-[11.5px]">
                   {GENDER_LABELS[applicant.gender]} · 만 {applicant.age} · {applicant.height}cm
                 </span>
                 {applicant.mismatchReasons.length > 0 ? (
-                  <span className="mt-1 block text-[10.5px] font-semibold text-fail">
+                  <span className="mt-1 block text-sm font-semibold text-fail lg:text-[10.5px]">
                     조건 불일치 ({mismatchText(applicant.mismatchReasons)})
                   </span>
                 ) : null}
               </span>
             </button>
 
-            <label className="absolute left-[5px] top-[5px] z-2 inline-flex cursor-pointer rounded-lg bg-white/90 p-2 leading-none transition-colors hover:bg-white">
+            <label className="absolute left-[5px] top-[5px] z-2 inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-lg bg-white/90 p-2 leading-none transition-colors hover:bg-white lg:min-h-0 lg:min-w-0">
               <span className="sr-only">{applicant.name} 선택</span>
               <input
                 type="checkbox"

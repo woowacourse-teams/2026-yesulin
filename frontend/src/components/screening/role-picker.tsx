@@ -10,6 +10,7 @@ import { Breadcrumb } from "./breadcrumb";
 import {
   PickerCard,
   PickerDescription,
+  PickerEmpty,
   PickerProgress,
   PickerGrid,
   PickerHeader,
@@ -19,6 +20,7 @@ import {
   PickerTitle,
 } from "./picker-card";
 import { PickerSkeleton, ScreenError } from "./screen-status";
+import { SecondaryLink } from "./ui-controls";
 
 /** 경쟁률 = 지원 인원 / 모집 인원. 배역 간 난이도 비교에 쓴다. */
 const HOT_RATE = 10;
@@ -34,7 +36,7 @@ function stateText(role: RoleSummary) {
 
 export function RolePicker({ postingId }: { postingId: PostingId }) {
   const load = useCallback(() => getRoles(postingId), [postingId]);
-  const { data, error, loading } = useScreeningQuery(postingId, load, "배역을 불러오지 못했습니다.");
+  const { data, error, loading, reload } = useScreeningQuery(postingId, load, "배역을 불러오지 못했습니다.");
 
   return (
     <>
@@ -51,7 +53,7 @@ export function RolePicker({ postingId }: { postingId: PostingId }) {
       {loading ? <PickerSkeleton /> : null}
       {error ? (
         <div className="p-4 md:p-6">
-          <ScreenError message={error} />
+          <ScreenError message={error} onRetry={reload} />
         </div>
       ) : null}
       {data ? (
@@ -61,6 +63,17 @@ export function RolePicker({ postingId }: { postingId: PostingId }) {
             subtitle="배역마다 전형이 따로 진행됩니다. 차수가 배역별로 독립 관리됩니다."
           />
           <PickerGrid>
+            {data.roles.length === 0 ? (
+              <PickerEmpty
+                title="이 공고에 등록된 배역이 없습니다"
+                description="공고에 모집 배역을 추가한 뒤 지원자 심사를 시작할 수 있습니다."
+                action={
+                  <SecondaryLink href={screeningRoutes.performance(data.performance.id)}>
+                    공고 목록으로 돌아가기
+                  </SecondaryLink>
+                }
+              />
+            ) : null}
             {data.roles.map((role) => {
             const rate = role.quota > 0 ? role.applicantCount / role.quota : 0;
 

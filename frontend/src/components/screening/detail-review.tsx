@@ -43,7 +43,7 @@ export function DetailReview({ applicant }: { applicant: Applicant }) {
                       // 같은 버튼을 다시 누르면 미검토로 되돌린다
                       void reviewCurrent(applicant.id, active ? "PENDING" : status);
                     }}
-                    className={`rounded-control border px-[18px] py-[9px] text-[13.5px] disabled:opacity-40 ${
+                    className={`min-h-11 rounded-control border px-[18px] py-[9px] text-base disabled:opacity-40 md:text-[13.5px] ${
                       active ? `font-bold ${STATUS_ACTIVE[status]}` : "border-border bg-card hover:border-muted-soft"
                     }`}
                   >
@@ -110,7 +110,7 @@ function NavButton({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="rounded-control border border-border bg-card px-3.5 py-2 text-[12.5px] text-muted-strong hover:border-muted-soft hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+      className="min-h-11 rounded-control border border-border bg-card px-3.5 py-2 text-base text-muted-strong hover:border-muted-soft hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 md:text-[12.5px]"
     >
       {label}
     </button>

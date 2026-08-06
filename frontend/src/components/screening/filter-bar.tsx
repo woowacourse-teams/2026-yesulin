@@ -11,9 +11,7 @@ import {
 import { selectableStatuses, STATUS_LABELS } from "@/features/screening/labels";
 import type { Gender, ReviewStatus } from "@/features/screening/types";
 import { useBoard } from "./board-context";
-
-const chipBase =
-  "rounded-full border px-2.5 py-1 text-[12.5px] transition-colors disabled:cursor-not-allowed";
+import { FilterChip, SegmentButton, TextButton, WarningFilterChip } from "./ui-controls";
 
 export function FilterBar() {
   const { board, filters, setFilters } = useBoard();
@@ -40,47 +38,37 @@ export function FilterBar() {
     });
 
   return (
-    <div className="flex flex-wrap items-center gap-[9px] border-b border-border bg-card px-4 py-[9px] md:px-6">
-      {filters.work === "DONE" ? (
+    <div className="scrollbar-compact overflow-x-auto border-b border-border bg-transparent">
+      <div className="flex min-w-max items-center gap-2 px-4 py-2.5 md:px-6">
+        {filters.work === "DONE" ? (
         <>
-          <div className="flex flex-wrap gap-[5px]">
+          <div className="flex gap-1.5">
             {(["ALL", ...selectableStatuses(board.round)] as const).map((status) => (
-              <button
+              <FilterChip
                 key={status}
-                type="button"
-                aria-pressed={filters.status === status}
+                pressed={filters.status === status}
                 onClick={() => setFilters((current) => ({ ...current, status }))}
-                className={`${chipBase} ${
-                  filters.status === status
-                    ? "border-foreground bg-foreground font-medium text-white"
-                    : "border-border bg-card text-muted-strong hover:border-muted-soft"
-                }`}
               >
                 {status === "ALL" ? "전체" : STATUS_LABELS[status]}
                 <span className="num ml-1 opacity-55">{countOf(status)}</span>
-              </button>
+              </FilterChip>
             ))}
           </div>
-          <span aria-hidden="true" className="mx-[3px] h-[19px] w-px bg-border-soft" />
+          <span aria-hidden="true" className="mx-1 h-6 w-px bg-border" />
         </>
       ) : null}
 
-      <div className="flex gap-1">
+      <div className="flex gap-1.5">
         {(["FEMALE", "MALE"] as const).map((gender) => (
-          <button
+          <FilterChip
             key={gender}
-            type="button"
-            aria-pressed={filters.genders.has(gender)}
+            pressed={filters.genders.has(gender)}
             title={gender === "FEMALE" ? "여성" : "남성"}
             onClick={() => toggleGender(gender)}
-            className={`grid h-[29px] w-[34px] place-items-center rounded-control border text-[15px] leading-none transition-colors ${
-              filters.genders.has(gender)
-                ? "border-foreground bg-foreground text-white"
-                : "border-border bg-card text-muted"
-            }`}
+            className="w-11 px-0"
           >
             {gender === "FEMALE" ? "여" : "남"}
-          </button>
+          </FilterChip>
         ))}
       </div>
 
@@ -88,24 +76,17 @@ export function FilterBar() {
         <NumericFilter key={field} field={field} />
       ))}
 
-      <span aria-hidden="true" className="mx-[3px] h-[19px] w-px bg-border-soft" />
+      <span aria-hidden="true" className="mx-1 h-6 w-px bg-border" />
 
-      <button
-        type="button"
-        aria-pressed={filters.mismatchOnly}
+      <WarningFilterChip
+        pressed={filters.mismatchOnly}
         title="배역이 명시한 성별·나이 조건을 벗어난 지원자만 봅니다"
         onClick={() => setFilters((current) => ({ ...current, mismatchOnly: !current.mismatchOnly }))}
-        className={`${chipBase} ${
-          filters.mismatchOnly
-            ? "border-warn bg-warn font-medium text-white"
-            : "border-warn-bg bg-card text-muted-strong hover:border-warn"
-        }`}
       >
         조건 불일치만<span className="num ml-1 opacity-55">{mismatches}</span>
-      </button>
+      </WarningFilterChip>
 
-      <button
-        type="button"
+      <TextButton
         onClick={() =>
           setFilters((current) => ({
             ...current,
@@ -114,27 +95,24 @@ export function FilterBar() {
             mismatchOnly: false,
           }))
         }
-        className="text-[12.5px] text-muted underline underline-offset-2"
+        className="min-h-9 px-2 text-[13px]"
       >
         초기화
-      </button>
+      </TextButton>
 
-      <div className="ml-auto flex items-center gap-2.5">
-        <div className="flex overflow-hidden rounded-control border border-border">
+      <div className="ml-2 flex items-center">
+        <div className="flex overflow-hidden rounded-control border border-border bg-card">
           {(["card", "table"] as const).map((view) => (
-            <button
+            <SegmentButton
               key={view}
-              type="button"
-              aria-pressed={filters.view === view}
+              pressed={filters.view === view}
               onClick={() => setFilters((current) => ({ ...current, view }))}
-              className={`px-[11px] py-1 text-[12.5px] ${
-                filters.view === view ? "bg-foreground font-medium text-white" : "bg-card text-muted-strong"
-              }`}
             >
               {view === "card" ? "카드" : "표"}
-            </button>
+            </SegmentButton>
           ))}
         </div>
+      </div>
       </div>
     </div>
   );
@@ -153,7 +131,7 @@ function NumericFilter({ field }: { field: NumericField }) {
       <button
         type="button"
         onClick={() => update({ op: "gte", value: meta.initial })}
-        className="whitespace-nowrap rounded-full border border-dashed border-muted-soft bg-card px-[11px] py-[5px] text-[12.5px] text-muted-strong before:text-muted before:content-['+_'] hover:border-muted hover:text-foreground"
+        className="min-h-9 whitespace-nowrap rounded-full border border-dashed border-muted-soft bg-card px-3 py-1.5 text-[13px] font-semibold text-muted-strong before:text-muted before:content-['+_'] hover:border-brand-line hover:bg-brand-soft hover:text-brand"
       >
         {meta.label}
       </button>
@@ -161,7 +139,7 @@ function NumericFilter({ field }: { field: NumericField }) {
   }
 
   return (
-    <span className="inline-flex items-center gap-[5px] whitespace-nowrap rounded-full border border-foreground bg-card py-[3px] pl-[11px] pr-[5px] text-[12.5px]">
+    <span className="inline-flex min-h-9 items-center gap-1.5 whitespace-nowrap rounded-full border border-brand-line bg-brand-soft py-1 pl-3 pr-1.5 text-[13px] text-brand">
       <span className="font-semibold">{meta.label}</span>
       <input
         type="number"
@@ -171,14 +149,14 @@ function NumericFilter({ field }: { field: NumericField }) {
           const parsed = Number(event.target.value);
           if (!Number.isNaN(parsed)) update({ ...condition, value: parsed });
         }}
-        className="num w-12 rounded bg-surface px-[5px] py-[3px] text-right text-[12.5px]"
+        className="num w-14 rounded-lg border border-border bg-card px-1.5 py-1 text-right text-[13px] text-foreground"
       />
       <span className="text-muted">{meta.unit}</span>
       <select
         aria-label={`${meta.label} 비교 방향`}
         value={condition.op}
         onChange={(event) => update({ ...condition, op: event.target.value === "lte" ? "lte" : "gte" })}
-        className="rounded bg-surface px-1 py-0.5 text-xs"
+        className="rounded-lg border border-border bg-card px-1.5 py-1 text-xs text-foreground"
       >
         <option value="gte">이상</option>
         <option value="lte">이하</option>
@@ -187,7 +165,7 @@ function NumericFilter({ field }: { field: NumericField }) {
         type="button"
         aria-label={`${meta.label} 조건 제거`}
         onClick={() => update(null)}
-        className="px-1.5 py-0.5 text-[11px] leading-none text-muted"
+        className="rounded-full px-2 py-1 text-xs leading-none text-muted-strong hover:bg-white hover:text-fail"
       >
         삭제
       </button>

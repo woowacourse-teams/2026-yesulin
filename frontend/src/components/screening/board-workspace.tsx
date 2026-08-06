@@ -75,7 +75,7 @@ export function BoardWorkspace({
         onBoardChange(next);
         return next;
       } catch (cause: unknown) {
-        toast(errorMessage(cause, fallback));
+        toast(errorMessage(cause, fallback), { type: "error" });
         return null;
       } finally {
         setSaving(false);
@@ -111,7 +111,7 @@ export function BoardWorkspace({
       const next = await submitReview(ids, { status }, "심사 결과를 저장하지 못했습니다.");
       if (!next) return;
       clearSelection();
-      toast(`${ids.length}명을 ${STATUS_LABELS[status]} 처리했습니다`);
+      toast(`${ids.length}명을 ${STATUS_LABELS[status]} 처리했습니다`, { type: "success" });
       promptCloseIfDone(next);
     },
     [clearSelection, promptCloseIfDone, submitReview, toast],
@@ -133,7 +133,9 @@ export function BoardWorkspace({
         setOpenedApplicantId(null);
         setFilters((current) => ({ ...current, work: "DONE", status: "PASS" }));
         const counts = next.rounds.find((state) => state.round === next.round)?.counts;
-        toast(counts && counts.pass > 0 ? `검토를 마쳤습니다 · 합격 ${counts.pass}명` : "검토를 마쳤습니다");
+        toast(counts && counts.pass > 0 ? `검토를 마쳤습니다 · 합격 ${counts.pass}명` : "검토를 마쳤습니다", {
+          type: "success",
+        });
         promptCloseIfDone(next);
         return;
       }
@@ -160,11 +162,9 @@ export function BoardWorkspace({
       "차수를 마감하지 못했습니다.",
     );
     if (!next) return;
-    toast(
-      finishing
-        ? "전형이 종료되었습니다"
-        : `${nextState.name}가 시작되었습니다`,
-    );
+    toast(finishing ? "전형이 종료되었습니다" : `${nextState.name}가 시작되었습니다`, {
+      type: "success",
+    });
   }, [board.role.id, board.round, board.rounds, run, toast]);
 
   const value: BoardContextValue = {
@@ -195,9 +195,11 @@ export function BoardWorkspace({
   return (
     <BoardProvider value={value}>
       <RoundStepper />
-      <WorkSplit />
-      <FilterBar />
-      <div className="px-4 pb-32 pt-4 md:px-6">
+      <div className="glass-surface sticky top-16 z-20 border-b border-border lg:top-0">
+        <WorkSplit />
+        <FilterBar />
+      </div>
+      <div className="px-4 pb-32 pt-4 md:px-6 xl:px-8">
         <ApplicantList />
       </div>
       <ActionBar />

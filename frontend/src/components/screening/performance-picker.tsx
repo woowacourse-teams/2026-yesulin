@@ -10,6 +10,7 @@ import { FacePile } from "./applicant-photo";
 import {
   PickerCard,
   PickerDescription,
+  PickerEmpty,
   PickerGrid,
   PickerHeader,
   PickerScreen,
@@ -35,16 +36,25 @@ export function PerformancePicker() {
       {loading ? <PickerSkeleton /> : null}
       {error ? (
         <div className="p-4 md:p-6">
-          <ScreenError message={error} />
+          <ScreenError message={error} onRetry={reload} />
         </div>
       ) : null}
       {data ? (
         <PickerScreen>
           <PickerHeader title="공연을 선택하세요" subtitle={`등록된 공연 ${data.performances.length}건`}>
-            <CreatePageButton onClick={() => setCreateOpen(true)}>공연 추가</CreatePageButton>
+            {data.performances.length > 0 ? (
+              <CreatePageButton onClick={() => setCreateOpen(true)}>공연 추가</CreatePageButton>
+            ) : null}
           </PickerHeader>
           <PickerGrid>
-            {data.performances.map((performance) => (
+            {data.performances.length === 0 ? (
+              <PickerEmpty
+                title="아직 등록된 공연이 없습니다"
+                description="첫 공연과 배역 조건을 등록하면 모집 공고를 이어서 만들 수 있습니다."
+                action={<CreatePageButton onClick={() => setCreateOpen(true)}>첫 공연 추가</CreatePageButton>}
+              />
+            ) : null}
+            {data.performances.map((performance, index) => (
               <PickerCard key={performance.id} href={screeningRoutes.performance(performance.id)}>
                 <div className="flex items-start gap-3">
                   <div className="relative aspect-[3/4] w-[66px] shrink-0 overflow-hidden rounded-md bg-surface">
@@ -53,6 +63,7 @@ export function PerformancePicker() {
                       alt={`${performance.title} 포스터`}
                       fill
                       unoptimized
+                      priority={index === 0}
                       sizes="66px"
                       className="object-cover"
                     />

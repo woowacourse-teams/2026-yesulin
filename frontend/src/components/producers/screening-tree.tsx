@@ -29,7 +29,7 @@ function locate(tree: ScreeningTree | null, pathname: string) {
   return { performanceId: null, postingId: null };
 }
 
-export function ScreeningTreeNav() {
+export function ScreeningTreeNav({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const [tree, setTree] = useState<ScreeningTree | null>(null);
   const [rootOpen, setRootOpen] = useState(true);
@@ -69,14 +69,15 @@ export function ScreeningTreeNav() {
           aria-label="공연 목록 펼치기/접기"
           aria-expanded={rootOpen}
           onClick={() => setRootOpen((open) => !open)}
-          className="flex h-[26px] w-[22px] shrink-0 items-center justify-center rounded-[5px] text-muted-soft transition-colors hover:bg-border-soft hover:text-muted"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-control text-sidebar-muted transition-colors hover:bg-sidebar-hover hover:text-white lg:h-[30px] lg:w-[26px]"
         >
           <Caret open={rootOpen} />
         </button>
         <Link
           href={screeningRoutes.performances}
-          className={`flex-1 whitespace-nowrap rounded-md py-2 pl-0.5 pr-1.5 text-left text-[13px] font-bold uppercase tracking-[0.03em] transition-colors hover:bg-border-soft ${
-            atRoot ? "text-brand" : "text-muted hover:text-muted-strong"
+          onClick={onNavigate}
+          className={`flex min-h-11 flex-1 items-center whitespace-nowrap rounded-control py-2 pl-0.5 pr-1.5 text-left text-base font-bold tracking-[0.01em] transition-colors hover:bg-sidebar-hover lg:min-h-0 lg:text-[13px] lg:uppercase lg:tracking-[0.03em] ${
+            atRoot ? "bg-sidebar-hover text-brand-line" : "text-sidebar-muted hover:text-white"
           }`}
         >
           공연 관리
@@ -84,7 +85,7 @@ export function ScreeningTreeNav() {
       </div>
 
       {rootOpen && tree ? (
-        <div className="ml-3.5 border-l border-border-soft pl-[15px]" role="tree">
+        <div className="ml-3.5 border-l border-sidebar-line pl-[15px]" role="tree">
           {tree.performances.map((performance) => (
             <TreeBranch
               key={performance.id}
@@ -93,6 +94,7 @@ export function ScreeningTreeNav() {
               activePerformance={performanceId === performance.id}
               activePostingId={postingId}
               onToggle={() => toggle(performance.id)}
+              onNavigate={onNavigate}
             />
           ))}
         </div>
@@ -107,32 +109,35 @@ function TreeBranch({
   activePerformance,
   activePostingId,
   onToggle,
+  onNavigate,
 }: {
   performance: ScreeningTreeNode;
   open: boolean;
   activePerformance: boolean;
   activePostingId: string | null;
   onToggle: () => void;
+  onNavigate?: () => void;
 }) {
   return (
     <>
-      <div className="relative flex items-center gap-0.5 before:absolute before:-left-[15px] before:top-4 before:h-px before:w-[11px] before:bg-border-soft">
+      <div className="relative flex items-center gap-0.5 before:absolute before:-left-[15px] before:top-4 before:h-px before:w-[11px] before:bg-sidebar-line">
         <button
           type="button"
           aria-label={`${performance.title} 공고 펼치기/접기`}
           aria-expanded={open}
           onClick={onToggle}
-          className="flex h-[26px] w-[22px] shrink-0 items-center justify-center rounded-[5px] text-muted-soft transition-colors hover:bg-border-soft hover:text-muted"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-control text-sidebar-muted transition-colors hover:bg-sidebar-hover hover:text-white lg:h-[30px] lg:w-[26px]"
         >
           <Caret open={open} small />
         </button>
         <Link
           href={screeningRoutes.performance(performance.id)}
+          onClick={onNavigate}
           aria-current={activePerformance && !activePostingId ? "page" : undefined}
-          className={`flex flex-1 items-center whitespace-nowrap rounded-md px-2 py-[7px] text-left text-[13px] font-semibold transition-colors ${
+          className={`flex min-h-11 flex-1 items-center whitespace-nowrap rounded-control px-2 py-[7px] text-left text-base font-semibold transition-colors lg:min-h-0 lg:text-[13px] ${
             activePerformance && !activePostingId
-              ? "bg-brand-soft text-brand"
-              : "text-foreground hover:bg-border-soft"
+              ? "bg-brand text-white"
+              : "text-sidebar-text hover:bg-sidebar-hover hover:text-white"
           }`}
         >
           <span className="flex-1 truncate">{performance.title}</span>
@@ -140,7 +145,7 @@ function TreeBranch({
       </div>
 
       {open ? (
-        <div className="ml-[9px] border-l border-border-soft pb-1 pl-[15px] pt-0.5" role="group">
+        <div className="ml-[9px] border-l border-sidebar-line pb-1 pl-[15px] pt-0.5" role="group">
           {performance.postings.map((posting) => {
             const active = activePostingId === posting.id;
             /* 아직 시작 전인 공고는 지원자가 없으므로 공고 선택 화면에 머무르게 한다 */
@@ -150,15 +155,16 @@ function TreeBranch({
               <Link
                 key={posting.id}
                 href={upcoming ? screeningRoutes.performance(performance.id) : postingEntryHref(posting)}
+                onClick={onNavigate}
                 aria-current={active ? "page" : undefined}
                 title={upcoming ? `${posting.title} — ${PHASE_LABELS.UPCOMING}` : posting.title}
-                className={`relative flex w-full items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-[7px] text-[12.5px] leading-tight transition-colors before:absolute before:-left-[15px] before:top-4 before:h-px before:w-[11px] before:bg-border-soft ${
-                  active ? "bg-brand-soft font-semibold text-brand" : "text-muted-strong hover:bg-border-soft hover:text-foreground"
+                className={`relative flex min-h-11 w-full items-center gap-1.5 whitespace-nowrap rounded-control px-2 py-[7px] text-base leading-tight transition-colors before:absolute before:-left-[15px] before:top-4 before:h-px before:w-[11px] before:bg-sidebar-line lg:min-h-0 lg:text-[12.5px] ${
+                  active ? "bg-brand font-semibold text-white" : "text-sidebar-muted hover:bg-sidebar-hover hover:text-white"
                 }`}
               >
                 <span className="min-w-0 flex-1 truncate">{posting.title}</span>
                 <PhaseTag phase={posting.phase} />
-                <span className={`num shrink-0 text-[10.5px] ${active ? "text-brand/75" : "text-muted"}`}>
+                <span className={`num shrink-0 text-[10.5px] ${active ? "text-white/75" : "text-sidebar-muted"}`}>
                   {posting.applicantCount}
                 </span>
               </Link>

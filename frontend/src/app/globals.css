@@ -1,37 +1,60 @@
 @import "tailwindcss";
 
 :root {
-  --ink: #16151a;
-  --ink-60: #5c5a63;
-  --ink-40: #8c8a93;
-  --ink-20: #c8c6ce;
-  --line: #e4e2e8;
-  --line-soft: #efedf2;
-  --paper: #fbfafc;
+  --ink: #111722;
+  --ink-60: #475569;
+  --ink-40: #64748b;
+  --ink-20: #94a3b8;
+  --line: #e2e8f0;
+  --line-soft: #f1f5f9;
+  --paper: #f7f9fc;
   --white: #ffffff;
 
-  --brand: #b72d54;
-  --brand-strong: #ce3a63;
-  --brand-soft: #fbeef2;
-  --brand-soft-strong: #f7e1e8;
-  --brand-line: #efc9d5;
+  --brand: #246bfe;
+  --brand-strong: #1d5ce5;
+  --brand-pressed: #194fc4;
+  --brand-soft: #eef5ff;
+  --brand-soft-strong: #dceaff;
+  --brand-line: #b8d5ff;
+  --focus: var(--brand);
 
-  --pass: #1f7a5c;
-  --pass-bg: #e6f4ee;
-  --fail: #9a3131;
-  --fail-bg: #f8ecec;
-  --absent: #5a5a62;
-  --absent-bg: #efeef1;
-  --etc: #4b4098;
-  --etc-bg: #edebf9;
-  --pending: #6b6975;
-  --pending-bg: #f2f1f4;
-  --warn: #8a6410;
-  --warn-bg: #fcf3df;
-  --upcoming: #2e6db4;
-  --upcoming-bg: #eaf1fb;
+  --sidebar: #0b1018;
+  --sidebar-surface: #111722;
+  --sidebar-hover: #1b2432;
+  --sidebar-line: rgba(255, 255, 255, 0.12);
+  --sidebar-text: #e2e8f0;
+  --sidebar-muted: #94a3b8;
 
-  --sidebar-width: 250px;
+  --pass: #16a34a;
+  --pass-bg: #f0fdf4;
+  --fail: #dc2626;
+  --fail-bg: #fef2f2;
+  --absent: #475569;
+  --absent-bg: #f1f5f9;
+  --etc: #5b50a6;
+  --etc-bg: #f0effc;
+  --pending: #475569;
+  --pending-bg: #f1f5f9;
+  --warn: #d97706;
+  --warn-bg: #fff7ed;
+  --upcoming: #194fc4;
+  --upcoming-bg: #eef5ff;
+
+  --shadow-1: 0 2px 8px rgba(15, 23, 42, 0.06);
+  --shadow-2: 0 8px 24px rgba(15, 23, 42, 0.08);
+  --shadow-3: 0 16px 40px rgba(15, 23, 42, 0.12);
+  --shadow-modal: 0 24px 64px rgba(8, 11, 18, 0.2);
+
+  --surface-glass: rgba(255, 255, 255, 0.82);
+  --surface-glass-strong: rgba(255, 255, 255, 0.92);
+  --surface-glass-dark: rgba(8, 11, 18, 0.82);
+  --border-glass: rgba(255, 255, 255, 0.72);
+  --motion-fast: 120ms;
+  --motion-base: 200ms;
+  --ease-standard: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --sidebar-width: 268px;
 }
 
 @theme inline {
@@ -47,6 +70,7 @@
 
   --color-brand: var(--brand);
   --color-brand-strong: var(--brand-strong);
+  --color-brand-pressed: var(--brand-pressed);
   --color-brand-soft: var(--brand-soft);
   --color-brand-soft-strong: var(--brand-soft-strong);
   --color-brand-line: var(--brand-line);
@@ -66,8 +90,17 @@
   --color-upcoming: var(--upcoming);
   --color-upcoming-bg: var(--upcoming-bg);
 
-  --font-sans: "Pretendard Variable", "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  --radius-control: 6px;
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-surface: var(--sidebar-surface);
+  --color-sidebar-hover: var(--sidebar-hover);
+  --color-sidebar-line: var(--sidebar-line);
+  --color-sidebar-text: var(--sidebar-text);
+  --color-sidebar-muted: var(--sidebar-muted);
+
+  --font-sans: "Pretendard Variable", "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI", sans-serif;
+  --radius-control: 12px;
+  --radius-card: 16px;
+  --radius-modal: 24px;
 }
 
 /*
@@ -90,8 +123,9 @@
     background: var(--paper);
     color: var(--ink);
     font-family: var(--font-sans);
-    font-size: 14px;
-    line-height: 1.5;
+    font-size: 16px;
+    line-height: 1.6;
+    letter-spacing: -0.005em;
     -webkit-font-smoothing: antialiased;
   }
 
@@ -101,6 +135,24 @@
   textarea {
     font: inherit;
     color: inherit;
+  }
+
+  button:disabled,
+  input:disabled,
+  select:disabled,
+  textarea:disabled {
+    cursor: not-allowed;
+  }
+
+  h1,
+  h2,
+  h3 {
+    color: var(--ink);
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
   }
 
   button,
@@ -114,31 +166,12 @@
   input:focus-visible,
   select:focus-visible,
   textarea:focus-visible {
-    outline: 2px solid var(--brand-line);
+    outline: 2px solid var(--focus);
     outline-offset: 2px;
   }
 
   ::selection {
     background: var(--brand-soft);
     color: var(--ink);
-  }
-}
-
-@layer utilities {
-  /* 숫자를 세로로 정렬해 목록·통계에서 자릿수가 흔들리지 않게 한다 */
-  .num {
-    font-variant-numeric: tabular-nums;
-    font-feature-settings: "tnum";
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    scroll-behavior: auto !important;
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
   }
 }

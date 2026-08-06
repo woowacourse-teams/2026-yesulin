@@ -36,12 +36,12 @@ export function StatusBadge({
   size?: "sm" | "md";
   onPhoto?: boolean;
 }) {
-  const scale = size === "sm" ? "text-[11px] px-[7px] py-0.5" : "text-xs px-[9px] py-[3px]";
+  const scale = size === "sm" ? "h-6 px-2 text-xs" : "h-7 px-2.5 text-[13px]";
 
   return (
     <span
-      className={`inline-flex items-center gap-[5px] whitespace-nowrap rounded-full font-semibold ${scale} ${STATUS_TEXT[status]} ${
-        onPhoto ? "bg-white/95" : STATUS_BG[status]
+      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-transparent font-semibold ${scale} ${STATUS_TEXT[status]} ${
+        onPhoto ? "border-white/60 bg-white/95 shadow-[var(--shadow-1)]" : STATUS_BG[status]
       }`}
     >
       <span aria-hidden="true" className="h-[5px] w-[5px] shrink-0 rounded-full bg-current" />
@@ -53,7 +53,7 @@ export function StatusBadge({
 export function PhaseTag({ phase }: { phase: PostingPhase }) {
   return (
     <span
-      className={`shrink-0 whitespace-nowrap rounded px-1.5 py-0.5 text-[9.5px] font-bold tracking-[0.02em] ${PHASE_TONE[phase]}`}
+      className={`inline-flex h-6 shrink-0 items-center whitespace-nowrap rounded-lg border border-transparent px-2 text-xs font-bold tracking-[0.01em] ${PHASE_TONE[phase]}`}
     >
       {PHASE_LABELS[phase]}
     </span>

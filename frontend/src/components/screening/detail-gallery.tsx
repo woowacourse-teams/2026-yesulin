@@ -17,7 +17,7 @@ export function DetailGallery({
 
   return (
     <div className="overflow-y-auto border-b border-border bg-surface px-5 py-[18px] lg:border-b-0 lg:border-r">
-      <div className="relative aspect-[3/4] w-full overflow-hidden rounded-[10px] border border-border bg-border-soft">
+      <div className="relative aspect-[3/4] w-full overflow-hidden rounded-control border border-border bg-border-soft">
         <ApplicantPhotoImage
           photo={photo}
           alt={`${applicant.name} ${photo?.label ?? "사진"}`}
@@ -41,8 +41,10 @@ export function DetailGallery({
               aria-pressed={slot === current}
               title={candidate.label}
               onClick={() => setIndex(slot)}
-              className={`relative aspect-[3/4] flex-1 overflow-hidden rounded-md border-2 bg-border-soft transition-colors ${
-                slot === current ? "border-brand" : "border-transparent hover:border-muted-soft"
+              className={`relative aspect-[3/4] flex-1 overflow-hidden rounded-lg border-2 bg-border-soft transition-[border-color,box-shadow,transform] duration-150 active:scale-[0.97] ${
+                slot === current
+                  ? "border-brand shadow-[0_0_0_2px_var(--brand-soft-strong)]"
+                  : "border-transparent hover:border-muted-soft"
               }`}
             >
               <span className="sr-only">{candidate.label}</span>
@@ -63,7 +65,7 @@ export function DetailGallery({
         <button
           type="button"
           onClick={onPlayVideo}
-          className="mt-3.5 flex w-full items-center gap-[11px] rounded-lg border border-border bg-card px-[13px] py-3 text-left transition-colors hover:border-brand-line hover:bg-brand-soft"
+          className="mt-3.5 flex w-full items-center gap-[11px] rounded-control border border-border bg-card px-[13px] py-3 text-left transition-[background-color,border-color,transform] duration-150 hover:border-brand-line hover:bg-brand-soft active:scale-[0.99]"
         >
           <span className="min-w-0">
             <b className="block text-[13.5px] font-semibold">연기 영상 보기</b>

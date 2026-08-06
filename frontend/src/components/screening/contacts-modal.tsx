@@ -4,8 +4,9 @@ import { useState } from "react";
 import { ROUND_LABELS, STATUS_LABELS } from "@/features/screening/labels";
 import type { Applicant } from "@/features/screening/types";
 import { useBoard } from "./board-context";
-import { DialogFooter, DialogHeader, ModalShell, dialogButton } from "./modal-shell";
+import { DialogFooter, DialogHeader, ModalShell } from "./modal-shell";
 import { useToast } from "./toast";
+import { FilterChip, SecondaryButton } from "./ui-controls";
 
 const TITLE_ID = "contacts-modal-title";
 
@@ -46,7 +47,7 @@ export function ContactsModal() {
       open
       onClose={closeContacts}
       labelledBy={TITLE_ID}
-      className="flex max-h-[88vh] w-[min(560px,93vw)] flex-col rounded-[10px] bg-card shadow-[0_16px_48px_rgba(0,0,0,0.2)]"
+      className="flex max-h-[88vh] w-[min(560px,93vw)] flex-col rounded-modal bg-card shadow-[var(--shadow-modal)]"
     >
       <DialogHeader
         id={TITLE_ID}
@@ -62,19 +63,13 @@ export function ContactsModal() {
 
         <div className="mb-2.5 flex gap-[5px]">
           {(Object.keys(FORMATS) as readonly FormatKey[]).map((key) => (
-            <button
+            <FilterChip
               key={key}
-              type="button"
-              aria-pressed={format === key}
+              pressed={format === key}
               onClick={() => setFormat(key)}
-              className={`rounded-full border px-[11px] py-1 text-[12.5px] ${
-                format === key
-                  ? "border-foreground bg-foreground font-medium text-white"
-                  : "border-border bg-card text-muted-strong"
-              }`}
             >
               {FORMATS[key].label}
-            </button>
+            </FilterChip>
           ))}
         </div>
 
@@ -97,11 +92,12 @@ export function ContactsModal() {
                   ok
                     ? `${contactList.length}명 연락처를 복사했습니다`
                     : "복사에 실패했습니다. 직접 선택해 복사해 주세요.",
+                  { type: ok ? "success" : "error" },
                 );
                 if (ok) setTimeout(() => setCopied(false), 1600);
               });
             }}
-            className={`absolute right-2 top-2 rounded-full border px-3 py-[5px] text-xs font-medium ${
+            className={`absolute right-2 top-2 inline-flex h-9 items-center rounded-full border px-3 text-xs font-medium transition-[background-color,border-color,color,transform] duration-150 active:scale-[0.97] ${
               copied ? "border-pass bg-pass-bg text-pass" : "border-border bg-card hover:border-muted-soft"
             }`}
           >
@@ -115,9 +111,9 @@ export function ContactsModal() {
       </div>
 
       <DialogFooter>
-        <button type="button" className={dialogButton} onClick={closeContacts}>
+        <SecondaryButton onClick={closeContacts}>
           닫기
-        </button>
+        </SecondaryButton>
       </DialogFooter>
     </ModalShell>
   );

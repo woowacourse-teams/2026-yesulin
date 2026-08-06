@@ -3,11 +3,11 @@
 import Link from "next/link";
 
 const CARD_CLASS =
-  "flex flex-col gap-[9px] rounded-[10px] border border-border bg-card p-4 text-left transition-[border-color,box-shadow] duration-150 hover:border-brand-line hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)]";
+  "flex min-w-0 flex-col gap-3 rounded-card border border-border bg-card p-5 text-left transition-[background-color,border-color,box-shadow,transform] duration-150 ease-[var(--ease-standard)] hover:-translate-y-0.5 hover:border-brand-line hover:shadow-[var(--shadow-2)] active:translate-y-0 active:scale-[0.995] active:bg-brand-soft";
 
 export function PickerScreen({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mx-auto max-w-[1080px] px-4 pb-16 pt-[34px] md:px-6">
+    <div className="mx-auto w-full max-w-[1440px] px-5 pb-16 pt-10 md:px-8 xl:px-10">
       {children}
     </div>
   );
@@ -23,10 +23,10 @@ export function PickerHeader({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="mb-6 flex flex-wrap items-start gap-4">
+    <div className="mb-8 flex flex-wrap items-start gap-5">
       <div className="min-w-0 flex-1">
-        <h1 className="text-[23px] font-bold tracking-[-0.03em]">{title}</h1>
-        <p className="mt-[5px] text-[13.5px] text-muted">{subtitle}</p>
+        <h1 className="text-2xl font-bold tracking-[-0.025em] md:text-[28px]">{title}</h1>
+        <p className="mt-2 text-base text-muted-strong md:text-sm">{subtitle}</p>
       </div>
       {children}
     </div>
@@ -35,16 +35,26 @@ export function PickerHeader({
 
 export function PickerGrid({ children }: { children: React.ReactNode }) {
   return (
-    <div className="grid gap-[13px] [grid-template-columns:repeat(auto-fill,minmax(258px,1fr))]">
+    <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr))] xl:gap-5">
       {children}
     </div>
   );
 }
 
-export function PickerEmpty({ children }: { children: React.ReactNode }) {
+export function PickerEmpty({
+  title,
+  description,
+  action,
+}: {
+  title: string;
+  description: string;
+  action?: React.ReactNode;
+}) {
   return (
-    <div className="col-span-full rounded-[10px] border border-dashed border-muted-soft bg-card px-6 py-12 text-center text-[13px] leading-relaxed text-muted">
-      {children}
+    <div className="col-span-full rounded-card border border-dashed border-muted-soft bg-card px-6 py-16 text-center text-sm leading-relaxed text-muted-strong">
+      <strong className="block text-lg text-foreground">{title}</strong>
+      <p className="mx-auto mt-2 max-w-md">{description}</p>
+      {action ? <div className="mt-5 flex justify-center">{action}</div> : null}
     </div>
   );
 }
@@ -66,7 +76,11 @@ export function PickerCardBlocked({
   children: React.ReactNode;
 }) {
   return (
-    <button type="button" onClick={onBlocked} className={`${CARD_CLASS} opacity-70`}>
+    <button
+      type="button"
+      onClick={onBlocked}
+      className={`${CARD_CLASS} cursor-not-allowed opacity-75 hover:translate-y-0 hover:border-border hover:shadow-none active:bg-surface`}
+    >
       {children}
     </button>
   );
@@ -74,14 +88,14 @@ export function PickerCardBlocked({
 
 export function PickerTitle({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-2 text-[16.5px] font-bold tracking-[-0.02em]">
+    <div className="flex min-w-0 items-center gap-2 text-lg font-bold tracking-[-0.015em]">
       {children}
     </div>
   );
 }
 
 export function PickerDescription({ children }: { children: React.ReactNode }) {
-  return <p className="-mt-1.5 text-[12.5px] text-muted">{children}</p>;
+  return <p className="-mt-2 line-clamp-2 text-base text-muted lg:text-sm">{children}</p>;
 }
 
 export function PickerStats({
@@ -95,13 +109,13 @@ export function PickerStats({
     <div className="flex items-baseline gap-4 py-[3px]">
       <span>
         <b className="num text-2xl font-bold leading-none tracking-[-0.03em]">{primary.value}</b>
-        <span className="ml-[3px] text-[11.5px] text-muted">{primary.unit}</span>
+        <span className="ml-1 text-xs text-muted">{primary.unit}</span>
       </span>
       <span>
         <b className="num text-[17px] font-bold leading-none tracking-[-0.03em] text-muted">
           {secondary.value}
         </b>
-        <span className="ml-[3px] text-[11.5px] text-muted">{secondary.unit}</span>
+        <span className="ml-1 text-xs text-muted">{secondary.unit}</span>
       </span>
     </div>
   );
@@ -132,7 +146,7 @@ export function PickerState({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center gap-1.5 border-t border-border-soft pt-[9px] text-[12.5px] text-muted-strong">
+    <div className="flex items-center gap-2 border-t border-border-soft pt-3 text-[13px] font-medium text-muted-strong">
       <i aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${DOT_TONE[tone]}`} />
       {children}
     </div>

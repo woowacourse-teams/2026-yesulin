@@ -17,7 +17,7 @@ export function ScreeningBoard({ roleId }: { roleId: RoleId }) {
   );
 
   const load = useCallback(() => getScreeningBoard(roleId, round), [roleId, round]);
-  const { data, error, loading } = useScreeningQuery(
+  const { data, error, loading, reload } = useScreeningQuery(
     `${roleId}:${round ?? "auto"}`,
     load,
     "지원자를 불러오지 못했습니다.",
@@ -56,7 +56,7 @@ export function ScreeningBoard({ roleId }: { roleId: RoleId }) {
 
       {error ? (
         <div className="p-4 md:p-6">
-          <ScreenError message={error} />
+          <ScreenError message={error} onRetry={reload} />
         </div>
       ) : null}
 

@@ -1,15 +1,10 @@
-export const createInputClass =
-  "w-full rounded-control border border-border bg-card px-3 py-2.5 text-[13.5px] outline-none transition-colors placeholder:text-muted-soft focus:border-brand";
+import { PrimaryButton } from "./ui-controls";
 
 export function CreatePageButton({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="shrink-0 rounded-control bg-brand px-4 py-2.5 text-[13.5px] font-semibold text-white shadow-sm transition-colors hover:bg-brand-strong"
-    >
+    <PrimaryButton onClick={onClick} className="shrink-0">
       {children}
-    </button>
+    </PrimaryButton>
   );
 }
 
@@ -23,10 +18,10 @@ export function CreateSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="border-b border-border-soft py-5 first:pt-0 last:border-b-0 last:pb-0">
-      <div className="mb-3.5">
-        <h3 className="text-[14.5px] font-bold">{title}</h3>
-        {description ? <p className="mt-1 text-xs leading-relaxed text-muted">{description}</p> : null}
+    <section className="border-b border-border-soft py-8 first:pt-0 last:border-b-0 last:pb-0">
+      <div className="mb-4">
+        <h3 className="text-lg font-bold tracking-[-0.01em]">{title}</h3>
+        {description ? <p className="mt-1 text-base leading-relaxed text-muted-strong md:text-sm">{description}</p> : null}
       </div>
       {children}
     </section>
@@ -46,16 +41,20 @@ export function CreateField({
 }) {
   return (
     <label className="block min-w-0" htmlFor={htmlFor}>
-      <span className="mb-1.5 block text-[12.5px] font-semibold text-muted-strong">{label}</span>
+      <span className="mb-2 block text-base font-semibold text-muted-strong md:text-sm">{label}</span>
       {children}
-      {hint ? <span className="mt-1.5 block text-[11.5px] text-muted">{hint}</span> : null}
+      {hint ? <span className="mt-2 block text-base leading-relaxed text-muted md:text-sm">{hint}</span> : null}
     </label>
   );
 }
 
-export function CreateError({ message }: { message: string }) {
+export function CreateError({ id, message }: { id?: string; message: string }) {
   return message ? (
-    <p role="alert" className="rounded-control border border-fail-bg bg-fail-bg px-3 py-2 text-[12.5px] text-fail">
+    <p
+      id={id}
+      role="alert"
+      className="rounded-control border border-fail-bg bg-fail-bg px-3 py-2 text-sm text-fail"
+    >
       {message}
     </p>
   ) : null;

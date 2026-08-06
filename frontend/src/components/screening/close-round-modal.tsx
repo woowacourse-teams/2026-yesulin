@@ -1,13 +1,8 @@
 "use client";
 
 import { useBoard } from "./board-context";
-import {
-  DialogFooter,
-  DialogHeader,
-  ModalShell,
-  dialogButton,
-  dialogPrimaryButton,
-} from "./modal-shell";
+import { DialogFooter, DialogHeader, ModalShell } from "./modal-shell";
+import { PrimaryButton, SecondaryButton } from "./ui-controls";
 
 const TITLE_ID = "close-round-title";
 
@@ -35,7 +30,7 @@ export function CloseRoundModal({
       open
       onClose={onClose}
       labelledBy={TITLE_ID}
-      className="flex max-h-[88vh] w-[min(560px,93vw)] flex-col rounded-[10px] bg-card shadow-[0_16px_48px_rgba(0,0,0,0.2)]"
+      className="flex max-h-[88vh] w-[min(560px,93vw)] flex-col rounded-modal bg-card shadow-[var(--shadow-modal)]"
     >
       <DialogHeader
         id={TITLE_ID}
@@ -87,19 +82,17 @@ export function CloseRoundModal({
       </div>
 
       <DialogFooter>
-        <button type="button" className={dialogButton} onClick={onClose}>
+        <SecondaryButton onClick={onClose}>
           {auto ? "나중에 하기" : "닫기"}
-        </button>
-        <button
-          type="button"
-          className={`${dialogPrimaryButton} disabled:opacity-60`}
+        </SecondaryButton>
+        <PrimaryButton
           disabled={saving}
           onClick={() => {
             void closeCurrentRound().then(onClose);
           }}
         >
           {auto ? (isFinal ? "예, 종료합니다" : `예, ${nextLabel}`) : nextLabel}
-        </button>
+        </PrimaryButton>
       </DialogFooter>
     </ModalShell>
   );

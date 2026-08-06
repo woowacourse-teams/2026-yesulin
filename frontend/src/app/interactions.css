@@ -1,0 +1,101 @@
+@layer utilities {
+  /* 숫자를 세로로 정렬해 목록·통계에서 자릿수가 흔들리지 않게 한다 */
+  .num {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+
+  .glass-surface {
+    background: var(--surface-glass);
+    border-color: var(--border-glass);
+    box-shadow: var(--shadow-2);
+    backdrop-filter: blur(18px) saturate(130%);
+  }
+
+  .glass-surface-strong {
+    background: var(--surface-glass-strong);
+    border-color: rgba(255, 255, 255, 0.82);
+    box-shadow: var(--shadow-3);
+    backdrop-filter: blur(22px) saturate(135%);
+  }
+
+  .glass-surface-dark {
+    background: var(--surface-glass-dark);
+    border-color: var(--sidebar-line);
+    box-shadow: var(--shadow-3);
+    backdrop-filter: blur(20px) saturate(120%);
+  }
+
+  .scrollbar-compact {
+    scrollbar-color: var(--line) transparent;
+    scrollbar-width: thin;
+  }
+
+  .scrollbar-compact::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  .scrollbar-compact::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: var(--line);
+  }
+
+  .toast-enter {
+    animation: toast-enter var(--motion-base) var(--ease-enter) both;
+  }
+}
+
+@keyframes toast-enter {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .glass-surface,
+  .glass-surface-strong {
+    background: rgba(255, 255, 255, 0.98);
+  }
+
+  .glass-surface-dark {
+    background: rgba(8, 11, 18, 0.96);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (max-width: 1023px) {
+  button,
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  select,
+  textarea {
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass-surface,
+  .glass-surface-strong {
+    background: var(--white);
+    backdrop-filter: none;
+  }
+
+  .glass-surface-dark {
+    background: var(--sidebar);
+    backdrop-filter: none;
+  }
+}

@@ -8,6 +8,7 @@ import { ApplicantTable } from "./applicant-table";
 import { useBoard } from "./board-context";
 import { ScreenMessage } from "./screen-status";
 import { VideoModal } from "./video-modal";
+import { SecondaryButton } from "./ui-controls";
 
 export function ApplicantList() {
   const { board, filters, visible } = useBoard();
@@ -48,7 +49,7 @@ function ListToolbar({ rows }: { rows: readonly Applicant[] }) {
       : `${rows.length}명 표시 중`;
 
   return (
-    <div className="mb-[11px] flex flex-wrap items-center gap-3 rounded-control border border-border bg-card px-[13px] py-[9px]">
+    <div className="mb-3 flex flex-wrap items-center gap-3 rounded-card border border-border bg-card px-4 py-3">
       <label className="-m-1.5 flex cursor-pointer items-center gap-[9px] rounded-lg p-1.5 text-[13px] font-medium transition-colors hover:bg-foreground/5">
         <input
           type="checkbox"
@@ -70,15 +71,14 @@ function ListToolbar({ rows }: { rows: readonly Applicant[] }) {
       ) : null}
 
       {filters.work === "DONE" ? (
-        <button
-          type="button"
+        <SecondaryButton
           onClick={() => openContacts(selectedRows.length > 0 ? selectedRows : rows)}
-          className="ml-auto rounded-control border border-brand-line bg-brand-soft px-3 py-[5px] text-[12.5px] font-semibold text-brand hover:bg-brand-soft-strong"
+          className="ml-auto min-h-9 bg-brand-soft text-brand"
         >
           {selectedRows.length > 0
             ? `선택한 ${selectedRows.length}명 연락처 모아보기`
             : `${label.split(" ")[0]} 전체 연락처 모아보기`}
-        </button>
+        </SecondaryButton>
       ) : null}
     </div>
   );
@@ -94,16 +94,15 @@ function EmptyList() {
         {counts && counts.pass > 0 ? (
           <>
             합격 {counts.pass}명을 확인할 차례입니다.
-            <button
-              type="button"
+            <SecondaryButton
               onClick={() => {
                 clearSelection();
                 setFilters((current) => ({ ...current, work: "DONE", status: "PASS" }));
               }}
-              className="ml-1.5 rounded-control border border-brand-line bg-brand-soft px-3 py-[5px] text-[12.5px] font-semibold text-brand hover:bg-brand-soft-strong"
+              className="ml-2 min-h-9 bg-brand-soft text-brand"
             >
               합격자 보기
-            </button>
+            </SecondaryButton>
           </>
         ) : (
           "검토 완료 탭에서 결과를 확인하세요."

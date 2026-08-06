@@ -1,194 +1,126 @@
-import type { PerformanceId, PostingId, RoleGender, RoleId } from "@/features/screening/types";
-import { performanceId, postingId, roleId } from "@/features/screening/types";
-import type {
-  ApplicationFieldInput,
-  PerformanceRoleTemplate,
-  ScreeningRoundInput,
-} from "@/features/screening/creation-types";
+import type { PerformanceId } from "@/features/screening/types";
+import { performanceId, postingId } from "@/features/screening/types";
+import type { CatalogPerformance } from "./catalog-model";
+import { role, template } from "./catalog-model";
 
-/** 목 데이터가 세우는 배역 원본. applicantCount는 생성할 지원자 수다. */
-export type CatalogRole = {
-  readonly id: RoleId;
-  readonly name: string;
-  readonly description: string;
-  readonly quota: number;
-  readonly gender: RoleGender;
-  readonly ageMin: number;
-  readonly ageMax: number;
-  readonly applicantCount: number;
-};
+export type { CatalogPerformance, CatalogPosting, CatalogRole } from "./catalog-model";
 
-export type CatalogPosting = {
-  readonly id: PostingId;
-  readonly performanceId: PerformanceId;
-  readonly title: string;
-  readonly deadline: string;
-  readonly status: "OPEN" | "CLOSED" | "UPCOMING";
-  readonly isOpenCall: boolean;
-  /** 지난 시즌 공고. 전 차수 심사 이력이 채워진 상태로 시작한다. */
-  readonly finished: boolean;
-  readonly roles: readonly CatalogRole[];
-  readonly recruitmentStart?: string;
-  readonly recruitmentEnd?: string;
-  readonly rounds?: readonly ScreeningRoundInput[];
-  readonly applicationFields?: readonly ApplicationFieldInput[];
-  readonly applicationGuide?: string;
-};
-
-export type CatalogPerformance = {
-  readonly id: PerformanceId;
-  readonly posterUrl: string;
-  readonly title: string;
-  readonly venue: string;
-  readonly roleTemplates: readonly PerformanceRoleTemplate[];
-  readonly postings: CatalogPosting[];
-};
-
-function role(
-  id: string,
-  name: string,
-  description: string,
-  quota: number,
-  gender: RoleGender,
-  ageMin: number,
-  ageSpan: number,
-  applicantCount: number,
-): CatalogRole {
-  return {
-    id: roleId(id),
-    name,
-    description,
-    quota,
-    gender,
-    ageMin,
-    ageMax: ageMin + ageSpan - 1,
-    applicantCount,
-  };
-}
-
-function template(
-  id: string,
-  name: string,
-  description: string,
-  gender: RoleGender,
-  ageMin: number,
-  ageMax: number,
-): PerformanceRoleTemplate {
-  return { id, name, description, gender, ageMin, ageMax };
-}
-
-const SUMMER_END = performanceId("p1");
-const WINTER_GUEST = performanceId("p2");
+const HIGH_LIFE = performanceId("p1");
+const HAMLET_LAWYER = performanceId("p2");
+const HANGOVER = performanceId("p3");
+const SPEED_SCANDAL = performanceId("p4");
+const RUN_TO_FAMILY = performanceId("p5");
 
 export const CATALOG: CatalogPerformance[] = [
   {
-    id: SUMMER_END,
-    posterUrl: "/images/performances/summerplay.jpg",
-    title: "뮤지컬 <여름의 끝>",
-    venue: "대학로예술극장",
+    id: HIGH_LIFE,
+    posterUrl: "https://otr.co.kr/wp-content/uploads/mangboard/2026/07/27/F251470_%EC%98%A4%EB%94%94%EC%85%98.jpg",
+    title: "연극 <HIGH LIFE>",
+    venue: "나인진홀 3관",
     roleTemplates: [
-      template("p1_t1", "서연", "여 · 20대 초중반", "FEMALE", 21, 28),
-      template("p1_t2", "민호", "남 · 20대 중후반", "MALE", 24, 31),
-      template("p1_t3", "정 교수", "남 · 50대", "MALE", 48, 58),
-      template("p1_t4", "앙상블", "성별 무관 · 20~30대", "ANY", 21, 33),
+      template("p1_t1", "남자 배우", "1994~2004년 출생", "MALE", 22, 32),
+      template("p1_t2", "여자 배우", "1994~2004년 출생", "FEMALE", 22, 32),
     ],
-    postings: [
-      {
-        id: postingId("po1"),
-        performanceId: SUMMER_END,
-        title: "2026 시즌 배우 모집",
-        deadline: "08.20",
-        status: "OPEN",
-        isOpenCall: false,
-        finished: false,
-        roles: [
-          role("po1_r1", "서연", "여 · 20대 초중반", 1, "FEMALE", 21, 8, 8),
-          role("po1_r2", "민호", "남 · 20대 중후반", 1, "MALE", 24, 8, 7),
-          role("po1_r3", "정 교수", "남 · 50대", 1, "MALE", 48, 11, 5),
-          role("po1_r4", "앙상블", "성별 무관 · 20~30대", 6, "ANY", 21, 13, 10),
-        ],
-      },
-      {
-        id: postingId("po2"),
-        performanceId: SUMMER_END,
-        title: "앙상블 추가 모집",
-        deadline: "08.02",
-        status: "CLOSED",
-        isOpenCall: false,
-        finished: false,
-        roles: [role("po2_r1", "앙상블", "성별 무관 · 20~30대", 4, "ANY", 22, 12, 9)],
-      },
-      {
-        id: postingId("po0"),
-        performanceId: SUMMER_END,
-        title: "2025 시즌 배우 모집",
-        deadline: "2025.07.30",
-        status: "CLOSED",
-        isOpenCall: false,
-        finished: true,
-        roles: [
-          role("po0_r1", "서연", "여 · 20대 초중반", 1, "FEMALE", 21, 8, 5),
-          role("po0_r2", "민호", "남 · 20대 중후반", 1, "MALE", 24, 8, 4),
-          role("po0_r3", "앙상블", "성별 무관 · 20~30대", 5, "ANY", 21, 13, 6),
-        ],
-      },
-    ],
+    postings: [{
+      id: postingId("po1"), performanceId: HIGH_LIFE,
+      title: "HIGH LIFE - Audition", deadline: "08.09", status: "OPEN",
+      isOpenCall: false, finished: false,
+      recruitmentStart: "2026-07-27", recruitmentEnd: "2026-08-09",
+      roles: [
+        role("po1_r1", "남자 배우", "1994~2004년 출생 · 더블 캐스팅", 2, "MALE", 22, 32, 8),
+        role("po1_r2", "여자 배우", "1994~2004년 출생 · 더블 캐스팅", 2, "FEMALE", 22, 32, 8),
+      ],
+      rounds: [
+        { round: 1, name: "1차 서류", date: "2026-08-10", note: "이메일 서류 심사" },
+        { round: 2, name: "2차 연기 오디션", date: "2026-08-12", note: "서류 합격자 개별 안내" },
+      ],
+      applicationGuide: "자유 양식 지원서를 ninejin6485@naver.com으로 제출",
+    }],
   },
   {
-    id: WINTER_GUEST,
-    posterUrl: "/images/performances/nightfall.jpg",
-    title: "연극 <겨울 손님>",
-    venue: "소극장 산울림",
-    roleTemplates: [
-      template("p2_t1", "윤희", "여 · 30대", "FEMALE", 30, 38),
-      template("p2_t2", "남자 1", "남 · 40대", "MALE", 39, 48),
-      template("p2_t3", "딸", "여 · 20대", "FEMALE", 22, 30),
-      template("p2_t4", "아버지", "남 · 60대", "MALE", 58, 66),
-      template("p2_t5", "전체 지원자", "배역 구분 없음", "ANY", 24, 37),
-    ],
-    postings: [
-      {
-        id: postingId("po3"),
-        performanceId: WINTER_GUEST,
-        title: "초연 배우 모집",
-        deadline: "09.05",
-        status: "OPEN",
-        isOpenCall: false,
-        finished: false,
-        roles: [
-          role("po3_r1", "윤희", "여 · 30대", 1, "FEMALE", 30, 9, 6),
-          role("po3_r2", "남자 1", "남 · 40대", 2, "MALE", 39, 10, 6),
-        ],
-      },
-      {
-        id: postingId("po5"),
-        performanceId: WINTER_GUEST,
-        title: "2026 가을 시즌 배우 모집",
-        deadline: "2026.10.01",
-        status: "UPCOMING",
-        isOpenCall: false,
-        finished: false,
-        roles: [
-          role("po5_r1", "딸", "여 · 20대", 1, "FEMALE", 22, 9, 0),
-          role("po5_r2", "아버지", "남 · 60대", 1, "MALE", 58, 9, 0),
-        ],
-      },
-      {
-        id: postingId("po4"),
-        performanceId: WINTER_GUEST,
-        title: "낭독공연 배우 모집",
-        deadline: "2026.05.18",
-        status: "CLOSED",
-        isOpenCall: true,
-        finished: true,
-        roles: [role("po4_all", "전체 지원자", "배역 구분 없음", 4, "ANY", 24, 14, 6)],
-      },
-    ],
+    id: HAMLET_LAWYER,
+    posterUrl: "https://otr.co.kr/wp-content/uploads/mangboard/2026/05/21/F247697_%ED%96%84%EB%A6%BF%EC%9D%98%EB%B3%80%ED%98%B8%EC%82%AC-%EC%98%A4%EB%94%94%EC%85%98-001.jpg",
+    title: "연극 <햄릿의 변호사>",
+    venue: "나인진홀 2관",
+    roleTemplates: [template("p2_t1", "햄릿", "남 · 20대 후반~40대 초반", "MALE", 27, 43)],
+    postings: [{
+      id: postingId("po3"), performanceId: HAMLET_LAWYER,
+      title: "햄릿 역 오디션", deadline: "2026.05.31", status: "CLOSED",
+      isOpenCall: false, finished: true,
+      recruitmentStart: "2026-05-21", recruitmentEnd: "2026-05-31",
+      roles: [role("po3_r1", "햄릿", "남 · 20대 후반~40대 초반", 1, "MALE", 27, 43, 12)],
+      rounds: [
+        { round: 1, name: "1차 서류", date: "2026-06-01", note: "22시 이전 이메일 발표" },
+        { round: 2, name: "2차 대면 오디션", date: "2026-06-04", note: "자유연기 및 지정연기" },
+      ],
+      applicationGuide: "지정 양식 지원서를 이메일로 제출",
+    }],
+  },
+  {
+    id: HANGOVER,
+    posterUrl: "https://otr.co.kr/wp-content/uploads/mangboard/2026/04/07/F245141_KakaoTalk_20260407_155335541.jpg",
+    title: "연극 <행오버>",
+    venue: "대학로 정극장",
+    roleTemplates: [template("p3_t1", "전체 지원자", "배역 구분 없이 지원", "ANY", 20, 55)],
+    postings: [{
+      id: postingId("po5"), performanceId: HANGOVER,
+      title: "2026 하반기 팀 오디션", deadline: "09.19", status: "OPEN",
+      isOpenCall: true, finished: false,
+      recruitmentStart: "2026-08-07", recruitmentEnd: "2026-09-19",
+      roles: [role("po5_r1", "전체 지원자", "배역 구분 없이 지원", 6, "ANY", 20, 55, 15)],
+      rounds: [
+        { round: 1, name: "1차 서류", date: "2026-09-20", note: "15시 이전 합격자 발표" },
+        { round: 2, name: "2차 실기 오디션", date: "2026-09-23", note: "지정연기 및 1분 자유연기" },
+      ],
+      applicationGuide: "지정 지원서를 작성해 이메일로 온라인 지원",
+    }],
+  },
+  {
+    id: SPEED_SCANDAL,
+    posterUrl: "https://otr.co.kr/wp-content/uploads/mangboard/2025/10/01/F234471_%EA%B3%BC%EC%86%8D%EC%8A%A4%EC%BA%94%EB%93%A4_%EC%98%A4%EB%94%94%EC%85%98_2026.jpg",
+    title: "연극 <과속스캔들>",
+    venue: "나인진홀 2관",
+    roleTemplates: familyTemplates("p4"),
+    postings: [familyPosting({ performanceId: SPEED_SCANDAL, posting: "po4", title: "2026년 상반기 팀 오디션", start: "2025-10-02", end: "2025-10-17", firstRound: "2025-10-19", secondRound: "2025-10-21", applicants: [3, 2, 3, 2, 2, 3] })],
+  },
+  {
+    id: RUN_TO_FAMILY,
+    posterUrl: "https://otr.co.kr/wp-content/uploads/mangboard/2025/04/02/F223131_KakaoTalk_20250402_105103959.jpg",
+    title: "연극 <런투패밀리>",
+    venue: "대학로 나인진홀 2관",
+    roleTemplates: familyTemplates("p5"),
+    postings: [familyPosting({ performanceId: RUN_TO_FAMILY, posting: "po2", title: "2025년 하반기 팀 오디션", start: "2025-04-01", end: "2025-04-17", firstRound: "2025-04-19", secondRound: "2025-04-22", applicants: [3, 2, 3, 2, 2, 3] })],
   },
 ];
 
-export const ROUND_NAMES = {
-  1: "1차 서류",
-  2: "2차 오디션",
-  3: "3차 최종",
-} as const;
+function familyTemplates(prefix: string) {
+  return [
+    template(`${prefix}_t1`, "이재준", "남 · 30대 중후반", "MALE", 34, 39),
+    template(`${prefix}_t2`, "신혜선", "여 · 30대 초중반", "FEMALE", 30, 36),
+    template(`${prefix}_t3`, "강미래", "여 · 20대 중후반", "FEMALE", 24, 29),
+    template(`${prefix}_t4`, "정명수", "남 · 30대 중후반", "MALE", 34, 39),
+    template(`${prefix}_t5`, "이기자", "남 · 30대", "MALE", 30, 39),
+    template(`${prefix}_t6`, "맥스", "남 · 20대 초중반", "MALE", 20, 26),
+  ];
+}
+
+function familyPosting({ performanceId, posting, title, start, end, firstRound, secondRound, applicants }: {
+  performanceId: PerformanceId; posting: string; title: string;
+  start: string; end: string; firstRound: string; secondRound: string; applicants: readonly number[];
+}) {
+  const names = ["이재준", "신혜선", "강미래", "정명수", "이기자", "맥스"] as const;
+  const genders = ["MALE", "FEMALE", "FEMALE", "MALE", "MALE", "MALE"] as const;
+  const ages = [[34, 39], [30, 36], [24, 29], [34, 39], [30, 39], [20, 26]] as const;
+  return {
+    id: postingId(posting), performanceId, title, deadline: end.replace("-", ".").replace("-", "."),
+    status: "CLOSED" as const, isOpenCall: false, finished: true, recruitmentStart: start, recruitmentEnd: end,
+    roles: names.map((name, index) => role(`${posting}_r${index + 1}`, name, `${genders[index] === "FEMALE" ? "여" : "남"} · 배우 모집`, 1, genders[index], ages[index][0], ages[index][1], applicants[index] ?? 2)),
+    rounds: [
+      { round: 1 as const, name: "1차 서류", date: firstRound, note: "이메일 서류 심사" },
+      { round: 2 as const, name: "2차 연기 오디션", date: secondRound, note: "지정연기 및 자유연기" },
+    ],
+    applicationGuide: "지정 지원서와 최근 사진을 이메일로 제출",
+  };
+}
+
+export const ROUND_NAMES = { 1: "1차 서류", 2: "2차 오디션", 3: "3차 최종" } as const;

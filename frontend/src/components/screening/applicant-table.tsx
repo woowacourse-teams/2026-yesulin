@@ -57,12 +57,23 @@ export function ApplicantTable({
             </tr>
           </thead>
           <tbody>
-            {rows.map((applicant) => (
+            {rows.map((applicant, index) => (
               <tr
                 key={applicant.id}
+                tabIndex={0}
+                aria-label={`${applicant.name} 지원자 상세 보기`}
                 onClick={() => openApplicant(applicant.id)}
-                className={`cursor-pointer transition-colors last:[&>td]:border-b-0 ${
-                  selected.has(applicant.id) ? "bg-brand-soft" : "hover:bg-surface"
+                onKeyDown={(event) => {
+                  if (event.target !== event.currentTarget) return;
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    openApplicant(applicant.id);
+                  }
+                }}
+                className={`h-16 cursor-pointer transition-[background-color,box-shadow] duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand last:[&>td]:border-b-0 ${
+                  selected.has(applicant.id)
+                    ? "bg-brand-soft shadow-[inset_3px_0_0_var(--brand)]"
+                    : "hover:bg-surface active:bg-brand-soft"
                 }`}
               >
                 <td className="border-b border-border-soft pl-1.5 align-middle">
@@ -98,6 +109,7 @@ export function ApplicantTable({
                         photo={applicant.photos[0]}
                         alt=""
                         sizes="38px"
+                        priority={index === 0}
                         className="object-cover object-[center_22%]"
                       />
                     </span>
@@ -126,7 +138,7 @@ export function ApplicantTable({
                   {applicant.school}
                 </td>
                 <td className="hidden border-b border-border-soft px-3 py-2 lg:table-cell">
-                  <span className="num mr-[5px] rounded-[3px] border border-border bg-surface px-[5px] text-[11px] text-muted">
+                  <span className="num mr-[5px] inline-flex h-6 items-center rounded-lg border border-border bg-surface px-2 text-[11px] text-muted">
                     사진 {applicant.photos.length}
                   </span>
                   {applicant.videoUrl ? (

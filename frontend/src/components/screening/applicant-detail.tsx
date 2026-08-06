@@ -30,9 +30,9 @@ export function ApplicantDetail() {
         open
         onClose={close}
         labelledBy={TITLE_ID}
-        className="flex h-[min(860px,92vh)] w-[min(1120px,94vw)] flex-col overflow-hidden rounded-[14px] bg-card shadow-[0_26px_70px_rgba(0,0,0,0.26)]"
+        className="flex h-[min(860px,92vh)] w-[min(1120px,94vw)] flex-col overflow-hidden rounded-modal bg-card shadow-[var(--shadow-modal)]"
       >
-        <header className="flex items-center gap-3.5 border-b border-border px-5 pb-3.5 pt-4">
+        <header className="glass-surface flex items-center gap-3.5 border-b border-border px-5 pb-3.5 pt-4">
           <div className="min-w-0">
             <h2 id={TITLE_ID} className="text-[23px] font-bold leading-tight tracking-[-0.03em]">
               {applicant.name}
@@ -48,7 +48,7 @@ export function ApplicantDetail() {
             {applicant.mismatchReasons.length > 0 ? (
               <span
                 title={`배역 조건: ${board.role.description}`}
-                className="whitespace-nowrap rounded-full bg-fail-bg px-[7px] py-0.5 text-[11px] font-semibold text-fail"
+                className="inline-flex h-6 items-center whitespace-nowrap rounded-full bg-fail-bg px-2 text-xs font-semibold text-fail"
               >
                 조건 불일치 ({mismatchText(applicant.mismatchReasons)})
               </span>
@@ -59,9 +59,11 @@ export function ApplicantDetail() {
               title="이 지원자 인쇄"
               aria-label="이 지원자 인쇄"
               onClick={() => {
-                if (!openPrintWindow([applicant], board.performance)) toast(POPUP_BLOCKED);
+                if (!openPrintWindow([applicant], board.performance)) {
+                  toast(POPUP_BLOCKED, { type: "error" });
+                }
               }}
-              className="rounded-md px-2 py-1 text-[12px] text-muted hover:bg-border-soft hover:text-foreground"
+              className="min-h-11 rounded-control px-3 py-1 text-sm text-muted transition-[background-color,color,transform] duration-150 hover:bg-border-soft hover:text-foreground active:scale-[0.97] lg:min-h-0 lg:px-2 lg:text-[12px]"
             >
               인쇄
             </button>
@@ -69,7 +71,7 @@ export function ApplicantDetail() {
               type="button"
               aria-label="닫기"
               onClick={close}
-              className="rounded-md px-2 py-1 text-[12px] text-muted hover:bg-border-soft hover:text-foreground"
+              className="min-h-11 rounded-control px-3 py-1 text-sm text-muted transition-[background-color,color,transform] duration-150 hover:bg-border-soft hover:text-foreground active:scale-[0.97] lg:min-h-0 lg:px-2 lg:text-[12px]"
             >
               닫기
             </button>
