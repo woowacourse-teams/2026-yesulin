@@ -163,7 +163,7 @@ function TreeBranch({
                 }`}
               >
                 <span className="min-w-0 flex-1 truncate">{posting.title}</span>
-                <PhaseTag phase={posting.phase} />
+                <PhaseTag phase={posting.phase} variant={active ? "sidebarActive" : "sidebar"} />
                 <span className={`num shrink-0 text-[10.5px] ${active ? "text-white/75" : "text-sidebar-muted"}`}>
                   {posting.applicantCount}
                 </span>

@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { MarketingLanding } from "@/components/landing/marketing-landing";
 
-export default function Home() {
-  redirect("/producers/performances");
+export default function HomePage() {
+  return <MarketingLanding audience="applicant" />;
 }

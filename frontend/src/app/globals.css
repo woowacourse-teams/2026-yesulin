@@ -49,6 +49,9 @@
   --surface-glass-strong: rgba(255, 255, 255, 0.92);
   --surface-glass-dark: rgba(8, 11, 18, 0.82);
   --border-glass: rgba(255, 255, 255, 0.72);
+  --social-kakao: #fee500;
+  --social-kakao-ink: #191919;
+  --social-naver: #03c75a;
   --motion-fast: 120ms;
   --motion-base: 200ms;
   --ease-standard: cubic-bezier(0.22, 0.61, 0.36, 1);
@@ -96,6 +99,9 @@
   --color-sidebar-line: var(--sidebar-line);
   --color-sidebar-text: var(--sidebar-text);
   --color-sidebar-muted: var(--sidebar-muted);
+  --color-kakao: var(--social-kakao);
+  --color-kakao-ink: var(--social-kakao-ink);
+  --color-naver: var(--social-naver);
 
   --font-sans: "Pretendard Variable", "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI", sans-serif;
   --radius-control: 12px;

@@ -24,6 +24,13 @@ const PHASE_TONE = {
   FINISHED: "text-muted bg-border-soft",
 } as const satisfies Record<PostingPhase, string>;
 
+const PHASE_DOT = {
+  OPEN: "bg-pass",
+  UPCOMING: "bg-brand-line",
+  RECRUIT_CLOSED: "bg-warn",
+  FINISHED: "bg-sidebar-muted",
+} as const satisfies Record<PostingPhase, string>;
+
 /** 사진 위에 얹는 배지는 상태 배경 대신 반투명 흰 배경을 쓴다. */
 export function StatusBadge({
   status,
@@ -50,11 +57,27 @@ export function StatusBadge({
   );
 }
 
-export function PhaseTag({ phase }: { phase: PostingPhase }) {
+export function PhaseTag({
+  phase,
+  variant = "default",
+}: {
+  phase: PostingPhase;
+  variant?: "default" | "sidebar" | "sidebarActive";
+}) {
+  const inSidebar = variant !== "default";
+  const tone = variant === "default"
+    ? PHASE_TONE[phase]
+    : variant === "sidebarActive"
+      ? "border-white/20 bg-white/10 text-white"
+      : "border-sidebar-line bg-white/[0.035] text-sidebar-text";
+
   return (
     <span
-      className={`inline-flex h-6 shrink-0 items-center whitespace-nowrap rounded-lg border border-transparent px-2 text-xs font-bold tracking-[0.01em] ${PHASE_TONE[phase]}`}
+      className={`inline-flex shrink-0 items-center whitespace-nowrap border font-semibold tracking-[0.005em] ${
+        inSidebar ? "h-5 gap-1.5 rounded-md px-1.5 text-[10.5px]" : "h-6 rounded-lg border-transparent px-2 text-xs font-bold"
+      } ${tone}`}
     >
+      {inSidebar ? <span aria-hidden="true" className={`h-1.5 w-1.5 shrink-0 rounded-full ${PHASE_DOT[phase]}`} /> : null}
       {PHASE_LABELS[phase]}
     </span>
   );

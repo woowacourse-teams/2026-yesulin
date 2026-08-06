@@ -7,6 +7,7 @@ import { PhaseTag } from "@/components/screening/status-badge";
 import { ScreeningTreeNav } from "./screening-tree";
 import { SidebarResizer } from "./sidebar-resizer";
 import { MobileProducerNavigation } from "./mobile-producer-navigation";
+import { ProducerAccountPanel } from "./producer-account-panel";
 
 export function ProducerShell({ children }: { children: React.ReactNode }) {
   return (
@@ -41,7 +42,7 @@ export function ProducerShell({ children }: { children: React.ReactNode }) {
         <div className="mt-auto flex flex-col gap-2 border-t border-sidebar-line px-4 py-3 text-xs text-sidebar-muted">
           <div className="flex flex-wrap gap-1.5">
             {POSTING_PHASES.map((phase) => (
-              <PhaseTag key={phase} phase={phase} />
+              <PhaseTag key={phase} phase={phase} variant="sidebar" />
             ))}
           </div>
           <span>지난 시즌 공고도 계속 열람할 수 있습니다</span>
@@ -50,21 +51,7 @@ export function ProducerShell({ children }: { children: React.ReactNode }) {
           </span>
         </div>
 
-        <div className="border-t border-sidebar-line px-4 py-4">
-          <div className="flex items-center gap-2.5">
-            <Image
-              src="/images/ninejin-group-logo.png"
-              alt=""
-              width={36}
-              height={36}
-              className="h-9 w-9 rounded-full border border-sidebar-line bg-white object-contain"
-            />
-            <div className="min-w-0 text-xs leading-tight text-sidebar-text">
-              <div className="truncate font-semibold">나인진엔터테인먼트</div>
-              <div className="mt-1 text-sidebar-muted">캐스팅 담당</div>
-            </div>
-          </div>
-        </div>
+        <ProducerAccountPanel />
       </aside>
 
       <SidebarResizer />

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { ModalShell } from "@/components/screening/modal-shell";
 import { screeningRoutes } from "@/features/screening/routes";
+import { ProducerAccountPanel } from "./producer-account-panel";
 import { ScreeningTreeNav } from "./screening-tree";
 
 const TITLE_ID = "mobile-producer-navigation-title";
@@ -79,6 +80,7 @@ function MobileProducerNavigationPanel() {
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-2">
             <ScreeningTreeNav onNavigate={() => setOpen(false)} />
           </div>
+          <ProducerAccountPanel />
         </div>
       </ModalShell>
     </>
