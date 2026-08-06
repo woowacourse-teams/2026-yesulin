@@ -2,6 +2,8 @@ import { CATALOG } from "@/mocks/auditions/catalog";
 import type { CatalogPosting, CatalogPerformance } from "@/mocks/auditions/catalog";
 import { defaultApplicationFields } from "@/features/auditions/creation-types";
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
+import { applicationDocuments } from "./application-form";
+import type { ApplicationDocument } from "./application-form";
 import type { PostingId, RoleGender } from "@/features/auditions/types";
 
 export type PublicPostingStatus = "OPEN" | "UPCOMING" | "CLOSED";
@@ -10,6 +12,7 @@ export type PublicPosting = {
   readonly id: PostingId;
   readonly performanceTitle: string;
   readonly title: string;
+  readonly posterUrl: string;
   readonly venue: string;
   readonly companyName: string;
   readonly companyDescription: string;
@@ -19,7 +22,7 @@ export type PublicPosting = {
   readonly isOpenCall: boolean;
   readonly roles: readonly PublicRole[];
   readonly schedule: readonly PublicSchedule[];
-  readonly documents: readonly PublicDocument[];
+  readonly documents: readonly ApplicationDocument[];
   readonly applicationFields: readonly ApplicationFieldInput[];
   readonly notice: string;
 };
@@ -35,20 +38,11 @@ export type PublicRole = {
 };
 
 export type PublicSchedule = { readonly title: string; readonly detail: string };
-export type PublicDocument = { readonly title: string; readonly detail: string; readonly required: boolean };
-
+export type PublicPostingAvailability = { readonly label: string; readonly detail: string; readonly notice: string };
 const COMPANY = {
   name: "나인진엔터테인먼트",
   description: "공연 제작과 배우 캐스팅을 운영하는 공연사입니다.",
 } as const;
-
-const baseDocuments: readonly PublicDocument[] = [
-  { title: "기본 정보", detail: "이름, 생년월일, 연락처, 신체 정보", required: true },
-  { title: "프로필 사진", detail: "최근 6개월 이내 촬영본 1장 이상", required: true },
-  { title: "자기소개와 지원 동기", detail: "각 100자 이상", required: true },
-  { title: "연기·노래 영상", detail: "유튜브 링크로 제출할 수 있어요", required: false },
-  { title: "경력 사항", detail: "신인도 지원할 수 있어요", required: false },
-];
 
 function findPosting(id: string): { performance: CatalogPerformance; posting: CatalogPosting } | null {
   for (const performance of CATALOG) {
@@ -78,10 +72,12 @@ export function publicPostingById(id: string): PublicPosting | null {
   if (!found) return null;
 
   const { performance, posting } = found;
+  const applicationFields = posting.applicationFields ?? defaultApplicationFields();
   return {
     id: posting.id,
     performanceTitle: performance.title,
     title: posting.title,
+    posterUrl: performance.posterUrl,
     venue: performance.venue,
     companyName: COMPANY.name,
     companyDescription: COMPANY.description,
@@ -91,12 +87,42 @@ export function publicPostingById(id: string): PublicPosting | null {
     isOpenCall: posting.isOpenCall,
     roles: posting.roles,
     schedule: scheduleOf(posting),
-    documents: baseDocuments,
-    applicationFields: posting.applicationFields ?? defaultApplicationFields(),
-    notice: posting.applicationGuide ?? "제출 자료는 이번 공고 심사 목적으로만 사용합니다.",
+    documents: applicationDocuments(applicationFields),
+    applicationFields,
+    notice: posting.applicationGuide ?? "실제 접수 방법은 공연사에 확인해 주세요.",
   };
 }
 
 export function publicPostingDate(date: string) {
   return formatDate(date);
+}
+
+export function publicPostingRecommendations(excludeId: PostingId, limit = 3): readonly PublicPosting[] {
+  const statusOrder: Record<PublicPostingStatus, number> = { OPEN: 0, UPCOMING: 1, CLOSED: 2 };
+  return CATALOG.flatMap((performance) => performance.postings)
+    .filter((posting) => posting.id !== excludeId)
+    .map((posting) => publicPostingById(posting.id))
+    .filter((posting): posting is PublicPosting => posting !== null)
+    .sort((a, b) => statusOrder[a.status] - statusOrder[b.status]
+      || (a.status === "CLOSED" ? b.recruitmentEnd.localeCompare(a.recruitmentEnd) : a.recruitmentStart.localeCompare(b.recruitmentStart)))
+    .slice(0, limit);
+}
+
+/** 공고 상태별로 지원 판단에 가장 먼저 필요한 날짜와 안내를 정한다. */
+export function publicPostingAvailability(posting: Pick<PublicPosting, "status" | "recruitmentStart" | "recruitmentEnd">): PublicPostingAvailability {
+  if (posting.status === "UPCOMING") return {
+    label: "지원 시작",
+    detail: publicPostingDate(posting.recruitmentStart),
+    notice: "모집이 시작되면 지원할 수 있어요.",
+  };
+  if (posting.status === "CLOSED") return {
+    label: "접수 마감",
+    detail: `${publicPostingDate(posting.recruitmentEnd)} 23:59`,
+    notice: "접수는 마감되었지만 공고 내용은 계속 확인할 수 있어요.",
+  };
+  return {
+    label: "지원 마감",
+    detail: `${publicPostingDate(posting.recruitmentEnd)} 23:59`,
+    notice: "로그인 없이 지원서를 작성할 수 있어요.",
+  };
 }

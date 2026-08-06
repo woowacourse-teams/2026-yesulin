@@ -53,7 +53,7 @@ export const CATALOG: CatalogPerformance[] = [
         { round: 2, name: "2차 연기 오디션", date: "2026-08-12", note: "서류 합격자 개별 안내" },
       ],
       applicationFields: HIGH_LIFE_APPLICATION_FIELDS,
-      applicationGuide: "자유 양식 지원서를 ninejin6485@naver.com으로 제출",
+      applicationGuide: "실제 접수는 자유 양식 지원서를 ninejin6485@naver.com으로 이메일 제출해 주세요.",
     }],
   },
   {
@@ -72,7 +72,7 @@ export const CATALOG: CatalogPerformance[] = [
         { round: 1, name: "1차 서류", date: "2026-06-01", note: "22시 이전 이메일 발표" },
         { round: 2, name: "2차 대면 오디션", date: "2026-06-04", note: "자유연기 및 지정연기" },
       ],
-      applicationGuide: "지정 양식 지원서를 이메일로 제출",
+      applicationGuide: "실제 접수는 지정 양식 지원서를 이메일로 제출해 주세요.",
     }],
   },
   {
@@ -91,7 +91,7 @@ export const CATALOG: CatalogPerformance[] = [
         { round: 1, name: "1차 서류", date: "2026-09-20", note: "15시 이전 합격자 발표" },
         { round: 2, name: "2차 실기 오디션", date: "2026-09-23", note: "지정연기 및 1분 자유연기" },
       ],
-      applicationGuide: "지정 지원서를 작성해 이메일로 온라인 지원",
+      applicationGuide: "실제 접수는 지정 지원서를 작성해 이메일로 제출해 주세요.",
     }],
   },
   {
@@ -138,7 +138,7 @@ function familyPosting({ performanceId, posting, title, start, end, firstRound, 
       { round: 1 as const, name: "1차 서류", date: firstRound, note: "이메일 서류 심사" },
       { round: 2 as const, name: "2차 연기 오디션", date: secondRound, note: "지정연기 및 자유연기" },
     ],
-    applicationGuide: "지정 지원서와 최근 사진을 이메일로 제출",
+    applicationGuide: "실제 접수는 지정 지원서와 최근 사진을 이메일로 제출해 주세요.",
   };
 }
 
