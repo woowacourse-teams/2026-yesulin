@@ -14,16 +14,14 @@ export function PostingCardActions({
   readonly onDelete: () => void;
 }) {
   return (
-    <div className="flex w-full items-center justify-between gap-2">
-      <ApplicationLinkButton postingId={postingId} className="px-3" />
-      <div className="flex items-center gap-2">
-        <SecondaryButton type="button" onClick={onEdit} className="px-3 text-[13px]">
-          수정
-        </SecondaryButton>
-        <DestructiveButton type="button" onClick={onDelete} className="px-3 text-[13px]">
-          삭제
-        </DestructiveButton>
-      </div>
+    <div className="grid w-full grid-cols-2 gap-2 md:grid-cols-[minmax(0,1fr)_auto_auto]">
+      <ApplicationLinkButton postingId={postingId} className="col-span-2 w-full justify-center whitespace-nowrap px-3 md:col-span-1 md:w-auto" />
+      <SecondaryButton type="button" onClick={onEdit} className="w-full whitespace-nowrap px-3 text-[13px] md:w-auto">
+        수정
+      </SecondaryButton>
+      <DestructiveButton type="button" onClick={onDelete} className="w-full whitespace-nowrap px-3 text-[13px] md:w-auto">
+        삭제
+      </DestructiveButton>
     </div>
   );
 }

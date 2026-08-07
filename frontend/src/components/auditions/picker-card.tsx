@@ -171,12 +171,14 @@ const DOT_TONE = {
 export function PickerState({
   tone,
   children,
+  className = "",
 }: {
   tone: keyof typeof DOT_TONE;
   children: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="flex items-center gap-2 border-t border-border-soft pt-3 text-[13px] font-medium text-muted-strong">
+    <div className={`flex items-center gap-2 border-t border-border-soft pt-3 text-[13px] font-medium text-muted-strong ${className}`}>
       <i aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${DOT_TONE[tone]}`} />
       {children}
     </div>

@@ -6,14 +6,13 @@ import { postingEntryHref, auditionRoutes } from "@/features/auditions/routes";
 import type { PerformanceId, PostingSummary } from "@/features/auditions/types";
 import { useAuditionQuery } from "@/features/auditions/use-audition-query";
 import { Breadcrumb } from "./breadcrumb";
-import { FacePile } from "./applicant-photo";
 import {
   PickerCard,
   PickerCardBlocked,
   PickerEmpty,
-  PickerProgress,
   PickerGrid,
   PickerHeader,
+  PickerProgress,
   PickerScreen,
   PickerState,
   PickerStats,
@@ -92,11 +91,23 @@ export function PostingPicker({ performanceId }: { performanceId: PerformanceId 
             {data.postings.map((posting) => {
             const body = (
               <>
-                <div className="border-b border-border-soft pb-3">
+                <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-2">
                   <PickerTitle>
                     {posting.title}
                     <PhaseTag phase={posting.phase} />
                   </PickerTitle>
+                  <PickerState
+                    tone={
+                      posting.allRoundsClosed
+                        ? "done"
+                        : posting.pendingReviewCount > 0
+                          ? "pending"
+                          : "idle"
+                    }
+                    className="whitespace-nowrap border-0 pt-0"
+                  >
+                    {stateText(posting)}
+                  </PickerState>
                 </div>
                 <div className="grid grid-cols-[1fr_1.1fr_0.9fr] divide-x divide-border-soft overflow-hidden rounded-lg border border-border-soft bg-surface">
                   <PostingMeta label="모집 상태" value={recruitmentState(posting)} />
@@ -106,27 +117,15 @@ export function PostingPicker({ performanceId }: { performanceId: PerformanceId 
                     value={posting.isOpenCall ? "구분 없음" : `${posting.roleCount}개`}
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="grid gap-3 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center">
                   <PickerStats
                     primary={{ value: posting.applicantCount, unit: "명 지원" }}
                     secondary={{ value: posting.quotaTotal, unit: "명 모집" }}
                   />
-                  <FacePile urls={posting.previewPhotoUrls} />
                   {posting.progress.total > 0 && !posting.allRoundsClosed ? (
                     <PickerProgress percent={posting.progress.percent} />
                   ) : null}
                 </div>
-                <PickerState
-                  tone={
-                    posting.allRoundsClosed
-                      ? "done"
-                      : posting.pendingReviewCount > 0
-                        ? "pending"
-                        : "idle"
-                  }
-                >
-                  {stateText(posting)}
-                </PickerState>
               </>
             );
 
