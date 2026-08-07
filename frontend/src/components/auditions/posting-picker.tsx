@@ -24,6 +24,7 @@ import { PhaseTag } from "./status-badge";
 import { PickerSkeleton, ScreenError } from "./screen-status";
 import { useToast } from "./toast";
 import { PostingCardActions } from "./posting-card-actions";
+import { PostingManageDialog } from "./posting-manage-dialog";
 
 const UPCOMING_NOTICE = "아직 시작 전인 공고입니다. 모집이 시작되면 열람할 수 있습니다.";
 
@@ -43,6 +44,7 @@ function stateText(posting: PostingSummary) {
 
 export function PostingPicker({ performanceId }: { performanceId: PerformanceId }) {
   const [createOpen, setCreateOpen] = useState(false);
+  const [manage, setManage] = useState<{ readonly posting: PostingSummary; readonly mode: "EDIT" | "DELETE" } | null>(null);
   const load = useCallback(() => getPostings(performanceId), [performanceId]);
   const { data, error, loading, reload } = useAuditionQuery(
     performanceId,
@@ -51,10 +53,6 @@ export function PostingPicker({ performanceId }: { performanceId: PerformanceId 
   );
   const toast = useToast();
   const notifyUpcoming = useCallback(() => toast(UPCOMING_NOTICE), [toast]);
-  const notifyPostingAction = useCallback(
-    (action: "수정" | "삭제") => toast(`${action} 기능은 백엔드 계약 연결 후 사용할 수 있습니다.`),
-    [toast],
-  );
 
   return (
     <>
@@ -136,8 +134,8 @@ export function PostingPicker({ performanceId }: { performanceId: PerformanceId 
                 action={
                   <PostingCardActions
                     postingId={posting.id}
-                    onEdit={() => notifyPostingAction("수정")}
-                    onDelete={() => notifyPostingAction("삭제")}
+                    onEdit={() => setManage({ posting, mode: "EDIT" })}
+                    onDelete={() => setManage({ posting, mode: "DELETE" })}
                   />
                 }
               >
@@ -150,8 +148,8 @@ export function PostingPicker({ performanceId }: { performanceId: PerformanceId 
                 action={
                   <PostingCardActions
                     postingId={posting.id}
-                    onEdit={() => notifyPostingAction("수정")}
-                    onDelete={() => notifyPostingAction("삭제")}
+                    onEdit={() => setManage({ posting, mode: "EDIT" })}
+                    onDelete={() => setManage({ posting, mode: "DELETE" })}
                   />
                 }
               >
@@ -171,6 +169,7 @@ export function PostingPicker({ performanceId }: { performanceId: PerformanceId 
           onCreated={reload}
         />
       ) : null}
+      {manage ? <PostingManageDialog posting={manage.posting} mode={manage.mode} onClose={() => setManage(null)} onChanged={reload} /> : null}
     </>
   );
 }

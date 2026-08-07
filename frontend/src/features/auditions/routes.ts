@@ -6,6 +6,7 @@ import type { PerformanceId, PostingId, RoleId } from "./types";
  */
 export const auditionRoutes = {
   performances: "/producers/performances",
+  account: "/producers/account",
   performance: (id: PerformanceId) => `/producers/performances/${id}`,
   posting: (id: PostingId) => `/producers/postings/${id}`,
   role: (id: RoleId) => `/producers/roles/${id}`,

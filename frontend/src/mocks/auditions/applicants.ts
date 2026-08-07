@@ -84,7 +84,7 @@ function buildApplicant(
   };
 
   return {
-    id: applicationId(`A${101 + index}`),
+    id: applicationId(101 + index),
     name,
     gender,
     age,

@@ -68,9 +68,11 @@ export function PostingRoleSelector({
 export function AuditionScheduleEditor({
   rounds,
   onChange,
+  allowCountChange = true,
 }: {
   rounds: readonly AuditionRoundInput[];
   onChange: (rounds: readonly AuditionRoundInput[]) => void;
+  allowCountChange?: boolean;
 }) {
   const patch = (round: AuditionRoundInput["round"], update: Partial<AuditionRoundInput>) =>
     onChange(rounds.map((item) => (item.round === round ? { ...item, ...update } : item)));
@@ -115,7 +117,7 @@ export function AuditionScheduleEditor({
               placeholder={round.round === 1 ? "예: 온라인 서류 심사" : "예: 연습실 A, 자유 연기 2분"}
             />
           </CreateField>
-          {round.round > 2 && round.round === rounds.at(-1)?.round ? (
+          {allowCountChange && round.round > 2 && round.round === rounds.at(-1)?.round ? (
             <button
               type="button"
               onClick={removeLastRound}
@@ -126,7 +128,7 @@ export function AuditionScheduleEditor({
           ) : <span className="hidden md:block" />}
         </div>
       ))}
-      {rounds.length < 3 ? (
+      {allowCountChange && rounds.length < 3 ? (
         <button
           type="button"
           onClick={addRound}

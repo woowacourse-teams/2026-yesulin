@@ -8,7 +8,7 @@ export function ApplicantPreview() {
     <div className="relative mx-auto w-full max-w-[560px] rounded-[28px] border border-white/80 bg-white/88 p-4 shadow-[var(--shadow-3)] backdrop-blur-xl sm:p-6">
       <div className="flex items-center justify-between border-b border-border-soft pb-4">
         <div><p className="text-sm font-semibold text-brand">추천 오디션</p><p className="mt-1 text-lg font-bold">새로운 무대를 찾아보세요</p></div>
-        <span className="rounded-full bg-brand-soft px-3 py-1 text-sm font-semibold text-brand">12개 공고</span>
+        <span className="rounded-full bg-brand-soft px-3 py-1 text-sm font-semibold text-brand">맞춤 추천</span>
       </div>
       <div className="mt-4 space-y-3">
         {applicantCards.map((card) => (
@@ -20,9 +20,9 @@ export function ApplicantPreview() {
         ))}
       </div>
       <div className="mt-4 grid grid-cols-3 gap-2 rounded-card bg-surface p-3 text-center">
-        <div><strong className="num block text-lg">3</strong><span className="text-xs text-muted">지원 완료</span></div>
-        <div className="border-x border-border"><strong className="num block text-lg">1</strong><span className="text-xs text-muted">검토 중</span></div>
-        <div><strong className="num block text-lg">2</strong><span className="text-xs text-muted">예정 일정</span></div>
+        <div><strong className="num block text-lg">3</strong><span className="text-xs text-muted">제출한 지원서</span></div>
+        <div className="border-x border-border"><strong className="num block text-lg">1</strong><span className="text-xs text-muted">수정 가능</span></div>
+        <div><strong className="num block text-lg">92%</strong><span className="text-xs text-muted">프로필 완성도</span></div>
       </div>
     </div>
   );

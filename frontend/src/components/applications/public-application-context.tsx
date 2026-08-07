@@ -1,73 +1,12 @@
 "use client";
 
-import { createContext, use, useEffect, useRef, useState } from "react";
-import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
-import type { PostingId } from "@/features/auditions/types";
+import { createContext, use, useEffect, useState } from "react";
 import { applicationFormSteps, applicationStepProgress } from "@/features/applications/application-form";
 import { applicationStepIssue, hasApplicationDraft } from "@/features/applications/application-form-state";
-import type { ApplicationStepIssue } from "@/features/applications/application-form-state";
-import type {
-  ApplicationPhoto,
-  CareerDraft,
-  SubmissionState,
-} from "@/features/applications/application-form-state";
-
-type ApplicationReceipt = { readonly number: string; readonly submittedAt: string };
-type EditableSection = "BASIC" | "INTRODUCTION" | "MATERIALS" | "CAREER" | "CUSTOM";
-type ReviewIssue = { readonly section: EditableSection; readonly title: string; readonly message: string };
-type PublicApplicationState = {
-  readonly stepIndex: number;
-  readonly values: Readonly<Record<string, string>>;
-  readonly photos: readonly ApplicationPhoto[];
-  readonly videoUrl: string;
-  readonly noCareer: boolean;
-  readonly careers: readonly CareerDraft[];
-  readonly stepError: string;
-  readonly stepProgress: ReturnType<typeof applicationStepProgress>;
-  readonly reviewIssues: readonly ReviewIssue[];
-  readonly dirty: boolean;
-  readonly leaveConfirmationOpen: boolean;
-  readonly mediaError: string;
-  readonly reviewing: boolean;
-  readonly consent: boolean;
-  readonly submissionState: SubmissionState;
-  readonly submissionError: string;
-  readonly receipt: ApplicationReceipt | null;
-};
-
-type PublicApplicationActions = {
-  readonly updateField: (id: string, value: string) => void;
-  readonly updatePhotos: (photos: readonly ApplicationPhoto[]) => void;
-  readonly markPhotoReady: (id: string) => void;
-  readonly updateVideo: (url: string) => void;
-  readonly reportMediaError: (error: string) => void;
-  readonly updateNoCareer: (noCareer: boolean) => void;
-  readonly updateCareers: (careers: readonly CareerDraft[]) => void;
-  readonly moveStep: (index: number) => void;
-  readonly nextStep: () => void;
-  readonly editSection: (section: EditableSection) => void;
-  readonly requestBack: () => void;
-  readonly cancelBack: () => void;
-  readonly confirmBack: () => void;
-  readonly updateConsent: (consent: boolean) => void;
-  readonly submit: (result: "SUCCESS" | "ERROR") => void;
-};
-
-type PublicApplicationMeta = {
-  readonly postingId: PostingId;
-  readonly fields: readonly ApplicationFieldInput[];
-  readonly steps: ReturnType<typeof applicationFormSteps>;
-  readonly performanceTitle: string;
-  readonly postingTitle: string;
-  readonly roleName: string;
-  readonly onBack: () => void;
-};
-
-type PublicApplicationContextValue = {
-  readonly state: PublicApplicationState;
-  readonly actions: PublicApplicationActions;
-  readonly meta: PublicApplicationMeta;
-};
+import type { ApplicationPhoto, ApplicationStepIssue, CareerDraft, SubmissionState } from "@/features/applications/application-form-state";
+import { submitPublicApplication } from "@/features/applicants/api";
+import { applicationDraftFromPrefill, submissionValue } from "./public-application-draft";
+import type { ApplicationReceipt, EditableSection, PublicApplicationActions, PublicApplicationContextValue, PublicApplicationProviderProps, PublicApplicationState } from "./public-application-context-types";
 
 const PublicApplicationContext = createContext<PublicApplicationContextValue | null>(null);
 
@@ -77,26 +16,25 @@ export function usePublicApplication() {
   return value;
 }
 
-type PublicApplicationProviderProps = Omit<PublicApplicationMeta, "steps"> & {
-  readonly children: React.ReactNode;
-};
-
 export function PublicApplicationProvider({
   postingId,
   fields,
   performanceTitle,
   postingTitle,
+  roleId,
   roleName,
   onBack,
+  prefill,
   children,
 }: PublicApplicationProviderProps) {
   const steps = applicationFormSteps(fields);
+  const initial = applicationDraftFromPrefill(prefill);
   const [stepIndex, setStepIndex] = useState(0);
-  const [values, setValues] = useState<Readonly<Record<string, string>>>({});
-  const [photos, setPhotos] = useState<readonly ApplicationPhoto[]>([]);
-  const [videoUrl, setVideoUrl] = useState("");
+  const [values, setValues] = useState<Readonly<Record<string, string>>>(initial.values);
+  const [photos, setPhotos] = useState<readonly ApplicationPhoto[]>(initial.photos);
+  const [videoUrl, setVideoUrl] = useState(initial.videoUrl);
   const [noCareer, setNoCareer] = useState(false);
-  const [careers, setCareers] = useState<readonly CareerDraft[]>([]);
+  const [careers, setCareers] = useState<readonly CareerDraft[]>(initial.careers);
   const [stepErrors, setStepErrors] = useState<Readonly<Record<number, string>>>({});
   const [completedStepIndexes, setCompletedStepIndexes] = useState<readonly number[]>([]);
   const [mediaError, setMediaError] = useState("");
@@ -106,11 +44,6 @@ export function PublicApplicationProvider({
   const [submissionState, setSubmissionState] = useState<SubmissionState>("IDLE");
   const [submissionError, setSubmissionError] = useState("");
   const [receipt, setReceipt] = useState<ApplicationReceipt | null>(null);
-  const submissionTimer = useRef<number | null>(null);
-
-  useEffect(() => () => {
-    if (submissionTimer.current) window.clearTimeout(submissionTimer.current);
-  }, []);
 
   const dirty = hasApplicationDraft({
     values, photos, videoUrl, noCareer, careers, consent, submitted: receipt !== null,
@@ -174,7 +107,7 @@ export function PublicApplicationProvider({
   };
 
   const editSection = (section: EditableSection) => {
-    if (submissionState === "SUBMITTING" || submissionTimer.current !== null) return;
+    if (submissionState === "SUBMITTING") return;
     const index = steps.findIndex((item) => item.section === section);
     if (index >= 0) {
       setReviewing(false);
@@ -191,8 +124,8 @@ export function PublicApplicationProvider({
     onBack();
   };
 
-  const submit = (result: "SUCCESS" | "ERROR") => {
-    if (submissionState === "SUBMITTING" || submissionTimer.current !== null) return;
+  const submit = async (result: "SUCCESS" | "ERROR") => {
+    if (submissionState === "SUBMITTING") return;
     if (!consent) {
       setSubmissionError("개인정보 수집·이용 동의가 필요합니다.");
       window.requestAnimationFrame(() => document.getElementById("application-consent")?.focus());
@@ -209,18 +142,33 @@ export function PublicApplicationProvider({
     }
     setSubmissionState("SUBMITTING");
     setSubmissionError("");
-    submissionTimer.current = window.setTimeout(() => {
-      submissionTimer.current = null;
-      if (result === "ERROR") {
-        setSubmissionState("ERROR");
-        setSubmissionError("지원서를 접수하지 못했어요. 잠시 후 다시 시도해 주세요.");
-        return;
-      }
-      const now = new Date();
-      const date = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
-      const submittedAt = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, "0")}.${String(now.getDate()).padStart(2, "0")} ${now.toTimeString().slice(0, 5)}`;
-      setReceipt({ number: `YS-${date}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`, submittedAt });
-    }, 650);
+    if (result === "ERROR") {
+      setSubmissionState("ERROR");
+      setSubmissionError("지원서를 접수하지 못했어요. 잠시 후 다시 시도해 주세요.");
+      return;
+    }
+    try {
+      const response = await submitPublicApplication({
+        postingId,
+        roleId,
+        answers: fields.filter((field) => field.enabled).map((field) => ({
+          key: field.id,
+          ...(field.custom ? { label: field.label } : {}),
+          value: submissionValue(field, { values, photos, videoUrl, careers, noCareer }),
+        })),
+        privacyAgreed: consent,
+      });
+      setReceipt({
+        applicationId: response.applicationId,
+        number: response.receiptNumber,
+        submittedAt: response.submittedAt,
+        profileClaimToken: response.profileClaimToken,
+        profileClaimExpiresAt: response.profileClaimExpiresAt,
+      });
+    } catch (cause) {
+      setSubmissionState("ERROR");
+      setSubmissionError(cause instanceof Error ? cause.message : "지원서를 접수하지 못했어요. 잠시 후 다시 시도해 주세요.");
+    }
   };
 
   const state: PublicApplicationState = {
@@ -246,5 +194,5 @@ export function PublicApplicationProvider({
     submit,
   };
 
-  return <PublicApplicationContext value={{ state, actions, meta: { postingId, fields, steps, performanceTitle, postingTitle, roleName, onBack } }}>{children}</PublicApplicationContext>;
+  return <PublicApplicationContext value={{ state, actions, meta: { postingId, fields, steps, performanceTitle, postingTitle, roleId, roleName, onBack, prefillSummary: prefill ? { filledCount: prefill.filledCount, requiredCount: prefill.requiredCount, missingKeys: prefill.missingKeys } : undefined } }}>{children}</PublicApplicationContext>;
 }

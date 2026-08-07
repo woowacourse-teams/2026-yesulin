@@ -108,7 +108,9 @@ export function BoardWorkspace({
   const setStatus = useCallback(
     async (ids: readonly ApplicationId[], status: ReviewStatus) => {
       if (ids.length === 0) return;
-      const next = await submitReview(ids, { status }, "심사 결과를 저장하지 못했습니다.");
+      const memo = status === "ETC" ? window.prompt("선택한 지원자에게 공통으로 표시할 기타 사유를 입력해 주세요.")?.trim() : undefined;
+      if (status === "ETC" && !memo) return;
+      const next = await submitReview(ids, { status, ...(memo ? { memo } : {}) }, "심사 결과를 저장하지 못했습니다.");
       if (!next) return;
       clearSelection();
       toast(`${ids.length}명을 ${STATUS_LABELS[status]} 처리했습니다`, { type: "success" });
@@ -124,7 +126,9 @@ export function BoardWorkspace({
   const reviewCurrent = useCallback(
     async (id: ApplicationId, status: ReviewStatus) => {
       const previousIndex = visible.findIndex((applicant) => applicant.id === id);
-      const next = await submitReview([id], { status }, "심사 결과를 저장하지 못했습니다.");
+      const memo = status === "ETC" ? window.prompt("기타 사유를 입력해 주세요.")?.trim() : undefined;
+      if (status === "ETC" && !memo) return;
+      const next = await submitReview([id], { status, ...(memo ? { memo } : {}) }, "심사 결과를 저장하지 못했습니다.");
       if (!next) return;
       if (filters.work !== "PENDING" || status === "PENDING") return;
 

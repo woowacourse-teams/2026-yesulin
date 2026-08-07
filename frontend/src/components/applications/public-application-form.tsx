@@ -11,6 +11,7 @@ import { PublicApplicationProvider, usePublicApplication } from "./public-applic
 import { PublicApplicationReceipt } from "./public-application-receipt";
 import { PublicApplicationReview } from "./public-application-review";
 import type { PostingId } from "@/features/auditions/types";
+import type { ProfilePrefillResponse } from "@/features/applicants/types";
 
 const controlClass = "min-h-12 w-full rounded-control border border-border bg-card px-3 py-2.5 text-base outline-none transition-[border-color,box-shadow] placeholder:text-muted-soft hover:border-muted-soft focus:border-brand focus:ring-2 focus:ring-brand-soft";
 
@@ -19,8 +20,10 @@ type PublicApplicationFormProps = {
   readonly fields: readonly ApplicationFieldInput[];
   readonly performanceTitle: string;
   readonly postingTitle: string;
+  readonly roleId: string;
   readonly roleName: string;
   readonly onBack: () => void;
+  readonly prefill?: ProfilePrefillResponse;
 };
 
 export function PublicApplicationForm(props: PublicApplicationFormProps) {
@@ -49,6 +52,7 @@ function ApplicationStepScreen() {
     </header>
     <div className="mx-auto max-w-[880px] px-5 py-7 md:px-8 md:py-12">
       <ApplicationStepper />
+      <PrefillNotice />
       <section aria-labelledby="application-step-title" className="border-y border-border bg-card py-7 md:rounded-modal md:border md:px-8 md:py-9">
         <ApplicationSectionHeader current={state.stepIndex + 1} total={meta.steps.length} title={step.title} description={step.description} />
         <div id="application-step-content"><StepContent /></div>
@@ -60,6 +64,12 @@ function ApplicationStepScreen() {
     </div>
     <ApplicantStickyAction label={nextLabel} />
   </main>;
+}
+
+function PrefillNotice() {
+  const { meta } = usePublicApplication();
+  if (!meta.prefillSummary || meta.prefillSummary.filledCount === 0) return null;
+  return <div role="status" className="mb-6 rounded-card border border-brand-line bg-brand-soft px-4 py-3 text-sm leading-6 text-muted-strong"><strong className="text-brand">프로필에서 필수 항목 {meta.prefillSummary.filledCount} / {meta.prefillSummary.requiredCount}개를 채웠어요.</strong>{meta.prefillSummary.missingKeys.length ? " 남은 항목만 확인해 주세요." : " 모든 필수 항목이 준비됐습니다."}</div>;
 }
 
 function ApplicationSectionHeader({ current, total, title, description }: { current: number; total: number; title: string; description: string }) {

@@ -103,6 +103,8 @@ export type AuditionRoundInput = {
 
 export type CreatePostingRequest = {
   readonly performanceId: PerformanceId;
+  /** true면 선택한 한 모집 분야를 배역 구분 없이 접수한다. */
+  readonly isOpenCall: boolean;
   readonly title: string;
   readonly recruitmentStart: string;
   readonly recruitmentEnd: string;

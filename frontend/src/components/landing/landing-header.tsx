@@ -18,6 +18,7 @@ export function LandingHeader({ service }: { readonly service: "applicant" | "pr
           />
         </Link>
         <nav aria-label="주요 메뉴" className="ml-auto flex items-center gap-1.5 sm:gap-3">
+          {!isProducer ? <Link href="/apply/lookup" className="hidden min-h-11 items-center justify-center rounded-control px-3 text-sm font-semibold text-muted-strong transition-colors hover:bg-surface hover:text-brand sm:inline-flex">지원 내역 조회</Link> : null}
           <Link
             href="/login"
             className="inline-flex min-h-11 items-center justify-center rounded-control px-3 text-sm font-semibold text-muted-strong transition-colors hover:bg-surface hover:text-foreground sm:px-4"

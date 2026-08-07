@@ -19,12 +19,13 @@ type Brand<T, B extends string> = T & { readonly [brand]: B };
 export type PerformanceId = Brand<string, "PerformanceId">;
 export type PostingId = Brand<string, "PostingId">;
 export type RoleId = Brand<string, "RoleId">;
-export type ApplicationId = Brand<string, "ApplicationId">;
+/** Notion의 공개 제출·내 지원서 계약(Long)에 맞춘 전 영역 공통 지원서 식별자. */
+export type ApplicationId = Brand<number, "ApplicationId">;
 
 export const performanceId = (value: string) => value as PerformanceId;
 export const postingId = (value: string) => value as PostingId;
 export const roleId = (value: string) => value as RoleId;
-export const applicationId = (value: string) => value as ApplicationId;
+export const applicationId = (value: number) => value as ApplicationId;
 
 export const ROUND_NUMBERS = [1, 2, 3] as const;
 export type RoundNumber = (typeof ROUND_NUMBERS)[number];

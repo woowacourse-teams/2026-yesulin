@@ -16,16 +16,16 @@ const content: Record<LandingContent["audience"], LandingContent> = {
     audience: "applicant",
     eyebrow: "지원자를 위한 오디션 플랫폼",
     title: <><span className="block lg:whitespace-nowrap">내게 맞는 무대를 찾고,</span><span className="block text-brand lg:whitespace-nowrap">지원은 더 간단하게.</span></>,
-    description: "공고 탐색부터 프로필 제출, 전형 일정 확인까지 흩어진 오디션 지원 과정을 하나로 연결합니다.",
+    description: "공고 확인부터 프로필 제출, 내 지원서 관리까지 흩어진 오디션 지원 과정을 하나로 연결합니다.",
     features: [
-      { title: "공고를 한곳에서", description: "공연과 배역, 마감일을 기준으로 지원할 오디션을 빠르게 살펴봅니다." },
+      { title: "다음 공고를 빠르게", description: "제출을 마친 뒤에도 이어서 살펴볼 추천 오디션을 확인합니다." },
       { title: "지원 자료는 간편하게", description: "반복해서 작성하던 프로필과 경력, 사진과 영상을 정리해 활용합니다." },
-      { title: "진행 상황을 놓치지 않게", description: "지원 완료부터 오디션 일정까지 현재 상태를 한 흐름으로 확인합니다." },
+      { title: "제출 내용은 정확하게", description: "제출한 지원서를 다시 보고, 모집 마감 전에는 필요한 답변을 수정합니다." },
     ],
     steps: [
-      { title: "공고 탐색", description: "나에게 맞는 공연과 배역을 찾습니다." },
+      { title: "공고 확인", description: "공연사가 공유한 링크와 추천에서 모집 정보를 확인합니다." },
       { title: "지원서 작성", description: "필요한 정보와 자료를 확인해 제출합니다." },
-      { title: "전형 확인", description: "지원 상태와 다음 일정을 관리합니다." },
+      { title: "지원서 관리", description: "제출 내역을 확인하고 마감 전까지 내용을 관리합니다." },
     ],
   },
 };

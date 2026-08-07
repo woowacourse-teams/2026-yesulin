@@ -49,6 +49,7 @@ export function PostingCreateModal({
   onCreated: () => void;
 }) {
   const [title, setTitle] = useState("");
+  const [isOpenCall, setIsOpenCall] = useState(false);
   const [recruitmentStart, setRecruitmentStart] = useState("");
   const [recruitmentEnd, setRecruitmentEnd] = useState("");
   const [selectedRoles, setSelectedRoles] = useState<Readonly<Record<string, number>>>({});
@@ -74,11 +75,16 @@ export function PostingCreateModal({
       setRolesError("모집할 배역을 하나 이상 선택해 주세요.");
       return;
     }
+    if (isOpenCall && roles.length !== 1) {
+      setRolesError("배역 구분 없는 공고는 모집 분야를 하나만 선택해 주세요.");
+      return;
+    }
     setSaving(true);
     setFormError("");
     try {
       const response = await createPosting({
         performanceId,
+        isOpenCall,
         title,
         recruitmentStart: submittedStart,
         recruitmentEnd: submittedEnd,
@@ -147,7 +153,27 @@ export function PostingCreateModal({
             </div>
           </CreateSection>
 
-          <CreateSection title="모집 배역" description="공연에 등록된 배역 중 이번 공고에서 모집할 배역과 인원을 선택합니다.">
+          <CreateSection title="모집 방식" description="배역별로 나눠 심사할지, 하나의 모집 분야로 함께 접수할지 정합니다.">
+            <div className="grid gap-2.5 sm:grid-cols-2">
+              {([
+                { value: false, title: "배역별 모집", description: "여러 배역을 선택하고 각각 독립적으로 심사합니다." },
+                { value: true, title: "배역 구분 없음", description: "모집 분야 하나로 접수하고 배역 선택 화면을 건너뜁니다." },
+              ] as const).map((option) => (
+                <button
+                  key={String(option.value)}
+                  type="button"
+                  aria-pressed={isOpenCall === option.value}
+                  onClick={() => { setIsOpenCall(option.value); setSelectedRoles({}); setRolesError(""); }}
+                  className={`min-h-24 rounded-card border p-4 text-left ${isOpenCall === option.value ? "border-brand-line bg-brand-soft" : "border-border bg-card hover:border-muted-soft"}`}
+                >
+                  <strong className="block text-sm">{option.title}</strong>
+                  <span className="mt-1 block text-xs leading-5 text-muted-strong">{option.description}</span>
+                </button>
+              ))}
+            </div>
+          </CreateSection>
+
+          <CreateSection title={isOpenCall ? "모집 분야" : "모집 배역"} description={isOpenCall ? "공연에 등록된 배역 중 대표 모집 분야 하나와 모집 인원을 선택합니다." : "공연에 등록된 배역 중 이번 공고에서 모집할 배역과 인원을 선택합니다."}>
             <fieldset aria-describedby={rolesError ? ROLES_ERROR_ID : undefined} aria-invalid={rolesError ? true : undefined}>
               <legend className="sr-only">모집 배역 선택</legend>
               <PostingRoleSelector

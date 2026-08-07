@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { PrimaryButton } from "@/components/auditions/ui-controls";
 import { useToast } from "@/components/auditions/toast";
 import { AuthInput, PasswordInput, RoleField, type AccountRole } from "./auth-fields";
 import { AuthNoticeDialog, type AuthNotice } from "./auth-notice-dialog";
 import { ProducerSignupFields } from "./producer-signup-fields";
 import { SocialButtons } from "./social-buttons";
+import { signupApplicant } from "@/features/auth/api";
 
 type SignupField = "name" | "phone" | "company" | "businessNumber" | "email" | "password" | "passwordConfirm" | "terms";
 type SignupErrors = Partial<Record<SignupField, string>>;
@@ -33,13 +35,15 @@ function formatBusinessNumber(value: string) {
   return [digits.slice(0, 3), digits.slice(3, 5), digits.slice(5)].filter(Boolean).join("-");
 }
 
-export function SignupForm({ initialRole = "applicant" }: { readonly initialRole?: AccountRole }) {
+export function SignupForm({ initialRole = "applicant", profileClaimToken }: { readonly initialRole?: AccountRole; readonly profileClaimToken?: string }) {
   const toast = useToast();
+  const router = useRouter();
   const [role, setRole] = useState<AccountRole>(initialRole);
   const [values, setValues] = useState(INITIAL_VALUES);
   const [terms, setTerms] = useState(false);
   const [errors, setErrors] = useState<SignupErrors>({});
   const [notice, setNotice] = useState<AuthNotice | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   function update(field: keyof typeof values, value: string) {
     const formatted = field === "phone" ? formatPhoneNumber(value) : field === "businessNumber" ? formatBusinessNumber(value) : value;
@@ -96,7 +100,7 @@ export function SignupForm({ initialRole = "applicant" }: { readonly initialRole
     });
   }
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const nextErrors: SignupErrors = {};
     if (!values.name.trim()) nextErrors.name = role === "applicant" ? "이름을 입력해 주세요." : "대표자명을 입력해 주세요.";
@@ -114,13 +118,36 @@ export function SignupForm({ initialRole = "applicant" }: { readonly initialRole
       focusField(firstError);
       return;
     }
-    toast(`${role === "applicant" ? "지원자" : "공연사"} 회원가입 API 연결 전입니다.`, { type: "info" });
+    if (role === "applicant") {
+      setSubmitting(true);
+      try {
+        const response = await signupApplicant({
+          name: values.name.trim(),
+          email: values.email.trim(),
+          password: values.password,
+          passwordConfirm: values.passwordConfirm,
+          termsAgreed: terms,
+          ...(profileClaimToken ? { profileClaimToken } : {}),
+        });
+        if (response.profileClaimed) toast("지원서 정보와 지원 내역을 새 계정에 연결했어요.", { type: "success" });
+        else if (profileClaimToken) toast("계정은 만들었지만 지원서 연결 토큰이 만료됐거나 이미 사용됐어요.", { type: "info" });
+        else toast("지원자 계정을 만들었어요.", { type: "success" });
+        router.push(response.redirectTo);
+      } catch (cause) {
+        toast(cause instanceof Error ? cause.message : "계정을 만들지 못했습니다.", { type: "error" });
+        setSubmitting(false);
+      }
+      return;
+    }
+    toast("공연사 회원가입 API 연결 전입니다.", { type: "info" });
   }
 
   return (
     <>
       <form onSubmit={handleSubmit} noValidate className="space-y-8">
         <RoleField value={role} onChange={(nextRole) => { setRole(nextRole); setErrors({}); }} />
+
+        {role === "applicant" && profileClaimToken ? <div className="rounded-card border border-brand-line bg-brand-soft p-4 text-sm leading-6 text-muted-strong"><strong className="block text-brand">방금 제출한 지원서를 연결할게요.</strong>가입이 완료되면 표준 프로필 정보와 지원 내역을 새 계정에서 이어서 관리할 수 있어요.</div> : null}
 
         {role === "producer" ? (
           <ProducerSignupFields
@@ -155,7 +182,7 @@ export function SignupForm({ initialRole = "applicant" }: { readonly initialRole
           {errors.terms ? <p id="signup-terms-error" className="mt-1.5 text-sm font-medium text-fail">{errors.terms}</p> : null}
         </div>
 
-        <PrimaryButton type="submit" className="min-h-[52px] w-full text-base">{role === "producer" ? "공연사 계정 만들기" : "지원자 계정 만들기"}</PrimaryButton>
+        <PrimaryButton type="submit" disabled={submitting} className="min-h-[52px] w-full text-base">{submitting ? "계정 만드는 중…" : role === "producer" ? "공연사 계정 만들기" : "지원자 계정 만들기"}</PrimaryButton>
         {role === "applicant" ? <SocialButtons mode="회원가입" onUnavailable={(provider) => setNotice({ title: `${provider} 회원가입 준비 중`, description: `${provider} OAuth 회원가입 연동 로직이 필요합니다. 현재는 버튼 UI만 제공됩니다.` })} /> : null}
       </form>
       <AuthNoticeDialog notice={notice} onClose={() => setNotice(null)} />

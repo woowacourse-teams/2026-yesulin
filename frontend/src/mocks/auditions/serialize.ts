@@ -13,11 +13,11 @@ import type {
 } from "@/features/auditions/types";
 import { ROUND_NUMBERS } from "@/features/auditions/types";
 import type { MockApplicant } from "./applicants";
-import { APPLICANTS } from "./applicants";
 import type { CatalogPerformance, CatalogPosting, CatalogRole } from "./catalog";
 import { CATALOG } from "./catalog";
 import {
   activeRound,
+  allApplicants,
   allRoundsClosed,
   applicantsOfRole,
   poolFor,
@@ -38,14 +38,14 @@ const previewPhotos = (list: readonly MockApplicant[]) =>
   list.slice(0, PREVIEW_PHOTO_COUNT).map((applicant) => applicant.photos[0]?.url ?? "");
 
 const applicantsOfPosting = (posting: CatalogPosting) =>
-  APPLICANTS.filter((applicant) => applicant.postingId === posting.id);
+  allApplicants().filter((applicant) => applicant.postingId === posting.id);
 
 /** 배역 구분이 없거나 배역이 하나뿐이면 배역 선택 화면을 건너뛸 수 있다. */
 const soleRoleIdOf = (posting: CatalogPosting) =>
   posting.isOpenCall || posting.roles.length === 1 ? (posting.roles[0]?.id ?? null) : null;
 
 const applicantsOfPerformance = (performance: CatalogPerformance) =>
-  APPLICANTS.filter((applicant) => applicant.performanceId === performance.id);
+  allApplicants().filter((applicant) => applicant.performanceId === performance.id);
 
 export const toPerformanceRef = (performance: CatalogPerformance): PerformanceRef => ({
   id: performance.id,

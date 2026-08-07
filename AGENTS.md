@@ -81,9 +81,10 @@ frontend/src/
 주요 파일:
 
 - `features/auditions/types.ts`: 도메인 모델과 요청·응답 타입
-- `features/auditions/api.ts`: `/api/auditions` REST 요청
+- `features/auditions/api.ts`: Notion 정본의 `/api` REST 요청
 - `features/auditions/routes.ts`: 관리자 화면 경로
-- `features/applications/public-posting.ts`: 목 카탈로그에서 공개 공고 읽기 모델 생성
+- `features/applications/public-posting.ts`: 공개 공고 읽기 모델과 목 직렬화
+- `features/applications/public-posting-server.ts`: 메타데이터·SSR용 공개 공고 조회
 - `features/applications/application-form-state.ts`: 지원서 검증과 목 제출 상태 규칙
 - `components/auditions/board-workspace.tsx`: 심사 화면 상태와 액션의 중심
 - `components/auditions/board-context.tsx`: 심사 하위 UI의 공유 인터페이스
@@ -113,11 +114,12 @@ Performance 공연
 
 ## API와 MSW 규칙
 
-- API 경로는 절대 URL이 아닌 `/api/auditions/**` 상대 경로를 사용한다.
+- API 경로는 절대 URL이 아닌 Notion API 명세의 `/api/**` 상대 경로를 사용한다.
 - 클라이언트는 공연사 식별자를 요청에 넣지 않는다.
-- `PATCH /api/auditions/review`와 `POST /api/auditions/round/close`는 갱신된 `AuditionBoardResponse` 전체를 반환한다.
+- `PATCH /api/screenings/reviews`와 `POST /api/screenings/rounds/close`는 갱신된 `AuditionBoardResponse` 전체를 반환한다.
 - 변경 응답을 받은 클라이언트는 별도 재조회 대신 새 보드로 상태를 교체한다.
 - 기본 개발 환경에서는 MSW를 사용하며 `NEXT_PUBLIC_API_MOCKING=disabled`일 때 비활성화한다.
+- 실제 API 환경의 공개 공고 메타데이터·SSR 조회에는 `API_ORIGIN`을 사용하고, 브라우저 API 요청은 같은 origin의 `/api/**` 상대 경로를 유지한다.
 - 목 심사 상태는 브라우저 메모리에 있어 새로고침하면 초기화된다.
 - 실제 API 계약을 바꾸는 UI 작업은 `types.ts`, `api.ts`, MSW 핸들러, 관련 문서를 함께 맞춘다.
 

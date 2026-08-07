@@ -5,6 +5,7 @@ import { FieldInput, FieldSelect } from "./ui-controls";
 
 export type RoleDraft = {
   readonly key: number;
+  readonly id?: string;
   readonly name: string;
   readonly description: string;
   readonly gender: RoleGender;

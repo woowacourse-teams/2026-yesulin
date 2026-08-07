@@ -52,7 +52,8 @@ export function LoginForm() {
       requestAnimationFrame(() => document.getElementById("login-password")?.focus());
       return;
     }
-    toast("지원자 이메일 로그인 API 연결 전입니다.", { type: "info" });
+    toast("지원자 데모 계정으로 로그인했어요.", { type: "success" });
+    router.push("/applicants");
   }
 
   return (

@@ -76,7 +76,7 @@ export function addPosting(
     title: body.title.trim(),
     deadline: compactDate(body.recruitmentEnd),
     status: postingStatus(body.recruitmentStart, body.recruitmentEnd),
-    isOpenCall: false,
+    isOpenCall: body.isOpenCall,
     finished: false,
     roles,
     recruitmentStart: body.recruitmentStart,

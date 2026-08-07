@@ -7,8 +7,9 @@ import type { PublicPosting } from "@/features/applications/public-posting";
 import { publicPostingAvailability, publicPostingDate } from "@/features/applications/public-posting";
 import { PostingStatusBadge } from "./public-posting-status";
 import { PublicApplicationForm } from "./public-application-form";
+import { PublicApplicationPrefillGate } from "./public-application-prefill";
 
-export function PublicPostingDetail({ posting }: { posting: PublicPosting }) {
+export function PublicPostingDetail({ posting, useProfilePrefill = false }: { posting: PublicPosting; useProfilePrefill?: boolean }) {
   const skipsRoleChoice = posting.isOpenCall || posting.roles.length === 1;
   const [selectedRoleId, setSelectedRoleId] = useState(skipsRoleChoice ? posting.roles[0]?.id ?? "" : "");
   const [view, setView] = useState<"posting" | "form">("posting");
@@ -22,7 +23,10 @@ export function PublicPostingDetail({ posting }: { posting: PublicPosting }) {
     section?.querySelector<HTMLInputElement>("input")?.focus({ preventScroll: true });
   };
 
-  if (view === "form") return <PublicApplicationForm postingId={posting.id} fields={posting.applicationFields} performanceTitle={posting.performanceTitle} postingTitle={posting.title} roleName={selectedRole?.name ?? "전체 지원자"} onBack={() => setView("posting")} />;
+  if (view === "form") {
+    const props = { postingId: posting.id, fields: posting.applicationFields, performanceTitle: posting.performanceTitle, postingTitle: posting.title, roleId: selectedRole?.id ?? "", roleName: selectedRole?.name ?? "전체 지원자", onBack: () => setView("posting") };
+    return useProfilePrefill ? <PublicApplicationPrefillGate {...props} /> : <PublicApplicationForm {...props} />;
+  }
 
   return <main className={`min-h-screen bg-surface text-foreground ${showMobileAction ? "pb-[calc(152px+env(safe-area-inset-bottom))]" : "pb-12"} min-[1200px]:pb-12`}>
     <header className="glass-surface sticky top-0 z-20 border-x-0 border-t-0">

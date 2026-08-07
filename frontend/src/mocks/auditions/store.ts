@@ -9,6 +9,7 @@ type MutableReview = { status: Review["status"]; memo: string; note: string };
 const reviews = new Map<string, MutableReview>();
 /** 마감된 (배역, 차수). 전형은 배역 단위로 독립 진행된다. */
 const closedRounds = new Set<string>();
+const submittedApplicants: MockApplicant[] = [];
 
 const reviewKey = (application: ApplicationId, round: RoundNumber) => `${application}:${round}`;
 const roundKey = (role: RoleId, round: RoundNumber) => `${role}:${round}`;
@@ -33,8 +34,16 @@ export const markRoundClosed = (role: RoleId, round: RoundNumber) => {
   closedRounds.add(roundKey(role, round));
 };
 
+export const allApplicants = (): readonly MockApplicant[] => [...APPLICANTS, ...submittedApplicants];
+
 export const applicantsOfRole = (role: RoleId): readonly MockApplicant[] =>
-  APPLICANTS.filter((applicant) => applicant.roleId === role);
+  allApplicants().filter((applicant) => applicant.roleId === role);
+
+/** 공개 제출 스냅샷을 같은 심사 지원서 풀에 추가한다. */
+export function addScreeningApplicant(applicant: MockApplicant) {
+  if (allApplicants().some((candidate) => candidate.id === applicant.id)) return;
+  submittedApplicants.unshift(applicant);
+}
 
 /** 공고에서 설정한 전형 차수. 기존 목 공고는 3차 전형을 기본값으로 사용한다. */
 export function roundNumbersForRole(role: RoleId): readonly RoundNumber[] {

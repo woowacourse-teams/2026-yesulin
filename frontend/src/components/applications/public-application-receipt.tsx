@@ -6,6 +6,8 @@ import { publicPostingAvailability, publicPostingRecommendations } from "@/featu
 import type { PublicPosting } from "@/features/applications/public-posting";
 import { usePublicApplication } from "./public-application-context";
 import { PostingStatusBadge } from "./public-posting-status";
+import { formatApplicantDate } from "@/features/applicants/presentation";
+import { applicantRoutes } from "@/features/applicants/routes";
 
 export function PublicApplicationReceipt() {
   const { state, actions, meta } = usePublicApplication();
@@ -33,19 +35,20 @@ export function PublicApplicationReceipt() {
             <div className="min-w-0 flex-1"><p className="text-sm text-muted">지원 조회 코드</p><strong className="num mt-1 block break-all text-xl tracking-[0.02em] text-foreground">{receipt.number}</strong></div>
             <button type="button" onClick={copyCode} className="inline-flex min-h-11 items-center rounded-control border border-border bg-card px-4 text-sm font-semibold text-muted-strong hover:border-brand-line hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">{copied ? "복사됨" : "코드 복사"}</button>
           </div>
-          <p role="status" className="mt-2 text-xs leading-5 text-muted">현재 데모에는 재조회 기능이 연결되지 않아 이 코드는 화면 확인용으로만 생성됩니다.</p>
+          <p role="status" className="mt-2 text-xs leading-5 text-muted">조회 코드와 지원서에 입력한 연락처로 언제든 제출 내용을 다시 확인할 수 있어요.</p>
           <dl className="mt-5 grid gap-x-4 gap-y-3 border-t border-border-soft pt-5 text-sm md:grid-cols-[96px_1fr]">
             <dt className="text-muted">공연</dt><dd className="font-medium">{meta.performanceTitle}</dd>
             <dt className="text-muted">공고</dt><dd className="font-medium">{meta.postingTitle}</dd>
             <dt className="text-muted">선택 배역</dt><dd className="font-medium">{meta.roleName}</dd>
-            <dt className="text-muted">제출 시각</dt><dd className="num font-medium">{receipt.submittedAt}</dd>
+            <dt className="text-muted">제출 시각</dt><dd className="num font-medium">{formatApplicantDate(receipt.submittedAt, true)}</dd>
           </dl>
+          <Link href={applicantRoutes.lookup} className="mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-control border border-border bg-card px-4 text-sm font-semibold text-muted-strong hover:border-brand-line hover:bg-brand-soft hover:text-brand">조회 코드로 지원 내용 확인</Link>
         </section>
       </section>
 
       <section className="mt-8 overflow-hidden rounded-modal bg-sidebar px-5 py-8 text-white md:flex md:items-center md:gap-8 md:px-8">
-        <div className="min-w-0 flex-1"><p className="text-sm font-semibold text-brand-line">지원 내역을 한곳에서</p><h2 className="mt-2 text-xl font-bold tracking-[-0.02em]">회원가입하시고 다른 공고도 지원해 보세요.</h2><p className="mt-3 text-sm leading-6 text-sidebar-muted">계정을 만들면 앞으로 지원한 공고와 자료를 한곳에서 관리할 수 있어요. 현재 완료한 데모 지원서는 계정에 자동 등록되지 않습니다.</p></div>
-        <Link href="/signup" className="mt-6 inline-flex min-h-12 w-full shrink-0 items-center justify-center rounded-control bg-brand px-5 text-sm font-semibold text-white hover:bg-brand-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white md:mt-0 md:w-auto">회원가입</Link>
+        <div className="min-w-0 flex-1"><p className="text-sm font-semibold text-brand-line">지원 내역을 한곳에서</p><h2 className="mt-2 text-xl font-bold tracking-[-0.02em]">방금 작성한 정보로 프로필을 만들어 보세요.</h2><p className="mt-3 text-sm leading-6 text-sidebar-muted">7일 안에 가입하면 이번 지원서와 표준 프로필 항목을 계정에 연결해 다음 지원에서 다시 사용할 수 있어요.</p></div>
+        {receipt.profileClaimToken ? <Link href={`/signup?claim=${encodeURIComponent(receipt.profileClaimToken)}`} className="mt-6 inline-flex min-h-12 w-full shrink-0 items-center justify-center rounded-control bg-brand px-5 text-sm font-semibold text-white hover:bg-brand-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white md:mt-0 md:w-auto">지원 정보 저장하고 가입</Link> : <Link href="/signup" className="mt-6 inline-flex min-h-12 w-full shrink-0 items-center justify-center rounded-control bg-brand px-5 text-sm font-semibold text-white hover:bg-brand-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white md:mt-0 md:w-auto">계정 만들기</Link>}
       </section>
 
       <section aria-labelledby="recommended-postings-title" className="mt-10">

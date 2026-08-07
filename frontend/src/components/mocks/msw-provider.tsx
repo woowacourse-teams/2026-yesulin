@@ -19,7 +19,7 @@ export function MswProvider({ children }: { children: React.ReactNode }) {
         if (active) setStatus("ready");
       })
       .catch((error: unknown) => {
-        console.error("공연 관리 목 환경을 시작하지 못했습니다.", error);
+        console.error("예술in 목 환경을 시작하지 못했습니다.", error);
         if (active) setStatus("error");
       });
 
@@ -40,7 +40,7 @@ function AdminLoadingScreen() {
     <main className="grid min-h-screen place-items-center bg-surface px-6">
       <div className="text-center">
         <div className="mx-auto h-10 w-10 animate-pulse rounded-2xl bg-brand" />
-        <p className="mt-4 text-sm font-medium text-muted">공연 관리 환경을 준비하고 있어요.</p>
+        <p className="mt-4 text-sm font-medium text-muted">예술in 데모 환경을 준비하고 있어요.</p>
       </div>
     </main>
   );
@@ -51,7 +51,7 @@ function AdminMockErrorScreen({ onRetry }: { readonly onRetry: () => void }) {
     <main className="grid min-h-screen place-items-center bg-surface px-6">
       <div className="max-w-sm text-center">
         <div className="mx-auto grid h-12 w-12 place-items-center rounded-card bg-fail-bg text-xl font-bold text-fail">!</div>
-        <h1 className="mt-5 text-xl font-bold">공연 관리 환경을 열지 못했어요</h1>
+        <h1 className="mt-5 text-xl font-bold">예술in 데모 환경을 열지 못했어요</h1>
         <p className="mt-2 text-base leading-relaxed text-muted-strong">잠시 후 다시 시도하거나 개발 서버 상태를 확인해 주세요.</p>
         <button
           type="button"

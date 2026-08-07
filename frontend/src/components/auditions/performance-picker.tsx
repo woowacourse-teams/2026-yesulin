@@ -21,9 +21,13 @@ import {
 import { CreatePageButton } from "./create-form";
 import { PerformanceCreateModal } from "./performance-create-modal";
 import { PickerSkeleton, ScreenError } from "./screen-status";
+import type { PerformanceSummary } from "@/features/auditions/types";
+import { PerformanceManageDialog } from "./performance-manage-dialog";
+import { DestructiveButton, SecondaryButton } from "./ui-controls";
 
 export function PerformancePicker() {
   const [createOpen, setCreateOpen] = useState(false);
+  const [manage, setManage] = useState<{ readonly performance: PerformanceSummary; readonly mode: "EDIT" | "DELETE" } | null>(null);
   const { data, error, loading, reload } = useAuditionQuery(
     "performances",
     getPerformances,
@@ -55,7 +59,7 @@ export function PerformancePicker() {
               />
             ) : null}
             {data.performances.map((performance, index) => (
-              <PickerCard key={performance.id} href={auditionRoutes.performance(performance.id)}>
+              <PickerCard key={performance.id} href={auditionRoutes.performance(performance.id)} action={<div className="flex gap-2"><SecondaryButton className="px-3 text-xs" onClick={() => setManage({ performance, mode: "EDIT" })}>수정</SecondaryButton><DestructiveButton className="px-3 text-xs" onClick={() => setManage({ performance, mode: "DELETE" })}>삭제</DestructiveButton></div>}>
                 <div className="flex items-start gap-3">
                   <div className="relative aspect-[3/4] w-[66px] shrink-0 overflow-hidden rounded-md bg-surface">
                     <Image
@@ -91,6 +95,7 @@ export function PerformancePicker() {
       {createOpen ? (
         <PerformanceCreateModal onClose={() => setCreateOpen(false)} onCreated={reload} />
       ) : null}
+      {manage ? <PerformanceManageDialog performance={manage.performance} mode={manage.mode} onClose={() => setManage(null)} onChanged={reload} /> : null}
     </>
   );
 }

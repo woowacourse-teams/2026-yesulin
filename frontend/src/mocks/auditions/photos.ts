@@ -4,7 +4,7 @@ import { PHOTO_LABELS } from "./text";
 const HUES = [340, 208, 152, 32, 268, 12, 188] as const;
 
 /** 외부 아바타 URL을 못 불러올 때 대신 그릴 인라인 SVG. 이름 첫 글자를 넣는다. */
-function fallbackPhoto(name: string, index: number) {
+export function fallbackPhoto(name: string, index: number) {
   const hue = HUES[index % HUES.length] ?? HUES[0];
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400">
 <rect width="300" height="400" fill="hsl(${hue} 22% 88%)"/>
