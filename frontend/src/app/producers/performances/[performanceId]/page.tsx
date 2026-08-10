@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { PostingPicker } from "@/components/screening/posting-picker";
-import { performanceId } from "@/features/screening/types";
+import { PostingPicker } from "@/components/auditions/posting-picker";
+import { performanceId } from "@/features/auditions/types";
 
 export const metadata: Metadata = {
   title: "공고 선택",

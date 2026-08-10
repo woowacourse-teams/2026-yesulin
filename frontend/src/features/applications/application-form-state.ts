@@ -1,0 +1,149 @@
+import type { ApplicationFormStep } from "./application-form";
+
+export const MAX_PHOTO_COUNT = 4;
+export const MAX_PHOTO_SIZE_BYTES = 10 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/;
+const YOUTUBE_HOSTS = new Set(["youtube.com", "www.youtube.com", "m.youtube.com"]);
+
+export type UploadStatus = "UPLOADING" | "READY" | "ERROR";
+
+export type ApplicationPhoto = {
+  readonly id: string;
+  readonly name: string;
+  readonly url: string;
+  readonly status: UploadStatus;
+  readonly error?: string;
+};
+
+export type CareerDraft = { readonly id: string; readonly title: string; readonly part: string; readonly year: string };
+export type SubmissionState = "IDLE" | "SUBMITTING" | "ERROR";
+export type ApplicationStepIssue = { readonly message: string; readonly fieldId: string };
+
+/** 실제 임시 저장이 없으므로, 화면 이탈 전에 경고할 브라우저 메모리 초안의 기준이다. */
+export function hasApplicationDraft({
+  values,
+  photos,
+  videoUrl,
+  noCareer,
+  careers,
+  consent,
+  submitted,
+}: {
+  values: Readonly<Record<string, string>>;
+  photos: readonly ApplicationPhoto[];
+  videoUrl: string;
+  noCareer: boolean;
+  careers: readonly CareerDraft[];
+  consent: boolean;
+  submitted: boolean;
+}) {
+  if (submitted) return false;
+  return Object.values(values).some((value) => value.trim().length > 0)
+    || photos.length > 0
+    || videoUrl.trim().length > 0
+    || noCareer
+    || careers.length > 0
+    || consent;
+}
+
+export function imageFileError(file: File): string | null {
+  if (!ALLOWED_IMAGE_TYPES.has(file.type)) return "JPG, PNG, WEBP 형식의 이미지만 등록할 수 있어요.";
+  if (file.size > MAX_PHOTO_SIZE_BYTES) return "사진 파일은 10MB 이하여야 해요.";
+  return null;
+}
+
+export function youtubeVideoId(value: string): string | null {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+    const hostname = url.hostname.toLowerCase();
+    let candidate: string | null | undefined;
+    if (hostname === "youtu.be") {
+      candidate = url.pathname.split("/").filter(Boolean)[0];
+    } else if (YOUTUBE_HOSTS.has(hostname)) {
+      if (url.pathname === "/watch") candidate = url.searchParams.get("v");
+      else {
+        const [kind, id] = url.pathname.split("/").filter(Boolean);
+        if (kind === "shorts" || kind === "embed") candidate = id;
+      }
+    }
+    return candidate && YOUTUBE_ID.test(candidate) ? candidate : null;
+  } catch {
+    return null;
+  }
+}
+
+export function applicationStepError({
+  step,
+  photos,
+  videoUrl,
+  noCareer,
+  careers,
+  values,
+}: {
+  step: ApplicationFormStep;
+  photos: readonly ApplicationPhoto[];
+  videoUrl: string;
+  noCareer: boolean;
+  careers: readonly CareerDraft[];
+  values: Readonly<Record<string, string>>;
+}): string | null {
+  return applicationStepIssue({ step, photos, videoUrl, noCareer, careers, values })?.message ?? null;
+}
+
+/** 검증 규칙은 유지하면서 오류를 안내할 실제 입력 항목도 함께 찾는다. */
+export function applicationStepIssue({
+  step,
+  photos,
+  videoUrl,
+  noCareer,
+  careers,
+  values,
+}: {
+  step: ApplicationFormStep;
+  photos: readonly ApplicationPhoto[];
+  videoUrl: string;
+  noCareer: boolean;
+  careers: readonly CareerDraft[];
+  values: Readonly<Record<string, string>>;
+}): ApplicationStepIssue | null {
+  if (step.section === "BASIC" || step.section === "INTRODUCTION" || step.section === "CUSTOM") {
+    const field = step.fields.find((candidate) => applicationFieldError(candidate, values));
+    if (field) return { fieldId: field.id, message: applicationFieldError(field, values)! };
+  }
+  if (step.section === "MATERIALS") {
+    const photosField = step.fields.find((field) => field.inputType === "FILE");
+    const videoField = step.fields.find((field) => field.inputType === "URL");
+    if (photos.some((photo) => photo.status === "UPLOADING") && photosField) return { fieldId: photosField.id, message: "사진 업로드가 완료될 때까지 기다려 주세요." };
+    if (photosField?.required && !photos.some((photo) => photo.status === "READY")) return { fieldId: photosField.id, message: `${photosField.label}을(를) 1장 이상 등록해 주세요.` };
+    if (videoField && videoUrl.trim() && !youtubeVideoId(videoUrl)) return { fieldId: videoField.id, message: `${videoField.label}의 유튜브 링크를 정확히 입력해 주세요.` };
+    if (videoField?.required && !youtubeVideoId(videoUrl)) return { fieldId: videoField.id, message: `${videoField.label}의 유튜브 링크를 입력해 주세요.` };
+  }
+  if (step.section === "CAREER") {
+    const field = step.fields[0];
+    if (field?.required && !noCareer && careers.length === 0) return { fieldId: field.id, message: `${field.label}을(를) 추가하거나 경력 없음에 체크해 주세요.` };
+    const invalidCareer = careers.find((career) => careerDraftError(career));
+    if (field && !noCareer && invalidCareer) return { fieldId: `${field.id}-${invalidCareer.id}`, message: `${field.label}의 작품명, 배역, 연도를 모두 입력해 주세요.` };
+  }
+  return null;
+}
+
+export function careerDraftError(career: CareerDraft): string | null {
+  if (!career.title.trim()) return "작품명을 입력해 주세요.";
+  if (!career.part.trim()) return "맡은 배역을 입력해 주세요.";
+  if (!/^\d{4}$/.test(career.year)) return "연도를 네 자리로 입력해 주세요.";
+  return null;
+}
+
+function applicationFieldError(field: ApplicationFormStep["fields"][number], values: Readonly<Record<string, string>>) {
+  if (field.inputType === "COMPOSITE") {
+    const missing = field.config.fields?.some((part) => !values[`${field.id}.${part.key}`]?.trim());
+    return field.required && missing ? `${field.label} 항목을 입력해 주세요.` : null;
+  }
+
+  const value = values[field.id]?.trim() ?? "";
+  if (field.required && !value) return `${field.label} 항목을 입력해 주세요.`;
+  if (value && field.config.minLength && value.length < field.config.minLength) return `${field.label}은(는) ${field.config.minLength}자 이상 입력해 주세요.`;
+  return null;
+}

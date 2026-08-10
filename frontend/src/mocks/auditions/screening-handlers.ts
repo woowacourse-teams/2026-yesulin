@@ -1,0 +1,74 @@
+import { delay, http, HttpResponse } from "msw";
+import type { AuditionBoardResponse, CloseRoundRequest, RoundNumber, SaveReviewRequest } from "@/features/auditions/types";
+import { roleId, ROUND_NUMBERS } from "@/features/auditions/types";
+import { countsFor, findRole, roundStatesOf } from "./aggregate";
+import { CATALOG } from "./catalog";
+import { toApplicant, toPerformanceRef, toPostingRef, toRoleSummary } from "./serialize";
+import { activeRound, isRoundClosed, markRoundClosed, poolFor, reviewOf, roundNumbersForRole } from "./store";
+
+const apiPath = "/api";
+const notFound = (message: string) => HttpResponse.json({ code: "ROLE_NOT_FOUND", message }, { status: 404 });
+const badRequest = (code: string, message: string) => HttpResponse.json({ code, message }, { status: 400 });
+const isRoundNumber = (value: number): value is RoundNumber => ROUND_NUMBERS.some((round) => round === value);
+const parseRound = (raw: string): RoundNumber | null => { const parsed = Number(raw); return Number.isInteger(parsed) && isRoundNumber(parsed) ? parsed : null; };
+
+function buildBoard(rawRoleId: string, round: RoundNumber): AuditionBoardResponse | null {
+  const found = findRole(roleId(rawRoleId));
+  if (!found) return null;
+  const performance = CATALOG.find((candidate) => candidate.postings.some((posting) => posting.id === found.posting.id));
+  if (!performance) return null;
+  return { performance: toPerformanceRef(performance), posting: toPostingRef(found.posting), role: toRoleSummary(found.role, found.posting), round, rounds: roundStatesOf(found.role.id), applicants: poolFor(found.role.id, round).map((applicant) => toApplicant(applicant, found.role, round)) };
+}
+
+export const screeningHandlers = [
+  http.get(`${apiPath}/screenings/roles/:roleId`, async ({ params, request }) => {
+    await delay(300);
+    const found = findRole(roleId(String(params.roleId)));
+    if (!found) return notFound("배역을 찾을 수 없습니다.");
+    const requested = new URL(request.url).searchParams.get("round");
+    const round = requested === null ? activeRound(found.role.id) : parseRound(requested);
+    if (round === null) return badRequest("INVALID_ROUND_NUMBER", "올바른 차수가 아닙니다.");
+    const board = buildBoard(String(params.roleId), round);
+    return board ? HttpResponse.json(board) : notFound("배역을 찾을 수 없습니다.");
+  }),
+  http.patch(`${apiPath}/screenings/reviews`, async ({ request }) => {
+    await delay(200);
+    const body = (await request.json()) as SaveReviewRequest;
+    if (!findRole(body.roleId)) return notFound("배역을 찾을 수 없습니다.");
+    if (!isRoundNumber(body.round)) return badRequest("INVALID_ROUND_NUMBER", "올바른 차수가 아닙니다.");
+    if (body.applicationIds.length === 0) return badRequest("APPLICATION_REQUIRED", "지원자를 한 명 이상 선택해 주세요.");
+    if (isRoundClosed(body.roleId, body.round)) return badRequest("ROUND_ALREADY_CLOSED", "마감된 차수는 결과를 변경할 수 없습니다.");
+    if (body.round === 1 && body.status === "ABSENT") return badRequest("ABSENT_NOT_ALLOWED", "1차 서류 심사에는 불참을 고를 수 없습니다.");
+    if (body.status === "ETC" && !body.memo?.trim()) return badRequest("MEMO_REQUIRED", "기타 사유를 입력해 주세요.");
+    const pool = poolFor(body.roleId, body.round);
+    const targets = body.applicationIds.filter((applicationId) => pool.some((applicant) => applicant.id === applicationId));
+    if (body.status === undefined && body.memo !== undefined && targets.some((applicationId) => reviewOf(applicationId, body.round).status === "ETC") && !body.memo.trim()) return badRequest("MEMO_REQUIRED", "기타 사유를 입력해 주세요.");
+    for (const applicationId of targets) {
+      const review = reviewOf(applicationId, body.round);
+      if (body.status !== undefined) {
+        review.status = body.status;
+        review.memo = body.status === "ETC" ? body.memo?.trim() ?? "" : "";
+      } else if (body.memo !== undefined && review.status === "ETC") {
+        review.memo = body.memo.trim();
+      }
+      if (body.note !== undefined) review.note = body.note;
+    }
+    const board = buildBoard(body.roleId, body.round);
+    return board ? HttpResponse.json(board) : notFound("배역을 찾을 수 없습니다.");
+  }),
+  http.post(`${apiPath}/screenings/rounds/close`, async ({ request }) => {
+    await delay(240);
+    const body = (await request.json()) as CloseRoundRequest;
+    if (!findRole(body.roleId)) return notFound("배역을 찾을 수 없습니다.");
+    if (!isRoundNumber(body.round)) return badRequest("INVALID_ROUND_NUMBER", "올바른 차수가 아닙니다.");
+    if (isRoundClosed(body.roleId, body.round)) return badRequest("ROUND_ALREADY_CLOSED", "이미 마감된 차수입니다.");
+    const counts = countsFor(body.roleId, body.round);
+    if (counts.all === 0) return badRequest("NO_APPLICANTS", "심사할 지원자가 없어 마감할 수 없습니다.");
+    if (counts.pending > 0) return badRequest("PENDING_REVIEWS_REMAIN", "검토 대기 중인 지원자가 남아 마감할 수 없습니다.");
+    markRoundClosed(body.roleId, body.round);
+    const rounds = roundNumbersForRole(body.roleId);
+    const nextRound = rounds[rounds.indexOf(body.round) + 1] ?? body.round;
+    const board = buildBoard(body.roleId, nextRound);
+    return board ? HttpResponse.json(board) : notFound("배역을 찾을 수 없습니다.");
+  }),
+];

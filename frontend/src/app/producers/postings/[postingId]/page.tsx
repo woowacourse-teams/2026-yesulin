@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { RolePicker } from "@/components/screening/role-picker";
-import { postingId } from "@/features/screening/types";
+import { RolePicker } from "@/components/auditions/role-picker";
+import { postingId } from "@/features/auditions/types";
 
 export const metadata: Metadata = {
   title: "배역 선택",

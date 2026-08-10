@@ -1,83 +1,123 @@
 import { delay, http, HttpResponse } from "msw";
 import type {
-  CloseRoundRequest,
-  RoundNumber,
-  SaveReviewRequest,
-  ScreeningBoardResponse,
-} from "@/features/screening/types";
-import { performanceId, postingId, roleId, ROUND_NUMBERS } from "@/features/screening/types";
-import { findPerformance, findPosting, findRole, roundStatesOf } from "./screening/aggregate";
+  CreatePerformanceRequest,
+  CreatePostingRequest,
+} from "@/features/auditions/creation-types";
+import { performanceId, postingId } from "@/features/auditions/types";
+import { findPerformance, findPosting } from "./auditions/aggregate";
 import {
-  toApplicant,
   toPerformanceRef,
   toPerformanceSummary,
-  toPostingRef,
+  toPostingListResponse,
   toPostingSummary,
   toRoleSummary,
-  toScreeningTree,
-} from "./screening/serialize";
-import { CATALOG } from "./screening/catalog";
-import { countsFor } from "./screening/aggregate";
-import { activeRound, isRoundClosed, markRoundClosed, poolFor, reviewOf } from "./screening/store";
+  toAuditionTree,
+} from "./auditions/serialize";
+import { CATALOG } from "./auditions/catalog";
+import { addPerformance, addPosting } from "./auditions/create";
+import type { UpdatePerformanceRequest, UpdatePostingRequest, UpdateProducerProfileRequest } from "@/features/auditions/management-types";
+import {
+  postingManagementDetail,
+  removeCatalogPerformance,
+  removeCatalogPosting,
+  updateCatalogPerformance,
+  updateCatalogPosting,
+} from "./auditions/manage";
+import { patchProducerProfile, producerProfile } from "./auditions/producer-profile";
+import { applicantHandlers } from "./applicants/handlers";
+import { screeningHandlers } from "./auditions/screening-handlers";
+import { validatePostingDraft } from "./auditions/posting-validation";
+import { authHandlers } from "./auth-handlers";
 
-const apiPath = "/api/screening";
+const apiPath = "/api";
 
 const notFound = (message: string) => HttpResponse.json({ message }, { status: 404 });
 const badRequest = (message: string) => HttpResponse.json({ message }, { status: 400 });
+const apiError = (status: number, code: string, message: string) =>
+  HttpResponse.json({ code, message }, { status });
 
-const isRoundNumber = (value: number): value is RoundNumber =>
-  ROUND_NUMBERS.some((round) => round === value);
-
-function parseRound(raw: string): RoundNumber | null {
-  const parsed = Number(raw);
-  return Number.isInteger(parsed) && isRoundNumber(parsed) ? parsed : null;
-}
-
-/** 심사 화면 한 벌. 상태를 바꾼 뒤에도 같은 모양으로 되돌려 클라이언트를 갱신한다. */
-function buildBoard(rawRoleId: string, round: RoundNumber): ScreeningBoardResponse | null {
-  const found = findRole(roleId(rawRoleId));
-  if (!found) return null;
-
-  const performance = CATALOG.find((candidate) =>
-    candidate.postings.some((posting) => posting.id === found.posting.id),
-  );
-  if (!performance) return null;
-
-  return {
-    performance: toPerformanceRef(performance),
-    posting: toPostingRef(found.posting),
-    role: toRoleSummary(found.role, found.posting),
-    round,
-    rounds: roundStatesOf(found.role.id),
-    applicants: poolFor(found.role.id, round).map((applicant) =>
-      toApplicant(applicant, found.role, round),
-    ),
-  };
-}
+const hasText = (value: unknown): value is string =>
+  typeof value === "string" && value.trim().length > 0;
 
 export const handlers = [
-  http.get(`${apiPath}/tree`, async () => {
+  ...authHandlers,
+  http.get(`${apiPath}/me/producer`, async () => {
     await delay(180);
-    return HttpResponse.json(toScreeningTree());
+    return HttpResponse.json(producerProfile());
   }),
 
-  http.get(`${apiPath}/performance`, async () => {
+  http.patch(`${apiPath}/me/producer`, async ({ request }) => {
+    await delay(220);
+    const body = (await request.json()) as UpdateProducerProfileRequest;
+    if (body.companyName !== undefined && !hasText(body.companyName)) return apiError(400, "COMPANY_REQUIRED", "공연사명을 입력해 주세요.");
+    if (body.contactName !== undefined && !hasText(body.contactName)) return apiError(400, "CONTACT_REQUIRED", "담당자명을 입력해 주세요.");
+    if ((body.description?.length ?? 0) > 200) return apiError(400, "DESCRIPTION_TOO_LONG", "소개는 200자 이내로 적어 주세요.");
+    return HttpResponse.json(patchProducerProfile(body));
+  }),
+
+  ...applicantHandlers,
+
+  http.get(`${apiPath}/navigation/tree`, async () => {
+    await delay(180);
+    return HttpResponse.json(toAuditionTree());
+  }),
+
+  http.get(`${apiPath}/performances`, async () => {
     await delay(260);
     return HttpResponse.json({ performances: CATALOG.map(toPerformanceSummary) });
   }),
 
-  http.get(`${apiPath}/performance/:performanceId`, async ({ params }) => {
+  http.get(`${apiPath}/performances/:performanceId/postings`, async ({ params }) => {
     await delay(260);
     const performance = findPerformance(performanceId(String(params.performanceId)));
     if (!performance) return notFound("공연을 찾을 수 없습니다.");
 
-    return HttpResponse.json({
-      performance: toPerformanceRef(performance),
-      postings: performance.postings.map(toPostingSummary),
-    });
+    return HttpResponse.json(toPostingListResponse(performance));
   }),
 
-  http.get(`${apiPath}/posting/:postingId`, async ({ params }) => {
+  http.post(`${apiPath}/performances`, async ({ request }) => {
+    await delay(240);
+    const body = (await request.json()) as CreatePerformanceRequest;
+    if (!hasText(body.posterUrl)) return badRequest("공연 포스터를 선택해 주세요.");
+    if (!hasText(body.title)) return badRequest("공연 제목을 입력해 주세요.");
+    if (!hasText(body.venue)) return badRequest("공연 장소를 입력해 주세요.");
+    if (!Array.isArray(body.roles) || body.roles.length === 0) {
+      return badRequest("배역을 하나 이상 추가해 주세요.");
+    }
+    if (body.roles.some((role) => !hasText(role.name))) {
+      return badRequest("모든 배역의 이름을 입력해 주세요.");
+    }
+    if (body.roles.some((role) => role.ageMin < 0 || role.ageMax < role.ageMin)) {
+      return badRequest("배역의 나이 조건을 확인해 주세요.");
+    }
+
+    addPerformance(body);
+    return HttpResponse.json({ performances: CATALOG.map(toPerformanceSummary) }, { status: 201 });
+  }),
+
+  http.patch(`${apiPath}/performances/:performanceId`, async ({ params, request }) => {
+    await delay(240);
+    const id = performanceId(String(params.performanceId));
+    const body = (await request.json()) as UpdatePerformanceRequest;
+    if (body.title !== undefined && !hasText(body.title)) return apiError(400, "TITLE_REQUIRED", "공연 제목을 입력해 주세요.");
+    if (body.venue !== undefined && !hasText(body.venue)) return apiError(400, "VENUE_REQUIRED", "공연 장소를 입력해 주세요.");
+    if (body.roleTemplates?.length === 0) return apiError(400, "ROLE_REQUIRED", "배역을 하나 이상 남겨 주세요.");
+    if (body.roleTemplates?.some((role) => role.ageMin < 0 || role.ageMax < role.ageMin)) return apiError(400, "INVALID_AGE_RANGE", "배역의 나이 조건을 확인해 주세요.");
+    if (!updateCatalogPerformance(id, body)) return notFound("공연을 찾을 수 없습니다.");
+    return HttpResponse.json({ performances: CATALOG.map(toPerformanceSummary) });
+  }),
+
+  http.delete(`${apiPath}/performances/:performanceId`, async ({ params }) => {
+    await delay(220);
+    const id = performanceId(String(params.performanceId));
+    const performance = findPerformance(id);
+    if (!performance) return notFound("공연을 찾을 수 없습니다.");
+    if (performance.postings.length) return apiError(409, "PERFORMANCE_HAS_POSTINGS", "공고를 먼저 삭제해 주세요.");
+    removeCatalogPerformance(id);
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  http.get(`${apiPath}/postings/:postingId/roles`, async ({ params }) => {
     await delay(260);
     const posting = findPosting(postingId(String(params.postingId)));
     if (!posting) return notFound("공고를 찾을 수 없습니다.");
@@ -92,63 +132,62 @@ export const handlers = [
     });
   }),
 
-  http.get(`${apiPath}/role/:roleId`, async ({ params, request }) => {
-    await delay(300);
-    const found = findRole(roleId(String(params.roleId)));
-    if (!found) return notFound("배역을 찾을 수 없습니다.");
+  http.post(`${apiPath}/performances/:performanceId/postings`, async ({ request }) => {
+    await delay(260);
+    const body = (await request.json()) as CreatePostingRequest;
+    const performance = findPerformance(body.performanceId);
+    if (!performance) return notFound("공연을 찾을 수 없습니다.");
+    const validation = validatePostingDraft(body, performance.roleTemplates);
+    if (validation) return apiError(400, validation.code, validation.message);
 
-    const requested = new URL(request.url).searchParams.get("round");
-    // 차수를 지정하지 않으면 아직 마감되지 않은 가장 이른 차수를 연다.
-    const round = requested === null ? activeRound(found.role.id) : parseRound(requested);
-    if (round === null) return badRequest("올바른 차수가 아닙니다.");
-
-    const board = buildBoard(String(params.roleId), round);
-    return board ? HttpResponse.json(board) : notFound("배역을 찾을 수 없습니다.");
+    const createdPosting = addPosting(performance, body);
+    return HttpResponse.json({
+      ...toPostingListResponse(performance),
+      createdPostingId: createdPosting.id,
+    }, { status: 201 });
   }),
 
-  http.patch(`${apiPath}/review`, async ({ request }) => {
-    await delay(200);
-    const body = (await request.json()) as SaveReviewRequest;
-    const found = findRole(body.roleId);
-    if (!found) return notFound("배역을 찾을 수 없습니다.");
-    if (!isRoundNumber(body.round)) return badRequest("올바른 차수가 아닙니다.");
-    if (isRoundClosed(body.roleId, body.round)) {
-      return badRequest("마감된 차수는 결과를 변경할 수 없습니다.");
-    }
-
-    const pool = poolFor(body.roleId, body.round);
-    for (const applicationId of body.applicationIds) {
-      if (!pool.some((applicant) => applicant.id === applicationId)) continue;
-
-      const review = reviewOf(applicationId, body.round);
-      if (body.status !== undefined) {
-        review.status = body.status;
-        if (body.status !== "ETC") review.memo = "";
-      }
-      if (body.memo !== undefined) review.memo = body.memo;
-      if (body.note !== undefined) review.note = body.note;
-    }
-
-    const board = buildBoard(body.roleId, body.round);
-    return board ? HttpResponse.json(board) : notFound("배역을 찾을 수 없습니다.");
+  http.get(`${apiPath}/postings/:postingId`, async ({ params }) => {
+    await delay(220);
+    const detail = postingManagementDetail(postingId(String(params.postingId)));
+    return detail ? HttpResponse.json(detail) : notFound("공고를 찾을 수 없습니다.");
   }),
 
-  http.post(`${apiPath}/round/close`, async ({ request }) => {
+  http.patch(`${apiPath}/postings/:postingId`, async ({ params, request }) => {
     await delay(240);
-    const body = (await request.json()) as CloseRoundRequest;
-    const found = findRole(body.roleId);
-    if (!found) return notFound("배역을 찾을 수 없습니다.");
-    if (!isRoundNumber(body.round)) return badRequest("올바른 차수가 아닙니다.");
-    if (isRoundClosed(body.roleId, body.round)) return badRequest("이미 마감된 차수입니다.");
-
-    const counts = countsFor(body.roleId, body.round);
-    if (counts.all === 0) return badRequest("심사할 지원자가 없어 마감할 수 없습니다.");
-    if (counts.pending > 0) return badRequest("검토 대기 중인 지원자가 남아 마감할 수 없습니다.");
-
-    markRoundClosed(body.roleId, body.round);
-    const nextRound = (body.round < 3 ? body.round + 1 : body.round) as RoundNumber;
-
-    const board = buildBoard(body.roleId, nextRound);
-    return board ? HttpResponse.json(board) : notFound("배역을 찾을 수 없습니다.");
+    const id = postingId(String(params.postingId));
+    const current = postingManagementDetail(id);
+    if (!current) return notFound("공고를 찾을 수 없습니다.");
+    const body = (await request.json()) as UpdatePostingRequest;
+    if (body.title !== undefined && !hasText(body.title)) return apiError(400, "TITLE_REQUIRED", "공고 제목을 입력해 주세요.");
+    if (body.recruitmentStart && body.recruitmentEnd && body.recruitmentStart > body.recruitmentEnd) return apiError(400, "INVALID_PERIOD", "모집 종료일은 시작일보다 빠를 수 없습니다.");
+    if (current.applicantCount > 0 && (body.isOpenCall !== undefined || body.roles || body.applicationFields || body.recruitmentStart)) return apiError(409, "FIELD_LOCKED_BY_APPLICANTS", "이미 지원자가 있어 모집 방식, 배역과 지원서 항목은 바꿀 수 없습니다.");
+    if (current.applicantCount > 0 && body.recruitmentEnd && body.recruitmentEnd < current.recruitmentEnd) return apiError(409, "DEADLINE_CANNOT_SHRINK", "모집 기간은 연장만 할 수 있습니다.");
+    const validation = validatePostingDraft({
+      title: body.title ?? current.title,
+      isOpenCall: body.isOpenCall ?? current.isOpenCall,
+      recruitmentStart: body.recruitmentStart ?? current.recruitmentStart,
+      recruitmentEnd: body.recruitmentEnd ?? current.recruitmentEnd,
+      roles: body.roles ?? current.roles,
+      rounds: body.rounds ?? current.rounds,
+      applicationFields: body.applicationFields ?? current.applicationFields,
+    }, current.roleTemplates);
+    if (validation) return apiError(400, validation.code, validation.message);
+    const posting = updateCatalogPosting(id, body);
+    if (!posting) return notFound("공고를 찾을 수 없습니다.");
+    const performance = findPerformance(posting.performanceId);
+    return performance ? HttpResponse.json(toPostingListResponse(performance)) : notFound("공연을 찾을 수 없습니다.");
   }),
+
+  http.delete(`${apiPath}/postings/:postingId`, async ({ params }) => {
+    await delay(220);
+    const id = postingId(String(params.postingId));
+    const current = postingManagementDetail(id);
+    if (!current) return notFound("공고를 찾을 수 없습니다.");
+    if (current.applicantCount > 0) return apiError(409, "POSTING_HAS_APPLICANTS", "지원자가 있는 공고는 삭제할 수 없습니다.");
+    removeCatalogPosting(id);
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  ...screeningHandlers,
 ];
