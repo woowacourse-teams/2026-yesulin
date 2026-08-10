@@ -11,6 +11,9 @@
 **/.next/
 **/coverage/
 
+# Downloaded by Gradle from the version declared in backend/build.gradle.kts
+backend/checkstyle/*.jar
+
 **/.env
 **/.env.*
 !**/.env.example

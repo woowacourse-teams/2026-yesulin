@@ -1,0 +1,10 @@
+changed_files=$(git diff --cached --name-only --diff-filter=ACMR -- \
+  backend/src \
+  backend/checkstyle \
+  backend/build.gradle.kts)
+
+if printf '%s\n' "$changed_files" | grep -Eq '(^backend/src/.*\.java$|^backend/checkstyle/|^backend/build\.gradle\.kts$)'; then
+  npm run checkstyle
+else
+  echo "No backend Java or Checkstyle changes; skipping Checkstyle."
+fi

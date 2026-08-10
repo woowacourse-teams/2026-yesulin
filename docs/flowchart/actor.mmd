@@ -3,33 +3,33 @@ config:
   layout: elk
 ---
 flowchart TB
-    START(["공연사 시작"]) --> SESSION["세션 확인<br>GET /api/auth/me"]
-    SESSION -- 세션 없음 --> LOGIN["로그인<br>POST /api/auth/login"]
+    START(["공연사 시작"]) --> SESSION["세션 확인<br>GET /api/v1/sessions/current"]
+    SESSION -- 세션 없음 --> LOGIN["로그인<br>POST /api/v1/sessions"]
     LOGIN --> SESSION
-    SESSION -- 공연사 미가입 --> SIGNUP["공연사 가입<br>POST /api/auth/signup/producer"]
+    SESSION -- 공연사 미가입 --> SIGNUP["공연사 가입<br>POST /api/v1/producers"]
     SIGNUP --> VERIFY{"운영자 인증 완료?"}
     SESSION -- PENDING / REJECTED --> VERIFY
     VERIFY -- 아니오 --> WAIT["인증 상태 안내"]
     VERIFY -- 예 --> HOME["관리자 홈"]
     SESSION -- VERIFIED --> HOME
-    HOME --> NAV["왼쪽 사이드바 탐색 트리<br>GET /api/navigation/tree"] & PROFILE["공연사 정보<br>GET·PATCH /api/me/producer"] & PERF["공연 목록<br>GET /api/performances"]
-    PERF --> NEW_PERF["포스터 업로드<br>POST /api/files/posters"] & EDIT_PERF["공연 수정·삭제<br>PATCH·DELETE /api/performances/{performanceId}"] & POSTINGS["공고 목록<br>GET /api/performances/{performanceId}/postings"]
-    NEW_PERF --> CREATE_PERF["공연·배역 템플릿 등록<br>POST /api/performances"]
-    POSTINGS --> CREATE_POSTING["공고 등록<br>POST /api/performances/{performanceId}/postings"] & POSTING_DETAIL["공고 상세<br>GET /api/postings/{postingId}"]
-    POSTING_DETAIL --> EDIT_POSTING["공고 수정·삭제<br>PATCH·DELETE /api/postings/{postingId}"] & ROLES["배역 목록<br>GET /api/postings/{postingId}/roles"]
+    HOME --> NAV["왼쪽 사이드바 탐색 트리<br>GET /api/v1/producers/me/navigation-tree"] & PROFILE["공연사 정보<br>GET·PATCH /api/v1/producers/me"] & PERF["공연 목록<br>GET /api/v1/performances"]
+    PERF --> NEW_PERF["포스터 업로드<br>POST /api/v1/performance-posters"] & EDIT_PERF["공연 수정·삭제<br>PATCH·DELETE /api/v1/performances/{performanceId}"] & POSTINGS["공고 목록<br>GET /api/v1/performances/{performanceId}/postings"]
+    NEW_PERF --> CREATE_PERF["공연·배역 템플릿 등록<br>POST /api/v1/performances"]
+    POSTINGS --> CREATE_POSTING["공고 등록<br>POST /api/v1/performances/{performanceId}/postings"] & POSTING_DETAIL["공고 상세<br>GET /api/v1/postings/{postingId}"]
+    POSTING_DETAIL --> EDIT_POSTING["공고 수정·삭제<br>PATCH·DELETE /api/v1/postings/{postingId}"] & ROLES["배역 목록<br>GET /api/v1/postings/{postingId}/roles"]
     ROLES --> SOLE{"배역 하나 또는 자유 배역?"}
-    SOLE -- 예 --> BOARD["심사 보드 첫 페이지<br>GET /api/screenings/roles/{roleId}"]
+    SOLE -- 예 --> BOARD["심사 보드 첫 페이지<br>GET /api/v1/roles/{roleId}/screening-rounds/{round}/applications"]
     SOLE -- 아니오 --> CHOOSE_ROLE["심사할 배역 선택"]
     CHOOSE_ROLE --> BOARD
     BOARD --> MORE{"다음 페이지 필요?"}
     MORE -- 예: cursor --> BOARD
     MORE -- 아니오 --> SELECT["지원자 선택"]
-    SELECT --> APP_DETAIL["민감 상세 조회<br>GET /api/screenings/applications/{applicationId}"]
-    APP_DETAIL --> REVIEW["심사 저장 + expectedVersion<br>PATCH /api/screenings/reviews"]
+    SELECT --> APP_DETAIL["민감 상세 조회<br>GET /api/v1/applications/{applicationId}?round={round}"]
+    APP_DETAIL --> REVIEW["심사 저장 + expectedVersion<br>PATCH /api/v1/roles/{roleId}/screening-rounds/{round}/reviews"]
     REVIEW -- 409 VERSION_CONFLICT --> BOARD
     REVIEW -- 성공: delta·counts·version --> DONE{"검토 대기 0명?"}
     DONE -- 아니오 --> SELECT
-    DONE -- 예 --> CLOSE["차수 마감 + expectedVersion<br>POST /api/screenings/rounds/close"]
+    DONE -- 예 --> CLOSE["차수 마감 + expectedVersion<br>PATCH /api/v1/roles/{roleId}/screening-rounds/{round}<br>status=CLOSED"]
     CLOSE -- 409 VERSION_CONFLICT --> BOARD
     CLOSE --> LAST{"마지막 차수?"}
     LAST -- 아니오 --> BOARD

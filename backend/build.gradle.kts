@@ -1,5 +1,6 @@
 plugins {
     java
+    checkstyle
     id("org.springframework.boot") version "4.1.0"
     id("io.spring.dependency-management") version "1.1.7"
 }
@@ -16,6 +17,11 @@ java {
 
 repositories {
     mavenCentral()
+}
+
+checkstyle {
+    toolVersion = "13.10.0"
+    configFile = file("checkstyle/wooteco_checks.xml")
 }
 
 dependencies {

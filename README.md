@@ -4,6 +4,16 @@
 
 ## 빠른 시작
 
+### 저장소 개발 도구 — 최초 1회 필수
+
+Node.js 22.12 이상이 필요합니다.
+
+```bash
+npm install
+```
+
+루트 의존성과 Husky Git hook을 설치합니다. 커밋 메시지는 항상 검사하며, 백엔드 Java·Checkstyle 설정을 변경한 커밋에서만 Checkstyle을 실행합니다.
+
 ### 프론트엔드 (공연사 관리자 + 지원자 공개 화면)
 
 ```bash
@@ -36,6 +46,8 @@ cd backend
 │   ├── src/components/    UI 컴포넌트
 │   └── src/mocks/         MSW 핸들러 & 목 데이터
 └── docs/
+    ├── convention/        BE·Git 컨벤션
+    ├── decisions/         번호 기반 프로젝트 결정 기록
     ├── 온보딩.md          ⭐ 새 팀원 필독
     ├── performance-management.md  살아 있는 스펙 (도메인·API·MSW)
     ├── index.html         원본 프로토타입
