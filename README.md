@@ -1,98 +1,100 @@
 # 예술IN
 
-공연 공고에서 유입된 지원자의 접수와 심사를 관리하는 서비스입니다.
+공연예술 오디션의 모집과 심사를 연결하는 서비스입니다.
 
-## 빠른 시작
+- 지원자는 외부 공고의 링크로 들어와 프로필과 자료를 제출하고 지원 이력을 관리합니다.
+- 공연사는 공연·공고·배역을 만들고 지원자를 차수별로 검토합니다.
+- 핵심 구조는 `공연 → 공고 → 배역 → 지원서`입니다.
 
-### 저장소 개발 도구 — 최초 1회 필수
+전형은 배역별로 독립 진행하며 심사 결과는 `(지원서, 차수)`별로 보존합니다. 상세 사용자 흐름은 [flowchart](./docs/flowchart/)를 기준으로 합니다.
 
-Node.js 22.12 이상이 필요합니다.
+## 현재 범위
+
+프런트엔드 프로토타입에서는 서비스 소개·인증 UI, 공연·공고 관리, 1~3차 지원자 심사, 공개 지원서 제출·조회, 지원자 프로필과 공연사 설정이 MSW로 동작합니다.
+
+백엔드는 Spring Boot 스캐폴드 단계입니다. 실제 인증, DB, 파일 저장, 소셜 로그인, 사업자·KOPIS 검증은 아직 연결하지 않았습니다. 목 데이터는 새로고침하면 초기화될 수 있습니다.
+
+## 실행
+
+Node.js 22.12 이상이 필요합니다. 클론 후 루트에서 먼저 Husky hook을 설치합니다.
 
 ```bash
 npm install
 ```
 
-루트 의존성과 Husky Git hook을 설치합니다. 커밋 메시지는 항상 검사하며, 백엔드 Java·Checkstyle 설정을 변경한 커밋에서만 Checkstyle을 실행합니다.
+커밋 메시지는 항상 검사하며, 백엔드 Java·Checkstyle 설정이 staged diff에 있을 때만 Checkstyle을 실행합니다.
 
-### 프론트엔드 (공연사 관리자 + 지원자 공개 화면)
+프런트엔드:
 
 ```bash
 cd frontend
 npm install
 npm run dev
+npm run lint
+npm run build
 ```
 
-브라우저: **http://localhost:3000**
+- 기본 주소: `http://localhost:3000`
+- 공연사 진입: `/producers/performances`
+- 목 계정: `admin` 또는 `yesulin` / `1234`
+- 실제 API 연결: `NEXT_PUBLIC_API_MOCKING=disabled`
 
-**첫 방문?** → [온보딩 가이드](./docs/온보딩.md)에서 5분 투어와 코드 지도를 따라보세요.
-
-### 백엔드
+백엔드:
 
 ```bash
 cd backend
-./gradlew bootRun      # 앱 실행
-./gradlew build        # 컴파일
-./gradlew test         # 테스트
+./gradlew bootRun
+./gradlew build
+./gradlew test
 ```
 
-## 프로젝트 구조
+## 개발 방식
+
+프런트에서 필요한 계약을 먼저 검증하고 백엔드가 이를 구현합니다.
 
 ```text
-2026-yesulin/
-├── backend/               # Spring Boot 4.1, Java 25 (빈 스캐폴드)
-├── frontend/              # Next.js 16 + React 19
-│   ├── src/app/           공연사 관리자 + 지원자 공개 라우트
-│   ├── src/features/      도메인 레이어 (types, api, 필터, 라벨)
-│   ├── src/components/    UI 컴포넌트
-│   └── src/mocks/         MSW 핸들러 & 목 데이터
-└── docs/
-    ├── convention/        BE·Git 컨벤션
-    ├── decisions/         번호 기반 프로젝트 결정 기록
-    ├── flowchart/         사용자별 비즈니스 흐름
-    ├── 온보딩.md          ⭐ 새 팀원 필독
-    ├── 제품-온보딩.md     제품 목적과 방향
-    └── README.md          문서 운영 규칙
+화면 → 타입 → API 호출 → MSW 동작 → 문서 → 백엔드
 ```
 
-## 현재 상태
+- 현재 프런트 계약: `frontend/src/features/**/api.ts`
+- 요청 검증과 목 응답: `frontend/src/mocks/`
+- 백엔드 목표 경로와 이관 상태: [API 컨벤션](./docs/convention/api-convention.md)
+- 사용자별 비즈니스 흐름: [flowchart](./docs/flowchart/)
 
-| 영역 | 상태 |
-| --- | --- |
-| **공연사 관리자** | ✅ 공연 생성, 공고 생성, 지원자 심사(1·2·3차) MSW로 동작 |
-| **지원자 공개** | ✅ 공고 상세, 지원서 작성, 목 제출 완료 |
-| **백엔드** | 스캐폴드만 준비 |
+문서와 구현이 다르면 완료로 보지 않습니다. 변경 기록 기준은 [문서 운영 원칙](./docs/README.md)을 따릅니다.
 
-## 개발 방식 — 계약 우선(Contract-First)
+## 코드 지도
 
-화면 → 타입 정의 → API 계약 → 목 구현 → 문서 → 백엔드 구현
+```text
+yesulin/
+├── backend/                  Spring Boot 4.1, Java 25
+├── frontend/                 Next.js 16, React 19
+│   └── src/
+│       ├── app/              라우트
+│       ├── features/         도메인 타입과 API
+│       ├── components/       화면과 상태
+│       └── mocks/            MSW 핸들러와 목 데이터
+└── docs/
+    ├── convention/           API·Git·백엔드 규칙
+    ├── decisions/            번호 기반 결정 기록
+    ├── flowchart/            사용자별 비즈니스 흐름
+    └── policies/             개인정보·서비스 정책
+```
 
-자세한 설명은 [온보딩 가이드의 3번](./docs/온보딩.md#3-우리-개발-방식--왜-프런트가-먼저인가)을 참고합니다.
+프런트엔드는 `app → features → components → mocks` 순서로 읽습니다. 라우트는 얇게 유지하고 비즈니스 규칙은 `features/`, 화면 표현은 `components/`에 둡니다.
 
-## 자주 묻는 것
+## 문서
 
-**포트 3000이어야 하나?**  
-아니요. 절대 URL이 없고 API는 전부 상대 경로입니다. 3001, 5173 등 아무거나 됩니다.  
-→ 상세는 [온보딩: 포트 관련 함정](./docs/온보딩.md#2-실행하기)
+- [비즈니스 흐름](./docs/flowchart/)
+- [API·Git·백엔드 컨벤션](./docs/convention/)
+- [결정 기록](./docs/decisions/README.md)
+- [문서 운영 원칙](./docs/README.md)
+- [UI 디자인 원칙](./design.md)
+- [에이전트 작업 규칙](./AGENTS.md)
 
-**다른 브랜치의 상태는?**  
-`git branch -a`로 확인합니다. 현재 통합 기준은 `origin/main`이며 push 전에 현재 브랜치를 그 위로 rebase합니다.
+## 참고
 
-**새로고침하면 데이터가 사라져요**  
-정상입니다. 목 데이터는 브라우저 메모리에만 있습니다.
-
-## 다음 할 일
-
-- [ ] 백엔드 첫 엔드포인트 (`GET /api/v1/producers/me/navigation-tree`)
-- [ ] 실제 데이터 저장소 연동
-- [ ] 자동화된 테스트 (프론트엔드, 백엔드)
-- [ ] 지원자용 인증 및 지원서 저장 API
-
----
-
-더 알고 싶으신 것이 있으면:
-- **실행 및 코드 구조** → [온보딩](./docs/온보딩.md)
-- **비즈니스 흐름** → [flowchart](./docs/flowchart/)
-- **목표 API** → [API 컨벤션](./docs/convention/api-convention.md)
-- **현재 API·MSW 차이** → [프론트엔드 API 준비도](./docs/frontend-api-readiness.md)
-- **UI 디자인** → [design.md](./design.md)
-- **AI 에이전트용** → [AGENTS.md](./AGENTS.md)
+- 다른 Next 개발 서버가 실행 중이면 기존 서버를 사용하거나 종료한 뒤 다시 실행합니다.
+- 화면이 로딩에서 멈추면 `frontend/public/mockServiceWorker.js`와 브라우저 콘솔을 확인합니다.
+- 실제 API의 SSR 조회에는 `API_ORIGIN`을 설정합니다. 브라우저 요청은 같은 origin의 상대 경로를 사용합니다.
+- 현재 통합 기준은 `origin/main`입니다. push 전에 fetch한 뒤 현재 브랜치를 그 위로 rebase합니다.
