@@ -16,3 +16,4 @@
 1. [0001 API 버전과 리소스 경로](./0001-api-version-and-resource-paths.md) — accepted · agent-required
 2. [0002 Checkstyle과 Git hook](./0002-checkstyle-and-git-hooks.md) — accepted · agent-required
 3. [0003 문서와 에이전트 컨텍스트](./0003-documentation-and-agent-context.md) — accepted · agent-required
+4. [0004 Push 전 통합 브랜치 rebase](./0004-rebase-before-push.md) — accepted · agent-required

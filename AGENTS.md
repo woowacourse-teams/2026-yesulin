@@ -10,6 +10,13 @@
 - 코드를 바로 작성하기보다 먼저 관련 문서와 기존 컴포넌트 구조를 확인한다.
 - 사용자 흐름이나 계약이 바뀌지 않는 내부 리팩터링에는 불필요한 문서 변경을 만들지 않는다.
 
+## 저장소 준비와 Git
+
+- 루트 `node_modules/`가 없으면 작업 전에 루트에서 `npm install`을 실행해 Husky hook을 설치한다.
+- `--no-verify`와 `HUSKY=0`으로 hook을 우회하지 않는다.
+- push 전 현재 기준 통합 브랜치인 `origin/main`을 fetch하고 현재 브랜치를 그 위로 rebase한다. 충돌을 해결하고 검증한 뒤 push한다.
+- 통합 브랜치가 바뀌면 `origin/main`을 고정 규칙으로 가정하지 말고 Git 컨벤션과 관련 결정 기록을 먼저 갱신한다.
+
 ## 프로젝트 개요
 
 예술IN은 공연 공고로 유입된 지원자의 접수와 심사를 관리하는 서비스다.
@@ -20,7 +27,7 @@
 2026-yesulin/
 ├── backend/    Spring Boot 애플리케이션
 ├── frontend/   공연사 관리자·지원자 공개 화면을 제공하는 Next.js 애플리케이션
-└── docs/       프로젝트 운영 문서와 공연 관리 스펙
+└── docs/       온보딩, 비즈니스 흐름, 컨벤션과 결정 기록
 ```
 
 루트 `README.md`에 적힌 `frontend-producer/`, `frontend-applicant/` 분리는 장래 구상이며 현재 실제 프론트엔드 코드는 모두 `frontend/`에 있다. 지원자 공개 화면은 `/apply/{postingId}`에서 목 데이터로 동작한다.
@@ -30,7 +37,10 @@
 ## 먼저 읽을 문서
 
 - `docs/온보딩.md`: 실행 방법, 화면 흐름, 코드 지도
-- `docs/performance-management.md`: 공연 관리 영역의 도메인 규칙, 화면 경로, API 계약, MSW 동작
+- `docs/제품-온보딩.md`: 서비스 목적, 사용자 역할, 제품 방향
+- `docs/flowchart/actor.mmd`, `docs/flowchart/producer.mmd`: 사용자별 비즈니스 흐름
+- `docs/convention/api-convention.md`: 백엔드 API 경로 계약
+- `docs/decisions/README.md`: 번호 기반 결정 목록. `agent-required` 기록은 반드시 읽는다.
 - `docs/README.md`: 구현과 문서를 함께 유지하는 기준
 - `design.md`: UI 디자인 원칙, 디자인 토큰, 정보 위계와 공통 컴포넌트 표현 기준. UI를 구현하거나 수정하는 작업일 때 먼저 읽는다.
 
@@ -96,6 +106,8 @@ frontend/src/
 
 ## 도메인과 화면 규칙
 
+사용자별 비즈니스 흐름과 화면 간 이동은 `docs/flowchart/*.mmd`를 기준으로 확인한다.
+
 ```text
 Performance 공연
   └ Posting 공고
@@ -114,7 +126,8 @@ Performance 공연
 
 ## API와 MSW 규칙
 
-- API 경로는 절대 URL이 아닌 Notion API 명세의 `/api/**` 상대 경로를 사용한다.
+- 백엔드 목표 경로는 `docs/convention/api-convention.md`의 `/api/v1/**` 계약을 따른다.
+- 현재 프론트·MSW·Notion 경로와 목표 계약의 차이는 `docs/frontend-api-readiness.md`에서 관리하고, 구현 변경 시 함께 맞춘다.
 - 클라이언트는 공연사 식별자를 요청에 넣지 않는다.
 - `PATCH /api/screenings/reviews`와 `POST /api/screenings/rounds/close`는 갱신된 `AuditionBoardResponse` 전체를 반환한다.
 - 변경 응답을 받은 클라이언트는 별도 재조회 대신 새 보드로 상태를 교체한다.
@@ -152,4 +165,6 @@ Performance 공연
 - 환경 변수, 실행 명령, 폴더 구조
 - 팀이 알아야 할 현재 한계나 의사결정
 
-문서와 구현이 다르면 작업이 완료된 것으로 보지 않는다.
+- 공통 결정은 `docs/decisions/`의 다음 번호 파일에 250단어 이내로 기록한다.
+- 중요한 결정은 `agent-required: true`로 표시하고 `AGENTS.md`의 필독 목록에 연결한다. `CLAUDE.md`는 이 문서를 불러오므로 동일하게 적용된다.
+- 문서와 구현이 다르면 작업이 완료된 것으로 보지 않는다.

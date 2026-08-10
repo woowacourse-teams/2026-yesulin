@@ -48,10 +48,9 @@ cd backend
 └── docs/
     ├── convention/        BE·Git 컨벤션
     ├── decisions/         번호 기반 프로젝트 결정 기록
+    ├── flowchart/         사용자별 비즈니스 흐름
     ├── 온보딩.md          ⭐ 새 팀원 필독
-    ├── performance-management.md  살아 있는 스펙 (도메인·API·MSW)
-    ├── index.html         원본 프로토타입
-    ├── design.md          UI 디자인 원칙
+    ├── 제품-온보딩.md     제품 목적과 방향
     └── README.md          문서 운영 규칙
 ```
 
@@ -76,14 +75,14 @@ cd backend
 → 상세는 [온보딩: 포트 관련 함정](./docs/온보딩.md#2-실행하기)
 
 **다른 브랜치의 상태는?**  
-`git branch -a` 로 확인. 현재 prototype 브랜치가 최신 구현입니다.
+`git branch -a`로 확인합니다. 현재 통합 기준은 `origin/main`이며 push 전에 현재 브랜치를 그 위로 rebase합니다.
 
 **새로고침하면 데이터가 사라져요**  
 정상입니다. 목 데이터는 브라우저 메모리에만 있습니다.
 
 ## 다음 할 일
 
-- [ ] 백엔드 첫 엔드포인트 (`GET /api/auditions/tree`)
+- [ ] 백엔드 첫 엔드포인트 (`GET /api/v1/producers/me/navigation-tree`)
 - [ ] 실제 데이터 저장소 연동
 - [ ] 자동화된 테스트 (프론트엔드, 백엔드)
 - [ ] 지원자용 인증 및 지원서 저장 API
@@ -92,6 +91,8 @@ cd backend
 
 더 알고 싶으신 것이 있으면:
 - **실행 및 코드 구조** → [온보딩](./docs/온보딩.md)
-- **도메인·API·MSW** → [공연 관리 문서](./docs/performance-management.md)
-- **UI 디자인** → [design.md](./docs/design.md)
-- **AI 에이전트용** → [CLAUDE.md](./CLAUDE.md)
+- **비즈니스 흐름** → [flowchart](./docs/flowchart/)
+- **목표 API** → [API 컨벤션](./docs/convention/api-convention.md)
+- **현재 API·MSW 차이** → [프론트엔드 API 준비도](./docs/frontend-api-readiness.md)
+- **UI 디자인** → [design.md](./design.md)
+- **AI 에이전트용** → [AGENTS.md](./AGENTS.md)
