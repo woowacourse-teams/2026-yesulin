@@ -2,6 +2,8 @@
 
 지원자·공연사 flowchart를 기준으로 한 백엔드 경로 계약이다. REST 원칙을 따르되 클라이언트가 경로만 읽고 용도를 이해할 수 있는 이름을 우선한다.
 
+> **도메인 설계 반영 대기:** 최신 [도메인 설계](../domain-design.md)에 따라 지원서 작성 시작에는 로그인이 필요하지 않지만 최종 제출은 인증된 계정만 할 수 있다. 아래 공고 조회 계약은 유효하며, 제출·파일·지원서 조회 계약은 인증과 소유권 경계를 결정한 뒤 추가한다.
+
 ## 공통 규칙
 
 - 기본 경로: `/api/v1`
@@ -9,7 +11,7 @@
 - 두 단어 이상일 때는 `screening-rounds`처럼 kebab-case를 허용한다. 억지로 줄이거나 붙여 쓰지 않는다.
 - `public`은 비로그인 화면에서 호출할 수 있는 API를 묶는 클라이언트용 경로다.
 - 상태 변경은 HTTP Method로 표현한다. `me`, `current`는 인증 컨텍스트의 단일 리소스에만 사용한다.
-- `prefill`, `lookup`처럼 화면 목적이 명확한 조회는 모호한 명사로 바꾸지 않는다.
+- `prefill`처럼 화면 목적이 명확한 조회는 모호한 명사로 바꾸지 않는다.
 - ID는 서버 `Long`, JSON `number`를 사용한다.
 - 인증은 HttpOnly 세션 쿠키, 쓰기 요청은 `X-CSRF-Token`을 사용한다.
 - 소유자 ID는 요청으로 받지 않고 세션에서 결정한다.
@@ -28,7 +30,6 @@ POST   /api/v1/applicants                       # 지원자 가입
 POST   /api/v1/producers                        # 공연사 가입
 ```
 
-지원자 가입에 `profileClaimToken`이 있으면 유효한 비회원 지원서와 표준 프로필을 새 계정에 귀속한다.
 `provider`는 우선 `kakao`, `naver`를 허용하며 OAuth 요청의 `state`를 검증한다.
 
 ## 지원자
@@ -40,38 +41,28 @@ DELETE /api/v1/applicants/me                    # 회원 탈퇴
 
 GET    /api/v1/applicants/me/profile            # 재사용 프로필·완성도
 PATCH  /api/v1/applicants/me/profile            # 프로필 답변 저장·삭제
-POST   /api/v1/applicants/me/files              # 프로필 사진·자료 업로드
-DELETE /api/v1/applicants/me/files/{fileId}     # 미사용 파일 삭제
 GET    /api/v1/applicants/me/profile/prefill
        ?postingId={postingId}                    # 공고 양식 기준 자동 채움
 
 GET    /api/v1/applicants/me/applications       # 내 지원서 목록
 GET    /api/v1/applicants/me/applications/{applicationId}
                                                     # 내 제출 스냅샷
-PATCH  /api/v1/applicants/me/applications/{applicationId}
-                                                    # 마감 전 답변 수정
 ```
 
-- 지원서 수정은 답변만 허용하며 공고·배역·제출 당시 양식은 바꾸지 않는다.
+- 제출 완료 후 일반 수정은 공개 정책에서 허용하지 않으며 현재 프런트 구현과 다르다.
 - 지원자 응답에는 공연사의 심사 결과와 내부 메모를 포함하지 않는다.
 
-## 공개 공고와 지원
+사진·자료 API는 프로필과 지원서의 소유 관계를 결정한 뒤 추가한다.
+
+## 공개 공고
 
 ```http
 GET  /api/v1/public/postings/{postingId}         # 공개 공고·배역·지원서 양식
 GET  /api/v1/public/recommended-postings
      ?excludePostingId={postingId}&limit={limit} # 추천 공고
-POST /api/v1/public/postings/{postingId}/applications
-                                                 # 비회원·회원 지원서 제출
-POST /api/v1/public/applications/lookup          # 접수번호+연락처로 제출 조회
-POST /api/v1/public/application-files            # 비회원 지원 사진 등 임시 업로드
-DELETE /api/v1/public/application-files/{fileId} # 미제출 임시 파일 삭제
 ```
 
-- 제출의 `postingId`는 본문에 중복하지 않고 경로에서 결정한다.
-- `roleId`, 답변, 개인정보 동의는 제출 본문에 포함한다.
-- lookup은 연락처가 URL과 로그에 노출되지 않도록 `POST` 본문을 사용한다.
-- 비회원 제출 성공 시 접수번호와 만료되는 1회용 `profileClaimToken`을 반환한다.
+지원서 제출·파일 업로드·지원서 조회는 인증 및 소유권 경계를 먼저 결정해야 한다. 최종 제출 요청은 인증된 계정의 소유권을 기준으로 처리한다.
 
 ## 공연사
 
@@ -121,11 +112,9 @@ PATCH /api/v1/roles/{roleId}/screening-rounds/{round}       # status=CLOSED로 �
 /api/auth/signup/applicant          → /api/v1/applicants
 /api/me/profile                     → /api/v1/applicants/me/profile
 /api/me/profile/prefill             → /api/v1/applicants/me/profile/prefill
-/api/me/applications/**             → /api/v1/applicants/me/applications/**
+/api/me/applications/**             → GET은 /api/v1/applicants/me/applications/**, PATCH는 목표 계약에서 제외
 /api/public/recommended-postings    → /api/v1/public/recommended-postings
 /api/public/postings/**             → /api/v1/public/postings/**
-/api/public/applications            → /api/v1/public/postings/{postingId}/applications
-/api/public/applications/lookup     → /api/v1/public/applications/lookup
 /api/me/producer                    → /api/v1/producers/me
 /api/navigation/tree                → /api/v1/producers/me/navigation-tree
 /api/performances/**                → /api/v1/performances/**
@@ -134,4 +123,4 @@ PATCH /api/v1/roles/{roleId}/screening-rounds/{round}       # status=CLOSED로 �
 
 프런트·MSW는 아직 왼쪽 `/api/**` 계약을 사용한다. 연동 기능을 구현할 때 이 문서, flowchart, 클라이언트와 MSW를 같은 작업에서 갱신한다.
 
-날짜 경계, 파일 생명주기, 비회원 조회 제한, 모집 보관과 차수 마감 취소 정책은 별도 결정이 필요하다.
+날짜 경계, 인증 전 작성 상태, 파일 생명주기, 인증 후 제출·조회 계약, 모집 보관과 차수 마감 취소 정책은 별도 결정이 필요하다.
