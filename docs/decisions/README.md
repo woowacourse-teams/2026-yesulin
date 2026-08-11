@@ -18,3 +18,4 @@
 3. [0003 문서와 에이전트 컨텍스트](./0003-documentation-and-agent-context.md) — accepted · agent-required
 4. [0004 Push 전 통합 브랜치 rebase](./0004-rebase-before-push.md) — accepted · agent-required
 5. [0005 온보딩 문서 통합](./0005-consolidate-onboarding.md) — accepted · agent-required
+6. [0006 클라이언트가 읽기 쉬운 API 경로](./0006-client-readable-api-paths.md) — accepted · agent-required
