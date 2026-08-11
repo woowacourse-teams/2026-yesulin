@@ -7,28 +7,22 @@ flowchart TB
     PUBLIC --> OPEN{"모집 중?"}
     OPEN -- 아니오 --> RECOMMEND["다른 공고 확인<br>GET /api/v1/public/recommended-postings"]
     OPEN -- 예 --> ROLE["배역 선택"]
-    ROLE --> MEMBER{"로그인 상태?"}
+    ROLE --> MEMBER{"로그인 세션?"}
     MEMBER -- 예 --> PREFILL["프로필 자동 채움<br>GET /api/v1/applicants/me/profile/prefill"]
-    MEMBER -- 이메일 로그인 --> LOGIN["로그인<br>POST /api/v1/sessions"]
+    MEMBER -- 아니오 --> LOAD{"이전 기본 프로필을<br>불러올까요?"}
+    LOAD -- 예 --> LOGIN["로그인"]
     LOGIN --> PREFILL
-    MEMBER -- 소셜 로그인 --> SOCIAL["카카오·네이버 로그인<br>GET /api/v1/oauth/{provider}/authorization"]
-    SOCIAL --> PREFILL
-    MEMBER -- 비회원 지원 --> FORM["지원서 작성"]
+    LOAD -- 아니오 --> FORM["지원서 작성"]
     PREFILL --> FORM
-    FORM --> FILES["사진 등 자료 업로드<br>POST /api/v1/public/application-files"]
-    FILES --> SUBMIT["지원서 제출<br>POST /api/v1/public/postings/{postingId}/applications"]
-    SUBMIT --> RECEIPT["접수번호·귀속 토큰 확인"]
-    RECEIPT --> AFTER{"지원 내역 저장 방식"}
-    AFTER -- 로그인 계정 --> HOME["지원자 홈"]
-    AFTER -- 가입 --> SIGNUP["가입하고 지원서 귀속<br>POST /api/v1/applicants"]
-    AFTER -- 조회 코드 --> LOOKUP["비회원 제출 조회<br>POST /api/v1/public/applications/lookup"]
-    SIGNUP --> HOME
+    FORM --> AUTH{"제출 시 로그인 상태?"}
+    AUTH -- 아니오 --> SIGNUP["로그인 또는 회원가입"]
+    AUTH -- 예 --> SUBMIT["지원서 제출<br>인증 기반 API 계약 결정 필요"]
+    SIGNUP --> SUBMIT
+    SUBMIT --> RECEIPT["접수 완료"]
+    RECEIPT --> HOME["지원자 홈"]
     HOME --> PROFILE["프로필 조회·수정<br>GET·PATCH /api/v1/applicants/me/profile"] & APPLICATIONS["내 지원서 목록<br>GET /api/v1/applicants/me/applications"] & RECOMMEND
     APPLICATIONS --> DETAIL["제출 스냅샷 확인<br>GET /api/v1/applicants/me/applications/{applicationId}"]
-    DETAIL --> EDIT{"모집 마감 전?"}
-    EDIT -- 예 --> UPDATE["답변 수정<br>PATCH /api/v1/applicants/me/applications/{applicationId}"]
-    EDIT -- 아니오 --> READONLY["읽기 전용 확인"]
-    UPDATE --> DETAIL
+    DETAIL --> READONLY["읽기 전용 확인"]
 
     classDef publicNode stroke:#2dd4bf,fill:#f0fdfa
     classDef accountNode stroke:#818cf8,fill:#eef2ff
@@ -42,18 +36,14 @@ flowchart TB
     MEMBER:::decisionNode
     PREFILL:::applicationNode
     FORM:::applicationNode
-    FILES:::applicationNode
+    LOAD:::decisionNode
+    AUTH:::decisionNode
     SUBMIT:::applicationNode
     RECEIPT:::applicationNode
-    AFTER:::decisionNode
-    LOOKUP:::applicationNode
     SIGNUP:::accountNode
     LOGIN:::accountNode
-    SOCIAL:::accountNode
     HOME:::accountNode
     PROFILE:::accountNode
     APPLICATIONS:::applicationNode
     DETAIL:::applicationNode
-    EDIT:::decisionNode
-    UPDATE:::applicationNode
     READONLY:::applicationNode

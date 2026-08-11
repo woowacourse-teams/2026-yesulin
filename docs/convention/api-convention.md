@@ -2,6 +2,8 @@
 
 지원자·공연사 flowchart를 기준으로 한 백엔드 경로 계약이다. REST 원칙을 따르되 클라이언트가 경로만 읽고 용도를 이해할 수 있는 이름을 우선한다.
 
+> **도메인 설계 반영 대기:** 최신 [도메인 설계](../domain-design.md)는 비회원 저장·제출 상태를 없애고 최종 제출 전 인증을 요구한다. 아래 조회 계약은 유효하지만, 기존 비회원 제출·lookup·claim·공개 파일 업로드와 제출 후 수정 계약은 새 인증 기반 계약이 결정될 때까지 Backend에서 구현하지 않는다.
+
 ## 공통 규칙
 
 - 기본 경로: `/api/v1`
@@ -28,7 +30,6 @@ POST   /api/v1/applicants                       # 지원자 가입
 POST   /api/v1/producers                        # 공연사 가입
 ```
 
-지원자 가입에 `profileClaimToken`이 있으면 유효한 비회원 지원서와 표준 프로필을 새 계정에 귀속한다.
 `provider`는 우선 `kakao`, `naver`를 허용하며 OAuth 요청의 `state`를 검증한다.
 
 ## 지원자
@@ -48,11 +49,9 @@ GET    /api/v1/applicants/me/profile/prefill
 GET    /api/v1/applicants/me/applications       # 내 지원서 목록
 GET    /api/v1/applicants/me/applications/{applicationId}
                                                     # 내 제출 스냅샷
-PATCH  /api/v1/applicants/me/applications/{applicationId}
-                                                    # 마감 전 답변 수정
 ```
 
-- 지원서 수정은 답변만 허용하며 공고·배역·제출 당시 양식은 바꾸지 않는다.
+- 제출 완료 후 일반 수정은 공개 정책에서 허용하지 않으며 현재 프런트 구현과 다르다.
 - 지원자 응답에는 공연사의 심사 결과와 내부 메모를 포함하지 않는다.
 
 ## 공개 공고와 지원
@@ -61,17 +60,9 @@ PATCH  /api/v1/applicants/me/applications/{applicationId}
 GET  /api/v1/public/postings/{postingId}         # 공개 공고·배역·지원서 양식
 GET  /api/v1/public/recommended-postings
      ?excludePostingId={postingId}&limit={limit} # 추천 공고
-POST /api/v1/public/postings/{postingId}/applications
-                                                 # 비회원·회원 지원서 제출
-POST /api/v1/public/applications/lookup          # 접수번호+연락처로 제출 조회
-POST /api/v1/public/application-files            # 비회원 지원 사진 등 임시 업로드
-DELETE /api/v1/public/application-files/{fileId} # 미제출 임시 파일 삭제
 ```
 
-- 제출의 `postingId`는 본문에 중복하지 않고 경로에서 결정한다.
-- `roleId`, 답변, 개인정보 동의는 제출 본문에 포함한다.
-- lookup은 연락처가 URL과 로그에 노출되지 않도록 `POST` 본문을 사용한다.
-- 비회원 제출 성공 시 접수번호와 만료되는 1회용 `profileClaimToken`을 반환한다.
+지원서 제출·파일 업로드·지원서 조회는 인증 및 소유권 경계를 먼저 결정해야 한다. 비회원 제출, `profileClaimToken`과 비회원 저장 상태를 전제로 새 API를 구현하지 않는다.
 
 ## 공연사
 
@@ -121,11 +112,11 @@ PATCH /api/v1/roles/{roleId}/screening-rounds/{round}       # status=CLOSED로 �
 /api/auth/signup/applicant          → /api/v1/applicants
 /api/me/profile                     → /api/v1/applicants/me/profile
 /api/me/profile/prefill             → /api/v1/applicants/me/profile/prefill
-/api/me/applications/**             → /api/v1/applicants/me/applications/**
+/api/me/applications/**             → GET은 /api/v1/applicants/me/applications/**, PATCH는 목표 계약에서 제외
 /api/public/recommended-postings    → /api/v1/public/recommended-postings
 /api/public/postings/**             → /api/v1/public/postings/**
-/api/public/applications            → /api/v1/public/postings/{postingId}/applications
-/api/public/applications/lookup     → /api/v1/public/applications/lookup
+/api/public/applications            → 인증 후 제출 계약 재설계 필요
+/api/public/applications/lookup     → 비회원 lookup 목표 계약에서 제외
 /api/me/producer                    → /api/v1/producers/me
 /api/navigation/tree                → /api/v1/producers/me/navigation-tree
 /api/performances/**                → /api/v1/performances/**
@@ -134,4 +125,4 @@ PATCH /api/v1/roles/{roleId}/screening-rounds/{round}       # status=CLOSED로 �
 
 프런트·MSW는 아직 왼쪽 `/api/**` 계약을 사용한다. 연동 기능을 구현할 때 이 문서, flowchart, 클라이언트와 MSW를 같은 작업에서 갱신한다.
 
-날짜 경계, 파일 생명주기, 비회원 조회 제한, 모집 보관과 차수 마감 취소 정책은 별도 결정이 필요하다.
+날짜 경계, 인증 전 작성 상태, 파일 생명주기, 인증 후 제출·조회 계약, 모집 보관과 차수 마감 취소 정책은 별도 결정이 필요하다.
