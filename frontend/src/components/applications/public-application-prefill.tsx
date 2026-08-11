@@ -6,6 +6,7 @@ import type { ProfilePrefillResponse } from "@/features/applicants/types";
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
 import type { PostingId } from "@/features/auditions/types";
 import { useAuditionQuery } from "@/features/auditions/use-audition-query";
+import { PrimaryButton, SecondaryButton } from "@/components/ui/controls";
 import { PublicApplicationForm } from "./public-application-form";
 
 type PrefillGateProps = {
@@ -23,7 +24,7 @@ export function PublicApplicationPrefillGate(props: PrefillGateProps) {
   const [continueEmpty, setContinueEmpty] = useState(false);
   if (continueEmpty) return <PublicApplicationForm {...props} />;
   if (query.loading) return <PrefillState title="저장한 프로필을 불러오고 있어요" detail="이 공고에서 다시 사용할 수 있는 답변을 확인하고 있습니다." />;
-  if (query.error || !query.data) return <PrefillState title="프로필을 불러오지 못했어요" detail={query.error} actions={<><button type="button" onClick={query.reload} className="min-h-11 rounded-control bg-brand px-4 text-sm font-semibold text-white">다시 시도</button><button type="button" onClick={() => setContinueEmpty(true)} className="min-h-11 rounded-control border border-border px-4 text-sm font-semibold">빈 지원서로 계속</button></>} />;
+  if (query.error || !query.data) return <PrefillState title="프로필을 불러오지 못했어요" detail={query.error} actions={<><PrimaryButton onClick={query.reload}>다시 시도</PrimaryButton><SecondaryButton onClick={() => setContinueEmpty(true)}>빈 지원서로 계속</SecondaryButton></>} />;
   return <PublicApplicationForm {...props} prefill={query.data} />;
 }
 

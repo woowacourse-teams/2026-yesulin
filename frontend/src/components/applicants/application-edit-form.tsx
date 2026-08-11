@@ -6,7 +6,7 @@ import { updateApplicantApplication } from "@/features/applicants/api";
 import { applicantRoutes } from "@/features/applicants/routes";
 import type { ApplicantAnswerValue, ApplicantApplicationDetail, BodyMeasurements, CareerEntry } from "@/features/applicants/types";
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
-import { FieldInput, FieldSelect, FieldTextarea } from "@/components/auditions/ui-controls";
+import { AddButton, DestructiveButton, FieldInput, FieldSelect, FieldTextarea, PrimaryButton, SecondaryButton, TextButton } from "@/components/ui/controls";
 import { useToast } from "@/components/auditions/toast";
 
 type DraftValues = Record<string, ApplicantAnswerValue>;
@@ -42,12 +42,12 @@ export function ApplicationEditForm({ detail, onCancel, onSaved }: { readonly de
   };
 
   return <div className="mx-auto max-w-[920px] px-5 py-8 md:px-8 md:py-10">
-    <button type="button" onClick={onCancel} disabled={saving} className="min-h-11 rounded-control px-2 text-sm font-semibold text-muted-strong hover:bg-card hover:text-brand disabled:opacity-60">← 상세로 돌아가기</button>
+    <TextButton onClick={onCancel} disabled={saving} className="px-2 hover:bg-card hover:text-brand">← 상세로 돌아가기</TextButton>
     <header className="mt-4"><p className="text-sm font-semibold text-brand">지원서 수정</p><h1 className="mt-2 text-3xl font-bold tracking-[-0.03em]">{detail.performanceTitle}</h1><p className="mt-2 text-muted-strong">{detail.roleName} · {detail.editableUntil.slice(0, 10)} 23:59까지 수정 가능</p></header>
     <aside className="mt-6 rounded-card border border-warn/25 bg-warn-bg p-4 text-sm leading-6 text-muted-strong"><strong className="block text-warn">배역은 변경할 수 없어요.</strong>배역을 바꾸면 공연사의 심사 대상과 집계가 달라지기 때문에 현재 지원서에서는 답변만 수정할 수 있습니다.</aside>
     {error ? <p role="alert" className="mt-5 rounded-control border border-fail/25 bg-fail-bg px-4 py-3 text-sm font-medium text-fail">{error}</p> : null}
     <div className="mt-7 space-y-5">{enabledFields.map((field) => <EditableField key={field.id} field={field} value={values[field.id]} onChange={(value) => { setValues((current) => ({ ...current, [field.id]: value })); setError(""); }} />)}</div>
-    <div className="glass-surface sticky bottom-4 mt-8 flex flex-wrap items-center gap-3 rounded-card border p-3"><p className="min-w-0 flex-1 px-2 text-sm text-muted-strong">{changed.length ? `${changed.length}개 항목이 변경됐어요.` : "변경된 내용이 없어요."}</p><button type="button" onClick={onCancel} disabled={saving} className="min-h-11 rounded-control border border-border bg-card px-4 text-sm font-semibold disabled:opacity-60">취소</button><button type="button" onClick={save} disabled={saving || !changed.length} className="min-h-11 rounded-control bg-brand px-5 text-sm font-semibold text-white hover:bg-brand-strong disabled:bg-border disabled:text-muted">{saving ? "저장 중…" : "변경 내용 저장"}</button></div>
+    <div className="glass-surface sticky bottom-4 mt-8 flex flex-wrap items-center gap-3 rounded-card border p-3"><p className="min-w-0 flex-1 px-2 text-sm text-muted-strong">{changed.length ? `${changed.length}개 항목이 변경됐어요.` : "변경된 내용이 없어요."}</p><SecondaryButton onClick={onCancel} disabled={saving}>취소</SecondaryButton><PrimaryButton onClick={save} disabled={saving || !changed.length} className="px-5">{saving ? "저장 중…" : "변경 내용 저장"}</PrimaryButton></div>
     <a href={applicantRoutes.applications} className="sr-only">지원서 목록</a>
   </div>;
 }
@@ -67,7 +67,7 @@ function CompositeEditor({ id, field, value, onChange }: { readonly id: string; 
 
 function CareerEditor({ id, field, value, onChange }: { readonly id: string; readonly field: ApplicationFieldInput; readonly value: readonly CareerEntry[]; readonly onChange: (value: ApplicantAnswerValue) => void }) {
   const patch = (index: number, update: Partial<CareerEntry>) => onChange(value.map((career, candidate) => candidate === index ? { ...career, ...update } : career));
-  return <fieldset className="rounded-card border border-border bg-card p-5"><legend className="px-1"><FieldTitle field={field} /></legend><div className="space-y-4">{value.map((career, index) => <div key={`${career.title}-${index}`} className="grid gap-3 rounded-control bg-surface p-4 sm:grid-cols-[90px_1fr_140px_auto]"><FieldInput id={index === 0 ? id : undefined} type="number" aria-label={`경력 ${index + 1} 연도`} value={career.year} onChange={(event) => patch(index, { year: Number(event.target.value) })} /><FieldInput aria-label={`경력 ${index + 1} 작품명`} value={career.title} onChange={(event) => patch(index, { title: event.target.value })} /><FieldInput aria-label={`경력 ${index + 1} 배역`} value={career.part} onChange={(event) => patch(index, { part: event.target.value })} /><button type="button" onClick={() => onChange(value.filter((_, candidate) => candidate !== index))} className="min-h-11 rounded-control px-3 text-sm font-semibold text-fail hover:bg-fail-bg">삭제</button></div>)}<button type="button" onClick={() => onChange([...value, { year: new Date().getFullYear(), title: "", part: "" }])} className="min-h-11 w-full rounded-control border border-dashed border-border text-sm font-semibold text-muted-strong hover:border-brand-line hover:bg-brand-soft hover:text-brand">+ 경력 추가</button></div></fieldset>;
+  return <fieldset className="rounded-card border border-border bg-card p-5"><legend className="px-1"><FieldTitle field={field} /></legend><div className="space-y-4">{value.map((career, index) => <div key={`${career.title}-${index}`} className="grid gap-3 rounded-control bg-surface p-4 sm:grid-cols-[90px_1fr_140px_auto]"><FieldInput id={index === 0 ? id : undefined} type="number" aria-label={`경력 ${index + 1} 연도`} value={career.year} onChange={(event) => patch(index, { year: Number(event.target.value) })} /><FieldInput aria-label={`경력 ${index + 1} 작품명`} value={career.title} onChange={(event) => patch(index, { title: event.target.value })} /><FieldInput aria-label={`경력 ${index + 1} 배역`} value={career.part} onChange={(event) => patch(index, { part: event.target.value })} /><DestructiveButton onClick={() => onChange(value.filter((_, candidate) => candidate !== index))} className="px-3">삭제</DestructiveButton></div>)}<AddButton onClick={() => onChange([...value, { year: new Date().getFullYear(), title: "", part: "" }])} className="w-full">+ 경력 추가</AddButton></div></fieldset>;
 }
 
 function FileEditor({ id, field, value, onChange }: { readonly id: string; readonly field: ApplicationFieldInput; readonly value: readonly string[]; readonly onChange: (value: ApplicantAnswerValue) => void }) {

@@ -23,7 +23,7 @@ import {
   AuditionScheduleEditor,
 } from "./posting-form-sections";
 import { ApplicationFieldEditor } from "./application-field-editor";
-import { FieldInput, FieldTextarea, PrimaryButton, SecondaryButton } from "./ui-controls";
+import { FieldInput, FieldTextarea, PrimaryButton, SecondaryButton } from "@/components/ui/controls";
 import { PostingCreatedPanel, POSTING_CREATED_TITLE_ID } from "./posting-created-panel";
 
 const TITLE_ID = "posting-create-title";

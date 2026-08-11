@@ -32,12 +32,12 @@ export function VideoModal({ applicant, onClose }: { applicant: Applicant; onClo
       labelledBy={TITLE_ID}
       layer={MODAL_LAYERS.video}
       scrimClassName="bg-[rgba(10,9,12,0.76)]"
-      className="w-[min(880px,94vw)] overflow-hidden rounded-xl bg-foreground shadow-[0_24px_60px_rgba(0,0,0,0.4)]"
+      className="w-[min(880px,94vw)] overflow-hidden rounded-xl bg-foreground shadow-[var(--shadow-video)]"
     >
-      <div className="flex items-center gap-3 px-3.5 py-[11px] text-white">
+      <div className="flex items-center gap-3 px-3.5 py-3 text-white">
         <h2 id={TITLE_ID} className="text-sm font-semibold tracking-[-0.01em]">
           {applicant.name}
-          <span className="ml-[7px] text-[12.5px] font-normal opacity-60">
+          <span className="ml-2 text-xs font-normal opacity-60">
             {applicant.roleName} 지원 · 연기 영상
           </span>
         </h2>
@@ -45,7 +45,7 @@ export function VideoModal({ applicant, onClose }: { applicant: Applicant; onClo
           href={applicant.videoUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="ml-auto rounded-full border border-white/30 px-[11px] py-1 text-[12.5px] text-white opacity-75 hover:border-white/55 hover:opacity-100"
+          className="ml-auto rounded-full border border-white/30 px-3 py-1 text-xs text-white opacity-75 hover:border-white/55 hover:opacity-100"
         >
           새 창에서 열기
         </a>
@@ -53,7 +53,7 @@ export function VideoModal({ applicant, onClose }: { applicant: Applicant; onClo
           type="button"
           onClick={onClose}
           aria-label="영상 닫기"
-          className="px-1.5 py-[3px] text-xs text-white/60 hover:text-white"
+          className="px-1.5 py-1 text-xs text-white/60 hover:text-white"
         >
           닫기
         </button>
@@ -61,7 +61,7 @@ export function VideoModal({ applicant, onClose }: { applicant: Applicant; onClo
 
       <div className="relative aspect-video bg-black">
         {!videoId ? (
-          <p className="absolute inset-0 grid place-items-center content-center px-5 text-center text-[13px] text-white/70">
+          <p className="absolute inset-0 grid place-items-center content-center px-5 text-center text-dense text-white/70">
             재생할 수 없는 링크입니다.
             <br />새 창에서 열어 확인하세요.
           </p>
@@ -76,13 +76,13 @@ export function VideoModal({ applicant, onClose }: { applicant: Applicant; onClo
               className="block h-full w-full border-0"
             />
             {hintVisible ? (
-              <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-[9px] rounded-full bg-black/70 py-[7px] pl-3.5 pr-[9px] text-[12.5px] text-white/80">
+              <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full bg-black/70 py-2 pl-3.5 pr-2 text-xs text-white/80">
                 재생되지 않나요?
                 <a
                   href={applicant.videoUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="rounded-full border border-white/35 px-[11px] py-[3px] text-[12.5px] text-white"
+                  className="rounded-full border border-white/35 px-3 py-1 text-xs text-white"
                 >
                   새 창에서 열기
                 </a>
@@ -104,7 +104,7 @@ export function VideoModal({ applicant, onClose }: { applicant: Applicant; onClo
               type="button"
               onClick={() => setPlaying(true)}
               aria-label="재생"
-            className="relative grid h-[76px] w-[76px] place-items-center rounded-full bg-brand/95 text-sm font-semibold text-white shadow-[0_6px_24px_rgba(0,0,0,0.4)] transition-transform hover:scale-105 hover:bg-brand"
+            className="relative grid h-[76px] w-[76px] place-items-center rounded-full bg-brand/95 text-sm font-semibold text-white shadow-[var(--shadow-video-control)] transition-transform hover:scale-105 hover:bg-brand"
           >
               재생
             </button>

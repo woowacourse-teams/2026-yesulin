@@ -19,7 +19,7 @@ export function ApplicantCards({ rows }: { rows: readonly Applicant[] }) {
             key={applicant.id}
             className={`relative min-w-0 overflow-hidden rounded-card border transition-[background-color,border-color,box-shadow,transform] duration-150 active:scale-[0.995] ${
               picked
-                ? "border-brand bg-brand-soft shadow-[0_0_0_2px_var(--brand-line)]"
+                ? "border-brand bg-brand-soft shadow-[var(--shadow-selection)]"
                 : "border-border bg-card hover:border-brand-line hover:shadow-[var(--shadow-1)]"
             }`}
           >
@@ -36,12 +36,12 @@ export function ApplicantCards({ rows }: { rows: readonly Applicant[] }) {
                   priority={index === 0}
                 />
                 {applicant.photos.length > 1 ? (
-                  <span className="absolute right-[7px] top-[7px] z-2 rounded-full bg-foreground/65 px-1.5 py-0.5 text-[10.5px] font-semibold text-white">
+                  <span className="absolute right-2 top-2 z-2 rounded-full bg-foreground/65 px-1.5 py-0.5 text-xs font-semibold text-white">
                     사진 {applicant.photos.length}
                   </span>
                 ) : null}
                 {applicant.review.status !== "PENDING" ? (
-                  <span className="absolute bottom-[7px] left-[7px] z-2">
+                  <span className="absolute bottom-2 left-2 z-2">
                     <StatusBadge
                       status={applicant.review.status}
                       memo={applicant.review.memo}
@@ -51,22 +51,22 @@ export function ApplicantCards({ rows }: { rows: readonly Applicant[] }) {
                   </span>
                 ) : null}
               </span>
-              <span className="block px-[9px] pb-[9px] pt-2">
-                <span className="block text-base font-semibold tracking-[-0.01em] lg:text-[13.5px]">
+              <span className="block px-2 pb-2 pt-2">
+                <span className="block text-base font-semibold tracking-[-0.01em] lg:text-dense">
                   {applicant.name}
                 </span>
-                <span className="num mt-px block text-base text-muted lg:text-[11.5px]">
+                <span className="num mt-px block text-base text-muted lg:text-xs">
                   {GENDER_LABELS[applicant.gender]} · 만 {applicant.age} · {applicant.height}cm
                 </span>
                 {applicant.mismatchReasons.length > 0 ? (
-                  <span className="mt-1 block text-sm font-semibold text-fail lg:text-[10.5px]">
+                  <span className="mt-1 block text-sm font-semibold text-fail lg:text-xs">
                     조건 불일치 ({mismatchText(applicant.mismatchReasons)})
                   </span>
                 ) : null}
               </span>
             </button>
 
-            <label className="absolute left-[5px] top-[5px] z-2 inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-lg bg-white/90 p-2 leading-none transition-colors hover:bg-white lg:min-h-0 lg:min-w-0">
+            <label className="absolute left-1 top-1 z-2 inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-lg bg-white/90 p-2 leading-none transition-colors hover:bg-white lg:min-h-0 lg:min-w-0">
               <span className="sr-only">{applicant.name} 선택</span>
               <input
                 type="checkbox"

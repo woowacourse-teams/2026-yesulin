@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { PrimaryButton } from "@/components/auditions/ui-controls";
+import { PrimaryButton } from "@/components/ui/controls";
 import { useToast } from "@/components/auditions/toast";
 import { AuthInput, PasswordInput, RoleField, type AccountRole } from "./auth-fields";
 import { AuthNoticeDialog, type AuthNotice } from "./auth-notice-dialog";

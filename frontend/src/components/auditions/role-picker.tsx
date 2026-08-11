@@ -20,7 +20,7 @@ import {
   PickerTitle,
 } from "./picker-card";
 import { PickerSkeleton, ScreenError } from "./screen-status";
-import { SecondaryLink } from "./ui-controls";
+import { SecondaryLink } from "@/components/ui/controls";
 import { ApplicationLinkButton } from "./application-link-button";
 
 /** 경쟁률 = 지원 인원 / 모집 인원. 배역 간 난이도 비교에 쓴다. */
@@ -87,7 +87,7 @@ export function RolePicker({ postingId }: { postingId: PostingId }) {
                     {role.name}
                     {role.applicantCount > 0 ? (
                       <span
-                        className={`num shrink-0 rounded-full px-[7px] py-0.5 text-[11px] font-bold ${
+                        className={`num shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${
                           rate >= HOT_RATE ? "bg-brand-soft text-brand" : "bg-pending-bg text-muted-strong"
                         }`}
                       >

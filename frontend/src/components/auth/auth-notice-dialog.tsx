@@ -1,6 +1,6 @@
 "use client";
 
-import { SecondaryButton } from "@/components/auditions/ui-controls";
+import { SecondaryButton } from "@/components/ui/controls";
 import { DialogFooter, DialogHeader, ModalShell } from "@/components/auditions/modal-shell";
 
 export type AuthNotice = { readonly title: string; readonly description: string };

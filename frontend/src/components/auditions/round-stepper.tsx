@@ -29,33 +29,33 @@ export function RoundStepper() {
               aria-current={selected ? "step" : undefined}
               disabled={!state.open}
               onClick={() => goToRound(state.round)}
-              className={`relative mr-[26px] flex flex-col gap-0.5 whitespace-nowrap border-b-2 pb-[13px] pr-[26px] pt-[15px] text-left transition-colors last:mr-0 last:pr-0 disabled:cursor-not-allowed disabled:opacity-35 ${
+              className={`relative mr-6 flex flex-col gap-0.5 whitespace-nowrap border-b-2 pb-3 pr-6 pt-4 text-left transition-colors last:mr-0 last:pr-0 disabled:cursor-not-allowed disabled:border-transparent disabled:text-muted ${
                 selected ? "border-brand" : "border-transparent"
               } after:absolute after:right-0 after:top-1/2 after:h-[7px] after:w-[7px] after:-translate-y-1/2 after:rotate-45 after:border-r-[1.5px] after:border-t-[1.5px] after:border-muted-soft last:after:hidden`}
             >
             <span
-              className={`flex items-center gap-[5px] text-[11.5px] ${selected ? "font-semibold text-brand" : "text-muted"}`}
+              className={`flex items-center gap-1 text-xs ${selected ? "font-semibold text-brand" : "text-muted"}`}
             >
               {state.name}
               {state.closed ? (
-                <span className="rounded-full border border-pass bg-pass-bg px-[5px] text-[10px] text-pass">
+                <span className="rounded-full border border-pass bg-pass-bg px-1 text-xs text-pass">
                   마감
                 </span>
               ) : !state.open ? (
-                <span className="rounded-full border border-border px-[5px] text-[10px] text-muted">잠김</span>
+                <span className="rounded-full border border-border px-1 text-xs text-muted">잠김</span>
               ) : null}
             </span>
 
             <span className="num text-[21px] font-bold leading-[1.15] tracking-[-0.03em]">
               {state.open ? state.counts.all : "—"}
-              <small className="ml-[3px] text-xs font-medium text-muted">{state.open ? "명" : ""}</small>
+              <small className="ml-1 text-xs font-medium text-muted">{state.open ? "명" : ""}</small>
             </span>
 
-            <span className="text-[11px] text-muted">
+            <span className="text-xs text-muted">
               {subtitle ?? (
                 <>
                   검토 {state.progress.percent}%
-                  <span className="num ml-[5px] opacity-60">
+                  <span className="num ml-1 opacity-60">
                     {state.counts.done}/{state.counts.all}
                   </span>
                 </>

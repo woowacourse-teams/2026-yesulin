@@ -48,7 +48,7 @@ export function FacePile({ urls }: { urls: readonly string[] }) {
       {urls.map((url, index) => (
         <span
           key={url || index}
-          className="relative -ml-[7px] h-[26px] w-[26px] overflow-hidden rounded-full border-2 border-white bg-border-soft first:ml-0"
+          className="relative -ml-2 h-[26px] w-[26px] overflow-hidden rounded-full border-2 border-white bg-border-soft first:ml-0"
         >
           <Image
             src={url}

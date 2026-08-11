@@ -1,4 +1,4 @@
-import { SecondaryButton } from "./ui-controls";
+import { SecondaryButton } from "@/components/ui/controls";
 
 /** 조회 중·실패·빈 목록처럼 화면 본문 대신 보여줄 상태 표시. */
 export function ScreenMessage({ title, children }: { title: string; children?: React.ReactNode }) {

@@ -8,6 +8,7 @@ import { usePublicApplication } from "./public-application-context";
 import { PostingStatusBadge } from "./public-posting-status";
 import { formatApplicantDate } from "@/features/applicants/presentation";
 import { applicantRoutes } from "@/features/applicants/routes";
+import { PrimaryLink, SecondaryButton, SecondaryLink, TextButton } from "@/components/ui/controls";
 
 export function PublicApplicationReceipt() {
   const { state, actions, meta } = usePublicApplication();
@@ -33,7 +34,7 @@ export function PublicApplicationReceipt() {
         <section aria-label="지원 완료 정보" className="mt-8 rounded-card border border-border bg-surface p-5 text-left md:p-6">
           <div className="flex flex-wrap items-end gap-3">
             <div className="min-w-0 flex-1"><p className="text-sm text-muted">지원 조회 코드</p><strong className="num mt-1 block break-all text-xl tracking-[0.02em] text-foreground">{receipt.number}</strong></div>
-            <button type="button" onClick={copyCode} className="inline-flex min-h-11 items-center rounded-control border border-border bg-card px-4 text-sm font-semibold text-muted-strong hover:border-brand-line hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">{copied ? "복사됨" : "코드 복사"}</button>
+            <SecondaryButton onClick={copyCode} className="text-muted-strong">{copied ? "복사됨" : "코드 복사"}</SecondaryButton>
           </div>
           <p role="status" className="mt-2 text-xs leading-5 text-muted">조회 코드와 지원서에 입력한 연락처로 언제든 제출 내용을 다시 확인할 수 있어요.</p>
           <dl className="mt-5 grid gap-x-4 gap-y-3 border-t border-border-soft pt-5 text-sm md:grid-cols-[96px_1fr]">
@@ -42,17 +43,17 @@ export function PublicApplicationReceipt() {
             <dt className="text-muted">선택 배역</dt><dd className="font-medium">{meta.roleName}</dd>
             <dt className="text-muted">제출 시각</dt><dd className="num font-medium">{formatApplicantDate(receipt.submittedAt, true)}</dd>
           </dl>
-          <Link href={applicantRoutes.lookup} className="mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-control border border-border bg-card px-4 text-sm font-semibold text-muted-strong hover:border-brand-line hover:bg-brand-soft hover:text-brand">조회 코드로 지원 내용 확인</Link>
+          <SecondaryLink href={applicantRoutes.lookup} className="mt-5 w-full text-muted-strong">조회 코드로 지원 내용 확인</SecondaryLink>
         </section>
       </section>
 
       <section className="mt-8 overflow-hidden rounded-modal bg-sidebar px-5 py-8 text-white md:flex md:items-center md:gap-8 md:px-8">
         <div className="min-w-0 flex-1"><p className="text-sm font-semibold text-brand-line">지원 내역을 한곳에서</p><h2 className="mt-2 text-xl font-bold tracking-[-0.02em]">방금 작성한 정보로 프로필을 만들어 보세요.</h2><p className="mt-3 text-sm leading-6 text-sidebar-muted">7일 안에 가입하면 이번 지원서와 표준 프로필 항목을 계정에 연결해 다음 지원에서 다시 사용할 수 있어요.</p></div>
-        {receipt.profileClaimToken ? <Link href={`/signup?claim=${encodeURIComponent(receipt.profileClaimToken)}`} className="mt-6 inline-flex min-h-12 w-full shrink-0 items-center justify-center rounded-control bg-brand px-5 text-sm font-semibold text-white hover:bg-brand-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white md:mt-0 md:w-auto">지원 정보 저장하고 가입</Link> : <Link href="/signup" className="mt-6 inline-flex min-h-12 w-full shrink-0 items-center justify-center rounded-control bg-brand px-5 text-sm font-semibold text-white hover:bg-brand-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white md:mt-0 md:w-auto">계정 만들기</Link>}
+        {receipt.profileClaimToken ? <PrimaryLink href={`/signup?claim=${encodeURIComponent(receipt.profileClaimToken)}`} className="mt-6 min-h-12 w-full shrink-0 px-5 md:mt-0 md:w-auto">지원 정보 저장하고 가입</PrimaryLink> : <PrimaryLink href="/signup" className="mt-6 min-h-12 w-full shrink-0 px-5 md:mt-0 md:w-auto">계정 만들기</PrimaryLink>}
       </section>
 
       <section aria-labelledby="recommended-postings-title" className="mt-10">
-        <div className="flex items-end gap-4"><div><p className="text-sm font-semibold text-brand">다음 기회 찾기</p><h2 id="recommended-postings-title" className="mt-1 text-xl font-bold tracking-[-0.02em]">다른 공고도 둘러보세요</h2></div><button type="button" onClick={actions.requestBack} className="ml-auto min-h-11 rounded-control px-3 text-sm font-semibold text-muted-strong hover:bg-card hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">공고로 돌아가기</button></div>
+        <div className="flex items-end gap-4"><div><p className="text-sm font-semibold text-brand">다음 기회 찾기</p><h2 id="recommended-postings-title" className="mt-1 text-xl font-bold tracking-[-0.02em]">다른 공고도 둘러보세요</h2></div><TextButton onClick={actions.requestBack} className="ml-auto px-3 hover:bg-card hover:text-brand">공고로 돌아가기</TextButton></div>
         <ul className="mt-5 grid gap-3 md:grid-cols-3">{recommendations.map((posting) => <RecommendedPosting key={posting.id} posting={posting} />)}</ul>
       </section>
     </div>

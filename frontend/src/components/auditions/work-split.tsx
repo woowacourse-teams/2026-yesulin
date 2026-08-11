@@ -3,7 +3,7 @@
 import type { WorkMode } from "@/features/auditions/filters";
 import { useBoard } from "./board-context";
 import { CloseRoundModal } from "./close-round-modal";
-import { PrimaryButton } from "./ui-controls";
+import { PrimaryButton } from "@/components/ui/controls";
 
 const TABS = [
   { mode: "PENDING", label: "검토 대기" },
@@ -39,7 +39,7 @@ export function WorkSplit() {
                   status: tab.mode === "DONE" ? "PASS" : "ALL",
                 }));
               }}
-              className={`mr-[22px] flex items-center gap-[7px] border-b-2 py-[11px] text-[13.5px] transition-colors ${
+              className={`mr-6 flex items-center gap-2 border-b-2 py-3 text-dense transition-colors ${
                 active ? "border-foreground font-semibold text-foreground" : "border-transparent text-muted"
               }`}
             >
@@ -53,7 +53,7 @@ export function WorkSplit() {
 
         <div className="ml-auto flex items-center gap-2.5 py-2">
           {roundClosed ? (
-            <span className="rounded-full bg-pass-bg px-[11px] py-[5px] text-xs font-semibold text-pass">
+            <span className="rounded-full bg-pass-bg px-3 py-1 text-xs font-semibold text-pass">
               {currentName} 마감됨 · 합격 {counts.pass}명
             </span>
           ) : (
@@ -66,7 +66,7 @@ export function WorkSplit() {
               <PrimaryButton
                 disabled={!canClose}
                 onClick={() => setClosePrompt("manual")}
-                className="whitespace-nowrap lg:min-h-9 lg:px-3 lg:text-[13px]"
+                className="whitespace-nowrap lg:min-h-9 lg:px-3 lg:text-dense"
               >
                 {currentName} 마감하고 {nextName ? `${nextName} 시작` : "전형 종료"}
               </PrimaryButton>

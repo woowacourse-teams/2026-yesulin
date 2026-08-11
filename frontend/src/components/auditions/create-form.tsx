@@ -1,4 +1,4 @@
-import { PrimaryButton } from "./ui-controls";
+import { PrimaryButton } from "@/components/ui/controls";
 
 export function CreatePageButton({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
   return (

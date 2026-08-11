@@ -29,7 +29,7 @@ export function ApplicantTable({
           <thead>
             <tr>
               <th className="w-11 border-b border-border pl-1.5 text-left">
-                <label className="inline-flex cursor-pointer items-center justify-center rounded-lg py-[9px] pl-3 pr-2.5 hover:bg-foreground/5">
+                <label className="inline-flex cursor-pointer items-center justify-center rounded-lg py-2 pl-3 pr-2.5 hover:bg-foreground/5">
                   <span className="sr-only">표시된 지원자 전체 선택</span>
                   <input
                     type="checkbox"
@@ -47,7 +47,7 @@ export function ApplicantTable({
               {["지원자", "신체", "학교", "제출 자료", "접수", "상태"].map((label, index) => (
                 <th
                   key={label}
-                  className={`whitespace-nowrap border-b border-border px-3 py-2 text-left text-[11.5px] font-semibold tracking-[0.03em] text-muted ${
+                  className={`whitespace-nowrap border-b border-border px-3 py-2 text-left text-xs font-semibold tracking-[0.03em] text-muted ${
                     index >= 1 && index <= 4 ? "hidden lg:table-cell" : ""
                   }`}
                 >
@@ -72,7 +72,7 @@ export function ApplicantTable({
                 }}
                 className={`h-16 cursor-pointer transition-[background-color,box-shadow] duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand last:[&>td]:border-b-0 ${
                   selected.has(applicant.id)
-                    ? "bg-brand-soft shadow-[inset_3px_0_0_var(--brand)]"
+                    ? "bg-brand-soft shadow-[var(--shadow-row-selected)]"
                     : "hover:bg-surface active:bg-brand-soft"
                 }`}
               >
@@ -119,7 +119,7 @@ export function ApplicantTable({
                         {applicant.mismatchReasons.length > 0 ? (
                           <span
                             title={`조건 불일치: ${mismatchText(applicant.mismatchReasons)}`}
-                            className="ml-[5px] text-[10.5px] font-semibold text-fail"
+                            className="ml-1 text-xs font-semibold text-fail"
                           >
                             조건 불일치
                           </span>
@@ -138,7 +138,7 @@ export function ApplicantTable({
                   {applicant.school}
                 </td>
                 <td className="hidden border-b border-border-soft px-3 py-2 lg:table-cell">
-                  <span className="num mr-[5px] inline-flex h-6 items-center rounded-lg border border-border bg-surface px-2 text-[11px] text-muted">
+                  <span className="num mr-1 inline-flex h-6 items-center rounded-lg border border-border bg-surface px-2 text-xs text-muted">
                     사진 {applicant.photos.length}
                   </span>
                   {applicant.videoUrl ? (
@@ -172,7 +172,7 @@ export function ApplicantTable({
         <div
           aria-hidden="true"
           style={{ left: peek.left, top: peek.top, width: PEEK_WIDTH }}
-          className="pointer-events-none fixed z-80 hidden rounded-lg border border-border bg-card p-[5px] shadow-[0_10px_30px_rgba(0,0,0,0.16)] lg:block"
+          className="pointer-events-none fixed z-80 hidden rounded-lg border border-border bg-card p-1 shadow-[var(--shadow-tooltip)] lg:block"
         >
           <span className="relative block aspect-[3/4] w-full overflow-hidden rounded-[5px] bg-border-soft">
             <ApplicantPhotoImage
@@ -182,10 +182,10 @@ export function ApplicantTable({
               className="object-cover"
             />
           </span>
-          <span className="block px-1 pb-0.5 pt-1.5 text-[12.5px] font-semibold">
+          <span className="block px-1 pb-0.5 pt-1.5 text-xs font-semibold">
             {peek.applicant.name}
           </span>
-          <span className="num block px-1 pb-1 text-[11.5px] text-muted">
+          <span className="num block px-1 pb-1 text-xs text-muted">
             {peek.applicant.roleName} · {peek.applicant.height}cm · 사진 {peek.applicant.photos.length}장
           </span>
         </div>

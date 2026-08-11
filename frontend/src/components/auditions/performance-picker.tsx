@@ -23,7 +23,7 @@ import { PerformanceCreateModal } from "./performance-create-modal";
 import { PickerSkeleton, ScreenError } from "./screen-status";
 import type { PerformanceSummary } from "@/features/auditions/types";
 import { PerformanceManageDialog } from "./performance-manage-dialog";
-import { DestructiveButton, SecondaryButton } from "./ui-controls";
+import { DestructiveButton, SecondaryButton } from "@/components/ui/controls";
 
 export function PerformancePicker() {
   const [createOpen, setCreateOpen] = useState(false);

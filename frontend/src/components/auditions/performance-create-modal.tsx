@@ -12,7 +12,7 @@ import {
   ModalShell,
 } from "./modal-shell";
 import { emptyRoleDraft, PerformanceRoleEditor, type RoleDraft } from "./performance-role-editor";
-import { FieldInput, PrimaryButton, SecondaryButton } from "./ui-controls";
+import { FieldInput, PrimaryButton, SecondaryButton } from "@/components/ui/controls";
 
 const TITLE_ID = "performance-create-title";
 const POSTER_HELP_ID = "performance-poster-help";
@@ -114,7 +114,7 @@ export function PerformanceCreateModal({
                   {posterUrl ? (
                     <Image src={posterUrl} alt="선택한 공연 포스터 미리보기" fill unoptimized className="object-cover" />
                   ) : (
-                    <span className="px-3 text-[12px] font-semibold text-muted-strong group-hover:text-brand">
+                    <span className="px-3 text-xs font-semibold text-muted-strong group-hover:text-brand">
                       이미지 선택
                     </span>
                   )}

@@ -37,7 +37,7 @@ export function ApplicantDetail() {
             <h2 id={TITLE_ID} className="text-[23px] font-bold leading-tight tracking-[-0.03em]">
               {applicant.name}
             </h2>
-            <p className="mt-0.5 text-[13px] text-muted">
+            <p className="mt-0.5 text-dense text-muted">
               <b className="font-semibold text-muted-strong">{applicant.roleName}</b> 지원 ·{" "}
               {GENDER_LABELS[applicant.gender]} 만 {applicant.age}세 · {applicant.height}cm /{" "}
               {applicant.weight}kg · {applicant.id}
@@ -63,7 +63,7 @@ export function ApplicantDetail() {
                   toast(POPUP_BLOCKED, { type: "error" });
                 }
               }}
-              className="min-h-11 rounded-control px-3 py-1 text-sm text-muted transition-[background-color,color,transform] duration-150 hover:bg-border-soft hover:text-foreground active:scale-[0.97] lg:min-h-0 lg:px-2 lg:text-[12px]"
+              className="min-h-11 rounded-control px-3 py-1 text-sm text-muted transition-[background-color,color,transform] duration-150 hover:bg-border-soft hover:text-foreground active:scale-[0.97] lg:min-h-0 lg:px-2 lg:text-xs"
             >
               인쇄
             </button>
@@ -71,7 +71,7 @@ export function ApplicantDetail() {
               type="button"
               aria-label="닫기"
               onClick={close}
-              className="min-h-11 rounded-control px-3 py-1 text-sm text-muted transition-[background-color,color,transform] duration-150 hover:bg-border-soft hover:text-foreground active:scale-[0.97] lg:min-h-0 lg:px-2 lg:text-[12px]"
+              className="min-h-11 rounded-control px-3 py-1 text-sm text-muted transition-[background-color,color,transform] duration-150 hover:bg-border-soft hover:text-foreground active:scale-[0.97] lg:min-h-0 lg:px-2 lg:text-xs"
             >
               닫기
             </button>

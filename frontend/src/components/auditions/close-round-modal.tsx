@@ -2,7 +2,7 @@
 
 import { useBoard } from "./board-context";
 import { DialogFooter, DialogHeader, ModalShell } from "./modal-shell";
-import { PrimaryButton, SecondaryButton } from "./ui-controls";
+import { PrimaryButton, SecondaryButton } from "@/components/ui/controls";
 
 const TITLE_ID = "close-round-title";
 
@@ -44,14 +44,14 @@ export function CloseRoundModal({
         }
       />
 
-      <div className="flex-1 overflow-y-auto px-[22px] py-[17px]">
+      <div className="flex-1 overflow-y-auto px-6 py-[17px]">
         {auto ? (
-          <p className="mb-[13px] rounded-control bg-pass-bg px-[11px] py-2 text-xs text-pass">
+          <p className="mb-3 rounded-control bg-pass-bg px-3 py-2 text-xs text-pass">
             {counts.all}명 검토를 모두 마쳤습니다.
           </p>
         ) : null}
 
-        <dl className="mb-3.5 grid grid-cols-[88px_1fr] gap-x-3 gap-y-[9px] text-[13.5px]">
+        <dl className="mb-3.5 grid grid-cols-[88px_1fr] gap-x-3 gap-y-2 text-dense">
           <dt className="text-muted">합격</dt>
           <dd className="num">
             {counts.pass}명 {isFinal ? "→ 최종 합격" : `→ ${nextName}로 이동`}
@@ -72,10 +72,10 @@ export function CloseRoundModal({
           ) : null}
         </dl>
 
-        <p className="mb-3.5 rounded-control border border-border bg-surface px-3 py-2.5 text-[12.5px] leading-relaxed text-muted-strong">
+        <p className="mb-3.5 rounded-control border border-border bg-surface px-3 py-2.5 text-xs leading-relaxed text-muted-strong">
           결과 연락은 서비스가 보내지 않습니다. 검토 완료 탭에서 연락처를 복사해 직접 연락해 주세요.
         </p>
-        <p className="rounded-control bg-warn-bg px-[11px] py-2 text-xs text-warn">
+        <p className="rounded-control bg-warn-bg px-3 py-2 text-xs text-warn">
           {isFinal ? "종료하면" : "넘어가면"} {currentName} 결과를 더 이상 변경할 수 없습니다. 다른
           배역 전형에는 영향이 없습니다.
         </p>

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { DialogFooter, DialogHeader } from "./modal-shell";
-import { FieldInput, PrimaryButton, SecondaryButton } from "./ui-controls";
+import { FieldInput, PrimaryButton, SecondaryButton } from "@/components/ui/controls";
 
 export const POSTING_CREATED_TITLE_ID = "posting-created-title";
 

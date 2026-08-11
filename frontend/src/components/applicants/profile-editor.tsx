@@ -6,6 +6,7 @@ import type { ApplicantAnswerValue, ApplicantProfileResponse } from "@/features/
 import { APPLICATION_FIELD_OPTIONS } from "@/features/auditions/creation-types";
 import type { ApplicationFieldSection } from "@/features/auditions/creation-types";
 import { useToast } from "@/components/auditions/toast";
+import { DestructiveButton, PrimaryButton, SecondaryButton } from "@/components/ui/controls";
 import { ProfileSectionPanel } from "./profile-editor-sections";
 
 type ProfileTab = ApplicationFieldSection;
@@ -83,9 +84,9 @@ export function ProfileEditor({ profile, onSaved }: { readonly profile: Applican
       <div className="border-b border-border-soft pb-5"><h2 className="text-xl font-bold">{tabs.find((tab) => tab.id === activeTab)?.label}</h2><p className="mt-2 text-sm leading-6 text-muted">프로필에는 필수 항목이 없어요. 필요한 정보만 저장하고, 공고별 필수 여부는 지원할 때 확인합니다.</p></div>
       <ProfileSectionPanel section={activeTab} fields={standardFields} profile={profile} values={values} removed={removed} onChange={(key, value) => { setValues((current) => ({ ...current, [key]: value })); setRemoved((current) => { const next = new Set(current); next.delete(key); return next; }); setError(""); }} onRequestRemove={setPendingRemoval} />
       {error ? <p role="alert" className="mt-5 rounded-control border border-fail/25 bg-fail-bg px-4 py-3 text-sm font-medium text-fail">{error}</p> : null}
-      <div className="mt-7 flex flex-wrap items-center gap-3 border-t border-border-soft pt-5"><p className="min-w-0 flex-1 text-sm text-muted-strong">{changeCount ? `${changeCount}개 변경 사항이 있어요.` : "모든 변경 사항이 저장되어 있어요."}</p><button type="button" onClick={save} disabled={saving || !changeCount} className="min-h-12 rounded-control bg-brand px-5 font-semibold text-white hover:bg-brand-strong disabled:bg-border disabled:text-muted">{saving ? "저장 중…" : "프로필 저장"}</button></div>
+      <div className="mt-7 flex flex-wrap items-center gap-3 border-t border-border-soft pt-5"><p className="min-w-0 flex-1 text-sm text-muted-strong">{changeCount ? `${changeCount}개 변경 사항이 있어요.` : "모든 변경 사항이 저장되어 있어요."}</p><PrimaryButton onClick={save} disabled={saving || !changeCount} className="min-h-12 px-5">{saving ? "저장 중…" : "프로필 저장"}</PrimaryButton></div>
     </section>
-    {pendingRemoval ? <div role="dialog" aria-modal="true" aria-labelledby="profile-remove-title" className="fixed inset-0 z-50 grid place-items-center bg-black/55 p-5"><section className="w-full max-w-md rounded-modal bg-card p-6 shadow-[var(--shadow-modal)]"><h2 id="profile-remove-title" className="text-xl font-bold">이 답변을 프로필에서 지울까요?</h2><p className="mt-3 text-sm leading-6 text-muted-strong">이미 제출한 지원서에는 영향이 없고, 다음 지원서부터 자동으로 채워지지 않습니다.</p><div className="mt-6 flex justify-end gap-2"><button type="button" onClick={() => setPendingRemoval(null)} className="min-h-11 rounded-control border border-border px-4 text-sm font-semibold">취소</button><button type="button" onClick={confirmRemoval} className="min-h-11 rounded-control bg-fail px-4 text-sm font-semibold text-white">프로필에서 삭제</button></div></section></div> : null}
+    {pendingRemoval ? <div role="dialog" aria-modal="true" aria-labelledby="profile-remove-title" className="fixed inset-0 z-50 grid place-items-center bg-black/55 p-5"><section className="w-full max-w-md rounded-modal bg-card p-6 shadow-[var(--shadow-modal)]"><h2 id="profile-remove-title" className="text-xl font-bold">이 답변을 프로필에서 지울까요?</h2><p className="mt-3 text-sm leading-6 text-muted-strong">이미 제출한 지원서에는 영향이 없고, 다음 지원서부터 자동으로 채워지지 않습니다.</p><div className="mt-6 flex justify-end gap-2"><SecondaryButton onClick={() => setPendingRemoval(null)}>취소</SecondaryButton><DestructiveButton onClick={confirmRemoval}>프로필에서 삭제</DestructiveButton></div></section></div> : null}
   </div>;
 }
 

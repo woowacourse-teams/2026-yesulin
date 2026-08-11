@@ -185,8 +185,8 @@ function PostingMeta({
 }) {
   return (
     <span className="min-w-0 px-2.5 py-2.5">
-      <span className="block text-[10.5px] font-medium text-muted">{label}</span>
-      <b className={`${numeric ? "num" : ""} mt-1 block truncate text-[12.5px] font-semibold text-foreground`}>
+      <span className="block text-xs font-medium text-muted">{label}</span>
+      <b className={`${numeric ? "num" : ""} mt-1 block truncate text-xs font-semibold text-foreground`}>
         {value}
       </b>
     </span>

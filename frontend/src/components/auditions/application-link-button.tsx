@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { publicApplicationRoute } from "@/features/auditions/routes";
 import type { PostingId } from "@/features/auditions/types";
-import { SecondaryButton } from "./ui-controls";
+import { SecondaryButton } from "@/components/ui/controls";
 import { useToast } from "./toast";
 
 export function ApplicationLinkButton({

@@ -96,7 +96,7 @@ export function PickerCardBlocked({
   children: React.ReactNode;
   action?: React.ReactNode;
 }) {
-  const blockedClass = `${CARD_CLASS} cursor-not-allowed opacity-75 hover:translate-y-0 hover:border-border hover:shadow-none active:bg-surface`;
+  const blockedClass = `${CARD_CLASS} cursor-not-allowed border-border bg-border-soft text-muted hover:translate-y-0 hover:border-border hover:shadow-none active:bg-border-soft`;
 
   if (!action) {
     return (
@@ -136,7 +136,7 @@ export function PickerStats({
   secondary: { value: number; unit: string };
 }) {
   return (
-    <div className="flex items-baseline gap-4 py-[3px]">
+    <div className="flex items-baseline gap-4 py-1">
       <span>
         <b className="num text-2xl font-bold leading-none tracking-[-0.03em]">{primary.value}</b>
         <span className="ml-1 text-xs text-muted">{primary.unit}</span>
@@ -157,7 +157,7 @@ export function PickerProgress({ percent }: { percent: number }) {
       <span className="h-[5px] flex-1 overflow-hidden rounded-full bg-border-soft">
         <i className="block h-full bg-pass transition-[width] duration-300" style={{ width: `${percent}%` }} />
       </span>
-      <span className="num shrink-0 text-[11px] font-semibold text-muted">{percent}%</span>
+      <span className="num shrink-0 text-xs font-semibold text-muted">{percent}%</span>
     </div>
   );
 }
@@ -178,7 +178,7 @@ export function PickerState({
   className?: string;
 }) {
   return (
-    <div className={`flex items-center gap-2 border-t border-border-soft pt-3 text-[13px] font-medium text-muted-strong ${className}`}>
+    <div className={`flex items-center gap-2 border-t border-border-soft pt-3 text-dense font-medium text-muted-strong ${className}`}>
       <i aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${DOT_TONE[tone]}`} />
       {children}
     </div>

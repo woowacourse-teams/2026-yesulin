@@ -11,7 +11,7 @@ import { ApplicationFieldEditor } from "./application-field-editor";
 import { CreateError, CreateField, CreateSection } from "./create-form";
 import { DialogFooter, DialogHeader, ModalShell } from "./modal-shell";
 import { AuditionScheduleEditor as BaseAuditionScheduleEditor, PostingRoleSelector } from "./posting-form-sections";
-import { DestructiveButton, FieldInput, FieldTextarea, PrimaryButton, SecondaryButton } from "./ui-controls";
+import { DestructiveButton, FieldInput, FieldTextarea, PrimaryButton, SecondaryButton } from "@/components/ui/controls";
 
 const TITLE_ID = "posting-manage-title";
 

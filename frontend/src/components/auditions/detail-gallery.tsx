@@ -16,7 +16,7 @@ export function DetailGallery({
   const photo = applicant.photos[current];
 
   return (
-    <div className="overflow-y-auto border-b border-border bg-surface px-5 py-[18px] lg:border-b-0 lg:border-r">
+    <div className="overflow-y-auto border-b border-border bg-surface px-5 py-5 lg:border-b-0 lg:border-r">
       <div className="relative aspect-[3/4] w-full overflow-hidden rounded-control border border-border bg-border-soft">
         <ApplicantPhotoImage
           photo={photo}
@@ -26,14 +26,14 @@ export function DetailGallery({
           priority
         />
         {photo ? (
-          <span className="absolute bottom-[9px] left-[9px] rounded-full bg-foreground/70 px-[9px] py-[3px] text-[11px] font-semibold text-white">
+          <span className="absolute bottom-2 left-2 rounded-full bg-foreground/70 px-2 py-1 text-xs font-semibold text-white">
             {photo.label} · {current + 1}/{applicant.photos.length}
           </span>
         ) : null}
       </div>
 
       {applicant.photos.length > 1 ? (
-        <div className="mt-[9px] flex gap-[7px]">
+        <div className="mt-2 flex gap-2">
           {applicant.photos.map((candidate, slot) => (
             <button
               key={candidate.url}
@@ -43,7 +43,7 @@ export function DetailGallery({
               onClick={() => setIndex(slot)}
               className={`relative aspect-[3/4] flex-1 overflow-hidden rounded-lg border-2 bg-border-soft transition-[border-color,box-shadow,transform] duration-150 active:scale-[0.97] ${
                 slot === current
-                  ? "border-brand shadow-[0_0_0_2px_var(--brand-soft-strong)]"
+                  ? "border-brand shadow-[var(--shadow-selection-soft)]"
                   : "border-transparent hover:border-muted-soft"
               }`}
             >
@@ -58,18 +58,18 @@ export function DetailGallery({
           ))}
         </div>
       ) : (
-        <p className="mt-[9px] text-xs text-muted">제출한 사진이 1장입니다.</p>
+        <p className="mt-2 text-xs text-muted">제출한 사진이 1장입니다.</p>
       )}
 
       {applicant.videoUrl ? (
         <button
           type="button"
           onClick={onPlayVideo}
-          className="mt-3.5 flex w-full items-center gap-[11px] rounded-control border border-border bg-card px-[13px] py-3 text-left transition-[background-color,border-color,transform] duration-150 hover:border-brand-line hover:bg-brand-soft active:scale-[0.99]"
+          className="mt-3.5 flex w-full items-center gap-3 rounded-control border border-border bg-card px-3 py-3 text-left transition-[background-color,border-color,transform] duration-150 hover:border-brand-line hover:bg-brand-soft active:scale-[0.99]"
         >
           <span className="min-w-0">
-            <b className="block text-[13.5px] font-semibold">연기 영상 보기</b>
-            <span className="block break-all text-[11px] text-muted">{applicant.videoUrl}</span>
+            <b className="block text-dense font-semibold">연기 영상 보기</b>
+            <span className="block break-all text-xs text-muted">{applicant.videoUrl}</span>
           </span>
         </button>
       ) : (

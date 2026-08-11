@@ -1,5 +1,5 @@
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
-import { FieldInput } from "./ui-controls";
+import { FieldInput } from "@/components/ui/controls";
 
 const fieldCardClass =
   "flex min-h-12 min-w-0 items-center gap-2 rounded-control border border-border bg-card px-3 py-2.5";
@@ -41,7 +41,7 @@ export function ApplicationFieldEditor({
       <div className="grid gap-2 sm:grid-cols-2">
         {fields.filter((field) => !field.custom).map((field) => (
           <div key={field.id} className={fieldCardClass}>
-            <label className="flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-2 text-base md:min-h-0 md:text-[12.5px]">
+            <label className="flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-2 text-base md:min-h-0 md:text-xs">
               <input
                 type="checkbox"
                 checked={field.enabled}
@@ -86,7 +86,7 @@ export function ApplicationFieldEditor({
               <button
                 type="button"
                 onClick={() => remove(field.id)}
-                className="min-h-11 rounded-control border border-border bg-card px-3 text-base text-muted-strong hover:border-muted-soft hover:text-foreground md:h-9 md:min-h-0 md:text-[12px]"
+                className="min-h-11 rounded-control border border-border bg-card px-3 text-base text-muted-strong hover:border-muted-soft hover:text-foreground md:h-9 md:min-h-0 md:text-xs"
               >
                 삭제
               </button>
@@ -98,7 +98,7 @@ export function ApplicationFieldEditor({
       <button
         type="button"
         onClick={addCustom}
-        className="min-h-11 w-full rounded-control border border-dashed border-muted-soft bg-card px-3 py-2.5 text-base font-semibold text-muted-strong hover:border-brand-line hover:bg-brand-soft hover:text-brand md:text-[12.5px]"
+        className="min-h-11 w-full rounded-control border border-dashed border-muted-soft bg-card px-3 py-2.5 text-base font-semibold text-muted-strong hover:border-brand-line hover:bg-brand-soft hover:text-brand md:text-xs"
       >
         지원서 항목 추가
       </button>
@@ -123,7 +123,7 @@ function RequirementSelect({
       disabled={disabled}
       value={required ? "required" : "optional"}
       onChange={(event) => onChange(event.target.value === "required")}
-      className="min-h-11 shrink-0 rounded-control border border-border bg-card px-2 text-base text-muted-strong disabled:cursor-not-allowed disabled:opacity-40 md:h-8 md:min-h-0 md:text-[11.5px]"
+      className="min-h-11 shrink-0 rounded-control border border-border bg-card px-2 text-base text-muted-strong disabled:cursor-not-allowed disabled:bg-border-soft disabled:text-muted md:h-8 md:min-h-0 md:text-xs"
     >
       <option value="required">필수</option>
       <option value="optional">선택</option>
