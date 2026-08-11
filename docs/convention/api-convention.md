@@ -2,7 +2,7 @@
 
 지원자·공연사 flowchart를 기준으로 한 백엔드 경로 계약이다. REST 원칙을 따르되 클라이언트가 경로만 읽고 용도를 이해할 수 있는 이름을 우선한다.
 
-> **도메인 설계 반영 대기:** 최신 [도메인 설계](../domain-design.md)는 비회원 저장·제출 상태를 없애고 최종 제출 전 인증을 요구한다. 아래 조회 계약은 유효하지만, 기존 비회원 제출·lookup·claim·공개 파일 업로드와 제출 후 수정 계약은 새 인증 기반 계약이 결정될 때까지 Backend에서 구현하지 않는다.
+> **도메인 설계 반영 대기:** 최신 [도메인 설계](../domain-design.md)에 따라 지원서 작성 시작에는 로그인이 필요하지 않지만 최종 제출은 인증된 계정만 할 수 있다. 아래 공고 조회 계약은 유효하며, 제출·파일·지원서 조회 계약은 인증과 소유권 경계를 결정한 뒤 추가한다.
 
 ## 공통 규칙
 
@@ -11,7 +11,7 @@
 - 두 단어 이상일 때는 `screening-rounds`처럼 kebab-case를 허용한다. 억지로 줄이거나 붙여 쓰지 않는다.
 - `public`은 비로그인 화면에서 호출할 수 있는 API를 묶는 클라이언트용 경로다.
 - 상태 변경은 HTTP Method로 표현한다. `me`, `current`는 인증 컨텍스트의 단일 리소스에만 사용한다.
-- `prefill`, `lookup`처럼 화면 목적이 명확한 조회는 모호한 명사로 바꾸지 않는다.
+- `prefill`처럼 화면 목적이 명확한 조회는 모호한 명사로 바꾸지 않는다.
 - ID는 서버 `Long`, JSON `number`를 사용한다.
 - 인증은 HttpOnly 세션 쿠키, 쓰기 요청은 `X-CSRF-Token`을 사용한다.
 - 소유자 ID는 요청으로 받지 않고 세션에서 결정한다.
@@ -41,8 +41,6 @@ DELETE /api/v1/applicants/me                    # 회원 탈퇴
 
 GET    /api/v1/applicants/me/profile            # 재사용 프로필·완성도
 PATCH  /api/v1/applicants/me/profile            # 프로필 답변 저장·삭제
-POST   /api/v1/applicants/me/files              # 프로필 사진·자료 업로드
-DELETE /api/v1/applicants/me/files/{fileId}     # 미사용 파일 삭제
 GET    /api/v1/applicants/me/profile/prefill
        ?postingId={postingId}                    # 공고 양식 기준 자동 채움
 
@@ -54,7 +52,9 @@ GET    /api/v1/applicants/me/applications/{applicationId}
 - 제출 완료 후 일반 수정은 공개 정책에서 허용하지 않으며 현재 프런트 구현과 다르다.
 - 지원자 응답에는 공연사의 심사 결과와 내부 메모를 포함하지 않는다.
 
-## 공개 공고와 지원
+사진·자료 API는 프로필과 지원서의 소유 관계를 결정한 뒤 추가한다.
+
+## 공개 공고
 
 ```http
 GET  /api/v1/public/postings/{postingId}         # 공개 공고·배역·지원서 양식
@@ -62,7 +62,7 @@ GET  /api/v1/public/recommended-postings
      ?excludePostingId={postingId}&limit={limit} # 추천 공고
 ```
 
-지원서 제출·파일 업로드·지원서 조회는 인증 및 소유권 경계를 먼저 결정해야 한다. 비회원 제출, `profileClaimToken`과 비회원 저장 상태를 전제로 새 API를 구현하지 않는다.
+지원서 제출·파일 업로드·지원서 조회는 인증 및 소유권 경계를 먼저 결정해야 한다. 최종 제출 요청은 인증된 계정의 소유권을 기준으로 처리한다.
 
 ## 공연사
 
@@ -115,8 +115,6 @@ PATCH /api/v1/roles/{roleId}/screening-rounds/{round}       # status=CLOSED로 �
 /api/me/applications/**             → GET은 /api/v1/applicants/me/applications/**, PATCH는 목표 계약에서 제외
 /api/public/recommended-postings    → /api/v1/public/recommended-postings
 /api/public/postings/**             → /api/v1/public/postings/**
-/api/public/applications            → 인증 후 제출 계약 재설계 필요
-/api/public/applications/lookup     → 비회원 lookup 목표 계약에서 제외
 /api/me/producer                    → /api/v1/producers/me
 /api/navigation/tree                → /api/v1/producers/me/navigation-tree
 /api/performances/**                → /api/v1/performances/**
