@@ -1,7 +1,7 @@
 import type { RoleGender } from "@/features/auditions/types";
 import { ROLE_GENDER_LABELS } from "@/features/auditions/labels";
 import { CreateField } from "./create-form";
-import { FieldInput, FieldSelect } from "./ui-controls";
+import { FieldInput, FieldSelect } from "@/components/ui/controls";
 
 export type RoleDraft = {
   readonly key: number;
@@ -39,7 +39,7 @@ export function PerformanceRoleEditor({
       {roles.map((role, index) => (
         <div key={role.key} className="rounded-card border border-border bg-surface p-4">
           <div className="mb-3 flex items-center justify-between">
-            <b className="text-base md:text-[12.5px]">배역 {index + 1}</b>
+            <b className="text-base md:text-xs">배역 {index + 1}</b>
             {roles.length > 1 ? (
               <button
                 type="button"

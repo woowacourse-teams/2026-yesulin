@@ -8,7 +8,7 @@ language: ko
 implementation_reference:
   - frontend/src/app/globals.css
   - frontend/src/app/interactions.css
-  - frontend/src/components/auditions/ui-controls.tsx
+  - frontend/src/components/ui/controls.tsx
   - frontend/src/components/auditions/modal-shell.tsx
   - frontend/src/components/auditions/status-badge.tsx
   - frontend/src/components
@@ -101,7 +101,7 @@ implementation_reference:
 | Role | Size / Line height | Weight | Typical utility / Usage |
 |---|---|---|---|
 | Caption | `12 / 16px` | 500–600 | `text-xs`, 배지·메타데이터 |
-| Dense label | `13px` 계열 | 500–600 | 관리자 표·필터·사이드바에만 제한 |
+| Dense label | `13 / 20px` | 500–600 | `text-dense`, 관리자 표·필터·사이드바에만 제한 |
 | Label / Small body | `14 / 20px` | 400–600 | `text-sm`, 입력 label·설명·버튼 |
 | Body | `16 / 24px` | 400–600 | `text-base`, 일반 본문과 모바일 안내 |
 | Title small | `18 / 28px` | 600–700 | `text-lg`, 카드 제목 |
@@ -168,8 +168,13 @@ Tailwind의 4px 간격 체계를 기본으로 한다.
 | `shadow-2` | `0 8px 24px rgba(15, 23, 42, 0.08)` | glass header, dropdown |
 | `shadow-3` | `0 16px 40px rgba(15, 23, 42, 0.12)` | toast, 강한 floating panel |
 | `shadow-modal` | `0 24px 64px rgba(8, 11, 18, 0.20)` | dialog, drawer |
+| `shadow-selection` | `0 0 0 2px #B8D5FF` | 선택 카드 ring |
+| `shadow-tooltip` | `0 10px 30px rgba(0, 0, 0, 0.16)` | tooltip |
+| `shadow-video` | `0 24px 60px rgba(0, 0, 0, 0.40)` | 영상 dialog |
+| `shadow-video-control` | `0 6px 24px rgba(0, 0, 0, 0.40)` | 영상 재생 control |
+| `shadow-cta` | `0 12px 32px rgba(36, 107, 254, 0.28)` | dark hero의 Primary CTA |
 
-일반 카드는 shadow 없이 border를 사용한다. 영상 플레이어·tooltip·마케팅 CTA의 더 강한 그림자는 맥락 한정 예외다.
+일반 카드는 shadow 없이 border를 사용한다. 영상 플레이어·tooltip·마케팅 CTA의 강한 그림자는 해당 목적의 이름 있는 토큰만 사용한다.
 
 ## 6. 공통 Layout
 
@@ -290,5 +295,5 @@ Tailwind 기본 breakpoint를 그대로 사용한다.
 - 데스크톱 table을 모바일에서 그대로 축소하지 않는다.
 - 상태, 선택, 오류를 색상 하나로만 표현하지 않는다.
 - 10–13px 텍스트와 임의 spacing을 일반 사용자 화면에 확산하지 않는다.
-- 외부 로그인 브랜드색이나 인쇄 전용 색을 앱의 시맨틱 토큰으로 재사용하지 않는다.
+- 인쇄 화면에 별도 색상 팔레트를 만들지 않는다. 앱의 시맨틱 CSS 변수를 전달해 사용한다.
 - 시각 개선을 이유로 기존 기능, 접근 가능한 이름, keyboard interaction을 제거하지 않는다.

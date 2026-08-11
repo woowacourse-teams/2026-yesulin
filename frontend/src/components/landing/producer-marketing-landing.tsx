@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PrimaryLink } from "@/components/ui/controls";
 import { LandingFooter, LandingHeader } from "./landing-header";
 import { PartnerMarquee } from "./partner-marquee";
 import { ProducerPreview } from "./landing-preview";
@@ -27,7 +28,7 @@ export function ProducerMarketingLanding() {
             </h1>
             <p className="mt-6 max-w-[570px] text-lg leading-8 text-sidebar-text/80">공연과 배역별 지원자를 비교하고, 심사 결과와 다음 전형을 한 화면에서 관리하세요.</p>
             <div className="mt-9 flex flex-wrap gap-3">
-              <Link href="/signup?role=producer" className="inline-flex min-h-[52px] items-center justify-center rounded-control bg-brand px-6 font-semibold text-white shadow-[0_12px_32px_rgba(36,107,254,0.28)] transition-[background-color,transform] hover:bg-brand-strong active:scale-[0.98]">공연사로 시작하기</Link>
+              <PrimaryLink href="/signup?role=producer" className="min-h-13 px-6 shadow-[var(--shadow-cta)]">공연사로 시작하기</PrimaryLink>
               <Link href="/login" className="inline-flex min-h-[52px] items-center justify-center rounded-control border border-white/20 bg-white/5 px-6 font-semibold text-white backdrop-blur-md transition-[background-color,transform] hover:bg-white/10 active:scale-[0.98]">기존 계정으로 로그인</Link>
             </div>
             <dl className="mt-10 grid max-w-[540px] grid-cols-3 divide-x divide-white/10 border-y border-white/10 py-5">
@@ -69,7 +70,7 @@ export function ProducerMarketingLanding() {
       </section>
 
       <section className="mx-auto max-w-[1280px] px-5 py-20 sm:px-8 lg:px-10 lg:py-28">
-        <div className="overflow-hidden rounded-[28px] bg-sidebar px-6 py-14 text-center sm:px-10 sm:py-18"><p className="text-sm font-bold text-brand-line">READY TO START</p><h2 className="mt-4 text-[clamp(30px,4vw,44px)] font-bold text-white">좋은 캐스팅은 명확한 관리에서 시작됩니다.</h2><p className="mx-auto mt-4 max-w-[650px] text-lg leading-8 text-sidebar-muted">공연사 가입 후 공연과 공고를 등록하고 지원자 심사 흐름을 확인해 보세요.</p><Link href="/signup?role=producer" className="mt-8 inline-flex min-h-[52px] items-center justify-center rounded-control bg-brand px-6 font-semibold text-white transition-[background-color,transform] hover:bg-brand-strong active:scale-[0.98]">공연사 계정 만들기</Link></div>
+        <div className="overflow-hidden rounded-[28px] bg-sidebar px-6 py-14 text-center sm:px-10 sm:py-18"><p className="text-sm font-bold text-brand-line">READY TO START</p><h2 className="mt-4 text-[clamp(30px,4vw,44px)] font-bold text-white">좋은 캐스팅은 명확한 관리에서 시작됩니다.</h2><p className="mx-auto mt-4 max-w-[650px] text-lg leading-8 text-sidebar-muted">공연사 가입 후 공연과 공고를 등록하고 지원자 심사 흐름을 확인해 보세요.</p><PrimaryLink href="/signup?role=producer" className="mt-8 min-h-13 px-6">공연사 계정 만들기</PrimaryLink></div>
       </section>
 
       <LandingFooter />

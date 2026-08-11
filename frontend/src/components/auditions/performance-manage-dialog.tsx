@@ -8,7 +8,7 @@ import { errorMessage, useAuditionQuery } from "@/features/auditions/use-auditio
 import { CreateError, CreateField, CreateSection } from "./create-form";
 import { DialogFooter, DialogHeader, ModalShell } from "./modal-shell";
 import { PerformanceRoleEditor, type RoleDraft } from "./performance-role-editor";
-import { DestructiveButton, FieldInput, PrimaryButton, SecondaryButton } from "./ui-controls";
+import { DestructiveButton, FieldInput, PrimaryButton, SecondaryButton } from "@/components/ui/controls";
 
 const TITLE_ID = "performance-manage-title";
 

@@ -6,7 +6,7 @@ import type { Applicant } from "@/features/auditions/types";
 import { useBoard } from "./board-context";
 import { DialogFooter, DialogHeader, ModalShell } from "./modal-shell";
 import { useToast } from "./toast";
-import { FilterChip, SecondaryButton } from "./ui-controls";
+import { FilterChip, SecondaryButton } from "@/components/ui/controls";
 
 const TITLE_ID = "contacts-modal-title";
 
@@ -55,13 +55,13 @@ export function ContactsModal() {
         subtitle="연락처를 복사해 기존 방식대로 연락하세요"
       />
 
-      <div className="flex-1 overflow-y-auto px-[22px] py-[17px]">
-        <p className="mb-3.5 rounded-control border border-border bg-surface px-3 py-2.5 text-[12.5px] leading-relaxed text-muted-strong">
+      <div className="flex-1 overflow-y-auto px-6 py-[17px]">
+        <p className="mb-3.5 rounded-control border border-border bg-surface px-3 py-2.5 text-xs leading-relaxed text-muted-strong">
           예술in은 결과를 대신 발송하지 않습니다. 아래 연락처를 복사해 단체 채팅방·문자·전화 등 쓰시던
           방법으로 연락해 주세요.
         </p>
 
-        <div className="mb-2.5 flex gap-[5px]">
+        <div className="mb-2.5 flex gap-1">
           {(Object.keys(FORMATS) as readonly FormatKey[]).map((key) => (
             <FilterChip
               key={key}
@@ -81,7 +81,7 @@ export function ContactsModal() {
             id="contact-text"
             readOnly
             value={text}
-            className="min-h-[180px] w-full resize-y rounded-control border border-border bg-surface px-[13px] py-3 text-[13px] leading-[1.75]"
+            className="min-h-[180px] w-full resize-y rounded-control border border-border bg-surface px-3 py-3 text-dense leading-[1.75]"
           />
           <button
             type="button"

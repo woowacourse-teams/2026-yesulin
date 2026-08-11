@@ -35,7 +35,7 @@ export function SidebarResizer() {
       aria-valuemin={MIN_WIDTH}
       aria-valuemax={MAX_WIDTH}
       tabIndex={0}
-      className="group fixed bottom-0 top-0 z-31 -ml-[3px] hidden w-[7px] cursor-col-resize touch-none lg:block"
+      className="group fixed bottom-0 top-0 z-31 -ml-1 hidden w-[7px] cursor-col-resize touch-none lg:block"
       style={{ left: "var(--sidebar-width)" }}
       onPointerDown={(event) => {
         dragging.current = true;
@@ -58,7 +58,7 @@ export function SidebarResizer() {
         }
       }}
     >
-      <span className="absolute bottom-0 left-[3px] top-0 w-px bg-transparent transition-colors group-hover:bg-brand-line group-focus-visible:bg-brand-line" />
+      <span className="absolute bottom-0 left-1 top-0 w-px bg-transparent transition-colors group-hover:bg-brand-line group-focus-visible:bg-brand-line" />
     </div>
   );
 }

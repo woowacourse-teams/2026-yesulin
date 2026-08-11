@@ -5,40 +5,59 @@ import { ROUND_NUMBERS } from "./types";
 const escapeHtml = (value: string) =>
   value.replace(/[&<>"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[char] ?? char);
 
+const PRINT_COLOR_TOKENS = [
+  "--ink",
+  "--ink-60",
+  "--ink-20",
+  "--line",
+  "--line-soft",
+  "--pass",
+  "--fail",
+  "--absent",
+  "--etc",
+  "--pending",
+] as const;
+
 const PRINT_STYLE = `
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Pretendard Variable',Pretendard,sans-serif;color:#16151A;padding:22px}
-.pp-page{max-width:760px;margin:0 auto;padding-bottom:26px}
+body{font-family:'Pretendard Variable',Pretendard,sans-serif;color:var(--ink);padding:24px}
+.pp-page{max-width:760px;margin:0 auto;padding-bottom:24px}
 .pp-page+.pp-page{page-break-before:always;padding-top:8px}
-.pp-head{display:flex;gap:20px;padding-bottom:16px;border-bottom:2px solid #16151A;margin-bottom:16px}
-.pp-photo{width:130px;height:173px;border-radius:6px;overflow:hidden;background:#EFEDF2;flex-shrink:0}
+.pp-head{display:flex;gap:20px;padding-bottom:16px;border-bottom:2px solid var(--ink);margin-bottom:16px}
+.pp-photo{width:130px;height:173px;border-radius:6px;overflow:hidden;background:var(--line-soft);flex-shrink:0}
 .pp-photo img{width:100%;height:100%;object-fit:cover;object-position:center 18%}
-.pp-name{font-size:22px;font-weight:700;letter-spacing:-.02em;display:flex;align-items:center;gap:9px}
-.pp-role{font-size:13px;color:#5C5A63;margin:3px 0 12px}
-.pp-badge{font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:99px;border:1px solid currentColor}
-.s-PASS{color:#1F7A5C}.s-FAIL{color:#9A3131}.s-ABSENT{color:#5A5A62}.s-ETC{color:#4B4098}.s-PENDING{color:#6B6975}
-.pp-facts{display:grid;grid-template-columns:1fr 1fr;gap:6px 22px;font-size:12.5px}
+.pp-name{font-size:20px;font-weight:700;letter-spacing:-.02em;display:flex;align-items:center;gap:8px}
+.pp-role{font-size:13px;color:var(--ink-60);margin:4px 0 12px}
+.pp-badge{font-size:12px;font-weight:600;padding:4px 8px;border-radius:99px;border:1px solid currentColor}
+.s-PASS{color:var(--pass)}.s-FAIL{color:var(--fail)}.s-ABSENT{color:var(--absent)}.s-ETC{color:var(--etc)}.s-PENDING{color:var(--pending)}
+.pp-facts{display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;font-size:12px}
 .pp-facts div{display:flex;gap:8px}
-.pp-facts dt{color:#8C8A93;width:64px;flex-shrink:0}
+.pp-facts dt{color:var(--ink-20);width:64px;flex-shrink:0}
 .pp-sec{margin-bottom:16px}
-.pp-sec h3{font-size:11.5px;font-weight:700;color:#8C8A93;letter-spacing:.06em;text-transform:uppercase;
-  margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid #E4E2E8}
+.pp-sec h3{font-size:12px;font-weight:700;color:var(--ink-20);letter-spacing:.06em;text-transform:uppercase;
+  margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--line)}
 .pp-sec ul{list-style:none;font-size:13px;line-height:1.9}
-.pp-sec ul b{font-variant-numeric:tabular-nums;margin-right:8px;color:#5C5A63}
-.pp-empty{font-size:12.5px;color:#8C8A93}
-.pp-essay{font-size:12.5px;line-height:1.75}
-.pp-tbl{width:100%;border-collapse:collapse;font-size:12.5px}
-.pp-tbl th{text-align:left;color:#8C8A93;font-weight:600;padding:5px 8px;border-bottom:1px solid #E4E2E8}
-.pp-tbl td{padding:6px 8px;border-bottom:1px solid #EFEDF2}
+.pp-sec ul b{font-variant-numeric:tabular-nums;margin-right:8px;color:var(--ink-60)}
+.pp-empty{font-size:12px;color:var(--ink-20)}
+.pp-essay{font-size:12px;line-height:1.75}
+.pp-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.pp-tbl th{text-align:left;color:var(--ink-20);font-weight:600;padding:4px 8px;border-bottom:1px solid var(--line)}
+.pp-tbl td{padding:8px;border-bottom:1px solid var(--line-soft)}
 .pp-memo-sec{break-inside:avoid;page-break-inside:avoid}
-.pp-note-item{font-size:12.5px;line-height:1.7;padding:7px 0;border-bottom:1px dashed #E4E2E8}
+.pp-note-item{font-size:12px;line-height:1.7;padding:8px 0;border-bottom:1px dashed var(--line)}
 .pp-note-item:last-child{border-bottom:none}
 .pp-note-item b{margin-right:8px}
 .pp-writelines{height:150px;background-image:repeating-linear-gradient(
-  to bottom,transparent,transparent 23px,#C8C6CE 23px,#C8C6CE 24px);background-position:0 8px}
-.pp-foot{font-size:10.5px;color:#8C8A93;text-align:right;margin-top:14px}
+  to bottom,transparent,transparent 23px,var(--ink-20) 23px,var(--ink-20) 24px);background-position:0 8px}
+.pp-foot{font-size:12px;color:var(--ink-20);text-align:right;margin-top:16px}
 @media print{body{padding:0}.pp-page{max-width:none;padding:14mm 12mm}}
 `;
+
+function printColorVariables() {
+  const styles = getComputedStyle(document.documentElement);
+  const declarations = PRINT_COLOR_TOKENS.map((token) => `${token}:${styles.getPropertyValue(token).trim()}`);
+  return `:root{${declarations.join(";")}}`;
+}
 
 function reviewRows(applicant: Applicant) {
   return ROUND_NUMBERS.map((round) => ({ round, review: applicant.reviewHistory[round] })).filter(
@@ -113,7 +132,7 @@ export function openPrintWindow(applicants: readonly Applicant[], performance: P
   win.document.open();
   win.document.write(`<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>${escapeHtml(title)}</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-<style>${PRINT_STYLE}</style></head><body>${applicants.map((applicant) => printableCard(applicant, performance)).join("")}</body></html>`);
+<style>${printColorVariables()}${PRINT_STYLE}</style></head><body>${applicants.map((applicant) => printableCard(applicant, performance)).join("")}</body></html>`);
   win.document.close();
   win.addEventListener("load", () => {
     win.focus();

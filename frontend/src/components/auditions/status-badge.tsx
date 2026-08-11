@@ -43,7 +43,7 @@ export function StatusBadge({
   size?: "sm" | "md";
   onPhoto?: boolean;
 }) {
-  const scale = size === "sm" ? "h-6 px-2 text-xs" : "h-7 px-2.5 text-[13px]";
+  const scale = size === "sm" ? "h-6 px-2 text-xs" : "h-7 px-2.5 text-dense";
 
   return (
     <span
@@ -74,7 +74,7 @@ export function PhaseTag({
   return (
     <span
       className={`inline-flex shrink-0 items-center whitespace-nowrap border font-semibold tracking-[0.005em] ${
-        inSidebar ? "h-5 gap-1.5 rounded-md px-1.5 text-[10.5px]" : "h-6 rounded-lg border-transparent px-2 text-xs font-bold"
+        inSidebar ? "h-5 gap-1.5 rounded-md px-1.5 text-xs" : "h-6 rounded-lg border-transparent px-2 text-xs font-bold"
       } ${tone}`}
     >
       {inSidebar ? <span aria-hidden="true" className={`h-1.5 w-1.5 shrink-0 rounded-full ${PHASE_DOT[phase]}`} /> : null}

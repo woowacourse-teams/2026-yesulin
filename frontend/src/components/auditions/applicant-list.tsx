@@ -8,7 +8,7 @@ import { ApplicantTable } from "./applicant-table";
 import { useBoard } from "./board-context";
 import { ScreenMessage } from "./screen-status";
 import { VideoModal } from "./video-modal";
-import { SecondaryButton } from "./ui-controls";
+import { SecondaryButton } from "@/components/ui/controls";
 
 export function ApplicantList() {
   const { board, filters, visible } = useBoard();
@@ -50,7 +50,7 @@ function ListToolbar({ rows }: { rows: readonly Applicant[] }) {
 
   return (
     <div className="mb-3 flex flex-wrap items-center gap-3 rounded-card border border-border bg-card px-4 py-3">
-      <label className="-m-1.5 flex cursor-pointer items-center gap-[9px] rounded-lg p-1.5 text-[13px] font-medium transition-colors hover:bg-foreground/5">
+      <label className="-m-1.5 flex cursor-pointer items-center gap-2 rounded-lg p-1.5 text-dense font-medium transition-colors hover:bg-foreground/5">
         <input
           type="checkbox"
           checked={allSelected}
@@ -65,9 +65,9 @@ function ListToolbar({ rows }: { rows: readonly Applicant[] }) {
         {allSelected ? "전체 해제" : "전체 선택"}
       </label>
 
-      <span className="text-[12.5px] text-muted">{label}</span>
+      <span className="text-xs text-muted">{label}</span>
       {selectedRows.length > 0 ? (
-        <span className="text-[12.5px] font-semibold text-brand">{selectedRows.length}명 선택됨</span>
+        <span className="text-xs font-semibold text-brand">{selectedRows.length}명 선택됨</span>
       ) : null}
 
       {filters.work === "DONE" ? (

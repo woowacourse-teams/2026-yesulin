@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SecondaryLink } from "@/components/ui/controls";
 import { ApplicantPreview } from "./landing-preview";
 import { LandingFooter, LandingHeader } from "./landing-header";
 
@@ -47,7 +48,7 @@ export function MarketingLanding({ audience }: { readonly audience: LandingConte
             <p className="mt-6 max-w-[560px] text-lg leading-8 text-muted-strong">{current.description}</p>
             <div className="mt-9 flex flex-wrap gap-3">
               <Link href={signupHref} className="inline-flex min-h-[52px] items-center justify-center rounded-control bg-brand px-6 text-base font-semibold text-white shadow-[var(--shadow-1)] transition-[background-color,box-shadow,transform] hover:bg-brand-strong hover:shadow-[var(--shadow-2)] active:scale-[0.98]">지원자로 시작하기</Link>
-              <a href="#features" className="inline-flex min-h-[52px] items-center justify-center rounded-control border border-border bg-white px-6 text-base font-semibold transition-[border-color,background-color,transform] hover:border-brand-line hover:bg-brand-soft active:scale-[0.98]">서비스 살펴보기</a>
+              <SecondaryLink href="#features" className="min-h-13 px-6 text-base">서비스 살펴보기</SecondaryLink>
             </div>
           </div>
           <ApplicantPreview />

@@ -4,7 +4,7 @@ import type {
 } from "@/features/auditions/creation-types";
 import { ROLE_GENDER_LABELS } from "@/features/auditions/labels";
 import { CreateField } from "./create-form";
-import { FieldInput } from "./ui-controls";
+import { FieldInput } from "@/components/ui/controls";
 
 export function PostingRoleSelector({
   roles,
@@ -38,12 +38,12 @@ export function PostingRoleSelector({
               className="mt-0.5 h-4 w-4 shrink-0 accent-brand"
             />
             <span className="min-w-0 flex-1">
-              <span className="block text-base font-semibold md:text-[13px]">{role.name}</span>
-              <span className="mt-0.5 block text-sm text-muted md:text-[11.5px]">
+              <span className="block text-base font-semibold md:text-dense">{role.name}</span>
+              <span className="mt-0.5 block text-sm text-muted md:text-xs">
                 {ROLE_GENDER_LABELS[role.gender]} · 만 {role.ageMin}~{role.ageMax}세 · {role.description}
               </span>
               {checked ? (
-                <span className="mt-2 flex items-center gap-2 text-sm text-muted-strong md:text-[11.5px]">
+                <span className="mt-2 flex items-center gap-2 text-sm text-muted-strong md:text-xs">
                   모집 인원
                   <input
                     type="number"
@@ -121,7 +121,7 @@ export function AuditionScheduleEditor({
             <button
               type="button"
               onClick={removeLastRound}
-              className="min-h-11 rounded-control border border-border bg-card px-3 text-base text-muted-strong hover:border-muted-soft hover:text-foreground md:h-[38px] md:min-h-0 md:text-[12px]"
+              className="min-h-11 rounded-control border border-border bg-card px-3 text-base text-muted-strong hover:border-muted-soft hover:text-foreground md:h-[38px] md:min-h-0 md:text-xs"
             >
               삭제
             </button>
@@ -132,7 +132,7 @@ export function AuditionScheduleEditor({
         <button
           type="button"
           onClick={addRound}
-          className="min-h-11 w-full rounded-control border border-dashed border-muted-soft bg-card px-3 py-2.5 text-base font-semibold text-muted-strong hover:border-brand-line hover:bg-brand-soft hover:text-brand md:text-[12.5px]"
+          className="min-h-11 w-full rounded-control border border-dashed border-muted-soft bg-card px-3 py-2.5 text-base font-semibold text-muted-strong hover:border-brand-line hover:bg-brand-soft hover:text-brand md:text-xs"
         >
           전형 추가
         </button>

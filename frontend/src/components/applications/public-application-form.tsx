@@ -12,8 +12,7 @@ import { PublicApplicationReceipt } from "./public-application-receipt";
 import { PublicApplicationReview } from "./public-application-review";
 import type { PostingId } from "@/features/auditions/types";
 import type { ProfilePrefillResponse } from "@/features/applicants/types";
-
-const controlClass = "min-h-12 w-full rounded-control border border-border bg-card px-3 py-2.5 text-base outline-none transition-[border-color,box-shadow] placeholder:text-muted-soft hover:border-muted-soft focus:border-brand focus:ring-2 focus:ring-brand-soft";
+import { fieldControlClass, PrimaryButton, SecondaryButton, TextButton } from "@/components/ui/controls";
 
 type PublicApplicationFormProps = {
   readonly postingId: PostingId;
@@ -46,7 +45,7 @@ function ApplicationStepScreen() {
   return <main className="min-h-screen bg-surface pb-[calc(148px+env(safe-area-inset-bottom))] text-foreground md:pb-12">
     <header className="glass-surface sticky top-0 z-20 border-x-0 border-t-0">
       <div className="mx-auto flex min-h-16 max-w-[880px] items-center px-5 md:px-8">
-        <button type="button" onClick={actions.requestBack} className="inline-flex min-h-11 items-center rounded-control px-2 text-sm font-semibold text-muted-strong hover:bg-surface hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">← 공고로 돌아가기</button>
+        <TextButton onClick={actions.requestBack} className="px-2">← 공고로 돌아가기</TextButton>
         <strong className="ml-auto text-sm text-brand">지원서 작성</strong>
       </div>
     </header>
@@ -87,7 +86,7 @@ function StepButton({ index, title }: { index: number; title: string }) {
   const progress = state.stepProgress[index]!;
   const label = progress.hasError ? "오류 있음" : progress.status === "COMPLETED" ? "완료" : progress.status === "CURRENT" ? "작성 중" : "아직 작성할 수 없음";
   const tone = progress.status === "CURRENT" ? "border-brand bg-brand text-white" : progress.hasError ? "border-fail/30 bg-fail-bg text-fail" : progress.status === "COMPLETED" ? "border-brand-line bg-brand-soft text-brand" : "border-border bg-card text-muted";
-  return <li><button type="button" disabled={!progress.accessible} aria-current={progress.status === "CURRENT" ? "step" : undefined} aria-label={`${index + 1}. ${title}, ${label}`} onClick={() => actions.moveStep(index)} className={`inline-flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-control border px-3 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-70 ${tone}`}><span aria-hidden="true" className="grid h-5 w-5 place-items-center rounded-full border border-current text-xs">{progress.hasError ? "!" : progress.status === "COMPLETED" ? "✓" : index + 1}</span><span>{title}</span><span className="sr-only">, {label}</span></button></li>;
+  return <li><button type="button" disabled={!progress.accessible} aria-current={progress.status === "CURRENT" ? "step" : undefined} aria-label={`${index + 1}. ${title}, ${label}`} onClick={() => actions.moveStep(index)} className={`inline-flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-control border px-3 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:border-border disabled:bg-border-soft disabled:text-muted ${tone}`}><span aria-hidden="true" className="grid h-5 w-5 place-items-center rounded-full border border-current text-xs">{progress.hasError ? "!" : progress.status === "COMPLETED" ? "✓" : index + 1}</span><span>{title}</span><span className="sr-only">, {label}</span></button></li>;
 }
 
 function StepContent() {
@@ -117,7 +116,7 @@ function InlineError({ id, error }: { id: string; error: string }) { return <p i
 function FieldControl({ field, id, error, describedBy }: { field: ApplicationFieldInput; id: string; error: string; describedBy: string }) {
   const { state, actions } = usePublicApplication();
   const value = state.values[field.id] ?? "";
-  const className = `${controlClass} ${error ? "border-fail focus:border-fail focus:ring-fail-bg" : ""}`;
+  const className = `${fieldControlClass} ${error ? "border-fail focus:border-fail focus:ring-fail-bg" : ""}`;
   const common = { id, name: field.id, required: field.required, value, placeholder: field.config.placeholder, maxLength: field.config.maxLength, "aria-invalid": Boolean(error) || undefined, "aria-describedby": describedBy, onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => actions.updateField(field.id, event.target.value), className };
   if (field.inputType === "TEXTAREA") return <textarea {...common} minLength={field.config.minLength} rows={6} className={`${className} resize-y`} />;
   if (field.inputType === "SELECT") return <select {...common}><option value="">선택해 주세요</option>{field.config.options?.map((option) => <option key={option} value={option}>{option}</option>)}</select>;
@@ -126,8 +125,8 @@ function FieldControl({ field, id, error, describedBy }: { field: ApplicationFie
   return <input {...common} type={type} inputMode={field.inputType === "TEL" ? "tel" : field.inputType === "NUMBER" ? "numeric" : undefined} />;
 }
 
-function PreviousButton() { const { state, actions } = usePublicApplication(); return <button type="button" onClick={() => actions.moveStep(state.stepIndex - 1)} className="min-h-11 rounded-control border border-border px-5 text-sm font-semibold text-muted-strong hover:border-brand-line hover:bg-brand-soft hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">이전</button>; }
-function NextButton({ label }: { label: string }) { const { actions } = usePublicApplication(); return <button type="button" onClick={actions.nextStep} className="min-h-11 rounded-control bg-brand px-5 text-sm font-semibold text-white transition-colors hover:bg-brand-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">{label}</button>; }
+function PreviousButton() { const { state, actions } = usePublicApplication(); return <SecondaryButton onClick={() => actions.moveStep(state.stepIndex - 1)} className="px-5">이전</SecondaryButton>; }
+function NextButton({ label }: { label: string }) { const { actions } = usePublicApplication(); return <PrimaryButton onClick={actions.nextStep} className="px-5">{label}</PrimaryButton>; }
 
 function ApplicantStickyAction({ label }: { label: string }) {
   const { state } = usePublicApplication();
@@ -145,5 +144,5 @@ function ApplicantStickyAction({ label }: { label: string }) {
 
 function FormEmpty() {
   const { meta } = usePublicApplication();
-  return <main className="min-h-screen bg-surface px-5 py-16 md:px-8"><section className="mx-auto max-w-[680px] rounded-modal border border-border bg-card px-6 py-14 text-center"><p className="text-sm font-semibold text-muted-strong">작성할 지원서 항목이 없어요</p><h1 className="mt-3 text-2xl font-bold">공고 설정을 확인해 주세요.</h1><button type="button" onClick={meta.onBack} className="mt-7 min-h-11 rounded-control bg-brand px-5 font-semibold text-white hover:bg-brand-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">공고로 돌아가기</button></section></main>;
+  return <main className="min-h-screen bg-surface px-5 py-16 md:px-8"><section className="mx-auto max-w-[680px] rounded-modal border border-border bg-card px-6 py-14 text-center"><p className="text-sm font-semibold text-muted-strong">작성할 지원서 항목이 없어요</p><h1 className="mt-3 text-2xl font-bold">공고 설정을 확인해 주세요.</h1><PrimaryButton onClick={meta.onBack} className="mt-7 px-5">공고로 돌아가기</PrimaryButton></section></main>;
 }

@@ -11,7 +11,7 @@ import {
 import { selectableStatuses, STATUS_LABELS } from "@/features/auditions/labels";
 import type { Gender, ReviewStatus } from "@/features/auditions/types";
 import { useBoard } from "./board-context";
-import { FilterChip, SegmentButton, TextButton, WarningFilterChip } from "./ui-controls";
+import { FilterChip, SegmentButton, TextButton, WarningFilterChip } from "@/components/ui/controls";
 
 export function FilterBar() {
   const { board, filters, setFilters } = useBoard();
@@ -95,7 +95,7 @@ export function FilterBar() {
             mismatchOnly: false,
           }))
         }
-        className="min-h-9 px-2 text-[13px]"
+        className="min-h-9 px-2 text-dense"
       >
         초기화
       </TextButton>
@@ -131,7 +131,7 @@ function NumericFilter({ field }: { field: NumericField }) {
       <button
         type="button"
         onClick={() => update({ op: "gte", value: meta.initial })}
-        className="min-h-9 whitespace-nowrap rounded-full border border-dashed border-muted-soft bg-card px-3 py-1.5 text-[13px] font-semibold text-muted-strong before:text-muted before:content-['+_'] hover:border-brand-line hover:bg-brand-soft hover:text-brand"
+        className="min-h-9 whitespace-nowrap rounded-full border border-dashed border-muted-soft bg-card px-3 py-1.5 text-dense font-semibold text-muted-strong before:text-muted before:content-['+_'] hover:border-brand-line hover:bg-brand-soft hover:text-brand"
       >
         {meta.label}
       </button>
@@ -139,7 +139,7 @@ function NumericFilter({ field }: { field: NumericField }) {
   }
 
   return (
-    <span className="inline-flex min-h-9 items-center gap-1.5 whitespace-nowrap rounded-full border border-brand-line bg-brand-soft py-1 pl-3 pr-1.5 text-[13px] text-brand">
+    <span className="inline-flex min-h-9 items-center gap-1.5 whitespace-nowrap rounded-full border border-brand-line bg-brand-soft py-1 pl-3 pr-1.5 text-dense text-brand">
       <span className="font-semibold">{meta.label}</span>
       <input
         type="number"
@@ -149,7 +149,7 @@ function NumericFilter({ field }: { field: NumericField }) {
           const parsed = Number(event.target.value);
           if (!Number.isNaN(parsed)) update({ ...condition, value: parsed });
         }}
-        className="num w-14 rounded-lg border border-border bg-card px-1.5 py-1 text-right text-[13px] text-foreground"
+        className="num w-14 rounded-lg border border-border bg-card px-1.5 py-1 text-right text-dense text-foreground"
       />
       <span className="text-muted">{meta.unit}</span>
       <select

@@ -76,7 +76,7 @@ export function AuditionTreeNav({ onNavigate }: { onNavigate?: () => void }) {
         <Link
           href={auditionRoutes.performances}
           onClick={onNavigate}
-          className={`flex min-h-11 flex-1 items-center whitespace-nowrap rounded-control py-2 pl-0.5 pr-1.5 text-left text-base font-bold tracking-[0.01em] transition-colors hover:bg-sidebar-hover lg:min-h-0 lg:text-[13px] lg:uppercase lg:tracking-[0.03em] ${
+          className={`flex min-h-11 flex-1 items-center whitespace-nowrap rounded-control py-2 pl-0.5 pr-1.5 text-left text-base font-bold tracking-[0.01em] transition-colors hover:bg-sidebar-hover lg:min-h-0 lg:text-dense lg:uppercase lg:tracking-[0.03em] ${
             atRoot ? "bg-sidebar-hover text-brand-line" : "text-sidebar-muted hover:text-white"
           }`}
         >
@@ -85,7 +85,7 @@ export function AuditionTreeNav({ onNavigate }: { onNavigate?: () => void }) {
       </div>
 
       {rootOpen && tree ? (
-        <div className="ml-3.5 border-l border-sidebar-line pl-[15px]" role="tree">
+        <div className="ml-3.5 border-l border-sidebar-line pl-4" role="tree">
           {tree.performances.map((performance) => (
             <TreeBranch
               key={performance.id}
@@ -120,7 +120,7 @@ function TreeBranch({
 }) {
   return (
     <>
-      <div className="relative flex items-center gap-0.5 before:absolute before:-left-[15px] before:top-4 before:h-px before:w-[11px] before:bg-sidebar-line">
+      <div className="relative flex items-center gap-0.5 before:absolute before:-left-4 before:top-4 before:h-px before:w-[11px] before:bg-sidebar-line">
         <button
           type="button"
           aria-label={`${performance.title} 공고 펼치기/접기`}
@@ -134,7 +134,7 @@ function TreeBranch({
           href={auditionRoutes.performance(performance.id)}
           onClick={onNavigate}
           aria-current={activePerformance && !activePostingId ? "page" : undefined}
-          className={`flex min-h-11 flex-1 items-center whitespace-nowrap rounded-control px-2 py-[7px] text-left text-base font-semibold transition-colors lg:min-h-0 lg:text-[13px] ${
+          className={`flex min-h-11 flex-1 items-center whitespace-nowrap rounded-control px-2 py-2 text-left text-base font-semibold transition-colors lg:min-h-0 lg:text-dense ${
             activePerformance && !activePostingId
               ? "bg-brand text-white"
               : "text-sidebar-text hover:bg-sidebar-hover hover:text-white"
@@ -145,7 +145,7 @@ function TreeBranch({
       </div>
 
       {open ? (
-        <div className="ml-[9px] border-l border-sidebar-line pb-1 pl-[15px] pt-0.5" role="group">
+        <div className="ml-2 border-l border-sidebar-line pb-1 pl-4 pt-0.5" role="group">
           {performance.postings.map((posting) => {
             const active = activePostingId === posting.id;
             /* 아직 시작 전인 공고는 지원자가 없으므로 공고 선택 화면에 머무르게 한다 */
@@ -158,13 +158,13 @@ function TreeBranch({
                 onClick={onNavigate}
                 aria-current={active ? "page" : undefined}
                 title={upcoming ? `${posting.title} — ${PHASE_LABELS.UPCOMING}` : posting.title}
-                className={`relative flex min-h-11 w-full items-center gap-1.5 whitespace-nowrap rounded-control px-2 py-[7px] text-base leading-tight transition-colors before:absolute before:-left-[15px] before:top-4 before:h-px before:w-[11px] before:bg-sidebar-line lg:min-h-0 lg:text-[12.5px] ${
+                className={`relative flex min-h-11 w-full items-center gap-1.5 whitespace-nowrap rounded-control px-2 py-2 text-base leading-tight transition-colors before:absolute before:-left-4 before:top-4 before:h-px before:w-[11px] before:bg-sidebar-line lg:min-h-0 lg:text-xs ${
                   active ? "bg-brand font-semibold text-white" : "text-sidebar-muted hover:bg-sidebar-hover hover:text-white"
                 }`}
               >
                 <span className="min-w-0 flex-1 truncate">{posting.title}</span>
                 <PhaseTag phase={posting.phase} variant={active ? "sidebarActive" : "sidebar"} />
-                <span className={`num shrink-0 text-[10.5px] ${active ? "text-white/75" : "text-sidebar-muted"}`}>
+                <span className={`num shrink-0 text-xs ${active ? "text-white/75" : "text-sidebar-muted"}`}>
                   {posting.applicantCount}
                 </span>
               </Link>

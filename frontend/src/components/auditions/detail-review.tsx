@@ -20,12 +20,12 @@ export function DetailReview({ applicant }: { applicant: Applicant }) {
   return (
     <footer className="flex flex-col gap-2.5 border-t border-border bg-surface px-5 pb-3.5 pt-3">
       <div className="flex flex-wrap items-center gap-3.5">
-        <span className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-muted">
+        <span className="text-xs font-semibold uppercase tracking-[0.04em] text-muted">
           {ROUND_LABELS[board.round]} 심사
         </span>
 
         {roundClosed ? (
-          <span className="rounded-control border border-border bg-card px-[11px] py-[7px] text-xs text-muted">
+          <span className="rounded-control border border-border bg-card px-3 py-2 text-xs text-muted">
             마감된 차수라 결과를 변경할 수 없습니다.
           </span>
         ) : (
@@ -43,7 +43,7 @@ export function DetailReview({ applicant }: { applicant: Applicant }) {
                       // 같은 버튼을 다시 누르면 미검토로 되돌린다
                       void reviewCurrent(applicant.id, active ? "PENDING" : status);
                     }}
-                    className={`min-h-11 rounded-control border px-[18px] py-[9px] text-base disabled:opacity-40 md:text-[13.5px] ${
+                    className={`min-h-11 rounded-control border px-5 py-2 text-base disabled:pointer-events-none disabled:border-border disabled:bg-border-soft disabled:text-muted md:text-dense ${
                       active ? `font-bold ${STATUS_ACTIVE[status]}` : "border-border bg-card hover:border-muted-soft"
                     }`}
                   >
@@ -59,14 +59,14 @@ export function DetailReview({ applicant }: { applicant: Applicant }) {
                 placeholder="사유 (예: 연락 두절)"
                 value={applicant.review.memo}
                 onCommit={(memo) => void patchReview(applicant.id, { memo })}
-                className="min-w-40 flex-1 rounded-control border border-border px-[11px] py-[9px] text-[13px]"
+                className="min-w-40 flex-1 rounded-control border border-border px-3 py-2 text-dense"
               />
             ) : null}
           </>
         )}
 
         <div className="ml-auto flex items-center gap-1.5">
-          <span className="num mr-1 text-[12.5px] text-muted">
+          <span className="num mr-1 text-xs text-muted">
             {index + 1} / {visible.length}
           </span>
           <NavButton
@@ -90,7 +90,7 @@ export function DetailReview({ applicant }: { applicant: Applicant }) {
         placeholder="예: 발성 좋음, 앙상블로도 고려 가능"
         value={applicant.review.note}
         onCommit={(note) => void patchReview(applicant.id, { note })}
-        className="min-h-14 w-full resize-y rounded-control border border-border bg-card px-[11px] py-[9px] text-[13px] leading-[1.55] focus:border-brand"
+        className="min-h-14 w-full resize-y rounded-control border border-border bg-card px-3 py-2 text-dense leading-[1.55] focus:border-brand"
       />
     </footer>
   );
@@ -110,7 +110,7 @@ function NavButton({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="min-h-11 rounded-control border border-border bg-card px-3.5 py-2 text-base text-muted-strong hover:border-muted-soft hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 md:text-[12.5px]"
+      className="min-h-11 rounded-control border border-border bg-card px-3.5 py-2 text-base text-muted-strong hover:border-muted-soft hover:text-foreground disabled:cursor-not-allowed disabled:bg-border-soft disabled:text-muted md:text-xs"
     >
       {label}
     </button>
@@ -147,7 +147,7 @@ function DraftField({
   return (
     <label className={multiline ? "flex flex-col gap-1.5" : "contents"}>
       {multiline ? (
-        <span className="flex items-baseline gap-2 text-[11.5px] font-semibold uppercase tracking-[0.04em] text-muted">
+        <span className="flex items-baseline gap-2 text-xs font-semibold uppercase tracking-[0.04em] text-muted">
           {label}
           {hint ? <span className="font-normal normal-case tracking-normal">{hint}</span> : null}
         </span>

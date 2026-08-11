@@ -8,7 +8,7 @@ import { useAuditionQuery, errorMessage } from "@/features/auditions/use-auditio
 import { Breadcrumb } from "@/components/auditions/breadcrumb";
 import { ScreenError } from "@/components/auditions/screen-status";
 import { useToast } from "@/components/auditions/toast";
-import { FieldInput, FieldTextarea, PrimaryButton } from "@/components/auditions/ui-controls";
+import { FieldInput, FieldTextarea, PrimaryButton } from "@/components/ui/controls";
 
 export function ProducerSettings() {
   const query = useAuditionQuery("producer-profile", getProducerProfile, "공연사 정보를 불러오지 못했습니다.");

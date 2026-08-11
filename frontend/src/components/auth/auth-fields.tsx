@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { InputHTMLAttributes } from "react";
-import { fieldControlClass } from "@/components/auditions/ui-controls";
+import { fieldControlClass } from "@/components/ui/controls";
 
 export type AccountRole = "applicant" | "producer";
 
