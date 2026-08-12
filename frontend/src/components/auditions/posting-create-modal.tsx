@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { createPosting } from "@/features/auditions/api";
 import {
   defaultApplicationFields,
@@ -50,6 +50,7 @@ export function PostingCreateModal({
 }) {
   const [title, setTitle] = useState("");
   const [isOpenCall, setIsOpenCall] = useState(false);
+  const [allowsMultipleRoles, setAllowsMultipleRoles] = useState(false);
   const [recruitmentStart, setRecruitmentStart] = useState("");
   const [recruitmentEnd, setRecruitmentEnd] = useState("");
   const [selectedRoles, setSelectedRoles] = useState<Readonly<Record<string, number>>>({});
@@ -60,6 +61,11 @@ export function PostingCreateModal({
   const [rolesError, setRolesError] = useState("");
   const [formError, setFormError] = useState("");
   const [created, setCreated] = useState<{ readonly title: string; readonly applicationUrl: string } | null>(null);
+
+  const close = useCallback(() => {
+    if (created) onCreated();
+    onClose();
+  }, [created, onClose, onCreated]);
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -85,6 +91,7 @@ export function PostingCreateModal({
       const response = await createPosting({
         performanceId,
         isOpenCall,
+        allowsMultipleRoles,
         title,
         recruitmentStart: submittedStart,
         recruitmentEnd: submittedEnd,
@@ -94,7 +101,6 @@ export function PostingCreateModal({
         applicationGuide,
       });
       notifyAuditionTreeChanged();
-      onCreated();
       setCreated({
         title: title.trim(),
         applicationUrl: `${window.location.origin}${publicApplicationRoute(response.createdPostingId)}`,
@@ -110,13 +116,13 @@ export function PostingCreateModal({
     <ModalShell
       key={created ? "created" : "form"}
       open
-      onClose={onClose}
+      onClose={close}
       labelledBy={created ? POSTING_CREATED_TITLE_ID : TITLE_ID}
       placement="responsiveSheet"
       className="flex h-[calc(100dvh-8px)] w-full flex-col overflow-hidden rounded-t-modal bg-card shadow-[var(--shadow-modal)] md:h-auto md:max-h-[94vh] md:w-[min(860px,95vw)] md:rounded-modal"
     >
       {created ? (
-        <PostingCreatedPanel postingTitle={created.title} applicationUrl={created.applicationUrl} onClose={onClose} />
+        <PostingCreatedPanel postingTitle={created.title} applicationUrl={created.applicationUrl} onClose={close} />
       ) : (
       <form
         onSubmit={submit}
@@ -163,7 +169,7 @@ export function PostingCreateModal({
                   key={String(option.value)}
                   type="button"
                   aria-pressed={isOpenCall === option.value}
-                  onClick={() => { setIsOpenCall(option.value); setSelectedRoles({}); setRolesError(""); }}
+                  onClick={() => { setIsOpenCall(option.value); setAllowsMultipleRoles(false); setSelectedRoles({}); setRolesError(""); }}
                   className={`min-h-24 rounded-card border p-4 text-left ${isOpenCall === option.value ? "border-brand-line bg-brand-soft" : "border-border bg-card hover:border-muted-soft"}`}
                 >
                   <strong className="block text-sm">{option.title}</strong>
@@ -172,6 +178,13 @@ export function PostingCreateModal({
               ))}
             </div>
           </CreateSection>
+
+          {!isOpenCall && Object.keys(selectedRoles).length > 1 ? <CreateSection title="복수 배역 지원" description="지원자가 하나의 지원서로 여러 배역에 함께 지원할 수 있는지 정합니다.">
+            <label className="flex min-h-12 cursor-pointer items-start gap-3 rounded-card border border-border bg-card p-4">
+              <input type="checkbox" checked={allowsMultipleRoles} onChange={(event) => setAllowsMultipleRoles(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-brand" />
+              <span><strong className="block text-sm">한 지원서에서 복수 배역 선택 허용</strong><span className="mt-1 block text-sm leading-6 text-muted">선택한 각 배역의 심사 목록에 같은 지원서가 별도 대상으로 표시됩니다.</span></span>
+            </label>
+          </CreateSection> : null}
 
           <CreateSection title={isOpenCall ? "모집 분야" : "모집 배역"} description={isOpenCall ? "공연에 등록된 배역 중 대표 모집 분야 하나와 모집 인원을 선택합니다." : "공연에 등록된 배역 중 이번 공고에서 모집할 배역과 인원을 선택합니다."}>
             <fieldset aria-describedby={rolesError ? ROLES_ERROR_ID : undefined} aria-invalid={rolesError ? true : undefined}>

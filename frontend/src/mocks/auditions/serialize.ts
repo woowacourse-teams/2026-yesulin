@@ -141,7 +141,7 @@ function reviewHistoryOf(applicant: MockApplicant, role: CatalogRole) {
 
   for (const round of ROUND_NUMBERS) {
     const inPool = poolFor(role.id, round).some((candidate) => candidate.id === applicant.id);
-    history[round] = inPool ? readReview(applicant.id, round) : null;
+    history[round] = inPool ? readReview(applicant.id, role.id, round) : null;
   }
 
   return history;
@@ -156,8 +156,8 @@ export function toApplicant(applicant: MockApplicant, role: CatalogRole, round: 
     age: applicant.age,
     height: applicant.height,
     weight: applicant.weight,
-    roleId: applicant.roleId,
-    roleName: applicant.roleName,
+    roleId: role.id,
+    roleName: role.name,
     birth: applicant.birth,
     phone: applicant.phone,
     email: applicant.email,
@@ -168,7 +168,7 @@ export function toApplicant(applicant: MockApplicant, role: CatalogRole, round: 
     motivation: applicant.motivation,
     photos: applicant.photos,
     videoUrl: applicant.videoUrl,
-    review: readReview(applicant.id, round),
+    review: readReview(applicant.id, role.id, round),
     reviewHistory: reviewHistoryOf(applicant, role),
     mismatchReasons: mismatchReasons(applicant, role),
   };

@@ -2,11 +2,12 @@
 
 import { createContext, use, useEffect, useState } from "react";
 import { applicationFormSteps, applicationStepProgress } from "@/features/applications/application-form";
-import { applicationStepIssue, hasApplicationDraft } from "@/features/applications/application-form-state";
-import type { ApplicationPhoto, ApplicationStepIssue, CareerDraft, SubmissionState } from "@/features/applications/application-form-state";
+import { applicationStepIssue } from "@/features/applications/application-form-state";
+import type { ApplicationStepIssue, SubmissionState } from "@/features/applications/application-form-state";
 import { submitPublicApplication } from "@/features/applicants/api";
-import { applicationDraftFromPrefill, submissionValue } from "./public-application-draft";
+import { submissionValue } from "./public-application-draft";
 import type { ApplicationReceipt, EditableSection, PublicApplicationActions, PublicApplicationContextValue, PublicApplicationProviderProps, PublicApplicationState } from "./public-application-context-types";
+import { usePublicApplicationDraft } from "./use-public-application-draft";
 
 const PublicApplicationContext = createContext<PublicApplicationContextValue | null>(null);
 
@@ -21,43 +22,36 @@ export function PublicApplicationProvider({
   fields,
   performanceTitle,
   postingTitle,
-  roleId,
+  roleIds: initialRoleIds,
   roleName,
+  authenticated,
   onBack,
   prefill,
   children,
 }: PublicApplicationProviderProps) {
   const steps = applicationFormSteps(fields);
-  const initial = applicationDraftFromPrefill(prefill);
-  const [stepIndex, setStepIndex] = useState(0);
-  const [values, setValues] = useState<Readonly<Record<string, string>>>(initial.values);
-  const [photos, setPhotos] = useState<readonly ApplicationPhoto[]>(initial.photos);
-  const [videoUrl, setVideoUrl] = useState(initial.videoUrl);
-  const [noCareer, setNoCareer] = useState(false);
-  const [careers, setCareers] = useState<readonly CareerDraft[]>(initial.careers);
+  const [receipt, setReceipt] = useState<ApplicationReceipt | null>(null);
+  const draft = usePublicApplicationDraft({ postingId, prefill, initialRoleIds, submitted: receipt !== null });
+  const {
+    stepIndex, setStepIndex, values, setValues, photos, setPhotos, videoUrl, setVideoUrl,
+    noCareer, setNoCareer, careers, setCareers, completedStepIndexes, setCompletedStepIndexes,
+    reviewing, setReviewing, consent, setConsent, saveToProfile, setSaveToProfile, roleIds,
+  } = draft;
   const [stepErrors, setStepErrors] = useState<Readonly<Record<number, string>>>({});
-  const [completedStepIndexes, setCompletedStepIndexes] = useState<readonly number[]>([]);
   const [mediaError, setMediaError] = useState("");
-  const [reviewing, setReviewing] = useState(false);
   const [leaveConfirmationOpen, setLeaveConfirmationOpen] = useState(false);
-  const [consent, setConsent] = useState(false);
   const [submissionState, setSubmissionState] = useState<SubmissionState>("IDLE");
   const [submissionError, setSubmissionError] = useState("");
-  const [receipt, setReceipt] = useState<ApplicationReceipt | null>(null);
-
-  const dirty = hasApplicationDraft({
-    values, photos, videoUrl, noCareer, careers, consent, submitted: receipt !== null,
-  });
 
   useEffect(() => {
-    if (!dirty) return;
+    if (!draft.hasUnsavedChanges) return;
     const onBeforeUnload = (event: BeforeUnloadEvent) => {
       event.preventDefault();
       event.returnValue = "";
     };
     window.addEventListener("beforeunload", onBeforeUnload);
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
-  }, [dirty]);
+  }, [draft.hasUnsavedChanges]);
 
   const validationIssue = (index: number) => applicationStepIssue({
     step: steps[index]!, photos, videoUrl, noCareer, careers, values,
@@ -68,7 +62,7 @@ export function PublicApplicationProvider({
   );
   const reviewIssues = steps.flatMap((step, index) => {
     const issue = validationIssue(index);
-    return issue ? [{ section: step.section as EditableSection, title: step.title, message: issue.message }] : [];
+    return issue ? [{ section: step.section as EditableSection, fieldId: issue.fieldId, title: step.title, message: issue.message }] : [];
   });
 
   const clearStepError = (index: number) => setStepErrors((current) => {
@@ -106,18 +100,24 @@ export function PublicApplicationProvider({
     else setStepIndex(stepIndex + 1);
   };
 
-  const editSection = (section: EditableSection) => {
+  const editSection = (section: EditableSection, fieldId?: string) => {
     if (submissionState === "SUBMITTING") return;
     const index = steps.findIndex((item) => item.section === section);
     if (index >= 0) {
+      const issue = fieldId ? validationIssue(index) : null;
       setReviewing(false);
       moveStep(index);
-      window.requestAnimationFrame(() => document.querySelector<HTMLElement>("#application-step-content input:not([type=file]):not([disabled]), #application-step-content select:not([disabled]), #application-step-content textarea:not([disabled]), #application-step-content button:not([disabled])")?.focus());
+      if (issue) {
+        setStepErrors((current) => ({ ...current, [index]: issue.message }));
+        focusIssue(issue);
+      } else {
+        window.requestAnimationFrame(() => document.querySelector<HTMLElement>("#application-step-content input:not([type=file]):not([disabled]), #application-step-content select:not([disabled]), #application-step-content textarea:not([disabled]), #application-step-content button:not([disabled])")?.focus());
+      }
     }
   };
 
   const requestBack = () => {
-    if (dirty) {
+    if (draft.hasUnsavedChanges) {
       setLeaveConfirmationOpen(true);
       return;
     }
@@ -129,6 +129,11 @@ export function PublicApplicationProvider({
     if (!consent) {
       setSubmissionError("개인정보 수집·이용 동의가 필요합니다.");
       window.requestAnimationFrame(() => document.getElementById("application-consent")?.focus());
+      return;
+    }
+    if (!authenticated) {
+      setSubmissionError("최종 제출하려면 로그인 또는 회원가입이 필요합니다.");
+      window.requestAnimationFrame(() => document.getElementById("application-auth-actions")?.focus());
       return;
     }
     const invalidIndex = steps.findIndex((_, index) => validationIssue(index));
@@ -150,13 +155,14 @@ export function PublicApplicationProvider({
     try {
       const response = await submitPublicApplication({
         postingId,
-        roleId,
+        roleIds,
         answers: fields.filter((field) => field.enabled).map((field) => ({
           key: field.id,
           ...(field.custom ? { label: field.label } : {}),
           value: submissionValue(field, { values, photos, videoUrl, careers, noCareer }),
         })),
         privacyAgreed: consent,
+        saveToProfile,
       });
       setReceipt({
         applicationId: response.applicationId,
@@ -174,7 +180,9 @@ export function PublicApplicationProvider({
   const state: PublicApplicationState = {
     stepIndex, values, photos, videoUrl, noCareer, careers, stepError: stepErrors[stepIndex] ?? "", mediaError,
     stepProgress: applicationStepProgress({ steps, stepIndex, maxReachedStepIndex, completedStepIndexes, stepErrors }), reviewIssues,
-    dirty, leaveConfirmationOpen, reviewing, consent, submissionState, submissionError, receipt,
+    hasUnsavedChanges: draft.hasUnsavedChanges, leaveConfirmationOpen, reviewing, consent, saveToProfile,
+    draftSaveStatus: draft.saveStatus, draftSaveError: draft.saveError, draftLastSavedAt: draft.lastSavedAt,
+    draftRestored: draft.restored, submissionState, submissionError, receipt,
   };
   const actions: PublicApplicationActions = {
     updateField: (id, value) => { setValues((current) => ({ ...current, [id]: value })); clearStepError(stepIndex); },
@@ -191,8 +199,10 @@ export function PublicApplicationProvider({
     cancelBack: () => setLeaveConfirmationOpen(false),
     confirmBack: () => { setLeaveConfirmationOpen(false); onBack(); },
     updateConsent: (value) => { setConsent(value); setSubmissionError(""); },
+    updateSaveToProfile: (value) => setSaveToProfile(value),
+    retryDraftSave: draft.retrySave,
     submit,
   };
 
-  return <PublicApplicationContext value={{ state, actions, meta: { postingId, fields, steps, performanceTitle, postingTitle, roleId, roleName, onBack, prefillSummary: prefill ? { filledCount: prefill.filledCount, requiredCount: prefill.requiredCount, missingKeys: prefill.missingKeys } : undefined } }}>{children}</PublicApplicationContext>;
+  return <PublicApplicationContext value={{ state, actions, meta: { postingId, fields, steps, performanceTitle, postingTitle, roleIds, roleName, authenticated, onBack, prefillSummary: prefill ? { filledCount: prefill.filledCount, requiredCount: prefill.requiredCount, missingKeys: prefill.missingKeys } : undefined } }}>{children}</PublicApplicationContext>;
 }

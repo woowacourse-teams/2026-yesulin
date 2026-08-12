@@ -38,7 +38,7 @@ function stateText(posting: PostingSummary) {
   if (posting.allRoundsClosed) return "전형 종료";
   if (posting.applicantCount === 0) return "지원자 대기";
   return posting.pendingReviewCount > 0
-    ? `검토 대기 ${posting.pendingReviewCount}명`
+    ? `검토 대기 ${posting.pendingReviewCount}건`
     : "검토 완료, 마감 대기";
 }
 

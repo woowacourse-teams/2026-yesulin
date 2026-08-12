@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { publicPostingAvailability, publicPostingRecommendations } from "@/features/applications/public-posting";
 import type { PublicPosting } from "@/features/applications/public-posting";
@@ -8,48 +7,29 @@ import { usePublicApplication } from "./public-application-context";
 import { PostingStatusBadge } from "./public-posting-status";
 import { formatApplicantDate } from "@/features/applicants/presentation";
 import { applicantRoutes } from "@/features/applicants/routes";
-import { PrimaryLink, SecondaryButton, SecondaryLink, TextButton } from "@/components/ui/controls";
+import { PrimaryLink, TextButton } from "@/components/ui/controls";
 
 export function PublicApplicationReceipt() {
   const { state, actions, meta } = usePublicApplication();
-  const [copied, setCopied] = useState(false);
   const receipt = state.receipt!;
   const recommendations = publicPostingRecommendations(meta.postingId);
-  const copyCode = async () => {
-    try {
-      await navigator.clipboard.writeText(receipt.number);
-      setCopied(true);
-    } catch {
-      setCopied(false);
-    }
-  };
 
   return <main className="min-h-screen bg-surface px-5 py-10 text-foreground md:px-8 md:py-14">
     <div className="mx-auto max-w-[880px]">
-      <section className="rounded-modal border border-border bg-card px-5 py-9 text-center shadow-[var(--shadow-1)] md:px-10 md:py-11">
+      <section className="rounded-card border border-border bg-card px-5 py-9 text-center md:px-10 md:py-11">
         <span aria-hidden="true" className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-brand-soft text-2xl font-bold text-brand">✓</span>
         <p className="mt-6 text-sm font-semibold text-brand">지원 완료</p>
         <h1 className="mt-2 text-2xl font-bold tracking-[-0.025em] md:text-[28px]">지원서 작성을 완료했어요.</h1>
-        <p className="mt-3 leading-7 text-muted-strong">지원 내용을 확인할 수 있도록 조회 코드를 보관해 주세요.</p>
+        <p className="mt-3 leading-7 text-muted-strong">제출한 내용은 계정의 내 지원서에서 읽기 전용으로 확인할 수 있어요.</p>
         <section aria-label="지원 완료 정보" className="mt-8 rounded-card border border-border bg-surface p-5 text-left md:p-6">
-          <div className="flex flex-wrap items-end gap-3">
-            <div className="min-w-0 flex-1"><p className="text-sm text-muted">지원 조회 코드</p><strong className="num mt-1 block break-all text-xl tracking-[0.02em] text-foreground">{receipt.number}</strong></div>
-            <SecondaryButton onClick={copyCode} className="text-muted-strong">{copied ? "복사됨" : "코드 복사"}</SecondaryButton>
-          </div>
-          <p role="status" className="mt-2 text-xs leading-5 text-muted">조회 코드와 지원서에 입력한 연락처로 언제든 제출 내용을 다시 확인할 수 있어요.</p>
-          <dl className="mt-5 grid gap-x-4 gap-y-3 border-t border-border-soft pt-5 text-sm md:grid-cols-[96px_1fr]">
+          <dl className="grid gap-x-4 gap-y-3 text-sm md:grid-cols-[96px_1fr]">
             <dt className="text-muted">공연</dt><dd className="font-medium">{meta.performanceTitle}</dd>
             <dt className="text-muted">공고</dt><dd className="font-medium">{meta.postingTitle}</dd>
             <dt className="text-muted">선택 배역</dt><dd className="font-medium">{meta.roleName}</dd>
             <dt className="text-muted">제출 시각</dt><dd className="num font-medium">{formatApplicantDate(receipt.submittedAt, true)}</dd>
           </dl>
-          <SecondaryLink href={applicantRoutes.lookup} className="mt-5 w-full text-muted-strong">조회 코드로 지원 내용 확인</SecondaryLink>
+          <PrimaryLink href={applicantRoutes.application(receipt.applicationId)} className="mt-5 w-full">내 지원서에서 확인</PrimaryLink>
         </section>
-      </section>
-
-      <section className="mt-8 overflow-hidden rounded-modal bg-sidebar px-5 py-8 text-white md:flex md:items-center md:gap-8 md:px-8">
-        <div className="min-w-0 flex-1"><p className="text-sm font-semibold text-brand-line">지원 내역을 한곳에서</p><h2 className="mt-2 text-xl font-bold tracking-[-0.02em]">방금 작성한 정보로 프로필을 만들어 보세요.</h2><p className="mt-3 text-sm leading-6 text-sidebar-muted">7일 안에 가입하면 이번 지원서와 표준 프로필 항목을 계정에 연결해 다음 지원에서 다시 사용할 수 있어요.</p></div>
-        {receipt.profileClaimToken ? <PrimaryLink href={`/signup?claim=${encodeURIComponent(receipt.profileClaimToken)}`} className="mt-6 min-h-12 w-full shrink-0 px-5 md:mt-0 md:w-auto">지원 정보 저장하고 가입</PrimaryLink> : <PrimaryLink href="/signup" className="mt-6 min-h-12 w-full shrink-0 px-5 md:mt-0 md:w-auto">계정 만들기</PrimaryLink>}
       </section>
 
       <section aria-labelledby="recommended-postings-title" className="mt-10">

@@ -10,7 +10,7 @@ import { SocialButtons } from "./social-buttons";
 
 type LoginErrors = Partial<Record<"identifier" | "password", string>>;
 
-export function LoginForm() {
+export function LoginForm({ returnTo, applicationFlow = false }: { readonly returnTo?: string; readonly applicationFlow?: boolean }) {
   const toast = useToast();
   const router = useRouter();
   const [role, setRole] = useState<AccountRole>("applicant");
@@ -47,14 +47,14 @@ export function LoginForm() {
       router.push("/producers/performances");
       return;
     }
-    toast("지원자 화면으로 이동합니다.", { type: "success" });
-    router.push("/applicants");
+    toast(applicationFlow ? "인증을 완료했어요. 지원서 검토 화면으로 돌아갑니다." : "지원자 화면으로 이동합니다.", { type: "success" });
+    router.push(returnTo ?? "/applicants");
   }
 
   return (
     <>
       <form onSubmit={handleSubmit} noValidate className="space-y-6">
-        <RoleField value={role} onChange={changeRole} />
+        <RoleField value={role} onChange={changeRole} purpose={applicationFlow ? "application" : "default"} />
 
         <div className="space-y-4">
           <AuthInput
@@ -98,7 +98,7 @@ export function LoginForm() {
           </button>
         </div>
 
-        <PrimaryButton type="submit" className="min-h-[52px] w-full text-base">로그인</PrimaryButton>
+        <PrimaryButton type="submit" className="min-h-[52px] w-full text-base">{applicationFlow && role === "applicant" ? "지원자로 로그인하고 계속" : "로그인"}</PrimaryButton>
 
         {role === "applicant" ? (
           <SocialButtons

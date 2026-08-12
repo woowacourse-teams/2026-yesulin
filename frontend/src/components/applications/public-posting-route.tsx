@@ -6,10 +6,11 @@ import type { PublicPosting } from "@/features/applications/public-posting";
 import { PublicPostingDetail } from "./public-posting-detail";
 import { PublicPostingUnavailable } from "./public-posting-status";
 
-export function PublicPostingRoute({ postingId, initialPosting, useProfilePrefill }: {
+export function PublicPostingRoute({ postingId, initialPosting, useProfilePrefill, resumeDraft = false }: {
   readonly postingId: string;
   readonly initialPosting: PublicPosting | null;
   readonly useProfilePrefill: boolean;
+  readonly resumeDraft?: boolean;
 }) {
   const [posting, setPosting] = useState(initialPosting);
   const [state, setState] = useState<"loading" | "ready" | "missing">(initialPosting ? "ready" : "loading");
@@ -31,7 +32,7 @@ export function PublicPostingRoute({ postingId, initialPosting, useProfilePrefil
 
   if (state === "loading") return <PublicPostingLoading />;
   if (state === "missing" || !posting) return <PublicPostingUnavailable />;
-  return <PublicPostingDetail posting={posting} useProfilePrefill={useProfilePrefill} />;
+  return <PublicPostingDetail posting={posting} useProfilePrefill={useProfilePrefill} resumeDraft={resumeDraft} />;
 }
 
 function PublicPostingLoading() {

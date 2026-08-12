@@ -3,6 +3,8 @@ import type { PerformanceId, RoleGender, RoundNumber } from "./types";
 export const APPLICATION_FIELD_OPTIONS = [
   { key: "NAME", label: "이름", defaultRequired: true, section: "BASIC", inputType: "TEXT", order: 10, layout: "HALF", config: { placeholder: "이름을 입력해 주세요." } },
   { key: "PHONE", label: "연락처", defaultRequired: true, section: "BASIC", inputType: "TEL", order: 20, layout: "HALF", config: { placeholder: "010-0000-0000" } },
+  { key: "EMAIL", label: "이메일", defaultRequired: true, section: "BASIC", inputType: "TEXT", order: 25, layout: "HALF", config: { placeholder: "name@example.com" } },
+  { key: "ADDRESS", label: "거주지", defaultRequired: true, section: "BASIC", inputType: "TEXT", order: 27, layout: "HALF", config: { placeholder: "예: 서울특별시 마포구" } },
   { key: "BIRTH", label: "생년월일", defaultRequired: true, section: "BASIC", inputType: "DATE", order: 30, layout: "HALF", config: {} },
   { key: "GENDER", label: "성별", defaultRequired: true, section: "BASIC", inputType: "SELECT", order: 40, layout: "HALF", config: { options: ["여성", "남성", "응답하지 않음"] } },
   { key: "BODY", label: "키·몸무게", defaultRequired: true, section: "BASIC", inputType: "COMPOSITE", order: 50, layout: "FULL", config: { fields: [{ key: "height", label: "키", inputType: "NUMBER", placeholder: "cm", unit: "cm" }, { key: "weight", label: "몸무게", inputType: "NUMBER", placeholder: "kg", unit: "kg" }] } },
@@ -105,6 +107,8 @@ export type CreatePostingRequest = {
   readonly performanceId: PerformanceId;
   /** true면 선택한 한 모집 분야를 배역 구분 없이 접수한다. */
   readonly isOpenCall: boolean;
+  /** 한 지원서에서 여러 배역을 함께 선택할 수 있는지 여부. */
+  readonly allowsMultipleRoles: boolean;
   readonly title: string;
   readonly recruitmentStart: string;
   readonly recruitmentEnd: string;

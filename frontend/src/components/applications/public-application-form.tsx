@@ -10,6 +10,7 @@ import { PublicApplicationMedia } from "./public-application-media";
 import { PublicApplicationProvider, usePublicApplication } from "./public-application-context";
 import { PublicApplicationReceipt } from "./public-application-receipt";
 import { PublicApplicationReview } from "./public-application-review";
+import { PublicApplicationSaveBadge, PublicApplicationSaveNotice } from "./public-application-save-status";
 import type { PostingId } from "@/features/auditions/types";
 import type { ProfilePrefillResponse } from "@/features/applicants/types";
 import { fieldControlClass, PrimaryButton, SecondaryButton, TextButton } from "@/components/ui/controls";
@@ -19,8 +20,9 @@ type PublicApplicationFormProps = {
   readonly fields: readonly ApplicationFieldInput[];
   readonly performanceTitle: string;
   readonly postingTitle: string;
-  readonly roleId: string;
+  readonly roleIds: readonly string[];
   readonly roleName: string;
+  readonly authenticated: boolean;
   readonly onBack: () => void;
   readonly prefill?: ProfilePrefillResponse;
 };
@@ -31,6 +33,7 @@ export function PublicApplicationForm(props: PublicApplicationFormProps) {
 
 function PublicApplicationContent() {
   const { state, meta } = usePublicApplication();
+  if (state.draftSaveStatus === "RESTORING") return <DraftRestoring />;
   if (meta.steps.length === 0) return <FormEmpty />;
   if (state.receipt) return <PublicApplicationReceipt />;
   if (state.reviewing) return <PublicApplicationReview />;
@@ -46,11 +49,13 @@ function ApplicationStepScreen() {
     <header className="glass-surface sticky top-0 z-20 border-x-0 border-t-0">
       <div className="mx-auto flex min-h-16 max-w-[880px] items-center px-5 md:px-8">
         <TextButton onClick={actions.requestBack} className="px-2">← 공고로 돌아가기</TextButton>
-        <strong className="ml-auto text-sm text-brand">지원서 작성</strong>
+        <span className="ml-auto hidden text-sm font-semibold text-brand sm:inline">지원서 작성</span>
+        <PublicApplicationSaveBadge />
       </div>
     </header>
     <div className="mx-auto max-w-[880px] px-5 py-7 md:px-8 md:py-12">
       <ApplicationStepper />
+      <PublicApplicationSaveNotice />
       <PrefillNotice />
       <section aria-labelledby="application-step-title" className="border-y border-border bg-card py-7 md:rounded-modal md:border md:px-8 md:py-9">
         <ApplicationSectionHeader current={state.stepIndex + 1} total={meta.steps.length} title={step.title} description={step.description} />
@@ -145,4 +150,8 @@ function ApplicantStickyAction({ label }: { label: string }) {
 function FormEmpty() {
   const { meta } = usePublicApplication();
   return <main className="min-h-screen bg-surface px-5 py-16 md:px-8"><section className="mx-auto max-w-[680px] rounded-modal border border-border bg-card px-6 py-14 text-center"><p className="text-sm font-semibold text-muted-strong">작성할 지원서 항목이 없어요</p><h1 className="mt-3 text-2xl font-bold">공고 설정을 확인해 주세요.</h1><PrimaryButton onClick={meta.onBack} className="mt-7 px-5">공고로 돌아가기</PrimaryButton></section></main>;
+}
+
+function DraftRestoring() {
+  return <main className="grid min-h-screen place-items-center bg-surface px-5 text-foreground"><section role="status" className="w-full max-w-lg rounded-modal border border-border bg-card px-6 py-12 text-center"><span aria-hidden="true" className="mx-auto block h-10 w-10 animate-pulse rounded-2xl bg-brand" /><h1 className="mt-5 text-xl font-bold">이 기기의 작성 내용을 확인하고 있어요</h1><p className="mt-2 text-sm leading-6 text-muted-strong">저장된 입력값과 사진이 있으면 불러온 뒤 지원서를 열게요.</p></section></main>;
 }

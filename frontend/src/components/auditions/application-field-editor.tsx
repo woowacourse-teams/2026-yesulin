@@ -1,6 +1,8 @@
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
 import { FieldInput } from "@/components/ui/controls";
 
+const REQUIRED_BASIC_FIELDS = new Set(["NAME", "PHONE", "EMAIL", "ADDRESS", "BIRTH", "GENDER", "BODY"]);
+
 const fieldCardClass =
   "flex min-h-12 min-w-0 items-center gap-2 rounded-control border border-border bg-card px-3 py-2.5";
 
@@ -39,27 +41,31 @@ export function ApplicationFieldEditor({
   return (
     <div className="space-y-3">
       <div className="grid gap-2 sm:grid-cols-2">
-        {fields.filter((field) => !field.custom).map((field) => (
+        {fields.filter((field) => !field.custom).map((field) => {
+          const policyRequired = REQUIRED_BASIC_FIELDS.has(field.id);
+          return (
           <div key={field.id} className={fieldCardClass}>
             <label className="flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-2 text-base md:min-h-0 md:text-xs">
               <input
                 type="checkbox"
-                checked={field.enabled}
+                checked={policyRequired || field.enabled}
+                disabled={policyRequired}
                 onChange={(event) => patch(field.id, { enabled: event.target.checked })}
-                className="h-4 w-4 shrink-0 accent-brand"
+                className="h-4 w-4 shrink-0 accent-brand disabled:cursor-not-allowed"
               />
               <span className={field.enabled ? "truncate text-foreground" : "truncate text-muted"}>
                 {field.label}
               </span>
             </label>
             <RequirementSelect
-              disabled={!field.enabled}
-              required={field.required}
+              disabled={policyRequired || !field.enabled}
+              required={policyRequired || field.required}
               label={field.label}
               onChange={(required) => patch(field.id, { required })}
             />
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {fields.some((field) => field.custom) ? (

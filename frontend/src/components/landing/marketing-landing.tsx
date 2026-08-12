@@ -21,12 +21,12 @@ const content: Record<LandingContent["audience"], LandingContent> = {
     features: [
       { title: "다음 공고를 빠르게", description: "제출을 마친 뒤에도 이어서 살펴볼 추천 오디션을 확인합니다." },
       { title: "지원 자료는 간편하게", description: "반복해서 작성하던 프로필과 경력, 사진과 영상을 정리해 활용합니다." },
-      { title: "제출 내용은 정확하게", description: "제출한 지원서를 다시 보고, 모집 마감 전에는 필요한 답변을 수정합니다." },
+      { title: "제출 내용은 정확하게", description: "제출 당시 지원서를 불변 스냅샷으로 안전하게 확인합니다." },
     ],
     steps: [
       { title: "공고 확인", description: "공연사가 공유한 링크와 추천에서 모집 정보를 확인합니다." },
       { title: "지원서 작성", description: "필요한 정보와 자료를 확인해 제출합니다." },
-      { title: "지원서 관리", description: "제출 내역을 확인하고 마감 전까지 내용을 관리합니다." },
+      { title: "지원서 관리", description: "계정에서 제출 내역과 당시 내용을 읽기 전용으로 확인합니다." },
     ],
   },
 };

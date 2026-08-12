@@ -4,6 +4,7 @@ import type { ApplicationId } from "@/features/auditions/types";
 import type { applicationFormSteps, applicationStepProgress } from "@/features/applications/application-form";
 import type { ApplicationPhoto, CareerDraft, SubmissionState } from "@/features/applications/application-form-state";
 import type { ProfilePrefillResponse } from "@/features/applicants/types";
+import type { DraftSaveStatus } from "./use-public-application-draft";
 
 export type ApplicationReceipt = {
   readonly applicationId: ApplicationId;
@@ -14,7 +15,7 @@ export type ApplicationReceipt = {
 };
 
 export type EditableSection = "BASIC" | "INTRODUCTION" | "MATERIALS" | "CAREER" | "CUSTOM";
-export type ReviewIssue = { readonly section: EditableSection; readonly title: string; readonly message: string };
+export type ReviewIssue = { readonly section: EditableSection; readonly fieldId: string; readonly title: string; readonly message: string };
 
 export type PublicApplicationState = {
   readonly stepIndex: number;
@@ -26,11 +27,16 @@ export type PublicApplicationState = {
   readonly stepError: string;
   readonly stepProgress: ReturnType<typeof applicationStepProgress>;
   readonly reviewIssues: readonly ReviewIssue[];
-  readonly dirty: boolean;
+  readonly hasUnsavedChanges: boolean;
   readonly leaveConfirmationOpen: boolean;
   readonly mediaError: string;
   readonly reviewing: boolean;
   readonly consent: boolean;
+  readonly saveToProfile: boolean;
+  readonly draftSaveStatus: DraftSaveStatus;
+  readonly draftSaveError: string;
+  readonly draftLastSavedAt: number | null;
+  readonly draftRestored: boolean;
   readonly submissionState: SubmissionState;
   readonly submissionError: string;
   readonly receipt: ApplicationReceipt | null;
@@ -46,11 +52,13 @@ export type PublicApplicationActions = {
   readonly updateCareers: (careers: readonly CareerDraft[]) => void;
   readonly moveStep: (index: number) => void;
   readonly nextStep: () => void;
-  readonly editSection: (section: EditableSection) => void;
+  readonly editSection: (section: EditableSection, fieldId?: string) => void;
   readonly requestBack: () => void;
   readonly cancelBack: () => void;
   readonly confirmBack: () => void;
   readonly updateConsent: (consent: boolean) => void;
+  readonly updateSaveToProfile: (save: boolean) => void;
+  readonly retryDraftSave: () => void;
   readonly submit: (result: "SUCCESS" | "ERROR") => void;
 };
 
@@ -60,8 +68,9 @@ export type PublicApplicationMeta = {
   readonly steps: ReturnType<typeof applicationFormSteps>;
   readonly performanceTitle: string;
   readonly postingTitle: string;
-  readonly roleId: string;
+  readonly roleIds: readonly string[];
   readonly roleName: string;
+  readonly authenticated: boolean;
   readonly prefillSummary?: Pick<ProfilePrefillResponse, "filledCount" | "requiredCount" | "missingKeys">;
   readonly onBack: () => void;
 };

@@ -42,9 +42,9 @@ export const screeningHandlers = [
     if (body.status === "ETC" && !body.memo?.trim()) return badRequest("MEMO_REQUIRED", "기타 사유를 입력해 주세요.");
     const pool = poolFor(body.roleId, body.round);
     const targets = body.applicationIds.filter((applicationId) => pool.some((applicant) => applicant.id === applicationId));
-    if (body.status === undefined && body.memo !== undefined && targets.some((applicationId) => reviewOf(applicationId, body.round).status === "ETC") && !body.memo.trim()) return badRequest("MEMO_REQUIRED", "기타 사유를 입력해 주세요.");
+    if (body.status === undefined && body.memo !== undefined && targets.some((applicationId) => reviewOf(applicationId, body.roleId, body.round).status === "ETC") && !body.memo.trim()) return badRequest("MEMO_REQUIRED", "기타 사유를 입력해 주세요.");
     for (const applicationId of targets) {
-      const review = reviewOf(applicationId, body.round);
+      const review = reviewOf(applicationId, body.roleId, body.round);
       if (body.status !== undefined) {
         review.status = body.status;
         review.memo = body.status === "ETC" ? body.memo?.trim() ?? "" : "";

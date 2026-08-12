@@ -74,13 +74,13 @@ export function ProfileEditor({ profile, onSaved }: { readonly profile: Applican
   };
 
   return <div className="mt-9 grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
-    <nav aria-label="프로필 항목" className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">{tabs.map((tab) => {
+    <nav aria-label="프로필 항목" className="scrollbar-compact flex snap-x snap-proximity gap-2 overflow-x-auto pb-2 lg:flex-col lg:overflow-visible lg:pb-0">{tabs.map((tab) => {
       const active = activeTab === tab.id;
       const fields = tab.id === "CUSTOM" ? customAnswers.map((answer) => ({ id: answer.key })) : standardFields.filter((field) => field.section === tab.id);
       const filled = fields.filter((field) => !removed.has(field.id) && hasValue(values[field.id])).length;
-      return <button key={tab.id} type="button" aria-current={active ? "page" : undefined} onClick={() => setActiveTab(tab.id)} className={`min-h-14 min-w-36 shrink-0 rounded-control border px-4 py-3 text-left transition-colors lg:min-w-0 ${active ? "border-brand bg-brand-soft text-brand" : "border-border bg-card text-muted-strong hover:border-brand-line hover:bg-brand-soft"}`}><span className="flex items-center justify-between gap-2"><strong className="text-sm">{tab.label}</strong><span className="num text-xs">{filled}/{fields.length}</span></span><span className="mt-1 hidden text-xs lg:block">{tab.description}</span></button>;
+      return <button key={tab.id} type="button" aria-current={active ? "page" : undefined} onClick={() => setActiveTab(tab.id)} className={`min-h-14 min-w-36 shrink-0 snap-start rounded-control border px-4 py-3 text-left transition-colors lg:min-w-0 ${active ? "border-brand bg-brand-soft text-brand" : "border-border bg-card text-muted-strong hover:border-brand-line hover:bg-brand-soft"}`}><span className="flex items-center justify-between gap-2"><strong className="text-sm">{tab.label}</strong><span className="num text-xs">{filled}/{fields.length}</span></span><span className="mt-1 hidden text-xs lg:block">{tab.description}</span></button>;
     })}</nav>
-    <section className="min-w-0 rounded-modal border border-border bg-card p-5 shadow-[var(--shadow-1)] md:p-7">
+    <section className="min-w-0 rounded-card border border-border bg-card p-5 md:p-7">
       <div className="border-b border-border-soft pb-5"><h2 className="text-xl font-bold">{tabs.find((tab) => tab.id === activeTab)?.label}</h2><p className="mt-2 text-sm leading-6 text-muted">프로필에는 필수 항목이 없어요. 필요한 정보만 저장하고, 공고별 필수 여부는 지원할 때 확인합니다.</p></div>
       <ProfileSectionPanel section={activeTab} fields={standardFields} profile={profile} values={values} removed={removed} onChange={(key, value) => { setValues((current) => ({ ...current, [key]: value })); setRemoved((current) => { const next = new Set(current); next.delete(key); return next; }); setError(""); }} onRequestRemove={setPendingRemoval} />
       {error ? <p role="alert" className="mt-5 rounded-control border border-fail/25 bg-fail-bg px-4 py-3 text-sm font-medium text-fail">{error}</p> : null}

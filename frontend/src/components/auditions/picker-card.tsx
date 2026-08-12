@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 
-const CARD_CLASS =
-  "flex min-w-0 flex-col gap-3 rounded-card border border-border bg-card p-5 text-left transition-[background-color,border-color,box-shadow,transform] duration-150 ease-[var(--ease-standard)] hover:-translate-y-0.5 hover:border-brand-line hover:shadow-[var(--shadow-2)] active:translate-y-0 active:scale-[0.995] active:bg-brand-soft";
+const CARD_BASE =
+  "flex min-w-0 flex-col rounded-card border border-border bg-card text-left transition-[background-color,border-color,box-shadow,transform] duration-150 ease-[var(--ease-standard)] hover:-translate-y-0.5 hover:border-brand-line hover:shadow-[var(--shadow-1)] active:translate-y-0 active:scale-[0.995] active:bg-brand-soft";
+const CARD_CLASS = `${CARD_BASE} gap-3 p-5`;
 
 export function PickerScreen({ children }: { children: React.ReactNode }) {
   return (
@@ -77,7 +78,7 @@ export function PickerCard({
   }
 
   return (
-    <div className={`${CARD_CLASS} gap-0 p-0`}>
+    <div className={CARD_BASE}>
       <Link href={href} className="flex min-w-0 flex-col gap-3 p-5">
         {children}
       </Link>
@@ -96,7 +97,7 @@ export function PickerCardBlocked({
   children: React.ReactNode;
   action?: React.ReactNode;
 }) {
-  const blockedClass = `${CARD_CLASS} cursor-not-allowed border-border bg-border-soft text-muted hover:translate-y-0 hover:border-border hover:shadow-none active:bg-border-soft`;
+  const blockedClass = `${CARD_BASE} cursor-not-allowed border-border bg-border-soft text-muted hover:translate-y-0 hover:border-border hover:shadow-none active:bg-border-soft`;
 
   if (!action) {
     return (
@@ -107,7 +108,7 @@ export function PickerCardBlocked({
   }
 
   return (
-    <div className={`${blockedClass} gap-0 p-0`}>
+    <div className={blockedClass}>
       <button type="button" onClick={onBlocked} className="flex min-w-0 flex-col gap-3 p-5 text-left">
         {children}
       </button>
@@ -125,7 +126,7 @@ export function PickerTitle({ children }: { children: React.ReactNode }) {
 }
 
 export function PickerDescription({ children }: { children: React.ReactNode }) {
-  return <p className="-mt-2 line-clamp-2 text-base text-muted lg:text-sm">{children}</p>;
+  return <p className="mt-1 line-clamp-2 text-base text-muted lg:text-sm">{children}</p>;
 }
 
 export function PickerStats({

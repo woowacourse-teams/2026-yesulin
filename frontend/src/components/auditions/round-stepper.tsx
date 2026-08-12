@@ -3,6 +3,7 @@
 import { ROUND_LABELS } from "@/features/auditions/labels";
 import type { RoundState } from "@/features/auditions/types";
 import { ApplicationLinkButton } from "./application-link-button";
+import { HorizontalScrollArea } from "./horizontal-scroll-area";
 import { useBoard } from "./board-context";
 
 function subtitleOf(state: RoundState) {
@@ -16,8 +17,9 @@ export function RoundStepper() {
   const { board, goToRound } = useBoard();
 
   return (
-    <div className="flex flex-col border-b border-border bg-card md:flex-row md:items-stretch">
-      <nav aria-label="전형 차수" className="flex min-w-0 flex-1 overflow-x-auto px-4 md:px-6">
+    <div className="flex items-stretch border-b border-border bg-card">
+      <HorizontalScrollArea className="min-w-0 flex-1" scrollerClassName="scrollbar-compact">
+      <nav aria-label="전형 차수" className="flex min-w-max px-4 md:px-6">
         {board.rounds.map((state) => {
           const selected = state.round === board.round;
           const subtitle = subtitleOf(state);
@@ -29,7 +31,7 @@ export function RoundStepper() {
               aria-current={selected ? "step" : undefined}
               disabled={!state.open}
               onClick={() => goToRound(state.round)}
-              className={`relative mr-6 flex flex-col gap-0.5 whitespace-nowrap border-b-2 pb-3 pr-6 pt-4 text-left transition-colors last:mr-0 last:pr-0 disabled:cursor-not-allowed disabled:border-transparent disabled:text-muted ${
+              className={`relative mr-5 flex min-h-16 items-center gap-2 whitespace-nowrap border-b-2 pr-5 text-left transition-colors last:mr-0 last:pr-0 disabled:cursor-not-allowed disabled:border-transparent disabled:text-muted md:mr-6 md:min-h-0 md:flex-col md:items-start md:gap-0.5 md:pb-3 md:pr-6 md:pt-4 ${
                 selected ? "border-brand" : "border-transparent"
               } after:absolute after:right-0 after:top-1/2 after:h-[7px] after:w-[7px] after:-translate-y-1/2 after:rotate-45 after:border-r-[1.5px] after:border-t-[1.5px] after:border-muted-soft last:after:hidden`}
             >
@@ -46,12 +48,12 @@ export function RoundStepper() {
               ) : null}
             </span>
 
-            <span className="num text-[21px] font-bold leading-[1.15] tracking-[-0.03em]">
+            <span className="num text-lg font-bold leading-[1.15] tracking-[-0.03em] md:text-[21px]">
               {state.open ? state.counts.all : "—"}
               <small className="ml-1 text-xs font-medium text-muted">{state.open ? "명" : ""}</small>
             </span>
 
-            <span className="text-xs text-muted">
+            <span className="hidden text-xs text-muted md:block">
               {subtitle ?? (
                 <>
                   검토 {state.progress.percent}%
@@ -63,7 +65,7 @@ export function RoundStepper() {
             </span>
 
             {state.open && state.counts.all > 0 ? (
-              <span className="mt-1.5 block h-[3px] min-w-[78px] overflow-hidden rounded-full bg-border-soft">
+              <span className="mt-1.5 hidden h-[3px] min-w-[78px] overflow-hidden rounded-full bg-border-soft md:block">
                 <i
                   className={`block h-full transition-[width] duration-300 ${
                     state.progress.percent === 100 ? "bg-pass" : selected ? "bg-brand" : "bg-muted-soft"
@@ -76,8 +78,9 @@ export function RoundStepper() {
           );
         })}
       </nav>
-      <div className="flex shrink-0 justify-end border-t border-border-soft px-4 py-2 md:items-center md:border-l md:border-t-0 md:py-0">
-        <ApplicationLinkButton postingId={board.posting.id} />
+      </HorizontalScrollArea>
+      <div className="flex shrink-0 items-center border-l border-border-soft px-2 md:px-4">
+        <ApplicationLinkButton postingId={board.posting.id} compact />
       </div>
     </div>
   );

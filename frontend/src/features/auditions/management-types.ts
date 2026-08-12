@@ -14,6 +14,7 @@ export type PostingManagementDetail = {
   readonly performanceTitle: string;
   readonly title: string;
   readonly isOpenCall: boolean;
+  readonly allowsMultipleRoles: boolean;
   readonly recruitmentStart: string;
   readonly recruitmentEnd: string;
   readonly phase: PostingPhase;
@@ -27,7 +28,7 @@ export type PostingManagementDetail = {
 
 export type UpdatePostingRequest = Partial<Pick<
   PostingManagementDetail,
-  "title" | "isOpenCall" | "recruitmentStart" | "recruitmentEnd" | "roles" | "rounds" | "applicationFields" | "applicationGuide"
+  "title" | "isOpenCall" | "allowsMultipleRoles" | "recruitmentStart" | "recruitmentEnd" | "roles" | "rounds" | "applicationFields" | "applicationGuide"
 >>;
 
 export type ProducerProfile = {

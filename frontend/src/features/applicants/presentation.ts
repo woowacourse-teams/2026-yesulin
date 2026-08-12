@@ -30,7 +30,6 @@ export function answerValueText(value: ApplicantAnswerValue) {
 }
 
 export function applicationAvailability(editable: boolean) {
-  return editable
-    ? { label: "수정 가능", tone: "border-brand-line bg-brand-soft text-brand", detail: "접수 마감 전까지 내용을 고칠 수 있어요." }
-    : { label: "제출 완료", tone: "border-border bg-surface text-muted-strong", detail: "접수가 마감되어 제출 내용을 열람만 할 수 있어요." };
+  void editable;
+  return { label: "제출 완료", tone: "border-border bg-surface text-muted-strong", detail: "제출 당시 스냅샷을 읽기 전용으로 확인할 수 있어요." };
 }

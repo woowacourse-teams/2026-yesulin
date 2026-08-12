@@ -73,7 +73,7 @@ export function applicationStepProgress({
 }
 
 export function applicationFieldDetail(field: ApplicationFieldInput) {
-  if (field.inputType === "FILE") return "JPG, PNG, WEBP · 파일당 10MB 이하 · 최대 4장";
+  if (field.inputType === "FILE") return "JPG, PNG, WEBP · 파일당 10MB 이하 · 전체 최대 10장";
   if (field.inputType === "URL") return "YouTube 링크로 입력해 주세요. 영상 파일은 받지 않아요.";
   if (field.inputType === "COMPOSITE") return field.config.fields?.map((part) => part.label).join(" · ") ?? "세부 정보를 입력해 주세요.";
   if (field.inputType === "SELECT") return field.config.options?.join(" · ") ?? "선택해 주세요.";

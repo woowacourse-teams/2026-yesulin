@@ -33,13 +33,13 @@ export function ApplicantDashboard() {
     </header>
 
     <section className="mt-9 grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-      <article className="rounded-modal bg-sidebar p-6 text-white shadow-[var(--shadow-2)] md:p-7">
+      <article className="rounded-card bg-sidebar p-6 text-white md:p-7">
         <div className="flex items-start justify-between gap-4"><div><p className="text-sm font-semibold text-brand-line">내 프로필</p><h2 className="mt-2 text-xl font-bold text-white">기본 정보 {profile.completeness.filled} / {profile.completeness.standardTotal}개 저장</h2></div><strong className="num text-2xl text-white">{percent}%</strong></div>
         <div className="mt-6 h-2 overflow-hidden rounded-full bg-white/15"><div className="h-full rounded-full bg-brand-line" style={{ width: `${percent}%` }} /></div>
         <p className="mt-4 text-sm leading-6 text-sidebar-muted">프로필은 지원서의 빈칸을 미리 채우는 데 사용돼요. 이미 제출한 지원서 내용은 바뀌지 않습니다.</p>
         <Link href={applicantRoutes.profile} className="mt-5 inline-flex min-h-11 items-center rounded-control border border-sidebar-line px-4 text-sm font-semibold text-white hover:bg-sidebar-hover">프로필 관리</Link>
       </article>
-      <article className="rounded-modal border border-border bg-card p-6 shadow-[var(--shadow-1)] md:p-7">
+      <article className="rounded-card border border-border bg-card p-6 md:p-7">
         <div className="flex items-center justify-between gap-4"><div><p className="text-sm font-semibold text-brand">최근 지원</p><h2 className="mt-1 text-xl font-bold">제출한 지원서</h2></div><Link href={applicantRoutes.applications} className="min-h-11 rounded-control px-3 py-2 text-sm font-semibold text-brand hover:bg-brand-soft">전체 보기</Link></div>
         {applications.length ? <ul className="mt-5 divide-y divide-border-soft">{applications.slice(0, 2).map((application) => <RecentApplication key={application.id} application={application} />)}</ul> : <DashboardEmpty title="아직 제출한 지원서가 없어요" detail="외부 공고의 예술in 지원 링크에서 지원서를 작성하면 여기에 모아 볼 수 있어요." />}
       </article>
@@ -53,13 +53,13 @@ export function ApplicantDashboard() {
 }
 
 function RecentApplication({ application }: { readonly application: ApplicantApplicationSummary }) {
-  return <li><Link href={applicantRoutes.application(application.id)} className="group grid grid-cols-[52px_minmax(0,1fr)_auto] items-center gap-3 py-4"><Image src={application.posterUrl} alt="" width={52} height={68} className="h-[68px] w-[52px] rounded-md object-cover" /><span className="min-w-0"><strong className="block truncate group-hover:text-brand">{application.performanceTitle}</strong><span className="mt-1 block truncate text-sm text-muted-strong">{application.roleName} · {formatApplicantDate(application.submittedAt)} 제출</span></span><span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${application.editable ? "border-brand-line bg-brand-soft text-brand" : "border-border bg-surface text-muted-strong"}`}>{application.editable ? "수정 가능" : "제출 완료"}</span></Link></li>;
+  return <li><Link href={applicantRoutes.application(application.id)} className="group grid grid-cols-[52px_minmax(0,1fr)_auto] items-center gap-3 py-4"><Image src={application.posterUrl} alt="" width={52} height={68} className="h-[68px] w-[52px] rounded-md object-cover" /><span className="min-w-0"><strong className="block truncate group-hover:text-brand">{application.performanceTitle}</strong><span className="mt-1 block truncate text-sm text-muted-strong">{application.roleName} · {formatApplicantDate(application.submittedAt)} 제출</span></span><span className="rounded-full border border-border bg-surface px-2.5 py-1 text-xs font-semibold text-muted-strong">제출 완료</span></Link></li>;
 }
 
 function RecommendationCard({ posting }: { readonly posting: RecommendedPosting }) {
   const date = posting.status === "UPCOMING" ? posting.recruitmentStart : posting.recruitmentEnd;
   const label = posting.status === "UPCOMING" ? "지원 시작" : "접수 마감";
-  return <li><Link href={`/apply/${posting.id}?prefill=1`} className="group flex min-h-52 flex-col rounded-card border border-border bg-card p-5 transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:border-brand-line hover:shadow-[var(--shadow-2)]"><div className="flex items-center gap-2"><PostingStatusBadge status={posting.status} /><span className="truncate text-xs text-muted">{posting.companyName}</span></div><strong className="mt-5 line-clamp-2 text-lg leading-7 group-hover:text-brand">{posting.performanceTitle}</strong><span className="mt-1 line-clamp-1 text-sm text-muted-strong">{posting.title}</span><span className="num mt-auto pt-5 text-sm font-medium text-muted">{label} · {formatApplicantDate(date)}</span></Link></li>;
+  return <li><Link href={`/apply/${posting.id}?prefill=1`} className="group flex min-h-52 flex-col rounded-card border border-border bg-card p-5 transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:border-brand-line hover:shadow-[var(--shadow-1)]"><div className="flex items-center gap-2"><PostingStatusBadge status={posting.status} /><span className="truncate text-xs text-muted">{posting.companyName}</span></div><strong className="mt-5 line-clamp-2 text-lg leading-7 group-hover:text-brand">{posting.performanceTitle}</strong><span className="mt-1 line-clamp-1 text-sm text-muted-strong">{posting.title}</span><span className="num mt-auto pt-5 text-sm font-medium text-muted">{label} · {formatApplicantDate(date)}</span></Link></li>;
 }
 
 function PageContainer({ children }: { readonly children: React.ReactNode }) {

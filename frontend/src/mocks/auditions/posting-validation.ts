@@ -3,6 +3,7 @@ import type { ApplicationFieldInput, AuditionRoundInput, PerformanceRoleTemplate
 export type PostingDraft = {
   readonly title: string;
   readonly isOpenCall: boolean;
+  readonly allowsMultipleRoles?: boolean;
   readonly recruitmentStart: string;
   readonly recruitmentEnd: string;
   readonly roles: readonly PostingRoleInput[];
@@ -20,6 +21,7 @@ export function validatePostingDraft(draft: PostingDraft, templates: readonly Pe
   if (draft.recruitmentStart > draft.recruitmentEnd) return { code: "INVALID_PERIOD", message: "모집 종료일은 시작일보다 빠를 수 없습니다." };
   if (!Array.isArray(draft.roles) || draft.roles.length === 0) return { code: "ROLE_REQUIRED", message: "모집할 배역을 하나 이상 선택해 주세요." };
   if (draft.isOpenCall && draft.roles.length !== 1) return { code: "OPEN_CALL_ROLE_REQUIRED", message: "배역 구분 없는 공고는 모집 분야를 하나만 선택해 주세요." };
+  if (draft.isOpenCall && draft.allowsMultipleRoles) return { code: "OPEN_CALL_MULTI_ROLE", message: "배역 구분 없는 공고에서는 복수 배역 지원을 켤 수 없습니다." };
   if (draft.roles.some((role) => !Number.isInteger(role.quota) || role.quota < 1)) return { code: "INVALID_QUOTA", message: "배역별 모집 인원은 1명 이상이어야 합니다." };
   const templateIds = new Set(templates.map((template) => template.id));
   if (draft.roles.some((role) => !templateIds.has(role.templateId))) return { code: "UNKNOWN_ROLE_TEMPLATE", message: "공연에 등록되지 않은 배역이 포함되어 있습니다." };

@@ -16,7 +16,7 @@ export function ApplicantPreview() {
       <div className="mt-4"><EmptyRow label="새로운 공고가 등록되면 이곳에 표시됩니다." /></div>
       <div className="mt-4 grid grid-cols-3 gap-2 rounded-card bg-surface p-3 text-center">
         <div><strong className="num block text-lg">0</strong><span className="text-xs text-muted">제출한 지원서</span></div>
-        <div className="border-x border-border"><strong className="num block text-lg">0</strong><span className="text-xs text-muted">수정 가능</span></div>
+        <div className="border-x border-border"><strong className="num block text-lg">0</strong><span className="text-xs text-muted">읽기 전용</span></div>
         <div><strong className="num block text-lg">0%</strong><span className="text-xs text-muted">프로필 완성도</span></div>
       </div>
     </div>
