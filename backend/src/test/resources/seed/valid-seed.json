@@ -1,0 +1,59 @@
+{
+  "producers": [{
+    "companyName": "테스트극단",
+    "contactName": "담당자",
+    "email": "seed@yesulin.example",
+    "businessNumber": "111-22-33333",
+    "representativeName": "대표자",
+    "verificationStatus": "VERIFIED",
+    "verifiedAt": "2026-08-07T10:12:00+09:00"
+  }],
+  "performances": [{
+    "id": "p1",
+    "title": "테스트 공연",
+    "venue": "테스트 극장",
+    "posterUrl": "https://example.com/poster.jpg",
+    "producer": "테스트극단"
+  }],
+  "performanceRoleTemplates": [],
+  "postings": [{
+    "id": "po1",
+    "performanceId": "p1",
+    "title": "테스트 공고",
+    "status": "OPEN",
+    "recruitmentStart": "2026-08-01",
+    "recruitmentEnd": "2026-08-09",
+    "applicationGuide": "테스트 안내"
+  }],
+  "roles": [{
+    "id": "r1",
+    "postingId": "po1",
+    "performanceId": "p1",
+    "name": "주연",
+    "description": "테스트 배역",
+    "quota": 1,
+    "gender": "ANY",
+    "ageMin": 20,
+    "ageMax": 40
+  }],
+  "rounds": [],
+  "applicationFields": [{
+    "postingId": "po1",
+    "id": "NAME",
+    "key": "NAME",
+    "label": "이름",
+    "required": true,
+    "custom": false,
+    "section": "BASIC",
+    "inputType": "TEXT",
+    "order": 10,
+    "config": {"placeholder": "이름"}
+  }],
+  "applications": [],
+  "careers": [],
+  "photos": [],
+  "reviews": [],
+  "roundClosures": [],
+  "applicationFieldOptions": [],
+  "applicantSide": {}
+}

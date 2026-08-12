@@ -23,6 +23,7 @@
 ```http
 POST   /api/v1/sessions                         # 로그인
 GET    /api/v1/sessions/current                 # 현재 세션
+PUT    /api/v1/sessions/current/active-company  # 소속 검증 후 활성 공연사 전환
 DELETE /api/v1/sessions/current                 # 로그아웃
 GET    /api/v1/oauth/{provider}/authorization   # 소셜 로그인 시작
 GET    /api/v1/oauth/{provider}/callback        # 소셜 인증 응답
@@ -104,6 +105,7 @@ GET    /api/v1/postings/{postingId}                     # 공연사용 공고 �
 PATCH  /api/v1/postings/{postingId}                     # 공고 수정
 DELETE /api/v1/postings/{postingId}                     # 공고 삭제
 GET    /api/v1/postings/{postingId}/roles               # 공고의 배역 목록
+POST   /api/v1/postings/{postingId}/roles               # 공고에 배역 등록
 ```
 
 ## 심사

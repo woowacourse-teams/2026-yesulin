@@ -2,7 +2,7 @@
 
 > 기준일: 2026-08-12<br>
 > 최초 기준: [Notion 도메인 설계](https://app.notion.com/p/3b94b21dcd3c80478a8ce0bb76965dc9)<br>
-> 후속 결정: [0008 지원서·프로필·배역 규칙](./decisions/0008-application-profile-and-role-rules.md), [0009 로컬 우선 서버 Draft 동기화](./decisions/0009-local-first-server-draft.md)
+> 후속 결정: [0008 지원서·프로필·배역 규칙](./decisions/0008-application-profile-and-role-rules.md), [0009 로컬 우선 서버 Draft 동기화](./decisions/0009-local-first-server-draft.md), [0010 Backend 첫 영속화 구조](./decisions/0010-backend-persistence-slice.md), [0011 활성 공연사와 mock seed 이관 경계](./decisions/0011-active-company-and-seed-boundaries.md)
 
 이 문서는 Notion의 최초 설계와 이후 팀이 확정한 도메인 결정을 개발자가 읽기 쉬운 형태로 정리한다. 현재 코드나 다른 문서가 이 내용과 다르면 **결정된 설계**, **현재 구현**, **추가 설계 필요**를 구분한다. 추가 설계 항목은 답이 아니라 팀이 결정해야 할 질문이다.
 
@@ -11,7 +11,10 @@
 ### 회원 구조
 
 - 지원자와 공연사를 분리한다.
+- 로그인 자격은 공통 `Account`가 소유하고 지원자와 공연사 멤버십은 별도 도메인 레코드로 분리한다.
+- 한 계정은 지원자이면서 여러 공연사의 멤버가 될 수 있다.
 - MVP 공연사 계정의 역할은 `ADMIN` 하나만 둔다.
+- 공연사 전용 API는 세션의 소속 검증된 `activeCompanyId`를 사용한다. 단일 멤버십 로그인과 공연사 가입에서는 자동 선택하고 별도 전환 API로 바꾼다.
 - 향후 팀원 기능을 도입할 때 초대로 가입하는 `TEAM_MEMBER` 역할을 추가할 수 있도록 역할을 ENUM 필드로 관리한다.
 - `TEAM_MEMBER`의 권한과 초대·탈퇴·삭제, `ADMIN` 양도 절차는 아직 정하지 않았다.
 
@@ -100,7 +103,7 @@
 
 ### Backend
 
-`backend/`에는 Spring Boot 진입점과 컨텍스트 로드 테스트만 있다. 회원, 공연사, 프로필, 지원서, 사진, 커스텀 질문의 도메인 객체·관계·상태·제약은 아직 구현되지 않았다.
+`backend/`에는 Flyway 기반 MySQL 스키마와 분리된 도메인/JPA 모델이 있다. Account 가입·세션 인증·CSRF, Applicant 프로필, 활성 공연사 문맥, 공연·공고·배역 관리 API를 제공한다. Draft와 제출 지원서·배역·답변·동의 스냅샷은 영속 모델과 내부 트랜잭션 서비스까지 구현했지만, 인증 전 Draft 보호·파일 계약과 제출 API가 결정되기 전이라 공개 controller는 만들지 않았다. 지원자 본인의 제출 지원서 조회 API는 구현되어 있다.
 
 ### Frontend·MSW·기존 문서
 
@@ -112,7 +115,7 @@
 - 현재 심사 결과는 `(지원서, 차수)` 기준이어서 복수 배역 지원서를 배역별로 독립 심사하는 목표 규칙과 다르다.
 - `/apply/lookup`과 공개 지원서 API에는 비로그인 제출 지원서 조회·수정 흐름이 남아 있다. 목표 정책은 인증된 계정만 최종 제출하고 계정에 귀속된 지원서만 조회하는 방식이므로 구현 시 제거하거나 인증 흐름으로 전환해야 한다.
 
-이번 작업에서는 애플리케이션 코드를 수정하지 않는다. 인증 후 제출 API의 구체적인 경로·요청·응답도 새로 설계하지 않는다.
+Frontend와 MSW는 이번 backend 작업에서 수정하지 않았다. 인증 전 Draft 동기화와 최종 제출의 구체적인 공개 API 계약도 새로 확정하지 않았다.
 
 ## 추가 도메인 설계 필요
 
@@ -120,8 +123,8 @@
 
 | 영역 | 결정해야 하는 질문 | 필요한 이유 | 영향 영역 |
 | --- | --- | --- | --- |
-| 회원 | - [ ] 지원자와 공연사를 어느 인증 주체·식별자·생명주기까지 분리하며 한 사람이 두 유형에 속할 수 있는가? | 회원 참조와 인증 경계의 기준이 된다. | Applicant, CompanyMember, 인증 |
-| 공연사 | - [ ] 한 계정이 여러 공연사를 관리할 수 있는가? 공연사 가입 시 Company와 최초 `ADMIN` 계정을 동시에 생성하는가? | 공연·공고의 소유권을 정해야 한다. | Company, CompanyMember, Performance, Posting |
+| 회원 | - [x] 공통 `Account`가 로그인 자격을 소유하고 Applicant·CompanyMember를 분리한다. 한 계정은 두 유형에 속할 수 있다. | [0010 결정](./decisions/0010-backend-persistence-slice.md) | Applicant, CompanyMember, 인증 |
+| 공연사 | - [x] 한 계정은 여러 공연사를 관리할 수 있고 공연사 가입 시 Company와 최초 `ADMIN` 멤버십을 함께 만든다. | [0010 결정](./decisions/0010-backend-persistence-slice.md) | Company, CompanyMember, Performance, Posting |
 | 인증 전 Draft | - [ ] 로그인 전 Draft와 파일을 어떤 식별자로 보호하고, 인증 후 어떤 검증을 거쳐 계정에 연결하는가? | 익명 Draft 식별자가 유출되거나 다른 계정에 잘못 연결되면 지원서와 사진이 노출될 수 있다. | Draft, File, 인증 |
 | Draft 최신성 | - [ ] 서버·브라우저·기기 간 수정 시각을 어떤 기준으로 신뢰하고 최신 Draft를 판정하는가? | 최신 수정본 자동 덮어쓰기를 일관되게 적용하려면 비교 기준이 필요하다. | Draft, 동기화 |
 | Draft 개인정보 | - [ ] 로그인과 최종 지원 동의 전에 서버 Draft로 저장하는 개인정보의 처리 근거와 고지·동의 시점은 언제인가? | 익명 상태에서도 개인정보가 서버로 전송되므로 저장 전에 처리 근거와 안내가 필요하다. 현재 결정은 보류됐다. | Draft, 개인정보 동의 |

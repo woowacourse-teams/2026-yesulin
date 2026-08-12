@@ -22,3 +22,5 @@
 7. [0007 도메인 설계 정본 반영](./0007-adopt-domain-design-source.md) — accepted · agent-required
 8. [0008 지원서·프로필·배역 규칙](./0008-application-profile-and-role-rules.md) — accepted · agent-required
 9. [0009 로컬 우선 서버 Draft 동기화](./0009-local-first-server-draft.md) — accepted · agent-required
+10. [0010 Backend 첫 영속화 구조](./0010-backend-persistence-slice.md) — accepted · agent-required
+11. [0011 활성 공연사와 mock seed 이관 경계](./0011-active-company-and-seed-boundaries.md) — accepted · agent-required

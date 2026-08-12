@@ -6,7 +6,7 @@
   },
   "scripts": {
     "prepare": "husky",
-    "checkstyle": "./backend/gradlew -p backend checkstyleMain checkstyleTest",
+    "checkstyle": "node scripts/run-checkstyle.mjs",
     "commitlint": "commitlint --edit"
   },
   "devDependencies": {

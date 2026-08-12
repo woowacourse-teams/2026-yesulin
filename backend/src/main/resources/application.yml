@@ -1,1 +1,15 @@
-spring.application.name=yesulin
+spring:
+  application:
+    name: yesulin
+  jackson:
+    time-zone: UTC
+server:
+  servlet:
+    session:
+      cookie:
+        http-only: true
+        same-site: lax
+yesulin:
+  seed:
+    path: ${YESULIN_SEED_PATH:}
+    producer-password: ${YESULIN_SEED_PRODUCER_PASSWORD:}
