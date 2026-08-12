@@ -20,3 +20,5 @@
 5. [0005 온보딩 문서 통합](./0005-consolidate-onboarding.md) — accepted · agent-required
 6. [0006 클라이언트가 읽기 쉬운 API 경로](./0006-client-readable-api-paths.md) — accepted · agent-required
 7. [0007 도메인 설계 정본 반영](./0007-adopt-domain-design-source.md) — accepted · agent-required
+8. [0008 지원서·프로필·배역 규칙](./0008-application-profile-and-role-rules.md) — accepted · agent-required
+9. [0009 로컬 우선 서버 Draft 동기화](./0009-local-first-server-draft.md) — accepted · agent-required
