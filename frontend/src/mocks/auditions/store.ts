@@ -45,7 +45,7 @@ export function addScreeningApplicant(applicant: MockApplicant) {
   submittedApplicants.unshift(applicant);
 }
 
-/** 공고에서 설정한 전형 차수. 기존 목 공고는 3차 전형을 기본값으로 사용한다. */
+/** 공고에서 설정한 전형 차수. 차수 설정이 없으면 3차 전형을 기본값으로 사용한다. */
 export function roundNumbersForRole(role: RoleId): readonly RoundNumber[] {
   for (const performance of CATALOG) {
     const posting = performance.postings.find((candidate) =>
@@ -79,28 +79,3 @@ export function activeRound(role: RoleId): RoundNumber {
 
 export const allRoundsClosed = (role: RoleId) =>
   roundNumbersForRole(role).every((round) => isRoundClosed(role, round));
-
-/** 지난 시즌 공고는 전 차수 심사 이력이 채워진 상태로 시작한다. */
-function seedFinishedPostings() {
-  for (const performance of CATALOG) {
-    for (const posting of performance.postings) {
-      if (!posting.finished) continue;
-
-      for (const role of posting.roles) {
-        for (const round of roundNumbersForRole(role.id)) {
-          const pool = poolFor(role.id, round);
-          if (pool.length > 0) {
-            const isLast = round === roundNumbersForRole(role.id).at(-1);
-            const keep = isLast ? role.quota : Math.max(role.quota, Math.ceil(pool.length / 2));
-            pool.forEach((applicant, index) => {
-              reviewOf(applicant.id, round).status = index < keep ? "PASS" : "FAIL";
-            });
-          }
-          markRoundClosed(role.id, round);
-        }
-      }
-    }
-  }
-}
-
-seedFinishedPostings();

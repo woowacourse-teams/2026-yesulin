@@ -9,7 +9,6 @@ import { AuthInput, PasswordInput, RoleField, type AccountRole } from "./auth-fi
 import { SocialButtons } from "./social-buttons";
 
 type LoginErrors = Partial<Record<"identifier" | "password", string>>;
-const MOCK_PRODUCER_IDS = new Set(["admin", "yesulin"]);
 
 export function LoginForm() {
   const toast = useToast();
@@ -44,15 +43,11 @@ export function LoginForm() {
       return;
     }
     if (role === "producer") {
-      if (MOCK_PRODUCER_IDS.has(trimmedIdentifier) && password === "1234") {
-        router.push("/producers/performances");
-        return;
-      }
-      setErrors({ password: "아이디 또는 비밀번호가 올바르지 않습니다." });
-      requestAnimationFrame(() => document.getElementById("login-password")?.focus());
+      toast("공연사 화면으로 이동합니다.", { type: "success" });
+      router.push("/producers/performances");
       return;
     }
-    toast("지원자 데모 계정으로 로그인했어요.", { type: "success" });
+    toast("지원자 화면으로 이동합니다.", { type: "success" });
     router.push("/applicants");
   }
 

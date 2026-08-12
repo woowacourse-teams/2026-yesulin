@@ -17,7 +17,6 @@ npm run start
 - 개발 서버: `http://localhost:3000`
 - 공연사 관리자: `/producers/performances`
 - 지원자 공개 공고: `/apply/{postingId}`
-- 목 계정: `admin` 또는 `yesulin` / `1234`
 - MSW 비활성화: `NEXT_PUBLIC_API_MOCKING=disabled`
 - 실제 API의 서버 조회 origin: `API_ORIGIN`
 
@@ -55,6 +54,6 @@ src/
 
 ## MSW와 실제 API
 
-기본 개발 환경은 MSW를 사용한다. 목 심사 상태는 브라우저 메모리에 있어 새로고침하면 초기화될 수 있다. 브라우저 API 요청은 같은 origin의 `/api/**` 상대 경로를 사용하고, 공개 공고의 SSR·메타데이터 조회만 `API_ORIGIN`을 사용한다.
+기본 개발 환경은 MSW를 사용한다. 공연·공고·배역·지원자·프로필·지원서·공연사 프로필의 초기 데이터는 비어 있으며, 화면에서 만든 데이터와 심사 상태만 브라우저 메모리에 유지되어 새로고침하면 초기화될 수 있다. 인증 화면은 실제 세션 API가 연결되기 전까지 입력 검증 후 역할별 화면으로 이동한다. 브라우저 API 요청은 같은 origin의 `/api/**` 상대 경로를 사용하고, 공개 공고의 SSR·메타데이터 조회만 `API_ORIGIN`을 사용한다.
 
 API 계약을 바꾸는 작업은 관련 타입, API 호출, MSW 핸들러와 문서를 같은 작업에서 갱신한다.
