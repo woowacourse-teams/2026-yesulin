@@ -1,16 +1,16 @@
 import type { ProducerProfile, UpdateProducerProfileRequest } from "@/features/auditions/management-types";
 
 let profile: ProducerProfile = {
-  companyName: "나인진엔터테인먼트",
-  contactName: "김프로듀서",
-  contactRole: "캐스팅 담당",
-  logoUrl: "/images/ninejin-group-logo.png",
-  description: "공연 제작과 배우 캐스팅을 운영하는 공연사입니다.",
-  email: "producer@yesulin.example",
-  businessNumber: "123-45-67890",
-  representativeName: "김대표",
-  verificationStatus: "VERIFIED",
-  verifiedAt: "2026-08-07T10:12:00+09:00",
+  companyName: "",
+  contactName: "",
+  contactRole: "",
+  logoUrl: "",
+  description: "",
+  email: "",
+  businessNumber: "",
+  representativeName: "",
+  verificationStatus: "PENDING",
+  verifiedAt: null,
 };
 
 export const producerProfile = () => structuredClone(profile);

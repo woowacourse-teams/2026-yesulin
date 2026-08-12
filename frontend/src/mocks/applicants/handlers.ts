@@ -7,6 +7,7 @@ import { addScreeningApplicant } from "../auditions/store";
 import { applicantApplication, applicantApplications, applicantProfile, addApplicantApplication, lookupApplicantApplication, patchApplicantApplication, patchApplicantProfile, recommendedPostings, registerProfileClaim } from "./store";
 import { toScreeningApplicant } from "./to-screening-applicant";
 import { mergeApplicationAnswers, validateApplicationAnswers } from "./validation";
+import { producerProfile } from "../auditions/producer-profile";
 
 const apiPath = "/api";
 const apiError = (status: number, code: string, message: string) => HttpResponse.json({ code, message }, { status });
@@ -86,7 +87,7 @@ export const applicantHandlers = [
     const createdApplicationId = applicationId(Date.now());
     const profileClaimToken = `pc_${crypto.randomUUID().replaceAll("-", "").slice(0, 16)}`;
     const profileClaimExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-    const application = { id: createdApplicationId, postingId: posting.id, performanceTitle: performance.title, postingTitle: posting.title, posterUrl: performance.posterUrl, companyName: "나인진엔터테인먼트", roleId: role.id, roleName: role.name, lookupCode: receiptNumber, submittedAt, updatedAt: submittedAt, editable: true, recruitmentEnd: posting.recruitmentEnd ?? "", editableUntil: `${posting.recruitmentEnd}T23:59:59+09:00`, answers: body.answers.map((answer) => ({ ...answer, label: answer.label ?? fields.find((field) => field.id === answer.key)?.label ?? answer.key })), applicationFields: fields };
+    const application = { id: createdApplicationId, postingId: posting.id, performanceTitle: performance.title, postingTitle: posting.title, posterUrl: performance.posterUrl, companyName: producerProfile().companyName || "공연사", roleId: role.id, roleName: role.name, lookupCode: receiptNumber, submittedAt, updatedAt: submittedAt, editable: true, recruitmentEnd: posting.recruitmentEnd ?? "", editableUntil: `${posting.recruitmentEnd}T23:59:59+09:00`, answers: body.answers.map((answer) => ({ ...answer, label: answer.label ?? fields.find((field) => field.id === answer.key)?.label ?? answer.key })), applicationFields: fields };
     addApplicantApplication(application);
     addScreeningApplicant(toScreeningApplicant(application, performance.id));
     registerProfileClaim(profileClaimToken, createdApplicationId, profileClaimExpiresAt);

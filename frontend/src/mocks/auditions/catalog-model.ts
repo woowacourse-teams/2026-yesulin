@@ -4,9 +4,8 @@ import type {
   AuditionRoundInput,
 } from "@/features/auditions/creation-types";
 import type { PerformanceId, PostingId, RoleGender, RoleId } from "@/features/auditions/types";
-import { roleId } from "@/features/auditions/types";
 
-/** 목 데이터가 세우는 배역 원본. applicantCount는 생성할 지원자 수다. */
+/** 인메모리 저장소가 사용하는 배역 원본. */
 export type CatalogRole = {
   readonly id: RoleId;
   readonly name: string;
@@ -43,27 +42,3 @@ export type CatalogPerformance = {
   readonly roleTemplates: readonly PerformanceRoleTemplate[];
   readonly postings: CatalogPosting[];
 };
-
-export function role(
-  id: string,
-  name: string,
-  description: string,
-  quota: number,
-  gender: RoleGender,
-  ageMin: number,
-  ageMax: number,
-  applicantCount: number,
-): CatalogRole {
-  return { id: roleId(id), name, description, quota, gender, ageMin, ageMax, applicantCount };
-}
-
-export function template(
-  id: string,
-  name: string,
-  description: string,
-  gender: RoleGender,
-  ageMin: number,
-  ageMax: number,
-): PerformanceRoleTemplate {
-  return { id, name, description, gender, ageMin, ageMax };
-}

@@ -28,7 +28,7 @@ export function ApplicantDashboard() {
 
   return <PageContainer>
     <header className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-      <div><p className="text-sm font-semibold text-brand">안녕하세요, 김서윤님</p><h1 className="mt-2 text-[clamp(28px,4vw,38px)] font-bold tracking-[-0.035em]">다음 지원을 준비해 볼까요?</h1><p className="mt-3 text-base leading-7 text-muted-strong">저장한 프로필과 지원 이력을 한곳에서 관리할 수 있어요.</p></div>
+      <div><p className="text-sm font-semibold text-brand">안녕하세요, 지원자님</p><h1 className="mt-2 text-[clamp(28px,4vw,38px)] font-bold tracking-[-0.035em]">다음 지원을 준비해 볼까요?</h1><p className="mt-3 text-base leading-7 text-muted-strong">저장한 프로필과 지원 이력을 한곳에서 관리할 수 있어요.</p></div>
       <Link href={applicantRoutes.profile} className="inline-flex min-h-12 items-center justify-center self-start rounded-control bg-brand px-5 font-semibold text-white hover:bg-brand-strong">프로필 이어서 작성</Link>
     </header>
 

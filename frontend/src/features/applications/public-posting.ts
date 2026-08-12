@@ -5,6 +5,7 @@ import type { ApplicationFieldInput } from "@/features/auditions/creation-types"
 import { applicationDocuments } from "./application-form";
 import type { ApplicationDocument } from "./application-form";
 import type { PostingId, RoleGender } from "@/features/auditions/types";
+import { producerProfile } from "@/mocks/auditions/producer-profile";
 
 export type PublicPostingStatus = "OPEN" | "UPCOMING" | "CLOSED";
 
@@ -39,10 +40,6 @@ export type PublicRole = {
 
 export type PublicSchedule = { readonly title: string; readonly detail: string };
 export type PublicPostingAvailability = { readonly label: string; readonly detail: string; readonly notice: string };
-const COMPANY = {
-  name: "나인진엔터테인먼트",
-  description: "공연 제작과 배우 캐스팅을 운영하는 공연사입니다.",
-} as const;
 
 function findPosting(id: string): { performance: CatalogPerformance; posting: CatalogPosting } | null {
   for (const performance of CATALOG) {
@@ -72,6 +69,7 @@ export function publicPostingById(id: string): PublicPosting | null {
   if (!found) return null;
 
   const { performance, posting } = found;
+  const company = producerProfile();
   const applicationFields = posting.applicationFields ?? defaultApplicationFields();
   return {
     id: posting.id,
@@ -79,8 +77,8 @@ export function publicPostingById(id: string): PublicPosting | null {
     title: posting.title,
     posterUrl: performance.posterUrl,
     venue: performance.venue,
-    companyName: COMPANY.name,
-    companyDescription: COMPANY.description,
+    companyName: company.companyName || "공연사",
+    companyDescription: company.description,
     recruitmentStart: posting.recruitmentStart ?? "",
     recruitmentEnd: posting.recruitmentEnd ?? "",
     status: posting.status,

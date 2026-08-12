@@ -32,9 +32,9 @@ export function ProducerMarketingLanding() {
               <Link href="/login" className="inline-flex min-h-[52px] items-center justify-center rounded-control border border-white/20 bg-white/5 px-6 font-semibold text-white backdrop-blur-md transition-[background-color,transform] hover:bg-white/10 active:scale-[0.98]">기존 계정으로 로그인</Link>
             </div>
             <dl className="mt-10 grid max-w-[540px] grid-cols-3 divide-x divide-white/10 border-y border-white/10 py-5">
-              <div className="pr-4"><dt className="text-xs text-sidebar-muted">진행 중 공고</dt><dd className="num mt-1 text-2xl font-bold text-white">3</dd></div>
-              <div className="px-4"><dt className="text-xs text-sidebar-muted">전체 지원자</dt><dd className="num mt-1 text-2xl font-bold text-white">128</dd></div>
-              <div className="pl-4"><dt className="text-xs text-sidebar-muted">검토 대기</dt><dd className="num mt-1 text-2xl font-bold text-white">24</dd></div>
+              <div className="pr-4"><dt className="text-xs text-sidebar-muted">진행 중 공고</dt><dd className="num mt-1 text-2xl font-bold text-white">0</dd></div>
+              <div className="px-4"><dt className="text-xs text-sidebar-muted">전체 지원자</dt><dd className="num mt-1 text-2xl font-bold text-white">0</dd></div>
+              <div className="pl-4"><dt className="text-xs text-sidebar-muted">검토 대기</dt><dd className="num mt-1 text-2xl font-bold text-white">0</dd></div>
             </dl>
           </div>
           <div className="relative">

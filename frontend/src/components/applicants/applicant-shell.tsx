@@ -25,9 +25,9 @@ export function ApplicantShell({ children }: { readonly children: React.ReactNod
         </nav>
         <div className="ml-auto flex items-center gap-2">
           <Link href={applicantRoutes.lookup} className="hidden min-h-11 items-center rounded-control px-3 text-sm font-semibold text-muted-strong hover:bg-surface hover:text-brand sm:inline-flex">조회 코드로 찾기</Link>
-          <div className="flex min-h-11 items-center gap-2 rounded-control px-2" aria-label="현재 로그인 계정: 김서윤">
-            <span className="grid h-8 w-8 place-items-center rounded-full bg-brand-soft text-sm font-bold text-brand" aria-hidden="true">김</span>
-            <span className="hidden text-sm font-semibold sm:inline">김서윤</span>
+          <div className="flex min-h-11 items-center gap-2 rounded-control px-2" aria-label="현재 로그인 계정: 지원자">
+            <span className="grid h-8 w-8 place-items-center rounded-full bg-brand-soft text-sm font-bold text-brand" aria-hidden="true">지</span>
+            <span className="hidden text-sm font-semibold sm:inline">지원자</span>
           </div>
           <Link
             href="/login"
