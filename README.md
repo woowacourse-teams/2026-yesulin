@@ -4,9 +4,9 @@
 
 - 지원자는 외부 공고의 링크로 들어와 프로필과 자료를 제출하고 지원 이력을 관리합니다.
 - 공연사는 공연·공고·배역을 만들고 지원자를 차수별로 검토합니다.
-- 핵심 구조는 `공연 → 공고 → 배역 → 지원서`입니다.
+- 공고에는 하나 이상의 배역과 지원서가 있고, 지원서는 공고 설정에 따라 하나 이상의 배역을 선택합니다.
 
-전형은 배역별로 독립 진행하며 심사 결과는 `(지원서, 차수)`별로 보존합니다. 상세 사용자 흐름은 [flowchart](./docs/flowchart/)를 기준으로 합니다.
+전형은 배역별로 독립 진행하며 심사 결과는 `(지원서, 배역, 차수)`별로 보존합니다. 최신 규칙은 [도메인 설계](./docs/domain-design.md), 상세 사용자 흐름은 [flowchart](./docs/flowchart/)를 기준으로 합니다.
 
 ## 현재 범위
 
@@ -69,6 +69,7 @@ cd backend
 yesulin/
 ├── backend/                  Spring Boot 4.1, Java 25
 ├── frontend/                 Next.js 16, React 19
+│   ├── docs/                 프론트엔드 디자인 시스템
 │   └── src/
 │       ├── app/              라우트
 │       ├── features/         도메인 타입과 API
@@ -88,8 +89,10 @@ yesulin/
 - [비즈니스 흐름](./docs/flowchart/)
 - [API·Git·백엔드 컨벤션](./docs/convention/)
 - [결정 기록](./docs/decisions/README.md)
+- [도메인 설계](./docs/domain-design.md)
 - [문서 운영 원칙](./docs/README.md)
-- [UI 디자인 원칙](./design.md)
+- [프론트엔드 안내](./frontend/README.md)
+- [UI 디자인 시스템](./frontend/docs/design-system.md)
 - [에이전트 작업 규칙](./AGENTS.md)
 
 ## 참고

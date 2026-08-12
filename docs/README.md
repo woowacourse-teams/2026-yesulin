@@ -3,6 +3,8 @@
 ## 제품 이해 문서
 
 - [프로젝트 README](../README.md): 서비스 목적, 현재 범위, 실행 방법과 코드 지도
+- [프론트엔드 README](../frontend/README.md): 프론트 실행, 구조, MSW와 현재 한계
+- [프론트엔드 디자인 시스템](../frontend/docs/design-system.md): UI 토큰, 컴포넌트와 Visual QA
 - [도메인 설계 기준](./domain-design.md): 확정된 회원·지원·지원서 규칙, 현재 구현과의 차이, 추가 설계 질문
 - [개인정보·서비스 정책](./policies/public/README.md): 공개 약관·처리방침·동의문 초안
 

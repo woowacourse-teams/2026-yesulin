@@ -2,7 +2,7 @@
 name: 예술in
 slug: yesulin
 category: performing-arts-audition-platform
-last_updated: "2026-08-11"
+last_updated: "2026-08-12"
 status: active
 language: ko
 implementation_reference:
@@ -27,6 +27,7 @@ implementation_reference:
 - 기본 작업 화면은 밝은 캔버스와 흰 표면을 사용한다. 짙은 표면은 공연사 사이드바, 인증·마케팅 히어로, 영상처럼 집중이 필요한 영역에 제한한다.
 - 글래스 표면은 sticky header, 모바일 고정 내비게이션·액션 바, 모달 header/footer처럼 실제로 떠 있는 영역에만 쓴다.
 - 기존 기능과 정보 위계를 시각 변경 때문에 제거하지 않는다.
+- 정렬과 간격은 눈대중으로 보정하지 않는다. 같은 역할의 요소는 같은 spacing, 정렬 축, 크기 규칙을 공유하고 부모 layout에서 일관되게 제어한다.
 
 ## 2. 색상
 
@@ -137,6 +138,10 @@ Tailwind의 4px 간격 체계를 기본으로 한다.
 - 카드 내부 여백은 16–24px, 모달 header/footer는 20px에서 24px을 사용한다.
 - 2px half-step과 임의 5·7·9·11px 값은 조밀한 표, 아이콘 정렬, 기존 컨트롤의 광학 보정에만 허용한다.
 - 새 레이아웃에는 표준 step을 먼저 사용하고 비슷한 임의 값을 추가하지 않는다.
+- 같은 의미의 형제 요소 사이 간격은 개별 `margin`보다 부모의 `gap`으로 제어한다.
+- 좌우가 대칭인 영역은 특별한 이유가 없으면 같은 horizontal padding을 사용한다.
+- 반복되는 카드·행·폼 그룹은 동일한 padding과 gap을 유지한다. 특정 항목 하나만 임의 간격으로 보정하지 않는다.
+- `negative margin`, 임의 `translate`, `absolute` 위치 보정은 정상 flow로 해결할 수 없는 광학 보정에만 제한한다. 일반적인 정렬 문제 해결 수단으로 사용하지 않는다.
 
 ## 5. Radius, Border, Shadow
 
@@ -192,6 +197,9 @@ Tailwind의 4px 간격 체계를 기본으로 한다.
 - 관리자 목록은 카드와 표 보기를 모두 지원한다. 좁은 화면에서 표를 단순 축소하지 않는다.
 - 상세 dialog는 데스크톱에서 목록과 프로필을 2열로, 좁은 화면에서는 세로 흐름으로 바꾼다.
 - 넓은 화면에서도 본문을 무제한 늘리지 않는다. 다만 공연사 workspace는 비교 가능한 열을 위해 가용 폭을 사용한다.
+- 중앙 정렬은 viewport가 아니라 **해당 콘텐츠가 속한 실제 container**를 기준으로 한다. sidebar가 있는 화면의 본문은 전체 화면이 아닌 workspace 영역 안에서 정렬한다.
+- header, 본문, footer/action 영역이 같은 화면 위계를 공유하면 가능한 한 같은 content edge와 horizontal padding을 맞춘다.
+- 반복되는 목록·카드·폼의 시작선과 끝선은 인접 섹션과 시각적으로 이어지도록 맞춘다.
 
 ## 7. 핵심 컴포넌트
 
@@ -275,7 +283,58 @@ Tailwind 기본 breakpoint를 그대로 사용한다.
 - 고밀도 관리자 정보는 `lg`부터 축소된 글자와 control을 허용하되, touch 환경의 44px 기준은 유지한다.
 - fixed 하단 영역은 `env(safe-area-inset-bottom)`을 반영한다.
 
-## 10. 반드시 지킬 Do / Don't
+## 10. UI 정렬·간격·시각 검수
+
+AI로 UI를 구현하거나 수정한 뒤에는 코드 작성만으로 완료했다고 판단하지 않는다. **가능하면 실제 화면을 렌더링한 상태에서** 정렬, 간격, 크기, 반응형을 검수한다.
+
+### 10.1 정렬 기준
+
+- 수평·수직 정렬의 기준이 되는 부모 container를 먼저 확인한다. 자식마다 개별 offset을 주어 맞추지 않는다.
+- inline 아이콘 + 텍스트, button content, badge는 기본적으로 `flex` + `items-center`와 명시적인 `gap`으로 정렬한다.
+- 제목, 본문, input, card가 같은 column에 속하면 의도적인 예외가 없는 한 같은 왼쪽 edge를 공유한다.
+- 중앙 배치 요소는 **수학적인 중앙뿐 아니라 시각적인 중앙**도 확인한다. 아이콘의 viewBox 여백이나 비대칭 형태 때문에 어색하면 1–2px 수준의 local optical correction만 허용한다.
+- 아이콘 때문에 텍스트가 한쪽으로 밀려 보이는 symmetry-critical control은 전체 content group의 균형을 확인한다. 단순히 `left`, `translateX`, 음수 margin으로 맞추지 않는다.
+- text baseline, icon size, line-height가 달라 생기는 수직 어긋남을 margin으로 숨기지 말고 font/line-height/icon box를 먼저 확인한다.
+
+### 10.2 간격과 크기 기준
+
+- 같은 계층의 반복 요소는 동일한 gap, padding, 높이, radius를 사용한다.
+- `12px → 16px → 14px`처럼 이유 없이 간격이 흔들리지 않게 한다. 의미가 같으면 같은 spacing token을 쓴다.
+- section 간격과 section 내부 간격을 구분한다. 상위 구획 간 간격이 내부 요소 간 간격보다 작아지지 않게 한다.
+- button/input/select 등 같은 control 계열은 특별한 variant가 아니면 높이를 맞춘다.
+- grid/list의 반복 item은 content 차이 때문에 불필요하게 들쭉날쭉해지지 않는지 확인한다.
+- 텍스트 줄바꿈으로 높이가 달라질 수 있는 영역에 고정 height를 남용하지 않는다. 필요한 경우 `min-height`와 자연스러운 flow를 우선한다.
+
+### 10.3 완료 전 Visual QA Gate
+
+UI 변경 작업은 최소한 변경한 화면의 **모바일 1개 + 데스크톱 1개 viewport**에서 다음을 확인한 뒤 완료한다. 가능한 환경이라면 screenshot을 직접 확인하고 CSS/JSX만 보고 추정하지 않는다.
+
+1. **Container** — 화면의 실제 콘텐츠 영역이 올바른 width와 padding을 사용하는가.
+2. **Alignment** — 제목, card, form, button, icon의 기준선과 중앙 정렬이 어긋나지 않는가.
+3. **Spacing** — 같은 의미의 간격이 반복해서 같은 값을 쓰며, 특정 요소만 뜨거나 붙어 있지 않은가.
+4. **Sizing** — 반복 control과 card의 높이·폭·radius가 이유 없이 달라지지 않는가.
+5. **Wrapping / Overflow** — 긴 텍스트, 작은 viewport에서 줄바꿈·잘림·가로 overflow가 발생하지 않는가.
+6. **Sticky / Fixed** — header, navigation, bottom action이 콘텐츠를 가리거나 서로 겹치지 않는가.
+7. **Interaction** — hover, focus, error, loading 상태 전환 시 크기나 위치가 튀지 않는가.
+8. **Optical balance** — 코드상 중앙이어도 사람이 봤을 때 한쪽으로 치우쳐 보이는 요소가 없는가.
+
+문제를 발견하면 새로운 임의 값부터 추가하지 않는다. 먼저 **잘못된 부모 layout → 기존 token 미사용 → 잘못된 width/line-height → component variant 불일치** 순서로 원인을 찾는다.
+
+### 10.4 AI 구현 시 금지되는 보정
+
+다음 방식은 명확한 이유 없이 사용하지 않는다.
+
+- 정렬을 맞추기 위한 반복적인 `margin-left/right/top`, 음수 margin
+- 정상 layout으로 가능한 요소에 대한 `position: absolute`
+- 중앙 정렬을 위한 임의 `calc(...)` 또는 magic number
+- 같은 역할의 요소에 서로 다른 임의 width/height
+- 한 화면만 맞추기 위한 새로운 spacing 값
+- overflow를 숨기기 위한 무조건적인 `overflow-hidden`
+- 텍스트가 들어가는 영역의 불필요한 고정 height
+
+예외가 필요하면 먼저 기존 layout/token으로 해결 가능한지 확인하고, 예외는 해당 컴포넌트 내부에 국소적으로 둔다.
+
+## 11. 반드시 지킬 Do / Don't
 
 ### Do
 
@@ -286,6 +345,8 @@ Tailwind 기본 breakpoint를 그대로 사용한다.
 - 로딩, 빈 상태, 오류, disabled, focus-visible을 함께 설계한다.
 - 모바일과 데스크톱을 각 사용 목적에 맞게 재배치한다.
 - 새 시각 값이 여러 영역에서 반복될 때만 토큰 추가를 검토한다.
+- UI 수정 후 가능한 경우 실제 렌더링 화면에서 모바일·데스크톱 정렬과 간격을 확인한다.
+- 같은 화면의 관련 영역은 content edge, padding, control height가 일관적인지 함께 검토한다.
 
 ### Don't
 
@@ -297,3 +358,5 @@ Tailwind 기본 breakpoint를 그대로 사용한다.
 - 10–13px 텍스트와 임의 spacing을 일반 사용자 화면에 확산하지 않는다.
 - 인쇄 화면에 별도 색상 팔레트를 만들지 않는다. 앱의 시맨틱 CSS 변수를 전달해 사용한다.
 - 시각 개선을 이유로 기존 기능, 접근 가능한 이름, keyboard interaction을 제거하지 않는다.
+- 중앙 정렬이나 간격 문제를 magic number, 음수 margin, 불필요한 absolute positioning으로 덮지 않는다.
+- 코드상 값이 맞는다는 이유만으로 시각 검수를 생략하지 않는다.

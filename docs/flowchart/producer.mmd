@@ -17,8 +17,8 @@ flowchart TB
     NEW_PERF --> CREATE_PERF["공연·배역 템플릿 등록<br>POST /api/v1/performances"]
     POSTINGS --> CREATE_POSTING["공고 등록<br>POST /api/v1/performances/{performanceId}/postings"] & POSTING_DETAIL["공고 상세<br>GET /api/v1/postings/{postingId}"]
     POSTING_DETAIL --> EDIT_POSTING["공고 수정·삭제<br>PATCH·DELETE /api/v1/postings/{postingId}"] & ROLES["배역 목록<br>GET /api/v1/postings/{postingId}/roles"]
-    ROLES --> SOLE{"배역 하나 또는 자유 배역?"}
-    SOLE -- 예 --> BOARD["심사 보드 첫 페이지<br>GET /api/v1/roles/{roleId}/screening-rounds/{round}/applications"]
+    ROLES --> SOLE{"배역 하나?"}
+    SOLE -- 예 --> BOARD["배역별 심사 보드 첫 페이지<br>복수 배역 지원서는 각 배역에 표시<br>GET /api/v1/roles/{roleId}/screening-rounds/{round}/applications"]
     SOLE -- 아니오 --> CHOOSE_ROLE["심사할 배역 선택"]
     CHOOSE_ROLE --> BOARD
     BOARD --> MORE{"다음 페이지 필요?"}
