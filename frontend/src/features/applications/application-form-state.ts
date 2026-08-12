@@ -1,6 +1,6 @@
 import type { ApplicationFormStep } from "./application-form";
 
-export const MAX_PHOTO_COUNT = 4;
+export const MAX_PHOTO_COUNT = 10;
 export const MAX_PHOTO_SIZE_BYTES = 10 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/;
@@ -13,6 +13,7 @@ export type ApplicationPhoto = {
   readonly name: string;
   readonly url: string;
   readonly status: UploadStatus;
+  readonly blob?: Blob;
   readonly error?: string;
 };
 
@@ -20,7 +21,7 @@ export type CareerDraft = { readonly id: string; readonly title: string; readonl
 export type SubmissionState = "IDLE" | "SUBMITTING" | "ERROR";
 export type ApplicationStepIssue = { readonly message: string; readonly fieldId: string };
 
-/** 실제 임시 저장이 없으므로, 화면 이탈 전에 경고할 브라우저 메모리 초안의 기준이다. */
+/** 저장할 의미가 있는 지원서 Draft인지 판정한다. */
 export function hasApplicationDraft({
   values,
   photos,

@@ -21,7 +21,7 @@ const PLACEMENT_CLASS = {
   center: "left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2",
   left: "bottom-0 left-0 top-0",
   responsiveSheet:
-    "inset-x-0 bottom-0 md:bottom-auto md:left-1/2 md:right-auto md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2",
+    "inset-x-0 bottom-0 top-auto md:bottom-auto md:left-1/2 md:right-auto md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2",
 } as const;
 
 /** Escape로 닫고, 배경을 눌러도 닫히는 공용 다이얼로그 껍데기. */

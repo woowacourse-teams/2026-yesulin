@@ -59,12 +59,14 @@ export const handlers = [
 
   http.get(`${apiPath}/navigation/tree`, async () => {
     await delay(180);
-    return HttpResponse.json(toAuditionTree());
+    try { return HttpResponse.json(toAuditionTree()); }
+    catch (cause) { return apiError(500, "MOCK_DATA_ERROR", cause instanceof Error ? cause.message : "목 탐색 데이터를 만들지 못했습니다."); }
   }),
 
   http.get(`${apiPath}/performances`, async () => {
     await delay(260);
-    return HttpResponse.json({ performances: CATALOG.map(toPerformanceSummary) });
+    try { return HttpResponse.json({ performances: CATALOG.map(toPerformanceSummary) }); }
+    catch (cause) { return apiError(500, "MOCK_DATA_ERROR", cause instanceof Error ? cause.message : "목 공연 데이터를 만들지 못했습니다."); }
   }),
 
   http.get(`${apiPath}/performances/:performanceId/postings`, async ({ params }) => {

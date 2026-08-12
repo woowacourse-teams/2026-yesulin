@@ -1,12 +1,12 @@
 import { delay, http, HttpResponse } from "msw";
-import type { LookupApplicationRequest, SubmitApplicationRequest, UpdateApplicationRequest, UpdateProfileRequest } from "@/features/applicants/types";
+import type { SubmitApplicationRequest, UpdateProfileRequest } from "@/features/applicants/types";
 import { publicPostingById } from "@/features/applications/public-posting";
 import { applicationId, postingId } from "@/features/auditions/types";
 import { findPerformance, findPosting } from "../auditions/aggregate";
 import { addScreeningApplicant } from "../auditions/store";
-import { applicantApplication, applicantApplications, applicantProfile, addApplicantApplication, lookupApplicantApplication, patchApplicantApplication, patchApplicantProfile, recommendedPostings, registerProfileClaim } from "./store";
+import { applicantApplication, applicantApplications, applicantProfile, addApplicantApplication, hasApplicationForPosting, patchApplicantProfile, recommendedPostings } from "./store";
 import { toScreeningApplicant } from "./to-screening-applicant";
-import { mergeApplicationAnswers, validateApplicationAnswers } from "./validation";
+import { validateApplicationAnswers } from "./validation";
 import { producerProfile } from "../auditions/producer-profile";
 
 const apiPath = "/api";
@@ -43,12 +43,8 @@ export const applicantHandlers = [
     const id = applicationId(Number(params.applicationId));
     const current = applicantApplication(id);
     if (!current) return apiError(404, "NOT_FOUND", "지원서를 찾을 수 없습니다.");
-    if (!current.editable) return apiError(409, "NOT_EDITABLE", "접수가 마감되어 수정할 수 없습니다.");
-    const body = (await request.json()) as UpdateApplicationRequest;
-    if (!body.answers?.length) return apiError(400, "NOTHING_TO_UPDATE", "변경할 지원서 항목이 없습니다.");
-    const validation = validateApplicationAnswers(current.applicationFields, mergeApplicationAnswers(current.answers, body.answers));
-    if (validation) return apiError(400, validation.code, validation.message);
-    return HttpResponse.json(patchApplicantApplication(id, body));
+    await request.json().catch(() => null);
+    return apiError(409, "IMMUTABLE_APPLICATION", "제출한 지원서는 수정할 수 없습니다.");
   }),
   http.get(`${apiPath}/public/recommended-postings`, async ({ request }) => {
     await delay(180);
@@ -61,13 +57,6 @@ export const applicantHandlers = [
     const posting = publicPostingById(String(params.postingId));
     return posting ? HttpResponse.json(posting) : apiError(404, "POSTING_NOT_FOUND", "공고를 찾을 수 없습니다.");
   }),
-  http.post(`${apiPath}/public/applications/lookup`, async ({ request }) => {
-    await delay(320);
-    const body = (await request.json()) as LookupApplicationRequest;
-    if (!/^YS-?\d{8}-?[A-Fa-f0-9]{6}$/.test(body.code?.trim() ?? "")) return apiError(400, "INVALID_CODE_FORMAT", "조회 코드 형식을 확인해 주세요.");
-    const application = lookupApplicantApplication(body.code, body.phone);
-    return application ? HttpResponse.json(application) : apiError(404, "APPLICATION_NOT_FOUND", "지원 내역을 찾을 수 없습니다. 코드와 연락처를 다시 확인해 주세요.");
-  }),
   http.post(`${apiPath}/public/applications`, async ({ request }) => {
     await delay(520);
     const body = (await request.json()) as SubmitApplicationRequest;
@@ -76,8 +65,10 @@ export const applicantHandlers = [
     if (posting.status !== "OPEN") return apiError(409, "RECRUITMENT_CLOSED", "현재 접수할 수 없는 공고입니다.");
     const performance = findPerformance(posting.performanceId);
     if (!performance) return apiError(404, "POSTING_NOT_FOUND", "공고를 찾을 수 없습니다.");
-    const role = posting.roles.find((candidate) => candidate.id === body.roleId);
-    if (!role) return apiError(400, "ROLE_NOT_IN_POSTING", "지원할 배역을 다시 선택해 주세요.");
+    if (hasApplicationForPosting(posting.id)) return apiError(409, "DUPLICATE_APPLICATION", "같은 공고에는 지원서를 하나만 제출할 수 있습니다.");
+    const roles = posting.roles.filter((candidate) => body.roleIds.includes(candidate.id));
+    if (!roles.length || roles.length !== new Set(body.roleIds).size) return apiError(400, "ROLE_NOT_IN_POSTING", "지원할 배역을 다시 선택해 주세요.");
+    if (!posting.allowsMultipleRoles && roles.length > 1) return apiError(400, "MULTIPLE_ROLES_NOT_ALLOWED", "이 공고는 한 배역만 선택할 수 있습니다.");
     if (!body.privacyAgreed) return apiError(400, "PRIVACY_AGREEMENT_REQUIRED", "개인정보 수집·이용 동의가 필요합니다.");
     const fields = (posting.applicationFields ?? []).filter((field) => field.enabled);
     const validation = validateApplicationAnswers(fields, body.answers);
@@ -85,12 +76,11 @@ export const applicantHandlers = [
     const submittedAt = new Date().toISOString();
     const receiptNumber = `YS-${submittedAt.slice(0, 10).replaceAll("-", "")}-${crypto.randomUUID().replaceAll("-", "").slice(0, 6).toUpperCase()}`;
     const createdApplicationId = applicationId(Date.now());
-    const profileClaimToken = `pc_${crypto.randomUUID().replaceAll("-", "").slice(0, 16)}`;
-    const profileClaimExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-    const application = { id: createdApplicationId, postingId: posting.id, performanceTitle: performance.title, postingTitle: posting.title, posterUrl: performance.posterUrl, companyName: producerProfile().companyName || "공연사", roleId: role.id, roleName: role.name, lookupCode: receiptNumber, submittedAt, updatedAt: submittedAt, editable: true, recruitmentEnd: posting.recruitmentEnd ?? "", editableUntil: `${posting.recruitmentEnd}T23:59:59+09:00`, answers: body.answers.map((answer) => ({ ...answer, label: answer.label ?? fields.find((field) => field.id === answer.key)?.label ?? answer.key })), applicationFields: fields };
+    const answers = body.answers.map((answer) => ({ ...answer, label: answer.label ?? fields.find((field) => field.id === answer.key)?.label ?? answer.key }));
+    const application = { id: createdApplicationId, postingId: posting.id, performanceTitle: performance.title, postingTitle: posting.title, posterUrl: performance.posterUrl, companyName: producerProfile().companyName || "공연사", roleId: roles[0]!.id, roleIds: roles.map((role) => role.id), roleName: roles.map((role) => role.name).join(" · "), lookupCode: receiptNumber, submittedAt, updatedAt: submittedAt, editable: false, recruitmentEnd: posting.recruitmentEnd ?? "", editableUntil: "", answers, applicationFields: fields };
     addApplicantApplication(application);
     addScreeningApplicant(toScreeningApplicant(application, performance.id));
-    registerProfileClaim(profileClaimToken, createdApplicationId, profileClaimExpiresAt);
-    return HttpResponse.json({ applicationId: createdApplicationId, receiptNumber, submittedAt, profileClaimToken, profileClaimExpiresAt }, { status: 201 });
+    if (body.saveToProfile) patchApplicantProfile({ answers: answers.filter((answer) => !answer.key.startsWith("custom-") && !fields.find((field) => field.id === answer.key)?.custom) });
+    return HttpResponse.json({ applicationId: createdApplicationId, receiptNumber, submittedAt, profileClaimToken: null, profileClaimExpiresAt: null }, { status: 201 });
   }),
 ];

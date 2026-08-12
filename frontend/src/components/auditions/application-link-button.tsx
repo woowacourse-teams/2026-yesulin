@@ -9,9 +9,11 @@ import { useToast } from "./toast";
 export function ApplicationLinkButton({
   postingId,
   className = "",
+  compact = false,
 }: {
   readonly postingId: PostingId;
   readonly className?: string;
+  readonly compact?: boolean;
 }) {
   const [copying, setCopying] = useState(false);
   const toast = useToast();
@@ -39,7 +41,7 @@ export function ApplicationLinkButton({
       <svg aria-hidden="true" viewBox="0 0 20 20" className="h-4 w-4 fill-none stroke-current stroke-[1.7]">
         <path d="M7.5 12.5 12.5 7.5M6.2 8.5 4.6 10.1a3.25 3.25 0 0 0 4.6 4.6l1.6-1.6M13.8 11.5l1.6-1.6a3.25 3.25 0 0 0-4.6-4.6L9.2 6.9" />
       </svg>
-      {copying ? "복사 중…" : "지원 링크 복사"}
+      {copying ? "복사 중…" : compact ? <><span className="sm:hidden">링크</span><span className="hidden sm:inline">지원 링크 복사</span></> : "지원 링크 복사"}
     </SecondaryButton>
   );
 }

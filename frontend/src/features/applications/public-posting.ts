@@ -21,6 +21,7 @@ export type PublicPosting = {
   readonly recruitmentEnd: string;
   readonly status: PublicPostingStatus;
   readonly isOpenCall: boolean;
+  readonly allowsMultipleRoles: boolean;
   readonly roles: readonly PublicRole[];
   readonly schedule: readonly PublicSchedule[];
   readonly documents: readonly ApplicationDocument[];
@@ -83,6 +84,7 @@ export function publicPostingById(id: string): PublicPosting | null {
     recruitmentEnd: posting.recruitmentEnd ?? "",
     status: posting.status,
     isOpenCall: posting.isOpenCall,
+    allowsMultipleRoles: posting.allowsMultipleRoles,
     roles: posting.roles,
     schedule: scheduleOf(posting),
     documents: applicationDocuments(applicationFields),
@@ -121,6 +123,6 @@ export function publicPostingAvailability(posting: Pick<PublicPosting, "status" 
   return {
     label: "지원 마감",
     detail: `${publicPostingDate(posting.recruitmentEnd)} 23:59`,
-    notice: "로그인 없이 지원서를 작성할 수 있어요.",
+    notice: "로그인 전에도 작성할 수 있으며, 최종 제출은 인증 후 진행합니다.",
   };
 }

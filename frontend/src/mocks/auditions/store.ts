@@ -5,17 +5,17 @@ import { CATALOG } from "./catalog";
 
 type MutableReview = { status: Review["status"]; memo: string; note: string };
 
-/** (지원서, 차수) → 심사 결과. 지원서에 상태를 직접 두면 다음 차수가 이전 기록을 덮는다. */
+/** (지원서, 배역, 차수) → 심사 결과. 복수 배역의 결과가 서로 덮이지 않는다. */
 const reviews = new Map<string, MutableReview>();
 /** 마감된 (배역, 차수). 전형은 배역 단위로 독립 진행된다. */
 const closedRounds = new Set<string>();
 const submittedApplicants: MockApplicant[] = [];
 
-const reviewKey = (application: ApplicationId, round: RoundNumber) => `${application}:${round}`;
+const reviewKey = (application: ApplicationId, role: RoleId, round: RoundNumber) => `${application}:${role}:${round}`;
 const roundKey = (role: RoleId, round: RoundNumber) => `${role}:${round}`;
 
-export function reviewOf(application: ApplicationId, round: RoundNumber): MutableReview {
-  const key = reviewKey(application, round);
+export function reviewOf(application: ApplicationId, role: RoleId, round: RoundNumber): MutableReview {
+  const key = reviewKey(application, role, round);
   const existing = reviews.get(key);
   if (existing) return existing;
 
@@ -24,8 +24,8 @@ export function reviewOf(application: ApplicationId, round: RoundNumber): Mutabl
   return created;
 }
 
-export const readReview = (application: ApplicationId, round: RoundNumber): Review => ({
-  ...reviewOf(application, round),
+export const readReview = (application: ApplicationId, role: RoleId, round: RoundNumber): Review => ({
+  ...reviewOf(application, role, round),
 });
 
 export const isRoundClosed = (role: RoleId, round: RoundNumber) => closedRounds.has(roundKey(role, round));
@@ -37,7 +37,7 @@ export const markRoundClosed = (role: RoleId, round: RoundNumber) => {
 export const allApplicants = (): readonly MockApplicant[] => [...APPLICANTS, ...submittedApplicants];
 
 export const applicantsOfRole = (role: RoleId): readonly MockApplicant[] =>
-  allApplicants().filter((applicant) => applicant.roleId === role);
+  allApplicants().filter((applicant) => applicant.roleIds.includes(role));
 
 /** 공개 제출 스냅샷을 같은 심사 지원서 풀에 추가한다. */
 export function addScreeningApplicant(applicant: MockApplicant) {
@@ -65,7 +65,7 @@ export function poolFor(role: RoleId, round: RoundNumber): readonly MockApplican
 
   const previous = (round - 1) as RoundNumber;
   if (!isRoundClosed(role, previous)) return [];
-  return applicantsOfRole(role).filter((applicant) => reviewOf(applicant.id, previous).status === "PASS");
+  return applicantsOfRole(role).filter((applicant) => reviewOf(applicant.id, role, previous).status === "PASS");
 }
 
 /** 아직 마감되지 않은 가장 이른 차수. 전부 마감이면 마지막 차수를 반환한다. */

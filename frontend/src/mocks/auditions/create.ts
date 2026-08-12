@@ -77,6 +77,7 @@ export function addPosting(
     deadline: compactDate(body.recruitmentEnd),
     status: postingStatus(body.recruitmentStart, body.recruitmentEnd),
     isOpenCall: body.isOpenCall,
+    allowsMultipleRoles: body.allowsMultipleRoles,
     finished: false,
     roles,
     recruitmentStart: body.recruitmentStart,

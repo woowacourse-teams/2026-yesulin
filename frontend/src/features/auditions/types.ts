@@ -9,8 +9,8 @@ import type { PerformanceRoleTemplate } from "./creation-types";
  *             └ Application  지원서
  *
  * 전형은 배역 단위로 독립 진행된다. 차수 마감(Round)도 배역별로 따로 관리한다.
- * 심사 결과(Review)는 (지원서, 차수) 쌍에 붙는다 — 지원서에 직접 상태를 두면
- * 다음 차수 결과가 이전 차수 기록을 덮어쓴다.
+ * 심사 결과(Review)는 (지원서, 배역, 차수)에 붙는다. 복수 배역과 다음 차수의
+ * 결과가 서로 덮이지 않도록 각 심사 단위를 독립적으로 식별한다.
  */
 
 declare const brand: unique symbol;

@@ -132,7 +132,7 @@ export function ApplicantTable({
                   </div>
                 </td>
                 <td className="num hidden border-b border-border-soft px-3 py-2 text-xs text-muted lg:table-cell">
-                  {applicant.height} / {applicant.weight}
+                  {applicant.height}cm · {applicant.weight}kg
                 </td>
                 <td className="hidden border-b border-border-soft px-3 py-2 text-xs text-muted lg:table-cell">
                   {applicant.school}
@@ -156,8 +156,8 @@ export function ApplicantTable({
                     <span className="text-xs text-muted">영상 없음</span>
                   )}
                 </td>
-                <td className="num hidden border-b border-border-soft px-3 py-2 text-xs text-muted lg:table-cell">
-                  {applicant.submittedAt}
+                <td title={applicant.submittedAt} className="num hidden border-b border-border-soft px-3 py-2 text-xs text-muted lg:table-cell">
+                  {formatSubmittedAt(applicant.submittedAt)}
                 </td>
                 <td className="border-b border-border-soft px-3 py-2 align-middle">
                   <StatusBadge status={applicant.review.status} memo={applicant.review.memo} />
@@ -192,4 +192,16 @@ export function ApplicantTable({
       ) : null}
     </>
   );
+}
+
+function formatSubmittedAt(value: string) {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return new Intl.DateTimeFormat("ko-KR", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(parsed);
 }

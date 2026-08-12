@@ -19,6 +19,7 @@ export type StatusFilter = ReviewStatus | "ALL";
 export type AuditionFilters = {
   readonly work: WorkMode;
   readonly status: StatusFilter;
+  readonly query: string;
   readonly genders: ReadonlySet<Gender>;
   readonly numeric: Readonly<Record<NumericField, NumericCondition | null>>;
   readonly mismatchOnly: boolean;
@@ -34,11 +35,17 @@ export const emptyNumeric = (): Record<NumericField, NumericCondition | null> =>
 export const initialFilters = (work: WorkMode): AuditionFilters => ({
   work,
   status: work === "DONE" ? "PASS" : "ALL",
+  query: "",
   genders: new Set(),
   numeric: emptyNumeric(),
   mismatchOnly: false,
-  view: "card",
+  view: "table",
 });
+
+export const activeDetailFilterCount = (filters: AuditionFilters) =>
+  filters.genders.size
+  + NUMERIC_FIELDS.filter((field) => filters.numeric[field] !== null).length
+  + (filters.mismatchOnly ? 1 : 0);
 
 const matchesNumeric = (value: number, condition: NumericCondition | null) =>
   !condition || (condition.op === "gte" ? value >= condition.value : value <= condition.value);
@@ -61,6 +68,17 @@ export function applyFilters(
   filters: AuditionFilters,
 ): readonly Applicant[] {
   return applyWorkFilter(applicants, filters).filter((applicant) => {
+    const query = filters.query.trim().toLocaleLowerCase("ko-KR");
+    if (query) {
+      const searchable = [
+        applicant.name,
+        applicant.school,
+        applicant.phone,
+        applicant.email,
+        applicant.roleName,
+      ];
+      if (!searchable.some((value) => value.toLocaleLowerCase("ko-KR").includes(query))) return false;
+    }
     if (filters.genders.size > 0 && !filters.genders.has(applicant.gender)) return false;
     if (!matchesNumeric(applicant.age, filters.numeric.age)) return false;
     if (!matchesNumeric(applicant.height, filters.numeric.height)) return false;

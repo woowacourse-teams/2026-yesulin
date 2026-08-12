@@ -10,7 +10,7 @@ export function ApplicantCards({ rows }: { rows: readonly Applicant[] }) {
   const { selected, toggleSelected, openApplicant } = useBoard();
 
   return (
-    <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(132px,1fr))] sm:[grid-template-columns:repeat(auto-fill,minmax(150px,1fr))] 2xl:[grid-template-columns:repeat(auto-fill,minmax(158px,1fr))]">
+    <div className="grid justify-start gap-3 [grid-template-columns:repeat(auto-fill,minmax(132px,1fr))] sm:[grid-template-columns:repeat(auto-fill,minmax(150px,1fr))] lg:[grid-template-columns:repeat(auto-fill,minmax(196px,228px))] xl:[grid-template-columns:repeat(auto-fill,minmax(210px,244px))] 2xl:[grid-template-columns:repeat(auto-fill,minmax(220px,260px))]">
       {rows.map((applicant, index) => {
         const picked = selected.has(applicant.id);
 
@@ -20,7 +20,7 @@ export function ApplicantCards({ rows }: { rows: readonly Applicant[] }) {
             className={`relative min-w-0 overflow-hidden rounded-card border transition-[background-color,border-color,box-shadow,transform] duration-150 active:scale-[0.995] ${
               picked
                 ? "border-brand bg-brand-soft shadow-[var(--shadow-selection)]"
-                : "border-border bg-card hover:border-brand-line hover:shadow-[var(--shadow-1)]"
+                : "border-border bg-card hover:border-brand-line hover:bg-brand-soft/30"
             }`}
           >
             <button

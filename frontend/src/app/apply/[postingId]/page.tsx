@@ -30,9 +30,9 @@ export async function generateMetadata({ params }: { params: Promise<{ postingId
   };
 }
 
-export default async function PublicPostingPage({ params, searchParams }: { params: Promise<{ postingId: string }>; searchParams: Promise<{ prefill?: string }> }) {
+export default async function PublicPostingPage({ params, searchParams }: { params: Promise<{ postingId: string }>; searchParams: Promise<{ prefill?: string; resumeDraft?: string }> }) {
   const { postingId } = await params;
-  const { prefill } = await searchParams;
+  const { prefill, resumeDraft } = await searchParams;
   const posting = await publicPostingForServer(postingId);
-  return <MswProvider><PublicPostingRoute postingId={postingId} initialPosting={posting} useProfilePrefill={prefill === "1"} /></MswProvider>;
+  return <MswProvider><PublicPostingRoute postingId={postingId} initialPosting={posting} useProfilePrefill={prefill === "1"} resumeDraft={resumeDraft === "1"} /></MswProvider>;
 }

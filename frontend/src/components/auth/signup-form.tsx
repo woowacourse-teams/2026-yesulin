@@ -35,7 +35,7 @@ function formatBusinessNumber(value: string) {
   return [digits.slice(0, 3), digits.slice(3, 5), digits.slice(5)].filter(Boolean).join("-");
 }
 
-export function SignupForm({ initialRole = "applicant", profileClaimToken }: { readonly initialRole?: AccountRole; readonly profileClaimToken?: string }) {
+export function SignupForm({ initialRole = "applicant", profileClaimToken, returnTo, applicationFlow = false }: { readonly initialRole?: AccountRole; readonly profileClaimToken?: string; readonly returnTo?: string; readonly applicationFlow?: boolean }) {
   const toast = useToast();
   const router = useRouter();
   const [role, setRole] = useState<AccountRole>(initialRole);
@@ -131,8 +131,8 @@ export function SignupForm({ initialRole = "applicant", profileClaimToken }: { r
         });
         if (response.profileClaimed) toast("지원서 정보와 지원 내역을 새 계정에 연결했어요.", { type: "success" });
         else if (profileClaimToken) toast("계정은 만들었지만 지원서 연결 토큰이 만료됐거나 이미 사용됐어요.", { type: "info" });
-        else toast("지원자 계정을 만들었어요.", { type: "success" });
-        router.push(response.redirectTo);
+        else toast(applicationFlow ? "지원자 계정을 만들었어요. 지원서 검토 화면으로 돌아갑니다." : "지원자 계정을 만들었어요.", { type: "success" });
+        router.push(returnTo ?? response.redirectTo);
       } catch (cause) {
         toast(cause instanceof Error ? cause.message : "계정을 만들지 못했습니다.", { type: "error" });
         setSubmitting(false);
@@ -145,7 +145,7 @@ export function SignupForm({ initialRole = "applicant", profileClaimToken }: { r
   return (
     <>
       <form onSubmit={handleSubmit} noValidate className="space-y-8">
-        <RoleField value={role} onChange={(nextRole) => { setRole(nextRole); setErrors({}); }} />
+        <RoleField value={role} onChange={(nextRole) => { setRole(nextRole); setErrors({}); }} purpose={applicationFlow ? "application" : "default"} />
 
         {role === "applicant" && profileClaimToken ? <div className="rounded-card border border-brand-line bg-brand-soft p-4 text-sm leading-6 text-muted-strong"><strong className="block text-brand">방금 제출한 지원서를 연결할게요.</strong>가입이 완료되면 표준 프로필 정보와 지원 내역을 새 계정에서 이어서 관리할 수 있어요.</div> : null}
 
@@ -182,7 +182,7 @@ export function SignupForm({ initialRole = "applicant", profileClaimToken }: { r
           {errors.terms ? <p id="signup-terms-error" className="mt-1.5 text-sm font-medium text-fail">{errors.terms}</p> : null}
         </div>
 
-        <PrimaryButton type="submit" disabled={submitting} className="min-h-[52px] w-full text-base">{submitting ? "계정 만드는 중…" : role === "producer" ? "공연사 계정 만들기" : "지원자 계정 만들기"}</PrimaryButton>
+        <PrimaryButton type="submit" disabled={submitting} className="min-h-[52px] w-full text-base">{submitting ? "계정 만드는 중…" : role === "producer" ? "공연사 계정 만들기" : applicationFlow ? "지원자 계정 만들고 계속" : "지원자 계정 만들기"}</PrimaryButton>
         {role === "applicant" ? <SocialButtons mode="회원가입" onUnavailable={(provider) => setNotice({ title: `${provider} 회원가입 준비 중`, description: `${provider} OAuth 회원가입 연동 로직이 필요합니다. 현재는 버튼 UI만 제공됩니다.` })} /> : null}
       </form>
       <AuthNoticeDialog notice={notice} onClose={() => setNotice(null)} />

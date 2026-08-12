@@ -84,7 +84,7 @@ export function PerformancePicker() {
                 <FacePile urls={performance.previewPhotoUrls} />
                 <PickerState tone={performance.pendingReviewCount > 0 ? "pending" : "idle"}>
                   {performance.pendingReviewCount > 0
-                    ? `검토 대기 ${performance.pendingReviewCount}명`
+                    ? `검토 대기 ${performance.pendingReviewCount}건`
                     : `모집 중 ${performance.openPostingCount}건`}
                 </PickerState>
               </PickerCard>

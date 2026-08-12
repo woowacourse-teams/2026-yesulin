@@ -66,6 +66,7 @@ export type ApplicantApplicationListResponse = {
 
 export type ApplicantApplicationDetail = ApplicantApplicationSummary & {
   readonly roleId: string;
+  readonly roleIds: readonly string[];
   readonly updatedAt: string;
   readonly editableUntil: string;
   readonly answers: readonly ApplicantAnswer[];
@@ -118,13 +119,14 @@ export type ProfilePrefillResponse = {
 export type SubmitApplicationRequest = {
   /** Notion 표의 /public/applications 경로에는 식별자 자리가 없어 본문으로 전달한다. */
   readonly postingId: string;
-  readonly roleId: string;
+  readonly roleIds: readonly string[];
   readonly answers: readonly {
     readonly key: string;
     readonly label?: string;
     readonly value: ApplicantAnswerValue;
   }[];
   readonly privacyAgreed: boolean;
+  readonly saveToProfile: boolean;
 };
 
 export type SubmitApplicationResponse = {

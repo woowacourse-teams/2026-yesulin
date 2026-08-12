@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { closeRound, saveReview } from "@/features/auditions/api";
-import { applyFilters, initialFilters, type AuditionFilters } from "@/features/auditions/filters";
+import { activeDetailFilterCount, applyFilters, initialFilters, type AuditionFilters } from "@/features/auditions/filters";
 import { STATUS_LABELS } from "@/features/auditions/labels";
 import type {
   Applicant,
@@ -16,7 +16,9 @@ import { BoardProvider, type BoardContextValue } from "./board-context";
 import { ActionBar } from "./action-bar";
 import { ApplicantDetail } from "./applicant-detail";
 import { ApplicantList } from "./applicant-list";
+import { AuditionFilterSheet } from "./audition-filter-sheet";
 import { ContactsModal } from "./contacts-modal";
+import { DesktopBoardToolbar } from "./desktop-board-toolbar";
 import { FilterBar } from "./filter-bar";
 import { RoundStepper } from "./round-stepper";
 import { useToast } from "./toast";
@@ -39,6 +41,7 @@ export function BoardWorkspace({
   const [openedApplicantId, setOpenedApplicantId] = useState<ApplicationId | null>(null);
   const [contactList, setContactList] = useState<readonly Applicant[] | null>(null);
   const [closePrompt, setClosePrompt] = useState<"auto" | "manual" | null>(null);
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const toast = useToast();
 
@@ -201,14 +204,16 @@ export function BoardWorkspace({
       <RoundStepper />
       <div className="glass-surface sticky top-16 z-20 border-b border-border lg:top-0">
         <WorkSplit />
-        <FilterBar />
+        <FilterBar sheetOpen={filterSheetOpen} onOpenSheet={() => setFilterSheetOpen(true)} />
+        <DesktopBoardToolbar onOpenFilter={() => setFilterSheetOpen(true)} />
       </div>
-      <div className="px-4 pb-32 pt-4 md:px-6 xl:px-8">
+      <div className="px-4 pb-[calc(9rem+env(safe-area-inset-bottom))] pt-4 md:px-6 lg:pb-8 xl:px-8">
         <ApplicantList />
       </div>
       <ActionBar />
       <ApplicantDetail />
       <ContactsModal />
+      <AuditionFilterSheet open={filterSheetOpen} activeCount={activeDetailFilterCount(filters)} onClose={() => setFilterSheetOpen(false)} />
     </BoardProvider>
   );
 }

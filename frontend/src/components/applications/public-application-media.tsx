@@ -29,7 +29,7 @@ export function PublicApplicationMedia() {
       const error = imageFileError(file);
       if (error) nextPhotos.push({ id: crypto.randomUUID(), name: file.name, url: "", status: "ERROR", error });
       else {
-        const photo = { id: crypto.randomUUID(), name: file.name, url: URL.createObjectURL(file), status: "UPLOADING" as const };
+        const photo = { id: crypto.randomUUID(), name: file.name, url: URL.createObjectURL(file), blob: file, status: "UPLOADING" as const };
         nextPhotos.push(photo);
         additions.push(photo);
       }

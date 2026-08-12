@@ -6,9 +6,9 @@ import { usePathname } from "next/navigation";
 import { applicantRoutes } from "@/features/applicants/routes";
 
 const navigation = [
-  { href: applicantRoutes.home, label: "홈", icon: "⌂" },
-  { href: applicantRoutes.applications, label: "내 지원서", icon: "▤" },
-  { href: applicantRoutes.profile, label: "프로필", icon: "○" },
+  { href: applicantRoutes.home, label: "홈", icon: "home" },
+  { href: applicantRoutes.applications, label: "내 지원서", icon: "applications" },
+  { href: applicantRoutes.profile, label: "프로필", icon: "profile" },
 ] as const;
 
 export function ApplicantShell({ children }: { readonly children: React.ReactNode }) {
@@ -24,7 +24,6 @@ export function ApplicantShell({ children }: { readonly children: React.ReactNod
           {navigation.map((item) => <ApplicantNavLink key={item.href} {...item} pathname={pathname} />)}
         </nav>
         <div className="ml-auto flex items-center gap-2">
-          <Link href={applicantRoutes.lookup} className="hidden min-h-11 items-center rounded-control px-3 text-sm font-semibold text-muted-strong hover:bg-surface hover:text-brand sm:inline-flex">조회 코드로 찾기</Link>
           <div className="flex min-h-11 items-center gap-2 rounded-control px-2" aria-label="현재 로그인 계정: 지원자">
             <span className="grid h-8 w-8 place-items-center rounded-full bg-brand-soft text-sm font-bold text-brand" aria-hidden="true">지</span>
             <span className="hidden text-sm font-semibold sm:inline">지원자</span>
@@ -48,7 +47,7 @@ export function ApplicantShell({ children }: { readonly children: React.ReactNod
       <div className="grid grid-cols-3 pb-[max(8px,env(safe-area-inset-bottom))] pt-1">
         {navigation.map((item) => {
           const active = item.href === applicantRoutes.home ? pathname === item.href : pathname.startsWith(item.href);
-          return <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined} className={`flex min-h-14 flex-col items-center justify-center gap-0.5 rounded-control text-xs font-semibold ${active ? "text-brand" : "text-muted"}`}><span aria-hidden="true" className="text-lg leading-none">{item.icon}</span>{item.label}</Link>;
+          return <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined} className={`flex min-h-14 flex-col items-center justify-center gap-0.5 rounded-control text-xs font-semibold ${active ? "text-brand" : "text-muted"}`}><ApplicantIcon name={item.icon} />{item.label}</Link>;
         })}
       </div>
     </nav>
@@ -58,4 +57,13 @@ export function ApplicantShell({ children }: { readonly children: React.ReactNod
 function ApplicantNavLink({ href, label, pathname }: { href: string; label: string; icon: string; pathname: string }) {
   const active = href === applicantRoutes.home ? pathname === href : pathname.startsWith(href);
   return <Link href={href} aria-current={active ? "page" : undefined} className={`inline-flex min-h-11 items-center rounded-control px-4 text-sm font-semibold transition-colors ${active ? "bg-brand-soft text-brand" : "text-muted-strong hover:bg-surface hover:text-foreground"}`}>{label}</Link>;
+}
+
+function ApplicantIcon({ name }: { name: (typeof navigation)[number]["icon"] }) {
+  const paths = {
+    home: <><path d="m3.5 10.5 8.5-7 8.5 7" /><path d="M5.5 9.5v10h13v-10M9.5 19.5v-6h5v6" /></>,
+    applications: <><path d="M6 3.5h9l3 3v14H6z" /><path d="M15 3.5v4h3M9 11h6M9 14.5h6M9 18h4" /></>,
+    profile: <><circle cx="12" cy="8" r="3.5" /><path d="M5.5 20.5c.5-4 2.6-6 6.5-6s6 2 6.5 6" /></>,
+  } as const;
+  return <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current stroke-[1.8]" strokeLinecap="round" strokeLinejoin="round">{paths[name]}</svg>;
 }

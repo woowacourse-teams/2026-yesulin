@@ -45,6 +45,7 @@ export function toScreeningApplicant(detail: ApplicantApplicationDetail, perform
     performanceId,
     postingId: detail.postingId as MockApplicant["postingId"],
     roleId: detail.roleId as MockApplicant["roleId"],
+    roleIds: detail.roleIds as MockApplicant["roleIds"],
     roleName: detail.roleName,
     birth: birth.replaceAll("-", ".").slice(0, 7),
     phone: textOf(detail.answers, "PHONE"),

@@ -11,11 +11,11 @@ const ROLE_OPTIONS = [
   { value: "producer", label: "공연사", description: "공고와 지원자를 관리해요" },
 ] as const;
 
-export function RoleField({ value, onChange }: { readonly value: AccountRole; readonly onChange: (role: AccountRole) => void }) {
+export function RoleField({ value, onChange, purpose = "default" }: { readonly value: AccountRole; readonly onChange: (role: AccountRole) => void; readonly purpose?: "default" | "application" }) {
   return (
     <fieldset>
       <legend className="text-sm font-semibold text-foreground">이용 목적</legend>
-      <p className="mt-1 text-sm text-muted">사용할 계정 유형을 선택해 주세요.</p>
+      <p className="mt-1 text-sm text-muted">{purpose === "application" ? "지원서 제출을 위해 지원자가 미리 선택되어 있어요. 공연사로 바꾸면 지원서 대신 공연사 화면으로 이동합니다." : "사용할 계정 유형을 선택해 주세요."}</p>
       <div className="mt-3 grid grid-cols-2 gap-2" role="radiogroup">
         {ROLE_OPTIONS.map((option) => {
           const selected = value === option.value;

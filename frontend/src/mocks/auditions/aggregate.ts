@@ -42,7 +42,7 @@ export function countsFor(role: RoleId, round: RoundNumber): ReviewCounts {
   let pending = 0;
 
   for (const applicant of pool) {
-    const { status } = reviewOf(applicant.id, round);
+    const { status } = reviewOf(applicant.id, role, round);
     if (status === "PASS") pass += 1;
     else if (status === "FAIL") fail += 1;
     else if (status === "ABSENT") absent += 1;
