@@ -25,3 +25,4 @@
 10. [0010 Backend 첫 영속화 구조](./0010-backend-persistence-slice.md) — accepted · agent-required
 11. [0011 활성 공연사와 mock seed 이관 경계](./0011-active-company-and-seed-boundaries.md) — accepted · agent-required
 12. [0012 Frontend·MSW·Backend 단일 API 계약](./0012-frontend-msw-backend-contract.md) — accepted · agent-required
+13. [0013 이슈와 프로젝트 보드 워크플로](./0013-issue-and-project-board-workflow.md) — accepted · agent-required
