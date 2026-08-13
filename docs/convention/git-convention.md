@@ -1,5 +1,20 @@
 # Git 컨벤션
 
+## 이슈
+
+- 작업을 시작하기 전 이슈를 먼저 만든다. 버그는 `버그 신고`, 기능·작업은 `기능/작업` 템플릿을 쓴다 (`.github/ISSUE_TEMPLATE/`).
+- 제목은 커밋과 같은 `{type}: {summary}` 형식을 쓴다. 예: `fix: 로그인 버튼 클릭 안 됨`.
+- `type:*` 라벨을 최소 하나 붙인다: `type:feat`, `type:fix`, `type:hotfix`, `type:docs`, `type:refactor`, `type:perf`, `type:test`, `type:chore`. 브랜치 타입과 1:1로 대응한다.
+- `frontend/`나 `backend/`에 걸치면 `scope:frontend`/`scope:backend`도 함께 붙인다.
+- 우선순위 라벨은 두지 않는다. 팀 규모상 이슈 목록 순서로 충분하며, 필요해지면 별도 결정으로 추가한다.
+- 이슈 생성과 동시에 프로젝트 보드에 추가한다: `gh issue create --project "2026-yesulin" ...`.
+
+## 프로젝트 보드
+
+- 보드: `woowacourse-teams/2026-yesulin` 프로젝트 (#131), `Status` 컬럼은 `Todo` → `In Progress` → `Done` 세 단계만 쓴다.
+- 작업을 시작하면 담당자를 배정하고 상태를 `In Progress`로 옮긴다.
+- PR 본문에 `Closes #123`을 적으면 병합 시 이슈가 닫히고 보드가 자동으로 `Done`으로 이동한다. 그 외 수동 이동은 상태가 실제로 바뀔 때만 한다.
+
 ## 브랜치
 
 MVP 기간에는 GitHub Flow를 사용한다. `main`은 항상 배포 가능한 상태로 유지하며, 작업은 별도 브랜치와 PR로 병합한다.
