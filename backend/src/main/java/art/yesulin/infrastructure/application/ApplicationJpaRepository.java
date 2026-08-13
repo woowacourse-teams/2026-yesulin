@@ -8,6 +8,8 @@ public interface ApplicationJpaRepository extends JpaRepository<ApplicationJpaEn
 
     boolean existsByApplicantIdAndPostingId(Long applicantId, Long postingId);
 
+    boolean existsByPostingId(Long postingId);
+
     List<ApplicationJpaEntity> findAllByApplicantIdOrderBySubmittedAtDesc(Long applicantId);
 
     Optional<ApplicationJpaEntity> findByIdAndApplicantId(Long id, Long applicantId);

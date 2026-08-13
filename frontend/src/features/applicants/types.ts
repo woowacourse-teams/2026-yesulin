@@ -72,10 +72,6 @@ export type ApplicantApplicationDetail = ApplicantApplicationSummary & {
   readonly applicationFields: readonly ApplicationFieldInput[];
 };
 
-export type UpdateApplicationRequest = {
-  readonly answers: readonly Pick<ApplicantAnswer, "key" | "value">[];
-};
-
 export type RecommendedPosting = {
   readonly id: string;
   readonly performanceTitle: string;
@@ -90,24 +86,6 @@ export type RecommendedPostingResponse = {
   readonly postings: readonly RecommendedPosting[];
 };
 
-export type LookupApplicationRequest = {
-  readonly code: string;
-  readonly phone: string;
-};
-
-export type LookupApplicationResponse = {
-  readonly lookupCode: string;
-  readonly performanceTitle: string;
-  readonly postingTitle: string;
-  readonly companyName: string;
-  readonly roleName: string;
-  readonly submittedAt: string;
-  readonly postingStatus: "OPEN" | "UPCOMING" | "CLOSED";
-  readonly editable: boolean;
-  readonly editableUntil: string;
-  readonly answers: readonly ApplicantAnswer[];
-};
-
 export type ProfilePrefillResponse = {
   readonly answers: readonly ApplicantAnswer[];
   readonly filledCount: number;
@@ -116,15 +94,15 @@ export type ProfilePrefillResponse = {
 };
 
 export type SubmitApplicationRequest = {
-  /** Notion 표의 /public/applications 경로에는 식별자 자리가 없어 본문으로 전달한다. */
   readonly postingId: string;
-  readonly roleId: string;
+  readonly roleIds: readonly string[];
   readonly answers: readonly {
     readonly key: string;
     readonly label?: string;
     readonly value: ApplicantAnswerValue;
   }[];
-  readonly privacyAgreed: boolean;
+  readonly collectionAndUseAgreed: boolean;
+  readonly thirdPartyProvisionAgreed: boolean;
 };
 
 export type SubmitApplicationResponse = {

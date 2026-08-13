@@ -20,7 +20,7 @@ export type PublicPosting = {
   readonly recruitmentStart: string;
   readonly recruitmentEnd: string;
   readonly status: PublicPostingStatus;
-  readonly isOpenCall: boolean;
+  readonly allowsMultipleRoles: boolean;
   readonly roles: readonly PublicRole[];
   readonly schedule: readonly PublicSchedule[];
   readonly documents: readonly ApplicationDocument[];
@@ -51,6 +51,15 @@ function findPosting(id: string): { performance: CatalogPerformance; posting: Ca
 
 function formatDate(date?: string) {
   if (!date) return "일정 조율 중";
+  const parsed = new Date(date);
+  if (!Number.isNaN(parsed.getTime()) && date.includes("T")) {
+    return new Intl.DateTimeFormat("ko-KR", {
+      timeZone: "Asia/Seoul",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    }).format(parsed);
+  }
   const [year, month, day] = date.replaceAll(".", "-").split("-");
   return year ? `${year}년 ${Number(month)}월 ${Number(day)}일` : date;
 }
@@ -82,7 +91,7 @@ export function publicPostingById(id: string): PublicPosting | null {
     recruitmentStart: posting.recruitmentStart ?? "",
     recruitmentEnd: posting.recruitmentEnd ?? "",
     status: posting.status,
-    isOpenCall: posting.isOpenCall,
+    allowsMultipleRoles: posting.allowsMultipleRoles,
     roles: posting.roles,
     schedule: scheduleOf(posting),
     documents: applicationDocuments(applicationFields),

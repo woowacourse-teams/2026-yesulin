@@ -45,4 +45,12 @@ public class ApplicationAnswerJpaEntity {
         this.answerJson = answerJson;
         this.answerOrder = answerOrder;
     }
+
+    public String fieldKey() {
+        return fieldKey;
+    }
+
+    public String answerJson() {
+        return answerJson;
+    }
 }

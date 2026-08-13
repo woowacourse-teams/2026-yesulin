@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { MswProvider } from "@/components/mocks/msw-provider";
 import { ProducerShell } from "@/components/producers/producer-shell";
 import { ToastProvider } from "@/components/auditions/toast";
+import { SessionGuard } from "@/components/auth/session-guard";
 
 export const metadata: Metadata = {
   title: "공연사 관리자",
@@ -14,9 +15,11 @@ export const metadata: Metadata = {
 export default function ProducersLayout({ children }: { children: React.ReactNode }) {
   return (
     <MswProvider>
-      <ToastProvider>
-        <ProducerShell>{children}</ProducerShell>
-      </ToastProvider>
+      <SessionGuard role="producer">
+        <ToastProvider>
+          <ProducerShell>{children}</ProducerShell>
+        </ToastProvider>
+      </SessionGuard>
     </MswProvider>
   );
 }

@@ -44,7 +44,10 @@ public class AccountRegistrationServiceAdapter implements AccountRegistrationSer
     @Transactional
     @Override
     public ApplicantRegistrationResult registerApplicant(String rawEmail, String rawPassword) {
-        AccountJpaEntity account = createAccount(rawEmail, rawPassword);
+        AccountJpaEntity account = findOrCreateAccount(rawEmail, rawPassword);
+        if (applicantRepository.findByAccountId(account.id()).isPresent()) {
+            throw new AccountConflictException();
+        }
         ApplicantJpaEntity applicant = applicantRepository.save(
                 ApplicantJpaEntity.create(account.id(), now()));
         return new ApplicantRegistrationResult(account.id(), applicant.id(), account.email());
@@ -59,7 +62,7 @@ public class AccountRegistrationServiceAdapter implements AccountRegistrationSer
             String businessNumber,
             String representativeName,
             String contactName) {
-        AccountJpaEntity account = createAccount(rawEmail, rawPassword);
+        AccountJpaEntity account = findOrCreateAccount(rawEmail, rawPassword);
         CompanyJpaEntity company = companyRepository.save(CompanyJpaEntity.create(
                 companyName, businessNumber, representativeName, contactName, account.email(), now()));
         companyMemberRepository.save(
@@ -68,10 +71,14 @@ public class AccountRegistrationServiceAdapter implements AccountRegistrationSer
                 account.id(), company.id(), account.email(), company.verificationStatus());
     }
 
-    private AccountJpaEntity createAccount(String rawEmail, String rawPassword) {
+    private AccountJpaEntity findOrCreateAccount(String rawEmail, String rawPassword) {
         Email email = Email.of(rawEmail);
-        if (accountRepository.existsByEmail(email.value())) {
-            throw new AccountConflictException();
+        AccountJpaEntity existing = accountRepository.findByEmail(email.value()).orElse(null);
+        if (existing != null) {
+            if (!passwordEncoder.matches(rawPassword, existing.passwordHash())) {
+                throw new AccountConflictException();
+            }
+            return existing;
         }
         return accountRepository.save(AccountJpaEntity.create(
                 email.value(), passwordEncoder.encode(rawPassword), now()));

@@ -26,4 +26,8 @@ public final class ActiveCompanySession {
     public static void select(HttpSession session, long companyId) {
         session.setAttribute(ATTRIBUTE_NAME, companyId);
     }
+
+    public static void clear(HttpSession session) {
+        session.removeAttribute(ATTRIBUTE_NAME);
+    }
 }

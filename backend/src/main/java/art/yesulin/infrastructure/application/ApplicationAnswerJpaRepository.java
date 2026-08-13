@@ -4,4 +4,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ApplicationAnswerJpaRepository
         extends JpaRepository<ApplicationAnswerJpaEntity, Long> {
+
+    java.util.List<ApplicationAnswerJpaEntity> findAllByApplicationIdOrderByAnswerOrder(
+            Long applicationId);
 }

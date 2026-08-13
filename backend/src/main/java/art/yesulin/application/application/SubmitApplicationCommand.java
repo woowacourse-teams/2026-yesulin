@@ -2,7 +2,6 @@ package art.yesulin.application.application;
 
 import art.yesulin.domain.application.BasicInformation;
 import art.yesulin.domain.application.ConsentEvidence;
-import art.yesulin.domain.application.SnapshotDocument;
 import java.util.List;
 
 public record SubmitApplicationCommand(
@@ -11,8 +10,7 @@ public record SubmitApplicationCommand(
         BasicInformation basicInformation,
         List<Long> roleIds,
         List<SubmissionAnswer> answers,
-        ConsentEvidence consentEvidence,
-        SnapshotDocument snapshot) {
+        ConsentEvidence consentEvidence) {
 
     public SubmitApplicationCommand {
         roleIds = List.copyOf(roleIds);

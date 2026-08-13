@@ -1,25 +1,27 @@
 {
   "info": {
-    "name": "예술IN Backend - Current API",
-    "description": "현재 Spring Boot 컨트롤러에 구현된 API입니다. 현재 세션 및 CSRF 준비 후 로그인하세요.",
+    "name": "예술IN Backend - Integrated API",
+    "description": "Frontend/MSW와 공유하는 /api/v1 계약의 실제 Backend happy path입니다. 폴더와 요청을 번호 순서대로 실행하세요.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": { "type": "noauth" },
   "variable": [
     { "key": "baseUrl", "value": "http://localhost:8080" },
     { "key": "csrfToken", "value": "" },
-    { "key": "producerEmail", "value": "producer@yesulin.example" },
-    { "key": "producerPassword", "value": "" },
+    { "key": "producerEmail", "value": "postman-producer@example.com" },
+    { "key": "producerPassword", "value": "postman1234" },
     { "key": "applicantEmail", "value": "postman-applicant@example.com" },
     { "key": "applicantPassword", "value": "postman1234" },
-    { "key": "activeCompanyId", "value": "1" },
     { "key": "performanceId", "value": "1" },
+    { "key": "roleTemplateId", "value": "1" },
     { "key": "postingId", "value": "1" },
+    { "key": "roleId", "value": "1" },
+    { "key": "draftId", "value": "1" },
     { "key": "applicationId", "value": "1" }
   ],
   "item": [
     {
-      "name": "01. 세션 준비 및 인증",
+      "name": "01. 세션과 계정",
       "item": [
         {
           "name": "현재 세션 및 CSRF 준비",
@@ -30,204 +32,155 @@
           "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/sessions/current" }
         },
         {
-          "name": "Seed 공연사 로그인",
-          "event": [{ "listen": "test", "script": { "exec": [
-            "pm.test('200 OK', () => pm.response.to.have.status(200));",
-            "const body = pm.response.json();",
-            "pm.collectionVariables.set('csrfToken', body.csrfToken);",
-            "if (body.activeCompanyId !== null) pm.collectionVariables.set('activeCompanyId', body.activeCompanyId);"
-          ] } }],
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "X-CSRF-Token", "value": "{{csrfToken}}" }
-            ],
-            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{producerEmail}}\",\n  \"password\": \"{{producerPassword}}\"\n}" },
-            "url": "{{baseUrl}}/api/v1/sessions"
-          }
-        },
-        {
-          "name": "활성 공연사 변경",
-          "request": {
-            "method": "PUT",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "X-CSRF-Token", "value": "{{csrfToken}}" }
-            ],
-            "body": { "mode": "raw", "raw": "{\n  \"companyId\": {{activeCompanyId}}\n}" },
-            "url": "{{baseUrl}}/api/v1/sessions/current/active-company"
-          }
-        },
-        {
-          "name": "로그아웃",
-          "request": {
-            "method": "DELETE",
-            "header": [{ "key": "X-CSRF-Token", "value": "{{csrfToken}}" }],
-            "url": "{{baseUrl}}/api/v1/sessions/current"
-          }
-        }
-      ]
-    },
-    {
-      "name": "02. 계정 가입",
-      "item": [
-        {
-          "name": "지원자 가입",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "X-CSRF-Token", "value": "{{csrfToken}}" }
-            ],
-            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{applicantEmail}}\",\n  \"password\": \"{{applicantPassword}}\"\n}" },
-            "url": "{{baseUrl}}/api/v1/applicants"
-          }
-        },
-        {
           "name": "공연사 가입",
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "X-CSRF-Token", "value": "{{csrfToken}}" }
-            ],
-            "body": { "mode": "raw", "raw": "{\n  \"email\": \"postman-producer@example.com\",\n  \"password\": \"postman1234\",\n  \"companyName\": \"Postman 공연사\",\n  \"businessNumber\": \"111-22-33333\",\n  \"representativeName\": \"테스트 대표\",\n  \"contactName\": \"테스트 담당자\"\n}" },
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "X-CSRF-Token", "value": "{{csrfToken}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{producerEmail}}\",\n  \"password\": \"{{producerPassword}}\",\n  \"companyName\": \"Postman 공연사\",\n  \"businessNumber\": \"111-22-33333\",\n  \"representativeName\": \"테스트 대표\",\n  \"contactName\": \"테스트 담당자\"\n}" },
             "url": "{{baseUrl}}/api/v1/producers"
           }
-        }
-      ]
-    },
-    {
-      "name": "03. 공연·공고·배역",
-      "item": [
-        { "name": "공연 목록", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/performances" } },
-        {
-          "name": "공연 생성",
-          "event": [{ "listen": "test", "script": { "exec": [
-            "pm.test('201 Created', () => pm.response.to.have.status(201));",
-            "pm.collectionVariables.set('performanceId', pm.response.json().id);"
-          ] } }],
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "X-CSRF-Token", "value": "{{csrfToken}}" }
-            ],
-            "body": { "mode": "raw", "raw": "{\n  \"title\": \"Postman 테스트 공연\",\n  \"venue\": \"테스트 극장\",\n  \"posterUrl\": \"https://example.com/poster.jpg\"\n}" },
-            "url": "{{baseUrl}}/api/v1/performances"
-          }
-        },
-        { "name": "공연 상세", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/performances/{{performanceId}}" } },
-        {
-          "name": "공연 수정",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "X-CSRF-Token", "value": "{{csrfToken}}" }
-            ],
-            "body": { "mode": "raw", "raw": "{\n  \"title\": \"Postman 수정 공연\",\n  \"venue\": \"수정 극장\",\n  \"posterUrl\": \"https://example.com/poster-updated.jpg\"\n}" },
-            "url": "{{baseUrl}}/api/v1/performances/{{performanceId}}"
-          }
         },
         {
-          "name": "공고 생성",
-          "event": [{ "listen": "test", "script": { "exec": [
-            "pm.test('201 Created', () => pm.response.to.have.status(201));",
-            "pm.collectionVariables.set('postingId', pm.response.json().id);"
-          ] } }],
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "X-CSRF-Token", "value": "{{csrfToken}}" }
-            ],
-            "body": { "mode": "raw", "raw": "{\n  \"title\": \"Postman 테스트 공고\",\n  \"status\": \"UPCOMING\",\n  \"allowsMultipleRoles\": false,\n  \"recruitmentStartsAt\": \"2026-09-01T00:00:00+09:00\",\n  \"recruitmentEndsAt\": \"2026-09-30T23:59:59+09:00\",\n  \"applicationGuide\": \"Postman 테스트용 공고입니다.\"\n}" },
-            "url": "{{baseUrl}}/api/v1/performances/{{performanceId}}/postings"
-          }
-        },
-        { "name": "공연의 공고 목록", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/performances/{{performanceId}}/postings" } },
-        { "name": "공고 상세", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/postings/{{postingId}}" } },
-        {
-          "name": "공고 수정",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "X-CSRF-Token", "value": "{{csrfToken}}" }
-            ],
-            "body": { "mode": "raw", "raw": "{\n  \"title\": \"Postman 수정 공고\",\n  \"status\": \"OPEN\",\n  \"allowsMultipleRoles\": false,\n  \"recruitmentStartsAt\": \"2026-09-01T00:00:00+09:00\",\n  \"recruitmentEndsAt\": \"2026-10-01T23:59:59+09:00\",\n  \"applicationGuide\": \"수정된 테스트 공고입니다.\"\n}" },
-            "url": "{{baseUrl}}/api/v1/postings/{{postingId}}"
-          }
-        },
-        {
-          "name": "배역 생성",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "X-CSRF-Token", "value": "{{csrfToken}}" }
-            ],
-            "body": { "mode": "raw", "raw": "{\n  \"name\": \"테스트 배역\",\n  \"description\": \"Postman 테스트용 배역\",\n  \"quota\": 2,\n  \"genderCondition\": \"ANY\",\n  \"ageMin\": 20,\n  \"ageMax\": 40\n}" },
-            "url": "{{baseUrl}}/api/v1/postings/{{postingId}}/roles"
-          }
-        },
-        { "name": "공고의 배역 목록", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/postings/{{postingId}}/roles" } },
-        {
-          "name": "공고 삭제",
-          "request": {
-            "description": "배역이 없는 공고만 삭제할 수 있습니다. 앞에서 배역 생성을 실행했다면 409 POSTING_HAS_ROLES가 정상입니다.",
-            "method": "DELETE",
-            "header": [{ "key": "X-CSRF-Token", "value": "{{csrfToken}}" }],
-            "url": "{{baseUrl}}/api/v1/postings/{{postingId}}"
-          }
-        },
-        {
-          "name": "공연 삭제",
-          "request": {
-            "description": "공고가 없는 공연만 삭제할 수 있습니다. 앞에서 공고 생성 후 삭제하지 못했다면 409 PERFORMANCE_HAS_POSTINGS가 정상입니다.",
-            "method": "DELETE",
-            "header": [{ "key": "X-CSRF-Token", "value": "{{csrfToken}}" }],
-            "url": "{{baseUrl}}/api/v1/performances/{{performanceId}}"
-          }
-        }
-      ]
-    },
-    {
-      "name": "04. 지원자",
-      "item": [
-        {
-          "name": "지원자 로그인",
+          "name": "공연사 로그인",
           "event": [{ "listen": "test", "script": { "exec": [
             "pm.test('200 OK', () => pm.response.to.have.status(200));",
             "pm.collectionVariables.set('csrfToken', pm.response.json().csrfToken);"
           ] } }],
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "X-CSRF-Token", "value": "{{csrfToken}}" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "X-CSRF-Token", "value": "{{csrfToken}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{producerEmail}}\",\n  \"password\": \"{{producerPassword}}\"\n}" },
+            "url": "{{baseUrl}}/api/v1/sessions"
+          }
+        },
+        { "name": "공연사 프로필", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/producers/me" } }
+      ]
+    },
+    {
+      "name": "02. 공연과 공고",
+      "item": [
+        {
+          "name": "공연과 배역 템플릿 생성",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('201 Created', () => pm.response.to.have.status(201));",
+            "const body = pm.response.json();",
+            "pm.collectionVariables.set('performanceId', body.id);",
+            "pm.collectionVariables.set('roleTemplateId', body.roleTemplates[0].id);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "X-CSRF-Token", "value": "{{csrfToken}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"Postman 통합 공연\",\n  \"venue\": \"테스트 극장\",\n  \"posterUrl\": \"https://example.com/poster.jpg\",\n  \"roles\": [{ \"name\": \"주연\", \"description\": \"\", \"gender\": \"ANY\", \"ageMin\": 18, \"ageMax\": 40 }]\n}" },
+            "url": "{{baseUrl}}/api/v1/performances"
+          }
+        },
+        {
+          "name": "공고·배역·차수·필드 생성",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('201 Created', () => pm.response.to.have.status(201));",
+            "const body = pm.response.json();",
+            "pm.collectionVariables.set('postingId', body.id);",
+            "pm.collectionVariables.set('roleId', body.roles[0].id);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "X-CSRF-Token", "value": "{{csrfToken}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"Postman 통합 공고\",\n  \"status\": \"OPEN\",\n  \"allowsMultipleRoles\": false,\n  \"recruitmentStartsAt\": \"2026-01-01T00:00:00+09:00\",\n  \"recruitmentEndsAt\": \"2027-01-01T00:00:00+09:00\",\n  \"applicationGuide\": \"통합 검증 공고\",\n  \"roles\": [{ \"templateId\": {{roleTemplateId}}, \"quota\": 2 }],\n  \"rounds\": [{ \"round\": 1, \"name\": \"서류\", \"date\": \"2027-01-02\", \"note\": \"\" }],\n  \"applicationFields\": [\n    { \"key\": \"NAME\", \"label\": \"이름\", \"required\": true, \"custom\": false, \"section\": \"BASIC\", \"inputType\": \"TEXT\", \"order\": 10, \"config\": {} },\n    { \"key\": \"PHONE\", \"label\": \"연락처\", \"required\": true, \"custom\": false, \"section\": \"BASIC\", \"inputType\": \"TEL\", \"order\": 20, \"config\": {} },\n    { \"key\": \"BIRTH\", \"label\": \"생년월일\", \"required\": true, \"custom\": false, \"section\": \"BASIC\", \"inputType\": \"DATE\", \"order\": 30, \"config\": {} },\n    { \"key\": \"GENDER\", \"label\": \"성별\", \"required\": true, \"custom\": false, \"section\": \"BASIC\", \"inputType\": \"SELECT\", \"order\": 40, \"config\": {} },\n    { \"key\": \"BODY\", \"label\": \"키·몸무게\", \"required\": true, \"custom\": false, \"section\": \"BASIC\", \"inputType\": \"COMPOSITE\", \"order\": 50, \"config\": {} },\n    { \"key\": \"EMAIL\", \"label\": \"이메일\", \"required\": true, \"custom\": false, \"section\": \"BASIC\", \"inputType\": \"TEXT\", \"order\": 60, \"config\": {} },\n    { \"key\": \"RESIDENCE\", \"label\": \"거주지\", \"required\": true, \"custom\": false, \"section\": \"BASIC\", \"inputType\": \"TEXT\", \"order\": 70, \"config\": {} }\n  ]\n}" },
+            "url": "{{baseUrl}}/api/v1/performances/{{performanceId}}/postings"
+          }
+        },
+        { "name": "공연 목록", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/performances" } },
+        { "name": "공고 상세", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/postings/{{postingId}}" } },
+        { "name": "공개 공고 상세", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/public/postings/{{postingId}}" } }
+      ]
+    },
+    {
+      "name": "03. 지원자 Draft와 제출",
+      "item": [
+        {
+          "name": "지원자 가입",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "X-CSRF-Token", "value": "{{csrfToken}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{applicantEmail}}\",\n  \"password\": \"{{applicantPassword}}\"\n}" },
+            "url": "{{baseUrl}}/api/v1/applicants"
+          }
+        },
+        {
+          "name": "지원자 로그인",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));", "pm.collectionVariables.set('csrfToken', pm.response.json().csrfToken);"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "X-CSRF-Token", "value": "{{csrfToken}}" }],
             "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{applicantEmail}}\",\n  \"password\": \"{{applicantPassword}}\"\n}" },
             "url": "{{baseUrl}}/api/v1/sessions"
           }
         },
-        { "name": "내 프로필 조회", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/applicants/me/profile" } },
         {
-          "name": "내 프로필 수정",
+          "name": "프로필 저장",
           "request": {
             "method": "PATCH",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "X-CSRF-Token", "value": "{{csrfToken}}" }
-            ],
-            "body": { "mode": "raw", "raw": "{\n  \"activityName\": \"테스트 배우\",\n  \"name\": \"지원자\",\n  \"height\": 170,\n  \"weight\": 60,\n  \"birthDate\": \"2000-01-01\",\n  \"gender\": \"FEMALE\",\n  \"phone\": \"010-1234-5678\",\n  \"email\": \"{{applicantEmail}}\",\n  \"residence\": \"서울\",\n  \"additionalInformation\": { \"specialty\": \"연기\" },\n  \"photoUrls\": [\"https://example.com/profile.jpg\"],\n  \"profileSaveConsent\": true\n}" },
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "X-CSRF-Token", "value": "{{csrfToken}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"activityName\": \"테스트 배우\", \"name\": \"지원자\", \"height\": 170, \"weight\": 60,\n  \"birthDate\": \"2000-01-01\", \"gender\": \"FEMALE\", \"phone\": \"010-1234-5678\",\n  \"email\": \"{{applicantEmail}}\", \"residence\": \"서울\", \"additionalInformation\": {}, \"photoUrls\": [],\n  \"profileSaveConsent\": true\n}" },
             "url": "{{baseUrl}}/api/v1/applicants/me/profile"
+          }
+        },
+        {
+          "name": "Draft 생성",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('201 Created', () => pm.response.to.have.status(201));", "pm.collectionVariables.set('draftId', pm.response.json().id);"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "X-CSRF-Token", "value": "{{csrfToken}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"postingId\": {{postingId}},\n  \"content\": { \"roleIds\": [{{roleId}}], \"answers\": [] },\n  \"expectedRevision\": null,\n  \"clientModifiedAt\": \"{{$isoTimestamp}}\"\n}" },
+            "url": "{{baseUrl}}/api/v1/applicants/me/drafts"
+          }
+        },
+        {
+          "name": "지원서 최종 제출",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));", "pm.collectionVariables.set('applicationId', pm.response.json().applicationId);"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "X-CSRF-Token", "value": "{{csrfToken}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"draftId\": {{draftId}}, \"postingId\": {{postingId}}, \"roleIds\": [{{roleId}}],\n  \"answers\": [\n    { \"key\": \"NAME\", \"value\": \"지원자\" }, { \"key\": \"PHONE\", \"value\": \"010-1234-5678\" },\n    { \"key\": \"BIRTH\", \"value\": \"2000-01-01\" }, { \"key\": \"GENDER\", \"value\": \"FEMALE\" },\n    { \"key\": \"BODY\", \"value\": { \"height\": 170, \"weight\": 60 } },\n    { \"key\": \"EMAIL\", \"value\": \"{{applicantEmail}}\" }, { \"key\": \"RESIDENCE\", \"value\": \"서울\" }\n  ],\n  \"consent\": { \"collectionAndUse\": true, \"thirdPartyProvision\": true, \"profileSave\": false }\n}" },
+            "url": "{{baseUrl}}/api/v1/applicants/me/applications"
           }
         },
         { "name": "내 지원서 목록", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/applicants/me/applications" } },
         { "name": "내 지원서 상세", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/applicants/me/applications/{{applicationId}}" } }
+      ]
+    },
+    {
+      "name": "04. 공연사 심사",
+      "item": [
+        {
+          "name": "공연사 다시 로그인",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));", "pm.collectionVariables.set('csrfToken', pm.response.json().csrfToken);"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "X-CSRF-Token", "value": "{{csrfToken}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{producerEmail}}\",\n  \"password\": \"{{producerPassword}}\"\n}" },
+            "url": "{{baseUrl}}/api/v1/sessions"
+          }
+        },
+        { "name": "현재 심사 보드", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/roles/{{roleId}}/screening-rounds/current/applications" } },
+        {
+          "name": "1차 합격 저장",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "X-CSRF-Token", "value": "{{csrfToken}}" }],
+            "body": { "mode": "raw", "raw": "{ \"applicationIds\": [{{applicationId}}], \"status\": \"PASS\", \"memo\": \"\", \"note\": \"Postman 검증\" }" },
+            "url": "{{baseUrl}}/api/v1/roles/{{roleId}}/screening-rounds/1/reviews"
+          }
+        },
+        {
+          "name": "1차 마감",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "X-CSRF-Token", "value": "{{csrfToken}}" }],
+            "body": { "mode": "raw", "raw": "{ \"status\": \"CLOSED\" }" },
+            "url": "{{baseUrl}}/api/v1/roles/{{roleId}}/screening-rounds/1"
+          }
+        }
       ]
     }
   ]

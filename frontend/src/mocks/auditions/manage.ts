@@ -38,7 +38,7 @@ export function postingManagementDetail(id: PostingId): PostingManagementDetail 
     performanceId: performance.id,
     performanceTitle: performance.title,
     title: posting.title,
-    isOpenCall: posting.isOpenCall,
+    allowsMultipleRoles: posting.allowsMultipleRoles,
     recruitmentStart: posting.recruitmentStart ?? "",
     recruitmentEnd: posting.recruitmentEnd ?? "",
     phase: posting.finished ? "FINISHED" : posting.status === "CLOSED" ? "RECRUIT_CLOSED" : posting.status,
@@ -76,7 +76,7 @@ export function updateCatalogPosting(id: PostingId, body: UpdatePostingRequest) 
     const updated: CatalogPosting = {
       ...current,
       title: body.title?.trim() ?? current.title,
-      isOpenCall: body.isOpenCall ?? current.isOpenCall,
+      allowsMultipleRoles: body.allowsMultipleRoles ?? current.allowsMultipleRoles,
       recruitmentStart: body.recruitmentStart ?? current.recruitmentStart,
       recruitmentEnd: body.recruitmentEnd ?? current.recruitmentEnd,
       deadline: body.recruitmentEnd ? compactDate(body.recruitmentEnd) : current.deadline,

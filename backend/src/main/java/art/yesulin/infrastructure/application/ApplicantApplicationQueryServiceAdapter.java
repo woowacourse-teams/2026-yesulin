@@ -7,6 +7,7 @@ import art.yesulin.application.application.ApplicantApplicationSummary;
 import art.yesulin.application.application.ApplicationSubmissionException;
 import art.yesulin.infrastructure.account.ApplicantJpaEntity;
 import art.yesulin.infrastructure.account.ApplicantJpaRepository;
+import java.time.ZoneOffset;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,7 +34,8 @@ public class ApplicantApplicationQueryServiceAdapter implements ApplicantApplica
         ApplicantJpaEntity applicant = findApplicant(accountId);
         return applicationRepository.findAllByApplicantIdOrderBySubmittedAtDesc(applicant.id()).stream()
                 .map(application -> new ApplicantApplicationSummary(
-                        application.id(), application.postingId(), application.submittedAt()))
+                        application.id(), application.postingId(),
+                        application.submittedAt().toInstant(ZoneOffset.UTC)))
                 .toList();
     }
 
@@ -46,7 +48,8 @@ public class ApplicantApplicationQueryServiceAdapter implements ApplicantApplica
         ApplicationSnapshotJpaEntity snapshot = snapshotRepository.findByApplicationId(application.id())
                 .orElseThrow(() -> new IllegalStateException("지원서 스냅샷이 없습니다."));
         return new ApplicantApplicationDetail(
-                application.id(), application.postingId(), application.submittedAt(),
+                application.id(), application.postingId(),
+                application.submittedAt().toInstant(ZoneOffset.UTC),
                 snapshot.schemaVersion(), snapshot.snapshotJson());
     }
 

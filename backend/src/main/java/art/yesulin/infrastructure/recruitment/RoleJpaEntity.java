@@ -22,6 +22,9 @@ public class RoleJpaEntity {
     @Column(name = "posting_id", nullable = false)
     private Long postingId;
 
+    @Column(name = "template_id")
+    private Long templateId;
+
     @Column(nullable = false, length = 100)
     private String name;
 
@@ -48,6 +51,7 @@ public class RoleJpaEntity {
     private RoleJpaEntity(
             String sourceId,
             Long postingId,
+            Long templateId,
             String name,
             String description,
             Integer quota,
@@ -57,6 +61,7 @@ public class RoleJpaEntity {
             LocalDateTime createdAt) {
         this.sourceId = sourceId;
         this.postingId = postingId;
+        this.templateId = templateId;
         this.name = name;
         this.description = description;
         this.quota = quota;
@@ -77,7 +82,22 @@ public class RoleJpaEntity {
             Integer ageMax,
             LocalDateTime createdAt) {
         return new RoleJpaEntity(
-                sourceId, postingId, name, description, quota, genderCondition,
+                sourceId, postingId, null, name, description, quota, genderCondition,
+                ageMin, ageMax, createdAt);
+    }
+
+    public static RoleJpaEntity createFromTemplate(
+            Long postingId,
+            Long templateId,
+            String name,
+            String description,
+            Integer quota,
+            String genderCondition,
+            Integer ageMin,
+            Integer ageMax,
+            LocalDateTime createdAt) {
+        return new RoleJpaEntity(
+                null, postingId, templateId, name, description, quota, genderCondition,
                 ageMin, ageMax, createdAt);
     }
 
@@ -91,6 +111,10 @@ public class RoleJpaEntity {
 
     public Long postingId() {
         return postingId;
+    }
+
+    public Long templateId() {
+        return templateId;
     }
 
     public String name() {

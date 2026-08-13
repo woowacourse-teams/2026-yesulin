@@ -14,15 +14,15 @@ flowchart TB
     MEMBER -- 아니오 --> LOAD{"이전 기본 프로필을<br>불러올까요?"}
     LOAD -- 예 --> LOGIN["로그인"]
     LOGIN --> PREFILL
-    LOAD -- 아니오 --> FORM["지원서 작성·사진 선택<br>IndexedDB 우선 저장"]
+    LOAD -- 아니오 --> FORM["지원서 작성·사진 선택<br>IndexedDB 우선 저장 (목표·미구현)"]
     PREFILL --> FORM
-    FORM --> DRAFT["서버 Draft 지연·묶음 동기화<br>로그인 전·후 모두"]
-    DRAFT --> REVIEW["최종 검토·필수 동의<br>프로필 저장은 별도 선택"]
+    FORM --> DRAFT["서버 Draft 지연·묶음 동기화<br>로그인 전 포함 (목표·미구현)"]
+    DRAFT --> REVIEW["최종 검토·필수 동의<br>프로필 저장 선택 (목표·미구현)"]
     REVIEW --> AUTH{"제출 시 로그인 상태?"}
     AUTH -- 아니오 --> SIGNUP["로그인 또는 회원가입"]
-    SIGNUP --> CLAIM["현재 브라우저 Draft 자동 연결<br>최신 수정본으로 덮어쓰기"]
+    SIGNUP --> CLAIM["현재 브라우저 Draft 자동 연결<br>목표·미구현"]
     AUTH -- 예 --> CLAIM
-    CLAIM --> UPLOAD["프로필 저장 동의 사진만<br>개인 사진 보관함에 연결"]
+    CLAIM --> UPLOAD["프로필 저장 동의 사진만 보관함 연결<br>목표·미구현"]
     UPLOAD --> FINAL_OPEN{"서버 시각 기준<br>모집 중?"}
     FINAL_OPEN -- 아니오 --> BLOCKED["제출 즉시 차단<br>Draft는 별도 기한까지 유지"]
     FINAL_OPEN -- 예 --> SUBMIT["지원서 스냅샷 제출<br>회원가입 완료 후에도 자동 진행"]
@@ -36,6 +36,7 @@ flowchart TB
     classDef accountNode stroke:#818cf8,fill:#eef2ff
     classDef applicationNode stroke:#fb923c,fill:#fff7ed
     classDef decisionNode stroke:#f87171,fill:#fef2f2
+    classDef deferredNode stroke:#94a3b8,fill:#f8fafc,stroke-dasharray:5 5
     START:::accountNode
     PUBLIC:::publicNode
     OPEN:::decisionNode
@@ -44,16 +45,16 @@ flowchart TB
     MULTI:::decisionNode
     MEMBER:::decisionNode
     PREFILL:::applicationNode
-    FORM:::applicationNode
+    FORM:::deferredNode
     LOAD:::decisionNode
     AUTH:::decisionNode
     SUBMIT:::applicationNode
     RECEIPT:::applicationNode
     SIGNUP:::accountNode
-    DRAFT:::applicationNode
-    REVIEW:::applicationNode
-    CLAIM:::applicationNode
-    UPLOAD:::applicationNode
+    DRAFT:::deferredNode
+    REVIEW:::deferredNode
+    CLAIM:::deferredNode
+    UPLOAD:::deferredNode
     FINAL_OPEN:::decisionNode
     BLOCKED:::applicationNode
     LOGIN:::accountNode

@@ -55,7 +55,18 @@ class ApplicantJourneyTest {
         mockMvc.perform(post("/api/v1/applicants")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"blocked@example.com\",\"password\":\"password123\"}"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("CSRF_TOKEN_INVALID"))
+                .andExpect(jsonPath("$.message").isNotEmpty());
+    }
+
+    @Test
+    @DisplayName("미인증 보호 요청을 공통 오류 형식으로 거부한다")
+    void rejectsProtectedRequestWithCommonErrorResponse() throws Exception {
+        mockMvc.perform(get("/api/v1/performances"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("AUTHENTICATION_REQUIRED"))
+                .andExpect(jsonPath("$.message").isNotEmpty());
     }
 
     @Test
@@ -166,5 +177,66 @@ class ApplicantJourneyTest {
         mockMvc.perform(get("/api/v1/performances").session(authenticatedSession))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].title").value("세션 문맥 공연"));
+    }
+
+    @Test
+    @DisplayName("같은 브라우저에서 공연사에서 지원자로 로그인해도 활성 공연사가 남지 않는다")
+    void clearsActiveCompanyWhenAccountChanges() throws Exception {
+        mockMvc.perform(post("/api/v1/producers")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "switch-producer@example.com",
+                                  "password": "password123",
+                                  "companyName": "전환 테스트 제작사",
+                                  "contactName": "담당자"
+                                }
+                                """))
+                .andExpect(status().isCreated());
+        mockMvc.perform(post("/api/v1/applicants")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "switch-applicant@example.com",
+                                  "password": "password123"
+                                }
+                                """))
+                .andExpect(status().isCreated());
+
+        MvcResult producerLogin = mockMvc.perform(post("/api/v1/sessions")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "switch-producer@example.com",
+                                  "password": "password123"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.activeCompanyId").isNumber())
+                .andReturn();
+        var session = (org.springframework.mock.web.MockHttpSession)
+                producerLogin.getRequest().getSession(false);
+
+        MvcResult applicantLogin = mockMvc.perform(post("/api/v1/sessions")
+                        .session(session)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "switch-applicant@example.com",
+                                  "password": "password123"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.activeCompanyId").isEmpty())
+                .andReturn();
+
+        mockMvc.perform(get("/api/v1/applicants/me/profile")
+                        .session((org.springframework.mock.web.MockHttpSession)
+                                applicantLogin.getRequest().getSession(false)))
+                .andExpect(status().isOk());
     }
 }

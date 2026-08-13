@@ -1,183 +1,122 @@
 # 백엔드 API Postman 테스트 가이드
 
-> 기준: 현재 `backend/src/main/java/**/presentation`에 실제로 구현된 HTTP API  
+> 기준일: 2026-08-12
 > Base URL: `http://localhost:8080`  
-> Postman 컬렉션: [`postman/yesulin-backend.postman_collection.json`](./postman/yesulin-backend.postman_collection.json)
+> 컬렉션: [`postman/yesulin-backend.postman_collection.json`](./postman/yesulin-backend.postman_collection.json)
 
-이 문서는 목표 명세가 아니라 **현재 실행 가능한 백엔드 API**만 설명한다. 목표 계약과 아직 구현하지 않은 API는 [API 컨벤션](./convention/api-convention.md)을 참고한다.
-
-## 1. 테스트 전 준비
+## 실행과 인증
 
 1. 루트에서 `docker compose up -d`로 MySQL을 실행한다.
-2. `backend`에서 `gradlew.bat bootRun --args="--spring.profiles.active=local"`을 실행한다.
-3. Postman에서 컬렉션 JSON을 Import한다.
-4. 컬렉션 변수 `producerPassword`에 seed 이관 때 사용한 `YESULIN_SEED_PRODUCER_PASSWORD` 값을 넣는다.
-5. `01. 세션 준비 및 인증` 폴더를 번호 순서대로 실행한다.
+2. `backend`에서 `./gradlew bootRun --args='--spring.profiles.active=local'`을 실행한다.
+3. 먼저 `GET /api/v1/sessions/current`를 호출해 응답의 `csrfToken`을 저장한다.
+4. POST·PUT·PATCH·DELETE에는 `X-CSRF-Token: {{csrfToken}}`을 보낸다.
+5. 로그인하면 Postman cookie jar가 `JSESSIONID`를 유지한다.
 
-seed 비밀번호를 잊었다면 DB의 BCrypt hash에서 원래 값을 복구할 수 없다. 새 공연사 가입 요청으로 테스트 계정을 만들거나 seed를 별도 로컬 DB에 다시 이관해야 한다.
+미인증 보호 요청은 `401`, 인증됐지만 회사 소유권이 없으면 `403`, CSRF 실패는 `403`이다. 가입은 로그인 없이 가능하지만 CSRF는 필요하다.
 
-## 2. 세션과 CSRF
+## API 목록
 
-백엔드는 `JSESSIONID` 세션 쿠키와 CSRF 토큰을 함께 사용한다. Postman은 같은 도메인의 쿠키를 자동 보관한다.
+| 영역 | Method·Path |
+| --- | --- |
+| 세션 | `GET /api/v1/sessions/current`, `POST /api/v1/sessions`, `DELETE /api/v1/sessions/current` |
+| 활성 공연사 | `PUT /api/v1/sessions/current/active-company` |
+| 가입 | `POST /api/v1/applicants`, `POST /api/v1/producers` |
+| 공개 조회 | `GET /api/v1/public/postings/{postingId}`, `GET /api/v1/public/recommended-postings` |
+| 지원자 프로필 | `GET·PATCH /api/v1/applicants/me/profile`, `GET /api/v1/applicants/me/profile/prefill` |
+| Draft | `GET·POST /api/v1/applicants/me/drafts` |
+| 지원서 | `GET·POST /api/v1/applicants/me/applications`, `GET /api/v1/applicants/me/applications/{applicationId}` |
+| 공연사 프로필 | `GET·PATCH /api/v1/producers/me` |
+| 공연 | `GET·POST /api/v1/performances`, `GET·PATCH·DELETE /api/v1/performances/{id}` |
+| 공고 | `GET·POST /api/v1/performances/{id}/postings`, `GET·PATCH·DELETE /api/v1/postings/{id}` |
+| 배역 | `GET·POST /api/v1/postings/{id}/roles` |
+| 심사 | `GET /api/v1/roles/{roleId}/screening-rounds/current/applications`, `GET /.../{round}/applications` |
+| 결과·마감 | `PATCH /api/v1/roles/{roleId}/screening-rounds/{round}/reviews`, `PATCH /.../{round}` |
 
-1. `GET /api/v1/sessions/current`를 먼저 호출한다.
-2. 응답의 `csrfToken`이 컬렉션 변수에 자동 저장된다.
-3. POST·PUT·PATCH·DELETE 요청은 `X-CSRF-Token: {{csrfToken}}` 헤더를 사용한다.
-4. 로그인 후 응답의 새 토큰과 세션 쿠키를 계속 사용한다.
+## 핵심 요청 예시
 
-CSRF 토큰 없이 상태 변경 요청을 보내면 공개 회원가입과 로그인도 `403 Forbidden`이 된다. 로그인하지 않고 보호 API를 호출해도 `403 Forbidden`이다.
-
-## 3. 현재 구현 API
-
-### 세션
-
-| Method | Path | 인증 | 설명 |
-| --- | --- | --- | --- |
-| GET | `/api/v1/sessions/current` | 불필요 | 현재 세션과 CSRF 토큰 조회 |
-| POST | `/api/v1/sessions` | 불필요, CSRF 필요 | 이메일·비밀번호 로그인 |
-| PUT | `/api/v1/sessions/current/active-company` | 필요 | 활성 공연사 변경 |
-| DELETE | `/api/v1/sessions/current` | 필요 | 로그아웃 |
-
-로그인 요청:
-
-```json
-{
-  "email": "producer@yesulin.example",
-  "password": "컬렉션 변수 producerPassword"
-}
-```
-
-세션 응답:
-
-```json
-{
-  "authenticated": true,
-  "accountId": 1,
-  "email": "producer@yesulin.example",
-  "activeCompanyId": 1,
-  "csrfToken": "..."
-}
-```
-
-### 계정 가입
-
-| Method | Path | 인증 | 성공 |
-| --- | --- | --- | --- |
-| POST | `/api/v1/applicants` | 불필요, CSRF 필요 | `201 Created` |
-| POST | `/api/v1/producers` | 불필요, CSRF 필요 | `201 Created` |
-
-지원자 가입 요청:
-
-```json
-{
-  "email": "postman-applicant@example.com",
-  "password": "postman1234"
-}
-```
-
-공연사 가입 요청:
-
-```json
-{
-  "email": "postman-producer@example.com",
-  "password": "postman1234",
-  "companyName": "Postman 공연사",
-  "businessNumber": "111-22-33333",
-  "representativeName": "테스트 대표",
-  "contactName": "테스트 담당자"
-}
-```
-
-같은 이메일로 다시 가입하면 `409 ACCOUNT_ALREADY_EXISTS`가 반환된다. 가입만으로 인증되지는 않으므로 이후 로그인 요청이 필요하다.
-
-### 지원자 프로필과 제출 지원서 조회
-
-| Method | Path | 인증 | 설명 |
-| --- | --- | --- | --- |
-| GET | `/api/v1/applicants/me/profile` | 지원자 로그인 | 프로필 조회 |
-| PATCH | `/api/v1/applicants/me/profile` | 지원자 로그인 | 프로필 전체 입력값 갱신 |
-| GET | `/api/v1/applicants/me/applications` | 지원자 로그인 | 본인의 제출 지원서 목록 |
-| GET | `/api/v1/applicants/me/applications/{applicationId}` | 지원자 로그인 | 본인의 제출 스냅샷 상세 |
-
-프로필 수정 예시:
-
-```json
-{
-  "activityName": "테스트 배우",
-  "name": "지원자",
-  "height": 170,
-  "weight": 60,
-  "birthDate": "2000-01-01",
-  "gender": "FEMALE",
-  "phone": "010-1234-5678",
-  "email": "postman-applicant@example.com",
-  "residence": "서울",
-  "additionalInformation": { "specialty": "연기" },
-  "photoUrls": ["https://example.com/profile.jpg"],
-  "profileSaveConsent": true
-}
-```
-
-현재 seed에서는 지원서 73건을 이관하지 않았기 때문에 seed 계정만으로 지원서 조회 결과를 기대할 수 없다. 최종 제출 HTTP API도 아직 없어서 Postman만으로 지원서를 새로 생성할 수 없다.
-
-### 공연·공고·배역
-
-모든 요청은 로그인과 활성 공연사 문맥이 필요하다. 다른 공연사의 리소스에 접근하면 `403 COMPANY_ACCESS_DENIED`가 반환된다.
-
-| Method | Path | 성공 | 설명 |
-| --- | --- | --- | --- |
-| GET | `/api/v1/performances` | `200` | 활성 공연사의 공연 목록 |
-| POST | `/api/v1/performances` | `201` | 공연 생성 |
-| GET | `/api/v1/performances/{performanceId}` | `200` | 공연 상세 |
-| PATCH | `/api/v1/performances/{performanceId}` | `200` | 공연 수정 |
-| DELETE | `/api/v1/performances/{performanceId}` | `204` | 공연 삭제 |
-| GET | `/api/v1/performances/{performanceId}/postings` | `200` | 공연의 공고 목록 |
-| POST | `/api/v1/performances/{performanceId}/postings` | `201` | 공고 생성 |
-| GET | `/api/v1/postings/{postingId}` | `200` | 공고 상세 |
-| PATCH | `/api/v1/postings/{postingId}` | `200` | 공고 수정 |
-| DELETE | `/api/v1/postings/{postingId}` | `204` | 공고 삭제 |
-| GET | `/api/v1/postings/{postingId}/roles` | `200` | 공고의 배역 목록 |
-| POST | `/api/v1/postings/{postingId}/roles` | `201` | 배역 생성 |
-
-공연 생성 예시:
+공연은 공고에서 사용할 배역 템플릿과 함께 만든다.
 
 ```json
 {
   "title": "Postman 테스트 공연",
   "venue": "테스트 극장",
-  "posterUrl": "https://example.com/poster.jpg"
+  "posterUrl": "https://example.com/poster.jpg",
+  "roles": [
+    { "name": "주연", "description": "", "gender": "ANY", "ageMin": 18, "ageMax": 40 }
+  ]
 }
 ```
 
-공고 생성 예시:
+공고 생성은 선택 배역·차수·지원 필드를 한 트랜잭션으로 저장한다. 모집 종료는 날짜 범위의 exclusive end이므로 9월 30일까지 모집하면 10월 1일 00시를 보낸다.
 
 ```json
 {
   "title": "Postman 테스트 공고",
-  "status": "UPCOMING",
+  "status": "OPEN",
   "allowsMultipleRoles": false,
   "recruitmentStartsAt": "2026-09-01T00:00:00+09:00",
-  "recruitmentEndsAt": "2026-09-30T23:59:59+09:00",
-  "applicationGuide": "Postman 테스트용 공고입니다."
+  "recruitmentEndsAt": "2026-10-01T00:00:00+09:00",
+  "applicationGuide": "테스트 공고",
+  "roles": [{ "templateId": 1, "quota": 2 }],
+  "rounds": [{ "round": 1, "name": "서류", "date": "2026-10-02", "note": "" }],
+  "applicationFields": [
+    { "key": "NAME", "label": "이름", "required": true, "custom": false, "section": "BASIC", "inputType": "TEXT", "order": 10, "config": {} },
+    { "key": "PHONE", "label": "연락처", "required": true, "custom": false, "section": "BASIC", "inputType": "TEL", "order": 20, "config": {} },
+    { "key": "BIRTH", "label": "생년월일", "required": true, "custom": false, "section": "BASIC", "inputType": "DATE", "order": 30, "config": {} },
+    { "key": "GENDER", "label": "성별", "required": true, "custom": false, "section": "BASIC", "inputType": "SELECT", "order": 40, "config": {} },
+    { "key": "BODY", "label": "키·몸무게", "required": true, "custom": false, "section": "BASIC", "inputType": "COMPOSITE", "order": 50, "config": {} },
+    { "key": "EMAIL", "label": "이메일", "required": true, "custom": false, "section": "BASIC", "inputType": "TEXT", "order": 60, "config": {} },
+    { "key": "RESIDENCE", "label": "거주지", "required": true, "custom": false, "section": "BASIC", "inputType": "TEXT", "order": 70, "config": {} }
+  ]
 }
 ```
 
-배역 생성 예시:
+Draft 최초 저장은 `expectedRevision: null`, 갱신은 조회한 revision과 더 늦은 `clientModifiedAt`을 사용한다.
 
 ```json
 {
-  "name": "테스트 배역",
-  "description": "Postman 테스트용 배역",
-  "quota": 2,
-  "genderCondition": "ANY",
-  "ageMin": 20,
-  "ageMax": 40
+  "postingId": 1,
+  "content": { "roleIds": [1], "answers": [] },
+  "expectedRevision": null,
+  "clientModifiedAt": "2026-08-12T12:00:00Z"
 }
 ```
 
-공고 상태는 `UPCOMING`, `OPEN`, `CLOSED`, 성별 조건은 `ANY`, `MALE`, `FEMALE`, `OTHER` 중 하나다. 수정 API는 부분 수정이 아니라 생성 요청과 동일한 전체 본문을 요구한다.
+최종 제출은 인증 계정이 소유한 활성 Draft만 받는다. 공고·배역 설명과 동의 문구는 요청 값을 믿지 않고 서버가 Snapshot으로 만든다.
 
-## 4. 공통 오류 형식
+```json
+{
+  "draftId": 1,
+  "postingId": 1,
+  "roleIds": [1],
+  "answers": [
+    { "key": "NAME", "value": "지원자" },
+    { "key": "PHONE", "value": "010-1234-5678" },
+    { "key": "BIRTH", "value": "2000-01-01" },
+    { "key": "GENDER", "value": "FEMALE" },
+    { "key": "BODY", "value": { "height": 170, "weight": 60 } },
+    { "key": "EMAIL", "value": "applicant@example.com" },
+    { "key": "RESIDENCE", "value": "서울" }
+  ],
+  "consent": { "collectionAndUse": true, "thirdPartyProvision": true, "profileSave": false }
+}
+```
+
+심사 결과 저장:
+
+```json
+{ "applicationIds": [1], "status": "PASS", "memo": "", "note": "내부 메모" }
+```
+
+차수 마감:
+
+```json
+{ "status": "CLOSED" }
+```
+
+1차에는 `ABSENT`를 쓸 수 없다. `ETC`는 memo가 필요하다. 검토 대기가 남거나 대상자가 없으면 차수를 마감할 수 없다.
+
+## 오류 형식
 
 ```json
 {
@@ -187,21 +126,16 @@ CSRF 토큰 없이 상태 변경 요청을 보내면 공개 회원가입과 로�
 }
 ```
 
-- `400`: 입력 검증 또는 도메인 규칙 위반
-- `401`: 로그인 이메일 또는 비밀번호 불일치
-- `403`: 미인증, CSRF 누락, 공연사 접근 권한 없음
-- `404`: 소유 범위에서 리소스를 찾을 수 없음
-- `409`: 이메일 중복, 공고·공연 삭제 제약 등 상태 충돌
+- `400`: 형식·도메인 입력 검증
+- `401`: 로그인 필요 또는 로그인 실패
+- `403`: 소유권/권한 없음 또는 CSRF 실패
+- `404`: 리소스 없음
+- `409`: Draft revision, 이미 제출, 모집·심사 상태 충돌
 
-## 5. 아직 HTTP API가 없는 기능
+## 아직 제공하지 않는 API
 
-- 공개 공고와 추천 공고 조회
-- 로그인 전·후 Draft 생성·동기화·계정 연결
-- 사진과 파일 업로드
-- 최종 지원서 제출
-- 공연사 프로필 조회·수정·탈퇴
-- 공연사 탐색 트리
-- 지원자 심사 목록·상세·결과 저장·차수 마감
-- 지원자 지원서 수정
-
-프론트 MSW에는 이 중 일부가 구현되어 있지만 백엔드 API 구현을 의미하지 않는다.
+- 익명 Draft·계정 자동 연결
+- 파일·사진 업로드와 정리
+- 제출 idempotency key
+- 별도 공연사 탐색 트리(현재 Frontend가 공연·공고 조회를 합성)
+- 제출 지원서 일반 수정

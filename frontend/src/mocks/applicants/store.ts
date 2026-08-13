@@ -4,9 +4,7 @@ import type {
   ApplicantApplicationDetail,
   ApplicantApplicationSummary,
   ApplicantProfileResponse,
-  LookupApplicationResponse,
   RecommendedPosting,
-  UpdateApplicationRequest,
   UpdateProfileRequest,
 } from "@/features/applicants/types";
 import { CATALOG } from "@/mocks/auditions/catalog";
@@ -60,23 +58,6 @@ export const applicantApplication = (id: ApplicationId) => {
   return detail ? clone(detail) : null;
 };
 
-export function patchApplicantApplication(id: ApplicationId, body: UpdateApplicationRequest) {
-  const current = applications.find((application) => application.id === id);
-  if (!current) return null;
-  const changed = new Map(body.answers.map((answer) => [answer.key, answer.value]));
-  const currentKeys = new Set(current.answers.map((answer) => answer.key));
-  const answers = [
-    ...current.answers.map((answer) => changed.has(answer.key) ? { ...answer, value: changed.get(answer.key)! } : answer),
-    ...body.answers.filter((answer) => !currentKeys.has(answer.key)).map((answer) => ({
-      key: answer.key,
-      label: current.applicationFields.find((field) => field.id === answer.key)?.label ?? answer.key,
-      value: answer.value,
-    })),
-  ];
-  applications = applications.map((application) => application.id === id ? { ...application, answers, updatedAt: new Date().toISOString() } : application);
-  return applicantApplication(id);
-}
-
 export function recommendedPostings(exclude?: string, limit = 3): readonly RecommendedPosting[] {
   const companyName = producerProfile().companyName || "공연사";
   return CATALOG.flatMap((performance) => performance.postings.map((posting) => ({
@@ -90,25 +71,6 @@ export function recommendedPostings(exclude?: string, limit = 3): readonly Recom
   })))
     .filter((posting) => posting.id !== exclude)
     .slice(0, limit);
-}
-
-export function lookupApplicantApplication(code: string, phone: string): LookupApplicationResponse | null {
-  const normalized = code.replaceAll("-", "").toUpperCase();
-  const found = applications.find((application) => application.lookupCode.replaceAll("-", "").toUpperCase() === normalized);
-  const savedPhone = found?.answers.find((answer) => answer.key === "PHONE")?.value;
-  if (!found || typeof savedPhone !== "string" || savedPhone.replace(/\D/g, "") !== phone.replace(/\D/g, "")) return null;
-  return clone({
-    lookupCode: found.lookupCode,
-    performanceTitle: found.performanceTitle,
-    postingTitle: found.postingTitle,
-    companyName: found.companyName,
-    roleName: found.roleName,
-    submittedAt: found.submittedAt,
-    postingStatus: found.editable ? "OPEN" : "CLOSED",
-    editable: found.editable,
-    editableUntil: found.editableUntil,
-    answers: found.answers,
-  });
 }
 
 export function addApplicantApplication(detail: ApplicantApplicationDetail) {

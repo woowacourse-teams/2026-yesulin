@@ -14,7 +14,7 @@ export async function generateMetadata({ params }: { params: Promise<{ postingId
   };
   const availability = publicPostingAvailability(posting);
   const title = `${posting.performanceTitle} ${posting.title}`;
-  const description = `${posting.companyName} · ${availability.label} ${availability.detail} · ${posting.isOpenCall ? "전체 지원자 모집" : `모집 배역 ${posting.roles.map((role) => role.name).join(", ")}`}`;
+  const description = `${posting.companyName} · ${availability.label} ${availability.detail} · 모집 배역 ${posting.roles.map((role) => role.name).join(", ")}`;
   return {
     title,
     description,

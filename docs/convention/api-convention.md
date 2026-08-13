@@ -2,7 +2,7 @@
 
 지원자·공연사 flowchart를 기준으로 한 백엔드 경로 계약이다. REST 원칙을 따르되 클라이언트가 경로만 읽고 용도를 이해할 수 있는 이름을 우선한다.
 
-> **도메인 설계 반영 대기:** 최신 [도메인 설계](../domain-design.md)에 따라 서버 Draft는 로그인 전·후 모두 사용하지만 최종 제출은 인증된 계정만 할 수 있다. 아래 공고 조회 계약은 유효하며, 인증 전 Draft 보호·계정 연결과 Draft·제출·파일·지원서 조회의 구체 계약은 별도 결정한다.
+> 계정 소유 Draft와 인증된 최종 제출 계약은 구현됐다. 인증 전 Draft의 보호·계정 연결과 파일 업로드 계약은 별도 결정 전까지 공개하지 않는다.
 
 ## 공통 규칙
 
@@ -25,15 +25,16 @@ POST   /api/v1/sessions                         # 로그인
 GET    /api/v1/sessions/current                 # 현재 세션
 PUT    /api/v1/sessions/current/active-company  # 소속 검증 후 활성 공연사 전환
 DELETE /api/v1/sessions/current                 # 로그아웃
-GET    /api/v1/oauth/{provider}/authorization   # 소셜 로그인 시작
-GET    /api/v1/oauth/{provider}/callback        # 소셜 인증 응답
 POST   /api/v1/applicants                       # 지원자 가입
 POST   /api/v1/producers                        # 공연사 가입
 ```
 
-`provider`는 우선 `kakao`, `naver`를 허용하며 OAuth 요청의 `state`를 검증한다.
+소셜 로그인은 아직 제공하지 않는다. 도입 시 `provider`는 우선 `kakao`, `naver`를 허용하며 OAuth 요청의 `state`를 검증한다.
 
 ## 지원자
+
+아래에서 `내 계정 수정·탈퇴`는 목표 계약이며 아직 구현되지 않았다. 프로필, 자동 채움,
+Draft, 제출·조회 계약은 현재 구현되어 있다.
 
 ```http
 GET    /api/v1/applicants/me                    # 내 계정
@@ -46,11 +47,15 @@ GET    /api/v1/applicants/me/profile/prefill
        ?postingId={postingId}                    # 공고 양식 기준 자동 채움
 
 GET    /api/v1/applicants/me/applications       # 내 지원서 목록
+POST   /api/v1/applicants/me/applications       # 계정 소유 Draft 최종 제출
 GET    /api/v1/applicants/me/applications/{applicationId}
                                                     # 내 제출 스냅샷
+GET    /api/v1/applicants/me/drafts?postingId={postingId}
+                                                    # 공고별 계정 소유 Draft 조회
+POST   /api/v1/applicants/me/drafts              # 계정 소유 Draft 생성·전체 교체
 ```
 
-- 제출 완료 후 일반 수정은 공개 정책에서 허용하지 않으며 현재 프런트 구현과 다르다.
+- 제출 완료 후 일반 수정은 공개 정책과 현재 구현 모두 허용하지 않는다.
 - 지원자 응답에는 공연사의 심사 결과와 내부 메모를 포함하지 않는다.
 
 사진·자료의 프로필 보관과 제출 스냅샷 관계는 확정됐으며 구체적인 API 경로와 실패 시 정리 계약은 별도로 결정한다.
@@ -67,7 +72,7 @@ GET  /api/v1/public/recommended-postings
      ?excludePostingId={postingId}&limit={limit} # 추천 공고
 ```
 
-지원서 제출·파일 업로드·지원서 조회는 인증 및 소유권 경계를 먼저 결정해야 한다. 최종 제출 요청은 인증된 계정의 소유권을 기준으로 처리한다.
+최종 제출과 지원서 조회는 인증 계정 소유권을 기준으로 처리한다. 파일 업로드는 소유권·정리 계약이 확정될 때까지 별도 API를 제공하지 않는다.
 
 - 동일 계정은 같은 공고에 지원서를 하나만 제출할 수 있다.
 - 공고가 허용하면 하나의 지원서에 여러 배역을 선택할 수 있다.
@@ -78,22 +83,22 @@ GET  /api/v1/public/recommended-postings
 - 입력 변경은 IndexedDB에 먼저 반영한 뒤 서버에 지연·묶음 동기화하여 매 입력마다 요청하지 않는다.
 - 최종 제출 전 Draft는 공연사 API와 심사 화면에 노출하지 않는다.
 - 최종 제출은 서버 시각 기준 모집 중인지 다시 검증하고 마감됐으면 즉시 거부한다.
-- 최종 제출은 서버 Draft의 내용을 불변 지원서 스냅샷으로 확정한다. 제출 성공 뒤 로컬·서버 Draft 처리 기준은 별도로 결정한다.
-- 인증 전 Draft의 식별·접근 통제·만료, 최신 수정본 판정, 구체 경로, 버전 충돌과 제출 실패 복구 계약은 아직 정하지 않았다.
+- 최종 제출은 서버 Draft의 내용을 불변 지원서 스냅샷으로 확정하고 서버 Draft를 `SUBMITTED`로 표시한다. 로컬 Draft 삭제 시점은 별도로 결정한다.
+- 계정 소유 Draft 갱신은 `expectedRevision`과 UTC `clientModifiedAt`이 모두 최신일 때 전체 내용을 교체하고 아니면 `DRAFT_VERSION_CONFLICT`를 반환한다.
+- 인증 전 Draft의 식별·접근 통제·만료와 파일 계약은 아직 정하지 않았다.
 
 ## 공연사
 
 ```http
 GET    /api/v1/producers/me                     # 내 공연사 정보
 PATCH  /api/v1/producers/me                     # 공개 정보·담당자 수정
-DELETE /api/v1/producers/me                     # 회원 탈퇴
-GET    /api/v1/producers/me/navigation-tree     # 공연·공고 탐색 트리
 ```
+
+회원 탈퇴는 파기 정책, 탐색 트리 endpoint는 요약·pagination 계약 확정 뒤 구현한다. 현재 Frontend 탐색 트리는 공연·공고 조회를 조합한다.
 
 ## 공연과 공고
 
 ```http
-POST   /api/v1/performance-posters                      # 임시 포스터 업로드
 GET    /api/v1/performances                             # 공연 목록
 POST   /api/v1/performances                             # 공연 등록
 GET    /api/v1/performances/{performanceId}             # 공연 상세
@@ -112,34 +117,28 @@ POST   /api/v1/postings/{postingId}/roles               # 공고에 배역 등�
 
 ```http
 GET   /api/v1/roles/{roleId}/screening-rounds/{round}/applications
-      ?cursor={cursor}&size={size}                       # 심사 목록
-GET   /api/v1/applications/{applicationId}?round={round} # 공연사용 민감 상세
+                                                           # 심사 목록
+GET   /api/v1/roles/{roleId}/screening-rounds/current/applications
+                                                           # 현재 열린 차수 목록
 PATCH /api/v1/roles/{roleId}/screening-rounds/{round}/reviews
                                                            # 결과 일괄 수정
 PATCH /api/v1/roles/{roleId}/screening-rounds/{round}       # status=CLOSED로 마감
 ```
 
 - `screening-rounds`는 단순 `rounds`보다 차수의 용도를 명확히 알려 주므로 유지한다.
-- 심사 목록은 cursor 방식이며 버전, 차수 상태, 집계와 페이지를 포함한다.
+- MVP 심사 목록은 대상 전체와 차수 상태·집계를 반환한다. cursor pagination과 낙관적 version은 데이터 규모 확장 시 추가한다.
 - 복수 배역 지원서는 선택한 각 배역의 심사 목록에 표시하며 심사 결과는 `(지원서, 배역, 차수)`별로 구분한다.
-- 결과 수정과 차수 마감은 `expectedVersion`을 받고 충돌 시 `409 VERSION_CONFLICT`를 반환한다.
-- 공연사용 상세는 권한을 확인하고 지원자의 민감 정보와 해당 차수 심사 기록을 반환한다.
+- 결과 수정과 차수 마감은 이미 마감된 차수, 검토 대기, 대상 없음 정책을 `409` 오류 코드로 반환한다.
+- MVP 심사 보드가 권한 확인 후 지원자의 민감 정보와 해당 배역·차수 심사 기록을 함께 반환한다. 독립 상세 endpoint는 아직 두지 않는다.
 
-## 현재 프런트 이관
+## 현재 프런트 계약
 
 ```text
-/api/auth/signup/applicant          → /api/v1/applicants
-/api/me/profile                     → /api/v1/applicants/me/profile
-/api/me/profile/prefill             → /api/v1/applicants/me/profile/prefill
-/api/me/applications/**             → GET은 /api/v1/applicants/me/applications/**, PATCH는 목표 계약에서 제외
-/api/public/recommended-postings    → /api/v1/public/recommended-postings
-/api/public/postings/**             → /api/v1/public/postings/**
-/api/me/producer                    → /api/v1/producers/me
-/api/navigation/tree                → /api/v1/producers/me/navigation-tree
-/api/performances/**                → /api/v1/performances/**
-/api/screenings/**                  → /api/v1/roles/**/screening-rounds/**
+Frontend API client → `/api/v1/**`
+                   ├─ MSW 활성: 같은 경로의 handler가 intercept
+                   └─ MSW 비활성: Next rewrite가 `API_ORIGIN` Backend로 전달
 ```
 
-프런트·MSW는 아직 왼쪽 `/api/**` 계약을 사용한다. 연동 기능을 구현할 때 이 문서, flowchart, 클라이언트와 MSW를 같은 작업에서 갱신한다.
+탐색 트리는 현재 프런트 adapter가 공연·공고 조회를 조합한다. 별도 Backend tree endpoint를 사용할 때에도 화면 View Model 계약은 유지한다.
 
-인증 전 Draft의 보호·계정 연결, IndexedDB·서버 Draft 보관기간, 동기화 주기·충돌 해결, 파일 생명주기, Draft·제출·조회 API, 제출 재시도, 전형 종료 시각, 모집 보관과 차수 마감 취소 정책은 별도 결정이 필요하다.
+인증 전 Draft의 보호·계정 연결, IndexedDB·서버 Draft 보관기간, 동기화 주기, 파일·포스터 업로드 생명주기, 제출 재시도, 전형 종료 시각, 모집 보관과 차수 마감 취소 정책은 별도 결정이 필요하다.

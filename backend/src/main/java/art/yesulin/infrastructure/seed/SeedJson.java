@@ -15,7 +15,7 @@ final class SeedJson {
     static JsonNode requireArray(JsonNode parent, String field) {
         JsonNode value = parent.path(field);
         if (!value.isArray()) {
-            throw invalid(field + "는 배열이어야 합니다.");
+            throw invalid(field, "TYPE_ARRAY", field + "는 배열이어야 합니다.");
         }
         return value;
     }
@@ -29,7 +29,7 @@ final class SeedJson {
     static String text(JsonNode node, String field) {
         String value = nullableText(node, field);
         if (value == null || value.isBlank()) {
-            throw invalid(field + "는 비어 있을 수 없습니다.");
+            throw invalid(field, "REQUIRED", field + "는 비어 있을 수 없습니다.");
         }
         return value;
     }
@@ -40,7 +40,7 @@ final class SeedJson {
             return null;
         }
         if (!value.isString()) {
-            throw invalid(field + "는 문자열이어야 합니다.");
+            throw invalid(field, "TYPE_STRING", field + "는 문자열이어야 합니다.");
         }
         return value.stringValue();
     }
@@ -48,7 +48,7 @@ final class SeedJson {
     static boolean bool(JsonNode node, String field) {
         JsonNode value = node.path(field);
         if (!value.isBoolean()) {
-            throw invalid(field + "는 boolean이어야 합니다.");
+            throw invalid(field, "TYPE_BOOLEAN", field + "는 boolean이어야 합니다.");
         }
         return value.booleanValue();
     }
@@ -56,7 +56,7 @@ final class SeedJson {
     static int integer(JsonNode node, String field) {
         JsonNode value = node.path(field);
         if (!value.isIntegralNumber()) {
-            throw invalid(field + "는 정수여야 합니다.");
+            throw invalid(field, "TYPE_INTEGER", field + "는 정수여야 합니다.");
         }
         return value.intValue();
     }
@@ -104,5 +104,10 @@ final class SeedJson {
 
     static SeedValidationException invalid(String message) {
         return new SeedValidationException(message);
+    }
+
+    static SeedValidationException invalid(String field, String validation, String message) {
+        return new SeedValidationException(new SeedDiagnostic(
+                "seed-file", "current-record", field, validation, message));
     }
 }

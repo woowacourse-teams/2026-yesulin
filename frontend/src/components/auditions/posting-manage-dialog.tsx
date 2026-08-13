@@ -32,7 +32,6 @@ function EditPostingLoader({ posting, onClose, onChanged }: Omit<Parameters<type
 }
 
 function EditPostingForm({ detail, onClose, onChanged }: { readonly detail: PostingManagementDetail; readonly onClose: () => void; readonly onChanged: () => void }) {
-  const locked = detail.applicantCount > 0;
   const [title, setTitle] = useState(detail.title);
   const [start, setStart] = useState(detail.recruitmentStart);
   const [end, setEnd] = useState(detail.recruitmentEnd);
@@ -46,14 +45,14 @@ function EditPostingForm({ detail, onClose, onChanged }: { readonly detail: Post
     event.preventDefault(); setSaving(true); setFormError("");
     try {
       await updatePosting(detail.id, {
-        title, recruitmentEnd: end, rounds, applicationGuide: guide,
-        ...(!locked ? { recruitmentStart: start, roles: Object.entries(roles).map(([templateId, quota]) => ({ templateId, quota })), applicationFields: fields } : {}),
+        title, recruitmentStart: start, recruitmentEnd: end, rounds, applicationGuide: guide,
+        roles: Object.entries(roles).map(([templateId, quota]) => ({ templateId, quota })), applicationFields: fields,
       });
       notifyAuditionTreeChanged(); onChanged(); onClose();
     } catch (cause) { setFormError(errorMessage(cause, "공고를 수정하지 못했습니다.")); }
     finally { setSaving(false); }
   };
-  return <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col"><DialogHeader id={TITLE_ID} title="공고 수정" subtitle={locked ? `지원자 ${detail.applicantCount}명이 있어 배역·지원서 항목·시작일은 잠겼습니다. 마감일은 연장만 가능합니다.` : "지원자가 아직 없어 모든 설정을 수정할 수 있습니다."} /><div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-6 md:px-6"><CreateSection title="공고와 모집 기간"><div className="grid gap-3 md:grid-cols-2"><div className="md:col-span-2"><CreateField label="공고 제목"><FieldInput required value={title} onChange={(event) => setTitle(event.target.value)} /></CreateField></div><CreateField label="모집 시작일"><FieldInput required type="date" disabled={locked} value={start} onChange={(event) => setStart(event.target.value)} /></CreateField><CreateField label="모집 종료일"><FieldInput required type="date" min={locked ? detail.recruitmentEnd : start} value={end} onChange={(event) => setEnd(event.target.value)} /></CreateField></div></CreateSection><CreateSection title="모집 배역" description={locked ? "첫 지원서가 제출되어 기존 지원자의 기준을 보호하기 위해 잠겼습니다." : "이번 공고에서 모집할 배역과 인원을 조정합니다."}><fieldset disabled={locked}><PostingRoleSelector roles={detail.roleTemplates} selected={roles} onChange={setRoles} /></fieldset></CreateSection><CreateSection title="전형 일정" description="지원자가 있으면 차수 개수는 유지하고 이름·일정·안내만 바꿀 수 있습니다."><AuditionScheduleEditor rounds={rounds} onChange={setRounds} /></CreateSection><CreateSection title="지원서 항목" description={locked ? "먼저 낸 지원자와 나중에 낸 지원자의 양식을 동일하게 유지하기 위해 잠겼습니다." : "지원자가 없을 때만 항목을 바꿀 수 있습니다."}><fieldset disabled={locked}><ApplicationFieldEditor fields={fields} onChange={setFields} /></fieldset><div className="mt-4"><CreateField label="지원 안내"><FieldTextarea value={guide} onChange={(event) => setGuide(event.target.value)} className="min-h-28 resize-y" /></CreateField></div></CreateSection><CreateError id="posting-manage-error" message={formError} /></div><DialogFooter><SecondaryButton onClick={onClose}>취소</SecondaryButton><PrimaryButton type="submit" disabled={saving}>{saving ? "저장 중…" : "변경 사항 저장"}</PrimaryButton></DialogFooter></form>;
+  return <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col"><DialogHeader id={TITLE_ID} title="공고 수정" subtitle="모집 시작 전이고 지원자가 없는 공고만 수정할 수 있습니다." /><div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-6 md:px-6"><CreateSection title="공고와 모집 기간"><div className="grid gap-3 md:grid-cols-2"><div className="md:col-span-2"><CreateField label="공고 제목"><FieldInput required value={title} onChange={(event) => setTitle(event.target.value)} /></CreateField></div><CreateField label="모집 시작일"><FieldInput required type="date" value={start} onChange={(event) => setStart(event.target.value)} /></CreateField><CreateField label="모집 종료일"><FieldInput required type="date" min={start} value={end} onChange={(event) => setEnd(event.target.value)} /></CreateField></div></CreateSection><CreateSection title="모집 배역" description="이번 공고에서 모집할 배역과 인원을 조정합니다."><PostingRoleSelector roles={detail.roleTemplates} selected={roles} onChange={setRoles} /></CreateSection><CreateSection title="전형 일정"><AuditionScheduleEditor rounds={rounds} onChange={setRounds} /></CreateSection><CreateSection title="지원서 항목" description="기본 정보 8개는 항상 필수입니다."><ApplicationFieldEditor fields={fields} onChange={setFields} /><div className="mt-4"><CreateField label="지원 안내"><FieldTextarea value={guide} onChange={(event) => setGuide(event.target.value)} className="min-h-28 resize-y" /></CreateField></div></CreateSection><CreateError id="posting-manage-error" message={formError} /></div><DialogFooter><SecondaryButton onClick={onClose}>취소</SecondaryButton><PrimaryButton type="submit" disabled={saving}>{saving ? "저장 중…" : "변경 사항 저장"}</PrimaryButton></DialogFooter></form>;
 }
 
 function DeletePostingDialog({ posting, onClose, onChanged }: Omit<Parameters<typeof PostingManageDialog>[0], "mode">) {

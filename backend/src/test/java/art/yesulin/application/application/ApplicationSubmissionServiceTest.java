@@ -3,10 +3,10 @@ package art.yesulin.application.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import art.yesulin.application.draft.DraftAttachmentService;
 import art.yesulin.domain.application.BasicInformation;
 import art.yesulin.domain.application.ConsentEvidence;
 import art.yesulin.domain.application.Gender;
-import art.yesulin.domain.application.SnapshotDocument;
 import art.yesulin.infrastructure.account.AccountJpaEntity;
 import art.yesulin.infrastructure.account.AccountJpaRepository;
 import art.yesulin.infrastructure.account.ApplicantJpaEntity;
@@ -18,6 +18,8 @@ import art.yesulin.infrastructure.draft.DraftJpaEntity;
 import art.yesulin.infrastructure.draft.DraftJpaRepository;
 import art.yesulin.infrastructure.recruitment.PerformanceJpaEntity;
 import art.yesulin.infrastructure.recruitment.PerformanceJpaRepository;
+import art.yesulin.infrastructure.recruitment.PostingFieldJpaEntity;
+import art.yesulin.infrastructure.recruitment.PostingFieldJpaRepository;
 import art.yesulin.infrastructure.recruitment.PostingJpaEntity;
 import art.yesulin.infrastructure.recruitment.PostingJpaRepository;
 import art.yesulin.infrastructure.recruitment.RoleJpaEntity;
@@ -53,6 +55,9 @@ class ApplicationSubmissionServiceTest {
     private ApplicationSubmissionService submissionService;
 
     @Autowired
+    private DraftAttachmentService draftAttachmentService;
+
+    @Autowired
     private AccountJpaRepository accountRepository;
 
     @Autowired
@@ -69,6 +74,9 @@ class ApplicationSubmissionServiceTest {
 
     @Autowired
     private RoleJpaRepository roleRepository;
+
+    @Autowired
+    private PostingFieldJpaRepository fieldRepository;
 
     @Autowired
     private DraftJpaRepository draftRepository;
@@ -111,6 +119,9 @@ class ApplicationSubmissionServiceTest {
         RoleJpaEntity role = roleRepository.save(RoleJpaEntity.create(
                 null, postingId, "자유", null, 1, null, null, null, NOW));
         roleId = role.id();
+        fieldRepository.save(PostingFieldJpaEntity.create(
+                postingId, null, "CUSTOM", "질문", "TEXT", false,
+                true, "CUSTOM", 1, "{}"));
         DraftJpaEntity draft = draftRepository.save(DraftJpaEntity.createOwned(
                 postingId, accountId, "{\"name\":\"지원자\"}", NOW, NOW));
         draftId = draft.id();
@@ -119,8 +130,9 @@ class ApplicationSubmissionServiceTest {
     private void resetDatabase() {
         jdbcTemplate.execute("SET FOREIGN_KEY_CHECKS = 0");
         for (String table : List.of(
-                "consent_snapshots", "application_snapshots", "application_answers",
-                "application_roles", "applications", "drafts", "roles", "postings",
+                "application_reviews", "screening_rounds", "consent_snapshots",
+                "application_snapshots", "application_answers",
+                "application_roles", "applications", "drafts", "posting_fields", "roles", "postings",
                 "performances", "company_members", "companies", "applicant_profiles",
                 "applicants", "accounts")) {
             jdbcTemplate.execute("TRUNCATE TABLE " + table);
@@ -143,8 +155,22 @@ class ApplicationSubmissionServiceTest {
                 "SELECT COUNT(*) FROM application_snapshots WHERE application_id = ?",
                 Integer.class, result.applicationId())).isEqualTo(1);
         assertThat(jdbcTemplate.queryForObject(
+                "SELECT snapshot_json FROM application_snapshots WHERE application_id = ?",
+                String.class, result.applicationId()))
+                .contains("공고", "application-consent-v1", "질문")
+                .doesNotContain("조작한 질문", "1.0-draft");
+        assertThat(jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM consent_snapshots WHERE application_id = ?",
                 Integer.class, result.applicationId())).isEqualTo(2);
+        assertThat(jdbcTemplate.queryForList(
+                "SELECT consent_type, document_version, disclosure_json "
+                        + "FROM consent_snapshots WHERE application_id = ? ORDER BY consent_type",
+                result.applicationId()))
+                .allSatisfy(row -> {
+                    assertThat(row.get("document_version")).isEqualTo("application-consent-v1");
+                    assertThat(row.get("disclosure_json").toString())
+                            .contains("공연사", "공고", "purpose", "retention");
+                });
         assertThat(draftRepository.findById(draftId).orElseThrow().status()).isEqualTo("SUBMITTED");
     }
 
@@ -158,6 +184,22 @@ class ApplicationSubmissionServiceTest {
         assertThat(draftRepository.findById(draftId).orElseThrow().status()).isEqualTo("ACTIVE");
     }
 
+    @Test
+    @DisplayName("같은 공고의 Draft를 계정에 연결하면 더 최신인 전체 Draft 하나만 남긴다")
+    void keepsNewerWholeDraftWhenAttaching() {
+        DraftJpaEntity incoming = draftRepository.save(DraftJpaEntity.createOwned(
+                postingId, null, "{\"name\":\"더 최신\"}",
+                NOW.plusMinutes(1), NOW.plusMinutes(1)));
+
+        draftAttachmentService.attachVerifiedDraft(incoming.id(), accountId);
+
+        DraftJpaEntity merged = draftRepository
+                .findByAccountIdAndPostingId(accountId, postingId).orElseThrow();
+        assertThat(merged.id()).isEqualTo(incoming.id());
+        assertThat(merged.contentJson()).contains("더 최신");
+        assertThat(draftRepository.count()).isEqualTo(1);
+    }
+
     private SubmitApplicationCommand validCommand(String answerJson) {
         BasicInformation information = new BasicInformation(
                 "지원자", 170, 60, LocalDate.of(2000, 1, 1), Gender.NOT_DISCLOSED,
@@ -169,8 +211,7 @@ class ApplicationSubmissionServiceTest {
                 postingId,
                 information,
                 List.of(roleId),
-                List.of(new SubmissionAnswer("CUSTOM", "질문", answerJson, 1)),
-                consents,
-                SnapshotDocument.of("{\"name\":\"지원자\"}"));
+                List.of(new SubmissionAnswer("CUSTOM", "조작한 질문", answerJson, 99)),
+                consents);
     }
 }

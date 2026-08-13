@@ -10,6 +10,7 @@ import art.yesulin.infrastructure.account.ApplicantJpaEntity;
 import art.yesulin.infrastructure.account.ApplicantJpaRepository;
 import java.net.URI;
 import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -100,7 +101,11 @@ public class ApplicantProfileServiceAdapter implements ApplicantProfileService {
                 profile.weight(), profile.birthDate(), profile.gender(), profile.phone(),
                 profile.email(), profile.residence(),
                 readJson(profile.additionalInformation()), photoUrls,
-                profile.consentedAt(), profile.updatedAt());
+                toInstant(profile.consentedAt()), toInstant(profile.updatedAt()));
+    }
+
+    private Instant toInstant(LocalDateTime value) {
+        return value == null ? null : value.toInstant(ZoneOffset.UTC);
     }
 
     private String writeJson(Map<String, Object> value) {

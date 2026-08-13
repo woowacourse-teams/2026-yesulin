@@ -9,6 +9,8 @@ import { CATALOG } from "./catalog";
 
 let performanceSequence = 0;
 let postingSequence = 0;
+let roleTemplateSequence = 0;
+let roleSequence = 0;
 
 const compactDate = (value: string) => value.replaceAll("-", ".");
 
@@ -29,10 +31,10 @@ function postingStatus(start: string, end: string): CatalogPosting["status"] {
 
 export function addPerformance(body: CreatePerformanceRequest): CatalogPerformance {
   performanceSequence += 1;
-  const id = performanceId(`created_p${performanceSequence}`);
-  const roleTemplates: PerformanceRoleTemplate[] = body.roles.map((role, index) => ({
+  const id = performanceId(String(performanceSequence));
+  const roleTemplates: PerformanceRoleTemplate[] = body.roles.map((role) => ({
     ...role,
-    id: `${id}_template_${index + 1}`,
+    id: String(++roleTemplateSequence),
   }));
 
   const performance: CatalogPerformance = {
@@ -52,14 +54,14 @@ export function addPosting(
   body: CreatePostingRequest,
 ): CatalogPosting {
   postingSequence += 1;
-  const id = postingId(`created_po${postingSequence}`);
+  const id = postingId(String(postingSequence));
   const templates = new Map(performance.roleTemplates.map((role) => [role.id, role]));
 
-  const roles = body.roles.flatMap((selected, index) => {
+  const roles = body.roles.flatMap((selected) => {
     const source = templates.get(selected.templateId);
     if (!source) return [];
     return [{
-      id: roleId(`${id}_r${index + 1}`),
+      id: roleId(String(++roleSequence)),
       name: source.name,
       description: source.description,
       quota: selected.quota,
@@ -76,7 +78,7 @@ export function addPosting(
     title: body.title.trim(),
     deadline: compactDate(body.recruitmentEnd),
     status: postingStatus(body.recruitmentStart, body.recruitmentEnd),
-    isOpenCall: body.isOpenCall,
+    allowsMultipleRoles: body.allowsMultipleRoles,
     finished: false,
     roles,
     recruitmentStart: body.recruitmentStart,

@@ -14,7 +14,8 @@ type PrefillGateProps = {
   readonly fields: readonly ApplicationFieldInput[];
   readonly performanceTitle: string;
   readonly postingTitle: string;
-  readonly roleId: string;
+  readonly companyName: string;
+  readonly roleIds: readonly string[];
   readonly roleName: string;
   readonly onBack: () => void;
 };

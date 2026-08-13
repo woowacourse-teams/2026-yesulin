@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { PrimaryButton } from "@/components/ui/controls";
 import { useToast } from "@/components/auditions/toast";
 import { AuthInput, PasswordInput, RoleField, type AccountRole } from "./auth-fields";
 import { AuthNoticeDialog, type AuthNotice } from "./auth-notice-dialog";
 import { ProducerSignupFields } from "./producer-signup-fields";
 import { SocialButtons } from "./social-buttons";
-import { signupApplicant } from "@/features/auth/api";
+import { signupApplicant, signupProducer } from "@/features/auth/api";
 
 type SignupField = "name" | "phone" | "company" | "businessNumber" | "email" | "password" | "passwordConfirm" | "terms";
 type SignupErrors = Partial<Record<SignupField, string>>;
@@ -129,9 +130,8 @@ export function SignupForm({ initialRole = "applicant", profileClaimToken }: { r
           termsAgreed: terms,
           ...(profileClaimToken ? { profileClaimToken } : {}),
         });
-        if (response.profileClaimed) toast("지원서 정보와 지원 내역을 새 계정에 연결했어요.", { type: "success" });
-        else if (profileClaimToken) toast("계정은 만들었지만 지원서 연결 토큰이 만료됐거나 이미 사용됐어요.", { type: "info" });
-        else toast("지원자 계정을 만들었어요.", { type: "success" });
+        if (profileClaimToken) toast("계정을 만들었습니다. Draft 연결은 계약 확정 후 제공됩니다.", { type: "info" });
+        else toast("지원자 계정을 만들고 로그인했어요.", { type: "success" });
         router.push(response.redirectTo);
       } catch (cause) {
         toast(cause instanceof Error ? cause.message : "계정을 만들지 못했습니다.", { type: "error" });
@@ -139,7 +139,22 @@ export function SignupForm({ initialRole = "applicant", profileClaimToken }: { r
       }
       return;
     }
-    toast("공연사 회원가입 API 연결 전입니다.", { type: "info" });
+    setSubmitting(true);
+    try {
+      const response = await signupProducer({
+        email: values.email.trim(),
+        password: values.password,
+        companyName: values.company.trim(),
+        businessNumber: values.businessNumber,
+        representativeName: values.name.trim(),
+        contactName: values.name.trim(),
+      });
+      toast("공연사 계정을 만들고 로그인했어요.", { type: "success" });
+      router.push(response.redirectTo);
+    } catch (cause) {
+      toast(cause instanceof Error ? cause.message : "공연사 계정을 만들지 못했습니다.", { type: "error" });
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -177,7 +192,7 @@ export function SignupForm({ initialRole = "applicant", profileClaimToken }: { r
         <div>
           <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-control border border-border bg-surface px-3 py-3 text-sm text-muted-strong">
             <input id="signup-terms" type="checkbox" checked={terms} aria-invalid={errors.terms ? true : undefined} aria-describedby={errors.terms ? "signup-terms-error" : undefined} onChange={(event) => setTerms(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 rounded border-border accent-brand" />
-            <span><strong className="text-foreground">[필수]</strong> 서비스 이용약관과 개인정보 처리방침에 동의합니다.</span>
+            <span><strong className="text-foreground">[필수]</strong> <Link href="/policies/terms" target="_blank" className="font-semibold text-brand underline underline-offset-2">서비스 이용약관</Link>에 동의합니다. <Link href="/policies/privacy" target="_blank" className="font-semibold text-brand underline underline-offset-2">개인정보 처리방침</Link>은 언제든 확인할 수 있습니다.</span>
           </label>
           {errors.terms ? <p id="signup-terms-error" className="mt-1.5 text-sm font-medium text-fail">{errors.terms}</p> : null}
         </div>

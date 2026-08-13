@@ -8,6 +8,7 @@ public record Submission(// no-excuse-ok: domain value object
         PostingId postingId,
         BasicInformation basicInformation,
         List<SelectedRole> roles,
+        boolean allowsMultipleRoles,
         ConsentEvidence consentEvidence,
         SnapshotDocument snapshot,
         Instant submittedAt) {

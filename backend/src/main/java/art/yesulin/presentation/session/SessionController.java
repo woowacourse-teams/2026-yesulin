@@ -58,14 +58,11 @@ public class SessionController {
         httpRequest.changeSessionId();
         contextRepository.saveContext(context, httpRequest, httpResponse);
         SessionPrincipal principal = principalResolver.resolve(authentication);
-        Long activeCompanyId = ActiveCompanySession.find(session);
-        if (activeCompanyId == null) {
-            activeCompanyId = companyContextService.initialCompanyId(principal.accountId());
-            if (activeCompanyId != null) {
-                ActiveCompanySession.select(session, activeCompanyId);
-            }
+        Long activeCompanyId = companyContextService.initialCompanyId(principal.accountId());
+        if (activeCompanyId != null) {
+            ActiveCompanySession.select(session, activeCompanyId);
         } else {
-            companyContextService.requireMembership(principal.accountId(), activeCompanyId);
+            ActiveCompanySession.clear(session);
         }
         return SessionResponse.authenticated(
                 principal.accountId(), principal.email(), activeCompanyId, csrfToken.getToken());

@@ -23,7 +23,7 @@ export type CatalogPosting = {
   readonly title: string;
   readonly deadline: string;
   readonly status: "OPEN" | "CLOSED" | "UPCOMING";
-  readonly isOpenCall: boolean;
+  readonly allowsMultipleRoles: boolean;
   /** 지난 공고. 전 차수 심사 이력이 채워진 상태로 시작한다. */
   readonly finished: boolean;
   readonly roles: readonly CatalogRole[];

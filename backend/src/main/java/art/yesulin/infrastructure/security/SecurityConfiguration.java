@@ -11,16 +11,21 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import tools.jackson.databind.ObjectMapper;
 
 @Configuration
 public class SecurityConfiguration {
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http, ObjectMapper objectMapper)
+            throws Exception {
         CookieCsrfTokenRepository csrfRepository = new CookieCsrfTokenRepository();
         csrfRepository.setHeaderName("X-CSRF-Token");
         csrfRepository.setCookieCustomizer(cookie -> cookie.httpOnly(false).sameSite("Lax"));
         http.csrf(csrf -> csrf.csrfTokenRepository(csrfRepository))
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint(new JsonAuthenticationEntryPoint(objectMapper))
+                        .accessDeniedHandler(new JsonAccessDeniedHandler(objectMapper)))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/api/v1/applicants", "/api/v1/producers")
                         .permitAll()

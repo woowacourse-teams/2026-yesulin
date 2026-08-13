@@ -2,7 +2,7 @@
 
 > 기준일: 2026-08-12<br>
 > 최초 기준: [Notion 도메인 설계](https://app.notion.com/p/3b94b21dcd3c80478a8ce0bb76965dc9)<br>
-> 후속 결정: [0008 지원서·프로필·배역 규칙](./decisions/0008-application-profile-and-role-rules.md), [0009 로컬 우선 서버 Draft 동기화](./decisions/0009-local-first-server-draft.md), [0010 Backend 첫 영속화 구조](./decisions/0010-backend-persistence-slice.md), [0011 활성 공연사와 mock seed 이관 경계](./decisions/0011-active-company-and-seed-boundaries.md)
+> 후속 결정: [0008 지원서·프로필·배역 규칙](./decisions/0008-application-profile-and-role-rules.md), [0009 로컬 우선 서버 Draft 동기화](./decisions/0009-local-first-server-draft.md), [0010 Backend 첫 영속화 구조](./decisions/0010-backend-persistence-slice.md), [0011 활성 공연사와 mock seed 이관 경계](./decisions/0011-active-company-and-seed-boundaries.md), [0012 Frontend·MSW·Backend 단일 API 계약](./decisions/0012-frontend-msw-backend-contract.md)
 
 이 문서는 Notion의 최초 설계와 이후 팀이 확정한 도메인 결정을 개발자가 읽기 쉬운 형태로 정리한다. 현재 코드나 다른 문서가 이 내용과 다르면 **결정된 설계**, **현재 구현**, **추가 설계 필요**를 구분한다. 추가 설계 항목은 답이 아니라 팀이 결정해야 할 질문이다.
 
@@ -103,19 +103,25 @@
 
 ### Backend
 
-`backend/`에는 Flyway 기반 MySQL 스키마와 분리된 도메인/JPA 모델이 있다. Account 가입·세션 인증·CSRF, Applicant 프로필, 활성 공연사 문맥, 공연·공고·배역 관리 API를 제공한다. Draft와 제출 지원서·배역·답변·동의 스냅샷은 영속 모델과 내부 트랜잭션 서비스까지 구현했지만, 인증 전 Draft 보호·파일 계약과 제출 API가 결정되기 전이라 공개 controller는 만들지 않았다. 지원자 본인의 제출 지원서 조회 API는 구현되어 있다.
+`backend/`에는 Flyway 기반 MySQL 스키마와 분리된 도메인/JPA 모델이 있다. Account 가입·세션 인증·CSRF, Applicant 프로필·자동 채움, 활성 공연사 문맥, 공개 공고, 공연·공고·배역·차수 관리, 계정 소유 Draft, 최종 제출, 내 지원서와 배역별 심사 API를 제공한다. 제출 트랜잭션은 서버가 공고·배역·필드·동의를 다시 조회해 불변 JSON Snapshot을 만들고 `(지원서, 배역, 차수)`별 첫 심사 대상을 함께 생성한다.
 
-### Frontend·MSW·기존 문서
+Draft 전체 교체는 `expectedRevision`이 현재 revision과 같고 `clientModifiedAt`이 기존 값보다 늦을 때만 허용한다. 같은 `(account, posting)` Draft 연결 시에도 이 비교로 한 벌만 유지한다. 익명 Draft와 파일 API는 접근 증명·개인정보·정리 계약이 확정되지 않아 공개하지 않는다.
 
-- 제출 후 모집 마감 전 답변 수정이 가능하다. 공개 정책 문서는 제출 후 수정 불가로 설명해 이미 문서와 구현이 다르다.
-- 기본 정보에 이메일과 거주지가 없고, 학교·전공이 기본 정보에 포함된다.
-- 공고 설정에서 기본 정보도 끄거나 선택 항목으로 바꿀 수 있다.
-- 사진은 최대 4장이고 `{문자, 숫자}` 설명 요구사항을 표현하지 않는다.
-- 프로필에 공고별 커스텀 답변을 보관하며 커스텀 boolean 입력 타입이 없다.
-- 현재 심사 결과는 `(지원서, 차수)` 기준이어서 복수 배역 지원서를 배역별로 독립 심사하는 목표 규칙과 다르다.
-- `/apply/lookup`과 공개 지원서 API에는 비로그인 제출 지원서 조회·수정 흐름이 남아 있다. 목표 정책은 인증된 계정만 최종 제출하고 계정에 귀속된 지원서만 조회하는 방식이므로 구현 시 제거하거나 인증 흐름으로 전환해야 한다.
+구조상 남은 차이는 일부 `infrastructure/*ServiceAdapter`가 application orchestration과 트랜잭션까지 담당한다는 점이다. Domain 규칙과 application port는 분리돼 있지만, 승인된 계층 설계대로 application service와 output port로 완전히 분해하는 작업은 남아 있다.
 
-Frontend와 MSW는 이번 backend 작업에서 수정하지 않았다. 인증 전 Draft 동기화와 최종 제출의 구체적인 공개 API 계약도 새로 확정하지 않았다.
+### Frontend·MSW
+
+Frontend와 MSW는 Backend와 같은 `/api/v1` 계약을 사용한다. 실제 로그인·세션·CSRF, 공개 공고, 프로필, 계정 Draft·최종 제출, 내 지원서, 공연·공고와 배역별 심사 흐름을 같은 feature API로 호출한다. 제출 지원서 수정과 비로그인 조회 흐름은 제거했고 사진 상한은 10장, 이름·키·몸무게·생년월일·성별·연락처·이메일·거주지는 항상 필수로 고정했다.
+
+아직 목표 정책과 다른 부분은 다음과 같다.
+
+- 작성 중 값을 IndexedDB에 저장하고 지연·묶음 동기화하는 브라우저 계층은 아직 없다. 현재 계정 Draft는 최종 제출 직전에 동기화한다.
+- 인증 전 Draft 복원·계정 자동 연결과 로그인 왕복 후 폼 복원은 미구현이다.
+- 사진은 최대 10장을 선택할 수 있지만 서버 파일 업로드와 공연사가 지정하는 사진 유형별 설명·정확한 장수는 미구현이다.
+- 커스텀 질문 UI는 단답형 추가만 제공한다. 단일 선택·장답·복수 선택 편집은 후속 구현이 필요하다.
+- 제출 화면의 `프로필에도 저장` 선택과 그에 따른 프로필 갱신은 아직 구현되지 않았다. 제출 스냅샷은 프로필과 독립적으로 저장된다.
+- 공연사 화면 집계 중 지원자 수·진행률은 전용 요약 API가 없어 일부 목록에서 기본값으로 표시된다. 심사 보드 자체의 집계는 실제 Backend 응답을 사용한다.
+- Draft·계정·제출 데이터의 보관기간에 따른 자동 삭제 작업과 관리자 감사 로그는 아직 없다. 운영 배포 전 보관기간 결정과 삭제·감사 구현이 필요하다.
 
 ## 추가 도메인 설계 필요
 
@@ -126,11 +132,11 @@ Frontend와 MSW는 이번 backend 작업에서 수정하지 않았다. 인증 �
 | 회원 | - [x] 공통 `Account`가 로그인 자격을 소유하고 Applicant·CompanyMember를 분리한다. 한 계정은 두 유형에 속할 수 있다. | [0010 결정](./decisions/0010-backend-persistence-slice.md) | Applicant, CompanyMember, 인증 |
 | 공연사 | - [x] 한 계정은 여러 공연사를 관리할 수 있고 공연사 가입 시 Company와 최초 `ADMIN` 멤버십을 함께 만든다. | [0010 결정](./decisions/0010-backend-persistence-slice.md) | Company, CompanyMember, Performance, Posting |
 | 인증 전 Draft | - [ ] 로그인 전 Draft와 파일을 어떤 식별자로 보호하고, 인증 후 어떤 검증을 거쳐 계정에 연결하는가? | 익명 Draft 식별자가 유출되거나 다른 계정에 잘못 연결되면 지원서와 사진이 노출될 수 있다. | Draft, File, 인증 |
-| Draft 최신성 | - [ ] 서버·브라우저·기기 간 수정 시각을 어떤 기준으로 신뢰하고 최신 Draft를 판정하는가? | 최신 수정본 자동 덮어쓰기를 일관되게 적용하려면 비교 기준이 필요하다. | Draft, 동기화 |
+| 계정 Draft 최신성 | - [x] 현재 revision 일치와 더 늦은 UTC `clientModifiedAt`을 모두 요구해 전체 Draft를 교체한다. | [0010 결정](./decisions/0010-backend-persistence-slice.md) | Draft, 동기화 |
 | Draft 개인정보 | - [ ] 로그인과 최종 지원 동의 전에 서버 Draft로 저장하는 개인정보의 처리 근거와 고지·동의 시점은 언제인가? | 익명 상태에서도 개인정보가 서버로 전송되므로 저장 전에 처리 근거와 안내가 필요하다. 현재 결정은 보류됐다. | Draft, 개인정보 동의 |
 | 지원서 확정 | - [ ] 서버 Draft의 사진 업로드와 최종 지원서 스냅샷 생성을 어떤 순서와 트랜잭션 경계로 처리하는가? | 파일 업로드 뒤 제출 실패 시 복구와 정리가 필요하다. | Application, Draft, File |
-| 지원 계약 | - [ ] 인증 전·후 서버 Draft 동기화, 파일 업로드, 계정 연결, 최종 제출과 지원서 조회의 구체적인 API 계약은 무엇인가? | 익명 Draft를 안전하게 보호하고 제출 시 인증 계정에 귀속시켜야 한다. | 인증, Draft, Application, File |
-| 심사 상세 | - [ ] 복수 배역 지원서의 공연사용 상세 조회에서 배역을 경로·쿼리 중 어떻게 식별하는가? | 현재 `applicationId+round`만으로는 `(지원서, 배역, 차수)` 심사 기록을 특정할 수 없다. | Application, Role, Screening |
+| 계정 지원 계약 | - [x] 계정 소유 Draft와 최종 제출·내 지원서 조회는 `/api/v1/applicants/me/**`로 제공한다. 익명 Draft와 파일만 보류한다. | 인증 계정 소유권을 request의 company/account ID보다 우선한다. | 인증, Draft, Application |
+| 심사 상세 | - [x] 배역과 차수를 경로에 포함한 심사 보드가 해당 문맥의 지원서·이력·민감 상세를 함께 반환한다. | `(지원서, 배역, 차수)`를 모호하지 않게 특정한다. | Application, Role, Screening |
 
 ### P1 — MVP 출시 전에 결정
 

@@ -34,6 +34,15 @@ public class CompanyJpaEntity {
     @Column(name = "contact_email", length = 320)
     private String contactEmail;
 
+    @Column(name = "contact_role", length = 100)
+    private String contactRole;
+
+    @Column(name = "logo_url", length = 2048)
+    private String logoUrl;
+
+    @Column(columnDefinition = "text")
+    private String description;
+
     @Column(name = "verification_status", nullable = false, length = 20)
     private String verificationStatus;
 
@@ -109,7 +118,52 @@ public class CompanyJpaEntity {
         return verificationStatus;
     }
 
+    public String businessNumber() {
+        return businessNumber;
+    }
+
+    public String representativeName() {
+        return representativeName;
+    }
+
+    public String contactName() {
+        return contactName;
+    }
+
+    public String contactEmail() {
+        return contactEmail;
+    }
+
+    public LocalDateTime verifiedAt() {
+        return verifiedAt;
+    }
+
     public String sourceId() {
         return sourceId;
+    }
+
+    public String contactRole() {
+        return contactRole;
+    }
+
+    public String logoUrl() {
+        return logoUrl;
+    }
+
+    public String description() {
+        return description;
+    }
+
+    public void updateProfile(
+            String name,
+            String contactName,
+            String contactRole,
+            String description,
+            LocalDateTime now) {
+        this.name = name;
+        this.contactName = contactName;
+        this.contactRole = contactRole;
+        this.description = description;
+        this.updatedAt = now;
     }
 }

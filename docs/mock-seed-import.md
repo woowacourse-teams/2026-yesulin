@@ -31,7 +31,7 @@
 | `applications.id` | Application | 미이관 | 73건 전체 제외 | 아니오 | 필수 거주지·동의·Applicant가 없음 |
 | `applications.roleId` | ApplicationRole | `role_id` | 공고 소속 검증 후 연결 | 예 | 원본은 지원서당 단일 배역 |
 | `careers` | ApplicationAnswer | 답변 JSON | 순서대로 배열 구성 | 아니오 | 프로필 자동 저장 금지 |
-| `photos.url` | Snapshot photo | URL 값 | 다운로드 없이 URL 보존 | 아니오 | 최대 4장, 목표 최대 10장 이내 |
+| `photos.url` | Snapshot photo | URL 값 | 다운로드 없이 URL 보존 | 아니오 | source는 최대 4장, 현재 계약 상한 10장 이내 |
 | `reviews`, `roundClosures` | Screening | 미이관 | 이번 세로 슬라이스 범위 밖 | 아니오 | 심사 도메인을 임의 추가하지 않음 |
 | `applicantSide.profile` | ApplicantProfile | 미이관 | 인증 계정 없는 단일 UI 상태 제외 | 아니오 | 임의 계정 귀속 금지 |
 | `applicantSide.myApplications` | Application | 미이관 | 최신 정책과 충돌 | 아니오 | lookupCode·editable 계약을 부활시키지 않음 |

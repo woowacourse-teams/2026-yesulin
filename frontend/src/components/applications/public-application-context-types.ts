@@ -30,7 +30,8 @@ export type PublicApplicationState = {
   readonly leaveConfirmationOpen: boolean;
   readonly mediaError: string;
   readonly reviewing: boolean;
-  readonly consent: boolean;
+  readonly collectionAndUseConsent: boolean;
+  readonly thirdPartyProvisionConsent: boolean;
   readonly submissionState: SubmissionState;
   readonly submissionError: string;
   readonly receipt: ApplicationReceipt | null;
@@ -50,7 +51,8 @@ export type PublicApplicationActions = {
   readonly requestBack: () => void;
   readonly cancelBack: () => void;
   readonly confirmBack: () => void;
-  readonly updateConsent: (consent: boolean) => void;
+  readonly updateCollectionAndUseConsent: (consent: boolean) => void;
+  readonly updateThirdPartyProvisionConsent: (consent: boolean) => void;
   readonly submit: (result: "SUCCESS" | "ERROR") => void;
 };
 
@@ -60,7 +62,8 @@ export type PublicApplicationMeta = {
   readonly steps: ReturnType<typeof applicationFormSteps>;
   readonly performanceTitle: string;
   readonly postingTitle: string;
-  readonly roleId: string;
+  readonly companyName: string;
+  readonly roleIds: readonly string[];
   readonly roleName: string;
   readonly prefillSummary?: Pick<ProfilePrefillResponse, "filledCount" | "requiredCount" | "missingKeys">;
   readonly onBack: () => void;

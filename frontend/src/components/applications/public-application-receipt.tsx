@@ -43,7 +43,7 @@ export function PublicApplicationReceipt() {
             <dt className="text-muted">선택 배역</dt><dd className="font-medium">{meta.roleName}</dd>
             <dt className="text-muted">제출 시각</dt><dd className="num font-medium">{formatApplicantDate(receipt.submittedAt, true)}</dd>
           </dl>
-          <SecondaryLink href={applicantRoutes.lookup} className="mt-5 w-full text-muted-strong">조회 코드로 지원 내용 확인</SecondaryLink>
+          <SecondaryLink href={applicantRoutes.applications} className="mt-5 w-full text-muted-strong">내 지원서에서 제출 내용 확인</SecondaryLink>
         </section>
       </section>
 

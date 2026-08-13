@@ -41,7 +41,7 @@ class ApplicationTest {
                 "지원자", 170, 60, LocalDate.of(2000, 1, 1), Gender.NOT_DISCLOSED,
                 "010-0000-0000", "applicant@example.com", "");
         Submission submission = new Submission(POSTING_ID, missingResidence,
-                List.of(new SelectedRole(new RoleId(1L), POSTING_ID)), requiredConsents(),
+                List.of(new SelectedRole(new RoleId(1L), POSTING_ID)), true, requiredConsents(),
                 SnapshotDocument.of("{\"name\":\"지원자\"}"), SUBMITTED_AT);
 
         // when & then
@@ -77,13 +77,33 @@ class ApplicationTest {
     }
 
     @Test
+    @DisplayName("복수 배역을 허용하지 않는 공고에는 한 배역만 지원할 수 있다")
+    void rejectsMultipleRolesWhenPostingDoesNotAllowThem() {
+        Submission submission = new Submission(
+                POSTING_ID,
+                validBasicInformation(),
+                List.of(
+                        new SelectedRole(new RoleId(1L), POSTING_ID),
+                        new SelectedRole(new RoleId(2L), POSTING_ID)),
+                false,
+                requiredConsents(),
+                SnapshotDocument.of("{\"name\":\"지원자\"}"),
+                SUBMITTED_AT);
+
+        assertThatThrownBy(() -> Application.submit(
+                        new ApplicationId(100L), new ApplicantId(7L), submission))
+                .isInstanceOf(DomainException.class)
+                .hasMessageContaining("배역을 하나만");
+    }
+
+    @Test
     @DisplayName("필수 동의가 없으면 지원서를 제출할 수 없다")
     void rejectsMissingRequiredConsent() {
         // given
         ConsentEvidence collectionOnly = new ConsentEvidence(
                 true, false, false, "1.0-draft", "{\"company\":\"공연사\"}");
         Submission submission = new Submission(POSTING_ID, validBasicInformation(),
-                List.of(new SelectedRole(new RoleId(1L), POSTING_ID)), collectionOnly,
+                List.of(new SelectedRole(new RoleId(1L), POSTING_ID)), true, collectionOnly,
                 SnapshotDocument.of("{\"name\":\"지원자\"}"), SUBMITTED_AT);
 
         // when & then
@@ -93,7 +113,7 @@ class ApplicationTest {
     }
 
     private Submission validSubmission(List<SelectedRole> roles) {
-        return new Submission(POSTING_ID, validBasicInformation(), roles, requiredConsents(),
+        return new Submission(POSTING_ID, validBasicInformation(), roles, true, requiredConsents(),
                 SnapshotDocument.of("{\"name\":\"지원자\"}"), SUBMITTED_AT);
     }
 

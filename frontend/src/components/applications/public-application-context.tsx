@@ -21,7 +21,8 @@ export function PublicApplicationProvider({
   fields,
   performanceTitle,
   postingTitle,
-  roleId,
+  companyName,
+  roleIds,
   roleName,
   onBack,
   prefill,
@@ -40,13 +41,14 @@ export function PublicApplicationProvider({
   const [mediaError, setMediaError] = useState("");
   const [reviewing, setReviewing] = useState(false);
   const [leaveConfirmationOpen, setLeaveConfirmationOpen] = useState(false);
-  const [consent, setConsent] = useState(false);
+  const [collectionAndUseConsent, setCollectionAndUseConsent] = useState(false);
+  const [thirdPartyProvisionConsent, setThirdPartyProvisionConsent] = useState(false);
   const [submissionState, setSubmissionState] = useState<SubmissionState>("IDLE");
   const [submissionError, setSubmissionError] = useState("");
   const [receipt, setReceipt] = useState<ApplicationReceipt | null>(null);
 
   const dirty = hasApplicationDraft({
-    values, photos, videoUrl, noCareer, careers, consent, submitted: receipt !== null,
+    values, photos, videoUrl, noCareer, careers, consents: [collectionAndUseConsent, thirdPartyProvisionConsent], submitted: receipt !== null,
   });
 
   useEffect(() => {
@@ -126,9 +128,9 @@ export function PublicApplicationProvider({
 
   const submit = async (result: "SUCCESS" | "ERROR") => {
     if (submissionState === "SUBMITTING") return;
-    if (!consent) {
-      setSubmissionError("개인정보 수집·이용 동의가 필요합니다.");
-      window.requestAnimationFrame(() => document.getElementById("application-consent")?.focus());
+    if (!collectionAndUseConsent || !thirdPartyProvisionConsent) {
+      setSubmissionError("필수 개인정보 동의를 각각 확인해 주세요.");
+      window.requestAnimationFrame(() => document.getElementById(!collectionAndUseConsent ? "collection-and-use-consent" : "third-party-provision-consent")?.focus());
       return;
     }
     const invalidIndex = steps.findIndex((_, index) => validationIssue(index));
@@ -150,13 +152,14 @@ export function PublicApplicationProvider({
     try {
       const response = await submitPublicApplication({
         postingId,
-        roleId,
+        roleIds,
         answers: fields.filter((field) => field.enabled).map((field) => ({
           key: field.id,
           ...(field.custom ? { label: field.label } : {}),
           value: submissionValue(field, { values, photos, videoUrl, careers, noCareer }),
         })),
-        privacyAgreed: consent,
+        collectionAndUseAgreed: collectionAndUseConsent,
+        thirdPartyProvisionAgreed: thirdPartyProvisionConsent,
       });
       setReceipt({
         applicationId: response.applicationId,
@@ -174,7 +177,7 @@ export function PublicApplicationProvider({
   const state: PublicApplicationState = {
     stepIndex, values, photos, videoUrl, noCareer, careers, stepError: stepErrors[stepIndex] ?? "", mediaError,
     stepProgress: applicationStepProgress({ steps, stepIndex, maxReachedStepIndex, completedStepIndexes, stepErrors }), reviewIssues,
-    dirty, leaveConfirmationOpen, reviewing, consent, submissionState, submissionError, receipt,
+    dirty, leaveConfirmationOpen, reviewing, collectionAndUseConsent, thirdPartyProvisionConsent, submissionState, submissionError, receipt,
   };
   const actions: PublicApplicationActions = {
     updateField: (id, value) => { setValues((current) => ({ ...current, [id]: value })); clearStepError(stepIndex); },
@@ -190,9 +193,10 @@ export function PublicApplicationProvider({
     requestBack,
     cancelBack: () => setLeaveConfirmationOpen(false),
     confirmBack: () => { setLeaveConfirmationOpen(false); onBack(); },
-    updateConsent: (value) => { setConsent(value); setSubmissionError(""); },
+    updateCollectionAndUseConsent: (value) => { setCollectionAndUseConsent(value); setSubmissionError(""); },
+    updateThirdPartyProvisionConsent: (value) => { setThirdPartyProvisionConsent(value); setSubmissionError(""); },
     submit,
   };
 
-  return <PublicApplicationContext value={{ state, actions, meta: { postingId, fields, steps, performanceTitle, postingTitle, roleId, roleName, onBack, prefillSummary: prefill ? { filledCount: prefill.filledCount, requiredCount: prefill.requiredCount, missingKeys: prefill.missingKeys } : undefined } }}>{children}</PublicApplicationContext>;
+  return <PublicApplicationContext value={{ state, actions, meta: { postingId, fields, steps, performanceTitle, postingTitle, companyName, roleIds, roleName, onBack, prefillSummary: prefill ? { filledCount: prefill.filledCount, requiredCount: prefill.requiredCount, missingKeys: prefill.missingKeys } : undefined } }}>{children}</PublicApplicationContext>;
 }

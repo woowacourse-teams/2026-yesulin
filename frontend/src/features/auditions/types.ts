@@ -87,8 +87,8 @@ export type PostingSummary = {
   readonly title: string;
   readonly deadline: string;
   readonly phase: PostingPhase;
-  /** 배역 구분 없이 한 덩어리로 접수하는 공고인지 여부. */
-  readonly isOpenCall: boolean;
+  /** 한 지원서에서 복수 배역을 선택할 수 있는지 여부. */
+  readonly allowsMultipleRoles: boolean;
   readonly roleCount: number;
   readonly quotaTotal: number;
   readonly applicantCount: number;
@@ -175,7 +175,7 @@ export type PerformanceRef = {
 export type PostingRef = {
   readonly id: PostingId;
   readonly title: string;
-  readonly isOpenCall: boolean;
+  readonly allowsMultipleRoles: boolean;
 };
 
 /** 사이드바 트리 한 벌. 공연 → 공고까지만 담는다. */

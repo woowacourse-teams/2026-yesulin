@@ -1,71 +1,71 @@
-# Backend persistence slice design
+# 백엔드 영속화 슬라이스 설계
 
-## Status
+## 상태
 
-- Approved by the user on 2026-08-12.
-- Scope: `backend/` and backend/DB documentation only.
-- The frontend and its MSW contracts are not changed by this work.
+- 2026-08-12에 사용자가 승인했다.
+- 범위는 `backend/`와 백엔드/DB 문서로 한정한다.
+- 이 작업에서는 프런트엔드와 MSW 계약을 변경하지 않는다.
 
-## Identity and company membership
+## 인증 주체와 공연사 멤버십
 
-- `Account` owns the globally unique login email, password hash, session identity and account status.
-- Applicant and producer capabilities remain separate domain records.
-- An account may own one `Applicant` and zero or more `CompanyMember` memberships.
-- `CompanyMember` links an account to a company. The MVP role is `ADMIN`; the schema can add `TEAM_MEMBER` later.
-- A membership is unique by `(account_id, company_id)`. Ownership is always derived from the authenticated account.
-- The HTTP session stores a membership-validated `activeCompanyId`. Producer signup and login with one membership select it automatically; a dedicated API switches it.
-- Producer requests never accept a company ID as an ownership authority in the request body.
+- `Account`는 전역에서 고유한 로그인 이메일, 비밀번호 해시, 세션 인증 주체와 계정 상태를 소유한다.
+- 지원자와 공연사 기능은 서로 분리된 도메인 레코드로 유지한다.
+- 하나의 계정은 하나의 `Applicant`와 0개 이상의 `CompanyMember` 멤버십을 소유할 수 있다.
+- `CompanyMember`는 계정과 공연사를 연결한다. MVP 역할은 `ADMIN`이며, 스키마에는 나중에 `TEAM_MEMBER`를 추가할 수 있다.
+- 멤버십은 `(account_id, company_id)` 조합으로 고유하다. 소유권은 항상 인증된 계정에서 도출한다.
+- HTTP 세션에는 멤버십을 검증한 `activeCompanyId`를 저장한다. 공연사 가입 시와 멤버십이 하나뿐인 계정의 로그인 시에는 해당 공연사를 자동 선택하고, 전용 API로 활성 공연사를 전환한다.
+- 공연사 요청에서는 요청 본문의 공연사 ID를 소유권 판단 근거로 사용하지 않는다.
 
-## Layer and module boundaries
+## 계층과 모듈 경계
 
-The repository convention is authoritative: top-level `application`, `domain`, `presentation`, and `infrastructure` packages are used.
+저장소 규칙을 기준으로 삼으며, 최상위 `application`, `domain`, `presentation`, `infrastructure` 패키지를 사용한다.
 
-- `domain`: framework-free entities, value objects and policies.
-- `application`: use cases, transaction boundaries and repository output ports.
-- `presentation`: documented `/api/v1` HTTP contracts only.
-- `infrastructure`: JPA entities, Spring Data repositories, adapters and seed input.
+- `domain`: 프레임워크에 의존하지 않는 엔티티, 값 객체와 정책
+- `application`: 유스케이스, 트랜잭션 경계와 저장소 출력 포트
+- `presentation`: 문서화된 `/api/v1` HTTP 계약만 제공
+- `infrastructure`: JPA 엔티티, Spring Data 저장소, 어댑터와 시드 입력
 
-Domain objects and JPA entities are separate. Flyway is the schema source of truth and Hibernate only validates it.
+도메인 객체와 JPA 엔티티를 분리한다. Flyway를 스키마의 정본으로 사용하고 Hibernate는 스키마가 일치하는지만 검증한다.
 
-## Draft boundary
+## Draft 경계
 
-- Draft and submitted Application are separate aggregates.
-- A Draft may be anonymous or account-owned, but no anonymous Draft controller or public API is introduced in this slice.
-- Anonymous identification, access proof, legal notice, file upload and conflict APIs remain blocked pending an explicit contract.
-- The persistence model and application service support account attachment after verified authentication.
-- For the same `(account, posting)`, the newer whole Draft replaces the older whole Draft using server revision and UTC client modification time.
-- Drafts are never queried through producer/application-review repositories.
+- Draft와 제출된 Application은 서로 다른 애그리거트다.
+- Draft는 익명이거나 계정 소유일 수 있지만, 이 슬라이스에서는 익명 Draft 컨트롤러나 공개 API를 만들지 않는다.
+- 익명 식별, 접근 증명, 법적 고지, 파일 업로드와 충돌 처리 API는 명시적인 계약이 정해질 때까지 보류한다.
+- 영속화 모델과 애플리케이션 서비스는 인증을 검증한 후 Draft를 계정에 연결하는 기능을 지원한다.
+- 같은 `(account, posting)`에 대해서는 서버 리비전과 UTC 클라이언트 수정 시각을 사용하여 더 최신인 Draft 전체가 이전 Draft 전체를 대체한다.
+- 공연사 또는 지원서 심사용 저장소에서는 Draft를 절대 조회하지 않는다.
 
-## Application and immutable evidence
+## Application과 불변 증거
 
-- One authenticated applicant may submit at most one Application per Posting.
-- Selected roles and answers are normalized for constraints and querying.
-- The exact submitted application, posting, role and consent evidence is also stored in immutable MySQL JSON snapshots.
-- Submission creates Application, roles, answers, application snapshot and consent snapshots and marks the Draft submitted in one application transaction.
-- No normal update port is exposed for submitted applications or snapshots.
+- 인증된 지원자 한 명은 공고 하나에 Application을 최대 하나만 제출할 수 있다.
+- 선택한 배역과 답변은 제약조건 적용과 조회를 위해 정규화하여 저장한다.
+- 정확한 제출 지원서, 공고, 배역과 동의 증거는 불변 MySQL JSON 스냅샷으로도 저장한다.
+- 제출 시 하나의 애플리케이션 트랜잭션 안에서 Application, 배역, 답변, 지원서 스냅샷과 동의 스냅샷을 생성하고 Draft를 제출 상태로 변경한다.
+- 제출된 Application이나 스냅샷을 수정하는 일반 업데이트 포트는 제공하지 않는다.
 
-## Time and identifiers
+## 시간과 식별자
 
-- Internal API/domain identifiers are MySQL `BIGINT` and JSON numbers.
-- Source string identifiers from the supplied mock file are preserved in nullable unique `source_id` columns.
-- Instants are stored as UTC in `DATETIME(6)` columns without implicit database time-zone conversion.
-- API timestamps use ISO-8601 with an explicit offset.
-- Date-only seed periods mean `[start date 00:00, day after end date 00:00)` in Asia/Seoul and are converted to UTC.
+- 내부 API와 도메인 식별자는 MySQL `BIGINT`와 JSON `number`를 사용한다.
+- 제공된 mock 파일의 문자열 원본 식별자는 nullable unique `source_id` 열에 보존한다.
+- 시각은 데이터베이스의 암묵적인 시간대 변환 없이 UTC 기준 `DATETIME(6)` 열에 저장한다.
+- API 타임스탬프는 명시적인 offset을 포함한 ISO-8601 형식을 사용한다.
+- 날짜만 있는 시드 기간은 Asia/Seoul 기준 `[시작일 00:00, 종료일 다음 날 00:00)`으로 해석한 뒤 UTC로 변환한다.
 
-## Seed/import
+## 시드와 이관
 
-- Import is an explicit development command/profile, never an unconditional startup action.
-- The entire file is parsed and validated before a transaction starts.
-- Upserts use stable source identifiers and are idempotent.
-- Schema migration and seed data remain separate.
-- Source image URLs are stored as URLs and are never downloaded.
-- Passwords are not read from the seed file; a development bootstrap secret is supplied through the environment and BCrypt-hashed before storage.
-- Records that cannot satisfy the accepted domain contract are rejected with structured diagnostics rather than filled with invented values.
-- The supplied legacy applications, careers, photos, reviews and round closures are excluded because the applications lack mandatory residence, consent evidence and authenticated Applicant ownership.
+- 이관은 명시적인 개발 명령 또는 프로필로만 실행하며, 애플리케이션 시작 때 조건 없이 실행하지 않는다.
+- 트랜잭션을 시작하기 전에 파일 전체를 파싱하고 검증한다.
+- Upsert는 안정적인 원본 식별자를 사용하며 여러 번 실행해도 같은 결과가 나와야 한다.
+- 스키마 마이그레이션과 시드 데이터는 분리한다.
+- 원본 이미지 URL은 URL로만 저장하며 이미지를 다운로드하지 않는다.
+- 비밀번호는 시드 파일에서 읽지 않는다. 개발용 부트스트랩 비밀값을 환경 변수로 전달받아 BCrypt로 해시한 뒤 저장한다.
+- 합의된 도메인 계약을 충족하지 못하는 레코드는 임의의 값으로 채우지 않고 구조화된 진단과 함께 거부한다.
+- 제공된 레거시 지원서에는 필수 거주지, 동의 증거와 인증된 Applicant 소유권이 없으므로 기존 지원서, 경력, 사진, 심사 결과와 차수 마감 데이터는 이관 대상에서 제외한다.
 
-## Deferred decisions
+## 보류된 결정
 
-- Anonymous Draft API path, verifier and cookie/token contract.
-- Anonymous Draft privacy notice/legal basis and retention period.
-- Draft/file upload ownership, cleanup and cross-device conflict contract.
-- Submission idempotency key and public submission API.
+- 익명 Draft API 경로, 검증 수단과 쿠키/토큰 계약
+- 익명 Draft 개인정보 고지와 법적 근거 및 보관 기간
+- Draft/파일 업로드의 소유권, 정리와 기기 간 충돌 계약
+- 제출 멱등성 키와 공개 제출 API

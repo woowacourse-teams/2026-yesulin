@@ -10,9 +10,9 @@
 
 ## 현재 범위
 
-프런트엔드 프로토타입에서는 서비스 소개·인증 UI, 공연·공고 관리, 1~3차 지원자 심사, 공개 지원서 제출·조회, 지원자 프로필과 공연사 설정이 MSW로 동작합니다. MSW 인메모리 저장소는 초기 데이터 없이 시작하며 화면에서 만든 데이터만 현재 브라우저 세션 동안 유지합니다.
+프런트엔드는 서비스 소개·실제 세션 인증, 공연·공고 관리, 1~3차 지원자 심사, 공개 공고·지원서 제출, 지원자 프로필·내 지원서와 공연사 설정을 제공합니다. 같은 `/api/v1` feature API가 개발 중에는 MSW, 실제 연동 시에는 Spring Backend와 통신합니다. MSW 인메모리 데이터는 브라우저 세션 동안만 유지됩니다.
 
-백엔드는 Spring Boot 스캐폴드 단계입니다. 실제 인증, DB, 파일 저장, 소셜 로그인, 사업자·KOPIS 검증은 아직 연결하지 않았습니다. MSW에서 새로 만든 데이터는 새로고침하면 초기화될 수 있습니다.
+백엔드는 Flyway/MySQL 영속화, 세션·CSRF, 계정 소유 Draft, 서버 생성 제출 Snapshot, 공연·공고·배역·차수와 심사를 구현했습니다. 파일 저장, 익명 Draft, 소셜 로그인, 사업자·KOPIS 검증은 아직 연결하지 않았습니다.
 
 ## 실행
 
@@ -36,7 +36,7 @@ npm run build
 
 - 기본 주소: `http://localhost:3000`
 - 공연사 진입: `/producers/performances`
-- 실제 API 연결: `NEXT_PUBLIC_API_MOCKING=disabled`
+- 실제 API 연결: `API_ORIGIN=http://localhost:8080 NEXT_PUBLIC_API_MOCKING=disabled npm run dev`
 
 백엔드:
 
@@ -49,15 +49,16 @@ cd backend
 
 ## 개발 방식
 
-프런트에서 필요한 계약을 먼저 검증하고 백엔드가 이를 구현합니다.
+정책과 API 문서를 기준으로 Backend와 MSW 계약을 함께 유지하고, Frontend adapter가 화면 모델로 변환합니다.
 
 ```text
-화면 → 타입 → API 호출 → MSW 동작 → 문서 → 백엔드
+정책·API 문서 → Backend 계약 ↔ MSW 계약 → Frontend API adapter → 화면
 ```
 
 - 현재 프런트 계약: `frontend/src/features/**/api.ts`
 - 요청 검증과 목 응답: `frontend/src/mocks/`
-- 백엔드 목표 경로와 이관 상태: [API 컨벤션](./docs/convention/api-convention.md)
+- 통합 계약 현황: [API 계약 통합 결과](./docs/api-contract-inventory.md)
+- 백엔드 경로 계약: [API 컨벤션](./docs/convention/api-convention.md)
 - 사용자별 비즈니스 흐름: [flowchart](./docs/flowchart/)
 
 문서와 구현이 다르면 완료로 보지 않습니다. 변경 기록 기준은 [문서 운영 원칙](./docs/README.md)을 따릅니다.

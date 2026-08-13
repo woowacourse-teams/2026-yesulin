@@ -105,4 +105,32 @@ public class ApplicationJpaEntity {
     public LocalDateTime submittedAt() {
         return submittedAt;
     }
+
+    public String name() {
+        return name;
+    }
+
+    public int height() {
+        return height;
+    }
+
+    public int weight() {
+        return weight;
+    }
+
+    public LocalDate birthDate() {
+        return birthDate;
+    }
+
+    public String gender() {
+        return gender;
+    }
+
+    public String phone() {
+        return phone;
+    }
+
+    public String email() {
+        return email;
+    }
 }

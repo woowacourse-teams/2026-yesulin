@@ -9,6 +9,7 @@
 - [개인정보·서비스 정책](./policies/public/README.md): 공개 약관·처리방침·동의문 초안
 - [로컬 개발 환경](./local-development.md): Docker Compose, MySQL 8.4와 backend 실행 방법
 - [백엔드 API Postman 가이드](./backend-api-postman.md): 현재 구현된 API, 인증·CSRF와 호출 순서
+- [API 계약 현황과 통합 순서](./api-contract-inventory.md): Frontend·MSW·Backend 차이와 연동 의존성
 - [Postman 컬렉션](./postman/yesulin-backend.postman_collection.json): 현재 백엔드 API를 바로 가져올 수 있는 컬렉션
 
 기능 구현이 끝날 때마다 해당 변경을 팀원과 공유해야 하는지 확인한다. 공유가 필요한 내용은 작업이 완료된 같은 시점에 관련 비즈니스 문서에 반영한다.

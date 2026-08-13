@@ -46,6 +46,6 @@ class YesulinApplicationTests {
                 "SELECT COUNT(*) FROM flyway_schema_history WHERE success = 1", Integer.class);
 
         // then
-        assertThat(migrationCount).isEqualTo(2);
+        assertThat(migrationCount).isEqualTo(3);
     }
 }

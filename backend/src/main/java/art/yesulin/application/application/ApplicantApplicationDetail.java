@@ -1,11 +1,11 @@
 package art.yesulin.application.application;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public record ApplicantApplicationDetail(
         long id,
         long postingId,
-        LocalDateTime submittedAt,
+        Instant submittedAt,
         String snapshotSchemaVersion,
         String snapshotJson) {
 }

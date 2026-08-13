@@ -5,5 +5,4 @@ export const applicantRoutes = {
   applications: "/applicants/applications",
   application: (id: ApplicationId) => `/applicants/applications/${id}`,
   profile: "/applicants/profile",
-  lookup: "/apply/lookup",
 } as const;

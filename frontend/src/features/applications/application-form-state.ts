@@ -1,6 +1,6 @@
 import type { ApplicationFormStep } from "./application-form";
 
-export const MAX_PHOTO_COUNT = 4;
+export const MAX_PHOTO_COUNT = 10;
 export const MAX_PHOTO_SIZE_BYTES = 10 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/;
@@ -27,7 +27,7 @@ export function hasApplicationDraft({
   videoUrl,
   noCareer,
   careers,
-  consent,
+  consents,
   submitted,
 }: {
   values: Readonly<Record<string, string>>;
@@ -35,7 +35,7 @@ export function hasApplicationDraft({
   videoUrl: string;
   noCareer: boolean;
   careers: readonly CareerDraft[];
-  consent: boolean;
+  consents: readonly boolean[];
   submitted: boolean;
 }) {
   if (submitted) return false;
@@ -44,7 +44,7 @@ export function hasApplicationDraft({
     || videoUrl.trim().length > 0
     || noCareer
     || careers.length > 0
-    || consent;
+    || consents.some(Boolean);
 }
 
 export function imageFileError(file: File): string | null {

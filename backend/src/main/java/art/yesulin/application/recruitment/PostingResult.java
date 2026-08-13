@@ -1,6 +1,7 @@
 package art.yesulin.application.recruitment;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.util.List;
 
 public record PostingResult(
         long id,
@@ -8,7 +9,10 @@ public record PostingResult(
         String title,
         String status,
         boolean allowsMultipleRoles,
-        LocalDateTime recruitmentStartsAt,
-        LocalDateTime recruitmentEndsAt,
-        String applicationGuide) {
+        Instant recruitmentStartsAt,
+        Instant recruitmentEndsAt,
+        String applicationGuide,
+        List<RoleResult> roles,
+        List<ScreeningRoundResult> rounds,
+        List<PostingFieldResult> applicationFields) {
 }

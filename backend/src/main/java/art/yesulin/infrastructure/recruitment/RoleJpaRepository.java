@@ -12,4 +12,6 @@ public interface RoleJpaRepository extends JpaRepository<RoleJpaEntity, Long> {
     List<RoleJpaEntity> findAllByPostingIdOrderById(Long postingId);
 
     List<RoleJpaEntity> findAllByIdIn(Collection<Long> ids);
+
+    void deleteAllByPostingId(Long postingId);
 }

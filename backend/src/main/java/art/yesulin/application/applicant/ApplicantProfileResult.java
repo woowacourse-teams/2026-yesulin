@@ -1,7 +1,7 @@
 package art.yesulin.application.applicant;
 
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -18,8 +18,8 @@ public record ApplicantProfileResult(
         String residence,
         Map<String, Object> additionalInformation,
         List<String> photoUrls,
-        LocalDateTime consentedAt,
-        LocalDateTime updatedAt) {
+        Instant consentedAt,
+        Instant updatedAt) {
 
     public static ApplicantProfileResult empty(long applicantId) {
         return new ApplicantProfileResult(

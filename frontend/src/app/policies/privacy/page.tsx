@@ -1,0 +1,5 @@
+import Link from "next/link";
+
+export default function PrivacyPage() {
+  return <main className="min-h-screen bg-surface px-5 py-10 text-foreground"><article className="mx-auto max-w-3xl rounded-modal border border-border bg-card p-6 leading-7 md:p-10"><Link href="/" className="text-sm font-semibold text-brand">← 예술IN</Link><h1 className="mt-6 text-3xl font-bold">개인정보 처리방침</h1><p className="mt-2 text-sm text-muted">최종 수정일 2026-08-12 · 출시 전 초안</p><div className="mt-8 space-y-5 text-muted-strong"><p>개인정보처리자는 예술IN 프로젝트팀이며 문의는 contact@yesulin.art로 접수합니다.</p><h2 className="text-xl font-bold text-foreground">처리 항목과 목적</h2><p>계정 이메일과 인증 정보는 계정 제공을 위해 처리합니다. 선택 프로필은 다음 지원 자동 채움을 위해, 제출 지원서는 해당 공연사의 접수·심사를 위해 처리합니다.</p><h2 className="text-xl font-bold text-foreground">보관과 권리</h2><p>지원서는 정상 전형 종료 후 90일, 미마감 공고는 모집 마감 후 120일을 기준으로 삭제하며 백업은 최대 90일 안에 순환 삭제합니다. 열람·정정·삭제·처리정지 문의는 위 연락처로 요청할 수 있습니다.</p><h2 className="text-xl font-bold text-foreground">제3자 제공</h2><p>지원자가 별도로 동의한 공고에 한해 실제 제출 항목을 해당 공연사에 제공합니다. 자세한 항목은 지원서 제출 화면의 동의문에서 확인합니다.</p></div></article></main>;
+}

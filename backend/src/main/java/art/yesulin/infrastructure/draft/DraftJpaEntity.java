@@ -77,7 +77,30 @@ public class DraftJpaEntity {
         if (!"ACTIVE".equals(status)) {
             throw new IllegalStateException("활성 Draft만 연결할 수 있습니다.");
         }
+        if (this.accountId != null && !this.accountId.equals(accountId)) {
+            throw new art.yesulin.domain.common.DomainException(
+                    art.yesulin.domain.common.DomainError.DRAFT_ALREADY_OWNED);
+        }
         this.accountId = accountId;
+        this.serverModifiedAt = serverNow;
+    }
+
+    public void replace(
+            String incomingContentJson,
+            long expectedRevision,
+            LocalDateTime incomingClientModifiedAt,
+            LocalDateTime serverNow) {
+        if (!"ACTIVE".equals(status)) {
+            throw new IllegalStateException("활성 Draft만 변경할 수 있습니다.");
+        }
+        if (revision != expectedRevision
+                || !incomingClientModifiedAt.isAfter(clientModifiedAt)) {
+            throw new art.yesulin.domain.common.DomainException(
+                    art.yesulin.domain.common.DomainError.DRAFT_VERSION_CONFLICT);
+        }
+        this.contentJson = incomingContentJson;
+        this.revision += 1L;
+        this.clientModifiedAt = incomingClientModifiedAt;
         this.serverModifiedAt = serverNow;
     }
 
@@ -108,5 +131,17 @@ public class DraftJpaEntity {
 
     public String status() {
         return status;
+    }
+
+    public long revision() {
+        return revision;
+    }
+
+    public LocalDateTime clientModifiedAt() {
+        return clientModifiedAt;
+    }
+
+    public LocalDateTime serverModifiedAt() {
+        return serverModifiedAt;
     }
 }

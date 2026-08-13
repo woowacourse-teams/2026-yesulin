@@ -112,7 +112,7 @@ export function PostingPicker({ performanceId }: { performanceId: PerformanceId 
                   <PostingMeta label="마감일" value={posting.deadline} numeric />
                   <PostingMeta
                     label="모집 배역"
-                    value={posting.isOpenCall ? "구분 없음" : `${posting.roleCount}개`}
+                    value={posting.allowsMultipleRoles ? `복수 지원 · ${posting.roleCount}개` : `${posting.roleCount}개`}
                   />
                 </div>
                 <div className="grid gap-3 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center">
@@ -134,6 +134,7 @@ export function PostingPicker({ performanceId }: { performanceId: PerformanceId 
                 action={
                   <PostingCardActions
                     postingId={posting.id}
+                    editable
                     onEdit={() => setManage({ posting, mode: "EDIT" })}
                     onDelete={() => setManage({ posting, mode: "DELETE" })}
                   />
@@ -148,6 +149,7 @@ export function PostingPicker({ performanceId }: { performanceId: PerformanceId 
                 action={
                   <PostingCardActions
                     postingId={posting.id}
+                    editable={false}
                     onEdit={() => setManage({ posting, mode: "EDIT" })}
                     onDelete={() => setManage({ posting, mode: "DELETE" })}
                   />

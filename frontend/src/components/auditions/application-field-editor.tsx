@@ -41,10 +41,11 @@ export function ApplicationFieldEditor({
       <div className="grid gap-2 sm:grid-cols-2">
         {fields.filter((field) => !field.custom).map((field) => (
           <div key={field.id} className={fieldCardClass}>
-            <label className="flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-2 text-base md:min-h-0 md:text-xs">
+            <label className={`flex min-h-11 min-w-0 flex-1 items-center gap-2 text-base md:min-h-0 md:text-xs ${field.section === "BASIC" ? "cursor-not-allowed" : "cursor-pointer"}`}>
               <input
                 type="checkbox"
                 checked={field.enabled}
+                disabled={field.section === "BASIC"}
                 onChange={(event) => patch(field.id, { enabled: event.target.checked })}
                 className="h-4 w-4 shrink-0 accent-brand"
               />
@@ -53,7 +54,7 @@ export function ApplicationFieldEditor({
               </span>
             </label>
             <RequirementSelect
-              disabled={!field.enabled}
+              disabled={!field.enabled || field.section === "BASIC"}
               required={field.required}
               label={field.label}
               onChange={(required) => patch(field.id, { required })}

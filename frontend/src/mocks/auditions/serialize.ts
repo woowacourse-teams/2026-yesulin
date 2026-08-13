@@ -42,7 +42,7 @@ const applicantsOfPosting = (posting: CatalogPosting) =>
 
 /** 배역 구분이 없거나 배역이 하나뿐이면 배역 선택 화면을 건너뛸 수 있다. */
 const soleRoleIdOf = (posting: CatalogPosting) =>
-  posting.isOpenCall || posting.roles.length === 1 ? (posting.roles[0]?.id ?? null) : null;
+  posting.roles.length === 1 ? (posting.roles[0]?.id ?? null) : null;
 
 const applicantsOfPerformance = (performance: CatalogPerformance) =>
   allApplicants().filter((applicant) => applicant.performanceId === performance.id);
@@ -56,7 +56,7 @@ export const toPerformanceRef = (performance: CatalogPerformance): PerformanceRe
 export const toPostingRef = (posting: CatalogPosting): PostingRef => ({
   id: posting.id,
   title: posting.title,
-  isOpenCall: posting.isOpenCall,
+  allowsMultipleRoles: posting.allowsMultipleRoles,
 });
 
 export function toPerformanceSummary(performance: CatalogPerformance): PerformanceSummary {
@@ -84,7 +84,7 @@ export function toPostingSummary(posting: CatalogPosting): PostingSummary {
     title: posting.title,
     deadline: posting.deadline,
     phase: postingPhase(posting),
-    isOpenCall: posting.isOpenCall,
+    allowsMultipleRoles: posting.allowsMultipleRoles,
     roleCount: posting.roles.length,
     quotaTotal: posting.roles.reduce((sum, role) => sum + role.quota, 0),
     applicantCount: applicants.length,
@@ -190,4 +190,74 @@ export function toAuditionTree(): AuditionTree {
       })),
     })),
   };
+}
+
+export function toRawPerformance(performance: CatalogPerformance) {
+  return {
+    id: Number(performance.id),
+    title: performance.title,
+    venue: performance.venue,
+    posterUrl: performance.posterUrl,
+    createdAt: new Date().toISOString(),
+    roleTemplates: performance.roleTemplates.map((role) => ({
+      id: Number(role.id),
+      name: role.name,
+      description: role.description,
+      genderCondition: role.gender,
+      ageMin: role.ageMin,
+      ageMax: role.ageMax,
+    })),
+  };
+}
+
+export function toRawPosting(posting: CatalogPosting) {
+  const recruitmentEnd = new Date(`${posting.recruitmentEnd}T00:00:00Z`);
+  recruitmentEnd.setUTCDate(recruitmentEnd.getUTCDate() + 1);
+  return {
+    id: Number(posting.id),
+    performanceId: Number(posting.performanceId),
+    title: posting.title,
+    status: posting.status,
+    allowsMultipleRoles: posting.allowsMultipleRoles,
+    recruitmentStartsAt: `${posting.recruitmentStart}T00:00:00+09:00`,
+    recruitmentEndsAt: `${recruitmentEnd.toISOString().slice(0, 10)}T00:00:00+09:00`,
+    applicationGuide: posting.applicationGuide ?? null,
+    roles: posting.roles.map((role) => ({
+      id: Number(role.id),
+      postingId: Number(posting.id),
+      templateId: Number(performanceTemplateId(posting, role.name)),
+      name: role.name,
+      description: role.description,
+      quota: role.quota,
+      genderCondition: role.gender,
+      ageMin: role.ageMin,
+      ageMax: role.ageMax,
+    })),
+    rounds: posting.roles.flatMap((role) => (posting.rounds ?? []).map((round, index) => ({
+      id: Number(role.id) * 10 + index + 1,
+      roleId: Number(role.id),
+      round: round.round,
+      name: round.name,
+      date: round.date || null,
+      note: round.note || null,
+      status: round.round === 1 ? "OPEN" : "LOCKED",
+      closedAt: null,
+    }))),
+    applicationFields: (posting.applicationFields ?? []).filter((field) => field.enabled).map((field, index) => ({
+      id: index + 1,
+      key: field.id,
+      label: field.label,
+      required: field.required,
+      custom: field.custom,
+      section: field.section,
+      inputType: field.inputType,
+      order: field.order,
+      configJson: JSON.stringify(field.config),
+    })),
+  };
+}
+
+function performanceTemplateId(posting: CatalogPosting, roleName: string) {
+  return CATALOG.find((performance) => performance.id === posting.performanceId)
+    ?.roleTemplates.find((template) => template.name === roleName)?.id ?? "0";
 }

@@ -94,4 +94,36 @@ public class PostingFieldJpaEntity {
     public String fieldKey() {
         return fieldKey;
     }
+
+    public Long id() {
+        return id;
+    }
+
+    public String label() {
+        return label;
+    }
+
+    public String inputType() {
+        return inputType;
+    }
+
+    public boolean requiredField() {
+        return requiredField;
+    }
+
+    public boolean custom() {
+        return custom;
+    }
+
+    public String sectionName() {
+        return sectionName;
+    }
+
+    public int displayOrder() {
+        return displayOrder;
+    }
+
+    public String configJson() {
+        return configJson;
+    }
 }

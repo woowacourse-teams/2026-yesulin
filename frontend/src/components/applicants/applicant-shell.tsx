@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { applicantRoutes } from "@/features/applicants/routes";
+import { LogoutButton } from "@/components/auth/logout-button";
 
 const navigation = [
   { href: applicantRoutes.home, label: "홈", icon: "⌂" },
@@ -24,22 +25,12 @@ export function ApplicantShell({ children }: { readonly children: React.ReactNod
           {navigation.map((item) => <ApplicantNavLink key={item.href} {...item} pathname={pathname} />)}
         </nav>
         <div className="ml-auto flex items-center gap-2">
-          <Link href={applicantRoutes.lookup} className="hidden min-h-11 items-center rounded-control px-3 text-sm font-semibold text-muted-strong hover:bg-surface hover:text-brand sm:inline-flex">조회 코드로 찾기</Link>
+          <Link href={applicantRoutes.applications} className="hidden min-h-11 items-center rounded-control px-3 text-sm font-semibold text-muted-strong hover:bg-surface hover:text-brand sm:inline-flex">내 지원서</Link>
           <div className="flex min-h-11 items-center gap-2 rounded-control px-2" aria-label="현재 로그인 계정: 지원자">
             <span className="grid h-8 w-8 place-items-center rounded-full bg-brand-soft text-sm font-bold text-brand" aria-hidden="true">지</span>
             <span className="hidden text-sm font-semibold sm:inline">지원자</span>
           </div>
-          <Link
-            href="/login"
-            aria-label="로그아웃"
-            title="로그아웃"
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control px-2.5 text-sm font-semibold text-muted-strong transition-colors hover:bg-surface hover:text-foreground sm:px-3"
-          >
-            <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current stroke-2">
-              <path d="M10 5H5v14h5M14 8l4 4-4 4M8 12h10" />
-            </svg>
-            <span className="hidden sm:inline">로그아웃</span>
-          </Link>
+          <LogoutButton className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control px-2.5 text-sm font-semibold text-muted-strong transition-colors hover:bg-surface hover:text-foreground sm:px-3" />
         </div>
       </div>
     </header>

@@ -22,8 +22,30 @@ public class DraftAttachmentServiceAdapter implements DraftAttachmentService {
     @Transactional
     @Override
     public void attachVerifiedDraft(long draftId, long authenticatedAccountId) {
-        DraftJpaEntity draft = draftRepository.findById(draftId)
+        DraftJpaEntity incoming = draftRepository.findById(draftId)
                 .orElseThrow(() -> new DraftNotFoundException(draftId));
-        draft.attach(authenticatedAccountId, LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC));
+        DraftJpaEntity existing = draftRepository.findByAccountIdAndPostingId(
+                authenticatedAccountId, incoming.postingId()).orElse(null);
+        if (existing == null || existing.id().equals(incoming.id())) {
+            incoming.attach(authenticatedAccountId, now());
+            return;
+        }
+        if (isNewer(incoming, existing)) {
+            draftRepository.delete(existing);
+            draftRepository.flush();
+            incoming.attach(authenticatedAccountId, now());
+            return;
+        }
+        draftRepository.delete(incoming);
+    }
+
+    private boolean isNewer(DraftJpaEntity candidate, DraftJpaEntity current) {
+        int timeComparison = candidate.clientModifiedAt().compareTo(current.clientModifiedAt());
+        return timeComparison > 0
+                || timeComparison == 0 && candidate.revision() > current.revision();
+    }
+
+    private LocalDateTime now() {
+        return LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC);
     }
 }

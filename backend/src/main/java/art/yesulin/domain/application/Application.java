@@ -58,6 +58,9 @@ public final class Application {
         if (submission.roles().isEmpty()) {
             throw new DomainException(DomainError.APPLICATION_ROLE_REQUIRED);
         }
+        if (!submission.allowsMultipleRoles() && submission.roles().size() > 1) {
+            throw new DomainException(DomainError.APPLICATION_MULTIPLE_ROLES_NOT_ALLOWED);
+        }
         Set<RoleId> uniqueRoleIds = new HashSet<>();
         for (SelectedRole role : submission.roles()) {
             if (!role.postingId().equals(submission.postingId())) {

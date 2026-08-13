@@ -7,18 +7,20 @@ import { useToast } from "@/components/auditions/toast";
 import { AuthNoticeDialog, type AuthNotice } from "./auth-notice-dialog";
 import { AuthInput, PasswordInput, RoleField, type AccountRole } from "./auth-fields";
 import { SocialButtons } from "./social-buttons";
+import { login } from "@/features/auth/api";
 
 type LoginErrors = Partial<Record<"identifier" | "password", string>>;
 
-export function LoginForm() {
+export function LoginForm({ initialRole = "applicant" }: { readonly initialRole?: AccountRole }) {
   const toast = useToast();
   const router = useRouter();
-  const [role, setRole] = useState<AccountRole>("applicant");
+  const [role, setRole] = useState<AccountRole>(initialRole);
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
   const [errors, setErrors] = useState<LoginErrors>({});
   const [notice, setNotice] = useState<AuthNotice | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   function changeRole(nextRole: AccountRole) {
     setRole(nextRole);
@@ -27,14 +29,13 @@ export function LoginForm() {
     setErrors({});
   }
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const nextErrors: LoginErrors = {};
     const trimmedIdentifier = identifier.trim();
-    if (role === "applicant" && !/^\S+@\S+\.\S+$/.test(trimmedIdentifier)) {
+    if (!/^\S+@\S+\.\S+$/.test(trimmedIdentifier)) {
       nextErrors.identifier = "올바른 이메일 주소를 입력해 주세요.";
     }
-    if (role === "producer" && !trimmedIdentifier) nextErrors.identifier = "아이디를 입력해 주세요.";
     if (!password) nextErrors.password = "비밀번호를 입력해 주세요.";
     setErrors(nextErrors);
     const firstError = Object.keys(nextErrors)[0];
@@ -42,13 +43,20 @@ export function LoginForm() {
       requestAnimationFrame(() => document.getElementById(`login-${firstError}`)?.focus());
       return;
     }
-    if (role === "producer") {
-      toast("공연사 화면으로 이동합니다.", { type: "success" });
-      router.push("/producers/performances");
-      return;
+    setSubmitting(true);
+    try {
+      const session = await login({ email: trimmedIdentifier, password });
+      if (role === "producer" && session.activeCompanyId === null) {
+        toast("소속된 공연사가 없습니다.", { type: "error" });
+        setSubmitting(false);
+        return;
+      }
+      toast("로그인했습니다.", { type: "success" });
+      router.push(role === "producer" ? "/producers/performances" : "/applicants");
+    } catch (cause) {
+      toast(cause instanceof Error ? cause.message : "로그인하지 못했습니다.", { type: "error" });
+      setSubmitting(false);
     }
-    toast("지원자 화면으로 이동합니다.", { type: "success" });
-    router.push("/applicants");
   }
 
   return (
@@ -59,11 +67,11 @@ export function LoginForm() {
         <div className="space-y-4">
           <AuthInput
             id="login-identifier"
-            label={role === "applicant" ? "이메일" : "아이디"}
-            type={role === "applicant" ? "email" : "text"}
-            autoComplete={role === "applicant" ? "email" : "username"}
-            inputMode={role === "applicant" ? "email" : undefined}
-            placeholder={role === "applicant" ? "name@example.com" : "아이디를 입력해 주세요"}
+            label="이메일"
+            type="email"
+            autoComplete="email"
+            inputMode="email"
+            placeholder="name@example.com"
             value={identifier}
             error={errors.identifier}
             onChange={(event) => setIdentifier(event.target.value)}
@@ -98,7 +106,7 @@ export function LoginForm() {
           </button>
         </div>
 
-        <PrimaryButton type="submit" className="min-h-[52px] w-full text-base">로그인</PrimaryButton>
+        <PrimaryButton type="submit" disabled={submitting} className="min-h-[52px] w-full text-base">{submitting ? "로그인 중…" : "로그인"}</PrimaryButton>
 
         {role === "applicant" ? (
           <SocialButtons

@@ -12,25 +12,21 @@ flowchart TB
     VERIFY -- 아니오 --> WAIT["인증 상태 안내"]
     VERIFY -- 예 --> HOME["관리자 홈"]
     SESSION -- VERIFIED --> HOME
-    HOME --> NAV["왼쪽 사이드바 탐색 트리<br>GET /api/v1/producers/me/navigation-tree"] & PROFILE["공연사 정보<br>GET·PATCH /api/v1/producers/me"] & PERF["공연 목록<br>GET /api/v1/performances"]
-    PERF --> NEW_PERF["포스터 업로드<br>POST /api/v1/performance-posters"] & EDIT_PERF["공연 수정·삭제<br>PATCH·DELETE /api/v1/performances/{performanceId}"] & POSTINGS["공고 목록<br>GET /api/v1/performances/{performanceId}/postings"]
-    NEW_PERF --> CREATE_PERF["공연·배역 템플릿 등록<br>POST /api/v1/performances"]
+    HOME --> NAV["왼쪽 사이드바 탐색 트리<br>공연·공고 조회를 Frontend가 조합"] & PROFILE["공연사 정보<br>GET·PATCH /api/v1/producers/me"] & PERF["공연 목록<br>GET /api/v1/performances"]
+    PERF --> CREATE_PERF["공연·배역 템플릿 등록<br>POST /api/v1/performances<br>포스터는 확정된 URL만 보존"] & EDIT_PERF["공연 수정·삭제<br>PATCH·DELETE /api/v1/performances/{performanceId}"] & POSTINGS["공고 목록<br>GET /api/v1/performances/{performanceId}/postings"]
     POSTINGS --> CREATE_POSTING["공고 등록<br>POST /api/v1/performances/{performanceId}/postings"] & POSTING_DETAIL["공고 상세<br>GET /api/v1/postings/{postingId}"]
     POSTING_DETAIL --> EDIT_POSTING["공고 수정·삭제<br>PATCH·DELETE /api/v1/postings/{postingId}"] & ROLES["배역 목록<br>GET /api/v1/postings/{postingId}/roles"]
     ROLES --> SOLE{"배역 하나?"}
     SOLE -- 예 --> BOARD["배역별 심사 보드 첫 페이지<br>복수 배역 지원서는 각 배역에 표시<br>GET /api/v1/roles/{roleId}/screening-rounds/{round}/applications"]
     SOLE -- 아니오 --> CHOOSE_ROLE["심사할 배역 선택"]
     CHOOSE_ROLE --> BOARD
-    BOARD --> MORE{"다음 페이지 필요?"}
-    MORE -- 예: cursor --> BOARD
-    MORE -- 아니오 --> SELECT["지원자 선택"]
-    SELECT --> APP_DETAIL["민감 상세 조회<br>GET /api/v1/applications/{applicationId}?round={round}"]
-    APP_DETAIL --> REVIEW["심사 저장 + expectedVersion<br>PATCH /api/v1/roles/{roleId}/screening-rounds/{round}/reviews"]
-    REVIEW -- 409 VERSION_CONFLICT --> BOARD
-    REVIEW -- 성공: delta·counts·version --> DONE{"검토 대기 0명?"}
+    BOARD --> SELECT["보드에 포함된 지원서 민감 상세 확인"]
+    SELECT --> REVIEW["심사 저장<br>PATCH /api/v1/roles/{roleId}/screening-rounds/{round}/reviews"]
+    REVIEW -- 409 상태 충돌 --> BOARD
+    REVIEW -- 성공: 목록·집계 갱신 --> DONE{"검토 대기 0명?"}
     DONE -- 아니오 --> SELECT
-    DONE -- 예 --> CLOSE["차수 마감 + expectedVersion<br>PATCH /api/v1/roles/{roleId}/screening-rounds/{round}<br>status=CLOSED"]
-    CLOSE -- 409 VERSION_CONFLICT --> BOARD
+    DONE -- 예 --> CLOSE["차수 마감<br>PATCH /api/v1/roles/{roleId}/screening-rounds/{round}<br>status=CLOSED"]
+    CLOSE -- 409 상태 충돌 --> BOARD
     CLOSE --> LAST{"마지막 차수?"}
     LAST -- 아니오 --> BOARD
     LAST -- 예 --> FINISH(["전형 종료"])
@@ -45,7 +41,6 @@ flowchart TB
     NAV:::perfNode
     PROFILE:::perfNode
     PERF:::perfNode
-    NEW_PERF:::perfNode
     EDIT_PERF:::perfNode
     POSTINGS:::postingNode
     CREATE_PERF:::perfNode
@@ -56,9 +51,7 @@ flowchart TB
     SOLE:::decisionNode
     BOARD:::screeningNode
     CHOOSE_ROLE:::screeningNode
-    MORE:::decisionNode
     SELECT:::screeningNode
-    APP_DETAIL:::screeningNode
     REVIEW:::screeningNode
     DONE:::decisionNode
     CLOSE:::screeningNode

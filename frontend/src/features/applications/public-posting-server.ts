@@ -1,5 +1,6 @@
 import "server-only";
 import { publicPostingById, type PublicPosting } from "./public-posting";
+import { toPublicPosting, type PublicPostingApiResponse } from "./public-posting-api";
 
 /**
  * 메타데이터와 최초 SSR이 같은 공개 공고 읽기 모델을 사용한다.
@@ -10,10 +11,11 @@ export async function publicPostingForServer(postingId: string): Promise<PublicP
   const origin = process.env.API_ORIGIN;
   if (!origin) return null;
   try {
-    const response = await fetch(new URL(`/api/public/postings/${encodeURIComponent(postingId)}`, origin), {
+    const response = await fetch(new URL(`/api/v1/public/postings/${encodeURIComponent(postingId)}`, origin), {
       cache: "no-store",
     });
-    return response.ok ? response.json() as Promise<PublicPosting> : null;
+    if (!response.ok) return null;
+    return toPublicPosting(await response.json() as PublicPostingApiResponse);
   } catch {
     return null;
   }
