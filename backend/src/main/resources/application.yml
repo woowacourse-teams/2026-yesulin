@@ -1,1 +1,10 @@
-spring.application.name=yesulin
+spring:
+  application:
+    name: yesulin
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
