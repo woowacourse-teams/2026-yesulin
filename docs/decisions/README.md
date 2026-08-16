@@ -26,3 +26,4 @@
 - [Presigned upload 생명주기와 소유권](./20260816095658-presigned-upload-lifecycle.md) — accepted · agent-required
 - [시각 기반 결정 파일명](./20260816095659-time-based-decision-filenames.md) — accepted · agent-required
 - [공연 추가와 포스터 참조 확정](./20260816102630-performance-creation.md) — accepted · agent-required
+- [공연 수정과 포스터 변경 이벤트](./20260816103139-performance-update.md) — accepted · agent-required

@@ -42,19 +42,15 @@ public class PerformanceRole {
 
     PerformanceRole(Performance performance, String name, String description) {
         this.performance = requireNonNull(performance, "배역이 속할 공연은 필수입니다.");
-        this.name = requireText(name, "배역 이름은 필수입니다.");
-        this.description = requireSingleLine(description);
+        update(new PerformanceRoleChange(null, name, description));
+    }
+
+    void update(PerformanceRoleChange change) {
+        name = change.name();
+        description = change.description();
     }
 
     boolean hasSameName(String otherName) {
-        return name.equalsIgnoreCase(otherName);
-    }
-
-    private String requireSingleLine(String value) {
-        String normalized = requireText(value, "배역 한 줄 설명은 필수입니다.");
-        if (normalized.contains("\n") || normalized.contains("\r")) {
-            throw new IllegalArgumentException("배역 설명은 한 줄로 작성해야 합니다.");
-        }
-        return normalized;
+        return name.equalsIgnoreCase(requireText(otherName, "배역 이름은 필수입니다."));
     }
 }

@@ -5,6 +5,7 @@ import static art.yesulin.domain.common.validation.DomainValidator.requirePositi
 import static art.yesulin.domain.common.validation.DomainValidator.requireText;
 
 import art.yesulin.domain.file.event.FileReferenceAssignedEvent;
+import art.yesulin.domain.file.event.FileReferenceChangedEvent;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
@@ -61,5 +62,20 @@ public class Performance extends AbstractAggregateRoot<Performance> {
 
     public List<PerformanceRole> getRoles() {
         return roles.values();
+    }
+
+    public void update(long posterFileId, String title, RoadAddress roadAddress, List<PerformanceRoleChange> roles) {
+        final long changedPosterFileId = requirePositive(posterFileId, "포스터 파일 ID는 1 이상이어야 합니다.");
+        final String changedTitle = requireText(title, "공연 제목은 필수입니다.");
+        final RoadAddress changedRoadAddress = requireNonNull(roadAddress, "공연 도로명주소는 필수입니다.");
+        this.roles.replace(this, requireNonNull(roles, "공연 배역 목록은 필수입니다."));
+
+        final long previousPosterFileId = this.posterFileId;
+        this.posterFileId = changedPosterFileId;
+        this.title = changedTitle;
+        this.roadAddress = changedRoadAddress;
+        if (previousPosterFileId != changedPosterFileId) {
+            registerEvent(new FileReferenceChangedEvent(ownerId, previousPosterFileId, changedPosterFileId));
+        }
     }
 }

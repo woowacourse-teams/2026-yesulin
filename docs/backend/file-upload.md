@@ -39,6 +39,8 @@ presentation/performance ──> application/file ──> domain/file
 
 완료 API는 직접 업로드 결과를 서버가 알기 위해 필요하다. `PATCH`는 상태 일부 변경을 표현하며 이미 `READY`인 파일도 같은 메타데이터를 다시 확인하고 성공하는 멱등 연산이다. 파일 생성과 완료는 각각 DB 트랜잭션이다. 외부 저장소는 DB 트랜잭션에 참여하지 않으므로 호출을 짧게 유지하고 장기 작업은 넣지 않는다.
 
+공연 생성은 `FileReferenceAssignedEvent`, 포스터 교체는 이전·신규 파일 ID를 가진 `FileReferenceChangedEvent`를 발행한다. 파일 event handler는 `BEFORE_COMMIT`에 신규 파일의 소유자와 `READY` 상태를 확인하며 실패하면 공연 트랜잭션도 롤백한다. 파일은 참조 도메인을 저장하지 않고 공연의 `poster_file_id`가 확정된 관계의 정본이다. 교체된 이전 파일의 Storage 삭제는 참조 정리 정책과 배치가 생길 때 처리한다.
+
 ## API·오류
 
 - `POST /api/v1/performance-posters/upload-requests`: 포스터용 presigned upload 발급, `201 Created`
