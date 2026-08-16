@@ -97,8 +97,14 @@ PATCH  /api/v1/performance-posters/{fileId}/completion  # 직접 업로드 확�
 GET    /api/v1/performances                             # 공연 목록
 POST   /api/v1/performances                             # 공연 등록
 GET    /api/v1/performances/{performanceId}             # 공연 상세
-PATCH  /api/v1/performances/{performanceId}             # 공연 수정
+PATCH  /api/v1/performances/{performanceId}/basic-information
+                                                            # 포스터·제목·장소 수정
 DELETE /api/v1/performances/{performanceId}             # 공연 삭제
+POST   /api/v1/performances/{performanceId}/roles       # 배역 추가
+PATCH  /api/v1/performances/{performanceId}/roles/{roleId}
+                                                            # 배역 수정
+DELETE /api/v1/performances/{performanceId}/roles/{roleId}
+                                                            # 배역 삭제
 GET    /api/v1/performances/{performanceId}/postings    # 공연의 공고 목록
 POST   /api/v1/performances/{performanceId}/postings    # 공연에 공고 등록
 GET    /api/v1/postings/{postingId}                     # 공연사용 공고 상세
@@ -109,9 +115,11 @@ GET    /api/v1/postings/{postingId}/roles               # 공고의 배역 목�
 
 포스터 업로드 요청은 `originalFilename`, `contentType`, `size`를 받는다. `purpose`와 소유자 ID는 받지 않으며 소유자는 세션에서 결정한다. JPEG·PNG·WebP 이미지 한 장, 최대 30MB를 허용한다. 발급 응답의 `method`와 `headers`를 그대로 사용해 저장소에 직접 업로드한 뒤 완료 API를 호출한다. 완료는 실제 객체의 Content-Type과 크기를 확인하는 멱등 요청이며 성공 시 `204 No Content`를 반환한다. 없거나 다른 사용자의 파일은 모두 `404 FILE_NOT_FOUND`다. 상세 생명주기는 [파일 업로드 설계](../backend/file-upload.md)를 따른다.
 
-공연 추가는 완료된 `posterFileId`, `title`, 도로명주소 API에서 선택한 `roadAddress`, 선택적인 `roles`를 받는다. 각 배역은 `name`과 줄바꿈 없는 `description`으로 구성된다. 소유자는 세션에서 결정하며 포스터가 `READY`가 아니거나 다른 사용자 소유면 공연 생성도 롤백한다. 성공 시 `201 Created`, `Location`과 공연 하나를 wrapper 없이 반환하며 모든 배역에는 생성된 ID가 포함된다.
+공연 추가는 완료된 `posterFileId`, `title`, 도로명주소 API에서 선택한 `roadAddress`, 선택적인 `roles`를 받는다. 각 배역은 `name`과 줄바꿈 없는 `description`으로 구성된다. 소유자는 세션에서 결정하며 포스터가 `READY`가 아니거나 다른 사용자 소유면 공연 생성도 롤백한다. 성공 시 `201 Created`, `Location`과 공연 하나를 wrapper 없이 반환하며 생성 감사 시각 `createdAt`과 모든 배역 ID가 포함된다.
 
-공연 수정은 같은 필드의 전체 편집 값을 받는다. 기존 배역은 `id`, 이름과 설명을 보내고 새 배역은 `id`를 생략한다. 응답에 없어진 기존 배역은 삭제되며 순서는 요청 순서를 따른다. 포스터가 변경되면 이전·신규 파일 ID를 가진 이벤트를 발행하고 신규 파일 참조를 검증한다. 실패하면 공연 수정 전체를 롤백한다. 이전 포스터 객체의 물리 삭제는 현재 요청에서 수행하지 않는다.
+기본 정보 수정은 `posterFileId`, `title`, `roadAddress`만 받고 기존 배역을 변경하지 않는다. 포스터가 실제로 변경되면 이전·신규 파일 ID를 가진 이벤트를 발행하고 신규 파일 참조를 검증한다. 실패하면 기본 정보 수정 전체를 롤백한다. 이전 포스터 객체의 물리 삭제는 현재 요청에서 수행하지 않는다.
+
+배역은 공연 하위 리소스로 개별 추가·수정·삭제한다. 추가 성공은 `201 Created`와 배역 `Location`, 수정은 `200 OK`, 삭제는 `204 No Content`를 반환한다. 다른 공연의 배역 ID와 같은 공연 안의 중복 이름은 거부한다. 배역이 없어도 공연은 유지할 수 있다.
 
 ## 심사
 

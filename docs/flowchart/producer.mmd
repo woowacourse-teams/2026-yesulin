@@ -13,7 +13,7 @@ flowchart TB
     VERIFY -- 예 --> HOME["관리자 홈"]
     SESSION -- VERIFIED --> HOME
     HOME --> NAV["왼쪽 사이드바 탐색 트리<br>GET /api/v1/producers/me/navigation-tree"] & PROFILE["공연사 정보<br>GET·PATCH /api/v1/producers/me"] & PERF["공연 목록<br>GET /api/v1/performances"]
-    PERF --> NEW_PERF["포스터 업로드 URL 발급<br>POST /api/v1/performance-posters/upload-requests"] & EDIT_PERF["공연 수정·삭제<br>PATCH·DELETE /api/v1/performances/{performanceId}"] & POSTINGS["공고 목록<br>GET /api/v1/performances/{performanceId}/postings"]
+    PERF --> NEW_PERF["포스터 업로드 URL 발급<br>POST /api/v1/performance-posters/upload-requests"] & EDIT_PERF["기본 정보·배역 수정<br>PATCH /performances/{id}/basic-information<br>POST·PATCH·DELETE /performances/{id}/roles/**"] & POSTINGS["공고 목록<br>GET /api/v1/performances/{performanceId}/postings"]
     NEW_PERF --> CREATE_PERF["공연·배역 템플릿 등록<br>POST /api/v1/performances"]
     POSTINGS --> CREATE_POSTING["공고 등록<br>POST /api/v1/performances/{performanceId}/postings"] & POSTING_DETAIL["공고 상세<br>GET /api/v1/postings/{postingId}"]
     POSTING_DETAIL --> EDIT_POSTING["공고 수정·삭제<br>PATCH·DELETE /api/v1/postings/{postingId}"] & ROLES["배역 목록<br>GET /api/v1/postings/{postingId}/roles"]

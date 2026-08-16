@@ -1,6 +1,7 @@
 package art.yesulin.application.performance;
 
 import art.yesulin.domain.performance.Performance;
+import java.time.Instant;
 import java.util.List;
 
 public record PerformanceResult(
@@ -8,6 +9,7 @@ public record PerformanceResult(
         long posterFileId,
         String title,
         String roadAddress,
+        Instant createdAt,
         List<PerformanceRoleResult> roles
 ) {
 
@@ -17,7 +19,8 @@ public record PerformanceResult(
                 performance.getId(),
                 performance.getPosterFileId(),
                 performance.getTitle(),
-                performance.getRoadAddress().getValue(),
+                performance.getRoadAddress(),
+                performance.getCreatedAt(),
                 roles
         );
     }

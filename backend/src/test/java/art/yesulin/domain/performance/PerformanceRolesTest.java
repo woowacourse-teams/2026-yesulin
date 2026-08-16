@@ -11,7 +11,7 @@ class PerformanceRolesTest {
     @Test
     void rejectsDuplicatedRoleNameIgnoringCase() {
         Performance performance = new Performance(
-                1L, 1L, "햄릿", new RoadAddress("서울특별시 종로구 대학로 12")
+                1L, 1L, "햄릿", "서울특별시 종로구 대학로 12"
         );
         performance.addRole("Hamlet", "복수심에 흔들리는 덴마크 왕자");
 

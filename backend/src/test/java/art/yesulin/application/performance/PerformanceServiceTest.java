@@ -78,6 +78,7 @@ class PerformanceServiceTest {
         PerformanceResult result = performanceService.create(OWNER_ID, command);
 
         assertNotNull(result.id());
+        assertNotNull(result.createdAt());
         assertEquals(2, result.roles().size());
         assertTrue(result.roles().stream().allMatch(role -> role.id() > 0));
         Performance saved = performanceRepository.findById(result.id()).orElseThrow();
@@ -115,29 +116,20 @@ class PerformanceServiceTest {
     }
 
     @Test
-    void updatesPosterDetailsAndRolesWhileKeepingExistingRoleId() {
+    void updatesBasicInformationAndPublishesPosterChangedEvent() {
         long firstPosterFileId = uploadReadyPoster();
         PerformanceResult created = createPerformance(firstPosterFileId);
-        long keptRoleId = created.roles().getFirst().id();
-        final long removedRoleId = created.roles().get(1).id();
         long changedPosterFileId = uploadReadyPoster();
-        UpdatePerformanceCommand command = new UpdatePerformanceCommand(
-                changedPosterFileId,
-                "햄릿 리뉴얼",
-                "서울특별시 중구 세종대로 110",
-                List.of(
-                        new UpdatePerformanceRoleCommand(keptRoleId, "햄릿 왕", "기존 배역의 수정된 설명"),
-                        new UpdatePerformanceRoleCommand(null, "클로디어스", "새로 추가한 배역")
-                )
+        UpdatePerformanceBasicInformationCommand command = new UpdatePerformanceBasicInformationCommand(
+                changedPosterFileId, "햄릿 리뉴얼", "서울특별시 중구 세종대로 110"
         );
 
-        PerformanceResult updated = performanceService.update(OWNER_ID, created.id(), command);
+        PerformanceResult updated = performanceService.updateBasicInformation(OWNER_ID, created.id(), command);
 
         assertEquals(changedPosterFileId, updated.posterFileId());
         assertEquals("햄릿 리뉴얼", updated.title());
-        assertEquals(keptRoleId, updated.roles().getFirst().id());
-        assertTrue(updated.roles().stream().noneMatch(role -> role.id() == removedRoleId));
-        assertTrue(updated.roles().get(1).id() > 0);
+        assertEquals("서울특별시 중구 세종대로 110", updated.roadAddress());
+        assertEquals(created.roles(), updated.roles());
         PerformancePosterChangedEvent event = applicationEvents.stream(PerformancePosterChangedEvent.class)
                 .findFirst().orElseThrow();
         assertEquals(firstPosterFileId, event.previousPosterFileId());
@@ -150,12 +142,13 @@ class PerformanceServiceTest {
         FileUploadResult pending = fileService.requestUpload(
                 OWNER_ID, new FileUploadCommand("pending-change.png", "image/png", 2_048L)
         );
-        UpdatePerformanceCommand command = new UpdatePerformanceCommand(
-                pending.fileId(), "롤백될 제목", "서울특별시 중구 세종대로 110", List.of()
+        UpdatePerformanceBasicInformationCommand command = new UpdatePerformanceBasicInformationCommand(
+                pending.fileId(), "롤백될 제목", "서울특별시 중구 세종대로 110"
         );
 
         BusinessException exception = assertThrows(
-                BusinessException.class, () -> performanceService.update(OWNER_ID, created.id(), command)
+                BusinessException.class,
+                () -> performanceService.updateBasicInformation(OWNER_ID, created.id(), command)
         );
 
         assertEquals(FileErrorCode.NOT_READY, exception.getErrorCode());
@@ -165,17 +158,49 @@ class PerformanceServiceTest {
     }
 
     @Test
-    void rejectsRoleIdThatDoesNotBelongToPerformance() {
+    void addsUpdatesAndRemovesRoleIndividually() {
         PerformanceResult created = createPerformance(uploadReadyPoster());
-        UpdatePerformanceCommand command = new UpdatePerformanceCommand(
-                created.posterFileId(),
-                created.title(),
-                created.roadAddress(),
-                List.of(new UpdatePerformanceRoleCommand(Long.MAX_VALUE, "유령 배역", "존재하지 않는 배역"))
+        long removedRoleId = created.roles().get(1).id();
+
+        PerformanceRoleResult added = performanceService.addRole(
+                OWNER_ID,
+                created.id(),
+                new CreatePerformanceRoleCommand("클로디어스", "새로 추가한 배역")
+        );
+        PerformanceRoleResult updated = performanceService.updateRole(
+                OWNER_ID,
+                created.id(),
+                created.roles().getFirst().id(),
+                new UpdatePerformanceRoleCommand("햄릿 왕", "수정된 기존 배역")
+        );
+        performanceService.removeRole(OWNER_ID, created.id(), removedRoleId);
+        final PerformanceResult found = performanceService.updateBasicInformation(
+                OWNER_ID,
+                created.id(),
+                new UpdatePerformanceBasicInformationCommand(
+                        created.posterFileId(), created.title(), created.roadAddress()
+                )
         );
 
+        assertTrue(added.id() > 0);
+        assertEquals(created.roles().getFirst().id(), updated.id());
+        assertEquals("햄릿 왕", updated.name());
+        assertTrue(found.roles().stream().noneMatch(role -> role.id() == removedRoleId));
+        assertTrue(found.roles().stream().anyMatch(role -> role.id() == added.id()));
+    }
+
+    @Test
+    void rejectsRoleIdThatDoesNotBelongToPerformance() {
+        PerformanceResult created = createPerformance(uploadReadyPoster());
+
         BusinessException exception = assertThrows(
-                BusinessException.class, () -> performanceService.update(OWNER_ID, created.id(), command)
+                BusinessException.class,
+                () -> performanceService.updateRole(
+                        OWNER_ID,
+                        created.id(),
+                        Long.MAX_VALUE,
+                        new UpdatePerformanceRoleCommand("유령 배역", "존재하지 않는 배역")
+                )
         );
 
         assertEquals(PerformanceErrorCode.ROLE_NOT_FOUND, exception.getErrorCode());
