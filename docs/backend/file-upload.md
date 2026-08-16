@@ -14,7 +14,7 @@ presentation/performance ──> application/file ──> domain/file
 - `application/file`은 파일 업로드 생명주기만 조정하고 공연·포스터를 알지 않는다.
 - `domain/file`은 저장소 SDK와 다른 도메인을 알지 않는다.
 - `ObjectStorage`는 application의 out port이며 실제 S3 구현은 infrastructure가 제공한다.
-- 도메인별 파일 연결은 각 도메인이 `fileId`를 참조하고 자신의 application에서 소유자와 `READY` 상태를 확인한다. 파일 서비스에 `attachPerformancePoster` 같은 메서드나 `ATTACHED` 상태를 추가하지 않는다.
+- 도메인별 파일 연결은 각 도메인이 `fileId`를 참조하고 범용 파일 참조 이벤트로 소유자와 `READY` 상태를 확인한다. 파일 서비스에 `attachPerformancePoster` 같은 메서드나 `ATTACHED` 상태를 추가하지 않는다.
 - 파일 application 서비스끼리 또는 다른 도메인 서비스끼리 직접 의존시키지 않는다. 여러 작업의 조합이 필요해질 때 역할이 드러나는 별도 application 조정 객체를 둔다.
 
 ## 모델
@@ -56,4 +56,4 @@ presentation/performance ──> application/file ──> domain/file
 - LocalStack 통합 테스트와 `Clock` 주입이 필요한 시간 경계 테스트
 - Spring Session Redis 도입 시 `MemberPrincipal` serializer 설정
 
-현재 범위에는 실제 저장소 구현, 공연 생성·연결, 지원서·공고 모델을 포함하지 않는다.
+현재 범위에는 실제 저장소 구현과 지원서·공고 모델을 포함하지 않는다. 공연은 `fileId` 참조 이벤트로 완료된 포스터만 연결한다.

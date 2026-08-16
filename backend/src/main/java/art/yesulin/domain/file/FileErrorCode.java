@@ -8,7 +8,8 @@ public enum FileErrorCode implements ErrorCode {
     NOT_FOUND("FILE_NOT_FOUND", ErrorType.NOT_FOUND),
     UNSUPPORTED_CONTENT_TYPE("FILE_UNSUPPORTED_CONTENT_TYPE", ErrorType.BAD_REQUEST),
     UPLOAD_NOT_FOUND("FILE_UPLOAD_NOT_FOUND", ErrorType.CONFLICT),
-    METADATA_MISMATCH("FILE_METADATA_MISMATCH", ErrorType.CONFLICT);
+    METADATA_MISMATCH("FILE_METADATA_MISMATCH", ErrorType.CONFLICT),
+    NOT_READY("FILE_NOT_READY", ErrorType.CONFLICT);
 
     private final String code;
     private final ErrorType type;
