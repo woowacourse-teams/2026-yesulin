@@ -92,7 +92,8 @@ GET    /api/v1/producers/me/navigation-tree     # 공연·공고 탐색 트리
 ## 공연과 공고
 
 ```http
-POST   /api/v1/performance-posters                      # 임시 포스터 업로드
+POST   /api/v1/performance-posters/upload-requests      # 포스터 업로드 URL 발급
+PATCH  /api/v1/performance-posters/{fileId}/completion  # 직접 업로드 확인·완료
 GET    /api/v1/performances                             # 공연 목록
 POST   /api/v1/performances                             # 공연 등록
 GET    /api/v1/performances/{performanceId}             # 공연 상세
@@ -105,6 +106,8 @@ PATCH  /api/v1/postings/{postingId}                     # 공고 수정
 DELETE /api/v1/postings/{postingId}                     # 공고 삭제
 GET    /api/v1/postings/{postingId}/roles               # 공고의 배역 목록
 ```
+
+포스터 업로드 요청은 `originalFilename`, `contentType`, `size`를 받는다. `purpose`와 소유자 ID는 받지 않으며 소유자는 세션에서 결정한다. JPEG·PNG·WebP 이미지 한 장, 최대 30MB를 허용한다. 발급 응답의 `method`와 `headers`를 그대로 사용해 저장소에 직접 업로드한 뒤 완료 API를 호출한다. 완료는 실제 객체의 Content-Type과 크기를 확인하는 멱등 요청이며 성공 시 `204 No Content`를 반환한다. 없거나 다른 사용자의 파일은 모두 `404 FILE_NOT_FOUND`다. 상세 생명주기는 [파일 업로드 설계](../backend/file-upload.md)를 따른다.
 
 ## 심사
 

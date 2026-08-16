@@ -4,7 +4,7 @@ date: 2026-08-10
 agent-required: true
 ---
 
-# 0002. Checkstyle과 Git hook
+# Checkstyle과 Git hook
 
 ## 계기
 

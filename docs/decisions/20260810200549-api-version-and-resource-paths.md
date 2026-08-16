@@ -4,7 +4,7 @@ date: 2026-08-10
 agent-required: true
 ---
 
-# 0001. API 버전과 리소스 경로
+# API 버전과 리소스 경로
 
 ## 계기
 

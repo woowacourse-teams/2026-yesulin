@@ -2,7 +2,7 @@
 
 > 기준일: 2026-08-12<br>
 > 최초 기준: [Notion 도메인 설계](https://app.notion.com/p/3b94b21dcd3c80478a8ce0bb76965dc9)<br>
-> 후속 결정: [0008 지원서·프로필·배역 규칙](./decisions/0008-application-profile-and-role-rules.md), [0009 로컬 우선 서버 Draft 동기화](./decisions/0009-local-first-server-draft.md)
+> 후속 결정: [지원서·프로필·배역 규칙](./decisions/20260812134827-application-profile-and-role-rules.md), [로컬 우선 서버 Draft 동기화](./decisions/20260812134827-local-first-server-draft.md)
 
 이 문서는 Notion의 최초 설계와 이후 팀이 확정한 도메인 결정을 개발자가 읽기 쉬운 형태로 정리한다. 현재 코드나 다른 문서가 이 내용과 다르면 **결정된 설계**, **현재 구현**, **추가 설계 필요**를 구분한다. 추가 설계 항목은 답이 아니라 팀이 결정해야 할 질문이다.
 

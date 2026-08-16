@@ -4,7 +4,7 @@ date: 2026-08-10
 agent-required: true
 ---
 
-# 0003. 문서와 에이전트 컨텍스트
+# 문서와 에이전트 컨텍스트
 
 ## 계기
 
@@ -12,7 +12,7 @@ agent-required: true
 
 ## 결정
 
-공통 결정은 번호 파일로 짧게 기록하고 상세 내용은 관련 명세에 둔다. 중요한 결정은 `agent-required: true`로 표시하고 `AGENTS.md`에서 필독하게 한다. `CLAUDE.md`는 `AGENTS.md`를 불러와 같은 규칙을 적용한다.
+공통 결정은 시각 기반 파일로 짧게 기록하고 상세 내용은 관련 명세에 둔다. 중요한 결정은 `agent-required: true`로 표시하고 `AGENTS.md`에서 필독하게 한다. `CLAUDE.md`는 `AGENTS.md`를 불러와 같은 규칙을 적용한다.
 
 ## 이유
 

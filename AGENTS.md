@@ -38,7 +38,8 @@
 - `docs/domain-design.md`: 최신 도메인 규칙, 현재 구현 차이와 추가 결정 질문
 - `docs/flowchart/actor.mmd`, `docs/flowchart/producer.mmd`: 사용자별 비즈니스 흐름
 - `docs/convention/api-convention.md`: 백엔드 목표 API와 현재 프런트 이관 상태
-- `docs/decisions/README.md`: 번호 기반 결정 목록. `agent-required` 기록은 반드시 읽는다.
+- `docs/decisions/README.md`: 시각 기반 결정 목록. `agent-required` 기록은 반드시 읽는다.
+- `docs/backend/file-upload.md`: 파일 모델, 소유권과 presigned upload 생명주기
 - `docs/README.md`: 구현과 문서를 함께 유지하는 기준
 - `docs/convention/git-convention.md`: 브랜치, 커밋, push 규칙
 - `docs/convention/be-code-convention.md`: 백엔드 코드와 Checkstyle 규칙
@@ -96,4 +97,4 @@ Performance 공연
 - 환경 변수, 실행 명령과 폴더 구조
 - 팀이 알아야 할 현재 한계나 의사결정
 
-공통 결정은 `docs/decisions/`의 다음 번호 파일에 250단어 이내로 기록한다. 중요한 결정은 `agent-required: true`로 표시하고 결정 목록에 연결한다. `CLAUDE.md`는 이 문서를 불러오므로 같은 규칙이 적용된다. 사용자가 구현을 요청한 변경에서 새 문서·구현 차이가 생기면 작업이 완료된 것으로 보지 않는다. 아직 구현하지 않은 목표 정책은 `docs/domain-design.md`의 현재 구현 차이에 명시한다.
+공통 결정은 `docs/decisions/`에 UTC 시각 기반 파일명으로 250단어 이내 기록한다. 중요한 결정은 `agent-required: true`로 표시하고 결정 목록에 연결한다. `CLAUDE.md`는 이 문서를 불러오므로 같은 규칙이 적용된다. 사용자가 구현을 요청한 변경에서 새 문서·구현 차이가 생기면 작업이 완료된 것으로 보지 않는다. 아직 구현하지 않은 목표 정책은 `docs/domain-design.md`의 현재 구현 차이에 명시한다.
