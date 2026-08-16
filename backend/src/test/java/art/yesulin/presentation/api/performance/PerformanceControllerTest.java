@@ -143,10 +143,7 @@ class PerformanceControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
                 .andExpect(status().isCreated())
-                .andExpect(header().string(
-                        "Location",
-                        matchesPattern("/api/v1/performances/\\d+/roles/\\d+")
-                ))
+                .andExpect(header().doesNotExist("Location"))
                 .andExpect(jsonPath("$.id").isNumber())
                 .andExpect(jsonPath("$.name").value("클로디어스"));
     }

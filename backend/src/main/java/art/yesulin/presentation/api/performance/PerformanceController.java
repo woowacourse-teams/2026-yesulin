@@ -7,6 +7,7 @@ import art.yesulin.application.performance.PerformanceService;
 import jakarta.validation.Valid;
 import java.net.URI;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -64,8 +65,7 @@ public class PerformanceController {
         PerformanceRoleResult result = performanceService.addRole(
                 principal.memberId(), performanceId, request.toCommand()
         );
-        URI location = URI.create("/api/v1/performances/%d/roles/%d".formatted(performanceId, result.id()));
-        return ResponseEntity.created(location).body(result);
+        return ResponseEntity.status(HttpStatus.CREATED).body(result);
     }
 
     @PatchMapping("/{performanceId}/roles/{roleId}")

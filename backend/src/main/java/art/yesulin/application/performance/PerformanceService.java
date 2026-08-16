@@ -33,7 +33,6 @@ public class PerformanceService {
     ) {
         Performance performance = getPerformance(ownerId, performanceId);
         performance.updateBasicInformation(command.title(), command.roadAddress());
-        performanceRepository.flush();
         return PerformanceResult.from(performance);
     }
 
@@ -41,7 +40,7 @@ public class PerformanceService {
     public PerformanceResult updatePoster(long ownerId, long performanceId, UpdatePerformancePosterCommand command) {
         Performance performance = getPerformance(ownerId, performanceId);
         performance.updatePoster(command.posterFileId());
-        return PerformanceResult.from(performanceRepository.saveAndFlush(performance));
+        return PerformanceResult.from(performanceRepository.save(performance));
     }
 
     @Transactional
@@ -61,7 +60,6 @@ public class PerformanceService {
     ) {
         Performance performance = getPerformance(ownerId, performanceId);
         PerformanceRole role = performance.updateRole(roleId, command.name(), command.description());
-        performanceRepository.flush();
         return PerformanceRoleResult.from(role);
     }
 
@@ -69,7 +67,6 @@ public class PerformanceService {
     public void removeRole(long ownerId, long performanceId, long roleId) {
         Performance performance = getPerformance(ownerId, performanceId);
         performance.removeRole(roleId);
-        performanceRepository.flush();
     }
 
     private Performance getPerformance(long ownerId, long performanceId) {
