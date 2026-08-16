@@ -6,6 +6,7 @@
 - IDE 포맷: `backend/checkstyle/intellij-java-wooteco-style.xml`
 - 실행: 저장소 루트에서 `npm run checkstyle`
 - Checkstyle과 문서가 충돌하면 Checkstyle을 따른다.
+- 한 줄이 120자 이하면 의미 없는 줄바꿈을 만들지 않는다.
 - `var`와 제네릭 와일드카드는 사용하지 않는다.
 - 멤버는 아래 순서로 배치한다.
   1. `static final` 상수: `public` → `private`
@@ -35,6 +36,12 @@ src/main
 | `infrastructure` | DB, OAuth, S3 등 외부 기술 구현. application의 out port 구현 |
 
 테스트는 `application`과 `domain`의 비즈니스 규칙을 우선 검증한다.
+
+- API 입력 형식은 presentation의 Bean Validation, 도메인 불변식은 domain이 검증한다.
+- 값 부재가 유효하지 않은 숫자 입력은 primitive를 사용한다. 생성 전 `null`이 필요한 JPA 식별자는 wrapper를 사용한다.
+- 공통 예외 계약은 `common/exception`, HTTP 변환은 `presentation/api`에 둔다. 예외 메시지는 발생 지점에서 정한다.
+- application service가 트랜잭션 경계이며 외부 기술은 application이 선언한 port를 구현한다.
+- `common`, `global`, `util`을 포괄 폴더로 쓰지 않고 `validation`, `converter`, `exception`처럼 역할로 구분한다.
 
 ## API
 

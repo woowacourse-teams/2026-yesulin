@@ -76,7 +76,8 @@ yesulin/
 │       └── mocks/            MSW 핸들러와 목 데이터
 └── docs/
     ├── convention/           API·Git·백엔드 규칙
-    ├── decisions/            번호 기반 결정 기록
+    ├── backend/              백엔드 기능 설계
+    ├── decisions/            UTC 시각 기반 결정 기록
     ├── flowchart/            사용자별 비즈니스 흐름
     └── policies/             개인정보·서비스 정책
 ```

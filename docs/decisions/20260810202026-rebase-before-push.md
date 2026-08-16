@@ -4,7 +4,7 @@ date: 2026-08-10
 agent-required: true
 ---
 
-# 0004. Push 전 통합 브랜치 rebase
+# Push 전 통합 브랜치 rebase
 
 ## 계기
 
