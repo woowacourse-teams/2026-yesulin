@@ -44,6 +44,17 @@ public class PerformanceController {
         );
     }
 
+    @PatchMapping("/{performanceId}/poster")
+    public ResponseEntity<PerformanceResult> updatePoster(
+            @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal,
+            @PathVariable long performanceId,
+            @Valid @RequestBody UpdatePerformancePosterRequest request
+    ) {
+        long ownerId = principal.memberId();
+        PerformanceResult result = performanceService.updatePoster(ownerId, performanceId, request.toCommand());
+        return ResponseEntity.ok(result);
+    }
+
     @PostMapping("/{performanceId}/roles")
     public ResponseEntity<PerformanceRoleResult> addRole(
             @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal,

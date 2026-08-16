@@ -21,4 +21,15 @@ class PerformanceRolesTest {
 
         assertEquals(PerformanceErrorCode.DUPLICATE_ROLE_NAME, exception.getErrorCode());
     }
+
+    @Test
+    void rejectsMultilineRoleDescriptionAsBusinessRule() {
+        Performance performance = new Performance(1L, 1L, "햄릿", "서울특별시 종로구 대학로 12");
+
+        BusinessException exception = assertThrows(
+                BusinessException.class, () -> performance.addRole("햄릿", "첫 번째 줄\n두 번째 줄")
+        );
+
+        assertEquals(PerformanceErrorCode.INVALID_ROLE_DESCRIPTION, exception.getErrorCode());
+    }
 }

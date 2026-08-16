@@ -65,11 +65,13 @@ public class Performance extends AbstractAggregateRoot<Performance> {
         return roles.add(this, name, description);
     }
 
-    public void updateBasicInformation(long posterFileId, String title, String roadAddress) {
-        final long changedPosterFileId = requirePositive(posterFileId, "포스터 파일 ID는 1 이상이어야 합니다.");
+    public void updateBasicInformation(String title, String roadAddress) {
         this.title = requireText(title, "공연 제목은 필수입니다.");
         this.roadAddress = requireText(roadAddress, "공연 도로명주소는 필수입니다.");
+    }
 
+    public void updatePoster(long posterFileId) {
+        final long changedPosterFileId = requirePositive(posterFileId, "포스터 파일 ID는 1 이상이어야 합니다.");
         final long previousPosterFileId = this.posterFileId;
         this.posterFileId = changedPosterFileId;
         if (previousPosterFileId != changedPosterFileId) {

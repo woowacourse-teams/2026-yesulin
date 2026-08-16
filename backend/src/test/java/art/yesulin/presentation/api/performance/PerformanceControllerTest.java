@@ -97,23 +97,38 @@ class PerformanceControllerTest {
     @Test
     void updatesPerformanceBasicInformation() throws Exception {
         PerformanceResult created = createPerformance();
-        long changedPosterFileId = uploadReadyPoster();
         String request = """
                 {
-                  "posterFileId": %d,
                   "title": "햄릿 리뉴얼",
                   "roadAddress": "서울특별시 중구 세종대로 110"
                 }
-                """.formatted(changedPosterFileId);
+                """;
 
         mockMvc.perform(patch("/api/v1/performances/{performanceId}/basic-information", created.id())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.posterFileId").value(changedPosterFileId))
+                .andExpect(jsonPath("$.posterFileId").value(created.posterFileId()))
                 .andExpect(jsonPath("$.title").value("햄릿 리뉴얼"))
                 .andExpect(jsonPath("$.roles[0].id").value(created.roles().getFirst().id()));
+    }
+
+    @Test
+    void updatesPerformancePoster() throws Exception {
+        PerformanceResult created = createPerformance();
+        long changedPosterFileId = uploadReadyPoster();
+        String request = """
+                {"posterFileId": %d}
+                """.formatted(changedPosterFileId);
+
+        mockMvc.perform(patch("/api/v1/performances/{performanceId}/poster", created.id())
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.posterFileId").value(changedPosterFileId))
+                .andExpect(jsonPath("$.title").value(created.title()));
     }
 
     @Test

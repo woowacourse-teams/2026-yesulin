@@ -32,7 +32,15 @@ public class PerformanceService {
             UpdatePerformanceBasicInformationCommand command
     ) {
         Performance performance = getPerformance(ownerId, performanceId);
-        performance.updateBasicInformation(command.posterFileId(), command.title(), command.roadAddress());
+        performance.updateBasicInformation(command.title(), command.roadAddress());
+        performanceRepository.flush();
+        return PerformanceResult.from(performance);
+    }
+
+    @Transactional
+    public PerformanceResult updatePoster(long ownerId, long performanceId, UpdatePerformancePosterCommand command) {
+        Performance performance = getPerformance(ownerId, performanceId);
+        performance.updatePoster(command.posterFileId());
         return PerformanceResult.from(performanceRepository.saveAndFlush(performance));
     }
 

@@ -116,20 +116,34 @@ class PerformanceServiceTest {
     }
 
     @Test
-    void updatesBasicInformationAndPublishesPosterChangedEvent() {
+    void updatesBasicInformationWithoutChangingPoster() {
         long firstPosterFileId = uploadReadyPoster();
         PerformanceResult created = createPerformance(firstPosterFileId);
-        long changedPosterFileId = uploadReadyPoster();
         UpdatePerformanceBasicInformationCommand command = new UpdatePerformanceBasicInformationCommand(
-                changedPosterFileId, "햄릿 리뉴얼", "서울특별시 중구 세종대로 110"
+                "햄릿 리뉴얼", "서울특별시 중구 세종대로 110"
         );
 
         PerformanceResult updated = performanceService.updateBasicInformation(OWNER_ID, created.id(), command);
 
-        assertEquals(changedPosterFileId, updated.posterFileId());
+        assertEquals(firstPosterFileId, updated.posterFileId());
         assertEquals("햄릿 리뉴얼", updated.title());
         assertEquals("서울특별시 중구 세종대로 110", updated.roadAddress());
         assertEquals(created.roles(), updated.roles());
+        assertEquals(0, applicationEvents.stream(PerformancePosterChangedEvent.class).count());
+    }
+
+    @Test
+    void updatesPosterAndPublishesPosterChangedEvent() {
+        long firstPosterFileId = uploadReadyPoster();
+        PerformanceResult created = createPerformance(firstPosterFileId);
+        long changedPosterFileId = uploadReadyPoster();
+
+        PerformanceResult updated = performanceService.updatePoster(
+                OWNER_ID, created.id(), new UpdatePerformancePosterCommand(changedPosterFileId)
+        );
+
+        assertEquals(changedPosterFileId, updated.posterFileId());
+        assertEquals(created.title(), updated.title());
         PerformancePosterChangedEvent event = applicationEvents.stream(PerformancePosterChangedEvent.class)
                 .findFirst().orElseThrow();
         assertEquals(firstPosterFileId, event.previousPosterFileId());
@@ -142,19 +156,16 @@ class PerformanceServiceTest {
         FileUploadResult pending = fileService.requestUpload(
                 OWNER_ID, new FileUploadCommand("pending-change.png", "image/png", 2_048L)
         );
-        UpdatePerformanceBasicInformationCommand command = new UpdatePerformanceBasicInformationCommand(
-                pending.fileId(), "롤백될 제목", "서울특별시 중구 세종대로 110"
-        );
+        UpdatePerformancePosterCommand command = new UpdatePerformancePosterCommand(pending.fileId());
 
         BusinessException exception = assertThrows(
                 BusinessException.class,
-                () -> performanceService.updateBasicInformation(OWNER_ID, created.id(), command)
+                () -> performanceService.updatePoster(OWNER_ID, created.id(), command)
         );
 
         assertEquals(FileErrorCode.NOT_READY, exception.getErrorCode());
         Performance saved = performanceRepository.findById(created.id()).orElseThrow();
         assertEquals(created.posterFileId(), saved.getPosterFileId());
-        assertEquals(created.title(), saved.getTitle());
     }
 
     @Test
@@ -177,9 +188,7 @@ class PerformanceServiceTest {
         final PerformanceResult found = performanceService.updateBasicInformation(
                 OWNER_ID,
                 created.id(),
-                new UpdatePerformanceBasicInformationCommand(
-                        created.posterFileId(), created.title(), created.roadAddress()
-                )
+                new UpdatePerformanceBasicInformationCommand(created.title(), created.roadAddress())
         );
 
         assertTrue(added.id() > 0);

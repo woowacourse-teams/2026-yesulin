@@ -2,7 +2,9 @@ package art.yesulin.domain.performance;
 
 import static art.yesulin.domain.common.validation.DomainValidator.requireNonNull;
 import static art.yesulin.domain.common.validation.DomainValidator.requireText;
+import static art.yesulin.domain.performance.PerformanceErrorCode.INVALID_ROLE_DESCRIPTION;
 
+import art.yesulin.common.exception.BusinessException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -53,7 +55,7 @@ public class PerformanceRole {
     private String requireSingleLine(String value) {
         String normalized = requireText(value, "배역 한 줄 설명은 필수입니다.");
         if (normalized.contains("\n") || normalized.contains("\r")) {
-            throw new IllegalArgumentException("배역 설명은 한 줄로 작성해야 합니다.");
+            throw new BusinessException(INVALID_ROLE_DESCRIPTION, "배역 설명은 한 줄로 작성해야 합니다.");
         }
         return normalized;
     }

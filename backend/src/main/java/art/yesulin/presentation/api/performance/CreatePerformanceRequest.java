@@ -15,13 +15,16 @@ public record CreatePerformanceRequest(
         List<@NotNull @Valid CreatePerformanceRoleRequest> roles
 ) {
 
+    public CreatePerformanceRequest {
+        roles = roles == null ? List.of() : roles;
+    }
+
     public CreatePerformanceCommand toCommand() {
-        List<CreatePerformanceRoleRequest> safeRoles = roles == null ? List.of() : roles;
         return new CreatePerformanceCommand(
                 posterFileId,
                 title,
                 roadAddress,
-                safeRoles.stream().map(CreatePerformanceRoleRequest::toCommand).toList()
+                roles.stream().map(CreatePerformanceRoleRequest::toCommand).toList()
         );
     }
 }

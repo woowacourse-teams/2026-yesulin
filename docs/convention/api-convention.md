@@ -98,7 +98,8 @@ GET    /api/v1/performances                             # 공연 목록
 POST   /api/v1/performances                             # 공연 등록
 GET    /api/v1/performances/{performanceId}             # 공연 상세
 PATCH  /api/v1/performances/{performanceId}/basic-information
-                                                            # 포스터·제목·장소 수정
+                                                            # 제목·장소 수정
+PATCH  /api/v1/performances/{performanceId}/poster          # 포스터 교체
 DELETE /api/v1/performances/{performanceId}             # 공연 삭제
 POST   /api/v1/performances/{performanceId}/roles       # 배역 추가
 PATCH  /api/v1/performances/{performanceId}/roles/{roleId}
@@ -117,7 +118,7 @@ GET    /api/v1/postings/{postingId}/roles               # 공고의 배역 목�
 
 공연 추가는 완료된 `posterFileId`, `title`, 도로명주소 API에서 선택한 `roadAddress`, 선택적인 `roles`를 받는다. 각 배역은 `name`과 줄바꿈 없는 `description`으로 구성된다. 소유자는 세션에서 결정하며 포스터가 `READY`가 아니거나 다른 사용자 소유면 공연 생성도 롤백한다. 성공 시 `201 Created`, `Location`과 공연 하나를 wrapper 없이 반환하며 생성 감사 시각 `createdAt`과 모든 배역 ID가 포함된다.
 
-기본 정보 수정은 `posterFileId`, `title`, `roadAddress`만 받고 기존 배역을 변경하지 않는다. 포스터가 실제로 변경되면 이전·신규 파일 ID를 가진 이벤트를 발행하고 신규 파일 참조를 검증한다. 실패하면 기본 정보 수정 전체를 롤백한다. 이전 포스터 객체의 물리 삭제는 현재 요청에서 수행하지 않는다.
+기본 정보 수정은 `title`, `roadAddress`만 받고 포스터와 배역을 변경하지 않는다. 포스터 교체 API는 완료된 `posterFileId`만 받으며 실제로 파일이 변경되면 이전·신규 파일 ID를 가진 이벤트를 발행하고 신규 파일 참조를 검증한다. 실패하면 포스터 교체를 롤백한다. 이전 포스터 객체의 물리 삭제는 현재 요청에서 수행하지 않는다.
 
 배역은 공연 하위 리소스로 개별 추가·수정·삭제한다. 추가 성공은 `201 Created`와 배역 `Location`, 수정은 `200 OK`, 삭제는 `204 No Content`를 반환한다. 다른 공연의 배역 ID와 같은 공연 안의 중복 이름은 거부한다. 배역이 없어도 공연은 유지할 수 있다.
 

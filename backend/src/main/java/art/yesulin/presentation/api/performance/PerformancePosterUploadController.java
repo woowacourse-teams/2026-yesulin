@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.SessionAttribute;
 @RestController
 @RequestMapping("/api/v1/performance-posters")
 @RequiredArgsConstructor
-public class PerformancePosterController {
+public class PerformancePosterUploadController {
 
     private final FileService fileService;
 
