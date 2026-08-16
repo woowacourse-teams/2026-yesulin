@@ -11,10 +11,10 @@ import art.yesulin.application.file.FileUploadResult;
 import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.file.FileAssetRepository;
 import art.yesulin.domain.file.FileErrorCode;
-import art.yesulin.domain.file.event.FileReferenceChangedEvent;
 import art.yesulin.domain.performance.Performance;
 import art.yesulin.domain.performance.PerformanceErrorCode;
 import art.yesulin.domain.performance.PerformanceRepository;
+import art.yesulin.domain.performance.event.PerformancePosterChangedEvent;
 import art.yesulin.support.FakeObjectStorage;
 import art.yesulin.support.ObjectStorageTestConfiguration;
 import java.util.List;
@@ -138,10 +138,10 @@ class PerformanceServiceTest {
         assertEquals(keptRoleId, updated.roles().getFirst().id());
         assertTrue(updated.roles().stream().noneMatch(role -> role.id() == removedRoleId));
         assertTrue(updated.roles().get(1).id() > 0);
-        FileReferenceChangedEvent event = applicationEvents.stream(FileReferenceChangedEvent.class)
+        PerformancePosterChangedEvent event = applicationEvents.stream(PerformancePosterChangedEvent.class)
                 .findFirst().orElseThrow();
-        assertEquals(firstPosterFileId, event.previousFileId());
-        assertEquals(changedPosterFileId, event.currentFileId());
+        assertEquals(firstPosterFileId, event.previousPosterFileId());
+        assertEquals(changedPosterFileId, event.currentPosterFileId());
     }
 
     @Test

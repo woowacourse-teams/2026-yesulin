@@ -4,8 +4,8 @@ import static art.yesulin.domain.common.validation.DomainValidator.requireNonNul
 import static art.yesulin.domain.common.validation.DomainValidator.requirePositive;
 import static art.yesulin.domain.common.validation.DomainValidator.requireText;
 
-import art.yesulin.domain.file.event.FileReferenceAssignedEvent;
-import art.yesulin.domain.file.event.FileReferenceChangedEvent;
+import art.yesulin.domain.performance.event.PerformanceCreatedEvent;
+import art.yesulin.domain.performance.event.PerformancePosterChangedEvent;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
@@ -53,7 +53,7 @@ public class Performance extends AbstractAggregateRoot<Performance> {
         this.posterFileId = requirePositive(posterFileId, "포스터 파일 ID는 1 이상이어야 합니다.");
         this.title = requireText(title, "공연 제목은 필수입니다.");
         this.roadAddress = requireNonNull(roadAddress, "공연 도로명주소는 필수입니다.");
-        registerEvent(new FileReferenceAssignedEvent(ownerId, posterFileId));
+        registerEvent(new PerformanceCreatedEvent(ownerId, posterFileId));
     }
 
     public void addRole(String name, String description) {
@@ -75,7 +75,7 @@ public class Performance extends AbstractAggregateRoot<Performance> {
         this.title = changedTitle;
         this.roadAddress = changedRoadAddress;
         if (previousPosterFileId != changedPosterFileId) {
-            registerEvent(new FileReferenceChangedEvent(ownerId, previousPosterFileId, changedPosterFileId));
+            registerEvent(new PerformancePosterChangedEvent(ownerId, previousPosterFileId, changedPosterFileId));
         }
     }
 }

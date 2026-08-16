@@ -12,11 +12,11 @@ agent-required: true
 
 ## 결정
 
-공연은 소유자, 완료된 포스터 `fileId`, 제목, 도로명주소와 0개 이상의 배역을 저장한다. 각 배역은 독립 ID와 이름·한 줄 설명을 가지며 공연 내부 일급 컬렉션이 순서와 이름 중복을 관리한다. 공연 저장 시 범용 `FileReferenceAssignedEvent`를 발행하고 파일 application의 `BEFORE_COMMIT` listener가 같은 소유자의 `READY` 파일인지 확인한다. 확인 실패 시 공연 트랜잭션을 롤백한다.
+공연은 소유자, 완료된 포스터 `fileId`, 제목, 도로명주소와 0개 이상의 배역을 저장한다. 각 배역은 독립 ID와 이름·한 줄 설명을 가지며 공연 내부 일급 컬렉션이 순서와 이름 중복을 관리한다. 공연 저장 시 `PerformanceCreatedEvent`를 발행한다. presentation event adapter가 `BEFORE_COMMIT`에 파일 application을 호출해 같은 소유자의 `READY` 파일인지 확인하고, 실패하면 공연 트랜잭션을 롤백한다.
 
 ## 이유
 
-공연과 파일을 JPA 연관으로 결합하지 않고도 참조 무결성을 커밋 전에 보장하며 파일 코드는 공연 용도를 알지 않는다.
+공연과 파일을 JPA 연관으로 결합하지 않고도 참조 무결성을 커밋 전에 보장한다. 공연 도메인은 공연 사건만 발행하고 파일 application/domain은 공연을 알지 않는다.
 
 ## 영향
 
