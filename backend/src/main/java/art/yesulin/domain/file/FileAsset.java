@@ -4,6 +4,7 @@ import static art.yesulin.domain.common.validation.DomainValidator.requireNonNul
 import static art.yesulin.domain.common.validation.DomainValidator.requirePositive;
 import static art.yesulin.domain.common.validation.DomainValidator.requireText;
 import static art.yesulin.domain.file.FileErrorCode.METADATA_MISMATCH;
+import static art.yesulin.domain.file.FileErrorCode.NOT_READY;
 
 import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.file.converter.FileStatusConverter;
@@ -57,5 +58,11 @@ public class FileAsset {
             throw new BusinessException(METADATA_MISMATCH, "업로드 정보가 요청과 일치하지 않습니다.");
         }
         status = FileStatus.READY;
+    }
+
+    public void ensureUsable() {
+        if (status != FileStatus.READY) {
+            throw new BusinessException(NOT_READY, "업로드가 완료된 파일만 사용할 수 있습니다.");
+        }
     }
 }

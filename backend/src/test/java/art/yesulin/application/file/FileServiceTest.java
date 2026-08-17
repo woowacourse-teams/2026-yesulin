@@ -12,6 +12,7 @@ import art.yesulin.domain.file.FileStatus;
 import art.yesulin.domain.file.FileType;
 import art.yesulin.support.FakeObjectStorage;
 import art.yesulin.support.ObjectStorageTestConfiguration;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -40,6 +41,11 @@ class FileServiceTest {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @BeforeEach
+    void cleanUp() {
+        fileAssetRepository.deleteAll();
+    }
 
     @Test
     void storesPendingImageAndCreatesBrowsableObjectKey() {

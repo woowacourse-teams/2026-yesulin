@@ -28,7 +28,7 @@ import tools.jackson.databind.ObjectMapper;
 @Import(ObjectStorageTestConfiguration.class)
 @AutoConfigureMockMvc
 @Transactional
-class PerformancePosterControllerTest {
+class PerformancePosterUploadControllerTest {
 
     private static final MemberPrincipal MEMBER_PRINCIPAL = new MemberPrincipal(1L);
 

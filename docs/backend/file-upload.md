@@ -5,21 +5,23 @@
 ## 경계와 의존성
 
 ```text
-presentation/performance ──> application/file ──> domain/file
-                                      │
-                                      └── ObjectStorage <── infrastructure/storage
+domain/performance ──event──> presentation/event/performance ──> application/file ──> domain/file
+                                                                            │
+                                                                            └── ObjectStorage <── infrastructure/storage
 ```
 
 - 공연 포스터의 인증·용량·미디어 타입 계약은 `presentation/api/performance`가 가진다.
-- `application/file`은 파일 업로드 생명주기만 조정하고 공연·포스터를 알지 않는다.
+- `FileService`는 presigned upload 발급과 완료 확인을 담당하고 `ObjectStorage`를 사용한다. `FileReferenceService`는 이벤트로 시작된 파일 연결·교체와 관계 영속화만 담당하며 Storage를 사용하지 않는다. 둘 다 공연·포스터의 의미를 알지 않는다.
 - `domain/file`은 저장소 SDK와 다른 도메인을 알지 않는다.
 - `ObjectStorage`는 application의 out port이며 실제 S3 구현은 infrastructure가 제공한다.
-- 도메인별 파일 연결은 각 도메인이 `fileId`를 참조하고 자신의 application에서 소유자와 `READY` 상태를 확인한다. 파일 서비스에 `attachPerformancePoster` 같은 메서드나 `ATTACHED` 상태를 추가하지 않는다.
+- 도메인별 파일 연결은 각 도메인이 `fileId`를 참조하고 자신의 사건을 발행한다. presentation event adapter가 연결·교체별 command로 파일 application 경계를 호출하고, application 내부에서는 개별 값으로 관계를 처리한다. 파일 서비스에 `attachPerformancePoster` 같은 도메인 전용 메서드나 `ATTACHED` 상태를 추가하지 않는다.
 - 파일 application 서비스끼리 또는 다른 도메인 서비스끼리 직접 의존시키지 않는다. 여러 작업의 조합이 필요해질 때 역할이 드러나는 별도 application 조정 객체를 둔다.
 
 ## 모델
 
 - `FileAsset`: 내부 `Long id`, `ownerId`, 서버가 만든 `objectKey`, `FileMetadata`, `PENDING|READY`를 가진다.
+- `FileReference`: `fileId`, `referenceType`, `referenceId`로 실제 사용 관계를 기록한다. `referenceType`은 `PERFORMANCE_POSTER`처럼 사용처를 하나의 값으로 표현하며 파일 계층은 그 의미를 해석하지 않는다. 같은 사용처와 대상에 여러 파일을 연결할 수 있고, 동일한 `사용처·대상·파일` 관계만 하나로 제한한다.
+- `ATTACHED`는 저장 상태가 아니라 `FileReference` 존재 여부로 판단한다. 공연의 포스터 FK는 공연 관계의 정본이고 참조 행은 파일 정리와 다중 재사용을 위한 공통 관계 기록이다. 둘은 같은 DB 트랜잭션에서 변경한다.
 - 외부 식별을 위한 별도 UUID는 두지 않는다. 파일 ID 접근은 항상 소유자와 함께 조회하고 미존재·타인 소유를 같은 `404 FILE_NOT_FOUND`로 응답한다.
 - `objectKey`는 외부 API에 노출하거나 클라이언트 입력으로 받지 않는다. 형식은 `files/{UTC yyyyMMdd}/{UUID}`다. 원본 파일명과 확장자는 메타데이터이며 객체 접근은 Content-Type과 URL로 처리한다.
 - `FileMetadata`는 원본명, 정규화한 Content-Type, 양수 크기, `FileType`을 갖는다. 현재 `IMAGE`는 JPEG·PNG·WebP만 허용한다.
@@ -39,6 +41,10 @@ presentation/performance ──> application/file ──> domain/file
 
 완료 API는 직접 업로드 결과를 서버가 알기 위해 필요하다. `PATCH`는 상태 일부 변경을 표현하며 이미 `READY`인 파일도 같은 메타데이터를 다시 확인하고 성공하는 멱등 연산이다. 파일 생성과 완료는 각각 DB 트랜잭션이다. 외부 저장소는 DB 트랜잭션에 참여하지 않으므로 호출을 짧게 유지하고 장기 작업은 넣지 않는다.
 
+공연 생성은 공연 ID와 포스터 파일 ID를 가진 `PerformanceCreatedEvent`, 포스터 교체는 공연 ID와 이전·신규 파일 ID를 가진 `PerformancePosterChangedEvent`를 발행한다. presentation의 `PerformanceFileEventHandler`는 `BEFORE_COMMIT`에 `PERFORMANCE_POSTER` 참조를 연결하거나 교체한다. 신규 파일의 소유자나 `READY` 상태가 유효하지 않으면 공연 트랜잭션도 롤백한다. 파일 application/domain은 공연별 규칙과 한 사용처의 파일 개수를 모르며 adapter가 전달한 범용 참조 정보만 처리한다.
+
+참조 없는 `READY`는 업로드 후 화면 이탈이나 포스터 교체로 생길 수 있다. 향후 정리 배치는 생성·참조 해제 유예기간이 지난 `PENDING`과 참조 없는 `READY`를 인덱스와 제한된 청크로 조회한 뒤 Storage와 DB에서 멱등 삭제한다. 본문 이미지는 HTML URL을 배치가 파싱하지 않고 저장 시 전달된 file ID 목록의 참조를 추가·제거한다.
+
 ## API·오류
 
 - `POST /api/v1/performance-posters/upload-requests`: 포스터용 presigned upload 발급, `201 Created`
@@ -47,13 +53,14 @@ presentation/performance ──> application/file ──> domain/file
 - 결과는 wrapper 없이 `fileId`, `uploadUrl`, `method`, `expiresAt`, `headers`를 반환한다. enum 대신 안정적인 문자열 값을 반환한다.
 - 공통 `BusinessException`은 오류 코드·HTTP 성격을 가지며 구체 메시지는 오류 발생 지점에서 만든다. presentation handler가 HTTP 응답으로 바꾼다.
 - `IllegalArgumentException`은 잘못된 내부 객체 생성에 가깝기 때문에 전역에서 사용자 `400`으로 변환하지 않는다. 입력 형식은 Bean Validation, 비즈니스 위반은 `BusinessException`으로 처리한다.
+- 참조 연결과 교체는 이벤트 재처리를 고려해 멱등하게 수행한다. 교체할 이전 참조가 이미 없어도 실패시키지 않으며 운영에서 상태 불일치를 추적해야 하면 로그나 메트릭을 추가한다.
 
 ## 후속 작업
 
 - 실제 S3 adapter와 환경별 bucket·권한·presigned 정책
 - 객체 magic byte 또는 비동기 검사, 이미지 처리
-- 만료된 `PENDING` 파일 정리 배치와 S3 Lifecycle 보조 정책
+- 만료된 `PENDING`과 참조 없는 `READY` 파일의 청크 정리 배치와 S3 Lifecycle 보조 정책
 - LocalStack 통합 테스트와 `Clock` 주입이 필요한 시간 경계 테스트
 - Spring Session Redis 도입 시 `MemberPrincipal` serializer 설정
 
-현재 범위에는 실제 저장소 구현, 공연 생성·연결, 지원서·공고 모델을 포함하지 않는다.
+현재 범위에는 실제 저장소 구현과 지원서·공고 모델을 포함하지 않는다. 공연은 `fileId` 참조 이벤트로 완료된 포스터만 연결한다.
