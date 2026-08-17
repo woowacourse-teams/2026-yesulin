@@ -43,7 +43,7 @@ domain/performance ──event──> presentation/event/performance ──> app
 
 공연 생성은 공연 ID와 포스터 파일 ID를 가진 `PerformanceCreatedEvent`, 포스터 교체는 공연 ID와 이전·신규 파일 ID를 가진 `PerformancePosterChangedEvent`를 발행한다. presentation의 `PerformanceFileEventHandler`는 `BEFORE_COMMIT`에 `PERFORMANCE_POSTER` 참조를 연결하거나 교체한다. 신규 파일의 소유자나 `READY` 상태가 유효하지 않으면 공연 트랜잭션도 롤백한다. 파일 application/domain은 공연별 규칙과 한 사용처의 파일 개수를 모르며 adapter가 전달한 범용 참조 정보만 처리한다.
 
-참조 없는 `READY`는 업로드 후 화면 이탈이나 포스터 교체로 생길 수 있다. 정리 배치는 생성·참조 해제 유예기간이 지난 `PENDING`과 참조 없는 `READY`를 인덱스와 제한된 청크로 조회한 뒤 Storage와 DB에서 멱등 삭제한다. 본문 이미지는 HTML URL을 배치가 파싱하지 않고 저장 시 전달된 file ID 목록의 참조를 추가·제거한다.
+참조 없는 `READY`는 업로드 후 화면 이탈이나 포스터 교체로 생길 수 있다. 향후 정리 배치는 생성·참조 해제 유예기간이 지난 `PENDING`과 참조 없는 `READY`를 인덱스와 제한된 청크로 조회한 뒤 Storage와 DB에서 멱등 삭제한다. 본문 이미지는 HTML URL을 배치가 파싱하지 않고 저장 시 전달된 file ID 목록의 참조를 추가·제거한다.
 
 ## API·오류
 
