@@ -11,6 +11,8 @@ import art.yesulin.application.file.FileUploadResult;
 import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.file.FileAssetRepository;
 import art.yesulin.domain.file.FileErrorCode;
+import art.yesulin.domain.file.FileReference;
+import art.yesulin.domain.file.FileReferenceRepository;
 import art.yesulin.domain.performance.Performance;
 import art.yesulin.domain.performance.PerformanceErrorCode;
 import art.yesulin.domain.performance.PerformanceRepository;
@@ -51,6 +53,9 @@ class PerformanceServiceTest {
     private FileAssetRepository fileAssetRepository;
 
     @Autowired
+    private FileReferenceRepository fileReferenceRepository;
+
+    @Autowired
     private FakeObjectStorage objectStorage;
 
     @Autowired
@@ -59,6 +64,7 @@ class PerformanceServiceTest {
     @BeforeEach
     void cleanUp() {
         performanceRepository.deleteAll();
+        fileReferenceRepository.deleteAll();
         fileAssetRepository.deleteAll();
     }
 
@@ -82,8 +88,10 @@ class PerformanceServiceTest {
         assertEquals(2, result.roles().size());
         assertTrue(result.roles().stream().allMatch(role -> role.id() > 0));
         Performance saved = performanceRepository.findById(result.id()).orElseThrow();
+        FileReference reference = findPosterReference(result.id());
         assertEquals(OWNER_ID, saved.getOwnerId());
         assertEquals(posterFileId, saved.getPosterFileId());
+        assertEquals(posterFileId, reference.getFileAsset().getId());
     }
 
     @Test
@@ -148,6 +156,7 @@ class PerformanceServiceTest {
                 .findFirst().orElseThrow();
         assertEquals(firstPosterFileId, event.previousPosterFileId());
         assertEquals(changedPosterFileId, event.currentPosterFileId());
+        assertEquals(changedPosterFileId, findPosterReference(created.id()).getFileAsset().getId());
     }
 
     @Test
@@ -235,5 +244,11 @@ class PerformanceServiceTest {
         objectStorage.upload(upload.uploadUrl(), "image/png", 1_024L);
         fileService.completeUpload(OWNER_ID, upload.fileId());
         return upload.fileId();
+    }
+
+    private FileReference findPosterReference(long performanceId) {
+        return fileReferenceRepository.findByReferenceTypeAndReferenceIdAndReferenceSlot(
+                "PERFORMANCE", performanceId, "POSTER"
+        ).orElseThrow();
     }
 }

@@ -12,7 +12,7 @@ agent-required: true
 
 ## 결정
 
-공연 기본 정보, 포스터와 배역 수정 API를 분리한다. 기본 정보는 제목과 도로명주소만 수정한다. 포스터는 완료된 파일 ID로 교체한다. 배역은 공연 하위 리소스로 하나씩 추가·수정·삭제하고 각 ID를 유지한다. 다른 공연의 배역 ID와 같은 공연 안의 중복 이름은 거부한다. 포스터 ID가 실제로 달라질 때만 이전·신규 ID를 가진 `PerformancePosterChangedEvent`를 발행한다. presentation event adapter가 파일 application을 호출해 신규 파일이 같은 소유자의 `READY` 상태인지 커밋 전에 확인한다.
+공연 기본 정보, 포스터와 배역 수정 API를 분리한다. 기본 정보는 제목과 도로명주소만 수정한다. 포스터는 완료된 파일 ID로 교체한다. 배역은 공연 하위 리소스로 하나씩 추가·수정·삭제하고 각 ID를 유지한다. 다른 공연의 배역 ID와 같은 공연 안의 중복 이름은 거부한다. 포스터 ID가 실제로 달라질 때만 공연 ID와 이전·신규 파일 ID를 가진 `PerformancePosterChangedEvent`를 발행한다. presentation event adapter가 신규 파일을 검증하고 포스터 참조 행을 교체한다.
 
 ## 이유
 

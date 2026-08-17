@@ -17,6 +17,7 @@ import art.yesulin.application.performance.CreatePerformanceRoleCommand;
 import art.yesulin.application.performance.PerformanceResult;
 import art.yesulin.application.performance.PerformanceService;
 import art.yesulin.domain.file.FileAssetRepository;
+import art.yesulin.domain.file.FileReferenceRepository;
 import art.yesulin.domain.performance.PerformanceRepository;
 import art.yesulin.support.FakeObjectStorage;
 import art.yesulin.support.ObjectStorageTestConfiguration;
@@ -56,6 +57,9 @@ class PerformanceControllerTest {
     private FileAssetRepository fileAssetRepository;
 
     @Autowired
+    private FileReferenceRepository fileReferenceRepository;
+
+    @Autowired
     private PerformanceRepository performanceRepository;
 
     @Autowired
@@ -64,6 +68,7 @@ class PerformanceControllerTest {
     @BeforeEach
     void cleanUp() {
         performanceRepository.deleteAll();
+        fileReferenceRepository.deleteAll();
         fileAssetRepository.deleteAll();
     }
 

@@ -12,6 +12,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
+import jakarta.persistence.PostPersist;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.List;
@@ -58,7 +59,6 @@ public class Performance extends AbstractAggregateRoot<Performance> {
         this.posterFileId = requirePositive(posterFileId, "포스터 파일 ID는 1 이상이어야 합니다.");
         this.title = requireText(title, "공연 제목은 필수입니다.");
         this.roadAddress = requireText(roadAddress, "공연 도로명주소는 필수입니다.");
-        registerEvent(new PerformanceCreatedEvent(ownerId, posterFileId));
     }
 
     public PerformanceRole addRole(String name, String description) {
@@ -75,7 +75,7 @@ public class Performance extends AbstractAggregateRoot<Performance> {
         final long previousPosterFileId = this.posterFileId;
         this.posterFileId = changedPosterFileId;
         if (previousPosterFileId != changedPosterFileId) {
-            registerEvent(new PerformancePosterChangedEvent(ownerId, previousPosterFileId, changedPosterFileId));
+            registerEvent(new PerformancePosterChangedEvent(id, ownerId, previousPosterFileId, changedPosterFileId));
         }
     }
 
@@ -85,6 +85,11 @@ public class Performance extends AbstractAggregateRoot<Performance> {
 
     public void removeRole(long roleId) {
         roles.remove(roleId);
+    }
+
+    @PostPersist
+    private void registerCreatedEvent() {
+        registerEvent(new PerformanceCreatedEvent(id, ownerId, posterFileId));
     }
 
     public List<PerformanceRole> getRoles() {

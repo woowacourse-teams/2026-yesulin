@@ -12,7 +12,7 @@ agent-required: true
 
 ## 결정
 
-공연은 소유자, 완료된 포스터 `fileId`, 제목, 도로명주소 문자열, 생성 감사 시각과 0개 이상의 배역을 저장한다. 도로명주소는 현재 별도 속성이나 독립 규칙이 없어 VO로 분리하지 않는다. 각 배역은 독립 ID와 이름·한 줄 설명을 가지며 공연 내부 일급 컬렉션이 순서와 이름 중복을 관리한다. 공연 저장 시 `PerformanceCreatedEvent`를 발행한다. presentation event adapter가 `BEFORE_COMMIT`에 파일 application을 호출해 같은 소유자의 `READY` 파일인지 확인하고, 실패하면 공연 트랜잭션을 롤백한다.
+공연은 소유자, 완료된 포스터 `fileId`, 제목, 도로명주소 문자열, 생성 감사 시각과 0개 이상의 배역을 저장한다. 도로명주소는 현재 별도 속성이나 독립 규칙이 없어 VO로 분리하지 않는다. 각 배역은 독립 ID와 이름·한 줄 설명을 가지며 공연 내부 일급 컬렉션이 순서와 이름 중복을 관리한다. 공연 ID가 부여되면 `PerformanceCreatedEvent`를 발행한다. presentation event adapter가 `BEFORE_COMMIT`에 같은 소유자의 `READY` 파일인지 확인하고 공연 포스터 참조를 추가하며, 실패하면 공연 트랜잭션을 롤백한다.
 
 ## 이유
 
