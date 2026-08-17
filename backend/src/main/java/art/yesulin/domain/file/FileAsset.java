@@ -60,7 +60,7 @@ public class FileAsset {
         status = FileStatus.READY;
     }
 
-    public void ensureReadyForReference() {
+    public void ensureUsable() {
         if (status != FileStatus.READY) {
             throw new BusinessException(NOT_READY, "업로드가 완료된 파일만 사용할 수 있습니다.");
         }

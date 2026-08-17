@@ -12,7 +12,7 @@ agent-required: true
 
 ## 결정
 
-`FileAsset`은 `PENDING|READY` 업로드 상태만 관리한다. 도메인이 파일을 사용하면 `FileReference(fileId, referenceType, referenceId, referenceSlot)`를 별도로 저장한다. 같은 대상·위치에는 참조 하나만 허용하고 하나의 파일은 여러 참조를 가질 수 있다. 공연 생성은 포스터 참조를 추가하고 포스터 교체는 같은 참조 행의 파일만 변경한다. 참조 타입과 위치는 조립 adapter가 application command로 전달하며 파일 도메인은 공연·지원서별 로직을 알지 않는다.
+`FileAsset`은 `PENDING|READY` 업로드 상태만 관리한다. 도메인이 파일을 사용하면 `FileReference(referenceType, referenceId, fileId)`를 별도로 저장한다. `referenceType`은 `PERFORMANCE_POSTER`처럼 사용처를 한 값으로 표현한다. 같은 사용처·대상에는 여러 파일을 허용하고 동일한 파일 관계만 하나로 제한한다. 업로드 API 흐름은 `FileService`, 이벤트 기반 관계 영속화는 `FileReferenceService`가 담당한다. 연결·교체별 command로 경계를 구분하고 내부 관계 처리는 개별 값을 사용하며 두 연산은 멱등하게 처리한다.
 
 ## 이유
 
@@ -20,4 +20,4 @@ agent-required: true
 
 ## 영향
 
-Flyway는 기존 공연 포스터를 참조 테이블에 이관한다. 이후 정리 배치는 유예기간이 지난 `PENDING`과 참조 없는 `READY`만 청크로 삭제한다. 참조 삭제와 물리 파일 정리 배치는 후속 작업으로 구현한다. 상세 계약은 [파일 업로드 설계](../backend/file-upload.md)를 따른다.
+Flyway는 기존 공연 포스터를 `PERFORMANCE_POSTER` 참조로 이관한다. 파일 FK는 참조 중인 파일 삭제를 막으며 정리 배치는 유예기간이 지난 `PENDING`과 참조 없는 `READY`만 청크로 삭제한다. 참조 삭제와 물리 파일 정리 배치는 후속 작업으로 구현한다. 상세 계약은 [파일 업로드 설계](../backend/file-upload.md)를 따른다.

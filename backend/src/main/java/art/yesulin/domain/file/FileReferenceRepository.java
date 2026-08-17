@@ -5,9 +5,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface FileReferenceRepository extends JpaRepository<FileReference, Long> {
 
-    Optional<FileReference> findByReferenceTypeAndReferenceIdAndReferenceSlot(
+    Optional<FileReference> findByReferenceTypeAndReferenceIdAndFileId(
             String referenceType,
             long referenceId,
-            String referenceSlot
+            long fileId
     );
+
+    boolean existsByReferenceTypeAndReferenceIdAndFileId(String referenceType, long referenceId, long fileId);
+
+    long deleteByReferenceTypeAndReferenceIdAndFileId(String referenceType, long referenceId, long fileId);
 }

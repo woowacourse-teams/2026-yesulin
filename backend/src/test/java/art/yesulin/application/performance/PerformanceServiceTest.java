@@ -88,10 +88,10 @@ class PerformanceServiceTest {
         assertEquals(2, result.roles().size());
         assertTrue(result.roles().stream().allMatch(role -> role.id() > 0));
         Performance saved = performanceRepository.findById(result.id()).orElseThrow();
-        FileReference reference = findPosterReference(result.id());
+        FileReference reference = findPosterReference(result.id(), posterFileId);
         assertEquals(OWNER_ID, saved.getOwnerId());
         assertEquals(posterFileId, saved.getPosterFileId());
-        assertEquals(posterFileId, reference.getFileAsset().getId());
+        assertEquals(posterFileId, reference.getFileId());
     }
 
     @Test
@@ -156,7 +156,7 @@ class PerformanceServiceTest {
                 .findFirst().orElseThrow();
         assertEquals(firstPosterFileId, event.previousPosterFileId());
         assertEquals(changedPosterFileId, event.currentPosterFileId());
-        assertEquals(changedPosterFileId, findPosterReference(created.id()).getFileAsset().getId());
+        assertEquals(changedPosterFileId, findPosterReference(created.id(), changedPosterFileId).getFileId());
     }
 
     @Test
@@ -246,9 +246,9 @@ class PerformanceServiceTest {
         return upload.fileId();
     }
 
-    private FileReference findPosterReference(long performanceId) {
-        return fileReferenceRepository.findByReferenceTypeAndReferenceIdAndReferenceSlot(
-                "PERFORMANCE", performanceId, "POSTER"
+    private FileReference findPosterReference(long performanceId, long fileId) {
+        return fileReferenceRepository.findByReferenceTypeAndReferenceIdAndFileId(
+                "PERFORMANCE_POSTER", performanceId, fileId
         ).orElseThrow();
     }
 }

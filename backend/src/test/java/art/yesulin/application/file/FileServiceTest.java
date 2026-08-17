@@ -8,8 +8,6 @@ import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.file.FileAsset;
 import art.yesulin.domain.file.FileAssetRepository;
 import art.yesulin.domain.file.FileErrorCode;
-import art.yesulin.domain.file.FileReference;
-import art.yesulin.domain.file.FileReferenceRepository;
 import art.yesulin.domain.file.FileStatus;
 import art.yesulin.domain.file.FileType;
 import art.yesulin.support.FakeObjectStorage;
@@ -39,9 +37,6 @@ class FileServiceTest {
     private FileAssetRepository fileAssetRepository;
 
     @Autowired
-    private FileReferenceRepository fileReferenceRepository;
-
-    @Autowired
     private FakeObjectStorage objectStorage;
 
     @Autowired
@@ -49,7 +44,6 @@ class FileServiceTest {
 
     @BeforeEach
     void cleanUp() {
-        fileReferenceRepository.deleteAll();
         fileAssetRepository.deleteAll();
     }
 
@@ -135,38 +129,6 @@ class FileServiceTest {
         );
 
         assertEquals(FileErrorCode.NOT_FOUND, exception.getErrorCode());
-    }
-
-    @Test
-    void addsAndReplacesFileReference() {
-        FileUploadResult firstUpload = requestPosterUpload();
-        FileUploadResult secondUpload = requestPosterUpload();
-        objectStorage.upload(firstUpload.uploadUrl(), "image/png", 1_024L);
-        objectStorage.upload(secondUpload.uploadUrl(), "image/png", 1_024L);
-        fileService.completeUpload(OWNER_ID, firstUpload.fileId());
-        fileService.completeUpload(OWNER_ID, secondUpload.fileId());
-        FileReferenceCommand command = new FileReferenceCommand("PERFORMANCE", 1L, "POSTER");
-
-        fileService.addReference(OWNER_ID, firstUpload.fileId(), command);
-        fileService.addReference(OWNER_ID, firstUpload.fileId(), command);
-        fileService.replaceReference(OWNER_ID, firstUpload.fileId(), secondUpload.fileId(), command);
-
-        FileReference reference = fileReferenceRepository.findByReferenceTypeAndReferenceIdAndReferenceSlot(
-                command.referenceType(), command.referenceId(), command.referenceSlot()
-        ).orElseThrow();
-        assertEquals(1, fileReferenceRepository.count());
-        assertEquals(secondUpload.fileId(), reference.getFileAsset().getId());
-    }
-
-    @Test
-    void rejectsPendingFileReference() {
-        FileUploadResult upload = requestPosterUpload();
-
-        BusinessException exception = assertThrows(BusinessException.class, () -> fileService.addReference(
-                OWNER_ID, upload.fileId(), new FileReferenceCommand("PERFORMANCE", 1L, "POSTER")
-        ));
-
-        assertEquals(FileErrorCode.NOT_READY, exception.getErrorCode());
     }
 
     private FileUploadResult requestPosterUpload() {
