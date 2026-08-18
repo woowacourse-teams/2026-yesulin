@@ -2,7 +2,7 @@
   "name": "yesulin-tooling",
   "private": true,
   "engines": {
-    "node": ">=22.12.0"
+    "node": ">=24.0.0"
   },
   "scripts": {
     "prepare": "husky",

@@ -65,8 +65,19 @@ git push
 
 ## 자동 검사
 
+### 로컬 Git hook
+
 최초 1회 저장소 루트에서 `npm install`을 실행한다.
 
 - `commit-msg`: 커밋 형식과 허용 타입을 검사한다.
 - `pre-commit`: staged diff에 백엔드 Java·Checkstyle 설정 변경이 있을 때만 `checkstyleMain`, `checkstyleTest`를 실행한다.
 - 수동 실행: `npm run checkstyle`
+
+### GitHub Actions
+
+`main` 대상 Pull Request와 `main` push에서는 `.github/workflows/ci.yml`이 다음 검사를 병렬 실행한다.
+
+- `Frontend`: Node.js 24, `npm ci`, lint, production build
+- `Backend`: Java 25, Gradle Wrapper `build`로 Checkstyle, test, 실행 JAR 생성
+
+두 검사를 병합 필수 조건으로 강제하는 설정은 첫 CI 실행 후 GitHub Ruleset에서 연결한다.
