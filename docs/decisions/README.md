@@ -28,3 +28,5 @@
 - [공연 추가와 포스터 참조 확정](./20260816102630-performance-creation.md) — accepted · agent-required
 - [공연 수정과 포스터 변경 이벤트](./20260816103139-performance-update.md) — accepted · agent-required
 - [파일 업로드 상태와 도메인 참조 분리](./20260817063526-file-reference-registry.md) — accepted · agent-required
+- [CI 런타임과 병렬 Job](./20260818092422-ci-runtime-and-parallel-jobs.md) — accepted · agent-required
+- [프론트 이중 검증과 GitHub 보안 기준](./20260818105845-frontend-preview-and-github-security.md) — accepted · agent-required

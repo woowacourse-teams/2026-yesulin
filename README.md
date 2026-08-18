@@ -16,7 +16,7 @@
 
 ## 실행
 
-Node.js 22.12 이상이 필요합니다. 클론 후 루트에서 먼저 Husky hook을 설치합니다.
+Node.js 24 이상이 필요합니다. `.nvmrc`는 팀과 CI가 사용하는 권장 메이저 버전 24를 지정합니다. 클론 후 루트에서 먼저 Husky hook을 설치합니다.
 
 ```bash
 npm install
@@ -46,6 +46,14 @@ cd backend
 ./gradlew build
 ./gradlew test
 ```
+
+## 지속적 통합
+
+`.github/workflows/ci.yml`은 `main` 대상 Pull Request와 `main` push에서 실행됩니다. Frontend와 Backend Job은 서로 독립된 GitHub-hosted runner에서 병렬 실행됩니다.
+
+- Frontend: `npm ci`, lint, production build
+- Backend: Java 25와 Gradle Wrapper로 Checkstyle, test, executable build
+- CI가 모두 통과한 뒤에만 `main`으로 병합하는 규칙은 GitHub 저장소 Ruleset에서 별도로 설정합니다.
 
 ## 개발 방식
 
