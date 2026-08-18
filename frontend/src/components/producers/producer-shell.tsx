@@ -1,9 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { PHASE_LABELS } from "@/features/auditions/labels";
 import { auditionRoutes } from "@/features/auditions/routes";
-import { POSTING_PHASES } from "@/features/auditions/types";
-import { PhaseTag } from "@/components/auditions/status-badge";
 import { AuditionTreeNav } from "./audition-tree";
 import { SidebarResizer } from "./sidebar-resizer";
 import { MobileProducerNavigation } from "./mobile-producer-navigation";
@@ -39,19 +36,7 @@ export function ProducerShell({ children }: { children: React.ReactNode }) {
 
         <AuditionTreeNav />
 
-        <div className="mt-auto flex flex-col gap-2 border-t border-sidebar-line px-4 py-3 text-xs text-sidebar-muted">
-          <div className="flex flex-wrap gap-1.5">
-            {POSTING_PHASES.map((phase) => (
-              <PhaseTag key={phase} phase={phase} variant="sidebar" />
-            ))}
-          </div>
-          <span>지난 시즌 공고도 계속 열람할 수 있습니다</span>
-          <span className="sr-only">
-            {POSTING_PHASES.map((phase) => PHASE_LABELS[phase]).join(", ")}
-          </span>
-        </div>
-
-        <ProducerAccountPanel />
+        <div className="mt-auto"><ProducerAccountPanel /></div>
       </aside>
 
       <SidebarResizer />

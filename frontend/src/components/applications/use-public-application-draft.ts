@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
+import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
 import { hasApplicationDraft } from "@/features/applications/application-form-state";
 import type { ApplicationPhoto, CareerDraft } from "@/features/applications/application-form-state";
 import { deletePublicApplicationDraft, readPublicApplicationDraft, restoreDraftPhotos, savePublicApplicationDraft } from "@/features/applications/public-application-draft-store";
@@ -10,13 +11,14 @@ import { applicationDraftFromPrefill } from "./public-application-draft";
 
 export type DraftSaveStatus = "RESTORING" | "IDLE" | "SAVING" | "SAVED" | "ERROR";
 
-export function usePublicApplicationDraft({ postingId, prefill, initialRoleIds, submitted }: {
+export function usePublicApplicationDraft({ postingId, fields, prefill, initialRoleIds, submitted }: {
   readonly postingId: string;
+  readonly fields: readonly ApplicationFieldInput[];
   readonly prefill?: ProfilePrefillResponse;
   readonly initialRoleIds: readonly string[];
   readonly submitted: boolean;
 }) {
-  const [initial] = useState(() => applicationDraftFromPrefill(prefill));
+  const [initial] = useState(() => applicationDraftFromPrefill(prefill, fields));
   const [fallbackRoleIds] = useState(initialRoleIds);
   const [values, setValuesBase] = useState<Readonly<Record<string, string>>>(initial.values);
   const [photos, setPhotosBase] = useState<readonly ApplicationPhoto[]>(initial.photos);

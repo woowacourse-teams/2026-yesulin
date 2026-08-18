@@ -125,7 +125,7 @@ export function openPrintWindow(applicants: readonly Applicant[], performance: P
   if (applicants.length === 0) return false;
 
   const title =
-    applicants.length === 1 ? `${applicants[0]?.name ?? ""} 프로필` : `지원자 ${applicants.length}명`;
+    applicants.length === 1 ? `${applicants[0]?.name ?? ""} 프로필` : `배우 ${applicants.length}명`;
   const win = window.open("", "_blank", "width=900,height=1000");
   if (!win) return false;
 

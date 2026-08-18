@@ -9,8 +9,14 @@ import { Breadcrumb } from "./breadcrumb";
 import { BoardWorkspace } from "./board-workspace";
 import { ScreenError } from "./screen-status";
 
-export function AuditionBoard({ roleId }: { roleId: RoleId }) {
-  const [round, setRound] = useState<RoundNumber | null>(null);
+export function AuditionBoard({
+  roleId,
+  initialRound = null,
+}: {
+  roleId: RoleId;
+  initialRound?: RoundNumber | null;
+}) {
+  const [round, setRound] = useState<RoundNumber | null>(initialRound);
   /** 심사·마감 응답으로 갱신된 보드. 조회 결과보다 우선하고, 차수가 바뀌면 무효가 된다. */
   const [applied, setApplied] = useState<{ round: RoundNumber; board: AuditionBoardResponse } | null>(
     null,
@@ -20,7 +26,7 @@ export function AuditionBoard({ roleId }: { roleId: RoleId }) {
   const { data, error, loading, reload } = useAuditionQuery(
     `${roleId}:${round ?? "auto"}`,
     load,
-    "지원자를 불러오지 못했습니다.",
+    "배우를 불러오지 못했습니다.",
   );
 
   const board = applied && applied.round === round ? applied.board : data;
@@ -76,7 +82,7 @@ export function AuditionBoard({ roleId }: { roleId: RoleId }) {
 
 function BoardSkeleton() {
   return (
-    <div aria-label="지원자를 불러오는 중">
+    <div aria-label="배우를 불러오는 중">
       <div className="h-[86px] animate-pulse border-b border-border bg-card" />
       <div className="h-[46px] animate-pulse border-b border-border bg-card" />
       <div className="h-[47px] animate-pulse border-b border-border bg-card" />

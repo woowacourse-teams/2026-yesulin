@@ -23,13 +23,16 @@ export const ROUND_LABELS = {
   1: "1차 서류",
   2: "2차 오디션",
   3: "3차 최종",
+  4: "4차 전형",
+  5: "5차 전형",
 } as const satisfies Record<RoundNumber, string>;
 
 export const PHASE_LABELS = {
-  OPEN: "진행중",
-  UPCOMING: "예정",
-  RECRUIT_CLOSED: "접수마감",
-  FINISHED: "전형마감",
+  DRAFT: "작성 중",
+  UPCOMING: "진행 예정",
+  OPEN: "진행 중",
+  RECRUIT_CLOSED: "접수 마감",
+  FINISHED: "전형 종료",
 } as const satisfies Record<PostingPhase, string>;
 
 export const GENDER_LABELS = {

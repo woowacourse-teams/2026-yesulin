@@ -11,6 +11,12 @@ const textOf = (answers: readonly ApplicantAnswer[], key: string) => {
   return typeof value === "string" ? value : "";
 };
 
+const videoOf = (answers: readonly ApplicantAnswer[]) => {
+  const value = answerOf(answers, "VIDEO");
+  if (typeof value === "string") return value;
+  return Array.isArray(value) ? value.find((item): item is string => typeof item === "string") ?? "" : "";
+};
+
 const genderOf = (value: string): Gender => value === "남성" || value === "MALE" ? "MALE" : "FEMALE";
 
 const bodyOf = (value: ApplicantAnswer["value"] | undefined): BodyMeasurements => {
@@ -21,7 +27,7 @@ const bodyOf = (value: ApplicantAnswer["value"] | undefined): BodyMeasurements =
 const careerOf = (value: ApplicantAnswer["value"] | undefined): readonly CareerEntry[] =>
   Array.isArray(value) ? value.filter((item): item is CareerEntry => typeof item === "object" && item !== null && "year" in item && "title" in item && "part" in item) : [];
 
-/** 지원자용 제출 스냅샷을 공연사 심사 읽기 모델의 원본으로 변환한다. */
+/** 배우용 제출 스냅샷을 기획사/제작사 심사 읽기 모델의 원본으로 변환한다. */
 export function toScreeningApplicant(detail: ApplicantApplicationDetail, performanceId: PerformanceId): MockApplicant {
   const birth = textOf(detail.answers, "BIRTH");
   const birthYear = Number(birth.slice(0, 4));
@@ -56,6 +62,6 @@ export function toScreeningApplicant(detail: ApplicantApplicationDetail, perform
     coverLetter: textOf(detail.answers, "COVER_LETTER"),
     motivation: textOf(detail.answers, "MOTIVATION"),
     photos,
-    videoUrl: textOf(detail.answers, "VIDEO") || null,
+    videoUrl: videoOf(detail.answers) || null,
   };
 }

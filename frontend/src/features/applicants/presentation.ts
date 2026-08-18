@@ -1,6 +1,6 @@
 import type { ApplicantAnswerValue } from "./types";
 
-export function formatApplicantDate(value: string, withTime = false) {
+export function formatApplicantDate(value: string | number, withTime = false) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return new Intl.DateTimeFormat("ko-KR", {

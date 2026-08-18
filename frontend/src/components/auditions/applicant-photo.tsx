@@ -5,7 +5,7 @@ import { useState } from "react";
 import type { ApplicantPhoto } from "@/features/auditions/types";
 
 /**
- * 지원자 사진. 외부 아바타 URL이 실패하면 인라인 SVG로 갈아끼운다.
+ * 배우 사진. 외부 아바타 URL이 실패하면 인라인 SVG로 갈아끼운다.
  * 목 사진이라 최적화 이득이 없어 unoptimized로 두고 data URL도 그대로 통과시킨다.
  */
 export function ApplicantPhotoImage({

@@ -14,13 +14,15 @@ export function PublicApplicationMedia() {
   const inputRef = useRef<HTMLInputElement>(null);
   const fields = meta.steps[state.stepIndex]!.fields;
   const photoField = fields.find((field) => field.inputType === "FILE");
+  const requestedPhotos = photoField?.config.photoRequirements?.reduce((sum, item) => sum + item.count, 0);
+  const photoLimit = Math.min(MAX_PHOTO_COUNT, Math.max(1, requestedPhotos ?? photoField?.config.maxCount ?? MAX_PHOTO_COUNT));
   const videoField = fields.find((field) => field.inputType === "URL");
-  const videoId = youtubeVideoId(state.videoUrl);
+  const videoRequirements = videoField?.config.videoRequirements ?? [];
   const attachedPhotoCount = state.photos.filter((photo) => photo.status !== "ERROR").length;
   const primaryPhotoId = state.photos.find((photo) => photo.status !== "ERROR")?.id;
 
   const addPhotos = (event: ChangeEvent<HTMLInputElement>) => {
-    const candidates = Array.from(event.target.files ?? []).slice(0, MAX_PHOTO_COUNT - attachedPhotoCount);
+    const candidates = Array.from(event.target.files ?? []).slice(0, photoLimit - attachedPhotoCount);
     event.target.value = "";
     if (!candidates.length) return;
     const nextPhotos: ApplicationPhoto[] = [];
@@ -55,17 +57,32 @@ export function PublicApplicationMedia() {
   };
 
   return <div className="space-y-10">
-    {photoField ? <PhotoField field={photoField} inputRef={inputRef} photos={state.photos} primaryPhotoId={primaryPhotoId} attachedPhotoCount={attachedPhotoCount} error={state.mediaError || (state.stepError.startsWith(photoField.label) ? state.stepError : "")} onAdd={addPhotos} onRemove={removePhoto} onPrimary={makePrimary} onRetry={retryPhoto} /> : null}
-    {videoField ? <VideoField field={videoField} value={state.videoUrl} valid={Boolean(videoId)} error={state.stepError.startsWith(videoField.label) ? state.stepError : ""} onChange={actions.updateVideo} onClear={() => actions.updateVideo("")} /> : null}
+    {photoField ? <PhotoField field={photoField} limit={photoLimit} inputRef={inputRef} photos={state.photos} primaryPhotoId={primaryPhotoId} attachedPhotoCount={attachedPhotoCount} error={state.mediaError || (state.stepError.startsWith(photoField.label) ? state.stepError : "")} onAdd={addPhotos} onRemove={removePhoto} onPrimary={makePrimary} onRetry={retryPhoto} /> : null}
+    {videoField && videoRequirements.length > 0 ? <section aria-labelledby={`application-${videoField.id}-title`} className="space-y-6"><div><h2 id={`application-${videoField.id}-title`} className="text-sm font-semibold text-foreground">{videoField.label}<span className="ml-1 text-fail" aria-label="필수">*</span></h2><p className="mt-1 text-sm leading-6 text-muted">요청한 영상별로 유튜브 링크를 입력해 주세요. 영상 파일은 받지 않아요.</p></div>{videoRequirements.map((requirement, index) => {
+      const fieldId = `${videoField.id}.${requirement.id}`;
+      const value = state.values[fieldId] ?? "";
+      return <VideoRequirementField key={requirement.id} fieldId={fieldId} label={requirement.description} index={index} value={value} error={state.stepError.startsWith(requirement.description) ? state.stepError : ""} onChange={(next) => actions.updateField(fieldId, next)} />;
+    })}</section> : null}
+    {videoField && videoRequirements.length === 0 ? <VideoField field={videoField} value={state.videoUrl} valid={Boolean(youtubeVideoId(state.videoUrl))} error={state.stepError.startsWith(videoField.label) ? state.stepError : ""} onChange={actions.updateVideo} onClear={() => actions.updateVideo("")} /> : null}
   </div>;
 }
 
-function PhotoField({ field, inputRef, photos, primaryPhotoId, attachedPhotoCount, error, onAdd, onRemove, onPrimary, onRetry }: { field: ApplicationFieldInput; inputRef: RefObject<HTMLInputElement | null>; photos: readonly ApplicationPhoto[]; primaryPhotoId?: string; attachedPhotoCount: number; error: string; onAdd: (event: ChangeEvent<HTMLInputElement>) => void; onRemove: (id: string) => void; onPrimary: (id: string) => void; onRetry: (id: string) => void }) {
+function VideoRequirementField({ fieldId, label, index, value, error, onChange }: { fieldId: string; label: string; index: number; value: string; error: string; onChange: (value: string) => void }) {
+  const valid = Boolean(youtubeVideoId(value));
+  const invalid = value.length > 0 && !valid;
+  const inputId = `application-${fieldId}`;
+  const helpId = `${inputId}-help`;
+  const errorId = `${inputId}-error`;
+  const errorMessage = invalid ? "YouTube 링크 형식을 확인해 주세요." : error;
+  return <section id={`application-field-${fieldId}`} className="rounded-card border border-border bg-surface p-4"><label htmlFor={inputId} className="text-sm font-semibold text-foreground">{index + 1}. {label}<span className="ml-1 text-fail" aria-label="필수">*</span></label><p id={helpId} className="mt-1 text-sm leading-6 text-muted">유튜브에 공개 또는 일부공개로 올린 링크를 입력해 주세요.</p><input id={inputId} type="url" value={value} placeholder="https://youtu.be/..." onChange={(event) => onChange(event.target.value)} aria-invalid={Boolean(errorMessage) || undefined} aria-describedby={[helpId, errorMessage ? errorId : ""].filter(Boolean).join(" ")} className={`mt-3 ${fieldControlClass} ${errorMessage ? "border-fail focus:border-fail focus:ring-fail-bg" : ""}`} />{errorMessage ? <p id={errorId} role="alert" className="mt-2 text-sm font-medium leading-6 text-fail">{errorMessage}</p> : null}{valid ? <div role="status" className="mt-3 flex items-center gap-3 rounded-control border border-brand-line bg-brand-soft p-3"><span aria-hidden="true" className="grid h-10 w-14 place-items-center rounded-md bg-sidebar text-xs font-bold text-white">VIDEO</span><span className="min-w-0 flex-1"><strong className="block text-sm text-brand">영상이 연결되었어요</strong><span className="block truncate text-xs text-muted-strong">{value}</span></span><TextButton onClick={() => onChange("")} aria-label={`${label} 영상 삭제`} className="px-3 hover:bg-card hover:text-fail">삭제</TextButton></div> : null}</section>;
+}
+
+function PhotoField({ field, limit, inputRef, photos, primaryPhotoId, attachedPhotoCount, error, onAdd, onRemove, onPrimary, onRetry }: { field: ApplicationFieldInput; limit: number; inputRef: RefObject<HTMLInputElement | null>; photos: readonly ApplicationPhoto[]; primaryPhotoId?: string; attachedPhotoCount: number; error: string; onAdd: (event: ChangeEvent<HTMLInputElement>) => void; onRemove: (id: string) => void; onPrimary: (id: string) => void; onRetry: (id: string) => void }) {
   const inputId = `application-${field.id}`;
   const helpId = `${inputId}-help`;
   const errorId = `${inputId}-error`;
   const describedBy = [helpId, error ? errorId : ""].filter(Boolean).join(" ");
-  return <section id={`application-field-${field.id}`}><FieldLabel field={field} htmlFor={inputId} detail={`${attachedPhotoCount} / ${MAX_PHOTO_COUNT}`} /><p id={helpId} className="mb-4 text-sm leading-6 text-muted">JPG, PNG, WEBP · 파일당 10MB 이하 · 첫 번째 사진이 대표 사진으로 표시됩니다.</p><input ref={inputRef} id={inputId} type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={attachedPhotoCount >= MAX_PHOTO_COUNT} aria-invalid={Boolean(error) || undefined} aria-describedby={describedBy} className="sr-only" onChange={onAdd} /><div className="grid grid-cols-2 gap-3 md:grid-cols-4">{photos.map((photo) => <PhotoCard key={photo.id} photo={photo} primary={photo.id === primaryPhotoId} onRemove={() => onRemove(photo.id)} onPrimary={() => onPrimary(photo.id)} onRetry={() => onRetry(photo.id)} />)}{attachedPhotoCount < MAX_PHOTO_COUNT ? <button type="button" onClick={() => inputRef.current?.click()} className="flex aspect-[3/4] min-h-11 flex-col items-center justify-center rounded-control border border-dashed border-muted-soft bg-surface px-3 text-center text-sm font-semibold text-muted-strong transition-colors hover:border-brand hover:bg-brand-soft hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand" aria-label={`${field.label} 파일 선택`}><span aria-hidden="true" className="text-2xl leading-none">+</span><span className="mt-2">사진 선택</span></button> : null}</div>{error ? <p id={errorId} role="alert" className="mt-3 text-sm font-medium leading-6 text-fail">{error}</p> : null}</section>;
+  return <section id={`application-field-${field.id}`}><FieldLabel field={field} htmlFor={inputId} detail={`${attachedPhotoCount} / ${limit}`} />{field.config.photoRequirements?.length ? <ul className="mb-3 flex flex-wrap gap-2">{field.config.photoRequirements.map((item) => <li key={item.id} className="rounded-full bg-brand-soft px-3 py-1 text-sm font-semibold text-brand">{item.description} {item.count}장</li>)}</ul> : null}<p id={helpId} className="mb-4 text-sm leading-6 text-muted">JPG, PNG, WEBP · 파일당 10MB 이하 · 첫 번째 사진이 대표 사진으로 표시됩니다.</p><input ref={inputRef} id={inputId} type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={attachedPhotoCount >= limit} aria-invalid={Boolean(error) || undefined} aria-describedby={describedBy} className="sr-only" onChange={onAdd} /><div className="grid grid-cols-2 gap-3 md:grid-cols-4">{photos.map((photo) => <PhotoCard key={photo.id} photo={photo} primary={photo.id === primaryPhotoId} onRemove={() => onRemove(photo.id)} onPrimary={() => onPrimary(photo.id)} onRetry={() => onRetry(photo.id)} />)}{attachedPhotoCount < limit ? <button type="button" onClick={() => inputRef.current?.click()} className="flex aspect-[3/4] min-h-11 flex-col items-center justify-center rounded-control border border-dashed border-muted-soft bg-surface px-3 text-center text-sm font-semibold text-muted-strong transition-colors hover:border-brand hover:bg-brand-soft hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand" aria-label={`${field.label} 파일 선택`}><span aria-hidden="true" className="text-2xl leading-none">+</span><span className="mt-2">사진 선택</span></button> : null}</div>{error ? <p id={errorId} role="alert" className="mt-3 text-sm font-medium leading-6 text-fail">{error}</p> : null}</section>;
 }
 
 function PhotoCard({ photo, primary, onRemove, onPrimary, onRetry }: { photo: ApplicationPhoto; primary: boolean; onRemove: () => void; onPrimary: () => void; onRetry: () => void }) {

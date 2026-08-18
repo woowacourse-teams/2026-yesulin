@@ -80,7 +80,7 @@ export function DesktopBoardToolbar({ onOpenFilter }: { onOpenFilter: () => void
       ) : null}
 
       <label className="relative min-w-[132px] max-w-[360px] flex-1">
-        <span className="sr-only">지원자 검색</span>
+        <span className="sr-only">배우 검색</span>
         <SearchIcon />
         <input
           type="search"
@@ -117,7 +117,7 @@ export function DesktopBoardToolbar({ onOpenFilter }: { onOpenFilter: () => void
       </button>
 
       <div className="flex shrink-0 overflow-hidden rounded-control border border-border bg-card">
-        {(["table", "card"] as const).map((view) => (
+        {(["card", "table"] as const).map((view) => (
           <SegmentButton
             key={view}
             pressed={filters.view === view}
@@ -136,7 +136,7 @@ export function DesktopBoardToolbar({ onOpenFilter }: { onOpenFilter: () => void
       ) : (
         <PrimaryButton
           disabled={!canClose}
-          title={counts.all === 0 ? "심사할 지원자가 없습니다" : counts.pending > 0 ? `검토 대기 ${counts.pending}명이 남아 있습니다` : undefined}
+          title={counts.all === 0 ? "심사할 배우가 없습니다" : counts.pending > 0 ? `검토 대기 ${counts.pending}명이 남아 있습니다` : undefined}
           onClick={() => setClosePrompt("manual")}
           className="min-h-10 shrink-0 whitespace-nowrap px-3 text-dense"
         >

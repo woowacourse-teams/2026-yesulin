@@ -1,7 +1,7 @@
 import type { PerformanceRoleTemplate } from "./creation-types";
 
 /**
- * 지원자 심사 도메인 모델.
+ * 배우 심사 도메인 모델.
  *
  *   Performance 공연
  *     └ Posting     공고 — 실제 게시하는 모집 공고 한 건
@@ -27,21 +27,21 @@ export const postingId = (value: string) => value as PostingId;
 export const roleId = (value: string) => value as RoleId;
 export const applicationId = (value: number) => value as ApplicationId;
 
-export const ROUND_NUMBERS = [1, 2, 3] as const;
+export const ROUND_NUMBERS = [1, 2, 3, 4, 5] as const;
 export type RoundNumber = (typeof ROUND_NUMBERS)[number];
 
 export const REVIEW_STATUSES = ["PENDING", "PASS", "FAIL", "ABSENT", "ETC"] as const;
 export type ReviewStatus = (typeof REVIEW_STATUSES)[number];
 
-/** 공고의 모집·전형 진행 단계. 접수 마감과 전형 마감은 다른 상태다. */
-export const POSTING_PHASES = ["UPCOMING", "OPEN", "RECRUIT_CLOSED", "FINISHED"] as const;
+/** 공고의 작성·모집·전형 진행 단계. 접수 마감과 전형 종료는 다른 상태다. */
+export const POSTING_PHASES = ["DRAFT", "UPCOMING", "OPEN", "RECRUIT_CLOSED", "FINISHED"] as const;
 export type PostingPhase = (typeof POSTING_PHASES)[number];
 
 export type Gender = "MALE" | "FEMALE";
 /** 배역이 요구하는 성별. ANY는 성별 무관. */
 export type RoleGender = Gender | "ANY";
 
-/** 배역이 명시한 조건을 벗어난 지원자를 표시하기 위한 사유. */
+/** 배역이 명시한 조건을 벗어난 배우를 표시하기 위한 사유. */
 export const MISMATCH_REASONS = ["GENDER", "AGE"] as const;
 export type MismatchReason = (typeof MISMATCH_REASONS)[number];
 
@@ -65,7 +65,7 @@ export type Review = {
   readonly status: ReviewStatus;
   /** ETC 상태의 사유. 목록·배지에 상태 라벨 대신 표시된다. */
   readonly memo: string;
-  /** 내부 메모. 지원자에게 공개되지 않는다. */
+  /** 내부 메모. 배우에게 공개되지 않는다. */
   readonly note: string;
 };
 
@@ -74,11 +74,12 @@ export type PerformanceSummary = {
   readonly posterUrl: string;
   readonly title: string;
   readonly venue: string;
+  readonly venueAddress: import("./creation-types").VenueAddress;
   readonly postingCount: number;
   readonly openPostingCount: number;
   readonly applicantCount: number;
   readonly pendingReviewCount: number;
-  readonly previewPhotoUrls: readonly string[];
+  readonly postings: readonly PostingSummary[];
 };
 
 export type PostingSummary = {
@@ -221,7 +222,7 @@ export type RoleListResponse = {
   readonly roles: readonly RoleSummary[];
 };
 
-/** 지원자 심사 화면 한 벌. 차수별 pool 전체를 내려주고 필터는 클라이언트가 건다. */
+/** 배우 심사 화면 한 벌. 차수별 pool 전체를 내려주고 필터는 클라이언트가 건다. */
 export type AuditionBoardResponse = {
   readonly performance: PerformanceRef;
   readonly posting: PostingRef;

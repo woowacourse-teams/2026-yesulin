@@ -1,16 +1,11 @@
-import type { RoleGender } from "@/features/auditions/types";
-import { ROLE_GENDER_LABELS } from "@/features/auditions/labels";
 import { CreateField } from "./create-form";
-import { FieldInput, FieldSelect } from "@/components/ui/controls";
+import { FieldInput } from "@/components/ui/controls";
 
 export type RoleDraft = {
   readonly key: number;
   readonly id?: string;
   readonly name: string;
   readonly description: string;
-  readonly gender: RoleGender;
-  readonly ageMin: number;
-  readonly ageMax: number;
 };
 
 let roleKey = 0;
@@ -19,9 +14,6 @@ export const emptyRoleDraft = (): RoleDraft => ({
   key: ++roleKey,
   name: "",
   description: "",
-  gender: "ANY",
-  ageMin: 20,
-  ageMax: 39,
 });
 
 export function PerformanceRoleEditor({
@@ -70,42 +62,9 @@ export function PerformanceRoleEditor({
                 autoComplete="off"
                 value={role.description}
                 onChange={(event) => patchRole(role.key, { description: event.target.value })}
-                placeholder="예: 여 · 20대 초중반"
+                placeholder="예: 서사의 중심을 이끄는 주인공"
               />
             </CreateField>
-            <CreateField label="성별 조건">
-              <FieldSelect
-                name={`role-${role.key}-gender`}
-                value={role.gender}
-                onChange={(event) => patchRole(role.key, { gender: event.target.value as RoleGender })}
-              >
-                {(["ANY", "FEMALE", "MALE"] as const).map((gender) => (
-                  <option key={gender} value={gender}>{ROLE_GENDER_LABELS[gender]}</option>
-                ))}
-              </FieldSelect>
-            </CreateField>
-            <div className="grid grid-cols-2 gap-2">
-              <CreateField label="최소 나이">
-                <FieldInput
-                  required
-                  type="number"
-                  name={`role-${role.key}-age-min`}
-                  min={0}
-                  value={role.ageMin}
-                  onChange={(event) => patchRole(role.key, { ageMin: Number(event.target.value) })}
-                />
-              </CreateField>
-              <CreateField label="최대 나이">
-                <FieldInput
-                  required
-                  type="number"
-                  name={`role-${role.key}-age-max`}
-                  min={role.ageMin}
-                  value={role.ageMax}
-                  onChange={(event) => patchRole(role.key, { ageMax: Number(event.target.value) })}
-                />
-              </CreateField>
-            </div>
           </div>
         </div>
       ))}

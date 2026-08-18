@@ -20,7 +20,7 @@ async function loadDashboard() {
 }
 
 export function ApplicantDashboard() {
-  const query = useAuditionQuery("applicant-dashboard", loadDashboard, "지원자 홈을 불러오지 못했습니다.");
+  const query = useAuditionQuery("applicant-dashboard", loadDashboard, "배우 홈을 불러오지 못했습니다.");
   if (query.loading) return <DashboardSkeleton />;
   if (query.error || !query.data) return <PageContainer><ScreenError message={query.error} onRetry={query.reload} /></PageContainer>;
   const { profile, applications, recommendations } = query.data;
@@ -28,7 +28,7 @@ export function ApplicantDashboard() {
 
   return <PageContainer>
     <header className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-      <div><p className="text-sm font-semibold text-brand">안녕하세요, 지원자님</p><h1 className="mt-2 text-[clamp(28px,4vw,38px)] font-bold tracking-[-0.035em]">다음 지원을 준비해 볼까요?</h1><p className="mt-3 text-base leading-7 text-muted-strong">저장한 프로필과 지원 이력을 한곳에서 관리할 수 있어요.</p></div>
+      <div><p className="text-sm font-semibold text-brand">안녕하세요, 배우님</p><h1 className="mt-2 text-[clamp(28px,4vw,38px)] font-bold tracking-[-0.035em]">다음 지원을 준비해 볼까요?</h1><p className="mt-3 text-base leading-7 text-muted-strong">저장한 프로필과 지원 이력을 한곳에서 관리할 수 있어요.</p></div>
       <Link href={applicantRoutes.profile} className="inline-flex min-h-12 items-center justify-center self-start rounded-control bg-brand px-5 font-semibold text-white hover:bg-brand-strong">프로필 이어서 작성</Link>
     </header>
 
@@ -46,7 +46,7 @@ export function ApplicantDashboard() {
     </section>
 
     <section aria-labelledby="dashboard-recommendations" className="mt-12">
-      <div className="max-w-2xl"><p className="text-sm font-semibold text-brand">다음 기회</p><h2 id="dashboard-recommendations" className="mt-1 text-2xl font-bold tracking-[-0.025em]">둘러볼 수 있는 공고</h2><p className="mt-2 leading-7 text-muted-strong">예술in은 현재 공연사가 공유한 링크 중심으로 접수합니다. 아래 공고는 다음 지원을 위한 제안이에요.</p></div>
+      <div className="max-w-2xl"><p className="text-sm font-semibold text-brand">다음 기회</p><h2 id="dashboard-recommendations" className="mt-1 text-2xl font-bold tracking-[-0.025em]">둘러볼 수 있는 공고</h2><p className="mt-2 leading-7 text-muted-strong">예술in은 현재 기획사/제작사가 공유한 링크 중심으로 접수합니다. 아래 공고는 다음 지원을 위한 제안이에요.</p></div>
       {recommendations.length ? <ul className="mt-6 grid gap-4 md:grid-cols-3">{recommendations.map((posting) => <RecommendationCard key={posting.id} posting={posting} />)}</ul> : <DashboardEmpty title="지금은 다른 공고가 없어요" detail="새로운 공고가 생기면 이 영역에서 확인할 수 있어요." />}
     </section>
   </PageContainer>;
@@ -71,5 +71,5 @@ function DashboardEmpty({ title, detail }: { readonly title: string; readonly de
 }
 
 function DashboardSkeleton() {
-  return <PageContainer><div aria-label="지원자 홈 불러오는 중" className="animate-pulse"><div className="h-9 w-72 rounded-lg bg-border" /><div className="mt-4 h-5 w-96 max-w-full rounded bg-border-soft" /><div className="mt-9 grid gap-4 lg:grid-cols-2"><div className="h-64 rounded-modal bg-border" /><div className="h-64 rounded-modal bg-border-soft" /></div><div className="mt-12 h-52 rounded-modal bg-border-soft" /></div></PageContainer>;
+  return <PageContainer><div aria-label="배우 홈 불러오는 중" className="animate-pulse"><div className="h-9 w-72 rounded-lg bg-border" /><div className="mt-4 h-5 w-96 max-w-full rounded bg-border-soft" /><div className="mt-9 grid gap-4 lg:grid-cols-2"><div className="h-64 rounded-modal bg-border" /><div className="h-64 rounded-modal bg-border-soft" /></div><div className="mt-12 h-52 rounded-modal bg-border-soft" /></div></PageContainer>;
 }

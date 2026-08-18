@@ -49,7 +49,7 @@ export const handlers = [
   http.patch(`${apiPath}/me/producer`, async ({ request }) => {
     await delay(220);
     const body = (await request.json()) as UpdateProducerProfileRequest;
-    if (body.companyName !== undefined && !hasText(body.companyName)) return apiError(400, "COMPANY_REQUIRED", "공연사명을 입력해 주세요.");
+    if (body.companyName !== undefined && !hasText(body.companyName)) return apiError(400, "COMPANY_REQUIRED", "기획사/제작사명을 입력해 주세요.");
     if (body.contactName !== undefined && !hasText(body.contactName)) return apiError(400, "CONTACT_REQUIRED", "담당자명을 입력해 주세요.");
     if ((body.description?.length ?? 0) > 200) return apiError(400, "DESCRIPTION_TOO_LONG", "소개는 200자 이내로 적어 주세요.");
     return HttpResponse.json(patchProducerProfile(body));
@@ -83,14 +83,12 @@ export const handlers = [
     if (!hasText(body.posterUrl)) return badRequest("공연 포스터를 선택해 주세요.");
     if (!hasText(body.title)) return badRequest("공연 제목을 입력해 주세요.");
     if (!hasText(body.venue)) return badRequest("공연 장소를 입력해 주세요.");
+    if (!hasText(body.venueAddress?.roadAddress)) return badRequest("도로명주소를 선택해 주세요.");
     if (!Array.isArray(body.roles) || body.roles.length === 0) {
       return badRequest("배역을 하나 이상 추가해 주세요.");
     }
     if (body.roles.some((role) => !hasText(role.name))) {
       return badRequest("모든 배역의 이름을 입력해 주세요.");
-    }
-    if (body.roles.some((role) => role.ageMin < 0 || role.ageMax < role.ageMin)) {
-      return badRequest("배역의 나이 조건을 확인해 주세요.");
     }
 
     addPerformance(body);
@@ -103,8 +101,8 @@ export const handlers = [
     const body = (await request.json()) as UpdatePerformanceRequest;
     if (body.title !== undefined && !hasText(body.title)) return apiError(400, "TITLE_REQUIRED", "공연 제목을 입력해 주세요.");
     if (body.venue !== undefined && !hasText(body.venue)) return apiError(400, "VENUE_REQUIRED", "공연 장소를 입력해 주세요.");
+    if (body.venueAddress !== undefined && !hasText(body.venueAddress.roadAddress)) return apiError(400, "ADDRESS_REQUIRED", "도로명주소를 선택해 주세요.");
     if (body.roleTemplates?.length === 0) return apiError(400, "ROLE_REQUIRED", "배역을 하나 이상 남겨 주세요.");
-    if (body.roleTemplates?.some((role) => role.ageMin < 0 || role.ageMax < role.ageMin)) return apiError(400, "INVALID_AGE_RANGE", "배역의 나이 조건을 확인해 주세요.");
     if (!updateCatalogPerformance(id, body)) return notFound("공연을 찾을 수 없습니다.");
     return HttpResponse.json({ performances: CATALOG.map(toPerformanceSummary) });
   }),
@@ -161,18 +159,25 @@ export const handlers = [
     const current = postingManagementDetail(id);
     if (!current) return notFound("공고를 찾을 수 없습니다.");
     const body = (await request.json()) as UpdatePostingRequest;
-    if (body.title !== undefined && !hasText(body.title)) return apiError(400, "TITLE_REQUIRED", "공고 제목을 입력해 주세요.");
     if (body.recruitmentStart && body.recruitmentEnd && body.recruitmentStart > body.recruitmentEnd) return apiError(400, "INVALID_PERIOD", "모집 종료일은 시작일보다 빠를 수 없습니다.");
-    if (current.applicantCount > 0 && (body.isOpenCall !== undefined || body.roles || body.applicationFields || body.recruitmentStart)) return apiError(409, "FIELD_LOCKED_BY_APPLICANTS", "이미 지원자가 있어 모집 방식, 배역과 지원서 항목은 바꿀 수 없습니다.");
-    if (current.applicantCount > 0 && body.recruitmentEnd && body.recruitmentEnd < current.recruitmentEnd) return apiError(409, "DEADLINE_CANNOT_SHRINK", "모집 기간은 연장만 할 수 있습니다.");
+    if (body.performanceStart && body.performanceEnd && body.performanceEnd < body.performanceStart) return apiError(400, "INVALID_PERFORMANCE_PERIOD", "공연 종료일은 시작일보다 빠를 수 없습니다.");
+    const started = current.phase !== "UPCOMING" || current.applicantCount > 0;
+    if (started && body.recruitmentStart && body.recruitmentStart !== current.recruitmentStart) return apiError(409, "RECRUITMENT_START_LOCKED", "모집 시작 후에는 시작 일시를 바꿀 수 없습니다.");
+    if (started && body.recruitmentEnd && body.recruitmentEnd < current.recruitmentEnd) return apiError(409, "DEADLINE_CANNOT_SHRINK", "모집 기간은 연장만 할 수 있습니다.");
+    const nextRounds = body.rounds;
+    if (nextRounds && current.lockedRounds.some((round) => JSON.stringify(nextRounds.find((item) => item.round === round)) !== JSON.stringify(current.rounds.find((item) => item.round === round)))) return apiError(409, "ROUND_LOCKED", "완료된 전형 일정은 수정할 수 없습니다.");
     const validation = validatePostingDraft({
-      title: body.title ?? current.title,
-      isOpenCall: body.isOpenCall ?? current.isOpenCall,
+      title: current.title,
+      posterUrl: current.posterUrl,
+      performanceStart: body.performanceStart ?? current.performanceStart,
+      performanceEnd: body.performanceEnd ?? current.performanceEnd,
+      isOpenCall: current.isOpenCall,
       recruitmentStart: body.recruitmentStart ?? current.recruitmentStart,
       recruitmentEnd: body.recruitmentEnd ?? current.recruitmentEnd,
-      roles: body.roles ?? current.roles,
+      roles: current.roles,
       rounds: body.rounds ?? current.rounds,
-      applicationFields: body.applicationFields ?? current.applicationFields,
+      applicationFields: current.applicationFields,
+      applicationGuide: current.applicationGuide,
     }, current.roleTemplates);
     if (validation) return apiError(400, validation.code, validation.message);
     const posting = updateCatalogPosting(id, body);
@@ -186,7 +191,7 @@ export const handlers = [
     const id = postingId(String(params.postingId));
     const current = postingManagementDetail(id);
     if (!current) return notFound("공고를 찾을 수 없습니다.");
-    if (current.applicantCount > 0) return apiError(409, "POSTING_HAS_APPLICANTS", "지원자가 있는 공고는 삭제할 수 없습니다.");
+    if (current.applicantCount > 0) return apiError(409, "POSTING_HAS_APPLICANTS", "배우가 있는 공고는 삭제할 수 없습니다.");
     removeCatalogPosting(id);
     return new HttpResponse(null, { status: 204 });
   }),

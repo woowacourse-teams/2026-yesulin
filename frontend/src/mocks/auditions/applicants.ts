@@ -54,6 +54,11 @@ export const APPLICANTS: readonly MockApplicant[] = [{
   career: [{ year: 2025, title: "푸른 방", part: "윤서" }],
   coverLetter: "인물의 작은 선택이 장면 전체의 온도를 바꾼다고 믿습니다. 상대 배우의 호흡을 세심하게 듣고, 반복되는 연습에서도 새로운 반응을 발견하는 배우 김하린입니다.",
   motivation: "달빛 아래 우리가 다루는 관계의 회복과 성장에 깊이 공감해 지원했습니다.",
-  photos: [{ label: "프로필 사진", url: "/images/performances/high-life-audition-2026.jpg", fallbackUrl: "/images/performances/high-life-audition-2026.jpg" }],
+  photos: [
+    { label: "프로필 사진", url: "/images/applicants/kim-harin-profile.png", fallbackUrl: "/images/applicants/kim-harin-profile.png" },
+    { label: "추가 사진 1", url: "/images/applicants/kim-harin-extra-1.jpg", fallbackUrl: "/images/applicants/kim-harin-extra-1.jpg" },
+    { label: "추가 사진 2", url: "/images/applicants/kim-harin-extra-2.jpg", fallbackUrl: "/images/applicants/kim-harin-extra-2.jpg" },
+    { label: "추가 사진 3", url: "/images/applicants/kim-harin-extra-3.jpg", fallbackUrl: "/images/applicants/kim-harin-extra-3.jpg" },
+  ],
   videoUrl: "https://youtu.be/dQw4w9WgXcQ",
 }];

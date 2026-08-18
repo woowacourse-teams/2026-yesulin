@@ -1,0 +1,75 @@
+"use client";
+
+import Image from "next/image";
+import { useRef, useState } from "react";
+import type { ChangeEvent } from "react";
+import { updateApplicantProfile } from "@/features/applicants/api";
+import { notifyApplicantProfileChanged } from "@/features/applicants/events";
+import type { ApplicantProfilePhoto, ApplicantProfileResponse } from "@/features/applicants/types";
+import { imageFileError } from "@/features/applications/application-form-state";
+import { useToast } from "@/components/auditions/toast";
+import { AddButton, TextButton } from "@/components/ui/controls";
+
+const MAX_LIBRARY_PHOTOS = 20;
+
+export function ProfilePhotoLibrary({ profile, onSaved }: { readonly profile: ApplicantProfileResponse; readonly onSaved: (profile: ApplicantProfileResponse) => void }) {
+  const toast = useToast();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [photos, setPhotos] = useState(profile.photoLibrary);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const persist = async (next: readonly ApplicantProfilePhoto[], message: string) => {
+    setSaving(true);
+    setError("");
+    try {
+      const saved = await updateApplicantProfile({ photoLibrary: next });
+      setPhotos(saved.photoLibrary);
+      onSaved(saved);
+      notifyApplicantProfileChanged();
+      toast(message, { type: "success" });
+      return true;
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "사진 보관함을 저장하지 못했습니다.");
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const addPhotos = async (event: ChangeEvent<HTMLInputElement>) => {
+    const selected = Array.from(event.target.files ?? []);
+    event.target.value = "";
+    const invalid = selected.map(imageFileError).find(Boolean);
+    if (invalid) { setError(invalid); return; }
+    const files = selected.slice(0, MAX_LIBRARY_PHOTOS - photos.length);
+    if (!files.length) { setError("사진은 최대 20장까지 보관할 수 있어요."); return; }
+    const additions = files.map((file, index): ApplicantProfilePhoto => ({ id: `profile-photo-${Date.now()}-${index}`, name: file.name, url: URL.createObjectURL(file), representative: photos.length === 0 && index === 0 }));
+    const saved = await persist([...photos, ...additions], `${additions.length}장의 사진을 보관함에 추가했어요.`);
+    if (!saved) additions.forEach((photo) => URL.revokeObjectURL(photo.url));
+  };
+
+  const remove = async (photo: ApplicantProfilePhoto) => {
+    const remaining = photos.filter((candidate) => candidate.id !== photo.id);
+    const next = photo.representative && remaining[0] ? remaining.map((candidate, index) => ({ ...candidate, representative: index === 0 })) : remaining;
+    if (await persist(next, "사진을 보관함에서 삭제했어요.") && photo.url.startsWith("blob:")) URL.revokeObjectURL(photo.url);
+  };
+
+  const makeRepresentative = (id: string) => persist(photos.map((photo) => ({ ...photo, representative: photo.id === id })), "대표 프로필 사진을 변경했어요.");
+  const move = (index: number, offset: -1 | 1) => {
+    const target = index + offset;
+    if (target < 0 || target >= photos.length) return;
+    const next = [...photos];
+    [next[index], next[target]] = [next[target]!, next[index]!];
+    void persist(next, "사진 순서를 변경했어요.");
+  };
+
+  return <div className="mt-6">
+    <div className="flex flex-wrap items-start justify-between gap-4"><div><h3 className="font-bold">사진 보관함</h3><p className="mt-1 text-sm leading-6 text-muted">최대 20장까지 보관할 수 있어요. 지원서에는 기획사/제작사가 요청한 장수만큼, 최대 10장까지 선택합니다.</p></div><span className="num rounded-full bg-brand-soft px-3 py-1 text-sm font-semibold text-brand">{photos.length} / {MAX_LIBRARY_PHOTOS}</span></div>
+    {photos.length ? <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">{photos.map((photo, index) => <article key={photo.id} className={`overflow-hidden rounded-card border bg-surface ${photo.representative ? "border-brand ring-2 ring-brand-soft" : "border-border"}`}><div className="relative aspect-[3/4]"><Image src={photo.url} alt={photo.name} fill unoptimized loading="eager" sizes="(min-width: 1280px) 180px, 45vw" className="object-cover" />{photo.representative ? <span className="absolute left-2 top-2 rounded-full bg-brand px-2 py-1 text-xs font-semibold text-white">대표 사진</span> : null}</div><div className="p-3"><p className="truncate text-xs font-medium">{photo.name}</p><div className="mt-2 grid grid-cols-2 gap-1">{photo.representative ? <span className="grid min-h-10 place-items-center text-xs font-semibold text-brand">현재 대표</span> : <TextButton disabled={saving} onClick={() => void makeRepresentative(photo.id)} className="min-h-10 px-2 text-xs text-brand">대표 지정</TextButton>}<TextButton disabled={saving} onClick={() => void remove(photo)} className="min-h-10 px-2 text-xs text-fail hover:bg-fail-bg hover:text-fail">삭제</TextButton><button type="button" disabled={saving || index === 0} onClick={() => move(index, -1)} className="min-h-10 rounded-md text-xs font-semibold text-muted-strong hover:bg-card disabled:text-muted-soft" aria-label={`${photo.name} 앞으로 이동`}>← 앞으로</button><button type="button" disabled={saving || index === photos.length - 1} onClick={() => move(index, 1)} className="min-h-10 rounded-md text-xs font-semibold text-muted-strong hover:bg-card disabled:text-muted-soft" aria-label={`${photo.name} 뒤로 이동`}>뒤로 →</button></div></div></article>)}</div> : <div className="mt-5 rounded-card border border-dashed border-border bg-surface px-5 py-10 text-center"><strong>보관한 사진이 없어요</strong><p className="mt-2 text-sm text-muted">첫 번째로 추가한 사진이 대표 사진으로 설정됩니다.</p></div>}
+    <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" multiple className="sr-only" onChange={addPhotos} />
+    {photos.length < MAX_LIBRARY_PHOTOS ? <AddButton disabled={saving} onClick={() => inputRef.current?.click()} className="mt-4 min-h-12 w-full">{saving ? "저장 중…" : "+ 사진 추가"}</AddButton> : null}
+    <p className="mt-2 text-xs text-muted">JPG, PNG, WEBP · 파일당 10MB 이하 · 변경 사항은 즉시 저장됩니다.</p>
+    {error ? <p role="alert" className="mt-4 rounded-control border border-fail/25 bg-fail-bg px-4 py-3 text-sm font-medium text-fail">{error}</p> : null}
+  </div>;
+}

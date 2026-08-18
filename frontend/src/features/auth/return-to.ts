@@ -61,8 +61,3 @@ export function buildApplicationAuthReturnTo(postingId: string, roleIds: readonl
   roleIds.forEach((roleId) => url.searchParams.append("roleId", roleId));
   return `${url.pathname}${url.search}`;
 }
-
-export function authSwitchHref(pathname: "/login" | "/signup", returnTo?: string) {
-  const safeReturnTo = safeAuthReturnTo(returnTo);
-  return safeReturnTo ? `${pathname}?returnTo=${encodeURIComponent(safeReturnTo)}` : pathname;
-}

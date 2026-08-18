@@ -1,6 +1,3 @@
-"use client";
-
-import { useState } from "react";
 import { ROUND_LABELS } from "@/features/auditions/labels";
 import type { Applicant } from "@/features/auditions/types";
 import { ROUND_NUMBERS } from "@/features/auditions/types";
@@ -26,7 +23,7 @@ export function DetailProfile({ applicant }: { applicant: Applicant }) {
           <dd className="break-all">{applicant.email}</dd>
           <dt className="text-muted">학교</dt>
           <dd>{applicant.school}</dd>
-          <dt className="text-muted">접수</dt>
+          <dt className="text-muted">접수일</dt>
           <dd className="num">{applicant.submittedAt}</dd>
         </dl>
       </Section>
@@ -104,28 +101,10 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-/** 긴 글은 접어 두고 필요할 때만 펼친다. 목록 레이아웃이 글 길이에 휘둘리지 않게 한다. */
 function Essay({ text }: { text: string }) {
-  const [expanded, setExpanded] = useState(false);
-
   return (
-    <>
-      <div
-        className={`relative overflow-hidden rounded-lg border border-border bg-surface px-4 py-3 text-dense leading-[1.75] text-muted-strong transition-[max-height] duration-200 ${
-          expanded
-            ? "max-h-[1000px]"
-            : "max-h-24 after:absolute after:inset-x-0 after:bottom-0 after:h-[34px] after:bg-gradient-to-b after:from-transparent after:to-surface"
-        }`}
-      >
-        {text}
-      </div>
-      <button
-        type="button"
-        onClick={() => setExpanded((open) => !open)}
-        className="mt-2 border-b border-brand-line text-xs font-semibold text-brand hover:border-brand"
-      >
-        {expanded ? "접기" : "전체 보기"}
-      </button>
-    </>
+    <div className="whitespace-pre-wrap rounded-lg border border-border bg-surface px-4 py-3 text-dense leading-[1.75] text-muted-strong">
+      {text}
+    </div>
   );
 }

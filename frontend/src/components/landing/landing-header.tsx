@@ -28,7 +28,7 @@ export function LandingHeader({ service }: { readonly service: "applicant" | "pr
             href={isProducer ? "/" : "/producer-service"}
             className="inline-flex min-h-11 items-center justify-center rounded-control border border-border bg-white px-3 text-sm font-semibold text-foreground transition-[background-color,border-color,transform] hover:border-brand-line hover:bg-brand-soft active:scale-[0.98] sm:px-4"
           >
-            {isProducer ? "지원자 서비스" : "공연사 서비스"}
+            {isProducer ? "배우 서비스" : "기획사/제작사 서비스"}
           </Link>
         </nav>
       </div>

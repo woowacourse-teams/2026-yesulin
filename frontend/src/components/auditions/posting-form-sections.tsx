@@ -1,142 +1,66 @@
-import type {
-  PerformanceRoleTemplate,
-  AuditionRoundInput,
-} from "@/features/auditions/creation-types";
+import type { AuditionRoundInput, PerformanceRoleTemplate, PostingRoleInput } from "@/features/auditions/creation-types";
 import { ROLE_GENDER_LABELS } from "@/features/auditions/labels";
+import type { RoleGender } from "@/features/auditions/types";
 import { CreateField } from "./create-form";
-import { FieldInput } from "@/components/ui/controls";
+import { FieldInput, FieldSelect } from "@/components/ui/controls";
+import { CalendarDateRangeField } from "./calendar-date-range-field";
 
-export function PostingRoleSelector({
-  roles,
-  selected,
-  onChange,
-}: {
-  roles: readonly PerformanceRoleTemplate[];
-  selected: Readonly<Record<string, number>>;
-  onChange: (selected: Readonly<Record<string, number>>) => void;
+export type SelectedPostingRoles = Readonly<Record<string, PostingRoleInput>>;
+
+export function PostingRoleSelector({ roles, selected, onChange }: {
+  readonly roles: readonly PerformanceRoleTemplate[];
+  readonly selected: SelectedPostingRoles;
+  readonly onChange: (selected: SelectedPostingRoles) => void;
 }) {
-  return (
-    <div className="grid gap-2.5 md:grid-cols-2">
-      {roles.map((role) => {
-        const checked = selected[role.id] !== undefined;
-        return (
-          <label
-            key={role.id}
-            className={`flex cursor-pointer items-start gap-3 rounded-card border p-4 transition-colors ${
-              checked ? "border-brand-line bg-brand-soft" : "border-border bg-card hover:border-muted-soft"
-            }`}
-          >
-            <input
-              type="checkbox"
-              checked={checked}
-              onChange={(event) => {
-                const next = { ...selected };
-                if (event.target.checked) next[role.id] = 1;
-                else delete next[role.id];
-                onChange(next);
-              }}
-              className="mt-0.5 h-4 w-4 shrink-0 accent-brand"
-            />
-            <span className="min-w-0 flex-1">
-              <span className="block text-base font-semibold md:text-dense">{role.name}</span>
-              <span className="mt-0.5 block text-sm text-muted md:text-xs">
-                {ROLE_GENDER_LABELS[role.gender]} · 만 {role.ageMin}~{role.ageMax}세 · {role.description}
-              </span>
-              {checked ? (
-                <span className="mt-2 flex items-center gap-2 text-sm text-muted-strong md:text-xs">
-                  모집 인원
-                  <input
-                    type="number"
-                    aria-label={`${role.name} 모집 인원`}
-                    min={1}
-                    value={selected[role.id] ?? 1}
-                    onClick={(event) => event.stopPropagation()}
-                    onChange={(event) => onChange({ ...selected, [role.id]: Number(event.target.value) })}
-                    className="num min-h-11 w-20 rounded-control border border-border bg-card px-2 py-1 text-right text-base md:min-h-0 md:w-16 md:text-sm"
-                  />
-                  명
-                </span>
-              ) : null}
-            </span>
-          </label>
-        );
-      })}
-    </div>
-  );
+  const patch = (id: string, update: Partial<PostingRoleInput>) => onChange({ ...selected, [id]: { ...selected[id]!, ...update } });
+  return <div className="grid gap-2.5">
+    {roles.map((role) => {
+      const value = selected[role.id];
+      return <div key={role.id} className={`rounded-card border p-4 ${value ? "border-brand-line bg-brand-soft" : "border-border bg-card"}`}>
+        <label className="flex cursor-pointer items-start gap-3">
+          <input type="checkbox" checked={Boolean(value)} onChange={(event) => {
+            const next = { ...selected };
+            if (event.target.checked) next[role.id] = { templateId: role.id, quota: 1, gender: "ANY", ageMin: 0, ageMax: 100 };
+            else delete next[role.id];
+            onChange(next);
+          }} className="mt-0.5 h-5 w-5 shrink-0 accent-brand" />
+          <span><strong className="block text-base">{role.name}</strong><span className="mt-1 block text-sm text-muted">{role.description}</span></span>
+        </label>
+        {value ? <div className="mt-4 grid gap-3 border-t border-brand-line/30 pt-4 sm:grid-cols-3">
+          <CreateField label="모집 인원"><FieldInput type="number" min={1} value={value.quota} onChange={(event) => patch(role.id, { quota: Number(event.target.value) })} /></CreateField>
+          <CreateField label="성별 조건"><FieldSelect value={value.gender} onChange={(event) => patch(role.id, { gender: event.target.value as RoleGender })}>{(["ANY", "FEMALE", "MALE"] as const).map((gender) => <option key={gender} value={gender}>{ROLE_GENDER_LABELS[gender]}</option>)}</FieldSelect></CreateField>
+          <div className="grid grid-cols-2 gap-2"><CreateField label="최소 나이"><FieldInput type="number" min={0} value={value.ageMin} onChange={(event) => patch(role.id, { ageMin: Number(event.target.value) })} /></CreateField><CreateField label="최대 나이"><FieldInput type="number" min={value.ageMin} value={value.ageMax} onChange={(event) => patch(role.id, { ageMax: Number(event.target.value) })} /></CreateField></div>
+        </div> : null}
+      </div>;
+    })}
+  </div>;
 }
 
-export function AuditionScheduleEditor({
-  rounds,
-  onChange,
-  allowCountChange = true,
-}: {
-  rounds: readonly AuditionRoundInput[];
-  onChange: (rounds: readonly AuditionRoundInput[]) => void;
-  allowCountChange?: boolean;
+export function AuditionScheduleEditor({ rounds, onChange, allowCountChange = true, lockedRounds = [] }: {
+  readonly rounds: readonly AuditionRoundInput[];
+  readonly onChange: (rounds: readonly AuditionRoundInput[]) => void;
+  readonly allowCountChange?: boolean;
+  readonly lockedRounds?: readonly number[];
 }) {
-  const patch = (round: AuditionRoundInput["round"], update: Partial<AuditionRoundInput>) =>
-    onChange(rounds.map((item) => (item.round === round ? { ...item, ...update } : item)));
-
+  const patch = (round: AuditionRoundInput["round"], update: Partial<AuditionRoundInput>) => onChange(rounds.map((item) => item.round === round ? { ...item, ...update } : item));
   const addRound = () => {
-    if (rounds.length >= 3) return;
+    if (rounds.length >= 5) return;
     const round = (rounds.length + 1) as AuditionRoundInput["round"];
     onChange([...rounds, { round, name: `${round}차 전형`, date: "", note: "" }]);
   };
-
-  const removeLastRound = () => onChange(rounds.slice(0, -1));
-
-  return (
-    <div className="space-y-2.5">
-      {rounds.map((round) => (
-        <div key={round.round} className="grid items-end gap-3 rounded-card border border-border bg-surface p-4 md:grid-cols-[180px_170px_1fr_auto]">
-          <CreateField label={`${round.round}차 전형 이름`}>
-            <FieldInput
-              required
-              name={`round-${round.round}-name`}
-              autoComplete="off"
-              value={round.name}
-              onChange={(event) => patch(round.round, { name: event.target.value })}
-              placeholder={round.round === 1 ? "예: 서류 심사" : "예: 대면 오디션"}
-            />
-          </CreateField>
-          <CreateField label="진행일">
-            <FieldInput
-              required
-              type="date"
-              name={`round-${round.round}-date`}
-              value={round.date}
-              onChange={(event) => patch(round.round, { date: event.target.value })}
-            />
-          </CreateField>
-          <CreateField label="안내 메모">
-            <FieldInput
-              name={`round-${round.round}-note`}
-              autoComplete="off"
-              value={round.note}
-              onChange={(event) => patch(round.round, { note: event.target.value })}
-              placeholder={round.round === 1 ? "예: 온라인 서류 심사" : "예: 연습실 A, 자유 연기 2분"}
-            />
-          </CreateField>
-          {allowCountChange && round.round > 2 && round.round === rounds.at(-1)?.round ? (
-            <button
-              type="button"
-              onClick={removeLastRound}
-              className="min-h-11 rounded-control border border-border bg-card px-3 text-base text-muted-strong hover:border-muted-soft hover:text-foreground md:h-[38px] md:min-h-0 md:text-xs"
-            >
-              삭제
-            </button>
-          ) : <span className="hidden md:block" />}
-        </div>
-      ))}
-      {allowCountChange && rounds.length < 3 ? (
-        <button
-          type="button"
-          onClick={addRound}
-          className="min-h-11 w-full rounded-control border border-dashed border-muted-soft bg-card px-3 py-2.5 text-base font-semibold text-muted-strong hover:border-brand-line hover:bg-brand-soft hover:text-brand md:text-xs"
-        >
-          전형 추가
-        </button>
-      ) : null}
-    </div>
-  );
+  const removable = rounds.length > 1 && !lockedRounds.includes(rounds.at(-1)!.round);
+  return <div className="space-y-2.5">
+    {rounds.map((round) => {
+      const locked = lockedRounds.includes(round.round);
+      return <div key={round.round} className="grid items-end gap-3 rounded-card border border-border bg-surface p-4 md:grid-cols-[180px_170px_1fr]">
+        <CreateField label={`${round.round}차 전형 이름`}><FieldInput required disabled={locked} value={round.name} onChange={(event) => patch(round.round, { name: event.target.value })} placeholder="예: 서류 심사" /></CreateField>
+        <div>{locked ? <CreateField label="전형 일정"><FieldInput required disabled type="date" value={round.date} /></CreateField> : <div className="block min-w-0"><span className="mb-2 block text-base font-semibold text-muted-strong md:text-sm">전형 일정</span><CalendarDateRangeField single variant="compact" start={round.date} end="" onStartChange={(date) => patch(round.round, { date })} onEndChange={() => undefined} startLabel="전형 일정" /></div>}</div>
+        <CreateField label="안내 사항"><FieldInput disabled={locked} value={round.note} onChange={(event) => patch(round.round, { note: event.target.value })} placeholder="예: 장소와 준비물을 안내해 주세요." /></CreateField>
+      </div>;
+    })}
+    {allowCountChange ? <div className="grid grid-cols-2 gap-2">
+      <button type="button" disabled={rounds.length >= 5} onClick={addRound} className="min-h-11 rounded-control border border-dashed border-muted-soft bg-card px-3 py-2.5 text-sm font-semibold text-muted-strong hover:border-brand-line hover:bg-brand-soft hover:text-brand disabled:cursor-not-allowed disabled:border-border disabled:bg-border-soft disabled:text-muted">전형 추가 ({rounds.length}/5)</button>
+      <button type="button" disabled={!removable} title={!removable ? rounds.length === 1 ? "1차 전형은 기본 전형이라 삭제할 수 없습니다." : "완료된 전형은 삭제할 수 없습니다." : undefined} onClick={() => onChange(rounds.slice(0, -1))} className="min-h-11 rounded-control border border-border bg-card px-3 text-sm font-semibold text-muted-strong hover:border-fail/30 hover:bg-fail-bg hover:text-fail disabled:cursor-not-allowed disabled:bg-border-soft disabled:text-muted">이전 전형 삭제</button>
+    </div> : null}
+  </div>;
 }

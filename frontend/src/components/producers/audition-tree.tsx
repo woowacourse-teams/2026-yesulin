@@ -39,7 +39,11 @@ export function AuditionTreeNav({ onNavigate }: { onNavigate?: () => void }) {
     let active = true;
     const load = () => {
       getAuditionTree().then((response) => {
-        if (active) setTree(response);
+        if (active) {
+          setTree(response);
+          const current = locate(response, pathname).performanceId;
+          setCollapsed(new Set(response.performances.filter((item) => item.id !== current).map((item) => item.id)));
+        }
       });
     };
     load();
@@ -48,7 +52,7 @@ export function AuditionTreeNav({ onNavigate }: { onNavigate?: () => void }) {
       active = false;
       window.removeEventListener(AUDITION_TREE_CHANGED, load);
     };
-  }, []);
+  }, [pathname]);
 
   const { performanceId, postingId } = locate(tree, pathname);
   const atRoot = pathname === auditionRoutes.performances;
@@ -148,16 +152,16 @@ function TreeBranch({
         <div className="ml-2 border-l border-sidebar-line pb-1 pl-4 pt-0.5" role="group">
           {performance.postings.map((posting) => {
             const active = activePostingId === posting.id;
-            /* 아직 시작 전인 공고는 지원자가 없으므로 공고 선택 화면에 머무르게 한다 */
-            const upcoming = posting.phase === "UPCOMING";
+            /* 미게시·시작 전 공고는 배우가 없으므로 공고 선택 화면에 머무르게 한다 */
+            const unavailable = posting.phase === "DRAFT" || posting.phase === "UPCOMING";
 
             return (
               <Link
                 key={posting.id}
-                href={upcoming ? auditionRoutes.performance(performance.id) : postingEntryHref(posting)}
+                href={unavailable ? auditionRoutes.performance(performance.id) : postingEntryHref(posting)}
                 onClick={onNavigate}
                 aria-current={active ? "page" : undefined}
-                title={upcoming ? `${posting.title} — ${PHASE_LABELS.UPCOMING}` : posting.title}
+                title={unavailable ? `${posting.title} — ${PHASE_LABELS[posting.phase]}` : posting.title}
                 className={`relative flex min-h-11 w-full items-center gap-1.5 whitespace-nowrap rounded-control px-2 py-2 text-base leading-tight transition-colors before:absolute before:-left-4 before:top-4 before:h-px before:w-[11px] before:bg-sidebar-line lg:min-h-0 lg:text-xs ${
                   active ? "bg-brand font-semibold text-white" : "text-sidebar-muted hover:bg-sidebar-hover hover:text-white"
                 }`}

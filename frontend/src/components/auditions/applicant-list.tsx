@@ -100,7 +100,7 @@ function EmptyList() {
   }
 
   if (counts?.all === 0) {
-    return <ScreenMessage title="아직 지원자가 없습니다">지원서가 접수되면 이 목록에서 바로 확인할 수 있습니다.</ScreenMessage>;
+    return <ScreenMessage title="아직 배우가 없습니다">지원서가 접수되면 이 목록에서 바로 확인할 수 있습니다.</ScreenMessage>;
   }
 
   if (filters.work === "PENDING") {
@@ -128,8 +128,8 @@ function EmptyList() {
 
   const title =
     filters.status !== "ALL" && (counts?.done ?? 0) > 0
-      ? `${STATUS_LABELS[filters.status]} 지원자가 없습니다`
-      : "조건에 맞는 지원자가 없습니다";
+      ? `${STATUS_LABELS[filters.status]} 배우가 없습니다`
+      : "조건에 맞는 배우가 없습니다";
 
   return <ScreenMessage title={title}>다른 상태를 선택하거나 필터를 줄여 보세요.</ScreenMessage>;
 }

@@ -18,10 +18,11 @@ export function DetailReview({ applicant }: { applicant: Applicant }) {
   const index = visible.findIndex((candidate) => candidate.id === applicant.id);
 
   return (
-    <footer className="flex flex-col gap-2.5 border-t border-border bg-surface px-5 pb-3.5 pt-3">
-      <div className="flex flex-wrap items-center gap-3.5">
-        <span className="text-xs font-semibold uppercase tracking-[0.04em] text-muted">
-          {ROUND_LABELS[board.round]} 심사
+    <footer className="flex flex-col gap-3 border-t border-border bg-card px-5 pb-4 pt-3.5">
+      <div className="flex flex-wrap items-center gap-3.5 rounded-card border border-border bg-surface px-4 py-3">
+        <span className="mr-1 flex flex-col">
+          <strong className="text-sm font-bold text-foreground">심사 결정</strong>
+          <span className="text-xs text-muted">{ROUND_LABELS[board.round]}</span>
         </span>
 
         {roundClosed ? (
@@ -85,8 +86,8 @@ export function DetailReview({ applicant }: { applicant: Applicant }) {
       <DraftField
         key={`note-${applicant.id}`}
         multiline
-        label="메모"
-        hint="이 차수에 대한 내부 메모. 지원자에게 공개되지 않습니다"
+        label="내부 심사 메모"
+        hint="현재 배역·차수에만 저장되며 배우에게 공개되지 않습니다"
         placeholder="예: 발성 좋음, 앙상블로도 고려 가능"
         value={applicant.review.note}
         onCommit={(note) => void patchReview(applicant.id, { note })}
@@ -119,7 +120,7 @@ function NavButton({
 
 /**
  * 입력 중에는 로컬 상태만 쓰고, 포커스를 잃을 때 한 번만 저장한다.
- * 지원자가 바뀌면 호출부의 key로 새로 마운트되므로 값을 되맞출 필요가 없다.
+ * 배우가 바뀌면 호출부의 key로 새로 마운트되므로 값을 되맞출 필요가 없다.
  */
 function DraftField({
   label,

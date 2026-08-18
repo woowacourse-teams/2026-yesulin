@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { PublicPosting } from "@/features/applications/public-posting";
-import { publicPostingAvailability, publicPostingDate } from "@/features/applications/public-posting";
+import { publicPostingAvailability, publicPostingDate, publicPostingDateTime } from "@/features/applications/public-posting";
 import { PrimaryButton } from "@/components/ui/controls";
 import { PostingStatusBadge } from "./public-posting-status";
 import { PublicApplicationForm } from "./public-application-form";
@@ -51,8 +51,8 @@ export function PublicPostingDetail({ posting, useProfilePrefill = false, resume
   if (view === "restoring") return <DraftResumeLoading />;
 
   if (view === "form") {
-    const props = { postingId: posting.id, fields: posting.applicationFields, performanceTitle: posting.performanceTitle, postingTitle: posting.title, roleIds: selectedRoles.map((role) => role.id), roleName: selectedRoleLabel || "전체 지원자", authenticated: useProfilePrefill, onBack: returnToPosting };
-    return useProfilePrefill ? <PublicApplicationPrefillGate {...props} /> : <PublicApplicationForm {...props} />;
+    const props = { postingId: posting.id, fields: posting.applicationFields, performanceTitle: posting.performanceTitle, postingTitle: posting.title, roleIds: selectedRoles.map((role) => role.id), roleName: selectedRoleLabel || "전체 배우", authenticated: useProfilePrefill, onBack: returnToPosting };
+    return useProfilePrefill && !hasLocalDraft ? <PublicApplicationPrefillGate {...props} /> : <PublicApplicationForm {...props} />;
   }
 
   return <main className={`min-h-screen bg-surface text-foreground ${showMobileAction ? "pb-[calc(152px+env(safe-area-inset-bottom))]" : "pb-12"} min-[1200px]:pb-12`}>
@@ -68,6 +68,7 @@ export function PublicPostingDetail({ posting, useProfilePrefill = false, resume
       <article className="min-w-0">
         <PostingHero posting={posting} />
         <PostingAvailability posting={posting} />
+        {posting.detailImageUrl ? <PostingDetailImage posting={posting} /> : null}
         <RoleSelection posting={posting} selectedRoleIds={selectedRoleIds} onSelect={toggleRole} selectable={acceptingApplications && !skipsRoleChoice} />
         <KeyPostingInformation posting={posting} />
         <PostingDetails posting={posting} />
@@ -88,6 +89,10 @@ function PostingAvailability({ posting }: { posting: PublicPosting }) {
   return <section className="border-b border-border py-8 sm:py-10"><div className="flex flex-wrap items-center gap-3"><PostingStatusBadge status={posting.status} /><span className="inline-flex items-center rounded-full bg-card px-3 py-1 text-sm font-semibold text-muted-strong">{accessLabel}</span></div><dl className="mt-5 grid gap-1 text-sm sm:grid-cols-[112px_1fr] sm:gap-y-3"><dt className="font-semibold text-muted-strong">{availability.label}</dt><dd className="num text-base font-bold text-foreground">{availability.detail}</dd><dt className="sr-only sm:not-sr-only">안내</dt><dd className="text-muted-strong">{availability.notice}</dd></dl></section>;
 }
 
+function PostingDetailImage({ posting }: { posting: PublicPosting }) {
+  return <section className="border-b border-border py-8 sm:py-10"><h2 className="text-xl font-bold tracking-[-0.02em]">공고 상세 안내</h2><div className="mt-5 overflow-hidden rounded-card border border-border bg-card"><Image src={posting.detailImageUrl} alt={`${posting.title} 상세 안내`} width={1200} height={1600} unoptimized className="h-auto max-h-[900px] w-full object-contain" /></div></section>;
+}
+
 function RoleSelection({ posting, selectedRoleIds, onSelect, selectable }: { posting: PublicPosting; selectedRoleIds: readonly string[]; onSelect: (id: string) => void; selectable: boolean }) {
   const unavailable = posting.status !== "OPEN";
   const description = unavailable ? posting.status === "UPCOMING" ? "모집 시작 전에는 배역을 선택하거나 지원할 수 없어요." : "접수는 마감되었지만 모집 배역과 조건은 확인할 수 있어요." : selectable ? posting.allowsMultipleRoles ? "지원할 배역을 하나 이상 선택해 주세요. 선택한 배역은 각각 독립적으로 심사됩니다." : "지원할 배역 하나를 선택해 주세요." : posting.isOpenCall ? "배역 구분 없이 한 개의 지원서로 접수합니다." : "이 공고는 하나의 배역으로 지원합니다.";
@@ -105,7 +110,8 @@ function KeyPostingInformation({ posting }: { posting: PublicPosting }) {
 }
 
 function PostingDetails({ posting }: { posting: PublicPosting }) {
-  return <div><InfoSection title="공연 상세 정보"><dl className="grid gap-x-6 gap-y-4 text-base sm:grid-cols-[112px_1fr]"><dt className="text-muted">공연 장소</dt><dd>{posting.venue}</dd><dt className="text-muted">모집 기간</dt><dd className="num">{publicPostingDate(posting.recruitmentStart)} ~ {publicPostingDate(posting.recruitmentEnd)} 23:59</dd><dt className="text-muted">출연료</dt><dd>경력과 배역에 따라 협의하며, 면접 시 안내합니다.</dd></dl></InfoSection><InfoSection title="공연사 및 공고 안내"><p className="font-semibold">{posting.companyName}</p><p className="mt-2 leading-7 text-muted-strong">{posting.companyDescription}</p></InfoSection></div>;
+  const rehearsalAddress = [posting.rehearsalVenueAddress.roadAddress, posting.rehearsalVenueAddress.detailAddress].filter(Boolean).join(" ");
+  return <div><InfoSection title="공연 상세 정보"><dl className="grid gap-x-6 gap-y-4 text-base sm:grid-cols-[112px_1fr]"><dt className="text-muted">공연 장소</dt><dd>{posting.venue}<span className="mt-1 block text-sm text-muted">{posting.venueAddress.roadAddress} {posting.venueAddress.detailAddress}</span></dd>{posting.rehearsalVenue || rehearsalAddress ? <><dt className="text-muted">연습 장소</dt><dd>{posting.rehearsalVenue || "장소명 미정"}{rehearsalAddress ? <span className="mt-1 block text-sm text-muted">{rehearsalAddress}</span> : null}</dd></> : null}<dt className="text-muted">공연 기간</dt><dd className="num">{publicPostingDate(posting.performanceStart)}{posting.performanceEnd ? ` ~ ${publicPostingDate(posting.performanceEnd)}` : ""}</dd><dt className="text-muted">모집 기간</dt><dd className="num">{publicPostingDateTime(posting.recruitmentStart)} ~ {publicPostingDateTime(posting.recruitmentEnd)}</dd><dt className="text-muted">출연료</dt><dd>경력과 배역에 따라 협의하며, 면접 시 안내합니다.</dd></dl></InfoSection><InfoSection title="기획사/제작사 및 공고 안내"><p className="font-semibold">{posting.companyName}</p><p className="mt-2 leading-7 text-muted-strong">{posting.companyDescription}</p></InfoSection></div>;
 }
 
 function InfoSection({ title, children }: { title: string; children: React.ReactNode }) { return <section className="py-8 sm:py-10"><h2 className="text-xl font-bold tracking-[-0.02em]">{title}</h2><div className="mt-5">{children}</div></section>; }

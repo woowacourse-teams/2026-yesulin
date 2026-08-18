@@ -10,7 +10,7 @@ import { CATALOG } from "./catalog";
 let performanceSequence = 0;
 let postingSequence = 0;
 
-const compactDate = (value: string) => value.replaceAll("-", ".");
+const compactDate = (value: string) => value.slice(0, 10).replaceAll("-", ".");
 
 function localToday() {
   const now = new Date();
@@ -21,7 +21,7 @@ function localToday() {
 }
 
 function postingStatus(start: string, end: string): CatalogPosting["status"] {
-  const today = localToday();
+  const today = `${localToday()}T${new Date().toTimeString().slice(0, 5)}`;
   if (today < start) return "UPCOMING";
   if (today <= end) return "OPEN";
   return "CLOSED";
@@ -40,6 +40,7 @@ export function addPerformance(body: CreatePerformanceRequest): CatalogPerforman
     posterUrl: body.posterUrl,
     title: body.title.trim(),
     venue: body.venue.trim(),
+    venueAddress: body.venueAddress,
     roleTemplates,
     postings: [],
   };
@@ -63,9 +64,9 @@ export function addPosting(
       name: source.name,
       description: source.description,
       quota: selected.quota,
-      gender: source.gender,
-      ageMin: source.ageMin,
-      ageMax: source.ageMax,
+      gender: selected.gender,
+      ageMin: selected.ageMin,
+      ageMax: selected.ageMax,
       applicantCount: 0,
     }];
   });
@@ -74,6 +75,10 @@ export function addPosting(
     id,
     performanceId: performance.id,
     title: body.title.trim(),
+    posterUrl: body.posterUrl,
+    detailImageUrl: body.detailImageUrl,
+    performanceStart: body.performanceStart,
+    performanceEnd: body.performanceEnd,
     deadline: compactDate(body.recruitmentEnd),
     status: postingStatus(body.recruitmentStart, body.recruitmentEnd),
     isOpenCall: body.isOpenCall,
@@ -82,6 +87,8 @@ export function addPosting(
     roles,
     recruitmentStart: body.recruitmentStart,
     recruitmentEnd: body.recruitmentEnd,
+    rehearsalVenue: body.rehearsalVenue.trim(),
+    rehearsalVenueAddress: body.rehearsalVenueAddress,
     rounds: body.rounds,
     applicationFields: body.applicationFields,
     applicationGuide: body.applicationGuide.trim(),

@@ -32,8 +32,8 @@ export function ProducerPreview() {
           <div className="mt-6 space-y-2 text-xs text-sidebar-muted"><p className="rounded-lg bg-sidebar-hover px-2 py-2 text-white">전체 공고</p><p className="px-2 py-2">검토 중</p><p className="px-2 py-2">전형 완료</p></div>
         </aside>
         <div className="min-w-0 p-4 sm:p-5">
-          <div className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold text-brand">지원자 검토</p><p className="mt-1 font-bold">등록된 공고가 없습니다</p></div><span className="rounded-full bg-brand-soft px-2 py-1 text-xs font-semibold text-brand">0명</span></div>
-          <div className="mt-5"><EmptyRow label="공연과 공고를 등록하면 지원자 검토를 시작할 수 있습니다." /></div>
+          <div className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold text-brand">배우 검토</p><p className="mt-1 font-bold">등록된 공고가 없습니다</p></div><span className="rounded-full bg-brand-soft px-2 py-1 text-xs font-semibold text-brand">0명</span></div>
+          <div className="mt-5"><EmptyRow label="공연과 공고를 등록하면 배우 검토를 시작할 수 있습니다." /></div>
           <div className="mt-4 rounded-control border border-brand-line bg-brand-soft p-3"><p className="text-sm font-semibold text-brand-strong">한 화면에서 비교하고 결정하세요</p><p className="mt-1 text-xs leading-relaxed text-muted-strong">프로필, 영상, 평가 상태를 흐름에 맞춰 확인합니다.</p></div>
         </div>
       </div>

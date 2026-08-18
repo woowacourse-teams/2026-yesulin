@@ -10,74 +10,79 @@ export function ApplicantCards({ rows }: { rows: readonly Applicant[] }) {
   const { selected, toggleSelected, openApplicant } = useBoard();
 
   return (
-    <div className="grid justify-start gap-3 [grid-template-columns:repeat(auto-fill,minmax(132px,1fr))] sm:[grid-template-columns:repeat(auto-fill,minmax(150px,1fr))] lg:[grid-template-columns:repeat(auto-fill,minmax(196px,228px))] xl:[grid-template-columns:repeat(auto-fill,minmax(210px,244px))] 2xl:[grid-template-columns:repeat(auto-fill,minmax(220px,260px))]">
+    <div className="grid justify-start gap-4 [grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),280px))]">
       {rows.map((applicant, index) => {
         const picked = selected.has(applicant.id);
 
         return (
-          <div
+          <article
             key={applicant.id}
-            className={`relative min-w-0 overflow-hidden rounded-card border transition-[background-color,border-color,box-shadow,transform] duration-150 active:scale-[0.995] ${
+            className={`group relative min-w-0 overflow-hidden rounded-card border bg-card transition-[background-color,border-color,box-shadow,transform] duration-150 active:scale-[0.995] ${
               picked
-                ? "border-brand bg-brand-soft shadow-[var(--shadow-selection)]"
-                : "border-border bg-card hover:border-brand-line hover:bg-brand-soft/30"
+                ? "border-brand shadow-[var(--shadow-selection)]"
+                : "border-border hover:border-brand-line hover:shadow-[var(--shadow-1)]"
             }`}
           >
-            <button
-              type="button"
-              onClick={() => openApplicant(applicant.id)}
-              className="block w-full text-left"
-            >
-              <span className="relative block aspect-[3/4] w-full bg-border-soft">
+            <button type="button" onClick={() => openApplicant(applicant.id)} className="block w-full text-left">
+              <span className="relative block aspect-[4/5] w-full overflow-hidden bg-border-soft">
                 <ApplicantPhotoImage
                   photo={applicant.photos[0]}
                   alt={`${applicant.name} 프로필 사진`}
-                  sizes="(min-width: 640px) 152px, 126px"
+                  sizes="(min-width: 1024px) 280px, (min-width: 640px) 240px, 90vw"
                   priority={index === 0}
+                  className="object-cover object-[center_20%] transition-transform duration-200 group-hover:scale-[1.015]"
                 />
-                {applicant.photos.length > 1 ? (
-                  <span className="absolute right-2 top-2 z-2 rounded-full bg-foreground/65 px-1.5 py-0.5 text-xs font-semibold text-white">
-                    사진 {applicant.photos.length}
-                  </span>
-                ) : null}
-                {applicant.review.status !== "PENDING" ? (
-                  <span className="absolute bottom-2 left-2 z-2">
-                    <StatusBadge
-                      status={applicant.review.status}
-                      memo={applicant.review.memo}
-                      size="sm"
-                      onPhoto
-                    />
-                  </span>
-                ) : null}
+                <span className="absolute right-3 top-3 z-2 rounded-full bg-foreground/65 px-2 py-1 text-xs font-semibold text-white backdrop-blur-sm">
+                  사진 {applicant.photos.length}장
+                </span>
+                <span className="absolute bottom-3 left-3 z-2">
+                  {applicant.review.status === "PENDING" ? (
+                    <span className="rounded-full bg-white/92 px-2.5 py-1 text-xs font-semibold text-foreground shadow-[var(--shadow-1)]">검토 대기</span>
+                  ) : (
+                    <StatusBadge status={applicant.review.status} memo={applicant.review.memo} size="sm" onPhoto />
+                  )}
+                </span>
               </span>
-              <span className="block px-2 pb-2 pt-2">
-                <span className="block text-base font-semibold tracking-[-0.01em] lg:text-dense">
-                  {applicant.name}
-                </span>
-                <span className="num mt-px block text-base text-muted lg:text-xs">
-                  {GENDER_LABELS[applicant.gender]} · 만 {applicant.age} · {applicant.height}cm
-                </span>
-                {applicant.mismatchReasons.length > 0 ? (
-                  <span className="mt-1 block text-sm font-semibold text-fail lg:text-xs">
-                    조건 불일치 ({mismatchText(applicant.mismatchReasons)})
+
+              <span className="block p-4">
+                <span className="flex min-w-0 items-start justify-between gap-3">
+                  <span className="min-w-0">
+                    <strong className="block truncate text-lg font-bold tracking-[-0.015em] group-hover:text-brand">{applicant.name}</strong>
+                    <span className="num mt-0.5 block text-sm text-muted">
+                      {GENDER_LABELS[applicant.gender]} · 만 {applicant.age}세 · {applicant.height}cm
+                    </span>
                   </span>
-                ) : null}
+                  {applicant.mismatchReasons.length > 0 ? (
+                    <span className="shrink-0 rounded-full border border-fail/30 bg-fail-bg px-2 py-1 text-xs font-semibold text-fail" title={`조건 불일치: ${mismatchText(applicant.mismatchReasons)}`}>조건 불일치</span>
+                  ) : null}
+                </span>
+
+                <span className="mt-3 block truncate text-sm text-muted-strong">{applicant.school}</span>
+                <span className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted">
+                  <span className="rounded-lg bg-surface px-2 py-1">{applicant.videoUrl ? "영상 있음" : "영상 없음"}</span>
+                  <span className="num">{submittedDate(applicant.submittedAt)} 접수</span>
+                </span>
+
+                <span className="mt-4 flex items-center justify-between border-t border-border-soft pt-3 text-sm font-semibold text-muted-strong group-hover:text-brand">
+                  지원서 검토
+                  <svg aria-hidden="true" viewBox="0 0 20 20" className="h-4 w-4 fill-none stroke-current stroke-2"><path d="m7.5 4.5 5 5-5 5" /></svg>
+                </span>
               </span>
             </button>
 
-            <label className="absolute left-1 top-1 z-2 inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-lg bg-white/90 p-2 leading-none transition-colors hover:bg-white lg:min-h-0 lg:min-w-0">
+            <label className="absolute left-2 top-2 z-3 inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-control bg-white/92 p-2 shadow-[var(--shadow-1)] transition-colors hover:bg-white lg:min-h-10 lg:min-w-10">
               <span className="sr-only">{applicant.name} 선택</span>
-              <input
-                type="checkbox"
-                checked={picked}
-                onChange={() => toggleSelected(applicant.id)}
-                className="m-0 block h-[18px] w-[18px] cursor-pointer accent-brand"
-              />
+              <input type="checkbox" checked={picked} onChange={() => toggleSelected(applicant.id)} className="m-0 block h-[18px] w-[18px] cursor-pointer accent-brand" />
             </label>
-          </div>
+          </article>
         );
       })}
     </div>
   );
+}
+
+function submittedDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("ko-KR", { month: "numeric", day: "numeric" }).format(date);
 }

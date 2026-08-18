@@ -14,7 +14,7 @@ export type ApplicationReceipt = {
   readonly profileClaimExpiresAt: string | null;
 };
 
-export type EditableSection = "BASIC" | "INTRODUCTION" | "MATERIALS" | "CAREER" | "CUSTOM";
+export type EditableSection = "BASIC" | "ADDITIONAL" | "INTRODUCTION" | "MATERIALS" | "CAREER" | "CUSTOM";
 export type ReviewIssue = { readonly section: EditableSection; readonly fieldId: string; readonly title: string; readonly message: string };
 
 export type PublicApplicationState = {

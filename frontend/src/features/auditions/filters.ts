@@ -39,7 +39,7 @@ export const initialFilters = (work: WorkMode): AuditionFilters => ({
   genders: new Set(),
   numeric: emptyNumeric(),
   mismatchOnly: false,
-  view: "table",
+  view: "card",
 });
 
 export const activeDetailFilterCount = (filters: AuditionFilters) =>

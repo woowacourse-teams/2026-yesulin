@@ -15,7 +15,7 @@ type LandingContent = {
 const content: Record<LandingContent["audience"], LandingContent> = {
   applicant: {
     audience: "applicant",
-    eyebrow: "지원자를 위한 오디션 플랫폼",
+    eyebrow: "배우를 위한 오디션 플랫폼",
     title: <><span className="block lg:whitespace-nowrap">내게 맞는 무대를 찾고,</span><span className="block text-brand lg:whitespace-nowrap">지원은 더 간단하게.</span></>,
     description: "공고 확인부터 프로필 제출, 내 지원서 관리까지 흩어진 오디션 지원 과정을 하나로 연결합니다.",
     features: [
@@ -24,7 +24,7 @@ const content: Record<LandingContent["audience"], LandingContent> = {
       { title: "제출 내용은 정확하게", description: "제출 당시 지원서를 불변 스냅샷으로 안전하게 확인합니다." },
     ],
     steps: [
-      { title: "공고 확인", description: "공연사가 공유한 링크와 추천에서 모집 정보를 확인합니다." },
+      { title: "공고 확인", description: "기획사/제작사가 공유한 링크와 추천에서 모집 정보를 확인합니다." },
       { title: "지원서 작성", description: "필요한 정보와 자료를 확인해 제출합니다." },
       { title: "지원서 관리", description: "계정에서 제출 내역과 당시 내용을 읽기 전용으로 확인합니다." },
     ],
@@ -33,7 +33,7 @@ const content: Record<LandingContent["audience"], LandingContent> = {
 
 export function MarketingLanding({ audience }: { readonly audience: LandingContent["audience"] }) {
   const current = content[audience];
-  const signupHref = "/signup";
+  const loginHref = "/login";
 
   return (
     <main className="min-h-screen bg-white text-foreground">
@@ -47,7 +47,7 @@ export function MarketingLanding({ audience }: { readonly audience: LandingConte
             <h1 className="mt-6 text-[clamp(38px,3.7vw,58px)] font-bold leading-[1.15] tracking-[-0.04em]">{current.title}</h1>
             <p className="mt-6 max-w-[560px] text-lg leading-8 text-muted-strong">{current.description}</p>
             <div className="mt-9 flex flex-wrap gap-3">
-              <Link href={signupHref} className="inline-flex min-h-[52px] items-center justify-center rounded-control bg-brand px-6 text-base font-semibold text-white shadow-[var(--shadow-1)] transition-[background-color,box-shadow,transform] hover:bg-brand-strong hover:shadow-[var(--shadow-2)] active:scale-[0.98]">지원자로 시작하기</Link>
+              <Link href={loginHref} className="inline-flex min-h-[52px] items-center justify-center rounded-control bg-brand px-6 text-base font-semibold text-white shadow-[var(--shadow-1)] transition-[background-color,box-shadow,transform] hover:bg-brand-strong hover:shadow-[var(--shadow-2)] active:scale-[0.98]">소셜 로그인으로 시작하기</Link>
               <SecondaryLink href="#features" className="min-h-13 px-6 text-base">서비스 살펴보기</SecondaryLink>
             </div>
           </div>
@@ -77,7 +77,7 @@ export function MarketingLanding({ audience }: { readonly audience: LandingConte
       </section>
 
       <section className="mx-auto max-w-[1280px] px-5 py-20 sm:px-8 lg:px-10 lg:py-28">
-        <div className="rounded-[28px] bg-brand px-6 py-12 text-center sm:px-10 sm:py-16"><h2 className="text-[clamp(28px,4vw,42px)] font-bold text-white">예술의 다음 기회를 시작해 보세요.</h2><p className="mx-auto mt-4 max-w-[620px] text-lg leading-8 text-white/80">지원자와 공연사가 각자의 일에 더 집중할 수 있도록 예술in이 과정을 연결합니다.</p><Link href={signupHref} className="mt-8 inline-flex min-h-[52px] items-center justify-center rounded-control bg-white px-6 font-semibold text-brand transition-transform active:scale-[0.98]">무료로 시작하기</Link></div>
+        <div className="rounded-[28px] bg-brand px-6 py-12 text-center sm:px-10 sm:py-16"><h2 className="text-[clamp(28px,4vw,42px)] font-bold text-white">예술의 다음 기회를 시작해 보세요.</h2><p className="mx-auto mt-4 max-w-[620px] text-lg leading-8 text-white/80">배우와 기획사/제작사가 각자의 일에 더 집중할 수 있도록 예술in이 과정을 연결합니다.</p><Link href={loginHref} className="mt-8 inline-flex min-h-[52px] items-center justify-center rounded-control bg-white px-6 font-semibold text-brand transition-transform active:scale-[0.98]">소셜 로그인으로 시작하기</Link></div>
       </section>
 
       <LandingFooter />

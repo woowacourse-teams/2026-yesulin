@@ -10,7 +10,7 @@ const HINT_DELAY_MS = 2600;
 
 const youtubeIdOf = (url: string) => YOUTUBE_ID.exec(url)?.[1] ?? null;
 
-/** 지원자가 바뀌면 새로 마운트되도록 호출부에서 조건부로 렌더링한다. */
+/** 배우가 바뀌면 새로 마운트되도록 호출부에서 조건부로 렌더링한다. */
 export function VideoModal({ applicant, onClose }: { applicant: Applicant; onClose: () => void }) {
   const [playing, setPlaying] = useState(false);
   const [hintVisible, setHintVisible] = useState(false);

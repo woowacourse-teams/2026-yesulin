@@ -9,6 +9,8 @@ import { CreateError, CreateField, CreateSection } from "./create-form";
 import { DialogFooter, DialogHeader, ModalShell } from "./modal-shell";
 import { PerformanceRoleEditor, type RoleDraft } from "./performance-role-editor";
 import { DestructiveButton, FieldInput, PrimaryButton, SecondaryButton } from "@/components/ui/controls";
+import { PosterUploadField } from "./poster-upload-field";
+import { PerformanceVenueField } from "./performance-venue-field";
 
 const TITLE_ID = "performance-manage-title";
 
@@ -33,18 +35,20 @@ function EditPerformanceLoader({ performance, onClose, onChanged }: Omit<Paramet
 function EditPerformanceForm({ performance, roles: initialRoles, onClose, onChanged }: Omit<Parameters<typeof PerformanceManageDialog>[0], "mode"> & { readonly roles: readonly RoleDraft[] }) {
   const [title, setTitle] = useState(performance.title);
   const [venue, setVenue] = useState(performance.venue);
+  const [venueAddress, setVenueAddress] = useState(performance.venueAddress);
+  const [posterUrl, setPosterUrl] = useState(performance.posterUrl);
   const [roles, setRoles] = useState<readonly RoleDraft[]>(initialRoles);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault(); setSaving(true); setFormError("");
     try {
-      await updatePerformance(performance.id, { title, venue, roleTemplates: roles.map((role) => ({ id: role.id, name: role.name, description: role.description, gender: role.gender, ageMin: role.ageMin, ageMax: role.ageMax })) });
+      await updatePerformance(performance.id, { title, venue, venueAddress, posterUrl, roleTemplates: roles.map((role) => ({ id: role.id, name: role.name, description: role.description })) });
       notifyAuditionTreeChanged(); onChanged(); onClose();
     } catch (cause) { setFormError(errorMessage(cause, "공연을 수정하지 못했습니다.")); }
     finally { setSaving(false); }
   };
-  return <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col"><DialogHeader id={TITLE_ID} title="공연 수정" subtitle="배역 템플릿 변경은 이미 만들어진 공고의 모집 배역에 영향을 주지 않습니다." /><div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-6 md:px-6"><CreateSection title="공연 기본 정보"><div className="grid gap-4 md:grid-cols-2"><CreateField label="공연 제목"><FieldInput required value={title} onChange={(event) => setTitle(event.target.value)} /></CreateField><CreateField label="공연 장소"><FieldInput required value={venue} onChange={(event) => setVenue(event.target.value)} /></CreateField></div><p className="mt-3 text-sm text-muted">포스터 교체는 공통 파일 업로드 방식이 확정된 뒤 연결합니다.</p></CreateSection><CreateSection title="배역 템플릿" description="목록 전체를 저장합니다. 기존 공고에는 복사된 배역이 유지돼요."><PerformanceRoleEditor roles={roles} onChange={setRoles} /></CreateSection><CreateError id="performance-manage-error" message={formError} /></div><DialogFooter><SecondaryButton onClick={onClose}>취소</SecondaryButton><PrimaryButton type="submit" disabled={saving}>{saving ? "저장 중…" : "변경 사항 저장"}</PrimaryButton></DialogFooter></form>;
+  return <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col"><DialogHeader id={TITLE_ID} title="공연 수정" subtitle="포스터와 배역 변경은 이미 만든 공고의 스냅샷에 영향을 주지 않습니다." /><div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-6 md:px-6"><CreateSection title="공연 기본 정보"><div className="grid grid-cols-[120px_minmax(0,1fr)] gap-4 md:grid-cols-[150px_1fr]"><PosterUploadField label="공연 포스터" value={posterUrl} onChange={setPosterUrl} /><CreateField label="공연 제목"><FieldInput required value={title} onChange={(event) => setTitle(event.target.value)} /></CreateField></div><div className="mt-5"><PerformanceVenueField venue={venue} address={venueAddress} onVenueChange={setVenue} onAddressChange={setVenueAddress} /></div></CreateSection><CreateSection title="배역" description="배역 이름과 설명만 관리합니다. 기존 공고에는 복사된 배역이 유지돼요."><PerformanceRoleEditor roles={roles} onChange={setRoles} /></CreateSection><CreateError id="performance-manage-error" message={formError} /></div><DialogFooter><SecondaryButton onClick={onClose}>취소</SecondaryButton><PrimaryButton type="submit" disabled={saving}>{saving ? "저장 중…" : "변경 사항 저장"}</PrimaryButton></DialogFooter></form>;
 }
 
 function DeletePerformanceDialog({ performance, onClose, onChanged }: Omit<Parameters<typeof PerformanceManageDialog>[0], "mode">) {

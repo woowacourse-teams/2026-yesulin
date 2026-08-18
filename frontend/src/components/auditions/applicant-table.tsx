@@ -30,7 +30,7 @@ export function ApplicantTable({
             <tr>
               <th className="w-11 border-b border-border pl-1.5 text-left">
                 <label className="inline-flex cursor-pointer items-center justify-center rounded-lg py-2 pl-3 pr-2.5 hover:bg-foreground/5">
-                  <span className="sr-only">표시된 지원자 전체 선택</span>
+                  <span className="sr-only">표시된 배우 전체 선택</span>
                   <input
                     type="checkbox"
                     checked={allSelected}
@@ -44,7 +44,7 @@ export function ApplicantTable({
                   />
                 </label>
               </th>
-              {["지원자", "신체", "학교", "제출 자료", "접수", "상태"].map((label, index) => (
+              {["배우", "신체", "학교", "제출 자료", "접수", "상태"].map((label, index) => (
                 <th
                   key={label}
                   className={`whitespace-nowrap border-b border-border px-3 py-2 text-left text-xs font-semibold tracking-[0.03em] text-muted ${
@@ -61,7 +61,7 @@ export function ApplicantTable({
               <tr
                 key={applicant.id}
                 tabIndex={0}
-                aria-label={`${applicant.name} 지원자 상세 보기`}
+                aria-label={`${applicant.name} 배우 상세 보기`}
                 onClick={() => openApplicant(applicant.id)}
                 onKeyDown={(event) => {
                   if (event.target !== event.currentTarget) return;

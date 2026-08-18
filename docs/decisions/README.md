@@ -33,3 +33,11 @@
 - [백엔드 JAR와 systemd 배포](./20260819021010-backend-jar-systemd-deployment.md) — accepted · agent-required
 - [백엔드 EC2 운영체제](./20260819061141-backend-ec2-operating-system.md) — accepted · agent-required
 - [공고 생명주기와 섹션 Aggregate](./20260819073112-audition-section-aggregates.md) — accepted · agent-required
+- [인증 주체별 로그인·가입 흐름](./0010-role-specific-auth-flow.md) — accepted · agent-required
+- [배우와 기획사/제작사 용어 사용](./0011-actor-and-company-terminology.md) — accepted · agent-required
+- [배우 프로필 보관함](./0012-applicant-profile-library.md) — accepted · agent-required
+- [내 지원서와 전형 공개](./0013-application-history-and-progress.md) — accepted · agent-required
+- [공연·공고 생성과 수정 경계](./0014-performance-posting-management.md) — accepted · agent-required
+- [공고 콘텐츠 제한과 작성 중 상태](./0015-posting-content-limits-and-draft-status.md) — accepted · agent-required
+- [심사 상세 식별과 화면 경로](./0016-screening-detail-identity-and-route.md) — accepted · agent-required
+- [공고 이미지와 연습 장소](./0017-posting-images-and-rehearsal-location.md) — accepted · agent-required

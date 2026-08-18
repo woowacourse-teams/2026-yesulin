@@ -26,11 +26,13 @@ const API_BASE_PATH = "/api";
 /** 서버가 내려준 메시지를 그대로 화면에 띄우기 위한 오류 타입. */
 export class AuditionRequestError extends Error {
   readonly status: number;
+  readonly code: string | null;
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, code: string | null = null) {
     super(message);
     this.name = "AuditionRequestError";
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -46,7 +48,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       typeof body === "object" && body !== null && "message" in body && typeof body.message === "string"
         ? body.message
         : "요청을 처리하지 못했습니다.";
-    throw new AuditionRequestError(message, response.status);
+    const code = typeof body === "object" && body !== null && "code" in body && typeof body.code === "string"
+      ? body.code
+      : null;
+    throw new AuditionRequestError(message, response.status, code);
   }
 
   if (response.status === 204) return undefined as T;
