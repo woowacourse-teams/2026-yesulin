@@ -5,6 +5,8 @@ config:
 flowchart TB
     START(["기획사/제작사 시작"]) --> SESSION["세션 확인<br>GET /api/v1/sessions/current"]
     SESSION -- 세션 없음 --> LOGIN["이메일·비밀번호 로그인<br>POST /api/v1/sessions"]
+    LOGIN --> PASSWORD_RESET["비밀번호 재설정 화면<br>이메일 인증 → 새 비밀번호 확인 입력<br>현재 프론트 프로토타입"]
+    PASSWORD_RESET --> LOGIN
     LOGIN --> SESSION
     SESSION -- 기획사/제작사 미가입 --> SIGNUP["기획사/제작사명·휴대폰·이메일·비밀번호 가입<br>POST /api/v1/producers"]
     SIGNUP --> PENDING["PENDING 계정 생성<br>휴대폰·이메일 가입 안내"]
@@ -44,7 +46,7 @@ flowchart TB
     classDef postingNode stroke:#a78bfa,fill:#f5f3ff
     classDef screeningNode stroke:#fb923c,fill:#fff7ed
     classDef decisionNode stroke:#f87171,fill:#fef2f2
-    class START,SESSION,LOGIN,SIGNUP,PENDING,PROFILE,BLOCKED,CONTACT,HOME,FINISH authNode
+    class START,SESSION,LOGIN,PASSWORD_RESET,SIGNUP,PENDING,PROFILE,BLOCKED,CONTACT,HOME,FINISH authNode
     class ACTIVE,SOLE,MORE,DONE,LAST decisionNode
     class NAV,PERF,NEW_PERF,EDIT_PERF,CREATE_PERF perfNode
     class POSTINGS,CREATE_POSTING,POSTING_DETAIL,EDIT_POSTING,ROLES postingNode

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { PrimaryButton } from "@/components/ui/controls";
+import { PrimaryButton, TextLink } from "@/components/ui/controls";
 import { useToast } from "@/components/auditions/toast";
 import { AuthInput, PasswordInput, RoleField, type AccountRole } from "./auth-fields";
 import { SocialButtons } from "./social-buttons";
@@ -105,13 +105,9 @@ export function LoginForm({ returnTo, applicationFlow = false }: { readonly retu
             />
           </div>
           <PrimaryButton type="submit" className="min-h-[52px] w-full text-base">기획사/제작사 로그인</PrimaryButton>
-          <button
-            type="button"
-            onClick={() => toast("기획사/제작사 계정 찾기 화면은 준비 중입니다.", { type: "info" })}
-            className="mx-auto block min-h-11 rounded-control px-3 text-sm font-semibold text-muted-strong transition-colors hover:bg-surface hover:text-brand"
-          >
+          <TextLink href="/forgot-password" className="mx-auto flex w-fit">
             비밀번호를 잊으셨나요?
-          </button>
+          </TextLink>
         </form>
       )}
     </div>
