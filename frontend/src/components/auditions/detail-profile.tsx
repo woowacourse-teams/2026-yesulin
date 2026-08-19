@@ -78,13 +78,13 @@ export function DetailProfile({ applicant }: { applicant: Applicant }) {
   );
 }
 
-function Fact({ label, value, unit }: { label: string; value: number; unit: string }) {
+function Fact({ label, value, unit }: { label: string; value: number | null; unit: string }) {
   return (
     <div className="rounded-lg border border-border bg-card px-3 py-2.5">
       <div className="text-xs text-muted">{label}</div>
       <div className="num mt-0.5 text-[17px] font-bold tracking-[-0.02em]">
-        {value}
-        <small className="ml-0.5 text-xs font-medium text-muted">{unit}</small>
+        {value ?? "미수집"}
+        {value === null ? null : <small className="ml-0.5 text-xs font-medium text-muted">{unit}</small>}
       </div>
     </div>
   );

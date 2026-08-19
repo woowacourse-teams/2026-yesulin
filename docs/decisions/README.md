@@ -41,3 +41,4 @@
 - [공고 콘텐츠 제한과 작성 중 상태](./0015-posting-content-limits-and-draft-status.md) — accepted · agent-required
 - [심사 상세 식별과 화면 경로](./0016-screening-detail-identity-and-route.md) — accepted · agent-required
 - [공고 이미지와 연습 장소](./0017-posting-images-and-rehearsal-location.md) — accepted · agent-required
+- [관리자 배역별 지원 현황 진입 통일](./0018-always-show-admin-role-picker.md) — accepted · agent-required

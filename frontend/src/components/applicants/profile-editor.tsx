@@ -4,7 +4,7 @@ import { useState } from "react";
 import { updateApplicantProfile } from "@/features/applicants/api";
 import { notifyApplicantProfileChanged } from "@/features/applicants/events";
 import { isValidEmail, isValidKoreanPhone } from "@/features/applicants/profile-input";
-import type { ApplicantAnswerValue, ApplicantProfileResponse, BodyMeasurements } from "@/features/applicants/types";
+import type { ApplicantAnswerValue, ApplicantProfileResponse } from "@/features/applicants/types";
 import { APPLICATION_FIELD_OPTIONS } from "@/features/auditions/creation-types";
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
 import { useToast } from "@/components/auditions/toast";
@@ -16,7 +16,7 @@ import { ProfileVideoLibrary } from "./profile-video-library";
 type ProfileTab = "BASIC" | "ADDITIONAL" | "PHOTOS" | "VIDEOS";
 type DraftValues = Record<string, ApplicantAnswerValue>;
 
-const BASIC_KEYS = ["NAME", "BODY", "BIRTH", "GENDER", "PHONE", "EMAIL", "ADDRESS"] as const;
+const BASIC_KEYS = ["NAME", "HEIGHT", "WEIGHT", "BIRTH", "GENDER", "PHONE", "EMAIL", "ADDRESS"] as const;
 const ADDITIONAL_KEYS = ["SCHOOL", "LINK", "NATIONALITY", "MILITARY", "SPECIALTY", "HOBBIES", "COVER_LETTER", "CAREER"] as const;
 const INFORMATION_KEYS = new Set<string>([...BASIC_KEYS, ...ADDITIONAL_KEYS]);
 const tabs: readonly { id: ProfileTab; label: string; description: string }[] = [
@@ -97,7 +97,5 @@ function fieldsFor(keys: readonly string[]) { return keys.flatMap((key) => stand
 function normalizedValue(key: string, value: ApplicantAnswerValue | undefined) { if (key === "LINK" && Array.isArray(value)) return value.filter((item): item is string => typeof item === "string" && Boolean(item.trim())).map((item) => item.trim()).slice(0, 5); return value; }
 function hasValue(value: ApplicantAnswerValue | undefined) { if (value === undefined) return false; if (typeof value === "string") return Boolean(value.trim()); if (Array.isArray(value)) return value.length > 0; return true; }
 function basicFilled(values: DraftValues) {
-  const body = values.BODY;
-  const bodyValue = typeof body === "object" && body !== null && !Array.isArray(body) ? body as BodyMeasurements : undefined;
-  return [values.NAME, bodyValue?.height, bodyValue?.weight, values.BIRTH, values.GENDER, values.PHONE, values.EMAIL, values.ADDRESS].filter((value) => typeof value === "number" ? value > 0 : typeof value === "string" && value.trim().length > 0).length;
+  return BASIC_KEYS.filter((key) => hasValue(values[key]) && (typeof values[key] !== "number" || Number(values[key]) > 0)).length;
 }

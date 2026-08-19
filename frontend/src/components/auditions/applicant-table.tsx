@@ -132,7 +132,7 @@ export function ApplicantTable({
                   </div>
                 </td>
                 <td className="num hidden border-b border-border-soft px-3 py-2 text-xs text-muted lg:table-cell">
-                  {applicant.height}cm · {applicant.weight}kg
+                  {measurementSummary(applicant.height, applicant.weight)}
                 </td>
                 <td className="hidden border-b border-border-soft px-3 py-2 text-xs text-muted lg:table-cell">
                   {applicant.school}
@@ -186,7 +186,7 @@ export function ApplicantTable({
             {peek.applicant.name}
           </span>
           <span className="num block px-1 pb-1 text-xs text-muted">
-            {peek.applicant.roleName} · {peek.applicant.height}cm · 사진 {peek.applicant.photos.length}장
+            {peek.applicant.roleName} · {measurementValue(peek.applicant.height, "cm")} · 사진 {peek.applicant.photos.length}장
           </span>
         </div>
       ) : null}
@@ -204,4 +204,12 @@ function formatSubmittedAt(value: string) {
     minute: "2-digit",
     hour12: false,
   }).format(parsed);
+}
+
+function measurementValue(value: number | null, unit: string) {
+  return value === null ? "미수집" : `${value}${unit}`;
+}
+
+function measurementSummary(height: number | null, weight: number | null) {
+  return `${measurementValue(height, "cm")} · ${measurementValue(weight, "kg")}`;
 }

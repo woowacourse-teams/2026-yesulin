@@ -23,7 +23,8 @@ const seededAnswers: ApplicantAnswer[] = [
   { key: "ADDRESS", label: "거주지", value: "서울특별시 마포구" },
   { key: "BIRTH", label: "생년월일", value: "1999-04-18" },
   { key: "GENDER", label: "성별", value: "여성" },
-  { key: "BODY", label: "키·몸무게", value: { height: 166, weight: 52 } },
+  { key: "HEIGHT", label: "키", value: 166 },
+  { key: "WEIGHT", label: "몸무게", value: 52 },
   { key: "SCHOOL", label: "학력", value: "한국예술종합학교 연극원 연기과" },
   { key: "CAREER", label: "경력", value: [{ year: 2025, title: "푸른 방", part: "윤서" }] },
   { key: "LINK", label: "SNS / 외부 링크", value: "https://example.com/harin" },
@@ -36,7 +37,7 @@ const seededAnswers: ApplicantAnswer[] = [
   { key: "VIDEO", label: "영상 링크", value: ["https://youtu.be/aqz-KE-bpKQ"] },
   { key: "MOTIVATION", label: "이 작품에 지원한 동기를 적어 주세요.", value: "달빛 아래 우리가 다루는 관계의 회복과 성장에 깊이 공감해 지원했습니다." },
 ];
-const reusableKeys = new Set(["NAME", "BODY", "BIRTH", "GENDER", "PHONE", "EMAIL", "ADDRESS", "SCHOOL", "CAREER", "LINK", "NATIONALITY", "COVER_LETTER", "SPECIALTY", "HOBBIES", "MILITARY"]);
+const reusableKeys = new Set(["NAME", "HEIGHT", "WEIGHT", "BIRTH", "GENDER", "PHONE", "EMAIL", "ADDRESS", "SCHOOL", "CAREER", "LINK", "NATIONALITY", "COVER_LETTER", "SPECIALTY", "HOBBIES", "MILITARY"]);
 let profileAnswers: ApplicantAnswer[] = seededAnswers.filter((answer) => reusableKeys.has(answer.key));
 let photoLibrary: ApplicantProfilePhoto[] = [{ id: "seed-photo-1", name: "김하린 프로필.jpg", url: "/images/applicants/kim-harin-profile.png", representative: true }];
 let videoLibrary: ApplicantProfileVideo[] = [{ id: "seed-video-1", url: "https://youtu.be/aqz-KE-bpKQ", youtubeId: "aqz-KE-bpKQ" }];
@@ -53,8 +54,7 @@ const clone = <T>(value: T): T => structuredClone(value);
 
 export function applicantProfile(): ApplicantProfileResponse {
   const answer = (key: string) => profileAnswers.find((candidate) => candidate.key === key)?.value;
-  const body = answer("BODY");
-  const basicValues = [answer("NAME"), typeof body === "object" && body !== null && "height" in body ? body.height : undefined, typeof body === "object" && body !== null && "weight" in body ? body.weight : undefined, answer("BIRTH"), answer("GENDER"), answer("PHONE"), answer("EMAIL"), answer("ADDRESS")];
+  const basicValues = [answer("NAME"), answer("HEIGHT"), answer("WEIGHT"), answer("BIRTH"), answer("GENDER"), answer("PHONE"), answer("EMAIL"), answer("ADDRESS")];
   const filled = basicValues.filter((value) => typeof value === "number" ? value > 0 : typeof value === "string" && value.trim().length > 0).length;
   return { answers: clone(profileAnswers), photoLibrary: clone(photoLibrary), videoLibrary: clone(videoLibrary), completeness: { filled, standardTotal: 8 } };
 }

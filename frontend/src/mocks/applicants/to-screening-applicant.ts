@@ -1,4 +1,4 @@
-import type { ApplicantApplicationDetail, ApplicantAnswer, BodyMeasurements, CareerEntry } from "@/features/applicants/types";
+import type { ApplicantApplicationDetail, ApplicantAnswer, CareerEntry } from "@/features/applicants/types";
 import type { Gender, PerformanceId } from "@/features/auditions/types";
 import { photoSlotLabels } from "@/features/applications/materials";
 import type { MockApplicant } from "../auditions/applicants";
@@ -20,9 +20,9 @@ const videoOf = (answers: readonly ApplicantAnswer[]) => {
 
 const genderOf = (value: string): Gender => value === "남성" || value === "MALE" ? "MALE" : "FEMALE";
 
-const bodyOf = (value: ApplicantAnswer["value"] | undefined): BodyMeasurements => {
-  if (typeof value === "object" && value !== null && !Array.isArray(value) && "height" in value && "weight" in value) return value;
-  return { height: 0, weight: 0 };
+const numberOf = (answers: readonly ApplicantAnswer[], key: string) => {
+  const value = answerOf(answers, key);
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
 };
 
 const careerOf = (value: ApplicantAnswer["value"] | undefined): readonly CareerEntry[] =>
@@ -32,7 +32,6 @@ const careerOf = (value: ApplicantAnswer["value"] | undefined): readonly CareerE
 export function toScreeningApplicant(detail: ApplicantApplicationDetail, performanceId: PerformanceId): MockApplicant {
   const birth = textOf(detail.answers, "BIRTH");
   const birthYear = Number(birth.slice(0, 4));
-  const body = bodyOf(answerOf(detail.answers, "BODY"));
   const name = textOf(detail.answers, "NAME") || "이름 미입력";
   const photoIds = answerOf(detail.answers, "PHOTOS");
   const photoAnswer = detail.answers.find((answer) => answer.key === "PHOTOS");
@@ -50,8 +49,8 @@ export function toScreeningApplicant(detail: ApplicantApplicationDetail, perform
     name,
     gender: genderOf(textOf(detail.answers, "GENDER")),
     age: Number.isInteger(birthYear) ? new Date(detail.submittedAt).getFullYear() - birthYear : 0,
-    height: body.height,
-    weight: body.weight,
+    height: numberOf(detail.answers, "HEIGHT"),
+    weight: numberOf(detail.answers, "WEIGHT"),
     performanceId,
     postingId: detail.postingId as MockApplicant["postingId"],
     roleId: detail.roleId as MockApplicant["roleId"],

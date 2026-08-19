@@ -37,8 +37,8 @@ export function ApplicantDetail() {
             </h2>
             <p className="mt-0.5 text-dense text-muted">
               <b className="font-semibold text-muted-strong">{applicant.roleName}</b> 지원 ·{" "}
-              {GENDER_LABELS[applicant.gender]} 만 {applicant.age}세 · {applicant.height}cm /{" "}
-              {applicant.weight}kg · {applicant.id}
+              {GENDER_LABELS[applicant.gender]} 만 {applicant.age}세 · {measurement(applicant.height, "cm")} /{" "}
+              {measurement(applicant.weight, "kg")} · {applicant.id}
             </p>
           </div>
 
@@ -85,4 +85,8 @@ export function ApplicantDetail() {
       </ModalShell>
     </>
   );
+}
+
+function measurement(value: number | null, unit: string) {
+  return value === null ? "미수집" : `${value}${unit}`;
 }

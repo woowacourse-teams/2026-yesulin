@@ -40,10 +40,6 @@ const previewPhotos = (list: readonly MockApplicant[]) =>
 const applicantsOfPosting = (posting: CatalogPosting) =>
   allApplicants().filter((applicant) => applicant.postingId === posting.id);
 
-/** 배역 구분이 없거나 배역이 하나뿐이면 배역 선택 화면을 건너뛸 수 있다. */
-const soleRoleIdOf = (posting: CatalogPosting) =>
-  posting.isOpenCall || posting.roles.length === 1 ? (posting.roles[0]?.id ?? null) : null;
-
 export const toPerformanceRef = (performance: CatalogPerformance): PerformanceRef => ({
   id: performance.id,
   posterUrl: performance.posterUrl,
@@ -90,7 +86,6 @@ export function toPostingSummary(posting: CatalogPosting): PostingSummary {
     allRoundsClosed: postingAllRoundsClosed(posting),
     progress: postingProgress(posting),
     previewPhotoUrls: previewPhotos(applicants),
-    soleRoleId: soleRoleIdOf(posting),
   };
 }
 
@@ -184,7 +179,6 @@ export function toAuditionTree(): AuditionTree {
         phase: postingPhase(posting),
         applicantCount: applicantsOfPosting(posting).length,
         roleIds: posting.roles.map((role) => role.id),
-        soleRoleId: soleRoleIdOf(posting),
       })),
     })),
   };

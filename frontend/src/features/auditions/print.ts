@@ -80,7 +80,7 @@ function printableCard(applicant: Applicant, performance: PerformanceRef) {
       <div class="pp-role">${escapeHtml(applicant.roleName)} 지원</div>
       <dl class="pp-facts">
         <div><dt>성별·나이</dt><dd>${GENDER_LABELS[applicant.gender]} · 만 ${applicant.age}세</dd></div>
-        <div><dt>신장/체중</dt><dd>${applicant.height}cm / ${applicant.weight}kg</dd></div>
+        <div><dt>신장/체중</dt><dd>${printMeasurement(applicant.height, "cm")} / ${printMeasurement(applicant.weight, "kg")}</dd></div>
         <div><dt>생년월</dt><dd>${escapeHtml(applicant.birth)}</dd></div>
         <div><dt>학교</dt><dd>${escapeHtml(applicant.school)}</dd></div>
         <div><dt>연락처</dt><dd>${escapeHtml(applicant.phone)}</dd></div>
@@ -115,6 +115,10 @@ function printableCard(applicant: Applicant, performance: PerformanceRef) {
   </section>
   <footer class="pp-foot">예술in · ${escapeHtml(performance.title)} · 출력일 ${new Date().toLocaleDateString("ko-KR")}</footer>
 </section>`;
+}
+
+function printMeasurement(value: number | null, unit: string) {
+  return value === null ? "미수집" : `${value}${unit}`;
 }
 
 /**

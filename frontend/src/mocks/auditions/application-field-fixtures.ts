@@ -1,7 +1,5 @@
-import {
-  APPLICATION_FIELD_OPTIONS,
-  type ApplicationFieldInput,
-} from "@/features/auditions/creation-types";
+import { APPLICATION_FIELD_OPTIONS, type ApplicationFieldInput, type ApplicationFieldKey } from "@/features/auditions/creation-types";
+import { applicationFieldFixture } from "./fixture-builders";
 
 const CUSTOM_QUESTIONS = [
   "이 작품에 지원한 동기를 적어 주세요.",
@@ -11,84 +9,38 @@ const CUSTOM_QUESTIONS = [
 
 /** 모든 표준 항목과 커스텀 질문 표시를 한 번에 확인하는 공개 지원서 fixture. */
 export function allFieldsApplicationFixture(): readonly ApplicationFieldInput[] {
-  const standardFields = APPLICATION_FIELD_OPTIONS.map((field): ApplicationFieldInput => ({
-    id: field.key,
-    key: field.key,
-    label: field.label,
-    enabled: true,
-    required: field.section === "BASIC" || field.section === "MATERIALS",
-    custom: false,
-    section: field.section,
-    inputType: field.inputType,
-    order: field.order,
-    layout: field.layout,
-    config: field.key === "VIDEO"
-      ? {
-          ...field.config,
-          maxCount: 10,
-          videoRequirements: [{ id: "acting-video-1", description: "자유 연기 영상" }],
-        }
-      : field.config,
-  }));
-
-  const customFields = CUSTOM_QUESTIONS.map((label, index): ApplicationFieldInput => ({
-    id: `custom-question-${index + 1}`,
-    label,
-    enabled: true,
-    required: true,
-    custom: true,
-    section: "CUSTOM",
-    inputType: "TEXTAREA",
-    order: (index + 1) * 10,
-    layout: "FULL",
-    config: { maxLength: 2000 },
-  }));
-
-  return [...standardFields, ...customFields];
+  return applicationFieldFixture({
+    enabledKeys: APPLICATION_FIELD_OPTIONS.map((field) => field.key),
+    videoRequirements: [{ id: "acting-video-1", description: "자유 연기 영상" }],
+    customQuestions: CUSTOM_QUESTIONS.map((label, index) => ({ id: `custom-question-${index + 1}`, label })),
+  });
 }
 
 /** 공고→작성→제출 결과→심사 전체 흐름을 확인하는 기본 시드 양식. */
 export function screeningFlowApplicationFixture(): readonly ApplicationFieldInput[] {
-  const standardFields = APPLICATION_FIELD_OPTIONS.map((field): ApplicationFieldInput => ({
-    id: field.key,
-    key: field.key,
-    label: field.label,
-    enabled: true,
-    required: field.section === "BASIC" || field.key === "PHOTOS" || field.key === "VIDEO",
-    custom: false,
-    section: field.section,
-    inputType: field.inputType,
-    order: field.order,
-    layout: field.layout,
-    config: field.key === "PHOTOS"
-      ? {
-          ...field.config,
-          maxCount: 4,
-          photoRequirements: [
-            { id: "profile-photo", description: "프로필 사진", count: 1 },
-            { id: "full-body-photo", description: "전신 사진", count: 1 },
-            { id: "acting-photo", description: "연기 이미지", count: 2 },
-          ],
-        }
-      : field.key === "VIDEO"
-        ? {
-            ...field.config,
-            maxCount: 10,
-            videoRequirements: [{ id: "acting-video", description: "자유 연기 영상" }],
-          }
-        : field.config,
-  }));
+  return applicationFieldFixture({
+    enabledKeys: APPLICATION_FIELD_OPTIONS.map((field) => field.key),
+    photoRequirements: [
+      { id: "profile-photo", description: "프로필 사진", count: 1 },
+      { id: "full-body-photo", description: "전신 사진", count: 1 },
+      { id: "acting-photo", description: "연기 이미지", count: 2 },
+    ],
+    videoRequirements: [{ id: "acting-video", description: "자유 연기 영상" }],
+    customQuestions: [{ id: "MOTIVATION", label: "이 작품에 지원한 동기를 적어 주세요." }],
+  });
+}
 
-  return [...standardFields, {
-    id: "MOTIVATION",
-    label: "이 작품에 지원한 동기를 적어 주세요.",
-    enabled: true,
-    required: true,
-    custom: true,
-    section: "CUSTOM",
-    inputType: "TEXTAREA",
-    order: 10,
-    layout: "FULL",
-    config: { maxLength: 2000 },
-  }];
+const BASIC_CONTACT_KEYS = ["NAME", "PHONE", "EMAIL"] as const satisfies readonly ApplicationFieldKey[];
+
+/** 빈 섹션 생략과 가장 짧은 지원 흐름을 확인한다. */
+export function minimalApplicationFixture() {
+  return applicationFieldFixture({ enabledKeys: BASIC_CONTACT_KEYS });
+}
+
+/** 키를 받지 않고 몸무게만 받는 독립 기본정보 계약을 확인한다. */
+export function withoutHeightApplicationFixture() {
+  return applicationFieldFixture({
+    enabledKeys: ["NAME", "WEIGHT", "BIRTH", "GENDER", "PHONE", "EMAIL", "ADDRESS", "PHOTOS"],
+    photoRequirements: [{ id: "profile-photo", description: "프로필 사진", count: 1 }],
+  });
 }

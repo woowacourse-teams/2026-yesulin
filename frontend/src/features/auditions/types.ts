@@ -97,8 +97,6 @@ export type PostingSummary = {
   readonly allRoundsClosed: boolean;
   readonly progress: ReviewProgress;
   readonly previewPhotoUrls: readonly string[];
-  /** 배역 선택 화면을 건너뛰고 바로 들어갈 배역. 배역이 여럿이면 null. */
-  readonly soleRoleId: RoleId | null;
 };
 
 export type RoleSummary = {
@@ -136,8 +134,9 @@ export type Applicant = {
   readonly name: string;
   readonly gender: Gender;
   readonly age: number;
-  readonly height: number;
-  readonly weight: number;
+  /** 공고에서 수집하지 않은 신체 정보는 null이다. */
+  readonly height: number | null;
+  readonly weight: number | null;
   readonly roleId: RoleId;
   readonly roleName: string;
   readonly birth: string;
@@ -198,7 +197,6 @@ export type AuditionTreePosting = {
   readonly applicantCount: number;
   /** 현재 경로가 어느 공고 아래인지 되짚기 위해 배역 식별자를 함께 내려준다. */
   readonly roleIds: readonly RoleId[];
-  readonly soleRoleId: RoleId | null;
 };
 
 export type PerformanceListResponse = {

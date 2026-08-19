@@ -1,6 +1,6 @@
 import type { ApplicationId, Review, RoleId, RoundNumber } from "@/features/auditions/types";
 import { ROUND_NUMBERS } from "@/features/auditions/types";
-import { APPLICANTS, type MockApplicant } from "./applicants";
+import { APPLICANTS, SCREENING_STATE_SEEDS, type MockApplicant } from "./applicants";
 import { CATALOG } from "./catalog";
 
 type MutableReview = { status: Review["status"]; memo: string; note: string };
@@ -13,6 +13,17 @@ const submittedApplicants: MockApplicant[] = [];
 
 const reviewKey = (application: ApplicationId, role: RoleId, round: RoundNumber) => `${application}:${role}:${round}`;
 const roundKey = (role: RoleId, round: RoundNumber) => `${role}:${round}`;
+
+for (const seed of SCREENING_STATE_SEEDS) {
+  for (const round of seed.closedRounds) closedRounds.add(roundKey(seed.roleId, round));
+  for (const review of seed.reviews) {
+    reviews.set(reviewKey(review.applicationId, seed.roleId, review.round), {
+      status: review.status,
+      memo: "",
+      note: review.note ?? "",
+    });
+  }
+}
 
 export function reviewOf(application: ApplicationId, role: RoleId, round: RoundNumber): MutableReview {
   const key = reviewKey(application, role, round);

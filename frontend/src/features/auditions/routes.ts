@@ -18,11 +18,5 @@ export const auditionRoutes = {
 /** 외부 오디션 공고에서 배우가 진입할 공개 지원서 경로. */
 export const publicApplicationRoute = (postingId: PostingId) => `/apply/${postingId}`;
 
-/**
- * 공고를 열었을 때 갈 곳. 배역 구분이 없거나 배역이 하나뿐이면 배역 선택 화면을
- * 건너뛰고 바로 심사 화면으로 들어간다.
- */
-export const postingEntryHref = (posting: {
-  readonly id: PostingId;
-  readonly soleRoleId: RoleId | null;
-}) => (posting.soleRoleId ? auditionRoutes.role(posting.soleRoleId) : auditionRoutes.posting(posting.id));
+/** 관리자 지원자 관리는 배역 수와 관계없이 공고의 배역별 현황에서 시작한다. */
+export const postingEntryHref = (posting: { readonly id: PostingId }) => auditionRoutes.posting(posting.id);

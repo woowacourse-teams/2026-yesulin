@@ -10,7 +10,7 @@ export function ApplicantCards({ rows }: { rows: readonly Applicant[] }) {
   const { selected, toggleSelected, openApplicant } = useBoard();
 
   return (
-    <div className="grid justify-start gap-4 [grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),280px))]">
+    <div className="grid grid-cols-1 gap-4 sm:justify-start sm:[grid-template-columns:repeat(auto-fill,minmax(220px,280px))]">
       {rows.map((applicant, index) => {
         const picked = selected.has(applicant.id);
 
@@ -49,7 +49,7 @@ export function ApplicantCards({ rows }: { rows: readonly Applicant[] }) {
                   <span className="min-w-0">
                     <strong className="block truncate text-lg font-bold tracking-[-0.015em] group-hover:text-brand">{applicant.name}</strong>
                     <span className="num mt-0.5 block text-sm text-muted">
-                      {GENDER_LABELS[applicant.gender]} · 만 {applicant.age}세 · {applicant.height}cm
+                      {GENDER_LABELS[applicant.gender]} · 만 {applicant.age}세 · {measurementText(applicant.height, "cm", "키 미수집")}
                     </span>
                   </span>
                   {applicant.mismatchReasons.length > 0 ? (
@@ -85,4 +85,8 @@ function submittedDate(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return new Intl.DateTimeFormat("ko-KR", { month: "numeric", day: "numeric" }).format(date);
+}
+
+function measurementText(value: number | null, unit: string, empty: string) {
+  return value === null ? empty : `${value}${unit}`;
 }
