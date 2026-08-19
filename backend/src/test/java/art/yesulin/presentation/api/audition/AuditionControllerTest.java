@@ -1,0 +1,143 @@
+package art.yesulin.presentation.api.audition;
+
+import static org.hamcrest.Matchers.matchesPattern;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import art.yesulin.application.auth.MemberPrincipal;
+import art.yesulin.application.file.FileService;
+import art.yesulin.application.file.FileUploadCommand;
+import art.yesulin.application.file.FileUploadResult;
+import art.yesulin.application.performance.CreatePerformanceCommand;
+import art.yesulin.application.performance.PerformanceResult;
+import art.yesulin.application.performance.PerformanceService;
+import art.yesulin.domain.audition.AuditionRepository;
+import art.yesulin.domain.file.FileAssetRepository;
+import art.yesulin.domain.file.FileReferenceRepository;
+import art.yesulin.domain.performance.PerformanceRepository;
+import art.yesulin.support.FakeObjectStorage;
+import art.yesulin.support.ObjectStorageTestConfiguration;
+import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+
+@SpringBootTest(properties = {
+        "spring.datasource.url=jdbc:h2:mem:audition-api;MODE=MySQL;DB_CLOSE_DELAY=-1",
+        "spring.datasource.driver-class-name=org.h2.Driver",
+        "spring.jpa.hibernate.ddl-auto=create-drop",
+        "spring.flyway.enabled=false"
+})
+@Import(ObjectStorageTestConfiguration.class)
+@AutoConfigureMockMvc
+class AuditionControllerTest {
+
+    private static final long OWNER_ID = 1L;
+    private static final MemberPrincipal MEMBER_PRINCIPAL = new MemberPrincipal(OWNER_ID);
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private PerformanceService performanceService;
+
+    @Autowired
+    private FileService fileService;
+
+    @Autowired
+    private AuditionRepository auditionRepository;
+
+    @Autowired
+    private PerformanceRepository performanceRepository;
+
+    @Autowired
+    private FileReferenceRepository fileReferenceRepository;
+
+    @Autowired
+    private FileAssetRepository fileAssetRepository;
+
+    @Autowired
+    private FakeObjectStorage objectStorage;
+
+    @BeforeEach
+    void cleanUp() {
+        auditionRepository.deleteAll();
+        performanceRepository.deleteAll();
+        fileReferenceRepository.deleteAll();
+        fileAssetRepository.deleteAll();
+    }
+
+    @Test
+    void createsRestoresAndUpdatesDraftBasicInformation() throws Exception {
+        PerformanceResult performance = createPerformance();
+        String createRequest = """
+                {
+                  "performanceId": %d,
+                  "title": "햄릿 오디션",
+                  "performanceStartDate": "2026-09-01",
+                  "performanceEndDate": null
+                }
+                """.formatted(performance.id());
+        String location = mockMvc.perform(post("/api/v1/auditions")
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createRequest))
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Location", matchesPattern("/api/v1/auditions/\\d+")))
+                .andExpect(jsonPath("$.status").value("DRAFT"))
+                .andExpect(jsonPath("$.openRun").value(true))
+                .andReturn().getResponse().getHeader("Location");
+        long auditionId = Long.parseLong(location.substring(location.lastIndexOf('/') + 1));
+        String request = """
+                {
+                  "title": "리어왕 오디션",
+                  "performanceStartDate": "2026-10-01",
+                  "performanceEndDate": "2026-10-31"
+                }
+                """;
+
+        mockMvc.perform(put("/api/v1/auditions/{auditionId}/basic-information", auditionId)
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value("리어왕 오디션"))
+                .andExpect(jsonPath("$.openRun").value(false));
+
+        mockMvc.perform(get(location).sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value("리어왕 오디션"))
+                .andExpect(jsonPath("$.performanceEndDate").value("2026-10-31"))
+                .andExpect(jsonPath("$.openRun").value(false));
+    }
+
+    private PerformanceResult createPerformance() {
+        return performanceService.create(
+                OWNER_ID,
+                new CreatePerformanceCommand(
+                        uploadReadyImage(),
+                        "햄릿",
+                        "서울특별시 종로구 대학로 12",
+                        List.of()
+                )
+        );
+    }
+
+    private long uploadReadyImage() {
+        FileUploadResult upload = fileService.requestUpload(
+                OWNER_ID, new FileUploadCommand("poster.png", "image/png", 1_024L)
+        );
+        objectStorage.upload(upload.uploadUrl(), "image/png", 1_024L);
+        fileService.completeUpload(OWNER_ID, upload.fileId());
+        return upload.fileId();
+    }
+}

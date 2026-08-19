@@ -40,6 +40,7 @@
 - `docs/convention/api-convention.md`: 백엔드 목표 API와 현재 프런트 이관 상태
 - `docs/decisions/README.md`: 시각 기반 결정 목록. `agent-required` 기록은 반드시 읽는다.
 - `docs/backend/file-upload.md`: 파일 모델, 소유권과 presigned upload 생명주기
+- `docs/backend/audition-management.md`: 공고 생명주기, 섹션 분리와 단계별 구현 범위
 - `docs/README.md`: 구현과 문서를 함께 유지하는 기준
 - `docs/convention/git-convention.md`: 브랜치, 커밋, push 규칙
 - `docs/convention/be-code-convention.md`: 백엔드 코드와 Checkstyle 규칙
@@ -50,12 +51,18 @@
 
 ```text
 Performance 공연
-  └ Posting 공고
-      ├ Role 배역 하나 이상
+  └ Audition 공고 ── DRAFT → PUBLISHED → CLOSED
+      ├ title + PerformancePeriod 기본 정보
+      ├ RoleSelection 배역 관리
+      ├ Schedule 모집·전형 일정
+      ├ Form 지원 폼
       └ Application 지원서 ── Role 하나 이상 선택
 ```
 
+- 공고 본체는 소유권·생명주기·기본 정보를, 나머지 섹션은 자체 데이터·버전·규칙을 관리한다.
+- 기본 정보를 완성하면 DRAFT를 생성하고, 이후 섹션별 저장을 허용한 뒤 게시 application이 전체를 검증한다.
 - 별도의 자유 배역 타입은 없다. 공연사가 일반 배역 하나를 `자유`라는 이름으로 등록한다.
+- 복수 배역 지원을 허용한 공고는 배역이 두 개 이상이어야 하며 지원자는 하나 이상을 선택한다.
 - 공고의 배역이 하나면 지원자의 배역 선택 화면을 생략한다.
 - 동일 계정은 같은 공고에 지원서를 하나만 제출할 수 있다. 복수 배역 선택은 중복 지원이 아니다.
 - 전형은 배역 단위로 독립 진행하며 차수 상태는 `(배역, 차수)`에 속한다.

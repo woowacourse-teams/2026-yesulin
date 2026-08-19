@@ -12,7 +12,9 @@
 
 프런트엔드 프로토타입에서는 서비스 소개·인증 UI, 공연·공고 관리, 1~3차 지원자 심사, 공개 지원서 제출·조회, 지원자 프로필과 공연사 설정이 MSW로 동작합니다. MSW 인메모리 저장소는 초기 데이터 없이 시작하며 화면에서 만든 데이터만 현재 브라우저 세션 동안 유지합니다.
 
-백엔드는 Spring Boot 스캐폴드 단계입니다. 실제 인증, DB, 파일 저장, 소셜 로그인, 사업자·KOPIS 검증은 아직 연결하지 않았습니다. MSW에서 새로 만든 데이터는 새로고침하면 초기화될 수 있습니다.
+백엔드는 공연·배역, presigned 파일 업로드와 공고 DRAFT의 기본 정보 저장을 구현했습니다. 실제 S3, 소셜
+로그인, 사업자·KOPIS 검증과 공고의 배역·일정·지원 폼·게시 단계는 아직 연결하지 않았습니다. MSW에서
+새로 만든 데이터는 새로고침하면 초기화될 수 있습니다.
 
 ## 실행
 
@@ -98,6 +100,7 @@ yesulin/
 - [API·Git·백엔드 컨벤션](./docs/convention/)
 - [결정 기록](./docs/decisions/README.md)
 - [도메인 설계](./docs/domain-design.md)
+- [공고 관리](./docs/backend/audition-management.md)
 - [문서 운영 원칙](./docs/README.md)
 - [프론트엔드 안내](./frontend/README.md)
 - [UI 디자인 시스템](./frontend/docs/design-system.md)

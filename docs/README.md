@@ -7,6 +7,7 @@
 - [프론트엔드 디자인 시스템](../frontend/docs/design-system.md): UI 토큰, 컴포넌트와 Visual QA
 - [도메인 설계 기준](./domain-design.md): 확정된 회원·지원·지원서 규칙, 현재 구현과의 차이, 추가 설계 질문
 - [파일 업로드 설계](./backend/file-upload.md): 파일 경계, 소유권과 presigned upload 생명주기
+- [공고 관리](./backend/audition-management.md): 공고 생명주기, 섹션 분리와 단계별 구현 범위
 - [개인정보·서비스 정책](./policies/public/README.md): 공개 약관·처리방침·동의문 초안
 
 기능 구현이 끝날 때마다 해당 변경을 팀원과 공유해야 하는지 확인한다. 공유가 필요한 내용은 작업이 완료된 같은 시점에 관련 비즈니스 문서에 반영한다.
