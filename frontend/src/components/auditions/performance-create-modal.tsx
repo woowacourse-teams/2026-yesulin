@@ -86,23 +86,23 @@ export function PerformanceCreateModal({
         />
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-6 md:px-6">
           <CreateSection title="공연 기본 정보">
-            <div className="grid grid-cols-[120px_minmax(0,1fr)] gap-4 md:grid-cols-[150px_1fr]">
+            <div className="grid grid-cols-[112px_minmax(0,1fr)] items-start gap-4 sm:grid-cols-[150px_minmax(0,1fr)]">
               <PosterUploadField label="공연 포스터" value={posterUrl} onChange={setPosterUrl} />
-              <div className="grid content-start gap-3">
+              <div className="grid min-w-0 content-start gap-5">
                 <CreateField label="공연 제목">
-                <FieldInput
-                  data-autofocus="true"
-                  required
-                  name="performanceTitle"
-                  autoComplete="off"
-                  value={title}
-                  onChange={(event) => setTitle(event.target.value)}
-                  placeholder="예: 뮤지컬 <여름의 끝>"
-                />
+                  <FieldInput
+                    data-autofocus="true"
+                    required
+                    name="performanceTitle"
+                    autoComplete="off"
+                    value={title}
+                    onChange={(event) => setTitle(event.target.value)}
+                    placeholder="예: 뮤지컬 <여름의 끝>"
+                  />
                 </CreateField>
+                <PerformanceVenueField hideVenueName venue={venue} address={venueAddress} onVenueChange={setVenue} onAddressChange={setVenueAddress} />
               </div>
             </div>
-            <div className="mt-5"><PerformanceVenueField hideVenueName venue={venue} address={venueAddress} onVenueChange={setVenue} onAddressChange={setVenueAddress} /></div>
           </CreateSection>
 
           <CreateSection

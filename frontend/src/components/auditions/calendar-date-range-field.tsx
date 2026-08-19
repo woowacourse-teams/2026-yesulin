@@ -13,6 +13,7 @@ export function CalendarDateRangeField({
   startLabel = "시작일",
   endLabel = "종료일",
   endOptional = false,
+  endOpenEnded = false,
   includeTime = false,
   single = false,
   startDisabled = false,
@@ -25,6 +26,7 @@ export function CalendarDateRangeField({
   readonly startLabel?: string;
   readonly endLabel?: string;
   readonly endOptional?: boolean;
+  readonly endOpenEnded?: boolean;
   readonly includeTime?: boolean;
   readonly single?: boolean;
   readonly startDisabled?: boolean;
@@ -87,9 +89,16 @@ export function CalendarDateRangeField({
   };
 
   const picker = open ? <div ref={pickerRef} id={pickerId} role="dialog" aria-label={`${single ? startLabel : `${startLabel}·${endLabel}`} 선택`} className={`${variant === "compact" ? "max-h-[calc(100dvh-48px)] w-full max-w-[760px] overflow-y-auto rounded-modal" : "relative z-10 mt-2 rounded-card"} border border-border bg-card p-4 shadow-[var(--shadow-modal)] md:p-5`}>
-    <div className="flex items-center justify-between">
+    <div className="flex items-center justify-between gap-2">
       <button type="button" aria-label="이전 달" onClick={() => setVisibleMonth(shiftMonth(visibleMonth, -1))} className="grid h-11 w-11 place-items-center rounded-control text-xl text-muted-strong hover:bg-surface hover:text-foreground">‹</button>
-      <strong className="text-sm">{monthRangeLabel(visibleMonth)}</strong>
+      <div className="flex min-w-0 items-center justify-center gap-2">
+        <select aria-label="연도 선택" value={visibleMonth.getFullYear()} onChange={(event) => setVisibleMonth(new Date(Number(event.target.value), visibleMonth.getMonth(), 1))} className="h-11 rounded-control border border-border bg-card px-2 text-sm font-bold outline-none focus:border-brand focus:ring-2 focus:ring-brand-soft sm:px-3">
+          {calendarYears().map((year) => <option key={year} value={year}>{year}년</option>)}
+        </select>
+        <select aria-label="월 선택" value={visibleMonth.getMonth()} onChange={(event) => setVisibleMonth(new Date(visibleMonth.getFullYear(), Number(event.target.value), 1))} className="h-11 rounded-control border border-border bg-card px-2 text-sm font-bold outline-none focus:border-brand focus:ring-2 focus:ring-brand-soft sm:px-3">
+          {Array.from({ length: 12 }, (_, month) => <option key={month} value={month}>{month + 1}월</option>)}
+        </select>
+      </div>
       <button type="button" aria-label="다음 달" onClick={() => setVisibleMonth(shiftMonth(visibleMonth, 1))} className="grid h-11 w-11 place-items-center rounded-control text-xl text-muted-strong hover:bg-surface hover:text-foreground">›</button>
     </div>
 
@@ -113,15 +122,17 @@ export function CalendarDateRangeField({
     <div className={`grid items-stretch gap-2 ${single ? "" : "md:grid-cols-[1fr_auto_1fr] md:gap-3"}`}>
       <DateTrigger label={startLabel} value={start} includeTime={includeTime} disabled={startDisabled} active={open && position === "start"} controls={pickerId} compact={variant === "compact"} onClick={() => openFor("start")} />
       {!single ? <><span aria-hidden="true" className="hidden items-center text-lg text-muted md:flex">→</span>
-      <DateTrigger label={`${endLabel}${endOptional ? " (선택)" : ""}`} value={end} includeTime={includeTime} disabled={false} active={open && position === "end"} controls={pickerId} compact={false} onClick={() => openFor("end")} /></> : null}
+      <DateTrigger label={`${endLabel}${endOptional ? " (선택)" : ""}`} value={end} emptyValueLabel={endOpenEnded ? "오픈런" : undefined} includeTime={includeTime} disabled={false} active={open && position === "end"} controls={pickerId} compact={false} onClick={() => openFor("end")} /></> : null}
     </div>
+
+    {!single && endOpenEnded && !end ? <p className="mt-2 rounded-control border border-brand-line bg-brand-soft px-3 py-2 text-sm leading-6 text-muted-strong"><strong className="text-brand">오픈런으로 저장됩니다.</strong> 종료일이 정해지면 나중에 추가할 수 있어요.</p> : null}
 
     {open && picker ? variant === "compact" && portalTarget ? createPortal(<div className="fixed inset-0 z-[70] flex items-center justify-center bg-foreground/25 p-4" onPointerDown={(event) => { if (event.target === event.currentTarget) setOpen(false); }}>{picker}</div>, portalTarget) : picker : null}
   </div>;
 }
 
-function DateTrigger({ label, value, includeTime, disabled, active, controls, compact, onClick }: { readonly label: string; readonly value: string; readonly includeTime: boolean; readonly disabled: boolean; readonly active: boolean; readonly controls: string; readonly compact: boolean; readonly onClick: () => void }) {
-  const displayedValue = value ? formatDate(value, includeTime) : includeTime ? "날짜와 시간 선택" : "날짜 선택";
+function DateTrigger({ label, value, emptyValueLabel, includeTime, disabled, active, controls, compact, onClick }: { readonly label: string; readonly value: string; readonly emptyValueLabel?: string; readonly includeTime: boolean; readonly disabled: boolean; readonly active: boolean; readonly controls: string; readonly compact: boolean; readonly onClick: () => void }) {
+  const displayedValue = value ? formatDate(value, includeTime) : emptyValueLabel ?? (includeTime ? "날짜와 시간 선택" : "날짜 선택");
   return <button type="button" disabled={disabled} aria-label={`${label} ${displayedValue}`} aria-expanded={active} aria-controls={controls} onClick={onClick} className={`flex w-full min-w-0 items-center rounded-control border text-left transition-colors disabled:cursor-not-allowed disabled:bg-border-soft disabled:text-muted ${compact ? "min-h-12 gap-2 px-3 py-2" : "min-h-[72px] gap-3 px-4 py-3"} ${active ? "border-brand bg-brand-soft ring-2 ring-brand-soft" : "border-border bg-card hover:border-brand-line hover:bg-surface"}`}>
     <span aria-hidden="true" className={`grid shrink-0 place-items-center rounded-lg ${compact ? "h-8 w-8" : "h-9 w-9"} ${active ? "bg-brand text-white" : "bg-surface text-muted-strong"}`}><CalendarIcon /></span>
     <span className="min-w-0"><span className={compact ? "sr-only" : "block text-xs font-semibold text-muted"}>{label}</span><strong className={`${compact ? "block" : "mt-1 block"} truncate text-sm ${value ? "text-foreground" : "text-muted"}`}>{displayedValue}</strong></span>
@@ -158,6 +169,6 @@ function dateOf(value: string) { return value.slice(0, 10); }
 function timeOf(value: string, fallback: string) { return value.includes("T") ? value.slice(11, 16) : fallback; }
 function withTime(date: string, time: string) { return `${date}T${time}`; }
 function monthDays(month: Date): readonly (Date | null)[] { const firstDay = new Date(month.getFullYear(), month.getMonth(), 1).getDay(); const count = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate(); return [...Array.from({ length: firstDay }, () => null), ...Array.from({ length: count }, (_, index) => new Date(month.getFullYear(), month.getMonth(), index + 1))]; }
-function monthRangeLabel(month: Date) { const next = shiftMonth(month, 1); return `${month.getFullYear()}년 ${month.getMonth() + 1}월 – ${next.getFullYear()}년 ${next.getMonth() + 1}월`; }
+function calendarYears() { const current = new Date().getFullYear(); return Array.from({ length: 121 }, (_, index) => current + 20 - index); }
 function formatDate(value: string, includeTime = false) { const date = parseDate(value); return date ? `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일 (${["일", "월", "화", "수", "목", "금", "토"][date.getDay()]})${includeTime ? ` · ${timeOf(value, "--:--")}` : ""}` : value; }
 function CalendarIcon() { return <svg viewBox="0 0 20 20" className="h-5 w-5 fill-none stroke-current stroke-[1.7]"><rect x="3" y="4.5" width="14" height="12.5" rx="2" /><path d="M6.5 2.5v4M13.5 2.5v4M3 8h14" /></svg>; }

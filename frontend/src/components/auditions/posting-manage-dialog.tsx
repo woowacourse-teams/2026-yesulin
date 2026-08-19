@@ -54,7 +54,7 @@ function EditPostingForm({ detail, onClose, onChanged }: { readonly detail: Post
     <DialogHeader id={TITLE_ID} title="공고 일정 수정" subtitle="공고를 만든 뒤에는 공연·모집·전형 일정만 수정할 수 있습니다." />
     <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-6 md:px-6">
       {started ? <p className="rounded-card border border-warn-line bg-warn-soft p-4 text-sm leading-6 text-muted-strong">모집이 시작됐거나 첫 지원서가 있어 모집 시작은 잠겼습니다. 모집 종료는 기존 일시보다 뒤로만 연장할 수 있고, 완료된 전형은 수정할 수 없습니다.</p> : null}
-      <CreateSection title="공연 일정" description="시작일과 종료일을 한 달력에서 선택하면 공연 기간을 한눈에 확인할 수 있습니다."><CalendarDateRangeField start={performanceStart} end={performanceEnd} onStartChange={setPerformanceStart} onEndChange={setPerformanceEnd} startLabel="공연 시작일" endLabel="공연 종료일" endOptional /></CreateSection>
+      <CreateSection title="공연 일정" description="시작일과 종료일을 한 달력에서 선택하면 공연 기간을 한눈에 확인할 수 있습니다."><CalendarDateRangeField start={performanceStart} end={performanceEnd} onStartChange={setPerformanceStart} onEndChange={setPerformanceEnd} startLabel="공연 시작일" endLabel="공연 종료일" endOptional endOpenEnded /></CreateSection>
       <CreateSection title="모집 일정"><CalendarDateRangeField includeTime startDisabled={started} start={recruitmentStart} end={recruitmentEnd} onStartChange={setRecruitmentStart} onEndChange={setRecruitmentEnd} startLabel="모집 시작" endLabel="모집 종료" /></CreateSection>
       <CreateSection title="전형 일정" description="완료된 차수는 잠기고, 아직 진행하지 않은 전형은 최대 5차까지 수정할 수 있습니다."><AuditionScheduleEditor rounds={rounds} onChange={setRounds} lockedRounds={detail.lockedRounds} /></CreateSection>
       <CreateError id="posting-manage-error" message={formError} />

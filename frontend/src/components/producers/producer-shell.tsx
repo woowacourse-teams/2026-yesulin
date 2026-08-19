@@ -22,14 +22,14 @@ export function ProducerShell({ children }: { children: React.ReactNode }) {
           aria-label="예술in 공연 관리 홈"
           className="flex px-4 pb-3 pt-3"
         >
-          <span className="relative block h-14 w-[118px] shrink-0 overflow-hidden">
+          <span className="relative block h-14 w-24 shrink-0">
             <Image
               src="/images/yesulin-logo-transparent.png"
               alt="예술in"
               fill
-              sizes="118px"
+              sizes="96px"
               priority
-              className="object-cover object-center brightness-0 invert"
+              className="object-contain brightness-0 invert"
             />
           </span>
         </Link>

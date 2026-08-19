@@ -78,7 +78,7 @@ implementation_reference:
 | `sidebar-muted` | `#94A3B8` | 어두운 표면 보조 텍스트 |
 | `sidebar-line` | `rgba(255, 255, 255, 0.12)` | 어두운 표면 divider |
 | `kakao` / ink | `#FEE500` / `#191919` | 카카오 로그인에만 사용 |
-| `naver` | `#03C75A` | 네이버 로그인에만 사용 |
+| `naver` | `#03A94D` | 네이버 로그인에만 사용 |
 | Google neutral | 흰 배경 + `border` + `foreground` | Google 로그인 버튼 표면과 텍스트 |
 
 외부 브랜드색은 해당 로그인 버튼 밖에서 사용하지 않는다.

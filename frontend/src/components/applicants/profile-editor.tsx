@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { updateApplicantProfile } from "@/features/applicants/api";
 import { notifyApplicantProfileChanged } from "@/features/applicants/events";
+import { isValidEmail, isValidKoreanPhone } from "@/features/applicants/profile-input";
 import type { ApplicantAnswerValue, ApplicantProfileResponse, BodyMeasurements } from "@/features/applicants/types";
 import { APPLICATION_FIELD_OPTIONS } from "@/features/auditions/creation-types";
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
@@ -16,7 +17,7 @@ type ProfileTab = "BASIC" | "ADDITIONAL" | "PHOTOS" | "VIDEOS";
 type DraftValues = Record<string, ApplicantAnswerValue>;
 
 const BASIC_KEYS = ["NAME", "BODY", "BIRTH", "GENDER", "PHONE", "EMAIL", "ADDRESS"] as const;
-const ADDITIONAL_KEYS = ["SCHOOL", "CAREER", "LINK", "NATIONALITY", "COVER_LETTER", "SPECIALTY", "HOBBIES", "MILITARY"] as const;
+const ADDITIONAL_KEYS = ["SCHOOL", "LINK", "NATIONALITY", "MILITARY", "SPECIALTY", "HOBBIES", "COVER_LETTER", "CAREER"] as const;
 const INFORMATION_KEYS = new Set<string>([...BASIC_KEYS, ...ADDITIONAL_KEYS]);
 const tabs: readonly { id: ProfileTab; label: string; description: string }[] = [
   { id: "BASIC", label: "기본정보", description: "필수 프로필 정보" },
@@ -47,6 +48,8 @@ export function ProfileEditor({ profile, onSaved }: { readonly profile: Applican
   const save = async () => {
     if (!changeCount) return;
     if (basicFilled(values) < 8) { setError("기본정보의 필수 항목 8개를 모두 입력해 주세요."); return; }
+    if (typeof values.PHONE !== "string" || !isValidKoreanPhone(values.PHONE)) { setActiveTab("BASIC"); setError("연락처를 확인해 주세요. 예: 010-1234-5678"); return; }
+    if (typeof values.EMAIL !== "string" || !isValidEmail(values.EMAIL)) { setActiveTab("BASIC"); setError("이메일 주소 형식을 확인해 주세요. 예: actor@example.com"); return; }
     setSaving(true);
     setError("");
     try {

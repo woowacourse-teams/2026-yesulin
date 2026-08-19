@@ -4,7 +4,15 @@ import type { ApplicationFieldInput } from "@/features/auditions/creation-types"
 export function hasSubmittedValue(value: ApplicantAnswerValue): boolean {
   if (typeof value === "string") return value.trim().length > 0;
   if (typeof value === "number") return Number.isFinite(value);
-  if (Array.isArray(value)) return value.length > 0;
+  if (Array.isArray(value)) return value.some((candidate) => {
+    if (typeof candidate === "string") return candidate.trim().length > 0;
+    if (typeof candidate === "object" && candidate !== null) {
+      return Object.values(candidate).some((entry) =>
+        typeof entry === "number" ? Number.isFinite(entry) && entry > 0 : typeof entry === "string" && entry.trim().length > 0,
+      );
+    }
+    return false;
+  });
   if (typeof value === "object" && value !== null) {
     return Object.values(value).some((candidate) =>
       typeof candidate === "number"

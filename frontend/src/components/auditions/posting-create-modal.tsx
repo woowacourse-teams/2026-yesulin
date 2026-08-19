@@ -18,11 +18,12 @@ import { FieldInput, PrimaryButton, SecondaryButton } from "@/components/ui/cont
 const TITLE_ID = "posting-create-title";
 const INITIAL_FIELDS: readonly ApplicationFieldInput[] = defaultApplicationFields();
 const INITIAL_ROUNDS: readonly AuditionRoundInput[] = [{ round: 1, name: "1차 서류 심사", date: "", note: "제출한 지원서를 검토합니다." }];
-type ErrorSection = "TITLE" | "ROLES" | "SCHEDULE" | "APPLICATION" | "GENERAL";
+type ErrorSection = "TITLE" | "PERFORMANCE" | "ROLES" | "SCHEDULE" | "APPLICATION" | "GENERAL";
 type FormError = { readonly message: string; readonly section: ErrorSection };
 
 const SECTION_IDS: Record<Exclude<ErrorSection, "GENERAL">, string> = {
   TITLE: "posting-create-title-section",
+  PERFORMANCE: "posting-create-performance",
   ROLES: "posting-create-roles",
   SCHEDULE: "posting-create-schedule",
   APPLICATION: "posting-create-application",
@@ -33,7 +34,8 @@ function sectionForError(cause: unknown): ErrorSection {
   if (["POSTER_REQUIRED"].includes(cause.code ?? "")) return "GENERAL";
   if (["TITLE_REQUIRED"].includes(cause.code ?? "")) return "TITLE";
   if (["ROLE_REQUIRED", "INVALID_QUOTA", "INVALID_ROLE_CONDITION", "UNKNOWN_ROLE_TEMPLATE"].includes(cause.code ?? "")) return "ROLES";
-  if (["PERFORMANCE_START_REQUIRED", "INVALID_PERFORMANCE_PERIOD", "PERIOD_REQUIRED", "INVALID_PERIOD", "INVALID_ROUND_COUNT", "INVALID_ROUND_ORDER", "INVALID_ROUND_DATE"].includes(cause.code ?? "")) return "SCHEDULE";
+  if (["PERFORMANCE_START_REQUIRED", "INVALID_PERFORMANCE_PERIOD"].includes(cause.code ?? "")) return "PERFORMANCE";
+  if (["PERIOD_REQUIRED", "INVALID_PERIOD", "INVALID_ROUND_COUNT", "INVALID_ROUND_ORDER", "INVALID_ROUND_DATE"].includes(cause.code ?? "")) return "SCHEDULE";
   if (["INVALID_FIELD_LABEL", "FIELD_LABEL_TOO_LONG", "INVALID_PHOTO_REQUIREMENTS", "INVALID_VIDEO_REQUIREMENTS", "INVALID_CUSTOM_LENGTH"].includes(cause.code ?? "")) return "APPLICATION";
   if (["APPLICATION_GUIDE_TOO_LONG"].includes(cause.code ?? "")) return "GENERAL";
   return "GENERAL";
@@ -93,6 +95,12 @@ export function PostingCreateModal({ performanceId, performanceTitle, performanc
         <CreateSection id={SECTION_IDS.TITLE} title="1. 공고명" description="배우가 지원 링크에서 가장 먼저 확인할 공고 제목을 입력해 주세요.">
           <CreateError id="posting-create-title-error" message={formError?.section === "TITLE" ? formError.message : ""} />
           <div className={formError?.section === "TITLE" ? "mt-4" : ""}><CreateField label="공고명"><FieldInput data-autofocus="true" required maxLength={255} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="예: 2026 하반기 주·조연 배우 모집" /></CreateField></div>
+          <div id={SECTION_IDS.PERFORMANCE} className="scroll-m-6 mt-5 border-t border-border-soft pt-5">
+            <h4 className="text-sm font-bold">공연 일정</h4>
+            <p className="mt-1 text-sm leading-6 text-muted-strong">배우가 모집 일정과 구분해 공연 기간을 확인할 수 있도록 입력해 주세요.</p>
+            <CreateError id="posting-create-performance-error" message={formError?.section === "PERFORMANCE" ? formError.message : ""} />
+            <div className={formError?.section === "PERFORMANCE" ? "mt-4" : "mt-3"}><CalendarDateRangeField start={performanceStart} end={performanceEnd} onStartChange={setPerformanceStart} onEndChange={setPerformanceEnd} startLabel="공연 시작일" endLabel="공연 종료일" endOptional endOpenEnded /></div>
+          </div>
         </CreateSection>
         <CreateSection id={SECTION_IDS.ROLES} title="2. 배역 관리" description="공연에 등록한 배역 중 모집 분야를 고르고, 이 공고에 적용할 지원 조건을 설정합니다.">
           <CreateError id="posting-create-roles-error" message={formError?.section === "ROLES" ? formError.message : ""} />
@@ -101,10 +109,9 @@ export function PostingCreateModal({ performanceId, performanceTitle, performanc
           <label className={`mt-3 flex min-h-12 items-start gap-3 rounded-card border p-4 ${Object.keys(selectedRoles).length > 1 ? "cursor-pointer border-border bg-card" : "cursor-not-allowed border-border-soft bg-surface text-muted"}`}><input type="checkbox" disabled={Object.keys(selectedRoles).length < 2} checked={allowsMultipleRoles} onChange={(event) => setAllowsMultipleRoles(event.target.checked)} className="mt-0.5 h-5 w-5 accent-brand disabled:opacity-50" /><span><strong className="block text-sm">복수 배역 지원 허용</strong><span className="mt-1 block text-sm text-muted">{Object.keys(selectedRoles).length > 1 ? "한 지원서로 선택한 여러 배역에 함께 지원할 수 있습니다." : "모집 배역을 2개 이상 선택하면 설정할 수 있습니다."}</span></span></label>
           </div>
         </CreateSection>
-        <CreateSection id={SECTION_IDS.SCHEDULE} title="3. 일정" description="공연·모집·전형 일정을 순서대로 설정합니다.">
+        <CreateSection id={SECTION_IDS.SCHEDULE} title="3. 모집·전형 일정" description="배우 모집 기간과 이후 전형 일정을 순서대로 설정합니다.">
           <CreateError id="posting-create-schedule-error" message={formError?.section === "SCHEDULE" ? formError.message : ""} />
-          <div className={formError?.section === "SCHEDULE" ? "mt-4" : ""}><CalendarDateRangeField start={performanceStart} end={performanceEnd} onStartChange={setPerformanceStart} onEndChange={setPerformanceEnd} startLabel="공연 시작일" endLabel="공연 종료일" endOptional /></div>
-          <div className="mt-4"><CalendarDateRangeField includeTime start={recruitmentStart} end={recruitmentEnd} onStartChange={setRecruitmentStart} onEndChange={setRecruitmentEnd} startLabel="모집 시작" endLabel="모집 종료" /></div>
+          <div className={formError?.section === "SCHEDULE" ? "mt-4" : ""}><CalendarDateRangeField includeTime start={recruitmentStart} end={recruitmentEnd} onStartChange={setRecruitmentStart} onEndChange={setRecruitmentEnd} startLabel="모집 시작" endLabel="모집 종료" /></div>
           <div className="mt-4"><h4 className="mb-2 text-sm font-bold">지원 전형 일정</h4><AuditionScheduleEditor rounds={rounds} onChange={setRounds} /></div>
         </CreateSection>
         <CreateSection id={SECTION_IDS.APPLICATION} title="4. 지원 폼" description="기본정보, 추가정보, 사진, 영상과 추가 질문을 구성합니다."><CreateError id="posting-create-application-error" message={formError?.section === "APPLICATION" ? formError.message : ""} /><div className={formError?.section === "APPLICATION" ? "mt-4" : ""}><ApplicationFieldEditor fields={applicationFields} onChange={setApplicationFields} /></div></CreateSection>

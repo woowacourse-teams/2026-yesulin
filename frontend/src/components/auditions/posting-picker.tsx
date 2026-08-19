@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Breadcrumb } from "./breadcrumb";
 import { CreatePageButton } from "./create-form";
@@ -99,19 +100,21 @@ export function PostingPicker({ performanceId }: { performanceId: PerformanceId 
 
 function PostingRow({ posting, onEdit, onDelete }: { readonly posting: PostingSummary; readonly onEdit: () => void; readonly onDelete: () => void }) {
   const unavailable = posting.phase === "DRAFT" || posting.phase === "UPCOMING";
-  return <li className="px-4 py-5 transition-colors hover:bg-surface md:px-6 md:py-6">
-    <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+  const destination = unavailable ? auditionRoutes.posting(posting.id) : postingEntryHref(posting);
+  return <li className="group relative px-4 py-5 transition-colors hover:bg-surface focus-within:bg-surface md:px-6 md:py-6">
+    <Link href={destination} aria-label={`${posting.title} ${unavailable ? "공고 관리" : "지원자 관리"} 열기`} className="absolute inset-0 z-0 rounded-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-brand"><span className="sr-only">{posting.title} 열기</span></Link>
+    <div className="pointer-events-none relative z-1 flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
       <div className="min-w-0">
         <PhaseTag phase={posting.phase} />
-        <h3 className="mt-2 truncate text-lg font-bold">{posting.title}</h3>
+        <h3 className="mt-2 truncate text-lg font-bold transition-colors group-hover:text-brand">{posting.title}</h3>
       </div>
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="pointer-events-auto flex shrink-0 items-center gap-2">
         {posting.phase === "DRAFT" ? <SecondaryButton disabled className="px-3">공고 미게시</SecondaryButton> : <SecondaryLink href={publicApplicationRoute(posting.id)} className="px-3">공고 보기</SecondaryLink>}
         {unavailable ? <SecondaryButton disabled className="px-3">지원자 관리</SecondaryButton> : <PrimaryLink href={postingEntryHref(posting)} className="px-3">지원자 관리</PrimaryLink>}
         <PostingMoreMenu posting={posting} onEdit={onEdit} onDelete={onDelete} />
       </div>
     </div>
-    <dl className="mt-5 grid grid-cols-2 gap-y-5 border-t border-border-soft pt-5 sm:grid-cols-4 sm:divide-x sm:divide-border-soft">
+    <dl className="pointer-events-none relative z-1 mt-5 grid grid-cols-2 gap-y-5 border-t border-border-soft pt-5 sm:grid-cols-4 sm:divide-x sm:divide-border-soft">
       <PostingMetric label="모집 마감" value={posting.deadline} numeric />
       <PostingMetric label="지원 현황" value={`${posting.applicantCount} / ${posting.quotaTotal}명`} numeric />
       <PostingMetric label="모집 배역" value={`${posting.roleCount}개`} numeric />

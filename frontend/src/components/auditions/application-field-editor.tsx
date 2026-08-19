@@ -1,7 +1,8 @@
-import type { ApplicationFieldInput, PhotoRequirement, VideoRequirement } from "@/features/auditions/creation-types";
+import { APPLICATION_FIELD_OPTIONS, type ApplicationFieldInput, type PhotoRequirement, type VideoRequirement } from "@/features/auditions/creation-types";
 import { FieldInput } from "@/components/ui/controls";
 
 const fieldCardClass = "flex min-h-12 min-w-0 items-center gap-2 rounded-control border border-border bg-card px-3 py-2.5";
+const BODY_PARTS = APPLICATION_FIELD_OPTIONS.find((field) => field.key === "BODY")?.config.fields ?? [];
 
 export function ApplicationFieldEditor({ fields, onChange }: {
   readonly fields: readonly ApplicationFieldInput[];
@@ -21,7 +22,7 @@ export function ApplicationFieldEditor({ fields, onChange }: {
 
   return <div className="space-y-5">
     <FieldGroup title="기본정보" description="선택한 기본정보는 지원서에서 필수로 입력받습니다.">
-      <FieldChecks fields={basic} onToggle={(field, enabled) => patch(field.id, { enabled, required: enabled })} />
+      <FieldChecks fields={basic} onToggle={(field, enabled) => patch(field.id, { ...field, enabled, required: enabled })} />
     </FieldGroup>
     <FieldGroup title="추가정보" description="배우 프로필에서 불러올 수 있으며, 선택한 항목은 빈 값도 허용합니다.">
       <FieldChecks fields={additional} onToggle={(field, enabled) => patch(field.id, { enabled, required: false })} />
@@ -54,7 +55,23 @@ function FieldGroup({ title, description, children }: { readonly title: string; 
 }
 
 function FieldChecks({ fields, onToggle }: { readonly fields: readonly ApplicationFieldInput[]; readonly onToggle: (field: ApplicationFieldInput, enabled: boolean) => void }) {
-  return <div className="grid gap-2 sm:grid-cols-2">{fields.map((field) => <label key={field.id} className={fieldCardClass}><input type="checkbox" checked={field.enabled} onChange={(event) => onToggle(field, event.target.checked)} className="h-5 w-5 shrink-0 accent-brand" /><span className={field.enabled ? "text-sm text-foreground" : "text-sm text-muted"}>{field.label}</span></label>)}</div>;
+  const toggleBodyPart = (field: ApplicationFieldInput, partKey: string, enabled: boolean) => {
+    const selected = new Set(field.config.fields?.map((part) => part.key) ?? []);
+    if (enabled) selected.add(partKey);
+    else selected.delete(partKey);
+    const selectedParts = BODY_PARTS.filter((part) => selected.has(part.key));
+    const fieldEnabled = selectedParts.length > 0;
+    const label = selectedParts.length === 1 ? selectedParts[0].label : "키·몸무게";
+    onToggle({ ...field, label, config: { ...field.config, fields: selectedParts } }, fieldEnabled);
+  };
+
+  return <div className="grid gap-2 sm:grid-cols-2">{fields.flatMap((field) => {
+    if (field.id === "BODY") {
+      const selected = new Set(field.config.fields?.map((part) => part.key) ?? []);
+      return BODY_PARTS.map((part) => <label key={`${field.id}-${part.key}`} className={fieldCardClass}><input type="checkbox" checked={field.enabled && selected.has(part.key)} onChange={(event) => toggleBodyPart(field, part.key, event.target.checked)} className="h-5 w-5 shrink-0 accent-brand" /><span className={field.enabled && selected.has(part.key) ? "text-sm text-foreground" : "text-sm text-muted"}>{part.label}</span></label>);
+    }
+    return [<label key={field.id} className={fieldCardClass}><input type="checkbox" checked={field.enabled} onChange={(event) => onToggle(field, event.target.checked)} className="h-5 w-5 shrink-0 accent-brand" /><span className={field.enabled ? "text-sm text-foreground" : "text-sm text-muted"}>{field.label}</span></label>];
+  })}</div>;
 }
 
 function PhotoRequirements({ value, onChange }: { readonly value: readonly PhotoRequirement[]; readonly onChange: (value: readonly PhotoRequirement[]) => void }) {

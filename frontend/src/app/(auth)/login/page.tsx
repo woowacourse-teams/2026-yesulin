@@ -15,10 +15,10 @@ export default async function LoginPage({ searchParams }: { readonly searchParam
   return (
     <AuthShell
       intent={applicationContext ? "application" : "default"}
-      title={applicationContext ? "지원서 제출을 계속할게요" : "다시 만나 반가워요"}
+      title={applicationContext ? "지원서 제출을 계속할게요" : "로그인하고 이어가세요"}
       description={applicationContext
         ? "소셜 계정으로 로그인하면 작성하던 지원서의 최종 검토 화면으로 돌아갑니다."
-        : <span className="sm:whitespace-nowrap">로그인하고 지원서 제출부터 캐스팅 관리까지 편리하게 이어가세요.</span>}
+        : <span className="sm:whitespace-nowrap">지원서 제출부터 캐스팅 관리까지 계정에서 편리하게 이어갈 수 있어요.</span>}
       footer={applicationContext
         ? <span>처음 이용해도 소셜 로그인과 함께 배우 계정이 자동으로 만들어집니다.</span>
         : <><span>기획사/제작사 계정이 없나요?</span>{" "}<Link href="/signup" className="font-semibold text-brand hover:text-brand-strong hover:underline">기획사/제작사 회원가입</Link></>}

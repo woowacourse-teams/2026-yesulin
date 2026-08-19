@@ -118,15 +118,17 @@ export function applicationStepIssue({
     const videoField = step.fields.find((field) => field.inputType === "URL");
     const requestedPhotos = photosField?.config.photoRequirements?.reduce((sum, item) => sum + item.count, 0);
     const photoLimit = Math.min(MAX_PHOTO_COUNT, Math.max(1, requestedPhotos ?? photosField?.config.maxCount ?? MAX_PHOTO_COUNT));
+    const readyPhotoCount = photos.filter((photo) => photo.status === "READY").length;
     if (photos.some((photo) => photo.status === "UPLOADING") && photosField) return { fieldId: photosField.id, message: "사진 업로드가 완료될 때까지 기다려 주세요." };
-    if (photos.filter((photo) => photo.status === "READY").length > photoLimit && photosField) return { fieldId: photosField.id, message: `${photosField.label}은(는) 최대 ${photoLimit}장까지 등록할 수 있어요.` };
-    if (photosField?.required && photos.filter((photo) => photo.status === "READY").length < photoLimit) return { fieldId: photosField.id, message: `${photosField.label}을(를) 요구사항에 맞게 ${photoLimit}장 등록해 주세요.` };
+    if (readyPhotoCount > photoLimit && photosField) return { fieldId: photosField.id, message: `${photosField.label}은(는) 최대 ${photoLimit}장까지 등록할 수 있어요.` };
+    if (photosField && (photosField.required || readyPhotoCount > 0) && readyPhotoCount < photoLimit) return { fieldId: photosField.id, message: `${photosField.label}을(를) 요구사항에 맞게 ${photoLimit}장 등록해 주세요.` };
     const videoRequirements = videoField?.config.videoRequirements ?? [];
     if (videoField && videoRequirements.length > 0) {
+      const submittedVideoCount = videoRequirements.filter((requirement) => (values[`${videoField.id}.${requirement.id}`] ?? "").trim()).length;
       for (const requirement of videoRequirements) {
         const value = values[`${videoField.id}.${requirement.id}`] ?? "";
         if (value.trim() && !youtubeVideoId(value)) return { fieldId: `${videoField.id}.${requirement.id}`, message: `${requirement.description}의 유튜브 링크를 정확히 입력해 주세요.` };
-        if (videoField.required && !youtubeVideoId(value)) return { fieldId: `${videoField.id}.${requirement.id}`, message: `${requirement.description} 링크를 입력해 주세요.` };
+        if ((videoField.required || submittedVideoCount > 0) && !youtubeVideoId(value)) return { fieldId: `${videoField.id}.${requirement.id}`, message: `${requirement.description} 링크를 입력해 주세요.` };
       }
     } else {
       if (videoField && videoUrl.trim() && !youtubeVideoId(videoUrl)) return { fieldId: videoField.id, message: `${videoField.label}의 유튜브 링크를 정확히 입력해 주세요.` };

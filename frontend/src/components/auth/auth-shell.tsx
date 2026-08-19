@@ -28,7 +28,7 @@ export function AuthShell({ title, description, children, footer, intent = "defa
   const applicationIntent = intent === "application";
   return (
     <main className="min-h-screen bg-surface lg:grid lg:grid-cols-[minmax(360px,0.82fr)_minmax(560px,1.18fr)]">
-      <section className="relative hidden min-h-screen overflow-hidden bg-sidebar px-12 py-10 text-white lg:flex lg:flex-col xl:px-16 xl:py-12">
+      <section className="relative hidden overflow-hidden bg-sidebar px-12 py-10 text-white lg:sticky lg:top-0 lg:flex lg:h-screen lg:self-start lg:flex-col xl:px-16 xl:py-12">
         <div aria-hidden="true" className="absolute -left-32 top-1/4 h-80 w-80 rounded-full bg-brand/25 blur-3xl" />
         <div aria-hidden="true" className="absolute -right-40 bottom-[-80px] h-96 w-96 rounded-full bg-brand/15 blur-3xl" />
 
