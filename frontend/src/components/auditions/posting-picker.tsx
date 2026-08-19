@@ -99,11 +99,12 @@ export function PostingPicker({ performanceId }: { performanceId: PerformanceId 
 }
 
 function PostingRow({ posting, onEdit, onDelete }: { readonly posting: PostingSummary; readonly onEdit: () => void; readonly onDelete: () => void }) {
+  const [menuOpen, setMenuOpen] = useState(false);
   const unavailable = posting.phase === "DRAFT" || posting.phase === "UPCOMING";
   const destination = unavailable ? auditionRoutes.posting(posting.id) : postingEntryHref(posting);
-  return <li className="group relative px-4 py-5 transition-colors hover:bg-surface focus-within:bg-surface md:px-6 md:py-6">
+  return <li className={`group relative px-4 py-5 transition-colors hover:bg-surface focus-within:bg-surface md:px-6 md:py-6 ${menuOpen ? "z-20" : "z-0"}`}>
     <Link href={destination} aria-label={`${posting.title} ${unavailable ? "공고 관리" : "지원자 관리"} 열기`} className="absolute inset-0 z-0 rounded-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-brand"><span className="sr-only">{posting.title} 열기</span></Link>
-    <div className="pointer-events-none relative z-1 flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+    <div className={`pointer-events-none relative flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between ${menuOpen ? "z-10" : "z-1"}`}>
       <div className="min-w-0">
         <PhaseTag phase={posting.phase} />
         <h3 className="mt-2 truncate text-lg font-bold transition-colors group-hover:text-brand">{posting.title}</h3>
@@ -111,7 +112,7 @@ function PostingRow({ posting, onEdit, onDelete }: { readonly posting: PostingSu
       <div className="pointer-events-auto flex shrink-0 items-center gap-2">
         {posting.phase === "DRAFT" ? <SecondaryButton disabled className="px-3">공고 미게시</SecondaryButton> : <SecondaryLink href={publicApplicationRoute(posting.id)} className="px-3">공고 보기</SecondaryLink>}
         {unavailable ? <SecondaryButton disabled className="px-3">지원자 관리</SecondaryButton> : <PrimaryLink href={postingEntryHref(posting)} className="px-3">지원자 관리</PrimaryLink>}
-        <PostingMoreMenu posting={posting} onEdit={onEdit} onDelete={onDelete} />
+        <PostingMoreMenu posting={posting} open={menuOpen} onOpenChange={setMenuOpen} onEdit={onEdit} onDelete={onDelete} />
       </div>
     </div>
     <dl className="pointer-events-none relative z-1 mt-5 grid grid-cols-2 gap-y-5 border-t border-border-soft pt-5 sm:grid-cols-4 sm:divide-x sm:divide-border-soft">
@@ -127,8 +128,7 @@ function PostingMetric({ label, value, numeric = false, progress }: { readonly l
   return <div className="min-w-0 sm:px-4 first:pl-0 last:pr-0"><dt className="text-xs font-medium text-muted">{label}</dt><dd className={`${numeric ? "num" : ""} mt-1 truncate text-sm font-semibold text-foreground`}>{value}</dd>{progress !== undefined ? <div className="mt-2 flex max-w-40 items-center gap-2"><span className="h-1 flex-1 overflow-hidden rounded-full bg-border-soft"><i className="block h-full bg-pass" style={{ width: `${progress}%` }} /></span><span className="num text-xs text-muted">{progress}%</span></div> : null}</div>;
 }
 
-function PostingMoreMenu({ posting, onEdit, onDelete }: { readonly posting: PostingSummary; readonly onEdit: () => void; readonly onDelete: () => void }) {
-  const [open, setOpen] = useState(false);
+function PostingMoreMenu({ posting, open, onOpenChange, onEdit, onDelete }: { readonly posting: PostingSummary; readonly open: boolean; readonly onOpenChange: (open: boolean) => void; readonly onEdit: () => void; readonly onDelete: () => void }) {
   const [copying, setCopying] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const toast = useToast();
@@ -136,10 +136,10 @@ function PostingMoreMenu({ posting, onEdit, onDelete }: { readonly posting: Post
   useEffect(() => {
     if (!open) return;
     const closeOnOutsideClick = (event: PointerEvent) => {
-      if (!containerRef.current?.contains(event.target as Node)) setOpen(false);
+      if (!containerRef.current?.contains(event.target as Node)) onOpenChange(false);
     };
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") onOpenChange(false);
     };
     document.addEventListener("pointerdown", closeOnOutsideClick);
     document.addEventListener("keydown", closeOnEscape);
@@ -147,14 +147,14 @@ function PostingMoreMenu({ posting, onEdit, onDelete }: { readonly posting: Post
       document.removeEventListener("pointerdown", closeOnOutsideClick);
       document.removeEventListener("keydown", closeOnEscape);
     };
-  }, [open]);
+  }, [open, onOpenChange]);
 
   async function copyLink() {
     setCopying(true);
     try {
       await navigator.clipboard.writeText(`${window.location.origin}${publicApplicationRoute(posting.id)}`);
       toast("지원 링크를 복사했습니다.", { type: "success" });
-      setOpen(false);
+      onOpenChange(false);
     } catch {
       toast("지원 링크를 복사하지 못했습니다. 다시 시도해 주세요.", { type: "error" });
     } finally {
@@ -163,12 +163,12 @@ function PostingMoreMenu({ posting, onEdit, onDelete }: { readonly posting: Post
   }
 
   return <div ref={containerRef} className="relative">
-    <button type="button" aria-label={`${posting.title} 더보기`} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((current) => !current)} className="grid h-11 w-11 place-items-center rounded-control border border-border bg-card text-muted-strong transition-colors hover:border-brand-line hover:bg-brand-soft hover:text-brand"><svg aria-hidden="true" viewBox="0 0 20 20" className="h-5 w-5 fill-current"><circle cx="4" cy="10" r="1.4" /><circle cx="10" cy="10" r="1.4" /><circle cx="16" cy="10" r="1.4" /></svg></button>
+    <button type="button" aria-label={`${posting.title} 더보기`} aria-haspopup="menu" aria-expanded={open} onClick={() => onOpenChange(!open)} className="grid h-11 w-11 place-items-center rounded-control border border-border bg-card text-muted-strong transition-colors hover:border-brand-line hover:bg-brand-soft hover:text-brand"><svg aria-hidden="true" viewBox="0 0 20 20" className="h-5 w-5 fill-current"><circle cx="4" cy="10" r="1.4" /><circle cx="10" cy="10" r="1.4" /><circle cx="16" cy="10" r="1.4" /></svg></button>
     {open ? <div role="menu" className="absolute right-0 top-[calc(100%+8px)] z-20 w-44 rounded-card border border-border bg-card p-2 shadow-[var(--shadow-2)]">
       <button type="button" role="menuitem" disabled={copying} onClick={copyLink} className="flex min-h-10 w-full items-center rounded-control px-3 text-left text-sm font-semibold text-muted-strong hover:bg-surface hover:text-foreground disabled:text-muted">{copying ? "복사 중…" : "지원 링크 복사"}</button>
-      <button type="button" role="menuitem" onClick={() => { setOpen(false); onEdit(); }} className="flex min-h-10 w-full items-center rounded-control px-3 text-left text-sm font-semibold text-muted-strong hover:bg-surface hover:text-foreground">공고 수정</button>
+      <button type="button" role="menuitem" onClick={() => { onOpenChange(false); onEdit(); }} className="flex min-h-10 w-full items-center rounded-control px-3 text-left text-sm font-semibold text-muted-strong hover:bg-surface hover:text-foreground">공고 수정</button>
       <div className="my-1 border-t border-border-soft" />
-      <button type="button" role="menuitem" onClick={() => { setOpen(false); onDelete(); }} className="flex min-h-10 w-full items-center rounded-control px-3 text-left text-sm font-semibold text-fail hover:bg-fail-bg">삭제</button>
+      <button type="button" role="menuitem" onClick={() => { onOpenChange(false); onDelete(); }} className="flex min-h-10 w-full items-center rounded-control px-3 text-left text-sm font-semibold text-fail hover:bg-fail-bg">삭제</button>
     </div> : null}
   </div>;
 }
