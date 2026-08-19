@@ -142,7 +142,7 @@ PUT    /api/v1/auditions/{auditionId}/basic-information
 - 공연 생성·수정은 `poster`, 공연명, 장소명과 `roadAddress`, `detailAddress`, `zonecode`, `latitude`, `longitude`, 그리고 이름·한 줄 설명만 가진 배역 템플릿을 다룬다.
 - 신규 공고는 공연 포스터를 복사한 독립 `posterUrl` 대표 이미지 스냅샷과 선택 `detailImageUrl`, 필수 공연 시작일·선택 공연 종료일, 분 단위 `recruitmentStart`·`recruitmentEnd`, 선택 `rehearsalVenue`·구조화된 `rehearsalVenueAddress`, 1~5개의 전형을 가진다. 공연 종료일을 보내지 않거나 빈 값으로 두면 오픈런으로 해석한다. 연습 장소 주소는 공연 주소와 같이 `roadAddress`, `detailAddress`, `zonecode`, nullable `latitude`·`longitude`로 구성한다. 대표 이미지는 목록·공유 미리보기에, 상세 이미지는 공개 공고 본문에 사용한다. 공연 장소는 공연에서 읽고 공고에 중복 저장하지 않는다. 각 전형은 차수, 이름, 날짜와 안내 사항으로 구성한다. 상태는 `DRAFT`, `UPCOMING`, `OPEN`, `RECRUIT_CLOSED`, `FINISHED`를 사용한다.
 - 공고의 모집 분야는 공연 배역을 참조하되 모집 인원·성별·최소/최대 나이를 공고 자체 값으로 복사한다. 신규 공고는 배역별 모집만 만들고 과거 `isOpenCall`은 읽기 호환만 유지한다.
-- 지원 안내는 최대 2,000자다. 지원 폼은 선택한 기본 정보(필수), 선택한 추가 정보(nullable), 사진 설명 최대 255자의 `{description, count}` 배열(기본 1장·합계 최대 10), 영상 설명 최대 255자의 `{description}` 배열(최대 10), 질문 문구 최대 255자·답변 최대 2,000자·필수 여부를 가진 텍스트 커스텀 질문으로 구성한다. 키와 몸무게는 각각 `HEIGHT`, `WEIGHT` 독립 필드·답변으로 전달하며 수집하지 않은 값은 심사 읽기 모델에서 `null`이다. 새 공고의 영상 요구 배열은 비어 있다.
+- 지원 안내는 최대 2,000자다. 지원 폼은 선택한 기본 정보(필수), 선택한 추가 정보(nullable), 사진 설명 최대 255자의 `{description, count}` 배열(기본 1장·합계 최대 10), 영상 설명 최대 255자의 `{description}` 배열(최대 5), 질문 문구 최대 255자·답변 최대 2,000자·필수 여부를 가진 텍스트 커스텀 질문으로 구성한다. 키와 몸무게는 각각 `HEIGHT`, `WEIGHT` 독립 필드·답변으로 전달하며 수집하지 않은 값은 심사 읽기 모델에서 `null`이다. 새 공고의 영상 요구 배열은 비어 있다.
 - `PATCH /api/v1/postings/{postingId}`는 공연·모집·전형 일정만 받는다. 모집 시작 또는 첫 지원서 뒤에는 모집 시작을 바꿀 수 없고 모집 종료는 연장만 가능하며 완료한 전형은 수정할 수 없다.
 
 ## 심사

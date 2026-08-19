@@ -2,6 +2,7 @@
 status: accepted
 date: 2026-08-18
 agent-required: true
+superseded_in_part_by: 0019
 ---
 
 # 0015. 공고 콘텐츠 제한과 작성 중 상태
@@ -13,6 +14,8 @@ agent-required: true
 ## 결정
 
 지원 안내는 최대 2,000자, 커스텀 질문 문구와 사진·영상 요구 설명 같은 한 줄 문구는 최대 255자, 커스텀 텍스트 답변은 문항별 최대 2,000자로 제한한다. 새 공고의 사진 요구는 1장, 영상 요구는 0개로 시작한다. 기획사/제작사는 제출할 영상의 설명을 최대 10개까지 추가하고 배우는 각 요구에 맞는 YouTube 링크를 하나씩 제출한다.
+
+영상 요구 상한 10개 결정은 [0019](./0019-limit-posting-video-requirements-to-five.md)에서 5개로 부분 대체됐다.
 
 공고 상태는 `DRAFT`(작성 중), `UPCOMING`(진행 예정), `OPEN`(진행 중), `RECRUIT_CLOSED`(접수 마감), `FINISHED`(전형 종료)로 통일한다. `DRAFT`는 공개 공고와 배우 관리에서 제외한다.
 

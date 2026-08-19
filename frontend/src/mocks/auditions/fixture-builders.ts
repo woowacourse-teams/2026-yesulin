@@ -1,5 +1,6 @@
 import {
   APPLICATION_FIELD_OPTIONS,
+  MAX_VIDEO_REQUIREMENTS,
   type ApplicationFieldInput,
   type ApplicationFieldKey,
   type AuditionRoundInput,
@@ -35,7 +36,7 @@ export function applicationFieldFixture({
     const config = field.key === "PHOTOS" && photoRequirements
       ? { ...field.config, maxCount: photoRequirements.reduce((sum, item) => sum + item.count, 0), photoRequirements }
       : field.key === "VIDEO" && videoRequirements
-        ? { ...field.config, maxCount: 10, videoRequirements }
+        ? { ...field.config, maxCount: MAX_VIDEO_REQUIREMENTS, videoRequirements }
         : field.config;
     return {
       id: field.key,

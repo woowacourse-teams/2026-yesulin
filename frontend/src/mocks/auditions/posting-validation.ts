@@ -1,4 +1,4 @@
-import type { ApplicationFieldInput, AuditionRoundInput, PerformanceRoleTemplate, PhotoRequirement, PostingRoleInput, VideoRequirement } from "@/features/auditions/creation-types";
+import { MAX_VIDEO_REQUIREMENTS, type ApplicationFieldInput, type AuditionRoundInput, type PerformanceRoleTemplate, type PhotoRequirement, type PostingRoleInput, type VideoRequirement } from "@/features/auditions/creation-types";
 
 export type PostingDraft = {
   readonly title: string;
@@ -44,7 +44,7 @@ export function validatePostingDraft(draft: PostingDraft, templates: readonly Pe
   if (photoField && (photoRequirements.length < 1 || photoTotal > 10 || photoRequirements.some((item) => !hasText(item.description) || item.description.length > 255 || !Number.isInteger(item.count) || item.count < 1))) return { code: "INVALID_PHOTO_REQUIREMENTS", message: "프로필 사진 설명은 255자 이하로 적고 전체 장수를 확인해 주세요." };
   const videoField = draft.applicationFields.find((field) => field.id === "VIDEO" && field.enabled);
   const videoRequirements: readonly VideoRequirement[] = videoField?.config.videoRequirements ?? [];
-  if (videoField && (videoRequirements.length < 1 || videoRequirements.length > 10 || videoRequirements.some((item) => !hasText(item.description) || item.description.length > 255))) return { code: "INVALID_VIDEO_REQUIREMENTS", message: "영상 설명은 255자 이하로 적고 요구사항을 1개 이상 10개 이하로 입력해 주세요." };
+  if (videoField && (videoRequirements.length < 1 || videoRequirements.length > MAX_VIDEO_REQUIREMENTS || videoRequirements.some((item) => !hasText(item.description) || item.description.length > 255))) return { code: "INVALID_VIDEO_REQUIREMENTS", message: `영상 설명은 255자 이하로 적고 요구사항을 1개 이상 ${MAX_VIDEO_REQUIREMENTS}개 이하로 입력해 주세요.` };
   if (draft.applicationFields.some((field) => field.custom && field.config.maxLength !== 2000)) return { code: "INVALID_CUSTOM_LENGTH", message: "추가 질문의 답변 길이는 최대 2,000자로 설정해 주세요." };
   return null;
 }

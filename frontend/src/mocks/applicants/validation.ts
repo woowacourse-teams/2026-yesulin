@@ -1,4 +1,4 @@
-import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
+import { MAX_VIDEO_REQUIREMENTS, type ApplicationFieldInput } from "@/features/auditions/creation-types";
 import type { ApplicantAnswerValue } from "@/features/applicants/types";
 
 type AnswerInput = { readonly key: string; readonly value: ApplicantAnswerValue };
@@ -62,7 +62,7 @@ export function validateApplicationAnswers(fields: readonly ApplicationFieldInpu
     }
     if (field.section === "MATERIALS" && field.inputType === "URL" && Array.isArray(answer.value)) {
       const requested = field.config.videoRequirements?.length ?? 0;
-      if (answer.value.length !== requested || requested > 10) return { code: "INVALID_VIDEO_COUNT", message: `${field.label}는 요구사항에 맞게 ${requested}개 제출해 주세요.` };
+      if (answer.value.length !== requested || requested > MAX_VIDEO_REQUIREMENTS) return { code: "INVALID_VIDEO_COUNT", message: `${field.label}는 요구사항에 맞게 ${requested}개 제출해 주세요.` };
     }
     if (typeof answer.value === "string" && answer.value.trim()) {
       if (field.inputType === "DATE" && !/^\d{4}-\d{2}-\d{2}$/.test(answer.value)) return { code: "INVALID_ANSWER_TYPE", message: `${field.label}의 날짜 형식을 확인해 주세요.` };

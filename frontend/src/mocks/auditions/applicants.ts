@@ -67,6 +67,9 @@ const PRIMARY_APPLICANT: MockApplicant = {
   videos: [
     { label: "자유 연기 영상", url: "https://youtu.be/aqz-KE-bpKQ" },
     { label: "지정 대사 영상", url: "https://youtu.be/M7lc1UVf-VE" },
+    { label: "감정 연기 영상", url: "https://youtu.be/ysz5S6PUM-U" },
+    { label: "노래 영상", url: "https://youtu.be/ScMzIvxBSi4" },
+    { label: "움직임 영상", url: "https://youtu.be/eRsGyueVLvQ" },
   ],
 };
 

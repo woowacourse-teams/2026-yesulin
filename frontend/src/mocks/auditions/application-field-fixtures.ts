@@ -28,6 +28,9 @@ export function screeningFlowApplicationFixture(): readonly ApplicationFieldInpu
     videoRequirements: [
       { id: "acting-video", description: "자유 연기 영상" },
       { id: "script-video", description: "지정 대사 영상" },
+      { id: "emotion-video", description: "감정 연기 영상" },
+      { id: "singing-video", description: "노래 영상" },
+      { id: "movement-video", description: "움직임 영상" },
     ],
     customQuestions: [{ id: "MOTIVATION", label: "이 작품에 지원한 동기를 적어 주세요." }],
   });

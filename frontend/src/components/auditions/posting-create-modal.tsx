@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { AuditionRequestError, createPosting } from "@/features/auditions/api";
-import { defaultApplicationFields, type ApplicationFieldInput, type AuditionRoundInput, type PerformanceRoleTemplate } from "@/features/auditions/creation-types";
+import { defaultApplicationFields, MAX_VIDEO_REQUIREMENTS, type ApplicationFieldInput, type AuditionRoundInput, type PerformanceRoleTemplate } from "@/features/auditions/creation-types";
 import { notifyAuditionTreeChanged } from "@/features/auditions/events";
 import { publicApplicationRoute } from "@/features/auditions/routes";
 import type { PerformanceId } from "@/features/auditions/types";
@@ -78,7 +78,7 @@ export function PostingCreateModal({ performanceId, performanceTitle, performanc
     if (photoField && (photoRequirements.some((item) => !item.description.trim() || item.count < 1) || photoTotal > 10)) { setFormError({ message: "프로필 사진 요구사항과 전체 장수를 확인해 주세요.", section: "APPLICATION" }); return; }
     const videoField = applicationFields.find((field) => field.id === "VIDEO" && field.enabled);
     const videoRequirements = videoField?.config.videoRequirements ?? [];
-    if (videoField && (videoRequirements.length < 1 || videoRequirements.length > 10 || videoRequirements.some((item) => !item.description.trim()))) { setFormError({ message: "영상 링크 요구사항을 1개 이상 10개 이하로 입력해 주세요.", section: "APPLICATION" }); return; }
+    if (videoField && (videoRequirements.length < 1 || videoRequirements.length > MAX_VIDEO_REQUIREMENTS || videoRequirements.some((item) => !item.description.trim()))) { setFormError({ message: `영상 링크 요구사항을 1개 이상 ${MAX_VIDEO_REQUIREMENTS}개 이하로 입력해 주세요.`, section: "APPLICATION" }); return; }
     setSaving(true); setFormError(null);
     try {
       const response = await createPosting({ performanceId, isOpenCall: false, allowsMultipleRoles, posterUrl: performancePosterUrl, detailImageUrl: "", title, performanceStart, performanceEnd, recruitmentStart, recruitmentEnd, rehearsalVenue: "", rehearsalVenueAddress: { roadAddress: "", detailAddress: "", zonecode: "", latitude: null, longitude: null }, roles, rounds, applicationFields, applicationGuide: "" });
