@@ -58,9 +58,11 @@ implementation_reference:
 
 | State | Foreground | Background | Usage |
 |---|---|---|---|
-| Success / Pass / Open | `#16A34A` | `#F0FDF4` | 성공, 합격, 모집 중 |
+| Success / Pass | `#16A34A` | `#F0FDF4` | 성공, 합격 |
 | Error / Fail | `#DC2626` | `#FEF2F2` | 오류, 불합격, 파괴적 행동 |
-| Warning / Closed | `#D97706` | `#FFF7ED` | 주의, 모집 마감, 조건 경고 |
+| Open | `#246BFE` | `#246BFE` | 진행 중 공고 |
+| Warning | `#D97706` | `#FFF7ED` | 주의, 조건 경고 |
+| Recruit closed | `#475569` | `#F1F5F9` | 접수 마감 공고 |
 | Pending / Absent | `#475569` | `#F1F5F9` | 검토 대기, 불참, 중립 상태 |
 | Etc | `#5B50A6` | `#F0EFFC` | 기타 심사 결과 |
 | Upcoming | `#194FC4` | `#EEF5FF` | 시작 전 공고 |
@@ -89,6 +91,7 @@ implementation_reference:
 - 선택 상태는 목적에 따라 `brand + white`(주요 선택) 또는 `foreground + white`(필터·세그먼트)를 사용한다.
 - Disabled는 보통 `border` 배경과 `muted` 텍스트를 쓰고 그림자와 transform을 제거한다.
 - Error는 `fail` border/text와 `fail-bg` 안내 배경을 함께 사용한다.
+- 공고 상태는 진행 중만 brand 단색으로 강조하고, 진행 예정은 brand 윤곽, 접수 마감은 중립 slate, 전형 종료는 foreground로 구분한다.
 - 상태 배지는 상태명과 색 점을 함께 표시한다. 사진 위에서는 흰 반투명 배경을 사용해 대비를 확보한다.
 - 짙은 배경에서는 `white`, `sidebar-text`, `sidebar-muted`, `brand-line`만 위계에 맞게 사용한다.
 

@@ -26,23 +26,12 @@ export function DesktopBoardToolbar({ onOpenFilter }: { onOpenFilter: () => void
   const detailCount = activeDetailFilterCount(filters);
   const canClose = !roundClosed && counts.all > 0 && counts.pending === 0;
   const nextRoundName = board.rounds[roundIndex + 1]?.name;
-  const countOf = (status: StatusFilter) => {
-    if (status === "ALL") return counts.done;
-    return {
-      PASS: counts.pass,
-      FAIL: counts.fail,
-      ABSENT: counts.absent,
-      ETC: counts.etc,
-      PENDING: counts.pending,
-    }[status];
-  };
-
   const changeWork = (work: WorkMode) => {
     clearSelection();
     setFilters((current) => ({
       ...current,
       work,
-      status: work === "DONE" ? "PASS" : "ALL",
+      status: "ALL",
     }));
   };
 
@@ -57,7 +46,6 @@ export function DesktopBoardToolbar({ onOpenFilter }: { onOpenFilter: () => void
             className="gap-1.5 px-2.5 xl:px-3"
           >
             {tab.label}
-            <span className="num opacity-65">{tab.mode === "PENDING" ? counts.pending : counts.done}</span>
           </SegmentButton>
         ))}
       </div>
@@ -72,7 +60,7 @@ export function DesktopBoardToolbar({ onOpenFilter }: { onOpenFilter: () => void
           >
             {(["ALL", ...selectableStatuses(board.round)] as const).map((status) => (
               <option key={status} value={status}>
-                {status === "ALL" ? "전체" : STATUS_LABELS[status as ReviewStatus]} {countOf(status)}
+                {status === "ALL" ? "전체" : STATUS_LABELS[status as ReviewStatus]}
               </option>
             ))}
           </select>

@@ -44,3 +44,4 @@
 - [관리자 배역별 지원 현황 진입 통일](./0018-always-show-admin-role-picker.md) — accepted · agent-required
 - [공고 영상 요구사항 상한 5개](./0019-limit-posting-video-requirements-to-five.md) — accepted · agent-required
 - [공고명 수정 허용](./0020-allow-posting-title-edit.md) — accepted · agent-required
+- [심사 완료 결과 필터와 차수별 일괄 작업](./0021-review-result-filter-and-round-actions.md) — accepted · agent-required

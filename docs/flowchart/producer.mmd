@@ -25,6 +25,8 @@ flowchart TB
     POSTING_DETAIL --> EDIT_POSTING["공고명·공연·모집·전형 일정 수정<br>PATCH /api/v1/postings/{postingId}<br>또는 공고 삭제"] & ROLES["배역 목록<br>GET /api/v1/postings/{postingId}/roles"]
     ROLES --> CHOOSE_ROLE["심사할 배역 선택<br>배역이 하나여도 동일하게 표시"]
     CHOOSE_ROLE --> BOARD["배역별 심사 보드 첫 페이지<br>복수 배역 지원서는 각 배역에 표시<br>GET /api/v1/roles/{roleId}/screening-rounds/{round}/applications"]
+    BOARD --> RESULT_FILTER["검토 완료 → 결과 조건 선택<br>합격·불합격·불참·기타"]
+    RESULT_FILTER --> GROUP_ACTION["현재 결과 목록 일괄 작업<br>전체 인쇄 또는 연락처 모아보기"]
     BOARD --> MORE{"다음 페이지 필요?"}
     MORE -- 예: cursor --> BOARD
     MORE -- 아니오 --> SELECT["배우 선택"]
@@ -48,4 +50,4 @@ flowchart TB
     class ACTIVE,MORE,DONE,LAST decisionNode
     class NAV,PERF,NEW_PERF,EDIT_PERF,CREATE_PERF perfNode
     class POSTINGS,CREATE_POSTING,POSTING_DETAIL,EDIT_POSTING,ROLES postingNode
-    class BOARD,CHOOSE_ROLE,SELECT,APP_DETAIL,REVIEW,CLOSE screeningNode
+    class BOARD,CHOOSE_ROLE,RESULT_FILTER,GROUP_ACTION,SELECT,APP_DETAIL,REVIEW,CLOSE screeningNode

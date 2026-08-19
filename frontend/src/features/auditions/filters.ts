@@ -34,7 +34,7 @@ export const emptyNumeric = (): Record<NumericField, NumericCondition | null> =>
 
 export const initialFilters = (work: WorkMode): AuditionFilters => ({
   work,
-  status: work === "DONE" ? "PASS" : "ALL",
+  status: "ALL",
   query: "",
   genders: new Set(),
   numeric: emptyNumeric(),

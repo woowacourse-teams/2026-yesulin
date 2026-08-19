@@ -48,8 +48,8 @@ export function ApplicantCards({ rows }: { rows: readonly Applicant[] }) {
                 <span className="flex min-w-0 items-start justify-between gap-3">
                   <span className="min-w-0">
                     <strong className="block truncate text-lg font-bold tracking-[-0.015em] group-hover:text-brand">{applicant.name}</strong>
-                    <span className="num mt-0.5 block text-sm text-muted">
-                      {GENDER_LABELS[applicant.gender]} · 만 {applicant.age}세 · {measurementText(applicant.height, "cm", "키 미수집")}
+                    <span className="num mt-0.5 block text-sm leading-5 text-muted">
+                      {GENDER_LABELS[applicant.gender]} · 만 {applicant.age}세 · {measurementText(applicant.height, "cm", "키 미수집")} · {measurementText(applicant.weight, "kg", "몸무게 미수집")}
                     </span>
                   </span>
                   {applicant.mismatchReasons.length > 0 ? (

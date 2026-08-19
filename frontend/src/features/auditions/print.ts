@@ -125,11 +125,12 @@ function printMeasurement(value: number | null, unit: string) {
  * 브라우저 인쇄 대화상자를 그대로 쓴다(PDF 저장·실제 인쇄 모두 여기서 처리).
  * 별도 창에 A4 전용 문서를 만들어 화면 스타일이 인쇄에 새지 않게 한다.
  */
-export function openPrintWindow(applicants: readonly Applicant[], performance: PerformanceRef) {
+export function openPrintWindow(applicants: readonly Applicant[], performance: PerformanceRef, documentTitle?: string) {
   if (applicants.length === 0) return false;
 
-  const title =
-    applicants.length === 1 ? `${applicants[0]?.name ?? ""} 프로필` : `배우 ${applicants.length}명`;
+  const title = documentTitle ?? (
+    applicants.length === 1 ? `${applicants[0]?.name ?? ""} 프로필` : `배우 ${applicants.length}명`
+  );
   const win = window.open("", "_blank", "width=900,height=1000");
   if (!win) return false;
 

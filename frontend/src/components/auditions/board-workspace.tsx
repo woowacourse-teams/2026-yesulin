@@ -139,7 +139,7 @@ export function BoardWorkspace({
 
       const remaining = applyFilters(next.applicants, filters);
       if (remaining.length === 0) {
-        setFilters((current) => ({ ...current, work: "DONE", status: "PASS" }));
+        setFilters((current) => ({ ...current, work: "DONE", status: "ALL" }));
         const counts = next.rounds.find((state) => state.round === next.round)?.counts;
         toast(counts && counts.pass > 0 ? `검토를 마쳤습니다 · 합격 ${counts.pass}명` : "검토를 마쳤습니다", {
           type: "success",
