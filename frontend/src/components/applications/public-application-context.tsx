@@ -7,6 +7,7 @@ import type { ApplicationStepIssue, SubmissionState } from "@/features/applicati
 import { submitPublicApplication } from "@/features/applicants/api";
 import { deletePublicApplicationDraft } from "@/features/applications/public-application-draft-store";
 import { submissionValue } from "./public-application-draft";
+import { hasSubmittedValue } from "@/features/applications/materials";
 import type { ApplicationReceipt, EditableSection, PublicApplicationActions, PublicApplicationContextValue, PublicApplicationProviderProps, PublicApplicationState } from "./public-application-context-types";
 import { usePublicApplicationDraft } from "./use-public-application-draft";
 
@@ -76,7 +77,7 @@ export function PublicApplicationProvider({
   const focusIssue = (issue: ApplicationStepIssue) => {
     window.requestAnimationFrame(() => {
       const field = document.getElementById(`application-field-${issue.fieldId}`);
-      const control = field?.querySelector<HTMLElement>("input:not([disabled]), select:not([disabled]), textarea:not([disabled])");
+      const control = field?.querySelector<HTMLElement>("input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled])");
       field?.scrollIntoView({ behavior: "smooth", block: "center" });
       control?.focus({ preventScroll: true });
     });
@@ -154,13 +155,20 @@ export function PublicApplicationProvider({
       return;
     }
     try {
+      const submittedAnswers = fields
+        .filter((field) => field.enabled)
+        .map((field) => ({
+          field,
+          value: submissionValue(field, { values, photos, videoUrl, careers, noCareer }),
+        }))
+        .filter(({ field, value }) => field.required || hasSubmittedValue(value));
       const response = await submitPublicApplication({
         postingId,
         roleIds,
-        answers: fields.filter((field) => field.enabled).map((field) => ({
+        answers: submittedAnswers.map(({ field, value }) => ({
           key: field.id,
           ...(field.custom ? { label: field.label } : {}),
-          value: submissionValue(field, { values, photos, videoUrl, careers, noCareer }),
+          value,
         })),
         privacyAgreed: consent,
         saveToProfile,

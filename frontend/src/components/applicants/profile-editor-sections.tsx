@@ -2,7 +2,11 @@
 
 import type { ApplicantAnswerValue, BodyMeasurements, CareerEntry } from "@/features/applicants/types";
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
+import { CalendarDateRangeField } from "@/components/auditions/calendar-date-range-field";
 import { AddButton, FieldInput, FieldSelect, FieldTextarea, TextButton } from "@/components/ui/controls";
+
+const MAX_PROFILE_LINKS = 5;
+const MAX_PROFILE_LINK_LENGTH = 255;
 
 type InformationSectionProps = {
   readonly tab: "BASIC" | "ADDITIONAL";
@@ -23,12 +27,19 @@ function StandardField({ field, value, required, onChange }: { readonly field: A
   const id = `profile-${field.id}`;
   const width = field.layout === "FULL" || field.inputType === "TEXTAREA" || field.inputType === "COMPOSITE" ? "md:col-span-2" : "";
   const label = <>{field.label}{required ? <span className="ml-1 text-fail" aria-label="필수">*</span> : <span className="ml-1 text-xs font-normal text-muted">(선택)</span>}</>;
+  if (field.id === "LINK") return <ExternalLinksField value={linkValue(value)} onChange={onChange} />;
   if (field.inputType === "COMPOSITE") {
     const body = isBody(value) ? value : { height: 0, weight: 0 };
     return <fieldset className={width}><legend className="mb-2 text-sm font-semibold">{label}</legend><div className="grid gap-3 sm:grid-cols-2">{field.config.fields?.map((part) => <label key={part.key} htmlFor={`${id}-${part.key}`}><span className="mb-2 block text-sm text-muted-strong">{part.label}</span><div className="relative"><FieldInput id={`${id}-${part.key}`} type="number" min="1" required={required} value={body[part.key as keyof BodyMeasurements] || ""} placeholder={part.placeholder} onChange={(event) => onChange({ ...body, [part.key]: Number(event.target.value) })} className="pr-12" /><span className="absolute right-3 top-3 text-sm text-muted">{part.unit}</span></div></label>)}</div></fieldset>;
   }
   const text = typeof value === "string" || typeof value === "number" ? String(value) : "";
-  return <label htmlFor={id} className={width}><span className="mb-2 block text-sm font-semibold">{label}</span>{field.inputType === "TEXTAREA" ? <FieldTextarea id={id} required={required} rows={6} maxLength={field.config.maxLength} value={text} placeholder={field.config.placeholder} onChange={(event) => onChange(event.target.value)} /> : field.inputType === "SELECT" ? <FieldSelect id={id} required={required} value={text} onChange={(event) => onChange(event.target.value)}><option value="">선택하지 않음</option>{field.config.options?.map((option) => <option key={option}>{option}</option>)}</FieldSelect> : <FieldInput id={id} required={required} type={field.inputType === "DATE" ? "date" : field.inputType === "TEL" ? "tel" : field.inputType === "URL" ? "url" : "text"} value={text} placeholder={field.config.placeholder} onChange={(event) => onChange(event.target.value)} />}</label>;
+  if (field.inputType === "DATE") return <fieldset className={width}><legend className="mb-2 text-sm font-semibold">{label}</legend><CalendarDateRangeField single variant="compact" start={text} end="" startLabel={field.label} onStartChange={onChange} onEndChange={() => undefined} /></fieldset>;
+  return <label htmlFor={id} className={width}><span className="mb-2 block text-sm font-semibold">{label}</span>{field.inputType === "TEXTAREA" ? <><FieldTextarea id={id} required={required} rows={6} maxLength={field.config.maxLength} value={text} placeholder={field.config.placeholder} onChange={(event) => onChange(event.target.value)} />{field.config.maxLength ? <span className="num mt-2 block text-right text-xs text-muted">{text.length.toLocaleString("ko-KR")} / {field.config.maxLength.toLocaleString("ko-KR")}자</span> : null}</> : field.inputType === "SELECT" ? <FieldSelect id={id} required={required} value={text} onChange={(event) => onChange(event.target.value)}><option value="">선택하지 않음</option>{field.config.options?.map((option) => <option key={option}>{option}</option>)}</FieldSelect> : <FieldInput id={id} required={required} type={field.inputType === "TEL" ? "tel" : field.inputType === "URL" ? "url" : "text"} value={text} placeholder={field.config.placeholder} onChange={(event) => onChange(event.target.value)} />}</label>;
+}
+
+function ExternalLinksField({ value, onChange }: { readonly value: readonly string[]; readonly onChange: (value: ApplicantAnswerValue) => void }) {
+  const patch = (index: number, next: string) => onChange(value.map((link, candidate) => candidate === index ? next.slice(0, MAX_PROFILE_LINK_LENGTH) : link));
+  return <section className="md:col-span-2"><div className="flex flex-wrap items-end justify-between gap-3"><div><h3 className="text-sm font-semibold">SNS / 외부 링크 <span className="text-xs font-normal text-muted">(선택)</span></h3><p className="mt-1 text-sm leading-6 text-muted">인스타그램, 개인 홈페이지, 포트폴리오처럼 배우 활동을 확인할 수 있는 주소를 등록하세요.</p></div><span className="num text-xs font-medium text-muted">{value.length} / {MAX_PROFILE_LINKS}</span></div><div className="mt-3 space-y-3">{value.map((link, index) => <div key={`profile-link-${index}`} className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]"><label htmlFor={`profile-link-${index}`} className="sr-only">SNS / 외부 링크 {index + 1}</label><FieldInput id={`profile-link-${index}`} type="url" inputMode="url" maxLength={MAX_PROFILE_LINK_LENGTH} value={link} placeholder="https://instagram.com/..." onChange={(event) => patch(index, event.target.value)} /><TextButton onClick={() => onChange(value.filter((_, candidate) => candidate !== index))} aria-label={`SNS / 외부 링크 ${index + 1} 삭제`} className="px-3 text-fail hover:bg-fail-bg hover:text-fail">삭제</TextButton><span className="num text-right text-xs text-muted sm:col-start-1">{link.length} / {MAX_PROFILE_LINK_LENGTH}자</span></div>)}{value.length === 0 ? <div className="rounded-control border border-dashed border-border bg-surface px-4 py-6 text-center text-sm text-muted">등록한 SNS / 외부 링크가 없어요.</div> : null}{value.length < MAX_PROFILE_LINKS ? <AddButton onClick={() => onChange([...value, ""])} className="min-h-12 w-full">+ 링크 추가</AddButton> : null}</div></section>;
 }
 
 function CareerSection({ value, onChange }: { readonly value: readonly CareerEntry[]; readonly onChange: (value: ApplicantAnswerValue) => void }) {
@@ -39,3 +50,4 @@ function CareerSection({ value, onChange }: { readonly value: readonly CareerEnt
 function isBody(value: unknown): value is BodyMeasurements { return typeof value === "object" && value !== null && !Array.isArray(value) && "height" in value && "weight" in value; }
 function isCareer(value: unknown): value is CareerEntry { return typeof value === "object" && value !== null && "year" in value && "title" in value && "part" in value; }
 function careerValue(value: ApplicantAnswerValue | undefined) { return Array.isArray(value) ? value.filter(isCareer) : []; }
+function linkValue(value: ApplicantAnswerValue | undefined) { if (typeof value === "string") return value.trim() ? [value] : []; return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string").slice(0, MAX_PROFILE_LINKS) : []; }

@@ -44,7 +44,7 @@ export function AuthShell({ title, description, children, footer, intent = "defa
             {applicationIntent ? <>작성하던 지원서를<br />인증 후 제출하세요.</> : <>지원부터 캐스팅까지,<br />한 흐름으로 연결하세요.</>}
           </h2>
           <p className="mt-6 max-w-[420px] text-lg leading-8 text-sidebar-text/80">
-            {applicationIntent ? "현재 기기의 브라우저에 저장된 Draft를 불러와 최종 검토 화면에서 이어서 제출합니다." : "배우는 기회를 놓치지 않고, 기획사/제작사는 좋은 배우를 더 빠르게 만날 수 있습니다."}
+            {applicationIntent ? "로그인해도 지금까지 작성한 지원 내용은 삭제되지 않습니다. 인증 후 바로 제출을 이어가세요." : "배우는 기회를 놓치지 않고, 기획사/제작사는 좋은 배우를 더 빠르게 만날 수 있습니다."}
           </p>
         </div>
 

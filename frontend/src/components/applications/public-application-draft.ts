@@ -17,6 +17,8 @@ export function applicationDraftFromPrefill(prefill?: ProfilePrefillResponse, fi
       else videoUrl = answer.value;
     } else if (answer.key === "CAREER" && Array.isArray(answer.value)) {
       careers = answer.value.filter(isCareerEntry).map((career, index) => ({ id: `prefill-career-${index}`, title: career.title, part: career.part, year: String(career.year) }));
+    } else if (answer.key === "LINK" && Array.isArray(answer.value)) {
+      values[answer.key] = answer.value.find((item): item is string => typeof item === "string" && Boolean(item.trim())) ?? "";
     } else if (typeof answer.value === "object" && answer.value !== null && !Array.isArray(answer.value) && "height" in answer.value && "weight" in answer.value) {
       values[`${answer.key}.height`] = String(answer.value.height);
       values[`${answer.key}.weight`] = String(answer.value.weight);

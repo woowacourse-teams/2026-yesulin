@@ -12,7 +12,7 @@ import type {
   UpdateProfileRequest,
 } from "@/features/applicants/types";
 import { CATALOG } from "@/mocks/auditions/catalog";
-import { defaultApplicationFields } from "@/features/auditions/creation-types";
+import { screeningFlowApplicationFixture } from "@/mocks/auditions/application-field-fixtures";
 import { producerProfile } from "@/mocks/auditions/producer-profile";
 import { isRoundClosed, readReview, roundNumbersForRole } from "@/mocks/auditions/store";
 
@@ -25,15 +25,16 @@ const seededAnswers: ApplicantAnswer[] = [
   { key: "GENDER", label: "성별", value: "여성" },
   { key: "BODY", label: "키·몸무게", value: { height: 166, weight: 52 } },
   { key: "SCHOOL", label: "학력", value: "한국예술종합학교 연극원 연기과" },
-  { key: "CAREER", label: "주요 경력", value: [{ year: 2025, title: "푸른 방", part: "윤서" }] },
-  { key: "LINK", label: "링크", value: "https://example.com/harin" },
+  { key: "CAREER", label: "경력", value: [{ year: 2025, title: "푸른 방", part: "윤서" }] },
+  { key: "LINK", label: "SNS / 외부 링크", value: "https://example.com/harin" },
   { key: "NATIONALITY", label: "국적", value: "대한민국" },
   { key: "COVER_LETTER", label: "자기소개", value: "인물의 작은 선택이 장면 전체의 온도를 바꾼다고 믿습니다. 상대 배우의 호흡을 세심하게 듣고 반복되는 연습에서도 새로운 반응을 발견하는 배우 김하린입니다." },
   { key: "SPECIALTY", label: "특기", value: "현대무용, 검술" },
   { key: "HOBBIES", label: "취미", value: "러닝, 독립영화 감상" },
   { key: "MILITARY", label: "군필 여부", value: "해당 없음" },
-  { key: "PHOTOS", label: "프로필 사진", value: ["seed-photo-1"], previewUrls: ["/images/applicants/kim-harin-profile.png"] },
-  { key: "VIDEO", label: "연기 영상", value: "https://youtu.be/aqz-KE-bpKQ" },
+  { key: "PHOTOS", label: "프로필 사진", value: ["seed-photo-1", "seed-photo-2", "seed-photo-3", "seed-photo-4"], previewUrls: ["/images/applicants/kim-harin-profile.png", "/images/applicants/kim-harin-extra-1.jpg", "/images/applicants/kim-harin-extra-2.jpg", "/images/applicants/kim-harin-extra-3.jpg"] },
+  { key: "VIDEO", label: "영상 링크", value: ["https://youtu.be/aqz-KE-bpKQ"] },
+  { key: "MOTIVATION", label: "이 작품에 지원한 동기를 적어 주세요.", value: "달빛 아래 우리가 다루는 관계의 회복과 성장에 깊이 공감해 지원했습니다." },
 ];
 const reusableKeys = new Set(["NAME", "BODY", "BIRTH", "GENDER", "PHONE", "EMAIL", "ADDRESS", "SCHOOL", "CAREER", "LINK", "NATIONALITY", "COVER_LETTER", "SPECIALTY", "HOBBIES", "MILITARY"]);
 let profileAnswers: ApplicantAnswer[] = seededAnswers.filter((answer) => reusableKeys.has(answer.key));
@@ -43,7 +44,7 @@ let applications: ApplicantApplicationDetail[] = [{
   id: applicationId(26081201), postingId: "seed_posting_1", performanceTitle: "달빛 아래 우리", postingTitle: "2026 하반기 주·조연 배우 모집",
   posterUrl: "/images/performances/moonlight.jpg", companyName: "예술in 스테이지", roleId: "seed_role_seoyeon", roleIds: ["seed_role_seoyeon", "seed_role_jiwoo"], roleName: "서연 · 지우",
   lookupCode: "YS-20260812-SEED01", submittedAt: "2026-08-12T10:30:00+09:00", updatedAt: "2026-08-12T10:30:00+09:00",
-  editable: false, recruitmentEnd: "2026-09-30", editableUntil: "", roleProgress: [], answers: seededAnswers, applicationFields: defaultApplicationFields(),
+  editable: false, recruitmentEnd: "2026-09-30", editableUntil: "", roleProgress: [], answers: seededAnswers, applicationFields: screeningFlowApplicationFixture(),
 }];
 const ownedApplicationIds = new Set<ApplicationId>(applications.map((application) => application.id));
 const claims = new Map<string, { readonly applicationId: ApplicationId; readonly expiresAt: string; used: boolean }>();

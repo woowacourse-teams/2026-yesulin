@@ -8,6 +8,7 @@ import type { ApplicantAnswerValue, ApplicantApplicationDetail, BodyMeasurements
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
 import { AddButton, DestructiveButton, FieldInput, FieldSelect, FieldTextarea, PrimaryButton, SecondaryButton, TextButton } from "@/components/ui/controls";
 import { useToast } from "@/components/auditions/toast";
+import { CalendarDateRangeField } from "@/components/auditions/calendar-date-range-field";
 
 type DraftValues = Record<string, ApplicantAnswerValue>;
 
@@ -58,7 +59,8 @@ function EditableField({ field, value, onChange }: { readonly field: Application
   if (field.inputType === "COMPOSITE") return <CompositeEditor id={id} field={field} value={isBody(value) ? value : { height: 0, weight: 0 }} onChange={onChange} />;
   if (field.inputType === "FILE") return <FileEditor id={id} field={field} value={Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []} onChange={onChange} />;
   const text = typeof value === "string" || typeof value === "number" ? String(value) : "";
-  return <label className="block rounded-card border border-border bg-card p-5" htmlFor={id}><FieldTitle field={field} />{field.inputType === "TEXTAREA" ? <FieldTextarea id={id} value={text} rows={6} minLength={field.config.minLength} placeholder={field.config.placeholder} onChange={(event) => onChange(event.target.value)} /> : field.inputType === "SELECT" ? <FieldSelect id={id} value={text} onChange={(event) => onChange(event.target.value)}><option value="">선택해 주세요</option>{field.config.options?.map((option) => <option key={option}>{option}</option>)}</FieldSelect> : <FieldInput id={id} value={text} type={field.inputType === "DATE" ? "date" : field.inputType === "TEL" ? "tel" : field.inputType === "URL" ? "url" : field.inputType === "NUMBER" ? "number" : "text"} placeholder={field.config.placeholder} onChange={(event) => onChange(field.inputType === "NUMBER" ? Number(event.target.value) : event.target.value)} />}</label>;
+  if (field.inputType === "DATE") return <fieldset className="rounded-card border border-border bg-card p-5"><legend className="px-1"><FieldTitle field={field} /></legend><CalendarDateRangeField single start={text} end="" startLabel={field.label} onStartChange={onChange} onEndChange={() => undefined} /></fieldset>;
+  return <label className="block rounded-card border border-border bg-card p-5" htmlFor={id}><FieldTitle field={field} />{field.inputType === "TEXTAREA" ? <FieldTextarea id={id} value={text} rows={6} minLength={field.config.minLength} placeholder={field.config.placeholder} onChange={(event) => onChange(event.target.value)} /> : field.inputType === "SELECT" ? <FieldSelect id={id} value={text} onChange={(event) => onChange(event.target.value)}><option value="">선택해 주세요</option>{field.config.options?.map((option) => <option key={option}>{option}</option>)}</FieldSelect> : <FieldInput id={id} value={text} type={field.inputType === "TEL" ? "tel" : field.inputType === "URL" ? "url" : field.inputType === "NUMBER" ? "number" : "text"} placeholder={field.config.placeholder} onChange={(event) => onChange(field.inputType === "NUMBER" ? Number(event.target.value) : event.target.value)} />}</label>;
 }
 
 function CompositeEditor({ id, field, value, onChange }: { readonly id: string; readonly field: ApplicationFieldInput; readonly value: BodyMeasurements; readonly onChange: (value: ApplicantAnswerValue) => void }) {

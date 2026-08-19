@@ -68,7 +68,6 @@ export function PublicPostingDetail({ posting, useProfilePrefill = false, resume
       <article className="min-w-0">
         <PostingHero posting={posting} />
         <PostingAvailability posting={posting} />
-        {posting.detailImageUrl ? <PostingDetailImage posting={posting} /> : null}
         <RoleSelection posting={posting} selectedRoleIds={selectedRoleIds} onSelect={toggleRole} selectable={acceptingApplications && !skipsRoleChoice} />
         <KeyPostingInformation posting={posting} />
         <PostingDetails posting={posting} />
@@ -89,10 +88,6 @@ function PostingAvailability({ posting }: { posting: PublicPosting }) {
   return <section className="border-b border-border py-8 sm:py-10"><div className="flex flex-wrap items-center gap-3"><PostingStatusBadge status={posting.status} /><span className="inline-flex items-center rounded-full bg-card px-3 py-1 text-sm font-semibold text-muted-strong">{accessLabel}</span></div><dl className="mt-5 grid gap-1 text-sm sm:grid-cols-[112px_1fr] sm:gap-y-3"><dt className="font-semibold text-muted-strong">{availability.label}</dt><dd className="num text-base font-bold text-foreground">{availability.detail}</dd><dt className="sr-only sm:not-sr-only">안내</dt><dd className="text-muted-strong">{availability.notice}</dd></dl></section>;
 }
 
-function PostingDetailImage({ posting }: { posting: PublicPosting }) {
-  return <section className="border-b border-border py-8 sm:py-10"><h2 className="text-xl font-bold tracking-[-0.02em]">공고 상세 안내</h2><div className="mt-5 overflow-hidden rounded-card border border-border bg-card"><Image src={posting.detailImageUrl} alt={`${posting.title} 상세 안내`} width={1200} height={1600} unoptimized className="h-auto max-h-[900px] w-full object-contain" /></div></section>;
-}
-
 function RoleSelection({ posting, selectedRoleIds, onSelect, selectable }: { posting: PublicPosting; selectedRoleIds: readonly string[]; onSelect: (id: string) => void; selectable: boolean }) {
   const unavailable = posting.status !== "OPEN";
   const description = unavailable ? posting.status === "UPCOMING" ? "모집 시작 전에는 배역을 선택하거나 지원할 수 없어요." : "접수는 마감되었지만 모집 배역과 조건은 확인할 수 있어요." : selectable ? posting.allowsMultipleRoles ? "지원할 배역을 하나 이상 선택해 주세요. 선택한 배역은 각각 독립적으로 심사됩니다." : "지원할 배역 하나를 선택해 주세요." : posting.isOpenCall ? "배역 구분 없이 한 개의 지원서로 접수합니다." : "이 공고는 하나의 배역으로 지원합니다.";
@@ -110,8 +105,7 @@ function KeyPostingInformation({ posting }: { posting: PublicPosting }) {
 }
 
 function PostingDetails({ posting }: { posting: PublicPosting }) {
-  const rehearsalAddress = [posting.rehearsalVenueAddress.roadAddress, posting.rehearsalVenueAddress.detailAddress].filter(Boolean).join(" ");
-  return <div><InfoSection title="공연 상세 정보"><dl className="grid gap-x-6 gap-y-4 text-base sm:grid-cols-[112px_1fr]"><dt className="text-muted">공연 장소</dt><dd>{posting.venue}<span className="mt-1 block text-sm text-muted">{posting.venueAddress.roadAddress} {posting.venueAddress.detailAddress}</span></dd>{posting.rehearsalVenue || rehearsalAddress ? <><dt className="text-muted">연습 장소</dt><dd>{posting.rehearsalVenue || "장소명 미정"}{rehearsalAddress ? <span className="mt-1 block text-sm text-muted">{rehearsalAddress}</span> : null}</dd></> : null}<dt className="text-muted">공연 기간</dt><dd className="num">{publicPostingDate(posting.performanceStart)}{posting.performanceEnd ? ` ~ ${publicPostingDate(posting.performanceEnd)}` : ""}</dd><dt className="text-muted">모집 기간</dt><dd className="num">{publicPostingDateTime(posting.recruitmentStart)} ~ {publicPostingDateTime(posting.recruitmentEnd)}</dd><dt className="text-muted">출연료</dt><dd>경력과 배역에 따라 협의하며, 면접 시 안내합니다.</dd></dl></InfoSection><InfoSection title="기획사/제작사 및 공고 안내"><p className="font-semibold">{posting.companyName}</p><p className="mt-2 leading-7 text-muted-strong">{posting.companyDescription}</p></InfoSection></div>;
+  return <div><InfoSection title="공연 정보"><dl className="grid gap-x-6 gap-y-4 text-base sm:grid-cols-[112px_1fr]"><dt className="text-muted">공연 장소</dt><dd>{posting.venue}<span className="mt-1 block text-sm text-muted">{posting.venueAddress.roadAddress} {posting.venueAddress.detailAddress}</span></dd><dt className="text-muted">공연 기간</dt><dd className="num">{publicPostingDate(posting.performanceStart)}{posting.performanceEnd ? ` ~ ${publicPostingDate(posting.performanceEnd)}` : ""}</dd><dt className="text-muted">모집 기간</dt><dd className="num">{publicPostingDateTime(posting.recruitmentStart)} ~ {publicPostingDateTime(posting.recruitmentEnd)}</dd></dl></InfoSection><InfoSection title="기획사/제작사"><p className="font-semibold">{posting.companyName}</p><p className="mt-2 max-w-[680px] text-sm leading-7 text-muted-strong">{posting.companyDescription}</p></InfoSection></div>;
 }
 
 function InfoSection({ title, children }: { title: string; children: React.ReactNode }) { return <section className="py-8 sm:py-10"><h2 className="text-xl font-bold tracking-[-0.02em]">{title}</h2><div className="mt-5">{children}</div></section>; }
@@ -122,6 +116,6 @@ function MobileAction({ posting, selectedRole, enabled, hasDraft, onAction, onCh
 
 function ActionButton({ posting, enabled, hasDraft, onAction, onChooseRole }: { posting: PublicPosting; enabled: boolean; hasDraft: boolean; onAction: () => void; onChooseRole: () => void }) { const unavailable = posting.status !== "OPEN"; const label = posting.status === "UPCOMING" ? "모집 시작 전" : posting.status === "CLOSED" ? "지원 마감" : enabled ? hasDraft ? "지원서 이어쓰기" : "지원서 작성" : "배역 선택하기"; return <PrimaryButton disabled={unavailable} onClick={enabled ? onAction : onChooseRole} className="shrink-0 px-5">{label}</PrimaryButton>; }
 
-function ActionNotice({ status, hasDraft }: { status: PublicPosting["status"]; hasDraft: boolean }) { const message = status === "OPEN" ? hasDraft ? "이 기기에 저장된 Draft가 있어요. 서버나 다른 기기에는 아직 동기화되지 않습니다." : "로그인 전에도 작성할 수 있고, 최종 제출 전에 계정 인증이 필요합니다." : status === "UPCOMING" ? "모집 시작 전이라 지원할 수 없어요." : "접수가 마감되어 지원할 수 없어요. 공고 내용은 계속 확인할 수 있어요."; return <p className="text-xs leading-5 text-muted">{message}</p>; }
+function ActionNotice({ status, hasDraft }: { status: PublicPosting["status"]; hasDraft: boolean }) { const message = status === "OPEN" ? hasDraft ? "작성 중인 내용이 있어요. 이어서 확인한 뒤 제출할 수 있습니다." : "로그인 전에도 작성할 수 있고, 최종 제출 전에 계정 인증이 필요합니다." : status === "UPCOMING" ? "모집 시작 전이라 지원할 수 없어요." : "접수가 마감되어 지원할 수 없어요. 공고 내용은 계속 확인할 수 있어요."; return <p className="text-xs leading-5 text-muted">{message}</p>; }
 
-function DraftResumeLoading() { return <main className="grid min-h-screen place-items-center bg-surface px-5"><section role="status" className="w-full max-w-lg rounded-modal border border-border bg-card px-6 py-12 text-center"><span aria-hidden="true" className="mx-auto block h-10 w-10 animate-pulse rounded-2xl bg-brand" /><h1 className="mt-5 text-xl font-bold">작성하던 지원서를 찾고 있어요</h1><p className="mt-2 text-sm leading-6 text-muted-strong">로그인 전에 이 기기에 저장한 Draft를 확인하고 있습니다.</p></section></main>; }
+function DraftResumeLoading() { return <main className="grid min-h-screen place-items-center bg-surface px-5"><section role="status" className="w-full max-w-lg rounded-modal border border-border bg-card px-6 py-12 text-center"><span aria-hidden="true" className="mx-auto block h-10 w-10 animate-pulse rounded-2xl bg-brand" /><h1 className="mt-5 text-xl font-bold">작성하던 지원서를 찾고 있어요</h1><p className="mt-2 text-sm leading-6 text-muted-strong">이전에 입력한 내용이 있으면 불러온 뒤 지원서를 열게요.</p></section></main>; }

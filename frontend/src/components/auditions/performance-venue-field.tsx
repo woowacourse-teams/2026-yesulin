@@ -27,12 +27,13 @@ function loadScript(id: string, src: string) {
 
 export const emptyVenueAddress = (): VenueAddress => ({ roadAddress: "", detailAddress: "", zonecode: "", latitude: null, longitude: null });
 
-export function PerformanceVenueField({ venue, address, onVenueChange, onAddressChange, optional = false, venueLabel = "공연 장소명", mapLabel = "공연 장소 지도" }: {
+export function PerformanceVenueField({ venue, address, onVenueChange, onAddressChange, optional = false, hideVenueName = false, venueLabel = "공연 장소명", mapLabel = "공연 장소 지도" }: {
   readonly venue: string;
   readonly address: VenueAddress;
   readonly onVenueChange: (value: string) => void;
   readonly onAddressChange: (value: VenueAddress) => void;
   readonly optional?: boolean;
+  readonly hideVenueName?: boolean;
   readonly venueLabel?: string;
   readonly mapLabel?: string;
 }) {
@@ -58,6 +59,7 @@ export function PerformanceVenueField({ venue, address, onVenueChange, onAddress
       if (!window.daum?.Postcode) throw new Error("postcode unavailable");
       new window.daum.Postcode({ oncomplete: (result) => {
         const roadAddress = result.roadAddress || result.address;
+        if (hideVenueName) onVenueChange(result.buildingName?.trim() || roadAddress);
         const base: VenueAddress = { roadAddress, detailAddress: address.detailAddress, zonecode: result.zonecode, latitude: null, longitude: null };
         onAddressChange(base);
         if (!mapKey) {
@@ -80,7 +82,7 @@ export function PerformanceVenueField({ venue, address, onVenueChange, onAddress
 
   return (
     <div className="space-y-3">
-      <CreateField label={venueLabel}><FieldInput required={!optional} value={venue} onChange={(event) => onVenueChange(event.target.value)} placeholder={optional ? "예: 대학로 연습실 A" : "예: 대학로예술극장 대극장"} /></CreateField>
+      {!hideVenueName ? <CreateField label={venueLabel}><FieldInput required={!optional} value={venue} onChange={(event) => onVenueChange(event.target.value)} placeholder={optional ? "예: 대학로 연습실 A" : "예: 대학로예술극장 대극장"} /></CreateField> : null}
       <CreateField label="도로명주소">
         <div className="flex gap-2"><FieldInput readOnly required={!optional} value={address.roadAddress} placeholder="주소 검색을 이용해 주세요." /><SecondaryButton onClick={searchAddress} className="shrink-0">주소 검색</SecondaryButton></div>
       </CreateField>

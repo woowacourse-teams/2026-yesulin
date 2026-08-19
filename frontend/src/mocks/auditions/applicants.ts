@@ -56,9 +56,9 @@ export const APPLICANTS: readonly MockApplicant[] = [{
   motivation: "달빛 아래 우리가 다루는 관계의 회복과 성장에 깊이 공감해 지원했습니다.",
   photos: [
     { label: "프로필 사진", url: "/images/applicants/kim-harin-profile.png", fallbackUrl: "/images/applicants/kim-harin-profile.png" },
-    { label: "추가 사진 1", url: "/images/applicants/kim-harin-extra-1.jpg", fallbackUrl: "/images/applicants/kim-harin-extra-1.jpg" },
-    { label: "추가 사진 2", url: "/images/applicants/kim-harin-extra-2.jpg", fallbackUrl: "/images/applicants/kim-harin-extra-2.jpg" },
-    { label: "추가 사진 3", url: "/images/applicants/kim-harin-extra-3.jpg", fallbackUrl: "/images/applicants/kim-harin-extra-3.jpg" },
+    { label: "전신 사진", url: "/images/applicants/kim-harin-extra-1.jpg", fallbackUrl: "/images/applicants/kim-harin-extra-1.jpg" },
+    { label: "연기 이미지 1", url: "/images/applicants/kim-harin-extra-2.jpg", fallbackUrl: "/images/applicants/kim-harin-extra-2.jpg" },
+    { label: "연기 이미지 2", url: "/images/applicants/kim-harin-extra-3.jpg", fallbackUrl: "/images/applicants/kim-harin-extra-3.jpg" },
   ],
-  videoUrl: "https://youtu.be/dQw4w9WgXcQ",
+  videoUrl: "https://youtu.be/aqz-KE-bpKQ",
 }];

@@ -1,5 +1,6 @@
 import type { ApplicantApplicationDetail, ApplicantAnswer, BodyMeasurements, CareerEntry } from "@/features/applicants/types";
 import type { Gender, PerformanceId } from "@/features/auditions/types";
+import { photoSlotLabels } from "@/features/applications/materials";
 import type { MockApplicant } from "../auditions/applicants";
 import { fallbackPhoto } from "../auditions/photos";
 
@@ -35,8 +36,11 @@ export function toScreeningApplicant(detail: ApplicantApplicationDetail, perform
   const name = textOf(detail.answers, "NAME") || "이름 미입력";
   const photoIds = answerOf(detail.answers, "PHOTOS");
   const photoAnswer = detail.answers.find((answer) => answer.key === "PHOTOS");
+  const photoField = detail.applicationFields.find((field) => field.id === "PHOTOS");
+  const photoCount = Array.isArray(photoIds) ? photoIds.filter((value): value is string => typeof value === "string").length : 0;
+  const photoLabels = photoSlotLabels(photoField, photoCount);
   const photos = Array.isArray(photoIds) ? photoIds.filter((value): value is string => typeof value === "string").map((id, index) => ({
-    label: index === 0 ? "프로필 사진" : `추가 사진 ${index}`,
+    label: photoLabels[index] ?? `제출 사진 ${index + 1}`,
     url: photoAnswer?.previewUrls?.[index] || id,
     fallbackUrl: fallbackPhoto(name, index),
   })) : [];

@@ -38,8 +38,8 @@ export function ProfileEditor({ profile, onSaved }: { readonly profile: Applican
   const [values, setValues] = useState<DraftValues>(initial);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const changedKeys = [...INFORMATION_KEYS].filter((key) => hasValue(values[key]) && JSON.stringify(values[key]) !== JSON.stringify(initial[key]));
-  const removeKeys = [...INFORMATION_KEYS].filter((key) => hasValue(initial[key]) && !hasValue(values[key]));
+  const changedKeys = [...INFORMATION_KEYS].filter((key) => hasValue(normalizedValue(key, values[key])) && JSON.stringify(normalizedValue(key, values[key])) !== JSON.stringify(normalizedValue(key, initial[key])));
+  const removeKeys = [...INFORMATION_KEYS].filter((key) => hasValue(normalizedValue(key, initial[key])) && !hasValue(normalizedValue(key, values[key])));
   const changeCount = changedKeys.length + removeKeys.length;
   const basicFields = fieldsFor(BASIC_KEYS);
   const additionalFields = fieldsFor(ADDITIONAL_KEYS);
@@ -51,7 +51,7 @@ export function ProfileEditor({ profile, onSaved }: { readonly profile: Applican
     setError("");
     try {
       const next = await updateApplicantProfile({
-        answers: changedKeys.map((key) => ({ key, label: labels.get(key) ?? standardFields.find((field) => field.id === key)?.label, value: values[key]! })),
+        answers: changedKeys.map((key) => ({ key, label: labels.get(key) ?? standardFields.find((field) => field.id === key)?.label, value: normalizedValue(key, values[key])! })),
         removeKeys,
       });
       toast("프로필 정보를 저장했어요. 다음 지원서의 미리 채우기에 사용됩니다.", { type: "success" });
@@ -91,6 +91,7 @@ export function ProfileEditor({ profile, onSaved }: { readonly profile: Applican
 }
 
 function fieldsFor(keys: readonly string[]) { return keys.flatMap((key) => standardFields.find((field) => field.id === key) ?? []); }
+function normalizedValue(key: string, value: ApplicantAnswerValue | undefined) { if (key === "LINK" && Array.isArray(value)) return value.filter((item): item is string => typeof item === "string" && Boolean(item.trim())).map((item) => item.trim()).slice(0, 5); return value; }
 function hasValue(value: ApplicantAnswerValue | undefined) { if (value === undefined) return false; if (typeof value === "string") return Boolean(value.trim()); if (Array.isArray(value)) return value.length > 0; return true; }
 function basicFilled(values: DraftValues) {
   const body = values.BODY;

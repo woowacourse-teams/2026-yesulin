@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { PrimaryLink } from "@/components/ui/controls";
 import { LandingFooter, LandingHeader } from "./landing-header";
-import { PartnerMarquee } from "./partner-marquee";
 import { ProducerPreview } from "./landing-preview";
 
 const benefits = [
@@ -43,8 +42,6 @@ export function ProducerMarketingLanding() {
           </div>
         </div>
       </section>
-
-      <PartnerMarquee />
 
       <section className="mx-auto max-w-[1280px] px-5 py-20 sm:px-8 lg:px-10 lg:py-28">
         <div className="grid gap-10 lg:grid-cols-[0.72fr_1.28fr] lg:gap-20">

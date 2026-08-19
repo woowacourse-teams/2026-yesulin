@@ -2,6 +2,7 @@ type KakaoPostcodeResult = {
   roadAddress: string;
   address: string;
   zonecode: string;
+  buildingName?: string;
 };
 
 type KakaoGeocoderResult = {

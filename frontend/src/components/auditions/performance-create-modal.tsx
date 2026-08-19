@@ -102,7 +102,7 @@ export function PerformanceCreateModal({
                 </CreateField>
               </div>
             </div>
-            <div className="mt-5"><PerformanceVenueField venue={venue} address={venueAddress} onVenueChange={setVenue} onAddressChange={setVenueAddress} /></div>
+            <div className="mt-5"><PerformanceVenueField hideVenueName venue={venue} address={venueAddress} onVenueChange={setVenue} onAddressChange={setVenueAddress} /></div>
           </CreateSection>
 
           <CreateSection

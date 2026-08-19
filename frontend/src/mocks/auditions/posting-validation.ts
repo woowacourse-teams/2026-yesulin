@@ -45,6 +45,6 @@ export function validatePostingDraft(draft: PostingDraft, templates: readonly Pe
   const videoField = draft.applicationFields.find((field) => field.id === "VIDEO" && field.enabled);
   const videoRequirements: readonly VideoRequirement[] = videoField?.config.videoRequirements ?? [];
   if (videoField && (videoRequirements.length < 1 || videoRequirements.length > 10 || videoRequirements.some((item) => !hasText(item.description) || item.description.length > 255))) return { code: "INVALID_VIDEO_REQUIREMENTS", message: "영상 설명은 255자 이하로 적고 요구사항을 1개 이상 10개 이하로 입력해 주세요." };
-  if (draft.applicationFields.some((field) => field.custom && field.config.maxLength !== 2000)) return { code: "INVALID_CUSTOM_LENGTH", message: "커스텀 문항의 답변 길이는 최대 2,000자로 설정해 주세요." };
+  if (draft.applicationFields.some((field) => field.custom && field.config.maxLength !== 2000)) return { code: "INVALID_CUSTOM_LENGTH", message: "추가 질문의 답변 길이는 최대 2,000자로 설정해 주세요." };
   return null;
 }

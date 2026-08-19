@@ -85,11 +85,11 @@ export function ApplicantReview({
             </header>
 
             <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start xl:grid-cols-[minmax(0,1fr)_300px]">
-              <div className="overflow-hidden rounded-card border border-border bg-card xl:grid xl:grid-cols-[300px_minmax(0,1fr)]">
+              <div className="overflow-hidden rounded-card border border-border bg-card xl:grid xl:grid-cols-[240px_minmax(0,1fr)]">
                 <DetailGallery
                   applicant={applicant}
                   layout="review"
-                  className="mx-auto w-full max-w-[360px] xl:mx-0 xl:max-w-none"
+                  className="mx-auto w-full max-w-[300px] xl:mx-0 xl:max-w-none"
                 />
                 <div className="min-w-0">
                   <ApplicantVideoSection applicant={applicant} />
@@ -114,7 +114,7 @@ function ReviewSkeleton() {
   return (
     <div aria-label="지원서를 불러오는 중" className="animate-pulse">
       <div className="mb-6 h-16 w-64 rounded-card bg-border-soft" />
-      <div className="grid overflow-hidden rounded-card border border-border bg-card lg:grid-cols-[360px_1fr]">
+      <div className="grid overflow-hidden rounded-card border border-border bg-card lg:grid-cols-[240px_1fr]">
         <div className="aspect-[3/4] bg-border-soft" />
         <div className="min-h-[620px] bg-card" />
       </div>

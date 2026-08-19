@@ -28,7 +28,7 @@ export function DetailGallery({
 
   return (
     <div className={`${borderClass} bg-surface px-4 py-4 md:px-5 md:py-5 ${className}`}>
-      <div className="relative mx-auto aspect-[3/4] w-full max-w-[300px] overflow-hidden rounded-control border border-border bg-border-soft">
+      <div className="relative mx-auto aspect-[3/4] w-full max-w-[240px] overflow-hidden rounded-control border border-border bg-border-soft">
         <button
           type="button"
           onClick={() => setExpanded(true)}
@@ -38,7 +38,7 @@ export function DetailGallery({
           <ApplicantPhotoImage
             photo={photo}
             alt={`${applicant.name} ${photo?.label ?? "사진"}`}
-            sizes="300px"
+            sizes="240px"
             className="object-cover object-[center_18%]"
             priority
           />
@@ -60,7 +60,7 @@ export function DetailGallery({
       </div>
 
       {many ? (
-        <div className="mx-auto mt-2 flex max-w-[300px] gap-2 overflow-x-auto pb-1">
+        <div className="mx-auto mt-2 flex max-w-[240px] gap-2 overflow-x-auto pb-1">
           {applicant.photos.map((candidate, slot) => (
             <button
               key={candidate.url}
@@ -85,7 +85,7 @@ export function DetailGallery({
           ))}
         </div>
       ) : (
-        <p className="mx-auto mt-2 max-w-[300px] text-xs text-muted">제출한 사진이 1장입니다.</p>
+        <p className="mx-auto mt-2 max-w-[240px] text-xs text-muted">제출한 사진이 1장입니다.</p>
       )}
 
       {expanded ? (

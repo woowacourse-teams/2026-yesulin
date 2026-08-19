@@ -1,7 +1,6 @@
 import type { CatalogPerformance } from "./catalog-model";
-import { defaultApplicationFields } from "@/features/auditions/creation-types";
 import { performanceId, postingId, roleId } from "@/features/auditions/types";
-import { allFieldsApplicationFixture } from "./application-field-fixtures";
+import { allFieldsApplicationFixture, screeningFlowApplicationFixture } from "./application-field-fixtures";
 
 export type { CatalogPerformance, CatalogPosting, CatalogRole } from "./catalog-model";
 
@@ -52,12 +51,12 @@ export const CATALOG: CatalogPerformance[] = [{
       { round: 1, name: "서류 심사", date: "2026-10-02", note: "프로필과 제출 자료를 검토합니다." },
       { round: 2, name: "현장 오디션", date: "2026-10-10", note: "지정 연기와 자유 연기를 진행합니다." },
     ],
-    applicationFields: defaultApplicationFields(),
+    applicationFields: screeningFlowApplicationFixture(),
     applicationGuide: "최근 6개월 이내 촬영한 사진과 일부공개 연기 영상 링크를 제출해 주세요.",
   }, {
     id: postingId("seed_posting_all_fields"),
     performanceId: performanceId("seed_performance_1"),
-    title: "전체 항목·커스텀 3문항 테스트 공고",
+    title: "전체 항목·추가 질문 3문항 테스트 공고",
     posterUrl: "/images/performances/moonlight.jpg",
     performanceStart: "2026-11-01",
     performanceEnd: "2026-11-30",
@@ -83,7 +82,7 @@ export const CATALOG: CatalogPerformance[] = [{
       { round: 1, name: "서류 심사", date: "2026-10-05", note: "제출한 전체 지원 정보를 검토합니다." },
     ],
     applicationFields: allFieldsApplicationFixture(),
-    applicationGuide: "모든 기본·추가정보와 프로필 사진, 연기 영상, 커스텀 질문 3개를 확인하기 위한 테스트 공고입니다.",
+    applicationGuide: "모든 기본·추가정보와 프로필 사진, 연기 영상, 추가 질문 3개를 확인하기 위한 테스트 공고입니다.",
   }],
 }];
 
