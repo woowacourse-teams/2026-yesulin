@@ -45,7 +45,7 @@ export function submissionValue(field: ApplicationFieldInput, draft: {
       ? requirements.map((requirement) => draft.values[`${field.id}.${requirement.id}`] ?? "")
       : draft.videoUrl;
   }
-  if (field.section === "CAREER") return draft.noCareer ? [] : draft.careers.map((career) => ({ year: Number(career.year), title: career.title, part: career.part }));
+  if (field.id === "CAREER") return draft.noCareer ? [] : draft.careers.map((career) => ({ year: Number(career.year), title: career.title, part: career.part }));
   if (field.inputType === "COMPOSITE") return Object.fromEntries((field.config.fields ?? []).map((part) => [part.key, Number(draft.values[`${field.id}.${part.key}`] ?? 0)])) as { height: number; weight: number };
   if (field.inputType === "NUMBER") return Number(draft.values[field.id] ?? 0);
   return draft.values[field.id] ?? "";

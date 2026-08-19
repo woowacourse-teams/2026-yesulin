@@ -71,8 +71,9 @@ function StepReview({ section, disabled }: { section: ApplicationFormStep["secti
   if (!step) return null;
   const edit = () => actions.editSection(section);
   if (section === "MATERIALS") return <ReviewSection title={step.title} disabled={disabled} onEdit={edit}><MediaSummary fields={step.fields} values={state.values} photos={state.photos} videoUrl={state.videoUrl} /></ReviewSection>;
-  if (section === "CAREER") return <ReviewSection title={step.title} disabled={disabled} onEdit={edit}><CareerSummary noCareer={state.noCareer} careers={state.careers} /></ReviewSection>;
-  return <ReviewSection title={step.title} disabled={disabled} onEdit={edit}><ReviewFields fields={step.fields} values={state.values} /></ReviewSection>;
+  const careerField = step.fields.find((field) => field.id === "CAREER");
+  const regularFields = step.fields.filter((field) => field.id !== "CAREER");
+  return <ReviewSection title={step.title} disabled={disabled} onEdit={edit}>{regularFields.length ? <ReviewFields fields={regularFields} values={state.values} /> : null}{careerField ? <div className={regularFields.length ? "mt-5 border-t border-border-soft pt-5" : ""}><h4 className="mb-2 text-sm text-muted">{careerField.label}</h4><CareerSummary noCareer={state.noCareer} careers={state.careers} /></div> : null}</ReviewSection>;
 }
 
 function ReviewSection({ title, disabled = false, onEdit, children }: { title: string; disabled?: boolean; onEdit?: () => void; children: React.ReactNode }) {

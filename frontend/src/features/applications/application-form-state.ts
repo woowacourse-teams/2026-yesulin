@@ -110,7 +110,7 @@ export function applicationStepIssue({
   values: Readonly<Record<string, string>>;
 }): ApplicationStepIssue | null {
   if (step.section === "BASIC" || step.section === "ADDITIONAL" || step.section === "INTRODUCTION" || step.section === "CUSTOM") {
-    const field = step.fields.find((candidate) => applicationFieldError(candidate, values));
+    const field = step.fields.find((candidate) => candidate.id !== "CAREER" && applicationFieldError(candidate, values));
     if (field) return { fieldId: field.id, message: applicationFieldError(field, values)! };
   }
   if (step.section === "MATERIALS") {
@@ -133,11 +133,11 @@ export function applicationStepIssue({
       if (videoField?.required && !youtubeVideoId(videoUrl)) return { fieldId: videoField.id, message: `${videoField.label}의 유튜브 링크를 입력해 주세요.` };
     }
   }
-  if (step.section === "CAREER") {
-    const field = step.fields[0];
-    if (field?.required && !noCareer && careers.length === 0) return { fieldId: field.id, message: `${field.label}을(를) 추가하거나 경력 없음에 체크해 주세요.` };
+  const field = step.fields.find((candidate) => candidate.id === "CAREER");
+  if (field) {
+    if (field.required && !noCareer && careers.length === 0) return { fieldId: field.id, message: `${field.label}을(를) 추가하거나 경력 없음에 체크해 주세요.` };
     const invalidCareer = careers.find((career) => careerDraftError(career));
-    if (field && !noCareer && invalidCareer) return { fieldId: `${field.id}-${invalidCareer.id}`, message: `${field.label}의 작품명, 배역, 연도를 모두 입력해 주세요.` };
+    if (!noCareer && invalidCareer) return { fieldId: `${field.id}-${invalidCareer.id}`, message: `${field.label}의 작품명, 배역, 연도를 모두 입력해 주세요.` };
   }
   return null;
 }

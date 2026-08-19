@@ -98,8 +98,7 @@ function StepContent() {
   const { state, meta } = usePublicApplication();
   const step = meta.steps[state.stepIndex]!;
   if (step.section === "MATERIALS") return <div className="mt-9"><PublicApplicationMedia /></div>;
-  if (step.section === "CAREER") return <div className="mt-9"><PublicApplicationCareer /></div>;
-  return <div className="mt-9 grid grid-cols-1 gap-x-6 gap-y-8 md:grid-cols-2">{step.fields.map((field) => <ApplicationField key={field.id} field={field} />)}</div>;
+  return <div className="mt-9 grid grid-cols-1 gap-x-6 gap-y-8 md:grid-cols-2">{step.fields.map((field) => field.id === "CAREER" ? <div key={field.id} className="md:col-span-2"><PublicApplicationCareer field={field} /></div> : <ApplicationField key={field.id} field={field} />)}</div>;
 }
 
 function ApplicationField({ field }: { field: ApplicationFieldInput }) {
