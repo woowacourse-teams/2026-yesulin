@@ -31,3 +31,4 @@
 - [CI 런타임과 병렬 Job](./20260818092422-ci-runtime-and-parallel-jobs.md) — accepted · agent-required
 - [프론트 이중 검증과 GitHub 보안 기준](./20260818105845-frontend-preview-and-github-security.md) — accepted · agent-required
 - [백엔드 JAR와 systemd 배포](./20260819021010-backend-jar-systemd-deployment.md) — accepted · agent-required
+- [백엔드 EC2 운영체제](./20260819061141-backend-ec2-operating-system.md) — accepted · agent-required

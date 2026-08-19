@@ -14,7 +14,7 @@ Spring Boot를 단일 `t4g.small` ARM64 EC2에 처음 배포한다. 교육 계�
 
 초기 백엔드 배포 결과물은 Gradle이 만든 실행 JAR로 한다. EC2에는 Java 25를 설치하고 Spring Boot는 전용 비로그인 사용자와 systemd service로 실행한다. Nginx만 외부 요청을 받고 Spring은 `localhost:8080`에서 실행한다.
 
-배포 버전은 Git commit ID로 식별하고 이전 JAR를 보관한다. JAR의 SHA-256 체크섬은 파일 무결성 검증에 별도로 사용한다. 새 버전 재시작 후 Health Check가 실패하면 이전 JAR로 되돌린다. GitHub Actions CI와 CD는 분리하며, 실제 전달 수단은 AWS 서비스 권한 조사 후 정한다.
+배포 버전은 Git commit ID로 식별하고 이전 JAR를 보관한다. JAR의 SHA-256 체크섬은 파일 무결성 검증에 별도로 사용한다. 초기 staging 배포의 `ValidateService`는 `systemctl is-active --quiet yesulin`으로 프로세스 시작을 검증하고, 실패하면 이전 JAR로 되돌린다. 이는 HTTP Health Check가 아니며, `main` 자동 Production 배포 전에는 실제 요청 경로를 확인하는 Smoke Check를 추가한다. GitHub Actions CI와 CD는 분리하며, 실제 전달 수단은 AWS 서비스 권한 조사 후 정한다.
 
 ## 이유
 
