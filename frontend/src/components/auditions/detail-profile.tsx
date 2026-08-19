@@ -24,7 +24,11 @@ export function DetailProfile({ applicant }: { applicant: Applicant }) {
           <dt className="text-muted">학교</dt>
           <dd>{applicant.school}</dd>
           <dt className="text-muted">접수일</dt>
-          <dd className="num">{applicant.submittedAt}</dd>
+          <dd className="num">
+            <time dateTime={applicant.submittedAt} title={applicant.submittedAt}>
+              {formatSubmittedAt(applicant.submittedAt)}
+            </time>
+          </dd>
         </dl>
       </Section>
 
@@ -76,6 +80,21 @@ export function DetailProfile({ applicant }: { applicant: Applicant }) {
       </Section>
     </div>
   );
+}
+
+function formatSubmittedAt(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("ko-KR", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    weekday: "short",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: "Asia/Seoul",
+  }).format(date);
 }
 
 function Fact({ label, value, unit }: { label: string; value: number | null; unit: string }) {
