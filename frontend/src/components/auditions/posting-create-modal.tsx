@@ -61,6 +61,7 @@ export function PostingCreateModal({ performanceId, performanceTitle, performanc
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<FormError | null>(null);
   const [created, setCreated] = useState<{ readonly title: string; readonly applicationUrl: string } | null>(null);
+  const selectedRoleCount = Object.keys(selectedRoles).length;
 
   useEffect(() => {
     if (!formError || formError.section === "GENERAL") return;
@@ -102,22 +103,67 @@ export function PostingCreateModal({ performanceId, performanceTitle, performanc
             <div className={formError?.section === "PERFORMANCE" ? "mt-4" : "mt-3"}><CalendarDateRangeField start={performanceStart} end={performanceEnd} onStartChange={setPerformanceStart} onEndChange={setPerformanceEnd} startLabel="공연 시작일" endLabel="공연 종료일" endOptional endOpenEnded /></div>
           </div>
         </CreateSection>
-        <CreateSection id={SECTION_IDS.ROLES} title="2. 배역 관리" description="공연에 등록한 배역 중 모집 분야를 고르고, 이 공고에 적용할 지원 조건을 설정합니다.">
+        <CreateSection id={SECTION_IDS.ROLES} title="2. 모집 배역" description="공연에 등록한 배역 중 모집할 배역을 고르고, 이 공고에 적용할 지원 조건을 설정합니다.">
           <CreateError id="posting-create-roles-error" message={formError?.section === "ROLES" ? formError.message : ""} />
           <div className={formError?.section === "ROLES" ? "mt-4" : ""}>
           <PostingRoleSelector roles={roleTemplates} selected={selectedRoles} onChange={(next) => { setSelectedRoles(next); if (Object.keys(next).length < 2) setAllowsMultipleRoles(false); }} />
-          <label className={`mt-3 flex min-h-12 items-start gap-3 rounded-card border p-4 ${Object.keys(selectedRoles).length > 1 ? "cursor-pointer border-border bg-card" : "cursor-not-allowed border-border-soft bg-surface text-muted"}`}><input type="checkbox" disabled={Object.keys(selectedRoles).length < 2} checked={allowsMultipleRoles} onChange={(event) => setAllowsMultipleRoles(event.target.checked)} className="mt-0.5 h-5 w-5 accent-brand disabled:opacity-50" /><span><strong className="block text-sm">복수 배역 지원 허용</strong><span className="mt-1 block text-sm text-muted">{Object.keys(selectedRoles).length > 1 ? "한 지원서로 선택한 여러 배역에 함께 지원할 수 있습니다." : "모집 배역을 2개 이상 선택하면 설정할 수 있습니다."}</span></span></label>
           </div>
         </CreateSection>
-        <CreateSection id={SECTION_IDS.SCHEDULE} title="3. 모집·전형 일정" description="배우 모집 기간과 이후 전형 일정을 순서대로 설정합니다.">
+        <CreateSection title="3. 지원 방식" description="지원자가 모집 배역을 선택하는 방법을 정합니다.">
+          <RoleApplicationMode selectedRoleCount={selectedRoleCount} allowsMultipleRoles={allowsMultipleRoles} onChange={setAllowsMultipleRoles} />
+        </CreateSection>
+        <CreateSection id={SECTION_IDS.SCHEDULE} title="4. 모집·전형 일정" description="배우 모집 기간과 이후 전형 일정을 순서대로 설정합니다.">
           <CreateError id="posting-create-schedule-error" message={formError?.section === "SCHEDULE" ? formError.message : ""} />
           <div className={formError?.section === "SCHEDULE" ? "mt-4" : ""}><CalendarDateRangeField includeTime start={recruitmentStart} end={recruitmentEnd} onStartChange={setRecruitmentStart} onEndChange={setRecruitmentEnd} startLabel="모집 시작" endLabel="모집 종료" /></div>
           <div className="mt-4"><h4 className="mb-2 text-sm font-bold">지원 전형 일정</h4><AuditionScheduleEditor rounds={rounds} onChange={setRounds} /></div>
         </CreateSection>
-        <CreateSection id={SECTION_IDS.APPLICATION} title="4. 지원 폼" description="기본정보, 추가정보, 사진, 영상과 추가 질문을 구성합니다."><CreateError id="posting-create-application-error" message={formError?.section === "APPLICATION" ? formError.message : ""} /><div className={formError?.section === "APPLICATION" ? "mt-4" : ""}><ApplicationFieldEditor fields={applicationFields} onChange={setApplicationFields} /></div></CreateSection>
+        <CreateSection id={SECTION_IDS.APPLICATION} title="5. 지원 폼" description="기본정보, 추가정보, 사진, 영상과 추가 질문을 구성합니다."><CreateError id="posting-create-application-error" message={formError?.section === "APPLICATION" ? formError.message : ""} /><div className={formError?.section === "APPLICATION" ? "mt-4" : ""}><ApplicationFieldEditor fields={applicationFields} onChange={setApplicationFields} /></div></CreateSection>
         <CreateError id="posting-create-error" message={formError?.section === "GENERAL" ? formError.message : ""} />
       </div>
       <DialogFooter><SecondaryButton onClick={onClose}>취소</SecondaryButton><PrimaryButton type="submit" disabled={saving}>{saving ? "추가 중…" : "공고 추가"}</PrimaryButton></DialogFooter>
     </form>}
   </ModalShell>;
+}
+
+function RoleApplicationMode({ selectedRoleCount, allowsMultipleRoles, onChange }: {
+  readonly selectedRoleCount: number;
+  readonly allowsMultipleRoles: boolean;
+  readonly onChange: (allows: boolean) => void;
+}) {
+  const multipleEnabled = selectedRoleCount >= 2;
+  return <fieldset>
+    <legend className="sr-only">지원 방식</legend>
+    <div className="mb-3 flex items-center justify-between rounded-control bg-surface px-4 py-3 text-sm">
+      <span className="text-muted-strong">선택한 모집 배역</span>
+      <strong className="num text-brand">{selectedRoleCount}개</strong>
+    </div>
+    <div className="grid gap-3 sm:grid-cols-2">
+      <ApplicationModeOption
+        checked={!allowsMultipleRoles}
+        title="한 배역만 지원"
+        description="지원자는 모집 배역 중 하나만 선택합니다."
+        onChange={() => onChange(false)}
+      />
+      <ApplicationModeOption
+        checked={allowsMultipleRoles}
+        disabled={!multipleEnabled}
+        title="여러 배역에 지원"
+        description={multipleEnabled ? "한 지원서로 여러 배역을 함께 선택할 수 있습니다." : "모집 배역을 2개 이상 선택하면 사용할 수 있습니다."}
+        onChange={() => onChange(true)}
+      />
+    </div>
+  </fieldset>;
+}
+
+function ApplicationModeOption({ checked, disabled = false, title, description, onChange }: {
+  readonly checked: boolean;
+  readonly disabled?: boolean;
+  readonly title: string;
+  readonly description: string;
+  readonly onChange: () => void;
+}) {
+  return <label className={`flex min-h-28 items-start gap-3 rounded-card border p-4 transition-colors ${disabled ? "cursor-not-allowed border-border-soft bg-surface" : checked ? "cursor-pointer border-brand-line bg-brand-soft" : "cursor-pointer border-border bg-card hover:border-brand-line"}`}>
+    <input type="radio" name="role-application-mode" checked={checked} disabled={disabled} onChange={onChange} className="mt-0.5 h-5 w-5 shrink-0 accent-brand disabled:opacity-40" />
+    <span><strong className={`block text-sm ${disabled ? "text-muted" : "text-foreground"}`}>{title}</strong><span className="mt-1 block text-sm leading-6 text-muted">{description}</span></span>
+  </label>;
 }

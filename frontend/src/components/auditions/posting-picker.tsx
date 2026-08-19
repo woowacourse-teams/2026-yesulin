@@ -125,7 +125,7 @@ function PostingRow({ posting, onEdit, onDelete }: { readonly posting: PostingSu
 }
 
 function PostingMetric({ label, value, numeric = false, progress }: { readonly label: string; readonly value: string; readonly numeric?: boolean; readonly progress?: number }) {
-  return <div className="min-w-0 sm:px-4 first:pl-0 last:pr-0"><dt className="text-xs font-medium text-muted">{label}</dt><dd className={`${numeric ? "num" : ""} mt-1 truncate text-sm font-semibold text-foreground`}>{value}</dd>{progress !== undefined ? <div className="mt-2 flex max-w-40 items-center gap-2"><span className="h-1 flex-1 overflow-hidden rounded-full bg-border-soft"><i className="block h-full bg-pass" style={{ width: `${progress}%` }} /></span><span className="num text-xs text-muted">{progress}%</span></div> : null}</div>;
+  return <div className="min-w-0 sm:px-4 first:pl-0 last:pr-0"><dt className="text-xs font-medium text-muted">{label}</dt><dd className={`${numeric ? "num" : ""} mt-1 truncate text-sm font-semibold text-foreground`}>{value}</dd>{progress !== undefined ? <div className="mt-2 flex max-w-40 items-center gap-2"><span role="progressbar" aria-label="심사 검토 진행률" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress} className="h-1 flex-1 overflow-hidden rounded-full bg-border-soft"><i className="block h-full rounded-full bg-brand transition-[width] duration-300" style={{ width: `${progress}%` }} /></span><span className="num text-xs text-muted">{progress}%</span></div> : null}</div>;
 }
 
 function PostingMoreMenu({ posting, open, onOpenChange, onEdit, onDelete }: { readonly posting: PostingSummary; readonly open: boolean; readonly onOpenChange: (open: boolean) => void; readonly onEdit: () => void; readonly onDelete: () => void }) {
