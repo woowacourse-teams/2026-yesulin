@@ -86,7 +86,7 @@ function printableCard(applicant: Applicant, performance: PerformanceRef) {
         <div><dt>연락처</dt><dd>${escapeHtml(applicant.phone)}</dd></div>
         <div><dt>이메일</dt><dd>${escapeHtml(applicant.email)}</dd></div>
         <div><dt>접수</dt><dd>${escapeHtml(applicant.submittedAt)}</dd></div>
-        <div><dt>제출 자료</dt><dd>사진 ${applicant.photos.length}장${applicant.videoUrl ? " · 영상 링크 있음" : ""}</dd></div>
+        <div><dt>제출 자료</dt><dd>사진 ${applicant.photos.length}장${applicant.videos.length > 0 ? ` · 영상 ${applicant.videos.length}개` : ""}</dd></div>
       </dl>
     </div>
   </header>

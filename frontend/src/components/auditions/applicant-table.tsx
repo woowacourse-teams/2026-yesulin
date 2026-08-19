@@ -141,7 +141,7 @@ export function ApplicantTable({
                   <span className="num mr-1 inline-flex h-6 items-center rounded-lg border border-border bg-surface px-2 text-xs text-muted">
                     사진 {applicant.photos.length}
                   </span>
-                  {applicant.videoUrl ? (
+                  {applicant.videos.length > 0 ? (
                     <button
                       type="button"
                       onClick={(event) => {
@@ -150,7 +150,7 @@ export function ApplicantTable({
                       }}
                       className="border-b border-brand-line text-xs text-brand hover:border-brand"
                     >
-                      영상
+                      영상 {applicant.videos.length}개
                     </button>
                   ) : (
                     <span className="text-xs text-muted">영상 없음</span>

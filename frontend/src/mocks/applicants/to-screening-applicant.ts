@@ -1,6 +1,6 @@
 import type { ApplicantApplicationDetail, ApplicantAnswer, CareerEntry } from "@/features/applicants/types";
 import type { Gender, PerformanceId } from "@/features/auditions/types";
-import { photoSlotLabels } from "@/features/applications/materials";
+import { photoSlotLabels, videoSlotLabels } from "@/features/applications/materials";
 import type { MockApplicant } from "../auditions/applicants";
 import { fallbackPhoto } from "../auditions/photos";
 
@@ -12,10 +12,17 @@ const textOf = (answers: readonly ApplicantAnswer[], key: string) => {
   return typeof value === "string" ? value : "";
 };
 
-const videoOf = (answers: readonly ApplicantAnswer[]) => {
+const videosOf = (detail: ApplicantApplicationDetail) => {
+  const field = detail.applicationFields.find((candidate) => candidate.id === "VIDEO");
+  const answers = detail.answers;
   const value = answerOf(answers, "VIDEO");
-  if (typeof value === "string") return value;
-  return Array.isArray(value) ? value.find((item): item is string => typeof item === "string") ?? "" : "";
+  const urls = typeof value === "string"
+    ? [value]
+    : Array.isArray(value)
+      ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+      : [];
+  const labels = videoSlotLabels(field, urls.length);
+  return urls.map((url, index) => ({ label: labels[index] ?? `영상 ${index + 1}`, url }));
 };
 
 const genderOf = (value: string): Gender => value === "남성" || value === "MALE" ? "MALE" : "FEMALE";
@@ -65,6 +72,6 @@ export function toScreeningApplicant(detail: ApplicantApplicationDetail, perform
     coverLetter: textOf(detail.answers, "COVER_LETTER"),
     motivation: textOf(detail.answers, "MOTIVATION"),
     photos,
-    videoUrl: videoOf(detail.answers) || null,
+    videos: videosOf(detail),
   };
 }

@@ -160,7 +160,7 @@ export function toApplicant(applicant: MockApplicant, role: CatalogRole, round: 
     coverLetter: applicant.coverLetter,
     motivation: applicant.motivation,
     photos: applicant.photos,
-    videoUrl: applicant.videoUrl,
+    videos: applicant.videos,
     review: readReview(applicant.id, role.id, round),
     reviewHistory: reviewHistoryOf(applicant, role),
     mismatchReasons: mismatchReasons(applicant, role),

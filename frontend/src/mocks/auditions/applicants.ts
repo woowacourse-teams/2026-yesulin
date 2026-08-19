@@ -34,7 +34,7 @@ export type MockApplicant = {
   readonly coverLetter: string;
   readonly motivation: string;
   readonly photos: readonly ApplicantPhoto[];
-  readonly videoUrl: string | null;
+  readonly videos: readonly { readonly label: string; readonly url: string }[];
 };
 
 /** 정책 기반 심사 화면을 확인할 수 있는 제출 스냅샷 1건. */
@@ -64,7 +64,10 @@ const PRIMARY_APPLICANT: MockApplicant = {
     { label: "연기 이미지 1", url: "/images/applicants/kim-harin-acting-1.png", fallbackUrl: "/images/applicants/kim-harin-acting-1.png" },
     { label: "연기 이미지 2", url: "/images/applicants/kim-harin-acting-2.png", fallbackUrl: "/images/applicants/kim-harin-acting-2.png" },
   ],
-  videoUrl: "https://youtu.be/aqz-KE-bpKQ",
+  videos: [
+    { label: "자유 연기 영상", url: "https://youtu.be/aqz-KE-bpKQ" },
+    { label: "지정 대사 영상", url: "https://youtu.be/M7lc1UVf-VE" },
+  ],
 };
 
 function scenarioApplicant({ id, name, posting, role, index }: {
@@ -96,7 +99,7 @@ function scenarioApplicant({ id, name, posting, role, index }: {
     coverLetter: "여러 차수의 심사 흐름과 목록 상태를 검증하기 위한 시나리오 지원자입니다.",
     motivation: "작품과 배역의 방향에 공감해 지원했습니다.",
     photos: [{ label: "프로필 사진", url: photo, fallbackUrl: photo }],
-    videoUrl: index % 2 === 0 ? "https://youtu.be/aqz-KE-bpKQ" : null,
+    videos: index % 2 === 0 ? [{ label: "자유 연기 영상", url: "https://youtu.be/aqz-KE-bpKQ" }] : [],
   };
 }
 

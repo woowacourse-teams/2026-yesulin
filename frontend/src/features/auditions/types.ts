@@ -148,12 +148,18 @@ export type Applicant = {
   readonly coverLetter: string;
   readonly motivation: string;
   readonly photos: readonly ApplicantPhoto[];
-  readonly videoUrl: string | null;
+  /** 공고의 영상 요구 순서와 설명을 보존한 제출 영상 스냅샷. */
+  readonly videos: readonly ApplicantVideo[];
   /** 조회한 차수의 심사 결과. */
   readonly review: Review;
   /** 차수별 심사 기록. 아직 대상이 아니었던 차수는 null. */
   readonly reviewHistory: Readonly<Record<RoundNumber, Review | null>>;
   readonly mismatchReasons: readonly MismatchReason[];
+};
+
+export type ApplicantVideo = {
+  readonly label: string;
+  readonly url: string;
 };
 
 export type RoundState = {

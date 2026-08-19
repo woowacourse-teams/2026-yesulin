@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Applicant } from "@/features/auditions/types";
+import type { Applicant, ApplicantVideo } from "@/features/auditions/types";
 import { MODAL_LAYERS, ModalShell } from "./modal-shell";
 
 const TITLE_ID = "video-modal-title";
@@ -11,7 +11,7 @@ const HINT_DELAY_MS = 2600;
 const youtubeIdOf = (url: string) => YOUTUBE_ID.exec(url)?.[1] ?? null;
 
 /** 배우가 바뀌면 새로 마운트되도록 호출부에서 조건부로 렌더링한다. */
-export function VideoModal({ applicant, onClose }: { applicant: Applicant; onClose: () => void }) {
+export function VideoModal({ applicant, video, onClose }: { applicant: Applicant; video?: ApplicantVideo; onClose: () => void }) {
   const [playing, setPlaying] = useState(false);
   const [hintVisible, setHintVisible] = useState(false);
 
@@ -22,8 +22,9 @@ export function VideoModal({ applicant, onClose }: { applicant: Applicant; onClo
     return () => clearTimeout(timer);
   }, [playing]);
 
-  if (!applicant.videoUrl) return null;
-  const videoId = youtubeIdOf(applicant.videoUrl);
+  const currentVideo = video ?? applicant.videos[0];
+  if (!currentVideo) return null;
+  const videoId = youtubeIdOf(currentVideo.url);
 
   return (
     <ModalShell
@@ -38,11 +39,11 @@ export function VideoModal({ applicant, onClose }: { applicant: Applicant; onClo
         <h2 id={TITLE_ID} className="text-sm font-semibold tracking-[-0.01em]">
           {applicant.name}
           <span className="ml-2 text-xs font-normal opacity-60">
-            {applicant.roleName} 지원 · 연기 영상
+            {applicant.roleName} 지원 · {currentVideo.label}
           </span>
         </h2>
         <a
-          href={applicant.videoUrl}
+          href={currentVideo.url}
           target="_blank"
           rel="noopener noreferrer"
           className="ml-auto rounded-full border border-white/30 px-3 py-1 text-xs text-white opacity-75 hover:border-white/55 hover:opacity-100"
@@ -69,7 +70,7 @@ export function VideoModal({ applicant, onClose }: { applicant: Applicant; onClo
           <>
             <iframe
               src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&playsinline=1`}
-              title={`${applicant.name} 연기 영상`}
+              title={`${applicant.name} ${currentVideo.label}`}
               allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
               allowFullScreen
               referrerPolicy="strict-origin-when-cross-origin"
@@ -79,7 +80,7 @@ export function VideoModal({ applicant, onClose }: { applicant: Applicant; onClo
               <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full bg-black/70 py-2 pl-3.5 pr-2 text-xs text-white/80">
                 재생되지 않나요?
                 <a
-                  href={applicant.videoUrl}
+                  href={currentVideo.url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="rounded-full border border-white/35 px-3 py-1 text-xs text-white"

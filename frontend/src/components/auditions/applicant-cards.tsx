@@ -59,7 +59,7 @@ export function ApplicantCards({ rows }: { rows: readonly Applicant[] }) {
 
                 <span className="mt-3 block truncate text-sm text-muted-strong">{applicant.school}</span>
                 <span className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted">
-                  <span className="rounded-lg bg-surface px-2 py-1">{applicant.videoUrl ? "영상 있음" : "영상 없음"}</span>
+                  <span className="rounded-lg bg-surface px-2 py-1">{applicant.videos.length > 0 ? `영상 ${applicant.videos.length}개` : "영상 없음"}</span>
                   <span className="num">{submittedDate(applicant.submittedAt)} 접수</span>
                 </span>
 

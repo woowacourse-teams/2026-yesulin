@@ -34,7 +34,7 @@ const seededAnswers: ApplicantAnswer[] = [
   { key: "HOBBIES", label: "취미", value: "러닝, 독립영화 감상" },
   { key: "MILITARY", label: "군필 여부", value: "해당 없음" },
   { key: "PHOTOS", label: "프로필 사진", value: ["seed-photo-1", "seed-photo-2", "seed-photo-3", "seed-photo-4"], previewUrls: ["/images/applicants/kim-harin-profile.png", "/images/applicants/kim-harin-full-body.png", "/images/applicants/kim-harin-acting-1.png", "/images/applicants/kim-harin-acting-2.png"] },
-  { key: "VIDEO", label: "영상 링크", value: ["https://youtu.be/aqz-KE-bpKQ"] },
+  { key: "VIDEO", label: "영상 링크", value: ["https://youtu.be/aqz-KE-bpKQ", "https://youtu.be/M7lc1UVf-VE"] },
   { key: "MOTIVATION", label: "이 작품에 지원한 동기를 적어 주세요.", value: "달빛 아래 우리가 다루는 관계의 회복과 성장에 깊이 공감해 지원했습니다." },
 ];
 const reusableKeys = new Set(["NAME", "HEIGHT", "WEIGHT", "BIRTH", "GENDER", "PHONE", "EMAIL", "ADDRESS", "SCHOOL", "CAREER", "LINK", "NATIONALITY", "COVER_LETTER", "SPECIALTY", "HOBBIES", "MILITARY"]);

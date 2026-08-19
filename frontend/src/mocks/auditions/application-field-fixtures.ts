@@ -25,7 +25,10 @@ export function screeningFlowApplicationFixture(): readonly ApplicationFieldInpu
       { id: "full-body-photo", description: "전신 사진", count: 1 },
       { id: "acting-photo", description: "연기 이미지", count: 2 },
     ],
-    videoRequirements: [{ id: "acting-video", description: "자유 연기 영상" }],
+    videoRequirements: [
+      { id: "acting-video", description: "자유 연기 영상" },
+      { id: "script-video", description: "지정 대사 영상" },
+    ],
     customQuestions: [{ id: "MOTIVATION", label: "이 작품에 지원한 동기를 적어 주세요." }],
   });
 }
