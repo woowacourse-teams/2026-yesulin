@@ -19,15 +19,22 @@ export function DetailGallery({
   const current = Math.min(index, applicant.photos.length - 1);
   const photo = applicant.photos[current];
   const many = applicant.photos.length > 1;
+  const reviewLayout = layout === "review";
   const borderClass = layout === "review"
-    ? "border-b border-border xl:border-b-0 xl:border-r"
+    ? ""
     : "border-b border-border lg:border-b-0 lg:border-r";
 
   const selectPrevious = () => setIndex((slot) => Math.max(0, slot - 1));
   const selectNext = () => setIndex((slot) => Math.min(applicant.photos.length - 1, slot + 1));
 
   return (
-    <div className={`${borderClass} bg-surface px-4 py-4 md:px-5 md:py-5 ${className}`}>
+    <section aria-label={reviewLayout ? "제출 사진" : undefined} className={`${borderClass} bg-surface px-4 py-4 md:px-5 md:py-5 ${className}`}>
+      {reviewLayout ? (
+        <div className="mx-auto mb-3 flex max-w-[240px] items-center justify-between gap-3">
+          <h2 className="text-base font-bold text-foreground">제출 사진</h2>
+          <span className="num text-xs font-semibold text-muted">{current + 1} / {applicant.photos.length}장</span>
+        </div>
+      ) : null}
       <div className="relative mx-auto aspect-[3/4] w-full max-w-[240px] overflow-hidden rounded-control border border-border bg-border-soft">
         <button
           type="button"
@@ -48,7 +55,7 @@ export function DetailGallery({
         </button>
         {photo ? (
           <span className="pointer-events-none absolute bottom-2 left-2 z-2 rounded-full bg-foreground/70 px-2 py-1 text-xs font-semibold text-white">
-            {photo.label} · {current + 1}/{applicant.photos.length}
+            {photo.label}{reviewLayout ? "" : ` · ${current + 1}/${applicant.photos.length}`}
           </span>
         ) : null}
         {many ? (
@@ -96,7 +103,7 @@ export function DetailGallery({
           onClose={() => setExpanded(false)}
         />
       ) : null}
-    </div>
+    </section>
   );
 }
 

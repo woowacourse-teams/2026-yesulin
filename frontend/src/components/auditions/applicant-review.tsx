@@ -85,13 +85,13 @@ export function ApplicantReview({
             </header>
 
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_250px] lg:items-start xl:grid-cols-[minmax(0,1fr)_260px]">
-              <div className="overflow-hidden rounded-card border border-border bg-card xl:grid xl:grid-cols-[260px_minmax(0,1fr)]">
+              <div className="min-w-0 space-y-4 xl:grid xl:grid-cols-[260px_minmax(0,1fr)] xl:items-start xl:gap-4 xl:space-y-0">
                 <DetailGallery
                   applicant={applicant}
                   layout="review"
-                  className="mx-auto w-full max-w-[300px] xl:mx-0 xl:max-w-none"
+                  className="mx-auto w-full max-w-[360px] overflow-hidden rounded-card border border-border xl:sticky xl:top-16 xl:mx-0 xl:max-w-none"
                 />
-                <div className="min-w-0">
+                <div className="min-w-0 overflow-hidden rounded-card border border-border bg-card">
                   <ApplicantVideoSection applicant={applicant} />
                   <DetailProfile applicant={applicant} />
                 </div>
@@ -114,9 +114,12 @@ function ReviewSkeleton() {
   return (
     <div aria-label="지원서를 불러오는 중" className="animate-pulse">
       <div className="mb-6 h-16 w-64 rounded-card bg-border-soft" />
-      <div className="grid overflow-hidden rounded-card border border-border bg-card lg:grid-cols-[240px_1fr]">
-        <div className="aspect-[3/4] bg-border-soft" />
-        <div className="min-h-[620px] bg-card" />
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_250px]">
+        <div className="grid gap-4 xl:grid-cols-[260px_minmax(0,1fr)]">
+          <div className="aspect-[3/4] rounded-card bg-border-soft" />
+          <div className="min-h-[620px] rounded-card border border-border bg-card" />
+        </div>
+        <div className="h-72 rounded-card border border-border bg-card" />
       </div>
     </div>
   );
