@@ -1,0 +1,24 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      java: corretto25
+
+  build:
+    commands:
+      - cd "$CODEBUILD_SRC_DIR/backend"
+      - chmod +x gradlew
+      - ./gradlew clean build --no-daemon
+
+  post_build:
+    commands:
+      - cd "$CODEBUILD_SRC_DIR/backend"
+      - chmod +x deploy/package_bundle.sh
+      - deploy/package_bundle.sh "$CODEBUILD_RESOLVED_SOURCE_VERSION"
+
+artifacts:
+  base-directory: backend/build/deployment
+  files:
+    - '**/*'
+  discard-paths: no

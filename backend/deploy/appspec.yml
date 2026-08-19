@@ -1,0 +1,25 @@
+version: 0.0
+os: linux
+
+files:
+  - source: /
+    destination: /opt/yesulin/deployment
+
+file_exists_behavior: OVERWRITE
+
+hooks:
+  ApplicationStop:
+    - location: scripts/application_stop.sh
+      timeout: 30
+  BeforeInstall:
+    - location: scripts/before_install.sh
+      timeout: 60
+  AfterInstall:
+    - location: scripts/after_install.sh
+      timeout: 60
+  ApplicationStart:
+    - location: scripts/application_start.sh
+      timeout: 60
+  ValidateService:
+    - location: scripts/validate_service.sh
+      timeout: 30
