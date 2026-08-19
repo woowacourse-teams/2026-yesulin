@@ -27,17 +27,17 @@ const STATUS_BORDER = {
 
 const PHASE_TONE = {
   DRAFT: "border-border text-muted-strong bg-border-soft",
-  OPEN: "border-pass/30 text-pass bg-pass-bg",
-  UPCOMING: "border-brand-line text-upcoming bg-upcoming-bg",
-  RECRUIT_CLOSED: "border-warn/30 text-warn bg-warn-bg",
+  OPEN: "border-brand bg-brand text-white",
+  UPCOMING: "border-brand-line bg-card text-brand-strong",
+  RECRUIT_CLOSED: "border-brand-line bg-brand-soft-strong text-brand-pressed",
   FINISHED: "border-border text-muted bg-border-soft",
 } as const satisfies Record<PostingPhase, string>;
 
 const PHASE_DOT = {
   DRAFT: "bg-sidebar-muted",
-  OPEN: "bg-pass",
+  OPEN: "bg-brand",
   UPCOMING: "bg-brand-line",
-  RECRUIT_CLOSED: "bg-warn",
+  RECRUIT_CLOSED: "bg-brand-strong",
   FINISHED: "bg-sidebar-muted",
 } as const satisfies Record<PostingPhase, string>;
 
