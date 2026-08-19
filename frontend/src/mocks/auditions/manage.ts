@@ -74,6 +74,7 @@ export function updateCatalogPosting(id: PostingId, body: UpdatePostingRequest) 
     if (!current) continue;
     const updated: CatalogPosting = {
       ...current,
+      title: body.title?.trim() ?? current.title,
       performanceStart: body.performanceStart ?? current.performanceStart,
       performanceEnd: body.performanceEnd ?? current.performanceEnd,
       recruitmentStart: body.recruitmentStart ?? current.recruitmentStart,

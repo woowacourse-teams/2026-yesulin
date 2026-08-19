@@ -167,7 +167,7 @@ export const handlers = [
     const nextRounds = body.rounds;
     if (nextRounds && current.lockedRounds.some((round) => JSON.stringify(nextRounds.find((item) => item.round === round)) !== JSON.stringify(current.rounds.find((item) => item.round === round)))) return apiError(409, "ROUND_LOCKED", "완료된 전형 일정은 수정할 수 없습니다.");
     const validation = validatePostingDraft({
-      title: current.title,
+      title: body.title ?? current.title,
       posterUrl: current.posterUrl,
       performanceStart: body.performanceStart ?? current.performanceStart,
       performanceEnd: body.performanceEnd ?? current.performanceEnd,

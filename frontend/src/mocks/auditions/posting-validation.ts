@@ -21,6 +21,7 @@ const hasText = (value: unknown): value is string => typeof value === "string" &
 /** 공고 생성과 부분 수정 뒤의 완성 상태에 동일하게 적용하는 도메인 검증. */
 export function validatePostingDraft(draft: PostingDraft, templates: readonly PerformanceRoleTemplate[]): PostingValidationError | null {
   if (!hasText(draft.title)) return { code: "TITLE_REQUIRED", message: "공고 제목을 입력해 주세요." };
+  if (draft.title.length > 255) return { code: "TITLE_TOO_LONG", message: "공고 제목은 255자 이하로 입력해 주세요." };
   if (!hasText(draft.posterUrl)) return { code: "POSTER_REQUIRED", message: "공고 포스터를 등록해 주세요." };
   if (!hasText(draft.performanceStart)) return { code: "PERFORMANCE_START_REQUIRED", message: "공연 시작일을 입력해 주세요." };
   if (draft.performanceEnd && draft.performanceEnd < draft.performanceStart) return { code: "INVALID_PERFORMANCE_PERIOD", message: "공연 종료일은 시작일보다 빠를 수 없습니다." };

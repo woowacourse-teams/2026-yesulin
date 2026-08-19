@@ -22,7 +22,7 @@ flowchart TB
     PERF --> NEW_PERF["공연 포스터·도로명주소·배역 이름/설명<br>POST /api/v1/performances"] & EDIT_PERF["공연 수정·삭제<br>PATCH·DELETE /api/v1/performances/{performanceId}"] & POSTINGS["공연 카드 선택 → 공고 관리<br>GET /api/v1/performances/{performanceId}/postings"]
     NEW_PERF --> CREATE_PERF["공연 등록"]
     POSTINGS --> CREATE_POSTING["공고 포스터 스냅샷·배역 조건·일정·지원 폼 등록<br>POST /api/v1/performances/{performanceId}/postings"] & POSTING_DETAIL["공고 상세<br>GET /api/v1/postings/{postingId}"]
-    POSTING_DETAIL --> EDIT_POSTING["공연·모집·전형 일정만 수정<br>PATCH /api/v1/postings/{postingId}<br>또는 공고 삭제"] & ROLES["배역 목록<br>GET /api/v1/postings/{postingId}/roles"]
+    POSTING_DETAIL --> EDIT_POSTING["공고명·공연·모집·전형 일정 수정<br>PATCH /api/v1/postings/{postingId}<br>또는 공고 삭제"] & ROLES["배역 목록<br>GET /api/v1/postings/{postingId}/roles"]
     ROLES --> CHOOSE_ROLE["심사할 배역 선택<br>배역이 하나여도 동일하게 표시"]
     CHOOSE_ROLE --> BOARD["배역별 심사 보드 첫 페이지<br>복수 배역 지원서는 각 배역에 표시<br>GET /api/v1/roles/{roleId}/screening-rounds/{round}/applications"]
     BOARD --> MORE{"다음 페이지 필요?"}

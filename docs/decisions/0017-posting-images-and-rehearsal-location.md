@@ -2,6 +2,7 @@
 status: accepted
 date: 2026-08-18
 agent-required: true
+superseded_in_part_by: 0020
 ---
 
 # 공고 이미지와 연습 장소
@@ -21,3 +22,5 @@ agent-required: true
 ## 영향
 
 공고 생성·공개 조회 계약에 상세 이미지와 연습 장소가 추가된다. 공고 생성 뒤 일반 정보 수정은 기존 결정대로 허용하지 않고 일정만 수정한다. 실제 이미지 업로드 식별자는 백엔드 연동 전에 별도로 정한다.
+
+일반 정보 수정 제한 중 공고명은 [0020](./0020-allow-posting-title-edit.md)에 따라 수정할 수 있다.

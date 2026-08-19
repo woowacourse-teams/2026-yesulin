@@ -36,7 +36,7 @@ export type PostingManagementDetail = {
 
 export type UpdatePostingRequest = Partial<Pick<
   PostingManagementDetail,
-  "recruitmentStart" | "recruitmentEnd" | "performanceStart" | "performanceEnd" | "rounds"
+  "title" | "recruitmentStart" | "recruitmentEnd" | "performanceStart" | "performanceEnd" | "rounds"
 >>;
 
 export type ProducerProfile = {
