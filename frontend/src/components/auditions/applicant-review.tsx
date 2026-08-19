@@ -57,7 +57,7 @@ export function ApplicantReview({
         ]}
       />
 
-      <div className="mx-auto w-full max-w-[1360px] px-4 pb-12 pt-6 md:px-8 md:pt-8">
+      <div className="mx-auto w-full max-w-[1480px] px-4 pb-12 pt-5 md:px-8 md:pt-6">
         {error ? <ScreenError message={error} onRetry={reload} /> : null}
         {loading && !board ? <ReviewSkeleton /> : null}
         {board && !applicant ? (
@@ -68,7 +68,7 @@ export function ApplicantReview({
 
         {board && applicant ? (
           <>
-            <header className="mb-6 flex flex-wrap items-start gap-4">
+            <header className="mb-5 flex flex-wrap items-start gap-4">
               <div className="min-w-0 flex-1">
                 <Link href={listHref} className="mb-3 inline-flex min-h-11 items-center text-sm font-semibold text-muted-strong hover:text-brand">
                   <span aria-hidden="true" className="mr-1.5">←</span>
@@ -84,8 +84,8 @@ export function ApplicantReview({
               </div>
             </header>
 
-            <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start xl:grid-cols-[minmax(0,1fr)_300px]">
-              <div className="overflow-hidden rounded-card border border-border bg-card xl:grid xl:grid-cols-[240px_minmax(0,1fr)]">
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_250px] lg:items-start xl:grid-cols-[minmax(0,1fr)_260px]">
+              <div className="overflow-hidden rounded-card border border-border bg-card xl:grid xl:grid-cols-[260px_minmax(0,1fr)]">
                 <DetailGallery
                   applicant={applicant}
                   layout="review"
