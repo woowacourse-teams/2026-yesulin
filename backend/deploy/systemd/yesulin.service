@@ -1,0 +1,24 @@
+[Unit]
+Description=Yesulin Spring Boot application
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=yesulin
+Group=yesulin
+WorkingDirectory=/opt/yesulin/current
+EnvironmentFile=/etc/yesulin/yesulin.env
+ExecStart=/usr/bin/java -jar /opt/yesulin/current/application.jar --server.address=127.0.0.1 --server.port=8080
+SuccessExitStatus=143
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=full
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target
