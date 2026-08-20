@@ -17,10 +17,11 @@ DEPLOY_DIR=deploy
 BUNDLE_DIR=build/deployment
 
 rm -rf "$BUNDLE_DIR"
-mkdir -p "$BUNDLE_DIR/scripts" "$BUNDLE_DIR/systemd"
+mkdir -p "$BUNDLE_DIR/nginx" "$BUNDLE_DIR/scripts" "$BUNDLE_DIR/systemd"
 cp build/libs/application.jar "$BUNDLE_DIR/application.jar"
 cp "$DEPLOY_DIR/appspec.yml" "$BUNDLE_DIR/appspec.yml"
 cp "$DEPLOY_DIR/scripts/"*.sh "$BUNDLE_DIR/scripts/"
+cp "$DEPLOY_DIR/nginx/"*.conf "$BUNDLE_DIR/nginx/"
 cp "$DEPLOY_DIR/systemd/yesulin.service" "$BUNDLE_DIR/systemd/yesulin.service"
 chmod +x "$BUNDLE_DIR/scripts/"*.sh
 printf '%s\n' "$REVISION" > "$BUNDLE_DIR/revision.txt"
