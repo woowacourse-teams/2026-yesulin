@@ -118,6 +118,8 @@ POST   /api/v1/auditions                               # 공연 ID와 기본 정
 GET    /api/v1/auditions/{auditionId}                   # 공연사용 공고 DRAFT 상세
 PUT    /api/v1/auditions/{auditionId}/basic-information
                                                           # 기본 정보 섹션 전체 저장
+GET    /api/v1/auditions/{auditionId}/roles              # 배역 섹션 조회
+PUT    /api/v1/auditions/{auditionId}/roles              # 배역 섹션 전체 저장
 ```
 
 포스터 업로드 요청은 `originalFilename`, `contentType`, `size`를 받는다. `purpose`와 소유자 ID는 받지 않으며 소유자는 세션에서 결정한다. JPEG·PNG·WebP 이미지 한 장, 최대 30MB를 허용한다. 발급 응답의 `method`와 `headers`를 그대로 사용해 저장소에 직접 업로드한 뒤 완료 API를 호출한다. 완료는 실제 객체의 Content-Type과 크기를 확인하는 멱등 요청이며 성공 시 `204 No Content`를 반환한다. 없거나 다른 사용자의 파일은 모두 `404 FILE_NOT_FOUND`다. 상세 생명주기는 [파일 업로드 설계](../development/backend/file-upload.md)를 따른다.
@@ -131,8 +133,9 @@ PUT    /api/v1/auditions/{auditionId}/basic-information
 공고 생성은 `performanceId`, `title`, `performanceStartDate`와 선택적인 `performanceEndDate`를 받아
 세션 소유자의 공연에 DRAFT를 만들고 `201 Created`와 `Location`을 반환한다. 종료일이 없으면 응답의
 `openRun`은 `true`다. 기본 정보 수정은 DRAFT와 PUBLISHED 모두 허용하며 같은 기본 필드를 받는다.
-생성·단건 조회·수정은 최상위 `/auditions`로 묶고, 특정 공연의 공고 목록 조회가 필요할 때만 공연 하위 경로를 사용한다. 섹션별
-저장과 후속 API는 [공고 관리](../development/backend/audition-management.md)를 따른다.
+생성·단건 조회·수정은 최상위 `/auditions`로 묶고, 특정 공연의 공고 목록 조회가 필요할 때만 공연 하위
+경로를 사용한다. 배역 저장은 공연 배역 ID와 공고별 모집 조건을 받고 섹션 전체를 교체한다. 후속 API는
+[공고 관리](../development/backend/audition-management.md)를 따른다.
 
 ### 프런트 선행 모델
 

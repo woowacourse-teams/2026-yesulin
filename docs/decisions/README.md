@@ -25,6 +25,7 @@
 - [공연·공고 생성과 수정 경계](./20260818133426-performance-posting-management.md)
 - [심사 상세 식별과 화면 경로](./20260818133426-screening-detail-identity-and-route.md)
 - [공고 생명주기와 섹션 Aggregate](./20260819073112-audition-section-aggregates.md)
+- [공고 배역 참조](./20260819151537-audition-role-references.md)
 
 ### 백엔드 운영
 

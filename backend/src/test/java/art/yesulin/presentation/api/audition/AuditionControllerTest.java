@@ -13,9 +13,11 @@ import art.yesulin.application.file.FileService;
 import art.yesulin.application.file.FileUploadCommand;
 import art.yesulin.application.file.FileUploadResult;
 import art.yesulin.application.performance.CreatePerformanceCommand;
+import art.yesulin.application.performance.CreatePerformanceRoleCommand;
 import art.yesulin.application.performance.PerformanceResult;
 import art.yesulin.application.performance.PerformanceService;
 import art.yesulin.domain.audition.AuditionRepository;
+import art.yesulin.domain.audition.role.AuditionRoleSectionRepository;
 import art.yesulin.domain.file.FileAssetRepository;
 import art.yesulin.domain.file.FileReferenceRepository;
 import art.yesulin.domain.performance.PerformanceRepository;
@@ -57,6 +59,9 @@ class AuditionControllerTest {
     private AuditionRepository auditionRepository;
 
     @Autowired
+    private AuditionRoleSectionRepository roleSectionRepository;
+
+    @Autowired
     private PerformanceRepository performanceRepository;
 
     @Autowired
@@ -70,6 +75,7 @@ class AuditionControllerTest {
 
     @BeforeEach
     void cleanUp() {
+        roleSectionRepository.deleteAll();
         auditionRepository.deleteAll();
         performanceRepository.deleteAll();
         fileReferenceRepository.deleteAll();
@@ -120,6 +126,65 @@ class AuditionControllerTest {
                 .andExpect(jsonPath("$.openRun").value(false));
     }
 
+    @Test
+    void savesAndFindsRoleSection() throws Exception {
+        PerformanceResult performance = createPerformance();
+        long auditionId = createAudition(performance.id());
+        String roleRequest = """
+                {
+                  "multipleRoleApplicationsAllowed": true,
+                  "roles": [
+                    {
+                      "performanceRoleId": %d,
+                      "recruitmentCount": 2,
+                      "gender": "male",
+                      "minimumAge": 20,
+                      "maximumAge": 35
+                    },
+                    {
+                      "performanceRoleId": %d,
+                      "recruitmentCount": 1,
+                      "gender": "ANY",
+                      "minimumAge": 18,
+                      "maximumAge": 40
+                    }
+                  ]
+                }
+                """.formatted(performance.roles().getFirst().id(), performance.roles().get(1).id());
+
+        mockMvc.perform(put("/api/v1/auditions/{auditionId}/roles", auditionId)
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(roleRequest))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.multipleRoleApplicationsAllowed").value(true))
+                .andExpect(jsonPath("$.roles[0].name").value("햄릿"))
+                .andExpect(jsonPath("$.roles[0].gender").value("MALE"));
+
+        mockMvc.perform(get("/api/v1/auditions/{auditionId}/roles", auditionId)
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.roles.length()").value(2));
+    }
+
+    private long createAudition(long performanceId) throws Exception {
+        String request = """
+                {
+                  "performanceId": %d,
+                  "title": "햄릿 오디션",
+                  "performanceStartDate": "2026-11-01",
+                  "performanceEndDate": null
+                }
+                """.formatted(performanceId);
+        String location = mockMvc.perform(post("/api/v1/auditions")
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getHeader("Location");
+        return Long.parseLong(location.substring(location.lastIndexOf('/') + 1));
+    }
+
     private PerformanceResult createPerformance() {
         return performanceService.create(
                 OWNER_ID,
@@ -127,7 +192,10 @@ class AuditionControllerTest {
                         uploadReadyImage(),
                         "햄릿",
                         "서울특별시 종로구 대학로 12",
-                        List.of()
+                        List.of(
+                                new CreatePerformanceRoleCommand("햄릿", "왕자"),
+                                new CreatePerformanceRoleCommand("오필리어", "귀족 여성")
+                        )
                 )
         );
     }

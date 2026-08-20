@@ -6,7 +6,9 @@ import art.yesulin.common.exception.ErrorType;
 public enum AuditionErrorCode implements ErrorCode {
 
     NOT_FOUND("AUDITION_NOT_FOUND", ErrorType.NOT_FOUND),
-    INVALID_BASIC_INFORMATION("AUDITION_INVALID_BASIC_INFORMATION", ErrorType.BAD_REQUEST);
+    ROLE_SECTION_NOT_FOUND("AUDITION_ROLE_SECTION_NOT_FOUND", ErrorType.NOT_FOUND),
+    INVALID_BASIC_INFORMATION("AUDITION_INVALID_BASIC_INFORMATION", ErrorType.BAD_REQUEST),
+    INVALID_ROLE_SECTION("AUDITION_INVALID_ROLE_SECTION", ErrorType.BAD_REQUEST);
 
     private final String code;
     private final ErrorType type;

@@ -2,6 +2,8 @@ package art.yesulin.presentation.api.audition;
 
 import art.yesulin.application.audition.AuditionResult;
 import art.yesulin.application.audition.AuditionService;
+import art.yesulin.application.audition.role.AuditionRoleService;
+import art.yesulin.application.audition.role.AuditionRolesResult;
 import art.yesulin.application.auth.MemberPrincipal;
 import jakarta.validation.Valid;
 import java.net.URI;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.SessionAttribute;
 public class AuditionController {
 
     private final AuditionService auditionService;
+    private final AuditionRoleService auditionRoleService;
 
     @PostMapping
     public ResponseEntity<AuditionResult> create(
@@ -51,4 +54,22 @@ public class AuditionController {
                 auditionService.updateBasicInformation(principal.memberId(), auditionId, request.toCommand())
         );
     }
+
+    @GetMapping("/{auditionId}/roles")
+    public ResponseEntity<AuditionRolesResult> findRoles(
+            @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal,
+            @PathVariable long auditionId
+    ) {
+        return ResponseEntity.ok(auditionRoleService.find(principal.memberId(), auditionId));
+    }
+
+    @PutMapping("/{auditionId}/roles")
+    public ResponseEntity<AuditionRolesResult> saveRoles(
+            @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal,
+            @PathVariable long auditionId,
+            @Valid @RequestBody SaveAuditionRolesRequest request
+    ) {
+        return ResponseEntity.ok(auditionRoleService.save(principal.memberId(), auditionId, request.toCommand()));
+    }
+
 }

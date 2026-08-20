@@ -34,10 +34,11 @@ status: active
 ### 배역 정책
 
 - 공고는 공연에 등록된 배역을 하나 이상 선택한다.
+- 공고 배역은 공연 배역 ID와 모집 인원·성별·최소/최대 나이만 저장하며 이름·설명은 공연에서 조회한다.
 - `multipleRoleApplicationsAllowed=false`면 지원자는 정확히 한 배역을 선택한다.
 - `true`면 공고에 배역이 두 개 이상 있어야 하고, 지원자는 그중 하나 이상을 선택할 수 있다.
-- 이 조건은 불완전한 DRAFT 저장을 막지 않고 게시할 때 검사한다.
-- 개별 배역 선택은 배역 섹션의 하위 항목이다. 중복·순서·공연 소속을 섹션이 함께 검증한다.
+- 배역 섹션을 만들지 않은 DRAFT는 허용하지만 저장하는 배역 섹션은 위 조건을 만족해야 한다.
+- `AuditionRoleSelections`가 개수·중복·복수 지원 규칙을 생성 시 검증하고, `AuditionRoles`가 순서와 기존 ID 유지를 관리한다.
 
 ### 일정과 폼 목표
 
@@ -57,13 +58,15 @@ status: active
 POST /api/v1/auditions
 GET  /api/v1/auditions/{auditionId}
 PUT  /api/v1/auditions/{auditionId}/basic-information
+GET  /api/v1/auditions/{auditionId}/roles
+PUT  /api/v1/auditions/{auditionId}/roles
 ```
 
 생성 API는 `performanceId`, `title`, `performanceStartDate`, 선택적인 `performanceEndDate`를 받아 유효한
 DRAFT를 반환한다. 생성·조회·기본 정보 수정은 `/auditions`를 기준으로 한 Controller와 Service가 담당한다.
 특정 공연 기준 목록 조회가 필요할 때만 `/performances/{performanceId}/auditions`를 사용한다. 공연사 소유
-공고만 접근할 수 있으며 동시 수정 제어는 실제 충돌 가능성을 확인한 뒤 도입한다. 2단계 이후 API는 해당
-단계에서 확정한다.
+공고만 접근할 수 있으며 동시 수정 제어는 실제 충돌 가능성을 확인한 뒤 도입한다. 배역 `PUT`은 섹션
+전체를 저장하고 기존 공연 배역을 다시 선택하면 공고 배역 ID를 유지한다. 일정 이후 API는 해당 단계에서 확정한다.
 
 생성·수정 command가 날짜 입력을 `PerformancePeriod`로 변환하고 service는 완성된 VO를 도메인에 전달한다.
 공연이 없거나 세션 소유자의 공연이 아니면 존재 여부를 구분하지 않고 `PERFORMANCE_NOT_FOUND`로 응답한다.
