@@ -8,7 +8,9 @@ MVP 기간에는 GitHub Flow를 사용한다. `main`은 항상 배포 가능한 
 {type}/{kebab-case-description}
 ```
 
-- 타입: `feat`, `fix`, `hotfix`, `docs`, `refactor`, `perf`, `test`, `chore`
+- 타입: `feat`, `fix`, `hotfix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`
+- `style`: 동작·데이터 계약을 바꾸지 않는 UI 색상·간격·타이포·아이콘·정적 시각 자산 또는 코드 포맷 변경
+- `chore`: 의존성, 빌드 도구와 저장소 유지보수 변경
 - 소문자와 kebab-case를 사용한다.
 - 예: `feat/user-authentication`, `fix/login-button`
 - 병합한 브랜치는 삭제한다.
