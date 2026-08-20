@@ -52,12 +52,17 @@ status: active
 - 동일 공고의 일정 저장은 공고 행에 쓰기 잠금을 걸어 직렬화한다. 동시 최초 저장의 중복 INSERT와
   교체 트랜잭션의 교차 실행을 막는다. 버전 계약은 두지 않아 시간차가 있는 순차 저장은 마지막 요청이 우선한다.
 
-### 지원 폼 목표
+### 지원 폼
 
-- 기본 항목: 이름, 키, 몸무게, 생년월일, 성별, 연락처, 이메일, 거주지 중 받을 항목을 선택한다.
+- 기본 항목: 이름, 키, 몸무게, 생년월일, 성별, 연락처, 이메일 중 받을 항목을 선택한다.
 - 추가 항목: 학력, SNS·외부 링크, 국적, 자기소개, 특기, 취미, 군필 여부, 경력 중 선택한다.
-- 사진 요구 장수의 합은 최대 10장이고 영상 링크는 최대 5개다. 지원 답변은 사진 `fileId`와 영상 URL을 저장한다.
-- 추가 질문 답변의 서비스 최대 길이는 2,000자다.
+- 선택한 기본 항목은 지원할 때 필수이고 선택한 추가 항목은 nullable이다.
+- 사진 요구 장수의 합은 최대 10장이고 영상 링크 요구는 최대 5개다. 사진·영상 요구와 추가 질문은
+  순서와 ID를 유지해 이후 지원 답변이 각각 `(requirementId, fileId)`, `(requirementId, url)`,
+  `(questionId, answer)`로 연결될 수 있게 한다.
+- 추가 질문 문구는 최대 255자이며 답변의 서비스 최대 길이는 2,000자다.
+- 지원 폼 저장은 전체 교체다. 빈 목록은 해당 종류를 받지 않는다는 뜻이고, 기존 항목은 응답 ID를
+  다시 보내 정체성을 유지한다. 동일 공고 저장은 공고 행의 쓰기 잠금으로 직렬화한다.
 
 공고 모델은 위에서 확정한 정보만 가진다. 장소·공고 포스터·지원 안내처럼 목록에 없는 값은 추가하지
 않으며, 공연에 이미 속한 정보를 공고에 임의로 중복 저장하지 않는다.
@@ -72,14 +77,18 @@ GET  /api/v1/auditions/{auditionId}/roles
 PUT  /api/v1/auditions/{auditionId}/roles
 GET  /api/v1/auditions/{auditionId}/schedule
 PUT  /api/v1/auditions/{auditionId}/schedule
+GET  /api/v1/auditions/{auditionId}/application-form
+PUT  /api/v1/auditions/{auditionId}/application-form
 ```
 
 생성 API는 `performanceId`, `title`, `performanceStartDate`, 선택적인 `performanceEndDate`를 받아 유효한
 DRAFT를 반환한다. 생성·조회·기본 정보 수정은 `/auditions`를 기준으로 한 Controller와 Service가 담당한다.
 특정 공연 기준 목록 조회가 필요할 때만 `/performances/{performanceId}/auditions`를 사용한다. 공연사 소유
-공고만 접근할 수 있으며 동시 수정 제어는 실제 충돌 가능성을 확인한 뒤 도입한다. 배역 `PUT`은 섹션
+공고만 접근할 수 있다. 일정·지원 폼처럼 하위 목록을 전체 교체하는 저장은 공고 행 잠금으로 직렬화하고,
+단순 기본 정보 수정에는 별도 동시 수정 계약을 두지 않는다. 배역 `PUT`은 섹션
 전체를 저장하고 기존 공연 배역을 다시 선택하면 공고 배역 ID를 유지한다. 일정 GET·PUT은 모집 기간과
-전형 1~5개를 조회하고 전체 저장한다. 지원 폼과 게시 API는 해당 단계에서 확정한다.
+전형 1~5개를 조회하고 전체 저장한다. 지원 폼 GET·PUT은 표준 항목과 사진·영상·질문 요구 전체를
+조회하고 저장한다. 게시 API는 해당 단계에서 확정한다.
 
 생성·수정 command가 날짜 입력을 `PerformancePeriod`로 변환하고 service는 완성된 VO를 도메인에 전달한다.
 공연이 없거나 세션 소유자의 공연이 아니면 존재 여부를 구분하지 않고 `PERFORMANCE_NOT_FOUND`로 응답한다.
