@@ -128,6 +128,24 @@ class PerformanceControllerTest {
     }
 
     @Test
+    void rejectsCreateWhenNotLoggedIn() throws Exception {
+        String request = """
+                {
+                 "posterFileId": 1,
+                 "title": "햄릿",
+                 "roadAddress": "서울특별시 종로구 대학로 12",
+                 "roles": []
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/performances")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("AUTH_UNAUTHENTICATED"));
+    }
+
+    @Test
     void updatesPerformanceBasicInformation() throws Exception {
         PerformanceResult created = createPerformance();
         String request = """
