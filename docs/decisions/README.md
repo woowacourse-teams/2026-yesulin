@@ -26,6 +26,7 @@
 - [심사 상세 식별과 화면 경로](./20260818133426-screening-detail-identity-and-route.md)
 - [공고 생명주기와 섹션 Aggregate](./20260819073112-audition-section-aggregates.md)
 - [공고 배역 참조](./20260819151537-audition-role-references.md)
+- [공고 게시 상태와 섹션 검증](./20260820190552-audition-publication.md)
 
 ### 백엔드 운영
 
