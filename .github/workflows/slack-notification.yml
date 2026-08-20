@@ -1,19 +1,68 @@
 name: Slack GitHub Notifications
 
-# GitHub Actions 화면에서 사람이 직접 실행할 수 있게 한다.
-# 지금은 Slack 연결 테스트를 위한 설정이다.
 on:
+  # GitHub Actions 화면에서 수동 테스트
   workflow_dispatch:
+
+  # Issue 관련 이벤트
+  issues:
+    types:
+      - opened
+      - edited
+      - deleted
+      - transferred
+      - pinned
+      - unpinned
+      - closed
+      - reopened
+      - assigned
+      - unassigned
+      - labeled
+      - unlabeled
+      - locked
+      - unlocked
+      - milestoned
+      - demilestoned
+      - typed
+      - untyped
+      - field_added
+      - field_removed
+
+  # Pull Request 관련 이벤트
+  pull_request:
+    types:
+      - opened
+      - edited
+      - closed
+      - reopened
+      - synchronize
+      - assigned
+      - unassigned
+      - labeled
+      - unlabeled
+      - converted_to_draft
+      - ready_for_review
+      - review_requested
+      - review_request_removed
+      - locked
+      - unlocked
+      - milestoned
+      - demilestoned
+      - enqueued
+      - dequeued
+      - auto_merge_enabled
+      - auto_merge_disabled
+
+# 이 Workflow는 Repository를 수정할 필요가 없다.
+permissions: {}
 
 jobs:
   notify:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Send test notification to Slack
+      - name: Send GitHub notification to Slack
         env:
-          # GitHub Repository Secret에 저장한 값을 가져온다.
-          # 실제 Webhook URL이 코드에 노출되지 않는다.
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
         run: |
@@ -22,23 +71,242 @@ jobs:
           import os
           import urllib.request
 
-          # Slack에 보낼 메시지
-          message = {
-              "text": "✅ GitHub → Slack 연결 테스트 성공!"
-          }
 
-          # Python 객체를 JSON으로 변환
-          data = json.dumps(message).encode("utf-8")
+          # --------------------------------------------------
+          # 공통 Slack 메시지 생성
+          # --------------------------------------------------
+          def create_message(emoji, status, number, title, url, context):
+              return {
+                  # 모바일 Push 알림 등의 fallback 메시지
+                  "text": f"{status} - #{number} {title}",
 
-          # Slack Incoming Webhook으로 HTTP POST 요청
+                  "blocks": [
+                      {
+                          "type": "section",
+                          "text": {
+                              "type": "mrkdwn",
+                              "text": f"{emoji} *{status}*"
+                          }
+                      },
+                      {
+                          "type": "section",
+                          "text": {
+                              "type": "mrkdwn",
+                              "text": f"*<{url}|#{number} {title}>*"
+                          }
+                      },
+                      {
+                          "type": "context",
+                          "elements": [
+                              {
+                                  "type": "mrkdwn",
+                                  "text": context
+                              }
+                          ]
+                      }
+                  ]
+              }
+
+
+          # --------------------------------------------------
+          # GitHub Actions 환경 정보
+          # --------------------------------------------------
+          event_name = os.environ["GITHUB_EVENT_NAME"]
+          actor = os.environ["GITHUB_ACTOR"]
+          repository = os.environ["GITHUB_REPOSITORY"]
+
+          with open(
+              os.environ["GITHUB_EVENT_PATH"],
+              encoding="utf-8"
+          ) as f:
+              event = json.load(f)
+
+
+          # --------------------------------------------------
+          # 수동 테스트
+          # --------------------------------------------------
+          if event_name == "workflow_dispatch":
+              payload = {
+                  "text": "GitHub → Slack 연결 테스트 성공",
+                  "blocks": [
+                      {
+                          "type": "section",
+                          "text": {
+                              "type": "mrkdwn",
+                              "text": "✅ *Slack Notification Test*"
+                          }
+                      },
+                      {
+                          "type": "context",
+                          "elements": [
+                              {
+                                  "type": "mrkdwn",
+                                  "text": f"`{repository}`"
+                              }
+                          ]
+                      }
+                  ]
+              }
+
+
+          # --------------------------------------------------
+          # Issue
+          # --------------------------------------------------
+          elif event_name == "issues":
+              issue = event["issue"]
+              action = event["action"]
+
+              # GitHub action → Slack에 표시할 이름
+              issue_actions = {
+                  "opened": ("🟢", "Issue Opened"),
+                  "edited": ("✏️", "Issue Edited"),
+                  "deleted": ("🗑️", "Issue Deleted"),
+                  "transferred": ("↗️", "Issue Transferred"),
+
+                  "closed": ("⚫", "Issue Closed"),
+                  "reopened": ("🔵", "Issue Reopened"),
+
+                  "assigned": ("👤", "Issue Assigned"),
+                  "unassigned": ("👤", "Issue Unassigned"),
+
+                  "labeled": ("🏷️", "Issue Labeled"),
+                  "unlabeled": ("🏷️", "Issue Unlabeled"),
+
+                  "pinned": ("📌", "Issue Pinned"),
+                  "unpinned": ("📌", "Issue Unpinned"),
+
+                  "locked": ("🔒", "Issue Locked"),
+                  "unlocked": ("🔓", "Issue Unlocked"),
+
+                  "milestoned": ("🎯", "Issue Milestoned"),
+                  "demilestoned": ("🎯", "Issue Demilestoned"),
+
+                  "typed": ("📋", "Issue Type Changed"),
+                  "untyped": ("📋", "Issue Type Removed"),
+
+                  "field_added": ("⚙️", "Issue Field Updated"),
+                  "field_removed": ("⚙️", "Issue Field Removed"),
+              }
+
+              emoji, status = issue_actions.get(
+                  action,
+                  ("🔔", f"Issue {action}")
+              )
+
+              payload = create_message(
+                  emoji=emoji,
+                  status=status,
+                  number=issue["number"],
+                  title=issue["title"],
+                  url=issue["html_url"],
+                  context=f"👤 `{actor}`"
+              )
+
+
+          # --------------------------------------------------
+          # Pull Request
+          # --------------------------------------------------
+          elif event_name == "pull_request":
+              pr = event["pull_request"]
+              action = event["action"]
+
+              # Merge는 GitHub에서 별도의 merged action이 아니라
+              # closed + merged == true 로 판단한다.
+              if action == "closed" and pr.get("merged"):
+                  emoji = "✅"
+                  status = "PR Merged"
+
+              else:
+                  pr_actions = {
+                      "opened": ("🟣", "PR Opened"),
+                      "edited": ("✏️", "PR Edited"),
+                      "closed": ("⚫", "PR Closed"),
+                      "reopened": ("🔵", "PR Reopened"),
+
+                      # PR 브랜치에 새로운 commit이 push됨
+                      "synchronize": ("🔄", "PR Updated"),
+
+                      "assigned": ("👤", "PR Assigned"),
+                      "unassigned": ("👤", "PR Unassigned"),
+
+                      "labeled": ("🏷️", "PR Labeled"),
+                      "unlabeled": ("🏷️", "PR Unlabeled"),
+
+                      "converted_to_draft": ("📝", "PR Draft"),
+                      "ready_for_review": ("👀", "PR Ready for Review"),
+
+                      "review_requested": ("👀", "Review Requested"),
+                      "review_request_removed": (
+                          "👀",
+                          "Review Request Removed"
+                      ),
+
+                      "locked": ("🔒", "PR Locked"),
+                      "unlocked": ("🔓", "PR Unlocked"),
+
+                      "milestoned": ("🎯", "PR Milestoned"),
+                      "demilestoned": ("🎯", "PR Demilestoned"),
+
+                      "enqueued": ("⏳", "PR Merge Queue Added"),
+                      "dequeued": ("⏳", "PR Merge Queue Removed"),
+
+                      "auto_merge_enabled": (
+                          "⚙️",
+                          "Auto Merge Enabled"
+                      ),
+                      "auto_merge_disabled": (
+                          "⚙️",
+                          "Auto Merge Disabled"
+                      ),
+                  }
+
+                  emoji, status = pr_actions.get(
+                      action,
+                      ("🔔", f"PR {action}")
+                  )
+
+              # 예:
+              # minzzun99 · feat/login → main
+              context = (
+                  f"👤 `{actor}`"
+                  f"   ·   "
+                  f"🌿 `{pr['head']['ref']}` → `{pr['base']['ref']}`"
+              )
+
+              payload = create_message(
+                  emoji=emoji,
+                  status=status,
+                  number=pr["number"],
+                  title=pr["title"],
+                  url=pr["html_url"],
+                  context=context
+              )
+
+
+          else:
+              raise SystemExit(0)
+
+
+          # --------------------------------------------------
+          # Slack Incoming Webhook으로 전송
+          # --------------------------------------------------
+          data = json.dumps(
+              payload,
+              ensure_ascii=False
+          ).encode("utf-8")
+
           request = urllib.request.Request(
               os.environ["SLACK_WEBHOOK_URL"],
               data=data,
-              headers={"Content-Type": "application/json"},
+              headers={
+                  "Content-Type": "application/json"
+              },
               method="POST",
           )
 
           with urllib.request.urlopen(request) as response:
-              print(f"Slack response: HTTP {response.status}")
+              print(
+                  f"Slack notification sent: HTTP {response.status}"
+              )
 
           PY
