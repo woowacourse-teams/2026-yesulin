@@ -1,3 +1,9 @@
+---
+audience: team
+ai-context: on-demand
+status: active
+---
+
 # 파일 업로드 설계
 
 파일은 특정 도메인에 종속되지 않는 공통 자산이다. 현재 API는 공연 포스터 이미지 한 장만 받지만 파일 모델과 application은 향후 사진·영상·첨부 파일을 수용할 수 있게 유지한다.

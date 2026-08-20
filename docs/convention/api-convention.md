@@ -1,6 +1,6 @@
 # API 경로 명세
 
-배우·기획사/제작사 flowchart를 기준으로 한 백엔드 경로 계약이다. REST 원칙을 따르되 클라이언트가 경로만 읽고 용도를 이해할 수 있는 이름을 우선한다.
+배우·기획사/제작사 흐름을 기준으로 한 백엔드 경로 계약이다. REST 원칙을 따르되 클라이언트가 경로만 읽고 용도를 이해할 수 있는 이름을 우선한다.
 
 > **도메인 설계 반영 대기:** 최신 [도메인 설계](../domain-design.md)에 따라 서버 Draft는 로그인 전·후 모두 사용하지만 최종 제출은 인증된 계정만 할 수 있다. 아래 공고 조회 계약은 유효하며, 인증 전 Draft 보호·계정 연결과 Draft·제출·파일·지원서 조회의 구체 계약은 별도 결정한다.
 
@@ -120,7 +120,7 @@ PUT    /api/v1/auditions/{auditionId}/basic-information
                                                           # 기본 정보 섹션 전체 저장
 ```
 
-포스터 업로드 요청은 `originalFilename`, `contentType`, `size`를 받는다. `purpose`와 소유자 ID는 받지 않으며 소유자는 세션에서 결정한다. JPEG·PNG·WebP 이미지 한 장, 최대 30MB를 허용한다. 발급 응답의 `method`와 `headers`를 그대로 사용해 저장소에 직접 업로드한 뒤 완료 API를 호출한다. 완료는 실제 객체의 Content-Type과 크기를 확인하는 멱등 요청이며 성공 시 `204 No Content`를 반환한다. 없거나 다른 사용자의 파일은 모두 `404 FILE_NOT_FOUND`다. 상세 생명주기는 [파일 업로드 설계](../backend/file-upload.md)를 따른다.
+포스터 업로드 요청은 `originalFilename`, `contentType`, `size`를 받는다. `purpose`와 소유자 ID는 받지 않으며 소유자는 세션에서 결정한다. JPEG·PNG·WebP 이미지 한 장, 최대 30MB를 허용한다. 발급 응답의 `method`와 `headers`를 그대로 사용해 저장소에 직접 업로드한 뒤 완료 API를 호출한다. 완료는 실제 객체의 Content-Type과 크기를 확인하는 멱등 요청이며 성공 시 `204 No Content`를 반환한다. 없거나 다른 사용자의 파일은 모두 `404 FILE_NOT_FOUND`다. 상세 생명주기는 [파일 업로드 설계](../development/backend/file-upload.md)를 따른다.
 
 공연 추가는 완료된 `posterFileId`, `title`, 도로명주소 API에서 선택한 `roadAddress`, 선택적인 `roles`를 받는다. 각 배역은 `name`과 줄바꿈 없는 `description`으로 구성된다. 소유자는 세션에서 결정하며 포스터가 `READY`가 아니거나 다른 사용자 소유면 공연 생성도 롤백한다. 성공 시 `201 Created`, `Location`과 공연 하나를 wrapper 없이 반환하며 생성 감사 시각 `createdAt`과 모든 배역 ID가 포함된다.
 
@@ -132,7 +132,7 @@ PUT    /api/v1/auditions/{auditionId}/basic-information
 세션 소유자의 공연에 DRAFT를 만들고 `201 Created`와 `Location`을 반환한다. 종료일이 없으면 응답의
 `openRun`은 `true`다. 기본 정보 수정은 DRAFT와 PUBLISHED 모두 허용하며 같은 기본 필드를 받는다.
 생성·단건 조회·수정은 최상위 `/auditions`로 묶고, 특정 공연의 공고 목록 조회가 필요할 때만 공연 하위 경로를 사용한다. 섹션별
-저장과 후속 API는 [공고 관리](../backend/audition-management.md)를 따른다.
+저장과 후속 API는 [공고 관리](../development/backend/audition-management.md)를 따른다.
 
 ### 프런트 선행 모델
 
@@ -179,7 +179,7 @@ PATCH /api/v1/roles/{roleId}/screening-rounds/{round}       # status=CLOSED로 �
 /api/screenings/**                  → /api/v1/roles/**/screening-rounds/**
 ```
 
-프런트·MSW는 아직 왼쪽 `/api/**` 계약을 사용한다. 현재 목 심사 응답도 단일 `videoUrl`이 아니라 요구 설명을 포함한 `videos[]`를 반환한다. 현재 목 `PATCH /api/me/profile`은 정보 답변과 사진·영상 보관함 배열을 함께 받을 수 있지만 실제 바이너리 업로드 계약은 아니다. 배우 소셜 로그인은 실제 OAuth API를 호출하지 않고 React 상태에 불투명한 프론트 전용 자격값을 저장해 라우트 이동 동안 재사용한다. 새로고침 복원과 실제 세션·토큰 계약은 구현하지 않았다. 연동 기능을 구현할 때 이 문서, flowchart, 클라이언트와 MSW를 같은 작업에서 갱신한다.
+프런트·MSW는 아직 왼쪽 `/api/**` 계약을 사용한다. 현재 목 심사 응답도 단일 `videoUrl`이 아니라 요구 설명을 포함한 `videos[]`를 반환한다. 현재 목 `PATCH /api/me/profile`은 정보 답변과 사진·영상 보관함 배열을 함께 받을 수 있지만 실제 바이너리 업로드 계약은 아니다. 배우 소셜 로그인은 실제 OAuth API를 호출하지 않고 React 상태에 불투명한 프론트 전용 자격값을 저장해 라우트 이동 동안 재사용한다. 새로고침 복원과 실제 세션·토큰 계약은 구현하지 않았다. 연동 기능을 구현할 때 이 문서, 관련 내부 흐름, 클라이언트와 MSW를 같은 작업에서 갱신한다.
 
 현재 목 `GET /api/performances`도 공연 요약 안에 중첩 `postings[]`를 반환한다. 공고 요약 타입은 `DRAFT`를 포함하지만, 작성 중 공고의 불완전한 값과 게시 전환을 저장할 생성·수정 계약은 아직 정하지 않았다. 대표·상세 이미지는 브라우저 Data URL로, 공연 장소 좌표는 카카오 주소 검색·지도 SDK 결과로 보관하며 실제 업로드 식별자와 영속 좌표 계약은 아직 연결하지 않았다. 연습 장소는 현재 선택 문자열 두 개로만 보관해 주소 검색·지도 좌표를 제공하지 않는다.
 

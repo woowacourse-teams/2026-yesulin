@@ -14,12 +14,25 @@ import { DialogFooter, DialogHeader, ModalShell } from "./modal-shell";
 import { AuditionScheduleEditor, PostingRoleSelector, type SelectedPostingRoles } from "./posting-form-sections";
 import { PostingCreatedPanel, POSTING_CREATED_TITLE_ID } from "./posting-created-panel";
 import { FieldInput, PrimaryButton, SecondaryButton } from "@/components/ui/controls";
+import { postingCreationDraftKey } from "@/features/auditions/producer-creation-draft-store";
+import { ProducerCreationDraftStatus, useProducerCreationDraft } from "./use-producer-creation-draft";
 
 const TITLE_ID = "posting-create-title";
 const INITIAL_FIELDS: readonly ApplicationFieldInput[] = defaultApplicationFields();
 const INITIAL_ROUNDS: readonly AuditionRoundInput[] = [{ round: 1, name: "1차 서류 심사", date: "", note: "제출한 지원서를 검토합니다." }];
 type ErrorSection = "TITLE" | "PERFORMANCE" | "ROLES" | "SCHEDULE" | "APPLICATION" | "GENERAL";
 type FormError = { readonly message: string; readonly section: ErrorSection };
+type PostingCreationDraft = {
+  readonly title: string;
+  readonly performanceStart: string;
+  readonly performanceEnd: string;
+  readonly recruitmentStart: string;
+  readonly recruitmentEnd: string;
+  readonly allowsMultipleRoles: boolean;
+  readonly selectedRoles: SelectedPostingRoles;
+  readonly rounds: readonly AuditionRoundInput[];
+  readonly applicationFields: readonly ApplicationFieldInput[];
+};
 
 const SECTION_IDS: Record<Exclude<ErrorSection, "GENERAL">, string> = {
   TITLE: "posting-create-title-section",
@@ -28,6 +41,13 @@ const SECTION_IDS: Record<Exclude<ErrorSection, "GENERAL">, string> = {
   SCHEDULE: "posting-create-schedule",
   APPLICATION: "posting-create-application",
 };
+
+function isEmptyPostingDraft(draft: PostingCreationDraft) {
+  return !draft.title.trim() && !draft.performanceStart && !draft.performanceEnd && !draft.recruitmentStart && !draft.recruitmentEnd
+    && !draft.allowsMultipleRoles && Object.keys(draft.selectedRoles).length === 0
+    && JSON.stringify(draft.rounds) === JSON.stringify(INITIAL_ROUNDS)
+    && JSON.stringify(draft.applicationFields) === JSON.stringify(INITIAL_FIELDS);
+}
 
 function sectionForError(cause: unknown): ErrorSection {
   if (!(cause instanceof AuditionRequestError)) return "GENERAL";
@@ -62,13 +82,35 @@ export function PostingCreateModal({ performanceId, performanceTitle, performanc
   const [formError, setFormError] = useState<FormError | null>(null);
   const [created, setCreated] = useState<{ readonly title: string; readonly applicationUrl: string } | null>(null);
   const selectedRoleCount = Object.keys(selectedRoles).length;
+  const restoreDraft = useCallback((draft: PostingCreationDraft) => {
+    const availableRoleIds = new Set(roleTemplates.map((role) => role.id));
+    setTitle(draft.title);
+    setPerformanceStart(draft.performanceStart);
+    setPerformanceEnd(draft.performanceEnd);
+    setRecruitmentStart(draft.recruitmentStart);
+    setRecruitmentEnd(draft.recruitmentEnd);
+    setSelectedRoles(Object.fromEntries(Object.entries(draft.selectedRoles).filter(([id]) => availableRoleIds.has(id))));
+    setAllowsMultipleRoles(draft.allowsMultipleRoles && Object.keys(draft.selectedRoles).filter((id) => availableRoleIds.has(id)).length >= 2);
+    setRounds(draft.rounds);
+    setApplicationFields(draft.applicationFields);
+  }, [roleTemplates]);
+  const draft = useProducerCreationDraft({
+    draftKey: postingCreationDraftKey(performanceId),
+    value: { title, performanceStart, performanceEnd, recruitmentStart, recruitmentEnd, allowsMultipleRoles, selectedRoles, rounds, applicationFields },
+    restore: restoreDraft,
+    isEmpty: isEmptyPostingDraft,
+  });
+  const { flush: flushDraft } = draft;
 
   useEffect(() => {
     if (!formError || formError.section === "GENERAL") return;
     document.getElementById(SECTION_IDS[formError.section])?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [formError]);
 
-  const close = useCallback(() => { if (created) onCreated(); onClose(); }, [created, onClose, onCreated]);
+  const close = useCallback(() => {
+    if (created) { onCreated(); onClose(); return; }
+    void flushDraft().finally(onClose);
+  }, [created, flushDraft, onClose, onCreated]);
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const roles = Object.values(selectedRoles);
@@ -83,6 +125,7 @@ export function PostingCreateModal({ performanceId, performanceTitle, performanc
     setSaving(true); setFormError(null);
     try {
       const response = await createPosting({ performanceId, isOpenCall: false, allowsMultipleRoles, posterUrl: performancePosterUrl, detailImageUrl: "", title, performanceStart, performanceEnd, recruitmentStart, recruitmentEnd, rehearsalVenue: "", rehearsalVenueAddress: { roadAddress: "", detailAddress: "", zonecode: "", latitude: null, longitude: null }, roles, rounds, applicationFields, applicationGuide: "" });
+      await draft.discard().catch(() => undefined);
       notifyAuditionTreeChanged();
       setCreated({ title: title.trim(), applicationUrl: `${window.location.origin}${publicApplicationRoute(response.createdPostingId)}` });
     } catch (cause) { setFormError({ message: errorMessage(cause, "공고를 추가하지 못했습니다."), section: sectionForError(cause) }); }
@@ -93,6 +136,7 @@ export function PostingCreateModal({ performanceId, performanceTitle, performanc
     {created ? <PostingCreatedPanel postingTitle={created.title} applicationUrl={created.applicationUrl} onClose={close} /> : <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
       <DialogHeader id={TITLE_ID} title="새 공고 추가" subtitle={`${performanceTitle}의 공고 스냅샷과 지원 양식을 만듭니다.`} />
       <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-6 md:px-6">
+        <ProducerCreationDraftStatus status={draft.status} savedAt={draft.savedAt} />
         <CreateSection id={SECTION_IDS.TITLE} title="1. 공고명" description="배우가 지원 링크에서 가장 먼저 확인할 공고 제목을 입력해 주세요.">
           <CreateError id="posting-create-title-error" message={formError?.section === "TITLE" ? formError.message : ""} />
           <div className={formError?.section === "TITLE" ? "mt-4" : ""}><CreateField label="공고명"><FieldInput data-autofocus="true" required maxLength={255} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="예: 2026 하반기 주·조연 배우 모집" /></CreateField></div>
@@ -120,7 +164,7 @@ export function PostingCreateModal({ performanceId, performanceTitle, performanc
         <CreateSection id={SECTION_IDS.APPLICATION} title="5. 지원 폼" description="기본정보, 추가정보, 사진, 영상과 추가 질문을 구성합니다."><CreateError id="posting-create-application-error" message={formError?.section === "APPLICATION" ? formError.message : ""} /><div className={formError?.section === "APPLICATION" ? "mt-4" : ""}><ApplicationFieldEditor fields={applicationFields} onChange={setApplicationFields} /></div></CreateSection>
         <CreateError id="posting-create-error" message={formError?.section === "GENERAL" ? formError.message : ""} />
       </div>
-      <DialogFooter><SecondaryButton onClick={onClose}>취소</SecondaryButton><PrimaryButton type="submit" disabled={saving}>{saving ? "추가 중…" : "공고 추가"}</PrimaryButton></DialogFooter>
+      <DialogFooter><SecondaryButton onClick={close}>취소</SecondaryButton><PrimaryButton type="submit" disabled={saving}>{saving ? "추가 중…" : "공고 추가"}</PrimaryButton></DialogFooter>
     </form>}
   </ModalShell>;
 }

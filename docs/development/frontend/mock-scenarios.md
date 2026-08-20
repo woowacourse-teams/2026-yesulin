@@ -1,3 +1,9 @@
+---
+audience: team
+ai-context: on-demand
+status: active
+---
+
 # MSW 시나리오와 UI 검증 기준
 
 MSW 목 데이터는 단순 예시가 아니라 프론트엔드 동작과 향후 백엔드 계약을 검증하는 실행 가능한 명세다. 개발 환경의 `/dev/scenarios`에서 대표 상태를 URL로 바로 열 수 있다.

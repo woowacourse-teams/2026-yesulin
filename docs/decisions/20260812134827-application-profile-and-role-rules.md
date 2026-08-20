@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-08-12
-agent-required: true
+ai-context: on-demand
 ---
 
 # 지원서·프로필·배역 규칙

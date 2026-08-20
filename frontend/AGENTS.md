@@ -5,11 +5,9 @@
 ## 먼저 읽기
 
 - [프론트엔드 README](./README.md): 실행, 구조와 현재 한계
-- [디자인 시스템](./docs/design-system.md): UI 토큰, 정보 위계, 컴포넌트와 Visual QA
-- [도메인 설계](../docs/domain-design.md): 목표 비즈니스 규칙과 현재 구현 차이
-- [지원자·공연사 흐름](../docs/flowchart/): 화면 이동과 상태 흐름
-- [API 명세](../docs/convention/api-convention.md): 목표 API와 이관 상태
-- [결정 기록](../docs/decisions/README.md): `agent-required` 결정
+- [문서 라우터](../docs/README.md): 작업별 on-demand 문서 선택
+
+UI 변경은 [디자인 시스템](../docs/development/frontend/design-system.md), MSW·시나리오 변경은 [검증 시나리오](../docs/development/frontend/mock-scenarios.md), 사용자 흐름 변경은 [개발 상세 문서 라우터](../docs/development/README.md)를 추가로 읽는다. 도메인·Draft·권한·상태 전이를 바꿀 때만 [도메인 설계](../docs/domain-design.md)를 읽는다. API 계약이나 결정 배경은 해당 작업에서만 API 문서와 결정 기록을 확인한다.
 
 ## 실행과 검증
 
@@ -61,7 +59,7 @@ npm run start
 
 ## 디자인 작업
 
-- 레이아웃, 색상, 타이포그래피, 간격, 상태 표현 또는 공통 컴포넌트의 시각적 형태를 바꾸기 전에 `docs/design-system.md`를 읽는다.
+- 레이아웃, 색상, 타이포그래피, 간격, 상태 표현 또는 공통 컴포넌트의 시각적 형태를 바꾸기 전에 `../docs/development/frontend/design-system.md`를 읽는다.
 - 디자인 시스템의 정보 위계, 시맨틱 토큰, Primary Action, 접근성과 상태 표현을 우선한다.
 - 기존 기능과 사용자 흐름을 시각 변경 때문에 제거하거나 다른 기능으로 대체하지 않는다.
 - 디자인 문서, 현재 구현과 사용자 요구가 충돌하면 임의로 결정하지 않고 확인한다.

@@ -6,7 +6,7 @@
 - 기획사/제작사는 공연·공고·배역을 만들고 배우를 차수별로 검토합니다.
 - 공고에는 하나 이상의 배역과 지원서가 있고, 지원서는 공고 설정에 따라 하나 이상의 배역을 선택합니다.
 
-전형은 배역별로 독립 진행하며 심사 결과는 `(지원서, 배역, 차수)`별로 보존합니다. 최신 규칙은 [도메인 설계](./docs/domain-design.md), 상세 사용자 흐름은 [flowchart](./docs/flowchart/)를 기준으로 합니다.
+전형은 배역별로 독립 진행하며 심사 결과는 `(지원서, 배역, 차수)`별로 보존합니다. 최신 규칙은 [도메인 설계](./docs/domain-design.md), 작업별 상세 자료는 [문서 라우터](./docs/README.md)를 기준으로 합니다.
 
 ## 현재 범위
 
@@ -68,7 +68,7 @@ cd backend
 - 현재 프런트 계약: `frontend/src/features/**/api.ts`
 - 요청 검증과 목 응답: `frontend/src/mocks/`
 - 백엔드 목표 경로와 이관 상태: [API 컨벤션](./docs/convention/api-convention.md)
-- 사용자별 비즈니스 흐름: [flowchart](./docs/flowchart/)
+- 사용자별 비즈니스 흐름: [개발 상세 문서](./docs/development/README.md)
 
 문서와 구현이 다르면 완료로 보지 않습니다. 변경 기록 기준은 [문서 운영 원칙](./docs/README.md)을 따릅니다.
 
@@ -78,7 +78,6 @@ cd backend
 yesulin/
 ├── backend/                  Spring Boot 4.1, Java 25
 ├── frontend/                 Next.js 16, React 19
-│   ├── docs/                 프론트엔드 디자인 시스템
 │   └── src/
 │       ├── app/              라우트
 │       ├── features/         도메인 타입과 API
@@ -86,25 +85,22 @@ yesulin/
 │       └── mocks/            MSW 핸들러와 목 데이터
 └── docs/
     ├── convention/           API·Git·백엔드 규칙
-    ├── backend/              백엔드 기능 설계
-    ├── decisions/            UTC 시각 기반 결정 기록
-    ├── flowchart/            사용자별 비즈니스 흐름
-    └── policies/             개인정보·서비스 정책
+    ├── decisions/            현재 개발에 필요한 on-demand 결정
+    ├── development/          상세 설계·검증·흐름
+    └── policies/public/      공개 개인정보·서비스 정책
 ```
 
 프런트엔드는 `app → features → components → mocks` 순서로 읽습니다. 라우트는 얇게 유지하고 비즈니스 규칙은 `features/`, 화면 표현은 `components/`에 둡니다.
 
 ## 문서
 
-- [비즈니스 흐름](./docs/flowchart/)
-- [API·Git·백엔드 컨벤션](./docs/convention/)
-- [결정 기록](./docs/decisions/README.md)
+- [문서 라우터](./docs/README.md)
 - [도메인 설계](./docs/domain-design.md)
-- [공고 관리](./docs/backend/audition-management.md)
-- [문서 운영 원칙](./docs/README.md)
+- [API·Git·백엔드 컨벤션](./docs/convention/)
+- [개발 상세 문서](./docs/development/README.md)
+- [결정 기록](./docs/decisions/README.md)
 - [프론트엔드 안내](./frontend/README.md)
-- [UI 디자인 시스템](./frontend/docs/design-system.md)
-- [에이전트 작업 규칙](./AGENTS.md)
+- [공개 정책](./docs/policies/public/README.md)
 
 ## 참고
 

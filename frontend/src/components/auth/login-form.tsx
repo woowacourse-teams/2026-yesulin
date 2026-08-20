@@ -105,7 +105,7 @@ export function LoginForm({ returnTo, applicationFlow = false }: { readonly retu
             />
           </div>
           <PrimaryButton type="submit" className="min-h-[52px] w-full text-base">기획사/제작사 로그인</PrimaryButton>
-          <TextLink href="/forgot-password" className="mx-auto flex w-fit">
+          <TextLink href="/forgot-password" className="w-full text-center">
             비밀번호를 잊으셨나요?
           </TextLink>
         </form>

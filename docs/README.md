@@ -1,48 +1,43 @@
-# 문서 운영 원칙
+# 문서 라우터
 
-## 제품 이해 문서
+이 문서는 사람과 AI가 작업에 필요한 문서만 선택하도록 안내한다. 모든 문서를 미리 읽지 않는다. 현재 규칙은 정본 문서에서 확인하고, 상세 구현과 과거 결정은 관련 작업에서만 찾는다.
 
-- [프로젝트 README](../README.md): 서비스 목적, 현재 범위, 실행 방법과 코드 지도
-- [프론트엔드 README](../frontend/README.md): 프론트 실행, 구조, MSW와 현재 한계
-- [프론트엔드 디자인 시스템](../frontend/docs/design-system.md): UI 토큰, 컴포넌트와 Visual QA
-- [도메인 설계 기준](./domain-design.md): 확정된 회원·지원·지원서 규칙, 현재 구현과의 차이, 추가 설계 질문
-- [파일 업로드 설계](./backend/file-upload.md): 파일 경계, 소유권과 presigned upload 생명주기
-- [공고 관리](./backend/audition-management.md): 공고 생명주기, 섹션 분리와 단계별 구현 범위
-- [개인정보·서비스 정책](./policies/public/README.md): 공개 약관·처리방침·동의문 초안
+## 정본 인덱스
 
-기능 구현이 끝날 때마다 해당 변경을 팀원과 공유해야 하는지 확인한다. 공유가 필요한 내용은 작업이 완료된 같은 시점에 관련 비즈니스 문서에 반영한다.
+아래 문서는 현재 규칙의 정본이며 모든 작업에서 일괄로 읽지 않는다. 현재 작업과 관련된 정본만 선택한다.
 
-사용자별 비즈니스 흐름은 `flowchart/*.mmd`, 목표 API는 `convention/api-convention.md`를 기준으로 관리한다.
+- [프로젝트 README](../README.md): 제품 범위, 실행 방법과 코드 지도
+- [도메인 설계](./domain-design.md): 확정된 비즈니스 규칙, 현재 구현 차이와 미결정 질문
+- [API 컨벤션](./convention/api-convention.md): 목표 API와 프론트·백엔드 이관 상태
+- [공개 정책](./policies/public/README.md): 이용자에게 공개할 약관·처리방침·동의문
 
-## 기록이 필요한 변경
+`AGENTS.md`, 프로젝트 `README.md`, 이 라우터를 제외한 문서는 작업과 관련될 때만 읽는다.
 
-- 사용자 흐름이나 비즈니스 규칙이 추가·변경된 경우
-- API 요청·응답 구조 또는 필드의 의미가 변경된 경우
-- 권한, 상태 전이, 데이터 생명주기처럼 구현 시 공통 이해가 필요한 경우
-- MSW 목 동작과 실제 백엔드가 맞춰야 할 계약이 변경된 경우
-- 환경 변수나 로컬 실행 방법처럼 다른 팀원의 작업에 영향을 주는 경우
-- 현재 한계, 의사결정 이유 또는 후속 작업을 팀이 알아야 하는 경우
+## 작업별 문서
 
-내부 리팩터링처럼 외부 동작과 협업 계약에 영향이 없는 변경은 필요 이상으로 기록하지 않는다.
+| 작업 | 함께 읽을 문서 |
+| --- | --- |
+| 프론트 실행·구조 | [프론트엔드 README](../frontend/README.md), [프론트 작업 규칙](../frontend/AGENTS.md) |
+| UI·반응형·접근성 | [디자인 시스템](./development/frontend/design-system.md) |
+| MSW fixture·시나리오·Visual QA | [MSW 시나리오](./development/frontend/mock-scenarios.md) |
+| 배우 지원서·인증·Draft | [배우 흐름도](./development/flows/actor.mmd), [프론트 구현 상태](./development/frontend/current-implementation.md) |
+| 공연·공고·심사 관리 | [기획사/제작사 흐름도](./development/flows/producer.mmd), [공고 관리](./development/backend/audition-management.md) |
+| 파일 업로드·소유권 | [파일 업로드 설계](./development/backend/file-upload.md) |
+| Git·커밋·push | [Git 컨벤션](./convention/git-convention.md) |
+| 백엔드 Java·Checkstyle | [백엔드 컨벤션](./convention/be-code-convention.md) |
+| 결정 배경 추적 | [결정 기록](./decisions/README.md) |
 
-## 작성 방법
+[개발 상세 문서](./development/README.md)는 공개 GitHub에서 공유하되 기본 AI 컨텍스트에서는 제외되는 on-demand 자료다. 구현에 필요한 현재 계약·검증 기준만 두고, 논의 과정·과거 결정·운영 원장은 내부 Notion에서 관리한다. 실제 개인정보·비밀·자격증명은 Git에 기록하지 않는다.
 
-관련 기능 문서에 다음 내용을 필요한 만큼 간결하게 남긴다.
+## 문서 생명주기
 
-1. 무엇이 변경됐는지
-2. 왜 변경했는지
-3. 화면·API·데이터에 어떤 영향이 있는지
-4. 팀원이 추가로 확인하거나 맞춰야 할 작업이 있는지
+- **정본**: 현재 제품 규칙과 계약이다. 구현 변경과 같은 작업에서 갱신한다.
+- **Development / on-demand**: 공개 저장소에 유지할 구현·검증 자료다. 관련 작업에서만 읽는다.
+- **Decision / on-demand**: 현재 설계의 이유다. 계약을 변경하거나 배경을 추적할 때 읽는다.
+- **Internal / Archive**: 논의 과정과 정본에 흡수된 과거 기록이다. GitHub에 올리지 않고 접근 제한된 Notion에서 관리한다.
 
-문서와 구현이 다르면 구현 완료로 보지 않는다. 기능 구현과 문서 갱신은 가능한 한 같은 작업 단위에서 함께 처리한다.
+결정 결과는 도메인·API·컨벤션 정본에 반영하고 같은 사실을 README와 여러 결정 파일에 반복하지 않는다. 내부 리팩터링, 문구·간격 조정과 이미 정한 규칙의 단순 구현에는 새 결정 기록을 만들지 않는다.
 
-## 기술 결정 기록
+## 변경 기준
 
-여러 영역에 영향을 주는 새 결정은 `decisions/`에 UTC 시각 기반 파일명으로 기록한다. 형식과 토큰 제한은 [결정 기록 규칙](./decisions/README.md)을 따른다. 상세 규칙은 관련 컨벤션이나 기능 문서에 작성하고 결정 기록에서는 링크만 남긴다.
-
-사람과 에이전트 모두 아래 순서를 따른다.
-
-1. 작업 전에 관련 문서와 `decisions/README.md`의 `agent-required` 기록을 확인한다. Claude·Codex 등 에이전트도 `AGENTS.md`를 통해 같은 기록을 읽는다.
-2. 구현과 같은 작업 단위에서 관련 문서를 갱신한다.
-3. 새 공통 결정을 내렸다면 UTC 시각 기반 결정 파일을 추가한다.
-4. 완료 전에 문서와 구현이 일치하는지 확인한다.
+사용자 흐름, 비즈니스 규칙, API 필드 의미, 권한·상태 전이·데이터 생명주기, MSW와 백엔드의 공유 계약, 환경 변수나 실행 명령이 바뀌면 관련 정본을 구현과 함께 갱신한다. 여러 영역에 영향을 주는 새 결정만 [결정 기록 규칙](./decisions/README.md)에 따라 짧게 남긴다.

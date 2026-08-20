@@ -11,10 +11,10 @@ flowchart TB
     MULTI -- 아니오 --> MEMBER{"로그인 세션?"}
     ROLE --> MEMBER
     MEMBER -- 예 --> PREFILL["프로필 자동 채움<br>GET /api/v1/applicants/me/profile/prefill"]
-    MEMBER -- 아니오 --> LOAD{"이전 기본 프로필을<br>불러올까요?"}
-    LOAD -- 예 --> LOGIN["카카오·네이버·Google 소셜 로그인<br>첫 로그인 시 배우 계정 자동 생성"]
+    MEMBER -- 아니오 --> START_CHOICE{"로그인 후 프로필을<br>불러와 작성할까요?"}
+    START_CHOICE -- 로그인 --> LOGIN["카카오·네이버·Google 소셜 로그인<br>첫 로그인 시 배우 계정 자동 생성"]
     LOGIN --> PREFILL
-    LOAD -- 아니오 --> FORM["지원서 작성·사진 선택<br>IndexedDB 우선 저장"]
+    START_CHOICE -- 로그인 없이 작성 --> FORM["지원서 작성·사진 선택<br>IndexedDB 우선 저장"]
     PREFILL --> FORM
     FORM --> DRAFT["서버 Draft 지연·묶음 동기화<br>로그인 전·후 모두"]
     DRAFT --> REVIEW["최종 검토·필수 동의<br>프로필 저장은 별도 선택"]
@@ -46,7 +46,7 @@ flowchart TB
     MEMBER:::decisionNode
     PREFILL:::applicationNode
     FORM:::applicationNode
-    LOAD:::decisionNode
+    START_CHOICE:::decisionNode
     AUTH:::decisionNode
     SUBMIT:::applicationNode
     RECEIPT:::applicationNode

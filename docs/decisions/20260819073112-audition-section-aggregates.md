@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-08-19
-agent-required: true
+ai-context: on-demand
 ---
 
 # 공고 생명주기와 섹션 Aggregate
@@ -22,7 +22,7 @@ agent-required: true
 `performanceId`로 소유 공연을 검증하며 공연 하위 경로는 공연 기준 목록 조회에만 사용한다.
 
 첫 구현은 공고명·공연 시작일·선택 종료일을 가진 기본 정보만 포함한다. 종료일이 없으면 저장된
-boolean 없이 `openRun=true`로 계산한다. 나머지 단계와 규칙은 [공고 관리](../backend/audition-management.md)를
+boolean 없이 `openRun=true`로 계산한다. 나머지 단계와 규칙은 [공고 관리](../development/backend/audition-management.md)를
 따른다.
 
 ## 이유

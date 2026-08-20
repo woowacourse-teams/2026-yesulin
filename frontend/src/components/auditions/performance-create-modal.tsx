@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { createPerformance } from "@/features/auditions/api";
 import { notifyAuditionTreeChanged } from "@/features/auditions/events";
 import { errorMessage } from "@/features/auditions/use-audition-query";
@@ -14,9 +14,24 @@ import { emptyRoleDraft, PerformanceRoleEditor, type RoleDraft } from "./perform
 import { FieldInput, PrimaryButton, SecondaryButton } from "@/components/ui/controls";
 import { PosterUploadField } from "./poster-upload-field";
 import { emptyVenueAddress, PerformanceVenueField } from "./performance-venue-field";
+import { performanceCreationDraftKey } from "@/features/auditions/producer-creation-draft-store";
+import { ProducerCreationDraftStatus, useProducerCreationDraft } from "./use-producer-creation-draft";
 
 const TITLE_ID = "performance-create-title";
 const FORM_ERROR_ID = "performance-create-error";
+
+type PerformanceCreationDraft = {
+  readonly title: string;
+  readonly venue: string;
+  readonly venueAddress: ReturnType<typeof emptyVenueAddress>;
+  readonly posterUrl: string;
+  readonly roles: readonly Pick<RoleDraft, "name" | "description">[];
+};
+
+function isEmptyPerformanceDraft(draft: PerformanceCreationDraft) {
+  return !draft.title.trim() && !draft.venue.trim() && !draft.venueAddress.roadAddress && !draft.posterUrl
+    && draft.roles.every((role) => !role.name.trim() && !role.description.trim());
+}
 
 export function PerformanceCreateModal({
   onClose,
@@ -32,6 +47,21 @@ export function PerformanceCreateModal({
   const [roles, setRoles] = useState<readonly RoleDraft[]>(() => [emptyRoleDraft()]);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
+  const restoreDraft = useCallback((draft: PerformanceCreationDraft) => {
+    setTitle(draft.title);
+    setVenue(draft.venue);
+    setVenueAddress(draft.venueAddress);
+    setPosterUrl(draft.posterUrl);
+    setRoles(draft.roles.length ? draft.roles.map((role) => ({ ...emptyRoleDraft(), ...role })) : [emptyRoleDraft()]);
+  }, []);
+  const draft = useProducerCreationDraft({
+    draftKey: performanceCreationDraftKey(),
+    value: { title, venue, venueAddress, posterUrl, roles: roles.map(({ name, description }) => ({ name, description })) },
+    restore: restoreDraft,
+    isEmpty: isEmptyPerformanceDraft,
+  });
+  const { flush: flushDraft } = draft;
+  const closeWithSave = useCallback(() => { void flushDraft().finally(onClose); }, [flushDraft, onClose]);
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -56,6 +86,7 @@ export function PerformanceCreateModal({
           description: role.description,
         })),
       });
+      await draft.discard().catch(() => undefined);
       notifyAuditionTreeChanged();
       onCreated();
       onClose();
@@ -69,7 +100,7 @@ export function PerformanceCreateModal({
   return (
     <ModalShell
       open
-      onClose={onClose}
+      onClose={closeWithSave}
       labelledBy={TITLE_ID}
       placement="responsiveSheet"
       className="flex h-[calc(100dvh-8px)] w-full flex-col overflow-hidden rounded-t-modal bg-card shadow-[var(--shadow-modal)] md:h-auto md:max-h-[92vh] md:w-[min(760px,94vw)] md:rounded-modal"
@@ -85,6 +116,7 @@ export function PerformanceCreateModal({
           subtitle="공연 기본 정보와 공고에서 재사용할 배역 이름을 등록합니다."
         />
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-6 md:px-6">
+          <ProducerCreationDraftStatus status={draft.status} savedAt={draft.savedAt} />
           <CreateSection title="공연 기본 정보">
             <div className="grid grid-cols-[112px_minmax(0,1fr)] items-start gap-4 sm:grid-cols-[150px_minmax(0,1fr)]">
               <PosterUploadField label="공연 포스터" value={posterUrl} onChange={setPosterUrl} />
@@ -114,7 +146,7 @@ export function PerformanceCreateModal({
           <CreateError id={FORM_ERROR_ID} message={formError} />
         </div>
         <DialogFooter>
-          <SecondaryButton onClick={onClose}>취소</SecondaryButton>
+          <SecondaryButton onClick={closeWithSave}>취소</SecondaryButton>
           <PrimaryButton type="submit" disabled={saving}>
             {saving ? "추가 중…" : "공연 추가"}
           </PrimaryButton>
