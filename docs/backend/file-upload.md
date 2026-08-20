@@ -41,6 +41,14 @@ domain/performance ──event──> presentation/event/performance ──> app
 
 완료 API는 직접 업로드 결과를 서버가 알기 위해 필요하다. `PATCH`는 상태 일부 변경을 표현하며 이미 `READY`인 파일도 같은 메타데이터를 다시 확인하고 성공하는 멱등 연산이다. 파일 생성과 완료는 각각 DB 트랜잭션이다. 외부 저장소는 DB 트랜잭션에 참여하지 않으므로 호출을 짧게 유지하고 장기 작업은 넣지 않는다.
 
+## 운영 S3 구성
+
+- 운영 adapter는 AWS SDK for Java 2.x의 `S3Client`와 `S3Presigner`를 사용한다. 자격 증명을 코드나 환경 변수로 주입하지 않고 EC2 instance profile의 `ec2-project` 임시 자격 증명을 기본 provider chain으로 읽는다.
+- 논리 `objectKey` 앞에 `YESULIN_STORAGE_S3_KEY_PREFIX`를 붙여 S3 물리 키를 만든다. 현재 bucket은 `techcourse-project-2026`, 팀 prefix는 `yesulin`이다.
+- CloudFront 원본 경로가 `/yesulin`이므로 공개 URL에는 팀 prefix를 다시 붙이지 않는다. `files/...`는 `https://dcijkydwh7e79.cloudfront.net/files/...`로 변환한다.
+- presigned PUT 기본 만료는 10분이며 `Content-Type`을 서명한다. PUT은 파일 크기 상한을 S3 정책으로 강제하지 않으므로 요청 단계의 30MB 검사에 더해 완료 단계에서 HEAD 결과의 실제 크기와 타입을 반드시 재검증한다.
+- 운영 환경은 `YESULIN_STORAGE_S3_BUCKET`, `YESULIN_STORAGE_S3_KEY_PREFIX`, `YESULIN_STORAGE_S3_PUBLIC_BASE_URL`을 설정한다. `AWS_REGION`, `YESULIN_STORAGE_S3_UPLOAD_EXPIRATION`은 기본값을 변경할 때만 지정한다.
+
 공연 생성은 공연 ID와 포스터 파일 ID를 가진 `PerformanceCreatedEvent`, 포스터 교체는 공연 ID와 이전·신규 파일 ID를 가진 `PerformancePosterChangedEvent`를 발행한다. presentation의 `PerformanceFileEventHandler`는 `BEFORE_COMMIT`에 `PERFORMANCE_POSTER` 참조를 연결하거나 교체한다. 신규 파일의 소유자나 `READY` 상태가 유효하지 않으면 공연 트랜잭션도 롤백한다. 파일 application/domain은 공연별 규칙과 한 사용처의 파일 개수를 모르며 adapter가 전달한 범용 참조 정보만 처리한다.
 
 참조 없는 `READY`는 업로드 후 화면 이탈이나 포스터 교체로 생길 수 있다. 향후 정리 배치는 생성·참조 해제 유예기간이 지난 `PENDING`과 참조 없는 `READY`를 인덱스와 제한된 청크로 조회한 뒤 Storage와 DB에서 멱등 삭제한다. 본문 이미지는 HTML URL을 배치가 파싱하지 않고 저장 시 전달된 file ID 목록의 참조를 추가·제거한다.
@@ -57,10 +65,9 @@ domain/performance ──event──> presentation/event/performance ──> app
 
 ## 후속 작업
 
-- 실제 S3 adapter와 환경별 bucket·권한·presigned 정책
 - 객체 magic byte 또는 비동기 검사, 이미지 처리
 - 만료된 `PENDING`과 참조 없는 `READY` 파일의 청크 정리 배치와 S3 Lifecycle 보조 정책
 - LocalStack 통합 테스트와 `Clock` 주입이 필요한 시간 경계 테스트
 - Spring Session Redis 도입 시 `MemberPrincipal` serializer 설정
 
-현재 범위에는 실제 저장소 구현과 지원서·공고 모델을 포함하지 않는다. 공연은 `fileId` 참조 이벤트로 완료된 포스터만 연결한다.
+현재 범위에는 S3 저장소 구현을 포함하지만 지원서·공고 모델은 포함하지 않는다. 공연은 `fileId` 참조 이벤트로 완료된 포스터만 연결한다.
