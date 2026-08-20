@@ -3,11 +3,11 @@ status: accepted
 date: 2026-08-19
 agent-required: true
 supersedes_in_part:
-  - 0014
-  - 0017
+  - ./20260818133426-performance-posting-management.md
+  - ./20260818133426-posting-images-and-rehearsal-location.md
 ---
 
-# 0020. 공고명 수정 허용
+# 공고명 수정 허용
 
 ## 계기
 

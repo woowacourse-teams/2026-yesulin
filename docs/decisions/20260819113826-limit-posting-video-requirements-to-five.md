@@ -2,10 +2,10 @@
 status: accepted
 date: 2026-08-19
 agent-required: true
-supersedes_in_part: 0015
+supersedes_in_part: ./20260818133426-posting-content-limits-and-draft-status.md
 ---
 
-# 0019. 공고 영상 요구사항 상한 5개
+# 공고 영상 요구사항 상한 5개
 
 ## 계기
 

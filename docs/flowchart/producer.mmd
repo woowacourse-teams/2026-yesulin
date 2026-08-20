@@ -19,10 +19,10 @@ flowchart TB
     ACTIVE -- 예 --> HOME["관리자 홈"]
     SESSION -- ACTIVE --> HOME
     HOME --> NAV["왼쪽 사이드바 초기 접힘 탐색 트리<br>GET /api/v1/producers/me/navigation-tree"] & PROFILE & PERF["공연 카드 목록<br>GET /api/v1/performances"]
-    PERF --> NEW_PERF["공연 포스터·도로명주소·배역 이름/설명<br>POST /api/v1/performances"] & EDIT_PERF["공연 수정·삭제<br>PATCH·DELETE /api/v1/performances/{performanceId}"] & POSTINGS["공연 카드 선택 → 공고 관리<br>GET /api/v1/performances/{performanceId}/postings"]
+    PERF --> NEW_PERF["포스터 업로드 URL 발급 후 공연 등록<br>POST /api/v1/performance-posters/upload-requests<br>POST /api/v1/performances"] & EDIT_PERF["공연 기본 정보·포스터·배역 수정<br>PATCH /api/v1/performances/{performanceId}/basic-information<br>PATCH /api/v1/performances/{performanceId}/poster"] & POSTINGS["공연 카드 선택 → 공고 관리<br>GET /api/v1/performances/{performanceId}/auditions"]
     NEW_PERF --> CREATE_PERF["공연 등록"]
-    POSTINGS --> CREATE_POSTING["공고 포스터 스냅샷·배역 조건·일정·지원 폼 등록<br>POST /api/v1/performances/{performanceId}/postings"] & POSTING_DETAIL["공고 상세<br>GET /api/v1/postings/{postingId}"]
-    POSTING_DETAIL --> EDIT_POSTING["공고명·공연·모집·전형 일정 수정<br>PATCH /api/v1/postings/{postingId}<br>또는 공고 삭제"] & ROLES["배역 목록<br>GET /api/v1/postings/{postingId}/roles"]
+    POSTINGS --> CREATE_POSTING["공연 ID와 공고명·공연 기간으로 DRAFT 생성<br>POST /api/v1/auditions"] & POSTING_DETAIL["공고 DRAFT 상세<br>GET /api/v1/auditions/{auditionId}"]
+    POSTING_DETAIL --> EDIT_POSTING["공고명·공연 기간 기본 정보 저장<br>PUT /api/v1/auditions/{auditionId}/basic-information<br>배역·일정·지원 폼·게시 API는 후속 구현"] & ROLES["게시 후 배역별 지원 현황"]
     ROLES --> CHOOSE_ROLE["심사할 배역 선택<br>배역이 하나여도 동일하게 표시"]
     CHOOSE_ROLE --> BOARD["배역별 심사 보드 첫 페이지<br>복수 배역 지원서는 각 배역에 표시<br>GET /api/v1/roles/{roleId}/screening-rounds/{round}/applications"]
     BOARD --> RESULT_FILTER["검토 완료 → 결과 조건 선택<br>합격·불합격·불참·기타"]

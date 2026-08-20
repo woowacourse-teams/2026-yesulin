@@ -4,7 +4,7 @@ date: 2026-08-20
 agent-required: true
 ---
 
-# 0022. style 커밋 타입 허용
+# style 커밋 타입 허용
 
 ## 계기
 

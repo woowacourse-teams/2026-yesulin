@@ -2,7 +2,7 @@
 
 > 기준일: 2026-08-19<br>
 > 최초 기준: [Notion 도메인 설계](https://app.notion.com/p/3b94b21dcd3c80478a8ce0bb76965dc9)<br>
-> 후속 결정: [지원서·프로필·배역 규칙](./decisions/20260812134827-application-profile-and-role-rules.md), [로컬 우선 서버 Draft 동기화](./decisions/20260812134827-local-first-server-draft.md), [인증 주체별 로그인·가입 흐름](./decisions/0010-role-specific-auth-flow.md), [배우 프로필 보관함](./decisions/0012-applicant-profile-library.md), [공연·공고 생성과 수정 경계](./decisions/0014-performance-posting-management.md), [공고 콘텐츠 제한과 작성 중 상태](./decisions/0015-posting-content-limits-and-draft-status.md), [심사 상세 식별과 화면 경로](./decisions/0016-screening-detail-identity-and-route.md), [공고 이미지와 연습 장소](./decisions/0017-posting-images-and-rehearsal-location.md), [공고 생명주기와 섹션 Aggregate](./decisions/20260819073112-audition-section-aggregates.md)
+> 후속 결정: [지원서·프로필·배역 규칙](./decisions/20260812134827-application-profile-and-role-rules.md), [로컬 우선 서버 Draft 동기화](./decisions/20260812134827-local-first-server-draft.md), [인증 주체별 로그인·가입 흐름](./decisions/20260818133426-role-specific-auth-flow.md), [배우 프로필 보관함](./decisions/20260818133426-applicant-profile-library.md), [공연·공고 생성과 수정 경계](./decisions/20260818133426-performance-posting-management.md), [공고 콘텐츠 제한과 작성 중 상태](./decisions/20260818133426-posting-content-limits-and-draft-status.md), [심사 상세 식별과 화면 경로](./decisions/20260818133426-screening-detail-identity-and-route.md), [공고 이미지와 연습 장소](./decisions/20260818133426-posting-images-and-rehearsal-location.md), [공고 생명주기와 섹션 Aggregate](./decisions/20260819073112-audition-section-aggregates.md)
 
 이 문서는 Notion의 최초 설계와 이후 팀이 확정한 도메인 결정을 개발자가 읽기 쉬운 형태로 정리한다. 현재 코드나 다른 문서가 이 내용과 다르면 **결정된 설계**, **현재 구현**, **추가 설계 필요**를 구분한다. 추가 설계 항목은 답이 아니라 팀이 결정해야 할 질문이다.
 
