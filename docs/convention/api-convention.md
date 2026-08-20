@@ -143,9 +143,15 @@ PUT    /api/v1/auditions/{auditionId}/schedule            # 일정 섹션 전체
 `stageId`, `name`, `date`, 선택 `notice`로 구성된다. 신규 전형은 `stageId`를 생략하고, 수정할 전형은
 조회 응답의 ID를 보내며, 전체 저장 목록에서 빠진 전형은 삭제된다. 응답의 `order`는 1부터 시작한다.
 
-### 프런트 선행 모델
+지원 폼은 `GET·PUT /api/v1/auditions/{auditionId}/application-form`으로 조회하고 전체 저장한다.
+`basicFields`, `additionalFields`, `photoRequirements`, `videoRequirements`, `additionalQuestions`를 받으며
+빈 배열은 해당 종류를 받지 않는다는 뜻이다. 기존 사진·영상 요구와 질문은 응답 ID를 다시 보내고,
+신규 항목은 ID를 생략한다. 목록에서 빠진 항목은 삭제된다.
 
-아래 항목은 백엔드 후속 섹션이 아직 구현되지 않은 상태에서 프런트·MSW가 화면 검증에 사용하는 목표 모델이다.
+### 프런트 목표 모델
+
+아래 항목은 프런트·MSW가 전체 화면 검증에 사용하는 목표 모델이다. 실제 백엔드 구현 범위는
+[공고 관리](../development/backend/audition-management.md)를 기준으로 한다.
 
 - `GET /api/v1/performances`는 각 공연 요약에 `postings[]` 공고 요약을 포함한다. 클라이언트는 공연을 카드로 표시하고, 카드를 선택하면 해당 공연의 공고 관리 화면으로 이동한다.
 - 공연 생성·수정은 `poster`, 공연명, 장소명과 `roadAddress`, `detailAddress`, `zonecode`, `latitude`, `longitude`, 그리고 이름·한 줄 설명만 가진 배역 템플릿을 다룬다.

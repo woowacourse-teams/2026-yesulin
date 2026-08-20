@@ -46,7 +46,7 @@ export function minimalApplicationFixture() {
 /** 키를 받지 않고 몸무게만 받는 독립 기본정보 계약을 확인한다. */
 export function withoutHeightApplicationFixture() {
   return applicationFieldFixture({
-    enabledKeys: ["NAME", "WEIGHT", "BIRTH", "GENDER", "PHONE", "EMAIL", "ADDRESS", "PHOTOS"],
+    enabledKeys: ["NAME", "WEIGHT", "BIRTH", "GENDER", "PHONE", "EMAIL", "PHOTOS"],
     photoRequirements: [{ id: "profile-photo", description: "프로필 사진", count: 1 }],
   });
 }
