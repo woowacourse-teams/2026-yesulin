@@ -40,10 +40,18 @@ status: active
 - 배역 섹션을 만들지 않은 DRAFT는 허용하지만 저장하는 배역 섹션은 위 조건을 만족해야 한다.
 - `AuditionRoleSelections`가 개수·중복·복수 지원 규칙을 생성 시 검증하고, `AuditionRoles`가 순서와 기존 ID 유지를 관리한다.
 
-### 일정과 폼 목표
+### 일정
 
 - 모집 시작·종료는 시각까지 저장한다.
 - 전형은 기본 한 개이며 최대 다섯 개다. 이름·날짜·선택 안내를 가지며 안내는 100자까지다.
+- 모집 종료는 시작보다 늦어야 하고 전형 날짜는 진행 순서에서 거스를 수 없다.
+- 일정 저장은 전체 교체다. 기존 전형은 응답의 `stageId`를 다시 보내 정체성을 유지하고,
+  새 전형은 ID를 보내지 않는다. 목록에서 빠진 전형은 삭제된다.
+- command는 입력을 불변 일정 계획으로 변환한다. 기간·개수·중복 ID·날짜 순서는 도메인 값과
+  일급 컬렉션이 검증하고 service는 소유권 확인과 저장만 조율한다.
+
+### 지원 폼 목표
+
 - 기본 항목: 이름, 키, 몸무게, 생년월일, 성별, 연락처, 이메일, 거주지 중 받을 항목을 선택한다.
 - 추가 항목: 학력, SNS·외부 링크, 국적, 자기소개, 특기, 취미, 군필 여부, 경력 중 선택한다.
 - 사진 요구 장수의 합은 최대 10장이고 영상 링크는 최대 5개다. 지원 답변은 사진 `fileId`와 영상 URL을 저장한다.
@@ -60,13 +68,16 @@ GET  /api/v1/auditions/{auditionId}
 PUT  /api/v1/auditions/{auditionId}/basic-information
 GET  /api/v1/auditions/{auditionId}/roles
 PUT  /api/v1/auditions/{auditionId}/roles
+GET  /api/v1/auditions/{auditionId}/schedule
+PUT  /api/v1/auditions/{auditionId}/schedule
 ```
 
 생성 API는 `performanceId`, `title`, `performanceStartDate`, 선택적인 `performanceEndDate`를 받아 유효한
 DRAFT를 반환한다. 생성·조회·기본 정보 수정은 `/auditions`를 기준으로 한 Controller와 Service가 담당한다.
 특정 공연 기준 목록 조회가 필요할 때만 `/performances/{performanceId}/auditions`를 사용한다. 공연사 소유
 공고만 접근할 수 있으며 동시 수정 제어는 실제 충돌 가능성을 확인한 뒤 도입한다. 배역 `PUT`은 섹션
-전체를 저장하고 기존 공연 배역을 다시 선택하면 공고 배역 ID를 유지한다. 일정 이후 API는 해당 단계에서 확정한다.
+전체를 저장하고 기존 공연 배역을 다시 선택하면 공고 배역 ID를 유지한다. 일정 GET·PUT은 모집 기간과
+전형 1~5개를 조회하고 전체 저장한다. 지원 폼과 게시 API는 해당 단계에서 확정한다.
 
 생성·수정 command가 날짜 입력을 `PerformancePeriod`로 변환하고 service는 완성된 VO를 도메인에 전달한다.
 공연이 없거나 세션 소유자의 공연이 아니면 존재 여부를 구분하지 않고 `PERFORMANCE_NOT_FOUND`로 응답한다.
