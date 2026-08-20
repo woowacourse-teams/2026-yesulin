@@ -24,6 +24,11 @@ import art.yesulin.support.ObjectStorageTestConfiguration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -124,6 +129,38 @@ class AuditionScheduleServiceTest {
         );
 
         assertEquals(AuditionErrorCode.NOT_FOUND, exception.getErrorCode());
+    }
+
+    @Test
+    void serializesConcurrentInitialScheduleSaves() throws Exception {
+        Audition audition = saveAudition();
+        CountDownLatch start = new CountDownLatch(1);
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            Future<AuditionScheduleResult> first = executor.submit(
+                    () -> saveAfterSignal(start, audition.getId(), createCommand())
+            );
+            Future<AuditionScheduleResult> second = executor.submit(
+                    () -> saveAfterSignal(start, audition.getId(), createCommand())
+            );
+            start.countDown();
+
+            first.get(5, TimeUnit.SECONDS);
+            second.get(5, TimeUnit.SECONDS);
+
+            assertEquals(1, scheduleRepository.count());
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    private AuditionScheduleResult saveAfterSignal(
+            CountDownLatch start,
+            long auditionId,
+            SaveAuditionScheduleCommand command
+    ) throws InterruptedException {
+        start.await();
+        return scheduleService.save(OWNER_ID, auditionId, command);
     }
 
     private Audition saveAudition() {

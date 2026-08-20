@@ -21,7 +21,7 @@ public class AuditionScheduleService {
 
     @Transactional
     public AuditionScheduleResult save(long ownerId, long auditionId, SaveAuditionScheduleCommand command) {
-        ensureOwnedAudition(ownerId, auditionId);
+        ensureOwnedAuditionForUpdate(ownerId, auditionId);
         AuditionSchedulePlan plan = command.toPlan();
         AuditionSchedule schedule = scheduleRepository.findByAuditionId(auditionId)
                 .map(existingSchedule -> existingSchedule.replace(plan))
@@ -39,6 +39,11 @@ public class AuditionScheduleService {
 
     private void ensureOwnedAudition(long ownerId, long auditionId) {
         auditionRepository.findByIdAndOwnerId(auditionId, ownerId)
+                .orElseThrow(() -> new BusinessException(NOT_FOUND, "공고를 찾을 수 없습니다."));
+    }
+
+    private void ensureOwnedAuditionForUpdate(long ownerId, long auditionId) {
+        auditionRepository.findByIdAndOwnerIdForUpdate(auditionId, ownerId)
                 .orElseThrow(() -> new BusinessException(NOT_FOUND, "공고를 찾을 수 없습니다."));
     }
 }
