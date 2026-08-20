@@ -4,6 +4,8 @@ slug: yesulin
 category: performing-arts-audition-platform
 last_updated: "2026-08-12"
 status: active
+audience: team
+ai-context: on-demand
 language: ko
 implementation_reference:
   - frontend/src/app/globals.css

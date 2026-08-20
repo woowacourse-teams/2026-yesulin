@@ -1,3 +1,9 @@
+---
+audience: team
+ai-context: on-demand
+status: active
+---
+
 # 공고 관리
 
 공고(`Audition`)는 공연에 속하며 공연사가 섹션별로 나눠 작성한다. 이 문서는 목표 범위와 현재 구현을

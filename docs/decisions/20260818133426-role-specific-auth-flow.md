@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-08-14
-agent-required: true
+ai-context: on-demand
 ---
 
 # 인증 주체별 로그인·가입 흐름

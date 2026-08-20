@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-08-18
-agent-required: true
+ai-context: on-demand
 ---
 
 # 심사 상세 식별과 화면 경로

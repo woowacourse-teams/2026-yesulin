@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-08-19
-agent-required: true
+ai-context: on-demand
 ---
 
 # 백엔드 JAR와 systemd 배포

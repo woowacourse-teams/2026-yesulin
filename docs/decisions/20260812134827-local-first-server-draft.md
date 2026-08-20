@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-08-12
-agent-required: true
+ai-context: on-demand
 ---
 
 # 로컬 우선 서버 Draft 동기화

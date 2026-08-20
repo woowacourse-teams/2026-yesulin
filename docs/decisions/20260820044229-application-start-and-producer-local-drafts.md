@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-08-20
-agent-required: true
+ai-context: on-demand
 ---
 
 # 지원 시작 선택과 제작사 작성 로컬 Draft

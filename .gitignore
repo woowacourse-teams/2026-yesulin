@@ -18,5 +18,5 @@ backend/checkstyle/*.jar
 **/.env.*
 !**/.env.example
 
-# 개인정보 내부 운영 문서는 공개 저장소에 커밋하지 않는다.
+# Notion에서 관리하는 내부 정책·운영·결정 아카이브는 공개 저장소에 커밋하지 않는다.
 docs/policies/internal/
