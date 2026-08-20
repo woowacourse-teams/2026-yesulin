@@ -46,3 +46,4 @@
 - [공고명 수정 허용](./20260819115749-allow-posting-title-edit.md) — accepted · agent-required
 - [심사 완료 결과 필터와 차수별 일괄 작업](./20260819131938-review-result-filter-and-round-actions.md) — accepted · agent-required
 - [style 커밋 타입 허용](./20260820005305-allow-style-commit-type.md) — accepted · agent-required
+- [지원 시작 선택과 제작사 작성 로컬 Draft](./20260820044229-application-start-and-producer-local-drafts.md) — accepted · agent-required

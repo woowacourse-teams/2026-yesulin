@@ -30,9 +30,10 @@ export async function generateMetadata({ params }: { params: Promise<{ postingId
   };
 }
 
-export default async function PublicPostingPage({ params, searchParams }: { params: Promise<{ postingId: string }>; searchParams: Promise<{ prefill?: string; resumeDraft?: string }> }) {
+export default async function PublicPostingPage({ params, searchParams }: { params: Promise<{ postingId: string }>; searchParams: Promise<{ prefill?: string; resumeDraft?: string; roleId?: string | string[] }> }) {
   const { postingId } = await params;
-  const { prefill, resumeDraft } = await searchParams;
+  const { prefill, resumeDraft, roleId } = await searchParams;
   const posting = await publicPostingForServer(postingId);
-  return <MswProvider><PublicPostingRoute postingId={postingId} initialPosting={posting} useProfilePrefill={prefill === "1"} resumeDraft={resumeDraft === "1"} /></MswProvider>;
+  const initialRoleIds = Array.isArray(roleId) ? roleId : roleId ? [roleId] : [];
+  return <MswProvider><PublicPostingRoute postingId={postingId} initialPosting={posting} useProfilePrefill={prefill === "1"} resumeDraft={resumeDraft === "1"} initialRoleIds={initialRoleIds} /></MswProvider>;
 }

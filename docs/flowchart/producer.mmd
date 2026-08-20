@@ -19,9 +19,9 @@ flowchart TB
     ACTIVE -- 예 --> HOME["관리자 홈"]
     SESSION -- ACTIVE --> HOME
     HOME --> NAV["왼쪽 사이드바 초기 접힘 탐색 트리<br>GET /api/v1/producers/me/navigation-tree"] & PROFILE & PERF["공연 카드 목록<br>GET /api/v1/performances"]
-    PERF --> NEW_PERF["포스터 업로드 URL 발급 후 공연 등록<br>POST /api/v1/performance-posters/upload-requests<br>POST /api/v1/performances"] & EDIT_PERF["공연 기본 정보·포스터·배역 수정<br>PATCH /api/v1/performances/{performanceId}/basic-information<br>PATCH /api/v1/performances/{performanceId}/poster"] & POSTINGS["공연 카드 선택 → 공고 관리<br>GET /api/v1/performances/{performanceId}/auditions"]
+    PERF --> NEW_PERF["공연 작성 로컬 자동저장 600ms<br>등록 성공 때 로컬 Draft 삭제<br>POST /api/v1/performance-posters/upload-requests<br>POST /api/v1/performances"] & EDIT_PERF["공연 기본 정보·포스터·배역 수정<br>PATCH /api/v1/performances/{performanceId}/basic-information<br>PATCH /api/v1/performances/{performanceId}/poster"] & POSTINGS["공연 카드 선택 → 공고 관리<br>GET /api/v1/performances/{performanceId}/auditions"]
     NEW_PERF --> CREATE_PERF["공연 등록"]
-    POSTINGS --> CREATE_POSTING["공연 ID와 공고명·공연 기간으로 DRAFT 생성<br>POST /api/v1/auditions"] & POSTING_DETAIL["공고 DRAFT 상세<br>GET /api/v1/auditions/{auditionId}"]
+    POSTINGS --> CREATE_POSTING["공고 작성 로컬 자동저장 600ms<br>서버 DRAFT 생성·수정은 별도 계약<br>POST /api/v1/auditions"] & POSTING_DETAIL["공고 DRAFT 상세<br>GET /api/v1/auditions/{auditionId}"]
     POSTING_DETAIL --> EDIT_POSTING["공고명·공연 기간 기본 정보 저장<br>PUT /api/v1/auditions/{auditionId}/basic-information<br>배역·일정·지원 폼·게시 API는 후속 구현"] & ROLES["게시 후 배역별 지원 현황"]
     ROLES --> CHOOSE_ROLE["심사할 배역 선택<br>배역이 하나여도 동일하게 표시"]
     CHOOSE_ROLE --> BOARD["배역별 심사 보드 첫 페이지<br>복수 배역 지원서는 각 배역에 표시<br>GET /api/v1/roles/{roleId}/screening-rounds/{round}/applications"]

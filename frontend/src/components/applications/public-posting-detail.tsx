@@ -11,17 +11,25 @@ import { PublicApplicationForm } from "./public-application-form";
 import { PublicApplicationPrefillGate } from "./public-application-prefill";
 import { readPublicApplicationDraft } from "@/features/applications/public-application-draft-store";
 import { buildApplicationAuthReturnTo } from "@/features/auth/return-to";
+import { useAuthSession } from "@/components/auth/auth-session";
+import { applicantRoutes } from "@/features/applicants/routes";
+import { ApplicationStartDialog } from "./application-start-dialog";
 
-export function PublicPostingDetail({ posting, useProfilePrefill = false, resumeDraft = false }: { posting: PublicPosting; useProfilePrefill?: boolean; resumeDraft?: boolean }) {
+export function PublicPostingDetail({ posting, useProfilePrefill = false, resumeDraft = false, initialRoleIds = [] }: { posting: PublicPosting; useProfilePrefill?: boolean; resumeDraft?: boolean; initialRoleIds?: readonly string[] }) {
   const skipsRoleChoice = posting.isOpenCall || posting.roles.length === 1;
-  const [selectedRoleIds, setSelectedRoleIds] = useState<readonly string[]>(skipsRoleChoice && posting.roles[0] ? [posting.roles[0].id] : []);
+  const { session } = useAuthSession();
+  const validInitialRoleIds = initialRoleIds.filter((id) => posting.roles.some((role) => role.id === id));
+  const [selectedRoleIds, setSelectedRoleIds] = useState<readonly string[]>(validInitialRoleIds.length ? validInitialRoleIds : skipsRoleChoice && posting.roles[0] ? [posting.roles[0].id] : []);
   const [view, setView] = useState<"posting" | "form" | "restoring">(resumeDraft ? "restoring" : "posting");
   const [hasLocalDraft, setHasLocalDraft] = useState(false);
+  const [startDialogOpen, setStartDialogOpen] = useState(false);
+  const [guestChoiceMade, setGuestChoiceMade] = useState(false);
+  const authenticated = session?.role === "APPLICANT";
   const selectedRoles = posting.roles.filter((role) => selectedRoleIds.includes(role.id));
   const acceptingApplications = posting.status === "OPEN";
   const actionEnabled = acceptingApplications && selectedRoles.length > 0;
   const selectedRoleLabel = selectedRoles.map((role) => role.name).join(" · ");
-  const loginHref = hasLocalDraft ? `/login?returnTo=${encodeURIComponent(buildApplicationAuthReturnTo(posting.id, selectedRoleIds))}` : "/login";
+  const loginHref = `/login?returnTo=${encodeURIComponent(buildApplicationAuthReturnTo(posting.id, selectedRoleIds))}`;
   const toggleRole = (id: string) => setSelectedRoleIds((current) => posting.allowsMultipleRoles ? (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]) : [id]);
   const showMobileAction = acceptingApplications;
   const focusRoleSelection = () => {
@@ -33,6 +41,10 @@ export function PublicPostingDetail({ posting, useProfilePrefill = false, resume
     setView("posting");
     readPublicApplicationDraft(posting.id).then((draft) => setHasLocalDraft(Boolean(draft))).catch(() => setHasLocalDraft(false));
   };
+  const beginApplication = () => {
+    if (authenticated || guestChoiceMade) setView("form");
+    else setStartDialogOpen(true);
+  };
 
   useEffect(() => {
     let active = true;
@@ -43,15 +55,16 @@ export function PublicPostingDetail({ posting, useProfilePrefill = false, resume
         setHasLocalDraft(true);
         if (validRoleIds.length) setSelectedRoleIds(validRoleIds);
       }
-      if (resumeDraft) setView(draft && (validRoleIds.length || skipsRoleChoice) ? "form" : "posting");
+      const canOpenForm = validRoleIds.length > 0 || validInitialRoleIds.length > 0 || skipsRoleChoice;
+      if (resumeDraft) setView((Boolean(draft) || useProfilePrefill) && canOpenForm ? "form" : "posting");
     }).catch(() => { if (active && resumeDraft) setView("posting"); });
     return () => { active = false; };
-  }, [posting.id, posting.roles, resumeDraft, skipsRoleChoice]);
+  }, [posting.id, posting.roles, resumeDraft, skipsRoleChoice, useProfilePrefill, validInitialRoleIds.length]);
 
   if (view === "restoring") return <DraftResumeLoading />;
 
   if (view === "form") {
-    const props = { postingId: posting.id, fields: posting.applicationFields, performanceTitle: posting.performanceTitle, postingTitle: posting.title, roleIds: selectedRoles.map((role) => role.id), roleName: selectedRoleLabel || "전체 배우", authenticated: useProfilePrefill, onBack: returnToPosting };
+    const props = { postingId: posting.id, fields: posting.applicationFields, performanceTitle: posting.performanceTitle, postingTitle: posting.title, roleIds: selectedRoles.map((role) => role.id), roleName: selectedRoleLabel || "전체 배우", authenticated, onBack: returnToPosting };
     return useProfilePrefill && !hasLocalDraft ? <PublicApplicationPrefillGate {...props} /> : <PublicApplicationForm {...props} />;
   }
 
@@ -59,8 +72,13 @@ export function PublicPostingDetail({ posting, useProfilePrefill = false, resume
     <header className="glass-surface sticky top-0 z-20 border-x-0 border-t-0">
       <div className="mx-auto flex min-h-16 max-w-[880px] items-center px-5 md:px-8 min-[1200px]:max-w-[1200px]">
         <Link href="/" aria-label="예술in 홈" className="inline-flex min-h-11 items-center rounded-control px-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"><Image src="/images/yesulin-logo.png" alt="예술in" width={84} height={49} priority className="h-auto w-[84px] object-contain" /></Link>
-        <span className="ml-auto text-xs text-muted-strong sm:text-sm">로그인 전 작성 가능</span>
-        <Link href={loginHref} className="ml-2 inline-flex min-h-11 items-center rounded-control px-3 text-sm font-semibold text-muted-strong hover:bg-surface hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">로그인</Link>
+        {authenticated ? <>
+          <span className="ml-auto inline-flex items-center gap-1.5 text-xs font-medium text-muted-strong sm:text-sm"><span aria-hidden="true" className="h-2 w-2 rounded-full bg-brand" />로그인됨</span>
+          <Link href={applicantRoutes.applications} className="ml-2 inline-flex min-h-11 items-center rounded-control px-3 text-sm font-semibold text-brand hover:bg-brand-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">내 지원서</Link>
+        </> : <>
+          <span className="ml-auto text-xs text-muted-strong sm:text-sm">로그인 전 작성 가능</span>
+          <Link href={loginHref} className="ml-2 inline-flex min-h-11 items-center rounded-control px-3 text-sm font-semibold text-muted-strong hover:bg-surface hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">로그인</Link>
+        </>}
       </div>
     </header>
 
@@ -72,9 +90,10 @@ export function PublicPostingDetail({ posting, useProfilePrefill = false, resume
         <KeyPostingInformation posting={posting} />
         <PostingDetails posting={posting} />
       </article>
-      <aside className="hidden min-[1200px]:block"><DesktopAction posting={posting} selectedRole={selectedRoleLabel} enabled={actionEnabled} hasDraft={hasLocalDraft} onAction={() => setView("form")} onChooseRole={focusRoleSelection} /></aside>
+      <aside className="hidden min-[1200px]:block"><DesktopAction posting={posting} selectedRole={selectedRoleLabel} enabled={actionEnabled} hasDraft={hasLocalDraft} onAction={beginApplication} onChooseRole={focusRoleSelection} /></aside>
     </div>
-    {showMobileAction ? <MobileAction posting={posting} selectedRole={selectedRoleLabel} enabled={actionEnabled} hasDraft={hasLocalDraft} onAction={() => setView("form")} onChooseRole={focusRoleSelection} /> : null}
+    {showMobileAction ? <MobileAction posting={posting} selectedRole={selectedRoleLabel} enabled={actionEnabled} hasDraft={hasLocalDraft} onAction={beginApplication} onChooseRole={focusRoleSelection} /> : null}
+    <ApplicationStartDialog open={startDialogOpen} loginHref={loginHref} hasDraft={hasLocalDraft} onClose={() => setStartDialogOpen(false)} onContinueWithoutLogin={() => { setGuestChoiceMade(true); setStartDialogOpen(false); setView("form"); }} />
   </main>;
 }
 
