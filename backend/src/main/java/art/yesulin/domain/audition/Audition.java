@@ -1,0 +1,97 @@
+package art.yesulin.domain.audition;
+
+import static art.yesulin.domain.audition.AuditionErrorCode.INVALID_BASIC_INFORMATION;
+import static art.yesulin.domain.common.validation.DomainValidator.requireNonNull;
+import static art.yesulin.domain.common.validation.DomainValidator.requirePositive;
+import static art.yesulin.domain.common.validation.DomainValidator.requireText;
+
+import art.yesulin.common.exception.BusinessException;
+import art.yesulin.domain.audition.converter.AuditionStatusConverter;
+import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
+import jakarta.persistence.Embedded;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.Table;
+import java.time.Instant;
+import java.time.LocalDate;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+
+@Entity
+@Table(name = "auditions", indexes = {
+        @Index(name = "idx_auditions_performance_id", columnList = "performance_id"),
+        @Index(name = "idx_auditions_owner_id", columnList = "owner_id")
+})
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class Audition {
+
+    private static final int MAX_TITLE_LENGTH = 200;
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "performance_id", nullable = false, updatable = false)
+    private long performanceId;
+
+    @Column(name = "owner_id", nullable = false, updatable = false)
+    private long ownerId;
+
+    @Column(nullable = false, length = MAX_TITLE_LENGTH)
+    private String title;
+
+    @Getter(AccessLevel.NONE)
+    @Embedded
+    private PerformancePeriod performancePeriod;
+
+    @Convert(converter = AuditionStatusConverter.class)
+    @Column(nullable = false, length = 20)
+    private AuditionStatus status;
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
+
+    @Column(name = "published_at")
+    private Instant publishedAt;
+
+    public Audition(long performanceId, long ownerId, String title, PerformancePeriod performancePeriod) {
+        this.performanceId = requirePositive(performanceId, "공연 ID는 1 이상이어야 합니다.");
+        this.ownerId = requirePositive(ownerId, "공고 소유자 ID는 1 이상이어야 합니다.");
+        this.title = normalizeTitle(title);
+        this.performancePeriod = requireNonNull(performancePeriod, "공연 날짜 정보가 필요합니다.");
+        this.status = AuditionStatus.DRAFT;
+    }
+
+    public void updateBasicInformation(String title, PerformancePeriod performancePeriod) {
+        this.title = normalizeTitle(title);
+        this.performancePeriod = requireNonNull(performancePeriod, "공연 날짜 정보가 필요합니다.");
+    }
+
+    private String normalizeTitle(String title) {
+        String normalizedTitle = requireText(title, "공고명은 비어 있을 수 없습니다.");
+        if (normalizedTitle.length() > MAX_TITLE_LENGTH) {
+            throw new BusinessException(INVALID_BASIC_INFORMATION, "공고명은 200자를 넘을 수 없습니다.");
+        }
+        return normalizedTitle;
+    }
+
+    public LocalDate getPerformanceStartDate() {
+        return performancePeriod.getStartDate();
+    }
+
+    public LocalDate getPerformanceEndDate() {
+        return performancePeriod.getEndDate();
+    }
+
+    public boolean isOpenRun() {
+        return performancePeriod.isOpenRun();
+    }
+}

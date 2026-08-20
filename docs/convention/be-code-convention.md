@@ -41,6 +41,7 @@ src/main
 - 값 부재가 유효하지 않은 숫자 입력은 primitive를 사용한다. 생성 전 `null`이 필요한 JPA 식별자는 wrapper를 사용한다.
 - 공통 예외 계약은 `common/exception`, HTTP 변환은 `presentation/api`에 둔다. 예외 메시지는 발생 지점에서 정한다.
 - application service가 트랜잭션 경계이며 외부 기술은 application이 선언한 port를 구현한다.
+- 입력값을 도메인 VO로 묶는 변환은 command의 명명된 메서드가 담당하고 service에서 같은 생성 로직을 반복하지 않는다.
 - `common`, `global`, `util`을 포괄 폴더로 쓰지 않고 `validation`, `converter`, `exception`처럼 역할로 구분한다.
 
 ## API

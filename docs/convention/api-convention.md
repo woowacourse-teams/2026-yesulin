@@ -15,6 +15,7 @@
 - ID는 서버 `Long`, JSON `number`를 사용한다.
 - 인증은 HttpOnly 세션 쿠키, 쓰기 요청은 `X-CSRF-Token`을 사용한다.
 - 인증 리소스의 소유자 ID는 요청으로 받지 않고 세션에서 결정한다. 로그인 전 Draft는 별도의 검증된 익명 컨텍스트로 접근하며 계정 ID를 요청 본문으로 받지 않는다.
+- 소유자 전용 리소스는 없거나 다른 사용자의 소유인 경우 모두 `404`로 응답해 존재 여부를 노출하지 않는다. 공개된 리소스에 대한 행위 권한만 부족한 경우에는 `403`을 사용한다.
 - 성공 응답은 wrapper 없이, 실패는 `{ code, message, detail? }`로 반환한다.
 - 호환 필드 추가는 `v1`을 유지하고 breaking change에서만 major 버전을 올린다.
 
@@ -42,7 +43,7 @@ DELETE /api/v1/applicants/me                    # 회원 탈퇴
 GET    /api/v1/applicants/me/profile            # 재사용 프로필·완성도
 PATCH  /api/v1/applicants/me/profile            # 프로필 답변 저장·삭제
 GET    /api/v1/applicants/me/profile/prefill
-       ?postingId={postingId}                    # 공고 양식 기준 자동 채움
+       ?auditionId={auditionId}                  # 공고 양식 기준 자동 채움
 
 GET    /api/v1/applicants/me/applications       # 내 지원서 목록
 GET    /api/v1/applicants/me/applications/{applicationId}
@@ -54,16 +55,16 @@ GET    /api/v1/applicants/me/applications/{applicationId}
 
 사진·자료의 프로필 보관과 제출 스냅샷 관계는 확정됐으며 구체적인 API 경로와 실패 시 정리 계약은 별도로 결정한다.
 
-- 프로필은 기본 정보 8개, 추가 정보와 개인 사진 보관함을 재사용한다.
+- 프로필은 기본 정보 7개, 추가 정보와 개인 사진 보관함을 재사용한다.
 - 공고 양식과 겹치는 프로필 항목만 자동으로 채우며 커스텀 답변은 포함하지 않는다.
 - 제출 지원서는 프로필과 사진의 현재 상태를 참조하지 않는 불변 스냅샷이다.
 
 ## 공개 공고
 
 ```http
-GET  /api/v1/public/postings/{postingId}         # 공개 공고·배역·지원서 양식
-GET  /api/v1/public/recommended-postings
-     ?excludePostingId={postingId}&limit={limit} # 추천 공고
+GET  /api/v1/public/auditions/{auditionId}       # 공개 공고·배역·지원서 양식
+GET  /api/v1/public/recommended-auditions
+     ?excludeAuditionId={auditionId}&limit={limit} # 추천 공고
 ```
 
 지원서 제출·파일 업로드·지원서 조회는 인증 및 소유권 경계를 먼저 결정해야 한다. 최종 제출 요청은 인증된 계정의 소유권을 기준으로 처리한다.
@@ -106,12 +107,10 @@ PATCH  /api/v1/performances/{performanceId}/roles/{roleId}
                                                             # 배역 수정
 DELETE /api/v1/performances/{performanceId}/roles/{roleId}
                                                             # 배역 삭제
-GET    /api/v1/performances/{performanceId}/postings    # 공연의 공고 목록
-POST   /api/v1/performances/{performanceId}/postings    # 공연에 공고 등록
-GET    /api/v1/postings/{postingId}                     # 공연사용 공고 상세
-PATCH  /api/v1/postings/{postingId}                     # 공고 수정
-DELETE /api/v1/postings/{postingId}                     # 공고 삭제
-GET    /api/v1/postings/{postingId}/roles               # 공고의 배역 목록
+POST   /api/v1/auditions                               # 공연 ID와 기본 정보로 공고 DRAFT 생성
+GET    /api/v1/auditions/{auditionId}                   # 공연사용 공고 DRAFT 상세
+PUT    /api/v1/auditions/{auditionId}/basic-information
+                                                          # 기본 정보 섹션 전체 저장
 ```
 
 포스터 업로드 요청은 `originalFilename`, `contentType`, `size`를 받는다. `purpose`와 소유자 ID는 받지 않으며 소유자는 세션에서 결정한다. JPEG·PNG·WebP 이미지 한 장, 최대 30MB를 허용한다. 발급 응답의 `method`와 `headers`를 그대로 사용해 저장소에 직접 업로드한 뒤 완료 API를 호출한다. 완료는 실제 객체의 Content-Type과 크기를 확인하는 멱등 요청이며 성공 시 `204 No Content`를 반환한다. 없거나 다른 사용자의 파일은 모두 `404 FILE_NOT_FOUND`다. 상세 생명주기는 [파일 업로드 설계](../backend/file-upload.md)를 따른다.
@@ -121,6 +120,12 @@ GET    /api/v1/postings/{postingId}/roles               # 공고의 배역 목�
 기본 정보 수정은 `title`, `roadAddress`만 받고 포스터와 배역을 변경하지 않는다. 포스터 교체 API는 완료된 `posterFileId`만 받으며 실제로 파일이 변경되면 이전·신규 파일 ID를 가진 이벤트를 발행하고 신규 파일 참조를 검증한다. 실패하면 포스터 교체를 롤백한다. 이전 포스터 객체의 물리 삭제는 현재 요청에서 수행하지 않는다.
 
 배역은 공연 하위 리소스로 개별 추가·수정·삭제한다. 단건 조회를 제공하지 않으므로 추가 성공은 `Location` 없이 `201 Created`와 생성된 배역을 반환한다. 수정은 `200 OK`, 삭제는 `204 No Content`를 반환한다. 다른 공연의 배역 ID와 같은 공연 안의 중복 이름은 거부한다. 배역이 없어도 공연은 유지할 수 있다.
+
+공고 생성은 `performanceId`, `title`, `performanceStartDate`와 선택적인 `performanceEndDate`를 받아
+세션 소유자의 공연에 DRAFT를 만들고 `201 Created`와 `Location`을 반환한다. 종료일이 없으면 응답의
+`openRun`은 `true`다. 기본 정보 수정은 DRAFT와 PUBLISHED 모두 허용하며 같은 기본 필드를 받는다.
+생성·단건 조회·수정은 최상위 `/auditions`로 묶고, 특정 공연의 공고 목록 조회가 필요할 때만 공연 하위 경로를 사용한다. 섹션별
+저장과 후속 API는 [공고 관리](../backend/audition-management.md)를 따른다.
 
 ## 심사
 
@@ -146,8 +151,8 @@ PATCH /api/v1/roles/{roleId}/screening-rounds/{round}       # status=CLOSED로 �
 /api/me/profile                     → /api/v1/applicants/me/profile
 /api/me/profile/prefill             → /api/v1/applicants/me/profile/prefill
 /api/me/applications/**             → GET은 /api/v1/applicants/me/applications/**, PATCH는 목표 계약에서 제외
-/api/public/recommended-postings    → /api/v1/public/recommended-postings
-/api/public/postings/**             → /api/v1/public/postings/**
+/api/public/recommended-postings    → /api/v1/public/recommended-auditions
+/api/public/postings/**             → /api/v1/public/auditions/**
 /api/me/producer                    → /api/v1/producers/me
 /api/navigation/tree                → /api/v1/producers/me/navigation-tree
 /api/performances/**                → /api/v1/performances/**

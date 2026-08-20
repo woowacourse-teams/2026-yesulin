@@ -3,9 +3,9 @@ config:
   layout: elk
 ---
 flowchart TB
-    START(["지원자 시작"]) --> PUBLIC["외부 링크로 공개 공고 확인<br>GET /api/v1/public/postings/{postingId}"]
+    START(["지원자 시작"]) --> PUBLIC["외부 링크로 공개 공고 확인<br>GET /api/v1/public/auditions/{auditionId}"]
     PUBLIC --> OPEN{"모집 중?"}
-    OPEN -- 아니오 --> RECOMMEND["다른 공고 확인<br>GET /api/v1/public/recommended-postings"]
+    OPEN -- 아니오 --> RECOMMEND["다른 공고 확인<br>GET /api/v1/public/recommended-auditions"]
     OPEN -- 예 --> MULTI{"배역 여러 개?"}
     MULTI -- 예 --> ROLE["배역 선택<br>공고 허용 시 복수 선택"]
     MULTI -- 아니오 --> MEMBER{"로그인 세션?"}

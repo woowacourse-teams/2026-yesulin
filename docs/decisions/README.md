@@ -32,3 +32,4 @@
 - [프론트 이중 검증과 GitHub 보안 기준](./20260818105845-frontend-preview-and-github-security.md) — accepted · agent-required
 - [백엔드 JAR와 systemd 배포](./20260819021010-backend-jar-systemd-deployment.md) — accepted · agent-required
 - [백엔드 EC2 운영체제](./20260819061141-backend-ec2-operating-system.md) — accepted · agent-required
+- [공고 생명주기와 섹션 Aggregate](./20260819073112-audition-section-aggregates.md) — accepted · agent-required
