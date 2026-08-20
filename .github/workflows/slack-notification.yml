@@ -1,7 +1,7 @@
 name: Slack GitHub Notifications
 
 on:
-  # GitHub Actions 화면에서 수동 테스트
+  # 수동 테스트
   workflow_dispatch:
 
   # Issue 관련 이벤트
@@ -53,7 +53,7 @@ on:
       - auto_merge_enabled
       - auto_merge_disabled
 
-# 이 Workflow는 Repository를 수정할 필요가 없다.
+# GitHub Repository를 수정할 필요가 없으므로 권한 제거
 permissions: {}
 
 jobs:
@@ -73,21 +73,24 @@ jobs:
 
 
           # --------------------------------------------------
-          # 공통 Slack 메시지 생성
+          # 공통 Slack 메시지
           # --------------------------------------------------
-          def create_message(emoji, status, number, title, url, context):
+          def create_message(status, number, title, url, details):
               return {
-                  # 모바일 Push 알림 등의 fallback 메시지
+                  # 모바일 푸시 등에서 사용되는 fallback text
                   "text": f"{status} - #{number} {title}",
 
                   "blocks": [
+                      # 이벤트 상태
                       {
                           "type": "section",
                           "text": {
                               "type": "mrkdwn",
-                              "text": f"{emoji} *{status}*"
+                              "text": f"*{status}*"
                           }
                       },
+
+                      # Issue / PR 제목
                       {
                           "type": "section",
                           "text": {
@@ -95,14 +98,14 @@ jobs:
                               "text": f"*<{url}|#{number} {title}>*"
                           }
                       },
+
+                      # 작성자 / 요청자 / 브랜치 등의 상세 정보
                       {
-                          "type": "context",
-                          "elements": [
-                              {
-                                  "type": "mrkdwn",
-                                  "text": context
-                              }
-                          ]
+                          "type": "section",
+                          "text": {
+                              "type": "mrkdwn",
+                              "text": details
+                          }
                       }
                   ]
               }
@@ -137,149 +140,167 @@ jobs:
                           }
                       },
                       {
-                          "type": "context",
-                          "elements": [
-                              {
-                                  "type": "mrkdwn",
-                                  "text": f"`{repository}`"
-                              }
-                          ]
+                          "type": "section",
+                          "text": {
+                              "type": "mrkdwn",
+                              "text": f"Repository: `{repository}`"
+                          }
                       }
                   ]
               }
 
 
           # --------------------------------------------------
-          # Issue
+          # Issue 이벤트
           # --------------------------------------------------
           elif event_name == "issues":
               issue = event["issue"]
               action = event["action"]
 
-              # GitHub action → Slack에 표시할 이름
               issue_actions = {
-                  "opened": ("🟢", "Issue Opened"),
-                  "edited": ("✏️", "Issue Edited"),
-                  "deleted": ("🗑️", "Issue Deleted"),
-                  "transferred": ("↗️", "Issue Transferred"),
+                  "opened": "🟢 Issue Opened",
+                  "edited": "Issue Edited",
+                  "deleted": "Issue Deleted",
+                  "transferred": "Issue Transferred",
 
-                  "closed": ("⚫", "Issue Closed"),
-                  "reopened": ("🔵", "Issue Reopened"),
+                  "closed": "⚫ Issue Closed",
+                  "reopened": "🔵 Issue Reopened",
 
-                  "assigned": ("👤", "Issue Assigned"),
-                  "unassigned": ("👤", "Issue Unassigned"),
+                  "assigned": "Issue Assigned",
+                  "unassigned": "Issue Unassigned",
 
-                  "labeled": ("🏷️", "Issue Labeled"),
-                  "unlabeled": ("🏷️", "Issue Unlabeled"),
+                  "labeled": "Issue Labeled",
+                  "unlabeled": "Issue Unlabeled",
 
-                  "pinned": ("📌", "Issue Pinned"),
-                  "unpinned": ("📌", "Issue Unpinned"),
+                  "pinned": "Issue Pinned",
+                  "unpinned": "Issue Unpinned",
 
-                  "locked": ("🔒", "Issue Locked"),
-                  "unlocked": ("🔓", "Issue Unlocked"),
+                  "locked": "Issue Locked",
+                  "unlocked": "Issue Unlocked",
 
-                  "milestoned": ("🎯", "Issue Milestoned"),
-                  "demilestoned": ("🎯", "Issue Demilestoned"),
+                  "milestoned": "Issue Milestoned",
+                  "demilestoned": "Issue Demilestoned",
 
-                  "typed": ("📋", "Issue Type Changed"),
-                  "untyped": ("📋", "Issue Type Removed"),
+                  "typed": "Issue Type Changed",
+                  "untyped": "Issue Type Removed",
 
-                  "field_added": ("⚙️", "Issue Field Updated"),
-                  "field_removed": ("⚙️", "Issue Field Removed"),
+                  "field_added": "Issue Field Updated",
+                  "field_removed": "Issue Field Removed",
               }
 
-              emoji, status = issue_actions.get(
+              status = issue_actions.get(
                   action,
-                  ("🔔", f"Issue {action}")
+                  f"Issue {action}"
               )
 
+              # 생성 이벤트는 실제 작성자,
+              # 그 외 이벤트는 해당 동작을 수행한 사람을 보여준다.
+              if action == "opened":
+                  details = (
+                      f"*작성자:* `{issue['user']['login']}`"
+                  )
+              else:
+                  details = (
+                      f"*처리자:* `{actor}`"
+                  )
+
               payload = create_message(
-                  emoji=emoji,
                   status=status,
                   number=issue["number"],
                   title=issue["title"],
                   url=issue["html_url"],
-                  context=f"👤 `{actor}`"
+                  details=details
               )
 
 
           # --------------------------------------------------
-          # Pull Request
+          # Pull Request 이벤트
           # --------------------------------------------------
           elif event_name == "pull_request":
               pr = event["pull_request"]
               action = event["action"]
 
-              # Merge는 GitHub에서 별도의 merged action이 아니라
-              # closed + merged == true 로 판단한다.
+              # GitHub에서 PR Merge는
+              # closed 이벤트 + merged == true 로 판단한다.
               if action == "closed" and pr.get("merged"):
-                  emoji = "✅"
-                  status = "PR Merged"
+                  status = "✅ PR Merged"
+
+                  merged_by = (
+                      (pr.get("merged_by") or {}).get("login")
+                      or actor
+                  )
+
+                  user_line = (
+                      f"*병합자:* `{merged_by}`"
+                  )
 
               else:
                   pr_actions = {
-                      "opened": ("🟣", "PR Opened"),
-                      "edited": ("✏️", "PR Edited"),
-                      "closed": ("⚫", "PR Closed"),
-                      "reopened": ("🔵", "PR Reopened"),
+                      "opened": "🟣 PR Opened",
+                      "edited": "PR Edited",
 
-                      # PR 브랜치에 새로운 commit이 push됨
-                      "synchronize": ("🔄", "PR Updated"),
+                      "closed": "⚫ PR Closed",
+                      "reopened": "🔵 PR Reopened",
 
-                      "assigned": ("👤", "PR Assigned"),
-                      "unassigned": ("👤", "PR Unassigned"),
+                      "synchronize": "PR Updated",
 
-                      "labeled": ("🏷️", "PR Labeled"),
-                      "unlabeled": ("🏷️", "PR Unlabeled"),
+                      "assigned": "PR Assigned",
+                      "unassigned": "PR Unassigned",
 
-                      "converted_to_draft": ("📝", "PR Draft"),
-                      "ready_for_review": ("👀", "PR Ready for Review"),
+                      "labeled": "PR Labeled",
+                      "unlabeled": "PR Unlabeled",
 
-                      "review_requested": ("👀", "Review Requested"),
-                      "review_request_removed": (
-                          "👀",
-                          "Review Request Removed"
-                      ),
+                      "converted_to_draft": "PR Draft",
+                      "ready_for_review": "PR Ready for Review",
 
-                      "locked": ("🔒", "PR Locked"),
-                      "unlocked": ("🔓", "PR Unlocked"),
+                      "review_requested": "Review Requested",
+                      "review_request_removed": "Review Request Removed",
 
-                      "milestoned": ("🎯", "PR Milestoned"),
-                      "demilestoned": ("🎯", "PR Demilestoned"),
+                      "locked": "PR Locked",
+                      "unlocked": "PR Unlocked",
 
-                      "enqueued": ("⏳", "PR Merge Queue Added"),
-                      "dequeued": ("⏳", "PR Merge Queue Removed"),
+                      "milestoned": "PR Milestoned",
+                      "demilestoned": "PR Demilestoned",
 
-                      "auto_merge_enabled": (
-                          "⚙️",
-                          "Auto Merge Enabled"
-                      ),
-                      "auto_merge_disabled": (
-                          "⚙️",
-                          "Auto Merge Disabled"
-                      ),
+                      "enqueued": "PR Merge Queue Added",
+                      "dequeued": "PR Merge Queue Removed",
+
+                      "auto_merge_enabled": "Auto Merge Enabled",
+                      "auto_merge_disabled": "Auto Merge Disabled",
                   }
 
-                  emoji, status = pr_actions.get(
+                  status = pr_actions.get(
                       action,
-                      ("🔔", f"PR {action}")
+                      f"PR {action}"
                   )
 
-              # 예:
-              # minzzun99 · feat/login → main
-              context = (
-                  f"👤 `{actor}`"
-                  f"   ·   "
-                  f"🌿 `{pr['head']['ref']}` → `{pr['base']['ref']}`"
+                  if action == "opened":
+                      user_line = (
+                          f"*요청자:* `{pr['user']['login']}`"
+                      )
+                  else:
+                      user_line = (
+                          f"*처리자:* `{actor}`"
+                      )
+
+              branch_line = (
+                  f"*브랜치:* `{pr['head']['ref']}`"
+                  f" → "
+                  f"`{pr['base']['ref']}`"
+              )
+
+              # 줄바꿈해서 표시
+              details = (
+                  f"{user_line}\n"
+                  f"{branch_line}"
               )
 
               payload = create_message(
-                  emoji=emoji,
                   status=status,
                   number=pr["number"],
                   title=pr["title"],
                   url=pr["html_url"],
-                  context=context
+                  details=details
               )
 
 
