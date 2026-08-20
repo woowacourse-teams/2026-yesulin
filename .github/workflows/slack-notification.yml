@@ -1,0 +1,44 @@
+name: Slack GitHub Notifications
+
+# GitHub Actions 화면에서 사람이 직접 실행할 수 있게 한다.
+# 지금은 Slack 연결 테스트를 위한 설정이다.
+on:
+  workflow_dispatch:
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Send test notification to Slack
+        env:
+          # GitHub Repository Secret에 저장한 값을 가져온다.
+          # 실제 Webhook URL이 코드에 노출되지 않는다.
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+        run: |
+          python3 <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          # Slack에 보낼 메시지
+          message = {
+              "text": "✅ GitHub → Slack 연결 테스트 성공!"
+          }
+
+          # Python 객체를 JSON으로 변환
+          data = json.dumps(message).encode("utf-8")
+
+          # Slack Incoming Webhook으로 HTTP POST 요청
+          request = urllib.request.Request(
+              os.environ["SLACK_WEBHOOK_URL"],
+              data=data,
+              headers={"Content-Type": "application/json"},
+              method="POST",
+          )
+
+          with urllib.request.urlopen(request) as response:
+              print(f"Slack response: HTTP {response.status}")
+
+          PY
