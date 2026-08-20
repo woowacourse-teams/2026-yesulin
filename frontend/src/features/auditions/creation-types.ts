@@ -30,6 +30,7 @@ export const APPLICATION_FIELD_OPTIONS = [
   { key: "GENDER", label: "성별", defaultRequired: true, section: "BASIC", inputType: "SELECT", order: 50, layout: "HALF", config: { options: ["여성", "남성", "응답하지 않음"] } },
   { key: "PHONE", label: "연락처", defaultRequired: true, section: "BASIC", inputType: "TEL", order: 60, layout: "HALF", config: { placeholder: "010-0000-0000" } },
   { key: "EMAIL", label: "이메일", defaultRequired: true, section: "BASIC", inputType: "TEXT", order: 70, layout: "HALF", config: { placeholder: "name@example.com" } },
+  { key: "ADDRESS", label: "주소", defaultRequired: true, section: "BASIC", inputType: "TEXT", order: 80, layout: "FULL", config: { placeholder: "예: 서울특별시 마포구" } },
   { key: "SCHOOL", label: "학력", defaultRequired: false, section: "ADDITIONAL", inputType: "TEXT", order: 10, layout: "FULL", config: { placeholder: "학교와 전공을 입력해 주세요." } },
   { key: "LINK", label: "SNS / 외부 링크", defaultRequired: false, section: "ADDITIONAL", inputType: "URL", order: 20, layout: "FULL", config: { placeholder: "https://", maxLength: 255 } },
   { key: "NATIONALITY", label: "국적", defaultRequired: false, section: "ADDITIONAL", inputType: "TEXT", order: 30, layout: "HALF", config: { placeholder: "예: 대한민국" } },

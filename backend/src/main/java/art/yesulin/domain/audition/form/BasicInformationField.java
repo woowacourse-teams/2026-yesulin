@@ -13,7 +13,8 @@ public enum BasicInformationField {
     BIRTH,
     GENDER,
     PHONE,
-    EMAIL;
+    EMAIL,
+    ADDRESS;
 
     public static BasicInformationField from(String value) {
         if (value == null || value.isBlank()) {
