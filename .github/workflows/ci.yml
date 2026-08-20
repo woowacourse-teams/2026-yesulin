@@ -67,3 +67,6 @@ jobs:
 
       - name: Build backend
         run: ./gradlew build --no-daemon
+
+      - name: Test deployment scripts
+        run: sh deploy/tests/validate_service_test.sh
