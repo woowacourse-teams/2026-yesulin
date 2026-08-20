@@ -23,7 +23,7 @@ status: active
 2. **배역 관리**: 공연 배역 선택, 복수 배역 지원 허용 여부
 3. **일정**: 모집 시작·종료 시각, 전형 1~5개
 4. **지원 폼**: 기본·추가 항목, 사진, 영상 링크, 추가 질문
-5. **게시**: 전체 섹션 검증, 공개 조회와 상태 전이
+5. **게시**: 전체 섹션 검증과 상태 전이
 
 ### 기본 정보
 
@@ -64,6 +64,16 @@ status: active
 - 지원 폼 저장은 전체 교체다. 빈 목록은 해당 종류를 받지 않는다는 뜻이고, 기존 항목은 응답 ID를
   다시 보내 정체성을 유지한다. 동일 공고 저장은 공고 행의 쓰기 잠금으로 직렬화한다.
 
+### 게시
+
+- 배역·일정·지원 폼 섹션이 모두 저장된 공고만 게시할 수 있다. 각 섹션 내부 규칙은 저장 시 이미 검증한다.
+- 모집 시작 시각이 지났어도 게시할 수 있지만 모집 종료 시각이 지났거나 같은 시각이면 게시할 수 없다.
+- `PUT /publication`은 멱등하다. 이미 게시된 공고를 다시 요청해도 최초 `publishedAt`을 유지한다.
+- 영속 상태는 `DRAFT`, `PUBLISHED`, `CLOSED`만 사용한다. 예정·모집 중·접수 마감 표시는
+  `PUBLISHED`와 모집 기간을 기준으로 조회 시 계산한다.
+- 게시와 기본 정보·배역·일정·지원 폼 저장은 모두 공고 행의 쓰기 잠금을 사용해 서로 직렬화한다.
+- 이번 API는 공연사용 상태 전이만 제공한다. 배우용 공개 조회 읽기 모델은 별도 조회 기능에서 구성한다.
+
 공고 모델은 위에서 확정한 정보만 가진다. 장소·공고 포스터·지원 안내처럼 목록에 없는 값은 추가하지
 않으며, 공연에 이미 속한 정보를 공고에 임의로 중복 저장하지 않는다.
 
@@ -79,16 +89,16 @@ GET  /api/v1/auditions/{auditionId}/schedule
 PUT  /api/v1/auditions/{auditionId}/schedule
 GET  /api/v1/auditions/{auditionId}/application-form
 PUT  /api/v1/auditions/{auditionId}/application-form
+PUT  /api/v1/auditions/{auditionId}/publication
 ```
 
 생성 API는 `performanceId`, `title`, `performanceStartDate`, 선택적인 `performanceEndDate`를 받아 유효한
 DRAFT를 반환한다. 생성·조회·기본 정보 수정은 `/auditions`를 기준으로 한 Controller와 Service가 담당한다.
 특정 공연 기준 목록 조회가 필요할 때만 `/performances/{performanceId}/auditions`를 사용한다. 공연사 소유
-공고만 접근할 수 있다. 일정·지원 폼처럼 하위 목록을 전체 교체하는 저장은 공고 행 잠금으로 직렬화하고,
-단순 기본 정보 수정에는 별도 동시 수정 계약을 두지 않는다. 배역 `PUT`은 섹션
+공고만 접근할 수 있다. 기본 정보와 배역·일정·지원 폼 저장, 게시는 공고 행 잠금으로 직렬화한다. 배역 `PUT`은 섹션
 전체를 저장하고 기존 공연 배역을 다시 선택하면 공고 배역 ID를 유지한다. 일정 GET·PUT은 모집 기간과
 전형 1~5개를 조회하고 전체 저장한다. 지원 폼 GET·PUT은 표준 항목과 사진·영상·질문 요구 전체를
-조회하고 저장한다. 게시 API는 해당 단계에서 확정한다.
+조회하고 저장한다. 게시 `PUT`은 모든 섹션과 모집 종료 시각을 검증한 뒤 `PUBLISHED`로 전이한다.
 
 생성·수정 command가 날짜 입력을 `PerformancePeriod`로 변환하고 service는 완성된 VO를 도메인에 전달한다.
 공연이 없거나 세션 소유자의 공연이 아니면 존재 여부를 구분하지 않고 `PERFORMANCE_NOT_FOUND`로 응답한다.

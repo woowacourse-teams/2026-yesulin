@@ -33,7 +33,7 @@ public class AuditionService {
             long auditionId,
             UpdateAuditionBasicInformationCommand command
     ) {
-        Audition audition = getAudition(ownerId, auditionId);
+        Audition audition = getAuditionForUpdate(ownerId, auditionId);
         audition.updateBasicInformation(command.title(), command.performancePeriod());
         return AuditionResult.from(audition);
     }
@@ -52,6 +52,11 @@ public class AuditionService {
 
     private Audition getAudition(long ownerId, long auditionId) {
         return auditionRepository.findByIdAndOwnerId(auditionId, ownerId)
+                .orElseThrow(() -> new BusinessException(NOT_FOUND, "공고를 찾을 수 없습니다."));
+    }
+
+    private Audition getAuditionForUpdate(long ownerId, long auditionId) {
+        return auditionRepository.findByIdAndOwnerIdForUpdate(auditionId, ownerId)
                 .orElseThrow(() -> new BusinessException(NOT_FOUND, "공고를 찾을 수 없습니다."));
     }
 }

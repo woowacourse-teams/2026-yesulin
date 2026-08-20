@@ -11,6 +11,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import java.time.Instant;
 import java.util.List;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -50,6 +51,10 @@ public class AuditionSchedule {
         this.recruitmentPeriod = plan.recruitmentPeriod();
         this.stages.replace(this, plan.stages());
         return this;
+    }
+
+    public void ensurePublishableAt(Instant publicationTime) {
+        recruitmentPeriod.ensureNotEndedAt(publicationTime);
     }
 
     public List<ScreeningStage> getStages() {

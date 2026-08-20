@@ -1,6 +1,7 @@
 package art.yesulin.domain.audition;
 
 import static art.yesulin.domain.audition.AuditionErrorCode.INVALID_BASIC_INFORMATION;
+import static art.yesulin.domain.audition.AuditionErrorCode.INVALID_STATUS;
 import static art.yesulin.domain.common.validation.DomainValidator.requireNonNull;
 import static art.yesulin.domain.common.validation.DomainValidator.requirePositive;
 import static art.yesulin.domain.common.validation.DomainValidator.requireText;
@@ -75,6 +76,17 @@ public class Audition {
         this.performancePeriod = requireNonNull(performancePeriod, "공연 날짜 정보가 필요합니다.");
     }
 
+    public void publish(Instant publicationTime) {
+        if (status == AuditionStatus.PUBLISHED) {
+            return;
+        }
+        if (status != AuditionStatus.DRAFT) {
+            throw new BusinessException(INVALID_STATUS, "게시할 수 있는 상태의 공고가 아닙니다.");
+        }
+        this.status = AuditionStatus.PUBLISHED;
+        this.publishedAt = requireNonNull(publicationTime, "공고 게시 시각은 필수입니다.");
+    }
+
     private String normalizeTitle(String title) {
         String normalizedTitle = requireText(title, "공고명은 비어 있을 수 없습니다.");
         if (normalizedTitle.length() > MAX_TITLE_LENGTH) {
@@ -93,5 +105,9 @@ public class Audition {
 
     public boolean isOpenRun() {
         return performancePeriod.isOpenRun();
+    }
+
+    public boolean isPublished() {
+        return status == AuditionStatus.PUBLISHED;
     }
 }

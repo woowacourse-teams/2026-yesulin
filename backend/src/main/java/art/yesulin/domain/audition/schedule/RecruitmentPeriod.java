@@ -1,6 +1,7 @@
 package art.yesulin.domain.audition.schedule;
 
 import static art.yesulin.domain.audition.AuditionErrorCode.INVALID_SCHEDULE;
+import static art.yesulin.domain.audition.AuditionErrorCode.PUBLISHING_CLOSED;
 import static art.yesulin.domain.common.validation.DomainValidator.requireNonNull;
 
 import art.yesulin.common.exception.BusinessException;
@@ -29,6 +30,13 @@ public class RecruitmentPeriod {
         this.endAt = requireNonNull(endAt, "모집 종료 시각은 필수입니다.");
         if (!endAt.isAfter(startAt)) {
             throw new BusinessException(INVALID_SCHEDULE, "모집 종료 시각은 시작 시각보다 늦어야 합니다.");
+        }
+    }
+
+    void ensureNotEndedAt(Instant time) {
+        requireNonNull(time, "공고 게시 시각은 필수입니다.");
+        if (!endAt.isAfter(time)) {
+            throw new BusinessException(PUBLISHING_CLOSED, "모집이 마감된 공고는 게시할 수 없습니다.");
         }
     }
 }

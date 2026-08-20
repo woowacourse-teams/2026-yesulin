@@ -29,7 +29,7 @@ public class AuditionRoleService {
 
     @Transactional
     public AuditionRolesResult save(long ownerId, long auditionId, SaveAuditionRolesCommand command) {
-        Audition audition = getAudition(ownerId, auditionId);
+        Audition audition = getAuditionForUpdate(ownerId, auditionId);
         Performance performance = getPerformance(ownerId, audition.getPerformanceId());
         AuditionRoleSelections selections = command.toSelections();
         ensureRolesBelongToPerformance(performance, selections);
@@ -54,6 +54,11 @@ public class AuditionRoleService {
 
     private Audition getAudition(long ownerId, long auditionId) {
         return auditionRepository.findByIdAndOwnerId(auditionId, ownerId)
+                .orElseThrow(() -> new BusinessException(NOT_FOUND, "공고를 찾을 수 없습니다."));
+    }
+
+    private Audition getAuditionForUpdate(long ownerId, long auditionId) {
+        return auditionRepository.findByIdAndOwnerIdForUpdate(auditionId, ownerId)
                 .orElseThrow(() -> new BusinessException(NOT_FOUND, "공고를 찾을 수 없습니다."));
     }
 

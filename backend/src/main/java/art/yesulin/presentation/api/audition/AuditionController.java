@@ -1,5 +1,6 @@
 package art.yesulin.presentation.api.audition;
 
+import art.yesulin.application.audition.AuditionPublicationService;
 import art.yesulin.application.audition.AuditionResult;
 import art.yesulin.application.audition.AuditionService;
 import art.yesulin.application.audition.form.AuditionFormResult;
@@ -28,6 +29,7 @@ import org.springframework.web.bind.annotation.SessionAttribute;
 public class AuditionController {
 
     private final AuditionService auditionService;
+    private final AuditionPublicationService auditionPublicationService;
     private final AuditionRoleService auditionRoleService;
     private final AuditionScheduleService auditionScheduleService;
     private final AuditionFormService auditionFormService;
@@ -110,5 +112,13 @@ public class AuditionController {
             @Valid @RequestBody SaveAuditionFormRequest request
     ) {
         return ResponseEntity.ok(auditionFormService.save(principal.memberId(), auditionId, request.toCommand()));
+    }
+
+    @PutMapping("/{auditionId}/publication")
+    public ResponseEntity<AuditionResult> publish(
+            @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal,
+            @PathVariable long auditionId
+    ) {
+        return ResponseEntity.ok(auditionPublicationService.publish(principal.memberId(), auditionId));
     }
 }
