@@ -58,7 +58,7 @@ export function PublicPostingDetail({ posting, useProfilePrefill = false, resume
   return <main className={`min-h-screen bg-surface text-foreground ${showMobileAction ? "pb-[calc(152px+env(safe-area-inset-bottom))]" : "pb-12"} min-[1200px]:pb-12`}>
     <header className="glass-surface sticky top-0 z-20 border-x-0 border-t-0">
       <div className="mx-auto flex min-h-16 max-w-[880px] items-center px-5 md:px-8 min-[1200px]:max-w-[1200px]">
-        <Link href="/" aria-label="예술in 홈" className="inline-flex min-h-11 items-center rounded-control px-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"><Image src="/images/yesulin-logo-transparent.png" alt="예술in" width={84} height={49} priority className="h-auto w-[84px] object-contain" /></Link>
+        <Link href="/" aria-label="예술in 홈" className="inline-flex min-h-11 items-center rounded-control px-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"><Image src="/images/yesulin-logo.png" alt="예술in" width={84} height={49} priority className="h-auto w-[84px] object-contain" /></Link>
         <span className="ml-auto text-xs text-muted-strong sm:text-sm">로그인 전 작성 가능</span>
         <Link href={loginHref} className="ml-2 inline-flex min-h-11 items-center rounded-control px-3 text-sm font-semibold text-muted-strong hover:bg-surface hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">로그인</Link>
       </div>

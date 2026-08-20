@@ -85,7 +85,7 @@ function SidebarLogo() {
     <Link href={auditionRoutes.performances} aria-label="예술in 공연 관리 홈" className="flex px-4 pb-3 pt-3">
       <span className="relative block h-14 w-24 shrink-0">
         <Image
-          src="/images/yesulin-logo-transparent.png"
+          src="/images/yesulin-logo.png"
           alt="예술in"
           fill
           sizes="96px"

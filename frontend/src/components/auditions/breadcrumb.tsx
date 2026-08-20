@@ -32,7 +32,7 @@ export function Breadcrumb({ items }: { items: readonly CrumbItem[] }) {
             </span>
           </button>
           <Link href={auditionRoutes.performances} aria-label="예술in 공연 관리 홈" className="relative block h-10 w-[72px] rounded-control">
-            <Image src="/images/yesulin-logo-transparent.png" alt="예술in" fill sizes="72px" priority className="object-contain" />
+            <Image src="/images/yesulin-logo.png" alt="예술in" fill sizes="72px" priority className="object-contain" />
           </Link>
           <span aria-hidden="true" className="h-6 w-px bg-border" />
         </div>

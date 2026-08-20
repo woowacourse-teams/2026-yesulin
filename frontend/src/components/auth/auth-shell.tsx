@@ -13,7 +13,7 @@ function BrandLogo({ inverse = false }: { readonly inverse?: boolean }) {
   return (
     <Link href="/" aria-label="예술in 홈" className="relative inline-flex h-14 w-28 rounded-control focus-visible:outline-offset-4">
       <Image
-        src="/images/yesulin-logo-transparent.png"
+        src="/images/yesulin-logo.png"
         alt="예술in"
         fill
         sizes="112px"

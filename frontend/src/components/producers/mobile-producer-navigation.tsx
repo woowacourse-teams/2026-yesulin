@@ -43,7 +43,7 @@ function MobileProducerNavigationPanel() {
         >
           <span className="relative block h-10 w-[70px] shrink-0">
             <Image
-              src="/images/yesulin-logo-transparent.png"
+              src="/images/yesulin-logo.png"
               alt="예술in"
               fill
               sizes="70px"
