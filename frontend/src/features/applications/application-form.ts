@@ -11,11 +11,12 @@ export type ApplicationFormStep = {
 };
 
 const STEP_DETAILS = {
-  BASIC: { title: "기본 정보", description: "공연사가 지원자 정보를 확인하는 데 사용합니다." },
-  INTRODUCTION: { title: "자기소개", description: "공연사가 요청한 자기소개와 지원 동기를 작성해 주세요." },
-  MATERIALS: { title: "사진과 영상", description: "지원자의 모습을 확인할 수 있는 자료를 등록해 주세요." },
+  BASIC: { title: "기본 정보", description: "기획사/제작사가 배우 정보를 확인하는 데 사용합니다." },
+  ADDITIONAL: { title: "추가 정보", description: "공고에서 요청한 선택 정보를 작성해 주세요." },
+  INTRODUCTION: { title: "자기소개", description: "기획사/제작사가 요청한 자기소개와 지원 동기를 작성해 주세요." },
+  MATERIALS: { title: "사진과 영상", description: "배우의 모습을 확인할 수 있는 자료를 등록해 주세요." },
   CAREER: { title: "경력", description: "최근 작품부터 적어 주세요. 경력이 없어도 지원할 수 있어요." },
-  CUSTOM: { title: "추가 질문", description: "공연사가 공고별로 요청한 내용을 작성해 주세요." },
+  CUSTOM: { title: "추가 질문", description: "기획사/제작사가 공고별로 요청한 내용을 작성해 주세요." },
 } as const;
 
 export type ApplicationDocument = {
@@ -73,8 +74,16 @@ export function applicationStepProgress({
 }
 
 export function applicationFieldDetail(field: ApplicationFieldInput) {
-  if (field.inputType === "FILE") return "JPG, PNG, WEBP · 파일당 10MB 이하 · 전체 최대 10장";
-  if (field.inputType === "URL") return "YouTube 링크로 입력해 주세요. 영상 파일은 받지 않아요.";
+  if (field.inputType === "FILE") {
+    const requirements = field.config.photoRequirements ?? [];
+    return requirements.length ? requirements.map((item) => `${item.description} ${item.count}장`).join(" · ") : `JPG, PNG, WEBP · 파일당 10MB 이하 · 최대 ${Math.min(10, Math.max(1, field.config.maxCount ?? 10))}장`;
+  }
+  if (field.inputType === "URL" && field.section === "MATERIALS") {
+    const requirements = field.config.videoRequirements ?? [];
+    return requirements.length > 0
+      ? requirements.map((item) => item.description).join(" · ")
+      : "YouTube 링크로 입력해 주세요. 영상 파일은 받지 않아요.";
+  }
   if (field.inputType === "COMPOSITE") return field.config.fields?.map((part) => part.label).join(" · ") ?? "세부 정보를 입력해 주세요.";
   if (field.inputType === "SELECT") return field.config.options?.join(" · ") ?? "선택해 주세요.";
 

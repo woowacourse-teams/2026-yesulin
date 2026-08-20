@@ -20,14 +20,14 @@ export function PickerHeader({
   children,
 }: {
   title: string;
-  subtitle: string;
+  subtitle?: string;
   children?: React.ReactNode;
 }) {
   return (
     <div className="mb-8 flex flex-wrap items-start gap-5">
       <div className="min-w-0 flex-1">
         <h1 className="text-2xl font-bold tracking-[-0.025em] md:text-[28px]">{title}</h1>
-        <p className="mt-2 text-base text-muted-strong md:text-sm">{subtitle}</p>
+        {subtitle ? <p className="mt-2 text-base text-muted-strong md:text-sm">{subtitle}</p> : null}
       </div>
       {children}
     </div>

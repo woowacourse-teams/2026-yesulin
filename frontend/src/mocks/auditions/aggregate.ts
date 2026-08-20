@@ -97,10 +97,11 @@ export const postingAllRoundsClosed = (posting: CatalogPosting) =>
   posting.roles.every((role) => roundNumbersForRole(role.id).every((round) => isRoundClosed(role.id, round)));
 
 /**
- * 접수 상태(OPEN/UPCOMING/CLOSED)와 전 배역 마감 여부를 합쳐 4단계로 파생한다.
+ * 작성·접수 상태(DRAFT/OPEN/UPCOMING/CLOSED)와 전 배역 마감 여부를 합쳐 5단계로 파생한다.
  * 접수 마감과 전형 마감은 다른 상태다 — 접수는 끝났지만 심사가 안 끝났을 수 있다.
  */
 export function postingPhase(posting: CatalogPosting): PostingPhase {
+  if (posting.status === "DRAFT") return "DRAFT";
   if (posting.status === "UPCOMING") return "UPCOMING";
   if (posting.status === "OPEN") return "OPEN";
   return postingAllRoundsClosed(posting) ? "FINISHED" : "RECRUIT_CLOSED";

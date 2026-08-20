@@ -32,14 +32,14 @@ export function AuditionFilterSheet({ open, activeCount, onClose }: { open: bool
 
   return <ModalShell open={open} onClose={onClose} labelledBy={TITLE_ID} placement="responsiveSheet" className="flex max-h-[min(88dvh,720px)] w-full flex-col overflow-hidden rounded-t-modal bg-card shadow-[var(--shadow-modal)] md:w-[min(560px,94vw)] md:rounded-modal">
     <header className="flex shrink-0 items-start gap-4 border-b border-border px-5 pb-4 pt-5 md:px-6">
-      <div><p className="text-sm font-semibold text-brand">지원자 상세 조건</p><h2 id={TITLE_ID} className="mt-1 text-xl font-bold">필터</h2><p className="mt-1 text-sm text-muted">조건을 바꾸면 목록에 바로 반영됩니다.</p></div>
+      <div><p className="text-sm font-semibold text-brand">배우 상세 조건</p><h2 id={TITLE_ID} className="mt-1 text-xl font-bold">필터</h2><p className="mt-1 text-sm text-muted">조건을 바꾸면 목록에 바로 반영됩니다.</p></div>
       <button id="audition-filter-close" type="button" onClick={onClose} aria-label="필터 닫기" className="ml-auto grid min-h-11 min-w-11 place-items-center rounded-control text-xl text-muted-strong hover:bg-surface">×</button>
     </header>
 
     <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 md:px-6">
       <fieldset><legend className="text-sm font-bold">성별</legend><div className="mt-3 flex flex-wrap gap-2">{(["FEMALE", "MALE"] as const).map((gender) => <FilterChip key={gender} pressed={filters.genders.has(gender)} onClick={() => toggleGender(gender)}>{gender === "FEMALE" ? "여성" : "남성"}</FilterChip>)}</div></fieldset>
       <div className="mt-6 space-y-3"><h3 className="text-sm font-bold">신체 조건</h3>{NUMERIC_FIELDS.map((field) => <SheetNumericFilter key={field} field={field} />)}</div>
-      <label className="mt-6 flex min-h-14 cursor-pointer items-center gap-3 rounded-card border border-warn/25 bg-warn-bg px-4 py-3"><input type="checkbox" checked={filters.mismatchOnly} onChange={(event) => setFilters((current) => ({ ...current, mismatchOnly: event.target.checked }))} className="h-5 w-5 shrink-0 accent-warn" /><span className="min-w-0"><strong className="block text-sm text-warn">조건 불일치만 보기</strong><span className="mt-0.5 block text-xs leading-5 text-muted-strong">배역의 성별·나이 조건과 다른 지원자 {mismatches}명</span></span></label>
+      <label className="mt-6 flex min-h-14 cursor-pointer items-center gap-3 rounded-card border border-warn/25 bg-warn-bg px-4 py-3"><input type="checkbox" checked={filters.mismatchOnly} onChange={(event) => setFilters((current) => ({ ...current, mismatchOnly: event.target.checked }))} className="h-5 w-5 shrink-0 accent-warn" /><span className="min-w-0"><strong className="block text-sm text-warn">조건 불일치만 보기</strong><span className="mt-0.5 block text-xs leading-5 text-muted-strong">배역의 성별·나이 조건과 다른 배우 {mismatches}명</span></span></label>
     </div>
 
     <footer className="flex shrink-0 items-center gap-2 border-t border-border px-5 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 md:px-6">

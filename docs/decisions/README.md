@@ -30,6 +30,19 @@
 - [파일 업로드 상태와 도메인 참조 분리](./20260817063526-file-reference-registry.md) — accepted · agent-required
 - [CI 런타임과 병렬 Job](./20260818092422-ci-runtime-and-parallel-jobs.md) — accepted · agent-required
 - [프론트 이중 검증과 GitHub 보안 기준](./20260818105845-frontend-preview-and-github-security.md) — accepted · agent-required
+- [인증 주체별 로그인·가입 흐름](./20260818133426-role-specific-auth-flow.md) — accepted · agent-required
+- [배우와 기획사/제작사 용어 사용](./20260818133426-actor-and-company-terminology.md) — accepted · agent-required
+- [배우 프로필 보관함](./20260818133426-applicant-profile-library.md) — accepted · agent-required
+- [내 지원서와 전형 공개](./20260818133426-application-history-and-progress.md) — accepted · agent-required
+- [공연·공고 생성과 수정 경계](./20260818133426-performance-posting-management.md) — accepted · agent-required
+- [공고 콘텐츠 제한과 작성 중 상태](./20260818133426-posting-content-limits-and-draft-status.md) — accepted · agent-required
+- [심사 상세 식별과 화면 경로](./20260818133426-screening-detail-identity-and-route.md) — accepted · agent-required
+- [공고 이미지와 연습 장소](./20260818133426-posting-images-and-rehearsal-location.md) — accepted · agent-required
 - [백엔드 JAR와 systemd 배포](./20260819021010-backend-jar-systemd-deployment.md) — accepted · agent-required
 - [백엔드 EC2 운영체제](./20260819061141-backend-ec2-operating-system.md) — accepted · agent-required
 - [공고 생명주기와 섹션 Aggregate](./20260819073112-audition-section-aggregates.md) — accepted · agent-required
+- [관리자 배역별 지원 현황 진입 통일](./20260819102539-always-show-admin-role-picker.md) — accepted · agent-required
+- [공고 영상 요구사항 상한 5개](./20260819113826-limit-posting-video-requirements-to-five.md) — accepted · agent-required
+- [공고명 수정 허용](./20260819115749-allow-posting-title-edit.md) — accepted · agent-required
+- [심사 완료 결과 필터와 차수별 일괄 작업](./20260819131938-review-result-filter-and-round-actions.md) — accepted · agent-required
+- [style 커밋 타입 허용](./20260820005305-allow-style-commit-type.md) — accepted · agent-required

@@ -41,14 +41,14 @@ function MobileProducerNavigationPanel() {
           href={auditionRoutes.performances}
           className="flex min-h-11 min-w-0 items-center rounded-control px-1"
         >
-          <span className="relative block h-9 w-[76px] shrink-0 overflow-hidden">
+          <span className="relative block h-10 w-[70px] shrink-0">
             <Image
-              src="/images/yesulin-logo-transparent.png"
+              src="/images/yesulin-logo.png"
               alt="예술in"
               fill
-              sizes="76px"
+              sizes="70px"
               priority
-              className="object-cover object-center"
+              className="object-contain"
             />
           </span>
           <span className="ml-2 truncate text-base font-semibold">공연 관리</span>

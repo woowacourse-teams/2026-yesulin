@@ -3,7 +3,7 @@ config:
   layout: elk
 ---
 flowchart TB
-    START(["지원자 시작"]) --> PUBLIC["외부 링크로 공개 공고 확인<br>GET /api/v1/public/auditions/{auditionId}"]
+    START(["배우 시작"]) --> PUBLIC["외부 링크로 공개 공고 확인<br>GET /api/v1/public/auditions/{auditionId}"]
     PUBLIC --> OPEN{"모집 중?"}
     OPEN -- 아니오 --> RECOMMEND["다른 공고 확인<br>GET /api/v1/public/recommended-auditions"]
     OPEN -- 예 --> MULTI{"배역 여러 개?"}
@@ -12,24 +12,25 @@ flowchart TB
     ROLE --> MEMBER
     MEMBER -- 예 --> PREFILL["프로필 자동 채움<br>GET /api/v1/applicants/me/profile/prefill"]
     MEMBER -- 아니오 --> LOAD{"이전 기본 프로필을<br>불러올까요?"}
-    LOAD -- 예 --> LOGIN["로그인"]
+    LOAD -- 예 --> LOGIN["카카오·네이버·Google 소셜 로그인<br>첫 로그인 시 배우 계정 자동 생성"]
     LOGIN --> PREFILL
     LOAD -- 아니오 --> FORM["지원서 작성·사진 선택<br>IndexedDB 우선 저장"]
     PREFILL --> FORM
     FORM --> DRAFT["서버 Draft 지연·묶음 동기화<br>로그인 전·후 모두"]
     DRAFT --> REVIEW["최종 검토·필수 동의<br>프로필 저장은 별도 선택"]
     REVIEW --> AUTH{"제출 시 로그인 상태?"}
-    AUTH -- 아니오 --> SIGNUP["로그인 또는 회원가입"]
-    SIGNUP --> CLAIM["현재 브라우저 Draft 자동 연결<br>최신 수정본으로 덮어쓰기"]
+    AUTH -- 아니오 --> SOCIAL["소셜 로그인<br>첫 로그인 시 계정 자동 생성"]
+    SOCIAL --> CLAIM["현재 브라우저 Draft 자동 연결<br>최신 수정본으로 덮어쓰기"]
     AUTH -- 예 --> CLAIM
     CLAIM --> UPLOAD["프로필 저장 동의 사진만<br>개인 사진 보관함에 연결"]
     UPLOAD --> FINAL_OPEN{"서버 시각 기준<br>모집 중?"}
     FINAL_OPEN -- 아니오 --> BLOCKED["제출 즉시 차단<br>Draft는 별도 기한까지 유지"]
-    FINAL_OPEN -- 예 --> SUBMIT["지원서 스냅샷 제출<br>회원가입 완료 후에도 자동 진행"]
+    FINAL_OPEN -- 예 --> SUBMIT["지원서 스냅샷 제출"]
     SUBMIT --> RECEIPT["접수 완료"]
-    RECEIPT --> HOME["지원자 홈"]
-    HOME --> PROFILE["프로필 조회·수정<br>GET·PATCH /api/v1/applicants/me/profile"] & APPLICATIONS["내 지원서 목록<br>GET /api/v1/applicants/me/applications"] & RECOMMEND
-    APPLICATIONS --> DETAIL["제출 스냅샷 확인<br>GET /api/v1/applicants/me/applications/{applicationId}"]
+    RECEIPT --> HOME["배우 홈"]
+    HOME --> PROFILE["프로필 조회·수정<br>기본정보·추가정보"] & APPLICATIONS["내 지원서 목록<br>로컬 Draft + 제출 스냅샷"] & RECOMMEND
+    PROFILE --> LIBRARY["사진 최대 20장·대표 사진<br>YouTube 영상 최대 10개<br>변경 즉시 저장"]
+    APPLICATIONS --> RESUME["작성 중 Draft<br>이 기기에서 이어쓰기"] & DETAIL["제출 스냅샷·배역별 전형 확인<br>GET /api/v1/applicants/me/applications/{applicationId}"]
     DETAIL --> READONLY["읽기 전용 확인"]
 
     classDef publicNode stroke:#2dd4bf,fill:#f0fdfa
@@ -49,7 +50,7 @@ flowchart TB
     AUTH:::decisionNode
     SUBMIT:::applicationNode
     RECEIPT:::applicationNode
-    SIGNUP:::accountNode
+    SOCIAL:::accountNode
     DRAFT:::applicationNode
     REVIEW:::applicationNode
     CLAIM:::applicationNode
@@ -59,6 +60,8 @@ flowchart TB
     LOGIN:::accountNode
     HOME:::accountNode
     PROFILE:::accountNode
+    LIBRARY:::accountNode
     APPLICATIONS:::applicationNode
+    RESUME:::applicationNode
     DETAIL:::applicationNode
     READONLY:::applicationNode

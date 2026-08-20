@@ -32,7 +32,7 @@ export function WorkSplit() {
                 setFilters((current) => ({
                   ...current,
                   work: tab.mode,
-                  status: tab.mode === "DONE" ? "PASS" : "ALL",
+                  status: "ALL",
                 }));
               }}
               className={`mr-4 flex min-h-12 items-center gap-1.5 border-b-2 py-2 text-sm transition-colors sm:mr-6 lg:text-dense ${
@@ -40,9 +40,6 @@ export function WorkSplit() {
               }`}
             >
               {tab.label}
-              <b className={`num text-[15px] font-bold tracking-[-0.02em] ${active ? "text-brand" : ""}`}>
-                {tab.mode === "PENDING" ? counts.pending : counts.done}
-              </b>
             </button>
           );
         })}

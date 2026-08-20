@@ -1,17 +1,20 @@
-import { applicationId, type ApplicationId } from "@/features/auditions/types";
+import { applicationId, roleId, type ApplicationId } from "@/features/auditions/types";
 import type {
   ApplicantAnswer,
   ApplicantApplicationDetail,
   ApplicantApplicationSummary,
   ApplicantProfileResponse,
+  ApplicantProfilePhoto,
+  ApplicantProfileVideo,
   LookupApplicationResponse,
   RecommendedPosting,
   UpdateApplicationRequest,
   UpdateProfileRequest,
 } from "@/features/applicants/types";
 import { CATALOG } from "@/mocks/auditions/catalog";
-import { defaultApplicationFields } from "@/features/auditions/creation-types";
+import { screeningFlowApplicationFixture } from "@/mocks/auditions/application-field-fixtures";
 import { producerProfile } from "@/mocks/auditions/producer-profile";
+import { isRoundClosed, readReview, roundNumbersForRole } from "@/mocks/auditions/store";
 
 const seededAnswers: ApplicantAnswer[] = [
   { key: "NAME", label: "이름", value: "김하린" },
@@ -20,18 +23,35 @@ const seededAnswers: ApplicantAnswer[] = [
   { key: "ADDRESS", label: "거주지", value: "서울특별시 마포구" },
   { key: "BIRTH", label: "생년월일", value: "1999-04-18" },
   { key: "GENDER", label: "성별", value: "여성" },
-  { key: "BODY", label: "키·몸무게", value: { height: 166, weight: 52 } },
-  { key: "CAREER", label: "주요 경력", value: [{ year: 2025, title: "푸른 방", part: "윤서" }] },
+  { key: "HEIGHT", label: "키", value: 166 },
+  { key: "WEIGHT", label: "몸무게", value: 52 },
+  { key: "SCHOOL", label: "학력", value: "한국예술종합학교 연극원 연기과" },
+  { key: "CAREER", label: "경력", value: [{ year: 2025, title: "푸른 방", part: "윤서" }] },
+  { key: "LINK", label: "SNS / 외부 링크", value: "https://example.com/harin" },
+  { key: "NATIONALITY", label: "국적", value: "대한민국" },
   { key: "COVER_LETTER", label: "자기소개", value: "인물의 작은 선택이 장면 전체의 온도를 바꾼다고 믿습니다. 상대 배우의 호흡을 세심하게 듣고 반복되는 연습에서도 새로운 반응을 발견하는 배우 김하린입니다." },
-  { key: "PHOTOS", label: "프로필 사진", value: ["seed-photo-1"], previewUrls: ["/images/performances/high-life-audition-2026.jpg"] },
-  { key: "VIDEO", label: "연기 영상", value: "https://youtu.be/dQw4w9WgXcQ" },
+  { key: "SPECIALTY", label: "특기", value: "현대무용, 검술" },
+  { key: "HOBBIES", label: "취미", value: "러닝, 독립영화 감상" },
+  { key: "MILITARY", label: "군필 여부", value: "해당 없음" },
+  { key: "PHOTOS", label: "프로필 사진", value: ["seed-photo-1", "seed-photo-2", "seed-photo-3", "seed-photo-4"], previewUrls: ["/images/applicants/kim-harin-profile.png", "/images/applicants/kim-harin-full-body.png", "/images/applicants/kim-harin-acting-1.png", "/images/applicants/kim-harin-acting-2.png"] },
+  { key: "VIDEO", label: "영상 링크", value: [
+    "https://youtu.be/aqz-KE-bpKQ",
+    "https://youtu.be/M7lc1UVf-VE",
+    "https://youtu.be/ysz5S6PUM-U",
+    "https://youtu.be/ScMzIvxBSi4",
+    "https://youtu.be/eRsGyueVLvQ",
+  ] },
+  { key: "MOTIVATION", label: "이 작품에 지원한 동기를 적어 주세요.", value: "달빛 아래 우리가 다루는 관계의 회복과 성장에 깊이 공감해 지원했습니다." },
 ];
-let profileAnswers: ApplicantAnswer[] = seededAnswers.filter((answer) => !answer.custom);
+const reusableKeys = new Set(["NAME", "HEIGHT", "WEIGHT", "BIRTH", "GENDER", "PHONE", "EMAIL", "ADDRESS", "SCHOOL", "CAREER", "LINK", "NATIONALITY", "COVER_LETTER", "SPECIALTY", "HOBBIES", "MILITARY"]);
+let profileAnswers: ApplicantAnswer[] = seededAnswers.filter((answer) => reusableKeys.has(answer.key));
+let photoLibrary: ApplicantProfilePhoto[] = [{ id: "seed-photo-1", name: "김하린 프로필.jpg", url: "/images/applicants/kim-harin-profile.png", representative: true }];
+let videoLibrary: ApplicantProfileVideo[] = [{ id: "seed-video-1", url: "https://youtu.be/aqz-KE-bpKQ", youtubeId: "aqz-KE-bpKQ" }];
 let applications: ApplicantApplicationDetail[] = [{
   id: applicationId(26081201), postingId: "seed_posting_1", performanceTitle: "달빛 아래 우리", postingTitle: "2026 하반기 주·조연 배우 모집",
   posterUrl: "/images/performances/moonlight.jpg", companyName: "예술in 스테이지", roleId: "seed_role_seoyeon", roleIds: ["seed_role_seoyeon", "seed_role_jiwoo"], roleName: "서연 · 지우",
   lookupCode: "YS-20260812-SEED01", submittedAt: "2026-08-12T10:30:00+09:00", updatedAt: "2026-08-12T10:30:00+09:00",
-  editable: false, recruitmentEnd: "2026-09-30", editableUntil: "", answers: seededAnswers, applicationFields: defaultApplicationFields(),
+  editable: false, recruitmentEnd: "2026-09-30", editableUntil: "", roleProgress: [], answers: seededAnswers, applicationFields: screeningFlowApplicationFixture(),
 }];
 const ownedApplicationIds = new Set<ApplicationId>(applications.map((application) => application.id));
 const claims = new Map<string, { readonly applicationId: ApplicationId; readonly expiresAt: string; used: boolean }>();
@@ -39,20 +59,25 @@ const claims = new Map<string, { readonly applicationId: ApplicationId; readonly
 const clone = <T>(value: T): T => structuredClone(value);
 
 export function applicantProfile(): ApplicantProfileResponse {
-  const standardTotal = 11;
-  return { answers: clone(profileAnswers), completeness: { filled: profileAnswers.filter((answer) => !answer.custom).length, standardTotal } };
+  const answer = (key: string) => profileAnswers.find((candidate) => candidate.key === key)?.value;
+  const basicValues = [answer("NAME"), answer("HEIGHT"), answer("WEIGHT"), answer("BIRTH"), answer("GENDER"), answer("PHONE"), answer("EMAIL"), answer("ADDRESS")];
+  const filled = basicValues.filter((value) => typeof value === "number" ? value > 0 : typeof value === "string" && value.trim().length > 0).length;
+  return { answers: clone(profileAnswers), photoLibrary: clone(photoLibrary), videoLibrary: clone(videoLibrary), completeness: { filled, standardTotal: 8 } };
 }
 
 export function patchApplicantProfile(body: UpdateProfileRequest): ApplicantProfileResponse {
   const remove = new Set(body.removeKeys ?? []);
   profileAnswers = profileAnswers.filter((answer) => !remove.has(answer.key));
   for (const next of body.answers ?? []) {
+    if (!reusableKeys.has(next.key)) continue;
     const current = profileAnswers.find((answer) => answer.key === next.key);
     const answer: ApplicantAnswer = { ...current, ...next, label: next.label ?? current?.label ?? next.key, updatedAt: new Date().toISOString() };
     profileAnswers = current
       ? profileAnswers.map((candidate) => candidate.key === next.key ? answer : candidate)
       : [...profileAnswers, answer];
   }
+  if (body.photoLibrary) photoLibrary = clone(body.photoLibrary).slice(0, 20);
+  if (body.videoLibrary) videoLibrary = clone(body.videoLibrary).slice(0, 10);
   return applicantProfile();
 }
 
@@ -69,14 +94,31 @@ function toSummary(detail: ApplicantApplicationDetail): ApplicantApplicationSumm
     submittedAt: detail.submittedAt,
     editable: detail.editable,
     recruitmentEnd: detail.recruitmentEnd,
+    roleProgress: roleProgressOf(detail),
   };
+}
+
+function roleProgressOf(detail: ApplicantApplicationDetail): ApplicantApplicationSummary["roleProgress"] {
+  const posting = CATALOG.flatMap((performance) => performance.postings).find((candidate) => candidate.id === detail.postingId);
+  return detail.roleIds.map((id) => {
+    const typedRoleId = roleId(id);
+    const roleName = posting?.roles.find((role) => role.id === id)?.name ?? id;
+    if (!posting || posting.status !== "CLOSED") return { roleId: id, roleName, state: "RECEIVED" as const, round: null, roundName: null };
+    const rounds = roundNumbersForRole(typedRoleId);
+    for (const round of rounds) {
+      if (!isRoundClosed(typedRoleId, round)) return { roleId: id, roleName, state: "IN_REVIEW" as const, round, roundName: posting.rounds?.find((item) => item.round === round)?.name ?? `${round}차 전형` };
+      if (readReview(detail.id, typedRoleId, round).status !== "PASS") return { roleId: id, roleName, state: "NOT_SELECTED" as const, round, roundName: posting.rounds?.find((item) => item.round === round)?.name ?? `${round}차 전형` };
+    }
+    const finalRound = rounds.at(-1) ?? null;
+    return { roleId: id, roleName, state: "FINAL_PASS" as const, round: finalRound, roundName: posting.rounds?.find((item) => item.round === finalRound)?.name ?? (finalRound ? `${finalRound}차 전형` : null) };
+  });
 }
 
 export const applicantApplications = () => ({ applications: clone(applications.filter((application) => ownedApplicationIds.has(application.id)).map(toSummary)) });
 
 export const applicantApplication = (id: ApplicationId) => {
   const detail = ownedApplicationIds.has(id) ? applications.find((application) => application.id === id) : undefined;
-  return detail ? clone(detail) : null;
+  return detail ? { ...clone(detail), roleProgress: roleProgressOf(detail) } : null;
 };
 
 export function patchApplicantApplication(id: ApplicationId, body: UpdateApplicationRequest) {
@@ -97,8 +139,8 @@ export function patchApplicantApplication(id: ApplicationId, body: UpdateApplica
 }
 
 export function recommendedPostings(exclude?: string, limit = 3): readonly RecommendedPosting[] {
-  const companyName = producerProfile().companyName || "공연사";
-  return CATALOG.flatMap((performance) => performance.postings.map((posting) => ({
+  const companyName = producerProfile().companyName || "기획사/제작사";
+  return CATALOG.flatMap((performance) => performance.postings.flatMap((posting) => posting.status === "DRAFT" ? [] : [{
     id: posting.id,
     performanceTitle: performance.title,
     title: posting.title,
@@ -106,7 +148,7 @@ export function recommendedPostings(exclude?: string, limit = 3): readonly Recom
     status: posting.status,
     recruitmentStart: posting.recruitmentStart ?? "",
     recruitmentEnd: posting.recruitmentEnd ?? "",
-  })))
+  }]))
     .filter((posting) => posting.id !== exclude)
     .slice(0, limit);
 }
@@ -151,7 +193,7 @@ export function claimApplicantApplication(token?: string): ApplicationId | null 
   if (!application) return null;
   claim.used = true;
   ownedApplicationIds.add(application.id);
-  const standard = application.answers.filter((answer) => !answer.custom && !answer.key.startsWith("cf_"));
+  const standard = application.answers.filter((answer) => reusableKeys.has(answer.key));
   for (const answer of standard) {
     const current = profileAnswers.find((candidate) => candidate.key === answer.key);
     const next = { ...answer, updatedAt: new Date().toISOString() };

@@ -80,13 +80,13 @@ function printableCard(applicant: Applicant, performance: PerformanceRef) {
       <div class="pp-role">${escapeHtml(applicant.roleName)} 지원</div>
       <dl class="pp-facts">
         <div><dt>성별·나이</dt><dd>${GENDER_LABELS[applicant.gender]} · 만 ${applicant.age}세</dd></div>
-        <div><dt>신장/체중</dt><dd>${applicant.height}cm / ${applicant.weight}kg</dd></div>
+        <div><dt>신장/체중</dt><dd>${printMeasurement(applicant.height, "cm")} / ${printMeasurement(applicant.weight, "kg")}</dd></div>
         <div><dt>생년월</dt><dd>${escapeHtml(applicant.birth)}</dd></div>
         <div><dt>학교</dt><dd>${escapeHtml(applicant.school)}</dd></div>
         <div><dt>연락처</dt><dd>${escapeHtml(applicant.phone)}</dd></div>
         <div><dt>이메일</dt><dd>${escapeHtml(applicant.email)}</dd></div>
         <div><dt>접수</dt><dd>${escapeHtml(applicant.submittedAt)}</dd></div>
-        <div><dt>제출 자료</dt><dd>사진 ${applicant.photos.length}장${applicant.videoUrl ? " · 영상 링크 있음" : ""}</dd></div>
+        <div><dt>제출 자료</dt><dd>사진 ${applicant.photos.length}장${applicant.videos.length > 0 ? ` · 영상 ${applicant.videos.length}개` : ""}</dd></div>
       </dl>
     </div>
   </header>
@@ -117,15 +117,20 @@ function printableCard(applicant: Applicant, performance: PerformanceRef) {
 </section>`;
 }
 
+function printMeasurement(value: number | null, unit: string) {
+  return value === null ? "미수집" : `${value}${unit}`;
+}
+
 /**
  * 브라우저 인쇄 대화상자를 그대로 쓴다(PDF 저장·실제 인쇄 모두 여기서 처리).
  * 별도 창에 A4 전용 문서를 만들어 화면 스타일이 인쇄에 새지 않게 한다.
  */
-export function openPrintWindow(applicants: readonly Applicant[], performance: PerformanceRef) {
+export function openPrintWindow(applicants: readonly Applicant[], performance: PerformanceRef, documentTitle?: string) {
   if (applicants.length === 0) return false;
 
-  const title =
-    applicants.length === 1 ? `${applicants[0]?.name ?? ""} 프로필` : `지원자 ${applicants.length}명`;
+  const title = documentTitle ?? (
+    applicants.length === 1 ? `${applicants[0]?.name ?? ""} 프로필` : `배우 ${applicants.length}명`
+  );
   const win = window.open("", "_blank", "width=900,height=1000");
   if (!win) return false;
 

@@ -40,13 +40,6 @@ const previewPhotos = (list: readonly MockApplicant[]) =>
 const applicantsOfPosting = (posting: CatalogPosting) =>
   allApplicants().filter((applicant) => applicant.postingId === posting.id);
 
-/** 배역 구분이 없거나 배역이 하나뿐이면 배역 선택 화면을 건너뛸 수 있다. */
-const soleRoleIdOf = (posting: CatalogPosting) =>
-  posting.isOpenCall || posting.roles.length === 1 ? (posting.roles[0]?.id ?? null) : null;
-
-const applicantsOfPerformance = (performance: CatalogPerformance) =>
-  allApplicants().filter((applicant) => applicant.performanceId === performance.id);
-
 export const toPerformanceRef = (performance: CatalogPerformance): PerformanceRef => ({
   id: performance.id,
   posterUrl: performance.posterUrl,
@@ -60,18 +53,19 @@ export const toPostingRef = (posting: CatalogPosting): PostingRef => ({
 });
 
 export function toPerformanceSummary(performance: CatalogPerformance): PerformanceSummary {
-  const applicants = applicantsOfPerformance(performance);
+  const applicants = allApplicants().filter((applicant) => applicant.performanceId === performance.id);
 
   return {
     id: performance.id,
     posterUrl: performance.posterUrl,
     title: performance.title,
     venue: performance.venue,
+    venueAddress: performance.venueAddress,
     postingCount: performance.postings.length,
     openPostingCount: performance.postings.filter((posting) => posting.status === "OPEN").length,
     applicantCount: applicants.length,
     pendingReviewCount: performance.postings.reduce((sum, posting) => sum + pendingCountOf(posting), 0),
-    previewPhotoUrls: previewPhotos(applicants),
+    postings: performance.postings.map(toPostingSummary),
   };
 }
 
@@ -92,7 +86,6 @@ export function toPostingSummary(posting: CatalogPosting): PostingSummary {
     allRoundsClosed: postingAllRoundsClosed(posting),
     progress: postingProgress(posting),
     previewPhotoUrls: previewPhotos(applicants),
-    soleRoleId: soleRoleIdOf(posting),
   };
 }
 
@@ -127,7 +120,7 @@ export function toRoleSummary(role: CatalogRole, posting: CatalogPosting): RoleS
   };
 }
 
-/** 배역이 명시한 성별·나이 조건을 벗어난 지원자인지 판정한다. */
+/** 배역이 명시한 성별·나이 조건을 벗어난 배우인지 판정한다. */
 function mismatchReasons(applicant: MockApplicant, role: CatalogRole): readonly MismatchReason[] {
   const reasons: MismatchReason[] = [];
   if (role.gender !== "ANY" && applicant.gender !== role.gender) reasons.push("GENDER");
@@ -137,7 +130,7 @@ function mismatchReasons(applicant: MockApplicant, role: CatalogRole): readonly 
 
 /** 아직 대상이 아니었던 차수는 null로 남겨 '해당 없음'으로 표시되게 한다. */
 function reviewHistoryOf(applicant: MockApplicant, role: CatalogRole) {
-  const history: Record<RoundNumber, Review | null> = { 1: null, 2: null, 3: null };
+  const history: Record<RoundNumber, Review | null> = { 1: null, 2: null, 3: null, 4: null, 5: null };
 
   for (const round of ROUND_NUMBERS) {
     const inPool = poolFor(role.id, round).some((candidate) => candidate.id === applicant.id);
@@ -167,7 +160,7 @@ export function toApplicant(applicant: MockApplicant, role: CatalogRole, round: 
     coverLetter: applicant.coverLetter,
     motivation: applicant.motivation,
     photos: applicant.photos,
-    videoUrl: applicant.videoUrl,
+    videos: applicant.videos,
     review: readReview(applicant.id, role.id, round),
     reviewHistory: reviewHistoryOf(applicant, role),
     mismatchReasons: mismatchReasons(applicant, role),
@@ -186,7 +179,6 @@ export function toAuditionTree(): AuditionTree {
         phase: postingPhase(posting),
         applicantCount: applicantsOfPosting(posting).length,
         roleIds: posting.roles.map((role) => role.id),
-        soleRoleId: soleRoleIdOf(posting),
       })),
     })),
   };

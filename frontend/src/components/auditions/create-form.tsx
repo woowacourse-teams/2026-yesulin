@@ -9,16 +9,18 @@ export function CreatePageButton({ children, onClick }: { children: React.ReactN
 }
 
 export function CreateSection({
+  id,
   title,
   description,
   children,
 }: {
+  id?: string;
   title: string;
   description?: string;
   children: React.ReactNode;
 }) {
   return (
-    <section className="border-b border-border-soft py-8 first:pt-0 last:border-b-0 last:pb-0">
+    <section id={id} className="scroll-m-6 border-b border-border-soft py-8 first:pt-0 last:border-b-0 last:pb-0">
       <div className="mb-4">
         <h3 className="text-lg font-bold tracking-[-0.01em]">{title}</h3>
         {description ? <p className="mt-1 text-base leading-relaxed text-muted-strong md:text-sm">{description}</p> : null}

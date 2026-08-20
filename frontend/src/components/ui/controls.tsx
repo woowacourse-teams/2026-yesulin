@@ -33,7 +33,9 @@ function ControlButton({ tone, className = "", type, ...props }: ButtonProps & {
 }
 
 function ControlLink({ tone, className = "", ...props }: ControlLinkProps & { tone: keyof typeof CONTROL_TONE }) {
-  return <Link className={`${CONTROL_BASE} ${CONTROL_TONE[tone]} ${className}`} {...props} />;
+  const controlClassName = `${CONTROL_BASE} ${CONTROL_TONE[tone]} ${className}`;
+  if (props.href.startsWith("#")) return <a className={controlClassName} {...props} />;
+  return <Link className={controlClassName} {...props} />;
 }
 
 export function PrimaryButton(props: ButtonProps) {

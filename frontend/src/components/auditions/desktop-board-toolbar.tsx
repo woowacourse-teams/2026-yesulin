@@ -26,23 +26,12 @@ export function DesktopBoardToolbar({ onOpenFilter }: { onOpenFilter: () => void
   const detailCount = activeDetailFilterCount(filters);
   const canClose = !roundClosed && counts.all > 0 && counts.pending === 0;
   const nextRoundName = board.rounds[roundIndex + 1]?.name;
-  const countOf = (status: StatusFilter) => {
-    if (status === "ALL") return counts.done;
-    return {
-      PASS: counts.pass,
-      FAIL: counts.fail,
-      ABSENT: counts.absent,
-      ETC: counts.etc,
-      PENDING: counts.pending,
-    }[status];
-  };
-
   const changeWork = (work: WorkMode) => {
     clearSelection();
     setFilters((current) => ({
       ...current,
       work,
-      status: work === "DONE" ? "PASS" : "ALL",
+      status: "ALL",
     }));
   };
 
@@ -57,7 +46,6 @@ export function DesktopBoardToolbar({ onOpenFilter }: { onOpenFilter: () => void
             className="gap-1.5 px-2.5 xl:px-3"
           >
             {tab.label}
-            <span className="num opacity-65">{tab.mode === "PENDING" ? counts.pending : counts.done}</span>
           </SegmentButton>
         ))}
       </div>
@@ -72,7 +60,7 @@ export function DesktopBoardToolbar({ onOpenFilter }: { onOpenFilter: () => void
           >
             {(["ALL", ...selectableStatuses(board.round)] as const).map((status) => (
               <option key={status} value={status}>
-                {status === "ALL" ? "전체" : STATUS_LABELS[status as ReviewStatus]} {countOf(status)}
+                {status === "ALL" ? "전체" : STATUS_LABELS[status as ReviewStatus]}
               </option>
             ))}
           </select>
@@ -80,7 +68,7 @@ export function DesktopBoardToolbar({ onOpenFilter }: { onOpenFilter: () => void
       ) : null}
 
       <label className="relative min-w-[132px] max-w-[360px] flex-1">
-        <span className="sr-only">지원자 검색</span>
+        <span className="sr-only">배우 검색</span>
         <SearchIcon />
         <input
           type="search"
@@ -117,7 +105,7 @@ export function DesktopBoardToolbar({ onOpenFilter }: { onOpenFilter: () => void
       </button>
 
       <div className="flex shrink-0 overflow-hidden rounded-control border border-border bg-card">
-        {(["table", "card"] as const).map((view) => (
+        {(["card", "table"] as const).map((view) => (
           <SegmentButton
             key={view}
             pressed={filters.view === view}
@@ -136,7 +124,7 @@ export function DesktopBoardToolbar({ onOpenFilter }: { onOpenFilter: () => void
       ) : (
         <PrimaryButton
           disabled={!canClose}
-          title={counts.all === 0 ? "심사할 지원자가 없습니다" : counts.pending > 0 ? `검토 대기 ${counts.pending}명이 남아 있습니다` : undefined}
+          title={counts.all === 0 ? "심사할 배우가 없습니다" : counts.pending > 0 ? `검토 대기 ${counts.pending}명이 남아 있습니다` : undefined}
           onClick={() => setClosePrompt("manual")}
           className="min-h-10 shrink-0 whitespace-nowrap px-3 text-dense"
         >

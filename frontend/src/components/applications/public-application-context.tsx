@@ -5,7 +5,9 @@ import { applicationFormSteps, applicationStepProgress } from "@/features/applic
 import { applicationStepIssue } from "@/features/applications/application-form-state";
 import type { ApplicationStepIssue, SubmissionState } from "@/features/applications/application-form-state";
 import { submitPublicApplication } from "@/features/applicants/api";
+import { deletePublicApplicationDraft } from "@/features/applications/public-application-draft-store";
 import { submissionValue } from "./public-application-draft";
+import { hasSubmittedValue } from "@/features/applications/materials";
 import type { ApplicationReceipt, EditableSection, PublicApplicationActions, PublicApplicationContextValue, PublicApplicationProviderProps, PublicApplicationState } from "./public-application-context-types";
 import { usePublicApplicationDraft } from "./use-public-application-draft";
 
@@ -31,7 +33,7 @@ export function PublicApplicationProvider({
 }: PublicApplicationProviderProps) {
   const steps = applicationFormSteps(fields);
   const [receipt, setReceipt] = useState<ApplicationReceipt | null>(null);
-  const draft = usePublicApplicationDraft({ postingId, prefill, initialRoleIds, submitted: receipt !== null });
+  const draft = usePublicApplicationDraft({ postingId, fields, prefill, initialRoleIds, submitted: receipt !== null });
   const {
     stepIndex, setStepIndex, values, setValues, photos, setPhotos, videoUrl, setVideoUrl,
     noCareer, setNoCareer, careers, setCareers, completedStepIndexes, setCompletedStepIndexes,
@@ -75,7 +77,7 @@ export function PublicApplicationProvider({
   const focusIssue = (issue: ApplicationStepIssue) => {
     window.requestAnimationFrame(() => {
       const field = document.getElementById(`application-field-${issue.fieldId}`);
-      const control = field?.querySelector<HTMLElement>("input:not([disabled]), select:not([disabled]), textarea:not([disabled])");
+      const control = field?.querySelector<HTMLElement>("input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled])");
       field?.scrollIntoView({ behavior: "smooth", block: "center" });
       control?.focus({ preventScroll: true });
     });
@@ -132,7 +134,7 @@ export function PublicApplicationProvider({
       return;
     }
     if (!authenticated) {
-      setSubmissionError("최종 제출하려면 로그인 또는 회원가입이 필요합니다.");
+      setSubmissionError("최종 제출하려면 소셜 로그인이 필요합니다.");
       window.requestAnimationFrame(() => document.getElementById("application-auth-actions")?.focus());
       return;
     }
@@ -153,13 +155,20 @@ export function PublicApplicationProvider({
       return;
     }
     try {
+      const submittedAnswers = fields
+        .filter((field) => field.enabled)
+        .map((field) => ({
+          field,
+          value: submissionValue(field, { values, photos, videoUrl, careers, noCareer }),
+        }))
+        .filter(({ field, value }) => field.required || hasSubmittedValue(value));
       const response = await submitPublicApplication({
         postingId,
         roleIds,
-        answers: fields.filter((field) => field.enabled).map((field) => ({
+        answers: submittedAnswers.map(({ field, value }) => ({
           key: field.id,
           ...(field.custom ? { label: field.label } : {}),
-          value: submissionValue(field, { values, photos, videoUrl, careers, noCareer }),
+          value,
         })),
         privacyAgreed: consent,
         saveToProfile,
@@ -171,6 +180,7 @@ export function PublicApplicationProvider({
         profileClaimToken: response.profileClaimToken,
         profileClaimExpiresAt: response.profileClaimExpiresAt,
       });
+      void deletePublicApplicationDraft(postingId).catch(() => undefined);
     } catch (cause) {
       setSubmissionState("ERROR");
       setSubmissionError(cause instanceof Error ? cause.message : "지원서를 접수하지 못했어요. 잠시 후 다시 시도해 주세요.");

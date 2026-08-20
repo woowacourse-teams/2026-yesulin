@@ -7,10 +7,9 @@ let profile: ProducerProfile = {
   logoUrl: "",
   description: "",
   email: "",
-  businessNumber: "",
-  representativeName: "",
-  verificationStatus: "PENDING",
-  verifiedAt: null,
+  phone: "",
+  verificationStatus: "ACTIVE",
+  verifiedAt: "2026-08-01T00:00:00.000Z",
 };
 
 export const producerProfile = () => structuredClone(profile);
@@ -24,4 +23,15 @@ export function patchProducerProfile(body: UpdateProducerProfileRequest) {
     ...(body.description !== undefined ? { description: body.description.trim() } : {}),
   };
   return producerProfile();
+}
+
+export function registerPendingProducer(input: { readonly companyName: string; readonly email: string; readonly phone: string }) {
+  profile = {
+    ...profile,
+    companyName: input.companyName.trim(),
+    email: input.email.trim(),
+    phone: input.phone,
+    verificationStatus: "PENDING",
+    verifiedAt: null,
+  };
 }

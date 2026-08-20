@@ -22,9 +22,9 @@ implementation_reference:
 
 - 명료한 업무 흐름이 장식보다 우선한다. 화면의 현재 위치, 상태, 다음 행동이 바로 보여야 한다.
 - 한 영역의 핵심 행동만 `brand`로 강조한다. 보조 행동은 흰 표면, 테두리, 텍스트 버튼으로 낮춘다.
-- 지원자 화면은 안내와 단계 진행을, 공연사 화면은 비교·검색·빠른 검토를 우선한다.
+- 배우 화면은 안내와 단계 진행을, 기획사/제작사 화면은 비교·검색·빠른 검토를 우선한다.
 - 상태는 색상만으로 표현하지 않는다. 상태명과 배지 형태, 필요하면 점·아이콘·설명을 함께 쓴다.
-- 기본 작업 화면은 밝은 캔버스와 흰 표면을 사용한다. 짙은 표면은 공연사 사이드바, 인증·마케팅 히어로, 영상처럼 집중이 필요한 영역에 제한한다.
+- 기본 작업 화면은 밝은 캔버스와 흰 표면을 사용한다. 짙은 표면은 기획사/제작사 사이드바, 인증·마케팅 히어로, 영상처럼 집중이 필요한 영역에 제한한다.
 - 글래스 표면은 sticky header, 모바일 고정 내비게이션·액션 바, 모달 header/footer처럼 실제로 떠 있는 영역에만 쓴다.
 - 기존 기능과 정보 위계를 시각 변경 때문에 제거하지 않는다.
 - 정렬과 간격은 눈대중으로 보정하지 않는다. 같은 역할의 요소는 같은 spacing, 정렬 축, 크기 규칙을 공유하고 부모 layout에서 일관되게 제어한다.
@@ -58,9 +58,11 @@ implementation_reference:
 
 | State | Foreground | Background | Usage |
 |---|---|---|---|
-| Success / Pass / Open | `#16A34A` | `#F0FDF4` | 성공, 합격, 모집 중 |
+| Success / Pass | `#16A34A` | `#F0FDF4` | 성공, 합격 |
 | Error / Fail | `#DC2626` | `#FEF2F2` | 오류, 불합격, 파괴적 행동 |
-| Warning / Closed | `#D97706` | `#FFF7ED` | 주의, 모집 마감, 조건 경고 |
+| Open | `#246BFE` | `#246BFE` | 진행 중 공고 |
+| Warning | `#D97706` | `#FFF7ED` | 주의, 조건 경고 |
+| Recruit closed | `#475569` | `#F1F5F9` | 접수 마감 공고 |
 | Pending / Absent | `#475569` | `#F1F5F9` | 검토 대기, 불참, 중립 상태 |
 | Etc | `#5B50A6` | `#F0EFFC` | 기타 심사 결과 |
 | Upcoming | `#194FC4` | `#EEF5FF` | 시작 전 공고 |
@@ -71,14 +73,15 @@ implementation_reference:
 
 | Token | Value | Usage |
 |---|---|---|
-| `sidebar` | `#0B1018` | 공연사 sidebar, dark hero |
+| `sidebar` | `#0B1018` | 기획사/제작사 sidebar, dark hero |
 | `sidebar-surface` | `#111722` | 어두운 보조 표면 |
 | `sidebar-hover` | `#1B2432` | 어두운 표면 hover |
 | `sidebar-text` | `#E2E8F0` | 어두운 표면 기본 텍스트 |
 | `sidebar-muted` | `#94A3B8` | 어두운 표면 보조 텍스트 |
 | `sidebar-line` | `rgba(255, 255, 255, 0.12)` | 어두운 표면 divider |
 | `kakao` / ink | `#FEE500` / `#191919` | 카카오 로그인에만 사용 |
-| `naver` | `#03C75A` | 네이버 로그인에만 사용 |
+| `naver` | `#03A94D` | 네이버 로그인에만 사용 |
+| Google neutral | 흰 배경 + `border` + `foreground` | Google 로그인 버튼 표면과 텍스트 |
 
 외부 브랜드색은 해당 로그인 버튼 밖에서 사용하지 않는다.
 
@@ -88,6 +91,7 @@ implementation_reference:
 - 선택 상태는 목적에 따라 `brand + white`(주요 선택) 또는 `foreground + white`(필터·세그먼트)를 사용한다.
 - Disabled는 보통 `border` 배경과 `muted` 텍스트를 쓰고 그림자와 transform을 제거한다.
 - Error는 `fail` border/text와 `fail-bg` 안내 배경을 함께 사용한다.
+- 공고 상태는 진행 중만 brand 단색으로 강조하고, 진행 예정은 brand 윤곽, 접수 마감은 중립 slate, 전형 종료는 foreground로 구분한다.
 - 상태 배지는 상태명과 색 점을 함께 표시한다. 사진 위에서는 흰 반투명 배경을 사용해 대비를 확보한다.
 - 짙은 배경에서는 `white`, `sidebar-text`, `sidebar-muted`, `brand-line`만 위계에 맞게 사용한다.
 
@@ -134,7 +138,7 @@ Tailwind의 4px 간격 체계를 기본으로 한다.
 | `16–28` | 64–112px | 랜딩 섹션에만 사용 |
 
 - 일반 화면 좌우 여백은 모바일 20px, `md` 이상 32px이 기본이다.
-- 공연사 업무 화면은 모바일 16px, `md` 24px, 넓은 화면 32px을 사용한다.
+- 기획사/제작사 업무 화면은 모바일 16px, `md` 24px, 넓은 화면 32px을 사용한다.
 - 카드 내부 여백은 16–24px, 모달 header/footer는 20px에서 24px을 사용한다.
 - 2px half-step과 임의 5·7·9·11px 값은 조밀한 표, 아이콘 정렬, 기존 컨트롤의 광학 보정에만 허용한다.
 - 새 레이아웃에는 표준 step을 먼저 사용하고 비슷한 임의 값을 추가하지 않는다.
@@ -196,7 +200,7 @@ Tailwind의 4px 간격 체계를 기본으로 한다.
 - 상단 header, 모바일 navigation·action bar는 sticky/fixed glass surface를 사용하고 safe-area padding을 보존한다.
 - 관리자 목록은 카드와 표 보기를 모두 지원한다. 좁은 화면에서 표를 단순 축소하지 않는다.
 - 상세 dialog는 데스크톱에서 목록과 프로필을 2열로, 좁은 화면에서는 세로 흐름으로 바꾼다.
-- 넓은 화면에서도 본문을 무제한 늘리지 않는다. 다만 공연사 workspace는 비교 가능한 열을 위해 가용 폭을 사용한다.
+- 넓은 화면에서도 본문을 무제한 늘리지 않는다. 다만 기획사/제작사 workspace는 비교 가능한 열을 위해 가용 폭을 사용한다.
 - 중앙 정렬은 viewport가 아니라 **해당 콘텐츠가 속한 실제 container**를 기준으로 한다. sidebar가 있는 화면의 본문은 전체 화면이 아닌 workspace 영역 안에서 정렬한다.
 - header, 본문, footer/action 영역이 같은 화면 위계를 공유하면 가능한 한 같은 content edge와 horizontal padding을 맞춘다.
 - 반복되는 목록·카드·폼의 시작선과 끝선은 인접 섹션과 시각적으로 이어지도록 맞춘다.
@@ -244,7 +248,7 @@ Tailwind의 4px 간격 체계를 기본으로 한다.
 ### Navigation과 업무 목록
 
 - 활성 navigation은 배경·텍스트·`aria-current`를 함께 사용한다.
-- 공연사 sidebar는 dark token만 사용하고, 활성 항목은 brand 배경 + 흰 텍스트로 표시한다.
+- 기획사/제작사 sidebar는 dark token만 사용하고, 활성 항목은 brand 배경 + 흰 텍스트로 표시한다.
 - Table과 고밀도 목록은 12–14px 텍스트, 얇은 divider, 명시적인 hover·selected 상태를 사용한다.
 - 숫자 열과 통계에는 `.num`을 적용한다. 긴 값은 말줄임하되 전체 값을 확인할 수단을 둔다.
 
@@ -274,7 +278,7 @@ Tailwind 기본 breakpoint를 그대로 사용한다.
 | Base | `< 640px` | 단일 column, 20px 여백, 모바일 navigation·action |
 | `sm` | `≥ 640px` | 작은 2열 form/card, 보조 navigation 노출 |
 | `md` | `≥ 768px` | 32px 여백, 데스크톱형 form·dialog, 하단 navigation 해제 |
-| `lg` | `≥ 1024px` | 공연사 268px sidebar, 업무용 table·분할 layout, auth 2열 |
+| `lg` | `≥ 1024px` | 기획사/제작사 268px sidebar, 업무용 table·분할 layout, auth 2열 |
 | `xl` | `≥ 1280px` | 관리자 작업 여백 확대, 랜딩 wide layout |
 | `2xl` | `≥ 1536px` | 필요한 경우에만 추가 폭 활용 |
 

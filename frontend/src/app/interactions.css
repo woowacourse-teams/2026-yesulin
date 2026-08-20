@@ -44,17 +44,6 @@
     animation: toast-enter var(--motion-base) var(--ease-enter) both;
   }
 
-  .partner-marquee-mask {
-    mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
-  }
-
-  .partner-marquee-track {
-    animation: partner-marquee 22s linear infinite;
-  }
-
-  .partner-marquee-track:hover {
-    animation-play-state: paused;
-  }
 }
 
 @keyframes toast-enter {
@@ -65,15 +54,6 @@
   to {
     opacity: 1;
     transform: translate(-50%, 0) scale(1);
-  }
-}
-
-@keyframes partner-marquee {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
   }
 }
 

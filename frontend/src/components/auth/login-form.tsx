@@ -2,23 +2,33 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { PrimaryButton } from "@/components/ui/controls";
+import { PrimaryButton, TextLink } from "@/components/ui/controls";
 import { useToast } from "@/components/auditions/toast";
-import { AuthNoticeDialog, type AuthNotice } from "./auth-notice-dialog";
 import { AuthInput, PasswordInput, RoleField, type AccountRole } from "./auth-fields";
 import { SocialButtons } from "./social-buttons";
+import {
+  createFrontendCredential,
+  type SocialProvider,
+  useAuthSession,
+} from "./auth-session";
 
 type LoginErrors = Partial<Record<"identifier" | "password", string>>;
+
+const PROVIDER_LABELS: Record<SocialProvider, string> = {
+  kakao: "카카오",
+  naver: "네이버",
+  google: "Google",
+};
 
 export function LoginForm({ returnTo, applicationFlow = false }: { readonly returnTo?: string; readonly applicationFlow?: boolean }) {
   const toast = useToast();
   const router = useRouter();
+  const { setSession } = useAuthSession();
   const [role, setRole] = useState<AccountRole>("applicant");
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
-  const [remember, setRemember] = useState(false);
   const [errors, setErrors] = useState<LoginErrors>({});
-  const [notice, setNotice] = useState<AuthNotice | null>(null);
+  const [pendingProvider, setPendingProvider] = useState<SocialProvider>();
 
   function changeRole(nextRole: AccountRole) {
     setRole(nextRole);
@@ -27,14 +37,11 @@ export function LoginForm({ returnTo, applicationFlow = false }: { readonly retu
     setErrors({});
   }
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  function handleProducerLogin(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const nextErrors: LoginErrors = {};
     const trimmedIdentifier = identifier.trim();
-    if (role === "applicant" && !/^\S+@\S+\.\S+$/.test(trimmedIdentifier)) {
-      nextErrors.identifier = "올바른 이메일 주소를 입력해 주세요.";
-    }
-    if (role === "producer" && !trimmedIdentifier) nextErrors.identifier = "아이디를 입력해 주세요.";
+    if (!/^\S+@\S+\.\S+$/.test(trimmedIdentifier)) nextErrors.identifier = "올바른 이메일 주소를 입력해 주세요.";
     if (!password) nextErrors.password = "비밀번호를 입력해 주세요.";
     setErrors(nextErrors);
     const firstError = Object.keys(nextErrors)[0];
@@ -42,75 +49,67 @@ export function LoginForm({ returnTo, applicationFlow = false }: { readonly retu
       requestAnimationFrame(() => document.getElementById(`login-${firstError}`)?.focus());
       return;
     }
-    if (role === "producer") {
-      toast("공연사 화면으로 이동합니다.", { type: "success" });
-      router.push("/producers/performances");
-      return;
-    }
-    toast(applicationFlow ? "인증을 완료했어요. 지원서 검토 화면으로 돌아갑니다." : "지원자 화면으로 이동합니다.", { type: "success" });
+    setSession({
+      credential: createFrontendCredential(),
+      role: "PRODUCER",
+      displayName: trimmedIdentifier,
+      producerStatus: "ACTIVE",
+    });
+    toast("기획사/제작사 계정으로 로그인했습니다.", { type: "success" });
+    router.push("/producers/performances");
+  }
+
+  async function handleSocialLogin(provider: SocialProvider) {
+    setPendingProvider(provider);
+    await new Promise((resolve) => window.setTimeout(resolve, 240));
+    setSession({
+      credential: createFrontendCredential(),
+      role: "APPLICANT",
+      displayName: `${PROVIDER_LABELS[provider]} 배우`,
+      socialProvider: provider,
+    });
+    toast(applicationFlow ? "로그인했습니다. 지원서 검토 화면으로 돌아갑니다." : "배우 계정으로 로그인했습니다.", { type: "success" });
     router.push(returnTo ?? "/applicants");
   }
 
+  const applicantLogin = applicationFlow || role === "applicant";
+
   return (
-    <>
-      <form onSubmit={handleSubmit} noValidate className="space-y-6">
-        <RoleField value={role} onChange={changeRole} purpose={applicationFlow ? "application" : "default"} />
+    <div className="space-y-7">
+      {!applicationFlow ? <RoleField value={role} onChange={changeRole} /> : null}
 
-        <div className="space-y-4">
-          <AuthInput
-            id="login-identifier"
-            label={role === "applicant" ? "이메일" : "아이디"}
-            type={role === "applicant" ? "email" : "text"}
-            autoComplete={role === "applicant" ? "email" : "username"}
-            inputMode={role === "applicant" ? "email" : undefined}
-            placeholder={role === "applicant" ? "name@example.com" : "아이디를 입력해 주세요"}
-            value={identifier}
-            error={errors.identifier}
-            onChange={(event) => setIdentifier(event.target.value)}
-          />
-          <PasswordInput
-            id="login-password"
-            label="비밀번호"
-            autoComplete="current-password"
-            placeholder="비밀번호를 입력해 주세요"
-            value={password}
-            error={errors.password}
-            onChange={(event) => setPassword(event.target.value)}
-          />
-        </div>
-
-        <div className="flex min-h-11 items-center justify-between gap-3 text-sm">
-          <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 text-muted-strong">
-            <input
-              type="checkbox"
-              checked={remember}
-              onChange={(event) => setRemember(event.target.checked)}
-              className="h-5 w-5 rounded border-border accent-brand"
+      {applicantLogin ? (
+        <SocialButtons pendingProvider={pendingProvider} onSelect={(provider) => void handleSocialLogin(provider)} />
+      ) : (
+        <form onSubmit={handleProducerLogin} noValidate className="space-y-6">
+          <div className="space-y-4">
+            <AuthInput
+              id="login-identifier"
+              label="이메일"
+              type="email"
+              autoComplete="email"
+              inputMode="email"
+              placeholder="producer@example.com"
+              value={identifier}
+              error={errors.identifier}
+              onChange={(event) => setIdentifier(event.target.value)}
             />
-            로그인 상태 유지
-          </label>
-          <button
-            type="button"
-            onClick={() => toast("계정 찾기 화면은 준비 중입니다.", { type: "info" })}
-            className="min-h-11 rounded-control px-2 font-semibold text-muted-strong transition-colors hover:bg-surface hover:text-brand"
-          >
-            계정 찾기
-          </button>
-        </div>
-
-        <PrimaryButton type="submit" className="min-h-[52px] w-full text-base">{applicationFlow && role === "applicant" ? "지원자로 로그인하고 계속" : "로그인"}</PrimaryButton>
-
-        {role === "applicant" ? (
-          <SocialButtons
-            mode="로그인"
-            onUnavailable={(provider) => setNotice({
-              title: `${provider} 로그인 준비 중`,
-              description: `${provider} OAuth 로그인 연동 로직이 필요합니다. 현재는 버튼 UI만 제공됩니다.`,
-            })}
-          />
-        ) : null}
-      </form>
-      <AuthNoticeDialog notice={notice} onClose={() => setNotice(null)} />
-    </>
+            <PasswordInput
+              id="login-password"
+              label="비밀번호"
+              autoComplete="current-password"
+              placeholder="비밀번호를 입력해 주세요"
+              value={password}
+              error={errors.password}
+              onChange={(event) => setPassword(event.target.value)}
+            />
+          </div>
+          <PrimaryButton type="submit" className="min-h-[52px] w-full text-base">기획사/제작사 로그인</PrimaryButton>
+          <TextLink href="/forgot-password" className="mx-auto flex w-fit">
+            비밀번호를 잊으셨나요?
+          </TextLink>
+        </form>
+      )}
+    </div>
   );
 }

@@ -1,21 +1,22 @@
 "use client";
 
 import type { CareerDraft } from "@/features/applications/application-form-state";
+import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
 import { careerDraftError } from "@/features/applications/application-form-state";
 import { AddButton, fieldControlClass, TextButton } from "@/components/ui/controls";
 import { usePublicApplication } from "./public-application-context";
 
 const MAX_CAREER_COUNT = 10;
 
-export function PublicApplicationCareer() {
-  const { state, actions, meta } = usePublicApplication();
-  const field = meta.steps[state.stepIndex]!.fields[0]!;
+export function PublicApplicationCareer({ field }: { field: ApplicationFieldInput }) {
+  const { state, actions } = usePublicApplication();
   const errorId = `application-${field.id}-error`;
-  const emptyError = state.stepError && !state.noCareer && state.careers.length === 0 ? state.stepError : "";
+  const fieldError = state.stepError.startsWith(field.label) ? state.stepError : "";
+  const emptyError = fieldError && !state.noCareer && state.careers.length === 0 ? fieldError : "";
   const addCareer = () => actions.updateCareers([...state.careers, { id: crypto.randomUUID(), title: "", part: "", year: "" }]);
   const patchCareer = (id: string, update: Partial<CareerDraft>) => actions.updateCareers(state.careers.map((career) => career.id === id ? { ...career, ...update } : career));
 
-  return <section id={`application-field-${field.id}`}><label className="flex cursor-pointer items-start gap-3 rounded-card border border-border bg-surface p-4"><input type="checkbox" checked={state.noCareer} onChange={(event) => actions.updateNoCareer(event.target.checked)} aria-invalid={Boolean(emptyError) || undefined} aria-describedby={emptyError ? errorId : undefined} className="mt-1 h-4 w-4 shrink-0 accent-brand" /><span><strong className="block text-sm">아직 공연 경력이 없습니다</strong><span className="mt-1 block text-sm leading-6 text-muted">경력이 없어도 지원할 수 있어요. 자기소개에서 준비 과정을 알려 주세요.</span></span></label>{state.noCareer ? <p className="mt-4 rounded-control border border-brand-line bg-brand-soft px-4 py-3 text-sm text-brand">경력 입력을 건너뛰었어요.</p> : <div className="mt-5 space-y-4">{state.careers.length === 0 ? <p className="rounded-control border border-dashed border-border bg-surface px-4 py-3 text-sm leading-6 text-muted">등록한 경력이 없어요. 경력이 있다면 아래에서 추가해 주세요.</p> : null}{state.careers.map((career, index) => <CareerCard key={career.id} career={career} index={index} fieldId={field.id} required={field.required} showErrors={Boolean(state.stepError)} onChange={(update) => patchCareer(career.id, update)} onRemove={() => actions.updateCareers(state.careers.filter((item) => item.id !== career.id))} />)}{state.careers.length < MAX_CAREER_COUNT ? <AddButton onClick={addCareer} className="min-h-12 w-full">+ 경력 추가</AddButton> : <p className="text-sm text-muted">경력은 최대 {MAX_CAREER_COUNT}개까지 추가할 수 있어요.</p>}</div>}{emptyError ? <p id={errorId} role="alert" className="mt-3 text-sm font-medium leading-6 text-fail">{emptyError}</p> : null}</section>;
+  return <section id={`application-field-${field.id}`}><label className="flex cursor-pointer items-start gap-3 rounded-card border border-border bg-surface p-4"><input type="checkbox" checked={state.noCareer} onChange={(event) => actions.updateNoCareer(event.target.checked)} aria-invalid={Boolean(emptyError) || undefined} aria-describedby={emptyError ? errorId : undefined} className="mt-1 h-4 w-4 shrink-0 accent-brand" /><span><strong className="block text-sm">아직 공연 경력이 없습니다</strong><span className="mt-1 block text-sm leading-6 text-muted">경력이 없어도 지원할 수 있어요. 자기소개에서 준비 과정을 알려 주세요.</span></span></label>{state.noCareer ? <p className="mt-4 rounded-control border border-brand-line bg-brand-soft px-4 py-3 text-sm text-brand">경력 입력을 건너뛰었어요.</p> : <div className="mt-5 space-y-4">{state.careers.length === 0 ? <p className="rounded-control border border-dashed border-border bg-surface px-4 py-3 text-sm leading-6 text-muted">등록한 경력이 없어요. 경력이 있다면 아래에서 추가해 주세요.</p> : null}{state.careers.map((career, index) => <CareerCard key={career.id} career={career} index={index} fieldId={field.id} required={field.required} showErrors={Boolean(fieldError)} onChange={(update) => patchCareer(career.id, update)} onRemove={() => actions.updateCareers(state.careers.filter((item) => item.id !== career.id))} />)}{state.careers.length < MAX_CAREER_COUNT ? <AddButton onClick={addCareer} className="min-h-12 w-full">+ 경력 추가</AddButton> : <p className="text-sm text-muted">경력은 최대 {MAX_CAREER_COUNT}개까지 추가할 수 있어요.</p>}</div>}{emptyError ? <p id={errorId} role="alert" className="mt-3 text-sm font-medium leading-6 text-fail">{emptyError}</p> : null}</section>;
 }
 
 function CareerCard({ career, index, fieldId, required, showErrors, onChange, onRemove }: { career: CareerDraft; index: number; fieldId: string; required: boolean; showErrors: boolean; onChange: (update: Partial<CareerDraft>) => void; onRemove: () => void }) {

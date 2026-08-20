@@ -8,11 +8,15 @@ import { applicantRoutes } from "@/features/applicants/routes";
 import type { ApplicantAnswer, ApplicantApplicationDetail } from "@/features/applicants/types";
 import { useAuditionQuery } from "@/features/auditions/use-audition-query";
 import type { ApplicationId } from "@/features/auditions/types";
+import { hasSubmittedValue } from "@/features/applications/materials";
 import { ScreenError, ScreenMessage } from "@/components/auditions/screen-status";
-import { PrimaryLink, SecondaryButton, TextLink } from "@/components/ui/controls";
+import { PrimaryLink, TextLink } from "@/components/ui/controls";
+import { RoleProgressList } from "./application-list";
+import { ApplicationSubmissionMaterials } from "./application-submission-materials";
 
 const sectionDetails = {
   BASIC: "기본 정보",
+  ADDITIONAL: "추가 정보",
   INTRODUCTION: "자기소개",
   MATERIALS: "사진과 영상",
   CAREER: "경력",
@@ -30,11 +34,12 @@ export function ApplicantApplicationDetailView({ applicationId }: { readonly app
 function ApplicationReadView({ detail }: { readonly detail: ApplicantApplicationDetail }) {
   const availability = applicationAvailability(detail.editable);
   const fieldSections = new Map(detail.applicationFields.map((field) => [field.id, field.section]));
+  const visibleAnswers = detail.answers.filter((answer) => hasSubmittedValue(answer.value) || Boolean(answer.previewUrls?.length));
   const sections = (Object.keys(sectionDetails) as Array<keyof typeof sectionDetails>).map((section) => ({
     section,
-    answers: detail.answers.filter((answer) => fieldSections.get(answer.key) === section),
-  })).filter((group) => group.answers.length);
-  const unknown = detail.answers.filter((answer) => !fieldSections.has(answer.key));
+    answers: visibleAnswers.filter((answer) => fieldSections.get(answer.key) === section),
+  })).filter((group) => group.section !== "MATERIALS" && group.answers.length);
+  const unknown = visibleAnswers.filter((answer) => !fieldSections.has(answer.key));
 
   return <Container>
     <TextLink href={applicantRoutes.applications} className="px-2">← 내 지원서</TextLink>
@@ -44,7 +49,9 @@ function ApplicationReadView({ detail }: { readonly detail: ApplicantApplication
       <span className="rounded-full border border-border bg-surface px-3 py-2 text-sm font-semibold text-muted-strong">읽기 전용</span>
     </header>
 
-    <section className="mt-5 rounded-card border border-border bg-card p-5 md:p-6"><div className="flex flex-wrap items-start gap-4"><div className="min-w-0 flex-1"><p className="font-semibold">제출 당시 내용이 그대로 보존됩니다.</p><p className="mt-2 text-sm leading-6 text-muted">제출 후에는 일반 수정할 수 없으며, 프로필을 변경하거나 사진 보관함에서 삭제해도 이 지원서는 바뀌지 않습니다.</p></div><SecondaryButton onClick={() => window.print()}>인쇄</SecondaryButton></div></section>
+    <section className="mt-5 rounded-card border border-border bg-card p-5 md:p-6"><h2 className="font-bold">배역별 전형 진행</h2><p className="mt-2 text-sm leading-6 text-muted">전형 결과는 각 배역의 해당 차수가 마감된 뒤에 표시됩니다.</p><RoleProgressList roles={detail.roleProgress} /></section>
+    <section className="mt-5 rounded-card border border-border bg-card p-5 md:p-6"><p className="font-semibold">제출 당시 내용이 그대로 보존됩니다.</p><p className="mt-2 text-sm leading-6 text-muted">제출 후에는 일반 수정할 수 없으며, 프로필을 변경하거나 사진 보관함에서 삭제해도 이 지원서는 바뀌지 않습니다.</p></section>
+    <ApplicationSubmissionMaterials fields={detail.applicationFields} answers={detail.answers} />
 
     <div className="mt-8 space-y-5">{sections.map((group) => <AnswerSection key={group.section} title={sectionDetails[group.section]} answers={group.answers} />)}{unknown.length ? <AnswerSection title="제출 당시 항목" answers={unknown} notice="현재 공고 양식에서는 사라졌지만 제출 당시 답변은 스냅샷으로 보존돼요." /> : null}</div>
     <aside className="mt-8 rounded-card border border-brand-line bg-brand-soft p-5"><h2 className="font-bold text-brand">프로필과 제출 내용은 따로 보관돼요</h2><p className="mt-2 text-sm leading-6 text-muted-strong">지금 프로필을 수정해도 이 지원서에는 반영되지 않습니다.</p><Link href={applicantRoutes.profile} className="mt-4 inline-flex min-h-11 items-center rounded-control bg-card px-4 text-sm font-semibold text-brand">프로필 관리</Link></aside>

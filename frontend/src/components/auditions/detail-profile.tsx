@@ -1,6 +1,3 @@
-"use client";
-
-import { useState } from "react";
 import { ROUND_LABELS } from "@/features/auditions/labels";
 import type { Applicant } from "@/features/auditions/types";
 import { ROUND_NUMBERS } from "@/features/auditions/types";
@@ -26,8 +23,12 @@ export function DetailProfile({ applicant }: { applicant: Applicant }) {
           <dd className="break-all">{applicant.email}</dd>
           <dt className="text-muted">학교</dt>
           <dd>{applicant.school}</dd>
-          <dt className="text-muted">접수</dt>
-          <dd className="num">{applicant.submittedAt}</dd>
+          <dt className="text-muted">접수일</dt>
+          <dd className="num">
+            <time dateTime={applicant.submittedAt} title={applicant.submittedAt}>
+              {formatSubmittedAt(applicant.submittedAt)}
+            </time>
+          </dd>
         </dl>
       </Section>
 
@@ -35,9 +36,7 @@ export function DetailProfile({ applicant }: { applicant: Applicant }) {
         <Essay text={applicant.coverLetter} />
       </Section>
 
-      <Section title="지원 동기">
-        <Essay text={applicant.motivation} />
-      </Section>
+      {applicant.motivation.trim() ? <Section title="추가 질문"><div className="rounded-lg border border-border bg-surface px-4 py-3"><p className="text-xs font-semibold leading-5 text-muted">이 작품에 지원한 동기를 적어 주세요.</p><p className="mt-2 whitespace-pre-wrap text-dense leading-[1.75] text-muted-strong">{applicant.motivation}</p></div></Section> : null}
 
       <Section title={`경력 ${applicant.career.length}건`}>
         <ul className="text-dense">
@@ -83,13 +82,28 @@ export function DetailProfile({ applicant }: { applicant: Applicant }) {
   );
 }
 
-function Fact({ label, value, unit }: { label: string; value: number; unit: string }) {
+function formatSubmittedAt(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("ko-KR", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    weekday: "short",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: "Asia/Seoul",
+  }).format(date);
+}
+
+function Fact({ label, value, unit }: { label: string; value: number | null; unit: string }) {
   return (
     <div className="rounded-lg border border-border bg-card px-3 py-2.5">
       <div className="text-xs text-muted">{label}</div>
       <div className="num mt-0.5 text-[17px] font-bold tracking-[-0.02em]">
-        {value}
-        <small className="ml-0.5 text-xs font-medium text-muted">{unit}</small>
+        {value ?? "미수집"}
+        {value === null ? null : <small className="ml-0.5 text-xs font-medium text-muted">{unit}</small>}
       </div>
     </div>
   );
@@ -104,28 +118,10 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-/** 긴 글은 접어 두고 필요할 때만 펼친다. 목록 레이아웃이 글 길이에 휘둘리지 않게 한다. */
 function Essay({ text }: { text: string }) {
-  const [expanded, setExpanded] = useState(false);
-
   return (
-    <>
-      <div
-        className={`relative overflow-hidden rounded-lg border border-border bg-surface px-4 py-3 text-dense leading-[1.75] text-muted-strong transition-[max-height] duration-200 ${
-          expanded
-            ? "max-h-[1000px]"
-            : "max-h-24 after:absolute after:inset-x-0 after:bottom-0 after:h-[34px] after:bg-gradient-to-b after:from-transparent after:to-surface"
-        }`}
-      >
-        {text}
-      </div>
-      <button
-        type="button"
-        onClick={() => setExpanded((open) => !open)}
-        className="mt-2 border-b border-brand-line text-xs font-semibold text-brand hover:border-brand"
-      >
-        {expanded ? "접기" : "전체 보기"}
-      </button>
-    </>
+    <div className="whitespace-pre-wrap rounded-lg border border-border bg-surface px-4 py-3 text-dense leading-[1.75] text-muted-strong">
+      {text}
+    </div>
   );
 }

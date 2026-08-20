@@ -3,28 +3,34 @@ config:
   layout: elk
 ---
 flowchart TB
-    START(["공연사 시작"]) --> SESSION["세션 확인<br>GET /api/v1/sessions/current"]
-    SESSION -- 세션 없음 --> LOGIN["로그인<br>POST /api/v1/sessions"]
+    START(["기획사/제작사 시작"]) --> SESSION["세션 확인<br>GET /api/v1/sessions/current"]
+    SESSION -- 세션 없음 --> LOGIN["이메일·비밀번호 로그인<br>POST /api/v1/sessions"]
+    LOGIN --> PASSWORD_RESET["비밀번호 재설정 화면<br>이메일 인증 → 새 비밀번호 확인 입력<br>현재 프론트 프로토타입"]
+    PASSWORD_RESET --> LOGIN
     LOGIN --> SESSION
-    SESSION -- 공연사 미가입 --> SIGNUP["공연사 가입<br>POST /api/v1/producers"]
-    SIGNUP --> VERIFY{"운영자 인증 완료?"}
-    SESSION -- PENDING / REJECTED --> VERIFY
-    VERIFY -- 아니오 --> WAIT["인증 상태 안내"]
-    VERIFY -- 예 --> HOME["관리자 홈"]
-    SESSION -- VERIFIED --> HOME
-    HOME --> NAV["왼쪽 사이드바 탐색 트리<br>GET /api/v1/producers/me/navigation-tree"] & PROFILE["공연사 정보<br>GET·PATCH /api/v1/producers/me"] & PERF["공연 목록<br>GET /api/v1/performances"]
-    PERF --> NEW_PERF["포스터 업로드 URL 발급<br>POST /api/v1/performance-posters/upload-requests"] & EDIT_PERF["기본 정보·포스터·배역 수정<br>PATCH /api/v1/performances/{performanceId}/basic-information<br>PATCH /api/v1/performances/{performanceId}/poster<br>POST /api/v1/performances/{performanceId}/roles<br>PATCH /api/v1/performances/{performanceId}/roles/{roleId}<br>DELETE /api/v1/performances/{performanceId}/roles/{roleId}"] & POSTINGS["공연 ID와 기본 정보로 공고 DRAFT 생성<br>POST /api/v1/auditions"]
-    NEW_PERF --> CREATE_PERF["공연·배역 템플릿 등록<br>POST /api/v1/performances"]
-    POSTINGS --> CREATE_POSTING["기본 정보 임시 저장<br>PUT /api/v1/auditions/{auditionId}/basic-information"] & POSTING_DETAIL["공고 DRAFT 조회<br>GET /api/v1/auditions/{auditionId}"]
-    POSTING_DETAIL --> EDIT_POSTING["후속 단계<br>배역·일정·지원 폼·게시"] & ROLES["게시 후 배역별 심사"]
-    ROLES --> SOLE{"배역 하나?"}
-    SOLE -- 예 --> BOARD["배역별 심사 보드 첫 페이지<br>복수 배역 지원서는 각 배역에 표시<br>GET /api/v1/roles/{roleId}/screening-rounds/{round}/applications"]
-    SOLE -- 아니오 --> CHOOSE_ROLE["심사할 배역 선택"]
-    CHOOSE_ROLE --> BOARD
+    SESSION -- 기획사/제작사 미가입 --> SIGNUP["기획사/제작사명·휴대폰·이메일·비밀번호 가입<br>POST /api/v1/producers"]
+    SIGNUP --> PENDING["PENDING 계정 생성<br>휴대폰·이메일 가입 안내"]
+    SESSION -- PENDING --> PENDING
+    PENDING --> PROFILE["기획사/제작사 정보 설정 가능<br>GET·PATCH /api/v1/producers/me"]
+    PENDING --> BLOCKED["공연 조회·관리 차단<br>기획사·제작사 인증 안내"]
+    BLOCKED --> CONTACT["카카오톡 채널 문의<br>운영진 수동 확인"]
+    CONTACT --> ACTIVE{"ACTIVE 전환?"}
+    ACTIVE -- 아니오 --> PENDING
+    ACTIVE -- 예 --> HOME["관리자 홈"]
+    SESSION -- ACTIVE --> HOME
+    HOME --> NAV["왼쪽 사이드바 초기 접힘 탐색 트리<br>GET /api/v1/producers/me/navigation-tree"] & PROFILE & PERF["공연 카드 목록<br>GET /api/v1/performances"]
+    PERF --> NEW_PERF["포스터 업로드 URL 발급 후 공연 등록<br>POST /api/v1/performance-posters/upload-requests<br>POST /api/v1/performances"] & EDIT_PERF["공연 기본 정보·포스터·배역 수정<br>PATCH /api/v1/performances/{performanceId}/basic-information<br>PATCH /api/v1/performances/{performanceId}/poster"] & POSTINGS["공연 카드 선택 → 공고 관리<br>GET /api/v1/performances/{performanceId}/auditions"]
+    NEW_PERF --> CREATE_PERF["공연 등록"]
+    POSTINGS --> CREATE_POSTING["공연 ID와 공고명·공연 기간으로 DRAFT 생성<br>POST /api/v1/auditions"] & POSTING_DETAIL["공고 DRAFT 상세<br>GET /api/v1/auditions/{auditionId}"]
+    POSTING_DETAIL --> EDIT_POSTING["공고명·공연 기간 기본 정보 저장<br>PUT /api/v1/auditions/{auditionId}/basic-information<br>배역·일정·지원 폼·게시 API는 후속 구현"] & ROLES["게시 후 배역별 지원 현황"]
+    ROLES --> CHOOSE_ROLE["심사할 배역 선택<br>배역이 하나여도 동일하게 표시"]
+    CHOOSE_ROLE --> BOARD["배역별 심사 보드 첫 페이지<br>복수 배역 지원서는 각 배역에 표시<br>GET /api/v1/roles/{roleId}/screening-rounds/{round}/applications"]
+    BOARD --> RESULT_FILTER["검토 완료 → 결과 조건 선택<br>합격·불합격·불참·기타"]
+    RESULT_FILTER --> GROUP_ACTION["현재 결과 목록 일괄 작업<br>전체 인쇄 또는 연락처 모아보기"]
     BOARD --> MORE{"다음 페이지 필요?"}
     MORE -- 예: cursor --> BOARD
-    MORE -- 아니오 --> SELECT["지원자 선택"]
-    SELECT --> APP_DETAIL["민감 상세 조회<br>GET /api/v1/applications/{applicationId}?round={round}"]
+    MORE -- 아니오 --> SELECT["배우 선택"]
+    SELECT --> APP_DETAIL["지원자 심사 상세 페이지로 이동<br>GET /api/v1/roles/{roleId}/screening-rounds/{round}/applications/{applicationId}"]
     APP_DETAIL --> REVIEW["심사 저장 + expectedVersion<br>PATCH /api/v1/roles/{roleId}/screening-rounds/{round}/reviews"]
     REVIEW -- 409 VERSION_CONFLICT --> BOARD
     REVIEW -- 성공: delta·counts·version --> DONE{"검토 대기 0명?"}
@@ -35,37 +41,13 @@ flowchart TB
     LAST -- 아니오 --> BOARD
     LAST -- 예 --> FINISH(["전형 종료"])
 
-    START:::authNode
-    SESSION:::authNode
-    LOGIN:::authNode
-    SIGNUP:::authNode
-    VERIFY:::authNode
-    WAIT:::authNode
-    HOME:::authNode
-    NAV:::perfNode
-    PROFILE:::perfNode
-    PERF:::perfNode
-    NEW_PERF:::perfNode
-    EDIT_PERF:::perfNode
-    POSTINGS:::postingNode
-    CREATE_PERF:::perfNode
-    CREATE_POSTING:::postingNode
-    POSTING_DETAIL:::postingNode
-    EDIT_POSTING:::postingNode
-    ROLES:::postingNode
-    SOLE:::decisionNode
-    BOARD:::screeningNode
-    CHOOSE_ROLE:::screeningNode
-    MORE:::decisionNode
-    SELECT:::screeningNode
-    APP_DETAIL:::screeningNode
-    REVIEW:::screeningNode
-    DONE:::decisionNode
-    CLOSE:::screeningNode
-    LAST:::decisionNode
-    FINISH:::authNode
     classDef authNode stroke:#818cf8,fill:#eef2ff
     classDef perfNode stroke:#2dd4bf,fill:#f0fdfa
     classDef postingNode stroke:#a78bfa,fill:#f5f3ff
     classDef screeningNode stroke:#fb923c,fill:#fff7ed
     classDef decisionNode stroke:#f87171,fill:#fef2f2
+    class START,SESSION,LOGIN,PASSWORD_RESET,SIGNUP,PENDING,PROFILE,BLOCKED,CONTACT,HOME,FINISH authNode
+    class ACTIVE,MORE,DONE,LAST decisionNode
+    class NAV,PERF,NEW_PERF,EDIT_PERF,CREATE_PERF perfNode
+    class POSTINGS,CREATE_POSTING,POSTING_DETAIL,EDIT_POSTING,ROLES postingNode
+    class BOARD,CHOOSE_ROLE,RESULT_FILTER,GROUP_ACTION,SELECT,APP_DETAIL,REVIEW,CLOSE screeningNode

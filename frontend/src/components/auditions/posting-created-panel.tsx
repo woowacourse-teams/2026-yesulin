@@ -31,7 +31,7 @@ export function PostingCreatedPanel({
       <DialogHeader
         id={POSTING_CREATED_TITLE_ID}
         title="공고가 생성되었습니다"
-        subtitle="외부 공고에 지원서 링크를 붙여 넣어 지원자를 예술in으로 연결하세요."
+        subtitle="외부 공고에 지원서 링크를 붙여 넣어 배우를 예술in으로 연결하세요."
       />
       <div className="min-h-0 flex-1 overflow-y-auto px-5 py-7 md:px-6 md:py-8">
         <div className="mx-auto max-w-[620px]">
@@ -72,7 +72,7 @@ export function PostingCreatedPanel({
           </div>
 
           <div className="mt-5 rounded-control border border-border bg-surface px-4 py-3 text-sm leading-relaxed text-muted-strong">
-            지원자는 외부 공고에서 이 링크를 눌러 예술in 지원서 작성 화면으로 이동하게 됩니다.
+            배우는 외부 공고에서 이 링크를 눌러 예술in 지원서 작성 화면으로 이동하게 됩니다.
           </div>
         </div>
       </div>

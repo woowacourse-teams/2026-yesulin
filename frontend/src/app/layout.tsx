@@ -1,13 +1,14 @@
 import type { Metadata, Viewport } from "next";
+import { AuthSessionProvider } from "@/components/auth/auth-session";
 import "./globals.css";
 import "./interactions.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "예술인",
-    template: "%s | 예술인",
+    default: "예술in",
+    template: "%s | 예술in",
   },
-  description: "공연 제작사와 지원자를 연결하는 공연 지원 관리 서비스",
+  description: "기획사/제작사와 배우를 연결하는 공연 지원 관리 서비스",
 };
 
 export const viewport: Viewport = {
@@ -24,7 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="min-h-full" suppressHydrationWarning>
-        {children}
+        <AuthSessionProvider>{children}</AuthSessionProvider>
       </body>
     </html>
   );

@@ -4,7 +4,7 @@ import { ToastProvider } from "@/components/auditions/toast";
 import { MswProvider } from "@/components/mocks/msw-provider";
 
 export const metadata: Metadata = {
-  title: { default: "지원자 홈", template: "%s | 예술인" },
+  title: { default: "배우 홈", template: "%s | 예술in" },
   robots: { index: false, follow: false },
 };
 

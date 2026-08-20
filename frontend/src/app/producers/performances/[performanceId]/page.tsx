@@ -3,7 +3,7 @@ import { PostingPicker } from "@/components/auditions/posting-picker";
 import { performanceId } from "@/features/auditions/types";
 
 export const metadata: Metadata = {
-  title: "공고 선택",
+  title: "공고 관리",
 };
 
 export default async function PostingPickerPage({

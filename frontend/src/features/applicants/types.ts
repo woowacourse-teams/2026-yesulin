@@ -1,5 +1,5 @@
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
-import type { ApplicationId } from "@/features/auditions/types";
+import type { ApplicationId, RoundNumber } from "@/features/auditions/types";
 
 export type CareerEntry = {
   readonly year: number;
@@ -29,8 +29,23 @@ export type ApplicantAnswer = {
   readonly updatedAt?: string;
 };
 
+export type ApplicantProfilePhoto = {
+  readonly id: string;
+  readonly name: string;
+  readonly url: string;
+  readonly representative: boolean;
+};
+
+export type ApplicantProfileVideo = {
+  readonly id: string;
+  readonly url: string;
+  readonly youtubeId: string;
+};
+
 export type ApplicantProfileResponse = {
   readonly answers: readonly ApplicantAnswer[];
+  readonly photoLibrary: readonly ApplicantProfilePhoto[];
+  readonly videoLibrary: readonly ApplicantProfileVideo[];
   readonly completeness: {
     readonly filled: number;
     readonly standardTotal: number;
@@ -44,6 +59,8 @@ export type UpdateProfileRequest = {
     readonly label?: string;
   }[];
   readonly removeKeys?: readonly string[];
+  readonly photoLibrary?: readonly ApplicantProfilePhoto[];
+  readonly videoLibrary?: readonly ApplicantProfileVideo[];
 };
 
 export type ApplicantApplicationSummary = {
@@ -58,6 +75,26 @@ export type ApplicantApplicationSummary = {
   readonly submittedAt: string;
   readonly editable: boolean;
   readonly recruitmentEnd: string;
+  readonly roleProgress: readonly ApplicantRoleProgress[];
+};
+
+export type ApplicantRoleProgress = {
+  readonly roleId: string;
+  readonly roleName: string;
+  readonly state: "RECEIVED" | "IN_REVIEW" | "FINAL_PASS" | "NOT_SELECTED";
+  readonly round: RoundNumber | null;
+  readonly roundName: string | null;
+};
+
+export type ApplicantApplicationDraftSummary = {
+  readonly postingId: string;
+  readonly performanceTitle: string;
+  readonly postingTitle: string;
+  readonly posterUrl: string;
+  readonly companyName: string;
+  readonly roleNames: readonly string[];
+  readonly updatedAt: number;
+  readonly postingStatus: "OPEN" | "UPCOMING" | "CLOSED";
 };
 
 export type ApplicantApplicationListResponse = {

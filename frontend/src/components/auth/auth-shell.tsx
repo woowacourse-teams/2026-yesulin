@@ -3,7 +3,7 @@ import Link from "next/link";
 
 type AuthShellProps = {
   readonly title: React.ReactNode;
-  readonly description: string;
+  readonly description: React.ReactNode;
   readonly children: React.ReactNode;
   readonly footer: React.ReactNode;
   readonly intent?: "default" | "application";
@@ -11,14 +11,14 @@ type AuthShellProps = {
 
 function BrandLogo({ inverse = false }: { readonly inverse?: boolean }) {
   return (
-    <Link href="/" aria-label="예술in 홈" className="inline-flex rounded-control focus-visible:outline-offset-4">
+    <Link href="/" aria-label="예술in 홈" className="relative inline-flex h-14 w-28 rounded-control focus-visible:outline-offset-4">
       <Image
-        src="/images/yesulin-logo-transparent.png"
+        src="/images/yesulin-logo.png"
         alt="예술in"
-        width={142}
-        height={142}
+        fill
+        sizes="112px"
         priority
-        className={`h-auto w-[112px] object-contain ${inverse ? "brightness-0 invert" : ""}`}
+        className={`object-contain ${inverse ? "brightness-0 invert" : ""}`}
       />
     </Link>
   );
@@ -28,7 +28,7 @@ export function AuthShell({ title, description, children, footer, intent = "defa
   const applicationIntent = intent === "application";
   return (
     <main className="min-h-screen bg-surface lg:grid lg:grid-cols-[minmax(360px,0.82fr)_minmax(560px,1.18fr)]">
-      <section className="relative hidden min-h-screen overflow-hidden bg-sidebar px-12 py-10 text-white lg:flex lg:flex-col xl:px-16 xl:py-12">
+      <section className="relative hidden overflow-hidden bg-sidebar px-12 py-10 text-white lg:sticky lg:top-0 lg:flex lg:h-screen lg:self-start lg:flex-col xl:px-16 xl:py-12">
         <div aria-hidden="true" className="absolute -left-32 top-1/4 h-80 w-80 rounded-full bg-brand/25 blur-3xl" />
         <div aria-hidden="true" className="absolute -right-40 bottom-[-80px] h-96 w-96 rounded-full bg-brand/15 blur-3xl" />
 
@@ -44,7 +44,7 @@ export function AuthShell({ title, description, children, footer, intent = "defa
             {applicationIntent ? <>작성하던 지원서를<br />인증 후 제출하세요.</> : <>지원부터 캐스팅까지,<br />한 흐름으로 연결하세요.</>}
           </h2>
           <p className="mt-6 max-w-[420px] text-lg leading-8 text-sidebar-text/80">
-            {applicationIntent ? "현재 기기의 브라우저에 저장된 Draft를 불러와 최종 검토 화면에서 이어서 제출합니다." : "지원자는 기회를 놓치지 않고, 공연사는 좋은 지원자를 더 빠르게 만날 수 있습니다."}
+            {applicationIntent ? "로그인해도 지금까지 작성한 지원 내용은 삭제되지 않습니다. 인증 후 바로 제출을 이어가세요." : "배우는 기회를 놓치지 않고, 기획사/제작사는 좋은 배우를 더 빠르게 만날 수 있습니다."}
           </p>
         </div>
 
@@ -53,7 +53,7 @@ export function AuthShell({ title, description, children, footer, intent = "defa
 
       <section className="relative flex min-h-screen items-center justify-center overflow-hidden px-5 py-8 sm:px-8 lg:px-12">
         <div aria-hidden="true" className="absolute right-[-120px] top-[-120px] h-72 w-72 rounded-full bg-brand-soft blur-3xl" />
-        <div className="relative z-1 w-full max-w-[520px]">
+        <div className="relative z-1 w-full max-w-[560px]">
           <div className="mb-6 flex justify-center lg:hidden">
             <BrandLogo />
           </div>

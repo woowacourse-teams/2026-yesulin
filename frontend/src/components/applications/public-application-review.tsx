@@ -7,12 +7,13 @@ import type { ApplicationFieldInput } from "@/features/auditions/creation-types"
 import type { ApplicationFormStep } from "@/features/applications/application-form";
 import { youtubeVideoId } from "@/features/applications/application-form-state";
 import type { ApplicationPhoto, CareerDraft, SubmissionState } from "@/features/applications/application-form-state";
+import { photoSlotLabels } from "@/features/applications/materials";
 import { buildApplicationAuthReturnTo } from "@/features/auth/return-to";
 import { PrimaryButton, TextButton } from "@/components/ui/controls";
 import { usePublicApplication } from "./public-application-context";
 import { PublicApplicationSaveBadge, PublicApplicationSaveNotice } from "./public-application-save-status";
 
-const REVIEW_SECTIONS = ["BASIC", "INTRODUCTION", "MATERIALS", "CAREER", "CUSTOM"] as const;
+const REVIEW_SECTIONS = ["BASIC", "ADDITIONAL", "INTRODUCTION", "MATERIALS", "CAREER", "CUSTOM"] as const;
 
 export function PublicApplicationReview() {
   const { state, actions, meta } = usePublicApplication();
@@ -47,7 +48,7 @@ function ReviewFlow({ issues, consent, authenticated }: { issues: number; consen
   const items = [
     { label: "내용 확인", detail: issues ? `오류 ${issues}개` : "확인 완료", tone: issues ? "text-fail" : "text-pass" },
     { label: "필수 동의", detail: consent ? "동의 완료" : "확인 필요", tone: consent ? "text-pass" : "text-muted" },
-    { label: "지원자 인증", detail: authenticated ? "인증 완료" : "인증 필요", tone: authenticated ? "text-pass" : "text-muted" },
+    { label: "배우 인증", detail: authenticated ? "인증 완료" : "인증 필요", tone: authenticated ? "text-pass" : "text-muted" },
     { label: "최종 제출", detail: submissionDetail, tone: issues ? "text-warn" : authenticated ? "text-brand" : "text-muted" },
   ];
   return <nav aria-label="지원서 제출 순서" className="mt-7"><ol className="grid grid-cols-2 rounded-card border border-border bg-card md:grid-cols-4">{items.map((item, index) => <li key={item.label} className="flex min-h-20 items-center gap-3 border-b border-border-soft px-4 odd:border-r [&:nth-child(n+3)]:border-b-0 md:border-b-0 md:border-r md:last:border-r-0"><span aria-hidden="true" className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-surface text-sm font-bold text-muted-strong">{index + 1}</span><span><strong className="block text-sm">{item.label}</strong><span className={`mt-0.5 block text-xs font-semibold ${item.tone}`}>{item.detail}</span></span></li>)}</ol></nav>;
@@ -70,9 +71,10 @@ function StepReview({ section, disabled }: { section: ApplicationFormStep["secti
   const step = meta.steps.find((item) => item.section === section);
   if (!step) return null;
   const edit = () => actions.editSection(section);
-  if (section === "MATERIALS") return <ReviewSection title={step.title} disabled={disabled} onEdit={edit}><MediaSummary photos={state.photos} videoUrl={state.videoUrl} /></ReviewSection>;
-  if (section === "CAREER") return <ReviewSection title={step.title} disabled={disabled} onEdit={edit}><CareerSummary noCareer={state.noCareer} careers={state.careers} /></ReviewSection>;
-  return <ReviewSection title={step.title} disabled={disabled} onEdit={edit}><ReviewFields fields={step.fields} values={state.values} /></ReviewSection>;
+  if (section === "MATERIALS") return <ReviewSection title={step.title} disabled={disabled} onEdit={edit}><MediaSummary fields={step.fields} values={state.values} photos={state.photos} videoUrl={state.videoUrl} /></ReviewSection>;
+  const careerField = step.fields.find((field) => field.id === "CAREER");
+  const regularFields = step.fields.filter((field) => field.id !== "CAREER");
+  return <ReviewSection title={step.title} disabled={disabled} onEdit={edit}>{regularFields.length ? <ReviewFields fields={regularFields} values={state.values} /> : null}{careerField ? <div className={regularFields.length ? "mt-5 border-t border-border-soft pt-5" : ""}><h4 className="mb-2 text-sm text-muted">{careerField.label}</h4><CareerSummary noCareer={state.noCareer} careers={state.careers} /></div> : null}</ReviewSection>;
 }
 
 function ReviewSection({ title, disabled = false, onEdit, children }: { title: string; disabled?: boolean; onEdit?: () => void; children: React.ReactNode }) {
@@ -86,7 +88,7 @@ function ProfileSave({ checked, disabled, onChange }: { checked: boolean; disabl
 function Consent({ consent, disabled, error, onChange }: { consent: boolean; disabled: boolean; error: string; onChange: (consent: boolean) => void }) {
   const helpId = "application-consent-help";
   const errorId = "application-consent-error";
-  return <section aria-labelledby="consent-title" className="mt-9"><p className="text-sm font-semibold text-brand">2. 필수 동의</p><h2 id="consent-title" className="mt-1 text-xl font-bold">제출 전 개인정보 안내를 확인해 주세요</h2><label htmlFor="application-consent" className={`mt-4 flex items-start gap-3 border-y border-border bg-card py-5 md:px-5 ${disabled ? "cursor-not-allowed text-muted" : "cursor-pointer"}`}><input id="application-consent" type="checkbox" checked={consent} disabled={disabled} aria-invalid={Boolean(error) || undefined} aria-describedby={[helpId, error ? errorId : ""].filter(Boolean).join(" ")} onChange={(event) => onChange(event.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-brand" /><span><strong className="block text-sm"><span className="mr-1 text-fail">[필수]</span>개인정보 안내를 확인하고 제출에 동의합니다</strong><span id={helpId} className="mt-1 block text-sm leading-6 text-muted">제출하면 공연사가 지원 정보를 열람할 수 있습니다. 운영 전 수집 목적, 보관 기간, 파기 기준과 동의 문안은 별도 정책 확정이 필요합니다.</span></span></label>{error ? <p id={errorId} role="alert" className="mt-3 text-sm font-medium text-fail">{error}</p> : null}</section>;
+  return <section aria-labelledby="consent-title" className="mt-9"><p className="text-sm font-semibold text-brand">2. 필수 동의</p><h2 id="consent-title" className="mt-1 text-xl font-bold">제출 전 개인정보 안내를 확인해 주세요</h2><label htmlFor="application-consent" className={`mt-4 flex items-start gap-3 border-y border-border bg-card py-5 md:px-5 ${disabled ? "cursor-not-allowed text-muted" : "cursor-pointer"}`}><input id="application-consent" type="checkbox" checked={consent} disabled={disabled} aria-invalid={Boolean(error) || undefined} aria-describedby={[helpId, error ? errorId : ""].filter(Boolean).join(" ")} onChange={(event) => onChange(event.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-brand" /><span><strong className="block text-sm"><span className="mr-1 text-fail">[필수]</span>개인정보 안내를 확인하고 제출에 동의합니다</strong><span id={helpId} className="mt-1 block text-sm leading-6 text-muted">제출하면 기획사/제작사가 지원 정보를 열람할 수 있습니다. 운영 전 수집 목적, 보관 기간, 파기 기준과 동의 문안은 별도 정책 확정이 필요합니다.</span></span></label>{error ? <p id={errorId} role="alert" className="mt-3 text-sm font-medium text-fail">{error}</p> : null}</section>;
 }
 
 function AuthGate() {
@@ -94,7 +96,7 @@ function AuthGate() {
   const returnTo = encodeURIComponent(buildApplicationAuthReturnTo(meta.postingId, meta.roleIds));
   const blocked = state.hasUnsavedChanges;
   const blockNavigation = (event: React.MouseEvent<HTMLAnchorElement>) => { if (blocked) event.preventDefault(); };
-  return <section aria-labelledby="auth-gate-title" className="mt-9 rounded-card border border-brand-line bg-brand-soft p-5 md:p-6"><p className="text-sm font-semibold text-brand">3. 지원자 인증</p><h2 id="auth-gate-title" className="mt-1 text-xl font-bold">인증하고 제출을 이어가세요</h2><p className="mt-2 text-sm leading-6 text-muted-strong">저장 완료된 Draft는 현재 기기의 이 브라우저에만 있습니다. 인증 후 같은 공고의 최종 검토 화면으로 돌아옵니다.</p>{blocked ? <p role="status" className="mt-3 text-sm font-medium text-warn">저장이 끝나거나 다시 시도한 뒤 이동해 주세요.</p> : null}<div id="application-auth-actions" tabIndex={-1} className="mt-5"><Link href={`/login?returnTo=${returnTo}`} aria-disabled={blocked} onClick={blockNavigation} className={`inline-flex min-h-12 w-full items-center justify-center rounded-control border px-5 text-base font-semibold ${blocked ? "cursor-not-allowed border-border bg-border text-muted" : "border-brand bg-brand text-white shadow-[var(--shadow-1)] hover:bg-brand-strong"}`}>지원자로 로그인하고 제출 계속</Link><p className="mt-3 text-center text-sm text-muted-strong">지원자 계정이 없나요? <Link href={`/signup?returnTo=${returnTo}`} aria-disabled={blocked} onClick={blockNavigation} className={`font-semibold ${blocked ? "cursor-not-allowed text-muted" : "text-brand hover:underline"}`}>회원가입</Link></p></div></section>;
+  return <section aria-labelledby="auth-gate-title" className="mt-9 rounded-card border border-brand-line bg-brand-soft p-5 md:p-6"><p className="text-sm font-semibold text-brand">3. 배우 인증</p><h2 id="auth-gate-title" className="mt-1 text-xl font-bold">소셜 로그인하고 제출을 이어가세요</h2><p className="mt-2 text-sm font-medium leading-6 text-muted-strong">로그인해도 지금까지 작성한 지원 내용은 삭제되지 않습니다.</p>{blocked ? <p role="status" className="mt-3 text-sm font-medium text-warn">작성 내용 저장이 끝난 뒤 이동할 수 있어요.</p> : null}<div id="application-auth-actions" tabIndex={-1} className="mt-5"><Link href={`/login?returnTo=${returnTo}`} aria-disabled={blocked} onClick={blockNavigation} className={`inline-flex min-h-12 w-full items-center justify-center rounded-control border px-5 text-base font-semibold ${blocked ? "cursor-not-allowed border-border bg-border text-muted" : "border-brand bg-brand text-white shadow-[var(--shadow-1)] hover:bg-brand-strong"}`}>소셜 로그인하고 제출 계속</Link><p className="mt-3 text-center text-sm text-muted-strong">처음 이용해도 로그인과 함께 배우 계정이 자동으로 만들어집니다.</p></div></section>;
 }
 
 function SubmissionArea({ submitting, consent, issueCount, state, error, onSubmit }: { submitting: boolean; consent: boolean; issueCount: number; state: SubmissionState; error: string; onSubmit: (result: "SUCCESS" | "ERROR") => void }) {
@@ -108,5 +110,22 @@ function SubmissionArea({ submitting, consent, issueCount, state, error, onSubmi
 
 function ReviewFields({ fields, values }: { fields: readonly ApplicationFieldInput[]; values: Readonly<Record<string, string>> }) { return <dl className="grid gap-x-8 gap-y-3 text-sm md:grid-cols-2">{fields.filter((field) => field.enabled).map((field) => <div key={field.id} className="grid grid-cols-[84px_minmax(0,1fr)] gap-3"><dt className="text-muted">{field.label}</dt><dd className="line-clamp-3 break-words whitespace-pre-wrap font-medium">{reviewValue(field, values) || <span className="font-normal text-muted">미입력</span>}</dd></div>)}</dl>; }
 function reviewValue(field: ApplicationFieldInput, values: Readonly<Record<string, string>>) { if (field.inputType === "COMPOSITE") return field.config.fields?.map((part) => `${values[`${field.id}.${part.key}`] || "-"}${part.unit ?? ""}`).join(" · "); return values[field.id]; }
-function MediaSummary({ photos, videoUrl }: { photos: readonly ApplicationPhoto[]; videoUrl: string }) { const attached = photos.filter((photo) => photo.status !== "ERROR"); const failedCount = photos.length - attached.length; const videoId = youtubeVideoId(videoUrl); return <div>{attached.length ? <div className="flex gap-2 overflow-x-auto pb-1">{attached.map((photo, index) => <div key={photo.id} className="relative h-[88px] w-[66px] shrink-0 overflow-hidden rounded-md border border-border"><Image src={photo.url} alt={index === 0 ? "대표 프로필 사진" : photo.name} fill unoptimized sizes="66px" className="object-cover" />{index === 0 ? <span className="absolute inset-x-0 bottom-0 bg-brand px-1 py-0.5 text-center text-xs font-semibold text-white">대표</span> : null}</div>)}</div> : <p className="text-sm text-muted">사진 미첨부</p>}{failedCount ? <p className="mt-3 text-sm text-fail">첨부에 실패한 사진 {failedCount}개가 있어요.</p> : null}<p className="mt-3 text-sm text-muted-strong">{videoId ? `연결한 영상 · youtu.be/${videoId}` : "영상 미첨부"}</p></div>; }
+function MediaSummary({ fields, values, photos, videoUrl }: { fields: readonly ApplicationFieldInput[]; values: Readonly<Record<string, string>>; photos: readonly ApplicationPhoto[]; videoUrl: string }) {
+  const attached = photos.filter((photo) => photo.status !== "ERROR");
+  const failedCount = photos.length - attached.length;
+  const photoField = fields.find((field) => field.inputType === "FILE");
+  const photoLabels = photoSlotLabels(photoField, attached.length);
+  const videoField = fields.find((field) => field.section === "MATERIALS" && field.inputType === "URL");
+  const requirements = videoField?.config.videoRequirements ?? [];
+  const videos = requirements
+    .map((requirement) => ({ label: requirement.description, id: youtubeVideoId(values[`${videoField?.id}.${requirement.id}`] ?? "") }))
+    .filter((item) => item.id);
+  const legacyVideoId = youtubeVideoId(videoUrl);
+
+  return <div className="space-y-4">
+    {attached.length ? <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">{attached.map((photo, index) => <li key={photo.id} className="min-w-0"><div className="relative aspect-[3/4] overflow-hidden rounded-control border border-border bg-surface"><Image src={photo.url} alt={photoLabels[index] ?? photo.name} fill unoptimized sizes="(min-width: 768px) 150px, 42vw" className="object-cover" /></div><strong className="mt-2 block truncate text-xs">{photoLabels[index]}</strong></li>)}</ul> : <p className="text-sm text-muted">사진 미첨부</p>}
+    {failedCount ? <p className="text-sm text-fail">첨부에 실패한 사진 {failedCount}개가 있어요.</p> : null}
+    {videos.length ? <ul className="space-y-1 text-sm text-muted-strong">{videos.map((video) => <li key={video.label}><strong className="text-foreground">{video.label}</strong> · youtu.be/{video.id}</li>)}</ul> : <p className="text-sm text-muted-strong">{legacyVideoId ? `연결한 영상 · youtu.be/${legacyVideoId}` : "영상 미첨부"}</p>}
+  </div>;
+}
 function CareerSummary({ noCareer, careers }: { noCareer: boolean; careers: readonly CareerDraft[] }) { if (noCareer) return <p className="text-sm text-muted">경력 없음 (신인)</p>; if (!careers.length) return <p className="text-sm text-muted">경력 미입력</p>; return <ul className="divide-y divide-border-soft">{careers.map((career) => <li key={career.id} className="grid grid-cols-[56px_minmax(0,1fr)_auto] gap-3 py-3 text-sm"><span className="num text-muted">{career.year}</span><span className="min-w-0 break-words font-medium">{career.title}</span><span className="text-muted">{career.part}</span></li>)}</ul>; }

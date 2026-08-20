@@ -30,7 +30,7 @@ export function ApplicantTable({
             <tr>
               <th className="w-11 border-b border-border pl-1.5 text-left">
                 <label className="inline-flex cursor-pointer items-center justify-center rounded-lg py-2 pl-3 pr-2.5 hover:bg-foreground/5">
-                  <span className="sr-only">표시된 지원자 전체 선택</span>
+                  <span className="sr-only">표시된 배우 전체 선택</span>
                   <input
                     type="checkbox"
                     checked={allSelected}
@@ -44,7 +44,7 @@ export function ApplicantTable({
                   />
                 </label>
               </th>
-              {["지원자", "신체", "학교", "제출 자료", "접수", "상태"].map((label, index) => (
+              {["배우", "신체", "학교", "제출 자료", "접수", "상태"].map((label, index) => (
                 <th
                   key={label}
                   className={`whitespace-nowrap border-b border-border px-3 py-2 text-left text-xs font-semibold tracking-[0.03em] text-muted ${
@@ -61,7 +61,7 @@ export function ApplicantTable({
               <tr
                 key={applicant.id}
                 tabIndex={0}
-                aria-label={`${applicant.name} 지원자 상세 보기`}
+                aria-label={`${applicant.name} 배우 상세 보기`}
                 onClick={() => openApplicant(applicant.id)}
                 onKeyDown={(event) => {
                   if (event.target !== event.currentTarget) return;
@@ -132,7 +132,7 @@ export function ApplicantTable({
                   </div>
                 </td>
                 <td className="num hidden border-b border-border-soft px-3 py-2 text-xs text-muted lg:table-cell">
-                  {applicant.height}cm · {applicant.weight}kg
+                  {measurementSummary(applicant.height, applicant.weight)}
                 </td>
                 <td className="hidden border-b border-border-soft px-3 py-2 text-xs text-muted lg:table-cell">
                   {applicant.school}
@@ -141,7 +141,7 @@ export function ApplicantTable({
                   <span className="num mr-1 inline-flex h-6 items-center rounded-lg border border-border bg-surface px-2 text-xs text-muted">
                     사진 {applicant.photos.length}
                   </span>
-                  {applicant.videoUrl ? (
+                  {applicant.videos.length > 0 ? (
                     <button
                       type="button"
                       onClick={(event) => {
@@ -150,7 +150,7 @@ export function ApplicantTable({
                       }}
                       className="border-b border-brand-line text-xs text-brand hover:border-brand"
                     >
-                      영상
+                      영상 {applicant.videos.length}개
                     </button>
                   ) : (
                     <span className="text-xs text-muted">영상 없음</span>
@@ -186,7 +186,7 @@ export function ApplicantTable({
             {peek.applicant.name}
           </span>
           <span className="num block px-1 pb-1 text-xs text-muted">
-            {peek.applicant.roleName} · {peek.applicant.height}cm · 사진 {peek.applicant.photos.length}장
+            {peek.applicant.roleName} · {measurementValue(peek.applicant.height, "cm")} · 사진 {peek.applicant.photos.length}장
           </span>
         </div>
       ) : null}
@@ -204,4 +204,12 @@ function formatSubmittedAt(value: string) {
     minute: "2-digit",
     hour12: false,
   }).format(parsed);
+}
+
+function measurementValue(value: number | null, unit: string) {
+  return value === null ? "미수집" : `${value}${unit}`;
+}
+
+function measurementSummary(height: number | null, weight: number | null) {
+  return `${measurementValue(height, "cm")} · ${measurementValue(weight, "kg")}`;
 }

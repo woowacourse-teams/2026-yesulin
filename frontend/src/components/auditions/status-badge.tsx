@@ -17,17 +17,27 @@ const STATUS_BG = {
   PENDING: "bg-pending-bg",
 } as const satisfies Record<ReviewStatus, string>;
 
+const STATUS_BORDER = {
+  PASS: "border-pass/30",
+  FAIL: "border-fail/30",
+  ABSENT: "border-absent/30",
+  ETC: "border-etc/30",
+  PENDING: "border-pending/30",
+} as const satisfies Record<ReviewStatus, string>;
+
 const PHASE_TONE = {
-  OPEN: "text-pass bg-pass-bg",
-  UPCOMING: "text-upcoming bg-upcoming-bg",
-  RECRUIT_CLOSED: "text-warn bg-warn-bg",
-  FINISHED: "text-muted bg-border-soft",
+  DRAFT: "border-border text-muted-strong bg-border-soft",
+  OPEN: "border-brand bg-brand text-white",
+  UPCOMING: "border-brand-line bg-card text-brand-strong",
+  RECRUIT_CLOSED: "border-absent/25 bg-absent-bg text-absent",
+  FINISHED: "border-foreground bg-foreground text-white",
 } as const satisfies Record<PostingPhase, string>;
 
 const PHASE_DOT = {
-  OPEN: "bg-pass",
+  DRAFT: "bg-sidebar-muted",
+  OPEN: "bg-brand",
   UPCOMING: "bg-brand-line",
-  RECRUIT_CLOSED: "bg-warn",
+  RECRUIT_CLOSED: "bg-sidebar-muted",
   FINISHED: "bg-sidebar-muted",
 } as const satisfies Record<PostingPhase, string>;
 
@@ -47,8 +57,8 @@ export function StatusBadge({
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-transparent font-semibold ${scale} ${STATUS_TEXT[status]} ${
-        onPhoto ? "border-white/60 bg-white/95 shadow-[var(--shadow-1)]" : STATUS_BG[status]
+      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border font-semibold ${scale} ${STATUS_TEXT[status]} ${
+        onPhoto ? "border-white/60 bg-white/95 shadow-[var(--shadow-1)]" : `${STATUS_BG[status]} ${STATUS_BORDER[status]}`
       }`}
     >
       <span aria-hidden="true" className="h-[5px] w-[5px] shrink-0 rounded-full bg-current" />
@@ -68,16 +78,17 @@ export function PhaseTag({
   const tone = variant === "default"
     ? PHASE_TONE[phase]
     : variant === "sidebarActive"
-      ? "border-white/20 bg-white/10 text-white"
-      : "border-sidebar-line bg-white/[0.035] text-sidebar-text";
+      ? "text-white/90"
+      : "text-sidebar-text/80";
+  const dot = variant === "sidebarActive" ? "bg-white" : inSidebar ? PHASE_DOT[phase] : "bg-current";
 
   return (
     <span
-      className={`inline-flex shrink-0 items-center whitespace-nowrap border font-semibold tracking-[0.005em] ${
-        inSidebar ? "h-5 gap-1.5 rounded-md px-1.5 text-xs" : "h-6 rounded-lg border-transparent px-2 text-xs font-bold"
+      className={`inline-flex shrink-0 items-center whitespace-nowrap font-semibold tracking-[0.005em] ${
+        inSidebar ? "h-5 gap-1.5 px-0.5 text-xs" : "h-6 gap-1.5 rounded-full border px-2 text-xs font-bold"
       } ${tone}`}
     >
-      {inSidebar ? <span aria-hidden="true" className={`h-1.5 w-1.5 shrink-0 rounded-full ${PHASE_DOT[phase]}`} /> : null}
+      <span aria-hidden="true" className={`h-1.5 w-1.5 shrink-0 rounded-full ${dot}`} />
       {PHASE_LABELS[phase]}
     </span>
   );

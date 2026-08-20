@@ -9,10 +9,10 @@ export function LandingHeader({ service }: { readonly service: "applicant" | "pr
       <div className="mx-auto flex min-h-16 max-w-[1280px] items-center px-5 sm:min-h-[72px] sm:px-8 lg:px-10">
         <Link href="/" aria-label="예술in 홈" className="inline-flex rounded-control">
           <Image
-            src="/images/yesulin-logo-transparent.png"
+            src="/images/yesulin-logo.png"
             alt="예술in"
             width={104}
-            height={52}
+            height={61}
             priority
             className="h-auto w-[92px] object-contain sm:w-[104px]"
           />
@@ -28,7 +28,7 @@ export function LandingHeader({ service }: { readonly service: "applicant" | "pr
             href={isProducer ? "/" : "/producer-service"}
             className="inline-flex min-h-11 items-center justify-center rounded-control border border-border bg-white px-3 text-sm font-semibold text-foreground transition-[background-color,border-color,transform] hover:border-brand-line hover:bg-brand-soft active:scale-[0.98] sm:px-4"
           >
-            {isProducer ? "지원자 서비스" : "공연사 서비스"}
+            {isProducer ? "배우 서비스" : "기획사/제작사 서비스"}
           </Link>
         </nav>
       </div>
@@ -40,7 +40,7 @@ export function LandingFooter() {
   return (
     <footer className="border-t border-border bg-white">
       <div className="mx-auto flex max-w-[1280px] flex-col gap-3 px-5 py-8 text-sm text-muted sm:flex-row sm:items-center sm:justify-between sm:px-8 lg:px-10">
-        <Image src="/images/yesulin-logo-transparent.png" alt="예술in" width={84} height={42} className="h-auto w-[84px] object-contain" />
+        <Image src="/images/yesulin-logo.png" alt="예술in" width={84} height={49} className="h-auto w-[84px] object-contain" />
         <p>© 2026 예술in. 예술의 문을 열다.</p>
       </div>
     </footer>

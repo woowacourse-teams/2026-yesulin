@@ -34,12 +34,12 @@ export const emptyNumeric = (): Record<NumericField, NumericCondition | null> =>
 
 export const initialFilters = (work: WorkMode): AuditionFilters => ({
   work,
-  status: work === "DONE" ? "PASS" : "ALL",
+  status: "ALL",
   query: "",
   genders: new Set(),
   numeric: emptyNumeric(),
   mismatchOnly: false,
-  view: "table",
+  view: "card",
 });
 
 export const activeDetailFilterCount = (filters: AuditionFilters) =>
@@ -47,8 +47,8 @@ export const activeDetailFilterCount = (filters: AuditionFilters) =>
   + NUMERIC_FIELDS.filter((field) => filters.numeric[field] !== null).length
   + (filters.mismatchOnly ? 1 : 0);
 
-const matchesNumeric = (value: number, condition: NumericCondition | null) =>
-  !condition || (condition.op === "gte" ? value >= condition.value : value <= condition.value);
+const matchesNumeric = (value: number | null, condition: NumericCondition | null) =>
+  !condition || (value !== null && (condition.op === "gte" ? value >= condition.value : value <= condition.value));
 
 /** 검토 대기/완료와 상태 칩만 적용한 목록. 조건 불일치 배지 수를 세는 기준이다. */
 export function applyWorkFilter(

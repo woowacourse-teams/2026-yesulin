@@ -15,11 +15,7 @@ export function ApplicationAuthContextCard({ context }: { readonly context: Appl
       {context.postingTitle ? <><dt className="text-muted">공고</dt><dd className="text-muted-strong">{context.postingTitle}</dd></> : null}
       {context.roleName ? <><dt className="text-muted">배역</dt><dd className="font-semibold text-brand">{context.roleName}</dd></> : null}
     </dl> : null}
-    <div className="mt-4 border-t border-brand-line pt-3 text-sm leading-6 text-muted-strong">
-      <p><strong className="text-foreground">보존 범위:</strong> 이동 전에 저장 완료된 입력값과 사진만 현재 기기의 이 브라우저 IndexedDB에 있습니다. 서버나 다른 기기에는 저장되지 않습니다.</p>
-      <p className="mt-2"><strong className="text-foreground">인증 후:</strong> 같은 공고의 최종 검토 화면으로 돌아가 로컬 Draft를 복원합니다.</p>
-      <p className="mt-2">인증을 취소하거나 브라우저 뒤로 가기를 사용해도 저장된 Draft는 삭제되지 않습니다.</p>
-    </div>
+    <p className="mt-4 border-t border-brand-line pt-3 text-sm font-medium leading-6 text-muted-strong">로그인해도 지금까지 작성한 지원 내용은 삭제되지 않습니다. 로그인 후 같은 지원서로 돌아와 제출을 이어갈 수 있어요.</p>
     <Link href={context.cancelHref} className="mt-4 inline-flex min-h-11 items-center rounded-control border border-brand-line bg-card px-3 text-sm font-semibold text-brand hover:bg-white">← 지원서로 돌아가기</Link>
   </section>;
 }

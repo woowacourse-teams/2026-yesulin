@@ -17,7 +17,7 @@ export const applicantHandlers = [
   http.patch(`${apiPath}/me/profile`, async ({ request }) => {
     await delay(240);
     const body = (await request.json()) as UpdateProfileRequest;
-    if (!(body.answers?.length || body.removeKeys?.length)) return apiError(400, "NOTHING_TO_UPDATE", "변경할 프로필 항목이 없습니다.");
+    if (!(body.answers?.length || body.removeKeys?.length || body.photoLibrary || body.videoLibrary)) return apiError(400, "NOTHING_TO_UPDATE", "변경할 프로필 항목이 없습니다.");
     return HttpResponse.json(patchApplicantProfile(body));
   }),
   http.get(`${apiPath}/me/profile/prefill`, async ({ request }) => {
@@ -27,7 +27,14 @@ export const applicantHandlers = [
     const profile = applicantProfile();
     const fields = (posting.applicationFields ?? []).filter((field) => field.enabled);
     const keys = new Set(fields.map((field) => field.id));
-    const answers = profile.answers.filter((answer) => keys.has(answer.key));
+    const photoField = fields.find((field) => field.id === "PHOTOS");
+    const requestedPhotos = photoField?.config.photoRequirements?.reduce((sum, item) => sum + item.count, 0);
+    const photoLimit = Math.min(10, Math.max(1, requestedPhotos ?? photoField?.config.maxCount ?? 10));
+    const mediaAnswers = [
+      ...(keys.has("PHOTOS") && profile.photoLibrary.length ? [{ key: "PHOTOS", label: photoField?.label ?? "프로필 사진", value: profile.photoLibrary.slice(0, photoLimit).map((photo) => photo.id), previewUrls: profile.photoLibrary.slice(0, photoLimit).map((photo) => photo.url) }] : []),
+      ...(keys.has("VIDEO") && profile.videoLibrary[0] ? [{ key: "VIDEO", label: fields.find((field) => field.id === "VIDEO")?.label ?? "연기 영상", value: profile.videoLibrary[0].url }] : []),
+    ];
+    const answers = [...profile.answers.filter((answer) => keys.has(answer.key)), ...mediaAnswers];
     const answered = new Set(answers.map((answer) => answer.key));
     const required = fields.filter((field) => field.required);
     return HttpResponse.json({ answers, filledCount: required.filter((field) => answered.has(field.id)).length, requiredCount: required.length, missingKeys: required.filter((field) => !answered.has(field.id)).map((field) => field.id) });
@@ -77,7 +84,7 @@ export const applicantHandlers = [
     const receiptNumber = `YS-${submittedAt.slice(0, 10).replaceAll("-", "")}-${crypto.randomUUID().replaceAll("-", "").slice(0, 6).toUpperCase()}`;
     const createdApplicationId = applicationId(Date.now());
     const answers = body.answers.map((answer) => ({ ...answer, label: answer.label ?? fields.find((field) => field.id === answer.key)?.label ?? answer.key }));
-    const application = { id: createdApplicationId, postingId: posting.id, performanceTitle: performance.title, postingTitle: posting.title, posterUrl: performance.posterUrl, companyName: producerProfile().companyName || "공연사", roleId: roles[0]!.id, roleIds: roles.map((role) => role.id), roleName: roles.map((role) => role.name).join(" · "), lookupCode: receiptNumber, submittedAt, updatedAt: submittedAt, editable: false, recruitmentEnd: posting.recruitmentEnd ?? "", editableUntil: "", answers, applicationFields: fields };
+    const application = { id: createdApplicationId, postingId: posting.id, performanceTitle: performance.title, postingTitle: posting.title, posterUrl: posting.posterUrl, companyName: producerProfile().companyName || "기획사/제작사", roleId: roles[0]!.id, roleIds: roles.map((role) => role.id), roleName: roles.map((role) => role.name).join(" · "), lookupCode: receiptNumber, submittedAt, updatedAt: submittedAt, editable: false, recruitmentEnd: posting.recruitmentEnd ?? "", editableUntil: "", roleProgress: [], answers, applicationFields: fields };
     addApplicantApplication(application);
     addScreeningApplicant(toScreeningApplicant(application, performance.id));
     if (body.saveToProfile) patchApplicantProfile({ answers: answers.filter((answer) => !answer.key.startsWith("custom-") && !fields.find((field) => field.id === answer.key)?.custom) });

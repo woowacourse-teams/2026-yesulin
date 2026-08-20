@@ -36,7 +36,7 @@ export const screeningHandlers = [
     const body = (await request.json()) as SaveReviewRequest;
     if (!findRole(body.roleId)) return notFound("배역을 찾을 수 없습니다.");
     if (!isRoundNumber(body.round)) return badRequest("INVALID_ROUND_NUMBER", "올바른 차수가 아닙니다.");
-    if (body.applicationIds.length === 0) return badRequest("APPLICATION_REQUIRED", "지원자를 한 명 이상 선택해 주세요.");
+    if (body.applicationIds.length === 0) return badRequest("APPLICATION_REQUIRED", "배우를 한 명 이상 선택해 주세요.");
     if (isRoundClosed(body.roleId, body.round)) return badRequest("ROUND_ALREADY_CLOSED", "마감된 차수는 결과를 변경할 수 없습니다.");
     if (body.round === 1 && body.status === "ABSENT") return badRequest("ABSENT_NOT_ALLOWED", "1차 서류 심사에는 불참을 고를 수 없습니다.");
     if (body.status === "ETC" && !body.memo?.trim()) return badRequest("MEMO_REQUIRED", "기타 사유를 입력해 주세요.");
@@ -63,8 +63,8 @@ export const screeningHandlers = [
     if (!isRoundNumber(body.round)) return badRequest("INVALID_ROUND_NUMBER", "올바른 차수가 아닙니다.");
     if (isRoundClosed(body.roleId, body.round)) return badRequest("ROUND_ALREADY_CLOSED", "이미 마감된 차수입니다.");
     const counts = countsFor(body.roleId, body.round);
-    if (counts.all === 0) return badRequest("NO_APPLICANTS", "심사할 지원자가 없어 마감할 수 없습니다.");
-    if (counts.pending > 0) return badRequest("PENDING_REVIEWS_REMAIN", "검토 대기 중인 지원자가 남아 마감할 수 없습니다.");
+    if (counts.all === 0) return badRequest("NO_APPLICANTS", "심사할 배우가 없어 마감할 수 없습니다.");
+    if (counts.pending > 0) return badRequest("PENDING_REVIEWS_REMAIN", "검토 대기 중인 배우가 남아 마감할 수 없습니다.");
     markRoundClosed(body.roleId, body.round);
     const rounds = roundNumbersForRole(body.roleId);
     const nextRound = rounds[rounds.indexOf(body.round) + 1] ?? body.round;

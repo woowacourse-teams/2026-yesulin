@@ -2,21 +2,13 @@
 
 import { activeDetailFilterCount } from "@/features/auditions/filters";
 import { selectableStatuses, STATUS_LABELS } from "@/features/auditions/labels";
-import type { ReviewStatus } from "@/features/auditions/types";
 import { FilterChip } from "@/components/ui/controls";
 import { useBoard } from "./board-context";
 import { HorizontalScrollArea } from "./horizontal-scroll-area";
 
 export function FilterBar({ sheetOpen, onOpenSheet }: { sheetOpen: boolean; onOpenSheet: () => void }) {
   const { board, filters, visible, setFilters } = useBoard();
-  const counts = board.rounds.find((state) => state.round === board.round)?.counts;
   const activeCount = activeDetailFilterCount(filters);
-
-  const countOf = (status: ReviewStatus | "ALL") => {
-    if (!counts) return 0;
-    if (status === "ALL") return counts.done;
-    return { PASS: counts.pass, FAIL: counts.fail, ABSENT: counts.absent, ETC: counts.etc, PENDING: counts.pending }[status];
-  };
 
   return (
     <div className="border-b border-border bg-transparent lg:hidden">
@@ -31,7 +23,6 @@ export function FilterBar({ sheetOpen, onOpenSheet }: { sheetOpen: boolean; onOp
                   onClick={() => setFilters((current) => ({ ...current, status }))}
                 >
                   {status === "ALL" ? "전체" : STATUS_LABELS[status]}
-                  <span className="num ml-1 opacity-55">{countOf(status)}</span>
                 </FilterChip>
               ))}
             </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import { GENDER_LABELS, mismatchText } from "@/features/auditions/labels";
 import { openPrintWindow } from "@/features/auditions/print";
 import { useBoard } from "./board-context";
@@ -10,14 +10,12 @@ import { DetailReview } from "./detail-review";
 import { ModalShell } from "./modal-shell";
 import { StatusBadge } from "./status-badge";
 import { useToast } from "./toast";
-import { VideoModal } from "./video-modal";
 
 const TITLE_ID = "applicant-detail-title";
 const POPUP_BLOCKED = "팝업이 차단되어 인쇄 창을 열 수 없습니다. 팝업 허용 후 다시 시도해 주세요.";
 
 export function ApplicantDetail() {
   const { board, openedApplicantId, openApplicant } = useBoard();
-  const [videoOpen, setVideoOpen] = useState(false);
   const toast = useToast();
   const close = useCallback(() => openApplicant(null), [openApplicant]);
 
@@ -39,8 +37,8 @@ export function ApplicantDetail() {
             </h2>
             <p className="mt-0.5 text-dense text-muted">
               <b className="font-semibold text-muted-strong">{applicant.roleName}</b> 지원 ·{" "}
-              {GENDER_LABELS[applicant.gender]} 만 {applicant.age}세 · {applicant.height}cm /{" "}
-              {applicant.weight}kg · {applicant.id}
+              {GENDER_LABELS[applicant.gender]} 만 {applicant.age}세 · {measurement(applicant.height, "cm")} /{" "}
+              {measurement(applicant.weight, "kg")} · {applicant.id}
             </p>
           </div>
 
@@ -56,14 +54,14 @@ export function ApplicantDetail() {
             <StatusBadge status={applicant.review.status} memo={applicant.review.memo} />
             <button
               type="button"
-              title="이 지원자 인쇄"
-              aria-label="이 지원자 인쇄"
+              title="이 배우 인쇄"
+              aria-label="이 배우 인쇄"
               onClick={() => {
                 if (!openPrintWindow([applicant], board.performance)) {
                   toast(POPUP_BLOCKED, { type: "error" });
                 }
               }}
-              className="min-h-11 rounded-control px-3 py-1 text-sm text-muted transition-[background-color,color,transform] duration-150 hover:bg-border-soft hover:text-foreground active:scale-[0.97] lg:min-h-0 lg:px-2 lg:text-xs"
+              className="min-h-11 shrink-0 whitespace-nowrap rounded-control px-2 py-1 text-xs text-muted transition-[background-color,color,transform] duration-150 hover:bg-border-soft hover:text-foreground active:scale-[0.97] lg:min-h-0 lg:text-xs"
             >
               인쇄
             </button>
@@ -71,7 +69,7 @@ export function ApplicantDetail() {
               type="button"
               aria-label="닫기"
               onClick={close}
-              className="min-h-11 rounded-control px-3 py-1 text-sm text-muted transition-[background-color,color,transform] duration-150 hover:bg-border-soft hover:text-foreground active:scale-[0.97] lg:min-h-0 lg:px-2 lg:text-xs"
+              className="min-h-11 shrink-0 whitespace-nowrap rounded-control px-2 py-1 text-xs text-muted transition-[background-color,color,transform] duration-150 hover:bg-border-soft hover:text-foreground active:scale-[0.97] lg:min-h-0 lg:text-xs"
             >
               닫기
             </button>
@@ -79,16 +77,16 @@ export function ApplicantDetail() {
         </header>
 
         <div className="flex-1 overflow-y-auto lg:grid lg:grid-cols-[minmax(300px,392px)_1fr] lg:overflow-hidden">
-          <DetailGallery applicant={applicant} onPlayVideo={() => setVideoOpen(true)} />
+          <DetailGallery applicant={applicant} />
           <DetailProfile applicant={applicant} />
         </div>
 
         <DetailReview applicant={applicant} />
       </ModalShell>
-
-      {videoOpen ? (
-        <VideoModal key={applicant.id} applicant={applicant} onClose={() => setVideoOpen(false)} />
-      ) : null}
     </>
   );
+}
+
+function measurement(value: number | null, unit: string) {
+  return value === null ? "미수집" : `${value}${unit}`;
 }

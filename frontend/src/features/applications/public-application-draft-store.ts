@@ -37,6 +37,11 @@ export async function readPublicApplicationDraft(postingId: string) {
   return requestResult<PublicApplicationDraftRecord | undefined>(database.transaction(STORE_NAME, "readonly").objectStore(STORE_NAME).get(postingId));
 }
 
+export async function listPublicApplicationDrafts() {
+  const database = await openDatabase();
+  return requestResult<PublicApplicationDraftRecord[]>(database.transaction(STORE_NAME, "readonly").objectStore(STORE_NAME).getAll());
+}
+
 export async function savePublicApplicationDraft(input: PublicApplicationDraftInput) {
   if (process.env.NODE_ENV === "development" && new URLSearchParams(window.location.search).get("draftStorage") === "fail") {
     throw new Error("개발 검증을 위해 기기 저장 실패를 재현했습니다.");

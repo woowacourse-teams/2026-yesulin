@@ -1,30 +1,31 @@
 import { delay, http, HttpResponse } from "msw";
-import type { ApplicantSignupRequest } from "@/features/auth/api";
-import { claimApplicantApplication } from "./applicants/store";
+import type { ProducerSignupRequest } from "@/features/auth/api";
+import { registerPendingProducer } from "./auditions/producer-profile";
 
 const emails = new Set<string>();
 const error = (code: string, message: string, status = 400) => HttpResponse.json({ code, message }, { status });
 
 export const authHandlers = [
-  http.post("/api/auth/signup/applicant", async ({ request }) => {
+  http.post("/api/auth/signup/producer", async ({ request }) => {
     await delay(320);
-    const body = (await request.json()) as ApplicantSignupRequest;
+    const body = (await request.json()) as ProducerSignupRequest;
     const email = body.email?.trim().toLowerCase();
-    if (!body.name?.trim()) return error("NAME_REQUIRED", "이름을 입력해 주세요.");
+    const phone = body.phone?.replace(/\D/g, "");
+    if (!body.companyName?.trim()) return error("COMPANY_REQUIRED", "기획사/제작사명을 입력해 주세요.");
+    if (!/^01\d{8,9}$/.test(phone)) return error("INVALID_PHONE", "올바른 휴대폰 번호를 입력해 주세요.");
     if (!/^\S+@\S+\.\S+$/.test(email)) return error("INVALID_EMAIL", "올바른 이메일 주소를 입력해 주세요.");
     if (body.password?.length < 8) return error("PASSWORD_TOO_SHORT", "비밀번호는 8자 이상 입력해 주세요.");
     if (body.password !== body.passwordConfirm) return error("PASSWORD_MISMATCH", "비밀번호가 일치하지 않습니다.");
     if (!body.termsAgreed) return error("TERMS_REQUIRED", "필수 약관에 동의해 주세요.");
     if (emails.has(email)) return error("EMAIL_ALREADY_EXISTS", "이미 가입된 이메일입니다.", 409);
     emails.add(email);
-    const claimedApplicationId = claimApplicantApplication(body.profileClaimToken);
+    registerPendingProducer({ companyName: body.companyName, email, phone });
     return HttpResponse.json({
-      role: "APPLICANT",
-      name: body.name.trim(),
-      verificationStatus: null,
-      profileClaimed: claimedApplicationId !== null,
-      claimedApplicationId,
-      redirectTo: "/applicants",
+      role: "PRODUCER",
+      companyName: body.companyName.trim(),
+      verificationStatus: "PENDING",
+      credential: globalThis.crypto.randomUUID(),
+      redirectTo: "/producers/account",
     }, { status: 201 });
   }),
 ];

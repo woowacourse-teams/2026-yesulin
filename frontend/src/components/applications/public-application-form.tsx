@@ -13,6 +13,7 @@ import { PublicApplicationReview } from "./public-application-review";
 import { PublicApplicationSaveBadge, PublicApplicationSaveNotice } from "./public-application-save-status";
 import type { PostingId } from "@/features/auditions/types";
 import type { ProfilePrefillResponse } from "@/features/applicants/types";
+import { CalendarDateRangeField } from "@/components/auditions/calendar-date-range-field";
 import { fieldControlClass, PrimaryButton, SecondaryButton, TextButton } from "@/components/ui/controls";
 
 type PublicApplicationFormProps = {
@@ -98,18 +99,18 @@ function StepContent() {
   const { state, meta } = usePublicApplication();
   const step = meta.steps[state.stepIndex]!;
   if (step.section === "MATERIALS") return <div className="mt-9"><PublicApplicationMedia /></div>;
-  if (step.section === "CAREER") return <div className="mt-9"><PublicApplicationCareer /></div>;
-  return <div className="mt-9 grid grid-cols-1 gap-x-6 gap-y-8 md:grid-cols-2">{step.fields.map((field) => <ApplicationField key={field.id} field={field} />)}</div>;
+  return <div className="mt-9 grid grid-cols-1 gap-x-6 gap-y-8 md:grid-cols-2">{step.fields.map((field) => field.id === "CAREER" ? <div key={field.id} className="md:col-span-2"><PublicApplicationCareer field={field} /></div> : <ApplicationField key={field.id} field={field} />)}</div>;
 }
 
 function ApplicationField({ field }: { field: ApplicationFieldInput }) {
-  const { state } = usePublicApplication();
+  const { state, actions } = usePublicApplication();
   const id = `application-${field.id}`;
   const error = state.stepError.startsWith(field.label) ? state.stepError : "";
   const helpId = `${id}-help`;
   const errorId = `${id}-error`;
   const width = field.layout === "FULL" || field.inputType === "TEXTAREA" ? "md:col-span-2" : "";
   const describedBy = [helpId, error ? errorId : ""].filter(Boolean).join(" ");
+  if (field.inputType === "DATE") return <fieldset id={`application-field-${field.id}`} className={width}><legend className="mb-2 flex items-center gap-1 text-sm font-semibold text-foreground"><FieldLabelText field={field} /></legend><div aria-invalid={Boolean(error) || undefined} aria-describedby={describedBy}><CalendarDateRangeField single start={state.values[field.id] ?? ""} end="" startLabel={field.label} onStartChange={(value) => actions.updateField(field.id, value)} onEndChange={() => undefined} /></div><FieldHelp id={helpId} detail={applicationFieldDetail(field)} />{error ? <InlineError id={errorId} error={error} /> : null}</fieldset>;
   if (field.inputType === "COMPOSITE") return <fieldset id={`application-field-${field.id}`} className={width}><legend className="mb-2 flex items-center gap-1 text-sm font-semibold text-foreground"><FieldLabelText field={field} /></legend><FieldControl field={field} id={id} error={error} describedBy={describedBy} /><FieldHelp id={helpId} detail={applicationFieldDetail(field)} />{error ? <InlineError id={errorId} error={error} /> : null}</fieldset>;
   return <div id={`application-field-${field.id}`} className={width}><label htmlFor={id} className="mb-2 flex items-center gap-1 text-sm font-semibold text-foreground"><FieldLabelText field={field} /></label><FieldControl field={field} id={id} error={error} describedBy={describedBy} /><FieldHelp id={helpId} detail={applicationFieldDetail(field)} />{error ? <InlineError id={errorId} error={error} /> : null}</div>;
 }
@@ -126,7 +127,7 @@ function FieldControl({ field, id, error, describedBy }: { field: ApplicationFie
   if (field.inputType === "TEXTAREA") return <textarea {...common} minLength={field.config.minLength} rows={6} className={`${className} resize-y`} />;
   if (field.inputType === "SELECT") return <select {...common}><option value="">선택해 주세요</option>{field.config.options?.map((option) => <option key={option} value={option}>{option}</option>)}</select>;
   if (field.inputType === "COMPOSITE") return <div className="grid grid-cols-2 gap-3">{field.config.fields?.map((part) => { const partId = `${field.id}.${part.key}`; const inputId = `${id}-${part.key}`; return <label key={part.key} htmlFor={inputId} className="relative"><span className="mb-2 block text-sm font-medium text-foreground">{part.label}</span><input id={inputId} name={partId} required={field.required} type={part.inputType === "NUMBER" ? "number" : part.inputType === "TEL" ? "tel" : "text"} value={state.values[partId] ?? ""} placeholder={part.placeholder} aria-invalid={Boolean(error) || undefined} aria-describedby={describedBy} onChange={(event) => actions.updateField(partId, event.target.value)} className={`${className} pr-10`} />{part.unit ? <span className="pointer-events-none absolute right-3 top-10 text-sm text-muted">{part.unit}</span> : null}</label>; })}</div>;
-  const type = field.inputType === "DATE" ? "date" : field.inputType === "TEL" ? "tel" : field.inputType === "NUMBER" ? "number" : field.inputType === "URL" ? "url" : "text";
+  const type = field.inputType === "TEL" ? "tel" : field.inputType === "NUMBER" ? "number" : field.inputType === "URL" ? "url" : "text";
   return <input {...common} type={type} inputMode={field.inputType === "TEL" ? "tel" : field.inputType === "NUMBER" ? "numeric" : undefined} />;
 }
 

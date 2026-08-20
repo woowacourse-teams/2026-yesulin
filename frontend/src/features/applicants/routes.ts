@@ -4,6 +4,7 @@ export const applicantRoutes = {
   home: "/applicants",
   applications: "/applicants/applications",
   application: (id: ApplicationId) => `/applicants/applications/${id}`,
+  applicationDraft: (postingId: string) => `/apply/${postingId}?resumeDraft=1`,
   profile: "/applicants/profile",
   lookup: "/apply/lookup",
 } as const;

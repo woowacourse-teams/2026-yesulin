@@ -3,7 +3,7 @@ import { RolePicker } from "@/components/auditions/role-picker";
 import { postingId } from "@/features/auditions/types";
 
 export const metadata: Metadata = {
-  title: "배역 선택",
+  title: "배역별 지원 현황",
 };
 
 export default async function RolePickerPage({ params }: { params: Promise<{ postingId: string }> }) {
