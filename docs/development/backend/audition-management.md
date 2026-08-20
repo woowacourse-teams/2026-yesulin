@@ -14,7 +14,7 @@ status: active
 - `Audition`: 공연·소유자, 기본 정보와 `DRAFT → PUBLISHED → CLOSED` 생명주기를 관리한다.
 - 기본 정보를 완성한 첫 저장에서 DRAFT를 생성한다. 생성된 기본 정보 안에는 nullable 미완성 값을 두지 않는다.
 - 배역·일정·지원 폼은 `auditionId`로 연결된 별도 Aggregate로 관리한다.
-- 게시할 때 application이 모든 섹션을 조회해 필수 규칙을 검사한다.
+- 게시할 때 application이 모든 섹션을 조회하고 `AuditionPublicationPolicy`가 필수 규칙과 상태 전이를 처리한다.
 - 섹션 하나를 저장할 때 다른 섹션을 함께 읽거나 잠그지 않는다.
 
 ## 단계
