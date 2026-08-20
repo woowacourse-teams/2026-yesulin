@@ -3,6 +3,7 @@ set -eu
 
 DEPLOYMENT_DIR=/opt/yesulin/deployment
 REVISION="$(tr -d '\r\n' < "$DEPLOYMENT_DIR/revision.txt")"
+ENVIRONMENT_FILE=/etc/yesulin/yesulin.env
 
 if ! printf '%s' "$REVISION" | grep -Eq '^[0-9a-fA-F]{7,64}$'; then
   echo "Invalid revision: $REVISION" >&2
@@ -23,3 +24,33 @@ fi
 ln -sfn "$RELEASE_DIR" /opt/yesulin/current
 install -o root -g root -m 0644 "$DEPLOYMENT_DIR/systemd/yesulin.service" /etc/systemd/system/yesulin.service
 systemctl daemon-reload
+
+if ! command -v nginx >/dev/null 2>&1; then
+  echo "Nginx is not installed" >&2
+  exit 1
+fi
+
+ORIGIN_SECRET="$(sed -n 's/^YESULIN_CLOUDFRONT_ORIGIN_SECRET=//p' "$ENVIRONMENT_FILE")"
+if [ "${#ORIGIN_SECRET}" -ne 64 ] || printf '%s' "$ORIGIN_SECRET" | grep -q '[^0-9a-fA-F]'; then
+  echo "YESULIN_CLOUDFRONT_ORIGIN_SECRET must be exactly 64 hexadecimal characters" >&2
+  exit 1
+fi
+
+install -d -o root -g root -m 0755 /etc/nginx/snippets
+install -o root -g root -m 0644 \
+  "$DEPLOYMENT_DIR/nginx/yesulin-log-format.conf" \
+  /etc/nginx/conf.d/yesulin-log-format.conf
+install -o root -g root -m 0644 \
+  "$DEPLOYMENT_DIR/nginx/yesulin.conf" \
+  /etc/nginx/sites-available/yesulin
+
+GUARD_FILE=/etc/nginx/snippets/yesulin-origin-guard.conf
+GUARD_TEMP="$(mktemp)"
+trap 'rm -f "$GUARD_TEMP"' EXIT
+printf 'if ($http_x_yesulin_origin_secret != "%s") { return 403; }\n' \
+  "$ORIGIN_SECRET" > "$GUARD_TEMP"
+install -o root -g root -m 0600 "$GUARD_TEMP" "$GUARD_FILE"
+
+ln -sfn /etc/nginx/sites-available/yesulin /etc/nginx/sites-enabled/yesulin
+rm -f /etc/nginx/sites-enabled/default
+nginx -t
