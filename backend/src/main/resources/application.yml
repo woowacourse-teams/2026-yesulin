@@ -8,3 +8,9 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+
+yesulin:
+  storage:
+    s3:
+      region: ${AWS_REGION:ap-northeast-2}
+      upload-expiration: ${YESULIN_STORAGE_S3_UPLOAD_EXPIRATION:PT10M}
