@@ -29,7 +29,7 @@ MSW 목 데이터는 단순 예시가 아니라 프론트엔드 동작과 향후
 | --- | --- | --- |
 | 단일 배역 지원 현황 | `/producers/postings/seed_posting_round_2` | 배역 1개도 배역별 지원 현황을 표시하고 선택 후 심사 보드 이동 |
 | 1차 진행 | `/producers/roles/seed_role_seoyeon?round=1` | 2차 잠김, 1차 불참 선택 불가 |
-| 최대 영상 심사 | `/producers/roles/seed_role_seoyeon/applications/26081201?round=1` | 공고 상한인 영상 5개와 요구 설명 표시, 목록 스크롤 및 선택 시 제목·메인 플레이어·새 창·크게 보기 대상 동기화 |
+| 최대 영상 심사 | `/producers/roles/seed_role_seoyeon/submissions/26081201?round=1` | 공고 상한인 영상 5개와 요구 설명 표시, 목록 스크롤 및 선택 시 제목·메인 플레이어·새 창·크게 보기 대상 동기화 |
 | 2차 진행 | `/producers/roles/seed_role_round_2?round=2` | 1차 마감, 1차 합격자 3명 승계, 2차 일부 검토 완료 |
 | 3차 진행 | `/producers/roles/seed_role_round_3?round=3` | 1·2차 마감, 2차 합격자 3명 승계, 3차 일부 검토 완료 |
 
@@ -48,6 +48,6 @@ MSW 목 데이터는 단순 예시가 아니라 프론트엔드 동작과 향후
 
 - 지원 양식 필드 배열과 `HEIGHT`·`WEIGHT` 독립 답변
 - 1~5차 전형 설정과 이전 차수 마감 전 다음 차수 잠금
-- 심사 결과의 `(applicationId, roleId, round)` 식별
+- 심사 결과의 `(submissionId, roleId, round)` 식별
 - 차수 마감의 `(roleId, round)` 식별과 검토 대기·대상 없음 오류
 - 미수집 개인정보의 `null` 표현과 필터 처리

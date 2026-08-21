@@ -8,7 +8,7 @@ import { PublicApplicationCareer } from "./public-application-career";
 import { PublicApplicationExitDialog } from "./public-application-exit-dialog";
 import { PublicApplicationMedia } from "./public-application-media";
 import { PublicApplicationProvider, usePublicApplication } from "./public-application-context";
-import { PublicApplicationReceipt } from "./public-application-receipt";
+import { PublicSubmissionReceipt } from "./public-submission-receipt";
 import { PublicApplicationReview } from "./public-application-review";
 import { PublicApplicationSaveBadge, PublicApplicationSaveNotice } from "./public-application-save-status";
 import type { PostingId } from "@/features/auditions/types";
@@ -36,7 +36,7 @@ function PublicApplicationContent() {
   const { state, meta } = usePublicApplication();
   if (state.draftSaveStatus === "RESTORING") return <DraftRestoring />;
   if (meta.steps.length === 0) return <FormEmpty />;
-  if (state.receipt) return <PublicApplicationReceipt />;
+  if (state.receipt) return <PublicSubmissionReceipt />;
   if (state.reviewing) return <PublicApplicationReview />;
   return <ApplicationStepScreen />;
 }

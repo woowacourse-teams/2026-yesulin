@@ -1,13 +1,13 @@
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
 import type { PostingId } from "@/features/auditions/types";
-import type { ApplicationId } from "@/features/auditions/types";
+import type { SubmissionId } from "@/features/auditions/types";
 import type { applicationFormSteps, applicationStepProgress } from "@/features/applications/application-form";
 import type { ApplicationPhoto, CareerDraft, SubmissionState } from "@/features/applications/application-form-state";
 import type { ProfilePrefillResponse } from "@/features/applicants/types";
 import type { DraftSaveStatus } from "./use-public-application-draft";
 
-export type ApplicationReceipt = {
-  readonly applicationId: ApplicationId;
+export type SubmissionReceipt = {
+  readonly submissionId: SubmissionId;
   readonly number: string;
   readonly submittedAt: string;
   readonly profileClaimToken: string | null;
@@ -39,7 +39,7 @@ export type PublicApplicationState = {
   readonly draftRestored: boolean;
   readonly submissionState: SubmissionState;
   readonly submissionError: string;
-  readonly receipt: ApplicationReceipt | null;
+  readonly receipt: SubmissionReceipt | null;
 };
 
 export type PublicApplicationActions = {

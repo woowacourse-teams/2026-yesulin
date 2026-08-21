@@ -13,7 +13,7 @@ import { ProducerAccountPanel } from "./producer-account-panel";
 import { ProducerNavigationProvider } from "./producer-navigation-context";
 
 const DESKTOP_NAVIGATION_TITLE = "focused-producer-navigation-title";
-const REVIEW_PATH = /^\/producers\/roles\/[^/]+\/applications\/[^/]+$/;
+const REVIEW_PATH = /^\/producers\/roles\/[^/]+\/submissions\/[^/]+$/;
 
 export function ProducerShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

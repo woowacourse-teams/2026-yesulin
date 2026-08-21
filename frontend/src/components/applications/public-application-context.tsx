@@ -4,11 +4,11 @@ import { createContext, use, useEffect, useState } from "react";
 import { applicationFormSteps, applicationStepProgress } from "@/features/applications/application-form";
 import { applicationStepIssue } from "@/features/applications/application-form-state";
 import type { ApplicationStepIssue, SubmissionState } from "@/features/applications/application-form-state";
-import { submitPublicApplication } from "@/features/applicants/api";
+import { createPublicSubmission } from "@/features/applicants/api";
 import { deletePublicApplicationDraft } from "@/features/applications/public-application-draft-store";
 import { submissionValue } from "./public-application-draft";
 import { hasSubmittedValue } from "@/features/applications/materials";
-import type { ApplicationReceipt, EditableSection, PublicApplicationActions, PublicApplicationContextValue, PublicApplicationProviderProps, PublicApplicationState } from "./public-application-context-types";
+import type { EditableSection, PublicApplicationActions, PublicApplicationContextValue, PublicApplicationProviderProps, PublicApplicationState, SubmissionReceipt } from "./public-application-context-types";
 import { usePublicApplicationDraft } from "./use-public-application-draft";
 
 const PublicApplicationContext = createContext<PublicApplicationContextValue | null>(null);
@@ -32,7 +32,7 @@ export function PublicApplicationProvider({
   children,
 }: PublicApplicationProviderProps) {
   const steps = applicationFormSteps(fields);
-  const [receipt, setReceipt] = useState<ApplicationReceipt | null>(null);
+  const [receipt, setReceipt] = useState<SubmissionReceipt | null>(null);
   const draft = usePublicApplicationDraft({ postingId, fields, prefill, initialRoleIds, submitted: receipt !== null });
   const {
     stepIndex, setStepIndex, values, setValues, photos, setPhotos, videoUrl, setVideoUrl,
@@ -162,7 +162,7 @@ export function PublicApplicationProvider({
           value: submissionValue(field, { values, photos, videoUrl, careers, noCareer }),
         }))
         .filter(({ field, value }) => field.required || hasSubmittedValue(value));
-      const response = await submitPublicApplication({
+      const response = await createPublicSubmission({
         postingId,
         roleIds,
         answers: submittedAnswers.map(({ field, value }) => ({
@@ -174,7 +174,7 @@ export function PublicApplicationProvider({
         saveToProfile,
       });
       setReceipt({
-        applicationId: response.applicationId,
+        submissionId: response.submissionId,
         number: response.receiptNumber,
         submittedAt: response.submittedAt,
         profileClaimToken: response.profileClaimToken,

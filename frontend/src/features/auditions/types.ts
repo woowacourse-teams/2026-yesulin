@@ -6,7 +6,7 @@ import type { PerformanceRoleTemplate } from "./creation-types";
  *   Performance 공연
  *     └ Posting     공고 — 실제 게시하는 모집 공고 한 건
  *         └ Role         배역 — 한 공고 안에 여러 개
- *             └ Application  지원서
+ *             └ Submission   제출 지원서
  *
  * 전형은 배역 단위로 독립 진행된다. 차수 마감(Round)도 배역별로 따로 관리한다.
  * 심사 결과(Review)는 (지원서, 배역, 차수)에 붙는다. 복수 배역과 다음 차수의
@@ -21,13 +21,13 @@ export type PerformanceId = Brand<string, "PerformanceId">;
 export type PostingId = Brand<string, "PostingId">;
 export type RoleId = Brand<string, "RoleId">;
 /** 외부에 노출하는 UUID 형식의 지원서 식별자. */
-export type ApplicationId = Brand<string, "ApplicationId">;
+export type SubmissionId = Brand<string, "SubmissionId">;
 
 export const performanceId = (value: string) => value as PerformanceId;
 export const postingId = (value: string) => value as PostingId;
 export const roleId = (value: string) => value as RoleId;
-export const applicationId = (value: string) => value as ApplicationId;
-export const isApplicationId = (value: string): value is ApplicationId => UUID_PATTERN.test(value);
+export const submissionId = (value: string) => value as SubmissionId;
+export const isSubmissionId = (value: string): value is SubmissionId => UUID_PATTERN.test(value);
 
 export const ROUND_NUMBERS = [1, 2, 3, 4, 5] as const;
 export type RoundNumber = (typeof ROUND_NUMBERS)[number];
@@ -132,7 +132,7 @@ export type CareerEntry = {
 };
 
 export type Applicant = {
-  readonly id: ApplicationId;
+  readonly id: SubmissionId;
   readonly name: string;
   readonly gender: Gender;
   readonly age: number;
@@ -241,7 +241,7 @@ export type AuditionBoardResponse = {
 export type SaveReviewRequest = {
   readonly roleId: RoleId;
   readonly round: RoundNumber;
-  readonly applicationIds: readonly ApplicationId[];
+  readonly submissionIds: readonly SubmissionId[];
   readonly status?: ReviewStatus;
   readonly memo?: string;
   readonly note?: string;

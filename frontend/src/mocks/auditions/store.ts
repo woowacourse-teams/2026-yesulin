@@ -1,4 +1,4 @@
-import type { ApplicationId, Review, RoleId, RoundNumber } from "@/features/auditions/types";
+import type { SubmissionId, Review, RoleId, RoundNumber } from "@/features/auditions/types";
 import { ROUND_NUMBERS } from "@/features/auditions/types";
 import { APPLICANTS, SCREENING_STATE_SEEDS, type MockApplicant } from "./applicants";
 import { CATALOG } from "./catalog";
@@ -11,13 +11,13 @@ const reviews = new Map<string, MutableReview>();
 const closedRounds = new Set<string>();
 const submittedApplicants: MockApplicant[] = [];
 
-const reviewKey = (application: ApplicationId, role: RoleId, round: RoundNumber) => `${application}:${role}:${round}`;
+const reviewKey = (submission: SubmissionId, role: RoleId, round: RoundNumber) => `${submission}:${role}:${round}`;
 const roundKey = (role: RoleId, round: RoundNumber) => `${role}:${round}`;
 
 for (const seed of SCREENING_STATE_SEEDS) {
   for (const round of seed.closedRounds) closedRounds.add(roundKey(seed.roleId, round));
   for (const review of seed.reviews) {
-    reviews.set(reviewKey(review.applicationId, seed.roleId, review.round), {
+    reviews.set(reviewKey(review.submissionId, seed.roleId, review.round), {
       status: review.status,
       memo: "",
       note: review.note ?? "",
@@ -25,8 +25,8 @@ for (const seed of SCREENING_STATE_SEEDS) {
   }
 }
 
-export function reviewOf(application: ApplicationId, role: RoleId, round: RoundNumber): MutableReview {
-  const key = reviewKey(application, role, round);
+export function reviewOf(submission: SubmissionId, role: RoleId, round: RoundNumber): MutableReview {
+  const key = reviewKey(submission, role, round);
   const existing = reviews.get(key);
   if (existing) return existing;
 
@@ -35,8 +35,8 @@ export function reviewOf(application: ApplicationId, role: RoleId, round: RoundN
   return created;
 }
 
-export const readReview = (application: ApplicationId, role: RoleId, round: RoundNumber): Review => ({
-  ...reviewOf(application, role, round),
+export const readReview = (submission: SubmissionId, role: RoleId, round: RoundNumber): Review => ({
+  ...reviewOf(submission, role, round),
 });
 
 export const isRoundClosed = (role: RoleId, round: RoundNumber) => closedRounds.has(roundKey(role, round));

@@ -9,7 +9,7 @@ import { formatApplicantDate } from "@/features/applicants/presentation";
 import { applicantRoutes } from "@/features/applicants/routes";
 import { PrimaryLink, TextButton } from "@/components/ui/controls";
 
-export function PublicApplicationReceipt() {
+export function PublicSubmissionReceipt() {
   const { state, actions, meta } = usePublicApplication();
   const receipt = state.receipt!;
   const recommendations = publicPostingRecommendations(meta.postingId);
@@ -28,7 +28,7 @@ export function PublicApplicationReceipt() {
             <dt className="text-muted">선택 배역</dt><dd className="font-medium">{meta.roleName}</dd>
             <dt className="text-muted">제출 시각</dt><dd className="num font-medium">{formatApplicantDate(receipt.submittedAt, true)}</dd>
           </dl>
-          <PrimaryLink href={applicantRoutes.application(receipt.applicationId)} className="mt-5 w-full">내 지원서에서 확인</PrimaryLink>
+          <PrimaryLink href={applicantRoutes.submission(receipt.submissionId)} className="mt-5 w-full">내 지원서에서 확인</PrimaryLink>
         </section>
       </section>
 

@@ -8,14 +8,14 @@ ai-context: on-demand
 
 ## 계기
 
-지원서 하나가 여러 배역에 지원할 수 있고 심사 결과는 `(지원서, 배역, 차수)`에 속한다. 기존 목표 상세 API의 `applicationId+round`만으로는 어느 배역의 심사인지 특정할 수 없었고, 목록 위 모달은 새로고침·뒤로 가기·상세 링크 공유에도 불리했다.
+지원서 하나가 여러 배역에 지원할 수 있고 심사 결과는 `(지원서, 배역, 차수)`에 속한다. 기존 목표 상세 API의 `submissionId+round`만으로는 어느 배역의 심사인지 특정할 수 없었고, 목록 위 모달은 새로고침·뒤로 가기·상세 링크 공유에도 불리했다.
 
 ## 결정
 
-지원자를 클릭하면 `/producers/roles/{roleId}/applications/{applicationId}?round={round}` 심사 상세 페이지로
+지원자를 클릭하면 `/producers/roles/{roleId}/submissions/{submissionId}?round={round}` 심사 상세 페이지로
 이동한다. 목표 상세 조회 API는
-`GET /api/v1/audition-roles/{roleId}/screening-rounds/{round}/applications/{applicationId}`로 식별한다.
-`applicationId`는 UUID를 사용하고 목록으로 돌아갈 때도 `round`를 유지한다.
+`GET /api/v1/audition-roles/{roleId}/screening-rounds/{round}/submissions/{submissionId}`로 식별한다.
+`submissionId`는 UUID를 사용하고 목록으로 돌아갈 때도 `round`를 유지한다.
 
 ## 이유
 

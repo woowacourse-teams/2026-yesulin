@@ -22,8 +22,8 @@ import org.hibernate.type.SqlTypes;
 @Entity
 @Table(name = "screening_reviews", uniqueConstraints = {
         @UniqueConstraint(
-                name = "uk_screening_reviews_application_role_stage",
-                columnNames = {"application_id", "audition_role_id", "screening_stage_id"}
+                name = "uk_screening_reviews_submission_role_stage",
+                columnNames = {"submission_id", "audition_role_id", "screening_stage_id"}
         )
 })
 @Getter
@@ -38,8 +38,8 @@ public class ScreeningReview {
     private Long id;
 
     @JdbcTypeCode(SqlTypes.BINARY)
-    @Column(name = "application_id", nullable = false, updatable = false, columnDefinition = "binary(16)")
-    private UUID applicationId;
+    @Column(name = "submission_id", nullable = false, updatable = false, columnDefinition = "binary(16)")
+    private UUID submissionId;
 
     @Column(name = "audition_role_id", nullable = false, updatable = false)
     private long auditionRoleId;
@@ -56,8 +56,8 @@ public class ScreeningReview {
     @Column(name = "internal_memo", nullable = false, length = MAX_INTERNAL_MEMO_LENGTH)
     private String internalMemo;
 
-    public ScreeningReview(UUID applicationId, long auditionRoleId, long screeningStageId) {
-        this.applicationId = requireNonNull(applicationId, "지원서 ID는 필수입니다.");
+    public ScreeningReview(UUID submissionId, long auditionRoleId, long screeningStageId) {
+        this.submissionId = requireNonNull(submissionId, "제출 지원서 ID는 필수입니다.");
         this.auditionRoleId = requirePositive(auditionRoleId, "공고 배역 ID는 1 이상이어야 합니다.");
         this.screeningStageId = requirePositive(screeningStageId, "전형 ID는 1 이상이어야 합니다.");
         this.status = ScreeningReviewStatus.PENDING;

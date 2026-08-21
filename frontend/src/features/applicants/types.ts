@@ -1,5 +1,5 @@
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
-import type { ApplicationId, RoundNumber } from "@/features/auditions/types";
+import type { SubmissionId, RoundNumber } from "@/features/auditions/types";
 
 export type CareerEntry = {
   readonly year: number;
@@ -63,8 +63,8 @@ export type UpdateProfileRequest = {
   readonly videoLibrary?: readonly ApplicantProfileVideo[];
 };
 
-export type ApplicantApplicationSummary = {
-  readonly id: ApplicationId;
+export type ApplicantSubmissionSummary = {
+  readonly id: SubmissionId;
   readonly postingId: string;
   readonly performanceTitle: string;
   readonly postingTitle: string;
@@ -97,11 +97,11 @@ export type ApplicantApplicationDraftSummary = {
   readonly postingStatus: "OPEN" | "UPCOMING" | "CLOSED";
 };
 
-export type ApplicantApplicationListResponse = {
-  readonly applications: readonly ApplicantApplicationSummary[];
+export type ApplicantSubmissionListResponse = {
+  readonly submissions: readonly ApplicantSubmissionSummary[];
 };
 
-export type ApplicantApplicationDetail = ApplicantApplicationSummary & {
+export type ApplicantSubmissionDetail = ApplicantSubmissionSummary & {
   readonly roleId: string;
   readonly roleIds: readonly string[];
   readonly updatedAt: string;
@@ -110,7 +110,7 @@ export type ApplicantApplicationDetail = ApplicantApplicationSummary & {
   readonly applicationFields: readonly ApplicationFieldInput[];
 };
 
-export type UpdateApplicationRequest = {
+export type UpdateSubmissionRequest = {
   readonly answers: readonly Pick<ApplicantAnswer, "key" | "value">[];
 };
 
@@ -128,12 +128,12 @@ export type RecommendedPostingResponse = {
   readonly postings: readonly RecommendedPosting[];
 };
 
-export type LookupApplicationRequest = {
+export type LookupSubmissionRequest = {
   readonly code: string;
   readonly phone: string;
 };
 
-export type LookupApplicationResponse = {
+export type LookupSubmissionResponse = {
   readonly lookupCode: string;
   readonly performanceTitle: string;
   readonly postingTitle: string;
@@ -153,8 +153,8 @@ export type ProfilePrefillResponse = {
   readonly missingKeys: readonly string[];
 };
 
-export type SubmitApplicationRequest = {
-  /** Notion 표의 /public/applications 경로에는 식별자 자리가 없어 본문으로 전달한다. */
+export type CreateSubmissionRequest = {
+  /** 공개 제출 경로에는 공고 식별자 자리가 없어 본문으로 전달한다. */
   readonly postingId: string;
   readonly roleIds: readonly string[];
   readonly answers: readonly {
@@ -166,8 +166,8 @@ export type SubmitApplicationRequest = {
   readonly saveToProfile: boolean;
 };
 
-export type SubmitApplicationResponse = {
-  readonly applicationId: ApplicationId;
+export type CreateSubmissionResponse = {
+  readonly submissionId: SubmissionId;
   readonly receiptNumber: string;
   readonly submittedAt: string;
   readonly profileClaimToken: string | null;

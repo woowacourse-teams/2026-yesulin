@@ -7,7 +7,7 @@ import { activeDetailFilterCount, applyFilters, initialFilters, type AuditionFil
 import { STATUS_LABELS } from "@/features/auditions/labels";
 import type {
   Applicant,
-  ApplicationId,
+  SubmissionId,
   ReviewStatus,
   RoundNumber,
   AuditionBoardResponse,
@@ -38,12 +38,12 @@ export function BoardWorkspace({
   const [filters, setFilters] = useState<AuditionFilters>(() =>
     initialFilters(roundClosed ? "DONE" : "PENDING"),
   );
-  const [selected, setSelected] = useState<ReadonlySet<ApplicationId>>(new Set());
+  const [selected, setSelected] = useState<ReadonlySet<SubmissionId>>(new Set());
   const [contactList, setContactList] = useState<readonly Applicant[] | null>(null);
   const [closePrompt, setClosePrompt] = useState<"auto" | "manual" | null>(null);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [memoRequest, setMemoRequest] = useState<{ readonly kind: "BULK" | "CURRENT"; readonly ids: readonly ApplicationId[]; readonly previousIndex?: number } | null>(null);
+  const [memoRequest, setMemoRequest] = useState<{ readonly kind: "BULK" | "CURRENT"; readonly ids: readonly SubmissionId[]; readonly previousIndex?: number } | null>(null);
   const toast = useToast();
   const router = useRouter();
 
@@ -51,7 +51,7 @@ export function BoardWorkspace({
 
   const clearSelection = useCallback(() => setSelected(new Set()), []);
 
-  const toggleSelected = useCallback((id: ApplicationId) => {
+  const toggleSelected = useCallback((id: SubmissionId) => {
     setSelected((current) => {
       const next = new Set(current);
       if (next.has(id)) next.delete(id);
@@ -60,7 +60,7 @@ export function BoardWorkspace({
     });
   }, []);
 
-  const setSelection = useCallback((ids: readonly ApplicationId[], on: boolean) => {
+  const setSelection = useCallback((ids: readonly SubmissionId[], on: boolean) => {
     setSelected((current) => {
       const next = new Set(current);
       for (const id of ids) {
@@ -91,12 +91,12 @@ export function BoardWorkspace({
 
   const submitReview = useCallback(
     (
-      applicationIds: readonly ApplicationId[],
+      submissionIds: readonly SubmissionId[],
       patch: { status?: ReviewStatus; memo?: string; note?: string },
       fallback: string,
     ) =>
       run(
-        () => saveReview({ roleId: board.role.id, round: board.round, applicationIds, ...patch }),
+        () => saveReview({ roleId: board.role.id, round: board.round, submissionIds, ...patch }),
         fallback,
       ),
     [board.role.id, board.round, run],
@@ -111,7 +111,7 @@ export function BoardWorkspace({
   }, []);
 
   const applyBulkStatus = useCallback(
-    async (ids: readonly ApplicationId[], status: ReviewStatus, memo?: string) => {
+    async (ids: readonly SubmissionId[], status: ReviewStatus, memo?: string) => {
       const next = await submitReview(ids, { status, ...(memo ? { memo } : {}) }, "심사 결과를 저장하지 못했습니다.");
       if (!next) return;
       clearSelection();
@@ -121,7 +121,7 @@ export function BoardWorkspace({
     [clearSelection, promptCloseIfDone, submitReview, toast],
   );
 
-  const setStatus = useCallback(async (ids: readonly ApplicationId[], status: ReviewStatus) => {
+  const setStatus = useCallback(async (ids: readonly SubmissionId[], status: ReviewStatus) => {
     if (ids.length === 0) return;
     if (status === "ETC") { setMemoRequest({ kind: "BULK", ids }); return; }
     await applyBulkStatus(ids, status);
@@ -132,7 +132,7 @@ export function BoardWorkspace({
    * 같은 자리에 밀려 올라온 다음 배우로 자동으로 넘어가 흐름이 끊기지 않게 한다.
    */
   const applyCurrentStatus = useCallback(
-    async (id: ApplicationId, status: ReviewStatus, previousIndex: number, memo?: string) => {
+    async (id: SubmissionId, status: ReviewStatus, previousIndex: number, memo?: string) => {
       const next = await submitReview([id], { status, ...(memo ? { memo } : {}) }, "심사 결과를 저장하지 못했습니다.");
       if (!next) return;
       if (filters.work !== "PENDING" || status === "PENDING") return;
@@ -154,14 +154,14 @@ export function BoardWorkspace({
     [board.role.id, board.round, filters, promptCloseIfDone, router, submitReview, toast],
   );
 
-  const reviewCurrent = useCallback(async (id: ApplicationId, status: ReviewStatus) => {
+  const reviewCurrent = useCallback(async (id: SubmissionId, status: ReviewStatus) => {
     const previousIndex = visible.findIndex((applicant) => applicant.id === id);
     if (status === "ETC") { setMemoRequest({ kind: "CURRENT", ids: [id], previousIndex }); return; }
     await applyCurrentStatus(id, status, previousIndex);
   }, [applyCurrentStatus, visible]);
 
   const patchReview = useCallback(
-    async (id: ApplicationId, patch: { readonly memo?: string; readonly note?: string }) => {
+    async (id: SubmissionId, patch: { readonly memo?: string; readonly note?: string }) => {
       await submitReview([id], patch, "메모를 저장하지 못했습니다.");
     },
     [submitReview],

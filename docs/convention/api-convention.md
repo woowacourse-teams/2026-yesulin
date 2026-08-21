@@ -49,12 +49,12 @@ POST   /api/v1/actor-photos/upload-requests      # 배우 사진 Presigned Uploa
 PATCH  /api/v1/actor-photos/{fileId}/completion
                                                   # 배우 사진 업로드 완료 확인
 
-GET    /api/v1/applicants/me/applications       # 내 지원서 목록
-GET    /api/v1/applicants/me/applications/{applicationId}
+GET    /api/v1/applicants/me/submissions       # 내 지원서 목록
+GET    /api/v1/applicants/me/submissions/{submissionId}
                                                     # 내 제출 스냅샷
 ```
 
-- 제출 완료 후 일반 수정은 공개 정책에서 허용하지 않는다. 현재 프런트 화면은 읽기 전용이며 MSW의 수정 요청도 `409 IMMUTABLE_APPLICATION`으로 거부한다.
+- 제출 완료 후 일반 수정은 공개 정책에서 허용하지 않는다. 현재 프런트 화면은 읽기 전용이며 MSW의 수정 요청도 `409 IMMUTABLE_SUBMISSION`으로 거부한다.
 - 내 지원서 목록·상세는 지원서 하나와 선택한 배역들을 함께 반환한다. `roleProgress[]`의 각 항목은 `roleId`, `roleName`, 공개 상태, 현재 또는 결과 차수와 차수명을 포함한다.
 - 공개 상태는 `RECEIVED`, `IN_REVIEW`, `FINAL_PASS`, `NOT_SELECTED`를 사용한다. 검토 중인 결과와 내부 메모는 포함하지 않고, 해당 배역의 차수가 마감된 뒤에만 확정 결과를 반영한다.
 - 작성 중 지원서는 현재 브라우저 IndexedDB를 직접 조회한다. 서버 Draft 목록과 다른 기기 동기화는 MVP 범위가 아니다.
@@ -181,9 +181,9 @@ PUT    /api/v1/auditions/{auditionId}/publication         # 완성된 공고 게
 ## 심사
 
 ```http
-GET   /api/v1/audition-roles/{roleId}/screening-rounds/{round}/applications
+GET   /api/v1/audition-roles/{roleId}/screening-rounds/{round}/submissions
       ?cursor={cursor}&size={size}                       # 심사 목록
-GET   /api/v1/audition-roles/{roleId}/screening-rounds/{round}/applications/{applicationId} # 민감 상세
+GET   /api/v1/audition-roles/{roleId}/screening-rounds/{round}/submissions/{submissionId} # 민감 상세
 PATCH /api/v1/audition-roles/{roleId}/screening-rounds/{round}/reviews
                                                            # 결과 일괄 수정
 PATCH /api/v1/audition-roles/{roleId}/screening-rounds/{round} # status=CLOSED로 마감
@@ -191,14 +191,14 @@ PATCH /api/v1/audition-roles/{roleId}/screening-rounds/{round} # status=CLOSED�
 
 - `screening-rounds`는 단순 `rounds`보다 차수의 용도를 명확히 알려 주므로 유지한다.
 - `roles`는 회원 역할과 혼동되므로 공고에서 선택한 배역 리소스를 `audition-roles`로 명시한다.
-- 심사 상세는 `applicationId`만으로 조회하지 않고 `(roleId, round, applicationId)`를 경로에 모두 둔다. 복수 배역 지원서에서도 현재 심사 기록의 소유 범위가 모호해지지 않는다.
-- 외부 `applicationId`는 순차 PK가 아니라 UUID를 사용한다. 내부 PK와 외부 식별자는 지원서 계층에서 변환한다.
+- 심사 상세는 `submissionId`만으로 조회하지 않고 `(roleId, round, submissionId)`를 경로에 모두 둔다. 복수 배역 지원서에서도 현재 심사 기록의 소유 범위가 모호해지지 않는다.
+- 외부 `submissionId`는 순차 PK가 아니라 UUID를 사용한다. 내부 PK와 외부 식별자는 지원서 계층에서 변환한다.
 - 심사 목록은 cursor 방식이며 버전, 차수 상태, 집계와 페이지를 포함한다.
 - `(roleId, round)`를 하나의 심사 작업 단위로 보고 목록·집계·차수 상태·버전을 같은 읽기 모델에서 반환한다. 결과 저장과 차수 마감도 갱신된 작업 단위를 반환해 프런트가 여러 응답을 조합하지 않게 한다.
 - 복수 배역 지원서는 선택한 각 배역의 심사 목록에 표시하며 심사 결과는 `(지원서, 배역, 차수)`별로 구분한다.
 - 결과 수정과 차수 마감은 `expectedVersion`을 받고 충돌 시 `409 VERSION_CONFLICT`를 반환한다.
 - 기획사/제작사용 상세는 권한을 확인하고 배우의 민감 정보와 해당 차수 심사 기록을 반환한다. 제출 영상은 공고의 영상 요구 순서를 유지한 `videos: [{ label, url }]` 배열이며, 수집하지 않았거나 제출된 영상이 없으면 빈 배열이다.
-- 현재 백엔드는 `(applicationId, roleId, round)`별 `PENDING`, `PASS`, `FAIL`, `ABSENT`, `ETC` 상태와
+- 현재 백엔드는 `(submissionId, roleId, round)`별 `PENDING`, `PASS`, `FAIL`, `ABSENT`, `ETC` 상태와
   기타 사유·내부 메모의 일괄 저장을 구현했다.
 - 제출 지원서가 아직 없어 목록·민감 상세 읽기 모델, 차수 마감과 `expectedVersion` 계약은 구현 대기다.
   지원서 상세 조회는 미존재·접근 불가·해당 배역 미지원 대상을 모두 `404`로 처리하고, 유효하지만 심사 기록이
@@ -210,7 +210,7 @@ PATCH /api/v1/audition-roles/{roleId}/screening-rounds/{round} # status=CLOSED�
 /api/auth/signup/producer           → /api/v1/producers
 /api/me/profile                     → /api/v1/applicants/me/profile
 /api/me/profile/prefill             → /api/v1/applicants/me/profile/prefill
-/api/me/applications/**             → GET은 /api/v1/applicants/me/applications/**, PATCH는 목표 계약에서 제외
+/api/me/submissions/**             → GET은 /api/v1/applicants/me/submissions/**, PATCH는 목표 계약에서 제외
 /api/public/recommended-postings    → /api/v1/public/recommended-auditions
 /api/public/postings/**             → /api/v1/public/auditions/**
 /api/me/producer                    → /api/v1/producers/me

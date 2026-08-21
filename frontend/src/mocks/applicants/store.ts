@@ -1,14 +1,14 @@
-import { applicationId, roleId, type ApplicationId } from "@/features/auditions/types";
+import { submissionId, roleId, type SubmissionId } from "@/features/auditions/types";
 import type {
   ApplicantAnswer,
-  ApplicantApplicationDetail,
-  ApplicantApplicationSummary,
+  ApplicantSubmissionDetail,
+  ApplicantSubmissionSummary,
   ApplicantProfileResponse,
   ApplicantProfilePhoto,
   ApplicantProfileVideo,
-  LookupApplicationResponse,
+  LookupSubmissionResponse,
   RecommendedPosting,
-  UpdateApplicationRequest,
+  UpdateSubmissionRequest,
   UpdateProfileRequest,
 } from "@/features/applicants/types";
 import { CATALOG } from "@/mocks/auditions/catalog";
@@ -52,14 +52,14 @@ let photoLibrary: ApplicantProfilePhoto[] = [
   { id: "seed-photo-4", name: "김하린 연기 이미지 2.jpg", url: "/images/applicants/kim-harin-acting-2.png", representative: false },
 ];
 let videoLibrary: ApplicantProfileVideo[] = [{ id: "seed-video-1", url: "https://youtu.be/aqz-KE-bpKQ", youtubeId: "aqz-KE-bpKQ" }];
-let applications: ApplicantApplicationDetail[] = [{
-  id: applicationId("00000000-0000-4000-8000-000026081201"), postingId: "seed_posting_1", performanceTitle: "달빛 아래 우리", postingTitle: "2026 하반기 주·조연 배우 모집",
+let submissions: ApplicantSubmissionDetail[] = [{
+  id: submissionId("00000000-0000-4000-8000-000026081201"), postingId: "seed_posting_1", performanceTitle: "달빛 아래 우리", postingTitle: "2026 하반기 주·조연 배우 모집",
   posterUrl: "/images/performances/moonlight.jpg", companyName: "예술in 스테이지", roleId: "seed_role_seoyeon", roleIds: ["seed_role_seoyeon", "seed_role_jiwoo"], roleName: "서연 · 지우",
   lookupCode: "YS-20260812-SEED01", submittedAt: "2026-08-12T10:30:00+09:00", updatedAt: "2026-08-12T10:30:00+09:00",
   editable: false, recruitmentEnd: "2026-09-30", editableUntil: "", roleProgress: [], answers: seededAnswers, applicationFields: screeningFlowApplicationFixture(),
 }];
-const ownedApplicationIds = new Set<ApplicationId>(applications.map((application) => application.id));
-const claims = new Map<string, { readonly applicationId: ApplicationId; readonly expiresAt: string; used: boolean }>();
+const ownedSubmissionIds = new Set<SubmissionId>(submissions.map((submission) => submission.id));
+const claims = new Map<string, { readonly submissionId: SubmissionId; readonly expiresAt: string; used: boolean }>();
 
 const clone = <T>(value: T): T => structuredClone(value);
 
@@ -86,7 +86,7 @@ export function patchApplicantProfile(body: UpdateProfileRequest): ApplicantProf
   return applicantProfile();
 }
 
-function toSummary(detail: ApplicantApplicationDetail): ApplicantApplicationSummary {
+function toSummary(detail: ApplicantSubmissionDetail): ApplicantSubmissionSummary {
   return {
     id: detail.id,
     postingId: detail.postingId,
@@ -103,7 +103,7 @@ function toSummary(detail: ApplicantApplicationDetail): ApplicantApplicationSumm
   };
 }
 
-function roleProgressOf(detail: ApplicantApplicationDetail): ApplicantApplicationSummary["roleProgress"] {
+function roleProgressOf(detail: ApplicantSubmissionDetail): ApplicantSubmissionSummary["roleProgress"] {
   const posting = CATALOG.flatMap((performance) => performance.postings).find((candidate) => candidate.id === detail.postingId);
   return detail.roleIds.map((id) => {
     const typedRoleId = roleId(id);
@@ -119,15 +119,15 @@ function roleProgressOf(detail: ApplicantApplicationDetail): ApplicantApplicatio
   });
 }
 
-export const applicantApplications = () => ({ applications: clone(applications.filter((application) => ownedApplicationIds.has(application.id)).map(toSummary)) });
+export const applicantSubmissions = () => ({ submissions: clone(submissions.filter((submission) => ownedSubmissionIds.has(submission.id)).map(toSummary)) });
 
-export const applicantApplication = (id: ApplicationId) => {
-  const detail = ownedApplicationIds.has(id) ? applications.find((application) => application.id === id) : undefined;
+export const applicantSubmission = (id: SubmissionId) => {
+  const detail = ownedSubmissionIds.has(id) ? submissions.find((submission) => submission.id === id) : undefined;
   return detail ? { ...clone(detail), roleProgress: roleProgressOf(detail) } : null;
 };
 
-export function patchApplicantApplication(id: ApplicationId, body: UpdateApplicationRequest) {
-  const current = applications.find((application) => application.id === id);
+export function patchApplicantSubmission(id: SubmissionId, body: UpdateSubmissionRequest) {
+  const current = submissions.find((submission) => submission.id === id);
   if (!current) return null;
   const changed = new Map(body.answers.map((answer) => [answer.key, answer.value]));
   const currentKeys = new Set(current.answers.map((answer) => answer.key));
@@ -139,8 +139,8 @@ export function patchApplicantApplication(id: ApplicationId, body: UpdateApplica
       value: answer.value,
     })),
   ];
-  applications = applications.map((application) => application.id === id ? { ...application, answers, updatedAt: new Date().toISOString() } : application);
-  return applicantApplication(id);
+  submissions = submissions.map((submission) => submission.id === id ? { ...submission, answers, updatedAt: new Date().toISOString() } : submission);
+  return applicantSubmission(id);
 }
 
 export function recommendedPostings(exclude?: string, limit = 3): readonly RecommendedPosting[] {
@@ -158,9 +158,9 @@ export function recommendedPostings(exclude?: string, limit = 3): readonly Recom
     .slice(0, limit);
 }
 
-export function lookupApplicantApplication(code: string, phone: string): LookupApplicationResponse | null {
+export function lookupApplicantSubmission(code: string, phone: string): LookupSubmissionResponse | null {
   const normalized = code.replaceAll("-", "").toUpperCase();
-  const found = applications.find((application) => application.lookupCode.replaceAll("-", "").toUpperCase() === normalized);
+  const found = submissions.find((submission) => submission.lookupCode.replaceAll("-", "").toUpperCase() === normalized);
   const savedPhone = found?.answers.find((answer) => answer.key === "PHONE")?.value;
   if (!found || typeof savedPhone !== "string" || savedPhone.replace(/\D/g, "") !== phone.replace(/\D/g, "")) return null;
   return clone({
@@ -177,28 +177,28 @@ export function lookupApplicantApplication(code: string, phone: string): LookupA
   });
 }
 
-export function addApplicantApplication(detail: ApplicantApplicationDetail) {
-  applications = [detail, ...applications];
-  ownedApplicationIds.add(detail.id);
+export function addApplicantSubmission(detail: ApplicantSubmissionDetail) {
+  submissions = [detail, ...submissions];
+  ownedSubmissionIds.add(detail.id);
 }
 
-export const hasApplicationForPosting = (postingId: string) =>
-  applications.some((application) => ownedApplicationIds.has(application.id) && application.postingId === postingId);
+export const hasSubmissionForPosting = (postingId: string) =>
+  submissions.some((submission) => ownedSubmissionIds.has(submission.id) && submission.postingId === postingId);
 
-export function registerProfileClaim(token: string, applicationId: ApplicationId, expiresAt: string) {
-  claims.set(token, { applicationId, expiresAt, used: false });
+export function registerProfileClaim(token: string, submissionId: SubmissionId, expiresAt: string) {
+  claims.set(token, { submissionId, expiresAt, used: false });
 }
 
 /** 유효한 1회용 토큰이면 지원서 소유권과 표준 프로필 스냅샷을 함께 귀속한다. */
-export function claimApplicantApplication(token?: string): ApplicationId | null {
+export function claimApplicantSubmission(token?: string): SubmissionId | null {
   if (!token) return null;
   const claim = claims.get(token);
   if (!claim || claim.used || Date.parse(claim.expiresAt) <= Date.now()) return null;
-  const application = applications.find((candidate) => candidate.id === claim.applicationId);
-  if (!application) return null;
+  const submission = submissions.find((candidate) => candidate.id === claim.submissionId);
+  if (!submission) return null;
   claim.used = true;
-  ownedApplicationIds.add(application.id);
-  const standard = application.answers.filter((answer) => reusableKeys.has(answer.key));
+  ownedSubmissionIds.add(submission.id);
+  const standard = submission.answers.filter((answer) => reusableKeys.has(answer.key));
   for (const answer of standard) {
     const current = profileAnswers.find((candidate) => candidate.key === answer.key);
     const next = { ...answer, updatedAt: new Date().toISOString() };
@@ -206,5 +206,5 @@ export function claimApplicantApplication(token?: string): ApplicationId | null 
       ? profileAnswers.map((candidate) => candidate.key === answer.key ? next : candidate)
       : [...profileAnswers, next];
   }
-  return application.id;
+  return submission.id;
 }

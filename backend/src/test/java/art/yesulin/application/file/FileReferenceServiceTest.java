@@ -77,10 +77,10 @@ class FileReferenceServiceTest {
         FileUploadResult firstUpload = requestReadyUpload();
         FileUploadResult secondUpload = requestReadyUpload();
         LinkFileCommand firstCommand = new LinkFileCommand(
-                OWNER_ID, firstUpload.fileId(), "APPLICATION_PHOTO", 1L
+                OWNER_ID, firstUpload.fileId(), "SUBMISSION_PHOTO", 1L
         );
         LinkFileCommand secondCommand = new LinkFileCommand(
-                OWNER_ID, secondUpload.fileId(), "APPLICATION_PHOTO", 1L
+                OWNER_ID, secondUpload.fileId(), "SUBMISSION_PHOTO", 1L
         );
 
         fileReferenceService.linkFile(firstCommand);
@@ -88,10 +88,10 @@ class FileReferenceServiceTest {
 
         assertEquals(2, fileReferenceRepository.count());
         assertTrue(fileReferenceRepository.existsByReferenceTypeAndReferenceIdAndFileId(
-                "APPLICATION_PHOTO", 1L, firstUpload.fileId()
+                "SUBMISSION_PHOTO", 1L, firstUpload.fileId()
         ));
         assertTrue(fileReferenceRepository.existsByReferenceTypeAndReferenceIdAndFileId(
-                "APPLICATION_PHOTO", 1L, secondUpload.fileId()
+                "SUBMISSION_PHOTO", 1L, secondUpload.fileId()
         ));
     }
 

@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.UUID;
 
 public record SaveScreeningReviewsRequest(
-        @NotEmpty List<@NotNull UUID> applicationIds,
+        @NotEmpty List<@NotNull UUID> submissionIds,
         @Pattern(
                 regexp = "PENDING|PASS|FAIL|ABSENT|ETC",
                 flags = Pattern.Flag.CASE_INSENSITIVE,
@@ -27,6 +27,6 @@ public record SaveScreeningReviewsRequest(
     }
 
     public SaveScreeningReviewsCommand toCommand() {
-        return new SaveScreeningReviewsCommand(applicationIds, status, memo, note);
+        return new SaveScreeningReviewsCommand(submissionIds, status, memo, note);
     }
 }

@@ -94,7 +94,7 @@ status: active
 
 ### 심사
 
-- 심사 결과는 `(applicationId, auditionRoleId, screeningStageId)`별로 한 건만 저장한다. `applicationId`는
+- 심사 결과는 `(submissionId, auditionRoleId, screeningStageId)`별로 한 건만 저장한다. `submissionId`는
   지원자 수를 추측하기 어려운 UUID를 사용한다. 복수 배역과
   여러 차수의 결과가 서로 덮이지 않는다.
 - 상태는 `PENDING`, `PASS`, `FAIL`, `ABSENT`, `ETC`다. 기록이 없으면 row를 만들지 않고
@@ -102,7 +102,7 @@ status: active
 - `ETC`는 최대 255자의 사유가 필요하다. 최대 2,000자의 내부 메모는 상태와 별도로 보존하므로
   보류 후 합격·불합격으로 바꿔도 사라지지 않는다.
 - 저장할 때 공고 행을 잠그고 공고 소유권, 배역과 차수가 같은 공고에 속하는지 검증한다.
-- 제출 지원서 Aggregate가 아직 없으므로 현재는 UUID `applicationId`를 외부 참조로 보관한다. 지원서 구현 시
+- 제출 지원서 Aggregate가 아직 없으므로 현재는 UUID `submissionId`를 외부 참조로 보관한다. 지원서 구현 시
   선택 배역과 차수별 심사 대상 여부를 검증하고 FK를 추가한다. 존재를 검증할 수 없는 심사 결과 단독 조회는
   제공하지 않고, 향후 지원서 상세 조회가 미존재·접근 불가 지원서를 `404`로 처리한다.
 

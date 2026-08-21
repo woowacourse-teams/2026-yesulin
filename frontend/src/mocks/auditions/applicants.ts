@@ -1,6 +1,6 @@
 import type {
   ApplicantPhoto,
-  ApplicationId,
+  SubmissionId,
   CareerEntry,
   Gender,
   PerformanceId,
@@ -9,12 +9,12 @@ import type {
   ReviewStatus,
   RoundNumber,
 } from "@/features/auditions/types";
-import { applicationId, performanceId, postingId, roleId } from "@/features/auditions/types";
+import { submissionId, performanceId, postingId, roleId } from "@/features/auditions/types";
 import { fallbackPhoto } from "./photos";
 
 /** MSW 저장소가 들고 있는 지원서 한 건. 심사 결과는 별도 저장소에서 관리한다. */
 export type MockApplicant = {
-  readonly id: ApplicationId;
+  readonly id: SubmissionId;
   readonly name: string;
   readonly gender: Gender;
   readonly age: number;
@@ -39,7 +39,7 @@ export type MockApplicant = {
 
 /** 정책 기반 심사 화면을 확인할 수 있는 제출 스냅샷 1건. */
 const PRIMARY_APPLICANT: MockApplicant = {
-  id: applicationId("00000000-0000-4000-8000-000026081201"),
+  id: submissionId("00000000-0000-4000-8000-000026081201"),
   name: "김하린",
   gender: "FEMALE",
   age: 27,
@@ -82,7 +82,7 @@ function scenarioApplicant({ id, name, posting, role, index }: {
 }): MockApplicant {
   const photo = fallbackPhoto(name, index);
   return {
-    id: applicationId(`00000000-0000-4000-8000-${String(id).padStart(12, "0")}`),
+    id: submissionId(`00000000-0000-4000-8000-${String(id).padStart(12, "0")}`),
     name,
     gender: index % 2 === 0 ? "FEMALE" : "MALE",
     age: 23 + index,
@@ -120,7 +120,7 @@ export type ScreeningStateSeed = {
   readonly roleId: RoleId;
   readonly closedRounds: readonly RoundNumber[];
   readonly reviews: readonly {
-    readonly applicationId: ApplicationId;
+    readonly submissionId: SubmissionId;
     readonly round: RoundNumber;
     readonly status: ReviewStatus;
     readonly note?: string;
@@ -128,7 +128,7 @@ export type ScreeningStateSeed = {
 };
 
 const reviewSeeds = (applicants: readonly MockApplicant[], round: RoundNumber, statuses: readonly ReviewStatus[]) =>
-  applicants.map((applicant, index) => ({ applicationId: applicant.id, round, status: statuses[index] ?? "PENDING" }));
+  applicants.map((applicant, index) => ({ submissionId: applicant.id, round, status: statuses[index] ?? "PENDING" }));
 
 /** 새로고침 직후에도 2·3차 진행 화면으로 바로 진입하기 위한 결정적 초기 상태. */
 export const SCREENING_STATE_SEEDS: readonly ScreeningStateSeed[] = [{

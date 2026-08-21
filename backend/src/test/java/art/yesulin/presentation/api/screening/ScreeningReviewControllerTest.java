@@ -77,7 +77,7 @@ class ScreeningReviewControllerTest {
     void savesReview() throws Exception {
         String request = """
                 {
-                  "applicationIds": ["b4472dce-52d0-41a9-baaa-c9e86e31b72b"],
+                  "submissionIds": ["b4472dce-52d0-41a9-baaa-c9e86e31b72b"],
                   "status": "etc",
                   "memo": "추가 논의",
                   "note": "발성 확인 필요"
@@ -89,7 +89,7 @@ class ScreeningReviewControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.reviews[0].applicationId")
+                .andExpect(jsonPath("$.reviews[0].submissionId")
                         .value("b4472dce-52d0-41a9-baaa-c9e86e31b72b"))
                 .andExpect(jsonPath("$.reviews[0].status").value("ETC"))
                 .andExpect(jsonPath("$.reviews[0].memo").value("추가 논의"))

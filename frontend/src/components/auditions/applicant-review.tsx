@@ -5,7 +5,7 @@ import Link from "next/link";
 import { getAuditionBoard } from "@/features/auditions/api";
 import { auditionRoutes } from "@/features/auditions/routes";
 import type {
-  ApplicationId,
+  SubmissionId,
   AuditionBoardResponse,
   RoleId,
   RoundNumber,
@@ -21,22 +21,22 @@ import { StatusBadge } from "./status-badge";
 
 export function ApplicantReview({
   roleId,
-  applicationId,
+  submissionId,
   round,
 }: {
   roleId: RoleId;
-  applicationId: ApplicationId;
+  submissionId: SubmissionId;
   round: RoundNumber;
 }) {
   const [applied, setApplied] = useState<AuditionBoardResponse | null>(null);
   const load = useCallback(() => getAuditionBoard(roleId, round), [roleId, round]);
   const { data, error, loading, reload } = useAuditionQuery(
-    `${roleId}:${round}:${applicationId}`,
+    `${roleId}:${round}:${submissionId}`,
     load,
     "지원서를 불러오지 못했습니다.",
   );
   const board = applied ?? data;
-  const applicant = board?.applicants.find((candidate) => candidate.id === applicationId) ?? null;
+  const applicant = board?.applicants.find((candidate) => candidate.id === submissionId) ?? null;
   const listHref = auditionRoutes.role(roleId, round);
 
   return (

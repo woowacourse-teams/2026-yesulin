@@ -29,7 +29,7 @@ export function answerValueText(value: ApplicantAnswerValue) {
   return "미입력";
 }
 
-export function applicationAvailability(editable: boolean) {
+export function submissionAvailability(editable: boolean) {
   void editable;
   return { label: "제출 완료", tone: "border-border bg-surface text-muted-strong", detail: "제출 당시 스냅샷을 읽기 전용으로 확인할 수 있어요." };
 }

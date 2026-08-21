@@ -8,15 +8,15 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ScreeningReviewRepository extends JpaRepository<ScreeningReview, Long> {
 
-    Optional<ScreeningReview> findByApplicationIdAndAuditionRoleIdAndScreeningStageId(
-            UUID applicationId,
+    Optional<ScreeningReview> findBySubmissionIdAndAuditionRoleIdAndScreeningStageId(
+            UUID submissionId,
             long auditionRoleId,
             long screeningStageId
     );
 
-    List<ScreeningReview> findAllByAuditionRoleIdAndScreeningStageIdAndApplicationIdIn(
+    List<ScreeningReview> findAllByAuditionRoleIdAndScreeningStageIdAndSubmissionIdIn(
             long auditionRoleId,
             long screeningStageId,
-            Collection<UUID> applicationIds
+            Collection<UUID> submissionIds
     );
 }
