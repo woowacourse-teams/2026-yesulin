@@ -43,6 +43,8 @@ if [ "$call_count" -eq 1 ]; then
   printf '403'
 elif [ "$TEST_SCENARIO" = "recovers" ] && [ "$call_count" -ge 3 ]; then
   printf '404'
+elif [ "$TEST_SCENARIO" = "unexpected" ]; then
+  printf '418'
 else
   printf '502'
 fi
@@ -71,6 +73,13 @@ if run_validation stays_unavailable \
   > "$TEMP_DIRECTORY/stays-unavailable.log" 2>&1; then
   cat "$TEMP_DIRECTORY/stays-unavailable.log" >&2
   echo "Expected validation to fail when Spring stays unavailable" >&2
+  exit 1
+fi
+
+if run_validation unexpected \
+  > "$TEMP_DIRECTORY/unexpected.log" 2>&1; then
+  cat "$TEMP_DIRECTORY/unexpected.log" >&2
+  echo "Expected validation to reject an unexpected status" >&2
   exit 1
 fi
 

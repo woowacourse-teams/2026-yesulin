@@ -14,6 +14,7 @@ CodeBuild는 저장소 루트의 `buildspec.yml`을 실행해 `backend/build/dep
 6. systemd가 `yesulin` 비로그인 사용자로 Spring을 `127.0.0.1:8080`에서 실행합니다.
 7. Nginx가 CloudFront 전용 Origin Header를 검사하고 `/api/v1/**`만 Spring으로 전달합니다.
 8. `ValidateService`가 Spring·Nginx 상태, Origin Header 차단과 reverse proxy 응답을 확인합니다. Spring 시작 중 발생하는 일시적인 `502`는 최대 30회, 1초 간격으로 재확인합니다.
+9. 검증 성공 후 현재 릴리스를 포함한 최근 릴리스 5개만 남기고 오래된 JAR를 삭제합니다.
 
 ## EC2 사전 조건
 
@@ -25,3 +26,23 @@ CodeBuild는 저장소 루트의 `buildspec.yml`을 실행해 `backend/build/dep
 - 실제 비밀번호나 서명 키는 저장소와 CodeBuild 로그에 넣지 않습니다.
 
 초기 환경 파일은 `yesulin.env.example`을 참고하되 실제 값은 EC2 외부에서 주입합니다. Nginx access log는 query string을 기록하지 않으며 실제 Origin Secret도 로그에 남기지 않습니다.
+
+## CloudFront 원본 HTTPS 전환
+
+배포 설정은 인증서가 없으면 HTTP 부트스트랩 설정을, 인증서가 있으면 HTTPS 설정을 자동 선택합니다. 다음 순서로 전환합니다.
+
+1. EC2 공인 IP가 중지·시작 후에도 유지되도록 Elastic IP 사용 가능 여부를 확인합니다.
+2. Cloudflare에 `origin.yesulin.art` A 레코드를 EC2 공인 IP로 추가하고 **DNS 전용**으로 둡니다.
+3. 이 변경을 먼저 배포해 HTTP-01 challenge 경로를 엽니다.
+4. App EC2에서 `sudo apt-get install -y certbot`을 실행합니다.
+5. 아래 명령으로 인증서를 발급하고 renewal dry-run까지 검증합니다.
+
+```sh
+sudo /opt/yesulin/deployment/scripts/issue_origin_certificate.sh \
+  --email {운영 이메일} --confirm
+```
+
+6. CloudFront EC2 원본을 `origin.yesulin.art`, HTTPS only, 포트 443, TLS 1.2로 바꿉니다. `X-Yesulin-Origin-Secret`은 그대로 유지합니다.
+7. CloudFront 경유 API와 EC2 직접 요청 차단을 다시 확인합니다.
+
+인증서 갱신 후에는 Certbot deploy hook이 Nginx 설정을 검증하고 reload합니다. DNS가 Cloudflare 프록시 상태이거나 공인 IP가 바뀌면 HTTP-01 갱신이 실패할 수 있습니다.

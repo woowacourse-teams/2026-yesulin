@@ -15,6 +15,7 @@ phases:
     commands:
       - cd "$CODEBUILD_SRC_DIR/backend"
       - sh deploy/tests/validate_service_test.sh
+      - sh deploy/tests/cleanup_releases_test.sh
       - chmod +x deploy/package_bundle.sh
       - deploy/package_bundle.sh "$CODEBUILD_RESOLVED_SOURCE_VERSION"
 
