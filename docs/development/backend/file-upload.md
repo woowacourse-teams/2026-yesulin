@@ -47,6 +47,19 @@ domain/performance ──event──> presentation/event/performance ──> app
 
 완료 API는 직접 업로드 결과를 서버가 알기 위해 필요하다. `PATCH`는 상태 일부 변경을 표현하며 이미 `READY`인 파일도 같은 메타데이터를 다시 확인하고 성공하는 멱등 연산이다. 파일 생성과 완료는 각각 DB 트랜잭션이다. 외부 저장소는 DB 트랜잭션에 참여하지 않으므로 호출을 짧게 유지하고 장기 작업은 넣지 않는다.
 
+## 지원 사진 목표 정책
+
+- 인증 전 사진 Blob은 현재 브라우저 IndexedDB에만 있고 업로드 요청도 만들지 않는다.
+- 최종 제출 과정에서 인증된 배우가 지원 사진을 업로드한다. 파일당 최대 20MB이며 PNG, JPEG(JPG 포함),
+  WebP만 허용한다.
+- 요청 메타데이터와 S3 HEAD만으로 확장자 위장이나 EXIF 제거 여부를 확인할 수 없다. 지원 사진은 magic
+  byte 기반 실제 형식 검사와 디코딩을 통과하고, 위치정보를 포함한 EXIF를 제거한 정제본이 준비된 뒤에만
+  제출 가능한 상태가 된다.
+- 지원서에는 업로드 원본이 아니라 정제본의 파일 ID를 `(photoRequirementId, fileId)`로 연결한다.
+  개인 사진을 Soft Delete해도 제출 참조가 남아 있으면 정제본 객체를 삭제하지 않는다.
+- 원본 객체의 격리 위치·접근 차단·삭제 시점, 정제 실패와 부분 제출의 정리 방식은 지원서 구현 전에
+  [도메인 설계의 P0 항목](../../domain-design.md)으로 확정한다.
+
 ## 운영 S3 구성
 
 - 운영 adapter는 AWS SDK for Java 2.x의 `S3Client`와 `S3Presigner`를 사용한다. 자격 증명을 코드나 환경 변수로 주입하지 않고 EC2 instance profile의 `ec2-project` 임시 자격 증명을 기본 provider chain으로 읽는다.
@@ -71,7 +84,8 @@ domain/performance ──event──> presentation/event/performance ──> app
 
 ## 후속 작업
 
-- 객체 magic byte 또는 비동기 검사, 이미지 처리
+- 공연 포스터용 객체 magic byte 또는 비동기 검사, 이미지 처리
+- 지원 사진의 magic byte 검사·EXIF 제거·정제본 생성과 원본 정리 파이프라인(MVP 필수)
 - 만료된 `PENDING`과 참조 없는 `READY` 파일의 청크 정리 배치와 S3 Lifecycle 보조 정책
 - LocalStack 통합 테스트와 `Clock` 주입이 필요한 시간 경계 테스트
 - Spring Session Redis 도입 시 `MemberPrincipal` serializer 설정

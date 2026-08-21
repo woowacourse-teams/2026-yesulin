@@ -16,20 +16,20 @@ flowchart TB
     LOGIN --> PREFILL
     START_CHOICE -- 로그인 없이 작성 --> FORM["지원서 작성·사진 선택<br>IndexedDB 우선 저장"]
     PREFILL --> FORM
-    FORM --> DRAFT["서버 Draft 지연·묶음 동기화<br>로그인 전·후 모두"]
-    DRAFT --> REVIEW["최종 검토·필수 동의<br>프로필 저장은 별도 선택"]
+    FORM --> DRAFT["로컬 Draft 저장<br>인증 전 IndexedDB에만 보관"]
+    DRAFT --> RESTORE["Draft 복원 시<br>동의 체크·프로필 갱신 선택 초기화"]
+    RESTORE --> REVIEW["최종 검토·필수 동의<br>프로필 보관·이번 값 갱신은 별도 선택"]
     REVIEW --> AUTH{"제출 시 로그인 상태?"}
     AUTH -- 아니오 --> SOCIAL["소셜 로그인<br>첫 로그인 시 계정 자동 생성"]
-    SOCIAL --> CLAIM["현재 브라우저 Draft 자동 연결<br>최신 수정본으로 덮어쓰기"]
-    AUTH -- 예 --> CLAIM
-    CLAIM --> UPLOAD["프로필 저장 동의 사진만<br>개인 사진 보관함에 연결"]
-    UPLOAD --> FINAL_OPEN{"서버 시각 기준<br>모집 중?"}
-    FINAL_OPEN -- 아니오 --> BLOCKED["제출 즉시 차단<br>Draft는 별도 기한까지 유지"]
-    FINAL_OPEN -- 예 --> SUBMIT["지원서 스냅샷 제출"]
+    SOCIAL --> UPLOAD["최종 제출 자료 전송<br>사진·영상은 requirementId로 연결"]
+    AUTH -- 예 --> UPLOAD
+    UPLOAD --> FINAL_OPEN{"제출 클릭 시 서버 UTC 기준<br>모집 중·만 14세 이상?"}
+    FINAL_OPEN -- 아니오 --> BLOCKED["제출 즉시 차단<br>로컬 Draft는 이 기기에 유지"]
+    FINAL_OPEN -- 예 --> SUBMIT["텍스트·나이·배역명·파일 참조<br>불변 스냅샷 제출"]
     SUBMIT --> RECEIPT["접수 완료"]
     RECEIPT --> HOME["배우 홈"]
     HOME --> PROFILE["프로필 조회·수정<br>기본정보·추가정보"] & APPLICATIONS["내 지원서 목록<br>로컬 Draft + 제출 스냅샷"] & RECOMMEND
-    PROFILE --> LIBRARY["사진 최대 20장·대표 사진<br>YouTube 영상 최대 10개<br>변경 즉시 저장"]
+    PROFILE --> LIBRARY["개인 사진·영상 보관함<br>지원서의 프로필 갱신 범위와 분리"]
     APPLICATIONS --> RESUME["작성 중 Draft<br>이 기기에서 이어쓰기"] & DETAIL["제출 스냅샷·배역별 전형 확인<br>GET /api/v1/applicants/me/applications/{applicationId}"]
     DETAIL --> READONLY["읽기 전용 확인"]
 
@@ -52,8 +52,8 @@ flowchart TB
     RECEIPT:::applicationNode
     SOCIAL:::accountNode
     DRAFT:::applicationNode
+    RESTORE:::applicationNode
     REVIEW:::applicationNode
-    CLAIM:::applicationNode
     UPLOAD:::applicationNode
     FINAL_OPEN:::decisionNode
     BLOCKED:::applicationNode
