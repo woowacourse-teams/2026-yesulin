@@ -132,8 +132,8 @@ PATCH /api/v1/audition-roles/{roleId}/screening-rounds/{round}/reviews
 생성 API는 UUID `id`, `performanceId`, `title`, `performanceStartDate`, 선택적인 `performanceEndDate`를 받아
 유효한 DRAFT를 반환한다. 같은 `id`의 재요청은 새 행을 만들지 않고 기존 DRAFT를 반환한다. 생성·조회·기본
 정보 수정은 `/auditions`를 기준으로 한 Controller와 Service가 담당한다.
-특정 공연 기준 목록 조회가 필요할 때만 `/performances/{performanceId}/auditions`를 사용한다. 공연사 소유
-공고만 접근할 수 있다. 기본 정보와 배역·일정·지원 폼 저장, 게시는 공고 행 잠금으로 직렬화한다. 배역 `PUT`은 섹션
+특정 공연 기준 목록은 `/auditions?performanceId={performanceId}`를 사용하며 공연사 소유 공고만 접근할 수
+있다. 기본 정보와 배역·일정·지원 폼 저장, 게시는 공고 행 잠금으로 직렬화한다. 배역 `PUT`은 섹션
 전체를 저장하고 기존 공연 배역을 다시 선택하면 공고 배역 ID를 유지한다. 일정 GET·PUT은 모집 기간과
 전형 1~5개를 조회하고 전체 저장한다. 지원 폼 GET·PUT은 표준 항목과 사진·영상·질문 요구 전체를
 조회하고 저장한다. 게시 `PUT`은 모든 섹션과 모집 종료 시각을 검증한 뒤 `PUBLISHED`로 전이한다.

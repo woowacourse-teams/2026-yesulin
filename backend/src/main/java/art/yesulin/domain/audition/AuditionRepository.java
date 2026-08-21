@@ -15,6 +15,10 @@ public interface AuditionRepository extends JpaRepository<Audition, Long> {
 
     Optional<Audition> findByPublicId(UUID publicId);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select audition from Audition audition where audition.publicId = :publicId")
+    Optional<Audition> findByPublicIdForUpdate(@Param("publicId") UUID publicId);
+
     Optional<Audition> findByPublicIdAndOwnerId(UUID publicId, long ownerId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

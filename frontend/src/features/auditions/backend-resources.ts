@@ -34,7 +34,7 @@ export type FileUploadResource = {
 
 export type AuditionResource = {
   readonly id: string;
-  readonly performanceId: number;
+  readonly performanceId: string;
   readonly title: string;
   readonly performanceStartDate: string;
   readonly performanceEndDate: string | null;

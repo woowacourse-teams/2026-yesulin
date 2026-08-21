@@ -22,6 +22,11 @@ import art.yesulin.support.ObjectStorageTestConfiguration;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -101,6 +106,31 @@ class AuditionServiceTest {
     }
 
     @Test
+    void returnsOriginalDraftWhenSamePublicIdIsCreatedConcurrently() throws Exception {
+        long performanceId = createPerformance().id();
+        UUID auditionId = UUID.randomUUID();
+        CreateAuditionCommand command = new CreateAuditionCommand(
+                auditionId, performanceId, "햄릿 오디션", LocalDate.of(2026, 9, 1), null
+        );
+        CountDownLatch start = new CountDownLatch(1);
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            Future<AuditionResult> first = executor.submit(() -> createAfterSignal(start, command));
+            Future<AuditionResult> second = executor.submit(() -> createAfterSignal(start, command));
+            start.countDown();
+
+            AuditionResult firstResult = first.get(5, TimeUnit.SECONDS);
+            AuditionResult secondResult = second.get(5, TimeUnit.SECONDS);
+
+            assertEquals(firstResult, secondResult);
+            assertEquals("DRAFT", firstResult.status());
+            assertEquals(1, auditionRepository.count());
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
     void updatesBasicInformationAndDerivesOpenRun() {
         AuditionResult draft = auditionService.create(OWNER_ID, createAuditionCommand(createPerformance().id()));
 
@@ -147,6 +177,12 @@ class AuditionServiceTest {
         return new CreateAuditionCommand(
                 UUID.randomUUID(), performanceId, "햄릿 오디션", LocalDate.of(2026, 9, 1), null
         );
+    }
+
+    private AuditionResult createAfterSignal(CountDownLatch start, CreateAuditionCommand command)
+            throws InterruptedException {
+        start.await();
+        return auditionService.create(OWNER_ID, command);
     }
 
     private long uploadReadyImage() {

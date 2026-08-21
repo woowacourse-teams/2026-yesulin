@@ -50,7 +50,7 @@ export async function createV1Posting(body: CreatePostingRequest, auditionId: st
     method: "POST",
     body: JSON.stringify({
       id: auditionId,
-      performanceId: Number(body.performanceId),
+      performanceId: body.performanceId,
       title: body.title,
       performanceStartDate: body.performanceStart,
       performanceEndDate: body.performanceEnd || null,
