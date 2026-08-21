@@ -1,4 +1,4 @@
-import type { ApplicantApplicationDetail, ApplicantAnswer, CareerEntry } from "@/features/applicants/types";
+import type { ApplicantSubmissionDetail, ApplicantAnswer, CareerEntry } from "@/features/applicants/types";
 import type { Gender, PerformanceId } from "@/features/auditions/types";
 import { photoSlotLabels, videoSlotLabels } from "@/features/applications/materials";
 import type { MockApplicant } from "../auditions/applicants";
@@ -12,7 +12,7 @@ const textOf = (answers: readonly ApplicantAnswer[], key: string) => {
   return typeof value === "string" ? value : "";
 };
 
-const videosOf = (detail: ApplicantApplicationDetail) => {
+const videosOf = (detail: ApplicantSubmissionDetail) => {
   const field = detail.applicationFields.find((candidate) => candidate.id === "VIDEO");
   const answers = detail.answers;
   const value = answerOf(answers, "VIDEO");
@@ -36,7 +36,7 @@ const careerOf = (value: ApplicantAnswer["value"] | undefined): readonly CareerE
   Array.isArray(value) ? value.filter((item): item is CareerEntry => typeof item === "object" && item !== null && "year" in item && "title" in item && "part" in item) : [];
 
 /** 배우용 제출 스냅샷을 기획사/제작사 심사 읽기 모델의 원본으로 변환한다. */
-export function toScreeningApplicant(detail: ApplicantApplicationDetail, performanceId: PerformanceId): MockApplicant {
+export function toScreeningApplicant(detail: ApplicantSubmissionDetail, performanceId: PerformanceId): MockApplicant {
   const birth = textOf(detail.answers, "BIRTH");
   const birthYear = Number(birth.slice(0, 4));
   const name = textOf(detail.answers, "NAME") || "이름 미입력";

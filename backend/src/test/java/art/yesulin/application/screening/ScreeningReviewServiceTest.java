@@ -42,7 +42,7 @@ import org.springframework.context.annotation.Import;
 class ScreeningReviewServiceTest {
 
     private static final long OWNER_ID = 1L;
-    private static final UUID APPLICATION_ID = UUID.fromString("b4472dce-52d0-41a9-baaa-c9e86e31b72b");
+    private static final UUID SUBMISSION_ID = UUID.fromString("b4472dce-52d0-41a9-baaa-c9e86e31b72b");
 
     @Autowired
     private ScreeningReviewService screeningReviewService;
@@ -68,20 +68,20 @@ class ScreeningReviewServiceTest {
     }
 
     @Test
-    void savesReviewForEachApplicationRoleAndRound() {
+    void savesReviewForEachSubmissionRoleAndRound() {
         long roleId = saveScreeningFixture();
 
         ScreeningReviewsResult firstRound = screeningReviewService.save(
                 OWNER_ID,
                 roleId,
                 1,
-                new SaveScreeningReviewsCommand(List.of(APPLICATION_ID), "ETC", "추가 논의", "발성 확인 필요")
+                new SaveScreeningReviewsCommand(List.of(SUBMISSION_ID), "ETC", "추가 논의", "발성 확인 필요")
         );
         screeningReviewService.save(
                 OWNER_ID,
                 roleId,
                 2,
-                new SaveScreeningReviewsCommand(List.of(APPLICATION_ID), "PASS", null, null)
+                new SaveScreeningReviewsCommand(List.of(SUBMISSION_ID), "PASS", null, null)
         );
         assertEquals("ETC", firstRound.reviews().getFirst().status());
         assertEquals("추가 논의", firstRound.reviews().getFirst().memo());
@@ -96,14 +96,14 @@ class ScreeningReviewServiceTest {
                 OWNER_ID,
                 roleId,
                 1,
-                new SaveScreeningReviewsCommand(List.of(APPLICATION_ID), "ETC", "추가 논의", "발성 확인 필요")
+                new SaveScreeningReviewsCommand(List.of(SUBMISSION_ID), "ETC", "추가 논의", "발성 확인 필요")
         );
 
         ScreeningReviewsResult result = screeningReviewService.save(
                 OWNER_ID,
                 roleId,
                 1,
-                new SaveScreeningReviewsCommand(List.of(APPLICATION_ID), "PASS", null, null)
+                new SaveScreeningReviewsCommand(List.of(SUBMISSION_ID), "PASS", null, null)
         );
 
         assertEquals("PASS", result.reviews().getFirst().status());
@@ -122,7 +122,7 @@ class ScreeningReviewServiceTest {
                         2L,
                         roleId,
                         1,
-                        new SaveScreeningReviewsCommand(List.of(APPLICATION_ID), "PASS", null, null)
+                        new SaveScreeningReviewsCommand(List.of(SUBMISSION_ID), "PASS", null, null)
                 )
         );
 

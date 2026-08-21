@@ -2,28 +2,28 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { getApplicantApplications, getApplicantProfile, getRecommendedPostings } from "@/features/applicants/api";
+import { getApplicantSubmissions, getApplicantProfile, getRecommendedPostings } from "@/features/applicants/api";
 import { formatApplicantDate } from "@/features/applicants/presentation";
 import { applicantRoutes } from "@/features/applicants/routes";
-import type { ApplicantApplicationSummary, RecommendedPosting } from "@/features/applicants/types";
+import type { ApplicantSubmissionSummary, RecommendedPosting } from "@/features/applicants/types";
 import { useAuditionQuery } from "@/features/auditions/use-audition-query";
 import { ScreenError } from "@/components/auditions/screen-status";
 import { PostingStatusBadge } from "@/components/applications/public-posting-status";
 
 async function loadDashboard() {
-  const [profile, applications, recommendations] = await Promise.all([
+  const [profile, submissions, recommendations] = await Promise.all([
     getApplicantProfile(),
-    getApplicantApplications(),
+    getApplicantSubmissions(),
     getRecommendedPostings(undefined, 3),
   ]);
-  return { profile, applications: applications.applications, recommendations: recommendations.postings };
+  return { profile, submissions: submissions.submissions, recommendations: recommendations.postings };
 }
 
 export function ApplicantDashboard() {
   const query = useAuditionQuery("applicant-dashboard", loadDashboard, "배우 홈을 불러오지 못했습니다.");
   if (query.loading) return <DashboardSkeleton />;
   if (query.error || !query.data) return <PageContainer><ScreenError message={query.error} onRetry={query.reload} /></PageContainer>;
-  const { profile, applications, recommendations } = query.data;
+  const { profile, submissions, recommendations } = query.data;
   const percent = Math.round((profile.completeness.filled / profile.completeness.standardTotal) * 100);
 
   return <PageContainer>
@@ -40,8 +40,8 @@ export function ApplicantDashboard() {
         <Link href={applicantRoutes.profile} className="mt-5 inline-flex min-h-11 items-center rounded-control border border-sidebar-line px-4 text-sm font-semibold text-white hover:bg-sidebar-hover">프로필 관리</Link>
       </article>
       <article className="rounded-card border border-border bg-card p-6 md:p-7">
-        <div className="flex items-center justify-between gap-4"><div><p className="text-sm font-semibold text-brand">최근 지원</p><h2 className="mt-1 text-xl font-bold">제출한 지원서</h2></div><Link href={applicantRoutes.applications} className="min-h-11 rounded-control px-3 py-2 text-sm font-semibold text-brand hover:bg-brand-soft">전체 보기</Link></div>
-        {applications.length ? <ul className="mt-5 divide-y divide-border-soft">{applications.slice(0, 2).map((application) => <RecentApplication key={application.id} application={application} />)}</ul> : <DashboardEmpty title="아직 제출한 지원서가 없어요" detail="외부 공고의 예술in 지원 링크에서 지원서를 작성하면 여기에 모아 볼 수 있어요." />}
+        <div className="flex items-center justify-between gap-4"><div><p className="text-sm font-semibold text-brand">최근 지원</p><h2 className="mt-1 text-xl font-bold">제출한 지원서</h2></div><Link href={applicantRoutes.submissions} className="min-h-11 rounded-control px-3 py-2 text-sm font-semibold text-brand hover:bg-brand-soft">전체 보기</Link></div>
+        {submissions.length ? <ul className="mt-5 divide-y divide-border-soft">{submissions.slice(0, 2).map((submission) => <RecentSubmission key={submission.id} submission={submission} />)}</ul> : <DashboardEmpty title="아직 제출한 지원서가 없어요" detail="외부 공고의 예술in 지원 링크에서 지원서를 작성하면 여기에 모아 볼 수 있어요." />}
       </article>
     </section>
 
@@ -52,8 +52,8 @@ export function ApplicantDashboard() {
   </PageContainer>;
 }
 
-function RecentApplication({ application }: { readonly application: ApplicantApplicationSummary }) {
-  return <li><Link href={applicantRoutes.application(application.id)} className="group grid grid-cols-[52px_minmax(0,1fr)_auto] items-center gap-3 py-4"><Image src={application.posterUrl} alt="" width={52} height={68} className="h-[68px] w-[52px] rounded-md object-cover" /><span className="min-w-0"><strong className="block truncate group-hover:text-brand">{application.performanceTitle}</strong><span className="mt-1 block truncate text-sm text-muted-strong">{application.roleName} · {formatApplicantDate(application.submittedAt)} 제출</span></span><span className="rounded-full border border-border bg-surface px-2.5 py-1 text-xs font-semibold text-muted-strong">제출 완료</span></Link></li>;
+function RecentSubmission({ submission }: { readonly submission: ApplicantSubmissionSummary }) {
+  return <li><Link href={applicantRoutes.submission(submission.id)} className="group grid grid-cols-[52px_minmax(0,1fr)_auto] items-center gap-3 py-4"><Image src={submission.posterUrl} alt="" width={52} height={68} className="h-[68px] w-[52px] rounded-md object-cover" /><span className="min-w-0"><strong className="block truncate group-hover:text-brand">{submission.performanceTitle}</strong><span className="mt-1 block truncate text-sm text-muted-strong">{submission.roleName} · {formatApplicantDate(submission.submittedAt)} 제출</span></span><span className="rounded-full border border-border bg-surface px-2.5 py-1 text-xs font-semibold text-muted-strong">제출 완료</span></Link></li>;
 }
 
 function RecommendationCard({ posting }: { readonly posting: RecommendedPosting }) {

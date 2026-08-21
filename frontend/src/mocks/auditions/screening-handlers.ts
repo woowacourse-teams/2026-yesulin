@@ -38,16 +38,16 @@ export const screeningHandlers = [
     const round = parseRound(String(params.round));
     if (!findRole(targetRoleId)) return notFound("배역을 찾을 수 없습니다.");
     if (round === null) return badRequest("INVALID_ROUND_NUMBER", "올바른 차수가 아닙니다.");
-    if (body.applicationIds.length === 0) return badRequest("APPLICATION_REQUIRED", "배우를 한 명 이상 선택해 주세요.");
+    if (body.submissionIds.length === 0) return badRequest("SUBMISSION_REQUIRED", "배우를 한 명 이상 선택해 주세요.");
     if (isRoundClosed(targetRoleId, round)) return badRequest("ROUND_ALREADY_CLOSED", "마감된 차수는 결과를 변경할 수 없습니다.");
     if (round === 1 && body.status === "ABSENT") return badRequest("ABSENT_NOT_ALLOWED", "1차 서류 심사에는 불참을 고를 수 없습니다.");
     if (body.status === "ETC" && !body.memo?.trim()) return badRequest("MEMO_REQUIRED", "기타 사유를 입력해 주세요.");
     const pool = poolFor(targetRoleId, round);
-    const targets = body.applicationIds.filter((applicationId) => pool.some((applicant) => applicant.id === applicationId));
-    if (targets.length !== body.applicationIds.length) return notFound("지원서를 찾을 수 없습니다.", "APPLICATION_NOT_FOUND");
-    if (body.status === undefined && body.memo !== undefined && targets.some((applicationId) => reviewOf(applicationId, targetRoleId, round).status === "ETC") && !body.memo.trim()) return badRequest("MEMO_REQUIRED", "기타 사유를 입력해 주세요.");
-    for (const applicationId of targets) {
-      const review = reviewOf(applicationId, targetRoleId, round);
+    const targets = body.submissionIds.filter((submissionId) => pool.some((applicant) => applicant.id === submissionId));
+    if (targets.length !== body.submissionIds.length) return notFound("지원서를 찾을 수 없습니다.", "SUBMISSION_NOT_FOUND");
+    if (body.status === undefined && body.memo !== undefined && targets.some((submissionId) => reviewOf(submissionId, targetRoleId, round).status === "ETC") && !body.memo.trim()) return badRequest("MEMO_REQUIRED", "기타 사유를 입력해 주세요.");
+    for (const submissionId of targets) {
+      const review = reviewOf(submissionId, targetRoleId, round);
       if (body.status !== undefined) {
         review.status = body.status;
         review.memo = body.status === "ETC" ? body.memo?.trim() ?? "" : "";

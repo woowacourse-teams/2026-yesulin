@@ -28,13 +28,13 @@ flowchart TB
     EDIT_POLICY -- RECRUIT_CLOSED --> EDIT_BLOCKED["모든 항목 수정 불가"]
     EDIT_POSTING --> PUBLISH
     ROLES --> CHOOSE_ROLE["심사할 배역 선택<br>배역이 하나여도 동일하게 표시"]
-    CHOOSE_ROLE --> BOARD["[목표] 배역별 심사 보드 첫 페이지<br>복수 배역 지원서는 각 배역에 표시<br>GET /api/v1/audition-roles/{roleId}/screening-rounds/{round}/applications"]
+    CHOOSE_ROLE --> BOARD["[목표] 배역별 심사 보드 첫 페이지<br>복수 배역 지원서는 각 배역에 표시<br>GET /api/v1/audition-roles/{roleId}/screening-rounds/{round}/submissions"]
     BOARD --> RESULT_FILTER["검토 완료 → 결과 조건 선택<br>합격·불합격·불참·기타"]
     RESULT_FILTER --> GROUP_ACTION["현재 결과 목록 일괄 작업<br>전체 인쇄 또는 연락처 모아보기"]
     BOARD --> MORE{"다음 페이지 필요?"}
     MORE -- 예: cursor --> BOARD
     MORE -- 아니오 --> SELECT["배우 선택"]
-    SELECT --> APP_DETAIL["[목표] 지원자 심사 상세 페이지로 이동<br>GET /api/v1/audition-roles/{roleId}/screening-rounds/{round}/applications/{applicationId}"]
+    SELECT --> APP_DETAIL["[목표] 지원자 심사 상세 페이지로 이동<br>GET /api/v1/audition-roles/{roleId}/screening-rounds/{round}/submissions/{submissionId}"]
     APP_DETAIL --> REVIEW["심사 저장<br>현재: 결과 일괄 영속화<br>[목표] expectedVersion 검증<br>PATCH /api/v1/audition-roles/{roleId}/screening-rounds/{round}/reviews"]
     REVIEW -- "[목표] 409 VERSION_CONFLICT" --> BOARD
     REVIEW -- "[목표] 성공: delta·counts·version" --> DONE{"검토 대기 0명?"}

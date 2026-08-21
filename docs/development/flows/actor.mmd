@@ -30,7 +30,7 @@ flowchart TB
     RECEIPT --> HOME["배우 홈"]
     HOME --> PROFILE["프로필 조회·수정<br>기본정보·추가정보"] & APPLICATIONS["내 지원서 목록<br>로컬 Draft + 제출 스냅샷"] & RECOMMEND
     PROFILE --> LIBRARY["개인 사진·영상 보관함<br>지원서의 프로필 갱신 범위와 분리"]
-    APPLICATIONS --> RESUME["작성 중 Draft<br>이 기기에서 이어쓰기"] & DETAIL["제출 스냅샷·배역별 전형 확인<br>GET /api/v1/applicants/me/applications/{applicationId}"]
+    APPLICATIONS --> RESUME["작성 중 Draft<br>이 기기에서 이어쓰기"] & DETAIL["제출 스냅샷·배역별 전형 확인<br>GET /api/v1/applicants/me/submissions/{submissionId}"]
     DETAIL --> READONLY["읽기 전용 확인"]
 
     classDef publicNode stroke:#2dd4bf,fill:#f0fdfa

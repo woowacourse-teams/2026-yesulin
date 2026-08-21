@@ -8,7 +8,7 @@ import { youtubeVideoId } from "@/features/applications/application-form-state";
 import { photoSlotLabels, videoSlotLabels } from "@/features/applications/materials";
 import { MODAL_LAYERS, ModalShell } from "@/components/auditions/modal-shell";
 
-export function ApplicationSubmissionMaterials({
+export function SubmissionMaterials({
   fields,
   answers,
 }: {

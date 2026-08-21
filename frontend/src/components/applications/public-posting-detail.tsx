@@ -74,7 +74,7 @@ export function PublicPostingDetail({ posting, useProfilePrefill = false, resume
         <Link href="/" aria-label="예술in 홈" className="inline-flex min-h-11 items-center rounded-control px-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"><Image src="/images/yesulin-logo.png" alt="예술in" width={84} height={49} priority className="h-auto w-[84px] object-contain" /></Link>
         {authenticated ? <>
           <span className="ml-auto inline-flex items-center gap-1.5 text-xs font-medium text-muted-strong sm:text-sm"><span aria-hidden="true" className="h-2 w-2 rounded-full bg-brand" />로그인됨</span>
-          <Link href={applicantRoutes.applications} className="ml-2 inline-flex min-h-11 items-center rounded-control px-3 text-sm font-semibold text-brand hover:bg-brand-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">내 지원서</Link>
+          <Link href={applicantRoutes.submissions} className="ml-2 inline-flex min-h-11 items-center rounded-control px-3 text-sm font-semibold text-brand hover:bg-brand-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">내 지원서</Link>
         </> : <>
           <span className="ml-auto text-xs text-muted-strong sm:text-sm">로그인 전 작성 가능</span>
           <Link href={loginHref} className="ml-2 inline-flex min-h-11 items-center rounded-control px-3 text-sm font-semibold text-muted-strong hover:bg-surface hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">로그인</Link>

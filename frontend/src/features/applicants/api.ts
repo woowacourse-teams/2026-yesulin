@@ -1,18 +1,18 @@
 import type {
-  ApplicantApplicationDetail,
-  ApplicantApplicationListResponse,
+  ApplicantSubmissionDetail,
+  ApplicantSubmissionListResponse,
   ApplicantProfileResponse,
-  LookupApplicationRequest,
-  LookupApplicationResponse,
+  LookupSubmissionRequest,
+  LookupSubmissionResponse,
   ProfilePrefillResponse,
   RecommendedPostingResponse,
-  SubmitApplicationRequest,
-  SubmitApplicationResponse,
-  UpdateApplicationRequest,
+  CreateSubmissionRequest,
+  CreateSubmissionResponse,
+  UpdateSubmissionRequest,
   UpdateProfileRequest,
 } from "./types";
 import type { PublicPosting } from "@/features/applications/public-posting";
-import type { ApplicationId } from "@/features/auditions/types";
+import type { SubmissionId } from "@/features/auditions/types";
 
 const API_BASE_PATH = "/api";
 
@@ -55,11 +55,11 @@ export const updateApplicantProfile = (body: UpdateProfileRequest) => request<Ap
 
 export const getProfilePrefill = (postingId: string) => request<ProfilePrefillResponse>(`/me/profile/prefill?postingId=${encodeURIComponent(postingId)}`);
 
-export const getApplicantApplications = () => request<ApplicantApplicationListResponse>("/me/applications");
+export const getApplicantSubmissions = () => request<ApplicantSubmissionListResponse>("/me/submissions");
 
-export const getApplicantApplication = (applicationId: ApplicationId) => request<ApplicantApplicationDetail>(`/me/applications/${applicationId}`);
+export const getApplicantSubmission = (submissionId: SubmissionId) => request<ApplicantSubmissionDetail>(`/me/submissions/${submissionId}`);
 
-export const updateApplicantApplication = (applicationId: ApplicationId, body: UpdateApplicationRequest) => request<ApplicantApplicationDetail>(`/me/applications/${applicationId}`, {
+export const updateApplicantSubmission = (submissionId: SubmissionId, body: UpdateSubmissionRequest) => request<ApplicantSubmissionDetail>(`/me/submissions/${submissionId}`, {
   method: "PATCH",
   body: JSON.stringify(body),
 });
@@ -73,12 +73,12 @@ export const getRecommendedPostings = (excludePostingId?: string, limit = 3) => 
 export const getPublicPosting = (postingId: string) =>
   request<PublicPosting>(`/public/postings/${postingId}`);
 
-export const lookupApplication = (body: LookupApplicationRequest) => request<LookupApplicationResponse>("/public/applications/lookup", {
+export const lookupSubmission = (body: LookupSubmissionRequest) => request<LookupSubmissionResponse>("/public/submissions/lookup", {
   method: "POST",
   body: JSON.stringify(body),
 });
 
-export const submitPublicApplication = (body: SubmitApplicationRequest) => request<SubmitApplicationResponse>("/public/applications", {
+export const createPublicSubmission = (body: CreateSubmissionRequest) => request<CreateSubmissionResponse>("/public/submissions", {
   method: "POST",
   body: JSON.stringify(body),
 });

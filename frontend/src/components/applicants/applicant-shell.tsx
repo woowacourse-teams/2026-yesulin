@@ -13,7 +13,7 @@ import { useAuditionQuery } from "@/features/auditions/use-audition-query";
 
 const navigation = [
   { href: applicantRoutes.home, label: "홈", icon: "home" },
-  { href: applicantRoutes.applications, label: "내 지원서", icon: "applications" },
+  { href: applicantRoutes.submissions, label: "내 지원서", icon: "submissions" },
   { href: applicantRoutes.profile, label: "프로필", icon: "profile" },
 ] as const;
 
@@ -123,7 +123,7 @@ function ApplicantNavLink({ href, label, pathname }: { href: string; label: stri
 function ApplicantIcon({ name }: { name: (typeof navigation)[number]["icon"] }) {
   const paths = {
     home: <><path d="m3.5 10.5 8.5-7 8.5 7" /><path d="M5.5 9.5v10h13v-10M9.5 19.5v-6h5v6" /></>,
-    applications: <><path d="M6 3.5h9l3 3v14H6z" /><path d="M15 3.5v4h3M9 11h6M9 14.5h6M9 18h4" /></>,
+    submissions: <><path d="M6 3.5h9l3 3v14H6z" /><path d="M15 3.5v4h3M9 11h6M9 14.5h6M9 18h4" /></>,
     profile: <><circle cx="12" cy="8" r="3.5" /><path d="M5.5 20.5c.5-4 2.6-6 6.5-6s6 2 6.5 6" /></>,
   } as const;
   return <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current stroke-[1.8]" strokeLinecap="round" strokeLinejoin="round">{paths[name]}</svg>;

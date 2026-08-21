@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import type { ChangeEvent } from "react";
-import { updateApplicantApplication } from "@/features/applicants/api";
+import { updateApplicantSubmission } from "@/features/applicants/api";
 import { applicantRoutes } from "@/features/applicants/routes";
-import type { ApplicantAnswerValue, ApplicantApplicationDetail, BodyMeasurements, CareerEntry } from "@/features/applicants/types";
+import type { ApplicantAnswerValue, ApplicantSubmissionDetail, BodyMeasurements, CareerEntry } from "@/features/applicants/types";
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
 import { AddButton, DestructiveButton, FieldInput, FieldSelect, FieldTextarea, PrimaryButton, SecondaryButton, TextButton } from "@/components/ui/controls";
 import { useToast } from "@/components/auditions/toast";
@@ -12,7 +12,7 @@ import { CalendarDateRangeField } from "@/components/auditions/calendar-date-ran
 
 type DraftValues = Record<string, ApplicantAnswerValue>;
 
-export function ApplicationEditForm({ detail, onCancel, onSaved }: { readonly detail: ApplicantApplicationDetail; readonly onCancel: () => void; readonly onSaved: (detail: ApplicantApplicationDetail) => void }) {
+export function SubmissionEditForm({ detail, onCancel, onSaved }: { readonly detail: ApplicantSubmissionDetail; readonly onCancel: () => void; readonly onSaved: (detail: ApplicantSubmissionDetail) => void }) {
   const toast = useToast();
   const initial = Object.fromEntries(detail.answers.map((answer) => [answer.key, answer.value])) as DraftValues;
   const [values, setValues] = useState<DraftValues>(initial);
@@ -25,14 +25,14 @@ export function ApplicationEditForm({ detail, onCancel, onSaved }: { readonly de
     const invalid = enabledFields.find((field) => field.required && isEmpty(values[field.id]));
     if (invalid) {
       setError(`${invalid.label} 항목을 입력해 주세요.`);
-      requestAnimationFrame(() => document.getElementById(`application-edit-${invalid.id}`)?.focus());
+      requestAnimationFrame(() => document.getElementById(`submission-edit-${invalid.id}`)?.focus());
       return;
     }
     if (!changed.length) return;
     setSaving(true);
     setError("");
     try {
-      const result = await updateApplicantApplication(detail.id, { answers: changed.map((field) => ({ key: field.id, value: values[field.id]! })) });
+      const result = await updateApplicantSubmission(detail.id, { answers: changed.map((field) => ({ key: field.id, value: values[field.id]! })) });
       toast("지원서 내용을 수정했어요.", { type: "success" });
       onSaved(result);
     } catch (cause) {
@@ -49,12 +49,12 @@ export function ApplicationEditForm({ detail, onCancel, onSaved }: { readonly de
     {error ? <p role="alert" className="mt-5 rounded-control border border-fail/25 bg-fail-bg px-4 py-3 text-sm font-medium text-fail">{error}</p> : null}
     <div className="mt-7 space-y-5">{enabledFields.map((field) => <EditableField key={field.id} field={field} value={values[field.id]} onChange={(value) => { setValues((current) => ({ ...current, [field.id]: value })); setError(""); }} />)}</div>
     <div className="glass-surface sticky bottom-4 mt-8 flex flex-wrap items-center gap-3 rounded-card border p-3"><p className="min-w-0 flex-1 px-2 text-sm text-muted-strong">{changed.length ? `${changed.length}개 항목이 변경됐어요.` : "변경된 내용이 없어요."}</p><SecondaryButton onClick={onCancel} disabled={saving}>취소</SecondaryButton><PrimaryButton onClick={save} disabled={saving || !changed.length} className="px-5">{saving ? "저장 중…" : "변경 내용 저장"}</PrimaryButton></div>
-    <a href={applicantRoutes.applications} className="sr-only">지원서 목록</a>
+    <a href={applicantRoutes.submissions} className="sr-only">지원서 목록</a>
   </div>;
 }
 
 function EditableField({ field, value, onChange }: { readonly field: ApplicationFieldInput; readonly value?: ApplicantAnswerValue; readonly onChange: (value: ApplicantAnswerValue) => void }) {
-  const id = `application-edit-${field.id}`;
+  const id = `submission-edit-${field.id}`;
   if (field.id === "CAREER") return <CareerEditor id={id} field={field} value={Array.isArray(value) ? value.filter(isCareerEntry) : []} onChange={onChange} />;
   if (field.inputType === "COMPOSITE") return <CompositeEditor id={id} field={field} value={isBody(value) ? value : { height: 0, weight: 0 }} onChange={onChange} />;
   if (field.inputType === "FILE") return <FileEditor id={id} field={field} value={Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []} onChange={onChange} />;

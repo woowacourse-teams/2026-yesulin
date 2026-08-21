@@ -9,11 +9,11 @@ import org.junit.jupiter.api.Test;
 
 class ScreeningReviewTest {
 
-    private static final UUID APPLICATION_ID = UUID.fromString("b4472dce-52d0-41a9-baaa-c9e86e31b72b");
+    private static final UUID SUBMISSION_ID = UUID.fromString("b4472dce-52d0-41a9-baaa-c9e86e31b72b");
 
     @Test
     void keepsInternalMemoWhenStatusChanges() {
-        ScreeningReview review = new ScreeningReview(APPLICATION_ID, 2L, 3L);
+        ScreeningReview review = new ScreeningReview(SUBMISSION_ID, 2L, 3L);
         review.apply(new ScreeningReviewChange(
                 ScreeningReviewStatus.ETC, "추가 논의 필요", "발성 확인 후 결정"
         ));
@@ -27,7 +27,7 @@ class ScreeningReviewTest {
 
     @Test
     void requiresReasonForEtcStatus() {
-        ScreeningReview review = new ScreeningReview(APPLICATION_ID, 2L, 3L);
+        ScreeningReview review = new ScreeningReview(SUBMISSION_ID, 2L, 3L);
 
         BusinessException exception = assertThrows(
                 BusinessException.class,
@@ -40,7 +40,7 @@ class ScreeningReviewTest {
 
     @Test
     void rejectsOtherReasonChangeOutsideEtcStatus() {
-        ScreeningReview review = new ScreeningReview(APPLICATION_ID, 2L, 3L);
+        ScreeningReview review = new ScreeningReview(SUBMISSION_ID, 2L, 3L);
 
         BusinessException exception = assertThrows(
                 BusinessException.class,

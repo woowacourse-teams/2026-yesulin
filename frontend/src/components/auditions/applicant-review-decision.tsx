@@ -43,7 +43,7 @@ export function ApplicantReviewDecision({
       const next = await saveReview({
         roleId: board.role.id,
         round: board.round,
-        applicationIds: [applicant.id],
+        submissionIds: [applicant.id],
         ...patch,
       });
       onBoardChange(next);

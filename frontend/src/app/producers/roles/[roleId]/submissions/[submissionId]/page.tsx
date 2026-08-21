@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { ApplicantReview } from "@/components/auditions/applicant-review";
 import {
-  applicationId,
+  submissionId,
   roleId,
   ROUND_NUMBERS,
   type RoundNumber,
@@ -15,7 +15,7 @@ export default async function ApplicantReviewPage({
   params,
   searchParams,
 }: {
-  params: Promise<{ roleId: string; applicationId: string }>;
+  params: Promise<{ roleId: string; submissionId: string }>;
   searchParams: Promise<{ round?: string }>;
 }) {
   const route = await params;
@@ -27,9 +27,9 @@ export default async function ApplicantReviewPage({
 
   return (
     <ApplicantReview
-      key={`${route.roleId}:${route.applicationId}:${round}`}
+      key={`${route.roleId}:${route.submissionId}:${round}`}
       roleId={roleId(route.roleId)}
-      applicationId={applicationId(route.applicationId)}
+      submissionId={submissionId(route.submissionId)}
       round={round}
     />
   );

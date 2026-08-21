@@ -5,7 +5,7 @@ import art.yesulin.domain.screening.ScreeningRound;
 import java.util.UUID;
 
 public record ScreeningReviewResult(
-        UUID applicationId,
+        UUID submissionId,
         long roleId,
         int round,
         String status,
@@ -15,7 +15,7 @@ public record ScreeningReviewResult(
 
     static ScreeningReviewResult from(ScreeningReview review, ScreeningRound round) {
         return new ScreeningReviewResult(
-                review.getApplicationId(),
+                review.getSubmissionId(),
                 review.getAuditionRoleId(),
                 round.value(),
                 review.getStatus().name(),

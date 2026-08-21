@@ -20,17 +20,17 @@ public class ScreeningReviewService {
     @Transactional
     public ScreeningReviewsResult save(long ownerId, long roleId, int round, SaveScreeningReviewsCommand command) {
         ScreeningReviewTarget target = targetFinder.findForUpdate(ownerId, roleId, new ScreeningRound(round));
-        ScreeningReviews reviews = findReviews(target, command.applicationIds());
+        ScreeningReviews reviews = findReviews(target, command.submissionIds());
         List<ScreeningReview> changedReviews = reviews.apply(
-                command.applicationIds(), target.roleId(), target.stageId(), command.toChange()
+                command.submissionIds(), target.roleId(), target.stageId(), command.toChange()
         );
         List<ScreeningReview> savedReviews = reviewRepository.saveAll(changedReviews);
         return ScreeningReviewsResult.from(target, savedReviews);
     }
 
-    private ScreeningReviews findReviews(ScreeningReviewTarget target, List<UUID> applicationIds) {
-        List<ScreeningReview> reviews = reviewRepository.findAllByAuditionRoleIdAndScreeningStageIdAndApplicationIdIn(
-                target.roleId(), target.stageId(), applicationIds
+    private ScreeningReviews findReviews(ScreeningReviewTarget target, List<UUID> submissionIds) {
+        List<ScreeningReview> reviews = reviewRepository.findAllByAuditionRoleIdAndScreeningStageIdAndSubmissionIdIn(
+                target.roleId(), target.stageId(), submissionIds
         );
         return new ScreeningReviews(reviews);
     }

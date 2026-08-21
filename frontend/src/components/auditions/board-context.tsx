@@ -3,7 +3,7 @@
 import { createContext, use } from "react";
 import type {
   Applicant,
-  ApplicationId,
+  SubmissionId,
   ReviewStatus,
   RoundNumber,
   AuditionBoardResponse,
@@ -15,20 +15,20 @@ export type BoardContextValue = {
   readonly filters: AuditionFilters;
   /** 필터를 통과한, 지금 목록에 보이는 배우. */
   readonly visible: readonly Applicant[];
-  readonly selected: ReadonlySet<ApplicationId>;
+  readonly selected: ReadonlySet<SubmissionId>;
   readonly saving: boolean;
   readonly roundClosed: boolean;
   readonly setFilters: (update: (current: AuditionFilters) => AuditionFilters) => void;
   readonly goToRound: (round: RoundNumber) => void;
-  readonly toggleSelected: (id: ApplicationId) => void;
-  readonly setSelection: (ids: readonly ApplicationId[], selected: boolean) => void;
+  readonly toggleSelected: (id: SubmissionId) => void;
+  readonly setSelection: (ids: readonly SubmissionId[], selected: boolean) => void;
   readonly clearSelection: () => void;
   /** 액션바에서 여러 명을 한 번에 처리한다. */
-  readonly setStatus: (ids: readonly ApplicationId[], status: ReviewStatus) => Promise<void>;
+  readonly setStatus: (ids: readonly SubmissionId[], status: ReviewStatus) => Promise<void>;
   /** 상세에서 한 명을 처리하고, 검토 대기 모드면 다음 배우로 넘어간다. */
-  readonly reviewCurrent: (id: ApplicationId, status: ReviewStatus) => Promise<void>;
+  readonly reviewCurrent: (id: SubmissionId, status: ReviewStatus) => Promise<void>;
   readonly patchReview: (
-    id: ApplicationId,
+    id: SubmissionId,
     patch: { readonly memo?: string; readonly note?: string },
   ) => Promise<void>;
   readonly closeCurrentRound: () => Promise<void>;
@@ -38,8 +38,8 @@ export type BoardContextValue = {
    */
   readonly closePrompt: "auto" | "manual" | null;
   readonly setClosePrompt: (prompt: "auto" | "manual" | null) => void;
-  readonly openApplicant: (id: ApplicationId | null) => void;
-  readonly openedApplicantId: ApplicationId | null;
+  readonly openApplicant: (id: SubmissionId | null) => void;
+  readonly openedApplicantId: SubmissionId | null;
   /** 연락처 모아보기 대상. null이면 모달이 닫힌 상태다. */
   readonly contactList: readonly Applicant[] | null;
   readonly openContacts: (list: readonly Applicant[]) => void;
