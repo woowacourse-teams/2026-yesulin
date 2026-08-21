@@ -168,6 +168,7 @@ function applicationFieldError(field: ApplicationFormStep["fields"][number], val
 
   const value = values[field.id]?.trim() ?? "";
   if (field.required && !value) return `${field.label} 항목을 입력해 주세요.`;
+  if (value && field.inputType === "SELECT" && field.config.options?.length && !field.config.options.includes(value)) return `${field.label} 선택값을 다시 확인해 주세요.`;
   if (value && field.config.minLength && value.length < field.config.minLength) return `${field.label}은(는) ${field.config.minLength}자 이상 입력해 주세요.`;
   if (value && field.config.maxLength && value.length > field.config.maxLength) return `${field.label}은(는) ${field.config.maxLength}자 이하로 입력해 주세요.`;
   return null;
