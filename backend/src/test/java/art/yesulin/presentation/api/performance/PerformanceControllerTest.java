@@ -142,6 +142,7 @@ class PerformanceControllerTest {
                 """;
 
         mockMvc.perform(post("/api/v1/performances")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
                 .andExpect(status().isUnauthorized())
