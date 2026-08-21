@@ -14,3 +14,27 @@ yesulin:
     s3:
       region: ${AWS_REGION:ap-northeast-2}
       upload-expiration: ${YESULIN_STORAGE_S3_UPLOAD_EXPIRATION:PT10M}
+  social-login:
+    enabled: ${SOCIAL_LOGIN_ENABLED:true}
+    providers:
+      kakao:
+        issuer: https://kauth.kakao.com
+        authorization-uri: https://kauth.kakao.com/oauth/authorize
+        token-uri: https://kauth.kakao.com/oauth/token
+        jwk-set-uri: https://kauth.kakao.com/.well-known/jwks.json
+        client-id: ${KAKAO_OIDC_CLIENT_ID:}
+        client-secret: ${KAKAO_OIDC_CLIENT_SECRET:}
+      naver:
+        issuer: https://nid.naver.com
+        authorization-uri: https://nid.naver.com/oauth2/authorize
+        token-uri: https://nid.naver.com/oauth2/token
+        jwk-set-uri: https://nid.naver.com/oauth2/jwks
+        client-id: ${NAVER_OIDC_CLIENT_ID:}
+        client-secret: ${NAVER_OIDC_CLIENT_SECRET:}
+      google:
+        issuer: https://accounts.google.com
+        authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+        token-uri: https://oauth2.googleapis.com/token
+        jwk-set-uri: https://www.googleapis.com/oauth2/v3/certs
+        client-id: ${GOOGLE_OIDC_CLIENT_ID:}
+        client-secret: ${GOOGLE_OIDC_CLIENT_SECRET:}
