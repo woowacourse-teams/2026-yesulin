@@ -102,7 +102,7 @@ public class AuditionController {
 
     @GetMapping("/{auditionId}/application-form")
     public ResponseEntity<AuditionFormResult> findApplicationForm(
-            @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal,
+            @LoginMember(roles = AuthRole.PRODUCER) MemberPrincipal principal,
             @PathVariable long auditionId
     ) {
         return ResponseEntity.ok(auditionFormService.find(principal.memberId(), auditionId));
@@ -110,7 +110,7 @@ public class AuditionController {
 
     @PutMapping("/{auditionId}/application-form")
     public ResponseEntity<AuditionFormResult> saveApplicationForm(
-            @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal,
+            @LoginMember(roles = AuthRole.PRODUCER) MemberPrincipal principal,
             @PathVariable long auditionId,
             @Valid @RequestBody SaveAuditionFormRequest request
     ) {
@@ -119,7 +119,7 @@ public class AuditionController {
 
     @PutMapping("/{auditionId}/publication")
     public ResponseEntity<AuditionResult> publish(
-            @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal,
+            @LoginMember(roles = AuthRole.PRODUCER) MemberPrincipal principal,
             @PathVariable long auditionId
     ) {
         return ResponseEntity.ok(auditionPublicationService.publish(principal.memberId(), auditionId));
