@@ -42,14 +42,22 @@ public class PerformanceRole {
     @Column(nullable = false, length = 300)
     private String description;
 
-    PerformanceRole(Performance performance, String name, String description) {
+    @Column(name = "role_order", nullable = false)
+    private int roleOrder;
+
+    PerformanceRole(Performance performance, String name, String description, int roleOrder) {
         this.performance = requireNonNull(performance, "배역이 속할 공연은 필수입니다.");
+        this.roleOrder = roleOrder;
         update(name, description);
     }
 
     void update(String name, String description) {
         this.name = requireText(name, "배역 이름은 필수입니다.");
         this.description = requireSingleLine(description);
+    }
+
+    void changeOrder(int roleOrder) {
+        this.roleOrder = roleOrder;
     }
 
     private String requireSingleLine(String value) {

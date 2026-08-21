@@ -2,6 +2,7 @@ package art.yesulin.presentation.api.performance;
 
 import static org.hamcrest.Matchers.matchesPattern;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -97,6 +98,30 @@ class PerformanceControllerTest {
                 .andExpect(jsonPath("$.roadAddress").value("서울특별시 종로구 대학로 12"))
                 .andExpect(jsonPath("$.createdAt").isString())
                 .andExpect(jsonPath("$.roles[0].id").isNumber());
+    }
+
+    @Test
+    void findsOwnedPerformances() throws Exception {
+        PerformanceResult created = createPerformance();
+
+        mockMvc.perform(get("/api/v1/performances")
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.performances.length()").value(1))
+                .andExpect(jsonPath("$.performances[0].id").value(created.id()))
+                .andExpect(jsonPath("$.performances[0].posterUrl").isString())
+                .andExpect(jsonPath("$.performances[0].roles[0].id").isNumber());
+    }
+
+    @Test
+    void findsOwnedPerformance() throws Exception {
+        PerformanceResult created = createPerformance();
+
+        mockMvc.perform(get("/api/v1/performances/{performanceId}", created.id())
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(created.id()))
+                .andExpect(jsonPath("$.roadAddress").value(created.roadAddress()));
     }
 
     @Test

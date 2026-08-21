@@ -46,9 +46,13 @@ npm run build
 ```bash
 cd backend
 ./gradlew bootRun
+./gradlew bootRun --args='--spring.profiles.active=local-test'
 ./gradlew build
 ./gradlew test
 ```
+
+`local-test` 프로필은 H2와 Testcontainers LocalStack S3를 사용한다. 인증 구현 전에는 요청에
+`MemberPrincipal(1)` 세션을 주입하며, 서버를 재시작하면 DB와 LocalStack 파일이 초기화된다.
 
 ## 지속적 통합
 

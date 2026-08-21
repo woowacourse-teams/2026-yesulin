@@ -7,7 +7,7 @@ import art.yesulin.common.exception.BusinessException;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.OneToMany;
-import jakarta.persistence.OrderColumn;
+import jakarta.persistence.OrderBy;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AccessLevel;
@@ -18,12 +18,12 @@ import lombok.NoArgsConstructor;
 public class PerformanceRoles {
 
     @OneToMany(mappedBy = "performance", cascade = CascadeType.ALL, orphanRemoval = true)
-    @OrderColumn(name = "role_order")
+    @OrderBy("roleOrder ASC")
     private List<PerformanceRole> values = new ArrayList<>();
 
     PerformanceRole add(Performance performance, String name, String description) {
         validateDuplicateName(null, name);
-        PerformanceRole role = new PerformanceRole(performance, name, description);
+        PerformanceRole role = new PerformanceRole(performance, name, description, values.size());
         values.add(role);
         return role;
     }
@@ -37,6 +37,9 @@ public class PerformanceRoles {
 
     void remove(long roleId) {
         values.remove(findRole(roleId));
+        for (int index = 0; index < values.size(); index++) {
+            values.get(index).changeOrder(index);
+        }
     }
 
     private PerformanceRole findRole(long roleId) {

@@ -6,6 +6,7 @@ import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.performance.Performance;
 import art.yesulin.domain.performance.PerformanceRepository;
 import art.yesulin.domain.performance.PerformanceRole;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +24,18 @@ public class PerformanceService {
         );
         command.roles().forEach(role -> performance.addRole(role.name(), role.description()));
         return PerformanceResult.from(performanceRepository.saveAndFlush(performance));
+    }
+
+    @Transactional(readOnly = true)
+    public List<PerformanceResult> findAll(long ownerId) {
+        return performanceRepository.findAllByOwnerIdOrderByCreatedAtDesc(ownerId).stream()
+                .map(PerformanceResult::from)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public PerformanceResult find(long ownerId, long performanceId) {
+        return PerformanceResult.from(getPerformance(ownerId, performanceId));
     }
 
     @Transactional

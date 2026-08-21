@@ -1,6 +1,7 @@
 package art.yesulin.presentation.api.performance;
 
 import art.yesulin.application.auth.MemberPrincipal;
+import art.yesulin.application.file.FileService;
 import art.yesulin.application.performance.PerformanceResult;
 import art.yesulin.application.performance.PerformanceRoleResult;
 import art.yesulin.application.performance.PerformanceService;
@@ -10,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,6 +26,7 @@ import org.springframework.web.bind.annotation.SessionAttribute;
 public class PerformanceController {
 
     private final PerformanceService performanceService;
+    private final FileService fileService;
 
     @PostMapping
     public ResponseEntity<PerformanceResult> create(
@@ -32,6 +35,25 @@ public class PerformanceController {
     ) {
         PerformanceResult result = performanceService.create(principal.memberId(), request.toCommand());
         return ResponseEntity.created(URI.create("/api/v1/performances/" + result.id())).body(result);
+    }
+
+    @GetMapping
+    public ResponseEntity<PerformanceListResponse> findAll(
+            @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal
+    ) {
+        long ownerId = principal.memberId();
+        return ResponseEntity.ok(new PerformanceListResponse(
+                performanceService.findAll(ownerId).stream().map(result -> toResponse(ownerId, result)).toList()
+        ));
+    }
+
+    @GetMapping("/{performanceId}")
+    public ResponseEntity<PerformanceResponse> find(
+            @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal,
+            @PathVariable long performanceId
+    ) {
+        long ownerId = principal.memberId();
+        return ResponseEntity.ok(toResponse(ownerId, performanceService.find(ownerId, performanceId)));
     }
 
     @PatchMapping("/{performanceId}/basic-information")
@@ -88,5 +110,9 @@ public class PerformanceController {
     ) {
         performanceService.removeRole(principal.memberId(), performanceId, roleId);
         return ResponseEntity.noContent().build();
+    }
+
+    private PerformanceResponse toResponse(long ownerId, PerformanceResult result) {
+        return PerformanceResponse.from(result, fileService.readUrl(ownerId, result.posterFileId()));
     }
 }
