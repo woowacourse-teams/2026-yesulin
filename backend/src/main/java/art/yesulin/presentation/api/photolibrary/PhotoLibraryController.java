@@ -8,7 +8,10 @@ import jakarta.validation.Valid;
 import java.net.URI;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -37,5 +40,22 @@ public class PhotoLibraryController {
         PhotoLibraryItemResult result = photoLibraryService.addPhoto(principal.memberId(), request.toCommand());
         URI location = URI.create("/api/v1/applicants/me/photo-library/photos/" + result.id());
         return ResponseEntity.created(location).body(result);
+    }
+
+    @PatchMapping("/{photoId}/representative")
+    public ResponseEntity<PhotoLibraryResult> makeRepresentative(
+            @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal,
+            @PathVariable long photoId
+    ) {
+        return ResponseEntity.ok(photoLibraryService.makeRepresentative(principal.memberId(), photoId));
+    }
+
+    @DeleteMapping("/{photoId}")
+    public ResponseEntity<Void> deletePhoto(
+            @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal,
+            @PathVariable long photoId
+    ) {
+        photoLibraryService.deletePhoto(principal.memberId(), photoId);
+        return ResponseEntity.noContent().build();
     }
 }

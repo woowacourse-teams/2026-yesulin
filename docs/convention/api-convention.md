@@ -50,6 +50,10 @@ PATCH  /api/v1/actor-photos/{fileId}/completion
                                                   # 배우 사진 업로드 완료 확인
 GET    /api/v1/applicants/me/photo-library/photos # 사진보관함 목록
 POST   /api/v1/applicants/me/photo-library/photos # 완료된 파일을 사진보관함에 추가
+PATCH  /api/v1/applicants/me/photo-library/photos/{photoId}/representative
+                                                  # 대표 사진으로 변경
+DELETE /api/v1/applicants/me/photo-library/photos/{photoId}
+                                                  # 사진보관함에서 Soft Delete
 
 GET    /api/v1/applicants/me/submissions       # 내 지원서 목록
 GET    /api/v1/applicants/me/submissions/{submissionId}

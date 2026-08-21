@@ -1,6 +1,8 @@
 package art.yesulin.presentation.api.photolibrary;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -19,7 +21,10 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:h2:mem:photo-library-api;MODE=MySQL;DB_CLOSE_DELAY=-1",
@@ -37,6 +42,9 @@ class PhotoLibraryControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Autowired
     private FileService fileService;
@@ -91,6 +99,55 @@ class PhotoLibraryControllerTest {
     }
 
     @Test
+    void changesRepresentativePhoto() throws Exception {
+        long firstPhotoId = addReadyPhoto(MEMBER_PRINCIPAL.memberId());
+        long secondPhotoId = addReadyPhoto(MEMBER_PRINCIPAL.memberId());
+
+        mockMvc.perform(patch(PHOTOS_PATH + "/{photoId}/representative", secondPhotoId)
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.photos[0].id").value(secondPhotoId))
+                .andExpect(jsonPath("$.photos[0].displayOrder").value(0))
+                .andExpect(jsonPath("$.photos[0].representative").value(true))
+                .andExpect(jsonPath("$.photos[1].id").value(firstPhotoId))
+                .andExpect(jsonPath("$.photos[1].displayOrder").value(1))
+                .andExpect(jsonPath("$.photos[1].representative").value(false));
+    }
+
+    @Test
+    void softDeletesPhoto() throws Exception {
+        long firstPhotoId = addReadyPhoto(MEMBER_PRINCIPAL.memberId());
+        long secondPhotoId = addReadyPhoto(MEMBER_PRINCIPAL.memberId());
+
+        mockMvc.perform(delete(PHOTOS_PATH + "/{photoId}", firstPhotoId)
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get(PHOTOS_PATH)
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.photos.length()").value(1))
+                .andExpect(jsonPath("$.photos[0].id").value(secondPhotoId))
+                .andExpect(jsonPath("$.photos[0].displayOrder").value(0))
+                .andExpect(jsonPath("$.photos[0].representative").value(true));
+    }
+
+    @Test
+    void hidesPhotoOwnedByAnotherMemberWhenManagingPhoto() throws Exception {
+        long anotherMembersPhotoId = addReadyPhoto(2L);
+
+        mockMvc.perform(patch(PHOTOS_PATH + "/{photoId}/representative", anotherMembersPhotoId)
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("PHOTO_LIBRARY_PHOTO_NOT_FOUND"));
+
+        mockMvc.perform(delete(PHOTOS_PATH + "/{photoId}", anotherMembersPhotoId)
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("PHOTO_LIBRARY_PHOTO_NOT_FOUND"));
+    }
+
+    @Test
     void rejectsPendingPhoto() throws Exception {
         FileUploadResult upload = fileService.requestUpload(
                 MEMBER_PRINCIPAL.memberId(), new FileUploadCommand("profile.png", "image/png", 1_024L)
@@ -123,6 +180,18 @@ class PhotoLibraryControllerTest {
         objectStorage.upload(upload.uploadUrl(), "image/png", 1_024L);
         fileService.completeUpload(ownerId, upload.fileId());
         return upload.fileId();
+    }
+
+    private long addReadyPhoto(long ownerId) throws Exception {
+        long fileId = requestReadyUpload(ownerId);
+        MvcResult result = mockMvc.perform(post(PHOTOS_PATH)
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, new MemberPrincipal(ownerId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(addPhotoRequest(fileId)))
+                .andExpect(status().isCreated())
+                .andReturn();
+        JsonNode response = objectMapper.readTree(result.getResponse().getContentAsString());
+        return response.get("id").asLong();
     }
 
     private String addPhotoRequest(long fileId) {

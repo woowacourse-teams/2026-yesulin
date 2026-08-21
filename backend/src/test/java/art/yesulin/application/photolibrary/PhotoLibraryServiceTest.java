@@ -10,8 +10,10 @@ import art.yesulin.application.file.FileUploadCommand;
 import art.yesulin.application.file.FileUploadResult;
 import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.file.FileErrorCode;
+import art.yesulin.domain.file.FileReference;
 import art.yesulin.domain.file.FileReferenceRepository;
 import art.yesulin.domain.photolibrary.PhotoLibrary;
+import art.yesulin.domain.photolibrary.PhotoLibraryErrorCode;
 import art.yesulin.domain.photolibrary.PhotoLibraryRepository;
 import art.yesulin.support.FakeObjectStorage;
 import art.yesulin.support.ObjectStorageTestConfiguration;
@@ -93,6 +95,77 @@ class PhotoLibraryServiceTest {
         PhotoLibraryResult result = photoLibraryService.findPhotos(OWNER_ID);
 
         assertTrue(result.photos().isEmpty());
+    }
+
+    @Test
+    void movesSelectedPhotoToFrontAsRepresentative() {
+        long firstFileId = requestReadyUpload(OWNER_ID);
+        long secondFileId = requestReadyUpload(OWNER_ID);
+        PhotoLibraryItemResult first = photoLibraryService.addPhoto(
+                OWNER_ID, new AddPhotoToLibraryCommand(firstFileId)
+        );
+        PhotoLibraryItemResult second = photoLibraryService.addPhoto(
+                OWNER_ID, new AddPhotoToLibraryCommand(secondFileId)
+        );
+
+        PhotoLibraryResult result = photoLibraryService.makeRepresentative(OWNER_ID, second.id());
+
+        assertEquals(List.of(second.id(), first.id()), result.photos().stream()
+                .map(PhotoLibraryItemResult::id)
+                .toList());
+        assertEquals(List.of(0, 1), result.photos().stream()
+                .map(PhotoLibraryItemResult::displayOrder)
+                .toList());
+        assertTrue(result.photos().getFirst().representative());
+        assertFalse(result.photos().getLast().representative());
+    }
+
+    @Test
+    void softDeletesPhotoAndRemovesOnlyLibraryReference() {
+        long firstFileId = requestReadyUpload(OWNER_ID);
+        long secondFileId = requestReadyUpload(OWNER_ID);
+        PhotoLibraryItemResult first = photoLibraryService.addPhoto(
+                OWNER_ID, new AddPhotoToLibraryCommand(firstFileId)
+        );
+        PhotoLibraryItemResult second = photoLibraryService.addPhoto(
+                OWNER_ID, new AddPhotoToLibraryCommand(secondFileId)
+        );
+        fileReferenceRepository.save(new FileReference("SUBMISSION_PHOTO", 99L, firstFileId));
+
+        photoLibraryService.deletePhoto(OWNER_ID, first.id());
+
+        PhotoLibraryResult result = photoLibraryService.findPhotos(OWNER_ID);
+        assertEquals(List.of(second.id()), result.photos().stream()
+                .map(PhotoLibraryItemResult::id)
+                .toList());
+        assertEquals(0, result.photos().getFirst().displayOrder());
+        assertTrue(result.photos().getFirst().representative());
+        assertFalse(fileReferenceRepository.existsByReferenceTypeAndReferenceIdAndFileId(
+                PhotoLibraryService.FILE_REFERENCE_TYPE, first.id(), firstFileId
+        ));
+        assertTrue(fileReferenceRepository.existsByReferenceTypeAndReferenceIdAndFileId(
+                "SUBMISSION_PHOTO", 99L, firstFileId
+        ));
+    }
+
+    @Test
+    void rejectsManagingPhotoOwnedByAnotherMember() {
+        long fileId = requestReadyUpload(2L);
+        PhotoLibraryItemResult photo = photoLibraryService.addPhoto(
+                2L, new AddPhotoToLibraryCommand(fileId)
+        );
+
+        BusinessException representativeException = assertThrows(
+                BusinessException.class,
+                () -> photoLibraryService.makeRepresentative(OWNER_ID, photo.id())
+        );
+        BusinessException deleteException = assertThrows(
+                BusinessException.class,
+                () -> photoLibraryService.deletePhoto(OWNER_ID, photo.id())
+        );
+
+        assertEquals(PhotoLibraryErrorCode.PHOTO_NOT_FOUND, representativeException.getErrorCode());
+        assertEquals(PhotoLibraryErrorCode.PHOTO_NOT_FOUND, deleteException.getErrorCode());
     }
 
     @Test
