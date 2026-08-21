@@ -43,12 +43,28 @@ npm run build
 
 백엔드:
 
+로컬 MySQL의 `DB_*` 값은 `application-local.yml`에서 Spring Datasource로 연결한다. OIDC 설정은 애플리케이션 시작 시 검증한다. 처음 설정할 때만 `.env.example`을 `.env`로 복사하고, DB 비밀번호와 각 개발자 콘솔에서 발급한 값을 채운다. 이미 `.env`가 있으면 덮어쓰지 않는다.
+
 ```bash
+cp -n .env.example .env
+
+set -a
+source .env
+set +a
+
 cd backend
 ./gradlew bootRun
+```
+
+테스트에는 실제 OIDC 자격증명이 필요하지 않다.
+
+```bash
+cd backend
 ./gradlew build
 ./gradlew test
 ```
+
+카카오·네이버·구글 소셜 로그인 시작 경로와 Callback 설정은 [소셜 로그인 연동 모듈 문서](./docs/development/backend/oauth-social-login.md)를 따른다.
 
 ## 지속적 통합
 

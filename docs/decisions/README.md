@@ -17,6 +17,7 @@
 
 - [인증·계정과 로컬 Draft 경계](./20260821145244-auth-account-and-local-draft-boundary.md)
 - [지원서 프로필·동의·스냅샷](./20260821145246-application-profile-consent-and-snapshot.md)
+- [Spring Security 기반 소셜 인증 경계](./20260819121208-unify-social-login-with-oidc.md)
 - [지원 시작 선택과 제작사 작성 로컬 Draft](./20260820044229-application-start-and-producer-local-drafts.md)
 
 ### 공연·공고·심사
