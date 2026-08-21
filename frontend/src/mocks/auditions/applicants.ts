@@ -39,7 +39,7 @@ export type MockApplicant = {
 
 /** 정책 기반 심사 화면을 확인할 수 있는 제출 스냅샷 1건. */
 const PRIMARY_APPLICANT: MockApplicant = {
-  id: 26081201 as ApplicationId,
+  id: applicationId("00000000-0000-4000-8000-000026081201"),
   name: "김하린",
   gender: "FEMALE",
   age: 27,
@@ -82,7 +82,7 @@ function scenarioApplicant({ id, name, posting, role, index }: {
 }): MockApplicant {
   const photo = fallbackPhoto(name, index);
   return {
-    id: applicationId(id),
+    id: applicationId(`00000000-0000-4000-8000-${String(id).padStart(12, "0")}`),
     name,
     gender: index % 2 === 0 ? "FEMALE" : "MALE",
     age: 23 + index,

@@ -6,5 +6,5 @@ export const metadata: Metadata = { title: "지원서 상세" };
 
 export default async function ApplicantApplicationPage({ params }: { readonly params: Promise<{ applicationId: string }> }) {
   const { applicationId } = await params;
-  return <ApplicantApplicationDetailView applicationId={toApplicationId(Number(applicationId))} />;
+  return <ApplicantApplicationDetailView applicationId={toApplicationId(applicationId)} />;
 }

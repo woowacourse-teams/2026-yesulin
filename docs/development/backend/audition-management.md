@@ -24,6 +24,7 @@ status: active
 3. **일정**: 모집 시작·종료 시각, 전형 1~5개
 4. **지원 폼**: 기본·추가 항목, 사진, 영상 링크, 추가 질문
 5. **게시**: 전체 섹션 검증과 상태 전이
+6. **심사**: 지원서·배역·전형별 상태와 내부 메모 저장
 
 ### 기본 정보
 
@@ -74,6 +75,20 @@ status: active
 - 게시와 기본 정보·배역·일정·지원 폼 저장은 모두 공고 행의 쓰기 잠금을 사용해 서로 직렬화한다.
 - 이번 API는 공연사용 상태 전이만 제공한다. 배우용 공개 조회 읽기 모델은 별도 조회 기능에서 구성한다.
 
+### 심사
+
+- 심사 결과는 `(applicationId, auditionRoleId, screeningStageId)`별로 한 건만 저장한다. `applicationId`는
+  지원자 수를 추측하기 어려운 UUID를 사용한다. 복수 배역과
+  여러 차수의 결과가 서로 덮이지 않는다.
+- 상태는 `PENDING`, `PASS`, `FAIL`, `ABSENT`, `ETC`다. 기록이 없으면 row를 만들지 않고
+  `PENDING`으로 조회한다.
+- `ETC`는 최대 255자의 사유가 필요하다. 최대 2,000자의 내부 메모는 상태와 별도로 보존하므로
+  보류 후 합격·불합격으로 바꿔도 사라지지 않는다.
+- 저장할 때 공고 행을 잠그고 공고 소유권, 배역과 차수가 같은 공고에 속하는지 검증한다.
+- 제출 지원서 Aggregate가 아직 없으므로 현재는 UUID `applicationId`를 외부 참조로 보관한다. 지원서 구현 시
+  선택 배역과 차수별 심사 대상 여부를 검증하고 FK를 추가한다. 존재를 검증할 수 없는 심사 결과 단독 조회는
+  제공하지 않고, 향후 지원서 상세 조회가 미존재·접근 불가 지원서를 `404`로 처리한다.
+
 공고 모델은 위에서 확정한 정보만 가진다. 장소·공고 포스터·지원 안내처럼 목록에 없는 값은 추가하지
 않으며, 공연에 이미 속한 정보를 공고에 임의로 중복 저장하지 않는다.
 
@@ -89,7 +104,8 @@ GET  /api/v1/auditions/{auditionId}/schedule
 PUT  /api/v1/auditions/{auditionId}/schedule
 GET  /api/v1/auditions/{auditionId}/application-form
 PUT  /api/v1/auditions/{auditionId}/application-form
-PUT  /api/v1/auditions/{auditionId}/publication
+PUT   /api/v1/auditions/{auditionId}/publication
+PATCH /api/v1/audition-roles/{roleId}/screening-rounds/{round}/reviews
 ```
 
 생성 API는 `performanceId`, `title`, `performanceStartDate`, 선택적인 `performanceEndDate`를 받아 유효한
@@ -99,6 +115,9 @@ DRAFT를 반환한다. 생성·조회·기본 정보 수정은 `/auditions`를 �
 전체를 저장하고 기존 공연 배역을 다시 선택하면 공고 배역 ID를 유지한다. 일정 GET·PUT은 모집 기간과
 전형 1~5개를 조회하고 전체 저장한다. 지원 폼 GET·PUT은 표준 항목과 사진·영상·질문 요구 전체를
 조회하고 저장한다. 게시 `PUT`은 모든 섹션과 모집 종료 시각을 검증한 뒤 `PUBLISHED`로 전이한다.
+심사 `PATCH`는 지원서 ID 목록과 상태·기타 사유·내부 메모를 받아 같은 차수의 결과를 일괄 저장한다.
+심사 결과 조회는 향후 지원서 목록·상세 읽기 모델에 포함한다. 심사 기록이 없는 유효한 지원서는
+`PENDING`으로 표현하고, 지원서가 없거나 해당 배역의 지원서가 아니면 `404`로 응답한다.
 
 생성·수정 command가 날짜 입력을 `PerformancePeriod`로 변환하고 service는 완성된 VO를 도메인에 전달한다.
 공연이 없거나 세션 소유자의 공연이 아니면 존재 여부를 구분하지 않고 `PERFORMANCE_NOT_FOUND`로 응답한다.

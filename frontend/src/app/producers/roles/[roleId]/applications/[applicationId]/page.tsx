@@ -20,7 +20,6 @@ export default async function ApplicantReviewPage({
 }) {
   const route = await params;
   const query = await searchParams;
-  const rawApplicationId = Number(route.applicationId);
   const rawRound = Number(query.round);
   const round = ROUND_NUMBERS.includes(rawRound as RoundNumber)
     ? (rawRound as RoundNumber)
@@ -28,9 +27,9 @@ export default async function ApplicantReviewPage({
 
   return (
     <ApplicantReview
-      key={`${route.roleId}:${rawApplicationId}:${round}`}
+      key={`${route.roleId}:${route.applicationId}:${round}`}
       roleId={roleId(route.roleId)}
-      applicationId={applicationId(rawApplicationId)}
+      applicationId={applicationId(route.applicationId)}
       round={round}
     />
   );

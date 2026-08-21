@@ -80,9 +80,10 @@ export function getAuditionBoard(role: RoleId, round: RoundNumber | null) {
 }
 
 export function saveReview(body: SaveReviewRequest) {
-  return request<AuditionBoardResponse>("/screenings/reviews", {
+  const { roleId, round, ...review } = body;
+  return request<AuditionBoardResponse>(`/v1/audition-roles/${roleId}/screening-rounds/${round}/reviews`, {
     method: "PATCH",
-    body: JSON.stringify(body),
+    body: JSON.stringify(review),
   });
 }
 
