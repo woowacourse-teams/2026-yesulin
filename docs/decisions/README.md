@@ -15,17 +15,15 @@
 
 ### 지원서·인증·Draft
 
-- [지원서·프로필·배역 규칙](./20260812134827-application-profile-and-role-rules.md)
-- [로컬 우선 서버 Draft 동기화](./20260812134827-local-first-server-draft.md)
-- [인증 주체별 로그인·가입 흐름](./20260818133426-role-specific-auth-flow.md)
+- [인증·계정과 로컬 Draft 경계](./20260821145244-auth-account-and-local-draft-boundary.md)
+- [지원서 프로필·동의·스냅샷](./20260821145246-application-profile-consent-and-snapshot.md)
 - [지원 시작 선택과 제작사 작성 로컬 Draft](./20260820044229-application-start-and-producer-local-drafts.md)
 
 ### 공연·공고·심사
 
-- [공연·공고 생성과 수정 경계](./20260818133426-performance-posting-management.md)
 - [심사 상세 식별과 화면 경로](./20260818133426-screening-detail-identity-and-route.md)
 - [공고 생명주기와 섹션 Aggregate](./20260819073112-audition-section-aggregates.md)
-- [공고 배역 참조](./20260819151537-audition-role-references.md)
+- [공고 스냅샷과 수정 잠금](./20260821145245-audition-snapshots-and-edit-locks.md)
 - [공고 게시 상태와 섹션 검증](./20260820190552-audition-publication.md)
 
 ### 백엔드 운영
