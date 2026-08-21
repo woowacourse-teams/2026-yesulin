@@ -3,9 +3,33 @@ import type { ProducerSignupRequest } from "@/features/auth/api";
 import { registerPendingProducer } from "./auditions/producer-profile";
 
 const emails = new Set<string>();
+let mockSession: { memberId: number; role: "APPLICANT" | "PRODUCER" } | null = null;
 const error = (code: string, message: string, status = 400) => HttpResponse.json({ code, message }, { status });
 
 export const authHandlers = [
+  http.post("/api/v1/sessions", async ({ request }) => {
+    await delay(240);
+    const body = (await request.json()) as { email?: string; password?: string };
+    const email = body.email?.trim().toLowerCase() ?? "";
+    if (!/^\S+@\S+\.\S+$/.test(email) || !body.password) {
+      return error("INVALID_REQUEST", "요청 값을 확인해 주세요.");
+    }
+    mockSession = { memberId: 1, role: "PRODUCER" };
+    return HttpResponse.json(mockSession);
+  }),
+
+  http.get("/api/v1/sessions/current", () => {
+    if (!mockSession) {
+      return error("AUTH_UNAUTHENTICATED", "로그인이 필요합니다.", 401);
+    }
+    return HttpResponse.json(mockSession);
+  }),
+
+  http.delete("/api/v1/sessions/current", () => {
+    mockSession = null;
+    return new HttpResponse(null, { status: 204 });
+  }),
+
   http.post("/api/auth/signup/producer", async ({ request }) => {
     await delay(320);
     const body = (await request.json()) as ProducerSignupRequest;
