@@ -1,5 +1,7 @@
 package art.yesulin.presentation.api.audition;
 
+import static org.hamcrest.Matchers.matchesPattern;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -97,6 +99,7 @@ class AuditionControllerTest {
                 }
                 """.formatted(auditionId, performance.id());
         String location = mockMvc.perform(post("/api/v1/auditions")
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createRequest))
@@ -114,6 +117,7 @@ class AuditionControllerTest {
                 """;
 
         mockMvc.perform(put("/api/v1/auditions/{auditionId}/basic-information", auditionId)
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
@@ -170,6 +174,7 @@ class AuditionControllerTest {
                 """.formatted(performance.roles().getFirst().id(), performance.roles().get(1).id());
 
         mockMvc.perform(put("/api/v1/auditions/{auditionId}/roles", auditionId)
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(roleRequest))
@@ -196,6 +201,7 @@ class AuditionControllerTest {
                 }
                 """.formatted(auditionId, performanceId);
         String location = mockMvc.perform(post("/api/v1/auditions")
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))

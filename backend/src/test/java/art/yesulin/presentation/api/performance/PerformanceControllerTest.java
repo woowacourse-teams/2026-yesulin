@@ -1,6 +1,7 @@
 package art.yesulin.presentation.api.performance;
 
 import static org.hamcrest.Matchers.matchesPattern;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -89,6 +90,7 @@ class PerformanceControllerTest {
                 """.formatted(posterFileId);
 
         mockMvc.perform(post("/api/v1/performances")
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
@@ -157,6 +159,7 @@ class PerformanceControllerTest {
                 """;
 
         mockMvc.perform(patch("/api/v1/performances/{performanceId}/basic-information", created.id())
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
@@ -175,6 +178,7 @@ class PerformanceControllerTest {
                 """.formatted(changedPosterFileId);
 
         mockMvc.perform(patch("/api/v1/performances/{performanceId}/poster", created.id())
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
@@ -191,6 +195,7 @@ class PerformanceControllerTest {
                 """;
 
         mockMvc.perform(post("/api/v1/performances/{performanceId}/roles", created.id())
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
@@ -209,6 +214,7 @@ class PerformanceControllerTest {
                 """;
 
         mockMvc.perform(patch("/api/v1/performances/{performanceId}/roles/{roleId}", created.id(), roleId)
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
@@ -223,6 +229,7 @@ class PerformanceControllerTest {
         long roleId = created.roles().getFirst().id();
 
         mockMvc.perform(delete("/api/v1/performances/{performanceId}/roles/{roleId}", created.id(), roleId)
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
                 .andExpect(status().isNoContent());
     }

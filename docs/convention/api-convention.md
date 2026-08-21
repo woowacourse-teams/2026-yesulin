@@ -26,12 +26,14 @@
 POST   /api/v1/sessions                         # 로그인
 GET    /api/v1/sessions/current                 # 현재 세션
 DELETE /api/v1/sessions/current                 # 로그아웃
-GET    /api/v1/oauth/{provider}/authorization   # 소셜 로그인 시작
-GET    /api/v1/oauth/{provider}/callback        # 소셜 인증 응답
+GET    /oauth2/authorization/{provider}          # Spring Security 소셜 로그인 시작
+GET    /login/oauth2/code/{provider}             # Provider Callback
 POST   /api/v1/producers                        # 기획사/제작사 가입
 ```
 
-`provider`는 `kakao`, `naver`, `google`을 허용하며 OAuth 요청의 `state`를 검증한다. 배우는 별도 가입 API·화면을 두지 않고 첫 소셜 로그인 콜백에서 계정을 자동 생성한다. 같은 이메일의 기존 배우 계정은 자동 병합하지 않고 명시적 연결 요청과 재인증을 거친다. 배우와 기획사/제작사 계정은 같은 이메일이어도 서로 연결하지 않는다. 기획사/제작사는 이메일·비밀번호로 로그인한다.
+`provider`는 `kakao`, `naver`, `google`을 허용한다. 위 두 경로와 `state`, PKCE, Token 교환, ID Token 검증은 Spring Security OAuth2 Client가 처리한다. 인증 성공 시 모듈은 `SocialLoginSuccessHandler`에 `(provider, issuer, subject)`만 전달하며 사용자 정보 API는 호출하지 않는다. 회원 식별 고유 키는 `(issuer, subject)`다.
+
+배우는 별도 가입 API·화면을 두지 않고 첫 소셜 로그인 성공 시 계정을 자동 생성한다. 같은 이메일의 기존 배우 계정은 자동 병합하지 않고 명시적 연결 요청과 재인증을 거친다. 배우와 기획사/제작사 계정은 같은 이메일이어도 서로 연결하지 않는다. 기획사/제작사는 이메일·비밀번호로 로그인한다. 소셜 인증 이후 회원 조회·최초 계정 생성과 서비스 세션 처리는 [로그인 담당자 인수인계](../development/backend/social-login-handoff.md)를 따른다.
 
 기획사/제작사 가입 요청의 핵심 정보는 기획사/제작사명, 휴대폰 번호, 이메일, 비밀번호다. 비밀번호 확인과 필수 약관 동의를 함께 검증한다. 동의 문서 종류·버전·시각을 별도 이력으로 저장한다. 가입 성공 시 계정은 `PENDING`이며 기획사/제작사 정보 조회·수정만 허용한다. 운영진 확인 후 `ACTIVE`로 전환되어야 공연·공고·심사 API에 접근할 수 있다. MVP는 Company당 `ADMIN` 한 명만 허용한다.
 
