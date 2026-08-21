@@ -20,6 +20,7 @@ import art.yesulin.application.performance.PerformanceService;
 import art.yesulin.domain.file.FileAssetRepository;
 import art.yesulin.domain.file.FileReferenceRepository;
 import art.yesulin.domain.performance.PerformanceRepository;
+import art.yesulin.presentation.api.auth.AuthRole;
 import art.yesulin.support.FakeObjectStorage;
 import art.yesulin.support.ObjectStorageTestConfiguration;
 import java.util.List;
@@ -43,7 +44,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class PerformanceControllerTest {
 
     private static final long OWNER_ID = 1L;
-    private static final MemberPrincipal MEMBER_PRINCIPAL = new MemberPrincipal(OWNER_ID);
+    private static final MemberPrincipal MEMBER_PRINCIPAL = new MemberPrincipal(OWNER_ID, AuthRole.PRODUCER);
 
     @Autowired
     private MockMvc mockMvc;
