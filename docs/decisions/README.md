@@ -19,6 +19,10 @@
 - [지원서 프로필·동의·스냅샷](./20260821145246-application-profile-consent-and-snapshot.md)
 - [지원 시작 선택과 제작사 작성 로컬 Draft](./20260820044229-application-start-and-producer-local-drafts.md)
 
+### 파일·사진
+
+- [지원 사진 정제 실행 위치](./20260821165029-photo-sanitization-execution-location.md)
+
 ### 공연·공고·심사
 
 - [심사 상세 식별과 화면 경로](./20260818133426-screening-detail-identity-and-route.md)

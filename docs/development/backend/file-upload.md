@@ -57,6 +57,9 @@ domain/performance ──event──> presentation/event/performance ──> app
   제출 가능한 상태가 된다.
 - 지원서에는 업로드 원본이 아니라 정제본의 파일 ID를 `(photoRequirementId, fileId)`로 연결한다.
   개인 사진을 Soft Delete해도 제출 참조가 남아 있으면 정제본 객체를 삭제하지 않는다.
+- 사진보관함 첫 구현에서는 이미지 내용 검사·EXIF 제거 Worker를 제외하고 현재 HEAD 기반 완료 처리를
+  재사용한다. 이 단계의 `READY`를 정제 완료로 해석하지 않으며 운영 적용 전
+  [지원 사진 정제 실행 위치](../../decisions/20260821165029-photo-sanitization-execution-location.md)를 결정한다.
 - 원본 객체의 격리 위치·접근 차단·삭제 시점, 정제 실패와 부분 제출의 정리 방식은 지원서 구현 전에
   [도메인 설계의 P0 항목](../../domain-design.md)으로 확정한다.
 
