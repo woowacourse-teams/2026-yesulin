@@ -36,21 +36,17 @@ if [ "${#ORIGIN_SECRET}" -ne 64 ] || printf '%s' "$ORIGIN_SECRET" | grep -q '[^0
   exit 1
 fi
 
-install -d -o root -g root -m 0755 /etc/nginx/snippets
-install -o root -g root -m 0644 \
-  "$DEPLOYMENT_DIR/nginx/yesulin-log-format.conf" \
-  /etc/nginx/conf.d/yesulin-log-format.conf
-install -o root -g root -m 0644 \
-  "$DEPLOYMENT_DIR/nginx/yesulin.conf" \
-  /etc/nginx/sites-available/yesulin
-
 GUARD_FILE=/etc/nginx/snippets/yesulin-origin-guard.conf
 GUARD_TEMP="$(mktemp)"
 trap 'rm -f "$GUARD_TEMP"' EXIT
+install -d -o root -g root -m 0755 /etc/nginx/snippets
 printf 'if ($http_x_yesulin_origin_secret != "%s") { return 403; }\n' \
   "$ORIGIN_SECRET" > "$GUARD_TEMP"
 install -o root -g root -m 0600 "$GUARD_TEMP" "$GUARD_FILE"
 
-ln -sfn /etc/nginx/sites-available/yesulin /etc/nginx/sites-enabled/yesulin
-rm -f /etc/nginx/sites-enabled/default
-nginx -t
+"$DEPLOYMENT_DIR/scripts/configure_nginx.sh"
+
+install -d -o root -g root -m 0755 /etc/letsencrypt/renewal-hooks/deploy
+install -o root -g root -m 0755 \
+  "$DEPLOYMENT_DIR/scripts/reload_nginx_after_renewal.sh" \
+  /etc/letsencrypt/renewal-hooks/deploy/yesulin-nginx

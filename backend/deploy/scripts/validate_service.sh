@@ -1,6 +1,24 @@
 #!/bin/sh
 set -eu
 
+ORIGIN_HOST="${ORIGIN_HOST:-origin.yesulin.art}"
+
+request_status() {
+  request_secret="${1:-}"
+  if [ -r "/etc/letsencrypt/live/$ORIGIN_HOST/fullchain.pem" ]; then
+    set -- curl --connect-timeout 1 --max-time 1 -sS -o /dev/null -w '%{http_code}' \
+      --resolve "$ORIGIN_HOST:443:127.0.0.1"
+    request_url="https://$ORIGIN_HOST/api/v1/__deployment_smoke__"
+  else
+    set -- curl --connect-timeout 1 --max-time 1 -sS -o /dev/null -w '%{http_code}'
+    request_url="http://127.0.0.1/api/v1/__deployment_smoke__"
+  fi
+  if [ -n "$request_secret" ]; then
+    set -- "$@" -H "X-Yesulin-Origin-Secret: $request_secret"
+  fi
+  "$@" "$request_url"
+}
+
 if ! systemctl is-active --quiet yesulin.service; then
   systemctl status yesulin.service --no-pager || true
   journalctl -u yesulin.service -n 50 --no-pager || true
@@ -13,8 +31,7 @@ if ! systemctl is-active --quiet nginx.service; then
   exit 1
 fi
 
-DIRECT_STATUS="$(curl -sS -o /dev/null -w '%{http_code}' \
-  http://127.0.0.1/api/v1/__deployment_smoke__)"
+DIRECT_STATUS="$(request_status)"
 if [ "$DIRECT_STATUS" != "403" ]; then
   echo "Nginx origin guard returned HTTP $DIRECT_STATUS without the secret header" >&2
   exit 1
@@ -34,10 +51,7 @@ while [ "$ATTEMPT" -le "$MAX_ATTEMPTS" ]; do
     exit 1
   fi
 
-  PROXY_STATUS="$(curl --connect-timeout 1 --max-time 1 \
-    -sS -o /dev/null -w '%{http_code}' \
-    -H "X-Yesulin-Origin-Secret: $ORIGIN_SECRET" \
-    http://127.0.0.1/api/v1/__deployment_smoke__ || true)"
+  PROXY_STATUS="$(request_status "$ORIGIN_SECRET" || true)"
   if [ -z "$PROXY_STATUS" ]; then
     PROXY_STATUS=000
   fi
@@ -55,13 +69,17 @@ while [ "$ATTEMPT" -le "$MAX_ATTEMPTS" ]; do
       ATTEMPT=$((ATTEMPT + 1))
       sleep "$RETRY_INTERVAL_SECONDS"
       ;;
+    404)
+      echo "Nginx-to-Spring smoke check succeeded with HTTP $PROXY_STATUS"
+      exit 0
+      ;;
     403)
       echo "Nginx rejected the configured origin secret" >&2
       exit 1
       ;;
     *)
-      echo "Nginx-to-Spring smoke check succeeded with HTTP $PROXY_STATUS"
-      exit 0
+      echo "Unexpected Nginx-to-Spring smoke status: HTTP $PROXY_STATUS" >&2
+      exit 1
       ;;
   esac
 done
