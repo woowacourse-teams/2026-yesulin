@@ -53,7 +53,7 @@ let photoLibrary: ApplicantProfilePhoto[] = [
 ];
 let videoLibrary: ApplicantProfileVideo[] = [{ id: "seed-video-1", url: "https://youtu.be/aqz-KE-bpKQ", youtubeId: "aqz-KE-bpKQ" }];
 let applications: ApplicantApplicationDetail[] = [{
-  id: applicationId(26081201), postingId: "seed_posting_1", performanceTitle: "달빛 아래 우리", postingTitle: "2026 하반기 주·조연 배우 모집",
+  id: applicationId("00000000-0000-4000-8000-000026081201"), postingId: "seed_posting_1", performanceTitle: "달빛 아래 우리", postingTitle: "2026 하반기 주·조연 배우 모집",
   posterUrl: "/images/performances/moonlight.jpg", companyName: "예술in 스테이지", roleId: "seed_role_seoyeon", roleIds: ["seed_role_seoyeon", "seed_role_jiwoo"], roleName: "서연 · 지우",
   lookupCode: "YS-20260812-SEED01", submittedAt: "2026-08-12T10:30:00+09:00", updatedAt: "2026-08-12T10:30:00+09:00",
   editable: false, recruitmentEnd: "2026-09-30", editableUntil: "", roleProgress: [], answers: seededAnswers, applicationFields: screeningFlowApplicationFixture(),

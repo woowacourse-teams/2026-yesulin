@@ -12,11 +12,16 @@ ai-context: on-demand
 
 ## 결정
 
-지원자를 클릭하면 `/producers/roles/{roleId}/applications/{applicationId}?round={round}` 심사 상세 페이지로 이동한다. 목표 상세 조회 API는 `GET /api/v1/roles/{roleId}/screening-rounds/{round}/applications/{applicationId}`로 식별한다. 목록으로 돌아갈 때도 `round`를 유지한다.
+지원자를 클릭하면 `/producers/roles/{roleId}/applications/{applicationId}?round={round}` 심사 상세 페이지로
+이동한다. 목표 상세 조회 API는
+`GET /api/v1/audition-roles/{roleId}/screening-rounds/{round}/applications/{applicationId}`로 식별한다.
+`applicationId`는 UUID를 사용하고 목록으로 돌아갈 때도 `round`를 유지한다.
 
 ## 이유
 
-배역과 차수를 경로에 명시하면 복수 배역 지원서의 심사 기록을 혼동하지 않고, 조회와 결과 저장이 같은 심사 집합 책임 아래 놓인다. 독립 페이지는 브라우저 탐색과 링크 공유도 지원한다.
+`audition-roles`와 차수를 경로에 명시하면 복수 배역 지원서의 심사 기록을 혼동하지 않고 회원 역할과도
+구분된다. UUID는 순차 PK 노출로 지원자 수를 추측하는 일을 막는다. 독립 페이지는 브라우저 탐색과 링크 공유도
+지원한다.
 
 ## 영향
 

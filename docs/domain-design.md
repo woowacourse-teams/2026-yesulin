@@ -1,6 +1,6 @@
 # 도메인 설계 기준과 추가 결정 사항
 
-> 기준일: 2026-08-20<br>
+> 기준일: 2026-08-21<br>
 > 최초 기준: [Notion 도메인 설계](https://app.notion.com/p/3b94b21dcd3c80478a8ce0bb76965dc9)<br>
 > 후속 결정: [지원서·프로필·배역 규칙](./decisions/20260812134827-application-profile-and-role-rules.md), [로컬 우선 서버 Draft 동기화](./decisions/20260812134827-local-first-server-draft.md), [인증 주체별 로그인·가입 흐름](./decisions/20260818133426-role-specific-auth-flow.md), [공연·공고 생성과 수정 경계](./decisions/20260818133426-performance-posting-management.md), [심사 상세 식별과 화면 경로](./decisions/20260818133426-screening-detail-identity-and-route.md), [공고 생명주기와 섹션 Aggregate](./decisions/20260819073112-audition-section-aggregates.md), [공고 배역 참조](./decisions/20260819151537-audition-role-references.md), [지원 시작 선택과 제작사 작성 로컬 Draft](./decisions/20260820044229-application-start-and-producer-local-drafts.md)
 
@@ -145,7 +145,8 @@
 
 `backend/`에는 파일 직접 업로드, 공연·배역 생성·수정과 공고 DRAFT 생성·기본 정보·배역·일정·지원 폼
 저장 및 게시 상태 전이가 구현되어 있다. 공고 일정은 모집 시작·종료와 ID를 유지하는 전형 1~5개를
-독립 섹션으로 관리한다. 배우용 공개 공고 조회와 회원, 기획사/제작사, 프로필, 지원서, 사진 보관함은 아직 구현되지 않았다.
+독립 섹션으로 관리한다. 심사 결과는 `(지원서 UUID, 공고 배역 ID, 전형 ID)`별 상태·기타 사유·내부 메모를
+저장한다. 배우용 공개 공고 조회와 회원, 기획사/제작사, 프로필, 제출 지원서, 사진 보관함은 아직 구현되지 않았다.
 
 ### Frontend·MSW
 
@@ -153,7 +154,8 @@
 
 - 지원서와 공연·공고 작성 내용은 현재 브라우저 IndexedDB에만 저장되며 서버 Draft·다른 기기에 동기화되지 않는다.
 - 인증·세션·가입·비밀번호 재설정은 프론트·MSW 프로토타입이며 실제 OAuth·서버 세션·메일·문자를 사용하지 않는다.
-- 파일·프로필·지원서·심사 상태는 MSW 시드와 로컬 상태로 검증하며 실제 업로드·영속 저장 API는 아직 연결하지 않았다.
+- 파일·프로필·지원서와 심사 화면은 MSW 시드와 로컬 상태로 검증한다. 백엔드 심사 결과 저장은 구현됐지만
+  제출 지원서 읽기 모델이 없어 프런트 심사 화면에는 아직 연결하지 않았다.
 
 ## 추가 도메인 설계 필요
 

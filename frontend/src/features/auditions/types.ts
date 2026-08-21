@@ -15,17 +15,19 @@ import type { PerformanceRoleTemplate } from "./creation-types";
 
 declare const brand: unique symbol;
 type Brand<T, B extends string> = T & { readonly [brand]: B };
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export type PerformanceId = Brand<string, "PerformanceId">;
 export type PostingId = Brand<string, "PostingId">;
 export type RoleId = Brand<string, "RoleId">;
-/** Notion의 공개 제출·내 지원서 계약(Long)에 맞춘 전 영역 공통 지원서 식별자. */
-export type ApplicationId = Brand<number, "ApplicationId">;
+/** 외부에 노출하는 UUID 형식의 지원서 식별자. */
+export type ApplicationId = Brand<string, "ApplicationId">;
 
 export const performanceId = (value: string) => value as PerformanceId;
 export const postingId = (value: string) => value as PostingId;
 export const roleId = (value: string) => value as RoleId;
-export const applicationId = (value: number) => value as ApplicationId;
+export const applicationId = (value: string) => value as ApplicationId;
+export const isApplicationId = (value: string): value is ApplicationId => UUID_PATTERN.test(value);
 
 export const ROUND_NUMBERS = [1, 2, 3, 4, 5] as const;
 export type RoundNumber = (typeof ROUND_NUMBERS)[number];

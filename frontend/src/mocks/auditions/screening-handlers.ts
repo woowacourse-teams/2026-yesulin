@@ -7,7 +7,7 @@ import { toApplicant, toPerformanceRef, toPostingRef, toRoleSummary } from "./se
 import { activeRound, isRoundClosed, markRoundClosed, poolFor, reviewOf, roundNumbersForRole } from "./store";
 
 const apiPath = "/api";
-const notFound = (message: string) => HttpResponse.json({ code: "ROLE_NOT_FOUND", message }, { status: 404 });
+const notFound = (message: string, code = "ROLE_NOT_FOUND") => HttpResponse.json({ code, message }, { status: 404 });
 const badRequest = (code: string, message: string) => HttpResponse.json({ code, message }, { status: 400 });
 const isRoundNumber = (value: number): value is RoundNumber => ROUND_NUMBERS.some((round) => round === value);
 const parseRound = (raw: string): RoundNumber | null => { const parsed = Number(raw); return Number.isInteger(parsed) && isRoundNumber(parsed) ? parsed : null; };
@@ -31,20 +31,23 @@ export const screeningHandlers = [
     const board = buildBoard(String(params.roleId), round);
     return board ? HttpResponse.json(board) : notFound("배역을 찾을 수 없습니다.");
   }),
-  http.patch(`${apiPath}/screenings/reviews`, async ({ request }) => {
+  http.patch(`${apiPath}/v1/audition-roles/:roleId/screening-rounds/:round/reviews`, async ({ params, request }) => {
     await delay(200);
-    const body = (await request.json()) as SaveReviewRequest;
-    if (!findRole(body.roleId)) return notFound("배역을 찾을 수 없습니다.");
-    if (!isRoundNumber(body.round)) return badRequest("INVALID_ROUND_NUMBER", "올바른 차수가 아닙니다.");
+    const body = (await request.json()) as Omit<SaveReviewRequest, "roleId" | "round">;
+    const targetRoleId = roleId(String(params.roleId));
+    const round = parseRound(String(params.round));
+    if (!findRole(targetRoleId)) return notFound("배역을 찾을 수 없습니다.");
+    if (round === null) return badRequest("INVALID_ROUND_NUMBER", "올바른 차수가 아닙니다.");
     if (body.applicationIds.length === 0) return badRequest("APPLICATION_REQUIRED", "배우를 한 명 이상 선택해 주세요.");
-    if (isRoundClosed(body.roleId, body.round)) return badRequest("ROUND_ALREADY_CLOSED", "마감된 차수는 결과를 변경할 수 없습니다.");
-    if (body.round === 1 && body.status === "ABSENT") return badRequest("ABSENT_NOT_ALLOWED", "1차 서류 심사에는 불참을 고를 수 없습니다.");
+    if (isRoundClosed(targetRoleId, round)) return badRequest("ROUND_ALREADY_CLOSED", "마감된 차수는 결과를 변경할 수 없습니다.");
+    if (round === 1 && body.status === "ABSENT") return badRequest("ABSENT_NOT_ALLOWED", "1차 서류 심사에는 불참을 고를 수 없습니다.");
     if (body.status === "ETC" && !body.memo?.trim()) return badRequest("MEMO_REQUIRED", "기타 사유를 입력해 주세요.");
-    const pool = poolFor(body.roleId, body.round);
+    const pool = poolFor(targetRoleId, round);
     const targets = body.applicationIds.filter((applicationId) => pool.some((applicant) => applicant.id === applicationId));
-    if (body.status === undefined && body.memo !== undefined && targets.some((applicationId) => reviewOf(applicationId, body.roleId, body.round).status === "ETC") && !body.memo.trim()) return badRequest("MEMO_REQUIRED", "기타 사유를 입력해 주세요.");
+    if (targets.length !== body.applicationIds.length) return notFound("지원서를 찾을 수 없습니다.", "APPLICATION_NOT_FOUND");
+    if (body.status === undefined && body.memo !== undefined && targets.some((applicationId) => reviewOf(applicationId, targetRoleId, round).status === "ETC") && !body.memo.trim()) return badRequest("MEMO_REQUIRED", "기타 사유를 입력해 주세요.");
     for (const applicationId of targets) {
-      const review = reviewOf(applicationId, body.roleId, body.round);
+      const review = reviewOf(applicationId, targetRoleId, round);
       if (body.status !== undefined) {
         review.status = body.status;
         review.memo = body.status === "ETC" ? body.memo?.trim() ?? "" : "";
@@ -53,7 +56,7 @@ export const screeningHandlers = [
       }
       if (body.note !== undefined) review.note = body.note;
     }
-    const board = buildBoard(body.roleId, body.round);
+    const board = buildBoard(targetRoleId, round);
     return board ? HttpResponse.json(board) : notFound("배역을 찾을 수 없습니다.");
   }),
   http.post(`${apiPath}/screenings/rounds/close`, async ({ request }) => {

@@ -38,12 +38,12 @@ export const applicantHandlers = [
   http.get(`${apiPath}/me/applications`, async () => { await delay(260); return HttpResponse.json(applicantApplications()); }),
   http.get(`${apiPath}/me/applications/:applicationId`, async ({ params }) => {
     await delay(260);
-    const application = applicantApplication(applicationId(Number(params.applicationId)));
+    const application = applicantApplication(applicationId(String(params.applicationId)));
     return application ? HttpResponse.json(application) : apiError(404, "NOT_FOUND", "지원서를 찾을 수 없습니다.");
   }),
   http.patch(`${apiPath}/me/applications/:applicationId`, async ({ params, request }) => {
     await delay(260);
-    const id = applicationId(Number(params.applicationId));
+    const id = applicationId(String(params.applicationId));
     const current = applicantApplication(id);
     if (!current) return apiError(404, "NOT_FOUND", "지원서를 찾을 수 없습니다.");
     await request.json().catch(() => null);
@@ -78,7 +78,7 @@ export const applicantHandlers = [
     if (validation) return apiError(400, validation.code, validation.message);
     const submittedAt = new Date().toISOString();
     const receiptNumber = `YS-${submittedAt.slice(0, 10).replaceAll("-", "")}-${crypto.randomUUID().replaceAll("-", "").slice(0, 6).toUpperCase()}`;
-    const createdApplicationId = applicationId(Date.now());
+    const createdApplicationId = applicationId(crypto.randomUUID());
     const profilePhotos = new Map(applicantProfile().photoLibrary.map((photo) => [photo.id, photo.url]));
     const answers = body.answers.map((answer) => {
       const previewUrls = answer.key === "PHOTOS" && Array.isArray(answer.value)
