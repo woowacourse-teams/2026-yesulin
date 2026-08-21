@@ -41,7 +41,7 @@ public class PerformanceController {
 
     @GetMapping
     public ResponseEntity<PerformanceListResponse> findAll(
-            @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal
+            @LoginMember MemberPrincipal principal
     ) {
         long ownerId = principal.memberId();
         return ResponseEntity.ok(new PerformanceListResponse(
@@ -51,7 +51,7 @@ public class PerformanceController {
 
     @GetMapping("/{performanceId}")
     public ResponseEntity<PerformanceResponse> find(
-            @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal,
+            @LoginMember MemberPrincipal principal,
             @PathVariable long performanceId
     ) {
         long ownerId = principal.memberId();
