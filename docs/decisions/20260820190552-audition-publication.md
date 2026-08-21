@@ -13,8 +13,9 @@ ai-context: on-demand
 
 ## 결정
 
-application이 공고 행을 잠근 뒤 배역·일정·지원 폼 존재 여부와 모집 종료 시각을 검사하고 `Audition`을
-`PUBLISHED`로 전이한다. 모집 시작 뒤 게시도 허용하되 종료 시각 이후 게시를 거부한다. 게시 API는
+application이 공고 행을 잠그고 배역·일정·지원 폼을 조회한 뒤, 순수 도메인 서비스
+`AuditionPublicationPolicy`가 섹션 존재 여부와 모집 종료 시각을 검사하고 `Audition`을 `PUBLISHED`로
+전이한다. 모집 시작 뒤 게시도 허용하되 종료 시각 이후 게시를 거부한다. 게시 API는
 `PUT /api/v1/auditions/{auditionId}/publication`이며 최초 게시 시각을 유지하는 멱등 요청이다.
 
 예정·모집 중·접수 마감은 별도 영속 상태로 두지 않고 `PUBLISHED`와 모집 기간으로 조회 시 계산한다.

@@ -54,6 +54,7 @@ class AuditionFormPlanTest {
     @Test
     void parsesStandardFieldNamesWithoutCaseSensitivity() {
         assertEquals(BasicInformationField.NAME, BasicInformationField.from("name"));
+        assertEquals(BasicInformationField.ADDRESS, BasicInformationField.from("address"));
         assertEquals(AdditionalInformationField.CAREER, AdditionalInformationField.from("career"));
     }
 

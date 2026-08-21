@@ -83,8 +83,9 @@ public class Audition {
         if (status != AuditionStatus.DRAFT) {
             throw new BusinessException(INVALID_STATUS, "게시할 수 있는 상태의 공고가 아닙니다.");
         }
+        Instant validPublicationTime = requireNonNull(publicationTime, "공고 게시 시각은 필수입니다.");
         this.status = AuditionStatus.PUBLISHED;
-        this.publishedAt = requireNonNull(publicationTime, "공고 게시 시각은 필수입니다.");
+        this.publishedAt = validPublicationTime;
     }
 
     private String normalizeTitle(String title) {
