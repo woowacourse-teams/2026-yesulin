@@ -1,6 +1,7 @@
 package art.yesulin.presentation.api.audition;
 
 import static org.hamcrest.Matchers.matchesPattern;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -20,6 +21,7 @@ import art.yesulin.domain.audition.AuditionRepository;
 import art.yesulin.domain.audition.role.AuditionRoleSectionRepository;
 import art.yesulin.domain.file.FileAssetRepository;
 import art.yesulin.domain.file.FileReferenceRepository;
+import art.yesulin.domain.member.MemberType;
 import art.yesulin.domain.performance.PerformanceRepository;
 import art.yesulin.support.FakeObjectStorage;
 import art.yesulin.support.ObjectStorageTestConfiguration;
@@ -44,7 +46,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class AuditionControllerTest {
 
     private static final long OWNER_ID = 1L;
-    private static final MemberPrincipal MEMBER_PRINCIPAL = new MemberPrincipal(OWNER_ID);
+    private static final MemberPrincipal MEMBER_PRINCIPAL = new MemberPrincipal(OWNER_ID, MemberType.PRODUCER);
 
     @Autowired
     private MockMvc mockMvc;
@@ -83,6 +85,23 @@ class AuditionControllerTest {
     }
 
     @Test
+    void rejectsApplicantWithForbidden() throws Exception {
+        MemberPrincipal applicant = new MemberPrincipal(OWNER_ID, MemberType.APPLICANT);
+
+        mockMvc.perform(get("/api/v1/auditions/{auditionId}", 1L)
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, applicant))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("AUTH_FORBIDDEN"));
+    }
+
+    @Test
+    void rejectsAnonymousWithUnauthorized() throws Exception {
+        mockMvc.perform(get("/api/v1/auditions/{auditionId}", 1L))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("AUTH_UNAUTHENTICATED"));
+    }
+
+    @Test
     void createsRestoresAndUpdatesDraftBasicInformation() throws Exception {
         PerformanceResult performance = createPerformance();
         String createRequest = """
@@ -94,6 +113,7 @@ class AuditionControllerTest {
                 }
                 """.formatted(performance.id());
         String location = mockMvc.perform(post("/api/v1/auditions")
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createRequest))
@@ -112,6 +132,7 @@ class AuditionControllerTest {
                 """;
 
         mockMvc.perform(put("/api/v1/auditions/{auditionId}/basic-information", auditionId)
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
@@ -153,6 +174,7 @@ class AuditionControllerTest {
                 """.formatted(performance.roles().getFirst().id(), performance.roles().get(1).id());
 
         mockMvc.perform(put("/api/v1/auditions/{auditionId}/roles", auditionId)
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(roleRequest))
@@ -177,6 +199,7 @@ class AuditionControllerTest {
                 }
                 """.formatted(performanceId);
         String location = mockMvc.perform(post("/api/v1/auditions")
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))

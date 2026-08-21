@@ -19,6 +19,7 @@ public class ApiExceptionHandler {
         HttpStatus status = switch (exception.getErrorCode().type()) {
             case BAD_REQUEST -> HttpStatus.BAD_REQUEST;
             case FORBIDDEN -> HttpStatus.FORBIDDEN;
+            case UNAUTHORIZED -> HttpStatus.UNAUTHORIZED;
             case NOT_FOUND -> HttpStatus.NOT_FOUND;
             case CONFLICT -> HttpStatus.CONFLICT;
         };

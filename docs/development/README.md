@@ -11,5 +11,6 @@
 | 기획사/제작사 관리 흐름 | [기획사/제작사 흐름도](./flows/producer.mmd) |
 | 공고 Aggregate·저장 순서 | [공고 관리](./backend/audition-management.md) |
 | 파일 소유권·업로드 생명주기 | [파일 업로드 설계](./backend/file-upload.md) |
+| 소셜 로그인·OIDC 연동 | [소셜 로그인 연동 모듈](./backend/oauth-social-login.md), [로그인 담당자 인수인계](./backend/social-login-handoff.md) |
 
 관련 작업이 아니면 이 문서들을 미리 읽지 않는다. 현재 규칙은 [도메인 설계](../domain-design.md)와 [API 컨벤션](../convention/api-convention.md)이 우선하며, 현재 설계의 이유가 필요할 때만 [결정 기록](../decisions/README.md)을 찾는다.

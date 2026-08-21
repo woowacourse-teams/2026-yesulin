@@ -1,5 +1,6 @@
 package art.yesulin.presentation.api.screening;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -20,6 +21,7 @@ import art.yesulin.domain.audition.schedule.AuditionScheduleRepository;
 import art.yesulin.domain.audition.schedule.RecruitmentPeriod;
 import art.yesulin.domain.audition.schedule.ScreeningStagePlan;
 import art.yesulin.domain.audition.schedule.ScreeningStagePlans;
+import art.yesulin.domain.member.MemberType;
 import art.yesulin.domain.screening.ScreeningReviewRepository;
 import art.yesulin.support.ObjectStorageTestConfiguration;
 import java.time.Instant;
@@ -45,7 +47,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class ScreeningReviewControllerTest {
 
     private static final long OWNER_ID = 1L;
-    private static final MemberPrincipal MEMBER_PRINCIPAL = new MemberPrincipal(OWNER_ID);
+    private static final MemberPrincipal MEMBER_PRINCIPAL = new MemberPrincipal(OWNER_ID, MemberType.PRODUCER);
 
     @Autowired
     private MockMvc mockMvc;
@@ -85,6 +87,7 @@ class ScreeningReviewControllerTest {
                 """;
 
         mockMvc.perform(patch("/api/v1/audition-roles/{roleId}/screening-rounds/{round}/reviews", roleId, 1)
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))

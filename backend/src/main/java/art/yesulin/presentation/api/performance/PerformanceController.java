@@ -1,6 +1,8 @@
 package art.yesulin.presentation.api.performance;
 
 import art.yesulin.application.auth.MemberPrincipal;
+import art.yesulin.application.auth.annotation.LoginMember;
+import art.yesulin.application.auth.annotation.LoginRequired;
 import art.yesulin.application.file.FileService;
 import art.yesulin.application.performance.PerformanceResult;
 import art.yesulin.application.performance.PerformanceRoleResult;
@@ -18,11 +20,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.SessionAttribute;
 
 @RestController
 @RequestMapping("/api/v1/performances")
 @RequiredArgsConstructor
+@LoginRequired
 public class PerformanceController {
 
     private final PerformanceService performanceService;
@@ -30,7 +32,7 @@ public class PerformanceController {
 
     @PostMapping
     public ResponseEntity<PerformanceResult> create(
-            @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal,
+            @LoginMember MemberPrincipal principal,
             @Valid @RequestBody CreatePerformanceRequest request
     ) {
         PerformanceResult result = performanceService.create(principal.memberId(), request.toCommand());
@@ -39,7 +41,7 @@ public class PerformanceController {
 
     @GetMapping
     public ResponseEntity<PerformanceListResponse> findAll(
-            @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal
+            @LoginMember MemberPrincipal principal
     ) {
         long ownerId = principal.memberId();
         return ResponseEntity.ok(new PerformanceListResponse(
@@ -49,7 +51,7 @@ public class PerformanceController {
 
     @GetMapping("/{performanceId}")
     public ResponseEntity<PerformanceResponse> find(
-            @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal,
+            @LoginMember MemberPrincipal principal,
             @PathVariable long performanceId
     ) {
         long ownerId = principal.memberId();
@@ -58,7 +60,7 @@ public class PerformanceController {
 
     @PatchMapping("/{performanceId}/basic-information")
     public ResponseEntity<PerformanceResult> updateBasicInformation(
-            @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal,
+            @LoginMember MemberPrincipal principal,
             @PathVariable long performanceId,
             @Valid @RequestBody UpdatePerformanceBasicInformationRequest request
     ) {
@@ -69,7 +71,7 @@ public class PerformanceController {
 
     @PatchMapping("/{performanceId}/poster")
     public ResponseEntity<PerformanceResult> updatePoster(
-            @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal,
+            @LoginMember MemberPrincipal principal,
             @PathVariable long performanceId,
             @Valid @RequestBody UpdatePerformancePosterRequest request
     ) {
@@ -80,7 +82,7 @@ public class PerformanceController {
 
     @PostMapping("/{performanceId}/roles")
     public ResponseEntity<PerformanceRoleResult> addRole(
-            @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal,
+            @LoginMember MemberPrincipal principal,
             @PathVariable long performanceId,
             @Valid @RequestBody CreatePerformanceRoleRequest request
     ) {
@@ -92,7 +94,7 @@ public class PerformanceController {
 
     @PatchMapping("/{performanceId}/roles/{roleId}")
     public ResponseEntity<PerformanceRoleResult> updateRole(
-            @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal,
+            @LoginMember MemberPrincipal principal,
             @PathVariable long performanceId,
             @PathVariable long roleId,
             @Valid @RequestBody UpdatePerformanceRoleRequest request
@@ -104,7 +106,7 @@ public class PerformanceController {
 
     @DeleteMapping("/{performanceId}/roles/{roleId}")
     public ResponseEntity<Void> removeRole(
-            @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal,
+            @LoginMember MemberPrincipal principal,
             @PathVariable long performanceId,
             @PathVariable long roleId
     ) {

@@ -1,5 +1,6 @@
 package art.yesulin.presentation.api.audition;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -10,6 +11,7 @@ import art.yesulin.domain.audition.Audition;
 import art.yesulin.domain.audition.AuditionRepository;
 import art.yesulin.domain.audition.PerformancePeriod;
 import art.yesulin.domain.audition.form.AuditionFormRepository;
+import art.yesulin.domain.member.MemberType;
 import art.yesulin.support.ObjectStorageTestConfiguration;
 import java.time.LocalDate;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,7 +34,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class AuditionFormControllerTest {
 
     private static final long OWNER_ID = 1L;
-    private static final MemberPrincipal MEMBER_PRINCIPAL = new MemberPrincipal(OWNER_ID);
+    private static final MemberPrincipal MEMBER_PRINCIPAL = new MemberPrincipal(OWNER_ID, MemberType.PRODUCER);
 
     @Autowired
     private MockMvc mockMvc;
@@ -74,6 +76,7 @@ class AuditionFormControllerTest {
                 """;
 
         mockMvc.perform(put("/api/v1/auditions/{auditionId}/application-form", audition.getId())
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))

@@ -44,18 +44,37 @@ npm run build
 
 백엔드:
 
+로컬 MySQL의 `DB_*` 값은 `application-local.yml`에서 Spring Datasource로 연결한다. OIDC 설정은 애플리케이션 시작 시 검증한다. 처음 설정할 때만 `.env.example`을 `.env`로 복사하고, DB 비밀번호와 각 개발자 콘솔에서 발급한 값을 채운다. 이미 `.env`가 있으면 덮어쓰지 않는다.
+
 ```bash
+cp -n .env.example .env
+
+set -a
+source .env
+set +a
+
 cd backend
 ./gradlew bootRun
 ./gradlew bootRun --args='--spring.profiles.active=local-test'
+```
+
+테스트에는 실제 OIDC 자격증명이 필요하지 않다.
+
+```bash
+cd backend
 ./gradlew build
 ./gradlew test
 ```
 
-`local-test` 프로필은 H2와 Testcontainers LocalStack S3를 사용한다. 인증 구현 전에는 요청에
-`MemberPrincipal(1)` 세션을 주입하며, 서버를 재시작하면 DB와 LocalStack 파일이 초기화된다.
+`local-test` 프로필은 H2와 Testcontainers LocalStack S3를 사용하며, 서버를 재시작하면 DB와
+LocalStack 파일이 초기화된다. 세션이 없는 요청에 `MemberPrincipal(1, PRODUCER)`를 주입해
+로그인 없이 화면을 확인할 수 있게 하므로 인증·인가 검사를 통과시킨다. 로컬 확인 전용이며
+`local`, `staging` 등 다른 프로필에서는 활성화하지 않는다. 인증 흐름 자체를 확인할 때는
+`local` 프로필을 사용한다.
 실행 전 Docker Desktop 또는 Docker Engine처럼 Docker API와 호환되는 컨테이너 런타임이
 실행 중이어야 한다.
+
+카카오·네이버·구글 소셜 로그인 시작 경로와 Callback 설정은 [소셜 로그인 연동 모듈 문서](./docs/development/backend/oauth-social-login.md)를 따른다.
 
 ## 지속적 통합
 
