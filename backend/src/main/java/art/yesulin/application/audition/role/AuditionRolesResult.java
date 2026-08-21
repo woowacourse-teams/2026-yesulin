@@ -5,16 +5,21 @@ import art.yesulin.domain.performance.Performance;
 import art.yesulin.domain.performance.PerformanceRole;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public record AuditionRolesResult(
-        long auditionId,
+        UUID auditionId,
         boolean multipleRoleApplicationsAllowed,
         List<AuditionRoleResult> roles
 ) {
 
-    public static AuditionRolesResult from(AuditionRoleSection roleSection, Performance performance) {
+    public static AuditionRolesResult from(
+            UUID auditionId,
+            AuditionRoleSection roleSection,
+            Performance performance
+    ) {
         Map<Long, PerformanceRole> performanceRoles = performance.getRoles().stream()
                 .collect(Collectors.toMap(PerformanceRole::getId, Function.identity()));
         List<AuditionRoleResult> roles = roleSection.getRoles().stream()
@@ -23,7 +28,7 @@ public record AuditionRolesResult(
                 ))
                 .toList();
         return new AuditionRolesResult(
-                roleSection.getAuditionId(),
+                auditionId,
                 roleSection.isMultipleRoleApplicationsAllowed(),
                 roles
         );

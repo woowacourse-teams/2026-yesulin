@@ -73,7 +73,7 @@ class AuditionFormControllerTest {
                 }
                 """;
 
-        mockMvc.perform(put("/api/v1/auditions/{auditionId}/application-form", audition.getId())
+        mockMvc.perform(put("/api/v1/auditions/{auditionId}/application-form", audition.getPublicId())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
@@ -84,7 +84,7 @@ class AuditionFormControllerTest {
                 .andExpect(jsonPath("$.videoRequirements[0].description").value("자유 연기 영상"))
                 .andExpect(jsonPath("$.additionalQuestions[0].answerMaxLength").value(2_000));
 
-        mockMvc.perform(get("/api/v1/auditions/{auditionId}/application-form", audition.getId())
+        mockMvc.perform(get("/api/v1/auditions/{auditionId}/application-form", audition.getPublicId())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.additionalFields[0]").value("LINK"))

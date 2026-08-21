@@ -24,6 +24,7 @@ import art.yesulin.support.ObjectStorageTestConfiguration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -84,7 +85,7 @@ class AuditionScheduleServiceTest {
     @Test
     void savesScheduleAndKeepsExistingStageIdentityWhenItChanges() {
         Audition audition = saveAudition();
-        AuditionScheduleResult saved = scheduleService.save(OWNER_ID, audition.getId(), createCommand());
+        AuditionScheduleResult saved = scheduleService.save(OWNER_ID, audition.getPublicId(), createCommand());
         long firstStageId = saved.stages().get(0).id();
         long secondStageId = saved.stages().get(1).id();
         SaveAuditionScheduleCommand reorderCommand = new SaveAuditionScheduleCommand(
@@ -97,7 +98,7 @@ class AuditionScheduleServiceTest {
                 )
         );
 
-        AuditionScheduleResult reordered = scheduleService.save(OWNER_ID, audition.getId(), reorderCommand);
+        AuditionScheduleResult reordered = scheduleService.save(OWNER_ID, audition.getPublicId(), reorderCommand);
         long addedStageId = reordered.stages().get(2).id();
         SaveAuditionScheduleCommand removeCommand = new SaveAuditionScheduleCommand(
                 reordered.recruitmentStartAt(),
@@ -107,7 +108,7 @@ class AuditionScheduleServiceTest {
                         new SaveScreeningStageCommand(addedStageId, "2차 면접", LocalDate.of(2026, 9, 21), null)
                 )
         );
-        AuditionScheduleResult changed = scheduleService.save(OWNER_ID, audition.getId(), removeCommand);
+        AuditionScheduleResult changed = scheduleService.save(OWNER_ID, audition.getPublicId(), removeCommand);
 
         assertEquals(secondStageId, reordered.stages().get(0).id());
         assertEquals(firstStageId, reordered.stages().get(1).id());
@@ -115,17 +116,17 @@ class AuditionScheduleServiceTest {
         assertEquals(addedStageId, changed.stages().get(1).id());
         assertNotEquals(secondStageId, changed.stages().get(1).id());
         assertEquals(2, changed.stages().size());
-        assertEquals(changed, scheduleService.find(OWNER_ID, audition.getId()));
+        assertEquals(changed, scheduleService.find(OWNER_ID, audition.getPublicId()));
     }
 
     @Test
     void hidesAnotherOwnersSchedule() {
         Audition audition = saveAudition();
-        scheduleService.save(OWNER_ID, audition.getId(), createCommand());
+        scheduleService.save(OWNER_ID, audition.getPublicId(), createCommand());
 
         BusinessException exception = assertThrows(
                 BusinessException.class,
-                () -> scheduleService.find(2L, audition.getId())
+                () -> scheduleService.find(2L, audition.getPublicId())
         );
 
         assertEquals(AuditionErrorCode.NOT_FOUND, exception.getErrorCode());
@@ -138,10 +139,10 @@ class AuditionScheduleServiceTest {
         ExecutorService executor = Executors.newFixedThreadPool(2);
         try {
             Future<AuditionScheduleResult> first = executor.submit(
-                    () -> saveAfterSignal(start, audition.getId(), createCommand())
+                    () -> saveAfterSignal(start, audition.getPublicId(), createCommand())
             );
             Future<AuditionScheduleResult> second = executor.submit(
-                    () -> saveAfterSignal(start, audition.getId(), createCommand())
+                    () -> saveAfterSignal(start, audition.getPublicId(), createCommand())
             );
             start.countDown();
 
@@ -156,7 +157,7 @@ class AuditionScheduleServiceTest {
 
     private AuditionScheduleResult saveAfterSignal(
             CountDownLatch start,
-            long auditionId,
+            UUID auditionId,
             SaveAuditionScheduleCommand command
     ) throws InterruptedException {
         start.await();

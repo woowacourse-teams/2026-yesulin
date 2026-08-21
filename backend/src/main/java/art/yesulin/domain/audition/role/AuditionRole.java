@@ -43,15 +43,21 @@ public class AuditionRole {
     @Embedded
     private AuditionRoleCondition condition;
 
-    AuditionRole(AuditionRoleSection roleSection, AuditionRoleSelection selection) {
+    @Getter(AccessLevel.NONE)
+    @Column(name = "role_order", nullable = false)
+    private int order;
+
+    AuditionRole(AuditionRoleSection roleSection, AuditionRoleSelection selection, int order) {
         this.roleSection = requireNonNull(roleSection, "배역 섹션은 필수입니다.");
         AuditionRoleSelection safeSelection = requireNonNull(selection, "공고 배역 정보는 필수입니다.");
         this.performanceRoleId = safeSelection.performanceRoleId();
         this.condition = safeSelection.condition();
+        this.order = order;
     }
 
-    void updateCondition(AuditionRoleCondition condition) {
+    void update(AuditionRoleCondition condition, int order) {
         this.condition = requireNonNull(condition, "배역 모집 조건은 필수입니다.");
+        this.order = order;
     }
 
     boolean comesFrom(long performanceRoleId) {

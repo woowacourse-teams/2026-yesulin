@@ -8,29 +8,46 @@ import art.yesulin.domain.audition.AuditionRepository;
 import art.yesulin.domain.audition.PerformancePeriod;
 import art.yesulin.domain.performance.PerformanceErrorCode;
 import art.yesulin.domain.performance.PerformanceRepository;
-import lombok.RequiredArgsConstructor;
+import java.util.List;
+import java.util.UUID;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
-@RequiredArgsConstructor
 public class AuditionService {
 
     private final AuditionRepository auditionRepository;
     private final PerformanceRepository performanceRepository;
+    private final TransactionTemplate creationTransaction;
 
-    @Transactional
+    public AuditionService(
+            AuditionRepository auditionRepository,
+            PerformanceRepository performanceRepository,
+            PlatformTransactionManager transactionManager
+    ) {
+        this.auditionRepository = auditionRepository;
+        this.performanceRepository = performanceRepository;
+        this.creationTransaction = new TransactionTemplate(transactionManager);
+        this.creationTransaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+    }
+
     public AuditionResult create(long ownerId, CreateAuditionCommand command) {
         ensureOwnedPerformance(ownerId, command.performanceId());
-        PerformancePeriod performancePeriod = command.performancePeriod();
-        Audition audition = new Audition(command.performanceId(), ownerId, command.title(), performancePeriod);
-        return AuditionResult.from(auditionRepository.save(audition));
+        try {
+            return createInNewTransaction(ownerId, command);
+        } catch (DataIntegrityViolationException exception) {
+            return restoreInNewTransaction(ownerId, command, exception);
+        }
     }
 
     @Transactional
     public AuditionResult updateBasicInformation(
             long ownerId,
-            long auditionId,
+            UUID auditionId,
             UpdateAuditionBasicInformationCommand command
     ) {
         Audition audition = getAuditionForUpdate(ownerId, auditionId);
@@ -39,9 +56,18 @@ public class AuditionService {
     }
 
     @Transactional(readOnly = true)
-    public AuditionResult find(long ownerId, long auditionId) {
+    public AuditionResult find(long ownerId, UUID auditionId) {
         Audition audition = getAudition(ownerId, auditionId);
         return AuditionResult.from(audition);
+    }
+
+    @Transactional(readOnly = true)
+    public List<AuditionResult> findAll(long ownerId, long performanceId) {
+        ensureOwnedPerformance(ownerId, performanceId);
+        return auditionRepository.findAllByPerformanceIdAndOwnerIdOrderByCreatedAtDescIdDesc(performanceId, ownerId)
+                .stream()
+                .map(AuditionResult::from)
+                .toList();
     }
 
     private void ensureOwnedPerformance(long ownerId, long performanceId) {
@@ -50,13 +76,48 @@ public class AuditionService {
         }
     }
 
-    private Audition getAudition(long ownerId, long auditionId) {
-        return auditionRepository.findByIdAndOwnerId(auditionId, ownerId)
+    private AuditionResult createInNewTransaction(long ownerId, CreateAuditionCommand command) {
+        return creationTransaction.execute(status -> {
+            Audition audition = new Audition(
+                    command.id(), command.performanceId(), ownerId, command.title(), command.performancePeriod()
+            );
+            return AuditionResult.from(auditionRepository.saveAndFlush(audition));
+        });
+    }
+
+    private AuditionResult restoreInNewTransaction(
+            long ownerId,
+            CreateAuditionCommand command,
+            DataIntegrityViolationException creationFailure
+    ) {
+        return creationTransaction.execute(status -> auditionRepository.findByPublicIdForUpdate(command.id())
+                .map(existing -> restoreDraft(ownerId, existing, command.title(), command.performancePeriod()))
+                .map(AuditionResult::from)
+                .orElseThrow(() -> creationFailure));
+    }
+
+    private Audition restoreDraft(
+            long ownerId,
+            Audition audition,
+            String title,
+            PerformancePeriod performancePeriod
+    ) {
+        if (audition.getOwnerId() != ownerId) {
+            throw new BusinessException(NOT_FOUND, "공고를 찾을 수 없습니다.");
+        }
+        if (!audition.isPublished()) {
+            audition.updateBasicInformation(title, performancePeriod);
+        }
+        return audition;
+    }
+
+    private Audition getAudition(long ownerId, UUID auditionId) {
+        return auditionRepository.findByPublicIdAndOwnerId(auditionId, ownerId)
                 .orElseThrow(() -> new BusinessException(NOT_FOUND, "공고를 찾을 수 없습니다."));
     }
 
-    private Audition getAuditionForUpdate(long ownerId, long auditionId) {
-        return auditionRepository.findByIdAndOwnerIdForUpdate(auditionId, ownerId)
+    private Audition getAuditionForUpdate(long ownerId, UUID auditionId) {
+        return auditionRepository.findByPublicIdAndOwnerIdForUpdate(auditionId, ownerId)
                 .orElseThrow(() -> new BusinessException(NOT_FOUND, "공고를 찾을 수 없습니다."));
     }
 }

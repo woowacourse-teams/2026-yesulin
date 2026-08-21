@@ -7,10 +7,11 @@ import art.yesulin.domain.audition.form.BasicInformationField;
 import art.yesulin.domain.audition.form.PhotoRequirement;
 import art.yesulin.domain.audition.form.VideoRequirement;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.IntStream;
 
 public record AuditionFormResult(
-        long auditionId,
+        UUID auditionId,
         List<String> basicFields,
         List<String> additionalFields,
         List<PhotoRequirementResult> photoRequirements,
@@ -18,12 +19,12 @@ public record AuditionFormResult(
         List<AdditionalQuestionResult> additionalQuestions
 ) {
 
-    public static AuditionFormResult from(AuditionForm form) {
+    public static AuditionFormResult from(UUID auditionId, AuditionForm form) {
         List<PhotoRequirement> photos = form.getPhotoRequirements();
         List<VideoRequirement> videos = form.getVideoRequirements();
         List<AdditionalQuestion> questions = form.getAdditionalQuestions();
         return new AuditionFormResult(
-                form.getAuditionId(),
+                auditionId,
                 form.getBasicFields().stream().map(BasicInformationField::name).toList(),
                 form.getAdditionalFields().stream().map(AdditionalInformationField::name).toList(),
                 IntStream.range(0, photos.size()).mapToObj(index -> PhotoRequirementResult.from(

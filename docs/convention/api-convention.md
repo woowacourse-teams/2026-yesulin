@@ -83,7 +83,7 @@ JPEG·PNG·WebP 이미지 한 장, 최대 20MB를 허용한다. 현재 완료 AP
 ## 공개 공고
 
 ```http
-GET  /api/v1/public/auditions/{auditionId}       # 공개 공고·배역·지원서 양식
+GET  /api/v1/public/auditions/{auditionId}       # 게시된 공개 공고·배역·일정·지원서 양식
 GET  /api/v1/public/recommended-auditions
      ?excludeAuditionId={auditionId}&limit={limit} # 추천 공고
 ```
@@ -131,6 +131,7 @@ PATCH  /api/v1/performances/{performanceId}/roles/{roleId}
 DELETE /api/v1/performances/{performanceId}/roles/{roleId}
                                                             # 배역 삭제
 POST   /api/v1/auditions                               # 공연 ID와 기본 정보로 공고 DRAFT 생성
+GET    /api/v1/auditions?performanceId={performanceId} # 공연별 공고 목록
 GET    /api/v1/auditions/{auditionId}                   # 공연사용 공고 DRAFT 상세
 PUT    /api/v1/auditions/{auditionId}/basic-information
                                                           # 기본 정보 섹션 전체 저장
@@ -151,9 +152,11 @@ PUT    /api/v1/auditions/{auditionId}/publication         # 완성된 공고 게
 
 배역은 공연 하위 리소스로 개별 추가·수정·삭제한다. 단건 조회를 제공하지 않으므로 추가 성공은 `Location` 없이 `201 Created`와 생성된 배역을 반환한다. 수정은 `200 OK`, 삭제는 `204 No Content`를 반환한다. 다른 공연의 배역 ID와 같은 공연 안의 중복 이름은 거부한다. 배역이 없어도 공연은 유지할 수 있다.
 
-공고 생성은 `performanceId`, `title`, `performanceStartDate`와 선택적인 `performanceEndDate`를 받아
-세션 소유자의 공연에 DRAFT를 만들고 `201 Created`와 `Location`을 반환한다. 종료일이 없으면 응답의
-`openRun`은 `true`다. 기본 정보 수정은 DRAFT와 PUBLISHED 모두 허용하며 같은 기본 필드를 받는다.
+공고 생성은 UUID `id`, `performanceId`, `title`, `performanceStartDate`와 선택적인 `performanceEndDate`를
+받아 세션 소유자의 공연에 DRAFT를 만들고 `201 Created`와 `Location`을 반환한다. UUID는 외부 식별자이자
+생성 재시도 키다. 같은 소유자가 같은 UUID로 재요청하면 기존 DRAFT를 이어 쓰며 새 공고를 만들지 않는다.
+종료일이 없으면 응답의 `openRun`은 `true`다. 기본 정보 수정은 DRAFT와 PUBLISHED 모두 허용하며 같은
+기본 필드를 받는다.
 생성·단건 조회·수정은 최상위 `/auditions`로 묶고, 특정 공연의 공고 목록 조회가 필요할 때만 공연 하위
 경로를 사용한다. 배역 저장은 공연 배역 ID와 공고별 모집 조건을 받고 섹션 전체를 교체한다. 후속 API는
 [공고 관리](../development/backend/audition-management.md)를 따른다.

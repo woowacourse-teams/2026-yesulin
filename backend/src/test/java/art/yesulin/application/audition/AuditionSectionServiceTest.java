@@ -25,6 +25,7 @@ import art.yesulin.support.ObjectStorageTestConfiguration;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -143,7 +144,9 @@ class AuditionSectionServiceTest {
     private AuditionResult createAudition(long performanceId) {
         return auditionService.create(
                 OWNER_ID,
-                new CreateAuditionCommand(performanceId, "햄릿 오디션", LocalDate.of(2026, 11, 1), null)
+                new CreateAuditionCommand(
+                        UUID.randomUUID(), performanceId, "햄릿 오디션", LocalDate.of(2026, 11, 1), null
+                )
         );
     }
 

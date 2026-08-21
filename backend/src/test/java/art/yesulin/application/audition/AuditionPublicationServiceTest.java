@@ -34,6 +34,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -85,8 +86,8 @@ class AuditionPublicationServiceTest {
         saveSchedule(audition.getId(), NOW.plusSeconds(86_400));
         saveForm(audition.getId());
 
-        AuditionResult published = publicationService.publish(OWNER_ID, audition.getId());
-        AuditionResult retried = publicationService.publish(OWNER_ID, audition.getId());
+        AuditionResult published = publicationService.publish(OWNER_ID, audition.getPublicId());
+        AuditionResult retried = publicationService.publish(OWNER_ID, audition.getPublicId());
 
         assertEquals("PUBLISHED", published.status());
         assertEquals(NOW, published.publishedAt());
@@ -97,11 +98,11 @@ class AuditionPublicationServiceTest {
     void requiresEverySectionBeforePublication() {
         Audition audition = saveDraft();
 
-        assertPublishingNotReady(audition.getId());
+        assertPublishingNotReady(audition.getPublicId());
         saveRoleSection(audition.getId());
-        assertPublishingNotReady(audition.getId());
+        assertPublishingNotReady(audition.getPublicId());
         saveSchedule(audition.getId(), NOW.plusSeconds(86_400));
-        assertPublishingNotReady(audition.getId());
+        assertPublishingNotReady(audition.getPublicId());
     }
 
     @Test
@@ -113,7 +114,7 @@ class AuditionPublicationServiceTest {
 
         BusinessException exception = assertThrows(
                 BusinessException.class,
-                () -> publicationService.publish(OWNER_ID, audition.getId())
+                () -> publicationService.publish(OWNER_ID, audition.getPublicId())
         );
 
         assertEquals(AuditionErrorCode.PUBLISHING_CLOSED, exception.getErrorCode());
@@ -125,13 +126,13 @@ class AuditionPublicationServiceTest {
 
         BusinessException exception = assertThrows(
                 BusinessException.class,
-                () -> publicationService.publish(2L, audition.getId())
+                () -> publicationService.publish(2L, audition.getPublicId())
         );
 
         assertEquals(AuditionErrorCode.NOT_FOUND, exception.getErrorCode());
     }
 
-    private void assertPublishingNotReady(long auditionId) {
+    private void assertPublishingNotReady(UUID auditionId) {
         BusinessException exception = assertThrows(
                 BusinessException.class,
                 () -> publicationService.publish(OWNER_ID, auditionId)

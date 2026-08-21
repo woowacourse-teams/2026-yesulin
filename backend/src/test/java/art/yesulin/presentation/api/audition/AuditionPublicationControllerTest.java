@@ -88,7 +88,7 @@ class AuditionPublicationControllerTest {
         saveSchedule(audition.getId());
         saveForm(audition.getId());
 
-        mockMvc.perform(put("/api/v1/auditions/{auditionId}/publication", audition.getId())
+        mockMvc.perform(put("/api/v1/auditions/{auditionId}/publication", audition.getPublicId())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("PUBLISHED"))

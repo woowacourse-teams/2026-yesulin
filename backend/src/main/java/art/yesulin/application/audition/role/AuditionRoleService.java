@@ -14,6 +14,7 @@ import art.yesulin.domain.performance.Performance;
 import art.yesulin.domain.performance.PerformanceRepository;
 import art.yesulin.domain.performance.PerformanceRole;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -28,22 +29,22 @@ public class AuditionRoleService {
     private final PerformanceRepository performanceRepository;
 
     @Transactional
-    public AuditionRolesResult save(long ownerId, long auditionId, SaveAuditionRolesCommand command) {
+    public AuditionRolesResult save(long ownerId, UUID auditionId, SaveAuditionRolesCommand command) {
         Audition audition = getAuditionForUpdate(ownerId, auditionId);
         Performance performance = getPerformance(ownerId, audition.getPerformanceId());
         AuditionRoleSelections selections = command.toSelections();
         ensureRolesBelongToPerformance(performance, selections);
-        AuditionRoleSection roleSection = getOrCreateRoleSection(auditionId, selections);
-        return AuditionRolesResult.from(roleSectionRepository.save(roleSection), performance);
+        AuditionRoleSection roleSection = getOrCreateRoleSection(audition.getId(), selections);
+        return AuditionRolesResult.from(auditionId, roleSectionRepository.save(roleSection), performance);
     }
 
     @Transactional(readOnly = true)
-    public AuditionRolesResult find(long ownerId, long auditionId) {
+    public AuditionRolesResult find(long ownerId, UUID auditionId) {
         Audition audition = getAudition(ownerId, auditionId);
         Performance performance = getPerformance(ownerId, audition.getPerformanceId());
-        AuditionRoleSection roleSection = roleSectionRepository.findByAuditionId(auditionId)
+        AuditionRoleSection roleSection = roleSectionRepository.findByAuditionId(audition.getId())
                 .orElseThrow(() -> new BusinessException(ROLE_SECTION_NOT_FOUND, "공고 배역 정보를 찾을 수 없습니다."));
-        return AuditionRolesResult.from(roleSection, performance);
+        return AuditionRolesResult.from(auditionId, roleSection, performance);
     }
 
     private AuditionRoleSection getOrCreateRoleSection(long auditionId, AuditionRoleSelections selections) {
@@ -52,13 +53,13 @@ public class AuditionRoleService {
                 .orElseGet(() -> new AuditionRoleSection(auditionId, selections));
     }
 
-    private Audition getAudition(long ownerId, long auditionId) {
-        return auditionRepository.findByIdAndOwnerId(auditionId, ownerId)
+    private Audition getAudition(long ownerId, UUID auditionId) {
+        return auditionRepository.findByPublicIdAndOwnerId(auditionId, ownerId)
                 .orElseThrow(() -> new BusinessException(NOT_FOUND, "공고를 찾을 수 없습니다."));
     }
 
-    private Audition getAuditionForUpdate(long ownerId, long auditionId) {
-        return auditionRepository.findByIdAndOwnerIdForUpdate(auditionId, ownerId)
+    private Audition getAuditionForUpdate(long ownerId, UUID auditionId) {
+        return auditionRepository.findByPublicIdAndOwnerIdForUpdate(auditionId, ownerId)
                 .orElseThrow(() -> new BusinessException(NOT_FOUND, "공고를 찾을 수 없습니다."));
     }
 
