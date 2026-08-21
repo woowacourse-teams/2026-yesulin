@@ -81,8 +81,11 @@ domain/performance ──event──> presentation/event/performance ──> app
 - `PATCH /api/v1/performance-posters/{fileId}/completion`: 업로드 검증 및 완료, `204 No Content`
 - `POST /api/v1/actor-photos/upload-requests`: 배우 사진용 presigned upload 발급, `201 Created`
 - `PATCH /api/v1/actor-photos/{fileId}/completion`: 업로드 검증 및 완료, `204 No Content`
+- `GET /api/v1/applicants/me/photo-library/photos`: 활성 사진을 대표 사진 우선 순서와 CloudFront URL로 조회, `200 OK`
+- `POST /api/v1/applicants/me/photo-library/photos`: `READY`·소유권 검증 후 사진보관함에 추가, `201 Created`
 - 요청에는 `purpose`와 `ownerId`가 없다. 공연 포스터라는 의미와 30MB 제한은 endpoint 계약이며 파일 도메인에 전달하지 않는다.
 - 배우 사진 endpoint는 JPEG·PNG·WebP와 20MB 제한을 검증하며 소유자는 Session에서 얻는다.
+- 사진보관함 추가와 `PHOTO_LIBRARY_ITEM` FileReference 생성은 같은 DB 트랜잭션으로 처리한다.
 - 결과는 wrapper 없이 `fileId`, `uploadUrl`, `method`, `expiresAt`, `headers`를 반환한다. enum 대신 안정적인 문자열 값을 반환한다.
 - 공통 `BusinessException`은 오류 코드·HTTP 성격을 가지며 구체 메시지는 오류 발생 지점에서 만든다. presentation handler가 HTTP 응답으로 바꾼다.
 - `IllegalArgumentException`은 잘못된 내부 객체 생성에 가깝기 때문에 전역에서 사용자 `400`으로 변환하지 않는다. 입력 형식은 Bean Validation, 비즈니스 위반은 `BusinessException`으로 처리한다.
