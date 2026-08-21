@@ -16,6 +16,7 @@
 ### 지원서·인증·Draft
 
 - [인증·계정과 로컬 Draft 경계](./20260821145244-auth-account-and-local-draft-boundary.md)
+- [Spring Security 기반 소셜 인증 경계](./20260819121208-unify-social-login-with-oidc.md)
 - [지원서 도메인 용어](./20260821175826-submission-domain-terminology.md)
 - [지원서 프로필·동의·스냅샷](./20260821145246-submission-profile-consent-and-snapshot.md)
 - [지원 시작 선택과 제작사 작성 로컬 Draft](./20260820044229-submission-start-and-producer-local-drafts.md)

@@ -1,5 +1,6 @@
 package art.yesulin.presentation.api.audition;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -90,6 +91,7 @@ class AuditionPublicationControllerTest {
         saveForm(audition.getId());
 
         mockMvc.perform(put("/api/v1/auditions/{auditionId}/publication", audition.getId())
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("PUBLISHED"))

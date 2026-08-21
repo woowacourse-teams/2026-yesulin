@@ -23,6 +23,7 @@
 | 배우 지원서·인증·Draft | [배우 흐름도](./development/flows/actor.mmd), [프론트 구현 상태](./development/frontend/current-implementation.md) |
 | 공연·공고·심사 관리 | [기획사/제작사 흐름도](./development/flows/producer.mmd), [공고 관리](./development/backend/audition-management.md) |
 | 파일 업로드·소유권 | [파일 업로드 설계](./development/backend/file-upload.md) |
+| 소셜 로그인·OIDC | [소셜 로그인 연동 모듈](./development/backend/oauth-social-login.md), [로그인 담당자 인수인계](./development/backend/social-login-handoff.md) |
 | Git·커밋·push | [Git 컨벤션](./convention/git-convention.md) |
 | 백엔드 Java·Checkstyle | [백엔드 컨벤션](./convention/be-code-convention.md) |
 | 결정 배경 추적 | [결정 기록](./decisions/README.md) |
