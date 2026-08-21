@@ -1,4 +1,5 @@
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
+import { orderedApplicationPhotos } from "@/features/applications/application-form-state";
 import type { ApplicationPhoto, CareerDraft } from "@/features/applications/application-form-state";
 import type { ApplicantAnswerValue, CareerEntry, ProfilePrefillResponse } from "@/features/applicants/types";
 
@@ -8,8 +9,9 @@ export function applicationDraftFromPrefill(prefill?: ProfilePrefillResponse, fi
   let videoUrl = "";
   let careers: CareerDraft[] = [];
   for (const answer of prefill?.answers ?? []) {
-    if (answer.key === "PHOTOS" && Array.isArray(answer.value)) {
-      photos = answer.value.filter((value): value is string => typeof value === "string").map((id, index) => ({ id, name: `저장한 프로필 사진 ${index + 1}`, url: answer.previewUrls?.[index] ?? "", status: "READY" }));
+    if (answer.key === "PHOTOS") {
+      // 보관함 사진은 지원서마다 사용자가 직접 고른다. 프로필 prefill로 자동 첨부하지 않는다.
+      photos = [];
     } else if (answer.key === "VIDEO" && typeof answer.value === "string") {
       const videoField = fields.find((field) => field.id === answer.key && field.inputType === "URL" && field.section === "MATERIALS");
       const firstRequirement = videoField?.config.videoRequirements?.[0];
@@ -40,7 +42,7 @@ export function submissionValue(field: ApplicationFieldInput, draft: {
   readonly careers: readonly CareerDraft[];
   readonly noCareer: boolean;
 }): ApplicantAnswerValue {
-  if (field.inputType === "FILE") return draft.photos.filter((photo) => photo.status === "READY").map((photo) => photo.id);
+  if (field.inputType === "FILE") return orderedApplicationPhotos(draft.photos).filter((photo) => photo.status === "READY").map((photo) => photo.id);
   if (field.inputType === "URL" && field.section === "MATERIALS") {
     const requirements = field.config.videoRequirements ?? [];
     return requirements.length > 0

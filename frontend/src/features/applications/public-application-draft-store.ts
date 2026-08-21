@@ -7,6 +7,7 @@ const STORE_NAME = "drafts";
 export type PublicApplicationDraftPhoto = {
   readonly id: string;
   readonly name: string;
+  readonly slotIndex?: number;
   readonly blob?: Blob;
   readonly sourceUrl?: string;
 };
@@ -53,6 +54,7 @@ export async function savePublicApplicationDraft(input: PublicApplicationDraftIn
     photos: input.photos.filter((photo) => photo.status !== "ERROR").map((photo) => ({
       id: photo.id,
       name: photo.name,
+      ...(photo.slotIndex === undefined ? {} : { slotIndex: photo.slotIndex }),
       ...(photo.blob ? { blob: photo.blob } : {}),
       ...(!photo.blob && photo.url ? { sourceUrl: photo.url } : {}),
     })),
@@ -68,9 +70,9 @@ export async function deletePublicApplicationDraft(postingId: string) {
 }
 
 export function restoreDraftPhotos(photos: readonly PublicApplicationDraftPhoto[]): ApplicationPhoto[] {
-  return photos.flatMap((photo) => {
+  return photos.flatMap((photo, index) => {
     const url = photo.blob ? URL.createObjectURL(photo.blob) : photo.sourceUrl;
-    return url ? [{ ...photo, url, status: "READY" as const }] : [];
+    return url ? [{ ...photo, slotIndex: photo.slotIndex ?? index, url, status: "READY" as const }] : [];
   });
 }
 

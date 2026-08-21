@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useRef } from "react";
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
 import type { ApplicationFormStep } from "@/features/applications/application-form";
-import { youtubeVideoId } from "@/features/applications/application-form-state";
+import { orderedApplicationPhotos, youtubeVideoId } from "@/features/applications/application-form-state";
 import type { ApplicationPhoto, CareerDraft, SubmissionState } from "@/features/applications/application-form-state";
 import { photoSlotLabels } from "@/features/applications/materials";
 import { buildApplicationAuthReturnTo } from "@/features/auth/return-to";
@@ -111,7 +111,7 @@ function SubmissionArea({ submitting, consent, issueCount, state, error, onSubmi
 function ReviewFields({ fields, values }: { fields: readonly ApplicationFieldInput[]; values: Readonly<Record<string, string>> }) { return <dl className="grid gap-x-8 gap-y-3 text-sm md:grid-cols-2">{fields.filter((field) => field.enabled).map((field) => <div key={field.id} className="grid grid-cols-[84px_minmax(0,1fr)] gap-3"><dt className="text-muted">{field.label}</dt><dd className="line-clamp-3 break-words whitespace-pre-wrap font-medium">{reviewValue(field, values) || <span className="font-normal text-muted">미입력</span>}</dd></div>)}</dl>; }
 function reviewValue(field: ApplicationFieldInput, values: Readonly<Record<string, string>>) { if (field.inputType === "COMPOSITE") return field.config.fields?.map((part) => `${values[`${field.id}.${part.key}`] || "-"}${part.unit ?? ""}`).join(" · "); return values[field.id]; }
 function MediaSummary({ fields, values, photos, videoUrl }: { fields: readonly ApplicationFieldInput[]; values: Readonly<Record<string, string>>; photos: readonly ApplicationPhoto[]; videoUrl: string }) {
-  const attached = photos.filter((photo) => photo.status !== "ERROR");
+  const attached = orderedApplicationPhotos(photos).filter((photo) => photo.status !== "ERROR");
   const failedCount = photos.length - attached.length;
   const photoField = fields.find((field) => field.inputType === "FILE");
   const photoLabels = photoSlotLabels(photoField, attached.length);

@@ -45,7 +45,12 @@ const seededAnswers: ApplicantAnswer[] = [
 ];
 const reusableKeys = new Set(["NAME", "HEIGHT", "WEIGHT", "BIRTH", "GENDER", "PHONE", "EMAIL", "ADDRESS", "SCHOOL", "CAREER", "LINK", "NATIONALITY", "COVER_LETTER", "SPECIALTY", "HOBBIES", "MILITARY"]);
 let profileAnswers: ApplicantAnswer[] = seededAnswers.filter((answer) => reusableKeys.has(answer.key));
-let photoLibrary: ApplicantProfilePhoto[] = [{ id: "seed-photo-1", name: "김하린 프로필.jpg", url: "/images/applicants/kim-harin-profile.png", representative: true }];
+let photoLibrary: ApplicantProfilePhoto[] = [
+  { id: "seed-photo-1", name: "김하린 프로필.jpg", url: "/images/applicants/kim-harin-profile.png", representative: true },
+  { id: "seed-photo-2", name: "김하린 전신.jpg", url: "/images/applicants/kim-harin-full-body.png", representative: false },
+  { id: "seed-photo-3", name: "김하린 연기 이미지 1.jpg", url: "/images/applicants/kim-harin-acting-1.png", representative: false },
+  { id: "seed-photo-4", name: "김하린 연기 이미지 2.jpg", url: "/images/applicants/kim-harin-acting-2.png", representative: false },
+];
 let videoLibrary: ApplicantProfileVideo[] = [{ id: "seed-video-1", url: "https://youtu.be/aqz-KE-bpKQ", youtubeId: "aqz-KE-bpKQ" }];
 let applications: ApplicantApplicationDetail[] = [{
   id: applicationId(26081201), postingId: "seed_posting_1", performanceTitle: "달빛 아래 우리", postingTitle: "2026 하반기 주·조연 배우 모집",

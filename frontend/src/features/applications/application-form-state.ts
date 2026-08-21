@@ -13,9 +13,18 @@ export type ApplicationPhoto = {
   readonly name: string;
   readonly url: string;
   readonly status: UploadStatus;
+  /** 지원서 안에서 공고가 요청한 사진 슬롯의 순서. 기존 Draft는 배열 순서를 사용한다. */
+  readonly slotIndex?: number;
   readonly blob?: Blob;
   readonly error?: string;
 };
+
+export function orderedApplicationPhotos(photos: readonly ApplicationPhoto[]): readonly ApplicationPhoto[] {
+  return photos
+    .map((photo, index) => ({ photo, slotIndex: photo.slotIndex ?? index }))
+    .sort((left, right) => left.slotIndex - right.slotIndex)
+    .map(({ photo }) => photo);
+}
 
 export type CareerDraft = { readonly id: string; readonly title: string; readonly part: string; readonly year: string };
 export type SubmissionState = "IDLE" | "SUBMITTING" | "ERROR";
