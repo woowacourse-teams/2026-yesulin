@@ -1,7 +1,10 @@
-package art.yesulin.presentation.api.session;
+package art.yesulin.presentation.api.auth;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -13,7 +16,6 @@ import art.yesulin.domain.member.MemberRepository;
 import art.yesulin.domain.member.MemberType;
 import art.yesulin.support.ObjectStorageTestConfiguration;
 import jakarta.servlet.http.HttpSession;
-import org.assertj.core.util.diff.Delta.TYPE;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -84,4 +86,43 @@ class SessionControllerTest {
                 .content(request))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    void findsCurrentSession() throws Exception {
+        MemberPrincipal principal = new MemberPrincipal(1L, MemberType.PRODUCER);
+
+        mockMvc.perform(get("/api/v1/sessions/current")
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, principal))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.memberId").value(1))
+                .andExpect(jsonPath("$.role").value("PRODUCER"));
+    }
+
+    @Test
+    void rejectsCurrentSessionWhenNotLoggedIn() throws Exception {
+        mockMvc.perform(get("/api/v1/sessions/current"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("AUTH_UNAUTHENTICATED"));
+    }
+
+    @Test
+    void removesSessionOnLogout() throws Exception {
+        MemberPrincipal principal = new MemberPrincipal(1L, MemberType.PRODUCER);
+
+        MvcResult result = mockMvc.perform(delete("/api/v1/sessions/current")
+                        .with(csrf())
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, principal))
+                .andExpect(status().isNoContent())
+                .andReturn();
+
+        assertNull(result.getRequest().getSession(false));
+    }
+
+    @Test
+    void allowsLogoutWithoutSession() throws Exception {
+        mockMvc.perform(delete("/api/v1/sessions/current")
+                        .with(csrf()))
+                .andExpect(status().isNoContent());
+    }
 }
+
