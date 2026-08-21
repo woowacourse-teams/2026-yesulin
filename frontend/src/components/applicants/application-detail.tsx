@@ -7,7 +7,7 @@ import { answerValueText, applicationAvailability, formatApplicantDate } from "@
 import { applicantRoutes } from "@/features/applicants/routes";
 import type { ApplicantAnswer, ApplicantApplicationDetail } from "@/features/applicants/types";
 import { useAuditionQuery } from "@/features/auditions/use-audition-query";
-import type { ApplicationId } from "@/features/auditions/types";
+import { isApplicationId, type ApplicationId } from "@/features/auditions/types";
 import { hasSubmittedValue } from "@/features/applications/materials";
 import { ScreenError, ScreenMessage } from "@/components/auditions/screen-status";
 import { PrimaryLink, TextLink } from "@/components/ui/controls";
@@ -24,8 +24,12 @@ const sectionDetails = {
 } as const;
 
 export function ApplicantApplicationDetailView({ applicationId }: { readonly applicationId: ApplicationId }) {
+  if (!isApplicationId(applicationId)) return <Container><ScreenMessage title="올바른 지원서 주소가 아니에요"><PrimaryLink href={applicantRoutes.applications} className="mt-5">목록으로 돌아가기</PrimaryLink></ScreenMessage></Container>;
+  return <ValidApplicationDetail applicationId={applicationId} />;
+}
+
+function ValidApplicationDetail({ applicationId }: { readonly applicationId: ApplicationId }) {
   const query = useAuditionQuery(`applicant-application-${applicationId}`, () => getApplicantApplication(applicationId), "지원서 상세를 불러오지 못했습니다.");
-  if (!Number.isFinite(applicationId)) return <Container><ScreenMessage title="올바른 지원서 주소가 아니에요"><PrimaryLink href={applicantRoutes.applications} className="mt-5">목록으로 돌아가기</PrimaryLink></ScreenMessage></Container>;
   if (query.loading) return <DetailSkeleton />;
   if (query.error || !query.data) return <Container><ScreenError message={query.error} onRetry={query.reload} /></Container>;
   return <ApplicationReadView detail={query.data} />;

@@ -15,6 +15,7 @@ import type { PerformanceRoleTemplate } from "./creation-types";
 
 declare const brand: unique symbol;
 type Brand<T, B extends string> = T & { readonly [brand]: B };
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export type PerformanceId = Brand<string, "PerformanceId">;
 export type PostingId = Brand<string, "PostingId">;
@@ -26,6 +27,7 @@ export const performanceId = (value: string) => value as PerformanceId;
 export const postingId = (value: string) => value as PostingId;
 export const roleId = (value: string) => value as RoleId;
 export const applicationId = (value: string) => value as ApplicationId;
+export const isApplicationId = (value: string): value is ApplicationId => UUID_PATTERN.test(value);
 
 export const ROUND_NUMBERS = [1, 2, 3, 4, 5] as const;
 export type RoundNumber = (typeof ROUND_NUMBERS)[number];
