@@ -1,5 +1,8 @@
 package art.yesulin.domain.member;
 
+import static art.yesulin.domain.common.validation.DomainValidator.requireNonNull;
+import static art.yesulin.domain.common.validation.DomainValidator.requireText;
+
 import art.yesulin.domain.member.converter.MemberTypeConverter;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
@@ -36,5 +39,15 @@ public class Member {
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createAt;
+    private Instant createdAt;
+
+    public Member(String email, String password, MemberType type) {
+        this.email = requireText(email, "이메일이 필요합니다.");
+        this.password = password;
+        this.type = requireNonNull(type, "회원 유형이 필요합니다.");
+    }
+
+    public boolean hasPassword() {
+        return password != null;
+    }
 }
