@@ -86,6 +86,23 @@ class AuditionControllerTest {
     }
 
     @Test
+    void rejectsApplicantWithForbidden() throws Exception {
+        MemberPrincipal applicant = new MemberPrincipal(OWNER_ID, MemberType.APPLICANT);
+
+        mockMvc.perform(get("/api/v1/auditions/{auditionId}", 1L)
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, applicant))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("AUTH_FORBIDDEN"));
+    }
+
+    @Test
+    void rejectsAnonymousWithUnauthorized() throws Exception {
+        mockMvc.perform(get("/api/v1/auditions/{auditionId}", 1L))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("AUTH_UNAUTHENTICATED"));
+    }
+
+    @Test
     void createsRestoresAndUpdatesDraftBasicInformation() throws Exception {
         PerformanceResult performance = createPerformance();
         UUID auditionId = UUID.randomUUID();
