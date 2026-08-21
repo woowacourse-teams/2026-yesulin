@@ -1,5 +1,6 @@
 package art.yesulin.presentation.api.screening;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -85,6 +86,7 @@ class ScreeningReviewControllerTest {
                 """;
 
         mockMvc.perform(patch("/api/v1/audition-roles/{roleId}/screening-rounds/{round}/reviews", roleId, 1)
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
