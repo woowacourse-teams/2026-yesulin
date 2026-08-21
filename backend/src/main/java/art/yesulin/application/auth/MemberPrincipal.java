@@ -1,8 +1,8 @@
 package art.yesulin.application.auth;
 
-import art.yesulin.presentation.api.auth.AuthRole;
+import art.yesulin.domain.member.MemberType;
 
-public record MemberPrincipal(long memberId, AuthRole role) {
+public record MemberPrincipal(long memberId, MemberType role) {
 
     public static final String SESSION_ATTRIBUTE = "memberPrincipal";
 

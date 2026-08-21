@@ -1,7 +1,8 @@
-package art.yesulin.presentation.api.auth;
+package art.yesulin.presentation.config;
 
 import art.yesulin.application.auth.AuthErrorCode;
 import art.yesulin.application.auth.MemberPrincipal;
+import art.yesulin.application.auth.annotation.LoginRequired;
 import art.yesulin.common.exception.BusinessException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

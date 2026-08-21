@@ -7,7 +7,6 @@ import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.member.Member;
 import art.yesulin.domain.member.MemberRepository;
 import art.yesulin.domain.member.MemberType;
-import art.yesulin.presentation.api.auth.AuthRole;
 import art.yesulin.support.ObjectStorageTestConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,7 +45,7 @@ class AuthServiceTest {
     void loginsWithValidEmailAndPassword() {
         MemberPrincipal principal = authService.login(EMAIL, PASSWORD);
 
-        assertEquals(AuthRole.PRODUCER, principal.role());
+        assertEquals(MemberType.PRODUCER, principal.role());
     }
 
     @Test

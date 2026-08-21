@@ -1,4 +1,4 @@
-package art.yesulin.presentation.api.auth;
+package art.yesulin.presentation.config;
 
 import java.util.List;
 import org.springframework.context.annotation.Configuration;
