@@ -13,9 +13,18 @@ export type ApplicationPhoto = {
   readonly name: string;
   readonly url: string;
   readonly status: UploadStatus;
+  /** 지원서 안에서 공고가 요청한 사진 슬롯의 순서. 기존 Draft는 배열 순서를 사용한다. */
+  readonly slotIndex?: number;
   readonly blob?: Blob;
   readonly error?: string;
 };
+
+export function orderedApplicationPhotos(photos: readonly ApplicationPhoto[]): readonly ApplicationPhoto[] {
+  return photos
+    .map((photo, index) => ({ photo, slotIndex: photo.slotIndex ?? index }))
+    .sort((left, right) => left.slotIndex - right.slotIndex)
+    .map(({ photo }) => photo);
+}
 
 export type CareerDraft = { readonly id: string; readonly title: string; readonly part: string; readonly year: string };
 export type SubmissionState = "IDLE" | "SUBMITTING" | "ERROR";
@@ -159,6 +168,7 @@ function applicationFieldError(field: ApplicationFormStep["fields"][number], val
 
   const value = values[field.id]?.trim() ?? "";
   if (field.required && !value) return `${field.label} 항목을 입력해 주세요.`;
+  if (value && field.inputType === "SELECT" && field.config.options?.length && !field.config.options.includes(value)) return `${field.label} 선택값을 다시 확인해 주세요.`;
   if (value && field.config.minLength && value.length < field.config.minLength) return `${field.label}은(는) ${field.config.minLength}자 이상 입력해 주세요.`;
   if (value && field.config.maxLength && value.length > field.config.maxLength) return `${field.label}은(는) ${field.config.maxLength}자 이하로 입력해 주세요.`;
   return null;
