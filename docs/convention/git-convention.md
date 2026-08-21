@@ -7,7 +7,7 @@
 - `type:*` 라벨을 최소 하나 붙인다: `type:feat`, `type:fix`, `type:hotfix`, `type:docs`, `type:refactor`, `type:perf`, `type:test`, `type:chore`. 브랜치 타입과 1:1로 대응한다.
 - `frontend/`나 `backend/`에 걸치면 `scope:frontend`/`scope:backend`도 함께 붙인다.
 - `priority:p1`(MVP 필수, 최우선), `priority:p2`(중요, 핵심 기능 이후), `priority:p3`(후순위, 배포 준비 단계) 중 하나를 붙인다.
-- 이슈 생성과 동시에 프로젝트 보드에 추가한다: `gh issue create --project "2026-yesulin" ...`.
+- 이슈 생성과 동시에 프로젝트 보드에 추가하고 만든 사람에게 배정한다: `gh issue create --project "2026-yesulin" --assignee @me ...`.
 
 ## 프로젝트 보드
 
