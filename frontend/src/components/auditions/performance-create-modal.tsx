@@ -25,8 +25,21 @@ type PerformanceCreationDraft = {
   readonly venue: string;
   readonly venueAddress: ReturnType<typeof emptyVenueAddress>;
   readonly posterUrl: string;
+  readonly posterFile?: { readonly name: string; readonly type: string; readonly lastModified: number } | null;
   readonly roles: readonly Pick<RoleDraft, "name" | "description">[];
 };
+
+function restorePosterFile(posterUrl: string, metadata: PerformanceCreationDraft["posterFile"]) {
+  if (!posterUrl.startsWith("data:") || !metadata) return null;
+  const separator = posterUrl.indexOf(",");
+  if (separator < 0) return null;
+  try {
+    const bytes = Uint8Array.from(atob(posterUrl.slice(separator + 1)), (character) => character.charCodeAt(0));
+    return new File([bytes], metadata.name, { type: metadata.type, lastModified: metadata.lastModified });
+  } catch {
+    return null;
+  }
+}
 
 function isEmptyPerformanceDraft(draft: PerformanceCreationDraft) {
   return !draft.title.trim() && !draft.venue.trim() && !draft.venueAddress.roadAddress && !draft.posterUrl
@@ -53,11 +66,21 @@ export function PerformanceCreateModal({
     setVenue(draft.venue);
     setVenueAddress(draft.venueAddress);
     setPosterUrl(draft.posterUrl);
+    setPosterFile(restorePosterFile(draft.posterUrl, draft.posterFile));
     setRoles(draft.roles.length ? draft.roles.map((role) => ({ ...emptyRoleDraft(), ...role })) : [emptyRoleDraft()]);
   }, []);
   const draft = useProducerCreationDraft({
     draftKey: performanceCreationDraftKey(),
-    value: { title, venue, venueAddress, posterUrl, roles: roles.map(({ name, description }) => ({ name, description })) },
+    value: {
+      title,
+      venue,
+      venueAddress,
+      posterUrl,
+      posterFile: posterFile
+        ? { name: posterFile.name, type: posterFile.type, lastModified: posterFile.lastModified }
+        : null,
+      roles: roles.map(({ name, description }) => ({ name, description })),
+    },
     restore: restoreDraft,
     isEmpty: isEmptyPerformanceDraft,
   });

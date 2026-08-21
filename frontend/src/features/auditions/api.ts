@@ -87,22 +87,6 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export function getAuditionTree() {
-  if (process.env.NEXT_PUBLIC_API_MOCKING === "disabled") {
-    return getPerformances().then((response) => ({
-      performances: response.performances.map((performance) => ({
-        id: performance.id,
-        posterUrl: performance.posterUrl,
-        title: performance.title,
-        postings: performance.postings.map((posting) => ({
-          id: posting.id,
-          title: posting.title,
-          phase: posting.phase,
-          applicantCount: posting.applicantCount,
-          roleIds: [],
-        })),
-      })),
-    }));
-  }
   return request<AuditionTree>("/navigation/tree");
 }
 

@@ -39,7 +39,8 @@ npm run build
 
 - 기본 주소: `http://localhost:3000`
 - 기획사/제작사 진입: `/producers/performances`
-- 실제 API 연결: `NEXT_PUBLIC_API_MOCKING=disabled`
+- 실제 공연 API 연결: MSW를 유지하고 `API_ORIGIN`을 설정하면 `/api/v1/**` 요청만 백엔드로
+  전달합니다.
 
 백엔드:
 
@@ -53,6 +54,8 @@ cd backend
 
 `local-test` 프로필은 H2와 Testcontainers LocalStack S3를 사용한다. 인증 구현 전에는 요청에
 `MemberPrincipal(1)` 세션을 주입하며, 서버를 재시작하면 DB와 LocalStack 파일이 초기화된다.
+실행 전 Docker Desktop 또는 Docker Engine처럼 Docker API와 호환되는 컨테이너 런타임이
+실행 중이어야 한다.
 
 ## 지속적 통합
 

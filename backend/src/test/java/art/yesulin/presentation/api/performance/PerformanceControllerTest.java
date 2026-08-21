@@ -102,13 +102,16 @@ class PerformanceControllerTest {
 
     @Test
     void findsOwnedPerformances() throws Exception {
-        PerformanceResult created = createPerformance();
+        PerformanceResult first = createPerformance(OWNER_ID, "햄릿");
+        createPerformance(2L, "다른 소유자의 공연");
+        PerformanceResult latest = createPerformance(OWNER_ID, "리어왕");
 
         mockMvc.perform(get("/api/v1/performances")
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.performances.length()").value(1))
-                .andExpect(jsonPath("$.performances[0].id").value(created.id()))
+                .andExpect(jsonPath("$.performances.length()").value(2))
+                .andExpect(jsonPath("$.performances[0].id").value(latest.id()))
+                .andExpect(jsonPath("$.performances[1].id").value(first.id()))
                 .andExpect(jsonPath("$.performances[0].posterUrl").isString())
                 .andExpect(jsonPath("$.performances[0].roles[0].id").isNumber());
     }
@@ -206,11 +209,15 @@ class PerformanceControllerTest {
     }
 
     private PerformanceResult createPerformance() {
+        return createPerformance(OWNER_ID, "햄릿");
+    }
+
+    private PerformanceResult createPerformance(long ownerId, String title) {
         return performanceService.create(
-                OWNER_ID,
+                ownerId,
                 new CreatePerformanceCommand(
-                        uploadReadyPoster(),
-                        "햄릿",
+                        uploadReadyPoster(ownerId),
+                        title,
                         "서울특별시 종로구 대학로 12",
                         List.of(new CreatePerformanceRoleCommand("햄릿", "덴마크 왕자"))
                 )
@@ -218,11 +225,15 @@ class PerformanceControllerTest {
     }
 
     private long uploadReadyPoster() {
+        return uploadReadyPoster(OWNER_ID);
+    }
+
+    private long uploadReadyPoster(long ownerId) {
         FileUploadResult upload = fileService.requestUpload(
-                OWNER_ID, new FileUploadCommand("poster.png", "image/png", 1_024L)
+                ownerId, new FileUploadCommand("poster.png", "image/png", 1_024L)
         );
         objectStorage.upload(upload.uploadUrl(), "image/png", 1_024L);
-        fileService.completeUpload(OWNER_ID, upload.fileId());
+        fileService.completeUpload(ownerId, upload.fileId());
         return upload.fileId();
     }
 }
