@@ -24,6 +24,12 @@ npm run start
 
 별도 테스트 러너는 아직 구성되어 있지 않다. UI 변경은 최소 `npm run lint`, 타입·라우팅·빌드에 영향을 주는 변경은 `npm run build`까지 확인한다.
 
+## Vercel 배포
+
+Production 프론트 주소는 `https://yesulin.art`다. Vercel의 `API_ORIGIN`에는 API origin인 `https://dcijkydwh7e79.cloudfront.net`을 설정한다. 값이 있으면 Next.js가 같은 origin의 `/api/v1/**` 요청을 CloudFront의 동일한 경로로 rewrite하며, 브라우저에는 CloudFront 주소를 노출하지 않는다.
+
+`API_ORIGIN`이 없으면 rewrite를 만들지 않아 기본 MSW 개발과 환경변수 없는 CI build는 유지된다. 기존 프론트의 `/api/**` 호출을 목표 `/api/v1/**` 계약으로 모두 이관하기 전에는 Vercel의 `NEXT_PUBLIC_API_MOCKING`을 `disabled`로 전환하지 않는다.
+
 ## 구조
 
 ```text
