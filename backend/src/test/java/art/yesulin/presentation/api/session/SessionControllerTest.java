@@ -1,6 +1,7 @@
 package art.yesulin.presentation.api.session;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -58,6 +59,7 @@ class SessionControllerTest {
                 """.formatted(EMAIL, PASSWORD);
 
         MvcResult result = mockMvc.perform(post("/api/v1/sessions")
+                        .with(csrf())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(request))
                 .andExpect(status().isOk())
@@ -77,6 +79,7 @@ class SessionControllerTest {
                 """.formatted(PASSWORD);
 
         mockMvc.perform(post("/api/v1/sessions")
+                        .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(request))
                 .andExpect(status().isBadRequest());
