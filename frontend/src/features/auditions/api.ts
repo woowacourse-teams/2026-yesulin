@@ -12,6 +12,7 @@ import type {
   AuditionBoardResponse,
   AuditionTree,
 } from "./types";
+import { performanceId } from "./types";
 import type { CreatePerformanceRequest, CreatePostingRequest } from "./creation-types";
 import type {
   PostingManagementDetail,
@@ -22,6 +23,33 @@ import type {
 } from "./management-types";
 
 const API_BASE_PATH = "/api";
+
+type PerformanceResource = {
+  readonly id: number | string;
+  readonly posterFileId: number;
+  readonly posterUrl: string;
+  readonly title: string;
+  readonly roadAddress: string;
+  readonly createdAt: string;
+  readonly roles: readonly { readonly id: number | string; readonly name: string; readonly description: string }[];
+  readonly venue?: string;
+  readonly venueAddress?: CreatePerformanceRequest["venueAddress"];
+  readonly postingCount?: number;
+  readonly openPostingCount?: number;
+  readonly applicantCount?: number;
+  readonly pendingReviewCount?: number;
+  readonly postings?: PerformanceListResponse["performances"][number]["postings"];
+};
+
+type PerformanceResourceList = { readonly performances: readonly PerformanceResource[] };
+
+type FileUploadResource = {
+  readonly fileId: number;
+  readonly uploadUrl: string;
+  readonly method: string;
+  readonly expiresAt: string;
+  readonly headers: Readonly<Record<string, string>>;
+};
 
 /** 서버가 내려준 메시지를 그대로 화면에 띄우기 위한 오류 타입. */
 export class AuditionRequestError extends Error {
@@ -63,7 +91,9 @@ export function getAuditionTree() {
 }
 
 export function getPerformances() {
-  return request<PerformanceListResponse>("/performances");
+  return request<PerformanceResourceList>("/v1/performances").then((response) => ({
+    performances: response.performances.map(toPerformanceSummary),
+  }));
 }
 
 export function getPostings(performance: PerformanceId) {
@@ -94,11 +124,48 @@ export function closeRound(body: CloseRoundRequest) {
   });
 }
 
-export function createPerformance(body: CreatePerformanceRequest) {
-  return request<PerformanceListResponse>("/performances", {
+export async function createPerformance(body: CreatePerformanceRequest, poster: File) {
+  const upload = await request<FileUploadResource>("/v1/performance-posters/upload-requests", {
     method: "POST",
-    body: JSON.stringify(body),
+    body: JSON.stringify({ originalFilename: poster.name, contentType: poster.type, size: poster.size }),
   });
+  const uploadResponse = await fetch(upload.uploadUrl, {
+    method: upload.method,
+    headers: upload.headers,
+    body: poster,
+  });
+  if (!uploadResponse.ok) throw new AuditionRequestError("공연 포스터를 업로드하지 못했습니다.", uploadResponse.status);
+  await request<void>(`/v1/performance-posters/${upload.fileId}/completion`, { method: "PATCH" });
+  return request<unknown>("/v1/performances", {
+    method: "POST",
+    body: JSON.stringify({
+      posterFileId: upload.fileId,
+      title: body.title,
+      roadAddress: body.venueAddress.roadAddress,
+      roles: body.roles,
+    }),
+  });
+}
+
+function toPerformanceSummary(resource: PerformanceResource): PerformanceListResponse["performances"][number] {
+  return {
+    id: performanceId(String(resource.id)),
+    posterUrl: resource.posterUrl,
+    title: resource.title,
+    venue: resource.venue ?? resource.roadAddress,
+    venueAddress: resource.venueAddress ?? {
+      roadAddress: resource.roadAddress,
+      detailAddress: "",
+      zonecode: "",
+      latitude: null,
+      longitude: null,
+    },
+    postingCount: resource.postingCount ?? 0,
+    openPostingCount: resource.openPostingCount ?? 0,
+    applicantCount: resource.applicantCount ?? 0,
+    pendingReviewCount: resource.pendingReviewCount ?? 0,
+    postings: resource.postings ?? [],
+  };
 }
 
 export function createPosting(body: CreatePostingRequest) {

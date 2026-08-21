@@ -6,12 +6,14 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import software.amazon.awssdk.http.urlconnection.UrlConnectionHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
 @Configuration(proxyBeanMethods = false)
+@Profile("!local-test")
 @ConditionalOnProperty(prefix = "yesulin.storage.s3", name = "bucket")
 @EnableConfigurationProperties(S3StorageProperties.class)
 public class S3StorageConfiguration {

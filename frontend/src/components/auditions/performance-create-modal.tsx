@@ -25,8 +25,21 @@ type PerformanceCreationDraft = {
   readonly venue: string;
   readonly venueAddress: ReturnType<typeof emptyVenueAddress>;
   readonly posterUrl: string;
+  readonly posterFile?: { readonly name: string; readonly type: string; readonly lastModified: number } | null;
   readonly roles: readonly Pick<RoleDraft, "name" | "description">[];
 };
+
+function restorePosterFile(posterUrl: string, metadata: PerformanceCreationDraft["posterFile"]) {
+  if (!posterUrl.startsWith("data:") || !metadata) return null;
+  const separator = posterUrl.indexOf(",");
+  if (separator < 0) return null;
+  try {
+    const bytes = Uint8Array.from(atob(posterUrl.slice(separator + 1)), (character) => character.charCodeAt(0));
+    return new File([bytes], metadata.name, { type: metadata.type, lastModified: metadata.lastModified });
+  } catch {
+    return null;
+  }
+}
 
 function isEmptyPerformanceDraft(draft: PerformanceCreationDraft) {
   return !draft.title.trim() && !draft.venue.trim() && !draft.venueAddress.roadAddress && !draft.posterUrl
@@ -44,6 +57,7 @@ export function PerformanceCreateModal({
   const [venue, setVenue] = useState("");
   const [venueAddress, setVenueAddress] = useState(emptyVenueAddress);
   const [posterUrl, setPosterUrl] = useState("");
+  const [posterFile, setPosterFile] = useState<File | null>(null);
   const [roles, setRoles] = useState<readonly RoleDraft[]>(() => [emptyRoleDraft()]);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
@@ -52,11 +66,21 @@ export function PerformanceCreateModal({
     setVenue(draft.venue);
     setVenueAddress(draft.venueAddress);
     setPosterUrl(draft.posterUrl);
+    setPosterFile(restorePosterFile(draft.posterUrl, draft.posterFile));
     setRoles(draft.roles.length ? draft.roles.map((role) => ({ ...emptyRoleDraft(), ...role })) : [emptyRoleDraft()]);
   }, []);
   const draft = useProducerCreationDraft({
     draftKey: performanceCreationDraftKey(),
-    value: { title, venue, venueAddress, posterUrl, roles: roles.map(({ name, description }) => ({ name, description })) },
+    value: {
+      title,
+      venue,
+      venueAddress,
+      posterUrl,
+      posterFile: posterFile
+        ? { name: posterFile.name, type: posterFile.type, lastModified: posterFile.lastModified }
+        : null,
+      roles: roles.map(({ name, description }) => ({ name, description })),
+    },
     restore: restoreDraft,
     isEmpty: isEmptyPerformanceDraft,
   });
@@ -67,6 +91,10 @@ export function PerformanceCreateModal({
     event.preventDefault();
     if (!posterUrl) {
       setFormError("공연 포스터 이미지를 선택해 주세요.");
+      return;
+    }
+    if (!posterFile) {
+      setFormError("서버에 업로드할 공연 포스터 이미지를 다시 선택해 주세요.");
       return;
     }
     if (!venueAddress.roadAddress) {
@@ -85,7 +113,7 @@ export function PerformanceCreateModal({
           name: role.name,
           description: role.description,
         })),
-      });
+      }, posterFile);
       await draft.discard().catch(() => undefined);
       notifyAuditionTreeChanged();
       onCreated();
@@ -119,7 +147,7 @@ export function PerformanceCreateModal({
           <ProducerCreationDraftStatus status={draft.status} savedAt={draft.savedAt} />
           <CreateSection title="공연 기본 정보">
             <div className="grid grid-cols-[112px_minmax(0,1fr)] items-start gap-4 sm:grid-cols-[150px_minmax(0,1fr)]">
-              <PosterUploadField label="공연 포스터" value={posterUrl} onChange={setPosterUrl} />
+              <PosterUploadField label="공연 포스터" value={posterUrl} onChange={setPosterUrl} onFileChange={setPosterFile} />
               <div className="grid min-w-0 content-start gap-5">
                 <CreateField label="공연 제목">
                   <FieldInput

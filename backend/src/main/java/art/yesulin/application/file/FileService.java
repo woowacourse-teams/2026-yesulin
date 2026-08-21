@@ -45,6 +45,13 @@ public class FileService {
         fileAsset.completeUpload(metadata.contentType(), metadata.size());
     }
 
+    @Transactional(readOnly = true)
+    public String readUrl(long ownerId, long fileId) {
+        FileAsset fileAsset = getOwnedFileAsset(ownerId, fileId);
+        fileAsset.ensureUsable();
+        return objectStorage.toPublicUrl(fileAsset.getObjectKey());
+    }
+
     private String createObjectKey() {
         LocalDate date = LocalDate.now(ZoneOffset.UTC);
         return "files/%d%02d%02d/%s".formatted(
