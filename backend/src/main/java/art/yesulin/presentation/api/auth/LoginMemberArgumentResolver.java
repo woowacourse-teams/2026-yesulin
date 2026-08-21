@@ -3,6 +3,7 @@ package art.yesulin.presentation.api.auth;
 import art.yesulin.application.auth.AuthErrorCode;
 import art.yesulin.application.auth.MemberPrincipal;
 import art.yesulin.common.exception.BusinessException;
+import java.util.List;
 import org.springframework.core.MethodParameter;
 import org.springframework.web.bind.support.WebDataBinderFactory;
 import org.springframework.web.context.request.NativeWebRequest;
@@ -25,6 +26,9 @@ public class LoginMemberArgumentResolver implements HandlerMethodArgumentResolve
             NativeWebRequest webRequest,
             WebDataBinderFactory binderFactory
     ) {
+        LoginMember annotation = parameter.getParameterAnnotation(LoginMember.class);
+        AuthRole[] allowed = annotation.roles();
+
         Object principal = webRequest.getAttribute(
                 MemberPrincipal.SESSION_ATTRIBUTE, RequestAttributes.SCOPE_SESSION);
 
@@ -32,6 +36,11 @@ public class LoginMemberArgumentResolver implements HandlerMethodArgumentResolve
             throw new BusinessException(AuthErrorCode.UNAUTHENTICATED, "로그인이 필요합니다.");
         }
 
-        return principal;
+        MemberPrincipal memberPrincipal = (MemberPrincipal) principal;
+        if (allowed.length > 0 && !List.of(allowed).contains(memberPrincipal.role())) {
+            throw new BusinessException(AuthErrorCode.FORBIDDEN, "권한이 없습니다.");
+        }
+
+        return memberPrincipal;
     }
 }

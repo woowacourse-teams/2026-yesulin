@@ -5,7 +5,8 @@ import art.yesulin.common.exception.ErrorType;
 
 public enum AuthErrorCode implements ErrorCode {
 
-    UNAUTHENTICATED("AUTH_UNAUTHENTICATED", ErrorType.UNAUTHORIZED);
+    UNAUTHENTICATED("AUTH_UNAUTHENTICATED", ErrorType.UNAUTHORIZED),
+    FORBIDDEN("AUTH_FORBIDDEN", ErrorType.FORBIDDEN);
 
     private final String code;
     private final ErrorType type;
