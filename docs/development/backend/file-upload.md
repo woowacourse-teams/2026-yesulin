@@ -6,7 +6,7 @@ status: active
 
 # 파일 업로드 설계
 
-파일은 특정 도메인에 종속되지 않는 공통 자산이다. 현재 API는 공연 포스터 이미지 한 장만 받지만 파일 모델과 application은 향후 사진·영상·첨부 파일을 수용할 수 있게 유지한다.
+파일은 특정 도메인에 종속되지 않는 공통 자산이다. 현재 API는 공연 포스터와 배우 사진을 받지만 파일 모델과 application은 향후 영상·첨부 파일도 수용할 수 있게 유지한다.
 
 ## 경계와 의존성
 
@@ -79,7 +79,10 @@ domain/performance ──event──> presentation/event/performance ──> app
 
 - `POST /api/v1/performance-posters/upload-requests`: 포스터용 presigned upload 발급, `201 Created`
 - `PATCH /api/v1/performance-posters/{fileId}/completion`: 업로드 검증 및 완료, `204 No Content`
+- `POST /api/v1/actor-photos/upload-requests`: 배우 사진용 presigned upload 발급, `201 Created`
+- `PATCH /api/v1/actor-photos/{fileId}/completion`: 업로드 검증 및 완료, `204 No Content`
 - 요청에는 `purpose`와 `ownerId`가 없다. 공연 포스터라는 의미와 30MB 제한은 endpoint 계약이며 파일 도메인에 전달하지 않는다.
+- 배우 사진 endpoint는 JPEG·PNG·WebP와 20MB 제한을 검증하며 소유자는 Session에서 얻는다.
 - 결과는 wrapper 없이 `fileId`, `uploadUrl`, `method`, `expiresAt`, `headers`를 반환한다. enum 대신 안정적인 문자열 값을 반환한다.
 - 공통 `BusinessException`은 오류 코드·HTTP 성격을 가지며 구체 메시지는 오류 발생 지점에서 만든다. presentation handler가 HTTP 응답으로 바꾼다.
 - `IllegalArgumentException`은 잘못된 내부 객체 생성에 가깝기 때문에 전역에서 사용자 `400`으로 변환하지 않는다. 입력 형식은 Bean Validation, 비즈니스 위반은 `BusinessException`으로 처리한다.

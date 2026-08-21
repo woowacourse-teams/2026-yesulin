@@ -45,6 +45,10 @@ PATCH  /api/v1/applicants/me/profile            # 기본·추가정보 저장·�
 GET    /api/v1/applicants/me/profile/prefill
        ?auditionId={auditionId}                  # 공고 양식 기준 자동 채움
 
+POST   /api/v1/actor-photos/upload-requests      # 배우 사진 Presigned Upload 발급
+PATCH  /api/v1/actor-photos/{fileId}/completion
+                                                  # 배우 사진 업로드 완료 확인
+
 GET    /api/v1/applicants/me/applications       # 내 지원서 목록
 GET    /api/v1/applicants/me/applications/{applicationId}
                                                     # 내 제출 스냅샷
@@ -57,6 +61,11 @@ GET    /api/v1/applicants/me/applications/{applicationId}
 - 회원 탈퇴 Backend API는 MVP 범위가 아니다. 안내 화면은 공개 정책의 문의 경로를 제공한다.
 
 프로필과 제출 스냅샷 관계는 확정됐으며 파일 업로드, 사진·영상 보관함 API와 실패 시 정리 계약은 별도로 결정한다.
+
+배우 사진 업로드 요청은 `originalFilename`, `contentType`, `size`를 받고 소유자는 Session에서 결정한다.
+JPEG·PNG·WebP 이미지 한 장, 최대 20MB를 허용한다. 현재 완료 API는 S3 HEAD의 Content-Type과 크기만
+확인하며 이미지 내용 검사와 EXIF 제거 실행 위치는 별도 결정한다. 완료된 파일을 사진보관함에 추가하거나
+지원서에 연결하는 동작은 업로드 완료 API와 분리한다.
 
 - 프로필 PATCH는 기본 정보 8개와 nullable 추가 정보 8개를 부분 저장한다. 제출별 프로필 갱신도 이 범위만 다룬다.
 - 개인 사진·영상 보관함은 프로필 값과 별도 리소스로 취급하며 제출 사진·영상 링크를 프로필 갱신 요청으로 추가하지 않는다.
