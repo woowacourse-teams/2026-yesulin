@@ -66,7 +66,7 @@ GET    /api/v1/applicants/me/submissions/{submissionId}
 - 작성 중 지원서는 현재 브라우저 IndexedDB를 직접 조회한다. 서버 Draft 목록과 다른 기기 동기화는 MVP 범위가 아니다.
 - 회원 탈퇴 Backend API는 MVP 범위가 아니다. 안내 화면은 공개 정책의 문의 경로를 제공한다.
 
-프로필과 제출 스냅샷 관계는 확정됐으며 파일 업로드, 사진·영상 보관함 API와 실패 시 정리 계약은 별도로 결정한다.
+프로필과 제출 스냅샷 관계는 확정됐으며 지원서 사진·영상 연결 생명주기와 실패 파일 정리 계약은 별도로 결정한다.
 
 배우 사진 업로드 요청은 `originalFilename`, `contentType`, `size`를 받고 소유자는 Session에서 결정한다.
 JPEG·PNG·WebP 이미지 한 장, 최대 20MB를 허용한다. 현재 완료 API는 S3 HEAD의 Content-Type과 크기만
