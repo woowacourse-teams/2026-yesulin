@@ -66,8 +66,11 @@ cd backend
 ./gradlew test
 ```
 
-`local-test` 프로필은 H2와 Testcontainers LocalStack S3를 사용한다. 인증 구현 전에는 요청에
-`MemberPrincipal(1)` 세션을 주입하며, 서버를 재시작하면 DB와 LocalStack 파일이 초기화된다.
+`local-test` 프로필은 H2와 Testcontainers LocalStack S3를 사용하며, 서버를 재시작하면 DB와
+LocalStack 파일이 초기화된다. 세션이 없는 요청에 `MemberPrincipal(1, PRODUCER)`를 주입해
+로그인 없이 화면을 확인할 수 있게 하므로 인증·인가 검사를 통과시킨다. 로컬 확인 전용이며
+`local`, `staging` 등 다른 프로필에서는 활성화하지 않는다. 인증 흐름 자체를 확인할 때는
+`local` 프로필을 사용한다.
 실행 전 Docker Desktop 또는 Docker Engine처럼 Docker API와 호환되는 컨테이너 런타임이
 실행 중이어야 한다.
 
