@@ -71,7 +71,7 @@ class AuditionScheduleControllerTest {
                 }
                 """;
 
-        mockMvc.perform(put("/api/v1/auditions/{auditionId}/schedule", audition.getId())
+        mockMvc.perform(put("/api/v1/auditions/{auditionId}/schedule", audition.getPublicId())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
@@ -81,7 +81,7 @@ class AuditionScheduleControllerTest {
                 .andExpect(jsonPath("$.stages[0].order").value(1))
                 .andExpect(jsonPath("$.stages[0].name").value("1차 실기"));
 
-        mockMvc.perform(get("/api/v1/auditions/{auditionId}/schedule", audition.getId())
+        mockMvc.perform(get("/api/v1/auditions/{auditionId}/schedule", audition.getPublicId())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.recruitmentEndAt").value("2026-09-10T09:00:00Z"))

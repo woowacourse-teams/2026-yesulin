@@ -23,6 +23,7 @@ import art.yesulin.support.FakeObjectStorage;
 import art.yesulin.support.ObjectStorageTestConfiguration;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -83,7 +84,7 @@ class AuditionFormServiceTest {
     @Test
     void savesFormAndKeepsExistingRequirementIdentityWhenItChanges() {
         Audition audition = saveAudition();
-        AuditionFormResult saved = formService.save(OWNER_ID, audition.getId(), createCommand());
+        AuditionFormResult saved = formService.save(OWNER_ID, audition.getPublicId(), createCommand());
         final long firstPhotoId = saved.photoRequirements().get(0).id();
         final long secondPhotoId = saved.photoRequirements().get(1).id();
         final long videoId = saved.videoRequirements().get(0).id();
@@ -99,7 +100,7 @@ class AuditionFormServiceTest {
                 List.of(new SaveAdditionalQuestionCommand(questionId, "지원 동기를 알려주세요.", false))
         );
 
-        AuditionFormResult changed = formService.save(OWNER_ID, audition.getId(), changeCommand);
+        AuditionFormResult changed = formService.save(OWNER_ID, audition.getPublicId(), changeCommand);
 
         assertEquals(List.of("NAME", "EMAIL"), changed.basicFields());
         assertEquals(List.of("CAREER"), changed.additionalFields());
@@ -108,17 +109,17 @@ class AuditionFormServiceTest {
         assertEquals(videoId, changed.videoRequirements().get(0).id());
         assertEquals(questionId, changed.additionalQuestions().get(0).id());
         assertEquals(2_000, changed.additionalQuestions().get(0).answerMaxLength());
-        assertEquals(changed, formService.find(OWNER_ID, audition.getId()));
+        assertEquals(changed, formService.find(OWNER_ID, audition.getPublicId()));
     }
 
     @Test
     void hidesAnotherOwnersForm() {
         Audition audition = saveAudition();
-        formService.save(OWNER_ID, audition.getId(), createCommand());
+        formService.save(OWNER_ID, audition.getPublicId(), createCommand());
 
         BusinessException exception = assertThrows(
                 BusinessException.class,
-                () -> formService.find(2L, audition.getId())
+                () -> formService.find(2L, audition.getPublicId())
         );
 
         assertEquals(AuditionErrorCode.NOT_FOUND, exception.getErrorCode());
@@ -131,10 +132,10 @@ class AuditionFormServiceTest {
         ExecutorService executor = Executors.newFixedThreadPool(2);
         try {
             Future<AuditionFormResult> first = executor.submit(
-                    () -> saveAfterSignal(start, audition.getId(), createCommand())
+                    () -> saveAfterSignal(start, audition.getPublicId(), createCommand())
             );
             Future<AuditionFormResult> second = executor.submit(
-                    () -> saveAfterSignal(start, audition.getId(), createCommand())
+                    () -> saveAfterSignal(start, audition.getPublicId(), createCommand())
             );
             start.countDown();
 
@@ -149,7 +150,7 @@ class AuditionFormServiceTest {
 
     private AuditionFormResult saveAfterSignal(
             CountDownLatch start,
-            long auditionId,
+            UUID auditionId,
             SaveAuditionFormCommand command
     ) throws InterruptedException {
         start.await();

@@ -12,6 +12,8 @@ import art.yesulin.application.audition.schedule.AuditionScheduleService;
 import art.yesulin.application.auth.MemberPrincipal;
 import jakarta.validation.Valid;
 import java.net.URI;
+import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.SessionAttribute;
 
@@ -47,15 +50,23 @@ public class AuditionController {
     @GetMapping("/{auditionId}")
     public ResponseEntity<AuditionResult> find(
             @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal,
-            @PathVariable long auditionId
+            @PathVariable UUID auditionId
     ) {
         return ResponseEntity.ok(auditionService.find(principal.memberId(), auditionId));
+    }
+
+    @GetMapping
+    public ResponseEntity<List<AuditionResult>> findAll(
+            @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal,
+            @RequestParam long performanceId
+    ) {
+        return ResponseEntity.ok(auditionService.findAll(principal.memberId(), performanceId));
     }
 
     @PutMapping("/{auditionId}/basic-information")
     public ResponseEntity<AuditionResult> updateBasicInformation(
             @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal,
-            @PathVariable long auditionId,
+            @PathVariable UUID auditionId,
             @Valid @RequestBody UpdateAuditionBasicInformationRequest request
     ) {
         return ResponseEntity.ok(
@@ -66,7 +77,7 @@ public class AuditionController {
     @GetMapping("/{auditionId}/roles")
     public ResponseEntity<AuditionRolesResult> findRoles(
             @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal,
-            @PathVariable long auditionId
+            @PathVariable UUID auditionId
     ) {
         return ResponseEntity.ok(auditionRoleService.find(principal.memberId(), auditionId));
     }
@@ -74,7 +85,7 @@ public class AuditionController {
     @PutMapping("/{auditionId}/roles")
     public ResponseEntity<AuditionRolesResult> saveRoles(
             @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal,
-            @PathVariable long auditionId,
+            @PathVariable UUID auditionId,
             @Valid @RequestBody SaveAuditionRolesRequest request
     ) {
         return ResponseEntity.ok(auditionRoleService.save(principal.memberId(), auditionId, request.toCommand()));
@@ -83,7 +94,7 @@ public class AuditionController {
     @GetMapping("/{auditionId}/schedule")
     public ResponseEntity<AuditionScheduleResult> findSchedule(
             @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal,
-            @PathVariable long auditionId
+            @PathVariable UUID auditionId
     ) {
         return ResponseEntity.ok(auditionScheduleService.find(principal.memberId(), auditionId));
     }
@@ -91,7 +102,7 @@ public class AuditionController {
     @PutMapping("/{auditionId}/schedule")
     public ResponseEntity<AuditionScheduleResult> saveSchedule(
             @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal,
-            @PathVariable long auditionId,
+            @PathVariable UUID auditionId,
             @Valid @RequestBody SaveAuditionScheduleRequest request
     ) {
         return ResponseEntity.ok(auditionScheduleService.save(principal.memberId(), auditionId, request.toCommand()));
@@ -100,7 +111,7 @@ public class AuditionController {
     @GetMapping("/{auditionId}/application-form")
     public ResponseEntity<AuditionFormResult> findApplicationForm(
             @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal,
-            @PathVariable long auditionId
+            @PathVariable UUID auditionId
     ) {
         return ResponseEntity.ok(auditionFormService.find(principal.memberId(), auditionId));
     }
@@ -108,7 +119,7 @@ public class AuditionController {
     @PutMapping("/{auditionId}/application-form")
     public ResponseEntity<AuditionFormResult> saveApplicationForm(
             @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal,
-            @PathVariable long auditionId,
+            @PathVariable UUID auditionId,
             @Valid @RequestBody SaveAuditionFormRequest request
     ) {
         return ResponseEntity.ok(auditionFormService.save(principal.memberId(), auditionId, request.toCommand()));
@@ -117,7 +128,7 @@ public class AuditionController {
     @PutMapping("/{auditionId}/publication")
     public ResponseEntity<AuditionResult> publish(
             @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal,
-            @PathVariable long auditionId
+            @PathVariable UUID auditionId
     ) {
         return ResponseEntity.ok(auditionPublicationService.publish(principal.memberId(), auditionId));
     }

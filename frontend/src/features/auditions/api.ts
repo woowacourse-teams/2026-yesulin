@@ -1,3 +1,13 @@
+import { AuditionRequestError, request } from "./api-client";
+import type { FileUploadResource, PerformanceResource, PerformanceResourceList } from "./backend-resources";
+import {
+  createV1Posting,
+  getV1PostingManagement,
+  getV1Postings,
+  getV1Roles,
+  isBackendAuditionId,
+  isBackendPerformanceId,
+} from "./audition-v1-api";
 import type {
   CloseRoundRequest,
   CreatePostingResponse,
@@ -22,69 +32,7 @@ import type {
   UpdateProducerProfileRequest,
 } from "./management-types";
 
-const API_BASE_PATH = "/api";
-
-type PerformanceResource = {
-  readonly id: number | string;
-  readonly posterFileId: number;
-  readonly posterUrl: string;
-  readonly title: string;
-  readonly roadAddress: string;
-  readonly createdAt: string;
-  readonly roles: readonly { readonly id: number | string; readonly name: string; readonly description: string }[];
-  readonly venue?: string;
-  readonly venueAddress?: CreatePerformanceRequest["venueAddress"];
-  readonly postingCount?: number;
-  readonly openPostingCount?: number;
-  readonly applicantCount?: number;
-  readonly pendingReviewCount?: number;
-  readonly postings?: PerformanceListResponse["performances"][number]["postings"];
-};
-
-type PerformanceResourceList = { readonly performances: readonly PerformanceResource[] };
-
-type FileUploadResource = {
-  readonly fileId: number;
-  readonly uploadUrl: string;
-  readonly method: string;
-  readonly expiresAt: string;
-  readonly headers: Readonly<Record<string, string>>;
-};
-
-/** 서버가 내려준 메시지를 그대로 화면에 띄우기 위한 오류 타입. */
-export class AuditionRequestError extends Error {
-  readonly status: number;
-  readonly code: string | null;
-
-  constructor(message: string, status: number, code: string | null = null) {
-    super(message);
-    this.name = "AuditionRequestError";
-    this.status = status;
-    this.code = code;
-  }
-}
-
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE_PATH}${path}`, {
-    ...init,
-    headers: { "Content-Type": "application/json", ...init?.headers },
-  });
-
-  if (!response.ok) {
-    const body: unknown = await response.json().catch(() => null);
-    const message =
-      typeof body === "object" && body !== null && "message" in body && typeof body.message === "string"
-        ? body.message
-        : "요청을 처리하지 못했습니다.";
-    const code = typeof body === "object" && body !== null && "code" in body && typeof body.code === "string"
-      ? body.code
-      : null;
-    throw new AuditionRequestError(message, response.status, code);
-  }
-
-  if (response.status === 204) return undefined as T;
-  return response.json() as Promise<T>;
-}
+export { AuditionRequestError } from "./api-client";
 
 export function getAuditionTree() {
   return request<AuditionTree>("/navigation/tree");
@@ -97,10 +45,12 @@ export function getPerformances() {
 }
 
 export function getPostings(performance: PerformanceId) {
+  if (isBackendPerformanceId(performance)) return getV1Postings(performance);
   return request<PostingListResponse>(`/performances/${performance}/postings`);
 }
 
 export function getRoles(posting: PostingId) {
+  if (isBackendAuditionId(posting)) return getV1Roles(posting);
   return request<RoleListResponse>(`/postings/${posting}/roles`);
 }
 
@@ -168,7 +118,8 @@ function toPerformanceSummary(resource: PerformanceResource): PerformanceListRes
   };
 }
 
-export function createPosting(body: CreatePostingRequest) {
+export function createPosting(body: CreatePostingRequest, auditionId: string) {
+  if (isBackendPerformanceId(body.performanceId)) return createV1Posting(body, auditionId);
   return request<CreatePostingResponse>(`/performances/${body.performanceId}/postings`, {
     method: "POST",
     body: JSON.stringify(body),
@@ -185,6 +136,7 @@ export function deletePerformance(id: PerformanceId) {
 
 /** Notion 명세에 아직 없는 편집 초기값 API. 화면 계약 검증을 위해 제안 형태로 둔다. */
 export function getPostingManagement(id: PostingId) {
+  if (isBackendAuditionId(id)) return getV1PostingManagement(id);
   return request<PostingManagementDetail>(`/postings/${id}`);
 }
 

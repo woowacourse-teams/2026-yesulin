@@ -3,9 +3,10 @@ package art.yesulin.application.audition;
 import art.yesulin.domain.audition.Audition;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.UUID;
 
 public record AuditionResult(
-        long id,
+        UUID id,
         long performanceId,
         String title,
         LocalDate performanceStartDate,
@@ -18,7 +19,7 @@ public record AuditionResult(
 
     public static AuditionResult from(Audition audition) {
         return new AuditionResult(
-                audition.getId(),
+                audition.getPublicId(),
                 audition.getPerformanceId(),
                 audition.getTitle(),
                 audition.getPerformanceStartDate(),

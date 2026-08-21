@@ -12,6 +12,8 @@ import type {
   UpdateProfileRequest,
 } from "./types";
 import type { PublicPosting } from "@/features/applications/public-posting";
+import { getV1PublicPosting } from "@/features/applications/public-audition-v1";
+import { isBackendAuditionId } from "@/features/auditions/audition-v1-api";
 import type { SubmissionId } from "@/features/auditions/types";
 
 const API_BASE_PATH = "/api";
@@ -71,7 +73,9 @@ export const getRecommendedPostings = (excludePostingId?: string, limit = 3) => 
 };
 
 export const getPublicPosting = (postingId: string) =>
-  request<PublicPosting>(`/public/postings/${postingId}`);
+  isBackendAuditionId(postingId)
+    ? getV1PublicPosting(postingId)
+    : request<PublicPosting>(`/public/postings/${postingId}`);
 
 export const lookupSubmission = (body: LookupSubmissionRequest) => request<LookupSubmissionResponse>("/public/submissions/lookup", {
   method: "POST",

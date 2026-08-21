@@ -21,6 +21,7 @@ import art.yesulin.support.FakeObjectStorage;
 import art.yesulin.support.ObjectStorageTestConfiguration;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -85,6 +86,21 @@ class AuditionServiceTest {
     }
 
     @Test
+    void restoresDraftWhenCreationWithSamePublicIdIsRetried() {
+        long performanceId = createPerformance().id();
+        UUID auditionId = UUID.randomUUID();
+        CreateAuditionCommand command = new CreateAuditionCommand(
+                auditionId, performanceId, "햄릿 오디션", LocalDate.of(2026, 9, 1), null
+        );
+
+        AuditionResult created = auditionService.create(OWNER_ID, command);
+        AuditionResult retried = auditionService.create(OWNER_ID, command);
+
+        assertEquals(created.id(), retried.id());
+        assertEquals(1, auditionRepository.count());
+    }
+
+    @Test
     void updatesBasicInformationAndDerivesOpenRun() {
         AuditionResult draft = auditionService.create(OWNER_ID, createAuditionCommand(createPerformance().id()));
 
@@ -128,7 +144,9 @@ class AuditionServiceTest {
     }
 
     private CreateAuditionCommand createAuditionCommand(long performanceId) {
-        return new CreateAuditionCommand(performanceId, "햄릿 오디션", LocalDate.of(2026, 9, 1), null);
+        return new CreateAuditionCommand(
+                UUID.randomUUID(), performanceId, "햄릿 오디션", LocalDate.of(2026, 9, 1), null
+        );
     }
 
     private long uploadReadyImage() {

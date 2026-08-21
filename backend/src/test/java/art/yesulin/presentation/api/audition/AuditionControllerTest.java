@@ -1,6 +1,5 @@
 package art.yesulin.presentation.api.audition;
 
-import static org.hamcrest.Matchers.matchesPattern;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -24,6 +23,7 @@ import art.yesulin.domain.performance.PerformanceRepository;
 import art.yesulin.support.FakeObjectStorage;
 import art.yesulin.support.ObjectStorageTestConfiguration;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -85,24 +85,25 @@ class AuditionControllerTest {
     @Test
     void createsRestoresAndUpdatesDraftBasicInformation() throws Exception {
         PerformanceResult performance = createPerformance();
+        UUID auditionId = UUID.randomUUID();
         String createRequest = """
                 {
+                  "id": "%s",
                   "performanceId": %d,
                   "title": "햄릿 오디션",
                   "performanceStartDate": "2026-09-01",
                   "performanceEndDate": null
                 }
-                """.formatted(performance.id());
+                """.formatted(auditionId, performance.id());
         String location = mockMvc.perform(post("/api/v1/auditions")
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createRequest))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", matchesPattern("/api/v1/auditions/\\d+")))
+                .andExpect(header().string("Location", "/api/v1/auditions/" + auditionId))
                 .andExpect(jsonPath("$.status").value("DRAFT"))
                 .andExpect(jsonPath("$.openRun").value(true))
                 .andReturn().getResponse().getHeader("Location");
-        long auditionId = Long.parseLong(location.substring(location.lastIndexOf('/') + 1));
         String request = """
                 {
                   "title": "리어왕 오디션",
@@ -127,9 +128,24 @@ class AuditionControllerTest {
     }
 
     @Test
+    void findsAuditionsForOwnedPerformanceInLatestOrder() throws Exception {
+        PerformanceResult performance = createPerformance();
+        UUID first = createAudition(performance.id());
+        UUID latest = createAudition(performance.id());
+
+        mockMvc.perform(get("/api/v1/auditions")
+                        .queryParam("performanceId", String.valueOf(performance.id()))
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].id").value(latest.toString()))
+                .andExpect(jsonPath("$[1].id").value(first.toString()));
+    }
+
+    @Test
     void savesAndFindsRoleSection() throws Exception {
         PerformanceResult performance = createPerformance();
-        long auditionId = createAudition(performance.id());
+        UUID auditionId = createAudition(performance.id());
         String roleRequest = """
                 {
                   "multipleRoleApplicationsAllowed": true,
@@ -167,22 +183,24 @@ class AuditionControllerTest {
                 .andExpect(jsonPath("$.roles.length()").value(2));
     }
 
-    private long createAudition(long performanceId) throws Exception {
+    private UUID createAudition(long performanceId) throws Exception {
+        UUID auditionId = UUID.randomUUID();
         String request = """
                 {
+                  "id": "%s",
                   "performanceId": %d,
                   "title": "햄릿 오디션",
                   "performanceStartDate": "2026-11-01",
                   "performanceEndDate": null
                 }
-                """.formatted(performanceId);
+                """.formatted(auditionId, performanceId);
         String location = mockMvc.perform(post("/api/v1/auditions")
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getHeader("Location");
-        return Long.parseLong(location.substring(location.lastIndexOf('/') + 1));
+        return UUID.fromString(location.substring(location.lastIndexOf('/') + 1));
     }
 
     private PerformanceResult createPerformance() {

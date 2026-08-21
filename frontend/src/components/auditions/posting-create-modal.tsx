@@ -23,6 +23,7 @@ const INITIAL_ROUNDS: readonly AuditionRoundInput[] = [{ round: 1, name: "1차 �
 type ErrorSection = "TITLE" | "PERFORMANCE" | "ROLES" | "SCHEDULE" | "APPLICATION" | "GENERAL";
 type FormError = { readonly message: string; readonly section: ErrorSection };
 type PostingCreationDraft = {
+  readonly auditionId?: string;
   readonly title: string;
   readonly performanceStart: string;
   readonly performanceEnd: string;
@@ -69,6 +70,7 @@ export function PostingCreateModal({ performanceId, performanceTitle, performanc
   readonly onClose: () => void;
   readonly onCreated: () => void;
 }) {
+  const [auditionId, setAuditionId] = useState(() => crypto.randomUUID());
   const [title, setTitle] = useState("");
   const [performanceStart, setPerformanceStart] = useState("");
   const [performanceEnd, setPerformanceEnd] = useState("");
@@ -84,6 +86,7 @@ export function PostingCreateModal({ performanceId, performanceTitle, performanc
   const selectedRoleCount = Object.keys(selectedRoles).length;
   const restoreDraft = useCallback((draft: PostingCreationDraft) => {
     const availableRoleIds = new Set(roleTemplates.map((role) => role.id));
+    setAuditionId(draft.auditionId ?? crypto.randomUUID());
     setTitle(draft.title);
     setPerformanceStart(draft.performanceStart);
     setPerformanceEnd(draft.performanceEnd);
@@ -96,7 +99,10 @@ export function PostingCreateModal({ performanceId, performanceTitle, performanc
   }, [roleTemplates]);
   const draft = useProducerCreationDraft({
     draftKey: postingCreationDraftKey(performanceId),
-    value: { title, performanceStart, performanceEnd, recruitmentStart, recruitmentEnd, allowsMultipleRoles, selectedRoles, rounds, applicationFields },
+    value: {
+      auditionId, title, performanceStart, performanceEnd, recruitmentStart, recruitmentEnd,
+      allowsMultipleRoles, selectedRoles, rounds, applicationFields,
+    },
     restore: restoreDraft,
     isEmpty: isEmptyPostingDraft,
   });
@@ -124,7 +130,15 @@ export function PostingCreateModal({ performanceId, performanceTitle, performanc
     if (videoField && (videoRequirements.length < 1 || videoRequirements.length > MAX_VIDEO_REQUIREMENTS || videoRequirements.some((item) => !item.description.trim()))) { setFormError({ message: `영상 링크 요구사항을 1개 이상 ${MAX_VIDEO_REQUIREMENTS}개 이하로 입력해 주세요.`, section: "APPLICATION" }); return; }
     setSaving(true); setFormError(null);
     try {
-      const response = await createPosting({ performanceId, isOpenCall: false, allowsMultipleRoles, posterUrl: performancePosterUrl, detailImageUrl: "", title, performanceStart, performanceEnd, recruitmentStart, recruitmentEnd, rehearsalVenue: "", rehearsalVenueAddress: { roadAddress: "", detailAddress: "", zonecode: "", latitude: null, longitude: null }, roles, rounds, applicationFields, applicationGuide: "" });
+      const posting = {
+        performanceId, isOpenCall: false, allowsMultipleRoles, posterUrl: performancePosterUrl,
+        detailImageUrl: "", title, performanceStart, performanceEnd, recruitmentStart, recruitmentEnd,
+        rehearsalVenue: "", rehearsalVenueAddress: {
+          roadAddress: "", detailAddress: "", zonecode: "", latitude: null, longitude: null,
+        },
+        roles, rounds, applicationFields, applicationGuide: "",
+      } as const;
+      const response = await createPosting(posting, auditionId);
       await draft.discard().catch(() => undefined);
       notifyAuditionTreeChanged();
       setCreated({ title: title.trim(), applicationUrl: `${window.location.origin}${publicApplicationRoute(response.createdPostingId)}` });

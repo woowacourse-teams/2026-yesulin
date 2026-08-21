@@ -12,6 +12,8 @@ status: active
 ## 모델과 생명주기
 
 - `Audition`: 공연·소유자, 기본 정보와 `DRAFT → PUBLISHED → CLOSED` 생명주기를 관리한다.
+- 내부 관계는 `long` PK를 사용하고 API·공개 URL에는 별도 UUID `id`만 노출한다.
+- 생성 요청의 UUID `id`는 재시도 키를 겸한다. 같은 소유자가 같은 ID로 재시도하면 기존 DRAFT를 이어 쓴다.
 - 기본 정보를 완성한 첫 저장에서 DRAFT를 생성한다. 생성된 기본 정보 안에는 nullable 미완성 값을 두지 않는다.
 - 배역·일정·지원 폼은 `auditionId`로 연결된 별도 Aggregate로 관리한다.
 - 게시할 때 application이 모든 섹션을 조회하고 `AuditionPublicationPolicy`가 필수 규칙과 상태 전이를 처리한다.
@@ -113,6 +115,7 @@ status: active
 
 ```http
 POST /api/v1/auditions
+GET  /api/v1/auditions?performanceId={performanceId}
 GET  /api/v1/auditions/{auditionId}
 PUT  /api/v1/auditions/{auditionId}/basic-information
 GET  /api/v1/auditions/{auditionId}/roles
@@ -122,18 +125,21 @@ PUT  /api/v1/auditions/{auditionId}/schedule
 GET  /api/v1/auditions/{auditionId}/application-form
 PUT  /api/v1/auditions/{auditionId}/application-form
 PUT   /api/v1/auditions/{auditionId}/publication
+GET   /api/v1/public/auditions/{auditionId}
 PATCH /api/v1/audition-roles/{roleId}/screening-rounds/{round}/reviews
 ```
 
-생성 API는 `performanceId`, `title`, `performanceStartDate`, 선택적인 `performanceEndDate`를 받아 유효한
-DRAFT를 반환한다. 생성·조회·기본 정보 수정은 `/auditions`를 기준으로 한 Controller와 Service가 담당한다.
+생성 API는 UUID `id`, `performanceId`, `title`, `performanceStartDate`, 선택적인 `performanceEndDate`를 받아
+유효한 DRAFT를 반환한다. 같은 `id`의 재요청은 새 행을 만들지 않고 기존 DRAFT를 반환한다. 생성·조회·기본
+정보 수정은 `/auditions`를 기준으로 한 Controller와 Service가 담당한다.
 특정 공연 기준 목록 조회가 필요할 때만 `/performances/{performanceId}/auditions`를 사용한다. 공연사 소유
 공고만 접근할 수 있다. 기본 정보와 배역·일정·지원 폼 저장, 게시는 공고 행 잠금으로 직렬화한다. 배역 `PUT`은 섹션
 전체를 저장하고 기존 공연 배역을 다시 선택하면 공고 배역 ID를 유지한다. 일정 GET·PUT은 모집 기간과
 전형 1~5개를 조회하고 전체 저장한다. 지원 폼 GET·PUT은 표준 항목과 사진·영상·질문 요구 전체를
 조회하고 저장한다. 게시 `PUT`은 모든 섹션과 모집 종료 시각을 검증한 뒤 `PUBLISHED`로 전이한다.
 심사 `PATCH`는 지원서 ID 목록과 상태·기타 사유·내부 메모를 받아 같은 차수의 결과를 일괄 저장한다.
-현재 구현 범위는 심사 결과 일괄 영속화까지다. 지원서 목록·상세 읽기 모델, 미존재·배역 미지원 대상의
+공개 조회는 게시된 공고의 공연·배역·일정·지원 폼을 한 번에 반환하며 DRAFT는 `404`로 숨긴다. 지원서
+목록·상세 읽기 모델, 미존재·배역 미지원 대상의
 `404` 검증과 유효하지만 심사 기록이 없는 지원서의 `PENDING` 표현은 향후 구현한다.
 
 생성·수정 command가 날짜 입력을 `PerformancePeriod`로 변환하고 service는 완성된 VO를 도메인에 전달한다.

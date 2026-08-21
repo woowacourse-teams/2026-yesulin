@@ -17,15 +17,21 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
-@Table(name = "auditions", indexes = {
+@Table(name = "auditions", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_auditions_public_id", columnNames = "public_id")
+}, indexes = {
         @Index(name = "idx_auditions_performance_id", columnList = "performance_id"),
         @Index(name = "idx_auditions_owner_id", columnList = "owner_id")
 })
@@ -38,6 +44,10 @@ public class Audition {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(name = "public_id", nullable = false, updatable = false, length = 36)
+    private UUID publicId;
 
     @Column(name = "performance_id", nullable = false, updatable = false)
     private long performanceId;
@@ -64,6 +74,17 @@ public class Audition {
     private Instant publishedAt;
 
     public Audition(long performanceId, long ownerId, String title, PerformancePeriod performancePeriod) {
+        this(UUID.randomUUID(), performanceId, ownerId, title, performancePeriod);
+    }
+
+    public Audition(
+            UUID publicId,
+            long performanceId,
+            long ownerId,
+            String title,
+            PerformancePeriod performancePeriod
+    ) {
+        this.publicId = requireNonNull(publicId, "공고 공개 ID는 필수입니다.");
         this.performanceId = requirePositive(performanceId, "공연 ID는 1 이상이어야 합니다.");
         this.ownerId = requirePositive(ownerId, "공고 소유자 ID는 1 이상이어야 합니다.");
         this.title = normalizeTitle(title);
