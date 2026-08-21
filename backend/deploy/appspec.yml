@@ -23,3 +23,5 @@ hooks:
   ValidateService:
     - location: scripts/validate_service.sh
       timeout: 90
+    - location: scripts/cleanup_releases.sh
+      timeout: 30
