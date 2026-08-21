@@ -1,0 +1,11 @@
+[Unit]
+Description=Yesulin staging MySQL EBS snapshot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/yesulin-create-ebs-snapshot
+User=root
+Group=root
+Nice=10

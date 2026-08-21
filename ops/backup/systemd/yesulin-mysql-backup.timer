@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Yesulin staging MySQL logical backup daily
+
+[Timer]
+OnCalendar=*-*-* 03:15:00 Asia/Seoul
+Persistent=true
+RandomizedDelaySec=10m
+
+[Install]
+WantedBy=timers.target

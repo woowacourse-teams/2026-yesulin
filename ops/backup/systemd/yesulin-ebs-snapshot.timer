@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Yesulin staging MySQL EBS snapshot weekly
+
+[Timer]
+OnCalendar=Sun *-*-* 04:15:00 Asia/Seoul
+Persistent=true
+RandomizedDelaySec=15m
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,12 @@
+[Unit]
+Description=Yesulin staging MySQL logical backup
+After=docker.service network-online.target
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/yesulin-mysql-logical-backup
+User=root
+Group=root
+Nice=10
