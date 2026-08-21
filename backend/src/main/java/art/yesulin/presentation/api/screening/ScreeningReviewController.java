@@ -1,11 +1,11 @@
 package art.yesulin.presentation.api.screening;
 
 import art.yesulin.application.auth.MemberPrincipal;
+import art.yesulin.application.auth.annotation.LoginMember;
+import art.yesulin.application.auth.annotation.LoginRequired;
 import art.yesulin.application.screening.ScreeningReviewService;
 import art.yesulin.application.screening.ScreeningReviewsResult;
-import art.yesulin.presentation.api.auth.AuthRole;
-import art.yesulin.presentation.api.auth.LoginMember;
-import art.yesulin.presentation.api.auth.LoginRequired;
+import art.yesulin.domain.member.MemberType;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -25,7 +25,7 @@ public class ScreeningReviewController {
 
     @PatchMapping
     public ResponseEntity<ScreeningReviewsResult> save(
-            @LoginMember(roles = AuthRole.PRODUCER) MemberPrincipal principal,
+            @LoginMember(roles = MemberType.PRODUCER) MemberPrincipal principal,
             @PathVariable long roleId,
             @PathVariable int round,
             @Valid @RequestBody SaveScreeningReviewsRequest request

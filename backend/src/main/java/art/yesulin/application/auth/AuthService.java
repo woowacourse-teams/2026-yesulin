@@ -3,7 +3,6 @@ package art.yesulin.application.auth;
 import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.member.Member;
 import art.yesulin.domain.member.MemberRepository;
-import art.yesulin.presentation.api.auth.AuthRole;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +26,6 @@ public class AuthService {
                     AuthErrorCode.INVALID_CREDENTIALS, "이메일 또는 비밀번호가 올바르지 않습니다.");
         }
 
-        return new MemberPrincipal(member.getId(), AuthRole.valueOf(member.getType().name()));
+        return new MemberPrincipal(member.getId(), member.getType());
     }
 }

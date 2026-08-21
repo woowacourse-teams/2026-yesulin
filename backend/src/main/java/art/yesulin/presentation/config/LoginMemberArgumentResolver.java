@@ -1,8 +1,10 @@
-package art.yesulin.presentation.api.auth;
+package art.yesulin.presentation.config;
 
 import art.yesulin.application.auth.AuthErrorCode;
 import art.yesulin.application.auth.MemberPrincipal;
+import art.yesulin.application.auth.annotation.LoginMember;
 import art.yesulin.common.exception.BusinessException;
+import art.yesulin.domain.member.MemberType;
 import java.util.List;
 import org.springframework.core.MethodParameter;
 import org.springframework.web.bind.support.WebDataBinderFactory;
@@ -27,7 +29,7 @@ public class LoginMemberArgumentResolver implements HandlerMethodArgumentResolve
             WebDataBinderFactory binderFactory
     ) {
         LoginMember annotation = parameter.getParameterAnnotation(LoginMember.class);
-        AuthRole[] allowed = annotation.roles();
+        MemberType[] allowed = annotation.roles();
 
         Object principal = webRequest.getAttribute(
                 MemberPrincipal.SESSION_ATTRIBUTE, RequestAttributes.SCOPE_SESSION);

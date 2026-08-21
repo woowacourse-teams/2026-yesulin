@@ -1,12 +1,12 @@
 package art.yesulin.presentation.api.performance;
 
 import art.yesulin.application.auth.MemberPrincipal;
+import art.yesulin.application.auth.annotation.LoginMember;
+import art.yesulin.application.auth.annotation.LoginRequired;
 import art.yesulin.application.file.FileService;
 import art.yesulin.application.performance.PerformanceResult;
 import art.yesulin.application.performance.PerformanceRoleResult;
 import art.yesulin.application.performance.PerformanceService;
-import art.yesulin.presentation.api.auth.LoginMember;
-import art.yesulin.presentation.api.auth.LoginRequired;
 import jakarta.validation.Valid;
 import java.net.URI;
 import lombok.RequiredArgsConstructor;

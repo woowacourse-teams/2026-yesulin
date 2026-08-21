@@ -1,4 +1,4 @@
-package art.yesulin.presentation.api.session;
+package art.yesulin.presentation.api.auth;
 
 import art.yesulin.application.auth.AuthService;
 import art.yesulin.application.auth.MemberPrincipal;
