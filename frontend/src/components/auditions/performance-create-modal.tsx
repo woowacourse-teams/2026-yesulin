@@ -44,6 +44,7 @@ export function PerformanceCreateModal({
   const [venue, setVenue] = useState("");
   const [venueAddress, setVenueAddress] = useState(emptyVenueAddress);
   const [posterUrl, setPosterUrl] = useState("");
+  const [posterFile, setPosterFile] = useState<File | null>(null);
   const [roles, setRoles] = useState<readonly RoleDraft[]>(() => [emptyRoleDraft()]);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
@@ -69,6 +70,10 @@ export function PerformanceCreateModal({
       setFormError("공연 포스터 이미지를 선택해 주세요.");
       return;
     }
+    if (!posterFile) {
+      setFormError("서버에 업로드할 공연 포스터 이미지를 다시 선택해 주세요.");
+      return;
+    }
     if (!venueAddress.roadAddress) {
       setFormError("도로명주소 검색으로 공연 장소를 선택해 주세요.");
       return;
@@ -85,7 +90,7 @@ export function PerformanceCreateModal({
           name: role.name,
           description: role.description,
         })),
-      });
+      }, posterFile);
       await draft.discard().catch(() => undefined);
       notifyAuditionTreeChanged();
       onCreated();
@@ -119,7 +124,7 @@ export function PerformanceCreateModal({
           <ProducerCreationDraftStatus status={draft.status} savedAt={draft.savedAt} />
           <CreateSection title="공연 기본 정보">
             <div className="grid grid-cols-[112px_minmax(0,1fr)] items-start gap-4 sm:grid-cols-[150px_minmax(0,1fr)]">
-              <PosterUploadField label="공연 포스터" value={posterUrl} onChange={setPosterUrl} />
+              <PosterUploadField label="공연 포스터" value={posterUrl} onChange={setPosterUrl} onFileChange={setPosterFile} />
               <div className="grid min-w-0 content-start gap-5">
                 <CreateField label="공연 제목">
                   <FieldInput

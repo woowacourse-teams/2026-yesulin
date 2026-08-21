@@ -10,12 +10,14 @@ export function PosterUploadField({
   label,
   value,
   onChange,
+  onFileChange,
   required = true,
   variant = "poster",
 }: {
   readonly label: string;
   readonly value: string;
   readonly onChange: (value: string) => void;
+  readonly onFileChange?: (file: File | null) => void;
   readonly required?: boolean;
   readonly variant?: "poster" | "detail";
 }) {
@@ -35,6 +37,7 @@ export function PosterUploadField({
     const reader = new FileReader();
     reader.onload = () => {
       onChange(String(reader.result ?? ""));
+      onFileChange?.(file);
       setFileName(file.name);
       setError("");
     };
@@ -60,7 +63,7 @@ export function PosterUploadField({
       </label>
       <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
         {fileName ? <span className="min-w-0 flex-1 truncate text-sm text-muted">{fileName}</span> : <span className="text-sm text-muted">JPG, PNG, WEBP · 최대 30MB</span>}
-        {!required && value ? <button type="button" onClick={() => { onChange(""); setFileName(""); setError(""); }} className="text-xs font-semibold text-fail hover:underline">이미지 제거</button> : null}
+        {!required && value ? <button type="button" onClick={() => { onChange(""); onFileChange?.(null); setFileName(""); setError(""); }} className="text-xs font-semibold text-fail hover:underline">이미지 제거</button> : null}
       </div>
       {fileName ? <span className="mt-1 block text-xs text-muted">JPG, PNG, WEBP · 최대 30MB</span> : null}
       <CreateError message={error} />
