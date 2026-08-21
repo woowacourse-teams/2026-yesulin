@@ -1,5 +1,6 @@
 package art.yesulin.presentation.api.photolibrary;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -12,6 +13,7 @@ import art.yesulin.application.auth.MemberPrincipal;
 import art.yesulin.application.file.FileService;
 import art.yesulin.application.file.FileUploadCommand;
 import art.yesulin.application.file.FileUploadResult;
+import art.yesulin.domain.member.MemberType;
 import art.yesulin.support.FakeObjectStorage;
 import art.yesulin.support.ObjectStorageTestConfiguration;
 import org.junit.jupiter.api.Test;
@@ -37,7 +39,7 @@ import tools.jackson.databind.ObjectMapper;
 @Transactional
 class PhotoLibraryControllerTest {
 
-    private static final MemberPrincipal MEMBER_PRINCIPAL = new MemberPrincipal(1L);
+    private static final MemberPrincipal MEMBER_PRINCIPAL = new MemberPrincipal(1L, MemberType.APPLICANT);
     private static final String PHOTOS_PATH = "/api/v1/applicants/me/photo-library/photos";
 
     @Autowired
@@ -57,6 +59,7 @@ class PhotoLibraryControllerTest {
         long fileId = requestReadyUpload(MEMBER_PRINCIPAL.memberId());
 
         mockMvc.perform(post(PHOTOS_PATH)
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(addPhotoRequest(fileId)))
@@ -74,6 +77,7 @@ class PhotoLibraryControllerTest {
     void findsPhotosInLibrary() throws Exception {
         long fileId = requestReadyUpload(MEMBER_PRINCIPAL.memberId());
         mockMvc.perform(post(PHOTOS_PATH)
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(addPhotoRequest(fileId)))
@@ -104,6 +108,7 @@ class PhotoLibraryControllerTest {
         long secondPhotoId = addReadyPhoto(MEMBER_PRINCIPAL.memberId());
 
         mockMvc.perform(patch(PHOTOS_PATH + "/{photoId}/representative", secondPhotoId)
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.photos[0].id").value(secondPhotoId))
@@ -120,6 +125,7 @@ class PhotoLibraryControllerTest {
         long secondPhotoId = addReadyPhoto(MEMBER_PRINCIPAL.memberId());
 
         mockMvc.perform(delete(PHOTOS_PATH + "/{photoId}", firstPhotoId)
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
                 .andExpect(status().isNoContent());
 
@@ -137,11 +143,13 @@ class PhotoLibraryControllerTest {
         long anotherMembersPhotoId = addReadyPhoto(2L);
 
         mockMvc.perform(patch(PHOTOS_PATH + "/{photoId}/representative", anotherMembersPhotoId)
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("PHOTO_LIBRARY_PHOTO_NOT_FOUND"));
 
         mockMvc.perform(delete(PHOTOS_PATH + "/{photoId}", anotherMembersPhotoId)
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("PHOTO_LIBRARY_PHOTO_NOT_FOUND"));
@@ -154,6 +162,7 @@ class PhotoLibraryControllerTest {
         );
 
         mockMvc.perform(post(PHOTOS_PATH)
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(addPhotoRequest(upload.fileId())))
@@ -166,6 +175,7 @@ class PhotoLibraryControllerTest {
         long fileId = requestReadyUpload(2L);
 
         mockMvc.perform(post(PHOTOS_PATH)
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(addPhotoRequest(fileId)))
@@ -185,7 +195,9 @@ class PhotoLibraryControllerTest {
     private long addReadyPhoto(long ownerId) throws Exception {
         long fileId = requestReadyUpload(ownerId);
         MvcResult result = mockMvc.perform(post(PHOTOS_PATH)
-                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, new MemberPrincipal(ownerId))
+                        .with(csrf())
+                        .sessionAttr(
+                                MemberPrincipal.SESSION_ATTRIBUTE, new MemberPrincipal(ownerId, MemberType.APPLICANT))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(addPhotoRequest(fileId)))
                 .andExpect(status().isCreated())
