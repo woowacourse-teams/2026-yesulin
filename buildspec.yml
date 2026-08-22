@@ -1,5 +1,11 @@
 version: 0.2
 
+# Gradle 홈을 명시해 buildspec의 cache 경로와 항상 일치시킨다.
+# 빌드 이미지가 바뀌어 기본 HOME이 달라져도 캐시가 조용히 어긋나지 않는다.
+env:
+  variables:
+    GRADLE_USER_HOME: /root/.gradle
+
 phases:
   install:
     runtime-versions:
