@@ -9,7 +9,12 @@ phases:
     commands:
       - cd "$CODEBUILD_SRC_DIR/backend"
       - chmod +x gradlew
-      - ./gradlew build --no-daemon
+      # 여기서는 검증하지 않고 실행 JAR만 만든다.
+      # Checkstyle과 테스트는 PR 단계의 GitHub Actions가 담당하며,
+      # main ruleset이 CI 통과와 최신 브랜치를 강제해 검증을 거치지 않은
+      # 코드가 main에 들어오지 못하게 막는다.
+      # ruleset이 해제되면 이 명령을 build로 되돌려야 한다.
+      - ./gradlew bootJar --no-daemon
 
   post_build:
     commands:
