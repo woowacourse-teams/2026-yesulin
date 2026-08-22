@@ -24,6 +24,10 @@
 
 ## 저장소 준비와 Git
 
+- 작업을 시작하기 전 GitHub 이슈를 먼저 만들고, 생성과 동시에 프로젝트 보드에 올리며 만든 사람에게 배정한다: `gh issue create --project "2026-yesulin" --label "type:feat" --assignee @me ...`. `@me`는 `gh auth`로 로그인한 계정이므로 각자 실행하면 각자에게 배정된다.
+- 이슈 제목은 커밋과 같은 `{type}: {summary}` 형식을 쓰고 `type:*` 라벨을 최소 하나 붙인다. 라벨 목록과 보드 상태 규칙은 [Git 컨벤션](./docs/convention/git-convention.md)에 있다.
+- 이미 있는 이슈를 맡을 때도 `gh issue edit 123 --add-assignee @me`로 배정한다. 보드 상태를 `In Progress`로 옮기는 것은 자동화되어 있지 않으므로 사람이 옮긴다.
+- PR 본문에 `Closes #123`을 적어 이슈와 연결한다. 병합하면 이슈가 닫히고 보드가 `Done`으로 이동한다.
 - 루트 `node_modules/`가 없으면 루트에서 `npm install`을 실행해 Husky hook을 설치한다.
 - `--no-verify`와 `HUSKY=0`으로 hook을 우회하지 않는다.
 - 백엔드 Checkstyle은 `npm run checkstyle`로 수동 실행할 수 있다.
