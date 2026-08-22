@@ -8,6 +8,7 @@ import {
   isBackendAuditionId,
   isBackendPerformanceId,
 } from "./audition-v1-api";
+import { getV1ScreeningBoard, getV1ScreeningSubmission, isBackendRoleId } from "./screening-v1-api";
 import type {
   CloseRoundRequest,
   CreatePostingResponse,
@@ -21,6 +22,7 @@ import type {
   SaveReviewRequest,
   AuditionBoardResponse,
   AuditionTree,
+  SubmissionId,
 } from "./types";
 import { performanceId } from "./types";
 import type { CreatePerformanceRequest, CreatePostingRequest } from "./creation-types";
@@ -54,17 +56,27 @@ export function getRoles(posting: PostingId) {
   return request<RoleListResponse>(`/postings/${posting}/roles`);
 }
 
-/** round를 비우면 서버가 아직 마감되지 않은 가장 이른 차수를 골라 준다. */
+/** 이관된 API는 차수를 비우면 아직 차수 마감 기능이 없어 1차를 조회한다. */
 export function getAuditionBoard(role: RoleId, round: RoundNumber | null) {
+  if (isBackendRoleId(role)) return getV1ScreeningBoard(role, round ?? 1);
   return request<AuditionBoardResponse>(round === null ? `/screenings/roles/${role}` : `/screenings/roles/${role}?round=${round}`);
 }
 
-export function saveReview(body: SaveReviewRequest) {
+export async function getScreeningSubmission(role: RoleId, round: RoundNumber, submission: SubmissionId) {
+  if (isBackendRoleId(role)) return getV1ScreeningSubmission(role, round, submission);
+  return getAuditionBoard(role, round);
+}
+
+export async function saveReview(body: SaveReviewRequest) {
   const { roleId, round, ...review } = body;
-  return request<AuditionBoardResponse>(`/v1/audition-roles/${roleId}/screening-rounds/${round}/reviews`, {
+  const path = `/v1/audition-roles/${roleId}/screening-rounds/${round}/reviews`;
+  const init = {
     method: "PATCH",
     body: JSON.stringify(review),
-  });
+  };
+  if (!isBackendRoleId(roleId)) return request<AuditionBoardResponse>(path, init);
+  await request<unknown>(path, init);
+  return getV1ScreeningBoard(roleId, round);
 }
 
 export function closeRound(body: CloseRoundRequest) {

@@ -13,3 +13,4 @@ yesulin:
       public-base-url: http://localhost:4566
       region: ap-northeast-2
       upload-expiration: PT10M
+      download-expiration: PT10M

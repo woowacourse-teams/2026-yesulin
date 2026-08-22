@@ -70,7 +70,7 @@ public class LocalStackStorageConfiguration {
         );
         S3StorageProperties localProperties = new S3StorageProperties(
                 properties.bucket(), properties.keyPrefix(), URI.create(publicBaseUrl),
-                container.getRegion(), properties.uploadExpiration()
+                container.getRegion(), properties.uploadExpiration(), properties.downloadExpiration()
         );
         return new S3ObjectStorage(s3Client, presigner, localProperties);
     }

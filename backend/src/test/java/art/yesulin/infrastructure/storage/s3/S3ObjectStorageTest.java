@@ -22,6 +22,8 @@ import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
+import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
@@ -41,7 +43,7 @@ class S3ObjectStorageTest {
         s3Client = mock(S3Client.class);
         presigner = mock(S3Presigner.class);
         S3StorageProperties properties = new S3StorageProperties(
-                BUCKET, KEY_PREFIX, PUBLIC_BASE_URL, "ap-northeast-2", UPLOAD_EXPIRATION
+                BUCKET, KEY_PREFIX, PUBLIC_BASE_URL, "ap-northeast-2", UPLOAD_EXPIRATION, UPLOAD_EXPIRATION
         );
         objectStorage = new S3ObjectStorage(s3Client, presigner, properties);
     }
@@ -105,5 +107,22 @@ class S3ObjectStorageTest {
         String result = objectStorage.toPublicUrl("files/20260820/image-id");
 
         assertEquals("https://cdn.example.com/files/20260820/image-id", result);
+    }
+
+    @Test
+    void createsPresignedGetForPrivateFile() throws Exception {
+        PresignedGetObjectRequest presignedRequest = mock(PresignedGetObjectRequest.class);
+        URL downloadUrl = URI.create("https://storage.example.com/download").toURL();
+        when(presignedRequest.url()).thenReturn(downloadUrl);
+        when(presigner.presignGetObject(any(GetObjectPresignRequest.class))).thenReturn(presignedRequest);
+
+        final String result = objectStorage.createDownloadUrl("files/20260820/image-id");
+
+        ArgumentCaptor<GetObjectPresignRequest> captor = ArgumentCaptor.forClass(GetObjectPresignRequest.class);
+        verify(presigner).presignGetObject(captor.capture());
+        assertEquals(BUCKET, captor.getValue().getObjectRequest().bucket());
+        assertEquals("yesulin/files/20260820/image-id", captor.getValue().getObjectRequest().key());
+        assertEquals(UPLOAD_EXPIRATION, captor.getValue().signatureDuration());
+        assertEquals("https://storage.example.com/download", result);
     }
 }

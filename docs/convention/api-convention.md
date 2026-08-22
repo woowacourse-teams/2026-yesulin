@@ -191,7 +191,6 @@ PUT    /api/v1/auditions/{auditionId}/publication         # 완성된 공고 게
 
 ```http
 GET   /api/v1/audition-roles/{roleId}/screening-rounds/{round}/submissions
-      ?cursor={cursor}&size={size}                       # 심사 목록
 GET   /api/v1/audition-roles/{roleId}/screening-rounds/{round}/submissions/{submissionId} # 민감 상세
 PATCH /api/v1/audition-roles/{roleId}/screening-rounds/{round}/reviews
                                                            # 결과 일괄 수정
@@ -202,16 +201,15 @@ PATCH /api/v1/audition-roles/{roleId}/screening-rounds/{round} # status=CLOSED�
 - `roles`는 회원 역할과 혼동되므로 공고에서 선택한 배역 리소스를 `audition-roles`로 명시한다.
 - 심사 상세는 `submissionId`만으로 조회하지 않고 `(roleId, round, submissionId)`를 경로에 모두 둔다. 복수 배역 지원서에서도 현재 심사 기록의 소유 범위가 모호해지지 않는다.
 - 외부 `submissionId`는 순차 PK가 아니라 UUID를 사용한다. 내부 PK와 외부 식별자는 지원서 계층에서 변환한다.
-- 심사 목록은 cursor 방식이며 버전, 차수 상태, 집계와 페이지를 포함한다.
-- `(roleId, round)`를 하나의 심사 작업 단위로 보고 목록·집계·차수 상태·버전을 같은 읽기 모델에서 반환한다. 결과 저장과 차수 마감도 갱신된 작업 단위를 반환해 프런트가 여러 응답을 조합하지 않게 한다.
+- MVP 심사 목록은 차수 대상 전체와 차수 상태·집계를 반환한다. 데이터 규모가 커지면 cursor 페이지를 추가한다.
+- `(roleId, round)`를 하나의 심사 작업 단위로 보고 목록·집계·차수 상태를 같은 읽기 모델에서 반환한다.
 - 복수 배역 지원서는 선택한 각 배역의 심사 목록에 표시하며 심사 결과는 `(지원서, 배역, 차수)`별로 구분한다.
-- 결과 수정과 차수 마감은 `expectedVersion`을 받고 충돌 시 `409 VERSION_CONFLICT`를 반환한다.
+- 결과 수정과 차수 마감의 `expectedVersion`, `409 VERSION_CONFLICT`는 목표 계약이다.
 - 기획사/제작사용 상세는 권한을 확인하고 배우의 민감 정보와 해당 차수 심사 기록을 반환한다. 제출 영상은 공고의 영상 요구 순서를 유지한 `videos: [{ label, url }]` 배열이며, 수집하지 않았거나 제출된 영상이 없으면 빈 배열이다.
-- 현재 백엔드는 `(submissionId, roleId, round)`별 `PENDING`, `PASS`, `FAIL`, `ABSENT`, `ETC` 상태와
-  기타 사유·내부 메모의 일괄 저장을 구현했다.
-- 제출 지원서가 아직 없어 목록·민감 상세 읽기 모델, 차수 마감과 `expectedVersion` 계약은 구현 대기다.
-  지원서 상세 조회는 미존재·접근 불가·해당 배역 미지원 대상을 모두 `404`로 처리하고, 유효하지만 심사 기록이
-  없는 지원서만 `PENDING`으로 표현한다. 현재 결과 저장은 같은 공고 행의 쓰기 잠금으로 직렬화한다.
+- 지원자 사진 URL은 공개 CDN 주소가 아니라 조회 시 발급한 만료형 다운로드 URL이다.
+- 현재 백엔드는 심사용 지원서 조회 스냅샷을 기준으로 목록·민감 상세와 `(submissionId, roleId, round)`별
+  결과 저장을 구현했다. 미존재·접근 불가·해당 배역 또는 차수 미대상은 `404`, 결과가 없는 유효 대상은
+  `PENDING`으로 표현한다. 차수 마감과 `expectedVersion`은 구현 대기다.
 
 ## 현재 프런트 이관
 

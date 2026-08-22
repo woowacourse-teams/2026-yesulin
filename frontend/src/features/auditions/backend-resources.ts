@@ -113,3 +113,75 @@ export type PublicAuditionResource = {
   readonly stages: AuditionScheduleResource["stages"];
   readonly applicationForm: AuditionFormResource;
 };
+
+export type ScreeningReviewResource = {
+  readonly status: "PENDING" | "PASS" | "FAIL" | "ABSENT" | "ETC";
+  readonly memo: string;
+  readonly note: string;
+};
+
+export type ScreeningSubmissionResource = {
+  readonly id: string;
+  readonly name: string;
+  readonly gender: "MALE" | "FEMALE";
+  readonly age: number;
+  readonly height: number | null;
+  readonly weight: number | null;
+  readonly roleId: number;
+  readonly roleName: string;
+  readonly birth: string;
+  readonly phone: string;
+  readonly email: string;
+  readonly school: string;
+  readonly submittedAt: string;
+  readonly career: readonly { readonly year: number; readonly title: string; readonly part: string }[];
+  readonly coverLetter: string;
+  readonly motivation: string;
+  readonly photos: readonly { readonly label: string; readonly url: string }[];
+  readonly videos: readonly { readonly label: string; readonly url: string }[];
+  readonly review: ScreeningReviewResource;
+  readonly reviewHistory: Readonly<Record<string, ScreeningReviewResource | null>>;
+  readonly mismatchReasons: readonly ("GENDER" | "AGE")[];
+};
+
+export type ScreeningBoardResource = {
+  readonly performance: { readonly id: number; readonly posterUrl: string; readonly title: string };
+  readonly posting: { readonly id: string; readonly title: string; readonly openCall: boolean };
+  readonly role: {
+    readonly id: number;
+    readonly postingId: string;
+    readonly name: string;
+    readonly description: string;
+    readonly quota: number;
+    readonly gender: "MALE" | "FEMALE" | "ANY";
+    readonly ageMin: number;
+    readonly ageMax: number;
+    readonly applicantCount: number;
+    readonly activeRound: number;
+    readonly allRoundsClosed: boolean;
+    readonly progress: { readonly done: number; readonly total: number; readonly percent: number };
+    readonly counts: {
+      readonly all: number;
+      readonly pending: number;
+      readonly done: number;
+      readonly pass: number;
+      readonly fail: number;
+      readonly absent: number;
+      readonly etc: number;
+    };
+  };
+  readonly round: number;
+  readonly rounds: readonly {
+    readonly round: number;
+    readonly name: string;
+    readonly open: boolean;
+    readonly closed: boolean;
+    readonly counts: ScreeningBoardResource["role"]["counts"];
+    readonly progress: ScreeningBoardResource["role"]["progress"];
+  }[];
+  readonly submissions: readonly ScreeningSubmissionResource[];
+};
+
+export type ScreeningSubmissionDetailResource = Omit<ScreeningBoardResource, "submissions"> & {
+  readonly submission: ScreeningSubmissionResource;
+};

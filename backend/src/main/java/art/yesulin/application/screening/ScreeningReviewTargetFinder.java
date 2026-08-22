@@ -3,6 +3,7 @@ package art.yesulin.application.screening;
 import static art.yesulin.domain.screening.ScreeningReviewErrorCode.NOT_FOUND;
 
 import art.yesulin.common.exception.BusinessException;
+import art.yesulin.domain.audition.Audition;
 import art.yesulin.domain.audition.AuditionRepository;
 import art.yesulin.domain.audition.role.AuditionRoleSectionRepository;
 import art.yesulin.domain.audition.schedule.AuditionScheduleRepository;
@@ -20,16 +21,16 @@ class ScreeningReviewTargetFinder {
 
     ScreeningReviewTarget find(long ownerId, long roleId, ScreeningRound round) {
         long auditionId = findAuditionId(roleId);
-        auditionRepository.findByIdAndOwnerId(auditionId, ownerId)
+        Audition audition = auditionRepository.findByIdAndOwnerId(auditionId, ownerId)
                 .orElseThrow(() -> new BusinessException(NOT_FOUND, "심사할 공고를 찾을 수 없습니다."));
-        return new ScreeningReviewTarget(roleId, findStageId(auditionId, round), round);
+        return new ScreeningReviewTarget(audition, roleId, findStageId(auditionId, round), round);
     }
 
     ScreeningReviewTarget findForUpdate(long ownerId, long roleId, ScreeningRound round) {
         long auditionId = findAuditionId(roleId);
-        auditionRepository.findByIdAndOwnerIdForUpdate(auditionId, ownerId)
+        Audition audition = auditionRepository.findByIdAndOwnerIdForUpdate(auditionId, ownerId)
                 .orElseThrow(() -> new BusinessException(NOT_FOUND, "심사할 공고를 찾을 수 없습니다."));
-        return new ScreeningReviewTarget(roleId, findStageId(auditionId, round), round);
+        return new ScreeningReviewTarget(audition, roleId, findStageId(auditionId, round), round);
     }
 
     private long findAuditionId(long roleId) {

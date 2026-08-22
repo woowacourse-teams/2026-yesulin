@@ -10,23 +10,26 @@ public record S3StorageProperties(
         String keyPrefix,
         URI publicBaseUrl,
         String region,
-        Duration uploadExpiration
+        Duration uploadExpiration,
+        Duration downloadExpiration
 ) {
 
-    private static final Duration MAXIMUM_UPLOAD_EXPIRATION = Duration.ofDays(7);
+    private static final Duration MAXIMUM_URL_EXPIRATION = Duration.ofDays(7);
 
     public S3StorageProperties(
             String bucket,
             String keyPrefix,
             URI publicBaseUrl,
             String region,
-            Duration uploadExpiration
+            Duration uploadExpiration,
+            Duration downloadExpiration
     ) {
         this.bucket = requireText(bucket, "S3 bucket");
         this.keyPrefix = normalizePrefix(keyPrefix);
         this.publicBaseUrl = normalizePublicBaseUrl(publicBaseUrl);
         this.region = requireText(region, "AWS region");
-        this.uploadExpiration = requireValidExpiration(uploadExpiration);
+        this.uploadExpiration = requireValidExpiration(uploadExpiration, "Upload expiration");
+        this.downloadExpiration = requireValidExpiration(downloadExpiration, "Download expiration");
     }
 
     private static String normalizePrefix(String keyPrefix) {
@@ -41,14 +44,14 @@ public record S3StorageProperties(
         return URI.create(publicBaseUrl.toString().replaceAll("/+$", ""));
     }
 
-    private static Duration requireValidExpiration(Duration uploadExpiration) {
-        if (uploadExpiration == null || uploadExpiration.isZero() || uploadExpiration.isNegative()) {
-            throw new IllegalArgumentException("Upload expiration must be positive.");
+    private static Duration requireValidExpiration(Duration expiration, String name) {
+        if (expiration == null || expiration.isZero() || expiration.isNegative()) {
+            throw new IllegalArgumentException(name + " must be positive.");
         }
-        if (uploadExpiration.compareTo(MAXIMUM_UPLOAD_EXPIRATION) > 0) {
-            throw new IllegalArgumentException("Upload expiration cannot exceed seven days.");
+        if (expiration.compareTo(MAXIMUM_URL_EXPIRATION) > 0) {
+            throw new IllegalArgumentException(name + " cannot exceed seven days.");
         }
-        return uploadExpiration;
+        return expiration;
     }
 
     private static String requireText(String value, String name) {
