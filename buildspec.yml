@@ -9,7 +9,7 @@ phases:
     commands:
       - cd "$CODEBUILD_SRC_DIR/backend"
       - chmod +x gradlew
-      - ./gradlew clean build --no-daemon
+      - ./gradlew build --no-daemon
 
   post_build:
     commands:
@@ -24,3 +24,11 @@ artifacts:
   files:
     - '**/*'
   discard-paths: no
+
+# 컨테이너는 매 빌드마다 새로 뜨므로 Gradle 배포판과 의존성을 캐시하지 않으면
+# 빌드마다 전부 다시 내려받는다. CodeBuild 프로젝트에서 캐시 유형을 S3로
+# 지정해야 실제로 동작한다.
+cache:
+  paths:
+    - '/root/.gradle/caches/**/*'
+    - '/root/.gradle/wrapper/**/*'
