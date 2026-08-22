@@ -8,10 +8,10 @@ request_status() {
   if [ -r "/etc/letsencrypt/live/$ORIGIN_HOST/fullchain.pem" ]; then
     set -- curl --connect-timeout 1 --max-time 1 -sS -o /dev/null -w '%{http_code}' \
       --resolve "$ORIGIN_HOST:443:127.0.0.1"
-    request_url="https://$ORIGIN_HOST/api/v1/__deployment_smoke__"
+    request_url="https://$ORIGIN_HOST/api/v1/health"
   else
     set -- curl --connect-timeout 1 --max-time 1 -sS -o /dev/null -w '%{http_code}'
-    request_url="http://127.0.0.1/api/v1/__deployment_smoke__"
+    request_url="http://127.0.0.1/api/v1/health"
   fi
   if [ -n "$request_secret" ]; then
     set -- "$@" -H "X-Yesulin-Origin-Secret: $request_secret"
@@ -69,8 +69,8 @@ while [ "$ATTEMPT" -le "$MAX_ATTEMPTS" ]; do
       ATTEMPT=$((ATTEMPT + 1))
       sleep "$RETRY_INTERVAL_SECONDS"
       ;;
-    404)
-      echo "Nginx-to-Spring smoke check succeeded with HTTP $PROXY_STATUS"
+    200)
+      echo "Nginx-to-Spring health check succeeded with HTTP $PROXY_STATUS"
       exit 0
       ;;
     403)
@@ -78,7 +78,7 @@ while [ "$ATTEMPT" -le "$MAX_ATTEMPTS" ]; do
       exit 1
       ;;
     *)
-      echo "Unexpected Nginx-to-Spring smoke status: HTTP $PROXY_STATUS" >&2
+      echo "Unexpected Nginx-to-Spring health status: HTTP $PROXY_STATUS" >&2
       exit 1
       ;;
   esac
