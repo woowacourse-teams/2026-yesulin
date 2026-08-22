@@ -69,4 +69,6 @@ jobs:
         run: ./gradlew build --no-daemon
 
       - name: Test deployment scripts
-        run: sh deploy/tests/validate_service_test.sh
+        run: |
+          sh deploy/tests/validate_service_test.sh
+          sh deploy/tests/cleanup_releases_test.sh
