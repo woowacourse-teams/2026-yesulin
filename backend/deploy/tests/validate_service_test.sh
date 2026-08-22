@@ -42,7 +42,7 @@ printf '%s\n' "$call_count" > "$TEST_STATE_FILE"
 if [ "$call_count" -eq 1 ]; then
   printf '403'
 elif [ "$TEST_SCENARIO" = "recovers" ] && [ "$call_count" -ge 3 ]; then
-  printf '404'
+  printf '200'
 elif [ "$TEST_SCENARIO" = "unexpected" ]; then
   printf '418'
 else
