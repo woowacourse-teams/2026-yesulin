@@ -1,4 +1,6 @@
-const API_BASE_PATH = "/api";
+import { withCsrfHeaders } from "./session-api";
+
+const API_BASE_PATH = "/api/v1";
 
 export type ProducerSignupRequest = {
   readonly companyName: string;
@@ -10,17 +12,18 @@ export type ProducerSignupRequest = {
 };
 
 export type ProducerSignupResponse = {
-  readonly role: "PRODUCER";
+  readonly memberId: number;
   readonly companyName: string;
-  readonly verificationStatus: "PENDING";
-  readonly credential: string;
-  readonly redirectTo: string;
+  readonly email: string;
+  readonly role: "PRODUCER";
+  readonly verificationStatus: "PENDING" | "ACTIVE";
 };
 
 export async function signupProducer(body: ProducerSignupRequest): Promise<ProducerSignupResponse> {
-  const response = await fetch(`${API_BASE_PATH}/auth/signup/producer`, {
+  const response = await fetch(`${API_BASE_PATH}/producers`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    headers: await withCsrfHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(body),
   });
   if (!response.ok) {

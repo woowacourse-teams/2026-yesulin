@@ -43,6 +43,12 @@ async function ensureCsrfToken(): Promise<string | null> {
   return readCsrfToken();
 }
 
+/** 쓰기 요청에 CSRF 토큰 헤더를 더한다. 토큰이 없으면 먼저 발급받는다. */
+export async function withCsrfHeaders(headers: Record<string, string> = {}): Promise<Record<string, string>> {
+  const csrfToken = await ensureCsrfToken();
+  return csrfToken ? { ...headers, [CSRF_HEADER_NAME]: csrfToken } : headers;
+}
+
 async function toApiError(response: Response, fallbackMessage: string) {
   const payload: unknown = await response.json().catch(() => null);
   const code = typeof payload === "object" && payload !== null && "code" in payload && typeof payload.code === "string"

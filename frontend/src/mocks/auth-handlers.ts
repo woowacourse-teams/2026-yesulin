@@ -30,7 +30,7 @@ export const authHandlers = [
     return new HttpResponse(null, { status: 204 });
   }),
 
-  http.post("/api/auth/signup/producer", async ({ request }) => {
+  http.post("/api/v1/producers", async ({ request }) => {
     await delay(320);
     const body = (await request.json()) as ProducerSignupRequest;
     const email = body.email?.trim().toLowerCase();
@@ -45,11 +45,11 @@ export const authHandlers = [
     emails.add(email);
     registerPendingProducer({ companyName: body.companyName, email, phone });
     return HttpResponse.json({
-      role: "PRODUCER",
+      memberId: 1,
       companyName: body.companyName.trim(),
+      email,
+      role: "PRODUCER",
       verificationStatus: "PENDING",
-      credential: globalThis.crypto.randomUUID(),
-      redirectTo: "/producers/account",
     }, { status: 201 });
   }),
 ];
