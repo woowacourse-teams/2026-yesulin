@@ -3,7 +3,7 @@
 배우·기획사/제작사 흐름을 기준으로 한 백엔드 경로 계약이다. REST 원칙을 따르되 클라이언트가 경로만 읽고 용도를 이해할 수 있는 이름을 우선한다.
 
 > 인증 전 Draft와 사진은 현재 브라우저 IndexedDB에만 두고 최종 제출 과정에서 처음 서버로 전송한다.
-> 제출 요청·성공 응답 계약은 확정했으며 파일 정제·동의 문서 제공과 지원서 조회의 구체 계약은 후속 구현에서 정한다.
+> 제출 요청·성공 응답과 지원서 스냅샷 조회 계약은 확정했으며 파일 정제·동의 문서 제공과 심사 진행 상태 조회는 후속 구현에서 정한다.
 
 ## 공통 규칙
 
@@ -62,7 +62,14 @@ POST   /api/v1/auditions/{auditionId}/submissions # 인증 배우의 최종 제�
 ```
 
 - 제출 완료 후 일반 수정은 공개 정책에서 허용하지 않는다. 현재 프런트 화면은 읽기 전용이며 MSW의 수정 요청도 `409 IMMUTABLE_SUBMISSION`으로 거부한다.
-- 내 지원서 목록·상세는 지원서 하나와 선택한 배역들을 함께 반환한다. `roleProgress[]`의 각 항목은 `roleId`, `roleName`, 공개 상태, 현재 또는 결과 차수와 차수명을 포함한다.
+- 내 지원서 목록은 현재 페이징하지 않고 최신 제출 순의 `submissions` 배열로 반환한다. 목록 전용 Projection으로
+  `submissionId`, 공고명 스냅샷, 제출 시각과 선택 배역만 조회하며 페이지 크기·응답 계약은 별도 이슈에서 합의한다.
+- 상세는 세션 회원 ID와 `submissionId`를 함께 조회 조건으로 사용한다. 미존재 지원서와 다른 회원의 지원서는
+  모두 `404 SUBMISSION_NOT_FOUND`로 응답한다.
+- 상세는 제출 당시 지원자 기본·추가 정보, 수집 필드, 계산 나이, 선택 배역, 질문·사진·영상 답변과 동의 문서
+  버전·동의 시각을 반환한다. 사진은 스냅샷 `fileId`와 현재 열람 URL을 함께 반환한다.
+- `roleProgress[]`는 공고 전형 종료와 심사 결과 공개 경계를 구현한 뒤 목록·상세 응답에 연동한다. 각 항목은
+  `roleId`, `roleName`, 공개 상태, 현재 또는 결과 차수와 차수명을 포함한다.
 - 공개 상태는 `RECEIVED`, `IN_REVIEW`, `FINAL_PASS`, `NOT_SELECTED`를 사용한다. 검토 중인 결과와 내부 메모는 포함하지 않고, 해당 배역의 차수가 마감된 뒤에만 확정 결과를 반영한다.
 - 작성 중 지원서는 현재 브라우저 IndexedDB를 직접 조회한다. 서버 Draft 목록과 다른 기기 동기화는 MVP 범위가 아니다.
 - 회원 탈퇴 Backend API는 MVP 범위가 아니다. 안내 화면은 공개 정책의 문의 경로를 제공한다.
@@ -117,6 +124,44 @@ POST   /api/v1/auditions/{auditionId}/submissions # 인증 배우의 최종 제�
 ```json
 {
   "submissionId": "5ba4f233-d49f-48c8-b07b-390b816beef1"
+}
+```
+
+내 지원서 목록 응답은 다음 구조를 사용한다.
+
+```json
+{
+  "submissions": [
+    {
+      "submissionId": "5ba4f233-d49f-48c8-b07b-390b816beef1",
+      "auditionTitle": "햄릿 배우 모집",
+      "submittedAt": "2026-08-24T03:15:00Z",
+      "selectedRoles": [{ "roleId": 11, "roleName": "오필리어" }]
+    }
+  ]
+}
+```
+
+상세 응답의 최상위 구조는 다음과 같다.
+
+```json
+{
+  "submissionId": "5ba4f233-d49f-48c8-b07b-390b816beef1",
+  "auditionTitle": "햄릿 배우 모집",
+  "submittedAt": "2026-08-24T03:15:00Z",
+  "applicant": {
+    "basicInformation": {},
+    "additionalInformation": {},
+    "fieldSnapshot": { "basicFields": [], "additionalFields": [] },
+    "ageAtRecruitmentDeadline": 27
+  },
+  "selectedRoles": [],
+  "formAnswers": {
+    "questionAnswers": [],
+    "photoRequirementAnswers": [],
+    "videoRequirementAnswers": []
+  },
+  "consents": []
 }
 ```
 
