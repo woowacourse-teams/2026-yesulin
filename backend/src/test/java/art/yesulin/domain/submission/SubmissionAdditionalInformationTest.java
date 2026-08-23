@@ -18,7 +18,8 @@ class SubmissionAdditionalInformationTest {
                 new SubmissionCareer(2025, " 햄릿 ", " 오필리어 ")
         ));
         SubmissionAdditionalInformation information = new SubmissionAdditionalInformation(
-                " ", sourceLinks, " 대한민국 ", null, null, null, null, sourceCareers
+                " ", sourceLinks, " 대한민국 ", null, null, null,
+                MilitaryServiceStatus.COMPLETED, sourceCareers
         );
 
         sourceLinks.add("https://example.com/changed");
@@ -26,6 +27,7 @@ class SubmissionAdditionalInformationTest {
 
         assertNull(information.school());
         assertEquals("대한민국", information.nationality());
+        assertEquals(MilitaryServiceStatus.COMPLETED, information.military());
         assertEquals(List.of("https://example.com/profile"), information.links());
         assertEquals(List.of(new SubmissionCareer(2025, "햄릿", "오필리어")), information.careers());
     }

@@ -15,7 +15,7 @@ public record SubmissionAdditionalInformation(
         String coverLetter,
         String specialty,
         String hobbies,
-        String military,
+        MilitaryServiceStatus military,
         List<SubmissionCareer> careers
 ) {
 
@@ -29,7 +29,6 @@ public record SubmissionAdditionalInformation(
         coverLetter = normalizeNullable(coverLetter);
         specialty = normalizeNullable(specialty);
         hobbies = normalizeNullable(hobbies);
-        military = normalizeNullable(military);
         careers = copyCareers(careers);
     }
 
