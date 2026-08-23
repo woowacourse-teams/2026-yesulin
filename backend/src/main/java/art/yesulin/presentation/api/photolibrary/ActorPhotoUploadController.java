@@ -1,8 +1,11 @@
 package art.yesulin.presentation.api.photolibrary;
 
 import art.yesulin.application.auth.MemberPrincipal;
+import art.yesulin.application.auth.annotation.LoginMember;
+import art.yesulin.application.auth.annotation.LoginRequired;
 import art.yesulin.application.file.FileService;
 import art.yesulin.application.file.FileUploadResult;
+import art.yesulin.domain.member.MemberType;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -13,18 +16,18 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.SessionAttribute;
 
 @RestController
 @RequestMapping("/api/v1/actor-photos")
 @RequiredArgsConstructor
+@LoginRequired
 public class ActorPhotoUploadController {
 
     private final FileService fileService;
 
     @PostMapping("/upload-requests")
     public ResponseEntity<FileUploadResult> upload(
-            @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal,
+            @LoginMember(roles = MemberType.APPLICANT) MemberPrincipal principal,
             @Valid @RequestBody ActorPhotoUploadRequest request
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -33,7 +36,7 @@ public class ActorPhotoUploadController {
 
     @PatchMapping("/{fileId}/completion")
     public ResponseEntity<Void> complete(
-            @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal,
+            @LoginMember(roles = MemberType.APPLICANT) MemberPrincipal principal,
             @PathVariable long fileId
     ) {
         fileService.completeUpload(principal.memberId(), fileId);

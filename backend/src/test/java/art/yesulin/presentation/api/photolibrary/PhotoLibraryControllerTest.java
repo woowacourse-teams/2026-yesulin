@@ -216,4 +216,33 @@ class PhotoLibraryControllerTest {
                 }
                 """.formatted(fileId);
     }
+
+    @Test
+    void rejectsAnonymousWithUnauthorized() throws Exception {
+        mockMvc.perform(get(PHOTOS_PATH))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("AUTH_UNAUTHENTICATED"));
+    }
+
+    @Test
+    void rejectsProducerWithForbidden() throws Exception {
+        MemberPrincipal producer = new MemberPrincipal(9L, MemberType.PRODUCER, MemberStatus.ACTIVE);
+
+        mockMvc.perform(get(PHOTOS_PATH)
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, producer))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("AUTH_FORBIDDEN"));
+    }
+
+    @Test
+    void hidesAnotherApplicantsPhoto() throws Exception {
+        long otherOwnerId = 2L;
+        long otherPhotoId = addReadyPhoto(otherOwnerId);
+
+        mockMvc.perform(patch(PHOTOS_PATH + "/{photoId}/representative", otherPhotoId)
+                        .with(csrf())
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
+                .andExpect(status().isNotFound());
+    }
 }
+

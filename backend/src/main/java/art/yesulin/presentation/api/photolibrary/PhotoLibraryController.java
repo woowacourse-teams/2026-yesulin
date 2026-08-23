@@ -1,9 +1,12 @@
 package art.yesulin.presentation.api.photolibrary;
 
 import art.yesulin.application.auth.MemberPrincipal;
+import art.yesulin.application.auth.annotation.LoginMember;
+import art.yesulin.application.auth.annotation.LoginRequired;
 import art.yesulin.application.photolibrary.PhotoLibraryItemResult;
 import art.yesulin.application.photolibrary.PhotoLibraryResult;
 import art.yesulin.application.photolibrary.PhotoLibraryService;
+import art.yesulin.domain.member.MemberType;
 import jakarta.validation.Valid;
 import java.net.URI;
 import lombok.RequiredArgsConstructor;
@@ -16,25 +19,25 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.SessionAttribute;
 
 @RestController
 @RequestMapping("/api/v1/applicants/me/photo-library/photos")
 @RequiredArgsConstructor
+@LoginRequired
 public class PhotoLibraryController {
 
     private final PhotoLibraryService photoLibraryService;
 
     @GetMapping
     public ResponseEntity<PhotoLibraryResult> findPhotos(
-            @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal
+            @LoginMember(roles = MemberType.APPLICANT) MemberPrincipal principal
     ) {
         return ResponseEntity.ok(photoLibraryService.findPhotos(principal.memberId()));
     }
 
     @PostMapping
     public ResponseEntity<PhotoLibraryItemResult> addPhoto(
-            @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal,
+            @LoginMember(roles = MemberType.APPLICANT) MemberPrincipal principal,
             @Valid @RequestBody AddPhotoToLibraryRequest request
     ) {
         PhotoLibraryItemResult result = photoLibraryService.addPhoto(principal.memberId(), request.toCommand());
@@ -44,7 +47,7 @@ public class PhotoLibraryController {
 
     @PatchMapping("/{photoId}/representative")
     public ResponseEntity<PhotoLibraryResult> makeRepresentative(
-            @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal,
+            @LoginMember(roles = MemberType.APPLICANT) MemberPrincipal principal,
             @PathVariable long photoId
     ) {
         return ResponseEntity.ok(photoLibraryService.makeRepresentative(principal.memberId(), photoId));
@@ -52,7 +55,7 @@ public class PhotoLibraryController {
 
     @DeleteMapping("/{photoId}")
     public ResponseEntity<Void> deletePhoto(
-            @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal,
+            @LoginMember(roles = MemberType.APPLICANT) MemberPrincipal principal,
             @PathVariable long photoId
     ) {
         photoLibraryService.deletePhoto(principal.memberId(), photoId);
