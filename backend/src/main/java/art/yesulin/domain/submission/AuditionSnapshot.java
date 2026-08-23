@@ -1,0 +1,20 @@
+package art.yesulin.domain.submission;
+
+import static art.yesulin.domain.common.validation.DomainValidator.requirePositive;
+import static art.yesulin.domain.common.validation.DomainValidator.requireText;
+import static art.yesulin.domain.submission.SubmissionErrorCode.INVALID_SUBMISSION;
+
+import art.yesulin.common.exception.BusinessException;
+
+public record AuditionSnapshot(long auditionId, String title) {
+
+    public static final int MAX_TITLE_LENGTH = 200;
+
+    public AuditionSnapshot {
+        auditionId = requirePositive(auditionId, "공고 ID는 1 이상이어야 합니다.");
+        title = requireText(title, "제출 공고명은 필수입니다.");
+        if (title.length() > MAX_TITLE_LENGTH) {
+            throw new BusinessException(INVALID_SUBMISSION, "제출 공고명은 200자를 넘을 수 없습니다.");
+        }
+    }
+}
