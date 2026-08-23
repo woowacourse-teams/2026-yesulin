@@ -29,6 +29,8 @@
 - 백엔드 Checkstyle은 `npm run checkstyle`로 수동 실행할 수 있다.
 - push 전 현재 통합 브랜치인 `origin/main`을 fetch하고 현재 브랜치를 그 위로 rebase한다. 충돌을 해결하고 검증한 뒤 push한다.
 - 통합 브랜치가 바뀌면 `origin/main`을 고정 규칙으로 가정하지 말고 Git 컨벤션과 현재 설정을 먼저 갱신한다.
+- 커밋 메시지, PR 제목·본문, 코드 주석에 AI 도구 흔적을 남기지 않는다. `Co-Authored-By: Claude`, `Generated with Claude Code`, Codex 등 도구 이름과 계정을 넣지 않는다.
+- 작성자는 실제 작업자다. 도구를 공동 작성자로 표기하지 않는다.
 
 ## 구현·검증·문서 동기화
 
