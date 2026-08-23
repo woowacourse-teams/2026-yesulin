@@ -4,10 +4,36 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import art.yesulin.common.exception.BusinessException;
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class SubmissionCollectionsTest {
+
+    @Test
+    void copiesSubmissionFieldSnapshot() {
+        List<SubmissionBasicInformationField> basicFields = new ArrayList<>(List.of(
+                SubmissionBasicInformationField.NAME
+        ));
+        SubmissionFieldSnapshot fields = new SubmissionFieldSnapshot(basicFields, List.of());
+
+        basicFields.add(SubmissionBasicInformationField.EMAIL);
+
+        assertEquals(List.of(SubmissionBasicInformationField.NAME), fields.basicFields());
+    }
+
+    @Test
+    void rejectsDuplicateSubmissionFieldSnapshotValues() {
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> new SubmissionFieldSnapshot(
+                        List.of(SubmissionBasicInformationField.NAME, SubmissionBasicInformationField.NAME),
+                        List.of()
+                )
+        );
+
+        assertEquals(SubmissionErrorCode.INVALID_SUBMISSION, exception.getErrorCode());
+    }
 
     @Test
     void requiresAtLeastOneRole() {

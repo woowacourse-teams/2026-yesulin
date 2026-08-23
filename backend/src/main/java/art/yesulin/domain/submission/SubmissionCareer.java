@@ -4,8 +4,15 @@ import static art.yesulin.domain.common.validation.DomainValidator.requireText;
 import static art.yesulin.domain.submission.SubmissionErrorCode.INVALID_SUBMISSION;
 
 import art.yesulin.common.exception.BusinessException;
+import jakarta.persistence.Column;
+import jakarta.persistence.Embeddable;
 
-public record SubmissionCareer(int year, String title, String roleName) {
+@Embeddable
+public record SubmissionCareer(
+        @Column(name = "career_year", nullable = false) int year,
+        @Column(name = "title", nullable = false, columnDefinition = "text") String title,
+        @Column(name = "role_name", nullable = false, columnDefinition = "text") String roleName
+) {
 
     private static final int MINIMUM_YEAR = 1_000;
     private static final int MAXIMUM_YEAR = 9_999;

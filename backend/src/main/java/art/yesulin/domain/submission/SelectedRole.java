@@ -5,8 +5,14 @@ import static art.yesulin.domain.common.validation.DomainValidator.requireText;
 import static art.yesulin.domain.submission.SubmissionErrorCode.INVALID_SUBMISSION;
 
 import art.yesulin.common.exception.BusinessException;
+import jakarta.persistence.Column;
+import jakarta.persistence.Embeddable;
 
-public record SelectedRole(long auditionRoleId, String roleName) {
+@Embeddable
+public record SelectedRole(
+        @Column(name = "audition_role_id", nullable = false) long auditionRoleId,
+        @Column(name = "role_name", nullable = false, length = MAX_ROLE_NAME_LENGTH) String roleName
+) {
 
     public static final int MAX_ROLE_NAME_LENGTH = 100;
 

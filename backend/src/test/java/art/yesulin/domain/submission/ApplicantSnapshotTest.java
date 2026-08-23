@@ -81,6 +81,10 @@ class ApplicantSnapshotTest {
         SubmissionAdditionalInformation additionalInformation = new SubmissionAdditionalInformation(
                 null, List.of(), null, null, null, null, null, List.of()
         );
-        return new ApplicantSnapshot(basicInformation, additionalInformation, SUBMITTED_AT, recruitmentEndAt);
+        SubmissionFieldSnapshot fields = new SubmissionFieldSnapshot(
+                List.of(SubmissionBasicInformationField.BIRTH),
+                List.of()
+        );
+        return new ApplicantSnapshot(basicInformation, additionalInformation, fields, SUBMITTED_AT, recruitmentEndAt);
     }
 }

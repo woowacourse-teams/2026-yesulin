@@ -5,8 +5,20 @@ import static art.yesulin.domain.common.validation.DomainValidator.requireText;
 import static art.yesulin.domain.submission.SubmissionErrorCode.INVALID_SUBMISSION;
 
 import art.yesulin.common.exception.BusinessException;
+import jakarta.persistence.Column;
+import jakarta.persistence.Embeddable;
 
-public record VideoResponse(long videoRequirementId, String requirementDescription, String url) {
+@Embeddable
+public record VideoResponse(
+        @Column(name = "video_requirement_id", nullable = false) long videoRequirementId,
+        @Column(
+                name = "requirement_description",
+                nullable = false,
+                length = MAX_DESCRIPTION_LENGTH
+        )
+        String requirementDescription,
+        @Column(name = "url", nullable = false, length = 2_048) String url
+) {
 
     public static final int MAX_DESCRIPTION_LENGTH = 255;
 

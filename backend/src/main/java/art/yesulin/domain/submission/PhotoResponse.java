@@ -5,8 +5,20 @@ import static art.yesulin.domain.common.validation.DomainValidator.requireText;
 import static art.yesulin.domain.submission.SubmissionErrorCode.INVALID_SUBMISSION;
 
 import art.yesulin.common.exception.BusinessException;
+import jakarta.persistence.Column;
+import jakarta.persistence.Embeddable;
 
-public record PhotoResponse(long photoRequirementId, String requirementDescription, long fileId) {
+@Embeddable
+public record PhotoResponse(
+        @Column(name = "photo_requirement_id", nullable = false) long photoRequirementId,
+        @Column(
+                name = "requirement_description",
+                nullable = false,
+                length = MAX_DESCRIPTION_LENGTH
+        )
+        String requirementDescription,
+        @Column(name = "file_id", nullable = false) long fileId
+) {
 
     public static final int MAX_DESCRIPTION_LENGTH = 255;
 

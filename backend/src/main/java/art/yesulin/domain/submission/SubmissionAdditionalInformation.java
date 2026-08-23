@@ -5,31 +5,80 @@ import static art.yesulin.domain.common.validation.DomainValidator.requireText;
 import static art.yesulin.domain.submission.SubmissionErrorCode.INVALID_SUBMISSION;
 
 import art.yesulin.common.exception.BusinessException;
+import art.yesulin.domain.submission.converter.MilitaryServiceStatusConverter;
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Embeddable;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OrderColumn;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.AccessLevel;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 
-public record SubmissionAdditionalInformation(
-        String school,
-        List<String> links,
-        String nationality,
-        String coverLetter,
-        String specialty,
-        String hobbies,
-        MilitaryServiceStatus military,
-        List<SubmissionCareer> careers
-) {
+@Embeddable
+@EqualsAndHashCode
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class SubmissionAdditionalInformation {
 
     public static final int MAX_LINK_COUNT = 5;
     public static final int MAX_CAREER_COUNT = 10;
 
-    public SubmissionAdditionalInformation {
-        school = normalizeNullable(school);
-        links = copyLinks(links);
-        nationality = normalizeNullable(nationality);
-        coverLetter = normalizeNullable(coverLetter);
-        specialty = normalizeNullable(specialty);
-        hobbies = normalizeNullable(hobbies);
-        careers = copyCareers(careers);
+    @Column(name = "additional_information_present", nullable = false, updatable = false)
+    private boolean present = true;
+
+    @Column(name = "school", updatable = false, columnDefinition = "text")
+    private String school;
+
+    @ElementCollection(fetch = FetchType.LAZY)
+    @CollectionTable(name = "submission_links", joinColumns = @JoinColumn(name = "submission_id"))
+    @OrderColumn(name = "link_order")
+    @Column(name = "url", nullable = false, length = 2_048)
+    private List<String> links = new ArrayList<>();
+
+    @Column(name = "nationality", updatable = false, columnDefinition = "text")
+    private String nationality;
+
+    @Column(name = "cover_letter", updatable = false, columnDefinition = "text")
+    private String coverLetter;
+
+    @Column(name = "specialty", updatable = false, columnDefinition = "text")
+    private String specialty;
+
+    @Column(name = "hobbies", updatable = false, columnDefinition = "text")
+    private String hobbies;
+
+    @Convert(converter = MilitaryServiceStatusConverter.class)
+    @Column(name = "military_service_status", updatable = false, length = 20)
+    private MilitaryServiceStatus military;
+
+    @ElementCollection(fetch = FetchType.LAZY)
+    @CollectionTable(name = "submission_careers", joinColumns = @JoinColumn(name = "submission_id"))
+    @OrderColumn(name = "career_order")
+    private List<SubmissionCareer> careers = new ArrayList<>();
+
+    public SubmissionAdditionalInformation(
+            String school,
+            List<String> links,
+            String nationality,
+            String coverLetter,
+            String specialty,
+            String hobbies,
+            MilitaryServiceStatus military,
+            List<SubmissionCareer> careers
+    ) {
+        this.school = normalizeNullable(school);
+        this.links = new ArrayList<>(copyLinks(links));
+        this.nationality = normalizeNullable(nationality);
+        this.coverLetter = normalizeNullable(coverLetter);
+        this.specialty = normalizeNullable(specialty);
+        this.hobbies = normalizeNullable(hobbies);
+        this.military = military;
+        this.careers = new ArrayList<>(copyCareers(careers));
     }
 
     private static List<String> copyLinks(List<String> links) {
@@ -58,5 +107,37 @@ public record SubmissionAdditionalInformation(
             return null;
         }
         return value.trim();
+    }
+
+    public String school() {
+        return school;
+    }
+
+    public List<String> links() {
+        return List.copyOf(links);
+    }
+
+    public String nationality() {
+        return nationality;
+    }
+
+    public String coverLetter() {
+        return coverLetter;
+    }
+
+    public String specialty() {
+        return specialty;
+    }
+
+    public String hobbies() {
+        return hobbies;
+    }
+
+    public MilitaryServiceStatus military() {
+        return military;
+    }
+
+    public List<SubmissionCareer> careers() {
+        return List.copyOf(careers);
     }
 }

@@ -4,29 +4,69 @@ import static art.yesulin.domain.common.validation.DomainValidator.requirePositi
 import static art.yesulin.domain.submission.SubmissionErrorCode.INVALID_SUBMISSION;
 
 import art.yesulin.common.exception.BusinessException;
+import art.yesulin.domain.submission.converter.SubmissionGenderConverter;
+import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
+import jakarta.persistence.Embeddable;
 import java.time.LocalDate;
+import lombok.AccessLevel;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 
-public record SubmissionBasicInformation(
-        String name,
-        Integer height,
-        Integer weight,
-        LocalDate birthDate,
-        SubmissionGender gender,
-        String phone,
-        String email,
-        String address
-) {
+@Embeddable
+@EqualsAndHashCode
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class SubmissionBasicInformation {
 
     private static final String PHONE_PATTERN = "\\d{3}-\\d{4}-\\d{4}";
 
-    public SubmissionBasicInformation {
-        name = normalizeNullable(name);
-        height = validatePositive(height, "키는 1 이상이어야 합니다.");
-        weight = validatePositive(weight, "몸무게는 1 이상이어야 합니다.");
-        phone = normalizeNullable(phone);
-        email = normalizeNullable(email);
-        address = normalizeNullable(address);
-        validatePhone(phone);
+    @Column(name = "basic_information_present", nullable = false, updatable = false)
+    private boolean present = true;
+
+    @Column(name = "applicant_name", updatable = false, columnDefinition = "text")
+    private String name;
+
+    @Column(name = "height_cm", updatable = false)
+    private Integer height;
+
+    @Column(name = "weight_kg", updatable = false)
+    private Integer weight;
+
+    @Column(name = "birth_date", updatable = false)
+    private LocalDate birthDate;
+
+    @Convert(converter = SubmissionGenderConverter.class)
+    @Column(name = "gender", updatable = false, length = 20)
+    private SubmissionGender gender;
+
+    @Column(name = "phone", updatable = false, length = 13)
+    private String phone;
+
+    @Column(name = "email", updatable = false, columnDefinition = "text")
+    private String email;
+
+    @Column(name = "address", updatable = false, columnDefinition = "text")
+    private String address;
+
+    public SubmissionBasicInformation(
+            String name,
+            Integer height,
+            Integer weight,
+            LocalDate birthDate,
+            SubmissionGender gender,
+            String phone,
+            String email,
+            String address
+    ) {
+        this.name = normalizeNullable(name);
+        this.height = validatePositive(height, "키는 1 이상이어야 합니다.");
+        this.weight = validatePositive(weight, "몸무게는 1 이상이어야 합니다.");
+        this.birthDate = birthDate;
+        this.gender = gender;
+        this.phone = normalizeNullable(phone);
+        this.email = normalizeNullable(email);
+        this.address = normalizeNullable(address);
+        validatePhone(this.phone);
     }
 
     private static Integer validatePositive(Integer value, String message) {
@@ -48,5 +88,37 @@ public record SubmissionBasicInformation(
             return null;
         }
         return value.trim();
+    }
+
+    public String name() {
+        return name;
+    }
+
+    public Integer height() {
+        return height;
+    }
+
+    public Integer weight() {
+        return weight;
+    }
+
+    public LocalDate birthDate() {
+        return birthDate;
+    }
+
+    public SubmissionGender gender() {
+        return gender;
+    }
+
+    public String phone() {
+        return phone;
+    }
+
+    public String email() {
+        return email;
+    }
+
+    public String address() {
+        return address;
     }
 }

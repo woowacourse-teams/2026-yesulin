@@ -28,7 +28,8 @@ class SubmissionTest {
         );
         AuditionSnapshot auditionSnapshot = new AuditionSnapshot(2L, " 햄릿 배우 모집 ");
         ApplicantSnapshot applicantSnapshot = new ApplicantSnapshot(
-                basicInformation, additionalInformation, SUBMITTED_AT, RECRUITMENT_END_AT
+                basicInformation, additionalInformation, submissionFieldSnapshot(),
+                SUBMITTED_AT, RECRUITMENT_END_AT
         );
         SelectedRole selectedRole = new SelectedRole(11L, "오필리어");
         QuestionResponse questionResponse = new QuestionResponse(21L, "지원 동기는?", "작품의 주제에 공감했습니다.");
@@ -70,7 +71,8 @@ class SubmissionTest {
                 SUBMITTED_AT,
                 new AuditionSnapshot(2L, "햄릿 배우 모집"),
                 new ApplicantSnapshot(
-                        emptyBasicInformation(), emptyAdditionalInformation(), SUBMITTED_AT, RECRUITMENT_END_AT
+                        emptyBasicInformation(), emptyAdditionalInformation(), submissionFieldSnapshot(),
+                        SUBMITTED_AT, RECRUITMENT_END_AT
                 ),
                 new SelectedRoles(sourceRoles),
                 emptyFormResponses()
@@ -87,6 +89,13 @@ class SubmissionTest {
 
     private SubmissionAdditionalInformation emptyAdditionalInformation() {
         return new SubmissionAdditionalInformation(null, List.of(), null, null, null, null, null, List.of());
+    }
+
+    private SubmissionFieldSnapshot submissionFieldSnapshot() {
+        return new SubmissionFieldSnapshot(
+                List.of(SubmissionBasicInformationField.NAME),
+                List.of(SubmissionAdditionalInformationField.CAREER)
+        );
     }
 
     private SubmissionFormResponses emptyFormResponses() {

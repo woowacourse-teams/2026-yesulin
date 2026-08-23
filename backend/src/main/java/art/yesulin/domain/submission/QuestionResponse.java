@@ -5,8 +5,15 @@ import static art.yesulin.domain.common.validation.DomainValidator.requireText;
 import static art.yesulin.domain.submission.SubmissionErrorCode.INVALID_SUBMISSION;
 
 import art.yesulin.common.exception.BusinessException;
+import jakarta.persistence.Column;
+import jakarta.persistence.Embeddable;
 
-public record QuestionResponse(long questionId, String question, String answer) {
+@Embeddable
+public record QuestionResponse(
+        @Column(name = "question_id", nullable = false) long questionId,
+        @Column(name = "question", nullable = false, length = MAX_QUESTION_LENGTH) String question,
+        @Column(name = "answer", nullable = false, length = MAX_ANSWER_LENGTH) String answer
+) {
 
     public static final int MAX_QUESTION_LENGTH = 255;
     public static final int MAX_ANSWER_LENGTH = 2_000;
