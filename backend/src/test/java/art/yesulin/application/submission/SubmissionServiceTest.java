@@ -11,6 +11,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 
 import art.yesulin.common.exception.BusinessException;
+import art.yesulin.common.exception.ErrorCode;
 import art.yesulin.domain.audition.Audition;
 import art.yesulin.domain.audition.AuditionRepository;
 import art.yesulin.domain.audition.PerformancePeriod;
@@ -36,6 +37,7 @@ import art.yesulin.domain.audition.schedule.ScreeningStagePlan;
 import art.yesulin.domain.audition.schedule.ScreeningStagePlans;
 import art.yesulin.domain.file.FileAsset;
 import art.yesulin.domain.file.FileAssetRepository;
+import art.yesulin.domain.file.FileErrorCode;
 import art.yesulin.domain.file.FileMetadata;
 import art.yesulin.domain.file.FileReference;
 import art.yesulin.domain.file.FileReferenceRepository;
@@ -247,6 +249,102 @@ class SubmissionServiceTest {
         assertStoredSubmissionCounts(0, 0, 0);
     }
 
+    @Test
+    void rejectsRoleThatIsNoLongerInCurrentAuditionWithoutPersistence() {
+        SubmissionFixture fixture = saveOpenAudition();
+        SubmitSubmissionCommand command = withSelectedRoleIds(fixture.command(), List.of(Long.MAX_VALUE));
+
+        assertRejectedWithoutPersistence(
+                fixture,
+                command,
+                SubmissionErrorCode.INVALID_SELECTED_ROLE
+        );
+    }
+
+    @Test
+    void rejectsQuestionPhotoAndVideoIdsThatAreNoLongerInCurrentFormWithoutPersistence() {
+        SubmissionFixture fixture = saveOpenAudition();
+        SubmitFormAnswersCommand currentAnswers = fixture.command().formAnswers();
+        List<SubmitSubmissionCommand> staleCommands = List.of(
+                withFormAnswers(fixture.command(), new SubmitFormAnswersCommand(
+                        List.of(new SubmitQuestionAnswerCommand(Long.MAX_VALUE, "답변")),
+                        currentAnswers.photoRequirementAnswers(),
+                        List.of()
+                )),
+                withFormAnswers(fixture.command(), new SubmitFormAnswersCommand(
+                        List.of(),
+                        List.of(new SubmitPhotoRequirementAnswerCommand(Long.MAX_VALUE, fixture.fileId())),
+                        List.of()
+                )),
+                withFormAnswers(fixture.command(), new SubmitFormAnswersCommand(
+                        List.of(),
+                        currentAnswers.photoRequirementAnswers(),
+                        List.of(new SubmitVideoRequirementAnswerCommand(
+                                Long.MAX_VALUE, "https://youtu.be/abcdefghijk"
+                        ))
+                ))
+        );
+
+        staleCommands.forEach(command -> assertRejectedWithoutPersistence(
+                fixture,
+                command,
+                SubmissionErrorCode.INVALID_FORM_ANSWER
+        ));
+    }
+
+    @Test
+    void rejectsPhotoOwnedByAnotherApplicantWithoutPersistence() {
+        SubmissionFixture fixture = saveOpenAudition();
+        long anotherApplicantsFileId = saveReadyImage(3L, "submissions/another-applicants-profile.jpg");
+        SubmitSubmissionCommand command = withPhotoFile(fixture.command(), anotherApplicantsFileId);
+
+        assertRejectedWithoutPersistence(fixture, command, FileErrorCode.NOT_FOUND);
+    }
+
+    @Test
+    void rejectsPendingPhotoWithoutPersistence() {
+        SubmissionFixture fixture = saveOpenAudition();
+        long pendingFileId = savePendingImage(APPLICANT_ID, "submissions/pending-profile.jpg");
+        SubmitSubmissionCommand command = withPhotoFile(fixture.command(), pendingFileId);
+
+        assertRejectedWithoutPersistence(fixture, command, FileErrorCode.NOT_READY);
+    }
+
+    @Test
+    void rejectsMissingPhotoWithoutPersistence() {
+        SubmissionFixture fixture = saveOpenAudition();
+        SubmitSubmissionCommand command = withPhotoFile(fixture.command(), Long.MAX_VALUE);
+
+        assertRejectedWithoutPersistence(fixture, command, FileErrorCode.NOT_FOUND);
+    }
+
+    @Test
+    void acceptsSubmissionExactlyAtRecruitmentStart() {
+        SubmissionFixture fixture = saveAudition(NOW, NOW.plusSeconds(86_400));
+
+        submissionService.submit(APPLICANT_ID, fixture.publicAuditionId(), fixture.command());
+
+        assertStoredSubmissionCounts(1, 2, 1);
+    }
+
+    @Test
+    void rejectsBeforeRecruitmentStartAndAtRecruitmentEndWithoutPersistence() {
+        SubmissionFixture upcoming = saveAudition(NOW.plusSeconds(1), NOW.plusSeconds(86_400));
+        assertRejectedWithoutPersistence(
+                upcoming,
+                upcoming.command(),
+                SubmissionErrorCode.RECRUITMENT_CLOSED
+        );
+        cleanDatabase();
+        SubmissionFixture closed = saveAudition(NOW.minusSeconds(86_400), NOW);
+
+        assertRejectedWithoutPersistence(
+                closed,
+                closed.command(),
+                SubmissionErrorCode.RECRUITMENT_CLOSED
+        );
+    }
+
     private SubmissionAttempt submitAfterSignal(
             SubmissionFixture fixture,
             CountDownLatch ready,
@@ -271,6 +369,10 @@ class SubmissionServiceTest {
     }
 
     private SubmissionFixture saveOpenAudition() {
+        return saveAudition(NOW.minusSeconds(86_400), NOW.plusSeconds(86_400));
+    }
+
+    private SubmissionFixture saveAudition(Instant recruitmentStartAt, Instant recruitmentEndAt) {
         long posterFileId = saveReadyImage(PRODUCER_ID, "performances/poster.jpg");
         Performance performance = new Performance(
                 PRODUCER_ID, posterFileId, "햄릿", "서울특별시 종로구"
@@ -297,7 +399,7 @@ class SubmissionServiceTest {
         scheduleRepository.saveAndFlush(new AuditionSchedule(
                 audition.getId(),
                 new AuditionSchedulePlan(
-                        new RecruitmentPeriod(NOW.minusSeconds(86_400), NOW.plusSeconds(86_400)),
+                        new RecruitmentPeriod(recruitmentStartAt, recruitmentEndAt),
                         new ScreeningStagePlans(List.of(new ScreeningStagePlan(
                                 null, "1차 오디션", LocalDate.of(2026, 9, 10), ""
                         )))
@@ -327,13 +429,74 @@ class SubmissionServiceTest {
     }
 
     private long saveReadyImage(long ownerId, String objectKey) {
+        FileAsset file = createImage(ownerId, objectKey);
+        file.completeUpload("image/jpeg", 1_024L);
+        return fileAssetRepository.saveAndFlush(file).getId();
+    }
+
+    private long savePendingImage(long ownerId, String objectKey) {
+        return fileAssetRepository.saveAndFlush(createImage(ownerId, objectKey)).getId();
+    }
+
+    private FileAsset createImage(long ownerId, String objectKey) {
         FileAsset file = new FileAsset(
-                objectKey,
+                objectKey + "/" + UUID.randomUUID(),
                 ownerId,
                 new FileMetadata("profile.jpg", "image/jpeg", 1_024L)
         );
-        file.completeUpload("image/jpeg", 1_024L);
-        return fileAssetRepository.saveAndFlush(file).getId();
+        return file;
+    }
+
+    private SubmitSubmissionCommand withSelectedRoleIds(
+            SubmitSubmissionCommand command,
+            List<Long> selectedRoleIds
+    ) {
+        return new SubmitSubmissionCommand(
+                command.basicInformation(),
+                command.additionalInformation(),
+                selectedRoleIds,
+                command.formAnswers(),
+                command.consents()
+        );
+    }
+
+    private SubmitSubmissionCommand withFormAnswers(
+            SubmitSubmissionCommand command,
+            SubmitFormAnswersCommand formAnswers
+    ) {
+        return new SubmitSubmissionCommand(
+                command.basicInformation(),
+                command.additionalInformation(),
+                command.selectedRoleIds(),
+                formAnswers,
+                command.consents()
+        );
+    }
+
+    private SubmitSubmissionCommand withPhotoFile(SubmitSubmissionCommand command, long fileId) {
+        List<SubmitPhotoRequirementAnswerCommand> photoAnswers = command.formAnswers()
+                .photoRequirementAnswers()
+                .stream()
+                .map(answer -> new SubmitPhotoRequirementAnswerCommand(answer.photoRequirementId(), fileId))
+                .toList();
+        return withFormAnswers(command, new SubmitFormAnswersCommand(
+                command.formAnswers().questionAnswers(),
+                photoAnswers,
+                command.formAnswers().videoRequirementAnswers()
+        ));
+    }
+
+    private void assertRejectedWithoutPersistence(
+            SubmissionFixture fixture,
+            SubmitSubmissionCommand command,
+            ErrorCode expectedErrorCode
+    ) {
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> submissionService.submit(APPLICANT_ID, fixture.publicAuditionId(), command)
+        );
+        assertEquals(expectedErrorCode, exception.getErrorCode());
+        assertStoredSubmissionCounts(0, 0, 0);
     }
 
     private SubmitSubmissionCommand createCommand(
