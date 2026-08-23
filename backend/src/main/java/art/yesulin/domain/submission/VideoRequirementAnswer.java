@@ -17,10 +17,11 @@ public record VideoRequirementAnswer(
                 length = MAX_DESCRIPTION_LENGTH
         )
         String requirementDescription,
-        @Column(name = "url", nullable = false, length = 2_048) String url
+        @Column(name = "url", nullable = false, length = MAX_URL_LENGTH) String url
 ) {
 
     public static final int MAX_DESCRIPTION_LENGTH = 255;
+    public static final int MAX_URL_LENGTH = 2_048;
 
     public VideoRequirementAnswer {
         videoRequirementId = requirePositive(videoRequirementId, "영상 요구사항 ID는 1 이상이어야 합니다.");
@@ -29,5 +30,8 @@ public record VideoRequirementAnswer(
             throw new BusinessException(INVALID_SUBMISSION, "영상 요구사항 문구는 255자를 넘을 수 없습니다.");
         }
         url = requireText(url, "제출 영상 URL은 필수입니다.");
+        if (url.length() > MAX_URL_LENGTH) {
+            throw new BusinessException(INVALID_SUBMISSION, "제출 영상 URL은 2,048자를 넘을 수 없습니다.");
+        }
     }
 }

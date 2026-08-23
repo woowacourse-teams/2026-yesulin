@@ -108,6 +108,16 @@ class SubmissionCollectionsTest {
     }
 
     @Test
+    void rejectsVideoUrlOverMaximumLength() {
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> new VideoRequirementAnswer(1L, "자유 연기", "a".repeat(2_049))
+        );
+
+        assertEquals(SubmissionErrorCode.INVALID_SUBMISSION, exception.getErrorCode());
+    }
+
+    @Test
     void normalizesEmptyOptionalAnswer() {
         QuestionAnswer answer = new QuestionAnswer(1L, "추가로 하고 싶은 말은?", null);
 

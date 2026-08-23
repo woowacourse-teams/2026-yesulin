@@ -2,8 +2,8 @@
 
 배우·기획사/제작사 흐름을 기준으로 한 백엔드 경로 계약이다. REST 원칙을 따르되 클라이언트가 경로만 읽고 용도를 이해할 수 있는 이름을 우선한다.
 
-> **도메인 설계 반영 대기:** 인증 전 Draft와 사진은 현재 브라우저 IndexedDB에만 두고 최종 제출 과정에서
-> 처음 서버로 전송한다. 아래 공고 조회 계약은 유효하며 제출·파일·동의·지원서 조회의 구체 계약은 별도 결정한다.
+> 인증 전 Draft와 사진은 현재 브라우저 IndexedDB에만 두고 최종 제출 과정에서 처음 서버로 전송한다.
+> 제출 요청 계약은 확정했으며 파일 정제·동의 문서·제출 응답과 지원서 조회의 구체 계약은 후속 구현에서 정한다.
 
 ## 공통 규칙
 
@@ -58,6 +58,7 @@ DELETE /api/v1/applicants/me/photo-library/photos/{photoId}
 GET    /api/v1/applicants/me/submissions       # 내 지원서 목록
 GET    /api/v1/applicants/me/submissions/{submissionId}
                                                     # 내 제출 스냅샷
+POST   /api/v1/auditions/{auditionId}/submissions # 인증 배우의 최종 제출
 ```
 
 - 제출 완료 후 일반 수정은 공개 정책에서 허용하지 않는다. 현재 프런트 화면은 읽기 전용이며 MSW의 수정 요청도 `409 IMMUTABLE_SUBMISSION`으로 거부한다.
@@ -65,6 +66,51 @@ GET    /api/v1/applicants/me/submissions/{submissionId}
 - 공개 상태는 `RECEIVED`, `IN_REVIEW`, `FINAL_PASS`, `NOT_SELECTED`를 사용한다. 검토 중인 결과와 내부 메모는 포함하지 않고, 해당 배역의 차수가 마감된 뒤에만 확정 결과를 반영한다.
 - 작성 중 지원서는 현재 브라우저 IndexedDB를 직접 조회한다. 서버 Draft 목록과 다른 기기 동기화는 MVP 범위가 아니다.
 - 회원 탈퇴 Backend API는 MVP 범위가 아니다. 안내 화면은 공개 정책의 문의 경로를 제공한다.
+
+최종 제출의 `auditionId`는 공개 공고 UUID를 경로에서 받고 지원자 ID는 Session에서 결정한다. Request Body는
+다음 구조를 사용한다.
+
+```json
+{
+  "basicInformation": {
+    "name": "김하린",
+    "height": 165,
+    "weight": 50,
+    "birthDate": "2000-01-01",
+    "gender": "FEMALE",
+    "phone": "010-1234-5678",
+    "email": "harin@example.com",
+    "address": "서울시 마포구"
+  },
+  "additionalInformation": {
+    "school": "한국예술종합학교",
+    "links": ["https://example.com/harin"],
+    "nationality": "대한민국",
+    "coverLetter": "자기소개",
+    "specialty": "현대무용",
+    "hobbies": "영화 감상",
+    "militaryServiceStatus": "NOT_APPLICABLE",
+    "careers": [{ "year": 2025, "title": "햄릿", "roleName": "오필리어" }]
+  },
+  "selectedRoleIds": [11, 12],
+  "formAnswers": {
+    "questionAnswers": [{ "questionId": 21, "answer": "작품의 주제에 공감했습니다." }],
+    "photoRequirementAnswers": [{ "photoRequirementId": 31, "fileId": 41 }],
+    "videoRequirementAnswers": [{ "videoRequirementId": 51, "url": "https://youtu.be/abcdefghijk" }]
+  },
+  "consents": {
+    "privacyCollectionAndUseAgreed": true,
+    "thirdPartyProvisionAgreed": true
+  }
+}
+```
+
+- 기본·추가 정보 객체는 항상 보내고 공고가 수집하지 않거나 선택 추가 정보에 값이 없으면 nullable 필드는
+  `null`, 링크·경력은 빈 배열로 보낸다.
+- 선택 배역·질문·사진·영상은 현재 공고가 공개한 `Long` ID만 보낸다. 배역명, 질문 문구와 requirement 문구는
+  서버가 현재 공고에서 조회해 스냅샷으로 확정한다.
+- `applicantId`, `submittedAt`, 계산된 나이, 약관 문서 버전과 동의 시각은 Request Body에서 받지 않는다.
+- 개인정보 수집·이용과 제3자 제공은 각각 `true`여야 하며 서버가 별도 동의 이력을 생성한다.
 
 프로필과 제출 스냅샷 관계는 확정됐으며 지원서 사진·영상 연결 생명주기와 실패 파일 정리 계약은 별도로 결정한다.
 
