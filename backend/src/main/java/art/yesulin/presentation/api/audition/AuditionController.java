@@ -60,7 +60,7 @@ public class AuditionController {
 
     @GetMapping
     public ResponseEntity<List<AuditionResult>> findAll(
-            @LoginMember(roles = AuthRole.PRODUCER) MemberPrincipal principal,
+            @LoginMember(roles = MemberType.PRODUCER) MemberPrincipal principal,
             @RequestParam long performanceId
     ) {
         return ResponseEntity.ok(auditionService.findAll(principal.memberId(), performanceId));

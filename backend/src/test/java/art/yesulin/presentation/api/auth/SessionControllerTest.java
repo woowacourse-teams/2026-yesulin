@@ -1,5 +1,6 @@
 package art.yesulin.presentation.api.auth;
 
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -23,6 +24,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
@@ -124,5 +126,26 @@ class SessionControllerTest {
                         .with(csrf()))
                 .andExpect(status().isNoContent());
     }
-}
 
+    @Test
+    void changesSessionIdOnLogin() throws Exception {
+        MockHttpSession existingSession = new MockHttpSession();
+        String sessionIdBeforeLogin = existingSession.getId();
+
+        String request = """
+                {"email": "%s", "password":"%s"}
+                """.formatted(EMAIL, PASSWORD);
+
+        MvcResult result = mockMvc.perform(post("/api/v1/sessions")
+                        .with(csrf())
+                        .session(existingSession)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        HttpSession sessionAfterLogin = result.getRequest().getSession(false);
+        assertNotNull(sessionAfterLogin);
+        assertNotEquals(sessionIdBeforeLogin, sessionAfterLogin.getId());
+    }
+}
