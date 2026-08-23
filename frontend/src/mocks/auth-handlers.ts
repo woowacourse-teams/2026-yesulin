@@ -3,7 +3,7 @@ import type { ProducerSignupRequest } from "@/features/auth/api";
 import { registerPendingProducer } from "./auditions/producer-profile";
 
 const emails = new Set<string>();
-let mockSession: { memberId: number; role: "APPLICANT" | "PRODUCER" } | null = null;
+let mockSession: { memberId: number; role: "APPLICANT" | "PRODUCER"; status: "PENDING" | "ACTIVE" } | null = null;
 const error = (code: string, message: string, status = 400) => HttpResponse.json({ code, message }, { status });
 
 export const authHandlers = [
@@ -14,7 +14,7 @@ export const authHandlers = [
     if (!/^\S+@\S+\.\S+$/.test(email) || !body.password) {
       return error("INVALID_REQUEST", "요청 값을 확인해 주세요.");
     }
-    mockSession = { memberId: 1, role: "PRODUCER" };
+    mockSession = { memberId: 1, role: "PRODUCER", status: "ACTIVE" };
     return HttpResponse.json(mockSession);
   }),
 

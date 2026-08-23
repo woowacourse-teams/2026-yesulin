@@ -1,8 +1,10 @@
 package art.yesulin.presentation.api.auth;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -99,7 +101,8 @@ class SessionControllerTest {
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, principal))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.memberId").value(1))
-                .andExpect(jsonPath("$.role").value("PRODUCER"));
+                .andExpect(jsonPath("$.role").value("PRODUCER"))
+                .andExpect(jsonPath("$.status").value("ACTIVE"));
     }
 
     @Test
@@ -150,4 +153,6 @@ class SessionControllerTest {
         assertNotNull(sessionAfterLogin);
         assertNotEquals(sessionIdBeforeLogin, sessionAfterLogin.getId());
     }
+
 }
+

@@ -9,6 +9,16 @@ spring:
     enabled: true
     locations: classpath:db/migration
 
+server:
+  servlet:
+    session:
+      timeout: ${SESSION_TIMEOUT:30m}
+      cookie:
+        http-only: true
+        same-site: lax
+        # 로컬은 http라 기본값 false다. 배포 환경에서 true로 켠다.
+        secure: ${SESSION_COOKIE_SECURE:false}
+
 yesulin:
   storage:
     s3:

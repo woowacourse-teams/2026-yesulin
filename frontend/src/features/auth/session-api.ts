@@ -4,9 +4,12 @@ const CSRF_HEADER_NAME = "X-CSRF-Token";
 
 export type SessionRole = "APPLICANT" | "PRODUCER";
 
+export type SessionStatus = "PENDING" | "ACTIVE";
+
 export type SessionResponse = {
   readonly memberId: number;
   readonly role: SessionRole;
+  readonly status: SessionStatus;
 };
 
 export class SessionApiError extends Error {
