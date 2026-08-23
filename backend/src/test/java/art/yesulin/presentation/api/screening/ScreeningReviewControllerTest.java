@@ -48,6 +48,9 @@ import org.springframework.test.web.servlet.MockMvc;
 class ScreeningReviewControllerTest {
 
     private static final long OWNER_ID = 1L;
+    private static final String REVIEWS_PATH =
+            "/api/v1/audition-roles/{roleId}/screening-rounds/{round}/reviews";
+    private static final String EMPTY_REVIEWS = "{\"reviews\": []}";
     private static final MemberPrincipal MEMBER_PRINCIPAL = new MemberPrincipal(OWNER_ID, MemberType.PRODUCER,
             MemberStatus.ACTIVE);
 
@@ -128,4 +131,41 @@ class ScreeningReviewControllerTest {
         ));
         return roleSection.getRoles().getFirst().getId();
     }
+
+    @Test
+    void rejectsAnonymousWithUnauthorized() throws Exception {
+        mockMvc.perform(patch(REVIEWS_PATH, 1L, 1)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(EMPTY_REVIEWS))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("AUTH_UNAUTHENTICATED"));
+    }
+
+    @Test
+    void rejectsApplicantWithForbidden() throws Exception {
+        MemberPrincipal applicant = new MemberPrincipal(OWNER_ID, MemberType.APPLICANT, MemberStatus.ACTIVE);
+
+        mockMvc.perform(patch(REVIEWS_PATH, 1L, 1)
+                        .with(csrf())
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, applicant)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(EMPTY_REVIEWS))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("AUTH_FORBIDDEN"));
+    }
+
+    @Test
+    void rejectsPendingProducerWithForbidden() throws Exception {
+        MemberPrincipal pending = new MemberPrincipal(OWNER_ID, MemberType.PRODUCER, MemberStatus.PENDING);
+
+        mockMvc.perform(patch(REVIEWS_PATH, 1L, 1)
+                        .with(csrf())
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, pending)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(EMPTY_REVIEWS))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("AUTH_INACTIVE_MEMBER"));
+    }
 }
+
