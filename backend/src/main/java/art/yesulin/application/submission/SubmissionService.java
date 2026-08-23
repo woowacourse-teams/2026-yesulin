@@ -17,6 +17,7 @@ import java.time.Instant;
 import java.util.Locale;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -115,11 +116,27 @@ public class SubmissionService {
     private boolean isDuplicateSubmission(DataIntegrityViolationException exception) {
         Throwable cause = exception;
         while (cause != null) {
-            String message = cause.getMessage();
-            if (message != null && message.toLowerCase(Locale.ROOT).contains(DUPLICATE_CONSTRAINT_NAME)) {
+            if (cause instanceof ConstraintViolationException constraintViolation
+                    && isDuplicateConstraint(constraintViolation.getConstraintName())) {
                 return true;
             }
             cause = cause.getCause();
+        }
+        return false;
+    }
+
+    private boolean isDuplicateConstraint(String constraintName) {
+        if (constraintName == null) {
+            return false;
+        }
+        String normalizedName = constraintName
+                .replace("`", "")
+                .replace("\"", "")
+                .toLowerCase(Locale.ROOT);
+        for (String identifier : normalizedName.split("[\\s.]+")) {
+            if (identifier.equals(DUPLICATE_CONSTRAINT_NAME)) {
+                return true;
+            }
         }
         return false;
     }

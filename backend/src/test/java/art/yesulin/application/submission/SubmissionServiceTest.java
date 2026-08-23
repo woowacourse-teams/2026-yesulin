@@ -3,8 +3,10 @@ package art.yesulin.application.submission;
 import static art.yesulin.domain.submission.SubmissionErrorCode.DUPLICATE_SUBMISSION;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 
@@ -195,11 +197,19 @@ class SubmissionServiceTest {
         SubmissionFixture fixture = saveOpenAudition();
         CountDownLatch ready = new CountDownLatch(2);
         CountDownLatch start = new CountDownLatch(1);
+        CountDownLatch duplicateChecks = new CountDownLatch(2);
+        doAnswer(invocation -> {
+            duplicateChecks.countDown();
+            if (!duplicateChecks.await(5, TimeUnit.SECONDS)) {
+                throw new AssertionError("두 동시 요청이 모두 사전 중복 검사를 통과하지 못했습니다.");
+            }
+            return false;
+        }).when(submissionRepository).existsByApplicantIdAndAuditionId(anyLong(), anyLong());
         List<Future<SubmissionAttempt>> futures = new ArrayList<>();
         for (int index = 0; index < 2; index++) {
             futures.add(executor.submit(() -> submitAfterSignal(fixture, ready, start)));
         }
-        ready.await(5, TimeUnit.SECONDS);
+        assertTrue(ready.await(5, TimeUnit.SECONDS));
         start.countDown();
 
         List<SubmissionAttempt> attempts = futures.stream().map(this::getAttempt).toList();
