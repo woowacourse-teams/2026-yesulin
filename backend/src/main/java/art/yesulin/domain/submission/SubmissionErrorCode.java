@@ -5,7 +5,10 @@ import art.yesulin.common.exception.ErrorType;
 
 public enum SubmissionErrorCode implements ErrorCode {
 
-    INVALID_SUBMISSION("SUBMISSION_INVALID", ErrorType.BAD_REQUEST);
+    INVALID_SUBMISSION("SUBMISSION_INVALID", ErrorType.BAD_REQUEST),
+    INVALID_SELECTED_ROLE("SUBMISSION_INVALID_SELECTED_ROLE", ErrorType.BAD_REQUEST),
+    INVALID_FORM_ANSWER("SUBMISSION_INVALID_FORM_ANSWER", ErrorType.BAD_REQUEST),
+    RECRUITMENT_CLOSED("RECRUITMENT_CLOSED", ErrorType.CONFLICT);
 
     private final String code;
     private final ErrorType type;
