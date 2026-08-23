@@ -7,6 +7,8 @@ import art.yesulin.application.file.FileService;
 import art.yesulin.application.performance.PerformanceResult;
 import art.yesulin.application.performance.PerformanceRoleResult;
 import art.yesulin.application.performance.PerformanceService;
+import art.yesulin.domain.member.MemberStatus;
+import art.yesulin.domain.member.MemberType;
 import jakarta.validation.Valid;
 import java.net.URI;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +34,7 @@ public class PerformanceController {
 
     @PostMapping
     public ResponseEntity<PerformanceResult> create(
-            @LoginMember MemberPrincipal principal,
+            @LoginMember(roles = MemberType.PRODUCER, statuses = MemberStatus.ACTIVE) MemberPrincipal principal,
             @Valid @RequestBody CreatePerformanceRequest request
     ) {
         PerformanceResult result = performanceService.create(principal.memberId(), request.toCommand());
@@ -41,7 +43,7 @@ public class PerformanceController {
 
     @GetMapping
     public ResponseEntity<PerformanceListResponse> findAll(
-            @LoginMember MemberPrincipal principal
+            @LoginMember(roles = MemberType.PRODUCER, statuses = MemberStatus.ACTIVE) MemberPrincipal principal
     ) {
         long ownerId = principal.memberId();
         return ResponseEntity.ok(new PerformanceListResponse(
@@ -51,7 +53,7 @@ public class PerformanceController {
 
     @GetMapping("/{performanceId}")
     public ResponseEntity<PerformanceResponse> find(
-            @LoginMember MemberPrincipal principal,
+            @LoginMember(roles = MemberType.PRODUCER, statuses = MemberStatus.ACTIVE) MemberPrincipal principal,
             @PathVariable long performanceId
     ) {
         long ownerId = principal.memberId();
@@ -60,7 +62,7 @@ public class PerformanceController {
 
     @PatchMapping("/{performanceId}/basic-information")
     public ResponseEntity<PerformanceResult> updateBasicInformation(
-            @LoginMember MemberPrincipal principal,
+            @LoginMember(roles = MemberType.PRODUCER, statuses = MemberStatus.ACTIVE) MemberPrincipal principal,
             @PathVariable long performanceId,
             @Valid @RequestBody UpdatePerformanceBasicInformationRequest request
     ) {
@@ -71,7 +73,7 @@ public class PerformanceController {
 
     @PatchMapping("/{performanceId}/poster")
     public ResponseEntity<PerformanceResult> updatePoster(
-            @LoginMember MemberPrincipal principal,
+            @LoginMember(roles = MemberType.PRODUCER, statuses = MemberStatus.ACTIVE) MemberPrincipal principal,
             @PathVariable long performanceId,
             @Valid @RequestBody UpdatePerformancePosterRequest request
     ) {
@@ -82,7 +84,7 @@ public class PerformanceController {
 
     @PostMapping("/{performanceId}/roles")
     public ResponseEntity<PerformanceRoleResult> addRole(
-            @LoginMember MemberPrincipal principal,
+            @LoginMember(roles = MemberType.PRODUCER, statuses = MemberStatus.ACTIVE) MemberPrincipal principal,
             @PathVariable long performanceId,
             @Valid @RequestBody CreatePerformanceRoleRequest request
     ) {
@@ -94,7 +96,7 @@ public class PerformanceController {
 
     @PatchMapping("/{performanceId}/roles/{roleId}")
     public ResponseEntity<PerformanceRoleResult> updateRole(
-            @LoginMember MemberPrincipal principal,
+            @LoginMember(roles = MemberType.PRODUCER, statuses = MemberStatus.ACTIVE) MemberPrincipal principal,
             @PathVariable long performanceId,
             @PathVariable long roleId,
             @Valid @RequestBody UpdatePerformanceRoleRequest request
@@ -106,7 +108,7 @@ public class PerformanceController {
 
     @DeleteMapping("/{performanceId}/roles/{roleId}")
     public ResponseEntity<Void> removeRole(
-            @LoginMember MemberPrincipal principal,
+            @LoginMember(roles = MemberType.PRODUCER, statuses = MemberStatus.ACTIVE) MemberPrincipal principal,
             @PathVariable long performanceId,
             @PathVariable long roleId
     ) {

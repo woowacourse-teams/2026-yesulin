@@ -5,6 +5,8 @@ import art.yesulin.application.auth.annotation.LoginMember;
 import art.yesulin.application.auth.annotation.LoginRequired;
 import art.yesulin.application.file.FileService;
 import art.yesulin.application.file.FileUploadResult;
+import art.yesulin.domain.member.MemberStatus;
+import art.yesulin.domain.member.MemberType;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -26,7 +28,7 @@ public class PerformancePosterUploadController {
 
     @PostMapping("/upload-requests")
     public ResponseEntity<FileUploadResult> upload(
-            @LoginMember MemberPrincipal principal,
+            @LoginMember(roles = MemberType.PRODUCER, statuses = MemberStatus.ACTIVE) MemberPrincipal principal,
             @Valid @RequestBody PerformancePosterUploadRequest request
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -35,7 +37,7 @@ public class PerformancePosterUploadController {
 
     @PatchMapping("/{fileId}/completion")
     public ResponseEntity<Void> complete(
-            @LoginMember MemberPrincipal principal,
+            @LoginMember(roles = MemberType.PRODUCER, statuses = MemberStatus.ACTIVE) MemberPrincipal principal,
             @PathVariable long fileId
     ) {
         fileService.completeUpload(principal.memberId(), fileId);
