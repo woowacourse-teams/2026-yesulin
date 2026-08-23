@@ -37,6 +37,7 @@
 - [백엔드 JAR와 systemd 배포](./20260819021010-backend-jar-systemd-deployment.md)
 - [백엔드 EC2 운영체제](./20260819061141-backend-ec2-operating-system.md)
 - [Nginx와 CloudFront Origin Header 경계](./20260820071900-nginx-cloudfront-origin-guard.md)
+- [Security와 Interceptor 책임 분리](./20260823122652-auth-responsibility-split.md)
 
 ## Archive
 
