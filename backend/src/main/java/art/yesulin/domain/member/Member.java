@@ -28,7 +28,7 @@ public class Member {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "email", nullable = false, length = 320)
+    @Column(name = "email", length = 320)
     private String email;
 
     @Column(name = "password_hash", length = 60)
@@ -47,24 +47,25 @@ public class Member {
     private Instant createdAt;
 
     public Member(String email, String password, MemberType type, MemberStatus status) {
-        this.email = requireText(email, "이메일이 필요합니다.");
+        this.email = email;
         this.password = password;
         this.type = requireNonNull(type, "회원 유형이 필요합니다.");
         this.status = requireNonNull(status, "회원 상태가 필요합니다.");
     }
 
     /**
-     * 배우는 첫 소셜 인증에서 바로 활성 계정으로 만든다.
+     * 배우는 소셜 인증만 사용하므로 이메일과 비밀번호 없이 바로 활성 계정으로 만든다.
      */
-    public static Member ofApplicant(String email) {
-        return new Member(email, null, MemberType.APPLICANT, MemberStatus.ACTIVE);
+    public static Member ofApplicant() {
+        return new Member(null, null, MemberType.APPLICANT, MemberStatus.ACTIVE);
     }
 
     /**
      * 기획사·제작사는 가입 직후 운영진 확인을 기다리는 상태로 만든다.
      */
     public static Member ofPendingProducer(String email, String password) {
-        return new Member(email, password, MemberType.PRODUCER, MemberStatus.PENDING);
+        return new Member(
+                requireText(email, "이메일이 필요합니다."), password, MemberType.PRODUCER, MemberStatus.PENDING);
     }
 
     public void activate() {
