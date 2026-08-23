@@ -18,6 +18,8 @@
 - 인증 리소스의 소유자 ID는 요청으로 받지 않고 Session에서 결정한다. 인증 전 Draft는 API 리소스가 아니다.
 - 소유자 전용 리소스는 없거나 다른 사용자의 소유인 경우 모두 `404`로 응답해 존재 여부를 노출하지 않는다. 공개된 리소스에 대한 행위 권한만 부족한 경우에는 `403`을 사용한다.
 - 성공 응답은 wrapper 없이, 실패는 `{ code, message, detail? }`로 반환한다.
+- 쓰기 요청(POST·PUT·PATCH·DELETE)에는 `X-CSRF-Token` 헤더가 필요하다. 서버가 `XSRF-TOKEN` 쿠키로 토큰을 내려주므로 클라이언트는 읽기 요청을 한 번 보내 받은 뒤 헤더에 넣는다. 세션 쿠키는 HttpOnly지만 CSRF 토큰 쿠키는 클라이언트가 읽어야 하므로 HttpOnly가 아니다.
+- 인증 실패는 401 `AUTH_UNAUTHENTICATED`, 역할 불일치는 403 `AUTH_FORBIDDEN`, 승인 전 계정은 403 `AUTH_INACTIVE_MEMBER`로 구분한다.
 - 호환 필드 추가는 `v1`을 유지하고 breaking change에서만 major 버전을 올린다.
 
 ## 인증
@@ -217,8 +219,10 @@ PATCH /api/v1/audition-roles/{roleId}/screening-rounds/{round} # status=CLOSED�
 
 ## 현재 프런트 이관
 
+(이관 완료) 로그인·세션: 프런트가 /api/v1/sessions 계약을 사용한다.
+
 ```text
-/api/auth/signup/producer           → /api/v1/producers
+/api/auth/signup/producer           → /api/v1/producers                 # 이관 완료
 /api/me/profile                     → /api/v1/applicants/me/profile
 /api/me/profile/prefill             → /api/v1/applicants/me/profile/prefill
 /api/me/submissions/**             → GET은 /api/v1/applicants/me/submissions/**, PATCH는 목표 계약에서 제외
