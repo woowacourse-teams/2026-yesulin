@@ -18,12 +18,16 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class SubmissionBasicInformation {
 
+    public static final int MAX_NAME_LENGTH = 100;
+    public static final int MAX_EMAIL_LENGTH = 254;
+    public static final int MAX_ADDRESS_LENGTH = 100;
+
     private static final String PHONE_PATTERN = "\\d{3}-\\d{4}-\\d{4}";
 
     @Column(name = "basic_information_present", nullable = false, updatable = false)
     private boolean present = true;
 
-    @Column(name = "applicant_name", updatable = false, columnDefinition = "text")
+    @Column(name = "applicant_name", updatable = false, length = MAX_NAME_LENGTH)
     private String name;
 
     @Column(name = "height_cm", updatable = false)
@@ -42,10 +46,10 @@ public class SubmissionBasicInformation {
     @Column(name = "phone", updatable = false, length = 13)
     private String phone;
 
-    @Column(name = "email", updatable = false, columnDefinition = "text")
+    @Column(name = "email", updatable = false, length = MAX_EMAIL_LENGTH)
     private String email;
 
-    @Column(name = "address", updatable = false, columnDefinition = "text")
+    @Column(name = "address", updatable = false, length = MAX_ADDRESS_LENGTH)
     private String address;
 
     public SubmissionBasicInformation(
@@ -58,14 +62,14 @@ public class SubmissionBasicInformation {
             String email,
             String address
     ) {
-        this.name = normalizeNullable(name);
+        this.name = normalizeNullable(name, MAX_NAME_LENGTH, "이름은 100자를 넘을 수 없습니다.");
         this.height = validatePositive(height, "키는 1 이상이어야 합니다.");
         this.weight = validatePositive(weight, "몸무게는 1 이상이어야 합니다.");
         this.birthDate = birthDate;
         this.gender = gender;
         this.phone = normalizeNullable(phone);
-        this.email = normalizeNullable(email);
-        this.address = normalizeNullable(address);
+        this.email = normalizeNullable(email, MAX_EMAIL_LENGTH, "이메일은 254자를 넘을 수 없습니다.");
+        this.address = normalizeNullable(address, MAX_ADDRESS_LENGTH, "거주지는 100자를 넘을 수 없습니다.");
         validatePhone(this.phone);
     }
 
@@ -88,6 +92,14 @@ public class SubmissionBasicInformation {
             return null;
         }
         return value.trim();
+    }
+
+    private static String normalizeNullable(String value, int maxLength, String message) {
+        String normalizedValue = normalizeNullable(value);
+        if (normalizedValue != null && normalizedValue.length() > maxLength) {
+            throw new BusinessException(INVALID_SUBMISSION, message);
+        }
+        return normalizedValue;
     }
 
     public String name() {

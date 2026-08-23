@@ -1,5 +1,6 @@
 package art.yesulin.domain.submission;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -32,5 +33,32 @@ class SubmissionBasicInformationTest {
         );
 
         assertEquals(SubmissionErrorCode.INVALID_SUBMISSION, exception.getErrorCode());
+    }
+
+    @Test
+    void rejectsTextOverMaximumLengths() {
+        assertAll(
+                () -> assertThrows(
+                        BusinessException.class,
+                        () -> new SubmissionBasicInformation(
+                                "이".repeat(SubmissionBasicInformation.MAX_NAME_LENGTH + 1),
+                                null, null, null, null, null, null, null
+                        )
+                ),
+                () -> assertThrows(
+                        BusinessException.class,
+                        () -> new SubmissionBasicInformation(
+                                null, null, null, null, null, null,
+                                "a".repeat(SubmissionBasicInformation.MAX_EMAIL_LENGTH + 1), null
+                        )
+                ),
+                () -> assertThrows(
+                        BusinessException.class,
+                        () -> new SubmissionBasicInformation(
+                                null, null, null, null, null, null, null,
+                                "가".repeat(SubmissionBasicInformation.MAX_ADDRESS_LENGTH + 1)
+                        )
+                )
+        );
     }
 }

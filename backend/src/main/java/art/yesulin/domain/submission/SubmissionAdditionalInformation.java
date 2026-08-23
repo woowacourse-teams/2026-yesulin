@@ -27,29 +27,35 @@ public class SubmissionAdditionalInformation {
 
     public static final int MAX_LINK_COUNT = 5;
     public static final int MAX_CAREER_COUNT = 10;
+    public static final int MAX_SCHOOL_LENGTH = 255;
+    public static final int MAX_LINK_LENGTH = 255;
+    public static final int MAX_NATIONALITY_LENGTH = 100;
+    public static final int MAX_COVER_LETTER_LENGTH = 2_000;
+    public static final int MAX_SPECIALTY_LENGTH = 255;
+    public static final int MAX_HOBBIES_LENGTH = 255;
 
     @Column(name = "additional_information_present", nullable = false, updatable = false)
     private boolean present = true;
 
-    @Column(name = "school", updatable = false, columnDefinition = "text")
+    @Column(name = "school", updatable = false, length = MAX_SCHOOL_LENGTH)
     private String school;
 
     @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(name = "submission_links", joinColumns = @JoinColumn(name = "submission_id"))
     @OrderColumn(name = "link_order")
-    @Column(name = "url", nullable = false, length = 2_048)
+    @Column(name = "url", nullable = false, length = MAX_LINK_LENGTH)
     private List<String> links = new ArrayList<>();
 
-    @Column(name = "nationality", updatable = false, columnDefinition = "text")
+    @Column(name = "nationality", updatable = false, length = MAX_NATIONALITY_LENGTH)
     private String nationality;
 
-    @Column(name = "cover_letter", updatable = false, columnDefinition = "text")
+    @Column(name = "cover_letter", updatable = false, length = MAX_COVER_LETTER_LENGTH)
     private String coverLetter;
 
-    @Column(name = "specialty", updatable = false, columnDefinition = "text")
+    @Column(name = "specialty", updatable = false, length = MAX_SPECIALTY_LENGTH)
     private String specialty;
 
-    @Column(name = "hobbies", updatable = false, columnDefinition = "text")
+    @Column(name = "hobbies", updatable = false, length = MAX_HOBBIES_LENGTH)
     private String hobbies;
 
     @Convert(converter = MilitaryServiceStatusConverter.class)
@@ -71,12 +77,20 @@ public class SubmissionAdditionalInformation {
             MilitaryServiceStatus military,
             List<SubmissionCareer> careers
     ) {
-        this.school = normalizeNullable(school);
+        this.school = normalizeNullable(school, MAX_SCHOOL_LENGTH, "학력은 255자를 넘을 수 없습니다.");
         this.links = new ArrayList<>(copyLinks(links));
-        this.nationality = normalizeNullable(nationality);
-        this.coverLetter = normalizeNullable(coverLetter);
-        this.specialty = normalizeNullable(specialty);
-        this.hobbies = normalizeNullable(hobbies);
+        this.nationality = normalizeNullable(
+                nationality,
+                MAX_NATIONALITY_LENGTH,
+                "국적은 100자를 넘을 수 없습니다."
+        );
+        this.coverLetter = normalizeNullable(
+                coverLetter,
+                MAX_COVER_LETTER_LENGTH,
+                "자기소개는 2,000자를 넘을 수 없습니다."
+        );
+        this.specialty = normalizeNullable(specialty, MAX_SPECIALTY_LENGTH, "특기는 255자를 넘을 수 없습니다.");
+        this.hobbies = normalizeNullable(hobbies, MAX_HOBBIES_LENGTH, "취미는 255자를 넘을 수 없습니다.");
         this.military = military;
         this.careers = new ArrayList<>(copyCareers(careers));
     }
@@ -88,7 +102,11 @@ public class SubmissionAdditionalInformation {
         }
         List<String> normalizedLinks = new ArrayList<>(safeLinks.size());
         for (String link : safeLinks) {
-            normalizedLinks.add(requireText(link, "외부 링크는 비어 있을 수 없습니다."));
+            String normalizedLink = requireText(link, "외부 링크는 비어 있을 수 없습니다.");
+            if (normalizedLink.length() > MAX_LINK_LENGTH) {
+                throw new BusinessException(INVALID_SUBMISSION, "외부 링크는 255자를 넘을 수 없습니다.");
+            }
+            normalizedLinks.add(normalizedLink);
         }
         return List.copyOf(normalizedLinks);
     }
@@ -107,6 +125,14 @@ public class SubmissionAdditionalInformation {
             return null;
         }
         return value.trim();
+    }
+
+    private static String normalizeNullable(String value, int maxLength, String message) {
+        String normalizedValue = normalizeNullable(value);
+        if (normalizedValue != null && normalizedValue.length() > maxLength) {
+            throw new BusinessException(INVALID_SUBMISSION, message);
+        }
+        return normalizedValue;
     }
 
     public String school() {

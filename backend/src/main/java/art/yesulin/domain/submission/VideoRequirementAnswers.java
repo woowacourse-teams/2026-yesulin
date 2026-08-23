@@ -22,36 +22,36 @@ import lombok.NoArgsConstructor;
 @Embeddable
 @EqualsAndHashCode
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class VideoResponses {
+public class VideoRequirementAnswers {
 
     public static final int MAX_VIDEO_COUNT = 5;
 
-    @Column(name = "video_responses_present", nullable = false, updatable = false)
+    @Column(name = "video_requirement_answers_present", nullable = false, updatable = false)
     private boolean present = true;
 
     @ElementCollection(fetch = FetchType.LAZY)
-    @CollectionTable(name = "submission_video_responses", joinColumns = @JoinColumn(name = "submission_id"))
-    @OrderColumn(name = "response_order")
-    private List<VideoResponse> values = new ArrayList<>();
+    @CollectionTable(name = "submission_video_requirement_answers", joinColumns = @JoinColumn(name = "submission_id"))
+    @OrderColumn(name = "answer_order")
+    private List<VideoRequirementAnswer> values = new ArrayList<>();
 
-    public VideoResponses(List<VideoResponse> values) {
-        List<VideoResponse> safeValues = requireNonNull(values, "영상 응답 목록은 필수입니다.");
+    public VideoRequirementAnswers(List<VideoRequirementAnswer> values) {
+        List<VideoRequirementAnswer> safeValues = requireNonNull(values, "영상 답변 목록은 필수입니다.");
         if (safeValues.size() > MAX_VIDEO_COUNT) {
             throw new BusinessException(INVALID_SUBMISSION, "제출 영상은 최대 5개까지 저장할 수 있습니다.");
         }
-        safeValues.forEach(value -> requireNonNull(value, "영상 응답은 비어 있을 수 없습니다."));
+        safeValues.forEach(value -> requireNonNull(value, "영상 답변은 비어 있을 수 없습니다."));
         validateUniqueRequirementIds(safeValues);
         this.values = new ArrayList<>(safeValues);
     }
 
-    private static void validateUniqueRequirementIds(List<VideoResponse> values) {
+    private static void validateUniqueRequirementIds(List<VideoRequirementAnswer> values) {
         Set<Long> requirementIds = new HashSet<>();
         if (values.stream().anyMatch(video -> !requirementIds.add(video.videoRequirementId()))) {
             throw new BusinessException(INVALID_SUBMISSION, "같은 영상 요구사항에 여러 URL을 제출할 수 없습니다.");
         }
     }
 
-    public List<VideoResponse> values() {
+    public List<VideoRequirementAnswer> values() {
         return List.copyOf(values);
     }
 }

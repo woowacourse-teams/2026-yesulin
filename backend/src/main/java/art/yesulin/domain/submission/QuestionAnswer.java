@@ -9,7 +9,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 
 @Embeddable
-public record QuestionResponse(
+public record QuestionAnswer(
         @Column(name = "question_id", nullable = false) long questionId,
         @Column(name = "question", nullable = false, length = MAX_QUESTION_LENGTH) String question,
         @Column(name = "answer", nullable = false, length = MAX_ANSWER_LENGTH) String answer
@@ -18,7 +18,7 @@ public record QuestionResponse(
     public static final int MAX_QUESTION_LENGTH = 255;
     public static final int MAX_ANSWER_LENGTH = 2_000;
 
-    public QuestionResponse {
+    public QuestionAnswer {
         questionId = requirePositive(questionId, "추가 질문 ID는 1 이상이어야 합니다.");
         question = requireText(question, "제출 질문 문구는 필수입니다.");
         if (question.length() > MAX_QUESTION_LENGTH) {

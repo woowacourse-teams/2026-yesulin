@@ -9,7 +9,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 
 @Embeddable
-public record PhotoResponse(
+public record PhotoRequirementAnswer(
         @Column(name = "photo_requirement_id", nullable = false) long photoRequirementId,
         @Column(
                 name = "requirement_description",
@@ -22,7 +22,7 @@ public record PhotoResponse(
 
     public static final int MAX_DESCRIPTION_LENGTH = 255;
 
-    public PhotoResponse {
+    public PhotoRequirementAnswer {
         photoRequirementId = requirePositive(photoRequirementId, "사진 요구사항 ID는 1 이상이어야 합니다.");
         requirementDescription = requireText(requirementDescription, "사진 요구사항 문구는 필수입니다.");
         if (requirementDescription.length() > MAX_DESCRIPTION_LENGTH) {

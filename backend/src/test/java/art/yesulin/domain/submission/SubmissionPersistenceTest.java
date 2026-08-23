@@ -88,14 +88,15 @@ class SubmissionPersistenceTest {
                 List.of(new SelectedRole(11L, "오필리어"), new SelectedRole(12L, "거트루드")),
                 found.getSelectedRoles().values()
         );
-        assertEquals(List.of(21L, 22L), found.getFormResponses().questionResponses().values().stream()
-                .map(QuestionResponse::questionId)
+        assertEquals(List.of(21L, 22L), found.getFormAnswers().questionAnswers().values().stream()
+                .map(QuestionAnswer::questionId)
                 .toList());
-        assertEquals(List.of(firstFileId, secondFileId), found.getFormResponses().photoResponses().values().stream()
-                .map(PhotoResponse::fileId)
+        assertEquals(List.of(firstFileId, secondFileId), found.getFormAnswers().photoRequirementAnswers().values()
+                .stream()
+                .map(PhotoRequirementAnswer::fileId)
                 .toList());
-        assertEquals(List.of(51L, 52L), found.getFormResponses().videoResponses().values().stream()
-                .map(VideoResponse::videoRequirementId)
+        assertEquals(List.of(51L, 52L), found.getFormAnswers().videoRequirementAnswers().values().stream()
+                .map(VideoRequirementAnswer::videoRequirementId)
                 .toList());
     }
 
@@ -123,7 +124,7 @@ class SubmissionPersistenceTest {
         assertNotNull(found.getFirst().getApplicantSnapshot().getBasicInformation());
         assertNotNull(found.getFirst().getApplicantSnapshot().getAdditionalInformation());
         assertNotNull(found.getFirst().getApplicantSnapshot().getSubmissionFieldSnapshot());
-        assertNotNull(found.getFirst().getFormResponses());
+        assertNotNull(found.getFirst().getFormAnswers());
         assertTrue(submissionRepository.existsByApplicantIdAndAuditionId(APPLICANT_ID, 2L));
     }
 
@@ -171,18 +172,18 @@ class SubmissionPersistenceTest {
                 submittedAt,
                 RECRUITMENT_END_AT
         );
-        SubmissionFormResponses responses = new SubmissionFormResponses(
-                new QuestionResponses(List.of(
-                        new QuestionResponse(21L, "지원 동기는?", "작품의 주제에 공감했습니다."),
-                        new QuestionResponse(22L, "참여 가능한 일정은?", "전체 일정에 참여할 수 있습니다.")
+        SubmissionFormAnswers formAnswers = new SubmissionFormAnswers(
+                new QuestionAnswers(List.of(
+                        new QuestionAnswer(21L, "지원 동기는?", "작품의 주제에 공감했습니다."),
+                        new QuestionAnswer(22L, "참여 가능한 일정은?", "전체 일정에 참여할 수 있습니다.")
                 )),
-                new PhotoResponses(List.of(
-                        new PhotoResponse(31L, "프로필 사진", firstFileId),
-                        new PhotoResponse(31L, "프로필 사진", secondFileId)
+                new PhotoRequirementAnswers(List.of(
+                        new PhotoRequirementAnswer(31L, "프로필 사진", firstFileId),
+                        new PhotoRequirementAnswer(31L, "프로필 사진", secondFileId)
                 )),
-                new VideoResponses(List.of(
-                        new VideoResponse(51L, "자유 연기", "https://youtu.be/abcdefghijk"),
-                        new VideoResponse(52L, "지정 연기", "https://youtu.be/lmnopqrstuv")
+                new VideoRequirementAnswers(List.of(
+                        new VideoRequirementAnswer(51L, "자유 연기", "https://youtu.be/abcdefghijk"),
+                        new VideoRequirementAnswer(52L, "지정 연기", "https://youtu.be/lmnopqrstuv")
                 ))
         );
         return new Submission(
@@ -195,7 +196,7 @@ class SubmissionPersistenceTest {
                         new SelectedRole(11L, "오필리어"),
                         new SelectedRole(12L, "거트루드")
                 )),
-                responses
+                formAnswers
         );
     }
 
@@ -220,10 +221,10 @@ class SubmissionPersistenceTest {
                 new AuditionSnapshot(auditionId, "공고 " + auditionId),
                 applicantSnapshot,
                 new SelectedRoles(List.of(new SelectedRole(auditionId * 10, "배역"))),
-                new SubmissionFormResponses(
-                        new QuestionResponses(List.of()),
-                        new PhotoResponses(List.of()),
-                        new VideoResponses(List.of())
+                new SubmissionFormAnswers(
+                        new QuestionAnswers(List.of()),
+                        new PhotoRequirementAnswers(List.of()),
+                        new VideoRequirementAnswers(List.of())
                 )
         );
     }

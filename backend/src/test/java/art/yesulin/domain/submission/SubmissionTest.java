@@ -32,9 +32,11 @@ class SubmissionTest {
                 SUBMITTED_AT, RECRUITMENT_END_AT
         );
         SelectedRole selectedRole = new SelectedRole(11L, "오필리어");
-        QuestionResponse questionResponse = new QuestionResponse(21L, "지원 동기는?", "작품의 주제에 공감했습니다.");
-        PhotoResponse photoResponse = new PhotoResponse(31L, "정면 사진", 41L);
-        VideoResponse videoResponse = new VideoResponse(51L, "자유 연기", "https://youtu.be/abcdefghijk");
+        QuestionAnswer questionAnswer = new QuestionAnswer(21L, "지원 동기는?", "작품의 주제에 공감했습니다.");
+        PhotoRequirementAnswer photoAnswer = new PhotoRequirementAnswer(31L, "정면 사진", 41L);
+        VideoRequirementAnswer videoAnswer = new VideoRequirementAnswer(
+                51L, "자유 연기", "https://youtu.be/abcdefghijk"
+        );
         Submission submission = new Submission(
                 SUBMISSION_ID,
                 1L,
@@ -42,10 +44,10 @@ class SubmissionTest {
                 auditionSnapshot,
                 applicantSnapshot,
                 new SelectedRoles(List.of(selectedRole)),
-                new SubmissionFormResponses(
-                        new QuestionResponses(List.of(questionResponse)),
-                        new PhotoResponses(List.of(photoResponse)),
-                        new VideoResponses(List.of(videoResponse))
+                new SubmissionFormAnswers(
+                        new QuestionAnswers(List.of(questionAnswer)),
+                        new PhotoRequirementAnswers(List.of(photoAnswer)),
+                        new VideoRequirementAnswers(List.of(videoAnswer))
                 )
         );
 
@@ -56,9 +58,9 @@ class SubmissionTest {
         assertEquals(new AuditionSnapshot(2L, "햄릿 배우 모집"), submission.getAuditionSnapshot());
         assertSame(applicantSnapshot, submission.getApplicantSnapshot());
         assertEquals(List.of(selectedRole), submission.getSelectedRoles().values());
-        assertEquals(List.of(questionResponse), submission.getFormResponses().questionResponses().values());
-        assertEquals(List.of(photoResponse), submission.getFormResponses().photoResponses().values());
-        assertEquals(List.of(videoResponse), submission.getFormResponses().videoResponses().values());
+        assertEquals(List.of(questionAnswer), submission.getFormAnswers().questionAnswers().values());
+        assertEquals(List.of(photoAnswer), submission.getFormAnswers().photoRequirementAnswers().values());
+        assertEquals(List.of(videoAnswer), submission.getFormAnswers().videoRequirementAnswers().values());
     }
 
     @Test
@@ -75,7 +77,7 @@ class SubmissionTest {
                         SUBMITTED_AT, RECRUITMENT_END_AT
                 ),
                 new SelectedRoles(sourceRoles),
-                emptyFormResponses()
+                emptyFormAnswers()
         );
 
         sourceRoles.add(new SelectedRole(12L, "햄릿"));
@@ -98,11 +100,11 @@ class SubmissionTest {
         );
     }
 
-    private SubmissionFormResponses emptyFormResponses() {
-        return new SubmissionFormResponses(
-                new QuestionResponses(List.of()),
-                new PhotoResponses(List.of()),
-                new VideoResponses(List.of())
+    private SubmissionFormAnswers emptyFormAnswers() {
+        return new SubmissionFormAnswers(
+                new QuestionAnswers(List.of()),
+                new PhotoRequirementAnswers(List.of()),
+                new VideoRequirementAnswers(List.of())
         );
     }
 }

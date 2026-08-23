@@ -58,7 +58,7 @@ public class Submission {
     private SelectedRoles selectedRoles;
 
     @Embedded
-    private SubmissionFormResponses formResponses;
+    private SubmissionFormAnswers formAnswers;
 
     public Submission(
             long applicantId,
@@ -66,11 +66,11 @@ public class Submission {
             AuditionSnapshot auditionSnapshot,
             ApplicantSnapshot applicantSnapshot,
             SelectedRoles selectedRoles,
-            SubmissionFormResponses formResponses
+            SubmissionFormAnswers formAnswers
     ) {
         this(
                 UUID.randomUUID(), applicantId, submittedAt, auditionSnapshot,
-                applicantSnapshot, selectedRoles, formResponses
+                applicantSnapshot, selectedRoles, formAnswers
         );
     }
 
@@ -81,7 +81,7 @@ public class Submission {
             AuditionSnapshot auditionSnapshot,
             ApplicantSnapshot applicantSnapshot,
             SelectedRoles selectedRoles,
-            SubmissionFormResponses formResponses
+            SubmissionFormAnswers formAnswers
     ) {
         this.submissionId = requireNonNull(submissionId, "제출 지원서 ID는 필수입니다.");
         this.applicantId = requirePositive(applicantId, "지원자 ID는 1 이상이어야 합니다.");
@@ -89,7 +89,7 @@ public class Submission {
         this.auditionSnapshot = requireNonNull(auditionSnapshot, "공고 스냅샷은 필수입니다.");
         this.applicantSnapshot = requireNonNull(applicantSnapshot, "지원자 스냅샷은 필수입니다.");
         this.selectedRoles = requireNonNull(selectedRoles, "선택 배역은 필수입니다.");
-        this.formResponses = requireNonNull(formResponses, "지원 폼 응답은 필수입니다.");
+        this.formAnswers = requireNonNull(formAnswers, "지원 폼 답변은 필수입니다.");
     }
 
     public long getAuditionId() {

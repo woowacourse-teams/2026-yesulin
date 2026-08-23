@@ -62,9 +62,9 @@ class SubmissionCollectionsTest {
     void rejectsDuplicateQuestionIds() {
         BusinessException exception = assertThrows(
                 BusinessException.class,
-                () -> new QuestionResponses(List.of(
-                        new QuestionResponse(1L, "지원 동기는?", "답변 1"),
-                        new QuestionResponse(1L, "다른 문구", "답변 2")
+                () -> new QuestionAnswers(List.of(
+                        new QuestionAnswer(1L, "지원 동기는?", "답변 1"),
+                        new QuestionAnswer(1L, "다른 문구", "답변 2")
                 ))
         );
 
@@ -73,9 +73,9 @@ class SubmissionCollectionsTest {
 
     @Test
     void allowsDifferentPhotosForSameRequirement() {
-        PhotoResponses photos = new PhotoResponses(List.of(
-                new PhotoResponse(1L, "전신 사진", 10L),
-                new PhotoResponse(1L, "전신 사진", 11L)
+        PhotoRequirementAnswers photos = new PhotoRequirementAnswers(List.of(
+                new PhotoRequirementAnswer(1L, "전신 사진", 10L),
+                new PhotoRequirementAnswer(1L, "전신 사진", 11L)
         ));
 
         assertEquals(2, photos.values().size());
@@ -85,9 +85,9 @@ class SubmissionCollectionsTest {
     void rejectsDuplicatePhotoAssociation() {
         BusinessException exception = assertThrows(
                 BusinessException.class,
-                () -> new PhotoResponses(List.of(
-                        new PhotoResponse(1L, "전신 사진", 10L),
-                        new PhotoResponse(1L, "오래된 문구", 10L)
+                () -> new PhotoRequirementAnswers(List.of(
+                        new PhotoRequirementAnswer(1L, "전신 사진", 10L),
+                        new PhotoRequirementAnswer(1L, "오래된 문구", 10L)
                 ))
         );
 
@@ -98,9 +98,9 @@ class SubmissionCollectionsTest {
     void rejectsDuplicateVideoRequirementIds() {
         BusinessException exception = assertThrows(
                 BusinessException.class,
-                () -> new VideoResponses(List.of(
-                        new VideoResponse(1L, "자유 연기", "https://youtu.be/abcdefghijk"),
-                        new VideoResponse(1L, "지정 연기", "https://youtu.be/lmnopqrstuv")
+                () -> new VideoRequirementAnswers(List.of(
+                        new VideoRequirementAnswer(1L, "자유 연기", "https://youtu.be/abcdefghijk"),
+                        new VideoRequirementAnswer(1L, "지정 연기", "https://youtu.be/lmnopqrstuv")
                 ))
         );
 
@@ -108,8 +108,8 @@ class SubmissionCollectionsTest {
     }
 
     @Test
-    void normalizesEmptyOptionalQuestionAnswer() {
-        QuestionResponse answer = new QuestionResponse(1L, "추가로 하고 싶은 말은?", null);
+    void normalizesEmptyOptionalAnswer() {
+        QuestionAnswer answer = new QuestionAnswer(1L, "추가로 하고 싶은 말은?", null);
 
         assertEquals("", answer.answer());
     }

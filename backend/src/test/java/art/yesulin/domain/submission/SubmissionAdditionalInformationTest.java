@@ -1,5 +1,6 @@
 package art.yesulin.domain.submission;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -61,5 +62,80 @@ class SubmissionAdditionalInformationTest {
         );
 
         assertEquals(SubmissionErrorCode.INVALID_SUBMISSION, exception.getErrorCode());
+    }
+
+    @Test
+    void rejectsTextOverMaximumLengths() {
+        assertAll(
+                () -> assertThrows(
+                        BusinessException.class,
+                        () -> new SubmissionAdditionalInformation(
+                                "가".repeat(SubmissionAdditionalInformation.MAX_SCHOOL_LENGTH + 1),
+                                List.of(), null, null, null, null, null, List.of()
+                        )
+                ),
+                () -> assertThrows(
+                        BusinessException.class,
+                        () -> new SubmissionAdditionalInformation(
+                                null,
+                                List.of("a".repeat(SubmissionAdditionalInformation.MAX_LINK_LENGTH + 1)),
+                                null, null, null, null, null, List.of()
+                        )
+                ),
+                () -> assertThrows(
+                        BusinessException.class,
+                        () -> new SubmissionAdditionalInformation(
+                                null, List.of(),
+                                "가".repeat(SubmissionAdditionalInformation.MAX_NATIONALITY_LENGTH + 1),
+                                null, null, null, null, List.of()
+                        )
+                ),
+                () -> assertThrows(
+                        BusinessException.class,
+                        () -> new SubmissionAdditionalInformation(
+                                null, List.of(), null,
+                                "가".repeat(SubmissionAdditionalInformation.MAX_COVER_LETTER_LENGTH + 1),
+                                null, null, null, List.of()
+                        )
+                ),
+                () -> assertThrows(
+                        BusinessException.class,
+                        () -> new SubmissionAdditionalInformation(
+                                null, List.of(), null, null,
+                                "가".repeat(SubmissionAdditionalInformation.MAX_SPECIALTY_LENGTH + 1),
+                                null, null, List.of()
+                        )
+                ),
+                () -> assertThrows(
+                        BusinessException.class,
+                        () -> new SubmissionAdditionalInformation(
+                                null, List.of(), null, null, null,
+                                "가".repeat(SubmissionAdditionalInformation.MAX_HOBBIES_LENGTH + 1),
+                                null, List.of()
+                        )
+                )
+        );
+    }
+
+    @Test
+    void rejectsCareerTextOverMaximumLengths() {
+        assertAll(
+                () -> assertThrows(
+                        BusinessException.class,
+                        () -> new SubmissionCareer(
+                                2025,
+                                "가".repeat(SubmissionCareer.MAX_TITLE_LENGTH + 1),
+                                "배역"
+                        )
+                ),
+                () -> assertThrows(
+                        BusinessException.class,
+                        () -> new SubmissionCareer(
+                                2025,
+                                "작품",
+                                "가".repeat(SubmissionCareer.MAX_ROLE_NAME_LENGTH + 1)
+                        )
+                )
+        );
     }
 }

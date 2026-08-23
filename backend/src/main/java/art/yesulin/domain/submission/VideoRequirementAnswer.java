@@ -9,7 +9,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 
 @Embeddable
-public record VideoResponse(
+public record VideoRequirementAnswer(
         @Column(name = "video_requirement_id", nullable = false) long videoRequirementId,
         @Column(
                 name = "requirement_description",
@@ -22,7 +22,7 @@ public record VideoResponse(
 
     public static final int MAX_DESCRIPTION_LENGTH = 255;
 
-    public VideoResponse {
+    public VideoRequirementAnswer {
         videoRequirementId = requirePositive(videoRequirementId, "영상 요구사항 ID는 1 이상이어야 합니다.");
         requirementDescription = requireText(requirementDescription, "영상 요구사항 문구는 필수입니다.");
         if (requirementDescription.length() > MAX_DESCRIPTION_LENGTH) {

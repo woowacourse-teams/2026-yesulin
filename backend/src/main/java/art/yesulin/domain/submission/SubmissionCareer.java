@@ -10,9 +10,12 @@ import jakarta.persistence.Embeddable;
 @Embeddable
 public record SubmissionCareer(
         @Column(name = "career_year", nullable = false) int year,
-        @Column(name = "title", nullable = false, columnDefinition = "text") String title,
-        @Column(name = "role_name", nullable = false, columnDefinition = "text") String roleName
+        @Column(name = "title", nullable = false, length = MAX_TITLE_LENGTH) String title,
+        @Column(name = "role_name", nullable = false, length = MAX_ROLE_NAME_LENGTH) String roleName
 ) {
+
+    public static final int MAX_TITLE_LENGTH = 255;
+    public static final int MAX_ROLE_NAME_LENGTH = 100;
 
     private static final int MINIMUM_YEAR = 1_000;
     private static final int MAXIMUM_YEAR = 9_999;
@@ -22,6 +25,12 @@ public record SubmissionCareer(
             throw new BusinessException(INVALID_SUBMISSION, "경력 연도는 네 자리 숫자여야 합니다.");
         }
         title = requireText(title, "경력 작품명은 필수입니다.");
+        if (title.length() > MAX_TITLE_LENGTH) {
+            throw new BusinessException(INVALID_SUBMISSION, "경력 작품명은 255자를 넘을 수 없습니다.");
+        }
         roleName = requireText(roleName, "경력 배역명은 필수입니다.");
+        if (roleName.length() > MAX_ROLE_NAME_LENGTH) {
+            throw new BusinessException(INVALID_SUBMISSION, "경력 배역명은 100자를 넘을 수 없습니다.");
+        }
     }
 }

@@ -22,29 +22,29 @@ import lombok.NoArgsConstructor;
 @Embeddable
 @EqualsAndHashCode
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class PhotoResponses {
+public class PhotoRequirementAnswers {
 
     public static final int MAX_PHOTO_COUNT = 10;
 
-    @Column(name = "photo_responses_present", nullable = false, updatable = false)
+    @Column(name = "photo_requirement_answers_present", nullable = false, updatable = false)
     private boolean present = true;
 
     @ElementCollection(fetch = FetchType.LAZY)
-    @CollectionTable(name = "submission_photo_responses", joinColumns = @JoinColumn(name = "submission_id"))
-    @OrderColumn(name = "response_order")
-    private List<PhotoResponse> values = new ArrayList<>();
+    @CollectionTable(name = "submission_photo_requirement_answers", joinColumns = @JoinColumn(name = "submission_id"))
+    @OrderColumn(name = "answer_order")
+    private List<PhotoRequirementAnswer> values = new ArrayList<>();
 
-    public PhotoResponses(List<PhotoResponse> values) {
-        List<PhotoResponse> safeValues = requireNonNull(values, "사진 응답 목록은 필수입니다.");
+    public PhotoRequirementAnswers(List<PhotoRequirementAnswer> values) {
+        List<PhotoRequirementAnswer> safeValues = requireNonNull(values, "사진 답변 목록은 필수입니다.");
         if (safeValues.size() > MAX_PHOTO_COUNT) {
             throw new BusinessException(INVALID_SUBMISSION, "제출 사진은 최대 10장까지 저장할 수 있습니다.");
         }
-        safeValues.forEach(value -> requireNonNull(value, "사진 응답은 비어 있을 수 없습니다."));
+        safeValues.forEach(value -> requireNonNull(value, "사진 답변은 비어 있을 수 없습니다."));
         validateUniqueAssociations(safeValues);
         this.values = new ArrayList<>(safeValues);
     }
 
-    private static void validateUniqueAssociations(List<PhotoResponse> values) {
+    private static void validateUniqueAssociations(List<PhotoRequirementAnswer> values) {
         Set<PhotoAssociation> associations = new HashSet<>();
         if (values.stream().anyMatch(photo -> !associations.add(PhotoAssociation.from(photo)))) {
             throw new BusinessException(INVALID_SUBMISSION, "같은 사진 요구사항에 같은 파일을 중복해서 제출할 수 없습니다.");
@@ -53,12 +53,12 @@ public class PhotoResponses {
 
     private record PhotoAssociation(long photoRequirementId, long fileId) {
 
-        private static PhotoAssociation from(PhotoResponse photo) {
+        private static PhotoAssociation from(PhotoRequirementAnswer photo) {
             return new PhotoAssociation(photo.photoRequirementId(), photo.fileId());
         }
     }
 
-    public List<PhotoResponse> values() {
+    public List<PhotoRequirementAnswer> values() {
         return List.copyOf(values);
     }
 }
