@@ -14,6 +14,7 @@ import art.yesulin.application.auth.MemberPrincipal;
 import art.yesulin.application.auth.PasswordEncoder;
 import art.yesulin.domain.member.Member;
 import art.yesulin.domain.member.MemberRepository;
+import art.yesulin.domain.member.MemberStatus;
 import art.yesulin.domain.member.MemberType;
 import art.yesulin.support.ObjectStorageTestConfiguration;
 import jakarta.servlet.http.HttpSession;
@@ -53,7 +54,8 @@ class SessionControllerTest {
     @BeforeEach
     void setUp() {
         memberRepository.deleteAll();
-        memberRepository.save(new Member(EMAIL, passwordEncoder.encode(PASSWORD), MemberType.PRODUCER));
+        memberRepository.save(new Member(EMAIL, passwordEncoder.encode(PASSWORD), MemberType.PRODUCER,
+                MemberStatus.ACTIVE));
     }
 
     @Test
@@ -91,7 +93,7 @@ class SessionControllerTest {
 
     @Test
     void findsCurrentSession() throws Exception {
-        MemberPrincipal principal = new MemberPrincipal(1L, MemberType.PRODUCER);
+        MemberPrincipal principal = new MemberPrincipal(1L, MemberType.PRODUCER, MemberStatus.ACTIVE);
 
         mockMvc.perform(get("/api/v1/sessions/current")
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, principal))
@@ -109,7 +111,7 @@ class SessionControllerTest {
 
     @Test
     void removesSessionOnLogout() throws Exception {
-        MemberPrincipal principal = new MemberPrincipal(1L, MemberType.PRODUCER);
+        MemberPrincipal principal = new MemberPrincipal(1L, MemberType.PRODUCER, MemberStatus.ACTIVE);
 
         MvcResult result = mockMvc.perform(delete("/api/v1/sessions/current")
                         .with(csrf())

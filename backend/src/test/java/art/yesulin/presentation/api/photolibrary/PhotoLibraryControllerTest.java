@@ -13,6 +13,7 @@ import art.yesulin.application.auth.MemberPrincipal;
 import art.yesulin.application.file.FileService;
 import art.yesulin.application.file.FileUploadCommand;
 import art.yesulin.application.file.FileUploadResult;
+import art.yesulin.domain.member.MemberStatus;
 import art.yesulin.domain.member.MemberType;
 import art.yesulin.support.FakeObjectStorage;
 import art.yesulin.support.ObjectStorageTestConfiguration;
@@ -39,7 +40,8 @@ import tools.jackson.databind.ObjectMapper;
 @Transactional
 class PhotoLibraryControllerTest {
 
-    private static final MemberPrincipal MEMBER_PRINCIPAL = new MemberPrincipal(1L, MemberType.APPLICANT);
+    private static final MemberPrincipal MEMBER_PRINCIPAL = new MemberPrincipal(1L, MemberType.APPLICANT,
+            MemberStatus.ACTIVE);
     private static final String PHOTOS_PATH = "/api/v1/applicants/me/photo-library/photos";
 
     @Autowired
@@ -197,7 +199,8 @@ class PhotoLibraryControllerTest {
         MvcResult result = mockMvc.perform(post(PHOTOS_PATH)
                         .with(csrf())
                         .sessionAttr(
-                                MemberPrincipal.SESSION_ATTRIBUTE, new MemberPrincipal(ownerId, MemberType.APPLICANT))
+                                MemberPrincipal.SESSION_ATTRIBUTE, new MemberPrincipal(ownerId, MemberType.APPLICANT,
+                                        MemberStatus.ACTIVE))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(addPhotoRequest(fileId)))
                 .andExpect(status().isCreated())

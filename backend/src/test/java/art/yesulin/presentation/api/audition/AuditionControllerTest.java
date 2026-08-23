@@ -1,6 +1,5 @@
 package art.yesulin.presentation.api.audition;
 
-import static org.hamcrest.Matchers.matchesPattern;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -21,6 +20,7 @@ import art.yesulin.domain.audition.AuditionRepository;
 import art.yesulin.domain.audition.role.AuditionRoleSectionRepository;
 import art.yesulin.domain.file.FileAssetRepository;
 import art.yesulin.domain.file.FileReferenceRepository;
+import art.yesulin.domain.member.MemberStatus;
 import art.yesulin.domain.member.MemberType;
 import art.yesulin.domain.performance.PerformanceRepository;
 import art.yesulin.support.FakeObjectStorage;
@@ -47,7 +47,8 @@ import org.springframework.test.web.servlet.MockMvc;
 class AuditionControllerTest {
 
     private static final long OWNER_ID = 1L;
-    private static final MemberPrincipal MEMBER_PRINCIPAL = new MemberPrincipal(OWNER_ID, MemberType.PRODUCER);
+    private static final MemberPrincipal MEMBER_PRINCIPAL = new MemberPrincipal(OWNER_ID, MemberType.PRODUCER,
+            MemberStatus.ACTIVE);
 
     @Autowired
     private MockMvc mockMvc;
@@ -87,7 +88,7 @@ class AuditionControllerTest {
 
     @Test
     void rejectsApplicantWithForbidden() throws Exception {
-        MemberPrincipal applicant = new MemberPrincipal(OWNER_ID, MemberType.APPLICANT);
+        MemberPrincipal applicant = new MemberPrincipal(OWNER_ID, MemberType.APPLICANT, MemberStatus.ACTIVE);
 
         mockMvc.perform(get("/api/v1/auditions/{auditionId}", 1L)
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, applicant))
@@ -250,4 +251,15 @@ class AuditionControllerTest {
         fileService.completeUpload(OWNER_ID, upload.fileId());
         return upload.fileId();
     }
+
+    @Test
+    void rejectsPendingProducerWithForbidden() throws Exception {
+        MemberPrincipal producer = new MemberPrincipal(OWNER_ID, MemberType.PRODUCER, MemberStatus.PENDING);
+
+        mockMvc.perform(get("/api/v1/auditions/{auditionId}", 1L)
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, producer))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("AUTH_INACTIVE_MEMBER"));
+    }
+
 }

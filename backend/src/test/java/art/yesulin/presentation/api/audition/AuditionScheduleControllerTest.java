@@ -11,6 +11,7 @@ import art.yesulin.domain.audition.Audition;
 import art.yesulin.domain.audition.AuditionRepository;
 import art.yesulin.domain.audition.PerformancePeriod;
 import art.yesulin.domain.audition.schedule.AuditionScheduleRepository;
+import art.yesulin.domain.member.MemberStatus;
 import art.yesulin.domain.member.MemberType;
 import art.yesulin.support.ObjectStorageTestConfiguration;
 import java.time.LocalDate;
@@ -34,7 +35,8 @@ import org.springframework.test.web.servlet.MockMvc;
 class AuditionScheduleControllerTest {
 
     private static final long OWNER_ID = 1L;
-    private static final MemberPrincipal MEMBER_PRINCIPAL = new MemberPrincipal(OWNER_ID, MemberType.PRODUCER);
+    private static final MemberPrincipal MEMBER_PRINCIPAL = new MemberPrincipal(OWNER_ID, MemberType.PRODUCER,
+            MemberStatus.ACTIVE);
 
     @Autowired
     private MockMvc mockMvc;

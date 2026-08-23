@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.member.Member;
 import art.yesulin.domain.member.MemberRepository;
+import art.yesulin.domain.member.MemberStatus;
 import art.yesulin.domain.member.MemberType;
 import art.yesulin.support.ObjectStorageTestConfiguration;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,7 +39,8 @@ class AuthServiceTest {
     @BeforeEach
     void setUp() {
         memberRepository.deleteAll();
-        memberRepository.save(new Member(EMAIL, passwordEncoder.encode(PASSWORD), MemberType.PRODUCER));
+        memberRepository.save(new Member(EMAIL, passwordEncoder.encode(PASSWORD), MemberType.PRODUCER,
+                MemberStatus.ACTIVE));
     }
 
     @Test
@@ -67,4 +69,5 @@ class AuthServiceTest {
 
         assertEquals(AuthErrorCode.INVALID_CREDENTIALS, exception.getErrorCode());
     }
+
 }

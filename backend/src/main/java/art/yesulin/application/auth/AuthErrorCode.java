@@ -7,7 +7,8 @@ public enum AuthErrorCode implements ErrorCode {
 
     UNAUTHENTICATED("AUTH_UNAUTHENTICATED", ErrorType.UNAUTHORIZED),
     INVALID_CREDENTIALS("AUTH_INVALID_CREDENTIALS", ErrorType.UNAUTHORIZED),
-    FORBIDDEN("AUTH_FORBIDDEN", ErrorType.FORBIDDEN);
+    FORBIDDEN("AUTH_FORBIDDEN", ErrorType.FORBIDDEN),
+    INACTIVE_MEMBER("AUTH_INACTIVE_MEMBER", ErrorType.FORBIDDEN);
 
     private final String code;
     private final ErrorType type;

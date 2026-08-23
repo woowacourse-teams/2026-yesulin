@@ -5,6 +5,7 @@ import art.yesulin.application.auth.annotation.LoginMember;
 import art.yesulin.application.auth.annotation.LoginRequired;
 import art.yesulin.application.screening.ScreeningReviewService;
 import art.yesulin.application.screening.ScreeningReviewsResult;
+import art.yesulin.domain.member.MemberStatus;
 import art.yesulin.domain.member.MemberType;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +26,7 @@ public class ScreeningReviewController {
 
     @PatchMapping
     public ResponseEntity<ScreeningReviewsResult> save(
-            @LoginMember(roles = MemberType.PRODUCER) MemberPrincipal principal,
+            @LoginMember(roles = MemberType.PRODUCER, statuses = MemberStatus.ACTIVE) MemberPrincipal principal,
             @PathVariable long roleId,
             @PathVariable int round,
             @Valid @RequestBody SaveScreeningReviewsRequest request

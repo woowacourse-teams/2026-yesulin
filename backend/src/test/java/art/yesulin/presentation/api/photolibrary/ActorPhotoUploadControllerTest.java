@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import art.yesulin.application.auth.MemberPrincipal;
 import art.yesulin.domain.file.FileAssetRepository;
+import art.yesulin.domain.member.MemberStatus;
 import art.yesulin.domain.member.MemberType;
 import art.yesulin.support.FakeObjectStorage;
 import art.yesulin.support.ObjectStorageTestConfiguration;
@@ -35,7 +36,8 @@ import tools.jackson.databind.ObjectMapper;
 class ActorPhotoUploadControllerTest {
 
     private static final long MAX_PHOTO_SIZE = 20L * 1024 * 1024;
-    private static final MemberPrincipal MEMBER_PRINCIPAL = new MemberPrincipal(1L, MemberType.APPLICANT);
+    private static final MemberPrincipal MEMBER_PRINCIPAL = new MemberPrincipal(1L, MemberType.APPLICANT,
+            MemberStatus.ACTIVE);
 
     @Autowired
     private MockMvc mockMvc;
