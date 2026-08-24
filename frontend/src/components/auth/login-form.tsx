@@ -17,6 +17,7 @@ import {
 type LoginErrors = Partial<Record<"identifier" | "password", string>>;
 
 const mockingDisabled = process.env.NEXT_PUBLIC_API_MOCKING === "disabled";
+const realProducerLoginEnabled = process.env.NEXT_PUBLIC_PRODUCER_LOGIN === "enabled";
 const realSocialLoginEnabled = process.env.NEXT_PUBLIC_SOCIAL_LOGIN === "enabled";
 
 const PROVIDER_LABELS: Record<SocialProvider, string> = {
@@ -56,10 +57,11 @@ export function LoginForm({ returnTo, applicationFlow = false }: { readonly retu
       return;
     }
 
-    if (mockingDisabled) {
+    let serverSession: Awaited<ReturnType<typeof requestLogin>> | null = null;
+    if (mockingDisabled || realProducerLoginEnabled) {
       setSubmitting(true);
       try {
-        await requestLogin(trimmedIdentifier, password);
+        serverSession = await requestLogin(trimmedIdentifier, password);
       } catch (error) {
         const message = error instanceof SessionApiError
           ? error.message
@@ -72,10 +74,10 @@ export function LoginForm({ returnTo, applicationFlow = false }: { readonly retu
     }
 
     setSession({
-      credential: createFrontendCredential(),
-      role: "PRODUCER",
+      credential: serverSession ? `member-${serverSession.memberId}` : createFrontendCredential(),
+      role: serverSession?.role ?? "PRODUCER",
       displayName: trimmedIdentifier,
-      producerStatus: "ACTIVE",
+      producerStatus: serverSession?.status ?? "ACTIVE",
     });
     toast("기획사/제작사 계정으로 로그인했습니다.", { type: "success" });
     router.push("/producers/performances");

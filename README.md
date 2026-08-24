@@ -10,12 +10,12 @@
 
 ## 현재 범위
 
-프런트엔드 프로토타입에서는 서비스 소개·인증 UI, 공연·공고 관리, 최대 5차 배우 심사, 공개 지원서 제출·조회, 배우 프로필과 기획사/제작사 설정이 MSW로 동작합니다. 배우는 카카오·네이버·Google 소셜 로그인을 모의하고, 기획사/제작사는 이메일 로그인과 가입 후 `PENDING` 접근 제한을 확인할 수 있습니다. MSW 인메모리 저장소는 화면 확인용 시드와 현재 브라우저 세션에서 만든 데이터를 사용합니다.
+프런트엔드 프로토타입에서는 서비스 소개·인증 UI, 공연·공고 관리, 최대 5차 배우 심사, 공개 지원서 제출·조회, 배우 프로필과 기획사/제작사 설정이 MSW로 동작합니다. 배우는 카카오·네이버·Google 소셜 로그인을 모의하고, 기획사/제작사는 이메일 가입 직후 `ACTIVE` 계정으로 자동 로그인합니다. 향후 기획사 인증을 위한 `PENDING` 접근 제한 UI는 보존하지만 현재 MVP 가입 흐름에서는 사용하지 않습니다. MSW 인메모리 저장소는 화면 확인용 시드와 현재 브라우저 세션에서 만든 데이터를 사용합니다.
 
 백엔드는 공연·배역, presigned 파일 업로드와 공고 DRAFT의 기본 정보·배역·일정·지원 폼 저장, 게시 상태
 전이와 전형별 심사 결과 저장, 배우용 공개 공고 상세와 지원서 제출·스냅샷 조회를 구현했습니다. Backend의
-`S3ObjectStorage` adapter도 구현되어 운영 환경에서는 S3 관련 환경 설정이 필요하며, `local-test`는
-Testcontainers LocalStack S3를 사용합니다. 소셜 로그인과 Frontend 세션 연동은 구현됐고, 사업자·KOPIS
+`S3ObjectStorage` adapter도 구현되어 운영 환경에서는 S3 관련 환경 설정이 필요하며, `local`은
+MySQL과 Testcontainers LocalStack S3를 사용합니다. 소셜 로그인과 Frontend 세션 연동은 구현됐고, 사업자·KOPIS
 검증과 지원서 등 나머지 Frontend API의 실제 Backend 연동은 아직 완료되지 않았습니다. MSW에서 새로 만든
 데이터는 새로고침하면 초기화될 수 있습니다.
 
@@ -53,7 +53,6 @@ cp -n .env.example .env
 
 cd backend
 ./gradlew bootRun
-./gradlew bootRun --args='--spring.profiles.active=local-test'
 ```
 
 테스트에는 실제 OIDC 자격증명이 필요하지 않습니다.
@@ -64,13 +63,15 @@ cd backend
 ./gradlew test
 ```
 
-`local-test` 프로필은 H2와 Testcontainers LocalStack S3를 사용하며, 서버를 재시작하면 DB와
-LocalStack 파일이 초기화됩니다. 인증 우회는 더 이상 제공하지 않으므로 보호된 API를 확인하려면
-`POST /api/v1/sessions`으로 로그인합니다. 테스트에서 인증을 건너뛰어야 하면 `src/test`의
-`LocalTestWebConfiguration`을 `@Import`합니다.
-
+`local` 프로필은 MySQL과 Testcontainers LocalStack S3를 사용하며, LocalStack 파일은 서버를
+재시작하면 초기화됩니다. 인증 우회는 제공하지 않으므로 보호된 API를 확인하려면
+`POST /api/v1/sessions`으로 로그인합니다. 테스트에서 인증을 건너뛰어야 하면
+MockMvc의 인증 요청 후처리 또는 테스트 전용 `MemberPrincipal`을 사용합니다.
 실행 전 Docker Desktop 또는 Docker Engine처럼 Docker API와 호환되는 컨테이너 런타임이
 실행 중이어야 합니다.
+
+MySQL, 백엔드, 프런트엔드를 하나의 Docker 네트워크에서 함께 실행하려면
+[Docker 로컬 실행](./DOCKER.md)을 따릅니다.
 
 카카오·네이버·구글 소셜 로그인 시작 경로와 Callback 설정은 [소셜 로그인 연동 모듈 문서](./docs/development/backend/oauth-social-login.md)를 따릅니다.
 

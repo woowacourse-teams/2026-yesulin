@@ -15,8 +15,10 @@ import type { PublicPosting } from "@/features/applications/public-posting";
 import { getV1PublicPosting } from "@/features/applications/public-audition-v1";
 import { isBackendAuditionId } from "@/features/auditions/audition-v1-api";
 import type { SubmissionId } from "@/features/auditions/types";
+import { withCsrfHeaders } from "@/features/csrf";
 
 const API_BASE_PATH = "/api";
+const WRITE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
 export class ApplicantRequestError extends Error {
   readonly status: number;
@@ -31,9 +33,13 @@ export class ApplicantRequestError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const method = (init?.method ?? "GET").toUpperCase();
+  const baseHeaders = { "Content-Type": "application/json", ...init?.headers } as Record<string, string>;
+  const headers = WRITE_METHODS.has(method) ? await withCsrfHeaders(baseHeaders) : baseHeaders;
   const response = await fetch(`${API_BASE_PATH}${path}`, {
     ...init,
-    headers: { "Content-Type": "application/json", ...init?.headers },
+    credentials: "include",
+    headers,
   });
   if (!response.ok) {
     const body: unknown = await response.json().catch(() => null);

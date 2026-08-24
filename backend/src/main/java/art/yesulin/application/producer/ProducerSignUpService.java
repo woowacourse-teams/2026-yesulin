@@ -20,7 +20,7 @@ public class ProducerSignUpService {
     private final PasswordEncoder passwordEncoder;
 
     /**
-     * 가입 직후 계정은 PENDING이며 운영진 확인 후에만 공연·공고 기능을 사용할 수 있다.
+     * MVP에서는 가입 직후 바로 공연·공고 기능을 사용할 수 있는 활성 계정을 만든다.
      */
     @Transactional
     public ProducerResult signUp(SignUpProducerCommand command) {
@@ -30,7 +30,7 @@ public class ProducerSignUpService {
         }
 
         Member member = memberRepository.save(
-                Member.ofPendingProducer(email, passwordEncoder.encode(command.password())));
+                Member.ofProducer(email, passwordEncoder.encode(command.password())));
         Producer producer = producerRepository.save(
                 new Producer(member.getId(), command.companyName(), command.phone()));
 

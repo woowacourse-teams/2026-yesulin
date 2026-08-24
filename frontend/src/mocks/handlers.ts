@@ -1,4 +1,4 @@
-import { delay, http, HttpResponse } from "msw";
+import { delay, http, HttpResponse, passthrough } from "msw";
 import type {
   CreatePerformanceRequest,
   CreatePostingRequest,
@@ -30,6 +30,7 @@ import { validatePostingDraft } from "./auditions/posting-validation";
 import { authHandlers } from "./auth-handlers";
 
 const apiPath = "/api";
+const realProducerApiEnabled = process.env.NEXT_PUBLIC_PRODUCER_API === "enabled";
 
 const notFound = (message: string) => HttpResponse.json({ message }, { status: 404 });
 const badRequest = (message: string) => HttpResponse.json({ message }, { status: 400 });
@@ -64,6 +65,7 @@ export const handlers = [
   }),
 
   http.get(`${apiPath}/v1/performances`, async () => {
+    if (realProducerApiEnabled) return passthrough();
     await delay(260);
     try { return HttpResponse.json({ performances: CATALOG.map(toPerformanceSummary) }); }
     catch (cause) { return apiError(500, "MOCK_DATA_ERROR", cause instanceof Error ? cause.message : "목 공연 데이터를 만들지 못했습니다."); }

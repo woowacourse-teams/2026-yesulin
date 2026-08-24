@@ -1,5 +1,6 @@
+import { ensureCsrfToken } from "../csrf";
+
 const API_BASE_PATH = "/api/v1";
-const CSRF_COOKIE_NAME = "XSRF-TOKEN";
 const CSRF_HEADER_NAME = "X-CSRF-Token";
 
 export type SessionRole = "APPLICANT" | "PRODUCER";
@@ -22,34 +23,6 @@ export class SessionApiError extends Error {
     this.status = status;
     this.code = code;
   }
-}
-
-function readCsrfToken(): string | null {
-  if (typeof document === "undefined") return null;
-  const entry = document.cookie
-    .split("; ")
-    .find((cookie) => cookie.startsWith(`${CSRF_COOKIE_NAME}=`));
-  return entry ? decodeURIComponent(entry.slice(CSRF_COOKIE_NAME.length + 1)) : null;
-}
-
-/**
- * 쓰기 요청에는 CSRF 토큰이 필요하다. 토큰은 서버가 쿠키로 내려주므로
- * 아직 없으면 읽기 요청을 한 번 보내 발급받는다.
- */
-async function ensureCsrfToken(): Promise<string | null> {
-  const cached = readCsrfToken();
-  if (cached) return cached;
-  await fetch(`${API_BASE_PATH}/sessions/current`, {
-    method: "GET",
-    credentials: "include",
-  }).catch(() => null);
-  return readCsrfToken();
-}
-
-/** 쓰기 요청에 CSRF 토큰 헤더를 더한다. 토큰이 없으면 먼저 발급받는다. */
-export async function withCsrfHeaders(headers: Record<string, string> = {}): Promise<Record<string, string>> {
-  const csrfToken = await ensureCsrfToken();
-  return csrfToken ? { ...headers, [CSRF_HEADER_NAME]: csrfToken } : headers;
 }
 
 async function toApiError(response: Response, fallbackMessage: string) {

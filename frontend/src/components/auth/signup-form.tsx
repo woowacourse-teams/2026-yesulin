@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import { PrimaryButton } from "@/components/ui/controls";
 import { useToast } from "@/components/auditions/toast";
 import { signupProducer } from "@/features/auth/api";
+import { login as requestLogin } from "@/features/auth/session-api";
 import { AuthInput, PasswordInput } from "./auth-fields";
 import { ProducerSignupFields } from "./producer-signup-fields";
-import { createFrontendCredential, useAuthSession } from "./auth-session";
+import { useAuthSession } from "./auth-session";
 
 type SignupField = "company" | "phone" | "email" | "password" | "passwordConfirm" | "terms";
 type SignupErrors = Partial<Record<SignupField, string>>;
@@ -72,14 +73,15 @@ export function SignupForm() {
         passwordConfirm: values.passwordConfirm,
         termsAgreed: terms,
       });
+      const serverSession = await requestLogin(response.email, values.password);
       setSession({
-        credential: createFrontendCredential(),
-        role: response.role,
+        credential: `member-${serverSession.memberId}`,
+        role: serverSession.role,
         displayName: response.companyName,
-        producerStatus: response.verificationStatus,
+        producerStatus: serverSession.status,
       });
-      toast("기획사/제작사 가입이 완료되었습니다. 운영진 확인을 기다려 주세요.", { type: "success" });
-      router.push("/producers/account");
+      toast("기획사/제작사 가입과 로그인이 완료되었습니다.", { type: "success" });
+      router.replace("/producers/performances");
     } catch (cause) {
       toast(cause instanceof Error ? cause.message : "기획사/제작사 계정을 만들지 못했습니다.", { type: "error" });
       setSubmitting(false);
@@ -109,7 +111,7 @@ export function SignupForm() {
       </div>
 
       <PrimaryButton type="submit" disabled={submitting} className="min-h-[52px] w-full text-base">
-        {submitting ? "가입 신청 중…" : "기획사/제작사 회원가입"}
+        {submitting ? "가입 중…" : "기획사/제작사 회원가입"}
       </PrimaryButton>
     </form>
   );

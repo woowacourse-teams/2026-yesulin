@@ -1,4 +1,7 @@
+import { withCsrfHeaders } from "../csrf";
+
 const API_BASE_PATH = "/api";
+const WRITE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
 /** 서버가 내려준 메시지를 그대로 화면에 띄우기 위한 오류 타입. */
 export class AuditionRequestError extends Error {
@@ -14,9 +17,13 @@ export class AuditionRequestError extends Error {
 }
 
 export async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const method = (init?.method ?? "GET").toUpperCase();
+  const baseHeaders = { "Content-Type": "application/json", ...init?.headers } as Record<string, string>;
+  const headers = WRITE_METHODS.has(method) ? await withCsrfHeaders(baseHeaders) : baseHeaders;
   const response = await fetch(`${API_BASE_PATH}${path}`, {
     ...init,
-    headers: { "Content-Type": "application/json", ...init?.headers },
+    credentials: "include",
+    headers,
   });
 
   if (!response.ok) {

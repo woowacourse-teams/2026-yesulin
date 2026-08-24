@@ -5,6 +5,7 @@ const apiOrigin = process.env.API_ORIGIN
   : null;
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   async rewrites() {
     if (!apiOrigin) return [];
 

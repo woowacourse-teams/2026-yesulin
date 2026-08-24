@@ -43,7 +43,7 @@ class ProducerControllerTest {
     }
 
     @Test
-    void signsUpProducerAsPending() throws Exception {
+    void signsUpProducerAsActive() throws Exception {
         mockMvc.perform(post("/api/v1/producers")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -51,7 +51,7 @@ class ProducerControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.companyName").value("예술인 컴퍼니"))
                 .andExpect(jsonPath("$.role").value("PRODUCER"))
-                .andExpect(jsonPath("$.verificationStatus").value("PENDING"));
+                .andExpect(jsonPath("$.verificationStatus").value("ACTIVE"));
     }
 
     @Test

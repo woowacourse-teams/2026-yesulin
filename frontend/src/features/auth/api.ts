@@ -1,4 +1,4 @@
-import { withCsrfHeaders } from "./session-api";
+import { withCsrfHeaders } from "../csrf";
 
 const API_BASE_PATH = "/api/v1";
 

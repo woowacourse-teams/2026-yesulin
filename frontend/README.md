@@ -32,8 +32,21 @@ MSW는 처리하지 않는 요청을 통과시키므로, 기존 `/api/**` 목 AP
 함께 사용한다. 모든 API를 이관하기 전에는 Vercel의 `NEXT_PUBLIC_API_MOCKING`을 `disabled`로
 전환하지 않는다.
 
-아직 이관되지 않은 `/api/**`는 MSW로 유지하면서 실제 소셜 로그인만 확인할 때는
-`NEXT_PUBLIC_SOCIAL_LOGIN=enabled`를 사용한다.
+아직 이관되지 않은 `/api/**`는 MSW로 유지하면서 기획사/제작사 가입·로그인을 실제 백엔드 API로
+연결하려면 `NEXT_PUBLIC_PRODUCER_LOGIN=enabled`를 사용한다. 이 모드에서
+`POST /api/v1/producers`, `POST /api/v1/sessions`, `GET /api/v1/sessions/current`, `DELETE /api/v1/sessions/current`는
+MSW를 통과해 `API_ORIGIN`으로 전달된다.
+
+공연·공고 생성과 구현 완료된 조회 API도 실제 백엔드로 연결하려면
+`NEXT_PUBLIC_PRODUCER_API=enabled`를 함께 사용한다. 이 모드에서는 MSW의 공연 목록 핸들러가
+`GET /api/v1/performances`를 가로채지 않는다. 기획사 정보와 탐색 트리처럼 아직 API가 없는 조회는
+계속 MSW가 처리한다.
+
+```bash
+API_ORIGIN=http://localhost:8080 NEXT_PUBLIC_PRODUCER_LOGIN=enabled NEXT_PUBLIC_PRODUCER_API=enabled npm run dev
+```
+
+실제 배우 소셜 로그인만 확인할 때는 `NEXT_PUBLIC_SOCIAL_LOGIN=enabled`를 사용한다.
 
 ```bash
 API_ORIGIN=http://localhost:8080 NEXT_PUBLIC_SOCIAL_LOGIN=enabled npm run dev
