@@ -61,11 +61,11 @@ public class Member {
     }
 
     /**
-     * 기획사·제작사는 가입 직후 운영진 확인을 기다리는 상태로 만든다.
+     * MVP에서는 별도 이메일 인증 없이 기획사·제작사를 바로 활성 계정으로 만든다.
      */
-    public static Member ofPendingProducer(String email, String password) {
+    public static Member ofProducer(String email, String password) {
         return new Member(
-                requireText(email, "이메일이 필요합니다."), password, MemberType.PRODUCER, MemberStatus.PENDING);
+                requireText(email, "이메일이 필요합니다."), password, MemberType.PRODUCER, MemberStatus.ACTIVE);
     }
 
     public void activate() {

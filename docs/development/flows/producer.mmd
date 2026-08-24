@@ -9,8 +9,9 @@ flowchart TB
     PASSWORD_RESET --> LOGIN
     LOGIN --> SESSION
     SESSION -- 기획사/제작사 미가입 --> SIGNUP["기획사/제작사명·휴대폰·이메일·비밀번호 가입<br>POST /api/v1/producers"]
-    SIGNUP --> PENDING["PENDING 계정 생성<br>휴대폰·이메일 가입 안내"]
-    SESSION -- PENDING --> PENDING
+    SIGNUP --> AUTO_LOGIN["ACTIVE 계정 생성 후 즉시 로그인<br>POST /api/v1/sessions"]
+    AUTO_LOGIN --> SESSION
+    SESSION -- PENDING<br>향후 인증 도입 시 --> PENDING["기획사/제작사 인증 대기"]
     PENDING --> PROFILE["기획사/제작사 정보 설정 가능<br>GET·PATCH /api/v1/producers/me"]
     PENDING --> BLOCKED["공연 조회·관리 차단<br>기획사·제작사 인증 안내"]
     BLOCKED --> CONTACT["카카오톡 채널 문의<br>운영진 수동 확인"]
@@ -50,7 +51,7 @@ flowchart TB
     classDef postingNode stroke:#a78bfa,fill:#f5f3ff
     classDef screeningNode stroke:#fb923c,fill:#fff7ed
     classDef decisionNode stroke:#f87171,fill:#fef2f2
-    class START,SESSION,LOGIN,PASSWORD_RESET,SIGNUP,PENDING,PROFILE,BLOCKED,CONTACT,HOME,FINISH authNode
+    class START,SESSION,LOGIN,PASSWORD_RESET,SIGNUP,AUTO_LOGIN,PENDING,PROFILE,BLOCKED,CONTACT,HOME,FINISH authNode
     class ACTIVE,MORE,DONE,LAST,EDIT_POLICY decisionNode
     class NAV,PERF,NEW_PERF,EDIT_PERF,CREATE_PERF perfNode
     class POSTINGS,CREATE_POSTING,POSTING_DETAIL,EDIT_POSTING,EDIT_OPEN,EDIT_BLOCKED,PUBLISH,ROLES postingNode

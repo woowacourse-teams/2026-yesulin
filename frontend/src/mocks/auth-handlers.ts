@@ -1,14 +1,16 @@
 import { delay, http, HttpResponse, passthrough } from "msw";
 import type { ProducerSignupRequest } from "@/features/auth/api";
-import { registerPendingProducer } from "./auditions/producer-profile";
+import { registerActiveProducer } from "./auditions/producer-profile";
 
 const emails = new Set<string>();
 let mockSession: { memberId: number; role: "APPLICANT" | "PRODUCER"; status: "PENDING" | "ACTIVE" } | null = null;
+const realProducerLoginEnabled = process.env.NEXT_PUBLIC_PRODUCER_LOGIN === "enabled";
 const realSocialLoginEnabled = process.env.NEXT_PUBLIC_SOCIAL_LOGIN === "enabled";
 const error = (code: string, message: string, status = 400) => HttpResponse.json({ code, message }, { status });
 
 export const authHandlers = [
   http.post("/api/v1/sessions", async ({ request }) => {
+    if (realProducerLoginEnabled) return passthrough();
     await delay(240);
     const body = (await request.json()) as { email?: string; password?: string };
     const email = body.email?.trim().toLowerCase() ?? "";
@@ -20,7 +22,7 @@ export const authHandlers = [
   }),
 
   http.get("/api/v1/sessions/current", () => {
-    if (realSocialLoginEnabled) return passthrough();
+    if (realProducerLoginEnabled || realSocialLoginEnabled) return passthrough();
     if (!mockSession) {
       return error("AUTH_UNAUTHENTICATED", "로그인이 필요합니다.", 401);
     }
@@ -28,12 +30,13 @@ export const authHandlers = [
   }),
 
   http.delete("/api/v1/sessions/current", () => {
-    if (realSocialLoginEnabled) return passthrough();
+    if (realProducerLoginEnabled || realSocialLoginEnabled) return passthrough();
     mockSession = null;
     return new HttpResponse(null, { status: 204 });
   }),
 
   http.post("/api/v1/producers", async ({ request }) => {
+    if (realProducerLoginEnabled) return passthrough();
     await delay(320);
     const body = (await request.json()) as ProducerSignupRequest;
     const email = body.email?.trim().toLowerCase();
@@ -46,13 +49,13 @@ export const authHandlers = [
     if (!body.termsAgreed) return error("TERMS_REQUIRED", "필수 약관에 동의해 주세요.");
     if (emails.has(email)) return error("EMAIL_ALREADY_EXISTS", "이미 가입된 이메일입니다.", 409);
     emails.add(email);
-    registerPendingProducer({ companyName: body.companyName, email, phone });
+    registerActiveProducer({ companyName: body.companyName, email, phone });
     return HttpResponse.json({
       memberId: 1,
       companyName: body.companyName.trim(),
       email,
       role: "PRODUCER",
-      verificationStatus: "PENDING",
+      verificationStatus: "ACTIVE",
     }, { status: 201 });
   }),
 ];

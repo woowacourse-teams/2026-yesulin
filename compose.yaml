@@ -1,0 +1,132 @@
+name: yesulin-local
+
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:-yesulin}
+      MYSQL_USER: ${DB_USERNAME:-yesulin}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-yesulin-local}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-yesulin-root-local}
+      TZ: Asia/Seoul
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+    ports:
+      - "${MYSQL_HOST_PORT:-3307}:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - mysqladmin ping -h 127.0.0.1 -u$${MYSQL_USER} -p$${MYSQL_PASSWORD} --silent
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  localstack:
+    image: localstack/localstack:3.8.1
+    environment:
+      SERVICES: s3
+      AWS_DEFAULT_REGION: ap-northeast-2
+    ports:
+      - "${LOCALSTACK_HOST_PORT:-4566}:4566"
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - --fail
+        - --silent
+        - http://127.0.0.1:4566/_localstack/health
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-yesulin}
+      DB_USERNAME: ${DB_USERNAME:-yesulin}
+      DB_PASSWORD: ${DB_PASSWORD:-yesulin-local}
+      YESULIN_STORAGE_LOCALSTACK_TESTCONTAINERS_ENABLED: "false"
+      YESULIN_STORAGE_LOCALSTACK_ENDPOINT: http://localstack:4566
+      YESULIN_STORAGE_LOCALSTACK_PRESIGNER_ENDPOINT: http://localhost:4566
+      YESULIN_STORAGE_LOCALSTACK_ACCESS_KEY: test
+      YESULIN_STORAGE_LOCALSTACK_SECRET_KEY: test
+      SOCIAL_LOGIN_ENABLED: "false"
+      TZ: Asia/Seoul
+    ports:
+      - "${BACKEND_HOST_PORT:-8080}:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - --fail
+        - --silent
+        - http://127.0.0.1:8080/api/v1/health
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        API_ORIGIN: http://backend:8080
+        NEXT_PUBLIC_PRODUCER_LOGIN: enabled
+        NEXT_PUBLIC_PRODUCER_API: enabled
+    environment:
+      API_ORIGIN: http://backend:8080
+      HOSTNAME: 0.0.0.0
+      PORT: 3000
+      TZ: Asia/Seoul
+    ports:
+      - "${FRONTEND_HOST_PORT:-3000}:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - fetch('http://127.0.0.1:3000/').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    networks:
+      - app-network
+    restart: unless-stopped
+
+networks:
+  app-network:
+    name: yesulin-docker-network
+    driver: bridge
+
+volumes:
+  mysql-data:
+    name: yesulin-mysql-data

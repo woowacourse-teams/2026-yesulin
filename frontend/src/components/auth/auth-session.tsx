@@ -29,6 +29,7 @@ type AuthSessionContextValue = {
 const AuthSessionContext = createContext<AuthSessionContextValue | null>(null);
 const serverSessionEnabled =
   process.env.NEXT_PUBLIC_API_MOCKING === "disabled"
+  || process.env.NEXT_PUBLIC_PRODUCER_LOGIN === "enabled"
   || process.env.NEXT_PUBLIC_SOCIAL_LOGIN === "enabled";
 
 function toFrontendSession(session: SessionResponse): FrontendAuthSession {

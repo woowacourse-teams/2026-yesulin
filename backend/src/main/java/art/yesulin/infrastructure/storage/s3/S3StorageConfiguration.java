@@ -13,7 +13,7 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
 @Configuration(proxyBeanMethods = false)
-@Profile("!local-test")
+@Profile("!local")
 @ConditionalOnProperty(prefix = "yesulin.storage.s3", name = "bucket")
 @EnableConfigurationProperties(S3StorageProperties.class)
 public class S3StorageConfiguration {

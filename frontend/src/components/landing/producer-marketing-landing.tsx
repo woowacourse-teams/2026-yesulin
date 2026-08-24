@@ -62,7 +62,7 @@ export function ProducerMarketingLanding() {
       </section>
 
       <section className="mx-auto max-w-[1280px] px-5 py-20 sm:px-8 lg:px-10 lg:py-28">
-        <div className="overflow-hidden rounded-[28px] bg-sidebar px-6 py-14 text-center sm:px-10 sm:py-18"><p className="text-sm font-bold text-brand-line">READY TO START</p><h2 className="mt-4 text-[clamp(30px,4vw,44px)] font-bold text-white">좋은 캐스팅은 명확한 관리에서 시작됩니다.</h2><p className="mx-auto mt-4 max-w-[650px] text-lg leading-8 text-sidebar-muted">기획사/제작사 가입 후 기획사/제작사 정보를 등록하고 운영진 확인을 요청하세요.</p><PrimaryLink href="/signup" className="mt-8 min-h-13 px-6">기획사/제작사 계정 만들기</PrimaryLink></div>
+        <div className="overflow-hidden rounded-[28px] bg-sidebar px-6 py-14 text-center sm:px-10 sm:py-18"><p className="text-sm font-bold text-brand-line">READY TO START</p><h2 className="mt-4 text-[clamp(30px,4vw,44px)] font-bold text-white">좋은 캐스팅은 명확한 관리에서 시작됩니다.</h2><p className="mx-auto mt-4 max-w-[650px] text-lg leading-8 text-sidebar-muted">기획사/제작사 계정을 만들고 바로 공연 관리를 시작하세요.</p><PrimaryLink href="/signup" className="mt-8 min-h-13 px-6">기획사/제작사 계정 만들기</PrimaryLink></div>
       </section>
 
       <LandingFooter />

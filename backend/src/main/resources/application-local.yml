@@ -4,3 +4,10 @@ spring:
     username: ${DB_USERNAME:yesulin}
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
+
+yesulin:
+  storage:
+    s3:
+      bucket: ${YESULIN_STORAGE_S3_BUCKET:yesulin-local}
+      key-prefix: ${YESULIN_STORAGE_S3_KEY_PREFIX:yesulin}
+      public-base-url: ${YESULIN_STORAGE_S3_PUBLIC_BASE_URL:http://localhost:4566/yesulin-local/yesulin}

@@ -62,9 +62,16 @@ IndexedDB 사본은 서버나 기획사/제작사에 전송되지 않는다. 이
 
 - `/login`은 일반 진입에서 배우·기획사/제작사 유형을 선택한다. 배우는 카카오·네이버·Google, 기획사/제작사는 이메일·비밀번호로 진행한다.
 - `/forgot-password`는 기획사/제작사의 이메일, 인증번호, 새 비밀번호 흐름을 제공하는 프론트 프로토타입이다.
-- `/signup`은 기획사/제작사 전용이며 MSW에서 `PENDING` 세션을 만든다. `PENDING`은 정보 설정 외 관리자 화면에서 인증 안내와 카카오톡 문의를 표시한다.
+- `/signup`은 기획사/제작사 전용이며 가입 직후 `ACTIVE` 세션으로 자동 로그인해 공연 관리 화면으로 이동한다. 향후 기획사 인증 도입을 위한 `PENDING` 접근 제한과 안내 컴포넌트는 보존하지만 현재 가입 흐름에서는 사용하지 않는다.
 - 지원서 문맥의 로그인은 공고·배역·`returnTo`를 유지하고 인증 성공 뒤 `prefill=1&resumeDraft=1`로 최종 검토 화면을 다시 연다. 인증 취소는 목 인증 상태를 만들지 않고 로컬 Draft만 복원한다.
 - 동일 이메일의 소셜 가입 안내·명시적 계정 연결, 배우와 기획사/제작사 계정의 서버 수준 분리, 약관 버전·동의 시각 저장, 만 14세 제출 차단은 구현하지 않았다.
+
+`NEXT_PUBLIC_PRODUCER_LOGIN=enabled`이면 기획사/제작사의 가입·로그인·현재 세션 확인·로그아웃 요청을
+실제 `/api/v1/producers`, `/api/v1/sessions` API로 전달한다. `NEXT_PUBLIC_PRODUCER_API=enabled`도 함께 설정하면
+공연 목록과 공연·공고 생성 등 구현 완료된 `/api/v1/**` 기획사 API를 실제 서버로 전달한다. 기획사 정보와
+탐색 트리처럼 아직 API가 없는 조회만 MSW가 계속 처리한다.
+가입 성공 시 같은 이메일·비밀번호로 즉시 로그인한다. 백엔드가 반환한 회원 ID·역할·상태로 프론트 인증 상태를 만들고, 새로고침할 때도
+HttpSession을 조회해 복원한다.
 
 `NEXT_PUBLIC_SOCIAL_LOGIN=enabled`이거나 `NEXT_PUBLIC_API_MOCKING=disabled`이면 배우 소셜 로그인 버튼은 같은 origin의
 `/oauth2/authorization/{provider}`로 이동하고, Next.js가 OAuth 시작·Callback 요청을 백엔드에
@@ -74,7 +81,7 @@ IndexedDB 사본은 서버나 기획사/제작사에 전송되지 않는다. 이
 `/login`으로 이동한다. 실제 환경의 로그아웃은 `DELETE /api/v1/sessions/current` 성공 후 프론트
 인증 상태를 제거한다. 실제 소셜 로그인 전 안전한 내부 `returnTo`를 탭의 `sessionStorage`에 보관하고,
 `/social-login/complete`에서 세션 확인 후 해당 화면으로 복귀한다. 기본 MSW 환경은 시나리오 확인을
-위해 직접 접근을 유지한다. 인증 메일·문자와 `PENDING → ACTIVE` 운영 전환은 아직 구현하지 않았다.
+위해 직접 접근을 유지한다. 인증 메일·문자와 `PENDING → ACTIVE` 운영 전환은 MVP 이후 도입하며, 현재 기획사/제작사 가입은 즉시 `ACTIVE`로 처리한다.
 
 ## API·저장 경계
 

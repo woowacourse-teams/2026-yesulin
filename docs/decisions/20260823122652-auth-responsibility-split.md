@@ -31,4 +31,4 @@ OIDC ID Token 검증은 직접 구현할 위험이 커서 Spring Security에 남
 
 - 새 API는 `@LoginRequired`와 `@LoginMember(roles, statuses)`를 붙여야 보호된다.
 - 세션의 `status`는 로그인 시점 사본이라 승인 상태 변경은 재로그인해야 반영된다.
-- `local-test` 프로필은 인증을 우회하므로 인증 확인에는 `local`을 쓴다.
+- `local` 프로필도 운영과 같은 세션 인증 경계를 사용하며 별도 인증 우회 프로필을 두지 않는다.

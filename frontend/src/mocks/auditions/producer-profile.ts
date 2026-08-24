@@ -26,12 +26,23 @@ export function patchProducerProfile(body: UpdateProducerProfileRequest) {
 }
 
 export function registerPendingProducer(input: { readonly companyName: string; readonly email: string; readonly phone: string }) {
+  registerProducer(input, "PENDING");
+}
+
+export function registerActiveProducer(input: { readonly companyName: string; readonly email: string; readonly phone: string }) {
+  registerProducer(input, "ACTIVE");
+}
+
+function registerProducer(
+  input: { readonly companyName: string; readonly email: string; readonly phone: string },
+  verificationStatus: ProducerProfile["verificationStatus"],
+) {
   profile = {
     ...profile,
     companyName: input.companyName.trim(),
     email: input.email.trim(),
     phone: input.phone,
-    verificationStatus: "PENDING",
-    verifiedAt: null,
+    verificationStatus,
+    verifiedAt: verificationStatus === "ACTIVE" ? new Date().toISOString() : null,
   };
 }
