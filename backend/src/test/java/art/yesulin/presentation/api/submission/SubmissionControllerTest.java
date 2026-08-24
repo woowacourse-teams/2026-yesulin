@@ -37,10 +37,11 @@ import art.yesulin.domain.file.FileReferenceRepository;
 import art.yesulin.domain.performance.Performance;
 import art.yesulin.domain.performance.PerformanceRepository;
 import art.yesulin.domain.submission.Submission;
+import art.yesulin.domain.submission.SubmissionConsent;
 import art.yesulin.domain.submission.SubmissionConsentRepository;
+import art.yesulin.domain.submission.SubmissionConsentType;
 import art.yesulin.domain.submission.SubmissionRepository;
 import art.yesulin.support.ObjectStorageTestConfiguration;
-import art.yesulin.support.SubmissionConsentDocumentTestConfiguration;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -68,7 +69,6 @@ import tools.jackson.databind.ObjectMapper;
 })
 @Import({
         ObjectStorageTestConfiguration.class,
-        SubmissionConsentDocumentTestConfiguration.class,
         SubmissionControllerTest.FixedClockConfiguration.class
 })
 @AutoConfigureMockMvc
@@ -135,8 +135,17 @@ class SubmissionControllerTest {
 
         UUID submissionId = UUID.fromString(objectMapper.readTree(responseBody).get("submissionId").asText());
         Submission submission = submissionRepository.findBySubmissionId(submissionId).orElseThrow();
+        List<SubmissionConsent> consents = consentRepository.findAllBySubmissionId(submissionId);
         assertEquals(APPLICANT_ID, submission.getApplicantId());
-        assertEquals(2, consentRepository.findAllBySubmissionId(submissionId).size());
+        assertEquals(2, consents.size());
+        assertEquals(
+                "mvp-privacy-placeholder-v0",
+                findConsent(consents, SubmissionConsentType.PRIVACY_COLLECTION_AND_USE).getDocumentVersion()
+        );
+        assertEquals(
+                "mvp-third-party-placeholder-v0",
+                findConsent(consents, SubmissionConsentType.THIRD_PARTY_PROVISION).getDocumentVersion()
+        );
     }
 
     @Test
@@ -184,6 +193,16 @@ class SubmissionControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(validRequest(fixture.roleId())))
                 .andExpect(status().isCreated());
+    }
+
+    private SubmissionConsent findConsent(
+            List<SubmissionConsent> consents,
+            SubmissionConsentType consentType
+    ) {
+        return consents.stream()
+                .filter(consent -> consent.getConsentType() == consentType)
+                .findFirst()
+                .orElseThrow();
     }
 
     private AuditionFixture saveAudition(Instant recruitmentStartAt, Instant recruitmentEndAt) {

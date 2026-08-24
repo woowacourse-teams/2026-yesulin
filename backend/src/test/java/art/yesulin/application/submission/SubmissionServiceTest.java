@@ -9,7 +9,9 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 
+import art.yesulin.application.submission.consent.SubmissionConsentDocumentProvider;
 import art.yesulin.common.exception.BusinessException;
 import art.yesulin.common.exception.ErrorCode;
 import art.yesulin.domain.audition.Audition;
@@ -50,9 +52,7 @@ import art.yesulin.domain.submission.SubmissionConsentRepository;
 import art.yesulin.domain.submission.SubmissionConsentType;
 import art.yesulin.domain.submission.SubmissionErrorCode;
 import art.yesulin.domain.submission.SubmissionRepository;
-import art.yesulin.support.FakeSubmissionConsentDocumentProvider;
 import art.yesulin.support.ObjectStorageTestConfiguration;
-import art.yesulin.support.SubmissionConsentDocumentTestConfiguration;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -86,7 +86,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 })
 @Import({
         ObjectStorageTestConfiguration.class,
-        SubmissionConsentDocumentTestConfiguration.class,
         SubmissionServiceTest.FixedClockConfiguration.class
 })
 class SubmissionServiceTest {
@@ -115,8 +114,8 @@ class SubmissionServiceTest {
     private AuditionRepository auditionRepository;
     @Autowired
     private PerformanceRepository performanceRepository;
-    @Autowired
-    private FakeSubmissionConsentDocumentProvider consentDocumentProvider;
+    @MockitoSpyBean
+    private SubmissionConsentDocumentProvider consentDocumentProvider;
     @Autowired
     private PlatformTransactionManager transactionManager;
 
@@ -154,14 +153,20 @@ class SubmissionServiceTest {
         assertEquals(List.of("정면 사진", "측면 사진"), submission.photoDescriptions());
         assertEquals(2, consents.size());
         assertEquals(List.of(NOW), consents.stream().map(SubmissionConsent::getAgreedAt).distinct().toList());
-        assertEquals("테스트 극단", findConsent(consents, SubmissionConsentType.THIRD_PARTY_PROVISION)
-                .getRecipientNameSnapshot());
+        SubmissionConsent privacyConsent = findConsent(
+                consents, SubmissionConsentType.PRIVACY_COLLECTION_AND_USE
+        );
+        SubmissionConsent thirdPartyConsent = findConsent(
+                consents, SubmissionConsentType.THIRD_PARTY_PROVISION
+        );
+        assertEquals("mvp-privacy-placeholder-v0", privacyConsent.getDocumentVersion());
+        assertEquals("mvp-third-party-placeholder-v0", thirdPartyConsent.getDocumentVersion());
+        assertEquals("MVP 임시 기획사/제작사", thirdPartyConsent.getRecipientNameSnapshot());
         List<FileReference> submissionReferences = findSubmissionReferences();
         assertEquals(1, submissionReferences.size());
         assertEquals(fixture.fileId(), submissionReferences.getFirst().getFileId());
         assertEquals(submission.id(), submissionReferences.getFirst().getReferenceId());
-        assertEquals(submission.auditionId(), consentDocumentProvider.getLastAuditionId());
-        assertEquals(NOW, consentDocumentProvider.getLastReferenceTime());
+        verify(consentDocumentProvider).currentFor(submission.auditionId(), NOW);
     }
 
     @Test

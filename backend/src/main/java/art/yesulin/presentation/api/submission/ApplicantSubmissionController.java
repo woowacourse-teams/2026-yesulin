@@ -4,7 +4,8 @@ import art.yesulin.application.auth.MemberPrincipal;
 import art.yesulin.application.file.FileService;
 import art.yesulin.application.submission.SubmissionDetailResult;
 import art.yesulin.application.submission.SubmissionQueryService;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -38,9 +39,13 @@ public class ApplicantSubmissionController {
     ) {
         long applicantId = principal.memberId();
         SubmissionDetailResult result = submissionQueryService.find(applicantId, submissionId);
-        List<String> photoUrls = result.formAnswers().photoRequirementAnswers().stream()
-                .map(answer -> fileService.readUrl(applicantId, answer.fileId()))
-                .toList();
-        return ResponseEntity.ok(ApplicantSubmissionDetailResponse.from(result, photoUrls));
+        Map<Long, String> photoUrlsByFileId = new HashMap<>();
+        for (SubmissionDetailResult.PhotoRequirementAnswerResult answer
+                : result.formAnswers().photoRequirementAnswers()) {
+            photoUrlsByFileId.computeIfAbsent(
+                    answer.fileId(), fileId -> fileService.readUrl(applicantId, fileId)
+            );
+        }
+        return ResponseEntity.ok(ApplicantSubmissionDetailResponse.from(result, photoUrlsByFileId));
     }
 }

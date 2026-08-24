@@ -4,8 +4,8 @@ import art.yesulin.application.submission.SubmissionDetailResult;
 import art.yesulin.application.submission.SubmissionSelectedRoleResult;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
-import java.util.stream.IntStream;
 
 public record ApplicantSubmissionDetailResponse(
         UUID submissionId,
@@ -19,7 +19,7 @@ public record ApplicantSubmissionDetailResponse(
 
     static ApplicantSubmissionDetailResponse from(
             SubmissionDetailResult result,
-            List<String> photoUrls
+            Map<Long, String> photoUrlsByFileId
     ) {
         return new ApplicantSubmissionDetailResponse(
                 result.submissionId(),
@@ -27,7 +27,7 @@ public record ApplicantSubmissionDetailResponse(
                 result.submittedAt(),
                 result.applicant(),
                 result.selectedRoles(),
-                FormAnswersResponse.from(result.formAnswers(), photoUrls),
+                FormAnswersResponse.from(result.formAnswers(), photoUrlsByFileId),
                 result.consents()
         );
     }
@@ -40,25 +40,32 @@ public record ApplicantSubmissionDetailResponse(
 
         private static FormAnswersResponse from(
                 SubmissionDetailResult.FormAnswersResult answers,
-                List<String> photoUrls
+                Map<Long, String> photoUrlsByFileId
         ) {
-            if (answers.photoRequirementAnswers().size() != photoUrls.size()) {
-                throw new IllegalArgumentException("제출 사진 답변과 URL 개수가 일치하지 않습니다.");
-            }
             return new FormAnswersResponse(
                     answers.questionAnswers(),
-                    toPhotoRequirementAnswers(answers.photoRequirementAnswers(), photoUrls),
+                    toPhotoRequirementAnswers(answers.photoRequirementAnswers(), photoUrlsByFileId),
                     answers.videoRequirementAnswers()
             );
         }
 
         private static List<PhotoRequirementAnswerResponse> toPhotoRequirementAnswers(
                 List<SubmissionDetailResult.PhotoRequirementAnswerResult> answers,
-                List<String> photoUrls
+                Map<Long, String> photoUrlsByFileId
         ) {
-            return IntStream.range(0, answers.size())
-                    .mapToObj(index -> PhotoRequirementAnswerResponse.from(answers.get(index), photoUrls.get(index)))
+            return answers.stream()
+                    .map(answer -> PhotoRequirementAnswerResponse.from(
+                            answer, findPhotoUrl(photoUrlsByFileId, answer.fileId())
+                    ))
                     .toList();
+        }
+
+        private static String findPhotoUrl(Map<Long, String> photoUrlsByFileId, long fileId) {
+            String photoUrl = photoUrlsByFileId.get(fileId);
+            if (photoUrl == null) {
+                throw new IllegalArgumentException("제출 사진 파일에 대응하는 URL이 없습니다.");
+            }
+            return photoUrl;
         }
     }
 
