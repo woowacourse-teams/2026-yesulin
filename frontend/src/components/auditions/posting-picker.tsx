@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Breadcrumb } from "./breadcrumb";
 import { CreatePageButton } from "./create-form";
+import { HorizontalScrollArea } from "./horizontal-scroll-area";
 import { PickerEmpty, PickerScreen } from "./picker-card";
 import { PostingCreateModal } from "./posting-create-modal";
 import { PostingManageDialog } from "./posting-manage-dialog";
@@ -21,7 +22,7 @@ import {
   type PostingSummary,
 } from "@/features/auditions/types";
 import { useAuditionQuery } from "@/features/auditions/use-audition-query";
-import { FieldInput, FilterChip, PrimaryLink, SecondaryButton, SecondaryLink } from "@/components/ui/controls";
+import { FieldInput, FilterChip } from "@/components/ui/controls";
 
 type PostingFilter = "ALL" | PostingPhase;
 
@@ -73,17 +74,19 @@ export function PostingPicker({ performanceId }: { performanceId: PerformanceId 
             <svg aria-hidden="true" viewBox="0 0 20 20" className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 fill-none stroke-muted stroke-[1.8]"><circle cx="8.5" cy="8.5" r="5.25" /><path d="m12.5 12.5 4 4" /></svg>
             <FieldInput type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="공고명 검색" aria-label="공고명 검색" className="pl-10" />
           </div>
-          <div className="scrollbar-hidden mt-4 flex gap-2 overflow-x-auto pb-1" aria-label="공고 상태">
-            {FILTERS.map((value) => {
-              const count = value === "ALL" ? data.postings.length : data.postings.filter((posting) => posting.phase === value).length;
-              const label = value === "ALL" ? "전체" : PHASE_LABELS[value];
-              return <FilterChip key={value} pressed={filter === value} onClick={() => setFilter(value)}>{label} <span className="num ml-1 opacity-70">{count}</span></FilterChip>;
-            })}
-          </div>
+          <HorizontalScrollArea className="mt-4" scrollerClassName="pr-8">
+            <div className="flex min-w-max gap-2 pb-1" aria-label="공고 상태">
+              {FILTERS.map((value) => {
+                const count = value === "ALL" ? data.postings.length : data.postings.filter((posting) => posting.phase === value).length;
+                const label = value === "ALL" ? "전체" : PHASE_LABELS[value];
+                return <FilterChip key={value} pressed={filter === value} onClick={() => setFilter(value)}>{label} <span className="num ml-1 opacity-70">{count}</span></FilterChip>;
+              })}
+            </div>
+          </HorizontalScrollArea>
         </section>
 
-        <section aria-labelledby="posting-list-title" className="overflow-hidden rounded-card border border-border bg-card">
-          <div className="flex items-center justify-between border-b border-border-soft px-5 py-4">
+        <section aria-labelledby="posting-list-title" className="rounded-card border border-border bg-card">
+          <div className="flex items-center justify-between rounded-t-card border-b border-border-soft px-5 py-4">
             <h2 id="posting-list-title" className="text-base font-bold">공고 목록</h2>
             <span className="num text-sm text-muted">{filteredPostings.length}건</span>
           </div>
@@ -102,17 +105,15 @@ function PostingRow({ posting, onEdit, onDelete }: { readonly posting: PostingSu
   const [menuOpen, setMenuOpen] = useState(false);
   const unavailable = posting.phase === "DRAFT" || posting.phase === "UPCOMING";
   const destination = unavailable ? auditionRoutes.posting(posting.id) : postingEntryHref(posting);
-  return <li className={`group relative px-4 py-5 transition-colors hover:bg-surface focus-within:bg-surface md:px-6 md:py-6 ${menuOpen ? "z-20" : "z-0"}`}>
+  return <li className={`group relative px-4 py-5 transition-colors last:rounded-b-card hover:bg-surface focus-within:bg-surface md:px-6 md:py-6 ${menuOpen ? "z-20" : "z-0"}`}>
     <Link href={destination} aria-label={`${posting.title} ${unavailable ? "공고 관리" : "지원자 관리"} 열기`} className="absolute inset-0 z-0 rounded-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-brand"><span className="sr-only">{posting.title} 열기</span></Link>
-    <div className={`pointer-events-none relative flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between ${menuOpen ? "z-10" : "z-1"}`}>
+    <div className={`pointer-events-none relative ${menuOpen ? "z-10" : "z-1"}`}>
       <div className="min-w-0">
         <PhaseTag phase={posting.phase} />
-        <h3 className="mt-2 truncate text-lg font-bold transition-colors group-hover:text-brand">{posting.title}</h3>
-      </div>
-      <div className="pointer-events-auto flex shrink-0 items-center gap-2">
-        {posting.phase === "DRAFT" ? <SecondaryButton disabled className="px-3">공고 미게시</SecondaryButton> : <SecondaryLink href={publicApplicationRoute(posting.id)} className="px-3">공고 보기</SecondaryLink>}
-        {unavailable ? <SecondaryButton disabled className="px-3">지원자 관리</SecondaryButton> : <PrimaryLink href={postingEntryHref(posting)} className="px-3">지원자 관리</PrimaryLink>}
-        <PostingMoreMenu posting={posting} open={menuOpen} onOpenChange={setMenuOpen} onEdit={onEdit} onDelete={onDelete} />
+        <div className="mt-2 flex items-center gap-3">
+          <h3 className="min-w-0 flex-1 line-clamp-2 text-lg font-bold transition-colors group-hover:text-brand sm:line-clamp-1">{posting.title}</h3>
+          <div className="pointer-events-auto shrink-0"><PostingMoreMenu posting={posting} open={menuOpen} onOpenChange={setMenuOpen} onEdit={onEdit} onDelete={onDelete} /></div>
+        </div>
       </div>
     </div>
     <dl className="pointer-events-none relative z-1 mt-5 grid grid-cols-2 gap-y-5 border-t border-border-soft pt-5 sm:grid-cols-4 sm:divide-x sm:divide-border-soft">
@@ -165,6 +166,7 @@ function PostingMoreMenu({ posting, open, onOpenChange, onEdit, onDelete }: { re
   return <div ref={containerRef} className="relative">
     <button type="button" aria-label={`${posting.title} 더보기`} aria-haspopup="menu" aria-expanded={open} onClick={() => onOpenChange(!open)} className="grid h-11 w-11 place-items-center rounded-control border border-border bg-card text-muted-strong transition-colors hover:border-brand-line hover:bg-brand-soft hover:text-brand"><svg aria-hidden="true" viewBox="0 0 20 20" className="h-5 w-5 fill-current"><circle cx="4" cy="10" r="1.4" /><circle cx="10" cy="10" r="1.4" /><circle cx="16" cy="10" r="1.4" /></svg></button>
     {open ? <div role="menu" className="absolute right-0 top-[calc(100%+8px)] z-20 w-44 rounded-card border border-border bg-card p-2 shadow-[var(--shadow-2)]">
+      {posting.phase === "DRAFT" ? <span role="menuitem" aria-disabled="true" className="flex min-h-10 w-full items-center rounded-control px-3 text-sm font-semibold text-muted">공고 미게시</span> : <Link href={publicApplicationRoute(posting.id)} role="menuitem" onClick={() => onOpenChange(false)} className="flex min-h-10 w-full items-center rounded-control px-3 text-sm font-semibold text-muted-strong hover:bg-surface hover:text-foreground">공고 보기</Link>}
       <button type="button" role="menuitem" disabled={copying} onClick={copyLink} className="flex min-h-10 w-full items-center rounded-control px-3 text-left text-sm font-semibold text-muted-strong hover:bg-surface hover:text-foreground disabled:text-muted">{copying ? "복사 중…" : "지원 링크 복사"}</button>
       <button type="button" role="menuitem" onClick={() => { onOpenChange(false); onEdit(); }} className="flex min-h-10 w-full items-center rounded-control px-3 text-left text-sm font-semibold text-muted-strong hover:bg-surface hover:text-foreground">공고 수정</button>
       <div className="my-1 border-t border-border-soft" />
