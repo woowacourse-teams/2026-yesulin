@@ -1,4 +1,9 @@
 spring:
+  config:
+    import:
+      - optional:file:../.env[.properties]
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
   application:
     name: yesulin
   jpa:
