@@ -8,9 +8,10 @@ import { notifyApplicantProfileChanged } from "@/features/applicants/events";
 import type { ApplicantProfilePhoto, ApplicantProfileResponse } from "@/features/applicants/types";
 import { imageFileError } from "@/features/applications/application-form-state";
 import { useToast } from "@/components/auditions/toast";
-import { AddButton, TextButton } from "@/components/ui/controls";
+import { AddButton } from "@/components/ui/controls";
 
 const MAX_LIBRARY_PHOTOS = 20;
+const PHOTO_ACTION_CLASS = "inline-flex min-h-10 min-w-0 items-center justify-center whitespace-nowrap rounded-md px-1 text-xs font-semibold transition-colors disabled:pointer-events-none disabled:text-muted-soft";
 
 export function ProfilePhotoLibrary({ profile, onSaved }: { readonly profile: ApplicantProfileResponse; readonly onSaved: (profile: ApplicantProfileResponse) => void }) {
   const toast = useToast();
@@ -66,7 +67,39 @@ export function ProfilePhotoLibrary({ profile, onSaved }: { readonly profile: Ap
 
   return <div className="mt-6">
     <div className="flex flex-wrap items-start justify-between gap-4"><div><h3 className="font-bold">사진 보관함</h3><p className="mt-1 text-sm leading-6 text-muted">최대 20장까지 보관할 수 있어요. 지원서에는 기획사/제작사가 요청한 장수만큼, 최대 10장까지 선택합니다.</p></div><span className="num rounded-full bg-brand-soft px-3 py-1 text-sm font-semibold text-brand">{photos.length} / {MAX_LIBRARY_PHOTOS}</span></div>
-    {photos.length ? <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">{photos.map((photo, index) => <article key={photo.id} className={`overflow-hidden rounded-card border bg-surface ${photo.representative ? "border-brand ring-2 ring-brand-soft" : "border-border"}`}><div className="relative aspect-[3/4]"><Image src={photo.url} alt={photo.name} fill unoptimized loading="eager" sizes="(min-width: 1280px) 180px, 45vw" className="object-cover" />{photo.representative ? <span className="absolute left-2 top-2 rounded-full bg-brand px-2 py-1 text-xs font-semibold text-white">대표 사진</span> : null}</div><div className="p-3"><p className="truncate text-xs font-medium">{photo.name}</p><div className="mt-2 grid grid-cols-2 gap-1">{photo.representative ? <span className="grid min-h-10 place-items-center text-xs font-semibold text-brand">현재 대표</span> : <TextButton disabled={saving} onClick={() => void makeRepresentative(photo.id)} className="min-h-10 px-2 text-xs text-brand">대표 지정</TextButton>}<TextButton disabled={saving} onClick={() => void remove(photo)} className="min-h-10 px-2 text-xs text-fail hover:bg-fail-bg hover:text-fail">삭제</TextButton><button type="button" disabled={saving || index === 0} onClick={() => move(index, -1)} className="min-h-10 rounded-md text-xs font-semibold text-muted-strong hover:bg-card disabled:text-muted-soft" aria-label={`${photo.name} 앞으로 이동`}>← 앞으로</button><button type="button" disabled={saving || index === photos.length - 1} onClick={() => move(index, 1)} className="min-h-10 rounded-md text-xs font-semibold text-muted-strong hover:bg-card disabled:text-muted-soft" aria-label={`${photo.name} 뒤로 이동`}>뒤로 →</button></div></div></article>)}</div> : <div className="mt-5 rounded-card border border-dashed border-border bg-surface px-5 py-10 text-center"><strong>보관한 사진이 없어요</strong><p className="mt-2 text-sm text-muted">첫 번째로 추가한 사진이 대표 사진으로 설정됩니다.</p></div>}
+    {photos.length ? (
+      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+        {photos.map((photo, index) => (
+          <article key={photo.id} className={`overflow-hidden rounded-card border bg-surface ${photo.representative ? "border-brand ring-2 ring-brand-soft" : "border-border"}`}>
+            <div className="relative aspect-[3/4]">
+              <Image src={photo.url} alt={photo.name} fill unoptimized loading="eager" sizes="(min-width: 1280px) 180px, 45vw" className="object-cover" />
+              {photo.representative ? <span className="absolute left-2 top-2 rounded-full bg-brand px-2 py-1 text-xs font-semibold text-white">대표 사진</span> : null}
+            </div>
+            <div className="p-3">
+              <p className="truncate text-xs font-medium">{photo.name}</p>
+              <div className="mt-2 grid grid-cols-2 gap-1">
+                {photo.representative ? (
+                  <span className="grid min-h-10 place-items-center whitespace-nowrap text-xs font-semibold text-brand">현재 대표</span>
+                ) : (
+                  <button type="button" disabled={saving} onClick={() => void makeRepresentative(photo.id)} className={`${PHOTO_ACTION_CLASS} text-brand hover:bg-card`}>
+                    대표 지정
+                  </button>
+                )}
+                <button type="button" disabled={saving} onClick={() => void remove(photo)} className={`${PHOTO_ACTION_CLASS} text-fail hover:bg-fail-bg`}>
+                  삭제
+                </button>
+                <button type="button" disabled={saving || index === 0} onClick={() => move(index, -1)} className={`${PHOTO_ACTION_CLASS} text-muted-strong hover:bg-card`} aria-label={`${photo.name} 앞으로 이동`}>
+                  ← 앞으로
+                </button>
+                <button type="button" disabled={saving || index === photos.length - 1} onClick={() => move(index, 1)} className={`${PHOTO_ACTION_CLASS} text-muted-strong hover:bg-card`} aria-label={`${photo.name} 뒤로 이동`}>
+                  뒤로 →
+                </button>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+    ) : <div className="mt-5 rounded-card border border-dashed border-border bg-surface px-5 py-10 text-center"><strong>보관한 사진이 없어요</strong><p className="mt-2 text-sm text-muted">첫 번째로 추가한 사진이 대표 사진으로 설정됩니다.</p></div>}
     <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" multiple className="sr-only" onChange={addPhotos} />
     {photos.length < MAX_LIBRARY_PHOTOS ? <AddButton disabled={saving} onClick={() => inputRef.current?.click()} className="mt-4 min-h-12 w-full">{saving ? "저장 중…" : "+ 사진 추가"}</AddButton> : null}
     <p className="mt-2 text-xs text-muted">JPG, PNG, WEBP · 파일당 10MB 이하 · 변경 사항은 즉시 저장됩니다.</p>
