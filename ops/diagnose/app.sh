@@ -43,8 +43,13 @@ ss -lntp | grep -E ':(80|8080)\b' || echo "80/8080 listeners: missing"
 section "database network"
 environment_file=/etc/yesulin/yesulin.env
 database_host=""
+log_file=/var/log/yesulin/yesulin.log
 if [ -r "$environment_file" ]; then
   database_host="$(sed -n 's|^SPRING_DATASOURCE_URL=jdbc:mysql://\([^:/?]*\).*|\1|p' "$environment_file")"
+  configured_log_file="$(sed -n 's/^LOG_FILE=//p' "$environment_file" | tail -n 1)"
+  if [ -n "$configured_log_file" ]; then
+    log_file="$configured_log_file"
+  fi
 fi
 if [ -n "$database_host" ]; then
   if timeout 5 bash -c 'exec 3<>/dev/tcp/"$1"/3306' _ "$database_host" 2>/dev/null; then
@@ -61,6 +66,13 @@ nginx -t 2>&1 || true
 
 section "recent application logs"
 journalctl -u yesulin.service -n 100 --no-pager 2>&1 | redact
+
+section "recent application file logs"
+if [ -r "$log_file" ]; then
+  tail -n 100 -- "$log_file" | redact
+else
+  echo "Application file log ($log_file): unavailable"
+fi
 
 section "recent nginx errors"
 if [ -r /var/log/nginx/yesulin_error.log ]; then

@@ -24,6 +24,19 @@ server:
         # 로컬은 http라 기본값 false다. 배포 환경에서 true로 켠다.
         secure: ${SESSION_COOKIE_SECURE:false}
 
+logging:
+  file:
+    name: ${LOG_FILE:logs/yesulin.log}
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} [requestId=%X{requestId:-}] %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} [requestId=%X{requestId:-}] %msg%n"
+  logback:
+    rollingpolicy:
+      file-name-pattern: "${LOG_FILE:logs/yesulin.log}.%d{yyyy-MM-dd}.%i.gz"
+      max-file-size: ${LOG_MAX_FILE_SIZE:10MB}
+      max-history: ${LOG_MAX_HISTORY:14}
+      total-size-cap: ${LOG_TOTAL_SIZE_CAP:1GB}
+
 yesulin:
   storage:
     s3:

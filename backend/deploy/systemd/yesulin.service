@@ -8,12 +8,15 @@ Type=simple
 User=yesulin
 Group=yesulin
 WorkingDirectory=/opt/yesulin/current
+Environment=LOG_FILE=/var/log/yesulin/yesulin.log
 EnvironmentFile=/etc/yesulin/yesulin.env
 ExecStart=/usr/bin/java -jar /opt/yesulin/current/application.jar --server.address=127.0.0.1 --server.port=8080
 SuccessExitStatus=143
 Restart=on-failure
 RestartSec=5
 TimeoutStopSec=30
+LogsDirectory=yesulin
+LogsDirectoryMode=0750
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectHome=true

@@ -28,6 +28,7 @@ dependencies {
     implementation(platform("software.amazon.awssdk:bom:2.49.2"))
     implementation(platform("org.testcontainers:testcontainers-bom:2.0.5"))
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+    implementation("org.springframework.boot:spring-boot-starter-aspectj")
     implementation("org.springframework.boot:spring-boot-starter-flyway")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-webmvc")

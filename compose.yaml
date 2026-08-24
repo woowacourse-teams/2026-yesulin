@@ -67,9 +67,12 @@ services:
       YESULIN_STORAGE_LOCALSTACK_ACCESS_KEY: test
       YESULIN_STORAGE_LOCALSTACK_SECRET_KEY: test
       SOCIAL_LOGIN_ENABLED: "false"
+      LOG_FILE: /var/log/yesulin/yesulin.log
       TZ: Asia/Seoul
     ports:
       - "${BACKEND_HOST_PORT:-8080}:8080"
+    volumes:
+      - backend-logs:/var/log/yesulin
     depends_on:
       mysql:
         condition: service_healthy
@@ -130,3 +133,5 @@ networks:
 volumes:
   mysql-data:
     name: yesulin-mysql-data
+  backend-logs:
+    name: yesulin-backend-logs

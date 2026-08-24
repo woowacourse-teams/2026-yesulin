@@ -91,6 +91,18 @@ Spring Data `Pageable`과 `Page`를 API 계약에 노출하지 않는다.
 
 ## 로그
 
-- 기본: `%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} [%class][%method][%line] %msg%n`
-- 다중 서버·분산 추적 시: `[${server-name}] [%X{traceId:-}]`를 추가한다.
+- 기본: `%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} [requestId=%X{requestId:-}] %msg%n`
+- 실행 디렉터리가 `backend`일 때 기본 파일은 `backend/logs/yesulin.log`이며 10MB마다 압축한다.
+- 로그 파일은 14일, 전체 1GB까지 보관하며 `LOG_FILE`, `LOG_MAX_FILE_SIZE`, `LOG_MAX_HISTORY`,
+  `LOG_TOTAL_SIZE_CAP` 환경 변수로 바꿀 수 있다.
+- 현재 단일 console/file 출력과 rolling은 `application.yml`의 Spring Boot Logback 속성으로 관리한다.
+- appender 분리, 비동기 출력, 프로필별 appender 또는 custom encoder가 필요해질 때
+  `logback-spring.xml`을 도입한다.
+- HTTP 요청마다 `X-Request-Id`를 검증하거나 새로 만들고 MDC와 응답 헤더에 넣는다.
+- 요청 로그는 method, URI, status, elapsedMs만 남기고 query, header, body는 남기지 않는다.
+- 정상 health check `200`은 DEBUG로 낮추고 비정상 health 응답과 예외는 ERROR로 남긴다.
+- AOP 로그는 `application` 패키지의 모든 `@Service` 공개 메서드에 적용하고 이름, 메서드, 성공·실패와
+  실행 시간만 남긴다.
+- 비동기 실행을 추가하면 실행 스레드에 MDC를 명시적으로 전파한다.
+- 다중 서버·분산 추적을 도입하면 requestId를 표준 traceId로 교체하거나 연결한다.
 - 개인정보, 인증정보, 지원 답변은 로그에 남기지 않는다.

@@ -28,6 +28,21 @@ CodeBuild는 저장소 루트의 `buildspec.yml`을 실행해 `backend/build/dep
 
 초기 환경 파일은 `yesulin.env.example`을 참고하되 실제 값은 EC2 외부에서 주입합니다. Nginx access log는 query string을 기록하지 않으며 실제 Origin Secret도 로그에 남기지 않습니다.
 
+## 애플리케이션 로그
+
+systemd의 `LogsDirectory=yesulin` 설정이 `/var/log/yesulin`을 애플리케이션 사용자 소유로 만들며,
+Spring 로그는 기본적으로 `/var/log/yesulin/yesulin.log`에 저장됩니다. 파일은 10MB마다 압축하고 14일,
+전체 1GB까지 보관합니다. `/etc/yesulin/yesulin.env`에서 `LOG_FILE`, `LOG_MAX_FILE_SIZE`,
+`LOG_MAX_HISTORY`, `LOG_TOTAL_SIZE_CAP`을 지정하면 기본값을 바꿀 수 있습니다.
+진단 스크립트도 같은 환경 파일의 `LOG_FILE`을 사용하며, 값이 없으면
+`/var/log/yesulin/yesulin.log`를 조회합니다.
+
+콘솔 로그도 유지하므로 `journalctl -u yesulin.service`와 파일 로그를 함께 진단할 수 있습니다.
+
+```sh
+tail -F /var/log/yesulin/yesulin.log
+```
+
 ## CloudFront 원본 HTTPS 전환
 
 배포 설정은 인증서가 없으면 HTTP 부트스트랩 설정을, 인증서가 있으면 HTTPS 설정을 자동 선택합니다. 다음 순서로 전환합니다.
