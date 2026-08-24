@@ -26,7 +26,7 @@ const PROVIDER_LABELS: Record<SocialProvider, string> = {
   google: "Google",
 };
 
-export function LoginForm({ returnTo, applicationFlow = false }: { readonly returnTo?: string; readonly applicationFlow?: boolean }) {
+export function LoginForm({ returnTo, applicationFlow = false, serverSessionRequired = false }: { readonly returnTo?: string; readonly applicationFlow?: boolean; readonly serverSessionRequired?: boolean }) {
   const toast = useToast();
   const router = useRouter();
   const { setSession } = useAuthSession();
@@ -86,7 +86,7 @@ export function LoginForm({ returnTo, applicationFlow = false }: { readonly retu
   async function handleSocialLogin(provider: SocialProvider) {
     setPendingProvider(provider);
 
-    if (mockingDisabled || realSocialLoginEnabled) {
+    if (mockingDisabled || realSocialLoginEnabled || serverSessionRequired) {
       rememberSocialLoginReturnTo(returnTo);
       window.location.assign(`/oauth2/authorization/${provider}`);
       return;
