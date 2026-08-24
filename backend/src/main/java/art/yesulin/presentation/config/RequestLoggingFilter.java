@@ -69,7 +69,7 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
         long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
         int status = resolveStatus(response, failure);
         if (failure != null) {
-            logFailedRequest(request, status, elapsedMillis, failure);
+            logFailedRequest(request, status, elapsedMillis);
             return;
         }
         if (isHealthCheck(request)) {
@@ -98,17 +98,14 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
     private void logFailedRequest(
             HttpServletRequest request,
             int status,
-            long elapsedMillis,
-            Throwable failure
+            long elapsedMillis
     ) {
         LOGGER.error(
-                "HTTP method={} uri={} status={} elapsedMs={} exception={} origin={}",
+                "HTTP method={} uri={} status={} elapsedMs={}",
                 request.getMethod(),
                 request.getRequestURI(),
                 status,
-                elapsedMillis,
-                failure.getClass().getSimpleName(),
-                resolveOrigin(failure)
+                elapsedMillis
         );
     }
 
@@ -134,14 +131,6 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
                 status,
                 elapsedMillis
         );
-    }
-
-    private String resolveOrigin(Throwable failure) {
-        StackTraceElement[] stackTrace = failure.getStackTrace();
-        if (stackTrace.length == 0) {
-            return "unknown";
-        }
-        return stackTrace[0].toString();
     }
 
     private int resolveStatus(HttpServletResponse response, Throwable failure) {

@@ -51,7 +51,7 @@ public class ApplicationServiceLoggingAspect {
             );
             return;
         }
-        LOGGER.info(
+        LOGGER.error(
                 "APPLICATION class={} method={} outcome={} exception={} elapsedMs={}",
                 className,
                 methodName,

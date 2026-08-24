@@ -126,9 +126,10 @@ class RequestLoggingFilterTest {
         ));
 
         ILoggingEvent event = appender.list.getFirst();
-        assertTrue(event.getFormattedMessage().contains("status=500"));
-        assertTrue(event.getFormattedMessage().contains("exception=IllegalStateException"));
-        assertFalse(event.getFormattedMessage().contains("sensitive-exception-message"));
+        assertEquals(Level.ERROR, event.getLevel());
+        assertTrue(event.getFormattedMessage().matches(
+                "HTTP method=POST uri=/api/v1/submissions status=500 elapsedMs=\\d+"
+        ));
         assertNull(event.getThrowableProxy());
         assertNull(MDC.get(REQUEST_ID_MDC_KEY));
     }

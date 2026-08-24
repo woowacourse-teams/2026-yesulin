@@ -34,11 +34,13 @@ systemd의 `LogsDirectory=yesulin` 설정이 `/var/log/yesulin`을 애플리케�
 Spring 로그는 기본적으로 `/var/log/yesulin/yesulin.log`에 저장됩니다. 파일은 10MB마다 압축하고 14일,
 전체 1GB까지 보관합니다. `/etc/yesulin/yesulin.env`에서 `LOG_FILE`, `LOG_MAX_FILE_SIZE`,
 `LOG_MAX_HISTORY`, `LOG_TOTAL_SIZE_CAP`을 지정하면 기본값을 바꿀 수 있습니다.
+진단 스크립트도 같은 환경 파일의 `LOG_FILE`을 사용하며, 값이 없으면
+`/var/log/yesulin/yesulin.log`를 조회합니다.
 
 콘솔 로그도 유지하므로 `journalctl -u yesulin.service`와 파일 로그를 함께 진단할 수 있습니다.
 
 ```sh
-tail -f /var/log/yesulin/yesulin.log
+tail -F /var/log/yesulin/yesulin.log
 ```
 
 ## CloudFront 원본 HTTPS 전환

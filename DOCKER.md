@@ -58,7 +58,7 @@ docker compose up -d --force-recreate backend
 ```bash
 docker compose exec backend printenv LOG_FILE
 docker compose exec backend ls -l /var/log/yesulin
-docker compose exec backend tail -f /var/log/yesulin/yesulin.log
+docker compose exec backend tail -F /var/log/yesulin/yesulin.log
 ```
 
 ## 확인과 종료
@@ -68,7 +68,7 @@ docker compose ps
 curl --fail http://localhost:8080/api/v1/health
 curl --fail http://localhost:3000/api/v1/health
 docker compose exec mysql mysqladmin ping -h mysql -uyesulin -pyesulin-local
-docker compose exec backend tail -f /var/log/yesulin/yesulin.log
+docker compose exec backend tail -F /var/log/yesulin/yesulin.log
 ```
 
 컨테이너만 종료하면 MySQL 데이터와 백엔드 파일 로그는 이름 있는 볼륨에 유지된다.

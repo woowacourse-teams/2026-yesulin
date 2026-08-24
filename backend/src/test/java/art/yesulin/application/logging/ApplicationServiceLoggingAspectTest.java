@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import art.yesulin.infrastructure.logging.ApplicationServiceLoggingAspect;
+import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
@@ -58,6 +59,7 @@ class ApplicationServiceLoggingAspectTest {
         List<ILoggingEvent> events = appender.list;
         assertEquals(1, events.size());
         ILoggingEvent event = events.getFirst();
+        assertEquals(Level.ERROR, event.getLevel());
         assertTrue(event.getFormattedMessage().contains("outcome=FAILURE exception=IllegalStateException"));
         assertFalse(event.getFormattedMessage().contains("sensitive-exception-message"));
         assertNull(event.getThrowableProxy());
