@@ -12,7 +12,8 @@ CodeBuild는 저장소 루트의 `buildspec.yml`을 실행해 `backend/build/dep
 4. CodeDeploy가 `/opt/yesulin/deployment`에 묶음을 복사합니다.
 5. `AfterInstall`이 체크섬을 검증하고 `/opt/yesulin/releases/{commit-id}`에 JAR를 설치한 뒤 `current` 심볼릭 링크를 교체합니다.
 6. systemd가 `yesulin` 비로그인 사용자로 Spring을 `127.0.0.1:8080`에서 실행합니다.
-7. Nginx가 CloudFront 전용 Origin Header를 검사하고 `/api/v1/**`만 Spring으로 전달합니다.
+7. Nginx가 CloudFront 전용 Origin Header를 검사하고 `/api/v1/**`, `/oauth2/**`,
+   `/login/oauth2/**`만 Spring으로 전달합니다.
 8. `ValidateService`가 Spring·Nginx 상태, Origin Header 차단과 `GET /api/v1/health`의 `200`을 확인합니다. 이 응답은 데이터베이스 연결까지 확인하므로 DB에 닿지 못하면 `503`이 되어 배포가 실패합니다. Spring 시작 중 발생하는 일시적인 `502`·`503`은 최대 30회, 1초 간격으로 재확인합니다.
 9. 검증 성공 후 현재 릴리스를 포함한 최근 릴리스 5개만 남기고 오래된 JAR를 삭제합니다.
 
@@ -44,5 +45,9 @@ sudo /opt/yesulin/deployment/scripts/issue_origin_certificate.sh \
 
 6. CloudFront EC2 원본을 `origin.yesulin.art`, HTTPS only, 포트 443, TLS 1.2로 바꿉니다. `X-Yesulin-Origin-Secret`은 그대로 유지합니다.
 7. CloudFront 경유 API와 EC2 직접 요청 차단을 다시 확인합니다.
+
+소셜 로그인을 활성화할 때는 CloudFront에서 `/oauth2/*`와 `/login/oauth2/*`를 EC2 원본으로
+전달합니다. 두 동작은 캐시를 비활성화하고 모든 query string과 cookie를 원본에 전달해야 OAuth
+`state`, callback `code`와 Spring 세션이 보존됩니다.
 
 인증서 갱신 후에는 Certbot deploy hook이 Nginx 설정을 검증하고 reload합니다. DNS가 Cloudflare 프록시 상태이거나 공인 IP가 바뀌면 HTTP-01 갱신이 실패할 수 있습니다.
