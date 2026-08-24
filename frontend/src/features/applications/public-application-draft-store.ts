@@ -22,6 +22,7 @@ export type PublicApplicationDraftRecord = {
   readonly noCareer: boolean;
   readonly careers: readonly CareerDraft[];
   readonly consent: boolean;
+  readonly thirdPartyConsent?: boolean;
   readonly saveToProfile: boolean;
   readonly stepIndex: number;
   readonly completedStepIndexes: readonly number[];

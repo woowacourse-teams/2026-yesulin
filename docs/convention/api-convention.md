@@ -419,19 +419,22 @@ PATCH /api/v1/audition-roles/{roleId}/screening-rounds/{round} # status=CLOSED�
 /api/me/submissions/**             → GET은 /api/v1/applicants/me/submissions/**, PATCH는 목표 계약에서 제외
 /api/public/recommended-postings    → /api/v1/public/recommended-auditions
 /api/public/postings/**             → /api/v1/public/auditions/**
+/api/public/submissions             → /api/v1/auditions/{auditionId}/submissions # 이관 완료
 /api/me/producer                    → /api/v1/producers/me
 /api/navigation/tree                → /api/v1/producers/me/navigation-tree
 /api/performances/**                → /api/v1/performances/**
 /api/screenings/**                  → /api/v1/audition-roles/**/screening-rounds/**
 ```
 
-공연 목록 조회 `GET /api/v1/performances`는 프런트와 MSW 이관을 완료했고, 배우 소셜 로그인과 HttpOnly
-Session 복원·로그아웃도 실제 Backend에 연결됐다. 배우 프로필 기본·추가 정보와 별도 사진·영상 보관함은
-`NEXT_PUBLIC_APPLICANT_PROFILE_API=enabled`에서 실제 Backend에 연결된다. 나머지 항목은 아직 왼쪽 `/api/**` 계약을 사용한다. 현재
-목 심사 응답은 단일 `videoUrl`이 아니라 요구 설명을 포함한 `videos[]`를 반환한다. 현재 목
-`PATCH /api/me/profile`은 기본 MSW 시나리오에서만 정보 답변과 사진·영상 보관함 배열을 함께 받는다.
-실제 연동에서는 정보·사진·영상을 각 `/api/v1/**` 리소스로 분리하며, 프런트 어댑터가 이를 기존 화면 모델로
-조합한다. 사진 순서 변경과 대표 사진 변경도 사진보관함 리소스의 개별 API로 저장한다.
+공연 목록 조회 `GET /api/v1/performances`와 UUID 공고의 지원서 제출은 프런트 이관을 완료했고, 배우 소셜
+로그인과 HttpOnly Session 복원·로그아웃도 실제 Backend에 연결됐다. 배우 프로필 기본·추가 정보와 별도
+사진·영상 보관함은 `NEXT_PUBLIC_APPLICANT_PROFILE_API=enabled`에서 실제 Backend에 연결된다. 지원서
+제출은 새 사진을 배우 사진 API로 업로드·완료한 뒤 백엔드 폼의 질문·사진·영상 requirement ID와 연결하고,
+시드 공고는 기존 MSW 제출 흐름을 유지한다. 나머지 항목은 아직 왼쪽 `/api/**` 계약을 사용한다. 현재 목
+심사 응답은 단일 `videoUrl`이 아니라 요구 설명을 포함한 `videos[]`를 반환한다. 기본 MSW 시나리오의
+`PATCH /api/me/profile`은 정보 답변과 사진·영상 보관함 배열을 함께 받지만, 실제 연동에서는 각
+`/api/v1/**` 리소스로 분리하고 프런트 어댑터가 기존 화면 모델로 조합한다. 사진 순서와 대표 사진 변경도
+사진보관함 리소스의 개별 API로 저장한다.
 
 현재 목 `GET /api/v1/performances`는 공연 요약 안에 중첩 `postings[]`를 반환한다. 공고 요약 타입은 `DRAFT`를 포함하지만, 작성 중 공고의 불완전한 값과 게시 전환을 저장할 생성·수정 계약은 아직 정하지 않았다. 대표·상세 이미지는 브라우저 Data URL로, 공연 장소 좌표는 카카오 주소 검색·지도 SDK 결과로 보관하며 실제 업로드 식별자와 영속 좌표 계약은 아직 연결하지 않았다. 연습 장소는 현재 선택 문자열 두 개로만 보관해 주소 검색·지도 좌표를 제공하지 않는다.
 
