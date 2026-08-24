@@ -63,7 +63,7 @@ export const handlers = [
     catch (cause) { return apiError(500, "MOCK_DATA_ERROR", cause instanceof Error ? cause.message : "목 탐색 데이터를 만들지 못했습니다."); }
   }),
 
-  http.get(`${apiPath}/performances`, async () => {
+  http.get(`${apiPath}/v1/performances`, async () => {
     await delay(260);
     try { return HttpResponse.json({ performances: CATALOG.map(toPerformanceSummary) }); }
     catch (cause) { return apiError(500, "MOCK_DATA_ERROR", cause instanceof Error ? cause.message : "목 공연 데이터를 만들지 못했습니다."); }
