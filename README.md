@@ -46,14 +46,10 @@ npm run build
 
 백엔드:
 
-로컬 MySQL의 `DB_*` 값은 `application-local.yml`에서 Spring Datasource로 연결합니다. OIDC 설정은 애플리케이션 시작 시 검증합니다. 처음 설정할 때만 `.env.example`을 `.env`로 복사하고, DB 비밀번호와 각 개발자 콘솔에서 발급한 값을 채웁니다. 이미 `.env`가 있으면 덮어쓰지 않습니다.
+로컬 MySQL의 `DB_*` 값은 `application-local.yml`에서 Spring Datasource로 연결합니다. 백엔드는 실행 시 저장소 루트의 `.env`를 자동으로 불러오며, OIDC 설정은 애플리케이션 시작 시 검증합니다. 처음 설정할 때만 `.env.example`을 `.env`로 복사하고, DB 비밀번호와 각 개발자 콘솔에서 발급한 값을 채웁니다. 이미 `.env`가 있으면 덮어쓰지 않습니다.
 
 ```bash
 cp -n .env.example .env
-
-set -a
-source .env
-set +a
 
 cd backend
 ./gradlew bootRun
