@@ -1,9 +1,10 @@
-import { delay, http, HttpResponse } from "msw";
+import { delay, http, HttpResponse, passthrough } from "msw";
 import type { ProducerSignupRequest } from "@/features/auth/api";
 import { registerPendingProducer } from "./auditions/producer-profile";
 
 const emails = new Set<string>();
 let mockSession: { memberId: number; role: "APPLICANT" | "PRODUCER"; status: "PENDING" | "ACTIVE" } | null = null;
+const realSocialLoginEnabled = process.env.NEXT_PUBLIC_SOCIAL_LOGIN === "enabled";
 const error = (code: string, message: string, status = 400) => HttpResponse.json({ code, message }, { status });
 
 export const authHandlers = [
@@ -19,6 +20,7 @@ export const authHandlers = [
   }),
 
   http.get("/api/v1/sessions/current", () => {
+    if (realSocialLoginEnabled) return passthrough();
     if (!mockSession) {
       return error("AUTH_UNAUTHENTICATED", "로그인이 필요합니다.", 401);
     }
@@ -26,6 +28,7 @@ export const authHandlers = [
   }),
 
   http.delete("/api/v1/sessions/current", () => {
+    if (realSocialLoginEnabled) return passthrough();
     mockSession = null;
     return new HttpResponse(null, { status: 204 });
   }),

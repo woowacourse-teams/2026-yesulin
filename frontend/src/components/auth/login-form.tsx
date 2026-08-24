@@ -7,6 +7,7 @@ import { useToast } from "@/components/auditions/toast";
 import { AuthInput, PasswordInput, RoleField, type AccountRole } from "./auth-fields";
 import { SocialButtons } from "./social-buttons";
 import { SessionApiError, login as requestLogin } from "@/features/auth/session-api";
+import { rememberSocialLoginReturnTo } from "@/features/auth/social-login-return-to";
 import {
   createFrontendCredential,
   type SocialProvider,
@@ -16,6 +17,7 @@ import {
 type LoginErrors = Partial<Record<"identifier" | "password", string>>;
 
 const mockingDisabled = process.env.NEXT_PUBLIC_API_MOCKING === "disabled";
+const realSocialLoginEnabled = process.env.NEXT_PUBLIC_SOCIAL_LOGIN === "enabled";
 
 const PROVIDER_LABELS: Record<SocialProvider, string> = {
   kakao: "카카오",
@@ -81,6 +83,13 @@ export function LoginForm({ returnTo, applicationFlow = false }: { readonly retu
 
   async function handleSocialLogin(provider: SocialProvider) {
     setPendingProvider(provider);
+
+    if (mockingDisabled || realSocialLoginEnabled) {
+      rememberSocialLoginReturnTo(returnTo);
+      window.location.assign(`/oauth2/authorization/${provider}`);
+      return;
+    }
+
     await new Promise((resolve) => window.setTimeout(resolve, 240));
     setSession({
       credential: createFrontendCredential(),

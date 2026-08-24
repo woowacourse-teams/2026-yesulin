@@ -5,30 +5,32 @@ import Link from "next/link";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthSession } from "@/components/auth/auth-session";
-import { logout as requestLogout } from "@/features/auth/session-api";
+import { useToast } from "@/components/auditions/toast";
 import { getProducerProfile } from "@/features/auditions/api";
 import { PRODUCER_PROFILE_CHANGED } from "@/features/auditions/events";
 import { auditionRoutes } from "@/features/auditions/routes";
 import { useAuditionQuery } from "@/features/auditions/use-audition-query";
+import { SessionApiError } from "@/features/auth/session-api";
 
 export function ProducerAccountPanel() {
   const router = useRouter();
-  const { clearSession } = useAuthSession();
+  const toast = useToast();
+  const { logoutSession } = useAuthSession();
   const query = useAuditionQuery("producer-sidebar-profile", getProducerProfile, "");
   useEffect(() => {
     window.addEventListener(PRODUCER_PROFILE_CHANGED, query.reload);
     return () => window.removeEventListener(PRODUCER_PROFILE_CHANGED, query.reload);
   }, [query.reload]);
   const profile = query.data;
-  const logout = async () => {
-    // 서버 세션을 먼저 지운다. 실패해도 화면 상태는 비워 로그인 화면으로 보낸다.
-    try {
-      await requestLogout();
-    } catch {
-      // 세션이 이미 없거나 네트워크가 끊긴 경우에도 로그아웃을 진행한다.
-    }
-    clearSession();
-    router.push("/login");
+  const logout = () => {
+    void logoutSession()
+      .then(() => router.replace("/login"))
+      .catch((error: unknown) => {
+        const message = error instanceof SessionApiError
+          ? error.message
+          : "로그아웃하지 못했습니다. 잠시 후 다시 시도해 주세요.";
+        toast(message, { type: "error" });
+      });
   };
   return (
     <div className="border-t border-sidebar-line px-4 py-4">

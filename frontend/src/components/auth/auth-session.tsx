@@ -1,7 +1,11 @@
 "use client";
 
-import { createContext, use, useEffect, useMemo, useState } from "react";
-import { fetchCurrentSession } from "@/features/auth/session-api";
+import { createContext, use, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  fetchCurrentSession,
+  logout as requestLogout,
+  type SessionResponse,
+} from "@/features/auth/session-api";
 
 export type SocialProvider = "kakao" | "naver" | "google";
 export type ProducerAccountStatus = "PENDING" | "ACTIVE";
@@ -16,12 +20,25 @@ export type FrontendAuthSession = {
 
 type AuthSessionContextValue = {
   readonly session: FrontendAuthSession | null;
-  readonly restoring: boolean;
+  readonly sessionReady: boolean;
+  readonly serverSessionEnabled: boolean;
   readonly setSession: (session: FrontendAuthSession) => void;
-  readonly clearSession: () => void;
+  readonly logoutSession: () => Promise<void>;
 };
 
 const AuthSessionContext = createContext<AuthSessionContextValue | null>(null);
+const serverSessionEnabled =
+  process.env.NEXT_PUBLIC_API_MOCKING === "disabled"
+  || process.env.NEXT_PUBLIC_SOCIAL_LOGIN === "enabled";
+
+function toFrontendSession(session: SessionResponse): FrontendAuthSession {
+  return {
+    credential: `member-${session.memberId}`,
+    role: session.role,
+    displayName: session.role === "APPLICANT" ? "배우" : "기획사/제작사",
+    producerStatus: session.role === "PRODUCER" ? session.status : undefined,
+  };
+}
 
 export function createFrontendCredential() {
   return globalThis.crypto?.randomUUID?.() ?? `mock-${Date.now()}`;
@@ -29,36 +46,39 @@ export function createFrontendCredential() {
 
 export function AuthSessionProvider({ children }: { readonly children: React.ReactNode }) {
   const [session, setSession] = useState<FrontendAuthSession | null>(null);
-  const [restoring, setRestoring] = useState(true);
+  const [sessionReady, setSessionReady] = useState(!serverSessionEnabled);
+  const logoutSession = useCallback(async () => {
+    if (serverSessionEnabled) await requestLogout();
+    setSession(null);
+  }, []);
 
-  // 새로고침해도 서버 세션이 살아 있으면 화면 상태를 복원한다.
   useEffect(() => {
-    let cancelled = false;
-    fetchCurrentSession()
-      .then((current) => {
-        if (cancelled || !current) return;
-        setSession({
-          credential: createFrontendCredential(),
-          role: current.role,
-          displayName: current.role === "PRODUCER" ? "기획사/제작사" : "배우",
-          producerStatus: current.role === "PRODUCER" ? current.status : undefined,
-        });
+    if (!serverSessionEnabled) return;
+
+    let active = true;
+    void fetchCurrentSession()
+      .then((currentSession) => {
+        if (active && currentSession) setSession(toFrontendSession(currentSession));
       })
-      .catch(() => null)
+      .catch(() => {
+        // 서버 세션을 확인할 수 없으면 비로그인 상태를 유지한다.
+      })
       .finally(() => {
-        if (!cancelled) setRestoring(false);
+        if (active) setSessionReady(true);
       });
+
     return () => {
-      cancelled = true;
+      active = false;
     };
   }, []);
 
   const value = useMemo<AuthSessionContextValue>(() => ({
     session,
-    restoring,
+    sessionReady,
+    serverSessionEnabled,
     setSession,
-    clearSession: () => setSession(null),
-  }), [session, restoring]);
+    logoutSession,
+  }), [logoutSession, session, sessionReady]);
 
   return <AuthSessionContext value={value}>{children}</AuthSessionContext>;
 }
