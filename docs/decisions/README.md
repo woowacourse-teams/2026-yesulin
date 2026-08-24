@@ -38,6 +38,7 @@
 - [백엔드 EC2 운영체제](./20260819061141-backend-ec2-operating-system.md)
 - [Nginx와 CloudFront Origin Header 경계](./20260820071900-nginx-cloudfront-origin-guard.md)
 - [Security와 Interceptor 책임 분리](./20260823122652-auth-responsibility-split.md)
+- [이슈와 프로젝트 보드 워크플로](./20260824035349-issue-and-project-board-workflow.md)
 
 ## Archive
 
