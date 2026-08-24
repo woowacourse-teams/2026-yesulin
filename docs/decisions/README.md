@@ -39,6 +39,7 @@
 - [Nginx와 CloudFront Origin Header 경계](./20260820071900-nginx-cloudfront-origin-guard.md)
 - [Security와 Interceptor 책임 분리](./20260823122652-auth-responsibility-split.md)
 - [이슈와 프로젝트 보드 워크플로](./20260824035349-issue-and-project-board-workflow.md)
+- [로컬에만 Flyway out-of-order 허용](./20260824045725-flyway-out-of-order-local-only.md)
 
 ## Archive
 

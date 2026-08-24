@@ -78,6 +78,14 @@ LocalStack 파일이 초기화됩니다. 인증 우회는 더 이상 제공하�
 
 카카오·네이버·구글 소셜 로그인 시작 경로와 Callback 설정은 [소셜 로그인 연동 모듈 문서](./docs/development/backend/oauth-social-login.md)를 따릅니다.
 
+브랜치를 오가면 버전이 앞선 마이그레이션을 나중에 받을 수 있습니다. `local` 프로필은
+`spring.flyway.out-of-order`를 켜 두어 그대로 이어서 적용하므로 DB를 지울 필요가 없습니다.
+그래도 `Detected resolved migration not applied to database`가 보이면 로컬 DB를 새로 만듭니다.
+
+```bash
+docker exec 2026-yesulin-mysql-1 sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "drop database yesulin; create database yesulin character set utf8mb4 collate utf8mb4_unicode_ci; grant all privileges on yesulin.* to '"'"'yesulin'"'"'@'"'"'%'"'"';"'
+```
+
 ## 지속적 통합
 
 `.github/workflows/ci.yml`은 `main` 대상 Pull Request와 `main` push에서 실행됩니다. Frontend와 Backend Job은 서로 독립된 GitHub-hosted runner에서 병렬 실행됩니다.

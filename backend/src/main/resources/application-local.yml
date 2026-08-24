@@ -4,3 +4,9 @@ spring:
     username: ${DB_USERNAME:yesulin}
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
+
+  flyway:
+    # 브랜치를 병렬로 작업하면 버전이 앞선 마이그레이션이 나중에 병합될 수 있다.
+    # 로컬 DB는 버려도 되는 데이터이므로 순서가 어긋나도 적용해 개발을 막지 않는다.
+    # 배포 환경은 기본값(false)을 유지해 순서를 엄격히 지킨다.
+    out-of-order: true
