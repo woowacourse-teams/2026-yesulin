@@ -1,9 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { updateApplicantProfile } from "@/features/applicants/api";
+import {
+  addApplicantProfileVideo,
+  deleteApplicantProfileVideo,
+  moveApplicantProfileVideo,
+} from "@/features/applicants/profile-api";
 import { notifyApplicantProfileChanged } from "@/features/applicants/events";
-import type { ApplicantProfileResponse, ApplicantProfileVideo } from "@/features/applicants/types";
+import type { ApplicantProfileResponse } from "@/features/applicants/types";
 import { youtubeVideoId } from "@/features/applications/application-form-state";
 import { useToast } from "@/components/auditions/toast";
 import { FieldInput, PrimaryButton, TextButton } from "@/components/ui/controls";
@@ -17,11 +21,11 @@ export function ProfileVideoLibrary({ profile, onSaved }: { readonly profile: Ap
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const persist = async (next: readonly ApplicantProfileVideo[], message: string) => {
+  const persist = async (action: (current: ApplicantProfileResponse) => Promise<ApplicantProfileResponse>, message: string) => {
     setSaving(true);
     setError("");
     try {
-      const saved = await updateApplicantProfile({ videoLibrary: next });
+      const saved = await action({ ...profile, videoLibrary: videos });
       setVideos(saved.videoLibrary);
       onSaved(saved);
       notifyApplicantProfileChanged();
@@ -40,17 +44,25 @@ export function ProfileVideoLibrary({ profile, onSaved }: { readonly profile: Ap
     if (!youtubeId) { setError("올바른 YouTube 링크를 입력해 주세요."); return; }
     if (videos.some((video) => video.youtubeId === youtubeId)) { setError("이미 보관 중인 영상이에요."); return; }
     if (videos.length >= MAX_LIBRARY_VIDEOS) { setError("영상은 최대 10개까지 보관할 수 있어요."); return; }
-    const next = [...videos, { id: `profile-video-${Date.now()}`, url: url.trim(), youtubeId }];
-    if (await persist(next, "영상을 보관함에 추가했어요.")) setUrl("");
+    if (await persist(
+      (current) => addApplicantProfileVideo(current, url.trim(), youtubeId),
+      "영상을 보관함에 추가했어요.",
+    )) setUrl("");
   };
 
-  const remove = (id: string) => persist(videos.filter((video) => video.id !== id), "영상을 보관함에서 삭제했어요.");
+  const remove = (id: string) => persist(
+    (current) => deleteApplicantProfileVideo(current, id),
+    "영상을 보관함에서 삭제했어요.",
+  );
   const move = (index: number, offset: -1 | 1) => {
     const target = index + offset;
     if (target < 0 || target >= videos.length) return;
-    const next = [...videos];
-    [next[index], next[target]] = [next[target]!, next[index]!];
-    void persist(next, "영상 순서를 변경했어요.");
+    const video = videos[index];
+    if (!video) return;
+    void persist(
+      (current) => moveApplicantProfileVideo(current, video.id, target),
+      "영상 순서를 변경했어요.",
+    );
   };
 
   return <div className="mt-6">
