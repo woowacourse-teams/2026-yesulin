@@ -1,12 +1,39 @@
-import { delay, http, HttpResponse } from "msw";
+import { delay, http, HttpResponse, passthrough } from "msw";
 import type { ProducerSignupRequest } from "@/features/auth/api";
 import { registerPendingProducer } from "./auditions/producer-profile";
 
 const emails = new Set<string>();
+let mockSession: { memberId: number; role: "APPLICANT" | "PRODUCER"; status: "PENDING" | "ACTIVE" } | null = null;
+const realSocialLoginEnabled = process.env.NEXT_PUBLIC_SOCIAL_LOGIN === "enabled";
 const error = (code: string, message: string, status = 400) => HttpResponse.json({ code, message }, { status });
 
 export const authHandlers = [
-  http.post("/api/auth/signup/producer", async ({ request }) => {
+  http.post("/api/v1/sessions", async ({ request }) => {
+    await delay(240);
+    const body = (await request.json()) as { email?: string; password?: string };
+    const email = body.email?.trim().toLowerCase() ?? "";
+    if (!/^\S+@\S+\.\S+$/.test(email) || !body.password) {
+      return error("INVALID_REQUEST", "요청 값을 확인해 주세요.");
+    }
+    mockSession = { memberId: 1, role: "PRODUCER", status: "ACTIVE" };
+    return HttpResponse.json(mockSession);
+  }),
+
+  http.get("/api/v1/sessions/current", () => {
+    if (realSocialLoginEnabled) return passthrough();
+    if (!mockSession) {
+      return error("AUTH_UNAUTHENTICATED", "로그인이 필요합니다.", 401);
+    }
+    return HttpResponse.json(mockSession);
+  }),
+
+  http.delete("/api/v1/sessions/current", () => {
+    if (realSocialLoginEnabled) return passthrough();
+    mockSession = null;
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  http.post("/api/v1/producers", async ({ request }) => {
     await delay(320);
     const body = (await request.json()) as ProducerSignupRequest;
     const email = body.email?.trim().toLowerCase();
@@ -21,11 +48,11 @@ export const authHandlers = [
     emails.add(email);
     registerPendingProducer({ companyName: body.companyName, email, phone });
     return HttpResponse.json({
-      role: "PRODUCER",
+      memberId: 1,
       companyName: body.companyName.trim(),
+      email,
+      role: "PRODUCER",
       verificationStatus: "PENDING",
-      credential: globalThis.crypto.randomUUID(),
-      redirectTo: "/producers/account",
     }, { status: 201 });
   }),
 ];

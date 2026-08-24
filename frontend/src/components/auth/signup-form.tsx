@@ -7,7 +7,7 @@ import { useToast } from "@/components/auditions/toast";
 import { signupProducer } from "@/features/auth/api";
 import { AuthInput, PasswordInput } from "./auth-fields";
 import { ProducerSignupFields } from "./producer-signup-fields";
-import { useAuthSession } from "./auth-session";
+import { createFrontendCredential, useAuthSession } from "./auth-session";
 
 type SignupField = "company" | "phone" | "email" | "password" | "passwordConfirm" | "terms";
 type SignupErrors = Partial<Record<SignupField, string>>;
@@ -73,13 +73,13 @@ export function SignupForm() {
         termsAgreed: terms,
       });
       setSession({
-        credential: response.credential,
+        credential: createFrontendCredential(),
         role: response.role,
         displayName: response.companyName,
         producerStatus: response.verificationStatus,
       });
       toast("기획사/제작사 가입이 완료되었습니다. 운영진 확인을 기다려 주세요.", { type: "success" });
-      router.push(response.redirectTo);
+      router.push("/producers/account");
     } catch (cause) {
       toast(cause instanceof Error ? cause.message : "기획사/제작사 계정을 만들지 못했습니다.", { type: "error" });
       setSubmitting(false);

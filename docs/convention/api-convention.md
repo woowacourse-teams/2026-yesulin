@@ -18,6 +18,8 @@
 - 인증 리소스의 소유자 ID는 요청으로 받지 않고 Session에서 결정한다. 인증 전 Draft는 API 리소스가 아니다.
 - 소유자 전용 리소스는 없거나 다른 사용자의 소유인 경우 모두 `404`로 응답해 존재 여부를 노출하지 않는다. 공개된 리소스에 대한 행위 권한만 부족한 경우에는 `403`을 사용한다.
 - 성공 응답은 wrapper 없이, 실패는 `{ code, message, detail? }`로 반환한다.
+- 쓰기 요청(POST·PUT·PATCH·DELETE)에는 `X-CSRF-Token` 헤더가 필요하다. 서버가 `XSRF-TOKEN` 쿠키로 토큰을 내려주므로 클라이언트는 읽기 요청을 한 번 보내 받은 뒤 헤더에 넣는다. 세션 쿠키는 HttpOnly지만 CSRF 토큰 쿠키는 클라이언트가 읽어야 하므로 HttpOnly가 아니다.
+- 인증 실패는 401 `AUTH_UNAUTHENTICATED`, 역할 불일치는 403 `AUTH_FORBIDDEN`, 승인 전 계정은 403 `AUTH_INACTIVE_MEMBER`로 구분한다.
 - 호환 필드 추가는 `v1`을 유지하고 breaking change에서만 major 버전을 올린다.
 
 ## 인증
@@ -26,12 +28,14 @@
 POST   /api/v1/sessions                         # 로그인
 GET    /api/v1/sessions/current                 # 현재 세션
 DELETE /api/v1/sessions/current                 # 로그아웃
-GET    /api/v1/oauth/{provider}/authorization   # 소셜 로그인 시작
-GET    /api/v1/oauth/{provider}/callback        # 소셜 인증 응답
+GET    /oauth2/authorization/{provider}          # Spring Security 소셜 로그인 시작
+GET    /login/oauth2/code/{provider}             # Provider Callback
 POST   /api/v1/producers                        # 기획사/제작사 가입
 ```
 
-`provider`는 `kakao`, `naver`, `google`을 허용하며 OAuth 요청의 `state`를 검증한다. 배우는 별도 가입 API·화면을 두지 않고 첫 소셜 로그인 콜백에서 계정을 자동 생성한다. 같은 이메일의 기존 배우 계정은 자동 병합하지 않고 명시적 연결 요청과 재인증을 거친다. 배우와 기획사/제작사 계정은 같은 이메일이어도 서로 연결하지 않는다. 기획사/제작사는 이메일·비밀번호로 로그인한다.
+`provider`는 `kakao`, `naver`, `google`을 허용한다. 위 두 경로와 `state`, PKCE, Token 교환, ID Token 검증은 Spring Security OAuth2 Client가 처리한다. 인증 성공 시 모듈은 `SocialLoginSuccessHandler`에 `(provider, issuer, subject)`만 전달하며 사용자 정보 API는 호출하지 않는다. 회원 식별 고유 키는 `(issuer, subject)`다.
+
+배우는 별도 가입 API·화면을 두지 않고 첫 소셜 로그인 성공 시 계정을 자동 생성한다. 같은 이메일의 기존 배우 계정은 자동 병합하지 않고 명시적 연결 요청과 재인증을 거친다. 배우와 기획사/제작사 계정은 같은 이메일이어도 서로 연결하지 않는다. 기획사/제작사는 이메일·비밀번호로 로그인한다. 소셜 인증 이후 회원 조회·최초 계정 생성과 서비스 세션 처리는 [로그인 담당자 인수인계](../development/backend/social-login-handoff.md)를 따른다.
 
 기획사/제작사 가입 요청의 핵심 정보는 기획사/제작사명, 휴대폰 번호, 이메일, 비밀번호다. 비밀번호 확인과 필수 약관 동의를 함께 검증한다. 동의 문서 종류·버전·시각을 별도 이력으로 저장한다. 가입 성공 시 계정은 `PENDING`이며 기획사/제작사 정보 조회·수정만 허용한다. 운영진 확인 후 `ACTIVE`로 전환되어야 공연·공고·심사 API에 접근할 수 있다. MVP는 Company당 `ADMIN` 한 명만 허용한다.
 
@@ -215,8 +219,10 @@ PATCH /api/v1/audition-roles/{roleId}/screening-rounds/{round} # status=CLOSED�
 
 ## 현재 프런트 이관
 
+(이관 완료) 로그인·세션: 프런트가 /api/v1/sessions 계약을 사용한다.
+
 ```text
-/api/auth/signup/producer           → /api/v1/producers
+/api/auth/signup/producer           → /api/v1/producers                 # 이관 완료
 /api/me/profile                     → /api/v1/applicants/me/profile
 /api/me/profile/prefill             → /api/v1/applicants/me/profile/prefill
 /api/me/submissions/**             → GET은 /api/v1/applicants/me/submissions/**, PATCH는 목표 계약에서 제외

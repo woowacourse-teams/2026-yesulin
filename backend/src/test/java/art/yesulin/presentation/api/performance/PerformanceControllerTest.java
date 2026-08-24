@@ -1,6 +1,7 @@
 package art.yesulin.presentation.api.performance;
 
 import static org.hamcrest.Matchers.matchesPattern;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -19,6 +20,8 @@ import art.yesulin.application.performance.PerformanceResult;
 import art.yesulin.application.performance.PerformanceService;
 import art.yesulin.domain.file.FileAssetRepository;
 import art.yesulin.domain.file.FileReferenceRepository;
+import art.yesulin.domain.member.MemberStatus;
+import art.yesulin.domain.member.MemberType;
 import art.yesulin.domain.performance.PerformanceRepository;
 import art.yesulin.support.FakeObjectStorage;
 import art.yesulin.support.ObjectStorageTestConfiguration;
@@ -43,7 +46,8 @@ import org.springframework.test.web.servlet.MockMvc;
 class PerformanceControllerTest {
 
     private static final long OWNER_ID = 1L;
-    private static final MemberPrincipal MEMBER_PRINCIPAL = new MemberPrincipal(OWNER_ID);
+    private static final MemberPrincipal MEMBER_PRINCIPAL = new MemberPrincipal(OWNER_ID, MemberType.PRODUCER,
+            MemberStatus.ACTIVE);
 
     @Autowired
     private MockMvc mockMvc;
@@ -88,6 +92,7 @@ class PerformanceControllerTest {
                 """.formatted(posterFileId);
 
         mockMvc.perform(post("/api/v1/performances")
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
@@ -128,6 +133,25 @@ class PerformanceControllerTest {
     }
 
     @Test
+    void rejectsCreateWhenNotLoggedIn() throws Exception {
+        String request = """
+                {
+                 "posterFileId": 1,
+                 "title": "햄릿",
+                 "roadAddress": "서울특별시 종로구 대학로 12",
+                 "roles": []
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/performances")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("AUTH_UNAUTHENTICATED"));
+    }
+
+    @Test
     void updatesPerformanceBasicInformation() throws Exception {
         PerformanceResult created = createPerformance();
         String request = """
@@ -138,6 +162,7 @@ class PerformanceControllerTest {
                 """;
 
         mockMvc.perform(patch("/api/v1/performances/{performanceId}/basic-information", created.id())
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
@@ -156,6 +181,7 @@ class PerformanceControllerTest {
                 """.formatted(changedPosterFileId);
 
         mockMvc.perform(patch("/api/v1/performances/{performanceId}/poster", created.id())
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
@@ -172,6 +198,7 @@ class PerformanceControllerTest {
                 """;
 
         mockMvc.perform(post("/api/v1/performances/{performanceId}/roles", created.id())
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
@@ -190,6 +217,7 @@ class PerformanceControllerTest {
                 """;
 
         mockMvc.perform(patch("/api/v1/performances/{performanceId}/roles/{roleId}", created.id(), roleId)
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
@@ -204,6 +232,7 @@ class PerformanceControllerTest {
         long roleId = created.roles().getFirst().id();
 
         mockMvc.perform(delete("/api/v1/performances/{performanceId}/roles/{roleId}", created.id(), roleId)
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
                 .andExpect(status().isNoContent());
     }

@@ -66,7 +66,15 @@ IndexedDB 사본은 서버나 기획사/제작사에 전송되지 않는다. 이
 - 지원서 문맥의 로그인은 공고·배역·`returnTo`를 유지하고 인증 성공 뒤 `prefill=1&resumeDraft=1`로 최종 검토 화면을 다시 연다. 인증 취소는 목 인증 상태를 만들지 않고 로컬 Draft만 복원한다.
 - 동일 이메일의 소셜 가입 안내·명시적 계정 연결, 배우와 기획사/제작사 계정의 서버 수준 분리, 약관 버전·동의 시각 저장, 만 14세 제출 차단은 구현하지 않았다.
 
-배우 소셜 인증과 기획사/제작사 세션은 프론트 React 상태로만 유지되어 새로고침하면 사라진다. 실제 OAuth, 서버 세션, 인증 메일·문자, `PENDING → ACTIVE` 운영 전환은 아직 구현하지 않았다.
+`NEXT_PUBLIC_SOCIAL_LOGIN=enabled`이거나 `NEXT_PUBLIC_API_MOCKING=disabled`이면 배우 소셜 로그인 버튼은 같은 origin의
+`/oauth2/authorization/{provider}`로 이동하고, Next.js가 OAuth 시작·Callback 요청을 백엔드에
+전달한다. 기본 MSW 환경의 배우 소셜 인증은 프론트 React 상태로만 유지되어 새로고침하면
+사라진다. 실제 소셜 로그인 환경에서는 앱을 시작할 때 `GET /api/v1/sessions/current`로 HttpSession을
+확인하고 프론트 인증 상태를 복원한다. 실제 세션이 없거나 배우 계정이 아니면 `/applicants/**`에서
+`/login`으로 이동한다. 실제 환경의 로그아웃은 `DELETE /api/v1/sessions/current` 성공 후 프론트
+인증 상태를 제거한다. 실제 소셜 로그인 전 안전한 내부 `returnTo`를 탭의 `sessionStorage`에 보관하고,
+`/social-login/complete`에서 세션 확인 후 해당 화면으로 복귀한다. 기본 MSW 환경은 시나리오 확인을
+위해 직접 접근을 유지한다. 인증 메일·문자와 `PENDING → ACTIVE` 운영 전환은 아직 구현하지 않았다.
 
 ## API·저장 경계
 

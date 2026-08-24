@@ -1,6 +1,8 @@
 package art.yesulin.presentation.auth;
 
 import art.yesulin.application.auth.MemberPrincipal;
+import art.yesulin.domain.member.MemberStatus;
+import art.yesulin.domain.member.MemberType;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Profile;
@@ -14,7 +16,9 @@ public class LocalTestMemberPrincipalInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         if (request.getSession().getAttribute(MemberPrincipal.SESSION_ATTRIBUTE) == null) {
-            request.getSession().setAttribute(MemberPrincipal.SESSION_ATTRIBUTE, new MemberPrincipal(1L));
+            request.getSession().setAttribute(
+                    MemberPrincipal.SESSION_ATTRIBUTE,
+                    new MemberPrincipal(1L, MemberType.PRODUCER, MemberStatus.ACTIVE));
         }
         return true;
     }

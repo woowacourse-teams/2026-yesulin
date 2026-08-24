@@ -6,6 +6,8 @@ import { PrimaryButton, TextLink } from "@/components/ui/controls";
 import { useToast } from "@/components/auditions/toast";
 import { AuthInput, PasswordInput, RoleField, type AccountRole } from "./auth-fields";
 import { SocialButtons } from "./social-buttons";
+import { SessionApiError, login as requestLogin } from "@/features/auth/session-api";
+import { rememberSocialLoginReturnTo } from "@/features/auth/social-login-return-to";
 import {
   createFrontendCredential,
   type SocialProvider,
@@ -13,6 +15,9 @@ import {
 } from "./auth-session";
 
 type LoginErrors = Partial<Record<"identifier" | "password", string>>;
+
+const mockingDisabled = process.env.NEXT_PUBLIC_API_MOCKING === "disabled";
+const realSocialLoginEnabled = process.env.NEXT_PUBLIC_SOCIAL_LOGIN === "enabled";
 
 const PROVIDER_LABELS: Record<SocialProvider, string> = {
   kakao: "카카오",
@@ -29,6 +34,7 @@ export function LoginForm({ returnTo, applicationFlow = false }: { readonly retu
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<LoginErrors>({});
   const [pendingProvider, setPendingProvider] = useState<SocialProvider>();
+  const [submitting, setSubmitting] = useState(false);
 
   function changeRole(nextRole: AccountRole) {
     setRole(nextRole);
@@ -37,7 +43,7 @@ export function LoginForm({ returnTo, applicationFlow = false }: { readonly retu
     setErrors({});
   }
 
-  function handleProducerLogin(event: React.FormEvent<HTMLFormElement>) {
+  async function handleProducerLogin(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const nextErrors: LoginErrors = {};
     const trimmedIdentifier = identifier.trim();
@@ -49,6 +55,22 @@ export function LoginForm({ returnTo, applicationFlow = false }: { readonly retu
       requestAnimationFrame(() => document.getElementById(`login-${firstError}`)?.focus());
       return;
     }
+
+    if (mockingDisabled) {
+      setSubmitting(true);
+      try {
+        await requestLogin(trimmedIdentifier, password);
+      } catch (error) {
+        const message = error instanceof SessionApiError
+          ? error.message
+          : "로그인하지 못했습니다. 잠시 후 다시 시도해 주세요.";
+        toast(message, { type: "error" });
+        return;
+      } finally {
+        setSubmitting(false);
+      }
+    }
+
     setSession({
       credential: createFrontendCredential(),
       role: "PRODUCER",
@@ -61,6 +83,13 @@ export function LoginForm({ returnTo, applicationFlow = false }: { readonly retu
 
   async function handleSocialLogin(provider: SocialProvider) {
     setPendingProvider(provider);
+
+    if (mockingDisabled || realSocialLoginEnabled) {
+      rememberSocialLoginReturnTo(returnTo);
+      window.location.assign(`/oauth2/authorization/${provider}`);
+      return;
+    }
+
     await new Promise((resolve) => window.setTimeout(resolve, 240));
     setSession({
       credential: createFrontendCredential(),
@@ -81,7 +110,7 @@ export function LoginForm({ returnTo, applicationFlow = false }: { readonly retu
       {applicantLogin ? (
         <SocialButtons pendingProvider={pendingProvider} onSelect={(provider) => void handleSocialLogin(provider)} />
       ) : (
-        <form onSubmit={handleProducerLogin} noValidate className="space-y-6">
+        <form onSubmit={(event) => void handleProducerLogin(event)} noValidate className="space-y-6">
           <div className="space-y-4">
             <AuthInput
               id="login-identifier"
@@ -104,7 +133,9 @@ export function LoginForm({ returnTo, applicationFlow = false }: { readonly retu
               onChange={(event) => setPassword(event.target.value)}
             />
           </div>
-          <PrimaryButton type="submit" className="min-h-[52px] w-full text-base">기획사/제작사 로그인</PrimaryButton>
+          <PrimaryButton type="submit" disabled={submitting} className="min-h-[52px] w-full text-base">
+            {submitting ? "로그인 중..." : "기획사/제작사 로그인"}
+          </PrimaryButton>
           <TextLink href="/forgot-password" className="w-full text-center">
             비밀번호를 잊으셨나요?
           </TextLink>

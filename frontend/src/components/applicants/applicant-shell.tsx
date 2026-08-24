@@ -5,11 +5,13 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useAuthSession } from "@/components/auth/auth-session";
+import { useToast } from "@/components/auditions/toast";
 import { getApplicantProfile } from "@/features/applicants/api";
 import { APPLICANT_PROFILE_CHANGED } from "@/features/applicants/events";
 import { applicantRoutes } from "@/features/applicants/routes";
 import type { ApplicantProfileResponse } from "@/features/applicants/types";
 import { useAuditionQuery } from "@/features/auditions/use-audition-query";
+import { SessionApiError } from "@/features/auth/session-api";
 
 const navigation = [
   { href: applicantRoutes.home, label: "홈", icon: "home" },
@@ -20,7 +22,8 @@ const navigation = [
 export function ApplicantShell({ children }: { readonly children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { session, clearSession } = useAuthSession();
+  const toast = useToast();
+  const { session, logoutSession } = useAuthSession();
   const accountName = session?.role === "APPLICANT" ? session.displayName : "배우";
   const profileQuery = useAuditionQuery("applicant-header-profile", getApplicantProfile, "");
   useEffect(() => {
@@ -28,8 +31,14 @@ export function ApplicantShell({ children }: { readonly children: React.ReactNod
     return () => window.removeEventListener(APPLICANT_PROFILE_CHANGED, profileQuery.reload);
   }, [profileQuery.reload]);
   const logout = () => {
-    clearSession();
-    router.push("/login");
+    void logoutSession()
+      .then(() => router.replace("/login"))
+      .catch((error: unknown) => {
+        const message = error instanceof SessionApiError
+          ? error.message
+          : "로그아웃하지 못했습니다. 잠시 후 다시 시도해 주세요.";
+        toast(message, { type: "error" });
+      });
   };
   return <div className="min-h-screen bg-surface text-foreground">
     <a href="#applicant-main" className="fixed left-4 top-3 z-50 -translate-y-24 rounded-control bg-foreground px-4 py-2 text-sm font-semibold text-white focus:translate-y-0">본문으로 바로가기</a>

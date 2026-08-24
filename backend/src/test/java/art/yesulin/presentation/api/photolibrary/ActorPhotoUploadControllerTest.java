@@ -1,6 +1,7 @@
 package art.yesulin.presentation.api.photolibrary;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -8,6 +9,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import art.yesulin.application.auth.MemberPrincipal;
 import art.yesulin.domain.file.FileAssetRepository;
+import art.yesulin.domain.member.MemberStatus;
+import art.yesulin.domain.member.MemberType;
 import art.yesulin.support.FakeObjectStorage;
 import art.yesulin.support.ObjectStorageTestConfiguration;
 import org.junit.jupiter.api.Test;
@@ -33,7 +36,8 @@ import tools.jackson.databind.ObjectMapper;
 class ActorPhotoUploadControllerTest {
 
     private static final long MAX_PHOTO_SIZE = 20L * 1024 * 1024;
-    private static final MemberPrincipal MEMBER_PRINCIPAL = new MemberPrincipal(1L);
+    private static final MemberPrincipal MEMBER_PRINCIPAL = new MemberPrincipal(1L, MemberType.APPLICANT,
+            MemberStatus.ACTIVE);
 
     @Autowired
     private MockMvc mockMvc;
@@ -50,6 +54,7 @@ class ActorPhotoUploadControllerTest {
     @Test
     void issuesPresignedUploadUrlForActorPhoto() throws Exception {
         String response = mockMvc.perform(post("/api/v1/actor-photos/upload-requests")
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(uploadRequest("profile.jpg", "image/jpeg", MAX_PHOTO_SIZE)))
@@ -70,6 +75,7 @@ class ActorPhotoUploadControllerTest {
     @Test
     void acceptsWebpActorPhoto() throws Exception {
         mockMvc.perform(post("/api/v1/actor-photos/upload-requests")
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(uploadRequest("profile.webp", "image/webp", 1_024L)))
@@ -79,6 +85,7 @@ class ActorPhotoUploadControllerTest {
     @Test
     void rejectsActorPhotoLargerThanTwentyMegabytes() throws Exception {
         mockMvc.perform(post("/api/v1/actor-photos/upload-requests")
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(uploadRequest("profile.png", "image/png", MAX_PHOTO_SIZE + 1)))
@@ -88,6 +95,7 @@ class ActorPhotoUploadControllerTest {
     @Test
     void rejectsVideoForActorPhoto() throws Exception {
         mockMvc.perform(post("/api/v1/actor-photos/upload-requests")
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(uploadRequest("profile.mp4", "video/mp4", 1_024L)))
@@ -97,6 +105,7 @@ class ActorPhotoUploadControllerTest {
     @Test
     void completesUploadedActorPhoto() throws Exception {
         String response = mockMvc.perform(post("/api/v1/actor-photos/upload-requests")
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(uploadRequest("profile.png", "image/png", 1_024L)))
@@ -106,6 +115,7 @@ class ActorPhotoUploadControllerTest {
         objectStorage.upload(upload.get("uploadUrl").asString(), "image/png", 1_024L);
 
         mockMvc.perform(patch("/api/v1/actor-photos/{fileId}/completion", fileId)
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
                 .andExpect(status().isNoContent())
                 .andExpect(jsonPath("$").doesNotExist());

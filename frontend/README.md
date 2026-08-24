@@ -25,12 +25,22 @@ npm run start
 
 ## Vercel 배포
 
-Production 프론트 주소는 `https://yesulin.art`다. Vercel의 `API_ORIGIN`에는 API origin인 `https://dcijkydwh7e79.cloudfront.net`을 설정한다. 값이 있으면 Next.js가 같은 origin의 `/api/v1/**` 요청을 CloudFront의 동일한 경로로 rewrite하며, 브라우저에는 CloudFront 주소를 노출하지 않는다.
+Production 프론트 주소는 `https://yesulin.art`다. Vercel의 `API_ORIGIN`에는 API origin인 `https://dcijkydwh7e79.cloudfront.net`을 설정한다. 값이 있으면 Next.js가 같은 origin의 `/api/v1/**`, `/oauth2/**`, `/login/oauth2/**` 요청을 CloudFront의 동일한 경로로 rewrite하며, 브라우저에는 CloudFront 주소를 노출하지 않는다.
 
 `API_ORIGIN`이 없으면 rewrite를 만들지 않아 기본 MSW 개발과 환경변수 없는 CI build는 유지된다.
 MSW는 처리하지 않는 요청을 통과시키므로, 기존 `/api/**` 목 API와 이관된 `/api/v1/**` 실제 API를
 함께 사용한다. 모든 API를 이관하기 전에는 Vercel의 `NEXT_PUBLIC_API_MOCKING`을 `disabled`로
 전환하지 않는다.
+
+아직 이관되지 않은 `/api/**`는 MSW로 유지하면서 실제 소셜 로그인만 확인할 때는
+`NEXT_PUBLIC_SOCIAL_LOGIN=enabled`를 사용한다.
+
+```bash
+API_ORIGIN=http://localhost:8080 NEXT_PUBLIC_SOCIAL_LOGIN=enabled npm run dev
+```
+
+백엔드의 소셜 로그인 성공 주소는 `/social-login/complete`로 설정한다. 이 완료 화면은 서버 세션을
+확인하고 로그인 전에 보관한 안전한 내부 `returnTo`로 이동하며, 값이 없으면 `/applicants`로 간다.
 
 ## 구조
 
