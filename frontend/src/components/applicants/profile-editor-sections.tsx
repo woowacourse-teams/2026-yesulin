@@ -41,7 +41,18 @@ function StandardField({ field, value, required, onChange }: { readonly field: A
 
 function ExternalLinksField({ value, onChange }: { readonly value: readonly string[]; readonly onChange: (value: ApplicantAnswerValue) => void }) {
   const patch = (index: number, next: string) => onChange(value.map((link, candidate) => candidate === index ? next.slice(0, MAX_PROFILE_LINK_LENGTH) : link));
-  return <section className="md:col-span-2"><div className="flex flex-wrap items-end justify-between gap-3"><div><h3 className="text-sm font-semibold">SNS / 외부 링크 <span className="text-xs font-normal text-muted">(선택)</span></h3><p className="mt-1 text-sm leading-6 text-muted">인스타그램, 개인 홈페이지, 포트폴리오처럼 배우 활동을 확인할 수 있는 주소를 등록하세요.</p></div><span className="num text-xs font-medium text-muted">{value.length} / {MAX_PROFILE_LINKS}</span></div><div className="mt-3 space-y-3">{value.map((link, index) => <div key={`profile-link-${index}`} className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]"><label htmlFor={`profile-link-${index}`} className="sr-only">SNS / 외부 링크 {index + 1}</label><FieldInput id={`profile-link-${index}`} type="url" inputMode="url" maxLength={MAX_PROFILE_LINK_LENGTH} value={link} placeholder="https://instagram.com/..." onChange={(event) => patch(index, event.target.value)} /><DestructiveButton onClick={() => onChange(value.filter((_, candidate) => candidate !== index))} aria-label={`SNS / 외부 링크 ${index + 1} 삭제`} className="px-3">삭제</DestructiveButton><span className="num text-right text-xs text-muted sm:col-start-1">{link.length} / {MAX_PROFILE_LINK_LENGTH}자</span></div>)}{value.length === 0 ? <div className="rounded-control border border-dashed border-border bg-surface px-4 py-6 text-center text-sm text-muted">등록한 SNS / 외부 링크가 없어요.</div> : null}{value.length < MAX_PROFILE_LINKS ? <AddButton onClick={() => onChange([...value, ""])} className="min-h-12 w-full">+ 링크 추가</AddButton> : null}</div></section>;
+  return <section className="md:col-span-2"><div className="flex flex-wrap items-end justify-between gap-3"><div><h3 className="text-sm font-semibold">SNS / 외부 링크 <span className="text-xs font-normal text-muted">(선택)</span></h3><p className="mt-1 text-sm leading-6 text-muted">인스타그램, 개인 홈페이지, 포트폴리오처럼 배우 활동을 확인할 수 있는 주소를 등록하세요.</p></div><span className="num text-xs font-medium text-muted">{value.length} / {MAX_PROFILE_LINKS}</span></div><div className="mt-3 space-y-3">{value.map((link, index) => {
+    const inputId = `profile-link-${index}`;
+    const countId = `${inputId}-count`;
+    return <div key={inputId} className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-2">
+      <label htmlFor={inputId} className="sr-only">SNS / 외부 링크 {index + 1}</label>
+      <div className="min-w-0">
+        <FieldInput id={inputId} type="url" inputMode="url" maxLength={MAX_PROFILE_LINK_LENGTH} value={link} placeholder="https://instagram.com/..." aria-describedby={countId} onChange={(event) => patch(index, event.target.value)} />
+        <span id={countId} className="num mt-1 block text-right text-xs text-muted">{link.length} / {MAX_PROFILE_LINK_LENGTH}자</span>
+      </div>
+      <DestructiveButton onClick={() => onChange(value.filter((_, candidate) => candidate !== index))} aria-label={`SNS / 외부 링크 ${index + 1} 삭제`} className="px-3">삭제</DestructiveButton>
+    </div>;
+  })}{value.length === 0 ? <div className="rounded-control border border-dashed border-border bg-surface px-4 py-6 text-center text-sm text-muted">등록한 SNS / 외부 링크가 없어요.</div> : null}{value.length < MAX_PROFILE_LINKS ? <AddButton onClick={() => onChange([...value, ""])} className="min-h-12 w-full">+ 링크 추가</AddButton> : null}</div></section>;
 }
 
 function CareerSection({ value, onChange }: { readonly value: readonly CareerEntry[]; readonly onChange: (value: ApplicantAnswerValue) => void }) {
