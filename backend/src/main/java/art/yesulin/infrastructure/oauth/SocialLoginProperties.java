@@ -8,6 +8,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties("yesulin.social-login")
 public record SocialLoginProperties(
         boolean enabled,
+        String redirectUri,
         Map<SocialProvider, Provider> providers
 ) {
 

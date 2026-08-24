@@ -39,8 +39,8 @@ npm run build
 
 - 기본 주소: `http://localhost:3000`
 - 기획사/제작사 진입: `/producers/performances`
-- 실제 공연 API 연결: MSW를 유지하고 `API_ORIGIN`을 설정하면 `/api/v1/**` 요청만 백엔드로
-  전달합니다.
+- 실제 백엔드 연결: `API_ORIGIN`을 설정하면 `/api/v1/**`, `/oauth2/**`,
+  `/login/oauth2/**` 요청을 백엔드로 전달합니다.
 
 백엔드:
 

@@ -26,6 +26,8 @@ yesulin:
       upload-expiration: ${YESULIN_STORAGE_S3_UPLOAD_EXPIRATION:PT10M}
   social-login:
     enabled: ${SOCIAL_LOGIN_ENABLED:true}
+    redirect-uri: ${SOCIAL_LOGIN_REDIRECT_URI:}
+    success-redirect: ${SOCIAL_LOGIN_SUCCESS_REDIRECT:/}
     providers:
       kakao:
         issuer: https://kauth.kakao.com

@@ -48,7 +48,19 @@
 | Naver | `https://nid.naver.com` | `/oauth2/authorization/naver` | `/login/oauth2/code/naver` |
 | Google | `https://accounts.google.com` | `/oauth2/authorization/google` | `/login/oauth2/code/google` |
 
-Provider 개발자 콘솔에는 배포 환경별 전체 Callback URL을 정확히 등록한다. 로컬 예시는 `http://localhost:8080/login/oauth2/code/kakao`다.
+Provider 개발자 콘솔에는 배포 환경별 전체 Callback URL을 정확히 등록한다. 프론트와 연동하는
+로컬 예시는 `http://localhost:3000/login/oauth2/code/kakao`다. Next.js가 같은 origin으로 받은
+OAuth 시작·Callback 요청을 백엔드에 전달한다.
+
+로컬 `.env`에는 다음과 같이 프론트 기준 Callback 템플릿과 성공 후 이동 주소를 설정한다.
+
+```text
+SOCIAL_LOGIN_REDIRECT_URI=http://localhost:3000/login/oauth2/code/{registrationId}
+SOCIAL_LOGIN_SUCCESS_REDIRECT=http://localhost:3000/social-login/complete
+```
+
+`/social-login/complete`는 프론트가 서버 세션 생성을 확인한 뒤 로그인 전에 저장한 안전한 내부
+`returnTo`로 이동하는 완료 경로다. 저장된 경로가 없거나 유효하지 않으면 `/applicants`로 이동한다.
 
 필요한 환경 변수는 `.env.example`을 따른다. 실제 값은 커밋하지 않는다.
 

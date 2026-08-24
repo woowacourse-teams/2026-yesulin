@@ -41,6 +41,20 @@ class SocialLoginConfigurationTest {
     }
 
     @Test
+    void usesConfiguredRedirectUri() {
+        String redirectUri = "http://localhost:3000/login/oauth2/code/{registrationId}";
+        SocialLoginProperties properties = new SocialLoginProperties(
+                true,
+                redirectUri,
+                validProviders()
+        );
+
+        ClientRegistrationRepository configured = configuration.clientRegistrationRepository(properties);
+
+        assertThat(configured.findByRegistrationId("kakao").getRedirectUri()).isEqualTo(redirectUri);
+    }
+
+    @Test
     void keepsNonceForKakaoAndRemovesItForNaver() {
         NaverAuthorizationRequestResolver resolver = new NaverAuthorizationRequestResolver(registrations);
 
@@ -56,7 +70,7 @@ class SocialLoginConfigurationTest {
 
     @Test
     void rejectsMissingProviderConfiguration() {
-        SocialLoginProperties properties = new SocialLoginProperties(true, Map.of());
+        SocialLoginProperties properties = new SocialLoginProperties(true, "", Map.of());
 
         assertThatThrownBy(() -> configuration.clientRegistrationRepository(properties))
                 .isInstanceOf(IllegalStateException.class)
@@ -75,11 +89,15 @@ class SocialLoginConfigurationTest {
     }
 
     private SocialLoginProperties validProperties() {
+        return new SocialLoginProperties(true, "", validProviders());
+    }
+
+    private Map<SocialProvider, SocialLoginProperties.Provider> validProviders() {
         Map<SocialProvider, SocialLoginProperties.Provider> providers = new EnumMap<>(SocialProvider.class);
         providers.put(SocialProvider.KAKAO, provider("kauth.kakao.com"));
         providers.put(SocialProvider.NAVER, provider("nid.naver.com"));
         providers.put(SocialProvider.GOOGLE, provider("accounts.google.com"));
-        return new SocialLoginProperties(true, providers);
+        return providers;
     }
 
     private SocialLoginProperties.Provider provider(String host) {

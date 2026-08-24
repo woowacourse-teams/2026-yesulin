@@ -41,8 +41,13 @@ public class SocialLoginConfiguration {
     public ClientRegistrationRepository clientRegistrationRepository(SocialLoginProperties properties) {
         validate(properties);
         List<ClientRegistration> registrations = new ArrayList<>();
+        String redirectUri = resolveRedirectUri(properties);
         for (SocialProvider provider : SocialProvider.values()) {
-            registrations.add(toClientRegistration(provider, properties.providers().get(provider)));
+            registrations.add(toClientRegistration(
+                    provider,
+                    properties.providers().get(provider),
+                    redirectUri
+            ));
         }
         return new InMemoryClientRegistrationRepository(registrations);
     }
@@ -92,7 +97,8 @@ public class SocialLoginConfiguration {
 
     private ClientRegistration toClientRegistration(
             SocialProvider provider,
-            SocialLoginProperties.Provider properties
+            SocialLoginProperties.Provider properties,
+            String redirectUri
     ) {
         String registrationId = provider.name().toLowerCase();
         return ClientRegistration.withRegistrationId(registrationId)
@@ -101,7 +107,7 @@ public class SocialLoginConfiguration {
                 .clientSecret(properties.clientSecret())
                 .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_POST)
                 .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
-                .redirectUri(REDIRECT_URI)
+                .redirectUri(redirectUri)
                 .scope("openid")
                 .issuerUri(properties.issuer().toString())
                 .authorizationUri(properties.authorizationUri().toString())
@@ -109,6 +115,17 @@ public class SocialLoginConfiguration {
                 .jwkSetUri(properties.jwkSetUri().toString())
                 .clientSettings(ClientSettings.builder().requireProofKey(true).build())
                 .build();
+    }
+
+    private String resolveRedirectUri(SocialLoginProperties properties) {
+        String configuredRedirectUri = properties.redirectUri();
+        if (configuredRedirectUri == null || configuredRedirectUri.isBlank()) {
+            return REDIRECT_URI;
+        }
+        if (!configuredRedirectUri.contains("{registrationId}")) {
+            throw new IllegalStateException("Social login redirect URI must contain {registrationId}");
+        }
+        return configuredRedirectUri;
     }
 
     private void validate(SocialLoginProperties properties) {
