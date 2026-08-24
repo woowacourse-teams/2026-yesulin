@@ -15,7 +15,8 @@
 - `public`은 비로그인 화면에서 호출할 수 있는 API를 묶는 클라이언트용 경로다.
 - 상태 변경은 HTTP Method로 표현한다. `me`, `current`는 인증 컨텍스트의 단일 리소스에만 사용한다.
 - `prefill`처럼 화면 목적이 명확한 조회는 모호한 명사로 바꾸지 않는다.
-- ID는 서버 `Long`, JSON `number`를 사용한다.
+- DB 내부 식별자와 배역·질문·requirement·file ID는 서버 `Long`, JSON `number`를 사용한다.
+- 외부 공개 식별자로 정의한 공고 `auditionId`와 지원서 `submissionId`는 UUID이며 JSON 문자열로 표현한다.
 - 실제 인증 자격은 HttpOnly Cookie 기반 Session으로 전달한다. Cookie 속성, CSRF, 만료·갱신·폐기와 동시 세션 정책은 구현 전에 확정한다.
 - 인증 리소스의 소유자 ID는 요청으로 받지 않고 Session에서 결정한다. 인증 전 Draft는 API 리소스가 아니다.
 - 소유자 전용 리소스는 없거나 다른 사용자의 소유인 경우 모두 `404`로 응답해 존재 여부를 노출하지 않는다. 공개된 리소스에 대한 행위 권한만 부족한 경우에는 `403`을 사용한다.
@@ -199,7 +200,8 @@ GET  /api/v1/public/recommended-auditions
 - 별도 자유 배역 타입은 두지 않고 기획사/제작사가 일반 배역 하나를 `자유`로 등록한다.
 - 인증 전 작성 내용과 사진은 현재 브라우저 IndexedDB에만 저장한다. Draft 복원 시 동의와 프로필 갱신 선택은 초기화한다.
 - 최종 제출 과정에서 인증된 계정만 사진 업로드와 제출 API를 호출한다.
-- 제출 버튼 클릭 시 서버 UTC 기준 모집 중인지, 생년월일 기준 만 14세 이상인지 다시 검증한다.
+- 현재 Backend는 제출 시 서버 UTC 기준 모집 기간을 다시 검증한다. 만 14세 미만 제출 차단은 목표 정책이지만
+  Submission Backend 1차 구현에서는 제외했으며 생년월일 확인 경계와 함께 후속 구현한다.
 - 목표 정책은 사진을 파일당 20MB 이하 PNG·JPEG·WebP로 제한하고 실제 형식 검사와 EXIF 위치정보 제거를
   통과한 정제본만 연결하는 것이다. 현재 MVP Backend는 이 정제 파이프라인을 적용하지 않는다.
 - 사진·영상은 각각 `(photoRequirementId, fileId)`, `(videoRequirementId, url)`로 연결한다.
