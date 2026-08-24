@@ -6,7 +6,8 @@ import art.yesulin.common.exception.ErrorType;
 public enum PhotoLibraryErrorCode implements ErrorCode {
 
     PHOTO_NOT_FOUND("PHOTO_LIBRARY_PHOTO_NOT_FOUND", ErrorType.NOT_FOUND),
-    LIMIT_EXCEEDED("PHOTO_LIBRARY_LIMIT_EXCEEDED", ErrorType.CONFLICT);
+    LIMIT_EXCEEDED("PHOTO_LIBRARY_LIMIT_EXCEEDED", ErrorType.CONFLICT),
+    INVALID_DISPLAY_ORDER("PHOTO_LIBRARY_INVALID_DISPLAY_ORDER", ErrorType.BAD_REQUEST);
 
     private final String code;
     private final ErrorType type;

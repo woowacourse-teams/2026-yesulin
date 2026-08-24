@@ -55,6 +55,10 @@ public class PhotoLibrary {
         items.moveToFront(photoId);
     }
 
+    public void movePhoto(long photoId, int displayOrder) {
+        items.move(photoId, displayOrder);
+    }
+
     public PhotoLibraryItem deletePhoto(long photoId, Instant deletedAt) {
         return items.delete(photoId, deletedAt);
     }

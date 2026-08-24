@@ -53,6 +53,17 @@ public class PhotoLibraryController {
         return ResponseEntity.ok(photoLibraryService.makeRepresentative(principal.memberId(), photoId));
     }
 
+    @PatchMapping("/{photoId}")
+    public ResponseEntity<PhotoLibraryResult> movePhoto(
+            @LoginMember(roles = MemberType.APPLICANT) MemberPrincipal principal,
+            @PathVariable long photoId,
+            @Valid @RequestBody MovePhotoRequest request
+    ) {
+        return ResponseEntity.ok(
+                photoLibraryService.movePhoto(principal.memberId(), photoId, request.displayOrder())
+        );
+    }
+
     @DeleteMapping("/{photoId}")
     public ResponseEntity<Void> deletePhoto(
             @LoginMember(roles = MemberType.APPLICANT) MemberPrincipal principal,

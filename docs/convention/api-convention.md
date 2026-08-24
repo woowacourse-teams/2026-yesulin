@@ -53,11 +53,18 @@ PATCH  /api/v1/applicants/me/profile            # 기본·추가정보 저장·�
 GET    /api/v1/applicants/me/profile/prefill
        ?auditionId={auditionId}                  # 공고 양식 기준 자동 채움
 
+GET    /api/v1/applicants/me/video-library/videos
+POST   /api/v1/applicants/me/video-library/videos
+PATCH  /api/v1/applicants/me/video-library/videos/{videoId}
+DELETE /api/v1/applicants/me/video-library/videos/{videoId}
+
 POST   /api/v1/actor-photos/upload-requests      # 배우 사진 Presigned Upload 발급
 PATCH  /api/v1/actor-photos/{fileId}/completion
                                                   # 배우 사진 업로드 완료 확인
 GET    /api/v1/applicants/me/photo-library/photos # 사진보관함 목록
 POST   /api/v1/applicants/me/photo-library/photos # 완료된 파일을 사진보관함에 추가
+PATCH  /api/v1/applicants/me/photo-library/photos/{photoId}
+                                                  # 사진 표시 순서 변경
 PATCH  /api/v1/applicants/me/photo-library/photos/{photoId}/representative
                                                   # 대표 사진으로 변경
 DELETE /api/v1/applicants/me/photo-library/photos/{photoId}
@@ -67,6 +74,80 @@ GET    /api/v1/applicants/me/submissions       # 내 지원서 목록
 GET    /api/v1/applicants/me/submissions/{submissionId}
                                                     # 내 제출 스냅샷
 POST   /api/v1/auditions/{auditionId}/submissions # 인증 배우의 최종 제출
+```
+
+소셜 로그인 직후 프로필은 비어 있으며 제공자의 이름·이메일·사진으로 자동 생성하지 않는다. 프로필 행이 아직
+없더라도 조회는 `404` 대신 아래의 빈 프로필을 `200 OK`로 반환하고, 첫 수정 시 인증된 배우의 회원 ID로
+프로필을 생성한다. 회원 ID는 Request Body로 받지 않는다.
+
+```json
+{
+  "basicInformation": {
+    "name": null,
+    "height": null,
+    "weight": null,
+    "birthDate": null,
+    "gender": null,
+    "phone": null,
+    "email": null,
+    "address": null
+  },
+  "additionalInformation": {
+    "school": null,
+    "links": [],
+    "nationality": null,
+    "coverLetter": null,
+    "specialty": null,
+    "hobbies": null,
+    "militaryServiceStatus": null,
+    "careers": []
+  },
+  "completeness": {
+    "filled": 0,
+    "total": 8
+  }
+}
+```
+
+프로필 PATCH는 `basicInformation`과 `additionalInformation` 중 전달한 섹션만 교체한다. 전달한 섹션은
+모든 필드를 포함하며, 저장하지 않을 단일 값은 `null`, 링크·경력은 빈 배열로 보낸다. 섹션을 생략하면 기존
+값을 유지한다. 기본 정보도 모두 채우지 않은 상태로 저장할 수 있다. 응답은 갱신된 전체 프로필과 완성도를
+반환한다.
+
+```json
+{
+  "basicInformation": {
+    "name": "홍길동",
+    "height": null,
+    "weight": null,
+    "birthDate": null,
+    "gender": null,
+    "phone": null,
+    "email": null,
+    "address": null
+  }
+}
+```
+
+`profile/prefill`은 공고가 수집하도록 설정한 기본·추가 정보만 프로필에서 골라 반환한다. 커스텀 질문,
+사진과 영상은 포함하지 않는다. 프로필과 Submission은 같은 저장 모델을 공유하지 않으며 제출 시점에 프로필
+값을 복사한 Submission 스냅샷은 이후 프로필 수정의 영향을 받지 않는다.
+
+영상 보관함은 프로필 기본·추가 정보와 별도 리소스다. 영상 파일은 업로드하지 않고 YouTube URL만 최대
+10개 저장한다. 추가 요청은 `url`, 수정 요청은 `displayOrder`를 받으며 ID와 소유자는 서버가 결정한다.
+목록과 변경 응답은 표시 순서대로 정렬한 `videos`를 반환한다. 같은 YouTube 영상의 중복 저장은 거부한다.
+
+```json
+{
+  "videos": [
+    {
+      "id": 1,
+      "url": "https://youtu.be/abcdefghijk",
+      "youtubeId": "abcdefghijk",
+      "displayOrder": 0
+    }
+  ]
+}
 ```
 
 - 제출 완료 후 일반 수정은 공개 정책에서 허용하지 않는다. 현재 프런트 화면은 읽기 전용이며 MSW의 수정 요청도 `409 IMMUTABLE_SUBMISSION`으로 거부한다.
@@ -183,7 +264,8 @@ JPEG·PNG·WebP 이미지 한 장, 최대 20MB를 허용한다. 현재 완료 AP
 메타데이터의 이미지 유형을 검증한 파일을 허용하며, `READY`를 정제 완료로 해석하지 않는다. 완료된 파일을
 사진보관함에 추가하거나 지원서에 연결하는 동작은 업로드 완료 API와 분리한다.
 
-- 프로필 PATCH는 기본 정보 8개와 nullable 추가 정보 8개를 부분 저장한다. 제출별 프로필 갱신도 이 범위만 다룬다.
+- 프로필 PATCH는 기본 정보와 nullable 추가 정보 중 전달한 섹션만 교체한다. 각 값은 비어 있어도 저장할 수
+  있으며 제출별 프로필 갱신도 이 범위만 다룬다.
 - 개인 사진·영상 보관함은 프로필 값과 별도 리소스로 취급하며 제출 사진·영상 링크를 프로필 갱신 요청으로 추가하지 않는다.
 - 사진 한 장을 대표 프로필 사진으로 지정한다. 지원서 사진은 기획사/제작사가 1~10장 범위에서 정한 수만 첨부한다.
 - 사진·영상의 추가·삭제·순서 변경과 대표 사진 변경은 프로필 화면에서 즉시 저장한다.
@@ -332,7 +414,7 @@ PATCH /api/v1/audition-roles/{roleId}/screening-rounds/{round} # status=CLOSED�
 
 ```text
 /api/auth/signup/producer           → /api/v1/producers                 # 이관 완료
-/api/me/profile                     → /api/v1/applicants/me/profile
+/api/me/profile                     → /api/v1/applicants/me/profile              # 플래그 기반 이관 완료
 /api/me/profile/prefill             → /api/v1/applicants/me/profile/prefill
 /api/me/submissions/**             → GET은 /api/v1/applicants/me/submissions/**, PATCH는 목표 계약에서 제외
 /api/public/recommended-postings    → /api/v1/public/recommended-auditions
@@ -343,7 +425,13 @@ PATCH /api/v1/audition-roles/{roleId}/screening-rounds/{round} # status=CLOSED�
 /api/screenings/**                  → /api/v1/audition-roles/**/screening-rounds/**
 ```
 
-공연 목록 조회 `GET /api/v1/performances`는 프런트와 MSW 이관을 완료했고, 나머지 항목은 아직 왼쪽 `/api/**` 계약을 사용한다. 현재 목 심사 응답도 단일 `videoUrl`이 아니라 요구 설명을 포함한 `videos[]`를 반환한다. 현재 목 `PATCH /api/me/profile`은 정보 답변과 사진·영상 보관함 배열을 함께 받을 수 있지만 실제 바이너리 업로드 계약은 아니다. 배우 소셜 로그인은 실제 OAuth API를 호출하지 않고 React 상태에 불투명한 프론트 전용 자격값을 저장해 라우트 이동 동안 재사용한다. HttpOnly Session은 구현하지 않았다. 연동 기능을 구현할 때 이 문서, 관련 내부 흐름, 클라이언트와 MSW를 같은 작업에서 갱신한다.
+공연 목록 조회 `GET /api/v1/performances`는 프런트와 MSW 이관을 완료했고, 배우 소셜 로그인과 HttpOnly
+Session 복원·로그아웃도 실제 Backend에 연결됐다. 배우 프로필 기본·추가 정보와 별도 사진·영상 보관함은
+`NEXT_PUBLIC_APPLICANT_PROFILE_API=enabled`에서 실제 Backend에 연결된다. 나머지 항목은 아직 왼쪽 `/api/**` 계약을 사용한다. 현재
+목 심사 응답은 단일 `videoUrl`이 아니라 요구 설명을 포함한 `videos[]`를 반환한다. 현재 목
+`PATCH /api/me/profile`은 기본 MSW 시나리오에서만 정보 답변과 사진·영상 보관함 배열을 함께 받는다.
+실제 연동에서는 정보·사진·영상을 각 `/api/v1/**` 리소스로 분리하며, 프런트 어댑터가 이를 기존 화면 모델로
+조합한다. 사진 순서 변경과 대표 사진 변경도 사진보관함 리소스의 개별 API로 저장한다.
 
 현재 목 `GET /api/v1/performances`는 공연 요약 안에 중첩 `postings[]`를 반환한다. 공고 요약 타입은 `DRAFT`를 포함하지만, 작성 중 공고의 불완전한 값과 게시 전환을 저장할 생성·수정 계약은 아직 정하지 않았다. 대표·상세 이미지는 브라우저 Data URL로, 공연 장소 좌표는 카카오 주소 검색·지도 SDK 결과로 보관하며 실제 업로드 식별자와 영속 좌표 계약은 아직 연결하지 않았다. 연습 장소는 현재 선택 문자열 두 개로만 보관해 주소 검색·지도 좌표를 제공하지 않는다.
 

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { updateApplicantProfile } from "@/features/applicants/api";
 import { notifyApplicantProfileChanged } from "@/features/applicants/events";
 import { isValidEmail, isValidKoreanPhone } from "@/features/applicants/profile-input";
+import type { ApplicantProfileValues } from "@/features/applicants/profile-contract";
 import type { ApplicantAnswerValue, ApplicantProfileResponse } from "@/features/applicants/types";
 import { APPLICATION_FIELD_OPTIONS } from "@/features/auditions/creation-types";
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
@@ -20,7 +21,7 @@ const BASIC_KEYS = ["NAME", "HEIGHT", "WEIGHT", "BIRTH", "GENDER", "PHONE", "EMA
 const ADDITIONAL_KEYS = ["SCHOOL", "LINK", "NATIONALITY", "MILITARY", "SPECIALTY", "HOBBIES", "COVER_LETTER", "CAREER"] as const;
 const INFORMATION_KEYS = new Set<string>([...BASIC_KEYS, ...ADDITIONAL_KEYS]);
 const tabs: readonly { id: ProfileTab; label: string; description: string }[] = [
-  { id: "BASIC", label: "기본정보", description: "필수 프로필 정보" },
+  { id: "BASIC", label: "기본정보", description: "공통 프로필 정보" },
   { id: "ADDITIONAL", label: "추가정보", description: "선택해서 저장하는 정보" },
   { id: "PHOTOS", label: "사진", description: "최대 20장 보관" },
   { id: "VIDEOS", label: "영상", description: "YouTube 영상 보관" },
@@ -34,7 +35,6 @@ const standardFields: readonly ApplicationFieldInput[] = APPLICATION_FIELD_OPTIO
 export function ProfileEditor({ profile, onSaved }: { readonly profile: ApplicantProfileResponse; readonly onSaved: (profile: ApplicantProfileResponse) => void }) {
   const toast = useToast();
   const initial = Object.fromEntries(profile.answers.filter((answer) => INFORMATION_KEYS.has(answer.key)).map((answer) => [answer.key, answer.value])) as DraftValues;
-  const labels = new Map(profile.answers.map((answer) => [answer.key, answer.label]));
   const [activeTab, setActiveTab] = useState<ProfileTab>("BASIC");
   const [values, setValues] = useState<DraftValues>(initial);
   const [saving, setSaving] = useState(false);
@@ -47,16 +47,15 @@ export function ProfileEditor({ profile, onSaved }: { readonly profile: Applican
 
   const save = async () => {
     if (!changeCount) return;
-    if (basicFilled(values) < 8) { setError("기본정보의 필수 항목 8개를 모두 입력해 주세요."); return; }
-    if (typeof values.PHONE !== "string" || !isValidKoreanPhone(values.PHONE)) { setActiveTab("BASIC"); setError("연락처를 확인해 주세요. 예: 010-1234-5678"); return; }
-    if (typeof values.EMAIL !== "string" || !isValidEmail(values.EMAIL)) { setActiveTab("BASIC"); setError("이메일 주소 형식을 확인해 주세요. 예: actor@example.com"); return; }
+    if (typeof values.PHONE === "string" && values.PHONE.trim() && !isValidKoreanPhone(values.PHONE)) { setActiveTab("BASIC"); setError("연락처를 확인해 주세요. 예: 010-1234-5678"); return; }
+    if (typeof values.EMAIL === "string" && values.EMAIL.trim() && !isValidEmail(values.EMAIL)) { setActiveTab("BASIC"); setError("이메일 주소 형식을 확인해 주세요. 예: actor@example.com"); return; }
     setSaving(true);
     setError("");
     try {
-      const next = await updateApplicantProfile({
-        answers: changedKeys.map((key) => ({ key, label: labels.get(key) ?? standardFields.find((field) => field.id === key)?.label, value: normalizedValue(key, values[key])! })),
-        removeKeys,
-      });
+      const normalized = Object.fromEntries(
+        [...INFORMATION_KEYS].map((key) => [key, normalizedValue(key, values[key])]),
+      ) as ApplicantProfileValues;
+      const next = await updateApplicantProfile(normalized, profile);
       toast("프로필 정보를 저장했어요. 다음 지원서의 미리 채우기에 사용됩니다.", { type: "success" });
       notifyApplicantProfileChanged();
       onSaved(next);
@@ -82,7 +81,7 @@ export function ProfileEditor({ profile, onSaved }: { readonly profile: Applican
       return <button key={tab.id} type="button" aria-current={active ? "page" : undefined} onClick={() => { setActiveTab(tab.id); setError(""); }} className={`min-h-14 min-w-36 shrink-0 snap-start rounded-control border px-4 py-3 text-left transition-colors lg:min-w-0 ${active ? "border-brand bg-brand-soft text-brand" : "border-border bg-card text-muted-strong hover:border-brand-line hover:bg-brand-soft"}`}><span className="flex items-center justify-between gap-2"><strong className="text-sm">{tab.label}</strong><span className="num text-xs">{tabCount(tab.id)}</span></span><span className="mt-1 hidden text-xs lg:block">{tab.description}</span></button>;
     })}</nav>
     <section className="min-w-0 rounded-card border border-border bg-card p-5 md:p-7">
-      <div className="border-b border-border-soft pb-5"><h2 className="text-xl font-bold">{tabs.find((tab) => tab.id === activeTab)?.label}</h2><p className="mt-2 text-sm leading-6 text-muted">{activeTab === "BASIC" ? "지원서에 공통으로 사용하는 필수 정보예요." : activeTab === "ADDITIONAL" ? "필요한 항목만 저장하면 공고에서 요청할 때 자동으로 채워집니다." : "추가·삭제·순서 변경 내용은 즉시 저장됩니다."}</p></div>
+      <div className="border-b border-border-soft pb-5"><h2 className="text-xl font-bold">{tabs.find((tab) => tab.id === activeTab)?.label}</h2><p className="mt-2 text-sm leading-6 text-muted">{activeTab === "BASIC" ? "지원서에 공통으로 사용하는 정보예요. 작성한 항목부터 저장할 수 있어요." : activeTab === "ADDITIONAL" ? "필요한 항목만 저장하면 공고에서 요청할 때 자동으로 채워집니다." : "추가·삭제·순서 변경 내용은 즉시 저장됩니다."}</p></div>
       {activeTab === "BASIC" ? <ProfileInformationSection tab="BASIC" fields={basicFields} values={values} onChange={change} /> : null}
       {activeTab === "ADDITIONAL" ? <ProfileInformationSection tab="ADDITIONAL" fields={additionalFields} values={values} onChange={change} /> : null}
       {activeTab === "PHOTOS" ? <ProfilePhotoLibrary profile={profile} onSaved={onSaved} /> : null}

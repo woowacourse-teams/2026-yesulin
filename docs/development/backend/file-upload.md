@@ -94,6 +94,7 @@ domain/performance ──event──> presentation/event/performance ──> app
 - `PATCH /api/v1/actor-photos/{fileId}/completion`: 업로드 검증 및 완료, `204 No Content`
 - `GET /api/v1/applicants/me/photo-library/photos`: 활성 사진을 대표 사진 우선 순서와 CloudFront URL로 조회, `200 OK`
 - `POST /api/v1/applicants/me/photo-library/photos`: `READY`·소유권 검증 후 사진보관함에 추가, `201 Created`
+- `PATCH /api/v1/applicants/me/photo-library/photos/{photoId}`: 요청한 `displayOrder`로 사진 이동, `200 OK`
 - `PATCH /api/v1/applicants/me/photo-library/photos/{photoId}/representative`: 선택한 사진을 첫 순서로 이동, `200 OK`
 - `DELETE /api/v1/applicants/me/photo-library/photos/{photoId}`: 사진보관함 항목 Soft Delete, `204 No Content`
 - 요청에는 `purpose`와 `ownerId`가 없다. 공연 포스터라는 의미와 30MB 제한은 endpoint 계약이며 파일 도메인에 전달하지 않는다.

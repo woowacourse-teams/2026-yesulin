@@ -122,6 +122,39 @@ class PhotoLibraryControllerTest {
     }
 
     @Test
+    void changesPhotoDisplayOrder() throws Exception {
+        long firstPhotoId = addReadyPhoto(MEMBER_PRINCIPAL.memberId());
+        long secondPhotoId = addReadyPhoto(MEMBER_PRINCIPAL.memberId());
+        long thirdPhotoId = addReadyPhoto(MEMBER_PRINCIPAL.memberId());
+
+        mockMvc.perform(patch(PHOTOS_PATH + "/{photoId}", thirdPhotoId)
+                        .with(csrf())
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"displayOrder\":1}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.photos[0].id").value(firstPhotoId))
+                .andExpect(jsonPath("$.photos[0].representative").value(true))
+                .andExpect(jsonPath("$.photos[1].id").value(thirdPhotoId))
+                .andExpect(jsonPath("$.photos[1].displayOrder").value(1))
+                .andExpect(jsonPath("$.photos[2].id").value(secondPhotoId))
+                .andExpect(jsonPath("$.photos[2].displayOrder").value(2));
+    }
+
+    @Test
+    void rejectsPhotoDisplayOrderOutsideLibrary() throws Exception {
+        long photoId = addReadyPhoto(MEMBER_PRINCIPAL.memberId());
+
+        mockMvc.perform(patch(PHOTOS_PATH + "/{photoId}", photoId)
+                        .with(csrf())
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"displayOrder\":1}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("PHOTO_LIBRARY_INVALID_DISPLAY_ORDER"));
+    }
+
+    @Test
     void softDeletesPhoto() throws Exception {
         long firstPhotoId = addReadyPhoto(MEMBER_PRINCIPAL.memberId());
         long secondPhotoId = addReadyPhoto(MEMBER_PRINCIPAL.memberId());
@@ -153,6 +186,14 @@ class PhotoLibraryControllerTest {
         mockMvc.perform(delete(PHOTOS_PATH + "/{photoId}", anotherMembersPhotoId)
                         .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("PHOTO_LIBRARY_PHOTO_NOT_FOUND"));
+
+        mockMvc.perform(patch(PHOTOS_PATH + "/{photoId}", anotherMembersPhotoId)
+                        .with(csrf())
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"displayOrder\":0}"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("PHOTO_LIBRARY_PHOTO_NOT_FOUND"));
     }
@@ -245,4 +286,3 @@ class PhotoLibraryControllerTest {
                 .andExpect(status().isNotFound());
     }
 }
-

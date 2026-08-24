@@ -36,7 +36,11 @@ IndexedDB 사본은 서버나 기획사/제작사에 전송되지 않는다. 이
 - 연락처 검증은 `02` 지역번호와 3자리 중간 번호도 허용해 `000-0000-0000` 정책보다 넓다. 키·몸무게의 정수 제한, 미래 생년월일 차단, 모집 마감일 기준 만 나이 계산과 만 14세 미만 제출 차단도 아직 없다.
 - 학력은 단일 문자열이고 경력 최대 10개는 적용되어 있다. 링크는 단일 입력이며 최대 5개 반복 입력과 추가 질문 최대 10개 제한은 없다.
 
-실제 파일 업로드와 영속 프로필 저장 API는 아직 구현하지 않았다.
+Backend에는 실제 파일 업로드·사진 보관함, 영속 프로필 기본·추가정보와 YouTube 영상 보관함 API가
+구현됐다. 기본 환경의 Frontend 프로필 화면은 `/api/**` MSW 계약과 브라우저 Blob URL을 사용한다.
+`NEXT_PUBLIC_APPLICANT_PROFILE_API=enabled` 또는 `NEXT_PUBLIC_API_MOCKING=disabled`인 실제 API 모드에서는
+프로필 정보·사진·영상을 각각의 `/api/v1/**` Backend API에 연결한다. 공고 양식 기준 프로필 자동 채움
+Backend는 아직 구현하지 않았다.
 
 ## 공연·공고 작성과 관리
 
@@ -83,8 +87,17 @@ HttpSession을 조회해 복원한다.
 `/social-login/complete`에서 세션 확인 후 해당 화면으로 복귀한다. 기본 MSW 환경은 시나리오 확인을
 위해 직접 접근을 유지한다. 인증 메일·문자와 `PENDING → ACTIVE` 운영 전환은 MVP 이후 도입하며, 현재 기획사/제작사 가입은 즉시 `ACTIVE`로 처리한다.
 
+`NEXT_PUBLIC_APPLICANT_PROFILE_API=enabled`이거나 `NEXT_PUBLIC_API_MOCKING=disabled`이면 배우 프로필 화면은
+기본·추가 정보를 `/api/v1/applicants/me/profile`, 사진을 `/api/v1/applicants/me/photo-library/photos`,
+영상을 `/api/v1/applicants/me/video-library/videos`에서 각각 조회해 하나의 화면 모델로 조합한다.
+사진 추가는 `/api/v1/actor-photos/upload-requests`로 받은 presigned URL에 업로드하고 완료 처리한 뒤
+사진 보관함에 연결한다. 사진 순서 이동과 대표 사진 지정도 각각의 사진 보관함 API로 즉시 저장한다.
+플래그가 없으면 기존 `/api/me/profile` MSW 시나리오를 유지한다.
+
 ## API·저장 경계
 
 기본 개발 환경은 MSW를 사용한다. 추가로 만든 데이터와 심사 상태는 브라우저 메모리에 있어 새로고침하면 초기화된다. 브라우저 API는 같은 origin의 `/api/**` 상대 경로를, 공개 공고 SSR·메타데이터는 `API_ORIGIN`을 사용한다.
 
-프론트·MSW는 목표 정책을 확인할 UI와 시드를 제공하지만, 인증·파일·제출·영속 저장 계약은 목표 [API 컨벤션](../../convention/api-convention.md)과 추가 도메인 결정 후 구현해야 한다. 인증 전 서버 Draft는 목표 범위가 아니다.
+프론트·MSW는 목표 정책을 확인할 UI와 시드를 제공한다. 배우 프로필 정보·사진·영상은 플래그로 실제 API를
+검증할 수 있으며, 그 밖의 제출·영속 저장 계약은 목표 [API 컨벤션](../../convention/api-convention.md)과 추가
+도메인 결정 후 구현해야 한다. 인증 전 서버 Draft는 목표 범위가 아니다.

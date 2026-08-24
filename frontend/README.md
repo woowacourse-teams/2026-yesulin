@@ -52,6 +52,18 @@ API_ORIGIN=http://localhost:8080 NEXT_PUBLIC_PRODUCER_LOGIN=enabled NEXT_PUBLIC_
 API_ORIGIN=http://localhost:8080 NEXT_PUBLIC_SOCIAL_LOGIN=enabled npm run dev
 ```
 
+소셜 로그인 뒤 배우 프로필의 기본·추가 정보, 사진 보관함, 영상 보관함을 실제 Backend와
+연결하려면 `NEXT_PUBLIC_APPLICANT_PROFILE_API=enabled`를 함께 사용한다. 이 플래그가 없으면
+기존 MSW 프로필 시나리오를 유지한다.
+
+```bash
+API_ORIGIN=http://localhost:8080 NEXT_PUBLIC_SOCIAL_LOGIN=enabled NEXT_PUBLIC_APPLICANT_PROFILE_API=enabled npm run dev
+```
+
+실제 프로필은 정보·사진·영상을 각각의 `/api/v1/**` 리소스에 저장한다. 사진은 presigned URL로
+파일을 먼저 업로드한 뒤 보관함에 연결한다. 사진 순서 변경과 대표 사진 지정도 각각의 사진 보관함
+API로 즉시 저장한다.
+
 백엔드의 소셜 로그인 성공 주소는 `/social-login/complete`로 설정한다. 이 완료 화면은 서버 세션을
 확인하고 로그인 전에 보관한 안전한 내부 `returnTo`로 이동하며, 값이 없으면 `/applicants`로 간다.
 
