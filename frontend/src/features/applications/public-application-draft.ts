@@ -1,6 +1,6 @@
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
-import { orderedApplicationPhotos } from "@/features/applications/application-form-state";
-import type { ApplicationPhoto, CareerDraft } from "@/features/applications/application-form-state";
+import { orderedApplicationPhotos } from "./application-form-state";
+import type { ApplicationPhoto, CareerDraft } from "./application-form-state";
 import type { ApplicantAnswerValue, CareerEntry, ProfilePrefillResponse } from "@/features/applicants/types";
 
 export function applicationDraftFromPrefill(prefill?: ProfilePrefillResponse, fields: readonly ApplicationFieldInput[] = []) {

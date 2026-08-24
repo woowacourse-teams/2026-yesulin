@@ -8,10 +8,7 @@ import type { DraftSaveStatus } from "./use-public-application-draft";
 
 export type SubmissionReceipt = {
   readonly submissionId: SubmissionId;
-  readonly number: string;
   readonly submittedAt: string;
-  readonly profileClaimToken: string | null;
-  readonly profileClaimExpiresAt: string | null;
 };
 
 export type EditableSection = "BASIC" | "ADDITIONAL" | "INTRODUCTION" | "MATERIALS" | "CAREER" | "CUSTOM";
@@ -32,6 +29,8 @@ export type PublicApplicationState = {
   readonly mediaError: string;
   readonly reviewing: boolean;
   readonly consent: boolean;
+  readonly privacyConsent: boolean;
+  readonly thirdPartyConsent: boolean;
   readonly saveToProfile: boolean;
   readonly draftSaveStatus: DraftSaveStatus;
   readonly draftSaveError: string;
@@ -57,6 +56,8 @@ export type PublicApplicationActions = {
   readonly cancelBack: () => void;
   readonly confirmBack: () => void;
   readonly updateConsent: (consent: boolean) => void;
+  readonly updatePrivacyConsent: (consent: boolean) => void;
+  readonly updateThirdPartyConsent: (consent: boolean) => void;
   readonly updateSaveToProfile: (save: boolean) => void;
   readonly retryDraftSave: () => void;
   readonly submit: (result: "SUCCESS" | "ERROR") => void;

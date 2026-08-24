@@ -7,7 +7,7 @@ import { hasApplicationDraft } from "@/features/applications/application-form-st
 import type { ApplicationPhoto, CareerDraft } from "@/features/applications/application-form-state";
 import { deletePublicApplicationDraft, readPublicApplicationDraft, restoreDraftPhotos, savePublicApplicationDraft } from "@/features/applications/public-application-draft-store";
 import type { ProfilePrefillResponse } from "@/features/applicants/types";
-import { applicationDraftFromPrefill } from "./public-application-draft";
+import { applicationDraftFromPrefill } from "@/features/applications/public-application-draft";
 
 export type DraftSaveStatus = "RESTORING" | "IDLE" | "SAVING" | "SAVED" | "ERROR";
 
@@ -26,6 +26,7 @@ export function usePublicApplicationDraft({ postingId, fields, prefill, initialR
   const [noCareer, setNoCareerBase] = useState(false);
   const [careers, setCareersBase] = useState<readonly CareerDraft[]>(initial.careers);
   const [consent, setConsentBase] = useState(false);
+  const [thirdPartyConsent, setThirdPartyConsentBase] = useState(false);
   const [saveToProfile, setSaveToProfileBase] = useState(false);
   const [stepIndex, setStepIndexBase] = useState(0);
   const [completedStepIndexes, setCompletedStepIndexesBase] = useState<readonly number[]>([]);
@@ -54,6 +55,7 @@ export function usePublicApplicationDraft({ postingId, fields, prefill, initialR
         setNoCareerBase(draft.noCareer);
         setCareersBase(draft.careers);
         setConsentBase(draft.consent);
+        setThirdPartyConsentBase(draft.thirdPartyConsent ?? false);
         setSaveToProfileBase(draft.saveToProfile);
         setStepIndexBase(draft.stepIndex);
         setCompletedStepIndexesBase(draft.completedStepIndexes);
@@ -82,10 +84,10 @@ export function usePublicApplicationDraft({ postingId, fields, prefill, initialR
     if (restored && changeVersion === 0 && saveRequest === 0) return;
     if (readFailed && changeVersion === 0 && saveRequest === 0) return;
     let active = true;
-    const hasDraft = hasApplicationDraft({ values, photos, videoUrl, noCareer, careers, consent, submitted: false });
+    const hasDraft = hasApplicationDraft({ values, photos, videoUrl, noCareer, careers, consent: consent || thirdPartyConsent, submitted: false });
     const timeout = window.setTimeout(() => {
       const operation = hasDraft ? savePublicApplicationDraft({
-        postingId, values, photos, videoUrl, noCareer, careers, consent, saveToProfile,
+        postingId, values, photos, videoUrl, noCareer, careers, consent, thirdPartyConsent, saveToProfile,
         stepIndex, completedStepIndexes, reviewing, roleIds,
       }) : deletePublicApplicationDraft(postingId).then(() => null);
       operation.then((savedAt) => {
@@ -100,7 +102,7 @@ export function usePublicApplicationDraft({ postingId, fields, prefill, initialR
       });
     }, 600);
     return () => { active = false; window.clearTimeout(timeout); };
-  }, [storageReady, readFailed, restored, changeVersion, saveRequest, postingId, values, photos, videoUrl, noCareer, careers, consent, saveToProfile, stepIndex, completedStepIndexes, reviewing, roleIds, submitted]);
+  }, [storageReady, readFailed, restored, changeVersion, saveRequest, postingId, values, photos, videoUrl, noCareer, careers, consent, thirdPartyConsent, saveToProfile, stepIndex, completedStepIndexes, reviewing, roleIds, submitted]);
 
   useEffect(() => () => {
     photosRef.current.forEach((photo) => { if (photo.blob && photo.url) URL.revokeObjectURL(photo.url); });
@@ -125,6 +127,7 @@ export function usePublicApplicationDraft({ postingId, fields, prefill, initialR
     values, setValues: setter(setValuesBase), photos, setPhotos: setter(setPhotosBase),
     videoUrl, setVideoUrl: setter(setVideoUrlBase), noCareer, setNoCareer: setter(setNoCareerBase),
     careers, setCareers: setter(setCareersBase), consent, setConsent: setter(setConsentBase),
+    thirdPartyConsent, setThirdPartyConsent: setter(setThirdPartyConsentBase),
     saveToProfile, setSaveToProfile: setter(setSaveToProfileBase), stepIndex, setStepIndex: setter(setStepIndexBase),
     completedStepIndexes, setCompletedStepIndexes: setter(setCompletedStepIndexesBase), reviewing, setReviewing: setter(setReviewingBase),
     roleIds, saveStatus, saveError, lastSavedAt, restored, retrySave,

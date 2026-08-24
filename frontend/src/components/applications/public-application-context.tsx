@@ -1,13 +1,13 @@
 "use client";
 
 import { createContext, use, useEffect, useState } from "react";
+import { AuditionRequestError } from "@/features/auditions/api-client";
 import { applicationFormSteps, applicationStepProgress } from "@/features/applications/application-form";
 import { applicationStepIssue } from "@/features/applications/application-form-state";
 import type { ApplicationStepIssue, SubmissionState } from "@/features/applications/application-form-state";
-import { createPublicSubmission } from "@/features/applicants/api";
+import { createApplicationSubmission } from "@/features/applications/submission-api";
 import { deletePublicApplicationDraft } from "@/features/applications/public-application-draft-store";
-import { submissionValue } from "./public-application-draft";
-import { hasSubmittedValue } from "@/features/applications/materials";
+import { buildApplicationAuthReturnTo } from "@/features/auth/return-to";
 import type { EditableSection, PublicApplicationActions, PublicApplicationContextValue, PublicApplicationProviderProps, PublicApplicationState, SubmissionReceipt } from "./public-application-context-types";
 import { usePublicApplicationDraft } from "./use-public-application-draft";
 
@@ -37,8 +37,10 @@ export function PublicApplicationProvider({
   const {
     stepIndex, setStepIndex, values, setValues, photos, setPhotos, videoUrl, setVideoUrl,
     noCareer, setNoCareer, careers, setCareers, completedStepIndexes, setCompletedStepIndexes,
-    reviewing, setReviewing, consent, setConsent, saveToProfile, setSaveToProfile, roleIds,
+    reviewing, setReviewing, consent: privacyConsent, setConsent: setPrivacyConsent,
+    thirdPartyConsent, setThirdPartyConsent, saveToProfile, setSaveToProfile, roleIds,
   } = draft;
+  const consent = privacyConsent && thirdPartyConsent;
   const [stepErrors, setStepErrors] = useState<Readonly<Record<number, string>>>({});
   const [mediaError, setMediaError] = useState("");
   const [leaveConfirmationOpen, setLeaveConfirmationOpen] = useState(false);
@@ -155,33 +157,30 @@ export function PublicApplicationProvider({
       return;
     }
     try {
-      const submittedAnswers = fields
-        .filter((field) => field.enabled)
-        .map((field) => ({
-          field,
-          value: submissionValue(field, { values, photos, videoUrl, careers, noCareer }),
-        }))
-        .filter(({ field, value }) => field.required || hasSubmittedValue(value));
-      const response = await createPublicSubmission({
+      const response = await createApplicationSubmission({
         postingId,
+        fields,
+        values,
+        photos,
+        videoUrl,
+        careers,
+        noCareer,
         roleIds,
-        answers: submittedAnswers.map(({ field, value }) => ({
-          key: field.id,
-          ...(field.custom ? { label: field.label } : {}),
-          value,
-        })),
-        privacyAgreed: consent,
+        privacyConsent,
+        thirdPartyConsent,
         saveToProfile,
       });
       setReceipt({
         submissionId: response.submissionId,
-        number: response.receiptNumber,
         submittedAt: response.submittedAt,
-        profileClaimToken: response.profileClaimToken,
-        profileClaimExpiresAt: response.profileClaimExpiresAt,
       });
       void deletePublicApplicationDraft(postingId).catch(() => undefined);
     } catch (cause) {
+      if (cause instanceof AuditionRequestError && cause.status === 401) {
+        const returnTo = encodeURIComponent(buildApplicationAuthReturnTo(postingId, roleIds));
+        window.location.assign(`/login?returnTo=${returnTo}`);
+        return;
+      }
       setSubmissionState("ERROR");
       setSubmissionError(cause instanceof Error ? cause.message : "지원서를 접수하지 못했어요. 잠시 후 다시 시도해 주세요.");
     }
@@ -190,7 +189,7 @@ export function PublicApplicationProvider({
   const state: PublicApplicationState = {
     stepIndex, values, photos, videoUrl, noCareer, careers, stepError: stepErrors[stepIndex] ?? "", mediaError,
     stepProgress: applicationStepProgress({ steps, stepIndex, maxReachedStepIndex, completedStepIndexes, stepErrors }), reviewIssues,
-    hasUnsavedChanges: draft.hasUnsavedChanges, leaveConfirmationOpen, reviewing, consent, saveToProfile,
+    hasUnsavedChanges: draft.hasUnsavedChanges, leaveConfirmationOpen, reviewing, consent, privacyConsent, thirdPartyConsent, saveToProfile,
     draftSaveStatus: draft.saveStatus, draftSaveError: draft.saveError, draftLastSavedAt: draft.lastSavedAt,
     draftRestored: draft.restored, submissionState, submissionError, receipt,
   };
@@ -208,7 +207,9 @@ export function PublicApplicationProvider({
     requestBack,
     cancelBack: () => setLeaveConfirmationOpen(false),
     confirmBack: () => { setLeaveConfirmationOpen(false); onBack(); },
-    updateConsent: (value) => { setConsent(value); setSubmissionError(""); },
+    updateConsent: (value) => { setPrivacyConsent(value); setThirdPartyConsent(value); setSubmissionError(""); },
+    updatePrivacyConsent: (value) => { setPrivacyConsent(value); setSubmissionError(""); },
+    updateThirdPartyConsent: (value) => { setThirdPartyConsent(value); setSubmissionError(""); },
     updateSaveToProfile: (value) => setSaveToProfile(value),
     retryDraftSave: draft.retrySave,
     submit,

@@ -24,7 +24,7 @@ export default async function LoginPage({ searchParams }: { readonly searchParam
         : <><span>기획사/제작사 계정이 없나요?</span>{" "}<Link href="/signup" className="font-semibold text-brand hover:text-brand-strong hover:underline">기획사/제작사 회원가입</Link></>}
     >
       {applicationContext ? <ApplicationAuthContextCard context={applicationContext} /> : null}
-      <LoginForm returnTo={authSuccessReturnTo(safeReturnTo)} applicationFlow={Boolean(applicationContext)} />
+      <LoginForm returnTo={authSuccessReturnTo(safeReturnTo)} applicationFlow={Boolean(applicationContext)} serverSessionRequired={applicationContext?.serverSessionRequired} />
     </AuthShell>
   );
 }

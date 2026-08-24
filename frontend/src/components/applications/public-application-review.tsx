@@ -10,6 +10,7 @@ import type { ApplicationPhoto, CareerDraft, SubmissionState } from "@/features/
 import { photoSlotLabels } from "@/features/applications/materials";
 import { buildApplicationAuthReturnTo } from "@/features/auth/return-to";
 import { PrimaryButton, TextButton } from "@/components/ui/controls";
+import { isBackendAuditionId } from "@/features/auditions/audition-v1-api";
 import { usePublicApplication } from "./public-application-context";
 import { PublicApplicationSaveBadge, PublicApplicationSaveNotice } from "./public-application-save-status";
 
@@ -36,8 +37,8 @@ export function PublicApplicationReview() {
         </div>
       </section>
 
-      <ProfileSave checked={state.saveToProfile} disabled={submitting} onChange={actions.updateSaveToProfile} />
-      <Consent consent={state.consent} disabled={submitting} error={state.submissionError.includes("동의") ? state.submissionError : ""} onChange={actions.updateConsent} />
+      <ProfileSave checked={state.saveToProfile} disabled={submitting} available={!isBackendAuditionId(meta.postingId)} onChange={actions.updateSaveToProfile} />
+      <Consent consent={state.consent} privacyConsent={state.privacyConsent} thirdPartyConsent={state.thirdPartyConsent} disabled={submitting} error={state.submissionError.includes("동의") ? state.submissionError : ""} onAllChange={actions.updateConsent} onPrivacyChange={actions.updatePrivacyConsent} onThirdPartyChange={actions.updateThirdPartyConsent} />
       {!meta.authenticated ? <AuthGate /> : <SubmissionArea submitting={submitting} consent={state.consent} issueCount={state.reviewIssues.length} state={state.submissionState} error={state.submissionError} onSubmit={actions.submit} />}
     </div>
   </main>;
@@ -81,14 +82,20 @@ function ReviewSection({ title, disabled = false, onEdit, children }: { title: s
   return <section className="border-b border-border-soft py-5 last:border-b-0"><div className="flex items-center gap-3"><h3 className="text-base font-bold">{title}</h3>{onEdit ? <TextButton disabled={disabled} onClick={onEdit} className="ml-auto px-3 text-brand hover:bg-brand-soft disabled:hover:bg-transparent">수정</TextButton> : null}</div><div className="mt-3">{children}</div></section>;
 }
 
-function ProfileSave({ checked, disabled, onChange }: { checked: boolean; disabled: boolean; onChange: (checked: boolean) => void }) {
+function ProfileSave({ checked, disabled, available, onChange }: { checked: boolean; disabled: boolean; available: boolean; onChange: (checked: boolean) => void }) {
+  if (!available) return <aside className="mt-8 border-y border-border-soft bg-surface py-5 md:px-1"><p className="text-xs font-semibold text-muted">선택 사항 · 후속 연동 예정</p><strong className="mt-2 block text-sm">이번 지원서 정보의 프로필 저장은 준비 중입니다</strong><span className="mt-1 block text-sm leading-6 text-muted">지원서 제출에는 포함되지 않으며, 현재는 프로필에서 정보를 직접 관리해 주세요.</span></aside>;
   return <aside aria-labelledby="profile-save-title" className="mt-8 border-y border-border-soft bg-surface py-5 md:px-1"><p className="text-xs font-semibold text-muted">선택 사항 · 제출 동의와 별개예요</p><label className="mt-2 flex cursor-pointer items-start gap-3"><input type="checkbox" checked={checked} disabled={disabled} onChange={(event) => onChange(event.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-brand" /><span><strong id="profile-save-title" className="block text-sm">이번 지원서의 기본 정보를 프로필에도 저장</strong><span className="mt-1 block text-sm leading-6 text-muted">선택한 경우에만 기본·추가 정보와 사진을 다음 지원에 재사용합니다. 공고별 추가 질문 답변은 저장하지 않습니다.</span></span></label></aside>;
 }
 
-function Consent({ consent, disabled, error, onChange }: { consent: boolean; disabled: boolean; error: string; onChange: (consent: boolean) => void }) {
+function Consent({ consent, privacyConsent, thirdPartyConsent, disabled, error, onAllChange, onPrivacyChange, onThirdPartyChange }: { consent: boolean; privacyConsent: boolean; thirdPartyConsent: boolean; disabled: boolean; error: string; onAllChange: (consent: boolean) => void; onPrivacyChange: (consent: boolean) => void; onThirdPartyChange: (consent: boolean) => void }) {
   const helpId = "application-consent-help";
   const errorId = "application-consent-error";
-  return <section aria-labelledby="consent-title" className="mt-9"><p className="text-sm font-semibold text-brand">2. 필수 동의</p><h2 id="consent-title" className="mt-1 text-xl font-bold">제출 전 개인정보 안내를 확인해 주세요</h2><label htmlFor="application-consent" className={`mt-4 flex items-start gap-3 border-y border-border bg-card py-5 md:px-5 ${disabled ? "cursor-not-allowed text-muted" : "cursor-pointer"}`}><input id="application-consent" type="checkbox" checked={consent} disabled={disabled} aria-invalid={Boolean(error) || undefined} aria-describedby={[helpId, error ? errorId : ""].filter(Boolean).join(" ")} onChange={(event) => onChange(event.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-brand" /><span><strong className="block text-sm"><span className="mr-1 text-fail">[필수]</span>개인정보 안내를 확인하고 제출에 동의합니다</strong><span id={helpId} className="mt-1 block text-sm leading-6 text-muted">제출하면 기획사/제작사가 지원 정보를 열람할 수 있습니다. 운영 전 수집 목적, 보관 기간, 파기 기준과 동의 문안은 별도 정책 확정이 필요합니다.</span></span></label>{error ? <p id={errorId} role="alert" className="mt-3 text-sm font-medium text-fail">{error}</p> : null}</section>;
+  const inputClass = "mt-1 h-5 w-5 shrink-0 accent-brand";
+  return <section aria-labelledby="consent-title" className="mt-9"><p className="text-sm font-semibold text-brand">2. 필수 동의</p><h2 id="consent-title" className="mt-1 text-xl font-bold">제출 전 개인정보 안내를 확인해 주세요</h2><label htmlFor="application-consent" className={`mt-4 flex items-start gap-3 border-y border-border bg-card py-5 md:px-5 ${disabled ? "cursor-not-allowed text-muted" : "cursor-pointer"}`}><input id="application-consent" type="checkbox" checked={consent} disabled={disabled} aria-invalid={Boolean(error) || undefined} aria-describedby={[helpId, error ? errorId : ""].filter(Boolean).join(" ")} onChange={(event) => onAllChange(event.target.checked)} className={inputClass} /><span><strong className="block text-sm">필수 항목 모두 동의</strong><span id={helpId} className="mt-1 block text-sm leading-6 text-muted">아래 두 항목을 함께 선택하거나 각각 확인할 수 있습니다.</span></span></label><div className="divide-y divide-border-soft border-b border-border bg-card md:px-5"><ConsentItem id="application-privacy-consent" checked={privacyConsent} disabled={disabled} label="개인정보 수집·이용 동의" description="지원서 접수와 심사를 위해 입력한 개인정보를 수집·이용합니다." onChange={onPrivacyChange} /><ConsentItem id="application-third-party-consent" checked={thirdPartyConsent} disabled={disabled} label="개인정보 제3자 제공 동의" description="지원한 공고의 기획사/제작사가 심사를 위해 지원 정보를 열람합니다." onChange={onThirdPartyChange} /></div>{error ? <p id={errorId} role="alert" className="mt-3 text-sm font-medium leading-6 text-fail">{error}</p> : null}</section>;
+}
+
+function ConsentItem({ id, checked, disabled, label, description, onChange }: { id: string; checked: boolean; disabled: boolean; label: string; description: string; onChange: (checked: boolean) => void }) {
+  return <label htmlFor={id} className={`flex items-start gap-3 py-4 ${disabled ? "cursor-not-allowed text-muted" : "cursor-pointer"}`}><input id={id} type="checkbox" checked={checked} disabled={disabled} onChange={(event) => onChange(event.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-brand" /><span><strong className="block text-sm"><span className="mr-1 text-fail">[필수]</span>{label}</strong><span className="mt-1 block text-sm leading-6 text-muted">{description}</span></span></label>;
 }
 
 function AuthGate() {
