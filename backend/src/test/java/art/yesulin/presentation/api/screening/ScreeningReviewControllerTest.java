@@ -6,28 +6,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import art.yesulin.application.auth.MemberPrincipal;
-import art.yesulin.domain.audition.Audition;
 import art.yesulin.domain.audition.AuditionRepository;
-import art.yesulin.domain.audition.PerformancePeriod;
-import art.yesulin.domain.audition.role.AuditionRoleCondition;
-import art.yesulin.domain.audition.role.AuditionRoleSection;
 import art.yesulin.domain.audition.role.AuditionRoleSectionRepository;
-import art.yesulin.domain.audition.role.AuditionRoleSelection;
-import art.yesulin.domain.audition.role.AuditionRoleSelections;
-import art.yesulin.domain.audition.role.RoleGender;
-import art.yesulin.domain.audition.schedule.AuditionSchedule;
-import art.yesulin.domain.audition.schedule.AuditionSchedulePlan;
 import art.yesulin.domain.audition.schedule.AuditionScheduleRepository;
-import art.yesulin.domain.audition.schedule.RecruitmentPeriod;
-import art.yesulin.domain.audition.schedule.ScreeningStagePlan;
-import art.yesulin.domain.audition.schedule.ScreeningStagePlans;
+import art.yesulin.domain.file.FileAssetRepository;
+import art.yesulin.domain.file.FileReferenceRepository;
 import art.yesulin.domain.member.MemberStatus;
 import art.yesulin.domain.member.MemberType;
+import art.yesulin.domain.performance.PerformanceRepository;
 import art.yesulin.domain.screening.ScreeningReviewRepository;
+import art.yesulin.domain.submission.SubmissionRepository;
 import art.yesulin.support.ObjectStorageTestConfiguration;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.util.List;
+import art.yesulin.support.ScreeningTestFixture;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +39,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class ScreeningReviewControllerTest {
 
     private static final long OWNER_ID = 1L;
+    private static final UUID SUBMISSION_ID = UUID.fromString("b4472dce-52d0-41a9-baaa-c9e86e31b72b");
     private static final String REVIEWS_PATH =
             "/api/v1/audition-roles/{roleId}/screening-rounds/{round}/reviews";
     private static final String EMPTY_REVIEWS = "{\"reviews\": []}";
@@ -69,14 +61,30 @@ class ScreeningReviewControllerTest {
     @Autowired
     private AuditionRepository auditionRepository;
 
+    @Autowired
+    private SubmissionRepository submissionRepository;
+
+    @Autowired
+    private PerformanceRepository performanceRepository;
+
+    @Autowired
+    private FileReferenceRepository fileReferenceRepository;
+
+    @Autowired
+    private FileAssetRepository fileAssetRepository;
+
     private long roleId;
 
     @BeforeEach
     void setUp() {
         screeningReviewRepository.deleteAll();
+        submissionRepository.deleteAll();
         scheduleRepository.deleteAll();
         roleSectionRepository.deleteAll();
         auditionRepository.deleteAll();
+        fileReferenceRepository.deleteAll();
+        performanceRepository.deleteAll();
+        fileAssetRepository.deleteAll();
         roleId = saveScreeningFixture();
     }
 
@@ -105,31 +113,10 @@ class ScreeningReviewControllerTest {
     }
 
     private long saveScreeningFixture() {
-        Audition audition = auditionRepository.save(new Audition(
-                1L,
-                OWNER_ID,
-                "햄릿 오디션",
-                new PerformancePeriod(LocalDate.of(2026, 10, 1), null)
-        ));
-        AuditionRoleSection roleSection = roleSectionRepository.save(new AuditionRoleSection(
-                audition.getId(),
-                new AuditionRoleSelections(false, List.of(new AuditionRoleSelection(
-                        1L, new AuditionRoleCondition(1, RoleGender.ANY, 0, 100)
-                )))
-        ));
-        scheduleRepository.save(new AuditionSchedule(
-                audition.getId(),
-                new AuditionSchedulePlan(
-                        new RecruitmentPeriod(
-                                Instant.parse("2026-09-01T00:00:00Z"),
-                                Instant.parse("2026-09-10T00:00:00Z")
-                        ),
-                        new ScreeningStagePlans(List.of(
-                                new ScreeningStagePlan(null, "1차 서류", LocalDate.of(2026, 9, 12), "")
-                        ))
-                )
-        ));
-        return roleSection.getRoles().getFirst().getId();
+        return new ScreeningTestFixture(
+                performanceRepository, auditionRepository, roleSectionRepository, scheduleRepository,
+                submissionRepository, fileAssetRepository
+        ).save(OWNER_ID, SUBMISSION_ID, 1).roleId();
     }
 
     @Test
@@ -168,4 +155,3 @@ class ScreeningReviewControllerTest {
                 .andExpect(jsonPath("$.code").value("AUTH_INACTIVE_MEMBER"));
     }
 }
-

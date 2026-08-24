@@ -40,6 +40,10 @@ export const GENDER_LABELS = {
   FEMALE: "여",
 } as const satisfies Record<Gender, string>;
 
+export const genderText = (gender: Gender | null) => gender === null ? "미수집" : GENDER_LABELS[gender];
+
+export const ageText = (age: number | null) => age === null ? "나이 미수집" : `만 ${age}세`;
+
 export const ROLE_GENDER_LABELS = {
   MALE: "남",
   FEMALE: "여",

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import { GENDER_LABELS, mismatchText } from "@/features/auditions/labels";
+import { ageText, genderText, mismatchText } from "@/features/auditions/labels";
 import { openPrintWindow } from "@/features/auditions/print";
 import { useBoard } from "./board-context";
 import { DetailGallery } from "./detail-gallery";
@@ -37,7 +37,7 @@ export function ApplicantDetail() {
             </h2>
             <p className="mt-0.5 text-dense text-muted">
               <b className="font-semibold text-muted-strong">{applicant.roleName}</b> 지원 ·{" "}
-              {GENDER_LABELS[applicant.gender]} 만 {applicant.age}세 · {measurement(applicant.height, "cm")} /{" "}
+              {genderText(applicant.gender)} · {ageText(applicant.age)} · {measurement(applicant.height, "cm")} /{" "}
               {measurement(applicant.weight, "kg")} · {applicant.id}
             </p>
           </div>

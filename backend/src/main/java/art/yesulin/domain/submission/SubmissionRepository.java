@@ -14,6 +14,19 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
     Optional<Submission> findBySubmissionIdAndApplicantId(UUID submissionId, long applicantId);
 
     @Query("""
+            select distinct submission
+            from Submission submission
+            join submission.selectedRoles.values role
+            where submission.auditionSnapshot.auditionId = :auditionId
+              and role.auditionRoleId = :roleId
+            order by submission.submittedAt asc, submission.id asc
+            """)
+    List<Submission> findAllForScreening(
+            @Param("auditionId") long auditionId,
+            @Param("roleId") long roleId
+    );
+
+    @Query("""
             select submission.id as id,
                    submission.submissionId as submissionId,
                    submission.auditionSnapshot.title as auditionTitle,

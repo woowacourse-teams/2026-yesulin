@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { GENDER_LABELS, mismatchText } from "@/features/auditions/labels";
+import { ageText, genderText, mismatchText } from "@/features/auditions/labels";
 import type { Applicant } from "@/features/auditions/types";
 import { ApplicantPhotoImage } from "./applicant-photo";
 import { useBoard } from "./board-context";
@@ -126,7 +126,7 @@ export function ApplicantTable({
                         ) : null}
                       </span>
                       <span className="num block text-xs text-muted">
-                        {GENDER_LABELS[applicant.gender]} · 만 {applicant.age}세
+                        {genderText(applicant.gender)} · {ageText(applicant.age)}
                       </span>
                     </span>
                   </div>

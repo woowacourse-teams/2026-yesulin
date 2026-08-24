@@ -1,4 +1,4 @@
-import { delay, http, HttpResponse } from "msw";
+import { delay, http, HttpResponse, passthrough } from "msw";
 import type { AuditionBoardResponse, CloseRoundRequest, RoundNumber, SaveReviewRequest } from "@/features/auditions/types";
 import { roleId, ROUND_NUMBERS } from "@/features/auditions/types";
 import { countsFor, findRole, roundStatesOf } from "./aggregate";
@@ -32,6 +32,7 @@ export const screeningHandlers = [
     return board ? HttpResponse.json(board) : notFound("배역을 찾을 수 없습니다.");
   }),
   http.patch(`${apiPath}/v1/audition-roles/:roleId/screening-rounds/:round/reviews`, async ({ params, request }) => {
+    if (/^[1-9]\d*$/.test(String(params.roleId))) return passthrough();
     await delay(200);
     const body = (await request.json()) as Omit<SaveReviewRequest, "roleId" | "round">;
     const targetRoleId = roleId(String(params.roleId));

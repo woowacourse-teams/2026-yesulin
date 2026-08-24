@@ -124,7 +124,8 @@ public class LocalStackStorageConfiguration {
         }
         return new S3StorageProperties(
                 properties.bucket(), properties.keyPrefix(), publicBaseUrl,
-                connection.resolveRegion(properties.region()), properties.uploadExpiration()
+                connection.resolveRegion(properties.region()), properties.uploadExpiration(),
+                properties.downloadExpiration()
         );
     }
 

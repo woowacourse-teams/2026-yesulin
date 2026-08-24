@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import Link from "next/link";
-import { getAuditionBoard } from "@/features/auditions/api";
+import { getAuditionSubmission } from "@/features/auditions/api";
 import { auditionRoutes } from "@/features/auditions/routes";
 import type {
   SubmissionId,
@@ -29,7 +29,10 @@ export function ApplicantReview({
   round: RoundNumber;
 }) {
   const [applied, setApplied] = useState<AuditionBoardResponse | null>(null);
-  const load = useCallback(() => getAuditionBoard(roleId, round), [roleId, round]);
+  const load = useCallback(
+    () => getAuditionSubmission(roleId, round, submissionId),
+    [roleId, round, submissionId],
+  );
   const { data, error, loading, reload } = useAuditionQuery(
     `${roleId}:${round}:${submissionId}`,
     load,
