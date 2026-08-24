@@ -61,6 +61,13 @@ public class PhotoLibraryService {
     }
 
     @Transactional
+    public PhotoLibraryResult movePhoto(long ownerId, long photoId, int displayOrder) {
+        PhotoLibrary library = findOwnedLibraryForUpdate(ownerId);
+        library.movePhoto(photoId, displayOrder);
+        return toLibraryResult(library.getPhotos());
+    }
+
+    @Transactional
     public void deletePhoto(long ownerId, long photoId) {
         PhotoLibrary library = findOwnedLibraryForUpdate(ownerId);
         PhotoLibraryItem deletedPhoto = library.deletePhoto(photoId, Instant.now(clock));

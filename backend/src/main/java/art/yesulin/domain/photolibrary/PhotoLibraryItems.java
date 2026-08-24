@@ -1,5 +1,6 @@
 package art.yesulin.domain.photolibrary;
 
+import static art.yesulin.domain.photolibrary.PhotoLibraryErrorCode.INVALID_DISPLAY_ORDER;
 import static art.yesulin.domain.photolibrary.PhotoLibraryErrorCode.LIMIT_EXCEEDED;
 import static art.yesulin.domain.photolibrary.PhotoLibraryErrorCode.PHOTO_NOT_FOUND;
 
@@ -38,10 +39,17 @@ public class PhotoLibraryItems {
     }
 
     void moveToFront(long photoId) {
+        move(photoId, 0);
+    }
+
+    void move(long photoId, int displayOrder) {
         PhotoLibraryItem target = findActive(photoId);
         List<PhotoLibraryItem> reordered = new ArrayList<>(activeValues());
         reordered.remove(target);
-        reordered.addFirst(target);
+        if (displayOrder < 0 || displayOrder >= reordered.size() + 1) {
+            throw new BusinessException(INVALID_DISPLAY_ORDER, "사진 표시 순서가 보관함 범위를 벗어났습니다.");
+        }
+        reordered.add(displayOrder, target);
         reorder(reordered);
     }
 
