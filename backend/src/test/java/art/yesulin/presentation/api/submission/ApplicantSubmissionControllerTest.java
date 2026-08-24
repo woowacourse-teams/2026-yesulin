@@ -15,6 +15,8 @@ import art.yesulin.domain.file.FileAssetRepository;
 import art.yesulin.domain.file.FileMetadata;
 import art.yesulin.domain.file.FileReference;
 import art.yesulin.domain.file.FileReferenceRepository;
+import art.yesulin.domain.member.MemberStatus;
+import art.yesulin.domain.member.MemberType;
 import art.yesulin.domain.submission.ApplicantSnapshot;
 import art.yesulin.domain.submission.AuditionSnapshot;
 import art.yesulin.domain.submission.MilitaryServiceStatus;
@@ -64,7 +66,9 @@ class ApplicantSubmissionControllerTest {
     private static final long APPLICANT_ID = 1L;
     private static final Instant SUBMITTED_AT = Instant.parse("2026-08-24T03:15:00Z");
     private static final Instant RECRUITMENT_END_AT = Instant.parse("2026-08-31T14:59:00Z");
-    private static final MemberPrincipal MEMBER_PRINCIPAL = new MemberPrincipal(APPLICANT_ID);
+    private static final MemberPrincipal MEMBER_PRINCIPAL = new MemberPrincipal(
+            APPLICANT_ID, MemberType.APPLICANT, MemberStatus.ACTIVE
+    );
     private static final String SUBMISSIONS_PATH = "/api/v1/applicants/me/submissions";
     private static final String SUBMISSION_PHOTO_REFERENCE_TYPE = "SUBMISSION_PHOTO";
 

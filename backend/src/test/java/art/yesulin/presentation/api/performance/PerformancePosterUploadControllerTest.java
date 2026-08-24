@@ -1,11 +1,14 @@
 package art.yesulin.presentation.api.performance;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import art.yesulin.application.auth.MemberPrincipal;
+import art.yesulin.domain.member.MemberStatus;
+import art.yesulin.domain.member.MemberType;
 import art.yesulin.support.FakeObjectStorage;
 import art.yesulin.support.ObjectStorageTestConfiguration;
 import org.junit.jupiter.api.Test;
@@ -30,7 +33,8 @@ import tools.jackson.databind.ObjectMapper;
 @Transactional
 class PerformancePosterUploadControllerTest {
 
-    private static final MemberPrincipal MEMBER_PRINCIPAL = new MemberPrincipal(1L);
+    private static final MemberPrincipal MEMBER_PRINCIPAL = new MemberPrincipal(1L, MemberType.PRODUCER,
+            MemberStatus.ACTIVE);
 
     @Autowired
     private MockMvc mockMvc;
@@ -44,6 +48,7 @@ class PerformancePosterUploadControllerTest {
     @Test
     void issuesPresignedUploadUrl() throws Exception {
         mockMvc.perform(post("/api/v1/performance-posters/upload-requests")
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(uploadRequest()))
@@ -55,10 +60,20 @@ class PerformancePosterUploadControllerTest {
     }
 
     @Test
+    void rejectsUploadRequestWithoutCsrfToken() throws Exception {
+        mockMvc.perform(post("/api/v1/performance-posters/upload-requests")
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(uploadRequest()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void rejectsVideoForPerformancePoster() throws Exception {
         String request = uploadRequest().replace("image/png", "video/mp4");
 
         mockMvc.perform(post("/api/v1/performance-posters/upload-requests")
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
@@ -68,6 +83,7 @@ class PerformancePosterUploadControllerTest {
     @Test
     void completesUploadedFile() throws Exception {
         String response = mockMvc.perform(post("/api/v1/performance-posters/upload-requests")
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(uploadRequest()))
@@ -77,6 +93,7 @@ class PerformancePosterUploadControllerTest {
         objectStorage.upload(upload.get("uploadUrl").asText(), "image/png", 1_024L);
 
         mockMvc.perform(patch("/api/v1/performance-posters/{fileId}/completion", fileId)
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
                 .andExpect(status().isNoContent())
                 .andExpect(jsonPath("$").doesNotExist());

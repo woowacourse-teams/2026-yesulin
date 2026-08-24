@@ -2,6 +2,7 @@ package art.yesulin.presentation.api.submission;
 
 import static org.hamcrest.Matchers.matchesPattern;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -34,6 +35,8 @@ import art.yesulin.domain.file.FileAsset;
 import art.yesulin.domain.file.FileAssetRepository;
 import art.yesulin.domain.file.FileMetadata;
 import art.yesulin.domain.file.FileReferenceRepository;
+import art.yesulin.domain.member.MemberStatus;
+import art.yesulin.domain.member.MemberType;
 import art.yesulin.domain.performance.Performance;
 import art.yesulin.domain.performance.PerformanceRepository;
 import art.yesulin.domain.submission.Submission;
@@ -78,7 +81,9 @@ class SubmissionControllerTest {
     private static final long REQUEST_APPLICANT_ID = 999L;
     private static final long PRODUCER_ID = 2L;
     private static final Instant NOW = Instant.parse("2026-08-24T03:15:00Z");
-    private static final MemberPrincipal MEMBER_PRINCIPAL = new MemberPrincipal(APPLICANT_ID);
+    private static final MemberPrincipal MEMBER_PRINCIPAL = new MemberPrincipal(
+            APPLICANT_ID, MemberType.APPLICANT, MemberStatus.ACTIVE
+    );
 
     @Autowired
     private MockMvc mockMvc;
@@ -121,6 +126,7 @@ class SubmissionControllerTest {
         AuditionFixture fixture = saveAudition(NOW.minusSeconds(86_400), NOW.plusSeconds(86_400));
 
         String responseBody = mockMvc.perform(post("/api/v1/auditions/{auditionId}/submissions", fixture.auditionId())
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestWithApplicantId(fixture.roleId())))
@@ -153,6 +159,7 @@ class SubmissionControllerTest {
         UUID auditionId = UUID.randomUUID();
 
         mockMvc.perform(post("/api/v1/auditions/{auditionId}/submissions", auditionId)
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(invalidRequest()))
@@ -166,6 +173,7 @@ class SubmissionControllerTest {
         AuditionFixture fixture = saveAudition(NOW.minusSeconds(172_800), NOW);
 
         mockMvc.perform(post("/api/v1/auditions/{auditionId}/submissions", fixture.auditionId())
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(validRequest(fixture.roleId())))
@@ -180,6 +188,7 @@ class SubmissionControllerTest {
         submit(fixture);
 
         mockMvc.perform(post("/api/v1/auditions/{auditionId}/submissions", fixture.auditionId())
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(validRequest(fixture.roleId())))
@@ -189,6 +198,7 @@ class SubmissionControllerTest {
 
     private void submit(AuditionFixture fixture) throws Exception {
         mockMvc.perform(post("/api/v1/auditions/{auditionId}/submissions", fixture.auditionId())
+                        .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(validRequest(fixture.roleId())))
