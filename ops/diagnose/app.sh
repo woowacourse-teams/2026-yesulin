@@ -62,6 +62,13 @@ nginx -t 2>&1 || true
 section "recent application logs"
 journalctl -u yesulin.service -n 100 --no-pager 2>&1 | redact
 
+section "recent application file logs"
+if [ -r /var/log/yesulin/yesulin.log ]; then
+  tail -n 100 /var/log/yesulin/yesulin.log | redact
+else
+  echo "Application file log: unavailable"
+fi
+
 section "recent nginx errors"
 if [ -r /var/log/nginx/yesulin_error.log ]; then
   tail -n 100 /var/log/nginx/yesulin_error.log | redact

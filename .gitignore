@@ -6,6 +6,7 @@
 **/.gradle/
 **/build/
 **/out/
+backend/logs/
 
 **/node_modules/
 **/.next/
