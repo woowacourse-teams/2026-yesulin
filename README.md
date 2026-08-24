@@ -46,7 +46,7 @@ npm run build
 
 백엔드:
 
-로컬 MySQL의 `DB_*` 값은 `application-local.yml`에서 Spring Datasource로 연결한다. OIDC 설정은 애플리케이션 시작 시 검증한다. 처음 설정할 때만 `.env.example`을 `.env`로 복사하고, DB 비밀번호와 각 개발자 콘솔에서 발급한 값을 채운다. 이미 `.env`가 있으면 덮어쓰지 않는다.
+로컬 MySQL의 `DB_*` 값은 `application-local.yml`에서 Spring Datasource로 연결합니다. OIDC 설정은 애플리케이션 시작 시 검증합니다. 처음 설정할 때만 `.env.example`을 `.env`로 복사하고, DB 비밀번호와 각 개발자 콘솔에서 발급한 값을 채웁니다. 이미 `.env`가 있으면 덮어쓰지 않습니다.
 
 ```bash
 cp -n .env.example .env
@@ -60,7 +60,7 @@ cd backend
 ./gradlew bootRun --args='--spring.profiles.active=local-test'
 ```
 
-테스트에는 실제 OIDC 자격증명이 필요하지 않다.
+테스트에는 실제 OIDC 자격증명이 필요하지 않습니다.
 
 ```bash
 cd backend
@@ -69,13 +69,14 @@ cd backend
 ```
 
 `local-test` 프로필은 H2와 Testcontainers LocalStack S3를 사용하며, 서버를 재시작하면 DB와
-LocalStack 파일이 초기화된다. 인증 우회는 더 이상 제공하지 않으므로 보호된 API를 확인하려면
-`POST /api/v1/sessions`으로 로그인한다. 테스트에서 인증을 건너뛰어야 하면
-`src/test`의 `LocalTestWebConfiguration`을 `@Import`한다.
-실행 전 Docker Desktop 또는 Docker Engine처럼 Docker API와 호환되는 컨테이너 런타임이
-실행 중이어야 한다.
+LocalStack 파일이 초기화됩니다. 인증 우회는 더 이상 제공하지 않으므로 보호된 API를 확인하려면
+`POST /api/v1/sessions`으로 로그인합니다. 테스트에서 인증을 건너뛰어야 하면 `src/test`의
+`LocalTestWebConfiguration`을 `@Import`합니다.
 
-카카오·네이버·구글 소셜 로그인 시작 경로와 Callback 설정은 [소셜 로그인 연동 모듈 문서](./docs/development/backend/oauth-social-login.md)를 따른다.
+실행 전 Docker Desktop 또는 Docker Engine처럼 Docker API와 호환되는 컨테이너 런타임이
+실행 중이어야 합니다.
+
+카카오·네이버·구글 소셜 로그인 시작 경로와 Callback 설정은 [소셜 로그인 연동 모듈 문서](./docs/development/backend/oauth-social-login.md)를 따릅니다.
 
 ## 지속적 통합
 
