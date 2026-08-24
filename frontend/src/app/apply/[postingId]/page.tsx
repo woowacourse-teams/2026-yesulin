@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { PublicPostingRoute } from "@/components/applications/public-posting-route";
+import { isBackendAuditionId } from "@/features/auditions/audition-v1-api";
 import { publicPostingAvailability } from "@/features/applications/public-posting";
 import { publicPostingForServer } from "@/features/applications/public-posting-server";
 import { MswProvider } from "@/components/mocks/msw-provider";
@@ -35,5 +36,6 @@ export default async function PublicPostingPage({ params, searchParams }: { para
   const { prefill, resumeDraft, roleId } = await searchParams;
   const posting = await publicPostingForServer(postingId);
   const initialRoleIds = Array.isArray(roleId) ? roleId : roleId ? [roleId] : [];
-  return <MswProvider><PublicPostingRoute postingId={postingId} initialPosting={posting} useProfilePrefill={prefill === "1"} resumeDraft={resumeDraft === "1"} initialRoleIds={initialRoleIds} /></MswProvider>;
+  const useProfilePrefill = prefill === "1" && !isBackendAuditionId(postingId);
+  return <MswProvider><PublicPostingRoute postingId={postingId} initialPosting={posting} useProfilePrefill={useProfilePrefill} resumeDraft={resumeDraft === "1"} initialRoleIds={initialRoleIds} /></MswProvider>;
 }
