@@ -43,6 +43,11 @@ MYSQL_ROOT_PASSWORD=yesulin-root-local
 전달하며, 설정하지 않으면 소셜 로그인은 기본적으로 비활성화된다. Provider 개발자 콘솔에는
 `http://localhost:3000/login/oauth2/code/{provider}` Callback을 등록한다.
 
+외부 OAuth 자격증명이 없는 기본 Compose 환경에서는 로그인 화면의 소셜 버튼이 로컬 전용 배우
+세션을 만들고 원래 지원서로 돌아간다. 이 API는 Spring `local` 프로필과
+`LOCAL_SOCIAL_LOGIN_ENABLED=true`가 모두 적용될 때만 등록된다. 실제 OAuth를 확인할 때는 자격증명을
+설정하고 `NEXT_PUBLIC_SOCIAL_LOGIN=enabled`로 Frontend 이미지를 빌드한다.
+
 ## 백엔드 변경 반영
 
 일반적인 백엔드 코드와 설정 변경은 이미지를 다시 빌드해 반영한다.

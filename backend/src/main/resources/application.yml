@@ -38,6 +38,8 @@ logging:
       total-size-cap: ${LOG_TOTAL_SIZE_CAP:1GB}
 
 yesulin:
+  local-social-login:
+    enabled: ${LOCAL_SOCIAL_LOGIN_ENABLED:false}
   storage:
     s3:
       region: ${AWS_REGION:ap-northeast-2}

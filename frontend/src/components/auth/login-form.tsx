@@ -6,7 +6,11 @@ import { PrimaryButton, TextLink } from "@/components/ui/controls";
 import { useToast } from "@/components/auditions/toast";
 import { AuthInput, PasswordInput, RoleField, type AccountRole } from "./auth-fields";
 import { SocialButtons } from "./social-buttons";
-import { SessionApiError, login as requestLogin } from "@/features/auth/session-api";
+import {
+  SessionApiError,
+  login as requestLogin,
+  loginAsLocalApplicant,
+} from "@/features/auth/session-api";
 import { rememberSocialLoginReturnTo } from "@/features/auth/social-login-return-to";
 import {
   createFrontendCredential,
@@ -19,6 +23,7 @@ type LoginErrors = Partial<Record<"identifier" | "password", string>>;
 const mockingDisabled = process.env.NEXT_PUBLIC_API_MOCKING === "disabled";
 const realProducerLoginEnabled = process.env.NEXT_PUBLIC_PRODUCER_LOGIN === "enabled";
 const realSocialLoginEnabled = process.env.NEXT_PUBLIC_SOCIAL_LOGIN === "enabled";
+const localSocialLoginEnabled = process.env.NEXT_PUBLIC_LOCAL_SOCIAL_LOGIN === "enabled";
 
 const PROVIDER_LABELS: Record<SocialProvider, string> = {
   kakao: "카카오",
@@ -86,9 +91,29 @@ export function LoginForm({ returnTo, applicationFlow = false, serverSessionRequ
   async function handleSocialLogin(provider: SocialProvider) {
     setPendingProvider(provider);
 
-    if (mockingDisabled || realSocialLoginEnabled || serverSessionRequired) {
+    if (realSocialLoginEnabled || (mockingDisabled && !localSocialLoginEnabled)) {
       rememberSocialLoginReturnTo(returnTo);
       window.location.assign(`/oauth2/authorization/${provider}`);
+      return;
+    }
+
+    if (serverSessionRequired && localSocialLoginEnabled) {
+      try {
+        const serverSession = await loginAsLocalApplicant(provider);
+        setSession({
+          credential: `member-${serverSession.memberId}`,
+          role: serverSession.role,
+          displayName: "로컬 배우",
+          socialProvider: provider,
+        });
+        toast("로그인했습니다. 지원서 검토 화면으로 돌아갑니다.", { type: "success" });
+        router.push(returnTo ?? "/applicants");
+      } catch (error) {
+        setPendingProvider(undefined);
+        toast(error instanceof SessionApiError
+          ? error.message
+          : "로그인하지 못했습니다. 잠시 후 다시 시도해 주세요.", { type: "error" });
+      }
       return;
     }
 
