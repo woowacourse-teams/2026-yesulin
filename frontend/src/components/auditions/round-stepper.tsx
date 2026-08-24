@@ -18,7 +18,7 @@ export function RoundStepper() {
 
   return (
     <div className="flex items-stretch border-b border-border bg-card">
-      <HorizontalScrollArea className="min-w-0 flex-1" scrollerClassName="scrollbar-compact">
+      <HorizontalScrollArea className="min-w-0 flex-1">
       <nav aria-label="전형 차수" className="flex min-w-max px-4 md:px-6">
         {board.rounds.map((state) => {
           const selected = state.round === board.round;

@@ -41,7 +41,7 @@ export function ApplicantVideoSection({ applicant }: { applicant: Applicant }) {
         <div className="grid min-w-0 gap-3 md:grid-cols-[minmax(0,1fr)_176px]">
           <MainVideo applicant={applicant} video={selectedVideo} />
           {applicant.videos.length > 1 ? (
-            <div className="flex min-w-0 gap-2 overflow-x-auto pb-1 md:h-0 md:min-h-full md:flex-col md:overflow-x-hidden md:overflow-y-auto md:pb-0 md:pr-1" aria-label="제출 영상 목록">
+            <div className="scrollbar-hidden-mobile flex min-w-0 gap-2 overflow-x-auto pb-1 md:h-0 md:min-h-full md:flex-col md:overflow-x-hidden md:overflow-y-auto md:pb-0 md:pr-1" aria-label="제출 영상 목록">
               {applicant.videos.map((video, index) => (
                 <VideoListItem
                   key={`${video.url}:${index}`}

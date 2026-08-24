@@ -32,7 +32,7 @@ export function HorizontalScrollArea({
   }, [measure]);
 
   return <div className={`relative min-w-0 ${className}`}>
-    <div ref={scrollerRef} onScroll={measure} className={`overflow-x-auto ${scrollerClassName}`}>{children}</div>
+    <div ref={scrollerRef} onScroll={measure} className={`scrollbar-hidden overflow-x-auto ${scrollerClassName}`}>{children}</div>
     {hasMore ? <span aria-hidden="true" className={`pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l to-transparent ${fadeClassName}`} /> : null}
   </div>;
 }
