@@ -37,6 +37,12 @@ MYSQL_ROOT_PASSWORD=yesulin-root-local
 
 기본 비밀번호는 로컬 개발 전용이다. 실제 운영 자격증명으로 사용하지 않는다.
 
+실제 Backend로 UUID 공고의 지원서를 제출하려면 배우의 Backend Session이 필요하다. 소셜 로그인을
+확인할 때는 `.env.example`의 `SOCIAL_LOGIN_*`, `KAKAO_OIDC_*`, `NAVER_OIDC_*`,
+`GOOGLE_OIDC_*` 항목 중 사용할 Provider 값을 루트 `.env`에 설정한다. Compose는 이 값을 Backend에
+전달하며, 설정하지 않으면 소셜 로그인은 기본적으로 비활성화된다. Provider 개발자 콘솔에는
+`http://localhost:3000/login/oauth2/code/{provider}` Callback을 등록한다.
+
 ## 백엔드 변경 반영
 
 일반적인 백엔드 코드와 설정 변경은 이미지를 다시 빌드해 반영한다.
