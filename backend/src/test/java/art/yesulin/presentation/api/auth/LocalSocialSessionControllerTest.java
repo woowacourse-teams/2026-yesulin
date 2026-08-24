@@ -3,7 +3,9 @@ package art.yesulin.presentation.api.auth;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -60,6 +62,13 @@ class LocalSocialSessionControllerTest {
         MemberPrincipal principal = (MemberPrincipal) session.getAttribute(MemberPrincipal.SESSION_ATTRIBUTE);
         assertNotNull(principal);
         assertEquals(MemberType.APPLICANT, principal.role());
+    }
+
+    @Test
+    void redirectsLocalOauthAuthorizationToCompletionPage() throws Exception {
+        mockMvc.perform(get("/oauth2/authorization/kakao"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Location", "/social-login/complete"));
     }
 
     @Test

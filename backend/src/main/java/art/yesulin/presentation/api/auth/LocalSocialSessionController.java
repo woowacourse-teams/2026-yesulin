@@ -5,6 +5,7 @@ import art.yesulin.application.auth.social.SocialIdentity;
 import art.yesulin.application.auth.social.SocialLoginService;
 import art.yesulin.application.auth.social.SocialProvider;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import java.net.URI;
 import java.util.Locale;
@@ -13,14 +14,13 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 @RestController
-@RequestMapping("/api/v1/local/social-sessions")
 @Profile("local")
 @ConditionalOnProperty(
         prefix = "yesulin.local-social-login",
@@ -34,11 +34,27 @@ public class LocalSocialSessionController {
 
     private final SocialLoginService socialLoginService;
 
-    @PostMapping("/{provider}")
+    @GetMapping("/oauth2/authorization/{provider}")
+    public void authorize(
+            @PathVariable String provider,
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) {
+        createSession(provider, request);
+        response.setStatus(HttpStatus.FOUND.value());
+        response.setHeader("Location", "/social-login/complete");
+    }
+
+    @PostMapping("/api/v1/local/social-sessions/{provider}")
     public ResponseEntity<SessionResponse> login(
             @PathVariable String provider,
             HttpServletRequest request
     ) {
+        MemberPrincipal principal = createSession(provider, request);
+        return ResponseEntity.ok(SessionResponse.from(principal));
+    }
+
+    private MemberPrincipal createSession(String provider, HttpServletRequest request) {
         SocialProvider socialProvider;
         try {
             socialProvider = SocialProvider.fromRegistrationId(provider);
@@ -54,7 +70,6 @@ public class LocalSocialSessionController {
         HttpSession session = request.getSession(true);
         request.changeSessionId();
         session.setAttribute(MemberPrincipal.SESSION_ATTRIBUTE, principal);
-
-        return ResponseEntity.ok(SessionResponse.from(principal));
+        return principal;
     }
 }
