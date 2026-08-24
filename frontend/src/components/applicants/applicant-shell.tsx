@@ -23,8 +23,7 @@ export function ApplicantShell({ children }: { readonly children: React.ReactNod
   const pathname = usePathname();
   const router = useRouter();
   const toast = useToast();
-  const { session, logoutSession } = useAuthSession();
-  const accountName = session?.role === "APPLICANT" ? session.displayName : "배우";
+  const { logoutSession } = useAuthSession();
   const profileQuery = useAuditionQuery("applicant-header-profile", getApplicantProfile, "");
   useEffect(() => {
     window.addEventListener(APPLICANT_PROFILE_CHANGED, profileQuery.reload);
@@ -51,7 +50,7 @@ export function ApplicantShell({ children }: { readonly children: React.ReactNod
           {navigation.map((item) => <ApplicantNavLink key={item.href} {...item} pathname={pathname} />)}
         </nav>
         <div className="ml-auto">
-          <ApplicantAccountMenu profile={profileQuery.data} fallbackName={accountName} onLogout={logout} />
+          <ApplicantAccountMenu profile={profileQuery.data} onLogout={logout} />
         </div>
       </div>
     </header>
@@ -67,12 +66,9 @@ export function ApplicantShell({ children }: { readonly children: React.ReactNod
   </div>;
 }
 
-function ApplicantAccountMenu({ profile, fallbackName, onLogout }: { readonly profile: ApplicantProfileResponse | null; readonly fallbackName: string; readonly onLogout: () => void }) {
+function ApplicantAccountMenu({ profile, onLogout }: { readonly profile: ApplicantProfileResponse | null; readonly onLogout: () => void }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const nameValue = profile?.answers.find((answer) => answer.key === "NAME")?.value;
-  const profileName = typeof nameValue === "string" && nameValue.trim() ? nameValue.trim() : fallbackName.replace(/\s*배우$/, "");
-  const greeting = profileName ? `${profileName} 배우님` : "배우님";
   const photoUrl = profile?.photoLibrary.find((photo) => photo.representative)?.url ?? profile?.photoLibrary[0]?.url;
 
   useEffect(() => {
@@ -94,7 +90,7 @@ function ApplicantAccountMenu({ profile, fallbackName, onLogout }: { readonly pr
   return <div ref={containerRef} className="relative">
     <button
       type="button"
-      aria-label={`${greeting} 계정 메뉴`}
+      aria-label="배우 계정 메뉴"
       aria-haspopup="menu"
       aria-expanded={open}
       aria-controls="applicant-account-menu"
@@ -108,14 +104,11 @@ function ApplicantAccountMenu({ profile, fallbackName, onLogout }: { readonly pr
       </span>
       <svg aria-hidden="true" viewBox="0 0 20 20" className={`h-4 w-4 fill-current text-muted transition-transform ${open ? "rotate-180" : ""}`}><path d="m5.5 7.5 4.5 4 4.5-4" /></svg>
     </button>
-    {open ? <div id="applicant-account-menu" role="menu" className="absolute right-0 top-[calc(100%+8px)] z-40 w-56 overflow-hidden rounded-card border border-border bg-card p-2 shadow-[var(--shadow-2)]">
-      <div className="px-3 py-3"><p className="truncate text-sm font-bold text-foreground">{greeting}</p><p className="mt-1 text-xs text-muted">예술in 배우 계정</p></div>
-      <div className="border-t border-border-soft pt-1">
-        <button type="button" role="menuitem" onClick={onLogout} className="flex min-h-11 w-full items-center gap-2 rounded-control px-3 text-left text-sm font-semibold text-muted-strong transition-colors hover:bg-surface hover:text-foreground">
-          <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current stroke-2"><path d="M10 5H5v14h5M14 8l4 4-4 4M8 12h10" /></svg>
-          로그아웃
-        </button>
-      </div>
+    {open ? <div id="applicant-account-menu" role="menu" className="absolute right-0 top-[calc(100%+8px)] z-40 w-40 rounded-card border border-border bg-card p-2 shadow-[var(--shadow-2)]">
+      <button type="button" role="menuitem" onClick={onLogout} className="flex min-h-11 w-full items-center gap-2 rounded-control px-3 text-left text-sm font-semibold text-muted-strong transition-colors hover:bg-surface hover:text-foreground">
+        <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current stroke-2"><path d="M10 5H5v14h5M14 8l4 4-4 4M8 12h10" /></svg>
+        로그아웃
+      </button>
     </div> : null}
   </div>;
 }
