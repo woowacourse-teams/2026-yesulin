@@ -84,7 +84,7 @@ function ApplicationSectionHeader({ current, total, title, description }: { curr
 function ApplicationStepper() {
   const { state, meta } = usePublicApplication();
   const current = meta.steps[state.stepIndex]!;
-  return <nav aria-label="지원서 단계" className="mb-8 md:mb-10"><p className="mb-3 text-sm text-muted-strong md:hidden"><span className="font-semibold text-foreground">현재 단계 {state.stepIndex + 1} / {meta.steps.length}</span><span aria-hidden="true"> · </span>{current.title}</p><ol className="flex gap-2 overflow-x-auto pb-2">{meta.steps.map((step, index) => <StepButton key={step.section} index={index} title={step.title} />)}</ol></nav>;
+  return <nav aria-label="지원서 단계" className="mb-8 md:mb-10"><p className="mb-3 text-sm text-muted-strong md:hidden"><span className="font-semibold text-foreground">현재 단계 {state.stepIndex + 1} / {meta.steps.length}</span><span aria-hidden="true"> · </span>{current.title}</p><ol className="scrollbar-hidden flex gap-2 overflow-x-auto pb-2">{meta.steps.map((step, index) => <StepButton key={step.section} index={index} title={step.title} />)}</ol></nav>;
 }
 
 function StepButton({ index, title }: { index: number; title: string }) {

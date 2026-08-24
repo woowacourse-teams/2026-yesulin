@@ -73,7 +73,7 @@ export function PostingPicker({ performanceId }: { performanceId: PerformanceId 
             <svg aria-hidden="true" viewBox="0 0 20 20" className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 fill-none stroke-muted stroke-[1.8]"><circle cx="8.5" cy="8.5" r="5.25" /><path d="m12.5 12.5 4 4" /></svg>
             <FieldInput type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="공고명 검색" aria-label="공고명 검색" className="pl-10" />
           </div>
-          <div className="mt-4 flex gap-2 overflow-x-auto pb-1" aria-label="공고 상태">
+          <div className="scrollbar-hidden mt-4 flex gap-2 overflow-x-auto pb-1" aria-label="공고 상태">
             {FILTERS.map((value) => {
               const count = value === "ALL" ? data.postings.length : data.postings.filter((posting) => posting.phase === value).length;
               const label = value === "ALL" ? "전체" : PHASE_LABELS[value];

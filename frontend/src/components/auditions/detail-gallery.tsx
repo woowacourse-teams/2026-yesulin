@@ -67,7 +67,7 @@ export function DetailGallery({
       </div>
 
       {many ? (
-        <div className="mx-auto mt-2 flex max-w-[240px] gap-2 overflow-x-auto pb-1">
+        <div className="scrollbar-hidden mx-auto mt-2 flex max-w-[240px] gap-2 overflow-x-auto pb-1">
           {applicant.photos.map((candidate, slot) => (
             <button
               key={candidate.url}

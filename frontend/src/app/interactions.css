@@ -26,18 +26,13 @@
     backdrop-filter: blur(20px) saturate(120%);
   }
 
-  .scrollbar-compact {
-    scrollbar-color: var(--line) transparent;
-    scrollbar-width: thin;
+  .scrollbar-hidden {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 
-  .scrollbar-compact::-webkit-scrollbar {
-    height: 4px;
-  }
-
-  .scrollbar-compact::-webkit-scrollbar-thumb {
-    border-radius: 999px;
-    background: var(--line);
+  .scrollbar-hidden::-webkit-scrollbar {
+    display: none;
   }
 
   .toast-enter {
@@ -85,6 +80,17 @@
   select,
   textarea {
     min-height: 44px;
+  }
+}
+
+@media (max-width: 767px) {
+  .scrollbar-hidden-mobile {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hidden-mobile::-webkit-scrollbar {
+    display: none;
   }
 }
 

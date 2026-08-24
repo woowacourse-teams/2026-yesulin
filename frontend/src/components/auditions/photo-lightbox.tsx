@@ -55,7 +55,7 @@ export function PhotoLightbox({
       </div>
 
       {applicant.photos.length > 1 ? (
-        <div className="flex justify-center gap-2 overflow-x-auto border-t border-white/10 px-4 py-3">
+        <div className="scrollbar-hidden flex justify-center gap-2 overflow-x-auto border-t border-white/10 px-4 py-3">
           {applicant.photos.map((candidate, slot) => (
             <button key={`${candidate.url}-${slot}`} type="button" aria-pressed={slot === index} onClick={() => onSelect(slot)} className={`relative aspect-[3/4] w-14 shrink-0 overflow-hidden rounded-lg border-2 ${slot === index ? "border-brand" : "border-transparent opacity-65 hover:opacity-100"}`}>
               <ApplicantPhotoImage photo={candidate} alt={candidate.label} sizes="56px" />
