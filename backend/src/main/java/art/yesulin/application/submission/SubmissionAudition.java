@@ -1,5 +1,6 @@
 package art.yesulin.application.submission;
 
+import art.yesulin.application.submission.form.SubmissionFormDefinition;
 import java.time.Instant;
 import java.util.List;
 

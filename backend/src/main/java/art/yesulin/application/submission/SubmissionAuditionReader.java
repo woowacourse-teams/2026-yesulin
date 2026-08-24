@@ -2,6 +2,7 @@ package art.yesulin.application.submission;
 
 import static art.yesulin.domain.audition.AuditionErrorCode.NOT_FOUND;
 
+import art.yesulin.application.submission.form.SubmissionFormDefinition;
 import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.audition.Audition;
 import art.yesulin.domain.audition.AuditionRepository;
@@ -68,7 +69,7 @@ class SubmissionAuditionReader {
                                 findPerformanceRole(performanceRoles, role.getPerformanceRoleId()).getName()
                         ))
                         .toList(),
-                toFormDefinition(form)
+                SubmissionFormDefinition.from(form)
         );
     }
 
@@ -80,25 +81,4 @@ class SubmissionAuditionReader {
         return role;
     }
 
-    private SubmissionFormDefinition toFormDefinition(AuditionForm form) {
-        return new SubmissionFormDefinition(
-                form.getBasicFields(),
-                form.getAdditionalFields(),
-                form.getAdditionalQuestions().stream()
-                        .map(question -> new SubmissionQuestionDefinition(
-                                question.getId(), question.getQuestion(), question.isRequired()
-                        ))
-                        .toList(),
-                form.getPhotoRequirements().stream()
-                        .map(requirement -> new SubmissionPhotoRequirementDefinition(
-                                requirement.getId(), requirement.getDescription(), requirement.getCount()
-                        ))
-                        .toList(),
-                form.getVideoRequirements().stream()
-                        .map(requirement -> new SubmissionVideoRequirementDefinition(
-                                requirement.getId(), requirement.getDescription()
-                        ))
-                        .toList()
-        );
-    }
 }

@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import art.yesulin.application.submission.form.SubmissionFormDefinition;
 import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.submission.SubmissionErrorCode;
 import java.time.Instant;
