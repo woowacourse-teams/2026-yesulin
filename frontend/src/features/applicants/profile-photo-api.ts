@@ -38,22 +38,18 @@ export async function addApplicantProfilePhotos(
     return updateLegacyPhotos([...current.photoLibrary, ...additions]);
   }
 
-  for (const file of files) {
-    const upload = await applicantRequest<UploadRequest>("/v1/actor-photos/upload-requests", {
-      method: "POST",
-      body: JSON.stringify({ originalFilename: file.name, contentType: file.type, size: file.size }),
-    });
-    const response = await fetch(upload.uploadUrl, {
-      method: upload.method,
-      headers: upload.headers,
-      body: file,
-    });
-    if (!response.ok) throw new Error("사진 파일을 업로드하지 못했습니다.");
-    await applicantRequest<void>(`/v1/actor-photos/${upload.fileId}/completion`, { method: "PATCH" });
-    await applicantRequest<BackendPhoto>("/v1/applicants/me/photo-library/photos", {
-      method: "POST",
-      body: JSON.stringify({ fileId: upload.fileId }),
-    });
+  const addedPhotoIds: number[] = [];
+  try {
+    for (const file of files) {
+      const photo = await uploadAndAddPhoto(file);
+      addedPhotoIds.push(photo.id);
+    }
+  } catch (cause) {
+    await Promise.allSettled(addedPhotoIds.map((photoId) => applicantRequest<void>(
+      `/v1/applicants/me/photo-library/photos/${photoId}`,
+      { method: "DELETE" },
+    )));
+    throw cause;
   }
   return refreshPhotos(current);
 }
@@ -122,6 +118,24 @@ function toPhotos(
       url: photo.imageUrl,
       representative: photo.representative,
     }));
+}
+
+async function uploadAndAddPhoto(file: File) {
+  const upload = await applicantRequest<UploadRequest>("/v1/actor-photos/upload-requests", {
+    method: "POST",
+    body: JSON.stringify({ originalFilename: file.name, contentType: file.type, size: file.size }),
+  });
+  const response = await fetch(upload.uploadUrl, {
+    method: upload.method,
+    headers: upload.headers,
+    body: file,
+  });
+  if (!response.ok) throw new Error("사진 파일을 업로드하지 못했습니다.");
+  await applicantRequest<void>(`/v1/actor-photos/${upload.fileId}/completion`, { method: "PATCH" });
+  return applicantRequest<BackendPhoto>("/v1/applicants/me/photo-library/photos", {
+    method: "POST",
+    body: JSON.stringify({ fileId: upload.fileId }),
+  });
 }
 
 async function refreshPhotos(current: ApplicantProfileResponse) {
