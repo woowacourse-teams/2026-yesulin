@@ -1,7 +1,6 @@
 package art.yesulin.domain.submission;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -101,7 +100,7 @@ class SubmissionPersistenceTest {
     }
 
     @Test
-    void findsApplicantSubmissionsInRecentOrder() {
+    void findsApplicantSubmissionSummariesAndRolesInRecentOrder() {
         Submission older = createMinimalSubmission(
                 UUID.fromString("40cf23df-6e9a-4d71-a575-53a0193e8306"),
                 2L,
@@ -115,16 +114,15 @@ class SubmissionPersistenceTest {
         submissionRepository.saveAllAndFlush(List.of(older, newer));
         entityManager.clear();
 
-        List<Submission> found = submissionRepository.findAllByApplicantIdOrderBySubmittedAtDesc(APPLICANT_ID);
+        List<SubmissionSummaryProjection> summaries = submissionRepository.findSummariesByApplicantId(APPLICANT_ID);
+        List<SubmissionSelectedRoleProjection> roles = submissionRepository.findSelectedRolesBySubmissionIds(
+                summaries.stream().map(SubmissionSummaryProjection::getId).toList()
+        );
 
-        assertEquals(List.of(newer.getSubmissionId(), older.getSubmissionId()), found.stream()
-                .map(Submission::getSubmissionId)
+        assertEquals(List.of(newer.getSubmissionId(), older.getSubmissionId()), summaries.stream()
+                .map(SubmissionSummaryProjection::getSubmissionId)
                 .toList());
-        assertNotNull(found.getFirst().getApplicantSnapshot());
-        assertNotNull(found.getFirst().getApplicantSnapshot().getBasicInformation());
-        assertNotNull(found.getFirst().getApplicantSnapshot().getAdditionalInformation());
-        assertNotNull(found.getFirst().getApplicantSnapshot().getSubmissionFieldSnapshot());
-        assertNotNull(found.getFirst().getFormAnswers());
+        assertEquals(List.of(30L, 20L), roles.stream().map(SubmissionSelectedRoleProjection::getRoleId).toList());
         assertTrue(submissionRepository.existsByApplicantIdAndAuditionId(APPLICANT_ID, 2L));
     }
 

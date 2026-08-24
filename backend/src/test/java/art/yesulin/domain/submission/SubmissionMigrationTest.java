@@ -135,6 +135,26 @@ class SubmissionMigrationTest {
         );
     }
 
+    @Test
+    void rejectsDuplicateConsentTypeForSubmission() {
+        UUID publicId = UUID.randomUUID();
+        insertSubmission(publicId, 1L, 1L);
+        insertConsent(publicId, "PRIVACY_COLLECTION_AND_USE");
+
+        assertThrows(
+                DataIntegrityViolationException.class,
+                () -> insertConsent(publicId, "PRIVACY_COLLECTION_AND_USE")
+        );
+    }
+
+    @Test
+    void rejectsConsentReferencingMissingSubmission() {
+        assertThrows(
+                DataIntegrityViolationException.class,
+                () -> insertConsent(UUID.randomUUID(), "PRIVACY_COLLECTION_AND_USE")
+        );
+    }
+
     private long insertSubmission(UUID publicId, long applicantId, long auditionId) {
         byte[] publicIdBytes = toBytes(publicId);
         jdbcTemplate.update(
@@ -247,6 +267,23 @@ class SubmissionMigrationTest {
                 requirementId,
                 "자유 연기",
                 "https://youtu.be/abcdefghijk"
+        );
+    }
+
+    private void insertConsent(UUID submissionId, String consentType) {
+        jdbcTemplate.update(
+                """
+                        insert into submission_consents
+                            (submission_id, applicant_id, consent_type, document_version,
+                             recipient_name_snapshot, agreed_at)
+                        values (?, ?, ?, ?, ?, ?)
+                        """,
+                toBytes(submissionId),
+                1L,
+                consentType,
+                "test-v1",
+                null,
+                Timestamp.from(SUBMITTED_AT)
         );
     }
 

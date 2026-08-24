@@ -3,7 +3,9 @@
 배우·기획사/제작사 흐름을 기준으로 한 백엔드 경로 계약이다. REST 원칙을 따르되 클라이언트가 경로만 읽고 용도를 이해할 수 있는 이름을 우선한다.
 
 > 인증 전 Draft와 사진은 현재 브라우저 IndexedDB에만 두고 최종 제출 과정에서 처음 서버로 전송한다.
-> 제출 요청 계약은 확정했으며 파일 정제·동의 문서·제출 응답과 지원서 조회의 구체 계약은 후속 구현에서 정한다.
+> 제출 요청·성공 응답과 지원서 스냅샷 조회 계약은 확정했다. 현재 MVP Backend는 정제 전 `READY` 사진과
+> 임시 동의 문서 메타데이터로 제출을 허용하며, 파일 정제·실제 동의 문서 제공과 심사 진행 상태 조회는
+> 실서비스 공개 전 후속 구현한다.
 
 ## 공통 규칙
 
@@ -62,7 +64,14 @@ POST   /api/v1/auditions/{auditionId}/submissions # 인증 배우의 최종 제�
 ```
 
 - 제출 완료 후 일반 수정은 공개 정책에서 허용하지 않는다. 현재 프런트 화면은 읽기 전용이며 MSW의 수정 요청도 `409 IMMUTABLE_SUBMISSION`으로 거부한다.
-- 내 지원서 목록·상세는 지원서 하나와 선택한 배역들을 함께 반환한다. `roleProgress[]`의 각 항목은 `roleId`, `roleName`, 공개 상태, 현재 또는 결과 차수와 차수명을 포함한다.
+- 내 지원서 목록은 현재 페이징하지 않고 최신 제출 순의 `submissions` 배열로 반환한다. 목록 전용 Projection으로
+  `submissionId`, 공고명 스냅샷, 제출 시각과 선택 배역만 조회하며 페이지 크기·응답 계약은 별도 이슈에서 합의한다.
+- 상세는 세션 회원 ID와 `submissionId`를 함께 조회 조건으로 사용한다. 미존재 지원서와 다른 회원의 지원서는
+  모두 `404 SUBMISSION_NOT_FOUND`로 응답한다.
+- 상세는 제출 당시 지원자 기본·추가 정보, 수집 필드, 계산 나이, 선택 배역, 질문·사진·영상 답변과 동의 문서
+  버전·동의 시각을 반환한다. 사진은 스냅샷 `fileId`와 현재 열람 URL을 함께 반환한다.
+- `roleProgress[]`는 공고 전형 종료와 심사 결과 공개 경계를 구현한 뒤 목록·상세 응답에 연동한다. 각 항목은
+  `roleId`, `roleName`, 공개 상태, 현재 또는 결과 차수와 차수명을 포함한다.
 - 공개 상태는 `RECEIVED`, `IN_REVIEW`, `FINAL_PASS`, `NOT_SELECTED`를 사용한다. 검토 중인 결과와 내부 메모는 포함하지 않고, 해당 배역의 차수가 마감된 뒤에만 확정 결과를 반영한다.
 - 작성 중 지원서는 현재 브라우저 IndexedDB를 직접 조회한다. 서버 Draft 목록과 다른 기기 동기화는 MVP 범위가 아니다.
 - 회원 탈퇴 Backend API는 MVP 범위가 아니다. 안내 화면은 공개 정책의 문의 경로를 제공한다.
@@ -111,13 +120,62 @@ POST   /api/v1/auditions/{auditionId}/submissions # 인증 배우의 최종 제�
   서버가 현재 공고에서 조회해 스냅샷으로 확정한다.
 - `applicantId`, `submittedAt`, 계산된 나이, 약관 문서 버전과 동의 시각은 Request Body에서 받지 않는다.
 - 개인정보 수집·이용과 제3자 제공은 각각 `true`여야 하며 서버가 별도 동의 이력을 생성한다.
+- 현재 MVP Backend는 `mvp-*-placeholder-v0` 임시 문서 버전과 임시 제공받는 자 명칭을 기록한다. 이는 실제
+  동의 문서가 아니며 실서비스 공개 전 활성 문서 버전과 공고별 기획사/제작사명을 제공하는 구현으로 교체한다.
+
+제출 성공 시 `201 Created`와 내 지원서 상세 URI를 `Location` 헤더로 반환한다.
+
+```json
+{
+  "submissionId": "5ba4f233-d49f-48c8-b07b-390b816beef1"
+}
+```
+
+내 지원서 목록 응답은 다음 구조를 사용한다.
+
+```json
+{
+  "submissions": [
+    {
+      "submissionId": "5ba4f233-d49f-48c8-b07b-390b816beef1",
+      "auditionTitle": "햄릿 배우 모집",
+      "submittedAt": "2026-08-24T03:15:00Z",
+      "selectedRoles": [{ "roleId": 11, "roleName": "오필리어" }]
+    }
+  ]
+}
+```
+
+상세 응답의 최상위 구조는 다음과 같다.
+
+```json
+{
+  "submissionId": "5ba4f233-d49f-48c8-b07b-390b816beef1",
+  "auditionTitle": "햄릿 배우 모집",
+  "submittedAt": "2026-08-24T03:15:00Z",
+  "applicant": {
+    "basicInformation": {},
+    "additionalInformation": {},
+    "fieldSnapshot": { "basicFields": [], "additionalFields": [] },
+    "ageAtRecruitmentDeadline": 27
+  },
+  "selectedRoles": [],
+  "formAnswers": {
+    "questionAnswers": [],
+    "photoRequirementAnswers": [],
+    "videoRequirementAnswers": []
+  },
+  "consents": []
+}
+```
 
 프로필과 제출 스냅샷 관계는 확정됐으며 지원서 사진·영상 연결 생명주기와 실패 파일 정리 계약은 별도로 결정한다.
 
 배우 사진 업로드 요청은 `originalFilename`, `contentType`, `size`를 받고 소유자는 Session에서 결정한다.
 JPEG·PNG·WebP 이미지 한 장, 최대 20MB를 허용한다. 현재 완료 API는 S3 HEAD의 Content-Type과 크기만
-확인하며 이미지 내용 검사와 EXIF 제거 실행 위치는 별도 결정한다. 완료된 파일을 사진보관함에 추가하거나
-지원서에 연결하는 동작은 업로드 완료 API와 분리한다.
+확인하며 이미지 내용 검사와 EXIF 제거 실행 위치는 별도 결정한다. 현재 Submission은 소유권·`READY` 상태와
+메타데이터의 이미지 유형을 검증한 파일을 허용하며, `READY`를 정제 완료로 해석하지 않는다. 완료된 파일을
+사진보관함에 추가하거나 지원서에 연결하는 동작은 업로드 완료 API와 분리한다.
 
 - 프로필 PATCH는 기본 정보 8개와 nullable 추가 정보 8개를 부분 저장한다. 제출별 프로필 갱신도 이 범위만 다룬다.
 - 개인 사진·영상 보관함은 프로필 값과 별도 리소스로 취급하며 제출 사진·영상 링크를 프로필 갱신 요청으로 추가하지 않는다.
@@ -142,11 +200,13 @@ GET  /api/v1/public/recommended-auditions
 - 인증 전 작성 내용과 사진은 현재 브라우저 IndexedDB에만 저장한다. Draft 복원 시 동의와 프로필 갱신 선택은 초기화한다.
 - 최종 제출 과정에서 인증된 계정만 사진 업로드와 제출 API를 호출한다.
 - 제출 버튼 클릭 시 서버 UTC 기준 모집 중인지, 생년월일 기준 만 14세 이상인지 다시 검증한다.
-- 사진은 파일당 20MB 이하 PNG·JPEG·WebP만 허용하고 실제 형식 검사와 EXIF 위치정보 제거를 통과한 정제본만 연결한다.
+- 목표 정책은 사진을 파일당 20MB 이하 PNG·JPEG·WebP로 제한하고 실제 형식 검사와 EXIF 위치정보 제거를
+  통과한 정제본만 연결하는 것이다. 현재 MVP Backend는 이 정제 파이프라인을 적용하지 않는다.
 - 사진·영상은 각각 `(photoRequirementId, fileId)`, `(videoRequirementId, url)`로 연결한다.
 - 수집·이용과 제3자 제공은 각각 필수 체크박스로 받고 서버에도 별도 동의 이력으로 저장한다. 상단 전체 동의는 두 하위 입력을 함께 변경하는 편의 기능이며 독립 동의 기록이 아니다.
 - 최종 제출은 텍스트·마감일 기준 만 나이·배역명·파일 참조를 불변 지원서 스냅샷으로 확정한다. 성공 뒤 로컬 Draft를 삭제한다.
-- 업로드·정제·동의 기록·스냅샷의 트랜잭션과 부분 실패 복구 계약은 아직 정하지 않았다.
+- 업로드 완료는 제출보다 먼저 수행한다. 제출 시 지원서 스냅샷·동의 기록·사진 파일 참조는 하나의 DB 트랜잭션으로
+  저장하며 어느 하나라도 실패하면 모두 롤백한다. 제출되지 않은 업로드 파일의 정리 계약은 별도로 결정한다.
 
 ## 기획사/제작사
 
