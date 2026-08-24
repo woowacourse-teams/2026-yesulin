@@ -81,12 +81,14 @@ export function getAuditionSubmission(role: RoleId, round: RoundNumber, submissi
   return getAuditionBoard(role, round);
 }
 
-export function saveReview(body: SaveReviewRequest) {
+export async function saveReview(body: SaveReviewRequest) {
   const { roleId, round, ...review } = body;
-  return request<AuditionBoardResponse>(`/v1/audition-roles/${roleId}/screening-rounds/${round}/reviews`, {
+  const response = await request<unknown>(`/v1/audition-roles/${roleId}/screening-rounds/${round}/reviews`, {
     method: "PATCH",
     body: JSON.stringify(review),
   });
+  if (isBackendRoleId(roleId)) return getV1ScreeningBoard(roleId, round);
+  return response as AuditionBoardResponse;
 }
 
 export function closeRound(body: CloseRoundRequest) {
