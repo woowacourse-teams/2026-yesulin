@@ -1,11 +1,13 @@
 "use client";
 
 import { createContext, use, useEffect, useState } from "react";
+import { AuditionRequestError } from "@/features/auditions/api-client";
 import { applicationFormSteps, applicationStepProgress } from "@/features/applications/application-form";
 import { applicationStepIssue } from "@/features/applications/application-form-state";
 import type { ApplicationStepIssue, SubmissionState } from "@/features/applications/application-form-state";
 import { createApplicationSubmission } from "@/features/applications/submission-api";
 import { deletePublicApplicationDraft } from "@/features/applications/public-application-draft-store";
+import { buildApplicationAuthReturnTo } from "@/features/auth/return-to";
 import type { EditableSection, PublicApplicationActions, PublicApplicationContextValue, PublicApplicationProviderProps, PublicApplicationState, SubmissionReceipt } from "./public-application-context-types";
 import { usePublicApplicationDraft } from "./use-public-application-draft";
 
@@ -174,6 +176,11 @@ export function PublicApplicationProvider({
       });
       void deletePublicApplicationDraft(postingId).catch(() => undefined);
     } catch (cause) {
+      if (cause instanceof AuditionRequestError && cause.status === 401) {
+        const returnTo = encodeURIComponent(buildApplicationAuthReturnTo(postingId, roleIds));
+        window.location.assign(`/login?returnTo=${returnTo}`);
+        return;
+      }
       setSubmissionState("ERROR");
       setSubmissionError(cause instanceof Error ? cause.message : "지원서를 접수하지 못했어요. 잠시 후 다시 시도해 주세요.");
     }
