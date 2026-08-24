@@ -10,6 +10,9 @@ install -d -o root -g root -m 0755 /var/www/letsencrypt/.well-known/acme-challen
 install -o root -g root -m 0644 \
   "$DEPLOYMENT_DIR/nginx/yesulin-log-format.conf" \
   /etc/nginx/conf.d/yesulin-log-format.conf
+install -o root -g root -m 0644 \
+  "$DEPLOYMENT_DIR/nginx/yesulin-spring-proxy.conf" \
+  /etc/nginx/snippets/yesulin-spring-proxy.conf
 
 if [ -r "$certificate_directory/fullchain.pem" ] && \
    [ -r "$certificate_directory/privkey.pem" ]; then
