@@ -104,9 +104,12 @@ status: active
 - `ETC`는 최대 255자의 사유가 필요하다. 최대 2,000자의 내부 메모는 상태와 별도로 보존하므로
   보류 후 합격·불합격으로 바꿔도 사라지지 않는다.
 - 저장할 때 공고 행을 잠그고 공고 소유권, 배역과 차수가 같은 공고에 속하는지 검증한다.
-- 제출 지원서 Aggregate가 아직 없으므로 현재는 UUID `submissionId`를 외부 참조로 보관한다. 지원서 구현 시
-  선택 배역과 차수별 심사 대상 여부를 검증하고 FK를 추가한다. 존재를 검증할 수 없는 심사 결과 단독 조회는
-  제공하지 않고, 향후 지원서 상세 조회가 미존재·접근 불가 지원서를 `404`로 처리한다.
+- 실제 제출 지원서 스냅샷의 UUID `submissionId`를 외부 참조로 사용한다. 저장과 조회 모두 선택 배역과 차수별
+  심사 대상 여부를 검증하며, 미존재·접근 불가·대상 외 지원서는 `404`로 숨긴다.
+- `AuditionScreening`은 특정 공고 배역의 지원서·전형·심사 결과를 조합해 차수 진입 조건, 기록이 없는
+  결과의 `PENDING` 해석, 상태별 집계와 심사 가능 여부를 판단한다.
+- `ScreeningReviews`는 기존 결과 조회, 신규 결과 생성과 변경을 담당한다. Application Service는 Repository와
+  Storage port만 조합하며 Service 간 호출이나 Query→Command 의존을 만들지 않는다.
 
 공고 모델은 위에서 확정한 정보만 가진다. 장소·공고 포스터·지원 안내처럼 목록에 없는 값은 추가하지
 않으며, 공연에 이미 속한 정보를 공고에 임의로 중복 저장하지 않는다.
@@ -127,6 +130,8 @@ PUT  /api/v1/auditions/{auditionId}/application-form
 PUT   /api/v1/auditions/{auditionId}/publication
 GET   /api/v1/public/auditions/{auditionId}
 PATCH /api/v1/audition-roles/{roleId}/screening-rounds/{round}/reviews
+GET   /api/v1/audition-roles/{roleId}/screening-rounds/{round}/submissions
+GET   /api/v1/audition-roles/{roleId}/screening-rounds/{round}/submissions/{submissionId}
 ```
 
 생성 API는 UUID `id`, `performanceId`, `title`, `performanceStartDate`, 선택적인 `performanceEndDate`를 받아
@@ -137,10 +142,11 @@ PATCH /api/v1/audition-roles/{roleId}/screening-rounds/{round}/reviews
 전체를 저장하고 기존 공연 배역을 다시 선택하면 공고 배역 ID를 유지한다. 일정 GET·PUT은 모집 기간과
 전형 1~5개를 조회하고 전체 저장한다. 지원 폼 GET·PUT은 표준 항목과 사진·영상·질문 요구 전체를
 조회하고 저장한다. 게시 `PUT`은 모든 섹션과 모집 종료 시각을 검증한 뒤 `PUBLISHED`로 전이한다.
-심사 `PATCH`는 지원서 ID 목록과 상태·기타 사유·내부 메모를 받아 같은 차수의 결과를 일괄 저장한다.
-공개 조회는 게시된 공고의 공연·배역·일정·지원 폼을 한 번에 반환하며 DRAFT는 `404`로 숨긴다. 지원서
-목록·상세 읽기 모델, 미존재·배역 미지원 대상의
-`404` 검증과 유효하지만 심사 기록이 없는 지원서의 `PENDING` 표현은 향후 구현한다.
+심사 `PATCH`는 지원서 ID 목록과 상태·기타 사유·내부 메모를 받아 같은 차수의 결과를 일괄 저장한다. 심사
+목록·상세는 실제 제출 스냅샷을 조립하고 기록이 없는 결과를 `PENDING`으로 반환하며, 이전 차수를 모두 합격한
+지원서만 다음 차수에 포함한다. 제출 사진은 심사 권한 확인 뒤 단기 다운로드 URL로 제공한다.
+공개 조회는 게시된 공고의 공연·배역·일정·지원 폼을 한 번에 반환하며 DRAFT는 `404`로 숨긴다. 심사 cursor
+페이지네이션, 차수 마감과 낙관적 버전 충돌 처리는 향후 구현한다.
 
 생성·수정 command가 날짜 입력을 `PerformancePeriod`로 변환하고 service는 완성된 VO를 도메인에 전달한다.
 공연이 없거나 세션 소유자의 공연이 아니면 존재 여부를 구분하지 않고 `PERFORMANCE_NOT_FOUND`로 응답한다.

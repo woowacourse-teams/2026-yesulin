@@ -16,7 +16,8 @@ class S3StorageConfigurationTest {
                     "yesulin.storage.s3.key-prefix=yesulin",
                     "yesulin.storage.s3.public-base-url=https://cdn.example.com",
                     "yesulin.storage.s3.region=ap-northeast-2",
-                    "yesulin.storage.s3.upload-expiration=PT10M"
+                    "yesulin.storage.s3.upload-expiration=PT10M",
+                    "yesulin.storage.s3.download-expiration=PT10M"
             );
 
     @Test

@@ -32,6 +32,11 @@ public class FakeObjectStorage implements ObjectStorage {
         return "https://cdn.test/assets/" + objectKey;
     }
 
+    @Override
+    public String createDownloadUrl(String objectKey) {
+        return "https://storage.test/downloads/" + objectKey;
+    }
+
     public void upload(String uploadUrl, String contentType, long size) {
         String objectKey = uploadTargets.get(uploadUrl);
         if (objectKey == null) {

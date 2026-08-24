@@ -8,5 +8,7 @@ public interface ObjectStorage {
 
     Optional<StoredObjectMetadata> inspect(String objectKey);
 
+    String createDownloadUrl(String objectKey);
+
     String toPublicUrl(String objectKey);
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { GENDER_LABELS, mismatchText } from "@/features/auditions/labels";
+import { ageText, genderText, mismatchText } from "@/features/auditions/labels";
 import type { Applicant } from "@/features/auditions/types";
 import { ApplicantPhotoImage } from "./applicant-photo";
 import { useBoard } from "./board-context";
@@ -49,7 +49,7 @@ export function ApplicantCards({ rows }: { rows: readonly Applicant[] }) {
                   <span className="min-w-0">
                     <strong className="block truncate text-lg font-bold tracking-[-0.015em] group-hover:text-brand">{applicant.name}</strong>
                     <span className="num mt-0.5 block text-sm leading-5 text-muted">
-                      {GENDER_LABELS[applicant.gender]} · 만 {applicant.age}세 · {measurementText(applicant.height, "cm", "키 미수집")} · {measurementText(applicant.weight, "kg", "몸무게 미수집")}
+                      {genderText(applicant.gender)} · {ageText(applicant.age)} · {measurementText(applicant.height, "cm", "키 미수집")} · {measurementText(applicant.weight, "kg", "몸무게 미수집")}
                     </span>
                   </span>
                   {applicant.mismatchReasons.length > 0 ? (

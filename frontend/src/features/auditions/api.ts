@@ -23,6 +23,11 @@ import type {
   AuditionTree,
 } from "./types";
 import { performanceId } from "./types";
+import {
+  getV1ScreeningBoard,
+  getV1ScreeningSubmission,
+  isBackendRoleId,
+} from "./screening-v1-api";
 import type { CreatePerformanceRequest, CreatePostingRequest } from "./creation-types";
 import type {
   PostingManagementDetail,
@@ -39,8 +44,19 @@ export function getAuditionTree() {
 }
 
 export function getPerformances() {
-  return request<PerformanceResourceList>("/v1/performances").then((response) => ({
-    performances: response.performances.map(toPerformanceSummary),
+  return request<PerformanceResourceList>("/v1/performances").then(async (response) => ({
+    performances: await Promise.all(response.performances.map(async (resource) => {
+      const postings = await getV1Postings(String(resource.id));
+      const applicantCount = postings.postings.reduce((sum, posting) => sum + posting.applicantCount, 0);
+      return {
+        ...toPerformanceSummary(resource),
+        postingCount: postings.postings.length,
+        openPostingCount: postings.postings.filter((posting) => posting.phase === "OPEN").length,
+        applicantCount,
+        pendingReviewCount: postings.postings.reduce((sum, posting) => sum + posting.pendingReviewCount, 0),
+        postings: postings.postings,
+      };
+    })),
   }));
 }
 
@@ -56,7 +72,13 @@ export function getRoles(posting: PostingId) {
 
 /** round를 비우면 서버가 아직 마감되지 않은 가장 이른 차수를 골라 준다. */
 export function getAuditionBoard(role: RoleId, round: RoundNumber | null) {
+  if (isBackendRoleId(role)) return getV1ScreeningBoard(role, round ?? 1);
   return request<AuditionBoardResponse>(round === null ? `/screenings/roles/${role}` : `/screenings/roles/${role}?round=${round}`);
+}
+
+export function getAuditionSubmission(role: RoleId, round: RoundNumber, submission: import("./types").SubmissionId) {
+  if (isBackendRoleId(role)) return getV1ScreeningSubmission(role, round, submission);
+  return getAuditionBoard(role, round);
 }
 
 export function saveReview(body: SaveReviewRequest) {

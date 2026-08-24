@@ -134,8 +134,8 @@ export type CareerEntry = {
 export type Applicant = {
   readonly id: SubmissionId;
   readonly name: string;
-  readonly gender: Gender;
-  readonly age: number;
+  readonly gender: Gender | null;
+  readonly age: number | null;
   /** 공고에서 수집하지 않은 신체 정보는 null이다. */
   readonly height: number | null;
   readonly weight: number | null;
@@ -144,11 +144,17 @@ export type Applicant = {
   readonly birth: string;
   readonly phone: string;
   readonly email: string;
+  readonly address: string;
   readonly school: string;
+  readonly links: readonly string[];
+  readonly nationality: string;
+  readonly specialty: string;
+  readonly hobbies: string;
+  readonly militaryServiceStatus: string;
   readonly submittedAt: string;
   readonly career: readonly CareerEntry[];
   readonly coverLetter: string;
-  readonly motivation: string;
+  readonly questions: readonly ApplicantQuestion[];
   readonly photos: readonly ApplicantPhoto[];
   /** 공고의 영상 요구 순서와 설명을 보존한 제출 영상 스냅샷. */
   readonly videos: readonly ApplicantVideo[];
@@ -157,6 +163,11 @@ export type Applicant = {
   /** 차수별 심사 기록. 아직 대상이 아니었던 차수는 null. */
   readonly reviewHistory: Readonly<Record<RoundNumber, Review | null>>;
   readonly mismatchReasons: readonly MismatchReason[];
+};
+
+export type ApplicantQuestion = {
+  readonly question: string;
+  readonly answer: string;
 };
 
 export type ApplicantVideo = {

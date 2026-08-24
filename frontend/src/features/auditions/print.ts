@@ -1,5 +1,5 @@
 import type { Applicant, PerformanceRef, RoundNumber } from "./types";
-import { GENDER_LABELS, ROUND_LABELS, statusText } from "./labels";
+import { ageText, genderText, ROUND_LABELS, statusText } from "./labels";
 import { ROUND_NUMBERS } from "./types";
 
 const escapeHtml = (value: string) =>
@@ -79,7 +79,7 @@ function printableCard(applicant: Applicant, performance: PerformanceRef) {
         ${latest ? `<span class="pp-badge s-${latest.review.status}">${escapeHtml(statusText(latest.review.status, latest.review.memo))}</span>` : ""}</div>
       <div class="pp-role">${escapeHtml(applicant.roleName)} 지원</div>
       <dl class="pp-facts">
-        <div><dt>성별·나이</dt><dd>${GENDER_LABELS[applicant.gender]} · 만 ${applicant.age}세</dd></div>
+        <div><dt>성별·나이</dt><dd>${genderText(applicant.gender)} · ${ageText(applicant.age)}</dd></div>
         <div><dt>신장/체중</dt><dd>${printMeasurement(applicant.height, "cm")} / ${printMeasurement(applicant.weight, "kg")}</dd></div>
         <div><dt>생년월</dt><dd>${escapeHtml(applicant.birth)}</dd></div>
         <div><dt>학교</dt><dd>${escapeHtml(applicant.school)}</dd></div>
@@ -91,7 +91,7 @@ function printableCard(applicant: Applicant, performance: PerformanceRef) {
     </div>
   </header>
   <section class="pp-sec"><h3>자기소개서</h3><p class="pp-essay">${escapeHtml(applicant.coverLetter)}</p></section>
-  <section class="pp-sec"><h3>지원 동기</h3><p class="pp-essay">${escapeHtml(applicant.motivation)}</p></section>
+  ${applicant.questions.map((question) => `<section class="pp-sec"><h3>${escapeHtml(question.question)}</h3><p class="pp-essay">${escapeHtml(question.answer)}</p></section>`).join("")}
   <section class="pp-sec"><h3>경력 ${applicant.career.length}건</h3>
     ${
       applicant.career.length > 0

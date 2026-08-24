@@ -113,3 +113,83 @@ export type PublicAuditionResource = {
   readonly stages: AuditionScheduleResource["stages"];
   readonly applicationForm: AuditionFormResource;
 };
+
+export type ScreeningReviewResource = {
+  readonly status: "PENDING" | "PASS" | "FAIL" | "ABSENT" | "ETC";
+  readonly memo: string;
+  readonly note: string;
+};
+
+export type ScreeningSubmissionResource = {
+  readonly id: string;
+  readonly name: string | null;
+  readonly gender: "MALE" | "FEMALE" | null;
+  readonly age: number | null;
+  readonly height: number | null;
+  readonly weight: number | null;
+  readonly roleId: number;
+  readonly roleName: string;
+  readonly birth: string | null;
+  readonly phone: string | null;
+  readonly email: string | null;
+  readonly address: string | null;
+  readonly school: string | null;
+  readonly links: readonly string[];
+  readonly nationality: string | null;
+  readonly specialty: string | null;
+  readonly hobbies: string | null;
+  readonly militaryServiceStatus: string | null;
+  readonly submittedAt: string;
+  readonly career: readonly { readonly year: number; readonly title: string; readonly part: string }[];
+  readonly coverLetter: string | null;
+  readonly questions: readonly { readonly question: string; readonly answer: string }[];
+  readonly photos: readonly { readonly label: string; readonly url: string }[];
+  readonly videos: readonly { readonly label: string; readonly url: string }[];
+  readonly review: ScreeningReviewResource;
+  readonly reviewHistory: Readonly<Record<string, ScreeningReviewResource | null>>;
+  readonly mismatchReasons: readonly ("GENDER" | "AGE")[];
+};
+
+export type ScreeningBoardResource = {
+  readonly performance: { readonly id: number; readonly posterUrl: string; readonly title: string };
+  readonly posting: { readonly id: string; readonly title: string; readonly openCall: boolean };
+  readonly role: {
+    readonly id: number;
+    readonly postingId: string;
+    readonly name: string;
+    readonly description: string;
+    readonly quota: number;
+    readonly gender: "MALE" | "FEMALE" | "ANY";
+    readonly ageMin: number;
+    readonly ageMax: number;
+    readonly applicantCount: number;
+    readonly activeRound: number;
+    readonly allRoundsClosed: boolean;
+    readonly progress: { readonly done: number; readonly total: number; readonly percent: number };
+    readonly counts: ScreeningCountsResource;
+  };
+  readonly round: number;
+  readonly rounds: readonly {
+    readonly round: number;
+    readonly name: string;
+    readonly open: boolean;
+    readonly closed: boolean;
+    readonly counts: ScreeningCountsResource;
+    readonly progress: { readonly done: number; readonly total: number; readonly percent: number };
+  }[];
+  readonly submissions: readonly ScreeningSubmissionResource[];
+};
+
+type ScreeningCountsResource = {
+  readonly all: number;
+  readonly pending: number;
+  readonly done: number;
+  readonly pass: number;
+  readonly fail: number;
+  readonly absent: number;
+  readonly etc: number;
+};
+
+export type ScreeningSubmissionDetailResource = Omit<ScreeningBoardResource, "submissions"> & {
+  readonly submission: ScreeningSubmissionResource;
+};

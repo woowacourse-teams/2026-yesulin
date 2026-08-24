@@ -36,7 +36,18 @@ export function DetailProfile({ applicant }: { applicant: Applicant }) {
         <Essay text={applicant.coverLetter} />
       </Section>
 
-      {applicant.motivation.trim() ? <Section title="추가 질문"><div className="rounded-lg border border-border bg-surface px-4 py-3"><p className="text-xs font-semibold leading-5 text-muted">이 작품에 지원한 동기를 적어 주세요.</p><p className="mt-2 whitespace-pre-wrap text-dense leading-[1.75] text-muted-strong">{applicant.motivation}</p></div></Section> : null}
+      {applicant.questions.length > 0 ? (
+        <Section title="추가 질문">
+          <div className="space-y-3">
+            {applicant.questions.map((question, index) => (
+              <div key={`${question.question}-${index}`} className="rounded-lg border border-border bg-surface px-4 py-3">
+                <p className="text-xs font-semibold leading-5 text-muted">{question.question}</p>
+                <p className="mt-2 whitespace-pre-wrap text-dense leading-[1.75] text-muted-strong">{question.answer}</p>
+              </div>
+            ))}
+          </div>
+        </Section>
+      ) : null}
 
       <Section title={`경력 ${applicant.career.length}건`}>
         <ul className="text-dense">

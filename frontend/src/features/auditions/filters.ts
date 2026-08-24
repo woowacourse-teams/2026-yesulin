@@ -79,7 +79,7 @@ export function applyFilters(
       ];
       if (!searchable.some((value) => value.toLocaleLowerCase("ko-KR").includes(query))) return false;
     }
-    if (filters.genders.size > 0 && !filters.genders.has(applicant.gender)) return false;
+    if (filters.genders.size > 0 && (applicant.gender === null || !filters.genders.has(applicant.gender))) return false;
     if (!matchesNumeric(applicant.age, filters.numeric.age)) return false;
     if (!matchesNumeric(applicant.height, filters.numeric.height)) return false;
     if (!matchesNumeric(applicant.weight, filters.numeric.weight)) return false;

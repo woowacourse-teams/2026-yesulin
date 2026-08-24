@@ -386,27 +386,27 @@ PUT    /api/v1/auditions/{auditionId}/publication         # 완성된 공고 게
 
 ```http
 GET   /api/v1/audition-roles/{roleId}/screening-rounds/{round}/submissions
-      ?cursor={cursor}&size={size}                       # 심사 목록
+                                                           # 심사 목록
 GET   /api/v1/audition-roles/{roleId}/screening-rounds/{round}/submissions/{submissionId} # 민감 상세
 PATCH /api/v1/audition-roles/{roleId}/screening-rounds/{round}/reviews
                                                            # 결과 일괄 수정
-PATCH /api/v1/audition-roles/{roleId}/screening-rounds/{round} # status=CLOSED로 마감
+PATCH /api/v1/audition-roles/{roleId}/screening-rounds/{round} # 목표: status=CLOSED로 마감
 ```
 
 - `screening-rounds`는 단순 `rounds`보다 차수의 용도를 명확히 알려 주므로 유지한다.
 - `roles`는 회원 역할과 혼동되므로 공고에서 선택한 배역 리소스를 `audition-roles`로 명시한다.
 - 심사 상세는 `submissionId`만으로 조회하지 않고 `(roleId, round, submissionId)`를 경로에 모두 둔다. 복수 배역 지원서에서도 현재 심사 기록의 소유 범위가 모호해지지 않는다.
 - 외부 `submissionId`는 순차 PK가 아니라 UUID를 사용한다. 내부 PK와 외부 식별자는 지원서 계층에서 변환한다.
-- 심사 목록은 cursor 방식이며 버전, 차수 상태, 집계와 페이지를 포함한다.
-- `(roleId, round)`를 하나의 심사 작업 단위로 보고 목록·집계·차수 상태·버전을 같은 읽기 모델에서 반환한다. 결과 저장과 차수 마감도 갱신된 작업 단위를 반환해 프런트가 여러 응답을 조합하지 않게 한다.
+- `(roleId, round)`를 하나의 심사 작업 단위로 보고 목록·집계·차수 상태를 같은 읽기 모델에서 반환한다.
 - 복수 배역 지원서는 선택한 각 배역의 심사 목록에 표시하며 심사 결과는 `(지원서, 배역, 차수)`별로 구분한다.
-- 결과 수정과 차수 마감은 `expectedVersion`을 받고 충돌 시 `409 VERSION_CONFLICT`를 반환한다.
-- 기획사/제작사용 상세는 권한을 확인하고 배우의 민감 정보와 해당 차수 심사 기록을 반환한다. 제출 영상은 공고의 영상 요구 순서를 유지한 `videos: [{ label, url }]` 배열이며, 수집하지 않았거나 제출된 영상이 없으면 빈 배열이다.
+- 기획사/제작사용 상세는 공고 소유권과 배역·차수 대상 여부를 확인하고 배우의 민감 정보와 해당 차수 심사 기록을 반환한다. 제출 사진은 지원서에 확정된 파일 참조로 단기 다운로드 URL을 만들고, 제출 영상은 공고의 영상 요구 순서를 유지한 `videos: [{ label, url }]` 배열로 반환한다.
 - 현재 백엔드는 `(submissionId, roleId, round)`별 `PENDING`, `PASS`, `FAIL`, `ABSENT`, `ETC` 상태와
   기타 사유·내부 메모의 일괄 저장을 구현했다.
-- 제출 지원서가 아직 없어 목록·민감 상세 읽기 모델, 차수 마감과 `expectedVersion` 계약은 구현 대기다.
-  지원서 상세 조회는 미존재·접근 불가·해당 배역 미지원 대상을 모두 `404`로 처리하고, 유효하지만 심사 기록이
-  없는 지원서만 `PENDING`으로 표현한다. 현재 결과 저장은 같은 공고 행의 쓰기 잠금으로 직렬화한다.
+- 실제 제출 지원서 스냅샷을 기준으로 목록·민감 상세 읽기 모델을 제공한다. 복수 배역 지원서는 선택한 각 배역에
+  노출하고, 이전 차수를 모두 합격한 지원서만 다음 차수에 포함한다. 미존재·접근 불가·해당 배역 또는 차수의
+  심사 대상이 아닌 지원서는 모두 `404`로 숨기며 심사 기록이 없는 대상은 `PENDING`으로 표현한다.
+- cursor 페이지네이션, 차수 마감, `expectedVersion`과 `409 VERSION_CONFLICT`는 후속 범위다. 현재 결과 저장은
+  같은 공고 행의 쓰기 잠금으로 직렬화하고 저장 성공 후 프런트가 심사 보드를 다시 조회한다.
 
 ## 현재 프런트 이관
 
@@ -430,8 +430,9 @@ PATCH /api/v1/audition-roles/{roleId}/screening-rounds/{round} # status=CLOSED�
 로그인과 HttpOnly Session 복원·로그아웃도 실제 Backend에 연결됐다. 배우 프로필 기본·추가 정보와 별도
 사진·영상 보관함은 `NEXT_PUBLIC_APPLICANT_PROFILE_API=enabled`에서 실제 Backend에 연결된다. 지원서
 제출은 새 사진을 배우 사진 API로 업로드·완료한 뒤 백엔드 폼의 질문·사진·영상 requirement ID와 연결하고,
-시드 공고는 기존 MSW 제출 흐름을 유지한다. 나머지 항목은 아직 왼쪽 `/api/**` 계약을 사용한다. 현재 목
-심사 응답은 단일 `videoUrl`이 아니라 요구 설명을 포함한 `videos[]`를 반환한다. 기본 MSW 시나리오의
+시드 공고는 기존 MSW 제출 흐름을 유지한다. 숫자형 실제 배역 ID에서는 심사 목록·UUID 상세·결과 저장 API를
+사용하고 seed 배역은 기존 MSW 심사 흐름을 유지한다. 나머지 항목은 아직 왼쪽 `/api/**` 계약을 사용한다.
+목과 실제 심사 응답 모두 단일 `videoUrl`이 아니라 요구 설명을 포함한 `videos[]`를 반환한다. 기본 MSW 시나리오의
 `PATCH /api/me/profile`은 정보 답변과 사진·영상 보관함 배열을 함께 받지만, 실제 연동에서는 각
 `/api/v1/**` 리소스로 분리하고 프런트 어댑터가 기존 화면 모델로 조합한다. 사진 순서와 대표 사진 변경도
 사진보관함 리소스의 개별 API로 저장한다.

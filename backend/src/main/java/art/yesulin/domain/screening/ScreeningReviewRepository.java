@@ -19,4 +19,9 @@ public interface ScreeningReviewRepository extends JpaRepository<ScreeningReview
             long screeningStageId,
             Collection<UUID> submissionIds
     );
+
+    List<ScreeningReview> findAllByAuditionRoleIdAndSubmissionIdIn(
+            long auditionRoleId,
+            Collection<UUID> submissionIds
+    );
 }

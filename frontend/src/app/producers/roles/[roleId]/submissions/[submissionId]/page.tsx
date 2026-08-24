@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { ApplicantReview } from "@/components/auditions/applicant-review";
 import {
   submissionId,
+  isSubmissionId,
   roleId,
   ROUND_NUMBERS,
   type RoundNumber,
@@ -24,6 +26,7 @@ export default async function ApplicantReviewPage({
   const round = ROUND_NUMBERS.includes(rawRound as RoundNumber)
     ? (rawRound as RoundNumber)
     : 1;
+  if (!isSubmissionId(route.submissionId)) notFound();
 
   return (
     <ApplicantReview
