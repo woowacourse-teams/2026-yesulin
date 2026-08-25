@@ -5,6 +5,7 @@ import { useState } from "react";
 import { CreateError } from "./create-form";
 
 const MAX_POSTER_SIZE_BYTES = 30 * 1024 * 1024;
+const POSTER_CONTENT_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 export function PosterUploadField({
   label,
@@ -26,8 +27,8 @@ export function PosterUploadField({
 
   const selectPoster = (file?: File) => {
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      setError("이미지 파일만 포스터로 등록할 수 있습니다.");
+    if (!POSTER_CONTENT_TYPES.has(file.type)) {
+      setError("JPG, PNG, WEBP 이미지만 포스터로 등록할 수 있습니다.");
       return;
     }
     if (file.size > MAX_POSTER_SIZE_BYTES) {

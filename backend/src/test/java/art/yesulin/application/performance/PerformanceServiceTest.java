@@ -14,7 +14,6 @@ import art.yesulin.domain.file.FileErrorCode;
 import art.yesulin.domain.file.FileReference;
 import art.yesulin.domain.file.FileReferenceRepository;
 import art.yesulin.domain.performance.Performance;
-import art.yesulin.domain.performance.PerformanceErrorCode;
 import art.yesulin.domain.performance.PerformanceRepository;
 import art.yesulin.domain.performance.event.PerformancePosterChangedEvent;
 import art.yesulin.support.FakeObjectStorage;
@@ -160,6 +159,31 @@ class PerformanceServiceTest {
     }
 
     @Test
+    void updatesEditableInformationWithoutChangingRoles() {
+        PerformanceResult created = createPerformance(uploadReadyPoster());
+        long changedPosterFileId = uploadReadyPoster();
+        UpdatePerformanceCommand command = new UpdatePerformanceCommand(
+                changedPosterFileId,
+                "햄릿 리뉴얼",
+                new PerformanceVenueCommand(
+                        "세종문화회관 대극장",
+                        "서울특별시 종로구 세종대로 175",
+                        "대극장",
+                        "03172",
+                        null,
+                        null
+                )
+        );
+
+        PerformanceResult updated = performanceService.update(OWNER_ID, created.id(), command);
+
+        assertEquals(changedPosterFileId, updated.posterFileId());
+        assertEquals("햄릿 리뉴얼", updated.title());
+        assertEquals("세종문화회관 대극장", updated.venue());
+        assertEquals(created.roles(), updated.roles());
+    }
+
+    @Test
     void rollsBackEveryChangeWhenChangedPosterIsNotReady() {
         PerformanceResult created = createPerformance(uploadReadyPoster());
         FileUploadResult pending = fileService.requestUpload(
@@ -175,53 +199,6 @@ class PerformanceServiceTest {
         assertEquals(FileErrorCode.NOT_READY, exception.getErrorCode());
         Performance saved = performanceRepository.findById(created.id()).orElseThrow();
         assertEquals(created.posterFileId(), saved.getPosterFileId());
-    }
-
-    @Test
-    void addsUpdatesAndRemovesRoleIndividually() {
-        PerformanceResult created = createPerformance(uploadReadyPoster());
-        long removedRoleId = created.roles().get(1).id();
-
-        PerformanceRoleResult added = performanceService.addRole(
-                OWNER_ID,
-                created.id(),
-                new CreatePerformanceRoleCommand("클로디어스", "새로 추가한 배역")
-        );
-        PerformanceRoleResult updated = performanceService.updateRole(
-                OWNER_ID,
-                created.id(),
-                created.roles().getFirst().id(),
-                new UpdatePerformanceRoleCommand("햄릿 왕", "수정된 기존 배역")
-        );
-        performanceService.removeRole(OWNER_ID, created.id(), removedRoleId);
-        final PerformanceResult found = performanceService.updateBasicInformation(
-                OWNER_ID,
-                created.id(),
-                new UpdatePerformanceBasicInformationCommand(created.title(), created.roadAddress())
-        );
-
-        assertTrue(added.id() > 0);
-        assertEquals(created.roles().getFirst().id(), updated.id());
-        assertEquals("햄릿 왕", updated.name());
-        assertTrue(found.roles().stream().noneMatch(role -> role.id() == removedRoleId));
-        assertTrue(found.roles().stream().anyMatch(role -> role.id() == added.id()));
-    }
-
-    @Test
-    void rejectsRoleIdThatDoesNotBelongToPerformance() {
-        PerformanceResult created = createPerformance(uploadReadyPoster());
-
-        BusinessException exception = assertThrows(
-                BusinessException.class,
-                () -> performanceService.updateRole(
-                        OWNER_ID,
-                        created.id(),
-                        Long.MAX_VALUE,
-                        new UpdatePerformanceRoleCommand("유령 배역", "존재하지 않는 배역")
-                )
-        );
-
-        assertEquals(PerformanceErrorCode.ROLE_NOT_FOUND, exception.getErrorCode());
     }
 
     private PerformanceResult createPerformance(long posterFileId) {

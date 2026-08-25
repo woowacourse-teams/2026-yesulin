@@ -10,7 +10,9 @@ public record PerformanceResponse(
         long posterFileId,
         String posterUrl,
         String title,
+        String venue,
         String roadAddress,
+        PerformanceVenueAddressResponse venueAddress,
         Instant createdAt,
         List<PerformanceRoleResult> roles
 ) {
@@ -21,7 +23,9 @@ public record PerformanceResponse(
                 result.posterFileId(),
                 posterUrl,
                 result.title(),
+                result.venue(),
                 result.roadAddress(),
+                PerformanceVenueAddressResponse.from(result),
                 result.createdAt(),
                 result.roles()
         );

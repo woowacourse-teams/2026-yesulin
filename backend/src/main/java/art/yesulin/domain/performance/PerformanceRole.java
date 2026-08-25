@@ -48,19 +48,11 @@ public class PerformanceRole {
     PerformanceRole(Performance performance, String name, String description, int roleOrder) {
         this.performance = requireNonNull(performance, "배역이 속할 공연은 필수입니다.");
         this.roleOrder = roleOrder;
-        update(name, description);
-    }
-
-    void update(String name, String description) {
         this.name = requireText(name, "배역 이름은 필수입니다.");
         this.description = requireSingleLine(description);
     }
 
-    void changeOrder(int roleOrder) {
-        this.roleOrder = roleOrder;
-    }
-
-    private String requireSingleLine(String value) {
+    private static String requireSingleLine(String value) {
         String normalized = requireText(value, "배역 한 줄 설명은 필수입니다.");
         if (normalized.contains("\n") || normalized.contains("\r")) {
             throw new BusinessException(INVALID_ROLE_DESCRIPTION, "배역 설명은 한 줄로 작성해야 합니다.");

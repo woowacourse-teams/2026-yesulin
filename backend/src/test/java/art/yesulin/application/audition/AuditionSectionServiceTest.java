@@ -13,7 +13,6 @@ import art.yesulin.application.performance.CreatePerformanceCommand;
 import art.yesulin.application.performance.CreatePerformanceRoleCommand;
 import art.yesulin.application.performance.PerformanceResult;
 import art.yesulin.application.performance.PerformanceService;
-import art.yesulin.application.performance.UpdatePerformanceRoleCommand;
 import art.yesulin.domain.audition.AuditionRepository;
 import art.yesulin.domain.audition.role.AuditionRoleSectionRepository;
 import art.yesulin.domain.audition.role.RoleGender;
@@ -115,15 +114,9 @@ class AuditionSectionServiceTest {
         assertEquals(3, changed.roles().getFirst().recruitmentCount());
         changed.roles().forEach(role -> assertEquals(initialIds.get(role.performanceRoleId()), role.id()));
 
-        performanceService.updateRole(
-                OWNER_ID,
-                performance.id(),
-                firstRoleId,
-                new UpdatePerformanceRoleCommand("햄릿 왕자", "수정된 배역 설명")
-        );
         AuditionRolesResult reflected = roleService.find(OWNER_ID, audition.id());
-        assertEquals("햄릿 왕자", reflected.roles().get(1).name());
-        assertEquals("수정된 배역 설명", reflected.roles().get(1).description());
+        assertEquals("햄릿", reflected.roles().get(1).name());
+        assertEquals("왕자", reflected.roles().get(1).description());
     }
 
     private PerformanceResult createPerformance() {

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { VenueAddress } from "@/features/auditions/creation-types";
 import { FieldInput, SecondaryButton } from "@/components/ui/controls";
 import { CreateField } from "./create-form";
+import { PERFORMANCE_ADDRESS_MAX_LENGTH, PERFORMANCE_VENUE_MAX_LENGTH } from "@/features/auditions/performance-validation";
 
 const POSTCODE_SCRIPT = "https://t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js";
 
@@ -82,13 +83,13 @@ export function PerformanceVenueField({ venue, address, onVenueChange, onAddress
 
   return (
     <div className="space-y-3">
-      {!hideVenueName ? <CreateField label={venueLabel}><FieldInput required={!optional} value={venue} onChange={(event) => onVenueChange(event.target.value)} placeholder={optional ? "예: 대학로 연습실 A" : "예: 대학로예술극장 대극장"} /></CreateField> : null}
+      {!hideVenueName ? <CreateField label={venueLabel}><FieldInput required={!optional} maxLength={PERFORMANCE_VENUE_MAX_LENGTH} value={venue} onChange={(event) => onVenueChange(event.target.value)} placeholder={optional ? "예: 대학로 연습실 A" : "예: 대학로예술극장 대극장"} /></CreateField> : null}
       <CreateField label="도로명주소">
         <div className="flex gap-2"><FieldInput readOnly required={!optional} value={address.roadAddress} placeholder="주소 검색을 이용해 주세요." /><SecondaryButton onClick={searchAddress} className="shrink-0">주소 검색</SecondaryButton></div>
       </CreateField>
       <div className="grid gap-3 md:grid-cols-[120px_1fr]">
         <CreateField label="우편번호"><FieldInput readOnly value={address.zonecode} /></CreateField>
-        <CreateField label="상세 주소"><FieldInput value={address.detailAddress} onChange={(event) => onAddressChange({ ...address, detailAddress: event.target.value })} placeholder="층, 호수 등" /></CreateField>
+        <CreateField label="상세 주소"><FieldInput maxLength={PERFORMANCE_ADDRESS_MAX_LENGTH} value={address.detailAddress} onChange={(event) => onAddressChange({ ...address, detailAddress: event.target.value })} placeholder="층, 호수 등" /></CreateField>
       </div>
       {address.roadAddress ? <div ref={mapRef} aria-label={mapLabel} className="h-48 overflow-hidden rounded-card border border-border bg-surface">{!mapKey ? <div className="flex h-full items-center justify-center px-6 text-center text-sm text-muted">카카오 지도 키를 설정하면 선택한 장소가 지도에 표시됩니다.</div> : null}</div> : null}
       {message ? <p role="status" className="text-sm text-muted">{message}</p> : null}

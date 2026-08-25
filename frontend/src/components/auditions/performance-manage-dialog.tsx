@@ -1,16 +1,18 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { deletePerformance, getPostings, updatePerformance } from "@/features/auditions/api";
+import { deletePerformance, getPerformanceManagement, updatePerformance } from "@/features/auditions/api";
 import { notifyAuditionTreeChanged } from "@/features/auditions/events";
 import type { PerformanceSummary } from "@/features/auditions/types";
 import { errorMessage, useAuditionQuery } from "@/features/auditions/use-audition-query";
 import { CreateError, CreateField, CreateSection } from "./create-form";
 import { DialogFooter, DialogHeader, ModalShell } from "./modal-shell";
-import { PerformanceRoleEditor, type RoleDraft } from "./performance-role-editor";
+import { PerformanceRoleReadOnlyList } from "./performance-role-editor";
 import { DestructiveButton, FieldInput, PrimaryButton, SecondaryButton } from "@/components/ui/controls";
 import { PosterUploadField } from "./poster-upload-field";
 import { PerformanceVenueField } from "./performance-venue-field";
+import { validatePerformanceInput } from "@/features/auditions/performance-validation";
+import type { PerformanceManagementDetail } from "@/features/auditions/management-types";
 
 const TITLE_ID = "performance-manage-title";
 
@@ -25,30 +27,33 @@ export function PerformanceManageDialog({ performance, mode, onClose, onChanged 
 }
 
 function EditPerformanceLoader({ performance, onClose, onChanged }: Omit<Parameters<typeof PerformanceManageDialog>[0], "mode">) {
-  const load = useCallback(() => getPostings(performance.id), [performance.id]);
+  const load = useCallback(() => getPerformanceManagement(performance.id), [performance.id]);
   const query = useAuditionQuery(`manage-performance-${performance.id}`, load, "공연 편집 정보를 불러오지 못했습니다.");
   return <ModalShell open onClose={onClose} labelledBy={TITLE_ID} placement="responsiveSheet" className="flex h-[calc(100dvh-8px)] w-full flex-col overflow-hidden rounded-t-modal bg-card shadow-[var(--shadow-modal)] md:h-auto md:max-h-[92vh] md:w-[min(760px,94vw)] md:rounded-modal">
-    {query.data ? <EditPerformanceForm performance={performance} roles={query.data.roleTemplates.map((role, index) => ({ ...role, key: index + 1 }))} onClose={onClose} onChanged={onChanged} /> : <><DialogHeader id={TITLE_ID} title="공연 수정" subtitle={query.error || "공연의 배역과 기본 정보를 불러오고 있습니다."} /><div className="min-h-48 animate-pulse bg-border-soft" /><DialogFooter><SecondaryButton onClick={onClose}>닫기</SecondaryButton></DialogFooter></>}
+    {query.data ? <EditPerformanceForm detail={query.data} onClose={onClose} onChanged={onChanged} /> : <><DialogHeader id={TITLE_ID} title="공연 수정" subtitle={query.error || "공연의 배역과 기본 정보를 불러오고 있습니다."} /><div className="min-h-48 animate-pulse bg-border-soft" /><DialogFooter><SecondaryButton onClick={onClose}>닫기</SecondaryButton></DialogFooter></>}
   </ModalShell>;
 }
 
-function EditPerformanceForm({ performance, roles: initialRoles, onClose, onChanged }: Omit<Parameters<typeof PerformanceManageDialog>[0], "mode"> & { readonly roles: readonly RoleDraft[] }) {
-  const [title, setTitle] = useState(performance.title);
-  const [venue, setVenue] = useState(performance.venue);
-  const [venueAddress, setVenueAddress] = useState(performance.venueAddress);
-  const [posterUrl, setPosterUrl] = useState(performance.posterUrl);
-  const [roles, setRoles] = useState<readonly RoleDraft[]>(initialRoles);
+function EditPerformanceForm({ detail, onClose, onChanged }: { readonly detail: PerformanceManagementDetail; readonly onClose: () => void; readonly onChanged: () => void }) {
+  const [title, setTitle] = useState(detail.title);
+  const [venue, setVenue] = useState(detail.venue);
+  const [venueAddress, setVenueAddress] = useState(detail.venueAddress);
+  const [posterUrl, setPosterUrl] = useState(detail.posterUrl);
+  const [posterFile, setPosterFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault(); setSaving(true); setFormError("");
+    event.preventDefault();
+    const validationError = validatePerformanceInput({ title, venue, venueAddress, roles: detail.roleTemplates });
+    if (validationError) { setFormError(validationError); return; }
+    setSaving(true); setFormError("");
     try {
-      await updatePerformance(performance.id, { title, venue, venueAddress, posterUrl, roleTemplates: roles.map((role) => ({ id: role.id, name: role.name, description: role.description })) });
+      await updatePerformance(detail.id, { posterFileId: detail.posterFileId, title, venue, venueAddress, posterUrl }, posterFile);
       notifyAuditionTreeChanged(); onChanged(); onClose();
     } catch (cause) { setFormError(errorMessage(cause, "공연을 수정하지 못했습니다.")); }
     finally { setSaving(false); }
   };
-  return <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col"><DialogHeader id={TITLE_ID} title="공연 수정" subtitle="포스터와 배역 변경은 이미 만든 공고의 스냅샷에 영향을 주지 않습니다." /><div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-6 md:px-6"><CreateSection title="공연 기본 정보"><div className="grid grid-cols-[120px_minmax(0,1fr)] gap-4 md:grid-cols-[150px_1fr]"><PosterUploadField label="공연 포스터" value={posterUrl} onChange={setPosterUrl} /><CreateField label="공연 제목"><FieldInput required value={title} onChange={(event) => setTitle(event.target.value)} /></CreateField></div><div className="mt-5"><PerformanceVenueField venue={venue} address={venueAddress} onVenueChange={setVenue} onAddressChange={setVenueAddress} /></div></CreateSection><CreateSection title="배역" description="배역 이름과 설명만 관리합니다. 기존 공고에는 복사된 배역이 유지돼요."><PerformanceRoleEditor roles={roles} onChange={setRoles} /></CreateSection><CreateError id="performance-manage-error" message={formError} /></div><DialogFooter><SecondaryButton onClick={onClose}>취소</SecondaryButton><PrimaryButton type="submit" disabled={saving}>{saving ? "저장 중…" : "변경 사항 저장"}</PrimaryButton></DialogFooter></form>;
+  return <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col"><DialogHeader id={TITLE_ID} title="공연 수정" subtitle="공연 포스터와 기본 정보만 수정할 수 있습니다." /><div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-6 md:px-6"><CreateSection title="공연 기본 정보"><div className="grid grid-cols-[120px_minmax(0,1fr)] gap-4 md:grid-cols-[150px_1fr]"><PosterUploadField label="공연 포스터" value={posterUrl} onChange={setPosterUrl} onFileChange={setPosterFile} /><CreateField label="공연 제목"><FieldInput required maxLength={200} value={title} onChange={(event) => setTitle(event.target.value)} /></CreateField></div><div className="mt-5"><PerformanceVenueField venue={venue} address={venueAddress} onVenueChange={setVenue} onAddressChange={setVenueAddress} /></div></CreateSection><CreateSection title="배역" description="배역은 공연을 등록할 때 확정되며 이후에는 변경할 수 없습니다."><PerformanceRoleReadOnlyList roles={detail.roleTemplates} /></CreateSection><CreateError id="performance-manage-error" message={formError} /></div><DialogFooter><SecondaryButton onClick={onClose}>취소</SecondaryButton><PrimaryButton type="submit" disabled={saving}>{saving ? "저장 중…" : "변경 사항 저장"}</PrimaryButton></DialogFooter></form>;
 }
 
 function DeletePerformanceDialog({ performance, onClose, onChanged }: Omit<Parameters<typeof PerformanceManageDialog>[0], "mode">) {
