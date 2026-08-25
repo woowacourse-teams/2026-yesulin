@@ -9,6 +9,8 @@ type MutableReview = { status: Review["status"]; memo: string; note: string };
 const reviews = new Map<string, MutableReview>();
 /** 마감된 (배역, 차수). 전형은 배역 단위로 독립 진행된다. */
 const closedRounds = new Set<string>();
+/** 명시적으로 종료한 배역별 전형. */
+const completedRoles = new Set<RoleId>();
 const submittedApplicants: MockApplicant[] = [];
 
 const reviewKey = (submission: SubmissionId, role: RoleId, round: RoundNumber) => `${submission}:${role}:${round}`;
@@ -16,6 +18,9 @@ const roundKey = (role: RoleId, round: RoundNumber) => `${role}:${round}`;
 
 for (const seed of SCREENING_STATE_SEEDS) {
   for (const round of seed.closedRounds) closedRounds.add(roundKey(seed.roleId, round));
+  if (roundNumbersForRole(seed.roleId).every((round) => seed.closedRounds.includes(round))) {
+    completedRoles.add(seed.roleId);
+  }
   for (const review of seed.reviews) {
     reviews.set(reviewKey(review.submissionId, seed.roleId, review.round), {
       status: review.status,
@@ -91,4 +96,8 @@ export function activeRound(role: RoleId): RoundNumber {
 }
 
 export const allRoundsClosed = (role: RoleId) =>
-  roundNumbersForRole(role).every((round) => isRoundClosed(role, round));
+  completedRoles.has(role);
+
+export const markScreeningCompleted = (role: RoleId) => {
+  completedRoles.add(role);
+};

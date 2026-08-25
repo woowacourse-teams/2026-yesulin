@@ -181,12 +181,13 @@ export function BoardWorkspace({
 
   const completeCurrentScreening = useCallback(async () => {
     const next = await run(
-      () => completeScreening({ roleId: board.role.id }, board.round),
+      () => completeScreening({ roleId: board.role.id }, board.round, searchCondition),
       "전형을 종료하지 못했습니다.",
     );
-    if (!next) return;
+    if (!next) return false;
     toast("전형이 종료되었습니다", { type: "success" });
-  }, [board.role.id, board.round, run, toast]);
+    return true;
+  }, [board.role.id, board.round, run, searchCondition, toast]);
 
   const value: BoardContextValue = {
     board,

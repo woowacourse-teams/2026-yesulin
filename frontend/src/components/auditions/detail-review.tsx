@@ -85,6 +85,7 @@ export function DetailReview({ applicant }: { applicant: Applicant }) {
       <DraftField
         key={`note-${applicant.id}`}
         multiline
+        disabled={screeningCompleted || saving}
         label="내부 심사 메모"
         hint="현재 배역·차수에만 저장되며 배우에게 공개되지 않습니다"
         placeholder="예: 발성 좋음, 앙상블로도 고려 가능"
@@ -129,6 +130,7 @@ function DraftField({
   onCommit,
   className,
   multiline = false,
+  disabled = false,
 }: {
   label: string;
   hint?: string;
@@ -137,11 +139,12 @@ function DraftField({
   onCommit: (next: string) => void;
   className: string;
   multiline?: boolean;
+  disabled?: boolean;
 }) {
   const [draft, setDraft] = useState(value);
 
   const commit = () => {
-    if (draft !== value) onCommit(draft);
+    if (!disabled && draft !== value) onCommit(draft);
   };
 
   return (
@@ -157,6 +160,7 @@ function DraftField({
       {multiline ? (
         <textarea
           value={draft}
+          disabled={disabled}
           placeholder={placeholder}
           onChange={(event) => setDraft(event.target.value)}
           onBlur={commit}
@@ -165,6 +169,7 @@ function DraftField({
       ) : (
         <input
           value={draft}
+          disabled={disabled}
           placeholder={placeholder}
           onChange={(event) => setDraft(event.target.value)}
           onBlur={commit}

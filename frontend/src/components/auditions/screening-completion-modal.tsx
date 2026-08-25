@@ -71,7 +71,9 @@ export function ScreeningCompletionModal({
         <PrimaryButton
           disabled={saving}
           onClick={() => {
-            void completeCurrentScreening().then(onClose);
+            void completeCurrentScreening().then((completed) => {
+              if (completed) onClose();
+            });
           }}
         >
           전형 종료하기

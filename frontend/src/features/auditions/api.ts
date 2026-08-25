@@ -117,11 +117,15 @@ export async function saveReview(body: SaveReviewRequest, condition: ScreeningSe
   return getAuditionBoard(roleId, round, condition);
 }
 
-export async function completeScreening(body: CompleteScreeningRequest, round: RoundNumber) {
+export async function completeScreening(
+  body: CompleteScreeningRequest,
+  round: RoundNumber,
+  condition: ScreeningSearchCondition = {},
+) {
   await request<void>(`/v1/audition-roles/${body.roleId}/screening/completion`, {
     method: "PATCH",
   });
-  return getAuditionBoard(body.roleId, round);
+  return getAuditionBoard(body.roleId, round, condition);
 }
 
 export async function createPerformance(body: CreatePerformanceRequest, poster: File) {

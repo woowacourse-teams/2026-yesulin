@@ -31,7 +31,7 @@ export type BoardContextValue = {
     id: SubmissionId,
     patch: { readonly memo?: string; readonly note?: string },
   ) => Promise<void>;
-  readonly completeCurrentScreening: () => Promise<void>;
+  readonly completeCurrentScreening: () => Promise<boolean>;
   readonly completionPrompt: "auto" | "manual" | null;
   readonly setCompletionPrompt: (prompt: "auto" | "manual" | null) => void;
   readonly openApplicant: (id: SubmissionId | null) => void;

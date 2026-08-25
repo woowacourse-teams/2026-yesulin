@@ -37,6 +37,7 @@ export function ApplicantReviewDecision({
     patch: { status?: ReviewStatus; memo?: string; note?: string },
     success?: string,
   ) => {
+    if (screeningCompleted) return;
     setSaving(true);
     try {
       const next = await saveReview({
@@ -55,6 +56,7 @@ export function ApplicantReviewDecision({
   };
 
   const changeStatus = async (status: ReviewStatus) => {
+    if (screeningCompleted) return;
     const nextStatus = applicant.review.status === status ? "PENDING" : status;
     if (nextStatus === "ETC") { setOtherOpen(true); return; }
     setOtherOpen(false);
@@ -99,7 +101,7 @@ export function ApplicantReviewDecision({
           })}
         </div>
 
-        {otherOpen ? <form onSubmit={(event) => { event.preventDefault(); const memo = otherReason.trim(); if (!memo) return; void commit({ status: "ETC", memo }, "기타로 저장했습니다.").then(() => setOtherOpen(false)); }} className="rounded-control border border-etc/30 bg-etc-bg p-3">
+        {otherOpen && !screeningCompleted ? <form onSubmit={(event) => { event.preventDefault(); const memo = otherReason.trim(); if (!memo) return; void commit({ status: "ETC", memo }, "기타로 저장했습니다.").then(() => setOtherOpen(false)); }} className="rounded-control border border-etc/30 bg-etc-bg p-3">
           <label className="block text-sm font-semibold text-etc">기타 사유<input autoFocus required maxLength={255} value={otherReason} onChange={(event) => setOtherReason(event.target.value)} placeholder="예: 다른 배역으로 검토" className="mt-2 min-h-11 w-full rounded-control border border-border bg-card px-3 text-sm text-foreground outline-none focus:border-etc focus:ring-2 focus:ring-etc-bg" /></label>
           <div className="mt-2 flex justify-end gap-2"><button type="button" onClick={() => setOtherOpen(false)} className="min-h-9 rounded-control px-3 text-xs font-semibold text-muted-strong">취소</button><button type="submit" disabled={saving || !otherReason.trim()} className="min-h-9 rounded-control border border-etc bg-card px-3 text-xs font-semibold text-etc disabled:opacity-50">기타로 저장</button></div>
         </form> : null}

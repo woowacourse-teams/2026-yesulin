@@ -4,7 +4,7 @@ import { roleId, ROUND_NUMBERS } from "@/features/auditions/types";
 import { findRole, roundStatesOf } from "./aggregate";
 import { CATALOG } from "./catalog";
 import { toApplicant, toPerformanceRef, toPostingRef, toRoleSummary } from "./serialize";
-import { activeRound, poolFor, reviewOf } from "./store";
+import { activeRound, markScreeningCompleted, poolFor, reviewOf } from "./store";
 
 const apiPath = "/api";
 const notFound = (message: string, code = "ROLE_NOT_FOUND") => HttpResponse.json({ code, message }, { status: 404 });
@@ -84,5 +84,15 @@ export const screeningHandlers = [
     }
     const board = buildBoard(targetRoleId, round);
     return board ? HttpResponse.json(board) : notFound("배역을 찾을 수 없습니다.");
+  }),
+  http.patch(`${apiPath}/v1/audition-roles/:roleId/screening/completion`, async ({ params }) => {
+    if (/^[1-9]\d*$/.test(String(params.roleId))) return passthrough();
+    const targetRoleId = roleId(String(params.roleId));
+    if (!findRole(targetRoleId)) return notFound("배역을 찾을 수 없습니다.");
+    if (roundStatesOf(targetRoleId).some((round) => round.counts.pending > 0)) {
+      return badRequest("SCREENING_NOT_READY", "모든 차수의 지원자 검토를 마친 뒤 전형을 종료할 수 있습니다.");
+    }
+    markScreeningCompleted(targetRoleId);
+    return new HttpResponse(null, { status: 204 });
   }),
 ];

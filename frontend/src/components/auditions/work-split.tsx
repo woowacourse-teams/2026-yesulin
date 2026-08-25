@@ -16,7 +16,8 @@ export function WorkSplit() {
   const counts = board.rounds.find((state) => state.round === board.round)?.counts;
   if (!counts) return null;
   const finalRound = board.rounds.at(-1)?.round === board.round;
-  const canComplete = !screeningCompleted && finalRound && counts.pending === 0;
+  const allRoundsReviewed = board.rounds.every((state) => state.counts.pending === 0);
+  const canComplete = !screeningCompleted && finalRound && allRoundsReviewed;
 
   return (
     <>

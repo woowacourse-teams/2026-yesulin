@@ -15,7 +15,8 @@ export function RoundStepper() {
   const roundIndex = board.rounds.findIndex((state) => state.round === board.round);
   const currentRound = board.rounds[roundIndex];
   const finalRound = roundIndex === board.rounds.length - 1;
-  const canComplete = Boolean(currentRound && finalRound && currentRound.counts.pending === 0);
+  const allRoundsReviewed = board.rounds.every((state) => state.counts.pending === 0);
+  const canComplete = Boolean(currentRound && finalRound && allRoundsReviewed);
 
   return (
     <div className="flex items-stretch border-b border-border bg-card">
