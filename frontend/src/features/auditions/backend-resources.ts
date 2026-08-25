@@ -115,6 +115,10 @@ export type PublicAuditionResource = {
   readonly title: string;
   readonly posterUrl: string;
   readonly roadAddress: string;
+  readonly producer: {
+    readonly companyName: string;
+    readonly description: string | null;
+  };
   readonly performanceStartDate: string;
   readonly performanceEndDate: string | null;
   readonly recruitmentStartAt: string;

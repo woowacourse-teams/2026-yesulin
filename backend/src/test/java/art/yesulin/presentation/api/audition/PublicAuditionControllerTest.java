@@ -30,6 +30,8 @@ import art.yesulin.domain.audition.schedule.AuditionScheduleRepository;
 import art.yesulin.domain.file.FileAssetRepository;
 import art.yesulin.domain.file.FileReferenceRepository;
 import art.yesulin.domain.performance.PerformanceRepository;
+import art.yesulin.domain.producer.Producer;
+import art.yesulin.domain.producer.ProducerRepository;
 import art.yesulin.support.FakeObjectStorage;
 import art.yesulin.support.ObjectStorageTestConfiguration;
 import java.time.Instant;
@@ -104,6 +106,9 @@ class PublicAuditionControllerTest {
     @Autowired
     private FakeObjectStorage objectStorage;
 
+    @Autowired
+    private ProducerRepository producerRepository;
+
     @BeforeEach
     void cleanUp() {
         formRepository.deleteAll();
@@ -113,6 +118,11 @@ class PublicAuditionControllerTest {
         performanceRepository.deleteAll();
         fileReferenceRepository.deleteAll();
         fileAssetRepository.deleteAll();
+        producerRepository.deleteAll();
+
+        Producer producer = new Producer(OWNER_ID, "극단 예술인", "01012345678");
+        producer.updateDescription("정통 연극을 만드는 극단입니다.");
+        producerRepository.save(producer);
     }
 
     @Test
@@ -140,6 +150,11 @@ class PublicAuditionControllerTest {
                 .andExpect(jsonPath("$.id").value(auditionId.toString()))
                 .andExpect(jsonPath("$.performanceTitle").value("햄릿"))
                 .andExpect(jsonPath("$.title").value("햄릿 공개 오디션"))
+                .andExpect(jsonPath("$.producer.companyName").value("극단 예술인"))
+                .andExpect(jsonPath("$.producer.description").value("정통 연극을 만드는 극단입니다."))
+                .andExpect(jsonPath("$.producer.contactName").doesNotExist())
+                .andExpect(jsonPath("$.producer.email").doesNotExist())
+                .andExpect(jsonPath("$.producer.phone").doesNotExist())
                 .andExpect(jsonPath("$.roles[0].name").value("햄릿"))
                 .andExpect(jsonPath("$.applicationForm.basicFields[0]").value("NAME"));
     }
