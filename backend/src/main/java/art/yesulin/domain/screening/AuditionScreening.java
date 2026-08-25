@@ -1,6 +1,7 @@
 package art.yesulin.domain.screening;
 
 import static art.yesulin.domain.common.validation.DomainValidator.requirePositive;
+import static art.yesulin.domain.screening.ScreeningReviewErrorCode.INVALID_REVIEW;
 import static art.yesulin.domain.screening.ScreeningReviewErrorCode.NOT_FOUND;
 
 import art.yesulin.common.exception.BusinessException;
@@ -43,6 +44,7 @@ public final class AuditionScreening {
             ScreeningReviewChange change
     ) {
         ensureReviewable(submissionIds, round);
+        ensureAllowedStatus(round, change);
         return reviews.apply(submissionIds, stageId(round), change);
     }
 
@@ -103,6 +105,12 @@ public final class AuditionScreening {
             throw new BusinessException(
                     NOT_FOUND, "현재 배역과 전형에서 심사할 지원서를 찾을 수 없습니다."
             );
+        }
+    }
+
+    private void ensureAllowedStatus(ScreeningRound round, ScreeningReviewChange change) {
+        if (round.value() == 1 && change.status() == ScreeningReviewStatus.ABSENT) {
+            throw new BusinessException(INVALID_REVIEW, "1차 서류 심사에는 불참을 고를 수 없습니다.");
         }
     }
 

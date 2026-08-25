@@ -1,5 +1,6 @@
 package art.yesulin.presentation.api.screening;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -110,6 +111,26 @@ class ScreeningReviewControllerTest {
                 .andExpect(jsonPath("$.reviews[0].status").value("ETC"))
                 .andExpect(jsonPath("$.reviews[0].memo").value("추가 논의"))
                 .andExpect(jsonPath("$.reviews[0].note").value("발성 확인 필요"));
+    }
+
+    @Test
+    void rejectsAbsentReviewForFirstRound() throws Exception {
+        String request = """
+                {
+                  "submissionIds": ["b4472dce-52d0-41a9-baaa-c9e86e31b72b"],
+                  "status": "ABSENT"
+                }
+                """;
+
+        mockMvc.perform(patch(REVIEWS_PATH, roleId, 1)
+                        .with(csrf())
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_SCREENING_REVIEW"));
+
+        assertEquals(0, screeningReviewRepository.count());
     }
 
     private long saveScreeningFixture() {
