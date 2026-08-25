@@ -5,6 +5,7 @@ import art.yesulin.infrastructure.storage.s3.S3ObjectStorage;
 import art.yesulin.infrastructure.storage.s3.S3StorageProperties;
 import java.net.URI;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -30,6 +31,7 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
 @Configuration(proxyBeanMethods = false)
 @Profile("local")
+@ConditionalOnMissingBean(ObjectStorage.class)
 @EnableConfigurationProperties({S3StorageProperties.class, LocalStackStorageProperties.class})
 public class LocalStackStorageConfiguration {
 
