@@ -71,11 +71,11 @@ insert into submissions
      additional_information_present, school, nationality, cover_letter, specialty, hobbies,
      military_service_status, submission_field_snapshot_present, question_answers_present,
      photo_requirement_answers_present, video_requirement_answers_present, age_at_recruitment_deadline)
-values (9001, unhex(replace('90010000-0000-4000-8000-000000000101', '-', '')), 9101, 9001,
+values (9001, X'90010000000040008000000000000101', 9101, 9001,
         '2026 하반기 주·조연 배우 모집', '2026-08-20 14:00:00', true, '김예술', 172, 58, '1998-03-12',
         'FEMALE', '010-1111-2222', 'artist1@example.com', '서울특별시 마포구', true, '예술대학교', '대한민국',
         '성실하게 준비하겠습니다.', '현대무용', '영화 감상', null, true, true, true, true, 28),
-       (9002, unhex(replace('90010000-0000-4000-8000-000000000102', '-', '')), 9102, 9001,
+       (9002, X'90010000000040008000000000000102', 9102, 9001,
         '2026 하반기 주·조연 배우 모집', '2026-08-21 15:00:00', true, '이무대', 180, 72, '1995-07-21',
         'MALE', '010-3333-4444', 'artist2@example.com', '서울특별시 성동구', true, '공연예술대학교', '대한민국',
         '좋은 무대를 만들겠습니다.', '보컬', '러닝', 'COMPLETED', true, true, true, true, 31)
@@ -91,7 +91,7 @@ on duplicate key update audition_role_id = values(audition_role_id), role_name =
 
 insert into screening_reviews
     (id, submission_id, audition_role_id, screening_stage_id, status, other_reason, internal_memo)
-values (9001, unhex(replace('90010000-0000-4000-8000-000000000101', '-', '')), 9001, 9001, 'PASS', '',
+values (9001, X'90010000000040008000000000000101', 9001, 9001, 'PASS', '',
         '1차 검토 완료')
 on duplicate key update status = values(status), other_reason = values(other_reason),
                         internal_memo = values(internal_memo);

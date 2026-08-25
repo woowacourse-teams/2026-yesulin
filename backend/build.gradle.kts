@@ -58,6 +58,8 @@ dependencies {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+    systemProperty("spring.profiles.active", "test")
+    systemProperty("spring.flyway.locations", "classpath:db/migration")
 }
 
 tasks.bootJar {
