@@ -1,4 +1,4 @@
-import { submissionId, roleId, type SubmissionId } from "@/features/auditions/types";
+import { submissionId, type SubmissionId } from "@/features/auditions/types";
 import type {
   ApplicantAnswer,
   ApplicantSubmissionDetail,
@@ -8,13 +8,11 @@ import type {
   ApplicantProfileVideo,
   LookupSubmissionResponse,
   RecommendedPosting,
-  UpdateSubmissionRequest,
   UpdateProfileRequest,
 } from "@/features/applicants/types";
 import { CATALOG } from "@/mocks/auditions/catalog";
 import { screeningFlowApplicationFixture } from "@/mocks/auditions/application-field-fixtures";
 import { producerProfile } from "@/mocks/auditions/producer-profile";
-import { isRoundClosed, readReview, roundNumbersForRole } from "@/mocks/auditions/store";
 
 const seededAnswers: ApplicantAnswer[] = [
   { key: "NAME", label: "이름", value: "김하린" },
@@ -54,11 +52,12 @@ let photoLibrary: ApplicantProfilePhoto[] = [
 let videoLibrary: ApplicantProfileVideo[] = [{ id: "seed-video-1", url: "https://youtu.be/aqz-KE-bpKQ", youtubeId: "aqz-KE-bpKQ" }];
 let submissions: ApplicantSubmissionDetail[] = [{
   id: submissionId("00000000-0000-4000-8000-000026081201"), postingId: "seed_posting_1", performanceTitle: "달빛 아래 우리", postingTitle: "2026 하반기 주·조연 배우 모집",
-  posterUrl: "/images/performances/moonlight.jpg", companyName: "예술in 스테이지", roleId: "seed_role_seoyeon", roleIds: ["seed_role_seoyeon", "seed_role_jiwoo"], roleName: "서연 · 지우",
-  lookupCode: "YS-20260812-SEED01", submittedAt: "2026-08-12T10:30:00+09:00", updatedAt: "2026-08-12T10:30:00+09:00",
-  editable: false, recruitmentEnd: "2026-09-30", editableUntil: "", roleProgress: [], answers: seededAnswers, applicationFields: screeningFlowApplicationFixture(),
+  posterUrl: "/images/performances/moonlight.jpg", companyName: "예술in 스테이지",
+  selectedRoles: [{ roleId: "seed_role_seoyeon", roleName: "서연" }, { roleId: "seed_role_jiwoo", roleName: "지우" }],
+  submittedAt: "2026-08-12T10:30:00+09:00", answers: seededAnswers, applicationFields: screeningFlowApplicationFixture(),
 }];
 const ownedSubmissionIds = new Set<SubmissionId>(submissions.map((submission) => submission.id));
+const lookupCodes = new Map<SubmissionId, string>([[submissions[0]!.id, "YS-20260812-SEED01"]]);
 const claims = new Map<string, { readonly submissionId: SubmissionId; readonly expiresAt: string; used: boolean }>();
 
 const clone = <T>(value: T): T => structuredClone(value);
@@ -94,54 +93,17 @@ function toSummary(detail: ApplicantSubmissionDetail): ApplicantSubmissionSummar
     postingTitle: detail.postingTitle,
     posterUrl: detail.posterUrl,
     companyName: detail.companyName,
-    roleName: detail.roleName,
-    lookupCode: detail.lookupCode,
     submittedAt: detail.submittedAt,
-    editable: detail.editable,
-    recruitmentEnd: detail.recruitmentEnd,
-    roleProgress: roleProgressOf(detail),
+    selectedRoles: detail.selectedRoles,
   };
-}
-
-function roleProgressOf(detail: ApplicantSubmissionDetail): ApplicantSubmissionSummary["roleProgress"] {
-  const posting = CATALOG.flatMap((performance) => performance.postings).find((candidate) => candidate.id === detail.postingId);
-  return detail.roleIds.map((id) => {
-    const typedRoleId = roleId(id);
-    const roleName = posting?.roles.find((role) => role.id === id)?.name ?? id;
-    if (!posting || posting.status !== "CLOSED") return { roleId: id, roleName, state: "RECEIVED" as const, round: null, roundName: null };
-    const rounds = roundNumbersForRole(typedRoleId);
-    for (const round of rounds) {
-      if (!isRoundClosed(typedRoleId, round)) return { roleId: id, roleName, state: "IN_REVIEW" as const, round, roundName: posting.rounds?.find((item) => item.round === round)?.name ?? `${round}차 전형` };
-      if (readReview(detail.id, typedRoleId, round).status !== "PASS") return { roleId: id, roleName, state: "NOT_SELECTED" as const, round, roundName: posting.rounds?.find((item) => item.round === round)?.name ?? `${round}차 전형` };
-    }
-    const finalRound = rounds.at(-1) ?? null;
-    return { roleId: id, roleName, state: "FINAL_PASS" as const, round: finalRound, roundName: posting.rounds?.find((item) => item.round === finalRound)?.name ?? (finalRound ? `${finalRound}차 전형` : null) };
-  });
 }
 
 export const applicantSubmissions = () => ({ submissions: clone(submissions.filter((submission) => ownedSubmissionIds.has(submission.id)).map(toSummary)) });
 
 export const applicantSubmission = (id: SubmissionId) => {
   const detail = ownedSubmissionIds.has(id) ? submissions.find((submission) => submission.id === id) : undefined;
-  return detail ? { ...clone(detail), roleProgress: roleProgressOf(detail) } : null;
+  return detail ? clone(detail) : null;
 };
-
-export function patchApplicantSubmission(id: SubmissionId, body: UpdateSubmissionRequest) {
-  const current = submissions.find((submission) => submission.id === id);
-  if (!current) return null;
-  const changed = new Map(body.answers.map((answer) => [answer.key, answer.value]));
-  const currentKeys = new Set(current.answers.map((answer) => answer.key));
-  const answers = [
-    ...current.answers.map((answer) => changed.has(answer.key) ? { ...answer, value: changed.get(answer.key)! } : answer),
-    ...body.answers.filter((answer) => !currentKeys.has(answer.key)).map((answer) => ({
-      key: answer.key,
-      label: current.applicationFields.find((field) => field.id === answer.key)?.label ?? answer.key,
-      value: answer.value,
-    })),
-  ];
-  submissions = submissions.map((submission) => submission.id === id ? { ...submission, answers, updatedAt: new Date().toISOString() } : submission);
-  return applicantSubmission(id);
-}
 
 export function recommendedPostings(exclude?: string, limit = 3): readonly RecommendedPosting[] {
   const companyName = producerProfile().companyName || "기획사/제작사";
@@ -160,26 +122,27 @@ export function recommendedPostings(exclude?: string, limit = 3): readonly Recom
 
 export function lookupApplicantSubmission(code: string, phone: string): LookupSubmissionResponse | null {
   const normalized = code.replaceAll("-", "").toUpperCase();
-  const found = submissions.find((submission) => submission.lookupCode.replaceAll("-", "").toUpperCase() === normalized);
+  const found = submissions.find((submission) => lookupCodes.get(submission.id)?.replaceAll("-", "").toUpperCase() === normalized);
   const savedPhone = found?.answers.find((answer) => answer.key === "PHONE")?.value;
   if (!found || typeof savedPhone !== "string" || savedPhone.replace(/\D/g, "") !== phone.replace(/\D/g, "")) return null;
   return clone({
-    lookupCode: found.lookupCode,
+    lookupCode: lookupCodes.get(found.id)!,
     performanceTitle: found.performanceTitle,
     postingTitle: found.postingTitle,
     companyName: found.companyName,
-    roleName: found.roleName,
+    roleName: found.selectedRoles.map((role) => role.roleName).join(" · "),
     submittedAt: found.submittedAt,
-    postingStatus: found.editable ? "OPEN" : "CLOSED",
-    editable: found.editable,
-    editableUntil: found.editableUntil,
+    postingStatus: "CLOSED",
+    editable: false,
+    editableUntil: "",
     answers: found.answers,
   });
 }
 
-export function addApplicantSubmission(detail: ApplicantSubmissionDetail) {
+export function addApplicantSubmission(detail: ApplicantSubmissionDetail, lookupCode?: string) {
   submissions = [detail, ...submissions];
   ownedSubmissionIds.add(detail.id);
+  if (lookupCode) lookupCodes.set(detail.id, lookupCode);
 }
 
 export const hasSubmissionForPosting = (postingId: string) =>

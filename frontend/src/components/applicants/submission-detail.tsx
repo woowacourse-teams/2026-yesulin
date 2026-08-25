@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { getApplicantSubmission } from "@/features/applicants/api";
-import { answerValueText, formatApplicantDate, submissionAvailability } from "@/features/applicants/presentation";
+import { answerValueText, formatApplicantDate } from "@/features/applicants/presentation";
 import { applicantRoutes } from "@/features/applicants/routes";
 import type { ApplicantAnswer, ApplicantSubmissionDetail } from "@/features/applicants/types";
 import { useAuditionQuery } from "@/features/auditions/use-audition-query";
@@ -11,7 +11,7 @@ import { isSubmissionId, type SubmissionId } from "@/features/auditions/types";
 import { hasSubmittedValue } from "@/features/applications/materials";
 import { ScreenError, ScreenMessage } from "@/components/auditions/screen-status";
 import { PrimaryLink, TextLink } from "@/components/ui/controls";
-import { RoleProgressList } from "./submission-list";
+import { SelectedRoleList } from "./submission-list";
 import { SubmissionMaterials } from "./submission-materials";
 
 const sectionDetails = {
@@ -36,7 +36,7 @@ function ValidSubmissionDetail({ submissionId }: { readonly submissionId: Submis
 }
 
 function SubmissionReadView({ detail }: { readonly detail: ApplicantSubmissionDetail }) {
-  const availability = submissionAvailability(detail.editable);
+  const roleNames = detail.selectedRoles.map((role) => role.roleName).join(" · ");
   const fieldSections = new Map(detail.applicationFields.map((field) => [field.id, field.section]));
   const visibleAnswers = detail.answers.filter((answer) => hasSubmittedValue(answer.value) || Boolean(answer.previewUrls?.length));
   const sections = (Object.keys(sectionDetails) as Array<keyof typeof sectionDetails>).map((section) => ({
@@ -49,11 +49,11 @@ function SubmissionReadView({ detail }: { readonly detail: ApplicantSubmissionDe
     <TextLink href={applicantRoutes.submissions} className="px-2">← 내 지원서</TextLink>
     <header className="mt-4 grid gap-6 rounded-card border border-border bg-card p-5 sm:grid-cols-[96px_minmax(0,1fr)_auto] sm:items-center md:p-7">
       <Image src={detail.posterUrl} alt={`${detail.performanceTitle} 포스터`} width={96} height={128} unoptimized className="h-32 w-24 rounded-control object-cover" />
-      <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${availability.tone}`}>{availability.label}</span><span className="text-xs text-muted">{detail.companyName}</span></div><h1 className="mt-3 truncate text-2xl font-bold tracking-[-0.025em]">{detail.performanceTitle}</h1><p className="mt-1 truncate text-muted-strong">{detail.postingTitle} · {detail.roleName}</p><p className="num mt-3 text-sm text-muted">{formatApplicantDate(detail.submittedAt, true)} 제출</p></div>
+      <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><span className="rounded-full border border-border bg-surface px-2.5 py-1 text-xs font-semibold text-muted-strong">제출 완료</span><span className="text-xs text-muted">{detail.companyName}</span></div><h1 className="mt-3 truncate text-2xl font-bold tracking-[-0.025em]">{detail.performanceTitle}</h1><p className="mt-1 truncate text-muted-strong">{detail.postingTitle} · {roleNames}</p><p className="num mt-3 text-sm text-muted">{formatApplicantDate(detail.submittedAt, true)} 제출</p></div>
       <span className="rounded-full border border-border bg-surface px-3 py-2 text-sm font-semibold text-muted-strong">읽기 전용</span>
     </header>
 
-    <section className="mt-5 rounded-card border border-border bg-card p-5 md:p-6"><h2 className="font-bold">배역별 전형 진행</h2><p className="mt-2 text-sm leading-6 text-muted">전형 결과는 각 배역의 해당 차수가 마감된 뒤에 표시됩니다.</p><RoleProgressList roles={detail.roleProgress} /></section>
+    <section className="mt-5 rounded-card border border-border bg-card p-5 md:p-6"><h2 className="font-bold">지원 배역</h2><p className="mt-2 text-sm leading-6 text-muted">이 지원서로 제출한 배역입니다.</p><SelectedRoleList roles={detail.selectedRoles} /></section>
     <section className="mt-5 rounded-card border border-border bg-card p-5 md:p-6"><p className="font-semibold">제출 당시 내용이 그대로 보존됩니다.</p><p className="mt-2 text-sm leading-6 text-muted">제출 후에는 일반 수정할 수 없으며, 프로필을 변경하거나 사진 보관함에서 삭제해도 이 지원서는 바뀌지 않습니다.</p></section>
     <SubmissionMaterials fields={detail.applicationFields} answers={detail.answers} />
 

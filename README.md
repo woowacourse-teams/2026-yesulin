@@ -18,7 +18,8 @@
 MySQL과 Testcontainers LocalStack S3를 사용합니다. 소셜 로그인과 Frontend 세션 연동은 구현됐고, 사업자·KOPIS
 검증, 재사용 프로필의 기본·추가정보와 사진·YouTube 영상 보관함, 로그인한 기획사/제작사 정보 조회·수정
 Backend도 구현됐습니다. 배우 프로필·사진·영상과 기획사/제작사 정보는
-환경 플래그로 Frontend와 실제 Backend를 연결할 수 있으며, 나머지 Frontend API의 실제 연동은 아직 완료되지 않았습니다. MSW에서 새로 만든 데이터는
+환경 플래그로 Frontend와 실제 Backend를 연결할 수 있으며, 내 지원서 목록·상세도 실제 Backend 스냅샷 조회 API를
+사용합니다. 아직 이관하지 않은 Frontend API는 MSW에서 검증하며, MSW에서 새로 만든 데이터는
 새로고침하면 초기화될 수 있습니다.
 
 ## 실행

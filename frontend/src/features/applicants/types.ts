@@ -1,5 +1,5 @@
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
-import type { SubmissionId, RoundNumber } from "@/features/auditions/types";
+import type { SubmissionId } from "@/features/auditions/types";
 
 export type CareerEntry = {
   readonly year: number;
@@ -70,20 +70,13 @@ export type ApplicantSubmissionSummary = {
   readonly postingTitle: string;
   readonly posterUrl: string;
   readonly companyName: string;
-  readonly roleName: string;
-  readonly lookupCode: string;
   readonly submittedAt: string;
-  readonly editable: boolean;
-  readonly recruitmentEnd: string;
-  readonly roleProgress: readonly ApplicantRoleProgress[];
+  readonly selectedRoles: readonly ApplicantSelectedRole[];
 };
 
-export type ApplicantRoleProgress = {
+export type ApplicantSelectedRole = {
   readonly roleId: string;
   readonly roleName: string;
-  readonly state: "RECEIVED" | "IN_REVIEW" | "FINAL_PASS" | "NOT_SELECTED";
-  readonly round: RoundNumber | null;
-  readonly roundName: string | null;
 };
 
 export type ApplicantApplicationDraftSummary = {
@@ -102,16 +95,8 @@ export type ApplicantSubmissionListResponse = {
 };
 
 export type ApplicantSubmissionDetail = ApplicantSubmissionSummary & {
-  readonly roleId: string;
-  readonly roleIds: readonly string[];
-  readonly updatedAt: string;
-  readonly editableUntil: string;
   readonly answers: readonly ApplicantAnswer[];
   readonly applicationFields: readonly ApplicationFieldInput[];
-};
-
-export type UpdateSubmissionRequest = {
-  readonly answers: readonly Pick<ApplicantAnswer, "key" | "value">[];
 };
 
 export type RecommendedPosting = {
