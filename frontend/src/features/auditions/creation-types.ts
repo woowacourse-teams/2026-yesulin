@@ -20,7 +20,7 @@ export type VideoRequirement = {
 };
 
 /** 한 공고에서 배우에게 요청할 수 있는 영상 항목 수. 개인 영상 보관함 상한과는 별개다. */
-export const MAX_VIDEO_REQUIREMENTS = 5;
+export const MAX_VIDEO_REQUIREMENTS = 3;
 
 export const APPLICATION_FIELD_OPTIONS = [
   { key: "NAME", label: "이름", defaultRequired: true, section: "BASIC", inputType: "TEXT", order: 10, layout: "HALF", config: { placeholder: "이름을 입력해 주세요." } },
@@ -40,7 +40,7 @@ export const APPLICATION_FIELD_OPTIONS = [
   { key: "MILITARY", label: "군필 여부", defaultRequired: false, section: "ADDITIONAL", inputType: "SELECT", order: 70, layout: "HALF", config: { options: ["군필", "미필", "해당 없음"] } },
   { key: "CAREER", label: "경력", defaultRequired: false, section: "ADDITIONAL", inputType: "TEXTAREA", order: 80, layout: "FULL", config: {} },
   { key: "PHOTOS", label: "프로필 사진", defaultRequired: true, section: "MATERIALS", inputType: "FILE", order: 10, layout: "FULL", config: { maxCount: 1, photoRequirements: [{ id: "profile-photo-1", description: "프로필 사진", count: 1 }] } },
-  { key: "VIDEO", label: "영상 링크", defaultRequired: true, section: "MATERIALS", inputType: "URL", order: 20, layout: "FULL", config: { placeholder: "YouTube 링크를 입력해 주세요.", maxCount: MAX_VIDEO_REQUIREMENTS, videoRequirements: [] } },
+  { key: "VIDEO", label: "제출 영상", defaultRequired: true, section: "MATERIALS", inputType: "URL", order: 20, layout: "FULL", config: { placeholder: "YouTube 링크를 입력해 주세요.", maxCount: MAX_VIDEO_REQUIREMENTS, videoRequirements: [] } },
 ] as const;
 
 export type ApplicationFieldKey = (typeof APPLICATION_FIELD_OPTIONS)[number]["key"];
