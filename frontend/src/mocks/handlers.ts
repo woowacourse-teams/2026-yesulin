@@ -43,17 +43,20 @@ const hasText = (value: unknown): value is string =>
 
 export const handlers = [
   ...authHandlers,
-  http.get(`${apiPath}/me/producer`, async () => {
+  http.get(`${apiPath}/v1/producers/me`, async () => {
+    if (realProducerApiEnabled) return passthrough();
     await delay(180);
     return HttpResponse.json(producerProfile());
   }),
 
-  http.patch(`${apiPath}/me/producer`, async ({ request }) => {
+  http.patch(`${apiPath}/v1/producers/me`, async ({ request }) => {
+    if (realProducerApiEnabled) return passthrough();
     await delay(220);
     const body = (await request.json()) as UpdateProducerProfileRequest;
-    if (body.companyName !== undefined && !hasText(body.companyName)) return apiError(400, "COMPANY_REQUIRED", "기획사/제작사명을 입력해 주세요.");
-    if (body.contactName !== undefined && !hasText(body.contactName)) return apiError(400, "CONTACT_REQUIRED", "담당자명을 입력해 주세요.");
-    if ((body.description?.length ?? 0) > 200) return apiError(400, "DESCRIPTION_TOO_LONG", "소개는 200자 이내로 적어 주세요.");
+    if (body.companyName === undefined && body.contactName === undefined && body.contactRole === undefined && body.description === undefined) return apiError(400, "PRODUCER_INVALID_UPDATE", "변경할 기획사·제작사 정보가 없습니다.");
+    if (body.companyName !== undefined && !hasText(body.companyName)) return apiError(400, "PRODUCER_INVALID_COMPANY_NAME", "기획사·제작사명이 필요합니다.");
+    if (body.contactName !== undefined && !hasText(body.contactName)) return apiError(400, "PRODUCER_INVALID_CONTACT_NAME", "담당자명을 입력해 주세요.");
+    if ((body.description?.length ?? 0) > 200) return apiError(400, "PRODUCER_INVALID_DESCRIPTION", "소개는 200자 이내로 적어 주세요.");
     return HttpResponse.json(patchProducerProfile(body));
   }),
 

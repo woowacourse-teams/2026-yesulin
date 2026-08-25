@@ -1,5 +1,5 @@
 import { AuditionRequestError, request } from "./api-client";
-import type { FileUploadResource, PerformanceResource, PerformanceResourceList } from "./backend-resources";
+import type { FileUploadResource, PerformanceResource, PerformanceResourceList, ProducerProfileResource } from "./backend-resources";
 import {
   createV1Posting,
   getV1PostingManagement,
@@ -173,9 +173,23 @@ export function deletePosting(id: PostingId) {
 }
 
 export function getProducerProfile() {
-  return request<ProducerProfile>("/me/producer");
+  return request<ProducerProfileResource>("/v1/producers/me").then(toProducerProfile);
 }
 
 export function updateProducerProfile(body: UpdateProducerProfileRequest) {
-  return request<ProducerProfile>("/me/producer", { method: "PATCH", body: JSON.stringify(body) });
+  return request<ProducerProfileResource>("/v1/producers/me", { method: "PATCH", body: JSON.stringify(body) })
+    .then(toProducerProfile);
+}
+
+function toProducerProfile(resource: ProducerProfileResource): ProducerProfile {
+  return {
+    companyName: resource.companyName,
+    contactName: resource.contactName ?? "",
+    contactRole: resource.contactRole ?? "",
+    description: resource.description ?? "",
+    email: resource.email,
+    phone: resource.phone,
+    verificationStatus: resource.verificationStatus,
+    verifiedAt: resource.verifiedAt,
+  };
 }

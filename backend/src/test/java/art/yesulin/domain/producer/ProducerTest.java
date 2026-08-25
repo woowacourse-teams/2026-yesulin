@@ -51,14 +51,60 @@ class ProducerTest {
                 .isEqualTo(ProducerErrorCode.INVALID_COMPANY_NAME);
     }
 
-    /**
-     * 값이 비어 있는지는 DomainValidator가 확인하므로 BusinessException이 아니라
-     * IllegalArgumentException이 발생한다.
-     */
     @Test
     void rejectsBlankCompanyName() {
         assertThatThrownBy(() -> new Producer(MEMBER_ID, "  ", "01012345678"))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(BusinessException.class)
+                .extracting(exception -> ((BusinessException) exception).getErrorCode())
+                .isEqualTo(ProducerErrorCode.INVALID_COMPANY_NAME);
+    }
+
+    @Test
+    void updatesProfileFieldsWithTrimmedValues() {
+        Producer producer = new Producer(MEMBER_ID, COMPANY_NAME, "01012345678");
+
+        producer.updateCompanyName(" 새 컴퍼니 ");
+        producer.updateContactName(" 김담당 ");
+        producer.updateContactRole(" 캐스팅 담당 ");
+        producer.updateDescription(" 공연 제작사입니다. ");
+
+        assertThat(producer.getCompanyName()).isEqualTo("새 컴퍼니");
+        assertThat(producer.getContactName()).isEqualTo("김담당");
+        assertThat(producer.getContactRole()).isEqualTo("캐스팅 담당");
+        assertThat(producer.getDescription()).isEqualTo("공연 제작사입니다.");
+    }
+
+    @Test
+    void rejectsBlankContactName() {
+        Producer producer = new Producer(MEMBER_ID, COMPANY_NAME, "01012345678");
+
+        assertThatThrownBy(() -> producer.updateContactName("  "))
+                .isInstanceOf(BusinessException.class)
+                .extracting(exception -> ((BusinessException) exception).getErrorCode())
+                .isEqualTo(ProducerErrorCode.INVALID_CONTACT_NAME);
+    }
+
+    @Test
+    void clearsContactRoleAndDescriptionWithBlankValue() {
+        Producer producer = new Producer(MEMBER_ID, COMPANY_NAME, "01012345678");
+        producer.updateContactRole("캐스팅 담당");
+        producer.updateDescription("소개");
+
+        producer.updateContactRole("  ");
+        producer.updateDescription("");
+
+        assertThat(producer.getContactRole()).isNull();
+        assertThat(producer.getDescription()).isNull();
+    }
+
+    @Test
+    void rejectsDescriptionLongerThanMaximum() {
+        Producer producer = new Producer(MEMBER_ID, COMPANY_NAME, "01012345678");
+
+        assertThatThrownBy(() -> producer.updateDescription("가".repeat(201)))
+                .isInstanceOf(BusinessException.class)
+                .extracting(exception -> ((BusinessException) exception).getErrorCode())
+                .isEqualTo(ProducerErrorCode.INVALID_DESCRIPTION);
     }
 
     @Test

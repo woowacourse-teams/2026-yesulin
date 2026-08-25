@@ -97,7 +97,7 @@ export function publicPostingById(id: string): PublicPosting | null {
     performanceStart: posting.performanceStart,
     performanceEnd: posting.performanceEnd,
     companyName: company.companyName || "기획사/제작사",
-    companyDescription: company.description,
+    companyDescription: company.description ?? "",
     recruitmentStart: posting.recruitmentStart ?? "",
     recruitmentEnd: posting.recruitmentEnd ?? "",
     rehearsalVenue: posting.rehearsalVenue ?? "",
