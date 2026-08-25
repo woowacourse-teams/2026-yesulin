@@ -53,19 +53,6 @@ export async function login(email: string, password: string): Promise<SessionRes
   return response.json() as Promise<SessionResponse>;
 }
 
-export async function loginAsLocalApplicant(provider: string): Promise<SessionResponse> {
-  const csrfToken = await ensureCsrfToken();
-  const response = await fetch(`${API_BASE_PATH}/local/social-sessions/${encodeURIComponent(provider)}`, {
-    method: "POST",
-    credentials: "include",
-    headers: csrfToken ? { [CSRF_HEADER_NAME]: csrfToken } : {},
-  });
-  if (!response.ok) {
-    throw await toApiError(response, "로컬 배우 세션을 만들지 못했습니다.");
-  }
-  return response.json() as Promise<SessionResponse>;
-}
-
 export async function fetchCurrentSession(): Promise<SessionResponse | null> {
   const response = await fetch(`${API_BASE_PATH}/sessions/current`, {
     method: "GET",

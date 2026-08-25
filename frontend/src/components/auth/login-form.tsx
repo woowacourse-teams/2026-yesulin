@@ -9,7 +9,6 @@ import { SocialButtons } from "./social-buttons";
 import {
   SessionApiError,
   login as requestLogin,
-  loginAsLocalApplicant,
 } from "@/features/auth/session-api";
 import { rememberSocialLoginReturnTo } from "@/features/auth/social-login-return-to";
 import { frontendEnvironment } from "@/config/environment";
@@ -24,7 +23,6 @@ type LoginErrors = Partial<Record<"identifier" | "password", string>>;
 const mockingDisabled = !frontendEnvironment.apiMockingEnabled;
 const realProducerLoginEnabled = frontendEnvironment.producerLoginEnabled;
 const realSocialLoginEnabled = frontendEnvironment.socialLoginEnabled;
-const localSocialLoginEnabled = frontendEnvironment.localSocialLoginEnabled;
 
 const PROVIDER_LABELS: Record<SocialProvider, string> = {
   kakao: "카카오",
@@ -32,7 +30,7 @@ const PROVIDER_LABELS: Record<SocialProvider, string> = {
   google: "Google",
 };
 
-export function LoginForm({ returnTo, applicationFlow = false, serverSessionRequired = false }: { readonly returnTo?: string; readonly applicationFlow?: boolean; readonly serverSessionRequired?: boolean }) {
+export function LoginForm({ returnTo, applicationFlow = false }: { readonly returnTo?: string; readonly applicationFlow?: boolean }) {
   const toast = useToast();
   const router = useRouter();
   const { setSession } = useAuthSession();
@@ -92,29 +90,9 @@ export function LoginForm({ returnTo, applicationFlow = false, serverSessionRequ
   async function handleSocialLogin(provider: SocialProvider) {
     setPendingProvider(provider);
 
-    if (realSocialLoginEnabled || (mockingDisabled && !localSocialLoginEnabled)) {
+    if (realSocialLoginEnabled || mockingDisabled) {
       rememberSocialLoginReturnTo(returnTo);
       window.location.assign(`/oauth2/authorization/${provider}`);
-      return;
-    }
-
-    if (serverSessionRequired && localSocialLoginEnabled) {
-      try {
-        const serverSession = await loginAsLocalApplicant(provider);
-        setSession({
-          credential: `member-${serverSession.memberId}`,
-          role: serverSession.role,
-          displayName: "로컬 배우",
-          socialProvider: provider,
-        });
-        toast("로그인했습니다. 지원서 검토 화면으로 돌아갑니다.", { type: "success" });
-        router.push(returnTo ?? "/applicants");
-      } catch (error) {
-        setPendingProvider(undefined);
-        toast(error instanceof SessionApiError
-          ? error.message
-          : "로그인하지 못했습니다. 잠시 후 다시 시도해 주세요.", { type: "error" });
-      }
       return;
     }
 
