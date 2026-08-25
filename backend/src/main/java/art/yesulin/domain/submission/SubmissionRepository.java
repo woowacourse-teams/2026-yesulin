@@ -27,17 +27,6 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long>, S
     );
 
     @Query("""
-            select submission.id as id,
-                   submission.submissionId as submissionId,
-                   submission.auditionSnapshot.title as auditionTitle,
-                   submission.submittedAt as submittedAt
-            from Submission submission
-            where submission.applicantId = :applicantId
-            order by submission.submittedAt desc, submission.id desc
-            """)
-    List<SubmissionSummaryProjection> findSummariesByApplicantId(@Param("applicantId") long applicantId);
-
-    @Query("""
             select submission.id as submissionDatabaseId,
                    role.auditionRoleId as roleId,
                    role.roleName as roleName

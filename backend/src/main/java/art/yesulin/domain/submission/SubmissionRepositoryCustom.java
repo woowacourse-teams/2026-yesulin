@@ -9,4 +9,6 @@ public interface SubmissionRepositoryCustom {
             long roleId,
             ScreeningSubmissionSearchCondition condition
     );
+
+    List<SubmissionSummaryRow> findSummaryRowsByApplicantId(long applicantId);
 }

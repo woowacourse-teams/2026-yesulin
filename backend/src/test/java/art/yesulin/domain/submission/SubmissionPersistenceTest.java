@@ -114,13 +114,13 @@ class SubmissionPersistenceTest {
         submissionRepository.saveAllAndFlush(List.of(older, newer));
         entityManager.clear();
 
-        List<SubmissionSummaryProjection> summaries = submissionRepository.findSummariesByApplicantId(APPLICANT_ID);
+        List<SubmissionSummaryRow> summaries = submissionRepository.findSummaryRowsByApplicantId(APPLICANT_ID);
         List<SubmissionSelectedRoleProjection> roles = submissionRepository.findSelectedRolesBySubmissionIds(
-                summaries.stream().map(SubmissionSummaryProjection::getId).toList()
+                summaries.stream().map(SubmissionSummaryRow::submissionDatabaseId).toList()
         );
 
         assertEquals(List.of(newer.getSubmissionId(), older.getSubmissionId()), summaries.stream()
-                .map(SubmissionSummaryProjection::getSubmissionId)
+                .map(SubmissionSummaryRow::submissionId)
                 .toList());
         assertEquals(List.of(30L, 20L), roles.stream().map(SubmissionSelectedRoleProjection::getRoleId).toList());
         assertTrue(submissionRepository.existsByApplicantIdAndAuditionId(APPLICANT_ID, 2L));

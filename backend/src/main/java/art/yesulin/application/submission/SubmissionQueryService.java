@@ -8,7 +8,7 @@ import art.yesulin.domain.submission.SubmissionConsent;
 import art.yesulin.domain.submission.SubmissionConsentRepository;
 import art.yesulin.domain.submission.SubmissionRepository;
 import art.yesulin.domain.submission.SubmissionSelectedRoleProjection;
-import art.yesulin.domain.submission.SubmissionSummaryProjection;
+import art.yesulin.domain.submission.SubmissionSummaryRow;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -27,13 +27,14 @@ public class SubmissionQueryService {
 
     @Transactional(readOnly = true)
     public List<SubmissionSummaryResult> findAll(long applicantId) {
-        List<SubmissionSummaryProjection> summaries = submissionRepository.findSummariesByApplicantId(applicantId);
+        List<SubmissionSummaryRow> summaries = submissionRepository.findSummaryRowsByApplicantId(applicantId);
         if (summaries.isEmpty()) {
             return List.of();
         }
         Map<Long, List<SubmissionSelectedRoleResult>> selectedRoles = findSelectedRoles(summaries);
         return summaries.stream()
-                .map(summary -> toResult(summary, selectedRoles.getOrDefault(summary.getId(), List.of())))
+                .map(summary -> SubmissionSummaryResult.of(
+                        summary, selectedRoles.getOrDefault(summary.submissionDatabaseId(), List.of())))
                 .toList();
     }
 
@@ -46,9 +47,9 @@ public class SubmissionQueryService {
     }
 
     private Map<Long, List<SubmissionSelectedRoleResult>> findSelectedRoles(
-            List<SubmissionSummaryProjection> summaries
+            List<SubmissionSummaryRow> summaries
     ) {
-        List<Long> submissionIds = summaries.stream().map(SubmissionSummaryProjection::getId).toList();
+        List<Long> submissionIds = summaries.stream().map(SubmissionSummaryRow::submissionDatabaseId).toList();
         Map<Long, List<SubmissionSelectedRoleResult>> selectedRoles = new LinkedHashMap<>();
         for (SubmissionSelectedRoleProjection role : submissionRepository.findSelectedRolesBySubmissionIds(
                 submissionIds
@@ -57,14 +58,5 @@ public class SubmissionQueryService {
                     .add(new SubmissionSelectedRoleResult(role.getRoleId(), role.getRoleName()));
         }
         return selectedRoles;
-    }
-
-    private SubmissionSummaryResult toResult(
-            SubmissionSummaryProjection summary,
-            List<SubmissionSelectedRoleResult> selectedRoles
-    ) {
-        return new SubmissionSummaryResult(
-                summary.getSubmissionId(), summary.getAuditionTitle(), summary.getSubmittedAt(), selectedRoles
-        );
     }
 }

@@ -1,6 +1,10 @@
 package art.yesulin.domain.submission;
 
+import art.yesulin.domain.audition.QAudition;
+import art.yesulin.domain.performance.QPerformance;
+import art.yesulin.domain.producer.QProducer;
 import com.querydsl.core.BooleanBuilder;
+import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.NumberPath;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.List;
@@ -11,6 +15,9 @@ public class SubmissionRepositoryCustomImpl implements SubmissionRepositoryCusto
 
     private static final QSubmission SUBMISSION = QSubmission.submission;
     private static final QSelectedRole SELECTED_ROLE = new QSelectedRole("screeningSelectedRole");
+    private static final QAudition AUDITION = QAudition.audition;
+    private static final QPerformance PERFORMANCE = QPerformance.performance;
+    private static final QProducer PRODUCER = QProducer.producer;
 
     private final JPAQueryFactory queryFactory;
 
@@ -33,6 +40,33 @@ public class SubmissionRepositoryCustomImpl implements SubmissionRepositoryCusto
                 .join(SUBMISSION.selectedRoles.values, SELECTED_ROLE)
                 .where(filters)
                 .orderBy(SUBMISSION.submittedAt.asc(), SUBMISSION.id.asc())
+                .fetch();
+    }
+
+    /**
+     * 목록 화면이 필요로 하는 공고·공연·기획사 값을 한 번에 읽는다. 제출 이력은 배우의 기록이므로
+     * 공고나 공연을 더 이상 찾을 수 없어도 목록에서 빠지지 않도록 모두 left join으로 잇는다.
+     */
+    @Override
+    public List<SubmissionSummaryRow> findSummaryRowsByApplicantId(long applicantId) {
+        return queryFactory.select(Projections.constructor(
+                        SubmissionSummaryRow.class,
+                        SUBMISSION.id,
+                        SUBMISSION.submissionId,
+                        AUDITION.publicId,
+                        SUBMISSION.auditionSnapshot.title,
+                        PERFORMANCE.title,
+                        PRODUCER.companyName,
+                        PERFORMANCE.ownerId,
+                        PERFORMANCE.posterFileId,
+                        SUBMISSION.submittedAt
+                ))
+                .from(SUBMISSION)
+                .leftJoin(AUDITION).on(AUDITION.id.eq(SUBMISSION.auditionSnapshot.auditionId))
+                .leftJoin(PERFORMANCE).on(PERFORMANCE.id.eq(AUDITION.performanceId))
+                .leftJoin(PRODUCER).on(PRODUCER.memberId.eq(AUDITION.ownerId))
+                .where(SUBMISSION.applicantId.eq(applicantId))
+                .orderBy(SUBMISSION.submittedAt.desc(), SUBMISSION.id.desc())
                 .fetch();
     }
 

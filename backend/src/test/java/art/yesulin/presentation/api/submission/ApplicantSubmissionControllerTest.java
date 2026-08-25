@@ -10,6 +10,9 @@ import art.yesulin.application.auth.MemberPrincipal;
 import art.yesulin.application.photolibrary.AddPhotoToLibraryCommand;
 import art.yesulin.application.photolibrary.PhotoLibraryItemResult;
 import art.yesulin.application.photolibrary.PhotoLibraryService;
+import art.yesulin.domain.audition.Audition;
+import art.yesulin.domain.audition.AuditionRepository;
+import art.yesulin.domain.audition.PerformancePeriod;
 import art.yesulin.domain.file.FileAsset;
 import art.yesulin.domain.file.FileAssetRepository;
 import art.yesulin.domain.file.FileMetadata;
@@ -17,6 +20,10 @@ import art.yesulin.domain.file.FileReference;
 import art.yesulin.domain.file.FileReferenceRepository;
 import art.yesulin.domain.member.MemberStatus;
 import art.yesulin.domain.member.MemberType;
+import art.yesulin.domain.performance.Performance;
+import art.yesulin.domain.performance.PerformanceRepository;
+import art.yesulin.domain.producer.Producer;
+import art.yesulin.domain.producer.ProducerRepository;
 import art.yesulin.domain.submission.ApplicantSnapshot;
 import art.yesulin.domain.submission.AuditionSnapshot;
 import art.yesulin.domain.submission.MilitaryServiceStatus;
@@ -84,6 +91,12 @@ class ApplicantSubmissionControllerTest {
     private FileReferenceRepository fileReferenceRepository;
     @Autowired
     private PhotoLibraryService photoLibraryService;
+    @Autowired
+    private AuditionRepository auditionRepository;
+    @Autowired
+    private PerformanceRepository performanceRepository;
+    @Autowired
+    private ProducerRepository producerRepository;
 
     @Test
     void findsOnlySessionApplicantsSubmissionSummariesInRecentOrder() throws Exception {
@@ -146,6 +159,54 @@ class ApplicantSubmissionControllerTest {
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("SUBMISSION_NOT_FOUND"));
+    }
+
+    @Test
+    void enrichesSummaryWithAuditionPerformanceAndProducer() throws Exception {
+        long producerMemberId = 7L;
+        long posterFileId = savePosterImage(producerMemberId);
+        Performance performance = performanceRepository.saveAndFlush(
+                new Performance(producerMemberId, posterFileId, "햄릿", "서울특별시 종로구 대학로 12")
+        );
+        Audition audition = auditionRepository.saveAndFlush(new Audition(
+                performance.getId(), producerMemberId, "햄릿 공개 오디션",
+                new PerformancePeriod(LocalDate.of(2100, 10, 1), null)
+        ));
+        producerRepository.saveAndFlush(new Producer(producerMemberId, "극단 예술인", "01012345678"));
+        saveSubmission(APPLICANT_ID, audition.getId(), SUBMITTED_AT, posterFileId);
+
+        mockMvc.perform(get(SUBMISSIONS_PATH)
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.submissions[0].auditionId").value(audition.getPublicId().toString()))
+                .andExpect(jsonPath("$.submissions[0].performanceTitle").value("햄릿"))
+                .andExpect(jsonPath("$.submissions[0].companyName").value("극단 예술인"))
+                .andExpect(jsonPath("$.submissions[0].posterUrl").value(startsWith("http")));
+    }
+
+    /**
+     * 공고를 찾을 수 없는 제출 이력도 배우의 기록이므로 목록에서 사라지지 않아야 한다.
+     */
+    @Test
+    void keepsSummaryWithoutAuditionRow() throws Exception {
+        saveSubmission(APPLICANT_ID, 999L, SUBMITTED_AT, 41L);
+
+        mockMvc.perform(get(SUBMISSIONS_PATH)
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.submissions.length()").value(1))
+                .andExpect(jsonPath("$.submissions[0].auditionTitle").value("공고 999"))
+                .andExpect(jsonPath("$.submissions[0].auditionId").doesNotExist())
+                .andExpect(jsonPath("$.submissions[0].performanceTitle").doesNotExist())
+                .andExpect(jsonPath("$.submissions[0].posterUrl").doesNotExist());
+    }
+
+    private long savePosterImage(long ownerId) {
+        FileAsset file = new FileAsset(
+                "performances/poster.jpg", ownerId, new FileMetadata("poster.jpg", "image/jpeg", 2_048L)
+        );
+        file.completeUpload("image/jpeg", 2_048L);
+        return fileAssetRepository.saveAndFlush(file).getId();
     }
 
     private Submission saveSubmission(long applicantId, long auditionId, Instant submittedAt, long fileId) {

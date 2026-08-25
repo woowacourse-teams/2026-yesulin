@@ -13,14 +13,22 @@ import type { PublicPosting } from "@/features/applications/public-posting";
 import { getV1PublicPosting } from "@/features/applications/public-audition-v1";
 import { isBackendAuditionId } from "@/features/auditions/audition-v1-api";
 import type { SubmissionId } from "@/features/auditions/types";
+import { frontendEnvironment } from "@/config/environment";
 import { applicantRequest as request } from "./request";
+import { getV1ApplicantSubmissions } from "./submission-list-v1";
 
 export { ApplicantRequestError } from "./request";
 export { getApplicantProfile, updateApplicantProfile } from "./profile-api";
 
 export const getProfilePrefill = (postingId: string) => request<ProfilePrefillResponse>(`/me/profile/prefill?postingId=${encodeURIComponent(postingId)}`);
 
-export const getApplicantSubmissions = () => request<ApplicantSubmissionListResponse>("/me/submissions");
+/**
+ * MSW 시나리오는 배역별 전형 상태까지 시드로 제공하므로 목 모드에서는 기존 목 계약을 유지하고,
+ * 실제 API 모드에서만 Backend 목록을 화면 모델로 변환한다.
+ */
+export const getApplicantSubmissions = () => frontendEnvironment.apiMockingEnabled
+  ? request<ApplicantSubmissionListResponse>("/me/submissions")
+  : getV1ApplicantSubmissions();
 
 export const getApplicantSubmission = (submissionId: SubmissionId) => request<ApplicantSubmissionDetail>(`/me/submissions/${submissionId}`);
 

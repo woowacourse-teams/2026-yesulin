@@ -151,8 +151,11 @@ POST   /api/v1/auditions/{auditionId}/submissions # 인증 배우의 최종 제�
 ```
 
 - 제출 완료 후 일반 수정은 공개 정책에서 허용하지 않는다. 현재 프런트 화면은 읽기 전용이며 MSW의 수정 요청도 `409 IMMUTABLE_SUBMISSION`으로 거부한다.
-- 내 지원서 목록은 현재 페이징하지 않고 최신 제출 순의 `submissions` 배열로 반환한다. 목록 전용 Projection으로
-  `submissionId`, 공고명 스냅샷, 제출 시각과 선택 배역만 조회하며 페이지 크기·응답 계약은 별도 이슈에서 합의한다.
+- 내 지원서 목록은 현재 페이징하지 않고 최신 제출 순의 `submissions` 배열로 반환한다. 목록 전용 읽기 모델이
+  제출 스냅샷과 공고·공연·기획사를 한 번에 조회하며 페이지 크기는 별도 이슈에서 합의한다.
+- 목록 응답의 `auditionId`, `performanceTitle`, `companyName`, `posterUrl`은 공고를 더 이상 찾을 수 없거나
+  포스터를 읽지 못하면 `null`이다. 제출 이력은 배우의 기록이므로 이런 경우에도 목록에서 빼지 않으며,
+  공고명 `auditionTitle`은 제출 스냅샷이라 항상 존재한다.
 - 상세는 세션 회원 ID와 `submissionId`를 함께 조회 조건으로 사용한다. 미존재 지원서와 다른 회원의 지원서는
   모두 `404 SUBMISSION_NOT_FOUND`로 응답한다.
 - 상세는 제출 당시 지원자 기본·추가 정보, 수집 필드, 계산 나이, 선택 배역, 질문·사진·영상 답변과 동의 문서
@@ -225,7 +228,11 @@ POST   /api/v1/auditions/{auditionId}/submissions # 인증 배우의 최종 제�
   "submissions": [
     {
       "submissionId": "5ba4f233-d49f-48c8-b07b-390b816beef1",
+      "auditionId": "0f1b1f6f-8f0e-4a5a-9a3f-6b9a1f2c3d4e",
       "auditionTitle": "햄릿 배우 모집",
+      "performanceTitle": "햄릿",
+      "companyName": "극단 예술인",
+      "posterUrl": "https://cdn.example.com/files/20260824/poster.jpg",
       "submittedAt": "2026-08-24T03:15:00Z",
       "selectedRoles": [{ "roleId": 11, "roleName": "오필리어" }]
     }
