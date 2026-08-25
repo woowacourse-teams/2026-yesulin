@@ -1,5 +1,6 @@
 import { CreateField } from "./create-form";
 import { FieldInput } from "@/components/ui/controls";
+import { PERFORMANCE_ROLE_DESCRIPTION_MAX_LENGTH, PERFORMANCE_ROLE_NAME_MAX_LENGTH } from "@/features/auditions/performance-validation";
 
 export type RoleDraft = {
   readonly key: number;
@@ -48,6 +49,7 @@ export function PerformanceRoleEditor({
             <CreateField label="배역 이름">
               <FieldInput
                 required
+                maxLength={PERFORMANCE_ROLE_NAME_MAX_LENGTH}
                 name={`role-${role.key}-name`}
                 autoComplete="off"
                 value={role.name}
@@ -58,6 +60,7 @@ export function PerformanceRoleEditor({
             <CreateField label="한 줄 설명">
               <FieldInput
                 required
+                maxLength={PERFORMANCE_ROLE_DESCRIPTION_MAX_LENGTH}
                 name={`role-${role.key}-description`}
                 autoComplete="off"
                 value={role.description}
@@ -76,6 +79,28 @@ export function PerformanceRoleEditor({
       >
         배역 추가
       </button>
+    </div>
+  );
+}
+
+export function PerformanceRoleReadOnlyList({ roles }: {
+  readonly roles: readonly Pick<RoleDraft, "id" | "name" | "description">[];
+}) {
+  return (
+    <div className="space-y-3">
+      {roles.map((role, index) => (
+        <div key={role.id ?? `${role.name}-${index}`} className="rounded-card border border-border bg-surface p-4">
+          <b className="mb-3 block text-base md:text-xs">배역 {index + 1}</b>
+          <div className="grid gap-3 md:grid-cols-2">
+            <CreateField label="배역 이름">
+              <FieldInput readOnly value={role.name} />
+            </CreateField>
+            <CreateField label="한 줄 설명">
+              <FieldInput readOnly value={role.description} />
+            </CreateField>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

@@ -124,7 +124,7 @@ public class AuditionRepositoryCustomImpl implements AuditionRepositoryCustom {
                         PERFORMANCE.id,
                         PERFORMANCE.posterFileId,
                         PERFORMANCE.title,
-                        PERFORMANCE.roadAddress,
+                        PERFORMANCE.venue.roadAddress,
                         PERFORMANCE.createdAt
                 )
                 .from(PERFORMANCE)
@@ -308,7 +308,7 @@ public class AuditionRepositoryCustomImpl implements AuditionRepositoryCustom {
                 tuple.get(PERFORMANCE.id),
                 tuple.get(PERFORMANCE.posterFileId),
                 tuple.get(PERFORMANCE.title),
-                tuple.get(PERFORMANCE.roadAddress),
+                tuple.get(PERFORMANCE.venue.roadAddress),
                 tuple.get(PERFORMANCE.createdAt)
         );
     }

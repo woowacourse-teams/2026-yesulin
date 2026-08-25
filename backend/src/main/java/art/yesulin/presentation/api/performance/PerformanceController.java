@@ -6,20 +6,18 @@ import art.yesulin.application.auth.annotation.LoginMember;
 import art.yesulin.application.auth.annotation.LoginRequired;
 import art.yesulin.application.file.FileService;
 import art.yesulin.application.performance.PerformanceResult;
-import art.yesulin.application.performance.PerformanceRoleResult;
 import art.yesulin.application.performance.PerformanceService;
 import art.yesulin.domain.member.MemberStatus;
 import art.yesulin.domain.member.MemberType;
 import jakarta.validation.Valid;
 import java.net.URI;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -35,12 +33,14 @@ public class PerformanceController {
     private final FileService fileService;
 
     @PostMapping
-    public ResponseEntity<PerformanceResult> create(
+    public ResponseEntity<PerformanceResponse> create(
             @LoginMember(roles = MemberType.PRODUCER, statuses = MemberStatus.ACTIVE) MemberPrincipal principal,
             @Valid @RequestBody CreatePerformanceRequest request
     ) {
-        PerformanceResult result = performanceService.create(principal.memberId(), request.toCommand());
-        return ResponseEntity.created(URI.create("/api/v1/performances/" + result.id())).body(result);
+        long ownerId = principal.memberId();
+        PerformanceResult result = performanceService.create(ownerId, request.toCommand());
+        return ResponseEntity.created(URI.create("/api/v1/performances/" + result.id()))
+                .body(toResponse(ownerId, result));
     }
 
     @GetMapping
@@ -66,6 +66,17 @@ public class PerformanceController {
         return ResponseEntity.ok(toResponse(ownerId, performanceService.find(ownerId, performanceId)));
     }
 
+    @PutMapping("/{performanceId}")
+    public ResponseEntity<PerformanceResponse> update(
+            @LoginMember(roles = MemberType.PRODUCER, statuses = MemberStatus.ACTIVE) MemberPrincipal principal,
+            @PathVariable long performanceId,
+            @Valid @RequestBody UpdatePerformanceRequest request
+    ) {
+        long ownerId = principal.memberId();
+        PerformanceResult result = performanceService.update(ownerId, performanceId, request.toCommand());
+        return ResponseEntity.ok(toResponse(ownerId, result));
+    }
+
     @PatchMapping("/{performanceId}/basic-information")
     public ResponseEntity<PerformanceResult> updateBasicInformation(
             @LoginMember(roles = MemberType.PRODUCER, statuses = MemberStatus.ACTIVE) MemberPrincipal principal,
@@ -88,41 +99,10 @@ public class PerformanceController {
         return ResponseEntity.ok(result);
     }
 
-    @PostMapping("/{performanceId}/roles")
-    public ResponseEntity<PerformanceRoleResult> addRole(
-            @LoginMember(roles = MemberType.PRODUCER, statuses = MemberStatus.ACTIVE) MemberPrincipal principal,
-            @PathVariable long performanceId,
-            @Valid @RequestBody CreatePerformanceRoleRequest request
-    ) {
-        PerformanceRoleResult result = performanceService.addRole(
-                principal.memberId(), performanceId, request.toCommand()
-        );
-        return ResponseEntity.status(HttpStatus.CREATED).body(result);
-    }
-
-    @PatchMapping("/{performanceId}/roles/{roleId}")
-    public ResponseEntity<PerformanceRoleResult> updateRole(
-            @LoginMember(roles = MemberType.PRODUCER, statuses = MemberStatus.ACTIVE) MemberPrincipal principal,
-            @PathVariable long performanceId,
-            @PathVariable long roleId,
-            @Valid @RequestBody UpdatePerformanceRoleRequest request
-    ) {
-        return ResponseEntity.ok(
-                performanceService.updateRole(principal.memberId(), performanceId, roleId, request.toCommand())
-        );
-    }
-
-    @DeleteMapping("/{performanceId}/roles/{roleId}")
-    public ResponseEntity<Void> removeRole(
-            @LoginMember(roles = MemberType.PRODUCER, statuses = MemberStatus.ACTIVE) MemberPrincipal principal,
-            @PathVariable long performanceId,
-            @PathVariable long roleId
-    ) {
-        performanceService.removeRole(principal.memberId(), performanceId, roleId);
-        return ResponseEntity.noContent().build();
-    }
-
     private PerformanceResponse toResponse(long ownerId, PerformanceResult result) {
-        return PerformanceResponse.from(result, fileService.readUrl(ownerId, result.posterFileId()));
+        return PerformanceResponse.from(
+                result,
+                fileService.readUrl(ownerId, result.posterFileId())
+        );
     }
 }

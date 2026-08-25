@@ -35,6 +35,7 @@ import {
 import type { CreatePerformanceRequest, CreatePostingRequest } from "./creation-types";
 import type {
   PostingManagementDetail,
+  PerformanceManagementDetail,
   ProducerProfile,
   UpdatePerformanceRequest,
   UpdatePostingRequest,
@@ -129,6 +130,20 @@ export async function completeScreening(
 }
 
 export async function createPerformance(body: CreatePerformanceRequest, poster: File) {
+  const posterFileId = await uploadPerformancePoster(poster);
+  return request<unknown>("/v1/performances", {
+    method: "POST",
+    body: JSON.stringify({
+      posterFileId,
+      title: body.title.trim(),
+      venue: body.venue.trim(),
+      venueAddress: body.venueAddress,
+      roles: body.roles.map((role) => ({ name: role.name.trim(), description: role.description.trim() })),
+    }),
+  });
+}
+
+async function uploadPerformancePoster(poster: File) {
   const upload = await request<FileUploadResource>("/v1/performance-posters/upload-requests", {
     method: "POST",
     body: JSON.stringify({ originalFilename: poster.name, contentType: poster.type, size: poster.size }),
@@ -140,15 +155,7 @@ export async function createPerformance(body: CreatePerformanceRequest, poster: 
   });
   if (!uploadResponse.ok) throw new AuditionRequestError("공연 포스터를 업로드하지 못했습니다.", uploadResponse.status);
   await request<void>(`/v1/performance-posters/${upload.fileId}/completion`, { method: "PATCH" });
-  return request<unknown>("/v1/performances", {
-    method: "POST",
-    body: JSON.stringify({
-      posterFileId: upload.fileId,
-      title: body.title,
-      roadAddress: body.venueAddress.roadAddress,
-      roles: body.roles,
-    }),
-  });
+  return upload.fileId;
 }
 
 function toPerformanceSummary(resource: PerformanceResource): PerformanceListResponse["performances"][number] {
@@ -180,8 +187,49 @@ export function createPosting(body: CreatePostingRequest, auditionId: string) {
   });
 }
 
-export function updatePerformance(id: PerformanceId, body: UpdatePerformanceRequest) {
-  return request<PerformanceListResponse>(`/performances/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+export function getPerformanceManagement(id: PerformanceId): Promise<PerformanceManagementDetail> {
+  if (!isBackendPerformanceId(id)) return request<PerformanceManagementDetail>(`/performances/${id}`);
+  return request<PerformanceResource>(`/v1/performances/${id}`).then(toPerformanceManagementDetail);
+}
+
+export async function updatePerformance(
+  id: PerformanceId,
+  body: UpdatePerformanceRequest,
+  poster: File | null,
+) {
+  if (!isBackendPerformanceId(id)) {
+    return request<PerformanceListResponse>(`/performances/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    });
+  }
+  const posterFileId = poster ? await uploadPerformancePoster(poster) : body.posterFileId;
+  return request<PerformanceResource>(`/v1/performances/${id}`, {
+    method: "PUT",
+    body: JSON.stringify({
+      posterFileId,
+      title: body.title?.trim(),
+      venue: body.venue?.trim(),
+      venueAddress: body.venueAddress,
+    }),
+  });
+}
+
+function toPerformanceManagementDetail(resource: PerformanceResource): PerformanceManagementDetail {
+  const summary = toPerformanceSummary(resource);
+  return {
+    id: summary.id,
+    posterFileId: resource.posterFileId,
+    posterUrl: summary.posterUrl,
+    title: summary.title,
+    venue: summary.venue,
+    venueAddress: summary.venueAddress,
+    roleTemplates: resource.roles.map((role) => ({
+      id: String(role.id),
+      name: role.name,
+      description: role.description,
+    })),
+  };
 }
 
 export function deletePerformance(id: PerformanceId) {

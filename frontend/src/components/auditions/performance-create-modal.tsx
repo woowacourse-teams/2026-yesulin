@@ -16,6 +16,7 @@ import { PosterUploadField } from "./poster-upload-field";
 import { emptyVenueAddress, PerformanceVenueField } from "./performance-venue-field";
 import { performanceCreationDraftKey } from "@/features/auditions/producer-creation-draft-store";
 import { ProducerCreationDraftStatus, useProducerCreationDraft } from "./use-producer-creation-draft";
+import { PERFORMANCE_TITLE_MAX_LENGTH, validatePerformanceInput } from "@/features/auditions/performance-validation";
 
 const TITLE_ID = "performance-create-title";
 const FORM_ERROR_ID = "performance-create-error";
@@ -97,8 +98,9 @@ export function PerformanceCreateModal({
       setFormError("서버에 업로드할 공연 포스터 이미지를 다시 선택해 주세요.");
       return;
     }
-    if (!venueAddress.roadAddress) {
-      setFormError("도로명주소 검색으로 공연 장소를 선택해 주세요.");
+    const validationError = validatePerformanceInput({ title, venue, venueAddress, roles });
+    if (validationError) {
+      setFormError(validationError);
       return;
     }
     setSaving(true);
@@ -153,6 +155,7 @@ export function PerformanceCreateModal({
                   <FieldInput
                     data-autofocus="true"
                     required
+                    maxLength={PERFORMANCE_TITLE_MAX_LENGTH}
                     name="performanceTitle"
                     autoComplete="off"
                     value={title}

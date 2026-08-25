@@ -36,7 +36,7 @@ Production 프론트 주소는 `https://yesulin.art`다. Vercel의 `API_ORIGIN`�
 `POST /api/v1/producers`, `POST /api/v1/sessions`, `GET /api/v1/sessions/current`, `DELETE /api/v1/sessions/current`는
 MSW를 통과해 `API_ORIGIN`으로 전달된다.
 
-공연·공고 생성과 구현 완료된 조회 API도 실제 백엔드로 연결하려면
+공연 생성·목록·상세·수정과 공고 생성 및 구현 완료된 조회 API도 실제 백엔드로 연결하려면
 `NEXT_PUBLIC_PRODUCER_API=enabled`를 함께 사용한다. 이 모드에서는 MSW가 공연·공고 관리 조회,
 탐색 트리와 기획사/제작사 정보 `GET·PATCH /api/v1/producers/me`를 가로채지 않는다.
 

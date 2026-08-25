@@ -76,6 +76,21 @@ export const handlers = [
     catch (cause) { return apiError(500, "MOCK_DATA_ERROR", cause instanceof Error ? cause.message : "목 공연 데이터를 만들지 못했습니다."); }
   }),
 
+  http.get(`${apiPath}/performances/:performanceId`, async ({ params }) => {
+    await delay(180);
+    const performance = findPerformance(performanceId(String(params.performanceId)));
+    if (!performance) return notFound("공연을 찾을 수 없습니다.");
+    return HttpResponse.json({
+      id: performance.id,
+      posterFileId: null,
+      posterUrl: performance.posterUrl,
+      title: performance.title,
+      venue: performance.venue,
+      venueAddress: performance.venueAddress,
+      roleTemplates: performance.roleTemplates,
+    });
+  }),
+
   http.get(`${apiPath}/performances/:performanceId/postings`, async ({ params, request }) => {
     await delay(260);
     const performance = findPerformance(performanceId(String(params.performanceId)));
@@ -109,12 +124,14 @@ export const handlers = [
   http.patch(`${apiPath}/performances/:performanceId`, async ({ params, request }) => {
     await delay(240);
     const id = performanceId(String(params.performanceId));
+    const performance = findPerformance(id);
+    if (!performance) return notFound("공연을 찾을 수 없습니다.");
     const body = (await request.json()) as UpdatePerformanceRequest;
-    if (body.title !== undefined && !hasText(body.title)) return apiError(400, "TITLE_REQUIRED", "공연 제목을 입력해 주세요.");
-    if (body.venue !== undefined && !hasText(body.venue)) return apiError(400, "VENUE_REQUIRED", "공연 장소를 입력해 주세요.");
+    if (body.title !== undefined && (!hasText(body.title) || body.title.length > 200)) return apiError(400, "TITLE_REQUIRED", "공연 제목은 200자 이내로 입력해 주세요.");
+    if (body.venue !== undefined && (!hasText(body.venue) || body.venue.length > 200)) return apiError(400, "VENUE_REQUIRED", "공연 장소명은 200자 이내로 입력해 주세요.");
     if (body.venueAddress !== undefined && !hasText(body.venueAddress.roadAddress)) return apiError(400, "ADDRESS_REQUIRED", "도로명주소를 선택해 주세요.");
-    if (body.roleTemplates?.length === 0) return apiError(400, "ROLE_REQUIRED", "배역을 하나 이상 남겨 주세요.");
-    if (!updateCatalogPerformance(id, body)) return notFound("공연을 찾을 수 없습니다.");
+    if (body.venueAddress && (body.venueAddress.roadAddress.length > 300 || body.venueAddress.detailAddress.length > 300)) return apiError(400, "ADDRESS_TOO_LONG", "공연 주소는 300자 이내로 입력해 주세요.");
+    updateCatalogPerformance(id, body);
     return HttpResponse.json({ performances: CATALOG.map(toPerformanceSummary) });
   }),
 

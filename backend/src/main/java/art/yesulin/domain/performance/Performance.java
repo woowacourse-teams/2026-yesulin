@@ -43,8 +43,8 @@ public class Performance extends AbstractAggregateRoot<Performance> {
     @Column(nullable = false, length = 200)
     private String title;
 
-    @Column(name = "road_address", nullable = false, length = 300)
-    private String roadAddress;
+    @Embedded
+    private PerformanceVenue venue;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -55,10 +55,14 @@ public class Performance extends AbstractAggregateRoot<Performance> {
     private PerformanceRoles roles = new PerformanceRoles();
 
     public Performance(long ownerId, long posterFileId, String title, String roadAddress) {
+        this(ownerId, posterFileId, title, PerformanceVenue.fromRoadAddress(roadAddress));
+    }
+
+    public Performance(long ownerId, long posterFileId, String title, PerformanceVenue venue) {
         this.ownerId = requirePositive(ownerId, "공연 소유자 ID는 1 이상이어야 합니다.");
         this.posterFileId = requirePositive(posterFileId, "포스터 파일 ID는 1 이상이어야 합니다.");
         this.title = requireText(title, "공연 제목은 필수입니다.");
-        this.roadAddress = requireText(roadAddress, "공연 도로명주소는 필수입니다.");
+        this.venue = venue;
     }
 
     public PerformanceRole addRole(String name, String description) {
@@ -66,8 +70,12 @@ public class Performance extends AbstractAggregateRoot<Performance> {
     }
 
     public void updateBasicInformation(String title, String roadAddress) {
+        updateBasicInformation(title, PerformanceVenue.fromRoadAddress(roadAddress));
+    }
+
+    public void updateBasicInformation(String title, PerformanceVenue venue) {
         this.title = requireText(title, "공연 제목은 필수입니다.");
-        this.roadAddress = requireText(roadAddress, "공연 도로명주소는 필수입니다.");
+        this.venue = venue;
     }
 
     public void updatePoster(long posterFileId) {
@@ -79,14 +87,6 @@ public class Performance extends AbstractAggregateRoot<Performance> {
         }
     }
 
-    public PerformanceRole updateRole(long roleId, String name, String description) {
-        return roles.update(roleId, name, description);
-    }
-
-    public void removeRole(long roleId) {
-        roles.remove(roleId);
-    }
-
     @PostPersist
     private void registerCreatedEvent() {
         registerEvent(new PerformanceCreatedEvent(id, ownerId, posterFileId));
@@ -94,5 +94,9 @@ public class Performance extends AbstractAggregateRoot<Performance> {
 
     public List<PerformanceRole> getRoles() {
         return roles.values();
+    }
+
+    public String getRoadAddress() {
+        return venue.getRoadAddress();
     }
 }

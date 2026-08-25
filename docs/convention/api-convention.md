@@ -326,15 +326,11 @@ PATCH  /api/v1/performance-posters/{fileId}/completion  # 직접 업로드 확�
 GET    /api/v1/performances                             # 공연 목록
 POST   /api/v1/performances                             # 공연 등록
 GET    /api/v1/performances/{performanceId}             # 공연 상세
+PUT    /api/v1/performances/{performanceId}             # 수정 폼 전체 저장
 PATCH  /api/v1/performances/{performanceId}/basic-information
                                                             # 제목·장소 수정
 PATCH  /api/v1/performances/{performanceId}/poster          # 포스터 교체
 DELETE /api/v1/performances/{performanceId}             # 공연 삭제
-POST   /api/v1/performances/{performanceId}/roles       # 배역 추가
-PATCH  /api/v1/performances/{performanceId}/roles/{roleId}
-                                                            # 배역 수정
-DELETE /api/v1/performances/{performanceId}/roles/{roleId}
-                                                            # 배역 삭제
 POST   /api/v1/auditions                               # 공연 ID와 기본 정보로 공고 DRAFT 생성
 GET    /api/v1/auditions?performanceId={performanceId}&phase={phase}&keyword={keyword}
                                                     # 공연별 공고 서버 검색·상태 필터
@@ -352,11 +348,13 @@ PUT    /api/v1/auditions/{auditionId}/publication         # 완성된 공고 게
 
 포스터 업로드 요청은 `originalFilename`, `contentType`, `size`를 받는다. `purpose`와 소유자 ID는 받지 않으며 소유자는 세션에서 결정한다. JPEG·PNG·WebP 이미지 한 장, 최대 30MB를 허용한다. 발급 응답의 `method`와 `headers`를 그대로 사용해 저장소에 직접 업로드한 뒤 완료 API를 호출한다. 완료는 실제 객체의 Content-Type과 크기를 확인하는 멱등 요청이며 성공 시 `204 No Content`를 반환한다. 없거나 다른 사용자의 파일은 모두 `404 FILE_NOT_FOUND`다. 상세 생명주기는 [파일 업로드 설계](../development/backend/file-upload.md)를 따른다.
 
-공연 추가는 완료된 `posterFileId`, `title`, 도로명주소 API에서 선택한 `roadAddress`, 선택적인 `roles`를 받는다. 각 배역은 `name`과 줄바꿈 없는 `description`으로 구성된다. 소유자는 세션에서 결정하며 포스터가 `READY`가 아니거나 다른 사용자 소유면 공연 생성도 롤백한다. 성공 시 `201 Created`, `Location`과 공연 하나를 wrapper 없이 반환하며 생성 감사 시각 `createdAt`과 모든 배역 ID가 포함된다.
+공연 추가는 완료된 `posterFileId`, `title`, 장소명 `venue`, 구조화된 `venueAddress`, 선택적인 `roles`를 받는다. `venueAddress`는 `roadAddress`, 선택 `detailAddress`·`zonecode`, 함께 전달하거나 함께 생략하는 `latitude`·`longitude`로 구성한다. 기존 `roadAddress` 단일 생성 요청은 이관 호환을 위해 장소명과 도로명주소가 같은 값인 것으로 처리한다. 각 배역은 `name`과 줄바꿈 없는 `description`으로 구성된다. 소유자는 세션에서 결정하며 포스터가 `READY`가 아니거나 다른 사용자 소유면 공연 생성도 롤백한다. 성공 시 `201 Created`, `Location`과 공연 하나를 wrapper 없이 반환하며 생성 감사 시각 `createdAt`과 모든 배역 ID가 포함된다.
 
-기본 정보 수정은 `title`, `roadAddress`만 받고 포스터와 배역을 변경하지 않는다. 포스터 교체 API는 완료된 `posterFileId`만 받으며 실제로 파일이 변경되면 이전·신규 파일 ID를 가진 이벤트를 발행하고 신규 파일 참조를 검증한다. 실패하면 포스터 교체를 롤백한다. 이전 포스터 객체의 물리 삭제는 현재 요청에서 수행하지 않는다.
+수정 폼은 `PUT /api/v1/performances/{performanceId}`에 `posterFileId`, `title`, `venue`, `venueAddress`를 보내 한 트랜잭션으로 저장한다. 공연 배역은 등록할 때 확정하며 수정 요청에서 받지 않는다. 배역 추가·수정·삭제 API도 외부에 제공하지 않아 프론트 우회를 막는다. 기본 정보·포스터 개별 API는 기존 클라이언트 호환과 단일 리소스 변경을 위해 유지한다.
 
-배역은 공연 하위 리소스로 개별 추가·수정·삭제한다. 단건 조회를 제공하지 않으므로 추가 성공은 `Location` 없이 `201 Created`와 생성된 배역을 반환한다. 수정은 `200 OK`, 삭제는 `204 No Content`를 반환한다. 다른 공연의 배역 ID와 같은 공연 안의 중복 이름은 거부한다. 배역이 없어도 공연은 유지할 수 있다.
+기본 정보 수정은 `title`, `venue`, `venueAddress`를 받고 포스터와 배역을 변경하지 않는다. 기존 `title`, `roadAddress` 요청도 이관 기간 동안 허용한다. 포스터 교체 API는 완료된 `posterFileId`만 받으며 실제로 파일이 변경되면 이전·신규 파일 ID를 가진 이벤트를 발행하고 신규 파일 참조를 검증한다. 실패하면 포스터 교체를 롤백한다. 이전 포스터 객체의 물리 삭제는 현재 요청에서 수행하지 않는다.
+
+배역은 공연 생성 요청에서만 추가한다. 생성 뒤 공연 상세에서는 조회할 수 있지만 이름·설명·목록을 변경할 수 없다. 공고 생성에서는 이 고정된 공연 배역 중 이번 공고가 모집할 배역을 선택하고 모집 조건을 별도로 저장한다.
 
 공고 생성은 UUID `id`, `performanceId`, `title`, `performanceStartDate`와 선택적인 `performanceEndDate`를
 받아 세션 소유자의 공연에 DRAFT를 만들고 `201 Created`와 `Location`을 반환한다. UUID는 외부 식별자이자
@@ -387,7 +385,7 @@ PUT    /api/v1/auditions/{auditionId}/publication         # 완성된 공고 게
 [공고 관리](../development/backend/audition-management.md)를 기준으로 한다.
 
 - `GET /api/v1/performances`는 각 공연 요약에 `postings[]` 공고 요약을 포함한다. 클라이언트는 공연을 카드로 표시하고, 카드를 선택하면 해당 공연의 공고 관리 화면으로 이동한다.
-- 공연 생성·수정은 `poster`, 공연명, 장소명과 `roadAddress`, `detailAddress`, `zonecode`, `latitude`, `longitude`, 그리고 이름·한 줄 설명만 가진 배역 템플릿을 다룬다.
+- 공연 생성은 `poster`, 공연명, 장소명과 `roadAddress`, `detailAddress`, `zonecode`, `latitude`, `longitude`, 그리고 이름·한 줄 설명만 가진 배역 템플릿을 다룬다. 공연 수정은 포스터·공연명·장소만 다루며 배역 템플릿은 읽기 전용이다.
 - 신규 공고는 공연 포스터를 복사한 독립 `posterUrl` 대표 이미지 스냅샷과 선택 `detailImageUrl`, 필수 공연 시작일·선택 공연 종료일, 분 단위 `recruitmentStart`·`recruitmentEnd`, 선택 `rehearsalVenue`·구조화된 `rehearsalVenueAddress`, 1~5개의 전형을 가진다. 공연 종료일을 보내지 않거나 빈 값으로 두면 오픈런으로 해석한다. 연습 장소 주소는 공연 주소와 같이 `roadAddress`, `detailAddress`, `zonecode`, nullable `latitude`·`longitude`로 구성한다. 대표 이미지는 목록·공유 미리보기에, 상세 이미지는 공개 공고 본문에 사용한다. 공연 장소는 공연에서 읽고 공고에 중복 저장하지 않는다. 각 전형은 차수, 이름, 날짜와 안내 사항으로 구성한다. 상태는 `DRAFT`, `UPCOMING`, `OPEN`, `RECRUIT_CLOSED`, `FINISHED`를 사용한다.
 - 공고의 모집 분야는 공연 배역을 참조하되 모집 인원·성별·최소/최대 나이를 공고 자체 값으로 복사한다. 게시 시 공연 배역 이름도 공고 배역 스냅샷으로 확정한다. 신규 공고는 배역별 모집만 만들고 과거 `isOpenCall`은 읽기 호환만 유지한다.
 - 지원 안내는 최대 2,000자다. 지원 폼은 선택한 기본 정보(필수), 선택한 추가 정보(nullable), 사진 설명 최대 255자의 `{description, count}` 배열(기본 1장·합계 최대 10), 영상 설명 최대 255자의 `{description}` 배열(최대 3), 질문 최대 10개·문구 최대 255자·답변 최대 2,000자·필수 여부를 가진 텍스트 커스텀 질문으로 구성한다. 학력은 단일 문자열, 링크는 최대 5개, 경력은 최대 10개다.
@@ -441,7 +439,8 @@ PATCH /api/v1/audition-roles/{roleId}/screening-rounds/{round} # 목표: status=
 /api/screenings/**                  → /api/v1/audition-roles/**/screening-rounds/**
 ```
 
-공연·공고 관리 목록, 탐색 트리와 UUID 공고의 지원서 제출은 프런트 이관을 완료했고, 배우 소셜
+공연·공고 관리 목록과 탐색 트리, 공연 상세 조회·수정 `GET·PUT /api/v1/performances/**`, UUID 공고의
+지원서 제출은 프런트 이관을 완료했고, 배우 소셜
 로그인과 HttpOnly Session 복원·로그아웃도 실제 Backend에 연결됐다. 배우 프로필 기본·추가 정보와 별도
 사진·영상 보관함은 `NEXT_PUBLIC_APPLICANT_PROFILE_API=enabled`에서 실제 Backend에 연결된다. 지원서
 제출은 새 사진을 배우 사진 API로 업로드·완료한 뒤 백엔드 폼의 질문·사진·영상 requirement ID와 연결하고,

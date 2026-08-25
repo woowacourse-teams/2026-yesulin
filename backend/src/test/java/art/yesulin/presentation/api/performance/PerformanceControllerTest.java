@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -84,7 +85,14 @@ class PerformanceControllerTest {
                 {
                   "posterFileId": %d,
                   "title": "햄릿",
-                  "roadAddress": "서울특별시 종로구 대학로 12",
+                  "venue": "대학로예술극장 대극장",
+                  "venueAddress": {
+                    "roadAddress": "서울특별시 종로구 대학로 12",
+                    "detailAddress": "대극장",
+                    "zonecode": "03086",
+                    "latitude": 37.5812,
+                    "longitude": 127.0033
+                  },
                   "roles": [
                     {"name": "햄릿", "description": "복수심에 흔들리는 덴마크 왕자"}
                   ]
@@ -100,7 +108,9 @@ class PerformanceControllerTest {
                 .andExpect(header().string("Location", matchesPattern("/api/v1/performances/\\d+")))
                 .andExpect(jsonPath("$.posterFileId").value(posterFileId))
                 .andExpect(jsonPath("$.title").value("햄릿"))
+                .andExpect(jsonPath("$.venue").value("대학로예술극장 대극장"))
                 .andExpect(jsonPath("$.roadAddress").value("서울특별시 종로구 대학로 12"))
+                .andExpect(jsonPath("$.venueAddress.zonecode").value("03086"))
                 .andExpect(jsonPath("$.createdAt").isString())
                 .andExpect(jsonPath("$.roles[0].id").isNumber());
     }
@@ -206,7 +216,41 @@ class PerformanceControllerTest {
     }
 
     @Test
-    void addsPerformanceRole() throws Exception {
+    void updatesWholePerformance() throws Exception {
+        PerformanceResult created = createPerformance();
+        long changedPosterFileId = uploadReadyPoster();
+        String request = """
+                {
+                  "posterFileId": %d,
+                  "title": "햄릿 리뉴얼",
+                  "venue": "세종문화회관 대극장",
+                  "venueAddress": {
+                    "roadAddress": "서울특별시 종로구 세종대로 175",
+                    "detailAddress": "대극장",
+                    "zonecode": "03172",
+                    "latitude": 37.5721,
+                    "longitude": 126.9766
+                  }
+                }
+                """.formatted(changedPosterFileId);
+
+        mockMvc.perform(put("/api/v1/performances/{performanceId}", created.id())
+                        .with(csrf())
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.posterFileId").value(changedPosterFileId))
+                .andExpect(jsonPath("$.title").value("햄릿 리뉴얼"))
+                .andExpect(jsonPath("$.venue").value("세종문화회관 대극장"))
+                .andExpect(jsonPath("$.venueAddress.detailAddress").value("대극장"))
+                .andExpect(jsonPath("$.roles.length()").value(1))
+                .andExpect(jsonPath("$.roles[0].id").value(created.roles().getFirst().id()))
+                .andExpect(jsonPath("$.roles[0].name").value("햄릿"));
+    }
+
+    @Test
+    void doesNotExposePerformanceRoleAddition() throws Exception {
         PerformanceResult created = createPerformance();
         String request = """
                 {"name": "클로디어스", "description": "새로 추가한 배역"}
@@ -217,14 +261,11 @@ class PerformanceControllerTest {
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
-                .andExpect(status().isCreated())
-                .andExpect(header().doesNotExist("Location"))
-                .andExpect(jsonPath("$.id").isNumber())
-                .andExpect(jsonPath("$.name").value("클로디어스"));
+                .andExpect(status().isNotFound());
     }
 
     @Test
-    void updatesPerformanceRole() throws Exception {
+    void doesNotExposePerformanceRoleUpdate() throws Exception {
         PerformanceResult created = createPerformance();
         long roleId = created.roles().getFirst().id();
         String request = """
@@ -236,20 +277,18 @@ class PerformanceControllerTest {
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(roleId))
-                .andExpect(jsonPath("$.name").value("햄릿 왕"));
+                .andExpect(status().isNotFound());
     }
 
     @Test
-    void removesPerformanceRole() throws Exception {
+    void doesNotExposePerformanceRoleRemoval() throws Exception {
         PerformanceResult created = createPerformance();
         long roleId = created.roles().getFirst().id();
 
         mockMvc.perform(delete("/api/v1/performances/{performanceId}/roles/{roleId}", created.id(), roleId)
                         .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isNotFound());
     }
 
     private PerformanceResult createPerformance() {
