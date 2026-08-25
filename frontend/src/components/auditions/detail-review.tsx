@@ -8,13 +8,12 @@ import { useBoard } from "./board-context";
 const STATUS_ACTIVE = {
   PASS: "text-pass bg-pass-bg border-pass",
   FAIL: "text-fail bg-fail-bg border-fail",
-  ABSENT: "text-absent bg-absent-bg border-absent",
   ETC: "text-etc bg-etc-bg border-etc",
   PENDING: "text-pending bg-pending-bg border-pending",
 } as const satisfies Record<ReviewStatus, string>;
 
 export function DetailReview({ applicant }: { applicant: Applicant }) {
-  const { board, visible, saving, roundClosed, reviewCurrent, patchReview, openApplicant } = useBoard();
+  const { board, visible, saving, screeningCompleted, reviewCurrent, patchReview, openApplicant } = useBoard();
   const index = visible.findIndex((candidate) => candidate.id === applicant.id);
 
   return (
@@ -25,14 +24,14 @@ export function DetailReview({ applicant }: { applicant: Applicant }) {
           <span className="text-xs text-muted">{ROUND_LABELS[board.round]}</span>
         </span>
 
-        {roundClosed ? (
+        {screeningCompleted ? (
           <span className="rounded-control border border-border bg-card px-3 py-2 text-xs text-muted">
-            마감된 차수라 결과를 변경할 수 없습니다.
+            종료된 전형은 결과를 변경할 수 없습니다.
           </span>
         ) : (
           <>
             <div className="flex flex-wrap gap-1.5">
-              {selectableStatuses(board.round).map((status) => {
+              {selectableStatuses().map((status) => {
                 const active = applicant.review.status === status;
                 return (
                   <button
@@ -86,6 +85,7 @@ export function DetailReview({ applicant }: { applicant: Applicant }) {
       <DraftField
         key={`note-${applicant.id}`}
         multiline
+        disabled={screeningCompleted || saving}
         label="내부 심사 메모"
         hint="현재 배역·차수에만 저장되며 배우에게 공개되지 않습니다"
         placeholder="예: 발성 좋음, 앙상블로도 고려 가능"
@@ -130,6 +130,7 @@ function DraftField({
   onCommit,
   className,
   multiline = false,
+  disabled = false,
 }: {
   label: string;
   hint?: string;
@@ -138,11 +139,12 @@ function DraftField({
   onCommit: (next: string) => void;
   className: string;
   multiline?: boolean;
+  disabled?: boolean;
 }) {
   const [draft, setDraft] = useState(value);
 
   const commit = () => {
-    if (draft !== value) onCommit(draft);
+    if (!disabled && draft !== value) onCommit(draft);
   };
 
   return (
@@ -158,6 +160,7 @@ function DraftField({
       {multiline ? (
         <textarea
           value={draft}
+          disabled={disabled}
           placeholder={placeholder}
           onChange={(event) => setDraft(event.target.value)}
           onBlur={commit}
@@ -166,6 +169,7 @@ function DraftField({
       ) : (
         <input
           value={draft}
+          disabled={disabled}
           placeholder={placeholder}
           onChange={(event) => setDraft(event.target.value)}
           onBlur={commit}

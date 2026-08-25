@@ -6,7 +6,8 @@ import art.yesulin.common.exception.ErrorType;
 public enum ScreeningReviewErrorCode implements ErrorCode {
 
     NOT_FOUND("SCREENING_REVIEW_NOT_FOUND", ErrorType.NOT_FOUND),
-    INVALID_REVIEW("INVALID_SCREENING_REVIEW", ErrorType.BAD_REQUEST);
+    INVALID_REVIEW("INVALID_SCREENING_REVIEW", ErrorType.BAD_REQUEST),
+    ROUND_NOT_READY("SCREENING_ROUND_NOT_READY", ErrorType.CONFLICT);
 
     private final String code;
     private final ErrorType type;

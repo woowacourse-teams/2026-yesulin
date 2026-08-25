@@ -167,7 +167,7 @@ export type PublicAuditionResource = {
 };
 
 export type ScreeningReviewResource = {
-  readonly status: "PENDING" | "PASS" | "FAIL" | "ABSENT" | "ETC";
+  readonly status: "PENDING" | "PASS" | "FAIL" | "ETC";
   readonly memo: string;
   readonly note: string;
 };
@@ -224,8 +224,6 @@ export type ScreeningBoardResource = {
   readonly rounds: readonly {
     readonly round: number;
     readonly name: string;
-    readonly open: boolean;
-    readonly closed: boolean;
     readonly counts: ScreeningCountsResource;
     readonly progress: { readonly done: number; readonly total: number; readonly percent: number };
   }[];
@@ -238,7 +236,6 @@ export type ScreeningCountsResource = {
   readonly done: number;
   readonly pass: number;
   readonly fail: number;
-  readonly absent: number;
   readonly etc: number;
 };
 

@@ -83,7 +83,7 @@ public record ScreeningBoardResult(
                 roleId, audition.getPublicId(), performanceRole.getName(),
                 performanceRole.getDescription(), condition.getRecruitmentCount(), condition.getGender().name(),
                 condition.getMinimumAge(), condition.getMaximumAge(), screening.applicantCount(),
-                screening.activeRound().value(), false, Progress.from(counts), counts
+                screening.activeRound().value(), screening.isCompleted(), Progress.from(counts), counts
         );
     }
 
@@ -92,17 +92,14 @@ public record ScreeningBoardResult(
         for (int value = 1; value <= screening.roundCount(); value++) {
             ScreeningRound round = new ScreeningRound(value);
             Counts counts = toCounts(screening.countsOf(round));
-            rounds.add(new Round(
-                    value, screening.roundName(round), true, false, counts, Progress.from(counts)
-            ));
+            rounds.add(new Round(value, screening.roundName(round), counts, Progress.from(counts)));
         }
         return List.copyOf(rounds);
     }
 
     private static Counts toCounts(AuditionScreening.Counts counts) {
         return new Counts(
-                counts.all(), counts.pending(), counts.done(), counts.pass(), counts.fail(),
-                counts.absent(), counts.etc()
+                counts.all(), counts.pending(), counts.done(), counts.pass(), counts.fail(), counts.etc()
         );
     }
 
@@ -129,10 +126,10 @@ public record ScreeningBoardResult(
     ) {
     }
 
-    public record Round(int round, String name, boolean open, boolean closed, Counts counts, Progress progress) {
+    public record Round(int round, String name, Counts counts, Progress progress) {
     }
 
-    public record Counts(int all, int pending, int done, int pass, int fail, int absent, int etc) {
+    public record Counts(int all, int pending, int done, int pass, int fail, int etc) {
     }
 
     public record Progress(int done, int total, int percent) {

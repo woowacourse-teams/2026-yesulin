@@ -65,6 +65,21 @@ values (9001, 9001, '1차 서류', '2026-10-01', '서류 결과는 개별 안내
 on duplicate key update name = values(name), screening_date = values(screening_date), notice = values(notice),
                         stage_order = values(stage_order);
 
+insert into audition_forms (id, audition_id)
+values (9001, 9001)
+on duplicate key update audition_id = values(audition_id);
+
+insert into audition_form_basic_fields (form_id, field)
+values (9001, 'NAME'),
+       (9001, 'HEIGHT'),
+       (9001, 'WEIGHT'),
+       (9001, 'BIRTH'),
+       (9001, 'GENDER'),
+       (9001, 'PHONE'),
+       (9001, 'EMAIL'),
+       (9001, 'ADDRESS')
+on duplicate key update field = values(field);
+
 insert into submissions
     (id, public_id, applicant_id, audition_id, audition_title, submitted_at, basic_information_present,
      applicant_name, height_cm, weight_kg, birth_date, gender, phone, email, address,

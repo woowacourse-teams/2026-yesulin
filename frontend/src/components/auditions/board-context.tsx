@@ -17,7 +17,7 @@ export type BoardContextValue = {
   readonly visible: readonly Applicant[];
   readonly selected: ReadonlySet<SubmissionId>;
   readonly saving: boolean;
-  readonly roundClosed: boolean;
+  readonly screeningCompleted: boolean;
   readonly setFilters: (update: (current: AuditionFilters) => AuditionFilters) => void;
   readonly goToRound: (round: RoundNumber) => void;
   readonly toggleSelected: (id: SubmissionId) => void;
@@ -31,13 +31,9 @@ export type BoardContextValue = {
     id: SubmissionId,
     patch: { readonly memo?: string; readonly note?: string },
   ) => Promise<void>;
-  readonly closeCurrentRound: () => Promise<void>;
-  /**
-   * 차수 마감 확인창. "auto"는 검토를 막 끝내 자동으로 물어보는 경우,
-   * "manual"은 마감 버튼을 직접 누른 경우다.
-   */
-  readonly closePrompt: "auto" | "manual" | null;
-  readonly setClosePrompt: (prompt: "auto" | "manual" | null) => void;
+  readonly completeCurrentScreening: () => Promise<boolean>;
+  readonly completionPrompt: "auto" | "manual" | null;
+  readonly setCompletionPrompt: (prompt: "auto" | "manual" | null) => void;
   readonly openApplicant: (id: SubmissionId | null) => void;
   readonly openedApplicantId: SubmissionId | null;
   /** 연락처 모아보기 대상. null이면 모달이 닫힌 상태다. */

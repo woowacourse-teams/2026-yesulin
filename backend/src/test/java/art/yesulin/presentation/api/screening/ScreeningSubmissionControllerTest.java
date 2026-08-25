@@ -90,6 +90,8 @@ class ScreeningSubmissionControllerTest {
                 .andExpect(jsonPath("$.role.counts.pending").value(1))
                 .andExpect(jsonPath("$.submissions[0].id").value(SUBMISSION_ID.toString()))
                 .andExpect(jsonPath("$.submissions[0].name").value("김하린"))
+                .andExpect(jsonPath("$.submissions[0].phone").value("010-1234-5678"))
+                .andExpect(jsonPath("$.submissions[0].email").value("applicant@example.com"))
                 .andExpect(jsonPath("$.submissions[0].questions[0].answer").value("작품에 공감했습니다."))
                 .andExpect(jsonPath("$.submissions[0].photos[0].url")
                         .value(org.hamcrest.Matchers.startsWith("https://storage.test/downloads/")))
@@ -133,6 +135,21 @@ class ScreeningSubmissionControllerTest {
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, PRODUCER))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.submissions").isEmpty());
+    }
+
+    @Test
+    void returnsContactsForCompletedReviews() throws Exception {
+        reviewService.save(
+                OWNER_ID, roleId, 1,
+                new SaveScreeningReviewsCommand(List.of(SUBMISSION_ID), "PASS", null, null)
+        );
+
+        mockMvc.perform(get(path(), roleId, 1)
+                        .queryParam("work", "DONE")
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, PRODUCER))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.submissions[0].phone").value("010-1234-5678"))
+                .andExpect(jsonPath("$.submissions[0].email").value("applicant@example.com"));
     }
 
     @Test

@@ -2,6 +2,7 @@ package art.yesulin.domain.audition.query;
 
 import static art.yesulin.domain.audition.query.AuditionManagementQueryRows.AuditionRoleRow;
 import static art.yesulin.domain.audition.query.AuditionManagementQueryRows.AuditionRow;
+import static art.yesulin.domain.audition.query.AuditionManagementQueryRows.CompletionRow;
 import static art.yesulin.domain.audition.query.AuditionManagementQueryRows.PerformanceRoleRow;
 import static art.yesulin.domain.audition.query.AuditionManagementQueryRows.PerformanceRow;
 import static art.yesulin.domain.audition.query.AuditionManagementQueryRows.ReviewRow;
@@ -17,6 +18,7 @@ import art.yesulin.domain.audition.schedule.QAuditionSchedule;
 import art.yesulin.domain.audition.schedule.QScreeningStage;
 import art.yesulin.domain.performance.QPerformance;
 import art.yesulin.domain.performance.QPerformanceRole;
+import art.yesulin.domain.screening.QScreeningCompletion;
 import art.yesulin.domain.screening.QScreeningReview;
 import art.yesulin.domain.screening.ScreeningReviewStatus;
 import art.yesulin.domain.submission.QSelectedRole;
@@ -50,6 +52,7 @@ public class AuditionRepositoryCustomImpl implements AuditionRepositoryCustom {
     private static final QSubmission SUBMISSION = QSubmission.submission;
     private static final QSelectedRole SELECTED_ROLE = new QSelectedRole("selectedRole");
     private static final QScreeningReview REVIEW = QScreeningReview.screeningReview;
+    private static final QScreeningCompletion COMPLETION = QScreeningCompletion.screeningCompletion;
 
     private final JPAQueryFactory queryFactory;
 
@@ -103,7 +106,8 @@ public class AuditionRepositoryCustomImpl implements AuditionRepositoryCustom {
                 findStages(auditionIds),
                 auditionRoles,
                 findSubmissionRoles(auditionIds),
-                findReviews(roleIds)
+                findReviews(roleIds),
+                findCompletions(roleIds)
         );
     }
 
@@ -286,6 +290,19 @@ public class AuditionRepositoryCustomImpl implements AuditionRepositoryCustom {
                 .toList();
     }
 
+    private List<CompletionRow> findCompletions(List<Long> roleIds) {
+        if (roleIds.isEmpty()) {
+            return List.of();
+        }
+        return queryFactory.select(COMPLETION.auditionRoleId)
+                .from(COMPLETION)
+                .where(COMPLETION.auditionRoleId.in(roleIds))
+                .fetch()
+                .stream()
+                .map(CompletionRow::new)
+                .toList();
+    }
+
     private PerformanceRow toPerformanceRow(Tuple tuple) {
         return new PerformanceRow(
                 tuple.get(PERFORMANCE.id),
@@ -350,6 +367,9 @@ public class AuditionRepositoryCustomImpl implements AuditionRepositoryCustom {
         Map<Long, List<AuditionRoleRow>> auditionRoles = groupBy(rows.auditionRoles(), AuditionRoleRow::auditionId);
         Map<Long, Set<UUID>> submissionsByRole = submissionsByRole(rows.submissionRoles());
         Map<ReviewKey, ScreeningReviewStatus> reviews = reviewsByKey(rows.reviews());
+        Set<Long> completedRoleIds = rows.completions().stream()
+                .map(CompletionRow::auditionRoleId)
+                .collect(Collectors.toSet());
         return rows.performances().stream()
                 .map(performance -> toPerformanceResult(
                         performance,
@@ -360,6 +380,7 @@ public class AuditionRepositoryCustomImpl implements AuditionRepositoryCustom {
                         auditionRoles,
                         submissionsByRole,
                         reviews,
+                        completedRoleIds,
                         currentTime
                 ))
                 .toList();
@@ -374,6 +395,7 @@ public class AuditionRepositoryCustomImpl implements AuditionRepositoryCustom {
             Map<Long, List<AuditionRoleRow>> roles,
             Map<Long, Set<UUID>> submissionsByRole,
             Map<ReviewKey, ScreeningReviewStatus> reviews,
+            Set<Long> completedRoleIds,
             Instant currentTime
     ) {
         List<AuditionManagementResult> postings = auditionRows.stream()
@@ -384,6 +406,7 @@ public class AuditionRepositoryCustomImpl implements AuditionRepositoryCustom {
                         roles.getOrDefault(audition.databaseId(), List.of()),
                         submissionsByRole,
                         reviews,
+                        completedRoleIds,
                         currentTime
                 ))
                 .toList();
@@ -409,20 +432,15 @@ public class AuditionRepositoryCustomImpl implements AuditionRepositoryCustom {
             List<AuditionRoleRow> roleRows,
             Map<Long, Set<UUID>> submissionsByRole,
             Map<ReviewKey, ScreeningReviewStatus> reviews,
+            Set<Long> completedRoleIds,
             Instant currentTime
     ) {
-        Long firstStageId = stages.stream().min(java.util.Comparator.comparingInt(StageRow::order))
-                .map(StageRow::stageId)
-                .orElse(null);
         List<AuditionRoleManagementResult> roles = roleRows.stream()
-                .map(role -> toRoleResult(
-                        role,
-                        submissionsByRole.getOrDefault(role.id(), Set.of()),
-                        firstStageId,
-                        reviews,
-                        audition.status() == AuditionStatus.CLOSED
-                ))
+                .map(role -> toRoleResult(role, submissionsByRole.getOrDefault(role.id(), Set.of()), stages,
+                        reviews, completedRoleIds.contains(role.id())))
                 .toList();
+        boolean allRoundsClosed = !roles.isEmpty()
+                && roles.stream().allMatch(AuditionRoleManagementResult::allRoundsClosed);
         Set<UUID> submissionIds = new HashSet<>();
         roleRows.forEach(role -> submissionIds.addAll(submissionsByRole.getOrDefault(role.id(), Set.of())));
         int done = roles.stream().mapToInt(role -> role.progress().done()).sum();
@@ -445,7 +463,7 @@ public class AuditionRepositoryCustomImpl implements AuditionRepositoryCustom {
                 roles.stream().mapToInt(AuditionRoleManagementResult::recruitmentCount).sum(),
                 submissionIds.size(),
                 roles.stream().mapToInt(role -> role.counts().pending()).sum(),
-                audition.status() == AuditionStatus.CLOSED,
+                allRoundsClosed,
                 ReviewProgressResult.of(done, total),
                 roles
         );
@@ -454,16 +472,37 @@ public class AuditionRepositoryCustomImpl implements AuditionRepositoryCustom {
     private AuditionRoleManagementResult toRoleResult(
             AuditionRoleRow role,
             Set<UUID> submissionIds,
-            Long firstStageId,
+            List<StageRow> stages,
             Map<ReviewKey, ScreeningReviewStatus> reviews,
-            boolean allRoundsClosed
+            boolean screeningCompleted
     ) {
-        ReviewCountsResult counts = countReviews(role.id(), submissionIds, firstStageId, reviews);
+        ActiveReview activeReview = activeReview(role.id(), submissionIds, stages, reviews);
         return new AuditionRoleManagementResult(
                 role.id(), role.performanceRoleId(), role.name(), role.description(), role.recruitmentCount(),
-                role.gender().name(), role.minimumAge(), role.maximumAge(), submissionIds.size(), 1, allRoundsClosed,
-                ReviewProgressResult.of(counts.done(), counts.all()), counts
+                role.gender().name(), role.minimumAge(), role.maximumAge(), submissionIds.size(),
+                activeReview.round(), screeningCompleted,
+                ReviewProgressResult.of(activeReview.counts().done(), activeReview.counts().all()),
+                activeReview.counts()
         );
+    }
+
+    private ActiveReview activeReview(
+            long roleId,
+            Set<UUID> submissionIds,
+            List<StageRow> stages,
+            Map<ReviewKey, ScreeningReviewStatus> reviews
+    ) {
+        Set<UUID> candidates = new HashSet<>(submissionIds);
+        ActiveReview active = new ActiveReview(1, countReviews(roleId, candidates, null, reviews));
+        for (StageRow stage : stages) {
+            ReviewCountsResult counts = countReviews(roleId, candidates, stage.stageId(), reviews);
+            active = new ActiveReview(stage.order(), counts);
+            if (counts.pending() > 0) {
+                return active;
+            }
+            candidates.removeIf(id -> reviewStatus(roleId, id, stage.stageId(), reviews) != ScreeningReviewStatus.PASS);
+        }
+        return active;
     }
 
     private ReviewCountsResult countReviews(
@@ -479,10 +518,9 @@ public class AuditionRepositoryCustomImpl implements AuditionRepositoryCustom {
         int pending = counts.getOrDefault(ScreeningReviewStatus.PENDING, 0);
         int pass = counts.getOrDefault(ScreeningReviewStatus.PASS, 0);
         int fail = counts.getOrDefault(ScreeningReviewStatus.FAIL, 0);
-        int absent = counts.getOrDefault(ScreeningReviewStatus.ABSENT, 0);
         int etc = counts.getOrDefault(ScreeningReviewStatus.ETC, 0);
-        int done = pass + fail + absent + etc;
-        return new ReviewCountsResult(submissionIds.size(), pending, done, pass, fail, absent, etc);
+        int done = pass + fail + etc;
+        return new ReviewCountsResult(submissionIds.size(), pending, done, pass, fail, etc);
     }
 
     private ScreeningReviewStatus reviewStatus(
@@ -536,10 +574,13 @@ public class AuditionRepositoryCustomImpl implements AuditionRepositoryCustom {
 
     private AuditionManagementQueryRows emptyRows() {
         return new AuditionManagementQueryRows(
-                List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of()
+                List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of()
         );
     }
 
     private record ReviewKey(UUID submissionId, long roleId, long stageId) {
+    }
+
+    private record ActiveReview(int round, ReviewCountsResult counts) {
     }
 }

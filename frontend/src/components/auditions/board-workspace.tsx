@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
-import { closeRound, saveReview } from "@/features/auditions/api";
+import { completeScreening, saveReview } from "@/features/auditions/api";
 import { activeDetailFilterCount, type AuditionFilters } from "@/features/auditions/filters";
 import { STATUS_LABELS } from "@/features/auditions/labels";
 import type {
@@ -41,10 +41,10 @@ export function BoardWorkspace({
   onBoardChange: (next: AuditionBoardResponse) => void;
   onRoundChange: (round: RoundNumber) => void;
 }) {
-  const roundClosed = board.rounds.find((state) => state.round === board.round)?.closed ?? false;
+  const screeningCompleted = board.role.allRoundsClosed;
   const [selected, setSelected] = useState<ReadonlySet<SubmissionId>>(new Set());
   const [contactList, setContactList] = useState<readonly Applicant[] | null>(null);
-  const [closePrompt, setClosePrompt] = useState<"auto" | "manual" | null>(null);
+  const [completionPrompt, setCompletionPrompt] = useState<"auto" | "manual" | null>(null);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [memoRequest, setMemoRequest] = useState<{ readonly kind: "BULK" | "CURRENT"; readonly ids: readonly SubmissionId[]; readonly previousIndex?: number } | null>(null);
@@ -109,13 +109,18 @@ export function BoardWorkspace({
     [board.role.id, board.round, run, searchCondition],
   );
 
-  /** 검토를 다 끝낸 순간 "다음 차수로 넘어갈까요?"를 한 번 물어본다. */
-  const promptCloseIfDone = useCallback((next: AuditionBoardResponse) => {
+  const advanceIfDone = useCallback((next: AuditionBoardResponse) => {
     const state = next.rounds.find((candidate) => candidate.round === next.round);
-    if (state && !state.closed && state.counts.all > 0 && state.counts.pending === 0) {
-      setClosePrompt("auto");
+    if (!state || state.counts.pending > 0) return;
+    const nextRound = next.rounds.find((candidate) => candidate.round === next.round + 1);
+    if (!nextRound) {
+      setCompletionPrompt("auto");
+      return;
     }
-  }, []);
+    setFilters((current) => ({ ...current, work: "PENDING", status: "ALL" }));
+    toast(`${nextRound.name}로 합격자가 자동 승격되었습니다`, { type: "success" });
+    onRoundChange(nextRound.round);
+  }, [onRoundChange, setFilters, toast]);
 
   const applyBulkStatus = useCallback(
     async (ids: readonly SubmissionId[], status: ReviewStatus, memo?: string) => {
@@ -123,9 +128,9 @@ export function BoardWorkspace({
       if (!next) return;
       clearSelection();
       toast(`${ids.length}명을 ${STATUS_LABELS[status]} 처리했습니다`, { type: "success" });
-      promptCloseIfDone(next);
+      advanceIfDone(next);
     },
-    [clearSelection, promptCloseIfDone, submitReview, toast],
+    [advanceIfDone, clearSelection, submitReview, toast],
   );
 
   const setStatus = useCallback(async (ids: readonly SubmissionId[], status: ReviewStatus) => {
@@ -151,14 +156,14 @@ export function BoardWorkspace({
         toast(counts && counts.pass > 0 ? `검토를 마쳤습니다 · 합격 ${counts.pass}명` : "검토를 마쳤습니다", {
           type: "success",
         });
-        promptCloseIfDone(next);
+        advanceIfDone(next);
         return;
       }
 
       const target = remaining[Math.min(Math.max(previousIndex, 0), remaining.length - 1)];
       if (target) router.push(auditionRoutes.applicantReview(board.role.id, target.id, board.round));
     },
-    [board.role.id, board.round, filters, promptCloseIfDone, router, setFilters, submitReview, toast],
+    [advanceIfDone, board.role.id, board.round, filters, router, setFilters, submitReview, toast],
   );
 
   const reviewCurrent = useCallback(async (id: SubmissionId, status: ReviewStatus) => {
@@ -174,19 +179,15 @@ export function BoardWorkspace({
     [submitReview],
   );
 
-  const closeCurrentRound = useCallback(async () => {
-    const currentIndex = board.rounds.findIndex((state) => state.round === board.round);
-    const nextState = board.rounds[currentIndex + 1];
-    const finishing = !nextState;
+  const completeCurrentScreening = useCallback(async () => {
     const next = await run(
-      () => closeRound({ roleId: board.role.id, round: board.round }),
-      "차수를 마감하지 못했습니다.",
+      () => completeScreening({ roleId: board.role.id }, board.round, searchCondition),
+      "전형을 종료하지 못했습니다.",
     );
-    if (!next) return;
-    toast(finishing ? "전형이 종료되었습니다" : `${nextState.name}가 시작되었습니다`, {
-      type: "success",
-    });
-  }, [board.role.id, board.round, board.rounds, run, toast]);
+    if (!next) return false;
+    toast("전형이 종료되었습니다", { type: "success" });
+    return true;
+  }, [board.role.id, board.round, run, searchCondition, toast]);
 
   const value: BoardContextValue = {
     board,
@@ -194,7 +195,7 @@ export function BoardWorkspace({
     visible,
     selected,
     saving,
-    roundClosed,
+    screeningCompleted,
     setFilters,
     goToRound: onRoundChange,
     toggleSelected,
@@ -203,9 +204,9 @@ export function BoardWorkspace({
     setStatus,
     reviewCurrent,
     patchReview,
-    closeCurrentRound,
-    closePrompt,
-    setClosePrompt,
+    completeCurrentScreening,
+    completionPrompt,
+    setCompletionPrompt,
     openApplicant: (id) => {
       if (id !== null) router.push(auditionRoutes.applicantReview(board.role.id, id, board.round));
     },

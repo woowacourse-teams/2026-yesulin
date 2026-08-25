@@ -7,6 +7,7 @@ import static art.yesulin.domain.screening.ScreeningReviewErrorCode.NOT_FOUND;
 import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.audition.schedule.ScreeningStage;
 import art.yesulin.domain.submission.Submission;
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -14,9 +15,11 @@ import java.util.UUID;
 
 public final class AuditionScreening {
 
+    private final long auditionRoleId;
     private final List<Submission> submissions;
     private final List<ScreeningStage> stages;
     private final ScreeningReviews reviews;
+    private final boolean completed;
 
     public AuditionScreening(
             long auditionRoleId,
@@ -24,10 +27,21 @@ public final class AuditionScreening {
             List<ScreeningStage> stages,
             List<ScreeningReview> reviews
     ) {
+        this(auditionRoleId, submissions, stages, reviews, false);
+    }
+
+    public AuditionScreening(
+            long auditionRoleId,
+            List<Submission> submissions,
+            List<ScreeningStage> stages,
+            List<ScreeningReview> reviews,
+            boolean completed
+    ) {
+        this.auditionRoleId = requirePositive(auditionRoleId, "공고 배역 ID는 1 이상이어야 합니다.");
         this.submissions = List.copyOf(Objects.requireNonNull(submissions));
         this.stages = List.copyOf(Objects.requireNonNull(stages));
-        long validRoleId = requirePositive(auditionRoleId, "공고 배역 ID는 1 이상이어야 합니다.");
-        this.reviews = new ScreeningReviews(validRoleId, reviews);
+        this.reviews = new ScreeningReviews(this.auditionRoleId, reviews);
+        this.completed = completed;
         if (stages.isEmpty()) {
             throw new IllegalArgumentException("심사 전형은 한 개 이상이어야 합니다.");
         }
@@ -43,9 +57,25 @@ public final class AuditionScreening {
             ScreeningRound round,
             ScreeningReviewChange change
     ) {
+        if (completed) {
+            throw new BusinessException(INVALID_REVIEW, "종료된 전형은 수정할 수 없습니다.");
+        }
         ensureReviewable(submissionIds, round);
-        ensureAllowedStatus(round, change);
         return reviews.apply(submissionIds, stageId(round), change);
+    }
+
+    public Optional<ScreeningCompletion> complete(Instant completedAt) {
+        if (completed) {
+            return Optional.empty();
+        }
+        for (int value = 1; value <= stages.size(); value++) {
+            if (countsOf(new ScreeningRound(value)).pending() > 0) {
+                throw new BusinessException(
+                        ScreeningReviewErrorCode.ROUND_NOT_READY, "모든 차수의 지원자 검토를 마친 뒤 전형을 종료할 수 있습니다."
+                );
+            }
+        }
+        return Optional.of(new ScreeningCompletion(auditionRoleId, completedAt));
     }
 
     public boolean isEligible(UUID submissionId, ScreeningRound round) {
@@ -73,7 +103,7 @@ public final class AuditionScreening {
         return new Counts(
                 statuses.size(), pending, statuses.size() - pending,
                 count(statuses, ScreeningReviewStatus.PASS), count(statuses, ScreeningReviewStatus.FAIL),
-                count(statuses, ScreeningReviewStatus.ABSENT), count(statuses, ScreeningReviewStatus.ETC)
+                count(statuses, ScreeningReviewStatus.ETC)
         );
     }
 
@@ -99,18 +129,16 @@ public final class AuditionScreening {
         return stage(round).getName();
     }
 
+    public boolean isCompleted() {
+        return completed;
+    }
+
     private void ensureReviewable(List<UUID> submissionIds, ScreeningRound round) {
         List<UUID> applicantIds = applicantsFor(round).stream().map(Submission::getSubmissionId).toList();
         if (!applicantIds.containsAll(submissionIds)) {
             throw new BusinessException(
                     NOT_FOUND, "현재 배역과 전형에서 심사할 지원서를 찾을 수 없습니다."
             );
-        }
-    }
-
-    private void ensureAllowedStatus(ScreeningRound round, ScreeningReviewChange change) {
-        if (round.value() == 1 && change.status() == ScreeningReviewStatus.ABSENT) {
-            throw new BusinessException(INVALID_REVIEW, "1차 서류 심사에는 불참을 고를 수 없습니다.");
         }
     }
 
@@ -142,6 +170,6 @@ public final class AuditionScreening {
         }
     }
 
-    public record Counts(int all, int pending, int done, int pass, int fail, int absent, int etc) {
+    public record Counts(int all, int pending, int done, int pass, int fail, int etc) {
     }
 }

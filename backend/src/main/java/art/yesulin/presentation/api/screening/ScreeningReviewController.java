@@ -17,14 +17,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/audition-roles/{roleId}/screening-rounds/{round}/reviews")
+@RequestMapping("/api/v1/audition-roles/{roleId}")
 @RequiredArgsConstructor
 @LoginRequired
 public class ScreeningReviewController {
 
     private final ScreeningReviewService screeningReviewService;
 
-    @PatchMapping
+    @PatchMapping("/screening-rounds/{round}/reviews")
     public ResponseEntity<ScreeningReviewsResult> save(
             @LoginMember(roles = MemberType.PRODUCER, statuses = MemberStatus.ACTIVE) MemberPrincipal principal,
             @PathVariable long roleId,
@@ -32,5 +32,14 @@ public class ScreeningReviewController {
             @Valid @RequestBody SaveScreeningReviewsRequest request
     ) {
         return ResponseEntity.ok(screeningReviewService.save(principal.memberId(), roleId, round, request.toCommand()));
+    }
+
+    @PatchMapping("/screening/completion")
+    public ResponseEntity<Void> complete(
+            @LoginMember(roles = MemberType.PRODUCER, statuses = MemberStatus.ACTIVE) MemberPrincipal principal,
+            @PathVariable long roleId
+    ) {
+        screeningReviewService.complete(principal.memberId(), roleId);
+        return ResponseEntity.noContent().build();
     }
 }

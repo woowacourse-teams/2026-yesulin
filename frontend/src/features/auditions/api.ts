@@ -10,7 +10,7 @@ import {
   toManagementPostingSummary,
 } from "./audition-v1-api";
 import type {
-  CloseRoundRequest,
+  CompleteScreeningRequest,
   CreatePostingResponse,
   PerformanceId,
   PerformanceListResponse,
@@ -117,11 +117,15 @@ export async function saveReview(body: SaveReviewRequest, condition: ScreeningSe
   return getAuditionBoard(roleId, round, condition);
 }
 
-export function closeRound(body: CloseRoundRequest) {
-  return request<AuditionBoardResponse>("/screenings/rounds/close", {
-    method: "POST",
-    body: JSON.stringify(body),
+export async function completeScreening(
+  body: CompleteScreeningRequest,
+  round: RoundNumber,
+  condition: ScreeningSearchCondition = {},
+) {
+  await request<void>(`/v1/audition-roles/${body.roleId}/screening/completion`, {
+    method: "PATCH",
   });
+  return getAuditionBoard(body.roleId, round, condition);
 }
 
 export async function createPerformance(body: CreatePerformanceRequest, poster: File) {

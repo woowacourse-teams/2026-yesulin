@@ -4,7 +4,6 @@ import { PHASE_LABELS, statusText } from "@/features/auditions/labels";
 const STATUS_TEXT = {
   PASS: "text-pass",
   FAIL: "text-fail",
-  ABSENT: "text-absent",
   ETC: "text-etc",
   PENDING: "text-pending",
 } as const satisfies Record<ReviewStatus, string>;
@@ -12,7 +11,6 @@ const STATUS_TEXT = {
 const STATUS_BG = {
   PASS: "bg-pass-bg",
   FAIL: "bg-fail-bg",
-  ABSENT: "bg-absent-bg",
   ETC: "bg-etc-bg",
   PENDING: "bg-pending-bg",
 } as const satisfies Record<ReviewStatus, string>;
@@ -20,7 +18,6 @@ const STATUS_BG = {
 const STATUS_BORDER = {
   PASS: "border-pass/30",
   FAIL: "border-fail/30",
-  ABSENT: "border-absent/30",
   ETC: "border-etc/30",
   PENDING: "border-pending/30",
 } as const satisfies Record<ReviewStatus, string>;

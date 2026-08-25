@@ -29,7 +29,7 @@ body{font-family:'Pretendard Variable',Pretendard,sans-serif;color:var(--ink);pa
 .pp-name{font-size:20px;font-weight:700;letter-spacing:-.02em;display:flex;align-items:center;gap:8px}
 .pp-role{font-size:13px;color:var(--ink-60);margin:4px 0 12px}
 .pp-badge{font-size:12px;font-weight:600;padding:4px 8px;border-radius:99px;border:1px solid currentColor}
-.s-PASS{color:var(--pass)}.s-FAIL{color:var(--fail)}.s-ABSENT{color:var(--absent)}.s-ETC{color:var(--etc)}.s-PENDING{color:var(--pending)}
+.s-PASS{color:var(--pass)}.s-FAIL{color:var(--fail)}.s-ETC{color:var(--etc)}.s-PENDING{color:var(--pending)}
 .pp-facts{display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;font-size:12px}
 .pp-facts div{display:flex;gap:8px}
 .pp-facts dt{color:var(--ink-20);width:64px;flex-shrink:0}

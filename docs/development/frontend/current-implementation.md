@@ -105,7 +105,7 @@ HttpSession을 조회해 복원한다.
 
 ## API·저장 경계
 
-기본 환경은 실제 API를 사용한다. `NEXT_PUBLIC_API_MOCKING=enabled`인 목 검증 환경에서 만든 데이터와 심사 상태는 브라우저 메모리에 있어 새로고침하면 초기화된다. 브라우저 API는 같은 origin의 `/api/**` 상대 경로를, 공개 공고 SSR·메타데이터는 `API_ORIGIN`을 사용한다.
+기본 환경은 실제 API를 사용한다. `NEXT_PUBLIC_API_MOCKING=enabled`인 목 검증 환경에서 만든 데이터와 심사 결과·전형 종료 상태는 브라우저 메모리에 있어 새로고침하면 초기화된다. 브라우저 API는 같은 origin의 `/api/**` 상대 경로를, 공개 공고 SSR·메타데이터는 `API_ORIGIN`을 사용한다.
 
 프론트·MSW는 목표 정책을 확인할 UI와 시드를 제공한다. 배우 프로필 정보·사진·영상은 플래그로 실제 API를
 검증할 수 있고, UUID 공고의 새 사진 업로드와 지원서 제출도 실제 Backend 계약에 연결됐다. 나머지 배우

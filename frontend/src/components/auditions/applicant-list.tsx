@@ -18,24 +18,13 @@ const RESULT_SCOPE_LABELS = {
   ALL: "검토 완료",
   PASS: "합격자",
   FAIL: "불합격자",
-  ABSENT: "불참자",
   ETC: "기타 처리자",
   PENDING: "검토 대기",
 } as const satisfies Record<StatusFilter, string>;
 
 export function ApplicantList() {
-  const { board, filters, visible } = useBoard();
+  const { filters, visible } = useBoard();
   const [video, setVideo] = useState<Applicant | null>(null);
-  const roundState = board.rounds.find((state) => state.round === board.round);
-
-  if (roundState && !roundState.open) {
-    return (
-      <ScreenMessage title="아직 열리지 않은 차수입니다">
-        {ROUND_LABELS[(board.round - 1) as 1 | 2]}를 마감하면 합격자가 넘어옵니다.
-      </ScreenMessage>
-    );
-  }
-
   if (visible.length === 0) return <EmptyList />;
 
   return (
