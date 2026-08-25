@@ -145,10 +145,19 @@ class AuditionRepositoryCustomTest {
     }
 
     private Submission saveSubmission(Audition audition, long roleId, long applicantId) {
+        Performance performance = entityManager.find(Performance.class, audition.getPerformanceId());
         Submission submission = new Submission(
                 applicantId,
                 CURRENT_TIME.minusSeconds(1_800),
-                new AuditionSnapshot(audition.getId(), audition.getTitle()),
+                new AuditionSnapshot(
+                        audition.getId(),
+                        audition.getPublicId(),
+                        audition.getTitle(),
+                        performance.getTitle(),
+                        "예술인 제작사",
+                        performance.getPosterFileId(),
+                        performance.getOwnerId()
+                ),
                 applicantSnapshot(),
                 new SelectedRoles(List.of(new SelectedRole(roleId, "햄릿"))),
                 new SubmissionFormAnswers(
