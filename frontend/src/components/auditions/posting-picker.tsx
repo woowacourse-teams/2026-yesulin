@@ -23,6 +23,7 @@ import {
 } from "@/features/auditions/types";
 import { useAuditionQuery } from "@/features/auditions/use-audition-query";
 import { FieldInput, FilterChip } from "@/components/ui/controls";
+import { ApplicationLinkButton } from "./application-link-button";
 
 type PostingFilter = "ALL" | PostingPhase;
 
@@ -112,13 +113,13 @@ function PostingRow({ posting, onEdit, onDelete }: { readonly posting: PostingSu
         <PhaseTag phase={posting.phase} />
         <div className="mt-2 flex items-center gap-3">
           <h3 className="min-w-0 flex-1 line-clamp-2 text-lg font-bold transition-colors group-hover:text-brand sm:line-clamp-1">{posting.title}</h3>
+          {posting.phase !== "DRAFT" ? <div className="pointer-events-auto hidden shrink-0 sm:block"><ApplicationLinkButton postingId={posting.id} compact /></div> : null}
           <div className="pointer-events-auto shrink-0"><PostingMoreMenu posting={posting} open={menuOpen} onOpenChange={setMenuOpen} onEdit={onEdit} onDelete={onDelete} /></div>
         </div>
       </div>
     </div>
-    <dl className="pointer-events-none relative z-1 mt-5 grid grid-cols-2 gap-y-5 border-t border-border-soft pt-5 sm:grid-cols-4 sm:divide-x sm:divide-border-soft">
+    <dl className="pointer-events-none relative z-1 mt-5 grid grid-cols-2 gap-y-5 border-t border-border-soft pt-5 sm:grid-cols-3 sm:divide-x sm:divide-border-soft">
       <PostingMetric label="모집 마감" value={posting.deadline} numeric />
-      <PostingMetric label="지원 현황" value={`${posting.applicantCount} / ${posting.quotaTotal}명`} numeric />
       <PostingMetric label="모집 배역" value={`${posting.roleCount}개`} numeric />
       <PostingMetric label="검토 상태" value={reviewState(posting)} progress={posting.allRoundsClosed ? undefined : posting.progress.percent} />
     </dl>
@@ -167,7 +168,7 @@ function PostingMoreMenu({ posting, open, onOpenChange, onEdit, onDelete }: { re
     <button type="button" aria-label={`${posting.title} 더보기`} aria-haspopup="menu" aria-expanded={open} onClick={() => onOpenChange(!open)} className="grid h-11 w-11 place-items-center rounded-control border border-border bg-card text-muted-strong transition-colors hover:border-brand-line hover:bg-brand-soft hover:text-brand"><svg aria-hidden="true" viewBox="0 0 20 20" className="h-5 w-5 fill-current"><circle cx="4" cy="10" r="1.4" /><circle cx="10" cy="10" r="1.4" /><circle cx="16" cy="10" r="1.4" /></svg></button>
     {open ? <div role="menu" className="absolute right-0 top-[calc(100%+8px)] z-20 w-44 rounded-card border border-border bg-card p-2 shadow-[var(--shadow-2)]">
       {posting.phase === "DRAFT" ? <span role="menuitem" aria-disabled="true" className="flex min-h-10 w-full items-center rounded-control px-3 text-sm font-semibold text-muted">공고 미게시</span> : <Link href={publicApplicationRoute(posting.id)} role="menuitem" onClick={() => onOpenChange(false)} className="flex min-h-10 w-full items-center rounded-control px-3 text-sm font-semibold text-muted-strong hover:bg-surface hover:text-foreground">공고 보기</Link>}
-      <button type="button" role="menuitem" disabled={copying} onClick={copyLink} className="flex min-h-10 w-full items-center rounded-control px-3 text-left text-sm font-semibold text-muted-strong hover:bg-surface hover:text-foreground disabled:text-muted">{copying ? "복사 중…" : "지원 링크 복사"}</button>
+      <button type="button" role="menuitem" disabled={copying} onClick={copyLink} className="flex min-h-10 w-full items-center rounded-control px-3 text-left text-sm font-semibold text-muted-strong hover:bg-surface hover:text-foreground disabled:text-muted sm:hidden">{copying ? "복사 중…" : "지원 링크 복사"}</button>
       <button type="button" role="menuitem" onClick={() => { onOpenChange(false); onEdit(); }} className="flex min-h-10 w-full items-center rounded-control px-3 text-left text-sm font-semibold text-muted-strong hover:bg-surface hover:text-foreground">공고 수정</button>
       <div className="my-1 border-t border-border-soft" />
       <button type="button" role="menuitem" onClick={() => { onOpenChange(false); onDelete(); }} className="flex min-h-10 w-full items-center rounded-control px-3 text-left text-sm font-semibold text-fail hover:bg-fail-bg">삭제</button>

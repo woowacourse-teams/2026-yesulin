@@ -91,7 +91,7 @@ export function DetailReview({ applicant }: { applicant: Applicant }) {
         placeholder="예: 발성 좋음, 앙상블로도 고려 가능"
         value={applicant.review.note}
         onCommit={(note) => void patchReview(applicant.id, { note })}
-        className="min-h-14 w-full resize-y rounded-control border border-border bg-card px-3 py-2 text-dense leading-[1.55] focus:border-brand"
+        className="min-h-14 w-full resize-none rounded-control border border-border bg-card px-3 py-2 text-dense leading-[1.55] focus:border-brand"
       />
     </footer>
   );

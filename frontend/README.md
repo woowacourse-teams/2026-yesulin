@@ -71,7 +71,8 @@ API로 즉시 저장한다.
 ```text
 src/
 ├── app/
-│   ├── apply/[postingId]/          배우 공개 공고·지원서 라우트
+│   ├── apply/[postingId]/          배우 공개 공고 라우트
+│   │   └── write/[step]/           기본·추가·미디어·질문·검토 지원서 라우트
 │   └── producers/                  기획사/제작사 관리자 라우트
 ├── features/auditions/             JSX 없는 심사 도메인·API 계층
 ├── features/applications/          공개 공고 읽기 모델·지원서 규칙

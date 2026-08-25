@@ -1,6 +1,6 @@
 import type { ApplicationFormStep } from "./application-form";
 
-export const MAX_PHOTO_COUNT = 10;
+export const MAX_PHOTO_COUNT = 3;
 export const MAX_PHOTO_SIZE_BYTES = 10 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/;
@@ -118,11 +118,9 @@ export function applicationStepIssue({
   careers: readonly CareerDraft[];
   values: Readonly<Record<string, string>>;
 }): ApplicationStepIssue | null {
-  if (step.section === "BASIC" || step.section === "ADDITIONAL" || step.section === "INTRODUCTION" || step.section === "CUSTOM") {
-    const field = step.fields.find((candidate) => candidate.id !== "CAREER" && applicationFieldError(candidate, values));
-    if (field) return { fieldId: field.id, message: applicationFieldError(field, values)! };
-  }
-  if (step.section === "MATERIALS") {
+  const regularField = step.fields.find((candidate) => candidate.id !== "CAREER" && candidate.section !== "MATERIALS" && applicationFieldError(candidate, values));
+  if (regularField) return { fieldId: regularField.id, message: applicationFieldError(regularField, values)! };
+  if (step.key === "media") {
     const photosField = step.fields.find((field) => field.inputType === "FILE");
     const videoField = step.fields.find((field) => field.inputType === "URL");
     const requestedPhotos = photosField?.config.photoRequirements?.reduce((sum, item) => sum + item.count, 0);

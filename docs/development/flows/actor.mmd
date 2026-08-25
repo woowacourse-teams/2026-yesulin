@@ -14,10 +14,14 @@ flowchart TB
     MEMBER -- 아니오 --> START_CHOICE{"로그인 후 프로필을<br>불러와 작성할까요?"}
     START_CHOICE -- 로그인 --> LOGIN["카카오·네이버·Google 소셜 로그인<br>첫 로그인 시 배우 계정 자동 생성"]
     LOGIN --> PREFILL
-    START_CHOICE -- 로그인 없이 작성 --> FORM["지원서 작성·사진 선택<br>IndexedDB 우선 저장"]
+    START_CHOICE -- 로그인 없이 작성 --> FORM["지원서 작성 시작<br>/apply/{postingId}/write/basic"]
     PREFILL --> FORM
-    FORM --> DRAFT["로컬 Draft 저장<br>인증 전 IndexedDB에만 보관"]
-    DRAFT --> RESTORE["Draft 복원 시<br>동의 체크·프로필 갱신 선택 초기화"]
+    FORM --> BASIC["1. 기본 정보<br>/write/basic"]
+    BASIC --> ADDITIONAL["2. 추가 정보<br>/write/additional"]
+    ADDITIONAL --> MATERIALS["3. 사진과 영상<br>/write/media"]
+    MATERIALS --> QUESTIONS["4. 추가 질문<br>/write/questions"]
+    QUESTIONS --> DRAFT["단계별 로컬 Draft 저장<br>인증 전 IndexedDB에만 보관"]
+    DRAFT --> RESTORE["새로고침·재진입 시<br>현재 단계 URL과 Draft 복원"]
     RESTORE --> REVIEW["최종 검토·필수 동의<br>프로필 보관·이번 값 갱신은 별도 선택"]
     REVIEW --> AUTH{"제출 시 로그인 상태?"}
     AUTH -- 아니오 --> SOCIAL["소셜 로그인<br>첫 로그인 시 계정 자동 생성"]
@@ -46,6 +50,10 @@ flowchart TB
     MEMBER:::decisionNode
     PREFILL:::applicationNode
     FORM:::applicationNode
+    BASIC:::applicationNode
+    ADDITIONAL:::applicationNode
+    MATERIALS:::applicationNode
+    QUESTIONS:::applicationNode
     START_CHOICE:::decisionNode
     AUTH:::decisionNode
     SUBMIT:::applicationNode

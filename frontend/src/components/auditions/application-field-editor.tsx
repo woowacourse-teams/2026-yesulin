@@ -1,4 +1,4 @@
-import { MAX_VIDEO_REQUIREMENTS, type ApplicationFieldInput, type PhotoRequirement, type VideoRequirement } from "@/features/auditions/creation-types";
+import { MAX_REQUESTED_PHOTO_COUNT, MAX_VIDEO_REQUIREMENTS, type ApplicationFieldInput, type PhotoRequirement, type VideoRequirement } from "@/features/auditions/creation-types";
 import { FieldInput } from "@/components/ui/controls";
 
 const fieldCardClass = "flex min-h-12 min-w-0 items-center gap-2 rounded-control border border-border bg-card px-3 py-2.5";
@@ -26,7 +26,7 @@ export function ApplicationFieldEditor({ fields, onChange }: {
     <FieldGroup title="추가정보" description="배우 프로필에서 불러올 수 있으며, 선택한 항목은 빈 값도 허용합니다.">
       <FieldChecks fields={additional} onToggle={(field, enabled) => patch(field.id, { enabled, required: false })} />
     </FieldGroup>
-    {photos ? <FieldGroup title="프로필 사진" description="어떤 사진을 몇 장 받을지 정해 주세요. 전체 합계는 최대 10장입니다.">
+    {photos ? <FieldGroup title="프로필 사진" description={`어떤 사진을 몇 장 받을지 정해 주세요. 전체 합계는 최대 ${MAX_REQUESTED_PHOTO_COUNT}장입니다.`}>
       <label className={fieldCardClass}><input type="checkbox" checked={photos.enabled} onChange={(event) => patch(photos.id, { enabled: event.target.checked, required: event.target.checked })} className="h-5 w-5 accent-brand" /><span className="text-sm font-semibold">프로필 사진 받기</span></label>
       {photos.enabled ? <PhotoRequirements value={photos.config.photoRequirements ?? []} onChange={(requirements) => patch(photos.id, { config: { ...photos.config, photoRequirements: requirements, maxCount: requirements.reduce((sum, item) => sum + item.count, 0) } })} /> : null}
     </FieldGroup> : null}
@@ -61,8 +61,8 @@ function PhotoRequirements({ value, onChange }: { readonly value: readonly Photo
   const total = value.reduce((sum, item) => sum + item.count, 0);
   const patch = (id: string, update: Partial<PhotoRequirement>) => onChange(value.map((item) => item.id === id ? { ...item, ...update } : item));
   return <div className="space-y-2">
-    {value.map((item, index) => <div key={item.id} className="grid gap-2 sm:grid-cols-[1fr_100px_auto]"><FieldInput required maxLength={255} value={item.description} onChange={(event) => patch(item.id, { description: event.target.value.slice(0, 255) })} placeholder="예: 전신 사진" aria-label={`사진 요구 ${index + 1} 설명`} /><FieldInput required type="number" min={1} max={10} value={item.count || ""} onChange={(event) => patch(item.id, { count: event.target.value === "" ? 0 : Number(event.target.value) })} aria-label={`${item.description || `사진 요구 ${index + 1}`} 장수`} /><button type="button" disabled={value.length === 1} onClick={() => onChange(value.filter((candidate) => candidate.id !== item.id))} className="min-h-11 rounded-control border border-border bg-card px-3 text-sm text-muted-strong disabled:opacity-40">삭제</button></div>)}
-    <div className="flex flex-wrap items-center justify-between gap-2"><span className={`text-sm font-semibold ${total > 10 ? "text-fail" : "text-muted-strong"}`}>총 {total}장 / 최대 10장</span><button type="button" disabled={total >= 10} onClick={() => onChange([...value, { id: `photo-${Date.now()}`, description: "", count: 1 }])} className="min-h-11 rounded-control border border-dashed border-muted-soft bg-card px-3 text-sm font-semibold text-muted-strong disabled:opacity-40">사진 종류 추가</button></div>
+    {value.map((item, index) => <div key={item.id} className="grid gap-2 sm:grid-cols-[1fr_100px_auto]"><FieldInput required maxLength={255} value={item.description} onChange={(event) => patch(item.id, { description: event.target.value.slice(0, 255) })} placeholder="예: 전신 사진" aria-label={`사진 요구 ${index + 1} 설명`} /><FieldInput required type="number" min={1} max={MAX_REQUESTED_PHOTO_COUNT} value={item.count || ""} onChange={(event) => patch(item.id, { count: event.target.value === "" ? 0 : Number(event.target.value) })} aria-label={`${item.description || `사진 요구 ${index + 1}`} 장수`} /><button type="button" disabled={value.length === 1} onClick={() => onChange(value.filter((candidate) => candidate.id !== item.id))} className="min-h-11 rounded-control border border-border bg-card px-3 text-sm text-muted-strong disabled:opacity-40">삭제</button></div>)}
+    <div className="flex flex-wrap items-center justify-between gap-2"><span className={`text-sm font-semibold ${total > MAX_REQUESTED_PHOTO_COUNT ? "text-fail" : "text-muted-strong"}`}>총 {total}장 / 최대 {MAX_REQUESTED_PHOTO_COUNT}장</span><button type="button" disabled={total >= MAX_REQUESTED_PHOTO_COUNT} onClick={() => onChange([...value, { id: `photo-${Date.now()}`, description: "", count: 1 }])} className="min-h-11 rounded-control border border-dashed border-muted-soft bg-card px-3 text-sm font-semibold text-muted-strong disabled:opacity-40">사진 종류 추가</button></div>
   </div>;
 }
 

@@ -3,24 +3,26 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { PublicPosting } from "@/features/applications/public-posting";
 import { publicPostingAvailability, publicPostingDate, publicPostingDateTime } from "@/features/applications/public-posting";
 import { PrimaryButton } from "@/components/ui/controls";
 import { PostingStatusBadge } from "./public-posting-status";
-import { PublicApplicationForm } from "./public-application-form";
-import { PublicApplicationPrefillGate } from "./public-application-prefill";
 import { readPublicApplicationDraft } from "@/features/applications/public-application-draft-store";
 import { buildApplicationAuthReturnTo } from "@/features/auth/return-to";
 import { useAuthSession } from "@/components/auth/auth-session";
 import { applicantRoutes } from "@/features/applicants/routes";
 import { ApplicationStartDialog } from "./application-start-dialog";
+import { APPLICATION_STEP_KEYS } from "@/features/applications/application-form";
+import { applicationWriteRoute } from "@/features/applications/routes";
 
 export function PublicPostingDetail({ posting, useProfilePrefill = false, resumeDraft = false, initialRoleIds = [] }: { posting: PublicPosting; useProfilePrefill?: boolean; resumeDraft?: boolean; initialRoleIds?: readonly string[] }) {
+  const router = useRouter();
   const skipsRoleChoice = posting.isOpenCall || posting.roles.length === 1;
   const { session } = useAuthSession();
-  const validInitialRoleIds = initialRoleIds.filter((id) => posting.roles.some((role) => role.id === id));
+  const [validInitialRoleIds] = useState(() => initialRoleIds.filter((id) => posting.roles.some((role) => role.id === id)));
   const [selectedRoleIds, setSelectedRoleIds] = useState<readonly string[]>(validInitialRoleIds.length ? validInitialRoleIds : skipsRoleChoice && posting.roles[0] ? [posting.roles[0].id] : []);
-  const [view, setView] = useState<"posting" | "form" | "restoring">(resumeDraft ? "restoring" : "posting");
+  const [restoring, setRestoring] = useState(resumeDraft);
   const [hasLocalDraft, setHasLocalDraft] = useState(false);
   const [startDialogOpen, setStartDialogOpen] = useState(false);
   const [guestChoiceMade, setGuestChoiceMade] = useState(false);
@@ -29,7 +31,7 @@ export function PublicPostingDetail({ posting, useProfilePrefill = false, resume
   const acceptingApplications = posting.status === "OPEN";
   const actionEnabled = acceptingApplications && selectedRoles.length > 0;
   const selectedRoleLabel = selectedRoles.map((role) => role.name).join(" · ");
-  const loginHref = `/login?returnTo=${encodeURIComponent(buildApplicationAuthReturnTo(posting.id, selectedRoleIds))}`;
+  const loginHref = `/login?returnTo=${encodeURIComponent(buildApplicationAuthReturnTo(posting.id, selectedRoleIds, "basic"))}`;
   const toggleRole = (id: string) => setSelectedRoleIds((current) => posting.allowsMultipleRoles ? (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]) : [id]);
   const showMobileAction = acceptingApplications;
   const focusRoleSelection = () => {
@@ -37,12 +39,8 @@ export function PublicPostingDetail({ posting, useProfilePrefill = false, resume
     section?.scrollIntoView({ behavior: "smooth", block: "center" });
     section?.querySelector<HTMLInputElement>("input")?.focus({ preventScroll: true });
   };
-  const returnToPosting = () => {
-    setView("posting");
-    readPublicApplicationDraft(posting.id).then((draft) => setHasLocalDraft(Boolean(draft))).catch(() => setHasLocalDraft(false));
-  };
   const beginApplication = () => {
-    if (authenticated || guestChoiceMade) setView("form");
+    if (authenticated || guestChoiceMade) router.push(applicationWriteRoute(posting.id, "basic", selectedRoleIds));
     else setStartDialogOpen(true);
   };
 
@@ -53,20 +51,19 @@ export function PublicPostingDetail({ posting, useProfilePrefill = false, resume
       const validRoleIds = draft?.roleIds.filter((id) => posting.roles.some((role) => role.id === id)) ?? [];
       if (draft) {
         setHasLocalDraft(true);
-        if (validRoleIds.length) setSelectedRoleIds(validRoleIds);
+        if (validRoleIds.length) setSelectedRoleIds((current) => current.length === validRoleIds.length && current.every((id) => validRoleIds.includes(id)) ? current : validRoleIds);
       }
       const canOpenForm = validRoleIds.length > 0 || validInitialRoleIds.length > 0 || skipsRoleChoice;
-      if (resumeDraft) setView((Boolean(draft) || useProfilePrefill) && canOpenForm ? "form" : "posting");
-    }).catch(() => { if (active && resumeDraft) setView("posting"); });
+      if (resumeDraft && (Boolean(draft) || useProfilePrefill) && canOpenForm) {
+        const route = draft?.reviewing ? "review" : APPLICATION_STEP_KEYS[Math.min(draft?.stepIndex ?? 0, APPLICATION_STEP_KEYS.length - 1)]!;
+        const routeRoleIds = validRoleIds.length ? validRoleIds : validInitialRoleIds.length ? validInitialRoleIds : posting.roles[0] ? [posting.roles[0].id] : [];
+        router.replace(applicationWriteRoute(posting.id, route, routeRoleIds));
+      } else if (resumeDraft) setRestoring(false);
+    }).catch(() => { if (active && resumeDraft) setRestoring(false); });
     return () => { active = false; };
-  }, [posting.id, posting.roles, resumeDraft, skipsRoleChoice, useProfilePrefill, validInitialRoleIds.length]);
+  }, [posting.id, posting.roles, resumeDraft, router, skipsRoleChoice, useProfilePrefill, validInitialRoleIds]);
 
-  if (view === "restoring") return <DraftResumeLoading />;
-
-  if (view === "form") {
-    const props = { postingId: posting.id, fields: posting.applicationFields, performanceTitle: posting.performanceTitle, postingTitle: posting.title, roleIds: selectedRoles.map((role) => role.id), roleName: selectedRoleLabel || "전체 배우", authenticated, onBack: returnToPosting };
-    return useProfilePrefill && !hasLocalDraft ? <PublicApplicationPrefillGate {...props} /> : <PublicApplicationForm {...props} />;
-  }
+  if (restoring) return <DraftResumeLoading />;
 
   return <main className={`min-h-screen bg-surface text-foreground ${showMobileAction ? "pb-[calc(152px+env(safe-area-inset-bottom))]" : "pb-12"} min-[1200px]:pb-12`}>
     <header className="glass-surface sticky top-0 z-20 border-x-0 border-t-0">
@@ -93,7 +90,7 @@ export function PublicPostingDetail({ posting, useProfilePrefill = false, resume
       <aside className="hidden min-[1200px]:block"><DesktopAction posting={posting} selectedRole={selectedRoleLabel} enabled={actionEnabled} hasDraft={hasLocalDraft} onAction={beginApplication} onChooseRole={focusRoleSelection} /></aside>
     </div>
     {showMobileAction ? <MobileAction posting={posting} selectedRole={selectedRoleLabel} enabled={actionEnabled} hasDraft={hasLocalDraft} onAction={beginApplication} onChooseRole={focusRoleSelection} /> : null}
-    <ApplicationStartDialog open={startDialogOpen} loginHref={loginHref} hasDraft={hasLocalDraft} onClose={() => setStartDialogOpen(false)} onContinueWithoutLogin={() => { setGuestChoiceMade(true); setStartDialogOpen(false); setView("form"); }} />
+    <ApplicationStartDialog open={startDialogOpen} loginHref={loginHref} hasDraft={hasLocalDraft} onClose={() => setStartDialogOpen(false)} onContinueWithoutLogin={() => { setGuestChoiceMade(true); setStartDialogOpen(false); router.push(applicationWriteRoute(posting.id, "basic", selectedRoleIds)); }} />
   </main>;
 }
 

@@ -11,11 +11,14 @@ import { applicationDraftFromPrefill } from "@/features/applications/public-appl
 
 export type DraftSaveStatus = "RESTORING" | "IDLE" | "SAVING" | "SAVED" | "ERROR";
 
-export function usePublicApplicationDraft({ postingId, fields, prefill, initialRoleIds, submitted }: {
+export function usePublicApplicationDraft({ postingId, fields, prefill, initialRoleIds, initialStepIndex, initialReviewing, stepCount, submitted }: {
   readonly postingId: string;
   readonly fields: readonly ApplicationFieldInput[];
   readonly prefill?: ProfilePrefillResponse;
   readonly initialRoleIds: readonly string[];
+  readonly initialStepIndex: number;
+  readonly initialReviewing: boolean;
+  readonly stepCount: number;
   readonly submitted: boolean;
 }) {
   const [initial] = useState(() => applicationDraftFromPrefill(prefill, fields));
@@ -57,9 +60,11 @@ export function usePublicApplicationDraft({ postingId, fields, prefill, initialR
         setConsentBase(draft.consent);
         setThirdPartyConsentBase(draft.thirdPartyConsent ?? false);
         setSaveToProfileBase(draft.saveToProfile);
-        setStepIndexBase(draft.stepIndex);
+        const maxReachedStepIndex = Math.min(stepCount - 1, draft.completedStepIndexes.length ? Math.max(...draft.completedStepIndexes) + 1 : 0);
+        const routeStepIndex = Math.max(0, Math.min(initialStepIndex, maxReachedStepIndex));
+        setStepIndexBase(routeStepIndex);
         setCompletedStepIndexesBase(draft.completedStepIndexes);
-        setReviewingBase(draft.reviewing);
+        setReviewingBase(initialReviewing && draft.completedStepIndexes.length >= stepCount);
         setRoleIds(draft.roleIds.length ? draft.roleIds : fallbackRoleIds);
         setLastSavedAt(draft.updatedAt);
         setRestored(true);
@@ -77,7 +82,7 @@ export function usePublicApplicationDraft({ postingId, fields, prefill, initialR
       setStorageReady(true);
     });
     return () => { active = false; };
-  }, [fallbackRoleIds, initial, postingId]);
+  }, [fallbackRoleIds, initial, initialReviewing, initialStepIndex, postingId, stepCount]);
 
   useEffect(() => {
     if (!storageReady || submitted) return;
@@ -130,7 +135,7 @@ export function usePublicApplicationDraft({ postingId, fields, prefill, initialR
     thirdPartyConsent, setThirdPartyConsent: setter(setThirdPartyConsentBase),
     saveToProfile, setSaveToProfile: setter(setSaveToProfileBase), stepIndex, setStepIndex: setter(setStepIndexBase),
     completedStepIndexes, setCompletedStepIndexes: setter(setCompletedStepIndexesBase), reviewing, setReviewing: setter(setReviewingBase),
-    roleIds, saveStatus, saveError, lastSavedAt, restored, retrySave,
+    roleIds, saveStatus, saveError, lastSavedAt, restored, storageReady, retrySave,
     hasUnsavedChanges: saveStatus === "SAVING" || saveStatus === "ERROR",
   };
 }

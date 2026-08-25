@@ -5,6 +5,7 @@ import { getProfilePrefill } from "@/features/applicants/api";
 import type { ProfilePrefillResponse } from "@/features/applicants/types";
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
 import type { PostingId } from "@/features/auditions/types";
+import type { ApplicationWriteRouteKey } from "@/features/applications/application-form";
 import { useAuditionQuery } from "@/features/auditions/use-audition-query";
 import { PrimaryButton, SecondaryButton } from "@/components/ui/controls";
 import { PublicApplicationForm } from "./public-application-form";
@@ -18,6 +19,7 @@ type PrefillGateProps = {
   readonly roleName: string;
   readonly authenticated: boolean;
   readonly onBack: () => void;
+  readonly initialRoute: ApplicationWriteRouteKey;
 };
 
 export function PublicApplicationPrefillGate(props: PrefillGateProps) {

@@ -1,9 +1,7 @@
-import { ROUND_LABELS } from "@/features/auditions/labels";
-import type { Applicant } from "@/features/auditions/types";
-import { ROUND_NUMBERS } from "@/features/auditions/types";
+import type { Applicant, RoundState } from "@/features/auditions/types";
 import { StatusBadge } from "./status-badge";
 
-export function DetailProfile({ applicant }: { applicant: Applicant }) {
+export function DetailProfile({ applicant, rounds }: { applicant: Applicant; rounds: readonly RoundState[] }) {
   return (
     <div className="overflow-y-auto px-6 pb-6 pt-5">
       <div className="mb-6 grid gap-2 [grid-template-columns:repeat(auto-fit,minmax(94px,1fr))]">
@@ -62,14 +60,14 @@ export function DetailProfile({ applicant }: { applicant: Applicant }) {
 
       <Section title="차수별 기록">
         <ul className="text-dense">
-          {ROUND_NUMBERS.map((round) => {
-            const review = applicant.reviewHistory[round];
+          {rounds.map((roundState) => {
+            const review = applicant.reviewHistory[roundState.round];
             return (
               <li
-                key={round}
+                key={roundState.round}
                 className="flex items-center gap-2.5 border-b border-border-soft py-2 last:border-b-0"
               >
-                <span className="w-10 shrink-0 text-xs text-muted">{round}차</span>
+                <span className="w-10 shrink-0 text-xs text-muted">{roundState.round}차</span>
                 {review ? (
                   <>
                     <StatusBadge status={review.status} memo={review.memo} />
@@ -87,7 +85,7 @@ export function DetailProfile({ applicant }: { applicant: Applicant }) {
             );
           })}
         </ul>
-        <p className="sr-only">{ROUND_NUMBERS.map((round) => ROUND_LABELS[round]).join(", ")}</p>
+        <p className="sr-only">{rounds.map((round) => `${round.round}차 ${round.name}`).join(", ")}</p>
       </Section>
     </div>
   );

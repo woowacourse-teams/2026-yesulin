@@ -1,3 +1,6 @@
+import type { ApplicationWriteRouteKey } from "@/features/applications/application-form";
+import { applicationWriteRoute } from "@/features/applications/routes";
+
 const RETURN_TO_ORIGIN = "https://yesulin.local";
 
 export type ApplicationReturnTarget = {
@@ -21,7 +24,7 @@ export function applicationReturnTarget(value?: string): ApplicationReturnTarget
   const safeReturnTo = safeAuthReturnTo(value);
   if (!safeReturnTo) return null;
   const url = new URL(safeReturnTo, RETURN_TO_ORIGIN);
-  const match = /^\/apply\/([^/]+)$/.exec(url.pathname);
+  const match = /^\/apply\/([^/]+)(?:\/write\/(?:basic|additional|media|questions|review))?$/.exec(url.pathname);
   if (!match?.[1]) return null;
   try {
     return {
@@ -54,8 +57,8 @@ export function authCancelReturnTo(value?: string) {
   return `${url.pathname}${url.search}`;
 }
 
-export function buildApplicationAuthReturnTo(postingId: string, roleIds: readonly string[]) {
-  const url = new URL(`/apply/${encodeURIComponent(postingId)}`, RETURN_TO_ORIGIN);
+export function buildApplicationAuthReturnTo(postingId: string, roleIds: readonly string[], step: ApplicationWriteRouteKey = "review") {
+  const url = new URL(applicationWriteRoute(postingId, step), RETURN_TO_ORIGIN);
   url.searchParams.set("prefill", "1");
   url.searchParams.set("resumeDraft", "1");
   roleIds.forEach((roleId) => url.searchParams.append("roleId", roleId));

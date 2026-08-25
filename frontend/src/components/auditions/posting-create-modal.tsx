@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { AuditionRequestError, createPosting } from "@/features/auditions/api";
-import { defaultApplicationFields, MAX_VIDEO_REQUIREMENTS, type ApplicationFieldInput, type AuditionRoundInput, type PerformanceRoleTemplate } from "@/features/auditions/creation-types";
+import { defaultApplicationFields, MAX_REQUESTED_PHOTO_COUNT, MAX_VIDEO_REQUIREMENTS, type ApplicationFieldInput, type AuditionRoundInput, type PerformanceRoleTemplate } from "@/features/auditions/creation-types";
 import { notifyAuditionTreeChanged } from "@/features/auditions/events";
 import { publicApplicationRoute } from "@/features/auditions/routes";
 import type { PerformanceId } from "@/features/auditions/types";
@@ -124,7 +124,7 @@ export function PostingCreateModal({ performanceId, performanceTitle, performanc
     const photoField = applicationFields.find((field) => field.id === "PHOTOS" && field.enabled);
     const photoRequirements = photoField?.config.photoRequirements ?? [];
     const photoTotal = photoRequirements.reduce((sum, item) => sum + item.count, 0);
-    if (photoField && (photoRequirements.some((item) => !item.description.trim() || item.count < 1) || photoTotal > 10)) { setFormError({ message: "프로필 사진 요구사항과 전체 장수를 확인해 주세요.", section: "APPLICATION" }); return; }
+    if (photoField && (photoRequirements.some((item) => !item.description.trim() || item.count < 1) || photoTotal > MAX_REQUESTED_PHOTO_COUNT)) { setFormError({ message: `프로필 사진 요구사항을 확인하고 전체 ${MAX_REQUESTED_PHOTO_COUNT}장 이하로 입력해 주세요.`, section: "APPLICATION" }); return; }
     const videoField = applicationFields.find((field) => field.id === "VIDEO" && field.enabled);
     const videoRequirements = videoField?.config.videoRequirements ?? [];
     if (videoField && (videoRequirements.length < 1 || videoRequirements.length > MAX_VIDEO_REQUIREMENTS || videoRequirements.some((item) => !item.description.trim()))) { setFormError({ message: `제출 영상 요구사항을 1개 이상 ${MAX_VIDEO_REQUIREMENTS}개 이하로 입력해 주세요.`, section: "APPLICATION" }); return; }

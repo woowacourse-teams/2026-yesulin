@@ -125,7 +125,7 @@ export function ApplicantReviewDecision({
             if (note !== applicant.review.note) void commit({ note }, "내부 메모를 저장했습니다.");
           }}
           placeholder="예: 발성 좋음, 앙상블로도 고려 가능"
-          className="mt-2 min-h-16 w-full resize-y rounded-control border border-border bg-card px-3 py-2 text-xs leading-relaxed outline-none focus:border-brand focus:ring-2 focus:ring-brand-soft disabled:bg-border-soft"
+          className="mt-2 min-h-16 w-full resize-none rounded-control border border-border bg-card px-3 py-2 text-xs leading-relaxed outline-none focus:border-brand focus:ring-2 focus:ring-brand-soft disabled:bg-border-soft"
         />
       </label>
     </aside>

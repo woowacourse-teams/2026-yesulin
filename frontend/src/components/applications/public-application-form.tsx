@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import type { ChangeEvent } from "react";
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
-import { applicationFieldDetail } from "@/features/applications/application-form";
+import type { ApplicationWriteRouteKey } from "@/features/applications/application-form";
+import { formatPhoneNumber } from "@/features/applications/phone-number";
 import { PublicApplicationCareer } from "./public-application-career";
 import { PublicApplicationExitDialog } from "./public-application-exit-dialog";
 import { PublicApplicationMedia } from "./public-application-media";
@@ -26,6 +27,7 @@ type PublicApplicationFormProps = {
   readonly authenticated: boolean;
   readonly onBack: () => void;
   readonly prefill?: ProfilePrefillResponse;
+  readonly initialRoute: ApplicationWriteRouteKey;
 };
 
 export function PublicApplicationForm(props: PublicApplicationFormProps) {
@@ -84,7 +86,7 @@ function ApplicationSectionHeader({ current, total, title, description }: { curr
 function ApplicationStepper() {
   const { state, meta } = usePublicApplication();
   const current = meta.steps[state.stepIndex]!;
-  return <nav aria-label="지원서 단계" className="mb-8 md:mb-10"><p className="mb-3 text-sm text-muted-strong md:hidden"><span className="font-semibold text-foreground">현재 단계 {state.stepIndex + 1} / {meta.steps.length}</span><span aria-hidden="true"> · </span>{current.title}</p><ol className="scrollbar-hidden flex gap-2 overflow-x-auto pb-2">{meta.steps.map((step, index) => <StepButton key={step.section} index={index} title={step.title} />)}</ol></nav>;
+  return <nav aria-label="지원서 단계" className="mb-8 md:mb-10"><p className="mb-3 text-sm text-muted-strong md:hidden"><span className="font-semibold text-foreground">현재 단계 {state.stepIndex + 1} / {meta.steps.length}</span><span aria-hidden="true"> · </span>{current.title}</p><ol className="scrollbar-hidden flex gap-2 overflow-x-auto pb-2">{meta.steps.map((step, index) => <StepButton key={step.key} index={index} title={step.title} />)}</ol></nav>;
 }
 
 function StepButton({ index, title }: { index: number; title: string }) {
@@ -98,7 +100,8 @@ function StepButton({ index, title }: { index: number; title: string }) {
 function StepContent() {
   const { state, meta } = usePublicApplication();
   const step = meta.steps[state.stepIndex]!;
-  if (step.section === "MATERIALS") return <div className="mt-9"><PublicApplicationMedia /></div>;
+  if (step.key === "media") return <div className="mt-9"><PublicApplicationMedia /></div>;
+  if (step.fields.length === 0) return <p className="mt-9 rounded-card border border-dashed border-border bg-surface px-5 py-10 text-center text-sm text-muted-strong">공고에서 요청한 추가 질문이 없습니다.</p>;
   return <div className="mt-9 grid grid-cols-1 gap-x-6 gap-y-8 md:grid-cols-2">{step.fields.map((field) => field.id === "CAREER" ? <div key={field.id} className="md:col-span-2"><PublicApplicationCareer field={field} /></div> : <ApplicationField key={field.id} field={field} />)}</div>;
 }
 
@@ -106,27 +109,26 @@ function ApplicationField({ field }: { field: ApplicationFieldInput }) {
   const { state, actions } = usePublicApplication();
   const id = `application-${field.id}`;
   const error = state.stepError.startsWith(field.label) ? state.stepError : "";
-  const helpId = `${id}-help`;
   const errorId = `${id}-error`;
   const width = field.layout === "FULL" || field.inputType === "TEXTAREA" ? "md:col-span-2" : "";
-  const describedBy = [helpId, error ? errorId : ""].filter(Boolean).join(" ");
-  if (field.inputType === "DATE") return <fieldset id={`application-field-${field.id}`} className={width}><legend className="mb-2 flex items-center gap-1 text-sm font-semibold text-foreground"><FieldLabelText field={field} /></legend><div aria-invalid={Boolean(error) || undefined} aria-describedby={describedBy}><CalendarDateRangeField single variant="compact" start={state.values[field.id] ?? ""} end="" startLabel={field.label} onStartChange={(value) => actions.updateField(field.id, value)} onEndChange={() => undefined} /></div><FieldHelp id={helpId} detail={applicationFieldDetail(field)} />{error ? <InlineError id={errorId} error={error} /> : null}</fieldset>;
-  if (field.inputType === "COMPOSITE") return <fieldset id={`application-field-${field.id}`} className={width}><legend className="mb-2 flex items-center gap-1 text-sm font-semibold text-foreground"><FieldLabelText field={field} /></legend><FieldControl field={field} id={id} error={error} describedBy={describedBy} /><FieldHelp id={helpId} detail={applicationFieldDetail(field)} />{error ? <InlineError id={errorId} error={error} /> : null}</fieldset>;
-  return <div id={`application-field-${field.id}`} className={width}><label htmlFor={id} className="mb-2 flex items-center gap-1 text-sm font-semibold text-foreground"><FieldLabelText field={field} /></label><FieldControl field={field} id={id} error={error} describedBy={describedBy} /><FieldHelp id={helpId} detail={applicationFieldDetail(field)} />{error ? <InlineError id={errorId} error={error} /> : null}</div>;
+  const describedBy = error ? errorId : undefined;
+  if (field.inputType === "DATE") return <fieldset id={`application-field-${field.id}`} className={width}><legend className="mb-2 flex items-center gap-1 text-sm font-semibold text-foreground"><FieldLabelText field={field} /></legend><div aria-invalid={Boolean(error) || undefined} aria-describedby={describedBy}><CalendarDateRangeField single variant="compact" start={state.values[field.id] ?? ""} end="" startLabel={field.label} onStartChange={(value) => actions.updateField(field.id, value)} onEndChange={() => undefined} /></div>{error ? <InlineError id={errorId} error={error} /> : null}</fieldset>;
+  if (field.inputType === "COMPOSITE") return <fieldset id={`application-field-${field.id}`} className={width}><legend className="mb-2 flex items-center gap-1 text-sm font-semibold text-foreground"><FieldLabelText field={field} /></legend><FieldControl field={field} id={id} error={error} describedBy={describedBy} />{error ? <InlineError id={errorId} error={error} /> : null}</fieldset>;
+  return <div id={`application-field-${field.id}`} className={width}><label htmlFor={id} className="mb-2 flex items-center gap-1 text-sm font-semibold text-foreground"><FieldLabelText field={field} /></label><FieldControl field={field} id={id} error={error} describedBy={describedBy} />{error ? <InlineError id={errorId} error={error} /> : null}</div>;
 }
 
 function FieldLabelText({ field }: { field: ApplicationFieldInput }) { return <>{field.label}{field.required ? <span className="text-fail" aria-label="필수">*</span> : <span className="text-muted">(선택)</span>}</>; }
-function FieldHelp({ id, detail }: { id: string; detail: string }) { return <p id={id} className="mt-2 text-sm leading-6 text-muted">{detail}</p>; }
 function InlineError({ id, error }: { id: string; error: string }) { return <p id={id} role="alert" className="mt-2 text-sm font-medium leading-6 text-fail">{error}</p>; }
 
-function FieldControl({ field, id, error, describedBy }: { field: ApplicationFieldInput; id: string; error: string; describedBy: string }) {
+function FieldControl({ field, id, error, describedBy }: { field: ApplicationFieldInput; id: string; error: string; describedBy?: string }) {
   const { state, actions } = usePublicApplication();
   const value = state.values[field.id] ?? "";
   const className = `${fieldControlClass} ${error ? "border-fail focus:border-fail focus:ring-fail-bg" : ""}`;
-  const common = { id, name: field.id, required: field.required, value, placeholder: field.config.placeholder, maxLength: field.config.maxLength, "aria-invalid": Boolean(error) || undefined, "aria-describedby": describedBy, onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => actions.updateField(field.id, event.target.value), className };
-  if (field.inputType === "TEXTAREA") return <textarea {...common} minLength={field.config.minLength} rows={6} className={`${className} resize-y`} />;
+  const formatValue = (next: string) => field.inputType === "TEL" ? formatPhoneNumber(next) : next;
+  const common = { id, name: field.id, required: field.required, value, placeholder: field.config.placeholder, maxLength: field.inputType === "TEL" ? 13 : field.config.maxLength, "aria-invalid": Boolean(error) || undefined, "aria-describedby": describedBy, onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => actions.updateField(field.id, formatValue(event.target.value)), className };
+  if (field.inputType === "TEXTAREA") return <textarea {...common} minLength={field.config.minLength} rows={6} className={`${className} resize-none`} />;
   if (field.inputType === "SELECT") return <select {...common}><option value="">선택해 주세요</option>{field.config.options?.map((option) => <option key={option} value={option}>{option}</option>)}</select>;
-  if (field.inputType === "COMPOSITE") return <div className="grid grid-cols-2 gap-3">{field.config.fields?.map((part) => { const partId = `${field.id}.${part.key}`; const inputId = `${id}-${part.key}`; return <label key={part.key} htmlFor={inputId} className="relative"><span className="mb-2 block text-sm font-medium text-foreground">{part.label}</span><input id={inputId} name={partId} required={field.required} type={part.inputType === "NUMBER" ? "number" : part.inputType === "TEL" ? "tel" : "text"} value={state.values[partId] ?? ""} placeholder={part.placeholder} aria-invalid={Boolean(error) || undefined} aria-describedby={describedBy} onChange={(event) => actions.updateField(partId, event.target.value)} className={`${className} pr-10`} />{part.unit ? <span className="pointer-events-none absolute right-3 top-10 text-sm text-muted">{part.unit}</span> : null}</label>; })}</div>;
+  if (field.inputType === "COMPOSITE") return <div className="grid grid-cols-2 gap-3">{field.config.fields?.map((part) => { const partId = `${field.id}.${part.key}`; const inputId = `${id}-${part.key}`; const isPhone = part.inputType === "TEL"; return <label key={part.key} htmlFor={inputId} className="relative"><span className="mb-2 block text-sm font-medium text-foreground">{part.label}</span><input id={inputId} name={partId} required={field.required} type={part.inputType === "NUMBER" ? "number" : isPhone ? "tel" : "text"} value={state.values[partId] ?? ""} placeholder={part.placeholder} maxLength={isPhone ? 13 : undefined} aria-invalid={Boolean(error) || undefined} aria-describedby={describedBy} onChange={(event) => actions.updateField(partId, isPhone ? formatPhoneNumber(event.target.value) : event.target.value)} className={`${className} pr-10`} />{part.unit ? <span className="pointer-events-none absolute right-3 top-10 text-sm text-muted">{part.unit}</span> : null}</label>; })}</div>;
   const type = field.inputType === "TEL" ? "tel" : field.inputType === "NUMBER" ? "number" : field.inputType === "URL" ? "url" : "text";
   return <input {...common} type={type} inputMode={field.inputType === "TEL" ? "tel" : field.inputType === "NUMBER" ? "numeric" : undefined} />;
 }

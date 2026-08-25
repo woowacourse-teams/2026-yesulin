@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, use, useEffect, useState } from "react";
+import { createContext, use, useEffect, useMemo, useState } from "react";
 import { AuditionRequestError } from "@/features/auditions/api-client";
 import { applicationFormSteps, applicationStepProgress } from "@/features/applications/application-form";
 import { applicationStepIssue } from "@/features/applications/application-form-state";
@@ -8,8 +8,10 @@ import type { ApplicationStepIssue, SubmissionState } from "@/features/applicati
 import { createApplicationSubmission } from "@/features/applications/submission-api";
 import { deletePublicApplicationDraft } from "@/features/applications/public-application-draft-store";
 import { buildApplicationAuthReturnTo } from "@/features/auth/return-to";
+import { applicationStepIndex } from "@/features/applications/routes";
 import type { EditableSection, PublicApplicationActions, PublicApplicationContextValue, PublicApplicationProviderProps, PublicApplicationState, SubmissionReceipt } from "./public-application-context-types";
 import { usePublicApplicationDraft } from "./use-public-application-draft";
+import { usePublicApplicationRoute } from "./use-public-application-route";
 
 const PublicApplicationContext = createContext<PublicApplicationContextValue | null>(null);
 
@@ -29,11 +31,21 @@ export function PublicApplicationProvider({
   authenticated,
   onBack,
   prefill,
+  initialRoute,
   children,
 }: PublicApplicationProviderProps) {
-  const steps = applicationFormSteps(fields);
+  const steps = useMemo(() => applicationFormSteps(fields), [fields]);
   const [receipt, setReceipt] = useState<SubmissionReceipt | null>(null);
-  const draft = usePublicApplicationDraft({ postingId, fields, prefill, initialRoleIds, submitted: receipt !== null });
+  const draft = usePublicApplicationDraft({
+    postingId,
+    fields,
+    prefill,
+    initialRoleIds,
+    initialStepIndex: applicationStepIndex(initialRoute),
+    initialReviewing: initialRoute === "review",
+    stepCount: steps.length,
+    submitted: receipt !== null,
+  });
   const {
     stepIndex, setStepIndex, values, setValues, photos, setPhotos, videoUrl, setVideoUrl,
     noCareer, setNoCareer, careers, setCareers, completedStepIndexes, setCompletedStepIndexes,
@@ -64,9 +76,13 @@ export function PublicApplicationProvider({
     steps.length - 1,
     completedStepIndexes.length ? Math.max(...completedStepIndexes) + 1 : 0,
   );
+  const updateRoute = usePublicApplicationRoute({
+    postingId, roleIds, steps, stepIndex, reviewing, completedStepIndexes,
+    maxReachedStepIndex, storageReady: draft.storageReady, setStepIndex, setReviewing,
+  });
   const reviewIssues = steps.flatMap((step, index) => {
     const issue = validationIssue(index);
-    return issue ? [{ section: step.section as EditableSection, fieldId: issue.fieldId, title: step.title, message: issue.message }] : [];
+    return issue ? [{ section: (steps[index]?.fields.find((field) => field.id === issue.fieldId || issue.fieldId.startsWith(`${field.id}.`))?.section ?? step.sections[0]) as EditableSection, fieldId: issue.fieldId, title: step.title, message: issue.message }] : [];
   });
 
   const clearStepError = (index: number) => setStepErrors((current) => {
@@ -89,6 +105,8 @@ export function PublicApplicationProvider({
     if (index < 0 || index >= steps.length || index > maxReachedStepIndex) return;
     setMediaError("");
     setStepIndex(index);
+    setReviewing(false);
+    updateRoute(steps[index]!.key);
   };
 
   const nextStep = () => {
@@ -100,13 +118,18 @@ export function PublicApplicationProvider({
     }
     clearStepError(stepIndex);
     setCompletedStepIndexes((current) => current.includes(stepIndex) ? current : [...current, stepIndex]);
-    if (stepIndex === steps.length - 1) setReviewing(true);
-    else setStepIndex(stepIndex + 1);
+    if (stepIndex === steps.length - 1) {
+      setReviewing(true);
+      updateRoute("review");
+    } else {
+      setStepIndex(stepIndex + 1);
+      updateRoute(steps[stepIndex + 1]!.key);
+    }
   };
 
   const editSection = (section: EditableSection, fieldId?: string) => {
     if (submissionState === "SUBMITTING") return;
-    const index = steps.findIndex((item) => item.section === section);
+    const index = steps.findIndex((item) => item.sections.includes(section));
     if (index >= 0) {
       const issue = fieldId ? validationIssue(index) : null;
       setReviewing(false);
@@ -145,6 +168,7 @@ export function PublicApplicationProvider({
       const issue = validationIssue(invalidIndex)!;
       setReviewing(false);
       setStepIndex(invalidIndex);
+      updateRoute(steps[invalidIndex]!.key);
       setStepErrors((current) => ({ ...current, [invalidIndex]: issue.message }));
       focusIssue(issue);
       return;

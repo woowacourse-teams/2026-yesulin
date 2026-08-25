@@ -2,6 +2,7 @@ import type { ApplicationFieldInput } from "@/features/auditions/creation-types"
 import type { PostingId } from "@/features/auditions/types";
 import type { SubmissionId } from "@/features/auditions/types";
 import type { applicationFormSteps, applicationStepProgress } from "@/features/applications/application-form";
+import type { ApplicationWriteRouteKey } from "@/features/applications/application-form";
 import type { ApplicationPhoto, CareerDraft, SubmissionState } from "@/features/applications/application-form-state";
 import type { ProfilePrefillResponse } from "@/features/applicants/types";
 import type { DraftSaveStatus } from "./use-public-application-draft";
@@ -85,4 +86,5 @@ export type PublicApplicationContextValue = {
 export type PublicApplicationProviderProps = Omit<PublicApplicationMeta, "steps"> & {
   readonly children: React.ReactNode;
   readonly prefill?: ProfilePrefillResponse;
+  readonly initialRoute: ApplicationWriteRouteKey;
 };
