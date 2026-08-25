@@ -12,6 +12,7 @@ import {
   loginAsLocalApplicant,
 } from "@/features/auth/session-api";
 import { rememberSocialLoginReturnTo } from "@/features/auth/social-login-return-to";
+import { frontendEnvironment } from "@/config/environment";
 import {
   createFrontendCredential,
   type SocialProvider,
@@ -20,10 +21,10 @@ import {
 
 type LoginErrors = Partial<Record<"identifier" | "password", string>>;
 
-const mockingDisabled = process.env.NEXT_PUBLIC_API_MOCKING === "disabled";
-const realProducerLoginEnabled = process.env.NEXT_PUBLIC_PRODUCER_LOGIN === "enabled";
-const realSocialLoginEnabled = process.env.NEXT_PUBLIC_SOCIAL_LOGIN === "enabled";
-const localSocialLoginEnabled = process.env.NEXT_PUBLIC_LOCAL_SOCIAL_LOGIN === "enabled";
+const mockingDisabled = !frontendEnvironment.apiMockingEnabled;
+const realProducerLoginEnabled = frontendEnvironment.producerLoginEnabled;
+const realSocialLoginEnabled = frontendEnvironment.socialLoginEnabled;
+const localSocialLoginEnabled = frontendEnvironment.localSocialLoginEnabled;
 
 const PROVIDER_LABELS: Record<SocialProvider, string> = {
   kakao: "카카오",

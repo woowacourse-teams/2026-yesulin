@@ -1,4 +1,5 @@
 import { delay, http, HttpResponse, passthrough } from "msw";
+import { frontendEnvironment } from "@/config/environment";
 import type {
   CreatePerformanceRequest,
   CreatePostingRequest,
@@ -30,7 +31,7 @@ import { validatePostingDraft } from "./auditions/posting-validation";
 import { authHandlers } from "./auth-handlers";
 
 const apiPath = "/api";
-const realProducerApiEnabled = process.env.NEXT_PUBLIC_PRODUCER_API === "enabled";
+const realProducerApiEnabled = frontendEnvironment.producerApiEnabled;
 
 const notFound = (message: string) => HttpResponse.json({ message }, { status: 404 });
 const badRequest = (message: string) => HttpResponse.json({ message }, { status: 400 });

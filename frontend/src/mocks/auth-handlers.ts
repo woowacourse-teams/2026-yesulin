@@ -1,11 +1,12 @@
 import { delay, http, HttpResponse, passthrough } from "msw";
+import { frontendEnvironment } from "@/config/environment";
 import type { ProducerSignupRequest } from "@/features/auth/api";
 import { registerActiveProducer } from "./auditions/producer-profile";
 
 const emails = new Set<string>();
 let mockSession: { memberId: number; role: "APPLICANT" | "PRODUCER"; status: "PENDING" | "ACTIVE" } | null = null;
-const realProducerLoginEnabled = process.env.NEXT_PUBLIC_PRODUCER_LOGIN === "enabled";
-const realSocialLoginEnabled = process.env.NEXT_PUBLIC_SOCIAL_LOGIN === "enabled";
+const realProducerLoginEnabled = frontendEnvironment.producerLoginEnabled;
+const realSocialLoginEnabled = frontendEnvironment.socialLoginEnabled;
 const error = (code: string, message: string, status = 400) => HttpResponse.json({ code, message }, { status });
 
 export const authHandlers = [

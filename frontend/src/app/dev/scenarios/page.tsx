@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { frontendEnvironment } from "@/config/environment";
 import { MOCK_SCENARIOS } from "@/mocks/scenario-definitions";
 
 export const metadata: Metadata = {
@@ -9,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 export default function MockScenarioHubPage() {
-  if (process.env.NODE_ENV === "production") notFound();
+  if (process.env.NODE_ENV === "production" || !frontendEnvironment.apiMockingEnabled) notFound();
   const areas = ["지원 양식", "심사 흐름"] as const;
 
   return <main className="min-h-screen bg-surface px-5 py-10 text-foreground md:px-8 md:py-14">

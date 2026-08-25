@@ -34,6 +34,10 @@ API_ORIGIN=https://dcijkydwh7e79.cloudfront.net
 `API_ORIGIN`은 Vercel 서버가 API 요청을 전달할 목적지다. 브라우저에서 직접 읽을 필요가
 없으므로 `NEXT_PUBLIC_` 접두사를 붙이지 않는다.
 
+MSW는 애플리케이션 기본값으로 비활성화된다. Production·Preview에는
+`NEXT_PUBLIC_API_MOCKING`을 설정하지 않으며, 과거 `enabled` 값이 있으면 제거하고 다시 배포한다.
+`NEXT_PUBLIC_*` 값은 브라우저 번들에 빌드 시점에 포함되므로 값을 변경한 뒤에는 재배포해야 한다.
+
 ## API 요청
 
 프론트 코드는 CloudFront 절대 주소 대신 같은 도메인의 상대 경로를 사용한다.
@@ -53,8 +57,8 @@ fetch("/api/v1/performances");
   → Spring
 ```
 
-현재 일부 프론트 API는 아직 `/api/**`와 MSW를 사용한다. 모든 실제 API 이관이 끝나기 전에는
-Vercel에서 `NEXT_PUBLIC_API_MOCKING=disabled`를 설정하지 않는다.
+MSW 시나리오는 로컬 목 검증에서만 `NEXT_PUBLIC_API_MOCKING=enabled`로 실행한다. 운영 빌드에는
+목 데이터와 실제 데이터가 섞이지 않는다.
 
 ## 미디어 업로드와 조회
 
@@ -89,6 +93,7 @@ CloudFront의 S3 원본 경로가 `/yesulin`이므로 공개 URL에 `/yesulin`�
 - Vercel 배포 상태가 `Ready`인지 확인한다.
 - `https://yesulin.art`에서 최신 화면이 표시되는지 확인한다.
 - 브라우저 개발자 도구에 JavaScript 오류가 없는지 확인한다.
+- 브라우저 콘솔에 `[MSW] Mocking enabled`가 출력되지 않는지 확인한다.
 - 실제 API를 변경했다면 `/api/v1/**` 요청이 예상한 상태 코드와 응답을 반환하는지 확인한다.
 - 미디어를 변경했다면 반환된 CloudFront URL에서 파일이 열리는지 확인한다.
 

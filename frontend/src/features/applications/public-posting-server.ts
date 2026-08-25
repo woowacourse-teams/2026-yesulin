@@ -1,4 +1,5 @@
 import "server-only";
+import { frontendEnvironment } from "@/config/environment";
 import { isBackendAuditionId } from "@/features/auditions/audition-v1-api";
 import { getV1PublicPostingForServer } from "./public-audition-v1";
 import { publicPostingById, type PublicPosting } from "./public-posting";
@@ -16,7 +17,7 @@ export async function publicPostingForServer(postingId: string): Promise<PublicP
       return null;
     }
   }
-  if (process.env.NEXT_PUBLIC_API_MOCKING !== "disabled") return publicPostingById(postingId);
+  if (frontendEnvironment.apiMockingEnabled) return publicPostingById(postingId);
   if (!origin) return null;
   try {
     const response = await fetch(new URL(`/api/public/postings/${encodeURIComponent(postingId)}`, origin), {

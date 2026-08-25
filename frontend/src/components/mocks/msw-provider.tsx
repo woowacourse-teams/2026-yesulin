@@ -1,15 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { frontendEnvironment } from "@/config/environment";
 
-const mockingDisabled = process.env.NEXT_PUBLIC_API_MOCKING === "disabled";
+const mockingEnabled = frontendEnvironment.apiMockingEnabled;
 
 export function MswProvider({ children }: { children: React.ReactNode }) {
-  const [status, setStatus] = useState<"loading" | "ready" | "error">(mockingDisabled ? "ready" : "loading");
+  const [status, setStatus] = useState<"loading" | "ready" | "error">(mockingEnabled ? "loading" : "ready");
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    if (mockingDisabled) return;
+    if (!mockingEnabled) return;
 
     let active = true;
 
