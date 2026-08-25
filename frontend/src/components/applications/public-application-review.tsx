@@ -9,7 +9,6 @@ import type { ApplicationPhoto, CareerDraft, SubmissionState } from "@/features/
 import { photoSlotLabels } from "@/features/applications/materials";
 import { buildApplicationAuthReturnTo } from "@/features/auth/return-to";
 import { PrimaryButton, TextButton } from "@/components/ui/controls";
-import { isBackendAuditionId } from "@/features/auditions/audition-v1-api";
 import { usePublicApplication } from "./public-application-context";
 import { PublicApplicationSaveBadge, PublicApplicationSaveNotice } from "./public-application-save-status";
 import { ModalShell } from "@/components/auditions/modal-shell";
@@ -46,7 +45,7 @@ export function PublicApplicationReview() {
         </div>
       </section>
 
-      <ProfileSave checked={state.saveToProfile} disabled={submitting} available={!isBackendAuditionId(meta.postingId)} onChange={actions.updateSaveToProfile} />
+      <ProfileSave checked={state.saveToProfile} disabled={submitting} onChange={actions.updateSaveToProfile} />
       <Consent consent={state.consent} privacyConsent={state.privacyConsent} thirdPartyConsent={state.thirdPartyConsent} disabled={submitting} error={state.submissionError.includes("동의") ? state.submissionError : ""} onAllChange={actions.updateConsent} onPrivacyChange={actions.updatePrivacyConsent} onThirdPartyChange={actions.updateThirdPartyConsent} />
       {!meta.authenticated ? <AuthGate /> : <SubmissionArea submitting={submitting} consent={state.consent} issueCount={state.reviewIssues.length} state={state.submissionState} error={state.submissionError} onSubmit={actions.submit} />}
     </div>
@@ -93,9 +92,8 @@ function ReviewSection({ title, disabled = false, onEdit, children }: { title: s
   return <section className="border-b border-border-soft py-5 last:border-b-0"><div className="flex items-center gap-3"><h3 className="text-base font-bold">{title}</h3>{onEdit ? <TextButton disabled={disabled} onClick={onEdit} className="ml-auto px-3 text-brand hover:bg-brand-soft disabled:hover:bg-transparent">수정</TextButton> : null}</div><div className="mt-3">{children}</div></section>;
 }
 
-function ProfileSave({ checked, disabled, available, onChange }: { checked: boolean; disabled: boolean; available: boolean; onChange: (checked: boolean) => void }) {
-  if (!available) return <aside className="mt-8 border-y border-border-soft bg-surface py-5 md:px-1"><p className="text-xs font-semibold text-muted">선택 사항 · 후속 연동 예정</p><strong className="mt-2 block text-sm">이번 지원서 정보의 프로필 저장은 준비 중입니다</strong><span className="mt-1 block text-sm leading-6 text-muted">지원서 제출에는 포함되지 않으며, 현재는 프로필에서 정보를 직접 관리해 주세요.</span></aside>;
-  return <aside aria-labelledby="profile-save-title" className="mt-8 border-y border-border-soft bg-surface py-5 md:px-1"><p className="text-xs font-semibold text-muted">선택 사항 · 제출 동의와 별개예요</p><label className="mt-2 flex cursor-pointer items-start gap-3"><input type="checkbox" checked={checked} disabled={disabled} onChange={(event) => onChange(event.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-brand" /><span><strong id="profile-save-title" className="block text-sm">이번 지원서의 기본 정보를 프로필에도 저장</strong><span className="mt-1 block text-sm leading-6 text-muted">선택한 경우에만 기본·추가 정보와 사진을 다음 지원에 재사용합니다. 공고별 추가 질문 답변은 저장하지 않습니다.</span></span></label></aside>;
+function ProfileSave({ checked, disabled, onChange }: { checked: boolean; disabled: boolean; onChange: (checked: boolean) => void }) {
+  return <aside aria-labelledby="profile-save-title" className="mt-8 border-y border-border-soft bg-surface py-5 md:px-1"><p className="text-xs font-semibold text-muted">선택 사항 · 제출 동의와 별개예요</p><label className="mt-2 flex cursor-pointer items-start gap-3"><input type="checkbox" checked={checked} disabled={disabled} onChange={(event) => onChange(event.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-brand" /><span><strong id="profile-save-title" className="block text-sm">이번 지원서의 기본·추가 정보를 프로필에도 저장</strong><span className="mt-1 block text-sm leading-6 text-muted">선택한 경우에만 값을 입력한 항목을 다음 지원에 재사용합니다. 공고별 추가 질문 답변과 사진·영상은 저장하지 않습니다.</span></span></label></aside>;
 }
 
 function Consent({ consent, privacyConsent, thirdPartyConsent, disabled, error, onAllChange, onPrivacyChange, onThirdPartyChange }: { consent: boolean; privacyConsent: boolean; thirdPartyConsent: boolean; disabled: boolean; error: string; onAllChange: (consent: boolean) => void; onPrivacyChange: (consent: boolean) => void; onThirdPartyChange: (consent: boolean) => void }) {

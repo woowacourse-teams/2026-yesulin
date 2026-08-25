@@ -4,7 +4,8 @@ import type { ApplicationPhoto, CareerDraft } from "./application-form-state";
 import { hasSubmittedValue } from "./materials";
 import { submissionValue } from "./public-application-draft";
 import { createPublicSubmission } from "@/features/applicants/api";
-import { createV1Submission, type V1SubmissionReceipt } from "./submission-v1";
+import { saveSubmissionInformationToProfile } from "./submission-profile-save";
+import { applicantInformation, createV1Submission, type V1SubmissionReceipt } from "./submission-v1";
 
 type CreateApplicationSubmissionInput = {
   readonly postingId: string;
@@ -20,9 +21,14 @@ type CreateApplicationSubmissionInput = {
   readonly saveToProfile: boolean;
 };
 
-export async function createApplicationSubmission(input: CreateApplicationSubmissionInput): Promise<V1SubmissionReceipt> {
+export type ApplicationSubmissionResult = V1SubmissionReceipt & {
+  /** 프로필 저장을 선택했을 때만 채워진다. 저장 실패는 제출 성공에 영향을 주지 않는다. */
+  readonly profileSaved?: boolean;
+};
+
+export async function createApplicationSubmission(input: CreateApplicationSubmissionInput): Promise<ApplicationSubmissionResult> {
   if (isBackendAuditionId(input.postingId)) {
-    return createV1Submission({
+    const receipt = await createV1Submission({
       auditionId: input.postingId,
       fields: input.fields,
       values: input.values,
@@ -34,6 +40,10 @@ export async function createApplicationSubmission(input: CreateApplicationSubmis
       privacyConsent: input.privacyConsent,
       thirdPartyConsent: input.thirdPartyConsent,
     });
+    if (!input.saveToProfile) return receipt;
+    const profileSaved = await saveSubmissionInformationToProfile(applicantInformation(input))
+      .then(() => true, () => false);
+    return { ...receipt, profileSaved };
   }
 
   const answers = input.fields.filter((field) => field.enabled).map((field) => ({
@@ -51,5 +61,10 @@ export async function createApplicationSubmission(input: CreateApplicationSubmis
     privacyAgreed: input.privacyConsent && input.thirdPartyConsent,
     saveToProfile: input.saveToProfile,
   });
-  return { submissionId: response.submissionId, submittedAt: response.submittedAt };
+  return {
+    submissionId: response.submissionId,
+    submittedAt: response.submittedAt,
+    // 시드 공고는 목 서버가 제출과 함께 프로필을 갱신하므로 선택했다면 저장 완료로 본다.
+    ...(input.saveToProfile ? { profileSaved: true } : {}),
+  };
 }
