@@ -109,6 +109,7 @@ services:
         API_ORIGIN: http://backend:8080
         NEXT_PUBLIC_API_MOCKING: ${NEXT_PUBLIC_API_MOCKING:-}
         NEXT_PUBLIC_SOCIAL_LOGIN: ${NEXT_PUBLIC_SOCIAL_LOGIN:-disabled}
+        NEXT_PUBLIC_KAKAO_MAP_APP_KEY: ${NEXT_PUBLIC_KAKAO_MAP_APP_KEY:-}
     environment:
       API_ORIGIN: http://backend:8080
       HOSTNAME: 0.0.0.0

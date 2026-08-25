@@ -35,9 +35,19 @@ DB_PASSWORD=yesulin-local
 MYSQL_ROOT_PASSWORD=yesulin-root-local
 NEXT_PUBLIC_API_MOCKING=
 NEXT_PUBLIC_SOCIAL_LOGIN=disabled
+NEXT_PUBLIC_KAKAO_MAP_APP_KEY=
 ```
 
 기본 비밀번호는 로컬 개발 전용이다. 실제 운영 자격증명으로 사용하지 않는다.
+
+공연장 주소 검색 결과를 지도에 표시하려면 카카오 개발자 콘솔에서 발급한 JavaScript 키를
+`NEXT_PUBLIC_KAKAO_MAP_APP_KEY`에 설정한다. 이 값은 Next.js 이미지 빌드 시 브라우저 코드에
+포함되므로 카카오 개발자 콘솔의 웹 플랫폼 허용 도메인에 `http://localhost:3000`을 등록해
+사용 범위를 제한한다. 값을 변경한 뒤에는 Frontend 이미지를 다시 빌드한다.
+
+```bash
+docker compose up -d --build frontend
+```
 
 실제 Backend로 UUID 공고의 지원서를 제출하려면 배우의 Backend Session이 필요하다. 소셜 로그인을
 확인할 때는 `.env.example`의 `SOCIAL_LOGIN_*`, `KAKAO_OIDC_*`, `NAVER_OIDC_*`,
