@@ -94,6 +94,8 @@ export function LoginForm({ returnTo, applicationFlow = false, serverSessionRequ
 
     if (realSocialLoginEnabled || (mockingDisabled && !localSocialLoginEnabled)) {
       rememberSocialLoginReturnTo(returnTo);
+      // OAuth 시작은 백엔드로 전달되는 경로라 클라이언트 라우팅 대신 전체 페이지 이동을 사용한다.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.assign(`/oauth2/authorization/${provider}`);
       return;
     }

@@ -202,6 +202,8 @@ export function PublicApplicationProvider({
     } catch (cause) {
       if (cause instanceof AuditionRequestError && cause.status === 401) {
         const returnTo = encodeURIComponent(buildApplicationAuthReturnTo(postingId, roleIds));
+        // 만료된 프론트 로그인 상태를 초기화하기 위한 의도된 전체 페이지 이동이다.
+        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
         window.location.assign(`/login?returnTo=${returnTo}`);
         return;
       }
