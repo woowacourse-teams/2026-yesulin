@@ -1,6 +1,6 @@
 import type { ApplicationFormStep } from "./application-form";
 
-export const MAX_PHOTO_COUNT = 10;
+export const MAX_PHOTO_COUNT = 3;
 export const MAX_PHOTO_SIZE_BYTES = 10 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/;

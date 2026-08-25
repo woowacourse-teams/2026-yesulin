@@ -77,7 +77,7 @@ export function ProfilePhotoLibrary({ profile, onSaved }: { readonly profile: Ap
   };
 
   return <div className="mt-6">
-    <div className="flex flex-wrap items-start justify-between gap-4"><div><h3 className="font-bold">사진 보관함</h3><p className="mt-1 text-sm leading-6 text-muted">최대 20장까지 보관할 수 있어요. 지원서에는 기획사/제작사가 요청한 장수만큼, 최대 10장까지 선택합니다.</p></div><span className="num rounded-full bg-brand-soft px-3 py-1 text-sm font-semibold text-brand">{photos.length} / {MAX_LIBRARY_PHOTOS}</span></div>
+    <div className="flex flex-wrap items-start justify-between gap-4"><div><h3 className="font-bold">사진 보관함</h3><p className="mt-1 text-sm leading-6 text-muted">최대 20장까지 보관할 수 있어요. 지원서에는 기획사/제작사가 요청한 장수만큼, 최대 3장까지 선택합니다.</p></div><span className="num rounded-full bg-brand-soft px-3 py-1 text-sm font-semibold text-brand">{photos.length} / {MAX_LIBRARY_PHOTOS}</span></div>
     {photos.length ? (
       <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
         {photos.map((photo, index) => (
