@@ -16,10 +16,11 @@ on duplicate key update owner_id = values(owner_id), original_filename = values(
                         content_type = values(content_type), file_type = values(file_type), size = values(size),
                         status = values(status);
 
-insert into performances (id, owner_id, poster_file_id, title, road_address, created_at)
-values (9001, 9001, 9001, '달빛 아래 우리', '서울특별시 종로구 대학로 12', '2026-08-01 10:00:00')
+insert into performances (id, owner_id, poster_file_id, title, venue_name, road_address, created_at)
+values (9001, 9001, 9001, '달빛 아래 우리', '예술인 극장', '서울특별시 종로구 대학로 12',
+        '2026-08-01 10:00:00')
 on duplicate key update owner_id = values(owner_id), poster_file_id = values(poster_file_id),
-                        title = values(title), road_address = values(road_address);
+                        title = values(title), venue_name = values(venue_name), road_address = values(road_address);
 
 insert into performance_roles (id, performance_id, name, description, role_order)
 values (9001, 9001, '주연', '작품을 이끄는 주연 배역', 0),
