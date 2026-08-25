@@ -211,7 +211,7 @@ export function BoardWorkspace({
   return (
     <BoardProvider value={value}>
       <RoundStepper />
-      <div className="glass-surface sticky top-16 z-20 border-b border-border lg:top-0">
+      <div className="glass-surface sticky top-16 z-20 border-b border-border lg:top-0 lg:border-b-0">
         <WorkSplit />
         <FilterBar sheetOpen={filterSheetOpen} onOpenSheet={() => setFilterSheetOpen(true)} />
         <DesktopBoardToolbar onOpenFilter={() => setFilterSheetOpen(true)} />
