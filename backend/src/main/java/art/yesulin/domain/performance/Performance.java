@@ -2,7 +2,9 @@ package art.yesulin.domain.performance;
 
 import static art.yesulin.domain.common.validation.DomainValidator.requirePositive;
 import static art.yesulin.domain.common.validation.DomainValidator.requireText;
+import static art.yesulin.domain.performance.PerformanceErrorCode.ROLE_MODIFICATION_NOT_ALLOWED;
 
+import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.performance.event.PerformanceCreatedEvent;
 import art.yesulin.domain.performance.event.PerformancePosterChangedEvent;
 import jakarta.persistence.Column;
@@ -66,6 +68,12 @@ public class Performance extends AbstractAggregateRoot<Performance> {
     }
 
     public PerformanceRole addRole(String name, String description) {
+        if (id != null) {
+            throw new BusinessException(
+                    ROLE_MODIFICATION_NOT_ALLOWED,
+                    "등록된 공연의 배역은 추가·수정·삭제할 수 없습니다."
+            );
+        }
         return roles.add(this, name, description);
     }
 
