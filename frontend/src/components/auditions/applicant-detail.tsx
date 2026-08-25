@@ -78,7 +78,7 @@ export function ApplicantDetail() {
 
         <div className="flex-1 overflow-y-auto lg:grid lg:grid-cols-[minmax(300px,392px)_1fr] lg:overflow-hidden">
           <DetailGallery applicant={applicant} />
-          <DetailProfile applicant={applicant} />
+          <DetailProfile applicant={applicant} rounds={board.rounds} />
         </div>
 
         <DetailReview applicant={applicant} />

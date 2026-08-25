@@ -96,7 +96,7 @@ export function ApplicantReview({
                 />
                 <div className="min-w-0 overflow-hidden rounded-card border border-border bg-card">
                   <ApplicantVideoSection applicant={applicant} />
-                  <DetailProfile applicant={applicant} />
+                  <DetailProfile applicant={applicant} rounds={board.rounds} />
                 </div>
               </div>
 
