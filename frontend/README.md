@@ -52,8 +52,8 @@ API_ORIGIN=http://localhost:8080 NEXT_PUBLIC_API_MOCKING=enabled NEXT_PUBLIC_SOC
 ```
 
 소셜 로그인 뒤 배우 프로필의 기본·추가 정보, 사진 보관함, 영상 보관함을 실제 Backend와
-연결하려면 `NEXT_PUBLIC_APPLICANT_PROFILE_API=enabled`를 함께 사용한다. 이 플래그가 없으면
-기존 MSW 프로필 시나리오를 유지한다.
+연결하려면 MSW 목 환경에서 `NEXT_PUBLIC_APPLICANT_PROFILE_API=enabled`를 함께 사용한다.
+이 플래그가 없어도 `NEXT_PUBLIC_API_MOCKING`을 설정하지 않은 기본 모드는 실제 Backend API를 사용한다.
 
 ```bash
 API_ORIGIN=http://localhost:8080 NEXT_PUBLIC_API_MOCKING=enabled NEXT_PUBLIC_SOCIAL_LOGIN=enabled NEXT_PUBLIC_APPLICANT_PROFILE_API=enabled npm run dev

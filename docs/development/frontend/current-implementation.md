@@ -39,8 +39,8 @@ IndexedDB 사본은 서버나 기획사/제작사에 전송되지 않는다. 이
 - 학력은 단일 문자열이고 경력 최대 10개는 적용되어 있다. 링크는 단일 입력이며 최대 5개 반복 입력과 추가 질문 최대 10개 제한은 없다.
 
 Backend에는 실제 파일 업로드·사진 보관함, 영속 프로필 기본·추가정보와 YouTube 영상 보관함 API가
-구현됐다. 기본 환경의 Frontend 프로필 화면은 실제 Backend API를 사용하고, 명시적으로 활성화한 MSW
-환경만 `/api/**` 목 계약과 브라우저 Blob URL을 사용한다.
+구현됐다. `NEXT_PUBLIC_API_MOCKING=enabled`이고 `NEXT_PUBLIC_APPLICANT_PROFILE_API`가 비활성일 때만
+Frontend 프로필 화면이 `/api/**` 목 계약과 브라우저 Blob URL을 사용한다.
 `NEXT_PUBLIC_APPLICANT_PROFILE_API=enabled` 또는 MSW를 활성화하지 않은 실제 API 모드에서는
 프로필 정보·사진·영상을 각각의 `/api/v1/**` Backend API에 연결한다. 공고 양식 기준 프로필 자동 채움
 Backend는 아직 구현하지 않았다.
