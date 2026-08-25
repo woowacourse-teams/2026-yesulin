@@ -37,9 +37,9 @@ Production 프론트 주소는 `https://yesulin.art`다. Vercel의 `API_ORIGIN`�
 MSW를 통과해 `API_ORIGIN`으로 전달된다.
 
 공연·공고 생성과 구현 완료된 조회 API도 실제 백엔드로 연결하려면
-`NEXT_PUBLIC_PRODUCER_API=enabled`를 함께 사용한다. 이 모드에서는 MSW의 공연 목록 핸들러가
-`GET /api/v1/performances`를 가로채지 않는다. 기획사 정보와 탐색 트리처럼 아직 API가 없는 조회는
-계속 MSW가 처리한다.
+`NEXT_PUBLIC_PRODUCER_API=enabled`를 함께 사용한다. 이 모드에서는 MSW가 `GET /api/v1/performances`와
+기획사/제작사 정보 `GET·PATCH /api/v1/producers/me`를 가로채지 않는다. 탐색 트리처럼 아직 API가 없는
+조회는 계속 MSW가 처리한다.
 
 ```bash
 API_ORIGIN=http://localhost:8080 NEXT_PUBLIC_API_MOCKING=enabled NEXT_PUBLIC_PRODUCER_LOGIN=enabled NEXT_PUBLIC_PRODUCER_API=enabled npm run dev

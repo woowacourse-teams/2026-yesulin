@@ -43,7 +43,6 @@ export type ProducerProfile = {
   readonly companyName: string;
   readonly contactName: string;
   readonly contactRole: string;
-  readonly logoUrl: string;
   readonly description: string;
   readonly email: string;
   readonly phone: string;
@@ -54,4 +53,4 @@ export type ProducerProfile = {
 export type UpdateProducerProfileRequest = Partial<Pick<
   ProducerProfile,
   "companyName" | "contactName" | "contactRole" | "description"
->> & { readonly logoFileId?: string };
+>>;

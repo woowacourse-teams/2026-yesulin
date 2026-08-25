@@ -306,6 +306,12 @@ GET    /api/v1/producers/me/navigation-tree     # 공연·공고 탐색 트리
 ```
 
 - `companyName`, `description`은 공개 공고와 배우 화면에 표시한다. `contactName`, `contactRole`, 로그인 이메일, 연락처와 인증 상태는 기획사/제작사 내부 운영 정보로 두고 공개 응답에 포함하지 않는다.
+- 조회·수정 응답은 `companyName`, `contactName`, `contactRole`, `description`, 로그인 `email`, `phone`,
+  `verificationStatus`, `verifiedAt`을 반환한다. MVP는 가입 직후 활성화하므로 `verifiedAt`은 기획사/제작사
+  생성 시각이며, 로고는 아직 API로 제공하지 않아 화면 기본 로고를 사용한다.
+- PATCH는 `companyName`, `contactName`, `contactRole`, `description` 중 전달한 필드만 교체한다.
+  `companyName`·`contactName`은 빈 값을 거부하고 `contactRole`·`description`은 빈 값으로 지운다. 수정할
+  필드가 하나도 없는 요청은 400으로 거부한다.
 - 기획사/제작사 회원 탈퇴 Backend API는 MVP 범위가 아니다.
 
 ## 공연과 공고
@@ -420,7 +426,7 @@ PATCH /api/v1/audition-roles/{roleId}/screening-rounds/{round} # 목표: status=
 /api/public/recommended-postings    → /api/v1/public/recommended-auditions
 /api/public/postings/**             → /api/v1/public/auditions/**
 /api/public/submissions             → /api/v1/auditions/{auditionId}/submissions # 이관 완료
-/api/me/producer                    → /api/v1/producers/me
+/api/me/producer                    → /api/v1/producers/me               # 이관 완료
 /api/navigation/tree                → /api/v1/producers/me/navigation-tree
 /api/performances/**                → /api/v1/performances/**
 /api/screenings/**                  → /api/v1/audition-roles/**/screening-rounds/**

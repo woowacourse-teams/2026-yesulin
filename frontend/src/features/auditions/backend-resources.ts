@@ -24,6 +24,17 @@ export type PerformanceResource = {
 
 export type PerformanceResourceList = { readonly performances: readonly PerformanceResource[] };
 
+export type ProducerProfileResource = {
+  readonly companyName: string;
+  readonly contactName: string | null;
+  readonly contactRole: string | null;
+  readonly description: string | null;
+  readonly email: string;
+  readonly phone: string;
+  readonly verificationStatus: "PENDING" | "ACTIVE";
+  readonly verifiedAt: string | null;
+};
+
 export type FileUploadResource = {
   readonly fileId: number;
   readonly uploadUrl: string;

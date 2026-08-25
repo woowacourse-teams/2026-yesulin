@@ -1,26 +1,27 @@
-import type { ProducerProfile, UpdateProducerProfileRequest } from "@/features/auditions/management-types";
+import type { ProducerProfileResource } from "@/features/auditions/backend-resources";
+import type { UpdateProducerProfileRequest } from "@/features/auditions/management-types";
 
-let profile: ProducerProfile = {
+let profile: ProducerProfileResource = {
   companyName: "",
-  contactName: "",
-  contactRole: "",
-  logoUrl: "",
-  description: "",
+  contactName: null,
+  contactRole: null,
+  description: null,
   email: "",
   phone: "",
   verificationStatus: "ACTIVE",
   verifiedAt: "2026-08-01T00:00:00.000Z",
 };
 
-export const producerProfile = () => structuredClone(profile);
+export const producerProfile = (): ProducerProfileResource => structuredClone(profile);
 
-export function patchProducerProfile(body: UpdateProducerProfileRequest) {
+/** 실제 백엔드처럼 전달한 필드만 교체하고 contactRole·description은 빈 값으로 지운다. */
+export function patchProducerProfile(body: UpdateProducerProfileRequest): ProducerProfileResource {
   profile = {
     ...profile,
     ...(body.companyName !== undefined ? { companyName: body.companyName.trim() } : {}),
-    ...(body.contactName !== undefined ? { contactName: body.contactName.trim() } : {}),
-    ...(body.contactRole !== undefined ? { contactRole: body.contactRole.trim() } : {}),
-    ...(body.description !== undefined ? { description: body.description.trim() } : {}),
+    ...(body.contactName !== undefined ? { contactName: emptyToNull(body.contactName) } : {}),
+    ...(body.contactRole !== undefined ? { contactRole: emptyToNull(body.contactRole) } : {}),
+    ...(body.description !== undefined ? { description: emptyToNull(body.description) } : {}),
   };
   return producerProfile();
 }
@@ -35,7 +36,7 @@ export function registerActiveProducer(input: { readonly companyName: string; re
 
 function registerProducer(
   input: { readonly companyName: string; readonly email: string; readonly phone: string },
-  verificationStatus: ProducerProfile["verificationStatus"],
+  verificationStatus: ProducerProfileResource["verificationStatus"],
 ) {
   profile = {
     ...profile,
@@ -45,4 +46,9 @@ function registerProducer(
     verificationStatus,
     verifiedAt: verificationStatus === "ACTIVE" ? new Date().toISOString() : null,
   };
+}
+
+function emptyToNull(value: string) {
+  const text = value.trim();
+  return text || null;
 }
