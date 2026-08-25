@@ -4,20 +4,23 @@ import type {
 } from "@/features/auditions/creation-types";
 
 export type ApplicationFormStep = {
-  readonly section: ApplicationFieldSection;
+  readonly key: ApplicationStepKey;
+  readonly sections: readonly ApplicationFieldSection[];
   readonly title: string;
   readonly description: string;
   readonly fields: readonly ApplicationFieldInput[];
 };
 
-const STEP_DETAILS = {
-  BASIC: { title: "기본 정보", description: "기획사/제작사가 배우 정보를 확인하는 데 사용합니다." },
-  ADDITIONAL: { title: "추가 정보", description: "공고에서 요청한 선택 정보를 작성해 주세요." },
-  INTRODUCTION: { title: "자기소개", description: "기획사/제작사가 요청한 자기소개와 지원 동기를 작성해 주세요." },
-  MATERIALS: { title: "사진과 영상", description: "배우의 모습을 확인할 수 있는 자료를 등록해 주세요." },
-  CAREER: { title: "경력", description: "최근 작품부터 적어 주세요. 경력이 없어도 지원할 수 있어요." },
-  CUSTOM: { title: "추가 질문", description: "기획사/제작사가 공고별로 요청한 내용을 작성해 주세요." },
-} as const;
+export const APPLICATION_STEP_KEYS = ["basic", "additional", "media", "questions"] as const;
+export type ApplicationStepKey = (typeof APPLICATION_STEP_KEYS)[number];
+export type ApplicationWriteRouteKey = ApplicationStepKey | "review";
+
+const STEP_DETAILS: readonly Omit<ApplicationFormStep, "fields">[] = [
+  { key: "basic", sections: ["BASIC"], title: "기본 정보", description: "기획사/제작사가 배우 정보를 확인하는 데 사용합니다." },
+  { key: "additional", sections: ["ADDITIONAL", "INTRODUCTION", "CAREER"], title: "추가 정보", description: "공고에서 요청한 선택 정보를 작성해 주세요." },
+  { key: "media", sections: ["MATERIALS"], title: "사진과 영상", description: "배우의 모습을 확인할 수 있는 자료를 등록해 주세요." },
+  { key: "questions", sections: ["CUSTOM"], title: "추가 질문", description: "기획사/제작사가 공고별로 요청한 내용을 작성해 주세요." },
+];
 
 export type ApplicationDocument = {
   readonly id: string;
@@ -32,14 +35,14 @@ export type ApplicationStepProgress = {
   readonly accessible: boolean;
 };
 
-/** 구현된 섹션의 활성 필드만 순서대로 묶는다. 비어 있는 단계는 만들지 않는다. */
+/** 지원서 작성 URL과 동일한 네 단계로 활성 필드를 묶는다. */
 export function applicationFormSteps(fields: readonly ApplicationFieldInput[]): readonly ApplicationFormStep[] {
-  return (Object.keys(STEP_DETAILS) as Array<ApplicationFormStep["section"]>).flatMap((section) => {
-    const enabled = fields
-      .filter((field) => field.enabled && field.section === section)
-      .toSorted((left, right) => left.order - right.order);
-    return enabled.length === 0 ? [] : [{ section, ...STEP_DETAILS[section], fields: enabled }];
-  });
+  return STEP_DETAILS.map((step) => ({
+    ...step,
+    fields: fields
+      .filter((field) => field.enabled && step.sections.includes(field.section))
+      .toSorted((left, right) => left.order - right.order),
+  }));
 }
 
 /** 공고 상세와 지원서가 같은 활성 필드·순서를 보여 주도록 하는 제출 자료 읽기 모델. */

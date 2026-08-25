@@ -15,7 +15,7 @@ export function PublicApplicationMedia() {
   const photoLimit = Math.min(MAX_PHOTO_COUNT, Math.max(1, requestedPhotos ?? photoField?.config.maxCount ?? MAX_PHOTO_COUNT));
   const videoField = fields.find((field) => field.inputType === "URL");
   const videoRequirements = videoField?.config.videoRequirements ?? [];
-  const loginHref = `/login?returnTo=${encodeURIComponent(buildApplicationAuthReturnTo(meta.postingId, meta.roleIds))}`;
+  const loginHref = `/login?returnTo=${encodeURIComponent(buildApplicationAuthReturnTo(meta.postingId, meta.roleIds, "media"))}`;
 
   return <div className="space-y-10">
     {photoField ? <PublicApplicationPhotoField field={photoField} limit={photoLimit} photos={state.photos} authenticated={meta.authenticated} loginHref={loginHref} error={state.mediaError || (state.stepError.startsWith(photoField.label) ? state.stepError : "")} onChange={actions.updatePhotos} onReady={actions.markPhotoReady} /> : null}

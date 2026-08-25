@@ -2,9 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
-import type { ApplicationFormStep } from "@/features/applications/application-form";
 import { orderedApplicationPhotos, youtubeVideoId } from "@/features/applications/application-form-state";
 import type { ApplicationPhoto, CareerDraft, SubmissionState } from "@/features/applications/application-form-state";
 import { photoSlotLabels } from "@/features/applications/materials";
@@ -13,8 +12,18 @@ import { PrimaryButton, TextButton } from "@/components/ui/controls";
 import { isBackendAuditionId } from "@/features/auditions/audition-v1-api";
 import { usePublicApplication } from "./public-application-context";
 import { PublicApplicationSaveBadge, PublicApplicationSaveNotice } from "./public-application-save-status";
+import { ModalShell } from "@/components/auditions/modal-shell";
+import type { EditableSection } from "./public-application-context-types";
 
 const REVIEW_SECTIONS = ["BASIC", "ADDITIONAL", "INTRODUCTION", "MATERIALS", "CAREER", "CUSTOM"] as const;
+const REVIEW_SECTION_TITLES: Record<EditableSection, string> = {
+  BASIC: "기본 정보",
+  ADDITIONAL: "추가 정보",
+  INTRODUCTION: "자기소개",
+  MATERIALS: "사진과 영상",
+  CAREER: "경력",
+  CUSTOM: "추가 질문",
+};
 
 export function PublicApplicationReview() {
   const { state, actions, meta } = usePublicApplication();
@@ -67,15 +76,17 @@ function ReviewIssues({ disabled }: { disabled: boolean }) {
   </section>;
 }
 
-function StepReview({ section, disabled }: { section: ApplicationFormStep["section"]; disabled: boolean }) {
+function StepReview({ section, disabled }: { section: EditableSection; disabled: boolean }) {
   const { state, actions, meta } = usePublicApplication();
-  const step = meta.steps.find((item) => item.section === section);
+  const step = meta.steps.find((item) => item.sections.includes(section));
   if (!step) return null;
+  const fields = step.fields.filter((field) => field.section === section);
+  if (fields.length === 0) return null;
   const edit = () => actions.editSection(section);
-  if (section === "MATERIALS") return <ReviewSection title={step.title} disabled={disabled} onEdit={edit}><MediaSummary fields={step.fields} values={state.values} photos={state.photos} videoUrl={state.videoUrl} /></ReviewSection>;
-  const careerField = step.fields.find((field) => field.id === "CAREER");
-  const regularFields = step.fields.filter((field) => field.id !== "CAREER");
-  return <ReviewSection title={step.title} disabled={disabled} onEdit={edit}>{regularFields.length ? <ReviewFields fields={regularFields} values={state.values} /> : null}{careerField ? <div className={regularFields.length ? "mt-5 border-t border-border-soft pt-5" : ""}><h4 className="mb-2 text-sm text-muted">{careerField.label}</h4><CareerSummary noCareer={state.noCareer} careers={state.careers} /></div> : null}</ReviewSection>;
+  if (section === "MATERIALS") return <ReviewSection title={REVIEW_SECTION_TITLES[section]} disabled={disabled} onEdit={edit}><MediaSummary fields={fields} values={state.values} photos={state.photos} videoUrl={state.videoUrl} /></ReviewSection>;
+  const careerField = fields.find((field) => field.id === "CAREER");
+  const regularFields = fields.filter((field) => field.id !== "CAREER");
+  return <ReviewSection title={REVIEW_SECTION_TITLES[section]} disabled={disabled} onEdit={edit}>{regularFields.length ? <ReviewFields fields={regularFields} values={state.values} /> : null}{careerField ? <div className={regularFields.length ? "mt-5 border-t border-border-soft pt-5" : ""}><h4 className="mb-2 text-sm text-muted">{careerField.label}</h4><CareerSummary noCareer={state.noCareer} careers={state.careers} /></div> : null}</ReviewSection>;
 }
 
 function ReviewSection({ title, disabled = false, onEdit, children }: { title: string; disabled?: boolean; onEdit?: () => void; children: React.ReactNode }) {
@@ -118,6 +129,8 @@ function SubmissionArea({ submitting, consent, issueCount, state, error, onSubmi
 function ReviewFields({ fields, values }: { fields: readonly ApplicationFieldInput[]; values: Readonly<Record<string, string>> }) { return <dl className="grid gap-x-8 gap-y-3 text-sm md:grid-cols-2">{fields.filter((field) => field.enabled).map((field) => { const value = reviewValue(field, values); const href = field.inputType === "URL" && typeof value === "string" ? externalHttpHref(value) : null; return <div key={field.id} className="grid grid-cols-[112px_minmax(0,1fr)] gap-4"><dt className="whitespace-nowrap text-muted">{field.label}</dt><dd className="line-clamp-3 break-words whitespace-pre-wrap font-medium">{href ? <a href={href} target="_blank" rel="noopener noreferrer" className="text-brand underline decoration-brand-line underline-offset-2 hover:decoration-brand">{value}<span className="sr-only"> 새 창에서 열기</span></a> : value || <span className="font-normal text-muted">미입력</span>}</dd></div>; })}</dl>; }
 function reviewValue(field: ApplicationFieldInput, values: Readonly<Record<string, string>>) { if (field.inputType === "COMPOSITE") return field.config.fields?.map((part) => `${values[`${field.id}.${part.key}`] || "-"}${part.unit ?? ""}`).join(" · "); return values[field.id]; }
 function MediaSummary({ fields, values, photos, videoUrl }: { fields: readonly ApplicationFieldInput[]; values: Readonly<Record<string, string>>; photos: readonly ApplicationPhoto[]; videoUrl: string }) {
+  const [expandedPhoto, setExpandedPhoto] = useState<number | null>(null);
+  const lightboxTitleId = useId();
   const attached = orderedApplicationPhotos(photos).filter((photo) => photo.status !== "ERROR");
   const failedCount = photos.length - attached.length;
   const photoField = fields.find((field) => field.inputType === "FILE");
@@ -132,9 +145,10 @@ function MediaSummary({ fields, values, photos, videoUrl }: { fields: readonly A
   const legacyVideoId = youtubeVideoId(videoUrl);
 
   return <div className="space-y-4">
-    {attached.length ? <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">{attached.map((photo, index) => <li key={photo.id} className="min-w-0"><div className="relative aspect-[3/4] overflow-hidden rounded-control border border-border bg-surface"><Image src={photo.url} alt={photoLabels[index] ?? photo.name} fill unoptimized sizes="(min-width: 768px) 150px, 42vw" className="object-cover" /></div><strong className="mt-2 block truncate text-xs">{photoLabels[index]}</strong></li>)}</ul> : <p className="text-sm text-muted">사진 미첨부</p>}
+    {attached.length ? <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">{attached.map((photo, index) => <li key={photo.id} className="min-w-0"><button type="button" onClick={() => setExpandedPhoto(index)} className="group block w-full rounded-control text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"><span className="relative block aspect-[3/4] overflow-hidden rounded-control border border-border bg-surface transition-colors group-hover:border-brand-line"><Image src={photo.url} alt={photoLabels[index] ?? photo.name} fill unoptimized sizes="(min-width: 768px) 150px, 42vw" className="object-cover" /></span><strong className="mt-2 block truncate text-xs group-hover:text-brand">{photoLabels[index]}</strong><span className="sr-only"> 크게 보기</span></button></li>)}</ul> : <p className="text-sm text-muted">사진 미첨부</p>}
     {failedCount ? <p className="text-sm text-fail">첨부에 실패한 사진 {failedCount}개가 있어요.</p> : null}
     {videos.length ? <ul className="space-y-1 text-sm text-muted-strong">{videos.map((video) => <li key={video.label}><strong className="text-foreground">{video.label}</strong> · <a href={`https://youtu.be/${video.id}`} target="_blank" rel="noopener noreferrer" className="text-brand underline decoration-brand-line underline-offset-2 hover:decoration-brand">youtu.be/{video.id}<span className="sr-only"> 새 창에서 열기</span></a></li>)}</ul> : <p className="text-sm text-muted-strong">{legacyVideoId ? <>연결한 영상 · <a href={`https://youtu.be/${legacyVideoId}`} target="_blank" rel="noopener noreferrer" className="text-brand underline decoration-brand-line underline-offset-2 hover:decoration-brand">youtu.be/{legacyVideoId}<span className="sr-only"> 새 창에서 열기</span></a></> : "영상 미첨부"}</p>}
+    {expandedPhoto !== null ? <ModalShell open onClose={() => setExpandedPhoto(null)} labelledBy={lightboxTitleId} className="flex h-[min(92dvh,860px)] w-[min(94vw,980px)] flex-col overflow-hidden rounded-modal bg-card shadow-[var(--shadow-modal)]"><header className="flex min-h-16 items-center gap-3 border-b border-border px-4 md:px-6"><div className="min-w-0 flex-1"><h2 id={lightboxTitleId} className="truncate font-bold">{photoLabels[expandedPhoto] ?? attached[expandedPhoto]?.name}</h2><p className="num mt-0.5 text-xs text-muted">{expandedPhoto + 1} / {attached.length}</p></div><TextButton onClick={() => setExpandedPhoto(null)} className="px-3">닫기</TextButton></header><div className="relative min-h-0 flex-1 bg-foreground"><Image src={attached[expandedPhoto]!.url} alt={photoLabels[expandedPhoto] ?? attached[expandedPhoto]!.name} fill unoptimized sizes="94vw" className="object-contain" />{expandedPhoto > 0 ? <button type="button" aria-label="이전 사진" onClick={() => setExpandedPhoto(expandedPhoto - 1)} className="absolute left-3 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-card/90 text-xl shadow-[var(--shadow-1)]">‹</button> : null}{expandedPhoto < attached.length - 1 ? <button type="button" aria-label="다음 사진" onClick={() => setExpandedPhoto(expandedPhoto + 1)} className="absolute right-3 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-card/90 text-xl shadow-[var(--shadow-1)]">›</button> : null}</div></ModalShell> : null}
   </div>;
 }
 function externalHttpHref(value: string) { const trimmed = value.trim(); if (!trimmed) return null; try { const url = new URL(/^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`); return url.protocol === "http:" || url.protocol === "https:" ? url.href : null; } catch { return null; } }
