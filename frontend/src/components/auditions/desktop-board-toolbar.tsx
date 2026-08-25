@@ -7,7 +7,7 @@ import {
 } from "@/features/auditions/filters";
 import { selectableStatuses, STATUS_LABELS } from "@/features/auditions/labels";
 import type { ReviewStatus } from "@/features/auditions/types";
-import { PrimaryButton, SegmentButton } from "@/components/ui/controls";
+import { SegmentButton } from "@/components/ui/controls";
 import { useBoard } from "./board-context";
 import { FilterIcon } from "./filter-bar";
 
@@ -17,15 +17,8 @@ const WORK_TABS = [
 ] as const satisfies readonly { mode: WorkMode; label: string }[];
 
 export function DesktopBoardToolbar({ onOpenFilter }: { onOpenFilter: () => void }) {
-  const { board, filters, visible, roundClosed, setFilters, clearSelection, setClosePrompt } = useBoard();
-  const roundIndex = board.rounds.findIndex((state) => state.round === board.round);
-  const roundState = board.rounds[roundIndex];
-  if (!roundState) return null;
-
-  const { counts } = roundState;
+  const { board, filters, visible, setFilters, clearSelection } = useBoard();
   const detailCount = activeDetailFilterCount(filters);
-  const canClose = !roundClosed && counts.all > 0 && counts.pending === 0;
-  const nextRoundName = board.rounds[roundIndex + 1]?.name;
   const changeWork = (work: WorkMode) => {
     clearSelection();
     setFilters((current) => ({
@@ -116,21 +109,6 @@ export function DesktopBoardToolbar({ onOpenFilter }: { onOpenFilter: () => void
           </SegmentButton>
         ))}
       </div>
-
-      {roundClosed ? (
-        <span className="shrink-0 rounded-full bg-pass-bg px-3 py-2 text-xs font-semibold text-pass">
-          {roundState.name} 마감됨
-        </span>
-      ) : (
-        <PrimaryButton
-          disabled={!canClose}
-          title={counts.all === 0 ? "심사할 배우가 없습니다" : counts.pending > 0 ? `검토 대기 ${counts.pending}명이 남아 있습니다` : undefined}
-          onClick={() => setClosePrompt("manual")}
-          className="min-h-10 shrink-0 whitespace-nowrap px-3 text-dense"
-        >
-          {canClose ? (nextRoundName ? "차수 마감" : "전형 종료") : counts.all === 0 ? "마감 대상 없음" : `마감 · 대기 ${counts.pending}`}
-        </PrimaryButton>
-      )}
     </div>
   );
 }
