@@ -184,6 +184,30 @@ class ApplicantSubmissionControllerTest {
                 .andExpect(jsonPath("$.submissions[0].posterUrl").value(startsWith("http")));
     }
 
+    @Test
+    void enrichesDetailWithAuditionPerformanceAndProducer() throws Exception {
+        long producerMemberId = 8L;
+        long posterFileId = savePosterImage(producerMemberId);
+        Performance performance = performanceRepository.saveAndFlush(
+                new Performance(producerMemberId, posterFileId, "맥베스", "서울특별시 종로구 대학로 12")
+        );
+        Audition audition = auditionRepository.saveAndFlush(new Audition(
+                performance.getId(), producerMemberId, "맥베스 공개 오디션",
+                new PerformancePeriod(LocalDate.of(2100, 11, 1), null)
+        ));
+        producerRepository.saveAndFlush(new Producer(producerMemberId, "극단 예술인", "01012345678"));
+        Submission submission = saveSubmission(APPLICANT_ID, audition.getId(), SUBMITTED_AT, saveReadyImage());
+        saveConsents(submission);
+
+        mockMvc.perform(get(SUBMISSIONS_PATH + "/{submissionId}", submission.getSubmissionId())
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.auditionId").value(audition.getPublicId().toString()))
+                .andExpect(jsonPath("$.performanceTitle").value("맥베스"))
+                .andExpect(jsonPath("$.companyName").value("극단 예술인"))
+                .andExpect(jsonPath("$.posterUrl").value(startsWith("http")));
+    }
+
     /**
      * 공고를 찾을 수 없는 제출 이력도 배우의 기록이므로 목록에서 사라지지 않아야 한다.
      */

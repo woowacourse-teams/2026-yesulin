@@ -15,6 +15,7 @@ import { isBackendAuditionId } from "@/features/auditions/audition-v1-api";
 import type { SubmissionId } from "@/features/auditions/types";
 import { frontendEnvironment } from "@/config/environment";
 import { applicantRequest as request } from "./request";
+import { getV1ApplicantSubmission } from "./submission-detail-v1";
 import { getV1ApplicantSubmissions } from "./submission-list-v1";
 
 export { ApplicantRequestError } from "./request";
@@ -30,7 +31,9 @@ export const getApplicantSubmissions = () => frontendEnvironment.apiMockingEnabl
   ? request<ApplicantSubmissionListResponse>("/me/submissions")
   : getV1ApplicantSubmissions();
 
-export const getApplicantSubmission = (submissionId: SubmissionId) => request<ApplicantSubmissionDetail>(`/me/submissions/${submissionId}`);
+export const getApplicantSubmission = (submissionId: SubmissionId) => frontendEnvironment.apiMockingEnabled
+  ? request<ApplicantSubmissionDetail>(`/me/submissions/${submissionId}`)
+  : getV1ApplicantSubmission(submissionId);
 
 export const updateApplicantSubmission = (submissionId: SubmissionId, body: UpdateSubmissionRequest) => request<ApplicantSubmissionDetail>(`/me/submissions/${submissionId}`, {
   method: "PATCH",

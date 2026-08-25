@@ -1,10 +1,7 @@
 import { submissionId } from "@/features/auditions/types";
-import type {
-  ApplicantRoleProgress,
-  ApplicantSubmissionListResponse,
-  ApplicantSubmissionSummary,
-} from "./types";
+import type { ApplicantSubmissionListResponse, ApplicantSubmissionSummary } from "./types";
 import { applicantRequest } from "./request";
+import { FALLBACK_POSTER_URL, toRoleProgress, type V1SelectedRole } from "./submission-summary";
 
 /** 공고를 더 이상 찾을 수 없는 제출 이력도 목록에 남으므로 공고에서 온 값은 비어 있을 수 있다. */
 type V1SubmissionSummary = {
@@ -15,12 +12,10 @@ type V1SubmissionSummary = {
   readonly companyName: string | null;
   readonly posterUrl: string | null;
   readonly submittedAt: string;
-  readonly selectedRoles: readonly { readonly roleId: number; readonly roleName: string }[];
+  readonly selectedRoles: readonly V1SelectedRole[];
 };
 
 type V1SubmissionListResponse = { readonly submissions: readonly V1SubmissionSummary[] };
-
-const FALLBACK_POSTER_URL = "/images/yesulin-logo-mark.png";
 
 export async function getV1ApplicantSubmissions(): Promise<ApplicantSubmissionListResponse> {
   const response = await applicantRequest<V1SubmissionListResponse>("/v1/applicants/me/submissions");
@@ -42,16 +37,5 @@ function toSummary(summary: V1SubmissionSummary): ApplicantSubmissionSummary {
     editable: false,
     recruitmentEnd: "",
     roleProgress: summary.selectedRoles.map(toRoleProgress),
-  };
-}
-
-/** 심사 결과 공개 경계가 아직 없으므로 선택한 배역은 모두 접수 상태로만 보여 준다. */
-function toRoleProgress(role: V1SubmissionSummary["selectedRoles"][number]): ApplicantRoleProgress {
-  return {
-    roleId: String(role.roleId),
-    roleName: role.roleName,
-    state: "RECEIVED",
-    round: null,
-    roundName: null,
   };
 }

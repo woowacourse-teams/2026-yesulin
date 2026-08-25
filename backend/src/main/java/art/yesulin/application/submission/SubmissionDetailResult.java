@@ -15,6 +15,7 @@ import art.yesulin.domain.submission.SubmissionConsentType;
 import art.yesulin.domain.submission.SubmissionFieldSnapshot;
 import art.yesulin.domain.submission.SubmissionFormAnswers;
 import art.yesulin.domain.submission.SubmissionGender;
+import art.yesulin.domain.submission.SubmissionSummaryRow;
 import art.yesulin.domain.submission.VideoRequirementAnswer;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -24,7 +25,12 @@ import java.util.UUID;
 
 public record SubmissionDetailResult(
         UUID submissionId,
+        UUID auditionId,
         String auditionTitle,
+        String performanceTitle,
+        String companyName,
+        Long posterOwnerId,
+        Long posterFileId,
         Instant submittedAt,
         ApplicantSnapshotResult applicant,
         List<SubmissionSelectedRoleResult> selectedRoles,
@@ -37,10 +43,22 @@ public record SubmissionDetailResult(
         consents = List.copyOf(consents);
     }
 
-    static SubmissionDetailResult from(Submission submission, List<SubmissionConsent> consents) {
+    /**
+     * 공고를 더 이상 찾을 수 없어도 제출 이력은 그대로 보여 주므로 공고 맥락은 비어 있을 수 있다.
+     */
+    static SubmissionDetailResult from(
+            Submission submission,
+            List<SubmissionConsent> consents,
+            SubmissionSummaryRow auditionContext
+    ) {
         return new SubmissionDetailResult(
                 submission.getSubmissionId(),
+                auditionContext == null ? null : auditionContext.auditionId(),
                 submission.getAuditionSnapshot().title(),
+                auditionContext == null ? null : auditionContext.performanceTitle(),
+                auditionContext == null ? null : auditionContext.companyName(),
+                auditionContext == null ? null : auditionContext.posterOwnerId(),
+                auditionContext == null ? null : auditionContext.posterFileId(),
                 submission.getSubmittedAt(),
                 ApplicantSnapshotResult.from(submission.getApplicantSnapshot()),
                 submission.getSelectedRoles().values().stream().map(SubmissionSelectedRoleResult::from).toList(),

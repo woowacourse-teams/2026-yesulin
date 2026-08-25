@@ -4,10 +4,14 @@ import art.yesulin.domain.audition.QAudition;
 import art.yesulin.domain.performance.QPerformance;
 import art.yesulin.domain.producer.QProducer;
 import com.querydsl.core.BooleanBuilder;
+import com.querydsl.core.types.ConstructorExpression;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.NumberPath;
+import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -18,6 +22,19 @@ public class SubmissionRepositoryCustomImpl implements SubmissionRepositoryCusto
     private static final QAudition AUDITION = QAudition.audition;
     private static final QPerformance PERFORMANCE = QPerformance.performance;
     private static final QProducer PRODUCER = QProducer.producer;
+
+    private static final ConstructorExpression<SubmissionSummaryRow> SUMMARY_ROW = Projections.constructor(
+            SubmissionSummaryRow.class,
+            SUBMISSION.id,
+            SUBMISSION.submissionId,
+            AUDITION.publicId,
+            SUBMISSION.auditionSnapshot.title,
+            PERFORMANCE.title,
+            PRODUCER.companyName,
+            PERFORMANCE.ownerId,
+            PERFORMANCE.posterFileId,
+            SUBMISSION.submittedAt
+    );
 
     private final JPAQueryFactory queryFactory;
 
@@ -49,25 +66,25 @@ public class SubmissionRepositoryCustomImpl implements SubmissionRepositoryCusto
      */
     @Override
     public List<SubmissionSummaryRow> findSummaryRowsByApplicantId(long applicantId) {
-        return queryFactory.select(Projections.constructor(
-                        SubmissionSummaryRow.class,
-                        SUBMISSION.id,
-                        SUBMISSION.submissionId,
-                        AUDITION.publicId,
-                        SUBMISSION.auditionSnapshot.title,
-                        PERFORMANCE.title,
-                        PRODUCER.companyName,
-                        PERFORMANCE.ownerId,
-                        PERFORMANCE.posterFileId,
-                        SUBMISSION.submittedAt
-                ))
-                .from(SUBMISSION)
-                .leftJoin(AUDITION).on(AUDITION.id.eq(SUBMISSION.auditionSnapshot.auditionId))
-                .leftJoin(PERFORMANCE).on(PERFORMANCE.id.eq(AUDITION.performanceId))
-                .leftJoin(PRODUCER).on(PRODUCER.memberId.eq(AUDITION.ownerId))
+        return summaryRowQuery()
                 .where(SUBMISSION.applicantId.eq(applicantId))
                 .orderBy(SUBMISSION.submittedAt.desc(), SUBMISSION.id.desc())
                 .fetch();
+    }
+
+    @Override
+    public Optional<SubmissionSummaryRow> findSummaryRowBySubmissionId(UUID submissionId) {
+        return Optional.ofNullable(summaryRowQuery()
+                .where(SUBMISSION.submissionId.eq(submissionId))
+                .fetchOne());
+    }
+
+    private JPAQuery<SubmissionSummaryRow> summaryRowQuery() {
+        return queryFactory.select(SUMMARY_ROW)
+                .from(SUBMISSION)
+                .leftJoin(AUDITION).on(AUDITION.id.eq(SUBMISSION.auditionSnapshot.auditionId))
+                .leftJoin(PERFORMANCE).on(PERFORMANCE.id.eq(AUDITION.performanceId))
+                .leftJoin(PRODUCER).on(PRODUCER.memberId.eq(AUDITION.ownerId));
     }
 
     private void appendKeyword(BooleanBuilder filters, String keyword) {

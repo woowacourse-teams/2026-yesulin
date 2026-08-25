@@ -39,23 +39,6 @@ public class ApplicantSubmissionController {
         return ResponseEntity.ok(new ApplicantSubmissionListResponse(submissions));
     }
 
-    /**
-     * 포스터를 읽지 못한 공고 하나 때문에 배우의 지원 이력 전체가 사라지지 않도록
-     * 실패한 포스터만 비워 둔다.
-     */
-    private String posterUrl(SubmissionSummaryResult result, Map<Long, String> posterUrlsByFileId) {
-        if (result.posterFileId() == null || result.posterOwnerId() == null) {
-            return null;
-        }
-        return posterUrlsByFileId.computeIfAbsent(result.posterFileId(), fileId -> {
-            try {
-                return fileService.readUrl(result.posterOwnerId(), fileId);
-            } catch (BusinessException exception) {
-                return null;
-            }
-        });
-    }
-
     @GetMapping("/{submissionId}")
     public ResponseEntity<ApplicantSubmissionDetailResponse> find(
             @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal,
@@ -70,6 +53,33 @@ public class ApplicantSubmissionController {
                     answer.fileId(), fileId -> fileService.readUrl(applicantId, fileId)
             );
         }
-        return ResponseEntity.ok(ApplicantSubmissionDetailResponse.from(result, photoUrlsByFileId));
+        return ResponseEntity.ok(ApplicantSubmissionDetailResponse.from(
+                result, posterUrl(result, new HashMap<>()), photoUrlsByFileId
+        ));
+    }
+
+    /**
+     * 포스터를 읽지 못한 공고 하나 때문에 배우의 지원 이력 전체가 사라지지 않도록
+     * 실패한 포스터만 비워 둔다.
+     */
+    private String posterUrl(SubmissionSummaryResult result, Map<Long, String> posterUrlsByFileId) {
+        return posterUrl(result.posterOwnerId(), result.posterFileId(), posterUrlsByFileId);
+    }
+
+    private String posterUrl(SubmissionDetailResult result, Map<Long, String> posterUrlsByFileId) {
+        return posterUrl(result.posterOwnerId(), result.posterFileId(), posterUrlsByFileId);
+    }
+
+    private String posterUrl(Long ownerId, Long posterFileId, Map<Long, String> posterUrlsByFileId) {
+        if (posterFileId == null || ownerId == null) {
+            return null;
+        }
+        return posterUrlsByFileId.computeIfAbsent(posterFileId, fileId -> {
+            try {
+                return fileService.readUrl(ownerId, fileId);
+            } catch (BusinessException exception) {
+                return null;
+            }
+        });
     }
 }

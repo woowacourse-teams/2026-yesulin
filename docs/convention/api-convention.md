@@ -160,6 +160,7 @@ POST   /api/v1/auditions/{auditionId}/submissions # 인증 배우의 최종 제�
   모두 `404 SUBMISSION_NOT_FOUND`로 응답한다.
 - 상세는 제출 당시 지원자 기본·추가 정보, 수집 필드, 계산 나이, 선택 배역, 질문·사진·영상 답변과 동의 문서
   버전·동의 시각을 반환한다. 사진은 스냅샷 `fileId`와 현재 열람 URL을 함께 반환한다.
+- 상세도 목록과 같은 `auditionId`, `performanceTitle`, `companyName`, `posterUrl`을 함께 반환하며 같은 조건에서 `null`이다.
 - `roleProgress[]`는 공고 전형 종료와 심사 결과 공개 경계를 구현한 뒤 목록·상세 응답에 연동한다. 각 항목은
   `roleId`, `roleName`, 공개 상태, 현재 또는 결과 차수와 차수명을 포함한다.
 - 공개 상태는 `RECEIVED`, `IN_REVIEW`, `FINAL_PASS`, `NOT_SELECTED`를 사용한다. 검토 중인 결과와 내부 메모는 포함하지 않고, 해당 배역의 차수가 마감된 뒤에만 확정 결과를 반영한다.

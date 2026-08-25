@@ -1,6 +1,8 @@
 package art.yesulin.domain.submission;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 public interface SubmissionRepositoryCustom {
 
@@ -11,4 +13,6 @@ public interface SubmissionRepositoryCustom {
     );
 
     List<SubmissionSummaryRow> findSummaryRowsByApplicantId(long applicantId);
+
+    Optional<SubmissionSummaryRow> findSummaryRowBySubmissionId(UUID submissionId);
 }

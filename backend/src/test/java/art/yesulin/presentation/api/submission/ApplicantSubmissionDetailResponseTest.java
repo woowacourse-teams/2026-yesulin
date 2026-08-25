@@ -15,6 +15,7 @@ class ApplicantSubmissionDetailResponseTest {
 
     private static final long FIRST_FILE_ID = 10L;
     private static final long SECOND_FILE_ID = 20L;
+    private static final String POSTER_URL = "https://cdn.test/poster.jpg";
 
     @Test
     void connectsPhotoUrlByFileIdRegardlessOfMapOrder() {
@@ -23,7 +24,7 @@ class ApplicantSubmissionDetailResponseTest {
         photoUrlsByFileId.put(FIRST_FILE_ID, "https://cdn.test/first.jpg");
 
         ApplicantSubmissionDetailResponse response = ApplicantSubmissionDetailResponse.from(
-                submissionDetail(), photoUrlsByFileId
+                submissionDetail(), POSTER_URL, photoUrlsByFileId
         );
 
         List<ApplicantSubmissionDetailResponse.PhotoRequirementAnswerResponse> photoAnswers =
@@ -42,14 +43,19 @@ class ApplicantSubmissionDetailResponseTest {
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> ApplicantSubmissionDetailResponse.from(submissionDetail(), photoUrlsByFileId)
+                () -> ApplicantSubmissionDetailResponse.from(submissionDetail(), POSTER_URL, photoUrlsByFileId)
         );
     }
 
     private SubmissionDetailResult submissionDetail() {
         return new SubmissionDetailResult(
                 UUID.randomUUID(),
+                UUID.randomUUID(),
                 "햄릿 오디션",
+                "햄릿",
+                "극단 예술인",
+                1L,
+                2L,
                 Instant.parse("2026-08-24T03:15:00Z"),
                 applicantSnapshot(),
                 List.of(),

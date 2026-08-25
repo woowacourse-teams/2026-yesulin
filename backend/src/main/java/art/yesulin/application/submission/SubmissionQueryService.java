@@ -43,7 +43,11 @@ public class SubmissionQueryService {
         Submission submission = submissionRepository.findBySubmissionIdAndApplicantId(submissionId, applicantId)
                 .orElseThrow(() -> new BusinessException(NOT_FOUND, "지원서를 찾을 수 없습니다."));
         List<SubmissionConsent> consents = consentRepository.findAllBySubmissionId(submissionId);
-        return SubmissionDetailResult.from(submission, consents);
+        return SubmissionDetailResult.from(
+                submission,
+                consents,
+                submissionRepository.findSummaryRowBySubmissionId(submissionId).orElse(null)
+        );
     }
 
     private Map<Long, List<SubmissionSelectedRoleResult>> findSelectedRoles(
