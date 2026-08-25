@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useRef, useState } from "react";
 import { Breadcrumb } from "./breadcrumb";
 import { CreatePageButton } from "./create-form";
 import { HorizontalScrollArea } from "./horizontal-scroll-area";
@@ -18,6 +18,7 @@ import { auditionRoutes, postingEntryHref, publicApplicationRoute } from "@/feat
 import {
   POSTING_PHASES,
   type PerformanceId,
+  type PostingPhaseCounts,
   type PostingPhase,
   type PostingSummary,
 } from "@/features/auditions/types";
@@ -28,6 +29,15 @@ import { ApplicationLinkButton } from "./application-link-button";
 type PostingFilter = "ALL" | PostingPhase;
 
 const FILTERS: readonly PostingFilter[] = ["ALL", ...POSTING_PHASES];
+
+function postingCount(counts: PostingPhaseCounts, filter: PostingFilter) {
+  if (filter === "ALL") return counts.all;
+  if (filter === "DRAFT") return counts.draft;
+  if (filter === "UPCOMING") return counts.upcoming;
+  if (filter === "OPEN") return counts.open;
+  if (filter === "RECRUIT_CLOSED") return counts.recruitClosed;
+  return counts.finished;
+}
 
 function reviewState(posting: PostingSummary) {
   if (posting.allRoundsClosed) return "전형 종료";
@@ -40,19 +50,14 @@ export function PostingPicker({ performanceId }: { performanceId: PerformanceId 
   const [createOpen, setCreateOpen] = useState(false);
   const [filter, setFilter] = useState<PostingFilter>("ALL");
   const [query, setQuery] = useState("");
+  const deferredQuery = useDeferredValue(query);
   const [manage, setManage] = useState<{ readonly posting: PostingSummary; readonly mode: "EDIT" | "DELETE" } | null>(null);
-  const load = useCallback(() => getPostings(performanceId), [performanceId]);
-  const { data, error, loading, reload } = useAuditionQuery(performanceId, load, "공고를 불러오지 못했습니다.");
-
-  const filteredPostings = useMemo(() => {
-    if (!data) return [];
-    const keyword = query.trim().toLocaleLowerCase("ko");
-    return data.postings.filter((posting) => {
-      const phaseMatches = filter === "ALL" || posting.phase === filter;
-      const queryMatches = keyword.length === 0 || posting.title.toLocaleLowerCase("ko").includes(keyword);
-      return phaseMatches && queryMatches;
-    });
-  }, [data, filter, query]);
+  const load = useCallback(() => getPostings(performanceId, {
+    keyword: deferredQuery,
+    phase: filter === "ALL" ? undefined : filter,
+  }), [deferredQuery, filter, performanceId]);
+  const requestKey = `${performanceId}:${filter}:${deferredQuery.trim()}`;
+  const { data, error, loading, reload } = useAuditionQuery(requestKey, load, "공고를 불러오지 못했습니다.");
 
   return <>
     <Breadcrumb items={[{ label: "전체 공연", href: auditionRoutes.performances }, { label: data?.performance.title ?? "공연" }]} />
@@ -64,12 +69,12 @@ export function PostingPicker({ performanceId }: { performanceId: PerformanceId 
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-brand">공고 관리</p>
           <h1 className="mt-1 truncate text-2xl font-bold tracking-[-0.025em] md:text-[28px]">{data.performance.title}</h1>
-          <p className="num mt-1 text-sm text-muted">등록된 공고 {data.postings.length}건</p>
+          <p className="num mt-1 text-sm text-muted">등록된 공고 {data.counts.all}건</p>
         </div>
         <CreatePageButton onClick={() => setCreateOpen(true)}>공고 추가</CreatePageButton>
       </header>
 
-      {data.postings.length > 0 ? <>
+      {data.counts.all > 0 ? <>
         <section aria-label="공고 검색 및 상태 필터" className="mb-4 rounded-card border border-border bg-card p-4 md:p-5">
           <div className="relative max-w-md">
             <svg aria-hidden="true" viewBox="0 0 20 20" className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 fill-none stroke-muted stroke-[1.8]"><circle cx="8.5" cy="8.5" r="5.25" /><path d="m12.5 12.5 4 4" /></svg>
@@ -78,7 +83,7 @@ export function PostingPicker({ performanceId }: { performanceId: PerformanceId 
           <HorizontalScrollArea className="mt-4" scrollerClassName="pr-8">
             <div className="flex min-w-max gap-2 pb-1" aria-label="공고 상태">
               {FILTERS.map((value) => {
-                const count = value === "ALL" ? data.postings.length : data.postings.filter((posting) => posting.phase === value).length;
+                const count = postingCount(data.counts, value);
                 const label = value === "ALL" ? "전체" : PHASE_LABELS[value];
                 return <FilterChip key={value} pressed={filter === value} onClick={() => setFilter(value)}>{label} <span className="num ml-1 opacity-70">{count}</span></FilterChip>;
               })}
@@ -89,10 +94,10 @@ export function PostingPicker({ performanceId }: { performanceId: PerformanceId 
         <section aria-labelledby="posting-list-title" className="rounded-card border border-border bg-card">
           <div className="flex items-center justify-between rounded-t-card border-b border-border-soft px-5 py-4">
             <h2 id="posting-list-title" className="text-base font-bold">공고 목록</h2>
-            <span className="num text-sm text-muted">{filteredPostings.length}건</span>
+            <span className="num text-sm text-muted">{data.postings.length}건</span>
           </div>
-          {filteredPostings.length > 0 ? <ul className="divide-y divide-border-soft">
-            {filteredPostings.map((posting) => <PostingRow key={posting.id} posting={posting} onEdit={() => setManage({ posting, mode: "EDIT" })} onDelete={() => setManage({ posting, mode: "DELETE" })} />)}
+          {data.postings.length > 0 ? <ul className="divide-y divide-border-soft">
+            {data.postings.map((posting) => <PostingRow key={posting.id} posting={posting} onEdit={() => setManage({ posting, mode: "EDIT" })} onDelete={() => setManage({ posting, mode: "DELETE" })} />)}
           </ul> : <div className="px-5 py-14 text-center"><strong className="block text-base">조건에 맞는 공고가 없습니다</strong><p className="mt-2 text-sm text-muted">검색어나 상태 필터를 변경해 주세요.</p></div>}
         </section>
       </> : <PickerEmpty title="아직 등록된 공고가 없습니다" description="모집 기간과 배역, 전형 일정을 설정해 첫 모집을 시작하세요." />}

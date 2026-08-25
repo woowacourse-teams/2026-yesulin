@@ -4,6 +4,10 @@ spring:
     username: ${DB_USERNAME:yesulin}
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
+  flyway:
+    locations:
+      - classpath:db/migration
+      - classpath:db/local
 
 yesulin:
   storage:

@@ -1,5 +1,6 @@
 package art.yesulin.presentation.api.performance;
 
+import art.yesulin.application.audition.query.AuditionManagementQueryService;
 import art.yesulin.application.auth.MemberPrincipal;
 import art.yesulin.application.auth.annotation.LoginMember;
 import art.yesulin.application.auth.annotation.LoginRequired;
@@ -30,6 +31,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class PerformanceController {
 
     private final PerformanceService performanceService;
+    private final AuditionManagementQueryService auditionManagementQueryService;
     private final FileService fileService;
 
     @PostMapping
@@ -47,7 +49,11 @@ public class PerformanceController {
     ) {
         long ownerId = principal.memberId();
         return ResponseEntity.ok(new PerformanceListResponse(
-                performanceService.findAll(ownerId).stream().map(result -> toResponse(ownerId, result)).toList()
+                auditionManagementQueryService.findPerformances(ownerId).stream()
+                        .map(result -> PerformanceManagementResponse.from(
+                                result, fileService.readUrl(ownerId, result.posterFileId())
+                        ))
+                        .toList()
         ));
     }
 

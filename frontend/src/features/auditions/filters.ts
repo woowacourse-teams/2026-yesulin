@@ -1,4 +1,4 @@
-import type { Applicant, Gender, ReviewStatus } from "./types";
+import type { Gender, ReviewStatus, ScreeningSearchCondition } from "./types";
 
 /** 나이·키·몸무게처럼 '이상/이하' 한 조건만 거는 수치 필터. */
 export const NUMERIC_FIELDS = ["age", "height", "weight"] as const;
@@ -47,46 +47,24 @@ export const activeDetailFilterCount = (filters: AuditionFilters) =>
   + NUMERIC_FIELDS.filter((field) => filters.numeric[field] !== null).length
   + (filters.mismatchOnly ? 1 : 0);
 
-const matchesNumeric = (value: number | null, condition: NumericCondition | null) =>
-  !condition || (value !== null && (condition.op === "gte" ? value >= condition.value : value <= condition.value));
-
-/** 검토 대기/완료와 상태 칩만 적용한 목록. 조건 불일치 배지 수를 세는 기준이다. */
-export function applyWorkFilter(
-  applicants: readonly Applicant[],
+export function toScreeningSearchCondition(
   filters: AuditionFilters,
-): readonly Applicant[] {
-  return applicants.filter((applicant) => {
-    const { status } = applicant.review;
-    if (filters.work === "PENDING") return status === "PENDING";
-    if (status === "PENDING") return false;
-    return filters.status === "ALL" || status === filters.status;
-  });
+  keyword = filters.query,
+): ScreeningSearchCondition {
+  const numeric = (field: NumericField) => {
+    const condition = filters.numeric[field];
+    return condition ? { operator: condition.op.toUpperCase() as "GTE" | "LTE", value: condition.value } : undefined;
+  };
+  return {
+    work: filters.work,
+    status: filters.work === "DONE" && filters.status !== "ALL" ? filters.status : undefined,
+    keyword,
+    genders: [...filters.genders].sort(),
+    age: numeric("age"),
+    height: numeric("height"),
+    weight: numeric("weight"),
+    mismatchOnly: filters.mismatchOnly || undefined,
+  };
 }
 
-export function applyFilters(
-  applicants: readonly Applicant[],
-  filters: AuditionFilters,
-): readonly Applicant[] {
-  return applyWorkFilter(applicants, filters).filter((applicant) => {
-    const query = filters.query.trim().toLocaleLowerCase("ko-KR");
-    if (query) {
-      const searchable = [
-        applicant.name,
-        applicant.school,
-        applicant.phone,
-        applicant.email,
-        applicant.roleName,
-      ];
-      if (!searchable.some((value) => value.toLocaleLowerCase("ko-KR").includes(query))) return false;
-    }
-    if (filters.genders.size > 0 && (applicant.gender === null || !filters.genders.has(applicant.gender))) return false;
-    if (!matchesNumeric(applicant.age, filters.numeric.age)) return false;
-    if (!matchesNumeric(applicant.height, filters.numeric.height)) return false;
-    if (!matchesNumeric(applicant.weight, filters.numeric.weight)) return false;
-    if (filters.mismatchOnly && applicant.mismatchReasons.length === 0) return false;
-    return true;
-  });
-}
-
-export const countMismatches = (applicants: readonly Applicant[], filters: AuditionFilters) =>
-  applyWorkFilter(applicants, filters).filter((applicant) => applicant.mismatchReasons.length > 0).length;
+export const screeningSearchKey = (condition: ScreeningSearchCondition) => JSON.stringify(condition);

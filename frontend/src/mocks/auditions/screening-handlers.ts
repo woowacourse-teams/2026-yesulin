@@ -1,5 +1,5 @@
 import { delay, http, HttpResponse, passthrough } from "msw";
-import type { AuditionBoardResponse, CloseRoundRequest, RoundNumber, SaveReviewRequest } from "@/features/auditions/types";
+import type { Applicant, AuditionBoardResponse, CloseRoundRequest, RoundNumber, SaveReviewRequest } from "@/features/auditions/types";
 import { roleId, ROUND_NUMBERS } from "@/features/auditions/types";
 import { countsFor, findRole, roundStatesOf } from "./aggregate";
 import { CATALOG } from "./catalog";
@@ -12,12 +12,38 @@ const badRequest = (code: string, message: string) => HttpResponse.json({ code, 
 const isRoundNumber = (value: number): value is RoundNumber => ROUND_NUMBERS.some((round) => round === value);
 const parseRound = (raw: string): RoundNumber | null => { const parsed = Number(raw); return Number.isInteger(parsed) && isRoundNumber(parsed) ? parsed : null; };
 
-function buildBoard(rawRoleId: string, round: RoundNumber): AuditionBoardResponse | null {
+function buildBoard(rawRoleId: string, round: RoundNumber, url?: URL): AuditionBoardResponse | null {
   const found = findRole(roleId(rawRoleId));
   if (!found) return null;
   const performance = CATALOG.find((candidate) => candidate.postings.some((posting) => posting.id === found.posting.id));
   if (!performance) return null;
-  return { performance: toPerformanceRef(performance), posting: toPostingRef(found.posting), role: toRoleSummary(found.role, found.posting), round, rounds: roundStatesOf(found.role.id), applicants: poolFor(found.role.id, round).map((applicant) => toApplicant(applicant, found.role, round)) };
+  const applicants = poolFor(found.role.id, round).map((applicant) => toApplicant(applicant, found.role, round));
+  return { performance: toPerformanceRef(performance), posting: toPostingRef(found.posting), role: toRoleSummary(found.role, found.posting), round, rounds: roundStatesOf(found.role.id), applicants: url ? applicants.filter((applicant) => matchesSearch(applicant, url)) : applicants };
+}
+
+function matchesSearch(applicant: Applicant, url: URL) {
+  const work = url.searchParams.get("work");
+  const status = url.searchParams.get("status");
+  if (work === "PENDING" && applicant.review.status !== "PENDING") return false;
+  if (work === "DONE" && applicant.review.status === "PENDING") return false;
+  if (status && applicant.review.status !== status) return false;
+  const keyword = url.searchParams.get("keyword")?.trim().toLocaleLowerCase("ko-KR");
+  if (keyword && ![applicant.name, applicant.school, applicant.phone, applicant.email, applicant.roleName]
+    .some((value) => value.toLocaleLowerCase("ko-KR").includes(keyword))) return false;
+  const genders = url.searchParams.getAll("gender");
+  if (genders.length > 0 && (applicant.gender === null || !genders.includes(applicant.gender))) return false;
+  if (!matchesNumeric(applicant.age, url, "age")) return false;
+  if (!matchesNumeric(applicant.height, url, "height")) return false;
+  if (!matchesNumeric(applicant.weight, url, "weight")) return false;
+  return url.searchParams.get("mismatchOnly") !== "true" || applicant.mismatchReasons.length > 0;
+}
+
+function matchesNumeric(value: number | null, url: URL, field: "age" | "height" | "weight") {
+  const expected = url.searchParams.get(field);
+  if (expected === null) return true;
+  if (value === null) return false;
+  const threshold = Number(expected);
+  return url.searchParams.get(`${field}Operator`) === "LTE" ? value <= threshold : value >= threshold;
 }
 
 export const screeningHandlers = [
@@ -25,10 +51,11 @@ export const screeningHandlers = [
     await delay(300);
     const found = findRole(roleId(String(params.roleId)));
     if (!found) return notFound("배역을 찾을 수 없습니다.");
-    const requested = new URL(request.url).searchParams.get("round");
+    const url = new URL(request.url);
+    const requested = url.searchParams.get("round");
     const round = requested === null ? activeRound(found.role.id) : parseRound(requested);
     if (round === null) return badRequest("INVALID_ROUND_NUMBER", "올바른 차수가 아닙니다.");
-    const board = buildBoard(String(params.roleId), round);
+    const board = buildBoard(String(params.roleId), round, url);
     return board ? HttpResponse.json(board) : notFound("배역을 찾을 수 없습니다.");
   }),
   http.patch(`${apiPath}/v1/audition-roles/:roleId/screening-rounds/:round/reviews`, async ({ params, request }) => {

@@ -157,12 +157,32 @@ class AuditionControllerTest {
         UUID latest = createAudition(performance.id());
 
         mockMvc.perform(get("/api/v1/auditions")
+                .queryParam("performanceId", String.valueOf(performance.id()))
+                .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.auditions.length()").value(2))
+                .andExpect(jsonPath("$.auditions[0].id").value(latest.toString()))
+                .andExpect(jsonPath("$.auditions[1].id").value(first.toString()))
+                .andExpect(jsonPath("$.auditions[0].phase").value("DRAFT"))
+                .andExpect(jsonPath("$.auditions[0].roleCount").value(0))
+                .andExpect(jsonPath("$.auditions[0].databaseId").doesNotExist())
+                .andExpect(jsonPath("$.counts.all").value(2))
+                .andExpect(jsonPath("$.counts.draft").value(2));
+
+        mockMvc.perform(get("/api/v1/auditions")
                         .queryParam("performanceId", String.valueOf(performance.id()))
+                        .queryParam("phase", "OPEN")
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].id").value(latest.toString()))
-                .andExpect(jsonPath("$[1].id").value(first.toString()));
+                .andExpect(jsonPath("$.auditions.length()").value(0))
+                .andExpect(jsonPath("$.counts.all").value(2));
+
+        mockMvc.perform(get("/api/v1/auditions")
+                        .queryParam("performanceId", String.valueOf(performance.id()))
+                        .queryParam("keyword", "햄릿")
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.auditions.length()").value(2));
     }
 
     @Test
@@ -204,7 +224,10 @@ class AuditionControllerTest {
         mockMvc.perform(get("/api/v1/auditions/{auditionId}/roles", auditionId)
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.roles.length()").value(2));
+                .andExpect(jsonPath("$.posting.id").value(auditionId.toString()))
+                .andExpect(jsonPath("$.posting.databaseId").doesNotExist())
+                .andExpect(jsonPath("$.roles.length()").value(2))
+                .andExpect(jsonPath("$.roles[0].applicantCount").value(0));
     }
 
     private UUID createAudition(long performanceId) throws Exception {

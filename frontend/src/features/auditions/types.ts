@@ -226,6 +226,21 @@ export type PostingListResponse = {
   readonly performance: PerformanceRef;
   readonly roleTemplates: readonly PerformanceRoleTemplate[];
   readonly postings: readonly PostingSummary[];
+  readonly counts: PostingPhaseCounts;
+};
+
+export type PostingPhaseCounts = {
+  readonly all: number;
+  readonly draft: number;
+  readonly upcoming: number;
+  readonly open: number;
+  readonly recruitClosed: number;
+  readonly finished: number;
+};
+
+export type PostingSearchCondition = {
+  readonly keyword?: string;
+  readonly phase?: PostingPhase;
 };
 
 export type CreatePostingResponse = PostingListResponse & {
@@ -239,7 +254,7 @@ export type RoleListResponse = {
   readonly roles: readonly RoleSummary[];
 };
 
-/** 배우 심사 화면 한 벌. 차수별 pool 전체를 내려주고 필터는 클라이언트가 건다. */
+/** 배우 심사 화면 한 벌. applicants는 서버가 조회 조건을 적용한 현재 페이지의 목록이다. */
 export type AuditionBoardResponse = {
   readonly performance: PerformanceRef;
   readonly posting: PostingRef;
@@ -247,6 +262,17 @@ export type AuditionBoardResponse = {
   readonly round: RoundNumber;
   readonly rounds: readonly RoundState[];
   readonly applicants: readonly Applicant[];
+};
+
+export type ScreeningSearchCondition = {
+  readonly work?: "PENDING" | "DONE";
+  readonly status?: ReviewStatus;
+  readonly keyword?: string;
+  readonly genders?: readonly Gender[];
+  readonly age?: { readonly operator: "GTE" | "LTE"; readonly value: number };
+  readonly height?: { readonly operator: "GTE" | "LTE"; readonly value: number };
+  readonly weight?: { readonly operator: "GTE" | "LTE"; readonly value: number };
+  readonly mismatchOnly?: boolean;
 };
 
 export type SaveReviewRequest = {

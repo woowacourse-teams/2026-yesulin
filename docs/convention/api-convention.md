@@ -336,7 +336,8 @@ PATCH  /api/v1/performances/{performanceId}/roles/{roleId}
 DELETE /api/v1/performances/{performanceId}/roles/{roleId}
                                                             # 배역 삭제
 POST   /api/v1/auditions                               # 공연 ID와 기본 정보로 공고 DRAFT 생성
-GET    /api/v1/auditions?performanceId={performanceId} # 공연별 공고 목록
+GET    /api/v1/auditions?performanceId={performanceId}&phase={phase}&keyword={keyword}
+                                                    # 공연별 공고 서버 검색·상태 필터
 GET    /api/v1/auditions/{auditionId}                   # 공연사용 공고 DRAFT 상세
 PUT    /api/v1/auditions/{auditionId}/basic-information
                                                           # 기본 정보 섹션 전체 저장
@@ -362,8 +363,8 @@ PUT    /api/v1/auditions/{auditionId}/publication         # 완성된 공고 게
 생성 재시도 키다. 같은 소유자가 같은 UUID로 재요청하면 기존 DRAFT를 이어 쓰며 새 공고를 만들지 않는다.
 종료일이 없으면 응답의 `openRun`은 `true`다. 기본 정보 수정은 DRAFT와 PUBLISHED 모두 허용하며 같은
 기본 필드를 받는다.
-생성·단건 조회·수정은 최상위 `/auditions`로 묶고, 특정 공연의 공고 목록 조회가 필요할 때만 공연 하위
-경로를 사용한다. 배역 저장은 공연 배역 ID와 공고별 모집 조건을 받고 섹션 전체를 교체한다. 후속 API는
+생성·단건 조회·수정과 특정 공연의 공고 목록 조회를 최상위 `/auditions`로 묶는다. 목록은
+`performanceId` 쿼리 파라미터로 공연 범위를 제한한다. 배역 저장은 공연 배역 ID와 공고별 모집 조건을 받고 섹션 전체를 교체한다. 후속 API는
 [공고 관리](../development/backend/audition-management.md)를 따른다.
 
 일정 저장은 `recruitmentStartAt`, `recruitmentEndAt`, `stages` 전체를 받는다. 전형은 1~5개이며
@@ -396,6 +397,9 @@ PUT    /api/v1/auditions/{auditionId}/publication         # 완성된 공고 게
 
 ```http
 GET   /api/v1/audition-roles/{roleId}/screening-rounds/{round}/submissions
+      ?work={work}&status={status}&keyword={keyword}&gender={gender}
+      &ageOperator={operator}&age={value}&heightOperator={operator}&height={value}
+      &weightOperator={operator}&weight={value}&mismatchOnly={boolean}
                                                            # 심사 목록
 GET   /api/v1/audition-roles/{roleId}/screening-rounds/{round}/submissions/{submissionId} # 민감 상세
 PATCH /api/v1/audition-roles/{roleId}/screening-rounds/{round}/reviews
@@ -437,7 +441,7 @@ PATCH /api/v1/audition-roles/{roleId}/screening-rounds/{round} # 목표: status=
 /api/screenings/**                  → /api/v1/audition-roles/**/screening-rounds/**
 ```
 
-공연 목록 조회 `GET /api/v1/performances`와 UUID 공고의 지원서 제출은 프런트 이관을 완료했고, 배우 소셜
+공연·공고 관리 목록, 탐색 트리와 UUID 공고의 지원서 제출은 프런트 이관을 완료했고, 배우 소셜
 로그인과 HttpOnly Session 복원·로그아웃도 실제 Backend에 연결됐다. 배우 프로필 기본·추가 정보와 별도
 사진·영상 보관함은 `NEXT_PUBLIC_APPLICANT_PROFILE_API=enabled`에서 실제 Backend에 연결된다. 지원서
 제출은 새 사진을 배우 사진 API로 업로드·완료한 뒤 백엔드 폼의 질문·사진·영상 requirement ID와 연결하고,

@@ -1,5 +1,4 @@
 import type { CreatePerformanceRequest } from "./creation-types";
-import type { PerformanceListResponse } from "./types";
 
 export type PerformanceResource = {
   readonly id: number | string;
@@ -19,7 +18,7 @@ export type PerformanceResource = {
   readonly openPostingCount?: number;
   readonly applicantCount?: number;
   readonly pendingReviewCount?: number;
-  readonly postings?: PerformanceListResponse["performances"][number]["postings"];
+  readonly postings?: readonly AuditionManagementResource[];
 };
 
 export type PerformanceResourceList = { readonly performances: readonly PerformanceResource[] };
@@ -55,6 +54,31 @@ export type AuditionResource = {
   readonly publishedAt: string | null;
 };
 
+export type AuditionManagementResource = AuditionResource & {
+  readonly recruitmentStartAt: string | null;
+  readonly recruitmentEndAt: string | null;
+  readonly phase: "DRAFT" | "UPCOMING" | "OPEN" | "RECRUIT_CLOSED" | "FINISHED";
+  readonly multipleRoleApplicationsAllowed: boolean;
+  readonly roleCount: number;
+  readonly quotaTotal: number;
+  readonly applicantCount: number;
+  readonly pendingReviewCount: number;
+  readonly allRoundsClosed: boolean;
+  readonly progress: { readonly done: number; readonly total: number; readonly percent: number };
+};
+
+export type AuditionManagementListResource = {
+  readonly auditions: readonly AuditionManagementResource[];
+  readonly counts: {
+    readonly all: number;
+    readonly draft: number;
+    readonly upcoming: number;
+    readonly open: number;
+    readonly recruitClosed: number;
+    readonly finished: number;
+  };
+};
+
 export type AuditionRoleResource = {
   readonly id: number;
   readonly performanceRoleId: number;
@@ -66,10 +90,23 @@ export type AuditionRoleResource = {
   readonly maximumAge: number;
 };
 
+export type AuditionRoleManagementResource = AuditionRoleResource & {
+  readonly applicantCount: number;
+  readonly activeRound: number;
+  readonly allRoundsClosed: boolean;
+  readonly progress: { readonly done: number; readonly total: number; readonly percent: number };
+  readonly counts: ScreeningCountsResource;
+};
+
 export type AuditionRolesResource = {
   readonly auditionId: string;
   readonly multipleRoleApplicationsAllowed: boolean;
   readonly roles: readonly AuditionRoleResource[];
+};
+
+export type AuditionRolesManagementResource = Omit<AuditionRolesResource, "roles"> & {
+  readonly posting: AuditionManagementResource;
+  readonly roles: readonly AuditionRoleManagementResource[];
 };
 
 export type AuditionScheduleResource = {
@@ -195,7 +232,7 @@ export type ScreeningBoardResource = {
   readonly submissions: readonly ScreeningSubmissionResource[];
 };
 
-type ScreeningCountsResource = {
+export type ScreeningCountsResource = {
   readonly all: number;
   readonly pending: number;
   readonly done: number;

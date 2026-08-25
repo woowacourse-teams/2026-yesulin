@@ -97,6 +97,45 @@ class ScreeningSubmissionControllerTest {
     }
 
     @Test
+    void filtersRoleSubmissionsOnServer() throws Exception {
+        mockMvc.perform(get(path(), roleId, 1)
+                        .queryParam("work", "DONE")
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, PRODUCER))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.submissions").isEmpty())
+                .andExpect(jsonPath("$.role.counts.pending").value(1));
+
+        mockMvc.perform(get(path(), roleId, 1)
+                        .queryParam("work", "PENDING")
+                        .queryParam("keyword", "김하린")
+                        .queryParam("gender", "FEMALE")
+                        .queryParam("ageOperator", "GTE")
+                        .queryParam("age", "20")
+                        .queryParam("heightOperator", "GTE")
+                        .queryParam("height", "166")
+                        .queryParam("weightOperator", "LTE")
+                        .queryParam("weight", "52")
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, PRODUCER))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.submissions[0].id").value(SUBMISSION_ID.toString()));
+
+        mockMvc.perform(get(path(), roleId, 1)
+                        .queryParam("work", "PENDING")
+                        .queryParam("heightOperator", "GTE")
+                        .queryParam("height", "167")
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, PRODUCER))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.submissions").isEmpty());
+
+        mockMvc.perform(get(path(), roleId, 1)
+                        .queryParam("work", "PENDING")
+                        .queryParam("gender", "MALE")
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, PRODUCER))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.submissions").isEmpty());
+    }
+
+    @Test
     void findsSubmissionDetailByPublicUuid() throws Exception {
         mockMvc.perform(get(path() + "/{submissionId}", roleId, 1, SUBMISSION_ID)
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, PRODUCER))

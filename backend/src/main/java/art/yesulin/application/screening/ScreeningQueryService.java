@@ -20,6 +20,7 @@ import art.yesulin.domain.screening.AuditionScreening;
 import art.yesulin.domain.screening.ScreeningReview;
 import art.yesulin.domain.screening.ScreeningReviewRepository;
 import art.yesulin.domain.screening.ScreeningRound;
+import art.yesulin.domain.submission.ScreeningSubmissionSearchCondition;
 import art.yesulin.domain.submission.Submission;
 import art.yesulin.domain.submission.SubmissionRepository;
 import java.util.LinkedHashMap;
@@ -44,8 +45,13 @@ public class ScreeningQueryService {
     private final ObjectStorage objectStorage;
 
     @Transactional(readOnly = true)
-    public ScreeningBoardResult findBoard(long ownerId, long roleId, int round) {
-        return createBoard(ownerId, roleId, new ScreeningRound(round));
+    public ScreeningBoardResult findBoard(
+            long ownerId,
+            long roleId,
+            int round,
+            ScreeningFilterCondition condition
+    ) {
+        return createBoard(ownerId, roleId, new ScreeningRound(round), condition).filteredBy(condition);
     }
 
     @Transactional(readOnly = true)
@@ -55,10 +61,15 @@ public class ScreeningQueryService {
             int round,
             UUID submissionId
     ) {
-        return createBoard(ownerId, roleId, new ScreeningRound(round)).detail(submissionId);
+        return createBoard(ownerId, roleId, new ScreeningRound(round), null).detail(submissionId);
     }
 
-    private ScreeningBoardResult createBoard(long ownerId, long roleId, ScreeningRound round) {
+    private ScreeningBoardResult createBoard(
+            long ownerId,
+            long roleId,
+            ScreeningRound round,
+            ScreeningFilterCondition condition
+    ) {
         long auditionId = findAuditionId(roleId);
         Audition audition = findAudition(ownerId, auditionId);
         AuditionRoleSection roleSection = roleSectionRepository.findByAuditionId(audition.getId())
@@ -70,9 +81,12 @@ public class ScreeningQueryService {
                 .orElseThrow(() -> new IllegalStateException("공고가 속한 공연을 찾을 수 없습니다."));
         PerformanceRole performanceRole = findPerformanceRole(performance, role.getPerformanceRoleId());
         AuditionScreening screening = findScreening(audition.getId(), roleId, schedule);
-        Map<Long, String> photoUrls = createPhotoUrls(photoFileIds(screening.applicantsFor(round)));
+        List<Submission> filteredSubmissions = findFilteredSubmissions(
+                audition.getId(), roleId, round, schedule, screening, condition
+        );
+        Map<Long, String> photoUrls = createPhotoUrls(photoFileIds(filteredSubmissions));
         return ScreeningBoardResult.from(
-                audition, roleId, round, performance, performanceRole, role, screening, photoUrls
+                audition, roleId, round, performance, performanceRole, role, screening, filteredSubmissions, photoUrls
         );
     }
 
@@ -93,6 +107,31 @@ public class ScreeningQueryService {
                 ? List.of()
                 : reviewRepository.findAllByAuditionRoleIdAndSubmissionIdIn(roleId, submissionIds);
         return new AuditionScreening(roleId, submissions, schedule.getStages(), reviews);
+    }
+
+    private List<Submission> findFilteredSubmissions(
+            long auditionId,
+            long roleId,
+            ScreeningRound round,
+            AuditionSchedule schedule,
+            AuditionScreening screening,
+            ScreeningFilterCondition condition
+    ) {
+        if (condition == null) {
+            return screening.applicantsFor(round);
+        }
+        ScreeningSubmissionSearchCondition submissionCondition = condition.toSubmissionCondition();
+        if (submissionCondition.isEmpty()) {
+            return screening.applicantsFor(round);
+        }
+        List<Submission> submissions = submissionRepository.findAllForScreening(
+                auditionId, roleId, submissionCondition
+        );
+        List<UUID> submissionIds = submissions.stream().map(Submission::getSubmissionId).toList();
+        List<ScreeningReview> reviews = submissionIds.isEmpty()
+                ? List.of()
+                : reviewRepository.findAllByAuditionRoleIdAndSubmissionIdIn(roleId, submissionIds);
+        return new AuditionScreening(roleId, submissions, schedule.getStages(), reviews).applicantsFor(round);
     }
 
     private AuditionRole findRole(AuditionRoleSection section, long roleId) {

@@ -119,7 +119,7 @@ status: active
 
 ```http
 POST /api/v1/auditions
-GET  /api/v1/auditions?performanceId={performanceId}
+GET  /api/v1/auditions?performanceId={performanceId}&phase={phase}&keyword={keyword}
 GET  /api/v1/auditions/{auditionId}
 PUT  /api/v1/auditions/{auditionId}/basic-information
 GET  /api/v1/auditions/{auditionId}/roles
@@ -135,11 +135,17 @@ GET   /api/v1/audition-roles/{roleId}/screening-rounds/{round}/submissions
 GET   /api/v1/audition-roles/{roleId}/screening-rounds/{round}/submissions/{submissionId}
 ```
 
+배역별 심사 목록은 검토 작업 구분·심사 상태·검색어·성별·나이·키·몸무게·배역 조건 불일치를 선택적인
+쿼리 파라미터로 받는다. 서버가 조건을 적용한 `submissions`를 반환하고 차수·상태 집계는 필터와 무관한 전체
+심사 대상을 기준으로 유지한다. 프런트는 응답 목록을 다시 필터링하지 않는다.
+
 생성 API는 UUID `id`, `performanceId`, `title`, `performanceStartDate`, 선택적인 `performanceEndDate`를 받아
 유효한 DRAFT를 반환한다. 같은 `id`의 재요청은 새 행을 만들지 않고 기존 DRAFT를 반환한다. 생성·조회·기본
 정보 수정은 `/auditions`를 기준으로 한 Controller와 Service가 담당한다.
 특정 공연 기준 목록은 `/auditions?performanceId={performanceId}`를 사용하며 공연사 소유 공고만 접근할 수
-있다. 기본 정보와 배역·일정·지원 폼 저장, 게시는 공고 행 잠금으로 직렬화한다. 배역 `PUT`은 섹션
+있다. 선택적인 `phase`, `keyword`는 서버에서 적용하고 응답은 필터 결과와 전체 상태별 건수를 함께 반환한다.
+프런트는 목록을 다시 필터링하지 않고 서버 결과를 그대로 표시한다. 기본 정보와 배역·일정·지원 폼 저장,
+게시는 공고 행 잠금으로 직렬화한다. 배역 `PUT`은 섹션
 전체를 저장하고 기존 공연 배역을 다시 선택하면 공고 배역 ID를 유지한다. 일정 GET·PUT은 모집 기간과
 전형 1~5개를 조회하고 전체 저장한다. 지원 폼 GET·PUT은 표준 항목과 사진·영상·질문 요구 전체를
 조회하고 저장한다. 게시 `PUT`은 모든 섹션과 모집 종료 시각을 검증한 뒤 `PUBLISHED`로 전이한다.
@@ -148,6 +154,13 @@ GET   /api/v1/audition-roles/{roleId}/screening-rounds/{round}/submissions/{subm
 지원서만 다음 차수에 포함한다. 제출 사진은 심사 권한 확인 뒤 단기 다운로드 URL로 제공한다.
 공개 조회는 게시된 공고의 공연·배역·일정·지원 폼을 한 번에 반환하며 DRAFT는 `404`로 숨긴다. 심사 cursor
 페이지네이션, 차수 마감과 낙관적 버전 충돌 처리는 향후 구현한다.
+
+관리 화면 조회는 `GET /api/v1/performances`, `GET /api/v1/auditions?performanceId=...`,
+`GET /api/v1/auditions/{auditionId}/roles`, `GET /api/v1/producers/me/navigation-tree`에서 공고·배역별
+지원자 수와 심사 진행률을 함께 반환한다. `AuditionRepository`가 관리 조회 custom fragment를 상속하고
+QueryDSL 구현은 Spring Data가 fragment로 조합할 수 있도록 `domain/audition/query`에 함께 둔다. Q 타입과
+조회 row는 해당 구현 밖으로 노출하지 않으며 Application Service는 소유권에 따른 `404`만 결정한다. Entity 필드 변경은 QueryDSL 구현에서
+컴파일 오류로 드러나므로 문자열 경로로 우회하지 않는다.
 
 생성·수정 command가 날짜 입력을 `PerformancePeriod`로 변환하고 service는 완성된 VO를 도메인에 전달한다.
 공연이 없거나 세션 소유자의 공연이 아니면 존재 여부를 구분하지 않고 `PERFORMANCE_NOT_FOUND`로 응답한다.
