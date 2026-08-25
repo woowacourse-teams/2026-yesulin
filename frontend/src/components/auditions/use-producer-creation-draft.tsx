@@ -102,9 +102,9 @@ export function ProducerCreationDraftStatus({ status, savedAt }: { readonly stat
       : status === "SAVING" ? "변경 내용을 이 기기에 저장하고 있어요."
         : status === "SAVED" && savedAt ? `${formatSavedTime(savedAt)}에 이 기기에 자동 저장됐어요.`
           : status === "ERROR" ? "자동 저장하지 못했습니다. 작성 완료 전 페이지를 닫지 마세요."
-            : `입력을 멈추면 ${PRODUCER_CREATION_DRAFT_DELAY_MS / 1000}초 뒤 이 기기에 자동 저장돼요.`;
+            : null;
   const tone = status === "ERROR" ? "border-fail/30 bg-fail-bg text-fail" : "border-brand-line bg-brand-soft text-muted-strong";
-  return <p role={status === "ERROR" ? "alert" : "status"} className={`mb-5 rounded-control border px-4 py-3 text-sm leading-6 ${tone}`}><strong>{status === "ERROR" ? "자동 저장 실패" : "작성 내용 자동 저장"}</strong> · {detail}</p>;
+  return <p role={status === "ERROR" ? "alert" : "status"} className={`mb-5 rounded-control border px-4 py-3 text-sm leading-6 ${tone}`}><strong>{status === "ERROR" ? "자동 저장 실패" : "작성 내용 자동 저장"}</strong>{detail ? <> · {detail}</> : null}</p>;
 }
 
 function formatSavedTime(value: number) {

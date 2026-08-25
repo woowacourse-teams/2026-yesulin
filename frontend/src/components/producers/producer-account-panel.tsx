@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -11,6 +10,7 @@ import { PRODUCER_PROFILE_CHANGED } from "@/features/auditions/events";
 import { auditionRoutes } from "@/features/auditions/routes";
 import { useAuditionQuery } from "@/features/auditions/use-audition-query";
 import { SessionApiError } from "@/features/auth/session-api";
+import { DefaultProfileIcon } from "@/components/ui/default-profile-icon";
 
 export function ProducerAccountPanel() {
   const router = useRouter();
@@ -35,13 +35,9 @@ export function ProducerAccountPanel() {
   return (
     <div className="border-t border-sidebar-line px-4 py-4">
       <div className="flex items-center gap-2.5">
-        <Image
-          src={profile?.logoUrl || "/images/yesulin-logo-mark.png"}
-          alt=""
-          width={36}
-          height={36}
-          className="h-9 w-9 rounded-full border border-sidebar-line bg-white object-contain"
-        />
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-border bg-brand-soft text-brand">
+          <DefaultProfileIcon className="h-5 w-5" />
+        </span>
         <div className="min-w-0 text-xs leading-tight text-sidebar-text">
           <div className="truncate font-semibold">{profile?.companyName || "기획사/제작사"}</div>
           <div className="mt-1 text-sidebar-muted">{profile?.contactRole || "계정 정보"}</div>
