@@ -435,7 +435,7 @@ PATCH /api/v1/audition-roles/{roleId}/screening-rounds/{round} # 목표: status=
 ```text
 /api/auth/signup/producer           → /api/v1/producers                 # 이관 완료
 /api/me/profile                     → /api/v1/applicants/me/profile              # 플래그 기반 이관 완료
-/api/me/profile/prefill             → /api/v1/applicants/me/profile/prefill
+/api/me/profile/prefill             → 실제 공고는 /api/v1/applicants/me/profile + 공개 공고 양식을 Frontend에서 변환
 /api/me/submissions/**             → GET은 /api/v1/applicants/me/submissions/**, PATCH는 목표 계약에서 제외
 /api/public/recommended-postings    → /api/v1/public/recommended-auditions
 /api/public/postings/**             → /api/v1/public/auditions/**

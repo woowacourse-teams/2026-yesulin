@@ -40,7 +40,7 @@ IndexedDB 사본은 서버나 기획사/제작사에 전송되지 않는다. 이
 - 프로필은 사진 최대 3장, YouTube 영상 최대 10개를 탭으로 관리하고 추가·삭제·순서·대표 사진 변경을 MSW에 즉시 저장한다.
 - 프로필은 공고별 커스텀 답변을 보관하지 않는다.
 - 프로필 저장 안내와 동작은 이번 지원서의 기본·추가 정보만 다루고 사진·영상·커스텀 답변은 제외한다.
-- UUID 공고의 최종 제출은 실제 `POST /api/v1/auditions/{auditionId}/submissions`를 호출한다. 새 사진은 제출 과정에서 배우 사진 API로 업로드·완료하고 공고의 requirement ID와 연결한다. UUID 공고의 Backend 프로필 prefill은 아직 구현되지 않아 `prefill=1`이어도 빈 지원서로 시작하며, 시드 공고는 기존 MSW prefill·제출 흐름을 유지한다.
+- UUID 공고의 최종 제출은 실제 `POST /api/v1/auditions/{auditionId}/submissions`를 호출한다. 새 사진은 제출 과정에서 배우 사진 API로 업로드·완료하고 공고의 requirement ID와 연결한다. UUID 공고는 로그인 배우의 현재 Backend 프로필과 공개 공고 양식을 Frontend에서 조합해 공고가 수집하는 기본·추가 정보만 자동으로 채운다. 기존 로컬 Draft가 있으면 Draft를 우선하며 사진·영상·커스텀 답변은 자동으로 넣지 않는다. 시드 공고는 기존 MSW prefill·제출 흐름을 유지한다.
 - 지원서 제출에서 프로필 저장을 선택하면 제출 성공 후 현재 프로필과 병합해 `PATCH /api/v1/applicants/me/profile`을 호출한다. 값을 입력한 수집 필드만 덮어쓰고, 저장 실패는 제출 성공에 영향을 주지 않으며 완료 화면에서 안내한다. 시드 공고는 기존 MSW 제출 흐름이 목 프로필을 함께 갱신한다.
 - 최종 검토는 개인정보 수집·이용과 제3자 제공을 각각 필수 체크박스로 받고, 상단의 전체 동의로 두 값을 함께 바꿀 수 있다. UUID 공고 제출은 두 동의 값을 Backend 요청에 각각 전달한다.
 - 연락처 입력은 숫자만 받아 최대 11자리 `000-0000-0000` 형태로 표시한다. 키·몸무게의 정수 제한, 미래 생년월일 차단, 모집 마감일 기준 만 나이 계산과 만 14세 미만 제출 차단은 아직 없다.
@@ -50,8 +50,9 @@ Backend에는 실제 파일 업로드·사진 보관함, 영속 프로필 기본
 구현됐다. `NEXT_PUBLIC_API_MOCKING=enabled`이고 `NEXT_PUBLIC_APPLICANT_PROFILE_API`가 비활성일 때만
 Frontend 프로필 화면이 `/api/**` 목 계약과 브라우저 Blob URL을 사용한다.
 `NEXT_PUBLIC_APPLICANT_PROFILE_API=enabled` 또는 MSW를 활성화하지 않은 실제 API 모드에서는
-프로필 정보·사진·영상을 각각의 `/api/v1/**` Backend API에 연결한다. 공고 양식 기준 프로필 자동 채움
-Backend는 아직 구현하지 않았다.
+프로필 정보·사진·영상을 각각의 `/api/v1/**` Backend API에 연결한다. 전용
+`GET /api/v1/applicants/me/profile/prefill` Backend API는 아직 없으며, 현재 MVP 자동 채움은 기존 프로필
+조회와 공개 공고 양식을 Frontend에서 교집합으로 변환한다.
 
 ## 공연·공고 작성과 관리
 

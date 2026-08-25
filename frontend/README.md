@@ -65,7 +65,9 @@ API_ORIGIN=http://localhost:8080 NEXT_PUBLIC_API_MOCKING=enabled NEXT_PUBLIC_SOC
 
 실제 프로필은 정보·사진·영상을 각각의 `/api/v1/**` 리소스에 저장한다. 사진은 presigned URL로
 파일을 먼저 업로드한 뒤 보관함에 연결한다. 사진 순서 변경과 대표 사진 지정도 각각의 사진 보관함
-API로 즉시 저장한다.
+API로 즉시 저장한다. 로그인 배우가 실제 공고의 지원서 작성을 시작하면 현재 프로필과 공개 공고의
+지원 양식을 조합해 공고가 수집하는 기본·추가 정보만 자동으로 채운다. 기존 로컬 Draft가 있으면 Draft를
+우선하며 사진·영상·커스텀 답변은 자동으로 넣지 않는다.
 
 백엔드의 소셜 로그인 성공 주소는 `/social-login/complete`로 설정한다. 이 완료 화면은 서버 세션을
 확인하고 로그인 전에 보관한 안전한 내부 `returnTo`로 이동하며, 값이 없으면 `/applicants`로 간다.
