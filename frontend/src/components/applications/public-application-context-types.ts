@@ -10,6 +10,8 @@ import type { DraftSaveStatus } from "./use-public-application-draft";
 export type SubmissionReceipt = {
   readonly submissionId: SubmissionId;
   readonly submittedAt: string;
+  /** 프로필 저장을 선택했을 때만 채워진다. false면 제출은 성공했지만 프로필 저장에 실패한 상태다. */
+  readonly profileSaved?: boolean;
 };
 
 export type EditableSection = "BASIC" | "ADDITIONAL" | "INTRODUCTION" | "MATERIALS" | "CAREER" | "CUSTOM";

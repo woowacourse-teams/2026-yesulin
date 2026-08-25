@@ -197,6 +197,7 @@ export function PublicApplicationProvider({
       setReceipt({
         submissionId: response.submissionId,
         submittedAt: response.submittedAt,
+        profileSaved: response.profileSaved,
       });
       void deletePublicApplicationDraft(postingId).catch(() => undefined);
     } catch (cause) {

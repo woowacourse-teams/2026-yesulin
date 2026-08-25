@@ -57,9 +57,10 @@ export function usePublicApplicationDraft({ postingId, fields, prefill, initialR
         setVideoUrlBase(draft.videoUrl);
         setNoCareerBase(draft.noCareer);
         setCareersBase(draft.careers);
-        setConsentBase(draft.consent);
-        setThirdPartyConsentBase(draft.thirdPartyConsent ?? false);
-        setSaveToProfileBase(draft.saveToProfile);
+        // 필수 동의와 제출별 프로필 저장 선택은 복원하지 않고 초기화한다.
+        setConsentBase(false);
+        setThirdPartyConsentBase(false);
+        setSaveToProfileBase(false);
         const maxReachedStepIndex = Math.min(stepCount - 1, draft.completedStepIndexes.length ? Math.max(...draft.completedStepIndexes) + 1 : 0);
         const routeStepIndex = Math.max(0, Math.min(initialStepIndex, maxReachedStepIndex));
         setStepIndexBase(routeStepIndex);

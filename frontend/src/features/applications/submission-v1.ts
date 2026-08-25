@@ -56,16 +56,15 @@ export type V1SubmissionReceipt = {
   readonly submittedAt: string;
 };
 
-export async function createV1Submission(input: V1SubmissionInput): Promise<V1SubmissionReceipt> {
-  const body = await toV1SubmissionRequest(input);
-  const response = await request<{ readonly submissionId: string }>(
-    `/v1/auditions/${encodeURIComponent(input.auditionId)}/submissions`,
-    { method: "POST", body: JSON.stringify(body) },
-  );
-  return { submissionId: submissionId(response.submissionId), submittedAt: new Date().toISOString() };
-}
+export type ApplicantInformation = {
+  readonly basicInformation: V1SubmissionRequest["basicInformation"];
+  readonly additionalInformation: V1SubmissionRequest["additionalInformation"];
+};
 
-async function toV1SubmissionRequest(input: V1SubmissionInput): Promise<V1SubmissionRequest> {
+export type ApplicantInformationInput = Pick<V1SubmissionInput, "fields" | "values" | "careers" | "noCareer">;
+
+/** 제출 본문과 제출 후 프로필 저장이 같은 값을 쓰도록 공고가 수집한 기본·추가 정보만 추린다. */
+export function applicantInformation(input: ApplicantInformationInput): ApplicantInformation {
   const enabledKeys = new Set(input.fields.filter((field) => field.enabled && !field.custom).map((field) => field.key ?? field.id));
   const text = (key: string) => enabledKeys.has(key) ? nullableText(input.values[key]) : null;
   const integer = (key: string) => {
@@ -73,7 +72,6 @@ async function toV1SubmissionRequest(input: V1SubmissionInput): Promise<V1Submis
     return value === null ? null : Number(value);
   };
   const link = text("LINK");
-  const selectedRoleIds = input.roleIds.map((value) => positiveId(value, "지원할 배역을 다시 선택해 주세요."));
 
   return {
     basicInformation: {
@@ -98,6 +96,23 @@ async function toV1SubmissionRequest(input: V1SubmissionInput): Promise<V1Submis
         ? input.careers.map((career) => ({ year: Number(career.year), title: career.title.trim(), roleName: career.part.trim() }))
         : [],
     },
+  };
+}
+
+export async function createV1Submission(input: V1SubmissionInput): Promise<V1SubmissionReceipt> {
+  const body = await toV1SubmissionRequest(input);
+  const response = await request<{ readonly submissionId: string }>(
+    `/v1/auditions/${encodeURIComponent(input.auditionId)}/submissions`,
+    { method: "POST", body: JSON.stringify(body) },
+  );
+  return { submissionId: submissionId(response.submissionId), submittedAt: new Date().toISOString() };
+}
+
+async function toV1SubmissionRequest(input: V1SubmissionInput): Promise<V1SubmissionRequest> {
+  const selectedRoleIds = input.roleIds.map((value) => positiveId(value, "지원할 배역을 다시 선택해 주세요."));
+
+  return {
+    ...applicantInformation(input),
     selectedRoleIds,
     formAnswers: {
       questionAnswers: questionAnswers(input.fields, input.values),
