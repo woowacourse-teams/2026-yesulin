@@ -25,6 +25,8 @@ import art.yesulin.domain.audition.schedule.RecruitmentPeriod;
 import art.yesulin.domain.performance.Performance;
 import art.yesulin.domain.performance.PerformanceRepository;
 import art.yesulin.domain.performance.PerformanceRole;
+import art.yesulin.domain.producer.Producer;
+import art.yesulin.domain.producer.ProducerRepository;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -40,6 +42,7 @@ class SubmissionAuditionReaderTest {
 
     private AuditionRepository auditionRepository;
     private PerformanceRepository performanceRepository;
+    private ProducerRepository producerRepository;
     private AuditionRoleSectionRepository roleSectionRepository;
     private AuditionScheduleRepository scheduleRepository;
     private AuditionFormRepository formRepository;
@@ -49,12 +52,14 @@ class SubmissionAuditionReaderTest {
     void setUp() {
         auditionRepository = mock(AuditionRepository.class);
         performanceRepository = mock(PerformanceRepository.class);
+        producerRepository = mock(ProducerRepository.class);
         roleSectionRepository = mock(AuditionRoleSectionRepository.class);
         scheduleRepository = mock(AuditionScheduleRepository.class);
         formRepository = mock(AuditionFormRepository.class);
         reader = new SubmissionAuditionReader(
                 auditionRepository,
                 performanceRepository,
+                producerRepository,
                 roleSectionRepository,
                 scheduleRepository,
                 formRepository
@@ -65,11 +70,13 @@ class SubmissionAuditionReaderTest {
     void readsPublishedAuditionAsSubmissionDefinition() {
         Audition audition = publishedAudition();
         Performance performance = performance();
+        Producer producer = producer();
         AuditionRoleSection roleSection = roleSection();
         AuditionSchedule schedule = schedule();
         AuditionForm form = form();
         when(auditionRepository.findByPublicId(PUBLIC_AUDITION_ID)).thenReturn(Optional.of(audition));
         when(performanceRepository.findById(PERFORMANCE_ID)).thenReturn(Optional.of(performance));
+        when(producerRepository.findByMemberId(30L)).thenReturn(Optional.of(producer));
         when(roleSectionRepository.findByAuditionId(AUDITION_ID)).thenReturn(Optional.of(roleSection));
         when(scheduleRepository.findByAuditionId(AUDITION_ID)).thenReturn(Optional.of(schedule));
         when(formRepository.findByAuditionId(AUDITION_ID)).thenReturn(Optional.of(form));
@@ -77,7 +84,11 @@ class SubmissionAuditionReaderTest {
         SubmissionAudition result = reader.read(PUBLIC_AUDITION_ID);
 
         assertEquals(AUDITION_ID, result.auditionId());
+        assertEquals(PUBLIC_AUDITION_ID, result.publicAuditionId());
         assertEquals("햄릿 오디션", result.title());
+        assertEquals("햄릿", result.performanceTitle());
+        assertEquals("테스트 극단", result.companyName());
+        assertEquals(40L, result.posterFileId());
         assertEquals("햄릿", result.roles().getFirst().name());
         assertEquals("지원 동기는 무엇인가요?", result.form().questions().getFirst().question());
         assertEquals("정면 사진", result.form().photoRequirements().getFirst().description());
@@ -106,9 +117,12 @@ class SubmissionAuditionReaderTest {
         AuditionRoleSection roleSection = roleSection();
         AuditionSchedule schedule = schedule();
         AuditionForm form = form();
+        Producer producer = producer();
         when(performance.getRoles()).thenReturn(List.of());
+        when(performance.getOwnerId()).thenReturn(30L);
         when(auditionRepository.findByPublicId(PUBLIC_AUDITION_ID)).thenReturn(Optional.of(audition));
         when(performanceRepository.findById(PERFORMANCE_ID)).thenReturn(Optional.of(performance));
+        when(producerRepository.findByMemberId(30L)).thenReturn(Optional.of(producer));
         when(roleSectionRepository.findByAuditionId(AUDITION_ID)).thenReturn(Optional.of(roleSection));
         when(scheduleRepository.findByAuditionId(AUDITION_ID)).thenReturn(Optional.of(schedule));
         when(formRepository.findByAuditionId(AUDITION_ID)).thenReturn(Optional.of(form));
@@ -120,6 +134,7 @@ class SubmissionAuditionReaderTest {
         Audition audition = mock(Audition.class);
         when(audition.isPublished()).thenReturn(true);
         when(audition.getId()).thenReturn(AUDITION_ID);
+        when(audition.getPublicId()).thenReturn(PUBLIC_AUDITION_ID);
         when(audition.getPerformanceId()).thenReturn(PERFORMANCE_ID);
         when(audition.getTitle()).thenReturn("햄릿 오디션");
         return audition;
@@ -131,7 +146,16 @@ class SubmissionAuditionReaderTest {
         when(role.getId()).thenReturn(100L);
         when(role.getName()).thenReturn("햄릿");
         when(performance.getRoles()).thenReturn(List.of(role));
+        when(performance.getOwnerId()).thenReturn(30L);
+        when(performance.getPosterFileId()).thenReturn(40L);
+        when(performance.getTitle()).thenReturn("햄릿");
         return performance;
+    }
+
+    private Producer producer() {
+        Producer producer = mock(Producer.class);
+        when(producer.getCompanyName()).thenReturn("테스트 극단");
+        return producer;
     }
 
     private AuditionRoleSection roleSection() {

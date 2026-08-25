@@ -103,7 +103,15 @@ class SubmissionConsentPersistenceTest {
                 submissionId,
                 APPLICANT_ID,
                 AGREED_AT,
-                new AuditionSnapshot(auditionId, "지원서 테스트 공고"),
+                new AuditionSnapshot(
+                        auditionId,
+                        UUID.randomUUID(),
+                        "지원서 테스트 공고",
+                        "테스트 공연",
+                        "테스트 극단",
+                        1L,
+                        2L
+                ),
                 applicantSnapshot,
                 new SelectedRoles(List.of(new SelectedRole(1L, "햄릿"))),
                 new SubmissionFormAnswers(

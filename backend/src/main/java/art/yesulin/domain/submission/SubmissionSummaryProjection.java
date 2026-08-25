@@ -9,7 +9,17 @@ public interface SubmissionSummaryProjection {
 
     UUID getSubmissionId();
 
+    UUID getAuditionPublicId();
+
     String getAuditionTitle();
+
+    String getPerformanceTitle();
+
+    String getCompanyName();
+
+    long getPosterFileId();
+
+    long getPosterOwnerId();
 
     Instant getSubmittedAt();
 }

@@ -64,7 +64,15 @@ public class SubmissionQueryService {
             List<SubmissionSelectedRoleResult> selectedRoles
     ) {
         return new SubmissionSummaryResult(
-                summary.getSubmissionId(), summary.getAuditionTitle(), summary.getSubmittedAt(), selectedRoles
+                summary.getSubmissionId(),
+                summary.getAuditionPublicId(),
+                summary.getPerformanceTitle(),
+                summary.getAuditionTitle(),
+                summary.getCompanyName(),
+                summary.getPosterFileId(),
+                summary.getPosterOwnerId(),
+                summary.getSubmittedAt(),
+                selectedRoles
         );
     }
 }

@@ -1,8 +1,10 @@
 package art.yesulin.presentation.api.submission;
 
 import static org.hamcrest.Matchers.matchesPattern;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -39,6 +41,8 @@ import art.yesulin.domain.member.MemberStatus;
 import art.yesulin.domain.member.MemberType;
 import art.yesulin.domain.performance.Performance;
 import art.yesulin.domain.performance.PerformanceRepository;
+import art.yesulin.domain.producer.Producer;
+import art.yesulin.domain.producer.ProducerRepository;
 import art.yesulin.domain.submission.Submission;
 import art.yesulin.domain.submission.SubmissionConsent;
 import art.yesulin.domain.submission.SubmissionConsentRepository;
@@ -107,6 +111,8 @@ class SubmissionControllerTest {
     private AuditionRepository auditionRepository;
     @Autowired
     private PerformanceRepository performanceRepository;
+    @Autowired
+    private ProducerRepository producerRepository;
 
     @BeforeEach
     void cleanUp() {
@@ -118,6 +124,7 @@ class SubmissionControllerTest {
         roleSectionRepository.deleteAll();
         auditionRepository.deleteAll();
         performanceRepository.deleteAll();
+        producerRepository.deleteAll();
         fileAssetRepository.deleteAll();
     }
 
@@ -152,6 +159,44 @@ class SubmissionControllerTest {
                 "mvp-third-party-placeholder-v0",
                 findConsent(consents, SubmissionConsentType.THIRD_PARTY_PROVISION).getDocumentVersion()
         );
+    }
+
+    @Test
+    void submittedApplicationCanBeReadFromListAndDetail() throws Exception {
+        AuditionFixture fixture = saveAudition(NOW.minusSeconds(86_400), NOW.plusSeconds(86_400));
+
+        String responseBody = mockMvc.perform(post("/api/v1/auditions/{auditionId}/submissions", fixture.auditionId())
+                        .with(csrf())
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validRequest(fixture.roleId())))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        String submissionId = objectMapper.readTree(responseBody).get("submissionId").asText();
+
+        mockMvc.perform(get("/api/v1/applicants/me/submissions")
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.submissions.length()").value(1))
+                .andExpect(jsonPath("$.submissions[0].submissionId").value(submissionId))
+                .andExpect(jsonPath("$.submissions[0].auditionId").value(fixture.auditionId().toString()))
+                .andExpect(jsonPath("$.submissions[0].performanceTitle").value("햄릿"))
+                .andExpect(jsonPath("$.submissions[0].auditionTitle").value("햄릿 오디션"))
+                .andExpect(jsonPath("$.submissions[0].companyName").value("테스트 극단"))
+                .andExpect(jsonPath("$.submissions[0].posterUrl").value(startsWith("https://cdn.test/assets/")))
+                .andExpect(jsonPath("$.submissions[0].selectedRoles[0].roleName").value("햄릿"));
+
+        mockMvc.perform(get("/api/v1/applicants/me/submissions/{submissionId}", submissionId)
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.submissionId").value(submissionId))
+                .andExpect(jsonPath("$.auditionId").value(fixture.auditionId().toString()))
+                .andExpect(jsonPath("$.performanceTitle").value("햄릿"))
+                .andExpect(jsonPath("$.auditionTitle").value("햄릿 오디션"))
+                .andExpect(jsonPath("$.companyName").value("테스트 극단"))
+                .andExpect(jsonPath("$.posterUrl").value(startsWith("https://cdn.test/assets/")))
+                .andExpect(jsonPath("$.selectedRoles[0].roleName").value("햄릿"))
+                .andExpect(jsonPath("$.consents.length()").value(2));
     }
 
     @Test
@@ -256,6 +301,7 @@ class SubmissionControllerTest {
 
     private Performance savePerformance() {
         long posterFileId = saveReadyImage(PRODUCER_ID, "performances/poster.jpg");
+        producerRepository.saveAndFlush(new Producer(PRODUCER_ID, "테스트 극단", "01012345678"));
         Performance performance = new Performance(
                 PRODUCER_ID, posterFileId, "햄릿", "서울특별시 종로구"
         );

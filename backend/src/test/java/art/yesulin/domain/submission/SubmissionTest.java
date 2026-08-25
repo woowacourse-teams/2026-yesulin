@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 class SubmissionTest {
 
     private static final UUID SUBMISSION_ID = UUID.fromString("b4472dce-52d0-41a9-baaa-c9e86e31b72b");
+    private static final UUID AUDITION_ID = UUID.fromString("231c138d-9b21-49ed-99ad-15094db60dd8");
     private static final Instant SUBMITTED_AT = Instant.parse("2026-08-23T03:15:00Z");
     private static final Instant RECRUITMENT_END_AT = Instant.parse("2026-08-31T14:59:00Z");
 
@@ -26,7 +27,7 @@ class SubmissionTest {
                 "한국예술종합학교", List.of("https://example.com/harin"), "대한민국", "자기소개",
                 "현대무용", "영화 감상", null, List.of(new SubmissionCareer(2025, "햄릿", "오필리어"))
         );
-        AuditionSnapshot auditionSnapshot = new AuditionSnapshot(2L, " 햄릿 배우 모집 ");
+        AuditionSnapshot auditionSnapshot = auditionSnapshot(" 햄릿 배우 모집 ");
         ApplicantSnapshot applicantSnapshot = new ApplicantSnapshot(
                 basicInformation, additionalInformation, submissionFieldSnapshot(),
                 SUBMITTED_AT, RECRUITMENT_END_AT
@@ -55,7 +56,7 @@ class SubmissionTest {
         assertEquals(1L, submission.getApplicantId());
         assertEquals(2L, submission.getAuditionId());
         assertEquals(SUBMITTED_AT, submission.getSubmittedAt());
-        assertEquals(new AuditionSnapshot(2L, "햄릿 배우 모집"), submission.getAuditionSnapshot());
+        assertEquals(auditionSnapshot("햄릿 배우 모집"), submission.getAuditionSnapshot());
         assertSame(applicantSnapshot, submission.getApplicantSnapshot());
         assertEquals(List.of(selectedRole), submission.getSelectedRoles().values());
         assertEquals(List.of(questionAnswer), submission.getFormAnswers().questionAnswers().values());
@@ -71,7 +72,7 @@ class SubmissionTest {
                 SUBMISSION_ID,
                 1L,
                 SUBMITTED_AT,
-                new AuditionSnapshot(2L, "햄릿 배우 모집"),
+                auditionSnapshot("햄릿 배우 모집"),
                 new ApplicantSnapshot(
                         emptyBasicInformation(), emptyAdditionalInformation(), submissionFieldSnapshot(),
                         SUBMITTED_AT, RECRUITMENT_END_AT
@@ -87,6 +88,12 @@ class SubmissionTest {
 
     private SubmissionBasicInformation emptyBasicInformation() {
         return new SubmissionBasicInformation(null, null, null, null, null, null, null, null);
+    }
+
+    private AuditionSnapshot auditionSnapshot(String auditionTitle) {
+        return new AuditionSnapshot(
+                2L, AUDITION_ID, auditionTitle, "햄릿", "테스트 극단", 41L, 2L
+        );
     }
 
     private SubmissionAdditionalInformation emptyAdditionalInformation() {

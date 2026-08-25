@@ -45,6 +45,8 @@ import art.yesulin.domain.file.FileReference;
 import art.yesulin.domain.file.FileReferenceRepository;
 import art.yesulin.domain.performance.Performance;
 import art.yesulin.domain.performance.PerformanceRepository;
+import art.yesulin.domain.producer.Producer;
+import art.yesulin.domain.producer.ProducerRepository;
 import art.yesulin.domain.submission.PhotoRequirementAnswer;
 import art.yesulin.domain.submission.Submission;
 import art.yesulin.domain.submission.SubmissionConsent;
@@ -114,6 +116,8 @@ class SubmissionServiceTest {
     private AuditionRepository auditionRepository;
     @Autowired
     private PerformanceRepository performanceRepository;
+    @Autowired
+    private ProducerRepository producerRepository;
     @MockitoSpyBean
     private SubmissionConsentDocumentProvider consentDocumentProvider;
     @Autowired
@@ -123,6 +127,8 @@ class SubmissionServiceTest {
     private SubmissionConsentWriter consentWriter;
     @MockitoSpyBean
     private SubmissionPhotoReferenceWriter photoReferenceWriter;
+    @MockitoSpyBean
+    private SubmissionPosterReferenceWriter posterReferenceWriter;
 
     private ExecutorService executor;
 
@@ -166,6 +172,9 @@ class SubmissionServiceTest {
         assertEquals(1, submissionReferences.size());
         assertEquals(fixture.fileId(), submissionReferences.getFirst().getFileId());
         assertEquals(submission.id(), submissionReferences.getFirst().getReferenceId());
+        List<FileReference> posterReferences = findSubmissionPosterReferences();
+        assertEquals(1, posterReferences.size());
+        assertEquals(submission.id(), posterReferences.getFirst().getReferenceId());
         verify(consentDocumentProvider).currentFor(submission.auditionId(), NOW);
     }
 
@@ -379,6 +388,7 @@ class SubmissionServiceTest {
 
     private SubmissionFixture saveAudition(Instant recruitmentStartAt, Instant recruitmentEndAt) {
         long posterFileId = saveReadyImage(PRODUCER_ID, "performances/poster.jpg");
+        producerRepository.saveAndFlush(new Producer(PRODUCER_ID, "테스트 극단", "01012345678"));
         Performance performance = new Performance(
                 PRODUCER_ID, posterFileId, "햄릿", "서울특별시 종로구"
         );
@@ -561,6 +571,14 @@ class SubmissionServiceTest {
                 .toList();
     }
 
+    private List<FileReference> findSubmissionPosterReferences() {
+        return fileReferenceRepository.findAll().stream()
+                .filter(reference -> SubmissionPosterReferenceWriter.FILE_REFERENCE_TYPE.equals(
+                        reference.getReferenceType()
+                ))
+                .toList();
+    }
+
     private void cleanDatabase() {
         fileReferenceRepository.deleteAll();
         consentRepository.deleteAll();
@@ -570,6 +588,7 @@ class SubmissionServiceTest {
         roleSectionRepository.deleteAll();
         auditionRepository.deleteAll();
         performanceRepository.deleteAll();
+        producerRepository.deleteAll();
         fileAssetRepository.deleteAll();
     }
 

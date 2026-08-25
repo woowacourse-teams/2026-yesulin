@@ -9,7 +9,11 @@ import java.util.UUID;
 
 public record ApplicantSubmissionDetailResponse(
         UUID submissionId,
+        UUID auditionId,
+        String performanceTitle,
         String auditionTitle,
+        String companyName,
+        String posterUrl,
         Instant submittedAt,
         SubmissionDetailResult.ApplicantSnapshotResult applicant,
         List<SubmissionSelectedRoleResult> selectedRoles,
@@ -19,11 +23,16 @@ public record ApplicantSubmissionDetailResponse(
 
     static ApplicantSubmissionDetailResponse from(
             SubmissionDetailResult result,
+            String posterUrl,
             Map<Long, String> photoUrlsByFileId
     ) {
         return new ApplicantSubmissionDetailResponse(
                 result.submissionId(),
+                result.auditionId(),
+                result.performanceTitle(),
                 result.auditionTitle(),
+                result.companyName(),
+                posterUrl,
                 result.submittedAt(),
                 result.applicant(),
                 result.selectedRoles(),
