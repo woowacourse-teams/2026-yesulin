@@ -10,7 +10,7 @@
 
 ## 현재 범위
 
-프런트엔드 프로토타입에서는 서비스 소개·인증 UI, 공연·공고 관리, 최대 5차 배우 심사, 공개 지원서 제출·조회, 배우 프로필과 기획사/제작사 설정이 MSW로 동작합니다. 배우는 카카오·네이버·Google 소셜 로그인을 모의하고, 기획사/제작사는 이메일 가입 직후 `ACTIVE` 계정으로 자동 로그인합니다. 향후 기획사 인증을 위한 `PENDING` 접근 제한 UI는 보존하지만 현재 MVP 가입 흐름에서는 사용하지 않습니다. MSW 인메모리 저장소는 화면 확인용 시드와 현재 브라우저 세션에서 만든 데이터를 사용합니다.
+프런트엔드는 서비스 소개·인증 UI, 공연·공고 관리, 최대 5차 배우 심사, 공개 지원서 제출·조회, 배우 프로필과 기획사/제작사 설정을 제공합니다. 기본 실행은 실제 Backend API를 사용하며, MSW 시드와 인메모리 저장소는 `NEXT_PUBLIC_API_MOCKING=enabled`를 명시한 목 검증 환경에서만 사용합니다. 아직 실제 API로 이관되지 않은 화면은 목 검증 환경에서 확인합니다.
 
 백엔드는 공연·배역, presigned 파일 업로드와 공고 DRAFT의 기본 정보·배역·일정·지원 폼 저장, 게시 상태
 전이와 전형별 심사 결과 저장, 배우용 공개 공고 상세와 지원서 제출·스냅샷 조회를 구현했습니다. Backend의
@@ -35,6 +35,7 @@ npm install
 ```bash
 cd frontend
 npm install
+cp -n .env.example .env.development.local
 npm run dev
 npm run lint
 npm run build
@@ -44,6 +45,7 @@ npm run build
 - 기획사/제작사 진입: `/producers/performances`
 - 실제 백엔드 연결: `API_ORIGIN`을 설정하면 `/api/v1/**`, `/oauth2/**`,
   `/login/oauth2/**` 요청을 백엔드로 전달합니다.
+- MSW 검증: `frontend/.env.example`을 참고해 로컬 환경에서만 `NEXT_PUBLIC_API_MOCKING=enabled`를 설정합니다.
 
 백엔드:
 
@@ -89,11 +91,11 @@ MySQL, 백엔드, 프런트엔드를 하나의 Docker 네트워크에서 함께 
 프런트에서 필요한 계약을 먼저 검증하고 백엔드가 이를 구현합니다.
 
 ```text
-화면 → 타입 → API 호출 → MSW 동작 → 문서 → 백엔드
+화면 → 타입 → API 호출 → 문서 → 백엔드
 ```
 
 - 현재 프런트 계약: `frontend/src/features/**/api.ts`
-- 요청 검증과 목 응답: `frontend/src/mocks/`
+- 선택적인 목 요청 검증과 응답: `frontend/src/mocks/`
 - 백엔드 목표 경로와 이관 상태: [API 컨벤션](./docs/convention/api-convention.md)
 - 사용자별 비즈니스 흐름: [개발 상세 문서](./docs/development/README.md)
 
@@ -132,6 +134,6 @@ yesulin/
 ## 참고
 
 - 다른 Next 개발 서버가 실행 중이면 기존 서버를 사용하거나 종료한 뒤 다시 실행합니다.
-- 화면이 로딩에서 멈추면 `frontend/public/mockServiceWorker.js`와 브라우저 콘솔을 확인합니다.
+- MSW 검증 환경이 로딩에서 멈추면 `frontend/public/mockServiceWorker.js`와 브라우저 콘솔을 확인합니다.
 - 실제 API의 SSR 조회에는 `API_ORIGIN`을 설정합니다. 브라우저 요청은 같은 origin의 상대 경로를 사용합니다.
 - 현재 통합 기준은 `origin/main`입니다. push 전에 fetch한 뒤 현재 브랜치를 그 위로 rebase합니다.

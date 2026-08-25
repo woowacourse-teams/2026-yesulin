@@ -6,6 +6,7 @@ import {
   logout as requestLogout,
   type SessionResponse,
 } from "@/features/auth/session-api";
+import { frontendEnvironment } from "@/config/environment";
 
 export type SocialProvider = "kakao" | "naver" | "google";
 export type ProducerAccountStatus = "PENDING" | "ACTIVE";
@@ -28,9 +29,9 @@ type AuthSessionContextValue = {
 
 const AuthSessionContext = createContext<AuthSessionContextValue | null>(null);
 const serverSessionEnabled =
-  process.env.NEXT_PUBLIC_API_MOCKING === "disabled"
-  || process.env.NEXT_PUBLIC_PRODUCER_LOGIN === "enabled"
-  || process.env.NEXT_PUBLIC_SOCIAL_LOGIN === "enabled";
+  !frontendEnvironment.apiMockingEnabled
+  || frontendEnvironment.producerLoginEnabled
+  || frontendEnvironment.socialLoginEnabled;
 
 function toFrontendSession(session: SessionResponse): FrontendAuthSession {
   return {

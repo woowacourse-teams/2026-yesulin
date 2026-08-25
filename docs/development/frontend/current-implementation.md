@@ -39,8 +39,9 @@ IndexedDB 사본은 서버나 기획사/제작사에 전송되지 않는다. 이
 - 학력은 단일 문자열이고 경력 최대 10개는 적용되어 있다. 링크는 단일 입력이며 최대 5개 반복 입력과 추가 질문 최대 10개 제한은 없다.
 
 Backend에는 실제 파일 업로드·사진 보관함, 영속 프로필 기본·추가정보와 YouTube 영상 보관함 API가
-구현됐다. 기본 환경의 Frontend 프로필 화면은 `/api/**` MSW 계약과 브라우저 Blob URL을 사용한다.
-`NEXT_PUBLIC_APPLICANT_PROFILE_API=enabled` 또는 `NEXT_PUBLIC_API_MOCKING=disabled`인 실제 API 모드에서는
+구현됐다. 기본 환경의 Frontend 프로필 화면은 실제 Backend API를 사용하고, 명시적으로 활성화한 MSW
+환경만 `/api/**` 목 계약과 브라우저 Blob URL을 사용한다.
+`NEXT_PUBLIC_APPLICANT_PROFILE_API=enabled` 또는 MSW를 활성화하지 않은 실제 API 모드에서는
 프로필 정보·사진·영상을 각각의 `/api/v1/**` Backend API에 연결한다. 공고 양식 기준 프로필 자동 채움
 Backend는 아직 구현하지 않았다.
 
@@ -81,17 +82,17 @@ Backend는 아직 구현하지 않았다.
 가입 성공 시 같은 이메일·비밀번호로 즉시 로그인한다. 백엔드가 반환한 회원 ID·역할·상태로 프론트 인증 상태를 만들고, 새로고침할 때도
 HttpSession을 조회해 복원한다.
 
-`NEXT_PUBLIC_SOCIAL_LOGIN=enabled`이거나 `NEXT_PUBLIC_API_MOCKING=disabled`이면 배우 소셜 로그인 버튼은 같은 origin의
+`NEXT_PUBLIC_SOCIAL_LOGIN=enabled`이거나 MSW를 활성화하지 않은 실제 API 모드이면 배우 소셜 로그인 버튼은 같은 origin의
 `/oauth2/authorization/{provider}`로 이동하고, Next.js가 OAuth 시작·Callback 요청을 백엔드에
-전달한다. 기본 MSW 환경의 배우 소셜 인증은 프론트 React 상태로만 유지되어 새로고침하면
+전달한다. MSW 목 환경의 배우 소셜 인증은 프론트 React 상태로만 유지되어 새로고침하면
 사라진다. 실제 소셜 로그인 환경에서는 앱을 시작할 때 `GET /api/v1/sessions/current`로 HttpSession을
 확인하고 프론트 인증 상태를 복원한다. 실제 세션이 없거나 배우 계정이 아니면 `/applicants/**`에서
 `/login`으로 이동한다. 실제 환경의 로그아웃은 `DELETE /api/v1/sessions/current` 성공 후 프론트
 인증 상태를 제거한다. 실제 소셜 로그인 전 안전한 내부 `returnTo`를 탭의 `sessionStorage`에 보관하고,
-`/social-login/complete`에서 세션 확인 후 해당 화면으로 복귀한다. 기본 MSW 환경은 시나리오 확인을
+`/social-login/complete`에서 세션 확인 후 해당 화면으로 복귀한다. MSW 목 환경은 시나리오 확인을
 위해 직접 접근을 유지한다. 인증 메일·문자와 `PENDING → ACTIVE` 운영 전환은 MVP 이후 도입하며, 현재 기획사/제작사 가입은 즉시 `ACTIVE`로 처리한다.
 
-`NEXT_PUBLIC_APPLICANT_PROFILE_API=enabled`이거나 `NEXT_PUBLIC_API_MOCKING=disabled`이면 배우 프로필 화면은
+`NEXT_PUBLIC_APPLICANT_PROFILE_API=enabled`이거나 MSW를 활성화하지 않은 실제 API 모드이면 배우 프로필 화면은
 기본·추가 정보를 `/api/v1/applicants/me/profile`, 사진을 `/api/v1/applicants/me/photo-library/photos`,
 영상을 `/api/v1/applicants/me/video-library/videos`에서 각각 조회해 하나의 화면 모델로 조합한다.
 사진 추가는 `/api/v1/actor-photos/upload-requests`로 받은 presigned URL에 업로드하고 완료 처리한 뒤
@@ -100,7 +101,7 @@ HttpSession을 조회해 복원한다.
 
 ## API·저장 경계
 
-기본 개발 환경은 MSW를 사용한다. 추가로 만든 데이터와 심사 상태는 브라우저 메모리에 있어 새로고침하면 초기화된다. 브라우저 API는 같은 origin의 `/api/**` 상대 경로를, 공개 공고 SSR·메타데이터는 `API_ORIGIN`을 사용한다.
+기본 환경은 실제 API를 사용한다. `NEXT_PUBLIC_API_MOCKING=enabled`인 목 검증 환경에서 만든 데이터와 심사 상태는 브라우저 메모리에 있어 새로고침하면 초기화된다. 브라우저 API는 같은 origin의 `/api/**` 상대 경로를, 공개 공고 SSR·메타데이터는 `API_ORIGIN`을 사용한다.
 
 프론트·MSW는 목표 정책을 확인할 UI와 시드를 제공한다. 배우 프로필 정보·사진·영상은 플래그로 실제 API를
 검증할 수 있고, UUID 공고의 새 사진 업로드와 지원서 제출도 실제 Backend 계약에 연결됐다. 나머지 배우

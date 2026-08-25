@@ -37,7 +37,7 @@ npm run start
 
 ## API와 MSW
 
-- 기본 개발 환경에서는 MSW를 사용하며 `NEXT_PUBLIC_API_MOCKING=disabled`일 때 비활성화한다.
+- 기본 환경은 실제 API를 사용한다. MSW는 `NEXT_PUBLIC_API_MOCKING=enabled`를 명시한 목 검증 환경에서만 실행한다.
 - 브라우저 요청은 같은 origin의 `/api/**` 상대 경로를 사용한다.
 - 공개 공고 메타데이터·SSR 조회에는 `API_ORIGIN`을 사용한다.
 - 현재 목 심사 상태는 브라우저 메모리에 있어 새로고침하면 초기화된다.
