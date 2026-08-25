@@ -14,7 +14,7 @@ import {
 import { useToast } from "@/components/auditions/toast";
 import { AddButton } from "@/components/ui/controls";
 
-const MAX_LIBRARY_PHOTOS = 20;
+const MAX_LIBRARY_PHOTOS = 3;
 const MAX_PROFILE_PHOTO_SIZE = 20 * 1024 * 1024;
 const PHOTO_ACTION_CLASS = "inline-flex min-h-10 min-w-0 items-center justify-center whitespace-nowrap rounded-md px-1 text-xs font-semibold transition-colors disabled:pointer-events-none disabled:text-muted-soft";
 
@@ -49,7 +49,7 @@ export function ProfilePhotoLibrary({ profile, onSaved }: { readonly profile: Ap
     const invalid = selected.map(profilePhotoError).find(Boolean);
     if (invalid) { setError(invalid); return; }
     const files = selected.slice(0, MAX_LIBRARY_PHOTOS - photos.length);
-    if (!files.length) { setError("사진은 최대 20장까지 보관할 수 있어요."); return; }
+    if (!files.length) { setError("사진은 최대 3장까지 보관할 수 있어요."); return; }
     await persist(
       (current) => addApplicantProfilePhotos(current, files),
       `${files.length}장의 사진을 보관함에 추가했어요.`,
@@ -77,7 +77,7 @@ export function ProfilePhotoLibrary({ profile, onSaved }: { readonly profile: Ap
   };
 
   return <div className="mt-6">
-    <div className="flex flex-wrap items-start justify-between gap-4"><div><h3 className="font-bold">사진 보관함</h3><p className="mt-1 text-sm leading-6 text-muted">최대 20장까지 보관할 수 있어요. 지원서에는 기획사/제작사가 요청한 장수만큼, 최대 3장까지 선택합니다.</p></div><span className="num rounded-full bg-brand-soft px-3 py-1 text-sm font-semibold text-brand">{photos.length} / {MAX_LIBRARY_PHOTOS}</span></div>
+    <div className="flex flex-wrap items-start justify-between gap-4"><div><h3 className="font-bold">사진 보관함</h3><p className="mt-1 text-sm leading-6 text-muted">최대 3장까지 보관할 수 있어요. 지원서에는 기획사/제작사가 요청한 장수만큼, 최대 3장까지 선택합니다.</p></div><span className="num rounded-full bg-brand-soft px-3 py-1 text-sm font-semibold text-brand">{photos.length} / {MAX_LIBRARY_PHOTOS}</span></div>
     {photos.length ? (
       <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
         {photos.map((photo, index) => (

@@ -26,7 +26,7 @@ import org.hibernate.annotations.CreationTimestamp;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PhotoLibrary {
 
-    public static final int MAX_PHOTO_COUNT = 20;
+    public static final int MAX_PHOTO_COUNT = 3;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

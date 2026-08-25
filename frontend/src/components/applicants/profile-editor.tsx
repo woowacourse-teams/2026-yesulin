@@ -23,7 +23,7 @@ const INFORMATION_KEYS = new Set<string>([...BASIC_KEYS, ...ADDITIONAL_KEYS]);
 const tabs: readonly { id: ProfileTab; label: string; description: string }[] = [
   { id: "BASIC", label: "기본정보", description: "공통 프로필 정보" },
   { id: "ADDITIONAL", label: "추가정보", description: "선택해서 저장하는 정보" },
-  { id: "PHOTOS", label: "사진", description: "최대 20장 보관" },
+  { id: "PHOTOS", label: "사진", description: "최대 3장 보관" },
   { id: "VIDEOS", label: "영상", description: "YouTube 영상 보관" },
 ];
 
