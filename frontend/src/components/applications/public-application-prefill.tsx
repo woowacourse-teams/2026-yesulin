@@ -23,7 +23,7 @@ type PrefillGateProps = {
 };
 
 export function PublicApplicationPrefillGate(props: PrefillGateProps) {
-  const query = useAuditionQuery(`application-prefill-${props.postingId}`, () => getProfilePrefill(props.postingId), "저장한 프로필을 불러오지 못했습니다.");
+  const query = useAuditionQuery(`application-prefill-${props.postingId}`, () => getProfilePrefill(props.postingId, props.fields), "저장한 프로필을 불러오지 못했습니다.");
   const [continueEmpty, setContinueEmpty] = useState(false);
   if (continueEmpty) return <PublicApplicationForm {...props} />;
   if (query.loading) return <PrefillState title="저장한 프로필을 불러오고 있어요" detail="이 공고에서 다시 사용할 수 있는 답변을 확인하고 있습니다." />;

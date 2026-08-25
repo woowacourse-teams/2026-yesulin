@@ -7,7 +7,7 @@ import { applicationStepIndex, applicationWriteRoute, isApplicationWriteRouteKey
 
 export function usePublicApplicationRoute({
   postingId, roleIds, steps, stepIndex, reviewing, completedStepIndexes,
-  maxReachedStepIndex, storageReady, setStepIndex, setReviewing,
+  maxReachedStepIndex, storageReady, profilePrefilled, setStepIndex, setReviewing,
 }: {
   readonly postingId: string;
   readonly roleIds: readonly string[];
@@ -17,13 +17,14 @@ export function usePublicApplicationRoute({
   readonly completedStepIndexes: readonly number[];
   readonly maxReachedStepIndex: number;
   readonly storageReady: boolean;
+  readonly profilePrefilled: boolean;
   readonly setStepIndex: Dispatch<SetStateAction<number>>;
   readonly setReviewing: Dispatch<SetStateAction<boolean>>;
 }) {
   const updateRoute = useCallback((route: ApplicationWriteRouteKey, replace = false) => {
-    const path = applicationWriteRoute(postingId, route, roleIds);
+    const path = applicationWriteRoute(postingId, route, roleIds, { prefill: profilePrefilled });
     window.history[replace ? "replaceState" : "pushState"](null, "", path);
-  }, [postingId, roleIds]);
+  }, [postingId, profilePrefilled, roleIds]);
 
   useEffect(() => {
     if (!storageReady) return;

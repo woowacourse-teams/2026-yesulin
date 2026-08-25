@@ -7,15 +7,26 @@ import type {
   CreateSubmissionResponse,
 } from "./types";
 import type { PublicPosting } from "@/features/applications/public-posting";
+import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
 import { getV1PublicPosting } from "@/features/applications/public-audition-v1";
 import { isBackendAuditionId } from "@/features/auditions/audition-v1-api";
+import { getApplicantProfile } from "./profile-api";
+import { profilePrefillForFields } from "./profile-prefill";
 import { applicantRequest as request } from "./request";
 
 export { ApplicantRequestError } from "./request";
 export { getApplicantProfile, updateApplicantProfile } from "./profile-api";
 export { getApplicantSubmission, getApplicantSubmissions } from "./submission-api";
 
-export const getProfilePrefill = (postingId: string) => request<ProfilePrefillResponse>(`/me/profile/prefill?postingId=${encodeURIComponent(postingId)}`);
+export async function getProfilePrefill(
+  postingId: string,
+  fields: readonly ApplicationFieldInput[],
+): Promise<ProfilePrefillResponse> {
+  if (!isBackendAuditionId(postingId)) {
+    return request<ProfilePrefillResponse>(`/me/profile/prefill?postingId=${encodeURIComponent(postingId)}`);
+  }
+  return profilePrefillForFields(await getApplicantProfile(), fields);
+}
 
 export const getRecommendedPostings = (excludePostingId?: string, limit = 3) => {
   const query = new URLSearchParams({ limit: String(limit) });

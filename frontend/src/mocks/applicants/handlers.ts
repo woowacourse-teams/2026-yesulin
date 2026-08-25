@@ -28,10 +28,7 @@ export const applicantHandlers = [
     const profile = applicantProfile();
     const fields = (posting.applicationFields ?? []).filter((field) => field.enabled);
     const keys = new Set(fields.map((field) => field.id));
-    const mediaAnswers = [
-      ...(keys.has("VIDEO") && profile.videoLibrary[0] ? [{ key: "VIDEO", label: fields.find((field) => field.id === "VIDEO")?.label ?? "연기 영상", value: profile.videoLibrary[0].url }] : []),
-    ];
-    const answers = [...profile.answers.filter((answer) => keys.has(answer.key)), ...mediaAnswers];
+    const answers = profile.answers.filter((answer) => keys.has(answer.key));
     const answered = new Set(answers.map((answer) => answer.key));
     const required = fields.filter((field) => field.required);
     return HttpResponse.json({ answers, filledCount: required.filter((field) => answered.has(field.id)).length, requiredCount: required.length, missingKeys: required.filter((field) => !answered.has(field.id)).map((field) => field.id) });
