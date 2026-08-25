@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { getApplicantSubmissions, getApplicantProfile, getRecommendedPostings } from "@/features/applicants/api";
+import { frontendEnvironment } from "@/config/environment";
 import { formatApplicantDate } from "@/features/applicants/presentation";
 import { applicantRoutes } from "@/features/applicants/routes";
 import type { ApplicantSubmissionSummary, RecommendedPosting } from "@/features/applicants/types";
@@ -10,13 +11,22 @@ import { useAuditionQuery } from "@/features/auditions/use-audition-query";
 import { ScreenError } from "@/components/auditions/screen-status";
 import { PostingStatusBadge } from "@/components/applications/public-posting-status";
 
+/** 추천 공고 Backend API가 아직 없어 목 검증 환경에서만 영역을 노출한다. */
+const recommendationsAvailable = frontendEnvironment.apiMockingEnabled;
+
+/**
+ * 한 조각이 실패해도 나머지 영역은 보여 준다. 프로필은 화면의 기준 정보라
+ * 실패하면 홈 전체를 다시 시도하도록 그대로 던진다.
+ */
 async function loadDashboard() {
   const [profile, submissions, recommendations] = await Promise.all([
     getApplicantProfile(),
-    getApplicantSubmissions(),
-    getRecommendedPostings(undefined, 3),
+    getApplicantSubmissions().then((response) => response.submissions, () => null),
+    recommendationsAvailable
+      ? getRecommendedPostings(undefined, 3).then((response) => response.postings, () => [])
+      : Promise.resolve([]),
   ]);
-  return { profile, submissions: submissions.submissions, recommendations: recommendations.postings };
+  return { profile, submissions, recommendations };
 }
 
 export function ApplicantDashboard() {
@@ -41,14 +51,14 @@ export function ApplicantDashboard() {
       </article>
       <article className="rounded-card border border-border bg-card p-6 md:p-7">
         <div className="flex items-center justify-between gap-4"><div><p className="text-sm font-semibold text-brand">최근 지원</p><h2 className="mt-1 text-xl font-bold">제출한 지원서</h2></div><Link href={applicantRoutes.submissions} className="min-h-11 rounded-control px-3 py-2 text-sm font-semibold text-brand hover:bg-brand-soft">전체 보기</Link></div>
-        {submissions.length ? <ul className="mt-5 divide-y divide-border-soft">{submissions.slice(0, 2).map((submission) => <RecentSubmission key={submission.id} submission={submission} />)}</ul> : <DashboardEmpty title="아직 제출한 지원서가 없어요" detail="외부 공고의 예술in 지원 링크에서 지원서를 작성하면 여기에 모아 볼 수 있어요." />}
+        {submissions === null ? <DashboardEmpty title="지원서를 불러오지 못했어요" detail="잠시 후 새로고침하면 다시 확인할 수 있어요." /> : submissions.length ? <ul className="mt-5 divide-y divide-border-soft">{submissions.slice(0, 2).map((submission) => <RecentSubmission key={submission.id} submission={submission} />)}</ul> : <DashboardEmpty title="아직 제출한 지원서가 없어요" detail="외부 공고의 예술in 지원 링크에서 지원서를 작성하면 여기에 모아 볼 수 있어요." />}
       </article>
     </section>
 
-    <section aria-labelledby="dashboard-recommendations" className="mt-12">
+    {recommendationsAvailable ? <section aria-labelledby="dashboard-recommendations" className="mt-12">
       <div className="max-w-2xl"><p className="text-sm font-semibold text-brand">다음 기회</p><h2 id="dashboard-recommendations" className="mt-1 text-2xl font-bold tracking-[-0.025em]">둘러볼 수 있는 공고</h2><p className="mt-2 leading-7 text-muted-strong">예술in은 현재 기획사/제작사가 공유한 링크 중심으로 접수합니다. 아래 공고는 다음 지원을 위한 제안이에요.</p></div>
       {recommendations.length ? <ul className="mt-6 grid gap-4 md:grid-cols-3">{recommendations.map((posting) => <RecommendationCard key={posting.id} posting={posting} />)}</ul> : <DashboardEmpty title="지금은 다른 공고가 없어요" detail="새로운 공고가 생기면 이 영역에서 확인할 수 있어요." />}
-    </section>
+    </section> : null}
   </PageContainer>;
 }
 
