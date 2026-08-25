@@ -219,8 +219,8 @@ function basicValue(resource: BackendSubmissionDetail, key: BasicField): Applica
   const basic = resource.applicant.basicInformation;
   const values = {
     NAME: basic.name ?? "",
-    HEIGHT: basic.height ?? 0,
-    WEIGHT: basic.weight ?? 0,
+    HEIGHT: basic.height ?? "",
+    WEIGHT: basic.weight ?? "",
     BIRTH: basic.birthDate ?? "",
     GENDER: basic.gender === "MALE" ? "남성" : basic.gender === "FEMALE" ? "여성" : "",
     PHONE: basic.phone ?? "",
