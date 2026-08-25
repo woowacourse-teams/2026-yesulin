@@ -1,15 +1,16 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { closeRound, saveReview } from "@/features/auditions/api";
-import { activeDetailFilterCount, applyFilters, initialFilters, type AuditionFilters } from "@/features/auditions/filters";
+import { activeDetailFilterCount, type AuditionFilters } from "@/features/auditions/filters";
 import { STATUS_LABELS } from "@/features/auditions/labels";
 import type {
   Applicant,
   SubmissionId,
   ReviewStatus,
   RoundNumber,
+  ScreeningSearchCondition,
   AuditionBoardResponse,
 } from "@/features/auditions/types";
 import { errorMessage } from "@/features/auditions/use-audition-query";
@@ -27,17 +28,20 @@ import { WorkSplit } from "./work-split";
 
 export function BoardWorkspace({
   board,
+  filters,
+  searchCondition,
+  setFilters,
   onBoardChange,
   onRoundChange,
 }: {
   board: AuditionBoardResponse;
+  filters: AuditionFilters;
+  searchCondition: ScreeningSearchCondition;
+  setFilters: (update: (current: AuditionFilters) => AuditionFilters) => void;
   onBoardChange: (next: AuditionBoardResponse) => void;
   onRoundChange: (round: RoundNumber) => void;
 }) {
   const roundClosed = board.rounds.find((state) => state.round === board.round)?.closed ?? false;
-  const [filters, setFilters] = useState<AuditionFilters>(() =>
-    initialFilters(roundClosed ? "DONE" : "PENDING"),
-  );
   const [selected, setSelected] = useState<ReadonlySet<SubmissionId>>(new Set());
   const [contactList, setContactList] = useState<readonly Applicant[] | null>(null);
   const [closePrompt, setClosePrompt] = useState<"auto" | "manual" | null>(null);
@@ -47,7 +51,7 @@ export function BoardWorkspace({
   const toast = useToast();
   const router = useRouter();
 
-  const visible = useMemo(() => applyFilters(board.applicants, filters), [board.applicants, filters]);
+  const visible = board.applicants;
 
   const clearSelection = useCallback(() => setSelected(new Set()), []);
 
@@ -96,10 +100,13 @@ export function BoardWorkspace({
       fallback: string,
     ) =>
       run(
-        () => saveReview({ roleId: board.role.id, round: board.round, submissionIds, ...patch }),
+        () => saveReview(
+          { roleId: board.role.id, round: board.round, submissionIds, ...patch },
+          searchCondition,
+        ),
         fallback,
       ),
-    [board.role.id, board.round, run],
+    [board.role.id, board.round, run, searchCondition],
   );
 
   /** 검토를 다 끝낸 순간 "다음 차수로 넘어갈까요?"를 한 번 물어본다. */
@@ -137,7 +144,7 @@ export function BoardWorkspace({
       if (!next) return;
       if (filters.work !== "PENDING" || status === "PENDING") return;
 
-      const remaining = applyFilters(next.applicants, filters);
+      const remaining = next.applicants;
       if (remaining.length === 0) {
         setFilters((current) => ({ ...current, work: "DONE", status: "ALL" }));
         const counts = next.rounds.find((state) => state.round === next.round)?.counts;
@@ -151,7 +158,7 @@ export function BoardWorkspace({
       const target = remaining[Math.min(Math.max(previousIndex, 0), remaining.length - 1)];
       if (target) router.push(auditionRoutes.applicantReview(board.role.id, target.id, board.round));
     },
-    [board.role.id, board.round, filters, promptCloseIfDone, router, submitReview, toast],
+    [board.role.id, board.round, filters, promptCloseIfDone, router, setFilters, submitReview, toast],
   );
 
   const reviewCurrent = useCallback(async (id: SubmissionId, status: ReviewStatus) => {

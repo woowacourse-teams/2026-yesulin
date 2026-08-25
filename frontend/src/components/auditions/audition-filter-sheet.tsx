@@ -1,8 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
 import {
-  countMismatches,
   emptyNumeric,
   NUMERIC_FIELDS,
   NUMERIC_FIELD_META,
@@ -17,7 +15,7 @@ const TITLE_ID = "audition-detail-filter-title";
 
 export function AuditionFilterSheet({ open, activeCount, onClose }: { open: boolean; activeCount: number; onClose: () => void }) {
   const { board, filters, setFilters, visible } = useBoard();
-  const mismatches = useMemo(() => countMismatches(board.applicants, filters), [board.applicants, filters]);
+  const mismatches = board.applicants.filter((applicant) => applicant.mismatchReasons.length > 0).length;
   const clear = () => {
     setFilters((current) => ({ ...current, genders: new Set(), numeric: emptyNumeric(), mismatchOnly: false }));
     window.requestAnimationFrame(() => document.getElementById("audition-filter-close")?.focus());

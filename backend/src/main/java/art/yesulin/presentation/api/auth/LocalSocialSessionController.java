@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 @RestController
-@Profile("local")
+@Profile({"local", "test"})
 @ConditionalOnProperty(
         prefix = "yesulin.local-social-login",
         name = "enabled",

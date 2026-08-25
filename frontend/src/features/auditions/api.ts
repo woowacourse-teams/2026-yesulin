@@ -7,6 +7,7 @@ import {
   getV1Roles,
   isBackendAuditionId,
   isBackendPerformanceId,
+  toManagementPostingSummary,
 } from "./audition-v1-api";
 import type {
   CloseRoundRequest,
@@ -15,18 +16,21 @@ import type {
   PerformanceListResponse,
   PostingId,
   PostingListResponse,
+  PostingSearchCondition,
   RoleId,
   RoleListResponse,
   RoundNumber,
   SaveReviewRequest,
+  ScreeningSearchCondition,
   AuditionBoardResponse,
   AuditionTree,
 } from "./types";
-import { performanceId } from "./types";
+import { performanceId, postingId, roleId } from "./types";
 import {
   getV1ScreeningBoard,
   getV1ScreeningSubmission,
   isBackendRoleId,
+  toScreeningSearchParams,
 } from "./screening-v1-api";
 import type { CreatePerformanceRequest, CreatePostingRequest } from "./creation-types";
 import type {
@@ -39,30 +43,46 @@ import type {
 
 export { AuditionRequestError } from "./api-client";
 
-export function getAuditionTree() {
-  return request<AuditionTree>("/navigation/tree");
-}
-
-export function getPerformances() {
-  return request<PerformanceResourceList>("/v1/performances").then(async (response) => ({
-    performances: await Promise.all(response.performances.map(async (resource) => {
-      const postings = await getV1Postings(String(resource.id));
-      const applicantCount = postings.postings.reduce((sum, posting) => sum + posting.applicantCount, 0);
-      return {
-        ...toPerformanceSummary(resource),
-        postingCount: postings.postings.length,
-        openPostingCount: postings.postings.filter((posting) => posting.phase === "OPEN").length,
-        applicantCount,
-        pendingReviewCount: postings.postings.reduce((sum, posting) => sum + posting.pendingReviewCount, 0),
-        postings: postings.postings,
-      };
+export function getAuditionTree(): Promise<AuditionTree> {
+  return request<{
+    readonly performances: readonly {
+      readonly id: number;
+      readonly posterUrl: string;
+      readonly title: string;
+      readonly postings: readonly {
+        readonly id: string;
+        readonly title: string;
+        readonly phase: import("./types").PostingPhase;
+        readonly applicantCount: number;
+        readonly roleIds: readonly number[];
+      }[];
+    }[];
+  }>("/v1/producers/me/navigation-tree").then((response): AuditionTree => ({
+    performances: response.performances.map((performance) => ({
+      ...performance,
+      id: performanceId(String(performance.id)),
+      postings: performance.postings.map((posting) => ({
+        ...posting,
+        id: postingId(posting.id),
+        roleIds: posting.roleIds.map((id) => roleId(String(id))),
+      })),
     })),
   }));
 }
 
-export function getPostings(performance: PerformanceId) {
-  if (isBackendPerformanceId(performance)) return getV1Postings(performance);
-  return request<PostingListResponse>(`/performances/${performance}/postings`);
+export function getPerformances() {
+  return request<PerformanceResourceList>("/v1/performances").then((response) => ({
+    performances: response.performances.map(toPerformanceSummary),
+  }));
+}
+
+export function getPostings(performance: PerformanceId, condition: PostingSearchCondition = {}) {
+  if (isBackendPerformanceId(performance)) return getV1Postings(performance, condition);
+  const searchParams = new URLSearchParams();
+  if (condition.keyword?.trim()) searchParams.set("keyword", condition.keyword.trim());
+  if (condition.phase) searchParams.set("phase", condition.phase);
+  const query = searchParams.size > 0 ? `?${searchParams.toString()}` : "";
+  return request<PostingListResponse>(`/performances/${performance}/postings${query}`);
 }
 
 export function getRoles(posting: PostingId) {
@@ -71,9 +91,16 @@ export function getRoles(posting: PostingId) {
 }
 
 /** round를 비우면 서버가 아직 마감되지 않은 가장 이른 차수를 골라 준다. */
-export function getAuditionBoard(role: RoleId, round: RoundNumber | null) {
-  if (isBackendRoleId(role)) return getV1ScreeningBoard(role, round ?? 1);
-  return request<AuditionBoardResponse>(round === null ? `/screenings/roles/${role}` : `/screenings/roles/${role}?round=${round}`);
+export function getAuditionBoard(
+  role: RoleId,
+  round: RoundNumber | null,
+  condition: ScreeningSearchCondition = {},
+) {
+  if (isBackendRoleId(role)) return getV1ScreeningBoard(role, round ?? 1, condition);
+  const searchParams = toScreeningSearchParams(condition);
+  if (round !== null) searchParams.set("round", String(round));
+  const query = searchParams.size > 0 ? `?${searchParams.toString()}` : "";
+  return request<AuditionBoardResponse>(`/screenings/roles/${role}${query}`);
 }
 
 export function getAuditionSubmission(role: RoleId, round: RoundNumber, submission: import("./types").SubmissionId) {
@@ -81,14 +108,13 @@ export function getAuditionSubmission(role: RoleId, round: RoundNumber, submissi
   return getAuditionBoard(role, round);
 }
 
-export async function saveReview(body: SaveReviewRequest) {
+export async function saveReview(body: SaveReviewRequest, condition: ScreeningSearchCondition = {}) {
   const { roleId, round, ...review } = body;
-  const response = await request<unknown>(`/v1/audition-roles/${roleId}/screening-rounds/${round}/reviews`, {
+  await request<unknown>(`/v1/audition-roles/${roleId}/screening-rounds/${round}/reviews`, {
     method: "PATCH",
     body: JSON.stringify(review),
   });
-  if (isBackendRoleId(roleId)) return getV1ScreeningBoard(roleId, round);
-  return response as AuditionBoardResponse;
+  return getAuditionBoard(roleId, round, condition);
 }
 
 export function closeRound(body: CloseRoundRequest) {
@@ -138,7 +164,7 @@ function toPerformanceSummary(resource: PerformanceResource): PerformanceListRes
     openPostingCount: resource.openPostingCount ?? 0,
     applicantCount: resource.applicantCount ?? 0,
     pendingReviewCount: resource.pendingReviewCount ?? 0,
-    postings: resource.postings ?? [],
+    postings: resource.postings?.map(toManagementPostingSummary) ?? [],
   };
 }
 

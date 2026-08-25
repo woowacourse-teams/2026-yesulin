@@ -1,5 +1,6 @@
 package art.yesulin.domain.audition;
 
+import art.yesulin.domain.audition.query.AuditionRepositoryCustom;
 import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
@@ -9,7 +10,7 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface AuditionRepository extends JpaRepository<Audition, Long> {
+public interface AuditionRepository extends JpaRepository<Audition, Long>, AuditionRepositoryCustom {
 
     List<Audition> findAllByPerformanceIdAndOwnerIdOrderByCreatedAtDescIdDesc(long performanceId, long ownerId);
 

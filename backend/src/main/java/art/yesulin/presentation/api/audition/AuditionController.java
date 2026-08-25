@@ -5,6 +5,7 @@ import art.yesulin.application.audition.AuditionResult;
 import art.yesulin.application.audition.AuditionService;
 import art.yesulin.application.audition.form.AuditionFormResult;
 import art.yesulin.application.audition.form.AuditionFormService;
+import art.yesulin.application.audition.query.AuditionManagementQueryService;
 import art.yesulin.application.audition.role.AuditionRoleService;
 import art.yesulin.application.audition.role.AuditionRolesResult;
 import art.yesulin.application.audition.schedule.AuditionScheduleResult;
@@ -16,7 +17,6 @@ import art.yesulin.domain.member.MemberStatus;
 import art.yesulin.domain.member.MemberType;
 import jakarta.validation.Valid;
 import java.net.URI;
-import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -36,6 +36,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuditionController {
 
     private final AuditionService auditionService;
+    private final AuditionManagementQueryService auditionManagementQueryService;
     private final AuditionPublicationService auditionPublicationService;
     private final AuditionRoleService auditionRoleService;
     private final AuditionScheduleService auditionScheduleService;
@@ -60,11 +61,15 @@ public class AuditionController {
     }
 
     @GetMapping
-    public ResponseEntity<List<AuditionResult>> findAll(
+    public ResponseEntity<AuditionManagementListResponse> findAll(
             @LoginMember(roles = MemberType.PRODUCER, statuses = MemberStatus.ACTIVE) MemberPrincipal principal,
-            @RequestParam long performanceId
+            @RequestParam long performanceId,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String phase
     ) {
-        return ResponseEntity.ok(auditionService.findAll(principal.memberId(), performanceId));
+        return ResponseEntity.ok(AuditionManagementListResponse.from(
+                auditionManagementQueryService.findAuditions(principal.memberId(), performanceId, keyword, phase)
+        ));
     }
 
     @PutMapping("/{auditionId}/basic-information")
@@ -79,11 +84,13 @@ public class AuditionController {
     }
 
     @GetMapping("/{auditionId}/roles")
-    public ResponseEntity<AuditionRolesResult> findRoles(
+    public ResponseEntity<AuditionRolesManagementResponse> findRoles(
             @LoginMember(roles = MemberType.PRODUCER, statuses = MemberStatus.ACTIVE) MemberPrincipal principal,
             @PathVariable UUID auditionId
     ) {
-        return ResponseEntity.ok(auditionRoleService.find(principal.memberId(), auditionId));
+        return ResponseEntity.ok(AuditionRolesManagementResponse.from(
+                auditionManagementQueryService.findAudition(principal.memberId(), auditionId)
+        ));
     }
 
     @PutMapping("/{auditionId}/roles")

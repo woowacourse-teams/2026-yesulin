@@ -118,7 +118,22 @@ class PerformanceControllerTest {
                 .andExpect(jsonPath("$.performances[0].id").value(latest.id()))
                 .andExpect(jsonPath("$.performances[1].id").value(first.id()))
                 .andExpect(jsonPath("$.performances[0].posterUrl").isString())
-                .andExpect(jsonPath("$.performances[0].roles[0].id").isNumber());
+                .andExpect(jsonPath("$.performances[0].roles[0].id").isNumber())
+                .andExpect(jsonPath("$.performances[0].postingCount").value(0))
+                .andExpect(jsonPath("$.performances[0].postings").isEmpty());
+    }
+
+    @Test
+    void findsProducerNavigationTree() throws Exception {
+        PerformanceResult performance = createPerformance();
+
+        mockMvc.perform(get("/api/v1/producers/me/navigation-tree")
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.performances.length()").value(1))
+                .andExpect(jsonPath("$.performances[0].id").value(performance.id()))
+                .andExpect(jsonPath("$.performances[0].posterUrl").isString())
+                .andExpect(jsonPath("$.performances[0].postings").isEmpty());
     }
 
     @Test

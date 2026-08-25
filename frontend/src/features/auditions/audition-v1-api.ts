@@ -1,7 +1,10 @@
 import { AuditionRequestError, request } from "./api-client";
 import type {
   AuditionFormResource,
+  AuditionManagementListResource,
+  AuditionManagementResource,
   AuditionResource,
+  AuditionRolesManagementResource,
   AuditionRolesResource,
   AuditionScheduleResource,
   PerformanceResource,
@@ -18,6 +21,7 @@ import {
   type PostingId,
   type PostingListResponse,
   type PostingPhase,
+  type PostingSearchCondition,
   type PostingSummary,
   type RoleListResponse,
   type RoundNumber,
@@ -25,26 +29,28 @@ import {
 
 const PERFORMANCE_ID_PATTERN = /^[1-9]\d*$/;
 const AUDITION_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const EMPTY_PROGRESS = { done: 0, total: 0, percent: 0 } as const;
-const EMPTY_COUNTS = { all: 0, pending: 0, done: 0, pass: 0, fail: 0, absent: 0, etc: 0 } as const;
 
 export const isBackendPerformanceId = (value: string) => PERFORMANCE_ID_PATTERN.test(value);
 export const isBackendAuditionId = (value: string) => AUDITION_ID_PATTERN.test(value);
 
-export async function getV1Postings(rawPerformanceId: string): Promise<PostingListResponse> {
-  const [performance, auditions] = await Promise.all([
+export async function getV1Postings(
+  rawPerformanceId: string,
+  condition: PostingSearchCondition = {},
+): Promise<PostingListResponse> {
+  const searchParams = new URLSearchParams({ performanceId: rawPerformanceId });
+  if (condition.keyword?.trim()) searchParams.set("keyword", condition.keyword.trim());
+  if (condition.phase) searchParams.set("phase", condition.phase);
+  const [performance, response] = await Promise.all([
     request<PerformanceResource>(`/v1/performances/${rawPerformanceId}`),
-    request<readonly AuditionResource[]>(`/v1/auditions?performanceId=${rawPerformanceId}`),
+    request<AuditionManagementListResource>(`/v1/auditions?${searchParams.toString()}`),
   ]);
-  const postings = await Promise.all(auditions.map(async (audition) => {
-    const [roles, schedule] = await Promise.all([
-      optionalRequest<AuditionRolesResource>(`/v1/auditions/${audition.id}/roles`),
-      optionalRequest<AuditionScheduleResource>(`/v1/auditions/${audition.id}/schedule`),
-    ]);
-    const boards = await loadScreeningBoards(roles, schedule);
-    return toPostingSummary(audition, roles, schedule, boards);
-  }));
-  return { performance: toPerformanceRef(performance), roleTemplates: toRoleTemplates(performance), postings };
+  const postings = response.auditions.map(toManagementPostingSummary);
+  return {
+    performance: toPerformanceRef(performance),
+    roleTemplates: toRoleTemplates(performance),
+    postings,
+    counts: response.counts,
+  };
 }
 
 export async function createV1Posting(body: CreatePostingRequest, auditionId: string): Promise<CreatePostingResponse> {
@@ -113,12 +119,47 @@ export async function getV1PostingManagement(id: PostingId): Promise<PostingMana
 }
 
 export async function getV1Roles(id: PostingId): Promise<RoleListResponse> {
-  const { audition, performance, roles, schedule } = await loadDetail(id);
-  const boards = await loadScreeningBoards(roles, schedule);
+  const audition = await request<AuditionResource>(`/v1/auditions/${id}`);
+  const [performance, roles] = await Promise.all([
+    request<PerformanceResource>(`/v1/performances/${audition.performanceId}`),
+    request<AuditionRolesManagementResource>(`/v1/auditions/${id}/roles`),
+  ]);
   return {
     performance: toPerformanceRef(performance),
-    posting: toPostingSummary(audition, roles, schedule, boards),
-    roles: (roles?.roles ?? []).map((role, index) => toRoleSummary(id, audition, role, boards[index] ?? null)),
+    posting: toManagementPostingSummary(roles.posting),
+    roles: roles.roles.map((role) => ({
+      id: roleId(String(role.id)),
+      postingId: id,
+      name: role.name,
+      description: role.description,
+      quota: role.recruitmentCount,
+      gender: role.gender,
+      ageMin: role.minimumAge,
+      ageMax: role.maximumAge,
+      applicantCount: role.applicantCount,
+      activeRound: role.activeRound as RoundNumber,
+      allRoundsClosed: role.allRoundsClosed,
+      progress: role.progress,
+      counts: role.counts,
+    })),
+  };
+}
+
+export function toManagementPostingSummary(audition: AuditionManagementResource): PostingSummary {
+  return {
+    id: postingId(String(audition.id)),
+    performanceId: performanceId(String(audition.performanceId)),
+    title: audition.title,
+    deadline: audition.recruitmentEndAt?.slice(0, 10).replaceAll("-", ".") ?? "미정",
+    phase: audition.phase,
+    isOpenCall: false,
+    roleCount: audition.roleCount,
+    quotaTotal: audition.quotaTotal,
+    applicantCount: audition.applicantCount,
+    pendingReviewCount: audition.pendingReviewCount,
+    allRoundsClosed: audition.allRoundsClosed,
+    progress: audition.progress,
+    previewPhotoUrls: [],
   };
 }
 
@@ -169,30 +210,6 @@ function saveSchedule(auditionId: string, body: CreatePostingRequest) {
   });
 }
 
-function toPostingSummary(
-  audition: AuditionResource,
-  roles: AuditionRolesResource | null,
-  schedule: AuditionScheduleResource | null,
-  boards: readonly (ScreeningBoardResource | null)[] = [],
-): PostingSummary {
-  const stats = screeningStats(boards);
-  return {
-    id: postingId(String(audition.id)),
-    performanceId: performanceId(String(audition.performanceId)),
-    title: audition.title,
-    deadline: schedule ? schedule.recruitmentEndAt.slice(0, 10).replaceAll("-", ".") : "미정",
-    phase: phaseOf(audition, schedule),
-    isOpenCall: false,
-    roleCount: roles?.roles.length ?? 0,
-    quotaTotal: roles?.roles.reduce((sum, role) => sum + role.recruitmentCount, 0) ?? 0,
-    applicantCount: stats.applicantCount,
-    pendingReviewCount: stats.pendingReviewCount,
-    allRoundsClosed: audition.status === "CLOSED",
-    progress: stats.progress,
-    previewPhotoUrls: stats.previewPhotoUrls,
-  };
-}
-
 async function loadScreeningBoards(
   roles: AuditionRolesResource | null,
   schedule: AuditionScheduleResource | null,
@@ -201,29 +218,6 @@ async function loadScreeningBoards(
   return Promise.all(roles.roles.map((role) => optionalRequest<ScreeningBoardResource>(
     `/v1/audition-roles/${role.id}/screening-rounds/1/submissions`,
   )));
-}
-
-function toRoleSummary(
-  id: PostingId,
-  audition: AuditionResource,
-  role: AuditionRolesResource["roles"][number],
-  board: ScreeningBoardResource | null,
-) {
-  return {
-    id: roleId(String(role.id)),
-    postingId: id,
-    name: role.name,
-    description: role.description,
-    quota: role.recruitmentCount,
-    gender: role.gender,
-    ageMin: role.minimumAge,
-    ageMax: role.maximumAge,
-    applicantCount: board?.role.applicantCount ?? 0,
-    activeRound: (board?.role.activeRound ?? 1) as RoundNumber,
-    allRoundsClosed: audition.status === "CLOSED" || (board?.role.allRoundsClosed ?? false),
-    progress: board?.role.progress ?? EMPTY_PROGRESS,
-    counts: board?.role.counts ?? EMPTY_COUNTS,
-  };
 }
 
 function screeningStats(boards: readonly (ScreeningBoardResource | null)[]) {

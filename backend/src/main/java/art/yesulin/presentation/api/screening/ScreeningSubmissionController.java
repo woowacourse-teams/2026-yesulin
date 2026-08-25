@@ -13,6 +13,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -30,9 +31,12 @@ public class ScreeningSubmissionController {
     public ResponseEntity<ScreeningBoardResponse> findAll(
             @LoginMember(roles = MemberType.PRODUCER, statuses = MemberStatus.ACTIVE) MemberPrincipal principal,
             @PathVariable long roleId,
-            @PathVariable int round
+            @PathVariable int round,
+            @ModelAttribute ScreeningFilterRequest filter
     ) {
-        ScreeningBoardResult result = screeningQueryService.findBoard(principal.memberId(), roleId, round);
+        ScreeningBoardResult result = screeningQueryService.findBoard(
+                principal.memberId(), roleId, round, filter.toCondition()
+        );
         String posterUrl = fileService.readUrl(principal.memberId(), result.performance().posterFileId());
         return ResponseEntity.ok(ScreeningBoardResponse.from(result, posterUrl));
     }

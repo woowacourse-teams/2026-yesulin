@@ -5,6 +5,7 @@ import type {
   PerformanceSummary,
   PostingRef,
   PostingListResponse,
+  PostingSearchCondition,
   PostingSummary,
   Review,
   RoleSummary,
@@ -91,11 +92,26 @@ export function toPostingSummary(posting: CatalogPosting): PostingSummary {
 
 export function toPostingListResponse(
   performance: CatalogPerformance,
+  condition: PostingSearchCondition = {},
 ): PostingListResponse {
+  const postings = performance.postings.map(toPostingSummary);
+  const keyword = condition.keyword?.trim().toLocaleLowerCase("ko") ?? "";
   return {
     performance: toPerformanceRef(performance),
     roleTemplates: performance.roleTemplates,
-    postings: performance.postings.map(toPostingSummary),
+    postings: postings.filter((posting) => {
+      const phaseMatches = !condition.phase || posting.phase === condition.phase;
+      const keywordMatches = !keyword || posting.title.toLocaleLowerCase("ko").includes(keyword);
+      return phaseMatches && keywordMatches;
+    }),
+    counts: {
+      all: postings.length,
+      draft: postings.filter((posting) => posting.phase === "DRAFT").length,
+      upcoming: postings.filter((posting) => posting.phase === "UPCOMING").length,
+      open: postings.filter((posting) => posting.phase === "OPEN").length,
+      recruitClosed: postings.filter((posting) => posting.phase === "RECRUIT_CLOSED").length,
+      finished: postings.filter((posting) => posting.phase === "FINISHED").length,
+    },
   };
 }
 

@@ -9,6 +9,7 @@ import art.yesulin.domain.audition.role.AuditionRoleCondition;
 import art.yesulin.domain.performance.PerformanceRole;
 import art.yesulin.domain.screening.AuditionScreening;
 import art.yesulin.domain.screening.ScreeningRound;
+import art.yesulin.domain.submission.Submission;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -36,11 +37,12 @@ public record ScreeningBoardResult(
             PerformanceRole performanceRole,
             AuditionRole role,
             AuditionScreening screening,
+            List<Submission> filteredSubmissions,
             Map<Long, String> photoUrls
     ) {
         Counts counts = toCounts(screening.countsOf(round));
         Role roleResult = toRole(audition, roleId, performanceRole, role.getCondition(), screening, counts);
-        List<ScreeningApplicantResult> submissions = screening.applicantsFor(round).stream()
+        List<ScreeningApplicantResult> submissions = filteredSubmissions.stream()
                 .map(submission -> ScreeningApplicantResult.from(
                         submission, roleId, performanceRole.getName(), screening, round,
                         role.getCondition(), photoUrls
@@ -61,6 +63,12 @@ public record ScreeningBoardResult(
                 .findFirst()
                 .orElseThrow(() -> new BusinessException(NOT_FOUND, "심사할 지원서를 찾을 수 없습니다."));
         return new ScreeningSubmissionDetailResult(performance, posting, role, round, rounds, submission);
+    }
+
+    ScreeningBoardResult filteredBy(ScreeningFilterCondition condition) {
+        return new ScreeningBoardResult(
+                performance, posting, role, round, rounds, submissions.stream().filter(condition::matches).toList()
+        );
     }
 
     private static Role toRole(

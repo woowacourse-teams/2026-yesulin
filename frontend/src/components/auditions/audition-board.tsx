@@ -1,7 +1,12 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useDeferredValue, useMemo, useState } from "react";
 import { getAuditionBoard } from "@/features/auditions/api";
+import {
+  initialFilters,
+  screeningSearchKey,
+  toScreeningSearchCondition,
+} from "@/features/auditions/filters";
 import { auditionRoutes } from "@/features/auditions/routes";
 import type { RoleId, RoundNumber, AuditionBoardResponse } from "@/features/auditions/types";
 import { useAuditionQuery } from "@/features/auditions/use-audition-query";
@@ -17,29 +22,41 @@ export function AuditionBoard({
   initialRound?: RoundNumber | null;
 }) {
   const [round, setRound] = useState<RoundNumber | null>(initialRound);
+  const [filters, setFilters] = useState(() => initialFilters("PENDING"));
+  const deferredQuery = useDeferredValue(filters.query);
+  const searchCondition = useMemo(
+    () => toScreeningSearchCondition(filters, deferredQuery),
+    [deferredQuery, filters],
+  );
+  const requestKey = `${roleId}:${round ?? "auto"}:${screeningSearchKey(searchCondition)}`;
   /** 심사·마감 응답으로 갱신된 보드. 조회 결과보다 우선하고, 차수가 바뀌면 무효가 된다. */
-  const [applied, setApplied] = useState<{ round: RoundNumber; board: AuditionBoardResponse } | null>(
+  const [applied, setApplied] = useState<{ key: string; board: AuditionBoardResponse } | null>(
     null,
   );
 
-  const load = useCallback(() => getAuditionBoard(roleId, round), [roleId, round]);
+  const load = useCallback(
+    () => getAuditionBoard(roleId, round, searchCondition),
+    [roleId, round, searchCondition],
+  );
   const { data, error, loading, reload } = useAuditionQuery(
-    `${roleId}:${round ?? "auto"}`,
+    requestKey,
     load,
     "배우를 불러오지 못했습니다.",
   );
 
-  const board = applied && applied.round === round ? applied.board : data;
+  const board = applied?.key === requestKey ? applied.board : data;
 
   const applyBoard = useCallback((next: AuditionBoardResponse) => {
-    setApplied({ round: next.round, board: next });
+    setApplied({ key: requestKey, board: next });
     setRound(next.round);
-  }, []);
+  }, [requestKey]);
 
   const goToRound = useCallback((next: RoundNumber) => {
     setApplied(null);
+    const closed = board?.rounds.find((state) => state.round === next)?.closed ?? false;
+    setFilters(initialFilters(closed ? "DONE" : "PENDING"));
     setRound(next);
-  }, []);
+  }, [board]);
 
   return (
     <>
@@ -70,6 +87,9 @@ export function AuditionBoard({
         <BoardWorkspace
           key={`${board.role.id}:${board.round}`}
           board={board}
+          filters={filters}
+          searchCondition={searchCondition}
+          setFilters={setFilters}
           onBoardChange={applyBoard}
           onRoundChange={goToRound}
         />

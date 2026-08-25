@@ -4,7 +4,7 @@ import type {
   CreatePerformanceRequest,
   CreatePostingRequest,
 } from "@/features/auditions/creation-types";
-import { performanceId, postingId } from "@/features/auditions/types";
+import { POSTING_PHASES, performanceId, postingId, type PostingPhase } from "@/features/auditions/types";
 import { findPerformance, findPosting } from "./auditions/aggregate";
 import {
   toPerformanceRef,
@@ -62,7 +62,8 @@ export const handlers = [
 
   ...applicantHandlers,
 
-  http.get(`${apiPath}/navigation/tree`, async () => {
+  http.get(`${apiPath}/v1/producers/me/navigation-tree`, async () => {
+    if (realProducerApiEnabled) return passthrough();
     await delay(180);
     try { return HttpResponse.json(toAuditionTree()); }
     catch (cause) { return apiError(500, "MOCK_DATA_ERROR", cause instanceof Error ? cause.message : "목 탐색 데이터를 만들지 못했습니다."); }
@@ -75,12 +76,16 @@ export const handlers = [
     catch (cause) { return apiError(500, "MOCK_DATA_ERROR", cause instanceof Error ? cause.message : "목 공연 데이터를 만들지 못했습니다."); }
   }),
 
-  http.get(`${apiPath}/performances/:performanceId/postings`, async ({ params }) => {
+  http.get(`${apiPath}/performances/:performanceId/postings`, async ({ params, request }) => {
     await delay(260);
     const performance = findPerformance(performanceId(String(params.performanceId)));
     if (!performance) return notFound("공연을 찾을 수 없습니다.");
-
-    return HttpResponse.json(toPostingListResponse(performance));
+    const url = new URL(request.url);
+    const phase = url.searchParams.get("phase");
+    return HttpResponse.json(toPostingListResponse(performance, {
+      keyword: url.searchParams.get("keyword") ?? undefined,
+      phase: POSTING_PHASES.includes(phase as PostingPhase) ? phase as PostingPhase : undefined,
+    }));
   }),
 
   http.post(`${apiPath}/performances`, async ({ request }) => {

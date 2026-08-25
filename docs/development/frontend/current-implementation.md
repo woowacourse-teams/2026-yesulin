@@ -82,7 +82,7 @@ Backend는 아직 구현하지 않았다.
 `NEXT_PUBLIC_PRODUCER_LOGIN=enabled`이면 기획사/제작사의 가입·로그인·현재 세션 확인·로그아웃 요청을
 실제 `/api/v1/producers`, `/api/v1/sessions` API로 전달한다. `NEXT_PUBLIC_PRODUCER_API=enabled`도 함께 설정하면
 공연 목록과 공연·공고 생성 등 구현 완료된 `/api/v1/**` 기획사 API를 실제 서버로 전달한다. 기획사 정보와
-탐색 트리처럼 아직 API가 없는 조회만 MSW가 계속 처리한다.
+같이 아직 API가 없는 조회만 MSW가 계속 처리한다. 공연·공고 관리 목록과 탐색 트리는 실제 Backend를 사용한다.
 가입 성공 시 같은 이메일·비밀번호로 즉시 로그인한다. 백엔드가 반환한 회원 ID·역할·상태로 프론트 인증 상태를 만들고, 새로고침할 때도
 HttpSession을 조회해 복원한다.
 

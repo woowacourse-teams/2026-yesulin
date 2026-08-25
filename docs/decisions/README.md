@@ -28,6 +28,7 @@
 
 ### 공연·공고·심사
 
+- [QueryDSL 관리 조회 경계](./20260825150000-querydsl-management-read-model.md)
 - [심사 상세 식별과 화면 경로](./20260818133426-screening-detail-identity-and-route.md)
 - [공고 생명주기와 섹션 Aggregate](./20260819073112-audition-section-aggregates.md)
 - [공고 스냅샷과 수정 잠금](./20260821145245-audition-snapshots-and-edit-locks.md)
