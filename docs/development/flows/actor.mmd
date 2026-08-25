@@ -10,7 +10,7 @@ flowchart TB
     MULTI -- 예 --> ROLE["배역 선택<br>공고 허용 시 복수 선택"]
     MULTI -- 아니오 --> MEMBER{"로그인 세션?"}
     ROLE --> MEMBER
-    MEMBER -- 예 --> PREFILL["프로필 자동 채움<br>GET /api/v1/applicants/me/profile/prefill"]
+    MEMBER -- 예 --> PREFILL["프로필 자동 채움<br>프로필 조회 + 공개 공고 양식 교집합"]
     MEMBER -- 아니오 --> START_CHOICE{"로그인 후 프로필을<br>불러와 작성할까요?"}
     START_CHOICE -- 로그인 --> LOGIN["카카오·네이버·Google 소셜 로그인<br>첫 로그인 시 배우 계정 자동 생성"]
     LOGIN --> PREFILL

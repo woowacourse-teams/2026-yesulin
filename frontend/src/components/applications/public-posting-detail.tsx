@@ -40,7 +40,7 @@ export function PublicPostingDetail({ posting, useProfilePrefill = false, resume
     section?.querySelector<HTMLInputElement>("input")?.focus({ preventScroll: true });
   };
   const beginApplication = () => {
-    if (authenticated || guestChoiceMade) router.push(applicationWriteRoute(posting.id, "basic", selectedRoleIds));
+    if (authenticated || guestChoiceMade) router.push(applicationWriteRoute(posting.id, "basic", selectedRoleIds, { prefill: authenticated && !hasLocalDraft }));
     else setStartDialogOpen(true);
   };
 
@@ -57,7 +57,7 @@ export function PublicPostingDetail({ posting, useProfilePrefill = false, resume
       if (resumeDraft && (Boolean(draft) || useProfilePrefill) && canOpenForm) {
         const route = draft?.reviewing ? "review" : APPLICATION_STEP_KEYS[Math.min(draft?.stepIndex ?? 0, APPLICATION_STEP_KEYS.length - 1)]!;
         const routeRoleIds = validRoleIds.length ? validRoleIds : validInitialRoleIds.length ? validInitialRoleIds : posting.roles[0] ? [posting.roles[0].id] : [];
-        router.replace(applicationWriteRoute(posting.id, route, routeRoleIds));
+        router.replace(applicationWriteRoute(posting.id, route, routeRoleIds, { prefill: useProfilePrefill && !draft }));
       } else if (resumeDraft) setRestoring(false);
     }).catch(() => { if (active && resumeDraft) setRestoring(false); });
     return () => { active = false; };

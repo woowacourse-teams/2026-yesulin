@@ -78,7 +78,7 @@ export function PublicApplicationProvider({
   );
   const updateRoute = usePublicApplicationRoute({
     postingId, roleIds, steps, stepIndex, reviewing, completedStepIndexes,
-    maxReachedStepIndex, storageReady: draft.storageReady, setStepIndex, setReviewing,
+    maxReachedStepIndex, storageReady: draft.storageReady, profilePrefilled: Boolean(prefill), setStepIndex, setReviewing,
   });
   const reviewIssues = steps.flatMap((step, index) => {
     const issue = validationIssue(index);
