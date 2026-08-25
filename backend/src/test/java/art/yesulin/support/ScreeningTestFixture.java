@@ -110,6 +110,8 @@ public class ScreeningTestFixture {
             SubmissionGender gender
     ) {
         long photoFileId = saveReadyImage(applicantId, "submissions/profile-" + UUID.randomUUID());
+        Performance performance = performanceRepository.findById(fixture.performanceId()).orElseThrow();
+        Audition audition = auditionRepository.findById(fixture.auditionId()).orElseThrow();
         ApplicantSnapshot applicant = new ApplicantSnapshot(
                 new SubmissionBasicInformation(
                         name, 166, 52, LocalDate.of(1999, 4, 3), gender,
@@ -133,7 +135,15 @@ public class ScreeningTestFixture {
         );
         return submissionRepository.saveAndFlush(new Submission(
                 submissionId, applicantId, SUBMITTED_AT,
-                new AuditionSnapshot(fixture.auditionId(), "햄릿 오디션"), applicant,
+                new AuditionSnapshot(
+                        fixture.auditionId(),
+                        audition.getPublicId(),
+                        "햄릿 오디션",
+                        performance.getTitle(),
+                        "테스트 극단",
+                        performance.getPosterFileId(),
+                        performance.getOwnerId()
+                ), applicant,
                 new SelectedRoles(List.of(new SelectedRole(fixture.roleId(), "햄릿"))), answers
         ));
     }

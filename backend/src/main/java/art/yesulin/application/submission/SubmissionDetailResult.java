@@ -1,6 +1,7 @@
 package art.yesulin.application.submission;
 
 import art.yesulin.domain.submission.ApplicantSnapshot;
+import art.yesulin.domain.submission.AuditionSnapshot;
 import art.yesulin.domain.submission.MilitaryServiceStatus;
 import art.yesulin.domain.submission.PhotoRequirementAnswer;
 import art.yesulin.domain.submission.QuestionAnswer;
@@ -24,7 +25,12 @@ import java.util.UUID;
 
 public record SubmissionDetailResult(
         UUID submissionId,
+        UUID auditionId,
+        String performanceTitle,
         String auditionTitle,
+        String companyName,
+        long posterFileId,
+        long posterOwnerId,
         Instant submittedAt,
         ApplicantSnapshotResult applicant,
         List<SubmissionSelectedRoleResult> selectedRoles,
@@ -38,9 +44,15 @@ public record SubmissionDetailResult(
     }
 
     static SubmissionDetailResult from(Submission submission, List<SubmissionConsent> consents) {
+        AuditionSnapshot audition = submission.getAuditionSnapshot();
         return new SubmissionDetailResult(
                 submission.getSubmissionId(),
-                submission.getAuditionSnapshot().title(),
+                audition.publicAuditionId(),
+                audition.performanceTitle(),
+                audition.title(),
+                audition.companyName(),
+                audition.posterFileId(),
+                audition.posterOwnerId(),
                 submission.getSubmittedAt(),
                 ApplicantSnapshotResult.from(submission.getApplicantSnapshot()),
                 submission.getSelectedRoles().values().stream().map(SubmissionSelectedRoleResult::from).toList(),

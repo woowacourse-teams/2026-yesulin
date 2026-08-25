@@ -6,6 +6,7 @@ import { findPerformance, findPosting } from "../auditions/aggregate";
 import { addScreeningApplicant } from "../auditions/store";
 import { applicantSubmission, applicantSubmissions, applicantProfile, addApplicantSubmission, hasSubmissionForPosting, patchApplicantProfile, recommendedPostings } from "./store";
 import { toScreeningApplicant } from "./to-screening-applicant";
+import { toBackendSubmissionDetail, toBackendSubmissionList } from "./submission-contract";
 import { validateApplicationAnswers } from "./validation";
 import { producerProfile } from "../auditions/producer-profile";
 
@@ -35,19 +36,16 @@ export const applicantHandlers = [
     const required = fields.filter((field) => field.required);
     return HttpResponse.json({ answers, filledCount: required.filter((field) => answered.has(field.id)).length, requiredCount: required.length, missingKeys: required.filter((field) => !answered.has(field.id)).map((field) => field.id) });
   }),
-  http.get(`${apiPath}/me/submissions`, async () => { await delay(260); return HttpResponse.json(applicantSubmissions()); }),
-  http.get(`${apiPath}/me/submissions/:submissionId`, async ({ params }) => {
+  http.get(`${apiPath}/v1/applicants/me/submissions`, async () => {
+    await delay(260);
+    return HttpResponse.json(toBackendSubmissionList(applicantSubmissions().submissions));
+  }),
+  http.get(`${apiPath}/v1/applicants/me/submissions/:submissionId`, async ({ params }) => {
     await delay(260);
     const submission = applicantSubmission(submissionId(String(params.submissionId)));
-    return submission ? HttpResponse.json(submission) : apiError(404, "NOT_FOUND", "지원서를 찾을 수 없습니다.");
-  }),
-  http.patch(`${apiPath}/me/submissions/:submissionId`, async ({ params, request }) => {
-    await delay(260);
-    const id = submissionId(String(params.submissionId));
-    const current = applicantSubmission(id);
-    if (!current) return apiError(404, "NOT_FOUND", "지원서를 찾을 수 없습니다.");
-    await request.json().catch(() => null);
-    return apiError(409, "IMMUTABLE_SUBMISSION", "제출한 지원서는 수정할 수 없습니다.");
+    return submission
+      ? HttpResponse.json(toBackendSubmissionDetail(submission))
+      : apiError(404, "NOT_FOUND", "지원서를 찾을 수 없습니다.");
   }),
   http.get(`${apiPath}/public/recommended-postings`, async ({ request }) => {
     await delay(180);
@@ -86,8 +84,19 @@ export const applicantHandlers = [
         : undefined;
       return { ...answer, label: answer.label ?? fields.find((field) => field.id === answer.key)?.label ?? answer.key, ...(previewUrls?.length ? { previewUrls } : {}) };
     });
-    const submission = { id: createdSubmissionId, postingId: posting.id, performanceTitle: performance.title, postingTitle: posting.title, posterUrl: posting.posterUrl, companyName: producerProfile().companyName || "기획사/제작사", roleId: roles[0]!.id, roleIds: roles.map((role) => role.id), roleName: roles.map((role) => role.name).join(" · "), lookupCode: receiptNumber, submittedAt, updatedAt: submittedAt, editable: false, recruitmentEnd: posting.recruitmentEnd ?? "", editableUntil: "", roleProgress: [], answers, applicationFields: fields };
-    addApplicantSubmission(submission);
+    const submission = {
+      id: createdSubmissionId,
+      postingId: posting.id,
+      performanceTitle: performance.title,
+      postingTitle: posting.title,
+      posterUrl: posting.posterUrl,
+      companyName: producerProfile().companyName || "기획사/제작사",
+      selectedRoles: roles.map((role) => ({ roleId: role.id, roleName: role.name })),
+      submittedAt,
+      answers,
+      applicationFields: fields,
+    };
+    addApplicantSubmission(submission, receiptNumber);
     addScreeningApplicant(toScreeningApplicant(submission, performance.id));
     if (body.saveToProfile) patchApplicantProfile({ answers: answers.filter((answer) => !answer.key.startsWith("custom-") && !fields.find((field) => field.id === answer.key)?.custom) });
     return HttpResponse.json({ submissionId: createdSubmissionId, receiptNumber, submittedAt, profileClaimToken: null, profileClaimExpiresAt: null }, { status: 201 });

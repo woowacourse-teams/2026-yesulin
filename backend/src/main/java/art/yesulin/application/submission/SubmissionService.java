@@ -39,6 +39,7 @@ public class SubmissionService {
     private final SubmissionConsentDocumentProvider consentDocumentProvider;
     private final SubmissionConsentWriter consentWriter;
     private final SubmissionPhotoReferenceWriter photoReferenceWriter;
+    private final SubmissionPosterReferenceWriter posterReferenceWriter;
     private final Clock clock;
 
     @Transactional
@@ -71,6 +72,9 @@ public class SubmissionService {
                 savedSubmission.getId(),
                 savedSubmission.getFormAnswers().photoRequirementAnswers()
         );
+        posterReferenceWriter.save(
+                savedSubmission.getId(), savedSubmission.getAuditionSnapshot().posterFileId()
+        );
         return SubmittedSubmissionResult.from(savedSubmission);
     }
 
@@ -97,7 +101,15 @@ public class SubmissionService {
         return new Submission(
                 applicantId,
                 submittedAt,
-                new AuditionSnapshot(audition.auditionId(), audition.title()),
+                new AuditionSnapshot(
+                        audition.auditionId(),
+                        audition.publicAuditionId(),
+                        audition.title(),
+                        audition.performanceTitle(),
+                        audition.companyName(),
+                        audition.posterFileId(),
+                        audition.posterOwnerId()
+                ),
                 applicantSnapshot,
                 selectedRoles,
                 form.answers()

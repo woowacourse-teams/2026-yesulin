@@ -1,5 +1,5 @@
 import type { ApplicantSubmissionDetail, ApplicantAnswer, CareerEntry } from "@/features/applicants/types";
-import type { Gender, PerformanceId } from "@/features/auditions/types";
+import { roleId, type Gender, type PerformanceId } from "@/features/auditions/types";
 import { photoSlotLabels, videoSlotLabels } from "@/features/applications/materials";
 import type { MockApplicant } from "../auditions/applicants";
 import { fallbackPhoto } from "../auditions/photos";
@@ -50,6 +50,8 @@ export function toScreeningApplicant(detail: ApplicantSubmissionDetail, performa
     url: photoAnswer?.previewUrls?.[index] || id,
     fallbackUrl: fallbackPhoto(name, index),
   })) : [];
+  const selectedRoleIds = detail.selectedRoles.map((role) => roleId(role.roleId));
+  const selectedRoleNames = detail.selectedRoles.map((role) => role.roleName);
 
   return {
     id: detail.id,
@@ -60,9 +62,9 @@ export function toScreeningApplicant(detail: ApplicantSubmissionDetail, performa
     weight: numberOf(detail.answers, "WEIGHT"),
     performanceId,
     postingId: detail.postingId as MockApplicant["postingId"],
-    roleId: detail.roleId as MockApplicant["roleId"],
-    roleIds: detail.roleIds as MockApplicant["roleIds"],
-    roleName: detail.roleName,
+    roleId: selectedRoleIds[0]!,
+    roleIds: selectedRoleIds,
+    roleName: selectedRoleNames.join(" · "),
     birth: birth.replaceAll("-", ".").slice(0, 7),
     phone: textOf(detail.answers, "PHONE"),
     email: textOf(detail.answers, "EMAIL"),

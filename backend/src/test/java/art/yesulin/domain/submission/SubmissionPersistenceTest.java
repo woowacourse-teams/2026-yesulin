@@ -188,7 +188,7 @@ class SubmissionPersistenceTest {
                 submissionId,
                 APPLICANT_ID,
                 submittedAt,
-                new AuditionSnapshot(auditionId, "햄릿 배우 모집"),
+                auditionSnapshot(auditionId, "햄릿 배우 모집"),
                 applicantSnapshot,
                 new SelectedRoles(List.of(
                         new SelectedRole(11L, "오필리어"),
@@ -216,7 +216,7 @@ class SubmissionPersistenceTest {
                 submissionId,
                 APPLICANT_ID,
                 submittedAt,
-                new AuditionSnapshot(auditionId, "공고 " + auditionId),
+                auditionSnapshot(auditionId, "공고 " + auditionId),
                 applicantSnapshot,
                 new SelectedRoles(List.of(new SelectedRole(auditionId * 10, "배역"))),
                 new SubmissionFormAnswers(
@@ -231,5 +231,17 @@ class SubmissionPersistenceTest {
         FileMetadata metadata = new FileMetadata(filename, "image/jpeg", 1_024L);
         FileAsset file = new FileAsset("files/20260823/" + filename, APPLICANT_ID, metadata);
         return fileAssetRepository.saveAndFlush(file).getId();
+    }
+
+    private AuditionSnapshot auditionSnapshot(long auditionId, String auditionTitle) {
+        return new AuditionSnapshot(
+                auditionId,
+                UUID.randomUUID(),
+                auditionTitle,
+                "공연 " + auditionId,
+                "테스트 극단",
+                auditionId,
+                2L
+        );
     }
 }

@@ -81,22 +81,27 @@ values (9001, 'NAME'),
 on duplicate key update field = values(field);
 
 insert into submissions
-    (id, public_id, applicant_id, audition_id, audition_title, submitted_at, basic_information_present,
+    (id, public_id, applicant_id, audition_id, audition_public_id, audition_title, performance_title,
+     company_name, poster_file_id, poster_owner_id, submitted_at, basic_information_present,
      applicant_name, height_cm, weight_kg, birth_date, gender, phone, email, address,
      additional_information_present, school, nationality, cover_letter, specialty, hobbies,
      military_service_status, submission_field_snapshot_present, question_answers_present,
      photo_requirement_answers_present, video_requirement_answers_present, age_at_recruitment_deadline)
 values (9001, X'90010000000040008000000000000101', 9101, 9001,
-        '2026 하반기 주·조연 배우 모집', '2026-08-20 14:00:00', true, '김예술', 172, 58, '1998-03-12',
+        '90010000-0000-4000-8000-000000000001', '2026 하반기 주·조연 배우 모집', '달빛 아래 우리',
+        '예술인 로컬 제작사', 9001, 9001, '2026-08-20 14:00:00', true, '김예술', 172, 58, '1998-03-12',
         'FEMALE', '010-1111-2222', 'artist1@example.com', '서울특별시 마포구', true, '예술대학교', '대한민국',
         '성실하게 준비하겠습니다.', '현대무용', '영화 감상', null, true, true, true, true, 28),
        (9002, X'90010000000040008000000000000102', 9102, 9001,
-        '2026 하반기 주·조연 배우 모집', '2026-08-21 15:00:00', true, '이무대', 180, 72, '1995-07-21',
+        '90010000-0000-4000-8000-000000000001', '2026 하반기 주·조연 배우 모집', '달빛 아래 우리',
+        '예술인 로컬 제작사', 9001, 9001, '2026-08-21 15:00:00', true, '이무대', 180, 72, '1995-07-21',
         'MALE', '010-3333-4444', 'artist2@example.com', '서울특별시 성동구', true, '공연예술대학교', '대한민국',
         '좋은 무대를 만들겠습니다.', '보컬', '러닝', 'COMPLETED', true, true, true, true, 31)
 on duplicate key update applicant_id = values(applicant_id), audition_id = values(audition_id),
-                        audition_title = values(audition_title), applicant_name = values(applicant_name),
-                        submitted_at = values(submitted_at);
+                        audition_public_id = values(audition_public_id), audition_title = values(audition_title),
+                        performance_title = values(performance_title), company_name = values(company_name),
+                        poster_file_id = values(poster_file_id), poster_owner_id = values(poster_owner_id),
+                        applicant_name = values(applicant_name), submitted_at = values(submitted_at);
 
 insert into submission_selected_roles (submission_id, role_order, audition_role_id, role_name)
 values (9001, 0, 9001, '주연'),

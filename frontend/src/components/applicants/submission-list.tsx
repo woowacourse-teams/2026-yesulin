@@ -7,7 +7,7 @@ import { getApplicantSubmissions } from "@/features/applicants/api";
 import { getApplicantApplicationDrafts } from "@/features/applicants/application-drafts";
 import { formatApplicantDate } from "@/features/applicants/presentation";
 import { applicantRoutes } from "@/features/applicants/routes";
-import type { ApplicantApplicationDraftSummary, ApplicantSubmissionSummary, ApplicantRoleProgress } from "@/features/applicants/types";
+import type { ApplicantApplicationDraftSummary, ApplicantSelectedRole, ApplicantSubmissionSummary } from "@/features/applicants/types";
 import { useAuditionQuery } from "@/features/auditions/use-audition-query";
 import { ScreenError } from "@/components/auditions/screen-status";
 
@@ -28,9 +28,9 @@ export function ApplicantSubmissionList() {
   const empty = !draftsLoading && drafts.length === 0 && submissions.length === 0;
 
   return <Container>
-    <header><p className="text-sm font-semibold text-brand">내 지원서</p><h1 className="mt-2 text-[clamp(28px,4vw,38px)] font-bold tracking-[-0.035em]">지원 준비부터 전형 진행까지 확인하세요.</h1><p className="mt-3 max-w-2xl leading-7 text-muted-strong">이 기기에서 작성 중인 지원서와 제출 완료된 지원서의 배역별 전형 상황을 한곳에서 확인할 수 있어요.</p><div className="mt-5 flex flex-wrap gap-2"><SummaryChip label="작성 중" count={drafts.length} loading={draftsLoading} /><SummaryChip label="제출 완료" count={submissions.length} /></div></header>
+    <header><p className="text-sm font-semibold text-brand">내 지원서</p><h1 className="mt-2 text-[clamp(28px,4vw,38px)] font-bold tracking-[-0.035em]">작성 중인 내용과 제출 이력을 확인하세요.</h1><p className="mt-3 max-w-2xl leading-7 text-muted-strong">이 기기에 저장된 작성 중 지원서와 제출 당시 내용이 보존된 지원서를 한곳에서 확인할 수 있어요.</p><div className="mt-5 flex flex-wrap gap-2"><SummaryChip label="작성 중" count={drafts.length} loading={draftsLoading} /><SummaryChip label="제출 완료" count={submissions.length} /></div></header>
     {draftsLoading || drafts.length ? <section aria-labelledby="draft-submissions-title" className="mt-10"><SectionHeader id="draft-submissions-title" eyebrow="이 기기에 저장됨" title="작성 중" detail="제출 전 내용은 기획사/제작사에 공개되지 않아요." />{draftsLoading ? <div className="mt-4 h-40 animate-pulse rounded-card bg-border-soft" /> : <ul className="mt-4 grid gap-4">{drafts.map((draft) => <DraftCard key={draft.postingId} draft={draft} />)}</ul>}</section> : null}
-    {submissions.length ? <section aria-labelledby="submitted-submissions-title" className="mt-10"><SectionHeader id="submitted-submissions-title" eyebrow="읽기 전용 스냅샷" title="제출 완료" detail="전형 결과는 각 배역의 차수가 마감된 뒤 표시됩니다." /><ul className="mt-4 grid gap-4">{submissions.map((submission) => <SubmittedCard key={submission.id} submission={submission} />)}</ul></section> : null}
+    {submissions.length ? <section aria-labelledby="submitted-submissions-title" className="mt-10"><SectionHeader id="submitted-submissions-title" eyebrow="읽기 전용 스냅샷" title="제출 완료" detail="제출 당시의 지원 정보와 사진·영상은 이후 프로필을 변경해도 그대로 보존됩니다." /><ul className="mt-4 grid gap-4">{submissions.map((submission) => <SubmittedCard key={submission.id} submission={submission} />)}</ul></section> : null}
     {empty ? <EmptySubmissions /> : null}
   </Container>;
 }
@@ -41,18 +41,11 @@ function DraftCard({ draft }: { readonly draft: ApplicantApplicationDraftSummary
 }
 
 function SubmittedCard({ submission }: { readonly submission: ApplicantSubmissionSummary }) {
-  return <li><Link href={applicantRoutes.submission(submission.id)} className="group grid gap-5 rounded-card border border-border bg-card p-5 transition-[border-color,box-shadow] hover:border-brand-line hover:shadow-[var(--shadow-1)] sm:grid-cols-[88px_minmax(0,1fr)_auto] sm:items-center md:p-6"><Image src={submission.posterUrl} alt={`${submission.performanceTitle} 포스터`} width={88} height={116} unoptimized className="h-[116px] w-[88px] rounded-control object-cover" /><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><StatusBadge label="제출 완료" tone="border-pass/25 bg-pass-bg text-pass" /><span className="text-xs text-muted">{submission.companyName}</span></div><h2 className="mt-3 truncate text-lg font-bold group-hover:text-brand">{submission.performanceTitle}</h2><p className="mt-1 truncate text-sm text-muted-strong">{submission.postingTitle}</p><div className="mt-3 flex flex-wrap gap-2 text-xs"><span className="rounded-full bg-surface px-2.5 py-1 font-semibold text-muted-strong">지원서 1개</span><span className="rounded-full bg-surface px-2.5 py-1 font-semibold text-muted-strong">지원 배역 {submission.roleProgress.length}개</span></div><RoleProgressList roles={submission.roleProgress} /><p className="num mt-3 text-xs text-muted">{formatApplicantDate(submission.submittedAt, true)} 제출</p></div><span className="inline-flex min-h-11 items-center justify-center self-end rounded-control border border-border px-4 text-sm font-semibold text-muted-strong group-hover:border-brand-line group-hover:bg-brand-soft group-hover:text-brand sm:self-center">상세 보기</span></Link></li>;
+  return <li><Link href={applicantRoutes.submission(submission.id)} className="group grid gap-5 rounded-card border border-border bg-card p-5 transition-[border-color,box-shadow] hover:border-brand-line hover:shadow-[var(--shadow-1)] sm:grid-cols-[88px_minmax(0,1fr)_auto] sm:items-center md:p-6"><Image src={submission.posterUrl} alt={`${submission.performanceTitle} 포스터`} width={88} height={116} unoptimized className="h-[116px] w-[88px] rounded-control object-cover" /><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><StatusBadge label="제출 완료" tone="border-pass/25 bg-pass-bg text-pass" /><span className="text-xs text-muted">{submission.companyName}</span></div><h2 className="mt-3 truncate text-lg font-bold group-hover:text-brand">{submission.performanceTitle}</h2><p className="mt-1 truncate text-sm text-muted-strong">{submission.postingTitle}</p><SelectedRoleList roles={submission.selectedRoles} /><p className="num mt-3 text-xs text-muted">{formatApplicantDate(submission.submittedAt, true)} 제출</p></div><span className="inline-flex min-h-11 items-center justify-center self-end rounded-control border border-border px-4 text-sm font-semibold text-muted-strong group-hover:border-brand-line group-hover:bg-brand-soft group-hover:text-brand sm:self-center">상세 보기</span></Link></li>;
 }
 
-export function RoleProgressList({ roles }: { readonly roles: readonly ApplicantRoleProgress[] }) {
-  return <ul className="mt-4 grid gap-2">{roles.map((role) => { const status = roleProgressCopy(role); return <li key={role.roleId} className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-control border border-border-soft bg-surface px-3 py-2"><strong className="text-sm">{role.roleName}</strong><span className={`ml-auto text-xs font-semibold ${status.tone}`}>{status.label}</span></li>; })}</ul>;
-}
-
-function roleProgressCopy(role: ApplicantRoleProgress) {
-  if (role.state === "FINAL_PASS") return { label: "최종 합격", tone: "text-pass" };
-  if (role.state === "NOT_SELECTED") return { label: `${role.roundName ?? "전형"} 미선발`, tone: "text-fail" };
-  if (role.state === "IN_REVIEW") return { label: `${role.roundName ?? "전형"} 진행 중`, tone: "text-brand" };
-  return { label: "접수 완료 · 전형 시작 전", tone: "text-muted-strong" };
+export function SelectedRoleList({ roles }: { readonly roles: readonly ApplicantSelectedRole[] }) {
+  return <ul className="mt-4 flex flex-wrap gap-2">{roles.map((role) => <li key={role.roleId} className="rounded-full bg-surface px-3 py-1.5 text-xs font-semibold text-muted-strong">{role.roleName}</li>)}</ul>;
 }
 
 function SummaryChip({ label, count, loading = false }: { readonly label: string; readonly count: number; readonly loading?: boolean }) { return <span className="rounded-full border border-border bg-card px-3 py-1.5 text-sm text-muted-strong"><strong className="font-semibold text-foreground">{label}</strong><span className="num ml-2">{loading ? "–" : count}</span></span>; }

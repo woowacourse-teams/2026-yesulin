@@ -12,6 +12,7 @@ class S3StorageConfigurationTest {
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
             .withUserConfiguration(S3StorageConfiguration.class)
             .withPropertyValues(
+                    "spring.profiles.active=test",
                     "yesulin.storage.s3.bucket=techcourse-project-2026",
                     "yesulin.storage.s3.key-prefix=yesulin",
                     "yesulin.storage.s3.public-base-url=https://cdn.example.com",

@@ -9,6 +9,7 @@ import art.yesulin.domain.submission.SelectedRoles;
 import art.yesulin.domain.submission.SubmissionErrorCode;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class SelectedRoleValidatorTest {
@@ -58,7 +59,12 @@ class SelectedRoleValidatorTest {
     private SubmissionAudition audition(boolean allowsMultipleApplications) {
         return new SubmissionAudition(
                 1L,
+                UUID.randomUUID(),
                 "햄릿 오디션",
+                "햄릿",
+                "테스트 극단",
+                1L,
+                2L,
                 Instant.parse("2026-09-01T00:00:00Z"),
                 Instant.parse("2026-09-10T00:00:00Z"),
                 allowsMultipleApplications,

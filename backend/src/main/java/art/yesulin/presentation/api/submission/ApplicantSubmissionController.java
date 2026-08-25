@@ -4,7 +4,9 @@ import art.yesulin.application.auth.MemberPrincipal;
 import art.yesulin.application.file.FileService;
 import art.yesulin.application.submission.SubmissionDetailResult;
 import art.yesulin.application.submission.SubmissionQueryService;
+import art.yesulin.application.submission.SubmissionSummaryResult;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -27,9 +29,14 @@ public class ApplicantSubmissionController {
     public ResponseEntity<ApplicantSubmissionListResponse> findAll(
             @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal
     ) {
-        return ResponseEntity.ok(new ApplicantSubmissionListResponse(
-                submissionQueryService.findAll(principal.memberId())
-        ));
+        List<SubmissionSummaryResult> results = submissionQueryService.findAll(principal.memberId());
+        Map<Long, String> posterUrlsByFileId = new HashMap<>();
+        for (SubmissionSummaryResult result : results) {
+            posterUrlsByFileId.computeIfAbsent(
+                    result.posterFileId(), fileId -> fileService.readUrl(result.posterOwnerId(), fileId)
+            );
+        }
+        return ResponseEntity.ok(ApplicantSubmissionListResponse.from(results, posterUrlsByFileId));
     }
 
     @GetMapping("/{submissionId}")
@@ -39,6 +46,7 @@ public class ApplicantSubmissionController {
     ) {
         long applicantId = principal.memberId();
         SubmissionDetailResult result = submissionQueryService.find(applicantId, submissionId);
+        String posterUrl = fileService.readUrl(result.posterOwnerId(), result.posterFileId());
         Map<Long, String> photoUrlsByFileId = new HashMap<>();
         for (SubmissionDetailResult.PhotoRequirementAnswerResult answer
                 : result.formAnswers().photoRequirementAnswers()) {
@@ -46,6 +54,6 @@ public class ApplicantSubmissionController {
                     answer.fileId(), fileId -> fileService.readUrl(applicantId, fileId)
             );
         }
-        return ResponseEntity.ok(ApplicantSubmissionDetailResponse.from(result, photoUrlsByFileId));
+        return ResponseEntity.ok(ApplicantSubmissionDetailResponse.from(result, posterUrl, photoUrlsByFileId));
     }
 }

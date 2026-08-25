@@ -9,6 +9,7 @@ import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.submission.SubmissionErrorCode;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class RecruitmentPeriodValidatorTest {
@@ -43,7 +44,18 @@ class RecruitmentPeriodValidatorTest {
 
     private SubmissionAudition audition() {
         return new SubmissionAudition(
-                1L, "햄릿 오디션", START_AT, END_AT, false, List.of(), emptyForm()
+                1L,
+                UUID.randomUUID(),
+                "햄릿 오디션",
+                "햄릿",
+                "테스트 극단",
+                1L,
+                2L,
+                START_AT,
+                END_AT,
+                false,
+                List.of(),
+                emptyForm()
         );
     }
 

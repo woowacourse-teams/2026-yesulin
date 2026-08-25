@@ -157,19 +157,27 @@ class SubmissionMigrationTest {
 
     private long insertSubmission(UUID publicId, long applicantId, long auditionId) {
         byte[] publicIdBytes = toBytes(publicId);
+        long posterFileId = insertFile();
         jdbcTemplate.update(
                 """
                         insert into submissions
-                            (public_id, applicant_id, audition_id, audition_title, submitted_at,
+                            (public_id, applicant_id, audition_id, audition_public_id,
+                             audition_title, performance_title, company_name,
+                             poster_file_id, poster_owner_id, submitted_at,
                              basic_information_present, additional_information_present,
                              submission_field_snapshot_present, question_answers_present,
                              photo_requirement_answers_present, video_requirement_answers_present)
-                        values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """,
                 publicIdBytes,
                 applicantId,
                 auditionId,
+                UUID.randomUUID().toString(),
                 "지원서 테스트 공고",
+                "지원서 테스트 공연",
+                "테스트 극단",
+                posterFileId,
+                2L,
                 Timestamp.from(SUBMITTED_AT),
                 true,
                 true,

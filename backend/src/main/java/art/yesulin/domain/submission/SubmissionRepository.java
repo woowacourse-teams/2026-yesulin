@@ -29,7 +29,12 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long>, S
     @Query("""
             select submission.id as id,
                    submission.submissionId as submissionId,
+                   submission.auditionSnapshot.publicAuditionId as auditionPublicId,
                    submission.auditionSnapshot.title as auditionTitle,
+                   submission.auditionSnapshot.performanceTitle as performanceTitle,
+                   submission.auditionSnapshot.companyName as companyName,
+                   submission.auditionSnapshot.posterFileId as posterFileId,
+                   submission.auditionSnapshot.posterOwnerId as posterOwnerId,
                    submission.submittedAt as submittedAt
             from Submission submission
             where submission.applicantId = :applicantId

@@ -132,7 +132,15 @@ class SubmissionQueryServiceTest {
         Submission submission = new Submission(
                 applicantId,
                 submittedAt,
-                new AuditionSnapshot(auditionId, "공고 " + auditionId),
+                new AuditionSnapshot(
+                        auditionId,
+                        UUID.randomUUID(),
+                        "공고 " + auditionId,
+                        "공연 " + auditionId,
+                        "테스트 극단",
+                        auditionId,
+                        2L
+                ),
                 createApplicantSnapshot(submittedAt),
                 new SelectedRoles(List.of(new SelectedRole(auditionId * 10, "배역 " + auditionId))),
                 createFormAnswers()

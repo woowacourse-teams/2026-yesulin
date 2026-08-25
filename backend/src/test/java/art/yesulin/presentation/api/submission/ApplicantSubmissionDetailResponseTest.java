@@ -23,11 +23,14 @@ class ApplicantSubmissionDetailResponseTest {
         photoUrlsByFileId.put(FIRST_FILE_ID, "https://cdn.test/first.jpg");
 
         ApplicantSubmissionDetailResponse response = ApplicantSubmissionDetailResponse.from(
-                submissionDetail(), photoUrlsByFileId
+                submissionDetail(), "https://cdn.test/poster.jpg", photoUrlsByFileId
         );
 
-        List<ApplicantSubmissionDetailResponse.PhotoRequirementAnswerResponse> photoAnswers =
+        final List<ApplicantSubmissionDetailResponse.PhotoRequirementAnswerResponse> photoAnswers =
                 response.formAnswers().photoRequirementAnswers();
+        assertEquals("햄릿", response.performanceTitle());
+        assertEquals("테스트 극단", response.companyName());
+        assertEquals("https://cdn.test/poster.jpg", response.posterUrl());
         assertEquals(FIRST_FILE_ID, photoAnswers.getFirst().fileId());
         assertEquals("https://cdn.test/first.jpg", photoAnswers.getFirst().url());
         assertEquals(SECOND_FILE_ID, photoAnswers.get(1).fileId());
@@ -42,14 +45,21 @@ class ApplicantSubmissionDetailResponseTest {
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> ApplicantSubmissionDetailResponse.from(submissionDetail(), photoUrlsByFileId)
+                () -> ApplicantSubmissionDetailResponse.from(
+                        submissionDetail(), "https://cdn.test/poster.jpg", photoUrlsByFileId
+                )
         );
     }
 
     private SubmissionDetailResult submissionDetail() {
         return new SubmissionDetailResult(
                 UUID.randomUUID(),
+                UUID.randomUUID(),
+                "햄릿",
                 "햄릿 오디션",
+                "테스트 극단",
+                30L,
+                2L,
                 Instant.parse("2026-08-24T03:15:00Z"),
                 applicantSnapshot(),
                 List.of(),

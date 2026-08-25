@@ -87,16 +87,26 @@ class ApplicantSubmissionControllerTest {
 
     @Test
     void findsOnlySessionApplicantsSubmissionSummariesInRecentOrder() throws Exception {
-        Submission older = saveSubmission(APPLICANT_ID, 2L, SUBMITTED_AT.minusSeconds(60), 41L);
-        Submission newer = saveSubmission(APPLICANT_ID, 3L, SUBMITTED_AT, 42L);
-        saveSubmission(2L, 4L, SUBMITTED_AT.plusSeconds(60), 43L);
+        Submission older = saveSubmission(
+                APPLICANT_ID, 2L, SUBMITTED_AT.minusSeconds(60), saveReadyImage(APPLICANT_ID)
+        );
+        Submission newer = saveSubmission(
+                APPLICANT_ID, 3L, SUBMITTED_AT, saveReadyImage(APPLICANT_ID)
+        );
+        saveSubmission(2L, 4L, SUBMITTED_AT.plusSeconds(60), saveReadyImage(2L));
 
         mockMvc.perform(get(SUBMISSIONS_PATH)
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.submissions.length()").value(2))
                 .andExpect(jsonPath("$.submissions[0].submissionId").value(newer.getSubmissionId().toString()))
+                .andExpect(jsonPath("$.submissions[0].auditionId").value(
+                        newer.getAuditionSnapshot().publicAuditionId().toString()
+                ))
+                .andExpect(jsonPath("$.submissions[0].performanceTitle").value("공연 3"))
                 .andExpect(jsonPath("$.submissions[0].auditionTitle").value("공고 3"))
+                .andExpect(jsonPath("$.submissions[0].companyName").value("테스트 극단"))
+                .andExpect(jsonPath("$.submissions[0].posterUrl").value(startsWith("https://cdn.test/assets/")))
                 .andExpect(jsonPath("$.submissions[0].selectedRoles[0].roleName").value("배역 3"))
                 .andExpect(jsonPath("$.submissions[1].submissionId").value(older.getSubmissionId().toString()))
                 .andExpect(jsonPath("$.submissions[0].applicant").doesNotExist())
@@ -105,7 +115,7 @@ class ApplicantSubmissionControllerTest {
 
     @Test
     void findsCompleteSubmissionSnapshotAfterPhotoLibrarySoftDelete() throws Exception {
-        long fileId = saveReadyImage();
+        long fileId = saveReadyImage(APPLICANT_ID);
         PhotoLibraryItemResult libraryPhoto = photoLibraryService.addPhoto(
                 APPLICANT_ID, new AddPhotoToLibraryCommand(fileId)
         );
@@ -121,7 +131,13 @@ class ApplicantSubmissionControllerTest {
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.submissionId").value(submission.getSubmissionId().toString()))
+                .andExpect(jsonPath("$.auditionId").value(
+                        submission.getAuditionSnapshot().publicAuditionId().toString()
+                ))
+                .andExpect(jsonPath("$.performanceTitle").value("공연 2"))
                 .andExpect(jsonPath("$.auditionTitle").value("공고 2"))
+                .andExpect(jsonPath("$.companyName").value("테스트 극단"))
+                .andExpect(jsonPath("$.posterUrl").value(startsWith("https://cdn.test/assets/")))
                 .andExpect(jsonPath("$.applicant.basicInformation.name").value("김하린"))
                 .andExpect(jsonPath("$.applicant.ageAtRecruitmentDeadline").value(27))
                 .andExpect(jsonPath("$.applicant.fieldSnapshot.basicFields[0]").value("NAME"))
@@ -152,7 +168,15 @@ class ApplicantSubmissionControllerTest {
         Submission submission = new Submission(
                 applicantId,
                 submittedAt,
-                new AuditionSnapshot(auditionId, "공고 " + auditionId),
+                new AuditionSnapshot(
+                        auditionId,
+                        java.util.UUID.randomUUID(),
+                        "공고 " + auditionId,
+                        "공연 " + auditionId,
+                        "테스트 극단",
+                        fileId,
+                        applicantId
+                ),
                 createApplicantSnapshot(submittedAt),
                 new SelectedRoles(List.of(new SelectedRole(auditionId * 10, "배역 " + auditionId))),
                 createFormAnswers(fileId)
@@ -195,10 +219,10 @@ class ApplicantSubmissionControllerTest {
         );
     }
 
-    private long saveReadyImage() {
+    private long saveReadyImage(long ownerId) {
         FileAsset file = new FileAsset(
-                "submissions/profile.jpg",
-                APPLICANT_ID,
+                "submissions/profile-" + java.util.UUID.randomUUID() + ".jpg",
+                ownerId,
                 new FileMetadata("profile.jpg", "image/jpeg", 1_024L)
         );
         file.completeUpload("image/jpeg", 1_024L);
