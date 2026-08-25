@@ -16,18 +16,66 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      backend: ${{ steps.filter.outputs.backend }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # main push와 필수 체크 보호를 위해 Pull Request가 아니면 두 영역을 모두 실행한다.
+      - name: Detect changed areas
+        id: filter
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          # 판단할 수 없으면 검증을 건너뛰지 않고 두 영역을 모두 실행한다.
+          if [ "${{ github.event_name }}" != "pull_request" ] || [ -z "$BASE_SHA" ]; then
+            echo "frontend=true" >> "$GITHUB_OUTPUT"
+            echo "backend=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          changed=$(git diff --name-only "$BASE_SHA...HEAD")
+          echo "$changed"
+          frontend=false
+          backend=false
+          case "$changed" in
+            *frontend/*) frontend=true ;;
+          esac
+          case "$changed" in
+            *backend/*) backend=true ;;
+          esac
+          # 워크플로 자체가 바뀌면 두 영역을 모두 검증한다.
+          case "$changed" in
+            *.github/workflows/*) frontend=true; backend=true ;;
+          esac
+          echo "frontend=$frontend" >> "$GITHUB_OUTPUT"
+          echo "backend=$backend" >> "$GITHUB_OUTPUT"
+
   frontend:
     name: Frontend
+    needs: changes
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
       run:
         working-directory: frontend
+    # 필수 상태 체크라 Job은 항상 실행하고 변경이 없을 때 단계만 건너뛴다.
+    env:
+      RUN: ${{ needs.changes.outputs.frontend }}
     steps:
       - name: Checkout repository
+        if: env.RUN == 'true'
         uses: actions/checkout@v7
 
       - name: Set up Node.js
+        if: env.RUN == 'true'
         uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
@@ -35,40 +83,52 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install frontend dependencies
+        if: env.RUN == 'true'
         run: npm ci
 
       - name: Run frontend lint
+        if: env.RUN == 'true'
         run: npm run lint
 
       - name: Build frontend
+        if: env.RUN == 'true'
         run: npm run build
         env:
           NEXT_TELEMETRY_DISABLED: 1
 
   backend:
     name: Backend
+    needs: changes
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
       run:
         working-directory: backend
+    # 필수 상태 체크라 Job은 항상 실행하고 변경이 없을 때 단계만 건너뛴다.
+    env:
+      RUN: ${{ needs.changes.outputs.backend }}
     steps:
       - name: Checkout repository
+        if: env.RUN == 'true'
         uses: actions/checkout@v7
 
       - name: Set up Java
+        if: env.RUN == 'true'
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "25"
 
       - name: Set up Gradle
+        if: env.RUN == 'true'
         uses: gradle/actions/setup-gradle@v6
 
       - name: Build backend
+        if: env.RUN == 'true'
         run: ./gradlew build --no-daemon
 
       - name: Test deployment scripts
+        if: env.RUN == 'true'
         run: |
           sh deploy/tests/validate_service_test.sh
           sh deploy/tests/cleanup_releases_test.sh
