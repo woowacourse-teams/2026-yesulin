@@ -16,6 +16,8 @@ import art.yesulin.domain.audition.schedule.AuditionSchedule;
 import art.yesulin.domain.audition.schedule.AuditionScheduleRepository;
 import art.yesulin.domain.performance.Performance;
 import art.yesulin.domain.performance.PerformanceRepository;
+import art.yesulin.domain.producer.Producer;
+import art.yesulin.domain.producer.ProducerRepository;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,6 +29,7 @@ public class PublicAuditionService {
 
     private final AuditionRepository auditionRepository;
     private final PerformanceRepository performanceRepository;
+    private final ProducerRepository producerRepository;
     private final AuditionRoleSectionRepository roleSectionRepository;
     private final AuditionScheduleRepository scheduleRepository;
     private final AuditionFormRepository formRepository;
@@ -38,6 +41,8 @@ public class PublicAuditionService {
                 .orElseThrow(() -> new BusinessException(NOT_FOUND, "공고를 찾을 수 없습니다."));
         Performance performance = performanceRepository.findById(audition.getPerformanceId())
                 .orElseThrow(() -> new IllegalStateException("공고가 속한 공연을 찾을 수 없습니다."));
+        Producer producer = producerRepository.findByMemberId(audition.getOwnerId())
+                .orElseThrow(() -> new IllegalStateException("공고를 게시한 기획사·제작사 정보를 찾을 수 없습니다."));
         long internalAuditionId = audition.getId();
         AuditionRoleSection roles = roleSectionRepository.findByAuditionId(internalAuditionId)
                 .orElseThrow(() -> new IllegalStateException("게시된 공고의 배역 정보를 찾을 수 없습니다."));
@@ -50,6 +55,7 @@ public class PublicAuditionService {
                 performance.getPosterFileId(),
                 performance.getTitle(),
                 performance.getRoadAddress(),
+                PublicProducerResult.from(producer),
                 AuditionResult.from(audition),
                 AuditionRolesResult.from(auditionId, roles, performance),
                 AuditionScheduleResult.from(auditionId, schedule),

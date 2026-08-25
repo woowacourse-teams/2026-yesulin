@@ -9,6 +9,7 @@ public record PublicAuditionResult(
         long posterFileId,
         String performanceTitle,
         String roadAddress,
+        PublicProducerResult producer,
         AuditionResult audition,
         AuditionRolesResult roles,
         AuditionScheduleResult schedule,

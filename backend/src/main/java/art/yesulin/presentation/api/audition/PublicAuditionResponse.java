@@ -1,6 +1,7 @@
 package art.yesulin.presentation.api.audition;
 
 import art.yesulin.application.audition.PublicAuditionResult;
+import art.yesulin.application.audition.PublicProducerResult;
 import art.yesulin.application.audition.form.AuditionFormResult;
 import art.yesulin.application.audition.role.AuditionRoleResult;
 import art.yesulin.application.audition.schedule.ScreeningStageResult;
@@ -15,6 +16,7 @@ public record PublicAuditionResponse(
         String title,
         String posterUrl,
         String roadAddress,
+        PublicProducerResult producer,
         LocalDate performanceStartDate,
         LocalDate performanceEndDate,
         Instant recruitmentStartAt,
@@ -32,6 +34,7 @@ public record PublicAuditionResponse(
                 result.audition().title(),
                 posterUrl,
                 result.roadAddress(),
+                result.producer(),
                 result.audition().performanceStartDate(),
                 result.audition().performanceEndDate(),
                 result.schedule().recruitmentStartAt(),
