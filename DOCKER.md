@@ -33,6 +33,8 @@ DB_NAME=yesulin
 DB_USERNAME=yesulin
 DB_PASSWORD=yesulin-local
 MYSQL_ROOT_PASSWORD=yesulin-root-local
+NEXT_PUBLIC_API_MOCKING=
+NEXT_PUBLIC_SOCIAL_LOGIN=disabled
 ```
 
 기본 비밀번호는 로컬 개발 전용이다. 실제 운영 자격증명으로 사용하지 않는다.
@@ -43,10 +45,12 @@ MYSQL_ROOT_PASSWORD=yesulin-root-local
 전달하며, 설정하지 않으면 소셜 로그인은 기본적으로 비활성화된다. Provider 개발자 콘솔에는
 `http://localhost:3000/login/oauth2/code/{provider}` Callback을 등록한다.
 
-외부 OAuth 자격증명이 없는 기본 Compose 환경에서는 로그인 화면의 소셜 버튼이 로컬 전용 배우
-세션을 만들고 원래 지원서로 돌아간다. 이 API는 Spring `local` 프로필과
-`LOCAL_SOCIAL_LOGIN_ENABLED=true`가 모두 적용될 때만 등록된다. 실제 OAuth를 확인할 때는 자격증명을
-설정하고 `NEXT_PUBLIC_SOCIAL_LOGIN=enabled`로 Frontend 이미지를 빌드한다.
+`NEXT_PUBLIC_API_MOCKING`을 비워 둔 기본 Compose 환경은 실제 Backend API와 실제 OAuth를 사용한다.
+이 모드에서 소셜 로그인하려면 Provider 자격증명을 설정하고 `SOCIAL_LOGIN_ENABLED=true`로 Backend를
+실행해야 한다. 목 화면과 시드 데이터가 필요할 때만 루트 `.env`에
+`NEXT_PUBLIC_API_MOCKING=enabled`를 설정하고 Frontend 이미지를 다시 빌드한다. 목 환경에서도 실제
+OAuth를 함께 확인해야 할 때는 `NEXT_PUBLIC_SOCIAL_LOGIN=enabled`도 설정한다. 해당 플래그가 없으면
+목 환경의 소셜 버튼은 프론트 인증 상태만 만들며 Backend Session은 생성하지 않는다.
 
 ## 백엔드 변경 반영
 
