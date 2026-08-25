@@ -25,8 +25,9 @@ flowchart TB
     RESTORE --> REVIEW["최종 검토·필수 동의<br>프로필 보관·이번 값 갱신은 별도 선택"]
     REVIEW --> AUTH{"제출 시 로그인 상태?"}
     AUTH -- 아니오 --> SOCIAL["소셜 로그인<br>첫 로그인 시 계정 자동 생성"]
-    SOCIAL --> UPLOAD["최종 제출 자료 전송<br>사진·영상은 requirementId로 연결"]
-    AUTH -- 예 --> UPLOAD
+    SOCIAL --> CONFIRM["제출 확인<br>제출 후 일반 수정 불가 안내"]
+    AUTH -- 예 --> CONFIRM
+    CONFIRM --> UPLOAD["최종 제출 자료 전송<br>사진·영상은 requirementId로 연결"]
     UPLOAD --> FINAL_OPEN{"제출 클릭 시 서버 UTC 기준<br>모집 중·만 14세 이상?"}
     FINAL_OPEN -- 아니오 --> BLOCKED["제출 즉시 차단<br>로컬 Draft는 이 기기에 유지"]
     FINAL_OPEN -- 예 --> SUBMIT["텍스트·나이·배역명·파일 참조<br>불변 스냅샷 제출"]
