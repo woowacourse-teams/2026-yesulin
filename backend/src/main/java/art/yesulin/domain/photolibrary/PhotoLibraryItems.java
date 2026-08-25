@@ -31,7 +31,7 @@ public class PhotoLibraryItems {
     PhotoLibraryItem add(PhotoLibrary library, long fileId) {
         List<PhotoLibraryItem> activeItems = activeValues();
         if (activeItems.size() >= PhotoLibrary.MAX_PHOTO_COUNT) {
-            throw new BusinessException(LIMIT_EXCEEDED, "사진보관함에는 사진을 최대 20장까지 저장할 수 있습니다.");
+            throw new BusinessException(LIMIT_EXCEEDED, "사진보관함에는 사진을 최대 3장까지 저장할 수 있습니다.");
         }
         PhotoLibraryItem item = new PhotoLibraryItem(library, fileId, activeItems.size());
         values.add(item);
