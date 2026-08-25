@@ -17,6 +17,7 @@ import art.yesulin.domain.performance.Performance;
 import art.yesulin.domain.performance.PerformanceRepository;
 import art.yesulin.domain.performance.PerformanceRole;
 import art.yesulin.domain.screening.AuditionScreening;
+import art.yesulin.domain.screening.ScreeningCompletionRepository;
 import art.yesulin.domain.screening.ScreeningReview;
 import art.yesulin.domain.screening.ScreeningReviewRepository;
 import art.yesulin.domain.screening.ScreeningRound;
@@ -41,6 +42,7 @@ public class ScreeningQueryService {
     private final PerformanceRepository performanceRepository;
     private final SubmissionRepository submissionRepository;
     private final ScreeningReviewRepository reviewRepository;
+    private final ScreeningCompletionRepository completionRepository;
     private final FileAssetRepository fileAssetRepository;
     private final ObjectStorage objectStorage;
 
@@ -106,7 +108,8 @@ public class ScreeningQueryService {
         List<ScreeningReview> reviews = submissionIds.isEmpty()
                 ? List.of()
                 : reviewRepository.findAllByAuditionRoleIdAndSubmissionIdIn(roleId, submissionIds);
-        return new AuditionScreening(roleId, submissions, schedule.getStages(), reviews);
+        boolean completed = completionRepository.existsByAuditionRoleId(roleId);
+        return new AuditionScreening(roleId, submissions, schedule.getStages(), reviews, completed);
     }
 
     private List<Submission> findFilteredSubmissions(
@@ -131,7 +134,9 @@ public class ScreeningQueryService {
         List<ScreeningReview> reviews = submissionIds.isEmpty()
                 ? List.of()
                 : reviewRepository.findAllByAuditionRoleIdAndSubmissionIdIn(roleId, submissionIds);
-        return new AuditionScreening(roleId, submissions, schedule.getStages(), reviews).applicantsFor(round);
+        boolean completed = completionRepository.existsByAuditionRoleId(roleId);
+        return new AuditionScreening(roleId, submissions, schedule.getStages(), reviews, completed)
+                .applicantsFor(round);
     }
 
     private AuditionRole findRole(AuditionRoleSection section, long roleId) {

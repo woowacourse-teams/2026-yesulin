@@ -9,11 +9,14 @@ import art.yesulin.domain.audition.role.AuditionRoleSectionRepository;
 import art.yesulin.domain.audition.schedule.AuditionSchedule;
 import art.yesulin.domain.audition.schedule.AuditionScheduleRepository;
 import art.yesulin.domain.screening.AuditionScreening;
+import art.yesulin.domain.screening.ScreeningCompletionRepository;
 import art.yesulin.domain.screening.ScreeningReview;
 import art.yesulin.domain.screening.ScreeningReviewRepository;
 import art.yesulin.domain.screening.ScreeningRound;
 import art.yesulin.domain.submission.Submission;
 import art.yesulin.domain.submission.SubmissionRepository;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +32,8 @@ public class ScreeningReviewService {
     private final AuditionScheduleRepository scheduleRepository;
     private final SubmissionRepository submissionRepository;
     private final ScreeningReviewRepository reviewRepository;
+    private final ScreeningCompletionRepository completionRepository;
+    private final Clock clock;
 
     @Transactional
     public ScreeningReviewsResult save(long ownerId, long roleId, int round, SaveScreeningReviewsCommand command) {
@@ -41,6 +46,14 @@ public class ScreeningReviewService {
         );
         List<ScreeningReview> savedReviews = reviewRepository.saveAll(changedReviews);
         return ScreeningReviewsResult.from(roleId, screeningRound, savedReviews);
+    }
+
+    @Transactional
+    public void complete(long ownerId, long roleId) {
+        long auditionId = findAuditionId(roleId);
+        Audition audition = findAuditionForUpdate(ownerId, auditionId);
+        AuditionScreening screening = findScreening(audition.getId(), roleId);
+        screening.complete(Instant.now(clock)).ifPresent(completionRepository::save);
     }
 
     private long findAuditionId(long roleId) {
@@ -60,7 +73,8 @@ public class ScreeningReviewService {
         List<ScreeningReview> reviews = submissions.isEmpty()
                 ? List.of()
                 : reviewRepository.findAllByAuditionRoleIdAndSubmissionIdIn(roleId, submissionIds(submissions));
-        return new AuditionScreening(roleId, submissions, schedule.getStages(), reviews);
+        boolean completed = completionRepository.existsByAuditionRoleId(roleId);
+        return new AuditionScreening(roleId, submissions, schedule.getStages(), reviews, completed);
     }
 
     private List<UUID> submissionIds(List<Submission> submissions) {

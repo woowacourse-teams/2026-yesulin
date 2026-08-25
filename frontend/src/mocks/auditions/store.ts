@@ -67,23 +67,25 @@ export function roundNumbersForRole(role: RoleId): readonly RoundNumber[] {
   return ROUND_NUMBERS;
 }
 
-/**
- * 해당 차수에 심사할 대상. 1차는 전원, 2차부터는 직전 차수를 마감했을 때만
- * 그 차수 합격자가 넘어온다. 마감 전에는 비어 있다.
- */
+/** 해당 차수에 심사할 대상. 이전 모든 차수에서 합격한 지원자만 다음 차수로 승격된다. */
 export function poolFor(role: RoleId, round: RoundNumber): readonly MockApplicant[] {
   if (round === 1) return applicantsOfRole(role);
 
-  const previous = (round - 1) as RoundNumber;
-  if (!isRoundClosed(role, previous)) return [];
-  return applicantsOfRole(role).filter((applicant) => reviewOf(applicant.id, role, previous).status === "PASS");
+  return applicantsOfRole(role).filter((applicant) => {
+    for (let previous = 1; previous < round; previous += 1) {
+      if (reviewOf(applicant.id, role, previous as RoundNumber).status !== "PASS") return false;
+    }
+    return true;
+  });
 }
 
-/** 아직 마감되지 않은 가장 이른 차수. 전부 마감이면 마지막 차수를 반환한다. */
+/** 아직 검토할 지원자가 있는 가장 이른 차수. 모두 검토했으면 마지막 차수를 반환한다. */
 export function activeRound(role: RoleId): RoundNumber {
   const rounds = roundNumbersForRole(role);
   for (const round of rounds) {
-    if (!isRoundClosed(role, round)) return round;
+    if (poolFor(role, round).some((applicant) => reviewOf(applicant.id, role, round).status === "PENDING")) {
+      return round;
+    }
   }
   return rounds.at(-1) ?? 1;
 }

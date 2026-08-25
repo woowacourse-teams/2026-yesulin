@@ -8,13 +8,12 @@ import { useBoard } from "./board-context";
 const STATUS_ACTIVE = {
   PASS: "text-pass bg-pass-bg border-pass",
   FAIL: "text-fail bg-fail-bg border-fail",
-  ABSENT: "text-absent bg-absent-bg border-absent",
   ETC: "text-etc bg-etc-bg border-etc",
   PENDING: "text-pending bg-pending-bg border-pending",
 } as const satisfies Record<ReviewStatus, string>;
 
 export function DetailReview({ applicant }: { applicant: Applicant }) {
-  const { board, visible, saving, roundClosed, reviewCurrent, patchReview, openApplicant } = useBoard();
+  const { board, visible, saving, screeningCompleted, reviewCurrent, patchReview, openApplicant } = useBoard();
   const index = visible.findIndex((candidate) => candidate.id === applicant.id);
 
   return (
@@ -25,14 +24,14 @@ export function DetailReview({ applicant }: { applicant: Applicant }) {
           <span className="text-xs text-muted">{ROUND_LABELS[board.round]}</span>
         </span>
 
-        {roundClosed ? (
+        {screeningCompleted ? (
           <span className="rounded-control border border-border bg-card px-3 py-2 text-xs text-muted">
-            마감된 차수라 결과를 변경할 수 없습니다.
+            종료된 전형은 결과를 변경할 수 없습니다.
           </span>
         ) : (
           <>
             <div className="flex flex-wrap gap-1.5">
-              {selectableStatuses(board.round).map((status) => {
+              {selectableStatuses().map((status) => {
                 const active = applicant.review.status === status;
                 return (
                   <button

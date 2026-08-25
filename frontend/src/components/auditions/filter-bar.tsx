@@ -7,7 +7,7 @@ import { useBoard } from "./board-context";
 import { HorizontalScrollArea } from "./horizontal-scroll-area";
 
 export function FilterBar({ sheetOpen, onOpenSheet }: { sheetOpen: boolean; onOpenSheet: () => void }) {
-  const { board, filters, visible, setFilters } = useBoard();
+  const { filters, visible, setFilters } = useBoard();
   const activeCount = activeDetailFilterCount(filters);
 
   return (
@@ -16,7 +16,7 @@ export function FilterBar({ sheetOpen, onOpenSheet }: { sheetOpen: boolean; onOp
         {filters.work === "DONE" ? (
           <HorizontalScrollArea className="min-w-0 flex-1" scrollerClassName="pr-8">
             <div className="flex min-w-max gap-1.5">
-              {(["ALL", ...selectableStatuses(board.round)] as const).map((status) => (
+              {(["ALL", ...selectableStatuses()] as const).map((status) => (
                 <FilterChip
                   key={status}
                   pressed={filters.status === status}

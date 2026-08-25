@@ -128,7 +128,7 @@ class ScreeningReviewControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("INVALID_SCREENING_REVIEW"));
+                .andExpect(jsonPath("$.message").exists());
 
         assertEquals(0, screeningReviewRepository.count());
     }

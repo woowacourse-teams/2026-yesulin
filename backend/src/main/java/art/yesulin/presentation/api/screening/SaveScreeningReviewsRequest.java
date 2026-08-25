@@ -13,7 +13,7 @@ import java.util.UUID;
 public record SaveScreeningReviewsRequest(
         @NotEmpty List<@NotNull UUID> submissionIds,
         @Pattern(
-                regexp = "PENDING|PASS|FAIL|ABSENT|ETC",
+                regexp = "PENDING|PASS|FAIL|ETC",
                 flags = Pattern.Flag.CASE_INSENSITIVE,
                 message = "지원하지 않는 심사 상태입니다."
         ) String status,

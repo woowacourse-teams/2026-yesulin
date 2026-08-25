@@ -16,7 +16,8 @@ record AuditionManagementQueryRows(
         List<StageRow> stages,
         List<AuditionRoleRow> auditionRoles,
         List<SubmissionRoleRow> submissionRoles,
-        List<ReviewRow> reviews
+        List<ReviewRow> reviews,
+        List<CompletionRow> completions
 ) {
 
     record PerformanceRow(long id, long posterFileId, String title, String roadAddress, Instant createdAt) {
@@ -68,5 +69,8 @@ record AuditionManagementQueryRows(
             long screeningStageId,
             ScreeningReviewStatus status
     ) {
+    }
+
+    record CompletionRow(long auditionRoleId) {
     }
 }

@@ -17,7 +17,7 @@ const WORK_TABS = [
 ] as const satisfies readonly { mode: WorkMode; label: string }[];
 
 export function DesktopBoardToolbar({ onOpenFilter }: { onOpenFilter: () => void }) {
-  const { board, filters, visible, setFilters, clearSelection } = useBoard();
+  const { filters, visible, setFilters, clearSelection } = useBoard();
   const detailCount = activeDetailFilterCount(filters);
   const changeWork = (work: WorkMode) => {
     clearSelection();
@@ -51,7 +51,7 @@ export function DesktopBoardToolbar({ onOpenFilter }: { onOpenFilter: () => void
             onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value as StatusFilter }))}
             className="min-h-10 rounded-control border border-border bg-card px-2.5 text-dense font-semibold text-foreground outline-none focus:border-brand focus:ring-2 focus:ring-brand-soft"
           >
-            {(["ALL", ...selectableStatuses(board.round)] as const).map((status) => (
+            {(["ALL", ...selectableStatuses()] as const).map((status) => (
               <option key={status} value={status}>
                 {status === "ALL" ? "전체" : STATUS_LABELS[status as ReviewStatus]}
               </option>

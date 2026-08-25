@@ -12,7 +12,6 @@ import { useToast } from "./toast";
 const STATUS_ACTIVE = {
   PASS: "border-pass bg-pass-bg text-pass",
   FAIL: "border-fail bg-fail-bg text-fail",
-  ABSENT: "border-absent bg-absent-bg text-absent",
   ETC: "border-etc bg-etc-bg text-etc",
   PENDING: "border-pending bg-pending-bg text-pending",
 } as const satisfies Record<ReviewStatus, string>;
@@ -31,7 +30,7 @@ export function ApplicantReviewDecision({
   const [otherOpen, setOtherOpen] = useState(false);
   const [otherReason, setOtherReason] = useState(applicant.review.status === "ETC" ? applicant.review.memo : "");
   const toast = useToast();
-  const roundClosed = board.rounds.find((state) => state.round === board.round)?.closed ?? false;
+  const screeningCompleted = board.role.allRoundsClosed;
   const index = board.applicants.findIndex((candidate) => candidate.id === applicant.id);
 
   const commit = async (
@@ -77,11 +76,11 @@ export function ApplicantReviewDecision({
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          {roundClosed ? (
+          {screeningCompleted ? (
             <p className="rounded-control border border-border bg-surface px-3 py-2 text-sm text-muted">
-              마감된 차수라 결과를 변경할 수 없습니다.
+              종료된 전형은 결과를 변경할 수 없습니다.
             </p>
-          ) : selectableStatuses(board.round).map((status) => {
+          ) : selectableStatuses().map((status) => {
             const active = applicant.review.status === status;
             return (
               <button
@@ -119,7 +118,7 @@ export function ApplicantReviewDecision({
         </span>
         <textarea
           value={note}
-          disabled={roundClosed || saving}
+          disabled={screeningCompleted || saving}
           onChange={(event) => setNote(event.target.value)}
           onBlur={() => {
             if (note !== applicant.review.note) void commit({ note }, "내부 메모를 저장했습니다.");

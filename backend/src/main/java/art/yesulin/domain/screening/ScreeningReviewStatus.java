@@ -11,7 +11,6 @@ public enum ScreeningReviewStatus {
     PENDING,
     PASS,
     FAIL,
-    ABSENT,
     ETC;
 
     public static ScreeningReviewStatus from(String value) {

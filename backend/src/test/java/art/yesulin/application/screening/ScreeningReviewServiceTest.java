@@ -10,6 +10,7 @@ import art.yesulin.domain.audition.schedule.AuditionScheduleRepository;
 import art.yesulin.domain.file.FileAssetRepository;
 import art.yesulin.domain.file.FileReferenceRepository;
 import art.yesulin.domain.performance.PerformanceRepository;
+import art.yesulin.domain.screening.ScreeningCompletionRepository;
 import art.yesulin.domain.screening.ScreeningReviewErrorCode;
 import art.yesulin.domain.screening.ScreeningReviewRepository;
 import art.yesulin.domain.submission.SubmissionRepository;
@@ -42,6 +43,9 @@ class ScreeningReviewServiceTest {
     private ScreeningReviewRepository screeningReviewRepository;
 
     @Autowired
+    private ScreeningCompletionRepository completionRepository;
+
+    @Autowired
     private AuditionScheduleRepository scheduleRepository;
 
     @Autowired
@@ -64,6 +68,7 @@ class ScreeningReviewServiceTest {
 
     @BeforeEach
     void cleanUp() {
+        completionRepository.deleteAll();
         screeningReviewRepository.deleteAll();
         submissionRepository.deleteAll();
         scheduleRepository.deleteAll();
@@ -72,6 +77,35 @@ class ScreeningReviewServiceTest {
         fileReferenceRepository.deleteAll();
         performanceRepository.deleteAll();
         fileAssetRepository.deleteAll();
+    }
+
+    @Test
+    void completesScreeningIdempotentlyAfterEveryRoundIsReviewed() {
+        long roleId = saveScreeningFixture();
+        screeningReviewService.save(
+                OWNER_ID, roleId, 1,
+                new SaveScreeningReviewsCommand(List.of(SUBMISSION_ID), "PASS", null, null)
+        );
+
+        screeningReviewService.save(
+                OWNER_ID, roleId, 2,
+                new SaveScreeningReviewsCommand(List.of(SUBMISSION_ID), "PASS", null, null)
+        );
+        screeningReviewService.complete(OWNER_ID, roleId);
+        screeningReviewService.complete(OWNER_ID, roleId);
+
+        assertEquals(1, completionRepository.count());
+    }
+
+    @Test
+    void rejectsCompletingScreeningWithPendingReview() {
+        long roleId = saveScreeningFixture();
+
+        BusinessException exception = assertThrows(
+                BusinessException.class, () -> screeningReviewService.complete(OWNER_ID, roleId)
+        );
+
+        assertEquals(ScreeningReviewErrorCode.ROUND_NOT_READY, exception.getErrorCode());
     }
 
     @Test

@@ -52,31 +52,6 @@ class AuditionScreeningTest {
     }
 
     @Test
-    void rejectsAbsentReviewForFirstRound() {
-        AuditionScreening screening = screening();
-        ScreeningReviewChange change = new ScreeningReviewChange(ScreeningReviewStatus.ABSENT, null, null);
-
-        BusinessException exception = assertThrows(
-                BusinessException.class,
-                () -> screening.review(List.of(PENDING_SUBMISSION_ID), new ScreeningRound(1), change)
-        );
-
-        assertEquals(ScreeningReviewErrorCode.INVALID_REVIEW, exception.getErrorCode());
-    }
-
-    @Test
-    void allowsAbsentReviewFromSecondRound() {
-        AuditionScreening screening = screening();
-        ScreeningReviewChange change = new ScreeningReviewChange(ScreeningReviewStatus.ABSENT, null, null);
-
-        ScreeningReview review = screening.review(
-                List.of(PASSED_SUBMISSION_ID), new ScreeningRound(2), change
-        ).getFirst();
-
-        assertEquals(ScreeningReviewStatus.ABSENT, review.getStatus());
-    }
-
-    @Test
     void createsAndChangesReviewForSelectedApplicants() {
         AuditionScreening screening = screening();
         ScreeningReviewChange change = new ScreeningReviewChange(ScreeningReviewStatus.PASS, null, "확인 완료");

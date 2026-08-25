@@ -8,7 +8,7 @@ import type { PerformanceRoleTemplate } from "./creation-types";
  *         └ Role         배역 — 한 공고 안에 여러 개
  *             └ Submission   제출 지원서
  *
- * 전형은 배역 단위로 독립 진행된다. 차수 마감(Round)도 배역별로 따로 관리한다.
+ * 전형은 배역 단위로 독립 진행되고, 이전 차수 합격자는 다음 차수 대상으로 자동 승격된다.
  * 심사 결과(Review)는 (지원서, 배역, 차수)에 붙는다. 복수 배역과 다음 차수의
  * 결과가 서로 덮이지 않도록 각 심사 단위를 독립적으로 식별한다.
  */
@@ -32,7 +32,7 @@ export const isSubmissionId = (value: string): value is SubmissionId => UUID_PAT
 export const ROUND_NUMBERS = [1, 2, 3, 4, 5] as const;
 export type RoundNumber = (typeof ROUND_NUMBERS)[number];
 
-export const REVIEW_STATUSES = ["PENDING", "PASS", "FAIL", "ABSENT", "ETC"] as const;
+export const REVIEW_STATUSES = ["PENDING", "PASS", "FAIL", "ETC"] as const;
 export type ReviewStatus = (typeof REVIEW_STATUSES)[number];
 
 /** 공고의 작성·모집·전형 진행 단계. 접수 마감과 전형 종료는 다른 상태다. */
@@ -53,7 +53,6 @@ export type ReviewCounts = {
   readonly done: number;
   readonly pass: number;
   readonly fail: number;
-  readonly absent: number;
   readonly etc: number;
 };
 
@@ -111,7 +110,7 @@ export type RoleSummary = {
   readonly ageMin: number;
   readonly ageMax: number;
   readonly applicantCount: number;
-  /** 아직 마감되지 않은 가장 이른 차수. 전부 마감이면 마지막 차수. */
+  /** 아직 검토할 지원자가 있는 가장 이른 차수. 모두 검토했으면 마지막 차수. */
   readonly activeRound: RoundNumber;
   readonly allRoundsClosed: boolean;
   readonly progress: ReviewProgress;
@@ -178,9 +177,6 @@ export type ApplicantVideo = {
 export type RoundState = {
   readonly round: RoundNumber;
   readonly name: string;
-  /** 이전 차수가 마감돼 이 차수를 열람할 수 있는지 여부. */
-  readonly open: boolean;
-  readonly closed: boolean;
   readonly counts: ReviewCounts;
   readonly progress: ReviewProgress;
 };
@@ -284,7 +280,6 @@ export type SaveReviewRequest = {
   readonly note?: string;
 };
 
-export type CloseRoundRequest = {
+export type CompleteScreeningRequest = {
   readonly roleId: RoleId;
-  readonly round: RoundNumber;
 };

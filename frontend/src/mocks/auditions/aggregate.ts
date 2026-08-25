@@ -37,7 +37,6 @@ export function countsFor(role: RoleId, round: RoundNumber): ReviewCounts {
   const pool = poolFor(role, round);
   let pass = 0;
   let fail = 0;
-  let absent = 0;
   let etc = 0;
   let pending = 0;
 
@@ -45,12 +44,11 @@ export function countsFor(role: RoleId, round: RoundNumber): ReviewCounts {
     const { status } = reviewOf(applicant.id, role, round);
     if (status === "PASS") pass += 1;
     else if (status === "FAIL") fail += 1;
-    else if (status === "ABSENT") absent += 1;
     else if (status === "ETC") etc += 1;
     else pending += 1;
   }
 
-  return { all: pool.length, pending, done: pool.length - pending, pass, fail, absent, etc };
+  return { all: pool.length, pending, done: pool.length - pending, pass, fail, etc };
 }
 
 export const progressOf = (counts: ReviewCounts): ReviewProgress => ({
@@ -62,13 +60,11 @@ export const progressOf = (counts: ReviewCounts): ReviewProgress => ({
 export function roundStatesOf(role: RoleId): readonly RoundState[] {
   const found = findRole(role);
   const configured = found?.posting.rounds;
-  return roundNumbersForRole(role).map((round, index, rounds) => {
+  return roundNumbersForRole(role).map((round) => {
     const counts = countsFor(role, round);
     return {
       round,
       name: configured?.find((item) => item.round === round)?.name || ROUND_NAMES[round],
-      open: index === 0 || isRoundClosed(role, rounds[index - 1]!),
-      closed: isRoundClosed(role, round),
       counts,
       progress: progressOf(counts),
     };

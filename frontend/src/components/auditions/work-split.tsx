@@ -2,7 +2,7 @@
 
 import type { WorkMode } from "@/features/auditions/filters";
 import { useBoard } from "./board-context";
-import { CloseRoundModal } from "./close-round-modal";
+import { ScreeningCompletionModal } from "./screening-completion-modal";
 import { PrimaryButton } from "@/components/ui/controls";
 
 const TABS = [
@@ -11,11 +11,12 @@ const TABS = [
 ] as const satisfies readonly { mode: WorkMode; label: string }[];
 
 export function WorkSplit() {
-  const { board, filters, roundClosed, setFilters, clearSelection, closePrompt, setClosePrompt } =
+  const { board, filters, screeningCompleted, setFilters, clearSelection, completionPrompt, setCompletionPrompt } =
     useBoard();
   const counts = board.rounds.find((state) => state.round === board.round)?.counts;
   if (!counts) return null;
-  const canClose = !roundClosed && counts.all > 0 && counts.pending === 0;
+  const finalRound = board.rounds.at(-1)?.round === board.round;
+  const canComplete = !screeningCompleted && finalRound && counts.pending === 0;
 
   return (
     <>
@@ -45,12 +46,12 @@ export function WorkSplit() {
         })}
 
         <div className="ml-auto flex items-center gap-2">
-          {roundClosed ? <span className="whitespace-nowrap rounded-full bg-pass-bg px-2.5 py-1 text-xs font-semibold text-pass">마감됨</span> : canClose ? <PrimaryButton onClick={() => setClosePrompt("manual")} className="min-h-9 whitespace-nowrap px-3 text-sm">차수 마감</PrimaryButton> : <span className="whitespace-nowrap text-xs text-muted">대기 <b className="num text-foreground">{counts.pending}</b>명</span>}
+          {screeningCompleted ? <span className="whitespace-nowrap rounded-full bg-pass-bg px-2.5 py-1 text-xs font-semibold text-pass">전형 종료</span> : canComplete ? <PrimaryButton onClick={() => setCompletionPrompt("manual")} className="min-h-9 whitespace-nowrap px-3 text-sm">전형 종료</PrimaryButton> : <span className="whitespace-nowrap text-xs text-muted">대기 <b className="num text-foreground">{counts.pending}</b>명</span>}
         </div>
       </div>
 
-      {closePrompt ? (
-        <CloseRoundModal auto={closePrompt === "auto"} onClose={() => setClosePrompt(null)} />
+      {completionPrompt ? (
+        <ScreeningCompletionModal auto={completionPrompt === "auto"} onClose={() => setCompletionPrompt(null)} />
       ) : null}
     </>
   );

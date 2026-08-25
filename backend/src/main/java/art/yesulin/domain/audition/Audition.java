@@ -130,6 +130,6 @@ public class Audition {
     }
 
     public boolean isPublished() {
-        return status == AuditionStatus.PUBLISHED;
+        return status != AuditionStatus.DRAFT;
     }
 }

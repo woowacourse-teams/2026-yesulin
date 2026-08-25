@@ -11,13 +11,10 @@ export const STATUS_LABELS = {
   PENDING: "미검토",
   PASS: "합격",
   FAIL: "불합격",
-  ABSENT: "불참",
   ETC: "기타",
 } as const satisfies Record<ReviewStatus, string>;
 
-/** 1차는 현장에 오지 않으므로 '불참'을 선택할 수 없다. */
-export const selectableStatuses = (round: RoundNumber): readonly ReviewStatus[] =>
-  round === 1 ? ["PASS", "FAIL", "ETC"] : ["PASS", "FAIL", "ABSENT", "ETC"];
+export const selectableStatuses = (): readonly ReviewStatus[] => ["PASS", "FAIL", "ETC"];
 
 export const ROUND_LABELS = {
   1: "1차 서류",

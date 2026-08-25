@@ -29,7 +29,7 @@ export function AuditionBoard({
     [deferredQuery, filters],
   );
   const requestKey = `${roleId}:${round ?? "auto"}:${screeningSearchKey(searchCondition)}`;
-  /** 심사·마감 응답으로 갱신된 보드. 조회 결과보다 우선하고, 차수가 바뀌면 무효가 된다. */
+  /** 심사·종료 응답으로 갱신된 보드. 조회 결과보다 우선하고, 차수가 바뀌면 무효가 된다. */
   const [applied, setApplied] = useState<{ key: string; board: AuditionBoardResponse } | null>(
     null,
   );
@@ -53,8 +53,7 @@ export function AuditionBoard({
 
   const goToRound = useCallback((next: RoundNumber) => {
     setApplied(null);
-    const closed = board?.rounds.find((state) => state.round === next)?.closed ?? false;
-    setFilters(initialFilters(closed ? "DONE" : "PENDING"));
+    setFilters(initialFilters(board?.role.allRoundsClosed ? "DONE" : "PENDING"));
     setRound(next);
   }, [board]);
 
