@@ -12,6 +12,7 @@ import { applicantRoutes } from "@/features/applicants/routes";
 import type { ApplicantProfileResponse } from "@/features/applicants/types";
 import { useAuditionQuery } from "@/features/auditions/use-audition-query";
 import { SessionApiError } from "@/features/auth/session-api";
+import { DefaultProfileIcon } from "@/components/ui/default-profile-icon";
 
 const navigation = [
   { href: applicantRoutes.home, label: "홈", icon: "home" },
@@ -111,10 +112,6 @@ function ApplicantAccountMenu({ profile, onLogout }: { readonly profile: Applica
       </button>
     </div> : null}
   </div>;
-}
-
-function DefaultProfileIcon() {
-  return <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6 fill-none stroke-current stroke-[1.8]" strokeLinecap="round"><circle cx="12" cy="8" r="3.5" /><path d="M5.5 20c.7-3.8 2.8-5.7 6.5-5.7s5.8 1.9 6.5 5.7" /></svg>;
 }
 
 function ApplicantNavLink({ href, label, pathname }: { href: string; label: string; icon: string; pathname: string }) {

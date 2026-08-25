@@ -61,7 +61,7 @@ function MobileProducerNavigationPanel() {
         labelledBy={TITLE_ID}
         placement="left"
         scrimClassName="bg-sidebar/65"
-        className="flex h-dvh w-[min(360px,88vw)] flex-col overflow-hidden rounded-r-modal bg-sidebar text-sidebar-text shadow-[var(--shadow-modal)] lg:hidden"
+        className="flex h-dvh w-[min(360px,88vw)] flex-col overflow-hidden rounded-r-modal border-r border-sidebar-line bg-sidebar text-sidebar-text shadow-[var(--shadow-modal)] lg:hidden"
       >
         <div id="mobile-producer-navigation" className="flex min-h-0 flex-1 flex-col">
           <header className="flex min-h-16 items-center gap-3 border-b border-sidebar-line px-4">

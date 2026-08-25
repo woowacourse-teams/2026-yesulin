@@ -14,10 +14,11 @@ export type CrumbItem = {
 const SHOW_PROTOTYPE = process.env.NODE_ENV === "development";
 
 export function Breadcrumb({ items }: { items: readonly CrumbItem[] }) {
-  const { focusMode, openSidebar } = useProducerNavigation();
+  const { focusMode, sidebarOpen, openSidebar } = useProducerNavigation();
+  const showSidebarButton = focusMode || !sidebarOpen;
   return (
     <div className={`glass-surface flex min-h-12 flex-wrap items-center gap-2 border-b border-border px-4 py-2 md:px-6 ${focusMode ? "lg:sticky lg:top-0 lg:z-30" : ""}`}>
-      {focusMode ? (
+      {showSidebarButton ? (
         <div className="mr-1 hidden shrink-0 items-center gap-2 lg:flex">
           <button
             type="button"
@@ -37,7 +38,7 @@ export function Breadcrumb({ items }: { items: readonly CrumbItem[] }) {
           <span aria-hidden="true" className="h-6 w-px bg-border" />
         </div>
       ) : null}
-      <nav aria-label="현재 위치" className={`${focusMode ? "" : "-ml-2"} flex min-w-0 flex-wrap items-center gap-0.5`}>
+      <nav aria-label="현재 위치" className={`${showSidebarButton ? "" : "-ml-2"} flex min-w-0 flex-wrap items-center gap-0.5`}>
         {items.map((item, index) => (
           <span key={`${item.label}-${index}`} className="flex items-center">
             {index > 0 ? (
