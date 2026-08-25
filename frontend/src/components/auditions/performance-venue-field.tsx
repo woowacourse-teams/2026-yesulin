@@ -39,19 +39,70 @@ export function PerformanceVenueField({ venue, address, onVenueChange, onAddress
   readonly mapLabel?: string;
 }) {
   const mapRef = useRef<HTMLDivElement>(null);
+  const latestAddressRef = useRef(address);
+  const onAddressChangeRef = useRef(onAddressChange);
   const [message, setMessage] = useState("");
   const mapKey = process.env.NEXT_PUBLIC_KAKAO_MAP_APP_KEY;
 
   useEffect(() => {
-    if (!mapKey || address.latitude === null || address.longitude === null || !mapRef.current) return;
+    latestAddressRef.current = address;
+    onAddressChangeRef.current = onAddressChange;
+  }, [address, onAddressChange]);
+
+  useEffect(() => {
+    if (!mapKey || !address.roadAddress || !mapRef.current) return;
+    let cancelled = false;
     const src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(mapKey)}&autoload=false&libraries=services`;
-    loadScript("kakao-map-sdk", src).then(() => window.kakao?.maps.load(() => {
-      if (!mapRef.current || !window.kakao) return;
-      const center = new window.kakao.maps.LatLng(address.latitude!, address.longitude!);
-      const map = new window.kakao.maps.Map(mapRef.current, { center, level: 3 });
-      new window.kakao.maps.Marker({ map, position: center });
-    })).catch(() => setMessage("지도를 불러오지 못했습니다. 주소는 그대로 저장할 수 있어요."));
-  }, [address.latitude, address.longitude, mapKey]);
+    loadScript("kakao-map-sdk", src)
+      .then(() => new Promise<void>((resolve, reject) => {
+        if (!window.kakao) {
+          reject(new Error("kakao maps unavailable"));
+          return;
+        }
+        window.kakao.maps.load(() => {
+          if (cancelled || !mapRef.current || !window.kakao) {
+            resolve();
+            return;
+          }
+
+          const drawMap = (latitude: number, longitude: number) => {
+            if (cancelled || !mapRef.current || !window.kakao) return;
+            const center = new window.kakao.maps.LatLng(latitude, longitude);
+            const map = new window.kakao.maps.Map(mapRef.current, { center, level: 3 });
+            new window.kakao.maps.Marker({ map, position: center });
+            setMessage("");
+          };
+
+          if (address.latitude !== null && address.longitude !== null) {
+            drawMap(address.latitude, address.longitude);
+            resolve();
+            return;
+          }
+
+          const geocoder = new window.kakao.maps.services.Geocoder();
+          geocoder.addressSearch(address.roadAddress, (items, status) => {
+            if (cancelled) {
+              resolve();
+              return;
+            }
+            if (!window.kakao || status !== window.kakao.maps.services.Status.OK || !items[0]) {
+              reject(new Error("address geocoding failed"));
+              return;
+            }
+            const latitude = Number(items[0].y);
+            const longitude = Number(items[0].x);
+            onAddressChangeRef.current({ ...latestAddressRef.current, latitude, longitude });
+            drawMap(latitude, longitude);
+            resolve();
+          });
+        });
+      }))
+      .catch(() => {
+        if (!cancelled) setMessage("지도를 불러오지 못했습니다. 주소는 그대로 저장할 수 있어요.");
+      });
+
+    return () => { cancelled = true; };
+  }, [address.latitude, address.longitude, address.roadAddress, mapKey]);
 
   const searchAddress = async () => {
     setMessage("");
@@ -65,16 +116,7 @@ export function PerformanceVenueField({ venue, address, onVenueChange, onAddress
         onAddressChange(base);
         if (!mapKey) {
           setMessage("도로명주소를 선택했습니다. 지도 좌표는 카카오 지도 키가 설정되면 함께 저장됩니다.");
-          return;
         }
-        const mapSrc = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(mapKey)}&autoload=false&libraries=services`;
-        loadScript("kakao-map-sdk", mapSrc).then(() => window.kakao?.maps.load(() => {
-          const geocoder = window.kakao && new window.kakao.maps.services.Geocoder();
-          geocoder?.addressSearch(roadAddress, (items, status) => {
-            if (!window.kakao || status !== window.kakao.maps.services.Status.OK || !items[0]) return;
-            onAddressChange({ ...base, latitude: Number(items[0].y), longitude: Number(items[0].x) });
-          });
-        }));
       } }).open();
     } catch {
       setMessage("주소 검색을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");

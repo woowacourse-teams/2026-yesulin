@@ -24,6 +24,11 @@ npm run start
 
 기본 실행과 루트 `compose.yaml`의 로컬 통합 환경은 MSW를 시작하지 않고 Backend API만 호출한다. 목 시나리오가 필요한 경우에만 `.env.development.local`의 `NEXT_PUBLIC_API_MOCKING`을 `enabled`로 바꾼다.
 
+공연장 주소를 카카오 지도에 표시하려면 `NEXT_PUBLIC_KAKAO_MAP_APP_KEY`에 카카오 Maps JavaScript
+키를 설정한다. `npm run dev`는 `frontend/.env.development.local`, Docker Compose는 저장소 루트
+`.env`, Vercel 배포는 Vercel 환경 변수에 같은 이름으로 설정한다. `NEXT_PUBLIC_*` 값은 빌드된
+브라우저 코드에 포함되므로 카카오 개발자 콘솔의 웹 플랫폼 허용 도메인도 함께 제한한다.
+
 ## Vercel 배포
 
 Production 프론트 주소는 `https://yesulin.art`다. Vercel의 `API_ORIGIN`에는 API origin인 `https://dcijkydwh7e79.cloudfront.net`을 설정한다. 값이 있으면 Next.js가 같은 origin의 `/api/v1/**`, `/oauth2/**`, `/login/oauth2/**` 요청을 CloudFront의 동일한 경로로 rewrite하며, 브라우저에는 CloudFront 주소를 노출하지 않는다.
