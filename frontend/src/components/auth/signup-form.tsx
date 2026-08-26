@@ -76,7 +76,8 @@ export function SignupForm() {
       const serverSession = await requestLogin(response.email, values.password);
       setSession({
         credential: `member-${serverSession.memberId}`,
-        role: serverSession.role,
+        // 이 흐름으로 만들어지는 계정은 기획사/제작사뿐이다.
+        role: "PRODUCER",
         displayName: response.companyName,
         producerStatus: serverSession.status,
       });

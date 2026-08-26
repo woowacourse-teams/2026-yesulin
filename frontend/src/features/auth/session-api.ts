@@ -4,7 +4,7 @@ import { authenticatedFetch } from "./unauthorized";
 const API_BASE_PATH = "/api/v1";
 const CSRF_HEADER_NAME = "X-CSRF-Token";
 
-export type SessionRole = "APPLICANT" | "PRODUCER";
+export type SessionRole = "APPLICANT" | "PRODUCER" | "ADMIN";
 
 export type SessionStatus = "PENDING" | "ACTIVE";
 

@@ -26,6 +26,7 @@ MSW 전용 경로를 어떻게 구분하는지만 설명한다.
 - `/api/v1/auditions/{auditionId}/submissions`, 내 지원서 목록·상세
 - `/api/v1/audition-roles/{roleId}/screening-rounds/**`
 - `/api/v1/audition-roles/{roleId}/screening/completion`
+- `/api/v1/admin/**` (운영 대시보드 전용, MSW 대상 아님)
 
 심사 상태는 `PENDING`, `PASS`, `FAIL`, `ETC`만 사용한다. 심사 종료는 차수별이 아니라 공고 배역 전체다.
 

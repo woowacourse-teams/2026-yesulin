@@ -3,6 +3,7 @@ package art.yesulin.domain.member;
 import static art.yesulin.domain.common.validation.DomainValidator.requireNonNull;
 import static art.yesulin.domain.common.validation.DomainValidator.requireText;
 
+import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.member.converter.MemberStatusConverter;
 import art.yesulin.domain.member.converter.MemberTypeConverter;
 import art.yesulin.domain.member.event.ProducerSignedUpEvent;
@@ -62,6 +63,18 @@ public class Member extends AbstractAggregateRoot<Member> {
         return new Member(null, null, MemberType.APPLICANT, MemberStatus.ACTIVE);
     }
 
+    /**
+     * 운영자 계정은 가입 경로가 없고 서버 설정으로만 만든다.
+     */
+    public static Member ofAdmin(String email, String password) {
+        return new Member(
+                requireText(email, "이메일이 필요합니다."),
+                requireText(password, "비밀번호가 필요합니다."),
+                MemberType.ADMIN,
+                MemberStatus.ACTIVE
+        );
+    }
+
     public static Member ofProducer(String email, String password) {
         String validEmail = requireText(email, "이메일이 필요합니다.");
         Member member = new Member(validEmail, password, MemberType.PRODUCER, MemberStatus.PENDING);
@@ -73,7 +86,30 @@ public class Member extends AbstractAggregateRoot<Member> {
         if (status == MemberStatus.ACTIVE) {
             return;
         }
-        this.status = MemberStatus.ACTIVE;
+        changeStatus(MemberStatus.ACTIVE);
+    }
+
+    public void deactivate() {
+        changeStatus(MemberStatus.PENDING);
+    }
+
+    /**
+     * 운영자 계정은 스스로를 잠글 수 없어야 하므로 상태 전환 대상에서 제외한다.
+     */
+    public void changeStatus(MemberStatus target) {
+        requireNonNull(target, "회원 상태가 필요합니다.");
+        if (type == MemberType.ADMIN) {
+            throw new BusinessException(MemberErrorCode.STATUS_CHANGE_NOT_ALLOWED, "운영자 계정의 상태는 바꿀 수 없습니다.");
+        }
+        this.status = target;
+    }
+
+    public void replacePassword(String encodedPassword) {
+        this.password = requireText(encodedPassword, "비밀번호가 필요합니다.");
+    }
+
+    public boolean isAdmin() {
+        return type == MemberType.ADMIN;
     }
 
     public boolean hasPassword() {

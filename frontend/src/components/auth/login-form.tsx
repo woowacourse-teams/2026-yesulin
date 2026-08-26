@@ -91,9 +91,17 @@ export function LoginForm({ returnTo, applicationFlow = false }: { readonly retu
       }
     }
 
+    // 운영자 계정은 공개 서비스 화면을 쓰지 않으므로 바로 운영 대시보드로 보낸다.
+    const serverRole = serverSession?.role;
+    if (serverRole === "ADMIN") {
+      toast("운영자 계정으로 로그인했습니다.", { type: "success" });
+      router.push("/admin");
+      return;
+    }
+
     setSession({
       credential: serverSession ? `member-${serverSession.memberId}` : createFrontendCredential(),
-      role: serverSession?.role ?? "PRODUCER",
+      role: serverRole ?? "PRODUCER",
       displayName: trimmedIdentifier,
       producerStatus: serverSession?.status ?? "ACTIVE",
     });

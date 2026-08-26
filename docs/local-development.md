@@ -12,6 +12,13 @@ docker compose up --build -d --wait
 - MySQL: `localhost:3307`
 - LocalStack S3: `localhost:4566`
 
+운영 대시보드(`/admin`)를 로컬에서 확인하려면 루트 `.env`에 `YESULIN_ADMIN_ACCOUNTS`를 설정한다. 값이 없으면
+운영자 계정이 만들어지지 않아 로그인할 수 없다.
+
+```bash
+YESULIN_ADMIN_ACCOUNTS=admin@yesulin.art:local-admin-passphrase
+```
+
 기본 Compose는 실제 Backend API를 사용한다. 목 시나리오가 필요할 때만 루트 `.env`에
 `NEXT_PUBLIC_API_MOCKING=enabled`를 설정하고 프론트 이미지를 다시 빌드한다. OAuth에는 provider credential과
 `SOCIAL_LOGIN_ENABLED=true`가 필요하다.

@@ -3,6 +3,7 @@ package art.yesulin.domain.member;
 public enum MemberType {
 
     APPLICANT,
-    PRODUCER
+    PRODUCER,
+    ADMIN
 
 }
