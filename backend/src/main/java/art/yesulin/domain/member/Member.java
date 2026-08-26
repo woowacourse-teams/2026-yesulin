@@ -115,4 +115,8 @@ public class Member extends AbstractAggregateRoot<Member> {
     public boolean hasPassword() {
         return password != null;
     }
+
+    public void changePassword(String encodedPassword) {
+        this.password = requireText(encodedPassword, "암호화된 비밀번호가 필요합니다.");
+    }
 }

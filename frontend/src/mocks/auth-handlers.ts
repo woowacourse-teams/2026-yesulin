@@ -8,6 +8,8 @@ const pendingProducerEmails = new Set<string>();
 let mockSession: { memberId: number; role: "APPLICANT" | "PRODUCER"; status: "PENDING" | "ACTIVE" } | null = null;
 const realProducerLoginEnabled = frontendEnvironment.producerLoginEnabled;
 const realSocialLoginEnabled = frontendEnvironment.socialLoginEnabled;
+const MOCK_PASSWORD_RESET_TOKEN = "mock-password-reset-token";
+let mockPasswordResetAvailable = true;
 const error = (code: string, message: string, status = 400) => HttpResponse.json({ code, message }, { status });
 
 export const authHandlers = [
@@ -48,6 +50,44 @@ export const authHandlers = [
     if (mockSession.role !== "PRODUCER" || mockSession.status !== "PENDING") {
       return error("AUTH_INACTIVE_MEMBER", "이메일 인증 대기 계정만 재전송할 수 있습니다.", 403);
     }
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  http.post("/api/v1/auth/password-resets", async () => {
+    if (realProducerLoginEnabled) return passthrough();
+    await delay(320);
+    mockPasswordResetAvailable = true;
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  http.get("/api/v1/auth/password-resets", async ({ request }) => {
+    if (realProducerLoginEnabled) return passthrough();
+    await delay(240);
+    const token = new URL(request.url).searchParams.get("token");
+    if (token !== MOCK_PASSWORD_RESET_TOKEN || !mockPasswordResetAvailable) {
+      return error("AUTH_INVALID_PASSWORD_RESET", "비밀번호 재설정 링크가 유효하지 않습니다.");
+    }
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  http.patch("/api/v1/auth/password-resets", async ({ request }) => {
+    if (realProducerLoginEnabled) return passthrough();
+    await delay(320);
+    const body = (await request.json()) as {
+      token?: string;
+      password?: string;
+      passwordConfirm?: string;
+    };
+    if (body.token !== MOCK_PASSWORD_RESET_TOKEN || !mockPasswordResetAvailable) {
+      return error("AUTH_INVALID_PASSWORD_RESET", "비밀번호 재설정 링크가 유효하지 않습니다.");
+    }
+    if ((body.password?.length ?? 0) < 8) {
+      return error("AUTH_INVALID_PASSWORD_RESET", "비밀번호는 8자 이상 입력해 주세요.");
+    }
+    if (body.password !== body.passwordConfirm) {
+      return error("AUTH_INVALID_PASSWORD_RESET", "비밀번호가 일치하지 않습니다.");
+    }
+    mockPasswordResetAvailable = false;
     return new HttpResponse(null, { status: 204 });
   }),
 
