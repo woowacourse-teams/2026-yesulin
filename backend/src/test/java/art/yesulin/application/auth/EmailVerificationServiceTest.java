@@ -12,6 +12,7 @@ import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.auth.EmailVerification;
 import art.yesulin.domain.member.Member;
 import art.yesulin.domain.member.MemberRepository;
+import art.yesulin.domain.member.MemberStatus;
 import art.yesulin.domain.member.MemberType;
 import art.yesulin.infrastructure.persistence.emailverification.CollectionEmailVerificationRepository;
 import java.net.URI;
@@ -27,7 +28,7 @@ import org.mockito.ArgumentCaptor;
 class EmailVerificationServiceTest {
 
     private static final Instant NOW = Instant.parse("2026-08-26T00:00:00Z");
-    private static final Duration EXPIRATION = Duration.ofMinutes(30);
+    private static final Duration EXPIRATION = Duration.ofMinutes(5);
 
     private CollectionEmailVerificationRepository verificationRepository;
     private MemberRepository memberRepository;
@@ -62,6 +63,7 @@ class EmailVerificationServiceTest {
         when(member.getId()).thenReturn(1L);
         when(member.getEmail()).thenReturn("producer@yesulin.art");
         when(member.getType()).thenReturn(MemberType.PRODUCER);
+        when(member.getStatus()).thenReturn(MemberStatus.PENDING);
         when(memberRepository.findByEmail("producer@yesulin.art")).thenReturn(Optional.of(member));
         when(tokenGenerator.generate()).thenReturn("fixed-verification-token");
 

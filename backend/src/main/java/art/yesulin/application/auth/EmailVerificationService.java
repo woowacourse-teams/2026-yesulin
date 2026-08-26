@@ -6,6 +6,7 @@ import art.yesulin.domain.auth.EmailVerification;
 import art.yesulin.domain.auth.EmailVerificationRepository;
 import art.yesulin.domain.member.Member;
 import art.yesulin.domain.member.MemberRepository;
+import art.yesulin.domain.member.MemberStatus;
 import art.yesulin.domain.member.MemberType;
 import java.time.Clock;
 import java.time.Instant;
@@ -27,9 +28,21 @@ public class EmailVerificationService {
 
     public void sendVerification(String email) {
         Member member = memberRepository.findByEmail(email)
-                .filter(candidate -> candidate.getType() == MemberType.PRODUCER)
+                .filter(this::isPendingProducer)
                 .orElseThrow(() -> invalidVerification("인증할 기획사·제작사 계정을 찾을 수 없습니다."));
 
+        issueVerification(member);
+    }
+
+    public void resendVerification(long memberId) {
+        Member member = memberRepository.findById(memberId)
+                .filter(this::isPendingProducer)
+                .orElseThrow(() -> invalidVerification("인증할 기획사·제작사 계정을 찾을 수 없습니다."));
+
+        issueVerification(member);
+    }
+
+    private void issueVerification(Member member) {
         Instant now = clock.instant();
         EmailVerification verification = new EmailVerification(
                 tokenGenerator.generate(), member.getId(), member.getEmail(), now.plus(settings.expiration())
@@ -38,6 +51,10 @@ public class EmailVerificationService {
         mailSender.send(mailFactory.create(
                 verification.email(), verification.token(), verification.expiresAt()
         ));
+    }
+
+    private boolean isPendingProducer(Member member) {
+        return member.getType() == MemberType.PRODUCER && member.getStatus() == MemberStatus.PENDING;
     }
 
     @Transactional

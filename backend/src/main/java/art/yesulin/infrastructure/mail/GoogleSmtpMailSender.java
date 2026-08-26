@@ -5,12 +5,14 @@ import art.yesulin.application.mail.MailSender;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import java.nio.charset.StandardCharsets;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
 
 @Component
+@Slf4j
 public class GoogleSmtpMailSender implements MailSender {
 
     private final JavaMailSender javaMailSender;
@@ -18,17 +20,18 @@ public class GoogleSmtpMailSender implements MailSender {
 
     public GoogleSmtpMailSender(
             JavaMailSender javaMailSender,
-            @Value("${yesulin.mail.from:}") String from
+            @Value("${yesulin.mail.from}") String from
     ) {
         this.javaMailSender = javaMailSender;
+        if (from == null || from.isBlank()) {
+            throw new IllegalStateException("메일 발신 주소가 설정되지 않았습니다.");
+        }
+        log.info("from: {}, test", from);
         this.from = from;
     }
 
     @Override
     public void send(MailMessage message) {
-        if (from == null || from.isBlank()) {
-            throw new IllegalStateException("메일 발신 주소가 설정되지 않았습니다.");
-        }
         MimeMessage mimeMessage = javaMailSender.createMimeMessage();
         try {
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, StandardCharsets.UTF_8.name());

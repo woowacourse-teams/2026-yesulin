@@ -30,7 +30,7 @@ public class EmailVerificationMailFactory {
 
     private String htmlContent(String url, Instant expiresAt) {
         return """
-                <h2>예술IN 이메일 인증</h2>
+                <h2>예술in 이메일 인증</h2>
                 <p>아래 버튼을 눌러 기획사·제작사 계정의 이메일 인증을 완료해 주세요.</p>
                 <p><a href="%s">이메일 인증 완료</a></p>
                 <p>만료 시각(UTC): %s</p>

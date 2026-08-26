@@ -15,7 +15,7 @@ export function ProducerSignupFields({ values, errors, onUpdate }: {
   return (
     <section aria-labelledby="producer-company-heading" className="space-y-4">
       <div className="rounded-control border border-brand-line bg-brand-soft px-4 py-3">
-        <h2 id="producer-company-heading" className="text-sm font-semibold text-brand-strong">가입 즉시 공연 관리를 시작할 수 있습니다</h2>
+        <h2 id="producer-company-heading" className="text-sm font-semibold text-brand-strong">가입 후 이메일 인증을 완료해 주세요</h2>
         <p className="mt-1 text-sm leading-relaxed text-muted-strong">
           기본 계정 정보를 등록하면 바로 로그인되어 공연 관리 화면으로 이동합니다.
         </p>

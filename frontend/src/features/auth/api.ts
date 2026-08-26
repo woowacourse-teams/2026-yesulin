@@ -35,3 +35,18 @@ export async function signupProducer(body: ProducerSignupRequest): Promise<Produ
   }
   return response.json() as Promise<ProducerSignupResponse>;
 }
+
+export async function resendProducerVerificationEmail(): Promise<void> {
+  const response = await fetch(`${API_BASE_PATH}/auth/email-verifications`, {
+    method: "POST",
+    credentials: "include",
+    headers: await withCsrfHeaders(),
+  });
+  if (!response.ok) {
+    const payload: unknown = await response.json().catch(() => null);
+    const message = typeof payload === "object" && payload !== null && "message" in payload && typeof payload.message === "string"
+      ? payload.message
+      : "인증 이메일을 재전송하지 못했습니다.";
+    throw new Error(message);
+  }
+}

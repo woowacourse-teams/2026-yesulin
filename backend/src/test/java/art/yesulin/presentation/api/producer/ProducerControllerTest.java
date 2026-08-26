@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import art.yesulin.application.auth.MemberPrincipal;
 import art.yesulin.application.auth.VerificationTokenGenerator;
 import art.yesulin.application.mail.MailMessage;
 import art.yesulin.application.mail.MailSender;
@@ -93,6 +94,29 @@ class ProducerControllerTest {
                         .param("token", VERIFICATION_TOKEN))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("AUTH_INVALID_EMAIL_VERIFICATION"));
+    }
+
+    @Test
+    void resendsVerificationEmailForPendingProducer() throws Exception {
+        mockMvc.perform(post("/api/v1/producers")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(signUpRequest("producer@yesulin.art")))
+                .andExpect(status().isCreated());
+
+        var member = memberRepository.findByEmail("producer@yesulin.art").orElseThrow();
+        mailSender.clear();
+
+        mockMvc.perform(post("/api/v1/auth/email-verifications")
+                        .with(csrf())
+                        .sessionAttr(
+                                MemberPrincipal.SESSION_ATTRIBUTE,
+                                new MemberPrincipal(member.getId(), member.getType(), member.getStatus())
+                        ))
+                .andExpect(status().isNoContent());
+
+        assertThat(mailSender.message.recipient()).isEqualTo("producer@yesulin.art");
+        assertThat(mailSender.message.htmlContent()).contains("token=" + VERIFICATION_TOKEN);
     }
 
     @Test
