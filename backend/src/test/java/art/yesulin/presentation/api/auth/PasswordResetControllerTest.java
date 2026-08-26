@@ -18,8 +18,11 @@ import art.yesulin.domain.member.MemberRepository;
 import art.yesulin.domain.member.MemberStatus;
 import art.yesulin.domain.member.MemberType;
 import art.yesulin.support.ObjectStorageTestConfiguration;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -28,6 +31,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.MediaType;
+import org.springframework.mail.MailSendException;
 import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest(properties = {
@@ -123,6 +127,27 @@ class PasswordResetControllerTest {
         assertThat(mailSender.message).isNull();
     }
 
+    @ParameterizedTest
+    @MethodSource("mailDeliveryFailures")
+    void keepsGenericResponseWhenMailDeliveryFails(RuntimeException deliveryFailure) throws Exception {
+        mailSender.failWith(deliveryFailure);
+
+        mockMvc.perform(post("/api/v1/auth/password-resets")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"producer@yesulin.art"}
+                                """))
+                .andExpect(status().isNoContent());
+    }
+
+    static Stream<RuntimeException> mailDeliveryFailures() {
+        return Stream.of(
+                new IllegalStateException("mail creation failed"),
+                new MailSendException("smtp delivery failed")
+        );
+    }
+
     @TestConfiguration
     static class PasswordResetTestConfiguration {
 
@@ -142,14 +167,23 @@ class PasswordResetControllerTest {
     static class FakeMailSender implements MailSender {
 
         private MailMessage message;
+        private RuntimeException deliveryFailure;
 
         @Override
         public void send(MailMessage message) {
+            if (deliveryFailure != null) {
+                throw deliveryFailure;
+            }
             this.message = message;
+        }
+
+        void failWith(RuntimeException exception) {
+            deliveryFailure = exception;
         }
 
         void clear() {
             message = null;
+            deliveryFailure = null;
         }
     }
 }

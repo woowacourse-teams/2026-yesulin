@@ -2,6 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { AuthInput, PasswordInput } from "./auth-fields";
+import {
+  PasswordResetStepIndicator,
+  RequestError,
+  StatusPanel,
+  type PasswordResetStep,
+} from "./password-reset-presentation";
 import { PrimaryButton, PrimaryLink, TextButton, TextLink } from "@/components/ui/controls";
 import {
   PasswordResetApiError,
@@ -10,24 +16,8 @@ import {
   validatePasswordResetToken,
 } from "@/features/auth/password-reset-api";
 
-type Step = "EMAIL" | "SENT" | "VERIFYING" | "PASSWORD" | "INVALID" | "COMPLETE";
 type Field = "email" | "password" | "passwordConfirm";
 type Errors = Partial<Record<Field, string>>;
-
-const STEPS = [
-  { id: "EMAIL", label: "이메일" },
-  { id: "VERIFY", label: "메일 인증" },
-  { id: "PASSWORD", label: "새 비밀번호" },
-] as const;
-
-const STEP_INDEX: Record<Step, number> = {
-  EMAIL: 0,
-  SENT: 1,
-  VERIFYING: 1,
-  INVALID: 1,
-  PASSWORD: 2,
-  COMPLETE: 3,
-};
 
 function focusField(field: Field) {
   requestAnimationFrame(() => document.getElementById(`reset-${field}`)?.focus());
@@ -38,7 +28,7 @@ function errorMessage(cause: unknown, fallback: string) {
 }
 
 export function PasswordResetForm({ token }: { readonly token?: string }) {
-  const [step, setStep] = useState<Step>(token ? "VERIFYING" : "EMAIL");
+  const [step, setStep] = useState<PasswordResetStep>(token ? "VERIFYING" : "EMAIL");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
@@ -67,7 +57,7 @@ export function PasswordResetForm({ token }: { readonly token?: string }) {
     };
   }, [token]);
 
-  function moveTo(nextStep: Step, field?: Field) {
+  function moveTo(nextStep: PasswordResetStep, field?: Field) {
     setErrors({});
     setRequestError("");
     setStep(nextStep);
@@ -131,32 +121,9 @@ export function PasswordResetForm({ token }: { readonly token?: string }) {
     }
   }
 
-  const currentIndex = STEP_INDEX[step];
-
   return (
     <div className="space-y-7">
-      <ol className="grid grid-cols-3 gap-2" aria-label="비밀번호 재설정 단계">
-        {STEPS.map((item, index) => {
-          const current = index === currentIndex;
-          const completed = index < currentIndex;
-          return (
-            <li
-              key={item.id}
-              aria-current={current ? "step" : undefined}
-              className={`rounded-control border px-2 py-3 text-center text-xs font-semibold sm:text-sm ${
-                current
-                  ? "border-brand bg-brand-soft text-brand"
-                  : completed
-                    ? "border-brand-line bg-card text-brand"
-                    : "border-border bg-surface text-muted"
-              }`}
-            >
-              <span className="num mr-1">{completed ? "✓" : index + 1}</span>
-              {item.label}
-            </li>
-          );
-        })}
-      </ol>
+      <PasswordResetStepIndicator step={step} />
 
       {step === "EMAIL" ? (
         <form onSubmit={(event) => void submitEmail(event)} noValidate className="space-y-6">
@@ -274,41 +241,5 @@ export function PasswordResetForm({ token }: { readonly token?: string }) {
         </StatusPanel>
       ) : null}
     </div>
-  );
-}
-
-function RequestError({ message }: { readonly message: string }) {
-  if (!message) return null;
-  return (
-    <p role="alert" className="rounded-control border border-fail/25 bg-fail-bg px-4 py-3 text-sm font-medium text-fail">
-      {message}
-    </p>
-  );
-}
-
-function StatusPanel({ icon, title, description, children }: {
-  readonly icon: string;
-  readonly title: string;
-  readonly description: React.ReactNode;
-  readonly children?: React.ReactNode;
-}) {
-  return (
-    <section
-      className="space-y-6 text-center"
-      aria-labelledby="password-reset-status-title"
-      aria-live="polite"
-    >
-      <div
-        className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-brand-soft text-2xl font-bold text-brand"
-        aria-hidden="true"
-      >
-        {icon}
-      </div>
-      <div>
-        <h2 id="password-reset-status-title" className="text-xl font-bold text-foreground">{title}</h2>
-        <p className="mt-2 text-sm leading-6 text-muted-strong">{description}</p>
-      </div>
-      {children}
-    </section>
   );
 }

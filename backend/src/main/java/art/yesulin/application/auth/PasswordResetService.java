@@ -1,5 +1,6 @@
 package art.yesulin.application.auth;
 
+import art.yesulin.application.mail.MailMessage;
 import art.yesulin.application.mail.MailSender;
 import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.auth.PasswordReset;
@@ -11,12 +12,17 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.Locale;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.mail.MailException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 public class PasswordResetService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(PasswordResetService.class);
 
     private final PasswordResetRepository passwordResetRepository;
     private final MemberRepository memberRepository;
@@ -46,9 +52,15 @@ public class PasswordResetService {
                 tokenGenerator.generate(), member.getId(), member.getEmail(), now.plus(settings.expiration())
         );
         passwordResetRepository.save(passwordReset, now);
-        mailSender.send(mailFactory.create(
+        MailMessage message = mailFactory.create(
                 passwordReset.email(), passwordReset.token(), passwordReset.expiresAt()
-        ));
+        );
+        try {
+            mailSender.send(message);
+        } catch (IllegalStateException | MailException exception) {
+            LOGGER.warn("비밀번호 재설정 메일 발송에 실패했습니다. type={}",
+                    exception.getClass().getSimpleName());
+        }
     }
 
     public void validateToken(String token) {
