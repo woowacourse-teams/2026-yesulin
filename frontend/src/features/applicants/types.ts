@@ -34,6 +34,8 @@ export type ApplicantProfilePhoto = {
   readonly name: string;
   readonly url: string;
   readonly representative: boolean;
+  /** 보관함 사진이 가리키는 업로드 파일. 지원서에서 재업로드 없이 그대로 제출한다. */
+  readonly fileId?: number;
 };
 
 export type ApplicantProfileVideo = {

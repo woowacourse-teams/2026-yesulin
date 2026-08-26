@@ -31,7 +31,10 @@ public class VideoLibraryItems {
 
     VideoLibraryItem add(VideoLibrary library, YouTubeVideoUrl video) {
         if (values.size() >= VideoLibrary.MAX_VIDEO_COUNT) {
-            throw new BusinessException(LIMIT_EXCEEDED, "영상보관함에는 영상을 최대 10개까지 저장할 수 있습니다.");
+            throw new BusinessException(
+                    LIMIT_EXCEEDED,
+                    "영상보관함에는 영상을 최대 %d개까지 저장할 수 있습니다.".formatted(VideoLibrary.MAX_VIDEO_COUNT)
+            );
         }
         if (values.stream().anyMatch(item -> item.getYoutubeId().equals(video.videoId()))) {
             throw new BusinessException(DUPLICATE_VIDEO, "이미 영상보관함에 저장된 YouTube 영상입니다.");

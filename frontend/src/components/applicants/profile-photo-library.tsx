@@ -79,11 +79,11 @@ export function ProfilePhotoLibrary({ profile, onSaved }: { readonly profile: Ap
   return <div className="mt-6">
     <div className="flex flex-wrap items-start justify-between gap-4"><div><h3 className="font-bold">사진 보관함</h3><p className="mt-1 text-sm leading-6 text-muted">최대 3장까지 보관할 수 있어요. 지원서에는 기획사/제작사가 요청한 장수만큼, 최대 3장까지 선택합니다.</p></div><span className="num rounded-full bg-brand-soft px-3 py-1 text-sm font-semibold text-brand">{photos.length} / {MAX_LIBRARY_PHOTOS}</span></div>
     {photos.length ? (
-      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+      <div className="mt-5 grid grid-cols-3 gap-3">
         {photos.map((photo, index) => (
           <article key={photo.id} className={`overflow-hidden rounded-card border bg-surface ${photo.representative ? "border-brand ring-2 ring-brand-soft" : "border-border"}`}>
             <div className="relative aspect-[3/4]">
-              <Image src={photo.url} alt={photo.name} fill unoptimized loading="eager" sizes="(min-width: 1280px) 180px, 45vw" className="object-cover" />
+              <Image src={photo.url} alt={photo.name} fill unoptimized loading="eager" sizes="(min-width: 768px) 200px, 30vw" className="object-cover" />
               {photo.representative ? <span className="absolute left-2 top-2 rounded-full bg-brand px-2 py-1 text-xs font-semibold text-white">대표 사진</span> : null}
             </div>
             <div className="p-3">

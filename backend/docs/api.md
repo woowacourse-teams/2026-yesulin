@@ -61,13 +61,14 @@ PENDING 세션을 ACTIVE로 갱신하고 요청의 `redirectUri`로 302 redirect
 공연 제목은 200자, 장소명 200자, 도로명·상세주소 300자다. 위도·경도는 함께 전달하고 각각 -90~90,
 -180~180 범위다. 공연 배역 이름은 100자, 설명은 개행 없는 300자다. 포스터는 JPEG·PNG·WebP 최대 30MB다.
 
-## 공고 — 12개
+## 공고 — 13개
 
 | Method | URL | 인증 | Request | Response |
 | --- | --- | --- | --- | --- |
 | POST | `/api/v1/auditions` | Active Producer | `CreateAuditionRequest` | `201 AuditionResult`, `Location` |
 | GET | `/api/v1/auditions` | Active Producer | `performanceId`, 선택 `keyword`, `phase` | `200 AuditionManagementListResponse` |
 | GET | `/api/v1/auditions/{auditionId}` | Active Producer | 없음 | `200 AuditionResult` |
+| DELETE | `/api/v1/auditions/{auditionId}` | Active Producer | 없음 | `204` |
 | PUT | `/api/v1/auditions/{auditionId}/basic-information` | Active Producer | `UpdateAuditionBasicInformationRequest` | `200 AuditionResult` |
 | GET | `/api/v1/auditions/{auditionId}/roles` | Active Producer | 없음 | `200 AuditionRolesManagementResponse` |
 | PUT | `/api/v1/auditions/{auditionId}/roles` | Active Producer | `SaveAuditionRolesRequest` | `200 AuditionRolesResult` |
@@ -84,6 +85,9 @@ PENDING 세션을 ACTIVE로 갱신하고 요청의 `redirectUri`로 302 redirect
 
 게시에는 배역·일정·지원 폼과 미래 모집 종료 시각이 필요하다. 공개 조회는 `DRAFT`가 아닌 공고를 반환하며,
 실제 제출 가능 여부는 제출 시 모집 기간 검증이 최종 판단한다.
+
+삭제는 배역·일정·지원 폼과 해당 배역의 심사 기록을 함께 지운다. 접수된 지원서가 한 건이라도 있으면
+`AUDITION_INVALID_STATUS`로 거부한다.
 
 ## 배우 프로필과 보관함 — 13개
 
@@ -103,9 +107,10 @@ PENDING 세션을 ACTIVE로 갱신하고 요청의 `redirectUri`로 302 redirect
 | PATCH | `/api/v1/applicants/me/video-library/videos/{videoId}` | Applicant | `MoveVideoRequest(displayOrder)` | `200 VideoLibraryResult` |
 | DELETE | `/api/v1/applicants/me/video-library/videos/{videoId}` | Applicant | 없음 | `204` |
 
-프로필 기본 정보는 이름, 양수 키·몸무게, 미래가 아닌 생년월일, 성별, `000-0000-0000` 연락처, email과 주소다.
+프로필 기본 정보는 이름, 양수 키·몸무게, 미래가 아닌 생년월일, 성별, `000-0000-0000` 연락처, email과 거주 지역이다.
+거주 지역은 100자 문자열이고, 프론트가 `시·도 시·군·구` 형태로만 채운다.
 추가 정보는 학력·링크·국적·소개·특기·취미·군필 상태·경력을 가진다. 링크 최대 5개, 경력 최대 10개다.
-배우 사진은 JPEG·PNG·WebP 최대 20MB, 사진 보관함 최대 3개, 영상 보관함 최대 10개다.
+배우 사진은 JPEG·PNG·WebP 최대 20MB, 사진 보관함 최대 3개, 영상 보관함 최대 3개다.
 
 ## 지원서 — 3개
 

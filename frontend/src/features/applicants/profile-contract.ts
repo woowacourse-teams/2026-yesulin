@@ -52,7 +52,7 @@ const labels: Readonly<Record<string, string>> = {
   GENDER: "성별",
   PHONE: "연락처",
   EMAIL: "이메일",
-  ADDRESS: "주소",
+  ADDRESS: "거주 지역",
   SCHOOL: "학력",
   LINK: "SNS / 외부 링크",
   NATIONALITY: "국적",

@@ -26,7 +26,7 @@ import org.hibernate.annotations.CreationTimestamp;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class VideoLibrary {
 
-    public static final int MAX_VIDEO_COUNT = 10;
+    public static final int MAX_VIDEO_COUNT = 3;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

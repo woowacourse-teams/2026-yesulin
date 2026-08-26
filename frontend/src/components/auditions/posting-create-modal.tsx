@@ -195,10 +195,10 @@ export function PostingCreateModal({ performanceId, performanceTitle, performanc
 
   return <ModalShell key={created ? "created" : "form"} open onClose={close} labelledBy={created ? POSTING_CREATED_TITLE_ID : TITLE_ID} placement="responsiveSheet" className="flex h-[calc(100dvh-8px)] w-full flex-col overflow-hidden rounded-t-modal bg-card shadow-[var(--shadow-modal)] md:h-auto md:max-h-[94vh] md:w-[min(900px,95vw)] md:rounded-modal">
     {created ? <PostingCreatedPanel postingTitle={created.title} applicationUrl={created.applicationUrl} onClose={close} /> : <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
-      <DialogHeader id={TITLE_ID} title="새 공고 추가" subtitle={`${performanceTitle}의 공고 스냅샷과 지원 양식을 만듭니다.`} />
+      <DialogHeader id={TITLE_ID} title="새 공고 추가" subtitle={`${performanceTitle} 공연의 모집 공고와 배우가 작성할 지원서 양식을 만듭니다.`} />
       <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-6 md:px-6">
         <ProducerCreationDraftStatus status={draft.status} savedAt={draft.savedAt} />
-        <CreateSection id={SECTION_IDS.TITLE} title="1. 공고명" description="배우가 지원 링크에서 가장 먼저 확인할 공고 제목을 입력해 주세요.">
+        <CreateSection id={SECTION_IDS.TITLE} title="1. 공고명" description="지원 링크를 연 배우가 가장 먼저 보는 제목입니다. 어떤 공연에서 누구를 언제 뽑는지 한 줄로 드러나게 적어 주세요.">
           <CreateError id="posting-create-title-error" message={formError?.section === "TITLE" ? formError.message : ""} />
           <div className={formError?.section === "TITLE" ? "mt-4" : ""}><CreateField label="공고명"><FieldInput data-autofocus="true" required maxLength={255} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="예: 2026 하반기 주·조연 배우 모집" /></CreateField></div>
           <div id={SECTION_IDS.PERFORMANCE} className="scroll-m-6 mt-5 border-t border-border-soft pt-5">

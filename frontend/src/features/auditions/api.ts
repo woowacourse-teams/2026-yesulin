@@ -2,12 +2,14 @@ import { AuditionRequestError, request } from "./api-client";
 import type { FileUploadResource, PerformanceResource, PerformanceResourceList, ProducerProfileResource } from "./backend-resources";
 import {
   createV1Posting,
+  deleteV1Posting,
   getV1PostingManagement,
   getV1Postings,
   getV1Roles,
   isBackendAuditionId,
   isBackendPerformanceId,
   toManagementPostingSummary,
+  updateV1Posting,
 } from "./audition-v1-api";
 import type {
   CompleteScreeningRequest,
@@ -242,11 +244,13 @@ export function getPostingManagement(id: PostingId) {
   return request<PostingManagementDetail>(`/postings/${id}`);
 }
 
-export function updatePosting(id: PostingId, body: UpdatePostingRequest) {
-  return request<PostingListResponse>(`/postings/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+export async function updatePosting(id: PostingId, body: UpdatePostingRequest) {
+  if (isBackendAuditionId(id)) return updateV1Posting(id, body);
+  await request<PostingListResponse>(`/postings/${id}`, { method: "PATCH", body: JSON.stringify(body) });
 }
 
 export function deletePosting(id: PostingId) {
+  if (isBackendAuditionId(id)) return deleteV1Posting(id);
   return request<void>(`/postings/${id}`, { method: "DELETE" });
 }
 

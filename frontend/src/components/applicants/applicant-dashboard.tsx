@@ -64,7 +64,7 @@ export function ApplicantDashboard() {
 
 function RecentSubmission({ submission }: { readonly submission: ApplicantSubmissionSummary }) {
   const roles = submission.selectedRoles.map((role) => role.roleName).join(" · ");
-  return <li><Link href={applicantRoutes.submission(submission.id)} className="group grid grid-cols-[52px_minmax(0,1fr)_auto] items-center gap-3 py-4"><Image src={submission.posterUrl} alt="" width={52} height={68} className="h-[68px] w-[52px] rounded-md object-cover" /><span className="min-w-0"><strong className="block truncate group-hover:text-brand">{submission.performanceTitle}</strong><span className="mt-1 block truncate text-sm text-muted-strong">{roles} · {formatApplicantDate(submission.submittedAt)} 제출</span></span><span className="rounded-full border border-border bg-surface px-2.5 py-1 text-xs font-semibold text-muted-strong">제출 완료</span></Link></li>;
+  return <li><Link href={applicantRoutes.submission(submission.id)} className="group grid grid-cols-[52px_minmax(0,1fr)_auto] items-center gap-3 py-4"><Image src={submission.posterUrl} alt="" width={52} height={68} unoptimized className="h-[68px] w-[52px] rounded-md object-cover" /><span className="min-w-0"><strong className="block truncate group-hover:text-brand">{submission.performanceTitle}</strong><span className="mt-1 block truncate text-sm text-muted-strong">{roles} · {formatApplicantDate(submission.submittedAt)} 제출</span></span><span className="rounded-full border border-border bg-surface px-2.5 py-1 text-xs font-semibold text-muted-strong">제출 완료</span></Link></li>;
 }
 
 function RecommendationCard({ posting }: { readonly posting: RecommendedPosting }) {

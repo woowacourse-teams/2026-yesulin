@@ -65,7 +65,7 @@ export function PublicApplicationPhotoField({ field, limit, photos, authenticate
   };
   const selectLibraryPhoto = (photo: ApplicantProfilePhoto) => {
     if (librarySlot === null) return;
-    replaceSlot(librarySlot, { id: photo.id, name: photo.name, url: photo.url, status: "READY", slotIndex: librarySlot });
+    replaceSlot(librarySlot, { id: photo.id, name: photo.name, url: photo.url, status: "READY", slotIndex: librarySlot, libraryFileId: photo.fileId });
     setLibrarySlot(null);
   };
 
@@ -77,7 +77,7 @@ export function PublicApplicationPhotoField({ field, limit, photos, authenticate
       const photo = photoBySlot.get(slotIndex);
       return <PhotoSlot key={`${label}-${slotIndex}`} label={label} photo={photo} authenticated={authenticated} onLibrary={() => setLibrarySlot(slotIndex)} onUpload={() => openUpload(slotIndex)} onRemove={photo ? () => removePhoto(photo, slotIndex) : undefined} />;
     })}</div>
-    <p className="mt-3 text-xs leading-5 text-muted">JPG, PNG, WEBP · 파일당 10MB 이하 · 선택 내용은 이 지원서 Draft에만 저장됩니다.</p>
+    <p className="mt-3 text-xs leading-5 text-muted">JPG, PNG, WEBP · 파일당 10MB 이하</p>
     {error ? <p id={errorId} role="alert" className="mt-3 text-sm font-medium leading-6 text-fail">{error}</p> : null}
     {authenticated ? <PhotoLibraryDialog open={librarySlot !== null} slotLabel={librarySlot === null ? "" : labels[librarySlot] ?? field.label} usedPhotoIds={new Set(photos.map((photo) => photo.id))} onSelect={selectLibraryPhoto} onClose={() => setLibrarySlot(null)} /> : <PhotoLibraryLoginDialog open={librarySlot !== null} slotLabel={librarySlot === null ? "" : labels[librarySlot] ?? field.label} loginHref={loginHref} onClose={() => setLibrarySlot(null)} />}
   </section>;

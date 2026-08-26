@@ -79,4 +79,11 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long>, S
             @Param("fileId") long fileId,
             @Param("producerId") long producerId
     );
+
+    @Query("""
+            select (count(submission) > 0)
+            from Submission submission
+            where submission.auditionSnapshot.auditionId = :auditionId
+            """)
+    boolean existsByAuditionId(@Param("auditionId") long auditionId);
 }

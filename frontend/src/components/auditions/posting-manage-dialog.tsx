@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { deletePosting, getPostingManagement, updatePosting } from "@/features/auditions/api";
+import { validateAuditionDates } from "@/features/auditions/audition-date-policy";
 import type { AuditionRoundInput } from "@/features/auditions/creation-types";
 import { notifyAuditionTreeChanged } from "@/features/auditions/events";
 import type { PostingManagementDetail } from "@/features/auditions/management-types";
@@ -44,7 +45,12 @@ function EditPostingForm({ detail, onClose, onChanged }: { readonly detail: Post
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault(); setSaving(true); setFormError("");
+    event.preventDefault();
+    // 이미 마감된 공고도 수정 대상이라 "모집 종료가 현재보다 이후" 규칙만 빼고 검사한다.
+    const dateIssue = validateAuditionDates({ performanceStart, performanceEnd, recruitmentStart, recruitmentEnd, rounds })
+      .find((issue) => issue.code !== "RECRUITMENT_END_PAST");
+    if (dateIssue) { setFormError(dateIssue.message); return; }
+    setSaving(true); setFormError("");
     try {
       await updatePosting(detail.id, { title: title.trim(), performanceStart, performanceEnd, recruitmentStart, recruitmentEnd, rounds });
       notifyAuditionTreeChanged(); onChanged(); onClose();

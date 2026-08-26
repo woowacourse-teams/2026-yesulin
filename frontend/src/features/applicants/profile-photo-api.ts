@@ -117,6 +117,7 @@ function toPhotos(
       name: names.get(String(photo.id)) ?? `프로필 사진 ${index + 1}`,
       url: photo.imageUrl,
       representative: photo.representative,
+      fileId: photo.fileId,
     }));
 }
 

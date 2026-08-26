@@ -1,5 +1,6 @@
 package art.yesulin.presentation.api.audition;
 
+import art.yesulin.application.audition.AuditionDeletionService;
 import art.yesulin.application.audition.AuditionPublicationService;
 import art.yesulin.application.audition.AuditionResult;
 import art.yesulin.application.audition.AuditionService;
@@ -20,6 +21,7 @@ import java.net.URI;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -38,6 +40,7 @@ public class AuditionController {
     private final AuditionService auditionService;
     private final AuditionManagementQueryService auditionManagementQueryService;
     private final AuditionPublicationService auditionPublicationService;
+    private final AuditionDeletionService auditionDeletionService;
     private final AuditionRoleService auditionRoleService;
     private final AuditionScheduleService auditionScheduleService;
     private final AuditionFormService auditionFormService;
@@ -70,6 +73,15 @@ public class AuditionController {
         return ResponseEntity.ok(AuditionManagementListResponse.from(
                 auditionManagementQueryService.findAuditions(principal.memberId(), performanceId, keyword, phase)
         ));
+    }
+
+    @DeleteMapping("/{auditionId}")
+    public ResponseEntity<Void> delete(
+            @LoginMember(roles = MemberType.PRODUCER, statuses = MemberStatus.ACTIVE) MemberPrincipal principal,
+            @PathVariable UUID auditionId
+    ) {
+        auditionDeletionService.delete(principal.memberId(), auditionId);
+        return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/{auditionId}/basic-information")
