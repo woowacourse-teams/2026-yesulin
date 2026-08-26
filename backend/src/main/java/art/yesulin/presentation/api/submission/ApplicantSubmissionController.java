@@ -33,7 +33,7 @@ public class ApplicantSubmissionController {
         Map<Long, String> posterUrlsByFileId = new HashMap<>();
         for (SubmissionSummaryResult result : results) {
             posterUrlsByFileId.computeIfAbsent(
-                    result.posterFileId(), fileId -> fileService.readUrl(result.posterOwnerId(), fileId)
+                    result.posterFileId(), fileId -> fileService.readPublicUrl(result.posterOwnerId(), fileId)
             );
         }
         return ResponseEntity.ok(ApplicantSubmissionListResponse.from(results, posterUrlsByFileId));
@@ -46,12 +46,12 @@ public class ApplicantSubmissionController {
     ) {
         long applicantId = principal.memberId();
         SubmissionDetailResult result = submissionQueryService.find(applicantId, submissionId);
-        String posterUrl = fileService.readUrl(result.posterOwnerId(), result.posterFileId());
+        String posterUrl = fileService.readPublicUrl(result.posterOwnerId(), result.posterFileId());
         Map<Long, String> photoUrlsByFileId = new HashMap<>();
         for (SubmissionDetailResult.PhotoRequirementAnswerResult answer
                 : result.formAnswers().photoRequirementAnswers()) {
             photoUrlsByFileId.computeIfAbsent(
-                    answer.fileId(), fileId -> fileService.readUrl(applicantId, fileId)
+                    answer.fileId(), fileService::privateContentUrl
             );
         }
         return ResponseEntity.ok(ApplicantSubmissionDetailResponse.from(result, posterUrl, photoUrlsByFileId));

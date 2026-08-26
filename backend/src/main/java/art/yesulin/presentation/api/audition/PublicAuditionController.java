@@ -22,7 +22,7 @@ public class PublicAuditionController {
     @GetMapping("/{auditionId}")
     public ResponseEntity<PublicAuditionResponse> find(@PathVariable UUID auditionId) {
         PublicAuditionResult result = publicAuditionService.find(auditionId);
-        String posterUrl = fileService.readUrl(result.ownerId(), result.posterFileId());
+        String posterUrl = fileService.readPublicUrl(result.ownerId(), result.posterFileId());
         return ResponseEntity.ok(PublicAuditionResponse.from(result, posterUrl));
     }
 }

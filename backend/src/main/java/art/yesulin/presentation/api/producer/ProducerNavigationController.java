@@ -28,7 +28,7 @@ public class ProducerNavigationController {
     ) {
         long ownerId = principal.memberId();
         return ResponseEntity.ok(ProducerNavigationResponse.from(
-                queryService.findPerformances(ownerId), fileId -> fileService.readUrl(ownerId, fileId)
+                queryService.findPerformances(ownerId), fileId -> fileService.readPublicUrl(ownerId, fileId)
         ));
     }
 }

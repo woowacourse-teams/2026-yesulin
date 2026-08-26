@@ -37,7 +37,7 @@ public class ScreeningSubmissionController {
         ScreeningBoardResult result = screeningQueryService.findBoard(
                 principal.memberId(), roleId, round, filter.toCondition()
         );
-        String posterUrl = fileService.readUrl(principal.memberId(), result.performance().posterFileId());
+        String posterUrl = fileService.readPublicUrl(principal.memberId(), result.performance().posterFileId());
         return ResponseEntity.ok(ScreeningBoardResponse.from(result, posterUrl));
     }
 
@@ -51,7 +51,7 @@ public class ScreeningSubmissionController {
         ScreeningSubmissionDetailResult result = screeningQueryService.findSubmission(
                 principal.memberId(), roleId, round, submissionId
         );
-        String posterUrl = fileService.readUrl(principal.memberId(), result.performance().posterFileId());
+        String posterUrl = fileService.readPublicUrl(principal.memberId(), result.performance().posterFileId());
         return ResponseEntity.ok(ScreeningSubmissionDetailResponse.from(result, posterUrl));
     }
 }

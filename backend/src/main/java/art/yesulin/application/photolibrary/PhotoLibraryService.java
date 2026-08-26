@@ -3,7 +3,7 @@ package art.yesulin.application.photolibrary;
 import static art.yesulin.domain.file.FileErrorCode.NOT_FOUND;
 import static art.yesulin.domain.photolibrary.PhotoLibraryErrorCode.PHOTO_NOT_FOUND;
 
-import art.yesulin.application.file.storage.ObjectStorage;
+import art.yesulin.application.file.FileService;
 import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.file.FileAsset;
 import art.yesulin.domain.file.FileAssetRepository;
@@ -31,7 +31,7 @@ public class PhotoLibraryService {
     private final PhotoLibraryRepository photoLibraryRepository;
     private final FileAssetRepository fileAssetRepository;
     private final FileReferenceRepository fileReferenceRepository;
-    private final ObjectStorage objectStorage;
+    private final FileService fileService;
     private final Clock clock;
 
     @Transactional
@@ -118,13 +118,16 @@ public class PhotoLibraryService {
     }
 
     private PhotoLibraryItemResult toResult(PhotoLibraryItem item, FileAsset fileAsset) {
-        return PhotoLibraryItemResult.from(item, objectStorage.toPublicUrl(fileAsset.getObjectKey()));
+        return PhotoLibraryItemResult.from(item, fileService.privateContentUrl(fileAsset.getId()));
     }
 
     private FileAsset findUsableOwnedFile(long ownerId, long fileId) {
         FileAsset fileAsset = fileAssetRepository.findByIdAndOwnerId(fileId, ownerId)
                 .orElseThrow(() -> new BusinessException(NOT_FOUND, "파일을 찾을 수 없습니다."));
         fileAsset.ensureUsable();
+        if (!fileAsset.getObjectKey().startsWith("private/actor-photos/")) {
+            throw new BusinessException(NOT_FOUND, "파일을 찾을 수 없습니다.");
+        }
         return fileAsset;
     }
 }

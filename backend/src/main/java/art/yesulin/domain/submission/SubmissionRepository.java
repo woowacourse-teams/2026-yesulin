@@ -65,4 +65,18 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long>, S
             @Param("applicantId") long applicantId,
             @Param("auditionId") long auditionId
     );
+
+    @Query("""
+            select (count(submission) > 0)
+            from Submission submission, Audition audition, FileReference reference
+            where reference.fileId = :fileId
+              and reference.referenceType = 'SUBMISSION_PHOTO'
+              and reference.referenceId = submission.id
+              and submission.auditionSnapshot.auditionId = audition.id
+              and audition.ownerId = :producerId
+            """)
+    boolean existsSubmittedPhotoOwnedByProducer(
+            @Param("fileId") long fileId,
+            @Param("producerId") long producerId
+    );
 }

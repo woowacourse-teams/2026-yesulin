@@ -2,6 +2,7 @@ package art.yesulin.support;
 
 import art.yesulin.application.file.storage.ObjectStorage;
 import art.yesulin.application.file.storage.PresignedUpload;
+import art.yesulin.application.file.storage.StoredObjectContent;
 import art.yesulin.application.file.storage.StoredObjectMetadata;
 import java.time.Instant;
 import java.util.Map;
@@ -13,7 +14,7 @@ public class FakeObjectStorage implements ObjectStorage {
     private static final Instant EXPIRES_AT = Instant.parse("2030-01-01T00:00:00Z");
 
     private final Map<String, String> uploadTargets = new ConcurrentHashMap<>();
-    private final Map<String, StoredObjectMetadata> objects = new ConcurrentHashMap<>();
+    private final Map<String, StoredObjectContent> objects = new ConcurrentHashMap<>();
 
     @Override
     public PresignedUpload createUpload(String objectKey, String contentType, long size) {
@@ -24,12 +25,18 @@ public class FakeObjectStorage implements ObjectStorage {
 
     @Override
     public Optional<StoredObjectMetadata> inspect(String objectKey) {
+        return Optional.ofNullable(objects.get(objectKey))
+                .map(object -> new StoredObjectMetadata(object.contentType(), object.bytes().length));
+    }
+
+    @Override
+    public Optional<StoredObjectContent> read(String objectKey) {
         return Optional.ofNullable(objects.get(objectKey));
     }
 
     @Override
     public String toPublicUrl(String objectKey) {
-        return "https://cdn.test/assets/" + objectKey;
+        return "https://cdn.test/assets/" + objectKey.replaceFirst("^public/", "");
     }
 
     @Override
@@ -42,6 +49,6 @@ public class FakeObjectStorage implements ObjectStorage {
         if (objectKey == null) {
             throw new IllegalArgumentException("발급되지 않은 업로드 URL입니다.");
         }
-        objects.put(objectKey, new StoredObjectMetadata(contentType, size));
+        objects.put(objectKey, new StoredObjectContent(contentType, new byte[Math.toIntExact(size)]));
     }
 }

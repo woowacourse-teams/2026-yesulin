@@ -32,7 +32,7 @@ public class PerformancePosterUploadController {
             @Valid @RequestBody PerformancePosterUploadRequest request
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(fileService.requestUpload(principal.memberId(), request.toCommand()));
+                .body(fileService.requestPublicUpload(principal.memberId(), request.toCommand()));
     }
 
     @PatchMapping("/{fileId}/completion")

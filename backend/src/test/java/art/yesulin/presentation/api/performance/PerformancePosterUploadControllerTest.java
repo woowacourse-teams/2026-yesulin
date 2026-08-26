@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import art.yesulin.application.auth.MemberPrincipal;
+import art.yesulin.domain.file.FileAssetRepository;
 import art.yesulin.domain.member.MemberStatus;
 import art.yesulin.domain.member.MemberType;
 import art.yesulin.support.FakeObjectStorage;
@@ -45,9 +46,12 @@ class PerformancePosterUploadControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private FileAssetRepository fileAssetRepository;
+
     @Test
     void issuesPresignedUploadUrl() throws Exception {
-        mockMvc.perform(post("/api/v1/performance-posters/upload-requests")
+        String response = mockMvc.perform(post("/api/v1/performance-posters/upload-requests")
                         .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -56,7 +60,12 @@ class PerformancePosterUploadControllerTest {
                 .andExpect(jsonPath("$.fileId").isNumber())
                 .andExpect(jsonPath("$.uploadUrl").isString())
                 .andExpect(jsonPath("$.method").value("PUT"))
-                .andExpect(jsonPath("$['headers']['Content-Type']").value("image/png"));
+                .andExpect(jsonPath("$['headers']['Content-Type']").value("image/png"))
+                .andReturn().getResponse().getContentAsString();
+
+        long fileId = objectMapper.readTree(response).get("fileId").asLong();
+        org.junit.jupiter.api.Assertions.assertTrue(fileAssetRepository.findById(fileId).orElseThrow().getObjectKey()
+                .matches("public/files/\\d{8}/[0-9a-f-]{36}"));
     }
 
     @Test

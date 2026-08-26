@@ -10,5 +10,7 @@ public interface ObjectStorage {
 
     String createDownloadUrl(String objectKey);
 
+    Optional<StoredObjectContent> read(String objectKey);
+
     String toPublicUrl(String objectKey);
 }

@@ -2,8 +2,11 @@ package art.yesulin.presentation.api.photolibrary;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -70,6 +73,8 @@ class ActorPhotoUploadControllerTest {
                 MEMBER_PRINCIPAL.memberId(),
                 fileAssetRepository.findById(fileId).orElseThrow().getOwnerId()
         );
+        assertEquals(true, fileAssetRepository.findById(fileId).orElseThrow().getObjectKey()
+                .matches("private/actor-photos/\\d{8}/[0-9a-f-]{36}"));
     }
 
     @Test
@@ -119,6 +124,29 @@ class ActorPhotoUploadControllerTest {
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
                 .andExpect(status().isNoContent())
                 .andExpect(jsonPath("$").doesNotExist());
+    }
+
+    @Test
+    void returnsUploadedActorPhotoOnlyThroughPrivateContentEndpoint() throws Exception {
+        String response = mockMvc.perform(post("/api/v1/actor-photos/upload-requests")
+                        .with(csrf())
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(uploadRequest("profile.png", "image/png", 3L)))
+                .andReturn().getResponse().getContentAsString();
+        JsonNode upload = objectMapper.readTree(response);
+        long fileId = upload.get("fileId").asLong();
+        objectStorage.upload(upload.get("uploadUrl").asString(), "image/png", 3L);
+        mockMvc.perform(patch("/api/v1/actor-photos/{fileId}/completion", fileId)
+                        .with(csrf())
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL));
+
+        mockMvc.perform(get("/api/v1/files/{fileId}/content", fileId)
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.IMAGE_PNG))
+                .andExpect(content().bytes(new byte[3]))
+                .andExpect(header().string("Cache-Control", "no-store, must-revalidate"));
     }
 
     private String uploadRequest(String originalFilename, String contentType, long size) {

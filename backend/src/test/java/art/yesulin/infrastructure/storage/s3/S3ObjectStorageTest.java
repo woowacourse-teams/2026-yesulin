@@ -104,7 +104,7 @@ class S3ObjectStorageTest {
 
     @Test
     void createsPublicUrlWithoutPhysicalTeamPrefix() {
-        String result = objectStorage.toPublicUrl("files/20260820/image-id");
+        String result = objectStorage.toPublicUrl("public/files/20260820/image-id");
 
         assertEquals("https://cdn.example.com/files/20260820/image-id", result);
     }
