@@ -54,6 +54,7 @@ logging:
 
 yesulin:
   mail:
+    enabled: ${MAIL_ENABLED:true}
     from: ${GOOGLE_SMTP_FROM:}
   email-verification:
     expiration: ${EMAIL_VERIFICATION_EXPIRATION:PT5M}

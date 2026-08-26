@@ -6,11 +6,13 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import java.nio.charset.StandardCharsets;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
 
 @Component
+@ConditionalOnProperty(prefix = "yesulin.mail", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class GoogleSmtpMailSender implements MailSender {
 
     private final JavaMailSender javaMailSender;
