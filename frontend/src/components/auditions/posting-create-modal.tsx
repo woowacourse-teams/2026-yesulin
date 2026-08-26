@@ -130,8 +130,12 @@ export function PostingCreateModal({ performanceId, performanceTitle, performanc
   const { flush: flushDraft } = draft;
 
   useEffect(() => {
-    if (!formError || formError.section === "GENERAL") return;
-    document.getElementById(SECTION_IDS[formError.section])?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (!formError) return;
+    // 구간을 특정하지 못한 오류도 화면 밖에 남지 않도록 오류 문구 자체로 이동한다.
+    const target = formError.section === "GENERAL"
+      ? document.getElementById("posting-create-error")
+      : document.getElementById(SECTION_IDS[formError.section]);
+    target?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [formError]);
 
   const close = useCallback(() => {
@@ -142,6 +146,9 @@ export function PostingCreateModal({ performanceId, performanceTitle, performanc
     event.preventDefault();
     const roles = Object.values(selectedRoles);
     if (!performancePosterUrl || roles.length === 0) { setFormError(!performancePosterUrl ? { message: "공연 포스터를 먼저 등록해 주세요.", section: "GENERAL" } : { message: "모집 분야를 하나 이상 선택해 주세요.", section: "ROLES" }); return; }
+    if (!performanceStart) { setFormError({ message: "공연 시작일을 입력해 주세요.", section: "PERFORMANCE" }); return; }
+    if (!recruitmentStart || !recruitmentEnd) { setFormError({ message: "모집 시작과 종료 일시를 입력해 주세요.", section: "SCHEDULE" }); return; }
+    if (rounds.some((round) => !round.date)) { setFormError({ message: "전형 날짜를 입력해 주세요.", section: "SCHEDULE" }); return; }
     const photoField = applicationFields.find((field) => field.id === "PHOTOS" && field.enabled);
     const photoRequirements = photoField?.config.photoRequirements ?? [];
     const photoTotal = photoRequirements.reduce((sum, item) => sum + item.count, 0);
