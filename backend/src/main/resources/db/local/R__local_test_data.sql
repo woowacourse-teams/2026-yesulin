@@ -10,7 +10,7 @@ on duplicate key update company_name = values(company_name), phone = values(phon
 
 insert into file_assets
     (id, object_key, owner_id, original_filename, content_type, file_type, size, status)
-values (9001, 'local/seed/performance-poster.webp', 9001, 'performance-poster.webp', 'image/webp', 'IMAGE',
+values (9001, 'public/local/seed/performance-poster.webp', 9001, 'performance-poster.webp', 'image/webp', 'IMAGE',
         1024, 'READY')
 on duplicate key update owner_id = values(owner_id), original_filename = values(original_filename),
                         content_type = values(content_type), file_type = values(file_type), size = values(size),
