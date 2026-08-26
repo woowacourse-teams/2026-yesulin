@@ -11,8 +11,8 @@ import type { ApplicationFieldInput } from "@/features/auditions/creation-types"
 import { useToast } from "@/components/auditions/toast";
 import { PrimaryButton } from "@/components/ui/controls";
 import { ProfileInformationSection } from "./profile-editor-sections";
-import { ProfilePhotoLibrary } from "./profile-photo-library";
-import { ProfileVideoLibrary } from "./profile-video-library";
+import { MAX_LIBRARY_PHOTOS, ProfilePhotoLibrary } from "./profile-photo-library";
+import { MAX_LIBRARY_VIDEOS, ProfileVideoLibrary } from "./profile-video-library";
 
 type ProfileTab = "BASIC" | "ADDITIONAL" | "PHOTOS" | "VIDEOS";
 type DraftValues = Record<string, ApplicantAnswerValue>;
@@ -23,7 +23,7 @@ const INFORMATION_KEYS = new Set<string>([...BASIC_KEYS, ...ADDITIONAL_KEYS]);
 const tabs: readonly { id: ProfileTab; label: string; description: string }[] = [
   { id: "BASIC", label: "기본정보", description: "공통 프로필 정보" },
   { id: "ADDITIONAL", label: "추가정보", description: "선택해서 저장하는 정보" },
-  { id: "PHOTOS", label: "사진", description: "최대 3장 보관" },
+  { id: "PHOTOS", label: "사진", description: `최대 ${MAX_LIBRARY_PHOTOS}장 보관` },
   { id: "VIDEOS", label: "영상", description: "YouTube 영상 보관" },
 ];
 
@@ -69,8 +69,8 @@ export function ProfileEditor({ profile, onSaved }: { readonly profile: Applican
   const tabCount = (tab: ProfileTab) => {
     if (tab === "BASIC") return `${basicFilled(values)}/8`;
     if (tab === "ADDITIONAL") return `${ADDITIONAL_KEYS.filter((key) => hasValue(values[key])).length}/8`;
-    if (tab === "PHOTOS") return `${profile.photoLibrary.length}/20`;
-    return `${profile.videoLibrary.length}/10`;
+    if (tab === "PHOTOS") return `${profile.photoLibrary.length}/${MAX_LIBRARY_PHOTOS}`;
+    return `${profile.videoLibrary.length}/${MAX_LIBRARY_VIDEOS}`;
   };
   const change = (key: string, value: ApplicantAnswerValue) => { setValues((current) => ({ ...current, [key]: value })); setError(""); };
   const informationTab = activeTab === "BASIC" || activeTab === "ADDITIONAL";

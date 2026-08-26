@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.audition.AuditionErrorCode;
 import java.util.List;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 
 class AuditionFormPlanTest {
@@ -24,12 +25,12 @@ class AuditionFormPlanTest {
     }
 
     @Test
-    void rejectsMoreThanTenRequestedPhotosInTotal() {
+    void rejectsRequestedPhotosOverTotalLimit() {
         BusinessException exception = assertThrows(
                 BusinessException.class,
                 () -> new PhotoRequirementPlans(List.of(
-                        new PhotoRequirementPlan(null, "정면", 6),
-                        new PhotoRequirementPlan(null, "측면", 5)
+                        new PhotoRequirementPlan(null, "정면", PhotoRequirementPlans.MAX_PHOTO_COUNT),
+                        new PhotoRequirementPlan(null, "측면", 1)
                 ))
         );
 
@@ -37,11 +38,21 @@ class AuditionFormPlanTest {
     }
 
     @Test
-    void rejectsMoreThanFiveVideoRequirements() {
-        List<VideoRequirementPlan> requirements = List.of(
-                video("자유 연기 1"), video("자유 연기 2"), video("자유 연기 3"),
-                video("자유 연기 4"), video("자유 연기 5"), video("자유 연기 6")
-        );
+    void acceptsRequestedPhotosAtTotalLimit() {
+        PhotoRequirementPlans plans = new PhotoRequirementPlans(List.of(
+                new PhotoRequirementPlan(null, "정면", PhotoRequirementPlans.MAX_PHOTO_COUNT - 1),
+                new PhotoRequirementPlan(null, "측면", 1)
+        ));
+
+        assertEquals(2, plans.values().size());
+    }
+
+    @Test
+    void rejectsVideoRequirementsOverLimit() {
+        List<VideoRequirementPlan> requirements = IntStream
+                .rangeClosed(1, VideoRequirementPlans.MAX_REQUIREMENT_COUNT + 1)
+                .mapToObj(index -> video("자유 연기 " + index))
+                .toList();
 
         BusinessException exception = assertThrows(
                 BusinessException.class,

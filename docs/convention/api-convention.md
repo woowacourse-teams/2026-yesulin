@@ -22,6 +22,11 @@
 - 인증 리소스의 소유자 ID는 요청으로 받지 않고 Session에서 결정한다. 인증 전 Draft는 API 리소스가 아니다.
 - 소유자 전용 리소스는 없거나 다른 사용자의 소유인 경우 모두 `404`로 응답해 존재 여부를 노출하지 않는다. 공개된 리소스에 대한 행위 권한만 부족한 경우에는 `403`을 사용한다.
 - 성공 응답은 wrapper 없이, 실패는 `{ code, message, detail? }`로 반환한다.
+- `message`는 사용자에게 그대로 보여 줄 수 있는 한국어 문장이다. 항목 검증 실패는 `code`가
+  `INVALID_REQUEST` 하나이므로 `detail`에 `필드 경로: 사유`를 담고, `message`에는 첫 위반 사유를 함께 넣어
+  클라이언트가 `detail`을 읽지 않아도 원인을 알 수 있게 한다.
+- 본문 파싱 실패, 경로·쿼리 타입 불일치와 도메인 검증기의 `IllegalArgumentException`도 같은 오류 형식으로
+  400을 반환한다. 클라이언트가 Spring 기본 오류 화면이나 형식을 마주하지 않게 한다.
 - 쓰기 요청(POST·PUT·PATCH·DELETE)에는 `X-CSRF-Token` 헤더가 필요하다. 서버가 `XSRF-TOKEN` 쿠키로 토큰을 내려주므로 클라이언트는 읽기 요청을 한 번 보내 받은 뒤 헤더에 넣는다. 세션 쿠키는 HttpOnly지만 CSRF 토큰 쿠키는 클라이언트가 읽어야 하므로 HttpOnly가 아니다.
 - 인증 실패는 401 `AUTH_UNAUTHENTICATED`, 역할 불일치는 403 `AUTH_FORBIDDEN`, 승인 전 계정은 403 `AUTH_INACTIVE_MEMBER`로 구분한다.
 - 호환 필드 추가는 `v1`을 유지하고 breaking change에서만 major 버전을 올린다.

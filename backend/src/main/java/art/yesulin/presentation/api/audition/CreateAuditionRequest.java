@@ -10,9 +10,11 @@ import java.util.UUID;
 
 public record CreateAuditionRequest(
         @NotNull UUID id,
-        @Positive long performanceId,
-        @NotBlank @Size(max = 200) String title,
-        @NotNull LocalDate performanceStartDate,
+        @Positive(message = "공연을 선택해 주세요.") long performanceId,
+        @NotBlank(message = "공고명을 입력해 주세요.")
+        @Size(max = 200, message = "공고명은 200자 이내로 입력해 주세요.")
+        String title,
+        @NotNull(message = "공연 시작일을 입력해 주세요.") LocalDate performanceStartDate,
         LocalDate performanceEndDate
 ) {
 

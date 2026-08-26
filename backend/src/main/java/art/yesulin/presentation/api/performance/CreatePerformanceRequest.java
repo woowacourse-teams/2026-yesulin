@@ -10,8 +10,10 @@ import jakarta.validation.constraints.Size;
 import java.util.List;
 
 public record CreatePerformanceRequest(
-        @Positive long posterFileId,
-        @NotBlank @Size(max = 200) String title,
+        @Positive(message = "공연 포스터를 등록해 주세요.") long posterFileId,
+        @NotBlank(message = "공연명을 입력해 주세요.")
+        @Size(max = 200, message = "공연명은 200자 이내로 입력해 주세요.")
+        String title,
         @Size(max = 300) String roadAddress,
         @Size(max = 200) String venue,
         @Valid PerformanceVenueAddressRequest venueAddress,

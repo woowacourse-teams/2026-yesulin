@@ -10,14 +10,14 @@ import java.util.Set;
 
 public record VideoRequirementPlans(List<VideoRequirementPlan> values) {
 
-    public static final int MAX_REQUIREMENT_COUNT = 5;
+    public static final int MAX_REQUIREMENT_COUNT = 3;
 
     public VideoRequirementPlans {
         values = requireNonNull(values, "영상 요구사항은 필수입니다.");
         values.forEach(value -> requireNonNull(value, "영상 요구사항은 비어 있을 수 없습니다."));
         values = List.copyOf(values);
         if (values.size() > MAX_REQUIREMENT_COUNT) {
-            throw new BusinessException(INVALID_FORM, "영상 링크는 최대 5개까지 요청할 수 있습니다.");
+            throw new BusinessException(INVALID_FORM, "영상 링크는 최대 %d개까지 요청할 수 있습니다.".formatted(MAX_REQUIREMENT_COUNT));
         }
         validateUniqueIds(values);
     }
