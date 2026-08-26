@@ -1,0 +1,18 @@
+flowchart TD
+    OPEN["공개 공고 열기"] --> LOAD{"실제 UUID 공고?"}
+    LOAD -- 예 --> REAL["GET /api/v1/public/auditions/{auditionId}"]
+    LOAD -- seed --> MOCK["MSW 공개 공고"]
+    REAL --> WRITE["단계별 지원서 작성"]
+    MOCK --> WRITE
+    WRITE --> DRAFT["IndexedDB Draft 저장"]
+    DRAFT --> REVIEW["최종 검토와 필수 동의"]
+    REVIEW --> AUTH{"배우 세션 존재?"}
+    AUTH -- 아니오 --> LOGIN["OIDC 로그인 후 returnTo 복귀"]
+    LOGIN --> REVIEW
+    AUTH -- 예 --> SUBMIT["POST /api/v1/auditions/{auditionId}/submissions"]
+    SUBMIT --> PROFILE{"프로필에도 저장?"}
+    PROFILE -- 예 --> PATCH["PATCH /api/v1/applicants/me/profile"]
+    PROFILE -- 아니오 --> DONE["제출 완료"]
+    PATCH --> DONE
+    DONE --> HISTORY["GET /api/v1/applicants/me/submissions"]
+

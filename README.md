@@ -1,141 +1,62 @@
 # 예술IN
 
-공연예술 오디션의 모집과 심사를 연결하는 서비스입니다.
+공연예술 오디션의 모집, 지원, 심사를 연결하는 서비스다.
 
-- 배우는 외부 공고의 링크로 들어와 프로필과 자료를 제출하고 지원 이력을 관리합니다.
-- 기획사/제작사는 공연·공고·배역을 만들고 배우를 차수별로 검토합니다.
-- 공고에는 하나 이상의 배역과 지원서가 있고, 지원서는 공고 설정에 따라 하나 이상의 배역을 선택합니다.
+- 배우는 공개 공고를 확인하고 지원서를 제출하며 프로필과 제출 이력을 관리한다.
+- 기획사/제작사는 공연과 공고를 만들고 배역별로 지원자를 심사한다.
+- 심사 결과는 `(지원서, 공고 배역, 차수)` 단위로 저장하고, 심사 종료는 공고 배역 전체 단위로 처리한다.
 
-전형은 배역별로 독립 진행하며 심사 결과는 `(지원서, 배역, 차수)`별로 보존합니다. 최신 규칙은 [도메인 설계](./docs/domain-design.md), 작업별 상세 자료는 [문서 라우터](./docs/README.md)를 기준으로 합니다.
-
-## 현재 범위
-
-프런트엔드는 서비스 소개·인증 UI, 공연·공고 관리, 최대 5차 배우 심사, 공개 지원서 제출·조회, 배우 프로필과 기획사/제작사 설정을 제공합니다. 기본 실행은 실제 Backend API를 사용하며, MSW 시드와 인메모리 저장소는 `NEXT_PUBLIC_API_MOCKING=enabled`를 명시한 목 검증 환경에서만 사용합니다. 아직 실제 API로 이관되지 않은 화면은 목 검증 환경에서 확인합니다.
-
-백엔드는 공연·배역, presigned 파일 업로드와 공고 DRAFT의 기본 정보·배역·일정·지원 폼 저장, 게시 상태
-전이와 전형별 심사 결과 저장, 배우용 공개 공고 상세와 지원서 제출·스냅샷 조회를 구현했습니다. Backend의
-`S3ObjectStorage` adapter도 구현되어 운영 환경에서는 S3 관련 환경 설정이 필요하며, `local`은
-MySQL과 Testcontainers LocalStack S3를 사용합니다. 소셜 로그인과 Frontend 세션 연동은 구현됐고, 사업자·KOPIS
-검증, 재사용 프로필의 기본·추가정보와 사진·YouTube 영상 보관함, 로그인한 기획사/제작사 정보 조회·수정
-Backend도 구현됐습니다. 배우 프로필·사진·영상과 기획사/제작사 정보는
-환경 플래그로 Frontend와 실제 Backend를 연결할 수 있으며, 내 지원서 목록·상세도 실제 Backend 스냅샷 조회 API를
-사용합니다. 아직 이관하지 않은 Frontend API는 MSW에서 검증하며, MSW에서 새로 만든 데이터는
-새로고침하면 초기화될 수 있습니다.
+현재 제품 규칙은 [공통 도메인](./docs/domain.md), 실제 HTTP 계약은
+[백엔드 API](./backend/docs/api.md)를 기준으로 한다. 아직 구현되지 않았거나 결정되지 않은 내용은 각각
+[미구현](./docs/implementation-gaps.md), [미결정](./docs/pending-decisions.md) 문서에만 둔다.
 
 ## 실행
 
-Node.js 24 이상이 필요합니다. `.nvmrc`는 팀과 CI가 사용하는 권장 메이저 버전 24를 지정합니다. 클론 후 루트에서 먼저 Husky hook을 설치합니다.
+Node.js 24와 Java 25가 필요하다. 처음 한 번 루트 Git hook을 설치한다.
 
 ```bash
 npm install
 ```
 
-커밋 메시지는 항상 검사하며, 백엔드 Java·Checkstyle 설정이 staged diff에 있을 때만 Checkstyle을 실행합니다.
-
-프런트엔드:
+프론트엔드:
 
 ```bash
 cd frontend
 npm install
 cp -n .env.example .env.development.local
 npm run dev
-npm run lint
-npm run build
 ```
-
-- 기본 주소: `http://localhost:3000`
-- 기획사/제작사 진입: `/producers/performances`
-- 실제 백엔드 연결: `API_ORIGIN`을 설정하면 `/api/v1/**`, `/oauth2/**`,
-  `/login/oauth2/**` 요청을 백엔드로 전달합니다.
-- MSW 검증: `frontend/.env.example`을 참고해 로컬 환경에서만 `NEXT_PUBLIC_API_MOCKING=enabled`를 설정합니다.
 
 백엔드:
 
-로컬 MySQL의 `DB_*` 값은 `application-local.yml`에서 Spring Datasource로 연결합니다. 백엔드는 실행 시 저장소 루트의 `.env`를 자동으로 불러오며, OIDC 설정은 애플리케이션 시작 시 검증합니다. 처음 설정할 때만 `.env.example`을 `.env`로 복사하고, DB 비밀번호와 각 개발자 콘솔에서 발급한 값을 채웁니다. 이미 `.env`가 있으면 덮어쓰지 않습니다.
-
 ```bash
 cp -n .env.example .env
-
 cd backend
 ./gradlew bootRun
 ```
 
-테스트에는 실제 OIDC 자격증명이 필요하지 않습니다.
+로컬 통합 실행은 [Docker 안내](./docs/local-development.md)를 따른다.
+
+## 검증
 
 ```bash
-cd backend
+cd frontend
+npm run lint
+npm run build
+
+cd ../backend
 ./gradlew build
-./gradlew test
 ```
 
-`local` 프로필은 MySQL과 Testcontainers LocalStack S3를 사용하며, LocalStack 파일은 서버를
-재시작하면 초기화됩니다. 인증 우회는 제공하지 않으므로 보호된 API를 확인하려면
-`POST /api/v1/sessions`으로 로그인합니다. 테스트에서 인증을 건너뛰어야 하면
-MockMvc의 인증 요청 후처리 또는 테스트 전용 `MemberPrincipal`을 사용합니다.
-실행 전 Docker Desktop 또는 Docker Engine처럼 Docker API와 호환되는 컨테이너 런타임이
-실행 중이어야 합니다.
+프론트엔드에는 별도 테스트 러너가 없다. 백엔드는 Gradle build에서 Checkstyle과 테스트를 실행한다.
 
-MySQL, 백엔드, 프런트엔드를 하나의 Docker 네트워크에서 함께 실행하려면
-[Docker 로컬 실행](./DOCKER.md)을 따릅니다.
-
-카카오·네이버·구글 소셜 로그인 시작 경로와 Callback 설정은 [소셜 로그인 연동 모듈 문서](./docs/development/backend/oauth-social-login.md)를 따릅니다.
-
-## 지속적 통합
-
-`.github/workflows/ci.yml`은 `main` 대상 Pull Request와 `main` push에서 실행됩니다. Frontend와 Backend Job은 서로 독립된 GitHub-hosted runner에서 병렬 실행됩니다.
-
-- Frontend: `npm ci`, lint, production build
-- Backend: Java 25와 Gradle Wrapper로 Checkstyle, test, executable build
-- CI가 모두 통과한 뒤에만 `main`으로 병합하는 규칙은 GitHub 저장소 Ruleset에서 별도로 설정합니다.
-
-## 개발 방식
-
-프런트에서 필요한 계약을 먼저 검증하고 백엔드가 이를 구현합니다.
+## 구조
 
 ```text
-화면 → 타입 → API 호출 → 문서 → 백엔드
+backend/          Spring Boot API와 도메인·인프라
+frontend/         Next.js UI와 선택적 MSW 시나리오
+docs/             영역을 가로지르는 확정 규칙과 작업 보류 목록
+ops/              백업·모니터링 스크립트
 ```
 
-- 현재 프런트 계약: `frontend/src/features/**/api.ts`
-- 선택적인 목 요청 검증과 응답: `frontend/src/mocks/`
-- 백엔드 목표 경로와 이관 상태: [API 컨벤션](./docs/convention/api-convention.md)
-- 사용자별 비즈니스 흐름: [개발 상세 문서](./docs/development/README.md)
-
-문서와 구현이 다르면 완료로 보지 않습니다. 변경 기록 기준은 [문서 운영 원칙](./docs/README.md)을 따릅니다.
-
-## 코드 지도
-
-```text
-yesulin/
-├── backend/                  Spring Boot 4.1, Java 25
-├── frontend/                 Next.js 16, React 19
-│   └── src/
-│       ├── app/              라우트
-│       ├── features/         도메인 타입과 API
-│       ├── components/       화면과 상태
-│       └── mocks/            MSW 핸들러와 목 데이터
-└── docs/
-    ├── convention/           API·Git·백엔드 규칙
-    ├── decisions/            현재 개발에 필요한 on-demand 결정
-    ├── development/          상세 설계·검증·흐름
-    └── policies/public/      공개 개인정보·서비스 정책
-```
-
-프런트엔드는 `app → features → components → mocks` 순서로 읽습니다. 라우트는 얇게 유지하고 비즈니스 규칙은 `features/`, 화면 표현은 `components/`에 둡니다.
-
-## 문서
-
-- [문서 라우터](./docs/README.md)
-- [도메인 설계](./docs/domain-design.md)
-- [API·Git·백엔드 컨벤션](./docs/convention/)
-- [개발 상세 문서](./docs/development/README.md)
-- [결정 기록](./docs/decisions/README.md)
-- [프론트엔드 안내](./frontend/README.md)
-- [공개 정책](./docs/policies/public/README.md)
-
-## 참고
-
-- 다른 Next 개발 서버가 실행 중이면 기존 서버를 사용하거나 종료한 뒤 다시 실행합니다.
-- MSW 검증 환경이 로딩에서 멈추면 `frontend/public/mockServiceWorker.js`와 브라우저 콘솔을 확인합니다.
-- 실제 API의 SSR 조회에는 `API_ORIGIN`을 설정합니다. 브라우저 요청은 같은 origin의 상대 경로를 사용합니다.
-- 현재 통합 기준은 `origin/main`입니다. push 전에 fetch한 뒤 현재 브랜치를 그 위로 rebase합니다.
+문서는 [문서 라우터](./docs/README.md)에서 현재 작업에 필요한 것만 선택한다.
