@@ -1,5 +1,6 @@
 import { withCsrfHeaders } from "../csrf";
 import { readErrorCode, readErrorDetail, readErrorMessage, type ApiErrorDetail } from "../api-error";
+import { authenticatedFetch } from "../auth/unauthorized";
 
 const API_BASE_PATH = "/api";
 const WRITE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
@@ -24,11 +25,23 @@ export class AuditionRequestError extends Error {
   }
 }
 
-export async function request<T>(path: string, init?: RequestInit): Promise<T> {
+export function request<T>(path: string, init?: RequestInit): Promise<T> {
+  return executeRequest(path, init, fetch);
+}
+
+export function producerRequest<T>(path: string, init?: RequestInit): Promise<T> {
+  return executeRequest(path, init, authenticatedFetch);
+}
+
+async function executeRequest<T>(
+  path: string,
+  init: RequestInit | undefined,
+  fetcher: typeof fetch,
+): Promise<T> {
   const method = (init?.method ?? "GET").toUpperCase();
   const baseHeaders = { "Content-Type": "application/json", ...init?.headers } as Record<string, string>;
   const headers = WRITE_METHODS.has(method) ? await withCsrfHeaders(baseHeaders) : baseHeaders;
-  const response = await fetch(`${API_BASE_PATH}${path}`, {
+  const response = await fetcher(`${API_BASE_PATH}${path}`, {
     ...init,
     credentials: "include",
     headers,

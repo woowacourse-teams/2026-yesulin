@@ -23,8 +23,8 @@ type AuthSessionContextValue = {
   readonly session: FrontendAuthSession | null;
   readonly sessionReady: boolean;
   readonly serverSessionEnabled: boolean;
-  readonly setSession: (session: FrontendAuthSession) => void;
-  readonly logoutSession: () => Promise<void>;
+  readonly setSession: (session: FrontendAuthSession | null) => void;
+  readonly logoutSession: (redirectOnUnauthorized?: boolean) => Promise<void>;
 };
 
 const AuthSessionContext = createContext<AuthSessionContextValue | null>(null);
@@ -49,8 +49,8 @@ export function createFrontendCredential() {
 export function AuthSessionProvider({ children }: { readonly children: React.ReactNode }) {
   const [session, setSession] = useState<FrontendAuthSession | null>(null);
   const [sessionReady, setSessionReady] = useState(!serverSessionEnabled);
-  const logoutSession = useCallback(async () => {
-    if (serverSessionEnabled) await requestLogout();
+  const logoutSession = useCallback(async (redirectOnUnauthorized = false) => {
+    if (serverSessionEnabled) await requestLogout(redirectOnUnauthorized);
     setSession(null);
   }, []);
 

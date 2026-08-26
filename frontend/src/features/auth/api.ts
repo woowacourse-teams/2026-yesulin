@@ -1,4 +1,5 @@
 import { withCsrfHeaders } from "../csrf";
+import { authenticatedFetch } from "./unauthorized";
 
 const API_BASE_PATH = "/api/v1";
 
@@ -37,7 +38,7 @@ export async function signupProducer(body: ProducerSignupRequest): Promise<Produ
 }
 
 export async function resendProducerVerificationEmail(): Promise<void> {
-  const response = await fetch(`${API_BASE_PATH}/auth/email-verifications`, {
+  const response = await authenticatedFetch(`${API_BASE_PATH}/auth/email-verifications`, {
     method: "POST",
     credentials: "include",
     headers: await withCsrfHeaders(),

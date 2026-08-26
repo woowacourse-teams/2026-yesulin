@@ -1,4 +1,5 @@
 import { ensureCsrfToken } from "../csrf";
+import { authenticatedFetch } from "./unauthorized";
 
 const API_BASE_PATH = "/api/v1";
 const CSRF_HEADER_NAME = "X-CSRF-Token";
@@ -65,9 +66,10 @@ export async function fetchCurrentSession(): Promise<SessionResponse | null> {
   return response.json() as Promise<SessionResponse>;
 }
 
-export async function logout(): Promise<void> {
+export async function logout(redirectOnUnauthorized = false): Promise<void> {
   const csrfToken = await ensureCsrfToken();
-  const response = await fetch(`${API_BASE_PATH}/sessions/current`, {
+  const fetcher = redirectOnUnauthorized ? authenticatedFetch : fetch;
+  const response = await fetcher(`${API_BASE_PATH}/sessions/current`, {
     method: "DELETE",
     credentials: "include",
     headers: csrfToken ? { [CSRF_HEADER_NAME]: csrfToken } : {},

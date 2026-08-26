@@ -1,4 +1,4 @@
-import { AuditionRequestError, request } from "./api-client";
+import { AuditionRequestError, producerRequest as request } from "./api-client";
 import type { FileUploadResource, PerformanceResource, PerformanceResourceList, ProducerProfileResource } from "./backend-resources";
 import {
   createV1Posting,

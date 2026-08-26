@@ -23,7 +23,7 @@ export function ProducerAccountPanel() {
   }, [query.reload]);
   const profile = query.data;
   const logout = () => {
-    void logoutSession()
+    void logoutSession(true)
       .then(() => router.replace("/login"))
       .catch((error: unknown) => {
         const message = error instanceof SessionApiError
