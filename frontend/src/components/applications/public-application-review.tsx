@@ -1,8 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
+import { TrackedLoginLink } from "@/components/analytics/tracked-login-link";
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
 import { orderedApplicationPhotos, youtubeVideoId } from "@/features/applications/application-form-state";
 import type { ApplicationPhoto, CareerDraft, SubmissionState } from "@/features/applications/application-form-state";
@@ -14,6 +14,7 @@ import { PublicApplicationSaveBadge, PublicApplicationSaveNotice } from "./publi
 import { ModalShell } from "@/components/auditions/modal-shell";
 import { PublicApplicationSubmitDialog } from "./public-application-submit-dialog";
 import type { EditableSection } from "./public-application-context-types";
+import { trackAnalyticsEvent } from "@/features/analytics/events";
 
 const REVIEW_SECTIONS = ["BASIC", "ADDITIONAL", "INTRODUCTION", "MATERIALS", "CAREER", "CUSTOM"] as const;
 const REVIEW_SECTION_TITLES: Record<EditableSection, string> = {
@@ -28,6 +29,12 @@ const REVIEW_SECTION_TITLES: Record<EditableSection, string> = {
 export function PublicApplicationReview() {
   const { state, actions, meta } = usePublicApplication();
   const submitting = state.submissionState === "SUBMITTING";
+  const tracked = useRef(false);
+  useEffect(() => {
+    if (tracked.current) return;
+    tracked.current = true;
+    trackAnalyticsEvent("application_review_view", { is_authenticated: meta.authenticated, issue_count: state.reviewIssues.length });
+  }, [meta.authenticated, state.reviewIssues.length]);
   return <main className="min-h-screen bg-surface pb-12 text-foreground">
     <header className="glass-surface sticky top-0 z-20 border-x-0 border-t-0"><div className="mx-auto flex min-h-16 max-w-[880px] items-center px-5 md:px-8"><span className="text-sm font-semibold text-brand">지원서 검토</span><PublicApplicationSaveBadge /></div></header>
     <div className="mx-auto max-w-[880px] px-5 py-8 md:px-8 md:py-12">
@@ -113,7 +120,10 @@ function AuthGate() {
   const returnTo = encodeURIComponent(buildApplicationAuthReturnTo(meta.postingId, meta.roleIds));
   const blocked = state.hasUnsavedChanges;
   const blockNavigation = (event: React.MouseEvent<HTMLAnchorElement>) => { if (blocked) event.preventDefault(); };
-  return <section aria-labelledby="auth-gate-title" className="mt-9 rounded-card border border-brand-line bg-brand-soft p-5 md:p-6"><p className="text-sm font-semibold text-brand">3. 배우 인증</p><h2 id="auth-gate-title" className="mt-1 text-xl font-bold">소셜 로그인하고 제출을 이어가세요</h2><p className="mt-2 text-sm font-medium leading-6 text-muted-strong">로그인해도 지금까지 작성한 지원 내용은 삭제되지 않습니다.</p>{blocked ? <p role="status" className="mt-3 text-sm font-medium text-warn">작성 내용 저장이 끝난 뒤 이동할 수 있어요.</p> : null}<div id="application-auth-actions" tabIndex={-1} className="mt-5"><Link href={`/login?returnTo=${returnTo}`} aria-disabled={blocked} onClick={blockNavigation} className={`inline-flex min-h-12 w-full items-center justify-center rounded-control border px-5 text-base font-semibold ${blocked ? "cursor-not-allowed border-border bg-border text-muted" : "border-brand bg-brand text-white shadow-[var(--shadow-1)] hover:bg-brand-strong"}`}>소셜 로그인하고 제출 계속</Link><p className="mt-3 text-center text-sm text-muted-strong">처음 이용해도 로그인과 함께 배우 계정이 자동으로 만들어집니다.</p></div></section>;
+  useEffect(() => {
+    trackAnalyticsEvent("login_prompt_view", { login_reason: "application_submit" });
+  }, []);
+  return <section aria-labelledby="auth-gate-title" className="mt-9 rounded-card border border-brand-line bg-brand-soft p-5 md:p-6"><p className="text-sm font-semibold text-brand">3. 배우 인증</p><h2 id="auth-gate-title" className="mt-1 text-xl font-bold">소셜 로그인하고 제출을 이어가세요</h2><p className="mt-2 text-sm font-medium leading-6 text-muted-strong">로그인해도 지금까지 작성한 지원 내용은 삭제되지 않습니다.</p>{blocked ? <p role="status" className="mt-3 text-sm font-medium text-warn">작성 내용 저장이 끝난 뒤 이동할 수 있어요.</p> : null}<div id="application-auth-actions" tabIndex={-1} className="mt-5"><TrackedLoginLink href={`/login?returnTo=${returnTo}`} analytics={{ entry_point: "application_submit_gate", login_reason: "application_submit", actor_type: "applicant", return_target: "application_review" }} aria-disabled={blocked} onClick={blockNavigation} onTrackedClick={() => trackAnalyticsEvent("login_prompt_action", { login_reason: "application_submit", action: "login" })} className={`inline-flex min-h-12 w-full items-center justify-center rounded-control border px-5 text-base font-semibold ${blocked ? "cursor-not-allowed border-border bg-border text-muted" : "border-brand bg-brand text-white shadow-[var(--shadow-1)] hover:bg-brand-strong"}`}>소셜 로그인하고 제출 계속</TrackedLoginLink><p className="mt-3 text-center text-sm text-muted-strong">처음 이용해도 로그인과 함께 배우 계정이 자동으로 만들어집니다.</p></div></section>;
 }
 
 function SubmissionArea({ submitting, consent, issueCount, state, error, onSubmit }: { submitting: boolean; consent: boolean; issueCount: number; state: SubmissionState; error: string; onSubmit: (result: "SUCCESS" | "ERROR") => void }) {

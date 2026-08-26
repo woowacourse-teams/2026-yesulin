@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { TrackedLoginLink } from "@/components/analytics/tracked-login-link";
 
 export function LandingHeader({ service }: { readonly service: "applicant" | "producer" }) {
   const isProducer = service === "producer";
@@ -18,12 +19,18 @@ export function LandingHeader({ service }: { readonly service: "applicant" | "pr
           />
         </Link>
         <nav aria-label="주요 메뉴" className="ml-auto flex items-center gap-1.5 sm:gap-3">
-          <Link
+          <TrackedLoginLink
             href="/login"
+            analytics={{
+              entry_point: isProducer ? "producer_landing_header" : "landing_header",
+              login_reason: isProducer ? "manage_production" : "account_access",
+              actor_type: isProducer ? "producer" : "applicant",
+              return_target: isProducer ? "producer_home" : "applicant_home",
+            }}
             className="inline-flex min-h-11 items-center justify-center rounded-control px-3 text-sm font-semibold text-muted-strong transition-colors hover:bg-surface hover:text-foreground sm:px-4"
           >
             로그인
-          </Link>
+          </TrackedLoginLink>
           <Link
             href={isProducer ? "/" : "/producer-service"}
             className="inline-flex min-h-11 items-center justify-center rounded-control border border-border bg-white px-3 text-sm font-semibold text-foreground transition-[background-color,border-color,transform] hover:border-brand-line hover:bg-brand-soft active:scale-[0.98] sm:px-4"

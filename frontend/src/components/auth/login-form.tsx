@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PrimaryButton, TextLink } from "@/components/ui/controls";
 import { useToast } from "@/components/auditions/toast";
@@ -17,6 +17,12 @@ import {
   type SocialProvider,
   useAuthSession,
 } from "./auth-session";
+import {
+  loginAttributionFor,
+  trackLoginAttempt,
+  trackLoginPageView,
+  trackLoginSuccess,
+} from "@/features/analytics/events";
 
 type LoginErrors = Partial<Record<"identifier" | "password", string>>;
 
@@ -40,6 +46,11 @@ export function LoginForm({ returnTo, applicationFlow = false }: { readonly retu
   const [errors, setErrors] = useState<LoginErrors>({});
   const [pendingProvider, setPendingProvider] = useState<SocialProvider>();
   const [submitting, setSubmitting] = useState(false);
+  const [pageAttribution] = useState(() => loginAttributionFor(returnTo, applicationFlow ? "applicant" : "unknown"));
+
+  useEffect(() => {
+    trackLoginPageView(pageAttribution);
+  }, [pageAttribution]);
 
   function changeRole(nextRole: AccountRole) {
     setRole(nextRole);
@@ -60,6 +71,9 @@ export function LoginForm({ returnTo, applicationFlow = false }: { readonly retu
       requestAnimationFrame(() => document.getElementById(`login-${firstError}`)?.focus());
       return;
     }
+
+    const producerAttribution = loginAttributionFor("/producers/performances", "producer");
+    trackLoginAttempt("password", producerAttribution);
 
     let serverSession: Awaited<ReturnType<typeof requestLogin>> | null = null;
     if (mockingDisabled || realProducerLoginEnabled) {
@@ -83,12 +97,15 @@ export function LoginForm({ returnTo, applicationFlow = false }: { readonly retu
       displayName: trimmedIdentifier,
       producerStatus: serverSession?.status ?? "ACTIVE",
     });
+    trackLoginSuccess("/producers/performances", producerAttribution);
     toast("기획사/제작사 계정으로 로그인했습니다.", { type: "success" });
     router.push("/producers/performances");
   }
 
   async function handleSocialLogin(provider: SocialProvider) {
     setPendingProvider(provider);
+    const applicantAttribution = loginAttributionFor(returnTo, "applicant");
+    trackLoginAttempt(provider, applicantAttribution);
 
     if (realSocialLoginEnabled || mockingDisabled) {
       rememberSocialLoginReturnTo(returnTo);
@@ -103,6 +120,7 @@ export function LoginForm({ returnTo, applicationFlow = false }: { readonly retu
       displayName: `${PROVIDER_LABELS[provider]} 배우`,
       socialProvider: provider,
     });
+    trackLoginSuccess(returnTo ?? "/applicants", applicantAttribution);
     toast(applicationFlow ? "로그인했습니다. 지원서 검토 화면으로 돌아갑니다." : "배우 계정으로 로그인했습니다.", { type: "success" });
     router.push(returnTo ?? "/applicants");
   }

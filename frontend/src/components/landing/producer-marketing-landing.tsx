@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { TrackedLoginLink } from "@/components/analytics/tracked-login-link";
 import { PrimaryLink } from "@/components/ui/controls";
 import { LandingFooter, LandingHeader } from "./landing-header";
 import { ProducerPreview } from "./landing-preview";
@@ -28,7 +28,7 @@ export function ProducerMarketingLanding() {
             <p className="mt-6 max-w-[570px] text-lg leading-8 text-sidebar-text/80">공연과 배역별 배우를 비교하고, 심사 결과와 다음 전형을 한 화면에서 관리하세요.</p>
             <div className="mt-9 flex flex-wrap gap-3">
               <PrimaryLink href="/signup" className="min-h-13 px-6 shadow-[var(--shadow-cta)]">기획사/제작사로 시작하기</PrimaryLink>
-              <Link href="/login" className="inline-flex min-h-[52px] items-center justify-center rounded-control border border-white/20 bg-white/5 px-6 font-semibold text-white backdrop-blur-md transition-[background-color,transform] hover:bg-white/10 active:scale-[0.98]">기존 계정으로 로그인</Link>
+              <TrackedLoginLink href="/login" analytics={{ entry_point: "producer_landing_hero", login_reason: "manage_production", actor_type: "producer", return_target: "producer_home" }} className="inline-flex min-h-[52px] items-center justify-center rounded-control border border-white/20 bg-white/5 px-6 font-semibold text-white backdrop-blur-md transition-[background-color,transform] hover:bg-white/10 active:scale-[0.98]">기존 계정으로 로그인</TrackedLoginLink>
             </div>
           </div>
           <div className="relative">

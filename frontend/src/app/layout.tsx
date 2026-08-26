@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { AnalyticsConsentManager } from "@/components/analytics/analytics-consent-manager";
 import { AuthSessionProvider } from "@/components/auth/auth-session";
 import "./globals.css";
 import "./interactions.css";
@@ -16,6 +17,8 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const gtmId = process.env.NEXT_PUBLIC_GTM_ID;
+
   return (
     <html lang="ko" className="h-full antialiased" suppressHydrationWarning>
       <head>
@@ -26,6 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-full" suppressHydrationWarning>
         <AuthSessionProvider>{children}</AuthSessionProvider>
+        <AnalyticsConsentManager gtmId={gtmId} />
       </body>
     </html>
   );

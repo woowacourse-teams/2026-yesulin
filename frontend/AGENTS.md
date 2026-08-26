@@ -9,6 +9,7 @@
 | 구조·상태 경계 | [architecture.md](./docs/architecture.md) |
 | API 타입·호출·MSW | [api-integration.md](./docs/api-integration.md), 필요하면 [백엔드 API](../backend/docs/api.md) |
 | UI·반응형·접근성 | [design-system.md](./docs/design-system.md) |
+| GTM·분석 동의·이벤트 | [analytics.md](./docs/analytics.md) |
 | 목 fixture·시나리오 | [msw-scenarios.md](./docs/msw-scenarios.md) |
 | 배우 흐름 | [applicant.mmd](./docs/user-flows/applicant.mmd) |
 | 기획사/제작사 흐름 | [producer.mmd](./docs/user-flows/producer.mmd) |
