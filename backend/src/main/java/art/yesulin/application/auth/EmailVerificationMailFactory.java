@@ -10,7 +10,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 @RequiredArgsConstructor
 public class EmailVerificationMailFactory {
 
-    private static final String SUBJECT = "[예술IN] 이메일 인증을 완료해 주세요";
+    private static final String SUBJECT = "[예술in] 이메일 인증을 완료해 주세요";
 
     private final EmailVerificationSettings settings;
 
