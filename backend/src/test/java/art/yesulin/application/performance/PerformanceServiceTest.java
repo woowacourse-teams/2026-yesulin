@@ -9,16 +9,22 @@ import art.yesulin.application.file.FileService;
 import art.yesulin.application.file.FileUploadCommand;
 import art.yesulin.application.file.FileUploadResult;
 import art.yesulin.common.exception.BusinessException;
+import art.yesulin.domain.audition.Audition;
+import art.yesulin.domain.audition.AuditionRepository;
+import art.yesulin.domain.audition.PerformancePeriod;
 import art.yesulin.domain.file.FileAssetRepository;
 import art.yesulin.domain.file.FileErrorCode;
 import art.yesulin.domain.file.FileReference;
 import art.yesulin.domain.file.FileReferenceRepository;
 import art.yesulin.domain.performance.Performance;
+import art.yesulin.domain.performance.PerformanceErrorCode;
 import art.yesulin.domain.performance.PerformanceRepository;
 import art.yesulin.domain.performance.event.PerformancePosterChangedEvent;
 import art.yesulin.support.FakeObjectStorage;
 import art.yesulin.support.ObjectStorageTestConfiguration;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,6 +52,9 @@ class PerformanceServiceTest {
     private PerformanceRepository performanceRepository;
 
     @Autowired
+    private AuditionRepository auditionRepository;
+
+    @Autowired
     private FileService fileService;
 
     @Autowired
@@ -62,6 +71,7 @@ class PerformanceServiceTest {
 
     @BeforeEach
     void cleanUp() {
+        auditionRepository.deleteAll();
         performanceRepository.deleteAll();
         fileReferenceRepository.deleteAll();
         fileAssetRepository.deleteAll();
@@ -159,7 +169,7 @@ class PerformanceServiceTest {
     }
 
     @Test
-    void updatesEditableInformationWithoutChangingRoles() {
+    void updatesEditableInformationAndReplacesRoles() {
         PerformanceResult created = createPerformance(uploadReadyPoster());
         long changedPosterFileId = uploadReadyPoster();
         UpdatePerformanceCommand command = new UpdatePerformanceCommand(
@@ -172,6 +182,10 @@ class PerformanceServiceTest {
                         "03172",
                         null,
                         null
+                ),
+                List.of(
+                        new CreatePerformanceRoleCommand("햄릿 왕자", "복수심에 흔들리는 덴마크 왕자"),
+                        new CreatePerformanceRoleCommand("클로디어스", "덴마크의 왕")
                 )
         );
 
@@ -180,7 +194,60 @@ class PerformanceServiceTest {
         assertEquals(changedPosterFileId, updated.posterFileId());
         assertEquals("햄릿 리뉴얼", updated.title());
         assertEquals("세종문화회관 대극장", updated.venue());
-        assertEquals(created.roles(), updated.roles());
+        assertEquals(2, updated.roles().size());
+        assertEquals("햄릿 왕자", updated.roles().getFirst().name());
+        assertEquals("복수심에 흔들리는 덴마크 왕자", updated.roles().getFirst().description());
+        assertEquals("클로디어스", updated.roles().get(1).name());
+    }
+
+    @Test
+    void rejectsEveryPerformanceChangeWhenAuditionExists() {
+        PerformanceResult created = createPerformance(uploadReadyPoster());
+        createAudition(created.id());
+        long changedPosterFileId = uploadReadyPoster();
+
+        BusinessException basicInformationException = assertThrows(
+                BusinessException.class,
+                () -> performanceService.updateBasicInformation(
+                        OWNER_ID,
+                        created.id(),
+                        new UpdatePerformanceBasicInformationCommand("변경", "서울특별시 중구 세종대로 110")
+                )
+        );
+        BusinessException posterException = assertThrows(
+                BusinessException.class,
+                () -> performanceService.updatePoster(
+                        OWNER_ID, created.id(), new UpdatePerformancePosterCommand(changedPosterFileId)
+                )
+        );
+
+        assertEquals(PerformanceErrorCode.HAS_AUDITIONS, basicInformationException.getErrorCode());
+        assertEquals(PerformanceErrorCode.HAS_AUDITIONS, posterException.getErrorCode());
+    }
+
+    @Test
+    void deletesPerformanceWithoutAuditionsAndUnlinksPoster() {
+        PerformanceResult created = createPerformance(uploadReadyPoster());
+
+        performanceService.delete(OWNER_ID, created.id());
+
+        assertTrue(performanceRepository.findById(created.id()).isEmpty());
+        assertTrue(fileReferenceRepository.findByReferenceTypeAndReferenceIdAndFileId(
+                "PERFORMANCE_POSTER", created.id(), created.posterFileId()
+        ).isEmpty());
+    }
+
+    @Test
+    void rejectsPerformanceDeletionWhenAuditionExists() {
+        PerformanceResult created = createPerformance(uploadReadyPoster());
+        createAudition(created.id());
+
+        BusinessException exception = assertThrows(
+                BusinessException.class, () -> performanceService.delete(OWNER_ID, created.id())
+        );
+
+        assertEquals(PerformanceErrorCode.HAS_AUDITIONS, exception.getErrorCode());
+        assertTrue(performanceRepository.existsById(created.id()));
     }
 
     @Test
@@ -221,6 +288,16 @@ class PerformanceServiceTest {
         objectStorage.upload(upload.uploadUrl(), "image/png", 1_024L);
         fileService.completeUpload(OWNER_ID, upload.fileId());
         return upload.fileId();
+    }
+
+    private void createAudition(long performanceId) {
+        auditionRepository.saveAndFlush(new Audition(
+                UUID.randomUUID(),
+                performanceId,
+                OWNER_ID,
+                "햄릿 배우 모집",
+                new PerformancePeriod(LocalDate.of(2026, 11, 1), LocalDate.of(2026, 11, 30))
+        ));
     }
 
     private FileReference findPosterReference(long performanceId, long fileId) {

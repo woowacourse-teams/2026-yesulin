@@ -1,5 +1,6 @@
 package art.yesulin.domain.performance;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -35,14 +36,10 @@ class PerformanceRolesTest {
     }
 
     @Test
-    void rejectsRoleAdditionAfterPerformanceIsPersisted() {
+    void allowsRoleAdditionAfterPerformanceIsPersistedWhenApplicationPolicyPermitsIt() {
         Performance performance = new Performance(1L, 1L, "햄릿", "서울특별시 종로구 대학로 12");
         ReflectionTestUtils.setField(performance, "id", 1L);
 
-        BusinessException exception = assertThrows(
-                BusinessException.class, () -> performance.addRole("햄릿", "덴마크의 왕자")
-        );
-
-        assertEquals(PerformanceErrorCode.ROLE_MODIFICATION_NOT_ALLOWED, exception.getErrorCode());
+        assertDoesNotThrow(() -> performance.addRole("햄릿", "덴마크의 왕자"));
     }
 }

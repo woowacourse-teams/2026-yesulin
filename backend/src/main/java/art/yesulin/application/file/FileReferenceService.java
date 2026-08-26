@@ -36,6 +36,13 @@ public class FileReferenceService {
         createReferenceIfAbsent(command.referenceType(), command.referenceId(), command.currentFileId());
     }
 
+    @Transactional
+    public void unlinkFile(UnlinkFileCommand command) {
+        fileReferenceRepository.deleteByReferenceTypeAndReferenceIdAndFileId(
+                command.referenceType(), command.referenceId(), command.fileId()
+        );
+    }
+
     private void ensureFileUsable(long ownerId, long fileId) {
         FileAsset fileAsset = fileAssetRepository.findByIdAndOwnerId(fileId, ownerId)
                 .orElseThrow(() -> new BusinessException(NOT_FOUND, "파일을 찾을 수 없습니다."));

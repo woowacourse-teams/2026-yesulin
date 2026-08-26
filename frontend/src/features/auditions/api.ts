@@ -213,6 +213,7 @@ export async function updatePerformance(
       title: body.title?.trim(),
       venue: body.venue?.trim(),
       venueAddress: body.venueAddress,
+      roles: body.roles.map((role) => ({ name: role.name.trim(), description: role.description.trim() })),
     }),
   });
 }
@@ -235,7 +236,8 @@ function toPerformanceManagementDetail(resource: PerformanceResource): Performan
 }
 
 export function deletePerformance(id: PerformanceId) {
-  return request<void>(`/performances/${id}`, { method: "DELETE" });
+  const path = isBackendPerformanceId(id) ? `/v1/performances/${id}` : `/performances/${id}`;
+  return request<void>(path, { method: "DELETE" });
 }
 
 /** Notion 명세에 아직 없는 편집 초기값 API. 화면 계약 검증을 위해 제안 형태로 둔다. */

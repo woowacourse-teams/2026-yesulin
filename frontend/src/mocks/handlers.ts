@@ -126,11 +126,13 @@ export const handlers = [
     const id = performanceId(String(params.performanceId));
     const performance = findPerformance(id);
     if (!performance) return notFound("공연을 찾을 수 없습니다.");
+    if (performance.postings.length) return apiError(409, "PERFORMANCE_HAS_AUDITIONS", "등록된 공고가 있어 공연을 수정하거나 삭제할 수 없습니다.");
     const body = (await request.json()) as UpdatePerformanceRequest;
-    if (body.title !== undefined && (!hasText(body.title) || body.title.length > 200)) return apiError(400, "TITLE_REQUIRED", "공연 제목은 200자 이내로 입력해 주세요.");
-    if (body.venue !== undefined && (!hasText(body.venue) || body.venue.length > 200)) return apiError(400, "VENUE_REQUIRED", "공연 장소명은 200자 이내로 입력해 주세요.");
-    if (body.venueAddress !== undefined && !hasText(body.venueAddress.roadAddress)) return apiError(400, "ADDRESS_REQUIRED", "도로명주소를 선택해 주세요.");
-    if (body.venueAddress && (body.venueAddress.roadAddress.length > 300 || body.venueAddress.detailAddress.length > 300)) return apiError(400, "ADDRESS_TOO_LONG", "공연 주소는 300자 이내로 입력해 주세요.");
+    if (!hasText(body.title) || body.title.length > 200) return apiError(400, "TITLE_REQUIRED", "공연 제목은 200자 이내로 입력해 주세요.");
+    if (!hasText(body.venue) || body.venue.length > 200) return apiError(400, "VENUE_REQUIRED", "공연 장소명은 200자 이내로 입력해 주세요.");
+    if (!body.venueAddress || !hasText(body.venueAddress.roadAddress)) return apiError(400, "ADDRESS_REQUIRED", "도로명주소를 선택해 주세요.");
+    if (body.venueAddress.roadAddress.length > 300 || (body.venueAddress.detailAddress?.length ?? 0) > 300) return apiError(400, "ADDRESS_TOO_LONG", "공연 주소는 300자 이내로 입력해 주세요.");
+    if (!Array.isArray(body.roles) || body.roles.some((role) => !hasText(role.name) || !hasText(role.description))) return apiError(400, "INVALID_ROLES", "모든 배역의 이름과 설명을 입력해 주세요.");
     updateCatalogPerformance(id, body);
     return HttpResponse.json({ performances: CATALOG.map(toPerformanceSummary) });
   }),
@@ -140,7 +142,7 @@ export const handlers = [
     const id = performanceId(String(params.performanceId));
     const performance = findPerformance(id);
     if (!performance) return notFound("공연을 찾을 수 없습니다.");
-    if (performance.postings.length) return apiError(409, "PERFORMANCE_HAS_POSTINGS", "공고를 먼저 삭제해 주세요.");
+    if (performance.postings.length) return apiError(409, "PERFORMANCE_HAS_AUDITIONS", "등록된 공고가 있어 공연을 수정하거나 삭제할 수 없습니다.");
     removeCatalogPerformance(id);
     return new HttpResponse(null, { status: 204 });
   }),

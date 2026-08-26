@@ -2,11 +2,12 @@ import type { ApplicationFieldInput, AuditionRoundInput, PerformanceRoleTemplate
 import type { PerformanceId, PostingId, PostingPhase } from "./types";
 
 export type UpdatePerformanceRequest = {
-  readonly posterFileId?: number | null;
-  readonly title?: string;
-  readonly venue?: string;
-  readonly venueAddress?: VenueAddress;
+  readonly posterFileId: number | null;
+  readonly title: string;
+  readonly venue: string;
+  readonly venueAddress: VenueAddress;
   readonly posterUrl?: string;
+  readonly roles: readonly Omit<PerformanceRoleTemplate, "id">[];
 };
 
 export type PerformanceManagementDetail = {
