@@ -136,14 +136,14 @@ export function LoginForm({ returnTo, applicationFlow = false }: { readonly retu
   const applicantLogin = applicationFlow || role === "applicant";
 
   return (
-    <div className="space-y-7">
+    <div className="space-y-5">
       {!applicationFlow ? <RoleField value={role} onChange={changeRole} /> : null}
 
       {applicantLogin ? (
         <SocialButtons pendingProvider={pendingProvider} onSelect={(provider) => void handleSocialLogin(provider)} />
       ) : (
-        <form onSubmit={(event) => void handleProducerLogin(event)} noValidate className="space-y-6">
-          <div className="space-y-4">
+        <form onSubmit={(event) => void handleProducerLogin(event)} noValidate className="space-y-4">
+          <div className="space-y-3">
             <AuthInput
               id="login-identifier"
               label="이메일"
@@ -168,9 +168,14 @@ export function LoginForm({ returnTo, applicationFlow = false }: { readonly retu
           <PrimaryButton type="submit" disabled={submitting} className="min-h-[52px] w-full text-base">
             {submitting ? "로그인 중..." : "기획사/제작사 로그인"}
           </PrimaryButton>
-          <TextLink href="/forgot-password" className="w-full text-center">
-            비밀번호를 잊으셨나요?
-          </TextLink>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <TextLink href="/forgot-password" className="w-full text-center">
+              비밀번호를 잊으셨나요?
+            </TextLink>
+            <TextLink href="/signup" className="w-full text-center">
+              기획사/제작사 회원가입
+            </TextLink>
+          </div>
         </form>
       )}
     </div>
