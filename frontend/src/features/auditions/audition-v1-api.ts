@@ -199,12 +199,22 @@ function saveRoles(auditionId: string, body: CreatePostingRequest) {
   });
 }
 
+/**
+ * 빈 값이나 잘못된 날짜에 Date를 그대로 쓰면 "Invalid time value"가 화면까지 새어 나온다.
+ * 사용자가 무엇을 고쳐야 하는지 알 수 있는 문구로 바꿔 던진다.
+ */
+function toInstant(value: string, label: string): string {
+  const time = new Date(value).getTime();
+  if (Number.isNaN(time)) throw new Error(`${label} 일시를 다시 선택해 주세요.`);
+  return new Date(time).toISOString();
+}
+
 function saveSchedule(auditionId: string, body: CreatePostingRequest) {
   return request(`/v1/auditions/${auditionId}/schedule`, {
     method: "PUT",
     body: JSON.stringify({
-      recruitmentStartAt: new Date(body.recruitmentStart).toISOString(),
-      recruitmentEndAt: new Date(body.recruitmentEnd).toISOString(),
+      recruitmentStartAt: toInstant(body.recruitmentStart, "모집 시작"),
+      recruitmentEndAt: toInstant(body.recruitmentEnd, "모집 종료"),
       stages: body.rounds.map((round) => ({ stageId: null, name: round.name, date: round.date, notice: round.note })),
     }),
   });
