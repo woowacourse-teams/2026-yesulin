@@ -36,11 +36,22 @@ export function PostingRoleSelector({ roles, selected, onChange }: {
   </div>;
 }
 
-export function AuditionScheduleEditor({ rounds, onChange, allowCountChange = true, lockedRounds = [] }: {
+export function AuditionScheduleEditor({
+  rounds,
+  onChange,
+  allowCountChange = true,
+  lockedRounds = [],
+  dateErrors = [],
+  minimumDates = [],
+  maximumDate,
+}: {
   readonly rounds: readonly AuditionRoundInput[];
   readonly onChange: (rounds: readonly AuditionRoundInput[]) => void;
   readonly allowCountChange?: boolean;
   readonly lockedRounds?: readonly number[];
+  readonly dateErrors?: readonly (string | undefined)[];
+  readonly minimumDates?: readonly (string | undefined)[];
+  readonly maximumDate?: string;
 }) {
   const patch = (round: AuditionRoundInput["round"], update: Partial<AuditionRoundInput>) => onChange(rounds.map((item) => item.round === round ? { ...item, ...update } : item));
   const addRound = () => {
@@ -50,11 +61,11 @@ export function AuditionScheduleEditor({ rounds, onChange, allowCountChange = tr
   };
   const removable = rounds.length > 1 && !lockedRounds.includes(rounds.at(-1)!.round);
   return <div className="space-y-2.5">
-    {rounds.map((round) => {
+    {rounds.map((round, index) => {
       const locked = lockedRounds.includes(round.round);
       return <div key={round.round} className="grid items-end gap-3 rounded-card border border-border bg-surface p-4 md:grid-cols-[180px_170px_1fr]">
         <CreateField label={`${round.round}차 전형 이름`}><FieldInput required disabled={locked} value={round.name} onChange={(event) => patch(round.round, { name: event.target.value })} placeholder="예: 서류 심사" /></CreateField>
-        <div>{locked ? <CreateField label="전형 일정"><FieldInput required disabled type="date" value={round.date} /></CreateField> : <div className="block min-w-0"><span className="mb-2 block text-base font-semibold text-muted-strong md:text-sm">전형 일정</span><CalendarDateRangeField single variant="compact" start={round.date} end="" onStartChange={(date) => patch(round.round, { date })} onEndChange={() => undefined} startLabel="전형 일정" /></div>}</div>
+        <div>{locked ? <CreateField label="전형 일정"><FieldInput required disabled type="date" value={round.date} /></CreateField> : <div className="block min-w-0"><span className="mb-2 block text-base font-semibold text-muted-strong md:text-sm">전형 일정</span><CalendarDateRangeField single variant="compact" start={round.date} end="" minDate={minimumDates[index]} maxDate={maximumDate} startError={dateErrors[index]} onStartChange={(date) => patch(round.round, { date })} onEndChange={() => undefined} startLabel="전형 일정" /></div>}</div>
         <CreateField label="안내 사항"><FieldInput disabled={locked} value={round.note} onChange={(event) => patch(round.round, { note: event.target.value })} placeholder="예: 장소와 준비물을 안내해 주세요." /></CreateField>
       </div>;
     })}

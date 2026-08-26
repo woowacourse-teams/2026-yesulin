@@ -343,7 +343,7 @@ class SubmissionServiceTest {
 
     @Test
     void rejectsBeforeRecruitmentStartAndAtRecruitmentEndWithoutPersistence() {
-        SubmissionFixture upcoming = saveAudition(NOW.plusSeconds(1), NOW.plusSeconds(86_400));
+        SubmissionFixture upcoming = saveAudition(NOW.plusSeconds(60), NOW.plusSeconds(86_400));
         assertRejectedWithoutPersistence(
                 upcoming,
                 upcoming.command(),

@@ -12,6 +12,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -55,6 +56,13 @@ public class AuditionSchedule {
 
     public void ensurePublishableAt(Instant publicationTime) {
         recruitmentPeriod.ensureNotEndedAt(publicationTime);
+    }
+
+    public void ensureWithinPerformanceEnd(LocalDate performanceEndDate) {
+        AuditionScheduleDatePolicy.validateStagesWithinPerformance(
+                performanceEndDate,
+                stages.values().stream().map(ScreeningStage::getDate).toList()
+        );
     }
 
     public List<ScreeningStage> getStages() {

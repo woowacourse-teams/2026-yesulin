@@ -11,6 +11,7 @@ import type {
   ScreeningBoardResource,
 } from "./backend-resources";
 import { saveV1ApplicationForm, toApplicationFields } from "./audition-v1-form";
+import { toKoreaInstant, toKoreaLocalDateTime } from "./audition-date-policy";
 import type { CreatePostingRequest } from "./creation-types";
 import type { PostingManagementDetail } from "./management-types";
 import {
@@ -90,8 +91,8 @@ export async function getV1PostingManagement(id: PostingId): Promise<PostingMana
     title: audition.title,
     isOpenCall: false,
     allowsMultipleRoles: roles?.multipleRoleApplicationsAllowed ?? false,
-    recruitmentStart: toLocalDateTime(schedule?.recruitmentStartAt),
-    recruitmentEnd: toLocalDateTime(schedule?.recruitmentEndAt),
+    recruitmentStart: toKoreaLocalDateTime(schedule?.recruitmentStartAt),
+    recruitmentEnd: toKoreaLocalDateTime(schedule?.recruitmentEndAt),
     performanceStart: audition.performanceStartDate,
     performanceEnd: audition.performanceEndDate ?? "",
     phase: phaseOf(audition, schedule),
@@ -199,22 +200,12 @@ function saveRoles(auditionId: string, body: CreatePostingRequest) {
   });
 }
 
-/**
- * 빈 값이나 잘못된 날짜에 Date를 그대로 쓰면 "Invalid time value"가 화면까지 새어 나온다.
- * 사용자가 무엇을 고쳐야 하는지 알 수 있는 문구로 바꿔 던진다.
- */
-function toInstant(value: string, label: string): string {
-  const time = new Date(value).getTime();
-  if (Number.isNaN(time)) throw new Error(`${label} 일시를 다시 선택해 주세요.`);
-  return new Date(time).toISOString();
-}
-
 function saveSchedule(auditionId: string, body: CreatePostingRequest) {
   return request(`/v1/auditions/${auditionId}/schedule`, {
     method: "PUT",
     body: JSON.stringify({
-      recruitmentStartAt: toInstant(body.recruitmentStart, "모집 시작"),
-      recruitmentEndAt: toInstant(body.recruitmentEnd, "모집 종료"),
+      recruitmentStartAt: toKoreaInstant(body.recruitmentStart),
+      recruitmentEndAt: toKoreaInstant(body.recruitmentEnd),
       stages: body.rounds.map((round) => ({ stageId: null, name: round.name, date: round.date, notice: round.note })),
     }),
   });
@@ -257,10 +248,4 @@ function toPerformanceRef(performance: PerformanceResource) {
 
 function toRoleTemplates(performance: PerformanceResource) {
   return performance.roles.map((role) => ({ id: String(role.id), name: role.name, description: role.description }));
-}
-
-function toLocalDateTime(value?: string) {
-  if (!value) return "";
-  const date = new Date(value);
-  return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
 }

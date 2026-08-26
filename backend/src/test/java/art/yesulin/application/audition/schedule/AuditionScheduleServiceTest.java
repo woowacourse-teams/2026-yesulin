@@ -133,6 +133,23 @@ class AuditionScheduleServiceTest {
     }
 
     @Test
+    void rejectsStageAfterPerformanceEnd() {
+        Audition audition = saveAudition();
+        audition.updateBasicInformation(
+                audition.getTitle(),
+                new PerformancePeriod(LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 13))
+        );
+        auditionRepository.saveAndFlush(audition);
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> scheduleService.save(OWNER_ID, audition.getPublicId(), createCommand())
+        );
+
+        assertEquals(AuditionErrorCode.INVALID_SCHEDULE, exception.getErrorCode());
+    }
+
+    @Test
     void serializesConcurrentInitialScheduleSaves() throws Exception {
         Audition audition = saveAudition();
         CountDownLatch start = new CountDownLatch(1);

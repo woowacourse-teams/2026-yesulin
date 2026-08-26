@@ -377,9 +377,13 @@ PUT    /api/v1/auditions/{auditionId}/publication         # 완성된 공고 게
 `performanceId` 쿼리 파라미터로 공연 범위를 제한한다. 배역 저장은 공연 배역 ID와 공고별 모집 조건을 받고 섹션 전체를 교체한다. 후속 API는
 [공고 관리](../development/backend/audition-management.md)를 따른다.
 
-일정 저장은 `recruitmentStartAt`, `recruitmentEndAt`, `stages` 전체를 받는다. 전형은 1~5개이며
-`stageId`, `name`, `date`, 선택 `notice`로 구성된다. 신규 전형은 `stageId`를 생략하고, 수정할 전형은
-조회 응답의 ID를 보내며, 전체 저장 목록에서 빠진 전형은 삭제된다. 응답의 `order`는 1부터 시작한다.
+일정 저장은 `recruitmentStartAt`, `recruitmentEndAt`, `stages` 전체를 받는다. 모집 시각은 한국 시간
+입력값을 `2026-09-10T18:00:00+09:00`처럼 명시적 offset을 포함한 ISO-8601로 보내며 분 단위만 허용한다.
+종료는 시작보다 반드시 늦어야 하고 게시 시 서버 현재 시각보다 미래여야 한다. 전형은 1~5개이며
+`stageId`, `name`, `date`, 선택 `notice`로 구성된다. 1차 전형은 모집 마감의 한국 날짜 다음 날부터,
+이후 전형은 이전 차수와 같거나 이후여야 한다. 공연 종료일이 있으면 모든 전형은 종료일까지 마쳐야 한다.
+신규 전형은 `stageId`를 생략하고, 수정할 전형은 조회 응답의 ID를 보내며, 전체 저장 목록에서 빠진 전형은
+삭제된다. 응답의 `order`는 1부터 시작한다.
 
 지원 폼은 `GET·PUT /api/v1/auditions/{auditionId}/application-form`으로 조회하고 전체 저장한다.
 `basicFields`, `additionalFields`, `photoRequirements`, `videoRequirements`, `additionalQuestions`를 받으며

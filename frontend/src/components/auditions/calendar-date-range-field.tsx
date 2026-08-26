@@ -17,6 +17,10 @@ export function CalendarDateRangeField({
   includeTime = false,
   single = false,
   startDisabled = false,
+  minDate,
+  maxDate,
+  startError,
+  endError,
   variant = "labelled",
 }: {
   readonly start: string;
@@ -30,9 +34,15 @@ export function CalendarDateRangeField({
   readonly includeTime?: boolean;
   readonly single?: boolean;
   readonly startDisabled?: boolean;
+  readonly minDate?: string;
+  readonly maxDate?: string;
+  readonly startError?: string;
+  readonly endError?: string;
   readonly variant?: "labelled" | "compact";
 }) {
   const pickerId = useId();
+  const startErrorId = `${pickerId}-start-error`;
+  const endErrorId = `${pickerId}-end-error`;
   const containerRef = useRef<HTMLDivElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
@@ -87,6 +97,8 @@ export function CalendarDateRangeField({
     if (target === "start") onStartChange(withTime(dateOf(value), time));
     else onEndChange(withTime(dateOf(value), time));
   };
+  const today = todayIso();
+  const todayDisabled = Boolean((minDate && today < minDate) || (maxDate && today > maxDate));
 
   const picker = open ? <div ref={pickerRef} id={pickerId} role="dialog" aria-label={`${single ? startLabel : `${startLabel}·${endLabel}`} 선택`} className={`${variant === "compact" ? "max-h-[calc(100dvh-48px)] w-full max-w-[760px] overflow-y-auto rounded-modal" : "relative z-10 mt-2 rounded-card"} border border-border bg-card p-4 shadow-[var(--shadow-modal)] md:p-5`}>
     <div className="flex items-center justify-between gap-2">
@@ -103,12 +115,12 @@ export function CalendarDateRangeField({
     </div>
 
     <div className="grid gap-5 md:grid-cols-2">
-      <CalendarMonth month={visibleMonth} start={dateOf(start)} end={single ? "" : dateOf(end)} position={position} onSelect={selectDate} />
-      <div className="hidden md:block"><CalendarMonth month={shiftMonth(visibleMonth, 1)} start={dateOf(start)} end={single ? "" : dateOf(end)} position={position} onSelect={selectDate} /></div>
+      <CalendarMonth month={visibleMonth} start={dateOf(start)} end={single ? "" : dateOf(end)} position={position} minDate={minDate} maxDate={maxDate} onSelect={selectDate} />
+      <div className="hidden md:block"><CalendarMonth month={shiftMonth(visibleMonth, 1)} start={dateOf(start)} end={single ? "" : dateOf(end)} position={position} minDate={minDate} maxDate={maxDate} onSelect={selectDate} /></div>
     </div>
 
     <div className="mt-4 flex flex-wrap items-end gap-2 border-t border-border-soft pt-3">
-      <button type="button" onClick={() => selectDate(todayIso())} className="min-h-11 rounded-control px-3 text-sm font-semibold text-brand hover:bg-brand-soft">오늘</button>
+      <button type="button" disabled={todayDisabled} onClick={() => selectDate(today)} className="min-h-11 rounded-control px-3 text-sm font-semibold text-brand hover:bg-brand-soft disabled:cursor-not-allowed disabled:text-muted">오늘</button>
       {!single && endOptional && end ? <button type="button" onClick={() => onEndChange("")} className="min-h-11 rounded-control px-3 text-sm font-semibold text-muted-strong hover:bg-surface hover:text-foreground">종료일 지우기</button> : null}
       {includeTime ? <div className="ml-auto flex flex-wrap items-end justify-end gap-2">
         <TimeInput label={single ? "시간" : `${startLabel} 시간`} value={start} fallback="09:00" onChange={(time) => updateTime("start", time)} />
@@ -120,10 +132,13 @@ export function CalendarDateRangeField({
 
   return <div ref={containerRef} className="relative">
     <div className={`grid items-stretch gap-2 ${single ? "" : "md:grid-cols-[1fr_auto_1fr] md:gap-3"}`}>
-      <DateTrigger label={startLabel} value={start} includeTime={includeTime} disabled={startDisabled} active={open && position === "start"} controls={pickerId} compact={variant === "compact"} onClick={() => openFor("start")} />
+      <DateTrigger label={startLabel} value={start} includeTime={includeTime} disabled={startDisabled} invalid={Boolean(startError)} describedBy={startError ? startErrorId : undefined} active={open && position === "start"} controls={pickerId} compact={variant === "compact"} onClick={() => openFor("start")} />
       {!single ? <><span aria-hidden="true" className="hidden items-center text-lg text-muted md:flex">→</span>
-      <DateTrigger label={`${endLabel}${endOptional ? " (선택)" : ""}`} value={end} emptyValueLabel={endOpenEnded ? "오픈런" : undefined} includeTime={includeTime} disabled={false} active={open && position === "end"} controls={pickerId} compact={false} onClick={() => openFor("end")} /></> : null}
+      <DateTrigger label={`${endLabel}${endOptional ? " (선택)" : ""}`} value={end} emptyValueLabel={endOpenEnded ? "오픈런" : undefined} includeTime={includeTime} disabled={false} invalid={Boolean(endError)} describedBy={endError ? endErrorId : undefined} active={open && position === "end"} controls={pickerId} compact={false} onClick={() => openFor("end")} /></> : null}
     </div>
+
+    {startError ? <p id={startErrorId} role="alert" className="mt-2 text-sm font-medium text-fail">{startError}</p> : null}
+    {!single && endError ? <p id={endErrorId} role="alert" className="mt-2 text-sm font-medium text-fail">{endError}</p> : null}
 
     {!single && endOpenEnded && !end ? <p className="mt-2 rounded-control border border-brand-line bg-brand-soft px-3 py-2 text-sm leading-6 text-muted-strong"><strong className="text-brand">오픈런으로 저장됩니다.</strong> 종료일이 정해지면 나중에 추가할 수 있어요.</p> : null}
 
@@ -131,9 +146,9 @@ export function CalendarDateRangeField({
   </div>;
 }
 
-function DateTrigger({ label, value, emptyValueLabel, includeTime, disabled, active, controls, compact, onClick }: { readonly label: string; readonly value: string; readonly emptyValueLabel?: string; readonly includeTime: boolean; readonly disabled: boolean; readonly active: boolean; readonly controls: string; readonly compact: boolean; readonly onClick: () => void }) {
+function DateTrigger({ label, value, emptyValueLabel, includeTime, disabled, invalid, describedBy, active, controls, compact, onClick }: { readonly label: string; readonly value: string; readonly emptyValueLabel?: string; readonly includeTime: boolean; readonly disabled: boolean; readonly invalid: boolean; readonly describedBy?: string; readonly active: boolean; readonly controls: string; readonly compact: boolean; readonly onClick: () => void }) {
   const displayedValue = value ? formatDate(value, includeTime) : emptyValueLabel ?? (includeTime ? "날짜와 시간 선택" : "날짜 선택");
-  return <button type="button" disabled={disabled} aria-label={`${label} ${displayedValue}`} aria-expanded={active} aria-controls={controls} onClick={onClick} className={`flex w-full min-w-0 items-center rounded-control border text-left transition-colors disabled:cursor-not-allowed disabled:bg-border-soft disabled:text-muted ${compact ? "min-h-12 gap-2 px-3 py-2" : "min-h-[72px] gap-3 px-4 py-3"} ${active ? "border-brand bg-brand-soft ring-2 ring-brand-soft" : "border-border bg-card hover:border-brand-line hover:bg-surface"}`}>
+  return <button type="button" disabled={disabled} aria-label={`${label} ${displayedValue}`} aria-expanded={active} aria-controls={controls} aria-describedby={describedBy} onClick={onClick} className={`flex w-full min-w-0 items-center rounded-control border text-left transition-colors disabled:cursor-not-allowed disabled:bg-border-soft disabled:text-muted ${compact ? "min-h-12 gap-2 px-3 py-2" : "min-h-[72px] gap-3 px-4 py-3"} ${invalid ? "border-fail bg-fail-bg ring-2 ring-fail-bg" : active ? "border-brand bg-brand-soft ring-2 ring-brand-soft" : "border-border bg-card hover:border-brand-line hover:bg-surface"}`}>
     <span aria-hidden="true" className={`grid shrink-0 place-items-center rounded-lg ${compact ? "h-7 w-7" : "h-9 w-9"} ${active ? "bg-brand text-white" : "bg-surface text-muted-strong"}`}><CalendarIcon /></span>
     <span className="min-w-0"><span className={compact ? "sr-only" : "block text-xs font-semibold text-muted"}>{label}</span><strong className={`${compact ? "block" : "mt-1 block"} truncate text-sm ${value ? "text-foreground" : "text-muted"}`}>{displayedValue}</strong></span>
   </button>;
@@ -143,7 +158,7 @@ function TimeInput({ label, value, fallback, onChange }: { readonly label: strin
   return <label className="block"><span className="mb-1 block text-xs font-semibold text-muted">{label}</span><input type="time" step={60} disabled={!dateOf(value)} value={timeOf(value, fallback)} onChange={(event) => onChange(event.target.value)} className="min-h-11 rounded-control border border-border bg-card px-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand-soft disabled:bg-border-soft disabled:text-muted" /></label>;
 }
 
-function CalendarMonth({ month, start, end, position, onSelect }: { readonly month: Date; readonly start: string; readonly end: string; readonly position: RangePosition; readonly onSelect: (value: string) => void }) {
+function CalendarMonth({ month, start, end, position, minDate, maxDate, onSelect }: { readonly month: Date; readonly start: string; readonly end: string; readonly position: RangePosition; readonly minDate?: string; readonly maxDate?: string; readonly onSelect: (value: string) => void }) {
   const days = monthDays(month);
   return <section aria-label={`${month.getFullYear()}년 ${month.getMonth() + 1}월`}>
     <h3 className="mb-2 text-center text-sm font-bold">{month.getFullYear()}년 {month.getMonth() + 1}월</h3>
@@ -151,7 +166,9 @@ function CalendarMonth({ month, start, end, position, onSelect }: { readonly mon
     <div className="grid grid-cols-7 gap-y-1">{days.map((day, index) => {
       if (!day) return <span key={`empty-${index}`} />;
       const value = toIso(day);
-      const disabled = position === "end" && Boolean(start) && value < start;
+      const disabled = (position === "end" && Boolean(start) && value < start)
+        || Boolean(minDate && value < minDate)
+        || Boolean(maxDate && value > maxDate);
       const endpoint = value === start || value === end;
       const inRange = Boolean(start && end && value > start && value < end);
       const today = value === todayIso();
@@ -160,15 +177,15 @@ function CalendarMonth({ month, start, end, position, onSelect }: { readonly mon
   </section>;
 }
 
-function monthOf(value = "") { const date = parseDate(value) ?? new Date(); return new Date(date.getFullYear(), date.getMonth(), 1); }
+function monthOf(value = "") { const date = parseDate(value) ?? parseDate(todayIso())!; return new Date(date.getFullYear(), date.getMonth(), 1); }
 function shiftMonth(month: Date, amount: number) { return new Date(month.getFullYear(), month.getMonth() + amount, 1); }
 function parseDate(value: string) { const [year, month, day] = value.slice(0, 10).split("-").map(Number); return year && month && day ? new Date(year, month - 1, day) : null; }
 function toIso(date: Date) { return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`; }
-function todayIso() { return toIso(new Date()); }
+function todayIso() { return new Date(Date.now() + 9 * 60 * 60 * 1_000).toISOString().slice(0, 10); }
 function dateOf(value: string) { return value.slice(0, 10); }
 function timeOf(value: string, fallback: string) { return value.includes("T") ? value.slice(11, 16) : fallback; }
 function withTime(date: string, time: string) { return `${date}T${time}`; }
 function monthDays(month: Date): readonly (Date | null)[] { const firstDay = new Date(month.getFullYear(), month.getMonth(), 1).getDay(); const count = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate(); return [...Array.from({ length: firstDay }, () => null), ...Array.from({ length: count }, (_, index) => new Date(month.getFullYear(), month.getMonth(), index + 1))]; }
-function calendarYears() { const current = new Date().getFullYear(); return Array.from({ length: 121 }, (_, index) => current + 20 - index); }
+function calendarYears() { const current = Number(todayIso().slice(0, 4)); return Array.from({ length: 121 }, (_, index) => current + 20 - index); }
 function formatDate(value: string, includeTime = false) { const date = parseDate(value); return date ? `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일 (${["일", "월", "화", "수", "목", "금", "토"][date.getDay()]})${includeTime ? ` · ${timeOf(value, "--:--")}` : ""}` : value; }
 function CalendarIcon() { return <svg viewBox="0 0 20 20" className="h-5 w-5 fill-none stroke-current stroke-[1.7]"><rect x="3" y="4.5" width="14" height="12.5" rx="2" /><path d="M6.5 2.5v4M13.5 2.5v4M3 8h14" /></svg>; }

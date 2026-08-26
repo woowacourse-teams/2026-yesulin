@@ -69,6 +69,30 @@ class AuditionPublicationPolicyTest {
         assertEquals(AuditionStatus.DRAFT, audition.getStatus());
     }
 
+    @Test
+    void rejectsStageAfterPerformanceEndAtPublication() {
+        Audition audition = new Audition(
+                1L,
+                1L,
+                "햄릿 오디션",
+                new PerformancePeriod(LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 9))
+        );
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> publicationPolicy.publish(
+                        audition,
+                        Optional.of(roleSection()),
+                        Optional.of(schedule(PUBLICATION_TIME.plusSeconds(60))),
+                        Optional.of(form()),
+                        PUBLICATION_TIME
+                )
+        );
+
+        assertEquals(AuditionErrorCode.INVALID_SCHEDULE, exception.getErrorCode());
+        assertEquals(AuditionStatus.DRAFT, audition.getStatus());
+    }
+
     private Audition audition() {
         return new Audition(
                 1L,

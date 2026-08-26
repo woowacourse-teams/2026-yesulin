@@ -5,6 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import art.yesulin.application.audition.schedule.AuditionScheduleService;
+import art.yesulin.application.audition.schedule.SaveAuditionScheduleCommand;
+import art.yesulin.application.audition.schedule.SaveScreeningStageCommand;
 import art.yesulin.application.file.FileService;
 import art.yesulin.application.file.FileUploadCommand;
 import art.yesulin.application.file.FileUploadResult;
@@ -14,11 +17,13 @@ import art.yesulin.application.performance.PerformanceService;
 import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.audition.AuditionErrorCode;
 import art.yesulin.domain.audition.AuditionRepository;
+import art.yesulin.domain.audition.schedule.AuditionScheduleRepository;
 import art.yesulin.domain.file.FileAssetRepository;
 import art.yesulin.domain.file.FileReferenceRepository;
 import art.yesulin.domain.performance.PerformanceRepository;
 import art.yesulin.support.FakeObjectStorage;
 import art.yesulin.support.ObjectStorageTestConfiguration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -57,6 +62,12 @@ class AuditionServiceTest {
     private AuditionRepository auditionRepository;
 
     @Autowired
+    private AuditionScheduleService scheduleService;
+
+    @Autowired
+    private AuditionScheduleRepository scheduleRepository;
+
+    @Autowired
     private PerformanceRepository performanceRepository;
 
     @Autowired
@@ -70,6 +81,7 @@ class AuditionServiceTest {
 
     @BeforeEach
     void cleanUp() {
+        scheduleRepository.deleteAll();
         auditionRepository.deleteAll();
         performanceRepository.deleteAll();
         fileReferenceRepository.deleteAll();
@@ -147,6 +159,31 @@ class AuditionServiceTest {
         assertEquals("리어왕 오디션", result.title());
         assertEquals(LocalDate.of(2026, 10, 1), result.performanceStartDate());
         assertEquals(LocalDate.of(2026, 10, 31), result.performanceEndDate());
+    }
+
+    @Test
+    void rejectsPerformanceEndBeforeSavedStage() {
+        AuditionResult draft = auditionService.create(OWNER_ID, createAuditionCommand(createPerformance().id()));
+        scheduleService.save(OWNER_ID, draft.id(), new SaveAuditionScheduleCommand(
+                Instant.parse("2026-09-01T00:00:00Z"),
+                Instant.parse("2026-09-10T00:00:00Z"),
+                List.of(new SaveScreeningStageCommand(null, "1차 실기", LocalDate.of(2026, 9, 12), null))
+        ));
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> auditionService.updateBasicInformation(
+                        OWNER_ID,
+                        draft.id(),
+                        new UpdateAuditionBasicInformationCommand(
+                                "햄릿 오디션",
+                                LocalDate.of(2026, 9, 1),
+                                LocalDate.of(2026, 9, 11)
+                        )
+                )
+        );
+
+        assertEquals(AuditionErrorCode.INVALID_SCHEDULE, exception.getErrorCode());
     }
 
     @Test
