@@ -17,6 +17,7 @@ public class EmailVerificationMailFactory {
     public MailMessage create(String recipient, String token, Instant expiresAt) {
         String url = UriComponentsBuilder.fromUri(settings.verificationUrl())
                 .queryParam("token", token)
+                .queryParam("redirectUri", settings.redirectUri())
                 .build()
                 .encode()
                 .toUriString();

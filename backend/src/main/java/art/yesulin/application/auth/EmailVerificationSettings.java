@@ -5,6 +5,7 @@ import java.time.Duration;
 
 public record EmailVerificationSettings(
         Duration expiration,
-        URI verificationUrl
+        URI verificationUrl,
+        URI redirectUri
 ) {
 }

@@ -5,6 +5,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import art.yesulin.application.auth.MemberPrincipal;
@@ -38,6 +39,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class ProducerControllerTest {
 
     private static final String VERIFICATION_TOKEN = "fixed-verification-token";
+    private static final String REDIRECT_URI = "http://localhost:3000/producers";
 
     @Autowired
     private MockMvc mockMvc;
@@ -72,6 +74,9 @@ class ProducerControllerTest {
         assertThat(mailSender.message.recipient()).isEqualTo("producer@yesulin.art");
         assertThat(mailSender.message.subject()).contains("이메일 인증");
         assertThat(mailSender.message.htmlContent()).contains("token=" + VERIFICATION_TOKEN);
+        assertThat(mailSender.message.textContent())
+                .contains("redirectUri=")
+                .contains("localhost:3000");
     }
 
     @Test
@@ -83,17 +88,36 @@ class ProducerControllerTest {
                 .andExpect(status().isCreated());
 
         mockMvc.perform(get("/api/v1/auth/email-verifications")
-                        .param("token", VERIFICATION_TOKEN))
-                .andExpect(status().isNoContent());
+                        .param("token", VERIFICATION_TOKEN)
+                        .param("redirectUri", REDIRECT_URI))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl(REDIRECT_URI));
 
         assertThat(memberRepository.findByEmail("producer@yesulin.art"))
                 .get()
                 .satisfies(member -> assertThat(member.getStatus()).isEqualTo(MemberStatus.ACTIVE));
 
         mockMvc.perform(get("/api/v1/auth/email-verifications")
-                        .param("token", VERIFICATION_TOKEN))
+                        .param("token", VERIFICATION_TOKEN)
+                        .param("redirectUri", REDIRECT_URI))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("AUTH_INVALID_EMAIL_VERIFICATION"));
+    }
+
+    @Test
+    void redirectsToRequestedUriAfterVerification() throws Exception {
+        mockMvc.perform(post("/api/v1/producers")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(signUpRequest("producer@yesulin.art")))
+                .andExpect(status().isCreated());
+
+        String requestedRedirectUri = "https://yesulin.art/producers";
+        mockMvc.perform(get("/api/v1/auth/email-verifications")
+                        .param("token", VERIFICATION_TOKEN)
+                        .param("redirectUri", requestedRedirectUri))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl(requestedRedirectUri));
     }
 
     @Test

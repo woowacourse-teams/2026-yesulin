@@ -11,6 +11,6 @@ public class EmailVerificationConfiguration {
 
     @Bean
     public EmailVerificationSettings emailVerificationSettings(EmailVerificationProperties properties) {
-        return new EmailVerificationSettings(properties.expiration(), properties.url());
+        return new EmailVerificationSettings(properties.expiration(), properties.url(), properties.redirectUri());
     }
 }

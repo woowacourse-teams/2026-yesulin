@@ -44,7 +44,8 @@ class EmailVerificationServiceTest {
         mailSender = mock(MailSender.class);
         EmailVerificationSettings settings = new EmailVerificationSettings(
                 EXPIRATION,
-                URI.create("https://api.yesulin.art/api/v1/auth/email-verifications")
+                URI.create("https://api.yesulin.art/api/v1/auth/email-verifications"),
+                URI.create("https://yesulin.art/producers")
         );
         service = new EmailVerificationService(
                 verificationRepository,
@@ -74,6 +75,9 @@ class EmailVerificationServiceTest {
         assertThat(message.getValue().recipient()).isEqualTo("producer@yesulin.art");
         assertThat(message.getValue().subject()).contains("이메일 인증");
         assertThat(message.getValue().htmlContent()).contains("token=fixed-verification-token");
+        assertThat(message.getValue().textContent())
+                .contains("redirectUri=")
+                .contains("yesulin.art");
         assertThat(verificationRepository.findByToken("fixed-verification-token")).isPresent();
     }
 

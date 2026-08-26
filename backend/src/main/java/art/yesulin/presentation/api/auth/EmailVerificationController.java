@@ -7,7 +7,9 @@ import art.yesulin.domain.member.MemberStatus;
 import art.yesulin.domain.member.MemberType;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
+import java.net.URI;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -33,11 +35,14 @@ public class EmailVerificationController {
     @GetMapping
     public ResponseEntity<Void> verify(
             @RequestParam String token,
+            @RequestParam URI redirectUri,
             HttpServletRequest request
     ) {
         MemberPrincipal verifiedPrincipal = emailVerificationService.verify(token);
         refreshSessionIfSameMember(request, verifiedPrincipal);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .location(redirectUri)
+                .build();
     }
 
     private void refreshSessionIfSameMember(HttpServletRequest request, MemberPrincipal verifiedPrincipal) {
