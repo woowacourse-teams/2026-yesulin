@@ -24,6 +24,14 @@
 해당 파일이 `SUBMISSION_PHOTO → Submission → Audition.ownerId`로 연결된 공고의 공연사여야 한다. 그 밖의
 회원과 존재하지 않는 파일에는 동일하게 `404`를 반환한다.
 
+## legacy 공개 파일 이전
+
+이전 배포에서 생성한 `files/...` 키는 배포 시 한 번만 `yesulin/files/...`에서
+`yesulin/public/files/...`로 S3 복사한 뒤 DB 키를 `public/files/...`로 전환한다. CodeDeploy
+`BeforeInstall` 훅은 EC2 instance profile과 AWS CLI로 복사를 마치고 marker 파일을 남긴다. Flyway는
+그 다음 애플리케이션 시작 시 DB 키를 변경한다. 원본 S3 객체는 이 작업에서 삭제하지 않으며, 이전 완료 후
+확인 기간을 거쳐 별도 정리한다.
+
 ## 소유권과 참조
 
 - 모든 파일 동작은 소유 member ID를 검증한다.
