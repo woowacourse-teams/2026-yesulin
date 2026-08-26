@@ -9,8 +9,10 @@ import java.time.LocalDate;
 
 public record SaveScreeningStageRequest(
         @Positive Long stageId,
-        @NotBlank @Size(max = 100) String name,
-        @NotNull LocalDate date,
+        @NotBlank(message = "전형 이름을 입력해 주세요.")
+        @Size(max = 100, message = "전형 이름은 100자 이내로 입력해 주세요.")
+        String name,
+        @NotNull(message = "전형 날짜를 입력해 주세요.") LocalDate date,
         @Size(max = 100) String notice
 ) {
 

@@ -7,7 +7,9 @@ import jakarta.validation.constraints.Size;
 
 public record SaveAdditionalQuestionRequest(
         @Positive Long questionId,
-        @NotBlank @Size(max = 255) String question,
+        @NotBlank(message = "추가 질문 문구를 입력해 주세요.")
+        @Size(max = 255, message = "추가 질문은 255자 이내로 입력해 주세요.")
+        String question,
         boolean required
 ) {
 

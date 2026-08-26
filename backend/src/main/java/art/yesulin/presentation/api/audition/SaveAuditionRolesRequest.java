@@ -8,7 +8,7 @@ import java.util.List;
 
 public record SaveAuditionRolesRequest(
         boolean multipleRoleApplicationsAllowed,
-        @NotEmpty List<@NotNull @Valid SaveAuditionRoleRequest> roles
+        @NotEmpty(message = "모집할 배역을 하나 이상 선택해 주세요.") List<@NotNull @Valid SaveAuditionRoleRequest> roles
 ) {
 
     public SaveAuditionRolesCommand toCommand() {

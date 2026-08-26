@@ -10,7 +10,7 @@ import java.util.Set;
 
 public record PhotoRequirementPlans(List<PhotoRequirementPlan> values) {
 
-    public static final int MAX_PHOTO_COUNT = 10;
+    public static final int MAX_PHOTO_COUNT = 3;
 
     public PhotoRequirementPlans {
         values = requireNonNull(values, "사진 요구사항은 필수입니다.");
@@ -23,7 +23,7 @@ public record PhotoRequirementPlans(List<PhotoRequirementPlan> values) {
     private static void validateTotalCount(List<PhotoRequirementPlan> values) {
         int totalCount = values.stream().mapToInt(PhotoRequirementPlan::count).sum();
         if (totalCount > MAX_PHOTO_COUNT) {
-            throw new BusinessException(INVALID_FORM, "프로필 사진은 모두 합해 최대 10장까지 요청할 수 있습니다.");
+            throw new BusinessException(INVALID_FORM, "프로필 사진은 모두 합해 최대 %d장까지 요청할 수 있습니다.".formatted(MAX_PHOTO_COUNT));
         }
     }
 

@@ -12,7 +12,7 @@ import { youtubeVideoId } from "@/features/applications/application-form-state";
 import { useToast } from "@/components/auditions/toast";
 import { FieldInput, PrimaryButton, TextButton } from "@/components/ui/controls";
 
-const MAX_LIBRARY_VIDEOS = 10;
+export const MAX_LIBRARY_VIDEOS = 10;
 
 export function ProfileVideoLibrary({ profile, onSaved }: { readonly profile: ApplicantProfileResponse; readonly onSaved: (profile: ApplicantProfileResponse) => void }) {
   const toast = useToast();

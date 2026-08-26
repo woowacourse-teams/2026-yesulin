@@ -1,4 +1,5 @@
 import { withCsrfHeaders } from "../csrf";
+import { readErrorCode, readErrorDetail, readErrorMessage, type ApiErrorDetail } from "../api-error";
 
 const API_BASE_PATH = "/api";
 const WRITE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
@@ -7,12 +8,19 @@ const WRITE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 export class AuditionRequestError extends Error {
   readonly status: number;
   readonly code: string | null;
+  readonly detail: ApiErrorDetail;
 
-  constructor(message: string, status: number, code: string | null = null) {
+  constructor(
+    message: string,
+    status: number,
+    code: string | null = null,
+    detail: ApiErrorDetail = {},
+  ) {
     super(message);
     this.name = "AuditionRequestError";
     this.status = status;
     this.code = code;
+    this.detail = detail;
   }
 }
 
@@ -28,14 +36,8 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const body: unknown = await response.json().catch(() => null);
-    const message =
-      typeof body === "object" && body !== null && "message" in body && typeof body.message === "string"
-        ? body.message
-        : "요청을 처리하지 못했습니다.";
-    const code = typeof body === "object" && body !== null && "code" in body && typeof body.code === "string"
-      ? body.code
-      : null;
-    throw new AuditionRequestError(message, response.status, code);
+    const detail = readErrorDetail(body);
+    throw new AuditionRequestError(readErrorMessage(body, detail), response.status, readErrorCode(body), detail);
   }
 
   if (response.status === 204) return undefined as T;

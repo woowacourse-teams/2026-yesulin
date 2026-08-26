@@ -50,15 +50,36 @@ function isEmptyPostingDraft(draft: PostingCreationDraft) {
     && JSON.stringify(draft.applicationFields) === JSON.stringify(INITIAL_FIELDS);
 }
 
+/** 항목 검증 실패는 코드가 하나뿐이라 어떤 입력이 거부됐는지로 구간을 정한다. */
+function sectionForFields(fields: readonly string[]): ErrorSection {
+  const startsWithAny = (...prefixes: readonly string[]) =>
+    fields.some((field) => prefixes.some((prefix) => field.startsWith(prefix)));
+  if (startsWithAny("title")) return "TITLE";
+  if (startsWithAny("performanceStartDate", "performanceEndDate")) return "PERFORMANCE";
+  if (startsWithAny("roles", "multipleRoleApplicationsAllowed", "performanceRoleId")) return "ROLES";
+  if (startsWithAny("recruitment", "stages")) return "SCHEDULE";
+  if (startsWithAny("basicFields", "additionalFields", "photoRequirements", "videoRequirements", "additionalQuestions")) {
+    return "APPLICATION";
+  }
+  return "GENERAL";
+}
+
 function sectionForError(cause: unknown): ErrorSection {
   if (!(cause instanceof AuditionRequestError)) return "GENERAL";
-  if (["POSTER_REQUIRED"].includes(cause.code ?? "")) return "GENERAL";
-  if (["TITLE_REQUIRED"].includes(cause.code ?? "")) return "TITLE";
-  if (["ROLE_REQUIRED", "INVALID_QUOTA", "INVALID_ROLE_CONDITION", "UNKNOWN_ROLE_TEMPLATE"].includes(cause.code ?? "")) return "ROLES";
-  if (["PERFORMANCE_START_REQUIRED", "INVALID_PERFORMANCE_PERIOD"].includes(cause.code ?? "")) return "PERFORMANCE";
-  if (["PERIOD_REQUIRED", "INVALID_PERIOD", "INVALID_ROUND_COUNT", "INVALID_ROUND_ORDER", "INVALID_ROUND_DATE"].includes(cause.code ?? "")) return "SCHEDULE";
-  if (["INVALID_FIELD_LABEL", "FIELD_LABEL_TOO_LONG", "INVALID_PHOTO_REQUIREMENTS", "INVALID_VIDEO_REQUIREMENTS", "INVALID_CUSTOM_LENGTH"].includes(cause.code ?? "")) return "APPLICATION";
-  if (["APPLICATION_GUIDE_TOO_LONG"].includes(cause.code ?? "")) return "GENERAL";
+  const code = cause.code ?? "";
+  // 실제 Backend 오류 코드
+  if (code === "AUDITION_INVALID_SCHEDULE") return "SCHEDULE";
+  if (code === "AUDITION_INVALID_ROLE_SECTION") return "ROLES";
+  if (code === "AUDITION_INVALID_FORM") return "APPLICATION";
+  if (code === "AUDITION_INVALID_TITLE") return "TITLE";
+  if (code === "INVALID_REQUEST") return sectionForFields(Object.keys(cause.detail));
+  // 목 시나리오 오류 코드
+  if (["POSTER_REQUIRED"].includes(code)) return "GENERAL";
+  if (["TITLE_REQUIRED"].includes(code)) return "TITLE";
+  if (["ROLE_REQUIRED", "INVALID_QUOTA", "INVALID_ROLE_CONDITION", "UNKNOWN_ROLE_TEMPLATE"].includes(code)) return "ROLES";
+  if (["PERFORMANCE_START_REQUIRED", "INVALID_PERFORMANCE_PERIOD"].includes(code)) return "PERFORMANCE";
+  if (["PERIOD_REQUIRED", "INVALID_PERIOD", "INVALID_ROUND_COUNT", "INVALID_ROUND_ORDER", "INVALID_ROUND_DATE"].includes(code)) return "SCHEDULE";
+  if (["INVALID_FIELD_LABEL", "FIELD_LABEL_TOO_LONG", "INVALID_PHOTO_REQUIREMENTS", "INVALID_VIDEO_REQUIREMENTS", "INVALID_CUSTOM_LENGTH"].includes(code)) return "APPLICATION";
   return "GENERAL";
 }
 

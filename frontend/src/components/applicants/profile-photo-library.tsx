@@ -14,7 +14,7 @@ import {
 import { useToast } from "@/components/auditions/toast";
 import { AddButton } from "@/components/ui/controls";
 
-const MAX_LIBRARY_PHOTOS = 3;
+export const MAX_LIBRARY_PHOTOS = 3;
 const MAX_PROFILE_PHOTO_SIZE = 20 * 1024 * 1024;
 const PHOTO_ACTION_CLASS = "inline-flex min-h-10 min-w-0 items-center justify-center whitespace-nowrap rounded-md px-1 text-xs font-semibold transition-colors disabled:pointer-events-none disabled:text-muted-soft";
 

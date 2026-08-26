@@ -184,8 +184,8 @@ class AuditionFormServiceTest {
                 List.of("NAME", "EMAIL"),
                 List.of("CAREER", "LINK"),
                 List.of(
-                        new SavePhotoRequirementCommand(null, "정면 사진", 3),
-                        new SavePhotoRequirementCommand(null, "측면 사진", 2)
+                        new SavePhotoRequirementCommand(null, "정면 사진", 2),
+                        new SavePhotoRequirementCommand(null, "측면 사진", 1)
                 ),
                 List.of(new SaveVideoRequirementCommand(null, "자유 연기 영상")),
                 List.of(new SaveAdditionalQuestionCommand(null, "지원 동기를 알려주세요.", true))
