@@ -31,6 +31,9 @@ public class RecruitmentPeriod {
         if (!endAt.isAfter(startAt)) {
             throw new BusinessException(INVALID_SCHEDULE, "모집 종료 시각은 시작 시각보다 늦어야 합니다.");
         }
+        if (!isMinutePrecision(startAt) || !isMinutePrecision(endAt)) {
+            throw new BusinessException(INVALID_SCHEDULE, "모집 시작과 종료 시각은 분 단위로 입력해야 합니다.");
+        }
     }
 
     void ensureNotEndedAt(Instant time) {
@@ -38,5 +41,9 @@ public class RecruitmentPeriod {
         if (!endAt.isAfter(time)) {
             throw new BusinessException(PUBLISHING_CLOSED, "모집이 마감된 공고는 게시할 수 없습니다.");
         }
+    }
+
+    private boolean isMinutePrecision(Instant instant) {
+        return instant.getEpochSecond() % 60 == 0 && instant.getNano() == 0;
     }
 }

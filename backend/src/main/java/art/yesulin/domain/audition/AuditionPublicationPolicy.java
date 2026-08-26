@@ -31,6 +31,7 @@ public class AuditionPublicationPolicy {
         AuditionSchedule savedSchedule = getSchedule(schedule);
         ensureFormExists(form);
         savedSchedule.ensurePublishableAt(publicationTime);
+        savedSchedule.ensureWithinPerformanceEnd(audition.getPerformanceEndDate());
         audition.publish(publicationTime);
     }
 

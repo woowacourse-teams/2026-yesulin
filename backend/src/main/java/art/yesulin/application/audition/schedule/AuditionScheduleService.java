@@ -25,6 +25,7 @@ public class AuditionScheduleService {
     public AuditionScheduleResult save(long ownerId, UUID auditionId, SaveAuditionScheduleCommand command) {
         Audition audition = getOwnedAuditionForUpdate(ownerId, auditionId);
         AuditionSchedulePlan plan = command.toPlan();
+        plan.ensureWithinPerformanceEnd(audition.getPerformanceEndDate());
         AuditionSchedule schedule = scheduleRepository.findByAuditionId(audition.getId())
                 .map(existingSchedule -> existingSchedule.replace(plan))
                 .orElseGet(() -> new AuditionSchedule(audition.getId(), plan));

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { AuditionRequestError, createPosting } from "@/features/auditions/api";
+import { auditionDateWarnings, stageMinimumDate, validateAuditionDates, type AuditionDateField } from "@/features/auditions/audition-date-policy";
 import { defaultApplicationFields, MAX_REQUESTED_PHOTO_COUNT, MAX_VIDEO_REQUIREMENTS, type ApplicationFieldInput, type AuditionRoundInput, type PerformanceRoleTemplate } from "@/features/auditions/creation-types";
 import { notifyAuditionTreeChanged } from "@/features/auditions/events";
 import { publicApplicationRoute } from "@/features/auditions/routes";
@@ -13,6 +14,7 @@ import { CreateError, CreateField, CreateSection } from "./create-form";
 import { DialogFooter, DialogHeader, ModalShell } from "./modal-shell";
 import { AuditionScheduleEditor, PostingRoleSelector, type SelectedPostingRoles } from "./posting-form-sections";
 import { PostingCreatedPanel, POSTING_CREATED_TITLE_ID } from "./posting-created-panel";
+import { RoleApplicationMode } from "./role-application-mode";
 import { FieldInput, PrimaryButton, SecondaryButton } from "@/components/ui/controls";
 import { postingCreationDraftKey } from "@/features/auditions/producer-creation-draft-store";
 import { ProducerCreationDraftStatus, useProducerCreationDraft } from "./use-producer-creation-draft";
@@ -69,6 +71,7 @@ function sectionForError(cause: unknown): ErrorSection {
   const code = cause.code ?? "";
   // 실제 Backend 오류 코드
   if (code === "AUDITION_INVALID_SCHEDULE") return "SCHEDULE";
+  if (code === "AUDITION_INVALID_BASIC_INFORMATION") return "PERFORMANCE";
   if (code === "AUDITION_INVALID_ROLE_SECTION") return "ROLES";
   if (code === "AUDITION_INVALID_FORM") return "APPLICATION";
   if (code === "AUDITION_INVALID_TITLE") return "TITLE";
@@ -78,9 +81,13 @@ function sectionForError(cause: unknown): ErrorSection {
   if (["TITLE_REQUIRED"].includes(code)) return "TITLE";
   if (["ROLE_REQUIRED", "INVALID_QUOTA", "INVALID_ROLE_CONDITION", "UNKNOWN_ROLE_TEMPLATE"].includes(code)) return "ROLES";
   if (["PERFORMANCE_START_REQUIRED", "INVALID_PERFORMANCE_PERIOD"].includes(code)) return "PERFORMANCE";
-  if (["PERIOD_REQUIRED", "INVALID_PERIOD", "INVALID_ROUND_COUNT", "INVALID_ROUND_ORDER", "INVALID_ROUND_DATE"].includes(code)) return "SCHEDULE";
+  if (["PERIOD_REQUIRED", "INVALID_PERIOD", "RECRUITMENT_END_PAST", "INVALID_ROUND_COUNT", "INVALID_ROUND_ORDER", "INVALID_ROUND_DATE", "ROUND_AFTER_PERFORMANCE_END"].includes(code)) return "SCHEDULE";
   if (["INVALID_FIELD_LABEL", "FIELD_LABEL_TOO_LONG", "INVALID_PHOTO_REQUIREMENTS", "INVALID_VIDEO_REQUIREMENTS", "INVALID_CUSTOM_LENGTH"].includes(code)) return "APPLICATION";
   return "GENERAL";
+}
+
+function sectionForDateField(field: AuditionDateField): ErrorSection {
+  return field.startsWith("performance") ? "PERFORMANCE" : "SCHEDULE";
 }
 
 export function PostingCreateModal({ performanceId, performanceTitle, performancePosterUrl, roleTemplates, onClose, onCreated }: {
@@ -102,9 +109,21 @@ export function PostingCreateModal({ performanceId, performanceTitle, performanc
   const [rounds, setRounds] = useState(INITIAL_ROUNDS);
   const [applicationFields, setApplicationFields] = useState(INITIAL_FIELDS);
   const [saving, setSaving] = useState(false);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
   const [formError, setFormError] = useState<FormError | null>(null);
   const [created, setCreated] = useState<{ readonly title: string; readonly applicationUrl: string } | null>(null);
   const selectedRoleCount = Object.keys(selectedRoles).length;
+  const dateInput = { performanceStart, performanceEnd, recruitmentStart, recruitmentEnd, rounds };
+  const dateIssues = validateAuditionDates(dateInput);
+  const dateWarnings = auditionDateWarnings(dateInput);
+  const visibleDateError = (field: AuditionDateField, value: string) => {
+    const issue = dateIssues.find((candidate) => candidate.field === field);
+    return issue && (submitAttempted || Boolean(value)) ? issue.message : undefined;
+  };
+  const roundDateErrors = rounds.map((round, index) => visibleDateError(`round.${index}.date`, round.date));
+  const stageMinimumDates = rounds.map((_, index) => stageMinimumDate(dateInput, index));
+  const clearDateFormError = () => setFormError((current) =>
+    current && (current.section === "PERFORMANCE" || current.section === "SCHEDULE") ? null : current);
   const restoreDraft = useCallback((draft: PostingCreationDraft) => {
     const availableRoleIds = new Set(roleTemplates.map((role) => role.id));
     setAuditionId(draft.auditionId ?? crypto.randomUUID());
@@ -144,11 +163,11 @@ export function PostingCreateModal({ performanceId, performanceTitle, performanc
   }, [created, flushDraft, onClose, onCreated]);
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setSubmitAttempted(true);
+    const dateIssue = validateAuditionDates(dateInput)[0];
+    if (dateIssue) { setFormError({ message: dateIssue.message, section: sectionForDateField(dateIssue.field) }); return; }
     const roles = Object.values(selectedRoles);
     if (!performancePosterUrl || roles.length === 0) { setFormError(!performancePosterUrl ? { message: "공연 포스터를 먼저 등록해 주세요.", section: "GENERAL" } : { message: "모집 분야를 하나 이상 선택해 주세요.", section: "ROLES" }); return; }
-    if (!performanceStart) { setFormError({ message: "공연 시작일을 입력해 주세요.", section: "PERFORMANCE" }); return; }
-    if (!recruitmentStart || !recruitmentEnd) { setFormError({ message: "모집 시작과 종료 일시를 입력해 주세요.", section: "SCHEDULE" }); return; }
-    if (rounds.some((round) => !round.date)) { setFormError({ message: "전형 날짜를 입력해 주세요.", section: "SCHEDULE" }); return; }
     const photoField = applicationFields.find((field) => field.id === "PHOTOS" && field.enabled);
     const photoRequirements = photoField?.config.photoRequirements ?? [];
     const photoTotal = photoRequirements.reduce((sum, item) => sum + item.count, 0);
@@ -186,7 +205,7 @@ export function PostingCreateModal({ performanceId, performanceTitle, performanc
             <h4 className="text-sm font-bold">공연 일정</h4>
             <p className="mt-1 text-sm leading-6 text-muted-strong">배우가 모집 일정과 구분해 공연 기간을 확인할 수 있도록 입력해 주세요.</p>
             <CreateError id="posting-create-performance-error" message={formError?.section === "PERFORMANCE" ? formError.message : ""} />
-            <div className={formError?.section === "PERFORMANCE" ? "mt-4" : "mt-3"}><CalendarDateRangeField start={performanceStart} end={performanceEnd} onStartChange={setPerformanceStart} onEndChange={setPerformanceEnd} startLabel="공연 시작일" endLabel="공연 종료일" endOptional endOpenEnded /></div>
+            <div className={formError?.section === "PERFORMANCE" ? "mt-4" : "mt-3"}><CalendarDateRangeField start={performanceStart} end={performanceEnd} startError={visibleDateError("performanceStart", performanceStart)} endError={visibleDateError("performanceEnd", performanceEnd)} onStartChange={(value) => { setPerformanceStart(value); clearDateFormError(); }} onEndChange={(value) => { setPerformanceEnd(value); clearDateFormError(); }} startLabel="공연 시작일" endLabel="공연 종료일" endOptional endOpenEnded /></div>
           </div>
         </CreateSection>
         <CreateSection id={SECTION_IDS.ROLES} title="2. 모집 배역" description="공연에 등록한 배역 중 모집할 배역을 고르고, 이 공고에 적용할 지원 조건을 설정합니다.">
@@ -200,8 +219,10 @@ export function PostingCreateModal({ performanceId, performanceTitle, performanc
         </CreateSection>
         <CreateSection id={SECTION_IDS.SCHEDULE} title="4. 모집·전형 일정" description="배우 모집 기간과 이후 전형 일정을 순서대로 설정합니다.">
           <CreateError id="posting-create-schedule-error" message={formError?.section === "SCHEDULE" ? formError.message : ""} />
-          <div className={formError?.section === "SCHEDULE" ? "mt-4" : ""}><CalendarDateRangeField includeTime start={recruitmentStart} end={recruitmentEnd} onStartChange={setRecruitmentStart} onEndChange={setRecruitmentEnd} startLabel="모집 시작" endLabel="모집 종료" /></div>
-          <div className="mt-4"><h4 className="mb-2 text-sm font-bold">지원 전형 일정</h4><AuditionScheduleEditor rounds={rounds} onChange={setRounds} /></div>
+          <div className={formError?.section === "SCHEDULE" ? "mt-4" : ""}><CalendarDateRangeField includeTime start={recruitmentStart} end={recruitmentEnd} startError={visibleDateError("recruitmentStart", recruitmentStart)} endError={visibleDateError("recruitmentEnd", recruitmentEnd)} onStartChange={(value) => { setRecruitmentStart(value); clearDateFormError(); }} onEndChange={(value) => { setRecruitmentEnd(value); clearDateFormError(); }} startLabel="모집 시작" endLabel="모집 종료" /></div>
+          <p className="mt-2 text-sm leading-6 text-muted">모든 모집 날짜와 시간은 한국 시간(Asia/Seoul) 기준입니다.</p>
+          <div className="mt-4"><h4 className="mb-2 text-sm font-bold">지원 전형 일정</h4><AuditionScheduleEditor rounds={rounds} dateErrors={roundDateErrors} minimumDates={stageMinimumDates} maximumDate={performanceEnd || undefined} onChange={(value) => { setRounds(value); clearDateFormError(); }} /></div>
+          {dateWarnings.length ? <ul role="status" className="mt-3 space-y-1 rounded-control border border-warn/20 bg-warn-bg px-4 py-3 text-sm leading-6 text-warn">{dateWarnings.map((warning) => <li key={warning}>• {warning}</li>)}</ul> : null}
         </CreateSection>
         <CreateSection id={SECTION_IDS.APPLICATION} title="5. 지원 폼" description="기본정보, 추가정보, 사진, 영상과 추가 질문을 구성합니다."><CreateError id="posting-create-application-error" message={formError?.section === "APPLICATION" ? formError.message : ""} /><div className={formError?.section === "APPLICATION" ? "mt-4" : ""}><ApplicationFieldEditor fields={applicationFields} onChange={setApplicationFields} /></div></CreateSection>
         <CreateError id="posting-create-error" message={formError?.section === "GENERAL" ? formError.message : ""} />
@@ -209,47 +230,4 @@ export function PostingCreateModal({ performanceId, performanceTitle, performanc
       <DialogFooter><SecondaryButton onClick={close}>취소</SecondaryButton><PrimaryButton type="submit" disabled={saving}>{saving ? "추가 중…" : "공고 추가"}</PrimaryButton></DialogFooter>
     </form>}
   </ModalShell>;
-}
-
-function RoleApplicationMode({ selectedRoleCount, allowsMultipleRoles, onChange }: {
-  readonly selectedRoleCount: number;
-  readonly allowsMultipleRoles: boolean;
-  readonly onChange: (allows: boolean) => void;
-}) {
-  const multipleEnabled = selectedRoleCount >= 2;
-  return <fieldset>
-    <legend className="sr-only">지원 방식</legend>
-    <div className="mb-3 flex items-center justify-between rounded-control bg-surface px-4 py-3 text-sm">
-      <span className="text-muted-strong">선택한 모집 배역</span>
-      <strong className="num text-brand">{selectedRoleCount}개</strong>
-    </div>
-    <div className="grid gap-3 sm:grid-cols-2">
-      <ApplicationModeOption
-        checked={!allowsMultipleRoles}
-        title="한 배역만 지원"
-        description="지원자는 모집 배역 중 하나만 선택합니다."
-        onChange={() => onChange(false)}
-      />
-      <ApplicationModeOption
-        checked={allowsMultipleRoles}
-        disabled={!multipleEnabled}
-        title="여러 배역에 지원"
-        description={multipleEnabled ? "한 지원서로 여러 배역을 함께 선택할 수 있습니다." : "모집 배역을 2개 이상 선택하면 사용할 수 있습니다."}
-        onChange={() => onChange(true)}
-      />
-    </div>
-  </fieldset>;
-}
-
-function ApplicationModeOption({ checked, disabled = false, title, description, onChange }: {
-  readonly checked: boolean;
-  readonly disabled?: boolean;
-  readonly title: string;
-  readonly description: string;
-  readonly onChange: () => void;
-}) {
-  return <label className={`flex min-h-28 items-start gap-3 rounded-card border p-4 transition-colors ${disabled ? "cursor-not-allowed border-border-soft bg-surface" : checked ? "cursor-pointer border-brand-line bg-brand-soft" : "cursor-pointer border-border bg-card hover:border-brand-line"}`}>
-    <input type="radio" name="role-application-mode" checked={checked} disabled={disabled} onChange={onChange} className="mt-0.5 h-5 w-5 shrink-0 accent-brand disabled:opacity-40" />
-    <span><strong className={`block text-sm ${disabled ? "text-muted" : "text-foreground"}`}>{title}</strong><span className="mt-1 block text-sm leading-6 text-muted">{description}</span></span>
-  </label>;
 }

@@ -6,6 +6,7 @@ import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.audition.Audition;
 import art.yesulin.domain.audition.AuditionRepository;
 import art.yesulin.domain.audition.PerformancePeriod;
+import art.yesulin.domain.audition.schedule.AuditionScheduleRepository;
 import art.yesulin.domain.performance.PerformanceErrorCode;
 import art.yesulin.domain.performance.PerformanceRepository;
 import java.util.List;
@@ -22,15 +23,18 @@ public class AuditionService {
 
     private final AuditionRepository auditionRepository;
     private final PerformanceRepository performanceRepository;
+    private final AuditionScheduleRepository scheduleRepository;
     private final TransactionTemplate creationTransaction;
 
     public AuditionService(
             AuditionRepository auditionRepository,
             PerformanceRepository performanceRepository,
+            AuditionScheduleRepository scheduleRepository,
             PlatformTransactionManager transactionManager
     ) {
         this.auditionRepository = auditionRepository;
         this.performanceRepository = performanceRepository;
+        this.scheduleRepository = scheduleRepository;
         this.creationTransaction = new TransactionTemplate(transactionManager);
         this.creationTransaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }
@@ -51,7 +55,9 @@ public class AuditionService {
             UpdateAuditionBasicInformationCommand command
     ) {
         Audition audition = getAuditionForUpdate(ownerId, auditionId);
-        audition.updateBasicInformation(command.title(), command.performancePeriod());
+        PerformancePeriod performancePeriod = command.performancePeriod();
+        ensureScheduleWithinPerformance(audition, performancePeriod);
+        audition.updateBasicInformation(command.title(), performancePeriod);
         return AuditionResult.from(audition);
     }
 
@@ -106,9 +112,15 @@ public class AuditionService {
             throw new BusinessException(NOT_FOUND, "공고를 찾을 수 없습니다.");
         }
         if (!audition.isPublished()) {
+            ensureScheduleWithinPerformance(audition, performancePeriod);
             audition.updateBasicInformation(title, performancePeriod);
         }
         return audition;
+    }
+
+    private void ensureScheduleWithinPerformance(Audition audition, PerformancePeriod performancePeriod) {
+        scheduleRepository.findByAuditionId(audition.getId())
+                .ifPresent(schedule -> schedule.ensureWithinPerformanceEnd(performancePeriod.getEndDate()));
     }
 
     private Audition getAudition(long ownerId, UUID auditionId) {

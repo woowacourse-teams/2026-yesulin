@@ -25,6 +25,37 @@ class AuditionSchedulePlanTest {
     }
 
     @Test
+    void recruitmentTimesMustUseMinutePrecision() {
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> new RecruitmentPeriod(
+                        Instant.parse("2026-09-01T09:00:30Z"),
+                        Instant.parse("2026-09-01T10:00:00Z")
+                )
+        );
+
+        assertEquals(AuditionErrorCode.INVALID_SCHEDULE, exception.getErrorCode());
+    }
+
+    @Test
+    void firstStageMustStartAfterRecruitmentEndDateInKorea() {
+        RecruitmentPeriod recruitment = new RecruitmentPeriod(
+                Instant.parse("2026-09-01T00:00:00Z"),
+                Instant.parse("2026-09-10T09:00:00Z")
+        );
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> new AuditionSchedulePlan(
+                        recruitment,
+                        new ScreeningStagePlans(List.of(stage(null, "1차", LocalDate.of(2026, 9, 10))))
+                )
+        );
+
+        assertEquals(AuditionErrorCode.INVALID_SCHEDULE, exception.getErrorCode());
+    }
+
+    @Test
     void allowsUpToFiveScreeningStages() {
         List<ScreeningStagePlan> stages = List.of(
                 stage(null, "1차", LocalDate.of(2026, 9, 10)),

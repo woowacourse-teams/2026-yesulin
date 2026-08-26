@@ -18,7 +18,12 @@ public record PhotoRequirementPlan(Long requirementId, String description, int c
             throw new BusinessException(INVALID_FORM, "필요한 사진 설명은 255자를 넘을 수 없습니다.");
         }
         if (count < 1 || count > PhotoRequirementPlans.MAX_PHOTO_COUNT) {
-            throw new BusinessException(INVALID_FORM, "사진 장수는 1장 이상 10장 이하로 설정해야 합니다.");
+            throw new BusinessException(
+                    INVALID_FORM,
+                    "사진 장수는 1장 이상 %d장 이하로 설정해야 합니다.".formatted(
+                            PhotoRequirementPlans.MAX_PHOTO_COUNT
+                    )
+            );
         }
     }
 }
