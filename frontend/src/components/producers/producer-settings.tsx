@@ -111,12 +111,11 @@ function ProducerSettingsForm({ profile }: { readonly profile: ProducerProfile }
 
         <section className="rounded-card border border-border bg-surface p-5 md:p-6">
           <h2 className="text-lg font-bold">인증 및 계정 정보</h2>
-          <p className="mt-2 text-sm leading-6 text-muted">가입 정보와 운영진 확인 상태입니다. 배우에게 공개되지 않습니다.</p>
+          <p className="mt-2 text-sm leading-6 text-muted">가입 정보와 이메일 인증 상태입니다. 배우에게 공개되지 않습니다.</p>
           <dl className="mt-5 grid gap-4 text-sm md:grid-cols-2">
             <ReadOnly label="로그인 이메일" value={profile.email} />
             <ReadOnly label="연락처" value={profile.phone} />
-            <ReadOnly label="계정 상태" value={profile.verificationStatus === "ACTIVE" ? "활성화 완료" : "활성화 대기"} />
-            <ReadOnly label="활성화 완료일" value={profile.verifiedAt ? new Intl.DateTimeFormat("ko-KR", { dateStyle: "long" }).format(new Date(profile.verifiedAt)) : "운영진 확인 중"} />
+            <ReadOnly label="계정 상태" value={profile.verificationStatus === "ACTIVE" ? "이메일 인증 완료" : "이메일 인증 대기"} />
           </dl>
         </section>
 

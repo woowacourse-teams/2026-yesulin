@@ -57,7 +57,6 @@ export type ProducerProfile = {
   readonly email: string;
   readonly phone: string;
   readonly verificationStatus: "PENDING" | "ACTIVE";
-  readonly verifiedAt: string | null;
 };
 
 export type UpdateProducerProfileRequest = Partial<Pick<

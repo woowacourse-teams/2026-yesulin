@@ -19,9 +19,6 @@ public class ProducerSignUpService {
     private final ProducerRepository producerRepository;
     private final PasswordEncoder passwordEncoder;
 
-    /**
-     * MVP에서는 가입 직후 바로 공연·공고 기능을 사용할 수 있는 활성 계정을 만든다.
-     */
     @Transactional
     public ProducerResult signUp(SignUpProducerCommand command) {
         String email = command.email().trim().toLowerCase();

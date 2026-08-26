@@ -50,7 +50,9 @@ class ProducerProfileControllerTest {
 
     @BeforeEach
     void setUp() {
-        Member member = memberRepository.save(Member.ofProducer("producer@example.com", "encoded-password"));
+        Member member = memberRepository.save(new Member(
+                "producer@example.com", "encoded-password", MemberType.PRODUCER, MemberStatus.ACTIVE
+        ));
         producerRepository.save(new Producer(member.getId(), "극단 예술인", "010-1234-5678"));
         producerPrincipal = new MemberPrincipal(member.getId(), MemberType.PRODUCER, MemberStatus.ACTIVE);
     }
@@ -66,8 +68,7 @@ class ProducerProfileControllerTest {
                 .andExpect(jsonPath("$.description").doesNotExist())
                 .andExpect(jsonPath("$.email").value("producer@example.com"))
                 .andExpect(jsonPath("$.phone").value("01012345678"))
-                .andExpect(jsonPath("$.verificationStatus").value("ACTIVE"))
-                .andExpect(jsonPath("$.verifiedAt").exists());
+                .andExpect(jsonPath("$.verificationStatus").value("ACTIVE"));
     }
 
     @Test

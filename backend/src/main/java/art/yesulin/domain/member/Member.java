@@ -5,6 +5,7 @@ import static art.yesulin.domain.common.validation.DomainValidator.requireText;
 
 import art.yesulin.domain.member.converter.MemberStatusConverter;
 import art.yesulin.domain.member.converter.MemberTypeConverter;
+import art.yesulin.domain.member.event.ProducerSignedUpEvent;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
@@ -17,12 +18,13 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
+import org.springframework.data.domain.AbstractAggregateRoot;
 
 @Getter
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "members")
-public class Member {
+public class Member extends AbstractAggregateRoot<Member> {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -60,15 +62,17 @@ public class Member {
         return new Member(null, null, MemberType.APPLICANT, MemberStatus.ACTIVE);
     }
 
-    /**
-     * MVP에서는 별도 이메일 인증 없이 기획사·제작사를 바로 활성 계정으로 만든다.
-     */
     public static Member ofProducer(String email, String password) {
-        return new Member(
-                requireText(email, "이메일이 필요합니다."), password, MemberType.PRODUCER, MemberStatus.ACTIVE);
+        String validEmail = requireText(email, "이메일이 필요합니다.");
+        Member member = new Member(validEmail, password, MemberType.PRODUCER, MemberStatus.PENDING);
+        member.registerEvent(new ProducerSignedUpEvent(validEmail));
+        return member;
     }
 
     public void activate() {
+        if (status == MemberStatus.ACTIVE) {
+            return;
+        }
         this.status = MemberStatus.ACTIVE;
     }
 
