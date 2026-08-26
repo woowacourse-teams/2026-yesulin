@@ -15,6 +15,7 @@ import { applicantRoutes } from "@/features/applicants/routes";
 import { ApplicationStartDialog } from "./application-start-dialog";
 import { APPLICATION_STEP_KEYS } from "@/features/applications/application-form";
 import { applicationWriteRoute } from "@/features/applications/routes";
+import { PublicVenueGuide } from "./public-venue-guide";
 
 export function PublicPostingDetail({ posting, useProfilePrefill = false, resumeDraft = false, initialRoleIds = [] }: { posting: PublicPosting; useProfilePrefill?: boolean; resumeDraft?: boolean; initialRoleIds?: readonly string[] }) {
   const router = useRouter();
@@ -131,7 +132,7 @@ function KeyPostingInformation({ posting }: { posting: PublicPosting }) {
 }
 
 function PostingDetails({ posting }: { posting: PublicPosting }) {
-  return <div><InfoSection title="공연 정보"><dl className="grid gap-x-6 gap-y-4 text-base sm:grid-cols-[112px_1fr]"><dt className="text-muted">공연 장소</dt><dd>{posting.venue}<span className="mt-1 block text-sm text-muted">{posting.venueAddress.roadAddress} {posting.venueAddress.detailAddress}</span></dd><dt className="text-muted">공연 기간</dt><dd className="num">{publicPostingDate(posting.performanceStart)} ~ {posting.performanceEnd ? publicPostingDate(posting.performanceEnd) : <strong className="font-semibold text-brand">오픈런</strong>}</dd><dt className="text-muted">모집 기간</dt><dd className="num">{publicPostingDateTime(posting.recruitmentStart)} ~ {publicPostingDateTime(posting.recruitmentEnd)}</dd></dl></InfoSection><InfoSection title="기획사/제작사"><p className="font-semibold">{posting.companyName}</p>{posting.companyDescription ? <p className="mt-2 max-w-[680px] text-sm leading-7 text-muted-strong">{posting.companyDescription}</p> : null}</InfoSection></div>;
+  return <div><InfoSection title="공연 정보"><PublicVenueGuide venue={posting.venue} address={posting.venueAddress} /><dl className="mt-6 grid gap-x-6 gap-y-4 text-base sm:grid-cols-[112px_1fr]"><dt className="text-muted">공연 기간</dt><dd className="num">{publicPostingDate(posting.performanceStart)} ~ {posting.performanceEnd ? publicPostingDate(posting.performanceEnd) : <strong className="font-semibold text-brand">오픈런</strong>}</dd><dt className="text-muted">모집 기간</dt><dd className="num">{publicPostingDateTime(posting.recruitmentStart)} ~ {publicPostingDateTime(posting.recruitmentEnd)}</dd></dl></InfoSection><InfoSection title="기획사/제작사"><p className="font-semibold">{posting.companyName}</p>{posting.companyDescription ? <p className="mt-2 max-w-[680px] text-sm leading-7 text-muted-strong">{posting.companyDescription}</p> : null}</InfoSection></div>;
 }
 
 function InfoSection({ title, children }: { title: string; children: React.ReactNode }) { return <section className="py-8 sm:py-10"><h2 className="text-xl font-bold tracking-[-0.02em]">{title}</h2><div className="mt-5">{children}</div></section>; }
