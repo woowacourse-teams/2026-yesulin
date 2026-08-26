@@ -9,6 +9,7 @@ import { createApplicationSubmission } from "@/features/applications/submission-
 import { deletePublicApplicationDraft } from "@/features/applications/public-application-draft-store";
 import { buildApplicationAuthReturnTo } from "@/features/auth/return-to";
 import { applicationStepIndex } from "@/features/applications/routes";
+import { trackAnalyticsEvent } from "@/features/analytics/events";
 import type { EditableSection, PublicApplicationActions, PublicApplicationContextValue, PublicApplicationProviderProps, PublicApplicationState, SubmissionReceipt } from "./public-application-context-types";
 import { usePublicApplicationDraft } from "./use-public-application-draft";
 import { usePublicApplicationRoute } from "./use-public-application-route";
@@ -117,6 +118,9 @@ export function PublicApplicationProvider({
       return;
     }
     clearStepError(stepIndex);
+    if (!completedStepIndexes.includes(stepIndex)) {
+      trackAnalyticsEvent("application_step_complete", { step_name: steps[stepIndex]!.key, step_number: stepIndex + 1, step_count: steps.length });
+    }
     setCompletedStepIndexes((current) => current.includes(stepIndex) ? current : [...current, stepIndex]);
     if (stepIndex === steps.length - 1) {
       setReviewing(true);
@@ -178,6 +182,7 @@ export function PublicApplicationProvider({
     if (result === "ERROR") {
       setSubmissionState("ERROR");
       setSubmissionError("지원서를 접수하지 못했어요. 잠시 후 다시 시도해 주세요.");
+      trackAnalyticsEvent("application_submit_error", { error_code: "simulated_error" });
       return;
     }
     try {
@@ -199,13 +204,19 @@ export function PublicApplicationProvider({
         submittedAt: response.submittedAt,
         profileSaved: response.profileSaved,
       });
+      trackAnalyticsEvent("application_submit_success", { selected_role_count: roleIds.length, save_to_profile: saveToProfile, profile_saved: Boolean(response.profileSaved) });
       void deletePublicApplicationDraft(postingId).catch(() => undefined);
     } catch (cause) {
       if (cause instanceof AuditionRequestError && cause.status === 401) {
+        trackAnalyticsEvent("application_submit_error", { error_code: "auth_expired" });
         const returnTo = encodeURIComponent(buildApplicationAuthReturnTo(postingId, roleIds));
         window.location.assign(`/login?returnTo=${returnTo}`);
         return;
       }
+      const errorCode = cause instanceof AuditionRequestError
+        ? cause.status >= 500 ? "server_error" : "client_error"
+        : cause instanceof TypeError ? "network_error" : "unknown";
+      trackAnalyticsEvent("application_submit_error", { error_code: errorCode });
       setSubmissionState("ERROR");
       setSubmissionError(cause instanceof Error ? cause.message : "지원서를 접수하지 못했어요. 잠시 후 다시 시도해 주세요.");
     }

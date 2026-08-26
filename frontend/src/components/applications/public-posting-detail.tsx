@@ -16,6 +16,8 @@ import { ApplicationStartDialog } from "./application-start-dialog";
 import { APPLICATION_STEP_KEYS } from "@/features/applications/application-form";
 import { applicationWriteRoute } from "@/features/applications/routes";
 import { PublicVenueGuide } from "./public-venue-guide";
+import { TrackedLoginLink } from "@/components/analytics/tracked-login-link";
+import { trackAnalyticsEvent } from "@/features/analytics/events";
 
 export function PublicPostingDetail({ posting, useProfilePrefill = false, resumeDraft = false, initialRoleIds = [] }: { posting: PublicPosting; useProfilePrefill?: boolean; resumeDraft?: boolean; initialRoleIds?: readonly string[] }) {
   const router = useRouter();
@@ -33,6 +35,7 @@ export function PublicPostingDetail({ posting, useProfilePrefill = false, resume
   const actionEnabled = acceptingApplications && selectedRoles.length > 0;
   const selectedRoleLabel = selectedRoles.map((role) => role.name).join(" · ");
   const loginHref = `/login?returnTo=${encodeURIComponent(buildApplicationAuthReturnTo(posting.id, selectedRoleIds, "basic"))}`;
+  const loginAnalytics = { entry_point: "public_posting_header", login_reason: "application_start", actor_type: "applicant", return_target: "application_basic" } as const;
   const toggleRole = (id: string) => setSelectedRoleIds((current) => posting.allowsMultipleRoles ? (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]) : [id]);
   const showMobileAction = acceptingApplications;
   const focusRoleSelection = () => {
@@ -41,9 +44,16 @@ export function PublicPostingDetail({ posting, useProfilePrefill = false, resume
     section?.querySelector<HTMLInputElement>("input")?.focus({ preventScroll: true });
   };
   const beginApplication = () => {
-    if (authenticated || guestChoiceMade) router.push(applicationWriteRoute(posting.id, "basic", selectedRoleIds, { prefill: authenticated && !hasLocalDraft }));
+    if (authenticated || guestChoiceMade) {
+      trackAnalyticsEvent("application_start", { start_mode: hasLocalDraft ? "resume" : authenticated ? "authenticated" : "guest", selected_role_count: selectedRoleIds.length, has_draft: hasLocalDraft });
+      router.push(applicationWriteRoute(posting.id, "basic", selectedRoleIds, { prefill: authenticated && !hasLocalDraft }));
+    }
     else setStartDialogOpen(true);
   };
+
+  useEffect(() => {
+    trackAnalyticsEvent("view_posting", { posting_status: posting.status.toLowerCase(), role_count: posting.roles.length });
+  }, [posting.roles.length, posting.status]);
 
   useEffect(() => {
     let active = true;
@@ -75,7 +85,7 @@ export function PublicPostingDetail({ posting, useProfilePrefill = false, resume
           <Link href={applicantRoutes.submissions} className="ml-2 inline-flex min-h-11 items-center rounded-control px-3 text-sm font-semibold text-brand hover:bg-brand-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">내 지원서</Link>
         </> : <>
           <span className="ml-auto text-xs text-muted-strong sm:text-sm">로그인 전 작성 가능</span>
-          <Link href={loginHref} className="ml-2 inline-flex min-h-11 items-center rounded-control px-3 text-sm font-semibold text-muted-strong hover:bg-surface hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">로그인</Link>
+          <TrackedLoginLink href={loginHref} analytics={loginAnalytics} className="ml-2 inline-flex min-h-11 items-center rounded-control px-3 text-sm font-semibold text-muted-strong hover:bg-surface hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">로그인</TrackedLoginLink>
         </>}
       </div>
     </header>
@@ -91,7 +101,7 @@ export function PublicPostingDetail({ posting, useProfilePrefill = false, resume
       <aside className="hidden min-[1200px]:block"><DesktopAction posting={posting} selectedRole={selectedRoleLabel} enabled={actionEnabled} hasDraft={hasLocalDraft} onAction={beginApplication} onChooseRole={focusRoleSelection} /></aside>
     </div>
     {showMobileAction ? <MobileAction posting={posting} selectedRole={selectedRoleLabel} enabled={actionEnabled} hasDraft={hasLocalDraft} onAction={beginApplication} onChooseRole={focusRoleSelection} /> : null}
-    <ApplicationStartDialog open={startDialogOpen} loginHref={loginHref} hasDraft={hasLocalDraft} onClose={() => setStartDialogOpen(false)} onContinueWithoutLogin={() => { setGuestChoiceMade(true); setStartDialogOpen(false); router.push(applicationWriteRoute(posting.id, "basic", selectedRoleIds)); }} />
+    <ApplicationStartDialog open={startDialogOpen} loginHref={loginHref} hasDraft={hasLocalDraft} selectedRoleCount={selectedRoleIds.length} loginAnalytics={{ ...loginAnalytics, entry_point: "application_start_prompt" }} onClose={() => setStartDialogOpen(false)} onContinueWithoutLogin={() => { setGuestChoiceMade(true); setStartDialogOpen(false); router.push(applicationWriteRoute(posting.id, "basic", selectedRoleIds)); }} />
   </main>;
 }
 

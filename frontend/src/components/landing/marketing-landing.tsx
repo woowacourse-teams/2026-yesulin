@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { TrackedLoginLink } from "@/components/analytics/tracked-login-link";
 import { SecondaryLink } from "@/components/ui/controls";
 import { ApplicantPreview } from "./landing-preview";
 import { LandingFooter, LandingHeader } from "./landing-header";
@@ -47,7 +47,7 @@ export function MarketingLanding({ audience }: { readonly audience: LandingConte
             <h1 className="mt-6 text-[clamp(38px,3.7vw,58px)] font-bold leading-[1.15] tracking-[-0.04em]">{current.title}</h1>
             <p className="mt-6 max-w-[560px] text-lg leading-8 text-muted-strong">{current.description}</p>
             <div className="mt-9 flex flex-wrap gap-3">
-              <Link href={loginHref} className="inline-flex min-h-[52px] items-center justify-center rounded-control bg-brand px-6 text-base font-semibold text-white shadow-[var(--shadow-1)] transition-[background-color,box-shadow,transform] hover:bg-brand-strong hover:shadow-[var(--shadow-2)] active:scale-[0.98]">소셜 로그인으로 시작하기</Link>
+              <TrackedLoginLink href={loginHref} analytics={{ entry_point: "landing_hero", login_reason: "account_access", actor_type: "applicant", return_target: "applicant_home" }} className="inline-flex min-h-[52px] items-center justify-center rounded-control bg-brand px-6 text-base font-semibold text-white shadow-[var(--shadow-1)] transition-[background-color,box-shadow,transform] hover:bg-brand-strong hover:shadow-[var(--shadow-2)] active:scale-[0.98]">소셜 로그인으로 시작하기</TrackedLoginLink>
               <SecondaryLink href="#features" className="min-h-13 px-6 text-base">서비스 살펴보기</SecondaryLink>
             </div>
           </div>
@@ -77,7 +77,7 @@ export function MarketingLanding({ audience }: { readonly audience: LandingConte
       </section>
 
       <section className="mx-auto max-w-[1280px] px-5 py-20 sm:px-8 lg:px-10 lg:py-28">
-        <div className="rounded-[28px] bg-brand px-6 py-12 text-center sm:px-10 sm:py-16"><h2 className="text-[clamp(28px,4vw,42px)] font-bold text-white">예술의 다음 기회를 시작해 보세요.</h2><p className="mx-auto mt-4 max-w-[620px] text-lg leading-8 text-white/80">배우와 기획사/제작사가 각자의 일에 더 집중할 수 있도록 예술in이 과정을 연결합니다.</p><Link href={loginHref} className="mt-8 inline-flex min-h-[52px] items-center justify-center rounded-control bg-white px-6 font-semibold text-brand transition-transform active:scale-[0.98]">소셜 로그인으로 시작하기</Link></div>
+        <div className="rounded-[28px] bg-brand px-6 py-12 text-center sm:px-10 sm:py-16"><h2 className="text-[clamp(28px,4vw,42px)] font-bold text-white">예술의 다음 기회를 시작해 보세요.</h2><p className="mx-auto mt-4 max-w-[620px] text-lg leading-8 text-white/80">배우와 기획사/제작사가 각자의 일에 더 집중할 수 있도록 예술in이 과정을 연결합니다.</p><TrackedLoginLink href={loginHref} analytics={{ entry_point: "landing_bottom_cta", login_reason: "account_access", actor_type: "applicant", return_target: "applicant_home" }} className="mt-8 inline-flex min-h-[52px] items-center justify-center rounded-control bg-white px-6 font-semibold text-brand transition-transform active:scale-[0.98]">소셜 로그인으로 시작하기</TrackedLoginLink></div>
       </section>
 
       <LandingFooter />

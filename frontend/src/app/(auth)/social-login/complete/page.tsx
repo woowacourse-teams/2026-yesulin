@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthSession } from "@/components/auth/auth-session";
 import { consumeSocialLoginReturnTo } from "@/features/auth/social-login-return-to";
+import { loginAttributionFor, trackLoginSuccess } from "@/features/analytics/events";
 
 export default function SocialLoginCompletePage() {
   const router = useRouter();
@@ -12,7 +13,9 @@ export default function SocialLoginCompletePage() {
   useEffect(() => {
     if (!sessionReady) return;
     if (session?.role === "APPLICANT") {
-      router.replace(consumeSocialLoginReturnTo());
+      const returnTo = consumeSocialLoginReturnTo();
+      trackLoginSuccess(returnTo, loginAttributionFor(returnTo, "applicant"));
+      router.replace(returnTo);
       return;
     }
     router.replace("/login");

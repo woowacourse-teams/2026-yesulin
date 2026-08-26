@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
 import { getApplicantProfile } from "@/features/applicants/api";
@@ -10,8 +10,10 @@ import { imageFileError } from "@/features/applications/application-form-state";
 import type { ApplicationPhoto } from "@/features/applications/application-form-state";
 import { photoSlotLabels } from "@/features/applications/materials";
 import { useAuditionQuery } from "@/features/auditions/use-audition-query";
+import { TrackedLoginLink } from "@/components/analytics/tracked-login-link";
 import { DialogFooter, DialogHeader, ModalShell } from "@/components/auditions/modal-shell";
-import { PrimaryLink, SecondaryButton, TextButton } from "@/components/ui/controls";
+import { SecondaryButton, TextButton } from "@/components/ui/controls";
+import { trackAnalyticsEvent } from "@/features/analytics/events";
 
 export function PublicApplicationPhotoField({ field, limit, photos, authenticated, loginHref, error, onChange, onReady }: {
   readonly field: ApplicationFieldInput;
@@ -89,14 +91,25 @@ function PhotoSlot({ label, photo, authenticated, onLibrary, onUpload, onRemove 
 
 function PhotoLibraryLoginDialog({ open, slotLabel, loginHref, onClose }: { readonly open: boolean; readonly slotLabel: string; readonly loginHref: string; readonly onClose: () => void }) {
   const titleId = useId();
-  return <ModalShell open={open} onClose={onClose} labelledBy={titleId} placement="responsiveSheet" className="w-full overflow-hidden rounded-t-modal bg-card shadow-[var(--shadow-modal)] md:w-[min(520px,calc(100vw-32px))] md:rounded-modal">
+  useEffect(() => {
+    if (open) trackAnalyticsEvent("login_prompt_view", { login_reason: "photo_library" });
+  }, [open]);
+  const close = () => {
+    trackAnalyticsEvent("login_prompt_action", { login_reason: "photo_library", action: "close" });
+    onClose();
+  };
+  const continueGuest = () => {
+    trackAnalyticsEvent("login_prompt_action", { login_reason: "photo_library", action: "continue_guest" });
+    onClose();
+  };
+  return <ModalShell open={open} onClose={close} labelledBy={titleId} placement="responsiveSheet" className="w-full overflow-hidden rounded-t-modal bg-card shadow-[var(--shadow-modal)] md:w-[min(520px,calc(100vw-32px))] md:rounded-modal">
     <DialogHeader id={titleId} title={`${slotLabel} 보관함 선택은 로그인이 필요해요`} subtitle="로그인하면 프로필에 보관한 사진을 이 지원서에서 골라 쓸 수 있어요." />
     <div className="space-y-3 px-5 py-6 text-sm leading-6 text-muted-strong md:px-6">
       <p className="rounded-control border border-brand-line bg-brand-soft px-4 py-3"><strong className="block text-foreground">작성 내용은 그대로 유지됩니다</strong>로그인 후 같은 지원서의 사진 단계로 돌아와 계속 작성할 수 있어요.</p>
       <p className="rounded-control bg-surface px-4 py-3"><strong className="block text-foreground">로그인 없이도 새 사진을 선택할 수 있어요</strong>이 창을 닫고 해당 슬롯의 새 사진 선택을 사용해 주세요.</p>
       <p className="text-xs leading-5 text-muted">지원서에서는 사진 보관함을 추가·수정·삭제하지 않습니다. 보관함 관리는 로그인 후 프로필에서 할 수 있어요.</p>
     </div>
-    <DialogFooter><SecondaryButton onClick={onClose}>계속 작성</SecondaryButton><PrimaryLink href={loginHref}>로그인하고 보관함 사용</PrimaryLink></DialogFooter>
+    <DialogFooter><SecondaryButton onClick={continueGuest}>계속 작성</SecondaryButton><TrackedLoginLink href={loginHref} analytics={{ entry_point: "photo_library_prompt", login_reason: "photo_library", actor_type: "applicant", return_target: "application_media" }} onTrackedClick={() => trackAnalyticsEvent("login_prompt_action", { login_reason: "photo_library", action: "login" })} className="inline-flex min-h-11 items-center justify-center rounded-control border border-brand bg-brand px-4 text-sm font-semibold text-white shadow-[var(--shadow-1)] hover:bg-brand-strong">로그인하고 보관함 사용</TrackedLoginLink></DialogFooter>
   </ModalShell>;
 }
 
