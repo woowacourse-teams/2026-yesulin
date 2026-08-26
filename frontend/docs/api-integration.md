@@ -19,7 +19,8 @@ MSW 전용 경로를 어떻게 구분하는지만 설명한다.
 
 ## 실제 API 사용 영역
 
-- `/api/v1/sessions`, `/api/v1/auth/email-verifications`, `/api/v1/producers`, `/api/v1/producers/me`
+- `/api/v1/sessions`, `/api/v1/auth/email-verifications`, `/api/v1/auth/password-resets`
+- `/api/v1/producers`, `/api/v1/producers/me`
 - `/api/v1/performances`, `/api/v1/performance-posters`
 - `/api/v1/auditions`, `/api/v1/public/auditions`
 - `/api/v1/applicants/me/profile`, 사진·영상 보관함
@@ -50,3 +51,5 @@ MSW 전용 경로를 어떻게 구분하는지만 설명한다.
 - API 응답 URL은 그대로 사용하며 CloudFront 경로를 프론트에서 조합하지 않는다.
 - `401`이면 프론트 인증 상태를 초기화하고 안전한 내부 `returnTo`를 보존한 채 로그인으로 이동한다.
 - 기획사/제작사 이메일 인증 링크는 백엔드에서 검증한 뒤 설정된 Frontend 경로로 `302` redirect한다.
+- 비밀번호 재설정 메일은 Frontend `/forgot-password?token=...` 링크를 열고, 프론트가 토큰 확인 후 새 비밀번호를
+  PATCH한다. 메일 요청 응답만으로 계정 존재 여부를 판단하지 않는다.

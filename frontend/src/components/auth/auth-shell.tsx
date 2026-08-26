@@ -5,8 +5,9 @@ type AuthShellProps = {
   readonly title: React.ReactNode;
   readonly description: React.ReactNode;
   readonly children: React.ReactNode;
-  readonly footer: React.ReactNode;
+  readonly footer?: React.ReactNode;
   readonly intent?: "default" | "application";
+  readonly fitViewport?: boolean;
 };
 
 function BrandLogo({ inverse = false }: { readonly inverse?: boolean }) {
@@ -24,10 +25,10 @@ function BrandLogo({ inverse = false }: { readonly inverse?: boolean }) {
   );
 }
 
-export function AuthShell({ title, description, children, footer, intent = "default" }: AuthShellProps) {
+export function AuthShell({ title, description, children, footer, intent = "default", fitViewport = false }: AuthShellProps) {
   const applicationIntent = intent === "application";
   return (
-    <main className="min-h-screen bg-surface lg:grid lg:grid-cols-[minmax(360px,0.82fr)_minmax(560px,1.18fr)]">
+    <main className={`${fitViewport ? "h-dvh overflow-hidden" : "min-h-screen"} bg-surface lg:grid lg:grid-cols-[minmax(360px,0.82fr)_minmax(560px,1.18fr)]`}>
       <section className="relative hidden overflow-hidden bg-sidebar px-12 py-10 text-white lg:sticky lg:top-0 lg:flex lg:h-screen lg:self-start lg:flex-col xl:px-16 xl:py-12">
         <div aria-hidden="true" className="absolute -left-32 top-1/4 h-80 w-80 rounded-full bg-brand/25 blur-3xl" />
         <div aria-hidden="true" className="absolute -right-40 bottom-[-80px] h-96 w-96 rounded-full bg-brand/15 blur-3xl" />
@@ -51,24 +52,24 @@ export function AuthShell({ title, description, children, footer, intent = "defa
         <p className="relative z-1 text-sm text-sidebar-muted">© 2026 예술in</p>
       </section>
 
-      <section className="relative flex min-h-screen items-center justify-center overflow-hidden px-5 py-8 sm:px-8 lg:px-12">
+      <section className={`relative flex items-center justify-center overflow-x-hidden px-5 sm:px-8 lg:px-12 ${fitViewport ? "h-dvh min-h-0 overflow-y-auto py-4 sm:py-5" : "min-h-screen overflow-y-hidden py-8"}`}>
         <div aria-hidden="true" className="absolute right-[-120px] top-[-120px] h-72 w-72 rounded-full bg-brand-soft blur-3xl" />
         <div className="relative z-1 w-full max-w-[560px]">
-          <div className="mb-6 flex justify-center lg:hidden">
+          <div className={`${fitViewport ? "mb-3" : "mb-6"} flex justify-center lg:hidden`}>
             <BrandLogo />
           </div>
 
-          <div className="border-border bg-card px-0 py-2 sm:rounded-modal sm:border sm:px-10 sm:py-10 sm:shadow-[var(--shadow-2)]">
+          <div className={`border-border bg-card px-0 py-2 sm:rounded-modal sm:border sm:shadow-[var(--shadow-2)] ${fitViewport ? "sm:px-8 sm:py-6" : "sm:px-10 sm:py-10"}`}>
             <header className="text-center">
               {applicationIntent ? <p className="mb-3 text-sm font-semibold text-brand">지원서 제출을 위한 인증</p> : null}
               <h1 className="flex min-h-10 items-center justify-center text-[28px] font-bold leading-tight tracking-[-0.025em] text-foreground sm:text-[32px]">{title}</h1>
               <p className="mt-3 text-base leading-relaxed text-muted-strong">{description}</p>
             </header>
 
-            <div className="mt-8">{children}</div>
+            <div className={fitViewport ? "mt-5" : "mt-8"}>{children}</div>
           </div>
 
-          <div className="mt-6 text-center text-base text-muted-strong">{footer}</div>
+          {footer ? <div className={`${fitViewport ? "mt-3" : "mt-6"} text-center text-base text-muted-strong`}>{footer}</div> : null}
         </div>
       </section>
     </main>

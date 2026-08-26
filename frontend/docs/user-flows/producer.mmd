@@ -1,6 +1,11 @@
 flowchart TD
     SIGNUP["POST /api/v1/producers<br>PENDING + 인증 메일 발송"] --> VERIFY["GET /api/v1/auth/email-verifications<br>302 redirect"]
-    VERIFY --> LOGIN["POST /api/v1/sessions"]
+    VERIFY --> LOGIN_FORM["로그인 화면"]
+    LOGIN_FORM --> FORGOT{"비밀번호 분실?"}
+    FORGOT -- 예 --> RESET_MAIL["POST /api/v1/auth/password-resets<br>재설정 메일 발송"]
+    RESET_MAIL --> RESET["GET token 확인 → PATCH 새 비밀번호"]
+    RESET --> LOGIN_FORM
+    FORGOT -- 아니오 --> LOGIN["POST /api/v1/sessions"]
     LOGIN --> PERFORMANCE["공연 관리"]
     PERFORMANCE --> AUDITION["공고 기본 정보·배역·일정·지원 폼 저장"]
     AUDITION --> PUBLISH["PUT /api/v1/auditions/{auditionId}/publication"]
