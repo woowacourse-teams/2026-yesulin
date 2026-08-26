@@ -51,7 +51,7 @@ public class PerformanceController {
         return ResponseEntity.ok(new PerformanceListResponse(
                 auditionManagementQueryService.findPerformances(ownerId).stream()
                         .map(result -> PerformanceManagementResponse.from(
-                                result, fileService.readUrl(ownerId, result.posterFileId())
+                                result, fileService.readPublicUrl(ownerId, result.posterFileId())
                         ))
                         .toList()
         ));
@@ -100,9 +100,6 @@ public class PerformanceController {
     }
 
     private PerformanceResponse toResponse(long ownerId, PerformanceResult result) {
-        return PerformanceResponse.from(
-                result,
-                fileService.readUrl(ownerId, result.posterFileId())
-        );
+        return PerformanceResponse.from(result, fileService.readPublicUrl(ownerId, result.posterFileId()));
     }
 }

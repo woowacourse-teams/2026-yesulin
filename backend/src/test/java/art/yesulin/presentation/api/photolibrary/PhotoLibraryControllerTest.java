@@ -91,7 +91,7 @@ class PhotoLibraryControllerTest {
                 .andExpect(jsonPath("$.photos.length()").value(1))
                 .andExpect(jsonPath("$.photos[0].fileId").value(fileId))
                 .andExpect(jsonPath("$.photos[0].imageUrl").value(
-                        org.hamcrest.Matchers.startsWith("https://cdn.test/assets/files/")
+                        "/api/v1/files/" + fileId + "/content"
                 ))
                 .andExpect(jsonPath("$.photos[0].representative").value(true));
     }
@@ -200,7 +200,7 @@ class PhotoLibraryControllerTest {
 
     @Test
     void rejectsPendingPhoto() throws Exception {
-        FileUploadResult upload = fileService.requestUpload(
+        FileUploadResult upload = fileService.requestPrivateActorPhotoUpload(
                 MEMBER_PRINCIPAL.memberId(), new FileUploadCommand("profile.png", "image/png", 1_024L)
         );
 
@@ -227,7 +227,7 @@ class PhotoLibraryControllerTest {
     }
 
     private long requestReadyUpload(long ownerId) {
-        FileUploadResult upload = fileService.requestUpload(
+        FileUploadResult upload = fileService.requestPrivateActorPhotoUpload(
                 ownerId, new FileUploadCommand("profile.png", "image/png", 1_024L)
         );
         objectStorage.upload(upload.uploadUrl(), "image/png", 1_024L);

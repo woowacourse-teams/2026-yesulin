@@ -94,7 +94,7 @@ class ScreeningSubmissionControllerTest {
                 .andExpect(jsonPath("$.submissions[0].email").value("applicant@example.com"))
                 .andExpect(jsonPath("$.submissions[0].questions[0].answer").value("작품에 공감했습니다."))
                 .andExpect(jsonPath("$.submissions[0].photos[0].url")
-                        .value(org.hamcrest.Matchers.startsWith("https://storage.test/downloads/")))
+                        .value(org.hamcrest.Matchers.startsWith("/api/v1/files/")))
                 .andExpect(jsonPath("$.submissions[0].review.status").value("PENDING"));
     }
 

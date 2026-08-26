@@ -62,7 +62,7 @@ class FileServiceTest {
         assertEquals("IMAGE", fileType);
         assertEquals(FileType.IMAGE, fileAsset.getMetadata().getType());
         assertEquals(OWNER_ID, fileAsset.getOwnerId());
-        assertTrue(fileAsset.getObjectKey().matches("files/\\d{8}/[0-9a-f-]{36}"));
+        assertTrue(fileAsset.getObjectKey().matches("public/files/\\d{8}/[0-9a-f-]{36}"));
     }
 
     @Test

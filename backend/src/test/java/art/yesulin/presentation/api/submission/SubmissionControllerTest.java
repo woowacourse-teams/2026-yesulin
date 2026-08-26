@@ -300,7 +300,7 @@ class SubmissionControllerTest {
     }
 
     private Performance savePerformance() {
-        long posterFileId = saveReadyImage(PRODUCER_ID, "performances/poster.jpg");
+        long posterFileId = saveReadyImage(PRODUCER_ID, "public/files/20260826/poster.jpg");
         producerRepository.saveAndFlush(new Producer(PRODUCER_ID, "테스트 극단", "01012345678"));
         Performance performance = new Performance(
                 PRODUCER_ID, posterFileId, "햄릿", "서울특별시 종로구"

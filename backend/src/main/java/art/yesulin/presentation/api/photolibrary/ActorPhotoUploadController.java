@@ -31,7 +31,7 @@ public class ActorPhotoUploadController {
             @Valid @RequestBody ActorPhotoUploadRequest request
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(fileService.requestUpload(principal.memberId(), request.toCommand()));
+                .body(fileService.requestPrivateActorPhotoUpload(principal.memberId(), request.toCommand()));
     }
 
     @PatchMapping("/{fileId}/completion")

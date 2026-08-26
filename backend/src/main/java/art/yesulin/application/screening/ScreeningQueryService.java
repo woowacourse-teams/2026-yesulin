@@ -2,7 +2,7 @@ package art.yesulin.application.screening;
 
 import static art.yesulin.domain.screening.ScreeningReviewErrorCode.NOT_FOUND;
 
-import art.yesulin.application.file.storage.ObjectStorage;
+import art.yesulin.application.file.FileService;
 import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.audition.Audition;
 import art.yesulin.domain.audition.AuditionRepository;
@@ -44,7 +44,7 @@ public class ScreeningQueryService {
     private final ScreeningReviewRepository reviewRepository;
     private final ScreeningCompletionRepository completionRepository;
     private final FileAssetRepository fileAssetRepository;
-    private final ObjectStorage objectStorage;
+    private final FileService fileService;
 
     @Transactional(readOnly = true)
     public ScreeningBoardResult findBoard(
@@ -168,7 +168,7 @@ public class ScreeningQueryService {
         Map<Long, String> urls = new LinkedHashMap<>();
         for (FileAsset fileAsset : fileAssetRepository.findAllById(fileIds)) {
             fileAsset.ensureUsable();
-            urls.put(fileAsset.getId(), objectStorage.createDownloadUrl(fileAsset.getObjectKey()));
+            urls.put(fileAsset.getId(), fileService.privateContentUrl(fileAsset.getId()));
         }
         if (urls.size() != fileIds.size()) {
             throw new IllegalStateException("제출 지원서의 사진 파일을 찾을 수 없습니다.");

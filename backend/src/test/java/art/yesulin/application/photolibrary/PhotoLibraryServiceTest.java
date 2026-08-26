@@ -60,7 +60,7 @@ class PhotoLibraryServiceTest {
         );
 
         assertEquals(fileId, result.fileId());
-        assertTrue(result.imageUrl().startsWith("https://cdn.test/assets/files/"));
+        assertEquals("/api/v1/files/" + fileId + "/content", result.imageUrl());
         assertEquals(0, result.displayOrder());
         assertTrue(result.representative());
         PhotoLibrary library = photoLibraryRepository.findByOwnerId(OWNER_ID).orElseThrow();
@@ -170,7 +170,7 @@ class PhotoLibraryServiceTest {
 
     @Test
     void rejectsPendingFileWithoutCreatingLibrary() {
-        FileUploadResult upload = fileService.requestUpload(
+        FileUploadResult upload = fileService.requestPrivateActorPhotoUpload(
                 OWNER_ID, new FileUploadCommand("profile.png", "image/png", 1_024L)
         );
 
@@ -197,7 +197,7 @@ class PhotoLibraryServiceTest {
     }
 
     private long requestReadyUpload(long ownerId) {
-        FileUploadResult upload = fileService.requestUpload(
+        FileUploadResult upload = fileService.requestPrivateActorPhotoUpload(
                 ownerId, new FileUploadCommand("profile.png", "image/png", 1_024L)
         );
         objectStorage.upload(upload.uploadUrl(), "image/png", 1_024L);

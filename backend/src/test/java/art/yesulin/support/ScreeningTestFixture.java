@@ -74,7 +74,7 @@ public class ScreeningTestFixture {
     }
 
     public Fixture save(long ownerId, UUID submissionId, int stageCount) {
-        long posterFileId = saveReadyImage(ownerId, "performances/poster-" + UUID.randomUUID());
+        long posterFileId = saveReadyImage(ownerId, "public/files/20260826/" + UUID.randomUUID());
         Performance performance = new Performance(ownerId, posterFileId, "햄릿", "서울특별시 종로구");
         performance.addRole("햄릿", "덴마크의 왕자");
         performanceRepository.saveAndFlush(performance);
@@ -109,7 +109,7 @@ public class ScreeningTestFixture {
             String name,
             SubmissionGender gender
     ) {
-        long photoFileId = saveReadyImage(applicantId, "submissions/profile-" + UUID.randomUUID());
+        long photoFileId = saveReadyImage(applicantId, "private/actor-photos/20260826/" + UUID.randomUUID());
         Performance performance = performanceRepository.findById(fixture.performanceId()).orElseThrow();
         Audition audition = auditionRepository.findById(fixture.auditionId()).orElseThrow();
         ApplicantSnapshot applicant = new ApplicantSnapshot(

@@ -64,6 +64,7 @@ import org.springframework.transaction.annotation.Transactional;
 class ApplicantSubmissionControllerTest {
 
     private static final long APPLICANT_ID = 1L;
+    private static final long PRODUCER_ID = 2L;
     private static final Instant SUBMITTED_AT = Instant.parse("2026-08-24T03:15:00Z");
     private static final Instant RECRUITMENT_END_AT = Instant.parse("2026-08-31T14:59:00Z");
     private static final MemberPrincipal MEMBER_PRINCIPAL = new MemberPrincipal(
@@ -88,12 +89,12 @@ class ApplicantSubmissionControllerTest {
     @Test
     void findsOnlySessionApplicantsSubmissionSummariesInRecentOrder() throws Exception {
         Submission older = saveSubmission(
-                APPLICANT_ID, 2L, SUBMITTED_AT.minusSeconds(60), saveReadyImage(APPLICANT_ID)
+                APPLICANT_ID, 2L, SUBMITTED_AT.minusSeconds(60), saveReadyPhoto(APPLICANT_ID)
         );
         Submission newer = saveSubmission(
-                APPLICANT_ID, 3L, SUBMITTED_AT, saveReadyImage(APPLICANT_ID)
+                APPLICANT_ID, 3L, SUBMITTED_AT, saveReadyPhoto(APPLICANT_ID)
         );
-        saveSubmission(2L, 4L, SUBMITTED_AT.plusSeconds(60), saveReadyImage(2L));
+        saveSubmission(2L, 4L, SUBMITTED_AT.plusSeconds(60), saveReadyPhoto(2L));
 
         mockMvc.perform(get(SUBMISSIONS_PATH)
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
@@ -115,7 +116,7 @@ class ApplicantSubmissionControllerTest {
 
     @Test
     void findsCompleteSubmissionSnapshotAfterPhotoLibrarySoftDelete() throws Exception {
-        long fileId = saveReadyImage(APPLICANT_ID);
+        long fileId = saveReadyPhoto(APPLICANT_ID);
         PhotoLibraryItemResult libraryPhoto = photoLibraryService.addPhoto(
                 APPLICANT_ID, new AddPhotoToLibraryCommand(fileId)
         );
@@ -145,7 +146,7 @@ class ApplicantSubmissionControllerTest {
                 .andExpect(jsonPath("$.formAnswers.questionAnswers[0].question").value("지원 동기"))
                 .andExpect(jsonPath("$.formAnswers.photoRequirementAnswers[0].fileId").value(fileId))
                 .andExpect(jsonPath("$.formAnswers.photoRequirementAnswers[0].url").value(
-                        startsWith("https://cdn.test/assets/")
+                        "/api/v1/files/" + fileId + "/content"
                 ))
                 .andExpect(jsonPath("$.formAnswers.videoRequirementAnswers[0].url").value(
                         "https://youtu.be/abcdefghijk"
@@ -174,8 +175,8 @@ class ApplicantSubmissionControllerTest {
                         "공고 " + auditionId,
                         "공연 " + auditionId,
                         "테스트 극단",
-                        fileId,
-                        applicantId
+                        saveReadyPoster(),
+                        PRODUCER_ID
                 ),
                 createApplicantSnapshot(submittedAt),
                 new SelectedRoles(List.of(new SelectedRole(auditionId * 10, "배역 " + auditionId))),
@@ -219,11 +220,21 @@ class ApplicantSubmissionControllerTest {
         );
     }
 
-    private long saveReadyImage(long ownerId) {
+    private long saveReadyPhoto(long ownerId) {
         FileAsset file = new FileAsset(
-                "submissions/profile-" + java.util.UUID.randomUUID() + ".jpg",
+                "private/actor-photos/20260826/" + java.util.UUID.randomUUID(),
                 ownerId,
                 new FileMetadata("profile.jpg", "image/jpeg", 1_024L)
+        );
+        file.completeUpload("image/jpeg", 1_024L);
+        return fileAssetRepository.saveAndFlush(file).getId();
+    }
+
+    private long saveReadyPoster() {
+        FileAsset file = new FileAsset(
+                "public/files/20260826/" + java.util.UUID.randomUUID(),
+                PRODUCER_ID,
+                new FileMetadata("poster.jpg", "image/jpeg", 1_024L)
         );
         file.completeUpload("image/jpeg", 1_024L);
         return fileAssetRepository.saveAndFlush(file).getId();

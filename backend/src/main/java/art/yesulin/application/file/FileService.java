@@ -26,14 +26,28 @@ public class FileService {
 
     @Transactional
     public FileUploadResult requestUpload(long ownerId, FileUploadCommand command) {
+        return requestUpload(ownerId, command, "public/files");
+    }
+
+    private FileUploadResult requestUpload(long ownerId, FileUploadCommand command, String objectKeyPrefix) {
         FileMetadata metadata = command.toMetadata();
-        String objectKey = createObjectKey();
+        String objectKey = createObjectKey(objectKeyPrefix);
         FileAsset fileAsset = new FileAsset(objectKey, ownerId, metadata);
         PresignedUpload upload = objectStorage.createUpload(objectKey, metadata.getContentType(), metadata.getSize());
         FileAsset savedFileAsset = fileAssetRepository.save(fileAsset);
         return new FileUploadResult(
                 savedFileAsset.getId(), upload.url(), upload.method(), upload.expiresAt(), upload.headers()
         );
+    }
+
+    @Transactional
+    public FileUploadResult requestPublicUpload(long ownerId, FileUploadCommand command) {
+        return requestUpload(ownerId, command, "public/files");
+    }
+
+    @Transactional
+    public FileUploadResult requestPrivateActorPhotoUpload(long ownerId, FileUploadCommand command) {
+        return requestUpload(ownerId, command, "private/actor-photos");
     }
 
     @Transactional
@@ -46,16 +60,23 @@ public class FileService {
     }
 
     @Transactional(readOnly = true)
-    public String readUrl(long ownerId, long fileId) {
+    public String readPublicUrl(long ownerId, long fileId) {
         FileAsset fileAsset = getOwnedFileAsset(ownerId, fileId);
         fileAsset.ensureUsable();
+        if (!fileAsset.getObjectKey().startsWith("public/")) {
+            throw new BusinessException(NOT_FOUND, "파일을 찾을 수 없습니다.");
+        }
         return objectStorage.toPublicUrl(fileAsset.getObjectKey());
     }
 
-    private String createObjectKey() {
+    public String privateContentUrl(long fileId) {
+        return "/api/v1/files/" + fileId + "/content";
+    }
+
+    private String createObjectKey(String prefix) {
         LocalDate date = LocalDate.now(ZoneOffset.UTC);
-        return "files/%d%02d%02d/%s".formatted(
-                date.getYear(), date.getMonthValue(), date.getDayOfMonth(), UUID.randomUUID()
+        return "%s/%d%02d%02d/%s".formatted(
+                prefix, date.getYear(), date.getMonthValue(), date.getDayOfMonth(), UUID.randomUUID()
         );
     }
 

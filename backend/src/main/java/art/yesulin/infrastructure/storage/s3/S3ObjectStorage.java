@@ -2,6 +2,7 @@ package art.yesulin.infrastructure.storage.s3;
 
 import art.yesulin.application.file.storage.ObjectStorage;
 import art.yesulin.application.file.storage.PresignedUpload;
+import art.yesulin.application.file.storage.StoredObjectContent;
 import art.yesulin.application.file.storage.StoredObjectMetadata;
 import java.util.Map;
 import java.util.Optional;
@@ -80,8 +81,25 @@ public class S3ObjectStorage implements ObjectStorage {
     }
 
     @Override
+    public Optional<StoredObjectContent> read(String objectKey) {
+        GetObjectRequest request = GetObjectRequest.builder()
+                .bucket(properties.bucket())
+                .key(toPhysicalKey(objectKey))
+                .build();
+        try {
+            var response = s3Client.getObjectAsBytes(request);
+            return Optional.of(new StoredObjectContent(response.response().contentType(), response.asByteArray()));
+        } catch (S3Exception exception) {
+            if (exception.statusCode() == 404) {
+                return Optional.empty();
+            }
+            throw exception;
+        }
+    }
+
+    @Override
     public String toPublicUrl(String objectKey) {
-        return properties.publicBaseUrl() + "/" + removeLeadingSlash(objectKey);
+        return properties.publicBaseUrl() + "/" + removePublicPrefix(objectKey);
     }
 
     private String toPhysicalKey(String objectKey) {
@@ -90,5 +108,9 @@ public class S3ObjectStorage implements ObjectStorage {
 
     private String removeLeadingSlash(String value) {
         return value.replaceFirst("^/+", "");
+    }
+
+    private String removePublicPrefix(String objectKey) {
+        return removeLeadingSlash(objectKey).replaceFirst("^public/", "");
     }
 }
