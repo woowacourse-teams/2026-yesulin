@@ -1,4 +1,4 @@
-import { request } from "./api-client";
+import { producerRequest as request } from "./api-client";
 import type {
   ScreeningBoardResource,
   ScreeningSubmissionDetailResource,
