@@ -33,7 +33,9 @@ const serverSessionEnabled =
   || frontendEnvironment.producerLoginEnabled
   || frontendEnvironment.socialLoginEnabled;
 
-function toFrontendSession(session: SessionResponse): FrontendAuthSession {
+/** 운영자 세션은 /admin 화면이 따로 다루므로 공개 서비스에서는 비로그인으로 둔다. */
+function toFrontendSession(session: SessionResponse): FrontendAuthSession | null {
+  if (session.role === "ADMIN") return null;
   return {
     credential: `member-${session.memberId}`,
     role: session.role,
@@ -60,7 +62,9 @@ export function AuthSessionProvider({ children }: { readonly children: React.Rea
     let active = true;
     void fetchCurrentSession()
       .then((currentSession) => {
-        if (active && currentSession) setSession(toFrontendSession(currentSession));
+        if (!active || !currentSession) return;
+        const frontendSession = toFrontendSession(currentSession);
+        if (frontendSession) setSession(frontendSession);
       })
       .catch(() => {
         // 서버 세션을 확인할 수 없으면 비로그인 상태를 유지한다.
