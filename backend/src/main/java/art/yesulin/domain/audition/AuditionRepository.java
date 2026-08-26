@@ -14,6 +14,8 @@ public interface AuditionRepository extends JpaRepository<Audition, Long>, Audit
 
     List<Audition> findAllByPerformanceIdAndOwnerIdOrderByCreatedAtDescIdDesc(long performanceId, long ownerId);
 
+    boolean existsByPerformanceId(long performanceId);
+
     Optional<Audition> findByPublicId(UUID publicId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

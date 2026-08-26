@@ -1,6 +1,6 @@
 # 백엔드 API
 
-이 문서는 현재 Controller 21개의 58개 REST Mapping만 다룬다. 구현되지 않은 목표 경로와 프론트 seed/MSW 경로는
+이 문서는 현재 Controller 21개의 59개 REST Mapping만 다룬다. 구현되지 않은 목표 경로와 프론트 seed/MSW 경로는
 포함하지 않는다. 공통 형식은 [API 공통 규칙](../../docs/api-conventions.md)을 따른다.
 
 ## 인증 표기
@@ -16,7 +16,7 @@
 | Admin | `ADMIN` 세션. 가입 경로가 없고 서버 설정으로만 만든 운영자 계정 |
 
 쓰기 요청은 공개 여부와 관계없이 CSRF header가 필요하다. OAuth 시작 `/oauth2/authorization/{provider}`와 callback
-`/login/oauth2/code/{provider}`는 Spring Security 경로이며 아래 REST 58개에 포함하지 않는다.
+`/login/oauth2/code/{provider}`는 Spring Security 경로이며 아래 REST 59개에 포함하지 않는다.
 
 ## Health와 인증 — 9개
 
@@ -53,7 +53,7 @@ PENDING 세션을 ACTIVE로 갱신하고 요청의 `redirectUri`로 302 redirect
 가입은 회사명 100자, email 320자, password 8~64자, 비밀번호 일치와 `termsAgreed=true`를 검증한다.
 프로필 PATCH는 전달한 필드만 바꾸며 회사명·담당자명은 빈 값으로 지울 수 없다.
 
-## 공연 — 8개
+## 공연 — 9개
 
 | Method | URL | 인증 | Request | Response |
 | --- | --- | --- | --- | --- |
@@ -63,11 +63,14 @@ PENDING 세션을 ACTIVE로 갱신하고 요청의 `redirectUri`로 302 redirect
 | PUT | `/api/v1/performances/{performanceId}` | Active Producer | `UpdatePerformanceRequest` | `200 PerformanceResponse` |
 | PATCH | `/api/v1/performances/{performanceId}/basic-information` | Active Producer | `UpdatePerformanceBasicInformationRequest` | `200 PerformanceResult` |
 | PATCH | `/api/v1/performances/{performanceId}/poster` | Active Producer | `UpdatePerformancePosterRequest` | `200 PerformanceResult` |
+| DELETE | `/api/v1/performances/{performanceId}` | Active Producer | 없음 | `204` |
 | POST | `/api/v1/performance-posters/upload-requests` | Active Producer | `PerformancePosterUploadRequest` | `201 FileUploadResult` |
 | PATCH | `/api/v1/performance-posters/{fileId}/completion` | Active Producer | 없음 | `204` |
 
 공연 제목은 200자, 장소명 200자, 도로명·상세주소 300자다. 위도·경도는 함께 전달하고 각각 -90~90,
 -180~180 범위다. 공연 배역 이름은 100자, 설명은 개행 없는 300자다. 포스터는 JPEG·PNG·WebP 최대 30MB다.
+전체 수정 PUT은 포스터·기본 정보와 배역 목록을 함께 교체한다. 연결된 공고가 하나라도 있으면 공연의 전체·부분
+수정과 삭제를 모두 `PERFORMANCE_HAS_AUDITIONS`로 거부한다.
 
 ## 공고 — 13개
 
@@ -172,7 +175,7 @@ submission ID와 변경할 status·memo·note 중 하나 이상을 요구한다.
 | --- | --- |
 | 인증 | `AUTH_UNAUTHENTICATED`, `AUTH_INVALID_CREDENTIALS`, `AUTH_FORBIDDEN`, `AUTH_INACTIVE_MEMBER`, `AUTH_INVALID_EMAIL_VERIFICATION`, `AUTH_EXPIRED_EMAIL_VERIFICATION`, `AUTH_INVALID_PASSWORD_RESET`, `AUTH_EXPIRED_PASSWORD_RESET` |
 | 기획사 | `PRODUCER_INVALID_*`, `PRODUCER_NOT_FOUND`, `PRODUCER_DUPLICATE_EMAIL` |
-| 공연 | `PERFORMANCE_ROLE_MODIFICATION_NOT_ALLOWED`, `PERFORMANCE_INVALID_*`, `PERFORMANCE_NOT_FOUND`, `PERFORMANCE_ROLE_NOT_FOUND` |
+| 공연 | `PERFORMANCE_HAS_AUDITIONS`, `PERFORMANCE_INVALID_*`, `PERFORMANCE_NOT_FOUND`, `PERFORMANCE_ROLE_NOT_FOUND` |
 | 공고 | `AUDITION_INVALID_*`, `AUDITION_*_NOT_FOUND`, `AUDITION_PUBLISHING_NOT_READY`, `AUDITION_INVALID_STATUS` |
 | 파일 | `FILE_UNSUPPORTED_CONTENT_TYPE`, `FILE_NOT_FOUND`, `FILE_UPLOAD_NOT_FOUND`, `FILE_METADATA_MISMATCH`, `FILE_NOT_READY` |
 | 프로필·보관함 | `PROFILE_INVALID`, `*_INVALID_*`, `*_NOT_FOUND`, `*_LIMIT_EXCEEDED`, 영상 중복 |

@@ -17,6 +17,11 @@ export function updateCatalogPerformance(id: PerformanceId, body: UpdatePerforma
     venue: body.venue?.trim() ?? current.venue,
     venueAddress: body.venueAddress ?? current.venueAddress,
     posterUrl: body.posterUrl ?? current.posterUrl,
+    roleTemplates: body.roles.map((role, roleIndex) => ({
+      id: current.roleTemplates[roleIndex]?.id ?? `${id}_template_${roleIndex + 1}`,
+      name: role.name.trim(),
+      description: role.description.trim(),
+    })),
   };
   CATALOG.splice(index, 1, updated);
   return updated;

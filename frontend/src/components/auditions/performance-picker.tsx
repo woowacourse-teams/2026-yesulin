@@ -22,11 +22,14 @@ import {
   PickerTitle,
 } from "./picker-card";
 import { PickerSkeleton, ScreenError } from "./screen-status";
-import { SecondaryButton } from "@/components/ui/controls";
+import { DestructiveButton, SecondaryButton } from "@/components/ui/controls";
 
 export function PerformancePicker() {
   const [createOpen, setCreateOpen] = useState(false);
-  const [manage, setManage] = useState<PerformanceSummary | null>(null);
+  const [manage, setManage] = useState<{
+    readonly performance: PerformanceSummary;
+    readonly mode: "EDIT" | "DELETE";
+  } | null>(null);
   const { data, error, loading, reload } = useAuditionQuery("performances", getPerformances, "공연을 불러오지 못했습니다.");
 
   return <>
@@ -37,7 +40,7 @@ export function PerformancePicker() {
       <PickerHeader title="공연 관리">{data.performances.length > 0 ? <CreatePageButton onClick={() => setCreateOpen(true)}>공연 추가</CreatePageButton> : null}</PickerHeader>
       <PickerGrid>
         {data.performances.length === 0 ? <PickerEmpty title="아직 등록된 공연이 없습니다" description="첫 공연과 배역을 등록한 뒤 모집 공고를 만들어 보세요." action={<CreatePageButton onClick={() => setCreateOpen(true)}>첫 공연 추가</CreatePageButton>} /> : null}
-        {data.performances.map((performance, index) => <PickerCard key={performance.id} href={auditionRoutes.performance(performance.id)} action={<SecondaryButton className="px-3 text-xs" onClick={() => setManage(performance)}>수정</SecondaryButton>}>
+        {data.performances.map((performance, index) => <PickerCard key={performance.id} href={auditionRoutes.performance(performance.id)} action={<div className="flex gap-2"><SecondaryButton className="px-3 text-xs" onClick={() => setManage({ performance, mode: "EDIT" })}>수정</SecondaryButton><DestructiveButton className="px-3 text-xs" onClick={() => setManage({ performance, mode: "DELETE" })}>삭제</DestructiveButton></div>}>
           <div className="flex items-start gap-4">
             <div className="relative aspect-[3/4] w-24 shrink-0 overflow-hidden rounded-lg bg-surface"><Image src={performance.posterUrl} alt={`${performance.title} 포스터`} fill unoptimized priority={index === 0} sizes="96px" className="object-cover" /></div>
             <div className="min-w-0 flex-1 pt-1"><PickerTitle>{performance.title}</PickerTitle><PickerDescription>{performance.venue}</PickerDescription><p className="mt-2 line-clamp-2 text-xs leading-5 text-muted">{performance.venueAddress.roadAddress}</p></div>
@@ -48,6 +51,6 @@ export function PerformancePicker() {
       </PickerGrid>
     </PickerScreen> : null}
     {createOpen ? <PerformanceCreateModal onClose={() => setCreateOpen(false)} onCreated={reload} /> : null}
-    {manage ? <PerformanceManageDialog performance={manage} mode="EDIT" onClose={() => setManage(null)} onChanged={reload} /> : null}
+    {manage ? <PerformanceManageDialog performance={manage.performance} mode={manage.mode} onClose={() => setManage(null)} onChanged={reload} /> : null}
   </>;
 }

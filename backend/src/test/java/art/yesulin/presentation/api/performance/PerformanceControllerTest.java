@@ -19,6 +19,9 @@ import art.yesulin.application.performance.CreatePerformanceCommand;
 import art.yesulin.application.performance.CreatePerformanceRoleCommand;
 import art.yesulin.application.performance.PerformanceResult;
 import art.yesulin.application.performance.PerformanceService;
+import art.yesulin.domain.audition.Audition;
+import art.yesulin.domain.audition.AuditionRepository;
+import art.yesulin.domain.audition.PerformancePeriod;
 import art.yesulin.domain.file.FileAssetRepository;
 import art.yesulin.domain.file.FileReferenceRepository;
 import art.yesulin.domain.member.MemberStatus;
@@ -26,7 +29,9 @@ import art.yesulin.domain.member.MemberType;
 import art.yesulin.domain.performance.PerformanceRepository;
 import art.yesulin.support.FakeObjectStorage;
 import art.yesulin.support.ObjectStorageTestConfiguration;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -69,10 +74,14 @@ class PerformanceControllerTest {
     private PerformanceRepository performanceRepository;
 
     @Autowired
+    private AuditionRepository auditionRepository;
+
+    @Autowired
     private FakeObjectStorage objectStorage;
 
     @BeforeEach
     void cleanUp() {
+        auditionRepository.deleteAll();
         performanceRepository.deleteAll();
         fileReferenceRepository.deleteAll();
         fileAssetRepository.deleteAll();
@@ -230,7 +239,11 @@ class PerformanceControllerTest {
                     "zonecode": "03172",
                     "latitude": 37.5721,
                     "longitude": 126.9766
-                  }
+                  },
+                  "roles": [
+                    {"name": "햄릿 왕자", "description": "복수심에 흔들리는 덴마크 왕자"},
+                    {"name": "클로디어스", "description": "덴마크의 왕"}
+                  ]
                 }
                 """.formatted(changedPosterFileId);
 
@@ -244,51 +257,65 @@ class PerformanceControllerTest {
                 .andExpect(jsonPath("$.title").value("햄릿 리뉴얼"))
                 .andExpect(jsonPath("$.venue").value("세종문화회관 대극장"))
                 .andExpect(jsonPath("$.venueAddress.detailAddress").value("대극장"))
-                .andExpect(jsonPath("$.roles.length()").value(1))
-                .andExpect(jsonPath("$.roles[0].id").value(created.roles().getFirst().id()))
-                .andExpect(jsonPath("$.roles[0].name").value("햄릿"));
+                .andExpect(jsonPath("$.roles.length()").value(2))
+                .andExpect(jsonPath("$.roles[0].name").value("햄릿 왕자"))
+                .andExpect(jsonPath("$.roles[0].description").value("복수심에 흔들리는 덴마크 왕자"))
+                .andExpect(jsonPath("$.roles[1].name").value("클로디어스"));
     }
 
     @Test
-    void doesNotExposePerformanceRoleAddition() throws Exception {
+    void rejectsWholePerformanceUpdateWhenAuditionExists() throws Exception {
         PerformanceResult created = createPerformance();
+        createAudition(created.id());
         String request = """
-                {"name": "클로디어스", "description": "새로 추가한 배역"}
-                """;
+                {
+                  "posterFileId": %d,
+                  "title": "변경할 수 없는 햄릿",
+                  "venue": "대학로예술극장 대극장",
+                  "venueAddress": {
+                    "roadAddress": "서울특별시 종로구 대학로 12",
+                    "detailAddress": "",
+                    "zonecode": "",
+                    "latitude": null,
+                    "longitude": null
+                  },
+                  "roles": [{"name": "햄릿", "description": "덴마크 왕자"}]
+                }
+                """.formatted(created.posterFileId());
 
-        mockMvc.perform(post("/api/v1/performances/{performanceId}/roles", created.id())
+        mockMvc.perform(put("/api/v1/performances/{performanceId}", created.id())
                         .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("PERFORMANCE_HAS_AUDITIONS"));
     }
 
     @Test
-    void doesNotExposePerformanceRoleUpdate() throws Exception {
+    void deletesPerformanceWithoutAuditions() throws Exception {
         PerformanceResult created = createPerformance();
-        long roleId = created.roles().getFirst().id();
-        String request = """
-                {"name": "햄릿 왕", "description": "수정된 기존 배역"}
-                """;
 
-        mockMvc.perform(patch("/api/v1/performances/{performanceId}/roles/{roleId}", created.id(), roleId)
-                        .with(csrf())
-                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(request))
-                .andExpect(status().isNotFound());
-    }
-
-    @Test
-    void doesNotExposePerformanceRoleRemoval() throws Exception {
-        PerformanceResult created = createPerformance();
-        long roleId = created.roles().getFirst().id();
-
-        mockMvc.perform(delete("/api/v1/performances/{performanceId}/roles/{roleId}", created.id(), roleId)
+        mockMvc.perform(delete("/api/v1/performances/{performanceId}", created.id())
                         .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/v1/performances/{performanceId}", created.id())
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void rejectsPerformanceDeletionWhenAuditionExists() throws Exception {
+        PerformanceResult created = createPerformance();
+        createAudition(created.id());
+
+        mockMvc.perform(delete("/api/v1/performances/{performanceId}", created.id())
+                        .with(csrf())
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("PERFORMANCE_HAS_AUDITIONS"));
     }
 
     private PerformanceResult createPerformance() {
@@ -318,5 +345,15 @@ class PerformanceControllerTest {
         objectStorage.upload(upload.uploadUrl(), "image/png", 1_024L);
         fileService.completeUpload(ownerId, upload.fileId());
         return upload.fileId();
+    }
+
+    private void createAudition(long performanceId) {
+        auditionRepository.saveAndFlush(new Audition(
+                UUID.randomUUID(),
+                performanceId,
+                OWNER_ID,
+                "햄릿 배우 모집",
+                new PerformancePeriod(LocalDate.of(2026, 11, 1), LocalDate.of(2026, 11, 30))
+        ));
     }
 }
