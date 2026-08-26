@@ -1,6 +1,6 @@
 # 백엔드 API
 
-이 문서는 현재 Controller 21개의 59개 REST Mapping만 다룬다. 구현되지 않은 목표 경로와 프론트 seed/MSW 경로는
+이 문서는 현재 Controller 21개의 60개 REST Mapping만 다룬다. 구현되지 않은 목표 경로와 프론트 seed/MSW 경로는
 포함하지 않는다. 공통 형식은 [API 공통 규칙](../../docs/api-conventions.md)을 따른다.
 
 ## 인증 표기
@@ -16,7 +16,7 @@
 | Admin | `ADMIN` 세션. 가입 경로가 없고 서버 설정으로만 만든 운영자 계정 |
 
 쓰기 요청은 공개 여부와 관계없이 CSRF header가 필요하다. OAuth 시작 `/oauth2/authorization/{provider}`와 callback
-`/login/oauth2/code/{provider}`는 Spring Security 경로이며 아래 REST 59개에 포함하지 않는다.
+`/login/oauth2/code/{provider}`는 Spring Security 경로이며 아래 REST 60개에 포함하지 않는다.
 
 ## Health와 인증 — 9개
 
