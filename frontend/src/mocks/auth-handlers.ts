@@ -1,9 +1,10 @@
 import { delay, http, HttpResponse, passthrough } from "msw";
 import { frontendEnvironment } from "@/config/environment";
 import type { ProducerSignupRequest } from "@/features/auth/api";
-import { registerActiveProducer } from "./auditions/producer-profile";
+import { registerPendingProducer } from "./auditions/producer-profile";
 
 const emails = new Set<string>();
+const pendingProducerEmails = new Set<string>();
 let mockSession: { memberId: number; role: "APPLICANT" | "PRODUCER"; status: "PENDING" | "ACTIVE" } | null = null;
 const realProducerLoginEnabled = frontendEnvironment.producerLoginEnabled;
 const realSocialLoginEnabled = frontendEnvironment.socialLoginEnabled;
@@ -18,7 +19,11 @@ export const authHandlers = [
     if (!/^\S+@\S+\.\S+$/.test(email) || !body.password) {
       return error("INVALID_REQUEST", "요청 값을 확인해 주세요.");
     }
-    mockSession = { memberId: 1, role: "PRODUCER", status: "ACTIVE" };
+    mockSession = {
+      memberId: 1,
+      role: "PRODUCER",
+      status: pendingProducerEmails.has(email) ? "PENDING" : "ACTIVE",
+    };
     return HttpResponse.json(mockSession);
   }),
 
@@ -36,6 +41,16 @@ export const authHandlers = [
     return new HttpResponse(null, { status: 204 });
   }),
 
+  http.post("/api/v1/auth/email-verifications", async () => {
+    if (realProducerLoginEnabled) return passthrough();
+    await delay(320);
+    if (!mockSession) return error("AUTH_UNAUTHENTICATED", "로그인이 필요합니다.", 401);
+    if (mockSession.role !== "PRODUCER" || mockSession.status !== "PENDING") {
+      return error("AUTH_INACTIVE_MEMBER", "이메일 인증 대기 계정만 재전송할 수 있습니다.", 403);
+    }
+    return new HttpResponse(null, { status: 204 });
+  }),
+
   http.post("/api/v1/producers", async ({ request }) => {
     if (realProducerLoginEnabled) return passthrough();
     await delay(320);
@@ -50,13 +65,14 @@ export const authHandlers = [
     if (!body.termsAgreed) return error("TERMS_REQUIRED", "필수 약관에 동의해 주세요.");
     if (emails.has(email)) return error("EMAIL_ALREADY_EXISTS", "이미 가입된 이메일입니다.", 409);
     emails.add(email);
-    registerActiveProducer({ companyName: body.companyName, email, phone });
+    pendingProducerEmails.add(email);
+    registerPendingProducer({ companyName: body.companyName, email, phone });
     return HttpResponse.json({
       memberId: 1,
       companyName: body.companyName.trim(),
       email,
       role: "PRODUCER",
-      verificationStatus: "ACTIVE",
+      verificationStatus: "PENDING",
     }, { status: 201 });
   }),
 ];

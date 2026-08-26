@@ -13,6 +13,21 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${GOOGLE_SMTP_USERNAME:}
+    password: ${GOOGLE_SMTP_APP_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
 
 server:
   servlet:
@@ -38,6 +53,13 @@ logging:
       total-size-cap: ${LOG_TOTAL_SIZE_CAP:1GB}
 
 yesulin:
+  mail:
+    enabled: ${MAIL_ENABLED:true}
+    from: ${GOOGLE_SMTP_FROM:}
+  email-verification:
+    expiration: ${EMAIL_VERIFICATION_EXPIRATION:PT5M}
+    url: ${EMAIL_VERIFICATION_URL:http://localhost:8080/api/v1/auth/email-verifications}
+    redirect-uri: ${EMAIL_VERIFICATION_REDIRECT_URI:http://localhost:3000/producers}
   storage:
     s3:
       region: ${AWS_REGION:ap-northeast-2}

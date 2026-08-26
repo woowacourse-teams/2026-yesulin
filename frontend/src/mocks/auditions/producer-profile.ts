@@ -9,7 +9,6 @@ let profile: ProducerProfileResource = {
   email: "",
   phone: "",
   verificationStatus: "ACTIVE",
-  verifiedAt: "2026-08-01T00:00:00.000Z",
 };
 
 export const producerProfile = (): ProducerProfileResource => structuredClone(profile);
@@ -44,7 +43,6 @@ function registerProducer(
     email: input.email.trim(),
     phone: input.phone,
     verificationStatus,
-    verifiedAt: verificationStatus === "ACTIVE" ? new Date().toISOString() : null,
   };
 }
 

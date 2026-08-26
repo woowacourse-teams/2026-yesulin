@@ -1,6 +1,6 @@
 # 백엔드 API
 
-이 문서는 현재 Controller 17개의 48개 REST Mapping만 다룬다. 구현되지 않은 목표 경로와 프론트 seed/MSW 경로는
+이 문서는 현재 Controller 18개의 50개 REST Mapping만 다룬다. 구현되지 않은 목표 경로와 프론트 seed/MSW 경로는
 포함하지 않는다. 공통 형식은 [API 공통 규칙](../../docs/api-conventions.md)을 따른다.
 
 ## 인증 표기
@@ -11,12 +11,13 @@
 | 세션 | `MemberPrincipal` 세션 필요, 역할 제한 없음 |
 | Applicant | `APPLICANT` 세션 |
 | Producer | `PRODUCER` 세션, PENDING·ACTIVE 모두 가능 |
+| Pending Producer | `PRODUCER + PENDING` 세션 |
 | Active Producer | `PRODUCER + ACTIVE` 세션 |
 
 쓰기 요청은 공개 여부와 관계없이 CSRF header가 필요하다. OAuth 시작 `/oauth2/authorization/{provider}`와 callback
-`/login/oauth2/code/{provider}`는 Spring Security 경로이며 아래 REST 48개에 포함하지 않는다.
+`/login/oauth2/code/{provider}`는 Spring Security 경로이며 아래 REST 50개에 포함하지 않는다.
 
-## Health와 Session — 4개
+## Health와 Session — 6개
 
 | Method | URL | 인증 | Request | Response |
 | --- | --- | --- | --- | --- |
@@ -24,8 +25,13 @@
 | POST | `/api/v1/sessions` | 공개 | `LoginRequest(email, password)` | `200 SessionResponse` |
 | GET | `/api/v1/sessions/current` | 세션 | 없음 | `200 SessionResponse` |
 | DELETE | `/api/v1/sessions/current` | 공개 | 없음 | `204` |
+| POST | `/api/v1/auth/email-verifications` | Pending Producer | 없음 | `204` |
+| GET | `/api/v1/auth/email-verifications` | 공개 | query `token`, `redirectUri` | `302 Location: redirectUri` |
 
 로그인은 email 형식과 password 존재를 검증한다. 로그아웃은 세션이 없어도 204를 반환한다.
+기획사/제작사 가입과 인증 메일 재전송은 5분 유효한 일회용 token을 발급한다. GET 인증은 성공 시 같은 브라우저의
+PENDING 세션을 ACTIVE로 갱신하고 요청의 `redirectUri`로 302 redirect한다. 서버 설정의
+`EMAIL_VERIFICATION_REDIRECT_URI`는 발송 메일 링크에 넣을 기본 Frontend 경로다.
 
 ## 기획사/제작사 — 4개
 
@@ -133,7 +139,7 @@ submission ID와 변경할 status·memo·note 중 하나 이상을 요구한다.
 
 | 영역 | 주요 코드 |
 | --- | --- |
-| 인증 | `AUTH_UNAUTHENTICATED`, `AUTH_INVALID_CREDENTIALS`, `AUTH_FORBIDDEN`, `AUTH_INACTIVE_MEMBER` |
+| 인증 | `AUTH_UNAUTHENTICATED`, `AUTH_INVALID_CREDENTIALS`, `AUTH_FORBIDDEN`, `AUTH_INACTIVE_MEMBER`, `AUTH_INVALID_EMAIL_VERIFICATION`, `AUTH_EXPIRED_EMAIL_VERIFICATION` |
 | 기획사 | `PRODUCER_INVALID_*`, `PRODUCER_NOT_FOUND`, `PRODUCER_DUPLICATE_EMAIL` |
 | 공연 | `PERFORMANCE_ROLE_MODIFICATION_NOT_ALLOWED`, `PERFORMANCE_INVALID_*`, `PERFORMANCE_NOT_FOUND`, `PERFORMANCE_ROLE_NOT_FOUND` |
 | 공고 | `AUDITION_INVALID_*`, `AUDITION_*_NOT_FOUND`, `AUDITION_PUBLISHING_NOT_READY`, `AUDITION_INVALID_STATUS` |

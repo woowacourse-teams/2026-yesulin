@@ -1,5 +1,7 @@
 flowchart TD
-    LOGIN["POST /api/v1/sessions"] --> PERFORMANCE["공연 관리"]
+    SIGNUP["POST /api/v1/producers<br>PENDING + 인증 메일 발송"] --> VERIFY["GET /api/v1/auth/email-verifications<br>302 redirect"]
+    VERIFY --> LOGIN["POST /api/v1/sessions"]
+    LOGIN --> PERFORMANCE["공연 관리"]
     PERFORMANCE --> AUDITION["공고 기본 정보·배역·일정·지원 폼 저장"]
     AUDITION --> PUBLISH["PUT /api/v1/auditions/{auditionId}/publication"]
     PUBLISH --> ROLE["공고 배역별 지원 현황"]
@@ -11,4 +13,3 @@ flowchart TD
     READY -- 아니오 --> BOARD
     READY -- 예 --> COMPLETE["PATCH /api/v1/audition-roles/{roleId}/screening/completion"]
     COMPLETE --> LOCKED["배역 전체 심사 종료·수정 잠금"]
-

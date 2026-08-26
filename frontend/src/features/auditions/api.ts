@@ -268,6 +268,5 @@ function toProducerProfile(resource: ProducerProfileResource): ProducerProfile {
     email: resource.email,
     phone: resource.phone,
     verificationStatus: resource.verificationStatus,
-    verifiedAt: resource.verifiedAt,
   };
 }
