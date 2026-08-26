@@ -5,26 +5,9 @@ import type { VenueAddress } from "@/features/auditions/creation-types";
 import { FieldInput, SecondaryButton } from "@/components/ui/controls";
 import { CreateField } from "./create-form";
 import { PERFORMANCE_ADDRESS_MAX_LENGTH, PERFORMANCE_VENUE_MAX_LENGTH } from "@/features/auditions/performance-validation";
+import { geocodeKakaoAddress, loadExternalScript, loadKakaoMapSdk } from "@/features/maps/kakao-map";
 
 const POSTCODE_SCRIPT = "https://t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js";
-
-function loadScript(id: string, src: string) {
-  return new Promise<void>((resolve, reject) => {
-    const existing = document.getElementById(id) as HTMLScriptElement | null;
-    if (existing) {
-      if (existing.dataset.loaded === "true") resolve();
-      else existing.addEventListener("load", () => resolve(), { once: true });
-      return;
-    }
-    const script = document.createElement("script");
-    script.id = id;
-    script.src = src;
-    script.async = true;
-    script.addEventListener("load", () => { script.dataset.loaded = "true"; resolve(); }, { once: true });
-    script.addEventListener("error", () => reject(new Error("script load failed")), { once: true });
-    document.head.appendChild(script);
-  });
-}
 
 export const emptyVenueAddress = (): VenueAddress => ({ roadAddress: "", detailAddress: "", zonecode: "", latitude: null, longitude: null });
 
@@ -52,51 +35,21 @@ export function PerformanceVenueField({ venue, address, onVenueChange, onAddress
   useEffect(() => {
     if (!mapKey || !address.roadAddress || !mapRef.current) return;
     let cancelled = false;
-    const src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(mapKey)}&autoload=false&libraries=services`;
-    loadScript("kakao-map-sdk", src)
-      .then(() => new Promise<void>((resolve, reject) => {
-        if (!window.kakao) {
-          reject(new Error("kakao maps unavailable"));
-          return;
+    loadKakaoMapSdk(mapKey)
+      .then(async () => {
+        if (cancelled || !mapRef.current || !window.kakao) return;
+        const coordinates = address.latitude !== null && address.longitude !== null
+          ? { latitude: address.latitude, longitude: address.longitude }
+          : await geocodeKakaoAddress(address.roadAddress);
+        if (cancelled || !mapRef.current || !window.kakao) return;
+        if (address.latitude === null || address.longitude === null) {
+          onAddressChangeRef.current({ ...latestAddressRef.current, ...coordinates });
         }
-        window.kakao.maps.load(() => {
-          if (cancelled || !mapRef.current || !window.kakao) {
-            resolve();
-            return;
-          }
-
-          const drawMap = (latitude: number, longitude: number) => {
-            if (cancelled || !mapRef.current || !window.kakao) return;
-            const center = new window.kakao.maps.LatLng(latitude, longitude);
-            const map = new window.kakao.maps.Map(mapRef.current, { center, level: 3 });
-            new window.kakao.maps.Marker({ map, position: center });
-            setMessage("");
-          };
-
-          if (address.latitude !== null && address.longitude !== null) {
-            drawMap(address.latitude, address.longitude);
-            resolve();
-            return;
-          }
-
-          const geocoder = new window.kakao.maps.services.Geocoder();
-          geocoder.addressSearch(address.roadAddress, (items, status) => {
-            if (cancelled) {
-              resolve();
-              return;
-            }
-            if (!window.kakao || status !== window.kakao.maps.services.Status.OK || !items[0]) {
-              reject(new Error("address geocoding failed"));
-              return;
-            }
-            const latitude = Number(items[0].y);
-            const longitude = Number(items[0].x);
-            onAddressChangeRef.current({ ...latestAddressRef.current, latitude, longitude });
-            drawMap(latitude, longitude);
-            resolve();
-          });
-        });
-      }))
+        const center = new window.kakao.maps.LatLng(coordinates.latitude, coordinates.longitude);
+        const map = new window.kakao.maps.Map(mapRef.current, { center, level: 3 });
+        new window.kakao.maps.Marker({ map, position: center });
+        setMessage("");
+      })
       .catch(() => {
         if (!cancelled) setMessage("지도를 불러오지 못했습니다. 주소는 그대로 저장할 수 있어요.");
       });
@@ -107,7 +60,7 @@ export function PerformanceVenueField({ venue, address, onVenueChange, onAddress
   const searchAddress = async () => {
     setMessage("");
     try {
-      if (!window.daum?.Postcode) await loadScript("kakao-postcode", POSTCODE_SCRIPT);
+      if (!window.daum?.Postcode) await loadExternalScript("kakao-postcode", POSTCODE_SCRIPT);
       if (!window.daum?.Postcode) throw new Error("postcode unavailable");
       new window.daum.Postcode({ oncomplete: (result) => {
         const roadAddress = result.roadAddress || result.address;

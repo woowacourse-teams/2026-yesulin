@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type {
+  AnchorHTMLAttributes,
   ButtonHTMLAttributes,
   InputHTMLAttributes,
   SelectHTMLAttributes,
@@ -7,10 +8,8 @@ import type {
 } from "react";
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement>;
-type ControlLinkProps = {
+type ControlLinkProps = Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "href"> & {
   href: string;
-  children: React.ReactNode;
-  className?: string;
 };
 
 const CONTROL_BASE =
