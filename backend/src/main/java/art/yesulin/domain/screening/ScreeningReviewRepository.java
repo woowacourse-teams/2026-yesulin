@@ -11,4 +11,8 @@ public interface ScreeningReviewRepository extends JpaRepository<ScreeningReview
             long auditionRoleId,
             Collection<UUID> submissionIds
     );
+
+    void deleteByAuditionRoleIdIn(Collection<Long> auditionRoleIds);
+
+    boolean existsByScreeningStageIdIn(Collection<Long> screeningStageIds);
 }

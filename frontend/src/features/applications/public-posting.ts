@@ -121,17 +121,6 @@ export function publicPostingDateTime(date: string) {
   return formatDateTime(date);
 }
 
-export function publicPostingRecommendations(excludeId: PostingId, limit = 3): readonly PublicPosting[] {
-  const statusOrder: Record<PublicPostingStatus, number> = { OPEN: 0, UPCOMING: 1, CLOSED: 2 };
-  return CATALOG.flatMap((performance) => performance.postings)
-    .filter((posting) => posting.id !== excludeId)
-    .map((posting) => publicPostingById(posting.id))
-    .filter((posting): posting is PublicPosting => posting !== null)
-    .sort((a, b) => statusOrder[a.status] - statusOrder[b.status]
-      || (a.status === "CLOSED" ? b.recruitmentEnd.localeCompare(a.recruitmentEnd) : a.recruitmentStart.localeCompare(b.recruitmentStart)))
-    .slice(0, limit);
-}
-
 /** 공고 상태별로 지원 판단에 가장 먼저 필요한 날짜와 안내를 정한다. */
 export function publicPostingAvailability(posting: Pick<PublicPosting, "status" | "recruitmentStart" | "recruitmentEnd">): PublicPostingAvailability {
   if (posting.status === "UPCOMING") return {

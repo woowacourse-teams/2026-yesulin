@@ -13,7 +13,7 @@ import type {
 import { saveV1ApplicationForm, toApplicationFields } from "./audition-v1-form";
 import { toKoreaInstant, toKoreaLocalDateTime } from "./audition-date-policy";
 import type { CreatePostingRequest } from "./creation-types";
-import type { PostingManagementDetail } from "./management-types";
+import type { PostingManagementDetail, UpdatePostingRequest } from "./management-types";
 import {
   performanceId,
   postingId,
@@ -77,6 +77,51 @@ export async function createV1Posting(body: CreatePostingRequest, auditionId: st
   return { ...response, createdPostingId: postingId(String(audition.id)) };
 }
 
+/**
+ * Backend는 공고 기본 정보와 일정을 따로 저장한다. 두 저장은 서로의 값을 검증하기 때문에
+ * 공연 기간을 앞당기면서 전형도 함께 당기는 수정은 일정을 먼저 저장해야 통과한다.
+ */
+export async function updateV1Posting(id: PostingId, body: UpdatePostingRequest): Promise<void> {
+  const saveBasicInformation = () => request<AuditionResource>(`/v1/auditions/${id}/basic-information`, {
+    method: "PUT",
+    body: JSON.stringify({
+      title: body.title,
+      performanceStartDate: body.performanceStart,
+      performanceEndDate: body.performanceEnd || null,
+    }),
+  });
+  const rounds = body.rounds;
+  if (!rounds) {
+    await saveBasicInformation();
+    return;
+  }
+  const saveSchedule = () => request<AuditionScheduleResource>(`/v1/auditions/${id}/schedule`, {
+    method: "PUT",
+    body: JSON.stringify({
+      recruitmentStartAt: toKoreaInstant(body.recruitmentStart ?? ""),
+      recruitmentEndAt: toKoreaInstant(body.recruitmentEnd ?? ""),
+      stages: rounds.map((round) => ({
+        stageId: round.stageId ?? null,
+        name: round.name,
+        date: round.date,
+        notice: round.note,
+      })),
+    }),
+  });
+  try {
+    await saveBasicInformation();
+    await saveSchedule();
+  } catch (cause) {
+    if (!(cause instanceof AuditionRequestError) || cause.code !== "AUDITION_INVALID_SCHEDULE") throw cause;
+    await saveSchedule();
+    await saveBasicInformation();
+  }
+}
+
+export function deleteV1Posting(id: PostingId) {
+  return request<void>(`/v1/auditions/${id}`, { method: "DELETE" });
+}
+
 export async function getV1PostingManagement(id: PostingId): Promise<PostingManagementDetail> {
   const detail = await loadDetail(id);
   const { audition, performance, roles, schedule, form } = detail;
@@ -110,6 +155,7 @@ export async function getV1PostingManagement(id: PostingId): Promise<PostingMana
       name: stage.name,
       date: stage.date,
       note: stage.notice,
+      stageId: stage.id,
     })),
     lockedRounds: audition.status === "CLOSED" ? (schedule?.stages ?? []).map((stage) => stage.order) : [],
     applicationFields,

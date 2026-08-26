@@ -68,7 +68,7 @@ export function PerformanceVenueField({ venue, address, onVenueChange, onAddress
         const base: VenueAddress = { roadAddress, detailAddress: address.detailAddress, zonecode: result.zonecode, latitude: null, longitude: null };
         onAddressChange(base);
         if (!mapKey) {
-          setMessage("도로명주소를 선택했습니다. 지도 좌표는 카카오 지도 키가 설정되면 함께 저장됩니다.");
+          setMessage("공연장 주소를 선택했습니다. 지도 좌표는 카카오 지도 키가 설정되면 함께 저장됩니다.");
         }
       } }).open();
     } catch {
@@ -79,7 +79,7 @@ export function PerformanceVenueField({ venue, address, onVenueChange, onAddress
   return (
     <div className="space-y-3">
       {!hideVenueName ? <CreateField label={venueLabel}><FieldInput required={!optional} maxLength={PERFORMANCE_VENUE_MAX_LENGTH} value={venue} onChange={(event) => onVenueChange(event.target.value)} placeholder={optional ? "예: 대학로 연습실 A" : "예: 대학로예술극장 대극장"} /></CreateField> : null}
-      <CreateField label="도로명주소">
+      <CreateField label="공연장 주소">
         <div className="flex gap-2"><FieldInput readOnly required={!optional} value={address.roadAddress} placeholder="주소 검색을 이용해 주세요." /><SecondaryButton onClick={searchAddress} className="shrink-0">주소 검색</SecondaryButton></div>
       </CreateField>
       <div className="grid gap-3 md:grid-cols-[120px_1fr]">

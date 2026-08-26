@@ -17,3 +17,16 @@ export function isValidKoreanPhone(value: string) {
 export function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
+
+/**
+ * 키·몸무게는 Backend가 정수로 보관한다. 소수점을 그대로 보내면 조용히 잘려
+ * 배우가 입력한 값과 기획사가 보는 값이 달라지므로 입력 단계에서 막는다.
+ */
+export function isIntegerMeasurement(value: string | number) {
+  const text = String(value).trim();
+  return text === "" || /^\d+$/.test(text);
+}
+
+export function integerMeasurementError(label: string) {
+  return `${label}은(는) 소수점 없이 정수로 입력해 주세요.`;
+}

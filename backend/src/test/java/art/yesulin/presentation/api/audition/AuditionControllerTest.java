@@ -1,6 +1,8 @@
 package art.yesulin.presentation.api.audition;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -228,6 +230,61 @@ class AuditionControllerTest {
                 .andExpect(jsonPath("$.posting.databaseId").doesNotExist())
                 .andExpect(jsonPath("$.roles.length()").value(2))
                 .andExpect(jsonPath("$.roles[0].applicantCount").value(0));
+    }
+
+    @Test
+    void deletesAuditionWithItsRoleSection() throws Exception {
+        PerformanceResult performance = createPerformance();
+        UUID auditionId = createAudition(performance.id());
+        saveRoleSection(auditionId, performance.roles().getFirst().id());
+
+        mockMvc.perform(delete("/api/v1/auditions/{auditionId}", auditionId)
+                        .with(csrf())
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/v1/auditions/{auditionId}", auditionId)
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("AUDITION_NOT_FOUND"));
+        assertThat(roleSectionRepository.findAll()).isEmpty();
+    }
+
+    @Test
+    void rejectsDeletingAuditionOfAnotherOwner() throws Exception {
+        PerformanceResult performance = createPerformance();
+        UUID auditionId = createAudition(performance.id());
+        MemberPrincipal otherProducer = new MemberPrincipal(OWNER_ID + 1, MemberType.PRODUCER, MemberStatus.ACTIVE);
+
+        mockMvc.perform(delete("/api/v1/auditions/{auditionId}", auditionId)
+                        .with(csrf())
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, otherProducer))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("AUDITION_NOT_FOUND"));
+        assertThat(auditionRepository.findByPublicId(auditionId)).isPresent();
+    }
+
+    private void saveRoleSection(UUID auditionId, long performanceRoleId) throws Exception {
+        String request = """
+                {
+                  "multipleRoleApplicationsAllowed": false,
+                  "roles": [
+                    {
+                      "performanceRoleId": %d,
+                      "recruitmentCount": 1,
+                      "gender": "ANY",
+                      "minimumAge": 18,
+                      "maximumAge": 40
+                    }
+                  ]
+                }
+                """.formatted(performanceRoleId);
+        mockMvc.perform(put("/api/v1/auditions/{auditionId}/roles", auditionId)
+                        .with(csrf())
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isOk());
     }
 
     private UUID createAudition(long performanceId) throws Exception {

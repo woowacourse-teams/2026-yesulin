@@ -27,13 +27,13 @@ export const MAX_VIDEO_REQUIREMENTS = 3;
 
 export const APPLICATION_FIELD_OPTIONS = [
   { key: "NAME", label: "이름", defaultRequired: true, section: "BASIC", inputType: "TEXT", order: 10, layout: "HALF", config: { placeholder: "이름을 입력해 주세요." } },
-  { key: "HEIGHT", label: "키", defaultRequired: true, section: "BASIC", inputType: "NUMBER", order: 20, layout: "HALF", config: { placeholder: "cm" } },
-  { key: "WEIGHT", label: "몸무게", defaultRequired: true, section: "BASIC", inputType: "NUMBER", order: 30, layout: "HALF", config: { placeholder: "kg" } },
+  { key: "HEIGHT", label: "키", defaultRequired: true, section: "BASIC", inputType: "NUMBER", order: 20, layout: "HALF", config: { placeholder: "예: 170", unit: "cm" } },
+  { key: "WEIGHT", label: "몸무게", defaultRequired: true, section: "BASIC", inputType: "NUMBER", order: 30, layout: "HALF", config: { placeholder: "예: 55", unit: "kg" } },
   { key: "BIRTH", label: "생년월일", defaultRequired: true, section: "BASIC", inputType: "DATE", order: 40, layout: "HALF", config: {} },
   { key: "GENDER", label: "성별", defaultRequired: true, section: "BASIC", inputType: "SELECT", order: 50, layout: "HALF", config: { options: ["여성", "남성"] } },
   { key: "PHONE", label: "연락처", defaultRequired: true, section: "BASIC", inputType: "TEL", order: 60, layout: "HALF", config: { placeholder: "010-0000-0000" } },
   { key: "EMAIL", label: "이메일", defaultRequired: true, section: "BASIC", inputType: "TEXT", order: 70, layout: "HALF", config: { placeholder: "name@example.com" } },
-  { key: "ADDRESS", label: "주소", defaultRequired: true, section: "BASIC", inputType: "TEXT", order: 80, layout: "FULL", config: { placeholder: "예: 서울특별시 마포구" } },
+  { key: "ADDRESS", label: "거주 지역", defaultRequired: true, section: "BASIC", inputType: "REGION", order: 80, layout: "FULL", config: {} },
   { key: "SCHOOL", label: "학력", defaultRequired: false, section: "ADDITIONAL", inputType: "TEXT", order: 10, layout: "FULL", config: { placeholder: "학교와 전공을 입력해 주세요." } },
   { key: "LINK", label: "SNS / 외부 링크", defaultRequired: false, section: "ADDITIONAL", inputType: "URL", order: 20, layout: "FULL", config: { placeholder: "https://", maxLength: 255 } },
   { key: "NATIONALITY", label: "국적", defaultRequired: false, section: "ADDITIONAL", inputType: "TEXT", order: 30, layout: "HALF", config: { placeholder: "예: 대한민국" } },
@@ -51,13 +51,15 @@ export type ApplicationFieldKey = (typeof APPLICATION_FIELD_OPTIONS)[number]["ke
 export const APPLICATION_FIELD_SECTIONS = ["BASIC", "ADDITIONAL", "CAREER", "MATERIALS", "INTRODUCTION", "CUSTOM"] as const;
 export type ApplicationFieldSection = (typeof APPLICATION_FIELD_SECTIONS)[number];
 
-export const APPLICATION_INPUT_TYPES = ["TEXT", "TEL", "DATE", "SELECT", "NUMBER", "TEXTAREA", "URL", "FILE", "COMPOSITE"] as const;
+export const APPLICATION_INPUT_TYPES = ["TEXT", "TEL", "DATE", "SELECT", "NUMBER", "TEXTAREA", "URL", "FILE", "COMPOSITE", "REGION"] as const;
 export type ApplicationInputType = (typeof APPLICATION_INPUT_TYPES)[number];
 
 export type ApplicationFieldLayout = "FULL" | "HALF";
 
 export type ApplicationFieldConfig = {
   readonly placeholder?: string;
+  /** 입력값 뒤에 붙여 보여 줄 단위. 값을 입력해도 사라지지 않는다. */
+  readonly unit?: string;
   readonly options?: readonly string[];
   readonly minLength?: number;
   readonly maxLength?: number;
@@ -135,6 +137,8 @@ export type AuditionRoundInput = {
   readonly name: string;
   readonly date: string;
   readonly note: string;
+  /** 이미 저장된 전형의 Backend 식별자. 새로 추가한 전형에는 없다. */
+  readonly stageId?: number;
 };
 
 export type CreatePostingRequest = {

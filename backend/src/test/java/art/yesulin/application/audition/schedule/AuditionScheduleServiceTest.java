@@ -8,6 +8,7 @@ import art.yesulin.application.file.FileService;
 import art.yesulin.application.file.FileUploadCommand;
 import art.yesulin.application.file.FileUploadResult;
 import art.yesulin.application.performance.CreatePerformanceCommand;
+import art.yesulin.application.performance.CreatePerformanceRoleCommand;
 import art.yesulin.application.performance.PerformanceResult;
 import art.yesulin.application.performance.PerformanceService;
 import art.yesulin.common.exception.BusinessException;
@@ -15,10 +16,18 @@ import art.yesulin.domain.audition.Audition;
 import art.yesulin.domain.audition.AuditionErrorCode;
 import art.yesulin.domain.audition.AuditionRepository;
 import art.yesulin.domain.audition.PerformancePeriod;
+import art.yesulin.domain.audition.role.AuditionRoleCondition;
+import art.yesulin.domain.audition.role.AuditionRoleSection;
+import art.yesulin.domain.audition.role.AuditionRoleSectionRepository;
+import art.yesulin.domain.audition.role.AuditionRoleSelection;
+import art.yesulin.domain.audition.role.AuditionRoleSelections;
+import art.yesulin.domain.audition.role.RoleGender;
 import art.yesulin.domain.audition.schedule.AuditionScheduleRepository;
 import art.yesulin.domain.file.FileAssetRepository;
 import art.yesulin.domain.file.FileReferenceRepository;
 import art.yesulin.domain.performance.PerformanceRepository;
+import art.yesulin.domain.screening.ScreeningReview;
+import art.yesulin.domain.screening.ScreeningReviewRepository;
 import art.yesulin.support.FakeObjectStorage;
 import art.yesulin.support.ObjectStorageTestConfiguration;
 import java.time.Instant;
@@ -71,10 +80,20 @@ class AuditionScheduleServiceTest {
     private FileAssetRepository fileAssetRepository;
 
     @Autowired
+    private ScreeningReviewRepository screeningReviewRepository;
+
+    @Autowired
+    private AuditionRoleSectionRepository roleSectionRepository;
+
+    @Autowired
     private FakeObjectStorage objectStorage;
+
+    private long performanceRoleId;
 
     @BeforeEach
     void cleanUp() {
+        screeningReviewRepository.deleteAll();
+        roleSectionRepository.deleteAll();
         scheduleRepository.deleteAll();
         auditionRepository.deleteAll();
         performanceRepository.deleteAll();
@@ -150,6 +169,30 @@ class AuditionScheduleServiceTest {
     }
 
     @Test
+    void rejectsRemovingStageThatAlreadyHasReviews() {
+        Audition audition = saveAudition();
+        AuditionScheduleResult saved = scheduleService.save(OWNER_ID, audition.getPublicId(), createCommand());
+        long keptStageId = saved.stages().get(0).id();
+        long reviewedStageId = saved.stages().get(1).id();
+        screeningReviewRepository.saveAndFlush(
+                new ScreeningReview(UUID.randomUUID(), saveAuditionRole(audition), reviewedStageId)
+        );
+        SaveAuditionScheduleCommand removeCommand = new SaveAuditionScheduleCommand(
+                saved.recruitmentStartAt(),
+                saved.recruitmentEndAt(),
+                List.of(new SaveScreeningStageCommand(keptStageId, "1차 서류", LocalDate.of(2026, 9, 12), null))
+        );
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> scheduleService.save(OWNER_ID, audition.getPublicId(), removeCommand)
+        );
+
+        assertEquals(AuditionErrorCode.INVALID_SCHEDULE, exception.getErrorCode());
+        assertEquals(2, scheduleService.find(OWNER_ID, audition.getPublicId()).stages().size());
+    }
+
+    @Test
     void serializesConcurrentInitialScheduleSaves() throws Exception {
         Audition audition = saveAudition();
         CountDownLatch start = new CountDownLatch(1);
@@ -185,15 +228,28 @@ class AuditionScheduleServiceTest {
         PerformanceResult performance = performanceService.create(
                 OWNER_ID,
                 new CreatePerformanceCommand(
-                        uploadReadyImage(), "햄릿", "서울특별시 종로구 대학로 12", List.of()
+                        uploadReadyImage(), "햄릿", "서울특별시 종로구 대학로 12",
+                        List.of(new CreatePerformanceRoleCommand("햄릿", "덴마크의 왕자"))
                 )
         );
+        performanceRoleId = performance.roles().getFirst().id();
         return auditionRepository.save(new Audition(
                 performance.id(),
                 OWNER_ID,
                 "햄릿 오디션",
                 new PerformancePeriod(LocalDate.of(2026, 10, 1), null)
         ));
+    }
+
+    private long saveAuditionRole(Audition audition) {
+        AuditionRoleSection roleSection = roleSectionRepository.saveAndFlush(new AuditionRoleSection(
+                audition.getId(),
+                new AuditionRoleSelections(false, List.of(new AuditionRoleSelection(
+                        performanceRoleId,
+                        new AuditionRoleCondition(1, RoleGender.ANY, 0, 100)
+                )))
+        ));
+        return roleSection.getRoles().getFirst().getId();
     }
 
     private long uploadReadyImage() {

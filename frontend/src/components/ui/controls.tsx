@@ -88,6 +88,15 @@ export function FieldSelect({ className = "", ...props }: SelectHTMLAttributes<H
   return <select className={`${fieldControlClass} ${className}`} {...props} />;
 }
 
+/** 값을 입력해도 남아 있어야 하는 단위 표시. `relative` 컨테이너 안에서 입력칸 위에 겹친다. */
+export function UnitSuffix({ unit }: { readonly unit: string }) {
+  return (
+    <span aria-hidden="true" className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted">
+      {unit}
+    </span>
+  );
+}
+
 export function FieldTextarea({ className = "", ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return <textarea className={`${fieldControlClass} ${className}`} {...props} />;
 }

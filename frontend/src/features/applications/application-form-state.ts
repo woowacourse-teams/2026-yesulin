@@ -1,4 +1,6 @@
 import type { ApplicationFormStep } from "./application-form";
+import { isCompleteKoreaRegion } from "@/features/applicants/korea-regions";
+import { integerMeasurementError, isIntegerMeasurement } from "@/features/applicants/profile-input";
 
 export const MAX_PHOTO_COUNT = 3;
 export const MAX_PHOTO_SIZE_BYTES = 10 * 1024 * 1024;
@@ -16,6 +18,8 @@ export type ApplicationPhoto = {
   /** 지원서 안에서 공고가 요청한 사진 슬롯의 순서. 기존 Draft는 배열 순서를 사용한다. */
   readonly slotIndex?: number;
   readonly blob?: Blob;
+  /** 사진 보관함에서 고른 사진이 이미 올라가 있는 파일. 있으면 다시 업로드하지 않는다. */
+  readonly libraryFileId?: number;
   readonly error?: string;
 };
 
@@ -165,7 +169,12 @@ function applicationFieldError(field: ApplicationFormStep["fields"][number], val
   }
 
   const value = values[field.id]?.trim() ?? "";
+  if (field.inputType === "REGION") {
+    if (!field.required && !value) return null;
+    return isCompleteKoreaRegion(value) ? null : `${field.label}을(를) 시·도와 시·군·구까지 선택해 주세요.`;
+  }
   if (field.required && !value) return `${field.label} 항목을 입력해 주세요.`;
+  if (value && field.inputType === "NUMBER" && !isIntegerMeasurement(value)) return integerMeasurementError(field.label);
   if (value && field.inputType === "SELECT" && field.config.options?.length && !field.config.options.includes(value)) return `${field.label} 선택값을 다시 확인해 주세요.`;
   if (value && field.config.minLength && value.length < field.config.minLength) return `${field.label}은(는) ${field.config.minLength}자 이상 입력해 주세요.`;
   if (value && field.config.maxLength && value.length > field.config.maxLength) return `${field.label}은(는) ${field.config.maxLength}자 이하로 입력해 주세요.`;

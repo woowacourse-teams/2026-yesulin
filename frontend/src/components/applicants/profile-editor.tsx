@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { updateApplicantProfile } from "@/features/applicants/api";
 import { notifyApplicantProfileChanged } from "@/features/applicants/events";
-import { isValidEmail, isValidKoreanPhone } from "@/features/applicants/profile-input";
+import { integerMeasurementError, isIntegerMeasurement, isValidEmail, isValidKoreanPhone } from "@/features/applicants/profile-input";
 import type { ApplicantProfileValues } from "@/features/applicants/profile-contract";
 import type { ApplicantAnswerValue, ApplicantProfileResponse } from "@/features/applicants/types";
 import { APPLICATION_FIELD_OPTIONS } from "@/features/auditions/creation-types";
@@ -20,6 +20,8 @@ type DraftValues = Record<string, ApplicantAnswerValue>;
 const BASIC_KEYS = ["NAME", "HEIGHT", "WEIGHT", "BIRTH", "GENDER", "PHONE", "EMAIL", "ADDRESS"] as const;
 const ADDITIONAL_KEYS = ["SCHOOL", "LINK", "NATIONALITY", "MILITARY", "SPECIALTY", "HOBBIES", "COVER_LETTER", "CAREER"] as const;
 const INFORMATION_KEYS = new Set<string>([...BASIC_KEYS, ...ADDITIONAL_KEYS]);
+const MEASUREMENT_KEYS = ["HEIGHT", "WEIGHT"] as const;
+const MEASUREMENT_LABELS: Record<(typeof MEASUREMENT_KEYS)[number], string> = { HEIGHT: "키", WEIGHT: "몸무게" };
 const tabs: readonly { id: ProfileTab; label: string; description: string }[] = [
   { id: "BASIC", label: "기본정보", description: "공통 프로필 정보" },
   { id: "ADDITIONAL", label: "추가정보", description: "선택해서 저장하는 정보" },
@@ -49,6 +51,11 @@ export function ProfileEditor({ profile, onSaved }: { readonly profile: Applican
     if (!changeCount) return;
     if (typeof values.PHONE === "string" && values.PHONE.trim() && !isValidKoreanPhone(values.PHONE)) { setActiveTab("BASIC"); setError("연락처를 확인해 주세요. 예: 010-1234-5678"); return; }
     if (typeof values.EMAIL === "string" && values.EMAIL.trim() && !isValidEmail(values.EMAIL)) { setActiveTab("BASIC"); setError("이메일 주소 형식을 확인해 주세요. 예: actor@example.com"); return; }
+    const decimalMeasurement = MEASUREMENT_KEYS.find((key) => {
+      const value = values[key];
+      return (typeof value === "number" || typeof value === "string") && !isIntegerMeasurement(value);
+    });
+    if (decimalMeasurement) { setActiveTab("BASIC"); setError(integerMeasurementError(MEASUREMENT_LABELS[decimalMeasurement])); return; }
     setSaving(true);
     setError("");
     try {

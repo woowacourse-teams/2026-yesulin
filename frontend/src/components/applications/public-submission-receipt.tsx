@@ -1,10 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { publicPostingAvailability, publicPostingRecommendations } from "@/features/applications/public-posting";
-import type { PublicPosting } from "@/features/applications/public-posting";
 import { usePublicApplication } from "./public-application-context";
-import { PostingStatusBadge } from "./public-posting-status";
 import { formatApplicantDate } from "@/features/applicants/presentation";
 import { applicantRoutes } from "@/features/applicants/routes";
 import { PrimaryLink, TextButton } from "@/components/ui/controls";
@@ -12,7 +8,6 @@ import { PrimaryLink, TextButton } from "@/components/ui/controls";
 export function PublicSubmissionReceipt() {
   const { state, actions, meta } = usePublicApplication();
   const receipt = state.receipt!;
-  const recommendations = publicPostingRecommendations(meta.postingId);
 
   return <main className="min-h-screen bg-surface px-5 py-10 text-foreground md:px-8 md:py-14">
     <div className="mx-auto max-w-[880px]">
@@ -32,17 +27,8 @@ export function PublicSubmissionReceipt() {
           </dl>
           <PrimaryLink href={applicantRoutes.submission(receipt.submissionId)} className="mt-5 w-full">내 지원서에서 확인</PrimaryLink>
         </section>
-      </section>
-
-      <section aria-labelledby="recommended-postings-title" className="mt-10">
-        <div className="flex items-end gap-4"><div><p className="text-sm font-semibold text-brand">다음 기회 찾기</p><h2 id="recommended-postings-title" className="mt-1 text-xl font-bold tracking-[-0.02em]">다른 공고도 둘러보세요</h2></div><TextButton onClick={actions.requestBack} className="ml-auto px-3 hover:bg-card hover:text-brand">공고로 돌아가기</TextButton></div>
-        <ul className="mt-5 grid gap-3 md:grid-cols-3">{recommendations.map((posting) => <RecommendedPosting key={posting.id} posting={posting} />)}</ul>
+        <TextButton onClick={actions.requestBack} className="mt-5 px-3 hover:bg-surface hover:text-brand">공고로 돌아가기</TextButton>
       </section>
     </div>
   </main>;
-}
-
-function RecommendedPosting({ posting }: { posting: PublicPosting }) {
-  const availability = publicPostingAvailability(posting);
-  return <li><Link href={`/apply/${posting.id}`} className="group flex h-full min-h-40 flex-col rounded-card border border-border bg-card p-5 transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:border-brand-line hover:shadow-[var(--shadow-1)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"><div className="flex items-center gap-2"><PostingStatusBadge status={posting.status} /><span className="truncate text-xs font-medium text-muted">{posting.companyName}</span></div><strong className="mt-4 line-clamp-2 text-base leading-6 group-hover:text-brand">{posting.performanceTitle}</strong><span className="mt-1 line-clamp-1 text-sm text-muted-strong">{posting.title}</span><span className="num mt-auto pt-4 text-xs font-medium text-muted">{availability.label} · {availability.detail}</span></Link></li>;
 }

@@ -9,6 +9,7 @@ export type PublicApplicationDraftPhoto = {
   readonly name: string;
   readonly slotIndex?: number;
   readonly blob?: Blob;
+  readonly libraryFileId?: number;
   readonly sourceUrl?: string;
 };
 
@@ -57,6 +58,7 @@ export async function savePublicApplicationDraft(input: PublicApplicationDraftIn
       name: photo.name,
       ...(photo.slotIndex === undefined ? {} : { slotIndex: photo.slotIndex }),
       ...(photo.blob ? { blob: photo.blob } : {}),
+      ...(photo.libraryFileId === undefined ? {} : { libraryFileId: photo.libraryFileId }),
       ...(!photo.blob && photo.url ? { sourceUrl: photo.url } : {}),
     })),
   };

@@ -22,8 +22,8 @@ export function validatePerformanceInput(input: {
   if (input.title.length > PERFORMANCE_TITLE_MAX_LENGTH) return `공연 제목은 ${PERFORMANCE_TITLE_MAX_LENGTH}자 이내로 입력해 주세요.`;
   if (!input.venue.trim()) return "공연 장소명을 입력해 주세요.";
   if (input.venue.length > PERFORMANCE_VENUE_MAX_LENGTH) return `공연 장소명은 ${PERFORMANCE_VENUE_MAX_LENGTH}자 이내로 입력해 주세요.`;
-  if (!input.venueAddress.roadAddress.trim()) return "도로명주소 검색으로 공연 장소를 선택해 주세요.";
-  if (input.venueAddress.roadAddress.length > PERFORMANCE_ADDRESS_MAX_LENGTH) return `도로명주소는 ${PERFORMANCE_ADDRESS_MAX_LENGTH}자 이내여야 합니다.`;
+  if (!input.venueAddress.roadAddress.trim()) return "주소 검색으로 공연장 주소를 선택해 주세요.";
+  if (input.venueAddress.roadAddress.length > PERFORMANCE_ADDRESS_MAX_LENGTH) return `공연장 주소는 ${PERFORMANCE_ADDRESS_MAX_LENGTH}자 이내여야 합니다.`;
   if (input.venueAddress.detailAddress.length > PERFORMANCE_ADDRESS_MAX_LENGTH) return `상세 주소는 ${PERFORMANCE_ADDRESS_MAX_LENGTH}자 이내여야 합니다.`;
   if (input.venueAddress.zonecode.length > PERFORMANCE_ZONECODE_MAX_LENGTH) return `우편번호는 ${PERFORMANCE_ZONECODE_MAX_LENGTH}자 이내여야 합니다.`;
 

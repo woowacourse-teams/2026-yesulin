@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import type { AuditionRoundInput, PerformanceRoleTemplate, PostingRoleInput } from "@/features/auditions/creation-types";
 import { ROLE_GENDER_LABELS } from "@/features/auditions/labels";
 import type { RoleGender } from "@/features/auditions/types";
@@ -6,6 +9,35 @@ import { FieldInput, FieldSelect } from "@/components/ui/controls";
 import { CalendarDateRangeField } from "./calendar-date-range-field";
 
 export type SelectedPostingRoles = Readonly<Record<string, PostingRoleInput>>;
+
+/**
+ * 입력 중에는 빈 문자열을 그대로 두어 앞자리 0을 지울 수 있게 한다.
+ * 숫자로 읽히는 동안만 값을 올려보내고, 포커스를 잃으면 마지막 유효 값으로 되돌린다.
+ */
+function NumberField({ label, value, min, max, onChange }: {
+  readonly label: string;
+  readonly value: number;
+  readonly min: number;
+  readonly max?: number;
+  readonly onChange: (value: number) => void;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+  return <CreateField label={label}>
+    <FieldInput
+      type="number"
+      inputMode="numeric"
+      min={min}
+      max={max}
+      value={draft ?? String(value)}
+      onChange={(event) => {
+        const next = event.target.value;
+        setDraft(next);
+        if (next.trim() !== "" && Number.isFinite(Number(next))) onChange(Number(next));
+      }}
+      onBlur={() => setDraft(null)}
+    />
+  </CreateField>;
+}
 
 export function PostingRoleSelector({ roles, selected, onChange }: {
   readonly roles: readonly PerformanceRoleTemplate[];
@@ -27,9 +59,9 @@ export function PostingRoleSelector({ roles, selected, onChange }: {
           <span><strong className="block text-base">{role.name}</strong><span className="mt-1 block text-sm text-muted">{role.description}</span></span>
         </label>
         {value ? <div className="mt-4 grid gap-3 border-t border-brand-line/30 pt-4 sm:grid-cols-3">
-          <CreateField label="모집 인원"><FieldInput type="number" min={1} value={value.quota} onChange={(event) => patch(role.id, { quota: Number(event.target.value) })} /></CreateField>
+          <NumberField label="모집 인원" min={1} value={value.quota} onChange={(quota) => patch(role.id, { quota })} />
           <CreateField label="성별 조건"><FieldSelect value={value.gender} onChange={(event) => patch(role.id, { gender: event.target.value as RoleGender })}>{(["ANY", "FEMALE", "MALE"] as const).map((gender) => <option key={gender} value={gender}>{ROLE_GENDER_LABELS[gender]}</option>)}</FieldSelect></CreateField>
-          <div className="grid grid-cols-2 gap-2"><CreateField label="최소 나이"><FieldInput type="number" min={0} value={value.ageMin} onChange={(event) => patch(role.id, { ageMin: Number(event.target.value) })} /></CreateField><CreateField label="최대 나이"><FieldInput type="number" min={value.ageMin} value={value.ageMax} onChange={(event) => patch(role.id, { ageMax: Number(event.target.value) })} /></CreateField></div>
+          <div className="grid grid-cols-2 gap-2"><NumberField label="최소 나이" min={0} value={value.ageMin} onChange={(ageMin) => patch(role.id, { ageMin })} /><NumberField label="최대 나이" min={value.ageMin} value={value.ageMax} onChange={(ageMax) => patch(role.id, { ageMax })} /></div>
         </div> : null}
       </div>;
     })}

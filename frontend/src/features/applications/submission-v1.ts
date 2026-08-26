@@ -141,7 +141,7 @@ async function photoRequirementAnswers(fields: readonly ApplicationFieldInput[],
   );
   const readyPhotos = orderedApplicationPhotos(photos).filter((photo) => photo.status === "READY");
   if (requirementIds.length !== readyPhotos.length) throw new Error("사진 요구사항에 맞는 사진을 다시 선택해 주세요.");
-  const fileIds = await Promise.all(readyPhotos.map(uploadActorPhoto));
+  const fileIds = await Promise.all(readyPhotos.map(actorPhotoFileId));
   return fileIds.map((fileId, index) => ({ photoRequirementId: requirementIds[index]!, fileId }));
 }
 
@@ -154,8 +154,10 @@ function videoRequirementAnswers(fields: readonly ApplicationFieldInput[], value
   }));
 }
 
-async function uploadActorPhoto(photo: ApplicationPhoto) {
-  if (!photo.blob) throw new Error("보관함 사진 연동은 준비 중입니다. 새 사진을 선택해 제출해 주세요.");
+/** 보관함에서 고른 사진은 이미 올라간 파일을 그대로 쓰고, 새로 고른 사진만 업로드한다. */
+async function actorPhotoFileId(photo: ApplicationPhoto) {
+  if (photo.libraryFileId) return photo.libraryFileId;
+  if (!photo.blob) throw new Error("사진을 다시 선택해 주세요. 보관함 사진은 프로필에서 다시 불러올 수 있어요.");
   const upload = await request<FileUploadResource>("/v1/actor-photos/upload-requests", {
     method: "POST",
     body: JSON.stringify({ originalFilename: photo.name, contentType: photo.blob.type, size: photo.blob.size }),

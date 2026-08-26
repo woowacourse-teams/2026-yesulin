@@ -88,6 +88,7 @@ export function applicationFieldDetail(field: ApplicationFieldInput) {
       : "YouTube 링크로 입력해 주세요. 영상 파일은 받지 않아요.";
   }
   if (field.inputType === "COMPOSITE") return field.config.fields?.map((part) => part.label).join(" · ") ?? "세부 정보를 입력해 주세요.";
+  if (field.inputType === "REGION") return "시·도와 시·군·구까지만 선택합니다. 상세 주소는 받지 않아요.";
   if (field.inputType === "SELECT") return field.config.options?.join(" · ") ?? "선택해 주세요.";
 
   const length = [
