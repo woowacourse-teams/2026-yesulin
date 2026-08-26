@@ -1,4 +1,5 @@
 import { withCsrfHeaders } from "../csrf";
+import { readErrorCode, readErrorDetail, readErrorMessage, type ApiErrorDetail } from "../api-error";
 
 const API_BASE_PATH = "/api";
 const WRITE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
@@ -7,14 +8,13 @@ const WRITE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 export class AuditionRequestError extends Error {
   readonly status: number;
   readonly code: string | null;
-  /** 항목별 오류. 어느 입력이 왜 거부됐는지 화면이 짚어 줄 때 사용한다. */
-  readonly detail: Readonly<Record<string, string>>;
+  readonly detail: ApiErrorDetail;
 
   constructor(
     message: string,
     status: number,
     code: string | null = null,
-    detail: Readonly<Record<string, string>> = {},
+    detail: ApiErrorDetail = {},
   ) {
     super(message);
     this.name = "AuditionRequestError";
@@ -22,16 +22,6 @@ export class AuditionRequestError extends Error {
     this.code = code;
     this.detail = detail;
   }
-}
-
-function errorDetail(body: unknown): Readonly<Record<string, string>> {
-  if (typeof body !== "object" || body === null || !("detail" in body)) return {};
-  const detail = (body as { detail: unknown }).detail;
-  if (typeof detail !== "object" || detail === null) return {};
-  return Object.fromEntries(
-    Object.entries(detail as Record<string, unknown>)
-      .filter((entry): entry is [string, string] => typeof entry[1] === "string" && entry[1].trim().length > 0),
-  );
 }
 
 export async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -46,18 +36,8 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const body: unknown = await response.json().catch(() => null);
-    const message =
-      typeof body === "object" && body !== null && "message" in body && typeof body.message === "string"
-        ? body.message
-        : "요청을 처리하지 못했습니다.";
-    const code = typeof body === "object" && body !== null && "code" in body && typeof body.code === "string"
-      ? body.code
-      : null;
-    const detail = errorDetail(body);
-    // 서버가 대표 메시지를 주지 못했을 때만 항목별 메시지로 대신 설명한다.
-    const messages = Object.values(detail);
-    const fallback = messages.length ? messages.join(" ") : message;
-    throw new AuditionRequestError(message === "요청 값을 확인해 주세요." ? fallback : message, response.status, code, detail);
+    const detail = readErrorDetail(body);
+    throw new AuditionRequestError(readErrorMessage(body, detail), response.status, readErrorCode(body), detail);
   }
 
   if (response.status === 204) return undefined as T;
