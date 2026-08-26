@@ -96,4 +96,68 @@ class AuditionFormControllerTest {
                 .andExpect(jsonPath("$.additionalFields[1]").value("CAREER"))
                 .andExpect(jsonPath("$.additionalQuestions[0].required").value(true));
     }
+
+    @Test
+    void rejectsPhotoRequirementsWhenTotalCountExceedsThree() throws Exception {
+        Audition audition = auditionRepository.save(new Audition(
+                1L,
+                OWNER_ID,
+                "햄릿 오디션",
+                new PerformancePeriod(LocalDate.of(2026, 10, 1), null)
+        ));
+        String request = """
+                {
+                  "basicFields": [],
+                  "additionalFields": [],
+                  "photoRequirements": [
+                    {"description": "정면 사진", "count": 2},
+                    {"description": "전신 사진", "count": 2}
+                  ],
+                  "videoRequirements": [],
+                  "additionalQuestions": []
+                }
+                """;
+
+        mockMvc.perform(put("/api/v1/auditions/{auditionId}/application-form", audition.getPublicId())
+                        .with(csrf())
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("AUDITION_INVALID_FORM"))
+                .andExpect(jsonPath("$.message").value("프로필 사진은 모두 합해 최대 3장까지 요청할 수 있습니다."));
+    }
+
+    @Test
+    void rejectsMoreThanThreeVideoRequirements() throws Exception {
+        Audition audition = auditionRepository.save(new Audition(
+                1L,
+                OWNER_ID,
+                "햄릿 오디션",
+                new PerformancePeriod(LocalDate.of(2026, 10, 1), null)
+        ));
+        String request = """
+                {
+                  "basicFields": [],
+                  "additionalFields": [],
+                  "photoRequirements": [],
+                  "videoRequirements": [
+                    {"description": "자유 연기 영상"},
+                    {"description": "지정 연기 영상"},
+                    {"description": "노래 영상"},
+                    {"description": "춤 영상"}
+                  ],
+                  "additionalQuestions": []
+                }
+                """;
+
+        mockMvc.perform(put("/api/v1/auditions/{auditionId}/application-form", audition.getPublicId())
+                        .with(csrf())
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
+                .andExpect(jsonPath("$.message").value("영상 요구는 최대 3개까지 추가할 수 있습니다."));
+    }
 }
