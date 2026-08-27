@@ -1,10 +1,13 @@
 package art.yesulin.presentation.api.submission;
 
 import art.yesulin.application.auth.MemberPrincipal;
+import art.yesulin.application.auth.annotation.LoginMember;
+import art.yesulin.application.auth.annotation.LoginRequired;
 import art.yesulin.application.file.FileService;
 import art.yesulin.application.submission.SubmissionDetailResult;
 import art.yesulin.application.submission.SubmissionQueryService;
 import art.yesulin.application.submission.SubmissionSummaryResult;
+import art.yesulin.domain.member.MemberType;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,11 +18,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.SessionAttribute;
 
 @RestController
 @RequestMapping("/api/v1/applicants/me/submissions")
 @RequiredArgsConstructor
+@LoginRequired
 public class ApplicantSubmissionController {
 
     private final SubmissionQueryService submissionQueryService;
@@ -27,7 +30,7 @@ public class ApplicantSubmissionController {
 
     @GetMapping
     public ResponseEntity<ApplicantSubmissionListResponse> findAll(
-            @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal
+            @LoginMember(roles = MemberType.APPLICANT) MemberPrincipal principal
     ) {
         List<SubmissionSummaryResult> results = submissionQueryService.findAll(principal.memberId());
         Map<Long, String> posterUrlsByFileId = new HashMap<>();
@@ -41,7 +44,7 @@ public class ApplicantSubmissionController {
 
     @GetMapping("/{submissionId}")
     public ResponseEntity<ApplicantSubmissionDetailResponse> find(
-            @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal,
+            @LoginMember(roles = MemberType.APPLICANT) MemberPrincipal principal,
             @PathVariable UUID submissionId
     ) {
         long applicantId = principal.memberId();

@@ -130,12 +130,12 @@ PENDING 세션을 ACTIVE로 갱신하고 요청의 `redirectUri`로 302 redirect
 
 | Method | URL | 인증 | Request | Response |
 | --- | --- | --- | --- | --- |
-| POST | `/api/v1/auditions/{auditionId}/submissions` | 세션 | `SubmitSubmissionRequest` | `201 SubmitSubmissionResponse`, `Location` |
-| GET | `/api/v1/applicants/me/submissions` | 세션 | 없음 | `200 ApplicantSubmissionListResponse` |
-| GET | `/api/v1/applicants/me/submissions/{submissionId}` | 세션 | 없음 | `200 ApplicantSubmissionDetailResponse` |
+| POST | `/api/v1/auditions/{auditionId}/submissions` | Applicant | `SubmitSubmissionRequest` | `201 SubmitSubmissionResponse`, `Location` |
+| GET | `/api/v1/applicants/me/submissions` | Applicant | 없음 | `200 ApplicantSubmissionListResponse` |
+| GET | `/api/v1/applicants/me/submissions/{submissionId}` | Applicant | 없음 | `200 ApplicantSubmissionDetailResponse` |
 
-현재 세 Controller method는 세션만 직접 읽고 `APPLICANT` 역할 annotation을 사용하지 않는다. 프론트는 배우 세션으로만
-호출하지만 서버 수준 역할 제한 보완은 [미구현 사항](../../docs/implementation-gaps.md)으로 관리한다.
+세 endpoint는 서버에서 `APPLICANT` 역할을 검증한다. 세션이 없으면 `401 AUTH_UNAUTHENTICATED`, 다른 역할 세션이면
+`403 AUTH_FORBIDDEN`을 반환한다.
 
 제출 request는 `basicInformation`, `additionalInformation`, 하나 이상의 `selectedRoleIds`, `formAnswers`, 두 필수
 동의를 포함한다. 서버는 공고 양식과 정확히 일치하는 답변, 선택 배역, 모집 기간, 중복 제출, 사진 소유권·READY를 검증한다.

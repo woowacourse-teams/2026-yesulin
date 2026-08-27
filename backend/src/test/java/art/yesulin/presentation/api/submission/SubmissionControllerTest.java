@@ -241,6 +241,29 @@ class SubmissionControllerTest {
                 .andExpect(jsonPath("$.code").value("DUPLICATE_SUBMISSION"));
     }
 
+    @Test
+    void rejectsProducerWithForbidden() throws Exception {
+        MemberPrincipal producer = new MemberPrincipal(9L, MemberType.PRODUCER, MemberStatus.ACTIVE);
+
+        mockMvc.perform(post("/api/v1/auditions/{auditionId}/submissions", UUID.randomUUID())
+                        .with(csrf())
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, producer)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(invalidRequest()))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("AUTH_FORBIDDEN"));
+    }
+
+    @Test
+    void rejectsUnauthenticatedSubmission() throws Exception {
+        mockMvc.perform(post("/api/v1/auditions/{auditionId}/submissions", UUID.randomUUID())
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(invalidRequest()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("AUTH_UNAUTHENTICATED"));
+    }
+
     private void submit(AuditionFixture fixture) throws Exception {
         mockMvc.perform(post("/api/v1/auditions/{auditionId}/submissions", fixture.auditionId())
                         .with(csrf())
