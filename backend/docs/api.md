@@ -1,6 +1,6 @@
 # 백엔드 API
 
-이 문서는 현재 Controller 22개의 61개 REST Mapping만 다룬다. 구현되지 않은 목표 경로와 프론트 seed/MSW 경로는
+이 문서는 현재 Controller 23개의 62개 REST Mapping만 다룬다. 구현되지 않은 목표 경로와 프론트 seed/MSW 경로는
 포함하지 않는다. 공통 형식은 [API 공통 규칙](../../docs/api-conventions.md)을 따른다.
 
 ## 인증 표기
@@ -16,7 +16,7 @@
 | Admin | `ADMIN` 세션. 가입 경로가 없고 서버 설정으로만 만든 운영자 계정 |
 
 쓰기 요청은 공개 여부와 관계없이 CSRF header가 필요하다. OAuth 시작 `/oauth2/authorization/{provider}`와 callback
-`/login/oauth2/code/{provider}`는 Spring Security 경로이며 아래 REST 61개에 포함하지 않는다.
+`/login/oauth2/code/{provider}`는 Spring Security 경로이며 아래 REST 62개에 포함하지 않는다.
 
 ## Health와 인증 — 9개
 
@@ -100,7 +100,7 @@ PENDING 세션을 ACTIVE로 갱신하고 요청의 `redirectUri`로 302 redirect
 삭제는 배역·일정·지원 폼과 해당 배역의 심사 기록을 함께 지운다. 접수된 지원서가 한 건이라도 있으면
 `AUDITION_INVALID_STATUS`로 거부한다.
 
-## 배우 프로필과 보관함 — 13개
+## 배우 프로필과 보관함·비공개 파일 — 14개
 
 | Method | URL | 인증 | Request | Response |
 | --- | --- | --- | --- | --- |
@@ -117,11 +117,14 @@ PENDING 세션을 ACTIVE로 갱신하고 요청의 `redirectUri`로 302 redirect
 | POST | `/api/v1/applicants/me/video-library/videos` | Applicant | `AddVideoToLibraryRequest(url)` | `201 VideoLibraryItemResult` |
 | PATCH | `/api/v1/applicants/me/video-library/videos/{videoId}` | Applicant | `MoveVideoRequest(displayOrder)` | `200 VideoLibraryResult` |
 | DELETE | `/api/v1/applicants/me/video-library/videos/{videoId}` | Applicant | 없음 | `204` |
+| GET | `/api/v1/files/{fileId}/content` | 세션 | 없음 | `200` 원본 Content-Type의 파일 바이트 |
 
 프로필 기본 정보는 이름, 양수 키·몸무게, 미래가 아닌 생년월일, 성별, `000-0000-0000` 연락처, email과 거주 지역이다.
 거주 지역은 100자 문자열이고, 프론트가 `시·도 시·군·구` 형태로만 채운다.
 추가 정보는 학력·링크·국적·소개·특기·취미·군필 상태·경력을 가진다. 링크 최대 5개, 경력 최대 10개다.
 배우 사진은 JPEG·PNG·WebP 최대 20MB, 사진 보관함 최대 3개, 영상 보관함 최대 3개다.
+비공개 사진 내용은 파일 소유 배우나 그 파일이 첨부된 지원서의 공고 소유 공연사만 조회한다. 사진을 찾을 수 없거나 접근할
+수 없으면 모두 `404 FILE_NOT_FOUND`를 반환하고, `Cache-Control: no-store, must-revalidate`를 사용한다.
 
 ## 지원서 — 3개
 
