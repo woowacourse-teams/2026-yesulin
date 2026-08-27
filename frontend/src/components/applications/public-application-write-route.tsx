@@ -18,7 +18,7 @@ export function PublicApplicationWriteRoute({ postingId, initialPosting, initial
   readonly initialRoleIds: readonly string[];
 }) {
   const router = useRouter();
-  const { session } = useAuthSession();
+  const { session, sessionReady, serverSessionEnabled } = useAuthSession();
   const [posting, setPosting] = useState(initialPosting);
   const [missing, setMissing] = useState(false);
 
@@ -43,6 +43,7 @@ export function PublicApplicationWriteRoute({ postingId, initialPosting, initial
     roleIds,
     roleName: posting.roles.filter((role) => roleIds.includes(role.id)).map((role) => role.name).join(" · ") || "전체 배우",
     authenticated: session?.role === "APPLICANT",
+    authChecking: serverSessionEnabled && !sessionReady,
     initialRoute,
     onBack: () => router.push(`/apply/${encodeURIComponent(posting.id)}`),
   };

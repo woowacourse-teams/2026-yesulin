@@ -3,7 +3,8 @@
 import { useCallback, useEffect } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import type { ApplicationFormStep, ApplicationWriteRouteKey } from "@/features/applications/application-form";
-import { applicationStepIndex, applicationWriteRoute, isApplicationWriteRouteKey } from "@/features/applications/routes";
+import { applicationStepIndexIn } from "@/features/applications/application-form";
+import { applicationWriteRoute, isApplicationWriteRouteKey } from "@/features/applications/routes";
 
 export function usePublicApplicationRoute({
   postingId, roleIds, steps, stepIndex, reviewing, completedStepIndexes,
@@ -27,7 +28,7 @@ export function usePublicApplicationRoute({
   }, [postingId, profilePrefilled, roleIds]);
 
   useEffect(() => {
-    if (!storageReady) return;
+    if (!storageReady || steps.length === 0) return;
     updateRoute(reviewing ? "review" : steps[stepIndex]!.key, true);
   }, [reviewing, stepIndex, steps, storageReady, updateRoute]);
 
@@ -39,7 +40,7 @@ export function usePublicApplicationRoute({
         if (completedStepIndexes.length >= steps.length) setReviewing(true);
         return;
       }
-      const index = applicationStepIndex(route);
+      const index = applicationStepIndexIn(steps, route);
       if (index <= maxReachedStepIndex) {
         setReviewing(false);
         setStepIndex(index);
@@ -47,7 +48,7 @@ export function usePublicApplicationRoute({
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
-  }, [completedStepIndexes.length, maxReachedStepIndex, setReviewing, setStepIndex, steps.length]);
+  }, [completedStepIndexes.length, maxReachedStepIndex, setReviewing, setStepIndex, steps]);
 
   return updateRoute;
 }

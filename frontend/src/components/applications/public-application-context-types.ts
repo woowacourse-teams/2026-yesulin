@@ -31,6 +31,8 @@ export type PublicApplicationState = {
   readonly leaveConfirmationOpen: boolean;
   readonly mediaError: string;
   readonly reviewing: boolean;
+  /** 검토 화면에서 수정하러 들어온 상태. 다음 버튼이 검토로 바로 돌아간다. */
+  readonly returnToReview: boolean;
   readonly consent: boolean;
   readonly privacyConsent: boolean;
   readonly thirdPartyConsent: boolean;
@@ -75,6 +77,8 @@ export type PublicApplicationMeta = {
   readonly roleIds: readonly string[];
   readonly roleName: string;
   readonly authenticated: boolean;
+  /** 서버 세션을 아직 확인 중인 상태. 비로그인과 구분해야 로그인 사용자에게 로그인 안내가 뜨지 않는다. */
+  readonly authChecking: boolean;
   readonly prefillSummary?: Pick<ProfilePrefillResponse, "filledCount" | "requiredCount" | "missingKeys">;
   readonly onBack: () => void;
 };

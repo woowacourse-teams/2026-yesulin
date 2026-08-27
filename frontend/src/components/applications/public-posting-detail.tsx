@@ -12,7 +12,7 @@ import { readPublicApplicationDraft } from "@/features/applications/public-appli
 import { buildApplicationAuthReturnTo } from "@/features/auth/return-to";
 import { useAuthSession } from "@/components/auth/auth-session";
 import { applicantRoutes } from "@/features/applicants/routes";
-import { APPLICATION_STEP_KEYS } from "@/features/applications/application-form";
+import { applicationFormSteps } from "@/features/applications/application-form";
 import { applicationWriteRoute } from "@/features/applications/routes";
 import { PublicVenueGuide } from "./public-venue-guide";
 import { TrackedLoginLink } from "@/components/analytics/tracked-login-link";
@@ -60,13 +60,14 @@ export function PublicPostingDetail({ posting, useProfilePrefill = false, resume
       }
       const canOpenForm = validRoleIds.length > 0 || validInitialRoleIds.length > 0 || skipsRoleChoice;
       if (resumeDraft && (Boolean(draft) || useProfilePrefill) && canOpenForm) {
-        const route = draft?.reviewing ? "review" : APPLICATION_STEP_KEYS[Math.min(draft?.stepIndex ?? 0, APPLICATION_STEP_KEYS.length - 1)]!;
+        const draftSteps = applicationFormSteps(posting.applicationFields);
+        const route = draft?.reviewing ? "review" : draftSteps[Math.min(draft?.stepIndex ?? 0, draftSteps.length - 1)]?.key ?? "basic";
         const routeRoleIds = validRoleIds.length ? validRoleIds : validInitialRoleIds.length ? validInitialRoleIds : posting.roles[0] ? [posting.roles[0].id] : [];
         router.replace(applicationWriteRoute(posting.id, route, routeRoleIds, { prefill: useProfilePrefill && !draft }));
       } else if (resumeDraft) setRestoring(false);
     }).catch((cause) => { if (active) { console.error("[지원서 임시저장 확인 실패]", cause); if (resumeDraft) setRestoring(false); } });
     return () => { active = false; };
-  }, [posting.id, posting.roles, resumeDraft, router, skipsRoleChoice, useProfilePrefill, validInitialRoleIds]);
+  }, [posting.applicationFields, posting.id, posting.roles, resumeDraft, router, skipsRoleChoice, useProfilePrefill, validInitialRoleIds]);
 
   if (restoring) return <DraftResumeLoading />;
 
@@ -104,7 +105,7 @@ function PostingHero({ posting }: { posting: PublicPosting }) {
 
 function PostingAvailability({ posting }: { posting: PublicPosting }) {
   const availability = publicPostingAvailability(posting);
-  const accessLabel = posting.status === "OPEN" ? "인증 후 최종 제출" : "공고 공개 열람";
+  const accessLabel = posting.status === "OPEN" ? "로그인 후 최종 제출" : "공고 공개 열람";
   return <section className="border-b border-border py-8 sm:py-10"><div className="flex flex-wrap items-center gap-3"><PostingStatusBadge status={posting.status} /><span className="inline-flex items-center rounded-full bg-card px-3 py-1 text-sm font-semibold text-muted-strong">{accessLabel}</span></div><dl className="mt-5 grid gap-1 text-sm sm:grid-cols-[112px_1fr] sm:gap-y-3"><dt className="font-semibold text-muted-strong">{availability.label}</dt><dd className="num text-base font-bold text-foreground">{availability.detail}</dd><dt className="sr-only sm:not-sr-only">안내</dt><dd className="text-muted-strong">{availability.notice}</dd></dl></section>;
 }
 
@@ -128,8 +129,8 @@ function KeyPostingInformation({ posting }: { posting: PublicPosting }) {
       <ol className="grid gap-3 sm:grid-cols-2">{posting.schedule.map((item, index) => <li key={item.title} className="rounded-card border border-border bg-card p-4"><span className="num text-xs font-bold text-brand">0{index + 1}</span><strong className="mt-3 block font-semibold">{item.title}</strong><span className="mt-1 block text-sm leading-6 text-muted-strong">{item.detail}</span></li>)}</ol>
     </InfoSection>
     <section className="border-t border-border-soft py-8 sm:py-10" aria-labelledby="posting-documents-title">
-      <div className="flex flex-wrap items-end justify-between gap-3"><div><h2 id="posting-documents-title" className="text-xl font-bold tracking-[-0.02em]">제출 자료</h2><p className="mt-2 text-sm leading-6 text-muted-strong">지원서에서 작성하거나 첨부할 항목을 미리 확인하세요.</p></div><p className="text-sm font-semibold text-muted-strong"><span className="text-brand">필수 {requiredCount}개</span>{optionalCount ? ` · 선택 ${optionalCount}개` : ""}</p></div>
-      <ul className="mt-5 grid gap-3 sm:grid-cols-2">{posting.documents.map((document, index) => <li key={document.id} className={`rounded-card border border-border bg-card p-4 ${posting.documents.length % 2 === 1 && index === posting.documents.length - 1 ? "sm:col-span-2" : ""}`}><div className="flex items-start gap-3"><span className={`inline-flex h-7 shrink-0 items-center justify-center rounded-md px-2 text-xs font-bold ${document.required ? "bg-brand-soft text-brand" : "bg-surface text-muted-strong"}`}>{document.required ? "필수" : "선택"}</span><span className="min-w-0"><strong className="block text-[15px] font-semibold">{document.title}</strong><span className="mt-1 block break-words text-sm leading-6 text-muted-strong">{document.detail}</span></span></div></li>)}</ul>
+      <div className="flex flex-wrap items-end justify-between gap-3"><div><h2 id="posting-documents-title" className="text-xl font-bold tracking-[-0.02em]">제출 자료</h2><p className="mt-2 text-sm leading-6 text-muted-strong">아래 항목은 <strong className="font-semibold text-foreground">지원서 작성</strong>을 시작한 뒤에 입력합니다. 이 화면에서는 확인만 하세요.</p></div><p className="text-sm font-semibold text-muted-strong"><span className="text-brand">필수 {requiredCount}개</span>{optionalCount ? ` · 선택 ${optionalCount}개` : ""}</p></div>
+      <ul className="mt-5 flex flex-wrap gap-2">{posting.documents.map((document) => <li key={document.id} className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 ${document.required ? "border-brand-line bg-brand-soft" : "border-border bg-card"}`}><span className={`text-xs font-bold ${document.required ? "text-brand" : "text-muted"}`}>{document.required ? "필수" : "선택"}</span><span className="text-sm font-semibold text-foreground">{document.title}</span></li>)}</ul>
     </section>
   </div>;
 }
@@ -146,6 +147,6 @@ function MobileAction({ posting, selectedRole, enabled, hasDraft, onAction, onCh
 
 function ActionButton({ posting, enabled, hasDraft, onAction, onChooseRole }: { posting: PublicPosting; enabled: boolean; hasDraft: boolean; onAction: () => void; onChooseRole: () => void }) { const unavailable = posting.status !== "OPEN"; const label = posting.status === "UPCOMING" ? "모집 시작 전" : posting.status === "CLOSED" ? "지원 마감" : enabled ? hasDraft ? "지원서 이어쓰기" : "지원서 작성" : "배역 선택하기"; return <PrimaryButton disabled={unavailable} onClick={enabled ? onAction : onChooseRole} className="shrink-0 px-5">{label}</PrimaryButton>; }
 
-function ActionNotice({ status, hasDraft }: { status: PublicPosting["status"]; hasDraft: boolean }) { const message = status === "OPEN" ? hasDraft ? "작성 중인 내용이 있어요. 이어서 확인한 뒤 제출할 수 있습니다." : "로그인 전에도 작성할 수 있고, 최종 제출 전에 계정 인증이 필요합니다." : status === "UPCOMING" ? "모집 시작 전이라 지원할 수 없어요." : "접수가 마감되어 지원할 수 없어요. 공고 내용은 계속 확인할 수 있어요."; return <p className="text-xs leading-5 text-muted">{message}</p>; }
+function ActionNotice({ status, hasDraft }: { status: PublicPosting["status"]; hasDraft: boolean }) { const message = status === "OPEN" ? hasDraft ? "이 브라우저에 작성 중인 내용이 있어요. 이어서 확인한 뒤 제출할 수 있습니다." : "로그인 전에도 작성할 수 있어요. 작성 내용은 이 브라우저에 저장되고, 최종 제출할 때 로그인이 필요합니다." : status === "UPCOMING" ? "모집 시작 전이라 지원할 수 없어요." : "접수가 마감되어 지원할 수 없어요. 공고 내용은 계속 확인할 수 있어요."; return <p className="text-xs leading-5 text-muted">{message}</p>; }
 
 function DraftResumeLoading() { return <main className="grid min-h-screen place-items-center bg-surface px-5"><section role="status" className="w-full max-w-lg rounded-modal border border-border bg-card px-6 py-12 text-center"><span aria-hidden="true" className="mx-auto block h-10 w-10 animate-pulse rounded-2xl bg-brand" /><h1 className="mt-5 text-xl font-bold">작성하던 지원서를 찾고 있어요</h1><p className="mt-2 text-sm leading-6 text-muted-strong">이전에 입력한 내용이 있으면 불러온 뒤 지원서를 열게요.</p></section></main>; }

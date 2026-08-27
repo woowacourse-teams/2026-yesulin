@@ -19,6 +19,3 @@ export function applicationWriteRoute(
   return `/apply/${encodeURIComponent(postingId)}/write/${step}${suffix}`;
 }
 
-export function applicationStepIndex(step: ApplicationWriteRouteKey) {
-  return step === "review" ? APPLICATION_STEP_KEYS.length - 1 : APPLICATION_STEP_KEYS.indexOf(step);
-}
