@@ -24,7 +24,8 @@ export function ApplicationLinkButton({
       const applicationUrl = `${window.location.origin}${publicApplicationRoute(postingId)}`;
       await navigator.clipboard.writeText(applicationUrl);
       toast("지원 링크를 복사했습니다.", { type: "success" });
-    } catch {
+    } catch (cause) {
+      console.error("[지원 링크 복사 실패]", cause);
       toast("지원 링크를 복사하지 못했습니다. 다시 시도해 주세요.", { type: "error" });
     } finally {
       setCopying(false);

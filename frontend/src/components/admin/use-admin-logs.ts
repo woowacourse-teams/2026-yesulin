@@ -41,6 +41,7 @@ export function useAdminLogs(keyword: string, limit: number, autoRefresh: boolea
             setPhase("unauthorized");
             return;
           }
+          console.error("[운영 로그 조회 실패]", cause);
           setError(cause instanceof Error ? cause.message : "로그를 불러오지 못했습니다.");
           setPhase("failed");
         })

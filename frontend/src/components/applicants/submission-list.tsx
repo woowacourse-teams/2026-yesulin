@@ -19,7 +19,7 @@ export function ApplicantSubmissionList() {
     if (!query.data) return;
     let active = true;
     const submittedPostingIds = new Set(query.data.submissions.map((submission) => submission.postingId));
-    getApplicantApplicationDrafts(submittedPostingIds).then((items) => { if (active) setDrafts(items); }).catch(() => { if (active) setDrafts([]); }).finally(() => { if (active) setDraftsLoading(false); });
+    getApplicantApplicationDrafts(submittedPostingIds).then((items) => { if (active) setDrafts(items); }).catch((cause) => { if (active) { console.error("[지원서 임시저장 목록 조회 실패]", cause); setDrafts([]); } }).finally(() => { if (active) setDraftsLoading(false); });
     return () => { active = false; };
   }, [query.data]);
   if (query.loading) return <SubmissionListSkeleton />;

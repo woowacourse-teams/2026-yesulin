@@ -37,6 +37,7 @@ export function useAuditionQuery<T>(key: string, load: () => Promise<T>, fallbac
         if (active) setSettled({ key: requestKey, data, error: "" });
       })
       .catch((cause: unknown) => {
+        console.error("[공연·공고 데이터 조회 실패]", cause);
         if (active) setSettled({ key: requestKey, data: null, error: errorMessage(cause, fallbackMessage) });
       });
 

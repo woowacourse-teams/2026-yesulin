@@ -77,6 +77,7 @@ export function usePublicApplicationDraft({ postingId, fields, prefill, initialR
       setStorageReady(true);
     }).catch((cause) => {
       if (!active) return;
+      console.error("[지원서 임시저장 불러오기 실패]", cause);
       setReadFailed(true);
       setSaveError(storageErrorMessage(cause));
       setSaveStatus("ERROR");
@@ -103,6 +104,7 @@ export function usePublicApplicationDraft({ postingId, fields, prefill, initialR
         setSaveStatus(savedAt ? "SAVED" : "IDLE");
       }).catch((cause) => {
         if (!active) return;
+        console.error("[지원서 임시저장 실패]", cause);
         setSaveError(storageErrorMessage(cause));
         setSaveStatus("ERROR");
       });

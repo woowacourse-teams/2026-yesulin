@@ -53,6 +53,7 @@ export function useAdminDashboard(filter: ProducerFilter) {
           setPhase("unauthorized");
           return;
         }
+        console.error("[운영 대시보드 조회 실패]", cause);
         setError(cause instanceof Error ? cause.message : "대시보드를 불러오지 못했습니다.");
         setPhase("failed");
       });

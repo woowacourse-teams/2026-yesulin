@@ -25,8 +25,11 @@ export function PublicPostingRoute({ postingId, initialPosting, useProfilePrefil
         setPosting(next);
         setState("ready");
       })
-      .catch(() => {
-        if (active) setState("missing");
+      .catch((cause) => {
+        if (active) {
+          console.error("[공개 공고 조회 실패]", cause);
+          setState("missing");
+        }
       });
     return () => { active = false; };
   }, [initialPosting, postingId]);

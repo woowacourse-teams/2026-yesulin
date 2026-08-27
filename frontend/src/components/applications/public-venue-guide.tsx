@@ -28,7 +28,7 @@ export function PublicVenueGuide({ venue, address }: { readonly venue: string; r
         setCoordinates(nextCoordinates);
         setMapFailed(false);
       })
-      .catch(() => { if (!cancelled) setMapFailed(true); });
+      .catch((cause) => { if (!cancelled) { console.error("[공연장 지도 불러오기 실패]", cause); setMapFailed(true); } });
     return () => { cancelled = true; };
   }, [address.roadAddress, coordinates, mapKey]);
 
@@ -36,7 +36,8 @@ export function PublicVenueGuide({ venue, address }: { readonly venue: string; r
     try {
       await navigator.clipboard.writeText(fullAddress);
       setCopyMessage("주소를 복사했습니다.");
-    } catch {
+    } catch (cause) {
+      console.error("[공연장 주소 복사 실패]", cause);
       setCopyMessage("주소를 복사하지 못했습니다. 주소를 직접 선택해 주세요.");
     }
   };

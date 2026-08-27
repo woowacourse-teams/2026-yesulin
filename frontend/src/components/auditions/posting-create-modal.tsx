@@ -189,7 +189,7 @@ export function PostingCreateModal({ performanceId, performanceTitle, performanc
       await draft.discard().catch(() => undefined);
       notifyAuditionTreeChanged();
       setCreated({ title: title.trim(), applicationUrl: `${window.location.origin}${publicApplicationRoute(response.createdPostingId)}` });
-    } catch (cause) { setFormError({ message: errorMessage(cause, "공고를 추가하지 못했습니다."), section: sectionForError(cause) }); }
+    } catch (cause) { console.error("[공고 생성 실패]", cause); setFormError({ message: errorMessage(cause, "공고를 추가하지 못했습니다."), section: sectionForError(cause) }); }
     finally { setSaving(false); }
   };
 

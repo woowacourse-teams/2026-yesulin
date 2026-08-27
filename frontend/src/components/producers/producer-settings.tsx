@@ -65,6 +65,7 @@ function ProducerSettingsForm({ profile }: { readonly profile: ProducerProfile }
       notifyProducerProfileChanged();
       toast("기획사/제작사 정보를 저장했습니다.");
     } catch (cause) {
+      console.error("[기획사 정보 저장 실패]", cause);
       setFormError(errorMessage(cause, "기획사/제작사 정보를 저장하지 못했습니다."));
     } finally {
       setSaving(false);

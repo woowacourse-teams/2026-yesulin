@@ -27,6 +27,7 @@ export function AdminLoginForm({ onSuccess }: Props) {
       }
       onSuccess();
     } catch (cause) {
+      console.error("[운영자 로그인 실패]", cause);
       setError(cause instanceof Error ? cause.message : "로그인하지 못했습니다.");
     } finally {
       setSubmitting(false);

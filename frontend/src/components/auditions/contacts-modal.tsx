@@ -25,7 +25,10 @@ async function copyToClipboard(text: string) {
     await navigator.clipboard.writeText(text);
     return true;
   } catch (cause: unknown) {
-    if (cause instanceof Error) return false;
+    if (cause instanceof Error) {
+      console.error("[지원자 연락처 복사 실패]", cause);
+      return false;
+    }
     throw cause;
   }
 }

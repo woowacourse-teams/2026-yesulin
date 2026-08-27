@@ -84,6 +84,7 @@ export function BoardWorkspace({
         onBoardChange(next);
         return next;
       } catch (cause: unknown) {
+        console.error("[심사 보드 작업 실패]", cause);
         toast(errorMessage(cause, fallback), { type: "error" });
         return null;
       } finally {

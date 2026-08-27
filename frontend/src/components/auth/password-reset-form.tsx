@@ -49,6 +49,7 @@ export function PasswordResetForm({ token }: { readonly token?: string }) {
       })
       .catch((cause: unknown) => {
         if (!active) return;
+        console.error("[비밀번호 재설정 링크 확인 실패]", cause);
         setRequestError(errorMessage(cause, "비밀번호 재설정 링크가 유효하지 않습니다."));
         setStep("INVALID");
       });
@@ -80,6 +81,7 @@ export function PasswordResetForm({ token }: { readonly token?: string }) {
       setEmail(trimmedEmail);
       setStep("SENT");
     } catch (cause) {
+      console.error("[비밀번호 재설정 메일 전송 실패]", cause);
       setRequestError(errorMessage(cause, "비밀번호 재설정 메일을 보내지 못했습니다."));
     } finally {
       setSubmitting(false);
@@ -107,6 +109,7 @@ export function PasswordResetForm({ token }: { readonly token?: string }) {
       await resetPassword(token, password, passwordConfirm);
       setStep("COMPLETE");
     } catch (cause) {
+      console.error("[비밀번호 변경 실패]", cause);
       if (
         cause instanceof PasswordResetApiError
         && ["AUTH_INVALID_PASSWORD_RESET", "AUTH_EXPIRED_PASSWORD_RESET"].includes(cause.code ?? "")

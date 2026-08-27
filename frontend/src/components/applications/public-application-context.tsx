@@ -207,6 +207,7 @@ export function PublicApplicationProvider({
       trackAnalyticsEvent("application_submit_success", { selected_role_count: roleIds.length, save_to_profile: saveToProfile, profile_saved: Boolean(response.profileSaved) });
       void deletePublicApplicationDraft(postingId).catch(() => undefined);
     } catch (cause) {
+      console.error("[지원서 제출 실패]", cause);
       if (cause instanceof AuditionRequestError && cause.status === 401) {
         trackAnalyticsEvent("application_submit_error", { error_code: "auth_expired" });
         const returnTo = encodeURIComponent(buildApplicationAuthReturnTo(postingId, roleIds));

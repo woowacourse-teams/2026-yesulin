@@ -42,8 +42,9 @@ export function useProducerCreationDraft<T>({ draftKey, value, restore, isEmpty 
         setStatus("IDLE");
       }
       ready.current = true;
-    }).catch(() => {
+    }).catch((cause) => {
       if (!active) return;
+      console.error("[공고 작성 임시저장 불러오기 실패]", cause);
       persistedSnapshot.current = initialSnapshot.current;
       ready.current = true;
       setStatus("ERROR");
@@ -64,8 +65,11 @@ export function useProducerCreationDraft<T>({ draftKey, value, restore, isEmpty 
         persistedSnapshot.current = serialized;
         setSavedAt(nextSavedAt);
         setStatus(nextSavedAt ? "SAVED" : "IDLE");
-      }).catch(() => {
-        if (active) setStatus("ERROR");
+      }).catch((cause) => {
+        if (active) {
+          console.error("[공고 작성 임시저장 실패]", cause);
+          setStatus("ERROR");
+        }
       });
     }, PRODUCER_CREATION_DRAFT_DELAY_MS);
     return () => { active = false; window.clearTimeout(timeout); };
@@ -88,6 +92,7 @@ export function useProducerCreationDraft<T>({ draftKey, value, restore, isEmpty 
       setSavedAt(nextSavedAt);
       setStatus(nextSavedAt ? "SAVED" : "IDLE");
     } catch (cause) {
+      console.error("[공고 작성 임시저장 즉시 저장 실패]", cause);
       setStatus("ERROR");
       throw cause;
     }

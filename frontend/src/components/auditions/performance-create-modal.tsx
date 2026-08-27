@@ -121,6 +121,7 @@ export function PerformanceCreateModal({
       onCreated();
       onClose();
     } catch (cause: unknown) {
+      console.error("[공연 생성 실패]", cause);
       setFormError(errorMessage(cause, "공연을 추가하지 못했습니다."));
     } finally {
       setSaving(false);
