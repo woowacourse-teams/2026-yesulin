@@ -49,7 +49,7 @@ function ApplicationStepScreen() {
   const { state, actions, meta } = usePublicApplication();
   const step = meta.steps[state.stepIndex]!;
   const isLastStep = state.stepIndex === meta.steps.length - 1;
-  const nextLabel = isLastStep ? "검토하기" : "다음 단계";
+  const nextLabel = state.returnToReview ? "검토로 돌아가기" : isLastStep ? "검토하기" : "다음 단계";
   return <main className="min-h-screen bg-surface pb-[calc(148px+env(safe-area-inset-bottom))] text-foreground md:pb-12">
     <header className="glass-surface sticky top-0 z-20 border-x-0 border-t-0">
       <div className="mx-auto flex min-h-16 max-w-[880px] items-center px-5 md:px-8">

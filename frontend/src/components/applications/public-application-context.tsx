@@ -57,6 +57,8 @@ export function PublicApplicationProvider({
   const consent = privacyConsent && thirdPartyConsent;
   const [stepErrors, setStepErrors] = useState<Readonly<Record<number, string>>>({});
   const [mediaError, setMediaError] = useState("");
+  // 검토 화면에서 한 항목만 고치러 들어왔는지. 그렇다면 남은 단계를 다시 거치지 않고 검토로 돌려보낸다.
+  const [returnToReview, setReturnToReview] = useState(false);
   const [leaveConfirmationOpen, setLeaveConfirmationOpen] = useState(false);
   const [submissionState, setSubmissionState] = useState<SubmissionState>("IDLE");
   const [submissionError, setSubmissionError] = useState("");
@@ -106,6 +108,7 @@ export function PublicApplicationProvider({
   const moveStep = (index: number) => {
     if (index < 0 || index >= steps.length || index > maxReachedStepIndex) return;
     setMediaError("");
+    setReturnToReview(false);
     setStepIndex(index);
     setReviewing(false);
     updateRoute(steps[index]!.key);
@@ -123,7 +126,8 @@ export function PublicApplicationProvider({
       trackAnalyticsEvent("application_step_complete", { step_name: steps[stepIndex]!.key, step_number: stepIndex + 1, step_count: steps.length });
     }
     setCompletedStepIndexes((current) => current.includes(stepIndex) ? current : [...current, stepIndex]);
-    if (stepIndex === steps.length - 1) {
+    if (returnToReview || stepIndex === steps.length - 1) {
+      setReturnToReview(false);
       setReviewing(true);
       updateRoute("review");
     } else {
@@ -139,6 +143,7 @@ export function PublicApplicationProvider({
       const issue = fieldId ? validationIssue(index) : null;
       setReviewing(false);
       moveStep(index);
+      setReturnToReview(true);
       if (issue) {
         setStepErrors((current) => ({ ...current, [index]: issue.message }));
         focusIssue(issue);
@@ -227,7 +232,7 @@ export function PublicApplicationProvider({
   const state: PublicApplicationState = {
     stepIndex, values, photos, videoUrl, noCareer, careers, stepError: stepErrors[stepIndex] ?? "", mediaError,
     stepProgress: applicationStepProgress({ steps, stepIndex, maxReachedStepIndex, completedStepIndexes, stepErrors }), reviewIssues,
-    hasUnsavedChanges: draft.hasUnsavedChanges, leaveConfirmationOpen, reviewing, consent, privacyConsent, thirdPartyConsent, saveToProfile,
+    hasUnsavedChanges: draft.hasUnsavedChanges, leaveConfirmationOpen, reviewing, returnToReview, consent, privacyConsent, thirdPartyConsent, saveToProfile,
     draftSaveStatus: draft.saveStatus, draftSaveError: draft.saveError, draftLastSavedAt: draft.lastSavedAt,
     draftRestored: draft.restored, submissionState, submissionError, receipt,
   };

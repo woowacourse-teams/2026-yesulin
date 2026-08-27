@@ -31,6 +31,8 @@ export type PublicApplicationState = {
   readonly leaveConfirmationOpen: boolean;
   readonly mediaError: string;
   readonly reviewing: boolean;
+  /** 검토 화면에서 수정하러 들어온 상태. 다음 버튼이 검토로 바로 돌아간다. */
+  readonly returnToReview: boolean;
   readonly consent: boolean;
   readonly privacyConsent: boolean;
   readonly thirdPartyConsent: boolean;
