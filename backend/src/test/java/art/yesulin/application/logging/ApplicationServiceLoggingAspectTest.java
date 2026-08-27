@@ -23,9 +23,12 @@ class ApplicationServiceLoggingAspectTest {
 
     private final Logger logger = (Logger) LoggerFactory.getLogger(ApplicationServiceLoggingAspect.class);
     private final ListAppender<ILoggingEvent> appender = new ListAppender<>();
+    private Level previousLevel;
 
     @BeforeEach
     void setUp() {
+        previousLevel = logger.getLevel();
+        logger.setLevel(Level.DEBUG);
         appender.start();
         logger.addAppender(appender);
     }
@@ -33,6 +36,7 @@ class ApplicationServiceLoggingAspectTest {
     @AfterEach
     void tearDown() {
         logger.detachAppender(appender);
+        logger.setLevel(previousLevel);
         appender.stop();
     }
 
@@ -65,6 +69,31 @@ class ApplicationServiceLoggingAspectTest {
         assertNull(event.getThrowableProxy());
     }
 
+    @Test
+    void logsAdminLogPollingSuccessAtDebugLevel() {
+        AdminLogService service = createAdminLogProxy();
+
+        service.findRecent();
+
+        assertEquals(Level.DEBUG, appender.list.getFirst().getLevel());
+        assertTrue(appender.list.getFirst().getFormattedMessage().contains("class=AdminLogService"));
+    }
+
+    @Test
+    void keepsAdminLogPollingFailureAtErrorLevel() {
+        AdminLogService service = createAdminLogProxy();
+
+        assertThrows(IllegalStateException.class, service::fail);
+
+        assertEquals(Level.ERROR, appender.list.getFirst().getLevel());
+    }
+
+    private AdminLogService createAdminLogProxy() {
+        AspectJProxyFactory factory = new AspectJProxyFactory(new AdminLogService());
+        factory.addAspect(new ApplicationServiceLoggingAspect());
+        return factory.getProxy();
+    }
+
     private TestService createProxy() {
         AspectJProxyFactory factory = new AspectJProxyFactory(new TestService());
         factory.addAspect(new ApplicationServiceLoggingAspect());
@@ -75,6 +104,19 @@ class ApplicationServiceLoggingAspectTest {
         return appender.list.stream()
                 .map(ILoggingEvent::getFormattedMessage)
                 .toList();
+    }
+
+    /** 실제 운영 대시보드 조회 서비스와 같은 이름이어야 폴링 제외 규칙이 적용된다. */
+    @Service
+    static class AdminLogService {
+
+        public String findRecent() {
+            return "lines";
+        }
+
+        public void fail() {
+            throw new IllegalStateException("boom");
+        }
     }
 
     @Service

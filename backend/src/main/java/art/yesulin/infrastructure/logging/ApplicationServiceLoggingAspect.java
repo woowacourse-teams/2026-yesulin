@@ -1,5 +1,6 @@
 package art.yesulin.infrastructure.logging;
 
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -14,6 +15,12 @@ import org.springframework.stereotype.Component;
 public class ApplicationServiceLoggingAspect {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ApplicationServiceLoggingAspect.class);
+
+    /**
+     * 운영 대시보드가 짧은 주기로 호출하는 조회다.
+     * 성공 로그를 남기면 읽으려던 로그를 스스로 밀어내므로 DEBUG로 낮춘다.
+     */
+    private static final Set<String> POLLING_CLASSES = Set.of("AdminLogService");
 
     @Around("execution(public * art.yesulin.application..*(..)) "
             + "&& @within(org.springframework.stereotype.Service)")
@@ -42,13 +49,7 @@ public class ApplicationServiceLoggingAspect {
     ) {
         long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
         if (exceptionType == null) {
-            LOGGER.info(
-                    "APPLICATION class={} method={} outcome={} elapsedMs={}",
-                    className,
-                    methodName,
-                    outcome,
-                    elapsedMillis
-            );
+            logSuccess(className, methodName, outcome, elapsedMillis);
             return;
         }
         LOGGER.error(
@@ -57,6 +58,26 @@ public class ApplicationServiceLoggingAspect {
                 methodName,
                 outcome,
                 exceptionType,
+                elapsedMillis
+        );
+    }
+
+    private void logSuccess(String className, String methodName, String outcome, long elapsedMillis) {
+        if (POLLING_CLASSES.contains(className)) {
+            LOGGER.debug(
+                    "APPLICATION class={} method={} outcome={} elapsedMs={}",
+                    className,
+                    methodName,
+                    outcome,
+                    elapsedMillis
+            );
+            return;
+        }
+        LOGGER.info(
+                "APPLICATION class={} method={} outcome={} elapsedMs={}",
+                className,
+                methodName,
+                outcome,
                 elapsedMillis
         );
     }

@@ -38,8 +38,11 @@ infrastructure/    JPA·QueryDSL, OAuth, S3 등 외부 기술 adapter
 
 ## 로그
 
+- 로그 시각은 host TZ와 무관하게 `Asia/Seoul`로 기록한다. SSM tail과 운영 대시보드가 같은 시각을 보여 준다.
 - request ID를 MDC와 응답 `X-Request-Id`에 사용한다.
-- 요청 로그는 method, URI, status, elapsed time만 기록한다.
+- 요청 로그는 method, URI, status, elapsed time만 기록한다. URI에 query string은 포함하지 않는다.
+- `/api/v1/health`와 `/api/v1/admin/logs`처럼 짧은 주기로 반복되는 조회는 성공 시 DEBUG로 낮춘다.
+  스스로 만든 로그가 정작 읽으려는 로그를 밀어내지 않게 하기 위함이며, 실패는 그대로 남긴다.
 - 요청·응답 본문, Cookie, token, 비밀번호, 연락처, 지원서 원문과 파일 URL은 일반 로그에 남기지 않는다.
 - 운영자의 쓰기 작업은 `admin_audit_logs`에 실행자·대상·`이전 -> 이후`만 남기고 개인정보 원문은 담지 않는다.
 - 운영자는 `/api/v1/admin/logs`로 같은 로그 파일의 끝부분을 읽을 수 있다. 경로는 설정으로 고정하고 읽기 상한을 둔다.
