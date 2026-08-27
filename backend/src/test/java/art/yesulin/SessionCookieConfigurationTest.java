@@ -40,6 +40,6 @@ class SessionCookieConfigurationTest {
 
     @Test
     void expiresIdleSession() {
-        assertEquals(Duration.ofMinutes(30), serverProperties.getServlet().getSession().getTimeout());
+        assertEquals(Duration.ofHours(12), serverProperties.getServlet().getSession().getTimeout());
     }
 }

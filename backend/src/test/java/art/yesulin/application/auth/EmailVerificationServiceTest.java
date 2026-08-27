@@ -10,17 +10,19 @@ import art.yesulin.application.mail.MailMessage;
 import art.yesulin.application.mail.MailSender;
 import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.auth.EmailVerification;
+import art.yesulin.domain.auth.EmailVerificationRepository;
 import art.yesulin.domain.member.Member;
 import art.yesulin.domain.member.MemberRepository;
 import art.yesulin.domain.member.MemberStatus;
 import art.yesulin.domain.member.MemberType;
-import art.yesulin.infrastructure.persistence.emailverification.CollectionEmailVerificationRepository;
 import java.net.URI;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -30,7 +32,7 @@ class EmailVerificationServiceTest {
     private static final Instant NOW = Instant.parse("2026-08-26T00:00:00Z");
     private static final Duration EXPIRATION = Duration.ofMinutes(5);
 
-    private CollectionEmailVerificationRepository verificationRepository;
+    private InMemoryEmailVerificationRepository verificationRepository;
     private MemberRepository memberRepository;
     private VerificationTokenGenerator tokenGenerator;
     private MailSender mailSender;
@@ -38,7 +40,7 @@ class EmailVerificationServiceTest {
 
     @BeforeEach
     void setUp() {
-        verificationRepository = new CollectionEmailVerificationRepository();
+        verificationRepository = new InMemoryEmailVerificationRepository();
         memberRepository = mock(MemberRepository.class);
         tokenGenerator = mock(VerificationTokenGenerator.class);
         mailSender = mock(MailSender.class);
@@ -93,5 +95,27 @@ class EmailVerificationServiceTest {
                         assertThat(exception.getErrorCode())
                                 .isEqualTo(AuthErrorCode.EXPIRED_EMAIL_VERIFICATION));
         assertThat(verificationRepository.findByToken(expired.token())).isEmpty();
+    }
+
+    private static class InMemoryEmailVerificationRepository implements EmailVerificationRepository {
+
+        private final Map<String, EmailVerification> verifications = new ConcurrentHashMap<>();
+
+        @Override
+        public void save(EmailVerification verification, Instant now) {
+            verifications.entrySet().removeIf(entry ->
+                    entry.getValue().isExpiredAt(now) || entry.getValue().memberId() == verification.memberId());
+            verifications.put(verification.token(), verification);
+        }
+
+        @Override
+        public Optional<EmailVerification> findByToken(String token) {
+            return Optional.ofNullable(verifications.get(token));
+        }
+
+        @Override
+        public Optional<EmailVerification> removeByToken(String token) {
+            return Optional.ofNullable(verifications.remove(token));
+        }
     }
 }

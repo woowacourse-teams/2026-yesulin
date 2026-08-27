@@ -30,7 +30,7 @@ import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
 @Configuration(proxyBeanMethods = false)
-@Profile("local")
+@Profile("local & !test")
 @ConditionalOnMissingBean(ObjectStorage.class)
 @EnableConfigurationProperties({S3StorageProperties.class, LocalStackStorageProperties.class})
 public class LocalStackStorageConfiguration {

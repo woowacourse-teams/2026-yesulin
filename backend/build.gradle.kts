@@ -41,6 +41,7 @@ dependencies {
     implementation("software.amazon.awssdk:url-connection-client")
     implementation("org.testcontainers:testcontainers-localstack")
     implementation("org.springframework.boot:spring-boot-starter-security-oauth2-client")
+    implementation("org.springframework.boot:spring-boot-starter-session-jdbc")
     implementation("org.flywaydb:flyway-mysql")
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")
@@ -61,6 +62,7 @@ tasks.withType<Test> {
     useJUnitPlatform()
     systemProperty("spring.profiles.active", "test")
     systemProperty("spring.flyway.locations", "classpath:db/migration")
+    systemProperty("spring.test.context.cache.maxSize", "16")
 }
 
 tasks.bootJar {
