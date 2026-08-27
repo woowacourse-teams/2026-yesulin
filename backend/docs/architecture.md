@@ -18,12 +18,16 @@ infrastructure/    JPA·QueryDSL, OAuth, S3 등 외부 기술 adapter
 
 ## 인증과 권한
 
-- 기획사/제작사 이메일 로그인과 배우 OIDC 로그인 모두 `MemberPrincipal`을 HttpSession에 저장한다.
+- 기획사/제작사 이메일 로그인과 배우 OIDC 로그인 모두 `MemberPrincipal`을 HttpSession에 저장한다. 운영 HttpSession은
+  Spring Session JDBC의 `SPRING_SESSION`, `SPRING_SESSION_ATTRIBUTES`에 영속화하므로 애플리케이션 재기동과 교체
+  배포 후에도 유효 기간 안의 로그인을 유지한다.
 - `LoginRequiredInterceptor`가 세션 존재를, `LoginMemberArgumentResolver`가 역할과 회원 상태를 검사한다.
 - 공연·공고·심사는 `PRODUCER + ACTIVE`, 기획사 프로필은 상태와 무관한 `PRODUCER`, 배우 프로필·보관함은 `APPLICANT`를 요구한다.
 - `/api/v1/admin/**`은 `ADMIN`만 요구한다. 운영자 계정은 가입 경로가 없고 `AdminAccountInitializer`가
   `yesulin.admin.accounts` 설정을 읽어 기동 시점에 만들거나 비밀번호를 맞춘다. 이미 다른 유형이 쓰는 이메일이면 기동을 멈춘다.
 - Spring Security는 application 경로의 CSRF 검증을 담당한다. Cookie는 `XSRF-TOKEN`, header는 `X-CSRF-Token`이다.
+- 이메일 인증 토큰은 `email_verifications`에 회원별 하나만 저장한다. 재발송은 기존 토큰을 교체하고 인증 성공 시
+  토큰을 제거한다.
 - OIDC는 Authorization Code, PKCE S256, state·nonce, issuer·audience·서명·만료 검증을 사용한다.
 - Provider token은 저장하지 않고 `(issuer, subject)`만 소셜 계정 연결 키로 저장한다.
 

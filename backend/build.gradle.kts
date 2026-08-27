@@ -41,6 +41,7 @@ dependencies {
     implementation("software.amazon.awssdk:url-connection-client")
     implementation("org.testcontainers:testcontainers-localstack")
     implementation("org.springframework.boot:spring-boot-starter-security-oauth2-client")
+    implementation("org.springframework.boot:spring-boot-starter-session-jdbc")
     implementation("org.flywaydb:flyway-mysql")
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")

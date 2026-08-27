@@ -3,8 +3,13 @@ package art.yesulin.application.auth;
 import art.yesulin.domain.member.Member;
 import art.yesulin.domain.member.MemberStatus;
 import art.yesulin.domain.member.MemberType;
+import java.io.Serial;
+import java.io.Serializable;
 
-public record MemberPrincipal(long memberId, MemberType role, MemberStatus status) {
+public record MemberPrincipal(long memberId, MemberType role, MemberStatus status) implements Serializable {
+
+    @Serial
+    private static final long serialVersionUID = 1L;
 
     public static final String SESSION_ATTRIBUTE = "memberPrincipal";
 

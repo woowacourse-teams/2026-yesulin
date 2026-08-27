@@ -32,7 +32,7 @@ spring:
 server:
   servlet:
     session:
-      timeout: ${SESSION_TIMEOUT:30m}
+      timeout: ${SESSION_TIMEOUT:12h}
       cookie:
         http-only: true
         same-site: lax

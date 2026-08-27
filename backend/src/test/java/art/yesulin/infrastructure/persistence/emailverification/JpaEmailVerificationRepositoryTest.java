@@ -3,15 +3,25 @@ package art.yesulin.infrastructure.persistence.emailverification;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import art.yesulin.domain.auth.EmailVerification;
+import art.yesulin.domain.auth.EmailVerificationRepository;
+import art.yesulin.infrastructure.querydsl.QueryDslConfiguration;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.context.annotation.Import;
 
-class CollectionEmailVerificationRepositoryTest {
+@DataJpaTest(properties = {
+        "spring.flyway.enabled=false",
+        "spring.jpa.hibernate.ddl-auto=create-drop"
+})
+@Import({JpaEmailVerificationRepository.class, QueryDslConfiguration.class})
+class JpaEmailVerificationRepositoryTest {
 
     private static final Instant NOW = Instant.parse("2026-08-26T00:00:00Z");
 
-    private final CollectionEmailVerificationRepository repository =
-            new CollectionEmailVerificationRepository();
+    @Autowired
+    private EmailVerificationRepository repository;
 
     @Test
     void replacesPreviousVerificationForSameMember() {
@@ -29,6 +39,14 @@ class CollectionEmailVerificationRepositoryTest {
 
         assertThat(repository.findByToken("expired")).isEmpty();
         assertThat(repository.findByToken("valid")).isPresent();
+    }
+
+    @Test
+    void removesVerificationByToken() {
+        repository.save(verification("one-time", 1L, NOW.plusSeconds(60)), NOW);
+
+        assertThat(repository.removeByToken("one-time")).isPresent();
+        assertThat(repository.findByToken("one-time")).isEmpty();
     }
 
     private EmailVerification verification(String token, long memberId, Instant expiresAt) {
