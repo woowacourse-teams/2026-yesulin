@@ -23,6 +23,7 @@ export function AdminProducerTable({ producers, onChanged }: Props) {
       await changeMemberStatus(producer.memberId, next);
       onChanged();
     } catch (cause) {
+      console.error("[기획사 상태 변경 실패]", cause);
       setError(cause instanceof Error ? cause.message : "상태를 바꾸지 못했습니다.");
     } finally {
       setPendingId(null);

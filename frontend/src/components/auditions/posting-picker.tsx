@@ -162,7 +162,8 @@ function PostingMoreMenu({ posting, open, onOpenChange, onEdit, onDelete }: { re
       await navigator.clipboard.writeText(`${window.location.origin}${publicApplicationRoute(posting.id)}`);
       toast("지원 링크를 복사했습니다.", { type: "success" });
       onOpenChange(false);
-    } catch {
+    } catch (cause) {
+      console.error("[지원 링크 복사 실패]", cause);
       toast("지원 링크를 복사하지 못했습니다. 다시 시도해 주세요.", { type: "error" });
     } finally {
       setCopying(false);

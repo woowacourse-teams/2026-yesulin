@@ -34,6 +34,7 @@ export function PublicSubmissionLookup() {
     try {
       setResult(await lookupSubmission({ code, phone }));
     } catch (cause) {
+      console.error("[지원 내역 조회 실패]", cause);
       setError(cause instanceof Error ? cause.message : "지원 내역을 찾지 못했습니다.");
     } finally {
       setLoading(false);

@@ -21,7 +21,8 @@ export function PostingCreatedPanel({
     try {
       await navigator.clipboard.writeText(applicationUrl);
       setCopyState("copied");
-    } catch {
+    } catch (cause) {
+      console.error("[생성된 공고 링크 복사 실패]", cause);
       setCopyState("error");
     }
   }

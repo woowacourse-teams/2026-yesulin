@@ -49,6 +49,7 @@ export function ApplicantReviewDecision({
       onBoardChange(next);
       if (success) toast(success, { type: "success" });
     } catch (cause: unknown) {
+      console.error("[지원자 심사 저장 실패]", cause);
       toast(errorMessage(cause, "심사 내용을 저장하지 못했습니다."), { type: "error" });
     } finally {
       setSaving(false);

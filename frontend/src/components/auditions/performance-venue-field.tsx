@@ -50,8 +50,11 @@ export function PerformanceVenueField({ venue, address, onVenueChange, onAddress
         new window.kakao.maps.Marker({ map, position: center });
         setMessage("");
       })
-      .catch(() => {
-        if (!cancelled) setMessage("지도를 불러오지 못했습니다. 주소는 그대로 저장할 수 있어요.");
+      .catch((cause) => {
+        if (!cancelled) {
+          console.error("[공연장 지도 불러오기 실패]", cause);
+          setMessage("지도를 불러오지 못했습니다. 주소는 그대로 저장할 수 있어요.");
+        }
       });
 
     return () => { cancelled = true; };
@@ -71,7 +74,8 @@ export function PerformanceVenueField({ venue, address, onVenueChange, onAddress
           setMessage("공연장 주소를 선택했습니다. 지도 좌표는 카카오 지도 키가 설정되면 함께 저장됩니다.");
         }
       } }).open();
-    } catch {
+    } catch (cause) {
+      console.error("[주소 검색 불러오기 실패]", cause);
       setMessage("주소 검색을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
     }
   };

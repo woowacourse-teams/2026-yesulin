@@ -36,6 +36,7 @@ export function ProfilePhotoLibrary({ profile, onSaved }: { readonly profile: Ap
       toast(message, { type: "success" });
       return true;
     } catch (cause) {
+      console.error("[사진 보관함 저장 실패]", cause);
       setError(cause instanceof Error ? cause.message : "사진 보관함을 저장하지 못했습니다.");
       return false;
     } finally {

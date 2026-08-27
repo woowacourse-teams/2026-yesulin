@@ -67,6 +67,7 @@ export function ProfileEditor({ profile, onSaved }: { readonly profile: Applican
       notifyApplicantProfileChanged();
       onSaved(next);
     } catch (cause) {
+      console.error("[배우 프로필 저장 실패]", cause);
       setError(cause instanceof Error ? cause.message : "프로필 정보를 저장하지 못했습니다.");
     } finally {
       setSaving(false);

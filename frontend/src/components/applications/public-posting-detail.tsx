@@ -64,7 +64,7 @@ export function PublicPostingDetail({ posting, useProfilePrefill = false, resume
         const routeRoleIds = validRoleIds.length ? validRoleIds : validInitialRoleIds.length ? validInitialRoleIds : posting.roles[0] ? [posting.roles[0].id] : [];
         router.replace(applicationWriteRoute(posting.id, route, routeRoleIds, { prefill: useProfilePrefill && !draft }));
       } else if (resumeDraft) setRestoring(false);
-    }).catch(() => { if (active && resumeDraft) setRestoring(false); });
+    }).catch((cause) => { if (active) { console.error("[지원서 임시저장 확인 실패]", cause); if (resumeDraft) setRestoring(false); } });
     return () => { active = false; };
   }, [posting.id, posting.roles, resumeDraft, router, skipsRoleChoice, useProfilePrefill, validInitialRoleIds]);
 

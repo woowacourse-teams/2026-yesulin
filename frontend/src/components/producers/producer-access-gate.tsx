@@ -25,6 +25,7 @@ export function ProducerAccessGate({ children }: { readonly children: React.Reac
       await resendProducerVerificationEmail();
       setResendMessage("인증 이메일을 다시 보냈습니다. 새 이메일의 링크를 5분 안에 눌러 주세요.");
     } catch (cause) {
+      console.error("[인증 이메일 재전송 실패]", cause);
       setResendFailed(true);
       setResendMessage(cause instanceof Error ? cause.message : "인증 이메일을 재전송하지 못했습니다.");
     } finally {

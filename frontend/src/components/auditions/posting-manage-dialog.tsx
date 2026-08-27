@@ -54,7 +54,7 @@ function EditPostingForm({ detail, onClose, onChanged }: { readonly detail: Post
     try {
       await updatePosting(detail.id, { title: title.trim(), performanceStart, performanceEnd, recruitmentStart, recruitmentEnd, rounds });
       notifyAuditionTreeChanged(); onChanged(); onClose();
-    } catch (cause) { setFormError(errorMessage(cause, "공고를 수정하지 못했습니다.")); }
+    } catch (cause) { console.error("[공고 수정 실패]", cause); setFormError(errorMessage(cause, "공고를 수정하지 못했습니다.")); }
     finally { setSaving(false); }
   };
   return <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
@@ -75,6 +75,6 @@ function DeletePostingDialog({ posting, onClose, onChanged }: Omit<Parameters<ty
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
   const blocked = posting.applicantCount > 0;
-  const remove = async () => { setDeleting(true); setError(""); try { await deletePosting(posting.id); notifyAuditionTreeChanged(); onChanged(); onClose(); } catch (cause) { setError(errorMessage(cause, "공고를 삭제하지 못했습니다.")); setDeleting(false); } };
+  const remove = async () => { setDeleting(true); setError(""); try { await deletePosting(posting.id); notifyAuditionTreeChanged(); onChanged(); onClose(); } catch (cause) { console.error("[공고 삭제 실패]", cause); setError(errorMessage(cause, "공고를 삭제하지 못했습니다.")); setDeleting(false); } };
   return <ModalShell open onClose={onClose} labelledBy={TITLE_ID} className="w-[min(520px,calc(100vw-32px))] rounded-modal bg-card shadow-[var(--shadow-modal)]"><DialogHeader id={TITLE_ID} title="공고 삭제" subtitle={posting.title} /><div className="px-5 py-6"><p className="leading-7">{blocked ? `배우 ${posting.applicantCount}명의 지원 기록을 보호하기 위해 삭제할 수 없습니다.` : "공고를 삭제하면 공유한 지원 링크도 더 이상 열리지 않습니다. 이 작업은 되돌릴 수 없습니다."}</p>{error ? <p role="alert" className="mt-4 text-sm font-medium text-fail">{error}</p> : null}</div><DialogFooter><SecondaryButton onClick={onClose}>취소</SecondaryButton><DestructiveButton onClick={remove} disabled={blocked || deleting}>{deleting ? "삭제 중…" : "공고 삭제"}</DestructiveButton></DialogFooter></ModalShell>;
 }

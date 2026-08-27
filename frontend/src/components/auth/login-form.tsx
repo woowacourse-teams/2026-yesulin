@@ -81,6 +81,7 @@ export function LoginForm({ returnTo, applicationFlow = false }: { readonly retu
       try {
         serverSession = await requestLogin(trimmedIdentifier, password);
       } catch (error) {
+        console.error("[로그인 실패]", error);
         const message = error instanceof SessionApiError
           ? error.message
           : "로그인하지 못했습니다. 잠시 후 다시 시도해 주세요.";

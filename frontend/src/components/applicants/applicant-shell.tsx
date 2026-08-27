@@ -34,6 +34,7 @@ export function ApplicantShell({ children }: { readonly children: React.ReactNod
     void logoutSession()
       .then(() => router.replace("/login"))
       .catch((error: unknown) => {
+        console.error("[배우 로그아웃 실패]", error);
         const message = error instanceof SessionApiError
           ? error.message
           : "로그아웃하지 못했습니다. 잠시 후 다시 시도해 주세요.";

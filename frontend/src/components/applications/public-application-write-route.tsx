@@ -25,7 +25,7 @@ export function PublicApplicationWriteRoute({ postingId, initialPosting, initial
   useEffect(() => {
     if (initialPosting) return;
     let active = true;
-    getPublicPosting(postingId).then((next) => { if (active) setPosting(next); }).catch(() => { if (active) setMissing(true); });
+    getPublicPosting(postingId).then((next) => { if (active) setPosting(next); }).catch((cause) => { if (active) { console.error("[지원서 작성용 공고 조회 실패]", cause); setMissing(true); } });
     return () => { active = false; };
   }, [initialPosting, postingId]);
 
