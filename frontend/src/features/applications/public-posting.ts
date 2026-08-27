@@ -57,16 +57,37 @@ function findPosting(id: string): { performance: CatalogPerformance; posting: Ca
   return null;
 }
 
+const koreaDateTimeFormat = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Seoul",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
+/** 서버는 모집 일정을 UTC Instant로 준다. 화면에 쓰기 전에 한국 시간으로 옮긴다. */
+function koreaDateTime(value: string) {
+  const instant = new Date(value);
+  if (Number.isNaN(instant.getTime())) return null;
+  const parts = koreaDateTimeFormat.formatToParts(instant);
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((item) => item.type === type)?.value ?? "";
+  if (!part("year")) return null;
+  return { date: `${part("year")}-${part("month")}-${part("day")}`, time: `${part("hour")}:${part("minute")}` };
+}
+
 function formatDate(date?: string) {
   if (!date) return "일정 조율 중";
-  const [year, month, day] = date.slice(0, 10).replaceAll(".", "-").split("-");
+  const localDate = date.includes("T") ? koreaDateTime(date)?.date : date.slice(0, 10).replaceAll(".", "-");
+  const [year, month, day] = (localDate ?? "").split("-");
   return year ? `${year}년 ${Number(month)}월 ${Number(day)}일` : date;
 }
 
 function formatDateTime(value?: string) {
   if (!value) return "일정 조율 중";
-  const time = value.includes("T") ? value.split("T")[1] : "";
-  return `${formatDate(value)}${time ? ` ${time.slice(0, 5)}` : ""}`;
+  const time = value.includes("T") ? koreaDateTime(value)?.time : "";
+  return `${formatDate(value)}${time ? ` ${time}` : ""}`;
 }
 
 function scheduleOf(posting: CatalogPosting): readonly PublicSchedule[] {

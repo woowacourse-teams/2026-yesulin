@@ -13,9 +13,25 @@ import {
 import type { AnalyticsConsent } from "@/features/analytics/consent";
 import { clearLoginAnalyticsState, trackLoginReturnIfPending } from "@/features/analytics/events";
 
+/**
+ * 화면 아래에 고정된 CTA 막대가 있는 경로에서는 분석 설정 버튼이 그 위로 올라가야 한다.
+ * Tailwind가 클래스를 정적으로 수집하므로 조합하지 않고 완성된 문자열로 둔다.
+ */
+function analyticsButtonBottom(bars: { hasApplicantMobileNavigation: boolean; hasApplicationStepBar: boolean; hasPostingActionBar: boolean }) {
+  if (bars.hasApplicantMobileNavigation) return "bottom-[calc(76px+env(safe-area-inset-bottom))] md:bottom-[max(12px,env(safe-area-inset-bottom))]";
+  if (bars.hasPostingActionBar) return "bottom-[calc(112px+env(safe-area-inset-bottom))] min-[1200px]:bottom-[max(12px,env(safe-area-inset-bottom))]";
+  if (bars.hasApplicationStepBar) return "bottom-[calc(80px+env(safe-area-inset-bottom))] md:bottom-[max(12px,env(safe-area-inset-bottom))]";
+  return "bottom-[max(12px,env(safe-area-inset-bottom))]";
+}
+
 export function AnalyticsConsentManager({ gtmId }: { readonly gtmId?: string }) {
   const pathname = usePathname();
   const hasApplicantMobileNavigation = pathname.startsWith("/applicants");
+  const applyPosting = pathname.startsWith("/apply/") && pathname !== "/apply/lookup";
+  // 작성 단계 경로는 /apply/{postingId}/write/{step} 형태다.
+  const hasApplicationStepBar = applyPosting && pathname.split("/")[3] === "write";
+  const hasPostingActionBar = applyPosting && !hasApplicationStepBar;
+  const bottomOffset = analyticsButtonBottom({ hasApplicantMobileNavigation, hasApplicationStepBar, hasPostingActionBar });
   const titleId = useId();
   const [consent, setConsent] = useState<AnalyticsConsent | null>();
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -84,7 +100,7 @@ export function AnalyticsConsentManager({ gtmId }: { readonly gtmId?: string }) 
 
   return <>
     {consent === null ? <ConsentBanner onAccept={() => choose("granted")} onReject={() => choose("denied")} /> : null}
-    {consent !== null ? <TextButton onClick={() => setSettingsOpen(true)} className={`fixed right-3 z-40 min-h-9 rounded-full border border-border bg-card px-3 text-xs shadow-[var(--shadow-1)] ${hasApplicantMobileNavigation ? "bottom-[calc(76px+env(safe-area-inset-bottom))] md:bottom-[max(12px,env(safe-area-inset-bottom))]" : "bottom-[max(12px,env(safe-area-inset-bottom))]"}`}>분석 설정</TextButton> : null}
+    {consent !== null ? <TextButton onClick={() => setSettingsOpen(true)} className={`fixed right-3 z-40 min-h-9 rounded-full border border-border bg-card px-3 text-xs shadow-[var(--shadow-1)] ${bottomOffset}`}>분석 설정</TextButton> : null}
     <ModalShell
       open={settingsOpen}
       onClose={() => setSettingsOpen(false)}

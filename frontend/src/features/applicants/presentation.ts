@@ -4,10 +4,11 @@ export function formatApplicantDate(value: string | number, withTime = false) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul",
     year: "numeric",
     month: "long",
     day: "numeric",
-    ...(withTime ? { hour: "2-digit", minute: "2-digit", hour12: false } : {}),
+    ...(withTime ? { hour: "2-digit", minute: "2-digit", hourCycle: "h23" } : {}),
   }).format(date);
 }
 

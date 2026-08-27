@@ -126,7 +126,7 @@ function PostingRow({ posting, onEdit, onDelete }: { readonly posting: PostingSu
     <dl className="pointer-events-none relative z-1 mt-5 grid grid-cols-2 gap-y-5 border-t border-border-soft pt-5 sm:grid-cols-3 sm:divide-x sm:divide-border-soft">
       <PostingMetric label="모집 마감" value={posting.deadline} numeric />
       <PostingMetric label="모집 배역" value={`${posting.roleCount}개`} numeric />
-      <PostingMetric label="검토 상태" value={reviewState(posting)} progress={posting.allRoundsClosed ? undefined : posting.progress.percent} />
+      <PostingMetric label="검토 상태" value={reviewState(posting)} progress={posting.allRoundsClosed || posting.applicantCount === 0 ? undefined : posting.progress.percent} />
     </dl>
   </li>;
 }

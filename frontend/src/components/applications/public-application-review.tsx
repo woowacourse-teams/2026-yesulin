@@ -8,7 +8,7 @@ import { orderedApplicationPhotos, youtubeVideoId } from "@/features/application
 import type { ApplicationPhoto, CareerDraft, SubmissionState } from "@/features/applications/application-form-state";
 import { photoSlotLabels } from "@/features/applications/materials";
 import { buildApplicationAuthReturnTo } from "@/features/auth/return-to";
-import { PrimaryButton, TextButton } from "@/components/ui/controls";
+import { PrimaryButton, SecondaryButton, TextButton } from "@/components/ui/controls";
 import { usePublicApplication } from "./public-application-context";
 import { PublicApplicationSaveBadge, PublicApplicationSaveNotice } from "./public-application-save-status";
 import { ModalShell } from "@/components/auditions/modal-shell";
@@ -61,12 +61,13 @@ export function PublicApplicationReview() {
 }
 
 function ReviewFlow({ issues, consent, authenticated }: { issues: number; consent: boolean; authenticated: boolean }) {
-  const submissionDetail = issues ? "오류 수정 후" : authenticated ? "제출 가능" : "인증 후";
+  const ready = !issues && consent && authenticated;
+  const submissionDetail = issues ? "오류 수정 후" : !consent ? "동의 후" : !authenticated ? "인증 후" : "제출 가능";
   const items = [
     { label: "내용 확인", detail: issues ? `오류 ${issues}개` : "확인 완료", tone: issues ? "text-fail" : "text-pass" },
     { label: "필수 동의", detail: consent ? "동의 완료" : "확인 필요", tone: consent ? "text-pass" : "text-muted" },
     { label: "배우 인증", detail: authenticated ? "인증 완료" : "인증 필요", tone: authenticated ? "text-pass" : "text-muted" },
-    { label: "최종 제출", detail: submissionDetail, tone: issues ? "text-warn" : authenticated ? "text-brand" : "text-muted" },
+    { label: "최종 제출", detail: submissionDetail, tone: issues ? "text-warn" : ready ? "text-brand" : "text-muted" },
   ];
   return <nav aria-label="지원서 제출 순서" className="mt-7"><ol className="grid grid-cols-2 rounded-card border border-border bg-card md:grid-cols-4">{items.map((item) => <li key={item.label} className="flex min-h-20 items-center border-b border-border-soft px-4 odd:border-r [&:nth-child(n+3)]:border-b-0 md:border-b-0 md:border-r md:last:border-r-0"><span><strong className="block text-sm">{item.label}</strong><span className={`mt-0.5 block text-xs font-semibold ${item.tone}`}>{item.detail}</span></span></li>)}</ol></nav>;
 }
@@ -131,7 +132,9 @@ function SubmissionArea({ submitting, consent, issueCount, state, error, onSubmi
   const showFailureControl = process.env.NODE_ENV === "development";
   const submissionError = error && !error.includes("동의") ? error : "";
   const blockedByIssues = issueCount > 0;
-  const label = submitting ? "제출 중…" : blockedByIssues ? "오류를 수정해 주세요" : state === "ERROR" ? "다시 제출" : consent ? "지원서 제출" : "동의하고 제출";
+  const label = submitting ? "제출 중…" : blockedByIssues ? "오류를 수정해 주세요" : !consent ? "필수 항목 동의" : state === "ERROR" ? "다시 제출" : "지원서 제출";
+  // 동의 전에는 제출 버튼을 강조하지 않아 남은 단계가 있다는 걸 색으로도 구분한다.
+  const SubmitButton = consent ? PrimaryButton : SecondaryButton;
   const status = submissionError ? `${submissionError} 입력값은 유지됩니다. 다시 제출해 주세요.` : submitting ? "작성 내용을 제출하고 있어요. 완료될 때까지 잠시만 기다려 주세요." : blockedByIssues ? `수정할 항목 ${issueCount}개를 해결하면 제출할 수 있어요.` : "";
   const requestSubmission = () => {
     if (!consent) {
@@ -144,7 +147,7 @@ function SubmissionArea({ submitting, consent, issueCount, state, error, onSubmi
     setConfirmationOpen(false);
     onSubmit("SUCCESS");
   };
-  return <><section aria-labelledby="submission-title" className="mt-9 rounded-card border border-brand-line bg-card p-5 md:p-6"><p className="text-sm font-semibold text-brand">최종 제출</p><h2 id="submission-title" className="mt-1 text-xl font-bold">{blockedByIssues ? "오류를 수정하면 제출할 수 있어요" : "지원서를 제출할 준비가 됐어요"}</h2><div aria-live="polite">{status ? <p role={submissionError ? "alert" : "status"} className={`mt-3 w-full rounded-control border px-4 py-3 text-sm leading-6 ${submissionError ? "border-fail/20 bg-fail-bg font-medium text-fail" : submitting ? "border-brand-line bg-brand-soft font-medium text-brand" : "border-warn/20 bg-warn-bg font-medium text-warn"}`}>{status}</p> : null}</div><PrimaryButton disabled={submitting || blockedByIssues} onClick={requestSubmission} className="mt-4 min-h-12 w-full px-5 text-base">{label}</PrimaryButton>{showFailureControl ? <details className="mt-4 text-xs text-muted"><summary className="cursor-pointer px-2 py-1 font-medium hover:text-muted-strong">개발용 상태 확인</summary><TextButton disabled={submitting || blockedByIssues} onClick={() => onSubmit("ERROR")} className="mt-2 px-3 text-xs text-muted hover:bg-fail-bg hover:text-fail">실패 흐름 보기</TextButton></details> : null}</section><PublicApplicationSubmitDialog open={confirmationOpen} onClose={() => setConfirmationOpen(false)} onConfirm={confirmSubmission} /></>;
+  return <><section aria-labelledby="submission-title" className="mt-9 rounded-card border border-brand-line bg-card p-5 md:p-6"><p className="text-sm font-semibold text-brand">최종 제출</p><h2 id="submission-title" className="mt-1 text-xl font-bold">{blockedByIssues ? "오류를 수정하면 제출할 수 있어요" : consent ? "지원서를 제출할 준비가 됐어요" : "필수 동의를 확인하면 제출할 수 있어요"}</h2><div aria-live="polite">{status ? <p role={submissionError ? "alert" : "status"} className={`mt-3 w-full rounded-control border px-4 py-3 text-sm leading-6 ${submissionError ? "border-fail/20 bg-fail-bg font-medium text-fail" : submitting ? "border-brand-line bg-brand-soft font-medium text-brand" : "border-warn/20 bg-warn-bg font-medium text-warn"}`}>{status}</p> : null}</div><SubmitButton disabled={submitting || blockedByIssues} onClick={requestSubmission} className="mt-4 min-h-12 w-full px-5 text-base">{label}</SubmitButton>{showFailureControl ? <details className="mt-4 text-xs text-muted"><summary className="cursor-pointer px-2 py-1 font-medium hover:text-muted-strong">개발용 상태 확인</summary><TextButton disabled={submitting || blockedByIssues} onClick={() => onSubmit("ERROR")} className="mt-2 px-3 text-xs text-muted hover:bg-fail-bg hover:text-fail">실패 흐름 보기</TextButton></details> : null}</section><PublicApplicationSubmitDialog open={confirmationOpen} onClose={() => setConfirmationOpen(false)} onConfirm={confirmSubmission} /></>;
 }
 
 function ReviewFields({ fields, values }: { fields: readonly ApplicationFieldInput[]; values: Readonly<Record<string, string>> }) { return <dl className="grid gap-x-8 gap-y-3 text-sm md:grid-cols-2">{fields.filter((field) => field.enabled).map((field) => { const value = reviewValue(field, values); const href = field.inputType === "URL" && typeof value === "string" ? externalHttpHref(value) : null; return <div key={field.id} className="grid grid-cols-[112px_minmax(0,1fr)] gap-4"><dt className="whitespace-nowrap text-muted">{field.label}</dt><dd className="line-clamp-3 break-words whitespace-pre-wrap font-medium">{href ? <a href={href} target="_blank" rel="noopener noreferrer" className="text-brand underline decoration-brand-line underline-offset-2 hover:decoration-brand">{value}<span className="sr-only"> 새 창에서 열기</span></a> : value || <span className="font-normal text-muted">미입력</span>}</dd></div>; })}</dl>; }

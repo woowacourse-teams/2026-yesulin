@@ -79,7 +79,7 @@ export function applicationStepProgress({
 export function applicationFieldDetail(field: ApplicationFieldInput) {
   if (field.inputType === "FILE") {
     const requirements = field.config.photoRequirements ?? [];
-    return requirements.length ? requirements.map((item) => `${item.description} ${item.count}장`).join(" · ") : `JPG, PNG, WEBP · 파일당 10MB 이하 · 최대 ${Math.min(10, Math.max(1, field.config.maxCount ?? 10))}장`;
+    return requirements.length ? requirements.map((item) => `${item.description} ${item.count}장`).join(" · ") : `JPG, PNG, WEBP · 파일당 20MB 이하 · 최대 ${Math.min(10, Math.max(1, field.config.maxCount ?? 10))}장`;
   }
   if (field.inputType === "URL" && field.section === "MATERIALS") {
     const requirements = field.config.videoRequirements ?? [];

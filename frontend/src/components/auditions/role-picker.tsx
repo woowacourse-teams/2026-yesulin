@@ -36,6 +36,8 @@ function RoleStatus({ role }: { role: RoleSummary }) {
 
 function RoleRow({ role }: { role: RoleSummary }) {
   const rate = role.quota > 0 ? role.applicantCount / role.quota : 0;
+  // 첫 지원 전에는 경쟁률과 검토 진행률이 모두 0이라 읽을 값이 없다. 1건부터 보여준다.
+  const noApplicants = role.applicantCount === 0;
 
   return (
     <li>
@@ -53,22 +55,22 @@ function RoleRow({ role }: { role: RoleSummary }) {
           <RoleStatus role={role} />
         </div>
 
-        <dl className="grid grid-cols-3 gap-3 rounded-control bg-surface px-4 py-3 lg:bg-transparent lg:p-0">
+        <dl className={`grid gap-3 rounded-control bg-surface px-4 py-3 lg:bg-transparent lg:p-0 ${noApplicants ? "grid-cols-2" : "grid-cols-3"}`}>
           <div>
             <dt className="text-xs text-muted">지원</dt>
-            <dd className="num mt-0.5 text-base font-bold"><b>{role.applicantCount}</b><span className="ml-0.5 text-xs font-medium text-muted">명</span></dd>
+            <dd className={`mt-0.5 text-base font-bold ${noApplicants ? "text-muted" : "num"}`}>{noApplicants ? "지원자 없음" : <><b>{role.applicantCount}</b><span className="ml-0.5 text-xs font-medium text-muted">명</span></>}</dd>
           </div>
           <div>
             <dt className="text-xs text-muted">모집</dt>
             <dd className="num mt-0.5 text-base font-bold"><b>{role.quota}</b><span className="ml-0.5 text-xs font-medium text-muted">명</span></dd>
           </div>
-          <div>
+          {noApplicants ? null : <div>
             <dt className="text-xs text-muted">경쟁률</dt>
             <dd className="num mt-0.5 text-base font-bold">{rate.toFixed(1)}<span className="ml-0.5 text-xs font-medium text-muted">: 1</span></dd>
-          </div>
+          </div>}
         </dl>
 
-        <div>
+        <div>{noApplicants ? null : <>
           <div className="flex items-center justify-between gap-3 text-xs">
             <span className="font-semibold text-muted-strong">검토 진행</span>
             <span className="num text-muted">{role.progress.done}/{role.progress.total}명 · {role.progress.percent}%</span>
@@ -76,7 +78,7 @@ function RoleRow({ role }: { role: RoleSummary }) {
           <div role="progressbar" aria-label={`${role.name} 검토 진행률`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={role.progress.percent} className="mt-2 h-1.5 overflow-hidden rounded-full bg-border-soft">
             <span className="block h-full rounded-full bg-brand transition-[width] duration-300" style={{ width: `${role.progress.percent}%` }} />
           </div>
-        </div>
+        </>}</div>
 
         <span className="inline-flex min-h-10 items-center justify-center gap-1.5 justify-self-start rounded-control border border-border bg-card px-3 text-sm font-semibold text-muted-strong transition-colors group-hover:border-brand-line group-hover:text-brand lg:min-h-0 lg:w-6 lg:justify-self-end lg:border-0 lg:bg-transparent lg:p-0">
           <span className="lg:sr-only">지원자 보기</span>
