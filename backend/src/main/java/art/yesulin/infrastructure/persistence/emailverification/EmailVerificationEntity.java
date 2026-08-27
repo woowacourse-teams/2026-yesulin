@@ -20,7 +20,7 @@ class EmailVerificationEntity {
     @Column(name = "token", length = 64, nullable = false, updatable = false)
     private String token;
 
-    @Column(name = "member_id", nullable = false, updatable = false)
+    @Column(name = "member_id", nullable = false, unique = true, updatable = false)
     private Long memberId;
 
     @Column(name = "email", length = 320, nullable = false, updatable = false)

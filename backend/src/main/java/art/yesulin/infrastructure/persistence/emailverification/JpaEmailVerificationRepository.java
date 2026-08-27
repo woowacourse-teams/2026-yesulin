@@ -2,6 +2,7 @@ package art.yesulin.infrastructure.persistence.emailverification;
 
 import art.yesulin.domain.auth.EmailVerification;
 import art.yesulin.domain.auth.EmailVerificationRepository;
+import art.yesulin.domain.member.Member;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import java.time.Instant;
@@ -20,6 +21,7 @@ public class JpaEmailVerificationRepository implements EmailVerificationReposito
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void save(EmailVerification verification, Instant now) {
+        entityManager.find(Member.class, verification.memberId(), LockModeType.PESSIMISTIC_WRITE);
         entityManager.createQuery("""
                         delete from EmailVerificationEntity verification
                         where verification.expiresAt <= :now

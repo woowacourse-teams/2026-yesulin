@@ -60,9 +60,9 @@ dependencies {
 
 tasks.withType<Test> {
     useJUnitPlatform()
-    maxHeapSize = "1g"
     systemProperty("spring.profiles.active", "test")
     systemProperty("spring.flyway.locations", "classpath:db/migration")
+    systemProperty("spring.test.context.cache.maxSize", "16")
 }
 
 tasks.bootJar {
