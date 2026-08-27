@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import type { ChangeEvent } from "react";
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
 import type { ApplicationWriteRouteKey } from "@/features/applications/application-form";
-import { formatPhoneNumber } from "@/features/applications/phone-number";
+import { applyPhoneInput, formatPhoneNumber } from "@/features/applications/phone-number";
 import { PublicApplicationCareer } from "./public-application-career";
 import { PublicApplicationExitDialog } from "./public-application-exit-dialog";
 import { PublicApplicationMedia } from "./public-application-media";
@@ -126,11 +126,17 @@ function FieldControl({ field, id, error, describedBy }: { field: ApplicationFie
   const { state, actions } = usePublicApplication();
   const value = state.values[field.id] ?? "";
   const className = `${fieldControlClass} ${error ? "border-fail focus:border-fail focus:ring-fail-bg" : ""}`;
-  const formatValue = (next: string) => field.inputType === "TEL" ? formatPhoneNumber(next) : next;
-  const common = { id, name: field.id, required: field.required, value, placeholder: field.config.placeholder, maxLength: field.inputType === "TEL" ? 13 : field.config.maxLength, "aria-invalid": Boolean(error) || undefined, "aria-describedby": describedBy, onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => actions.updateField(field.id, formatValue(event.target.value)), className };
+  const change = (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    if (field.inputType === "TEL" && event.target instanceof HTMLInputElement) {
+      applyPhoneInput(event.target, formatPhoneNumber, (next) => actions.updateField(field.id, next));
+      return;
+    }
+    actions.updateField(field.id, event.target.value);
+  };
+  const common = { id, name: field.id, required: field.required, value, placeholder: field.config.placeholder, maxLength: field.inputType === "TEL" ? 13 : field.config.maxLength, "aria-invalid": Boolean(error) || undefined, "aria-describedby": describedBy, onChange: change, className };
   if (field.inputType === "TEXTAREA") return <textarea {...common} minLength={field.config.minLength} rows={6} className={`${className} resize-none`} />;
   if (field.inputType === "SELECT") return <select {...common}><option value="">선택해 주세요</option>{field.config.options?.map((option) => <option key={option} value={option}>{option}</option>)}</select>;
-  if (field.inputType === "COMPOSITE") return <div className="grid grid-cols-2 gap-3">{field.config.fields?.map((part) => { const partId = `${field.id}.${part.key}`; const inputId = `${id}-${part.key}`; const isPhone = part.inputType === "TEL"; return <label key={part.key} htmlFor={inputId} className="relative"><span className="mb-2 block text-sm font-medium text-foreground">{part.label}</span><input id={inputId} name={partId} required={field.required} type={part.inputType === "NUMBER" ? "number" : isPhone ? "tel" : "text"} value={state.values[partId] ?? ""} placeholder={part.placeholder} maxLength={isPhone ? 13 : undefined} aria-invalid={Boolean(error) || undefined} aria-describedby={describedBy} onChange={(event) => actions.updateField(partId, isPhone ? formatPhoneNumber(event.target.value) : event.target.value)} className={`${className} pr-10`} />{part.unit ? <span className="pointer-events-none absolute right-3 top-10 text-sm text-muted">{part.unit}</span> : null}</label>; })}</div>;
+  if (field.inputType === "COMPOSITE") return <div className="grid grid-cols-2 gap-3">{field.config.fields?.map((part) => { const partId = `${field.id}.${part.key}`; const inputId = `${id}-${part.key}`; const isPhone = part.inputType === "TEL"; return <label key={part.key} htmlFor={inputId} className="relative"><span className="mb-2 block text-sm font-medium text-foreground">{part.label}</span><input id={inputId} name={partId} required={field.required} type={part.inputType === "NUMBER" ? "number" : isPhone ? "tel" : "text"} value={state.values[partId] ?? ""} placeholder={part.placeholder} maxLength={isPhone ? 13 : undefined} aria-invalid={Boolean(error) || undefined} aria-describedby={describedBy} onChange={(event) => isPhone ? applyPhoneInput(event.target, formatPhoneNumber, (next) => actions.updateField(partId, next)) : actions.updateField(partId, event.target.value)} className={`${className} pr-10`} />{part.unit ? <span className="pointer-events-none absolute right-3 top-10 text-sm text-muted">{part.unit}</span> : null}</label>; })}</div>;
   if (field.inputType === "REGION") return <RegionSelect id={id} value={value} required={field.required} invalid={Boolean(error)} describedBy={describedBy} onChange={(next) => actions.updateField(field.id, next)} />;
   const type = field.inputType === "TEL" ? "tel" : field.inputType === "NUMBER" ? "number" : field.inputType === "URL" ? "url" : "text";
   const number = field.inputType === "NUMBER";
