@@ -50,3 +50,12 @@ export type AdminAuditLog = {
   readonly detail: string;
   readonly createdAt: string;
 };
+
+export type AdminLog = {
+  readonly lines: readonly string[];
+  /** 읽기 상한 때문에 더 오래된 내용을 보지 못했다는 표시다. */
+  readonly truncated: boolean;
+  /** 로그 파일을 읽을 수 없으면 false다. */
+  readonly available: boolean;
+  readonly readAt: string;
+};

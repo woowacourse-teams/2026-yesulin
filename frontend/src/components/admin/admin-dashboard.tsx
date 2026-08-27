@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { logout } from "@/features/auth/session-api";
 import { AdminAuditLogTable } from "./admin-audit-log-table";
@@ -46,6 +47,12 @@ export function AdminDashboard() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Link
+            href="/admin/logs"
+            className="rounded border border-neutral-300 px-3 py-1.5 text-sm text-neutral-700 hover:bg-neutral-50"
+          >
+            로그
+          </Link>
           <button
             type="button"
             onClick={refresh}
