@@ -24,6 +24,7 @@ MSW 전용 경로를 어떻게 구분하는지만 설명한다.
 - `/api/v1/performances`, `/api/v1/performance-posters`
 - `/api/v1/auditions`, `/api/v1/public/auditions`
 - `/api/v1/applicants/me/profile`, 사진·영상 보관함
+- `/api/v1/files/{fileId}/content` (소유권과 지원서–공연사 관계를 검증하는 비공개 사진 조회)
 - `/api/v1/auditions/{auditionId}/submissions`, 내 지원서 목록·상세
 - `/api/v1/audition-roles/{roleId}/screening-rounds/**`
 - `/api/v1/audition-roles/{roleId}/screening/completion`
