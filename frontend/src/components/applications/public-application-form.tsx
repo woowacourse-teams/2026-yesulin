@@ -6,6 +6,7 @@ import type { ApplicationFieldInput } from "@/features/auditions/creation-types"
 import type { ApplicationWriteRouteKey } from "@/features/applications/application-form";
 import { applyPhoneInput, formatPhoneNumber } from "@/features/applications/phone-number";
 import { PublicApplicationCareer } from "./public-application-career";
+import { applicationLinkKey, applicationLinks, MAX_APPLICATION_LINKS, removedLinkValues } from "@/features/applications/application-links";
 import { PublicApplicationExitDialog } from "./public-application-exit-dialog";
 import { PublicApplicationMedia } from "./public-application-media";
 import { PublicApplicationProvider, usePublicApplication } from "./public-application-context";
@@ -17,7 +18,7 @@ import type { ProfilePrefillResponse } from "@/features/applicants/types";
 import { CalendarDateRangeField } from "@/components/auditions/calendar-date-range-field";
 import { RegionSelect } from "@/components/ui/region-select";
 import { BirthDateInput } from "@/components/ui/birth-date-input";
-import { fieldControlClass, PrimaryButton, SecondaryButton, TextButton, UnitSuffix } from "@/components/ui/controls";
+import { AddButton, fieldControlClass, PrimaryButton, SecondaryButton, TextButton, UnitSuffix } from "@/components/ui/controls";
 
 type PublicApplicationFormProps = {
   readonly postingId: PostingId;
@@ -105,7 +106,37 @@ function StepContent() {
   const step = meta.steps[state.stepIndex]!;
   if (step.key === "media") return <div className="mt-9"><PublicApplicationMedia /></div>;
   if (step.fields.length === 0) return <p className="mt-9 rounded-card border border-dashed border-border bg-surface px-5 py-10 text-center text-sm text-muted-strong">공고에서 요청한 추가 질문이 없습니다.</p>;
-  return <div className="mt-9 grid grid-cols-1 gap-x-6 gap-y-8 md:grid-cols-2">{step.fields.map((field) => field.id === "CAREER" ? <div key={field.id} className="md:col-span-2"><PublicApplicationCareer field={field} /></div> : <ApplicationField key={field.id} field={field} />)}</div>;
+  return <div className="mt-9 grid grid-cols-1 gap-x-6 gap-y-8 md:grid-cols-2">{step.fields.map((field) => field.id === "CAREER" ? <div key={field.id} className="md:col-span-2"><PublicApplicationCareer field={field} /></div> : field.id === "LINK" ? <div key={field.id} className="md:col-span-2"><ApplicationLinksField field={field} /></div> : <ApplicationField key={field.id} field={field} />)}</div>;
+}
+
+/** 프로필과 같이 외부 링크를 여러 개 받는다. 칸을 지우면 뒤 칸을 앞으로 당긴다. */
+function ApplicationLinksField({ field }: { field: ApplicationFieldInput }) {
+  const { state, actions } = usePublicApplication();
+  const [count, setCount] = useState(() => Math.max(1, applicationLinks(state.values).length));
+  const error = state.stepError.startsWith(field.label) ? state.stepError : "";
+  const errorId = `application-${field.id}-error`;
+  const remove = (index: number) => {
+    const next = removedLinkValues(state.values, index);
+    Object.entries(next).forEach(([key, value]) => actions.updateField(key, value));
+    setCount((current) => Math.max(1, current - 1));
+  };
+  return <section id={`application-field-${field.id}`}>
+    <div className="mb-2 flex items-center gap-1 text-sm font-semibold text-foreground">
+      <FieldLabelText field={field} />
+      <span className="num ml-auto text-xs font-medium text-muted">{applicationLinks(state.values).length} / {MAX_APPLICATION_LINKS}</span>
+    </div>
+    <p className="mb-3 text-sm leading-6 text-muted">인스타그램, 개인 홈페이지, 포트폴리오처럼 배우 활동을 확인할 수 있는 주소를 넣어 주세요.</p>
+    <div className="space-y-3">{Array.from({ length: count }, (_, index) => {
+      const key = applicationLinkKey(index);
+      const inputId = `application-${field.id}-${index}`;
+      return <div key={key} className="flex items-center gap-2">
+        <input id={inputId} name={key} type="url" value={state.values[key] ?? ""} placeholder={field.config.placeholder} maxLength={field.config.maxLength} aria-label={`${field.label} ${index + 1}`} aria-invalid={Boolean(error) || undefined} aria-describedby={error ? errorId : undefined} onChange={(event) => actions.updateField(key, event.target.value)} className={`${fieldControlClass} ${error ? "border-fail focus:border-fail focus:ring-fail-bg" : ""}`} />
+        {count > 1 ? <TextButton onClick={() => remove(index)} aria-label={`${field.label} ${index + 1} 삭제`} className="shrink-0 px-3 text-fail hover:bg-fail-bg hover:text-fail">삭제</TextButton> : null}
+      </div>;
+    })}</div>
+    {count < MAX_APPLICATION_LINKS ? <AddButton onClick={() => setCount((current) => current + 1)} className="mt-3 min-h-12 w-full">+ 링크 추가</AddButton> : <p className="mt-3 text-sm text-muted">링크는 최대 {MAX_APPLICATION_LINKS}개까지 넣을 수 있어요.</p>}
+    {error ? <InlineError id={errorId} error={error} /> : null}
+  </section>;
 }
 
 function ApplicationField({ field }: { field: ApplicationFieldInput }) {

@@ -4,6 +4,7 @@ import type { FileUploadResource } from "@/features/auditions/backend-resources"
 import { submissionId, type SubmissionId } from "@/features/auditions/types";
 import { orderedApplicationPhotos } from "./application-form-state";
 import type { ApplicationPhoto, CareerDraft } from "./application-form-state";
+import { applicationLinks } from "./application-links";
 
 type V1SubmissionInput = {
   readonly auditionId: string;
@@ -71,7 +72,7 @@ export function applicantInformation(input: ApplicantInformationInput): Applican
     const value = text(key);
     return value === null ? null : Number(value);
   };
-  const link = text("LINK");
+
 
   return {
     basicInformation: {
@@ -86,7 +87,7 @@ export function applicantInformation(input: ApplicantInformationInput): Applican
     },
     additionalInformation: {
       school: text("SCHOOL"),
-      links: link ? [link] : [],
+      links: applicationLinks(input.values),
       nationality: text("NATIONALITY"),
       coverLetter: text("COVER_LETTER"),
       specialty: text("SPECIALTY"),

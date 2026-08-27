@@ -2,6 +2,7 @@ import type { ApplicationFormStep } from "./application-form";
 import { isCompleteKoreaRegion } from "@/features/applicants/korea-regions";
 import { integerMeasurementError, isIntegerMeasurement } from "@/features/applicants/profile-input";
 import { isValidBirthDate } from "@/components/ui/birth-date-input";
+import { applicationLinks } from "./application-links";
 
 export const MAX_PHOTO_COUNT = 3;
 export const MAX_PHOTO_SIZE_BYTES = 20 * 1024 * 1024;
@@ -169,6 +170,11 @@ function applicationFieldError(field: ApplicationFormStep["fields"][number], val
     return field.required && missing ? `${field.label} 항목을 입력해 주세요.` : null;
   }
 
+  if (field.id === "LINK") {
+    const links = applicationLinks(values);
+    if (field.required && links.length === 0) return `${field.label} 항목을 입력해 주세요.`;
+    return null;
+  }
   const value = values[field.id]?.trim() ?? "";
   if (field.inputType === "REGION") {
     if (!field.required && !value) return null;
