@@ -42,5 +42,6 @@ infrastructure/    JPA·QueryDSL, OAuth, S3 등 외부 기술 adapter
 - 요청 로그는 method, URI, status, elapsed time만 기록한다.
 - 요청·응답 본문, Cookie, token, 비밀번호, 연락처, 지원서 원문과 파일 URL은 일반 로그에 남기지 않는다.
 - 운영자의 쓰기 작업은 `admin_audit_logs`에 실행자·대상·`이전 -> 이후`만 남기고 개인정보 원문은 담지 않는다.
+- 운영자는 `/api/v1/admin/logs`로 같은 로그 파일의 끝부분을 읽을 수 있다. 경로는 설정으로 고정하고 읽기 상한을 둔다.
 - 기본 로그 파일은 실행 디렉터리 기준 `logs/yesulin.log`, 10MB 단위 압축, 14일·1GB 상한이다.
 

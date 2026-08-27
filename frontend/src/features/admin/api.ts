@@ -3,6 +3,7 @@ import { readErrorMessage, readErrorDetail } from "../api-error";
 import type {
   AdminAudition,
   AdminAuditLog,
+  AdminLog,
   AdminOverview,
   AdminProducer,
   AuditionStatus,
@@ -61,6 +62,14 @@ export async function fetchAuditLogs(): Promise<readonly AdminAuditLog[]> {
     "변경 기록을 불러오지 못했습니다.",
   );
   return body.logs;
+}
+
+export const LOG_LINE_LIMITS = [100, 200, 500] as const;
+
+export function fetchLogs(keyword: string, limit: number): Promise<AdminLog> {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (keyword.trim()) params.set("keyword", keyword.trim());
+  return getJson<AdminLog>(`/logs?${params.toString()}`, "로그를 불러오지 못했습니다.");
 }
 
 export async function changeMemberStatus(memberId: number, status: MemberStatus): Promise<void> {
