@@ -102,9 +102,11 @@ export function PublicPostingDetail({ posting, useProfilePrefill = false, resume
       <article className="min-w-0">
         <PostingHero posting={posting} />
         <PostingAvailability posting={posting} />
+        <PostingSchedule posting={posting} />
+        <PerformanceInformation posting={posting} />
         <RoleSelection posting={posting} selectedRoleIds={selectedRoleIds} onSelect={toggleRole} selectable={acceptingApplications && !skipsRoleChoice} />
-        <KeyPostingInformation posting={posting} />
-        <PostingDetails posting={posting} />
+        <PostingDocuments posting={posting} />
+        <ProducerInformation posting={posting} />
       </article>
       <aside className="hidden min-[1200px]:block"><DesktopAction posting={posting} selectedRole={selectedRoleLabel} enabled={actionEnabled} hasDraft={hasLocalDraft} alreadySubmitted={alreadySubmitted} onAction={beginApplication} onChooseRole={focusRoleSelection} /></aside>
     </div>
@@ -134,22 +136,29 @@ function RoleCard({ role, multiple, selected, disabled, unavailable, onSelect }:
   return <label className={`block min-h-28 rounded-card border bg-card p-4 transition-[border-color,background-color,box-shadow] ${selected ? "border-brand bg-brand-soft shadow-[var(--shadow-1)]" : "border-border"} ${interaction}`}><input type={multiple ? "checkbox" : "radio"} name="application-role" value={role.id} checked={selected} disabled={disabled} onChange={() => onSelect(role.id)} className="peer sr-only" /><span className="flex items-start gap-3"><span aria-hidden="true" className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center ${multiple ? "rounded-md" : "rounded-full"} border-2 ${selected ? "border-brand bg-brand" : "border-muted-soft bg-card"} peer-focus-visible:ring-2 peer-focus-visible:ring-brand peer-focus-visible:ring-offset-2`}><span className={`text-xs font-bold text-white ${selected ? "block" : "hidden"}`}>{multiple ? "✓" : "•"}</span></span><span className="min-w-0 flex-1"><span className="flex flex-wrap items-center gap-2"><strong className="text-base">{role.name}</strong><span className="rounded-full bg-surface px-2 py-0.5 text-xs font-semibold text-muted-strong">{role.quota}명</span>{selected ? <span className="text-sm font-semibold text-brand">{unavailable ? "선택됨 · 현재 지원 불가" : "선택됨"}</span> : null}</span><span className="mt-2 block text-sm text-muted-strong">{role.description}</span><span className="mt-1 block text-sm text-muted">만 {role.ageMin}~{role.ageMax}세 · {gender}</span></span></span></label>;
 }
 
-function KeyPostingInformation({ posting }: { posting: PublicPosting }) {
-  const requiredCount = posting.documents.filter((document) => document.required).length;
-  const optionalCount = posting.documents.length - requiredCount;
+function PostingSchedule({ posting }: { posting: PublicPosting }) {
   return <div className="border-b border-border">
     <InfoSection title="주요 전형 일정">
       <ol className="grid gap-3 sm:grid-cols-2">{posting.schedule.map((item, index) => <li key={item.title} className="rounded-card border border-border bg-card p-4"><span className="num text-xs font-bold text-brand">0{index + 1}</span><strong className="mt-3 block font-semibold">{item.title}</strong><span className="mt-1 block text-sm leading-6 text-muted-strong">{item.detail}</span></li>)}</ol>
     </InfoSection>
-    <section className="border-t border-border-soft py-8 sm:py-10" aria-labelledby="posting-documents-title">
-      <div className="flex flex-wrap items-end justify-between gap-3"><div><h2 id="posting-documents-title" className="text-xl font-bold tracking-[-0.02em]">제출 자료</h2><p className="mt-2 text-sm leading-6 text-muted-strong">아래 항목은 <strong className="font-semibold text-foreground">지원서 작성</strong>을 시작한 뒤에 입력합니다. 이 화면에서는 확인만 하세요.</p></div><p className="text-sm font-semibold text-muted-strong"><span className="text-brand">필수 {requiredCount}개</span>{optionalCount ? ` · 선택 ${optionalCount}개` : ""}</p></div>
-      <ul className="mt-5 flex flex-wrap gap-2">{posting.documents.map((document) => <li key={document.id} className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 ${document.required ? "border-brand-line bg-brand-soft" : "border-border bg-card"}`}><span className={`text-xs font-bold ${document.required ? "text-brand" : "text-muted"}`}>{document.required ? "필수" : "선택"}</span><span className="text-sm font-semibold text-foreground">{document.title}</span></li>)}</ul>
-    </section>
   </div>;
 }
 
-function PostingDetails({ posting }: { posting: PublicPosting }) {
-  return <div><InfoSection title="공연 정보"><PublicVenueGuide venue={posting.venue} address={posting.venueAddress} /><dl className="mt-6 grid gap-x-6 gap-y-4 text-base sm:grid-cols-[112px_1fr]"><dt className="text-muted">공연 기간</dt><dd className="num">{publicPostingDate(posting.performanceStart)} ~ {posting.performanceEnd ? publicPostingDate(posting.performanceEnd) : <strong className="font-semibold text-brand">오픈런</strong>}</dd><dt className="text-muted">모집 기간</dt><dd className="num">{publicPostingDateTime(posting.recruitmentStart)} ~ {publicPostingDateTime(posting.recruitmentEnd)}</dd></dl><p className="mt-4 text-sm text-muted">모든 일정은 한국 시간(KST) 기준입니다.</p></InfoSection><InfoSection title="기획사/제작사"><p className="font-semibold">{posting.companyName}</p>{posting.companyDescription ? <p className="mt-2 max-w-[680px] text-sm leading-7 text-muted-strong">{posting.companyDescription}</p> : null}</InfoSection></div>;
+function PostingDocuments({ posting }: { posting: PublicPosting }) {
+  const requiredCount = posting.documents.filter((document) => document.required).length;
+  const optionalCount = posting.documents.length - requiredCount;
+  return <section className="border-b border-border py-8 sm:py-10" aria-labelledby="posting-documents-title">
+    <div className="flex flex-wrap items-end justify-between gap-3"><div><h2 id="posting-documents-title" className="text-xl font-bold tracking-[-0.02em]">제출 자료</h2><p className="mt-2 text-sm leading-6 text-muted-strong">아래 항목은 <strong className="font-semibold text-foreground">지원서 작성</strong>을 시작한 뒤에 입력합니다. 이 화면에서는 확인만 하세요.</p></div><p className="text-sm font-semibold text-muted-strong"><span className="text-brand">필수 {requiredCount}개</span>{optionalCount ? ` · 선택 ${optionalCount}개` : ""}</p></div>
+    <ul className="mt-5 flex flex-wrap gap-2">{posting.documents.map((document) => <li key={document.id} className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 ${document.required ? "border-brand-line bg-brand-soft" : "border-border bg-card"}`}><span className={`text-xs font-bold ${document.required ? "text-brand" : "text-muted"}`}>{document.required ? "필수" : "선택"}</span><span className="text-sm font-semibold text-foreground">{document.title}</span></li>)}</ul>
+  </section>;
+}
+
+function PerformanceInformation({ posting }: { posting: PublicPosting }) {
+  return <div className="border-b border-border"><InfoSection title="공연 정보"><PublicVenueGuide venue={posting.venue} address={posting.venueAddress} /><dl className="mt-6 grid gap-x-6 gap-y-4 text-base sm:grid-cols-[112px_1fr]"><dt className="text-muted">공연 기간</dt><dd className="num">{publicPostingDate(posting.performanceStart)} ~ {posting.performanceEnd ? publicPostingDate(posting.performanceEnd) : <strong className="font-semibold text-brand">오픈런</strong>}</dd><dt className="text-muted">모집 기간</dt><dd className="num">{publicPostingDateTime(posting.recruitmentStart)} ~ {publicPostingDateTime(posting.recruitmentEnd)}</dd></dl><p className="mt-4 text-sm text-muted">모든 일정은 한국 시간(KST) 기준입니다.</p></InfoSection></div>;
+}
+
+function ProducerInformation({ posting }: { posting: PublicPosting }) {
+  return <InfoSection title="기획사/제작사"><p className="font-semibold">{posting.companyName}</p>{posting.companyDescription ? <p className="mt-2 max-w-[680px] text-sm leading-7 text-muted-strong">{posting.companyDescription}</p> : null}</InfoSection>;
 }
 
 function InfoSection({ title, children }: { title: string; children: React.ReactNode }) { return <section className="py-8 sm:py-10"><h2 className="text-xl font-bold tracking-[-0.02em]">{title}</h2><div className="mt-5">{children}</div></section>; }
