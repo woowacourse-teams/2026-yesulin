@@ -3,7 +3,7 @@ import { isCompleteKoreaRegion } from "@/features/applicants/korea-regions";
 import { integerMeasurementError, isIntegerMeasurement } from "@/features/applicants/profile-input";
 
 export const MAX_PHOTO_COUNT = 3;
-export const MAX_PHOTO_SIZE_BYTES = 10 * 1024 * 1024;
+export const MAX_PHOTO_SIZE_BYTES = 20 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/;
 const YOUTUBE_HOSTS = new Set(["youtube.com", "www.youtube.com", "m.youtube.com"]);
@@ -63,7 +63,7 @@ export function hasApplicationDraft({
 
 export function imageFileError(file: File): string | null {
   if (!ALLOWED_IMAGE_TYPES.has(file.type)) return "JPG, PNG, WEBP 형식의 이미지만 등록할 수 있어요.";
-  if (file.size > MAX_PHOTO_SIZE_BYTES) return "사진 파일은 10MB 이하여야 해요.";
+  if (file.size > MAX_PHOTO_SIZE_BYTES) return "사진 파일은 20MB 이하여야 해요.";
   return null;
 }
 
