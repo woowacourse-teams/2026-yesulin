@@ -18,7 +18,7 @@ export function PublicApplicationMedia() {
   const loginHref = `/login?returnTo=${encodeURIComponent(buildApplicationAuthReturnTo(meta.postingId, meta.roleIds, "media"))}`;
 
   return <div className="space-y-10">
-    {photoField ? <PublicApplicationPhotoField field={photoField} limit={photoLimit} photos={state.photos} authenticated={meta.authenticated} loginHref={loginHref} error={state.mediaError || (state.stepError.startsWith(photoField.label) ? state.stepError : "")} onChange={actions.updatePhotos} onReady={actions.markPhotoReady} /> : null}
+    {photoField ? <PublicApplicationPhotoField field={photoField} limit={photoLimit} photos={state.photos} authenticated={meta.authenticated} authChecking={meta.authChecking} loginHref={loginHref} error={state.mediaError || (state.stepError.startsWith(photoField.label) ? state.stepError : "")} onChange={actions.updatePhotos} onReady={actions.markPhotoReady} /> : null}
     {videoField && videoRequirements.length > 0 ? <section aria-labelledby={`application-${videoField.id}-title`} className="space-y-6"><div><h2 id={`application-${videoField.id}-title`} className="text-sm font-semibold text-foreground">{videoField.label}{videoField.required ? <span className="ml-1 text-fail" aria-label="필수">*</span> : <span className="ml-1 text-muted">(선택)</span>}</h2><p className="mt-1 text-sm leading-6 text-muted">요청한 영상별로 유튜브 링크를 입력해 주세요. 영상 파일은 받지 않아요.</p></div>{videoRequirements.map((requirement, index) => {
       const fieldId = `${videoField.id}.${requirement.id}`;
       const value = state.values[fieldId] ?? "";

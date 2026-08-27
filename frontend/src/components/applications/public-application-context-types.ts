@@ -75,6 +75,8 @@ export type PublicApplicationMeta = {
   readonly roleIds: readonly string[];
   readonly roleName: string;
   readonly authenticated: boolean;
+  /** 서버 세션을 아직 확인 중인 상태. 비로그인과 구분해야 로그인 사용자에게 로그인 안내가 뜨지 않는다. */
+  readonly authChecking: boolean;
   readonly prefillSummary?: Pick<ProfilePrefillResponse, "filledCount" | "requiredCount" | "missingKeys">;
   readonly onBack: () => void;
 };

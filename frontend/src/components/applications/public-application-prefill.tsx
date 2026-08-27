@@ -18,6 +18,7 @@ type PrefillGateProps = {
   readonly roleIds: readonly string[];
   readonly roleName: string;
   readonly authenticated: boolean;
+  readonly authChecking: boolean;
   readonly onBack: () => void;
   readonly initialRoute: ApplicationWriteRouteKey;
 };

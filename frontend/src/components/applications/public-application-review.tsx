@@ -42,7 +42,7 @@ export function PublicApplicationReview() {
       <p className="text-sm font-semibold text-brand">마지막 확인</p>
       <h1 className="mt-2 text-2xl font-bold tracking-[-0.025em] md:text-[28px]">확인하고, 인증한 뒤 제출하세요.</h1>
       <p className="mt-3 leading-6 text-muted-strong">작성 내용을 점검하고 필수 동의를 완료하면 다음 행동을 안내합니다.</p>
-      <ReviewFlow issues={state.reviewIssues.length} consent={state.consent} authenticated={meta.authenticated} />
+      <ReviewFlow issues={state.reviewIssues.length} consent={state.consent} authenticated={meta.authenticated} authChecking={meta.authChecking} />
       <ReviewIssues disabled={submitting} />
 
       <section aria-labelledby="review-content-title" className="mt-9">
@@ -55,18 +55,18 @@ export function PublicApplicationReview() {
 
       <ProfileSave checked={state.saveToProfile} disabled={submitting} onChange={actions.updateSaveToProfile} />
       <Consent consent={state.consent} privacyConsent={state.privacyConsent} thirdPartyConsent={state.thirdPartyConsent} disabled={submitting} error={state.submissionError.includes("동의") ? state.submissionError : ""} onAllChange={actions.updateConsent} onPrivacyChange={actions.updatePrivacyConsent} onThirdPartyChange={actions.updateThirdPartyConsent} />
-      {!meta.authenticated ? <AuthGate /> : <SubmissionArea submitting={submitting} consent={state.consent} issueCount={state.reviewIssues.length} state={state.submissionState} error={state.submissionError} onSubmit={actions.submit} />}
+      {meta.authChecking ? <AuthChecking /> : !meta.authenticated ? <AuthGate /> : <SubmissionArea submitting={submitting} consent={state.consent} issueCount={state.reviewIssues.length} state={state.submissionState} error={state.submissionError} onSubmit={actions.submit} />}
     </div>
   </main>;
 }
 
-function ReviewFlow({ issues, consent, authenticated }: { issues: number; consent: boolean; authenticated: boolean }) {
+function ReviewFlow({ issues, consent, authenticated, authChecking }: { issues: number; consent: boolean; authenticated: boolean; authChecking: boolean }) {
   const ready = !issues && consent && authenticated;
   const submissionDetail = issues ? "오류 수정 후" : !consent ? "동의 후" : !authenticated ? "인증 후" : "제출 가능";
   const items = [
     { label: "내용 확인", detail: issues ? `오류 ${issues}개` : "확인 완료", tone: issues ? "text-fail" : "text-pass" },
     { label: "필수 동의", detail: consent ? "동의 완료" : "확인 필요", tone: consent ? "text-pass" : "text-muted" },
-    { label: "배우 인증", detail: authenticated ? "인증 완료" : "인증 필요", tone: authenticated ? "text-pass" : "text-muted" },
+    { label: "로그인", detail: authChecking ? "확인 중" : authenticated ? "로그인됨" : "로그인 필요", tone: authenticated ? "text-pass" : "text-muted" },
     { label: "최종 제출", detail: submissionDetail, tone: issues ? "text-warn" : ready ? "text-brand" : "text-muted" },
   ];
   return <nav aria-label="지원서 제출 순서" className="mt-7"><ol className="grid grid-cols-2 rounded-card border border-border bg-card md:grid-cols-4">{items.map((item) => <li key={item.label} className="flex min-h-20 items-center border-b border-border-soft px-4 odd:border-r [&:nth-child(n+3)]:border-b-0 md:border-b-0 md:border-r md:last:border-r-0"><span><strong className="block text-sm">{item.label}</strong><span className={`mt-0.5 block text-xs font-semibold ${item.tone}`}>{item.detail}</span></span></li>)}</ol></nav>;
@@ -114,6 +114,10 @@ function Consent({ consent, privacyConsent, thirdPartyConsent, disabled, error, 
 
 function ConsentItem({ id, checked, disabled, label, description, onChange }: { id: string; checked: boolean; disabled: boolean; label: string; description: string; onChange: (checked: boolean) => void }) {
   return <label htmlFor={id} className={`flex items-start gap-3 py-4 ${disabled ? "cursor-not-allowed text-muted" : "cursor-pointer"}`}><input id={id} type="checkbox" checked={checked} disabled={disabled} onChange={(event) => onChange(event.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-brand" /><span><strong className="block text-sm"><span className="mr-1 text-fail">[필수]</span>{label}</strong><span className="mt-1 block text-sm leading-6 text-muted">{description}</span></span></label>;
+}
+
+function AuthChecking() {
+  return <section className="mt-9 rounded-card border border-border bg-card p-5 md:p-6"><p role="status" className="text-sm font-medium leading-6 text-muted-strong">로그인 상태를 확인하고 있어요.</p></section>;
 }
 
 function AuthGate() {
