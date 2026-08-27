@@ -17,11 +17,11 @@ export function AdminLogViewer() {
   const [limit, setLimit] = useState<number>(200);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const keyword = useDebouncedValue(keywordInput.trim(), SEARCH_DEBOUNCE_MS);
-  const { phase, data, error, refresh, restart } = useAdminLogs(keyword, limit, autoRefresh);
+  const { phase, data, error, refresh, restart, signOut } = useAdminLogs(keyword, limit, autoRefresh);
 
   async function handleLogout() {
     await logout().catch(() => null);
-    restart();
+    signOut();
   }
 
   if (phase === "unauthorized") {
@@ -108,9 +108,9 @@ export function AdminLogViewer() {
           </div>
           <AdminLogLines log={data} keyword={keyword} />
         </div>
-      ) : (
-        <p className="text-sm text-neutral-500">불러오는 중</p>
-      )}
+      ) : null}
+
+      {!data && phase === "loading" ? <p className="text-sm text-neutral-500">불러오는 중</p> : null}
     </main>
   );
 }

@@ -31,11 +31,12 @@ public class FileLogReader implements LogReader {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(FileLogReader.class);
 
-    /** 한 번에 읽는 최대 바이트다. 검색이 필요할 때만 이 상한까지 읽는다. */
-    private static final int MAX_READ_BYTES = 512 * 1024;
+    /** 한 번에 읽는 최대 바이트다. 검색이 필요할 때만 이 상한까지 읽는다. 경계 테스트가 참조한다. */
+    static final int MAX_READ_BYTES = 512 * 1024;
     /** 검색어가 없을 때 필요한 창 크기를 어림하는 데 쓰는 한 줄 평균 바이트다. */
     private static final int ESTIMATED_LINE_BYTES = 400;
     private static final int WINDOW_MARGIN_BYTES = 8 * 1024;
+    private static final byte LINE_FEED = (byte) '\n';
 
     private final LogFileProperties properties;
     private final Clock clock;
@@ -59,13 +60,18 @@ public class FileLogReader implements LogReader {
     private LogLines read(Path path, LogQuery query, Instant readAt) throws IOException {
         long size = Files.size(path);
         int window = windowSizeOf(query);
-        long start = Math.max(0L, size - window);
-        boolean fromMiddle = start > 0L;
+        long windowStart = Math.max(0L, size - window);
+        boolean skippedOlderBytes = windowStart > 0L;
 
-        byte[] bytes = readFrom(path, start, (int) Math.min(size - start, window));
-        List<String> lines = toLines(new String(bytes, StandardCharsets.UTF_8), fromMiddle);
-        List<String> matched = filter(lines, query);
-        boolean truncated = fromMiddle || matched.size() > query.limit();
+        // 창이 줄 중간에서 시작했는지 알아야 온전한 줄을 잘못 버리지 않는다. 바로 앞 1바이트를 함께 읽어 확인한다.
+        long readStart = skippedOlderBytes ? windowStart - 1 : 0L;
+        byte[] bytes = readFrom(path, readStart, (int) Math.min(size - readStart, (long) window + 1));
+        int offset = skippedOlderBytes && bytes.length > 0 ? 1 : 0;
+        boolean startsMidLine = offset == 1 && bytes[0] != LINE_FEED;
+
+        String content = new String(bytes, offset, bytes.length - offset, StandardCharsets.UTF_8);
+        List<String> matched = filter(toLines(content, startsMidLine), query);
+        boolean truncated = skippedOlderBytes || matched.size() > query.limit();
 
         return new LogLines(lastOf(matched, query.limit()), truncated, true, readAt);
     }
@@ -89,13 +95,13 @@ public class FileLogReader implements LogReader {
         return java.util.Arrays.copyOf(buffer.array(), buffer.position());
     }
 
-    /** 창의 시작이 파일 중간이면 첫 줄이 잘려 있으므로 버린다. */
-    private List<String> toLines(String content, boolean fromMiddle) {
+    /** 창이 줄 중간에서 시작했다면 첫 줄이 잘려 있으므로 버린다. */
+    private List<String> toLines(String content, boolean startsMidLine) {
         List<String> lines = new ArrayList<>(List.of(content.split("\n", -1)));
         if (!lines.isEmpty() && lines.getLast().isEmpty()) {
             lines.removeLast();
         }
-        if (fromMiddle && !lines.isEmpty()) {
+        if (startsMidLine && !lines.isEmpty()) {
             lines.removeFirst();
         }
         return lines.stream().map(line -> line.stripTrailing()).toList();

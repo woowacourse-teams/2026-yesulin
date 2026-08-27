@@ -13,6 +13,7 @@ import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
@@ -42,7 +43,7 @@ class FileLogReaderTest {
         LogLines result = readerOf(path).readRecent(new LogQuery("", 3));
 
         assertTrue(result.available());
-        assertEquals(java.util.List.of("line-8", "line-9", "line-10"), result.lines());
+        assertEquals(List.of("line-8", "line-9", "line-10"), result.lines());
     }
 
     @Test
@@ -62,7 +63,7 @@ class FileLogReaderTest {
 
         LogLines result = readerOf(path).readRecent(new LogQuery("warn", 200));
 
-        assertEquals(java.util.List.of("WARN Disk Full"), result.lines());
+        assertEquals(List.of("WARN Disk Full"), result.lines());
     }
 
     @Test
@@ -93,6 +94,37 @@ class FileLogReaderTest {
         LogLines result = readerOf(path).readRecent(new LogQuery("", 100000));
 
         assertEquals(LogQuery.MAX_LIMIT, result.lines().size());
+    }
+
+    /**
+     * 읽기 창의 시작이 줄 경계와 정확히 맞는 경우다.
+     * 첫 줄이 잘리지 않았는데도 버리면 그 줄의 검색어를 놓치므로, 경계 줄이 결과에 남아야 한다.
+     */
+    @Test
+    void keepsWholeLineWhenWindowStartsExactlyAtLineBoundary(@TempDir Path directory) throws IOException {
+        String marker = "BOUNDARY-MARKER";
+        String markerLine = marker + "\n";
+        int fillerLength = FileLogReader.MAX_READ_BYTES - markerLine.length() - 1;
+        String tail = markerLine + "x".repeat(fillerLength) + "\n";
+        Path path = directory.resolve("app.log");
+        Files.writeString(path, "old\n" + tail, StandardCharsets.UTF_8);
+
+        LogLines result = readerOf(path).readRecent(new LogQuery(marker, LogQuery.MAX_LIMIT));
+
+        assertEquals(List.of(marker), result.lines());
+    }
+
+    /** 창이 줄 중간에서 시작하면 잘린 첫 줄은 버려야 한다. */
+    @Test
+    void dropsPartialFirstLineWhenWindowStartsInsideLine(@TempDir Path directory) throws IOException {
+        String marker = "PARTIAL-MARKER";
+        String tail = "x".repeat(FileLogReader.MAX_READ_BYTES - 1) + "\n";
+        Path path = directory.resolve("app.log");
+        Files.writeString(path, marker + tail, StandardCharsets.UTF_8);
+
+        LogLines result = readerOf(path).readRecent(new LogQuery(marker, LogQuery.MAX_LIMIT));
+
+        assertTrue(result.lines().isEmpty());
     }
 
     @Test

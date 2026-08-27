@@ -4,7 +4,8 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * 로그 조회 결과다. truncated는 읽기 상한 때문에 더 오래된 내용을 보지 못했음을 뜻한다.
+ * 로그 조회 결과다.
+ * truncated는 생략된 더 오래된 줄이 있다는 뜻이고, 읽기 상한과 반환 줄 수 상한 어느 쪽 때문이든 참이 된다.
  */
 public record LogLines(List<String> lines, boolean truncated, boolean available, Instant readAt) {
 
