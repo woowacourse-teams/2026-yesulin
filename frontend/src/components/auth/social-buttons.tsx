@@ -36,7 +36,7 @@ export function SocialButtons({ pendingProvider, onSelect }: {
 }) {
   return (
     <section aria-label="배우 소셜 로그인" className="space-y-2.5">
-      {providers.map((provider) => {
+      {providers.filter((provider) => provider.id !== "naver").map((provider) => {
         const pending = pendingProvider === provider.id;
         return (
           <button
