@@ -7,13 +7,14 @@ import { FieldInput } from "./controls";
  * 지난 날짜를 캘린더로 고르면 월을 여러 번 넘겨야 해서 입력이 오래 걸린다.
  * 화면에는 숫자만 보여 주고 저장은 다른 날짜 항목과 같은 YYYY-MM-DD 형식으로 한다.
  */
-export function BirthDateInput({ id, value, required, invalid, describedBy, onChange }: {
+export function BirthDateInput({ id, value, required, invalid, describedBy, onChange, onBlur }: {
   readonly id: string;
   readonly value: string;
   readonly required: boolean;
   readonly invalid: boolean;
   readonly describedBy?: string;
   readonly onChange: (value: string) => void;
+  readonly onBlur?: () => void;
 }) {
   const hintId = `${id}-birth-hint`;
   return <>
@@ -29,6 +30,7 @@ export function BirthDateInput({ id, value, required, invalid, describedBy, onCh
       aria-invalid={invalid || undefined}
       aria-describedby={[hintId, describedBy ?? ""].filter(Boolean).join(" ")}
       onChange={(event) => onChange(toBirthDate(event.target.value))}
+      onBlur={onBlur}
     />
     <p id={hintId} className="mt-2 text-xs leading-5 text-muted">연도부터 숫자 8자리로 입력해 주세요. 예: 19990315</p>
   </>;
