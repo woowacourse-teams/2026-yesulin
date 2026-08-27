@@ -101,11 +101,18 @@ export function PublicApplicationProvider({
     return remaining;
   });
 
+  /**
+   * 오류는 항목 단위로 붙지만 값의 키는 더 잘게 나뉜다.
+   * 영상은 요구사항마다(VIDEO.req-1) 오류가 붙고, 키·몸무게와 외부 링크는 묶음 이름(BODY, LINK)에 붙는다.
+   * 그래서 정확히 같은 키와 앞부분 키를 함께 지운다.
+   */
   const clearFieldError = (fieldId: string) => setStepErrors((current) => {
     const stepFieldErrors = current[stepIndex];
-    if (!stepFieldErrors?.[fieldId]) return current;
+    const groupId = fieldId.split(".")[0]!;
+    if (!stepFieldErrors?.[fieldId] && !stepFieldErrors?.[groupId]) return current;
     const remaining = { ...stepFieldErrors };
     delete remaining[fieldId];
+    delete remaining[groupId];
     return { ...current, [stepIndex]: remaining };
   });
 
@@ -260,7 +267,7 @@ export function PublicApplicationProvider({
     draftRestored: draft.restored, submissionState, submissionError, receipt,
   };
   const actions: PublicApplicationActions = {
-    updateField: (id, value) => { setValues((current) => ({ ...current, [id]: value })); clearFieldError(id.split(".")[0]!); },
+    updateField: (id, value) => { setValues((current) => ({ ...current, [id]: value })); clearFieldError(id); },
     updatePhotos: (next) => { setPhotos(next); setMediaError(""); clearStepError(stepIndex); },
     markPhotoReady: (id) => setPhotos((current) => current.map((photo) => photo.id === id ? { ...photo, status: "READY" } : photo)),
     updateVideo: (url) => { setVideoUrl(url); setMediaError(""); clearStepError(stepIndex); },
