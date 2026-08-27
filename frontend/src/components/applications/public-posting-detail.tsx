@@ -12,7 +12,6 @@ import { readPublicApplicationDraft } from "@/features/applications/public-appli
 import { buildApplicationAuthReturnTo } from "@/features/auth/return-to";
 import { useAuthSession } from "@/components/auth/auth-session";
 import { applicantRoutes } from "@/features/applicants/routes";
-import { ApplicationStartDialog } from "./application-start-dialog";
 import { APPLICATION_STEP_KEYS } from "@/features/applications/application-form";
 import { applicationWriteRoute } from "@/features/applications/routes";
 import { PublicVenueGuide } from "./public-venue-guide";
@@ -27,8 +26,6 @@ export function PublicPostingDetail({ posting, useProfilePrefill = false, resume
   const [selectedRoleIds, setSelectedRoleIds] = useState<readonly string[]>(validInitialRoleIds.length ? validInitialRoleIds : skipsRoleChoice && posting.roles[0] ? [posting.roles[0].id] : []);
   const [restoring, setRestoring] = useState(resumeDraft);
   const [hasLocalDraft, setHasLocalDraft] = useState(false);
-  const [startDialogOpen, setStartDialogOpen] = useState(false);
-  const [guestChoiceMade, setGuestChoiceMade] = useState(false);
   const authenticated = session?.role === "APPLICANT";
   const selectedRoles = posting.roles.filter((role) => selectedRoleIds.includes(role.id));
   const acceptingApplications = posting.status === "OPEN";
@@ -44,11 +41,8 @@ export function PublicPostingDetail({ posting, useProfilePrefill = false, resume
     section?.querySelector<HTMLInputElement>("input")?.focus({ preventScroll: true });
   };
   const beginApplication = () => {
-    if (authenticated || guestChoiceMade) {
-      trackAnalyticsEvent("application_start", { start_mode: hasLocalDraft ? "resume" : authenticated ? "authenticated" : "guest", selected_role_count: selectedRoleIds.length, has_draft: hasLocalDraft });
-      router.push(applicationWriteRoute(posting.id, "basic", selectedRoleIds, { prefill: authenticated && !hasLocalDraft }));
-    }
-    else setStartDialogOpen(true);
+    trackAnalyticsEvent("application_start", { start_mode: hasLocalDraft ? "resume" : authenticated ? "authenticated" : "guest", selected_role_count: selectedRoleIds.length, has_draft: hasLocalDraft });
+    router.push(applicationWriteRoute(posting.id, "basic", selectedRoleIds, { prefill: authenticated && !hasLocalDraft }));
   };
 
   useEffect(() => {
@@ -101,7 +95,6 @@ export function PublicPostingDetail({ posting, useProfilePrefill = false, resume
       <aside className="hidden min-[1200px]:block"><DesktopAction posting={posting} selectedRole={selectedRoleLabel} enabled={actionEnabled} hasDraft={hasLocalDraft} onAction={beginApplication} onChooseRole={focusRoleSelection} /></aside>
     </div>
     {showMobileAction ? <MobileAction posting={posting} selectedRole={selectedRoleLabel} enabled={actionEnabled} hasDraft={hasLocalDraft} onAction={beginApplication} onChooseRole={focusRoleSelection} /> : null}
-    <ApplicationStartDialog open={startDialogOpen} loginHref={loginHref} hasDraft={hasLocalDraft} selectedRoleCount={selectedRoleIds.length} loginAnalytics={{ ...loginAnalytics, entry_point: "application_start_prompt" }} onClose={() => setStartDialogOpen(false)} onContinueWithoutLogin={() => { setGuestChoiceMade(true); setStartDialogOpen(false); router.push(applicationWriteRoute(posting.id, "basic", selectedRoleIds)); }} />
   </main>;
 }
 

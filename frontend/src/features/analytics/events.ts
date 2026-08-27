@@ -17,7 +17,6 @@ export type LoginEntryPoint =
   | "producer_landing_header"
   | "producer_landing_hero"
   | "public_posting_header"
-  | "application_start_prompt"
   | "photo_library_prompt"
   | "application_submit_gate";
 
@@ -52,7 +51,7 @@ type AnalyticsEventParameters = {
   login_attempt: LoginAttribution & { provider: LoginProvider };
   login_success: LoginAttribution & { provider: LoginProvider };
   login_return_success: LoginAttribution & { provider: LoginProvider };
-  application_start: { start_mode: "authenticated" | "guest" | "login" | "resume"; selected_role_count: number; has_draft: boolean };
+  application_start: { start_mode: "authenticated" | "guest" | "resume"; selected_role_count: number; has_draft: boolean };
   application_step_complete: { step_name: ApplicationStepKey; step_number: number; step_count: number };
   application_review_view: { is_authenticated: boolean; issue_count: number };
   application_submit_success: { selected_role_count: number; save_to_profile: boolean; profile_saved: boolean };
