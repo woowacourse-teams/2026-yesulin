@@ -15,6 +15,7 @@ import { clearLoginAnalyticsState, trackLoginReturnIfPending } from "@/features/
 
 export function AnalyticsConsentManager({ gtmId }: { readonly gtmId?: string }) {
   const pathname = usePathname();
+  const hasApplicantMobileNavigation = pathname.startsWith("/applicants");
   const titleId = useId();
   const [consent, setConsent] = useState<AnalyticsConsent | null>();
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -83,7 +84,7 @@ export function AnalyticsConsentManager({ gtmId }: { readonly gtmId?: string }) 
 
   return <>
     {consent === null ? <ConsentBanner onAccept={() => choose("granted")} onReject={() => choose("denied")} /> : null}
-    {consent !== null ? <TextButton onClick={() => setSettingsOpen(true)} className="fixed bottom-[max(12px,env(safe-area-inset-bottom))] right-3 z-40 min-h-9 rounded-full border border-border bg-card px-3 text-xs shadow-[var(--shadow-1)]">분석 설정</TextButton> : null}
+    {consent !== null ? <TextButton onClick={() => setSettingsOpen(true)} className={`fixed right-3 z-40 min-h-9 rounded-full border border-border bg-card px-3 text-xs shadow-[var(--shadow-1)] ${hasApplicantMobileNavigation ? "bottom-[calc(76px+env(safe-area-inset-bottom))] md:bottom-[max(12px,env(safe-area-inset-bottom))]" : "bottom-[max(12px,env(safe-area-inset-bottom))]"}`}>분석 설정</TextButton> : null}
     <ModalShell
       open={settingsOpen}
       onClose={() => setSettingsOpen(false)}
