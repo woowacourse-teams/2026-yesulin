@@ -2,13 +2,13 @@
 
 import { createContext, use, useEffect, useMemo, useState } from "react";
 import { AuditionRequestError } from "@/features/auditions/api-client";
-import { applicationFormSteps, applicationStepProgress } from "@/features/applications/application-form";
+import { applicationFormSteps, applicationStepIndexIn, applicationStepProgress } from "@/features/applications/application-form";
 import { applicationStepIssue } from "@/features/applications/application-form-state";
 import type { ApplicationStepIssue, SubmissionState } from "@/features/applications/application-form-state";
 import { createApplicationSubmission } from "@/features/applications/submission-api";
 import { deletePublicApplicationDraft } from "@/features/applications/public-application-draft-store";
 import { buildApplicationAuthReturnTo } from "@/features/auth/return-to";
-import { applicationStepIndex } from "@/features/applications/routes";
+
 import { trackAnalyticsEvent } from "@/features/analytics/events";
 import type { EditableSection, PublicApplicationActions, PublicApplicationContextValue, PublicApplicationProviderProps, PublicApplicationState, SubmissionReceipt } from "./public-application-context-types";
 import { usePublicApplicationDraft } from "./use-public-application-draft";
@@ -43,7 +43,7 @@ export function PublicApplicationProvider({
     fields,
     prefill,
     initialRoleIds,
-    initialStepIndex: applicationStepIndex(initialRoute),
+    initialStepIndex: applicationStepIndexIn(steps, initialRoute),
     initialReviewing: initialRoute === "review",
     stepCount: steps.length,
     submitted: receipt !== null,

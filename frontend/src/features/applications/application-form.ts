@@ -35,14 +35,23 @@ export type ApplicationStepProgress = {
   readonly accessible: boolean;
 };
 
-/** 지원서 작성 URL과 동일한 네 단계로 활성 필드를 묶는다. */
+/**
+ * 지원서 작성 URL과 같은 단계로 활성 필드를 묶는다.
+ * 공고가 아무 항목도 요청하지 않은 단계는 통과할 내용이 없으므로 노출하지 않는다.
+ */
 export function applicationFormSteps(fields: readonly ApplicationFieldInput[]): readonly ApplicationFormStep[] {
   return STEP_DETAILS.map((step) => ({
     ...step,
     fields: fields
       .filter((field) => field.enabled && step.sections.includes(field.section))
       .toSorted((left, right) => left.order - right.order),
-  }));
+  })).filter((step) => step.fields.length > 0);
+}
+
+/** URL의 단계 키를 실제로 노출 중인 단계 위치로 옮긴다. 빠진 단계로 들어오면 첫 단계로 보낸다. */
+export function applicationStepIndexIn(steps: readonly ApplicationFormStep[], route: ApplicationWriteRouteKey) {
+  if (route === "review") return Math.max(0, steps.length - 1);
+  return Math.max(0, steps.findIndex((step) => step.key === route));
 }
 
 /** 공고 상세와 지원서가 같은 활성 필드·순서를 보여 주도록 하는 제출 자료 읽기 모델. */

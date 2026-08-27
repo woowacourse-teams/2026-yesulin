@@ -12,7 +12,7 @@ import { readPublicApplicationDraft } from "@/features/applications/public-appli
 import { buildApplicationAuthReturnTo } from "@/features/auth/return-to";
 import { useAuthSession } from "@/components/auth/auth-session";
 import { applicantRoutes } from "@/features/applicants/routes";
-import { APPLICATION_STEP_KEYS } from "@/features/applications/application-form";
+import { applicationFormSteps } from "@/features/applications/application-form";
 import { applicationWriteRoute } from "@/features/applications/routes";
 import { PublicVenueGuide } from "./public-venue-guide";
 import { TrackedLoginLink } from "@/components/analytics/tracked-login-link";
@@ -60,13 +60,14 @@ export function PublicPostingDetail({ posting, useProfilePrefill = false, resume
       }
       const canOpenForm = validRoleIds.length > 0 || validInitialRoleIds.length > 0 || skipsRoleChoice;
       if (resumeDraft && (Boolean(draft) || useProfilePrefill) && canOpenForm) {
-        const route = draft?.reviewing ? "review" : APPLICATION_STEP_KEYS[Math.min(draft?.stepIndex ?? 0, APPLICATION_STEP_KEYS.length - 1)]!;
+        const draftSteps = applicationFormSteps(posting.applicationFields);
+        const route = draft?.reviewing ? "review" : draftSteps[Math.min(draft?.stepIndex ?? 0, draftSteps.length - 1)]?.key ?? "basic";
         const routeRoleIds = validRoleIds.length ? validRoleIds : validInitialRoleIds.length ? validInitialRoleIds : posting.roles[0] ? [posting.roles[0].id] : [];
         router.replace(applicationWriteRoute(posting.id, route, routeRoleIds, { prefill: useProfilePrefill && !draft }));
       } else if (resumeDraft) setRestoring(false);
     }).catch((cause) => { if (active) { console.error("[지원서 임시저장 확인 실패]", cause); if (resumeDraft) setRestoring(false); } });
     return () => { active = false; };
-  }, [posting.id, posting.roles, resumeDraft, router, skipsRoleChoice, useProfilePrefill, validInitialRoleIds]);
+  }, [posting.applicationFields, posting.id, posting.roles, resumeDraft, router, skipsRoleChoice, useProfilePrefill, validInitialRoleIds]);
 
   if (restoring) return <DraftResumeLoading />;
 
