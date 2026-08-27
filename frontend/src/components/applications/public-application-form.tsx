@@ -16,6 +16,7 @@ import type { PostingId } from "@/features/auditions/types";
 import type { ProfilePrefillResponse } from "@/features/applicants/types";
 import { CalendarDateRangeField } from "@/components/auditions/calendar-date-range-field";
 import { RegionSelect } from "@/components/ui/region-select";
+import { BirthDateInput } from "@/components/ui/birth-date-input";
 import { fieldControlClass, PrimaryButton, SecondaryButton, TextButton, UnitSuffix } from "@/components/ui/controls";
 
 type PublicApplicationFormProps = {
@@ -114,7 +115,7 @@ function ApplicationField({ field }: { field: ApplicationFieldInput }) {
   const errorId = `${id}-error`;
   const width = field.layout === "FULL" || field.inputType === "TEXTAREA" ? "md:col-span-2" : "";
   const describedBy = error ? errorId : undefined;
-  if (field.inputType === "DATE") return <fieldset id={`application-field-${field.id}`} className={width}><legend className="mb-2 flex items-center gap-1 text-sm font-semibold text-foreground"><FieldLabelText field={field} /></legend><div aria-invalid={Boolean(error) || undefined} aria-describedby={describedBy}><CalendarDateRangeField single variant="compact" start={state.values[field.id] ?? ""} end="" startLabel={field.label} onStartChange={(value) => actions.updateField(field.id, value)} onEndChange={() => undefined} /></div>{error ? <InlineError id={errorId} error={error} /> : null}</fieldset>;
+  if (field.inputType === "DATE" && field.id !== "BIRTH") return <fieldset id={`application-field-${field.id}`} className={width}><legend className="mb-2 flex items-center gap-1 text-sm font-semibold text-foreground"><FieldLabelText field={field} /></legend><div aria-invalid={Boolean(error) || undefined} aria-describedby={describedBy}><CalendarDateRangeField single variant="compact" start={state.values[field.id] ?? ""} end="" startLabel={field.label} onStartChange={(value) => actions.updateField(field.id, value)} onEndChange={() => undefined} /></div>{error ? <InlineError id={errorId} error={error} /> : null}</fieldset>;
   if (field.inputType === "COMPOSITE" || field.inputType === "REGION") return <fieldset id={`application-field-${field.id}`} className={width}><legend className="mb-2 flex items-center gap-1 text-sm font-semibold text-foreground"><FieldLabelText field={field} /></legend><FieldControl field={field} id={id} error={error} describedBy={describedBy} />{error ? <InlineError id={errorId} error={error} /> : null}</fieldset>;
   return <div id={`application-field-${field.id}`} className={width}><label htmlFor={id} className="mb-2 flex items-center gap-1 text-sm font-semibold text-foreground"><FieldLabelText field={field} /></label><FieldControl field={field} id={id} error={error} describedBy={describedBy} />{error ? <InlineError id={errorId} error={error} /> : null}</div>;
 }
@@ -137,6 +138,7 @@ function FieldControl({ field, id, error, describedBy }: { field: ApplicationFie
   if (field.inputType === "TEXTAREA") return <textarea {...common} minLength={field.config.minLength} rows={6} className={`${className} resize-none`} />;
   if (field.inputType === "SELECT") return <select {...common}><option value="">선택해 주세요</option>{field.config.options?.map((option) => <option key={option} value={option}>{option}</option>)}</select>;
   if (field.inputType === "COMPOSITE") return <div className="grid grid-cols-2 gap-3">{field.config.fields?.map((part) => { const partId = `${field.id}.${part.key}`; const inputId = `${id}-${part.key}`; const isPhone = part.inputType === "TEL"; return <label key={part.key} htmlFor={inputId} className="relative"><span className="mb-2 block text-sm font-medium text-foreground">{part.label}</span><input id={inputId} name={partId} required={field.required} type={part.inputType === "NUMBER" ? "number" : isPhone ? "tel" : "text"} value={state.values[partId] ?? ""} placeholder={part.placeholder} maxLength={isPhone ? 13 : undefined} aria-invalid={Boolean(error) || undefined} aria-describedby={describedBy} onChange={(event) => isPhone ? applyPhoneInput(event.target, formatPhoneNumber, (next) => actions.updateField(partId, next)) : actions.updateField(partId, event.target.value)} className={`${className} pr-10`} />{part.unit ? <span className="pointer-events-none absolute right-3 top-10 text-sm text-muted">{part.unit}</span> : null}</label>; })}</div>;
+  if (field.id === "BIRTH") return <BirthDateInput id={id} value={value} required={field.required} invalid={Boolean(error)} describedBy={describedBy} onChange={(next) => actions.updateField(field.id, next)} />;
   if (field.inputType === "REGION") return <RegionSelect id={id} value={value} required={field.required} invalid={Boolean(error)} describedBy={describedBy} onChange={(next) => actions.updateField(field.id, next)} />;
   const type = field.inputType === "TEL" ? "tel" : field.inputType === "NUMBER" ? "number" : field.inputType === "URL" ? "url" : "text";
   const number = field.inputType === "NUMBER";

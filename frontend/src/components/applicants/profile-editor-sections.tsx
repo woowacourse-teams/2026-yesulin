@@ -8,6 +8,7 @@ import type { ApplicationFieldInput } from "@/features/auditions/creation-types"
 import { CalendarDateRangeField } from "@/components/auditions/calendar-date-range-field";
 import { AddButton, DestructiveButton, FieldInput, FieldSelect, FieldTextarea, TextButton, UnitSuffix } from "@/components/ui/controls";
 import { RegionSelect } from "@/components/ui/region-select";
+import { BirthDateInput } from "@/components/ui/birth-date-input";
 
 const MAX_PROFILE_LINKS = 5;
 const MAX_PROFILE_LINK_LENGTH = 255;
@@ -38,6 +39,7 @@ function StandardField({ field, value, onChange }: { readonly field: Application
   const emailError = touched && field.id === "EMAIL" && text && !isValidEmail(text) ? "이메일 주소 형식을 확인해 주세요. 예: actor@example.com" : "";
   const measurementError = touched && field.inputType === "NUMBER" && !isIntegerMeasurement(text) ? integerMeasurementError(field.label) : "";
   const fieldError = contactError || emailError || measurementError;
+  if (field.id === "BIRTH") return <label htmlFor={id} className={width}><span className="mb-2 block text-sm font-semibold">{label}</span><BirthDateInput id={id} value={text} required={field.required} invalid={false} onChange={onChange} /></label>;
   if (field.inputType === "DATE") return <fieldset className={width}><legend className="mb-2 text-sm font-semibold">{label}</legend><CalendarDateRangeField single variant="compact" start={text} end="" startLabel={field.label} onStartChange={onChange} onEndChange={() => undefined} /></fieldset>;
   if (field.inputType === "REGION") return <fieldset className={width}><legend className="mb-2 text-sm font-semibold">{label}</legend><RegionSelect id={id} value={text} onChange={onChange} /></fieldset>;
   const control = <FieldInput id={id} type={field.id === "EMAIL" ? "email" : field.inputType === "TEL" ? "tel" : field.inputType === "URL" ? "url" : field.inputType === "NUMBER" ? "number" : "text"} inputMode={field.id === "PHONE" ? "tel" : field.id === "EMAIL" ? "email" : field.inputType === "NUMBER" ? "numeric" : undefined} autoComplete={field.id === "PHONE" ? "tel" : field.id === "EMAIL" ? "email" : undefined} min={field.inputType === "NUMBER" ? 1 : undefined} step={field.inputType === "NUMBER" ? 1 : undefined} maxLength={field.id === "PHONE" ? 13 : undefined} value={text} placeholder={field.config.placeholder} aria-invalid={Boolean(fieldError) || undefined} aria-describedby={fieldError ? `${id}-error` : undefined} className={field.config.unit ? "pr-12" : ""} onBlur={() => setTouched(true)} onChange={(event) => field.id === "PHONE" ? applyPhoneInput(event.target, formatKoreanPhone, onChange) : onChange(field.inputType === "NUMBER" ? Number(event.target.value) : event.target.value)} />;
