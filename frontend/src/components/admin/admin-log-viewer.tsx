@@ -104,7 +104,7 @@ export function AdminLogViewer() {
               {data.lines.length}줄 표시
               {data.truncated ? " · 오래된 내용은 잘렸습니다" : ""}
             </span>
-            <span>마지막 조회 {formatTime(data.readAt)}</span>
+            <span>마지막 조회 {formatTime(data.readAt)} (KST · 로그 시각과 같은 기준)</span>
           </div>
           <AdminLogLines log={data} keyword={keyword} />
         </div>

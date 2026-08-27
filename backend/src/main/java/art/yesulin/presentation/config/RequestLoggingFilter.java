@@ -5,6 +5,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
@@ -25,6 +26,11 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RequestLoggingFilter.class);
     private static final String HEALTH_CHECK_URI = "/api/v1/health";
+    /**
+     * 짧은 주기로 반복 호출돼 정작 필요한 로그를 밀어내는 경로다.
+     * 성공 요청은 DEBUG로 낮추고 실패는 그대로 남긴다.
+     */
+    private static final Set<String> POLLING_URIS = Set.of(HEALTH_CHECK_URI, "/api/v1/admin/logs");
     private static final Pattern REQUEST_ID_PATTERN = Pattern.compile("[A-Za-z0-9._-]{1,64}");
 
     @Override
@@ -72,8 +78,8 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
             logFailedRequest(request, status, elapsedMillis);
             return;
         }
-        if (isHealthCheck(request)) {
-            logHealthCheck(request, status, elapsedMillis);
+        if (isPolling(request)) {
+            logPolling(request, status, elapsedMillis);
             return;
         }
         if (status >= HttpServletResponse.SC_INTERNAL_SERVER_ERROR) {
@@ -109,13 +115,27 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
         );
     }
 
-    private boolean isHealthCheck(HttpServletRequest request) {
-        return HEALTH_CHECK_URI.equals(request.getRequestURI());
+    private boolean isPolling(HttpServletRequest request) {
+        return POLLING_URIS.contains(request.getRequestURI());
     }
 
-    private void logHealthCheck(HttpServletRequest request, int status, long elapsedMillis) {
+    /**
+     * 성공은 DEBUG로 낮추고 서버 오류만 ERROR로 올린다.
+     * 로그인 전 401처럼 흔히 생기는 응답까지 ERROR로 남기면 실제 장애를 가린다.
+     */
+    private void logPolling(HttpServletRequest request, int status, long elapsedMillis) {
         if (status == HttpServletResponse.SC_OK) {
             LOGGER.debug(
+                    "HTTP method={} uri={} status={} elapsedMs={}",
+                    request.getMethod(),
+                    request.getRequestURI(),
+                    status,
+                    elapsedMillis
+            );
+            return;
+        }
+        if (status < HttpServletResponse.SC_INTERNAL_SERVER_ERROR) {
+            LOGGER.info(
                     "HTTP method={} uri={} status={} elapsedMs={}",
                     request.getMethod(),
                     request.getRequestURI(),

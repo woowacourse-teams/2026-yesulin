@@ -43,8 +43,9 @@ logging:
   file:
     name: ${LOG_FILE:logs/yesulin.log}
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} [requestId=%X{requestId:-}] %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} [requestId=%X{requestId:-}] %msg%n"
+    # 배포 환경의 host TZ와 무관하게 항상 한국 시각으로 남긴다. SSM tail과 운영 대시보드가 같은 시각을 보게 한다.
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS, Asia/Seoul} [%thread] %-5level %logger{36} [requestId=%X{requestId:-}] %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS, Asia/Seoul} [%thread] %-5level %logger{36} [requestId=%X{requestId:-}] %msg%n"
   logback:
     rollingpolicy:
       file-name-pattern: "${LOG_FILE:logs/yesulin.log}.%d{yyyy-MM-dd}.%i.gz"

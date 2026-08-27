@@ -99,6 +99,59 @@ class RequestLoggingFilterTest {
     }
 
     @Test
+    void logsSuccessfulAdminLogPollingAtDebugLevel() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/admin/logs");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(request, response, (servletRequest, servletResponse) -> {
+        });
+
+        ILoggingEvent event = appender.list.getFirst();
+        assertEquals(Level.DEBUG, event.getLevel());
+        assertTrue(event.getFormattedMessage().contains("uri=/api/v1/admin/logs status=200"));
+    }
+
+    @Test
+    void logsFailedAdminLogPollingAtErrorLevel() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/admin/logs");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(request, response, (servletRequest, servletResponse) -> {
+            ((MockHttpServletResponse) servletResponse).setStatus(500);
+        });
+
+        ILoggingEvent event = appender.list.getFirst();
+        assertEquals(Level.ERROR, event.getLevel());
+    }
+
+    /** 로그인 전 화면 진입에서 늘 생기는 응답이라 ERROR로 올리면 실제 장애가 묻힌다. */
+    @Test
+    void logsUnauthorizedAdminLogPollingAtInfoLevel() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/admin/logs");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(request, response, (servletRequest, servletResponse) -> {
+            ((MockHttpServletResponse) servletResponse).setStatus(401);
+        });
+
+        ILoggingEvent event = appender.list.getFirst();
+        assertEquals(Level.INFO, event.getLevel());
+        assertTrue(event.getFormattedMessage().contains("uri=/api/v1/admin/logs status=401"));
+    }
+
+    @Test
+    void keepsOtherAdminRequestsAtInfoLevel() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/admin/overview");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(request, response, (servletRequest, servletResponse) -> {
+        });
+
+        ILoggingEvent event = appender.list.getFirst();
+        assertEquals(Level.INFO, event.getLevel());
+    }
+
+    @Test
     void replacesInvalidRequestIdWithFullUuid() throws Exception {
         MockHttpServletRequest request = request();
         MockHttpServletResponse response = new MockHttpServletResponse();
