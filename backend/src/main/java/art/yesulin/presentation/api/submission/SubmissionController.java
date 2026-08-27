@@ -1,8 +1,11 @@
 package art.yesulin.presentation.api.submission;
 
 import art.yesulin.application.auth.MemberPrincipal;
+import art.yesulin.application.auth.annotation.LoginMember;
+import art.yesulin.application.auth.annotation.LoginRequired;
 import art.yesulin.application.submission.SubmissionService;
 import art.yesulin.application.submission.SubmittedSubmissionResult;
+import art.yesulin.domain.member.MemberType;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.UUID;
@@ -13,18 +16,18 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.SessionAttribute;
 
 @RestController
 @RequestMapping("/api/v1/auditions/{auditionId}/submissions")
 @RequiredArgsConstructor
+@LoginRequired
 public class SubmissionController {
 
     private final SubmissionService submissionService;
 
     @PostMapping
     public ResponseEntity<SubmitSubmissionResponse> submit(
-            @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal,
+            @LoginMember(roles = MemberType.APPLICANT) MemberPrincipal principal,
             @PathVariable UUID auditionId,
             @Valid @RequestBody SubmitSubmissionRequest request
     ) {

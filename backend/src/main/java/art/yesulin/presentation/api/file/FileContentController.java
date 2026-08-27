@@ -1,6 +1,8 @@
 package art.yesulin.presentation.api.file;
 
 import art.yesulin.application.auth.MemberPrincipal;
+import art.yesulin.application.auth.annotation.LoginMember;
+import art.yesulin.application.auth.annotation.LoginRequired;
 import art.yesulin.application.file.FileContentResult;
 import art.yesulin.application.file.FileContentService;
 import lombok.RequiredArgsConstructor;
@@ -11,18 +13,18 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.SessionAttribute;
 
 @RestController
 @RequestMapping("/api/v1/files")
 @RequiredArgsConstructor
+@LoginRequired
 public class FileContentController {
 
     private final FileContentService fileContentService;
 
     @GetMapping("/{fileId}/content")
     public ResponseEntity<byte[]> read(
-            @SessionAttribute(MemberPrincipal.SESSION_ATTRIBUTE) MemberPrincipal principal,
+            @LoginMember MemberPrincipal principal,
             @PathVariable long fileId
     ) {
         FileContentResult content = fileContentService.read(principal.memberId(), fileId);

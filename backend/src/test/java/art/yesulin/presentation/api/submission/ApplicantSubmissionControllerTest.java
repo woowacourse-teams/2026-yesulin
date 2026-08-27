@@ -165,6 +165,13 @@ class ApplicantSubmissionControllerTest {
                 .andExpect(jsonPath("$.code").value("SUBMISSION_NOT_FOUND"));
     }
 
+    @Test
+    void rejectsUnauthenticatedRequest() throws Exception {
+        mockMvc.perform(get(SUBMISSIONS_PATH))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("AUTH_UNAUTHENTICATED"));
+    }
+
     private Submission saveSubmission(long applicantId, long auditionId, Instant submittedAt, long fileId) {
         Submission submission = new Submission(
                 applicantId,
