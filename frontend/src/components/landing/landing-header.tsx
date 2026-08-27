@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { AnalyticsSettingsButton } from "@/components/analytics/analytics-settings-button";
 import { TrackedLoginLink } from "@/components/analytics/tracked-login-link";
 
 export function LandingHeader({ service }: { readonly service: "applicant" | "producer" }) {
@@ -19,6 +20,7 @@ export function LandingHeader({ service }: { readonly service: "applicant" | "pr
           />
         </Link>
         <nav aria-label="주요 메뉴" className="ml-auto flex items-center gap-1.5 sm:gap-3">
+          <AnalyticsSettingsButton />
           <TrackedLoginLink
             href="/login"
             analytics={{

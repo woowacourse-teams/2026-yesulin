@@ -12,6 +12,7 @@ import { readPublicApplicationDraft } from "@/features/applications/public-appli
 import { buildApplicationAuthReturnTo } from "@/features/auth/return-to";
 import { useAuthSession } from "@/components/auth/auth-session";
 import { applicantRoutes } from "@/features/applicants/routes";
+import { AnalyticsSettingsButton } from "@/components/analytics/analytics-settings-button";
 import { getApplicantSubmissions } from "@/features/applicants/api";
 import { applicationFormSteps } from "@/features/applications/application-form";
 import { applicationWriteRoute } from "@/features/applications/routes";
@@ -89,10 +90,10 @@ export function PublicPostingDetail({ posting, useProfilePrefill = false, resume
       <div className="mx-auto flex min-h-16 max-w-[880px] items-center px-5 md:px-8 min-[1200px]:max-w-[1200px]">
         <Link href="/" aria-label="예술in 홈" className="inline-flex min-h-11 items-center rounded-control px-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"><Image src="/images/yesulin-logo.png" alt="예술in" width={84} height={49} priority className="h-auto w-[84px] object-contain" /></Link>
         {authenticated ? <>
-          <span className="ml-auto inline-flex items-center gap-1.5 text-xs font-medium text-muted-strong sm:text-sm"><span aria-hidden="true" className="h-2 w-2 rounded-full bg-brand" />로그인됨</span>
+          <AnalyticsSettingsButton className="ml-auto mr-2" /><span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-strong sm:text-sm"><span aria-hidden="true" className="h-2 w-2 rounded-full bg-brand" />로그인됨</span>
           <Link href={applicantRoutes.submissions} className="ml-2 inline-flex min-h-11 items-center rounded-control px-3 text-sm font-semibold text-brand hover:bg-brand-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">내 지원서</Link>
         </> : <>
-          <span className="ml-auto text-xs text-muted-strong sm:text-sm">로그인 전 작성 가능</span>
+          <AnalyticsSettingsButton className="ml-auto mr-2" /><span className="text-xs text-muted-strong sm:text-sm">로그인 전 작성 가능</span>
           <TrackedLoginLink href={loginHref} analytics={loginAnalytics} className="ml-2 inline-flex min-h-11 items-center rounded-control px-3 text-sm font-semibold text-muted-strong hover:bg-surface hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">로그인</TrackedLoginLink>
         </>}
       </div>

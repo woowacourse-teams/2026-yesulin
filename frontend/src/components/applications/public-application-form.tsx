@@ -6,6 +6,7 @@ import type { ApplicationFieldInput } from "@/features/auditions/creation-types"
 import type { ApplicationWriteRouteKey } from "@/features/applications/application-form";
 import { formatPhoneNumber, usePhoneInput } from "@/features/applications/phone-number";
 import { PublicApplicationCareer } from "./public-application-career";
+import { AnalyticsSettingsButton } from "@/components/analytics/analytics-settings-button";
 import { applicationLinkKey, applicationLinks, MAX_APPLICATION_LINKS, removedLinkValues } from "@/features/applications/application-links";
 import { PublicApplicationExitDialog } from "./public-application-exit-dialog";
 import { PublicApplicationMedia } from "./public-application-media";
@@ -56,7 +57,7 @@ function ApplicationStepScreen() {
     <header className="glass-surface sticky top-0 z-20 border-x-0 border-t-0">
       <div className="mx-auto flex min-h-16 max-w-[880px] items-center px-5 md:px-8">
         <TextButton onClick={actions.requestBack} className="px-2">← 공고로 돌아가기</TextButton>
-        <span className="ml-auto hidden text-sm font-semibold text-brand sm:inline">지원서 작성</span>
+        <AnalyticsSettingsButton className="ml-auto" /><span className="ml-2 hidden text-sm font-semibold text-brand sm:inline">지원서 작성</span>
         <PublicApplicationSaveBadge />
       </div>
     </header>

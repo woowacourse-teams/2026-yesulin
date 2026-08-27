@@ -7,6 +7,7 @@ import type { ApplicationFieldInput } from "@/features/auditions/creation-types"
 import { orderedApplicationPhotos, youtubeVideoId } from "@/features/applications/application-form-state";
 import type { ApplicationPhoto, CareerDraft, SubmissionState } from "@/features/applications/application-form-state";
 import { photoSlotLabels } from "@/features/applications/materials";
+import { AnalyticsSettingsButton } from "@/components/analytics/analytics-settings-button";
 import { applicationLinks } from "@/features/applications/application-links";
 import { buildApplicationAuthReturnTo } from "@/features/auth/return-to";
 import { PrimaryButton, SecondaryButton, TextButton } from "@/components/ui/controls";
@@ -37,7 +38,7 @@ export function PublicApplicationReview() {
     trackAnalyticsEvent("application_review_view", { is_authenticated: meta.authenticated, issue_count: state.reviewIssues.length });
   }, [meta.authenticated, state.reviewIssues.length]);
   return <main className="min-h-screen bg-surface pb-12 text-foreground">
-    <header className="glass-surface sticky top-0 z-20 border-x-0 border-t-0"><div className="mx-auto flex min-h-16 max-w-[880px] items-center px-5 md:px-8"><span className="text-sm font-semibold text-brand">지원서 검토</span><PublicApplicationSaveBadge /></div></header>
+    <header className="glass-surface sticky top-0 z-20 border-x-0 border-t-0"><div className="mx-auto flex min-h-16 max-w-[880px] items-center px-5 md:px-8"><span className="text-sm font-semibold text-brand">지원서 검토</span><AnalyticsSettingsButton className="ml-auto" /><PublicApplicationSaveBadge /></div></header>
     <div className="mx-auto max-w-[880px] px-5 py-8 md:px-8 md:py-12">
       <PublicApplicationSaveNotice />
       <p className="text-sm font-semibold text-brand">마지막 확인</p>
