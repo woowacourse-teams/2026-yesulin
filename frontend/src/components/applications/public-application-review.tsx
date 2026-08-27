@@ -53,8 +53,7 @@ export function PublicApplicationReview() {
         </div>
       </section>
 
-      <ProfileSave checked={state.saveToProfile} disabled={submitting} onChange={actions.updateSaveToProfile} />
-      <Consent consent={state.consent} privacyConsent={state.privacyConsent} thirdPartyConsent={state.thirdPartyConsent} disabled={submitting} error={state.submissionError.includes("동의") ? state.submissionError : ""} onAllChange={actions.updateConsent} onPrivacyChange={actions.updatePrivacyConsent} onThirdPartyChange={actions.updateThirdPartyConsent} />
+      <Consent privacyConsent={state.privacyConsent} thirdPartyConsent={state.thirdPartyConsent} saveToProfile={state.saveToProfile} disabled={submitting} error={state.submissionError.includes("동의") ? state.submissionError : ""} onAllChange={(checked) => { actions.updateConsent(checked); actions.updateSaveToProfile(checked); }} onPrivacyChange={actions.updatePrivacyConsent} onThirdPartyChange={actions.updateThirdPartyConsent} onSaveToProfileChange={actions.updateSaveToProfile} />
       {meta.authChecking ? <AuthChecking /> : !meta.authenticated ? <AuthGate /> : <SubmissionArea submitting={submitting} consent={state.consent} issueCount={state.reviewIssues.length} state={state.submissionState} error={state.submissionError} onSubmit={actions.submit} />}
     </div>
   </main>;
@@ -101,19 +100,41 @@ function ReviewSection({ title, disabled = false, onEdit, children }: { title: s
   return <section className="border-b border-border-soft py-5 last:border-b-0"><div className="flex items-center gap-3"><h3 className="text-base font-bold">{title}</h3>{onEdit ? <TextButton disabled={disabled} onClick={onEdit} className="ml-auto px-3 text-brand hover:bg-brand-soft disabled:hover:bg-transparent">수정</TextButton> : null}</div><div className="mt-3">{children}</div></section>;
 }
 
-function ProfileSave({ checked, disabled, onChange }: { checked: boolean; disabled: boolean; onChange: (checked: boolean) => void }) {
-  return <aside aria-labelledby="profile-save-title" className="mt-8 border-y border-border-soft bg-surface py-5 md:px-1"><p className="text-xs font-semibold text-muted">선택 사항 · 제출 동의와 별개예요</p><label className="mt-2 flex cursor-pointer items-start gap-3"><input type="checkbox" checked={checked} disabled={disabled} onChange={(event) => onChange(event.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-brand" /><span><strong id="profile-save-title" className="block text-sm">이번 지원서의 기본·추가 정보를 프로필에도 저장</strong><span className="mt-1 block text-sm leading-6 text-muted">이름·연락처·경력처럼 이번에 입력한 항목만 프로필에 옮겨 두고, 다음 지원서를 열 때 자동으로 채웁니다. 사진과 영상, 이 공고에만 있는 추가 질문 답변은 옮기지 않습니다. 사진·영상은 프로필의 보관함에서 직접 관리해 주세요.</span></span></label></aside>;
-}
-
-function Consent({ consent, privacyConsent, thirdPartyConsent, disabled, error, onAllChange, onPrivacyChange, onThirdPartyChange }: { consent: boolean; privacyConsent: boolean; thirdPartyConsent: boolean; disabled: boolean; error: string; onAllChange: (consent: boolean) => void; onPrivacyChange: (consent: boolean) => void; onThirdPartyChange: (consent: boolean) => void }) {
+function Consent({ privacyConsent, thirdPartyConsent, saveToProfile, disabled, error, onAllChange, onPrivacyChange, onThirdPartyChange, onSaveToProfileChange }: { privacyConsent: boolean; thirdPartyConsent: boolean; saveToProfile: boolean; disabled: boolean; error: string; onAllChange: (checked: boolean) => void; onPrivacyChange: (checked: boolean) => void; onThirdPartyChange: (checked: boolean) => void; onSaveToProfileChange: (checked: boolean) => void }) {
   const helpId = "application-consent-help";
   const errorId = "application-consent-error";
-  const inputClass = "mt-1 h-5 w-5 shrink-0 accent-brand";
-  return <section aria-labelledby="consent-title" className="mt-9"><p className="text-sm font-semibold text-brand">필수 동의</p><h2 id="consent-title" className="mt-1 text-xl font-bold">제출 전 개인정보 안내를 확인해 주세요</h2><label htmlFor="application-consent" className={`mt-4 flex items-start gap-3 border-y border-border bg-card py-5 md:px-5 ${disabled ? "cursor-not-allowed text-muted" : "cursor-pointer"}`}><input id="application-consent" type="checkbox" checked={consent} disabled={disabled} aria-invalid={Boolean(error) || undefined} aria-describedby={[helpId, error ? errorId : ""].filter(Boolean).join(" ")} onChange={(event) => onAllChange(event.target.checked)} className={inputClass} /><span><strong className="block text-sm">필수 항목 모두 동의</strong><span id={helpId} className="mt-1 block text-sm leading-6 text-muted">아래 두 항목을 함께 선택하거나 각각 확인할 수 있습니다.</span></span></label><div className="divide-y divide-border-soft border-b border-border bg-card md:px-5"><ConsentItem id="application-privacy-consent" checked={privacyConsent} disabled={disabled} label="개인정보 수집·이용 동의" description="지원서 접수와 심사를 위해 입력한 개인정보를 수집·이용합니다." onChange={onPrivacyChange} /><ConsentItem id="application-third-party-consent" checked={thirdPartyConsent} disabled={disabled} label="개인정보 제3자 제공 동의" description="이 지원서에 작성한 항목만 지원한 공고의 기획사/제작사에 전달됩니다. 프로필에 저장돼 있어도 이 공고가 요청하지 않은 정보는 전달되지 않아요." onChange={onThirdPartyChange} /></div>{error ? <p id={errorId} role="alert" className="mt-3 text-sm font-medium leading-6 text-fail">{error}</p> : null}</section>;
+  // 전체 동의는 필수와 선택을 모두 포함한다. 제출을 막는 것은 필수 두 항목뿐이다.
+  const allChecked = privacyConsent && thirdPartyConsent && saveToProfile;
+  const requiredDescribedBy = error ? errorId : undefined;
+  return <section aria-labelledby="consent-title" className="mt-9">
+    <p className="text-sm font-semibold text-brand">제출 전 확인</p>
+    <h2 id="consent-title" className="mt-1 text-xl font-bold">개인정보 안내를 확인하고 동의해 주세요</h2>
+    <div className="mt-4 overflow-hidden border-y border-border bg-card md:rounded-card md:border">
+      <label htmlFor="application-consent" className={`flex items-start gap-3 px-5 py-5 ${disabled ? "cursor-not-allowed text-muted" : "cursor-pointer"}`}>
+        <input id="application-consent" type="checkbox" checked={allChecked} disabled={disabled} aria-describedby={helpId} onChange={(event) => onAllChange(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-brand" />
+        <span>
+          <strong className="block text-base font-bold">전체 동의</strong>
+          <span id={helpId} className="mt-1 block text-sm leading-6 text-muted">필수 항목과 선택 항목에 모두 동의합니다. 선택 항목은 동의하지 않아도 지원할 수 있어요.</span>
+        </span>
+      </label>
+      <div className="divide-y divide-border-soft border-t border-border px-5">
+        <ConsentItem id="application-privacy-consent" required checked={privacyConsent} disabled={disabled} invalid={Boolean(error)} describedBy={requiredDescribedBy} label="개인정보 수집·이용 동의" description="지원서 접수와 심사를 위해 입력한 개인정보를 수집·이용합니다." onChange={onPrivacyChange} />
+        <ConsentItem id="application-third-party-consent" required checked={thirdPartyConsent} disabled={disabled} invalid={Boolean(error)} describedBy={requiredDescribedBy} label="개인정보 제3자 제공 동의" description="이 지원서에 작성한 항목만 지원한 공고의 기획사/제작사에 전달됩니다. 프로필에 저장돼 있어도 이 공고가 요청하지 않은 정보는 전달되지 않아요." onChange={onThirdPartyChange} />
+        <ConsentItem id="application-profile-save" required={false} checked={saveToProfile} disabled={disabled} invalid={false} label="이번 지원서 정보를 프로필에 저장" description="이름·연락처·경력처럼 이번에 입력한 항목만 프로필에 옮겨 두고, 다음 지원서를 열 때 자동으로 채웁니다. 사진과 영상, 이 공고에만 있는 추가 질문 답변은 옮기지 않습니다." onChange={onSaveToProfileChange} />
+      </div>
+    </div>
+    {error ? <p id={errorId} role="alert" className="mt-3 text-sm font-medium leading-6 text-fail">{error}</p> : null}
+  </section>;
 }
 
-function ConsentItem({ id, checked, disabled, label, description, onChange }: { id: string; checked: boolean; disabled: boolean; label: string; description: string; onChange: (checked: boolean) => void }) {
-  return <label htmlFor={id} className={`flex items-start gap-3 py-4 ${disabled ? "cursor-not-allowed text-muted" : "cursor-pointer"}`}><input id={id} type="checkbox" checked={checked} disabled={disabled} onChange={(event) => onChange(event.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-brand" /><span><strong className="block text-sm"><span className="mr-1 text-fail">[필수]</span>{label}</strong><span className="mt-1 block text-sm leading-6 text-muted">{description}</span></span></label>;
+function ConsentItem({ id, required, checked, disabled, invalid, describedBy, label, description, onChange }: { id: string; required: boolean; checked: boolean; disabled: boolean; invalid: boolean; describedBy?: string; label: string; description: string; onChange: (checked: boolean) => void }) {
+  return <label htmlFor={id} className={`flex items-start gap-3 py-4 ${disabled ? "cursor-not-allowed text-muted" : "cursor-pointer"}`}>
+    <input id={id} type="checkbox" checked={checked} disabled={disabled} aria-invalid={(required && invalid) || undefined} aria-describedby={describedBy} onChange={(event) => onChange(event.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-brand" />
+    <span>
+      <strong className="block text-sm"><span className={`mr-1 ${required ? "text-fail" : "text-muted"}`}>{required ? "[필수]" : "[선택]"}</span>{label}</strong>
+      <span className="mt-1 block text-sm leading-6 text-muted">{description}</span>
+    </span>
+  </label>;
 }
 
 function AuthChecking() {
