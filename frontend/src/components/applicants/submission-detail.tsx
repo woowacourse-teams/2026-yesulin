@@ -54,8 +54,8 @@ function SubmissionReadView({ detail }: { readonly detail: ApplicantSubmissionDe
       <span className="rounded-full border border-border bg-surface px-3 py-2 text-sm font-semibold text-muted-strong">읽기 전용</span>
     </header>
 
-    <section className="mt-5 rounded-card border border-border bg-card p-5 md:p-6"><h2 className="font-bold">지원 배역</h2><p className="mt-2 text-sm leading-6 text-muted">이 지원서로 제출한 배역입니다.</p><SelectedRoleList roles={detail.selectedRoles} /></section>
-    <section className="mt-5 rounded-card border border-border bg-card p-5 md:p-6"><p className="font-semibold">제출 당시 내용이 그대로 보존됩니다.</p><p className="mt-2 text-sm leading-6 text-muted">제출 후에는 일반 수정할 수 없으며, 프로필을 변경하거나 사진 보관함에서 삭제해도 이 지원서는 바뀌지 않습니다.</p></section>
+    <section className="mt-5 rounded-card border border-border bg-card p-5 md:p-6"><h2 className="font-bold">지원 배역</h2><SelectedRoleList roles={detail.selectedRoles} /></section>
+    <p className="mt-5 text-sm leading-6 text-muted">제출 당시 내용입니다. 이후 프로필이나 보관함을 바꿔도 이 지원서는 그대로 남습니다.</p>
     <SubmissionMaterials fields={detail.applicationFields} answers={detail.answers} />
 
     <div className="mt-8 space-y-5">{sections.map((group) => <AnswerSection key={group.section} title={sectionDetails[group.section]} answers={group.answers} units={fieldUnits} />)}{unknown.length ? <AnswerSection title="제출 당시 항목" answers={unknown} units={fieldUnits} notice="현재 공고 양식에서는 사라졌지만 제출 당시 답변은 스냅샷으로 보존돼요." /> : null}</div>

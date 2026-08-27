@@ -73,7 +73,7 @@ export function PublicApplicationPhotoField({ field, limit, photos, authenticate
 
   return <section id={`application-field-${field.id}`}>
     <label htmlFor={inputId} className="mb-2 flex items-center gap-1 text-sm font-semibold text-foreground">{field.label}{field.required ? <span className="text-fail" aria-label="필수">*</span> : <span className="text-muted">(선택)</span>}<span className="num ml-auto text-xs font-medium text-muted">{attachedCount} / {limit}</span></label>
-    <p id={helpId} className="mb-4 text-sm leading-6 text-muted">각 제출 항목에 사용할 사진을 직접 골라 주세요. 로그인하면 보관함 사진을 재사용할 수 있고, 새 사진도 추가할 수 있어요.</p>
+    <p id={helpId} className="mb-4 text-sm leading-6 text-muted">항목마다 사용할 사진을 골라 주세요.</p>
     <input ref={inputRef} id={inputId} type="file" accept="image/jpeg,image/png,image/webp" aria-invalid={Boolean(error) || undefined} aria-describedby={[helpId, error ? errorId : ""].filter(Boolean).join(" ")} className="sr-only" onChange={addPhoto} />
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">{labels.map((label, slotIndex) => {
       const photo = photoBySlot.get(slotIndex);
