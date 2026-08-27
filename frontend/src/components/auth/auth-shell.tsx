@@ -42,10 +42,10 @@ export function AuthShell({ title, description, children, footer, intent = "defa
             {applicationIntent ? "지원서 제출 계속하기" : "예술의 문을 열다"}
           </span>
           <h2 className="mt-6 text-[clamp(34px,3.2vw,52px)] font-bold leading-[1.18] tracking-[-0.035em] text-white">
-            {applicationIntent ? <>작성하던 지원서를<br />인증 후 제출하세요.</> : <>지원부터 캐스팅까지,<br />한 흐름으로 연결하세요.</>}
+            {applicationIntent ? <>작성하던 지원서를<br />로그인 후 제출하세요.</> : <>지원부터 캐스팅까지,<br />한 흐름으로 연결하세요.</>}
           </h2>
           <p className="mt-6 max-w-[420px] text-lg leading-8 text-sidebar-text/80">
-            {applicationIntent ? "로그인해도 지금까지 작성한 지원 내용은 삭제되지 않습니다. 인증 후 바로 제출을 이어가세요." : "배우는 기회를 놓치지 않고, 기획사/제작사는 좋은 배우를 더 빠르게 만날 수 있습니다."}
+            {applicationIntent ? "로그인해도 지금까지 작성한 지원 내용은 삭제되지 않습니다. 로그인한 뒤 바로 제출을 이어가세요." : "배우는 기회를 놓치지 않고, 기획사/제작사는 좋은 배우를 더 빠르게 만날 수 있습니다."}
           </p>
         </div>
 
@@ -61,7 +61,7 @@ export function AuthShell({ title, description, children, footer, intent = "defa
 
           <div className={`border-border bg-card px-0 py-2 sm:rounded-modal sm:border sm:shadow-[var(--shadow-2)] ${fitViewport ? "sm:px-8 sm:py-6" : "sm:px-10 sm:py-10"}`}>
             <header className="text-center">
-              {applicationIntent ? <p className="mb-3 text-sm font-semibold text-brand">지원서 제출을 위한 인증</p> : null}
+              {applicationIntent ? <p className="mb-3 text-sm font-semibold text-brand">지원서 제출을 위한 로그인</p> : null}
               <h1 className="flex min-h-10 items-center justify-center text-[28px] font-bold leading-tight tracking-[-0.025em] text-foreground sm:text-[32px]">{title}</h1>
               <p className="mt-3 text-base leading-relaxed text-muted-strong">{description}</p>
             </header>

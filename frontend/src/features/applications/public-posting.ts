@@ -157,6 +157,6 @@ export function publicPostingAvailability(posting: Pick<PublicPosting, "status" 
   return {
     label: "지원 마감",
     detail: publicPostingDateTime(posting.recruitmentEnd),
-    notice: "로그인 전에도 작성할 수 있으며, 최종 제출은 인증 후 진행합니다.",
+    notice: "로그인 전에도 작성할 수 있으며, 최종 제출은 로그인 후 진행합니다.",
   };
 }

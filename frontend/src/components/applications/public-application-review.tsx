@@ -40,7 +40,7 @@ export function PublicApplicationReview() {
     <div className="mx-auto max-w-[880px] px-5 py-8 md:px-8 md:py-12">
       <PublicApplicationSaveNotice />
       <p className="text-sm font-semibold text-brand">마지막 확인</p>
-      <h1 className="mt-2 text-2xl font-bold tracking-[-0.025em] md:text-[28px]">확인하고, 인증한 뒤 제출하세요.</h1>
+      <h1 className="mt-2 text-2xl font-bold tracking-[-0.025em] md:text-[28px]">확인하고, 로그인한 뒤 제출하세요.</h1>
       <p className="mt-3 leading-6 text-muted-strong">작성 내용을 점검하고 필수 동의를 완료하면 다음 행동을 안내합니다.</p>
       <ReviewFlow issues={state.reviewIssues.length} consent={state.consent} authenticated={meta.authenticated} authChecking={meta.authChecking} />
       <ReviewIssues disabled={submitting} />
@@ -62,7 +62,7 @@ export function PublicApplicationReview() {
 
 function ReviewFlow({ issues, consent, authenticated, authChecking }: { issues: number; consent: boolean; authenticated: boolean; authChecking: boolean }) {
   const ready = !issues && consent && authenticated;
-  const submissionDetail = issues ? "오류 수정 후" : !consent ? "동의 후" : !authenticated ? "인증 후" : "제출 가능";
+  const submissionDetail = issues ? "오류 수정 후" : !consent ? "동의 후" : !authenticated ? "로그인 후" : "제출 가능";
   const items = [
     { label: "내용 확인", detail: issues ? `오류 ${issues}개` : "확인 완료", tone: issues ? "text-fail" : "text-pass" },
     { label: "필수 동의", detail: consent ? "동의 완료" : "확인 필요", tone: consent ? "text-pass" : "text-muted" },
@@ -128,7 +128,7 @@ function AuthGate() {
   useEffect(() => {
     trackAnalyticsEvent("login_prompt_view", { login_reason: "application_submit" });
   }, []);
-  return <section aria-labelledby="auth-gate-title" className="mt-9 rounded-card border border-brand-line bg-brand-soft p-5 md:p-6"><p className="text-sm font-semibold text-brand">배우 인증</p><h2 id="auth-gate-title" className="mt-1 text-xl font-bold">소셜 로그인하고 제출을 이어가세요</h2><p className="mt-2 text-sm font-medium leading-6 text-muted-strong">로그인해도 지금까지 작성한 지원 내용은 삭제되지 않습니다.</p>{blocked ? <p role="status" className="mt-3 text-sm font-medium text-warn">작성 내용 저장이 끝난 뒤 이동할 수 있어요.</p> : null}<div id="application-auth-actions" tabIndex={-1} className="mt-5"><TrackedLoginLink href={`/login?returnTo=${returnTo}`} analytics={{ entry_point: "application_submit_gate", login_reason: "application_submit", actor_type: "applicant", return_target: "application_review" }} aria-disabled={blocked} onClick={blockNavigation} onTrackedClick={() => trackAnalyticsEvent("login_prompt_action", { login_reason: "application_submit", action: "login" })} className={`inline-flex min-h-12 w-full items-center justify-center rounded-control border px-5 text-base font-semibold ${blocked ? "cursor-not-allowed border-border bg-border text-muted" : "border-brand bg-brand text-white shadow-[var(--shadow-1)] hover:bg-brand-strong"}`}>소셜 로그인하고 제출 계속</TrackedLoginLink><p className="mt-3 text-center text-sm text-muted-strong">처음 이용해도 로그인과 함께 배우 계정이 자동으로 만들어집니다.</p></div></section>;
+  return <section aria-labelledby="auth-gate-title" className="mt-9 rounded-card border border-brand-line bg-brand-soft p-5 md:p-6"><p className="text-sm font-semibold text-brand">로그인</p><h2 id="auth-gate-title" className="mt-1 text-xl font-bold">소셜 로그인하고 제출을 이어가세요</h2><p className="mt-2 text-sm font-medium leading-6 text-muted-strong">로그인해도 지금까지 작성한 지원 내용은 삭제되지 않습니다.</p>{blocked ? <p role="status" className="mt-3 text-sm font-medium text-warn">작성 내용 저장이 끝난 뒤 이동할 수 있어요.</p> : null}<div id="application-auth-actions" tabIndex={-1} className="mt-5"><TrackedLoginLink href={`/login?returnTo=${returnTo}`} analytics={{ entry_point: "application_submit_gate", login_reason: "application_submit", actor_type: "applicant", return_target: "application_review" }} aria-disabled={blocked} onClick={blockNavigation} onTrackedClick={() => trackAnalyticsEvent("login_prompt_action", { login_reason: "application_submit", action: "login" })} className={`inline-flex min-h-12 w-full items-center justify-center rounded-control border px-5 text-base font-semibold ${blocked ? "cursor-not-allowed border-border bg-border text-muted" : "border-brand bg-brand text-white shadow-[var(--shadow-1)] hover:bg-brand-strong"}`}>소셜 로그인하고 제출 계속</TrackedLoginLink><p className="mt-3 text-center text-sm text-muted-strong">처음 이용해도 로그인과 함께 배우 계정이 자동으로 만들어집니다.</p></div></section>;
 }
 
 function SubmissionArea({ submitting, consent, issueCount, state, error, onSubmit }: { submitting: boolean; consent: boolean; issueCount: number; state: SubmissionState; error: string; onSubmit: (result: "SUCCESS" | "ERROR") => void }) {
