@@ -162,7 +162,12 @@ async function actorPhotoFileId(photo: ApplicationPhoto) {
     method: "POST",
     body: JSON.stringify({ originalFilename: photo.name, contentType: photo.blob.type, size: photo.blob.size }),
   });
-  const uploadResponse = await fetch(upload.uploadUrl, { method: upload.method, headers: upload.headers, body: photo.blob });
+  const uploadBody = new Blob([await photo.blob.arrayBuffer()], { type: photo.blob.type });
+  const uploadResponse = await fetch(upload.uploadUrl, {
+    method: upload.method,
+    headers: upload.headers,
+    body: uploadBody,
+  });
   if (!uploadResponse.ok) throw new Error("지원 사진을 업로드하지 못했습니다. 잠시 후 다시 시도해 주세요.");
   await request<void>(`/v1/actor-photos/${upload.fileId}/completion`, { method: "PATCH" });
   return upload.fileId;
