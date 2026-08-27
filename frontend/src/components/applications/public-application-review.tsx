@@ -93,7 +93,7 @@ function StepReview({ section, disabled }: { section: EditableSection; disabled:
   if (section === "MATERIALS") return <ReviewSection title={REVIEW_SECTION_TITLES[section]} disabled={disabled} onEdit={edit}><MediaSummary fields={fields} values={state.values} photos={state.photos} videoUrl={state.videoUrl} /></ReviewSection>;
   const careerField = fields.find((field) => field.id === "CAREER");
   const regularFields = fields.filter((field) => field.id !== "CAREER");
-  return <ReviewSection title={REVIEW_SECTION_TITLES[section]} disabled={disabled} onEdit={edit}>{regularFields.length ? <ReviewFields fields={regularFields} values={state.values} /> : null}{careerField ? <div className={regularFields.length ? "mt-5 border-t border-border-soft pt-5" : ""}><h4 className="mb-2 text-sm text-muted">{careerField.label}</h4><CareerSummary noCareer={state.noCareer} careers={state.careers} /></div> : null}</ReviewSection>;
+  return <ReviewSection title={REVIEW_SECTION_TITLES[section]} disabled={disabled} onEdit={edit}>{regularFields.length ? <ReviewFields fields={regularFields} values={state.values} stacked={section === "CUSTOM"} /> : null}{careerField ? <div className={regularFields.length ? "mt-5 border-t border-border-soft pt-5" : ""}><h4 className="mb-2 text-sm text-muted">{careerField.label}</h4><CareerSummary noCareer={state.noCareer} careers={state.careers} /></div> : null}</ReviewSection>;
 }
 
 function ReviewSection({ title, disabled = false, onEdit, children }: { title: string; disabled?: boolean; onEdit?: () => void; children: React.ReactNode }) {
@@ -175,7 +175,21 @@ function SubmissionArea({ submitting, consent, issueCount, state, error, onSubmi
   return <><section aria-labelledby="submission-title" className="mt-9 rounded-card border border-brand-line bg-card p-5 md:p-6"><p className="text-sm font-semibold text-brand">최종 제출</p><h2 id="submission-title" className="mt-1 text-xl font-bold">{blockedByIssues ? "오류를 수정하면 제출할 수 있어요" : consent ? "지원서를 제출할 준비가 됐어요" : "필수 동의를 확인하면 제출할 수 있어요"}</h2><div aria-live="polite">{status ? <p role={submissionError ? "alert" : "status"} className={`mt-3 w-full rounded-control border px-4 py-3 text-sm leading-6 ${submissionError ? "border-fail/20 bg-fail-bg font-medium text-fail" : submitting ? "border-brand-line bg-brand-soft font-medium text-brand" : "border-warn/20 bg-warn-bg font-medium text-warn"}`}>{status}</p> : null}</div><SubmitButton disabled={submitting || blockedByIssues} onClick={requestSubmission} className="mt-4 min-h-12 w-full px-5 text-base">{label}</SubmitButton>{showFailureControl ? <details className="mt-4 text-xs text-muted"><summary className="cursor-pointer px-2 py-1 font-medium hover:text-muted-strong">개발용 상태 확인</summary><TextButton disabled={submitting || blockedByIssues} onClick={() => onSubmit("ERROR")} className="mt-2 px-3 text-xs text-muted hover:bg-fail-bg hover:text-fail">실패 흐름 보기</TextButton></details> : null}</section><PublicApplicationSubmitDialog open={confirmationOpen} onClose={() => setConfirmationOpen(false)} onConfirm={confirmSubmission} /></>;
 }
 
-function ReviewFields({ fields, values }: { fields: readonly ApplicationFieldInput[]; values: Readonly<Record<string, string>> }) { return <dl className="grid gap-x-8 gap-y-3 text-sm md:grid-cols-2">{fields.filter((field) => field.enabled).map((field) => { const value = reviewValue(field, values); const href = field.inputType === "URL" && field.id !== "LINK" && typeof value === "string" ? externalHttpHref(value) : null; return <div key={field.id} className="grid grid-cols-[112px_minmax(0,1fr)] gap-4"><dt className="whitespace-nowrap text-muted">{field.label}</dt><dd className="max-h-32 overflow-y-auto break-words whitespace-pre-wrap font-medium">{field.id === "LINK" ? <ReviewLinks values={values} /> : href ? <a href={href} target="_blank" rel="noopener noreferrer" className="text-brand underline decoration-brand-line underline-offset-2 hover:decoration-brand">{value}<span className="sr-only"> 새 창에서 열기</span></a> : value || <span className="font-normal text-muted">미입력</span>}</dd></div>; })}</dl>; }
+/**
+ * 항목 이름은 112px 칸에 놓이는데 줄바꿈을 막아 두어, 추가 질문처럼 이름이 길면
+ * 칸을 넘어 값 위로 흘러 글자가 겹쳐 보였다. 이름도 줄바꿈되게 하고,
+ * 이름이 길어지는 추가 질문은 값을 아래에 두는 형태로 보여 준다.
+ */
+function ReviewFields({ fields, values, stacked = false }: { fields: readonly ApplicationFieldInput[]; values: Readonly<Record<string, string>>; stacked?: boolean }) {
+  return <dl className={stacked ? "grid gap-5 text-sm" : "grid gap-x-8 gap-y-3 text-sm md:grid-cols-2"}>{fields.filter((field) => field.enabled).map((field) => {
+    const value = reviewValue(field, values);
+    const href = field.inputType === "URL" && field.id !== "LINK" && typeof value === "string" ? externalHttpHref(value) : null;
+    return <div key={field.id} className={stacked ? "min-w-0" : "grid min-w-0 grid-cols-[112px_minmax(0,1fr)] gap-4"}>
+      <dt className={`break-words text-muted ${stacked ? "" : "min-w-0"}`}>{field.label}</dt>
+      <dd className={`max-h-32 min-w-0 overflow-y-auto break-words whitespace-pre-wrap font-medium ${stacked ? "mt-1.5 text-foreground" : ""}`}>{field.id === "LINK" ? <ReviewLinks values={values} /> : href ? <a href={href} target="_blank" rel="noopener noreferrer" className="text-brand underline decoration-brand-line underline-offset-2 hover:decoration-brand">{value}<span className="sr-only"> 새 창에서 열기</span></a> : value || <span className="font-normal text-muted">미입력</span>}</dd>
+    </div>;
+  })}</dl>;
+}
 
 function ReviewLinks({ values }: { values: Readonly<Record<string, string>> }) {
   const links = applicationLinks(values);
