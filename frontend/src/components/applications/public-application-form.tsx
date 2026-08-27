@@ -113,7 +113,7 @@ function StepContent() {
 function ApplicationLinksField({ field }: { field: ApplicationFieldInput }) {
   const { state, actions } = usePublicApplication();
   const [count, setCount] = useState(() => Math.max(1, applicationLinks(state.values).length));
-  const error = state.stepError.startsWith(field.label) ? state.stepError : "";
+  const error = state.fieldErrors[field.id] ?? "";
   const errorId = `application-${field.id}-error`;
   const remove = (index: number) => {
     const next = removedLinkValues(state.values, index);
@@ -142,7 +142,7 @@ function ApplicationLinksField({ field }: { field: ApplicationFieldInput }) {
 function ApplicationField({ field }: { field: ApplicationFieldInput }) {
   const { state, actions } = usePublicApplication();
   const id = `application-${field.id}`;
-  const error = state.stepError.startsWith(field.label) ? state.stepError : "";
+  const error = state.fieldErrors[field.id] ?? "";
   const errorId = `${id}-error`;
   const width = field.layout === "FULL" || field.inputType === "TEXTAREA" ? "md:col-span-2" : "";
   const describedBy = error ? errorId : undefined;
@@ -166,7 +166,7 @@ function FieldControl({ field, id, error, describedBy }: { field: ApplicationFie
     }
     actions.updateField(field.id, event.target.value);
   };
-  const common = { id, name: field.id, required: field.required, value, placeholder: field.config.placeholder, maxLength: field.inputType === "TEL" ? 13 : field.config.maxLength, "aria-invalid": Boolean(error) || undefined, "aria-describedby": describedBy, onChange: change, className };
+  const common = { id, name: field.id, required: field.required, value, placeholder: field.config.placeholder, maxLength: field.inputType === "TEL" ? 13 : field.config.maxLength, "aria-invalid": Boolean(error) || undefined, "aria-describedby": describedBy, onChange: change, onBlur: () => actions.validateField(field.id), className };
   if (field.inputType === "TEXTAREA") return <>
     <textarea {...common} minLength={field.config.minLength} rows={6} className={`${className} resize-none`} />
     {field.config.maxLength ? <span className="num mt-2 block text-right text-xs text-muted">{value.length.toLocaleString("ko-KR")} / {field.config.maxLength.toLocaleString("ko-KR")}자</span> : null}
@@ -196,7 +196,7 @@ function ApplicantStickyAction({ label }: { label: string }) {
     return () => viewport.removeEventListener("resize", updateKeyboardState);
   }, []);
   if (keyboardOpen) return null;
-  return <div className="glass-surface fixed inset-x-0 bottom-0 z-20 border-x-0 border-b-0 md:hidden"><div className="mx-auto flex max-w-[880px] items-center gap-3 px-5 pb-[max(12px,env(safe-area-inset-bottom))] pt-3"><span className="min-w-0 flex-1 text-xs leading-5 text-muted-strong">{state.stepError ? "입력 내용을 확인해 주세요." : `현재 ${state.stepIndex + 1} / ${state.stepProgress.length} 단계`}</span>{state.stepIndex > 0 ? <PreviousButton /> : null}<NextButton label={label} /></div></div>;
+  return <div className="glass-surface fixed inset-x-0 bottom-0 z-20 border-x-0 border-b-0 md:hidden"><div className="mx-auto flex max-w-[880px] items-center gap-3 px-5 pb-[max(12px,env(safe-area-inset-bottom))] pt-3"><span className="min-w-0 flex-1 text-xs leading-5 text-muted-strong">{Object.keys(state.fieldErrors).length ? `확인이 필요한 항목이 ${Object.keys(state.fieldErrors).length}개 있어요.` : `현재 ${state.stepIndex + 1} / ${state.stepProgress.length} 단계`}</span>{state.stepIndex > 0 ? <PreviousButton /> : null}<NextButton label={label} /></div></div>;
 }
 
 function FormEmpty() {

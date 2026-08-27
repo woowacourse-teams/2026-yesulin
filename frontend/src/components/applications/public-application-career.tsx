@@ -11,7 +11,7 @@ const MAX_CAREER_COUNT = 10;
 export function PublicApplicationCareer({ field }: { field: ApplicationFieldInput }) {
   const { state, actions } = usePublicApplication();
   const errorId = `application-${field.id}-error`;
-  const fieldError = state.stepError.startsWith(field.label) ? state.stepError : "";
+  const fieldError = state.fieldErrors[field.id] ?? "";
   const emptyError = fieldError && !state.noCareer && state.careers.length === 0 ? fieldError : "";
   const addCareer = () => actions.updateCareers([...state.careers, { id: crypto.randomUUID(), title: "", part: "", year: "" }]);
   const patchCareer = (id: string, update: Partial<CareerDraft>) => actions.updateCareers(state.careers.map((career) => career.id === id ? { ...career, ...update } : career));

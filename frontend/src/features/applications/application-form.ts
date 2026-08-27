@@ -76,11 +76,11 @@ export function applicationStepProgress({
   stepIndex: number;
   maxReachedStepIndex: number;
   completedStepIndexes: readonly number[];
-  stepErrors: Readonly<Record<number, string>>;
+  stepErrors: Readonly<Record<number, Readonly<Record<string, string>>>>;
 }): readonly ApplicationStepProgress[] {
   return steps.map((_, index) => ({
     status: index === stepIndex ? "CURRENT" : completedStepIndexes.includes(index) ? "COMPLETED" : "UPCOMING",
-    hasError: Boolean(stepErrors[index]),
+    hasError: Object.keys(stepErrors[index] ?? {}).length > 0,
     accessible: index <= maxReachedStepIndex,
   }));
 }
