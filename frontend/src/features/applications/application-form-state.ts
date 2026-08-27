@@ -1,6 +1,8 @@
 import type { ApplicationFormStep } from "./application-form";
 import { isCompleteKoreaRegion } from "@/features/applicants/korea-regions";
 import { integerMeasurementError, isIntegerMeasurement } from "@/features/applicants/profile-input";
+import { isValidBirthDate } from "@/components/ui/birth-date-input";
+import { applicationLinks } from "./application-links";
 
 export const MAX_PHOTO_COUNT = 3;
 export const MAX_PHOTO_SIZE_BYTES = 20 * 1024 * 1024;
@@ -168,10 +170,19 @@ function applicationFieldError(field: ApplicationFormStep["fields"][number], val
     return field.required && missing ? `${field.label} 항목을 입력해 주세요.` : null;
   }
 
+  if (field.id === "LINK") {
+    const links = applicationLinks(values);
+    if (field.required && links.length === 0) return `${field.label} 항목을 입력해 주세요.`;
+    return null;
+  }
   const value = values[field.id]?.trim() ?? "";
   if (field.inputType === "REGION") {
     if (!field.required && !value) return null;
     return isCompleteKoreaRegion(value) ? null : `${field.label}을(를) 시·도와 시·군·구까지 선택해 주세요.`;
+  }
+  if (field.inputType === "DATE" && field.id === "BIRTH") {
+    if (!value) return field.required ? `${field.label} 항목을 입력해 주세요.` : null;
+    return isValidBirthDate(value) ? null : `${field.label}을(를) 숫자 8자리로 입력해 주세요. 예: 19990315`;
   }
   if (field.required && !value) return `${field.label} 항목을 입력해 주세요.`;
   if (value && field.inputType === "NUMBER" && !isIntegerMeasurement(value)) return integerMeasurementError(field.label);

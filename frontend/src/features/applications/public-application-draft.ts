@@ -1,5 +1,6 @@
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
 import { orderedApplicationPhotos } from "./application-form-state";
+import { applicationLinkKey, MAX_APPLICATION_LINKS } from "./application-links";
 import type { ApplicationPhoto, CareerDraft } from "./application-form-state";
 import type { ApplicantAnswerValue, CareerEntry, ProfilePrefillResponse } from "@/features/applicants/types";
 
@@ -20,7 +21,10 @@ export function applicationDraftFromPrefill(prefill?: ProfilePrefillResponse, fi
     } else if (answer.key === "CAREER" && Array.isArray(answer.value)) {
       careers = answer.value.filter(isCareerEntry).map((career, index) => ({ id: `prefill-career-${index}`, title: career.title, part: career.part, year: String(career.year) }));
     } else if (answer.key === "LINK" && Array.isArray(answer.value)) {
-      values[answer.key] = answer.value.find((item): item is string => typeof item === "string" && Boolean(item.trim())) ?? "";
+      answer.value
+        .filter((item): item is string => typeof item === "string" && Boolean(item.trim()))
+        .slice(0, MAX_APPLICATION_LINKS)
+        .forEach((link, index) => { values[applicationLinkKey(index)] = link; });
     } else if (typeof answer.value === "object" && answer.value !== null && !Array.isArray(answer.value) && "height" in answer.value && "weight" in answer.value) {
       values[`${answer.key}.height`] = String(answer.value.height);
       values[`${answer.key}.weight`] = String(answer.value.weight);
