@@ -12,6 +12,7 @@ import { readPublicApplicationDraft } from "@/features/applications/public-appli
 import { buildApplicationAuthReturnTo } from "@/features/auth/return-to";
 import { useAuthSession } from "@/components/auth/auth-session";
 import { applicantRoutes } from "@/features/applicants/routes";
+import { getApplicantSubmissions } from "@/features/applicants/api";
 import { applicationFormSteps } from "@/features/applications/application-form";
 import { applicationWriteRoute } from "@/features/applications/routes";
 import { PublicVenueGuide } from "./public-venue-guide";
@@ -26,10 +27,12 @@ export function PublicPostingDetail({ posting, useProfilePrefill = false, resume
   const [selectedRoleIds, setSelectedRoleIds] = useState<readonly string[]>(validInitialRoleIds.length ? validInitialRoleIds : skipsRoleChoice && posting.roles[0] ? [posting.roles[0].id] : []);
   const [restoring, setRestoring] = useState(resumeDraft);
   const [hasLocalDraft, setHasLocalDraft] = useState(false);
+  const [submittedPostingIds, setSubmittedPostingIds] = useState<readonly string[]>([]);
   const authenticated = session?.role === "APPLICANT";
   const selectedRoles = posting.roles.filter((role) => selectedRoleIds.includes(role.id));
   const acceptingApplications = posting.status === "OPEN";
-  const actionEnabled = acceptingApplications && selectedRoles.length > 0;
+  const alreadySubmitted = authenticated && submittedPostingIds.includes(posting.id);
+  const actionEnabled = acceptingApplications && selectedRoles.length > 0 && !alreadySubmitted;
   const selectedRoleLabel = selectedRoles.map((role) => role.name).join(" · ");
   const loginHref = `/login?returnTo=${encodeURIComponent(buildApplicationAuthReturnTo(posting.id, selectedRoleIds, "basic"))}`;
   const loginAnalytics = { entry_point: "public_posting_header", login_reason: "application_start", actor_type: "applicant", return_target: "application_basic" } as const;
@@ -48,6 +51,16 @@ export function PublicPostingDetail({ posting, useProfilePrefill = false, resume
   useEffect(() => {
     trackAnalyticsEvent("view_posting", { posting_status: posting.status.toLowerCase(), role_count: posting.roles.length });
   }, [posting.roles.length, posting.status]);
+
+  // 같은 공고에는 한 번만 제출할 수 있다. 다 쓰고 나서 막지 않도록 작성 전에 확인한다.
+  useEffect(() => {
+    if (!authenticated) return;
+    let active = true;
+    getApplicantSubmissions()
+      .then((response) => { if (active) setSubmittedPostingIds(response.submissions.map((submission) => submission.postingId)); })
+      .catch((cause) => { console.error("[지원 여부 확인 실패]", cause); });
+    return () => { active = false; };
+  }, [authenticated]);
 
   useEffect(() => {
     let active = true;
@@ -93,9 +106,9 @@ export function PublicPostingDetail({ posting, useProfilePrefill = false, resume
         <KeyPostingInformation posting={posting} />
         <PostingDetails posting={posting} />
       </article>
-      <aside className="hidden min-[1200px]:block"><DesktopAction posting={posting} selectedRole={selectedRoleLabel} enabled={actionEnabled} hasDraft={hasLocalDraft} onAction={beginApplication} onChooseRole={focusRoleSelection} /></aside>
+      <aside className="hidden min-[1200px]:block"><DesktopAction posting={posting} selectedRole={selectedRoleLabel} enabled={actionEnabled} hasDraft={hasLocalDraft} alreadySubmitted={alreadySubmitted} onAction={beginApplication} onChooseRole={focusRoleSelection} /></aside>
     </div>
-    {showMobileAction ? <MobileAction posting={posting} selectedRole={selectedRoleLabel} enabled={actionEnabled} hasDraft={hasLocalDraft} onAction={beginApplication} onChooseRole={focusRoleSelection} /> : null}
+    {showMobileAction ? <MobileAction posting={posting} selectedRole={selectedRoleLabel} enabled={actionEnabled} hasDraft={hasLocalDraft} alreadySubmitted={alreadySubmitted} onAction={beginApplication} onChooseRole={focusRoleSelection} /> : null}
   </main>;
 }
 
@@ -141,12 +154,12 @@ function PostingDetails({ posting }: { posting: PublicPosting }) {
 
 function InfoSection({ title, children }: { title: string; children: React.ReactNode }) { return <section className="py-8 sm:py-10"><h2 className="text-xl font-bold tracking-[-0.02em]">{title}</h2><div className="mt-5">{children}</div></section>; }
 
-function DesktopAction({ posting, selectedRole, enabled, hasDraft, onAction, onChooseRole }: { posting: PublicPosting; selectedRole?: string; enabled: boolean; hasDraft: boolean; onAction: () => void; onChooseRole: () => void }) { const availability = publicPostingAvailability(posting); return <div className="glass-surface-strong sticky top-24 rounded-modal p-6"><p className="text-sm font-bold text-muted-strong">지원 요약</p><div className="mt-5 space-y-4"><div><span className="block text-xs font-medium text-muted">선택 배역</span><strong className="mt-1 block text-lg leading-7">{selectedRole ?? "지원할 배역을 선택해 주세요"}</strong></div><div><span className="block text-xs font-medium text-muted">{availability.label}</span><strong className="num mt-1 block text-sm leading-6">{availability.detail}</strong></div></div><div className="mt-6 [&>button]:w-full"><ActionButton posting={posting} enabled={enabled} hasDraft={hasDraft} onAction={onAction} onChooseRole={onChooseRole} /></div><div className="mt-4 border-t border-border-soft pt-4"><ActionNotice status={posting.status} hasDraft={hasDraft} /></div></div>; }
+function DesktopAction({ posting, selectedRole, enabled, hasDraft, alreadySubmitted, onAction, onChooseRole }: { posting: PublicPosting; selectedRole?: string; enabled: boolean; hasDraft: boolean; alreadySubmitted: boolean; onAction: () => void; onChooseRole: () => void }) { const availability = publicPostingAvailability(posting); return <div className="glass-surface-strong sticky top-24 rounded-modal p-6"><p className="text-sm font-bold text-muted-strong">지원 요약</p><div className="mt-5 space-y-4"><div><span className="block text-xs font-medium text-muted">선택 배역</span><strong className="mt-1 block text-lg leading-7">{selectedRole ?? "지원할 배역을 선택해 주세요"}</strong></div><div><span className="block text-xs font-medium text-muted">{availability.label}</span><strong className="num mt-1 block text-sm leading-6">{availability.detail}</strong></div></div><div className="mt-6 [&>button]:w-full"><ActionButton posting={posting} enabled={enabled} hasDraft={hasDraft} alreadySubmitted={alreadySubmitted} onAction={onAction} onChooseRole={onChooseRole} /></div><div className="mt-4 border-t border-border-soft pt-4"><ActionNotice status={posting.status} hasDraft={hasDraft} alreadySubmitted={alreadySubmitted} /></div></div>; }
 
-function MobileAction({ posting, selectedRole, enabled, hasDraft, onAction, onChooseRole }: { posting: PublicPosting; selectedRole?: string; enabled: boolean; hasDraft: boolean; onAction: () => void; onChooseRole: () => void }) { const availability = publicPostingAvailability(posting); return <div className="glass-surface fixed inset-x-0 bottom-0 z-20 border-x-0 border-b-0 min-[1200px]:hidden"><div className="mx-auto max-w-[880px] px-5 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 md:px-8"><div className="flex items-center gap-3"><div className="min-w-0 flex-1"><strong className="block truncate text-sm">{selectedRole ?? "배역을 선택해 주세요"}</strong><span className="num block text-xs text-muted">{availability.label} · {availability.detail}</span></div><ActionButton posting={posting} enabled={enabled} hasDraft={hasDraft} onAction={onAction} onChooseRole={onChooseRole} /></div><div className="mt-2"><ActionNotice status={posting.status} hasDraft={hasDraft} /></div></div></div>; }
+function MobileAction({ posting, selectedRole, enabled, hasDraft, alreadySubmitted, onAction, onChooseRole }: { posting: PublicPosting; selectedRole?: string; enabled: boolean; hasDraft: boolean; alreadySubmitted: boolean; onAction: () => void; onChooseRole: () => void }) { const availability = publicPostingAvailability(posting); return <div className="glass-surface fixed inset-x-0 bottom-0 z-20 border-x-0 border-b-0 min-[1200px]:hidden"><div className="mx-auto max-w-[880px] px-5 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 md:px-8"><div className="flex items-center gap-3"><div className="min-w-0 flex-1"><strong className="block truncate text-sm">{selectedRole ?? "배역을 선택해 주세요"}</strong><span className="num block text-xs text-muted">{availability.label} · {availability.detail}</span></div><ActionButton posting={posting} enabled={enabled} hasDraft={hasDraft} alreadySubmitted={alreadySubmitted} onAction={onAction} onChooseRole={onChooseRole} /></div><div className="mt-2"><ActionNotice status={posting.status} hasDraft={hasDraft} alreadySubmitted={alreadySubmitted} /></div></div></div>; }
 
-function ActionButton({ posting, enabled, hasDraft, onAction, onChooseRole }: { posting: PublicPosting; enabled: boolean; hasDraft: boolean; onAction: () => void; onChooseRole: () => void }) { const unavailable = posting.status !== "OPEN"; const label = posting.status === "UPCOMING" ? "모집 시작 전" : posting.status === "CLOSED" ? "지원 마감" : enabled ? hasDraft ? "지원서 이어쓰기" : "지원서 작성" : "배역 선택하기"; return <PrimaryButton disabled={unavailable} onClick={enabled ? onAction : onChooseRole} className="shrink-0 px-5">{label}</PrimaryButton>; }
+function ActionButton({ posting, enabled, hasDraft, alreadySubmitted, onAction, onChooseRole }: { posting: PublicPosting; enabled: boolean; hasDraft: boolean; alreadySubmitted: boolean; onAction: () => void; onChooseRole: () => void }) { const unavailable = posting.status !== "OPEN" || alreadySubmitted; const label = alreadySubmitted ? "이미 지원한 공고" : posting.status === "UPCOMING" ? "모집 시작 전" : posting.status === "CLOSED" ? "지원 마감" : enabled ? hasDraft ? "지원서 이어쓰기" : "지원서 작성" : "배역 선택하기"; return <PrimaryButton disabled={unavailable} onClick={enabled ? onAction : onChooseRole} className="shrink-0 px-5">{label}</PrimaryButton>; }
 
-function ActionNotice({ status, hasDraft }: { status: PublicPosting["status"]; hasDraft: boolean }) { const message = status === "OPEN" ? hasDraft ? "이 브라우저에 작성 중인 내용이 있어요. 이어서 확인한 뒤 제출할 수 있습니다." : "로그인 전에도 작성할 수 있어요. 작성 내용은 이 브라우저에 저장되고, 최종 제출할 때 로그인이 필요합니다." : status === "UPCOMING" ? "모집 시작 전이라 지원할 수 없어요." : "접수가 마감되어 지원할 수 없어요. 공고 내용은 계속 확인할 수 있어요."; return <p className="text-xs leading-5 text-muted">{message}</p>; }
+function ActionNotice({ status, hasDraft, alreadySubmitted }: { status: PublicPosting["status"]; hasDraft: boolean; alreadySubmitted: boolean }) { const message = alreadySubmitted ? "이미 이 공고에 지원했어요. 제출한 내용은 내 지원서에서 확인할 수 있습니다." : status === "OPEN" ? hasDraft ? "이 브라우저에 작성 중인 내용이 있어요. 이어서 확인한 뒤 제출할 수 있습니다." : "로그인 전에도 작성할 수 있어요. 작성 내용은 이 브라우저에 저장되고, 최종 제출할 때 로그인이 필요합니다." : status === "UPCOMING" ? "모집 시작 전이라 지원할 수 없어요." : "접수가 마감되어 지원할 수 없어요. 공고 내용은 계속 확인할 수 있어요."; return <p className="text-xs leading-5 text-muted">{message}</p>; }
 
 function DraftResumeLoading() { return <main className="grid min-h-screen place-items-center bg-surface px-5"><section role="status" className="w-full max-w-lg rounded-modal border border-border bg-card px-6 py-12 text-center"><span aria-hidden="true" className="mx-auto block h-10 w-10 animate-pulse rounded-2xl bg-brand" /><h1 className="mt-5 text-xl font-bold">작성하던 지원서를 찾고 있어요</h1><p className="mt-2 text-sm leading-6 text-muted-strong">이전에 입력한 내용이 있으면 불러온 뒤 지원서를 열게요.</p></section></main>; }
