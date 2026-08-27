@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import type { ChangeEvent } from "react";
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
 import type { ApplicationWriteRouteKey } from "@/features/applications/application-form";
-import { applyPhoneInput, formatPhoneNumber } from "@/features/applications/phone-number";
+import { formatPhoneNumber, usePhoneInput } from "@/features/applications/phone-number";
 import { PublicApplicationCareer } from "./public-application-career";
 import { applicationLinkKey, applicationLinks, MAX_APPLICATION_LINKS, removedLinkValues } from "@/features/applications/application-links";
 import { PublicApplicationExitDialog } from "./public-application-exit-dialog";
@@ -158,9 +158,10 @@ function FieldControl({ field, id, error, describedBy }: { field: ApplicationFie
   const { state, actions } = usePublicApplication();
   const value = state.values[field.id] ?? "";
   const className = `${fieldControlClass} ${error ? "border-fail focus:border-fail focus:ring-fail-bg" : ""}`;
+  const onPhoneChange = usePhoneInput(formatPhoneNumber);
   const change = (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     if (field.inputType === "TEL" && event.target instanceof HTMLInputElement) {
-      applyPhoneInput(event.target, formatPhoneNumber, (next) => actions.updateField(field.id, next));
+      onPhoneChange(event as ChangeEvent<HTMLInputElement>, (next) => actions.updateField(field.id, next));
       return;
     }
     actions.updateField(field.id, event.target.value);
@@ -171,7 +172,7 @@ function FieldControl({ field, id, error, describedBy }: { field: ApplicationFie
     {field.config.maxLength ? <span className="num mt-2 block text-right text-xs text-muted">{value.length.toLocaleString("ko-KR")} / {field.config.maxLength.toLocaleString("ko-KR")}자</span> : null}
   </>;
   if (field.inputType === "SELECT") return <select {...common}><option value="">선택해 주세요</option>{field.config.options?.map((option) => <option key={option} value={option}>{option}</option>)}</select>;
-  if (field.inputType === "COMPOSITE") return <div className="grid grid-cols-2 gap-3">{field.config.fields?.map((part) => { const partId = `${field.id}.${part.key}`; const inputId = `${id}-${part.key}`; const isPhone = part.inputType === "TEL"; return <label key={part.key} htmlFor={inputId} className="relative"><span className="mb-2 block text-sm font-medium text-foreground">{part.label}</span><input id={inputId} name={partId} required={field.required} type={part.inputType === "NUMBER" ? "number" : isPhone ? "tel" : "text"} value={state.values[partId] ?? ""} placeholder={part.placeholder} maxLength={isPhone ? 13 : undefined} aria-invalid={Boolean(error) || undefined} aria-describedby={describedBy} onChange={(event) => isPhone ? applyPhoneInput(event.target, formatPhoneNumber, (next) => actions.updateField(partId, next)) : actions.updateField(partId, event.target.value)} className={`${className} pr-10`} />{part.unit ? <span className="pointer-events-none absolute right-3 top-10 text-sm text-muted">{part.unit}</span> : null}</label>; })}</div>;
+  if (field.inputType === "COMPOSITE") return <div className="grid grid-cols-2 gap-3">{field.config.fields?.map((part) => { const partId = `${field.id}.${part.key}`; const inputId = `${id}-${part.key}`; const isPhone = part.inputType === "TEL"; return <label key={part.key} htmlFor={inputId} className="relative"><span className="mb-2 block text-sm font-medium text-foreground">{part.label}</span><input id={inputId} name={partId} required={field.required} type={part.inputType === "NUMBER" ? "number" : isPhone ? "tel" : "text"} value={state.values[partId] ?? ""} placeholder={part.placeholder} maxLength={isPhone ? 13 : undefined} aria-invalid={Boolean(error) || undefined} aria-describedby={describedBy} onChange={(event) => isPhone ? onPhoneChange(event, (next) => actions.updateField(partId, next)) : actions.updateField(partId, event.target.value)} className={`${className} pr-10`} />{part.unit ? <span className="pointer-events-none absolute right-3 top-10 text-sm text-muted">{part.unit}</span> : null}</label>; })}</div>;
   if (field.id === "BIRTH") return <BirthDateInput id={id} value={value} required={field.required} invalid={Boolean(error)} describedBy={describedBy} onChange={(next) => actions.updateField(field.id, next)} />;
   if (field.inputType === "REGION") return <RegionSelect id={id} value={value} required={field.required} invalid={Boolean(error)} describedBy={describedBy} onChange={(next) => actions.updateField(field.id, next)} />;
   const type = field.inputType === "TEL" ? "tel" : field.inputType === "NUMBER" ? "number" : field.inputType === "URL" ? "url" : "text";
