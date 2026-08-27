@@ -5,11 +5,32 @@ import "./globals.css";
 import "./interactions.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://yesulin.art"),
   title: {
     default: "예술in",
     template: "%s | 예술in",
   },
   description: "기획사/제작사와 배우를 연결하는 공연 지원 관리 서비스",
+  openGraph: {
+    type: "website",
+    locale: "ko_KR",
+    url: "/",
+    siteName: "예술in",
+    title: "예술in",
+    description: "기획사/제작사와 배우를 연결하는 공연 지원 관리 서비스",
+    images: [{
+      url: "/images/og-image.png",
+      width: 1536,
+      height: 1024,
+      alt: "공연 예술 오디션 지원을 더 간편하게, 예술in",
+    }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "예술in",
+    description: "기획사/제작사와 배우를 연결하는 공연 지원 관리 서비스",
+    images: ["/images/og-image.png"],
+  },
 };
 
 export const viewport: Viewport = {
