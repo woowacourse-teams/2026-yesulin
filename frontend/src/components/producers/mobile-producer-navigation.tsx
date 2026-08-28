@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { ModalShell } from "@/components/auditions/modal-shell";
 import { auditionRoutes } from "@/features/auditions/routes";
+import { AnalyticsSettingsButton } from "@/components/analytics/analytics-settings-button";
 import { ProducerAccountPanel } from "./producer-account-panel";
 import { AuditionTreeNav } from "./audition-tree";
 
@@ -53,6 +54,7 @@ function MobileProducerNavigationPanel() {
           </span>
           <span className="ml-2 truncate text-base font-semibold">공연 관리</span>
         </Link>
+        <AnalyticsSettingsButton className="ml-auto" />
       </header>
 
       <ModalShell

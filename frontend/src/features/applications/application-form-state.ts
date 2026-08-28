@@ -109,6 +109,32 @@ export function applicationStepError({
 }
 
 /** 검증 규칙은 유지하면서 오류를 안내할 실제 입력 항목도 함께 찾는다. */
+export type ApplicationStepInput = {
+  step: ApplicationFormStep;
+  photos: readonly ApplicationPhoto[];
+  videoUrl: string;
+  noCareer: boolean;
+  careers: readonly CareerDraft[];
+  values: Readonly<Record<string, string>>;
+};
+
+/**
+ * 한 단계에서 잘못된 항목을 모두 모은다.
+ * 첫 오류만 알려 주면 고치고 다음을 눌러야 그다음 오류가 보여, 몇 번을 오가야 하는지 알 수 없었다.
+ */
+export function applicationStepIssues(input: ApplicationStepInput): readonly ApplicationStepIssue[] {
+  const fieldIssues = input.step.fields
+    .filter((candidate) => candidate.id !== "CAREER" && candidate.section !== "MATERIALS")
+    .flatMap((candidate) => {
+      const message = applicationFieldError(candidate, input.values);
+      return message ? [{ fieldId: candidate.id, message }] : [];
+    });
+  const remaining = applicationStepIssue(input);
+  return remaining && !fieldIssues.some((issue) => issue.fieldId === remaining.fieldId)
+    ? [...fieldIssues, remaining]
+    : fieldIssues;
+}
+
 export function applicationStepIssue({
   step,
   photos,
@@ -116,14 +142,7 @@ export function applicationStepIssue({
   noCareer,
   careers,
   values,
-}: {
-  step: ApplicationFormStep;
-  photos: readonly ApplicationPhoto[];
-  videoUrl: string;
-  noCareer: boolean;
-  careers: readonly CareerDraft[];
-  values: Readonly<Record<string, string>>;
-}): ApplicationStepIssue | null {
+}: ApplicationStepInput): ApplicationStepIssue | null {
   const regularField = step.fields.find((candidate) => candidate.id !== "CAREER" && candidate.section !== "MATERIALS" && applicationFieldError(candidate, values));
   if (regularField) return { fieldId: regularField.id, message: applicationFieldError(regularField, values)! };
   if (step.key === "media") {

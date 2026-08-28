@@ -24,7 +24,8 @@ export type PublicApplicationState = {
   readonly videoUrl: string;
   readonly noCareer: boolean;
   readonly careers: readonly CareerDraft[];
-  readonly stepError: string;
+  /** 현재 단계에서 잘못된 항목의 오류 메시지. 키는 항목 id다. */
+  readonly fieldErrors: Readonly<Record<string, string>>;
   readonly stepProgress: ReturnType<typeof applicationStepProgress>;
   readonly reviewIssues: readonly ReviewIssue[];
   readonly hasUnsavedChanges: boolean;
@@ -56,6 +57,8 @@ export type PublicApplicationActions = {
   readonly updateCareers: (careers: readonly CareerDraft[]) => void;
   readonly moveStep: (index: number) => void;
   readonly nextStep: () => void;
+  /** 입력을 마친 항목 하나만 검사한다. 다음을 누르기 전에도 잘못된 값을 알려 준다. */
+  readonly validateField: (fieldId: string) => void;
   readonly editSection: (section: EditableSection, fieldId?: string) => void;
   readonly requestBack: () => void;
   readonly cancelBack: () => void;

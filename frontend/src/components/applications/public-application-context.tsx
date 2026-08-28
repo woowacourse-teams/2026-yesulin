@@ -3,7 +3,7 @@
 import { createContext, use, useEffect, useMemo, useState } from "react";
 import { AuditionRequestError } from "@/features/auditions/api-client";
 import { applicationFormSteps, applicationStepIndexIn, applicationStepProgress } from "@/features/applications/application-form";
-import { applicationStepIssue } from "@/features/applications/application-form-state";
+import { applicationStepIssue, applicationStepIssues } from "@/features/applications/application-form-state";
 import type { ApplicationStepIssue, SubmissionState } from "@/features/applications/application-form-state";
 import { createApplicationSubmission } from "@/features/applications/submission-api";
 import { deletePublicApplicationDraft } from "@/features/applications/public-application-draft-store";
@@ -55,7 +55,7 @@ export function PublicApplicationProvider({
     thirdPartyConsent, setThirdPartyConsent, saveToProfile, setSaveToProfile, roleIds,
   } = draft;
   const consent = privacyConsent && thirdPartyConsent;
-  const [stepErrors, setStepErrors] = useState<Readonly<Record<number, string>>>({});
+  const [stepErrors, setStepErrors] = useState<Readonly<Record<number, Readonly<Record<string, string>>>>>({});
   const [mediaError, setMediaError] = useState("");
   // 검토 화면에서 한 항목만 고치러 들어왔는지. 그렇다면 남은 단계를 다시 거치지 않고 검토로 돌려보낸다.
   const [returnToReview, setReturnToReview] = useState(false);
@@ -76,6 +76,11 @@ export function PublicApplicationProvider({
   const validationIssue = (index: number) => applicationStepIssue({
     step: steps[index]!, photos, videoUrl, noCareer, careers, values,
   });
+  const validationIssues = (index: number) => applicationStepIssues({
+    step: steps[index]!, photos, videoUrl, noCareer, careers, values,
+  });
+  const errorsOf = (issues: readonly { fieldId: string; message: string }[]) =>
+    Object.fromEntries(issues.map((issue) => [issue.fieldId, issue.message]));
   const maxReachedStepIndex = Math.min(
     steps.length - 1,
     completedStepIndexes.length ? Math.max(...completedStepIndexes) + 1 : 0,
@@ -94,6 +99,21 @@ export function PublicApplicationProvider({
     const remaining = { ...current };
     delete remaining[index];
     return remaining;
+  });
+
+  /**
+   * 오류는 항목 단위로 붙지만 값의 키는 더 잘게 나뉜다.
+   * 영상은 요구사항마다(VIDEO.req-1) 오류가 붙고, 키·몸무게와 외부 링크는 묶음 이름(BODY, LINK)에 붙는다.
+   * 그래서 정확히 같은 키와 앞부분 키를 함께 지운다.
+   */
+  const clearFieldError = (fieldId: string) => setStepErrors((current) => {
+    const stepFieldErrors = current[stepIndex];
+    const groupId = fieldId.split(".")[0]!;
+    if (!stepFieldErrors?.[fieldId] && !stepFieldErrors?.[groupId]) return current;
+    const remaining = { ...stepFieldErrors };
+    delete remaining[fieldId];
+    delete remaining[groupId];
+    return { ...current, [stepIndex]: remaining };
   });
 
   const focusIssue = (issue: ApplicationStepIssue) => {
@@ -115,10 +135,10 @@ export function PublicApplicationProvider({
   };
 
   const nextStep = () => {
-    const issue = validationIssue(stepIndex);
-    if (issue) {
-      setStepErrors((current) => ({ ...current, [stepIndex]: issue.message }));
-      focusIssue(issue);
+    const issues = validationIssues(stepIndex);
+    if (issues.length) {
+      setStepErrors((current) => ({ ...current, [stepIndex]: errorsOf(issues) }));
+      focusIssue(issues[0]!);
       return;
     }
     clearStepError(stepIndex);
@@ -136,6 +156,16 @@ export function PublicApplicationProvider({
     }
   };
 
+  const validateField = (fieldId: string) => {
+    const message = validationIssues(stepIndex).find((issue) => issue.fieldId === fieldId)?.message ?? "";
+    setStepErrors((current) => {
+      const stepFieldErrors = { ...(current[stepIndex] ?? {}) };
+      if (message) stepFieldErrors[fieldId] = message;
+      else delete stepFieldErrors[fieldId];
+      return { ...current, [stepIndex]: stepFieldErrors };
+    });
+  };
+
   const editSection = (section: EditableSection, fieldId?: string) => {
     if (submissionState === "SUBMITTING") return;
     const index = steps.findIndex((item) => item.sections.includes(section));
@@ -145,7 +175,7 @@ export function PublicApplicationProvider({
       moveStep(index);
       setReturnToReview(true);
       if (issue) {
-        setStepErrors((current) => ({ ...current, [index]: issue.message }));
+        setStepErrors((current) => ({ ...current, [index]: errorsOf(validationIssues(index)) }));
         focusIssue(issue);
       } else {
         window.requestAnimationFrame(() => document.querySelector<HTMLElement>("#application-step-content input:not([type=file]):not([disabled]), #application-step-content select:not([disabled]), #application-step-content textarea:not([disabled]), #application-step-content button:not([disabled])")?.focus());
@@ -179,7 +209,7 @@ export function PublicApplicationProvider({
       setReviewing(false);
       setStepIndex(invalidIndex);
       updateRoute(steps[invalidIndex]!.key);
-      setStepErrors((current) => ({ ...current, [invalidIndex]: issue.message }));
+      setStepErrors((current) => ({ ...current, [invalidIndex]: errorsOf(validationIssues(invalidIndex)) }));
       focusIssue(issue);
       return;
     }
@@ -230,14 +260,14 @@ export function PublicApplicationProvider({
   };
 
   const state: PublicApplicationState = {
-    stepIndex, values, photos, videoUrl, noCareer, careers, stepError: stepErrors[stepIndex] ?? "", mediaError,
+    stepIndex, values, photos, videoUrl, noCareer, careers, fieldErrors: stepErrors[stepIndex] ?? {}, mediaError,
     stepProgress: applicationStepProgress({ steps, stepIndex, maxReachedStepIndex, completedStepIndexes, stepErrors }), reviewIssues,
     hasUnsavedChanges: draft.hasUnsavedChanges, leaveConfirmationOpen, reviewing, returnToReview, consent, privacyConsent, thirdPartyConsent, saveToProfile,
     draftSaveStatus: draft.saveStatus, draftSaveError: draft.saveError, draftLastSavedAt: draft.lastSavedAt,
     draftRestored: draft.restored, submissionState, submissionError, receipt,
   };
   const actions: PublicApplicationActions = {
-    updateField: (id, value) => { setValues((current) => ({ ...current, [id]: value })); clearStepError(stepIndex); },
+    updateField: (id, value) => { setValues((current) => ({ ...current, [id]: value })); clearFieldError(id); },
     updatePhotos: (next) => { setPhotos(next); setMediaError(""); clearStepError(stepIndex); },
     markPhotoReady: (id) => setPhotos((current) => current.map((photo) => photo.id === id ? { ...photo, status: "READY" } : photo)),
     updateVideo: (url) => { setVideoUrl(url); setMediaError(""); clearStepError(stepIndex); },
@@ -247,6 +277,7 @@ export function PublicApplicationProvider({
     moveStep,
     nextStep,
     editSection,
+    validateField,
     requestBack,
     cancelBack: () => setLeaveConfirmationOpen(false),
     confirmBack: () => { setLeaveConfirmationOpen(false); onBack(); },

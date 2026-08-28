@@ -6,6 +6,7 @@ import type { ApplicationFieldInput } from "@/features/auditions/creation-types"
 import type { ApplicationWriteRouteKey } from "@/features/applications/application-form";
 import { formatPhoneNumber, usePhoneInput } from "@/features/applications/phone-number";
 import { PublicApplicationCareer } from "./public-application-career";
+import { AnalyticsSettingsButton } from "@/components/analytics/analytics-settings-button";
 import { applicationLinkKey, applicationLinks, MAX_APPLICATION_LINKS, removedLinkValues } from "@/features/applications/application-links";
 import { PublicApplicationExitDialog } from "./public-application-exit-dialog";
 import { PublicApplicationMedia } from "./public-application-media";
@@ -56,7 +57,7 @@ function ApplicationStepScreen() {
     <header className="glass-surface sticky top-0 z-20 border-x-0 border-t-0">
       <div className="mx-auto flex min-h-16 max-w-[880px] items-center px-5 md:px-8">
         <TextButton onClick={actions.requestBack} className="px-2">← 공고로 돌아가기</TextButton>
-        <span className="ml-auto hidden text-sm font-semibold text-brand sm:inline">지원서 작성</span>
+        <AnalyticsSettingsButton className="ml-auto" /><span className="ml-2 hidden text-sm font-semibold text-brand sm:inline">지원서 작성</span>
         <PublicApplicationSaveBadge />
       </div>
     </header>
@@ -113,7 +114,7 @@ function StepContent() {
 function ApplicationLinksField({ field }: { field: ApplicationFieldInput }) {
   const { state, actions } = usePublicApplication();
   const [count, setCount] = useState(() => Math.max(1, applicationLinks(state.values).length));
-  const error = state.stepError.startsWith(field.label) ? state.stepError : "";
+  const error = state.fieldErrors[field.id] ?? "";
   const errorId = `application-${field.id}-error`;
   const remove = (index: number) => {
     const next = removedLinkValues(state.values, index);
@@ -130,7 +131,7 @@ function ApplicationLinksField({ field }: { field: ApplicationFieldInput }) {
       const key = applicationLinkKey(index);
       const inputId = `application-${field.id}-${index}`;
       return <div key={key} className="flex items-center gap-2">
-        <input id={inputId} name={key} type="url" value={state.values[key] ?? ""} placeholder={field.config.placeholder} maxLength={field.config.maxLength} aria-label={`${field.label} ${index + 1}`} aria-invalid={Boolean(error) || undefined} aria-describedby={error ? errorId : undefined} onChange={(event) => actions.updateField(key, event.target.value)} className={`${fieldControlClass} ${error ? "border-fail focus:border-fail focus:ring-fail-bg" : ""}`} />
+        <input id={inputId} name={key} type="url" value={state.values[key] ?? ""} placeholder={field.config.placeholder} maxLength={field.config.maxLength} aria-label={`${field.label} ${index + 1}`} aria-invalid={Boolean(error) || undefined} aria-describedby={error ? errorId : undefined} onChange={(event) => actions.updateField(key, event.target.value)} onBlur={() => actions.validateField(field.id)} className={`${fieldControlClass} ${error ? "border-fail focus:border-fail focus:ring-fail-bg" : ""}`} />
         {count > 1 ? <TextButton onClick={() => remove(index)} aria-label={`${field.label} ${index + 1} 삭제`} className="shrink-0 px-3 text-fail hover:bg-fail-bg hover:text-fail">삭제</TextButton> : null}
       </div>;
     })}</div>
@@ -142,7 +143,7 @@ function ApplicationLinksField({ field }: { field: ApplicationFieldInput }) {
 function ApplicationField({ field }: { field: ApplicationFieldInput }) {
   const { state, actions } = usePublicApplication();
   const id = `application-${field.id}`;
-  const error = state.stepError.startsWith(field.label) ? state.stepError : "";
+  const error = state.fieldErrors[field.id] ?? "";
   const errorId = `${id}-error`;
   const width = field.layout === "FULL" || field.inputType === "TEXTAREA" ? "md:col-span-2" : "";
   const describedBy = error ? errorId : undefined;
@@ -166,14 +167,14 @@ function FieldControl({ field, id, error, describedBy }: { field: ApplicationFie
     }
     actions.updateField(field.id, event.target.value);
   };
-  const common = { id, name: field.id, required: field.required, value, placeholder: field.config.placeholder, maxLength: field.inputType === "TEL" ? 13 : field.config.maxLength, "aria-invalid": Boolean(error) || undefined, "aria-describedby": describedBy, onChange: change, className };
+  const common = { id, name: field.id, required: field.required, value, placeholder: field.config.placeholder, maxLength: field.inputType === "TEL" ? 13 : field.config.maxLength, "aria-invalid": Boolean(error) || undefined, "aria-describedby": describedBy, onChange: change, onBlur: () => actions.validateField(field.id), className };
   if (field.inputType === "TEXTAREA") return <>
     <textarea {...common} minLength={field.config.minLength} rows={6} className={`${className} resize-none`} />
     {field.config.maxLength ? <span className="num mt-2 block text-right text-xs text-muted">{value.length.toLocaleString("ko-KR")} / {field.config.maxLength.toLocaleString("ko-KR")}자</span> : null}
   </>;
   if (field.inputType === "SELECT") return <select {...common}><option value="">선택해 주세요</option>{field.config.options?.map((option) => <option key={option} value={option}>{option}</option>)}</select>;
-  if (field.inputType === "COMPOSITE") return <div className="grid grid-cols-2 gap-3">{field.config.fields?.map((part) => { const partId = `${field.id}.${part.key}`; const inputId = `${id}-${part.key}`; const isPhone = part.inputType === "TEL"; return <label key={part.key} htmlFor={inputId} className="relative"><span className="mb-2 block text-sm font-medium text-foreground">{part.label}</span><input id={inputId} name={partId} required={field.required} type={part.inputType === "NUMBER" ? "number" : isPhone ? "tel" : "text"} value={state.values[partId] ?? ""} placeholder={part.placeholder} maxLength={isPhone ? 13 : undefined} aria-invalid={Boolean(error) || undefined} aria-describedby={describedBy} onChange={(event) => isPhone ? onPhoneChange(event, (next) => actions.updateField(partId, next)) : actions.updateField(partId, event.target.value)} className={`${className} pr-10`} />{part.unit ? <span className="pointer-events-none absolute right-3 top-10 text-sm text-muted">{part.unit}</span> : null}</label>; })}</div>;
-  if (field.id === "BIRTH") return <BirthDateInput id={id} value={value} required={field.required} invalid={Boolean(error)} describedBy={describedBy} onChange={(next) => actions.updateField(field.id, next)} />;
+  if (field.inputType === "COMPOSITE") return <div className="grid grid-cols-2 gap-3">{field.config.fields?.map((part) => { const partId = `${field.id}.${part.key}`; const inputId = `${id}-${part.key}`; const isPhone = part.inputType === "TEL"; return <label key={part.key} htmlFor={inputId} className="relative"><span className="mb-2 block text-sm font-medium text-foreground">{part.label}</span><input id={inputId} name={partId} required={field.required} type={part.inputType === "NUMBER" ? "number" : isPhone ? "tel" : "text"} value={state.values[partId] ?? ""} placeholder={part.placeholder} maxLength={isPhone ? 13 : undefined} aria-invalid={Boolean(error) || undefined} aria-describedby={describedBy} onChange={(event) => isPhone ? onPhoneChange(event, (next) => actions.updateField(partId, next)) : actions.updateField(partId, event.target.value)} onBlur={() => actions.validateField(field.id)} className={`${className} pr-10`} />{part.unit ? <span className="pointer-events-none absolute right-3 top-10 text-sm text-muted">{part.unit}</span> : null}</label>; })}</div>;
+  if (field.id === "BIRTH") return <BirthDateInput id={id} value={value} required={field.required} invalid={Boolean(error)} describedBy={describedBy} onChange={(next) => actions.updateField(field.id, next)} onBlur={() => actions.validateField(field.id)} />;
   if (field.inputType === "REGION") return <RegionSelect id={id} value={value} required={field.required} invalid={Boolean(error)} describedBy={describedBy} onChange={(next) => actions.updateField(field.id, next)} />;
   const type = field.inputType === "TEL" ? "tel" : field.inputType === "NUMBER" ? "number" : field.inputType === "URL" ? "url" : "text";
   const number = field.inputType === "NUMBER";
@@ -196,7 +197,7 @@ function ApplicantStickyAction({ label }: { label: string }) {
     return () => viewport.removeEventListener("resize", updateKeyboardState);
   }, []);
   if (keyboardOpen) return null;
-  return <div className="glass-surface fixed inset-x-0 bottom-0 z-20 border-x-0 border-b-0 md:hidden"><div className="mx-auto flex max-w-[880px] items-center gap-3 px-5 pb-[max(12px,env(safe-area-inset-bottom))] pt-3"><span className="min-w-0 flex-1 text-xs leading-5 text-muted-strong">{state.stepError ? "입력 내용을 확인해 주세요." : `현재 ${state.stepIndex + 1} / ${state.stepProgress.length} 단계`}</span>{state.stepIndex > 0 ? <PreviousButton /> : null}<NextButton label={label} /></div></div>;
+  return <div className="glass-surface fixed inset-x-0 bottom-0 z-20 border-x-0 border-b-0 md:hidden"><div className="mx-auto flex max-w-[880px] items-center gap-3 px-5 pb-[max(12px,env(safe-area-inset-bottom))] pt-3"><span className="min-w-0 flex-1 text-xs leading-5 text-muted-strong">{Object.keys(state.fieldErrors).length ? `확인이 필요한 항목이 ${Object.keys(state.fieldErrors).length}개 있어요.` : `현재 ${state.stepIndex + 1} / ${state.stepProgress.length} 단계`}</span>{state.stepIndex > 0 ? <PreviousButton /> : null}<NextButton label={label} /></div></div>;
 }
 
 function FormEmpty() {
