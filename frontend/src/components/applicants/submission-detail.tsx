@@ -55,7 +55,6 @@ function SubmissionReadView({ detail }: { readonly detail: ApplicantSubmissionDe
     </header>
 
     <section className="mt-5 rounded-card border border-border bg-card p-5 md:p-6"><h2 className="font-bold">지원 배역</h2><SelectedRoleList roles={detail.selectedRoles} /></section>
-    <p className="mt-5 text-sm leading-6 text-muted">제출 당시 내용입니다. 이후 프로필이나 보관함을 바꿔도 이 지원서는 그대로 남습니다.</p>
     <SubmissionMaterials fields={detail.applicationFields} answers={detail.answers} />
 
     <div className="mt-8 space-y-5">{sections.map((group) => <AnswerSection key={group.section} title={sectionDetails[group.section]} answers={group.answers} units={fieldUnits} />)}{unknown.length ? <AnswerSection title="제출 당시 항목" answers={unknown} units={fieldUnits} notice="현재 공고 양식에서는 사라졌지만 제출 당시 답변은 스냅샷으로 보존돼요." /> : null}</div>

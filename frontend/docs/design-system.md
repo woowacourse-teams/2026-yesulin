@@ -41,6 +41,7 @@
 - 아이콘 버튼은 접근 가능한 이름과 44×44px hit area를 제공한다.
 - 활성 navigation은 `aria-current`, 토글은 `aria-pressed`를 사용한다.
 - 필드 오류는 control과 연결하고 구체적인 복구 문구를 표시한다.
+- 잘못된 항목이 여럿이면 한 번에 모두 표시하고, 입력을 마칠 때 해당 항목만 다시 검사한다.
 - 모바일에서 hover에만 기능을 숨기지 않는다.
 - fixed 하단 영역은 safe area를 반영한다.
 - reduced motion에서는 transition과 animation을 제거한다.
