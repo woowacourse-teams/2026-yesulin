@@ -1,7 +1,9 @@
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
-import { AuditionRequestError, request } from "@/features/auditions/api-client";
+import { request } from "@/features/auditions/api-client";
 import type { FileUploadResource } from "@/features/auditions/backend-resources";
 import { submissionId, type SubmissionId } from "@/features/auditions/types";
+import { safeUpload, SafeUploadError, uploadSequentially } from "@/features/files/safe-upload";
+import { reportUploadDiagnostic } from "@/features/files/upload-diagnostics";
 import { orderedApplicationPhotos } from "./application-form-state";
 import type { ApplicationPhoto, CareerDraft } from "./application-form-state";
 import { applicationLinks } from "./application-links";
@@ -61,7 +63,12 @@ export class ApplicationPhotoReadError extends Error {
   readonly photoId: string;
 
   constructor(photoId: string, options?: ErrorOptions) {
-    super("저장된 사진을 불러오지 못했습니다. 해당 사진을 다시 선택해 주세요.", options);
+    super(
+      options?.cause instanceof SafeUploadError
+        ? options.cause.message
+        : "저장된 사진을 불러오지 못했습니다. 해당 사진을 다시 선택해 주세요.",
+      options,
+    );
     this.name = "ApplicationPhotoReadError";
     this.photoId = photoId;
   }
@@ -153,8 +160,7 @@ async function photoRequirementAnswers(fields: readonly ApplicationFieldInput[],
   const readyPhotos = orderedApplicationPhotos(photos).filter((photo) => photo.status === "READY");
   if (requirementIds.length !== readyPhotos.length) throw new Error("사진 요구사항에 맞는 사진을 다시 선택해 주세요.");
   // 20MB 사진의 원본·ArrayBuffer·복사 Blob이 여러 장 동시에 메모리에 남지 않도록 순서대로 처리한다.
-  const fileIds: number[] = [];
-  for (const photo of readyPhotos) fileIds.push(await actorPhotoFileId(photo));
+  const fileIds = await uploadSequentially(readyPhotos, actorPhotoFileId);
   return fileIds.map((fileId, index) => ({ photoRequirementId: requirementIds[index]!, fileId }));
 }
 
@@ -171,61 +177,29 @@ function videoRequirementAnswers(fields: readonly ApplicationFieldInput[], value
 async function actorPhotoFileId(photo: ApplicationPhoto) {
   if (photo.libraryFileId) return photo.libraryFileId;
   if (!photo.blob) throw new Error("사진을 다시 선택해 주세요. 보관함 사진은 프로필에서 다시 불러올 수 있어요.");
-  const uploadBody = await readableInMemoryBlob(photo);
-  const upload = await request<FileUploadResource>("/v1/actor-photos/upload-requests", {
-    method: "POST",
-    body: JSON.stringify({ originalFilename: photo.name, contentType: photo.blob.type, size: photo.blob.size }),
-  });
-  await uploadPhoto(upload, uploadBody);
-  return upload.fileId;
-}
-
-async function readableInMemoryBlob(photo: ApplicationPhoto) {
   try {
-    const source = photo.blob!;
-    const body = new Blob([await source.arrayBuffer()], { type: source.type });
-    if (body.size !== source.size) throw new Error("사진 복사 크기가 원본과 일치하지 않습니다.");
-    return body;
+    const result = await safeUpload({
+      flow: "APPLICATION_PHOTO",
+      source: photo.blob,
+      originalFilename: photo.name,
+      requestUpload: (metadata, { incidentId }) => request<FileUploadResource>("/v1/actor-photos/upload-requests", {
+        method: "POST",
+        headers: { "X-Request-Id": incidentId },
+        body: JSON.stringify(metadata),
+      }),
+      completeUpload: (fileId, { incidentId }) => request<void>(`/v1/actor-photos/${fileId}/completion`, {
+        method: "PATCH",
+        headers: { "X-Request-Id": incidentId },
+      }),
+      reportDiagnostic: reportUploadDiagnostic,
+    });
+    return result.fileId;
   } catch (cause) {
-    throw new ApplicationPhotoReadError(photo.id, { cause });
+    if (cause instanceof SafeUploadError) {
+      throw new ApplicationPhotoReadError(photo.id, { cause });
+    }
+    throw cause;
   }
-}
-
-async function uploadPhoto(upload: FileUploadResource, body: Blob) {
-  try {
-    await putPhoto(upload, body);
-    await completePhotoUpload(upload.fileId);
-  } catch (cause) {
-    if (!isRetryableWebKitUploadFailure(cause)) throw cause;
-    // presigned PUT은 만료 전 같은 키에 다시 쓸 수 있으므로 WebKit 직렬화 실패만 한 번 덮어쓴다.
-    console.warn("[지원 사진 업로드 재시도]", cause);
-    await putPhoto(upload, body);
-    await completePhotoUpload(upload.fileId);
-  }
-}
-
-async function putPhoto(upload: FileUploadResource, body: Blob) {
-  const uploadResponse = await fetch(upload.uploadUrl, {
-    method: upload.method,
-    headers: upload.headers,
-    body,
-  });
-  if (!uploadResponse.ok) throw new Error("지원 사진을 업로드하지 못했습니다. 잠시 후 다시 시도해 주세요.");
-}
-
-function completePhotoUpload(fileId: number) {
-  return request<void>(`/v1/actor-photos/${fileId}/completion`, { method: "PATCH" });
-}
-
-function isRetryableWebKitUploadFailure(cause: unknown) {
-  if (cause instanceof AuditionRequestError) return cause.code === "FILE_METADATA_MISMATCH";
-  if (cause instanceof TypeError) return /load failed|failed to fetch/i.test(cause.message);
-  return errorName(cause) === "NotFoundError";
-}
-
-function errorName(cause: unknown) {
-  if (typeof cause !== "object" || cause === null || !("name" in cause)) return "";
-  return typeof cause.name === "string" ? cause.name : "";
 }
 
 function nullableText(value: string | undefined) {

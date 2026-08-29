@@ -1,6 +1,8 @@
 import type { ApplicantProfilePhoto, ApplicantProfileResponse } from "./types";
 import { applicantProfileApiEnabled } from "./profile-mode";
 import { applicantRequest } from "./request";
+import { safeUpload, type UploadResource } from "../files/safe-upload";
+import { reportUploadDiagnostic } from "../files/upload-diagnostics";
 
 type BackendPhoto = {
   readonly id: number;
@@ -12,13 +14,6 @@ type BackendPhoto = {
 };
 
 type BackendPhotoLibrary = { readonly photos: readonly BackendPhoto[] };
-type UploadRequest = {
-  readonly fileId: number;
-  readonly uploadUrl: string;
-  readonly method: string;
-  readonly headers: Readonly<Record<string, string>>;
-};
-
 export async function getApplicantProfilePhotos(): Promise<readonly ApplicantProfilePhoto[]> {
   const result = await applicantRequest<BackendPhotoLibrary>("/v1/applicants/me/photo-library/photos");
   return toPhotos(result.photos);
@@ -40,9 +35,14 @@ export async function addApplicantProfilePhotos(
 
   const addedPhotoIds: number[] = [];
   try {
-    for (const file of files) {
-      const photo = await uploadAndAddPhoto(file);
-      addedPhotoIds.push(photo.id);
+    for (const [index, file] of files.entries()) {
+      try {
+        const photo = await uploadAndAddPhoto(file);
+        addedPhotoIds.push(photo.id);
+      } catch (cause) {
+        const message = cause instanceof Error ? cause.message : "사진 업로드에 실패했습니다.";
+        throw new Error(`${index + 1}번째 사진: ${message}`, { cause });
+      }
     }
   } catch (cause) {
     await Promise.allSettled(addedPhotoIds.map((photoId) => applicantRequest<void>(
@@ -122,19 +122,24 @@ function toPhotos(
 }
 
 async function uploadAndAddPhoto(file: File) {
-  const upload = await applicantRequest<UploadRequest>("/v1/actor-photos/upload-requests", {
-    method: "POST",
-    body: JSON.stringify({ originalFilename: file.name, contentType: file.type, size: file.size }),
+  const upload = await safeUpload({
+    flow: "PROFILE_PHOTO",
+    source: file,
+    originalFilename: file.name,
+    requestUpload: (metadata, { incidentId }) => applicantRequest<UploadResource>("/v1/actor-photos/upload-requests", {
+      method: "POST",
+      headers: { "X-Request-Id": incidentId },
+      body: JSON.stringify(metadata),
+    }),
+    completeUpload: (fileId, { incidentId }) => applicantRequest<void>(`/v1/actor-photos/${fileId}/completion`, {
+      method: "PATCH",
+      headers: { "X-Request-Id": incidentId },
+    }),
+    reportDiagnostic: reportUploadDiagnostic,
   });
-  const response = await fetch(upload.uploadUrl, {
-    method: upload.method,
-    headers: upload.headers,
-    body: file,
-  });
-  if (!response.ok) throw new Error("사진 파일을 업로드하지 못했습니다.");
-  await applicantRequest<void>(`/v1/actor-photos/${upload.fileId}/completion`, { method: "PATCH" });
   return applicantRequest<BackendPhoto>("/v1/applicants/me/photo-library/photos", {
     method: "POST",
+    headers: { "X-Request-Id": upload.incidentId },
     body: JSON.stringify({ fileId: upload.fileId }),
   });
 }

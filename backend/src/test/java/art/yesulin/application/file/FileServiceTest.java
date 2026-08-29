@@ -12,8 +12,12 @@ import art.yesulin.domain.file.FileStatus;
 import art.yesulin.domain.file.FileType;
 import art.yesulin.support.FakeObjectStorage;
 import art.yesulin.support.ObjectStorageTestConfiguration;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -86,6 +90,34 @@ class FileServiceTest {
         );
 
         assertEquals(FileErrorCode.METADATA_MISMATCH, exception.getErrorCode());
+    }
+
+    @Test
+    void logsExpectedAndActualMetadataWhenZeroByteObjectIsRejected() {
+        FileUploadResult upload = requestPosterUpload();
+        objectStorage.upload(upload.uploadUrl(), "image/png", 0L);
+        Logger logger = (Logger) LoggerFactory.getLogger(FileService.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+
+        try {
+            BusinessException exception = assertThrows(
+                    BusinessException.class, () -> fileService.completeUpload(OWNER_ID, upload.fileId())
+            );
+
+            assertEquals(FileErrorCode.METADATA_MISMATCH, exception.getErrorCode());
+            String log = appender.list.getFirst().getFormattedMessage();
+            assertTrue(log.contains("fileId=" + upload.fileId()));
+            assertTrue(log.contains("expectedSize=1024"));
+            assertTrue(log.contains("actualSize=0"));
+            assertTrue(log.contains("expectedContentType=image/png"));
+            assertTrue(log.contains("actualContentType=image/png"));
+            assertTrue(!log.contains("hamlet.png"));
+        } finally {
+            logger.detachAppender(appender);
+            appender.stop();
+        }
     }
 
     @Test

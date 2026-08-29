@@ -1,6 +1,6 @@
 # 백엔드 API
 
-이 문서는 현재 Controller 23개의 62개 REST Mapping만 다룬다. 구현되지 않은 목표 경로와 프론트 seed/MSW 경로는
+이 문서는 현재 Controller 24개의 63개 REST Mapping만 다룬다. 구현되지 않은 목표 경로와 프론트 seed/MSW 경로는
 포함하지 않는다. 공통 형식은 [API 공통 규칙](../../docs/api-conventions.md)을 따른다.
 
 ## 인증 표기
@@ -140,6 +140,17 @@ PENDING 세션을 ACTIVE로 갱신하고 요청의 `redirectUri`로 302 redirect
 제출 request는 `basicInformation`, `additionalInformation`, 하나 이상의 `selectedRoleIds`, `formAnswers`, 두 필수
 동의를 포함한다. 서버는 공고 양식과 정확히 일치하는 답변, 선택 배역, 모집 기간, 중복 제출, 사진 소유권·READY를 검증한다.
 생성 response는 `submissionId`만 반환한다.
+
+## 업로드 진단 — 1개
+
+| Method | URL | 인증 | Request | Response |
+| --- | --- | --- | --- | --- |
+| POST | `/api/v1/upload-diagnostics` | Applicant 또는 Producer | `UploadDiagnosticRequest` | `204` |
+
+쓰기 요청이므로 CSRF header가 필요하다. 클라이언트가 생성한 UUID를 `X-Request-Id`로 보내면 응답 header와 Spring
+MDC에 같은 값이 남는다. Request는 업로드 흐름·단계·1~2회 시도·실패 또는 재시도 성공·허용된 오류 코드·선택적
+HTTP status·서비스 워커 제어 여부·거친 플랫폼과 브라우저 분류만 받는다. 파일명, 파일 내용, URL, 전체 User-Agent,
+지원서 답변은 받거나 로그에 남기지 않는다.
 
 ## 심사 — 4개
 
