@@ -6,6 +6,7 @@ import { applicationFormSteps, applicationStepIndexIn, applicationStepProgress }
 import { applicationStepIssue, applicationStepIssues } from "@/features/applications/application-form-state";
 import type { ApplicationStepIssue, SubmissionState } from "@/features/applications/application-form-state";
 import { createApplicationSubmission } from "@/features/applications/submission-api";
+import { ApplicationPhotoReadError } from "@/features/applications/submission-v1";
 import { deletePublicApplicationDraft } from "@/features/applications/public-application-draft-store";
 import { buildApplicationAuthReturnTo } from "@/features/auth/return-to";
 
@@ -244,6 +245,26 @@ export function PublicApplicationProvider({
       void deletePublicApplicationDraft(postingId).catch(() => undefined);
     } catch (cause) {
       console.error("[지원서 제출 실패]", cause);
+      if (cause instanceof ApplicationPhotoReadError) {
+        const mediaIndex = steps.findIndex((step) => step.sections.includes("MATERIALS"));
+        setPhotos((current) => current.map((photo) => photo.id === cause.photoId
+          ? { ...photo, status: "ERROR", error: cause.message }
+          : photo));
+        setSubmissionState("ERROR");
+        setSubmissionError("");
+        setMediaError(cause.message);
+        trackAnalyticsEvent("application_submit_error", { error_code: "client_error" });
+        if (mediaIndex >= 0) {
+          setReviewing(false);
+          setReturnToReview(true);
+          setStepIndex(mediaIndex);
+          updateRoute(steps[mediaIndex]!.key);
+          window.requestAnimationFrame(() => document
+            .querySelector<HTMLElement>("#application-field-PHOTOS button:not([disabled])")
+            ?.focus());
+        }
+        return;
+      }
       if (cause instanceof AuditionRequestError && cause.status === 401) {
         trackAnalyticsEvent("application_submit_error", { error_code: "auth_expired" });
         const returnTo = encodeURIComponent(buildApplicationAuthReturnTo(postingId, roleIds));
@@ -255,7 +276,7 @@ export function PublicApplicationProvider({
         : cause instanceof TypeError ? "network_error" : "unknown";
       trackAnalyticsEvent("application_submit_error", { error_code: errorCode });
       setSubmissionState("ERROR");
-      setSubmissionError(cause instanceof Error ? cause.message : "지원서를 접수하지 못했어요. 잠시 후 다시 시도해 주세요.");
+      setSubmissionError(submissionErrorMessage(cause));
     }
   };
 
@@ -269,7 +290,6 @@ export function PublicApplicationProvider({
   const actions: PublicApplicationActions = {
     updateField: (id, value) => { setValues((current) => ({ ...current, [id]: value })); clearFieldError(id); },
     updatePhotos: (next) => { setPhotos(next); setMediaError(""); clearStepError(stepIndex); },
-    markPhotoReady: (id) => setPhotos((current) => current.map((photo) => photo.id === id ? { ...photo, status: "READY" } : photo)),
     updateVideo: (url) => { setVideoUrl(url); setMediaError(""); clearStepError(stepIndex); },
     reportMediaError: (error) => { setMediaError(error); clearStepError(stepIndex); },
     updateNoCareer: (value) => { setNoCareer(value); clearStepError(stepIndex); },
@@ -290,4 +310,24 @@ export function PublicApplicationProvider({
   };
 
   return <PublicApplicationContext value={{ state, actions, meta: { postingId, fields, steps, performanceTitle, postingTitle, roleIds, roleName, authenticated, authChecking, onBack, prefillSummary: prefill ? { filledCount: prefill.filledCount, requiredCount: prefill.requiredCount, missingKeys: prefill.missingKeys } : undefined } }}>{children}</PublicApplicationContext>;
+}
+
+function submissionErrorMessage(cause: unknown) {
+  if (cause instanceof AuditionRequestError) return cause.message;
+  if (errorName(cause) === "NotFoundError" || isFetchFailure(cause)) {
+    return "사진을 업로드하지 못했어요. 네트워크 상태를 확인한 뒤 다시 제출해 주세요.";
+  }
+  if (cause instanceof TypeError) return "지원서를 접수하지 못했어요. 잠시 후 다시 시도해 주세요.";
+  return cause instanceof Error && cause.message
+    ? cause.message
+    : "지원서를 접수하지 못했어요. 잠시 후 다시 시도해 주세요.";
+}
+
+function isFetchFailure(cause: unknown) {
+  return cause instanceof TypeError && /load failed|failed to fetch/i.test(cause.message);
+}
+
+function errorName(cause: unknown) {
+  if (typeof cause !== "object" || cause === null || !("name" in cause)) return "";
+  return typeof cause.name === "string" ? cause.name : "";
 }

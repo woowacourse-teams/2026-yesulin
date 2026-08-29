@@ -1,4 +1,5 @@
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
+import type { SetStateAction } from "react";
 import type { PostingId } from "@/features/auditions/types";
 import type { SubmissionId } from "@/features/auditions/types";
 import type { applicationFormSteps, applicationStepProgress } from "@/features/applications/application-form";
@@ -49,8 +50,7 @@ export type PublicApplicationState = {
 
 export type PublicApplicationActions = {
   readonly updateField: (id: string, value: string) => void;
-  readonly updatePhotos: (photos: readonly ApplicationPhoto[]) => void;
-  readonly markPhotoReady: (id: string) => void;
+  readonly updatePhotos: (photos: SetStateAction<readonly ApplicationPhoto[]>) => void;
   readonly updateVideo: (url: string) => void;
   readonly reportMediaError: (error: string) => void;
   readonly updateNoCareer: (noCareer: boolean) => void;
