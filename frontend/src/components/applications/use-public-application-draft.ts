@@ -49,11 +49,13 @@ export function usePublicApplicationDraft({ postingId, fields, prefill, initialR
 
   useEffect(() => {
     let active = true;
-    readPublicApplicationDraft(postingId).then((draft) => {
+    readPublicApplicationDraft(postingId).then(async (draft) => {
       if (!active) return;
       if (draft?.version === 1) {
+        const restoredPhotos = await restoreDraftPhotos(draft.photos);
+        if (!active) return;
         setValuesBase(draft.values);
-        setPhotosBase(restoreDraftPhotos(draft.photos));
+        setPhotosBase(restoredPhotos);
         setVideoUrlBase(draft.videoUrl);
         setNoCareerBase(draft.noCareer);
         setCareersBase(draft.careers);
@@ -113,7 +115,7 @@ export function usePublicApplicationDraft({ postingId, fields, prefill, initialR
   }, [storageReady, readFailed, restored, changeVersion, saveRequest, postingId, values, photos, videoUrl, noCareer, careers, consent, thirdPartyConsent, saveToProfile, stepIndex, completedStepIndexes, reviewing, roleIds, submitted]);
 
   useEffect(() => () => {
-    photosRef.current.forEach((photo) => { if (photo.blob && photo.url) URL.revokeObjectURL(photo.url); });
+    photosRef.current.forEach((photo) => { if (photo.url.startsWith("blob:")) URL.revokeObjectURL(photo.url); });
   }, []);
 
   const beginChange = () => {

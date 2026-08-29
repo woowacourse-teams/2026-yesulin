@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useId, useRef, useState } from "react";
-import type { ChangeEvent } from "react";
+import type { ChangeEvent, SetStateAction } from "react";
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
 import { getApplicantProfile } from "@/features/applicants/api";
 import type { ApplicantProfilePhoto } from "@/features/applicants/types";
@@ -15,7 +15,7 @@ import { DialogFooter, DialogHeader, ModalShell } from "@/components/auditions/m
 import { SecondaryButton, TextButton } from "@/components/ui/controls";
 import { trackAnalyticsEvent } from "@/features/analytics/events";
 
-export function PublicApplicationPhotoField({ field, limit, photos, authenticated, authChecking, loginHref, error, onChange, onReady }: {
+export function PublicApplicationPhotoField({ field, limit, photos, authenticated, authChecking, loginHref, error, onChange }: {
   readonly field: ApplicationFieldInput;
   readonly limit: number;
   readonly photos: readonly ApplicationPhoto[];
@@ -23,11 +23,12 @@ export function PublicApplicationPhotoField({ field, limit, photos, authenticate
   readonly authChecking: boolean;
   readonly loginHref: string;
   readonly error: string;
-  readonly onChange: (photos: readonly ApplicationPhoto[]) => void;
-  readonly onReady: (id: string) => void;
+  readonly onChange: (photos: SetStateAction<readonly ApplicationPhoto[]>) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const uploadSlotRef = useRef<number | null>(null);
+  const preparingPhotoBySlotRef = useRef(new Map<number, string>());
+  const photoPreparationQueueRef = useRef<Promise<void>>(Promise.resolve());
   const [pickerSlot, setPickerSlot] = useState<number | null>(null);
   const labels = photoSlotLabels(field, limit);
   const slotOf = (photo: ApplicationPhoto, index: number) => photo.slotIndex ?? index;
@@ -37,9 +38,13 @@ export function PublicApplicationPhotoField({ field, limit, photos, authenticate
   const helpId = `${inputId}-help`;
   const errorId = `${inputId}-error`;
 
+  useEffect(() => () => { preparingPhotoBySlotRef.current.clear(); }, []);
+
   const replaceSlot = (slotIndex: number, photo: ApplicationPhoto) => {
-    const remaining = photos.filter((candidate, index) => slotOf(candidate, index) !== slotIndex && candidate.id !== photo.id);
-    onChange([...remaining, { ...photo, slotIndex }]);
+    onChange((current) => {
+      const remaining = current.filter((candidate, index) => slotOf(candidate, index) !== slotIndex && candidate.id !== photo.id);
+      return [...remaining, { ...photo, slotIndex }];
+    });
   };
   const openUpload = (slotIndex: number) => {
     uploadSlotRef.current = slotIndex;
@@ -53,20 +58,47 @@ export function PublicApplicationPhotoField({ field, limit, photos, authenticate
     if (!file || slotIndex === null) return;
     const fileError = imageFileError(file);
     const id = crypto.randomUUID();
+    preparingPhotoBySlotRef.current.delete(slotIndex);
+    revokeLocalPhotoUrl(photoBySlot.get(slotIndex));
     if (fileError) {
       replaceSlot(slotIndex, { id, name: file.name, url: "", status: "ERROR", error: fileError, slotIndex });
       return;
     }
-    const photo: ApplicationPhoto = { id, name: file.name, url: URL.createObjectURL(file), blob: file, status: "UPLOADING", slotIndex };
+    preparingPhotoBySlotRef.current.set(slotIndex, id);
+    const photo: ApplicationPhoto = { id, name: file.name, url: URL.createObjectURL(file), status: "UPLOADING", slotIndex };
     replaceSlot(slotIndex, photo);
-    window.setTimeout(() => onReady(photo.id), 450);
+    const preparation = photoPreparationQueueRef.current.then(() => {
+      if (preparingPhotoBySlotRef.current.get(slotIndex) !== id) throw new Error("사진 준비가 취소되었습니다.");
+      return prepareIndependentPhotoBlob(file);
+    });
+    photoPreparationQueueRef.current = preparation.then(() => undefined, () => undefined);
+    void preparation.then((blob) => {
+      if (preparingPhotoBySlotRef.current.get(slotIndex) !== id) return;
+      preparingPhotoBySlotRef.current.delete(slotIndex);
+      const url = URL.createObjectURL(blob);
+      URL.revokeObjectURL(photo.url);
+      onChange((current) => current.map((candidate) => candidate.id === id
+        ? { ...candidate, url, blob, status: "READY", error: undefined }
+        : candidate));
+    }).catch((cause: unknown) => {
+      if (preparingPhotoBySlotRef.current.get(slotIndex) !== id) return;
+      preparingPhotoBySlotRef.current.delete(slotIndex);
+      console.error("[지원 사진 준비 실패]", cause);
+      URL.revokeObjectURL(photo.url);
+      onChange((current) => current.map((candidate) => candidate.id === id
+        ? { ...candidate, url: "", status: "ERROR", error: "사진을 읽지 못했어요. 해당 사진을 다시 선택해 주세요." }
+        : candidate));
+    });
   };
   const removePhoto = (photo: ApplicationPhoto, slotIndex: number) => {
-    if (photo.blob && photo.url) URL.revokeObjectURL(photo.url);
-    onChange(photos.filter((candidate, index) => slotOf(candidate, index) !== slotIndex));
+    preparingPhotoBySlotRef.current.delete(slotIndex);
+    revokeLocalPhotoUrl(photo);
+    onChange((current) => current.filter((candidate, index) => slotOf(candidate, index) !== slotIndex));
   };
   const selectLibraryPhoto = (photo: ApplicantProfilePhoto) => {
     if (pickerSlot === null) return;
+    preparingPhotoBySlotRef.current.delete(pickerSlot);
+    revokeLocalPhotoUrl(photoBySlot.get(pickerSlot));
     replaceSlot(pickerSlot, { id: photo.id, name: photo.name, url: photo.url, status: "READY", slotIndex: pickerSlot, libraryFileId: photo.fileId });
     setPickerSlot(null);
   };
@@ -83,6 +115,17 @@ export function PublicApplicationPhotoField({ field, limit, photos, authenticate
     {error ? <p id={errorId} role="alert" className="mt-3 text-sm font-medium leading-6 text-fail">{error}</p> : null}
     <PhotoPickerDialog key={pickerSlot ?? "closed"} open={pickerSlot !== null} slotLabel={pickerSlot === null ? "" : labels[pickerSlot] ?? field.label} authenticated={authenticated} authChecking={authChecking} usedPhotoIds={new Set(photos.map((photo) => photo.id))} loginHref={loginHref} onSelect={selectLibraryPhoto} onUpload={() => { if (pickerSlot !== null) openUpload(pickerSlot); }} onClose={() => setPickerSlot(null)} />
   </section>;
+}
+
+async function prepareIndependentPhotoBlob(file: File) {
+  const bytes = await file.arrayBuffer();
+  const blob = new Blob([bytes], { type: file.type });
+  if (blob.size !== file.size) throw new Error("사진 복사 크기가 원본과 일치하지 않습니다.");
+  return blob;
+}
+
+function revokeLocalPhotoUrl(photo?: ApplicationPhoto) {
+  if (photo?.url.startsWith("blob:")) URL.revokeObjectURL(photo.url);
 }
 
 function PhotoSlot({ label, photo, onPick, onRemove }: { readonly label: string; readonly photo?: ApplicationPhoto; readonly onPick: () => void; readonly onRemove?: () => void }) {

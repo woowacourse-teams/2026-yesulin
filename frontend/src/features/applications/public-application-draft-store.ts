@@ -53,7 +53,8 @@ export async function savePublicApplicationDraft(input: PublicApplicationDraftIn
     ...input,
     version: 1,
     updatedAt: Date.now(),
-    photos: input.photos.filter((photo) => photo.status !== "ERROR").map((photo) => ({
+    // 사진 선택기의 File은 복사가 끝난 READY 상태에서만 저장해 iOS 임시 파일 참조가 IndexedDB에 남지 않게 한다.
+    photos: input.photos.filter((photo) => photo.status === "READY").map((photo) => ({
       id: photo.id,
       name: photo.name,
       ...(photo.slotIndex === undefined ? {} : { slotIndex: photo.slotIndex }),
@@ -72,11 +73,34 @@ export async function deletePublicApplicationDraft(postingId: string) {
   await transactionDone(database.transaction(STORE_NAME, "readwrite"), (store) => store.delete(postingId));
 }
 
-export function restoreDraftPhotos(photos: readonly PublicApplicationDraftPhoto[]): ApplicationPhoto[] {
-  return photos.flatMap((photo, index) => {
-    const url = photo.blob ? URL.createObjectURL(photo.blob) : photo.sourceUrl;
-    return url ? [{ ...photo, slotIndex: photo.slotIndex ?? index, url, status: "READY" as const }] : [];
-  });
+export async function restoreDraftPhotos(photos: readonly PublicApplicationDraftPhoto[]): Promise<ApplicationPhoto[]> {
+  const restored: ApplicationPhoto[] = [];
+  for (const [index, photo] of photos.entries()) {
+    try {
+      // 기존 Draft에 File이 저장돼 있으면 읽을 수 있을 때 일반 Blob으로 자동 이관한다.
+      const blob = await independentBlobFromStoredFile(photo.blob);
+      const url = blob ? URL.createObjectURL(blob) : photo.sourceUrl;
+      if (url) restored.push({ ...photo, blob, slotIndex: photo.slotIndex ?? index, url, status: "READY" });
+    } catch (cause) {
+      console.error("[임시저장 사진 복원 실패]", cause);
+      restored.push({
+        ...photo,
+        blob: undefined,
+        slotIndex: photo.slotIndex ?? index,
+        url: "",
+        status: "ERROR",
+        error: "저장된 사진을 읽지 못했어요. 해당 사진을 다시 선택해 주세요.",
+      });
+    }
+  }
+  return restored;
+}
+
+async function independentBlobFromStoredFile(blob?: Blob) {
+  if (!blob || typeof File === "undefined" || !(blob instanceof File)) return blob;
+  const copy = new Blob([await blob.arrayBuffer()], { type: blob.type });
+  if (copy.size !== blob.size) throw new Error("저장된 사진 복사 크기가 원본과 일치하지 않습니다.");
+  return copy;
 }
 
 function openDatabase() {

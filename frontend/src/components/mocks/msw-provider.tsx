@@ -10,7 +10,12 @@ export function MswProvider({ children }: { children: React.ReactNode }) {
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    if (!mockingEnabled) return;
+    if (!mockingEnabled) {
+      void unregisterStaleMockWorkers().catch((error: unknown) => {
+        console.error("예술in 목 서비스 워커를 해제하지 못했습니다.", error);
+      });
+      return;
+    }
 
     let active = true;
 
@@ -34,6 +39,15 @@ export function MswProvider({ children }: { children: React.ReactNode }) {
     return <AdminMockErrorScreen onRetry={() => { setStatus("loading"); setAttempt((current) => current + 1); }} />;
   }
   return <AdminLoadingScreen />;
+}
+
+async function unregisterStaleMockWorkers() {
+  if (!("serviceWorker" in navigator)) return;
+  const registrations = await navigator.serviceWorker.getRegistrations();
+  await Promise.all(registrations
+    .filter((registration) => [registration.active, registration.waiting, registration.installing]
+      .some((worker) => worker && new URL(worker.scriptURL).pathname.endsWith("/mockServiceWorker.js")))
+    .map((registration) => registration.unregister()));
 }
 
 function AdminLoadingScreen() {
