@@ -1,0 +1,12 @@
+package art.yesulin.application.diagnostic;
+
+public enum UploadErrorCode {
+    FILE_READ_FAILED,
+    MEMORY_BLOB_SIZE_MISMATCH,
+    UPLOAD_REQUEST_FAILED,
+    WEBKIT_FILE_NOT_FOUND,
+    NETWORK_FETCH_FAILED,
+    S3_PUT_REJECTED,
+    FILE_METADATA_MISMATCH,
+    COMPLETION_FAILED
+}

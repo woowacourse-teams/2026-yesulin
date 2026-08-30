@@ -1,5 +1,7 @@
-import { AuditionRequestError, producerRequest as request } from "./api-client";
+import { producerRequest as request } from "./api-client";
 import type { FileUploadResource, PerformanceResource, PerformanceResourceList, ProducerProfileResource } from "./backend-resources";
+import { safeUpload } from "../files/safe-upload";
+import { reportUploadDiagnostic } from "../files/upload-diagnostics";
 import {
   createV1Posting,
   deleteV1Posting,
@@ -146,17 +148,21 @@ export async function createPerformance(body: CreatePerformanceRequest, poster: 
 }
 
 async function uploadPerformancePoster(poster: File) {
-  const upload = await request<FileUploadResource>("/v1/performance-posters/upload-requests", {
-    method: "POST",
-    body: JSON.stringify({ originalFilename: poster.name, contentType: poster.type, size: poster.size }),
+  const upload = await safeUpload({
+    flow: "PERFORMANCE_POSTER",
+    source: poster,
+    originalFilename: poster.name,
+    requestUpload: (metadata, { incidentId }) => request<FileUploadResource>("/v1/performance-posters/upload-requests", {
+      method: "POST",
+      headers: { "X-Request-Id": incidentId },
+      body: JSON.stringify(metadata),
+    }),
+    completeUpload: (fileId, { incidentId }) => request<void>(`/v1/performance-posters/${fileId}/completion`, {
+      method: "PATCH",
+      headers: { "X-Request-Id": incidentId },
+    }),
+    reportDiagnostic: reportUploadDiagnostic,
   });
-  const uploadResponse = await fetch(upload.uploadUrl, {
-    method: upload.method,
-    headers: upload.headers,
-    body: poster,
-  });
-  if (!uploadResponse.ok) throw new AuditionRequestError("공연 포스터를 업로드하지 못했습니다.", uploadResponse.status);
-  await request<void>(`/v1/performance-posters/${upload.fileId}/completion`, { method: "PATCH" });
   return upload.fileId;
 }
 

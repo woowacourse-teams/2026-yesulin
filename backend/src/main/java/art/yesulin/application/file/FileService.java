@@ -14,12 +14,16 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 public class FileService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(FileService.class);
 
     private final FileAssetRepository fileAssetRepository;
     private final ObjectStorage objectStorage;
@@ -56,6 +60,7 @@ public class FileService {
         StoredObjectMetadata metadata = objectStorage.inspect(fileAsset.getObjectKey()).orElseThrow(
                 () -> new BusinessException(UPLOAD_NOT_FOUND, "업로드 객체를 찾을 수 없습니다.")
         );
+        logMetadataMismatch(fileAsset, metadata);
         fileAsset.completeUpload(metadata.contentType(), metadata.size());
     }
 
@@ -83,5 +88,21 @@ public class FileService {
     private FileAsset getOwnedFileAsset(long ownerId, long fileId) {
         return fileAssetRepository.findByIdAndOwnerId(fileId, ownerId)
                 .orElseThrow(() -> new BusinessException(NOT_FOUND, "파일을 찾을 수 없습니다."));
+    }
+
+    private void logMetadataMismatch(FileAsset fileAsset, StoredObjectMetadata actual) {
+        FileMetadata expected = fileAsset.getMetadata();
+        if (expected.matches(actual.contentType(), actual.size())) {
+            return;
+        }
+        LOGGER.warn(
+                "FILE_METADATA_MISMATCH fileId={} expectedSize={} actualSize={} expectedContentType={} "
+                        + "actualContentType={}",
+                fileAsset.getId(),
+                expected.getSize(),
+                actual.size(),
+                expected.getContentType(),
+                actual.contentType()
+        );
     }
 }

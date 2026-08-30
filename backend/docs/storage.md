@@ -4,11 +4,16 @@
 
 1. 공연 포스터 또는 배우 사진 upload request API를 호출한다.
 2. 서버는 `PENDING` FileAsset과 만료 10분의 S3 presigned PUT URL을 반환한다.
-3. 클라이언트가 반환받은 URL에 파일을 PUT한다.
+3. 클라이언트가 원본 `File`을 `arrayBuffer()`로 읽어 같은 크기의 메모리 `Blob`을 만들고 반환받은 URL에 PUT한다.
 4. 클라이언트가 completion API를 호출한다.
 5. 서버는 S3 HEAD의 Content-Type과 크기를 요청 metadata와 비교하고 일치하면 `READY`로 바꾼다.
 
 공연 포스터는 JPEG·PNG·WebP 최대 30MB, 배우 사진은 같은 형식 최대 20MB다.
+
+iOS WebKit의 disk-backed `File` 접근 실패를 피하기 위해 지원서 사진·프로필 사진·공연 포스터 모두 원본 `File`을
+네트워크 body로 직접 보내지 않는다. `NotFoundError`, `Failed to fetch` 계열 또는 completion의
+`FILE_METADATA_MISMATCH`만 같은 presigned URL로 최대 한 번 덮어쓴다. completion은 0바이트를 포함해 기대한
+Content-Type·크기와 다르면 `READY`로 전환하지 않는다.
 
 ## 공개·비공개 경로
 
