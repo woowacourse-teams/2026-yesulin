@@ -14,6 +14,7 @@ import { TrackedLoginLink } from "@/components/analytics/tracked-login-link";
 import { DialogFooter, DialogHeader, ModalShell } from "@/components/auditions/modal-shell";
 import { SecondaryButton, TextButton } from "@/components/ui/controls";
 import { trackAnalyticsEvent } from "@/features/analytics/events";
+import { prepareMemoryBlob } from "@/features/files/safe-upload";
 
 export function PublicApplicationPhotoField({ field, limit, photos, authenticated, authChecking, loginHref, error, onChange }: {
   readonly field: ApplicationFieldInput;
@@ -69,7 +70,7 @@ export function PublicApplicationPhotoField({ field, limit, photos, authenticate
     replaceSlot(slotIndex, photo);
     const preparation = photoPreparationQueueRef.current.then(() => {
       if (preparingPhotoBySlotRef.current.get(slotIndex) !== id) throw new Error("사진 준비가 취소되었습니다.");
-      return prepareIndependentPhotoBlob(file);
+      return prepareMemoryBlob(file);
     });
     photoPreparationQueueRef.current = preparation.then(() => undefined, () => undefined);
     void preparation.then((blob) => {
@@ -115,13 +116,6 @@ export function PublicApplicationPhotoField({ field, limit, photos, authenticate
     {error ? <p id={errorId} role="alert" className="mt-3 text-sm font-medium leading-6 text-fail">{error}</p> : null}
     <PhotoPickerDialog key={pickerSlot ?? "closed"} open={pickerSlot !== null} slotLabel={pickerSlot === null ? "" : labels[pickerSlot] ?? field.label} authenticated={authenticated} authChecking={authChecking} usedPhotoIds={new Set(photos.map((photo) => photo.id))} loginHref={loginHref} onSelect={selectLibraryPhoto} onUpload={() => { if (pickerSlot !== null) openUpload(pickerSlot); }} onClose={() => setPickerSlot(null)} />
   </section>;
-}
-
-async function prepareIndependentPhotoBlob(file: File) {
-  const bytes = await file.arrayBuffer();
-  const blob = new Blob([bytes], { type: file.type });
-  if (blob.size !== file.size) throw new Error("사진 복사 크기가 원본과 일치하지 않습니다.");
-  return blob;
 }
 
 function revokeLocalPhotoUrl(photo?: ApplicationPhoto) {

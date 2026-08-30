@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   SafeUploadError,
+  prepareMemoryBlob,
   safeUpload,
   uploadSequentially,
   type UploadDiagnostic,
@@ -44,6 +45,17 @@ describe("safeUpload", () => {
       { originalFilename: spec.originalFilename, contentType: "image/jpeg", size: 3 },
       { incidentId: "11111111-1111-4111-8111-111111111111" },
     );
+  });
+
+  it("현재 페이지에서 준비한 메모리 Blob은 제출할 때 다시 읽지 않고 그대로 PUT한다", async () => {
+    const prepared = await prepareMemoryBlob(new Blob([new Uint8Array([1, 2, 3])], { type: "image/jpeg" }));
+    const read = vi.spyOn(prepared, "arrayBuffer");
+    const spec = input({ source: prepared });
+
+    await safeUpload(spec);
+
+    expect(read).not.toHaveBeenCalled();
+    expect(vi.mocked(spec.put).mock.calls[0]?.[1]).toBe(prepared);
   });
 
   it("메모리 복사 크기가 다르면 네트워크 요청 전에 실패한다", async () => {
