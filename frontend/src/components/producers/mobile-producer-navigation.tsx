@@ -3,23 +3,18 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
 import { ModalShell } from "@/components/auditions/modal-shell";
 import { auditionRoutes } from "@/features/auditions/routes";
 import { AnalyticsSettingsButton } from "@/components/analytics/analytics-settings-button";
 import { ProducerAccountPanel } from "./producer-account-panel";
 import { AuditionTreeNav } from "./audition-tree";
+import { useRouteDisclosure } from "./use-route-disclosure";
 
 const TITLE_ID = "mobile-producer-navigation-title";
 
 export function MobileProducerNavigation() {
   const pathname = usePathname();
-
-  return <MobileProducerNavigationPanel key={pathname} />;
-}
-
-function MobileProducerNavigationPanel() {
-  const [open, setOpen] = useState(false);
+  const { open, openDisclosure, closeDisclosure } = useRouteDisclosure(pathname);
 
   return (
     <>
@@ -29,7 +24,7 @@ function MobileProducerNavigationPanel() {
           aria-label="공연 관리 메뉴 열기"
           aria-expanded={open}
           aria-controls="mobile-producer-navigation"
-          onClick={() => setOpen(true)}
+          onClick={openDisclosure}
           className="grid h-11 w-11 shrink-0 place-items-center rounded-control border border-brand-line bg-brand-soft text-xl leading-none text-brand transition-[background-color,transform] duration-150 hover:bg-brand-soft-strong active:scale-95"
         >
           <span aria-hidden="true" className="grid gap-1">
@@ -59,7 +54,7 @@ function MobileProducerNavigationPanel() {
 
       <ModalShell
         open={open}
-        onClose={() => setOpen(false)}
+        onClose={closeDisclosure}
         labelledBy={TITLE_ID}
         placement="left"
         scrimClassName="bg-sidebar/65"
@@ -73,14 +68,14 @@ function MobileProducerNavigationPanel() {
             <button
               type="button"
               aria-label="공연 관리 메뉴 닫기"
-              onClick={() => setOpen(false)}
+              onClick={closeDisclosure}
               className="ml-auto min-h-11 rounded-control px-3 text-base text-sidebar-muted transition-[background-color,color,transform] duration-150 hover:bg-sidebar-hover hover:text-white active:scale-[0.97]"
             >
               닫기
             </button>
           </header>
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-2">
-            <AuditionTreeNav onNavigate={() => setOpen(false)} />
+            <AuditionTreeNav onNavigate={closeDisclosure} />
           </div>
           <ProducerAccountPanel />
         </div>

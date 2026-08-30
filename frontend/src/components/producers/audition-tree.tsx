@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { createContext, use, useEffect, useEffectEvent, useState } from "react";
 import { getAuditionTree } from "@/features/auditions/api";
 import { PHASE_LABELS } from "@/features/auditions/labels";
 import { postingEntryHref, auditionRoutes } from "@/features/auditions/routes";
 import { AUDITION_TREE_CHANGED } from "@/features/auditions/events";
-import type { AuditionTree, AuditionTreeNode } from "@/features/auditions/types";
+import type { AuditionTree, AuditionTreeNode, PerformanceId } from "@/features/auditions/types";
 import { PhaseTag } from "@/components/auditions/status-badge";
 
 /** 현재 경로에서 트리가 가리켜야 할 위치를 되짚는다. */
@@ -15,55 +15,143 @@ function locate(tree: AuditionTree | null, pathname: string) {
   const [, , section, id] = pathname.split("/");
   if (!tree || !id) return { performanceId: null, postingId: null };
 
-  if (section === "performances") return { performanceId: id, postingId: null };
+  if (section === "performances") {
+    const performance = tree.performances.find((item) => item.id === id);
+    return { performanceId: performance?.id ?? null, postingId: null };
+  }
 
   for (const performance of tree.performances) {
     for (const posting of performance.postings) {
       const hit =
         (section === "postings" && posting.id === id) ||
         (section === "roles" && posting.roleIds.some((roleId) => roleId === id));
-      if (hit) return { performanceId: performance.id as string, postingId: posting.id as string };
+      if (hit) return { performanceId: performance.id, postingId: posting.id };
     }
   }
 
   return { performanceId: null, postingId: null };
 }
 
-export function AuditionTreeNav({ onNavigate }: { onNavigate?: () => void }) {
+type AuditionTreeState = {
+  readonly tree: AuditionTree | null;
+  readonly collapsed: ReadonlySet<PerformanceId>;
+  readonly collapsedAtPath: ReadonlyMap<PerformanceId, string>;
+};
+
+type AuditionTreeContextValue = AuditionTreeState & {
+  readonly rootOpen: boolean;
+  readonly toggleRoot: () => void;
+  readonly togglePerformance: (id: PerformanceId, open: boolean) => void;
+};
+
+const AuditionTreeContext = createContext<AuditionTreeContextValue | null>(null);
+
+/** 경로별 화면이 바뀌어도 트리 조회 결과와 사용자의 펼침 상태를 유지한다. */
+export function AuditionTreeProvider({ children }: { readonly children: React.ReactNode }) {
   const pathname = usePathname();
-  const [tree, setTree] = useState<AuditionTree | null>(null);
+  const [state, setState] = useState<AuditionTreeState>({
+    tree: null,
+    collapsed: new Set(),
+    collapsedAtPath: new Map(),
+  });
   const [rootOpen, setRootOpen] = useState(true);
-  const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
+
+  const applyTree = useEffectEvent((tree: AuditionTree) => {
+    const activePerformanceId = locate(tree, pathname).performanceId;
+
+    setState((current) => {
+      if (!current.tree) {
+        return {
+          tree,
+          collapsed: new Set(
+            tree.performances
+              .filter((performance) => performance.id !== activePerformanceId)
+              .map((performance) => performance.id),
+          ),
+          collapsedAtPath: new Map(),
+        };
+      }
+
+      const previousIds = new Set(current.tree.performances.map((performance) => performance.id));
+      const nextIds = new Set(tree.performances.map((performance) => performance.id));
+      const collapsed = new Set([...current.collapsed].filter((id) => nextIds.has(id)));
+      const collapsedAtPath = new Map(
+        [...current.collapsedAtPath].filter(([id]) => nextIds.has(id)),
+      );
+
+      for (const performance of tree.performances) {
+        if (!previousIds.has(performance.id) && performance.id !== activePerformanceId) {
+          collapsed.add(performance.id);
+        }
+      }
+
+      return { tree, collapsed, collapsedAtPath };
+    });
+  });
 
   useEffect(() => {
     let active = true;
     const load = () => {
-      getAuditionTree().then((response) => {
-        if (active) {
-          setTree(response);
-          const current = locate(response, pathname).performanceId;
-          setCollapsed(new Set(response.performances.filter((item) => item.id !== current).map((item) => item.id)));
-        }
-      });
+      getAuditionTree()
+        .then((response) => {
+          if (active) applyTree(response);
+        })
+        .catch((cause: unknown) => {
+          console.error("[공연 내비게이션 트리 조회 실패]", cause);
+        });
     };
+
     load();
     window.addEventListener(AUDITION_TREE_CHANGED, load);
     return () => {
       active = false;
       window.removeEventListener(AUDITION_TREE_CHANGED, load);
     };
-  }, [pathname]);
+  }, []);
+
+  const togglePerformance = (id: PerformanceId, open: boolean) => {
+    setState((current) => {
+      const collapsed = new Set(current.collapsed);
+      const collapsedAtPath = new Map(current.collapsedAtPath);
+
+      if (open) {
+        collapsed.add(id);
+        collapsedAtPath.set(id, pathname);
+      } else {
+        collapsed.delete(id);
+        collapsedAtPath.delete(id);
+      }
+
+      return { ...current, collapsed, collapsedAtPath };
+    });
+  };
+
+  return (
+    <AuditionTreeContext.Provider
+      value={{
+        ...state,
+        rootOpen,
+        toggleRoot: () => setRootOpen((open) => !open),
+        togglePerformance,
+      }}
+    >
+      {children}
+    </AuditionTreeContext.Provider>
+  );
+}
+
+function useAuditionTree() {
+  const context = use(AuditionTreeContext);
+  if (!context) throw new Error("AuditionTreeProvider 안에서 사용해야 합니다.");
+  return context;
+}
+
+export function AuditionTreeNav({ onNavigate }: { onNavigate?: () => void }) {
+  const pathname = usePathname();
+  const { tree, rootOpen, collapsed, collapsedAtPath, toggleRoot, togglePerformance } = useAuditionTree();
 
   const { performanceId, postingId } = locate(tree, pathname);
   const atRoot = pathname === auditionRoutes.performances;
-
-  const toggle = (id: string) =>
-    setCollapsed((current) => {
-      const next = new Set(current);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
 
   return (
     <div className="px-2 pb-4 pt-1">
@@ -72,7 +160,7 @@ export function AuditionTreeNav({ onNavigate }: { onNavigate?: () => void }) {
           type="button"
           aria-label="공연 목록 펼치기/접기"
           aria-expanded={rootOpen}
-          onClick={() => setRootOpen((open) => !open)}
+          onClick={toggleRoot}
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-control text-sidebar-muted transition-colors hover:bg-sidebar-hover hover:text-white lg:h-[30px] lg:w-[26px]"
         >
           <Caret open={rootOpen} />
@@ -90,17 +178,23 @@ export function AuditionTreeNav({ onNavigate }: { onNavigate?: () => void }) {
 
       {rootOpen && tree ? (
         <div className="ml-3.5 border-l border-sidebar-line pl-4" role="tree">
-          {tree.performances.map((performance) => (
-            <TreeBranch
-              key={performance.id}
-              performance={performance}
-              open={!collapsed.has(performance.id)}
-              activePerformance={performanceId === performance.id}
-              activePostingId={postingId}
-              onToggle={() => toggle(performance.id)}
-              onNavigate={onNavigate}
-            />
-          ))}
+          {tree.performances.map((performance) => {
+            const activePerformance = performanceId === performance.id;
+            const collapsedOnCurrentPath = collapsedAtPath.get(performance.id) === pathname;
+            const open = !collapsed.has(performance.id) || (activePerformance && !collapsedOnCurrentPath);
+
+            return (
+              <TreeBranch
+                key={performance.id}
+                performance={performance}
+                open={open}
+                activePerformance={activePerformance}
+                activePostingId={postingId}
+                onToggle={() => togglePerformance(performance.id, open)}
+                onNavigate={onNavigate}
+              />
+            );
+          })}
         </div>
       ) : null}
     </div>
