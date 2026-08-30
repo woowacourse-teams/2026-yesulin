@@ -35,12 +35,14 @@ class MemoryBlobSizeMismatchError extends Error {
   readonly name = "MemoryBlobSizeMismatchError";
 }
 
+const preparedMemoryBlobs = new WeakSet<Blob>();
+
 export async function safeUpload(input: SafeUploadInput): Promise<SafeUploadResult> {
   const incidentId = (input.createIncidentId ?? defaultIncidentId)();
   const context = { incidentId };
   let body: Blob;
   try {
-    body = await memoryBlob(input.source);
+    body = preparedMemoryBlobs.has(input.source) ? input.source : await prepareMemoryBlob(input.source);
   } catch (cause) {
     throw finalFailure(input, context, "PREPARE", 1, classifyPrepareFailure(cause), cause);
   }
@@ -94,10 +96,11 @@ export async function uploadSequentially<Input, Output>(
   return outputs;
 }
 
-async function memoryBlob(source: Blob): Promise<Blob> {
+export async function prepareMemoryBlob(source: Blob): Promise<Blob> {
   const buffer = await source.arrayBuffer();
   const body = new Blob([buffer], { type: source.type });
   if (body.size !== source.size) throw new MemoryBlobSizeMismatchError("memory Blob size differs from source");
+  preparedMemoryBlobs.add(body);
   return body;
 }
 

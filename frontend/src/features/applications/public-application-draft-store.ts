@@ -1,4 +1,5 @@
 import type { ApplicationPhoto, CareerDraft } from "./application-form-state";
+import { prepareMemoryBlob } from "../files/safe-upload";
 
 const DATABASE_NAME = "yesulin-public-applications";
 const DATABASE_VERSION = 1;
@@ -77,8 +78,8 @@ export async function restoreDraftPhotos(photos: readonly PublicApplicationDraft
   const restored: ApplicationPhoto[] = [];
   for (const [index, photo] of photos.entries()) {
     try {
-      // 기존 Draft에 File이 저장돼 있으면 읽을 수 있을 때 일반 Blob으로 자동 이관한다.
-      const blob = await independentBlobFromStoredFile(photo.blob);
+      // IndexedDB가 Blob을 다시 disk-backed 객체로 복원할 수 있으므로 현재 페이지의 메모리 Blob으로 이관한다.
+      const blob = photo.blob ? await prepareMemoryBlob(photo.blob) : undefined;
       const url = blob ? URL.createObjectURL(blob) : photo.sourceUrl;
       if (url) restored.push({ ...photo, blob, slotIndex: photo.slotIndex ?? index, url, status: "READY" });
     } catch (cause) {
@@ -94,13 +95,6 @@ export async function restoreDraftPhotos(photos: readonly PublicApplicationDraft
     }
   }
   return restored;
-}
-
-async function independentBlobFromStoredFile(blob?: Blob) {
-  if (!blob || typeof File === "undefined" || !(blob instanceof File)) return blob;
-  const copy = new Blob([await blob.arrayBuffer()], { type: blob.type });
-  if (copy.size !== blob.size) throw new Error("저장된 사진 복사 크기가 원본과 일치하지 않습니다.");
-  return copy;
 }
 
 function openDatabase() {
