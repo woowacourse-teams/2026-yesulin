@@ -31,3 +31,12 @@ docker compose down
 
 MySQL data와 로그 volume까지 제거하는 `docker compose down --volumes`는 로컬 데이터를 지워도 되는 경우에만 사용한다.
 
+## 공연사 피드백용 데모 데이터
+
+공연사 심사 흐름을 로컬에서 시연할 때만 별도 데모 시드를 수동 실행한다. Flyway와 애플리케이션 시작 과정에서는
+자동 실행되지 않는다. 사진 파일 규칙과 초기화·검증 방법은
+[`scripts/demo/producer-feedback/README.md`](../scripts/demo/producer-feedback/README.md)를 따른다.
+
+```bash
+./scripts/demo/producer-feedback/seed.sh
+```
