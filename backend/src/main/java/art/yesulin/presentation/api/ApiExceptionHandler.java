@@ -1,12 +1,12 @@
 package art.yesulin.presentation.api;
 
 import art.yesulin.common.exception.BusinessException;
+import art.yesulin.presentation.config.RequestLogContext;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -20,12 +20,14 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 @RestControllerAdvice(basePackages = "art.yesulin.presentation.api")
 public class ApiExceptionHandler {
 
-    private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
     private static final String INVALID_REQUEST = "INVALID_REQUEST";
-    private static final String INTERNAL_ERROR = "INTERNAL_ERROR";
 
     @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException exception) {
+    public ResponseEntity<ErrorResponse> handleBusinessException(
+            BusinessException exception,
+            HttpServletRequest request
+    ) {
+        RequestLogContext.setErrorCode(request, exception.getErrorCode().code());
         ErrorResponse response = new ErrorResponse(exception.getErrorCode().code(), exception.getMessage(), null);
         HttpStatus status = switch (exception.getErrorCode().type()) {
             case BAD_REQUEST -> HttpStatus.BAD_REQUEST;
@@ -42,7 +44,8 @@ public class ApiExceptionHandler {
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleMethodArgumentNotValidException(
-            MethodArgumentNotValidException exception
+            MethodArgumentNotValidException exception,
+            HttpServletRequest request
     ) {
         Map<String, String> detail = new LinkedHashMap<>();
         for (FieldError fieldError : exception.getBindingResult().getFieldErrors()) {
@@ -50,33 +53,36 @@ public class ApiExceptionHandler {
         }
         exception.getBindingResult().getGlobalErrors()
                 .forEach(error -> detail.putIfAbsent(error.getObjectName(), error.getDefaultMessage()));
-        return badRequest(firstMessage(detail), detail);
+        return badRequest(request, firstMessage(detail), detail);
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ErrorResponse> handleConstraintViolationException(
-            ConstraintViolationException exception
+            ConstraintViolationException exception,
+            HttpServletRequest request
     ) {
         Map<String, String> detail = new LinkedHashMap<>();
         for (ConstraintViolation<?> violation : exception.getConstraintViolations()) {
             detail.putIfAbsent(String.valueOf(violation.getPropertyPath()), violation.getMessage());
         }
-        return badRequest(firstMessage(detail), detail);
+        return badRequest(request, firstMessage(detail), detail);
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponse> handleHttpMessageNotReadableException(
-            HttpMessageNotReadableException exception
+            HttpMessageNotReadableException exception,
+            HttpServletRequest request
     ) {
-        log.debug("요청 본문을 읽지 못했습니다.");
-        return badRequest("요청 형식이 올바르지 않습니다. 입력한 값을 다시 확인해 주세요.", null);
+        return badRequest(request, "요청 형식이 올바르지 않습니다. 입력한 값을 다시 확인해 주세요.", null);
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ErrorResponse> handleMethodArgumentTypeMismatchException(
-            MethodArgumentTypeMismatchException exception
+            MethodArgumentTypeMismatchException exception,
+            HttpServletRequest request
     ) {
         return badRequest(
+                request,
                 "%s 값의 형식이 올바르지 않습니다.".formatted(exception.getName()),
                 Map.of(exception.getName(), "형식이 올바르지 않습니다.")
         );
@@ -84,9 +90,11 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<ErrorResponse> handleMissingServletRequestParameterException(
-            MissingServletRequestParameterException exception
+            MissingServletRequestParameterException exception,
+            HttpServletRequest request
     ) {
         return badRequest(
+                request,
                 "%s 값이 필요합니다.".formatted(exception.getParameterName()),
                 Map.of(exception.getParameterName(), "필수 값입니다.")
         );
@@ -96,12 +104,19 @@ public class ApiExceptionHandler {
      * 도메인 검증기가 던지는 IllegalArgumentException은 잘못된 요청이므로 500이 아니라 400으로 돌려준다.
      */
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException exception) {
-        log.debug("잘못된 요청 값입니다.");
-        return badRequest(exception.getMessage(), null);
+    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(
+            IllegalArgumentException exception,
+            HttpServletRequest request
+    ) {
+        return badRequest(request, exception.getMessage(), null);
     }
 
-    private ResponseEntity<ErrorResponse> badRequest(String message, Map<String, String> detail) {
+    private ResponseEntity<ErrorResponse> badRequest(
+            HttpServletRequest request,
+            String message,
+            Map<String, String> detail
+    ) {
+        RequestLogContext.setErrorCode(request, INVALID_REQUEST);
         return ResponseEntity.badRequest().body(new ErrorResponse(INVALID_REQUEST, message, detail));
     }
 

@@ -45,7 +45,11 @@ class StructuredFileLoggingTest {
     void writesFileAsOneJsonObjectPerEventWhileKeepingMdcFields() throws IOException {
         MDC.put("requestId", "structured-file-request");
         try {
-            LOGGER.info(MARKER);
+            LOGGER.atInfo()
+                    .addKeyValue("event", "HTTP_REQUEST")
+                    .addKeyValue("endpoint", "/api/v1/tests/{id}")
+                    .addKeyValue("errorCode", "INVALID_REQUEST")
+                    .log(MARKER);
         } finally {
             MDC.remove("requestId");
         }
@@ -61,5 +65,8 @@ class StructuredFileLoggingTest {
         assertEquals("INFO", event.get("level").asString());
         assertEquals(MARKER, event.get("message").asString());
         assertEquals("structured-file-request", event.get("requestId").asString());
+        assertEquals("HTTP_REQUEST", event.get("event").asString());
+        assertEquals("/api/v1/tests/{id}", event.get("endpoint").asString());
+        assertEquals("INVALID_REQUEST", event.get("errorCode").asString());
     }
 }
