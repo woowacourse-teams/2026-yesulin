@@ -1,9 +1,11 @@
 import type {
+  Applicant,
   Gender,
   MismatchReason,
   PostingPhase,
   ReviewStatus,
   RoleGender,
+  RoleSummary,
   RoundNumber,
 } from "./types";
 
@@ -54,6 +56,32 @@ export const MISMATCH_LABELS = {
 
 export const mismatchText = (reasons: readonly MismatchReason[]) =>
   reasons.map((reason) => MISMATCH_LABELS[reason]).join("·");
+
+export const roleConditionText = (role: Pick<RoleSummary, "gender" | "ageMin" | "ageMax">) =>
+  `${roleGenderConditionText(role.gender)} · ${roleAgeText(role.ageMin, role.ageMax)}`;
+
+export const mismatchDetailText = (
+  applicant: Pick<Applicant, "gender" | "age" | "mismatchReasons">,
+  role: Pick<RoleSummary, "gender" | "ageMin" | "ageMax">,
+) => applicant.mismatchReasons.map((reason) => {
+  if (reason === "GENDER") {
+    return `성별: ${conditionGenderText(applicant.gender)} → ${roleGenderConditionText(role.gender)} 조건`;
+  }
+  return `나이: ${ageText(applicant.age)} → ${roleAgeText(role.ageMin, role.ageMax)}`;
+});
+
+function conditionGenderText(gender: Gender | null) {
+  if (gender === null) return "미수집";
+  return gender === "FEMALE" ? "여성" : "남성";
+}
+
+function roleGenderConditionText(gender: RoleGender) {
+  return gender === "ANY" ? "성별 무관" : conditionGenderText(gender);
+}
+
+function roleAgeText(ageMin: number, ageMax: number) {
+  return ageMin === ageMax ? `만 ${ageMin}세` : `만 ${ageMin}~${ageMax}세`;
+}
 
 /** 배지에는 ETC 사유를 우선 노출한다. 사유가 없을 때만 '기타'로 떨어진다. */
 export const statusText = (status: ReviewStatus, memo: string) =>
