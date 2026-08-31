@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { AnalyticsConsentManager } from "@/components/analytics/analytics-consent-manager";
 import { AuthSessionProvider } from "@/components/auth/auth-session";
 import "./globals.css";
@@ -51,6 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-full" suppressHydrationWarning>
         <AuthSessionProvider>{children}</AuthSessionProvider>
         <AnalyticsConsentManager gtmId={gtmId} />
+        <SpeedInsights />
       </body>
     </html>
   );
