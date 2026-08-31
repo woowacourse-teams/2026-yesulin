@@ -57,6 +57,8 @@ yesulin:
   admin:
     # 운영 대시보드 계정. `email:password` 형식이고 여러 개는 쉼표로 잇는다. 비우면 계정을 만들지 않는다.
     accounts: ${YESULIN_ADMIN_ACCOUNTS:}
+    # 지원서 삭제 2차 확인 비밀번호의 BCrypt 해시다. 원문 비밀번호를 설정하거나 저장소에 기록하지 않는다.
+    deletion-password-hash: ${YESULIN_ADMIN_DELETION_PASSWORD_HASH:}
   mail:
     enabled: ${MAIL_ENABLED:true}
     from: ${GOOGLE_SMTP_FROM:}

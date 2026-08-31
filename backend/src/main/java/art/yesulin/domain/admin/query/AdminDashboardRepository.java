@@ -75,7 +75,7 @@ public class AdminDashboardRepository {
                 .fetch();
     }
 
-    public List<AdminAuditionRow> findAuditions(AuditionStatus status, int limit) {
+    public List<AdminAuditionRow> findAuditions(AuditionStatus status) {
         BooleanExpression statusCondition = (status == null) ? null : AUDITION.status.eq(status);
         return queryFactory
                 .select(Projections.constructor(
@@ -94,7 +94,6 @@ public class AdminDashboardRepository {
                 .leftJoin(PRODUCER).on(PRODUCER.memberId.eq(AUDITION.ownerId))
                 .where(statusCondition)
                 .orderBy(AUDITION.createdAt.desc())
-                .limit(limit)
                 .fetch();
     }
 

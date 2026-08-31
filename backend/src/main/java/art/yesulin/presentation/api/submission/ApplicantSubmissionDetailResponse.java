@@ -21,7 +21,7 @@ public record ApplicantSubmissionDetailResponse(
         List<SubmissionDetailResult.ConsentResult> consents
 ) {
 
-    static ApplicantSubmissionDetailResponse from(
+    public static ApplicantSubmissionDetailResponse from(
             SubmissionDetailResult result,
             String posterUrl,
             Map<Long, String> photoUrlsByFileId

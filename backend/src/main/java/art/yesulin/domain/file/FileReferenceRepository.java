@@ -1,5 +1,6 @@
 package art.yesulin.domain.file;
 
+import java.util.Collection;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -14,4 +15,6 @@ public interface FileReferenceRepository extends JpaRepository<FileReference, Lo
     boolean existsByReferenceTypeAndReferenceIdAndFileId(String referenceType, long referenceId, long fileId);
 
     long deleteByReferenceTypeAndReferenceIdAndFileId(String referenceType, long referenceId, long fileId);
+
+    void deleteByReferenceTypeInAndReferenceId(Collection<String> referenceTypes, long referenceId);
 }

@@ -59,3 +59,75 @@ export type AdminLog = {
   readonly available: boolean;
   readonly readAt: string;
 };
+
+export type AdminSubmissionRole = {
+  readonly roleId: number;
+  readonly roleName: string;
+};
+
+export type AdminSubmissionSummary = {
+  readonly submissionId: string;
+  readonly applicantName: string | null;
+  readonly applicantEmail: string | null;
+  readonly applicantPhone: string | null;
+  readonly submittedAt: string;
+  readonly selectedRoles: readonly AdminSubmissionRole[];
+};
+
+export type AdminSubmissionDetail = {
+  readonly submissionId: string;
+  readonly auditionId: string;
+  readonly performanceTitle: string;
+  readonly auditionTitle: string;
+  readonly companyName: string;
+  readonly posterUrl: string;
+  readonly submittedAt: string;
+  readonly applicant: {
+    readonly basicInformation: {
+      readonly name: string | null;
+      readonly height: number | null;
+      readonly weight: number | null;
+      readonly birthDate: string | null;
+      readonly gender: "MALE" | "FEMALE" | null;
+      readonly phone: string | null;
+      readonly email: string | null;
+      readonly address: string | null;
+    };
+    readonly additionalInformation: {
+      readonly school: string | null;
+      readonly links: readonly string[];
+      readonly nationality: string | null;
+      readonly coverLetter: string | null;
+      readonly specialty: string | null;
+      readonly hobbies: string | null;
+      readonly militaryServiceStatus: "COMPLETED" | "NOT_COMPLETED" | "NOT_APPLICABLE" | null;
+      readonly careers: readonly { readonly year: number; readonly title: string; readonly roleName: string }[];
+    };
+    readonly ageAtRecruitmentDeadline: number | null;
+  };
+  readonly selectedRoles: readonly AdminSubmissionRole[];
+  readonly formAnswers: {
+    readonly questionAnswers: readonly {
+      readonly questionId: number;
+      readonly question: string;
+      readonly answer: string;
+    }[];
+    readonly photoRequirementAnswers: readonly {
+      readonly photoRequirementId: number;
+      readonly requirementDescription: string;
+      readonly fileId: number;
+      readonly url: string;
+    }[];
+    readonly videoRequirementAnswers: readonly {
+      readonly videoRequirementId: number;
+      readonly requirementDescription: string;
+      readonly url: string;
+    }[];
+  };
+  readonly consents: readonly {
+    readonly type: string;
+    readonly documentVersion: string;
+    readonly recipientName: string | null;
+    readonly agreedAt: string;
+  }[];
+};

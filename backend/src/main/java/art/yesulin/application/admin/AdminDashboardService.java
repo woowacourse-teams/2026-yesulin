@@ -22,7 +22,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class AdminDashboardService {
 
     private static final Duration RECENT_WINDOW = Duration.ofDays(7);
-    private static final int AUDITION_LIST_LIMIT = 100;
     private static final int AUDIT_LOG_LIMIT = 50;
 
     private final AdminDashboardRepository adminDashboardRepository;
@@ -41,7 +40,7 @@ public class AdminDashboardService {
 
     @Transactional(readOnly = true)
     public List<AdminAuditionRow> findAuditions(AuditionStatus status) {
-        return adminDashboardRepository.findAuditions(status, AUDITION_LIST_LIMIT);
+        return adminDashboardRepository.findAuditions(status);
     }
 
     @Transactional(readOnly = true)

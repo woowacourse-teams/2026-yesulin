@@ -15,6 +15,31 @@ CodeBuild는 `buildspec.yml`로 `backend/build/deployment/` 묶음을 만들고 
 세션 Cookie의 `Secure` 속성은 `SESSION_COOKIE_SECURE=true`로 켠다. 값을 바꾸고 재기동하면 비밀번호가 교체되고,
 값을 비우면 기존 계정은 남되 새로 만들지 않는다. 계정을 없애려면 DB에서 해당 회원을 직접 지운다.
 
+지원서 삭제용 별도 비밀번호는 원문 대신 BCrypt 해시만 `YESULIN_ADMIN_DELETION_PASSWORD_HASH`에 둔다.
+`backend` 디렉터리의 CMD 또는 PowerShell에서 아래 명령을 실행한다. 비밀번호는 별표로 표시되며 두 번 입력한다.
+`RemoteSigned`는 이 PowerShell 프로세스에만 적용하고 시스템 실행 정책은 변경하지 않는다.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy RemoteSigned -File .\scripts\generate-admin-deletion-password-hash.ps1
+```
+
+스크립트가 출력한 `$2a$...` BCrypt 해시만 서버 환경 변수에 복사한다. Gradle 태스크를 직접 실행하면
+자식 Java 프로세스에 대화형 콘솔이 없어 안전하게 비밀번호를 숨길 수 없으므로 반드시 위 스크립트를 사용한다.
+비밀번호는 12자 이상이며 BCrypt 제약으로 UTF-8 72바이트 이하여야 한다(영문·숫자는 최대 72자, 한글은 글자당 보통 3바이트).
+Windows PowerShell 5.1의 UTF-8 BOM과 PowerShell 7의 BOM 없는 입력을 모두 처리한다.
+입력값은 명령 인자·환경 변수·파일에 저장하지 않는다. 해시 계산 동안 프로세스 메모리와 표준입력에는 평문이 존재하며,
+관리형 문자열의 메모리 잔존까지 완전히 지우는 것은 보장하지 않는다.
+
+출력된 한 줄을 `/etc/yesulin/yesulin.env`에 설정하고 서비스를 재기동한다. 이 값이 비어 있으면 admin 조회는 가능하지만
+지원서 삭제는 `403 ADMIN_DELETION_CONFIRMATION_FAILED`로 거부된다. 원문 비밀번호나 생성 명령의 입력값은 문서·메신저·저장소에 남기지 않는다.
+
+삭제 비밀번호는 추가 확인 수단이며 OTP 같은 독립적인 MFA는 아니다. 현재 삭제 확인의 반복 오입력 제한은 구현되어 있지 않다.
+삭제 기능 활성화 전 HTTPS, `SESSION_COOKIE_SECURE=true`, root 전용 환경 파일 권한과 재시도 제한 필요성을 확인한다.
+요청 본문·DTO·Command를 로그로 남기지 않는다. 삭제 비밀번호 DTO·Command의 문자열 출력은 `[REDACTED]`로 마스킹하고,
+공통 JSON 파싱·잘못된 인자 오류의 DEBUG 로그에는 예외 원문·원인을 출력하지 않는다.
+HTTP 본문이나 객체를 별도로 직렬화하는 로깅은 이 마스킹으로 보호되지 않으므로 활성화하지 않는다.
+위 조건의 실제 서버 적용 여부는 로컬 빌드 통과와 별도로 확인해야 한다.
+
 세션과 이메일 인증 토큰은 Flyway가 만드는 `SPRING_SESSION`, `SPRING_SESSION_ATTRIBUTES`,
 `email_verifications`에 저장된다. 배포 전에 사용하는 DB 계정에 해당 migration의 DDL 권한이 있는지 확인한다.
 세션 만료는 `SESSION_TIMEOUT`의 idle timeout을 따르며 기본값은 12시간이다. 재배포는 세션 만료 사유가 아니다.
