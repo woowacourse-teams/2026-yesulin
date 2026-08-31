@@ -93,7 +93,7 @@ insert into submissions
 with recursive demo_numbers(number) as (
     select 1
     union all
-    select number + 1 from demo_numbers where number < 200
+    select number + 1 from demo_numbers where number < 233
 )
 select
     981000 + number,
@@ -113,7 +113,7 @@ select
         else concat(
             elt(mod(number - 1, 10) + 1, '김', '이', '박', '최', '정', '강', '조', '윤', '장', '임'),
             elt(mod(floor((number - 1) / 10), 10) + 1, '서', '하', '지', '예', '수', '민', '도', '채', '유', '시'),
-            elt(mod(number * 7, 10) + 1, '연', '린', '우', '윤', '아', '준', '빈', '원', '진', '현')
+            elt(floor((number - 1) / 100) + 1, '연', '린', '우')
         )
     end,
     155 + mod(number * 7, 31),
@@ -162,7 +162,7 @@ cross join (
     union all select 6, 'EMAIL'
     union all select 7, 'ADDRESS'
 ) fields
-where submission.id between 981001 and 981200;
+where submission.id between 981001 and 981233;
 
 insert into submission_additional_fields (submission_id, field_order, field)
 select submission.id, fields.field_order, fields.field
@@ -177,12 +177,12 @@ cross join (
     union all select 6, 'MILITARY'
     union all select 7, 'CAREER'
 ) fields
-where submission.id between 981001 and 981200;
+where submission.id between 981001 and 981233;
 
 insert into submission_links (submission_id, link_order, url)
 select id, 0, concat('https://example.com/demo-portfolio/', id - 981000)
 from submissions
-where id between 981001 and 981200;
+where id between 981001 and 981233;
 
 insert into submission_careers (submission_id, career_order, career_year, title, role_name)
 select
@@ -192,7 +192,7 @@ select
     elt(mod(id - 981001, 6) + 1, '봄날의 약속', '유리정원', '오래된 편지', '한여름 밤', '우리들의 무대', '별의 노래'),
     elt(mod(id - 981001, 5) + 1, '주연', '조연', '앙상블', '스윙', '단역')
 from submissions
-where id between 981001 and 981200;
+where id between 981001 and 981233;
 
 insert into submission_careers (submission_id, career_order, career_year, title, role_name)
 values
@@ -202,12 +202,12 @@ values
 insert into submission_selected_roles (submission_id, role_order, audition_role_id, role_name)
 select id, 0, 980001, '서연'
 from submissions
-where id between 981001 and 981200;
+where id between 981001 and 981233;
 
 insert into submission_selected_roles (submission_id, role_order, audition_role_id, role_name)
 select id, 1, 980002, '지우'
 from submissions
-where id between 981001 and 981200
+where id between 981001 and 981233
   and mod(id - 981000, 4) = 0;
 
 insert into submission_question_answers
@@ -222,7 +222,7 @@ select
         else concat('배역의 ', elt(mod(id, 4) + 1, '섬세함', '단단함', '유연함', '솔직함'), '을 제 경험으로 표현하고 싶습니다.')
     end
 from submissions
-where id between 981001 and 981200;
+where id between 981001 and 981233;
 
 insert into submission_question_answers
     (submission_id, answer_order, question_id, question, answer)
@@ -233,17 +233,12 @@ select
     '가능한 연습 요일을 알려주세요.',
     elt(mod(id, 4) + 1, '평일 저녁과 주말 모두 가능합니다.', '월·수·금 저녁 가능합니다.', '화·목 저녁과 주말 가능합니다.', '주말 종일 가능합니다.')
 from submissions
-where id between 981001 and 981200;
-
-insert into submission_video_requirement_answers
-    (submission_id, answer_order, video_requirement_id, requirement_description, url)
-values
-    (981001, 0, 980001, '자유 연기 영상', 'https://youtu.be/aqz-KE-bpKQ');
+where id between 981001 and 981233;
 
 insert into file_references (file_id, reference_type, reference_id)
 select 980000, 'SUBMISSION_POSTER', id
 from submissions
-where id between 981001 and 981200;
+where id between 981001 and 981233;
 
 insert into screening_reviews
     (id, submission_id, audition_role_id, screening_stage_id, status, other_reason, internal_memo)

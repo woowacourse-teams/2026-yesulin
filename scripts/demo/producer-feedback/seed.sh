@@ -53,6 +53,10 @@ localstack_run() {
   docker compose exec -T localstack awslocal "$@"
 }
 
+localstack_batch() {
+  docker compose exec -T localstack sh -c "$1"
+}
+
 ensure_bucket() {
   if ! localstack_run s3api head-bucket --bucket "$S3_BUCKET" >/dev/null 2>&1; then
     localstack_run s3 mb "s3://$S3_BUCKET" >/dev/null
@@ -178,7 +182,7 @@ upload_applicant_photos() {
       [[ "$naming_mode" != "numbered" ]] || fail "번호형 사진과 성별·나이형 사진을 함께 사용할 수 없습니다."
       naming_mode="metadata"
       metadata_count=$((metadata_count + 1))
-      (( metadata_count <= 200 )) || fail "지원자 사진은 최대 200장까지 연결할 수 있습니다."
+      (( metadata_count <= 233 )) || fail "지원자 사진은 최대 233장까지 연결할 수 있습니다."
 
       number="$(printf '%03d' "$metadata_count")"
       numeric_number=$metadata_count
@@ -198,7 +202,7 @@ upload_applicant_photos() {
       number="${BASH_REMATCH[1]}"
       kind="${BASH_REMATCH[2]}"
       numeric_number=$((10#$number))
-      (( numeric_number >= 1 && numeric_number <= 200 )) || fail "지원자 번호는 001~200이어야 합니다: $base"
+      (( numeric_number >= 1 && numeric_number <= 233 )) || fail "지원자 번호는 001~233이어야 합니다: $base"
       gender=""
       age=""
     else
@@ -264,7 +268,105 @@ SQL
       info "사진 연결: $base -> ${number}번 지원자 (${gender}, ${age}세)"
     fi
   done
+
+  if [[ "$naming_mode" == "metadata" && "$metadata_count" -gt 0 && "$metadata_count" -lt 233 ]]; then
+    local source_number target_file_id target_submission_id source_submission_id source_file source_extension
+    local source_content_type source_size source_logical_key source_physical_key target_logical_key target_physical_key
+    local copy_commands=$'set -eu\n' sql_commands=""
+    for ((numeric_number = metadata_count + 1; numeric_number <= 233; numeric_number++)); do
+      source_number=$(( (numeric_number - 1) % metadata_count + 1 ))
+      source_submission_id=$((981000 + source_number))
+      target_file_id=$((990000 + numeric_number * 10 + 1))
+      target_submission_id=$((981000 + numeric_number))
+      source_file="${files[$((source_number - 1))]}"
+      source_extension="${source_file##*.}"
+      source_extension="$(printf '%s' "$source_extension" | tr '[:upper:]' '[:lower:]')"
+      source_content_type="$(content_type_of "$source_file")"
+      source_size="$(file_size_of "$source_file")"
+      source_logical_key="private/actor-photos/$DEMO_S3_PREFIX/$(printf '%03d' "$source_number")-profile.$source_extension"
+      source_physical_key="$S3_KEY_PREFIX/$source_logical_key"
+      target_logical_key="private/actor-photos/$DEMO_S3_PREFIX/$(printf '%03d' "$numeric_number")-profile.$source_extension"
+      target_physical_key="$S3_KEY_PREFIX/$target_logical_key"
+
+      copy_commands+="awslocal s3 cp 's3://$S3_BUCKET/$source_physical_key' 's3://$S3_BUCKET/$target_physical_key' --content-type '$source_content_type' --only-show-errors"
+      copy_commands+=$'\n'
+      sql_commands+="
+update submissions target
+join submissions source on source.id = $source_submission_id
+set target.gender = source.gender,
+    target.age_at_recruitment_deadline = source.age_at_recruitment_deadline,
+    target.birth_date = source.birth_date,
+    target.military_service_status = source.military_service_status
+where target.id = $target_submission_id;
+
+insert into file_assets
+    (id, object_key, owner_id, original_filename, content_type, file_type, size, status)
+values
+    ($target_file_id, '$target_logical_key', $target_submission_id, '$(basename "$source_file")', '$source_content_type', 'IMAGE', $source_size, 'READY')
+on duplicate key update
+    object_key = values(object_key),
+    owner_id = values(owner_id),
+    original_filename = values(original_filename),
+    content_type = values(content_type),
+    file_type = values(file_type),
+    size = values(size),
+    status = values(status);
+
+insert into file_references (file_id, reference_type, reference_id)
+values ($target_file_id, 'SUBMISSION_PHOTO', $target_submission_id)
+on duplicate key update file_id = values(file_id);
+
+insert into submission_photo_requirement_answers
+    (submission_id, answer_order, photo_requirement_id, requirement_description, file_id)
+values
+    ($target_submission_id, 0, 980001, '프로필 사진', $target_file_id)
+on duplicate key update
+    photo_requirement_id = values(photo_requirement_id),
+    requirement_description = values(requirement_description),
+    file_id = values(file_id);
+"
+      count=$((count + 1))
+    done
+    localstack_batch "$copy_commands"
+    printf '%s' "$sql_commands" | mysql_run
+    info "지원자 사진 ${metadata_count}개를 233명에게 순환 연결"
+  fi
   info "지원자 사진 ${count}개 업로드 및 연결 완료"
+}
+
+assign_demo_videos() {
+  mysql_run <<'SQL'
+insert into submission_video_requirement_answers
+    (submission_id, answer_order, video_requirement_id, requirement_description, url)
+select
+    id,
+    0,
+    980001,
+    '자유 연기 영상',
+    case
+        when gender = 'MALE' then elt(mod(id - 981001, 4) + 1,
+            'https://www.youtube.com/watch?v=l7MwWCTylN8',
+            'https://www.youtube.com/watch?v=6VxiTsPLdSc',
+            'https://www.youtube.com/watch?v=sp8amIGDUVk',
+            'https://www.youtube.com/watch?v=C5kGRh2D498')
+        else elt(mod(id - 981001, 8) + 1,
+            'https://www.youtube.com/watch?v=LXTUXmBAjrc',
+            'https://www.youtube.com/watch?v=P4uR08laTIk',
+            'https://www.youtube.com/watch?v=6uTJDQ9dcLw',
+            'https://www.youtube.com/watch?v=XCYSsG_2meY',
+            'https://www.youtube.com/watch?v=w4Er3X5eY0A',
+            'https://www.youtube.com/watch?v=HWHK-fCTqug',
+            'https://www.youtube.com/watch?v=J9NzoZt__FU',
+            'https://www.youtube.com/watch?v=LbkmTiKJCc8')
+    end
+from submissions
+where id between 981001 and 981233
+on duplicate key update
+    video_requirement_id = values(video_requirement_id),
+    requirement_description = values(requirement_description),
+    url = values(url);
+SQL
+  info "지원자 233명에게 성별별 영상 링크 연결 완료"
 }
 
 seed_demo() {
@@ -273,11 +375,12 @@ seed_demo() {
   [[ "$producer_count" == "1" ]] || fail "로컬 제작사 계정(id=9001)이 없습니다. 백엔드가 Flyway 로컬 시드를 완료했는지 확인하세요."
 
   reset_demo
-  info "공연·공고·지원자 200명 생성"
+  info "공연·공고·지원자 233명 생성"
   mysql_file "$SEED_SQL"
   ensure_bucket
   upload_poster
   upload_applicant_photos
+  assign_demo_videos
   info "데모 데이터 생성 완료"
   mysql_file "$VERIFY_SQL"
 }
