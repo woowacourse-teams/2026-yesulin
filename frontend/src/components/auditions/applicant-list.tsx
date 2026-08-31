@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { activeDetailFilterCount, type StatusFilter } from "@/features/auditions/filters";
-import { ROUND_LABELS, STATUS_LABELS } from "@/features/auditions/labels";
+import { roleConditionText, ROUND_LABELS, STATUS_LABELS } from "@/features/auditions/labels";
 import { openPrintWindow } from "@/features/auditions/print";
 import type { Applicant } from "@/features/auditions/types";
 import { ApplicantCards } from "./applicant-cards";
@@ -23,12 +23,16 @@ const RESULT_SCOPE_LABELS = {
 } as const satisfies Record<StatusFilter, string>;
 
 export function ApplicantList() {
-  const { filters, visible } = useBoard();
+  const { board, filters, visible } = useBoard();
   const [video, setVideo] = useState<Applicant | null>(null);
   if (visible.length === 0) return <EmptyList />;
 
   return (
     <>
+      <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-card border border-brand-line bg-brand-soft px-4 py-2.5 text-sm">
+        <span className="font-semibold text-brand">배역 조건</span>
+        <span className="text-muted-strong">{roleConditionText(board.role)}</span>
+      </div>
       <ListToolbar rows={visible} />
       {filters.view === "card" ? <ApplicantCards rows={visible} /> : <><div className="lg:hidden"><ApplicantCards rows={visible} /></div><div className="hidden lg:block"><ApplicantTable rows={visible} onPlayVideo={setVideo} /></div></>}
       {video ? <VideoModal key={video.id} applicant={video} onClose={() => setVideo(null)} /> : null}

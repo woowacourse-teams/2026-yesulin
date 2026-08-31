@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import { ageText, genderText, mismatchText } from "@/features/auditions/labels";
+import { ageText, genderText, mismatchDetailText, mismatchText, roleConditionText } from "@/features/auditions/labels";
 import { openPrintWindow } from "@/features/auditions/print";
 import { useBoard } from "./board-context";
 import { DetailGallery } from "./detail-gallery";
@@ -40,12 +40,15 @@ export function ApplicantDetail() {
               {genderText(applicant.gender)} · {ageText(applicant.age)} · {measurement(applicant.height, "cm")} /{" "}
               {measurement(applicant.weight, "kg")} · {applicant.id}
             </p>
+            <p className="mt-1 text-xs text-muted">배역 조건: {roleConditionText(board.role)}</p>
+            {applicant.mismatchReasons.length > 0 ? (
+              <p className="mt-1 text-xs font-medium text-fail">{mismatchDetailText(applicant, board.role).join(" · ")}</p>
+            ) : null}
           </div>
 
           <div className="ml-auto flex items-center gap-2">
             {applicant.mismatchReasons.length > 0 ? (
               <span
-                title={`배역 조건: ${board.role.description}`}
                 className="inline-flex h-6 items-center whitespace-nowrap rounded-full bg-fail-bg px-2 text-xs font-semibold text-fail"
               >
                 조건 불일치 ({mismatchText(applicant.mismatchReasons)})

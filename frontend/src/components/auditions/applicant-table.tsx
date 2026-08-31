@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ageText, genderText, mismatchText } from "@/features/auditions/labels";
+import { ageText, genderText, mismatchDetailText } from "@/features/auditions/labels";
 import type { Applicant } from "@/features/auditions/types";
 import { ApplicantPhotoImage } from "./applicant-photo";
 import { useBoard } from "./board-context";
@@ -18,7 +18,7 @@ export function ApplicantTable({
   rows: readonly Applicant[];
   onPlayVideo: (applicant: Applicant) => void;
 }) {
-  const { selected, toggleSelected, setSelection, openApplicant } = useBoard();
+  const { board, selected, toggleSelected, setSelection, openApplicant } = useBoard();
   const [peek, setPeek] = useState<PeekState | null>(null);
   const allSelected = rows.length > 0 && rows.every((row) => selected.has(row.id));
 
@@ -117,17 +117,17 @@ export function ApplicantTable({
                       <span className="block text-sm font-semibold leading-tight tracking-[-0.01em]">
                         {applicant.name}
                         {applicant.mismatchReasons.length > 0 ? (
-                          <span
-                            title={`조건 불일치: ${mismatchText(applicant.mismatchReasons)}`}
-                            className="ml-1 text-xs font-semibold text-fail"
-                          >
-                            조건 불일치
-                          </span>
+                          <span className="ml-1 text-xs font-semibold text-fail">조건 불일치</span>
                         ) : null}
                       </span>
                       <span className="num block text-xs text-muted">
                         {genderText(applicant.gender)} · {ageText(applicant.age)}
                       </span>
+                      {applicant.mismatchReasons.length > 0 ? (
+                        <span className="block text-xs leading-5 font-medium text-fail">
+                          {mismatchDetailText(applicant, board.role).join(" · ")}
+                        </span>
+                      ) : null}
                     </span>
                   </div>
                 </td>

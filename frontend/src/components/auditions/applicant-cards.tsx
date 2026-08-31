@@ -1,13 +1,13 @@
 "use client";
 
-import { ageText, genderText, mismatchText } from "@/features/auditions/labels";
+import { ageText, genderText, mismatchDetailText } from "@/features/auditions/labels";
 import type { Applicant } from "@/features/auditions/types";
 import { ApplicantPhotoImage } from "./applicant-photo";
 import { useBoard } from "./board-context";
 import { StatusBadge } from "./status-badge";
 
 export function ApplicantCards({ rows }: { rows: readonly Applicant[] }) {
-  const { selected, toggleSelected, openApplicant } = useBoard();
+  const { board, selected, toggleSelected, openApplicant } = useBoard();
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:justify-start sm:[grid-template-columns:repeat(auto-fill,minmax(220px,280px))]">
@@ -53,9 +53,15 @@ export function ApplicantCards({ rows }: { rows: readonly Applicant[] }) {
                     </span>
                   </span>
                   {applicant.mismatchReasons.length > 0 ? (
-                    <span className="shrink-0 rounded-full border border-fail/30 bg-fail-bg px-2 py-1 text-xs font-semibold text-fail" title={`조건 불일치: ${mismatchText(applicant.mismatchReasons)}`}>조건 불일치</span>
+                    <span className="shrink-0 rounded-full border border-fail/30 bg-fail-bg px-2 py-1 text-xs font-semibold text-fail">조건 불일치</span>
                   ) : null}
                 </span>
+
+                {applicant.mismatchReasons.length > 0 ? (
+                  <span className="mt-2 block text-xs leading-5 font-medium text-fail">
+                    {mismatchDetailText(applicant, board.role).map((detail) => <span key={detail} className="block">{detail}</span>)}
+                  </span>
+                ) : null}
 
                 <span className="mt-3 block truncate text-sm text-muted-strong">{applicant.school}</span>
                 <span className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted">
