@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 
 /** 겹쳐 뜨는 레이어의 쌓임 순서. 클래스로 흩어 두면 어느 쪽이 위인지 읽히지 않는다. */
 export const MODAL_LAYERS = {
@@ -16,6 +17,10 @@ const FOCUSABLE_SELECTOR = [
   "textarea:not([disabled])",
   "[tabindex]:not([tabindex='-1'])",
 ].join(",");
+
+const subscribeToClientReady = () => () => {};
+const getClientReadySnapshot = () => true;
+const getServerReadySnapshot = () => false;
 
 const PLACEMENT_CLASS = {
   center: "left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2",
@@ -45,9 +50,14 @@ export function ModalShell({
   children: React.ReactNode;
 }) {
   const panelRef = useRef<HTMLElement>(null);
+  const clientReady = useSyncExternalStore(
+    subscribeToClientReady,
+    getClientReadySnapshot,
+    getServerReadySnapshot,
+  );
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || !clientReady) return;
 
     const panel = panelRef.current;
     if (!panel) return;
@@ -110,11 +120,11 @@ export function ModalShell({
       document.body.style.overflow = previousBodyOverflow;
       if (previouslyFocused?.isConnected) previouslyFocused.focus();
     };
-  }, [open, onClose]);
+  }, [clientReady, open, onClose]);
 
-  if (!open) return null;
+  if (!open || !clientReady) return null;
 
-  return (
+  return createPortal(
     <>
       <button
         type="button"
@@ -135,7 +145,8 @@ export function ModalShell({
       >
         {children}
       </section>
-    </>
+    </>,
+    document.body,
   );
 }
 
