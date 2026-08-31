@@ -42,8 +42,11 @@ infrastructure/    JPA·QueryDSL, OAuth, S3 등 외부 기술 adapter
 
 ## 로그
 
-- 로그 시각은 host TZ와 무관하게 `Asia/Seoul`로 기록한다. SSM tail과 운영 대시보드가 같은 시각을 보여 준다.
+- 콘솔은 `Asia/Seoul` 시각의 짧은 텍스트로, 파일은 한 이벤트가 한 줄인 Logstash JSON으로 기록한다.
+  배포 프로세스의 `TZ=Asia/Seoul` 설정으로 JSON `@timestamp`도 같은 시각대를 사용한다.
 - request ID를 MDC와 응답 `X-Request-Id`에 사용한다.
+- 파일 JSON은 `@timestamp`, `level`, `logger_name`, `thread_name`, `message`와 MDC 필드를 분리해 저장한다.
+  현재 HTTP·application 로그의 메시지와 레벨 정책은 구조화 전환 전과 같다.
 - 요청 로그는 method, URI, status, elapsed time만 기록한다. URI에 query string은 포함하지 않는다.
 - `/api/v1/health`와 `/api/v1/admin/logs`처럼 짧은 주기로 반복되는 조회는 성공 시 DEBUG로 낮춘다.
   스스로 만든 로그가 정작 읽으려는 로그를 밀어내지 않게 하기 위함이며, 실패는 그대로 남긴다.
@@ -60,4 +63,6 @@ infrastructure/    JPA·QueryDSL, OAuth, S3 등 외부 기술 adapter
 - 삭제 확인의 계정별 반복 제한은 `AdminDeletionConfirmation`이 불변 상태와 원자적 `compute`로 처리한다.
   메모리 상태는 삭제 트랜잭션 롤백과 무관하게 유지된다. 잠금 정책과 운영 제약은 [배포 문서](operations/deployment.md)를 따른다.
 - 운영자는 `/api/v1/admin/logs`로 같은 로그 파일의 끝부분을 읽을 수 있다. 경로는 설정으로 고정하고 읽기 상한을 둔다.
+  조회 응답은 기존 `lines`와 구조화된 `entries`를 함께 제공한다. 배포 전에 남은 텍스트는 `LEGACY`, JSON은
+  `STRUCTURED`로 판별하며, 파싱할 수 없는 줄 하나가 전체 조회를 실패시키지 않는다.
 - 기본 로그 파일은 실행 디렉터리 기준 `logs/yesulin.log`, 10MB 단위 압축, 14일·1GB 상한이다.

@@ -51,7 +51,9 @@ class AdminLogControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.available").value(true))
                 .andExpect(jsonPath("$.lines").isArray())
-                .andExpect(jsonPath("$.lines").isNotEmpty());
+                .andExpect(jsonPath("$.lines").isNotEmpty())
+                .andExpect(jsonPath("$.entries").isArray())
+                .andExpect(jsonPath("$.entries").isNotEmpty());
     }
 
     @Test
@@ -70,7 +72,10 @@ class AdminLogControllerTest {
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, ADMIN))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.lines.length()").value(1))
-                .andExpect(jsonPath("$.lines[0]").value("WARN Disk Full"));
+                .andExpect(jsonPath("$.lines[0]").value("WARN Disk Full"))
+                .andExpect(jsonPath("$.entries[0].format").value("LEGACY"))
+                .andExpect(jsonPath("$.entries[0].level").value("WARN"))
+                .andExpect(jsonPath("$.entries[0].message").value("WARN Disk Full"));
     }
 
     @Test

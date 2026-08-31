@@ -43,9 +43,12 @@ logging:
   file:
     name: ${LOG_FILE:logs/yesulin.log}
   pattern:
-    # 배포 환경의 host TZ와 무관하게 항상 한국 시각으로 남긴다. SSM tail과 운영 대시보드가 같은 시각을 보게 한다.
-    console: "%d{yyyy-MM-dd HH:mm:ss.SSS, Asia/Seoul} [%thread] %-5level %logger{36} [requestId=%X{requestId:-}] %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss.SSS, Asia/Seoul} [%thread] %-5level %logger{36} [requestId=%X{requestId:-}] %msg%n"
+    # journal과 로컬 터미널은 빠르게 읽을 수 있게 thread를 빼고 source 길이를 줄인다.
+    console: "%d{HH:mm:ss.SSS, Asia/Seoul} %-5level [requestId=%X{requestId:-}] %logger{24} - %msg%n"
+  structured:
+    format:
+      # 관리 API와 향후 중앙 수집기가 한 줄을 한 이벤트로 안전하게 읽는다.
+      file: logstash
   logback:
     rollingpolicy:
       file-name-pattern: "${LOG_FILE:logs/yesulin.log}.%d{yyyy-MM-dd}.%i.gz"

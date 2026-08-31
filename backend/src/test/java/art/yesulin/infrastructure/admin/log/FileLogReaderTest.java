@@ -2,8 +2,11 @@ package art.yesulin.infrastructure.admin.log;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import art.yesulin.application.admin.log.LogEntry;
+import art.yesulin.application.admin.log.LogEntryFormat;
 import art.yesulin.application.admin.log.LogLines;
 import art.yesulin.application.admin.log.LogQuery;
 import java.io.IOException;
@@ -18,13 +21,15 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import tools.jackson.databind.ObjectMapper;
 
 class FileLogReaderTest {
 
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-08-27T00:00:00Z"), ZoneOffset.UTC);
+    private static final LogLineParser LOG_LINE_PARSER = new LogLineParser(new ObjectMapper());
 
     private FileLogReader readerOf(Path path) {
-        return new FileLogReader(new LogFileProperties(path.toString()), CLOCK);
+        return new FileLogReader(new LogFileProperties(path.toString()), CLOCK, LOG_LINE_PARSER);
     }
 
     private Path writeLines(Path directory, String name, int count) throws IOException {
@@ -64,6 +69,50 @@ class FileLogReaderTest {
         LogLines result = readerOf(path).readRecent(new LogQuery("warn", 200));
 
         assertEquals(List.of("WARN Disk Full"), result.lines());
+        assertEquals(LogEntryFormat.LEGACY, result.entries().getFirst().format());
+        assertEquals("WARN", result.entries().getFirst().level());
+    }
+
+    @Test
+    void parsesStructuredAndLegacyLinesTogether(@TempDir Path directory) throws IOException {
+        String legacy = "2026-08-31 13:57:46.639 [http-nio-exec-8] INFO art.yesulin.Legacy "
+                + "[requestId=legacy-request] HTTP status=200";
+        String structured = """
+                {"@timestamp":"2026-08-31T13:57:47.123+09:00","@version":"1","message":"Disk Full",\
+                "logger_name":"art.yesulin.Structured","thread_name":"http-nio-exec-9","level":"WARN",\
+                "level_value":30000,"requestId":"structured-request","event":"DISK_WARNING","elapsedMs":1200}
+                """.replace("\n", "");
+        Path path = directory.resolve("mixed.log");
+        Files.writeString(path, legacy + "\n" + structured + "\n", StandardCharsets.UTF_8);
+
+        LogLines result = readerOf(path).readRecent(new LogQuery("", 10));
+
+        assertEquals(2, result.entries().size());
+        LogEntry legacyEntry = result.entries().getFirst();
+        assertEquals(LogEntryFormat.LEGACY, legacyEntry.format());
+        assertEquals("legacy-request", legacyEntry.requestId());
+        assertEquals("HTTP status=200", legacyEntry.message());
+        assertEquals(Instant.parse("2026-08-31T04:57:46.639Z"), legacyEntry.timestamp());
+
+        LogEntry structuredEntry = result.entries().getLast();
+        assertEquals(LogEntryFormat.STRUCTURED, structuredEntry.format());
+        assertEquals("structured-request", structuredEntry.requestId());
+        assertEquals("Disk Full", structuredEntry.message());
+        assertEquals("DISK_WARNING", structuredEntry.attributes().get("event"));
+        assertEquals(1200, structuredEntry.attributes().get("elapsedMs"));
+        assertEquals(Instant.parse("2026-08-31T04:57:47.123Z"), structuredEntry.timestamp());
+    }
+
+    @Test
+    void treatsMalformedJsonAsLegacyWithoutFailingTheWholeQuery(@TempDir Path directory) throws IOException {
+        Path path = directory.resolve("malformed.log");
+        Files.writeString(path, "{not-json}\n", StandardCharsets.UTF_8);
+
+        LogEntry entry = readerOf(path).readRecent(new LogQuery("", 10)).entries().getFirst();
+
+        assertEquals(LogEntryFormat.LEGACY, entry.format());
+        assertEquals("{not-json}", entry.raw());
+        assertNull(entry.level());
     }
 
     @Test
@@ -137,7 +186,7 @@ class FileLogReaderTest {
 
     @Test
     void reportsUnavailableWhenPathIsNotConfigured() {
-        FileLogReader reader = new FileLogReader(new LogFileProperties(" "), CLOCK);
+        FileLogReader reader = new FileLogReader(new LogFileProperties(" "), CLOCK, LOG_LINE_PARSER);
 
         assertFalse(reader.readRecent(new LogQuery("", 10)).available());
     }
