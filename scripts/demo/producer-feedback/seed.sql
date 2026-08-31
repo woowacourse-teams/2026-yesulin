@@ -239,37 +239,3 @@ insert into file_references (file_id, reference_type, reference_id)
 select 980000, 'SUBMISSION_POSTER', id
 from submissions
 where id between 981001 and 981233;
-
-insert into screening_reviews
-    (id, submission_id, audition_role_id, screening_stage_id, status, other_reason, internal_memo)
-select
-    983000 + (id - 981000),
-    public_id,
-    980001,
-    980001,
-    case
-        when id <= 981020 then 'PASS'
-        when id <= 981035 then 'FAIL'
-        else 'ETC'
-    end,
-    case when id > 981035 then '다른 배역 검토' else '' end,
-    case
-        when id <= 981020 then '2차 대면 심사 대상'
-        when id <= 981035 then '현재 배역 이미지와 차이가 있음'
-        else '다른 배역 가능성 검토'
-    end
-from submissions
-where id between 981001 and 981040;
-
-insert into screening_reviews
-    (id, submission_id, audition_role_id, screening_stage_id, status, other_reason, internal_memo)
-select
-    984000 + (id - 981000),
-    public_id,
-    980001,
-    980002,
-    case when id <= 981005 then 'PASS' else 'FAIL' end,
-    '',
-    case when id <= 981005 then '최종 후보군' else '2차 대면 심사 종료' end
-from submissions
-where id between 981001 and 981010;
