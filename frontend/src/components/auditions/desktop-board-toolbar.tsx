@@ -85,6 +85,18 @@ export function DesktopBoardToolbar({ onOpenFilter }: { onOpenFilter: () => void
       <span className="num hidden shrink-0 text-xs text-muted 2xl:inline">{visible.length}명 표시</span>
       <button
         type="button"
+        aria-pressed={filters.mismatchOnly}
+        onClick={() => setFilters((current) => ({ ...current, mismatchOnly: !current.mismatchOnly }))}
+        className={`inline-flex min-h-10 shrink-0 items-center rounded-control border px-3 text-dense font-semibold transition-colors ${
+          filters.mismatchOnly
+            ? "border-warn bg-warn text-white"
+            : "border-warn-bg bg-card text-muted-strong hover:border-warn hover:bg-warn-bg hover:text-warn"
+        }`}
+      >
+        조건 불일치만
+      </button>
+      <button
+        type="button"
         aria-haspopup="dialog"
         onClick={onOpenFilter}
         className={`inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-control border px-3 text-dense font-semibold ${
@@ -97,18 +109,6 @@ export function DesktopBoardToolbar({ onOpenFilter }: { onOpenFilter: () => void
         {detailCount ? <span className="num">{detailCount}</span> : null}
       </button>
 
-      <div className="flex shrink-0 overflow-hidden rounded-control border border-border bg-card">
-        {(["card", "table"] as const).map((view) => (
-          <SegmentButton
-            key={view}
-            pressed={filters.view === view}
-            onClick={() => setFilters((current) => ({ ...current, view }))}
-            className="px-2.5"
-          >
-            {view === "table" ? "표" : "카드"}
-          </SegmentButton>
-        ))}
-      </div>
     </div>
   );
 }

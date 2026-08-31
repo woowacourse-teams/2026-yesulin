@@ -10,7 +10,7 @@ import { ApplicantTable } from "./applicant-table";
 import { useBoard } from "./board-context";
 import { ScreenMessage } from "./screen-status";
 import { VideoModal } from "./video-modal";
-import { SecondaryButton } from "@/components/ui/controls";
+import { SecondaryButton, SegmentButton } from "@/components/ui/controls";
 import { useToast } from "./toast";
 
 const POPUP_BLOCKED = "팝업이 차단되어 인쇄 창을 열 수 없습니다. 팝업 허용 후 다시 시도해 주세요.";
@@ -41,12 +41,12 @@ export function ApplicantList() {
 }
 
 function ListToolbar({ rows }: { rows: readonly Applicant[] }) {
-  const { board, filters, selected, setSelection, openContacts } = useBoard();
+  const { board, filters, selected, setFilters, setSelection, openContacts } = useBoard();
   const toast = useToast();
   const selectedRows = rows.filter((row) => selected.has(row.id));
   const allSelected = rows.length > 0 && selectedRows.length === rows.length;
   const roundName = board.rounds.find((round) => round.round === board.round)?.name ?? ROUND_LABELS[board.round];
-  const hasListFilter = filters.query.trim().length > 0 || activeDetailFilterCount(filters) > 0;
+  const hasListFilter = filters.query.trim().length > 0 || activeDetailFilterCount(filters) > 0 || filters.mismatchOnly;
   const scopeLabel = hasListFilter ? "현재 목록" : RESULT_SCOPE_LABELS[filters.status];
 
   const label =
@@ -94,23 +94,26 @@ function ListToolbar({ rows }: { rows: readonly Applicant[] }) {
     </div>
   ) : null;
 
-  return <>
-    <div className={`mb-3 flex flex-wrap items-center gap-3 rounded-card border border-border bg-card px-4 py-3 ${filters.view === "table" ? "lg:hidden" : ""}`}>
+  return (
+    <div className="mb-3 flex flex-wrap items-center gap-3 rounded-card border border-border bg-card px-4 py-3">
       {selectionControl}
+      <div className="flex shrink-0 overflow-hidden rounded-control border border-border bg-card">
+        {(["card", "table"] as const).map((view) => (
+          <SegmentButton
+            key={view}
+            pressed={filters.view === view}
+            onClick={() => setFilters((current) => ({ ...current, view }))}
+            className="px-2.5"
+          >
+            {view === "table" ? "표" : "카드"}
+          </SegmentButton>
+        ))}
+      </div>
       <span className="text-xs text-muted">{label}</span>
       {selectedRows.length > 0 ? <span className="text-xs font-semibold text-brand">{selectedRows.length}명 선택됨</span> : null}
       {completedActions}
     </div>
-
-    {filters.view === "table" ? (
-      <div className="mb-2 hidden min-h-9 items-center gap-3 px-1 lg:flex">
-        <span className="text-dense font-semibold text-foreground">{label}</span>
-        <span className="text-xs text-muted">행을 선택하면 상세 내용을 확인할 수 있습니다</span>
-        {selectedRows.length > 0 ? <span className="text-xs font-semibold text-brand">{selectedRows.length}명 선택됨</span> : null}
-        {completedActions}
-      </div>
-    ) : null}
-  </>;
+  );
 }
 
 function EmptyList() {
