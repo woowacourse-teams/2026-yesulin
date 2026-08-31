@@ -89,11 +89,11 @@ export function DesktopBoardToolbar({ onOpenFilter }: { onOpenFilter: () => void
         onClick={() => setFilters((current) => ({ ...current, mismatchOnly: !current.mismatchOnly }))}
         className={`inline-flex min-h-10 shrink-0 items-center rounded-control border px-3 text-dense font-semibold transition-colors ${
           filters.mismatchOnly
-            ? "border-warn bg-warn text-white"
-            : "border-warn-bg bg-card text-muted-strong hover:border-warn hover:bg-warn-bg hover:text-warn"
+            ? "border-brand bg-brand text-white"
+            : "border-brand-line bg-brand-soft text-brand hover:border-brand hover:bg-brand-soft-strong"
         }`}
       >
-        조건 불일치만
+        배역 조건 불일치만
       </button>
       <button
         type="button"
