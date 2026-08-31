@@ -27,7 +27,7 @@ left join screening_reviews review
     on review.submission_id = submission.public_id
    and review.audition_role_id = 980001
    and review.screening_stage_id = 980001
-where submission.id between 981001 and 981200
+where submission.id between 981001 and 981233
 group by coalesce(review.status, 'PENDING')
 order by screening_status;
 
