@@ -27,7 +27,7 @@ public class FileContentController {
             @LoginMember MemberPrincipal principal,
             @PathVariable long fileId
     ) {
-        FileContentResult content = fileContentService.read(principal.memberId(), fileId);
+        FileContentResult content = fileContentService.read(principal.memberId(), principal.role(), fileId);
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(content.contentType()))
                 .cacheControl(CacheControl.noStore().mustRevalidate())

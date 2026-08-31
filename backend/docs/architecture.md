@@ -48,10 +48,16 @@ infrastructure/    JPA·QueryDSL, OAuth, S3 등 외부 기술 adapter
 - `/api/v1/health`와 `/api/v1/admin/logs`처럼 짧은 주기로 반복되는 조회는 성공 시 DEBUG로 낮춘다.
   스스로 만든 로그가 정작 읽으려는 로그를 밀어내지 않게 하기 위함이며, 실패는 그대로 남긴다.
 - 요청·응답 본문, Cookie, token, 비밀번호, 연락처, 지원서 원문과 파일 URL은 일반 로그에 남기지 않는다.
+- 삭제 확인 DTO·Command의 `toString()`은 비밀번호를 `[REDACTED]`로 마스킹한다. 공통 JSON 파싱·잘못된 인자
+  오류의 DEBUG 로그는 고정 메시지만 기록하고 예외 원문·원인을 기록하지 않는다. 객체의 JSON 직렬화는 로그에 사용하지 않는다.
 - 인증된 업로드 진단은 최종 실패와 재시도 성공만 기록한다. `X-Request-Id` incident ID, 허용된 흐름·단계·오류
   코드, 시도 횟수, 거친 플랫폼·브라우저와 서비스 워커 제어 여부만 남긴다.
 - `FILE_METADATA_MISMATCH`는 `fileId`, 기대/실제 크기와 Content-Type을 기록한다. 파일명·소유자 ID·S3 URL은
   기록하지 않는다.
-- 운영자의 쓰기 작업은 `admin_audit_logs`에 실행자·대상·`이전 -> 이후`만 남기고 개인정보 원문은 담지 않는다.
+- 운영자의 쓰기 작업은 `admin_audit_logs`에 실행자·대상·상태 변화 또는 리소스 UUID만 남기고 개인정보 원문은 담지 않는다.
+- 운영자 지원서 삭제는 별도 확인 비밀번호의 BCrypt 해시를 서버 설정에서 읽는다. 원문 비밀번호는 저장·로그하지 않고,
+  확인 성공 뒤에만 지원서 행을 잠가 종속 데이터와 심사 완료 표시를 같은 트랜잭션에서 삭제한다.
+- 삭제 확인의 계정별 반복 제한은 `AdminDeletionConfirmation`이 불변 상태와 원자적 `compute`로 처리한다.
+  메모리 상태는 삭제 트랜잭션 롤백과 무관하게 유지된다. 잠금 정책과 운영 제약은 [배포 문서](operations/deployment.md)를 따른다.
 - 운영자는 `/api/v1/admin/logs`로 같은 로그 파일의 끝부분을 읽을 수 있다. 경로는 설정으로 고정하고 읽기 상한을 둔다.
 - 기본 로그 파일은 실행 디렉터리 기준 `logs/yesulin.log`, 10MB 단위 압축, 14일·1GB 상한이다.

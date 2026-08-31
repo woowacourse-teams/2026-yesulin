@@ -7,6 +7,7 @@ import art.yesulin.application.file.storage.StoredObjectContent;
 import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.file.FileAsset;
 import art.yesulin.domain.file.FileAssetRepository;
+import art.yesulin.domain.member.MemberType;
 import art.yesulin.domain.submission.SubmissionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,9 +22,9 @@ public class FileContentService {
     private final ObjectStorage objectStorage;
 
     @Transactional(readOnly = true)
-    public FileContentResult read(long memberId, long fileId) {
+    public FileContentResult read(long memberId, MemberType memberType, long fileId) {
         FileAsset fileAsset = findPrivateReadyFile(fileId);
-        ensureReadable(memberId, fileId, fileAsset);
+        ensureReadable(memberId, memberType, fileId, fileAsset);
         StoredObjectContent content = objectStorage.read(fileAsset.getObjectKey())
                 .orElseThrow(() -> new BusinessException(NOT_FOUND, "파일을 찾을 수 없습니다."));
         return new FileContentResult(content.contentType(), content.bytes());
@@ -39,7 +40,13 @@ public class FileContentService {
         return fileAsset;
     }
 
-    private void ensureReadable(long memberId, long fileId, FileAsset fileAsset) {
+    private void ensureReadable(long memberId, MemberType memberType, long fileId, FileAsset fileAsset) {
+        if (memberType == MemberType.ADMIN) {
+            if (submissionRepository.existsSubmittedPhoto(fileId)) {
+                return;
+            }
+            throw new BusinessException(NOT_FOUND, "파일을 찾을 수 없습니다.");
+        }
         if (fileAsset.getOwnerId() == memberId) {
             return;
         }

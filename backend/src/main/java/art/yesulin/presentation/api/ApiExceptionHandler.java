@@ -68,7 +68,7 @@ public class ApiExceptionHandler {
     public ResponseEntity<ErrorResponse> handleHttpMessageNotReadableException(
             HttpMessageNotReadableException exception
     ) {
-        log.debug("요청 본문을 읽지 못했습니다.", exception);
+        log.debug("요청 본문을 읽지 못했습니다.");
         return badRequest("요청 형식이 올바르지 않습니다. 입력한 값을 다시 확인해 주세요.", null);
     }
 
@@ -97,7 +97,7 @@ public class ApiExceptionHandler {
      */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException exception) {
-        log.debug("잘못된 요청 값입니다.", exception);
+        log.debug("잘못된 요청 값입니다.");
         return badRequest(exception.getMessage(), null);
     }
 

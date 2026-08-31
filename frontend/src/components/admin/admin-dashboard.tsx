@@ -93,7 +93,7 @@ export function AdminDashboard() {
       </div>
 
       <AdminProducerTable producers={data.producers} onChanged={refresh} />
-      <AdminAuditionTable auditions={data.auditions} />
+      <AdminAuditionTable auditions={data.auditions} onChanged={refresh} />
       <AdminAuditLogTable logs={data.logs} />
     </main>
   );

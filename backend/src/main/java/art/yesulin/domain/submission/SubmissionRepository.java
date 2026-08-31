@@ -1,9 +1,11 @@
 package art.yesulin.domain.submission;
 
+import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -12,6 +14,12 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long>, S
     Optional<Submission> findBySubmissionId(UUID submissionId);
 
     Optional<Submission> findBySubmissionIdAndApplicantId(UUID submissionId, long applicantId);
+
+    List<Submission> findAllByAuditionSnapshotPublicAuditionIdOrderBySubmittedAtDescIdDesc(UUID auditionId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select submission from Submission submission where submission.submissionId = :submissionId")
+    Optional<Submission> findBySubmissionIdForUpdate(@Param("submissionId") UUID submissionId);
 
     @Query("""
             select distinct submission
@@ -79,6 +87,15 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long>, S
             @Param("fileId") long fileId,
             @Param("producerId") long producerId
     );
+
+    @Query("""
+            select (count(submission) > 0)
+            from Submission submission, FileReference reference
+            where reference.fileId = :fileId
+              and reference.referenceType = 'SUBMISSION_PHOTO'
+              and reference.referenceId = submission.id
+            """)
+    boolean existsSubmittedPhoto(@Param("fileId") long fileId);
 
     @Query("""
             select (count(submission) > 0)

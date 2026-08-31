@@ -43,7 +43,7 @@ public record SubmissionDetailResult(
         consents = List.copyOf(consents);
     }
 
-    static SubmissionDetailResult from(Submission submission, List<SubmissionConsent> consents) {
+    public static SubmissionDetailResult from(Submission submission, List<SubmissionConsent> consents) {
         AuditionSnapshot audition = submission.getAuditionSnapshot();
         return new SubmissionDetailResult(
                 submission.getSubmissionId(),

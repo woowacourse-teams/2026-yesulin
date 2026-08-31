@@ -12,6 +12,7 @@ import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.file.FileAsset;
 import art.yesulin.domain.file.FileAssetRepository;
 import art.yesulin.domain.file.FileMetadata;
+import art.yesulin.domain.member.MemberType;
 import art.yesulin.domain.submission.SubmissionRepository;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,7 +46,7 @@ class FileContentServiceTest {
                 Optional.of(new StoredObjectContent("image/png", bytes))
         );
 
-        FileContentResult result = fileContentService.read(APPLICANT_ID, FILE_ID);
+        FileContentResult result = fileContentService.read(APPLICANT_ID, MemberType.APPLICANT, FILE_ID);
 
         assertEquals("image/png", result.contentType());
         assertArrayEquals(bytes, result.bytes());
@@ -60,7 +61,7 @@ class FileContentServiceTest {
                 Optional.of(new StoredObjectContent("image/png", new byte[0]))
         );
 
-        FileContentResult result = fileContentService.read(PRODUCER_ID, FILE_ID);
+        FileContentResult result = fileContentService.read(PRODUCER_ID, MemberType.PRODUCER, FILE_ID);
 
         assertEquals("image/png", result.contentType());
     }
@@ -71,7 +72,34 @@ class FileContentServiceTest {
         when(fileAssetRepository.findById(FILE_ID)).thenReturn(Optional.of(file));
         when(submissionRepository.existsSubmittedPhotoOwnedByProducer(FILE_ID, PRODUCER_ID)).thenReturn(false);
 
-        assertThrows(BusinessException.class, () -> fileContentService.read(PRODUCER_ID, FILE_ID));
+        assertThrows(BusinessException.class, () -> fileContentService.read(
+                PRODUCER_ID, MemberType.PRODUCER, FILE_ID
+        ));
+    }
+
+    @Test
+    void readReturnsContentWhenAdminReadsSubmittedPrivatePhoto() {
+        FileAsset file = readyPrivatePhoto();
+        when(fileAssetRepository.findById(FILE_ID)).thenReturn(Optional.of(file));
+        when(submissionRepository.existsSubmittedPhoto(FILE_ID)).thenReturn(true);
+        when(objectStorage.read(file.getObjectKey())).thenReturn(
+                Optional.of(new StoredObjectContent("image/png", new byte[0]))
+        );
+
+        FileContentResult result = fileContentService.read(30L, MemberType.ADMIN, FILE_ID);
+
+        assertEquals("image/png", result.contentType());
+    }
+
+    @Test
+    void readThrowsBusinessExceptionWhenAdminReadsUnsubmittedPrivatePhoto() {
+        FileAsset file = readyPrivatePhoto();
+        when(fileAssetRepository.findById(FILE_ID)).thenReturn(Optional.of(file));
+        when(submissionRepository.existsSubmittedPhoto(FILE_ID)).thenReturn(false);
+
+        assertThrows(BusinessException.class, () -> fileContentService.read(
+                30L, MemberType.ADMIN, FILE_ID
+        ));
     }
 
     private FileAsset readyPrivatePhoto() {

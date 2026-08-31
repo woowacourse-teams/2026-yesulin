@@ -6,6 +6,8 @@ import type {
   AdminLog,
   AdminOverview,
   AdminProducer,
+  AdminSubmissionDetail,
+  AdminSubmissionSummary,
   AuditionStatus,
   MemberStatus,
 } from "./types";
@@ -80,4 +82,32 @@ export async function changeMemberStatus(memberId: number, status: MemberStatus)
     body: JSON.stringify({ status }),
   });
   if (!response.ok) throw await readAdminError(response, "상태를 바꾸지 못했습니다.");
+}
+
+export async function fetchAdminSubmissions(auditionId: string): Promise<readonly AdminSubmissionSummary[]> {
+  const body = await getJson<{ readonly submissions: readonly AdminSubmissionSummary[] }>(
+    `/auditions/${encodeURIComponent(auditionId)}/submissions`,
+    "지원서 목록을 불러오지 못했습니다.",
+  );
+  return body.submissions;
+}
+
+export function fetchAdminSubmission(submissionId: string): Promise<AdminSubmissionDetail> {
+  return getJson<AdminSubmissionDetail>(
+    `/submissions/${encodeURIComponent(submissionId)}`,
+    "지원서 상세를 불러오지 못했습니다.",
+  );
+}
+
+export async function deleteAdminSubmission(
+  submissionId: string,
+  confirmationPassword: string,
+): Promise<void> {
+  const response = await fetch(`${API_BASE_PATH}/submissions/${encodeURIComponent(submissionId)}`, {
+    method: "DELETE",
+    credentials: "include",
+    headers: await withCsrfHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ confirmationPassword }),
+  });
+  if (!response.ok) throw await readAdminError(response, "지원서를 삭제하지 못했습니다.");
 }
