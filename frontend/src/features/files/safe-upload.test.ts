@@ -1,4 +1,11 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const sentry = vi.hoisted(() => ({ captureException: vi.fn(), setTag: vi.fn() }));
+
+vi.mock("@sentry/nextjs", () => ({
+  captureException: sentry.captureException,
+  withScope: (callback: (scope: { setTag: typeof sentry.setTag }) => void) => callback({ setTag: sentry.setTag }),
+}));
 import {
   SafeUploadError,
   prepareMemoryBlob,
@@ -30,6 +37,8 @@ function input(overrides: Partial<Parameters<typeof safeUpload>[0]> = {}) {
 }
 
 describe("safeUpload", () => {
+  beforeEach(() => vi.clearAllMocks());
+
   it("disk-backed File 대신 같은 크기와 타입의 메모리 Blob을 PUT한다", async () => {
     const spec = input();
 
@@ -84,6 +93,9 @@ describe("safeUpload", () => {
     expect(vi.mocked(spec.put).mock.calls[1]?.[1]).toBe(vi.mocked(spec.put).mock.calls[0]?.[1]);
     expect(spec.completeUpload).toHaveBeenCalledTimes(1);
     expect(result.retried).toBe(true);
+    expect(sentry.setTag).toHaveBeenCalledWith("operation", "retry_recovered");
+    expect(sentry.setTag).toHaveBeenCalledWith("error_code", "WEBKIT_FILE_NOT_FOUND");
+    expect(sentry.captureException).toHaveBeenCalledWith(notFound);
     expect(spec.reportDiagnostic).toHaveBeenCalledWith(expect.objectContaining({
       stage: "RETRY",
       attempt: 2,

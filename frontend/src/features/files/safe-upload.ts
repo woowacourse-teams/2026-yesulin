@@ -8,6 +8,8 @@ import {
   type UploadResource,
   type UploadStage,
 } from "./safe-upload-types";
+import { reportError } from "../monitoring/report-error";
+import { createRequestId } from "../monitoring/request-id";
 
 export { SafeUploadError, uploadErrorCodes, uploadFlows, uploadStages } from "./safe-upload-types";
 export type {
@@ -79,6 +81,17 @@ export async function safeUpload(input: SafeUploadInput): Promise<SafeUploadResu
         errorCode: classification.code,
         ...(classification.httpStatus === undefined ? {} : { httpStatus: classification.httpStatus }),
       });
+      if (classification.code === "WEBKIT_FILE_NOT_FOUND") {
+        reportError(failure.cause, {
+          feature: "upload",
+          operation: "retry_recovered",
+          requestId: context.incidentId,
+          errorCode: classification.code,
+          uploadStage: "RETRY",
+          uploadFlow: input.flow,
+          uploadAttempt: 2,
+        });
+      }
       return { fileId: resource.fileId, incidentId, retried: true };
     } catch (retryCaught) {
       const retryFailure = attemptFailure(retryCaught);
@@ -154,6 +167,13 @@ function finalFailure(
     errorCode: classification.code,
     ...(classification.httpStatus === undefined ? {} : { httpStatus: classification.httpStatus }),
   });
+  reportError(error, {
+    feature: "upload",
+    operation: "failure",
+    requestId: context.incidentId,
+    errorCode: classification.code,
+    status: classification.httpStatus,
+  });
   return error;
 }
 
@@ -212,7 +232,7 @@ function readStringProperty(cause: unknown, property: "name" | "message" | "code
 }
 
 function defaultIncidentId() {
-  return crypto.randomUUID();
+  return createRequestId();
 }
 
 function emitDiagnostic(input: SafeUploadInput, diagnostic: UploadDiagnostic & IncidentContext) {
