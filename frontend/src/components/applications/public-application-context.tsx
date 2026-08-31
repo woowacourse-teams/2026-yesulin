@@ -9,6 +9,7 @@ import { createApplicationSubmission } from "@/features/applications/submission-
 import { ApplicationPhotoReadError } from "@/features/applications/submission-v1";
 import { deletePublicApplicationDraft } from "@/features/applications/public-application-draft-store";
 import { buildApplicationAuthReturnTo } from "@/features/auth/return-to";
+import { reportError } from "@/features/monitoring/report-error";
 
 import { trackAnalyticsEvent } from "@/features/analytics/events";
 import type { EditableSection, PublicApplicationActions, PublicApplicationContextValue, PublicApplicationProviderProps, PublicApplicationState, SubmissionReceipt } from "./public-application-context-types";
@@ -246,6 +247,7 @@ export function PublicApplicationProvider({
     } catch (cause) {
       console.error("[지원서 제출 실패]", cause);
       if (cause instanceof ApplicationPhotoReadError) {
+        reportError(cause, { feature: "application", operation: "photo_upload" });
         const mediaIndex = steps.findIndex((step) => step.sections.includes("MATERIALS"));
         setPhotos((current) => current.map((photo) => photo.id === cause.photoId
           ? { ...photo, status: "ERROR", error: cause.message }
@@ -274,6 +276,9 @@ export function PublicApplicationProvider({
       const errorCode = cause instanceof AuditionRequestError
         ? cause.status >= 500 ? "server_error" : "client_error"
         : cause instanceof TypeError ? "network_error" : "unknown";
+      if (errorCode !== "client_error") {
+        reportError(cause, { feature: "application", operation: "submit", errorCode });
+      }
       trackAnalyticsEvent("application_submit_error", { error_code: errorCode });
       setSubmissionState("ERROR");
       setSubmissionError(submissionErrorMessage(cause));

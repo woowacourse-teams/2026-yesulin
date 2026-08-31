@@ -1,4 +1,11 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const sentry = vi.hoisted(() => ({ captureException: vi.fn(), setTag: vi.fn() }));
+
+vi.mock("@sentry/nextjs", () => ({
+  captureException: sentry.captureException,
+  withScope: (callback: (scope: { setTag: typeof sentry.setTag }) => void) => callback({ setTag: sentry.setTag }),
+}));
 import {
   SafeUploadError,
   prepareMemoryBlob,
@@ -30,6 +37,8 @@ function input(overrides: Partial<Parameters<typeof safeUpload>[0]> = {}) {
 }
 
 describe("safeUpload", () => {
+  beforeEach(() => vi.clearAllMocks());
+
   it("disk-backed File 대신 같은 크기와 타입의 메모리 Blob을 PUT한다", async () => {
     const spec = input();
 
@@ -84,6 +93,9 @@ describe("safeUpload", () => {
     expect(vi.mocked(spec.put).mock.calls[1]?.[1]).toBe(vi.mocked(spec.put).mock.calls[0]?.[1]);
     expect(spec.completeUpload).toHaveBeenCalledTimes(1);
     expect(result.retried).toBe(true);
+    expect(sentry.setTag).toHaveBeenCalledWith("operation", "retry_recovered");
+    expect(sentry.setTag).toHaveBeenCalledWith("error_code", "WEBKIT_FILE_NOT_FOUND");
+    expect(sentry.captureException).toHaveBeenCalledWith(notFound);
     expect(spec.reportDiagnostic).toHaveBeenCalledWith(expect.objectContaining({
       stage: "RETRY",
       attempt: 2,
@@ -112,6 +124,19 @@ describe("safeUpload", () => {
     expect((caught as Error).message).toContain("11111111-1111-4111-8111-111111111111");
     expect((caught as Error).message).toContain("전송");
     expect(spec.put).toHaveBeenCalledTimes(1);
+    expect(sentry.captureException).not.toHaveBeenCalled();
+  });
+
+  it("업로드 요청의 5xx 오류는 Sentry에 보고한다", async () => {
+    const failure = Object.assign(new Error("upload request failed"), { status: 503 });
+    const spec = input({ requestUpload: vi.fn().mockRejectedValue(failure) });
+
+    await expect(safeUpload(spec)).rejects.toMatchObject({
+      code: "UPLOAD_REQUEST_FAILED",
+      stage: "UPLOAD_REQUEST",
+      httpStatus: 503,
+    });
+    expect(sentry.captureException).toHaveBeenCalledTimes(1);
   });
 
   it("진단 콜백 자체가 실패해도 원래 업로드 오류를 유지한다", async () => {
