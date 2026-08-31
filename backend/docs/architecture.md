@@ -55,8 +55,9 @@ infrastructure/    JPA·QueryDSL, OAuth, S3 등 외부 기술 adapter
   MVC 경계를 빠져나온 예상 밖 예외만 `UNEXPECTED_ERROR`와 stack trace를 한 번 기록하고, 이어지는 최종
   `HTTP_REQUEST`에는 stack trace를 중복하지 않는다.
 - application service의 500ms 미만 성공은 `SERVICE_CALL` DEBUG로 낮춘다. 500ms 이상이면 성공·실패 모두
-  `SLOW_SERVICE` WARN으로 기록하되 인자, 반환값, 예외 메시지와 stack trace는 담지 않는다. 빠르게 실패한 호출은
-  서비스 AOP에서 기록하지 않아 BusinessException과 예상 밖 예외가 HTTP 경계 로그와 중복되지 않게 한다.
+  `SLOW_SERVICE` WARN으로 기록하되 인자, 반환값, 예외 메시지와 stack trace는 담지 않는다. HTTP 요청 안의 빠른
+  실패는 서비스 AOP에서 기록하지 않아 HTTP 경계 로그와 중복되지 않게 한다. HTTP 요청 밖의 빠른 예상 밖 예외는
+  `UNEXPECTED_SERVICE_ERROR` ERROR와 stack trace를 남기며, BusinessException은 ERROR에서 제외한다.
 - 요청·응답 본문, Cookie, token, 비밀번호, 연락처, 지원서 원문과 파일 URL은 일반 로그에 남기지 않는다.
 - 삭제 확인 DTO·Command의 `toString()`은 비밀번호를 `[REDACTED]`로 마스킹한다. 객체의 JSON 직렬화는
   로그에 사용하지 않는다.

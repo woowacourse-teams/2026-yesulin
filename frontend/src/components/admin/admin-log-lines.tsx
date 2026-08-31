@@ -48,7 +48,7 @@ function displayValue(value: unknown): string {
   if (typeof value === "string") return value;
   if (typeof value === "number" || typeof value === "boolean") return String(value);
   try {
-    return JSON.stringify(value, null, 2);
+    return JSON.stringify(value, null, 2) ?? "표시할 수 없는 값";
   } catch {
     return "표시할 수 없는 값";
   }

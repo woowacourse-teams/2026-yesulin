@@ -1,5 +1,6 @@
 package art.yesulin.infrastructure.logging;
 
+import art.yesulin.common.exception.BusinessException;
 import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -10,6 +11,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.spi.LoggingEventBuilder;
 import org.springframework.stereotype.Component;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 @Aspect
 @Component
@@ -31,15 +34,21 @@ public class ApplicationServiceLoggingAspect {
 
         try {
             Object result = joinPoint.proceed();
-            logCompletion(className, methodName, "SUCCESS", startNanos);
+            logCompletion(className, methodName, "SUCCESS", startNanos, null);
             return result;
         } catch (Throwable throwable) {
-            logCompletion(className, methodName, "FAILURE", startNanos);
+            logCompletion(className, methodName, "FAILURE", startNanos, throwable);
             throw throwable;
         }
     }
 
-    private void logCompletion(String className, String methodName, String outcome, long startNanos) {
+    private void logCompletion(
+            String className,
+            String methodName,
+            String outcome,
+            long startNanos,
+            Throwable failure
+    ) {
         long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(timeSource.nanoTime() - startNanos);
         if (elapsedMillis >= SLOW_SERVICE_MILLIS) {
             logEvent(LOGGER.atWarn(), "SLOW_SERVICE", className, methodName, outcome, elapsedMillis);
@@ -48,7 +57,25 @@ public class ApplicationServiceLoggingAspect {
 
         if ("SUCCESS".equals(outcome)) {
             logEvent(LOGGER.atDebug(), "SERVICE_CALL", className, methodName, outcome, elapsedMillis);
+            return;
         }
+
+        if (failure != null && !(failure instanceof BusinessException) && !isCoveredByHttpRequestLogging()) {
+            LOGGER.atError()
+                    .addKeyValue("event", "UNEXPECTED_SERVICE_ERROR")
+                    .addKeyValue("class", className)
+                    .addKeyValue("method", methodName)
+                    .addKeyValue("outcome", outcome)
+                    .addKeyValue("elapsedMs", elapsedMillis)
+                    .addKeyValue("errorCode", "INTERNAL_ERROR")
+                    .addKeyValue("exception", failure.getClass().getSimpleName())
+                    .setCause(failure)
+                    .log("HTTP 요청 밖의 서비스 호출에서 예상하지 못한 오류가 발생했습니다.");
+        }
+    }
+
+    private boolean isCoveredByHttpRequestLogging() {
+        return RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes;
     }
 
     private void logEvent(

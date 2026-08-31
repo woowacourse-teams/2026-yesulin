@@ -2,6 +2,7 @@ package art.yesulin.application.logging;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -22,7 +23,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 import org.springframework.aop.aspectj.annotation.AspectJProxyFactory;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 class ApplicationServiceLoggingAspectTest {
 
@@ -42,6 +46,7 @@ class ApplicationServiceLoggingAspectTest {
 
     @AfterEach
     void tearDown() {
+        RequestContextHolder.resetRequestAttributes();
         logger.detachAppender(appender);
         logger.setLevel(previousLevel);
         appender.stop();
@@ -105,11 +110,30 @@ class ApplicationServiceLoggingAspectTest {
 
     @Test
     void leavesFastUnexpectedExceptionLoggingToHttpBoundary() {
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(new MockHttpServletRequest()));
         TestService service = createProxy(499L);
 
         assertThrows(IllegalStateException.class, () -> service.fail(SECRET));
 
         assertTrue(appender.list.isEmpty());
+    }
+
+    @Test
+    void logsFastUnexpectedExceptionOutsideHttpBoundaryAtError() {
+        TestService service = createProxy(499L);
+
+        assertThrows(IllegalStateException.class, () -> service.fail(SECRET));
+
+        ILoggingEvent event = appender.list.getFirst();
+        assertEquals(Level.ERROR, event.getLevel());
+        assertEquals("UNEXPECTED_SERVICE_ERROR", fields(event).get("event"));
+        assertEquals("TestService", fields(event).get("class"));
+        assertEquals("fail", fields(event).get("method"));
+        assertEquals("FAILURE", fields(event).get("outcome"));
+        assertEquals("INTERNAL_ERROR", fields(event).get("errorCode"));
+        assertEquals("IllegalStateException", fields(event).get("exception"));
+        assertNotNull(event.getThrowableProxy());
+        assertFalse(event.getFormattedMessage().contains(SECRET));
     }
 
     @Test

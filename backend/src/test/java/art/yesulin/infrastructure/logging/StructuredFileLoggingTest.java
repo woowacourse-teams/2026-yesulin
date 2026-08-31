@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +33,7 @@ class StructuredFileLoggingTest {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(StructuredFileLoggingTest.class);
     private static final Path LOG_FILE = Path.of("build/tmp/structured-file-test.log");
-    private static final String MARKER = "structured-file-json-lines-marker";
+    private static final String MARKER = "structured-file-json-lines-marker-" + UUID.randomUUID();
 
     private final ObjectMapper objectMapper;
 
