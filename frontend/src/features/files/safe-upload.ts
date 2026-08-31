@@ -167,13 +167,15 @@ function finalFailure(
     errorCode: classification.code,
     ...(classification.httpStatus === undefined ? {} : { httpStatus: classification.httpStatus }),
   });
-  reportError(error, {
-    feature: "upload",
-    operation: "failure",
-    requestId: context.incidentId,
-    errorCode: classification.code,
-    status: classification.httpStatus,
-  });
+  if (classification.httpStatus === undefined || classification.httpStatus >= 500) {
+    reportError(error, {
+      feature: "upload",
+      operation: "failure",
+      requestId: context.incidentId,
+      errorCode: classification.code,
+      status: classification.httpStatus,
+    });
+  }
   return error;
 }
 

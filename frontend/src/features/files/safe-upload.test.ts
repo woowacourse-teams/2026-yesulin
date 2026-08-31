@@ -124,6 +124,19 @@ describe("safeUpload", () => {
     expect((caught as Error).message).toContain("11111111-1111-4111-8111-111111111111");
     expect((caught as Error).message).toContain("전송");
     expect(spec.put).toHaveBeenCalledTimes(1);
+    expect(sentry.captureException).not.toHaveBeenCalled();
+  });
+
+  it("업로드 요청의 5xx 오류는 Sentry에 보고한다", async () => {
+    const failure = Object.assign(new Error("upload request failed"), { status: 503 });
+    const spec = input({ requestUpload: vi.fn().mockRejectedValue(failure) });
+
+    await expect(safeUpload(spec)).rejects.toMatchObject({
+      code: "UPLOAD_REQUEST_FAILED",
+      stage: "UPLOAD_REQUEST",
+      httpStatus: 503,
+    });
+    expect(sentry.captureException).toHaveBeenCalledTimes(1);
   });
 
   it("진단 콜백 자체가 실패해도 원래 업로드 오류를 유지한다", async () => {

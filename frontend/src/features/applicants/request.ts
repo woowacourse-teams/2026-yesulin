@@ -1,7 +1,7 @@
-import { withCsrfHeaders } from "@/features/csrf";
-import { readErrorCode, readErrorDetail, readErrorMessage, type ApiErrorDetail } from "@/features/api-error";
-import { responseRequestId, withRequestId } from "@/features/monitoring/request-id";
-import { reportError } from "@/features/monitoring/report-error";
+import { withCsrfHeaders } from "../csrf";
+import { readErrorCode, readErrorDetail, readErrorMessage, type ApiErrorDetail } from "../api-error";
+import { responseRequestId, withRequestId } from "../monitoring/request-id";
+import { reportError } from "../monitoring/report-error";
 
 const API_BASE_PATH = "/api";
 const WRITE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
@@ -25,7 +25,9 @@ export class ApplicantRequestError extends Error {
 
 export async function applicantRequest<T>(path: string, init?: RequestInit): Promise<T> {
   const method = (init?.method ?? "GET").toUpperCase();
-  const baseHeaders = { "Content-Type": "application/json", ...init?.headers } as Record<string, string>;
+  const normalizedHeaders = new Headers(init?.headers);
+  if (!normalizedHeaders.has("Content-Type")) normalizedHeaders.set("Content-Type", "application/json");
+  const baseHeaders = Object.fromEntries(normalizedHeaders.entries());
   const csrfHeaders = WRITE_METHODS.has(method) ? await withCsrfHeaders(baseHeaders) : baseHeaders;
   const correlated = withRequestId(csrfHeaders);
   let response: Response;
