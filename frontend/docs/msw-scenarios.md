@@ -36,3 +36,7 @@ MSW는 `NEXT_PUBLIC_API_MOCKING=enabled`에서만 실행하며 `/dev/scenarios`�
 - 필수·선택·잠김·검토 대기·완료 상태는 텍스트로도 구분한다.
 - 로딩·빈 상태·오류 상태에 접근 가능한 이름과 복구 안내를 제공한다.
 
+## 운영 로그
+
+MSW에서는 `/api/v1/admin/logs`에 정상 HTTP, 1초 이상 느린 HTTP, 예상 밖 ERROR와 기존 `LEGACY` 로그를 함께 반환한다.
+`/admin/logs`에서 6개 요약 필드, ERROR·느린 요청 필터, request ID·키워드 검색과 stack trace 펼침을 확인한다.

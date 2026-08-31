@@ -4,6 +4,7 @@ import type {
   AdminAudition,
   AdminAuditLog,
   AdminLog,
+  AdminLogEntry,
   AdminOverview,
   AdminProducer,
   AdminSubmissionDetail,
@@ -68,10 +69,34 @@ export async function fetchAuditLogs(): Promise<readonly AdminAuditLog[]> {
 
 export const LOG_LINE_LIMITS = [100, 200, 500] as const;
 
-export function fetchLogs(keyword: string, limit: number): Promise<AdminLog> {
+type AdminLogResponse = Omit<AdminLog, "entries"> & {
+  readonly entries?: readonly AdminLogEntry[];
+};
+
+/** 구조화 응답 배포 전 서버와 연결돼도 기존 문자열 로그를 안전한 LEGACY 항목으로 보여 준다. */
+export function normalizeAdminLog(response: AdminLogResponse): AdminLog {
+  const entries = response.entries ?? response.lines.map((line): AdminLogEntry => ({
+    format: "LEGACY",
+    timestamp: null,
+    level: null,
+    logger: null,
+    thread: null,
+    requestId: null,
+    message: line,
+    attributes: {},
+    raw: line,
+  }));
+  return { ...response, entries };
+}
+
+export async function fetchLogs(keyword: string, limit: number): Promise<AdminLog> {
   const params = new URLSearchParams({ limit: String(limit) });
   if (keyword.trim()) params.set("keyword", keyword.trim());
-  return getJson<AdminLog>(`/logs?${params.toString()}`, "로그를 불러오지 못했습니다.");
+  const response = await getJson<AdminLogResponse>(
+    `/logs?${params.toString()}`,
+    "로그를 불러오지 못했습니다.",
+  );
+  return normalizeAdminLog(response);
 }
 
 export async function changeMemberStatus(memberId: number, status: MemberStatus): Promise<void> {

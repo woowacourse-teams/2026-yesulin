@@ -29,7 +29,7 @@ MSW 전용 경로를 어떻게 구분하는지만 설명한다.
 - `/api/v1/audition-roles/{roleId}/screening-rounds/**`
 - `/api/v1/audition-roles/{roleId}/screening/completion`
 - `/api/v1/upload-diagnostics` (업로드 실패·재시도 성공의 개인정보 없는 진단)
-- `/api/v1/admin/**` (운영 대시보드 전용, MSW 대상 아님)
+- `/api/v1/admin/**` (운영 대시보드 전용. 단, 로그 화면 시각 검증을 위한 `/logs` fixture는 MSW에 포함한다.)
 
 심사 상태는 `PENDING`, `PASS`, `FAIL`, `ETC`만 사용한다. 심사 종료는 차수별이 아니라 공고 배역 전체다.
 
@@ -56,6 +56,9 @@ MSW 전용 경로를 어떻게 구분하는지만 설명한다.
 - 공개 공고는 백엔드에서 공연 포스터 URL을 반환한다. MSW의 공고 전용 이미지 필드는 실제 계약이 아니다.
 - API 응답 URL은 그대로 사용하며 CloudFront 경로를 프론트에서 조합하지 않는다.
 - `401`이면 프론트 인증 상태를 초기화하고 안전한 내부 `returnTo`를 보존한 채 로그인으로 이동한다.
+- 관리자 로그는 `entries`를 우선 사용한다. 구조화 응답 배포 전 서버처럼 `entries`가 없으면 `lines`를 실행하거나
+  HTML로 해석하지 않고 `LEGACY` 항목으로 변환한다. 키워드·조회 건수는 서버에 보내고, ERROR·느린 요청·request ID는
+  현재 조회 결과에서 추가로 거른다.
 - 기획사/제작사 이메일 인증 링크는 백엔드에서 검증한 뒤 설정된 Frontend 경로로 `302` redirect한다.
 - 비밀번호 재설정 메일은 Frontend `/forgot-password?token=...` 링크를 열고, 프론트가 토큰 확인 후 새 비밀번호를
   PATCH한다. 메일 요청 응답만으로 계정 존재 여부를 판단하지 않는다.

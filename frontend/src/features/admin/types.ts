@@ -51,8 +51,24 @@ export type AdminAuditLog = {
   readonly createdAt: string;
 };
 
+export type AdminLogFormat = "STRUCTURED" | "LEGACY";
+export type AdminLogLevel = "TRACE" | "DEBUG" | "INFO" | "WARN" | "ERROR";
+
+export type AdminLogEntry = {
+  readonly format: AdminLogFormat;
+  readonly timestamp: string | null;
+  readonly level: AdminLogLevel | null;
+  readonly logger: string | null;
+  readonly thread: string | null;
+  readonly requestId: string | null;
+  readonly message: string | null;
+  readonly attributes: Readonly<Record<string, unknown>>;
+  readonly raw: string;
+};
+
 export type AdminLog = {
   readonly lines: readonly string[];
+  readonly entries: readonly AdminLogEntry[];
   /** 읽기 상한 때문에 더 오래된 내용을 보지 못했다는 표시다. */
   readonly truncated: boolean;
   /** 로그 파일을 읽을 수 없으면 false다. */
