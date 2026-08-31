@@ -57,5 +57,7 @@ infrastructure/    JPA·QueryDSL, OAuth, S3 등 외부 기술 adapter
 - 운영자의 쓰기 작업은 `admin_audit_logs`에 실행자·대상·상태 변화 또는 리소스 UUID만 남기고 개인정보 원문은 담지 않는다.
 - 운영자 지원서 삭제는 별도 확인 비밀번호의 BCrypt 해시를 서버 설정에서 읽는다. 원문 비밀번호는 저장·로그하지 않고,
   확인 성공 뒤에만 지원서 행을 잠가 종속 데이터와 심사 완료 표시를 같은 트랜잭션에서 삭제한다.
+- 삭제 확인의 계정별 반복 제한은 `AdminDeletionConfirmation`이 불변 상태와 원자적 `compute`로 처리한다.
+  메모리 상태는 삭제 트랜잭션 롤백과 무관하게 유지된다. 잠금 정책과 운영 제약은 [배포 문서](operations/deployment.md)를 따른다.
 - 운영자는 `/api/v1/admin/logs`로 같은 로그 파일의 끝부분을 읽을 수 있다. 경로는 설정으로 고정하고 읽기 상한을 둔다.
 - 기본 로그 파일은 실행 디렉터리 기준 `logs/yesulin.log`, 10MB 단위 압축, 14일·1GB 상한이다.

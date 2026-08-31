@@ -38,7 +38,7 @@ public class AdminSubmissionDeletionService {
 
     @Transactional
     public void delete(DeleteSubmissionCommand command) {
-        deletionConfirmation.verify(command.confirmationPassword());
+        deletionConfirmation.verify(command.actorMemberId(), command.confirmationPassword());
         Submission submission = submissionRepository.findBySubmissionIdForUpdate(command.submissionId())
                 .orElseThrow(() -> new BusinessException(NOT_FOUND, "지원서를 찾을 수 없습니다."));
         final long internalSubmissionId = submission.getId();

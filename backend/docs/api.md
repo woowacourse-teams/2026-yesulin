@@ -189,6 +189,10 @@ submission ID와 변경할 status·memo·note 중 하나 이상을 요구한다.
 성공하면 지원서의 동의·심사 기록·파일 참조와 해당 배역의 심사 완료 표시를 한 트랜잭션에서 지우며,
 `file_assets`와 S3 객체는 보존한다. 성공한 삭제만 개인정보 없이 `admin_audit_logs`에 남긴다. 비밀번호 불일치 또는
 해시 미설정은 `403 ADMIN_DELETION_CONFIRMATION_FAILED`, 없는 지원서는 `404 SUBMISSION_NOT_FOUND`다.
+관리자 계정별 최근 10분 내 확인 실패 5회 시 삭제 확인만 10분 잠근다. 잠금 중에는 올바른 비밀번호도
+`403 ADMIN_DELETION_CONFIRMATION_FAILED`로 거부하고 `message`에 남은 대기 초를 안내한다. 조회·로그인은 영향받지 않는다.
+확인 성공은 실패 이력을 초기화하며 잠금 중 재요청은 잠금을 연장하지 않는다. 메모리 제한의 재시작·다중 서버 제약은
+[배포 문서](operations/deployment.md)를 따른다.
 
 로그 조회는 `logging.file.name`이 가리키는 파일의 끝부분만 읽는다. 파일 경로는 요청으로 바꿀 수 없고 쓰기도 하지 않는다.
 `limit`은 1~500이며 기본값은 200이다. `keyword`는 대소문자를 구분하지 않는 부분 일치다. 한 번에 읽는 바이트에
