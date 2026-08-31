@@ -9,9 +9,11 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+import org.slf4j.spi.LoggingEventBuilder;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -19,6 +21,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
+@RequiredArgsConstructor
 public class RequestLoggingFilter extends OncePerRequestFilter {
 
     public static final String REQUEST_ID_HEADER = "X-Request-Id";
@@ -32,6 +35,9 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
      */
     private static final Set<String> POLLING_URIS = Set.of(HEALTH_CHECK_URI, "/api/v1/admin/logs");
     private static final Pattern REQUEST_ID_PATTERN = Pattern.compile("[A-Za-z0-9._-]{1,64}");
+    private static final long SLOW_REQUEST_MILLIS = 1_000L;
+
+    private final MonotonicTimeSource timeSource;
 
     @Override
     protected void doFilterInternal(
@@ -40,7 +46,7 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
         String requestId = resolveRequestId(request.getHeader(REQUEST_ID_HEADER));
-        long startNanos = System.nanoTime();
+        long startNanos = timeSource.nanoTime();
         Throwable failure = null;
 
         MDC.put(REQUEST_ID_MDC_KEY, requestId);
@@ -49,9 +55,11 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
         } catch (IOException | ServletException exception) {
             failure = exception;
+            logUnexpectedException(request, exception);
             throw exception;
         } catch (RuntimeException | Error exception) {
             failure = exception;
+            logUnexpectedException(request, exception);
             throw exception;
         } finally {
             logRequest(request, response, failure, startNanos);
@@ -72,44 +80,25 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
             Throwable failure,
             long startNanos
     ) {
-        long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+        long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(timeSource.nanoTime() - startNanos);
         int status = resolveStatus(response, failure);
-        if (failure != null) {
-            logFailedRequest(request, status, elapsedMillis);
-            return;
+        String endpoint = RequestLogContext.resolveEndpoint(request);
+        String errorCode = RequestLogContext.getErrorCode(request);
+        LoggingEventBuilder event = requestLogBuilder(request, status, elapsedMillis)
+                .addKeyValue("event", "HTTP_REQUEST")
+                .addKeyValue("method", request.getMethod())
+                .addKeyValue("uri", request.getRequestURI())
+                .addKeyValue("endpoint", endpoint)
+                .addKeyValue("status", status)
+                .addKeyValue("elapsedMs", elapsedMillis);
+        if (errorCode != null) {
+            event.addKeyValue("errorCode", errorCode);
         }
-        if (isPolling(request)) {
-            logPolling(request, status, elapsedMillis);
-            return;
-        }
-        if (status >= HttpServletResponse.SC_INTERNAL_SERVER_ERROR) {
-            LOGGER.error(
-                    "HTTP method={} uri={} status={} elapsedMs={}",
-                    request.getMethod(),
-                    request.getRequestURI(),
-                    status,
-                    elapsedMillis
-            );
-            return;
-        }
-        LOGGER.info(
-                "HTTP method={} uri={} status={} elapsedMs={}",
+        event.log(
+                "HTTP method={} uri={} endpoint={} status={} elapsedMs={}",
                 request.getMethod(),
                 request.getRequestURI(),
-                status,
-                elapsedMillis
-        );
-    }
-
-    private void logFailedRequest(
-            HttpServletRequest request,
-            int status,
-            long elapsedMillis
-    ) {
-        LOGGER.error(
-                "HTTP method={} uri={} status={} elapsedMs={}",
-                request.getMethod(),
-                request.getRequestURI(),
+                endpoint,
                 status,
                 elapsedMillis
         );
@@ -119,38 +108,31 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
         return POLLING_URIS.contains(request.getRequestURI());
     }
 
-    /**
-     * 성공은 DEBUG로 낮추고 서버 오류만 ERROR로 올린다.
-     * 로그인 전 401처럼 흔히 생기는 응답까지 ERROR로 남기면 실제 장애를 가린다.
-     */
-    private void logPolling(HttpServletRequest request, int status, long elapsedMillis) {
-        if (status == HttpServletResponse.SC_OK) {
-            LOGGER.debug(
-                    "HTTP method={} uri={} status={} elapsedMs={}",
-                    request.getMethod(),
-                    request.getRequestURI(),
-                    status,
-                    elapsedMillis
-            );
-            return;
+    private LoggingEventBuilder requestLogBuilder(HttpServletRequest request, int status, long elapsedMillis) {
+        if (status >= HttpServletResponse.SC_INTERNAL_SERVER_ERROR) {
+            return LOGGER.atError();
         }
-        if (status < HttpServletResponse.SC_INTERNAL_SERVER_ERROR) {
-            LOGGER.info(
-                    "HTTP method={} uri={} status={} elapsedMs={}",
-                    request.getMethod(),
-                    request.getRequestURI(),
-                    status,
-                    elapsedMillis
-            );
-            return;
+        if (elapsedMillis >= SLOW_REQUEST_MILLIS) {
+            return LOGGER.atWarn();
         }
-        LOGGER.error(
-                "HTTP method={} uri={} status={} elapsedMs={}",
-                request.getMethod(),
-                request.getRequestURI(),
-                status,
-                elapsedMillis
-        );
+        if (isPolling(request) && status == HttpServletResponse.SC_OK) {
+            return LOGGER.atDebug();
+        }
+        return LOGGER.atInfo();
+    }
+
+    private void logUnexpectedException(HttpServletRequest request, Throwable exception) {
+        RequestLogContext.setErrorCode(request, RequestLogContext.INTERNAL_ERROR_CODE);
+        String endpoint = RequestLogContext.resolveEndpoint(request);
+        LOGGER.atError()
+                .addKeyValue("event", "UNEXPECTED_ERROR")
+                .addKeyValue("method", request.getMethod())
+                .addKeyValue("uri", request.getRequestURI())
+                .addKeyValue("endpoint", endpoint)
+                .addKeyValue("errorCode", RequestLogContext.INTERNAL_ERROR_CODE)
+                .addKeyValue("exception", exception.getClass().getSimpleName())
+                .setCause(exception)
+                .log("예상하지 못한 요청 처리 오류가 발생했습니다.");
     }
 
     private int resolveStatus(HttpServletResponse response, Throwable failure) {

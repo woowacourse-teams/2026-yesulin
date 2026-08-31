@@ -197,7 +197,20 @@ submission ID와 변경할 status·memo·note 중 하나 이상을 요구한다.
 로그 조회는 `logging.file.name`이 가리키는 파일의 끝부분만 읽는다. 파일 경로는 요청으로 바꿀 수 없고 쓰기도 하지 않는다.
 `limit`은 1~500이며 기본값은 200이다. `keyword`는 대소문자를 구분하지 않는 부분 일치다. 한 번에 읽는 바이트에
 상한이 있다. 생략된 더 오래된 줄이 있으면 `truncated=true`이며, 읽기 상한과 줄 수 상한 어느 쪽 때문이든 참이 된다.
-파일을 읽을 수 없으면 `available=false`다.
+파일을 읽을 수 없으면 `available=false`다. `AdminLogResponse.lines`는 기존 프론트 호환을 위해 원문 줄을 유지하고,
+`entries`는 각 줄을 다음 공통 필드로 구조화한다.
+
+| 필드 | 설명 |
+| --- | --- |
+| `format` | 새 JSON Lines는 `STRUCTURED`, 기존 텍스트와 파싱 불가 줄은 `LEGACY` |
+| `timestamp` | 파싱 가능한 로그 시각. 없으면 `null` |
+| `level` | `TRACE`·`DEBUG`·`INFO`·`WARN`·`ERROR`. 알 수 없으면 `null` |
+| `logger`, `thread`, `requestId`, `message` | JSON 또는 기존 표준 텍스트에서 추출한 공통 필드 |
+| `attributes` | JSON의 이벤트별 추가 필드. 공통 필드는 중복해서 넣지 않는다. |
+| `raw` | 원본 한 줄. 기존·파싱 불가 로그도 손실 없이 표시할 수 있게 한다. |
+
+배포 직후 같은 파일에 기존 텍스트와 새 JSON이 섞여 있어도 모두 반환한다. JSON 한 줄이 손상됐으면 그 줄만
+`LEGACY`로 반환하고 전체 조회는 계속한다. `lines`는 관리자 프론트가 `entries`로 전환된 뒤 별도 계약 변경에서 제거한다.
 
 상태 변경 대상은 `PRODUCER` 계정뿐이다. `ACTIVE` 전환은 이메일 인증을 대신하는 수동 활성화다. 배우와 운영자 계정은 `409 MEMBER_STATUS_CHANGE_NOT_ALLOWED`,
 없는 회원은 `404 MEMBER_NOT_FOUND`다. 성공한 변경은 `admin_audit_logs`에 실행 운영자·대상·`이전 -> 이후`로 남는다.

@@ -6,6 +6,7 @@ import java.util.List;
 
 public record AdminLogResponse(
         List<String> lines,
+        List<AdminLogEntryResponse> entries,
         boolean truncated,
         boolean available,
         Instant readAt
@@ -13,6 +14,11 @@ public record AdminLogResponse(
 
     public static AdminLogResponse from(LogLines logLines) {
         return new AdminLogResponse(
-                logLines.lines(), logLines.truncated(), logLines.available(), logLines.readAt());
+                logLines.lines(),
+                logLines.entries().stream().map(AdminLogEntryResponse::from).toList(),
+                logLines.truncated(),
+                logLines.available(),
+                logLines.readAt()
+        );
     }
 }

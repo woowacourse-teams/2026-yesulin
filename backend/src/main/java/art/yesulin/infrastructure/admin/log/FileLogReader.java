@@ -40,6 +40,7 @@ public class FileLogReader implements LogReader {
 
     private final LogFileProperties properties;
     private final Clock clock;
+    private final LogLineParser logLineParser;
 
     @Override
     public LogLines readRecent(LogQuery query) {
@@ -73,7 +74,14 @@ public class FileLogReader implements LogReader {
         List<String> matched = filter(toLines(content, startsMidLine), query);
         boolean truncated = skippedOlderBytes || matched.size() > query.limit();
 
-        return new LogLines(lastOf(matched, query.limit()), truncated, true, readAt);
+        List<String> selected = lastOf(matched, query.limit());
+        return new LogLines(
+                selected,
+                selected.stream().map(logLineParser::parse).toList(),
+                truncated,
+                true,
+                readAt
+        );
     }
 
     private int windowSizeOf(LogQuery query) {

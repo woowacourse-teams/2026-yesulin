@@ -1,26 +1,28 @@
 package art.yesulin.infrastructure.logging;
 
-import java.util.Set;
+import art.yesulin.common.exception.BusinessException;
 import java.util.concurrent.TimeUnit;
+import lombok.RequiredArgsConstructor;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.spi.LoggingEventBuilder;
 import org.springframework.stereotype.Component;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 @Aspect
 @Component
+@RequiredArgsConstructor
 public class ApplicationServiceLoggingAspect {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ApplicationServiceLoggingAspect.class);
+    private static final long SLOW_SERVICE_MILLIS = 500L;
 
-    /**
-     * 운영 대시보드가 짧은 주기로 호출하는 조회다.
-     * 성공 로그를 남기면 읽으려던 로그를 스스로 밀어내므로 DEBUG로 낮춘다.
-     */
-    private static final Set<String> POLLING_CLASSES = Set.of("AdminLogService");
+    private final ServiceLoggingTimeSource timeSource;
 
     @Around("execution(public * art.yesulin.application..*(..)) "
             + "&& @within(org.springframework.stereotype.Service)")
@@ -28,57 +30,73 @@ public class ApplicationServiceLoggingAspect {
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         String className = signature.getDeclaringType().getSimpleName();
         String methodName = signature.getName();
-        long startNanos = System.nanoTime();
+        long startNanos = timeSource.nanoTime();
 
         try {
             Object result = joinPoint.proceed();
-            logOutcome(className, methodName, "SUCCESS", null, startNanos);
+            logCompletion(className, methodName, "SUCCESS", startNanos, null);
             return result;
         } catch (Throwable throwable) {
-            logOutcome(className, methodName, "FAILURE", throwable.getClass().getSimpleName(), startNanos);
+            logCompletion(className, methodName, "FAILURE", startNanos, throwable);
             throw throwable;
         }
     }
 
-    private void logOutcome(
+    private void logCompletion(
             String className,
             String methodName,
             String outcome,
-            String exceptionType,
-            long startNanos
+            long startNanos,
+            Throwable failure
     ) {
-        long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-        if (exceptionType == null) {
-            logSuccess(className, methodName, outcome, elapsedMillis);
+        long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(timeSource.nanoTime() - startNanos);
+        if (elapsedMillis >= SLOW_SERVICE_MILLIS) {
+            logEvent(LOGGER.atWarn(), "SLOW_SERVICE", className, methodName, outcome, elapsedMillis);
             return;
         }
-        LOGGER.error(
-                "APPLICATION class={} method={} outcome={} exception={} elapsedMs={}",
-                className,
-                methodName,
-                outcome,
-                exceptionType,
-                elapsedMillis
-        );
+
+        if ("SUCCESS".equals(outcome)) {
+            logEvent(LOGGER.atDebug(), "SERVICE_CALL", className, methodName, outcome, elapsedMillis);
+            return;
+        }
+
+        if (failure != null && !(failure instanceof BusinessException) && !isCoveredByHttpRequestLogging()) {
+            LOGGER.atError()
+                    .addKeyValue("event", "UNEXPECTED_SERVICE_ERROR")
+                    .addKeyValue("class", className)
+                    .addKeyValue("method", methodName)
+                    .addKeyValue("outcome", outcome)
+                    .addKeyValue("elapsedMs", elapsedMillis)
+                    .addKeyValue("errorCode", "INTERNAL_ERROR")
+                    .addKeyValue("exception", failure.getClass().getSimpleName())
+                    .setCause(failure)
+                    .log("HTTP 요청 밖의 서비스 호출에서 예상하지 못한 오류가 발생했습니다.");
+        }
     }
 
-    private void logSuccess(String className, String methodName, String outcome, long elapsedMillis) {
-        if (POLLING_CLASSES.contains(className)) {
-            LOGGER.debug(
-                    "APPLICATION class={} method={} outcome={} elapsedMs={}",
-                    className,
-                    methodName,
-                    outcome,
-                    elapsedMillis
-            );
-            return;
-        }
-        LOGGER.info(
-                "APPLICATION class={} method={} outcome={} elapsedMs={}",
-                className,
-                methodName,
-                outcome,
-                elapsedMillis
-        );
+    private boolean isCoveredByHttpRequestLogging() {
+        return RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes;
+    }
+
+    private void logEvent(
+            LoggingEventBuilder builder,
+            String event,
+            String className,
+            String methodName,
+            String outcome,
+            long elapsedMillis
+    ) {
+        builder.addKeyValue("event", event)
+                .addKeyValue("class", className)
+                .addKeyValue("method", methodName)
+                .addKeyValue("outcome", outcome)
+                .addKeyValue("elapsedMs", elapsedMillis)
+                .log(
+                        "APPLICATION class={} method={} outcome={} elapsedMs={}",
+                        className,
+                        methodName,
+                        outcome,
+                        elapsedMillis
+                );
     }
 }

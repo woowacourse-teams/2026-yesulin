@@ -42,14 +42,25 @@ infrastructure/    JPA·QueryDSL, OAuth, S3 등 외부 기술 adapter
 
 ## 로그
 
-- 로그 시각은 host TZ와 무관하게 `Asia/Seoul`로 기록한다. SSM tail과 운영 대시보드가 같은 시각을 보여 준다.
+- 콘솔은 `Asia/Seoul` 시각의 짧은 텍스트로, 파일은 한 이벤트가 한 줄인 Logstash JSON으로 기록한다.
+  배포 프로세스의 `TZ=Asia/Seoul` 설정으로 JSON `@timestamp`도 같은 시각대를 사용한다.
 - request ID를 MDC와 응답 `X-Request-Id`에 사용한다.
-- 요청 로그는 method, URI, status, elapsed time만 기록한다. URI에 query string은 포함하지 않는다.
-- `/api/v1/health`와 `/api/v1/admin/logs`처럼 짧은 주기로 반복되는 조회는 성공 시 DEBUG로 낮춘다.
-  스스로 만든 로그가 정작 읽으려는 로그를 밀어내지 않게 하기 위함이며, 실패는 그대로 남긴다.
+- 파일 JSON은 `@timestamp`, `level`, `logger_name`, `thread_name`, `message`와 MDC 필드를 분리해 저장한다.
+- 요청이 끝나면 `HTTP_REQUEST`를 한 건만 기록한다. method, query string을 뺀 URI, endpoint 패턴, status,
+  elapsed time과 존재하는 error code를 JSON 최상위 필드로 남긴다.
+- 5xx는 `ERROR`, 1초 이상은 `WARN`, 나머지는 `INFO`다. 5xx가 느린 요청보다 우선하며, 짧은 주기의 폴링
+  성공은 1초 미만일 때만 `DEBUG`로 낮춘다. 대상은 `/api/v1/health`와 `/api/v1/admin/logs`이며,
+  실패와 느린 요청은 원래 레벨 정책대로 남긴다.
+- `BusinessException`과 입력 오류는 예외 로그를 별도로 남기지 않고 최종 `HTTP_REQUEST`의 error code로 구분한다.
+  MVC 경계를 빠져나온 예상 밖 예외만 `UNEXPECTED_ERROR`와 stack trace를 한 번 기록하고, 이어지는 최종
+  `HTTP_REQUEST`에는 stack trace를 중복하지 않는다.
+- application service의 500ms 미만 성공은 `SERVICE_CALL` DEBUG로 낮춘다. 500ms 이상이면 성공·실패 모두
+  `SLOW_SERVICE` WARN으로 기록하되 인자, 반환값, 예외 메시지와 stack trace는 담지 않는다. HTTP 요청 안의 빠른
+  실패는 서비스 AOP에서 기록하지 않아 HTTP 경계 로그와 중복되지 않게 한다. HTTP 요청 밖의 빠른 예상 밖 예외는
+  `UNEXPECTED_SERVICE_ERROR` ERROR와 stack trace를 남기며, BusinessException은 ERROR에서 제외한다.
 - 요청·응답 본문, Cookie, token, 비밀번호, 연락처, 지원서 원문과 파일 URL은 일반 로그에 남기지 않는다.
-- 삭제 확인 DTO·Command의 `toString()`은 비밀번호를 `[REDACTED]`로 마스킹한다. 공통 JSON 파싱·잘못된 인자
-  오류의 DEBUG 로그는 고정 메시지만 기록하고 예외 원문·원인을 기록하지 않는다. 객체의 JSON 직렬화는 로그에 사용하지 않는다.
+- 삭제 확인 DTO·Command의 `toString()`은 비밀번호를 `[REDACTED]`로 마스킹한다. 객체의 JSON 직렬화는
+  로그에 사용하지 않는다.
 - 인증된 업로드 진단은 최종 실패와 재시도 성공만 기록한다. `X-Request-Id` incident ID, 허용된 흐름·단계·오류
   코드, 시도 횟수, 거친 플랫폼·브라우저와 서비스 워커 제어 여부만 남긴다.
 - `FILE_METADATA_MISMATCH`는 `fileId`, 기대/실제 크기와 Content-Type을 기록한다. 파일명·소유자 ID·S3 URL은
@@ -60,4 +71,6 @@ infrastructure/    JPA·QueryDSL, OAuth, S3 등 외부 기술 adapter
 - 삭제 확인의 계정별 반복 제한은 `AdminDeletionConfirmation`이 불변 상태와 원자적 `compute`로 처리한다.
   메모리 상태는 삭제 트랜잭션 롤백과 무관하게 유지된다. 잠금 정책과 운영 제약은 [배포 문서](operations/deployment.md)를 따른다.
 - 운영자는 `/api/v1/admin/logs`로 같은 로그 파일의 끝부분을 읽을 수 있다. 경로는 설정으로 고정하고 읽기 상한을 둔다.
+  조회 응답은 기존 `lines`와 구조화된 `entries`를 함께 제공한다. 배포 전에 남은 텍스트는 `LEGACY`, JSON은
+  `STRUCTURED`로 판별하며, 파싱할 수 없는 줄 하나가 전체 조회를 실패시키지 않는다.
 - 기본 로그 파일은 실행 디렉터리 기준 `logs/yesulin.log`, 10MB 단위 압축, 14일·1GB 상한이다.

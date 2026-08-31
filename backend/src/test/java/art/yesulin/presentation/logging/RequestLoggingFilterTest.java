@@ -5,17 +5,23 @@ import static art.yesulin.presentation.config.RequestLoggingFilter.REQUEST_ID_MD
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import art.yesulin.presentation.config.MonotonicTimeSource;
+import art.yesulin.presentation.config.RequestLogContext;
 import art.yesulin.presentation.config.RequestLoggingFilter;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,16 +29,18 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.web.servlet.HandlerMapping;
 
 class RequestLoggingFilterTest {
 
-    private final RequestLoggingFilter filter = new RequestLoggingFilter();
+    private RequestLoggingFilter filter;
     private final Logger logger = (Logger) LoggerFactory.getLogger(RequestLoggingFilter.class);
     private final ListAppender<ILoggingEvent> appender = new ListAppender<>();
     private Level previousLevel;
 
     @BeforeEach
     void setUp() {
+        filter = filterWithElapsedMillis(0L);
         previousLevel = logger.getLevel();
         logger.setLevel(Level.DEBUG);
         appender.start();
@@ -53,6 +61,7 @@ class RequestLoggingFilterTest {
         MockHttpServletResponse response = new MockHttpServletResponse();
         AtomicReference<String> requestIdInChain = new AtomicReference<>();
         request.addHeader(REQUEST_ID_HEADER, "client-request_123");
+        request.setAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE, "/api/v1/submissions");
 
         filter.doFilter(request, response, (servletRequest, servletResponse) -> {
             requestIdInChain.set(MDC.get(REQUEST_ID_MDC_KEY));
@@ -65,8 +74,11 @@ class RequestLoggingFilterTest {
         ILoggingEvent event = appender.list.getFirst();
         assertEquals(Level.INFO, event.getLevel());
         assertEquals("client-request_123", event.getMDCPropertyMap().get(REQUEST_ID_MDC_KEY));
+        assertEquals("HTTP_REQUEST", fields(event).get("event"));
+        assertEquals("/api/v1/submissions", fields(event).get("endpoint"));
+        assertEquals(201, fields(event).get("status"));
         String message = event.getFormattedMessage();
-        assertTrue(message.contains("method=POST uri=/api/v1/submissions status=201"));
+        assertTrue(message.contains("method=POST uri=/api/v1/submissions endpoint=/api/v1/submissions status=201"));
         assertFalse(message.contains("password"));
         assertFalse(message.contains("secret"));
     }
@@ -81,7 +93,8 @@ class RequestLoggingFilterTest {
 
         ILoggingEvent event = appender.list.getFirst();
         assertEquals(Level.DEBUG, event.getLevel());
-        assertTrue(event.getFormattedMessage().contains("uri=/api/v1/health status=200"));
+        assertEquals("/api/v1/health", fields(event).get("endpoint"));
+        assertEquals(200, fields(event).get("status"));
     }
 
     @Test
@@ -95,7 +108,7 @@ class RequestLoggingFilterTest {
 
         ILoggingEvent event = appender.list.getFirst();
         assertEquals(Level.ERROR, event.getLevel());
-        assertTrue(event.getFormattedMessage().contains("uri=/api/v1/health status=503"));
+        assertEquals(503, fields(event).get("status"));
     }
 
     @Test
@@ -108,7 +121,7 @@ class RequestLoggingFilterTest {
 
         ILoggingEvent event = appender.list.getFirst();
         assertEquals(Level.DEBUG, event.getLevel());
-        assertTrue(event.getFormattedMessage().contains("uri=/api/v1/admin/logs status=200"));
+        assertEquals(200, fields(event).get("status"));
     }
 
     @Test
@@ -136,7 +149,7 @@ class RequestLoggingFilterTest {
 
         ILoggingEvent event = appender.list.getFirst();
         assertEquals(Level.INFO, event.getLevel());
-        assertTrue(event.getFormattedMessage().contains("uri=/api/v1/admin/logs status=401"));
+        assertEquals(401, fields(event).get("status"));
     }
 
     @Test
@@ -149,6 +162,37 @@ class RequestLoggingFilterTest {
 
         ILoggingEvent event = appender.list.getFirst();
         assertEquals(Level.INFO, event.getLevel());
+    }
+
+    @Test
+    void logsRequestsTakingAtLeastOneSecondAtWarnLevel() throws Exception {
+        RequestLoggingFilter slowFilter = filterWithElapsedMillis(1_000L);
+        MockHttpServletRequest request = request();
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        slowFilter.doFilter(request, response, (servletRequest, servletResponse) -> {
+        });
+
+        assertEquals(1, appender.list.size());
+        ILoggingEvent event = appender.list.getFirst();
+        assertEquals(Level.WARN, event.getLevel());
+        assertEquals(1_000L, fields(event).get("elapsedMs"));
+    }
+
+    @Test
+    void includesExpectedErrorCodeWithoutRaisingClientErrorToErrorLevel() throws Exception {
+        MockHttpServletRequest request = request();
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(request, response, (servletRequest, servletResponse) -> {
+            RequestLogContext.setErrorCode(request, "SUBMISSION_ALREADY_EXISTS");
+            response.setStatus(409);
+        });
+
+        assertEquals(1, appender.list.size());
+        ILoggingEvent event = appender.list.getFirst();
+        assertEquals(Level.INFO, event.getLevel());
+        assertEquals("SUBMISSION_ALREADY_EXISTS", fields(event).get("errorCode"));
     }
 
     @Test
@@ -166,7 +210,7 @@ class RequestLoggingFilterTest {
     }
 
     @Test
-    void logsUnexpectedFailureWithoutItsMessage() {
+    void logsUnexpectedFailureOnceWithStackTraceAndOneFinalHttpEvent() {
         MockHttpServletRequest request = request();
         MockHttpServletResponse response = new MockHttpServletResponse();
 
@@ -178,13 +222,49 @@ class RequestLoggingFilterTest {
                 }
         ));
 
-        ILoggingEvent event = appender.list.getFirst();
-        assertEquals(Level.ERROR, event.getLevel());
-        assertTrue(event.getFormattedMessage().matches(
-                "HTTP method=POST uri=/api/v1/submissions status=500 elapsedMs=\\d+"
-        ));
-        assertNull(event.getThrowableProxy());
+        assertEquals(2, appender.list.size());
+        ILoggingEvent unexpected = eventNamed("UNEXPECTED_ERROR");
+        assertEquals(Level.ERROR, unexpected.getLevel());
+        assertNotNull(unexpected.getThrowableProxy());
+        assertEquals("IllegalStateException", fields(unexpected).get("exception"));
+        assertEquals("INTERNAL_ERROR", fields(unexpected).get("errorCode"));
+        assertFalse(unexpected.getFormattedMessage().contains("sensitive-exception-message"));
+
+        ILoggingEvent http = eventNamed("HTTP_REQUEST");
+        assertEquals(Level.ERROR, http.getLevel());
+        assertEquals(500, fields(http).get("status"));
+        assertEquals("INTERNAL_ERROR", fields(http).get("errorCode"));
+        assertNull(http.getThrowableProxy());
+        assertEquals(
+                1L,
+                appender.list.stream().filter(event -> "HTTP_REQUEST".equals(fields(event).get("event"))).count()
+        );
         assertNull(MDC.get(REQUEST_ID_MDC_KEY));
+    }
+
+    private ILoggingEvent eventNamed(String name) {
+        return appender.list.stream()
+                .filter(event -> name.equals(fields(event).get("event")))
+                .findFirst()
+                .orElseThrow();
+    }
+
+    private Map<String, Object> fields(ILoggingEvent event) {
+        return event.getKeyValuePairs().stream()
+                .collect(Collectors.toMap(pair -> pair.key, pair -> pair.value));
+    }
+
+    private RequestLoggingFilter filterWithElapsedMillis(long elapsedMillis) {
+        long elapsedNanos = TimeUnit.MILLISECONDS.toNanos(elapsedMillis);
+        MonotonicTimeSource timeSource = new MonotonicTimeSource() {
+            private int invocation;
+
+            @Override
+            public long nanoTime() {
+                return invocation++ == 0 ? 0L : elapsedNanos;
+            }
+        };
+        return new RequestLoggingFilter(timeSource);
     }
 
     private MockHttpServletRequest request() {

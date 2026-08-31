@@ -53,4 +53,5 @@ HTTP 본문이나 객체를 별도로 직렬화하는 로깅은 이 마스킹으
 EC2에는 Java 25, CodeDeploy Agent, Nginx, MySQL 연결과 root 전용 `/etc/yesulin/yesulin.env`가 필요하다.
 실제 secret은 저장소와 build log에 남기지 않는다. 상세 스크립트는 `backend/deploy/`를 따른다.
 
-Spring 로그 기본 경로는 `/var/log/yesulin/yesulin.log`이며 journal에도 출력한다.
+Spring 로그 기본 경로는 `/var/log/yesulin/yesulin.log`이며 한 이벤트당 한 줄인 JSON으로 기록한다. journal에는
+같은 이벤트를 짧은 텍스트로 출력한다. systemd unit은 `TZ=Asia/Seoul`을 지정해 파일 JSON과 journal의 시각대를 맞춘다.
