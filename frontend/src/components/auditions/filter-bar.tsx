@@ -51,6 +51,20 @@ export function FilterBar({ sheetOpen, onOpenSheet }: { sheetOpen: boolean; onOp
           ) : null}
         </button>
       </div>
+      <div className="flex px-4 pb-2">
+        <button
+          type="button"
+          aria-pressed={filters.mismatchOnly}
+          onClick={() => setFilters((current) => ({ ...current, mismatchOnly: !current.mismatchOnly }))}
+          className={`inline-flex min-h-10 items-center rounded-control border px-3 text-sm font-semibold transition-colors ${
+            filters.mismatchOnly
+              ? "border-warn bg-warn text-white"
+              : "border-warn-bg bg-card text-muted-strong"
+          }`}
+        >
+          조건 불일치만 보기
+        </button>
+      </div>
     </div>
   );
 }

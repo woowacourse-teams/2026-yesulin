@@ -10,19 +10,17 @@ import {
   type NumericField,
 } from "@/features/auditions/filters";
 import type { Gender } from "@/features/auditions/types";
-import { roleConditionText } from "@/features/auditions/labels";
 import { FilterChip, PrimaryButton, TextButton } from "@/components/ui/controls";
 import { useBoard } from "./board-context";
 import { ModalShell } from "./modal-shell";
 
 const TITLE_ID = "audition-detail-filter-title";
-type DetailFilterDraft = Pick<AuditionFilters, "genders" | "numeric" | "mismatchOnly">;
+type DetailFilterDraft = Pick<AuditionFilters, "genders" | "numeric">;
 
 export function AuditionFilterSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { board, filters, setFilters } = useBoard();
+  const { filters, setFilters } = useBoard();
   const [draft, setDraft] = useState(() => detailDraft(filters));
   const wasOpen = useRef(false);
-  const mismatches = board.applicants.filter((applicant) => applicant.mismatchReasons.length > 0).length;
   const draftActiveCount = detailFilterCount(draft);
 
   useEffect(() => {
@@ -31,7 +29,7 @@ export function AuditionFilterSheet({ open, onClose }: { open: boolean; onClose:
   }, [filters, open]);
 
   const clear = () => {
-    setDraft({ genders: new Set(), numeric: emptyNumeric(), mismatchOnly: false });
+    setDraft({ genders: new Set(), numeric: emptyNumeric() });
     window.requestAnimationFrame(() => document.getElementById("audition-filter-close")?.focus());
   };
 
@@ -56,7 +54,6 @@ export function AuditionFilterSheet({ open, onClose }: { open: boolean; onClose:
     <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 md:px-6">
       <fieldset><legend className="text-sm font-bold">성별</legend><div className="mt-3 flex flex-wrap gap-2">{(["FEMALE", "MALE"] as const).map((gender) => <FilterChip key={gender} pressed={draft.genders.has(gender)} onClick={() => toggleGender(gender)}>{gender === "FEMALE" ? "여성" : "남성"}</FilterChip>)}</div></fieldset>
       <div className="mt-6 space-y-3"><h3 className="text-sm font-bold">신체 조건</h3>{NUMERIC_FIELDS.map((field) => <SheetNumericFilter key={field} field={field} condition={draft.numeric[field]} onChange={(condition) => setDraft((current) => ({ ...current, numeric: { ...current.numeric, [field]: condition } }))} />)}</div>
-      <label className="mt-6 flex min-h-14 cursor-pointer items-center gap-3 rounded-card border border-warn/25 bg-warn-bg px-4 py-3"><input type="checkbox" checked={draft.mismatchOnly} onChange={(event) => setDraft((current) => ({ ...current, mismatchOnly: event.target.checked }))} className="h-5 w-5 shrink-0 accent-warn" /><span className="min-w-0"><strong className="block text-sm text-warn">조건 불일치만 보기</strong><span className="mt-0.5 block text-xs leading-5 text-muted-strong">배역 조건({roleConditionText(board.role)})과 다른 배우 {mismatches}명</span></span></label>
     </div>
 
     <footer className="flex shrink-0 items-center gap-2 border-t border-border px-5 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 md:px-6">
@@ -80,12 +77,11 @@ function SheetNumericFilter({ field, condition, onChange }: { field: NumericFiel
   </div>;
 }
 
-function detailDraft(filters: Pick<AuditionFilters, "genders" | "numeric" | "mismatchOnly">): DetailFilterDraft {
-  return { genders: new Set(filters.genders), numeric: { ...filters.numeric }, mismatchOnly: filters.mismatchOnly };
+function detailDraft(filters: Pick<AuditionFilters, "genders" | "numeric">): DetailFilterDraft {
+  return { genders: new Set(filters.genders), numeric: { ...filters.numeric } };
 }
 
 function detailFilterCount(filters: DetailFilterDraft) {
   return filters.genders.size
-    + NUMERIC_FIELDS.filter((field) => filters.numeric[field] !== null).length
-    + (filters.mismatchOnly ? 1 : 0);
+    + NUMERIC_FIELDS.filter((field) => filters.numeric[field] !== null).length;
 }

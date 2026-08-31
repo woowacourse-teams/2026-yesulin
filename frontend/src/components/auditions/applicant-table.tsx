@@ -18,9 +18,8 @@ export function ApplicantTable({
   rows: readonly Applicant[];
   onPlayVideo: (applicant: Applicant) => void;
 }) {
-  const { board, selected, toggleSelected, setSelection, openApplicant } = useBoard();
+  const { board, selected, toggleSelected, openApplicant } = useBoard();
   const [peek, setPeek] = useState<PeekState | null>(null);
-  const allSelected = rows.length > 0 && rows.every((row) => selected.has(row.id));
 
   return (
     <>
@@ -29,20 +28,7 @@ export function ApplicantTable({
           <thead>
             <tr>
               <th className="w-11 border-b border-border pl-1.5 text-left">
-                <label className="inline-flex cursor-pointer items-center justify-center rounded-lg py-2 pl-3 pr-2.5 hover:bg-foreground/5">
-                  <span className="sr-only">표시된 배우 전체 선택</span>
-                  <input
-                    type="checkbox"
-                    checked={allSelected}
-                    onChange={(event) =>
-                      setSelection(
-                        rows.map((row) => row.id),
-                        event.target.checked,
-                      )
-                    }
-                    className="m-0 block h-[18px] w-[18px] cursor-pointer accent-brand"
-                  />
-                </label>
+                <span className="sr-only">배우 선택</span>
               </th>
               {["배우", "신체", "학교", "제출 자료", "접수", "상태"].map((label, index) => (
                 <th

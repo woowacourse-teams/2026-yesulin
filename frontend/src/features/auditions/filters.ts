@@ -44,8 +44,7 @@ export const initialFilters = (work: WorkMode): AuditionFilters => ({
 
 export const activeDetailFilterCount = (filters: AuditionFilters) =>
   filters.genders.size
-  + NUMERIC_FIELDS.filter((field) => filters.numeric[field] !== null).length
-  + (filters.mismatchOnly ? 1 : 0);
+  + NUMERIC_FIELDS.filter((field) => filters.numeric[field] !== null).length;
 
 export function toScreeningSearchCondition(
   filters: AuditionFilters,
