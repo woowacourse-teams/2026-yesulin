@@ -58,11 +58,11 @@ export function FilterBar({ sheetOpen, onOpenSheet }: { sheetOpen: boolean; onOp
           onClick={() => setFilters((current) => ({ ...current, mismatchOnly: !current.mismatchOnly }))}
           className={`inline-flex min-h-10 items-center rounded-control border px-3 text-sm font-semibold transition-colors ${
             filters.mismatchOnly
-              ? "border-warn bg-warn text-white"
-              : "border-warn-bg bg-card text-muted-strong"
+              ? "border-brand bg-brand text-white"
+              : "border-brand-line bg-brand-soft text-brand"
           }`}
         >
-          조건 불일치만 보기
+          배역 조건 불일치만
         </button>
       </div>
     </div>

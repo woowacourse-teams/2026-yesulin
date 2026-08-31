@@ -51,6 +51,8 @@ export function useAuditionQuery<T>(key: string, load: () => Promise<T>, fallbac
 
   return {
     data: fresh ? settled.data : null,
+    /** 같은 화면에서 조회 조건만 바뀔 때 목록을 유지할 수 있도록 직전 결과를 제공한다. */
+    previousData: settled.data,
     error: fresh ? settled.error : "",
     loading: !fresh,
     reload,
