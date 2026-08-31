@@ -15,12 +15,15 @@ export async function generateMetadata({ params }: { params: Promise<{ postingId
   const availability = publicPostingAvailability(posting);
   const title = `${posting.performanceTitle} ${posting.title}`;
   const description = `${posting.companyName} · ${availability.label} ${availability.detail} · ${posting.isOpenCall ? "전체 배우 모집" : `모집 배역 ${posting.roles.map((role) => role.name).join(", ")}`}`;
+  const canonical = `/apply/${encodeURIComponent(postingId)}`;
   return {
     title,
     description,
+    alternates: { canonical },
     openGraph: {
       type: "website",
       locale: "ko_KR",
+      url: canonical,
       siteName: "예술in",
       title,
       description,
