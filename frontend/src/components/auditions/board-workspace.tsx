@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { completeScreening, saveReview } from "@/features/auditions/api";
-import { activeDetailFilterCount, type AuditionFilters } from "@/features/auditions/filters";
+import { type AuditionFilters } from "@/features/auditions/filters";
 import { STATUS_LABELS } from "@/features/auditions/labels";
 import type {
   Applicant,
@@ -230,7 +230,7 @@ export function BoardWorkspace({
       </div>
       <ActionBar />
       <ContactsModal />
-      <AuditionFilterSheet open={filterSheetOpen} activeCount={activeDetailFilterCount(filters)} onClose={() => setFilterSheetOpen(false)} />
+      <AuditionFilterSheet open={filterSheetOpen} onClose={() => setFilterSheetOpen(false)} />
       <ReviewMemoDialog key={memoRequest ? `${memoRequest.kind}-${memoRequest.ids.join("-")}` : "closed"} open={memoRequest !== null} saving={saving} onClose={() => setMemoRequest(null)} onSubmit={async (memo) => {
         const request = memoRequest;
         if (!request) return;

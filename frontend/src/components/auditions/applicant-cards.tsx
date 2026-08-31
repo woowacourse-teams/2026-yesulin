@@ -10,7 +10,7 @@ export function ApplicantCards({ rows }: { rows: readonly Applicant[] }) {
   const { board, selected, toggleSelected, openApplicant } = useBoard();
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:justify-start sm:[grid-template-columns:repeat(auto-fill,minmax(220px,280px))]">
+    <div className="grid grid-cols-1 gap-4 sm:justify-start sm:[grid-template-columns:repeat(auto-fill,minmax(220px,280px))] xl:justify-stretch xl:[grid-template-columns:repeat(4,minmax(0,1fr))]">
       {rows.map((applicant, index) => {
         const picked = selected.has(applicant.id);
 
