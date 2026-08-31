@@ -18,7 +18,8 @@ const PRODUCER_FILTERS: readonly { readonly label: string; readonly value: Produ
 
 export function AdminDashboard() {
   const [producerFilter, setProducerFilter] = useState<ProducerFilter>("ALL");
-  const { phase, data, error, refresh, restart, signOut } = useAdminDashboard(producerFilter);
+  const [auditLogPage, setAuditLogPage] = useState(0);
+  const { phase, data, error, refresh, restart, signOut } = useAdminDashboard(producerFilter, auditLogPage);
 
   async function handleLogout() {
     await logout().catch(() => null);
@@ -94,7 +95,10 @@ export function AdminDashboard() {
 
       <AdminProducerTable producers={data.producers} onChanged={refresh} />
       <AdminAuditionTable auditions={data.auditions} onChanged={refresh} />
-      <AdminAuditLogTable logs={data.logs} />
+      <AdminAuditLogTable
+        page={data.auditLogs}
+        onPageChange={setAuditLogPage}
+      />
     </main>
   );
 }

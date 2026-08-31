@@ -172,7 +172,7 @@ export function AdminLogLines({ log, filters }: Props) {
 
   const filteredEntries = filterLogEntries(log.entries, filters);
   if (filteredEntries.length === 0) {
-    const filtering = filters.errorsOnly || filters.slowRequestsOnly || filters.requestId || filters.keyword;
+    const filtering = filters.levels.length > 0 || filters.slowRequestsOnly || filters.requestId || filters.keyword;
     return (
       <p className="rounded-card border border-border bg-card px-4 py-10 text-center text-sm text-muted">
         {filtering ? "현재 검색·필터 조건과 일치하는 로그가 없습니다." : "로그가 비어 있습니다."}

@@ -46,7 +46,7 @@ describe("admin log presentation", () => {
     expect(isSlowHttpRequest(entry({ attributes: { event: "SLOW_SERVICE", elapsedMs: 1000 } }))).toBe(false);
   });
 
-  it("ERROR, 느린 요청, requestId, 키워드 조건을 함께 적용한다", () => {
+  it("선택한 로그 레벨, 느린 요청, requestId, 키워드, 조건을 함께 적용한다", () => {
     const target = entry({
       level: "ERROR",
       requestId: "incident-12345678",
@@ -54,15 +54,35 @@ describe("admin log presentation", () => {
       raw: "file upload failed",
     });
     const other = entry({ requestId: "other-request", raw: "health check" });
+    const matchingInfo = entry({
+      level: "INFO",
+      requestId: "incident-12345678",
+      attributes: { event: "HTTP_REQUEST", endpoint: "/api/v1/files", status: 500, elapsedMs: 1200 },
+      raw: "file upload failed",
+    });
 
-    const result = filterLogEntries([other, target], {
-      errorsOnly: true,
+    const result = filterLogEntries([other, matchingInfo, target], {
+      levels: ["ERROR"],
       slowRequestsOnly: true,
       requestId: "12345678",
       keyword: "upload",
     });
 
     expect(result).toEqual([target]);
+  });
+
+  it("레벨을 선택하지 않으면 모든 레벨과 기존 문자열 로그를 유지한다", () => {
+    const legacy = entry({ format: "LEGACY", level: null });
+    const warning = entry({ level: "WARN" });
+
+    const result = filterLogEntries([legacy, warning], {
+      levels: [],
+      slowRequestsOnly: false,
+      requestId: "",
+      keyword: "",
+    });
+
+    expect(result).toEqual([legacy, warning]);
   });
 
   it("기존 문자열은 내용을 해석하거나 실행하지 않고 LEGACY 요약으로 유지한다", () => {

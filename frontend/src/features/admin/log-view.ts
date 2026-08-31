@@ -1,7 +1,7 @@
-import type { AdminLogEntry } from "./types";
+import type { AdminLogEntry, AdminLogLevel } from "./types";
 
 export type AdminLogFilters = {
-  readonly errorsOnly: boolean;
+  readonly levels: readonly AdminLogLevel[];
   readonly slowRequestsOnly: boolean;
   readonly requestId: string;
   readonly keyword: string;
@@ -83,7 +83,7 @@ export function filterLogEntries(
   const requestId = filters.requestId.trim().toLowerCase();
   const keyword = filters.keyword.trim().toLowerCase();
   return entries.filter((entry) => {
-    if (filters.errorsOnly && entry.level !== "ERROR") return false;
+    if (filters.levels.length > 0 && (!entry.level || !filters.levels.includes(entry.level))) return false;
     if (filters.slowRequestsOnly && !isSlowHttpRequest(entry)) return false;
     if (requestId && !entry.requestId?.toLowerCase().includes(requestId)) return false;
     return !keyword || searchableText(entry).includes(keyword);

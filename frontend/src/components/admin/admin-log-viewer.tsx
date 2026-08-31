@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { LOG_LINE_LIMITS } from "@/features/admin/api";
 import type { AdminLogFilters } from "@/features/admin/log-view";
+import type { AdminLogLevel } from "@/features/admin/types";
 import { logout } from "@/features/auth/session-api";
 import { AdminLoginForm } from "./admin-login-form";
 import { AdminLogLines } from "./admin-log-lines";
@@ -13,17 +14,27 @@ import { useDebouncedValue } from "./use-debounced-value";
 
 const SEARCH_DEBOUNCE_MS = 400;
 
+const LOG_LEVELS: readonly AdminLogLevel[] = ["ERROR", "WARN", "INFO", "DEBUG", "TRACE"];
+
+const LOG_LEVEL_STYLES: Record<AdminLogLevel, string> = {
+  ERROR: "border-fail bg-fail-bg text-fail",
+  WARN: "border-warn bg-warn-bg text-warn",
+  INFO: "border-brand-line bg-brand-soft text-brand",
+  DEBUG: "border-border bg-surface text-muted-strong",
+  TRACE: "border-border bg-surface text-muted",
+};
+
 export function AdminLogViewer() {
   const [keywordInput, setKeywordInput] = useState("");
   const [requestIdInput, setRequestIdInput] = useState("");
-  const [errorsOnly, setErrorsOnly] = useState(false);
+  const [levels, setLevels] = useState<readonly AdminLogLevel[]>([]);
   const [slowRequestsOnly, setSlowRequestsOnly] = useState(false);
   const [limit, setLimit] = useState<number>(200);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const keyword = useDebouncedValue(keywordInput.trim(), SEARCH_DEBOUNCE_MS);
   const { phase, data, error, refresh, restart, signOut } = useAdminLogs(keyword, limit, autoRefresh);
   const filters: AdminLogFilters = {
-    errorsOnly,
+    levels,
     slowRequestsOnly,
     requestId: requestIdInput,
     keyword,
@@ -32,8 +43,16 @@ export function AdminLogViewer() {
   function resetFilters() {
     setKeywordInput("");
     setRequestIdInput("");
-    setErrorsOnly(false);
+    setLevels([]);
     setSlowRequestsOnly(false);
+  }
+
+  function toggleLevel(level: AdminLogLevel) {
+    setLevels((selected) => (
+      selected.includes(level)
+        ? selected.filter((value) => value !== level)
+        : [...selected, level]
+    ));
   }
 
   async function handleLogout() {
@@ -115,16 +134,22 @@ export function AdminLogViewer() {
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border-soft pt-4">
-          <button
-            type="button"
-            aria-pressed={errorsOnly}
-            onClick={() => setErrorsOnly((active) => !active)}
-            className={`min-h-11 rounded-control border px-4 text-sm font-semibold ${
-              errorsOnly ? "border-fail bg-fail-bg text-fail" : "border-border text-muted-strong hover:bg-surface"
-            }`}
-          >
-            ERROR만
-          </button>
+          {LOG_LEVELS.map((level) => {
+            const selected = levels.includes(level);
+            return (
+              <button
+                key={level}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => toggleLevel(level)}
+                className={`min-h-11 rounded-control border px-4 text-sm font-semibold ${
+                  selected ? LOG_LEVEL_STYLES[level] : "border-border text-muted-strong hover:bg-surface"
+                }`}
+              >
+                {level}
+              </button>
+            );
+          })}
           <button
             type="button"
             aria-pressed={slowRequestsOnly}
