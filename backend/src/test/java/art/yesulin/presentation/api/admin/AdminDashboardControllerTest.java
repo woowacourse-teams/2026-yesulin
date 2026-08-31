@@ -5,6 +5,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import art.yesulin.application.auth.MemberPrincipal;
+import art.yesulin.domain.admin.AdminAction;
+import art.yesulin.domain.admin.AdminAuditLog;
+import art.yesulin.domain.admin.AdminAuditLogRepository;
 import art.yesulin.domain.member.Member;
 import art.yesulin.domain.member.MemberRepository;
 import art.yesulin.domain.member.MemberStatus;
@@ -41,8 +44,12 @@ class AdminDashboardControllerTest {
     @Autowired
     private ProducerRepository producerRepository;
 
+    @Autowired
+    private AdminAuditLogRepository adminAuditLogRepository;
+
     @BeforeEach
     void setUp() {
+        adminAuditLogRepository.deleteAll();
         producerRepository.deleteAll();
         memberRepository.deleteAll();
 
@@ -102,6 +109,31 @@ class AdminDashboardControllerTest {
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, ADMIN))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.logs.length()").value(0));
+    }
+
+    @Test
+    void listsAuditLogsInPagesOfTen() throws Exception {
+        // given
+        for (int index = 1; index <= 12; index++) {
+            adminAuditLogRepository.save(new AdminAuditLog(
+                    ADMIN.memberId(),
+                    AdminAction.MEMBER_STATUS_CHANGED,
+                    "MEMBER",
+                    index,
+                    "PENDING -> ACTIVE"
+            ));
+        }
+
+        // when & then
+        mockMvc.perform(get("/api/v1/admin/audit-logs")
+                        .param("page", "1")
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, ADMIN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.logs.length()").value(2))
+                .andExpect(jsonPath("$.page").value(1))
+                .andExpect(jsonPath("$.size").value(10))
+                .andExpect(jsonPath("$.totalElements").value(12))
+                .andExpect(jsonPath("$.totalPages").value(2));
     }
 
     @Test

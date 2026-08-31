@@ -13,7 +13,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Limit;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,7 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AdminDashboardService {
 
     private static final Duration RECENT_WINDOW = Duration.ofDays(7);
-    private static final int AUDIT_LOG_LIMIT = 50;
+    private static final int AUDIT_LOG_PAGE_SIZE = 10;
 
     private final AdminDashboardRepository adminDashboardRepository;
     private final AdminAuditLogRepository adminAuditLogRepository;
@@ -44,7 +46,12 @@ public class AdminDashboardService {
     }
 
     @Transactional(readOnly = true)
-    public List<AdminAuditLog> findRecentAuditLogs() {
-        return adminAuditLogRepository.findAllByOrderByCreatedAtDesc(Limit.of(AUDIT_LOG_LIMIT));
+    public Page<AdminAuditLog> findAuditLogs(int page) {
+        PageRequest pageable = PageRequest.of(
+                page,
+                AUDIT_LOG_PAGE_SIZE,
+                Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"))
+        );
+        return adminAuditLogRepository.findAll(pageable);
     }
 }

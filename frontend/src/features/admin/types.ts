@@ -51,6 +51,14 @@ export type AdminAuditLog = {
   readonly createdAt: string;
 };
 
+export type AdminAuditLogPage = {
+  readonly logs: readonly AdminAuditLog[];
+  readonly page: number;
+  readonly size: number;
+  readonly totalElements: number;
+  readonly totalPages: number;
+};
+
 export type AdminLogFormat = "STRUCTURED" | "LEGACY";
 export type AdminLogLevel = "TRACE" | "DEBUG" | "INFO" | "WARN" | "ERROR";
 

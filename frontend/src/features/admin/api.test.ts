@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fetchLogs, normalizeAdminLog } from "./api";
+import { fetchAuditLogs, fetchLogs, normalizeAdminLog } from "./api";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -41,6 +41,24 @@ describe("admin log API", () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/v1/admin/logs?limit=100&keyword=INTERNAL_ERROR",
+      { method: "GET", credentials: "include" },
+    );
+  });
+
+  it("운영자 변경 기록의 요청 페이지를 API에 전달한다", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      logs: [],
+      page: 2,
+      size: 10,
+      totalElements: 22,
+      totalPages: 3,
+    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await fetchAuditLogs(2);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/v1/admin/audit-logs?page=2",
       { method: "GET", credentials: "include" },
     );
   });

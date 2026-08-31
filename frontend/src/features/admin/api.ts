@@ -2,7 +2,7 @@ import { withCsrfHeaders } from "../csrf";
 import { readErrorMessage, readErrorDetail } from "../api-error";
 import type {
   AdminAudition,
-  AdminAuditLog,
+  AdminAuditLogPage,
   AdminLog,
   AdminLogEntry,
   AdminOverview,
@@ -59,12 +59,11 @@ export async function fetchAuditions(status?: AuditionStatus): Promise<readonly 
   return body.auditions;
 }
 
-export async function fetchAuditLogs(): Promise<readonly AdminAuditLog[]> {
-  const body = await getJson<{ logs: readonly AdminAuditLog[] }>(
-    "/audit-logs",
+export function fetchAuditLogs(page = 0): Promise<AdminAuditLogPage> {
+  return getJson<AdminAuditLogPage>(
+    `/audit-logs?page=${page}`,
     "변경 기록을 불러오지 못했습니다.",
   );
-  return body.logs;
 }
 
 export const LOG_LINE_LIMITS = [100, 200, 500] as const;

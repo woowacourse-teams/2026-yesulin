@@ -8,7 +8,7 @@ import {
   fetchOverview,
   fetchProducers,
 } from "@/features/admin/api";
-import type { AdminAudition, AdminAuditLog, AdminOverview, AdminProducer, MemberStatus } from "@/features/admin/types";
+import type { AdminAuditLogPage, AdminAudition, AdminOverview, AdminProducer, MemberStatus } from "@/features/admin/types";
 
 export type ProducerFilter = MemberStatus | "ALL";
 
@@ -16,23 +16,23 @@ export type DashboardData = {
   readonly overview: AdminOverview;
   readonly producers: readonly AdminProducer[];
   readonly auditions: readonly AdminAudition[];
-  readonly logs: readonly AdminAuditLog[];
+  readonly auditLogs: AdminAuditLogPage;
 };
 
 export type DashboardPhase = "loading" | "unauthorized" | "ready" | "failed";
 
-async function loadDashboard(filter: ProducerFilter): Promise<DashboardData> {
-  const [overview, producers, auditions, logs] = await Promise.all([
+async function loadDashboard(filter: ProducerFilter, auditLogPage: number): Promise<DashboardData> {
+  const [overview, producers, auditions, auditLogs] = await Promise.all([
     fetchOverview(),
     fetchProducers(filter === "ALL" ? undefined : filter),
     fetchAuditions(),
-    fetchAuditLogs(),
+    fetchAuditLogs(auditLogPage),
   ]);
-  return { overview, producers, auditions, logs };
+  return { overview, producers, auditions, auditLogs };
 }
 
 /** 운영 대시보드의 조회 상태를 담는다. 401·403은 로그인 화면으로 되돌리는 신호로 구분한다. */
-export function useAdminDashboard(filter: ProducerFilter) {
+export function useAdminDashboard(filter: ProducerFilter, auditLogPage: number) {
   const [phase, setPhase] = useState<DashboardPhase>("loading");
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +40,7 @@ export function useAdminDashboard(filter: ProducerFilter) {
 
   useEffect(() => {
     let active = true;
-    loadDashboard(filter)
+    loadDashboard(filter, auditLogPage)
       .then((next) => {
         if (!active) return;
         setData(next);
@@ -61,7 +61,7 @@ export function useAdminDashboard(filter: ProducerFilter) {
     return () => {
       active = false;
     };
-  }, [filter, reloadToken]);
+  }, [auditLogPage, filter, reloadToken]);
 
   const refresh = useCallback(() => setReloadToken((token) => token + 1), []);
   const restart = useCallback(() => {
