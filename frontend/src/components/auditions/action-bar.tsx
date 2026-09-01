@@ -22,7 +22,7 @@ export function ActionBar() {
     ) : (
       <>
         {filters.work === "DONE" ? <button type="button" disabled={saving} onClick={() => { void setStatus(ids, "PENDING"); }} className={ACTION_CLASS}>검토 대기로</button> : null}
-        {selectableStatuses().map((status) => <button key={status} type="button" disabled={saving} onClick={() => { void setStatus(ids, status); }} className={ACTION_CLASS}>{STATUS_LABELS[status]}</button>)}
+        {filters.work === "PENDING" ? selectableStatuses().map((status) => <button key={status} type="button" disabled={saving} onClick={() => { void setStatus(ids, status); }} className={ACTION_CLASS}>{STATUS_LABELS[status]}</button>) : null}
       </>
     )}
     <button type="button" onClick={() => { if (!openPrintWindow(picked, board.performance)) toast(POPUP_BLOCKED, { type: "error" }); }} className={ACTION_CLASS}>인쇄 · PDF</button>

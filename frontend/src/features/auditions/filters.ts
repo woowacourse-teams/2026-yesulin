@@ -16,6 +16,12 @@ export type NumericCondition = { readonly op: "gte" | "lte"; readonly value: num
 export type WorkMode = "PENDING" | "DONE";
 export type StatusFilter = ReviewStatus | "ALL";
 
+export const defaultStatusForWork = (work: WorkMode): StatusFilter =>
+  work === "DONE" ? "PASS" : "ALL";
+
+export const shouldClearMismatchOnlyAfterBulkReview = (status: ReviewStatus) =>
+  status === "FAIL";
+
 export type AuditionFilters = {
   readonly work: WorkMode;
   readonly status: StatusFilter;
@@ -26,6 +32,8 @@ export type AuditionFilters = {
   readonly view: "card" | "table";
 };
 
+export type AuditionListRouteState = Pick<AuditionFilters, "work" | "status" | "view">;
+
 export const emptyNumeric = (): Record<NumericField, NumericCondition | null> => ({
   age: null,
   height: null,
@@ -34,13 +42,38 @@ export const emptyNumeric = (): Record<NumericField, NumericCondition | null> =>
 
 export const initialFilters = (work: WorkMode): AuditionFilters => ({
   work,
-  status: "ALL",
+  status: defaultStatusForWork(work),
   query: "",
   genders: new Set(),
   numeric: emptyNumeric(),
   mismatchOnly: false,
   view: "card",
 });
+
+export function listRouteStateFromRoute(route: {
+  readonly work?: string;
+  readonly status?: string;
+  readonly view?: string;
+}): AuditionListRouteState {
+  const work: WorkMode = route.work === "DONE" ? "DONE" : "PENDING";
+  const validDoneStatuses: readonly StatusFilter[] = ["ALL", "PASS", "FAIL", "ETC"];
+  const status = work === "DONE" && validDoneStatuses.includes(route.status as StatusFilter)
+    ? route.status as StatusFilter
+    : defaultStatusForWork(work);
+  return { work, status, view: route.view === "table" ? "table" : "card" };
+}
+
+export function initialFiltersFromRoute(route: {
+  readonly work?: string;
+  readonly status?: string;
+  readonly view?: string;
+}): AuditionFilters {
+  const state = listRouteStateFromRoute(route);
+  return {
+    ...initialFilters(state.work),
+    ...state,
+  };
+}
 
 export const activeDetailFilterCount = (filters: AuditionFilters) =>
   filters.genders.size
