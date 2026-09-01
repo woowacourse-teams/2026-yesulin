@@ -19,6 +19,7 @@ import art.yesulin.domain.audition.schedule.RecruitmentPeriod;
 import art.yesulin.domain.audition.schedule.ScreeningStagePlan;
 import art.yesulin.domain.audition.schedule.ScreeningStagePlans;
 import art.yesulin.domain.performance.Performance;
+import art.yesulin.domain.performance.PerformanceRole;
 import art.yesulin.domain.screening.ScreeningReview;
 import art.yesulin.domain.screening.ScreeningReviewStatus;
 import art.yesulin.domain.submission.ApplicantSnapshot;
@@ -97,6 +98,32 @@ class AuditionRepositoryCustomTest {
         assertThat(role.counts().pass()).isEqualTo(1);
     }
 
+    @Test
+    void countsEachSelectedRoleAsAnApplicantScreeningTarget() {
+        Performance performance = savePerformance(OWNER_ID, "햄릿");
+        performance.addRole("오필리어", "햄릿의 연인");
+        entityManager.flush();
+        Audition audition = saveOpenAudition(performance);
+        AuditionRoleSection roleSection = saveRoleSection(audition, performance, true);
+        List<SelectedRole> selectedRoles = List.of(
+                new SelectedRole(roleSection.getRoles().getFirst().getId(), "햄릿"),
+                new SelectedRole(roleSection.getRoles().get(1).getId(), "오필리어")
+        );
+        saveSubmission(audition, selectedRoles, 10L);
+        saveSubmission(audition, List.of(selectedRoles.getFirst()), 11L);
+        entityManager.flush();
+        entityManager.clear();
+
+        PerformanceManagementResult result = auditionRepository.findPerformances(OWNER_ID, CURRENT_TIME).getFirst();
+
+        assertThat(result.applicantCount()).isEqualTo(3);
+        assertThat(result.pendingReviewCount()).isEqualTo(3);
+        assertThat(result.postings().getFirst().applicantCount()).isEqualTo(3);
+        assertThat(result.postings().getFirst().roles())
+                .extracting(AuditionRoleManagementResult::applicantCount)
+                .containsExactly(2, 1);
+    }
+
     private Performance savePerformance(long ownerId, String title) {
         Performance performance = new Performance(ownerId, ownerId, title, "서울특별시 종로구 대학로 12");
         performance.addRole("햄릿", "덴마크 왕자");
@@ -119,12 +146,24 @@ class AuditionRepositoryCustomTest {
     }
 
     private AuditionRoleSection saveRoleSection(Audition audition, Performance performance) {
-        AuditionRoleSelection selection = new AuditionRoleSelection(
-                performance.getRoles().getFirst().getId(),
-                new AuditionRoleCondition(2, RoleGender.ANY, 18, 40)
-        );
+        return saveRoleSection(audition, performance, false);
+    }
+
+    private AuditionRoleSection saveRoleSection(
+            Audition audition,
+            Performance performance,
+            boolean multipleRoleApplicationsAllowed
+    ) {
+        List<AuditionRoleSelection> selections = performance.getRoles().stream()
+                .map(PerformanceRole::getId)
+                .map(roleId -> new AuditionRoleSelection(
+                        roleId,
+                        new AuditionRoleCondition(2, RoleGender.ANY, 18, 40)
+                ))
+                .toList();
         AuditionRoleSection section = new AuditionRoleSection(
-                audition.getId(), new AuditionRoleSelections(false, List.of(selection))
+                audition.getId(),
+                new AuditionRoleSelections(multipleRoleApplicationsAllowed, selections)
         );
         entityManager.persist(section);
         entityManager.flush();
@@ -145,6 +184,10 @@ class AuditionRepositoryCustomTest {
     }
 
     private Submission saveSubmission(Audition audition, long roleId, long applicantId) {
+        return saveSubmission(audition, List.of(new SelectedRole(roleId, "햄릿")), applicantId);
+    }
+
+    private Submission saveSubmission(Audition audition, List<SelectedRole> selectedRoles, long applicantId) {
         Performance performance = entityManager.find(Performance.class, audition.getPerformanceId());
         Submission submission = new Submission(
                 applicantId,
@@ -159,7 +202,7 @@ class AuditionRepositoryCustomTest {
                         performance.getOwnerId()
                 ),
                 applicantSnapshot(),
-                new SelectedRoles(List.of(new SelectedRole(roleId, "햄릿"))),
+                new SelectedRoles(selectedRoles),
                 new SubmissionFormAnswers(
                         new QuestionAnswers(List.of()),
                         new PhotoRequirementAnswers(List.of()),
