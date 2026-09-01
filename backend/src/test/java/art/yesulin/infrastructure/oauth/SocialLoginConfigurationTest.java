@@ -46,6 +46,7 @@ class SocialLoginConfigurationTest {
         SocialLoginProperties properties = new SocialLoginProperties(
                 true,
                 redirectUri,
+                failureRedirect(),
                 validProviders()
         );
 
@@ -70,11 +71,34 @@ class SocialLoginConfigurationTest {
 
     @Test
     void rejectsMissingProviderConfiguration() {
-        SocialLoginProperties properties = new SocialLoginProperties(true, "", Map.of());
+        SocialLoginProperties properties = new SocialLoginProperties(true, "", failureRedirect(), Map.of());
 
         assertThatThrownBy(() -> configuration.clientRegistrationRepository(properties))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("KAKAO");
+    }
+
+    @Test
+    void rejectsMissingFailureRedirect() {
+        SocialLoginProperties properties = new SocialLoginProperties(true, "", null, validProviders());
+
+        assertThatThrownBy(() -> configuration.clientRegistrationRepository(properties))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("failure redirect");
+    }
+
+    @Test
+    void rejectsRelativeFailureRedirect() {
+        SocialLoginProperties properties = new SocialLoginProperties(
+                true,
+                "",
+                URI.create("/login?socialLoginError=true"),
+                validProviders()
+        );
+
+        assertThatThrownBy(() -> configuration.clientRegistrationRepository(properties))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("failure redirect");
     }
 
     private MockHttpServletRequest requestFor(String registrationId) {
@@ -89,7 +113,11 @@ class SocialLoginConfigurationTest {
     }
 
     private SocialLoginProperties validProperties() {
-        return new SocialLoginProperties(true, "", validProviders());
+        return new SocialLoginProperties(true, "", failureRedirect(), validProviders());
+    }
+
+    private URI failureRedirect() {
+        return URI.create("http://localhost:3000/login?socialLoginError=true");
     }
 
     private Map<SocialProvider, SocialLoginProperties.Provider> validProviders() {
