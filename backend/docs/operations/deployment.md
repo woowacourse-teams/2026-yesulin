@@ -53,5 +53,18 @@ HTTP 본문이나 객체를 별도로 직렬화하는 로깅은 이 마스킹으
 EC2에는 Java 25, CodeDeploy Agent, Nginx, MySQL 연결과 root 전용 `/etc/yesulin/yesulin.env`가 필요하다.
 실제 secret은 저장소와 build log에 남기지 않는다. 상세 스크립트는 `backend/deploy/`를 따른다.
 
+소셜 로그인은 프록시가 관찰한 내부 호스트가 아니라 사용자가 접속하는 프론트 주소로 이동하도록 세 URL을 명시한다.
+특히 실패 URL은 상대 경로를 허용하지 않으며, 누락되거나 HTTP(S) 절대 URL이 아니면 애플리케이션 시작을 거부한다.
+
+```dotenv
+SOCIAL_LOGIN_REDIRECT_URI=https://yesulin.art/login/oauth2/code/{registrationId}
+SOCIAL_LOGIN_SUCCESS_REDIRECT=https://yesulin.art/social-login/complete
+SOCIAL_LOGIN_FAILURE_REDIRECT=https://yesulin.art/login?socialLoginError=true
+```
+
+인증 제공자 콜백이 실패하면 백엔드는 실패 종류의 안전한 오류 코드만 구조화 로그에 남기고
+`SOCIAL_LOGIN_FAILURE_REDIRECT`로 이동한다. OAuth `code`, `state`, 토큰과 예외 메시지는 기록하거나 URL에 싣지 않는다.
+환경 파일을 바꾼 뒤에는 `yesulin.service`를 재시작해야 실행 중인 JVM에 반영된다.
+
 Spring 로그 기본 경로는 `/var/log/yesulin/yesulin.log`이며 한 이벤트당 한 줄인 JSON으로 기록한다. journal에는
 같은 이벤트를 짧은 텍스트로 출력한다. systemd unit은 `TZ=Asia/Seoul`을 지정해 파일 JSON과 journal의 시각대를 맞춘다.

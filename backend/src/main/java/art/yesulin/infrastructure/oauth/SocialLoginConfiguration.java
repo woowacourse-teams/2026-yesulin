@@ -57,6 +57,7 @@ public class SocialLoginConfiguration {
     public SecurityFilterChain socialLoginSecurityFilterChain(
             HttpSecurity http,
             ClientRegistrationRepository registrations,
+            SocialLoginProperties properties,
             ObjectProvider<SocialLoginSuccessHandler> successHandlerProvider
     ) throws Exception {
         NaverAuthorizationRequestResolver authorizationRequestResolver =
@@ -73,6 +74,7 @@ public class SocialLoginConfiguration {
                             .authorizationRequestResolver(authorizationRequestResolver));
                     oauth2.tokenEndpoint(endpoint -> endpoint
                             .accessTokenResponseClient(tokenResponseClient));
+                    oauth2.failureHandler(new SocialLoginFailureHandler(properties.failureRedirect()));
                     oauth2.successHandler((request, response, authentication) -> {
                         final SocialIdentity identity = identityResolver.resolve(authentication);
                         SecurityContextHolder.clearContext();
@@ -129,6 +131,9 @@ public class SocialLoginConfiguration {
     }
 
     private void validate(SocialLoginProperties properties) {
+        if (!isHttp(properties.failureRedirect())) {
+            throw new IllegalStateException("Social login failure redirect must be an absolute HTTP(S) URI");
+        }
         Map<SocialProvider, SocialLoginProperties.Provider> providers = properties.providers();
         if (providers == null) {
             throw new IllegalStateException("Social login provider settings are required");
@@ -154,5 +159,11 @@ public class SocialLoginConfiguration {
 
     private boolean isHttps(URI uri) {
         return uri != null && uri.isAbsolute() && "https".equalsIgnoreCase(uri.getScheme());
+    }
+
+    private boolean isHttp(URI uri) {
+        return uri != null
+                && uri.isAbsolute()
+                && ("http".equalsIgnoreCase(uri.getScheme()) || "https".equalsIgnoreCase(uri.getScheme()));
     }
 }
