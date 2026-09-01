@@ -1,11 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { getAuditionBoard } from "@/features/auditions/api";
 import {
   initialFilters,
+  initialFiltersFromRoute,
   screeningSearchKey,
   toScreeningSearchCondition,
+  type AuditionListRouteState,
 } from "@/features/auditions/filters";
 import { auditionRoutes } from "@/features/auditions/routes";
 import type { RoleId, RoundNumber, AuditionBoardResponse } from "@/features/auditions/types";
@@ -17,12 +20,19 @@ import { ScreenError } from "./screen-status";
 export function AuditionBoard({
   roleId,
   initialRound = null,
+  initialFilterState,
 }: {
   roleId: RoleId;
   initialRound?: RoundNumber | null;
+  initialFilterState?: AuditionListRouteState;
 }) {
   const [round, setRound] = useState<RoundNumber | null>(initialRound);
-  const [filters, setFilters] = useState(() => initialFilters("PENDING"));
+  const [filters, setFilters] = useState(() => (
+    initialFilterState ? initialFiltersFromRoute(initialFilterState) : initialFilters("PENDING")
+  ));
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const debouncedQuery = useDebouncedValue(filters.query, 300);
   const searchCondition = useMemo(
     () => toScreeningSearchCondition(filters, debouncedQuery),
@@ -49,6 +59,13 @@ export function AuditionBoard({
       ? previousData
       : null;
   const board = applied?.key === requestKey ? applied.board : data ?? (loading ? previousBoard : null);
+
+  useEffect(() => {
+    if (!board) return;
+    const nextHref = auditionRoutes.role(roleId, board.round, filters);
+    const currentHref = `${pathname}${searchParams.size > 0 ? `?${searchParams.toString()}` : ""}`;
+    if (currentHref !== nextHref) router.replace(nextHref, { scroll: false });
+  }, [board, filters, pathname, roleId, router, searchParams]);
 
   const applyBoard = useCallback((next: AuditionBoardResponse) => {
     setApplied({ key: requestKey, board: next });

@@ -3,7 +3,11 @@
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { completeScreening, saveReview } from "@/features/auditions/api";
-import { type AuditionFilters } from "@/features/auditions/filters";
+import {
+  defaultStatusForWork,
+  shouldClearMismatchOnlyAfterBulkReview,
+  type AuditionFilters,
+} from "@/features/auditions/filters";
 import { STATUS_LABELS } from "@/features/auditions/labels";
 import type {
   Applicant,
@@ -128,10 +132,13 @@ export function BoardWorkspace({
       const next = await submitReview(ids, { status, ...(memo ? { memo } : {}) }, "심사 결과를 저장하지 못했습니다.");
       if (!next) return;
       clearSelection();
+      if (filters.mismatchOnly && shouldClearMismatchOnlyAfterBulkReview(status)) {
+        setFilters((current) => ({ ...current, mismatchOnly: false }));
+      }
       toast(`${ids.length}명을 ${STATUS_LABELS[status]} 처리했습니다`, { type: "success" });
       advanceIfDone(next);
     },
-    [advanceIfDone, clearSelection, submitReview, toast],
+    [advanceIfDone, clearSelection, filters.mismatchOnly, setFilters, submitReview, toast],
   );
 
   const setStatus = useCallback(async (ids: readonly SubmissionId[], status: ReviewStatus) => {
@@ -152,7 +159,11 @@ export function BoardWorkspace({
 
       const remaining = next.applicants;
       if (remaining.length === 0) {
-        setFilters((current) => ({ ...current, work: "DONE", status: "ALL" }));
+        setFilters((current) => ({
+          ...current,
+          work: "DONE",
+          status: defaultStatusForWork("DONE"),
+        }));
         const counts = next.rounds.find((state) => state.round === next.round)?.counts;
         toast(counts && counts.pass > 0 ? `검토를 마쳤습니다 · 합격 ${counts.pass}명` : "검토를 마쳤습니다", {
           type: "success",
@@ -162,7 +173,7 @@ export function BoardWorkspace({
       }
 
       const target = remaining[Math.min(Math.max(previousIndex, 0), remaining.length - 1)];
-      if (target) router.push(auditionRoutes.applicantReview(board.role.id, target.id, board.round));
+      if (target) router.push(auditionRoutes.applicantReview(board.role.id, target.id, board.round, filters));
     },
     [advanceIfDone, board.role.id, board.round, filters, router, setFilters, submitReview, toast],
   );
@@ -209,7 +220,7 @@ export function BoardWorkspace({
     completionPrompt,
     setCompletionPrompt,
     openApplicant: (id) => {
-      if (id !== null) router.push(auditionRoutes.applicantReview(board.role.id, id, board.round));
+      if (id !== null) router.push(auditionRoutes.applicantReview(board.role.id, id, board.round, filters));
     },
     openedApplicantId: null,
     contactList,
