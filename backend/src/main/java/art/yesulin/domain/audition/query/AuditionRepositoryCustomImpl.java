@@ -441,8 +441,6 @@ public class AuditionRepositoryCustomImpl implements AuditionRepositoryCustom {
                 .toList();
         boolean allRoundsClosed = !roles.isEmpty()
                 && roles.stream().allMatch(AuditionRoleManagementResult::allRoundsClosed);
-        Set<UUID> submissionIds = new HashSet<>();
-        roleRows.forEach(role -> submissionIds.addAll(submissionsByRole.getOrDefault(role.id(), Set.of())));
         int done = roles.stream().mapToInt(role -> role.progress().done()).sum();
         int total = roles.stream().mapToInt(role -> role.progress().total()).sum();
         return new AuditionManagementResult(
@@ -461,7 +459,7 @@ public class AuditionRepositoryCustomImpl implements AuditionRepositoryCustom {
                 roleRows.stream().findFirst().map(AuditionRoleRow::multipleRoleApplicationsAllowed).orElse(false),
                 roles.size(),
                 roles.stream().mapToInt(AuditionRoleManagementResult::recruitmentCount).sum(),
-                submissionIds.size(),
+                roles.stream().mapToInt(AuditionRoleManagementResult::applicantCount).sum(),
                 roles.stream().mapToInt(role -> role.counts().pending()).sum(),
                 allRoundsClosed,
                 ReviewProgressResult.of(done, total),
