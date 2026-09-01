@@ -17,7 +17,14 @@ export function ActionBar() {
   const ids = picked.map((applicant) => applicant.id);
 
   const actions = <>
-    {screeningCompleted ? <span className="self-center whitespace-nowrap px-2 text-xs opacity-60">종료된 전형</span> : selectableStatuses().map((status) => <button key={status} type="button" disabled={saving} onClick={() => { void setStatus(ids, status); }} className={ACTION_CLASS}>{STATUS_LABELS[status]}</button>)}
+    {screeningCompleted ? (
+      <span className="self-center whitespace-nowrap px-2 text-xs opacity-60">종료된 전형</span>
+    ) : (
+      <>
+        {filters.work === "DONE" ? <button type="button" disabled={saving} onClick={() => { void setStatus(ids, "PENDING"); }} className={ACTION_CLASS}>검토 대기로</button> : null}
+        {selectableStatuses().map((status) => <button key={status} type="button" disabled={saving} onClick={() => { void setStatus(ids, status); }} className={ACTION_CLASS}>{STATUS_LABELS[status]}</button>)}
+      </>
+    )}
     <button type="button" onClick={() => { if (!openPrintWindow(picked, board.performance)) toast(POPUP_BLOCKED, { type: "error" }); }} className={ACTION_CLASS}>인쇄 · PDF</button>
     {filters.work === "DONE" ? <button type="button" onClick={() => openContacts(picked)} className={`${ACTION_CLASS} bg-brand hover:bg-brand-strong`}>연락처 모아보기</button> : null}
   </>;
