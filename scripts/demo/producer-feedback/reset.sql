@@ -41,7 +41,11 @@ where (reference_type = 'SUBMISSION_PHOTO'
    or (reference_type = 'SUBMISSION_POSTER'
        and reference_id in (select id from submissions where audition_id = 980000))
    or (reference_type = 'PERFORMANCE_POSTER' and reference_id = 980000)
-   or file_id between 990011 and 992333;
+   or file_id in (
+       select id
+       from file_assets
+       where object_key like 'private/actor-photos/demo/producer-feedback/%'
+   );
 
 delete from submissions
 where audition_id = 980000;
@@ -87,6 +91,5 @@ where id = 980000;
 
 delete from file_assets
 where id = 980000
-   or id between 990011 and 992333
    or object_key like 'private/actor-photos/demo/producer-feedback/%'
    or object_key = 'public/demo/producer-feedback/poster.jpg';
