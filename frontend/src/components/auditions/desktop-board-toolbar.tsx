@@ -2,6 +2,7 @@
 
 import {
   activeDetailFilterCount,
+  defaultStatusForWork,
   type StatusFilter,
   type WorkMode,
 } from "@/features/auditions/filters";
@@ -24,7 +25,7 @@ export function DesktopBoardToolbar({ onOpenFilter }: { onOpenFilter: () => void
     setFilters((current) => ({
       ...current,
       work,
-      status: "ALL",
+      status: defaultStatusForWork(work),
     }));
   };
 
@@ -93,7 +94,7 @@ export function DesktopBoardToolbar({ onOpenFilter }: { onOpenFilter: () => void
             : "border-brand-line bg-brand-soft text-brand hover:border-brand hover:bg-brand-soft-strong"
         }`}
       >
-        배역 조건 불일치만
+        {filters.mismatchOnly ? "✓ 배역 조건 불일치 적용 중" : "배역 조건 불일치만"}
       </button>
       <button
         type="button"

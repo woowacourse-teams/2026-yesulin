@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import Link from "next/link";
 import { getAuditionSubmission } from "@/features/auditions/api";
+import type { AuditionListRouteState } from "@/features/auditions/filters";
 import { auditionRoutes } from "@/features/auditions/routes";
 import type {
   SubmissionId,
@@ -23,10 +24,12 @@ export function ApplicantReview({
   roleId,
   submissionId,
   round,
+  listState,
 }: {
   roleId: RoleId;
   submissionId: SubmissionId;
   round: RoundNumber;
+  listState: AuditionListRouteState;
 }) {
   const [applied, setApplied] = useState<AuditionBoardResponse | null>(null);
   const load = useCallback(
@@ -40,7 +43,7 @@ export function ApplicantReview({
   );
   const board = applied ?? data;
   const applicant = board?.applicants.find((candidate) => candidate.id === submissionId) ?? null;
-  const listHref = auditionRoutes.role(roleId, round);
+  const listHref = auditionRoutes.role(roleId, round, listState);
 
   return (
     <>
@@ -104,6 +107,7 @@ export function ApplicantReview({
                 board={board}
                 applicant={applicant}
                 onBoardChange={setApplied}
+                listState={listState}
               />
             </div>
           </>

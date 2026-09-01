@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ApplicantReview } from "@/components/auditions/applicant-review";
+import { listRouteStateFromRoute } from "@/features/auditions/filters";
 import {
   submissionId,
   isSubmissionId,
@@ -18,7 +19,7 @@ export default async function ApplicantReviewPage({
   searchParams,
 }: {
   params: Promise<{ roleId: string; submissionId: string }>;
-  searchParams: Promise<{ round?: string }>;
+  searchParams: Promise<{ round?: string; work?: string; status?: string; view?: string }>;
 }) {
   const route = await params;
   const query = await searchParams;
@@ -34,6 +35,7 @@ export default async function ApplicantReviewPage({
       roleId={roleId(route.roleId)}
       submissionId={submissionId(route.submissionId)}
       round={round}
+      listState={listRouteStateFromRoute(query)}
     />
   );
 }

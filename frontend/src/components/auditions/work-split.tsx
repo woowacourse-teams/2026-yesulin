@@ -1,6 +1,6 @@
 "use client";
 
-import type { WorkMode } from "@/features/auditions/filters";
+import { defaultStatusForWork, type WorkMode } from "@/features/auditions/filters";
 import { useBoard } from "./board-context";
 import { ScreeningCompletionModal } from "./screening-completion-modal";
 import { PrimaryButton } from "@/components/ui/controls";
@@ -34,7 +34,7 @@ export function WorkSplit() {
                 setFilters((current) => ({
                   ...current,
                   work: tab.mode,
-                  status: "ALL",
+                  status: defaultStatusForWork(tab.mode),
                 }));
               }}
               className={`mr-4 flex min-h-12 items-center gap-1.5 border-b-2 py-2 text-sm transition-colors sm:mr-6 lg:text-dense ${
