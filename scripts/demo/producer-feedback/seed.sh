@@ -369,6 +369,23 @@ SQL
   info "지원자 233명에게 성별별 영상 링크 연결 완료"
 }
 
+prioritize_role_matches() {
+  mysql_run <<'SQL'
+update submissions
+set submitted_at = timestampadd(
+    minute,
+    case
+        when gender = 'FEMALE' and age_at_recruitment_deadline between 20 and 35
+            then id - 981001
+        else 1000 + id - 981001
+    end,
+    '2026-08-20 09:00:00'
+)
+where id between 981001 and 981233;
+SQL
+  info "서연 배역 조건 일치 지원자가 먼저 보이도록 정렬 완료"
+}
+
 seed_demo() {
   local producer_count
   producer_count="$(printf 'select count(*) from members where id = 9001 and type = '\''PRODUCER'\'' and status = '\''ACTIVE'\'';\n' | mysql_run | tail -n 1 | tr -d '[:space:]')"
@@ -381,6 +398,7 @@ seed_demo() {
   upload_poster
   upload_applicant_photos
   assign_demo_videos
+  prioritize_role_matches
   info "데모 데이터 생성 완료"
   mysql_file "$VERIFY_SQL"
 }
