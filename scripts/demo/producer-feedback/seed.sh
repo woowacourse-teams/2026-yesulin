@@ -161,7 +161,7 @@ photo_label() {
 }
 
 upload_applicant_photos() {
-  local count=0 metadata_count=0 file base stem extension number kind slot numeric_number file_id submission_id applicant_id
+  local count=0 metadata_count=0 file base stem extension number kind slot numeric_number submission_id applicant_id
   local content_type size logical_key physical_key label gender age duplicate_suffix naming_mode=""
   shopt -s nullglob
   local files=("$APPLICANT_ASSET_DIR"/*)
@@ -212,7 +212,6 @@ upload_applicant_photos() {
 
     slot="$(photo_slot "$kind")"
     label="$(photo_label "$kind")"
-    file_id=$((990000 + numeric_number * 10 + slot))
     submission_id=$((981000 + numeric_number))
     applicant_id=$submission_id
     content_type="$(content_type_of "$file")"
@@ -238,10 +237,11 @@ set gender = coalesce(nullif('$gender', ''), gender),
 where id = $submission_id;
 
 insert into file_assets
-    (id, object_key, owner_id, original_filename, content_type, file_type, size, status)
+    (object_key, owner_id, original_filename, content_type, file_type, size, status)
 values
-    ($file_id, '$logical_key', $applicant_id, '$base', '$content_type', 'IMAGE', $size, 'READY')
+    ('$logical_key', $applicant_id, '$base', '$content_type', 'IMAGE', $size, 'READY')
 on duplicate key update
+    id = last_insert_id(id),
     object_key = values(object_key),
     owner_id = values(owner_id),
     original_filename = values(original_filename),
@@ -250,14 +250,16 @@ on duplicate key update
     size = values(size),
     status = values(status);
 
+set @demo_file_id = last_insert_id();
+
 insert into file_references (file_id, reference_type, reference_id)
-values ($file_id, 'SUBMISSION_PHOTO', $submission_id)
+values (@demo_file_id, 'SUBMISSION_PHOTO', $submission_id)
 on duplicate key update file_id = values(file_id);
 
 insert into submission_photo_requirement_answers
     (submission_id, answer_order, photo_requirement_id, requirement_description, file_id)
 values
-    ($submission_id, $((slot - 1)), 980001, '$label', $file_id)
+    ($submission_id, $((slot - 1)), 980001, '$label', @demo_file_id)
 on duplicate key update
     photo_requirement_id = values(photo_requirement_id),
     requirement_description = values(requirement_description),
@@ -270,13 +272,12 @@ SQL
   done
 
   if [[ "$naming_mode" == "metadata" && "$metadata_count" -gt 0 && "$metadata_count" -lt 233 ]]; then
-    local source_number target_file_id target_submission_id source_submission_id source_file source_extension
+    local source_number target_submission_id source_submission_id source_file source_extension
     local source_content_type source_size source_logical_key source_physical_key target_logical_key target_physical_key
     local copy_commands=$'set -eu\n' sql_commands=""
     for ((numeric_number = metadata_count + 1; numeric_number <= 233; numeric_number++)); do
       source_number=$(( (numeric_number - 1) % metadata_count + 1 ))
       source_submission_id=$((981000 + source_number))
-      target_file_id=$((990000 + numeric_number * 10 + 1))
       target_submission_id=$((981000 + numeric_number))
       source_file="${files[$((source_number - 1))]}"
       source_extension="${source_file##*.}"
@@ -300,10 +301,11 @@ set target.gender = source.gender,
 where target.id = $target_submission_id;
 
 insert into file_assets
-    (id, object_key, owner_id, original_filename, content_type, file_type, size, status)
+    (object_key, owner_id, original_filename, content_type, file_type, size, status)
 values
-    ($target_file_id, '$target_logical_key', $target_submission_id, '$(basename "$source_file")', '$source_content_type', 'IMAGE', $source_size, 'READY')
+    ('$target_logical_key', $target_submission_id, '$(basename "$source_file")', '$source_content_type', 'IMAGE', $source_size, 'READY')
 on duplicate key update
+    id = last_insert_id(id),
     object_key = values(object_key),
     owner_id = values(owner_id),
     original_filename = values(original_filename),
@@ -312,14 +314,16 @@ on duplicate key update
     size = values(size),
     status = values(status);
 
+set @demo_file_id = last_insert_id();
+
 insert into file_references (file_id, reference_type, reference_id)
-values ($target_file_id, 'SUBMISSION_PHOTO', $target_submission_id)
+values (@demo_file_id, 'SUBMISSION_PHOTO', $target_submission_id)
 on duplicate key update file_id = values(file_id);
 
 insert into submission_photo_requirement_answers
     (submission_id, answer_order, photo_requirement_id, requirement_description, file_id)
 values
-    ($target_submission_id, 0, 980001, '프로필 사진', $target_file_id)
+    ($target_submission_id, 0, 980001, '프로필 사진', @demo_file_id)
 on duplicate key update
     photo_requirement_id = values(photo_requirement_id),
     requirement_description = values(requirement_description),
