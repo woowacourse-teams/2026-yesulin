@@ -33,14 +33,15 @@ export function ApplicantReviewDecision({
   const [otherOpen, setOtherOpen] = useState(false);
   const [otherReason, setOtherReason] = useState(applicant.review.status === "ETC" ? applicant.review.memo : "");
   const toast = useToast();
-  const screeningCompleted = board.role.allRoundsClosed;
+  const reviewLocked = board.role.allRoundsClosed
+    || board.rounds.find((state) => state.round === board.round)?.closed === true;
   const index = board.applicants.findIndex((candidate) => candidate.id === applicant.id);
 
   const commit = async (
     patch: { status?: ReviewStatus; memo?: string; note?: string },
     success?: string,
   ) => {
-    if (screeningCompleted) return;
+    if (reviewLocked) return;
     setSaving(true);
     try {
       const next = await saveReview({
@@ -60,7 +61,7 @@ export function ApplicantReviewDecision({
   };
 
   const changeStatus = async (status: ReviewStatus) => {
-    if (screeningCompleted) return;
+    if (reviewLocked) return;
     const nextStatus = applicant.review.status === status ? "PENDING" : status;
     if (nextStatus === "ETC") { setOtherOpen(true); return; }
     setOtherOpen(false);
@@ -82,9 +83,9 @@ export function ApplicantReviewDecision({
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          {screeningCompleted ? (
+          {reviewLocked ? (
             <p className="rounded-control border border-border bg-surface px-3 py-2 text-sm text-muted">
-              종료된 전형은 결과를 변경할 수 없습니다.
+              마감된 전형은 결과를 변경할 수 없습니다.
             </p>
           ) : selectableStatuses().map((status) => {
             const active = applicant.review.status === status;
@@ -105,7 +106,7 @@ export function ApplicantReviewDecision({
           })}
         </div>
 
-        {otherOpen && !screeningCompleted ? <form onSubmit={(event) => { event.preventDefault(); const memo = otherReason.trim(); if (!memo) return; void commit({ status: "ETC", memo }, "기타로 저장했습니다.").then(() => setOtherOpen(false)); }} className="rounded-control border border-etc/30 bg-etc-bg p-3">
+        {otherOpen && !reviewLocked ? <form onSubmit={(event) => { event.preventDefault(); const memo = otherReason.trim(); if (!memo) return; void commit({ status: "ETC", memo }, "기타로 저장했습니다.").then(() => setOtherOpen(false)); }} className="rounded-control border border-etc/30 bg-etc-bg p-3">
           <label className="block text-sm font-semibold text-etc">기타 사유<input autoFocus required maxLength={255} value={otherReason} onChange={(event) => setOtherReason(event.target.value)} placeholder="예: 다른 배역으로 검토" className="mt-2 min-h-11 w-full rounded-control border border-border bg-card px-3 text-sm text-foreground outline-none focus:border-etc focus:ring-2 focus:ring-etc-bg" /></label>
           <div className="mt-2 flex justify-end gap-2"><button type="button" onClick={() => setOtherOpen(false)} className="min-h-9 rounded-control px-3 text-xs font-semibold text-muted-strong">취소</button><button type="submit" disabled={saving || !otherReason.trim()} className="min-h-9 rounded-control border border-etc bg-card px-3 text-xs font-semibold text-etc disabled:opacity-50">기타로 저장</button></div>
         </form> : null}
@@ -124,7 +125,7 @@ export function ApplicantReviewDecision({
         </span>
         <textarea
           value={note}
-          disabled={screeningCompleted || saving}
+          disabled={reviewLocked || saving}
           onChange={(event) => setNote(event.target.value)}
           onBlur={() => {
             if (note !== applicant.review.note) void commit({ note }, "내부 메모를 저장했습니다.");

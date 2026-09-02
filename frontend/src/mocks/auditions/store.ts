@@ -9,8 +9,6 @@ type MutableReview = { status: Review["status"]; memo: string; note: string };
 const reviews = new Map<string, MutableReview>();
 /** 마감된 (배역, 차수). 전형은 배역 단위로 독립 진행된다. */
 const closedRounds = new Set<string>();
-/** 명시적으로 종료한 배역별 전형. */
-const completedRoles = new Set<RoleId>();
 const submittedApplicants: MockApplicant[] = [];
 
 const reviewKey = (submission: SubmissionId, role: RoleId, round: RoundNumber) => `${submission}:${role}:${round}`;
@@ -18,9 +16,6 @@ const roundKey = (role: RoleId, round: RoundNumber) => `${role}:${round}`;
 
 for (const seed of SCREENING_STATE_SEEDS) {
   for (const round of seed.closedRounds) closedRounds.add(roundKey(seed.roleId, round));
-  if (roundNumbersForRole(seed.roleId).every((round) => seed.closedRounds.includes(round))) {
-    completedRoles.add(seed.roleId);
-  }
   for (const review of seed.reviews) {
     reviews.set(reviewKey(review.submissionId, seed.roleId, review.round), {
       status: review.status,
@@ -72,32 +67,60 @@ export function roundNumbersForRole(role: RoleId): readonly RoundNumber[] {
   return ROUND_NUMBERS;
 }
 
-/** 해당 차수에 심사할 대상. 이전 모든 차수에서 합격한 지원자만 다음 차수로 승격된다. */
+/** 해당 차수에 심사할 대상. 마감된 이전 차수에서 합격한 지원자만 다음 차수로 승격된다. */
 export function poolFor(role: RoleId, round: RoundNumber): readonly MockApplicant[] {
   if (round === 1) return applicantsOfRole(role);
 
   return applicantsOfRole(role).filter((applicant) => {
     for (let previous = 1; previous < round; previous += 1) {
-      if (reviewOf(applicant.id, role, previous as RoundNumber).status !== "PASS") return false;
+      const previousRound = previous as RoundNumber;
+      if (!isRoundClosed(role, previousRound)
+        || reviewOf(applicant.id, role, previousRound).status !== "PASS") return false;
     }
     return true;
   });
 }
 
-/** 아직 검토할 지원자가 있는 가장 이른 차수. 모두 검토했으면 마지막 차수를 반환한다. */
+/** 아직 마감하지 않은 가장 이른 차수. */
 export function activeRound(role: RoleId): RoundNumber {
   const rounds = roundNumbersForRole(role);
   for (const round of rounds) {
-    if (poolFor(role, round).some((applicant) => reviewOf(applicant.id, role, round).status === "PENDING")) {
-      return round;
-    }
+    if (!isRoundClosed(role, round)) return round;
   }
   return rounds.at(-1) ?? 1;
 }
 
 export const allRoundsClosed = (role: RoleId) =>
-  completedRoles.has(role);
+  roundNumbersForRole(role).every((round) => isRoundClosed(role, round));
 
-export const markScreeningCompleted = (role: RoleId) => {
-  completedRoles.add(role);
-};
+export function completeRound(role: RoleId, round: RoundNumber) {
+  if (isRoundClosed(role, round)) return completionResult(role, round, 0, 0);
+
+  const counts = (() => {
+    const applicants = poolFor(role, round);
+    const pass = applicants.filter((applicant) => reviewOf(applicant.id, role, round).status === "PASS").length;
+    const pending = applicants.filter((applicant) => reviewOf(applicant.id, role, round).status === "PENDING").length;
+    return { pass, pending };
+  })();
+  markRoundClosed(role, round);
+
+  const rounds = roundNumbersForRole(role);
+  const currentIndex = rounds.indexOf(round);
+  for (const nextRound of rounds.slice(currentIndex + 1)) {
+    if (poolFor(role, nextRound).length > 0) break;
+    markRoundClosed(role, nextRound);
+  }
+  return completionResult(role, round, counts.pass, counts.pending);
+}
+
+function completionResult(role: RoleId, round: RoundNumber, acceptedCount: number, unselectedCount: number) {
+  const nextRound = roundNumbersForRole(role).find((candidate) => !isRoundClosed(role, candidate)) ?? null;
+  return {
+    round,
+    acceptedCount,
+    unselectedCount,
+    promotedCount: nextRound === null ? 0 : acceptedCount,
+    nextRound,
+    allRoundsClosed: nextRound === null,
+  };
+}

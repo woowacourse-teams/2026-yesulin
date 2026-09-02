@@ -225,10 +225,20 @@ export type ScreeningBoardResource = {
   readonly rounds: readonly {
     readonly round: number;
     readonly name: string;
+    readonly closed: boolean;
     readonly counts: ScreeningCountsResource;
     readonly progress: { readonly done: number; readonly total: number; readonly percent: number };
   }[];
   readonly submissions: readonly ScreeningSubmissionResource[];
+};
+
+export type ScreeningCompletionResource = {
+  readonly round: number;
+  readonly acceptedCount: number;
+  readonly unselectedCount: number;
+  readonly promotedCount: number;
+  readonly nextRound: number | null;
+  readonly allRoundsClosed: boolean;
 };
 
 export type ScreeningCountsResource = {

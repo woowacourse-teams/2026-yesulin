@@ -53,7 +53,7 @@ function FocusReviewContent({
   readonly next: Applicant | undefined;
   readonly onMove: (candidate: Applicant | undefined) => void;
 }) {
-  const { filters, saving, screeningCompleted, reviewFocused, patchReview, openApplicant } = useBoard();
+  const { filters, saving, reviewLocked, reviewFocused, patchReview, openApplicant } = useBoard();
   const [otherOpen, setOtherOpen] = useState(false);
   const [otherReason, setOtherReason] = useState(
     applicant.review.status === "ETC" ? applicant.review.memo : "",
@@ -67,13 +67,13 @@ function FocusReviewContent({
   }, [index, onMove]);
 
   const saveDecision = useCallback(async (status: ReviewStatus, memo?: string) => {
-    if (screeningCompleted) return;
+    if (reviewLocked) return;
     const nextBoard = await reviewFocused(applicant.id, status, memo);
     if (!nextBoard) return;
 
     // 검토 대기 목록에서는 결과를 저장한 지원자가 빠지므로 같은 자리의 다음 사람을 연다.
     if (filters.work === "PENDING") moveAfterSaving(nextBoard.applicants);
-  }, [applicant, filters.work, moveAfterSaving, reviewFocused, screeningCompleted]);
+  }, [applicant, filters.work, moveAfterSaving, reviewFocused, reviewLocked]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -84,7 +84,7 @@ function FocusReviewContent({
         || target instanceof HTMLSelectElement
         || (target instanceof HTMLElement && target.isContentEditable)
       ) return;
-      if (event.key.toLowerCase() === "a" && applicant && !saving && !screeningCompleted) {
+      if (event.key.toLowerCase() === "a" && applicant && !saving && !reviewLocked) {
         event.preventDefault();
         void saveDecision("PASS");
       }
@@ -95,13 +95,13 @@ function FocusReviewContent({
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [applicant, next, onMove, saveDecision, saving, screeningCompleted]);
+  }, [applicant, next, onMove, saveDecision, saving, reviewLocked]);
 
   const careers = featuredCareers(applicant.career);
   const links = applicant.links
     .map((link) => ({ original: link, safe: safeExternalUrl(link) }))
     .filter((link): link is { readonly original: string; readonly safe: string } => link.safe !== null);
-  const canPass = !screeningCompleted && applicant.review.status !== "PASS";
+  const canPass = !reviewLocked && applicant.review.status !== "PASS";
 
   return (
     <section aria-label="한 명씩 심사" className="mx-auto max-w-6xl">
@@ -163,7 +163,7 @@ function FocusReviewContent({
           <h3 className="text-lg font-bold text-foreground">심사 결정</h3>
           <p className="mt-1 text-sm leading-6 text-muted">합격을 저장하면 다음 지원자로 자동 이동합니다.</p>
 
-          {screeningCompleted ? <p className="mt-4 rounded-control border border-border bg-surface px-3 py-2 text-sm text-muted">종료된 전형은 결과를 변경할 수 없습니다.</p> : (
+          {reviewLocked ? <p className="mt-4 rounded-control border border-border bg-surface px-3 py-2 text-sm text-muted">마감된 전형은 결과를 변경할 수 없습니다.</p> : (
             <>
               <PrimaryButton disabled={saving || !canPass} onClick={() => void saveDecision("PASS")} className="mt-5 w-full">
                 {applicant.review.status === "PASS" ? "합격 처리됨" : saving ? "저장 중…" : "합격 · 다음 지원자"}
@@ -185,7 +185,7 @@ function FocusReviewContent({
             </>
           )}
 
-          {otherOpen && !screeningCompleted ? (
+          {otherOpen && !reviewLocked ? (
             <form onSubmit={(event) => { event.preventDefault(); const memo = otherReason.trim(); if (memo) void saveDecision("ETC", memo); }} className="mt-3 rounded-control border border-etc/30 bg-etc-bg p-3">
               <label className="block text-sm font-semibold text-etc">기타 사유<input autoFocus required maxLength={255} value={otherReason} onChange={(event) => setOtherReason(event.target.value)} placeholder="예: 다른 배역으로 검토" className="mt-2 min-h-11 w-full rounded-control border border-border bg-card px-3 text-sm text-foreground outline-none focus:border-etc focus:ring-2 focus:ring-etc-bg" /></label>
               <div className="mt-2 flex justify-end gap-2"><button type="button" onClick={() => setOtherOpen(false)} className="min-h-10 px-3 text-sm font-semibold text-muted">취소</button><button type="submit" disabled={saving || !otherReason.trim()} className="min-h-10 rounded-control border border-etc bg-card px-3 text-sm font-semibold text-etc disabled:opacity-50">기타로 저장</button></div>
@@ -196,7 +196,7 @@ function FocusReviewContent({
             <button type="button" onClick={() => setNoteOpen((open) => !open)} className="min-h-10 text-sm font-semibold text-muted-strong hover:text-brand">
               {noteOpen ? "내부 메모 닫기" : "내부 메모 남기기"}
             </button>
-            {noteOpen ? <div className="mt-2"><textarea value={note} onChange={(event) => setNote(event.target.value)} maxLength={255} placeholder="예: 발성 좋음, 앙상블로도 고려 가능" className="min-h-24 w-full resize-none rounded-control border border-border bg-card px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand-soft" /><SecondaryButton disabled={saving || note === applicant.review.note} onClick={() => void patchReview(applicant.id, { note })} className="mt-2 min-h-10 w-full">메모 저장</SecondaryButton></div> : null}
+            {noteOpen ? <div className="mt-2"><textarea disabled={reviewLocked} value={note} onChange={(event) => setNote(event.target.value)} maxLength={255} placeholder="예: 발성 좋음, 앙상블로도 고려 가능" className="min-h-24 w-full resize-none rounded-control border border-border bg-card px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand-soft disabled:bg-surface" /><SecondaryButton disabled={reviewLocked || saving || note === applicant.review.note} onClick={() => void patchReview(applicant.id, { note })} className="mt-2 min-h-10 w-full">메모 저장</SecondaryButton></div> : null}
           </div>
 
           <nav aria-label="한 명씩 심사 이동" className="mt-4 flex gap-2 border-t border-border-soft pt-4">

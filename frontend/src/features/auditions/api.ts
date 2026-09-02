@@ -127,10 +127,14 @@ export async function completeScreening(
   round: RoundNumber,
   condition: ScreeningSearchCondition = {},
 ) {
-  await request<void>(`/v1/audition-roles/${body.roleId}/screening/completion`, {
-    method: "PATCH",
-  });
-  return getAuditionBoard(body.roleId, round, condition);
+  const completion = await request<import("./backend-resources").ScreeningCompletionResource>(
+    `/v1/audition-roles/${body.roleId}/screening-rounds/${round}/completion`,
+    {
+      method: "PATCH",
+    },
+  );
+  const targetRound = (completion.nextRound ?? round) as RoundNumber;
+  return { completion, board: await getAuditionBoard(body.roleId, targetRound, condition) };
 }
 
 export async function createPerformance(body: CreatePerformanceRequest, poster: File) {

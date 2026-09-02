@@ -117,6 +117,14 @@ export type RoleSummary = {
   readonly counts: ReviewCounts;
 };
 
+export type RoundState = {
+  readonly round: RoundNumber;
+  readonly name: string;
+  readonly closed: boolean;
+  readonly counts: ReviewCounts;
+  readonly progress: ReviewProgress;
+};
+
 export type ApplicantPhoto = {
   readonly label: string;
   readonly url: string;
@@ -174,13 +182,6 @@ export type ApplicantQuestion = {
 export type ApplicantVideo = {
   readonly label: string;
   readonly url: string;
-};
-
-export type RoundState = {
-  readonly round: RoundNumber;
-  readonly name: string;
-  readonly counts: ReviewCounts;
-  readonly progress: ReviewProgress;
 };
 
 export type PerformanceRef = {

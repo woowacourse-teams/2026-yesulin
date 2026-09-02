@@ -46,6 +46,8 @@ export function BoardWorkspace({
   onRoundChange: (round: RoundNumber) => void;
 }) {
   const screeningCompleted = board.role.allRoundsClosed;
+  const currentRoundClosed = board.rounds.find((state) => state.round === board.round)?.closed ?? false;
+  const reviewLocked = screeningCompleted || currentRoundClosed;
   const [selected, setSelected] = useState<ReadonlySet<SubmissionId>>(new Set());
   const [contactList, setContactList] = useState<readonly Applicant[] | null>(null);
   const [completionPrompt, setCompletionPrompt] = useState<"auto" | "manual" | null>(null);
@@ -117,15 +119,8 @@ export function BoardWorkspace({
   const advanceIfDone = useCallback((next: AuditionBoardResponse) => {
     const state = next.rounds.find((candidate) => candidate.round === next.round);
     if (!state || state.counts.pending > 0) return;
-    const nextRound = next.rounds.find((candidate) => candidate.round === next.round + 1);
-    if (!nextRound) {
-      setCompletionPrompt("auto");
-      return;
-    }
-    setFilters((current) => ({ ...current, work: "PENDING", status: "ALL" }));
-    toast(`${nextRound.name}로 합격자가 자동 승격되었습니다`, { type: "success" });
-    onRoundChange(nextRound.round);
-  }, [onRoundChange, setFilters, toast]);
+    setCompletionPrompt("auto");
+  }, []);
 
   const applyBulkStatus = useCallback(
     async (ids: readonly SubmissionId[], status: ReviewStatus, memo?: string) => {
@@ -143,14 +138,17 @@ export function BoardWorkspace({
   );
 
   const setStatus = useCallback(async (ids: readonly SubmissionId[], status: ReviewStatus) => {
-    if (ids.length === 0) return;
+    if (ids.length === 0 || reviewLocked) return;
     if (status === "ETC") { setMemoRequest({ kind: "BULK", ids }); return; }
     await applyBulkStatus(ids, status);
-  }, [applyBulkStatus]);
+  }, [applyBulkStatus, reviewLocked]);
 
   const reviewFocused = useCallback(
-    (id: SubmissionId, status: ReviewStatus, memo?: string) => applyBulkStatus([id], status, memo),
-    [applyBulkStatus],
+    (id: SubmissionId, status: ReviewStatus, memo?: string) => {
+      if (reviewLocked) return Promise.resolve(null);
+      return applyBulkStatus([id], status, memo);
+    },
+    [applyBulkStatus, reviewLocked],
   );
 
   /**
@@ -198,14 +196,32 @@ export function BoardWorkspace({
   );
 
   const completeCurrentScreening = useCallback(async () => {
-    const next = await run(
-      () => completeScreening({ roleId: board.role.id }, board.round, searchCondition),
-      "전형을 종료하지 못했습니다.",
-    );
-    if (!next) return false;
-    toast("전형이 종료되었습니다", { type: "success" });
-    return true;
-  }, [board.role.id, board.round, run, searchCondition, toast]);
+    setSaving(true);
+    try {
+      const { completion, board: next } = await completeScreening(
+        { roleId: board.role.id }, board.round, searchCondition,
+      );
+      onBoardChange(next);
+      if (completion.nextRound !== null) {
+        setFilters((current) => ({ ...current, work: "PENDING", status: "ALL" }));
+        toast(`${completion.promotedCount}명이 다음 차수 검토 대기로 승격되었습니다`, { type: "success" });
+        onRoundChange(completion.nextRound as RoundNumber);
+      } else {
+        setFilters((current) => ({ ...current, work: "DONE", status: defaultStatusForWork("DONE") }));
+        toast(
+          completion.acceptedCount > 0 ? `전형을 마감했습니다 · 최종 합격 ${completion.acceptedCount}명` : "합격자 없이 전형을 마감했습니다",
+          { type: "success" },
+        );
+      }
+      return true;
+    } catch (cause: unknown) {
+      console.error("[전형 마감 실패]", cause);
+      toast(errorMessage(cause, "전형을 마감하지 못했습니다."), { type: "error" });
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  }, [board.role.id, board.round, onBoardChange, onRoundChange, searchCondition, setFilters, toast]);
 
   const value: BoardContextValue = {
     board,
@@ -214,6 +230,7 @@ export function BoardWorkspace({
     selected,
     saving,
     screeningCompleted,
+    reviewLocked,
     setFilters,
     goToRound: onRoundChange,
     toggleSelected,

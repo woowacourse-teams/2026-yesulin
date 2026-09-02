@@ -18,6 +18,8 @@ export type BoardContextValue = {
   readonly selected: ReadonlySet<SubmissionId>;
   readonly saving: boolean;
   readonly screeningCompleted: boolean;
+  /** 현재 차수가 마감됐거나 배역 전체 전형이 종료돼 결과를 바꿀 수 없는 상태다. */
+  readonly reviewLocked: boolean;
   readonly setFilters: (update: (current: AuditionFilters) => AuditionFilters) => void;
   readonly goToRound: (round: RoundNumber) => void;
   readonly toggleSelected: (id: SubmissionId) => void;

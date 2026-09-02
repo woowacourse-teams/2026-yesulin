@@ -1,5 +1,5 @@
 import type { Applicant, PerformanceRef, RoundNumber } from "./types";
-import { ageText, genderText, ROUND_LABELS, statusText } from "./labels";
+import { ageText, ROUND_LABELS } from "./labels";
 import { ROUND_NUMBERS } from "./types";
 import { applicantEducationText } from "./education-text";
 
@@ -21,29 +21,33 @@ const PRINT_COLOR_TOKENS = [
 
 const PRINT_STYLE = `
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Pretendard Variable',Pretendard,sans-serif;color:var(--ink);padding:24px}
-.pp-page{max-width:760px;margin:0 auto;padding-bottom:24px}
-.pp-page+.pp-page{page-break-before:always;padding-top:8px}
-.pp-head{display:flex;gap:20px;padding-bottom:16px;border-bottom:2px solid var(--ink);margin-bottom:16px}
-.pp-photo{width:130px;height:173px;border-radius:6px;overflow:hidden;background:var(--line-soft);flex-shrink:0}
+@page{size:A4;margin:0}
+body{font-family:'Pretendard Variable',Pretendard,'Apple SD Gothic Neo','Malgun Gothic',Arial,sans-serif;color:var(--ink);background:#eef1f5;padding:24px}
+.pp-page{width:210mm;min-height:297mm;margin:0 auto 24px;padding:14mm 12mm;background:#fff}
+.pp-head{display:flex;gap:22px;padding-bottom:16px;border-bottom:2px solid var(--ink);margin-bottom:16px}
+.pp-photo{width:180px;height:240px;border-radius:6px;overflow:hidden;background:var(--line-soft);flex-shrink:0}
 .pp-photo img{width:100%;height:100%;object-fit:cover;object-position:center 18%}
-.pp-name{font-size:20px;font-weight:700;letter-spacing:-.02em;display:flex;align-items:center;gap:8px}
-.pp-role{font-size:13px;color:var(--ink-60);margin:4px 0 12px}
-.pp-badge{font-size:12px;font-weight:600;padding:4px 8px;border-radius:99px;border:1px solid currentColor}
-.s-PASS{color:var(--pass)}.s-FAIL{color:var(--fail)}.s-ETC{color:var(--etc)}.s-PENDING{color:var(--pending)}
-.pp-facts{display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;font-size:12px}
-.pp-facts div{display:flex;gap:8px}
-.pp-facts dt{color:var(--ink-20);width:64px;flex-shrink:0}
+.pp-photo-empty{display:grid;width:100%;height:100%;place-items:center;color:var(--ink-20);font-size:12px}
+.pp-name{font-size:24px;font-weight:700;letter-spacing:-.02em}
+.pp-role{font-size:14px;color:var(--ink-60);margin:5px 0 16px}
+.pp-facts{display:grid;gap:10px;font-size:13px}
+.pp-facts div{display:grid;grid-template-columns:74px minmax(0,1fr);gap:10px}
+.pp-facts dt{color:var(--ink-20);font-weight:600}
+.pp-facts dd{min-width:0;overflow-wrap:anywhere}
 .pp-sec{margin-bottom:16px}
 .pp-sec h3{font-size:12px;font-weight:700;color:var(--ink-20);letter-spacing:.06em;text-transform:uppercase;
   margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--line)}
-.pp-sec ul{list-style:none;font-size:13px;line-height:1.9}
-.pp-sec ul b{font-variant-numeric:tabular-nums;margin-right:8px;color:var(--ink-60)}
 .pp-empty{font-size:12px;color:var(--ink-20)}
-.pp-essay{font-size:12px;line-height:1.75}
+.pp-essay{font-size:13px;line-height:1.8;white-space:pre-wrap;overflow-wrap:anywhere}
 .pp-tbl{width:100%;border-collapse:collapse;font-size:12px}
-.pp-tbl th{text-align:left;color:var(--ink-20);font-weight:600;padding:4px 8px;border-bottom:1px solid var(--line)}
-.pp-tbl td{padding:8px;border-bottom:1px solid var(--line-soft)}
+.pp-tbl th{text-align:left;color:var(--ink-20);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line);background:var(--line-soft)}
+.pp-tbl td{padding:8px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+.pp-tbl th:first-child,.pp-tbl td:first-child{width:72px;font-variant-numeric:tabular-nums}
+.pp-contact{display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;font-size:12px}
+.pp-contact div{display:grid;grid-template-columns:52px minmax(0,1fr);gap:8px}
+.pp-contact dt{color:var(--ink-20);font-weight:600}
+.pp-contact dd{min-width:0;overflow-wrap:anywhere}
+.pp-text-sec{break-inside:avoid;page-break-inside:avoid}
 .pp-memo-sec{break-inside:avoid;page-break-inside:avoid}
 .pp-note-item{font-size:12px;line-height:1.7;padding:8px 0;border-bottom:1px dashed var(--line)}
 .pp-note-item:last-child{border-bottom:none}
@@ -51,7 +55,8 @@ body{font-family:'Pretendard Variable',Pretendard,sans-serif;color:var(--ink);pa
 .pp-writelines{height:150px;background-image:repeating-linear-gradient(
   to bottom,transparent,transparent 23px,var(--ink-20) 23px,var(--ink-20) 24px);background-position:0 8px}
 .pp-foot{font-size:12px;color:var(--ink-20);text-align:right;margin-top:16px}
-@media print{body{padding:0}.pp-page{max-width:none;padding:14mm 12mm}}
+@media print{body{padding:0;background:#fff}.pp-page{width:auto;min-height:297mm;margin:0;padding:14mm 12mm;break-after:page;page-break-after:always}.pp-page:last-child{break-after:auto;page-break-after:auto}}
+@media(max-width:640px){body{padding:0}.pp-page{width:100%;min-height:0;margin:0;padding:20px}.pp-head{gap:14px}.pp-photo{width:120px;height:160px}.pp-name{font-size:20px}.pp-contact{grid-template-columns:1fr}}
 `;
 
 function printColorVariables() {
@@ -68,50 +73,38 @@ function reviewRows(applicant: Applicant) {
 }
 
 function printableCard(applicant: Applicant, performance: PerformanceRef) {
-  const rows = reviewRows(applicant);
-  const latest = rows.at(-1);
-  const notes = rows.filter((entry) => entry.review.note.trim());
+  const notes = reviewRows(applicant).filter((entry) => entry.review.note.trim());
+  const representativePhoto = applicant.photos[0];
+  const photo = representativePhoto
+    ? `<img src="${escapeHtml(representativePhoto.url)}" alt="">`
+    : '<span class="pp-photo-empty">사진 없음</span>';
 
   return `<section class="pp-page">
   <header class="pp-head">
-    <div class="pp-photo"><img src="${escapeHtml(applicant.photos[0]?.url ?? "")}" alt=""></div>
+    <div class="pp-photo">${photo}</div>
     <div>
-      <div class="pp-name">${escapeHtml(applicant.name)}
-        ${latest ? `<span class="pp-badge s-${latest.review.status}">${escapeHtml(statusText(latest.review.status, latest.review.memo))}</span>` : ""}</div>
+      <div class="pp-name">${escapeHtml(applicant.name)}</div>
       <div class="pp-role">${escapeHtml(applicant.roleName)} 지원</div>
       <dl class="pp-facts">
-        <div><dt>성별·나이</dt><dd>${genderText(applicant.gender)} · ${ageText(applicant.age)}</dd></div>
-        <div><dt>신장/체중</dt><dd>${printMeasurement(applicant.height, "cm")} / ${printMeasurement(applicant.weight, "kg")}</dd></div>
-        <div><dt>생년월</dt><dd>${escapeHtml(applicant.birth)}</dd></div>
-        <div><dt>학력</dt><dd>${escapeHtml(applicantEducationText(applicant))}</dd></div>
-        <div><dt>연락처</dt><dd>${escapeHtml(applicant.phone)}</dd></div>
-        <div><dt>이메일</dt><dd>${escapeHtml(applicant.email)}</dd></div>
-        <div><dt>접수</dt><dd>${escapeHtml(applicant.submittedAt)}</dd></div>
-        <div><dt>제출 자료</dt><dd>사진 ${applicant.photos.length}장${applicant.videos.length > 0 ? ` · 영상 ${applicant.videos.length}개` : ""}</dd></div>
+        <div><dt>키·나이</dt><dd>${printMeasurement(applicant.height, "cm")} · ${ageText(applicant.age)}</dd></div>
+        <div><dt>학교/학과</dt><dd>${escapeHtml(applicantEducationText(applicant))}</dd></div>
+        <div><dt>SNS</dt><dd>${applicant.links.length > 0 ? applicant.links.map(escapeHtml).join("<br>") : "미등록"}</dd></div>
       </dl>
     </div>
   </header>
-  <section class="pp-sec"><h3>자기소개서</h3><p class="pp-essay">${escapeHtml(applicant.coverLetter)}</p></section>
-  ${applicant.questions.map((question) => `<section class="pp-sec"><h3>${escapeHtml(question.question)}</h3><p class="pp-essay">${escapeHtml(question.answer)}</p></section>`).join("")}
   <section class="pp-sec"><h3>경력 ${applicant.career.length}건</h3>
     ${
       applicant.career.length > 0
-        ? `<ul>${applicant.career.map((entry) => `<li><b>${entry.year}</b> ${escapeHtml(entry.title)} — ${escapeHtml(entry.part)}</li>`).join("")}</ul>`
+        ? `<table class="pp-tbl"><thead><tr><th>연도</th><th>작품명</th><th>역할</th></tr></thead><tbody>${applicant.career
+            .map((entry) => `<tr><td>${entry.year}</td><td>${escapeHtml(entry.title)}</td><td>${escapeHtml(entry.part)}</td></tr>`)
+            .join("")}</tbody></table>`
         : '<p class="pp-empty">등록된 경력이 없습니다.</p>'
     }</section>
-  <section class="pp-sec"><h3>차수별 심사 기록</h3>
-    ${
-      rows.length > 0
-        ? `<table class="pp-tbl"><thead><tr><th>차수</th><th>결과</th></tr></thead><tbody>${rows
-            .map(
-              (entry) =>
-                `<tr><td>${ROUND_LABELS[entry.round]}</td><td>${escapeHtml(statusText(entry.review.status, entry.review.memo))}</td></tr>`,
-            )
-            .join("")}</tbody></table>`
-        : '<p class="pp-empty">아직 심사 기록이 없습니다.</p>'
-    }</section>
+  <section class="pp-sec"><h3>연락처</h3><dl class="pp-contact"><div><dt>전화</dt><dd>${escapeHtml(applicant.phone)}</dd></div><div><dt>이메일</dt><dd>${escapeHtml(applicant.email)}</dd></div></dl></section>
+  <section class="pp-sec pp-text-sec"><h3>자기소개서</h3><p class="pp-essay">${escapeHtml(applicant.coverLetter)}</p></section>
+  ${applicant.questions.map((question) => `<section class="pp-sec pp-text-sec"><h3>${escapeHtml(question.question)}</h3><p class="pp-essay">${escapeHtml(question.answer)}</p></section>`).join("")}
   <section class="pp-sec pp-memo-sec"><h3>메모</h3>
-    ${notes.map((entry) => `<div class="pp-note-item"><b>${ROUND_LABELS[entry.round]}</b> ${escapeHtml(entry.review.note)}</div>`).join("")}
+    ${notes.map((entry) => `<div class="pp-note-item"><b>${ROUND_LABELS[entry.round]} 메모</b> ${escapeHtml(entry.review.note)}</div>`).join("")}
     <div class="pp-writelines" aria-hidden="true"></div>
   </section>
   <footer class="pp-foot">예술in · ${escapeHtml(performance.title)} · 출력일 ${new Date().toLocaleDateString("ko-KR")}</footer>
