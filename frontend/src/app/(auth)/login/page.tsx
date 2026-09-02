@@ -7,8 +7,10 @@ import { authSuccessReturnTo, safeAuthReturnTo } from "@/features/auth/return-to
 
 export const metadata: Metadata = { title: { absolute: "예술in" } };
 
-export default async function LoginPage({ searchParams }: { readonly searchParams: Promise<{ returnTo?: string }> }) {
-  const { returnTo } = await searchParams;
+export default async function LoginPage({ searchParams }: {
+  readonly searchParams: Promise<{ returnTo?: string; socialLoginError?: string }>;
+}) {
+  const { returnTo, socialLoginError } = await searchParams;
   const safeReturnTo = safeAuthReturnTo(returnTo);
   const applicationContext = await applicationAuthContextForServer(safeReturnTo);
   return (
@@ -24,6 +26,11 @@ export default async function LoginPage({ searchParams }: { readonly searchParam
         : undefined}
     >
       {applicationContext ? <ApplicationAuthContextCard context={applicationContext} /> : null}
+      {socialLoginError === "true" ? (
+        <p role="alert" className="mb-5 rounded-control border border-fail/25 bg-fail-bg px-4 py-3 text-sm font-medium leading-6 text-foreground">
+          소셜 로그인을 완료하지 못했습니다. 다시 시도해 주세요.
+        </p>
+      ) : null}
       <LoginForm returnTo={authSuccessReturnTo(safeReturnTo)} applicationFlow={Boolean(applicationContext)} />
     </AuthShell>
   );

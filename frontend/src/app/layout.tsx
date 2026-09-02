@@ -2,13 +2,16 @@ import type { Metadata, Viewport } from "next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { AnalyticsConsentManager } from "@/components/analytics/analytics-consent-manager";
 import { AuthSessionProvider } from "@/components/auth/auth-session";
+import { SITE_URL } from "@/config/site";
 import "./globals.css";
 import "./interactions.css";
 
+const HOME_TITLE = "예술in | 뮤지컬·연극 오디션 지원 및 심사 관리";
+
 export const metadata: Metadata = {
-  metadataBase: new URL("https://yesulin.art"),
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: "예술in",
+    default: HOME_TITLE,
     template: "%s | 예술in",
   },
   description: "기획사/제작사와 배우를 연결하는 공연 지원 관리 서비스",
@@ -17,7 +20,7 @@ export const metadata: Metadata = {
     locale: "ko_KR",
     url: "/",
     siteName: "예술in",
-    title: "예술in",
+    title: HOME_TITLE,
     description: "기획사/제작사와 배우를 연결하는 공연 지원 관리 서비스",
     images: [{
       url: "/images/og-image.png",
@@ -28,7 +31,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "예술in",
+    title: HOME_TITLE,
     description: "기획사/제작사와 배우를 연결하는 공연 지원 관리 서비스",
     images: ["/images/og-image.png"],
   },

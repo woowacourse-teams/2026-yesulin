@@ -81,6 +81,7 @@ yesulin:
     enabled: ${SOCIAL_LOGIN_ENABLED:true}
     redirect-uri: ${SOCIAL_LOGIN_REDIRECT_URI:}
     success-redirect: ${SOCIAL_LOGIN_SUCCESS_REDIRECT:/}
+    failure-redirect: ${SOCIAL_LOGIN_FAILURE_REDIRECT:}
     providers:
       kakao:
         issuer: https://kauth.kakao.com

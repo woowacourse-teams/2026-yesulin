@@ -11,6 +11,7 @@ import org.springframework.context.annotation.Import;
         "spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.flyway.enabled=false",
         "yesulin.social-login.enabled=true",
+        "yesulin.social-login.failure-redirect=https://yesulin.art/login?socialLoginError=true",
         "yesulin.social-login.providers.kakao.client-id=kakao-id",
         "yesulin.social-login.providers.kakao.client-secret=kakao-secret",
         "yesulin.social-login.providers.naver.client-id=naver-id",

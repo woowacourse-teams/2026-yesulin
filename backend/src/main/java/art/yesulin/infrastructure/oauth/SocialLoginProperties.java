@@ -9,6 +9,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record SocialLoginProperties(
         boolean enabled,
         String redirectUri,
+        URI failureRedirect,
         Map<SocialProvider, Provider> providers
 ) {
 
