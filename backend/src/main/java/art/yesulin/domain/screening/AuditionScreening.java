@@ -8,9 +8,12 @@ import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.audition.schedule.ScreeningStage;
 import art.yesulin.domain.submission.Submission;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public final class AuditionScreening {
@@ -19,7 +22,7 @@ public final class AuditionScreening {
     private final List<Submission> submissions;
     private final List<ScreeningStage> stages;
     private final ScreeningReviews reviews;
-    private final boolean completed;
+    private final Set<Long> completedStageIds;
 
     public AuditionScreening(
             long auditionRoleId,
@@ -27,7 +30,7 @@ public final class AuditionScreening {
             List<ScreeningStage> stages,
             List<ScreeningReview> reviews
     ) {
-        this(auditionRoleId, submissions, stages, reviews, false);
+        this(auditionRoleId, submissions, stages, reviews, List.of());
     }
 
     public AuditionScreening(
@@ -35,13 +38,13 @@ public final class AuditionScreening {
             List<Submission> submissions,
             List<ScreeningStage> stages,
             List<ScreeningReview> reviews,
-            boolean completed
+            List<ScreeningCompletion> completions
     ) {
         this.auditionRoleId = requirePositive(auditionRoleId, "공고 배역 ID는 1 이상이어야 합니다.");
         this.submissions = List.copyOf(Objects.requireNonNull(submissions));
         this.stages = List.copyOf(Objects.requireNonNull(stages));
         this.reviews = new ScreeningReviews(this.auditionRoleId, reviews);
-        this.completed = completed;
+        this.completedStageIds = completedStageIds(completions);
         if (stages.isEmpty()) {
             throw new IllegalArgumentException("심사 전형은 한 개 이상이어야 합니다.");
         }
@@ -49,7 +52,7 @@ public final class AuditionScreening {
 
     public List<Submission> applicantsFor(ScreeningRound round) {
         ensureExistingRound(round);
-        return submissions.stream().filter(submission -> isEligible(submission.getSubmissionId(), round)).toList();
+        return eligibleApplicantsFor(round, completedStageIds);
     }
 
     public List<ScreeningReview> review(
@@ -57,38 +60,52 @@ public final class AuditionScreening {
             ScreeningRound round,
             ScreeningReviewChange change
     ) {
-        if (completed) {
-            throw new BusinessException(INVALID_REVIEW, "종료된 전형은 수정할 수 없습니다.");
+        if (isRoundClosed(round)) {
+            throw new BusinessException(INVALID_REVIEW, "마감된 전형은 수정할 수 없습니다.");
         }
         ensureReviewable(submissionIds, round);
         return reviews.apply(submissionIds, stageId(round), change);
     }
 
-    public Optional<ScreeningCompletion> complete(Instant completedAt) {
-        if (completed) {
+    /**
+     * 현재 차수를 마감한다. 미선택 지원자는 PENDING으로 보존하고 PASS만 다음 차수 대상으로 승격한다.
+     * 다음 차수에 대상이 없으면 그 이후 빈 차수도 함께 마감해 0명 합격 마감이 전형 종료로 이어지게 한다.
+     */
+    public Optional<Completion> complete(ScreeningRound round, Instant completedAt) {
+        ensureExistingRound(round);
+        if (isRoundClosed(round)) {
             return Optional.empty();
         }
-        for (int value = 1; value <= stages.size(); value++) {
-            if (countsOf(new ScreeningRound(value)).pending() > 0) {
-                throw new BusinessException(
-                        ScreeningReviewErrorCode.ROUND_NOT_READY, "모든 차수의 지원자 검토를 마친 뒤 전형을 종료할 수 있습니다."
-                );
-            }
+        if (round.value() != activeRound().value()) {
+            throw new BusinessException(
+                    ScreeningReviewErrorCode.ROUND_NOT_READY, "현재 진행 중인 전형만 마감할 수 있습니다."
+            );
         }
-        return Optional.of(new ScreeningCompletion(auditionRoleId, completedAt));
+
+        Counts counts = countsOf(round);
+        Set<Long> closingStageIds = completedStageIds;
+        List<ScreeningCompletion> completions = new ArrayList<>();
+        close(round, completedAt, closingStageIds, completions);
+
+        for (int value = round.value() + 1; value <= stages.size(); value++) {
+            ScreeningRound nextRound = new ScreeningRound(value);
+            if (!eligibleApplicantsFor(nextRound, closingStageIds).isEmpty()) {
+                break;
+            }
+            close(nextRound, completedAt, closingStageIds, completions);
+        }
+
+        boolean allRoundsClosed = closingStageIds.size() == stages.size();
+        Integer nextRound = allRoundsClosed ? null : round.value() + 1;
+        return Optional.of(new Completion(
+                List.copyOf(completions), counts.pass(), counts.pending(),
+                nextRound == null ? 0 : counts.pass(), nextRound, allRoundsClosed
+        ));
     }
 
     public boolean isEligible(UUID submissionId, ScreeningRound round) {
         ensureExistingRound(round);
-        if (submissions.stream().noneMatch(submission -> submission.getSubmissionId().equals(submissionId))) {
-            return false;
-        }
-        for (int previous = 1; previous < round.value(); previous++) {
-            if (statusOf(submissionId, new ScreeningRound(previous)) != ScreeningReviewStatus.PASS) {
-                return false;
-            }
-        }
-        return true;
+        return isEligibleInCurrentScreening(submissionId, round, completedStageIds);
     }
 
     public Optional<ScreeningReview> reviewOf(UUID submissionId, ScreeningRound round) {
@@ -110,7 +127,7 @@ public final class AuditionScreening {
     public ScreeningRound activeRound() {
         for (int value = 1; value <= stages.size(); value++) {
             ScreeningRound round = new ScreeningRound(value);
-            if (countsOf(round).pending() > 0) {
+            if (!isRoundClosed(round)) {
                 return round;
             }
         }
@@ -130,7 +147,11 @@ public final class AuditionScreening {
     }
 
     public boolean isCompleted() {
-        return completed;
+        return completedStageIds.size() == stages.size();
+    }
+
+    public boolean isRoundClosed(ScreeningRound round) {
+        return completedStageIds.contains(stageId(round));
     }
 
     private void ensureReviewable(List<UUID> submissionIds, ScreeningRound round) {
@@ -142,12 +163,53 @@ public final class AuditionScreening {
         }
     }
 
+    private List<Submission> eligibleApplicantsFor(ScreeningRound round, Set<Long> closedStageIds) {
+        return submissions.stream()
+                .filter(submission -> isEligibleInCurrentScreening(submission.getSubmissionId(), round, closedStageIds))
+                .toList();
+    }
+
+    private boolean isEligibleInCurrentScreening(
+            UUID submissionId,
+            ScreeningRound round,
+            Set<Long> closedStageIds
+    ) {
+        if (submissions.stream().noneMatch(submission -> submission.getSubmissionId().equals(submissionId))) {
+            return false;
+        }
+        for (int previous = 1; previous < round.value(); previous++) {
+            ScreeningRound previousRound = new ScreeningRound(previous);
+            if (!closedStageIds.contains(stageId(previousRound))
+                    || statusOf(submissionId, previousRound) != ScreeningReviewStatus.PASS) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     private ScreeningReviewStatus statusOf(UUID submissionId, ScreeningRound round) {
         return reviewOf(submissionId, round).map(ScreeningReview::getStatus).orElse(ScreeningReviewStatus.PENDING);
     }
 
     private int count(List<ScreeningReviewStatus> statuses, ScreeningReviewStatus status) {
         return (int) statuses.stream().filter(candidate -> candidate == status).count();
+    }
+
+    private void close(
+            ScreeningRound round,
+            Instant completedAt,
+            Set<Long> closingStageIds,
+            List<ScreeningCompletion> completions
+    ) {
+        long stageId = stageId(round);
+        closingStageIds.add(stageId);
+        completions.add(new ScreeningCompletion(auditionRoleId, stageId, completedAt));
+    }
+
+    private Set<Long> completedStageIds(List<ScreeningCompletion> completions) {
+        return new HashSet<>(Objects.requireNonNull(completions).stream()
+                .map(ScreeningCompletion::getScreeningStageId)
+                .toList());
     }
 
     private long stageId(ScreeningRound round) {
@@ -171,5 +233,15 @@ public final class AuditionScreening {
     }
 
     public record Counts(int all, int pending, int done, int pass, int fail, int etc) {
+    }
+
+    public record Completion(
+            List<ScreeningCompletion> records,
+            int acceptedCount,
+            int unselectedCount,
+            int promotedCount,
+            Integer nextRound,
+            boolean allRoundsClosed
+    ) {
     }
 }

@@ -92,7 +92,9 @@ public record ScreeningBoardResult(
         for (int value = 1; value <= screening.roundCount(); value++) {
             ScreeningRound round = new ScreeningRound(value);
             Counts counts = toCounts(screening.countsOf(round));
-            rounds.add(new Round(value, screening.roundName(round), counts, Progress.from(counts)));
+            rounds.add(new Round(
+                    value, screening.roundName(round), screening.isRoundClosed(round), counts, Progress.from(counts)
+            ));
         }
         return List.copyOf(rounds);
     }
@@ -126,7 +128,7 @@ public record ScreeningBoardResult(
     ) {
     }
 
-    public record Round(int round, String name, Counts counts, Progress progress) {
+    public record Round(int round, String name, boolean closed, Counts counts, Progress progress) {
     }
 
     public record Counts(int all, int pending, int done, int pass, int fail, int etc) {
