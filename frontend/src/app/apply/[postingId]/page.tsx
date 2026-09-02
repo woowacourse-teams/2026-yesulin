@@ -3,6 +3,8 @@ import { PublicPostingRoute } from "@/components/applications/public-posting-rou
 import { publicPostingAvailability } from "@/features/applications/public-posting";
 import { publicPostingForServer } from "@/features/applications/public-posting-server";
 import { MswProvider } from "@/components/mocks/msw-provider";
+import { JsonLd } from "@/components/seo/json-ld";
+import { postingBreadcrumbStructuredData } from "@/features/seo/structured-data";
 
 export async function generateMetadata({ params }: { params: Promise<{ postingId: string }> }): Promise<Metadata> {
   const { postingId } = await params;
@@ -39,5 +41,8 @@ export default async function PublicPostingPage({ params, searchParams }: { para
   const posting = await publicPostingForServer(postingId);
   const initialRoleIds = Array.isArray(roleId) ? roleId : roleId ? [roleId] : [];
   const useProfilePrefill = prefill === "1";
-  return <MswProvider><PublicPostingRoute postingId={postingId} initialPosting={posting} useProfilePrefill={useProfilePrefill} resumeDraft={resumeDraft === "1"} initialRoleIds={initialRoleIds} /></MswProvider>;
+  return <>
+    {posting ? <JsonLd id="posting-breadcrumb-structured-data" data={postingBreadcrumbStructuredData(posting)} /> : null}
+    <MswProvider><PublicPostingRoute postingId={postingId} initialPosting={posting} useProfilePrefill={useProfilePrefill} resumeDraft={resumeDraft === "1"} initialRoleIds={initialRoleIds} /></MswProvider>
+  </>;
 }
