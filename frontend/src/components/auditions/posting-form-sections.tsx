@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { emptyVenueAddress, PerformanceVenueField } from "./performance-venue-field";
 import type { AuditionRoundInput, PerformanceRoleTemplate, PostingRoleInput } from "@/features/auditions/creation-types";
 import { ROLE_GENDER_LABELS } from "@/features/auditions/labels";
 import type { RoleGender } from "@/features/auditions/types";
@@ -89,7 +90,7 @@ export function AuditionScheduleEditor({
   const addRound = () => {
     if (rounds.length >= 5) return;
     const round = (rounds.length + 1) as AuditionRoundInput["round"];
-    onChange([...rounds, { round, name: `${round}차 전형`, date: "", note: "" }]);
+    onChange([...rounds, { round, name: `${round}차 전형`, date: "", note: "", venue: "", venueAddress: emptyVenueAddress() }]);
   };
   const removable = rounds.length > 1 && !lockedRounds.includes(rounds.at(-1)!.round);
   return <div className="space-y-2.5">
@@ -99,6 +100,7 @@ export function AuditionScheduleEditor({
         <CreateField label={`${round.round}차 전형 이름`}><FieldInput required disabled={locked} value={round.name} onChange={(event) => patch(round.round, { name: event.target.value })} placeholder="예: 서류 심사" /></CreateField>
         <div>{locked ? <CreateField label="전형 일정"><FieldInput required disabled type="date" value={round.date} /></CreateField> : <div className="block min-w-0"><span className="mb-2 block text-base font-semibold text-muted-strong md:text-sm">전형 일정</span><CalendarDateRangeField single variant="compact" start={round.date} end="" minDate={minimumDates[index]} maxDate={maximumDate} startError={dateErrors[index]} onStartChange={(date) => patch(round.round, { date })} onEndChange={() => undefined} startLabel="전형 일정" /></div>}</div>
         <CreateField label="안내 사항"><FieldInput disabled={locked} value={round.note} onChange={(event) => patch(round.round, { note: event.target.value })} placeholder="예: 장소와 준비물을 안내해 주세요." /></CreateField>
+        <div className="md:col-span-3"><PerformanceVenueField optional disabled={locked} venueLabel={`${round.round}차 오디션 장소`} addressLabel={`${round.round}차 오디션 장소 주소`} mapLabel={`${round.round}차 오디션 장소 지도`} venue={round.venue} address={round.venueAddress} onVenueChange={(venue) => patch(round.round, { venue })} onAddressChange={(venueAddress) => patch(round.round, { venueAddress })} />{index > 0 && !locked ? <button type="button" onClick={() => patch(round.round, { venue: rounds[index - 1]!.venue, venueAddress: rounds[index - 1]!.venueAddress })} className="mt-2 min-h-10 rounded-control border border-border bg-card px-3 text-sm font-semibold text-muted-strong hover:border-brand-line hover:bg-brand-soft hover:text-brand">이전 차수 장소 복사</button> : null}</div>
       </div>;
     })}
     {allowCountChange ? <div className="grid grid-cols-2 gap-2">
