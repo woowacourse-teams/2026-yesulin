@@ -113,9 +113,7 @@ class AuditionControllerTest {
                 {
                   "id": "%s",
                   "performanceId": %d,
-                  "title": "햄릿 오디션",
-                  "performanceStartDate": "2026-09-01",
-                  "performanceEndDate": null
+                  "title": "햄릿 오디션"
                 }
                 """.formatted(auditionId, performance.id());
         String location = mockMvc.perform(post("/api/v1/auditions")
@@ -130,9 +128,7 @@ class AuditionControllerTest {
                 .andReturn().getResponse().getHeader("Location");
         String request = """
                 {
-                  "title": "리어왕 오디션",
-                  "performanceStartDate": "2026-10-01",
-                  "performanceEndDate": "2026-10-31"
+                  "title": "리어왕 오디션"
                 }
                 """;
 
@@ -143,13 +139,14 @@ class AuditionControllerTest {
                         .content(request))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value("리어왕 오디션"))
-                .andExpect(jsonPath("$.openRun").value(false));
+                .andExpect(jsonPath("$.performanceStartDate").value("2026-11-01"))
+                .andExpect(jsonPath("$.openRun").value(true));
 
         mockMvc.perform(get(location).sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value("리어왕 오디션"))
-                .andExpect(jsonPath("$.performanceEndDate").value("2026-10-31"))
-                .andExpect(jsonPath("$.openRun").value(false));
+                .andExpect(jsonPath("$.performanceStartDate").value("2026-11-01"))
+                .andExpect(jsonPath("$.openRun").value(true));
     }
 
     @Test
@@ -293,9 +290,7 @@ class AuditionControllerTest {
                 {
                   "id": "%s",
                   "performanceId": %d,
-                  "title": "햄릿 오디션",
-                  "performanceStartDate": "2026-11-01",
-                  "performanceEndDate": null
+                  "title": "햄릿 오디션"
                 }
                 """.formatted(auditionId, performanceId);
         String location = mockMvc.perform(post("/api/v1/auditions")
@@ -314,7 +309,10 @@ class AuditionControllerTest {
                 new CreatePerformanceCommand(
                         uploadReadyImage(),
                         "햄릿",
-                        "서울특별시 종로구 대학로 12",
+                        new art.yesulin.application.performance.PerformanceVenueCommand(
+                                "대학로예술극장", "서울특별시 종로구 대학로 12", "", "", null, null),
+                        java.time.LocalDate.of(2026, 11, 1),
+                        null,
                         List.of(
                                 new CreatePerformanceRoleCommand("햄릿", "왕자"),
                                 new CreatePerformanceRoleCommand("오필리어", "귀족 여성")

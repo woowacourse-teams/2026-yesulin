@@ -63,7 +63,6 @@ class AuditionScheduleControllerTest {
         ));
         String request = """
                 {
-                  "recruitmentStartAt": "2026-09-01T09:00:00+09:00",
                   "recruitmentEndAt": "2026-09-10T18:00:00+09:00",
                   "stages": [
                     {
@@ -81,7 +80,7 @@ class AuditionScheduleControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.recruitmentStartAt").value("2026-09-01T00:00:00Z"))
+                .andExpect(jsonPath("$.recruitmentStartAt").isEmpty())
                 .andExpect(jsonPath("$.stages[0].id").isNumber())
                 .andExpect(jsonPath("$.stages[0].order").value(1))
                 .andExpect(jsonPath("$.stages[0].name").value("1차 실기"));
@@ -103,7 +102,6 @@ class AuditionScheduleControllerTest {
         ));
         String request = """
                 {
-                  "recruitmentStartAt": "2026-09-01T09:00:00+09:00",
                   "recruitmentEndAt": "2026-09-10T18:00:00+09:00",
                   "stages": [
                     {"name": "1차 실기", "date": "2026-09-10", "notice": "A관"}

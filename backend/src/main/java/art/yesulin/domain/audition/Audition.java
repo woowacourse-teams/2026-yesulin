@@ -8,6 +8,9 @@ import static art.yesulin.domain.common.validation.DomainValidator.requireText;
 
 import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.audition.converter.AuditionStatusConverter;
+import art.yesulin.domain.audition.schedule.AuditionVenue;
+import jakarta.persistence.AttributeOverride;
+import jakarta.persistence.AttributeOverrides;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Embedded;
@@ -62,6 +65,32 @@ public class Audition {
     @Embedded
     private PerformancePeriod performancePeriod;
 
+    @Embedded
+    @AttributeOverrides({
+            @AttributeOverride(name = "name", column = @Column(name = "rehearsal_venue_name", length = 200)),
+            @AttributeOverride(
+                    name = "roadAddress",
+                    column = @Column(name = "rehearsal_road_address", length = 300)
+            ),
+            @AttributeOverride(
+                    name = "detailAddress",
+                    column = @Column(name = "rehearsal_detail_address", length = 300)
+            ),
+            @AttributeOverride(
+                    name = "zonecode",
+                    column = @Column(name = "rehearsal_zonecode", length = 20)
+            ),
+            @AttributeOverride(
+                    name = "latitude",
+                    column = @Column(name = "rehearsal_latitude", precision = 10, scale = 7)
+            ),
+            @AttributeOverride(
+                    name = "longitude",
+                    column = @Column(name = "rehearsal_longitude", precision = 10, scale = 7)
+            )
+    })
+    private AuditionVenue rehearsalVenue;
+
     @Convert(converter = AuditionStatusConverter.class)
     @Column(nullable = false, length = 20)
     private AuditionStatus status;
@@ -84,17 +113,38 @@ public class Audition {
             String title,
             PerformancePeriod performancePeriod
     ) {
+        this(publicId, performanceId, ownerId, title, performancePeriod, new AuditionVenue("", "", "", "", null, null));
+    }
+
+    public Audition(
+            UUID publicId,
+            long performanceId,
+            long ownerId,
+            String title,
+            PerformancePeriod performancePeriod,
+            AuditionVenue rehearsalVenue
+    ) {
         this.publicId = requireNonNull(publicId, "공고 공개 ID는 필수입니다.");
         this.performanceId = requirePositive(performanceId, "공연 ID는 1 이상이어야 합니다.");
         this.ownerId = requirePositive(ownerId, "공고 소유자 ID는 1 이상이어야 합니다.");
         this.title = normalizeTitle(title);
         this.performancePeriod = requireNonNull(performancePeriod, "공연 날짜 정보가 필요합니다.");
+        this.rehearsalVenue = requireNonNull(rehearsalVenue, "연습 장소 정보는 필수입니다.");
         this.status = AuditionStatus.DRAFT;
     }
 
     public void updateBasicInformation(String title, PerformancePeriod performancePeriod) {
+        updateBasicInformation(title, performancePeriod, rehearsalVenue);
+    }
+
+    public void updateBasicInformation(
+            String title,
+            PerformancePeriod performancePeriod,
+            AuditionVenue rehearsalVenue
+    ) {
         this.title = normalizeTitle(title);
         this.performancePeriod = requireNonNull(performancePeriod, "공연 날짜 정보가 필요합니다.");
+        this.rehearsalVenue = requireNonNull(rehearsalVenue, "연습 장소 정보는 필수입니다.");
     }
 
     public void publish(Instant publicationTime) {

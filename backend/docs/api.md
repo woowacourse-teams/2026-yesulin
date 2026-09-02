@@ -53,7 +53,7 @@ PENDING 세션을 ACTIVE로 갱신하고 요청의 `redirectUri`로 302 redirect
 가입은 회사명 100자, email 320자, password 8~64자, 비밀번호 일치와 `termsAgreed=true`를 검증한다.
 프로필 PATCH는 전달한 필드만 바꾸며 회사명·담당자명은 빈 값으로 지울 수 없다.
 
-## 공연 — 9개
+## 공연 — 10개
 
 | Method | URL | 인증 | Request | Response |
 | --- | --- | --- | --- | --- |
@@ -62,15 +62,17 @@ PENDING 세션을 ACTIVE로 갱신하고 요청의 `redirectUri`로 302 redirect
 | GET | `/api/v1/performances/{performanceId}` | Active Producer | 없음 | `200 PerformanceResponse` |
 | PUT | `/api/v1/performances/{performanceId}` | Active Producer | `UpdatePerformanceRequest` | `200 PerformanceResponse` |
 | PATCH | `/api/v1/performances/{performanceId}/basic-information` | Active Producer | `UpdatePerformanceBasicInformationRequest` | `200 PerformanceResult` |
+| PATCH | `/api/v1/performances/{performanceId}/period` | Active Producer | `UpdatePerformancePeriodRequest` | `200 PerformanceResult` |
 | PATCH | `/api/v1/performances/{performanceId}/poster` | Active Producer | `UpdatePerformancePosterRequest` | `200 PerformanceResult` |
 | DELETE | `/api/v1/performances/{performanceId}` | Active Producer | 없음 | `204` |
 | POST | `/api/v1/performance-posters/upload-requests` | Active Producer | `PerformancePosterUploadRequest` | `201 FileUploadResult` |
 | PATCH | `/api/v1/performance-posters/{fileId}/completion` | Active Producer | 없음 | `204` |
 
-공연 제목은 200자, 장소명 200자, 도로명·상세주소 300자다. 위도·경도는 함께 전달하고 각각 -90~90,
--180~180 범위다. 공연 배역 이름은 100자, 설명은 개행 없는 300자다. 포스터는 JPEG·PNG·WebP 최대 30MB다.
-전체 수정 PUT은 포스터·기본 정보와 배역 목록을 함께 교체한다. 연결된 공고가 하나라도 있으면 공연의 전체·부분
-수정과 삭제를 모두 `PERFORMANCE_HAS_AUDITIONS`로 거부한다.
+공연 제목은 200자, 장소명 200자, 도로명·상세주소 300자다. 공연 장소는 선택이며 입력할 때는 장소명과 주소를 함께
+전달한다. 공연 시작일은 필수, 종료일은 선택(오픈런)이다. 위도·경도는 함께 전달하고 각각 -90~90, -180~180 범위다.
+공연 배역 이름은 100자, 설명은 개행 없는 300자다. 포스터는 JPEG·PNG·WebP 최대 30MB다. 전체 수정 PUT은 포스터·기본
+정보와 배역 목록을 함께 교체한다. 연결된 공고가 하나라도 있으면 전체·기본 정보 수정과 삭제를
+`PERFORMANCE_HAS_AUDITIONS`로 거부하지만, 기존 기간 충돌을 확정하기 위한 `/period` 수정은 허용한다.
 
 ## 공고 — 13개
 
@@ -90,9 +92,11 @@ PENDING 세션을 ACTIVE로 갱신하고 요청의 `redirectUri`로 302 redirect
 | PUT | `/api/v1/auditions/{auditionId}/publication` | Active Producer | 없음 | `200 AuditionResult` |
 | GET | `/api/v1/public/auditions/{auditionId}` | 공개 | 없음 | `200 PublicAuditionResponse` |
 
-공고 생성은 client UUID, 양의 performanceId, 제목 200자와 공연 기간을 받는다. 배역은 1개 이상이고 모집 인원은
-1명 이상이며 성별은 `MALE/FEMALE/ANY`다. 일정은 1~5차, 지원 폼은 사진·영상 요구 각 최대 3개와 텍스트 질문
-최대 10개다. 사진 요구 장수의 전체 합도 도메인에서 최대 3장으로 검증한다.
+공고 생성은 client UUID, 양의 performanceId, 제목 200자와 선택 연습 장소를 받는다. 공연 기간은 공연에서 읽어
+공고와 지원서 스냅샷에 보존한다. 배역은 1개 이상이고 모집 인원은 1명 이상이며 성별은 `MALE/FEMALE/ANY`다.
+일정은 사용자가 입력하는 모집 종료 시각과 1~5차 전형(차수별 선택 오디션 장소)을 받는다. 모집 시작 시각은
+게시할 때 서버가 기록한다. 지원 폼은 사진·영상 요구 각 최대 3개와 텍스트 질문 최대 10개다. 사진 요구 장수의
+전체 합도 도메인에서 최대 3장으로 검증한다.
 
 게시에는 배역·일정·지원 폼과 미래 모집 종료 시각이 필요하다. 공개 조회는 `DRAFT`가 아닌 공고를 반환하며,
 실제 제출 가능 여부는 제출 시 모집 기간 검증이 최종 판단한다.

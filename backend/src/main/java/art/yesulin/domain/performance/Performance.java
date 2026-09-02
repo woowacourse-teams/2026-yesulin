@@ -15,6 +15,7 @@ import jakarta.persistence.Index;
 import jakarta.persistence.PostPersist;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -46,6 +47,12 @@ public class Performance extends AbstractAggregateRoot<Performance> {
     @Embedded
     private PerformanceVenue venue;
 
+    @Column(name = "performance_start_date")
+    private LocalDate performanceStartDate;
+
+    @Column(name = "performance_end_date")
+    private LocalDate performanceEndDate;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -55,14 +62,26 @@ public class Performance extends AbstractAggregateRoot<Performance> {
     private PerformanceRoles roles = new PerformanceRoles();
 
     public Performance(long ownerId, long posterFileId, String title, String roadAddress) {
-        this(ownerId, posterFileId, title, PerformanceVenue.fromRoadAddress(roadAddress));
+        this(ownerId, posterFileId, title, PerformanceVenue.fromRoadAddress(roadAddress), null, null);
     }
 
     public Performance(long ownerId, long posterFileId, String title, PerformanceVenue venue) {
+        this(ownerId, posterFileId, title, venue, null, null);
+    }
+
+    public Performance(
+            long ownerId,
+            long posterFileId,
+            String title,
+            PerformanceVenue venue,
+            LocalDate performanceStartDate,
+            LocalDate performanceEndDate
+    ) {
         this.ownerId = requirePositive(ownerId, "공연 소유자 ID는 1 이상이어야 합니다.");
         this.posterFileId = requirePositive(posterFileId, "포스터 파일 ID는 1 이상이어야 합니다.");
         this.title = requireText(title, "공연 제목은 필수입니다.");
         this.venue = venue;
+        updatePerformancePeriod(performanceStartDate, performanceEndDate);
     }
 
     public PerformanceRole addRole(String name, String description) {
@@ -74,12 +93,27 @@ public class Performance extends AbstractAggregateRoot<Performance> {
     }
 
     public void updateBasicInformation(String title, String roadAddress) {
-        updateBasicInformation(title, PerformanceVenue.fromRoadAddress(roadAddress));
+        updateBasicInformation(
+                title,
+                PerformanceVenue.fromRoadAddress(roadAddress),
+                performanceStartDate,
+                performanceEndDate
+        );
     }
 
     public void updateBasicInformation(String title, PerformanceVenue venue) {
+        updateBasicInformation(title, venue, performanceStartDate, performanceEndDate);
+    }
+
+    public void updateBasicInformation(
+            String title,
+            PerformanceVenue venue,
+            LocalDate performanceStartDate,
+            LocalDate performanceEndDate
+    ) {
         this.title = requireText(title, "공연 제목은 필수입니다.");
         this.venue = venue;
+        updatePerformancePeriod(performanceStartDate, performanceEndDate);
     }
 
     public void updatePoster(long posterFileId) {
@@ -101,6 +135,26 @@ public class Performance extends AbstractAggregateRoot<Performance> {
     }
 
     public String getRoadAddress() {
-        return venue.getRoadAddress();
+        return venue == null ? "" : venue.getRoadAddress();
+    }
+
+    public boolean hasPerformancePeriod() {
+        return performanceStartDate != null;
+    }
+
+    public void updatePerformancePeriod(LocalDate startDate, LocalDate endDate) {
+        if (startDate == null) {
+            if (endDate != null) {
+                throw new IllegalArgumentException("공연 종료일만 입력할 수 없습니다.");
+            }
+            this.performanceStartDate = null;
+            this.performanceEndDate = null;
+            return;
+        }
+        if (endDate != null && endDate.isBefore(startDate)) {
+            throw new IllegalArgumentException("공연 종료일은 시작일보다 빠를 수 없습니다.");
+        }
+        this.performanceStartDate = startDate;
+        this.performanceEndDate = endDate;
     }
 }
