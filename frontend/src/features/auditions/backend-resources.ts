@@ -57,7 +57,7 @@ export type AuditionResource = {
     readonly zonecode: string;
     readonly latitude: number | null;
     readonly longitude: number | null;
-  };
+  } | null;
   readonly status: "DRAFT" | "PUBLISHED" | "CLOSED";
   readonly createdAt: string;
   readonly publishedAt: string | null;
@@ -135,7 +135,7 @@ export type AuditionScheduleResource = {
       readonly zonecode: string;
       readonly latitude: number | null;
       readonly longitude: number | null;
-    };
+    } | null;
   }[];
 };
 
@@ -169,14 +169,14 @@ export type PublicAuditionResource = {
   readonly title: string;
   readonly posterUrl: string;
   readonly roadAddress: string;
-  readonly rehearsalVenue: string;
+  readonly rehearsalVenue: string | null;
   readonly rehearsalVenueAddress: {
     readonly roadAddress: string;
     readonly detailAddress: string;
     readonly zonecode: string;
     readonly latitude: number | null;
     readonly longitude: number | null;
-  };
+  } | null;
   readonly producer: {
     readonly companyName: string;
     readonly description: string | null;

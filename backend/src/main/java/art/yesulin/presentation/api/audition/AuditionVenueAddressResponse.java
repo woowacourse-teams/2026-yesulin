@@ -12,6 +12,9 @@ public record AuditionVenueAddressResponse(
 ) {
 
     static AuditionVenueAddressResponse from(AuditionVenueResult venue) {
+        if (venue == null) {
+            return null;
+        }
         return new AuditionVenueAddressResponse(
                 venue.roadAddress(), venue.detailAddress(), venue.zonecode(), venue.latitude(), venue.longitude()
         );

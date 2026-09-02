@@ -31,6 +31,10 @@ import {
 const PERFORMANCE_ID_PATTERN = /^[1-9]\d*$/;
 const AUDITION_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+function emptyVenueAddress() {
+  return { roadAddress: "", detailAddress: "", zonecode: "", latitude: null, longitude: null };
+}
+
 export const isBackendPerformanceId = (value: string) => PERFORMANCE_ID_PATTERN.test(value);
 export const isBackendAuditionId = (value: string) => AUDITION_ID_PATTERN.test(value);
 
@@ -150,14 +154,14 @@ export async function getV1PostingManagement(id: PostingId): Promise<PostingMana
       date: stage.date,
       note: stage.notice,
       stageId: stage.id,
-      venue: stage.venue.name,
-      venueAddress: stage.venue,
+      venue: stage.venue?.name ?? "",
+      venueAddress: stage.venue ?? emptyVenueAddress(),
     })),
     lockedRounds: audition.status === "CLOSED" ? (schedule?.stages ?? []).map((stage) => stage.order) : [],
     applicationFields,
     applicationGuide: "",
-    rehearsalVenue: audition.rehearsalVenue.name,
-    rehearsalVenueAddress: audition.rehearsalVenue,
+    rehearsalVenue: audition.rehearsalVenue?.name ?? "",
+    rehearsalVenueAddress: audition.rehearsalVenue ?? emptyVenueAddress(),
   };
 }
 
