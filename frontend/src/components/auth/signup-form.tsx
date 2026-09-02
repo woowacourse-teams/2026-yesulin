@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PrimaryButton } from "@/components/ui/controls";
 import { useToast } from "@/components/auditions/toast";
@@ -104,11 +105,12 @@ export function SignupForm() {
         <PasswordInput id="signup-passwordConfirm" label="비밀번호 확인" autoComplete="new-password" placeholder="비밀번호를 한 번 더 입력해 주세요" value={values.passwordConfirm} error={errors.passwordConfirm} onChange={(event) => update("passwordConfirm", event.target.value)} />
       </section>
 
-      <div>
+      <div className="space-y-2">
         <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-control border border-border bg-surface px-3 py-3 text-sm text-muted-strong">
           <input id="signup-terms" type="checkbox" checked={terms} aria-invalid={errors.terms ? true : undefined} aria-describedby={errors.terms ? "signup-terms-error" : undefined} onChange={(event) => setTerms(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 rounded border-border accent-brand" />
-          <span><strong className="text-foreground">[필수]</strong> 서비스 이용약관과 개인정보 처리방침에 동의합니다.</span>
+          <span><strong className="text-foreground">[필수]</strong> 서비스 이용약관에 동의합니다.</span>
         </label>
+        <p className="px-1 text-sm leading-6 text-muted">가입 전 <Link href="/terms" target="_blank" rel="noreferrer" className="font-semibold text-brand hover:underline">이용약관</Link>과 <Link href="/privacy" target="_blank" rel="noreferrer" className="font-semibold text-brand hover:underline">개인정보 처리방침</Link>을 확인해 주세요.</p>
         {errors.terms ? <p id="signup-terms-error" className="mt-1.5 text-sm font-medium text-fail">{errors.terms}</p> : null}
       </div>
 
