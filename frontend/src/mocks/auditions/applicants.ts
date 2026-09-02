@@ -28,7 +28,9 @@ export type MockApplicant = {
   readonly birth: string;
   readonly phone: string;
   readonly email: string;
+  readonly educationLevel: "NONE" | "HIGH_SCHOOL" | "UNIVERSITY" | null;
   readonly school: string;
+  readonly major: string;
   readonly submittedAt: string;
   readonly career: readonly CareerEntry[];
   readonly coverLetter: string;
@@ -53,7 +55,9 @@ const PRIMARY_APPLICANT: MockApplicant = {
   birth: "1999.04",
   phone: "010-2468-1357",
   email: "harin.kim@example.com",
+  educationLevel: "UNIVERSITY",
   school: "한국예술종합학교 연극원",
+  major: "연기과",
   submittedAt: "2026-08-12T10:30:00+09:00",
   career: [{ year: 2025, title: "푸른 방", part: "윤서" }],
   coverLetter: "인물의 작은 선택이 장면 전체의 온도를 바꾼다고 믿습니다. 상대 배우의 호흡을 세심하게 듣고, 반복되는 연습에서도 새로운 반응을 발견하는 배우 김하린입니다.",
@@ -94,7 +98,9 @@ function scenarioApplicant({ id, name, posting, role, index }: {
     birth: `200${index}.0${Math.min(index + 1, 9)}`,
     phone: `010-3000-${String(1000 + index).padStart(4, "0")}`,
     email: `scenario${id}@example.com`,
+    educationLevel: "UNIVERSITY",
     school: index % 2 === 0 ? "한국예술종합학교 연극원" : "서울예술대학교 공연학부",
+    major: index % 2 === 0 ? "연기과" : "공연학과",
     submittedAt: `2026-08-${String(13 + index).padStart(2, "0")}T10:30:00+09:00`,
     career: [{ year: 2025, title: `시나리오 작품 ${index + 1}`, part: "앙상블" }],
     coverLetter: "여러 차수의 심사 흐름과 목록 상태를 검증하기 위한 시나리오 지원자입니다.",

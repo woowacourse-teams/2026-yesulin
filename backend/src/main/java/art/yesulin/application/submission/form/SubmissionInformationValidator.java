@@ -68,7 +68,7 @@ class SubmissionInformationValidator {
             SubmissionAdditionalInformation information
     ) {
         return switch (field) {
-            case SCHOOL -> information.school();
+            case SCHOOL -> hasEducation(information) ? information : null;
             case LINK -> information.links();
             case NATIONALITY -> information.nationality();
             case COVER_LETTER -> information.coverLetter();
@@ -84,6 +84,10 @@ class SubmissionInformationValidator {
             return !values.isEmpty();
         }
         return value != null;
+    }
+
+    private boolean hasEducation(SubmissionAdditionalInformation information) {
+        return information.educationLevel() != null || information.school() != null || information.major() != null;
     }
 
     private BusinessException invalid(String message) {

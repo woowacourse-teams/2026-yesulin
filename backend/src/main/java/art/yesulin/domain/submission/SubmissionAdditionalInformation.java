@@ -6,6 +6,7 @@ import static art.yesulin.domain.submission.SubmissionErrorCode.INVALID_SUBMISSI
 
 import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.submission.converter.MilitaryServiceStatusConverter;
+import art.yesulin.domain.submission.converter.SubmissionEducationLevelConverter;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
@@ -40,6 +41,13 @@ public class SubmissionAdditionalInformation {
     @Column(name = "school", updatable = false, length = MAX_SCHOOL_LENGTH)
     private String school;
 
+    @Convert(converter = SubmissionEducationLevelConverter.class)
+    @Column(name = "education_level", updatable = false, length = 20)
+    private SubmissionEducationLevel educationLevel;
+
+    @Column(name = "major", updatable = false, length = MAX_SCHOOL_LENGTH)
+    private String major;
+
     @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(name = "submission_links", joinColumns = @JoinColumn(name = "submission_id"))
     @OrderColumn(name = "link_order")
@@ -68,7 +76,9 @@ public class SubmissionAdditionalInformation {
     private List<SubmissionCareer> careers = new ArrayList<>();
 
     public SubmissionAdditionalInformation(
+            SubmissionEducationLevel educationLevel,
             String school,
+            String major,
             List<String> links,
             String nationality,
             String coverLetter,
@@ -77,7 +87,10 @@ public class SubmissionAdditionalInformation {
             MilitaryServiceStatus military,
             List<SubmissionCareer> careers
     ) {
+        this.educationLevel = educationLevel;
         this.school = normalizeNullable(school, MAX_SCHOOL_LENGTH, "학력은 255자를 넘을 수 없습니다.");
+        this.major = normalizeNullable(major, MAX_SCHOOL_LENGTH, "전공은 255자를 넘을 수 없습니다.");
+        validateEducation();
         this.links = new ArrayList<>(copyLinks(links));
         this.nationality = normalizeNullable(
                 nationality,
@@ -93,6 +106,19 @@ public class SubmissionAdditionalInformation {
         this.hobbies = normalizeNullable(hobbies, MAX_HOBBIES_LENGTH, "취미는 255자를 넘을 수 없습니다.");
         this.military = military;
         this.careers = new ArrayList<>(copyCareers(careers));
+    }
+
+    public SubmissionAdditionalInformation(
+            String school,
+            List<String> links,
+            String nationality,
+            String coverLetter,
+            String specialty,
+            String hobbies,
+            MilitaryServiceStatus military,
+            List<SubmissionCareer> careers
+    ) {
+        this(null, school, null, links, nationality, coverLetter, specialty, hobbies, military, careers);
     }
 
     private static List<String> copyLinks(List<String> links) {
@@ -135,8 +161,31 @@ public class SubmissionAdditionalInformation {
         return normalizedValue;
     }
 
+    private void validateEducation() {
+        if (educationLevel == null) {
+            return;
+        }
+        if (educationLevel == SubmissionEducationLevel.NONE && (school != null || major != null)) {
+            throw new BusinessException(INVALID_SUBMISSION, "학력 없음에는 학교와 전공을 입력할 수 없습니다.");
+        }
+        if (educationLevel == SubmissionEducationLevel.HIGH_SCHOOL && (school == null || major != null)) {
+            throw new BusinessException(INVALID_SUBMISSION, "고등학교 졸업은 학교만 입력해야 합니다.");
+        }
+        if (educationLevel == SubmissionEducationLevel.UNIVERSITY && (school == null || major == null)) {
+            throw new BusinessException(INVALID_SUBMISSION, "대학교 졸업은 학교와 전공을 모두 입력해야 합니다.");
+        }
+    }
+
     public String school() {
         return school;
+    }
+
+    public SubmissionEducationLevel educationLevel() {
+        return educationLevel;
+    }
+
+    public String major() {
+        return major;
     }
 
     public List<String> links() {

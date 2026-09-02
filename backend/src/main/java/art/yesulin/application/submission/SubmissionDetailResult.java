@@ -13,6 +13,7 @@ import art.yesulin.domain.submission.SubmissionBasicInformationField;
 import art.yesulin.domain.submission.SubmissionCareer;
 import art.yesulin.domain.submission.SubmissionConsent;
 import art.yesulin.domain.submission.SubmissionConsentType;
+import art.yesulin.domain.submission.SubmissionEducationLevel;
 import art.yesulin.domain.submission.SubmissionFieldSnapshot;
 import art.yesulin.domain.submission.SubmissionFormAnswers;
 import art.yesulin.domain.submission.SubmissionGender;
@@ -107,7 +108,9 @@ public record SubmissionDetailResult(
     }
 
     public record AdditionalInformationResult(
+            SubmissionEducationLevel educationLevel,
             String school,
+            String major,
             List<String> links,
             String nationality,
             String coverLetter,
@@ -117,9 +120,27 @@ public record SubmissionDetailResult(
             List<CareerResult> careers
     ) {
 
+        public AdditionalInformationResult(
+                String school,
+                List<String> links,
+                String nationality,
+                String coverLetter,
+                String specialty,
+                String hobbies,
+                MilitaryServiceStatus militaryServiceStatus,
+                List<CareerResult> careers
+        ) {
+            this(
+                    null, school, null, links, nationality, coverLetter, 
+                    specialty, hobbies, militaryServiceStatus, careers
+            );
+        }
+
         private static AdditionalInformationResult from(SubmissionAdditionalInformation information) {
             return new AdditionalInformationResult(
+                    information.educationLevel(),
                     information.school(),
+                    information.major(),
                     information.links(),
                     information.nationality(),
                     information.coverLetter(),

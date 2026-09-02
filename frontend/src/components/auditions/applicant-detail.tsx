@@ -38,7 +38,7 @@ export function ApplicantDetail() {
             <p className="mt-0.5 text-dense text-muted">
               <b className="font-semibold text-muted-strong">{applicant.roleName}</b> 지원 ·{" "}
               {genderText(applicant.gender)} · {ageText(applicant.age)} · {measurement(applicant.height, "cm")} /{" "}
-              {measurement(applicant.weight, "kg")} · {applicant.id}
+              {measurement(applicant.weight, "kg")}
             </p>
             <p className="mt-1 text-xs text-muted">배역 조건: {roleConditionText(board.role)}</p>
             {applicant.mismatchReasons.length > 0 ? (

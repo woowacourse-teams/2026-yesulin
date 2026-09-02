@@ -23,7 +23,7 @@ const seededAnswers: ApplicantAnswer[] = [
   { key: "GENDER", label: "성별", value: "여성" },
   { key: "HEIGHT", label: "키", value: 166 },
   { key: "WEIGHT", label: "몸무게", value: 52 },
-  { key: "SCHOOL", label: "학력", value: "한국예술종합학교 연극원 연기과" },
+  { key: "SCHOOL", label: "학력", value: { level: "UNIVERSITY", school: "한국예술종합학교", major: "연극원 연기과" } },
   { key: "CAREER", label: "경력", value: [{ year: 2025, title: "푸른 방", part: "윤서" }] },
   { key: "LINK", label: "SNS / 외부 링크", value: "https://example.com/harin" },
   { key: "NATIONALITY", label: "국적", value: "대한민국" },

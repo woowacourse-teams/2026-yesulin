@@ -34,7 +34,7 @@ export const APPLICATION_FIELD_OPTIONS = [
   { key: "PHONE", label: "연락처", defaultRequired: true, section: "BASIC", inputType: "TEL", order: 60, layout: "HALF", config: { placeholder: "010-0000-0000" } },
   { key: "EMAIL", label: "이메일", defaultRequired: true, section: "BASIC", inputType: "TEXT", order: 70, layout: "HALF", config: { placeholder: "name@example.com" } },
   { key: "ADDRESS", label: "거주 지역", defaultRequired: true, section: "BASIC", inputType: "REGION", order: 80, layout: "FULL", config: {} },
-  { key: "SCHOOL", label: "학력", defaultRequired: false, section: "ADDITIONAL", inputType: "TEXT", order: 10, layout: "FULL", config: { placeholder: "학교와 전공을 입력해 주세요." } },
+  { key: "SCHOOL", label: "학력", defaultRequired: false, section: "ADDITIONAL", inputType: "COMPOSITE", order: 10, layout: "FULL", config: {} },
   { key: "LINK", label: "SNS / 외부 링크", defaultRequired: false, section: "ADDITIONAL", inputType: "URL", order: 20, layout: "FULL", config: { placeholder: "예: https://www.instagram.com/내계정", maxLength: 255 } },
   { key: "NATIONALITY", label: "국적", defaultRequired: false, section: "ADDITIONAL", inputType: "TEXT", order: 30, layout: "HALF", config: { placeholder: "예: 대한민국" } },
   { key: "COVER_LETTER", label: "자기소개", defaultRequired: false, section: "ADDITIONAL", inputType: "TEXTAREA", order: 40, layout: "FULL", config: { maxLength: 2000 } },

@@ -6,6 +6,7 @@ import type {
   ApplicantSubmissionListResponse,
   ApplicantSubmissionSummary,
   CareerEntry,
+  EducationInformation,
 } from "./types";
 import { applicantRequest } from "./request";
 
@@ -40,7 +41,9 @@ export type BackendSubmissionDetail = BackendSubmissionSummary & {
       readonly address: string | null;
     };
     readonly additionalInformation: {
+      readonly educationLevel: "NONE" | "HIGH_SCHOOL" | "UNIVERSITY" | null;
       readonly school: string | null;
+      readonly major: string | null;
       readonly links: readonly string[];
       readonly nationality: string | null;
       readonly coverLetter: string | null;
@@ -239,7 +242,7 @@ function additionalValue(resource: BackendSubmissionDetail, key: AdditionalField
     part: career.roleName,
   }));
   const values = {
-    SCHOOL: additional.school ?? "",
+    SCHOOL: educationValue(additional),
     LINK: additional.links,
     NATIONALITY: additional.nationality ?? "",
     COVER_LETTER: additional.coverLetter ?? "",
@@ -249,4 +252,12 @@ function additionalValue(resource: BackendSubmissionDetail, key: AdditionalField
     CAREER: careers,
   } satisfies Record<AdditionalField, ApplicantAnswer["value"]>;
   return values[key];
+}
+
+function educationValue(additional: BackendSubmissionDetail["applicant"]["additionalInformation"]): EducationInformation {
+  return {
+    level: additional.educationLevel,
+    school: additional.school ?? "",
+    major: additional.major ?? "",
+  };
 }

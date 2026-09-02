@@ -5,6 +5,7 @@ import type {
   ApplicantSubmissionDetail,
   ApplicantSubmissionSummary,
   CareerEntry,
+  EducationInformation,
 } from "@/features/applicants/types";
 import type {
   BackendSubmissionDetail,
@@ -36,7 +37,7 @@ export function toBackendSubmissionDetail(detail: ApplicantSubmissionDetail): Ba
         address: text(answers.get("ADDRESS")),
       },
       additionalInformation: {
-        school: text(answers.get("SCHOOL")),
+        ...education(answers.get("SCHOOL")),
         links: strings(answers.get("LINK")),
         nationality: text(answers.get("NATIONALITY")),
         coverLetter: text(answers.get("COVER_LETTER")),
@@ -57,6 +58,16 @@ export function toBackendSubmissionDetail(detail: ApplicantSubmissionDetail): Ba
       videoRequirementAnswers: videoAnswers(answers.get("VIDEO"), fields),
     },
   };
+}
+
+function education(answer?: ApplicantAnswer): Pick<BackendSubmissionDetail["applicant"]["additionalInformation"], "educationLevel" | "school" | "major"> {
+  const value = answer?.value;
+  if (!isEducation(value)) return { educationLevel: null, school: null, major: null };
+  return { educationLevel: value.level, school: value.school || null, major: value.major || null };
+}
+
+function isEducation(value: ApplicantAnswerValue | undefined): value is EducationInformation {
+  return typeof value === "object" && value !== null && !Array.isArray(value) && "level" in value && "school" in value && "major" in value;
 }
 
 function toBackendSummary(summary: ApplicantSubmissionSummary): BackendSubmissionSummary {

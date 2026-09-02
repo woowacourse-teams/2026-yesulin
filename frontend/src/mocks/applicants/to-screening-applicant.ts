@@ -1,4 +1,5 @@
 import type { ApplicantSubmissionDetail, ApplicantAnswer, CareerEntry } from "@/features/applicants/types";
+import { educationInformation } from "@/features/applicants/education";
 import { roleId, type Gender, type PerformanceId } from "@/features/auditions/types";
 import { photoSlotLabels, videoSlotLabels } from "@/features/applications/materials";
 import type { MockApplicant } from "../auditions/applicants";
@@ -52,6 +53,7 @@ export function toScreeningApplicant(detail: ApplicantSubmissionDetail, performa
   })) : [];
   const selectedRoleIds = detail.selectedRoles.map((role) => roleId(role.roleId));
   const selectedRoleNames = detail.selectedRoles.map((role) => role.roleName);
+  const education = educationInformation(answerOf(detail.answers, "SCHOOL"));
 
   return {
     id: detail.id,
@@ -68,7 +70,9 @@ export function toScreeningApplicant(detail: ApplicantSubmissionDetail, performa
     birth: birth.replaceAll("-", ".").slice(0, 7),
     phone: textOf(detail.answers, "PHONE"),
     email: textOf(detail.answers, "EMAIL"),
-    school: textOf(detail.answers, "SCHOOL"),
+    school: education.school,
+    educationLevel: education.level,
+    major: education.major,
     submittedAt: detail.submittedAt,
     career: careerOf(answerOf(detail.answers, "CAREER")),
     coverLetter: textOf(detail.answers, "COVER_LETTER"),

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ageText, genderText, mismatchDetailText } from "@/features/auditions/labels";
+import { applicantEducationText } from "@/features/auditions/education-text";
 import type { Applicant } from "@/features/auditions/types";
 import { ApplicantPhotoImage } from "./applicant-photo";
 import { useBoard } from "./board-context";
@@ -121,7 +122,7 @@ export function ApplicantTable({
                   {measurementSummary(applicant.height, applicant.weight)}
                 </td>
                 <td className="hidden border-b border-border-soft px-3 py-2 text-xs text-muted lg:table-cell">
-                  {applicant.school}
+                  {applicantEducationText(applicant)}
                 </td>
                 <td className="hidden border-b border-border-soft px-3 py-2 lg:table-cell">
                   <span className="num mr-1 inline-flex h-6 items-center rounded-lg border border-border bg-surface px-2 text-xs text-muted">

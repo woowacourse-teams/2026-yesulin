@@ -144,7 +144,9 @@ export type Applicant = {
   readonly phone: string;
   readonly email: string;
   readonly address: string;
+  readonly educationLevel: "NONE" | "HIGH_SCHOOL" | "UNIVERSITY" | null;
   readonly school: string;
+  readonly major: string;
   readonly links: readonly string[];
   readonly nationality: string;
   readonly specialty: string;

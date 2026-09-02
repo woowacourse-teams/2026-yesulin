@@ -184,7 +184,9 @@ export type ScreeningSubmissionResource = {
   readonly phone: string | null;
   readonly email: string | null;
   readonly address: string | null;
+  readonly educationLevel: "NONE" | "HIGH_SCHOOL" | "UNIVERSITY" | null;
   readonly school: string | null;
+  readonly major: string | null;
   readonly links: readonly string[];
   readonly nationality: string | null;
   readonly specialty: string | null;

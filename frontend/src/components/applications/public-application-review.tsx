@@ -12,6 +12,7 @@ import { applicationLinks } from "@/features/applications/application-links";
 import { buildApplicationAuthReturnTo } from "@/features/auth/return-to";
 import { PrimaryButton, SecondaryButton, TextButton } from "@/components/ui/controls";
 import { usePublicApplication } from "./public-application-context";
+import { educationText } from "@/features/applicants/education";
 import { PublicApplicationSaveBadge, PublicApplicationSaveNotice } from "./public-application-save-status";
 import { ModalShell } from "@/components/auditions/modal-shell";
 import { PublicApplicationSubmitDialog } from "./public-application-submit-dialog";
@@ -200,7 +201,7 @@ function ReviewLinks({ values }: { values: Readonly<Record<string, string>> }) {
     return <li key={link} className="truncate">{href ? <a href={href} target="_blank" rel="noopener noreferrer" className="text-brand underline decoration-brand-line underline-offset-2 hover:decoration-brand">{link}<span className="sr-only"> 새 창에서 열기</span></a> : link}</li>;
   })}</ul>;
 }
-function reviewValue(field: ApplicationFieldInput, values: Readonly<Record<string, string>>) { if (field.inputType === "COMPOSITE") return field.config.fields?.map((part) => `${values[`${field.id}.${part.key}`] || "-"}${part.unit ?? ""}`).join(" · "); const value = values[field.id]; return value && field.config.unit ? `${value}${field.config.unit}` : value; }
+function reviewValue(field: ApplicationFieldInput, values: Readonly<Record<string, string>>) { if (field.id === "SCHOOL") return educationText({ level: values["SCHOOL.educationLevel"] === "NONE" || values["SCHOOL.educationLevel"] === "HIGH_SCHOOL" || values["SCHOOL.educationLevel"] === "UNIVERSITY" ? values["SCHOOL.educationLevel"] : null, school: values["SCHOOL.school"] ?? "", major: values["SCHOOL.major"] ?? "" }); if (field.inputType === "COMPOSITE") return field.config.fields?.map((part) => `${values[`${field.id}.${part.key}`] || "-"}${part.unit ?? ""}`).join(" · "); const value = values[field.id]; return value && field.config.unit ? `${value}${field.config.unit}` : value; }
 function MediaSummary({ fields, values, photos, videoUrl }: { fields: readonly ApplicationFieldInput[]; values: Readonly<Record<string, string>>; photos: readonly ApplicationPhoto[]; videoUrl: string }) {
   const [expandedPhoto, setExpandedPhoto] = useState<number | null>(null);
   const lightboxTitleId = useId();

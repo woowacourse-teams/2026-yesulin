@@ -1,6 +1,7 @@
 import type { Applicant, PerformanceRef, RoundNumber } from "./types";
 import { ageText, genderText, ROUND_LABELS, statusText } from "./labels";
 import { ROUND_NUMBERS } from "./types";
+import { applicantEducationText } from "./education-text";
 
 const escapeHtml = (value: string) =>
   value.replace(/[&<>"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[char] ?? char);
@@ -82,7 +83,7 @@ function printableCard(applicant: Applicant, performance: PerformanceRef) {
         <div><dt>성별·나이</dt><dd>${genderText(applicant.gender)} · ${ageText(applicant.age)}</dd></div>
         <div><dt>신장/체중</dt><dd>${printMeasurement(applicant.height, "cm")} / ${printMeasurement(applicant.weight, "kg")}</dd></div>
         <div><dt>생년월</dt><dd>${escapeHtml(applicant.birth)}</dd></div>
-        <div><dt>학교</dt><dd>${escapeHtml(applicant.school)}</dd></div>
+        <div><dt>학력</dt><dd>${escapeHtml(applicantEducationText(applicant))}</dd></div>
         <div><dt>연락처</dt><dd>${escapeHtml(applicant.phone)}</dd></div>
         <div><dt>이메일</dt><dd>${escapeHtml(applicant.email)}</dd></div>
         <div><dt>접수</dt><dd>${escapeHtml(applicant.submittedAt)}</dd></div>

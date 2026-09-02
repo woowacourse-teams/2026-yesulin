@@ -85,7 +85,7 @@ export function ApplicantReview({
                   <StatusBadge status={applicant.review.status} memo={applicant.review.memo} />
                 </div>
                 <p className="mt-1 text-sm text-muted">
-                  {board.role.name} 지원 · {round}차 심사 · 지원서 #{applicant.id}
+                  {board.role.name} 지원 · {round}차 심사
                 </p>
               </div>
             </header>
@@ -97,9 +97,13 @@ export function ApplicantReview({
                   layout="review"
                   className="mx-auto w-full max-w-[360px] overflow-hidden rounded-card border border-border xl:sticky xl:top-16 xl:mx-0 xl:max-w-none"
                 />
-                <div className="min-w-0 overflow-hidden rounded-card border border-border bg-card">
-                  <ApplicantVideoSection applicant={applicant} />
-                  <DetailProfile applicant={applicant} rounds={board.rounds} />
+                <div className="min-w-0 space-y-4">
+                  <div className="overflow-hidden rounded-card border border-border bg-card">
+                    <DetailProfile applicant={applicant} rounds={board.rounds} />
+                  </div>
+                  <div className="overflow-hidden rounded-card border border-border bg-card">
+                    <ApplicantVideoSection applicant={applicant} />
+                  </div>
                 </div>
               </div>
 

@@ -1,4 +1,5 @@
 import type { ApplicantAnswerValue } from "./types";
+import { educationText, isEducationInformation } from "./education";
 
 export function formatApplicantDate(value: string | number, withTime = false) {
   const date = new Date(value);
@@ -27,5 +28,6 @@ export function answerValueText(value: ApplicantAnswerValue) {
   if (typeof value === "object" && value && "height" in value && "weight" in value) {
     return `${value.height}cm · ${value.weight}kg`;
   }
+  if (isEducationInformation(value)) return educationText(value);
   return "미입력";
 }

@@ -1,11 +1,14 @@
 package art.yesulin.application.profile;
 
 import art.yesulin.domain.profile.ProfileAdditionalInformation;
+import art.yesulin.domain.profile.ProfileEducationLevel;
 import art.yesulin.domain.profile.ProfileMilitaryServiceStatus;
 import java.util.List;
 
 public record ProfileAdditionalInformationResult(
+        ProfileEducationLevel educationLevel,
         String school,
+        String major,
         List<String> links,
         String nationality,
         String coverLetter,
@@ -22,7 +25,9 @@ public record ProfileAdditionalInformationResult(
 
     public static ProfileAdditionalInformationResult from(ProfileAdditionalInformation information) {
         return new ProfileAdditionalInformationResult(
+                information.educationLevel(),
                 information.school(),
+                information.major(),
                 information.links(),
                 information.nationality(),
                 information.coverLetter(),
@@ -34,6 +39,8 @@ public record ProfileAdditionalInformationResult(
     }
 
     public static ProfileAdditionalInformationResult empty() {
-        return new ProfileAdditionalInformationResult(null, List.of(), null, null, null, null, null, List.of());
+        return new ProfileAdditionalInformationResult(
+                null, null, null, List.of(), null, null, null, null, null, List.of()
+        );
     }
 }
