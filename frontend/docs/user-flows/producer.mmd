@@ -11,6 +11,8 @@ flowchart TD
     AUDITION --> PUBLISH["PUT /api/v1/auditions/{auditionId}/publication"]
     PUBLISH --> ROLE["공고 배역별 지원 현황"]
     ROLE --> BOARD["GET .../screening-rounds/{round}/submissions"]
+    BOARD --> FOCUS["카드 · 표 · 한 명씩 보기\n검색·필터 조건과 URL 상태 보존"]
+    FOCUS --> REVIEW
     BOARD --> REVIEW["PATCH .../screening-rounds/{round}/reviews"]
     REVIEW --> NEXT{"다음 차수?"}
     NEXT -- 예 --> BOARD
