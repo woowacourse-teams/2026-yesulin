@@ -1,5 +1,5 @@
 import type { SubmissionId, PerformanceId, PostingId, RoleId, RoundNumber } from "./types";
-import type { AuditionListRouteState } from "./filters";
+import { NUMERIC_FIELDS, type AuditionListRouteState } from "./filters";
 
 function screeningQuery(round?: RoundNumber, state?: AuditionListRouteState) {
   const searchParams = new URLSearchParams();
@@ -8,6 +8,13 @@ function screeningQuery(round?: RoundNumber, state?: AuditionListRouteState) {
     searchParams.set("work", state.work);
     searchParams.set("status", state.status);
     searchParams.set("view", state.view);
+    if (state.query.trim()) searchParams.set("q", state.query.trim());
+    if (state.genders.size > 0) searchParams.set("genders", [...state.genders].sort().join(","));
+    for (const field of NUMERIC_FIELDS) {
+      const condition = state.numeric[field];
+      if (condition) searchParams.set(field, `${condition.op}:${condition.value}`);
+    }
+    if (state.mismatchOnly) searchParams.set("mismatch", "1");
   }
   return searchParams.size > 0 ? `?${searchParams.toString()}` : "";
 }

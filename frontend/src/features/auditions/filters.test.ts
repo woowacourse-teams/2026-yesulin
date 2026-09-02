@@ -25,11 +25,25 @@ describe("심사 작업 필터", () => {
   });
 
   it("상세 화면에서 돌아올 검토 완료 목록 상태를 복원한다", () => {
-    const filters = initialFiltersFromRoute({ work: "DONE", status: "FAIL", view: "table" });
+    const filters = initialFiltersFromRoute({
+      work: "DONE",
+      status: "FAIL",
+      view: "single",
+      q: "윤하연",
+      genders: "FEMALE,MALE,UNKNOWN",
+      age: "gte:25",
+      height: "lte:180",
+      mismatch: "1",
+    });
 
     expect(filters.work).toBe("DONE");
     expect(filters.status).toBe("FAIL");
-    expect(filters.view).toBe("table");
+    expect(filters.view).toBe("single");
+    expect(filters.query).toBe("윤하연");
+    expect(filters.genders).toEqual(new Set(["FEMALE", "MALE"]));
+    expect(filters.numeric.age).toEqual({ op: "gte", value: 25 });
+    expect(filters.numeric.height).toEqual({ op: "lte", value: 180 });
+    expect(filters.mismatchOnly).toBe(true);
   });
 
   it("잘못된 목록 상태는 검토 대기 카드 보기로 보정한다", () => {

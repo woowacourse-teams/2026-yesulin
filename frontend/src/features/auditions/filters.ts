@@ -29,10 +29,29 @@ export type AuditionFilters = {
   readonly genders: ReadonlySet<Gender>;
   readonly numeric: Readonly<Record<NumericField, NumericCondition | null>>;
   readonly mismatchOnly: boolean;
-  readonly view: "card" | "table";
+  readonly view: "card" | "table" | "single";
 };
 
-export type AuditionListRouteState = Pick<AuditionFilters, "work" | "status" | "view">;
+/**
+ * 목록에서 상세 지원서를 열었다 돌아와도 같은 심사 맥락을 보존한다.
+ * Set과 수치 조건도 URL에서 복원할 수 있는 값만 담는다.
+ */
+export type AuditionListRouteState = Pick<
+  AuditionFilters,
+  "work" | "status" | "query" | "genders" | "numeric" | "mismatchOnly" | "view"
+>;
+
+export type AuditionListRouteQuery = {
+  readonly work?: string;
+  readonly status?: string;
+  readonly view?: string;
+  readonly q?: string;
+  readonly genders?: string;
+  readonly age?: string;
+  readonly height?: string;
+  readonly weight?: string;
+  readonly mismatch?: string;
+};
 
 export const emptyNumeric = (): Record<NumericField, NumericCondition | null> => ({
   age: null,
@@ -50,29 +69,29 @@ export const initialFilters = (work: WorkMode): AuditionFilters => ({
   view: "card",
 });
 
-export function listRouteStateFromRoute(route: {
-  readonly work?: string;
-  readonly status?: string;
-  readonly view?: string;
-}): AuditionListRouteState {
+export function listRouteStateFromRoute(route: AuditionListRouteQuery): AuditionListRouteState {
   const work: WorkMode = route.work === "DONE" ? "DONE" : "PENDING";
   const validDoneStatuses: readonly StatusFilter[] = ["ALL", "PASS", "FAIL", "ETC"];
   const status = work === "DONE" && validDoneStatuses.includes(route.status as StatusFilter)
     ? route.status as StatusFilter
     : defaultStatusForWork(work);
-  return { work, status, view: route.view === "table" ? "table" : "card" };
+  return {
+    work,
+    status,
+    query: route.q?.trim() ?? "",
+    genders: parseGenders(route.genders),
+    numeric: {
+      age: parseNumericCondition(route.age),
+      height: parseNumericCondition(route.height),
+      weight: parseNumericCondition(route.weight),
+    },
+    mismatchOnly: route.mismatch === "1",
+    view: route.view === "table" || route.view === "single" ? route.view : "card",
+  };
 }
 
-export function initialFiltersFromRoute(route: {
-  readonly work?: string;
-  readonly status?: string;
-  readonly view?: string;
-}): AuditionFilters {
-  const state = listRouteStateFromRoute(route);
-  return {
-    ...initialFilters(state.work),
-    ...state,
-  };
+export function initialFiltersFromRoute(route: AuditionListRouteQuery): AuditionFilters {
+  return listRouteStateFromRoute(route);
 }
 
 export const activeDetailFilterCount = (filters: AuditionFilters) =>
@@ -100,3 +119,16 @@ export function toScreeningSearchCondition(
 }
 
 export const screeningSearchKey = (condition: ScreeningSearchCondition) => JSON.stringify(condition);
+
+function parseGenders(value: string | undefined): ReadonlySet<Gender> {
+  if (!value) return new Set();
+  return new Set(value.split(",").filter((gender): gender is Gender => gender === "MALE" || gender === "FEMALE"));
+}
+
+function parseNumericCondition(value: string | undefined): NumericCondition | null {
+  if (!value) return null;
+  const [op, rawValue] = value.split(":", 2);
+  const parsed = Number(rawValue);
+  if ((op !== "gte" && op !== "lte") || !Number.isSafeInteger(parsed) || parsed < 0) return null;
+  return { op, value: parsed };
+}

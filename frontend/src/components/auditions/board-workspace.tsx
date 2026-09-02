@@ -130,13 +130,14 @@ export function BoardWorkspace({
   const applyBulkStatus = useCallback(
     async (ids: readonly SubmissionId[], status: ReviewStatus, memo?: string) => {
       const next = await submitReview(ids, { status, ...(memo ? { memo } : {}) }, "심사 결과를 저장하지 못했습니다.");
-      if (!next) return;
+      if (!next) return null;
       clearSelection();
       if (filters.mismatchOnly && shouldClearMismatchOnlyAfterBulkReview(status)) {
         setFilters((current) => ({ ...current, mismatchOnly: false }));
       }
       toast(`${ids.length}명을 ${STATUS_LABELS[status]} 처리했습니다`, { type: "success" });
       advanceIfDone(next);
+      return next;
     },
     [advanceIfDone, clearSelection, filters.mismatchOnly, setFilters, submitReview, toast],
   );
@@ -146,6 +147,11 @@ export function BoardWorkspace({
     if (status === "ETC") { setMemoRequest({ kind: "BULK", ids }); return; }
     await applyBulkStatus(ids, status);
   }, [applyBulkStatus]);
+
+  const reviewFocused = useCallback(
+    (id: SubmissionId, status: ReviewStatus, memo?: string) => applyBulkStatus([id], status, memo),
+    [applyBulkStatus],
+  );
 
   /**
    * 검토 대기 모드에서 결과를 남기면 그 배우는 목록에서 빠진다.
@@ -215,6 +221,7 @@ export function BoardWorkspace({
     clearSelection,
     setStatus,
     reviewCurrent,
+    reviewFocused,
     patchReview,
     completeCurrentScreening,
     completionPrompt,

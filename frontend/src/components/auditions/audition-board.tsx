@@ -5,7 +5,6 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { getAuditionBoard } from "@/features/auditions/api";
 import {
   initialFilters,
-  initialFiltersFromRoute,
   screeningSearchKey,
   toScreeningSearchCondition,
   type AuditionListRouteState,
@@ -28,7 +27,7 @@ export function AuditionBoard({
 }) {
   const [round, setRound] = useState<RoundNumber | null>(initialRound);
   const [filters, setFilters] = useState(() => (
-    initialFilterState ? initialFiltersFromRoute(initialFilterState) : initialFilters("PENDING")
+    initialFilterState ?? initialFilters("PENDING")
   ));
   const pathname = usePathname();
   const router = useRouter();

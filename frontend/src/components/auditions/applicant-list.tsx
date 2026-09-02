@@ -1,15 +1,14 @@
 "use client";
 
-import { useState } from "react";
 import { activeDetailFilterCount, type StatusFilter } from "@/features/auditions/filters";
 import { roleConditionText, ROUND_LABELS, STATUS_LABELS } from "@/features/auditions/labels";
 import { openPrintWindow } from "@/features/auditions/print";
 import type { Applicant } from "@/features/auditions/types";
 import { ApplicantCards } from "./applicant-cards";
+import { ApplicantFocusReview } from "./applicant-focus-review";
 import { ApplicantTable } from "./applicant-table";
 import { useBoard } from "./board-context";
 import { ScreenMessage } from "./screen-status";
-import { VideoModal } from "./video-modal";
 import { SecondaryButton, SegmentButton } from "@/components/ui/controls";
 import { useToast } from "./toast";
 
@@ -24,7 +23,6 @@ const RESULT_SCOPE_LABELS = {
 
 export function ApplicantList() {
   const { board, filters, visible } = useBoard();
-  const [video, setVideo] = useState<Applicant | null>(null);
   if (visible.length === 0) return <EmptyList />;
 
   return (
@@ -34,14 +32,15 @@ export function ApplicantList() {
         <span className="text-muted-strong">{roleConditionText(board.role)}</span>
       </div>
       <ListToolbar rows={visible} />
-      {filters.view === "card" ? <ApplicantCards rows={visible} /> : <><div className="lg:hidden"><ApplicantCards rows={visible} /></div><div className="hidden lg:block"><ApplicantTable rows={visible} onPlayVideo={setVideo} /></div></>}
-      {video ? <VideoModal key={video.id} applicant={video} onClose={() => setVideo(null)} /> : null}
+      {filters.view === "card" ? <ApplicantCards rows={visible} /> : null}
+      {filters.view === "table" ? <><div className="lg:hidden"><ApplicantCards rows={visible} /></div><div className="hidden lg:block"><ApplicantTable rows={visible} /></div></> : null}
+      {filters.view === "single" ? <ApplicantFocusReview rows={visible} /> : null}
     </>
   );
 }
 
 function ListToolbar({ rows }: { rows: readonly Applicant[] }) {
-  const { board, filters, selected, setFilters, setSelection, openContacts } = useBoard();
+  const { board, filters, selected, setFilters, setSelection, clearSelection, openContacts } = useBoard();
   const toast = useToast();
   const selectedRows = rows.filter((row) => selected.has(row.id));
   const allSelected = rows.length > 0 && selectedRows.length === rows.length;
@@ -96,16 +95,19 @@ function ListToolbar({ rows }: { rows: readonly Applicant[] }) {
 
   return (
     <div className="mb-3 flex flex-wrap items-center gap-3 rounded-card border border-border bg-card px-4 py-3">
-      {selectionControl}
+      {filters.view === "single" ? null : selectionControl}
       <div className="flex shrink-0 overflow-hidden rounded-control border border-border bg-card">
-        {(["card", "table"] as const).map((view) => (
+        {(["card", "table", "single"] as const).map((view) => (
           <SegmentButton
             key={view}
             pressed={filters.view === view}
-            onClick={() => setFilters((current) => ({ ...current, view }))}
+            onClick={() => {
+              if (view === "single") clearSelection();
+              setFilters((current) => ({ ...current, view }));
+            }}
             className="px-2.5"
           >
-            {view === "table" ? "표" : "카드"}
+            {view === "table" ? "표" : view === "single" ? "한 명씩" : "카드"}
           </SegmentButton>
         ))}
       </div>
