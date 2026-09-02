@@ -22,6 +22,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest(properties = {
@@ -46,6 +47,9 @@ class AuditionScheduleControllerTest {
 
     @Autowired
     private AuditionRepository auditionRepository;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @BeforeEach
     void cleanUp() {
@@ -90,6 +94,48 @@ class AuditionScheduleControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.recruitmentEndAt").value("2026-09-10T09:00:00Z"))
                 .andExpect(jsonPath("$.stages[0].notice").value("A관"));
+    }
+
+    @Test
+    void findsScheduleWithoutStageVenue() throws Exception {
+        Audition audition = auditionRepository.save(new Audition(
+                1L,
+                OWNER_ID,
+                "햄릿 오디션",
+                new PerformancePeriod(LocalDate.of(2026, 10, 1), null)
+        ));
+        String request = """
+                {
+                  "recruitmentEndAt": "2026-09-10T18:00:00+09:00",
+                  "stages": [
+                    {"name": "1차 실기", "date": "2026-09-12", "notice": "A관"}
+                  ]
+                }
+                """;
+
+        mockMvc.perform(put("/api/v1/auditions/{auditionId}/schedule", audition.getPublicId())
+                        .with(csrf())
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isOk());
+
+        long scheduleId = scheduleRepository.findByAuditionId(audition.getId()).orElseThrow().getId();
+        jdbcTemplate.update("""
+                update audition_screening_stages
+                set venue_name = null,
+                    venue_road_address = null,
+                    venue_detail_address = null,
+                    venue_zonecode = null,
+                    venue_latitude = null,
+                    venue_longitude = null
+                where schedule_id = ?
+                """, scheduleId);
+
+        mockMvc.perform(get("/api/v1/auditions/{auditionId}/schedule", audition.getPublicId())
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.stages[0].venue").isEmpty());
     }
 
     @Test

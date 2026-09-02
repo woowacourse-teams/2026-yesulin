@@ -36,6 +36,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest(properties = {
@@ -78,6 +79,9 @@ class AuditionControllerTest {
 
     @Autowired
     private FakeObjectStorage objectStorage;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @BeforeEach
     void cleanUp() {
@@ -147,6 +151,27 @@ class AuditionControllerTest {
                 .andExpect(jsonPath("$.title").value("리어왕 오디션"))
                 .andExpect(jsonPath("$.performanceStartDate").value("2026-11-01"))
                 .andExpect(jsonPath("$.openRun").value(true));
+    }
+
+    @Test
+    void findsAuditionWithoutRehearsalVenue() throws Exception {
+        PerformanceResult performance = createPerformance();
+        UUID auditionId = createAudition(performance.id());
+        jdbcTemplate.update("""
+                update auditions
+                set rehearsal_venue_name = null,
+                    rehearsal_road_address = null,
+                    rehearsal_detail_address = null,
+                    rehearsal_zonecode = null,
+                    rehearsal_latitude = null,
+                    rehearsal_longitude = null
+                where public_id = ?
+                """, auditionId.toString());
+
+        mockMvc.perform(get("/api/v1/auditions/{auditionId}", auditionId)
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rehearsalVenue").isEmpty());
     }
 
     @Test
