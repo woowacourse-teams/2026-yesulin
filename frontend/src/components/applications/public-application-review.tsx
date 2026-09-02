@@ -119,8 +119,8 @@ function Consent({ privacyConsent, thirdPartyConsent, saveToProfile, disabled, e
         </span>
       </label>
       <div className="divide-y divide-border-soft border-t border-border px-5">
-        <ConsentItem id="application-privacy-consent" required checked={privacyConsent} disabled={disabled} invalid={Boolean(error)} describedBy={requiredDescribedBy} label="개인정보 수집·이용 동의" description="지원서 접수와 심사를 위해 입력한 개인정보를 수집·이용합니다." onChange={onPrivacyChange} />
-        <ConsentItem id="application-third-party-consent" required checked={thirdPartyConsent} disabled={disabled} invalid={Boolean(error)} describedBy={requiredDescribedBy} label="개인정보 제3자 제공 동의" description="이 지원서에 작성한 항목만 지원한 공고의 기획사/제작사에 전달됩니다. 프로필에 저장돼 있어도 이 공고가 요청하지 않은 정보는 전달되지 않아요." onChange={onThirdPartyChange} />
+        <ConsentItem id="application-privacy-consent" required checked={privacyConsent} disabled={disabled} invalid={Boolean(error)} describedBy={requiredDescribedBy} label="개인정보 수집·이용 동의" description="지원서 접수와 심사를 위해 입력한 개인정보를 수집·이용합니다." detailsHref="/privacy/consents#collection" onChange={onPrivacyChange} />
+        <ConsentItem id="application-third-party-consent" required checked={thirdPartyConsent} disabled={disabled} invalid={Boolean(error)} describedBy={requiredDescribedBy} label="개인정보 제3자 제공 동의" description="이 지원서에 작성한 항목만 지원한 공고의 기획사/제작사에 전달됩니다. 프로필에 저장돼 있어도 이 공고가 요청하지 않은 정보는 전달되지 않아요." detailsHref="/privacy/consents#third-party" onChange={onThirdPartyChange} />
         <ConsentItem id="application-profile-save" required={false} checked={saveToProfile} disabled={disabled} invalid={false} label="이번 지원서 정보를 프로필에 저장" description="이름·연락처·경력처럼 이번에 입력한 항목만 프로필에 옮겨 두고, 다음 지원서를 열 때 자동으로 채웁니다. 사진과 영상, 이 공고에만 있는 추가 질문 답변은 옮기지 않습니다." onChange={onSaveToProfileChange} />
       </div>
     </div>
@@ -128,14 +128,14 @@ function Consent({ privacyConsent, thirdPartyConsent, saveToProfile, disabled, e
   </section>;
 }
 
-function ConsentItem({ id, required, checked, disabled, invalid, describedBy, label, description, onChange }: { id: string; required: boolean; checked: boolean; disabled: boolean; invalid: boolean; describedBy?: string; label: string; description: string; onChange: (checked: boolean) => void }) {
-  return <label htmlFor={id} className={`flex items-start gap-3 py-4 ${disabled ? "cursor-not-allowed text-muted" : "cursor-pointer"}`}>
+function ConsentItem({ id, required, checked, disabled, invalid, describedBy, label, description, detailsHref, onChange }: { id: string; required: boolean; checked: boolean; disabled: boolean; invalid: boolean; describedBy?: string; label: string; description: string; detailsHref?: string; onChange: (checked: boolean) => void }) {
+  return <div className={`flex items-start gap-3 py-4 ${disabled ? "text-muted" : ""}`}>
     <input id={id} type="checkbox" checked={checked} disabled={disabled} aria-invalid={(required && invalid) || undefined} aria-describedby={describedBy} onChange={(event) => onChange(event.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-brand" />
     <span>
-      <strong className="block text-sm"><span className={`mr-1 ${required ? "text-fail" : "text-muted"}`}>{required ? "[필수]" : "[선택]"}</span>{label}</strong>
-      <span className="mt-1 block text-sm leading-6 text-muted">{description}</span>
+      <label htmlFor={id} className={disabled ? "cursor-not-allowed" : "cursor-pointer"}><strong className="block text-sm"><span className={`mr-1 ${required ? "text-fail" : "text-muted"}`}>{required ? "[필수]" : "[선택]"}</span>{label}</strong></label>
+      <span className="mt-1 block text-sm leading-6 text-muted">{description}{detailsHref ? <> <a href={detailsHref} target="_blank" rel="noreferrer" className="whitespace-nowrap font-semibold text-brand hover:underline">전문 보기</a></> : null}</span>
     </span>
-  </label>;
+  </div>;
 }
 
 function AuthChecking() {

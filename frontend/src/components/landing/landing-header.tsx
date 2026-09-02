@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { AnalyticsSettingsButton } from "@/components/analytics/analytics-settings-button";
 import { TrackedLoginLink } from "@/components/analytics/tracked-login-link";
+import { PolicyLinks } from "@/components/policies/policy-layout";
 
 export function LandingHeader({ service }: { readonly service: "applicant" | "producer" }) {
   const isProducer = service === "producer";
@@ -48,9 +49,12 @@ export function LandingHeader({ service }: { readonly service: "applicant" | "pr
 export function LandingFooter() {
   return (
     <footer className="border-t border-border bg-white">
-      <div className="mx-auto flex max-w-[1280px] flex-col gap-3 px-5 py-8 text-sm text-muted sm:flex-row sm:items-center sm:justify-between sm:px-8 lg:px-10">
-        <Image src="/images/yesulin-logo.png" alt="예술in" width={84} height={49} className="h-auto w-[84px] object-contain" />
-        <p>© 2026 예술in. 예술의 문을 열다.</p>
+      <div className="mx-auto flex max-w-[1280px] flex-col gap-5 px-5 py-8 text-sm text-muted sm:px-8 lg:px-10">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <Image src="/images/yesulin-logo.png" alt="예술in" width={84} height={49} className="h-auto w-[84px] object-contain" />
+          <PolicyLinks />
+        </div>
+        <p>© 2026 예술in 프로젝트팀. 예술의 문을 열다.</p>
       </div>
     </footer>
   );
