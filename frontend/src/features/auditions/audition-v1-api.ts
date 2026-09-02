@@ -61,8 +61,8 @@ export async function createV1Posting(body: CreatePostingRequest, auditionId: st
       id: auditionId,
       performanceId: body.performanceId,
       title: body.title,
-      performanceStartDate: body.performanceStart,
-      performanceEndDate: body.performanceEnd || null,
+      rehearsalVenue: body.rehearsalVenue || null,
+      rehearsalVenueAddress: body.rehearsalVenueAddress.roadAddress ? body.rehearsalVenueAddress : null,
     }),
   });
   if (audition.status !== "PUBLISHED") {
@@ -78,16 +78,15 @@ export async function createV1Posting(body: CreatePostingRequest, auditionId: st
 }
 
 /**
- * Backend는 공고 기본 정보와 일정을 따로 저장한다. 두 저장은 서로의 값을 검증하기 때문에
- * 공연 기간을 앞당기면서 전형도 함께 당기는 수정은 일정을 먼저 저장해야 통과한다.
+ * 공연 기간은 공연이, 모집·전형 일정은 공고가 담당한다.
  */
 export async function updateV1Posting(id: PostingId, body: UpdatePostingRequest): Promise<void> {
   const saveBasicInformation = () => request<AuditionResource>(`/v1/auditions/${id}/basic-information`, {
     method: "PUT",
     body: JSON.stringify({
       title: body.title,
-      performanceStartDate: body.performanceStart,
-      performanceEndDate: body.performanceEnd || null,
+      rehearsalVenue: body.rehearsalVenue,
+      rehearsalVenueAddress: body.rehearsalVenueAddress?.roadAddress ? body.rehearsalVenueAddress : null,
     }),
   });
   const rounds = body.rounds;
@@ -98,24 +97,19 @@ export async function updateV1Posting(id: PostingId, body: UpdatePostingRequest)
   const saveSchedule = () => request<AuditionScheduleResource>(`/v1/auditions/${id}/schedule`, {
     method: "PUT",
     body: JSON.stringify({
-      recruitmentStartAt: toKoreaInstant(body.recruitmentStart ?? ""),
       recruitmentEndAt: toKoreaInstant(body.recruitmentEnd ?? ""),
       stages: rounds.map((round) => ({
         stageId: round.stageId ?? null,
         name: round.name,
         date: round.date,
         notice: round.note,
+        venue: round.venue || null,
+        venueAddress: round.venueAddress.roadAddress ? round.venueAddress : null,
       })),
     }),
   });
-  try {
-    await saveBasicInformation();
-    await saveSchedule();
-  } catch (cause) {
-    if (!(cause instanceof AuditionRequestError) || cause.code !== "AUDITION_INVALID_SCHEDULE") throw cause;
-    await saveSchedule();
-    await saveBasicInformation();
-  }
+  await saveBasicInformation();
+  await saveSchedule();
 }
 
 export function deleteV1Posting(id: PostingId) {
@@ -136,10 +130,10 @@ export async function getV1PostingManagement(id: PostingId): Promise<PostingMana
     title: audition.title,
     isOpenCall: false,
     allowsMultipleRoles: roles?.multipleRoleApplicationsAllowed ?? false,
-    recruitmentStart: toKoreaLocalDateTime(schedule?.recruitmentStartAt),
+    recruitmentStart: toKoreaLocalDateTime(schedule?.recruitmentStartAt ?? undefined),
     recruitmentEnd: toKoreaLocalDateTime(schedule?.recruitmentEndAt),
-    performanceStart: audition.performanceStartDate,
-    performanceEnd: audition.performanceEndDate ?? "",
+    performanceStart: performance.performanceStartDate ?? audition.performanceStartDate,
+    performanceEnd: performance.performanceEndDate ?? audition.performanceEndDate ?? "",
     phase: phaseOf(audition, schedule),
     applicantCount: screeningStats(boards).applicantCount,
     roleTemplates: toRoleTemplates(performance),
@@ -156,12 +150,14 @@ export async function getV1PostingManagement(id: PostingId): Promise<PostingMana
       date: stage.date,
       note: stage.notice,
       stageId: stage.id,
+      venue: stage.venue.name,
+      venueAddress: stage.venue,
     })),
     lockedRounds: audition.status === "CLOSED" ? (schedule?.stages ?? []).map((stage) => stage.order) : [],
     applicationFields,
     applicationGuide: "",
-    rehearsalVenue: "",
-    rehearsalVenueAddress: { roadAddress: "", detailAddress: "", zonecode: "", latitude: null, longitude: null },
+    rehearsalVenue: audition.rehearsalVenue.name,
+    rehearsalVenueAddress: audition.rehearsalVenue,
   };
 }
 
@@ -250,9 +246,15 @@ function saveSchedule(auditionId: string, body: CreatePostingRequest) {
   return request(`/v1/auditions/${auditionId}/schedule`, {
     method: "PUT",
     body: JSON.stringify({
-      recruitmentStartAt: toKoreaInstant(body.recruitmentStart),
       recruitmentEndAt: toKoreaInstant(body.recruitmentEnd),
-      stages: body.rounds.map((round) => ({ stageId: null, name: round.name, date: round.date, notice: round.note })),
+      stages: body.rounds.map((round) => ({
+        stageId: null,
+        name: round.name,
+        date: round.date,
+        notice: round.note,
+        venue: round.venue || null,
+        venueAddress: round.venueAddress.roadAddress ? round.venueAddress : null,
+      })),
     }),
   });
 }
@@ -284,12 +286,18 @@ function screeningStats(boards: readonly (ScreeningBoardResource | null)[]) {
 function phaseOf(audition: AuditionResource, schedule: AuditionScheduleResource | null): PostingPhase {
   if (audition.status === "DRAFT") return "DRAFT";
   if (audition.status === "CLOSED") return "FINISHED";
-  if (!schedule || Date.now() < Date.parse(schedule.recruitmentStartAt)) return "UPCOMING";
+  if (!schedule || !schedule.recruitmentStartAt || Date.now() < Date.parse(schedule.recruitmentStartAt)) return "UPCOMING";
   return Date.now() < Date.parse(schedule.recruitmentEndAt) ? "OPEN" : "RECRUIT_CLOSED";
 }
 
 function toPerformanceRef(performance: PerformanceResource) {
-  return { id: performanceId(String(performance.id)), posterUrl: performance.posterUrl, title: performance.title };
+  return {
+    id: performanceId(String(performance.id)),
+    posterUrl: performance.posterUrl,
+    title: performance.title,
+    performanceStart: performance.performanceStartDate ?? "",
+    performanceEnd: performance.performanceEndDate ?? "",
+  };
 }
 
 function toRoleTemplates(performance: PerformanceResource) {

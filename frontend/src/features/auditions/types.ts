@@ -76,6 +76,8 @@ export type PerformanceSummary = {
   readonly title: string;
   readonly venue: string;
   readonly venueAddress: import("./creation-types").VenueAddress;
+  readonly performanceStart: string;
+  readonly performanceEnd: string;
   readonly postingCount: number;
   readonly openPostingCount: number;
   readonly applicantCount: number;
@@ -188,6 +190,9 @@ export type PerformanceRef = {
   readonly id: PerformanceId;
   readonly posterUrl: string;
   readonly title: string;
+  /** 공고 생성 화면에서 공연 기간을 읽기 전용으로 보여 주기 위한 값이다. */
+  readonly performanceStart?: string;
+  readonly performanceEnd?: string;
 };
 
 export type PostingRef = {

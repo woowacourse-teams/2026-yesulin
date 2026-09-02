@@ -139,13 +139,15 @@ export async function completeScreening(
 
 export async function createPerformance(body: CreatePerformanceRequest, poster: File) {
   const posterFileId = await uploadPerformancePoster(poster);
-  return request<unknown>("/v1/performances", {
+  return request<PerformanceResource>("/v1/performances", {
     method: "POST",
     body: JSON.stringify({
       posterFileId,
       title: body.title.trim(),
-      venue: body.venue.trim(),
-      venueAddress: body.venueAddress,
+      venue: body.venue.trim() || null,
+      venueAddress: body.venueAddress.roadAddress ? body.venueAddress : null,
+      performanceStartDate: body.performanceStart,
+      performanceEndDate: body.performanceEnd || null,
       roles: body.roles.map((role) => ({ name: role.name.trim(), description: role.description.trim() })),
     }),
   });
@@ -183,6 +185,8 @@ function toPerformanceSummary(resource: PerformanceResource): PerformanceListRes
       latitude: null,
       longitude: null,
     },
+    performanceStart: resource.performanceStartDate ?? "",
+    performanceEnd: resource.performanceEndDate ?? "",
     postingCount: resource.postingCount ?? 0,
     openPostingCount: resource.openPostingCount ?? 0,
     applicantCount: resource.applicantCount ?? 0,
@@ -221,10 +225,25 @@ export async function updatePerformance(
     body: JSON.stringify({
       posterFileId,
       title: body.title?.trim(),
-      venue: body.venue?.trim(),
-      venueAddress: body.venueAddress,
+      venue: body.venue?.trim() || null,
+      venueAddress: body.venueAddress.roadAddress ? body.venueAddress : null,
+      performanceStartDate: body.performanceStart,
+      performanceEndDate: body.performanceEnd || null,
       roles: body.roles.map((role) => ({ name: role.name.trim(), description: role.description.trim() })),
     }),
+  });
+}
+
+export function updatePerformancePeriod(id: PerformanceId, performanceStart: string, performanceEnd: string) {
+  if (!isBackendPerformanceId(id)) {
+    return request<PerformanceListResponse>(`/performances/${id}/period`, {
+      method: "PATCH",
+      body: JSON.stringify({ performanceStart, performanceEnd }),
+    });
+  }
+  return request<PerformanceResource>(`/v1/performances/${id}/period`, {
+    method: "PATCH",
+    body: JSON.stringify({ performanceStartDate: performanceStart, performanceEndDate: performanceEnd || null }),
   });
 }
 
@@ -237,6 +256,8 @@ function toPerformanceManagementDetail(resource: PerformanceResource): Performan
     title: summary.title,
     venue: summary.venue,
     venueAddress: summary.venueAddress,
+    performanceStart: summary.performanceStart,
+    performanceEnd: summary.performanceEnd,
     roleTemplates: resource.roles.map((role) => ({
       id: String(role.id),
       name: role.name,

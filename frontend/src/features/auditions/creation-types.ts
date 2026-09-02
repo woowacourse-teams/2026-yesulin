@@ -121,6 +121,8 @@ export type CreatePerformanceRequest = {
   readonly title: string;
   readonly venue: string;
   readonly venueAddress: VenueAddress;
+  readonly performanceStart: string;
+  readonly performanceEnd: string;
   readonly roles: readonly Omit<PerformanceRoleTemplate, "id">[];
 };
 
@@ -137,6 +139,8 @@ export type AuditionRoundInput = {
   readonly name: string;
   readonly date: string;
   readonly note: string;
+  readonly venue: string;
+  readonly venueAddress: VenueAddress;
   /** 이미 저장된 전형의 Backend 식별자. 새로 추가한 전형에는 없다. */
   readonly stageId?: number;
 };

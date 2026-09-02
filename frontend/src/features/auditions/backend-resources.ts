@@ -14,6 +14,8 @@ export type PerformanceResource = {
   }[];
   readonly venue?: string;
   readonly venueAddress?: CreatePerformanceRequest["venueAddress"];
+  readonly performanceStartDate?: string | null;
+  readonly performanceEndDate?: string | null;
   readonly postingCount?: number;
   readonly openPostingCount?: number;
   readonly applicantCount?: number;
@@ -48,6 +50,14 @@ export type AuditionResource = {
   readonly performanceStartDate: string;
   readonly performanceEndDate: string | null;
   readonly openRun: boolean;
+  readonly rehearsalVenue: {
+    readonly name: string;
+    readonly roadAddress: string;
+    readonly detailAddress: string;
+    readonly zonecode: string;
+    readonly latitude: number | null;
+    readonly longitude: number | null;
+  };
   readonly status: "DRAFT" | "PUBLISHED" | "CLOSED";
   readonly createdAt: string;
   readonly publishedAt: string | null;
@@ -110,7 +120,7 @@ export type AuditionRolesManagementResource = Omit<AuditionRolesResource, "roles
 
 export type AuditionScheduleResource = {
   readonly auditionId: string;
-  readonly recruitmentStartAt: string;
+  readonly recruitmentStartAt: string | null;
   readonly recruitmentEndAt: string;
   readonly stages: readonly {
     readonly id: number;
@@ -118,6 +128,14 @@ export type AuditionScheduleResource = {
     readonly name: string;
     readonly date: string;
     readonly notice: string;
+    readonly venue: {
+      readonly name: string;
+      readonly roadAddress: string;
+      readonly detailAddress: string;
+      readonly zonecode: string;
+      readonly latitude: number | null;
+      readonly longitude: number | null;
+    };
   }[];
 };
 
@@ -151,6 +169,14 @@ export type PublicAuditionResource = {
   readonly title: string;
   readonly posterUrl: string;
   readonly roadAddress: string;
+  readonly rehearsalVenue: string;
+  readonly rehearsalVenueAddress: {
+    readonly roadAddress: string;
+    readonly detailAddress: string;
+    readonly zonecode: string;
+    readonly latitude: number | null;
+    readonly longitude: number | null;
+  };
   readonly producer: {
     readonly companyName: string;
     readonly description: string | null;

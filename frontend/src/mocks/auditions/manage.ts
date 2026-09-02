@@ -16,11 +16,36 @@ export function updateCatalogPerformance(id: PerformanceId, body: UpdatePerforma
     title: body.title?.trim() ?? current.title,
     venue: body.venue?.trim() ?? current.venue,
     venueAddress: body.venueAddress ?? current.venueAddress,
+    performanceStart: body.performanceStart ?? current.performanceStart,
+    performanceEnd: body.performanceEnd ?? current.performanceEnd,
     posterUrl: body.posterUrl ?? current.posterUrl,
     roleTemplates: body.roles.map((role, roleIndex) => ({
       id: current.roleTemplates[roleIndex]?.id ?? `${id}_template_${roleIndex + 1}`,
       name: role.name.trim(),
       description: role.description.trim(),
+    })),
+  };
+  CATALOG.splice(index, 1, updated);
+  return updated;
+}
+
+export function updateCatalogPerformancePeriod(
+  id: PerformanceId,
+  performanceStart: string,
+  performanceEnd: string,
+) {
+  const index = CATALOG.findIndex((performance) => performance.id === id);
+  const current = CATALOG[index];
+  if (!current) return null;
+
+  const updated: CatalogPerformance = {
+    ...current,
+    performanceStart,
+    performanceEnd,
+    postings: current.postings.map((posting) => ({
+      ...posting,
+      performanceStart,
+      performanceEnd,
     })),
   };
   CATALOG.splice(index, 1, updated);
