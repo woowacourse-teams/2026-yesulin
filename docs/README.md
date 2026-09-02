@@ -23,6 +23,7 @@
 
 - [미구현](./implementation-gaps.md): 구현 범위를 계획하거나 완료 여부를 바꿀 때만 읽는다.
 - [미결정](./pending-decisions.md): 사용자의 정책 결정이 필요한 작업에서만 읽는다.
+- [공연사 UI/UX 개선 체크리스트](./producer-ui-ux-improvement-checklist.md): 공연사 피드백 후속 UI/UX 작업을 직접 다룰 때만 읽는다.
 - [출시 전 공개 정책](./policies/public/README.md): 개인정보·약관·정식 출시 준비 작업에서만 읽는다.
 - `docs/policies/internal/`: Git에서 제외된 내부 출시 준비 자료다. 일반 개발 작업에서는 읽지 않는다.
 - 과거 결정 기록은 현재 정본이 아니다. 현재 규칙은 위 정본과 코드를 따른다.
