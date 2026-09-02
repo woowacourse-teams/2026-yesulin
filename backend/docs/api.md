@@ -164,11 +164,14 @@ HTTP status·서비스 워커 제어 여부·거친 플랫폼과 브라우저 �
 | GET | `/api/v1/audition-roles/{roleId}/screening-rounds/{round}/submissions` | Active Producer | `ScreeningFilterRequest` query | `200 ScreeningBoardResponse` |
 | GET | `/api/v1/audition-roles/{roleId}/screening-rounds/{round}/submissions/{submissionId}` | Active Producer | 없음 | `200 ScreeningSubmissionDetailResponse` |
 | PATCH | `/api/v1/audition-roles/{roleId}/screening-rounds/{round}/reviews` | Active Producer | `SaveScreeningReviewsRequest` | `200 ScreeningReviewsResult` |
-| PATCH | `/api/v1/audition-roles/{roleId}/screening/completion` | Active Producer | 없음 | `204` |
+| PATCH | `/api/v1/audition-roles/{roleId}/screening-rounds/{round}/completion` | Active Producer | 없음 | `200 ScreeningCompletionResult` |
 
 필터는 work, status, keyword, gender, 나이·키·몸무게 비교와 mismatchOnly를 지원한다. 결과 저장은 하나 이상의
 submission ID와 변경할 status·memo·note 중 하나 이상을 요구한다. status는 대소문자 무관
-`PENDING/PASS/FAIL/ETC`다. 배역 전체 종료는 모든 차수의 pending 수가 0이어야 한다.
+`PENDING/PASS/FAIL/ETC`다. 현재 진행 중인 차수는 `PENDING`이 남아 있어도 마감할 수 있다. 응답은
+`round`, `acceptedCount`, `unselectedCount`, `promotedCount`, `nextRound`, `allRoundsClosed`를 반환한다.
+미선택자는 `PENDING`으로 보존하며, `PASS`만 다음 차수로 승격한다. 다음 차수 대상이 없으면 이후 빈 차수도
+자동 마감한다. 마감한 차수의 결과는 수정하거나 되돌릴 수 없다.
 
 ## 운영 대시보드 — 6개
 
