@@ -53,6 +53,7 @@ import art.yesulin.domain.submission.SubmissionConsent;
 import art.yesulin.domain.submission.SubmissionConsentRepository;
 import art.yesulin.domain.submission.SubmissionConsentType;
 import art.yesulin.domain.submission.SubmissionErrorCode;
+import art.yesulin.domain.submission.SubmissionIdempotencyRequestRepository;
 import art.yesulin.domain.submission.SubmissionRepository;
 import art.yesulin.support.ObjectStorageTestConfiguration;
 import java.time.Clock;
@@ -98,8 +99,12 @@ class SubmissionServiceTest {
 
     @Autowired
     private SubmissionService submissionService;
+    @Autowired
+    private IdempotentSubmissionService idempotentSubmissionService;
     @MockitoSpyBean
     private SubmissionRepository submissionRepository;
+    @Autowired
+    private SubmissionIdempotencyRequestRepository idempotencyRepository;
     @Autowired
     private SubmissionConsentRepository consentRepository;
     @Autowired
@@ -233,6 +238,55 @@ class SubmissionServiceTest {
         assertEquals(1, attempts.stream().filter(SubmissionAttempt::succeeded).count());
         assertEquals(1, attempts.stream().filter(attempt -> attempt.errorCode() == DUPLICATE_SUBMISSION).count());
         assertStoredSubmissionCounts(1, 2, 1);
+    }
+
+    @Test
+    void returnsSameResultForConcurrentRequestsWithSameIdempotencyKey() throws Exception {
+        SubmissionFixture fixture = saveOpenAudition();
+        UUID idempotencyKey = UUID.randomUUID();
+        CountDownLatch ready = new CountDownLatch(2);
+        CountDownLatch start = new CountDownLatch(1);
+        List<Future<SubmittedSubmissionResult>> futures = new ArrayList<>();
+        for (int index = 0; index < 2; index++) {
+            futures.add(executor.submit(() -> {
+                ready.countDown();
+                start.await();
+                return idempotentSubmissionService.submit(
+                        APPLICANT_ID,
+                        fixture.publicAuditionId(),
+                        idempotencyKey,
+                        fixture.command()
+                );
+            }));
+        }
+        assertTrue(ready.await(5, TimeUnit.SECONDS));
+        start.countDown();
+
+        List<SubmittedSubmissionResult> results = futures.stream()
+                .map(this::getSubmissionResult)
+                .toList();
+
+        assertEquals(results.getFirst().submissionId(), results.getLast().submissionId());
+        assertEquals(1L, idempotencyRepository.count());
+        assertStoredSubmissionCounts(1, 2, 1);
+    }
+
+    @Test
+    void rollsBackIdempotencyRequestWhenSubmissionFails() {
+        SubmissionFixture fixture = saveAudition(NOW.minusSeconds(86_400), NOW);
+
+        assertThrows(
+                BusinessException.class,
+                () -> idempotentSubmissionService.submit(
+                        APPLICANT_ID,
+                        fixture.publicAuditionId(),
+                        UUID.randomUUID(),
+                        fixture.command()
+                )
+        );
+
+        assertEquals(0L, idempotencyRepository.count());
+        assertStoredSubmissionCounts(0, 0, 0);
     }
 
     @Test
@@ -379,6 +433,14 @@ class SubmissionServiceTest {
             return future.get(10, TimeUnit.SECONDS);
         } catch (Exception exception) {
             throw new AssertionError("동시 제출 결과를 확인할 수 없습니다.", exception);
+        }
+    }
+
+    private SubmittedSubmissionResult getSubmissionResult(Future<SubmittedSubmissionResult> future) {
+        try {
+            return future.get(10, TimeUnit.SECONDS);
+        } catch (Exception exception) {
+            throw new AssertionError("동시 멱등 요청 결과를 확인할 수 없습니다.", exception);
         }
     }
 
@@ -580,6 +642,7 @@ class SubmissionServiceTest {
     }
 
     private void cleanDatabase() {
+        idempotencyRepository.deleteAll();
         fileReferenceRepository.deleteAll();
         consentRepository.deleteAll();
         submissionRepository.deleteAll();

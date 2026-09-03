@@ -135,6 +135,7 @@ class SubmissionControllerTest {
         String responseBody = mockMvc.perform(post("/api/v1/auditions/{auditionId}/submissions", fixture.auditionId())
                         .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
+                        .header("Idempotency-Key", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestWithApplicantId(fixture.roleId())))
                 .andExpect(status().isCreated())
@@ -168,6 +169,7 @@ class SubmissionControllerTest {
         String responseBody = mockMvc.perform(post("/api/v1/auditions/{auditionId}/submissions", fixture.auditionId())
                         .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
+                        .header("Idempotency-Key", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(validRequest(fixture.roleId())))
                 .andExpect(status().isCreated())
@@ -206,6 +208,7 @@ class SubmissionControllerTest {
         mockMvc.perform(post("/api/v1/auditions/{auditionId}/submissions", auditionId)
                         .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
+                        .header("Idempotency-Key", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(invalidRequest()))
                 .andExpect(status().isBadRequest())
@@ -220,6 +223,7 @@ class SubmissionControllerTest {
         mockMvc.perform(post("/api/v1/auditions/{auditionId}/submissions", fixture.auditionId())
                         .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
+                        .header("Idempotency-Key", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(validRequest(fixture.roleId())))
                 .andExpect(status().isConflict())
@@ -235,6 +239,7 @@ class SubmissionControllerTest {
         mockMvc.perform(post("/api/v1/auditions/{auditionId}/submissions", fixture.auditionId())
                         .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
+                        .header("Idempotency-Key", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(validRequest(fixture.roleId())))
                 .andExpect(status().isConflict())
@@ -264,10 +269,97 @@ class SubmissionControllerTest {
                 .andExpect(jsonPath("$.code").value("AUTH_UNAUTHENTICATED"));
     }
 
+    @Test
+    void returnsSameSubmissionWhenSameIdempotencyKeyIsRetried() throws Exception {
+        // given
+        AuditionFixture fixture = saveAudition(
+                NOW.minusSeconds(86_400),
+                NOW.plusSeconds(86_400)
+        );
+        UUID idempotencyKey = UUID.randomUUID();
+        String requestBody = validRequest(fixture.roleId());
+
+        // when
+        String firstResponse = mockMvc.perform(
+                        post("/api/v1/auditions/{auditionId}/submissions", fixture.auditionId())
+                                .with(csrf())
+                                .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
+                                .header("Idempotency-Key", idempotencyKey.toString())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(requestBody)
+                )
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        String secondResponse = mockMvc.perform(
+                        post("/api/v1/auditions/{auditionId}/submissions", fixture.auditionId())
+                                .with(csrf())
+                                .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
+                                .header("Idempotency-Key", idempotencyKey.toString())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(requestBody)
+                )
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        // then
+        String firstSubmissionId = objectMapper.readTree(firstResponse)
+                .get("submissionId").asString();
+        String secondSubmissionId = objectMapper.readTree(secondResponse)
+                .get("submissionId").asString();
+
+        assertEquals(firstSubmissionId, secondSubmissionId);
+        assertEquals(1L, submissionRepository.count());
+    }
+
+    @Test
+    void rejectsDifferentRequestUsingSameIdempotencyKey() throws Exception {
+        AuditionFixture fixture = saveAudition(NOW.minusSeconds(86_400), NOW.plusSeconds(86_400));
+        UUID idempotencyKey = UUID.randomUUID();
+        String requestBody = validRequest(fixture.roleId());
+        String changedRequestBody = requestBody.replace(
+                "\"basicInformation\": {}",
+                "\"basicInformation\": {\"name\": \"다른 이름\"}"
+        );
+
+        mockMvc.perform(post("/api/v1/auditions/{auditionId}/submissions", fixture.auditionId())
+                        .with(csrf())
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
+                        .header("Idempotency-Key", idempotencyKey.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/v1/auditions/{auditionId}/submissions", fixture.auditionId())
+                        .with(csrf())
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
+                        .header("Idempotency-Key", idempotencyKey.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(changedRequestBody))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("IDEMPOTENCY_KEY_REUSED"));
+
+        assertEquals(1L, submissionRepository.count());
+    }
+
+    @Test
+    void rejectsSubmissionWithoutIdempotencyKey() throws Exception {
+        AuditionFixture fixture = saveAudition(NOW.minusSeconds(86_400), NOW.plusSeconds(86_400));
+
+        mockMvc.perform(post("/api/v1/auditions/{auditionId}/submissions", fixture.auditionId())
+                        .with(csrf())
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validRequest(fixture.roleId())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+    }
+
     private void submit(AuditionFixture fixture) throws Exception {
         mockMvc.perform(post("/api/v1/auditions/{auditionId}/submissions", fixture.auditionId())
                         .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
+                        .header("Idempotency-Key", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(validRequest(fixture.roleId())))
                 .andExpect(status().isCreated());

@@ -3,7 +3,7 @@ package art.yesulin.presentation.api.submission;
 import art.yesulin.application.auth.MemberPrincipal;
 import art.yesulin.application.auth.annotation.LoginMember;
 import art.yesulin.application.auth.annotation.LoginRequired;
-import art.yesulin.application.submission.SubmissionService;
+import art.yesulin.application.submission.IdempotentSubmissionService;
 import art.yesulin.application.submission.SubmittedSubmissionResult;
 import art.yesulin.domain.member.MemberType;
 import jakarta.validation.Valid;
@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -23,16 +24,17 @@ import org.springframework.web.bind.annotation.RestController;
 @LoginRequired
 public class SubmissionController {
 
-    private final SubmissionService submissionService;
+    private final IdempotentSubmissionService submissionService;
 
     @PostMapping
     public ResponseEntity<SubmitSubmissionResponse> submit(
             @LoginMember(roles = MemberType.APPLICANT) MemberPrincipal principal,
             @PathVariable UUID auditionId,
+            @RequestHeader("Idempotency-Key") UUID idempotencyKey,
             @Valid @RequestBody SubmitSubmissionRequest request
     ) {
         SubmittedSubmissionResult result = submissionService.submit(
-                principal.memberId(), auditionId, request.toCommand()
+                principal.memberId(), auditionId, idempotencyKey, request.toCommand()
         );
         URI location = URI.create("/api/v1/applicants/me/submissions/" + result.submissionId());
         return ResponseEntity.created(location).body(SubmitSubmissionResponse.from(result));

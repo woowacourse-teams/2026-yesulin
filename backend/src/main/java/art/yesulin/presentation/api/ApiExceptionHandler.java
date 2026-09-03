@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -97,6 +98,18 @@ public class ApiExceptionHandler {
                 request,
                 "%s 값이 필요합니다.".formatted(exception.getParameterName()),
                 Map.of(exception.getParameterName(), "필수 값입니다.")
+        );
+    }
+
+    @ExceptionHandler(MissingRequestHeaderException.class)
+    public ResponseEntity<ErrorResponse> handleMissingRequestHeaderException(
+            MissingRequestHeaderException exception,
+            HttpServletRequest request
+    ) {
+        return badRequest(
+                request,
+                "%s 헤더가 필요합니다.".formatted(exception.getHeaderName()),
+                Map.of(exception.getHeaderName(), "필수 값입니다.")
         );
     }
 
