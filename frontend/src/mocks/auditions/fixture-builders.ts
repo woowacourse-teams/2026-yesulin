@@ -75,6 +75,8 @@ export function roundFixture(count: 1 | 2 | 3 | 4 | 5): readonly AuditionRoundIn
     name,
     date: `2026-10-${String(2 + index * 7).padStart(2, "0")}`,
     note: notes[index]!,
+    venue: "",
+    venueAddress: { roadAddress: "", detailAddress: "", zonecode: "", latitude: null, longitude: null },
   }));
 }
 
@@ -152,6 +154,8 @@ export function performanceFixture(postings: CatalogPosting[]): CatalogPerforman
       latitude: 37.5812,
       longitude: 127.0033,
     },
+    performanceStart: postings[0]?.performanceStart ?? "",
+    performanceEnd: postings[0]?.performanceEnd ?? "",
     roleTemplates: postings.flatMap((posting) => posting.roles.map((role) => ({
       id: `template_${role.id}`,
       name: role.name,

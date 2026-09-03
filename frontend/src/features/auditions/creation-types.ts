@@ -1,3 +1,4 @@
+import { MAX_ACTOR_PHOTO_COUNT } from "@/features/files/photo-policy";
 import type { PerformanceId, RoleGender, RoundNumber } from "./types";
 
 export type VenueAddress = {
@@ -20,7 +21,7 @@ export type VideoRequirement = {
 };
 
 /** 한 공고에서 배우에게 요청할 수 있는 프로필 사진의 전체 장수. */
-export const MAX_REQUESTED_PHOTO_COUNT = 3;
+export const MAX_REQUESTED_PHOTO_COUNT = MAX_ACTOR_PHOTO_COUNT;
 
 /** 한 공고에서 배우에게 요청할 수 있는 영상 항목 수. 개인 영상 보관함 상한과는 별개다. */
 export const MAX_VIDEO_REQUIREMENTS = 3;
@@ -34,7 +35,7 @@ export const APPLICATION_FIELD_OPTIONS = [
   { key: "PHONE", label: "연락처", defaultRequired: true, section: "BASIC", inputType: "TEL", order: 60, layout: "HALF", config: { placeholder: "010-0000-0000" } },
   { key: "EMAIL", label: "이메일", defaultRequired: true, section: "BASIC", inputType: "TEXT", order: 70, layout: "HALF", config: { placeholder: "name@example.com" } },
   { key: "ADDRESS", label: "거주 지역", defaultRequired: true, section: "BASIC", inputType: "REGION", order: 80, layout: "FULL", config: {} },
-  { key: "SCHOOL", label: "학력", defaultRequired: false, section: "ADDITIONAL", inputType: "TEXT", order: 10, layout: "FULL", config: { placeholder: "학교와 전공을 입력해 주세요." } },
+  { key: "SCHOOL", label: "학력", defaultRequired: false, section: "ADDITIONAL", inputType: "COMPOSITE", order: 10, layout: "FULL", config: {} },
   { key: "LINK", label: "SNS / 외부 링크", defaultRequired: false, section: "ADDITIONAL", inputType: "URL", order: 20, layout: "FULL", config: { placeholder: "예: https://www.instagram.com/내계정", maxLength: 255 } },
   { key: "NATIONALITY", label: "국적", defaultRequired: false, section: "ADDITIONAL", inputType: "TEXT", order: 30, layout: "HALF", config: { placeholder: "예: 대한민국" } },
   { key: "COVER_LETTER", label: "자기소개", defaultRequired: false, section: "ADDITIONAL", inputType: "TEXTAREA", order: 40, layout: "FULL", config: { maxLength: 2000 } },
@@ -121,6 +122,8 @@ export type CreatePerformanceRequest = {
   readonly title: string;
   readonly venue: string;
   readonly venueAddress: VenueAddress;
+  readonly performanceStart: string;
+  readonly performanceEnd: string;
   readonly roles: readonly Omit<PerformanceRoleTemplate, "id">[];
 };
 
@@ -137,6 +140,8 @@ export type AuditionRoundInput = {
   readonly name: string;
   readonly date: string;
   readonly note: string;
+  readonly venue: string;
+  readonly venueAddress: VenueAddress;
   /** 이미 저장된 전형의 Backend 식별자. 새로 추가한 전형에는 없다. */
   readonly stageId?: number;
 };

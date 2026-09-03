@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { ApplicantAnswerValue, CareerEntry } from "@/features/applicants/types";
+import { educationInformation } from "@/features/applicants/education";
 import { formatKoreanPhone, integerMeasurementError, isIntegerMeasurement, isValidEmail, isValidKoreanPhone } from "@/features/applicants/profile-input";
 import { usePhoneInput } from "@/features/applications/phone-number";
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
@@ -35,6 +36,7 @@ function StandardField({ field, value, onChange }: { readonly field: Application
   const width = field.layout === "FULL" || field.inputType === "TEXTAREA" || field.inputType === "COMPOSITE" ? "md:col-span-2" : "";
   const label = <>{field.label}<span className="ml-1 text-xs font-normal text-muted">(선택)</span></>;
   if (field.id === "LINK") return <ExternalLinksField value={linkValue(value)} onChange={onChange} />;
+  if (field.id === "SCHOOL") return <EducationField value={value} onChange={onChange} />;
   const text = typeof value === "string" || typeof value === "number" ? String(value) : "";
   const contactError = touched && field.id === "PHONE" && text && !isValidKoreanPhone(text) ? "연락처를 확인해 주세요. 예: 010-1234-5678" : "";
   const emailError = touched && field.id === "EMAIL" && text && !isValidEmail(text) ? "이메일 주소 형식을 확인해 주세요. 예: actor@example.com" : "";
@@ -46,6 +48,12 @@ function StandardField({ field, value, onChange }: { readonly field: Application
   const control = <FieldInput id={id} type={field.id === "EMAIL" ? "email" : field.inputType === "TEL" ? "tel" : field.inputType === "URL" ? "url" : field.inputType === "NUMBER" ? "number" : "text"} inputMode={field.id === "PHONE" ? "tel" : field.id === "EMAIL" ? "email" : field.inputType === "NUMBER" ? "numeric" : undefined} autoComplete={field.id === "PHONE" ? "tel" : field.id === "EMAIL" ? "email" : undefined} min={field.inputType === "NUMBER" ? 1 : undefined} step={field.inputType === "NUMBER" ? 1 : undefined} maxLength={field.id === "PHONE" ? 13 : undefined} value={text} placeholder={field.config.placeholder} aria-invalid={Boolean(fieldError) || undefined} aria-describedby={fieldError ? `${id}-error` : undefined} className={field.config.unit ? "pr-12" : ""} onBlur={() => setTouched(true)} onChange={(event) => field.id === "PHONE" ? onPhoneChange(event, onChange) : onChange(field.inputType === "NUMBER" ? Number(event.target.value) : event.target.value)} />;
   const textInput = <>{field.config.unit ? <span className="relative block">{control}<UnitSuffix unit={field.config.unit} /></span> : control}{fieldError ? <span id={`${id}-error`} role="alert" className="mt-2 block text-sm font-medium text-fail">{fieldError}</span> : null}</>;
   return <label htmlFor={id} className={width}><span className="mb-2 block text-sm font-semibold">{label}</span>{field.inputType === "TEXTAREA" ? <><FieldTextarea id={id} rows={6} maxLength={field.config.maxLength} value={text} placeholder={field.config.placeholder} onChange={(event) => onChange(event.target.value)} />{field.config.maxLength ? <span className="num mt-2 block text-right text-xs text-muted">{text.length.toLocaleString("ko-KR")} / {field.config.maxLength.toLocaleString("ko-KR")}자</span> : null}</> : field.inputType === "SELECT" ? <FieldSelect id={id} value={text} onChange={(event) => onChange(event.target.value)}><option value="">선택하지 않음</option>{field.config.options?.map((option) => <option key={option}>{option}</option>)}</FieldSelect> : textInput}</label>;
+}
+
+function EducationField({ value, onChange }: { readonly value?: ApplicantAnswerValue; readonly onChange: (value: ApplicantAnswerValue) => void }) {
+  const education = educationInformation(value);
+  const update = (next: Partial<typeof education>) => onChange({ ...education, ...next });
+  return <fieldset className="md:col-span-2"><legend className="mb-2 text-sm font-semibold">학력 <span className="text-xs font-normal text-muted">(선택)</span></legend><p className="mb-3 text-sm leading-6 text-muted">최종 학력을 선택하고, 해당하는 학교와 전공을 입력해 주세요.</p><div className="grid gap-2 sm:grid-cols-3">{([ ["NONE", "학력 없음"], ["HIGH_SCHOOL", "고등학교 졸업"], ["UNIVERSITY", "대학교 졸업"] ] as const).map(([level, label]) => <label key={level} className={`flex min-h-12 cursor-pointer items-center gap-2 rounded-control border px-3 text-sm font-medium ${education.level === level ? "border-brand bg-brand-soft text-brand" : "border-border bg-card"}`}><input type="radio" name="profile-education-level" checked={education.level === level} onChange={() => update({ level, school: level === "NONE" ? "" : education.school, major: level === "UNIVERSITY" ? education.major : "" })} className="accent-brand" />{label}</label>)}</div>{education.level === "HIGH_SCHOOL" || education.level === "UNIVERSITY" ? <label className="mt-4 block"><span className="mb-2 block text-sm font-semibold">학교</span><FieldInput value={education.school} placeholder={education.level === "HIGH_SCHOOL" ? "예: 예술고등학교" : "예: 한국예술종합학교"} maxLength={255} onChange={(event) => update({ school: event.target.value })} /></label> : null}{education.level === "UNIVERSITY" ? <label className="mt-4 block"><span className="mb-2 block text-sm font-semibold">전공</span><FieldTextarea rows={3} maxLength={255} value={education.major} placeholder="예: 연극원 연기과" onChange={(event) => update({ major: event.target.value })} /></label> : null}</fieldset>;
 }
 
 function ExternalLinksField({ value, onChange }: { readonly value: readonly string[]; readonly onChange: (value: ApplicantAnswerValue) => void }) {

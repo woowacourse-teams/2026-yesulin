@@ -82,6 +82,21 @@ class SubmissionCollectionsTest {
     }
 
     @Test
+    void rejectsMoreThanThreePhotos() {
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> new PhotoRequirementAnswers(List.of(
+                        new PhotoRequirementAnswer(1L, "프로필 사진", 10L),
+                        new PhotoRequirementAnswer(2L, "전신 사진", 11L),
+                        new PhotoRequirementAnswer(3L, "연기 사진 1", 12L),
+                        new PhotoRequirementAnswer(4L, "연기 사진 2", 13L)
+                ))
+        );
+
+        assertEquals(SubmissionErrorCode.INVALID_SUBMISSION, exception.getErrorCode());
+    }
+
+    @Test
     void rejectsDuplicatePhotoAssociation() {
         BusinessException exception = assertThrows(
                 BusinessException.class,

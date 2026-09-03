@@ -1,4 +1,5 @@
 import { producerRequest as request } from "./api-client";
+import { MAX_ACTOR_PHOTO_COUNT } from "../files/photo-policy";
 import type {
   ScreeningBoardResource,
   ScreeningSubmissionDetailResource,
@@ -84,13 +85,15 @@ function toApplicant(resource: ScreeningSubmissionResource): Applicant {
     phone: resource.phone ?? "미수집",
     email: resource.email ?? "미수집",
     address: resource.address ?? "미수집",
+    educationLevel: resource.educationLevel,
     school: resource.school ?? "미수집",
+    major: resource.major ?? "",
     nationality: resource.nationality ?? "미수집",
     specialty: resource.specialty ?? "미수집",
     hobbies: resource.hobbies ?? "미수집",
     militaryServiceStatus: resource.militaryServiceStatus ?? "미수집",
     coverLetter: resource.coverLetter ?? "미수집",
-    photos: resource.photos.map((photo, index) => ({
+    photos: resource.photos.slice(0, MAX_ACTOR_PHOTO_COUNT).map((photo, index) => ({
       ...photo,
       fallbackUrl: fallbackPhoto(displayName, index),
     })),

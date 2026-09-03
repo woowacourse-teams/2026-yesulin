@@ -55,7 +55,7 @@ public class AuditionSchedule {
     }
 
     public void ensurePublishableAt(Instant publicationTime) {
-        recruitmentPeriod.ensureNotEndedAt(publicationTime);
+        recruitmentPeriod.publishAt(publicationTime);
     }
 
     public void ensureWithinPerformanceEnd(LocalDate performanceEndDate) {

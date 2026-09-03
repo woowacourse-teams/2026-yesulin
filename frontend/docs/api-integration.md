@@ -27,11 +27,11 @@ MSW 전용 경로를 어떻게 구분하는지만 설명한다.
 - `/api/v1/files/{fileId}/content` (소유권과 지원서–공연사 관계를 검증하는 비공개 사진 조회)
 - `/api/v1/auditions/{auditionId}/submissions`, 내 지원서 목록·상세
 - `/api/v1/audition-roles/{roleId}/screening-rounds/**`
-- `/api/v1/audition-roles/{roleId}/screening/completion`
 - `/api/v1/upload-diagnostics` (업로드 실패·재시도 성공의 개인정보 없는 진단)
 - `/api/v1/admin/**` (운영 대시보드 전용. 단, 로그 화면 시각 검증을 위한 `/logs` fixture는 MSW에 포함한다.)
 
-심사 상태는 `PENDING`, `PASS`, `FAIL`, `ETC`만 사용한다. 심사 종료는 차수별이 아니라 공고 배역 전체다.
+심사 상태는 `PENDING`, `PASS`, `FAIL`, `ETC`만 사용한다. 현재 차수는 `PENDING`이 남아 있어도 마감할 수 있고,
+`PASS`만 다음 차수로 승격된다. 마감된 차수의 결과는 수정할 수 없다.
 
 ## MSW 전용 계약
 

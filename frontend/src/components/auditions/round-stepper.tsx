@@ -6,6 +6,7 @@ import { HorizontalScrollArea } from "./horizontal-scroll-area";
 import { useBoard } from "./board-context";
 
 function subtitleOf(state: RoundState) {
+  if (state.closed) return "마감됨";
   if (state.counts.all === 0) return "대상 없음";
   return null;
 }
@@ -14,9 +15,9 @@ export function RoundStepper() {
   const { board, goToRound, screeningCompleted, setCompletionPrompt } = useBoard();
   const roundIndex = board.rounds.findIndex((state) => state.round === board.round);
   const currentRound = board.rounds[roundIndex];
-  const finalRound = roundIndex === board.rounds.length - 1;
-  const allRoundsReviewed = board.rounds.every((state) => state.counts.pending === 0);
-  const canComplete = Boolean(currentRound && finalRound && allRoundsReviewed);
+  const canComplete = Boolean(
+    currentRound && !screeningCompleted && !currentRound.closed && board.role.activeRound === board.round,
+  );
 
   return (
     <div className="flex items-stretch border-b border-border bg-card">
@@ -76,7 +77,7 @@ export function RoundStepper() {
               onClick={() => setCompletionPrompt("manual")}
               className="inline-flex min-h-10 items-center rounded-control border border-brand-line bg-card px-3 text-sm font-semibold text-brand hover:border-brand hover:bg-brand-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-soft"
             >
-              전형 종료
+              전형 마감
             </button>
           ) : (
             <span

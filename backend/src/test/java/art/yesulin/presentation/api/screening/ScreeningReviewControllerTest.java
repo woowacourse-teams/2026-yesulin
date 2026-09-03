@@ -15,6 +15,7 @@ import art.yesulin.domain.file.FileReferenceRepository;
 import art.yesulin.domain.member.MemberStatus;
 import art.yesulin.domain.member.MemberType;
 import art.yesulin.domain.performance.PerformanceRepository;
+import art.yesulin.domain.screening.ScreeningCompletionRepository;
 import art.yesulin.domain.screening.ScreeningReviewRepository;
 import art.yesulin.domain.submission.SubmissionRepository;
 import art.yesulin.support.ObjectStorageTestConfiguration;
@@ -54,6 +55,9 @@ class ScreeningReviewControllerTest {
     private ScreeningReviewRepository screeningReviewRepository;
 
     @Autowired
+    private ScreeningCompletionRepository completionRepository;
+
+    @Autowired
     private AuditionScheduleRepository scheduleRepository;
 
     @Autowired
@@ -78,6 +82,7 @@ class ScreeningReviewControllerTest {
 
     @BeforeEach
     void setUp() {
+        completionRepository.deleteAll();
         screeningReviewRepository.deleteAll();
         submissionRepository.deleteAll();
         scheduleRepository.deleteAll();
@@ -131,6 +136,28 @@ class ScreeningReviewControllerTest {
                 .andExpect(jsonPath("$.message").exists());
 
         assertEquals(0, screeningReviewRepository.count());
+    }
+
+    @Test
+    void closesCurrentRoundWithPendingApplicantsAndLocksItsReview() throws Exception {
+        mockMvc.perform(patch("/api/v1/audition-roles/{roleId}/screening-rounds/{round}/completion", roleId, 1)
+                        .with(csrf())
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.round").value(1))
+                .andExpect(jsonPath("$.acceptedCount").value(0))
+                .andExpect(jsonPath("$.unselectedCount").value(1))
+                .andExpect(jsonPath("$.allRoundsClosed").value(true));
+
+        mockMvc.perform(patch(REVIEWS_PATH, roleId, 1)
+                        .with(csrf())
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"submissionIds": ["b4472dce-52d0-41a9-baaa-c9e86e31b72b"], "status": "PASS"}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_SCREENING_REVIEW"));
     }
 
     private long saveScreeningFixture() {

@@ -46,8 +46,8 @@ function reviewState(posting: PostingSummary) {
   return "검토 완료";
 }
 
-export function PostingPicker({ performanceId }: { performanceId: PerformanceId }) {
-  const [createOpen, setCreateOpen] = useState(false);
+export function PostingPicker({ performanceId, autoOpenCreate = false }: { readonly performanceId: PerformanceId; readonly autoOpenCreate?: boolean }) {
+  const [createOpen, setCreateOpen] = useState(autoOpenCreate);
   const [filter, setFilter] = useState<PostingFilter>("ALL");
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
@@ -102,7 +102,7 @@ export function PostingPicker({ performanceId }: { performanceId: PerformanceId 
         </section>
       </> : <PickerEmpty title="아직 등록된 공고가 없습니다" description="모집 기간과 배역, 전형 일정을 설정해 첫 모집을 시작하세요." />}
     </div></PickerScreen> : null}
-    {createOpen && data ? <PostingCreateModal performanceId={performanceId} performanceTitle={data.performance.title} performancePosterUrl={data.performance.posterUrl} roleTemplates={data.roleTemplates} onClose={() => setCreateOpen(false)} onCreated={reload} /> : null}
+    {createOpen && data ? <PostingCreateModal performanceId={performanceId} performanceTitle={data.performance.title} performancePosterUrl={data.performance.posterUrl} performanceStart={data.performance.performanceStart ?? ""} performanceEnd={data.performance.performanceEnd ?? ""} roleTemplates={data.roleTemplates} onClose={() => setCreateOpen(false)} onCreated={reload} /> : null}
     {manage ? <PostingManageDialog posting={manage.posting} mode={manage.mode} onClose={() => setManage(null)} onChanged={reload} /> : null}
   </>;
 }

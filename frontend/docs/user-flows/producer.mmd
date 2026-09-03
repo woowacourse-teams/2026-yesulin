@@ -11,10 +11,11 @@ flowchart TD
     AUDITION --> PUBLISH["PUT /api/v1/auditions/{auditionId}/publication"]
     PUBLISH --> ROLE["공고 배역별 지원 현황"]
     ROLE --> BOARD["GET .../screening-rounds/{round}/submissions"]
+    BOARD --> FOCUS["카드 · 표 · 한 명씩 보기\n검색·필터 조건과 URL 상태 보존"]
+    FOCUS --> REVIEW
     BOARD --> REVIEW["PATCH .../screening-rounds/{round}/reviews"]
-    REVIEW --> NEXT{"다음 차수?"}
+    REVIEW --> COMPLETE["현재 차수 마감<br>PATCH .../screening-rounds/{round}/completion"]
+    COMPLETE --> NEXT{"다음 차수 PASS 지원자?"}
     NEXT -- 예 --> BOARD
-    NEXT -- 아니오 --> READY{"모든 차수 PENDING 없음?"}
-    READY -- 아니오 --> BOARD
-    READY -- 예 --> COMPLETE["PATCH /api/v1/audition-roles/{roleId}/screening/completion"]
-    COMPLETE --> LOCKED["배역 전체 심사 종료·수정 잠금"]
+    NEXT -- 아니오 --> LOCKED["남은 빈 차수 자동 마감·배역 전형 종료"]
+    COMPLETE --> CURRENT_LOCKED["마감한 차수 결과 수정 잠금"]

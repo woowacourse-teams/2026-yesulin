@@ -17,7 +17,10 @@ import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "screening_completions", uniqueConstraints = {
-        @UniqueConstraint(name = "uk_screening_completions_role_id", columnNames = "audition_role_id")
+        @UniqueConstraint(
+                name = "uk_screening_completions_role_stage",
+                columnNames = {"audition_role_id", "screening_stage_id"}
+        )
 })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -30,11 +33,15 @@ public class ScreeningCompletion {
     @Column(name = "audition_role_id", nullable = false, updatable = false)
     private long auditionRoleId;
 
+    @Column(name = "screening_stage_id", nullable = false, updatable = false)
+    private long screeningStageId;
+
     @Column(name = "completed_at", nullable = false, updatable = false)
     private Instant completedAt;
 
-    public ScreeningCompletion(long auditionRoleId, Instant completedAt) {
+    public ScreeningCompletion(long auditionRoleId, long screeningStageId, Instant completedAt) {
         this.auditionRoleId = requirePositive(auditionRoleId, "공고 배역 ID는 1 이상이어야 합니다.");
+        this.screeningStageId = requirePositive(screeningStageId, "심사 전형 ID는 1 이상이어야 합니다.");
         this.completedAt = Objects.requireNonNull(completedAt, "전형 종료 시각은 필수입니다.");
     }
 }

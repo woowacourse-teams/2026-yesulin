@@ -1,10 +1,11 @@
+import { MAX_ACTOR_PHOTO_COUNT } from "@/features/files/photo-policy";
 import type { ApplicationFormStep } from "./application-form";
 import { isCompleteKoreaRegion } from "@/features/applicants/korea-regions";
 import { integerMeasurementError, isIntegerMeasurement } from "@/features/applicants/profile-input";
 import { isValidBirthDate } from "@/components/ui/birth-date-input";
 import { applicationLinks } from "./application-links";
 
-export const MAX_PHOTO_COUNT = 3;
+export const MAX_PHOTO_COUNT = MAX_ACTOR_PHOTO_COUNT;
 export const MAX_PHOTO_SIZE_BYTES = 20 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/;
@@ -184,6 +185,7 @@ export function careerDraftError(career: CareerDraft): string | null {
 }
 
 function applicationFieldError(field: ApplicationFormStep["fields"][number], values: Readonly<Record<string, string>>) {
+  if (field.id === "SCHOOL") return educationError(field, values);
   if (field.inputType === "COMPOSITE") {
     const missing = field.config.fields?.some((part) => !values[`${field.id}.${part.key}`]?.trim());
     return field.required && missing ? `${field.label} 항목을 입력해 주세요.` : null;
@@ -208,5 +210,15 @@ function applicationFieldError(field: ApplicationFormStep["fields"][number], val
   if (value && field.inputType === "SELECT" && field.config.options?.length && !field.config.options.includes(value)) return `${field.label} 선택값을 다시 확인해 주세요.`;
   if (value && field.config.minLength && value.length < field.config.minLength) return `${field.label}은(는) ${field.config.minLength}자 이상 입력해 주세요.`;
   if (value && field.config.maxLength && value.length > field.config.maxLength) return `${field.label}은(는) ${field.config.maxLength}자 이하로 입력해 주세요.`;
+  return null;
+}
+
+function educationError(field: ApplicationFormStep["fields"][number], values: Readonly<Record<string, string>>) {
+  const level = values["SCHOOL.educationLevel"];
+  if (!level) return field.required ? "최종 학력을 선택해 주세요." : null;
+  if (level === "NONE") return null;
+  if (level !== "HIGH_SCHOOL" && level !== "UNIVERSITY") return "최종 학력을 다시 선택해 주세요.";
+  if (!values["SCHOOL.school"]?.trim()) return "학교를 입력해 주세요.";
+  if (level === "UNIVERSITY" && !values["SCHOOL.major"]?.trim()) return "전공을 입력해 주세요.";
   return null;
 }

@@ -3,6 +3,7 @@ package art.yesulin.presentation.api.performance;
 import art.yesulin.application.performance.PerformanceResult;
 import art.yesulin.application.performance.PerformanceRoleResult;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 
 public record PerformanceResponse(
@@ -13,6 +14,8 @@ public record PerformanceResponse(
         String venue,
         String roadAddress,
         PerformanceVenueAddressResponse venueAddress,
+        LocalDate performanceStartDate,
+        LocalDate performanceEndDate,
         Instant createdAt,
         List<PerformanceRoleResult> roles
 ) {
@@ -26,6 +29,8 @@ public record PerformanceResponse(
                 result.venue(),
                 result.roadAddress(),
                 PerformanceVenueAddressResponse.from(result),
+                result.performanceStartDate(),
+                result.performanceEndDate(),
                 result.createdAt(),
                 result.roles()
         );

@@ -3,6 +3,7 @@ import { orderedApplicationPhotos } from "./application-form-state";
 import { applicationLinkKey, MAX_APPLICATION_LINKS } from "./application-links";
 import type { ApplicationPhoto, CareerDraft } from "./application-form-state";
 import type { ApplicantAnswerValue, CareerEntry, ProfilePrefillResponse } from "@/features/applicants/types";
+import { isEducationInformation } from "@/features/applicants/education";
 
 export function applicationDraftFromPrefill(prefill?: ProfilePrefillResponse, fields: readonly ApplicationFieldInput[] = []) {
   const values: Record<string, string> = {};
@@ -25,6 +26,10 @@ export function applicationDraftFromPrefill(prefill?: ProfilePrefillResponse, fi
         .filter((item): item is string => typeof item === "string" && Boolean(item.trim()))
         .slice(0, MAX_APPLICATION_LINKS)
         .forEach((link, index) => { values[applicationLinkKey(index)] = link; });
+    } else if (answer.key === "SCHOOL" && isEducationInformation(answer.value)) {
+      if (answer.value.level) values["SCHOOL.educationLevel"] = answer.value.level;
+      values["SCHOOL.school"] = answer.value.school;
+      values["SCHOOL.major"] = answer.value.major;
     } else if (typeof answer.value === "object" && answer.value !== null && !Array.isArray(answer.value) && "height" in answer.value && "weight" in answer.value) {
       values[`${answer.key}.height`] = String(answer.value.height);
       values[`${answer.key}.weight`] = String(answer.value.weight);
@@ -54,7 +59,16 @@ export function submissionValue(field: ApplicationFieldInput, draft: {
       : draft.videoUrl;
   }
   if (field.id === "CAREER") return draft.noCareer ? [] : draft.careers.map((career) => ({ year: Number(career.year), title: career.title, part: career.part }));
+  if (field.id === "SCHOOL") return {
+    level: educationLevel(draft.values["SCHOOL.educationLevel"]),
+    school: draft.values["SCHOOL.school"] ?? "",
+    major: draft.values["SCHOOL.major"] ?? "",
+  };
   if (field.inputType === "COMPOSITE") return Object.fromEntries((field.config.fields ?? []).map((part) => [part.key, Number(draft.values[`${field.id}.${part.key}`] ?? 0)])) as { height: number; weight: number };
   if (field.inputType === "NUMBER") return Number(draft.values[field.id] ?? 0);
   return draft.values[field.id] ?? "";
+}
+
+function educationLevel(value: string | undefined) {
+  return value === "NONE" || value === "HIGH_SCHOOL" || value === "UNIVERSITY" ? value : null;
 }

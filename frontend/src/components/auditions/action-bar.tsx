@@ -10,14 +10,21 @@ const POPUP_BLOCKED = "팝업이 차단되어 인쇄 창을 열 수 없습니다
 const ACTION_CLASS = "min-h-9 whitespace-nowrap rounded-control bg-white/10 px-3 py-1.5 text-dense font-semibold transition-[background-color,opacity,transform] duration-150 hover:bg-white/20 active:scale-[0.97] disabled:pointer-events-none disabled:bg-white/5 disabled:text-white/45";
 
 export function ActionBar() {
-  const { board, filters, selected, saving, screeningCompleted, clearSelection, setStatus, openContacts } = useBoard();
+  const { board, filters, selected, saving, reviewLocked, clearSelection, setStatus, openContacts } = useBoard();
   const toast = useToast();
   if (selected.size === 0) return null;
   const picked = board.applicants.filter((applicant) => selected.has(applicant.id));
   const ids = picked.map((applicant) => applicant.id);
 
   const actions = <>
-    {screeningCompleted ? <span className="self-center whitespace-nowrap px-2 text-xs opacity-60">종료된 전형</span> : selectableStatuses().map((status) => <button key={status} type="button" disabled={saving} onClick={() => { void setStatus(ids, status); }} className={ACTION_CLASS}>{STATUS_LABELS[status]}</button>)}
+    {reviewLocked ? (
+      <span className="self-center whitespace-nowrap px-2 text-xs opacity-60">마감된 전형</span>
+    ) : (
+      <>
+        {filters.work === "DONE" ? <button type="button" disabled={saving} onClick={() => { void setStatus(ids, "PENDING"); }} className={ACTION_CLASS}>검토 대기로</button> : null}
+        {filters.work === "PENDING" ? selectableStatuses().map((status) => <button key={status} type="button" disabled={saving} onClick={() => { void setStatus(ids, status); }} className={ACTION_CLASS}>{STATUS_LABELS[status]}</button>) : null}
+      </>
+    )}
     <button type="button" onClick={() => { if (!openPrintWindow(picked, board.performance)) toast(POPUP_BLOCKED, { type: "error" }); }} className={ACTION_CLASS}>인쇄 · PDF</button>
     {filters.work === "DONE" ? <button type="button" onClick={() => openContacts(picked)} className={`${ACTION_CLASS} bg-brand hover:bg-brand-strong`}>연락처 모아보기</button> : null}
   </>;

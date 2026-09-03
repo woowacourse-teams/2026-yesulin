@@ -38,7 +38,9 @@ export type V1SubmissionRequest = {
     readonly address: string | null;
   };
   readonly additionalInformation: {
+    readonly educationLevel: "NONE" | "HIGH_SCHOOL" | "UNIVERSITY" | null;
     readonly school: string | null;
+    readonly major: string | null;
     readonly links: readonly string[];
     readonly nationality: string | null;
     readonly coverLetter: string | null;
@@ -111,7 +113,7 @@ export function applicantInformation(input: ApplicantInformationInput): Applican
       address: text("ADDRESS"),
     },
     additionalInformation: {
-      school: text("SCHOOL"),
+      ...educationInformation(input.values, enabledKeys.has("SCHOOL")),
       links: applicationLinks(input.values),
       nationality: text("NATIONALITY"),
       coverLetter: text("COVER_LETTER"),
@@ -122,6 +124,22 @@ export function applicantInformation(input: ApplicantInformationInput): Applican
         ? input.careers.map((career) => ({ year: Number(career.year), title: career.title.trim(), roleName: career.part.trim() }))
         : [],
     },
+  };
+}
+
+function educationInformation(
+  values: Readonly<Record<string, string>>,
+  enabled: boolean,
+): Pick<V1SubmissionRequest["additionalInformation"], "educationLevel" | "school" | "major"> {
+  if (!enabled) return { educationLevel: null, school: null, major: null };
+  const level = values["SCHOOL.educationLevel"];
+  if (level !== "NONE" && level !== "HIGH_SCHOOL" && level !== "UNIVERSITY") {
+    return { educationLevel: null, school: null, major: null };
+  }
+  return {
+    educationLevel: level,
+    school: level === "NONE" ? null : nullableText(values["SCHOOL.school"]),
+    major: level === "UNIVERSITY" ? nullableText(values["SCHOOL.major"]) : null,
   };
 }
 

@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import Link from "next/link";
 import { getAuditionSubmission } from "@/features/auditions/api";
+import type { AuditionListRouteState } from "@/features/auditions/filters";
 import { auditionRoutes } from "@/features/auditions/routes";
 import type {
   SubmissionId,
@@ -23,10 +24,12 @@ export function ApplicantReview({
   roleId,
   submissionId,
   round,
+  listState,
 }: {
   roleId: RoleId;
   submissionId: SubmissionId;
   round: RoundNumber;
+  listState: AuditionListRouteState;
 }) {
   const [applied, setApplied] = useState<AuditionBoardResponse | null>(null);
   const load = useCallback(
@@ -40,7 +43,7 @@ export function ApplicantReview({
   );
   const board = applied ?? data;
   const applicant = board?.applicants.find((candidate) => candidate.id === submissionId) ?? null;
-  const listHref = auditionRoutes.role(roleId, round);
+  const listHref = auditionRoutes.role(roleId, round, listState);
 
   return (
     <>
@@ -82,7 +85,7 @@ export function ApplicantReview({
                   <StatusBadge status={applicant.review.status} memo={applicant.review.memo} />
                 </div>
                 <p className="mt-1 text-sm text-muted">
-                  {board.role.name} 지원 · {round}차 심사 · 지원서 #{applicant.id}
+                  {board.role.name} 지원 · {round}차 심사
                 </p>
               </div>
             </header>
@@ -94,9 +97,13 @@ export function ApplicantReview({
                   layout="review"
                   className="mx-auto w-full max-w-[360px] overflow-hidden rounded-card border border-border xl:sticky xl:top-16 xl:mx-0 xl:max-w-none"
                 />
-                <div className="min-w-0 overflow-hidden rounded-card border border-border bg-card">
-                  <ApplicantVideoSection applicant={applicant} />
-                  <DetailProfile applicant={applicant} rounds={board.rounds} />
+                <div className="min-w-0 space-y-4">
+                  <div className="overflow-hidden rounded-card border border-border bg-card">
+                    <DetailProfile applicant={applicant} rounds={board.rounds} />
+                  </div>
+                  <div className="overflow-hidden rounded-card border border-border bg-card">
+                    <ApplicantVideoSection applicant={applicant} />
+                  </div>
                 </div>
               </div>
 
@@ -104,6 +111,7 @@ export function ApplicantReview({
                 board={board}
                 applicant={applicant}
                 onBoardChange={setApplied}
+                listState={listState}
               />
             </div>
           </>

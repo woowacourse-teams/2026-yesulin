@@ -3,6 +3,7 @@ package art.yesulin.application.performance;
 import art.yesulin.domain.performance.Performance;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 
 public record PerformanceResult(
@@ -15,6 +16,8 @@ public record PerformanceResult(
         String zonecode,
         BigDecimal latitude,
         BigDecimal longitude,
+        LocalDate performanceStartDate,
+        LocalDate performanceEndDate,
         Instant createdAt,
         List<PerformanceRoleResult> roles
 ) {
@@ -25,12 +28,14 @@ public record PerformanceResult(
                 performance.getId(),
                 performance.getPosterFileId(),
                 performance.getTitle(),
-                performance.getVenue().getName(),
+                performance.getVenue() == null ? "" : performance.getVenue().getName(),
                 performance.getRoadAddress(),
-                performance.getVenue().getDetailAddress(),
-                performance.getVenue().getZonecode(),
-                performance.getVenue().getLatitude(),
-                performance.getVenue().getLongitude(),
+                performance.getVenue() == null ? "" : performance.getVenue().getDetailAddress(),
+                performance.getVenue() == null ? "" : performance.getVenue().getZonecode(),
+                performance.getVenue() == null ? null : performance.getVenue().getLatitude(),
+                performance.getVenue() == null ? null : performance.getVenue().getLongitude(),
+                performance.getPerformanceStartDate(),
+                performance.getPerformanceEndDate(),
                 performance.getCreatedAt(),
                 roles
         );

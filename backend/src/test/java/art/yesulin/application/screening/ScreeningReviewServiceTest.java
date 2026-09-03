@@ -1,6 +1,7 @@
 package art.yesulin.application.screening;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import art.yesulin.common.exception.BusinessException;
@@ -80,32 +81,51 @@ class ScreeningReviewServiceTest {
     }
 
     @Test
-    void completesScreeningIdempotentlyAfterEveryRoundIsReviewed() {
+    void closesCurrentRoundAndPromotesOnlyAcceptedApplicants() {
         long roleId = saveScreeningFixture();
         screeningReviewService.save(
                 OWNER_ID, roleId, 1,
                 new SaveScreeningReviewsCommand(List.of(SUBMISSION_ID), "PASS", null, null)
         );
 
-        screeningReviewService.save(
-                OWNER_ID, roleId, 2,
-                new SaveScreeningReviewsCommand(List.of(SUBMISSION_ID), "PASS", null, null)
-        );
-        screeningReviewService.complete(OWNER_ID, roleId);
-        screeningReviewService.complete(OWNER_ID, roleId);
+        ScreeningCompletionResult result = screeningReviewService.complete(OWNER_ID, roleId, 1);
 
         assertEquals(1, completionRepository.count());
+        assertEquals(1, result.acceptedCount());
+        assertEquals(0, result.unselectedCount());
+        assertEquals(1, result.promotedCount());
+        assertEquals(2, result.nextRound());
+        assertFalse(result.allRoundsClosed());
     }
 
     @Test
-    void rejectsCompletingScreeningWithPendingReview() {
+    void closesEveryRemainingRoundWhenNoApplicantIsAccepted() {
         long roleId = saveScreeningFixture();
 
+        ScreeningCompletionResult result = screeningReviewService.complete(OWNER_ID, roleId, 1);
+
+        assertEquals(0, result.acceptedCount());
+        assertEquals(1, result.unselectedCount());
+        assertEquals(0, result.promotedCount());
+        assertEquals(null, result.nextRound());
+        assertEquals(2, completionRepository.count());
+        assertEquals(true, result.allRoundsClosed());
+    }
+
+    @Test
+    void rejectsChangingReviewsAfterRoundIsClosed() {
+        long roleId = saveScreeningFixture();
+        screeningReviewService.complete(OWNER_ID, roleId, 1);
+
         BusinessException exception = assertThrows(
-                BusinessException.class, () -> screeningReviewService.complete(OWNER_ID, roleId)
+                BusinessException.class,
+                () -> screeningReviewService.save(
+                        OWNER_ID, roleId, 1,
+                        new SaveScreeningReviewsCommand(List.of(SUBMISSION_ID), "PASS", null, null)
+                )
         );
 
-        assertEquals(ScreeningReviewErrorCode.ROUND_NOT_READY, exception.getErrorCode());
+        assertEquals(ScreeningReviewErrorCode.INVALID_REVIEW, exception.getErrorCode());
     }
 
     @Test
@@ -118,6 +138,7 @@ class ScreeningReviewServiceTest {
                 1,
                 new SaveScreeningReviewsCommand(List.of(SUBMISSION_ID), "PASS", null, "발성 확인 필요")
         );
+        screeningReviewService.complete(OWNER_ID, roleId, 1);
         screeningReviewService.save(
                 OWNER_ID,
                 roleId,

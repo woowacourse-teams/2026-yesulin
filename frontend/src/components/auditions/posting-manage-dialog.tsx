@@ -12,6 +12,7 @@ import { CreateError, CreateField, CreateSection } from "./create-form";
 import { DialogFooter, DialogHeader, ModalShell } from "./modal-shell";
 import { AuditionScheduleEditor } from "./posting-form-sections";
 import { CalendarDateRangeField } from "./calendar-date-range-field";
+import { emptyVenueAddress, PerformanceVenueField } from "./performance-venue-field";
 import { DestructiveButton, FieldInput, PrimaryButton, SecondaryButton } from "@/components/ui/controls";
 
 const TITLE_ID = "posting-manage-title";
@@ -37,34 +38,34 @@ function EditPostingLoader({ posting, onClose, onChanged }: Omit<Parameters<type
 function EditPostingForm({ detail, onClose, onChanged }: { readonly detail: PostingManagementDetail; readonly onClose: () => void; readonly onChanged: () => void }) {
   const started = detail.phase !== "UPCOMING" || detail.applicantCount > 0;
   const [title, setTitle] = useState(detail.title);
-  const [performanceStart, setPerformanceStart] = useState(detail.performanceStart);
-  const [performanceEnd, setPerformanceEnd] = useState(detail.performanceEnd);
-  const [recruitmentStart, setRecruitmentStart] = useState(detail.recruitmentStart);
   const [recruitmentEnd, setRecruitmentEnd] = useState(detail.recruitmentEnd);
+  const [rehearsalVenue, setRehearsalVenue] = useState(detail.rehearsalVenue ?? "");
+  const [rehearsalVenueAddress, setRehearsalVenueAddress] = useState(detail.rehearsalVenueAddress ?? emptyVenueAddress());
   const [rounds, setRounds] = useState<readonly AuditionRoundInput[]>(detail.rounds);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     // 이미 마감된 공고도 수정 대상이라 "모집 종료가 현재보다 이후" 규칙만 빼고 검사한다.
-    const dateIssue = validateAuditionDates({ performanceStart, performanceEnd, recruitmentStart, recruitmentEnd, rounds })
+    const dateIssue = validateAuditionDates({ performanceStart: detail.performanceStart, performanceEnd: detail.performanceEnd, recruitmentStart: detail.recruitmentStart, recruitmentEnd, rounds })
       .find((issue) => issue.code !== "RECRUITMENT_END_PAST");
     if (dateIssue) { setFormError(dateIssue.message); return; }
     setSaving(true); setFormError("");
     try {
-      await updatePosting(detail.id, { title: title.trim(), performanceStart, performanceEnd, recruitmentStart, recruitmentEnd, rounds });
+      await updatePosting(detail.id, { title: title.trim(), recruitmentEnd, rehearsalVenue, rehearsalVenueAddress, rounds });
       notifyAuditionTreeChanged(); onChanged(); onClose();
     } catch (cause) { console.error("[공고 수정 실패]", cause); setFormError(errorMessage(cause, "공고를 수정하지 못했습니다.")); }
     finally { setSaving(false); }
   };
   return <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
-    <DialogHeader id={TITLE_ID} title="공고 수정" subtitle="공고명과 공연·모집·전형 일정을 수정할 수 있습니다." />
+    <DialogHeader id={TITLE_ID} title="공고 수정" subtitle="공고명, 모집 마감, 장소와 전형 일정을 수정할 수 있습니다." />
     <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-6 md:px-6">
       {started ? <p className="rounded-card border border-warn-line bg-warn-soft p-4 text-sm leading-6 text-muted-strong">모집이 시작됐거나 첫 지원서가 있어 모집 시작은 잠겼습니다. 모집 종료는 기존 일시보다 뒤로만 연장할 수 있고, 완료된 전형은 수정할 수 없습니다.</p> : null}
       <CreateSection title="공고명" description="지원자에게 표시되는 공고 제목입니다."><CreateField label="공고명"><FieldInput required maxLength={255} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="예: 2026 하반기 주·조연 배우 모집" /></CreateField></CreateSection>
-      <CreateSection title="공연 일정" description="시작일과 종료일을 한 달력에서 선택하면 공연 기간을 한눈에 확인할 수 있습니다."><CalendarDateRangeField start={performanceStart} end={performanceEnd} onStartChange={setPerformanceStart} onEndChange={setPerformanceEnd} startLabel="공연 시작일" endLabel="공연 종료일" endOptional endOpenEnded /></CreateSection>
-      <CreateSection title="모집 일정"><CalendarDateRangeField includeTime startDisabled={started} start={recruitmentStart} end={recruitmentEnd} onStartChange={setRecruitmentStart} onEndChange={setRecruitmentEnd} startLabel="모집 시작" endLabel="모집 종료" /></CreateSection>
-      <CreateSection title="전형 일정" description="완료된 차수는 잠기고, 아직 진행하지 않은 전형은 최대 5차까지 수정할 수 있습니다."><AuditionScheduleEditor rounds={rounds} onChange={setRounds} lockedRounds={detail.lockedRounds} /></CreateSection>
+      <CreateSection title="공연 일정" description="공연 정보에서 관리합니다."><p className="rounded-control border border-border-soft bg-surface px-4 py-3 text-sm leading-6 text-muted-strong">{detail.performanceStart} {detail.performanceEnd ? `~ ${detail.performanceEnd}` : "~ 오픈런"}</p></CreateSection>
+      <CreateSection title="모집 일정" description="공고를 게시한 시각부터 모집이 시작됩니다.">{detail.recruitmentStart ? <p className="mb-4 rounded-control border border-border-soft bg-surface px-4 py-3 text-sm leading-6 text-muted-strong"><strong className="text-foreground">모집 시작</strong><br />{detail.recruitmentStart.replace("T", " ")}</p> : <p className="mb-4 rounded-control border border-border-soft bg-surface px-4 py-3 text-sm leading-6 text-muted-strong">아직 게시 전입니다. 게시하는 시각이 모집 시작 시각으로 저장됩니다.</p>}<CalendarDateRangeField includeTime single start={recruitmentEnd} end="" onStartChange={setRecruitmentEnd} onEndChange={() => undefined} startLabel="모집 마감" /></CreateSection>
+      <CreateSection title="연습 장소" description="공연장과 별도로 안내할 연습 장소가 있다면 입력해 주세요."><PerformanceVenueField optional venueLabel="연습 장소명" addressLabel="연습 장소 주소" mapLabel="연습 장소 지도" venue={rehearsalVenue} address={rehearsalVenueAddress} onVenueChange={setRehearsalVenue} onAddressChange={setRehearsalVenueAddress} /></CreateSection>
+      <CreateSection title="전형 일정" description="완료된 차수는 잠기고, 아직 진행하지 않은 전형은 최대 5차까지 수정할 수 있습니다. 오디션 장소는 공개 공고에도 표시됩니다."><AuditionScheduleEditor rounds={rounds} onChange={setRounds} lockedRounds={detail.lockedRounds} /></CreateSection>
       <CreateError id="posting-manage-error" message={formError} />
     </div>
     <DialogFooter><SecondaryButton onClick={onClose}>취소</SecondaryButton><PrimaryButton type="submit" disabled={saving}>{saving ? "저장 중…" : "공고 저장"}</PrimaryButton></DialogFooter>

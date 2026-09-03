@@ -12,10 +12,19 @@ export type BodyMeasurements = {
   readonly weight: number;
 };
 
+export type EducationLevel = "NONE" | "HIGH_SCHOOL" | "UNIVERSITY";
+
+export type EducationInformation = {
+  readonly level: EducationLevel | null;
+  readonly school: string;
+  readonly major: string;
+};
+
 export type ApplicantAnswerValue =
   | string
   | number
   | BodyMeasurements
+  | EducationInformation
   | readonly string[]
   | readonly CareerEntry[];
 
