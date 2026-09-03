@@ -7,8 +7,13 @@ import { reportUploadDiagnostic } from "@/features/files/upload-diagnostics";
 import { orderedApplicationPhotos } from "./application-form-state";
 import type { ApplicationPhoto, CareerDraft } from "./application-form-state";
 import { applicationLinks } from "./application-links";
+import {
+  readPublicApplicationSubmissionAttempt,
+  savePublicApplicationSubmissionAttempt,
+  type PublicApplicationSubmissionAttempt,
+} from "./public-application-draft-store";
 
-type V1SubmissionInput = {
+export type V1SubmissionInput = {
   readonly auditionId: string;
   readonly fields: readonly ApplicationFieldInput[];
   readonly values: Readonly<Record<string, string>>;
@@ -21,7 +26,7 @@ type V1SubmissionInput = {
   readonly thirdPartyConsent: boolean;
 };
 
-type V1SubmissionRequest = {
+export type V1SubmissionRequest = {
   readonly basicInformation: {
     readonly name: string | null;
     readonly height: number | null;
@@ -58,6 +63,9 @@ export type V1SubmissionReceipt = {
   readonly submissionId: SubmissionId;
   readonly submittedAt: string;
 };
+
+const submissionAttemptPreparations = new Map<string, Promise<PublicApplicationSubmissionAttempt>>();
+const volatileSubmissionAttempts = new Map<string, PublicApplicationSubmissionAttempt>();
 
 export class ApplicationPhotoReadError extends Error {
   readonly photoId: string;
@@ -118,12 +126,85 @@ export function applicantInformation(input: ApplicantInformationInput): Applican
 }
 
 export async function createV1Submission(input: V1SubmissionInput): Promise<V1SubmissionReceipt> {
-  const body = await toV1SubmissionRequest(input);
+  const attempt = await resolveSubmissionAttempt(input);
   const response = await request<{ readonly submissionId: string }>(
     `/v1/auditions/${encodeURIComponent(input.auditionId)}/submissions`,
-    { method: "POST", body: JSON.stringify(body) },
+    {
+      method: "POST",
+      headers: { "Idempotency-Key": attempt.idempotencyKey },
+      body: attempt.requestBody,
+    },
   );
   return { submissionId: submissionId(response.submissionId), submittedAt: new Date().toISOString() };
+}
+
+async function resolveSubmissionAttempt(input: V1SubmissionInput) {
+  const pending = submissionAttemptPreparations.get(input.auditionId);
+  if (pending) return pending;
+  const preparation = loadOrCreateSubmissionAttempt(input);
+  submissionAttemptPreparations.set(input.auditionId, preparation);
+  try {
+    return await preparation;
+  } finally {
+    if (submissionAttemptPreparations.get(input.auditionId) === preparation) {
+      submissionAttemptPreparations.delete(input.auditionId);
+    }
+  }
+}
+
+async function loadOrCreateSubmissionAttempt(input: V1SubmissionInput) {
+  const inputFingerprint = submissionInputFingerprint(input);
+  const storedAttempt = await readPublicApplicationSubmissionAttempt(input.auditionId)
+    .catch(() => volatileSubmissionAttempts.get(input.auditionId));
+  return storedAttempt?.inputFingerprint === inputFingerprint
+    ? storedAttempt
+    : createSubmissionAttempt(input, inputFingerprint);
+}
+
+async function createSubmissionAttempt(input: V1SubmissionInput, inputFingerprint: string) {
+  const attempt: PublicApplicationSubmissionAttempt = {
+    postingId: input.auditionId,
+    idempotencyKey: createIdempotencyKey(),
+    inputFingerprint,
+    requestBody: JSON.stringify(await toV1SubmissionRequest(input)),
+  };
+  try {
+    await savePublicApplicationSubmissionAttempt(attempt);
+  } catch (cause) {
+    console.error("[지원서 제출 재시도 정보 저장 실패]", cause);
+  }
+  volatileSubmissionAttempts.set(input.auditionId, attempt);
+  return attempt;
+}
+
+function createIdempotencyKey() {
+  if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6]! & 0x0f) | 0x40;
+  bytes[8] = (bytes[8]! & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+function submissionInputFingerprint(input: V1SubmissionInput) {
+  return JSON.stringify({
+    auditionId: input.auditionId,
+    fields: input.fields,
+    values: input.values,
+    photos: orderedApplicationPhotos(input.photos).map((photo) => ({
+      id: photo.id,
+      name: photo.name,
+      size: photo.blob?.size,
+      type: photo.blob?.type,
+      libraryFileId: photo.libraryFileId,
+    })),
+    videoUrl: input.videoUrl,
+    careers: input.careers,
+    noCareer: input.noCareer,
+    roleIds: input.roleIds,
+    privacyConsent: input.privacyConsent,
+    thirdPartyConsent: input.thirdPartyConsent,
+  });
 }
 
 async function toV1SubmissionRequest(input: V1SubmissionInput): Promise<V1SubmissionRequest> {

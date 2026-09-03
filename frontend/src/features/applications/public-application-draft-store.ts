@@ -2,8 +2,9 @@ import type { ApplicationPhoto, CareerDraft } from "./application-form-state";
 import { prepareMemoryBlob } from "../files/safe-upload";
 
 const DATABASE_NAME = "yesulin-public-applications";
-const DATABASE_VERSION = 1;
+const DATABASE_VERSION = 2;
 const STORE_NAME = "drafts";
+const SUBMISSION_ATTEMPT_STORE_NAME = "submission-attempts";
 
 export type PublicApplicationDraftPhoto = {
   readonly id: string;
@@ -34,6 +35,13 @@ export type PublicApplicationDraftRecord = {
 
 export type PublicApplicationDraftInput = Omit<PublicApplicationDraftRecord, "version" | "updatedAt" | "photos"> & {
   readonly photos: readonly ApplicationPhoto[];
+};
+
+export type PublicApplicationSubmissionAttempt = {
+  readonly postingId: string;
+  readonly idempotencyKey: string;
+  readonly inputFingerprint: string;
+  readonly requestBody: string;
 };
 
 export async function readPublicApplicationDraft(postingId: string) {
@@ -71,7 +79,26 @@ export async function savePublicApplicationDraft(input: PublicApplicationDraftIn
 
 export async function deletePublicApplicationDraft(postingId: string) {
   const database = await openDatabase();
-  await transactionDone(database.transaction(STORE_NAME, "readwrite"), (store) => store.delete(postingId));
+  const transaction = database.transaction([STORE_NAME, SUBMISSION_ATTEMPT_STORE_NAME], "readwrite");
+  await transactionDone(transaction, () => {
+    transaction.objectStore(STORE_NAME).delete(postingId);
+    transaction.objectStore(SUBMISSION_ATTEMPT_STORE_NAME).delete(postingId);
+  });
+}
+
+export async function readPublicApplicationSubmissionAttempt(postingId: string) {
+  const database = await openDatabase();
+  const transaction = database.transaction(SUBMISSION_ATTEMPT_STORE_NAME, "readonly");
+  return requestResult<PublicApplicationSubmissionAttempt | undefined>(
+    transaction.objectStore(SUBMISSION_ATTEMPT_STORE_NAME).get(postingId),
+  );
+}
+
+export async function savePublicApplicationSubmissionAttempt(attempt: PublicApplicationSubmissionAttempt) {
+  const database = await openDatabase();
+  await transactionDone(database.transaction(SUBMISSION_ATTEMPT_STORE_NAME, "readwrite"), (store) => {
+    store.put(attempt);
+  });
 }
 
 export async function restoreDraftPhotos(photos: readonly PublicApplicationDraftPhoto[]): Promise<ApplicationPhoto[]> {
@@ -106,6 +133,9 @@ function openDatabase() {
     const request = window.indexedDB.open(DATABASE_NAME, DATABASE_VERSION);
     request.onupgradeneeded = () => {
       if (!request.result.objectStoreNames.contains(STORE_NAME)) request.result.createObjectStore(STORE_NAME, { keyPath: "postingId" });
+      if (!request.result.objectStoreNames.contains(SUBMISSION_ATTEMPT_STORE_NAME)) {
+        request.result.createObjectStore(SUBMISSION_ATTEMPT_STORE_NAME, { keyPath: "postingId" });
+      }
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error ?? new Error("기기 저장소를 열지 못했습니다."));
@@ -125,6 +155,6 @@ function transactionDone(transaction: IDBTransaction, change: (store: IDBObjectS
     transaction.oncomplete = () => resolve();
     transaction.onerror = () => reject(transaction.error ?? new Error("기기에 저장하지 못했습니다."));
     transaction.onabort = () => reject(transaction.error ?? new Error("기기 저장이 중단되었습니다."));
-    change(transaction.objectStore(STORE_NAME));
+    change(transaction.objectStore(transaction.objectStoreNames[0]!));
   });
 }
