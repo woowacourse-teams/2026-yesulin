@@ -2,6 +2,7 @@ import type { ApplicantSubmissionDetail, ApplicantAnswer, CareerEntry } from "@/
 import { educationInformation } from "@/features/applicants/education";
 import { roleId, type Gender, type PerformanceId } from "@/features/auditions/types";
 import { photoSlotLabels, videoSlotLabels } from "@/features/applications/materials";
+import { MAX_ACTOR_PHOTO_COUNT } from "@/features/files/photo-policy";
 import type { MockApplicant } from "../auditions/applicants";
 import { fallbackPhoto } from "../auditions/photos";
 
@@ -44,13 +45,16 @@ export function toScreeningApplicant(detail: ApplicantSubmissionDetail, performa
   const photoIds = answerOf(detail.answers, "PHOTOS");
   const photoAnswer = detail.answers.find((answer) => answer.key === "PHOTOS");
   const photoField = detail.applicationFields.find((field) => field.id === "PHOTOS");
-  const photoCount = Array.isArray(photoIds) ? photoIds.filter((value): value is string => typeof value === "string").length : 0;
+  const submittedPhotoIds = Array.isArray(photoIds)
+    ? photoIds.filter((value): value is string => typeof value === "string").slice(0, MAX_ACTOR_PHOTO_COUNT)
+    : [];
+  const photoCount = submittedPhotoIds.length;
   const photoLabels = photoSlotLabels(photoField, photoCount);
-  const photos = Array.isArray(photoIds) ? photoIds.filter((value): value is string => typeof value === "string").map((id, index) => ({
+  const photos = submittedPhotoIds.map((id, index) => ({
     label: photoLabels[index] ?? `제출 사진 ${index + 1}`,
     url: photoAnswer?.previewUrls?.[index] || id,
     fallbackUrl: fallbackPhoto(name, index),
-  })) : [];
+  }));
   const selectedRoleIds = detail.selectedRoles.map((role) => roleId(role.roleId));
   const selectedRoleNames = detail.selectedRoles.map((role) => role.roleName);
   const education = educationInformation(answerOf(detail.answers, "SCHOOL"));

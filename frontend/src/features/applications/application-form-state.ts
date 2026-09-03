@@ -1,10 +1,11 @@
+import { MAX_ACTOR_PHOTO_COUNT } from "@/features/files/photo-policy";
 import type { ApplicationFormStep } from "./application-form";
 import { isCompleteKoreaRegion } from "@/features/applicants/korea-regions";
 import { integerMeasurementError, isIntegerMeasurement } from "@/features/applicants/profile-input";
 import { isValidBirthDate } from "@/components/ui/birth-date-input";
 import { applicationLinks } from "./application-links";
 
-export const MAX_PHOTO_COUNT = 3;
+export const MAX_PHOTO_COUNT = MAX_ACTOR_PHOTO_COUNT;
 export const MAX_PHOTO_SIZE_BYTES = 20 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/;

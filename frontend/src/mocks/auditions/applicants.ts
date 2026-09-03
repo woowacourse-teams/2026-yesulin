@@ -66,7 +66,6 @@ const PRIMARY_APPLICANT: MockApplicant = {
     { label: "프로필 사진", url: "/images/applicants/kim-harin-profile.png", fallbackUrl: "/images/applicants/kim-harin-profile.png" },
     { label: "전신 사진", url: "/images/applicants/kim-harin-full-body.png", fallbackUrl: "/images/applicants/kim-harin-full-body.png" },
     { label: "연기 이미지 1", url: "/images/applicants/kim-harin-acting-1.png", fallbackUrl: "/images/applicants/kim-harin-acting-1.png" },
-    { label: "연기 이미지 2", url: "/images/applicants/kim-harin-acting-2.png", fallbackUrl: "/images/applicants/kim-harin-acting-2.png" },
   ],
   videos: [
     { label: "자유 연기 영상", url: "https://youtu.be/aqz-KE-bpKQ" },

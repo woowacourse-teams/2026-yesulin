@@ -9,6 +9,7 @@ import type {
   EducationInformation,
 } from "./types";
 import { applicantRequest } from "./request";
+import { MAX_ACTOR_PHOTO_COUNT } from "../files/photo-policy";
 
 type BasicField = "NAME" | "HEIGHT" | "WEIGHT" | "BIRTH" | "GENDER" | "PHONE" | "EMAIL" | "ADDRESS";
 type AdditionalField = "SCHOOL" | "LINK" | "NATIONALITY" | "COVER_LETTER" | "SPECIALTY" | "HOBBIES" | "MILITARY" | "CAREER";
@@ -165,7 +166,7 @@ function addPhotoAnswers(
   fields: ApplicationFieldInput[],
   answers: ApplicantAnswer[],
 ) {
-  const photos = resource.formAnswers.photoRequirementAnswers;
+  const photos = resource.formAnswers.photoRequirementAnswers.slice(0, MAX_ACTOR_PHOTO_COUNT);
   if (!photos.length) return;
   const requirements = new Map<number, { id: string; description: string; count: number }>();
   photos.forEach((photo) => {

@@ -12,6 +12,7 @@ import type {
   BackendSubmissionListResponse,
   BackendSubmissionSummary,
 } from "@/features/applicants/submission-api";
+import { MAX_ACTOR_PHOTO_COUNT } from "@/features/files/photo-policy";
 
 const BASIC_FIELDS = ["NAME", "HEIGHT", "WEIGHT", "BIRTH", "GENDER", "PHONE", "EMAIL", "ADDRESS"] as const;
 const ADDITIONAL_FIELDS = ["SCHOOL", "LINK", "NATIONALITY", "COVER_LETTER", "SPECIALTY", "HOBBIES", "MILITARY", "CAREER"] as const;
@@ -100,7 +101,7 @@ function photoAnswers(answer: ApplicantAnswer | undefined, fields: readonly Appl
   const urls = answer?.previewUrls ?? values.map(String);
   const requirements = fields.find((field) => field.id === "PHOTOS")?.config.photoRequirements ?? [];
   const expanded = requirements.flatMap((requirement) => Array.from({ length: requirement.count }, () => requirement));
-  return values.map((_, index) => {
+  return values.slice(0, MAX_ACTOR_PHOTO_COUNT).map((_, index) => {
     const requirement = expanded[index] ?? { id: String(index + 1), description: `제출 사진 ${index + 1}` };
     return {
       photoRequirementId: index + 1,

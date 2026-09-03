@@ -1,3 +1,4 @@
+import { MAX_ACTOR_PHOTO_COUNT } from "@/features/files/photo-policy";
 import type { PerformanceId, RoleGender, RoundNumber } from "./types";
 
 export type VenueAddress = {
@@ -20,7 +21,7 @@ export type VideoRequirement = {
 };
 
 /** 한 공고에서 배우에게 요청할 수 있는 프로필 사진의 전체 장수. */
-export const MAX_REQUESTED_PHOTO_COUNT = 3;
+export const MAX_REQUESTED_PHOTO_COUNT = MAX_ACTOR_PHOTO_COUNT;
 
 /** 한 공고에서 배우에게 요청할 수 있는 영상 항목 수. 개인 영상 보관함 상한과는 별개다. */
 export const MAX_VIDEO_REQUIREMENTS = 3;
