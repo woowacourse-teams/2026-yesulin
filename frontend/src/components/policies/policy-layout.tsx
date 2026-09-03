@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 
+const KAKAO_CHAT_URL = "http://pf.kakao.com/_pbTBX/chat";
+
 export type PolicyNavigationItem = {
   readonly href: string;
   readonly label: string;
@@ -65,7 +67,10 @@ export function PolicyLayout({
 
       <footer className="border-t border-border bg-white">
         <div className="mx-auto flex max-w-[1120px] flex-col gap-4 px-5 py-8 text-sm text-muted sm:flex-row sm:items-center sm:justify-between sm:px-8">
-          <p>© 2026 예술in 프로젝트팀</p>
+          <p>
+            © 2026 예술in 프로젝트팀 · 강민준 · 김지환 · 문해찬 · 심호경 · 이동건 · 문의: {" "}
+            <a href="mailto:contact@yesulin.art" className="font-medium text-muted-strong hover:text-brand hover:underline">contact@yesulin.art</a>
+          </p>
           <PolicyLinks />
         </div>
       </footer>
@@ -79,7 +84,7 @@ export function PolicyLinks({ className = "" }: { readonly className?: string })
       <Link href="/terms" className="font-medium text-muted-strong hover:text-brand hover:underline">이용약관</Link>
       <Link href="/privacy" className="font-medium text-muted-strong hover:text-brand hover:underline">개인정보 처리방침</Link>
       <Link href="/privacy/consents" className="font-medium text-muted-strong hover:text-brand hover:underline">개인정보 동의문</Link>
-      <a href="mailto:contact@yesulin.art" className="font-medium text-muted-strong hover:text-brand hover:underline">문의</a>
+      <a href={KAKAO_CHAT_URL} target="_blank" rel="noreferrer" className="font-medium text-muted-strong hover:text-brand hover:underline">문의</a>
     </nav>
   );
 }
