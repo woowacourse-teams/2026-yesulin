@@ -8,10 +8,3 @@ fi
 
 systemctl enable yesulin.service
 systemctl restart yesulin.service
-
-systemctl enable nginx.service
-if systemctl is-active --quiet nginx.service; then
-  systemctl reload nginx.service
-else
-  systemctl start nginx.service
-fi

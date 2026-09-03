@@ -1,14 +1,23 @@
 # 백엔드 배포
 
 CodeBuild는 `buildspec.yml`로 `backend/build/deployment/` 묶음을 만들고 CodeDeploy가 EC2에 배포한다.
+운영 요청은 `ALB(HTTPS 443) -> target group(HTTP 80) -> Spring Boot` 순서로 전달한다.
 
-1. Java 25로 Checkstyle, test, 실행 JAR를 빌드한다.
+1. PR CI가 Java 25로 Checkstyle과 test를 수행하고, CodeBuild가 실행 JAR를 빌드한다.
 2. JAR를 `application.jar`로 고정하고 revision과 SHA-256을 기록한다.
 3. `/opt/yesulin/releases/{commit-id}`에 설치하고 `current` symlink를 교체한다.
-4. systemd가 `yesulin` 사용자로 `127.0.0.1:8080`에서 실행한다.
-5. Nginx가 CloudFront Origin Header를 확인하고 API·OAuth 경로만 전달한다.
-6. `/api/v1/health`와 Nginx·Origin 차단을 검증한다.
+4. systemd가 `yesulin` 사용자로 Spring을 `0.0.0.0:80`에서 실행한다. 비특권 사용자에게는
+   `CAP_NET_BIND_SERVICE`만 부여한다.
+5. CodeDeploy가 `http://127.0.0.1:80/actuator/health/readiness`의 HTTP 200을 확인한다.
+6. ALB target group도 같은 readiness endpoint를 확인한 뒤에만 트래픽을 전달한다.
 7. 최근 릴리스 5개를 유지한다.
+
+`project-app` Security Group은 `project-lb` Security Group에서 들어오는 80 포트만 허용한다. EC2에는 공인 IP를
+부여하지 않으며, 인터넷에서 EC2의 80·8080 포트로 직접 접근하는 경로를 만들지 않는다. TLS 인증서와 HTTPS 종료는
+ALB와 ACM이 담당하므로 EC2에 Nginx와 Let's Encrypt 인증서를 설치하지 않는다.
+
+readiness에는 Spring의 readiness 상태와 DB 연결 상태가 포함된다. 따라서 프로세스만 실행 중이거나 DB에 연결할 수 없는
+인스턴스는 ALB의 정상 대상으로 등록되지 않는다. 상세 health 정보는 외부에 노출하지 않는다.
 
 운영 대시보드 계정은 `/etc/yesulin/yesulin.env`의 `YESULIN_ADMIN_ACCOUNTS`로만 만든다. 형식은 `email:password`이고
 여러 개는 쉼표로 잇는다. 비밀번호는 12자 이상이고 쉼표를 쓸 수 없다. 첫 `:`만 구분자이므로 비밀번호 안의 `:`는 허용한다.
@@ -50,8 +59,12 @@ HTTP 본문이나 객체를 별도로 직렬화하는 로깅은 이 마스킹으
 `email_verifications`에 저장된다. 배포 전에 사용하는 DB 계정에 해당 migration의 DDL 권한이 있는지 확인한다.
 세션 만료는 `SESSION_TIMEOUT`의 idle timeout을 따르며 기본값은 12시간이다. 재배포는 세션 만료 사유가 아니다.
 
-EC2에는 Java 25, CodeDeploy Agent, Nginx, MySQL 연결과 root 전용 `/etc/yesulin/yesulin.env`가 필요하다.
+EC2에는 Java 25, CodeDeploy Agent, DB 네트워크 연결과 root 전용 `/etc/yesulin/yesulin.env`가 필요하다.
 실제 secret은 저장소와 build log에 남기지 않는다. 상세 스크립트는 `backend/deploy/`를 따른다.
+
+새 인스턴스를 자동 생성하는 Launch Template에는 `ec2-project` IAM Instance Profile과 Java 25·CodeDeploy Agent 설치를
+포함해야 한다. `/etc/yesulin/yesulin.env`도 사람이 SSM으로 접속해 복사하지 않고, 팀이 사용할 수 있는 암호화된 저장소에서
+인스턴스 역할로 가져오도록 별도로 구성해야 한다. 이 파일이 없으면 CodeDeploy의 `ApplicationStart`가 의도적으로 실패한다.
 
 소셜 로그인은 프록시가 관찰한 내부 호스트가 아니라 사용자가 접속하는 프론트 주소로 이동하도록 세 URL을 명시한다.
 특히 실패 URL은 상대 경로를 허용하지 않으며, 누락되거나 HTTP(S) 절대 URL이 아니면 애플리케이션 시작을 거부한다.

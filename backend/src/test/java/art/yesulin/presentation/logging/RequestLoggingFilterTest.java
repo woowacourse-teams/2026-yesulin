@@ -98,6 +98,20 @@ class RequestLoggingFilterTest {
     }
 
     @Test
+    void logsSuccessfulReadinessCheckAtDebugLevel() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/actuator/health/readiness");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(request, response, (servletRequest, servletResponse) -> {
+        });
+
+        ILoggingEvent event = appender.list.getFirst();
+        assertEquals(Level.DEBUG, event.getLevel());
+        assertEquals("/actuator/health/readiness", fields(event).get("endpoint"));
+        assertEquals(200, fields(event).get("status"));
+    }
+
+    @Test
     void logsUnhealthyHealthCheckAtErrorLevel() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/health");
         MockHttpServletResponse response = new MockHttpServletResponse();

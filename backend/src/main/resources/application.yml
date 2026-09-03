@@ -6,6 +6,9 @@ spring:
     active: ${SPRING_PROFILES_ACTIVE:local}
   application:
     name: yesulin
+  lifecycle:
+    # systemd TimeoutStopSec(30s) 안에 진행 중인 요청을 마칠 시간을 준다.
+    timeout-per-shutdown-phase: 25s
   jpa:
     hibernate:
       ddl-auto: validate
@@ -30,6 +33,10 @@ spring:
           writetimeout: 5000
 
 server:
+  # ALB에서 대상을 제거한 뒤 종료할 때 진행 중인 요청을 정상 종료한다.
+  shutdown: graceful
+  # ALB가 설정하는 X-Forwarded-* 헤더를 외부 HTTPS 요청 정보로 반영한다.
+  forward-headers-strategy: framework
   servlet:
     session:
       timeout: ${SESSION_TIMEOUT:12h}
@@ -55,6 +62,22 @@ logging:
       max-file-size: ${LOG_MAX_FILE_SIZE:10MB}
       max-history: ${LOG_MAX_HISTORY:14}
       total-size-cap: ${LOG_TOTAL_SIZE_CAP:1GB}
+
+management:
+  endpoints:
+    web:
+      # ALB에는 health endpoint만 노출한다.
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
+      group:
+        # 애플리케이션이 요청을 받을 수 있고 DB도 접속 가능해야 ready로 판정한다.
+        readiness:
+          include: readinessState,db
 
 yesulin:
   admin:
