@@ -67,4 +67,28 @@ describe("createV1Submission", () => {
     expect(firstAttempt?.idempotencyKey).not.toBe(secondAttempt?.idempotencyKey);
     expect(firstAttempt?.requestBody).not.toBe(secondAttempt?.requestBody);
   });
+
+  it("첫 준비가 진행 중이어도 변경된 지원서는 별도 요청 본문을 준비한다", async () => {
+    let completeFirstSave: (() => void) | undefined;
+    vi.mocked(readPublicApplicationSubmissionAttempt).mockResolvedValue(undefined);
+    vi.mocked(savePublicApplicationSubmissionAttempt)
+      .mockImplementationOnce(() => new Promise<void>((resolve) => {
+        completeFirstSave = resolve;
+      }))
+      .mockResolvedValueOnce(undefined);
+
+    const firstSubmission = createV1Submission(input);
+    await vi.waitFor(() => expect(savePublicApplicationSubmissionAttempt).toHaveBeenCalledTimes(1));
+    const changedSubmission = createV1Submission({ ...input, roleIds: ["2"] });
+    await vi.waitFor(() => expect(savePublicApplicationSubmissionAttempt).toHaveBeenCalledTimes(2));
+    completeFirstSave?.();
+
+    await Promise.all([firstSubmission, changedSubmission]);
+
+    const firstAttempt = vi.mocked(savePublicApplicationSubmissionAttempt).mock.calls[0]?.[0];
+    const changedAttempt = vi.mocked(savePublicApplicationSubmissionAttempt).mock.calls[1]?.[0];
+    expect(firstAttempt?.idempotencyKey).not.toBe(changedAttempt?.idempotencyKey);
+    expect(firstAttempt?.requestBody).not.toBe(changedAttempt?.requestBody);
+    expect(request).toHaveBeenCalledTimes(2);
+  });
 });

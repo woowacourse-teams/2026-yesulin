@@ -139,21 +139,22 @@ export async function createV1Submission(input: V1SubmissionInput): Promise<V1Su
 }
 
 async function resolveSubmissionAttempt(input: V1SubmissionInput) {
-  const pending = submissionAttemptPreparations.get(input.auditionId);
+  const inputFingerprint = submissionInputFingerprint(input);
+  const preparationKey = JSON.stringify([input.auditionId, inputFingerprint]);
+  const pending = submissionAttemptPreparations.get(preparationKey);
   if (pending) return pending;
-  const preparation = loadOrCreateSubmissionAttempt(input);
-  submissionAttemptPreparations.set(input.auditionId, preparation);
+  const preparation = loadOrCreateSubmissionAttempt(input, inputFingerprint);
+  submissionAttemptPreparations.set(preparationKey, preparation);
   try {
     return await preparation;
   } finally {
-    if (submissionAttemptPreparations.get(input.auditionId) === preparation) {
-      submissionAttemptPreparations.delete(input.auditionId);
+    if (submissionAttemptPreparations.get(preparationKey) === preparation) {
+      submissionAttemptPreparations.delete(preparationKey);
     }
   }
 }
 
-async function loadOrCreateSubmissionAttempt(input: V1SubmissionInput) {
-  const inputFingerprint = submissionInputFingerprint(input);
+async function loadOrCreateSubmissionAttempt(input: V1SubmissionInput, inputFingerprint: string) {
   const storedAttempt = await readPublicApplicationSubmissionAttempt(input.auditionId)
     .catch(() => volatileSubmissionAttempts.get(input.auditionId));
   return storedAttempt?.inputFingerprint === inputFingerprint
