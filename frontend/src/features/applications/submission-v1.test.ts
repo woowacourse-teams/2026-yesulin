@@ -29,7 +29,21 @@ const input: V1SubmissionInput = {
 describe("createV1Submission", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    vi.mocked(request).mockResolvedValue({ submissionId: "123e4567-e89b-12d3-a456-426614174001" });
+    vi.mocked(request).mockResolvedValue({
+      submissionId: "123e4567-e89b-12d3-a456-426614174001",
+      submittedAt: "2026-09-08T01:23:45Z",
+    });
+  });
+
+  it("서버가 반환한 제출 시각을 접수증에 사용한다", async () => {
+    vi.mocked(readPublicApplicationSubmissionAttempt).mockResolvedValue(undefined);
+
+    const receipt = await createV1Submission(input);
+
+    expect(receipt).toEqual({
+      submissionId: "123e4567-e89b-12d3-a456-426614174001",
+      submittedAt: "2026-09-08T01:23:45Z",
+    });
   });
 
   it("실패 후 같은 제출을 재시도하면 저장한 멱등 키와 요청 본문을 재사용한다", async () => {

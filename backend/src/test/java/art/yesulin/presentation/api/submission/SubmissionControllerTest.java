@@ -144,7 +144,7 @@ class SubmissionControllerTest {
                         matchesPattern("/api/v1/applicants/me/submissions/[0-9a-f-]{36}")
                 ))
                 .andExpect(jsonPath("$.submissionId").isString())
-                .andExpect(jsonPath("$.submittedAt").doesNotExist())
+                .andExpect(jsonPath("$.submittedAt").value(NOW.toString()))
                 .andReturn().getResponse().getContentAsString();
 
         UUID submissionId = UUID.fromString(objectMapper.readTree(responseBody).get("submissionId").asText());
@@ -311,8 +311,13 @@ class SubmissionControllerTest {
                 .get("submissionId").asString();
         String secondSubmissionId = objectMapper.readTree(secondResponse)
                 .get("submissionId").asString();
+        String firstSubmittedAt = objectMapper.readTree(firstResponse)
+                .get("submittedAt").asString();
+        String secondSubmittedAt = objectMapper.readTree(secondResponse)
+                .get("submittedAt").asString();
 
         assertEquals(firstSubmissionId, secondSubmissionId);
+        assertEquals(firstSubmittedAt, secondSubmittedAt);
         assertEquals(1L, submissionRepository.count());
     }
 

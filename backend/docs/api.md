@@ -145,10 +145,10 @@ PENDING 세션을 ACTIVE로 갱신하고 요청의 `redirectUri`로 302 redirect
 
 제출 request는 `basicInformation`, `additionalInformation`, 하나 이상의 `selectedRoleIds`, `formAnswers`, 두 필수
 동의를 포함한다. 서버는 공고 양식과 정확히 일치하는 답변, 선택 배역, 모집 기간, 중복 제출, 사진 소유권·READY를 검증한다.
-생성 response는 `submissionId`만 반환한다.
+생성 response는 `submissionId`와 서버가 기록한 `submittedAt`을 반환한다.
 
 제출의 `Idempotency-Key`는 UUID이며 필수다. 같은 배우가 같은 키와 같은 내용으로 재요청하면 지원서를 다시 만들지 않고
-최초의 `201`, `Location`, `submissionId`를 반환한다. 같은 키를 다른 공고나 다른 요청 내용에 재사용하면
+최초의 `201`, `Location`, `submissionId`, `submittedAt`을 반환한다. 같은 키를 다른 공고나 다른 요청 내용에 재사용하면
 `409 IDEMPOTENCY_KEY_REUSED`다. 다른 키로 같은 공고에 다시 지원하면 기존 규칙대로 `409 DUPLICATE_SUBMISSION`이다.
 서버는 요청 원문 대신 SHA-256 hash와 최초 성공 결과를 지원서와 같은 트랜잭션으로 저장한다.
 

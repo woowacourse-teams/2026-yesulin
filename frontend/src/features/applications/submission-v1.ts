@@ -145,7 +145,7 @@ function educationInformation(
 
 export async function createV1Submission(input: V1SubmissionInput): Promise<V1SubmissionReceipt> {
   const attempt = await resolveSubmissionAttempt(input);
-  const response = await request<{ readonly submissionId: string }>(
+  const response = await request<{ readonly submissionId: string; readonly submittedAt: string }>(
     `/v1/auditions/${encodeURIComponent(input.auditionId)}/submissions`,
     {
       method: "POST",
@@ -153,7 +153,7 @@ export async function createV1Submission(input: V1SubmissionInput): Promise<V1Su
       body: attempt.requestBody,
     },
   );
-  return { submissionId: submissionId(response.submissionId), submittedAt: new Date().toISOString() };
+  return { submissionId: submissionId(response.submissionId), submittedAt: response.submittedAt };
 }
 
 async function resolveSubmissionAttempt(input: V1SubmissionInput) {
