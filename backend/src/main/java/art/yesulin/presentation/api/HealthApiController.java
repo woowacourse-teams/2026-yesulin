@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * 배포 검증과 외부 모니터링이 호출하는 상태 확인 API.
- * Nginx는 {@code /api/v1/} 로 시작하는 요청만 Spring으로 전달하므로 경로를 그 아래에 둔다.
+ * 외부 호환용 상태 API다. ALB와 CodeDeploy는 Actuator readiness endpoint를 사용한다.
  */
 @RestController
 @RequestMapping("/api/v1/health")

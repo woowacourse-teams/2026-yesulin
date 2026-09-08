@@ -34,6 +34,13 @@ class HealthApiControllerTest {
     }
 
     @Test
+    void reportsReadyForAlbWhenApplicationAndDatabaseAreAvailable() throws Exception {
+        mockMvc.perform(get("/actuator/health/readiness"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("UP"));
+    }
+
+    @Test
     void isNotServedFromTheRootPath() throws Exception {
         mockMvc.perform(get("/"))
                 .andExpect(status().isNotFound());

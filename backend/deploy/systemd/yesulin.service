@@ -1,7 +1,13 @@
 [Unit]
 Description=Yesulin Spring Boot application
+# 네트워크 설정이 준비된 뒤 애플리케이션 시작을 시도한다.
 After=network-online.target
 Wants=network-online.target
+# 60초 구간 안에 서비스 시작을 최대 5회까지 허용한다.
+# 60초는 시작 timeout이 아니다. 해당 구간 안의 6번째 시작은 거부되고 서비스는 failed 상태로 남는다.
+# 구간이 지난 뒤 다시 시작할 수 있지만 systemd가 자동 재시도를 예약하지는 않는다.
+StartLimitIntervalSec=60
+StartLimitBurst=5
 
 [Service]
 Type=simple
@@ -11,13 +17,23 @@ WorkingDirectory=/opt/yesulin/current
 Environment=LOG_FILE=/var/log/yesulin/yesulin.log
 Environment=TZ=Asia/Seoul
 EnvironmentFile=/etc/yesulin/yesulin.env
-ExecStart=/usr/bin/java -jar /opt/yesulin/current/application.jar --server.address=127.0.0.1 --server.port=8080
+# project-app 보안 그룹은 project-lb에서 들어오는 80 포트만 허용한다.
+# root로 실행하지 않고 80 포트에 bind할 수 있도록 필요한 capability만 부여한다.
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+ExecStart=/usr/bin/java -jar /opt/yesulin/current/application.jar --server.address=0.0.0.0 --server.port=80
+# 정상 종료 시 Java 프로세스가 반환할 수 있는 143(SIGTERM)을 성공으로 처리한다.
 SuccessExitStatus=143
+# 비정상 종료·신호·timeout으로 프로세스가 종료되면 재시작한다.
 Restart=on-failure
+# 비정상 종료 후 5초를 기다린 뒤 재시작한다.
 RestartSec=5
+# 정지 신호 후 최대 30초까지 정상 종료를 기다린다.
 TimeoutStopSec=30
+# /var/log/yesulin을 생성하고 yesulin 서비스 사용자가 로그를 쓸 수 있게 한다.
 LogsDirectory=yesulin
 LogsDirectoryMode=0750
+# 애플리케이션 프로세스의 권한과 파일 시스템 접근 범위를 줄인다.
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectHome=true

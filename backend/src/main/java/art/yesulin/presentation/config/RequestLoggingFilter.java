@@ -28,12 +28,17 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
     public static final String REQUEST_ID_MDC_KEY = "requestId";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RequestLoggingFilter.class);
-    private static final String HEALTH_CHECK_URI = "/api/v1/health";
+    private static final String API_HEALTH_CHECK_URI = "/api/v1/health";
+    private static final String READINESS_CHECK_URI = "/actuator/health/readiness";
     /**
      * 짧은 주기로 반복 호출돼 정작 필요한 로그를 밀어내는 경로다.
      * 성공 요청은 DEBUG로 낮추고 실패는 그대로 남긴다.
      */
-    private static final Set<String> POLLING_URIS = Set.of(HEALTH_CHECK_URI, "/api/v1/admin/logs");
+    private static final Set<String> POLLING_URIS = Set.of(
+            API_HEALTH_CHECK_URI,
+            READINESS_CHECK_URI,
+            "/api/v1/admin/logs"
+    );
     private static final Pattern REQUEST_ID_PATTERN = Pattern.compile("[A-Za-z0-9._-]{1,64}");
     private static final long SLOW_REQUEST_MILLIS = 1_000L;
 

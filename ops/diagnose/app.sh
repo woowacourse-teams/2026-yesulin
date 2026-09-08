@@ -28,7 +28,7 @@ df -hT / /opt/yesulin 2>/dev/null || df -hT /
 swapon --show || true
 
 section "services"
-for service in yesulin.service nginx.service codedeploy-agent.service \
+for service in yesulin.service codedeploy-agent.service \
   snap.amazon-ssm-agent.amazon-ssm-agent.service; do
   printf '%-48s ' "$service"
   systemctl is-active "$service" 2>/dev/null || true
@@ -38,7 +38,7 @@ section "current release"
 readlink -f /opt/yesulin/current 2>/dev/null || echo "current release: missing"
 
 section "listening ports"
-ss -lntp | grep -E ':(80|8080)\b' || echo "80/8080 listeners: missing"
+ss -lntp | grep -E ':80\b' || echo "80 listener: missing"
 
 section "database network"
 environment_file=/etc/yesulin/yesulin.env
@@ -61,9 +61,6 @@ else
   echo "DB host: unavailable"
 fi
 
-section "nginx configuration"
-nginx -t 2>&1 || true
-
 section "recent application logs"
 journalctl -u yesulin.service -n 100 --no-pager 2>&1 | redact
 
@@ -72,13 +69,6 @@ if [ -r "$log_file" ]; then
   tail -n 100 -- "$log_file" | redact
 else
   echo "Application file log ($log_file): unavailable"
-fi
-
-section "recent nginx errors"
-if [ -r /var/log/nginx/yesulin_error.log ]; then
-  tail -n 100 /var/log/nginx/yesulin_error.log | redact
-else
-  echo "Nginx error log: unavailable"
 fi
 
 section "recent deployment logs"

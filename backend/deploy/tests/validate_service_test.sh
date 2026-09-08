@@ -23,11 +23,6 @@ cat > "$FAKE_BIN/journalctl" <<'EOF'
 exit 0
 EOF
 
-cat > "$FAKE_BIN/sed" <<'EOF'
-#!/bin/sh
-printf '%064d\n' 0
-EOF
-
 cat > "$FAKE_BIN/sleep" <<'EOF'
 #!/bin/sh
 exit 0
@@ -39,19 +34,17 @@ call_count="$(cat "$TEST_STATE_FILE")"
 call_count=$((call_count + 1))
 printf '%s\n' "$call_count" > "$TEST_STATE_FILE"
 
-if [ "$call_count" -eq 1 ]; then
-  printf '403'
-elif [ "$TEST_SCENARIO" = "recovers" ] && [ "$call_count" -ge 3 ]; then
+if [ "$TEST_SCENARIO" = "recovers" ] && [ "$call_count" -ge 2 ]; then
   printf '200'
 elif [ "$TEST_SCENARIO" = "unexpected" ]; then
   printf '418'
 else
-  printf '502'
+  printf '503'
 fi
 EOF
 
 chmod +x "$FAKE_BIN/systemctl" "$FAKE_BIN/journalctl" \
-  "$FAKE_BIN/sed" "$FAKE_BIN/sleep" "$FAKE_BIN/curl"
+  "$FAKE_BIN/sleep" "$FAKE_BIN/curl"
 
 run_validation() {
   scenario="$1"
@@ -65,7 +58,7 @@ run_validation() {
 }
 
 if ! run_validation recovers; then
-  echo "Expected validation to recover after a transient 502" >&2
+  echo "Expected validation to recover after a transient 503" >&2
   exit 1
 fi
 

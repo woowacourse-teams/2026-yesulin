@@ -49,7 +49,8 @@ infrastructure/    JPA·QueryDSL, OAuth, S3 등 외부 기술 adapter
 - 요청이 끝나면 `HTTP_REQUEST`를 한 건만 기록한다. method, query string을 뺀 URI, endpoint 패턴, status,
   elapsed time과 존재하는 error code를 JSON 최상위 필드로 남긴다.
 - 5xx는 `ERROR`, 1초 이상은 `WARN`, 나머지는 `INFO`다. 5xx가 느린 요청보다 우선하며, 짧은 주기의 폴링
-  성공은 1초 미만일 때만 `DEBUG`로 낮춘다. 대상은 `/api/v1/health`와 `/api/v1/admin/logs`이며,
+  성공은 1초 미만일 때만 `DEBUG`로 낮춘다. 대상은 `/api/v1/health`, `/actuator/health/readiness`,
+  `/api/v1/admin/logs`이며,
   실패와 느린 요청은 원래 레벨 정책대로 남긴다.
 - `BusinessException`과 입력 오류는 예외 로그를 별도로 남기지 않고 최종 `HTTP_REQUEST`의 error code로 구분한다.
   MVC 경계를 빠져나온 예상 밖 예외만 `UNEXPECTED_ERROR`와 stack trace를 한 번 기록하고, 이어지는 최종

@@ -12,12 +12,6 @@ if [ ! -r "$environment_file" ]; then
   exit 1
 fi
 
-origin_secret="$(sed -n 's/^YESULIN_CLOUDFRONT_ORIGIN_SECRET=//p' "$environment_file")"
-if [ "${#origin_secret}" -ne 64 ]; then
-  echo "Origin secret is not configured correctly" >&2
-  exit 1
-fi
-
 echo "Restarting yesulin.service"
 systemctl restart yesulin.service
 
@@ -26,9 +20,8 @@ status=000
 while [ "$attempt" -le 30 ]; do
   if systemctl is-active --quiet yesulin.service; then
     status="$(curl --connect-timeout 1 --max-time 2 -sS -o /dev/null -w '%{http_code}' \
-      -H "X-Yesulin-Origin-Secret: $origin_secret" \
-      http://127.0.0.1/api/v1/__deployment_smoke__ || true)"
-    if [ "$status" = "404" ]; then
+      http://127.0.0.1:80/actuator/health/readiness || true)"
+    if [ "$status" = "200" ]; then
       break
     fi
   fi
@@ -36,12 +29,12 @@ while [ "$attempt" -le 30 ]; do
   attempt=$((attempt + 1))
 done
 
-if [ "$status" != "404" ]; then
-  echo "Application smoke check failed with HTTP ${status:-000}" >&2
+if [ "$status" != "200" ]; then
+  echo "Application readiness check failed with HTTP ${status:-000}" >&2
   systemctl status yesulin.service --no-pager || true
   journalctl -u yesulin.service -n 100 --no-pager || true
   exit 1
 fi
 
-echo "yesulin.service is active; smoke HTTP $status"
+echo "yesulin.service is active and ready; HTTP $status"
 echo "release=$(readlink -f /opt/yesulin/current)"
