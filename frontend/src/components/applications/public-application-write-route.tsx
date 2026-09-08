@@ -40,6 +40,7 @@ export function PublicApplicationWriteRoute({ postingId, initialPosting, initial
     fields: posting.applicationFields,
     performanceTitle: posting.performanceTitle,
     postingTitle: posting.title,
+    companyName: posting.companyName,
     roleIds,
     roleName: posting.roles.filter((role) => roleIds.includes(role.id)).map((role) => role.name).join(" · ") || "전체 배우",
     authenticated: session?.role === "APPLICANT",

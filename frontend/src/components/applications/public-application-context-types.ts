@@ -77,6 +77,7 @@ export type PublicApplicationMeta = {
   readonly steps: ReturnType<typeof applicationFormSteps>;
   readonly performanceTitle: string;
   readonly postingTitle: string;
+  readonly companyName: string;
   readonly roleIds: readonly string[];
   readonly roleName: string;
   readonly authenticated: boolean;

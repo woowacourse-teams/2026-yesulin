@@ -55,7 +55,7 @@ export function PublicApplicationReview() {
         </div>
       </section>
 
-      <Consent privacyConsent={state.privacyConsent} thirdPartyConsent={state.thirdPartyConsent} saveToProfile={state.saveToProfile} disabled={submitting} error={state.submissionError.includes("동의") ? state.submissionError : ""} onAllChange={(checked) => { actions.updateConsent(checked); actions.updateSaveToProfile(checked); }} onPrivacyChange={actions.updatePrivacyConsent} onThirdPartyChange={actions.updateThirdPartyConsent} onSaveToProfileChange={actions.updateSaveToProfile} />
+      <Consent recipientName={meta.companyName} privacyConsent={state.privacyConsent} thirdPartyConsent={state.thirdPartyConsent} saveToProfile={state.saveToProfile} disabled={submitting} error={state.submissionError.includes("동의") ? state.submissionError : ""} onAllChange={(checked) => { actions.updateConsent(checked); actions.updateSaveToProfile(checked); }} onPrivacyChange={actions.updatePrivacyConsent} onThirdPartyChange={actions.updateThirdPartyConsent} onSaveToProfileChange={actions.updateSaveToProfile} />
       {meta.authChecking ? <AuthChecking /> : !meta.authenticated ? <AuthGate /> : <SubmissionArea submitting={submitting} consent={state.consent} issueCount={state.reviewIssues.length} state={state.submissionState} error={state.submissionError} onSubmit={actions.submit} />}
     </div>
   </main>;
@@ -102,7 +102,7 @@ function ReviewSection({ title, disabled = false, onEdit, children }: { title: s
   return <section className="border-b border-border-soft py-5 last:border-b-0"><div className="flex items-center gap-3"><h3 className="text-base font-bold">{title}</h3>{onEdit ? <TextButton disabled={disabled} onClick={onEdit} className="ml-auto px-3 text-brand hover:bg-brand-soft disabled:hover:bg-transparent">수정</TextButton> : null}</div><div className="mt-3">{children}</div></section>;
 }
 
-function Consent({ privacyConsent, thirdPartyConsent, saveToProfile, disabled, error, onAllChange, onPrivacyChange, onThirdPartyChange, onSaveToProfileChange }: { privacyConsent: boolean; thirdPartyConsent: boolean; saveToProfile: boolean; disabled: boolean; error: string; onAllChange: (checked: boolean) => void; onPrivacyChange: (checked: boolean) => void; onThirdPartyChange: (checked: boolean) => void; onSaveToProfileChange: (checked: boolean) => void }) {
+function Consent({ recipientName, privacyConsent, thirdPartyConsent, saveToProfile, disabled, error, onAllChange, onPrivacyChange, onThirdPartyChange, onSaveToProfileChange }: { recipientName: string; privacyConsent: boolean; thirdPartyConsent: boolean; saveToProfile: boolean; disabled: boolean; error: string; onAllChange: (checked: boolean) => void; onPrivacyChange: (checked: boolean) => void; onThirdPartyChange: (checked: boolean) => void; onSaveToProfileChange: (checked: boolean) => void }) {
   const helpId = "application-consent-help";
   const errorId = "application-consent-error";
   // 전체 동의는 필수와 선택을 모두 포함한다. 제출을 막는 것은 필수 두 항목뿐이다.
@@ -121,7 +121,7 @@ function Consent({ privacyConsent, thirdPartyConsent, saveToProfile, disabled, e
       </label>
       <div className="divide-y divide-border-soft border-t border-border px-5">
         <ConsentItem id="application-privacy-consent" required checked={privacyConsent} disabled={disabled} invalid={Boolean(error)} describedBy={requiredDescribedBy} label="개인정보 수집·이용 동의" description="지원서 접수와 심사를 위해 입력한 개인정보를 수집·이용합니다." detailsHref="/privacy/consents#collection" onChange={onPrivacyChange} />
-        <ConsentItem id="application-third-party-consent" required checked={thirdPartyConsent} disabled={disabled} invalid={Boolean(error)} describedBy={requiredDescribedBy} label="개인정보 제3자 제공 동의" description="이 지원서에 작성한 항목만 지원한 공고의 기획사/제작사에 전달됩니다. 프로필에 저장돼 있어도 이 공고가 요청하지 않은 정보는 전달되지 않아요." detailsHref="/privacy/consents#third-party" onChange={onThirdPartyChange} />
+        <ConsentItem id="application-third-party-consent" required checked={thirdPartyConsent} disabled={disabled} invalid={Boolean(error)} describedBy={requiredDescribedBy} label="개인정보 제3자 제공 동의" description={`제공받는 자는 '${recipientName}'입니다. 이 지원서에 작성한 항목만 전달되며, 프로필에 저장돼 있어도 이 공고가 요청하지 않은 정보는 전달되지 않아요.`} detailsHref="/privacy/consents#third-party" onChange={onThirdPartyChange} />
         <ConsentItem id="application-profile-save" required={false} checked={saveToProfile} disabled={disabled} invalid={false} label="이번 지원서 정보를 프로필에 저장" description="이름·연락처·경력처럼 이번에 입력한 항목만 프로필에 옮겨 두고, 다음 지원서를 열 때 자동으로 채웁니다. 사진과 영상, 이 공고에만 있는 추가 질문 답변은 옮기지 않습니다." onChange={onSaveToProfileChange} />
       </div>
     </div>

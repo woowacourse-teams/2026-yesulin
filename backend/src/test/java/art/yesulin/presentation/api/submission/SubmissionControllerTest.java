@@ -153,12 +153,16 @@ class SubmissionControllerTest {
         assertEquals(APPLICANT_ID, submission.getApplicantId());
         assertEquals(2, consents.size());
         assertEquals(
-                "mvp-privacy-placeholder-v0",
+                "submission-collection-v1.0",
                 findConsent(consents, SubmissionConsentType.PRIVACY_COLLECTION_AND_USE).getDocumentVersion()
         );
         assertEquals(
-                "mvp-third-party-placeholder-v0",
+                "submission-third-party-v1.0",
                 findConsent(consents, SubmissionConsentType.THIRD_PARTY_PROVISION).getDocumentVersion()
+        );
+        assertEquals(
+                "테스트 극단",
+                findConsent(consents, SubmissionConsentType.THIRD_PARTY_PROVISION).getRecipientNameSnapshot()
         );
     }
 

@@ -170,9 +170,9 @@ class SubmissionServiceTest {
         SubmissionConsent thirdPartyConsent = findConsent(
                 consents, SubmissionConsentType.THIRD_PARTY_PROVISION
         );
-        assertEquals("mvp-privacy-placeholder-v0", privacyConsent.getDocumentVersion());
-        assertEquals("mvp-third-party-placeholder-v0", thirdPartyConsent.getDocumentVersion());
-        assertEquals("MVP 임시 기획사/제작사", thirdPartyConsent.getRecipientNameSnapshot());
+        assertEquals("submission-collection-v1.0", privacyConsent.getDocumentVersion());
+        assertEquals("submission-third-party-v1.0", thirdPartyConsent.getDocumentVersion());
+        assertEquals("테스트 극단", thirdPartyConsent.getRecipientNameSnapshot());
         List<FileReference> submissionReferences = findSubmissionReferences();
         assertEquals(1, submissionReferences.size());
         assertEquals(fixture.fileId(), submissionReferences.getFirst().getFileId());
@@ -180,7 +180,7 @@ class SubmissionServiceTest {
         List<FileReference> posterReferences = findSubmissionPosterReferences();
         assertEquals(1, posterReferences.size());
         assertEquals(submission.id(), posterReferences.getFirst().getReferenceId());
-        verify(consentDocumentProvider).currentFor(submission.auditionId(), NOW);
+        verify(consentDocumentProvider).currentFor(submission.auditionId(), "테스트 극단", NOW);
     }
 
     @Test

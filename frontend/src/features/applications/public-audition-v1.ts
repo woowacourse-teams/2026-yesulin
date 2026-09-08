@@ -33,7 +33,7 @@ function toPublicPosting(resource: PublicAuditionResource): PublicPosting {
     venueAddress: emptyAddress(resource.roadAddress),
     performanceStart: resource.performanceStartDate,
     performanceEnd: resource.performanceEndDate ?? "",
-    companyName: resource.producer.companyName || "기획사/제작사",
+    companyName: requiredCompanyName(resource.producer.companyName),
     companyDescription: resource.producer.description ?? "",
     recruitmentStart: resource.recruitmentStartAt,
     recruitmentEnd: resource.recruitmentEndAt,
@@ -73,4 +73,10 @@ function statusOf(resource: PublicAuditionResource): PublicPostingStatus {
 
 function emptyAddress(roadAddress = "") {
   return { roadAddress, detailAddress: "", zonecode: "", latitude: null, longitude: null };
+}
+
+function requiredCompanyName(value: string) {
+  const companyName = value.trim();
+  if (!companyName) throw new Error("공고의 기획사/제작사 정보가 비어 있습니다.");
+  return companyName;
 }

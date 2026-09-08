@@ -50,8 +50,9 @@ class SubmissionConsentDocumentMetadataTest {
         );
         FakeSubmissionConsentDocumentProvider provider = new FakeSubmissionConsentDocumentProvider(metadata);
 
-        assertEquals(metadata, provider.currentFor(10L, referenceTime));
+        assertEquals(metadata, provider.currentFor(10L, "극단 예술인", referenceTime));
         assertEquals(10L, provider.getLastAuditionId());
+        assertEquals("극단 예술인", provider.getLastThirdPartyRecipientName());
         assertEquals(referenceTime, provider.getLastReferenceTime());
     }
 }

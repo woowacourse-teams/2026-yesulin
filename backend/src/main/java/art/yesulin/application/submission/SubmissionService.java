@@ -60,7 +60,7 @@ public class SubmissionService {
         );
         photoFileValidator.validate(validApplicantId, validatedForm.answers().photoRequirementAnswers());
         SubmissionConsentDocumentMetadata consentDocument = consentDocumentProvider.currentFor(
-                audition.auditionId(), submittedAt
+                audition.auditionId(), audition.companyName(), submittedAt
         );
 
         Submission submission = createSubmission(
