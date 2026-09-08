@@ -62,7 +62,7 @@ export function FilterBar({ sheetOpen, onOpenSheet }: { sheetOpen: boolean; onOp
               : "border-brand-line bg-brand-soft text-brand"
           }`}
         >
-          배역 조건 불일치만
+          {filters.mismatchOnly ? "✓ 배역 조건 불일치 적용 중" : "배역 조건 불일치만"}
         </button>
       </div>
     </div>

@@ -6,6 +6,8 @@ export type UpdatePerformanceRequest = {
   readonly title: string;
   readonly venue: string;
   readonly venueAddress: VenueAddress;
+  readonly performanceStart: string;
+  readonly performanceEnd: string;
   readonly posterUrl?: string;
   readonly roles: readonly Omit<PerformanceRoleTemplate, "id">[];
 };
@@ -17,6 +19,8 @@ export type PerformanceManagementDetail = {
   readonly title: string;
   readonly venue: string;
   readonly venueAddress: VenueAddress;
+  readonly performanceStart: string;
+  readonly performanceEnd: string;
   readonly roleTemplates: readonly PerformanceRoleTemplate[];
 };
 
@@ -47,7 +51,8 @@ export type PostingManagementDetail = {
 
 export type UpdatePostingRequest = Partial<Pick<
   PostingManagementDetail,
-  "title" | "recruitmentStart" | "recruitmentEnd" | "performanceStart" | "performanceEnd" | "rounds"
+  "title" | "recruitmentStart" | "recruitmentEnd" | "performanceStart" | "performanceEnd"
+  | "rounds" | "rehearsalVenue" | "rehearsalVenueAddress"
 >>;
 
 export type ProducerProfile = {

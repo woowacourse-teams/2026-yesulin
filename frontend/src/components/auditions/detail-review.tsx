@@ -13,7 +13,7 @@ const STATUS_ACTIVE = {
 } as const satisfies Record<ReviewStatus, string>;
 
 export function DetailReview({ applicant }: { applicant: Applicant }) {
-  const { board, visible, saving, screeningCompleted, reviewCurrent, patchReview, openApplicant } = useBoard();
+  const { board, visible, saving, reviewLocked, reviewCurrent, patchReview, openApplicant } = useBoard();
   const index = visible.findIndex((candidate) => candidate.id === applicant.id);
 
   return (
@@ -24,9 +24,9 @@ export function DetailReview({ applicant }: { applicant: Applicant }) {
           <span className="text-xs text-muted">{ROUND_LABELS[board.round]}</span>
         </span>
 
-        {screeningCompleted ? (
+        {reviewLocked ? (
           <span className="rounded-control border border-border bg-card px-3 py-2 text-xs text-muted">
-            종료된 전형은 결과를 변경할 수 없습니다.
+            마감된 전형은 결과를 변경할 수 없습니다.
           </span>
         ) : (
           <>
@@ -85,7 +85,7 @@ export function DetailReview({ applicant }: { applicant: Applicant }) {
       <DraftField
         key={`note-${applicant.id}`}
         multiline
-        disabled={screeningCompleted || saving}
+        disabled={reviewLocked || saving}
         label="내부 심사 메모"
         hint="현재 배역·차수에만 저장되며 배우에게 공개되지 않습니다"
         placeholder="예: 발성 좋음, 앙상블로도 고려 가능"

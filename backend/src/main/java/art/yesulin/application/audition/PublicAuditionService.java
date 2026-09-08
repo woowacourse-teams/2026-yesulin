@@ -55,6 +55,8 @@ public class PublicAuditionService {
                 performance.getPosterFileId(),
                 performance.getTitle(),
                 performance.getRoadAddress(),
+                performance.getPerformanceStartDate(),
+                performance.getPerformanceEndDate(),
                 PublicProducerResult.from(producer),
                 AuditionResult.from(audition),
                 AuditionRolesResult.from(auditionId, roles, performance),

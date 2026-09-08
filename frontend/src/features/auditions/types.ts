@@ -76,6 +76,8 @@ export type PerformanceSummary = {
   readonly title: string;
   readonly venue: string;
   readonly venueAddress: import("./creation-types").VenueAddress;
+  readonly performanceStart: string;
+  readonly performanceEnd: string;
   readonly postingCount: number;
   readonly openPostingCount: number;
   readonly applicantCount: number;
@@ -117,6 +119,14 @@ export type RoleSummary = {
   readonly counts: ReviewCounts;
 };
 
+export type RoundState = {
+  readonly round: RoundNumber;
+  readonly name: string;
+  readonly closed: boolean;
+  readonly counts: ReviewCounts;
+  readonly progress: ReviewProgress;
+};
+
 export type ApplicantPhoto = {
   readonly label: string;
   readonly url: string;
@@ -144,7 +154,9 @@ export type Applicant = {
   readonly phone: string;
   readonly email: string;
   readonly address: string;
+  readonly educationLevel: "NONE" | "HIGH_SCHOOL" | "UNIVERSITY" | null;
   readonly school: string;
+  readonly major: string;
   readonly links: readonly string[];
   readonly nationality: string;
   readonly specialty: string;
@@ -174,17 +186,13 @@ export type ApplicantVideo = {
   readonly url: string;
 };
 
-export type RoundState = {
-  readonly round: RoundNumber;
-  readonly name: string;
-  readonly counts: ReviewCounts;
-  readonly progress: ReviewProgress;
-};
-
 export type PerformanceRef = {
   readonly id: PerformanceId;
   readonly posterUrl: string;
   readonly title: string;
+  /** 공고 생성 화면에서 공연 기간을 읽기 전용으로 보여 주기 위한 값이다. */
+  readonly performanceStart?: string;
+  readonly performanceEnd?: string;
 };
 
 export type PostingRef = {

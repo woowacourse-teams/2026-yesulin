@@ -120,15 +120,19 @@ public class LocalStackStorageConfiguration {
     ) {
         URI publicBaseUrl = properties.publicBaseUrl();
         if (connection.endpoint().equals(connection.presignerEndpoint())) {
-            publicBaseUrl = URI.create("%s/%s/%s".formatted(
-                    connection.endpoint(), properties.bucket(), properties.keyPrefix()
-            ));
+            publicBaseUrl = localPublicBaseUrl(connection.endpoint(), properties);
         }
         return new S3StorageProperties(
                 properties.bucket(), properties.keyPrefix(), publicBaseUrl,
                 connection.resolveRegion(properties.region()), properties.uploadExpiration(),
                 properties.downloadExpiration()
         );
+    }
+
+    static URI localPublicBaseUrl(URI endpoint, S3StorageProperties properties) {
+        return URI.create("%s/%s/%s/public".formatted(
+                endpoint, properties.bucket(), properties.keyPrefix()
+        ));
     }
 
     private void configureBucket(S3Client s3Client, S3StorageProperties properties) {

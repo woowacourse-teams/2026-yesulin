@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
+import java.time.LocalDate;
 import java.util.List;
 
 public record CreatePerformanceRequest(
@@ -17,6 +18,8 @@ public record CreatePerformanceRequest(
         @Size(max = 300) String roadAddress,
         @Size(max = 200) String venue,
         @Valid PerformanceVenueAddressRequest venueAddress,
+        @NotNull(message = "공연 시작일을 입력해 주세요.") LocalDate performanceStartDate,
+        LocalDate performanceEndDate,
         List<@NotNull @Valid CreatePerformanceRoleRequest> roles
 ) {
 
@@ -24,26 +27,26 @@ public record CreatePerformanceRequest(
         roles = roles == null ? List.of() : roles;
     }
 
-    @AssertTrue(message = "공연 장소명과 도로명주소는 필수입니다.")
+    @AssertTrue(message = "공연 장소명과 도로명주소를 함께 입력해 주세요.")
     public boolean isVenueValid() {
-        return venueAddress == null
+        boolean noVenue = venueAddress == null && (roadAddress == null || roadAddress.isBlank())
+                && (venue == null || venue.isBlank());
+        return noVenue || (venueAddress == null
                 ? roadAddress != null && !roadAddress.isBlank()
-                : venue != null && !venue.isBlank();
+                : venue != null && !venue.isBlank());
     }
 
     public CreatePerformanceCommand toCommand() {
-        if (venueAddress == null) {
-            return new CreatePerformanceCommand(
-                    posterFileId,
-                    title,
-                    roadAddress,
-                    roles.stream().map(CreatePerformanceRoleRequest::toCommand).toList()
-            );
-        }
         return new CreatePerformanceCommand(
                 posterFileId,
                 title,
-                venueAddress.toCommand(venue),
+                venueAddress == null
+                        ? (roadAddress == null || roadAddress.isBlank() ? null
+                        : new art.yesulin.application.performance.PerformanceVenueCommand(
+                                roadAddress, roadAddress, "", "", null, null))
+                        : venueAddress.toCommand(venue),
+                performanceStartDate,
+                performanceEndDate,
                 roles.stream().map(CreatePerformanceRoleRequest::toCommand).toList()
         );
     }

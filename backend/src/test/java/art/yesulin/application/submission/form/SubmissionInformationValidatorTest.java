@@ -9,6 +9,7 @@ import art.yesulin.domain.audition.form.AdditionalInformationField;
 import art.yesulin.domain.audition.form.BasicInformationField;
 import art.yesulin.domain.submission.SubmissionAdditionalInformation;
 import art.yesulin.domain.submission.SubmissionBasicInformation;
+import art.yesulin.domain.submission.SubmissionEducationLevel;
 import art.yesulin.domain.submission.SubmissionErrorCode;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -52,6 +53,24 @@ class SubmissionInformationValidatorTest {
     void rejectsAdditionalInformationThatWasNotConfigured() {
         SubmissionAdditionalInformation information = new SubmissionAdditionalInformation(
                 null, List.of(), null, null, "현대무용", null, null, List.of()
+        );
+
+        assertInvalid(emptyBasicInformation(), information, emptyForm());
+    }
+
+    @Test
+    void rejectsEducationWhenTheSchoolFieldWasNotConfigured() {
+        SubmissionAdditionalInformation information = new SubmissionAdditionalInformation(
+                SubmissionEducationLevel.UNIVERSITY,
+                "한국예술종합학교",
+                "연기과",
+                List.of(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                List.of()
         );
 
         assertInvalid(emptyBasicInformation(), information, emptyForm());

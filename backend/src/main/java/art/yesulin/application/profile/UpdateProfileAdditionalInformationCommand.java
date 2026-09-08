@@ -1,11 +1,14 @@
 package art.yesulin.application.profile;
 
 import art.yesulin.domain.profile.ProfileAdditionalInformation;
+import art.yesulin.domain.profile.ProfileEducationLevel;
 import art.yesulin.domain.profile.ProfileMilitaryServiceStatus;
 import java.util.List;
 
 public record UpdateProfileAdditionalInformationCommand(
+        ProfileEducationLevel educationLevel,
         String school,
+        String major,
         List<String> links,
         String nationality,
         String coverLetter,
@@ -22,7 +25,9 @@ public record UpdateProfileAdditionalInformationCommand(
 
     public ProfileAdditionalInformation toInformation() {
         return new ProfileAdditionalInformation(
+                educationLevel,
                 school,
+                major,
                 links,
                 nationality,
                 coverLetter,

@@ -108,8 +108,9 @@ public class ScreeningQueryService {
         List<ScreeningReview> reviews = submissionIds.isEmpty()
                 ? List.of()
                 : reviewRepository.findAllByAuditionRoleIdAndSubmissionIdIn(roleId, submissionIds);
-        boolean completed = completionRepository.existsByAuditionRoleId(roleId);
-        return new AuditionScreening(roleId, submissions, schedule.getStages(), reviews, completed);
+        return new AuditionScreening(
+                roleId, submissions, schedule.getStages(), reviews, completionRepository.findAllByAuditionRoleId(roleId)
+        );
     }
 
     private List<Submission> findFilteredSubmissions(
@@ -134,8 +135,9 @@ public class ScreeningQueryService {
         List<ScreeningReview> reviews = submissionIds.isEmpty()
                 ? List.of()
                 : reviewRepository.findAllByAuditionRoleIdAndSubmissionIdIn(roleId, submissionIds);
-        boolean completed = completionRepository.existsByAuditionRoleId(roleId);
-        return new AuditionScreening(roleId, submissions, schedule.getStages(), reviews, completed)
+        return new AuditionScreening(
+                roleId, submissions, schedule.getStages(), reviews, completionRepository.findAllByAuditionRoleId(roleId)
+        )
                 .applicantsFor(round);
     }
 

@@ -4,7 +4,7 @@ import { roleId, ROUND_NUMBERS } from "@/features/auditions/types";
 import { findRole, roundStatesOf } from "./aggregate";
 import { CATALOG } from "./catalog";
 import { toApplicant, toPerformanceRef, toPostingRef, toRoleSummary } from "./serialize";
-import { activeRound, markScreeningCompleted, poolFor, reviewOf } from "./store";
+import { activeRound, completeRound, isRoundClosed, poolFor, reviewOf } from "./store";
 
 const apiPath = "/api";
 const notFound = (message: string, code = "ROLE_NOT_FOUND") => HttpResponse.json({ code, message }, { status: 404 });
@@ -66,6 +66,9 @@ export const screeningHandlers = [
     const round = parseRound(String(params.round));
     if (!findRole(targetRoleId)) return notFound("배역을 찾을 수 없습니다.");
     if (round === null) return badRequest("INVALID_ROUND_NUMBER", "올바른 차수가 아닙니다.");
+    if (isRoundClosed(targetRoleId, round)) {
+      return badRequest("INVALID_SCREENING_REVIEW", "마감된 전형은 수정할 수 없습니다.");
+    }
     if (body.submissionIds.length === 0) return badRequest("SUBMISSION_REQUIRED", "배우를 한 명 이상 선택해 주세요.");
     if (body.status === "ETC" && !body.memo?.trim()) return badRequest("MEMO_REQUIRED", "기타 사유를 입력해 주세요.");
     const pool = poolFor(targetRoleId, round);
@@ -85,14 +88,15 @@ export const screeningHandlers = [
     const board = buildBoard(targetRoleId, round);
     return board ? HttpResponse.json(board) : notFound("배역을 찾을 수 없습니다.");
   }),
-  http.patch(`${apiPath}/v1/audition-roles/:roleId/screening/completion`, async ({ params }) => {
+  http.patch(`${apiPath}/v1/audition-roles/:roleId/screening-rounds/:round/completion`, async ({ params }) => {
     if (/^[1-9]\d*$/.test(String(params.roleId))) return passthrough();
     const targetRoleId = roleId(String(params.roleId));
+    const round = parseRound(String(params.round));
     if (!findRole(targetRoleId)) return notFound("배역을 찾을 수 없습니다.");
-    if (roundStatesOf(targetRoleId).some((round) => round.counts.pending > 0)) {
-      return badRequest("SCREENING_NOT_READY", "모든 차수의 지원자 검토를 마친 뒤 전형을 종료할 수 있습니다.");
+    if (round === null) return badRequest("INVALID_ROUND_NUMBER", "올바른 차수가 아닙니다.");
+    if (activeRound(targetRoleId) !== round && !isRoundClosed(targetRoleId, round)) {
+      return badRequest("SCREENING_ROUND_NOT_READY", "현재 진행 중인 전형만 마감할 수 있습니다.");
     }
-    markScreeningCompleted(targetRoleId);
-    return new HttpResponse(null, { status: 204 });
+    return HttpResponse.json(completeRound(targetRoleId, round));
   }),
 ];

@@ -5,6 +5,7 @@ import static art.yesulin.domain.common.validation.DomainValidator.requireText;
 import static art.yesulin.domain.profile.ProfileErrorCode.INVALID_PROFILE;
 
 import art.yesulin.common.exception.BusinessException;
+import art.yesulin.domain.profile.converter.ProfileEducationLevelConverter;
 import art.yesulin.domain.profile.converter.ProfileMilitaryServiceStatusConverter;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
@@ -37,6 +38,13 @@ public class ProfileAdditionalInformation {
     @Column(name = "school", length = MAX_SCHOOL_LENGTH)
     private String school;
 
+    @Convert(converter = ProfileEducationLevelConverter.class)
+    @Column(name = "education_level", length = 20)
+    private ProfileEducationLevel educationLevel;
+
+    @Column(name = "major", length = MAX_SCHOOL_LENGTH)
+    private String major;
+
     @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(name = "applicant_profile_links", joinColumns = @JoinColumn(name = "applicant_profile_id"))
     @OrderColumn(name = "link_order")
@@ -65,7 +73,9 @@ public class ProfileAdditionalInformation {
     private List<ProfileCareer> careers = new ArrayList<>();
 
     public ProfileAdditionalInformation(
+            ProfileEducationLevel educationLevel,
             String school,
+            String major,
             List<String> links,
             String nationality,
             String coverLetter,
@@ -74,7 +84,10 @@ public class ProfileAdditionalInformation {
             ProfileMilitaryServiceStatus militaryServiceStatus,
             List<ProfileCareer> careers
     ) {
+        this.educationLevel = educationLevel;
         this.school = normalizeNullable(school, MAX_SCHOOL_LENGTH, "학력은 255자를 넘을 수 없습니다.");
+        this.major = normalizeNullable(major, MAX_SCHOOL_LENGTH, "전공은 255자를 넘을 수 없습니다.");
+        validateEducation();
         this.links = new ArrayList<>(copyLinks(links));
         this.nationality = normalizeNullable(
                 nationality, MAX_NATIONALITY_LENGTH, "국적은 100자를 넘을 수 없습니다."
@@ -86,6 +99,19 @@ public class ProfileAdditionalInformation {
         this.hobbies = normalizeNullable(hobbies, MAX_HOBBIES_LENGTH, "취미는 255자를 넘을 수 없습니다.");
         this.militaryServiceStatus = militaryServiceStatus;
         this.careers = new ArrayList<>(copyCareers(careers));
+    }
+
+    public ProfileAdditionalInformation(
+            String school,
+            List<String> links,
+            String nationality,
+            String coverLetter,
+            String specialty,
+            String hobbies,
+            ProfileMilitaryServiceStatus militaryServiceStatus,
+            List<ProfileCareer> careers
+    ) {
+        this(null, school, null, links, nationality, coverLetter, specialty, hobbies, militaryServiceStatus, careers);
     }
 
     public static ProfileAdditionalInformation empty() {
@@ -132,8 +158,31 @@ public class ProfileAdditionalInformation {
         return normalizedValue;
     }
 
+    private void validateEducation() {
+        if (educationLevel == null) {
+            return;
+        }
+        if (educationLevel == ProfileEducationLevel.NONE && (school != null || major != null)) {
+            throw new BusinessException(INVALID_PROFILE, "학력 없음에는 학교와 전공을 입력할 수 없습니다.");
+        }
+        if (educationLevel == ProfileEducationLevel.HIGH_SCHOOL && (school == null || major != null)) {
+            throw new BusinessException(INVALID_PROFILE, "고등학교 졸업은 학교만 입력해야 합니다.");
+        }
+        if (educationLevel == ProfileEducationLevel.UNIVERSITY && (school == null || major == null)) {
+            throw new BusinessException(INVALID_PROFILE, "대학교 졸업은 학교와 전공을 모두 입력해야 합니다.");
+        }
+    }
+
     public String school() {
         return school;
+    }
+
+    public ProfileEducationLevel educationLevel() {
+        return educationLevel;
+    }
+
+    public String major() {
+        return major;
     }
 
     public List<String> links() {

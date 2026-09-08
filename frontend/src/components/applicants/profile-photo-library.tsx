@@ -5,6 +5,7 @@ import { useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { notifyApplicantProfileChanged } from "@/features/applicants/events";
 import type { ApplicantProfilePhoto, ApplicantProfileResponse } from "@/features/applicants/types";
+import { MAX_ACTOR_PHOTO_COUNT } from "@/features/files/photo-policy";
 import {
   addApplicantProfilePhotos,
   deleteApplicantProfilePhoto,
@@ -14,7 +15,7 @@ import {
 import { useToast } from "@/components/auditions/toast";
 import { AddButton } from "@/components/ui/controls";
 
-export const MAX_LIBRARY_PHOTOS = 3;
+export const MAX_LIBRARY_PHOTOS = MAX_ACTOR_PHOTO_COUNT;
 const MAX_PROFILE_PHOTO_SIZE = 20 * 1024 * 1024;
 const PHOTO_ACTION_CLASS = "inline-flex min-h-10 min-w-0 items-center justify-center whitespace-nowrap rounded-md px-1 text-xs font-semibold transition-colors disabled:pointer-events-none disabled:text-muted-soft";
 

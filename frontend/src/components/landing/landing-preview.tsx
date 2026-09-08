@@ -25,7 +25,7 @@ export function ApplicantPreview() {
             </div>
             <ul className="mt-5 grid gap-2.5">
               <ReadyItem label="기본·추가 정보" value="불러옴" />
-              <ReadyItem label="프로필·연기 사진" value="4장" />
+              <ReadyItem label="프로필·연기 사진" value="3장" />
               <ReadyItem label="연기 영상" value="1개" />
             </ul>
           </section>
@@ -61,7 +61,7 @@ export function ProducerPreview() {
                 <p className="mt-1 text-sm text-muted">만 27세 · 166cm</p>
                 <dl className="mt-4 grid gap-3 text-sm">
                   <SummaryRow label="경력" value="푸른 방 · 윤서 역" />
-                  <SummaryRow label="사진" value="4장" />
+                  <SummaryRow label="사진" value="3장" />
                   <SummaryRow label="영상" value="1개" />
                 </dl>
               </div>

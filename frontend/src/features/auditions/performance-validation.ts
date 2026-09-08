@@ -16,16 +16,21 @@ export function validatePerformanceInput(input: {
   readonly title: string;
   readonly venue: string;
   readonly venueAddress: VenueAddress;
+  readonly performanceStart: string;
+  readonly performanceEnd: string;
   readonly roles: readonly PerformanceRoleValue[];
 }) {
   if (!input.title.trim()) return "공연 제목을 입력해 주세요.";
   if (input.title.length > PERFORMANCE_TITLE_MAX_LENGTH) return `공연 제목은 ${PERFORMANCE_TITLE_MAX_LENGTH}자 이내로 입력해 주세요.`;
-  if (!input.venue.trim()) return "공연 장소명을 입력해 주세요.";
+  const hasVenue = Boolean(input.venue.trim() || input.venueAddress.roadAddress.trim());
+  if (hasVenue && !input.venue.trim()) return "공연 장소명과 주소를 함께 입력해 주세요.";
+  if (hasVenue && !input.venueAddress.roadAddress.trim()) return "공연 장소를 입력했다면 주소 검색도 완료해 주세요.";
   if (input.venue.length > PERFORMANCE_VENUE_MAX_LENGTH) return `공연 장소명은 ${PERFORMANCE_VENUE_MAX_LENGTH}자 이내로 입력해 주세요.`;
-  if (!input.venueAddress.roadAddress.trim()) return "주소 검색으로 공연장 주소를 선택해 주세요.";
   if (input.venueAddress.roadAddress.length > PERFORMANCE_ADDRESS_MAX_LENGTH) return `공연장 주소는 ${PERFORMANCE_ADDRESS_MAX_LENGTH}자 이내여야 합니다.`;
   if (input.venueAddress.detailAddress.length > PERFORMANCE_ADDRESS_MAX_LENGTH) return `상세 주소는 ${PERFORMANCE_ADDRESS_MAX_LENGTH}자 이내여야 합니다.`;
   if (input.venueAddress.zonecode.length > PERFORMANCE_ZONECODE_MAX_LENGTH) return `우편번호는 ${PERFORMANCE_ZONECODE_MAX_LENGTH}자 이내여야 합니다.`;
+  if (!input.performanceStart) return "공연 시작일을 선택해 주세요.";
+  if (input.performanceEnd && input.performanceEnd < input.performanceStart) return "공연 종료일은 시작일보다 빠를 수 없습니다.";
 
   const roleNames = new Set<string>();
   for (const role of input.roles) {

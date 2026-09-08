@@ -71,6 +71,6 @@ record AuditionManagementQueryRows(
     ) {
     }
 
-    record CompletionRow(long auditionRoleId) {
+    record CompletionRow(long auditionRoleId, long screeningStageId) {
     }
 }

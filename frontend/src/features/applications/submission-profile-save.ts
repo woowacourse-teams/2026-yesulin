@@ -39,7 +39,9 @@ function mergeAdditionalInformation(
   submitted: ApplicantInformation["additionalInformation"],
 ): BackendProfileUpdateRequest["additionalInformation"] {
   return {
+    educationLevel: submitted.educationLevel ?? current.educationLevel,
     school: submitted.school ?? current.school,
+    major: submitted.major ?? current.major,
     links: submitted.links.length ? submitted.links : current.links,
     nationality: submitted.nationality ?? current.nationality,
     coverLetter: submitted.coverLetter ?? current.coverLetter,

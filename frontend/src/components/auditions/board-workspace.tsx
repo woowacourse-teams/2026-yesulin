@@ -3,7 +3,11 @@
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { completeScreening, saveReview } from "@/features/auditions/api";
-import { type AuditionFilters } from "@/features/auditions/filters";
+import {
+  defaultStatusForWork,
+  shouldClearMismatchOnlyAfterBulkReview,
+  type AuditionFilters,
+} from "@/features/auditions/filters";
 import { STATUS_LABELS } from "@/features/auditions/labels";
 import type {
   Applicant,
@@ -42,6 +46,8 @@ export function BoardWorkspace({
   onRoundChange: (round: RoundNumber) => void;
 }) {
   const screeningCompleted = board.role.allRoundsClosed;
+  const currentRoundClosed = board.rounds.find((state) => state.round === board.round)?.closed ?? false;
+  const reviewLocked = screeningCompleted || currentRoundClosed;
   const [selected, setSelected] = useState<ReadonlySet<SubmissionId>>(new Set());
   const [contactList, setContactList] = useState<readonly Applicant[] | null>(null);
   const [completionPrompt, setCompletionPrompt] = useState<"auto" | "manual" | null>(null);
@@ -113,32 +119,37 @@ export function BoardWorkspace({
   const advanceIfDone = useCallback((next: AuditionBoardResponse) => {
     const state = next.rounds.find((candidate) => candidate.round === next.round);
     if (!state || state.counts.pending > 0) return;
-    const nextRound = next.rounds.find((candidate) => candidate.round === next.round + 1);
-    if (!nextRound) {
-      setCompletionPrompt("auto");
-      return;
-    }
-    setFilters((current) => ({ ...current, work: "PENDING", status: "ALL" }));
-    toast(`${nextRound.name}로 합격자가 자동 승격되었습니다`, { type: "success" });
-    onRoundChange(nextRound.round);
-  }, [onRoundChange, setFilters, toast]);
+    setCompletionPrompt("auto");
+  }, []);
 
   const applyBulkStatus = useCallback(
     async (ids: readonly SubmissionId[], status: ReviewStatus, memo?: string) => {
       const next = await submitReview(ids, { status, ...(memo ? { memo } : {}) }, "심사 결과를 저장하지 못했습니다.");
-      if (!next) return;
+      if (!next) return null;
       clearSelection();
+      if (filters.mismatchOnly && shouldClearMismatchOnlyAfterBulkReview(status)) {
+        setFilters((current) => ({ ...current, mismatchOnly: false }));
+      }
       toast(`${ids.length}명을 ${STATUS_LABELS[status]} 처리했습니다`, { type: "success" });
       advanceIfDone(next);
+      return next;
     },
-    [advanceIfDone, clearSelection, submitReview, toast],
+    [advanceIfDone, clearSelection, filters.mismatchOnly, setFilters, submitReview, toast],
   );
 
   const setStatus = useCallback(async (ids: readonly SubmissionId[], status: ReviewStatus) => {
-    if (ids.length === 0) return;
+    if (ids.length === 0 || reviewLocked) return;
     if (status === "ETC") { setMemoRequest({ kind: "BULK", ids }); return; }
     await applyBulkStatus(ids, status);
-  }, [applyBulkStatus]);
+  }, [applyBulkStatus, reviewLocked]);
+
+  const reviewFocused = useCallback(
+    (id: SubmissionId, status: ReviewStatus, memo?: string) => {
+      if (reviewLocked) return Promise.resolve(null);
+      return applyBulkStatus([id], status, memo);
+    },
+    [applyBulkStatus, reviewLocked],
+  );
 
   /**
    * 검토 대기 모드에서 결과를 남기면 그 배우는 목록에서 빠진다.
@@ -152,7 +163,11 @@ export function BoardWorkspace({
 
       const remaining = next.applicants;
       if (remaining.length === 0) {
-        setFilters((current) => ({ ...current, work: "DONE", status: "ALL" }));
+        setFilters((current) => ({
+          ...current,
+          work: "DONE",
+          status: defaultStatusForWork("DONE"),
+        }));
         const counts = next.rounds.find((state) => state.round === next.round)?.counts;
         toast(counts && counts.pass > 0 ? `검토를 마쳤습니다 · 합격 ${counts.pass}명` : "검토를 마쳤습니다", {
           type: "success",
@@ -162,7 +177,7 @@ export function BoardWorkspace({
       }
 
       const target = remaining[Math.min(Math.max(previousIndex, 0), remaining.length - 1)];
-      if (target) router.push(auditionRoutes.applicantReview(board.role.id, target.id, board.round));
+      if (target) router.push(auditionRoutes.applicantReview(board.role.id, target.id, board.round, filters));
     },
     [advanceIfDone, board.role.id, board.round, filters, router, setFilters, submitReview, toast],
   );
@@ -181,14 +196,32 @@ export function BoardWorkspace({
   );
 
   const completeCurrentScreening = useCallback(async () => {
-    const next = await run(
-      () => completeScreening({ roleId: board.role.id }, board.round, searchCondition),
-      "전형을 종료하지 못했습니다.",
-    );
-    if (!next) return false;
-    toast("전형이 종료되었습니다", { type: "success" });
-    return true;
-  }, [board.role.id, board.round, run, searchCondition, toast]);
+    setSaving(true);
+    try {
+      const { completion, board: next } = await completeScreening(
+        { roleId: board.role.id }, board.round, searchCondition,
+      );
+      onBoardChange(next);
+      if (completion.nextRound !== null) {
+        setFilters((current) => ({ ...current, work: "PENDING", status: "ALL" }));
+        toast(`${completion.promotedCount}명이 다음 차수 검토 대기로 승격되었습니다`, { type: "success" });
+        onRoundChange(completion.nextRound as RoundNumber);
+      } else {
+        setFilters((current) => ({ ...current, work: "DONE", status: defaultStatusForWork("DONE") }));
+        toast(
+          completion.acceptedCount > 0 ? `전형을 마감했습니다 · 최종 합격 ${completion.acceptedCount}명` : "합격자 없이 전형을 마감했습니다",
+          { type: "success" },
+        );
+      }
+      return true;
+    } catch (cause: unknown) {
+      console.error("[전형 마감 실패]", cause);
+      toast(errorMessage(cause, "전형을 마감하지 못했습니다."), { type: "error" });
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  }, [board.role.id, board.round, onBoardChange, onRoundChange, searchCondition, setFilters, toast]);
 
   const value: BoardContextValue = {
     board,
@@ -197,6 +230,7 @@ export function BoardWorkspace({
     selected,
     saving,
     screeningCompleted,
+    reviewLocked,
     setFilters,
     goToRound: onRoundChange,
     toggleSelected,
@@ -204,12 +238,13 @@ export function BoardWorkspace({
     clearSelection,
     setStatus,
     reviewCurrent,
+    reviewFocused,
     patchReview,
     completeCurrentScreening,
     completionPrompt,
     setCompletionPrompt,
     openApplicant: (id) => {
-      if (id !== null) router.push(auditionRoutes.applicantReview(board.role.id, id, board.round));
+      if (id !== null) router.push(auditionRoutes.applicantReview(board.role.id, id, board.round, filters));
     },
     openedApplicantId: null,
     contactList,

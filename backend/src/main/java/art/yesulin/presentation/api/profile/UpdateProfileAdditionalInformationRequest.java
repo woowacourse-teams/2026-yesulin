@@ -2,6 +2,7 @@ package art.yesulin.presentation.api.profile;
 
 import art.yesulin.application.profile.UpdateProfileAdditionalInformationCommand;
 import art.yesulin.domain.profile.ProfileAdditionalInformation;
+import art.yesulin.domain.profile.ProfileEducationLevel;
 import art.yesulin.domain.profile.ProfileMilitaryServiceStatus;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -10,7 +11,9 @@ import jakarta.validation.constraints.Size;
 import java.util.List;
 
 public record UpdateProfileAdditionalInformationRequest(
+        ProfileEducationLevel educationLevel,
         @Size(max = ProfileAdditionalInformation.MAX_SCHOOL_LENGTH) String school,
+        @Size(max = ProfileAdditionalInformation.MAX_SCHOOL_LENGTH) String major,
         @NotNull @Size(max = ProfileAdditionalInformation.MAX_LINK_COUNT)
         List<@NotBlank @Size(max = ProfileAdditionalInformation.MAX_LINK_LENGTH) String> links,
         @Size(max = ProfileAdditionalInformation.MAX_NATIONALITY_LENGTH) String nationality,
@@ -24,7 +27,9 @@ public record UpdateProfileAdditionalInformationRequest(
 
     public UpdateProfileAdditionalInformationCommand toCommand() {
         return new UpdateProfileAdditionalInformationCommand(
+                educationLevel,
                 school,
+                major,
                 links,
                 nationality,
                 coverLetter,

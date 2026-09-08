@@ -1,8 +1,15 @@
 package art.yesulin.application.performance;
 
-public record UpdatePerformanceBasicInformationCommand(String title, PerformanceVenueCommand venue) {
+import java.time.LocalDate;
+
+public record UpdatePerformanceBasicInformationCommand(
+        String title,
+        PerformanceVenueCommand venue,
+        LocalDate performanceStartDate,
+        LocalDate performanceEndDate
+) {
 
     public UpdatePerformanceBasicInformationCommand(String title, String roadAddress) {
-        this(title, new PerformanceVenueCommand(roadAddress, roadAddress, "", "", null, null));
+        this(title, new PerformanceVenueCommand(roadAddress, roadAddress, "", "", null, null), null, null);
     }
 }

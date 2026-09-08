@@ -3,6 +3,7 @@ package art.yesulin.presentation.api.screening;
 import art.yesulin.application.auth.MemberPrincipal;
 import art.yesulin.application.auth.annotation.LoginMember;
 import art.yesulin.application.auth.annotation.LoginRequired;
+import art.yesulin.application.screening.ScreeningCompletionResult;
 import art.yesulin.application.screening.ScreeningReviewService;
 import art.yesulin.application.screening.ScreeningReviewsResult;
 import art.yesulin.domain.member.MemberStatus;
@@ -34,12 +35,12 @@ public class ScreeningReviewController {
         return ResponseEntity.ok(screeningReviewService.save(principal.memberId(), roleId, round, request.toCommand()));
     }
 
-    @PatchMapping("/screening/completion")
-    public ResponseEntity<Void> complete(
+    @PatchMapping("/screening-rounds/{round}/completion")
+    public ResponseEntity<ScreeningCompletionResult> complete(
             @LoginMember(roles = MemberType.PRODUCER, statuses = MemberStatus.ACTIVE) MemberPrincipal principal,
-            @PathVariable long roleId
+            @PathVariable long roleId,
+            @PathVariable int round
     ) {
-        screeningReviewService.complete(principal.memberId(), roleId);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(screeningReviewService.complete(principal.memberId(), roleId, round));
     }
 }

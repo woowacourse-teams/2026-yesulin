@@ -13,6 +13,28 @@ import org.junit.jupiter.api.Test;
 class SubmissionAdditionalInformationTest {
 
     @Test
+    void keepsFinalEducationSchoolAndMajorInTheSubmissionSnapshot() {
+        SubmissionAdditionalInformation information = new SubmissionAdditionalInformation(
+                SubmissionEducationLevel.UNIVERSITY,
+                " 한국예술종합학교 ",
+                " 연기과 ",
+                List.of(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                List.of()
+        );
+
+        assertAll(
+                () -> assertEquals(SubmissionEducationLevel.UNIVERSITY, information.educationLevel()),
+                () -> assertEquals("한국예술종합학교", information.school()),
+                () -> assertEquals("연기과", information.major())
+        );
+    }
+
+    @Test
     void copiesListValuesAndNormalizesOptionalText() {
         List<String> sourceLinks = new ArrayList<>(List.of(" https://example.com/profile "));
         List<SubmissionCareer> sourceCareers = new ArrayList<>(List.of(

@@ -1,4 +1,23 @@
 import type { SubmissionId, PerformanceId, PostingId, RoleId, RoundNumber } from "./types";
+import { NUMERIC_FIELDS, type AuditionListRouteState } from "./filters";
+
+function screeningQuery(round?: RoundNumber, state?: AuditionListRouteState) {
+  const searchParams = new URLSearchParams();
+  if (round) searchParams.set("round", String(round));
+  if (state) {
+    searchParams.set("work", state.work);
+    searchParams.set("status", state.status);
+    searchParams.set("view", state.view);
+    if (state.query.trim()) searchParams.set("q", state.query.trim());
+    if (state.genders.size > 0) searchParams.set("genders", [...state.genders].sort().join(","));
+    for (const field of NUMERIC_FIELDS) {
+      const condition = state.numeric[field];
+      if (condition) searchParams.set(field, `${condition.op}:${condition.value}`);
+    }
+    if (state.mismatchOnly) searchParams.set("mismatch", "1");
+  }
+  return searchParams.size > 0 ? `?${searchParams.toString()}` : "";
+}
 
 /**
  * 화면 경로. 공연/공고/배역 식별자가 전역 유일하므로 계층을 그대로 중첩하지 않고
@@ -9,10 +28,14 @@ export const auditionRoutes = {
   account: "/producers/account",
   performance: (id: PerformanceId) => `/producers/performances/${id}`,
   posting: (id: PostingId) => `/producers/postings/${id}`,
-  role: (id: RoleId, round?: RoundNumber) =>
-    round ? `/producers/roles/${id}?round=${round}` : `/producers/roles/${id}`,
-  applicantReview: (role: RoleId, submission: SubmissionId, round: RoundNumber) =>
-    `/producers/roles/${role}/submissions/${submission}?round=${round}`,
+  role: (id: RoleId, round?: RoundNumber, state?: AuditionListRouteState) =>
+    `/producers/roles/${id}${screeningQuery(round, state)}`,
+  applicantReview: (
+    role: RoleId,
+    submission: SubmissionId,
+    round: RoundNumber,
+    state?: AuditionListRouteState,
+  ) => `/producers/roles/${role}/submissions/${submission}${screeningQuery(round, state)}`,
 } as const;
 
 /** 외부 오디션 공고에서 배우가 진입할 공개 지원서 경로. */

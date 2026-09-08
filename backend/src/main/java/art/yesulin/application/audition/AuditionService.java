@@ -7,6 +7,7 @@ import art.yesulin.domain.audition.Audition;
 import art.yesulin.domain.audition.AuditionRepository;
 import art.yesulin.domain.audition.PerformancePeriod;
 import art.yesulin.domain.audition.schedule.AuditionScheduleRepository;
+import art.yesulin.domain.performance.Performance;
 import art.yesulin.domain.performance.PerformanceErrorCode;
 import art.yesulin.domain.performance.PerformanceRepository;
 import java.util.List;
@@ -40,11 +41,11 @@ public class AuditionService {
     }
 
     public AuditionResult create(long ownerId, CreateAuditionCommand command) {
-        ensureOwnedPerformance(ownerId, command.performanceId());
+        Performance performance = getOwnedPerformance(ownerId, command.performanceId());
         try {
-            return createInNewTransaction(ownerId, command);
+            return createInNewTransaction(ownerId, command, performance);
         } catch (DataIntegrityViolationException exception) {
-            return restoreInNewTransaction(ownerId, command, exception);
+            return restoreInNewTransaction(ownerId, command, performance, exception);
         }
     }
 
@@ -55,9 +56,11 @@ public class AuditionService {
             UpdateAuditionBasicInformationCommand command
     ) {
         Audition audition = getAuditionForUpdate(ownerId, auditionId);
-        PerformancePeriod performancePeriod = command.performancePeriod();
+        PerformancePeriod performancePeriod = command.performanceStartDate() == null
+                ? new PerformancePeriod(audition.getPerformanceStartDate(), audition.getPerformanceEndDate())
+                : command.performancePeriod();
         ensureScheduleWithinPerformance(audition, performancePeriod);
-        audition.updateBasicInformation(command.title(), performancePeriod);
+        audition.updateBasicInformation(command.title(), performancePeriod, command.rehearsalVenue().toVenue());
         return AuditionResult.from(audition);
     }
 
@@ -69,23 +72,23 @@ public class AuditionService {
 
     @Transactional(readOnly = true)
     public List<AuditionResult> findAll(long ownerId, long performanceId) {
-        ensureOwnedPerformance(ownerId, performanceId);
+        getOwnedPerformance(ownerId, performanceId);
         return auditionRepository.findAllByPerformanceIdAndOwnerIdOrderByCreatedAtDescIdDesc(performanceId, ownerId)
                 .stream()
                 .map(AuditionResult::from)
                 .toList();
     }
 
-    private void ensureOwnedPerformance(long ownerId, long performanceId) {
-        if (!performanceRepository.existsByIdAndOwnerId(performanceId, ownerId)) {
-            throw new BusinessException(PerformanceErrorCode.NOT_FOUND, "공연을 찾을 수 없습니다.");
-        }
-    }
-
-    private AuditionResult createInNewTransaction(long ownerId, CreateAuditionCommand command) {
+    private AuditionResult createInNewTransaction(
+            long ownerId,
+            CreateAuditionCommand command,
+            Performance performance
+    ) {
         return creationTransaction.execute(status -> {
             Audition audition = new Audition(
-                    command.id(), command.performanceId(), ownerId, command.title(), command.performancePeriod()
+                    command.id(), command.performanceId(), ownerId, command.title(),
+                    performancePeriodOf(performance, command),
+                    command.rehearsalVenue().toVenue()
             );
             return AuditionResult.from(auditionRepository.saveAndFlush(audition));
         });
@@ -94,10 +97,13 @@ public class AuditionService {
     private AuditionResult restoreInNewTransaction(
             long ownerId,
             CreateAuditionCommand command,
+            Performance performance,
             DataIntegrityViolationException creationFailure
     ) {
         return creationTransaction.execute(status -> auditionRepository.findByPublicIdForUpdate(command.id())
-                .map(existing -> restoreDraft(ownerId, existing, command.title(), command.performancePeriod()))
+                .map(existing -> restoreDraft(
+                        ownerId, existing, command.title(), performancePeriodOf(performance, command)
+                ))
                 .map(AuditionResult::from)
                 .orElseThrow(() -> creationFailure));
     }
@@ -116,6 +122,18 @@ public class AuditionService {
             audition.updateBasicInformation(title, performancePeriod);
         }
         return audition;
+    }
+
+    private Performance getOwnedPerformance(long ownerId, long performanceId) {
+        return performanceRepository.findByIdAndOwnerId(performanceId, ownerId)
+                .orElseThrow(() -> new BusinessException(PerformanceErrorCode.NOT_FOUND, "공연을 찾을 수 없습니다."));
+    }
+
+    private PerformancePeriod performancePeriodOf(Performance performance, CreateAuditionCommand command) {
+        if (performance.hasPerformancePeriod()) {
+            return new PerformancePeriod(performance.getPerformanceStartDate(), performance.getPerformanceEndDate());
+        }
+        return command.performancePeriod();
     }
 
     private void ensureScheduleWithinPerformance(Audition audition, PerformancePeriod performancePeriod) {

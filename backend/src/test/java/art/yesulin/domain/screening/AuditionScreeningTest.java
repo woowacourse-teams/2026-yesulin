@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.audition.schedule.ScreeningStage;
 import art.yesulin.domain.submission.Submission;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -19,8 +20,9 @@ class AuditionScreeningTest {
     private static final UUID PENDING_SUBMISSION_ID = UUID.fromString("5ba4f233-d49f-48c8-b07b-390b816beef1");
 
     @Test
-    void includesOnlyApplicantsWhoPassedThePreviousRound() {
+    void includesOnlyApplicantsWhoPassedTheClosedPreviousRound() {
         AuditionScreening screening = screening();
+        screening.complete(new ScreeningRound(1), Instant.parse("2026-09-02T00:00:00Z"));
 
         List<UUID> secondRound = screening.applicantsFor(new ScreeningRound(2)).stream()
                 .map(Submission::getSubmissionId)

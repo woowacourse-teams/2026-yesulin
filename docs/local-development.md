@@ -30,4 +30,3 @@ docker compose down
 ```
 
 MySQL data와 로그 volume까지 제거하는 `docker compose down --volumes`는 로컬 데이터를 지워도 되는 경우에만 사용한다.
-

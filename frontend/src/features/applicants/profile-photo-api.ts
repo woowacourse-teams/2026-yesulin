@@ -3,6 +3,7 @@ import { applicantProfileApiEnabled } from "./profile-mode";
 import { applicantRequest } from "./request";
 import { safeUpload, type UploadResource } from "../files/safe-upload";
 import { reportUploadDiagnostic } from "../files/upload-diagnostics";
+import { MAX_ACTOR_PHOTO_COUNT } from "../files/photo-policy";
 
 type BackendPhoto = {
   readonly id: number;
@@ -112,6 +113,7 @@ function toPhotos(
   const names = new Map(previous.map((photo) => [photo.id, photo.name]));
   return [...photos]
     .sort((left, right) => left.displayOrder - right.displayOrder)
+    .slice(0, MAX_ACTOR_PHOTO_COUNT)
     .map((photo, index) => ({
       id: String(photo.id),
       name: names.get(String(photo.id)) ?? `프로필 사진 ${index + 1}`,

@@ -146,7 +146,7 @@ class AdminSubmissionControllerTest {
                 submission.getSubmissionId(), APPLICANT_ID, "privacy-v1", SUBMITTED_AT
         ));
         reviewRepository.save(new ScreeningReview(submission.getSubmissionId(), ROLE_ID, 50L));
-        completionRepository.save(new ScreeningCompletion(ROLE_ID, SUBMITTED_AT));
+        completionRepository.save(new ScreeningCompletion(ROLE_ID, 50L, SUBMITTED_AT));
 
         // when
         mockMvc.perform(delete("/api/v1/admin/submissions/{submissionId}", submission.getSubmissionId())

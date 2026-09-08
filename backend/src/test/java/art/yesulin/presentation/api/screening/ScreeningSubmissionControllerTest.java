@@ -15,6 +15,7 @@ import art.yesulin.domain.file.FileReferenceRepository;
 import art.yesulin.domain.member.MemberStatus;
 import art.yesulin.domain.member.MemberType;
 import art.yesulin.domain.performance.PerformanceRepository;
+import art.yesulin.domain.screening.ScreeningCompletionRepository;
 import art.yesulin.domain.screening.ScreeningReviewRepository;
 import art.yesulin.domain.submission.SubmissionRepository;
 import art.yesulin.support.ObjectStorageTestConfiguration;
@@ -52,6 +53,8 @@ class ScreeningSubmissionControllerTest {
     @Autowired
     private ScreeningReviewRepository reviewRepository;
     @Autowired
+    private ScreeningCompletionRepository completionRepository;
+    @Autowired
     private SubmissionRepository submissionRepository;
     @Autowired
     private AuditionScheduleRepository scheduleRepository;
@@ -70,6 +73,7 @@ class ScreeningSubmissionControllerTest {
 
     @BeforeEach
     void setUp() {
+        completionRepository.deleteAll();
         reviewRepository.deleteAll();
         submissionRepository.deleteAll();
         scheduleRepository.deleteAll();
@@ -171,6 +175,7 @@ class ScreeningSubmissionControllerTest {
                 OWNER_ID, roleId, 1,
                 new SaveScreeningReviewsCommand(List.of(SUBMISSION_ID), "PASS", null, null)
         );
+        reviewService.complete(OWNER_ID, roleId, 1);
 
         mockMvc.perform(get(path(), roleId, 2).sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, PRODUCER))
                 .andExpect(status().isOk())

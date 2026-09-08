@@ -24,7 +24,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PhotoRequirementAnswers {
 
-    public static final int MAX_PHOTO_COUNT = 10;
+    public static final int MAX_PHOTO_COUNT = 3;
 
     @Column(name = "photo_requirement_answers_present", nullable = false, updatable = false)
     private boolean present = true;
@@ -37,7 +37,10 @@ public class PhotoRequirementAnswers {
     public PhotoRequirementAnswers(List<PhotoRequirementAnswer> values) {
         List<PhotoRequirementAnswer> safeValues = requireNonNull(values, "사진 답변 목록은 필수입니다.");
         if (safeValues.size() > MAX_PHOTO_COUNT) {
-            throw new BusinessException(INVALID_SUBMISSION, "제출 사진은 최대 10장까지 저장할 수 있습니다.");
+            throw new BusinessException(
+                    INVALID_SUBMISSION,
+                    "제출 사진은 최대 %d장까지 저장할 수 있습니다.".formatted(MAX_PHOTO_COUNT)
+            );
         }
         safeValues.forEach(value -> requireNonNull(value, "사진 답변은 비어 있을 수 없습니다."));
         validateUniqueAssociations(safeValues);

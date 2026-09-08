@@ -49,11 +49,17 @@ public class ScreeningReviewService {
     }
 
     @Transactional
-    public void complete(long ownerId, long roleId) {
+    public ScreeningCompletionResult complete(long ownerId, long roleId, int round) {
+        ScreeningRound screeningRound = new ScreeningRound(round);
         long auditionId = findAuditionId(roleId);
         Audition audition = findAuditionForUpdate(ownerId, auditionId);
         AuditionScreening screening = findScreening(audition.getId(), roleId);
-        screening.complete(Instant.now(clock)).ifPresent(completionRepository::save);
+        return screening.complete(screeningRound, Instant.now(clock))
+                .map(completion -> {
+                    completionRepository.saveAll(completion.records());
+                    return ScreeningCompletionResult.from(round, completion);
+                })
+                .orElseGet(() -> ScreeningCompletionResult.alreadyClosed(round, screening.isCompleted()));
     }
 
     private long findAuditionId(long roleId) {
@@ -73,8 +79,9 @@ public class ScreeningReviewService {
         List<ScreeningReview> reviews = submissions.isEmpty()
                 ? List.of()
                 : reviewRepository.findAllByAuditionRoleIdAndSubmissionIdIn(roleId, submissionIds(submissions));
-        boolean completed = completionRepository.existsByAuditionRoleId(roleId);
-        return new AuditionScreening(roleId, submissions, schedule.getStages(), reviews, completed);
+        return new AuditionScreening(
+                roleId, submissions, schedule.getStages(), reviews, completionRepository.findAllByAuditionRoleId(roleId)
+        );
     }
 
     private List<UUID> submissionIds(List<Submission> submissions) {

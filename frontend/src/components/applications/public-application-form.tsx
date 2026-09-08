@@ -107,7 +107,34 @@ function StepContent() {
   const step = meta.steps[state.stepIndex]!;
   if (step.key === "media") return <div className="mt-9"><PublicApplicationMedia /></div>;
   if (step.fields.length === 0) return <p className="mt-9 rounded-card border border-dashed border-border bg-surface px-5 py-10 text-center text-sm text-muted-strong">공고에서 요청한 추가 질문이 없습니다.</p>;
-  return <div className="mt-9 grid grid-cols-1 gap-x-6 gap-y-8 md:grid-cols-2">{step.fields.map((field) => field.id === "CAREER" ? <div key={field.id} className="md:col-span-2"><PublicApplicationCareer field={field} /></div> : field.id === "LINK" ? <div key={field.id} className="md:col-span-2"><ApplicationLinksField field={field} /></div> : <ApplicationField key={field.id} field={field} />)}</div>;
+  return <div className="mt-9 grid grid-cols-1 gap-x-6 gap-y-8 md:grid-cols-2">{step.fields.map((field) => field.id === "CAREER" ? <div key={field.id} className="md:col-span-2"><PublicApplicationCareer field={field} /></div> : field.id === "LINK" ? <div key={field.id} className="md:col-span-2"><ApplicationLinksField field={field} /></div> : field.id === "SCHOOL" ? <EducationField key={field.id} field={field} /> : <ApplicationField key={field.id} field={field} />)}</div>;
+}
+
+function EducationField({ field }: { field: ApplicationFieldInput }) {
+  const { state, actions } = usePublicApplication();
+  const level = state.values["SCHOOL.educationLevel"] ?? "";
+  const error = state.fieldErrors[field.id] ?? "";
+  const updateLevel = (next: "NONE" | "HIGH_SCHOOL" | "UNIVERSITY") => {
+    actions.updateField("SCHOOL.educationLevel", next);
+    if (next === "NONE") {
+      actions.updateField("SCHOOL.school", "");
+      actions.updateField("SCHOOL.major", "");
+    }
+    if (next === "HIGH_SCHOOL") actions.updateField("SCHOOL.major", "");
+  };
+  const active = level === "HIGH_SCHOOL" || level === "UNIVERSITY";
+  return <fieldset id={`application-field-${field.id}`} className="md:col-span-2">
+    <legend className="mb-2 flex items-center gap-1 text-sm font-semibold text-foreground"><FieldLabelText field={field} /></legend>
+    <p className="mb-3 text-sm leading-6 text-muted">최종 학력을 선택하고, 해당하는 학교와 전공을 입력해 주세요.</p>
+    <div className="grid gap-2 sm:grid-cols-3">
+      {([ ["NONE", "학력 없음"], ["HIGH_SCHOOL", "고등학교 졸업"], ["UNIVERSITY", "대학교 졸업"] ] as const).map(([value, label]) => <label key={value} className={`flex min-h-12 cursor-pointer items-center gap-2 rounded-control border px-3 text-sm font-medium ${level === value ? "border-brand bg-brand-soft text-brand" : "border-border bg-card"}`}>
+        <input type="radio" name="application-education-level" checked={level === value} onChange={() => updateLevel(value)} onBlur={() => actions.validateField(field.id)} className="accent-brand" />{label}
+      </label>)}
+    </div>
+    {active ? <label className="mt-4 block" htmlFor="application-school"><span className="mb-2 block text-sm font-semibold">학교</span><input id="application-school" value={state.values["SCHOOL.school"] ?? ""} placeholder={level === "HIGH_SCHOOL" ? "예: 예술고등학교" : "예: 한국예술종합학교"} maxLength={255} aria-invalid={Boolean(error) || undefined} onChange={(event) => actions.updateField("SCHOOL.school", event.target.value)} onBlur={() => actions.validateField(field.id)} className={`${fieldControlClass} ${error ? "border-fail focus:border-fail focus:ring-fail-bg" : ""}`} /></label> : null}
+    {level === "UNIVERSITY" ? <label className="mt-4 block" htmlFor="application-major"><span className="mb-2 block text-sm font-semibold">전공</span><textarea id="application-major" rows={3} value={state.values["SCHOOL.major"] ?? ""} placeholder="예: 연극원 연기과" maxLength={255} aria-invalid={Boolean(error) || undefined} onChange={(event) => actions.updateField("SCHOOL.major", event.target.value)} onBlur={() => actions.validateField(field.id)} className={`${fieldControlClass} resize-none ${error ? "border-fail focus:border-fail focus:ring-fail-bg" : ""}`} /></label> : null}
+    {error ? <InlineError id="application-SCHOOL-error" error={error} /> : null}
+  </fieldset>;
 }
 
 /** 프로필과 같이 외부 링크를 여러 개 받는다. 칸을 지우면 뒤 칸을 앞으로 당긴다. */

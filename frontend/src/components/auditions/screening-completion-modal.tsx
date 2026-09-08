@@ -20,6 +20,7 @@ export function ScreeningCompletionModal({
   const round = board.round;
   const currentIndex = board.rounds.findIndex((state) => state.round === round);
   const currentName = board.rounds[currentIndex]?.name ?? `${round}차 전형`;
+  const nextRound = board.rounds[currentIndex + 1];
 
   return (
     <ModalShell
@@ -30,37 +31,33 @@ export function ScreeningCompletionModal({
     >
       <DialogHeader
         id={TITLE_ID}
-        title={`${board.role.name} · 전형 종료`}
-        subtitle={auto ? `${currentName} 검토를 모두 마쳤습니다.` : "전형을 종료하시겠습니까?"}
+        title={`${board.role.name} · ${currentName} 마감`}
+        subtitle={auto ? `${currentName} 검토를 모두 마쳤습니다. 마감하시겠습니까?` : "선택한 합격자를 기준으로 현재 차수를 마감하시겠습니까?"}
       />
 
       <div className="flex-1 overflow-y-auto px-6 py-[17px]">
         {auto ? (
           <p className="mb-3 rounded-control bg-pass-bg px-3 py-2 text-xs text-pass">
-            {counts.all}명 검토를 모두 마쳤습니다.
+            {counts.all}명 검토를 모두 마쳤습니다. 미선택 지원자가 있어도 마감할 수 있습니다.
           </p>
         ) : null}
 
         <dl className="mb-3.5 grid grid-cols-[88px_1fr] gap-x-3 gap-y-2 text-dense">
           <dt className="text-muted">합격</dt>
           <dd className="num">
-            {counts.pass}명 → 최종 합격
+            {counts.pass}명{nextRound ? ` → ${nextRound.name} 검토 대기` : " → 최종 합격"}
           </dd>
-          <dt className="text-muted">불합격</dt>
-          <dd className="num">{counts.fail}명</dd>
-          {counts.etc > 0 ? (
-            <>
-              <dt className="text-muted">기타</dt>
-              <dd className="num">{counts.etc}명</dd>
-            </>
-          ) : null}
+          <dt className="text-muted">미선택</dt>
+          <dd className="num">{counts.pending}명</dd>
+          <dt className="text-muted">다음 차수 승격</dt>
+          <dd className="num">{nextRound ? `${counts.pass}명` : "없음"}</dd>
         </dl>
 
         <p className="mb-3.5 rounded-control border border-border bg-surface px-3 py-2.5 text-xs leading-relaxed text-muted-strong">
-          결과 연락은 서비스가 보내지 않습니다. 검토 완료 탭에서 연락처를 복사해 직접 연락해 주세요.
+          미선택 지원자는 불합격으로 자동 변경되지 않으며, 다음 차수에는 합격자만 포함됩니다.
         </p>
         <p className="rounded-control bg-warn-bg px-3 py-2 text-xs text-warn">
-          종료하면 모든 차수의 결과를 더 이상 변경할 수 없습니다. 다른 배역 전형에는 영향이 없습니다.
+          마감한 차수의 결과는 다시 변경할 수 없습니다. 다른 배역 전형에는 영향이 없습니다.
         </p>
       </div>
 
@@ -76,7 +73,7 @@ export function ScreeningCompletionModal({
             });
           }}
         >
-          전형 종료하기
+          {currentName} 마감하기
         </PrimaryButton>
       </DialogFooter>
     </ModalShell>

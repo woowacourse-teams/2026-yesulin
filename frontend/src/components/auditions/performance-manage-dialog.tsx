@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { deletePerformance, getPerformanceManagement, updatePerformance } from "@/features/auditions/api";
+import { deletePerformance, getPerformanceManagement, updatePerformance, updatePerformancePeriod } from "@/features/auditions/api";
 import { notifyAuditionTreeChanged } from "@/features/auditions/events";
 import type { PerformanceSummary } from "@/features/auditions/types";
 import { errorMessage, useAuditionQuery } from "@/features/auditions/use-audition-query";
@@ -17,6 +17,7 @@ import { DestructiveButton, FieldInput, PrimaryButton, SecondaryButton } from "@
 import { PosterUploadField } from "./poster-upload-field";
 import { PerformanceVenueField } from "./performance-venue-field";
 import { validatePerformanceInput } from "@/features/auditions/performance-validation";
+import { CalendarDateRangeField } from "./calendar-date-range-field";
 import type { PerformanceManagementDetail } from "@/features/auditions/management-types";
 
 const TITLE_ID = "performance-manage-title";
@@ -53,16 +54,18 @@ function EditPerformanceForm({ detail, postingCount, onClose, onChanged }: {
   const [roles, setRoles] = useState<readonly RoleDraft[]>(() =>
     detail.roleTemplates.map((role) => ({ ...emptyRoleDraft(), ...role })),
   );
+  const [performanceStart, setPerformanceStart] = useState(detail.performanceStart);
+  const [performanceEnd, setPerformanceEnd] = useState(detail.performanceEnd);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
 
   if (postingCount > 0) {
-    return <><DialogHeader id={TITLE_ID} title="공연 수정 불가" subtitle="공고가 등록된 공연은 내용을 변경할 수 없습니다." /><div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-6 md:px-6"><p className="rounded-card border border-warn/30 bg-warn-bg p-4 text-sm leading-6 text-muted-strong">이 공연에는 공고 {postingCount}건이 연결되어 있습니다. 공연과 배역을 수정하려면 연결된 공고를 먼저 삭제해 주세요.</p><CreateSection title="현재 배역"><PerformanceRoleReadOnlyList roles={detail.roleTemplates} /></CreateSection></div><DialogFooter><SecondaryButton onClick={onClose}>닫기</SecondaryButton></DialogFooter></>;
+    return <EditLockedPerformancePeriod detail={detail} postingCount={postingCount} onClose={onClose} onChanged={onChanged} />;
   }
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const validationError = validatePerformanceInput({ title, venue, venueAddress, roles });
+    const validationError = validatePerformanceInput({ title, venue, venueAddress, roles, performanceStart, performanceEnd });
     if (validationError) { setFormError(validationError); return; }
     setSaving(true); setFormError("");
     try {
@@ -71,6 +74,8 @@ function EditPerformanceForm({ detail, postingCount, onClose, onChanged }: {
         title,
         venue,
         venueAddress,
+        performanceStart,
+        performanceEnd,
         posterUrl,
         roles: roles.map(({ name, description }) => ({ name, description })),
       }, posterFile);
@@ -78,7 +83,29 @@ function EditPerformanceForm({ detail, postingCount, onClose, onChanged }: {
     } catch (cause) { console.error("[공연 수정 실패]", cause); setFormError(errorMessage(cause, "공연을 수정하지 못했습니다.")); }
     finally { setSaving(false); }
   };
-  return <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col"><DialogHeader id={TITLE_ID} title="공연 수정" subtitle="공고를 등록하기 전까지 공연 정보와 배역을 수정할 수 있습니다." /><div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-6 md:px-6"><CreateSection title="공연 기본 정보"><div className="grid grid-cols-[120px_minmax(0,1fr)] gap-4 md:grid-cols-[150px_1fr]"><PosterUploadField label="공연 포스터" value={posterUrl} onChange={setPosterUrl} onFileChange={setPosterFile} /><CreateField label="공연 제목"><FieldInput required maxLength={200} value={title} onChange={(event) => setTitle(event.target.value)} /></CreateField></div><div className="mt-5"><PerformanceVenueField venue={venue} address={venueAddress} onVenueChange={setVenue} onAddressChange={setVenueAddress} /></div></CreateSection><CreateSection title="배역" description="배역 이름과 설명을 수정하거나 새 배역을 추가할 수 있습니다."><PerformanceRoleEditor roles={roles} onChange={setRoles} /></CreateSection><CreateError id="performance-manage-error" message={formError} /></div><DialogFooter><SecondaryButton onClick={onClose}>취소</SecondaryButton><PrimaryButton type="submit" disabled={saving}>{saving ? "저장 중…" : "변경 사항 저장"}</PrimaryButton></DialogFooter></form>;
+  return <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col"><DialogHeader id={TITLE_ID} title="공연 수정" subtitle="공고를 등록하기 전까지 공연 정보와 배역을 수정할 수 있습니다." /><div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-6 md:px-6"><CreateSection title="공연 기본 정보"><div className="grid grid-cols-[120px_minmax(0,1fr)] gap-4 md:grid-cols-[150px_1fr]"><PosterUploadField label="공연 포스터" value={posterUrl} onChange={setPosterUrl} onFileChange={setPosterFile} /><CreateField label="공연 제목"><FieldInput required maxLength={200} value={title} onChange={(event) => setTitle(event.target.value)} /></CreateField></div><div className="mt-5"><PerformanceVenueField optional venue={venue} address={venueAddress} onVenueChange={setVenue} onAddressChange={setVenueAddress} /></div></CreateSection><CreateSection title="공연 기간" description="종료일이 미정이면 오픈런으로 저장됩니다."><CalendarDateRangeField start={performanceStart} end={performanceEnd} endOptional endOpenEnded onStartChange={setPerformanceStart} onEndChange={setPerformanceEnd} startLabel="공연 시작일" endLabel="공연 종료일" /></CreateSection><CreateSection title="배역" description="배역 이름과 설명을 수정하거나 새 배역을 추가할 수 있습니다."><PerformanceRoleEditor roles={roles} onChange={setRoles} /></CreateSection><CreateError id="performance-manage-error" message={formError} /></div><DialogFooter><SecondaryButton onClick={onClose}>취소</SecondaryButton><PrimaryButton type="submit" disabled={saving}>{saving ? "저장 중…" : "변경 사항 저장"}</PrimaryButton></DialogFooter></form>;
+}
+
+function EditLockedPerformancePeriod({ detail, postingCount, onClose, onChanged }: {
+  readonly detail: PerformanceManagementDetail;
+  readonly postingCount: number;
+  readonly onClose: () => void;
+  readonly onChanged: () => void;
+}) {
+  const [performanceStart, setPerformanceStart] = useState(detail.performanceStart);
+  const [performanceEnd, setPerformanceEnd] = useState(detail.performanceEnd);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState("");
+  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!performanceStart) { setFormError("공연 시작일을 입력해 주세요."); return; }
+    if (performanceEnd && performanceEnd < performanceStart) { setFormError("공연 종료일은 시작일보다 빠를 수 없습니다."); return; }
+    setSaving(true); setFormError("");
+    try { await updatePerformancePeriod(detail.id, performanceStart, performanceEnd); notifyAuditionTreeChanged(); onChanged(); onClose(); }
+    catch (cause) { console.error("[공연 기간 수정 실패]", cause); setFormError(errorMessage(cause, "공연 기간을 수정하지 못했습니다.")); }
+    finally { setSaving(false); }
+  };
+  return <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col"><DialogHeader id={TITLE_ID} title="공연 기간 확인" subtitle="연결된 공고가 있어 공연 기본 정보와 배역은 잠겨 있습니다." /><div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-6 md:px-6"><p className="rounded-card border border-warn/30 bg-warn-bg p-4 text-sm leading-6 text-muted-strong">이 공연에는 공고 {postingCount}건이 연결되어 있습니다. 기존 지원서에 저장된 공연 기간은 바뀌지 않으며, 이후 공개 공고에 표시할 공연 기간만 확정합니다.</p><CreateSection title="공연 기간" description="종료일이 미정이면 비워 두면 오픈런으로 저장됩니다."><CalendarDateRangeField start={performanceStart} end={performanceEnd} endOptional endOpenEnded onStartChange={setPerformanceStart} onEndChange={setPerformanceEnd} startLabel="공연 시작일" endLabel="공연 종료일" /></CreateSection><CreateSection title="현재 배역"><PerformanceRoleReadOnlyList roles={detail.roleTemplates} /></CreateSection><CreateError id="performance-period-error" message={formError} /></div><DialogFooter><SecondaryButton onClick={onClose}>취소</SecondaryButton><PrimaryButton type="submit" disabled={saving}>{saving ? "저장 중…" : "공연 기간 저장"}</PrimaryButton></DialogFooter></form>;
 }
 
 function DeletePerformanceDialog({ performance, onClose, onChanged }: Omit<Parameters<typeof PerformanceManageDialog>[0], "mode">) {

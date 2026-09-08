@@ -65,6 +65,7 @@ export function roundStatesOf(role: RoleId): readonly RoundState[] {
     return {
       round,
       name: configured?.find((item) => item.round === round)?.name || ROUND_NAMES[round],
+      closed: isRoundClosed(role, round),
       counts,
       progress: progressOf(counts),
     };

@@ -8,9 +8,12 @@ export const metadata: Metadata = {
 
 export default async function PostingPickerPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ performanceId: string }>;
+  searchParams: Promise<{ createPosting?: string }>;
 }) {
   const { performanceId: raw } = await params;
-  return <PostingPicker performanceId={performanceId(raw)} />;
+  const { createPosting } = await searchParams;
+  return <PostingPicker performanceId={performanceId(raw)} autoOpenCreate={createPosting === "1"} />;
 }

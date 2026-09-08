@@ -46,7 +46,12 @@ export type PublicRole = {
   readonly ageMax: number;
 };
 
-export type PublicSchedule = { readonly title: string; readonly detail: string };
+export type PublicSchedule = {
+  readonly title: string;
+  readonly detail: string;
+  readonly venue?: string;
+  readonly venueAddress?: VenueAddress;
+};
 export type PublicPostingAvailability = { readonly label: string; readonly detail: string; readonly notice: string };
 
 function findPosting(id: string): { performance: CatalogPerformance; posting: CatalogPosting } | null {
@@ -95,6 +100,8 @@ function scheduleOf(posting: CatalogPosting): readonly PublicSchedule[] {
   const rounds = (posting.rounds ?? []).map((round) => ({
     title: round.name,
     detail: `${formatDate(round.date)}${round.note ? ` · ${round.note}` : ""}`,
+    venue: round.venue,
+    venueAddress: round.venueAddress,
   }));
   return [closing, ...rounds];
 }

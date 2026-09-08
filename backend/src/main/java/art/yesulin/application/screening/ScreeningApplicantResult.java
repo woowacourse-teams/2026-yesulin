@@ -11,6 +11,7 @@ import art.yesulin.domain.submission.SelectedRole;
 import art.yesulin.domain.submission.Submission;
 import art.yesulin.domain.submission.SubmissionAdditionalInformation;
 import art.yesulin.domain.submission.SubmissionBasicInformation;
+import art.yesulin.domain.submission.SubmissionEducationLevel;
 import art.yesulin.domain.submission.SubmissionFormAnswers;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -33,7 +34,9 @@ public record ScreeningApplicantResult(
         String phone,
         String email,
         String address,
+        SubmissionEducationLevel educationLevel,
         String school,
+        String major,
         List<String> links,
         String nationality,
         String specialty,
@@ -77,7 +80,8 @@ public record ScreeningApplicantResult(
         return new ScreeningApplicantResult(
                 submission.getSubmissionId(), basic.name(), enumName(basic.gender()), age, basic.height(),
                 basic.weight(), roleId, selectedRoleName(submission, roleId, fallbackRoleName), basic.birthDate(),
-                basic.phone(), basic.email(), basic.address(), additional.school(), additional.links(),
+                basic.phone(), basic.email(), basic.address(),
+                additional.educationLevel(), additional.school(), additional.major(), additional.links(),
                 additional.nationality(), additional.specialty(), additional.hobbies(), enumName(additional.military()),
                 submission.getSubmittedAt(),
                 additional.careers().stream().map(career -> new Career(

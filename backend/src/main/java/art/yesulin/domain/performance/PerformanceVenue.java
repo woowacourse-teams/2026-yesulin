@@ -1,7 +1,5 @@
 package art.yesulin.domain.performance;
 
-import static art.yesulin.domain.common.validation.DomainValidator.requireText;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import java.math.BigDecimal;
@@ -14,16 +12,16 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PerformanceVenue {
 
-    @Column(name = "venue_name", nullable = false, length = 200)
+    @Column(name = "venue_name", length = 200)
     private String name;
 
-    @Column(name = "road_address", nullable = false, length = 300)
+    @Column(name = "road_address", length = 300)
     private String roadAddress;
 
-    @Column(name = "detail_address", nullable = false, length = 300)
+    @Column(name = "detail_address", length = 300)
     private String detailAddress;
 
-    @Column(name = "zonecode", nullable = false, length = 20)
+    @Column(name = "zonecode", length = 20)
     private String zonecode;
 
     @Column(name = "latitude", precision = 10, scale = 7)
@@ -41,8 +39,8 @@ public class PerformanceVenue {
             BigDecimal longitude
     ) {
         validateCoordinates(latitude, longitude);
-        this.name = requireText(name, "공연 장소명은 필수입니다.");
-        this.roadAddress = requireText(roadAddress, "공연 도로명주소는 필수입니다.");
+        this.name = normalizeRequired(name, "공연 장소명은 필수입니다.");
+        this.roadAddress = normalizeRequired(roadAddress, "공연 도로명주소는 필수입니다.");
         this.detailAddress = normalizeOptional(detailAddress);
         this.zonecode = normalizeOptional(zonecode);
         this.latitude = latitude;
@@ -69,5 +67,13 @@ public class PerformanceVenue {
 
     private String normalizeOptional(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private String normalizeRequired(String value, String message) {
+        String normalized = normalizeOptional(value);
+        if (normalized.isEmpty()) {
+            throw new IllegalArgumentException(message);
+        }
+        return normalized;
     }
 }

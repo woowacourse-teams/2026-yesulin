@@ -10,7 +10,6 @@ export function PublicVenueGuide({ venue, address }: { readonly venue: string; r
   const mapRef = useRef<HTMLDivElement>(null);
   const [coordinates, setCoordinates] = useState<KakaoMapCoordinates | null>(() => coordinatesOf(address));
   const [mapFailed, setMapFailed] = useState(false);
-  const [copyMessage, setCopyMessage] = useState("");
   const mapKey = process.env.NEXT_PUBLIC_KAKAO_MAP_APP_KEY;
   const fullAddress = [address.roadAddress, address.detailAddress].filter(Boolean).join(" ");
   const venueName = venue.trim() && venue.trim() !== address.roadAddress.trim() ? venue.trim() : "공연 장소";
@@ -32,19 +31,6 @@ export function PublicVenueGuide({ venue, address }: { readonly venue: string; r
     return () => { cancelled = true; };
   }, [address.roadAddress, coordinates, mapKey]);
 
-  const copyAddress = async () => {
-    try {
-      await navigator.clipboard.writeText(fullAddress);
-      setCopyMessage("주소를 복사했습니다.");
-    } catch (cause) {
-      console.error("[공연장 주소 복사 실패]", cause);
-      setCopyMessage("주소를 복사하지 못했습니다. 주소를 직접 선택해 주세요.");
-    }
-  };
-  const externalUrl = coordinates
-    ? kakaoDirectionsUrl(venueName, coordinates)
-    : kakaoMapSearchUrl(fullAddress || venue);
-
   return <section aria-labelledby="performance-venue-title" className="rounded-card border border-border bg-card p-4 sm:p-5">
     <div className="grid gap-5 md:grid-cols-[minmax(0,1.2fr)_minmax(240px,0.8fr)] md:items-stretch">
       <div ref={mapRef} aria-label="공연 장소 지도" className="h-56 overflow-hidden rounded-card border border-border bg-surface sm:h-64">
@@ -55,14 +41,51 @@ export function PublicVenueGuide({ venue, address }: { readonly venue: string; r
         <h3 id="performance-venue-title" className="mt-2 text-lg font-bold">{venueName}</h3>
         <p className="mt-2 break-words text-sm leading-6 text-muted-strong">{fullAddress || "상세 주소를 준비하고 있습니다."}</p>
         <p className="mt-4 text-xs leading-5 text-muted">이곳은 공연이 열리는 장소입니다. 오디션 장소는 전형 안내를 별도로 확인해 주세요.</p>
-        <div className="mt-auto flex flex-wrap gap-2 pt-5">
-          {fullAddress ? <SecondaryButton onClick={copyAddress}>주소 복사</SecondaryButton> : null}
-          {(fullAddress || venue) ? <SecondaryLink href={externalUrl} target="_blank" rel="noreferrer">{coordinates ? "길찾기" : "카카오맵에서 보기"}<span className="sr-only"> 새 창</span></SecondaryLink> : null}
-        </div>
-        <p aria-live="polite" className="mt-2 min-h-5 text-xs text-muted">{copyMessage}</p>
+        <VenueActionLinks label="공연장" venue={venue} address={address} coordinates={coordinates} className="mt-auto pt-5" />
       </div>
     </div>
   </section>;
+}
+
+export function VenueActionLinks({
+  label,
+  venue,
+  address,
+  coordinates = coordinatesOf(address),
+  className = "",
+}: {
+  readonly label: string;
+  readonly venue: string;
+  readonly address: VenueAddress;
+  readonly coordinates?: KakaoMapCoordinates | null;
+  readonly className?: string;
+}) {
+  const [copyMessage, setCopyMessage] = useState("");
+  const fullAddress = [address.roadAddress, address.detailAddress].filter(Boolean).join(" ");
+  const venueName = venue.trim() && venue.trim() !== address.roadAddress.trim() ? venue.trim() : label;
+  const externalUrl = coordinates
+    ? kakaoDirectionsUrl(venueName, coordinates)
+    : kakaoMapSearchUrl(fullAddress || venue);
+  const copyAddress = async () => {
+    try {
+      await navigator.clipboard.writeText(fullAddress);
+      setCopyMessage(`${label} 주소를 복사했습니다.`);
+    } catch (cause) {
+      console.error(`[${label} 주소 복사 실패]`, cause);
+      setCopyMessage(`${label} 주소를 복사하지 못했습니다. 주소를 직접 선택해 주세요.`);
+    }
+  };
+
+  if (!fullAddress && !venue) return null;
+  return <div className={className}>
+    <div className="flex flex-wrap gap-2">
+      {fullAddress ? <SecondaryButton onClick={copyAddress}>{label} 주소 복사</SecondaryButton> : null}
+      <SecondaryLink href={externalUrl} target="_blank" rel="noreferrer">
+        {coordinates ? `${label} 길찾기` : `${label} 카카오맵에서 보기`}<span className="sr-only"> 새 창</span>
+      </SecondaryLink>
+    </div>
+    <p aria-live="polite" className="mt-2 min-h-5 text-xs text-muted">{copyMessage}</p>
+  </div>;
 }
 
 function coordinatesOf(address: VenueAddress): KakaoMapCoordinates | null {

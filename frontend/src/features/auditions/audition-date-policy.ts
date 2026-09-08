@@ -43,15 +43,8 @@ export function validateAuditionDates(input: AuditionDateInput, now = new Date()
     add({ code: "INVALID_PERFORMANCE_PERIOD", field: "performanceEnd", message: "공연 종료일은 시작일보다 빠를 수 없습니다." });
   }
 
-  if (!isValidDateTime(input.recruitmentStart)) {
-    add({ code: "PERIOD_REQUIRED", field: "recruitmentStart", message: "모집 시작 날짜와 시간을 선택해 주세요." });
-  }
   if (!isValidDateTime(input.recruitmentEnd)) {
-    add({ code: "PERIOD_REQUIRED", field: "recruitmentEnd", message: "모집 종료 날짜와 시간을 선택해 주세요." });
-  }
-  if (isValidDateTime(input.recruitmentStart) && isValidDateTime(input.recruitmentEnd)
-    && input.recruitmentEnd <= input.recruitmentStart) {
-    add({ code: "INVALID_PERIOD", field: "recruitmentEnd", message: "모집 종료 시각은 시작 시각보다 늦어야 합니다." });
+    add({ code: "PERIOD_REQUIRED", field: "recruitmentEnd", message: "모집 마감 날짜와 시간을 선택해 주세요." });
   }
   if (isValidDateTime(input.recruitmentEnd) && koreaInstantMilliseconds(input.recruitmentEnd) <= now.getTime()) {
     add({ code: "RECRUITMENT_END_PAST", field: "recruitmentEnd", message: "모집 종료 시각은 현재보다 이후여야 합니다." });

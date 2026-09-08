@@ -89,6 +89,17 @@ public class PerformanceController {
         );
     }
 
+    @PatchMapping("/{performanceId}/period")
+    public ResponseEntity<PerformanceResult> updatePeriod(
+            @LoginMember(roles = MemberType.PRODUCER, statuses = MemberStatus.ACTIVE) MemberPrincipal principal,
+            @PathVariable long performanceId,
+            @Valid @RequestBody UpdatePerformancePeriodRequest request
+    ) {
+        return ResponseEntity.ok(
+                performanceService.updatePeriod(principal.memberId(), performanceId, request.toCommand())
+        );
+    }
+
     @PatchMapping("/{performanceId}/poster")
     public ResponseEntity<PerformanceResult> updatePoster(
             @LoginMember(roles = MemberType.PRODUCER, statuses = MemberStatus.ACTIVE) MemberPrincipal principal,

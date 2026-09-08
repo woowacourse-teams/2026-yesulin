@@ -80,7 +80,9 @@ class ApplicantProfileControllerTest {
                         .content(basicInformationRequest("새 이름")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.basicInformation.name").value("새 이름"))
+                .andExpect(jsonPath("$.additionalInformation.educationLevel").value("UNIVERSITY"))
                 .andExpect(jsonPath("$.additionalInformation.school").value("한국예술종합학교"))
+                .andExpect(jsonPath("$.additionalInformation.major").value("연기과"))
                 .andExpect(jsonPath("$.additionalInformation.links[0]").value("https://example.com/actor"))
                 .andExpect(jsonPath("$.additionalInformation.careers[0].roleName").value("오필리어"));
     }
@@ -171,7 +173,9 @@ class ApplicantProfileControllerTest {
         return """
                 {
                   "additionalInformation": {
+                    "educationLevel": "UNIVERSITY",
                     "school": "한국예술종합학교",
+                    "major": "연기과",
                     "links": ["https://example.com/actor"],
                     "nationality": "대한민국",
                     "coverLetter": null,

@@ -1,6 +1,9 @@
 package art.yesulin.domain.audition.schedule;
 
+import jakarta.persistence.AttributeOverride;
+import jakarta.persistence.AttributeOverrides;
 import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -38,6 +41,20 @@ public class ScreeningStage {
     @Column(nullable = false, length = ScreeningStagePlan.MAX_NOTICE_LENGTH)
     private String notice;
 
+    @Embedded
+    @AttributeOverrides({
+            @AttributeOverride(name = "name", column = @Column(name = "venue_name", length = 200)),
+            @AttributeOverride(name = "roadAddress", column = @Column(name = "venue_road_address", length = 300)),
+            @AttributeOverride(name = "detailAddress", column = @Column(name = "venue_detail_address", length = 300)),
+            @AttributeOverride(name = "zonecode", column = @Column(name = "venue_zonecode", length = 20)),
+            @AttributeOverride(name = "latitude", column = @Column(name = "venue_latitude", precision = 10, scale = 7)),
+            @AttributeOverride(
+                    name = "longitude",
+                    column = @Column(name = "venue_longitude", precision = 10, scale = 7)
+            )
+    })
+    private AuditionVenue venue;
+
     @Getter(AccessLevel.NONE)
     @Column(name = "stage_order", nullable = false)
     private int order;
@@ -51,6 +68,7 @@ public class ScreeningStage {
         this.name = plan.name();
         this.date = plan.date();
         this.notice = plan.notice();
+        this.venue = plan.venue();
         this.order = order;
     }
 

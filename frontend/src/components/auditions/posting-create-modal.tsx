@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import { AuditionRequestError, createPosting } from "@/features/auditions/api";
 import { auditionDateWarnings, stageMinimumDate, validateAuditionDates, type AuditionDateField } from "@/features/auditions/audition-date-policy";
@@ -18,19 +19,19 @@ import { RoleApplicationMode } from "./role-application-mode";
 import { FieldInput, PrimaryButton, SecondaryButton } from "@/components/ui/controls";
 import { postingCreationDraftKey } from "@/features/auditions/producer-creation-draft-store";
 import { ProducerCreationDraftStatus, useProducerCreationDraft } from "./use-producer-creation-draft";
+import { emptyVenueAddress, PerformanceVenueField } from "./performance-venue-field";
 
 const TITLE_ID = "posting-create-title";
 const INITIAL_FIELDS: readonly ApplicationFieldInput[] = defaultApplicationFields();
-const INITIAL_ROUNDS: readonly AuditionRoundInput[] = [{ round: 1, name: "1차 서류 심사", date: "", note: "제출한 지원서를 검토합니다." }];
-type ErrorSection = "TITLE" | "PERFORMANCE" | "ROLES" | "SCHEDULE" | "APPLICATION" | "GENERAL";
+const INITIAL_ROUNDS: readonly AuditionRoundInput[] = [{ round: 1, name: "1차 서류 심사", date: "", note: "제출한 지원서를 검토합니다.", venue: "", venueAddress: emptyVenueAddress() }];
+type ErrorSection = "TITLE" | "ROLES" | "SCHEDULE" | "APPLICATION" | "GENERAL";
 type FormError = { readonly message: string; readonly section: ErrorSection };
 type PostingCreationDraft = {
   readonly auditionId?: string;
   readonly title: string;
-  readonly performanceStart: string;
-  readonly performanceEnd: string;
-  readonly recruitmentStart: string;
   readonly recruitmentEnd: string;
+  readonly rehearsalVenue: string;
+  readonly rehearsalVenueAddress: ReturnType<typeof emptyVenueAddress>;
   readonly allowsMultipleRoles: boolean;
   readonly selectedRoles: SelectedPostingRoles;
   readonly rounds: readonly AuditionRoundInput[];
@@ -39,14 +40,13 @@ type PostingCreationDraft = {
 
 const SECTION_IDS: Record<Exclude<ErrorSection, "GENERAL">, string> = {
   TITLE: "posting-create-title-section",
-  PERFORMANCE: "posting-create-performance",
   ROLES: "posting-create-roles",
   SCHEDULE: "posting-create-schedule",
   APPLICATION: "posting-create-application",
 };
 
 function isEmptyPostingDraft(draft: PostingCreationDraft) {
-  return !draft.title.trim() && !draft.performanceStart && !draft.performanceEnd && !draft.recruitmentStart && !draft.recruitmentEnd
+  return !draft.title.trim() && !draft.recruitmentEnd && !draft.rehearsalVenue.trim() && !draft.rehearsalVenueAddress.roadAddress
     && !draft.allowsMultipleRoles && Object.keys(draft.selectedRoles).length === 0
     && JSON.stringify(draft.rounds) === JSON.stringify(INITIAL_ROUNDS)
     && JSON.stringify(draft.applicationFields) === JSON.stringify(INITIAL_FIELDS);
@@ -57,7 +57,6 @@ function sectionForFields(fields: readonly string[]): ErrorSection {
   const startsWithAny = (...prefixes: readonly string[]) =>
     fields.some((field) => prefixes.some((prefix) => field.startsWith(prefix)));
   if (startsWithAny("title")) return "TITLE";
-  if (startsWithAny("performanceStartDate", "performanceEndDate")) return "PERFORMANCE";
   if (startsWithAny("roles", "multipleRoleApplicationsAllowed", "performanceRoleId")) return "ROLES";
   if (startsWithAny("recruitment", "stages")) return "SCHEDULE";
   if (startsWithAny("basicFields", "additionalFields", "photoRequirements", "videoRequirements", "additionalQuestions")) {
@@ -71,7 +70,6 @@ function sectionForError(cause: unknown): ErrorSection {
   const code = cause.code ?? "";
   // 실제 Backend 오류 코드
   if (code === "AUDITION_INVALID_SCHEDULE") return "SCHEDULE";
-  if (code === "AUDITION_INVALID_BASIC_INFORMATION") return "PERFORMANCE";
   if (code === "AUDITION_INVALID_ROLE_SECTION") return "ROLES";
   if (code === "AUDITION_INVALID_FORM") return "APPLICATION";
   if (code === "AUDITION_INVALID_TITLE") return "TITLE";
@@ -80,30 +78,26 @@ function sectionForError(cause: unknown): ErrorSection {
   if (["POSTER_REQUIRED"].includes(code)) return "GENERAL";
   if (["TITLE_REQUIRED"].includes(code)) return "TITLE";
   if (["ROLE_REQUIRED", "INVALID_QUOTA", "INVALID_ROLE_CONDITION", "UNKNOWN_ROLE_TEMPLATE"].includes(code)) return "ROLES";
-  if (["PERFORMANCE_START_REQUIRED", "INVALID_PERFORMANCE_PERIOD"].includes(code)) return "PERFORMANCE";
   if (["PERIOD_REQUIRED", "INVALID_PERIOD", "RECRUITMENT_END_PAST", "INVALID_ROUND_COUNT", "INVALID_ROUND_ORDER", "INVALID_ROUND_DATE", "ROUND_AFTER_PERFORMANCE_END"].includes(code)) return "SCHEDULE";
   if (["INVALID_FIELD_LABEL", "FIELD_LABEL_TOO_LONG", "INVALID_PHOTO_REQUIREMENTS", "INVALID_VIDEO_REQUIREMENTS", "INVALID_CUSTOM_LENGTH"].includes(code)) return "APPLICATION";
   return "GENERAL";
 }
 
-function sectionForDateField(field: AuditionDateField): ErrorSection {
-  return field.startsWith("performance") ? "PERFORMANCE" : "SCHEDULE";
-}
-
-export function PostingCreateModal({ performanceId, performanceTitle, performancePosterUrl, roleTemplates, onClose, onCreated }: {
+export function PostingCreateModal({ performanceId, performanceTitle, performancePosterUrl, performanceStart, performanceEnd, roleTemplates, onClose, onCreated }: {
   readonly performanceId: PerformanceId;
   readonly performanceTitle: string;
   readonly performancePosterUrl: string;
+  readonly performanceStart: string;
+  readonly performanceEnd: string;
   readonly roleTemplates: readonly PerformanceRoleTemplate[];
   readonly onClose: () => void;
   readonly onCreated: () => void;
 }) {
   const [auditionId, setAuditionId] = useState(() => crypto.randomUUID());
   const [title, setTitle] = useState("");
-  const [performanceStart, setPerformanceStart] = useState("");
-  const [performanceEnd, setPerformanceEnd] = useState("");
-  const [recruitmentStart, setRecruitmentStart] = useState("");
   const [recruitmentEnd, setRecruitmentEnd] = useState("");
+  const [rehearsalVenue, setRehearsalVenue] = useState("");
+  const [rehearsalVenueAddress, setRehearsalVenueAddress] = useState(emptyVenueAddress);
   const [allowsMultipleRoles, setAllowsMultipleRoles] = useState(false);
   const [selectedRoles, setSelectedRoles] = useState<SelectedPostingRoles>({});
   const [rounds, setRounds] = useState(INITIAL_ROUNDS);
@@ -113,7 +107,7 @@ export function PostingCreateModal({ performanceId, performanceTitle, performanc
   const [formError, setFormError] = useState<FormError | null>(null);
   const [created, setCreated] = useState<{ readonly title: string; readonly applicationUrl: string } | null>(null);
   const selectedRoleCount = Object.keys(selectedRoles).length;
-  const dateInput = { performanceStart, performanceEnd, recruitmentStart, recruitmentEnd, rounds };
+  const dateInput = { performanceStart, performanceEnd, recruitmentStart: "", recruitmentEnd, rounds };
   const dateIssues = validateAuditionDates(dateInput);
   const dateWarnings = auditionDateWarnings(dateInput);
   const visibleDateError = (field: AuditionDateField, value: string) => {
@@ -122,16 +116,14 @@ export function PostingCreateModal({ performanceId, performanceTitle, performanc
   };
   const roundDateErrors = rounds.map((round, index) => visibleDateError(`round.${index}.date`, round.date));
   const stageMinimumDates = rounds.map((_, index) => stageMinimumDate(dateInput, index));
-  const clearDateFormError = () => setFormError((current) =>
-    current && (current.section === "PERFORMANCE" || current.section === "SCHEDULE") ? null : current);
+  const clearDateFormError = () => setFormError((current) => current?.section === "SCHEDULE" ? null : current);
   const restoreDraft = useCallback((draft: PostingCreationDraft) => {
     const availableRoleIds = new Set(roleTemplates.map((role) => role.id));
     setAuditionId(draft.auditionId ?? crypto.randomUUID());
     setTitle(draft.title);
-    setPerformanceStart(draft.performanceStart);
-    setPerformanceEnd(draft.performanceEnd);
-    setRecruitmentStart(draft.recruitmentStart);
     setRecruitmentEnd(draft.recruitmentEnd);
+    setRehearsalVenue(draft.rehearsalVenue);
+    setRehearsalVenueAddress(draft.rehearsalVenueAddress);
     setSelectedRoles(Object.fromEntries(Object.entries(draft.selectedRoles).filter(([id]) => availableRoleIds.has(id))));
     setAllowsMultipleRoles(draft.allowsMultipleRoles && Object.keys(draft.selectedRoles).filter((id) => availableRoleIds.has(id)).length >= 2);
     setRounds(draft.rounds);
@@ -140,7 +132,7 @@ export function PostingCreateModal({ performanceId, performanceTitle, performanc
   const draft = useProducerCreationDraft({
     draftKey: postingCreationDraftKey(performanceId),
     value: {
-      auditionId, title, performanceStart, performanceEnd, recruitmentStart, recruitmentEnd,
+      auditionId, title, recruitmentEnd, rehearsalVenue, rehearsalVenueAddress,
       allowsMultipleRoles, selectedRoles, rounds, applicationFields,
     },
     restore: restoreDraft,
@@ -164,8 +156,9 @@ export function PostingCreateModal({ performanceId, performanceTitle, performanc
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitAttempted(true);
+    if (!performanceStart) { setFormError({ message: "공고를 만들기 전에 공연 정보에서 공연 기간을 먼저 입력해 주세요.", section: "GENERAL" }); return; }
     const dateIssue = validateAuditionDates(dateInput)[0];
-    if (dateIssue) { setFormError({ message: dateIssue.message, section: sectionForDateField(dateIssue.field) }); return; }
+    if (dateIssue) { setFormError({ message: dateIssue.message, section: "SCHEDULE" }); return; }
     const roles = Object.values(selectedRoles);
     if (!performancePosterUrl || roles.length === 0) { setFormError(!performancePosterUrl ? { message: "공연 포스터를 먼저 등록해 주세요.", section: "GENERAL" } : { message: "모집 분야를 하나 이상 선택해 주세요.", section: "ROLES" }); return; }
     const photoField = applicationFields.find((field) => field.id === "PHOTOS" && field.enabled);
@@ -179,10 +172,8 @@ export function PostingCreateModal({ performanceId, performanceTitle, performanc
     try {
       const posting = {
         performanceId, isOpenCall: false, allowsMultipleRoles, posterUrl: performancePosterUrl,
-        detailImageUrl: "", title, performanceStart, performanceEnd, recruitmentStart, recruitmentEnd,
-        rehearsalVenue: "", rehearsalVenueAddress: {
-          roadAddress: "", detailAddress: "", zonecode: "", latitude: null, longitude: null,
-        },
+        detailImageUrl: "", title, performanceStart, performanceEnd, recruitmentStart: "", recruitmentEnd,
+        rehearsalVenue, rehearsalVenueAddress,
         roles, rounds, applicationFields, applicationGuide: "",
       } as const;
       const response = await createPosting(posting, auditionId);
@@ -201,12 +192,7 @@ export function PostingCreateModal({ performanceId, performanceTitle, performanc
         <CreateSection id={SECTION_IDS.TITLE} title="1. 공고명" description="지원 링크를 연 배우가 가장 먼저 보는 제목입니다. 어떤 공연에서 누구를 언제 뽑는지 한 줄로 드러나게 적어 주세요.">
           <CreateError id="posting-create-title-error" message={formError?.section === "TITLE" ? formError.message : ""} />
           <div className={formError?.section === "TITLE" ? "mt-4" : ""}><CreateField label="공고명"><FieldInput data-autofocus="true" required maxLength={255} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="예: 2026 하반기 주·조연 배우 모집" /></CreateField></div>
-          <div id={SECTION_IDS.PERFORMANCE} className="scroll-m-6 mt-5 border-t border-border-soft pt-5">
-            <h4 className="text-sm font-bold">공연 일정</h4>
-            <p className="mt-1 text-sm leading-6 text-muted-strong">배우가 모집 일정과 구분해 공연 기간을 확인할 수 있도록 입력해 주세요.</p>
-            <CreateError id="posting-create-performance-error" message={formError?.section === "PERFORMANCE" ? formError.message : ""} />
-            <div className={formError?.section === "PERFORMANCE" ? "mt-4" : "mt-3"}><CalendarDateRangeField start={performanceStart} end={performanceEnd} startError={visibleDateError("performanceStart", performanceStart)} endError={visibleDateError("performanceEnd", performanceEnd)} onStartChange={(value) => { setPerformanceStart(value); clearDateFormError(); }} onEndChange={(value) => { setPerformanceEnd(value); clearDateFormError(); }} startLabel="공연 시작일" endLabel="공연 종료일" endOptional endOpenEnded /></div>
-          </div>
+          <div className="mt-5 flex gap-3 rounded-control border border-border-soft bg-surface p-3 text-sm leading-6 text-muted-strong"><Image src={performancePosterUrl} alt="" width={48} height={62} unoptimized className="h-[62px] w-12 rounded object-cover" /><div className="min-w-0"><strong className="block truncate text-foreground">{performanceTitle}</strong><span className="block">공연 기간 · {performanceStart ? `${performanceStart} ${performanceEnd ? `~ ${performanceEnd}` : "~ 오픈런"}` : "공연 정보에서 기간을 입력해 주세요"}</span><span className="block truncate">배역 · {roleTemplates.map((role) => role.name).join(" · ") || "등록된 배역 없음"}</span></div></div>
         </CreateSection>
         <CreateSection id={SECTION_IDS.ROLES} title="2. 모집 배역" description="공연에 등록한 배역 중 모집할 배역을 고르고, 이 공고에 적용할 지원 조건을 설정합니다.">
           <CreateError id="posting-create-roles-error" message={formError?.section === "ROLES" ? formError.message : ""} />
@@ -217,10 +203,11 @@ export function PostingCreateModal({ performanceId, performanceTitle, performanc
         <CreateSection title="3. 지원 방식" description="지원자가 모집 배역을 선택하는 방법을 정합니다.">
           <RoleApplicationMode selectedRoleCount={selectedRoleCount} allowsMultipleRoles={allowsMultipleRoles} onChange={setAllowsMultipleRoles} />
         </CreateSection>
-        <CreateSection id={SECTION_IDS.SCHEDULE} title="4. 모집·전형 일정" description="배우 모집 기간과 이후 전형 일정을 순서대로 설정합니다.">
+        <CreateSection id={SECTION_IDS.SCHEDULE} title="4. 모집·전형 일정" description="공고를 게시하는 순간 모집이 시작됩니다. 마감일과 이후 전형 일정을 설정해 주세요.">
           <CreateError id="posting-create-schedule-error" message={formError?.section === "SCHEDULE" ? formError.message : ""} />
-          <div className={formError?.section === "SCHEDULE" ? "mt-4" : ""}><CalendarDateRangeField includeTime start={recruitmentStart} end={recruitmentEnd} startError={visibleDateError("recruitmentStart", recruitmentStart)} endError={visibleDateError("recruitmentEnd", recruitmentEnd)} onStartChange={(value) => { setRecruitmentStart(value); clearDateFormError(); }} onEndChange={(value) => { setRecruitmentEnd(value); clearDateFormError(); }} startLabel="모집 시작" endLabel="모집 종료" /></div>
+          <div className={formError?.section === "SCHEDULE" ? "mt-4" : ""}><CalendarDateRangeField includeTime single start={recruitmentEnd} end="" startError={visibleDateError("recruitmentEnd", recruitmentEnd)} onStartChange={(value) => { setRecruitmentEnd(value); clearDateFormError(); }} onEndChange={() => undefined} startLabel="모집 마감" /></div>
           <p className="mt-2 text-sm leading-6 text-muted">모든 모집 날짜와 시간은 한국 시간(Asia/Seoul) 기준입니다.</p>
+          <div className="mt-5 border-t border-border-soft pt-5"><h4 className="text-sm font-bold">연습 장소 <span className="font-normal text-muted">(선택)</span></h4><p className="mt-1 text-sm leading-6 text-muted-strong">공연장과 별도로 안내할 연습 장소가 있다면 입력해 주세요.</p><div className="mt-3"><PerformanceVenueField optional venueLabel="연습 장소명" addressLabel="연습 장소 주소" mapLabel="연습 장소 지도" venue={rehearsalVenue} address={rehearsalVenueAddress} onVenueChange={setRehearsalVenue} onAddressChange={setRehearsalVenueAddress} /></div></div>
           <div className="mt-4"><h4 className="mb-2 text-sm font-bold">지원 전형 일정</h4><AuditionScheduleEditor rounds={rounds} dateErrors={roundDateErrors} minimumDates={stageMinimumDates} maximumDate={performanceEnd || undefined} onChange={(value) => { setRounds(value); clearDateFormError(); }} /></div>
           {dateWarnings.length ? <ul role="status" className="mt-3 space-y-1 rounded-control border border-warn/20 bg-warn-bg px-4 py-3 text-sm leading-6 text-warn">{dateWarnings.map((warning) => <li key={warning}>• {warning}</li>)}</ul> : null}
         </CreateSection>

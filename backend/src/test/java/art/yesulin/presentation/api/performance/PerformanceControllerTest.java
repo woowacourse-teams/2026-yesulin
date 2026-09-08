@@ -102,6 +102,8 @@ class PerformanceControllerTest {
                     "latitude": 37.5812,
                     "longitude": 127.0033
                   },
+                  "performanceStartDate": "2026-10-01",
+                  "performanceEndDate": null,
                   "roles": [
                     {"name": "햄릿", "description": "복수심에 흔들리는 덴마크 왕자"}
                   ]
@@ -122,6 +124,34 @@ class PerformanceControllerTest {
                 .andExpect(jsonPath("$.venueAddress.zonecode").value("03086"))
                 .andExpect(jsonPath("$.createdAt").isString())
                 .andExpect(jsonPath("$.roles[0].id").isNumber());
+    }
+
+    @Test
+    void createsPerformanceWithoutVenue() throws Exception {
+        long posterFileId = uploadReadyPoster();
+        String request = """
+                {
+                  "posterFileId": %d,
+                  "title": "오픈런 공연",
+                  "venue": null,
+                  "venueAddress": null,
+                  "performanceStartDate": "2026-10-01",
+                  "performanceEndDate": null,
+                  "roles": [
+                    {"name": "주연", "description": "공연을 이끄는 인물"}
+                  ]
+                }
+                """.formatted(posterFileId);
+
+        mockMvc.perform(post("/api/v1/performances")
+                        .with(csrf())
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.title").value("오픈런 공연"))
+                .andExpect(jsonPath("$.performanceStartDate").value("2026-10-01"))
+                .andExpect(jsonPath("$.performanceEndDate").isEmpty());
     }
 
     @Test
@@ -191,7 +221,9 @@ class PerformanceControllerTest {
         String request = """
                 {
                   "title": "햄릿 리뉴얼",
-                  "roadAddress": "서울특별시 중구 세종대로 110"
+                  "roadAddress": "서울특별시 중구 세종대로 110",
+                  "performanceStartDate": "2026-10-01",
+                  "performanceEndDate": null
                 }
                 """;
 
@@ -240,6 +272,8 @@ class PerformanceControllerTest {
                     "latitude": 37.5721,
                     "longitude": 126.9766
                   },
+                  "performanceStartDate": "2026-10-01",
+                  "performanceEndDate": null,
                   "roles": [
                     {"name": "햄릿 왕자", "description": "복수심에 흔들리는 덴마크 왕자"},
                     {"name": "클로디어스", "description": "덴마크의 왕"}
@@ -279,6 +313,8 @@ class PerformanceControllerTest {
                     "latitude": null,
                     "longitude": null
                   },
+                  "performanceStartDate": "2026-10-01",
+                  "performanceEndDate": null,
                   "roles": [{"name": "햄릿", "description": "덴마크 왕자"}]
                 }
                 """.formatted(created.posterFileId());
@@ -290,6 +326,27 @@ class PerformanceControllerTest {
                         .content(request))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("PERFORMANCE_HAS_AUDITIONS"));
+    }
+
+    @Test
+    void updatesOnlyPerformancePeriodWhenAuditionExists() throws Exception {
+        PerformanceResult created = createPerformance();
+        createAudition(created.id());
+        String request = """
+                {
+                  "performanceStartDate": "2026-11-01",
+                  "performanceEndDate": null
+                }
+                """;
+
+        mockMvc.perform(patch("/api/v1/performances/{performanceId}/period", created.id())
+                        .with(csrf())
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.performanceStartDate").value("2026-11-01"))
+                .andExpect(jsonPath("$.performanceEndDate").isEmpty());
     }
 
     @Test

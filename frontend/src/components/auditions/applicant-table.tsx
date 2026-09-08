@@ -1,25 +1,15 @@
 "use client";
 
-import { useState } from "react";
 import { ageText, genderText, mismatchDetailText } from "@/features/auditions/labels";
+import { applicantEducationText } from "@/features/auditions/education-text";
+import { orderedCareersByRecency } from "@/features/auditions/featured-careers";
 import type { Applicant } from "@/features/auditions/types";
 import { ApplicantPhotoImage } from "./applicant-photo";
 import { useBoard } from "./board-context";
 import { StatusBadge } from "./status-badge";
 
-type PeekState = { applicant: Applicant; left: number; top: number };
-
-const PEEK_WIDTH = 190;
-
-export function ApplicantTable({
-  rows,
-  onPlayVideo,
-}: {
-  rows: readonly Applicant[];
-  onPlayVideo: (applicant: Applicant) => void;
-}) {
+export function ApplicantTable({ rows }: { rows: readonly Applicant[] }) {
   const { board, selected, toggleSelected, openApplicant } = useBoard();
-  const [peek, setPeek] = useState<PeekState | null>(null);
 
   return (
     <>
@@ -30,12 +20,10 @@ export function ApplicantTable({
               <th className="w-11 border-b border-border pl-1.5 text-left">
                 <span className="sr-only">배우 선택</span>
               </th>
-              {["배우", "신체", "학교", "제출 자료", "접수", "상태"].map((label, index) => (
+              {["배우", "주요 경력", "학교 · 학과", "키", "성별 · 나이", "상태"].map((label) => (
                 <th
                   key={label}
-                  className={`whitespace-nowrap border-b border-border px-3 py-2 text-left text-xs font-semibold tracking-[0.03em] text-muted ${
-                    index >= 1 && index <= 4 ? "hidden lg:table-cell" : ""
-                  }`}
+                  className={`${headerClassName(label)} whitespace-nowrap border-b border-border px-3 py-2 text-left text-xs font-semibold tracking-[0.03em] text-muted`}
                 >
                   {label}
                 </th>
@@ -79,18 +67,7 @@ export function ApplicantTable({
                 </td>
                 <td className="border-b border-border-soft px-3 py-2 align-middle">
                   <div className="flex items-center gap-2.5">
-                    <span
-                      className="relative h-[38px] w-[38px] shrink-0 overflow-hidden rounded-full bg-border-soft"
-                      onMouseEnter={(event) => {
-                        const rect = event.currentTarget.getBoundingClientRect();
-                        setPeek({
-                          applicant,
-                          left: Math.min(rect.right + 12, window.innerWidth - PEEK_WIDTH - 16),
-                          top: Math.max(8, Math.min(rect.top - 70, window.innerHeight - 300)),
-                        });
-                      }}
-                      onMouseLeave={() => setPeek(null)}
-                    >
+                    <span className="relative h-[38px] w-[38px] shrink-0 overflow-hidden rounded-full bg-border-soft">
                       <ApplicantPhotoImage
                         photo={applicant.photos[0]}
                         alt=""
@@ -117,33 +94,19 @@ export function ApplicantTable({
                     </span>
                   </div>
                 </td>
-                <td className="num hidden border-b border-border-soft px-3 py-2 text-xs text-muted lg:table-cell">
-                  {measurementSummary(applicant.height, applicant.weight)}
+                <td className="hidden border-b border-border-soft px-3 py-2 text-xs text-muted 2xl:table-cell">
+                  <CareerSummary applicant={applicant} />
                 </td>
-                <td className="hidden border-b border-border-soft px-3 py-2 text-xs text-muted lg:table-cell">
-                  {applicant.school}
-                </td>
-                <td className="hidden border-b border-border-soft px-3 py-2 lg:table-cell">
-                  <span className="num mr-1 inline-flex h-6 items-center rounded-lg border border-border bg-surface px-2 text-xs text-muted">
-                    사진 {applicant.photos.length}
+                <td className="hidden border-b border-border-soft px-3 py-2 text-xs text-muted xl:table-cell">
+                  <span title={applicantEducationText(applicant)} className="block max-w-48 truncate">
+                    {applicantEducationText(applicant)}
                   </span>
-                  {applicant.videos.length > 0 ? (
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        onPlayVideo(applicant);
-                      }}
-                      className="border-b border-brand-line text-xs text-brand hover:border-brand"
-                    >
-                      영상 {applicant.videos.length}개
-                    </button>
-                  ) : (
-                    <span className="text-xs text-muted">영상 없음</span>
-                  )}
                 </td>
-                <td title={applicant.submittedAt} className="num hidden border-b border-border-soft px-3 py-2 text-xs text-muted lg:table-cell">
-                  {formatSubmittedAt(applicant.submittedAt)}
+                <td className="num border-b border-border-soft px-3 py-2 text-xs text-muted">
+                  {measurementValue(applicant.height, "cm")}
+                </td>
+                <td className="num hidden border-b border-border-soft px-3 py-2 text-xs text-muted xl:table-cell">
+                  {genderText(applicant.gender)} · {ageText(applicant.age)}
                 </td>
                 <td className="border-b border-border-soft px-3 py-2 align-middle">
                   <StatusBadge status={applicant.review.status} memo={applicant.review.memo} />
@@ -153,49 +116,28 @@ export function ApplicantTable({
           </tbody>
         </table>
       </div>
-
-      {peek ? (
-        <div
-          aria-hidden="true"
-          style={{ left: peek.left, top: peek.top, width: PEEK_WIDTH }}
-          className="pointer-events-none fixed z-80 hidden rounded-lg border border-border bg-card p-1 shadow-[var(--shadow-tooltip)] lg:block"
-        >
-          <span className="relative block aspect-[3/4] w-full overflow-hidden rounded-[5px] bg-border-soft">
-            <ApplicantPhotoImage
-              photo={peek.applicant.photos[0]}
-              alt=""
-              sizes="190px"
-              className="object-cover"
-            />
-          </span>
-          <span className="block px-1 pb-0.5 pt-1.5 text-xs font-semibold">
-            {peek.applicant.name}
-          </span>
-          <span className="num block px-1 pb-1 text-xs text-muted">
-            {peek.applicant.roleName} · {measurementValue(peek.applicant.height, "cm")} · 사진 {peek.applicant.photos.length}장
-          </span>
-        </div>
-      ) : null}
     </>
   );
 }
 
-function formatSubmittedAt(value: string) {
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return value;
-  return new Intl.DateTimeFormat("ko-KR", {
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).format(parsed);
+function headerClassName(label: string) {
+  if (label === "주요 경력") return "hidden 2xl:table-cell";
+  if (label === "학교 · 학과" || label === "성별 · 나이") return "hidden xl:table-cell";
+  return "";
 }
 
 function measurementValue(value: number | null, unit: string) {
   return value === null ? "미수집" : `${value}${unit}`;
 }
 
-function measurementSummary(height: number | null, weight: number | null) {
-  return `${measurementValue(height, "cm")} · ${measurementValue(weight, "kg")}`;
+function CareerSummary({ applicant }: { applicant: Applicant }) {
+  const careers = orderedCareersByRecency(applicant.career).slice(0, 2);
+  if (careers.length === 0) return <span className="text-muted">경력 없음</span>;
+
+  const fullText = careers.map((career) => `${career.year} ${career.title} · ${career.part}`).join(" / ");
+  return (
+    <span title={fullText} className="block max-w-64 truncate text-muted-strong">
+      {fullText}
+    </span>
+  );
 }

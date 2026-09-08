@@ -22,6 +22,7 @@ import {
   removeCatalogPerformance,
   removeCatalogPosting,
   updateCatalogPerformance,
+  updateCatalogPerformancePeriod,
   updateCatalogPosting,
 } from "./auditions/manage";
 import { patchProducerProfile, producerProfile } from "./auditions/producer-profile";
@@ -111,8 +112,11 @@ export const handlers = [
     const body = (await request.json()) as CreatePerformanceRequest;
     if (!hasText(body.posterUrl)) return badRequest("공연 포스터를 선택해 주세요.");
     if (!hasText(body.title)) return badRequest("공연 제목을 입력해 주세요.");
-    if (!hasText(body.venue)) return badRequest("공연 장소를 입력해 주세요.");
-    if (!hasText(body.venueAddress?.roadAddress)) return badRequest("도로명주소를 선택해 주세요.");
+    if ((hasText(body.venue) && !hasText(body.venueAddress?.roadAddress))
+      || (!hasText(body.venue) && hasText(body.venueAddress?.roadAddress))) {
+      return badRequest("공연 장소명과 주소는 함께 입력해 주세요.");
+    }
+    if (!hasText(body.performanceStart)) return badRequest("공연 시작일을 입력해 주세요.");
     if (!Array.isArray(body.roles) || body.roles.length === 0) {
       return badRequest("배역을 하나 이상 추가해 주세요.");
     }
@@ -124,6 +128,19 @@ export const handlers = [
     return HttpResponse.json({ performances: CATALOG.map(toPerformanceSummary) }, { status: 201 });
   }),
 
+  http.patch(`${apiPath}/performances/:performanceId/period`, async ({ params, request }) => {
+    await delay(180);
+    const id = performanceId(String(params.performanceId));
+    const body = (await request.json()) as Pick<UpdatePerformanceRequest, "performanceStart" | "performanceEnd">;
+    if (!hasText(body.performanceStart)) return badRequest("공연 시작일을 입력해 주세요.");
+    if (body.performanceEnd && body.performanceEnd < body.performanceStart) {
+      return badRequest("공연 종료일은 시작일보다 빠를 수 없습니다.");
+    }
+    const updated = updateCatalogPerformancePeriod(id, body.performanceStart, body.performanceEnd ?? "");
+    if (!updated) return notFound("공연을 찾을 수 없습니다.");
+    return HttpResponse.json({ performances: CATALOG.map(toPerformanceSummary) });
+  }),
+
   http.patch(`${apiPath}/performances/:performanceId`, async ({ params, request }) => {
     await delay(240);
     const id = performanceId(String(params.performanceId));
@@ -132,9 +149,11 @@ export const handlers = [
     if (performance.postings.length) return apiError(409, "PERFORMANCE_HAS_AUDITIONS", "등록된 공고가 있어 공연을 수정하거나 삭제할 수 없습니다.");
     const body = (await request.json()) as UpdatePerformanceRequest;
     if (!hasText(body.title) || body.title.length > 200) return apiError(400, "TITLE_REQUIRED", "공연 제목은 200자 이내로 입력해 주세요.");
-    if (!hasText(body.venue) || body.venue.length > 200) return apiError(400, "VENUE_REQUIRED", "공연 장소명은 200자 이내로 입력해 주세요.");
-    if (!body.venueAddress || !hasText(body.venueAddress.roadAddress)) return apiError(400, "ADDRESS_REQUIRED", "도로명주소를 선택해 주세요.");
-    if (body.venueAddress.roadAddress.length > 300 || (body.venueAddress.detailAddress?.length ?? 0) > 300) return apiError(400, "ADDRESS_TOO_LONG", "공연 주소는 300자 이내로 입력해 주세요.");
+    if ((hasText(body.venue) && !hasText(body.venueAddress?.roadAddress))
+      || (!hasText(body.venue) && hasText(body.venueAddress?.roadAddress))) {
+      return apiError(400, "VENUE_REQUIRED", "공연 장소명과 주소는 함께 입력해 주세요.");
+    }
+    if (body.venueAddress && (body.venueAddress.roadAddress.length > 300 || (body.venueAddress.detailAddress?.length ?? 0) > 300)) return apiError(400, "ADDRESS_TOO_LONG", "공연 주소는 300자 이내로 입력해 주세요.");
     if (!Array.isArray(body.roles) || body.roles.some((role) => !hasText(role.name) || !hasText(role.description))) return apiError(400, "INVALID_ROLES", "모든 배역의 이름과 설명을 입력해 주세요.");
     updateCatalogPerformance(id, body);
     return HttpResponse.json({ performances: CATALOG.map(toPerformanceSummary) });

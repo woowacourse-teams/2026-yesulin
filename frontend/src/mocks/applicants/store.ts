@@ -13,6 +13,7 @@ import type {
 import { CATALOG } from "@/mocks/auditions/catalog";
 import { screeningFlowApplicationFixture } from "@/mocks/auditions/application-field-fixtures";
 import { producerProfile } from "@/mocks/auditions/producer-profile";
+import { MAX_ACTOR_PHOTO_COUNT } from "@/features/files/photo-policy";
 
 const seededAnswers: ApplicantAnswer[] = [
   { key: "NAME", label: "이름", value: "김하린" },
@@ -23,7 +24,7 @@ const seededAnswers: ApplicantAnswer[] = [
   { key: "GENDER", label: "성별", value: "여성" },
   { key: "HEIGHT", label: "키", value: 166 },
   { key: "WEIGHT", label: "몸무게", value: 52 },
-  { key: "SCHOOL", label: "학력", value: "한국예술종합학교 연극원 연기과" },
+  { key: "SCHOOL", label: "학력", value: { level: "UNIVERSITY", school: "한국예술종합학교", major: "연극원 연기과" } },
   { key: "CAREER", label: "경력", value: [{ year: 2025, title: "푸른 방", part: "윤서" }] },
   { key: "LINK", label: "SNS / 외부 링크", value: "https://example.com/harin" },
   { key: "NATIONALITY", label: "국적", value: "대한민국" },
@@ -31,7 +32,7 @@ const seededAnswers: ApplicantAnswer[] = [
   { key: "SPECIALTY", label: "특기", value: "현대무용, 검술" },
   { key: "HOBBIES", label: "취미", value: "러닝, 독립영화 감상" },
   { key: "MILITARY", label: "군필 여부", value: "해당 없음" },
-  { key: "PHOTOS", label: "프로필 사진", value: ["seed-photo-1", "seed-photo-2", "seed-photo-3", "seed-photo-4"], previewUrls: ["/images/applicants/kim-harin-profile.png", "/images/applicants/kim-harin-full-body.png", "/images/applicants/kim-harin-acting-1.png", "/images/applicants/kim-harin-acting-2.png"] },
+  { key: "PHOTOS", label: "프로필 사진", value: ["seed-photo-1", "seed-photo-2", "seed-photo-3"], previewUrls: ["/images/applicants/kim-harin-profile.png", "/images/applicants/kim-harin-full-body.png", "/images/applicants/kim-harin-acting-1.png"] },
   { key: "VIDEO", label: "영상 링크", value: [
     "https://youtu.be/aqz-KE-bpKQ",
     "https://youtu.be/M7lc1UVf-VE",
@@ -47,7 +48,6 @@ let photoLibrary: ApplicantProfilePhoto[] = [
   { id: "seed-photo-1", name: "김하린 프로필.jpg", url: "/images/applicants/kim-harin-profile.png", representative: true },
   { id: "seed-photo-2", name: "김하린 전신.jpg", url: "/images/applicants/kim-harin-full-body.png", representative: false },
   { id: "seed-photo-3", name: "김하린 연기 이미지 1.jpg", url: "/images/applicants/kim-harin-acting-1.png", representative: false },
-  { id: "seed-photo-4", name: "김하린 연기 이미지 2.jpg", url: "/images/applicants/kim-harin-acting-2.png", representative: false },
 ];
 let videoLibrary: ApplicantProfileVideo[] = [{ id: "seed-video-1", url: "https://youtu.be/aqz-KE-bpKQ", youtubeId: "aqz-KE-bpKQ" }];
 let submissions: ApplicantSubmissionDetail[] = [{
@@ -80,7 +80,7 @@ export function patchApplicantProfile(body: UpdateProfileRequest): ApplicantProf
       ? profileAnswers.map((candidate) => candidate.key === next.key ? answer : candidate)
       : [...profileAnswers, answer];
   }
-  if (body.photoLibrary) photoLibrary = clone(body.photoLibrary).slice(0, 20);
+  if (body.photoLibrary) photoLibrary = clone(body.photoLibrary).slice(0, MAX_ACTOR_PHOTO_COUNT);
   if (body.videoLibrary) videoLibrary = clone(body.videoLibrary).slice(0, 10);
   return applicantProfile();
 }

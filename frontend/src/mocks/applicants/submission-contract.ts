@@ -5,12 +5,14 @@ import type {
   ApplicantSubmissionDetail,
   ApplicantSubmissionSummary,
   CareerEntry,
+  EducationInformation,
 } from "@/features/applicants/types";
 import type {
   BackendSubmissionDetail,
   BackendSubmissionListResponse,
   BackendSubmissionSummary,
 } from "@/features/applicants/submission-api";
+import { MAX_ACTOR_PHOTO_COUNT } from "@/features/files/photo-policy";
 
 const BASIC_FIELDS = ["NAME", "HEIGHT", "WEIGHT", "BIRTH", "GENDER", "PHONE", "EMAIL", "ADDRESS"] as const;
 const ADDITIONAL_FIELDS = ["SCHOOL", "LINK", "NATIONALITY", "COVER_LETTER", "SPECIALTY", "HOBBIES", "MILITARY", "CAREER"] as const;
@@ -36,7 +38,7 @@ export function toBackendSubmissionDetail(detail: ApplicantSubmissionDetail): Ba
         address: text(answers.get("ADDRESS")),
       },
       additionalInformation: {
-        school: text(answers.get("SCHOOL")),
+        ...education(answers.get("SCHOOL")),
         links: strings(answers.get("LINK")),
         nationality: text(answers.get("NATIONALITY")),
         coverLetter: text(answers.get("COVER_LETTER")),
@@ -57,6 +59,16 @@ export function toBackendSubmissionDetail(detail: ApplicantSubmissionDetail): Ba
       videoRequirementAnswers: videoAnswers(answers.get("VIDEO"), fields),
     },
   };
+}
+
+function education(answer?: ApplicantAnswer): Pick<BackendSubmissionDetail["applicant"]["additionalInformation"], "educationLevel" | "school" | "major"> {
+  const value = answer?.value;
+  if (!isEducation(value)) return { educationLevel: null, school: null, major: null };
+  return { educationLevel: value.level, school: value.school || null, major: value.major || null };
+}
+
+function isEducation(value: ApplicantAnswerValue | undefined): value is EducationInformation {
+  return typeof value === "object" && value !== null && !Array.isArray(value) && "level" in value && "school" in value && "major" in value;
 }
 
 function toBackendSummary(summary: ApplicantSubmissionSummary): BackendSubmissionSummary {
@@ -89,7 +101,7 @@ function photoAnswers(answer: ApplicantAnswer | undefined, fields: readonly Appl
   const urls = answer?.previewUrls ?? values.map(String);
   const requirements = fields.find((field) => field.id === "PHOTOS")?.config.photoRequirements ?? [];
   const expanded = requirements.flatMap((requirement) => Array.from({ length: requirement.count }, () => requirement));
-  return values.map((_, index) => {
+  return values.slice(0, MAX_ACTOR_PHOTO_COUNT).map((_, index) => {
     const requirement = expanded[index] ?? { id: String(index + 1), description: `제출 사진 ${index + 1}` };
     return {
       photoRequirementId: index + 1,

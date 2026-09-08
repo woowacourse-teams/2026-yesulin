@@ -48,6 +48,8 @@ export type CatalogPerformance = {
   readonly title: string;
   readonly venue: string;
   readonly venueAddress: VenueAddress;
+  readonly performanceStart: string;
+  readonly performanceEnd: string;
   readonly roleTemplates: readonly PerformanceRoleTemplate[];
   readonly postings: CatalogPosting[];
 };

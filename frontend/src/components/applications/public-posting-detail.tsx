@@ -16,7 +16,7 @@ import { AnalyticsSettingsButton } from "@/components/analytics/analytics-settin
 import { getApplicantSubmissions } from "@/features/applicants/api";
 import { applicationFormSteps } from "@/features/applications/application-form";
 import { applicationWriteRoute } from "@/features/applications/routes";
-import { PublicVenueGuide } from "./public-venue-guide";
+import { PublicVenueGuide, VenueActionLinks } from "./public-venue-guide";
 import { TrackedLoginLink } from "@/components/analytics/tracked-login-link";
 import { trackAnalyticsEvent } from "@/features/analytics/events";
 
@@ -140,7 +140,7 @@ function RoleCard({ role, multiple, selected, disabled, unavailable, onSelect }:
 function PostingSchedule({ posting }: { posting: PublicPosting }) {
   return <div className="border-b border-border">
     <InfoSection title="주요 전형 일정">
-      <ol className="grid gap-3 sm:grid-cols-2">{posting.schedule.map((item, index) => <li key={item.title} className="rounded-card border border-border bg-card p-4"><span className="num text-xs font-bold text-brand">0{index + 1}</span><strong className="mt-3 block font-semibold">{item.title}</strong><span className="mt-1 block text-sm leading-6 text-muted-strong">{item.detail}</span></li>)}</ol>
+      <ol className="grid gap-3 sm:grid-cols-2">{posting.schedule.map((item, index) => <li key={item.title} className="rounded-card border border-border bg-card p-4"><span className="num text-xs font-bold text-brand">0{index + 1}</span><strong className="mt-3 block font-semibold">{item.title}</strong><span className="mt-1 block text-sm leading-6 text-muted-strong">{item.detail}</span>{item.venue && item.venueAddress ? <div className="mt-3 border-t border-border-soft pt-3 text-sm leading-6 text-muted-strong"><strong className="font-semibold text-foreground">{index + 1}차 오디션 장소 · {item.venue}</strong><span className="mt-1 block">{item.venueAddress.roadAddress}{item.venueAddress.detailAddress ? ` ${item.venueAddress.detailAddress}` : ""}</span><VenueActionLinks label={`${index + 1}차 오디션 장소`} venue={item.venue} address={item.venueAddress} className="mt-3" /></div> : null}</li>)}</ol>
     </InfoSection>
   </div>;
 }
@@ -155,7 +155,7 @@ function PostingDocuments({ posting }: { posting: PublicPosting }) {
 }
 
 function PerformanceInformation({ posting }: { posting: PublicPosting }) {
-  return <div className="border-b border-border"><InfoSection title="공연 정보"><PublicVenueGuide venue={posting.venue} address={posting.venueAddress} /><dl className="mt-6 grid gap-x-6 gap-y-4 text-base sm:grid-cols-[112px_1fr]"><dt className="text-muted">공연 기간</dt><dd className="num">{publicPostingDate(posting.performanceStart)} ~ {posting.performanceEnd ? publicPostingDate(posting.performanceEnd) : <strong className="font-semibold text-brand">오픈런</strong>}</dd><dt className="text-muted">모집 기간</dt><dd className="num">{publicPostingDateTime(posting.recruitmentStart)} ~ {publicPostingDateTime(posting.recruitmentEnd)}</dd></dl><p className="mt-4 text-sm text-muted">모든 일정은 한국 시간(KST) 기준입니다.</p></InfoSection></div>;
+  return <div className="border-b border-border"><InfoSection title="공연 정보">{posting.venueAddress.roadAddress ? <PublicVenueGuide venue={posting.venue} address={posting.venueAddress} /> : <p className="rounded-card border border-border bg-card px-4 py-3 text-sm leading-6 text-muted-strong">공연 장소는 추후 안내됩니다.</p>}<dl className="mt-6 grid gap-x-6 gap-y-4 text-base sm:grid-cols-[112px_1fr]"><dt className="text-muted">공연 기간</dt><dd className="num">{publicPostingDate(posting.performanceStart)} ~ {posting.performanceEnd ? publicPostingDate(posting.performanceEnd) : <strong className="font-semibold text-brand">오픈런</strong>}</dd>{posting.rehearsalVenue ? <><dt className="text-muted">연습 장소</dt><dd>{posting.rehearsalVenue}<span className="mt-1 block text-sm text-muted-strong">{posting.rehearsalVenueAddress.roadAddress}{posting.rehearsalVenueAddress.detailAddress ? ` ${posting.rehearsalVenueAddress.detailAddress}` : ""}</span>{posting.rehearsalVenueAddress.roadAddress ? <VenueActionLinks label="연습 장소" venue={posting.rehearsalVenue} address={posting.rehearsalVenueAddress} className="mt-3" /> : null}</dd></> : null}<dt className="text-muted">모집 기간</dt><dd className="num">{publicPostingDateTime(posting.recruitmentStart)} ~ {publicPostingDateTime(posting.recruitmentEnd)}</dd></dl><p className="mt-4 text-sm text-muted">모든 일정은 한국 시간(KST) 기준입니다.</p></InfoSection></div>;
 }
 
 function ProducerInformation({ posting }: { posting: PublicPosting }) {

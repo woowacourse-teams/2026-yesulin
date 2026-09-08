@@ -3,6 +3,7 @@ import type {
   ApplicantAnswerValue,
   ApplicantProfileResponse,
   CareerEntry,
+  EducationInformation,
   UpdateProfileRequest,
 } from "./types";
 
@@ -20,7 +21,9 @@ export type BackendProfileResponse = {
     readonly address: string | null;
   };
   readonly additionalInformation: {
+    readonly educationLevel: "NONE" | "HIGH_SCHOOL" | "UNIVERSITY" | null;
     readonly school: string | null;
+    readonly major: string | null;
     readonly links: readonly string[];
     readonly nationality: string | null;
     readonly coverLetter: string | null;
@@ -75,7 +78,7 @@ export function toProfileInformation(response: BackendProfileResponse) {
     profileAnswer("PHONE", basic.phone),
     profileAnswer("EMAIL", basic.email),
     profileAnswer("ADDRESS", basic.address),
-    profileAnswer("SCHOOL", additional.school),
+    profileAnswer("SCHOOL", educationValue(additional)),
     profileAnswer("LINK", additional.links),
     profileAnswer("NATIONALITY", additional.nationality),
     profileAnswer("COVER_LETTER", additional.coverLetter),
@@ -111,7 +114,7 @@ export function toBackendProfileUpdate(values: ApplicantProfileValues): BackendP
       address: textValue(values.ADDRESS),
     },
     additionalInformation: {
-      school: textValue(values.SCHOOL),
+      ...educationRequest(values.SCHOOL),
       links: stringArray(values.LINK),
       nationality: textValue(values.NATIONALITY),
       coverLetter: textValue(values.COVER_LETTER),
@@ -172,6 +175,24 @@ function textValue(value: ApplicantAnswerValue | undefined) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
+function educationValue(additional: BackendProfileResponse["additionalInformation"]): EducationInformation | null {
+  if (additional.educationLevel === null && additional.school === null && additional.major === null) return null;
+  return { level: additional.educationLevel, school: additional.school ?? "", major: additional.major ?? "" };
+}
+
+function educationRequest(value: ApplicantAnswerValue | undefined) {
+  if (!isEducationInformation(value)) return { educationLevel: null, school: null, major: null };
+  return {
+    educationLevel: value.level,
+    school: value.level === "NONE" ? null : nullableText(value.school),
+    major: value.level === "UNIVERSITY" ? nullableText(value.major) : null,
+  };
+}
+
+function nullableText(value: string) {
+  return value.trim() || null;
+}
+
 function numberValue(value: ApplicantAnswerValue | undefined) {
   return typeof value === "number" && value > 0 ? value : null;
 }
@@ -194,5 +215,10 @@ function hasValue(value: ApplicantAnswerValue | undefined): value is ApplicantAn
   if (value === undefined) return false;
   if (typeof value === "string") return Boolean(value.trim());
   if (Array.isArray(value)) return value.length > 0;
+  if (isEducationInformation(value)) return value.level !== null || Boolean(value.school.trim()) || Boolean(value.major.trim());
   return true;
+}
+
+function isEducationInformation(value: unknown): value is EducationInformation {
+  return typeof value === "object" && value !== null && !Array.isArray(value) && "level" in value && "school" in value && "major" in value;
 }

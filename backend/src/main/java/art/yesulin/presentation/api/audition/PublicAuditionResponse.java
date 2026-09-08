@@ -4,6 +4,7 @@ import art.yesulin.application.audition.PublicAuditionResult;
 import art.yesulin.application.audition.PublicProducerResult;
 import art.yesulin.application.audition.form.AuditionFormResult;
 import art.yesulin.application.audition.role.AuditionRoleResult;
+import art.yesulin.application.audition.schedule.AuditionVenueResult;
 import art.yesulin.application.audition.schedule.ScreeningStageResult;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -16,6 +17,8 @@ public record PublicAuditionResponse(
         String title,
         String posterUrl,
         String roadAddress,
+        String rehearsalVenue,
+        AuditionVenueAddressResponse rehearsalVenueAddress,
         PublicProducerResult producer,
         LocalDate performanceStartDate,
         LocalDate performanceEndDate,
@@ -28,15 +31,18 @@ public record PublicAuditionResponse(
 ) {
 
     public static PublicAuditionResponse from(PublicAuditionResult result, String posterUrl) {
+        AuditionVenueResult rehearsalVenue = result.audition().rehearsalVenue();
         return new PublicAuditionResponse(
                 result.audition().id(),
                 result.performanceTitle(),
                 result.audition().title(),
                 posterUrl,
                 result.roadAddress(),
+                rehearsalVenue == null ? null : rehearsalVenue.name(),
+                AuditionVenueAddressResponse.from(rehearsalVenue),
                 result.producer(),
-                result.audition().performanceStartDate(),
-                result.audition().performanceEndDate(),
+                result.performanceStartDate(),
+                result.performanceEndDate(),
                 result.schedule().recruitmentStartAt(),
                 result.schedule().recruitmentEndAt(),
                 result.roles().multipleRoleApplicationsAllowed(),

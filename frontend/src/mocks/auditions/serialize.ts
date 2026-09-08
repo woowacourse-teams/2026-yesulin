@@ -45,6 +45,8 @@ export const toPerformanceRef = (performance: CatalogPerformance): PerformanceRe
   id: performance.id,
   posterUrl: performance.posterUrl,
   title: performance.title,
+  performanceStart: performance.performanceStart,
+  performanceEnd: performance.performanceEnd,
 });
 
 export const toPostingRef = (posting: CatalogPosting): PostingRef => ({
@@ -62,6 +64,8 @@ export function toPerformanceSummary(performance: CatalogPerformance): Performan
     title: performance.title,
     venue: performance.venue,
     venueAddress: performance.venueAddress,
+    performanceStart: performance.performanceStart,
+    performanceEnd: performance.performanceEnd,
     postingCount: performance.postings.length,
     openPostingCount: performance.postings.filter((posting) => posting.status === "OPEN").length,
     applicantCount: applicants.length,
@@ -170,7 +174,9 @@ export function toApplicant(applicant: MockApplicant, role: CatalogRole, round: 
     birth: applicant.birth,
     phone: applicant.phone,
     email: applicant.email,
+    educationLevel: applicant.educationLevel,
     school: applicant.school,
+    major: applicant.major,
     submittedAt: applicant.submittedAt,
     career: applicant.career,
     coverLetter: applicant.coverLetter,

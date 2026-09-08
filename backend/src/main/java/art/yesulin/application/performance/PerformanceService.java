@@ -27,7 +27,12 @@ public class PerformanceService {
     @Transactional
     public PerformanceResult create(long ownerId, CreatePerformanceCommand command) {
         Performance performance = new Performance(
-                ownerId, command.posterFileId(), command.title(), command.venue().toVenue()
+                ownerId,
+                command.posterFileId(),
+                command.title(),
+                command.venue() == null ? null : command.venue().toVenue(),
+                command.performanceStartDate(),
+                command.performanceEndDate()
         );
         command.roles().forEach(role -> performance.addRole(role.name(), role.description()));
         return PerformanceResult.from(performanceRepository.saveAndFlush(performance));
@@ -52,14 +57,41 @@ public class PerformanceService {
             UpdatePerformanceBasicInformationCommand command
     ) {
         Performance performance = getEditablePerformance(ownerId, performanceId);
-        performance.updateBasicInformation(command.title(), command.venue().toVenue());
+        performance.updateBasicInformation(
+                command.title(),
+                command.venue() == null ? null : command.venue().toVenue(),
+                command.performanceStartDate() == null
+                        ? performance.getPerformanceStartDate()
+                        : command.performanceStartDate(),
+                command.performanceStartDate() == null
+                        ? performance.getPerformanceEndDate()
+                        : command.performanceEndDate()
+        );
+        return PerformanceResult.from(performance);
+    }
+
+    /** 공고가 연결된 기존 공연의 기간 충돌을 확정할 때만 사용한다. */
+    @Transactional
+    public PerformanceResult updatePeriod(
+            long ownerId,
+            long performanceId,
+            UpdatePerformancePeriodCommand command
+    ) {
+        Performance performance = performanceRepository.findByIdAndOwnerIdForUpdate(performanceId, ownerId)
+                .orElseThrow(() -> new BusinessException(NOT_FOUND, "공연을 찾을 수 없습니다."));
+        performance.updatePerformancePeriod(command.performanceStartDate(), command.performanceEndDate());
         return PerformanceResult.from(performance);
     }
 
     @Transactional
     public PerformanceResult update(long ownerId, long performanceId, UpdatePerformanceCommand command) {
         Performance performance = getEditablePerformance(ownerId, performanceId);
-        performance.updateBasicInformation(command.title(), command.venue().toVenue());
+        performance.updateBasicInformation(
+                command.title(),
+                command.venue() == null ? null : command.venue().toVenue(),
+                command.performanceStartDate(),
+                command.performanceEndDate()
+        );
         performance.updatePoster(command.posterFileId());
         performance.clearRoles();
         performanceRepository.saveAndFlush(performance);

@@ -18,6 +18,8 @@ export type BoardContextValue = {
   readonly selected: ReadonlySet<SubmissionId>;
   readonly saving: boolean;
   readonly screeningCompleted: boolean;
+  /** 현재 차수가 마감됐거나 배역 전체 전형이 종료돼 결과를 바꿀 수 없는 상태다. */
+  readonly reviewLocked: boolean;
   readonly setFilters: (update: (current: AuditionFilters) => AuditionFilters) => void;
   readonly goToRound: (round: RoundNumber) => void;
   readonly toggleSelected: (id: SubmissionId) => void;
@@ -27,6 +29,12 @@ export type BoardContextValue = {
   readonly setStatus: (ids: readonly SubmissionId[], status: ReviewStatus) => Promise<void>;
   /** 상세에서 한 명을 처리하고, 검토 대기 모드면 다음 배우로 넘어간다. */
   readonly reviewCurrent: (id: SubmissionId, status: ReviewStatus) => Promise<void>;
+  /** 한 명씩 보기에서 저장한 최신 목록을 받아 다음 지원자를 결정한다. */
+  readonly reviewFocused: (
+    id: SubmissionId,
+    status: ReviewStatus,
+    memo?: string,
+  ) => Promise<AuditionBoardResponse | null>;
   readonly patchReview: (
     id: SubmissionId,
     patch: { readonly memo?: string; readonly note?: string },

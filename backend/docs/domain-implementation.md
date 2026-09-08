@@ -32,7 +32,9 @@
 
 - `AuditionScreening`이 대상 승계, 결과 변경, 집계와 종료 조건을 계산한다.
 - 결과를 저장하지 않은 대상은 `PENDING`으로 계산한다.
-- 이전 모든 차수의 결과가 `PASS`인 지원서만 현재 차수에 포함한다.
+- 마감된 이전 모든 차수의 결과가 `PASS`인 지원서만 현재 차수에 포함한다.
 - 결과는 `PENDING`, `PASS`, `FAIL`, `ETC`다.
-- `ScreeningCompletion`은 `auditionRoleId` unique 레코드다. 모든 차수의 pending 수가 0일 때 한 번 생성한다.
-- 종료 후 review 변경은 `INVALID_SCREENING_REVIEW`, 미완료 종료는 `SCREENING_ROUND_NOT_READY`다.
+- `ScreeningCompletion`은 `(auditionRoleId, screeningStageId)` unique 레코드다. 현재 차수는 `PENDING`이
+  남아 있어도 한 번 마감할 수 있고, 다음 차수 대상이 없으면 이후 빈 차수도 함께 마감한다.
+- 마감 후 해당 차수 review 변경은 `INVALID_SCREENING_REVIEW`다. 현재 진행 중인 차수가 아닌 차수를 마감하면
+  `SCREENING_ROUND_NOT_READY`다.
