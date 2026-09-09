@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import art.yesulin.application.audition.PostingSnapshotVersionGenerator;
 import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.audition.Audition;
 import art.yesulin.domain.audition.AuditionErrorCode;
@@ -62,7 +63,8 @@ class SubmissionAuditionReaderTest {
                 producerRepository,
                 roleSectionRepository,
                 scheduleRepository,
-                formRepository
+                formRepository,
+                new PostingSnapshotVersionGenerator()
         );
     }
 
@@ -136,6 +138,7 @@ class SubmissionAuditionReaderTest {
         when(audition.getId()).thenReturn(AUDITION_ID);
         when(audition.getPublicId()).thenReturn(PUBLIC_AUDITION_ID);
         when(audition.getPerformanceId()).thenReturn(PERFORMANCE_ID);
+        when(audition.getOwnerId()).thenReturn(30L);
         when(audition.getTitle()).thenReturn("햄릿 오디션");
         return audition;
     }

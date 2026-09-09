@@ -3,6 +3,7 @@ package art.yesulin.application.submission;
 import static art.yesulin.domain.common.validation.DomainValidator.requireNonNull;
 import static art.yesulin.domain.common.validation.DomainValidator.requirePositive;
 import static art.yesulin.domain.submission.SubmissionErrorCode.DUPLICATE_SUBMISSION;
+import static art.yesulin.domain.submission.SubmissionErrorCode.STALE_POSTING_SNAPSHOT;
 
 import art.yesulin.application.submission.consent.SubmissionConsentDocumentMetadata;
 import art.yesulin.application.submission.consent.SubmissionConsentDocumentProvider;
@@ -50,6 +51,7 @@ public class SubmissionService {
         Instant submittedAt = Instant.now(clock);
 
         SubmissionAudition audition = auditionReader.read(validAuditionId);
+        ensureCurrentPostingSnapshot(validCommand, audition);
         ensureNotSubmitted(validApplicantId, audition.auditionId());
         recruitmentPeriodValidator.validate(audition, submittedAt);
         SelectedRoles selectedRoles = selectedRoleValidator.validateAndCreate(
@@ -76,6 +78,18 @@ public class SubmissionService {
                 savedSubmission.getId(), savedSubmission.getAuditionSnapshot().posterFileId()
         );
         return SubmittedSubmissionResult.from(savedSubmission);
+    }
+
+    private void ensureCurrentPostingSnapshot(
+            SubmitSubmissionCommand command,
+            SubmissionAudition audition
+    ) {
+        if (!audition.postingSnapshotVersion().equals(command.postingSnapshotVersion())) {
+            throw new BusinessException(
+                    STALE_POSTING_SNAPSHOT,
+                    "공고 정보가 변경되었습니다. 최신 공고를 다시 확인하고 동의해 주세요."
+            );
+        }
     }
 
     private void ensureNotSubmitted(long applicantId, long auditionId) {

@@ -73,6 +73,7 @@ export type PublicApplicationActions = {
 
 export type PublicApplicationMeta = {
   readonly postingId: PostingId;
+  readonly postingSnapshotVersion: string;
   readonly fields: readonly ApplicationFieldInput[];
   readonly steps: ReturnType<typeof applicationFormSteps>;
   readonly performanceTitle: string;

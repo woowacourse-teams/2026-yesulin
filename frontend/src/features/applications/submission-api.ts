@@ -9,6 +9,7 @@ import { applicantInformation, createV1Submission, type V1SubmissionReceipt } fr
 
 type CreateApplicationSubmissionInput = {
   readonly postingId: string;
+  readonly postingSnapshotVersion: string;
   readonly fields: readonly ApplicationFieldInput[];
   readonly values: Readonly<Record<string, string>>;
   readonly photos: readonly ApplicationPhoto[];
@@ -30,6 +31,7 @@ export async function createApplicationSubmission(input: CreateApplicationSubmis
   if (isBackendAuditionId(input.postingId)) {
     const receipt = await createV1Submission({
       auditionId: input.postingId,
+      postingSnapshotVersion: input.postingSnapshotVersion,
       fields: input.fields,
       values: input.values,
       photos: input.photos,
@@ -52,6 +54,7 @@ export async function createApplicationSubmission(input: CreateApplicationSubmis
   })).filter(({ field, value }) => field.required || hasSubmittedValue(value));
   const response = await createPublicSubmission({
     postingId: input.postingId,
+    postingSnapshotVersion: input.postingSnapshotVersion,
     roleIds: input.roleIds,
     answers: answers.map(({ field, value }) => ({
       key: field.id,

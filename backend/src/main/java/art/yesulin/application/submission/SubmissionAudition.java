@@ -8,6 +8,7 @@ import java.util.UUID;
 record SubmissionAudition(
         long auditionId,
         UUID publicAuditionId,
+        String postingSnapshotVersion,
         String title,
         String performanceTitle,
         String companyName,

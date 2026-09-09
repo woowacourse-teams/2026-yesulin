@@ -165,6 +165,7 @@ export type AuditionFormResource = {
 
 export type PublicAuditionResource = {
   readonly id: string;
+  readonly postingSnapshotVersion: string;
   readonly performanceTitle: string;
   readonly title: string;
   readonly posterUrl: string;

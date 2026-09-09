@@ -23,6 +23,8 @@
 ## 지원서
 
 - `SubmissionService`가 공고 조회, 중복 제출, 모집 기간, 배역, form 답변, 사진 파일과 동의를 순서대로 검증한다.
+- 공개 공고가 발급한 스냅샷 버전과 제출 시점의 공고 ID·기획사명을 비교해, 지원자가 확인한 제3자 제공 대상이
+  바뀐 오래된 제출은 저장 전에 거절한다.
 - DB unique constraint도 `(applicantId, auditionId)` 중복 제출을 방지한다.
 - `Submission`은 `AuditionSnapshot`, `ApplicantSnapshot`, `SelectedRoles`, `SubmissionFormAnswers`를 소유한다.
 - 동의 문서 버전과 제출 시점의 제공받는 기획사·제작사명, 제출 사진·포스터 파일 참조는 지원서 저장과 같은 트랜잭션에서 기록한다.

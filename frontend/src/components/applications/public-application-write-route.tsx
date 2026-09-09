@@ -37,6 +37,7 @@ export function PublicApplicationWriteRoute({ postingId, initialPosting, initial
   if (roleIds.length === 0) return <RoleSelectionRedirect postingId={postingId} />;
   const props = {
     postingId: posting.id,
+    postingSnapshotVersion: posting.postingSnapshotVersion,
     fields: posting.applicationFields,
     performanceTitle: posting.performanceTitle,
     postingTitle: posting.title,

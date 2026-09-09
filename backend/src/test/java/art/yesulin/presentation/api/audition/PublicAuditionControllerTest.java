@@ -1,5 +1,6 @@
 package art.yesulin.presentation.api.audition;
 
+import static org.hamcrest.Matchers.matchesPattern;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -148,6 +149,7 @@ class PublicAuditionControllerTest {
         mockMvc.perform(get("/api/v1/public/auditions/{auditionId}", auditionId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(auditionId.toString()))
+                .andExpect(jsonPath("$.postingSnapshotVersion").value(matchesPattern("v1\\.[0-9a-f]{64}")))
                 .andExpect(jsonPath("$.performanceTitle").value("햄릿"))
                 .andExpect(jsonPath("$.title").value("햄릿 공개 오디션"))
                 .andExpect(jsonPath("$.producer.companyName").value("극단 예술인"))

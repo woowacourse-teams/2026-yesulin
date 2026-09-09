@@ -13,6 +13,7 @@ import java.util.UUID;
 
 public record PublicAuditionResponse(
         UUID id,
+        String postingSnapshotVersion,
         String performanceTitle,
         String title,
         String posterUrl,
@@ -34,6 +35,7 @@ public record PublicAuditionResponse(
         AuditionVenueResult rehearsalVenue = result.audition().rehearsalVenue();
         return new PublicAuditionResponse(
                 result.audition().id(),
+                result.postingSnapshotVersion(),
                 result.performanceTitle(),
                 result.audition().title(),
                 posterUrl,

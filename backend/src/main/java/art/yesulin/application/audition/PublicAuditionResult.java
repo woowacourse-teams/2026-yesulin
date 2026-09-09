@@ -6,6 +6,7 @@ import art.yesulin.application.audition.schedule.AuditionScheduleResult;
 import java.time.LocalDate;
 
 public record PublicAuditionResult(
+        String postingSnapshotVersion,
         long ownerId,
         long posterFileId,
         String performanceTitle,

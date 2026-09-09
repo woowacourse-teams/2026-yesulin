@@ -26,6 +26,7 @@ export function usePublicApplication() {
 
 export function PublicApplicationProvider({
   postingId,
+  postingSnapshotVersion,
   fields,
   performanceTitle,
   postingTitle,
@@ -227,6 +228,7 @@ export function PublicApplicationProvider({
     try {
       const response = await createApplicationSubmission({
         postingId,
+        postingSnapshotVersion,
         fields,
         values,
         photos,
@@ -315,7 +317,7 @@ export function PublicApplicationProvider({
     submit,
   };
 
-  return <PublicApplicationContext value={{ state, actions, meta: { postingId, fields, steps, performanceTitle, postingTitle, companyName, roleIds, roleName, authenticated, authChecking, onBack, prefillSummary: prefill ? { filledCount: prefill.filledCount, requiredCount: prefill.requiredCount, missingKeys: prefill.missingKeys } : undefined } }}>{children}</PublicApplicationContext>;
+  return <PublicApplicationContext value={{ state, actions, meta: { postingId, postingSnapshotVersion, fields, steps, performanceTitle, postingTitle, companyName, roleIds, roleName, authenticated, authChecking, onBack, prefillSummary: prefill ? { filledCount: prefill.filledCount, requiredCount: prefill.requiredCount, missingKeys: prefill.missingKeys } : undefined } }}>{children}</PublicApplicationContext>;
 }
 
 function submissionErrorMessage(cause: unknown) {

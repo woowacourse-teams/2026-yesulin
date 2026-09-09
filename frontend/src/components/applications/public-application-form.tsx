@@ -23,6 +23,7 @@ import { AddButton, fieldControlClass, PrimaryButton, SecondaryButton, TextButto
 
 type PublicApplicationFormProps = {
   readonly postingId: PostingId;
+  readonly postingSnapshotVersion: string;
   readonly fields: readonly ApplicationFieldInput[];
   readonly performanceTitle: string;
   readonly postingTitle: string;

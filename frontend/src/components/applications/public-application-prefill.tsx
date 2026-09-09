@@ -12,6 +12,7 @@ import { PublicApplicationForm } from "./public-application-form";
 
 type PrefillGateProps = {
   readonly postingId: PostingId;
+  readonly postingSnapshotVersion: string;
   readonly fields: readonly ApplicationFieldInput[];
   readonly performanceTitle: string;
   readonly postingTitle: string;

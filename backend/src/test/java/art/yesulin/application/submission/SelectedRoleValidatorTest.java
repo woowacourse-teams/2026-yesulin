@@ -60,6 +60,7 @@ class SelectedRoleValidatorTest {
         return new SubmissionAudition(
                 1L,
                 UUID.randomUUID(),
+                "v1.test-snapshot",
                 "햄릿 오디션",
                 "햄릿",
                 "테스트 극단",

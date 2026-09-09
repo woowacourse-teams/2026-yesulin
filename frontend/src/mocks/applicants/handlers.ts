@@ -60,6 +60,10 @@ export const applicantHandlers = [
     const body = (await request.json()) as CreateSubmissionRequest;
     const posting = findPosting(postingId(body.postingId));
     if (!posting) return apiError(404, "POSTING_NOT_FOUND", "공고를 찾을 수 없습니다.");
+    const publicPosting = publicPostingById(body.postingId);
+    if (!publicPosting || body.postingSnapshotVersion !== publicPosting.postingSnapshotVersion) {
+      return apiError(409, "SUBMISSION_STALE_POSTING_SNAPSHOT", "공고 정보가 변경되었습니다. 최신 공고를 다시 확인하고 동의해 주세요.");
+    }
     if (posting.status !== "OPEN") return apiError(409, "RECRUITMENT_CLOSED", "현재 접수할 수 없는 공고입니다.");
     const performance = findPerformance(posting.performanceId);
     if (!performance) return apiError(404, "POSTING_NOT_FOUND", "공고를 찾을 수 없습니다.");

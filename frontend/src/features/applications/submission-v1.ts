@@ -15,6 +15,7 @@ import {
 
 export type V1SubmissionInput = {
   readonly auditionId: string;
+  readonly postingSnapshotVersion: string;
   readonly fields: readonly ApplicationFieldInput[];
   readonly values: Readonly<Record<string, string>>;
   readonly photos: readonly ApplicationPhoto[];
@@ -27,6 +28,7 @@ export type V1SubmissionInput = {
 };
 
 export type V1SubmissionRequest = {
+  readonly postingSnapshotVersion: string;
   readonly basicInformation: {
     readonly name: string | null;
     readonly height: number | null;
@@ -208,6 +210,7 @@ function createIdempotencyKey() {
 function submissionInputFingerprint(input: V1SubmissionInput) {
   return JSON.stringify({
     auditionId: input.auditionId,
+    postingSnapshotVersion: input.postingSnapshotVersion,
     fields: input.fields,
     values: input.values,
     photos: orderedApplicationPhotos(input.photos).map((photo) => ({
@@ -230,6 +233,7 @@ async function toV1SubmissionRequest(input: V1SubmissionInput): Promise<V1Submis
   const selectedRoleIds = input.roleIds.map((value) => positiveId(value, "지원할 배역을 다시 선택해 주세요."));
 
   return {
+    postingSnapshotVersion: input.postingSnapshotVersion,
     ...applicantInformation(input),
     selectedRoleIds,
     formAnswers: {

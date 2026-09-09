@@ -7,6 +7,7 @@ vi.mock("@/features/auditions/api-client", () => ({ request: vi.fn() }));
 
 const resource: PublicAuditionResource = {
   id: "123e4567-e89b-12d3-a456-426614174000",
+  postingSnapshotVersion: "v1.server-issued-snapshot",
   performanceTitle: "햄릿",
   title: "햄릿 오디션",
   posterUrl: "https://example.com/poster.jpg",
@@ -42,6 +43,7 @@ describe("getV1PublicPosting", () => {
     const posting = await getV1PublicPosting(resource.id);
 
     expect(posting.companyName).toBe("테스트 극단");
+    expect(posting.postingSnapshotVersion).toBe("v1.server-issued-snapshot");
   });
 
   it("기획사/제작사명이 비어 있으면 동의 화면을 만들지 않는다", async () => {

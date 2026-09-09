@@ -15,6 +15,7 @@ vi.mock("./public-application-draft-store", () => ({
 
 const input: V1SubmissionInput = {
   auditionId: "123e4567-e89b-12d3-a456-426614174000",
+  postingSnapshotVersion: "v1.server-issued-snapshot",
   fields: [],
   values: {},
   photos: [],
@@ -44,6 +45,24 @@ describe("createV1Submission", () => {
       submissionId: "123e4567-e89b-12d3-a456-426614174001",
       submittedAt: "2026-09-08T01:23:45Z",
     });
+    const requestBody = JSON.parse(String(vi.mocked(request).mock.calls[0]?.[1]?.body));
+    expect(requestBody.postingSnapshotVersion).toBe("v1.server-issued-snapshot");
+  });
+
+  it("공고 스냅샷 버전이 바뀌면 새로운 제출 시도로 저장한다", async () => {
+    let savedAttempt: PublicApplicationSubmissionAttempt | undefined;
+    vi.mocked(readPublicApplicationSubmissionAttempt).mockImplementation(async () => savedAttempt);
+    vi.mocked(savePublicApplicationSubmissionAttempt).mockImplementation(async (attempt) => {
+      savedAttempt = attempt;
+    });
+
+    await createV1Submission(input);
+    const firstAttempt = savedAttempt;
+    await createV1Submission({ ...input, postingSnapshotVersion: "v1.changed-snapshot" });
+
+    expect(savePublicApplicationSubmissionAttempt).toHaveBeenCalledTimes(2);
+    expect(firstAttempt?.idempotencyKey).not.toBe(savedAttempt?.idempotencyKey);
+    expect(firstAttempt?.requestBody).not.toBe(savedAttempt?.requestBody);
   });
 
   it("실패 후 같은 제출을 재시도하면 저장한 멱등 키와 요청 본문을 재사용한다", async () => {

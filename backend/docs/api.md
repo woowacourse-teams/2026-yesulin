@@ -98,6 +98,9 @@ PENDING 세션을 ACTIVE로 갱신하고 요청의 `redirectUri`로 302 redirect
 게시할 때 서버가 기록한다. 지원 폼은 사진·영상 요구 각 최대 3개와 텍스트 질문 최대 10개다. 사진 요구 장수의
 전체 합도 도메인에서 최대 3장으로 검증한다.
 
+공개 공고 response의 `postingSnapshotVersion`은 공고 ID와 개인정보 제3자 제공 대상 기획사·제작사명으로 만든
+서버 발급 버전이다. 지원자는 화면에서 확인한 이 값을 제출 request에 그대로 포함해야 한다.
+
 연습 장소나 차수별 오디션 장소를 입력하지 않은 경우 관련 응답 필드는 `null`이다.
 
 게시에는 배역·일정·지원 폼과 미래 모집 종료 시각이 필요하다. 공개 조회는 `DRAFT`가 아닌 공고를 반환하며,
@@ -143,8 +146,10 @@ PENDING 세션을 ACTIVE로 갱신하고 요청의 `redirectUri`로 302 redirect
 세 endpoint는 서버에서 `APPLICANT` 역할을 검증한다. 세션이 없으면 `401 AUTH_UNAUTHENTICATED`, 다른 역할 세션이면
 `403 AUTH_FORBIDDEN`을 반환한다.
 
-제출 request는 `basicInformation`, `additionalInformation`, 하나 이상의 `selectedRoleIds`, `formAnswers`, 두 필수
-동의를 포함한다. 서버는 공고 양식과 정확히 일치하는 답변, 선택 배역, 모집 기간, 중복 제출, 사진 소유권·READY를 검증한다.
+제출 request는 공개 공고에서 받은 `postingSnapshotVersion`, `basicInformation`, `additionalInformation`, 하나 이상의
+`selectedRoleIds`, `formAnswers`, 두 필수 동의를 포함한다. 서버는 공고 양식과 정확히 일치하는 답변, 선택 배역,
+모집 기간, 중복 제출, 사진 소유권·READY를 검증한다. 제출 전에 기획사·제작사명이 바뀌어 버전이 오래됐으면 아무
+기록도 저장하지 않고 `409 SUBMISSION_STALE_POSTING_SNAPSHOT`을 반환한다.
 생성 response는 `submissionId`와 서버가 기록한 `submittedAt`을 반환한다.
 
 제출의 `Idempotency-Key`는 UUID이며 필수다. 같은 배우가 같은 키와 같은 내용으로 재요청하면 지원서를 다시 만들지 않고
