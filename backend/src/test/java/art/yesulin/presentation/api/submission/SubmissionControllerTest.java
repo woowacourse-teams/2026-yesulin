@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import art.yesulin.application.audition.PostingSnapshotVersionGenerator;
 import art.yesulin.application.auth.MemberPrincipal;
 import art.yesulin.domain.audition.Audition;
 import art.yesulin.domain.audition.AuditionRepository;
@@ -113,6 +114,8 @@ class SubmissionControllerTest {
     private PerformanceRepository performanceRepository;
     @Autowired
     private ProducerRepository producerRepository;
+    @Autowired
+    private PostingSnapshotVersionGenerator snapshotVersionGenerator;
 
     @BeforeEach
     void cleanUp() {
@@ -137,14 +140,14 @@ class SubmissionControllerTest {
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .header("Idempotency-Key", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestWithApplicantId(fixture.roleId())))
+                        .content(requestWithApplicantId(fixture)))
                 .andExpect(status().isCreated())
                 .andExpect(header().string(
                         "Location",
                         matchesPattern("/api/v1/applicants/me/submissions/[0-9a-f-]{36}")
                 ))
                 .andExpect(jsonPath("$.submissionId").isString())
-                .andExpect(jsonPath("$.submittedAt").doesNotExist())
+                .andExpect(jsonPath("$.submittedAt").value(NOW.toString()))
                 .andReturn().getResponse().getContentAsString();
 
         UUID submissionId = UUID.fromString(objectMapper.readTree(responseBody).get("submissionId").asText());
@@ -153,12 +156,16 @@ class SubmissionControllerTest {
         assertEquals(APPLICANT_ID, submission.getApplicantId());
         assertEquals(2, consents.size());
         assertEquals(
-                "mvp-privacy-placeholder-v0",
+                "submission-collection-v1.0",
                 findConsent(consents, SubmissionConsentType.PRIVACY_COLLECTION_AND_USE).getDocumentVersion()
         );
         assertEquals(
-                "mvp-third-party-placeholder-v0",
+                "submission-third-party-v1.0",
                 findConsent(consents, SubmissionConsentType.THIRD_PARTY_PROVISION).getDocumentVersion()
+        );
+        assertEquals(
+                "테스트 극단",
+                findConsent(consents, SubmissionConsentType.THIRD_PARTY_PROVISION).getRecipientNameSnapshot()
         );
     }
 
@@ -171,7 +178,7 @@ class SubmissionControllerTest {
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .header("Idempotency-Key", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(validRequest(fixture.roleId())))
+                        .content(validRequest(fixture)))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
         String submissionId = objectMapper.readTree(responseBody).get("submissionId").asText();
@@ -225,7 +232,7 @@ class SubmissionControllerTest {
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .header("Idempotency-Key", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(validRequest(fixture.roleId())))
+                        .content(validRequest(fixture)))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("RECRUITMENT_CLOSED"));
     }
@@ -241,7 +248,7 @@ class SubmissionControllerTest {
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .header("Idempotency-Key", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(validRequest(fixture.roleId())))
+                        .content(validRequest(fixture)))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("DUPLICATE_SUBMISSION"));
     }
@@ -277,7 +284,7 @@ class SubmissionControllerTest {
                 NOW.plusSeconds(86_400)
         );
         UUID idempotencyKey = UUID.randomUUID();
-        String requestBody = validRequest(fixture.roleId());
+        String requestBody = validRequest(fixture);
 
         // when
         String firstResponse = mockMvc.perform(
@@ -307,8 +314,13 @@ class SubmissionControllerTest {
                 .get("submissionId").asString();
         String secondSubmissionId = objectMapper.readTree(secondResponse)
                 .get("submissionId").asString();
+        String firstSubmittedAt = objectMapper.readTree(firstResponse)
+                .get("submittedAt").asString();
+        String secondSubmittedAt = objectMapper.readTree(secondResponse)
+                .get("submittedAt").asString();
 
         assertEquals(firstSubmissionId, secondSubmissionId);
+        assertEquals(firstSubmittedAt, secondSubmittedAt);
         assertEquals(1L, submissionRepository.count());
     }
 
@@ -316,7 +328,7 @@ class SubmissionControllerTest {
     void rejectsDifferentRequestUsingSameIdempotencyKey() throws Exception {
         AuditionFixture fixture = saveAudition(NOW.minusSeconds(86_400), NOW.plusSeconds(86_400));
         UUID idempotencyKey = UUID.randomUUID();
-        String requestBody = validRequest(fixture.roleId());
+        String requestBody = validRequest(fixture);
         String changedRequestBody = requestBody.replace(
                 "\"basicInformation\": {}",
                 "\"basicInformation\": {\"name\": \"다른 이름\"}"
@@ -350,9 +362,29 @@ class SubmissionControllerTest {
                         .with(csrf())
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(validRequest(fixture.roleId())))
+                        .content(validRequest(fixture)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+    }
+
+    @Test
+    void rejectsStalePostingSnapshotAfterProducerNameChanges() throws Exception {
+        AuditionFixture fixture = saveAudition(NOW.minusSeconds(86_400), NOW.plusSeconds(86_400));
+        Producer producer = producerRepository.findByMemberId(PRODUCER_ID).orElseThrow();
+        producer.updateCompanyName("변경된 극단");
+        producerRepository.saveAndFlush(producer);
+
+        mockMvc.perform(post("/api/v1/auditions/{auditionId}/submissions", fixture.auditionId())
+                        .with(csrf())
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
+                        .header("Idempotency-Key", UUID.randomUUID().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validRequest(fixture)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("SUBMISSION_STALE_POSTING_SNAPSHOT"));
+
+        assertEquals(0L, submissionRepository.count());
+        assertEquals(0L, consentRepository.count());
     }
 
     private void submit(AuditionFixture fixture) throws Exception {
@@ -361,7 +393,7 @@ class SubmissionControllerTest {
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, MEMBER_PRINCIPAL)
                         .header("Idempotency-Key", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(validRequest(fixture.roleId())))
+                        .content(validRequest(fixture)))
                 .andExpect(status().isCreated());
     }
 
@@ -411,7 +443,11 @@ class SubmissionControllerTest {
                         new AdditionalQuestionPlans(List.of())
                 )
         ));
-        return new AuditionFixture(audition.getPublicId(), roleSection.getRoles().getFirst().getId());
+        return new AuditionFixture(
+                audition.getPublicId(),
+                roleSection.getRoles().getFirst().getId(),
+                snapshotVersionGenerator.generate(audition.getPublicId(), "테스트 극단")
+        );
     }
 
     private Performance savePerformance() {
@@ -434,16 +470,17 @@ class SubmissionControllerTest {
         return fileAssetRepository.saveAndFlush(file).getId();
     }
 
-    private String requestWithApplicantId(long roleId) {
-        return validRequest(roleId).replaceFirst(
+    private String requestWithApplicantId(AuditionFixture fixture) {
+        return validRequest(fixture).replaceFirst(
                 "\\{",
                 "{\n  \"applicantId\": " + REQUEST_APPLICANT_ID + ","
         );
     }
 
-    private String validRequest(long roleId) {
+    private String validRequest(AuditionFixture fixture) {
         return """
                 {
+                  "postingSnapshotVersion": "%s",
                   "basicInformation": {},
                   "additionalInformation": {"links": [], "careers": []},
                   "selectedRoleIds": [%d],
@@ -457,7 +494,7 @@ class SubmissionControllerTest {
                     "thirdPartyProvisionAgreed": true
                   }
                 }
-                """.formatted(roleId);
+                """.formatted(fixture.postingSnapshotVersion(), fixture.roleId());
     }
 
     private String invalidRequest() {
@@ -479,7 +516,7 @@ class SubmissionControllerTest {
                 """;
     }
 
-    private record AuditionFixture(UUID auditionId, long roleId) {
+    private record AuditionFixture(UUID auditionId, long roleId, String postingSnapshotVersion) {
     }
 
     @TestConfiguration(proxyBeanMethods = false)

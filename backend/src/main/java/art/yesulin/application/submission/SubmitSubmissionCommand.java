@@ -1,12 +1,14 @@
 package art.yesulin.application.submission;
 
 import static art.yesulin.domain.common.validation.DomainValidator.requireNonNull;
+import static art.yesulin.domain.common.validation.DomainValidator.requireText;
 
 import art.yesulin.domain.submission.SubmissionAdditionalInformation;
 import art.yesulin.domain.submission.SubmissionBasicInformation;
 import java.util.List;
 
 public record SubmitSubmissionCommand(
+        String postingSnapshotVersion,
         SubmitBasicInformationCommand basicInformation,
         SubmitAdditionalInformationCommand additionalInformation,
         List<Long> selectedRoleIds,
@@ -15,6 +17,7 @@ public record SubmitSubmissionCommand(
 ) {
 
     public SubmitSubmissionCommand {
+        postingSnapshotVersion = requireText(postingSnapshotVersion, "공고 스냅샷 버전은 필수입니다.");
         basicInformation = requireNonNull(basicInformation, "기본 정보는 필수입니다.");
         additionalInformation = requireNonNull(additionalInformation, "추가 정보는 필수입니다.");
         selectedRoleIds = List.copyOf(requireNonNull(selectedRoleIds, "선택 배역 ID 목록은 필수입니다."));

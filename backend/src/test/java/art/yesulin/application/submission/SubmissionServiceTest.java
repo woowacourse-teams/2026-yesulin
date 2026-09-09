@@ -11,6 +11,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 
+import art.yesulin.application.audition.PostingSnapshotVersionGenerator;
 import art.yesulin.application.submission.consent.SubmissionConsentDocumentProvider;
 import art.yesulin.common.exception.BusinessException;
 import art.yesulin.common.exception.ErrorCode;
@@ -123,6 +124,8 @@ class SubmissionServiceTest {
     private PerformanceRepository performanceRepository;
     @Autowired
     private ProducerRepository producerRepository;
+    @Autowired
+    private PostingSnapshotVersionGenerator snapshotVersionGenerator;
     @MockitoSpyBean
     private SubmissionConsentDocumentProvider consentDocumentProvider;
     @Autowired
@@ -170,9 +173,9 @@ class SubmissionServiceTest {
         SubmissionConsent thirdPartyConsent = findConsent(
                 consents, SubmissionConsentType.THIRD_PARTY_PROVISION
         );
-        assertEquals("mvp-privacy-placeholder-v0", privacyConsent.getDocumentVersion());
-        assertEquals("mvp-third-party-placeholder-v0", thirdPartyConsent.getDocumentVersion());
-        assertEquals("MVP 임시 기획사/제작사", thirdPartyConsent.getRecipientNameSnapshot());
+        assertEquals("submission-collection-v1.0", privacyConsent.getDocumentVersion());
+        assertEquals("submission-third-party-v1.0", thirdPartyConsent.getDocumentVersion());
+        assertEquals("테스트 극단", thirdPartyConsent.getRecipientNameSnapshot());
         List<FileReference> submissionReferences = findSubmissionReferences();
         assertEquals(1, submissionReferences.size());
         assertEquals(fixture.fileId(), submissionReferences.getFirst().getFileId());
@@ -180,7 +183,7 @@ class SubmissionServiceTest {
         List<FileReference> posterReferences = findSubmissionPosterReferences();
         assertEquals(1, posterReferences.size());
         assertEquals(submission.id(), posterReferences.getFirst().getReferenceId());
-        verify(consentDocumentProvider).currentFor(submission.auditionId(), NOW);
+        verify(consentDocumentProvider).currentFor(submission.auditionId(), "테스트 극단", NOW);
     }
 
     @Test
@@ -326,6 +329,20 @@ class SubmissionServiceTest {
                 fixture,
                 command,
                 SubmissionErrorCode.INVALID_SELECTED_ROLE
+        );
+    }
+
+    @Test
+    void rejectsSubmissionWhenProducerNameChangedAfterPostingWasRead() {
+        SubmissionFixture fixture = saveOpenAudition();
+        Producer producer = producerRepository.findByMemberId(PRODUCER_ID).orElseThrow();
+        producer.updateCompanyName("변경된 극단");
+        producerRepository.saveAndFlush(producer);
+
+        assertRejectedWithoutPersistence(
+                fixture,
+                fixture.command(),
+                SubmissionErrorCode.STALE_POSTING_SNAPSHOT
         );
     }
 
@@ -501,7 +518,11 @@ class SubmissionServiceTest {
         return new SubmissionFixture(
                 audition.getPublicId(),
                 fileId,
-                createCommand(roleSection.getRoles().getFirst().getId(), photoAnswers)
+                createCommand(
+                        snapshotVersionGenerator.generate(audition.getPublicId(), "테스트 극단"),
+                        roleSection.getRoles().getFirst().getId(),
+                        photoAnswers
+                )
         );
     }
 
@@ -529,6 +550,7 @@ class SubmissionServiceTest {
             List<Long> selectedRoleIds
     ) {
         return new SubmitSubmissionCommand(
+                command.postingSnapshotVersion(),
                 command.basicInformation(),
                 command.additionalInformation(),
                 selectedRoleIds,
@@ -542,6 +564,7 @@ class SubmissionServiceTest {
             SubmitFormAnswersCommand formAnswers
     ) {
         return new SubmitSubmissionCommand(
+                command.postingSnapshotVersion(),
                 command.basicInformation(),
                 command.additionalInformation(),
                 command.selectedRoleIds(),
@@ -577,10 +600,12 @@ class SubmissionServiceTest {
     }
 
     private SubmitSubmissionCommand createCommand(
+            String postingSnapshotVersion,
             long roleId,
             List<SubmitPhotoRequirementAnswerCommand> photoAnswers
     ) {
         return new SubmitSubmissionCommand(
+                postingSnapshotVersion,
                 new SubmitBasicInformationCommand(null, null, null, null, null, null, null, null),
                 new SubmitAdditionalInformationCommand(
                         null, List.of(), null, null, null, null, null, List.of()

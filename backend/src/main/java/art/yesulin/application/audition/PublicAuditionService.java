@@ -33,6 +33,7 @@ public class PublicAuditionService {
     private final AuditionRoleSectionRepository roleSectionRepository;
     private final AuditionScheduleRepository scheduleRepository;
     private final AuditionFormRepository formRepository;
+    private final PostingSnapshotVersionGenerator snapshotVersionGenerator;
 
     @Transactional(readOnly = true)
     public PublicAuditionResult find(UUID auditionId) {
@@ -51,6 +52,7 @@ public class PublicAuditionService {
         AuditionForm form = formRepository.findByAuditionId(internalAuditionId)
                 .orElseThrow(() -> new IllegalStateException("게시된 공고의 지원 폼을 찾을 수 없습니다."));
         return new PublicAuditionResult(
+                snapshotVersionGenerator.generate(audition.getPublicId(), producer.getCompanyName()),
                 audition.getOwnerId(),
                 performance.getPosterFileId(),
                 performance.getTitle(),

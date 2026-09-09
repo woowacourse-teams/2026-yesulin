@@ -12,6 +12,7 @@ export type PublicPostingStatus = "OPEN" | "UPCOMING" | "CLOSED";
 
 export type PublicPosting = {
   readonly id: PostingId;
+  readonly postingSnapshotVersion: string;
   readonly performanceTitle: string;
   readonly title: string;
   readonly posterUrl: string;
@@ -113,9 +114,11 @@ export function publicPostingById(id: string): PublicPosting | null {
   const { performance, posting } = found;
   if (posting.status === "DRAFT") return null;
   const company = producerProfile();
+  const companyName = company.companyName || "기획사/제작사";
   const applicationFields = posting.applicationFields ?? defaultApplicationFields();
   return {
     id: posting.id,
+    postingSnapshotVersion: mockPostingSnapshotVersion(posting.id, companyName),
     performanceTitle: performance.title,
     title: posting.title,
     posterUrl: posting.posterUrl,
@@ -124,7 +127,7 @@ export function publicPostingById(id: string): PublicPosting | null {
     venueAddress: performance.venueAddress,
     performanceStart: posting.performanceStart,
     performanceEnd: posting.performanceEnd,
-    companyName: company.companyName || "기획사/제작사",
+    companyName,
     companyDescription: company.description ?? "",
     recruitmentStart: posting.recruitmentStart ?? "",
     recruitmentEnd: posting.recruitmentEnd ?? "",
@@ -139,6 +142,10 @@ export function publicPostingById(id: string): PublicPosting | null {
     applicationFields,
     notice: posting.applicationGuide ?? "실제 접수 방법은 기획사/제작사에 확인해 주세요.",
   };
+}
+
+export function mockPostingSnapshotVersion(postingId: string, companyName: string) {
+  return `mock-v1:${encodeURIComponent(postingId)}:${encodeURIComponent(companyName)}`;
 }
 
 export function publicPostingDate(date: string) {

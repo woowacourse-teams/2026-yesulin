@@ -25,6 +25,7 @@ function toPublicPosting(resource: PublicAuditionResource): PublicPosting {
   const applicationFields = toApplicationFields(resource.applicationForm);
   return {
     id: postingId(resource.id),
+    postingSnapshotVersion: requiredSnapshotVersion(resource.postingSnapshotVersion),
     performanceTitle: resource.performanceTitle,
     title: resource.title,
     posterUrl: resource.posterUrl,
@@ -33,7 +34,7 @@ function toPublicPosting(resource: PublicAuditionResource): PublicPosting {
     venueAddress: emptyAddress(resource.roadAddress),
     performanceStart: resource.performanceStartDate,
     performanceEnd: resource.performanceEndDate ?? "",
-    companyName: resource.producer.companyName || "기획사/제작사",
+    companyName: requiredCompanyName(resource.producer.companyName),
     companyDescription: resource.producer.description ?? "",
     recruitmentStart: resource.recruitmentStartAt,
     recruitmentEnd: resource.recruitmentEndAt,
@@ -73,4 +74,16 @@ function statusOf(resource: PublicAuditionResource): PublicPostingStatus {
 
 function emptyAddress(roadAddress = "") {
   return { roadAddress, detailAddress: "", zonecode: "", latitude: null, longitude: null };
+}
+
+function requiredCompanyName(value: string) {
+  const companyName = value.trim();
+  if (!companyName) throw new Error("공고의 기획사/제작사 정보가 비어 있습니다.");
+  return companyName;
+}
+
+function requiredSnapshotVersion(value: string) {
+  const version = value.trim();
+  if (!version) throw new Error("공고 스냅샷 버전이 비어 있습니다.");
+  return version;
 }

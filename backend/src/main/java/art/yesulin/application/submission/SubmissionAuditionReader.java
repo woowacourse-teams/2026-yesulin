@@ -2,6 +2,7 @@ package art.yesulin.application.submission;
 
 import static art.yesulin.domain.audition.AuditionErrorCode.NOT_FOUND;
 
+import art.yesulin.application.audition.PostingSnapshotVersionGenerator;
 import art.yesulin.application.submission.form.SubmissionFormDefinition;
 import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.audition.Audition;
@@ -34,6 +35,7 @@ class SubmissionAuditionReader {
     private final AuditionRoleSectionRepository roleSectionRepository;
     private final AuditionScheduleRepository scheduleRepository;
     private final AuditionFormRepository formRepository;
+    private final PostingSnapshotVersionGenerator snapshotVersionGenerator;
 
     SubmissionAudition read(UUID auditionId) {
         Audition audition = auditionRepository.findByPublicId(auditionId)
@@ -41,7 +43,7 @@ class SubmissionAuditionReader {
                 .orElseThrow(() -> new BusinessException(NOT_FOUND, "공고를 찾을 수 없습니다."));
         Performance performance = performanceRepository.findById(audition.getPerformanceId())
                 .orElseThrow(() -> new IllegalStateException("공고가 속한 공연을 찾을 수 없습니다."));
-        Producer producer = producerRepository.findByMemberId(performance.getOwnerId())
+        Producer producer = producerRepository.findByMemberId(audition.getOwnerId())
                 .orElseThrow(() -> new IllegalStateException("공고를 등록한 기획사·제작사를 찾을 수 없습니다."));
         long internalAuditionId = audition.getId();
         AuditionRoleSection roleSection = roleSectionRepository.findByAuditionId(internalAuditionId)
@@ -66,6 +68,7 @@ class SubmissionAuditionReader {
         return new SubmissionAudition(
                 audition.getId(),
                 audition.getPublicId(),
+                snapshotVersionGenerator.generate(audition.getPublicId(), producer.getCompanyName()),
                 audition.getTitle(),
                 performance.getTitle(),
                 producer.getCompanyName(),

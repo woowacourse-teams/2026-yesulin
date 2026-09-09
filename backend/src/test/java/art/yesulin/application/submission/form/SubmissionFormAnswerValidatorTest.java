@@ -36,6 +36,7 @@ class SubmissionFormAnswerValidatorTest {
                 List.of(new SubmissionVideoRequirementDefinition(3L, "자유 연기 영상"))
         );
         SubmitSubmissionCommand command = new SubmitSubmissionCommand(
+                "v1.test-snapshot",
                 new SubmitBasicInformationCommand(
                         "김하린", null, null, LocalDate.of(2000, 1, 1), null, null, null, null
                 ),

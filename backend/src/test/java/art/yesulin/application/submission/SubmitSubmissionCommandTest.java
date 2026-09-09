@@ -16,6 +16,7 @@ class SubmitSubmissionCommandTest {
     @Test
     void createsSubmissionInformationFromCommand() {
         SubmitSubmissionCommand command = new SubmitSubmissionCommand(
+                "v1.test-snapshot",
                 new SubmitBasicInformationCommand(
                         " 김하린 ", 165, 50, LocalDate.of(2000, 1, 1), SubmissionGender.FEMALE,
                         "010-1234-5678", "harin@example.com", " 서울시 마포구 "
@@ -59,6 +60,7 @@ class SubmitSubmissionCommandTest {
                 videoAnswers
         );
         SubmitSubmissionCommand command = new SubmitSubmissionCommand(
+                "v1.test-snapshot",
                 emptyBasicInformation(),
                 new SubmitAdditionalInformationCommand(
                         null, links, null, null, null, null, null, careers

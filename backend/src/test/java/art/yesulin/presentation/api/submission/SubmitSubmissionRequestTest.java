@@ -36,6 +36,7 @@ class SubmitSubmissionRequestTest {
 
         assertTrue(violations.isEmpty());
         assertEquals(List.of(11L, 12L), command.selectedRoleIds());
+        assertEquals("v1.test-snapshot", command.postingSnapshotVersion());
         assertEquals(SubmissionGender.FEMALE, command.basicInformation().gender());
         assertEquals(MilitaryServiceStatus.NOT_APPLICABLE, command.additionalInformation().militaryServiceStatus());
         assertEquals(21L, command.formAnswers().questionAnswers().getFirst().questionId());
@@ -47,12 +48,19 @@ class SubmitSubmissionRequestTest {
 
     @Test
     void requiresSubmissionContainersAndSelectedRole() {
-        SubmitSubmissionRequest request = new SubmitSubmissionRequest(null, null, List.of(), null, null);
+        SubmitSubmissionRequest request = new SubmitSubmissionRequest(null, null, null, List.of(), null, null);
 
         Set<String> invalidProperties = invalidProperties(request);
 
         assertEquals(
-                Set.of("basicInformation", "additionalInformation", "selectedRoleIds", "formAnswers", "consents"),
+                Set.of(
+                        "postingSnapshotVersion",
+                        "basicInformation",
+                        "additionalInformation",
+                        "selectedRoleIds",
+                        "formAnswers",
+                        "consents"
+                ),
                 invalidProperties
         );
     }
@@ -74,6 +82,7 @@ class SubmitSubmissionRequestTest {
     @Test
     void validatesNestedInputFormats() {
         SubmitSubmissionRequest request = new SubmitSubmissionRequest(
+                "v1.test-snapshot",
                 new SubmitBasicInformationRequest(
                         null, 0, null, LocalDate.now().plusDays(1), "UNKNOWN",
                         "01012345678", "invalid-email", null
@@ -116,6 +125,7 @@ class SubmitSubmissionRequestTest {
 
     private SubmitSubmissionRequest validRequest() {
         return new SubmitSubmissionRequest(
+                "v1.test-snapshot",
                 new SubmitBasicInformationRequest(
                         "김하린",
                         165,

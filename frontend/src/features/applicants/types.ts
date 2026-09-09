@@ -152,6 +152,7 @@ export type ProfilePrefillResponse = {
 export type CreateSubmissionRequest = {
   /** 공개 제출 경로에는 공고 식별자 자리가 없어 본문으로 전달한다. */
   readonly postingId: string;
+  readonly postingSnapshotVersion: string;
   readonly roleIds: readonly string[];
   readonly answers: readonly {
     readonly key: string;
