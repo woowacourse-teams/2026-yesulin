@@ -1,3 +1,5 @@
+sh scripts/config/validate-pin.sh --local
+
 changed_files=$(git diff --cached --name-only --diff-filter=ACMR -- \
   backend/src \
   backend/checkstyle \
