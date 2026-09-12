@@ -10,11 +10,14 @@ if ! printf '%s' "$REVISION" | grep -Eq '^[0-9a-fA-F]{7,64}$'; then
 fi
 
 (cd "$DEPLOYMENT_DIR" && sha256sum --check application.jar.sha256)
-sh "$DEPLOYMENT_DIR/scripts/install_env.sh"
 
 RELEASE_DIR="/opt/yesulin/releases/$REVISION"
 install -d -o root -g yesulin -m 0750 "$RELEASE_DIR"
 install -o root -g yesulin -m 0640 "$DEPLOYMENT_DIR/application.jar" "$RELEASE_DIR/application.jar"
+sh "$DEPLOYMENT_DIR/scripts/install_env.sh" \
+  "$DEPLOYMENT_DIR/config/staging.env" \
+  /etc/yesulin/sops/age/keys.txt \
+  "$RELEASE_DIR"
 
 if [ -e /opt/yesulin/current ] && [ ! -L /opt/yesulin/current ]; then
   echo "/opt/yesulin/current exists and is not a symbolic link" >&2

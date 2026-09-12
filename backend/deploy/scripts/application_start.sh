@@ -1,8 +1,8 @@
 #!/bin/sh
 set -eu
 
-if [ ! -r /etc/yesulin/yesulin.env ]; then
-  echo "Missing /etc/yesulin/yesulin.env" >&2
+if [ ! -r /opt/yesulin/current/yesulin.env ]; then
+  echo "Missing /opt/yesulin/current/yesulin.env" >&2
   exit 1
 fi
 

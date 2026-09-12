@@ -5,7 +5,8 @@ CodeBuild는 `buildspec.yml`로 `backend/build/deployment/` 묶음을 만들고 
 
 1. PR CI가 Java 25로 Checkstyle과 test를 수행하고, CodeBuild가 실행 JAR를 빌드한다.
 2. JAR를 `application.jar`로 고정하고 revision과 SHA-256을 기록한다.
-3. 암호화된 설정을 EC2에서 복호화하고 JAR를 `/opt/yesulin/releases/{commit-id}`에 설치한 뒤 `current` symlink를 교체한다.
+3. JAR와 복호화한 환경 파일을 `/opt/yesulin/releases/{commit-id}`에 함께 설치한 뒤 `current` symlink를 교체한다.
+   복호화가 실패하면 `current`는 이전 릴리스를 계속 가리킨다. 롤백하면 이전 JAR와 환경 파일이 함께 선택된다.
 4. systemd가 `yesulin` 사용자로 Spring을 `0.0.0.0:80`에서 실행한다. 비특권 사용자에게는
    `CAP_NET_BIND_SERVICE`만 부여한다.
 5. CodeDeploy가 `http://127.0.0.1:80/actuator/health/readiness`의 HTTP 200을 확인한다.
@@ -19,7 +20,7 @@ ALB와 ACM이 담당하므로 EC2에 Nginx와 Let's Encrypt 인증서를 설치�
 readiness에는 Spring의 readiness 상태와 DB 연결 상태가 포함된다. 따라서 프로세스만 실행 중이거나 DB에 연결할 수 없는
 인스턴스는 ALB의 정상 대상으로 등록되지 않는다. 상세 health 정보는 외부에 노출하지 않는다.
 
-운영 대시보드 계정은 `/etc/yesulin/yesulin.env`의 `YESULIN_ADMIN_ACCOUNTS`로만 만든다. 형식은 `email:password`이고
+운영 대시보드 계정은 배포 릴리스의 `yesulin.env`에 있는 `YESULIN_ADMIN_ACCOUNTS`로만 만든다. 형식은 `email:password`이고
 여러 개는 쉼표로 잇는다. 비밀번호는 12자 이상이고 쉼표를 쓸 수 없다. 첫 `:`만 구분자이므로 비밀번호 안의 `:`는 허용한다.
 세션 Cookie의 `Secure` 속성은 `SESSION_COOKIE_SECURE=true`로 켠다. 값을 바꾸고 재기동하면 비밀번호가 교체되고,
 값을 비우면 기존 계정은 남되 새로 만들지 않는다. 계정을 없애려면 DB에서 해당 회원을 직접 지운다.
@@ -64,7 +65,7 @@ EC2에는 Java 25, CodeDeploy Agent, `sops`, DB 네트워크 연결과 배포 �
 `/etc/yesulin/sops/age/keys.txt`가 필요하다. 새 ASG 인스턴스에도 이 키가 준비되도록 별도의 전달 방법을
 구성하고 검증해야 한다. AMI에 private key를 넣으면 해당 AMI·스냅샷을 읽을 수 있는 사람에게도 키가 노출될 수
 있으므로 사용 전 권한과 대안을 검토한다. CodeBuild는 암호화된 `server/staging.env`만 배포 아티팩트에 포함하며 복호화하지 않는다.
-CodeDeploy는 EC2에서 `/etc/yesulin/yesulin.env`를 복호화하여 root 소유·`yesulin` 그룹·`0640` 권한으로 만든다.
+CodeDeploy는 EC2에서 각 릴리스의 `yesulin.env`를 복호화하여 root 소유·`yesulin` 그룹·`0640` 권한으로 만든다.
 실제 secret과 private key는 저장소, AMI, build log에 남기지 않는다. 상세 스크립트는 `backend/deploy/`를 따른다.
 
 새 인스턴스를 자동 생성하는 Launch Template에는 `ec2-project` IAM Instance Profile과 Java 25·CodeDeploy Agent·
