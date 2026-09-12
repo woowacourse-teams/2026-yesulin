@@ -1,4 +1,7 @@
 spring:
+  config:
+    # 로컬 실행은 config submodule 안의 개인 환경 파일이 없으면 시작하지 않는다.
+    import: file:../config/server/local.env[.properties]
   datasource:
     url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3307}/${DB_NAME:yesulin}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Seoul
     username: ${DB_USERNAME:yesulin}

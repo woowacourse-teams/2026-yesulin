@@ -11,6 +11,10 @@ phases:
     runtime-versions:
       java: corretto25
 
+  pre_build:
+    commands:
+      - sh "$CODEBUILD_SRC_DIR/scripts/config/verify-build-source.sh"
+
   build:
     commands:
       - cd "$CODEBUILD_SRC_DIR/backend"
@@ -29,7 +33,7 @@ phases:
       - sh deploy/tests/validate_service_test.sh
       - sh deploy/tests/cleanup_releases_test.sh
       - chmod +x deploy/package_bundle.sh
-      - deploy/package_bundle.sh "$CODEBUILD_RESOLVED_SOURCE_VERSION"
+      - deploy/package_bundle.sh "$CODEBUILD_RESOLVED_SOURCE_VERSION" "$CODEBUILD_SRC_DIR_ConfigSource/server/staging.env"
 
 artifacts:
   base-directory: backend/build/deployment

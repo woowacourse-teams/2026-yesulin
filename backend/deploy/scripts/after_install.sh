@@ -10,6 +10,7 @@ if ! printf '%s' "$REVISION" | grep -Eq '^[0-9a-fA-F]{7,64}$'; then
 fi
 
 (cd "$DEPLOYMENT_DIR" && sha256sum --check application.jar.sha256)
+sh "$DEPLOYMENT_DIR/scripts/install_env.sh"
 
 RELEASE_DIR="/opt/yesulin/releases/$REVISION"
 install -d -o root -g yesulin -m 0750 "$RELEASE_DIR"

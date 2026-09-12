@@ -30,12 +30,18 @@ npm run dev
 백엔드:
 
 ```bash
-cp -n .env.example .env
+git submodule update --init --recursive
 cd backend
 ./gradlew bootRun
 ```
 
-기획사/제작사 인증 메일은 Google SMTP를 사용한다. `.env`에 `GOOGLE_SMTP_USERNAME`,
+`bootRun` 전에 기존 루트 `.env`의 백엔드 값을 `config/server/local.env`로 옮기거나 새 파일을 작성한다.
+기존 파일이 있다면 저장소 루트에서 `cp -n .env config/server/local.env`로 복사할 수 있다.
+복사한 뒤에는 `chmod 600 config/server/local.env`를 적용하고, 필요한 로컬 DB 설정도 확인한다.
+이 파일은 config 저장소에서 Git 추적하지 않으며, 없으면 로컬 Spring Boot가 시작되지 않는다.
+Docker Compose는 변수 치환에 기존 루트 `.env`를 계속 사용하지만, 백엔드 시작에는 `config/server/local.env`도 필요하다.
+
+기획사/제작사 인증 메일은 Google SMTP를 사용한다. `config/server/local.env`에 `GOOGLE_SMTP_USERNAME`,
 `GOOGLE_SMTP_APP_PASSWORD`, `GOOGLE_SMTP_FROM`, `EMAIL_VERIFICATION_URL`,
 `EMAIL_VERIFICATION_REDIRECT_URI`, `PASSWORD_RESET_URL`을 설정한다. 실제 Google 계정 비밀번호가 아니라
 2단계 인증에서 발급한 앱 비밀번호를 사용한다. 로컬도 같은 SMTP 설정으로 실제 인증 메일을 발송하며,

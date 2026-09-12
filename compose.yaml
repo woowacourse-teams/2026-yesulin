@@ -92,6 +92,7 @@ services:
     ports:
       - "${BACKEND_HOST_PORT:-8080}:8080"
     volumes:
+      - ./config/server/local.env:/config/server/local.env:ro
       - backend-logs:/var/log/yesulin
     depends_on:
       mysql:

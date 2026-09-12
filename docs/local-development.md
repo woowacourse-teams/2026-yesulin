@@ -1,6 +1,8 @@
 # 로컬 통합 실행
 
 Docker Compose는 MySQL, LocalStack S3, Spring Boot와 Next.js를 하나의 네트워크에서 실행한다.
+실행 전에 `config/server/local.env`를 만든다. Compose는 이 파일을 백엔드 컨테이너에 읽기 전용으로 연결하며,
+기존 루트 `.env`는 Compose 변수 치환과 프론트엔드 설정에 계속 사용한다.
 
 ```bash
 docker compose up --build -d --wait
