@@ -62,16 +62,26 @@ HTTP 본문이나 객체를 별도로 직렬화하는 로깅은 이 마스킹으
 세션 만료는 `SESSION_TIMEOUT`의 idle timeout을 따르며 기본값은 12시간이다. 재배포는 세션 만료 사유가 아니다.
 
 EC2에는 Java 25, CodeDeploy Agent, `sops`, DB 네트워크 연결과 배포 전용 age private key
-`/etc/yesulin/sops/age/keys.txt`가 필요하다. 새 ASG 인스턴스에도 이 키가 준비되도록 별도의 전달 방법을
-구성하고 검증해야 한다. AMI에 private key를 넣으면 해당 AMI·스냅샷을 읽을 수 있는 사람에게도 키가 노출될 수
-있으므로 사용 전 권한과 대안을 검토한다. CodeBuild는 암호화된 `server/staging.env`만 배포 아티팩트에 포함하며 복호화하지 않는다.
+`/etc/yesulin/sops/age/keys.txt`가 필요하다. 현재는 별도의 비밀 저장소 권한이 없어 배포 전용 키를
+AMI에 포함하는 방식으로 새 ASG 인스턴스에 전달한다. 키와 상위 디렉터리는 root 소유로 두고 각각 `0600`,
+`0700` 권한을 적용한다. 이 방식은 AMI·스냅샷을 읽을 수 있는 주체에게도 복호화 권한을 주므로 접근 권한을
+제한하고, 비밀 저장소를 사용할 수 있게 되면 키 전달 방식을 교체한다. CodeBuild는 암호화된
+`server/staging.env`만 배포 아티팩트에 포함하며 복호화하지 않는다.
 CodeDeploy는 EC2에서 각 릴리스의 `yesulin.env`를 복호화하여 root 소유·`yesulin` 그룹·`0640` 권한으로 만든다.
-실제 secret과 private key는 저장소, AMI, build log에 남기지 않는다. 상세 스크립트는 `backend/deploy/`를 따른다.
+실제 secret은 저장소·build log에 남기지 않는다.  
+AMI에 평문 secret이 남지 않았는지는 별도로 검증해야 한다. private key는 저장소·build log에 남기지 않는다.
+상세 스크립트는 `backend/deploy/`를 따른다.
 
 새 인스턴스를 자동 생성하는 Launch Template에는 `ec2-project` IAM Instance Profile과 Java 25·CodeDeploy Agent·
-`sops` 설치, age private key 주입을 포함해야 한다. 새 인스턴스에서 키를 읽을 수 없다면 `AfterInstall`이 실패하며,
+`sops` 설치 및 배포 전용 키를 포함한 AMI를 지정해야 한다. 새 인스턴스에서 키를 읽을 수 없다면 `AfterInstall`이 실패하며,
 릴리스 환경 파일이 없으면 `ApplicationStart`가 실패한다. 현재 수동으로 설정한 EC2만 검증해서는 ASG 교체가
 준비되었다고 볼 수 없다.
+
+AMI를 만들기 전에는 원본 인스턴스에 `/etc/yesulin/yesulin.env`,
+`/opt/yesulin/releases/*/yesulin.env` 같은 평문 환경 파일이 없는지 확인한다. 현재 서비스가 읽는
+`/etc/yesulin/yesulin.env`는 실행 중인 인스턴스에서 미리 지우지 않는다. 파일을 지우면 다음 재시작에 실패할 수
+있으므로, 트래픽을 받지 않는 이미지 준비용 인스턴스에서 정리하거나 배포 경로를 전환한 뒤 정비 시간에 처리한다.
+AMI 생성 전까지는 기존 서비스와 릴리스 파일을 보존한다.
 
 소셜 로그인은 프록시가 관찰한 내부 호스트가 아니라 사용자가 접속하는 프론트 주소로 이동하도록 세 URL을 명시한다.
 특히 실패 URL은 상대 경로를 허용하지 않으며, 누락되거나 HTTP(S) 절대 URL이 아니면 애플리케이션 시작을 거부한다.
