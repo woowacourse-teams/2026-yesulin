@@ -5,7 +5,8 @@ CodeBuild는 `buildspec.yml`로 `backend/build/deployment/` 묶음을 만들고 
 
 1. PR CI가 Java 25로 Checkstyle과 test를 수행하고, CodeBuild가 실행 JAR를 빌드한다.
 2. JAR를 `application.jar`로 고정하고 revision과 SHA-256을 기록한다.
-3. `/opt/yesulin/releases/{commit-id}`에 설치하고 `current` symlink를 교체한다.
+3. JAR와 복호화한 환경 파일을 `/opt/yesulin/releases/{commit-id}`에 함께 설치한 뒤 `current` symlink를 교체한다.
+   복호화가 실패하면 `current`는 이전 릴리스를 계속 가리킨다. 롤백하면 이전 JAR와 환경 파일이 함께 선택된다.
 4. systemd가 `yesulin` 사용자로 Spring을 `0.0.0.0:80`에서 실행한다. 비특권 사용자에게는
    `CAP_NET_BIND_SERVICE`만 부여한다.
 5. CodeDeploy가 `http://127.0.0.1:80/actuator/health/readiness`의 HTTP 200을 확인한다.
@@ -19,7 +20,7 @@ ALB와 ACM이 담당하므로 EC2에 Nginx와 Let's Encrypt 인증서를 설치�
 readiness에는 Spring의 readiness 상태와 DB 연결 상태가 포함된다. 따라서 프로세스만 실행 중이거나 DB에 연결할 수 없는
 인스턴스는 ALB의 정상 대상으로 등록되지 않는다. 상세 health 정보는 외부에 노출하지 않는다.
 
-운영 대시보드 계정은 `/etc/yesulin/yesulin.env`의 `YESULIN_ADMIN_ACCOUNTS`로만 만든다. 형식은 `email:password`이고
+운영 대시보드 계정은 배포 릴리스의 `yesulin.env`에 있는 `YESULIN_ADMIN_ACCOUNTS`로만 만든다. 형식은 `email:password`이고
 여러 개는 쉼표로 잇는다. 비밀번호는 12자 이상이고 쉼표를 쓸 수 없다. 첫 `:`만 구분자이므로 비밀번호 안의 `:`는 허용한다.
 세션 Cookie의 `Secure` 속성은 `SESSION_COOKIE_SECURE=true`로 켠다. 값을 바꾸고 재기동하면 비밀번호가 교체되고,
 값을 비우면 기존 계정은 남되 새로 만들지 않는다. 계정을 없애려면 DB에서 해당 회원을 직접 지운다.
@@ -39,7 +40,8 @@ Windows PowerShell 5.1의 UTF-8 BOM과 PowerShell 7의 BOM 없는 입력을 모�
 입력값은 명령 인자·환경 변수·파일에 저장하지 않는다. 해시 계산 동안 프로세스 메모리와 표준입력에는 평문이 존재하며,
 관리형 문자열의 메모리 잔존까지 완전히 지우는 것은 보장하지 않는다.
 
-출력된 한 줄을 `/etc/yesulin/yesulin.env`에 설정하고 서비스를 재기동한다. 이 값이 비어 있으면 admin 조회는 가능하지만
+출력된 한 줄을 config 저장소의 `server/staging.env`에 SOPS로 편집하고 새 버전을 배포한다. 서버의 복호화된 파일을
+직접 수정하지 않는다. 이 값이 비어 있으면 admin 조회는 가능하지만
 지원서 삭제는 `403 ADMIN_DELETION_CONFIRMATION_FAILED`로 거부된다. 원문 비밀번호나 생성 명령의 입력값은 문서·메신저·저장소에 남기지 않는다.
 
 삭제 비밀번호는 추가 확인 수단이며 OTP 같은 독립적인 MFA는 아니다.
@@ -59,12 +61,27 @@ HTTP 본문이나 객체를 별도로 직렬화하는 로깅은 이 마스킹으
 `email_verifications`에 저장된다. 배포 전에 사용하는 DB 계정에 해당 migration의 DDL 권한이 있는지 확인한다.
 세션 만료는 `SESSION_TIMEOUT`의 idle timeout을 따르며 기본값은 12시간이다. 재배포는 세션 만료 사유가 아니다.
 
-EC2에는 Java 25, CodeDeploy Agent, DB 네트워크 연결과 root 전용 `/etc/yesulin/yesulin.env`가 필요하다.
-실제 secret은 저장소와 build log에 남기지 않는다. 상세 스크립트는 `backend/deploy/`를 따른다.
+EC2에는 Java 25, CodeDeploy Agent, `sops`, DB 네트워크 연결과 배포 전용 age private key
+`/etc/yesulin/sops/age/keys.txt`가 필요하다. 현재는 별도의 비밀 저장소 권한이 없어 배포 전용 키를
+AMI에 포함하는 방식으로 새 ASG 인스턴스에 전달한다. 키와 상위 디렉터리는 root 소유로 두고 각각 `0600`,
+`0700` 권한을 적용한다. 이 방식은 AMI·스냅샷을 읽을 수 있는 주체에게도 복호화 권한을 주므로 접근 권한을
+제한하고, 비밀 저장소를 사용할 수 있게 되면 키 전달 방식을 교체한다. CodeBuild는 암호화된
+`server/staging.env`만 배포 아티팩트에 포함하며 복호화하지 않는다.
+CodeDeploy는 EC2에서 각 릴리스의 `yesulin.env`를 복호화하여 root 소유·`yesulin` 그룹·`0640` 권한으로 만든다.
+실제 secret은 저장소·build log에 남기지 않는다.  
+AMI에 평문 secret이 남지 않았는지는 별도로 검증해야 한다. private key는 저장소·build log에 남기지 않는다.
+상세 스크립트는 `backend/deploy/`를 따른다.
 
-새 인스턴스를 자동 생성하는 Launch Template에는 `ec2-project` IAM Instance Profile과 Java 25·CodeDeploy Agent 설치를
-포함해야 한다. `/etc/yesulin/yesulin.env`도 사람이 SSM으로 접속해 복사하지 않고, 팀이 사용할 수 있는 암호화된 저장소에서
-인스턴스 역할로 가져오도록 별도로 구성해야 한다. 이 파일이 없으면 CodeDeploy의 `ApplicationStart`가 의도적으로 실패한다.
+새 인스턴스를 자동 생성하는 Launch Template에는 `ec2-project` IAM Instance Profile과 Java 25·CodeDeploy Agent·
+`sops` 설치 및 배포 전용 키를 포함한 AMI를 지정해야 한다. 새 인스턴스에서 키를 읽을 수 없다면 `AfterInstall`이 실패하며,
+릴리스 환경 파일이 없으면 `ApplicationStart`가 실패한다. 현재 수동으로 설정한 EC2만 검증해서는 ASG 교체가
+준비되었다고 볼 수 없다.
+
+AMI를 만들기 전에는 원본 인스턴스에 `/etc/yesulin/yesulin.env`,
+`/opt/yesulin/releases/*/yesulin.env` 같은 평문 환경 파일이 없는지 확인한다. 현재 서비스가 읽는
+`/etc/yesulin/yesulin.env`는 실행 중인 인스턴스에서 미리 지우지 않는다. 파일을 지우면 다음 재시작에 실패할 수
+있으므로, 트래픽을 받지 않는 이미지 준비용 인스턴스에서 정리하거나 배포 경로를 전환한 뒤 정비 시간에 처리한다.
+AMI 생성 전까지는 기존 서비스와 릴리스 파일을 보존한다.
 
 소셜 로그인은 프록시가 관찰한 내부 호스트가 아니라 사용자가 접속하는 프론트 주소로 이동하도록 세 URL을 명시한다.
 특히 실패 URL은 상대 경로를 허용하지 않으며, 누락되거나 HTTP(S) 절대 URL이 아니면 애플리케이션 시작을 거부한다.
@@ -77,7 +94,7 @@ SOCIAL_LOGIN_FAILURE_REDIRECT=https://yesulin.art/login?socialLoginError=true
 
 인증 제공자 콜백이 실패하면 백엔드는 실패 종류의 안전한 오류 코드만 구조화 로그에 남기고
 `SOCIAL_LOGIN_FAILURE_REDIRECT`로 이동한다. OAuth `code`, `state`, 토큰과 예외 메시지는 기록하거나 URL에 싣지 않는다.
-환경 파일을 바꾼 뒤에는 `yesulin.service`를 재시작해야 실행 중인 JVM에 반영된다.
+환경 값을 바꾼 뒤에는 config 커밋과 애플리케이션의 버전 고정을 갱신해 새 릴리스로 배포해야 한다.
 
 Spring 로그 기본 경로는 `/var/log/yesulin/yesulin.log`이며 한 이벤트당 한 줄인 JSON으로 기록한다. journal에는
 같은 이벤트를 짧은 텍스트로 출력한다. systemd unit은 `TZ=Asia/Seoul`을 지정해 파일 JSON과 journal의 시각대를 맞춘다.

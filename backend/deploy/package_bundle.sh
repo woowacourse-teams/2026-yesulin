@@ -2,6 +2,12 @@
 set -eu
 
 REVISION="${1:-}"
+ENCRYPTED_ENV="${2:-}"
+
+if [ ! -s "$ENCRYPTED_ENV" ]; then
+  echo "Encrypted staging.env is missing" >&2
+  exit 1
+fi
 
 if ! printf '%s' "$REVISION" | grep -Eq '^[0-9a-fA-F]{7,64}$'; then
   echo "Resolved source version is not a Git commit ID: $REVISION" >&2
@@ -17,11 +23,12 @@ DEPLOY_DIR=deploy
 BUNDLE_DIR=build/deployment
 
 rm -rf "$BUNDLE_DIR"
-mkdir -p "$BUNDLE_DIR/scripts" "$BUNDLE_DIR/systemd"
+mkdir -p "$BUNDLE_DIR/scripts" "$BUNDLE_DIR/systemd" "$BUNDLE_DIR/config"
 cp build/libs/application.jar "$BUNDLE_DIR/application.jar"
 cp "$DEPLOY_DIR/appspec.yml" "$BUNDLE_DIR/appspec.yml"
 cp "$DEPLOY_DIR/scripts/"*.sh "$BUNDLE_DIR/scripts/"
 cp "$DEPLOY_DIR/systemd/yesulin.service" "$BUNDLE_DIR/systemd/yesulin.service"
+cp "$ENCRYPTED_ENV" "$BUNDLE_DIR/config/staging.env"
 chmod +x "$BUNDLE_DIR/scripts/"*.sh
 printf '%s\n' "$REVISION" > "$BUNDLE_DIR/revision.txt"
 (cd "$BUNDLE_DIR" && sha256sum application.jar > application.jar.sha256)

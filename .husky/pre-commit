@@ -1,3 +1,8 @@
+#!/bin/sh
+set -eu
+
+sh scripts/config/validate-pin.sh --local
+
 changed_files=$(git diff --cached --name-only --diff-filter=ACMR -- \
   backend/src \
   backend/checkstyle \
@@ -6,5 +11,5 @@ changed_files=$(git diff --cached --name-only --diff-filter=ACMR -- \
 if printf '%s\n' "$changed_files" | grep -Eq '(^backend/src/.*\.java$|^backend/checkstyle/|^backend/build\.gradle\.kts$)'; then
   npm run checkstyle
 else
-  echo "No backend Java or Checkstyle changes; skipping Checkstyle."
+  echo "백엔드 Java 또는 Checkstyle 변경이 없어 검사를 건너뜁니다."
 fi

@@ -16,7 +16,7 @@ Group=yesulin
 WorkingDirectory=/opt/yesulin/current
 Environment=LOG_FILE=/var/log/yesulin/yesulin.log
 Environment=TZ=Asia/Seoul
-EnvironmentFile=/etc/yesulin/yesulin.env
+EnvironmentFile=/opt/yesulin/current/yesulin.env
 # project-app 보안 그룹은 project-lb에서 들어오는 80 포트만 허용한다.
 # root로 실행하지 않고 80 포트에 bind할 수 있도록 필요한 capability만 부여한다.
 AmbientCapabilities=CAP_NET_BIND_SERVICE

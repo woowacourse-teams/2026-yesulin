@@ -11,6 +11,12 @@ phases:
     runtime-versions:
       java: corretto25
 
+  pre_build:
+    commands:
+      # CodePipeline Build 액션의 CONFIG_COMMIT_ID는 #{ConfigVariables.CommitId}로 전달한다.
+      # CodeBuild 프로젝트 단독 실행에는 이 값이 없으므로 검증 단계에서 실패한다.
+      - sh "$CODEBUILD_SRC_DIR/scripts/config/verify-build-source.sh"
+
   build:
     commands:
       - cd "$CODEBUILD_SRC_DIR/backend"
@@ -28,8 +34,9 @@ phases:
       - sh deploy/tests/check_flyway_migration_order_test.sh
       - sh deploy/tests/validate_service_test.sh
       - sh deploy/tests/cleanup_releases_test.sh
+      - sh deploy/tests/install_env_test.sh
       - chmod +x deploy/package_bundle.sh
-      - deploy/package_bundle.sh "$CODEBUILD_RESOLVED_SOURCE_VERSION"
+      - deploy/package_bundle.sh "$CODEBUILD_RESOLVED_SOURCE_VERSION" "$CODEBUILD_SRC_DIR_ConfigSource/server/staging.env"
 
 artifacts:
   base-directory: backend/build/deployment
