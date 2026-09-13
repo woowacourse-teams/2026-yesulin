@@ -68,7 +68,7 @@ AMI에 포함하는 방식으로 새 ASG 인스턴스에 전달한다. 키와 �
 제한하고, 비밀 저장소를 사용할 수 있게 되면 키 전달 방식을 교체한다. CodeBuild는 암호화된
 `server/staging.env`만 배포 아티팩트에 포함하며 복호화하지 않는다.
 CodeDeploy는 EC2에서 각 릴리스의 `yesulin.env`를 복호화하여 root 소유·`yesulin` 그룹·`0640` 권한으로 만든다.
-실제 secret은 저장소·build log에 남기지 않는다.  
+실제 secret은 저장소·build log에 남기지 않는다.
 AMI에 평문 secret이 남지 않았는지는 별도로 검증해야 한다. private key는 저장소·build log에 남기지 않는다.
 상세 스크립트는 `backend/deploy/`를 따른다.
 
