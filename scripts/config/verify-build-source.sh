@@ -3,9 +3,9 @@ set -eu
 
 APP_DIR="${CODEBUILD_SRC_DIR:?프로젝트 소스가 없습니다}"
 CONFIG_DIR="${CODEBUILD_SRC_DIR_ConfigSource:?config 소스가 없습니다}"
-CONFIG_SHA="${CONFIG_COMMIT_ID:?config 커밋 ID가 없습니다}"
+CONFIG_SHA="$(printf '%s' "${CONFIG_COMMIT_ID:?config 커밋 ID가 없습니다}" | tr '[:upper:]' '[:lower:]')"
 
-PINNED_SHA="$(tr -d '[:space:]' < "$APP_DIR/config-version.txt")"
+PINNED_SHA="$(tr -d '[:space:]' < "$APP_DIR/config-version.txt" | tr '[:upper:]' '[:lower:]')"
 ENV_FILE="$CONFIG_DIR/server/staging.env"
 
 if [ "$PINNED_SHA" != "$CONFIG_SHA" ]; then

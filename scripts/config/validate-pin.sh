@@ -22,6 +22,13 @@ esac
 ROOT_DIR="$(git rev-parse --show-toplevel)"
 cd "$ROOT_DIR"
 
+# Git hook이 넘긴 부모 저장소의 인덱스·작업 트리 설정을 submodule에 적용하지 않는다.
+config_git() (
+  unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR
+  unset GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES
+  git -C "$CONFIG_PATH" "$@"
+)
+
 GITLINK_SHA="$(
   git ls-files --stage -- "$CONFIG_PATH" |
     awk '$1 == "160000" { print $2; exit }'
@@ -70,7 +77,7 @@ if [ ! -e "$CONFIG_PATH/.git" ]; then
 fi
 
 WORKTREE_SHA="$(
-  git -C "$CONFIG_PATH" rev-parse HEAD |
+  config_git rev-parse HEAD |
     tr '[:upper:]' '[:lower:]'
 )"
 
@@ -78,7 +85,8 @@ if [ "$WORKTREE_SHA" != "$GITLINK_SHA" ]; then
   fail "config HEAD와 stage된 submodule SHA가 일치하지 않습니다."
 fi
 
-if [ -n "$(git -C "$CONFIG_PATH" status --porcelain)" ]; then
+CONFIG_STATUS="$(config_git status --porcelain)" || fail "config 저장소 상태를 읽을 수 없습니다."
+if [ -n "$CONFIG_STATUS" ]; then
   fail "config 저장소에 커밋되지 않은 변경 사항이 있습니다."
 fi
 
@@ -88,7 +96,7 @@ HEAD_GITLINK_SHA="$(
 
 if [ "$GITLINK_SHA" != "$HEAD_GITLINK_SHA" ]; then
   CURRENT_BRANCH="$(
-    git -C "$CONFIG_PATH" \
+    config_git \
       symbolic-ref --quiet --short HEAD 2>/dev/null || true
   )"
 
@@ -100,9 +108,9 @@ fi
 if [ "$MODE" = "--remote" ]; then
   printf '%s\n' "config 커밋이 origin/${CONFIG_BRANCH}에 push되었는지 확인합니다..."
 
-  git -C "$CONFIG_PATH" fetch --quiet origin "$CONFIG_BRANCH"
+  config_git fetch --quiet origin "$CONFIG_BRANCH"
 
-  if ! git -C "$CONFIG_PATH" merge-base \
+  if ! config_git merge-base \
     --is-ancestor "$WORKTREE_SHA" "origin/$CONFIG_BRANCH"; then
     fail "config 커밋이 origin/${CONFIG_BRANCH}에 push되지 않았습니다."
   fi

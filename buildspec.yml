@@ -13,6 +13,8 @@ phases:
 
   pre_build:
     commands:
+      # CodePipeline Build 액션의 CONFIG_COMMIT_ID는 #{ConfigVariables.CommitId}로 전달한다.
+      # CodeBuild 프로젝트 단독 실행에는 이 값이 없으므로 검증 단계에서 실패한다.
       - sh "$CODEBUILD_SRC_DIR/scripts/config/verify-build-source.sh"
 
   build:
