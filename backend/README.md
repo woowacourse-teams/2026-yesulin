@@ -8,7 +8,9 @@ Spring Boot 4.1, Java 25, MySQL 8.4, Flyway, QueryDSL과 S3 호환 저장소를 
 기존 저장소 루트 `.env`를 사용하는 개발자는 내용을 `config/server/local.env`로 옮겨야 한다.
 변수 이름 차이는 저장소 루트에서 `sh scripts/config/compare-env-keys.sh`로 확인할 수 있다.
 로컬 DB용 `DB_*`와 배포 DB용 `SPRING_DATASOURCE_*`처럼 의도적인 차이는 직접 검토한다.
-Docker Compose는 변수 치환에 기존 루트 `.env`를 사용하고, 백엔드 컨테이너에는 `config/server/local.env`를 읽기 전용으로 연결한다.
+Docker Compose는 MySQL·프론트 설정의 변수 치환에 기존 루트 `.env`를 사용하고, 백엔드 컨테이너에는
+`config/server/local.env`를 읽기 전용으로 연결한다. SMTP·OAuth 등 백엔드 설정은 이 파일에서 읽으며,
+Docker의 DB 접속 정보는 루트 `.env`와 `local.env` 사이에 일치시킨다.
 
 ```bash
 cd backend

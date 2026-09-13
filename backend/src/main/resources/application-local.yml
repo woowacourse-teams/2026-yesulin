@@ -13,6 +13,9 @@ spring:
       - classpath:db/local
 
 yesulin:
+  social-login:
+    # 로컬에서는 명시적으로 켠 경우에만 OAuth 제공자를 사용한다.
+    enabled: ${SOCIAL_LOGIN_ENABLED:false}
   storage:
     s3:
       bucket: ${YESULIN_STORAGE_S3_BUCKET:yesulin-local}
