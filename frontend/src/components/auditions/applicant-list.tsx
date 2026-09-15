@@ -9,16 +9,16 @@ import { ApplicantFocusReview } from "./applicant-focus-review";
 import { ApplicantTable } from "./applicant-table";
 import { useBoard } from "./board-context";
 import { ScreenMessage } from "./screen-status";
-import { SecondaryButton, SegmentButton } from "@/components/ui/controls";
+import { SecondaryButton } from "@/components/ui/controls";
 import { useToast } from "./toast";
 
 const POPUP_BLOCKED = "팝업이 차단되어 인쇄 창을 열 수 없습니다. 팝업 허용 후 다시 시도해 주세요.";
 const RESULT_SCOPE_LABELS = {
-  ALL: "검토 완료",
+  ALL: "심사 후",
   PASS: "합격자",
   FAIL: "불합격자",
   ETC: "보류 처리자",
-  PENDING: "검토 대기",
+  PENDING: "심사 전",
 } as const satisfies Record<StatusFilter, string>;
 
 export function ApplicantList() {
@@ -43,7 +43,7 @@ export function ApplicantList() {
 }
 
 function ListToolbar({ rows }: { rows: readonly Applicant[] }) {
-  const { board, filters, selected, setFilters, setSelection, clearSelection, openContacts } = useBoard();
+  const { board, filters, selected, setSelection, openContacts } = useBoard();
   const toast = useToast();
   const selectedRows = rows.filter((row) => selected.has(row.id));
   const allSelected = rows.length > 0 && selectedRows.length === rows.length;
@@ -99,21 +99,6 @@ function ListToolbar({ rows }: { rows: readonly Applicant[] }) {
   return (
     <div className="mb-3 flex flex-wrap items-center gap-3 rounded-card border border-border bg-card px-4 py-3">
       {filters.view === "single" ? null : selectionControl}
-      <div className="flex shrink-0 overflow-hidden rounded-control border border-border bg-card">
-        {(["single", "card", "table"] as const).map((view) => (
-          <SegmentButton
-            key={view}
-            pressed={filters.view === view}
-            onClick={() => {
-              if (view === "single") clearSelection();
-              setFilters((current) => ({ ...current, view }));
-            }}
-            className="px-2.5"
-          >
-            {view === "table" ? "표" : view === "single" ? "한 명씩" : "카드"}
-          </SegmentButton>
-        ))}
-      </div>
       <span className="text-xs text-muted">{label}</span>
       {selectedRows.length > 0 ? <span className="text-xs font-semibold text-brand">{selectedRows.length}명 선택됨</span> : null}
       {completedActions}
@@ -150,7 +135,7 @@ function EmptyList() {
             </SecondaryButton>
           </>
         ) : (
-          "검토 완료 탭에서 결과를 확인하세요."
+          "심사 후 탭에서 결과를 확인하세요."
         )}
       </ScreenMessage>
     );

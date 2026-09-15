@@ -1,14 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { defaultStatusForWork, type AuditionFilters, type WorkMode } from "@/features/auditions/filters";
 import { applicantEducationText } from "@/features/auditions/education-text";
 import { orderedCareersByRecency } from "@/features/auditions/featured-careers";
 import { selectGalleryIndex } from "@/features/auditions/gallery-navigation";
 import { ageText, genderText, roleConditionText } from "@/features/auditions/labels";
 import { safeExternalUrl } from "@/features/auditions/safe-external-url";
-import type { Applicant, ReviewStatus, RoundNumber } from "@/features/auditions/types";
-import { SecondaryButton, SegmentButton } from "@/components/ui/controls";
+import type { Applicant, ReviewStatus } from "@/features/auditions/types";
+import { SecondaryButton } from "@/components/ui/controls";
 import { ApplicantPhotoImage } from "./applicant-photo";
 import { useBoard } from "./board-context";
 import { PhotoLightbox } from "./photo-lightbox";
@@ -60,16 +59,7 @@ function FocusReviewContent({
   readonly next: Applicant | undefined;
   readonly onMove: (candidate: Applicant | undefined) => void;
 }) {
-  const {
-    board, filters, saving, reviewLocked, screeningCompleted,
-    reviewFocused, patchReview, openApplicant, setFilters, clearSelection,
-    goToRound, setCompletionPrompt,
-  } = useBoard();
-  const currentRound = board.rounds.find((state) => state.round === board.round);
-  const passCount = currentRound?.counts.pass ?? 0;
-  const canComplete = Boolean(
-    currentRound && !screeningCompleted && !currentRound.closed && board.role.activeRound === board.round,
-  );
+  const { board, filters, saving, reviewLocked, reviewFocused, patchReview, openApplicant } = useBoard();
   const [otherOpen, setOtherOpen] = useState(false);
   const [otherReason, setOtherReason] = useState(
     applicant.review.status === "ETC" ? applicant.review.memo : "",
@@ -153,76 +143,6 @@ function FocusReviewContent({
       style={focusHeight === null ? undefined : { height: `${focusHeight}px` }}
       className="mx-auto flex w-full max-w-6xl flex-col gap-3"
     >
-      {/* 위쪽 줄을 모두 걷어낸 대신, 이 화면에서 꼭 필요한 조작만 한 줄에 모은다. */}
-      <header className="flex shrink-0 flex-wrap items-center gap-x-2.5 gap-y-2 rounded-card border border-border bg-card px-3 py-2">
-        <h2 className="text-lg font-bold tracking-[-0.02em] text-foreground">{applicant.name}</h2>
-        <span className="text-sm font-semibold text-brand">{applicant.roleName}</span>
-        {/* 차수는 어차피 이름을 띄워야 하니, 같은 자리를 선택 상자로 바꿔 이동까지 겸하게 한다. */}
-        <label className="shrink-0">
-          <span className="sr-only">전형 차수</span>
-          <select
-            value={board.round}
-            onChange={(event) => goToRound(Number(event.target.value) as RoundNumber)}
-            className="min-h-8 rounded-control border border-border bg-card px-1.5 text-xs font-semibold text-muted-strong outline-none focus:border-brand focus:ring-2 focus:ring-brand-soft"
-          >
-            {board.rounds.map((state) => (
-              <option key={state.round} value={state.round}>{state.name}</option>
-            ))}
-          </select>
-        </label>
-        <StatusBadge status={applicant.review.status} memo={applicant.review.memo} size="sm" />
-        {applicant.mismatchReasons.length > 0 ? (
-          <span className="rounded-full border border-fail/30 bg-fail-bg px-2 py-0.5 text-xs font-semibold text-fail">배역 조건 불일치</span>
-        ) : null}
-
-        <div className="ml-auto flex shrink-0 overflow-hidden rounded-control border border-border bg-card">
-          {WORK_TABS.map((tab) => (
-            <SegmentButton
-              key={tab.mode}
-              pressed={filters.work === tab.mode}
-              onClick={() => {
-                clearSelection();
-                setFilters((current) => ({ ...current, work: tab.mode, status: defaultStatusForWork(tab.mode) }));
-              }}
-              className="px-2.5 text-xs"
-            >
-              {tab.label}
-            </SegmentButton>
-          ))}
-        </div>
-
-        <div className="flex shrink-0 overflow-hidden rounded-control border border-border bg-card">
-          {VIEW_TABS.map((tab) => (
-            <SegmentButton
-              key={tab.view}
-              pressed={filters.view === tab.view}
-              onClick={() => setFilters((current) => ({ ...current, view: tab.view }))}
-              className="px-2.5 text-xs"
-            >
-              {tab.label}
-            </SegmentButton>
-          ))}
-        </div>
-
-        {/* 지금 몇 번째를 보고 있고 이 전형에서 몇 명을 붙였는지가 심사 중 가장 자주 확인하는 두 숫자다. */}
-        <span className="num shrink-0 rounded-control border border-border bg-surface px-2.5 py-1 text-base font-bold leading-none text-foreground">
-          {index + 1}
-          <span className="text-sm font-semibold text-muted"> / {rows.length}</span>
-        </span>
-        <span className="shrink-0 rounded-control border border-pass/30 bg-pass-bg px-2.5 py-1 text-sm font-bold leading-none text-pass">
-          합격 <span className="num text-base">{passCount}</span>
-        </span>
-        {screeningCompleted ? (
-          <span className="shrink-0 rounded-full bg-pass-bg px-2 py-1 text-xs font-semibold text-pass">전형 종료</span>
-        ) : canComplete ? (
-          <SecondaryButton onClick={() => setCompletionPrompt("manual")} className="min-h-8 shrink-0 border-brand-line px-2.5 text-xs text-brand">
-            전형 마감
-          </SecondaryButton>
-        ) : null}
-        <SecondaryButton onClick={() => openApplicant(applicant.id)} className="min-h-8 shrink-0 px-2.5 text-xs">
-          상세 지원서
-        </SecondaryButton>
-      </header>
 
       <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="flex min-h-0 flex-col items-center gap-3">
@@ -277,11 +197,24 @@ function FocusReviewContent({
                 <span className="num pointer-events-none absolute right-3 top-3 z-2 rounded-full bg-foreground/70 px-2.5 py-1 text-xs font-semibold text-white">
                   {(currentPhoto ?? 0) + 1} / {photoCount}
                 </span>
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 z-2 bg-gradient-to-t from-black/75 via-black/35 to-transparent px-4 pb-3 pt-10 text-white">
-                  <p className="text-xl font-bold tracking-[-0.02em]">{applicant.name}</p>
-                  <p className="num mt-0.5 text-sm text-white/85">
-                    {genderText(applicant.gender)} · {ageText(applicant.age)} · {measurementText(applicant.height, "cm")}
-                  </p>
+                {/* 머리말을 없앤 대신 이름·배역·상태·순서를 사진 위에 얹어 높이를 쓰지 않는다. */}
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 z-2 flex items-end justify-between gap-3 bg-gradient-to-t from-black/80 via-black/40 to-transparent px-4 pb-3 pt-12 text-white">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <p className="text-xl font-bold tracking-[-0.02em]">{applicant.name}</p>
+                      <span className="text-sm font-semibold text-white/85">{applicant.roleName}</span>
+                      <StatusBadge status={applicant.review.status} memo={applicant.review.memo} size="sm" onPhoto />
+                      {applicant.mismatchReasons.length > 0 ? (
+                        <span className="rounded-full bg-white/92 px-2 py-0.5 text-xs font-bold text-fail">배역 조건 불일치</span>
+                      ) : null}
+                    </div>
+                    <p className="num mt-1 text-sm text-white/85">
+                      {genderText(applicant.gender)} · {ageText(applicant.age)} · {measurementText(applicant.height, "cm")}
+                    </p>
+                  </div>
+                  <span className="num shrink-0 rounded-full bg-white/92 px-2.5 py-1 text-sm font-bold leading-none text-foreground">
+                    {index + 1}<span className="text-muted"> / {rows.length}</span>
+                  </span>
                 </div>
                 {photoCount > 1 ? (
                   <>
@@ -377,7 +310,7 @@ function FocusReviewContent({
 
           {decided && filters.work === "DONE" && !reviewLocked ? (
             <SecondaryButton disabled={saving} onClick={() => void saveDecision("PENDING")} className="min-h-9 shrink-0 px-3 text-xs text-muted-strong">
-              검토 대기로 되돌리기
+              심사 전으로 되돌리기
             </SecondaryButton>
           ) : null}
         </div>
@@ -387,6 +320,9 @@ function FocusReviewContent({
             <span className="font-semibold text-brand">배역 조건</span>
             <span className="text-muted-strong"> {roleConditionText(board.role)}</span>
           </p>
+          <SecondaryButton onClick={() => openApplicant(applicant.id)} className="mb-3 min-h-9 w-full text-xs">
+            상세 지원서 보기
+          </SecondaryButton>
           <InfoRow label="성별">{genderText(applicant.gender)}</InfoRow>
           <InfoRow label="나이">{ageText(applicant.age)}</InfoRow>
           <InfoRow label="키">{measurementText(applicant.height, "cm")}</InfoRow>
@@ -458,17 +394,6 @@ function FocusReviewContent({
     </section>
   );
 }
-
-const WORK_TABS = [
-  { mode: "PENDING", label: "대기" },
-  { mode: "DONE", label: "완료" },
-] as const satisfies readonly { mode: WorkMode; label: string }[];
-
-const VIEW_TABS = [
-  { view: "single", label: "한 명씩" },
-  { view: "card", label: "카드" },
-  { view: "table", label: "표" },
-] as const satisfies readonly { view: AuditionFilters["view"]; label: string }[];
 
 /** 화면 아래 여백. 카드가 창 바닥에 딱 붙지 않도록 조금 남긴다. */
 const FOCUS_BOTTOM_GAP = 12;

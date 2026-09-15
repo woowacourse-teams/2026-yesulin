@@ -18,6 +18,12 @@ export const STATUS_LABELS = {
 
 export const selectableStatuses = (): readonly ReviewStatus[] => ["PASS", "FAIL", "ETC"];
 
+/** 전형 이름만으로는 지금이 몇 번째 차수인지 읽히지 않아 번호를 앞에 붙인다. */
+export const roundTitle = (round: RoundNumber, name: string) => {
+  const trimmed = name.trim();
+  return trimmed ? `${round}차 ${trimmed}` : `${round}차`;
+};
+
 export const ROUND_LABELS = {
   1: "1차 서류",
   2: "2차 오디션",
