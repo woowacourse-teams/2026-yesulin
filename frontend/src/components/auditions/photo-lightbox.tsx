@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import type { Applicant } from "@/features/auditions/types";
 import { ApplicantPhotoImage } from "./applicant-photo";
 import { MODAL_LAYERS, ModalShell } from "./modal-shell";
+import { ZoomablePhoto } from "./zoomable-photo";
 
 const TITLE_ID = "photo-lightbox-title";
 
@@ -42,14 +43,19 @@ export function PhotoLightbox({
         <h2 id={TITLE_ID} className="min-w-0 flex-1 truncate text-base font-semibold">
           {applicant.name} · {photo?.label ?? "프로필 사진"}
         </h2>
+        <span className="hidden text-xs text-white/50 sm:inline">휠로 확대 · 끌어서 이동 · 두 번 눌러 되돌리기</span>
         <span className="num text-sm text-white/65">{index + 1} / {applicant.photos.length}</span>
         <button type="button" onClick={onClose} className="min-h-11 rounded-control px-3 text-sm text-white/75 hover:bg-white/10 hover:text-white">닫기</button>
       </header>
 
       <div className="relative min-h-0 flex-1 bg-black">
-        <div className="relative h-full w-full">
-          <ApplicantPhotoImage photo={photo} alt={`${applicant.name} ${photo?.label ?? "사진"} 확대`} sizes="94vw" className="object-contain" priority />
-        </div>
+        <ZoomablePhoto
+          key={index}
+          photo={photo}
+          alt={`${applicant.name} ${photo?.label ?? "사진"} 확대`}
+          sizes="94vw"
+          priority
+        />
         <LightboxArrow label="이전 사진" direction="left" disabled={index === 0} onClick={() => onSelect(index - 1)} />
         <LightboxArrow label="다음 사진" direction="right" disabled={index === applicant.photos.length - 1} onClick={() => onSelect(index + 1)} />
       </div>

@@ -11,6 +11,7 @@ import { SecondaryButton } from "@/components/ui/controls";
 import { ApplicantPhotoImage } from "./applicant-photo";
 import { useBoard } from "./board-context";
 import { PhotoLightbox } from "./photo-lightbox";
+import { ZoomablePhoto } from "./zoomable-photo";
 import { StatusBadge } from "./status-badge";
 
 /**
@@ -177,23 +178,25 @@ function FocusReviewContent({
             <div className="relative order-1 aspect-[3/4] w-full max-w-[340px] overflow-hidden rounded-card border border-border bg-border-soft lg:order-2 lg:h-full lg:max-h-[600px] lg:w-auto lg:max-w-full">
             {photo ? (
               <>
-                <button
-                  type="button"
-                  onClick={() => setExpanded(true)}
-                  aria-label={`${applicant.name} ${photo.label} 크게 보기`}
-                  className="absolute inset-0 z-1 block w-full cursor-zoom-in"
-                >
-                  <ApplicantPhotoImage
-                    photo={photo}
-                    alt={`${applicant.name} ${photo.label}`}
-                    sizes="(min-width: 1024px) 460px, 92vw"
-                    className="object-cover object-[center_18%]"
-                    priority
-                  />
-                </button>
+                {/* 휠로 바로 확대·이동한다. 전체 화면으로 볼 때만 크게 보기를 누른다. */}
+                <ZoomablePhoto
+                  key={currentPhoto}
+                  photo={photo}
+                  alt={`${applicant.name} ${photo.label}`}
+                  sizes="(min-width: 1024px) 460px, 92vw"
+                  className="object-cover object-[center_18%]"
+                  priority
+                />
                 <span className="pointer-events-none absolute left-3 top-3 z-2 rounded-full bg-foreground/70 px-2.5 py-1 text-xs font-semibold text-white">
                   {photo.label}
                 </span>
+                <button
+                  type="button"
+                  onClick={() => setExpanded(true)}
+                  className="absolute left-3 top-11 z-3 min-h-8 rounded-full bg-foreground/70 px-2.5 text-xs font-semibold text-white backdrop-blur-sm hover:bg-foreground/85"
+                >
+                  크게 보기
+                </button>
                 <span className="num pointer-events-none absolute right-3 top-3 z-2 rounded-full bg-foreground/70 px-2.5 py-1 text-xs font-semibold text-white">
                   {(currentPhoto ?? 0) + 1} / {photoCount}
                 </span>
