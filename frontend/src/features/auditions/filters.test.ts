@@ -60,6 +60,14 @@ describe("심사 작업 필터", () => {
     expect(initialFiltersFromRoute({ view: "table" }).view).toBe("table");
   });
 
+  it("2차부터는 카드 보기로 시작한다", () => {
+    expect(initialFiltersFromRoute({ round: "1" }).view).toBe("single");
+    expect(initialFiltersFromRoute({ round: "2" }).view).toBe("card");
+    expect(initialFiltersFromRoute({ round: "3" }).view).toBe("card");
+    // 주소에 보기를 적었으면 차수보다 그쪽을 따른다.
+    expect(initialFiltersFromRoute({ round: "3", view: "single" }).view).toBe("single");
+  });
+
   it("심사 후 목록은 한 명씩 보기로 열지 않는다", () => {
     expect(initialFiltersFromRoute({ work: "DONE", view: "single" }).view).toBe("card");
     expect(initialFiltersFromRoute({ work: "DONE" }).view).toBe("card");

@@ -73,7 +73,7 @@ export function AuditionBoard({
 
   const goToRound = useCallback((next: RoundNumber) => {
     setApplied(null);
-    setFilters(initialFilters(board?.role.allRoundsClosed ? "DONE" : "PENDING"));
+    setFilters(initialFilters(board?.role.allRoundsClosed ? "DONE" : "PENDING", next));
     setRound(next);
   }, [board]);
 

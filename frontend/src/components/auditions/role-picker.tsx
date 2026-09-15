@@ -42,7 +42,7 @@ function RoleRow({ role }: { role: RoleSummary }) {
   return (
     <li>
       <Link
-        href={auditionRoutes.role(role.id)}
+        href={auditionRoutes.role(role.id, role.activeRound)}
         className="group grid min-w-0 gap-5 border-t border-border-soft px-5 py-5 transition-colors hover:bg-brand-soft focus-visible:relative focus-visible:z-10 md:px-6 lg:grid-cols-[minmax(180px,1.3fr)_minmax(145px,1fr)_minmax(190px,1.2fr)_minmax(150px,1fr)_24px] lg:items-center lg:gap-4"
       >
         <div className="min-w-0">
