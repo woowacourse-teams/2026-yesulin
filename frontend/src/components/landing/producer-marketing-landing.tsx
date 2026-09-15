@@ -17,8 +17,6 @@ const effortStats = [
   { label: "지원자 300명 · 배역 5개 공고", before: "1,510번", after: "305번" },
 ] as const;
 
-const removedSteps = ["메일 열기", "첨부파일 내려받기", "배역 폴더로 옮기기", "파일 열기"] as const;
-
 export function ProducerMarketingLanding() {
   return (
     <main className="min-h-screen bg-white text-foreground">
@@ -65,7 +63,7 @@ export function ProducerMarketingLanding() {
 
       <section className="bg-brand-soft py-20 lg:py-24">
         <div className="mx-auto max-w-[1280px] px-5 sm:px-8 lg:px-10">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-sm font-bold text-brand">ONE CONTINUOUS FLOW</p><h2 className="mt-3 break-keep text-[clamp(30px,4vw,44px)] font-bold tracking-[-0.03em]">등록부터 심사까지 끊김 없이</h2></div><p className="max-w-[430px] leading-7 text-muted-strong">각 단계의 정보가 다음 업무로 자연스럽게 이어집니다.</p></div>
+          <div><p className="text-sm font-bold text-brand">ONE CONTINUOUS FLOW</p><h2 className="mt-3 break-keep text-[clamp(30px,4vw,44px)] font-bold tracking-[-0.03em]">등록부터 심사까지 끊김 없이</h2></div>
           <ol className="mt-12 grid gap-3 md:grid-cols-4">
             {workflow.map((item, index) => <li key={item} className="rounded-card border border-brand-line bg-white p-5"><span className="text-sm font-bold text-brand">0{index + 1}</span><p className="mt-8 text-lg font-bold">{item}</p></li>)}
           </ol>
@@ -94,9 +92,6 @@ function ReviewEffortSection() {
           <h2 className="mt-3 break-keep text-[clamp(26px,2.8vw,36px)] font-bold leading-[1.25] tracking-[-0.03em]">
             지원자 한 명에 다섯 번 누르던 일을,<br />한 번으로 줄였습니다.
           </h2>
-          <p className="mt-4 text-sm leading-6 text-muted-strong">
-            {removedSteps.join(" · ")}가 사라지고 합격·불합격 판정만 남습니다.
-          </p>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-3">
