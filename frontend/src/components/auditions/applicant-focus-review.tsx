@@ -351,6 +351,7 @@ function FocusReviewContent({
 
           <FocusSection title="내부 메모">
             <textarea
+              aria-label="내부 메모"
               disabled={reviewLocked}
               value={note}
               onChange={(event) => setNote(event.target.value)}

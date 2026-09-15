@@ -104,6 +104,7 @@ export function AuditionBoard({
 
       {board ? (
         <div aria-busy={loading}>
+          <h1 className="sr-only">{board.performance.title} {board.role.name} 배역 배우 심사</h1>
           {loading ? <span className="sr-only" role="status">지원자 목록을 갱신하는 중입니다.</span> : null}
           <BoardWorkspace
             key={`${board.role.id}:${board.round}`}
