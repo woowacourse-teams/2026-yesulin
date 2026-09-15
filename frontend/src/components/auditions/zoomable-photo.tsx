@@ -5,21 +5,20 @@ import type { ApplicantPhoto } from "@/features/auditions/types";
 import { ApplicantPhotoImage } from "./applicant-photo";
 
 const MIN_SCALE = 1;
-const MAX_SCALE = 5;
-/** 휠 한 칸(deltaY 100)에 약 1.16배. 한 칸이 한 단계처럼 느껴지는 값이다. */
-const WHEEL_SENSITIVITY = 1.0015;
-const STEP = 1.4;
-const DOUBLE_CLICK_SCALE = 2.5;
+const MAX_SCALE = 1.5;
+/** 100 · 110 · 120 · 130 · 140 · 150%. 얼굴을 확인하는 용도라 이 범위면 충분하다. */
+const ZOOM_STEP = 0.1;
+/** 끌었는지 눌렀는지 가르는 거리. 손이 조금 흔들려도 누름으로 본다. */
+const CLICK_SLOP = 5;
 
 type Transform = { readonly scale: number; readonly x: number; readonly y: number };
 
 const FIT: Transform = { scale: MIN_SCALE, x: 0, y: 0 };
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+/** 0.1씩 더하면 부동소수 오차로 119.99%가 되므로 단계마다 자른다. */
+const snap = (value: number) => Math.round(clamp(value, MIN_SCALE, MAX_SCALE) * 10) / 10;
 
-/**
- * 확대한 만큼만 움직이게 막아 사진이 상자 밖으로 사라지지 않게 한다.
- * 배율이 1이면 움직일 여지가 없으므로 항상 가운데로 돌아온다.
- */
+/** 확대한 만큼만 움직이게 막아 사진이 상자 밖으로 사라지지 않게 한다. */
 function fit(next: Transform, frame: HTMLElement | null): Transform {
   if (next.scale <= MIN_SCALE) return FIT;
   if (!frame) return next;
@@ -30,7 +29,8 @@ function fit(next: Transform, frame: HTMLElement | null): Transform {
 
 /** 커서 아래의 지점이 제자리에 남도록 확대 중심을 옮긴다. */
 function zoomToward(current: Transform, scale: number, frame: HTMLElement | null, client?: { x: number; y: number }): Transform {
-  const target = clamp(scale, MIN_SCALE, MAX_SCALE);
+  const target = snap(scale);
+  if (target === current.scale) return current;
   if (!frame || !client) return fit({ scale: target, x: current.x, y: current.y }, frame);
   const rect = frame.getBoundingClientRect();
   const cx = client.x - rect.left - rect.width / 2;
@@ -49,15 +49,18 @@ export function ZoomablePhoto({
   sizes,
   className = "object-contain",
   priority = false,
+  onActivate,
 }: {
   readonly photo: ApplicantPhoto | undefined;
   readonly alt: string;
   readonly sizes: string;
   readonly className?: string;
   readonly priority?: boolean;
+  /** 사진을 누르면 할 일. 넘기면 두 번 눌러 확대하는 동작 대신 이쪽을 쓴다. */
+  readonly onActivate?: () => void;
 }) {
   const frameRef = useRef<HTMLDivElement>(null);
-  const dragRef = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
+  const dragRef = useRef<{ x: number; y: number; ox: number; oy: number; moved: boolean } | null>(null);
   const [transform, setTransform] = useState<Transform>(FIT);
   const zoomed = transform.scale > MIN_SCALE;
 
@@ -67,9 +70,10 @@ export function ZoomablePhoto({
     if (!frame) return;
     const onWheel = (event: WheelEvent) => {
       event.preventDefault();
+      const direction = event.deltaY < 0 ? 1 : -1;
       setTransform((current) => zoomToward(
         current,
-        current.scale * WHEEL_SENSITIVITY ** -event.deltaY,
+        current.scale + direction * ZOOM_STEP,
         frame,
         { x: event.clientX, y: event.clientY },
       ));
@@ -79,43 +83,58 @@ export function ZoomablePhoto({
   }, []);
 
   const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (!zoomed || event.button !== 0) return;
-    event.preventDefault();
-    event.currentTarget.setPointerCapture(event.pointerId);
-    dragRef.current = { x: event.clientX, y: event.clientY, ox: transform.x, oy: transform.y };
+    if (event.button !== 0) return;
+    dragRef.current = { x: event.clientX, y: event.clientY, ox: transform.x, oy: transform.y, moved: false };
+    if (zoomed) event.currentTarget.setPointerCapture(event.pointerId);
   };
 
   const onPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
     const start = dragRef.current;
     if (!start) return;
-    const moved = { x: start.ox + (event.clientX - start.x), y: start.oy + (event.clientY - start.y) };
-    setTransform((current) => fit({ scale: current.scale, ...moved }, frameRef.current));
+    const dx = event.clientX - start.x;
+    const dy = event.clientY - start.y;
+    if (Math.abs(dx) > CLICK_SLOP || Math.abs(dy) > CLICK_SLOP) start.moved = true;
+    if (!zoomed) return;
+    setTransform((current) => fit({ scale: current.scale, x: start.ox + dx, y: start.oy + dy }, frameRef.current));
   };
 
-  const endDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (!dragRef.current) return;
+  const onPointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const start = dragRef.current;
+    dragRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    if (start && !start.moved && onActivate) onActivate();
+  };
+
+  const onPointerCancel = (event: ReactPointerEvent<HTMLDivElement>) => {
     dragRef.current = null;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
   };
 
   const onDoubleClick = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (onActivate) return;
     const client = { x: event.clientX, y: event.clientY };
     setTransform((current) => (
-      current.scale > MIN_SCALE ? FIT : zoomToward(current, DOUBLE_CLICK_SCALE, frameRef.current, client)
+      current.scale > MIN_SCALE ? FIT : zoomToward(current, MAX_SCALE, frameRef.current, client)
     ));
   };
 
-  const step = (factor: number) => setTransform((current) => zoomToward(current, current.scale * factor, frameRef.current));
+  const step = (direction: number) => setTransform((current) => zoomToward(
+    current,
+    current.scale + direction * ZOOM_STEP,
+    frameRef.current,
+  ));
 
   return (
     <div
       ref={frameRef}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
-      onPointerUp={endDrag}
-      onPointerCancel={endDrag}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerCancel}
       onDoubleClick={onDoubleClick}
-      className={`absolute inset-0 overflow-hidden ${zoomed ? "cursor-grab touch-none active:cursor-grabbing" : ""}`}
+      className={`absolute inset-0 overflow-hidden ${
+        zoomed ? "cursor-grab touch-none active:cursor-grabbing" : onActivate ? "cursor-zoom-in" : ""
+      }`}
     >
       <div
         className="absolute inset-0"
@@ -124,8 +143,11 @@ export function ZoomablePhoto({
         <ApplicantPhotoImage photo={photo} alt={alt} sizes={sizes} className={className} priority={priority} />
       </div>
 
-      <div className="absolute bottom-3 right-3 z-3 flex items-center gap-1 rounded-control bg-foreground/75 p-1 text-white backdrop-blur-sm">
-        <ZoomButton label="사진 축소" disabled={!zoomed} onClick={() => step(1 / STEP)}>−</ZoomButton>
+      <div
+        className="absolute bottom-3 right-3 z-3 flex items-center gap-1 rounded-control bg-foreground/75 p-1 text-white backdrop-blur-sm"
+        onPointerDown={(event) => event.stopPropagation()}
+      >
+        <ZoomButton label="사진 축소" disabled={transform.scale <= MIN_SCALE} onClick={() => step(-1)}>−</ZoomButton>
         <button
           type="button"
           onClick={() => setTransform(FIT)}
@@ -134,7 +156,7 @@ export function ZoomablePhoto({
         >
           {Math.round(transform.scale * 100)}%
         </button>
-        <ZoomButton label="사진 확대" disabled={transform.scale >= MAX_SCALE} onClick={() => step(STEP)}>+</ZoomButton>
+        <ZoomButton label="사진 확대" disabled={transform.scale >= MAX_SCALE} onClick={() => step(1)}>+</ZoomButton>
       </div>
     </div>
   );
