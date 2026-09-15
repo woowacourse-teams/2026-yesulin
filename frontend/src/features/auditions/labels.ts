@@ -13,7 +13,7 @@ export const STATUS_LABELS = {
   PENDING: "미검토",
   PASS: "합격",
   FAIL: "불합격",
-  ETC: "기타",
+  ETC: "보류",
 } as const satisfies Record<ReviewStatus, string>;
 
 export const selectableStatuses = (): readonly ReviewStatus[] => ["PASS", "FAIL", "ETC"];
@@ -83,6 +83,6 @@ function roleAgeText(ageMin: number, ageMax: number) {
   return ageMin === ageMax ? `만 ${ageMin}세` : `만 ${ageMin}~${ageMax}세`;
 }
 
-/** 배지에는 ETC 사유를 우선 노출한다. 사유가 없을 때만 '기타'로 떨어진다. */
+/** 배지에는 ETC 사유를 우선 노출한다. 사유가 없을 때만 '보류'로 떨어진다. */
 export const statusText = (status: ReviewStatus, memo: string) =>
   status === "ETC" && memo.trim() ? memo : STATUS_LABELS[status];

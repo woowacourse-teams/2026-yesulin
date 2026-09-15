@@ -55,7 +55,7 @@ export function DetailReview({ applicant }: { applicant: Applicant }) {
             {applicant.review.status === "ETC" ? (
               <DraftField
                 key={`memo-${applicant.id}`}
-                label="기타 사유"
+                label="보류 사유"
                 placeholder="사유 (예: 연락 두절)"
                 value={applicant.review.memo}
                 onCommit={(memo) => void patchReview(applicant.id, { memo })}
