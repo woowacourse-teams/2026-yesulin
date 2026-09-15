@@ -21,14 +21,14 @@ const reviewSteps = [
 ] as const;
 
 const scaleRows = [
-  { scale: "3~4인극", detail: "100명 · 4배역", before: "508번", after: "104번", cut: "79.5%", beforeTime: "약 22분", afterTime: "약 5분" },
-  { scale: "중형 시즌 공연", detail: "300명 · 5배역", before: "1,510번", after: "305번", cut: "79.8%", beforeTime: "약 65분", afterTime: "약 15분" },
-  { scale: "대형 공모", detail: "500명 · 5배역", before: "2,510번", after: "505번", cut: "79.9%", beforeTime: "약 109분", afterTime: "약 25분" },
+  { scale: "3~4인극", detail: "지원자 100명 · 배역 4개", before: "508번", after: "104번", cut: "79.5%", beforeTime: "약 22분", afterTime: "약 5분" },
+  { scale: "중형 시즌 공연", detail: "지원자 300명 · 배역 5개", before: "1,510번", after: "305번", cut: "79.8%", beforeTime: "약 65분", afterTime: "약 15분" },
+  { scale: "대형 공모", detail: "지원자 500명 · 배역 5개", before: "2,510번", after: "505번", cut: "79.9%", beforeTime: "약 109분", afterTime: "약 25분" },
 ] as const;
 
 const headlineStats = [
   { label: "지원자 한 명당 조작", before: "5번", after: "1번" },
-  { label: "300명·5배역 한 공고", before: "1,510번", after: "305번" },
+  { label: "지원자 300명 · 배역 5개 공고", before: "1,510번", after: "305번" },
 ] as const;
 
 export function ProducerMarketingLanding() {
