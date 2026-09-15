@@ -1,3 +1,5 @@
+import { topicParticle } from "@/features/korean";
+
 export function formatKoreanPhone(value: string) {
   const digits = value.replace(/\D/g, "").slice(0, value.replace(/\D/g, "").startsWith("02") ? 10 : 11);
   if (digits.startsWith("02")) {
@@ -28,5 +30,5 @@ export function isIntegerMeasurement(value: string | number) {
 }
 
 export function integerMeasurementError(label: string) {
-  return `${label}은(는) 소수점 없이 정수로 입력해 주세요.`;
+  return `${topicParticle(label)} 소수점 없이 정수로 입력해 주세요.`;
 }
