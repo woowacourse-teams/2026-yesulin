@@ -17,7 +17,7 @@ const RESULT_SCOPE_LABELS = {
   ALL: "검토 완료",
   PASS: "합격자",
   FAIL: "불합격자",
-  ETC: "기타 처리자",
+  ETC: "보류 처리자",
   PENDING: "검토 대기",
 } as const satisfies Record<StatusFilter, string>;
 
@@ -27,11 +27,14 @@ export function ApplicantList() {
 
   return (
     <>
-      <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-card border border-brand-line bg-brand-soft px-4 py-2.5 text-sm">
-        <span className="font-semibold text-brand">배역 조건</span>
-        <span className="text-muted-strong">{roleConditionText(board.role)}</span>
-      </div>
-      <ListToolbar rows={visible} />
+      {/* 한 명씩 보기는 한 화면에 들어가야 하므로 배역 조건은 그 화면 안쪽으로 옮긴다. */}
+      {filters.view === "single" ? null : (
+        <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-card border border-brand-line bg-brand-soft px-4 py-2.5 text-sm">
+          <span className="font-semibold text-brand">배역 조건</span>
+          <span className="text-muted-strong">{roleConditionText(board.role)}</span>
+        </div>
+      )}
+      {filters.view === "single" ? null : <ListToolbar rows={visible} />}
       {filters.view === "card" ? <ApplicantCards rows={visible} /> : null}
       {filters.view === "table" ? <><div className="lg:hidden"><ApplicantCards rows={visible} /></div><div className="hidden lg:block"><ApplicantTable rows={visible} /></div></> : null}
       {filters.view === "single" ? <ApplicantFocusReview rows={visible} /> : null}
@@ -97,7 +100,7 @@ function ListToolbar({ rows }: { rows: readonly Applicant[] }) {
     <div className="mb-3 flex flex-wrap items-center gap-3 rounded-card border border-border bg-card px-4 py-3">
       {filters.view === "single" ? null : selectionControl}
       <div className="flex shrink-0 overflow-hidden rounded-control border border-border bg-card">
-        {(["card", "table", "single"] as const).map((view) => (
+        {(["single", "card", "table"] as const).map((view) => (
           <SegmentButton
             key={view}
             pressed={filters.view === view}

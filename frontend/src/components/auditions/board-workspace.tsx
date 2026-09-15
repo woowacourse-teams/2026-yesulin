@@ -27,6 +27,7 @@ import { ContactsModal } from "./contacts-modal";
 import { DesktopBoardToolbar } from "./desktop-board-toolbar";
 import { FilterBar } from "./filter-bar";
 import { RoundStepper } from "./round-stepper";
+import { ScreeningCompletionModal } from "./screening-completion-modal";
 import { useToast } from "./toast";
 import { WorkSplit } from "./work-split";
 
@@ -254,18 +255,36 @@ export function BoardWorkspace({
 
   return (
     <BoardProvider value={value}>
-      <RoundStepper />
-      <div className="glass-surface sticky top-16 z-20 border-b border-border lg:top-0 lg:border-b-0">
-        <WorkSplit />
-        <FilterBar sheetOpen={filterSheetOpen} onOpenSheet={() => setFilterSheetOpen(true)} />
-        <DesktopBoardToolbar onOpenFilter={() => setFilterSheetOpen(true)} />
-      </div>
-      <div className="px-4 pb-[calc(9rem+env(safe-area-inset-bottom))] pt-4 md:px-6 lg:pb-8 xl:px-8">
+      {/*
+        한 명씩 보기는 사진에 높이를 몰아주려고 위쪽 줄을 모두 걷어내고,
+        필요한 조작(검토 대기·완료, 보기 전환)은 지원자 머리말 한 줄로 합쳐 둔다.
+        차수 이동·전형 마감·검색·필터는 카드/표 보기에서 다룬다.
+      */}
+      {filters.view === "single" ? null : (
+        <>
+          <RoundStepper />
+          <div className="glass-surface sticky top-16 z-20 border-b border-border lg:top-0 lg:border-b-0">
+            <WorkSplit />
+            <FilterBar sheetOpen={filterSheetOpen} onOpenSheet={() => setFilterSheetOpen(true)} />
+            <DesktopBoardToolbar onOpenFilter={() => setFilterSheetOpen(true)} />
+          </div>
+        </>
+      )}
+      <div className={`px-4 pt-4 md:px-6 xl:px-8 ${
+        // 한 명씩 보기는 화면 높이에 맞춰 스크롤 없이 놓이므로 아래 여백을 남기지 않는다.
+        filters.view === "single"
+          ? "pb-4 lg:pb-3"
+          : "pb-[calc(9rem+env(safe-area-inset-bottom))] lg:pb-8"
+      }`}>
         <ApplicantList />
       </div>
       <ActionBar />
       <ContactsModal />
       <AuditionFilterSheet open={filterSheetOpen} onClose={() => setFilterSheetOpen(false)} />
+      {/* 한 명씩 보기에서 위쪽 줄을 숨겨도 마지막 심사 뒤의 마감 안내는 떠야 하므로 상태를 가진 쪽에서 띄운다. */}
+      {completionPrompt ? (
+        <ScreeningCompletionModal auto={completionPrompt === "auto"} onClose={() => setCompletionPrompt(null)} />
+      ) : null}
       <ReviewMemoDialog key={memoRequest ? `${memoRequest.kind}-${memoRequest.ids.join("-")}` : "closed"} open={memoRequest !== null} saving={saving} onClose={() => setMemoRequest(null)} onSubmit={async (memo) => {
         const request = memoRequest;
         if (!request) return;
@@ -280,5 +299,5 @@ export function BoardWorkspace({
 function ReviewMemoDialog({ open, saving, onClose, onSubmit }: { readonly open: boolean; readonly saving: boolean; readonly onClose: () => void; readonly onSubmit: (memo: string) => Promise<void> }) {
   const [memo, setMemo] = useState("");
   if (!open) return null;
-  return <div className="fixed inset-0 z-[80] grid place-items-center bg-black/45 p-4" role="presentation"><section role="dialog" aria-modal="true" aria-labelledby="review-memo-title" className="w-full max-w-md rounded-modal border border-border bg-card p-5 shadow-[var(--shadow-modal)]"><h2 id="review-memo-title" className="text-lg font-bold">기타 사유 입력</h2><p className="mt-2 text-sm leading-6 text-muted">선택한 배우의 심사 상태에 표시할 사유를 입력해 주세요.</p><form onSubmit={(event) => { event.preventDefault(); const value = memo.trim(); if (value) void onSubmit(value); }}><label className="mt-4 block text-sm font-semibold">기타 사유<input autoFocus required maxLength={255} value={memo} onChange={(event) => setMemo(event.target.value)} placeholder="예: 다른 배역으로 검토" className="mt-2 min-h-11 w-full rounded-control border border-border bg-card px-3 outline-none focus:border-brand focus:ring-2 focus:ring-brand-soft" /></label><div className="mt-5 flex justify-end gap-2"><button type="button" disabled={saving} onClick={onClose} className="min-h-11 rounded-control border border-border px-4 text-sm font-semibold">취소</button><button type="submit" disabled={saving || !memo.trim()} className="min-h-11 rounded-control bg-brand px-4 text-sm font-semibold text-white disabled:bg-border disabled:text-muted">{saving ? "저장 중…" : "기타로 저장"}</button></div></form></section></div>;
+  return <div className="fixed inset-0 z-[80] grid place-items-center bg-black/45 p-4" role="presentation"><section role="dialog" aria-modal="true" aria-labelledby="review-memo-title" className="w-full max-w-md rounded-modal border border-border bg-card p-5 shadow-[var(--shadow-modal)]"><h2 id="review-memo-title" className="text-lg font-bold">보류 사유 입력</h2><p className="mt-2 text-sm leading-6 text-muted">선택한 배우의 심사 상태에 표시할 사유를 입력해 주세요.</p><form onSubmit={(event) => { event.preventDefault(); const value = memo.trim(); if (value) void onSubmit(value); }}><label className="mt-4 block text-sm font-semibold">보류 사유<input autoFocus required maxLength={255} value={memo} onChange={(event) => setMemo(event.target.value)} placeholder="예: 다른 배역으로 검토" className="mt-2 min-h-11 w-full rounded-control border border-border bg-card px-3 outline-none focus:border-brand focus:ring-2 focus:ring-brand-soft" /></label><div className="mt-5 flex justify-end gap-2"><button type="button" disabled={saving} onClick={onClose} className="min-h-11 rounded-control border border-border px-4 text-sm font-semibold">취소</button><button type="submit" disabled={saving || !memo.trim()} className="min-h-11 rounded-control bg-brand px-4 text-sm font-semibold text-white disabled:bg-border disabled:text-muted">{saving ? "저장 중…" : "보류로 저장"}</button></div></form></section></div>;
 }
