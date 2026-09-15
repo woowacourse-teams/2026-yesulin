@@ -1,49 +1,17 @@
 "use client";
 
-import {
-  activeDetailFilterCount,
-  defaultStatusForWork,
-  type StatusFilter,
-  type WorkMode,
-} from "@/features/auditions/filters";
+import { activeDetailFilterCount, type StatusFilter } from "@/features/auditions/filters";
 import { selectableStatuses, STATUS_LABELS } from "@/features/auditions/labels";
 import type { ReviewStatus } from "@/features/auditions/types";
-import { SegmentButton } from "@/components/ui/controls";
 import { useBoard } from "./board-context";
 import { FilterIcon } from "./filter-bar";
 
-const WORK_TABS = [
-  { mode: "PENDING", label: "검토 대기" },
-  { mode: "DONE", label: "검토 완료" },
-] as const satisfies readonly { mode: WorkMode; label: string }[];
-
 export function DesktopBoardToolbar({ onOpenFilter }: { onOpenFilter: () => void }) {
-  const { filters, visible, setFilters, clearSelection } = useBoard();
+  const { filters, visible, setFilters } = useBoard();
   const detailCount = activeDetailFilterCount(filters);
-  const changeWork = (work: WorkMode) => {
-    clearSelection();
-    setFilters((current) => ({
-      ...current,
-      work,
-      status: defaultStatusForWork(work),
-    }));
-  };
 
   return (
-    <div className="hidden min-h-16 items-center gap-2 px-6 py-2 lg:flex xl:gap-3 xl:px-8">
-      <div className="flex shrink-0 overflow-hidden rounded-control border border-border bg-card">
-        {WORK_TABS.map((tab) => (
-          <SegmentButton
-            key={tab.mode}
-            pressed={filters.work === tab.mode}
-            onClick={() => changeWork(tab.mode)}
-            className="gap-1.5 px-2.5 xl:px-3"
-          >
-            {tab.label}
-          </SegmentButton>
-        ))}
-      </div>
-
+    <div className="hidden min-h-14 items-center gap-2 py-2 lg:flex xl:gap-3">
       {filters.work === "DONE" ? (
         <label className="shrink-0">
           <span className="sr-only">심사 결과 상태</span>

@@ -34,6 +34,8 @@ export function ApplicantPhotoImage({
       sizes={sizes}
       priority={priority}
       className={className}
+      // 브라우저 기본 끌어놓기가 시작되면 드래그 조작을 가로채 화면이 멈춘 것처럼 보인다.
+      draggable={false}
       onError={() => setFailed(true)}
     />
   );

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback } from "react";
 import { SecondaryLink } from "@/components/ui/controls";
 import { getRoles } from "@/features/auditions/api";
-import { ROUND_LABELS } from "@/features/auditions/labels";
+import { roleConditionText, ROUND_LABELS } from "@/features/auditions/labels";
 import { auditionRoutes } from "@/features/auditions/routes";
 import type { PostingId, RoleSummary } from "@/features/auditions/types";
 import { useAuditionQuery } from "@/features/auditions/use-audition-query";
@@ -42,12 +42,14 @@ function RoleRow({ role }: { role: RoleSummary }) {
   return (
     <li>
       <Link
-        href={auditionRoutes.role(role.id)}
+        href={auditionRoutes.role(role.id, role.activeRound)}
         className="group grid min-w-0 gap-5 border-t border-border-soft px-5 py-5 transition-colors hover:bg-brand-soft focus-visible:relative focus-visible:z-10 md:px-6 lg:grid-cols-[minmax(180px,1.3fr)_minmax(145px,1fr)_minmax(190px,1.2fr)_minmax(150px,1fr)_24px] lg:items-center lg:gap-4"
       >
         <div className="min-w-0">
           <h2 className="truncate text-lg font-bold tracking-[-0.015em] group-hover:text-brand">{role.name}</h2>
           <p className="mt-1 line-clamp-2 text-sm leading-5 text-muted">{role.description}</p>
+          {/* 심사 화면에서는 이미 아는 내용이라 걷어냈고, 배역을 고르는 이 자리에만 남긴다. */}
+          <p className="num mt-1.5 text-xs font-semibold text-muted-strong">{roleConditionText(role)}</p>
         </div>
 
         <div className="lg:min-w-0">

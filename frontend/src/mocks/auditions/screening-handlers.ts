@@ -70,11 +70,11 @@ export const screeningHandlers = [
       return badRequest("INVALID_SCREENING_REVIEW", "마감된 전형은 수정할 수 없습니다.");
     }
     if (body.submissionIds.length === 0) return badRequest("SUBMISSION_REQUIRED", "배우를 한 명 이상 선택해 주세요.");
-    if (body.status === "ETC" && !body.memo?.trim()) return badRequest("MEMO_REQUIRED", "기타 사유를 입력해 주세요.");
+    if (body.status === "ETC" && !body.memo?.trim()) return badRequest("MEMO_REQUIRED", "보류 사유를 입력해 주세요.");
     const pool = poolFor(targetRoleId, round);
     const targets = body.submissionIds.filter((submissionId) => pool.some((applicant) => applicant.id === submissionId));
     if (targets.length !== body.submissionIds.length) return notFound("지원서를 찾을 수 없습니다.", "SUBMISSION_NOT_FOUND");
-    if (body.status === undefined && body.memo !== undefined && targets.some((submissionId) => reviewOf(submissionId, targetRoleId, round).status === "ETC") && !body.memo.trim()) return badRequest("MEMO_REQUIRED", "기타 사유를 입력해 주세요.");
+    if (body.status === undefined && body.memo !== undefined && targets.some((submissionId) => reviewOf(submissionId, targetRoleId, round).status === "ETC") && !body.memo.trim()) return badRequest("MEMO_REQUIRED", "보류 사유를 입력해 주세요.");
     for (const submissionId of targets) {
       const review = reviewOf(submissionId, targetRoleId, round);
       if (body.status !== undefined) {

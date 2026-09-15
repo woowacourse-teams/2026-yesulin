@@ -55,7 +55,7 @@ export const MOCK_SCENARIOS: readonly MockScenarioDefinition[] = [
     title: "1차 검토 대기",
     description: "1차 지원자 검토를 시작하는 기본 상태입니다.",
     href: "/producers/roles/seed_role_seoyeon?round=1",
-    checks: ["1차 지원자가 표시된다", "심사 결과는 합격·불합격·기타로만 표시된다"],
+    checks: ["1차 지원자가 표시된다", "심사 결과는 합격·불합격·보류로만 표시된다"],
   },
   {
     id: "screening-round-2",

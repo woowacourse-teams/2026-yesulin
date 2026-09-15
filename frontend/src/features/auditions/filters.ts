@@ -1,4 +1,5 @@
-import type { Gender, ReviewStatus, ScreeningSearchCondition } from "./types";
+import { ROUND_NUMBERS } from "./types";
+import type { Gender, ReviewStatus, RoundNumber, ScreeningSearchCondition } from "./types";
 
 /** 나이·키·몸무게처럼 '이상/이하' 한 조건만 거는 수치 필터. */
 export const NUMERIC_FIELDS = ["age", "height", "weight"] as const;
@@ -42,6 +43,7 @@ export type AuditionListRouteState = Pick<
 >;
 
 export type AuditionListRouteQuery = {
+  readonly round?: string;
   readonly work?: string;
   readonly status?: string;
   readonly view?: string;
@@ -59,14 +61,21 @@ export const emptyNumeric = (): Record<NumericField, NumericCondition | null> =>
   weight: null,
 });
 
-export const initialFilters = (work: WorkMode): AuditionFilters => ({
+/**
+ * 1차는 처음 보는 지원자라 한 명씩 넘기며 판정하는 게 빠르다.
+ * 2차부터는 이미 1차에서 본 사람들이라 늘어놓고 비교하는 쪽이 맞아 카드에서 시작한다.
+ */
+export const defaultViewForRound = (round: RoundNumber | null): AuditionFilters["view"] =>
+  round !== null && round >= 2 ? "card" : "single";
+
+export const initialFilters = (work: WorkMode, round: RoundNumber | null = null): AuditionFilters => ({
   work,
   status: defaultStatusForWork(work),
   query: "",
   genders: new Set(),
   numeric: emptyNumeric(),
   mismatchOnly: false,
-  view: "card",
+  view: viewForWork(work, defaultViewForRound(round)),
 });
 
 export function listRouteStateFromRoute(route: AuditionListRouteQuery): AuditionListRouteState {
@@ -86,8 +95,23 @@ export function listRouteStateFromRoute(route: AuditionListRouteQuery): Audition
       weight: parseNumericCondition(route.weight),
     },
     mismatchOnly: route.mismatch === "1",
-    view: route.view === "table" || route.view === "single" ? route.view : "card",
+    // 주소에 보기를 적지 않았다면 그 차수에 맞는 기본 보기로 연다.
+    view: viewForWork(work, route.view ?? defaultViewForRound(roundOf(route.round))),
   };
+}
+
+function roundOf(value: string | undefined): RoundNumber | null {
+  const parsed = Number(value);
+  return ROUND_NUMBERS.includes(parsed as RoundNumber) ? (parsed as RoundNumber) : null;
+}
+
+/**
+ * 심사가 끝난 사람은 한 명씩 넘겨 볼 일이 없어 목록으로만 본다.
+ * 주소로 직접 들어오는 경우까지 여기서 한 번에 막는다.
+ */
+export function viewForWork(work: WorkMode, view: string | undefined): AuditionFilters["view"] {
+  if (work === "DONE") return view === "table" ? "table" : "card";
+  return view === "table" || view === "card" ? view : "single";
 }
 
 export function initialFiltersFromRoute(route: AuditionListRouteQuery): AuditionFilters {

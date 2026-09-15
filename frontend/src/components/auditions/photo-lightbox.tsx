@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import type { Applicant } from "@/features/auditions/types";
 import { ApplicantPhotoImage } from "./applicant-photo";
 import { MODAL_LAYERS, ModalShell } from "./modal-shell";
+import { ZoomablePhoto } from "./zoomable-photo";
 
 const TITLE_ID = "photo-lightbox-title";
 
@@ -47,9 +48,13 @@ export function PhotoLightbox({
       </header>
 
       <div className="relative min-h-0 flex-1 bg-black">
-        <div className="relative h-full w-full">
-          <ApplicantPhotoImage photo={photo} alt={`${applicant.name} ${photo?.label ?? "사진"} 확대`} sizes="94vw" className="object-contain" priority />
-        </div>
+        <ZoomablePhoto
+          key={index}
+          photo={photo}
+          alt={`${applicant.name} ${photo?.label ?? "사진"} 확대`}
+          sizes="94vw"
+          priority
+        />
         <LightboxArrow label="이전 사진" direction="left" disabled={index === 0} onClick={() => onSelect(index - 1)} />
         <LightboxArrow label="다음 사진" direction="right" disabled={index === applicant.photos.length - 1} onClick={() => onSelect(index + 1)} />
       </div>

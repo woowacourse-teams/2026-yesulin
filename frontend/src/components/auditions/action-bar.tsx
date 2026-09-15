@@ -21,7 +21,7 @@ export function ActionBar() {
       <span className="self-center whitespace-nowrap px-2 text-xs opacity-60">마감된 전형</span>
     ) : (
       <>
-        {filters.work === "DONE" ? <button type="button" disabled={saving} onClick={() => { void setStatus(ids, "PENDING"); }} className={ACTION_CLASS}>검토 대기로</button> : null}
+        {filters.work === "DONE" ? <button type="button" disabled={saving} onClick={() => { void setStatus(ids, "PENDING"); }} className={ACTION_CLASS}>심사 전으로</button> : null}
         {filters.work === "PENDING" ? selectableStatuses().map((status) => <button key={status} type="button" disabled={saving} onClick={() => { void setStatus(ids, status); }} className={ACTION_CLASS}>{STATUS_LABELS[status]}</button>) : null}
       </>
     )}

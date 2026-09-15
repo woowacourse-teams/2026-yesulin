@@ -28,7 +28,7 @@ describe("심사 작업 필터", () => {
     const filters = initialFiltersFromRoute({
       work: "DONE",
       status: "FAIL",
-      view: "single",
+      view: "table",
       q: "윤하연",
       genders: "FEMALE,MALE,UNKNOWN",
       age: "gte:25",
@@ -38,7 +38,7 @@ describe("심사 작업 필터", () => {
 
     expect(filters.work).toBe("DONE");
     expect(filters.status).toBe("FAIL");
-    expect(filters.view).toBe("single");
+    expect(filters.view).toBe("table");
     expect(filters.query).toBe("윤하연");
     expect(filters.genders).toEqual(new Set(["FEMALE", "MALE"]));
     expect(filters.numeric.age).toEqual({ op: "gte", value: 25 });
@@ -46,11 +46,31 @@ describe("심사 작업 필터", () => {
     expect(filters.mismatchOnly).toBe(true);
   });
 
-  it("잘못된 목록 상태는 검토 대기 카드 보기로 보정한다", () => {
+  it("잘못된 목록 상태는 검토 대기 한 명씩 보기로 보정한다", () => {
     const filters = initialFiltersFromRoute({ work: "UNKNOWN", status: "FAIL", view: "grid" });
 
     expect(filters.work).toBe("PENDING");
     expect(filters.status).toBe("ALL");
-    expect(filters.view).toBe("card");
+    expect(filters.view).toBe("single");
+  });
+
+  it("보기를 지정하지 않으면 한 명씩 보기로 연다", () => {
+    expect(initialFiltersFromRoute({}).view).toBe("single");
+    expect(initialFiltersFromRoute({ view: "card" }).view).toBe("card");
+    expect(initialFiltersFromRoute({ view: "table" }).view).toBe("table");
+  });
+
+  it("2차부터는 카드 보기로 시작한다", () => {
+    expect(initialFiltersFromRoute({ round: "1" }).view).toBe("single");
+    expect(initialFiltersFromRoute({ round: "2" }).view).toBe("card");
+    expect(initialFiltersFromRoute({ round: "3" }).view).toBe("card");
+    // 주소에 보기를 적었으면 차수보다 그쪽을 따른다.
+    expect(initialFiltersFromRoute({ round: "3", view: "single" }).view).toBe("single");
+  });
+
+  it("심사 후 목록은 한 명씩 보기로 열지 않는다", () => {
+    expect(initialFiltersFromRoute({ work: "DONE", view: "single" }).view).toBe("card");
+    expect(initialFiltersFromRoute({ work: "DONE" }).view).toBe("card");
+    expect(initialFiltersFromRoute({ work: "DONE", view: "table" }).view).toBe("table");
   });
 });
