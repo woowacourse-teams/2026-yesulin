@@ -87,8 +87,17 @@ export function listRouteStateFromRoute(route: AuditionListRouteQuery): Audition
       weight: parseNumericCondition(route.weight),
     },
     mismatchOnly: route.mismatch === "1",
-    view: route.view === "table" || route.view === "card" ? route.view : "single",
+    view: viewForWork(work, route.view),
   };
+}
+
+/**
+ * 심사가 끝난 사람은 한 명씩 넘겨 볼 일이 없어 목록으로만 본다.
+ * 주소로 직접 들어오는 경우까지 여기서 한 번에 막는다.
+ */
+export function viewForWork(work: WorkMode, view: string | undefined): AuditionFilters["view"] {
+  if (work === "DONE") return view === "table" ? "table" : "card";
+  return view === "table" || view === "card" ? view : "single";
 }
 
 export function initialFiltersFromRoute(route: AuditionListRouteQuery): AuditionFilters {

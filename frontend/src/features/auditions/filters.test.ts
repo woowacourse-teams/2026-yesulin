@@ -28,7 +28,7 @@ describe("심사 작업 필터", () => {
     const filters = initialFiltersFromRoute({
       work: "DONE",
       status: "FAIL",
-      view: "single",
+      view: "table",
       q: "윤하연",
       genders: "FEMALE,MALE,UNKNOWN",
       age: "gte:25",
@@ -38,7 +38,7 @@ describe("심사 작업 필터", () => {
 
     expect(filters.work).toBe("DONE");
     expect(filters.status).toBe("FAIL");
-    expect(filters.view).toBe("single");
+    expect(filters.view).toBe("table");
     expect(filters.query).toBe("윤하연");
     expect(filters.genders).toEqual(new Set(["FEMALE", "MALE"]));
     expect(filters.numeric.age).toEqual({ op: "gte", value: 25 });
@@ -58,5 +58,11 @@ describe("심사 작업 필터", () => {
     expect(initialFiltersFromRoute({}).view).toBe("single");
     expect(initialFiltersFromRoute({ view: "card" }).view).toBe("card");
     expect(initialFiltersFromRoute({ view: "table" }).view).toBe("table");
+  });
+
+  it("심사 후 목록은 한 명씩 보기로 열지 않는다", () => {
+    expect(initialFiltersFromRoute({ work: "DONE", view: "single" }).view).toBe("card");
+    expect(initialFiltersFromRoute({ work: "DONE" }).view).toBe("card");
+    expect(initialFiltersFromRoute({ work: "DONE", view: "table" }).view).toBe("table");
   });
 });
