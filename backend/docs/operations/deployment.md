@@ -1,6 +1,9 @@
 # 백엔드 배포
 
 CodeBuild는 `buildspec.yml`로 `backend/build/deployment/` 묶음을 만들고 CodeDeploy가 EC2에 배포한다.
+CodeBuild의 S3 캐시는 Gradle 배포판과 다운로드 의존성만 보존한다. 매번 새로 생성되는 컨테이너에서는 task output 로컬
+캐시를 다음 빌드가 재사용하지 못하므로 `bootJar`에서 만들지 않으며, 전체 Gradle cache를 S3로 전송하지 않는다.
+저장 대상 디렉터리 크기는 CodeBuild 로그에 남겨 캐시 전송 시간이 다시 빌드 시간보다 커지는지 확인한다.
 운영 요청은 `ALB(HTTPS 443) -> target group(HTTP 80) -> Spring Boot` 순서로 전달한다.
 
 1. PR CI가 Java 25로 Checkstyle과 test를 수행하고, CodeBuild가 실행 JAR를 빌드한다.
