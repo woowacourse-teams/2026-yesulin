@@ -71,19 +71,36 @@ export function BoardHeader() {
         <ChevronDownIcon />
       </label>
 
-      <div className="flex shrink-0 overflow-hidden rounded-control border border-border bg-card">
-        {WORK_TABS.map((tab) => (
-          <SegmentButton
-            key={tab.mode}
-            pressed={filters.work === tab.mode}
-            onClick={() => changeWork(tab.mode)}
-            className="inline-flex items-center gap-1.5 px-3 text-dense"
-          >
-            {tab.label}
-            {counts ? <span className="num font-bold">{tab.mode === "PENDING" ? counts.pending : counts.done}</span> : null}
-          </SegmentButton>
-        ))}
+      {/*
+        '누구를 보는가'와 '어떻게 보는가'는 다른 선택이다.
+        같은 스위치 모양으로 나란히 두면 같은 종류로 읽히므로, 내용 선택은 밑줄 탭으로 구분한다.
+      */}
+      <div role="tablist" aria-label="심사 진행 상태" className="flex shrink-0 items-center gap-4">
+        {WORK_TABS.map((tab) => {
+          const active = filters.work === tab.mode;
+          return (
+            <button
+              key={tab.mode}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => changeWork(tab.mode)}
+              className={`relative inline-flex min-h-9 items-center gap-1.5 text-dense font-semibold transition-colors after:absolute after:inset-x-0 after:bottom-0.5 after:h-0.5 after:rounded-full ${
+                active ? "text-foreground after:bg-foreground" : "text-muted hover:text-foreground"
+              }`}
+            >
+              {tab.label}
+              {counts ? (
+                <span className={`num font-bold ${active ? "text-foreground" : "text-muted-soft"}`}>
+                  {tab.mode === "PENDING" ? counts.pending : counts.done}
+                </span>
+              ) : null}
+            </button>
+          );
+        })}
       </div>
+
+      <span aria-hidden="true" className="h-5 w-px shrink-0 bg-border" />
 
       <div className="flex shrink-0 overflow-hidden rounded-control border border-border bg-card">
         {views.map((tab) => (
