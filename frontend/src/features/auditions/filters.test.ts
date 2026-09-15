@@ -46,11 +46,17 @@ describe("심사 작업 필터", () => {
     expect(filters.mismatchOnly).toBe(true);
   });
 
-  it("잘못된 목록 상태는 검토 대기 카드 보기로 보정한다", () => {
+  it("잘못된 목록 상태는 검토 대기 한 명씩 보기로 보정한다", () => {
     const filters = initialFiltersFromRoute({ work: "UNKNOWN", status: "FAIL", view: "grid" });
 
     expect(filters.work).toBe("PENDING");
     expect(filters.status).toBe("ALL");
-    expect(filters.view).toBe("card");
+    expect(filters.view).toBe("single");
+  });
+
+  it("보기를 지정하지 않으면 한 명씩 보기로 연다", () => {
+    expect(initialFiltersFromRoute({}).view).toBe("single");
+    expect(initialFiltersFromRoute({ view: "card" }).view).toBe("card");
+    expect(initialFiltersFromRoute({ view: "table" }).view).toBe("table");
   });
 });

@@ -66,7 +66,8 @@ export const initialFilters = (work: WorkMode): AuditionFilters => ({
   genders: new Set(),
   numeric: emptyNumeric(),
   mismatchOnly: false,
-  view: "card",
+  // 심사는 한 명씩 보며 판정하는 흐름이 기본이다.
+  view: "single",
 });
 
 export function listRouteStateFromRoute(route: AuditionListRouteQuery): AuditionListRouteState {
@@ -86,7 +87,7 @@ export function listRouteStateFromRoute(route: AuditionListRouteQuery): Audition
       weight: parseNumericCondition(route.weight),
     },
     mismatchOnly: route.mismatch === "1",
-    view: route.view === "table" || route.view === "single" ? route.view : "card",
+    view: route.view === "table" || route.view === "card" ? route.view : "single",
   };
 }
 

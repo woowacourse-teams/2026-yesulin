@@ -7,7 +7,7 @@ import { orderedCareersByRecency } from "@/features/auditions/featured-careers";
 import { selectGalleryIndex } from "@/features/auditions/gallery-navigation";
 import { ageText, genderText, roleConditionText } from "@/features/auditions/labels";
 import { safeExternalUrl } from "@/features/auditions/safe-external-url";
-import type { Applicant, ReviewStatus } from "@/features/auditions/types";
+import type { Applicant, ReviewStatus, RoundNumber } from "@/features/auditions/types";
 import { SecondaryButton, SegmentButton } from "@/components/ui/controls";
 import { ApplicantPhotoImage } from "./applicant-photo";
 import { useBoard } from "./board-context";
@@ -61,12 +61,15 @@ function FocusReviewContent({
   readonly onMove: (candidate: Applicant | undefined) => void;
 }) {
   const {
-    board, filters, saving, reviewLocked,
+    board, filters, saving, reviewLocked, screeningCompleted,
     reviewFocused, patchReview, openApplicant, setFilters, clearSelection,
+    goToRound, setCompletionPrompt,
   } = useBoard();
   const currentRound = board.rounds.find((state) => state.round === board.round);
-  const roundName = currentRound?.name ?? "";
   const passCount = currentRound?.counts.pass ?? 0;
+  const canComplete = Boolean(
+    currentRound && !screeningCompleted && !currentRound.closed && board.role.activeRound === board.round,
+  );
   const [otherOpen, setOtherOpen] = useState(false);
   const [otherReason, setOtherReason] = useState(
     applicant.review.status === "ETC" ? applicant.review.memo : "",
@@ -154,7 +157,19 @@ function FocusReviewContent({
       <header className="flex shrink-0 flex-wrap items-center gap-x-2.5 gap-y-2 rounded-card border border-border bg-card px-3 py-2">
         <h2 className="text-lg font-bold tracking-[-0.02em] text-foreground">{applicant.name}</h2>
         <span className="text-sm font-semibold text-brand">{applicant.roleName}</span>
-        {roundName ? <span className="text-xs text-muted">{roundName}</span> : null}
+        {/* 차수는 어차피 이름을 띄워야 하니, 같은 자리를 선택 상자로 바꿔 이동까지 겸하게 한다. */}
+        <label className="shrink-0">
+          <span className="sr-only">전형 차수</span>
+          <select
+            value={board.round}
+            onChange={(event) => goToRound(Number(event.target.value) as RoundNumber)}
+            className="min-h-8 rounded-control border border-border bg-card px-1.5 text-xs font-semibold text-muted-strong outline-none focus:border-brand focus:ring-2 focus:ring-brand-soft"
+          >
+            {board.rounds.map((state) => (
+              <option key={state.round} value={state.round}>{state.name}</option>
+            ))}
+          </select>
+        </label>
         <StatusBadge status={applicant.review.status} memo={applicant.review.memo} size="sm" />
         {applicant.mismatchReasons.length > 0 ? (
           <span className="rounded-full border border-fail/30 bg-fail-bg px-2 py-0.5 text-xs font-semibold text-fail">배역 조건 불일치</span>
@@ -197,7 +212,14 @@ function FocusReviewContent({
         <span className="shrink-0 rounded-control border border-pass/30 bg-pass-bg px-2.5 py-1 text-sm font-bold leading-none text-pass">
           합격 <span className="num text-base">{passCount}</span>
         </span>
-        <SecondaryButton onClick={() => openApplicant(applicant.id)} className="min-h-9 shrink-0 px-3 text-xs">
+        {screeningCompleted ? (
+          <span className="shrink-0 rounded-full bg-pass-bg px-2 py-1 text-xs font-semibold text-pass">전형 종료</span>
+        ) : canComplete ? (
+          <SecondaryButton onClick={() => setCompletionPrompt("manual")} className="min-h-8 shrink-0 border-brand-line px-2.5 text-xs text-brand">
+            전형 마감
+          </SecondaryButton>
+        ) : null}
+        <SecondaryButton onClick={() => openApplicant(applicant.id)} className="min-h-8 shrink-0 px-2.5 text-xs">
           상세 지원서
         </SecondaryButton>
       </header>
