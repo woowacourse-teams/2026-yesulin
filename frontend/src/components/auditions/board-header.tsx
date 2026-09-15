@@ -111,7 +111,7 @@ export function BoardHeader() {
               if (tab.view === "single") clearSelection();
               setFilters((currentFilters) => ({ ...currentFilters, view: tab.view }));
             }}
-            className="px-3 text-dense"
+            className="min-w-11 px-3 text-dense"
           >
             {tab.label}
           </SegmentButton>

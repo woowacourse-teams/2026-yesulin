@@ -162,7 +162,7 @@ export function ZoomablePhoto({
       </div>
 
       <div
-        className="absolute bottom-3 right-3 z-3 flex items-center gap-1 rounded-control bg-foreground/75 p-1 text-white backdrop-blur-sm"
+        className="absolute bottom-3 right-3 z-3 flex items-center overflow-hidden rounded-control bg-foreground/75 text-white backdrop-blur-sm"
         onPointerDown={(event) => event.stopPropagation()}
       >
         <ZoomButton label="사진 축소" disabled={transform.scale <= MIN_SCALE} onClick={() => step(-1)}>−</ZoomButton>
@@ -170,7 +170,7 @@ export function ZoomablePhoto({
           type="button"
           onClick={() => setTransform(FIT)}
           disabled={!zoomed}
-          className="num min-h-8 min-w-12 rounded-md px-1 text-xs font-bold hover:bg-white/15 disabled:opacity-60"
+          className="num h-11 w-11 text-xs font-bold hover:bg-white/15 disabled:opacity-60"
         >
           {Math.round(transform.scale * 100)}%
         </button>
@@ -192,7 +192,7 @@ function ZoomButton({ label, disabled, onClick, children }: {
       aria-label={label}
       disabled={disabled}
       onClick={onClick}
-      className="grid h-8 w-8 place-items-center rounded-md text-lg font-bold leading-none hover:bg-white/15 disabled:opacity-35"
+      className="grid h-11 w-11 place-items-center text-lg font-bold leading-none hover:bg-white/15 disabled:opacity-35"
     >
       {children}
     </button>

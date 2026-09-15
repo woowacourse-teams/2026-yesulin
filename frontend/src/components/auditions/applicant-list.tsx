@@ -50,7 +50,7 @@ function ListToolbar({ rows }: { rows: readonly Applicant[] }) {
       : `${rows.length}명 표시 중`;
 
   const selectionControl = (
-    <label className="-m-1.5 flex cursor-pointer items-center gap-2 rounded-lg p-1.5 text-dense font-medium transition-colors hover:bg-foreground/5">
+    <label className="-m-1.5 flex min-h-11 cursor-pointer items-center gap-2 rounded-lg p-1.5 text-dense font-medium transition-colors hover:bg-foreground/5">
       <input
         type="checkbox"
         checked={allSelected}
