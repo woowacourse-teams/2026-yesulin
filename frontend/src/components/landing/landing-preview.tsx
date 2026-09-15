@@ -45,41 +45,82 @@ export function ApplicantPreview() {
   );
 }
 
+const previewPhotos = [
+  { src: "/images/applicants/kim-harin-profile.png", label: "프로필 사진" },
+  { src: "/images/applicants/kim-harin-full-body.png", label: "전신 사진" },
+  { src: "/images/applicants/kim-harin-acting-1.png", label: "연기 이미지" },
+] as const;
+
+const previewActions = [
+  { caption: "이전", mark: "↺", tone: "text-muted-strong border-border" },
+  { caption: "불합격", mark: "✕", tone: "text-fail border-fail/35" },
+  { caption: "합격", mark: "○", tone: "text-pass border-pass/35" },
+  { caption: "보류", mark: "⋯", tone: "text-etc border-etc/35" },
+  { caption: "다음", mark: "→", tone: "text-muted-strong border-border" },
+] as const;
+
+/** 실제 '한 명씩 심사' 화면을 그대로 축소해 보여 준다. 조작하지 않는 소개용 그림이다. */
 export function ProducerPreview() {
   return (
-    <figure aria-label="배우를 검토하는 예술in 심사 화면 소개 이미지" className="mx-auto w-full max-w-[650px] overflow-hidden rounded-[28px] border border-sidebar-line bg-sidebar p-3 shadow-[var(--shadow-3)] sm:p-4">
-      <div className="overflow-hidden rounded-card bg-surface">
-        <PreviewWindowBar title="서연 · 1차 서류 심사" dark />
-        <div className="grid gap-4 p-4 sm:grid-cols-[minmax(0,1fr)_168px] sm:p-5">
-          <section className="rounded-card border border-border bg-card p-4 sm:p-5">
-            <div className="flex gap-4">
-              <div className="relative aspect-[3/4] w-24 shrink-0 overflow-hidden rounded-control bg-surface sm:w-28">
-                <Image src="/images/applicants/kim-harin-profile.png" alt="지원자 김하린" fill sizes="112px" className="object-cover object-top" />
-              </div>
-              <div className="min-w-0 flex-1 py-1">
-                <div className="flex flex-wrap items-center gap-2"><h2 className="text-lg font-bold">김하린</h2><span className="rounded-full bg-pending-bg px-2 py-1 text-xs font-semibold text-pending">검토 중</span></div>
-                <p className="mt-1 text-sm text-muted">만 27세 · 166cm</p>
-                <dl className="mt-4 grid gap-3 text-sm">
-                  <SummaryRow label="경력" value="푸른 방 · 윤서 역" />
-                  <SummaryRow label="사진" value="3장" />
-                  <SummaryRow label="영상" value="1개" />
-                </dl>
-              </div>
-            </div>
-            <div className="mt-4 rounded-control bg-surface px-4 py-3"><p className="text-xs font-semibold text-muted">지원 동기</p><p className="mt-1 text-sm font-medium">작품이 전하는 관계의 회복에 공감했습니다.</p></div>
-          </section>
+    <figure aria-label="배우를 한 명씩 넘겨 보며 심사하는 예술in 화면 소개 이미지" className="mx-auto w-full max-w-[650px] overflow-hidden rounded-[28px] border border-sidebar-line bg-sidebar p-3 shadow-[var(--shadow-3)] sm:p-4">
+      <div className="overflow-hidden rounded-card bg-white">
+        <PreviewWindowBar title="서연 · 한 명씩 심사" dark />
 
-          <aside className="rounded-card border border-border bg-card p-4">
-            <p className="text-xs font-semibold text-muted">심사 결정</p>
-            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-1">
-              <Decision label="합격" tone="pass" />
-              <Decision label="불합격" tone="fail" />
+        <div aria-hidden="true" className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border px-4 py-2.5">
+          <span className="flex items-center gap-1 text-sm font-bold text-foreground">1차 서류 심사<span className="text-[10px] text-muted">▼</span></span>
+          <span className="relative pb-1.5 text-xs font-bold text-foreground after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:bg-foreground">심사 전 <span className="num">12</span></span>
+          <span className="pb-1.5 text-xs font-semibold text-muted">심사 후 <span className="num">3</span></span>
+          <span className="ml-auto flex overflow-hidden rounded-control border border-border text-[11px] font-semibold">
+            <span className="bg-foreground px-2 py-1 text-white">한 명씩</span>
+            <span className="px-2 py-1 text-muted">카드</span>
+            <span className="px-2 py-1 text-muted">표</span>
+          </span>
+          <span className="text-xs font-semibold text-muted">합격 <b className="num text-sm text-pass">3</b></span>
+        </div>
+
+        <div className="p-3 sm:p-4">
+          <div className="flex gap-3">
+            <div aria-hidden="true" className="flex shrink-0 flex-col gap-1.5">
+              {previewPhotos.map((photo, index) => (
+                <span key={photo.src} className={`relative block aspect-[3/4] w-9 overflow-hidden rounded-md border-2 ${index === 0 ? "border-brand" : "border-transparent opacity-70"}`}>
+                  <Image src={photo.src} alt="" fill sizes="36px" className="object-cover object-top" />
+                </span>
+              ))}
             </div>
-            <div className="mt-4 border-t border-border-soft pt-4">
-              <p className="text-xs font-semibold text-muted">현재 지원자</p>
-              <div className="mt-2 flex items-center justify-between"><strong className="text-sm">1 / 12</strong><span className="text-xs text-muted">다음 배우 →</span></div>
+
+            <div className="relative h-[230px] w-[173px] shrink-0 overflow-hidden rounded-card border border-border bg-surface">
+              <Image src={previewPhotos[0].src} alt="지원자 김하린 프로필 사진" fill sizes="173px" className="object-cover object-top" />
+              <span aria-hidden="true" className="num absolute right-2 top-2 rounded-full bg-foreground/70 px-2 py-0.5 text-[11px] font-semibold text-white">1 / 3</span>
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/35 to-transparent px-3 pb-2 pt-10 text-white">
+                <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                  <strong className="text-base font-bold tracking-[-0.02em]">김하린</strong>
+                  <span className="text-xs font-semibold text-white/85">서연</span>
+                  <span className="rounded-full bg-white/92 px-1.5 py-0.5 text-[10px] font-bold text-pending">미검토</span>
+                </div>
+                <p className="num mt-0.5 text-xs text-white/85">여 · 만 27세 · 166cm</p>
+              </div>
             </div>
-          </aside>
+
+            <aside className="hidden min-w-0 flex-1 rounded-card border border-border bg-card p-3 sm:block">
+              <dl className="grid gap-2 text-xs">
+                <SummaryRow label="성별" value="여" />
+                <SummaryRow label="나이" value="만 27세" />
+                <SummaryRow label="키" value="166cm" />
+                <SummaryRow label="학력" value="연기과" />
+              </dl>
+              <p className="mt-3 border-t border-border-soft pt-3 text-[11px] font-bold text-muted">경력 1건</p>
+              <p className="num mt-1 text-xs"><span className="text-muted">2025</span> <span className="font-semibold">푸른 방</span></p>
+            </aside>
+          </div>
+
+          <div aria-hidden="true" className="mt-3 flex items-start justify-center gap-2">
+            {previewActions.map((action) => (
+              <span key={action.caption} className="flex w-11 flex-col items-center gap-1">
+                <span className={`grid h-9 w-9 place-items-center rounded-full border-2 bg-card text-sm font-bold shadow-[var(--shadow-1)] ${action.tone}`}>{action.mark}</span>
+                <span className={`text-[10px] font-bold ${action.tone.split(" ")[0]}`}>{action.caption}</span>
+              </span>
+            ))}
+          </div>
         </div>
       </div>
     </figure>
@@ -98,6 +139,3 @@ function SummaryRow({ label, value }: { readonly label: string; readonly value: 
   return <div className="grid grid-cols-[44px_minmax(0,1fr)] gap-2"><dt className="text-muted">{label}</dt><dd className="truncate font-semibold">{value}</dd></div>;
 }
 
-function Decision({ label, tone }: { readonly label: string; readonly tone: "pass" | "fail" }) {
-  return <span className={`grid min-h-12 place-items-center rounded-control border text-sm font-bold ${tone === "pass" ? "border-pass/30 bg-pass-bg text-pass" : "border-fail/20 bg-fail-bg text-fail"}`}>{label}</span>;
-}
