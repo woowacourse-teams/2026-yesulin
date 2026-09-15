@@ -149,7 +149,8 @@ export function ZoomablePhoto({
       ref={frameRef}
       onPointerDown={onPointerDown}
       onDoubleClick={onDoubleClick}
-      className={`absolute inset-0 overflow-hidden ${
+      onDragStart={(event) => event.preventDefault()}
+      className={`absolute inset-0 select-none overflow-hidden ${
         zoomed ? "cursor-grab touch-none active:cursor-grabbing" : onActivate ? "cursor-zoom-in" : ""
       }`}
     >
