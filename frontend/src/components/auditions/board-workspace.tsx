@@ -271,16 +271,18 @@ export function BoardWorkspace({
           첫 줄은 세 보기가 똑같이 쓴다. 보기를 바꿔도 조작이 자리를 옮기지 않게 여기서 한 번만 그린다.
           검색·필터처럼 목록에서만 쓰는 조작은 그 아래 둘째 줄로 내린다.
         */}
-        <div className="sticky top-16 z-20 bg-background pb-3 pt-4 lg:top-0">
+        <div className="sticky top-16 z-20 -mx-4 border-b border-border bg-background px-4 md:-mx-6 md:px-6 lg:top-0 xl:-mx-8 xl:px-8">
           <BoardHeader />
           {focusMode ? null : (
-            <div className="mt-2 overflow-hidden rounded-card border border-border bg-card">
+            <div className="border-t border-border-soft">
               <FilterBar sheetOpen={filterSheetOpen} onOpenSheet={() => setFilterSheetOpen(true)} />
               <DesktopBoardToolbar onOpenFilter={() => setFilterSheetOpen(true)} />
             </div>
           )}
         </div>
-        <ApplicantList />
+        <div className="pt-3">
+          <ApplicantList />
+        </div>
       </div>
       <ActionBar />
       <ContactsModal />

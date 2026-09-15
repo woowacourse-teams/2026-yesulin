@@ -11,7 +11,7 @@ export function DesktopBoardToolbar({ onOpenFilter }: { onOpenFilter: () => void
   const detailCount = activeDetailFilterCount(filters);
 
   return (
-    <div className="hidden min-h-16 items-center gap-2 px-6 py-2 lg:flex xl:gap-3 xl:px-8">
+    <div className="hidden min-h-14 items-center gap-2 py-2 lg:flex xl:gap-3">
       {filters.work === "DONE" ? (
         <label className="shrink-0">
           <span className="sr-only">심사 결과 상태</span>

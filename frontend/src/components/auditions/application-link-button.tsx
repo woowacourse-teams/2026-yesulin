@@ -3,17 +3,20 @@
 import { useState } from "react";
 import { publicApplicationRoute } from "@/features/auditions/routes";
 import type { PostingId } from "@/features/auditions/types";
-import { SecondaryButton } from "@/components/ui/controls";
+import { SecondaryButton, TextButton } from "@/components/ui/controls";
 import { useToast } from "./toast";
 
 export function ApplicationLinkButton({
   postingId,
   className = "",
   compact = false,
+  /** 툴바처럼 테두리를 스위치에만 남기고 싶은 자리에서는 글자 버튼으로 둔다. */
+  variant = "outlined",
 }: {
   readonly postingId: PostingId;
   readonly className?: string;
   readonly compact?: boolean;
+  readonly variant?: "outlined" | "quiet";
 }) {
   const [copying, setCopying] = useState(false);
   const toast = useToast();
@@ -32,8 +35,10 @@ export function ApplicationLinkButton({
     }
   }
 
+  const Control = variant === "quiet" ? TextButton : SecondaryButton;
+
   return (
-    <SecondaryButton
+    <Control
       type="button"
       onClick={copyApplicationLink}
       disabled={copying}
@@ -43,6 +48,6 @@ export function ApplicationLinkButton({
         <path d="M7.5 12.5 12.5 7.5M6.2 8.5 4.6 10.1a3.25 3.25 0 0 0 4.6 4.6l1.6-1.6M13.8 11.5l1.6-1.6a3.25 3.25 0 0 0-4.6-4.6L9.2 6.9" />
       </svg>
       {copying ? "복사 중…" : compact ? <><span className="sm:hidden">링크</span><span className="hidden sm:inline">지원 링크 복사</span></> : "지원 링크 복사"}
-    </SecondaryButton>
+    </Control>
   );
 }
