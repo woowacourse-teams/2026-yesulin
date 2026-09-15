@@ -1,7 +1,7 @@
 "use client";
 
 import { activeDetailFilterCount, type StatusFilter } from "@/features/auditions/filters";
-import { roleConditionText, ROUND_LABELS, STATUS_LABELS } from "@/features/auditions/labels";
+import { ROUND_LABELS, STATUS_LABELS } from "@/features/auditions/labels";
 import { openPrintWindow } from "@/features/auditions/print";
 import type { Applicant } from "@/features/auditions/types";
 import { ApplicantCards } from "./applicant-cards";
@@ -22,18 +22,11 @@ const RESULT_SCOPE_LABELS = {
 } as const satisfies Record<StatusFilter, string>;
 
 export function ApplicantList() {
-  const { board, filters, visible } = useBoard();
+  const { filters, visible } = useBoard();
   if (visible.length === 0) return <EmptyList />;
 
   return (
     <>
-      {/* 한 명씩 보기는 한 화면에 들어가야 하므로 배역 조건은 그 화면 안쪽으로 옮긴다. */}
-      {filters.view === "single" ? null : (
-        <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-card border border-brand-line bg-brand-soft px-4 py-2.5 text-sm">
-          <span className="font-semibold text-brand">배역 조건</span>
-          <span className="text-muted-strong">{roleConditionText(board.role)}</span>
-        </div>
-      )}
       {filters.view === "single" ? null : <ListToolbar rows={visible} />}
       {filters.view === "card" ? <ApplicantCards rows={visible} /> : null}
       {filters.view === "table" ? <><div className="lg:hidden"><ApplicantCards rows={visible} /></div><div className="hidden lg:block"><ApplicantTable rows={visible} /></div></> : null}

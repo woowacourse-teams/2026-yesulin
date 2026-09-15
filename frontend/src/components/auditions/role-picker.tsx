@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback } from "react";
 import { SecondaryLink } from "@/components/ui/controls";
 import { getRoles } from "@/features/auditions/api";
-import { ROUND_LABELS } from "@/features/auditions/labels";
+import { roleConditionText, ROUND_LABELS } from "@/features/auditions/labels";
 import { auditionRoutes } from "@/features/auditions/routes";
 import type { PostingId, RoleSummary } from "@/features/auditions/types";
 import { useAuditionQuery } from "@/features/auditions/use-audition-query";
@@ -48,6 +48,8 @@ function RoleRow({ role }: { role: RoleSummary }) {
         <div className="min-w-0">
           <h2 className="truncate text-lg font-bold tracking-[-0.015em] group-hover:text-brand">{role.name}</h2>
           <p className="mt-1 line-clamp-2 text-sm leading-5 text-muted">{role.description}</p>
+          {/* 심사 화면에서는 이미 아는 내용이라 걷어냈고, 배역을 고르는 이 자리에만 남긴다. */}
+          <p className="num mt-1.5 text-xs font-semibold text-muted-strong">{roleConditionText(role)}</p>
         </div>
 
         <div className="lg:min-w-0">

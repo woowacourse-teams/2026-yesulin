@@ -4,7 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNo
 import { applicantEducationText } from "@/features/auditions/education-text";
 import { orderedCareersByRecency } from "@/features/auditions/featured-careers";
 import { selectGalleryIndex } from "@/features/auditions/gallery-navigation";
-import { ageText, genderText, roleConditionText } from "@/features/auditions/labels";
+import { ageText, genderText } from "@/features/auditions/labels";
 import { safeExternalUrl } from "@/features/auditions/safe-external-url";
 import type { Applicant, ReviewStatus } from "@/features/auditions/types";
 import { SecondaryButton } from "@/components/ui/controls";
@@ -60,7 +60,7 @@ function FocusReviewContent({
   readonly next: Applicant | undefined;
   readonly onMove: (candidate: Applicant | undefined) => void;
 }) {
-  const { board, filters, saving, reviewLocked, reviewFocused, patchReview, openApplicant } = useBoard();
+  const { filters, saving, reviewLocked, reviewFocused, patchReview, openApplicant } = useBoard();
   const [otherOpen, setOtherOpen] = useState(false);
   const [otherReason, setOtherReason] = useState(
     applicant.review.status === "ETC" ? applicant.review.memo : "",
@@ -319,10 +319,6 @@ function FocusReviewContent({
         </div>
 
         <aside className="min-h-0 overflow-y-auto rounded-card border border-border bg-card p-4 lg:p-5">
-          <p className="mb-3 rounded-control border border-brand-line bg-brand-soft px-3 py-2 text-xs leading-5">
-            <span className="font-semibold text-brand">배역 조건</span>
-            <span className="text-muted-strong"> {roleConditionText(board.role)}</span>
-          </p>
           <SecondaryButton onClick={() => openApplicant(applicant.id)} className="mb-3 min-h-9 w-full text-xs">
             상세 지원서 보기
           </SecondaryButton>
