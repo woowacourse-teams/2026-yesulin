@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { defaultStatusForWork, viewForWork, type AuditionFilters, type WorkMode } from "@/features/auditions/filters";
 import { roundTitle } from "@/features/auditions/labels";
 import type { RoundNumber } from "@/features/auditions/types";
@@ -35,13 +36,22 @@ export function BoardHeader() {
   // 심사가 끝난 사람을 한 명씩 넘겨 볼 이유가 없어 그때는 선택지에서 뺀다.
   const views = filters.work === "DONE" ? VIEW_TABS.filter((tab) => tab.view !== "single") : VIEW_TABS;
 
+  /**
+   * 심사 후로 갈 때 한 명씩은 카드로 바뀐다. 그대로 두면 심사 전으로 돌아와도 카드에 머물러
+   * 보던 방식을 잃으므로, 탭마다 마지막으로 쓰던 보기를 기억했다가 되돌려 준다.
+   */
+  const lastViewOf = useRef<Record<WorkMode, AuditionFilters["view"]>>({ PENDING: "single", DONE: "card" });
+  useEffect(() => {
+    lastViewOf.current[filters.work] = filters.view;
+  }, [filters.work, filters.view]);
+
   const changeWork = (work: WorkMode) => {
     clearSelection();
     setFilters((currentFilters) => ({
       ...currentFilters,
       work,
       status: defaultStatusForWork(work),
-      view: viewForWork(work, currentFilters.view),
+      view: viewForWork(work, lastViewOf.current[work]),
     }));
   };
 
