@@ -13,6 +13,18 @@ CodeBuild는 `buildspec.yml`로 `backend/build/deployment/` 묶음을 만들고 
 6. ALB target group도 같은 readiness endpoint를 확인한 뒤에만 트래픽을 전달한다.
 7. 최근 릴리스 5개를 유지한다.
 
+스테이징 target group의 deregistration delay는 60초로 운영한다. 현재 target이 한 대뿐이므로 드레이닝이 시작되면
+신규 요청을 받을 다른 인스턴스가 없고, 기본값 300초는 이미 처리 중인 요청을 보호하는 대신 배포 중 신규 요청 불가 시간을
+늘린다. 60초는 일반적인 API 요청에는 종료 여유를 주면서 배포마다 발생하던 약 5분의 대기를 줄이기 위한 값이다.
+60초를 넘는 응답·다운로드·스트리밍을 도입하거나 target 구성이 바뀌면 요청 시간 분포를 확인하고 다시 결정한다.
+
+AWS CLI 자격 증명과 region을 설정한 운영 환경에서 다음 명령으로 값을 적용한다. 스크립트는 변경 후 실제 적용값도 다시
+조회하며, target group ARN은 저장소에 기록하지 않는다.
+
+```bash
+sh ops/configure/staging-alb-draining.sh <target-group-arn>
+```
+
 `project-app` Security Group은 `project-lb` Security Group에서 들어오는 80 포트만 허용한다. EC2에는 공인 IP를
 부여하지 않으며, 인터넷에서 EC2의 80·8080 포트로 직접 접근하는 경로를 만들지 않는다. TLS 인증서와 HTTPS 종료는
 ALB와 ACM이 담당하므로 EC2에 Nginx와 Let's Encrypt 인증서를 설치하지 않는다.
