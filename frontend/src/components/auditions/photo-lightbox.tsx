@@ -43,7 +43,6 @@ export function PhotoLightbox({
         <h2 id={TITLE_ID} className="min-w-0 flex-1 truncate text-base font-semibold">
           {applicant.name} · {photo?.label ?? "프로필 사진"}
         </h2>
-        <span className="hidden text-xs text-white/50 sm:inline">휠로 확대 · 끌어서 이동 · 두 번 눌러 되돌리기</span>
         <span className="num text-sm text-white/65">{index + 1} / {applicant.photos.length}</span>
         <button type="button" onClick={onClose} className="min-h-11 rounded-control px-3 text-sm text-white/75 hover:bg-white/10 hover:text-white">닫기</button>
       </header>
