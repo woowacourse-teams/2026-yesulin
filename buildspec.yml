@@ -26,7 +26,8 @@ phases:
       # main ruleset이 CI 통과와 최신 브랜치를 강제해 검증을 거치지 않은
       # 코드가 main에 들어오지 못하게 막는다.
       # ruleset이 해제되면 이 명령을 build로 되돌려야 한다.
-      - ./gradlew bootJar --no-daemon
+      # task output cache는 새 CodeBuild 컨테이너에서 다음 빌드로 이어지지 않으므로 생성하지 않는다.
+      - ./gradlew bootJar --no-daemon --no-build-cache
 
   post_build:
     commands:
@@ -35,6 +36,9 @@ phases:
       - sh deploy/tests/validate_service_test.sh
       - sh deploy/tests/cleanup_releases_test.sh
       - sh deploy/tests/install_env_test.sh
+      - sh deploy/tests/buildspec_cache_test.sh
+      # 다음 빌드에서 S3 캐시 효과와 전송 비용을 비교할 수 있도록 저장 대상 크기를 남긴다.
+      - du -sh /root/.gradle/caches/modules-2 /root/.gradle/wrapper
       - chmod +x deploy/package_bundle.sh
       - deploy/package_bundle.sh "$CODEBUILD_RESOLVED_SOURCE_VERSION" "$CODEBUILD_SRC_DIR_ConfigSource/server/staging.env"
 
@@ -44,10 +48,10 @@ artifacts:
     - '**/*'
   discard-paths: no
 
-# 컨테이너는 매 빌드마다 새로 뜨므로 Gradle 배포판과 의존성을 캐시하지 않으면
-# 빌드마다 전부 다시 내려받는다. CodeBuild 프로젝트에서 캐시 유형을 S3로
-# 지정해야 실제로 동작한다.
+# 컨테이너는 매 빌드마다 새로 뜨므로 Gradle 배포판과 의존성만 S3에 보존한다.
+# 전체 caches 디렉터리는 task output과 변환 결과까지 포함해 전송량이 빌드 비용보다 커질 수 있다.
+# CodeBuild 프로젝트에서 캐시 유형을 S3로 지정해야 실제로 동작한다.
 cache:
   paths:
-    - '/root/.gradle/caches/**/*'
+    - '/root/.gradle/caches/modules-2/**/*'
     - '/root/.gradle/wrapper/**/*'
