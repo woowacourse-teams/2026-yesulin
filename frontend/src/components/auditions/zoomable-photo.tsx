@@ -82,15 +82,36 @@ export function ZoomablePhoto({
     return () => frame.removeEventListener("wheel", onWheel);
   }, []);
 
+  // 화면 밖에서 손을 떼면 프레임은 뗀 신호를 못 받는다. 그때도 드래그 상태가 남지 않게 한다.
+  useEffect(() => {
+    const clear = () => { dragRef.current = null; };
+    window.addEventListener("pointerup", clear);
+    window.addEventListener("pointercancel", clear);
+    return () => {
+      window.removeEventListener("pointerup", clear);
+      window.removeEventListener("pointercancel", clear);
+    };
+  }, []);
+
   const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
     dragRef.current = { x: event.clientX, y: event.clientY, ox: transform.x, oy: transform.y, moved: false };
-    if (zoomed) event.currentTarget.setPointerCapture(event.pointerId);
+    // 배율과 상관없이 잡아 둔다. 누르는 중에 확대되더라도 뗄 때를 반드시 받아야 상태가 남지 않는다.
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // 이미 끝난 포인터면 캡처할 수 없다. 창 단위 안전장치가 대신 정리한다.
+    }
   };
 
   const onPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
     const start = dragRef.current;
     if (!start) return;
+    // 뗀 신호를 놓쳤다면 여기서 스스로 푼다. 그러지 않으면 버튼을 안 눌러도 사진이 따라다닌다.
+    if (event.buttons === 0) {
+      dragRef.current = null;
+      return;
+    }
     const dx = event.clientX - start.x;
     const dy = event.clientY - start.y;
     if (Math.abs(dx) > CLICK_SLOP || Math.abs(dy) > CLICK_SLOP) start.moved = true;
@@ -146,6 +167,7 @@ export function ZoomablePhoto({
       <div
         className="absolute bottom-3 right-3 z-3 flex items-center gap-1 rounded-control bg-foreground/75 p-1 text-white backdrop-blur-sm"
         onPointerDown={(event) => event.stopPropagation()}
+        onPointerUp={(event) => event.stopPropagation()}
       >
         <ZoomButton label="사진 축소" disabled={transform.scale <= MIN_SCALE} onClick={() => step(-1)}>−</ZoomButton>
         <button
