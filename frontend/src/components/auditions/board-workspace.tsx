@@ -59,6 +59,11 @@ export function BoardWorkspace({
   const router = useRouter();
 
   const visible = board.applicants;
+  /**
+   * 한 명씩 보기의 조작은 지원자 머리말에 얹혀 있다.
+   * 보여 줄 지원자가 없으면 그 머리말도 사라지므로, 그때는 위쪽 줄을 되살려 길을 막지 않는다.
+   */
+  const focusMode = filters.view === "single" && visible.length > 0;
 
   const clearSelection = useCallback(() => setSelected(new Set()), []);
 
@@ -260,7 +265,7 @@ export function BoardWorkspace({
         필요한 조작(검토 대기·완료, 보기 전환)은 지원자 머리말 한 줄로 합쳐 둔다.
         차수 이동·전형 마감·검색·필터는 카드/표 보기에서 다룬다.
       */}
-      {filters.view === "single" ? null : (
+      {focusMode ? null : (
         <>
           <RoundStepper />
           <div className="glass-surface sticky top-16 z-20 border-b border-border lg:top-0 lg:border-b-0">
@@ -272,7 +277,7 @@ export function BoardWorkspace({
       )}
       <div className={`px-4 pt-4 md:px-6 xl:px-8 ${
         // 한 명씩 보기는 화면 높이에 맞춰 스크롤 없이 놓이므로 아래 여백을 남기지 않는다.
-        filters.view === "single"
+        focusMode
           ? "pb-4 lg:pb-3"
           : "pb-[calc(9rem+env(safe-area-inset-bottom))] lg:pb-8"
       }`}>
