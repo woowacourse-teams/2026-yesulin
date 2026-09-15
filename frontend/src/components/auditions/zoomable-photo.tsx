@@ -60,7 +60,6 @@ export function ZoomablePhoto({
   readonly onActivate?: () => void;
 }) {
   const frameRef = useRef<HTMLDivElement>(null);
-  const dragRef = useRef<{ x: number; y: number; ox: number; oy: number; moved: boolean } | null>(null);
   const [transform, setTransform] = useState<Transform>(FIT);
   const zoomed = transform.scale > MIN_SCALE;
 
@@ -82,53 +81,53 @@ export function ZoomablePhoto({
     return () => frame.removeEventListener("wheel", onWheel);
   }, []);
 
-  // 화면 밖에서 손을 떼면 프레임은 뗀 신호를 못 받는다. 그때도 드래그 상태가 남지 않게 한다.
-  useEffect(() => {
-    const clear = () => { dragRef.current = null; };
-    window.addEventListener("pointerup", clear);
-    window.addEventListener("pointercancel", clear);
-    return () => {
-      window.removeEventListener("pointerup", clear);
-      window.removeEventListener("pointercancel", clear);
-    };
-  }, []);
+  // 끄는 동안에는 창 전체에서 신호를 듣는다.
+  // 포인터 캡처를 쓰면 사진이 페이지의 모든 입력을 가로채는데, 뗄 때를 한 번이라도 놓치면 화면이 먹통이 된다.
+  const stopDragRef = useRef<(() => void) | null>(null);
+  useEffect(() => () => stopDragRef.current?.(), []);
 
   const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
-    dragRef.current = { x: event.clientX, y: event.clientY, ox: transform.x, oy: transform.y, moved: false };
-    // 배율과 상관없이 잡아 둔다. 누르는 중에 확대되더라도 뗄 때를 반드시 받아야 상태가 남지 않는다.
-    try {
-      event.currentTarget.setPointerCapture(event.pointerId);
-    } catch {
-      // 이미 끝난 포인터면 캡처할 수 없다. 창 단위 안전장치가 대신 정리한다.
+    stopDragRef.current?.();
+
+    const pointerId = event.pointerId;
+    const start = { x: event.clientX, y: event.clientY, ox: transform.x, oy: transform.y, moved: false };
+
+    const stop = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onEnd);
+      window.removeEventListener("pointercancel", onEnd);
+      stopDragRef.current = null;
+    };
+
+    function onMove(moveEvent: PointerEvent) {
+      if (moveEvent.pointerId !== pointerId) return;
+      // 뗀 신호를 놓쳤더라도 버튼이 풀렸으면 여기서 끝낸다.
+      if (moveEvent.buttons === 0) {
+        stop();
+        return;
+      }
+      const dx = moveEvent.clientX - start.x;
+      const dy = moveEvent.clientY - start.y;
+      if (Math.abs(dx) > CLICK_SLOP || Math.abs(dy) > CLICK_SLOP) start.moved = true;
+      setTransform((current) => (
+        current.scale <= MIN_SCALE
+          ? current
+          : fit({ scale: current.scale, x: start.ox + dx, y: start.oy + dy }, frameRef.current)
+      ));
     }
-  };
 
-  const onPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
-    const start = dragRef.current;
-    if (!start) return;
-    // 뗀 신호를 놓쳤다면 여기서 스스로 푼다. 그러지 않으면 버튼을 안 눌러도 사진이 따라다닌다.
-    if (event.buttons === 0) {
-      dragRef.current = null;
-      return;
+    function onEnd(endEvent: PointerEvent) {
+      if (endEvent.pointerId !== pointerId) return;
+      const activate = endEvent.type === "pointerup" && !start.moved;
+      stop();
+      if (activate) onActivate?.();
     }
-    const dx = event.clientX - start.x;
-    const dy = event.clientY - start.y;
-    if (Math.abs(dx) > CLICK_SLOP || Math.abs(dy) > CLICK_SLOP) start.moved = true;
-    if (!zoomed) return;
-    setTransform((current) => fit({ scale: current.scale, x: start.ox + dx, y: start.oy + dy }, frameRef.current));
-  };
 
-  const onPointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
-    const start = dragRef.current;
-    dragRef.current = null;
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
-    if (start && !start.moved && onActivate) onActivate();
-  };
-
-  const onPointerCancel = (event: ReactPointerEvent<HTMLDivElement>) => {
-    dragRef.current = null;
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    stopDragRef.current = stop;
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onEnd);
+    window.addEventListener("pointercancel", onEnd);
   };
 
   const onDoubleClick = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -149,9 +148,6 @@ export function ZoomablePhoto({
     <div
       ref={frameRef}
       onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      onPointerCancel={onPointerCancel}
       onDoubleClick={onDoubleClick}
       className={`absolute inset-0 overflow-hidden ${
         zoomed ? "cursor-grab touch-none active:cursor-grabbing" : onActivate ? "cursor-zoom-in" : ""
@@ -167,7 +163,6 @@ export function ZoomablePhoto({
       <div
         className="absolute bottom-3 right-3 z-3 flex items-center gap-1 rounded-control bg-foreground/75 p-1 text-white backdrop-blur-sm"
         onPointerDown={(event) => event.stopPropagation()}
-        onPointerUp={(event) => event.stopPropagation()}
       >
         <ZoomButton label="사진 축소" disabled={transform.scale <= MIN_SCALE} onClick={() => step(-1)}>−</ZoomButton>
         <button
