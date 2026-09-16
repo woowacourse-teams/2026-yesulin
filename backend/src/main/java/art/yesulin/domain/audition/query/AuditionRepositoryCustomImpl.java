@@ -548,7 +548,9 @@ public class AuditionRepositoryCustomImpl implements AuditionRepositoryCustom {
         if (status == AuditionStatus.CLOSED) {
             return "FINISHED";
         }
-        if (schedule == null || currentTime.isBefore(schedule.recruitmentStartAt())) {
+        // 모집 시작 시각은 게시할 때 채워진다. 아직 없으면 목록 전체를 실패시키지 말고 모집 전으로 본다.
+        if (schedule == null || schedule.recruitmentStartAt() == null
+                || currentTime.isBefore(schedule.recruitmentStartAt())) {
             return "UPCOMING";
         }
         return currentTime.isBefore(schedule.recruitmentEndAt()) ? "OPEN" : "RECRUIT_CLOSED";

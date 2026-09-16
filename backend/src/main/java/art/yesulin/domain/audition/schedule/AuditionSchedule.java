@@ -49,7 +49,7 @@ public class AuditionSchedule {
 
     public AuditionSchedule replace(AuditionSchedulePlan plan) {
         requireNonNull(plan, "공고 일정 정보는 필수입니다.");
-        this.recruitmentPeriod = plan.recruitmentPeriod();
+        this.recruitmentPeriod = this.recruitmentPeriod.replaceKeepingStart(plan.recruitmentPeriod());
         this.stages.replace(this, plan.stages());
         return this;
     }
