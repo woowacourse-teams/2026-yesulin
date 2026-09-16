@@ -186,32 +186,32 @@ export function PostingCreateModal({ performanceId, performanceTitle, performanc
 
   return <ModalShell key={created ? "created" : "form"} open onClose={close} labelledBy={created ? POSTING_CREATED_TITLE_ID : TITLE_ID} placement="responsiveSheet" className="flex h-[calc(100dvh-8px)] w-full flex-col overflow-hidden rounded-t-modal bg-card shadow-[var(--shadow-modal)] md:h-auto md:max-h-[94vh] md:w-[min(900px,95vw)] md:rounded-modal">
     {created ? <PostingCreatedPanel postingTitle={created.title} applicationUrl={created.applicationUrl} onClose={close} /> : <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
-      <DialogHeader id={TITLE_ID} title="새 공고 추가" subtitle={`${performanceTitle} 공연의 모집 공고와 배우가 작성할 지원서 양식을 만듭니다.`} />
+      <DialogHeader id={TITLE_ID} title="새 공고 추가" subtitle={`${performanceTitle} 공연`} />
       <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-6 md:px-6">
         <ProducerCreationDraftStatus status={draft.status} savedAt={draft.savedAt} />
-        <CreateSection id={SECTION_IDS.TITLE} title="1. 공고명" description="지원 링크를 연 배우가 가장 먼저 보는 제목입니다. 어떤 공연에서 누구를 언제 뽑는지 한 줄로 드러나게 적어 주세요.">
+        <CreateSection id={SECTION_IDS.TITLE} title="1. 공고명" description="배우에게 가장 먼저 보이는 제목입니다.">
           <CreateError id="posting-create-title-error" message={formError?.section === "TITLE" ? formError.message : ""} />
           <div className={formError?.section === "TITLE" ? "mt-4" : ""}><CreateField label="공고명"><FieldInput data-autofocus="true" required maxLength={255} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="예: 2026 하반기 주·조연 배우 모집" /></CreateField></div>
           <div className="mt-5 flex gap-3 rounded-control border border-border-soft bg-surface p-3 text-sm leading-6 text-muted-strong"><Image src={performancePosterUrl} alt="" width={48} height={62} unoptimized className="h-[62px] w-12 rounded object-cover" /><div className="min-w-0"><strong className="block truncate text-foreground">{performanceTitle}</strong><span className="block">공연 기간 · {performanceStart ? `${performanceStart} ${performanceEnd ? `~ ${performanceEnd}` : "~ 오픈런"}` : "공연 정보에서 기간을 입력해 주세요"}</span><span className="block truncate">배역 · {roleTemplates.map((role) => role.name).join(" · ") || "등록된 배역 없음"}</span></div></div>
         </CreateSection>
-        <CreateSection id={SECTION_IDS.ROLES} title="2. 모집 배역" description="공연에 등록한 배역 중 모집할 배역을 고르고, 이 공고에 적용할 지원 조건을 설정합니다.">
+        <CreateSection id={SECTION_IDS.ROLES} title="2. 모집 배역" description="모집할 배역과 지원 조건을 정합니다.">
           <CreateError id="posting-create-roles-error" message={formError?.section === "ROLES" ? formError.message : ""} />
           <div className={formError?.section === "ROLES" ? "mt-4" : ""}>
           <PostingRoleSelector roles={roleTemplates} selected={selectedRoles} onChange={(next) => { setSelectedRoles(next); if (Object.keys(next).length < 2) setAllowsMultipleRoles(false); }} />
           </div>
         </CreateSection>
-        <CreateSection title="3. 지원 방식" description="지원자가 모집 배역을 선택하는 방법을 정합니다.">
+        <CreateSection title="3. 지원 방식">
           <RoleApplicationMode selectedRoleCount={selectedRoleCount} allowsMultipleRoles={allowsMultipleRoles} onChange={setAllowsMultipleRoles} />
         </CreateSection>
-        <CreateSection id={SECTION_IDS.SCHEDULE} title="4. 모집·전형 일정" description="공고를 게시하는 순간 모집이 시작됩니다. 마감일과 이후 전형 일정을 설정해 주세요.">
+        <CreateSection id={SECTION_IDS.SCHEDULE} title="4. 모집·전형 일정" description="모집 마감일과 전형 일정을 정합니다.">
           <CreateError id="posting-create-schedule-error" message={formError?.section === "SCHEDULE" ? formError.message : ""} />
           <div className={formError?.section === "SCHEDULE" ? "mt-4" : ""}><CalendarDateRangeField includeTime single start={recruitmentEnd} end="" startError={visibleDateError("recruitmentEnd", recruitmentEnd)} onStartChange={(value) => { setRecruitmentEnd(value); clearDateFormError(); }} onEndChange={() => undefined} startLabel="모집 마감" /></div>
-          <p className="mt-2 text-sm leading-6 text-muted">모든 모집 날짜와 시간은 한국 시간(Asia/Seoul) 기준입니다.</p>
-          <div className="mt-5 border-t border-border-soft pt-5"><h4 className="text-sm font-bold">연습 장소 <span className="font-normal text-muted">(선택)</span></h4><p className="mt-1 text-sm leading-6 text-muted-strong">공연장과 별도로 안내할 연습 장소가 있다면 입력해 주세요.</p><div className="mt-3"><PerformanceVenueField optional venueLabel="연습 장소명" addressLabel="연습 장소 주소" mapLabel="연습 장소 지도" venue={rehearsalVenue} address={rehearsalVenueAddress} onVenueChange={setRehearsalVenue} onAddressChange={setRehearsalVenueAddress} /></div></div>
+          <p className="mt-2 text-sm leading-6 text-muted">시간은 한국 시간(KST) 기준입니다.</p>
+          <div className="mt-5 border-t border-border-soft pt-5"><h4 className="text-sm font-bold">연습 장소 <span className="font-normal text-muted">(선택)</span></h4><div className="mt-3"><PerformanceVenueField optional venueLabel="연습 장소명" addressLabel="연습 장소 주소" mapLabel="연습 장소 지도" venue={rehearsalVenue} address={rehearsalVenueAddress} onVenueChange={setRehearsalVenue} onAddressChange={setRehearsalVenueAddress} /></div></div>
           <div className="mt-4"><h4 className="mb-2 text-sm font-bold">지원 전형 일정</h4><AuditionScheduleEditor rounds={rounds} dateErrors={roundDateErrors} minimumDates={stageMinimumDates} maximumDate={performanceEnd || undefined} onChange={(value) => { setRounds(value); clearDateFormError(); }} /></div>
           {dateWarnings.length ? <ul role="status" className="mt-3 space-y-1 rounded-control border border-warn/20 bg-warn-bg px-4 py-3 text-sm leading-6 text-warn">{dateWarnings.map((warning) => <li key={warning}>• {warning}</li>)}</ul> : null}
         </CreateSection>
-        <CreateSection id={SECTION_IDS.APPLICATION} title="5. 지원 폼" description="기본정보, 추가정보, 사진, 영상과 추가 질문을 구성합니다."><CreateError id="posting-create-application-error" message={formError?.section === "APPLICATION" ? formError.message : ""} /><div className={formError?.section === "APPLICATION" ? "mt-4" : ""}><ApplicationFieldEditor fields={applicationFields} onChange={setApplicationFields} /></div></CreateSection>
+        <CreateSection id={SECTION_IDS.APPLICATION} title="5. 지원 폼" description="배우가 작성할 항목을 고릅니다."><CreateError id="posting-create-application-error" message={formError?.section === "APPLICATION" ? formError.message : ""} /><div className={formError?.section === "APPLICATION" ? "mt-4" : ""}><ApplicationFieldEditor fields={applicationFields} onChange={setApplicationFields} /></div></CreateSection>
         <CreateError id="posting-create-error" message={formError?.section === "GENERAL" ? formError.message : ""} />
       </div>
       <DialogFooter><SecondaryButton onClick={close}>취소</SecondaryButton><PrimaryButton type="submit" disabled={saving}>{saving ? "추가 중…" : "공고 추가"}</PrimaryButton></DialogFooter>
