@@ -140,7 +140,7 @@ export function CalendarDateRangeField({
     {startError ? <p id={startErrorId} role="alert" className="mt-2 text-sm font-medium text-fail">{startError}</p> : null}
     {!single && endError ? <p id={endErrorId} role="alert" className="mt-2 text-sm font-medium text-fail">{endError}</p> : null}
 
-    {!single && endOpenEnded && !end ? <p className="mt-2 rounded-control border border-brand-line bg-brand-soft px-3 py-2 text-sm leading-6 text-muted-strong"><strong className="text-brand">오픈런으로 저장됩니다.</strong> 종료일이 정해지면 나중에 추가할 수 있어요.</p> : null}
+    {!single && endOpenEnded && !end ? <p className="mt-2 rounded-control border border-brand-line bg-brand-soft px-3 py-2 text-sm leading-6 text-muted-strong">종료일이 정해지면 나중에 추가할 수 있어요.</p> : null}
 
     {open && picker ? variant === "compact" && portalTarget ? createPortal(<div className="fixed inset-0 z-[70] flex items-center justify-center bg-foreground/25 p-4" onPointerDown={(event) => { if (event.target === event.currentTarget) setOpen(false); }}>{picker}</div>, portalTarget) : picker : null}
   </div>;

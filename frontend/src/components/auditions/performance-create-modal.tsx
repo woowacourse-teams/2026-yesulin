@@ -157,7 +157,7 @@ export function PerformanceCreateModal({
         <DialogHeader
           id={TITLE_ID}
           title="새 공연 추가"
-          subtitle="공연 기본 정보와 공고에서 재사용할 배역 이름을 등록합니다."
+          subtitle="공연 정보와 배역을 등록합니다."
         />
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-6 md:px-6">
           <ProducerCreationDraftStatus status={draft.status} savedAt={draft.savedAt} />
@@ -184,13 +184,13 @@ export function PerformanceCreateModal({
               </div>
             </div>
           </CreateSection>
-          <CreateSection title="공연 기간" description="종료일이 미정이면 비워 두면 오픈런으로 저장됩니다.">
+          <CreateSection title="공연 기간" description="종료일을 비우면 오픈런으로 저장됩니다.">
             <CalendarDateRangeField start={performanceStart} end={performanceEnd} endOptional endOpenEnded onStartChange={setPerformanceStart} onEndChange={setPerformanceEnd} startLabel="공연 시작일" endLabel="공연 종료일" />
           </CreateSection>
 
           <CreateSection
             title="배역"
-            description="배역 이름과 한 줄 설명만 등록합니다. 지원 조건과 모집 인원은 공고를 만들 때 설정합니다."
+            description="지원 조건과 모집 인원은 공고에서 정합니다."
           >
             <PerformanceRoleEditor roles={roles} onChange={setRoles} />
           </CreateSection>
@@ -208,5 +208,5 @@ export function PerformanceCreateModal({
 }
 
 function PerformanceCreatedPanel({ performance, onClose }: { readonly performance: { readonly id: string; readonly title: string }; readonly onClose: () => void }) {
-  return <div className="flex min-h-0 flex-1 flex-col"><DialogHeader id={TITLE_ID} title="공연이 저장되었습니다" subtitle="이제 같은 공연의 모집 공고를 만들 수 있습니다." /><div className="flex-1 px-5 py-7 md:px-6"><ol aria-label="공연·공고 생성 단계" className="grid gap-2 rounded-card border border-brand-line bg-brand-soft px-4 py-3 text-sm sm:grid-cols-4"><li className="font-bold text-brand">1. 공연 정보 완료</li><li className="text-muted-strong">2. 공고·모집 정보</li><li className="text-muted-strong">3. 지원 폼</li><li className="text-muted-strong">4. 게시</li></ol><p className="mt-6 rounded-card border border-brand-line bg-brand-soft p-4 text-sm leading-6"><strong>{performance.title}</strong>의 배역을 불러와 공고를 이어서 작성합니다.</p></div><DialogFooter><SecondaryButton type="button" onClick={onClose}>공연만 저장하고 닫기</SecondaryButton><PrimaryButton type="button" onClick={() => { window.location.assign(`${auditionRoutes.performance(performance.id as import("@/features/auditions/types").PerformanceId)}?createPosting=1`); }}>이 공연의 공고 만들기</PrimaryButton></DialogFooter></div>;
+  return <div className="flex min-h-0 flex-1 flex-col"><DialogHeader id={TITLE_ID} title="공연이 저장되었습니다" /><div className="flex-1 px-5 py-7 md:px-6"><ol aria-label="공연·공고 생성 단계" className="grid gap-2 rounded-card border border-brand-line bg-brand-soft px-4 py-3 text-sm sm:grid-cols-4"><li className="font-bold text-brand">1. 공연 정보 완료</li><li className="text-muted-strong">2. 공고·모집 정보</li><li className="text-muted-strong">3. 지원 폼</li><li className="text-muted-strong">4. 게시</li></ol><p className="mt-6 rounded-card border border-brand-line bg-brand-soft p-4 text-sm leading-6"><strong>{performance.title}</strong>의 배역을 불러와 공고를 이어서 작성합니다.</p></div><DialogFooter><SecondaryButton type="button" onClick={onClose}>공연만 저장하고 닫기</SecondaryButton><PrimaryButton type="button" onClick={() => { window.location.assign(`${auditionRoutes.performance(performance.id as import("@/features/auditions/types").PerformanceId)}?createPosting=1`); }}>이 공연의 공고 만들기</PrimaryButton></DialogFooter></div>;
 }

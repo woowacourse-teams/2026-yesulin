@@ -20,20 +20,20 @@ export function ApplicationFieldEditor({ fields, onChange }: {
   };
 
   return <div className="space-y-5">
-    <FieldGroup title="기본정보" description="선택한 기본정보는 지원서에서 필수로 입력받습니다.">
+    <FieldGroup title="기본정보" description="고른 항목은 모두 필수로 받습니다.">
       <FieldChecks fields={basic} onToggle={(field, enabled) => patch(field.id, { ...field, enabled, required: enabled })} />
     </FieldGroup>
-    <FieldGroup title="추가정보" description="배우 프로필에서 불러올 수 있으며, 선택한 항목은 빈 값도 허용합니다.">
+    <FieldGroup title="추가정보" description="고른 항목은 비워 둬도 지원할 수 있습니다.">
       <FieldChecks fields={additional} onToggle={(field, enabled) => patch(field.id, { enabled, required: false })} />
     </FieldGroup>
-    {photos ? <FieldGroup title="프로필 사진" description={`어떤 사진을 몇 장 받을지 정해 주세요. 전체 합계는 최대 ${MAX_REQUESTED_PHOTO_COUNT}장입니다.`}>
+    {photos ? <FieldGroup title="프로필 사진" description="어떤 사진을 몇 장 받을지 정합니다.">
       <label className={fieldCardClass}><input type="checkbox" checked={photos.enabled} onChange={(event) => patch(photos.id, { enabled: event.target.checked, required: event.target.checked })} className="h-5 w-5 accent-brand" /><span className="text-sm font-semibold">프로필 사진 받기</span></label>
       {photos.enabled ? <PhotoRequirements value={photos.config.photoRequirements ?? []} onChange={(requirements) => patch(photos.id, { config: { ...photos.config, photoRequirements: requirements, maxCount: requirements.reduce((sum, item) => sum + item.count, 0) } })} /> : null}
     </FieldGroup> : null}
-    {video ? <FieldGroup title="제출 영상" description={`지원자에게 요청할 영상을 설명별로 추가해 주세요. 지원자는 각 항목에 맞는 YouTube 영상을 제출하며, 최대 ${MAX_VIDEO_REQUIREMENTS}개까지 받을 수 있습니다.`}>
+    {video ? <FieldGroup title="제출 영상" description="요청할 영상을 설명과 함께 추가합니다. 배우는 YouTube 링크로 제출합니다.">
       <VideoRequirements value={video.config.videoRequirements ?? []} onChange={(requirements) => patch(video.id, { enabled: requirements.length > 0, required: requirements.length > 0, config: { ...video.config, videoRequirements: requirements, maxCount: MAX_VIDEO_REQUIREMENTS } })} />
     </FieldGroup> : null}
-    <FieldGroup title="추가 질문" description="질문 문구는 최대 255자, 배우가 작성하는 답변은 최대 2,000자입니다. 질문마다 필수 여부를 정할 수 있습니다.">
+    <FieldGroup title="추가 질문" description="공고에서만 물어볼 내용을 추가합니다.">
       {custom.map((field) => <div key={field.id} className="flex flex-wrap gap-2 sm:flex-nowrap"><FieldInput required maxLength={255} value={field.label} onChange={(event) => patch(field.id, { label: event.target.value.slice(0, 255) })} placeholder="예: 지원 동기를 적어 주세요." className="min-w-52 flex-1" /><RequirementSelect required={field.required} label={field.label || "추가 질문"} onChange={(required) => patch(field.id, { required })} /><button type="button" onClick={() => onChange(fields.filter((item) => item.id !== field.id))} className="min-h-11 rounded-control border border-border bg-card px-3 text-sm text-muted-strong hover:text-fail">삭제</button></div>)}
       <button type="button" onClick={addCustom} className="min-h-11 w-full rounded-control border border-dashed border-muted-soft bg-card px-3 py-2.5 text-sm font-semibold text-muted-strong hover:border-brand-line hover:bg-brand-soft hover:text-brand">추가 질문 만들기</button>
     </FieldGroup>
