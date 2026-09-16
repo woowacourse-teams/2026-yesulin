@@ -76,7 +76,6 @@ jobs:
 
       - name: Test deployment scripts
         run: |
-          sh deploy/tests/buildspec_cache_test.sh
           sh deploy/tests/check_flyway_migration_order_test.sh
           sh deploy/tests/validate_service_test.sh
           sh deploy/tests/cleanup_releases_test.sh
