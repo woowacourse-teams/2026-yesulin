@@ -22,6 +22,7 @@ import art.yesulin.domain.audition.role.AuditionRoleSectionRepository;
 import art.yesulin.domain.audition.role.AuditionRoleSelection;
 import art.yesulin.domain.audition.role.AuditionRoleSelections;
 import art.yesulin.domain.audition.role.RoleGender;
+import art.yesulin.domain.audition.schedule.AuditionSchedule;
 import art.yesulin.domain.audition.schedule.AuditionScheduleRepository;
 import art.yesulin.domain.file.FileAssetRepository;
 import art.yesulin.domain.file.FileReferenceRepository;
@@ -139,6 +140,28 @@ class AuditionScheduleServiceTest {
     }
 
     @Test
+    void keepsRecruitmentStartWhenPublishedScheduleIsSavedAgain() {
+        Audition audition = saveAudition();
+        scheduleService.save(OWNER_ID, audition.getPublicId(), createCommand());
+        Instant publicationTime = Instant.parse("2026-09-05T01:00:00Z");
+        publish(audition, publicationTime);
+        // 수정 요청에는 모집 시작 시각이 실려 오지 않는다. 전형 이름만 바꾸는 저장도 마찬가지다.
+        SaveAuditionScheduleCommand renameStage = new SaveAuditionScheduleCommand(
+                null,
+                Instant.parse("2026-09-10T00:00:00Z"),
+                List.of(
+                        new SaveScreeningStageCommand(null, "1차 서류 심사", LocalDate.of(2026, 9, 12), null),
+                        new SaveScreeningStageCommand(null, "2차 실기", LocalDate.of(2026, 9, 14), "A관")
+                )
+        );
+
+        AuditionScheduleResult saved = scheduleService.save(OWNER_ID, audition.getPublicId(), renameStage);
+
+        assertEquals(publicationTime, saved.recruitmentStartAt());
+        assertEquals(publicationTime, scheduleService.find(OWNER_ID, audition.getPublicId()).recruitmentStartAt());
+    }
+
+    @Test
     void hidesAnotherOwnersSchedule() {
         Audition audition = saveAudition();
         scheduleService.save(OWNER_ID, audition.getPublicId(), createCommand());
@@ -239,6 +262,14 @@ class AuditionScheduleServiceTest {
                 "햄릿 오디션",
                 new PerformancePeriod(LocalDate.of(2026, 10, 1), null)
         ));
+    }
+
+    private void publish(Audition audition, Instant publicationTime) {
+        AuditionSchedule schedule = scheduleRepository.findByAuditionId(audition.getId()).orElseThrow();
+        schedule.ensurePublishableAt(publicationTime);
+        scheduleRepository.saveAndFlush(schedule);
+        audition.publish(publicationTime);
+        auditionRepository.saveAndFlush(audition);
     }
 
     private long saveAuditionRole(Audition audition) {
