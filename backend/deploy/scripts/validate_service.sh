@@ -9,7 +9,7 @@ if ! systemctl is-active --quiet yesulin.service; then
   exit 1
 fi
 
-MAX_ATTEMPTS=30
+MAX_ATTEMPTS=60
 RETRY_INTERVAL_SECONDS=1
 ATTEMPT=1
 

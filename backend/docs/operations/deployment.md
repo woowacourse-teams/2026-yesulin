@@ -10,6 +10,7 @@ CodeBuild는 `buildspec.yml`로 `backend/build/deployment/` 묶음을 만들고 
 4. systemd가 `yesulin` 사용자로 Spring을 `0.0.0.0:80`에서 실행한다. 비특권 사용자에게는
    `CAP_NET_BIND_SERVICE`만 부여한다.
 5. CodeDeploy가 `http://127.0.0.1:80/actuator/health/readiness`의 HTTP 200을 확인한다.
+   일시적인 기동 편차는 최대 60회 재시도로 허용하며, 준비되면 즉시 다음 단계로 진행한다.
 6. ALB target group도 같은 readiness endpoint를 확인한 뒤에만 트래픽을 전달한다.
 7. 최근 릴리스 5개를 유지한다.
 
