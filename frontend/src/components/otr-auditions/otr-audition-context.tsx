@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, use, useCallback, useEffect, useState } from "react";
+import { createContext, use, useCallback, useEffect, useRef, useState } from "react";
 import { createOtrAudition, getOtrAuditions } from "@/features/otr-auditions/api";
 import type { CreateOtrAudition, OtrAudition } from "@/features/otr-auditions/types";
 
@@ -19,6 +19,7 @@ export function OtrAuditionProvider({ children }: { readonly children: React.Rea
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
+  const creationVersion = useRef(0);
 
   const reload = useCallback(() => {
     setLoading(true);
@@ -28,9 +29,14 @@ export function OtrAuditionProvider({ children }: { readonly children: React.Rea
 
   useEffect(() => {
     let active = true;
+    const requestCreationVersion = creationVersion.current;
     getOtrAuditions().then((result) => {
       if (active) {
-        setAuditions(result);
+        setAuditions((current) => {
+          if (creationVersion.current === requestCreationVersion) return result;
+          const serverIds = new Set(result.map((audition) => audition.id));
+          return [...current.filter((audition) => !serverIds.has(audition.id)), ...result];
+        });
         setError(null);
         setLoading(false);
       }
@@ -45,6 +51,7 @@ export function OtrAuditionProvider({ children }: { readonly children: React.Rea
 
   const create = useCallback(async (input: CreateOtrAudition) => {
     const created = await createOtrAudition(input);
+    creationVersion.current += 1;
     setAuditions((current) => [created, ...current]);
     return created;
   }, []);

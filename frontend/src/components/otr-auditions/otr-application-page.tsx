@@ -4,11 +4,15 @@ import { useEffect, useMemo, useState } from "react";
 import { PublicApplicationForm } from "@/components/applications/public-application-form";
 import { useAuthSession } from "@/components/auth/auth-session";
 import { postingId } from "@/features/auditions/types";
+import type { ApplicationWriteRouteKey } from "@/features/applications/application-form";
 import { otrApplicationFields } from "@/features/otr-auditions/application-form";
 import { getPublicOtrAudition } from "@/features/otr-auditions/submission-api";
 import { otrAuditionLink, type PublicOtrAudition } from "@/features/otr-auditions/types";
 
-export function OtrApplicationPage({ auditionId }: { readonly auditionId: string }) {
+export function OtrApplicationPage({ auditionId, initialRoute }: {
+  readonly auditionId: string;
+  readonly initialRoute: ApplicationWriteRouteKey;
+}) {
   const { session, sessionReady, serverSessionEnabled } = useAuthSession();
   const [audition, setAudition] = useState<PublicOtrAudition | null>(null);
   const [loading, setLoading] = useState(true);
@@ -49,7 +53,7 @@ export function OtrApplicationPage({ auditionId }: { readonly auditionId: string
     roleName=""
     authenticated={session?.role === "APPLICANT"}
     authChecking={serverSessionEnabled && !sessionReady}
-    initialRoute="basic"
+    initialRoute={initialRoute}
     onBack={() => window.location.assign(otrAuditionLink(audition.otrId))}
   />;
 }

@@ -47,7 +47,7 @@ export function OtrAuditionCreateModal({ onClose, onCreated }: {
   }
 
   return <ModalShell open onClose={onClose} labelledBy={TITLE_ID} placement="responsiveSheet" className="flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-modal bg-card shadow-[var(--shadow-modal)] md:w-[min(680px,calc(100vw-40px))] md:rounded-modal">
-    <DialogHeader id={TITLE_ID} title="OTR 공고 만들기" subtitle="OTR 공고 번호와 모집 정보를 등록합니다. 지원서와 심사는 아직 연결되지 않습니다." />
+    <DialogHeader id={TITLE_ID} title="OTR 공고 만들기" subtitle="지원 링크가 즉시 발급됩니다. 지원서 목록과 심사는 아직 제공하지 않습니다." />
     <form onSubmit={(event) => void submit(event)} className="flex min-h-0 flex-1 flex-col">
       <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5 md:px-6">
         {error ? <CreateError message={error} /> : null}
@@ -66,7 +66,7 @@ export function OtrAuditionCreateModal({ onClose, onCreated }: {
           </div>)}</div>
           {roles.length < 20 ? <SecondaryButton onClick={() => setRoles((current) => [...current, ""])} className="mt-3">배역 추가</SecondaryButton> : null}
         </fieldset>
-        <CreateField label="모집 마감일" htmlFor="otr-audition-deadline" hint="일자만 저장합니다. 접수 종료 처리는 지원서 기능과 함께 추가됩니다.">
+        <CreateField label="모집 마감일" htmlFor="otr-audition-deadline" hint="마감일 당일까지 지원할 수 있으며, 서버가 접수 가능 여부를 확인합니다.">
           <FieldInput id="otr-audition-deadline" type="date" required value={deadline} onChange={(event) => setDeadline(event.target.value)} />
         </CreateField>
       </div>

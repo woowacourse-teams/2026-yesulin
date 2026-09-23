@@ -12,12 +12,18 @@ import art.yesulin.domain.member.MemberStatus;
 import art.yesulin.domain.member.MemberType;
 import art.yesulin.domain.otraudition.OtrAuditionRepository;
 import art.yesulin.support.ObjectStorageTestConfiguration;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -27,7 +33,7 @@ import org.springframework.test.web.servlet.MockMvc;
         "spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.flyway.enabled=false"
 })
-@Import(ObjectStorageTestConfiguration.class)
+@Import({ObjectStorageTestConfiguration.class, OtrAuditionControllerTest.FixedClockConfiguration.class})
 @AutoConfigureMockMvc
 class OtrAuditionControllerTest {
 
@@ -118,6 +124,42 @@ class OtrAuditionControllerTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    @Test
+    void locationCanBeReadOnlyByItsOwner() throws Exception {
+        String location = mockMvc.perform(post("/api/v1/otr-auditions")
+                        .with(csrf())
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, OWNER)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(REQUEST))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getHeader("Location");
+
+        mockMvc.perform(get(location).sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, OWNER))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.otrId").value("20146"));
+        mockMvc.perform(get(location).sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, OTHER))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("OTR_AUDITION_NOT_FOUND"));
+    }
+
+    @Test
+    void rejectsPastDeadlineAndAllowsToday() throws Exception {
+        mockMvc.perform(post("/api/v1/otr-auditions")
+                        .with(csrf())
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, OWNER)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(REQUEST.replace("2026-10-15", "2026-09-20")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("OTR_AUDITION_INVALID_INPUT"));
+
+        mockMvc.perform(post("/api/v1/otr-auditions")
+                        .with(csrf())
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, OWNER)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(REQUEST.replace("2026-10-15", "2026-09-21")))
+                .andExpect(status().isCreated());
+    }
+
     private void createAsOwner() throws Exception {
         mockMvc.perform(post("/api/v1/otr-auditions")
                         .with(csrf())
@@ -125,5 +167,15 @@ class OtrAuditionControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(REQUEST))
                 .andExpect(status().isCreated());
+    }
+
+    @TestConfiguration
+    static class FixedClockConfiguration {
+
+        @Bean
+        @Primary
+        Clock fixedOtrAuditionClock() {
+            return Clock.fixed(Instant.parse("2026-09-21T14:59:59Z"), ZoneOffset.UTC);
+        }
     }
 }

@@ -72,6 +72,9 @@ export function buildTypedApplicationAuthReturnTo(
   roleIds: readonly string[],
   step: ApplicationWriteRouteKey = "review",
 ) {
-  if (applicationType === "OTR") return `/apply/standard/${encodeURIComponent(postingId)}`;
+  if (applicationType === "OTR") {
+    const query = new URLSearchParams({ step });
+    return `/apply/standard/${encodeURIComponent(postingId)}?${query.toString()}`;
+  }
   return buildApplicationAuthReturnTo(postingId, roleIds, step);
 }

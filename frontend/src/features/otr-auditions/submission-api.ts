@@ -25,7 +25,10 @@ export function getPublicOtrAudition(id: string) {
 }
 
 export async function submitOtrApplication(id: string, application: OtrApplication, photos: readonly ApplicationPhoto[]) {
-  const readyPhotos = orderedApplicationPhotos(photos).filter((photo) => photo.status === "READY");
+  const readyPhotos = orderedApplicationPhotos(photos);
+  if (readyPhotos.some((photo) => photo.status !== "READY")) {
+    throw new Error("사진 준비가 완료되지 않았어요. 잠시 후 다시 시도해 주세요.");
+  }
   if (readyPhotos.length > 3) {
     throw new Error("사진은 최대 3장까지 제출할 수 있어요.");
   }

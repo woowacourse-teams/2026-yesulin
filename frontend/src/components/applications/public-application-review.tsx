@@ -145,7 +145,7 @@ function AuthChecking() {
 
 function AuthGate() {
   const { state, meta } = usePublicApplication();
-  const returnTo = encodeURIComponent(buildTypedApplicationAuthReturnTo(meta.applicationType, meta.postingId, meta.roleIds));
+  const returnTo = encodeURIComponent(buildTypedApplicationAuthReturnTo(meta.applicationType, meta.postingId, meta.roleIds, "review"));
   const blocked = state.hasUnsavedChanges;
   const blockNavigation = (event: React.MouseEvent<HTMLAnchorElement>) => { if (blocked) event.preventDefault(); };
   useEffect(() => {

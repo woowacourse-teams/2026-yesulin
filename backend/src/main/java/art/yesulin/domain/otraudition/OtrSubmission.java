@@ -59,7 +59,7 @@ public class OtrSubmission {
     private SubmissionBasicInformation basicInformation;
 
     @Column(name = "additional_information_present", nullable = false, updatable = false)
-    private boolean additionalInformationPresent = true;
+    private boolean additionalInformationPresent;
 
     @Convert(converter = SubmissionEducationLevelConverter.class)
     @Column(name = "education_level", updatable = false, length = 20)
@@ -131,6 +131,7 @@ public class OtrSubmission {
         this.applicantId = applicantId;
         this.selectedRole = selectedRole;
         this.basicInformation = basicInformation;
+        this.additionalInformationPresent = hasAdditionalInformation(additionalInformation);
         this.educationLevel = additionalInformation.educationLevel();
         this.school = additionalInformation.school();
         this.major = additionalInformation.major();
@@ -147,5 +148,18 @@ public class OtrSubmission {
         this.privacyDocumentVersion = privacyDocumentVersion;
         this.thirdPartyDocumentVersion = thirdPartyDocumentVersion;
         this.submittedAt = submittedAt;
+    }
+
+    private static boolean hasAdditionalInformation(SubmissionAdditionalInformation information) {
+        return information.educationLevel() != null
+                || information.school() != null
+                || information.major() != null
+                || !information.links().isEmpty()
+                || information.nationality() != null
+                || information.coverLetter() != null
+                || information.specialty() != null
+                || information.hobbies() != null
+                || information.military() != null
+                || !information.careers().isEmpty();
     }
 }

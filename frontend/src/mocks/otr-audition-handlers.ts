@@ -62,11 +62,13 @@ export const otrAuditionHandlers = [
     if (input.postingSnapshotVersion !== `${audition.id}:테스트 공연사`) {
       return HttpResponse.json({ code: "OTR_AUDITION_STALE_POSTING_SNAPSHOT", message: "공연사 정보가 변경되었습니다. 지원 페이지를 새로고침해 주세요." }, { status: 409 });
     }
+    const photoFileIds = input.photoFileIds ?? [];
+    const videoUrls = input.videoUrls ?? [];
     if (!input.selectedRole || !audition.roles.includes(input.selectedRole)
       || !input.basicInformation || ["name", "height", "weight", "birthDate", "gender", "phone", "email", "address"].some((key) => !input.basicInformation?.[key])
-      || input.photoFileIds?.length !== 3 || new Set(input.photoFileIds).size !== 3
-      || input.videoUrls?.length !== 3 || new Set(input.videoUrls).size !== 3
-      || input.videoUrls.some((url) => !/^https?:\/\/(www\.|m\.)?(youtube\.com|youtu\.be)\//.test(url))
+      || photoFileIds.length > 3 || new Set(photoFileIds).size !== photoFileIds.length
+      || videoUrls.length > 3 || new Set(videoUrls).size !== videoUrls.length
+      || videoUrls.some((url) => !/^https?:\/\/(www\.|m\.)?(youtube\.com|youtu\.be)\//.test(url))
       || !input.privacyCollectionAndUseAgreed || !input.thirdPartyProvisionAgreed) {
       return HttpResponse.json({ code: "OTR_AUDITION_INVALID_INPUT", message: "지원 정보를 확인해 주세요." }, { status: 400 });
     }

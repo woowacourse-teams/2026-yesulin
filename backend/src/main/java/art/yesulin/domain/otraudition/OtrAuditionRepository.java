@@ -12,4 +12,6 @@ public interface OtrAuditionRepository extends JpaRepository<OtrAudition, Long> 
     List<OtrAudition> findAllByOwnerIdOrderByCreatedAtDescIdDesc(long ownerId);
 
     Optional<OtrAudition> findByPublicId(UUID publicId);
+
+    Optional<OtrAudition> findByPublicIdAndOwnerId(UUID publicId, long ownerId);
 }

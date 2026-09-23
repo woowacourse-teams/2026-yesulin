@@ -9,9 +9,11 @@ import art.yesulin.domain.member.MemberStatus;
 import art.yesulin.domain.member.MemberType;
 import jakarta.validation.Valid;
 import java.net.URI;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -41,5 +43,13 @@ public class OtrAuditionController {
             @LoginMember(roles = MemberType.PRODUCER, statuses = MemberStatus.ACTIVE) MemberPrincipal principal
     ) {
         return ResponseEntity.ok(new OtrAuditionListResponse(service.findAll(principal.memberId())));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<OtrAuditionResult> find(
+            @LoginMember(roles = MemberType.PRODUCER, statuses = MemberStatus.ACTIVE) MemberPrincipal principal,
+            @PathVariable UUID id
+    ) {
+        return ResponseEntity.ok(service.find(principal.memberId(), id));
     }
 }
