@@ -155,14 +155,13 @@ export function applicationStepIssue({
     const readyPhotoCount = photos.filter((photo) => photo.status === "READY").length;
     if (photos.some((photo) => photo.status === "UPLOADING") && photosField) return { fieldId: photosField.id, message: "사진 업로드가 완료될 때까지 기다려 주세요." };
     if (readyPhotoCount > photoLimit && photosField) return { fieldId: photosField.id, message: `${topicParticle(photosField.label)} 최대 ${photoLimit}장까지 등록할 수 있어요.` };
-    if (photosField && (photosField.required || readyPhotoCount > 0) && readyPhotoCount < photoLimit) return { fieldId: photosField.id, message: `${objectParticle(photosField.label)} 요구사항에 맞게 ${photoLimit}장 등록해 주세요.` };
+    if (photosField && (photosField.required || requestedPhotos !== undefined && readyPhotoCount > 0) && readyPhotoCount < photoLimit) return { fieldId: photosField.id, message: `${objectParticle(photosField.label)} 요구사항에 맞게 ${photoLimit}장 등록해 주세요.` };
     const videoRequirements = videoField?.config.videoRequirements ?? [];
     if (videoField && videoRequirements.length > 0) {
-      const submittedVideoCount = videoRequirements.filter((requirement) => (values[`${videoField.id}.${requirement.id}`] ?? "").trim()).length;
       for (const requirement of videoRequirements) {
         const value = values[`${videoField.id}.${requirement.id}`] ?? "";
         if (value.trim() && !youtubeVideoId(value)) return { fieldId: `${videoField.id}.${requirement.id}`, message: `${requirement.description}의 유튜브 링크를 정확히 입력해 주세요.` };
-        if ((videoField.required || submittedVideoCount > 0) && !youtubeVideoId(value)) return { fieldId: `${videoField.id}.${requirement.id}`, message: `${requirement.description} 링크를 입력해 주세요.` };
+        if (videoField.required && !youtubeVideoId(value)) return { fieldId: `${videoField.id}.${requirement.id}`, message: `${requirement.description} 링크를 입력해 주세요.` };
       }
     } else {
       if (videoField && videoUrl.trim() && !youtubeVideoId(videoUrl)) return { fieldId: videoField.id, message: `${videoField.label}의 유튜브 링크를 정확히 입력해 주세요.` };

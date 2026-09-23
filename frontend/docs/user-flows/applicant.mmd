@@ -1,4 +1,10 @@
 flowchart TD
+    OTR_LINK["OTR 지원 링크 열기"] --> OTR_FORM["기존 UI 고정 폼: 배역·기본 정보 필수, 추가 정보·사진·영상 선택"]
+    OTR_FORM --> OTR_LOGIN{"배우 세션 존재?"}
+    OTR_LOGIN -- 아니오 --> OTR_AUTH["소셜 로그인 후 같은 링크로 복귀"]
+    OTR_AUTH --> OTR_FORM
+    OTR_LOGIN -- 예 --> OTR_SUBMIT["서버가 한국 시간 마감일 확인 후 제출"]
+    OTR_SUBMIT --> OTR_DONE["OTR 접수 완료"]
     OPEN["공개 공고 열기"] --> LOAD{"실제 UUID 공고?"}
     LOAD -- 예 --> REAL["GET /api/v1/public/auditions/{auditionId}"]
     LOAD -- seed --> MOCK["MSW 공개 공고"]
@@ -15,4 +21,3 @@ flowchart TD
     PROFILE -- 아니오 --> DONE["제출 완료"]
     PATCH --> DONE
     DONE --> HISTORY["GET /api/v1/applicants/me/submissions"]
-

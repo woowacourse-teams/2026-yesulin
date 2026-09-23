@@ -28,6 +28,7 @@ export type V1SubmissionInput = {
 };
 
 export type V1SubmissionRequest = {
+  readonly type: "STANDARD";
   readonly postingSnapshotVersion: string;
   readonly basicInformation: {
     readonly name: string | null;
@@ -233,6 +234,7 @@ async function toV1SubmissionRequest(input: V1SubmissionInput): Promise<V1Submis
   const selectedRoleIds = input.roleIds.map((value) => positiveId(value, "지원할 배역을 다시 선택해 주세요."));
 
   return {
+    type: "STANDARD",
     postingSnapshotVersion: input.postingSnapshotVersion,
     ...applicantInformation(input),
     selectedRoleIds,
@@ -278,7 +280,7 @@ function videoRequirementAnswers(fields: readonly ApplicationFieldInput[], value
 }
 
 /** 보관함에서 고른 사진은 이미 올라간 파일을 그대로 쓰고, 새로 고른 사진만 업로드한다. */
-async function actorPhotoFileId(photo: ApplicationPhoto) {
+export async function actorPhotoFileId(photo: ApplicationPhoto) {
   if (photo.libraryFileId) return photo.libraryFileId;
   if (!photo.blob) throw new Error("사진을 다시 선택해 주세요. 보관함 사진은 프로필에서 다시 불러올 수 있어요.");
   try {

@@ -8,7 +8,7 @@ import type { ApplicationStepIssue, SubmissionState } from "@/features/applicati
 import { createApplicationSubmission } from "@/features/applications/submission-api";
 import { ApplicationPhotoReadError } from "@/features/applications/submission-v1";
 import { deletePublicApplicationDraft } from "@/features/applications/public-application-draft-store";
-import { buildApplicationAuthReturnTo } from "@/features/auth/return-to";
+import { buildTypedApplicationAuthReturnTo } from "@/features/auth/return-to";
 import { reportError } from "@/features/monitoring/report-error";
 
 import { trackAnalyticsEvent } from "@/features/analytics/events";
@@ -25,6 +25,7 @@ export function usePublicApplication() {
 }
 
 export function PublicApplicationProvider({
+  applicationType,
   postingId,
   postingSnapshotVersion,
   fields,
@@ -90,7 +91,7 @@ export function PublicApplicationProvider({
     completedStepIndexes.length ? Math.max(...completedStepIndexes) + 1 : 0,
   );
   const updateRoute = usePublicApplicationRoute({
-    postingId, roleIds, steps, stepIndex, reviewing, completedStepIndexes,
+    applicationType, postingId, roleIds, steps, stepIndex, reviewing, completedStepIndexes,
     maxReachedStepIndex, storageReady: draft.storageReady, profilePrefilled: Boolean(prefill), setStepIndex, setReviewing,
   });
   const reviewIssues = steps.flatMap((step, index) => {
@@ -227,6 +228,7 @@ export function PublicApplicationProvider({
     }
     try {
       const response = await createApplicationSubmission({
+        applicationType,
         postingId,
         postingSnapshotVersion,
         fields,
@@ -272,7 +274,7 @@ export function PublicApplicationProvider({
       }
       if (cause instanceof AuditionRequestError && cause.status === 401) {
         trackAnalyticsEvent("application_submit_error", { error_code: "auth_expired" });
-        const returnTo = encodeURIComponent(buildApplicationAuthReturnTo(postingId, roleIds));
+        const returnTo = encodeURIComponent(buildTypedApplicationAuthReturnTo(applicationType, postingId, roleIds));
         window.location.assign(`/login?returnTo=${returnTo}`);
         return;
       }
@@ -317,7 +319,7 @@ export function PublicApplicationProvider({
     submit,
   };
 
-  return <PublicApplicationContext value={{ state, actions, meta: { postingId, postingSnapshotVersion, fields, steps, performanceTitle, postingTitle, companyName, roleIds, roleName, authenticated, authChecking, onBack, prefillSummary: prefill ? { filledCount: prefill.filledCount, requiredCount: prefill.requiredCount, missingKeys: prefill.missingKeys } : undefined } }}>{children}</PublicApplicationContext>;
+  return <PublicApplicationContext value={{ state, actions, meta: { applicationType, postingId, postingSnapshotVersion, fields, steps, performanceTitle, postingTitle, companyName, roleIds, roleName, authenticated, authChecking, onBack, prefillSummary: prefill ? { filledCount: prefill.filledCount, requiredCount: prefill.requiredCount, missingKeys: prefill.missingKeys } : undefined } }}>{children}</PublicApplicationContext>;
 }
 
 function submissionErrorMessage(cause: unknown) {

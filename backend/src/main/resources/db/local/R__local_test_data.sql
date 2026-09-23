@@ -55,7 +55,7 @@ delete from performances where id = 9001;
 delete from file_assets where id = 9001;
 
 insert into members (id, email, password_hash, type, status, created_at)
-values (9001, 'local-producer@yesulin.art', '$2y$12$EjvwrH5comMXfhePpXrijeKtu0EQrOIxXJlpyZg7/Jng5vx0fHuBm',
+values (9001, 'local-producer@yesulin.art', '$2y$12$t8TUYO8GS6EVAtq3Q35tCeP8XUOgb4mj4zp0E6.RUqyvEk3TSimN.',
         'PRODUCER', 'ACTIVE', '2026-08-01 09:00:00')
 on duplicate key update email = values(email), password_hash = values(password_hash), type = values(type),
                         status = values(status);

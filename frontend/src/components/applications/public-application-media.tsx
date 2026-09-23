@@ -2,7 +2,7 @@
 
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
 import { MAX_PHOTO_COUNT, youtubeVideoId } from "@/features/applications/application-form-state";
-import { buildApplicationAuthReturnTo } from "@/features/auth/return-to";
+import { buildTypedApplicationAuthReturnTo } from "@/features/auth/return-to";
 import { fieldControlClass, TextButton } from "@/components/ui/controls";
 import { usePublicApplication } from "./public-application-context";
 import { PublicApplicationPhotoField } from "./public-application-photo-field";
@@ -15,7 +15,7 @@ export function PublicApplicationMedia() {
   const photoLimit = Math.min(MAX_PHOTO_COUNT, Math.max(1, requestedPhotos ?? photoField?.config.maxCount ?? MAX_PHOTO_COUNT));
   const videoField = fields.find((field) => field.inputType === "URL");
   const videoRequirements = videoField?.config.videoRequirements ?? [];
-  const loginHref = `/login?returnTo=${encodeURIComponent(buildApplicationAuthReturnTo(meta.postingId, meta.roleIds, "media"))}`;
+  const loginHref = `/login?returnTo=${encodeURIComponent(buildTypedApplicationAuthReturnTo(meta.applicationType, meta.postingId, meta.roleIds, "media"))}`;
 
   return <div className="space-y-10">
     {photoField ? <PublicApplicationPhotoField field={photoField} limit={photoLimit} photos={state.photos} authenticated={meta.authenticated} authChecking={meta.authChecking} loginHref={loginHref} error={state.mediaError || (state.fieldErrors[photoField.id] ?? "")} onChange={actions.updatePhotos} /> : null}

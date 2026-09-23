@@ -1,4 +1,5 @@
 import type { ApplicationWriteRouteKey } from "@/features/applications/application-form";
+import type { ApplicationType } from "@/features/applications/application-type";
 import { applicationWriteRoute } from "@/features/applications/routes";
 
 const RETURN_TO_ORIGIN = "https://yesulin.local";
@@ -63,4 +64,14 @@ export function buildApplicationAuthReturnTo(postingId: string, roleIds: readonl
   url.searchParams.set("resumeDraft", "1");
   roleIds.forEach((roleId) => url.searchParams.append("roleId", roleId));
   return `${url.pathname}${url.search}`;
+}
+
+export function buildTypedApplicationAuthReturnTo(
+  applicationType: ApplicationType,
+  postingId: string,
+  roleIds: readonly string[],
+  step: ApplicationWriteRouteKey = "review",
+) {
+  if (applicationType === "OTR") return `/apply/standard/${encodeURIComponent(postingId)}`;
+  return buildApplicationAuthReturnTo(postingId, roleIds, step);
 }

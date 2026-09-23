@@ -4,6 +4,8 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { ModalShell } from "@/components/auditions/modal-shell";
 import { AuditionTreeNav, AuditionTreeProvider } from "./audition-tree";
+import { OtrAuditionProvider } from "@/components/otr-auditions/otr-audition-context";
+import { OtrAuditionTreeNav } from "@/components/otr-auditions/otr-audition-tree";
 import { SidebarResizer } from "./sidebar-resizer";
 import { MobileProducerNavigation } from "./mobile-producer-navigation";
 import { ProducerAccountPanel } from "./producer-account-panel";
@@ -18,7 +20,9 @@ export function ProducerShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   return (
     <AuditionTreeProvider>
-      <ProducerShellFrame pathname={pathname} focusMode={REVIEW_PATH.test(pathname)}>{children}</ProducerShellFrame>
+      <OtrAuditionProvider>
+        <ProducerShellFrame pathname={pathname} focusMode={REVIEW_PATH.test(pathname)}>{children}</ProducerShellFrame>
+      </OtrAuditionProvider>
     </AuditionTreeProvider>
   );
 }
@@ -64,6 +68,7 @@ function ProducerShellFrame({
             <aside className="fixed bottom-0 left-0 top-0 z-30 hidden flex-col overflow-hidden rounded-r-modal border-r border-sidebar-line bg-sidebar text-sidebar-text lg:flex lg:w-[var(--sidebar-width)]">
               <ProducerSidebarHeader onClose={() => setDesktopSidebarOpen(false)} />
               <div className="min-h-0 flex-1 overflow-y-auto py-2">
+                <OtrAuditionTreeNav />
                 <AuditionTreeNav />
               </div>
               <ProducerAccountPanel />
@@ -82,6 +87,7 @@ function ProducerShellFrame({
         >
           <ProducerSidebarHeader titleId={DESKTOP_NAVIGATION_TITLE} autoFocus onClose={closeFocusNavigation} />
           <div className="min-h-0 flex-1 overflow-y-auto py-2">
+            <OtrAuditionTreeNav onNavigate={closeFocusNavigation} />
             <AuditionTreeNav onNavigate={closeFocusNavigation} />
           </div>
           <ProducerAccountPanel />

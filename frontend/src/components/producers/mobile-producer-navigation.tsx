@@ -8,6 +8,7 @@ import { auditionRoutes } from "@/features/auditions/routes";
 import { AnalyticsSettingsButton } from "@/components/analytics/analytics-settings-button";
 import { ProducerAccountPanel } from "./producer-account-panel";
 import { AuditionTreeNav } from "./audition-tree";
+import { OtrAuditionTreeNav } from "@/components/otr-auditions/otr-audition-tree";
 import { useRouteDisclosure } from "./use-route-disclosure";
 
 const TITLE_ID = "mobile-producer-navigation-title";
@@ -75,6 +76,7 @@ export function MobileProducerNavigation() {
             </button>
           </header>
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-2">
+            <OtrAuditionTreeNav onNavigate={closeDisclosure} />
             <AuditionTreeNav onNavigate={closeDisclosure} />
           </div>
           <ProducerAccountPanel />
