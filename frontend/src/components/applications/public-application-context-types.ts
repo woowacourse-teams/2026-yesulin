@@ -1,7 +1,7 @@
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
 import type { SetStateAction } from "react";
 import type { PostingId } from "@/features/auditions/types";
-import type { SubmissionId } from "@/features/auditions/types";
+import type { ApplicationType } from "@/features/applications/application-type";
 import type { applicationFormSteps, applicationStepProgress } from "@/features/applications/application-form";
 import type { ApplicationWriteRouteKey } from "@/features/applications/application-form";
 import type { ApplicationPhoto, CareerDraft, SubmissionState } from "@/features/applications/application-form-state";
@@ -9,7 +9,7 @@ import type { ProfilePrefillResponse } from "@/features/applicants/types";
 import type { DraftSaveStatus } from "./use-public-application-draft";
 
 export type SubmissionReceipt = {
-  readonly submissionId: SubmissionId;
+  readonly submissionId: string;
   readonly submittedAt: string;
   /** 프로필 저장을 선택했을 때만 채워진다. false면 제출은 성공했지만 프로필 저장에 실패한 상태다. */
   readonly profileSaved?: boolean;
@@ -72,6 +72,7 @@ export type PublicApplicationActions = {
 };
 
 export type PublicApplicationMeta = {
+  readonly applicationType: ApplicationType;
   readonly postingId: PostingId;
   readonly postingSnapshotVersion: string;
   readonly fields: readonly ApplicationFieldInput[];

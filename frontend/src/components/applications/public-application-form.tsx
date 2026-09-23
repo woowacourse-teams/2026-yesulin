@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { ChangeEvent } from "react";
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
+import type { ApplicationType } from "@/features/applications/application-type";
 import type { ApplicationWriteRouteKey } from "@/features/applications/application-form";
 import { formatPhoneNumber, usePhoneInput } from "@/features/applications/phone-number";
 import { PublicApplicationCareer } from "./public-application-career";
@@ -21,7 +22,8 @@ import { RegionSelect } from "@/components/ui/region-select";
 import { BirthDateInput } from "@/components/ui/birth-date-input";
 import { AddButton, fieldControlClass, PrimaryButton, SecondaryButton, TextButton, UnitSuffix } from "@/components/ui/controls";
 
-type PublicApplicationFormProps = {
+export type PublicApplicationFormProps = {
+  readonly applicationType: ApplicationType;
   readonly postingId: PostingId;
   readonly postingSnapshotVersion: string;
   readonly fields: readonly ApplicationFieldInput[];

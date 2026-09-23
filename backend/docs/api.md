@@ -1,6 +1,6 @@
 # 백엔드 API
 
-이 문서는 현재 Controller 24개의 63개 REST Mapping만 다룬다. 구현되지 않은 목표 경로와 프론트 seed/MSW 경로는
+이 문서는 현재 구현된 REST Mapping만 다룬다. 구현되지 않은 목표 경로와 프론트 seed/MSW 경로는
 포함하지 않는다. 공통 형식은 [API 공통 규칙](../../docs/api-conventions.md)을 따른다.
 
 ## 인증 표기
@@ -16,7 +16,7 @@
 | Admin | `ADMIN` 세션. 가입 경로가 없고 서버 설정으로만 만든 운영자 계정 |
 
 쓰기 요청은 공개 여부와 관계없이 CSRF header가 필요하다. OAuth 시작 `/oauth2/authorization/{provider}`와 callback
-`/login/oauth2/code/{provider}`는 Spring Security 경로이며 아래 REST 62개에 포함하지 않는다.
+`/login/oauth2/code/{provider}`는 Spring Security 경로이며 아래 REST 목록에 포함하지 않는다.
 
 ## Health와 인증 — 9개
 
@@ -109,6 +109,32 @@ PENDING 세션을 ACTIVE로 갱신하고 요청의 `redirectUri`로 302 redirect
 삭제는 배역·일정·지원 폼과 해당 배역의 심사 기록을 함께 지운다. 접수된 지원서가 한 건이라도 있으면
 `AUDITION_INVALID_STATUS`로 거부한다.
 
+## OTR 공고와 지원 — 4개
+
+기존 공연·공고와 별도의 저장 모델이다. `PRODUCER + ACTIVE`만 호출할 수 있고 다른 공연사의 목록은 볼 수 없다.
+
+| Method | URL | 인증 | Request | Response |
+| --- | --- | --- | --- | --- |
+| POST | `/api/v1/otr-auditions` | Active Producer | `CreateOtrAuditionRequest(otrId, title, roles, deadline)` | `201 OtrAuditionResult`, `Location` |
+| GET | `/api/v1/otr-auditions` | Active Producer | 없음 | `200 OtrAuditionListResponse` |
+| GET | `/api/v1/public/otr-auditions/{auditionId}` | 공개 | 없음 | `200 PublicOtrAuditionResult` |
+| POST | `/api/v1/otr-auditions/{auditionId}/submissions` | Applicant | `SubmitOtrSubmissionRequest` | `201 OtrSubmissionResult`, `Location` |
+
+`otrId`는 숫자 1~30자, 제목은 200자 이하, 배역은 1~20개이며 각 이름은 100자 이하다. 마감일은 ISO 날짜다.
+같은 공연사 내 OTR 번호 중복은 `409 OTR_AUDITION_DUPLICATE_OTR_ID`다. 응답의 `otrLink`는
+`https://otr.co.kr/audition/?vid={otrId}`로 계산한다. 생성·목록 응답의 `applicationPath`는
+`/apply/standard/{공고 UUID}`다. 이 경로는 공고 상세를 거치지 않고 고정 지원 폼을 연다.
+
+공개 조회는 공연사명, `postingSnapshotVersion`과 `open`을 반환한다. 제출은 그 버전을 그대로 보내야 하며
+공연사명이 바뀌면 `409 OTR_AUDITION_STALE_POSTING_SNAPSHOT`으로 재확인·재동의를 요청한다.
+마감일은 한국 시간(`Asia/Seoul`)의 날짜이며 마감일 23:59:59까지
+지원 가능하고 다음 날 00:00부터 `409 OTR_AUDITION_CLOSED`다. 제출 시 서버가 다시 확인한다.
+지원서는 `type=OTR`, 공고의 배역 하나, 기본 정보 전체(이름·키·몸무게·생년월일·성별·연락처·이메일·거주지),
+선택 추가 정보, 서로 다른 READY 사진 파일 ID 최대 3개, 서로 다른 YouTube 영상 URL 최대 3개와
+개인정보 수집·이용 및 공연사 제공 동의를 받는다.
+사진은 지원자 소유인지 검증한다. 같은 지원자의 동일 OTR 공고 재지원은 `409 OTR_AUDITION_DUPLICATE_SUBMISSION`이다.
+현재 OTR 지원서는 기존 지원서 목록·심사 API에 연결되지 않는다.
+
 ## 배우 프로필과 보관함·비공개 파일 — 14개
 
 | Method | URL | 인증 | Request | Response |
@@ -146,7 +172,8 @@ PENDING 세션을 ACTIVE로 갱신하고 요청의 `redirectUri`로 302 redirect
 세 endpoint는 서버에서 `APPLICANT` 역할을 검증한다. 세션이 없으면 `401 AUTH_UNAUTHENTICATED`, 다른 역할 세션이면
 `403 AUTH_FORBIDDEN`을 반환한다.
 
-제출 request는 공개 공고에서 받은 `postingSnapshotVersion`, `basicInformation`, `additionalInformation`, 하나 이상의
+제출 request의 `type`은 `STANDARD`다. 이전 클라이언트처럼 `type`이 없으면 서버가 `STANDARD`로 처리한다.
+그 밖에 공개 공고에서 받은 `postingSnapshotVersion`, `basicInformation`, `additionalInformation`, 하나 이상의
 `selectedRoleIds`, `formAnswers`, 두 필수 동의를 포함한다. 서버는 공고 양식과 정확히 일치하는 답변, 선택 배역,
 모집 기간, 중복 제출, 사진 소유권·READY를 검증한다. 제출 전에 기획사·제작사명이 바뀌어 버전이 오래됐으면 아무
 기록도 저장하지 않고 `409 SUBMISSION_STALE_POSTING_SNAPSHOT`을 반환한다.

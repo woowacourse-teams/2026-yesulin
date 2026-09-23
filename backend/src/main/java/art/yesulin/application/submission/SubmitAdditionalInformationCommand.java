@@ -38,7 +38,7 @@ public record SubmitAdditionalInformationCommand(
         this(null, school, null, links, nationality, coverLetter, specialty, hobbies, militaryServiceStatus, careers);
     }
 
-    SubmissionAdditionalInformation toInformation() {
+    public SubmissionAdditionalInformation toInformation() {
         return new SubmissionAdditionalInformation(
                 educationLevel,
                 school,

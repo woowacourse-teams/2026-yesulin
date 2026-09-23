@@ -9,7 +9,7 @@ import type { ApplicationPhoto, CareerDraft, SubmissionState } from "@/features/
 import { photoSlotLabels } from "@/features/applications/materials";
 import { AnalyticsSettingsButton } from "@/components/analytics/analytics-settings-button";
 import { applicationLinks } from "@/features/applications/application-links";
-import { buildApplicationAuthReturnTo } from "@/features/auth/return-to";
+import { buildTypedApplicationAuthReturnTo } from "@/features/auth/return-to";
 import { PrimaryButton, SecondaryButton, TextButton } from "@/components/ui/controls";
 import { usePublicApplication } from "./public-application-context";
 import { educationText } from "@/features/applicants/education";
@@ -50,7 +50,7 @@ export function PublicApplicationReview() {
       <section aria-labelledby="review-content-title" className="mt-9">
         <h2 id="review-content-title" className="text-xl font-bold">제출할 내용</h2>
         <div className="mt-4 border-y border-border bg-card md:rounded-card md:border md:px-5">
-          <ReviewSection title="지원 배역"><p className="text-sm font-semibold text-brand">{meta.roleName}</p></ReviewSection>
+          {meta.applicationType === "STANDARD" ? <ReviewSection title="지원 배역"><p className="text-sm font-semibold text-brand">{meta.roleName}</p></ReviewSection> : null}
           {REVIEW_SECTIONS.map((section) => <StepReview key={section} section={section} disabled={submitting} />)}
         </div>
       </section>
@@ -145,7 +145,7 @@ function AuthChecking() {
 
 function AuthGate() {
   const { state, meta } = usePublicApplication();
-  const returnTo = encodeURIComponent(buildApplicationAuthReturnTo(meta.postingId, meta.roleIds));
+  const returnTo = encodeURIComponent(buildTypedApplicationAuthReturnTo(meta.applicationType, meta.postingId, meta.roleIds, "review"));
   const blocked = state.hasUnsavedChanges;
   const blockNavigation = (event: React.MouseEvent<HTMLAnchorElement>) => { if (blocked) event.preventDefault(); };
   useEffect(() => {

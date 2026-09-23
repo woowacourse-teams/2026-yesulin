@@ -40,7 +40,7 @@ public record SubmitAdditionalInformationRequest(
         this(null, school, null, links, nationality, coverLetter, specialty, hobbies, militaryServiceStatus, careers);
     }
 
-    SubmitAdditionalInformationCommand toCommand() {
+    public SubmitAdditionalInformationCommand toCommand() {
         return new SubmitAdditionalInformationCommand(
                 parseEducationLevel(),
                 school,

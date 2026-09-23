@@ -1,4 +1,10 @@
 flowchart TD
+    OTR_TREE["OTR 공고 관리 트리"] --> OTR_LIST["GET /api/v1/otr-auditions<br>공연사별 목록"]
+    OTR_LIST --> OTR_CREATE["POST /api/v1/otr-auditions<br>번호·제목·배역·마감일"]
+    OTR_CREATE --> OTR_LIST
+    OTR_LIST --> OTR_SOURCE["OTR 원문 링크 열기"]
+    OTR_LIST --> OTR_APPLY["지원 링크 복사<br>/apply/standard/{id}"]
+    OTR_APPLY --> OTR_FORM["배우가 고정 지원 폼 작성"]
     SIGNUP["POST /api/v1/producers<br>PENDING + 인증 메일 발송"] --> VERIFY["GET /api/v1/auth/email-verifications<br>302 redirect"]
     VERIFY --> LOGIN_FORM["로그인 화면"]
     LOGIN_FORM --> FORGOT{"비밀번호 분실?"}

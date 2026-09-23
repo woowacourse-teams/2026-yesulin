@@ -23,6 +23,8 @@ MSW 전용 경로를 어떻게 구분하는지만 설명한다.
 - `/api/v1/producers`, `/api/v1/producers/me`
 - `/api/v1/performances`, `/api/v1/performance-posters`
 - `/api/v1/auditions`, `/api/v1/public/auditions`
+- `/api/v1/otr-auditions` (공연사별 OTR 공고 생성·목록), `/api/v1/public/otr-auditions/{id}` (공개 조회)
+- `/api/v1/otr-auditions/{id}/submissions` (OTR 지원서 제출)
 - `/api/v1/applicants/me/profile`, 사진·영상 보관함
 - `/api/v1/files/{fileId}/content` (소유권과 지원서–공연사 관계를 검증하는 비공개 사진 조회)
 - `/api/v1/auditions/{auditionId}/submissions`, 내 지원서 목록·상세
@@ -45,6 +47,13 @@ MSW 전용 경로를 어떻게 구분하는지만 설명한다.
 실제 공고 전용 prefill API는 없다. 프론트가 현재 프로필과 공개 공고 양식의 교집합을 만든다.
 
 ## 어댑터 주의사항
+
+- OTR 생성·목록 응답의 `applicationPath`를 공연사 화면에서 지원 링크로 보여 준다. 지원 링크는
+  `/apply/standard/{id}`로 바로 고정 폼을 열고, 서버의 `open` 및 제출 결과가 마감 여부의 정본이다.
+- OTR 지원 사진은 기존 배우 사진 업로드 API를 사용하지만 보관함에는 자동 등록하지 않는다.
+  제출 요청에는 `type=OTR`, 공개 조회의 `postingSnapshotVersion`, 선택 배역 1개, 기본 정보 전부,
+  선택 추가 정보·READY 파일 ID 최대 3개·YouTube URL 최대 3개와 두 필수 동의를 보낸다.
+  공연사명이 변경되어 버전이 달라지면 재확인한다.
 
 - 지원서 생성 백엔드는 `submissionId`와 서버가 기록한 `submittedAt`을 반환한다. 완료 화면은 응답의 제출 시각을 그대로 사용한다.
 - 실제 공개 공고의 `postingSnapshotVersion`을 지원서 제출 본문에 그대로 포함한다. 기획사·제작사명이 바뀌어

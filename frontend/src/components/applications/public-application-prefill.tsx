@@ -6,11 +6,13 @@ import type { ProfilePrefillResponse } from "@/features/applicants/types";
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
 import type { PostingId } from "@/features/auditions/types";
 import type { ApplicationWriteRouteKey } from "@/features/applications/application-form";
+import type { ApplicationType } from "@/features/applications/application-type";
 import { useAuditionQuery } from "@/features/auditions/use-audition-query";
 import { PrimaryButton, SecondaryButton } from "@/components/ui/controls";
 import { PublicApplicationForm } from "./public-application-form";
 
 type PrefillGateProps = {
+  readonly applicationType: ApplicationType;
   readonly postingId: PostingId;
   readonly postingSnapshotVersion: string;
   readonly fields: readonly ApplicationFieldInput[];

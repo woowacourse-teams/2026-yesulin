@@ -5,11 +5,13 @@ import type { Dispatch, SetStateAction } from "react";
 import type { ApplicationFormStep, ApplicationWriteRouteKey } from "@/features/applications/application-form";
 import { applicationStepIndexIn } from "@/features/applications/application-form";
 import { applicationWriteRoute, isApplicationWriteRouteKey } from "@/features/applications/routes";
+import type { ApplicationType } from "@/features/applications/application-type";
 
 export function usePublicApplicationRoute({
-  postingId, roleIds, steps, stepIndex, reviewing, completedStepIndexes,
+  applicationType, postingId, roleIds, steps, stepIndex, reviewing, completedStepIndexes,
   maxReachedStepIndex, storageReady, profilePrefilled, setStepIndex, setReviewing,
 }: {
+  readonly applicationType: ApplicationType;
   readonly postingId: string;
   readonly roleIds: readonly string[];
   readonly steps: readonly ApplicationFormStep[];
@@ -23,9 +25,10 @@ export function usePublicApplicationRoute({
   readonly setReviewing: Dispatch<SetStateAction<boolean>>;
 }) {
   const updateRoute = useCallback((route: ApplicationWriteRouteKey, replace = false) => {
+    if (applicationType === "OTR") return;
     const path = applicationWriteRoute(postingId, route, roleIds, { prefill: profilePrefilled });
     window.history[replace ? "replaceState" : "pushState"](null, "", path);
-  }, [postingId, profilePrefilled, roleIds]);
+  }, [applicationType, postingId, profilePrefilled, roleIds]);
 
   useEffect(() => {
     if (!storageReady || steps.length === 0) return;
@@ -33,6 +36,7 @@ export function usePublicApplicationRoute({
   }, [reviewing, stepIndex, steps, storageReady, updateRoute]);
 
   useEffect(() => {
+    if (applicationType === "OTR") return;
     const onPopState = () => {
       const route = window.location.pathname.split("/").at(-1) ?? "";
       if (!isApplicationWriteRouteKey(route)) return;
@@ -48,7 +52,7 @@ export function usePublicApplicationRoute({
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
-  }, [completedStepIndexes.length, maxReachedStepIndex, setReviewing, setStepIndex, steps]);
+  }, [applicationType, completedStepIndexes.length, maxReachedStepIndex, setReviewing, setStepIndex, steps]);
 
   return updateRoute;
 }

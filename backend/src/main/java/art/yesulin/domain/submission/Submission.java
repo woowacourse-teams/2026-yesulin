@@ -6,6 +6,8 @@ import static art.yesulin.domain.common.validation.DomainValidator.requirePositi
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -44,6 +46,10 @@ public class Submission {
 
     @Column(name = "applicant_id", nullable = false, updatable = false)
     private long applicantId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "submission_type", nullable = false, updatable = false, length = 20)
+    private SubmissionType type = SubmissionType.STANDARD;
 
     @Column(name = "submitted_at", nullable = false, updatable = false)
     private Instant submittedAt;
