@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { getAuditionBoard } from "@/features/auditions/api";
+import { getScreeningBoard, screeningRoleHref, standardScreeningSource, type ScreeningSource } from "@/features/auditions/screening-source";
 import {
   initialFilters,
   screeningSearchKey,
@@ -20,10 +20,12 @@ export function AuditionBoard({
   roleId,
   initialRound = null,
   initialFilterState,
+  source = standardScreeningSource,
 }: {
   roleId: RoleId;
   initialRound?: RoundNumber | null;
   initialFilterState?: AuditionListRouteState;
+  source?: ScreeningSource;
 }) {
   const [round, setRound] = useState<RoundNumber | null>(initialRound);
   const [filters, setFilters] = useState(() => (
@@ -37,15 +39,16 @@ export function AuditionBoard({
     () => toScreeningSearchCondition(filters, debouncedQuery),
     [debouncedQuery, filters],
   );
-  const requestKey = `${roleId}:${round ?? "auto"}:${screeningSearchKey(searchCondition)}`;
+  const sourceKey = source.kind === "OTR" ? `OTR:${source.auditionId}:${source.roleOrder}` : "STANDARD";
+  const requestKey = `${sourceKey}:${roleId}:${round ?? "auto"}:${screeningSearchKey(searchCondition)}`;
   /** 심사·종료 응답으로 갱신된 보드. 조회 결과보다 우선하고, 차수가 바뀌면 무효가 된다. */
   const [applied, setApplied] = useState<{ key: string; board: AuditionBoardResponse } | null>(
     null,
   );
 
   const load = useCallback(
-    () => getAuditionBoard(roleId, round, searchCondition),
-    [roleId, round, searchCondition],
+    () => getScreeningBoard(source, roleId, round, searchCondition),
+    [source, roleId, round, searchCondition],
   );
   const { data, previousData, error, loading, reload } = useAuditionQuery(
     requestKey,
@@ -54,17 +57,19 @@ export function AuditionBoard({
   );
 
   const previousBoard =
-    previousData?.role.id === roleId && (round === null || previousData.round === round)
+    previousData?.role.id === roleId
+      && (source.kind !== "OTR" || previousData.posting.id === source.auditionId)
+      && (round === null || previousData.round === round)
       ? previousData
       : null;
   const board = applied?.key === requestKey ? applied.board : data ?? (loading ? previousBoard : null);
 
   useEffect(() => {
     if (!board) return;
-    const nextHref = auditionRoutes.role(roleId, board.round, filters);
+    const nextHref = screeningRoleHref(source, roleId, board.round, filters);
     const currentHref = `${pathname}${searchParams.size > 0 ? `?${searchParams.toString()}` : ""}`;
     if (currentHref !== nextHref) router.replace(nextHref, { scroll: false });
-  }, [board, filters, pathname, roleId, router, searchParams]);
+  }, [board, filters, pathname, roleId, router, searchParams, source]);
 
   const applyBoard = useCallback((next: AuditionBoardResponse) => {
     setApplied({ key: requestKey, board: next });
@@ -81,14 +86,17 @@ export function AuditionBoard({
     <>
       <Breadcrumb
         items={[
-          { label: "전체 공연", href: auditionRoutes.performances },
-          {
+          source.kind === "OTR"
+            ? { label: "OTR 공고 관리", href: "/producers/otr-auditions" }
+            : { label: "전체 공연", href: auditionRoutes.performances },
+          ...(source.kind === "OTR" ? [] : [{
             label: board?.performance.title ?? "공연",
             href: board ? auditionRoutes.performance(board.performance.id) : undefined,
-          },
+          }]),
           {
             label: board?.posting.title ?? "공고",
-            href: board ? auditionRoutes.posting(board.posting.id) : undefined,
+            href: source.kind === "OTR" ? `/producers/otr-auditions/${source.auditionId}/screening`
+              : board ? auditionRoutes.posting(board.posting.id) : undefined,
           },
           {
             label: board?.role.name ?? "배역",
@@ -107,13 +115,14 @@ export function AuditionBoard({
           <h1 className="sr-only">{board.performance.title} {board.role.name} 배역 배우 심사</h1>
           {loading ? <span className="sr-only" role="status">지원자 목록을 갱신하는 중입니다.</span> : null}
           <BoardWorkspace
-            key={`${board.role.id}:${board.round}`}
+            key={`${sourceKey}:${board.role.id}:${board.round}`}
             board={board}
             filters={filters}
             searchCondition={searchCondition}
             setFilters={setFilters}
             onBoardChange={applyBoard}
             onRoundChange={goToRound}
+            source={source}
           />
         </div>
       ) : null}

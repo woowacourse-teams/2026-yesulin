@@ -8,6 +8,7 @@ import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.file.FileAsset;
 import art.yesulin.domain.file.FileAssetRepository;
 import art.yesulin.domain.member.MemberType;
+import art.yesulin.domain.otraudition.OtrSubmissionRepository;
 import art.yesulin.domain.submission.SubmissionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -19,6 +20,7 @@ public class FileContentService {
 
     private final FileAssetRepository fileAssetRepository;
     private final SubmissionRepository submissionRepository;
+    private final OtrSubmissionRepository otrSubmissionRepository;
     private final ObjectStorage objectStorage;
 
     @Transactional(readOnly = true)
@@ -42,7 +44,8 @@ public class FileContentService {
 
     private void ensureReadable(long memberId, MemberType memberType, long fileId, FileAsset fileAsset) {
         if (memberType == MemberType.ADMIN) {
-            if (submissionRepository.existsSubmittedPhoto(fileId)) {
+            if (submissionRepository.existsSubmittedPhoto(fileId)
+                    || otrSubmissionRepository.existsSubmittedPhoto(fileId)) {
                 return;
             }
             throw new BusinessException(NOT_FOUND, "파일을 찾을 수 없습니다.");
@@ -50,7 +53,8 @@ public class FileContentService {
         if (fileAsset.getOwnerId() == memberId) {
             return;
         }
-        if (!submissionRepository.existsSubmittedPhotoOwnedByProducer(fileId, memberId)) {
+        if (!submissionRepository.existsSubmittedPhotoOwnedByProducer(fileId, memberId)
+                && !otrSubmissionRepository.existsSubmittedPhotoOwnedByProducer(fileId, memberId)) {
             throw new BusinessException(NOT_FOUND, "파일을 찾을 수 없습니다.");
         }
     }

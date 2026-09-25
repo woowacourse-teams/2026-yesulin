@@ -9,8 +9,10 @@ import type {
   AuditionBoardResponse,
 } from "@/features/auditions/types";
 import type { AuditionFilters } from "@/features/auditions/filters";
+import type { ScreeningSource } from "@/features/auditions/screening-source";
 
 export type BoardContextValue = {
+  readonly source: ScreeningSource;
   readonly board: AuditionBoardResponse;
   readonly filters: AuditionFilters;
   /** 필터를 통과한, 지금 목록에 보이는 배우. */

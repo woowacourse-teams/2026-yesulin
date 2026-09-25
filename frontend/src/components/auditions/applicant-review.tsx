@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import Link from "next/link";
-import { getAuditionSubmission } from "@/features/auditions/api";
+import { getScreeningSubmission, screeningRoleHref, standardScreeningSource, type ScreeningSource } from "@/features/auditions/screening-source";
 import type { AuditionListRouteState } from "@/features/auditions/filters";
 import { auditionRoutes } from "@/features/auditions/routes";
 import type {
@@ -25,16 +25,18 @@ export function ApplicantReview({
   submissionId,
   round,
   listState,
+  source = standardScreeningSource,
 }: {
   roleId: RoleId;
   submissionId: SubmissionId;
   round: RoundNumber;
   listState: AuditionListRouteState;
+  source?: ScreeningSource;
 }) {
   const [applied, setApplied] = useState<AuditionBoardResponse | null>(null);
   const load = useCallback(
-    () => getAuditionSubmission(roleId, round, submissionId),
-    [roleId, round, submissionId],
+    () => getScreeningSubmission(source, roleId, round, submissionId),
+    [source, roleId, round, submissionId],
   );
   const { data, error, loading, reload } = useAuditionQuery(
     `${roleId}:${round}:${submissionId}`,
@@ -43,20 +45,23 @@ export function ApplicantReview({
   );
   const board = applied ?? data;
   const applicant = board?.applicants.find((candidate) => candidate.id === submissionId) ?? null;
-  const listHref = auditionRoutes.role(roleId, round, listState);
+  const listHref = screeningRoleHref(source, roleId, round, listState);
 
   return (
     <>
       <Breadcrumb
         items={[
-          { label: "전체 공연", href: auditionRoutes.performances },
-          {
+          source.kind === "OTR"
+            ? { label: "OTR 공고 관리", href: "/producers/otr-auditions" }
+            : { label: "전체 공연", href: auditionRoutes.performances },
+          ...(source.kind === "OTR" ? [] : [{
             label: board?.performance.title ?? "공연",
             href: board ? auditionRoutes.performance(board.performance.id) : undefined,
-          },
+          }]),
           {
             label: board?.posting.title ?? "공고",
-            href: board ? auditionRoutes.posting(board.posting.id) : undefined,
+            href: source.kind === "OTR" ? `/producers/otr-auditions/${source.auditionId}/screening`
+              : board ? auditionRoutes.posting(board.posting.id) : undefined,
           },
           { label: board?.role.name ?? "배역", href: listHref },
           { label: applicant?.name ?? "지원자 심사" },
@@ -112,6 +117,7 @@ export function ApplicantReview({
                 applicant={applicant}
                 onBoardChange={setApplied}
                 listState={listState}
+                source={source}
               />
             </div>
           </>

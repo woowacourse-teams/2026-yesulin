@@ -1,7 +1,7 @@
 import type { SubmissionId, PerformanceId, PostingId, RoleId, RoundNumber } from "./types";
 import { NUMERIC_FIELDS, type AuditionListRouteState } from "./filters";
 
-function screeningQuery(round?: RoundNumber, state?: AuditionListRouteState) {
+export function screeningQuery(round?: RoundNumber, state?: AuditionListRouteState) {
   const searchParams = new URLSearchParams();
   if (round) searchParams.set("round", String(round));
   if (state) {

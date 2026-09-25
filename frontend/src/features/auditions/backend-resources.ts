@@ -245,6 +245,7 @@ export type ScreeningBoardResource = {
     readonly applicantCount: number;
     readonly activeRound: number;
     readonly allRoundsClosed: boolean;
+    readonly canComplete?: boolean;
     readonly progress: { readonly done: number; readonly total: number; readonly percent: number };
     readonly counts: ScreeningCountsResource;
   };

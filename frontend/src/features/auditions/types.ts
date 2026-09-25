@@ -115,6 +115,8 @@ export type RoleSummary = {
   /** 아직 검토할 지원자가 있는 가장 이른 차수. 모두 검토했으면 마지막 차수. */
   readonly activeRound: RoundNumber;
   readonly allRoundsClosed: boolean;
+  /** OTR 공고는 지원 마감 이후에만 심사를 종료할 수 있다. */
+  readonly canComplete?: boolean;
   readonly progress: ReviewProgress;
   readonly counts: ReviewCounts;
 };

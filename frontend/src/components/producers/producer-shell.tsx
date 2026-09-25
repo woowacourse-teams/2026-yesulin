@@ -14,7 +14,7 @@ import { ProducerSidebarHeader } from "./producer-sidebar-header";
 import { useRouteDisclosure } from "./use-route-disclosure";
 
 const DESKTOP_NAVIGATION_TITLE = "focused-producer-navigation-title";
-const REVIEW_PATH = /^\/producers\/roles\/[^/]+\/submissions\/[^/]+$/;
+const REVIEW_PATH = /^\/producers\/(?:roles\/[^/]+|otr-auditions\/[^/]+\/roles\/[^/]+)\/submissions\/[^/]+$/;
 
 export function ProducerShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

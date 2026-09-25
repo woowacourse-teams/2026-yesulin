@@ -2,10 +2,9 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { saveReview } from "@/features/auditions/api";
+import { saveScreeningReview, screeningApplicantHref, type ScreeningSource } from "@/features/auditions/screening-source";
 import type { AuditionListRouteState } from "@/features/auditions/filters";
 import { ROUND_LABELS, selectableStatuses, STATUS_LABELS } from "@/features/auditions/labels";
-import { auditionRoutes } from "@/features/auditions/routes";
 import type { Applicant, AuditionBoardResponse, ReviewStatus } from "@/features/auditions/types";
 import { errorMessage } from "@/features/auditions/use-audition-query";
 import { useToast } from "./toast";
@@ -22,11 +21,13 @@ export function ApplicantReviewDecision({
   applicant,
   onBoardChange,
   listState,
+  source,
 }: {
   board: AuditionBoardResponse;
   applicant: Applicant;
   onBoardChange: (next: AuditionBoardResponse) => void;
   listState: AuditionListRouteState;
+  source: ScreeningSource;
 }) {
   const [saving, setSaving] = useState(false);
   const [note, setNote] = useState(applicant.review.note);
@@ -44,7 +45,7 @@ export function ApplicantReviewDecision({
     if (reviewLocked) return;
     setSaving(true);
     try {
-      const next = await saveReview({
+      const next = await saveScreeningReview(source, {
         roleId: board.role.id,
         round: board.round,
         submissionIds: [applicant.id],
@@ -113,8 +114,8 @@ export function ApplicantReviewDecision({
 
         <nav aria-label="지원자 이동" className="flex items-center gap-1.5 border-t border-border-soft pt-3">
           <span className="num mr-auto text-xs text-muted">{index + 1} / {board.applicants.length}</span>
-          <ApplicantLink label="← 이전" applicant={previous} board={board} listState={listState} />
-          <ApplicantLink label="다음 →" applicant={next} board={board} listState={listState} />
+          <ApplicantLink label="← 이전" applicant={previous} board={board} listState={listState} source={source} />
+          <ApplicantLink label="다음 →" applicant={next} board={board} listState={listState} source={source} />
         </nav>
       </div>
 
@@ -142,16 +143,18 @@ function ApplicantLink({
   applicant,
   board,
   listState,
+  source,
 }: {
   label: string;
   applicant: Applicant | undefined;
   board: AuditionBoardResponse;
   listState: AuditionListRouteState;
+  source: ScreeningSource;
 }) {
   const style = "inline-flex min-h-10 items-center rounded-control border px-2.5 text-xs font-semibold";
   if (!applicant) return <span aria-disabled="true" className={`${style} border-border bg-border-soft text-muted`}>{label}</span>;
   return (
-    <Link href={auditionRoutes.applicantReview(board.role.id, applicant.id, board.round, listState)} className={`${style} border-border bg-card text-muted-strong hover:border-brand-line hover:bg-brand-soft hover:text-brand`}>
+    <Link href={screeningApplicantHref(source, board.role.id, applicant.id, board.round, listState)} className={`${style} border-border bg-card text-muted-strong hover:border-brand-line hover:bg-brand-soft hover:text-brand`}>
       {label}
     </Link>
   );

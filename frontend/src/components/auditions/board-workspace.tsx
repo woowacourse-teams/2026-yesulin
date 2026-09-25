@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
-import { completeScreening, saveReview } from "@/features/auditions/api";
+import { completeSourceScreening, saveScreeningReview, screeningApplicantHref, type ScreeningSource } from "@/features/auditions/screening-source";
 import {
   defaultStatusForWork,
   shouldClearMismatchOnlyAfterBulkReview,
@@ -19,7 +19,6 @@ import type {
   AuditionBoardResponse,
 } from "@/features/auditions/types";
 import { errorMessage } from "@/features/auditions/use-audition-query";
-import { auditionRoutes } from "@/features/auditions/routes";
 import { BoardHeader } from "./board-header";
 import { BoardProvider, type BoardContextValue } from "./board-context";
 import { ActionBar } from "./action-bar";
@@ -38,6 +37,7 @@ export function BoardWorkspace({
   setFilters,
   onBoardChange,
   onRoundChange,
+  source,
 }: {
   board: AuditionBoardResponse;
   filters: AuditionFilters;
@@ -45,6 +45,7 @@ export function BoardWorkspace({
   setFilters: (update: (current: AuditionFilters) => AuditionFilters) => void;
   onBoardChange: (next: AuditionBoardResponse) => void;
   onRoundChange: (round: RoundNumber) => void;
+  source: ScreeningSource;
 }) {
   const screeningCompleted = board.role.allRoundsClosed;
   const currentRoundClosed = board.rounds.find((state) => state.round === board.round)?.closed ?? false;
@@ -113,18 +114,18 @@ export function BoardWorkspace({
       fallback: string,
     ) =>
       run(
-        () => saveReview(
+        () => saveScreeningReview(source,
           { roleId: board.role.id, round: board.round, submissionIds, ...patch },
           searchCondition,
         ),
         fallback,
       ),
-    [board.role.id, board.round, run, searchCondition],
+    [board.role.id, board.round, run, searchCondition, source],
   );
 
   const advanceIfDone = useCallback((next: AuditionBoardResponse) => {
     const state = next.rounds.find((candidate) => candidate.round === next.round);
-    if (!state || state.counts.pending > 0) return;
+    if (!state || state.counts.pending > 0 || next.role.canComplete === false) return;
     setCompletionPrompt("auto");
   }, []);
 
@@ -184,9 +185,9 @@ export function BoardWorkspace({
       }
 
       const target = remaining[Math.min(Math.max(previousIndex, 0), remaining.length - 1)];
-      if (target) router.push(auditionRoutes.applicantReview(board.role.id, target.id, board.round, filters));
+      if (target) router.push(screeningApplicantHref(source, board.role.id, target.id, board.round, filters));
     },
-    [advanceIfDone, board.role.id, board.round, filters, router, setFilters, submitReview, toast],
+    [advanceIfDone, board.role.id, board.round, filters, router, setFilters, source, submitReview, toast],
   );
 
   const reviewCurrent = useCallback(async (id: SubmissionId, status: ReviewStatus) => {
@@ -205,8 +206,8 @@ export function BoardWorkspace({
   const completeCurrentScreening = useCallback(async () => {
     setSaving(true);
     try {
-      const { completion, board: next } = await completeScreening(
-        { roleId: board.role.id }, board.round, searchCondition,
+      const { completion, board: next } = await completeSourceScreening(
+        source, board.role.id, board.round, searchCondition,
       );
       onBoardChange(next);
       if (completion.nextRound !== null) {
@@ -228,9 +229,10 @@ export function BoardWorkspace({
     } finally {
       setSaving(false);
     }
-  }, [board.role.id, board.round, onBoardChange, onRoundChange, searchCondition, setFilters, toast]);
+  }, [board.role.id, board.round, onBoardChange, onRoundChange, searchCondition, setFilters, source, toast]);
 
   const value: BoardContextValue = {
+    source,
     board,
     filters,
     visible,
@@ -251,7 +253,7 @@ export function BoardWorkspace({
     completionPrompt,
     setCompletionPrompt,
     openApplicant: (id) => {
-      if (id !== null) router.push(auditionRoutes.applicantReview(board.role.id, id, board.round, filters));
+      if (id !== null) router.push(screeningApplicantHref(source, board.role.id, id, board.round, filters));
     },
     openedApplicantId: null,
     contactList,
