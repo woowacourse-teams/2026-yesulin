@@ -15,6 +15,9 @@ public interface OtrAuditionRepository extends JpaRepository<OtrAudition, Long> 
 
     Optional<OtrAudition> findByPublicId(UUID publicId);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<OtrAudition> findForUpdateByPublicId(UUID publicId);
+
     Optional<OtrAudition> findByPublicIdAndOwnerId(UUID publicId, long ownerId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

@@ -2,7 +2,12 @@ package art.yesulin.presentation.api.otraudition;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -11,6 +16,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import art.yesulin.application.audition.PostingSnapshotVersionGenerator;
 import art.yesulin.application.auth.MemberPrincipal;
+import art.yesulin.application.otraudition.OtrScreeningService;
+import art.yesulin.application.otraudition.OtrSubmissionInput;
+import art.yesulin.application.otraudition.OtrSubmissionService;
+import art.yesulin.application.screening.ScreeningCompletionResult;
+import art.yesulin.application.submission.consent.SubmissionConsentDocumentProvider;
 import art.yesulin.domain.file.FileAsset;
 import art.yesulin.domain.file.FileAssetRepository;
 import art.yesulin.domain.file.FileMetadata;
@@ -23,6 +33,9 @@ import art.yesulin.domain.otraudition.OtrScreeningReviewRepository;
 import art.yesulin.domain.otraudition.OtrSubmissionRepository;
 import art.yesulin.domain.producer.Producer;
 import art.yesulin.domain.producer.ProducerRepository;
+import art.yesulin.domain.submission.SubmissionAdditionalInformation;
+import art.yesulin.domain.submission.SubmissionBasicInformation;
+import art.yesulin.domain.submission.SubmissionGender;
 import art.yesulin.domain.submission.SubmissionType;
 import art.yesulin.support.ObjectStorageTestConfiguration;
 import java.time.Clock;
@@ -32,6 +45,12 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,6 +62,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest(properties = {
@@ -78,6 +98,12 @@ class OtrSubmissionControllerTest {
     private PostingSnapshotVersionGenerator snapshotVersionGenerator;
     @Autowired
     private AdjustableClock testClock;
+    @Autowired
+    private OtrSubmissionService submissionService;
+    @Autowired
+    private OtrScreeningService screeningService;
+    @MockitoSpyBean
+    private SubmissionConsentDocumentProvider consentDocumentProvider;
 
     @BeforeEach
     void cleanUp() {
@@ -239,6 +265,52 @@ class OtrSubmissionControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"submissionIds\":[\"" + submissionId + "\"],\"status\":\"FAIL\"}"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void screeningCompletionWaitsForSubmissionAdmittedBeforeDeadlineToCommit() throws Exception {
+        OtrAudition audition = createAudition(LocalDate.of(2026, 9, 21));
+        OtrSubmissionInput input = new OtrSubmissionInput(SubmissionType.OTR,
+                snapshotVersionGenerator.generate(audition.getPublicId(), "극단 예술인"), "햄릿",
+                new SubmissionBasicInformation("홍길동", 175, 67, LocalDate.of(2000, 1, 1),
+                        SubmissionGender.MALE, "010-1234-5678", "actor@example.com", "서울특별시 종로구"),
+                new SubmissionAdditionalInformation(null, null, null, List.of(), null, null, null, null,
+                        null, List.of()), List.of(), List.of(), true, true);
+        CountDownLatch admitted = new CountDownLatch(1);
+        CountDownLatch releaseSubmission = new CountDownLatch(1);
+        CountDownLatch completionStarted = new CountDownLatch(1);
+        doAnswer(invocation -> {
+            admitted.countDown();
+            try {
+                assertTrue(releaseSubmission.await(10, TimeUnit.SECONDS));
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                throw new AssertionError(exception);
+            }
+            return invocation.callRealMethod();
+        }).when(consentDocumentProvider).currentFor(anyLong(), anyString(), any(Instant.class));
+
+        try (ExecutorService executor = Executors.newFixedThreadPool(2)) {
+            Future<?> submission = executor.submit(() -> submissionService.submit(
+                    APPLICANT.memberId(), audition.getPublicId(), input));
+            try {
+                assertTrue(admitted.await(10, TimeUnit.SECONDS));
+                testClock.set(Instant.parse("2026-09-21T15:00:00Z"));
+                Future<ScreeningCompletionResult> completion = executor.submit(() -> {
+                    completionStarted.countDown();
+                    return screeningService.complete(PRODUCER.memberId(), audition.getPublicId(), 1, 1);
+                });
+                assertTrue(completionStarted.await(10, TimeUnit.SECONDS));
+                assertThrows(TimeoutException.class, () -> completion.get(300, TimeUnit.MILLISECONDS));
+                releaseSubmission.countDown();
+                submission.get(10, TimeUnit.SECONDS);
+                assertEquals(1, completion.get(10, TimeUnit.SECONDS).unselectedCount());
+                assertEquals(1, screeningService.findBoard(PRODUCER.memberId(), audition.getPublicId(), 1, 1,
+                        null).role().counts().pending());
+            } finally {
+                releaseSubmission.countDown();
+            }
+        }
     }
 
     private OtrAudition createAudition(LocalDate deadline) {

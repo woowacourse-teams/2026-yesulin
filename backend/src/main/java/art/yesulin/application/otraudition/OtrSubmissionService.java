@@ -62,7 +62,8 @@ public class OtrSubmissionService {
 
     @Transactional
     public OtrSubmissionResult submit(long applicantId, UUID publicId, OtrSubmissionInput input) {
-        OtrAudition audition = findAudition(publicId);
+        OtrAudition audition = auditionRepository.findForUpdateByPublicId(publicId)
+                .orElseThrow(() -> new BusinessException(NOT_FOUND, "OTR 공고를 찾을 수 없습니다."));
         if (!audition.isOpenOn(today())) {
             throw new BusinessException(CLOSED, "OTR 공고의 지원 마감일이 지났습니다.");
         }
