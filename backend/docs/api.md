@@ -109,7 +109,7 @@ PENDING 세션을 ACTIVE로 갱신하고 요청의 `redirectUri`로 302 redirect
 삭제는 배역·일정·지원 폼과 해당 배역의 심사 기록을 함께 지운다. 접수된 지원서가 한 건이라도 있으면
 `AUDITION_INVALID_STATUS`로 거부한다.
 
-## OTR 공고와 지원 — 4개
+## OTR 공고와 지원·심사 — 9개
 
 기존 공연·공고와 별도의 저장 모델이다. `PRODUCER + ACTIVE`만 호출할 수 있고 다른 공연사의 목록은 볼 수 없다.
 
@@ -117,8 +117,13 @@ PENDING 세션을 ACTIVE로 갱신하고 요청의 `redirectUri`로 302 redirect
 | --- | --- | --- | --- | --- |
 | POST | `/api/v1/otr-auditions` | Active Producer | `CreateOtrAuditionRequest(otrId, title, roles, deadline)` | `201 OtrAuditionResult`, `Location` |
 | GET | `/api/v1/otr-auditions` | Active Producer | 없음 | `200 OtrAuditionListResponse` |
+| GET | `/api/v1/otr-auditions/{auditionId}` | Active Producer | 없음 | `200 OtrAuditionResult` |
 | GET | `/api/v1/public/otr-auditions/{auditionId}` | 공개 | 없음 | `200 PublicOtrAuditionResult` |
 | POST | `/api/v1/otr-auditions/{auditionId}/submissions` | Applicant | `SubmitOtrSubmissionRequest` | `201 OtrSubmissionResult`, `Location` |
+| GET | `/api/v1/otr-auditions/{auditionId}/roles/{roleOrder}/screening-rounds/1/submissions` | Active Producer | `ScreeningFilterRequest` query | `200 ScreeningBoardResponse` |
+| GET | `/api/v1/otr-auditions/{auditionId}/roles/{roleOrder}/screening-rounds/1/submissions/{submissionId}` | Active Producer | 없음 | `200 ScreeningSubmissionDetailResponse` |
+| PATCH | `/api/v1/otr-auditions/{auditionId}/roles/{roleOrder}/screening-rounds/1/reviews` | Active Producer | `SaveScreeningReviewsRequest` | `200 ScreeningReviewsResult` |
+| PATCH | `/api/v1/otr-auditions/{auditionId}/roles/{roleOrder}/screening-rounds/1/completion` | Active Producer | 없음 | `200 ScreeningCompletionResult` |
 
 `otrId`는 숫자 1~30자, 제목은 200자 이하, 배역은 1~20개이며 각 이름은 100자 이하다. 마감일은 ISO 날짜다.
 같은 공연사 내 OTR 번호 중복은 `409 OTR_AUDITION_DUPLICATE_OTR_ID`다. 응답의 `otrLink`는
@@ -133,7 +138,10 @@ PENDING 세션을 ACTIVE로 갱신하고 요청의 `redirectUri`로 302 redirect
 선택 추가 정보, 서로 다른 READY 사진 파일 ID 최대 3개, 서로 다른 YouTube 영상 URL 최대 3개와
 개인정보 수집·이용 및 공연사 제공 동의를 받는다.
 사진은 지원자 소유인지 검증한다. 같은 지원자의 동일 OTR 공고 재지원은 `409 OTR_AUDITION_DUPLICATE_SUBMISSION`이다.
-현재 OTR 지원서는 기존 지원서 목록·심사 API에 연결되지 않는다.
+OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 저장 테이블에 기록한다. `roleOrder`는 공고의
+배역 순서(1부터 시작), `submissionId`는 OTR 지원서의 공개 UUID다. OTR에는 별도 일정 입력이 없어
+1차 서류 심사 한 차수를 제공한다. 배역별 심사 종료는 OTR 지원 마감 다음 날부터 가능하며,
+그 전에는 `409 SCREENING_ROUND_NOT_READY`를 반환한다. 종료 후 심사 결과 수정은 거부한다.
 
 ## 배우 프로필과 보관함·비공개 파일 — 14개
 

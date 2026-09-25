@@ -124,8 +124,15 @@ public record ScreeningBoardResult(
             int activeRound,
             boolean allRoundsClosed,
             Progress progress,
-            Counts counts
+            Counts counts,
+            boolean canComplete
     ) {
+        public Role(long id, UUID postingId, String name, String description, int quota, String gender,
+                int ageMin, int ageMax, int applicantCount, int activeRound, boolean allRoundsClosed,
+                Progress progress, Counts counts) {
+            this(id, postingId, name, description, quota, gender, ageMin, ageMax, applicantCount,
+                    activeRound, allRoundsClosed, progress, counts, true);
+        }
     }
 
     public record Round(int round, String name, boolean closed, Counts counts, Progress progress) {

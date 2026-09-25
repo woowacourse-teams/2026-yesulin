@@ -6,6 +6,7 @@ import { roundTitle } from "@/features/auditions/labels";
 import type { RoundNumber } from "@/features/auditions/types";
 import { SegmentButton } from "@/components/ui/controls";
 import { ApplicationLinkButton } from "./application-link-button";
+import { otrAuditionRoutes } from "@/features/otr-auditions/types";
 import { useBoard } from "./board-context";
 
 const WORK_TABS = [
@@ -27,11 +28,12 @@ const VIEW_TABS = [
  * 테두리는 전환 스위치에만 남겨서 무엇이 스위치이고 무엇이 동작인지 모양으로 구분되게 한다.
  */
 export function BoardHeader() {
-  const { board, filters, screeningCompleted, setFilters, clearSelection, goToRound, setCompletionPrompt } = useBoard();
+  const { board, filters, source, screeningCompleted, setFilters, clearSelection, goToRound, setCompletionPrompt } = useBoard();
   const current = board.rounds.find((state) => state.round === board.round);
   const counts = current?.counts;
   const canComplete = Boolean(
-    current && !screeningCompleted && !current.closed && board.role.activeRound === board.round,
+    current && !screeningCompleted && !current.closed && board.role.activeRound === board.round
+      && board.role.canComplete !== false,
   );
   // 심사가 끝난 사람을 한 명씩 넘겨 볼 이유가 없어 그때는 선택지에서 뺀다.
   const views = filters.work === "DONE" ? VIEW_TABS.filter((tab) => tab.view !== "single") : VIEW_TABS;
@@ -134,8 +136,11 @@ export function BoardHeader() {
           >
             전형 마감
           </button>
+        ) : source.kind === "OTR" && board.role.canComplete === false ? (
+          <span className="px-2 text-dense text-muted">지원 마감 후 전형 종료 가능</span>
         ) : null}
-        <ApplicationLinkButton postingId={board.posting.id} compact variant="quiet" className="min-h-9 px-3 text-dense" />
+        {source.kind === "OTR" ? <a href={otrAuditionRoutes.apply(source.auditionId)} target="_blank" rel="noreferrer" className="inline-flex min-h-9 items-center px-3 text-dense font-semibold text-brand">지원 페이지 ↗</a>
+          : <ApplicationLinkButton postingId={board.posting.id} compact variant="quiet" className="min-h-9 px-3 text-dense" />}
       </div>
     </div>
   );

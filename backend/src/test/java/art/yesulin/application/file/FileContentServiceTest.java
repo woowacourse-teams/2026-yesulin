@@ -13,6 +13,7 @@ import art.yesulin.domain.file.FileAsset;
 import art.yesulin.domain.file.FileAssetRepository;
 import art.yesulin.domain.file.FileMetadata;
 import art.yesulin.domain.member.MemberType;
+import art.yesulin.domain.otraudition.OtrSubmissionRepository;
 import art.yesulin.domain.submission.SubmissionRepository;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,6 +27,7 @@ class FileContentServiceTest {
 
     private FileAssetRepository fileAssetRepository;
     private SubmissionRepository submissionRepository;
+    private OtrSubmissionRepository otrSubmissionRepository;
     private ObjectStorage objectStorage;
     private FileContentService fileContentService;
 
@@ -33,8 +35,10 @@ class FileContentServiceTest {
     void setUp() {
         fileAssetRepository = mock(FileAssetRepository.class);
         submissionRepository = mock(SubmissionRepository.class);
+        otrSubmissionRepository = mock(OtrSubmissionRepository.class);
         objectStorage = mock(ObjectStorage.class);
-        fileContentService = new FileContentService(fileAssetRepository, submissionRepository, objectStorage);
+        fileContentService = new FileContentService(fileAssetRepository, submissionRepository,
+                otrSubmissionRepository, objectStorage);
     }
 
     @Test
@@ -75,6 +79,20 @@ class FileContentServiceTest {
         assertThrows(BusinessException.class, () -> fileContentService.read(
                 PRODUCER_ID, MemberType.PRODUCER, FILE_ID
         ));
+    }
+
+    @Test
+    void readReturnsContentWhenProducerOwnsOtrSubmissionPhoto() {
+        FileAsset file = readyPrivatePhoto();
+        when(fileAssetRepository.findById(FILE_ID)).thenReturn(Optional.of(file));
+        when(otrSubmissionRepository.existsSubmittedPhotoOwnedByProducer(FILE_ID, PRODUCER_ID)).thenReturn(true);
+        when(objectStorage.read(file.getObjectKey())).thenReturn(
+                Optional.of(new StoredObjectContent("image/png", new byte[0]))
+        );
+
+        FileContentResult result = fileContentService.read(PRODUCER_ID, MemberType.PRODUCER, FILE_ID);
+
+        assertEquals("image/png", result.contentType());
     }
 
     @Test

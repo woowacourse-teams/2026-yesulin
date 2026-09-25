@@ -27,9 +27,12 @@ import jakarta.persistence.UniqueConstraint;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "otr_submissions", uniqueConstraints = @UniqueConstraint(
@@ -41,6 +44,10 @@ public class OtrSubmission {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(name = "public_id", nullable = false, updatable = false, length = 36, unique = true)
+    private UUID publicId;
 
     @Column(name = "otr_audition_id", nullable = false, updatable = false)
     private long otrAuditionId;
@@ -128,6 +135,7 @@ public class OtrSubmission {
             String recipientName, String privacyDocumentVersion, String thirdPartyDocumentVersion,
             Instant submittedAt) {
         this.otrAuditionId = otrAuditionId;
+        this.publicId = UUID.randomUUID();
         this.applicantId = applicantId;
         this.selectedRole = selectedRole;
         this.basicInformation = basicInformation;

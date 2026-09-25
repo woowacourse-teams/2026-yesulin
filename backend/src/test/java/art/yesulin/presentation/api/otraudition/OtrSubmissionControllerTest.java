@@ -1,6 +1,8 @@
 package art.yesulin.presentation.api.otraudition;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -16,6 +18,8 @@ import art.yesulin.domain.member.MemberStatus;
 import art.yesulin.domain.member.MemberType;
 import art.yesulin.domain.otraudition.OtrAudition;
 import art.yesulin.domain.otraudition.OtrAuditionRepository;
+import art.yesulin.domain.otraudition.OtrScreeningCompletionRepository;
+import art.yesulin.domain.otraudition.OtrScreeningReviewRepository;
 import art.yesulin.domain.otraudition.OtrSubmissionRepository;
 import art.yesulin.domain.producer.Producer;
 import art.yesulin.domain.producer.ProducerRepository;
@@ -24,9 +28,11 @@ import art.yesulin.support.ObjectStorageTestConfiguration;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,6 +57,8 @@ class OtrSubmissionControllerTest {
 
     private static final MemberPrincipal APPLICANT = new MemberPrincipal(1L, MemberType.APPLICANT, MemberStatus.ACTIVE);
     private static final MemberPrincipal PRODUCER = new MemberPrincipal(2L, MemberType.PRODUCER, MemberStatus.ACTIVE);
+    private static final MemberPrincipal OTHER_PRODUCER =
+            new MemberPrincipal(3L, MemberType.PRODUCER, MemberStatus.ACTIVE);
 
     @Autowired
     private MockMvc mockMvc;
@@ -59,14 +67,23 @@ class OtrSubmissionControllerTest {
     @Autowired
     private OtrSubmissionRepository submissionRepository;
     @Autowired
+    private OtrScreeningReviewRepository reviewRepository;
+    @Autowired
+    private OtrScreeningCompletionRepository completionRepository;
+    @Autowired
     private ProducerRepository producerRepository;
     @Autowired
     private FileAssetRepository fileAssetRepository;
     @Autowired
     private PostingSnapshotVersionGenerator snapshotVersionGenerator;
+    @Autowired
+    private AdjustableClock testClock;
 
     @BeforeEach
     void cleanUp() {
+        testClock.set(Instant.parse("2026-09-21T14:59:59Z"));
+        reviewRepository.deleteAll();
+        completionRepository.deleteAll();
         submissionRepository.deleteAll();
         fileAssetRepository.deleteAll();
         auditionRepository.deleteAll();
@@ -156,6 +173,74 @@ class OtrSubmissionControllerTest {
                 .andExpect(jsonPath("$.code").value("OTR_AUDITION_STALE_POSTING_SNAPSHOT"));
     }
 
+    @Test
+    void producerScreensExistingOtrSubmissionAndClosesItsRole() throws Exception {
+        OtrAudition audition = createAudition(LocalDate.of(2026, 9, 22));
+        List<Long> files = createPhotos();
+        mockMvc.perform(post("/api/v1/otr-auditions/{id}/submissions", audition.getPublicId())
+                        .with(csrf()).sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, APPLICANT)
+                        .contentType(MediaType.APPLICATION_JSON).content(request(audition, files, "햄릿")))
+                .andExpect(status().isCreated());
+
+        String base = "/api/v1/otr-auditions/" + audition.getPublicId()
+                + "/roles/1/screening-rounds/1";
+        String submissionId = submissionRepository.findAll().getFirst().getPublicId().toString();
+        assertTrue(submissionRepository.existsSubmittedPhotoOwnedByProducer(files.getFirst(), PRODUCER.memberId()));
+        assertFalse(submissionRepository.existsSubmittedPhotoOwnedByProducer(
+                files.getFirst(), OTHER_PRODUCER.memberId()));
+        mockMvc.perform(get(base + "/submissions").sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, PRODUCER))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.role.name").value("햄릿"))
+                .andExpect(jsonPath("$.role.counts.pending").value(1))
+                .andExpect(jsonPath("$.submissions[0].id").value(submissionId))
+                .andExpect(jsonPath("$.submissions[0].photos.length()").value(3));
+        mockMvc.perform(get(base + "/submissions")
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, OTHER_PRODUCER))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/v1/otr-auditions/{id}/roles/2/screening-rounds/1/submissions",
+                        audition.getPublicId()).sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, PRODUCER))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.submissions.length()").value(0));
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch(
+                        "/api/v1/otr-auditions/{id}/roles/2/screening-rounds/1/reviews", audition.getPublicId())
+                        .with(csrf()).sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, PRODUCER)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"submissionIds\":[\"" + submissionId + "\"],\"status\":\"PASS\"}"))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get(base + "/submissions/" + submissionId)
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, PRODUCER))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.submission.name").value("홍길동"));
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch(base + "/reviews")
+                        .with(csrf()).sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, PRODUCER)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"submissionIds\":[\"" + submissionId + "\"],\"status\":\"PASS\",\"note\":\"좋음\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.reviews[0].status").value("PASS"));
+        mockMvc.perform(get(base + "/submissions?work=DONE&status=PASS")
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, PRODUCER))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.role.counts.pass").value(1))
+                .andExpect(jsonPath("$.role.canComplete").value(false))
+                .andExpect(jsonPath("$.submissions.length()").value(1));
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch(base + "/completion")
+                        .with(csrf()).sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, PRODUCER))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("SCREENING_ROUND_NOT_READY"));
+        testClock.set(Instant.parse("2026-09-22T15:00:00Z"));
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch(base + "/completion")
+                        .with(csrf()).sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, PRODUCER))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.acceptedCount").value(1))
+                .andExpect(jsonPath("$.allRoundsClosed").value(true));
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch(base + "/reviews")
+                        .with(csrf()).sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, PRODUCER)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"submissionIds\":[\"" + submissionId + "\"],\"status\":\"FAIL\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
     private OtrAudition createAudition(LocalDate deadline) {
         String otrId = deadline.format(DateTimeFormatter.BASIC_ISO_DATE);
         return auditionRepository.saveAndFlush(new OtrAudition(2L, otrId, "햄릿 배우 모집",
@@ -201,8 +286,39 @@ class OtrSubmissionControllerTest {
 
         @Bean
         @Primary
-        Clock fixedOtrClock() {
-            return Clock.fixed(Instant.parse("2026-09-21T14:59:59Z"), ZoneOffset.UTC);
+        AdjustableClock fixedOtrClock() {
+            return new AdjustableClock(new AtomicReference<>(Instant.parse("2026-09-21T14:59:59Z")),
+                    ZoneOffset.UTC);
+        }
+    }
+
+    static class AdjustableClock extends Clock {
+
+        private final AtomicReference<Instant> instant;
+        private final ZoneId zone;
+
+        AdjustableClock(AtomicReference<Instant> instant, ZoneId zone) {
+            this.instant = instant;
+            this.zone = zone;
+        }
+
+        void set(Instant value) {
+            instant.set(value);
+        }
+
+        @Override
+        public ZoneId getZone() {
+            return zone;
+        }
+
+        @Override
+        public Clock withZone(ZoneId value) {
+            return new AdjustableClock(instant, value);
+        }
+
+        @Override
+        public Instant instant() {
+            return instant.get();
         }
     }
 }

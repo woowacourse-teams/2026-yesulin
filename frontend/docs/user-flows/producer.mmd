@@ -5,6 +5,10 @@ flowchart TD
     OTR_LIST --> OTR_SOURCE["OTR 원문 링크 열기"]
     OTR_LIST --> OTR_APPLY["지원 링크 복사<br>/apply/standard/{id}"]
     OTR_APPLY --> OTR_FORM["배우가 고정 지원 폼 작성"]
+    OTR_FORM --> OTR_SUBMIT["OTR 지원서 접수"]
+    OTR_SUBMIT --> OTR_SCREEN["OTR 공고 심사 관리<br>배역별 1차 서류 심사"]
+    OTR_SCREEN --> OTR_DECIDE["합격·불합격·보류·메모"]
+    OTR_DECIDE --> OTR_CLOSE["배역별 전형 마감"]
     SIGNUP["POST /api/v1/producers<br>PENDING + 인증 메일 발송"] --> VERIFY["GET /api/v1/auth/email-verifications<br>302 redirect"]
     VERIFY --> LOGIN_FORM["로그인 화면"]
     LOGIN_FORM --> FORGOT{"비밀번호 분실?"}

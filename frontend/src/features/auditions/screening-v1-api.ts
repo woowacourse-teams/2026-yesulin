@@ -45,7 +45,7 @@ export function getV1ScreeningSubmission(
   ).then((resource) => toBoard({ ...resource, submissions: [resource.submission] }));
 }
 
-function toBoard(resource: ScreeningBoardResource): AuditionBoardResponse {
+export function toBoard(resource: ScreeningBoardResource): AuditionBoardResponse {
   return {
     performance: {
       id: performanceId(String(resource.performance.id)),
