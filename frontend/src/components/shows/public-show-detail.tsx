@@ -14,7 +14,7 @@ import {
 import type { PublicShow, PublicShowSession, ReservationReceipt } from "@/features/shows/types";
 import { ReservationSheet } from "./reservation-sheet";
 import { ShowPageHeader } from "./show-page-header";
-import { SessionAvailabilityText, ShowStatusBadge } from "./show-status";
+import { SessionAvailabilityText, ShowGenreBadge, ShowStatusBadge } from "./show-status";
 
 const SESSIONS_SECTION_ID = "show-sessions";
 
@@ -82,7 +82,10 @@ function ShowHero({ show }: { readonly show: PublicShow }) {
         <Image src={show.posterUrl} alt={`${show.title} 포스터`} fill unoptimized priority sizes="(min-width: 768px) 240px, 280px" className="object-cover" />
       </div>
       <div className="min-w-0">
-        <ShowStatusBadge status={show.status} />
+        <div className="flex flex-wrap items-center gap-2">
+          <ShowStatusBadge status={show.status} />
+          <ShowGenreBadge genre={show.genre} />
+        </div>
         <h1 className="mt-3 text-[clamp(28px,4vw,40px)] font-bold leading-tight tracking-[-0.035em]">{show.title}</h1>
         <dl className="mt-6 grid grid-cols-[88px_minmax(0,1fr)] gap-x-4 gap-y-3 text-base">
           <dt className="text-muted">공연 기간</dt>

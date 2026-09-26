@@ -1,6 +1,10 @@
 /** 무료 공연 예매의 공개·운영자 API 계약. 공연 id는 공개 UUID, 회차·예매 id는 숫자다. */
 
 export type ShowStatus = "DRAFT" | "OPEN" | "CLOSED";
+export type ShowGenre = "MUSICAL" | "PLAY";
+
+export const SHOW_GENRES: readonly ShowGenre[] = ["MUSICAL", "PLAY"];
+export const SHOW_GENRE_LABELS: Record<ShowGenre, string> = { MUSICAL: "뮤지컬", PLAY: "연극" };
 export type ReservationStatus = "CONFIRMED" | "CANCELED";
 
 export const MAX_SHOW_IMAGES = 3;
@@ -18,6 +22,7 @@ export type ShowVenue = {
 export type PublicShowSummary = {
   readonly id: string;
   readonly title: string;
+  readonly genre: ShowGenre;
   readonly posterUrl: string;
   readonly venueName: string;
   readonly nextSessionStartsAt: string | null;
@@ -34,6 +39,7 @@ export type PublicShowSession = {
 export type PublicShow = {
   readonly id: string;
   readonly title: string;
+  readonly genre: ShowGenre;
   readonly description: string;
   readonly posterUrl: string;
   readonly imageUrls: readonly string[];
@@ -75,6 +81,7 @@ export const RESERVATION_ERROR_CODES = {
 export type AdminShowSummary = {
   readonly id: string;
   readonly title: string;
+  readonly genre: ShowGenre;
   readonly posterUrl: string;
   readonly status: ShowStatus;
   readonly sessionCount: number;
@@ -99,6 +106,7 @@ export type AdminShowImage = {
 export type AdminShow = {
   readonly id: string;
   readonly title: string;
+  readonly genre: ShowGenre;
   readonly description: string;
   readonly venue: ShowVenue;
   readonly runningMinutes: number;
@@ -114,6 +122,7 @@ export type AdminShow = {
 
 export type SaveShow = {
   readonly title: string;
+  readonly genre: ShowGenre;
   readonly description: string;
   readonly venue: ShowVenue;
   readonly runningMinutes: number;

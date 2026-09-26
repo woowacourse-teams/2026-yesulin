@@ -3,6 +3,7 @@ create table shows
     id              bigint         not null auto_increment,
     public_id       varchar(36)    not null,
     title           varchar(200)   not null,
+    genre           varchar(20)    not null,
     description     varchar(2000)  not null,
     venue_name      varchar(200)   not null,
     road_address    varchar(300)   not null,

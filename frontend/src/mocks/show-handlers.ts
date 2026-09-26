@@ -1,6 +1,7 @@
 import { delay, http, HttpResponse } from "msw";
 import {
   MAX_SHOW_IMAGES,
+  SHOW_GENRES,
   MAX_TICKETS_PER_RESERVATION,
   type AdminReservation,
   type AdminShow,
@@ -12,6 +13,7 @@ import {
   type ReservationStatus,
   type SaveShow,
   type SaveShowSession,
+  type ShowGenre,
   type ShowStatus,
   type ShowVenue,
 } from "@/features/shows/types";
@@ -21,6 +23,7 @@ import {
 type MockShow = {
   id: string;
   title: string;
+  genre: ShowGenre;
   description: string;
   venue: ShowVenue;
   runningMinutes: number;
@@ -79,6 +82,7 @@ const shows: MockShow[] = [
   {
     id: "seed_show_moonlight",
     title: "달빛 아래 소극장",
+    genre: "MUSICAL",
     description: "예술in이 준비한 무료 창작 뮤지컬입니다.\n공연 시작 10분 전까지 입장해 주세요.",
     venue: venue("대학로 예술인 소극장", "서울특별시 종로구 대학로 12"),
     runningMinutes: 100,
@@ -92,6 +96,7 @@ const shows: MockShow[] = [
   {
     id: "seed_show_summer",
     title: "여름밤의 연극",
+    genre: "PLAY",
     description: "단 하루, 한 회차만 열리는 낭독 연극입니다.",
     venue: venue("성수 블랙박스 극장", "서울특별시 성동구 성수이로 20"),
     runningMinutes: 70,
@@ -105,6 +110,7 @@ const shows: MockShow[] = [
   {
     id: "seed_show_nightfall",
     title: "해 질 녘 낭독회",
+    genre: "PLAY",
     description: "예매가 끝난 공연입니다.",
     venue: venue("예술in 라운지", "서울특별시 마포구 와우산로 30"),
     runningMinutes: 60,
@@ -118,6 +124,7 @@ const shows: MockShow[] = [
   {
     id: "seed_show_draft",
     title: "준비 중인 가을 공연",
+    genre: "MUSICAL",
     description: "",
     venue: venue("대학로 예술인 소극장", "서울특별시 종로구 대학로 12"),
     runningMinutes: 90,
@@ -197,6 +204,7 @@ function toPublicSummary(show: MockShow): PublicShowSummary {
   return {
     id: show.id,
     title: show.title,
+    genre: show.genre,
     posterUrl: show.poster.url,
     venueName: show.venue.name,
     nextSessionStartsAt: nextSessionStartsAt(show.id),
@@ -208,6 +216,7 @@ function toPublicShow(show: MockShow): PublicShow {
   return {
     id: show.id,
     title: show.title,
+    genre: show.genre,
     description: show.description,
     posterUrl: show.poster.url,
     imageUrls: show.images.map((item) => item.url),
@@ -234,6 +243,7 @@ function toAdminSummary(show: MockShow): AdminShowSummary {
   return {
     id: show.id,
     title: show.title,
+    genre: show.genre,
     posterUrl: show.poster.url,
     status: show.status,
     sessionCount: ownSessions.length,
@@ -248,6 +258,7 @@ function toAdminShow(show: MockShow): AdminShow {
   return {
     id: show.id,
     title: show.title,
+    genre: show.genre,
     description: show.description,
     venue: show.venue,
     runningMinutes: show.runningMinutes,
@@ -291,6 +302,7 @@ function imageUrl(fileId: number) {
 function validateShow(body: SaveShow): string | null {
   const title = body.title?.trim() ?? "";
   if (!title || title.length > 200) return "공연명은 1~200자로 입력해 주세요.";
+  if (!SHOW_GENRES.includes(body.genre)) return "공연 장르를 선택해 주세요.";
   if ((body.description?.trim().length ?? 0) > 2000) return "공연 소개는 2000자를 넘을 수 없습니다.";
   if (!body.venue?.name?.trim() || !body.venue.roadAddress?.trim()) return "공연 장소명과 주소를 입력해 주세요.";
   if (!Number.isInteger(body.runningMinutes) || body.runningMinutes < 1 || body.runningMinutes > 1440) {
@@ -311,6 +323,7 @@ function validateShow(body: SaveShow): string | null {
 
 function applyShow(show: MockShow, body: SaveShow) {
   show.title = body.title.trim();
+  show.genre = body.genre;
   show.description = body.description?.trim() ?? "";
   show.venue = body.venue;
   show.runningMinutes = body.runningMinutes;
@@ -406,6 +419,7 @@ export const showHandlers = [
     const show: MockShow = {
       id: crypto.randomUUID(),
       title: "",
+      genre: body.genre,
       description: "",
       venue: body.venue,
       runningMinutes: 0,

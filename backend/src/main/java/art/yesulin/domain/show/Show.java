@@ -10,6 +10,7 @@ import static art.yesulin.domain.show.ShowErrorCode.NOT_OPENABLE;
 
 import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.performance.PerformanceVenue;
+import art.yesulin.domain.show.converter.ShowGenreConverter;
 import art.yesulin.domain.show.converter.ShowStatusConverter;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
@@ -67,6 +68,10 @@ public class Show {
     @Column(nullable = false, length = MAX_TITLE_LENGTH)
     private String title;
 
+    @Convert(converter = ShowGenreConverter.class)
+    @Column(nullable = false, length = 20)
+    private ShowGenre genre;
+
     @Column(nullable = false, length = MAX_DESCRIPTION_LENGTH)
     private String description;
 
@@ -102,6 +107,7 @@ public class Show {
 
     public Show(
             String title,
+            ShowGenre genre,
             String description,
             PerformanceVenue venue,
             int runningMinutes,
@@ -112,11 +118,12 @@ public class Show {
     ) {
         this.publicId = UUID.randomUUID();
         this.status = ShowStatus.DRAFT;
-        update(title, description, venue, runningMinutes, ageRating, inquiryPhone, posterFileId, imageFileIds);
+        update(title, genre, description, venue, runningMinutes, ageRating, inquiryPhone, posterFileId, imageFileIds);
     }
 
     public void update(
             String title,
+            ShowGenre genre,
             String description,
             PerformanceVenue venue,
             int runningMinutes,
@@ -126,6 +133,7 @@ public class Show {
             List<Long> imageFileIds
     ) {
         this.title = requireMaxLength(requireText(title, "공연명은 필수입니다."), MAX_TITLE_LENGTH, "공연명");
+        this.genre = requireNonNull(genre, "공연 장르는 필수입니다.");
         this.description = requireMaxLength(normalizeOptional(description), MAX_DESCRIPTION_LENGTH, "공연 소개");
         this.venue = requireNonNull(venue, "공연 장소는 필수입니다.");
         this.runningMinutes = requireRunningMinutes(runningMinutes);

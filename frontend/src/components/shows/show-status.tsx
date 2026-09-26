@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { SessionAvailability } from "@/features/shows/format";
-import { showRoutes } from "@/features/shows/types";
+import { SHOW_GENRE_LABELS, showRoutes, type ShowGenre } from "@/features/shows/types";
 
 export function ShowStatusBadge({ status }: { readonly status: "OPEN" | "CLOSED" }) {
   const open = status === "OPEN";
@@ -8,6 +8,14 @@ export function ShowStatusBadge({ status }: { readonly status: "OPEN" | "CLOSED"
     <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-semibold ${open ? "border-brand-line bg-brand-soft text-brand" : "border-border bg-surface text-muted-strong"}`}>
       <span aria-hidden="true">{open ? "●" : "−"}</span>
       {open ? "예매 중" : "예매 종료"}
+    </span>
+  );
+}
+
+export function ShowGenreBadge({ genre }: { readonly genre: ShowGenre }) {
+  return (
+    <span className="inline-flex items-center rounded-full border border-border bg-card px-3 py-1 text-sm font-semibold text-muted-strong">
+      {SHOW_GENRE_LABELS[genre]}
     </span>
   );
 }

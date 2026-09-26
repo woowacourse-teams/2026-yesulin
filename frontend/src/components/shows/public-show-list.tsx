@@ -4,9 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ScreenError } from "@/components/auditions/screen-status";
+import { FilterChip } from "@/components/ui/controls";
 import { getPublicShows } from "@/features/shows/api";
 import { formatShowDateTime } from "@/features/shows/format";
-import { showRoutes, type PublicShowSummary } from "@/features/shows/types";
+import { SHOW_GENRE_LABELS, SHOW_GENRES, showRoutes, type PublicShowSummary, type ShowGenre } from "@/features/shows/types";
 import { ShowPageHeader } from "./show-page-header";
 
 type ListState =
@@ -16,6 +17,7 @@ type ListState =
 
 export function PublicShowList() {
   const [state, setState] = useState<ListState>({ status: "loading" });
+  const [genre, setGenre] = useState<ShowGenre | null>(null);
 
   const load = useCallback(() => {
     let active = true;
@@ -49,13 +51,44 @@ export function PublicShowList() {
           ) : null}
           {state.status === "ready" && state.shows.length === 0 ? <EmptyShows /> : null}
           {state.status === "ready" && state.shows.length > 0 ? (
-            <ul className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 min-[1200px]:grid-cols-4">
-              {state.shows.map((show) => <ShowCard key={show.id} show={show} />)}
-            </ul>
+            <GenreFilteredShows shows={state.shows} genre={genre} onGenreChange={setGenre} />
           ) : null}
         </div>
       </div>
     </main>
+  );
+}
+
+function GenreFilteredShows({ shows, genre, onGenreChange }: {
+  readonly shows: readonly PublicShowSummary[];
+  readonly genre: ShowGenre | null;
+  readonly onGenreChange: (genre: ShowGenre | null) => void;
+}) {
+  const visibleShows = genre ? shows.filter((show) => show.genre === genre) : shows;
+  const countOf = (target: ShowGenre | null) => target ? shows.filter((show) => show.genre === target).length : shows.length;
+  const options: readonly (ShowGenre | null)[] = [null, ...SHOW_GENRES];
+  return (
+    <>
+      <div role="group" aria-label="장르" className="mb-6 flex flex-wrap gap-2">
+        {options.map((option) => (
+          <FilterChip key={option ?? "ALL"} pressed={genre === option} onClick={() => onGenreChange(option)}>
+            {option ? SHOW_GENRE_LABELS[option] : "전체"} <span className="num">{countOf(option)}</span>
+          </FilterChip>
+        ))}
+      </div>
+      {visibleShows.length ? (
+        <ul className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 min-[1200px]:grid-cols-4">
+          {visibleShows.map((show) => <ShowCard key={show.id} show={show} />)}
+        </ul>
+      ) : (
+        <section className="rounded-card border border-border bg-card px-6 py-14 text-center">
+          <h2 className="text-lg font-bold">지금 예매할 수 있는 {genre ? SHOW_GENRE_LABELS[genre] : "공연"}이 없어요</h2>
+          <button type="button" onClick={() => onGenreChange(null)} className="mt-3 inline-flex min-h-11 items-center rounded-control px-3 text-sm font-semibold text-brand hover:bg-brand-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
+            전체 공연 보기
+          </button>
+        </section>
+      )}
+    </>
   );
 }
 
@@ -76,7 +109,8 @@ function ShowCard({ show }: { readonly show: PublicShowSummary }) {
             className="object-cover transition-transform duration-300 group-hover:scale-[1.02] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
           />
         </div>
-        <h2 className="mt-3 line-clamp-2 text-base font-bold leading-6 group-hover:text-brand">{show.title}</h2>
+        <p className="mt-3 text-xs font-semibold text-brand">{SHOW_GENRE_LABELS[show.genre]}</p>
+        <h2 className="mt-1 line-clamp-2 text-base font-bold leading-6 group-hover:text-brand">{show.title}</h2>
         <p className="mt-1 truncate text-sm text-muted-strong">{show.venueName}</p>
         <p className="num mt-1 text-sm text-muted">
           {show.nextSessionStartsAt ? `다음 회차 ${formatShowDateTime(show.nextSessionStartsAt)}` : "예매 가능한 회차 없음"}

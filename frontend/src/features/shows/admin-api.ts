@@ -93,6 +93,7 @@ export async function uploadShowImage(image: File): Promise<number> {
 function toShowBody(input: SaveShow) {
   return {
     title: input.title.trim(),
+    genre: input.genre,
     description: input.description.trim(),
     venue: input.venue,
     runningMinutes: input.runningMinutes,

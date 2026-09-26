@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import art.yesulin.domain.performance.PerformanceVenue;
 import art.yesulin.domain.show.Show;
+import art.yesulin.domain.show.ShowGenre;
 import art.yesulin.domain.show.ShowRepository;
 import art.yesulin.domain.show.ShowSession;
 import art.yesulin.domain.show.ShowSessionRepository;
@@ -39,7 +40,8 @@ class ReservationRepositoryTest {
     @Test
     void sumsOnlyConfirmedTicketsBySessionOnFlywaySchema() {
         Show show = showRepository.save(new Show(
-                "햄릿", "", new PerformanceVenue("예술인 소극장", "서울특별시 종로구 대학로 12", "", "", null, null),
+                "햄릿", ShowGenre.MUSICAL, "",
+                new PerformanceVenue("예술인 소극장", "서울특별시 종로구 대학로 12", "", "", null, null),
                 120, "", "02-123-4567", 1L, List.of(2L, 3L)
         ));
         ShowSession first = sessionRepository.save(new ShowSession(show.getId(), STARTS_AT, 30));

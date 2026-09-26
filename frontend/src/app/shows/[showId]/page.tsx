@@ -2,14 +2,14 @@ import type { Metadata } from "next";
 import { PublicShowRoute } from "@/components/shows/public-show-route";
 import { formatShowPeriod } from "@/features/shows/format";
 import { publicShowForServer } from "@/features/shows/server";
-import { showRoutes } from "@/features/shows/types";
+import { SHOW_GENRE_LABELS, showRoutes } from "@/features/shows/types";
 
 export async function generateMetadata({ params }: { params: Promise<{ showId: string }> }): Promise<Metadata> {
   const { showId } = await params;
   const show = await publicShowForServer(showId);
   if (!show) return { title: "공연", robots: { index: false, follow: true } };
   const canonical = showRoutes.detail(showId);
-  const description = `${show.venue.name} · ${formatShowPeriod(show.sessions)} · ${show.status === "OPEN" ? "무료 예매 중" : "예매 종료"}`;
+  const description = `${SHOW_GENRE_LABELS[show.genre]} · ${show.venue.name} · ${formatShowPeriod(show.sessions)} · ${show.status === "OPEN" ? "무료 예매 중" : "예매 종료"}`;
   return {
     title: show.title,
     description,
