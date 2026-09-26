@@ -2,10 +2,18 @@
 set -eu
 
 REVISION="${1:-}"
-ENCRYPTED_ENV="${2:-}"
+CONFIG_DIR="${2:-}"
+DEPLOY_ENV="${DEPLOY_ENV:-}"
 
-if [ ! -s "$ENCRYPTED_ENV" ]; then
-  echo "Encrypted staging.env is missing" >&2
+case "$DEPLOY_ENV" in
+  dev | prod) ;;
+  *) echo 'DEPLOY_ENV must be dev or prod' >&2; exit 1 ;;
+esac
+
+ENCRYPTED_ENV="$CONFIG_DIR/server/$DEPLOY_ENV.env"
+
+if [ ! -s "$ENCRYPTED_ENV" ] || ! grep -q '^sops_mac=' "$ENCRYPTED_ENV"; then
+  echo "Encrypted $DEPLOY_ENV.env is missing or invalid" >&2
   exit 1
 fi
 
@@ -28,7 +36,7 @@ cp build/libs/application.jar "$BUNDLE_DIR/application.jar"
 cp "$DEPLOY_DIR/appspec.yml" "$BUNDLE_DIR/appspec.yml"
 cp "$DEPLOY_DIR/scripts/"*.sh "$BUNDLE_DIR/scripts/"
 cp "$DEPLOY_DIR/systemd/yesulin.service" "$BUNDLE_DIR/systemd/yesulin.service"
-cp "$ENCRYPTED_ENV" "$BUNDLE_DIR/config/staging.env"
+cp "$ENCRYPTED_ENV" "$BUNDLE_DIR/config/runtime.env"
 chmod +x "$BUNDLE_DIR/scripts/"*.sh
 printf '%s\n' "$REVISION" > "$BUNDLE_DIR/revision.txt"
 (cd "$BUNDLE_DIR" && sha256sum application.jar > application.jar.sha256)

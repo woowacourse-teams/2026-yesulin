@@ -2,6 +2,9 @@
 
 CodeBuild는 `buildspec.yml`로 `backend/build/deployment/` 묶음을 만들고 CodeDeploy가 EC2에 배포한다.
 운영 요청은 `ALB(HTTPS 443) -> target group(HTTP 80) -> Spring Boot` 순서로 전달한다.
+DEV와 PROD의 Build 액션은 각각 `DEPLOY_ENV=dev`, `DEPLOY_ENV=prod`를 명시적으로 전달한다.
+빌드는 config 저장소의 `server/{DEPLOY_ENV}.env`를 선택하며 값이 없거나 다른 값이면 실패한다.
+두 Pipeline 모두 `CONFIG_COMMIT_ID`와 `config-version.txt`의 일치 검증을 통과해야 한다.
 
 1. PR CI가 Java 25로 Checkstyle과 test를 수행하고, CodeBuild가 실행 JAR를 빌드한다.
 2. JAR를 `application.jar`로 고정하고 revision과 SHA-256을 기록한다.
@@ -53,7 +56,7 @@ Windows PowerShell 5.1의 UTF-8 BOM과 PowerShell 7의 BOM 없는 입력을 모�
 입력값은 명령 인자·환경 변수·파일에 저장하지 않는다. 해시 계산 동안 프로세스 메모리와 표준입력에는 평문이 존재하며,
 관리형 문자열의 메모리 잔존까지 완전히 지우는 것은 보장하지 않는다.
 
-출력된 한 줄을 config 저장소의 `server/staging.env`에 SOPS로 편집하고 새 버전을 배포한다. 서버의 복호화된 파일을
+출력된 한 줄을 대상 환경의 config 저장소 `server/dev.env` 또는 `server/prod.env`에 SOPS로 편집하고 새 버전을 배포한다. 서버의 복호화된 파일을
 직접 수정하지 않는다. 이 값이 비어 있으면 admin 조회는 가능하지만
 지원서 삭제는 `403 ADMIN_DELETION_CONFIRMATION_FAILED`로 거부된다. 원문 비밀번호나 생성 명령의 입력값은 문서·메신저·저장소에 남기지 않는다.
 
@@ -78,8 +81,8 @@ EC2에는 Java 25, CodeDeploy Agent, `sops`, DB 네트워크 연결과 배포 �
 `/etc/yesulin/sops/age/keys.txt`가 필요하다. 현재는 별도의 비밀 저장소 권한이 없어 배포 전용 키를
 AMI에 포함하는 방식으로 새 ASG 인스턴스에 전달한다. 키와 상위 디렉터리는 root 소유로 두고 각각 `0600`,
 `0700` 권한을 적용한다. 이 방식은 AMI·스냅샷을 읽을 수 있는 주체에게도 복호화 권한을 주므로 접근 권한을
-제한하고, 비밀 저장소를 사용할 수 있게 되면 키 전달 방식을 교체한다. CodeBuild는 암호화된
-`server/staging.env`만 배포 아티팩트에 포함하며 복호화하지 않는다.
+제한하고, 비밀 저장소를 사용할 수 있게 되면 키 전달 방식을 교체한다. CodeBuild는 선택된
+`server/dev.env` 또는 `server/prod.env`의 암호문만 배포 아티팩트의 `config/runtime.env`에 포함하며 복호화하지 않는다.
 CodeDeploy는 EC2에서 각 릴리스의 `yesulin.env`를 복호화하여 root 소유·`yesulin` 그룹·`0640` 권한으로 만든다.
 실제 secret은 저장소·build log에 남기지 않는다.
 AMI에 평문 secret이 남지 않았는지는 별도로 검증해야 한다. private key는 저장소·build log에 남기지 않는다.
