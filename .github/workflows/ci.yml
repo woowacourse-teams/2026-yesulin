@@ -79,3 +79,5 @@ jobs:
           sh deploy/tests/check_flyway_migration_order_test.sh
           sh deploy/tests/validate_service_test.sh
           sh deploy/tests/cleanup_releases_test.sh
+          sh deploy/tests/install_env_test.sh
+          sh ../scripts/config/tests/deploy_env_test.sh

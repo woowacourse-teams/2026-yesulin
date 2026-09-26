@@ -13,9 +13,11 @@ phases:
 
   pre_build:
     commands:
-      # CodePipeline Build 액션의 CONFIG_COMMIT_ID는 #{ConfigVariables.CommitId}로 전달한다.
-      # CodeBuild 프로젝트 단독 실행에는 이 값이 없으므로 검증 단계에서 실패한다.
+      # 두 Pipeline은 CONFIG_COMMIT_ID와 DEPLOY_ENV(dev 또는 prod)를 명시적으로 전달한다.
+      # CONFIG_COMMIT_ID는 #{ConfigVariables.CommitId}를 사용한다.
+      # 값이 없는 CodeBuild 단독 실행은 검증 단계에서 실패한다.
       - sh "$CODEBUILD_SRC_DIR/scripts/config/verify-build-source.sh"
+      - sh "$CODEBUILD_SRC_DIR/scripts/config/tests/deploy_env_test.sh"
 
   build:
     commands:
@@ -36,7 +38,7 @@ phases:
       - sh deploy/tests/cleanup_releases_test.sh
       - sh deploy/tests/install_env_test.sh
       - chmod +x deploy/package_bundle.sh
-      - deploy/package_bundle.sh "$CODEBUILD_RESOLVED_SOURCE_VERSION" "$CODEBUILD_SRC_DIR_ConfigSource/server/staging.env"
+      - deploy/package_bundle.sh "$CODEBUILD_RESOLVED_SOURCE_VERSION" "$CODEBUILD_SRC_DIR_ConfigSource"
 
 artifacts:
   base-directory: backend/build/deployment
