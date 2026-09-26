@@ -1,4 +1,4 @@
-export const uploadFlows = ["APPLICATION_PHOTO", "PROFILE_PHOTO", "PERFORMANCE_POSTER"] as const;
+export const uploadFlows = ["APPLICATION_PHOTO", "PROFILE_PHOTO", "PERFORMANCE_POSTER", "SHOW_IMAGE"] as const;
 export type UploadFlow = typeof uploadFlows[number];
 
 export const uploadStages = ["PREPARE", "UPLOAD_REQUEST", "PUT", "COMPLETION", "RETRY", "SUBMISSION"] as const;
