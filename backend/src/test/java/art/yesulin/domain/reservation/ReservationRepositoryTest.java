@@ -40,7 +40,7 @@ class ReservationRepositoryTest {
     @Test
     void sumsOnlyConfirmedTicketsBySessionOnFlywaySchema() {
         Show show = showRepository.save(new Show(
-                "햄릿", ShowGenre.MUSICAL, "",
+                1L, "햄릿", ShowGenre.MUSICAL, "",
                 new PerformanceVenue("예술인 소극장", "서울특별시 종로구 대학로 12", "", "", null, null),
                 120, "", "02-123-4567", 1L, List.of(2L, 3L)
         ));
@@ -67,5 +67,7 @@ class ReservationRepositoryTest {
         assertFalse(reservationRepository.existsBySessionIdAndBookerPhoneAndStatus(
                 first.getId(), "010-0000-0002", ReservationStatus.CONFIRMED));
         assertEquals(List.of(2L, 3L), showRepository.findById(show.getId()).orElseThrow().getImageFileIds());
+        assertTrue(showRepository.findByPublicIdAndOwnerId(show.getPublicId(), 1L).isPresent());
+        assertTrue(showRepository.findByPublicIdAndOwnerId(show.getPublicId(), 2L).isEmpty());
     }
 }

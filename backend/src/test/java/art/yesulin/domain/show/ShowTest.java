@@ -28,9 +28,16 @@ class ShowTest {
     }
 
     @Test
+    void requiresOwner() {
+        assertThrows(IllegalArgumentException.class, () -> new Show(
+                0L, "햄릿", ShowGenre.PLAY, null, venue(), 120, null, "02-123-4567", 1L, List.of()
+        ));
+    }
+
+    @Test
     void requiresGenre() {
         assertThrows(IllegalArgumentException.class, () -> new Show(
-                "햄릿", null, null, venue(), 120, null, "02-123-4567", 1L, List.of()
+                1L, "햄릿", null, null, venue(), 120, null, "02-123-4567", 1L, List.of()
         ));
     }
 
@@ -46,7 +53,7 @@ class ShowTest {
     @Test
     void rejectsInvalidInquiryPhone() {
         BusinessException exception = assertThrows(BusinessException.class, () -> new Show(
-                "햄릿", ShowGenre.PLAY, null, venue(), 120, null, "0212345678", 1L, List.of()
+                1L, "햄릿", ShowGenre.PLAY, null, venue(), 120, null, "0212345678", 1L, List.of()
         ));
 
         assertEquals(ShowErrorCode.INVALID_INPUT, exception.getErrorCode());
@@ -103,7 +110,7 @@ class ShowTest {
     }
 
     private Show show(List<Long> imageFileIds) {
-        return new Show("햄릿", ShowGenre.PLAY, null, venue(), 120, "8세 이상", "02-123-4567", 1L, imageFileIds);
+        return new Show(1L, "햄릿", ShowGenre.PLAY, null, venue(), 120, "8세 이상", "02-123-4567", 1L, imageFileIds);
     }
 
     private PerformanceVenue venue() {

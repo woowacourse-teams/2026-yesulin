@@ -40,12 +40,15 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 /**
- * 운영자가 등록하는 무료 공연이다. 오디션용 {@code Performance}와는 연결하지 않고 장소 값 객체만 재사용한다.
+ * 기획사/제작사가 등록하는 무료 공연이다. 오디션용 {@code Performance}와는 연결하지 않고 장소 값 객체만 재사용한다.
  */
 @Entity
 @Table(name = "shows", uniqueConstraints = {
         @UniqueConstraint(name = "uk_shows_public_id", columnNames = "public_id")
-}, indexes = @Index(name = "idx_shows_status_created", columnList = "status, created_at"))
+}, indexes = {
+        @Index(name = "idx_shows_status_created", columnList = "status, created_at"),
+        @Index(name = "idx_shows_owner_created", columnList = "owner_id, created_at")
+})
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Show {
@@ -64,6 +67,9 @@ public class Show {
     @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(name = "public_id", nullable = false, updatable = false, length = 36)
     private UUID publicId;
+
+    @Column(name = "owner_id", nullable = false, updatable = false)
+    private long ownerId;
 
     @Column(nullable = false, length = MAX_TITLE_LENGTH)
     private String title;
@@ -106,6 +112,7 @@ public class Show {
     private Instant createdAt;
 
     public Show(
+            long ownerId,
             String title,
             ShowGenre genre,
             String description,
@@ -117,6 +124,7 @@ public class Show {
             List<Long> imageFileIds
     ) {
         this.publicId = UUID.randomUUID();
+        this.ownerId = requirePositive(ownerId, "공연 소유자 ID는 1 이상이어야 합니다.");
         this.status = ShowStatus.DRAFT;
         update(title, genre, description, venue, runningMinutes, ageRating, inquiryPhone, posterFileId, imageFileIds);
     }

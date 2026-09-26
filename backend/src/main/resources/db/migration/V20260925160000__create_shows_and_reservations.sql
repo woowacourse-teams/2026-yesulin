@@ -2,6 +2,7 @@ create table shows
 (
     id              bigint         not null auto_increment,
     public_id       varchar(36)    not null,
+    owner_id        bigint         not null,
     title           varchar(200)   not null,
     genre           varchar(20)    not null,
     description     varchar(2000)  not null,
@@ -22,6 +23,7 @@ create table shows
 );
 
 create index idx_shows_status_created on shows (status, created_at);
+create index idx_shows_owner_created on shows (owner_id, created_at);
 
 create table show_images
 (

@@ -9,7 +9,9 @@ public interface ShowRepository extends JpaRepository<Show, Long> {
 
     Optional<Show> findByPublicId(UUID publicId);
 
-    List<Show> findAllByStatusOrderByCreatedAtDescIdDesc(ShowStatus status);
+    Optional<Show> findByPublicIdAndOwnerId(UUID publicId, long ownerId);
 
-    List<Show> findAllByOrderByCreatedAtDescIdDesc();
+    List<Show> findAllByOwnerIdOrderByCreatedAtDescIdDesc(long ownerId);
+
+    List<Show> findAllByStatusOrderByCreatedAtDescIdDesc(ShowStatus status);
 }

@@ -1,4 +1,4 @@
-/** 무료 공연 예매의 공개·운영자 API 계약. 공연 id는 공개 UUID, 회차·예매 id는 숫자다. */
+/** 무료 공연 예매의 공개·기획사 API 계약. 공연 id는 공개 UUID, 회차·예매 id는 숫자다. */
 
 export type ShowStatus = "DRAFT" | "OPEN" | "CLOSED";
 export type ShowGenre = "MUSICAL" | "PLAY";
@@ -78,7 +78,7 @@ export const RESERVATION_ERROR_CODES = {
   notEnoughSeats: "SHOW_SESSION_NOT_ENOUGH_SEATS",
 } as const;
 
-export type AdminShowSummary = {
+export type ProducerShowSummary = {
   readonly id: string;
   readonly title: string;
   readonly genre: ShowGenre;
@@ -90,7 +90,7 @@ export type AdminShowSummary = {
   readonly createdAt: string;
 };
 
-export type AdminShowSession = {
+export type ProducerShowSession = {
   readonly id: number;
   readonly startsAt: string;
   readonly capacity: number;
@@ -98,12 +98,12 @@ export type AdminShowSession = {
   readonly hasReservations: boolean;
 };
 
-export type AdminShowImage = {
+export type ProducerShowImage = {
   readonly fileId: number;
   readonly url: string;
 };
 
-export type AdminShow = {
+export type ProducerShow = {
   readonly id: string;
   readonly title: string;
   readonly genre: ShowGenre;
@@ -112,11 +112,11 @@ export type AdminShow = {
   readonly runningMinutes: number;
   readonly ageRating: string;
   readonly inquiryPhone: string;
-  readonly poster: AdminShowImage;
-  readonly images: readonly AdminShowImage[];
+  readonly poster: ProducerShowImage;
+  readonly images: readonly ProducerShowImage[];
   readonly status: ShowStatus;
   readonly hasReservations: boolean;
-  readonly sessions: readonly AdminShowSession[];
+  readonly sessions: readonly ProducerShowSession[];
   readonly createdAt: string;
 };
 
@@ -137,7 +137,7 @@ export type SaveShowSession = {
   readonly capacity: number;
 };
 
-export type AdminReservation = {
+export type ProducerReservation = {
   readonly id: number;
   readonly code: string;
   readonly bookerName: string;
@@ -152,6 +152,6 @@ export type AdminReservation = {
 export const showRoutes = {
   list: "/shows",
   detail: (showId: string) => `/shows/${encodeURIComponent(showId)}`,
-  adminList: "/admin/shows",
-  adminDetail: (showId: string) => `/admin/shows/${encodeURIComponent(showId)}`,
+  manageList: "/producers/shows",
+  manageDetail: (showId: string) => `/producers/shows/${encodeURIComponent(showId)}`,
 } as const;

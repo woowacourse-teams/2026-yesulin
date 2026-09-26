@@ -106,11 +106,11 @@ export const MOCK_SCENARIOS: readonly MockScenarioDefinition[] = [
     checks: ["예매 종료가 표시된다", "문의 전화번호는 계속 보인다"],
   },
   {
-    id: "shows-admin",
+    id: "shows-producer",
     area: "무료 공연",
-    title: "운영자 공연 관리",
+    title: "기획사 공연 관리",
     description: "초안·예매 중·마감 공연과 회차별 예매자를 관리합니다.",
-    href: "/admin/shows",
+    href: "/producers/shows",
     checks: ["상태가 배지 텍스트로 구분된다", "예매가 있는 회차는 삭제할 수 없다", "예매 취소 후 잔여석이 늘어난다"],
   },
 ];

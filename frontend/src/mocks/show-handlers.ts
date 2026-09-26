@@ -1,12 +1,13 @@
-import { delay, http, HttpResponse } from "msw";
+import { delay, http, HttpResponse, passthrough } from "msw";
+import { frontendEnvironment } from "@/config/environment";
 import {
   MAX_SHOW_IMAGES,
   SHOW_GENRES,
   MAX_TICKETS_PER_RESERVATION,
-  type AdminReservation,
-  type AdminShow,
-  type AdminShowImage,
-  type AdminShowSummary,
+  type ProducerReservation,
+  type ProducerShow,
+  type ProducerShowImage,
+  type ProducerShowSummary,
   type CreateReservation,
   type PublicShow,
   type PublicShowSummary,
@@ -18,7 +19,12 @@ import {
   type ShowVenue,
 } from "@/features/shows/types";
 
-/** 백엔드 domain/show, domain/reservation 규칙을 따라가는 메모리 목. 새로고침하면 seed로 돌아간다. */
+/**
+ * 백엔드 domain/show, domain/reservation 규칙을 따라가는 메모리 목. 새로고침하면 seed로 돌아간다.
+ * 기획사 API는 목 기획사 한 명의 공연만 있다고 보고 소유자를 따로 검사하지 않는다.
+ * 실제 기획사 API 플래그가 켜지면 OTR 목처럼 실제 백엔드로 넘긴다.
+ */
+const realProducerApiEnabled = frontendEnvironment.producerApiEnabled;
 
 type MockShow = {
   id: string;
@@ -29,8 +35,8 @@ type MockShow = {
   runningMinutes: number;
   ageRating: string;
   inquiryPhone: string;
-  poster: AdminShowImage;
-  images: AdminShowImage[];
+  poster: ProducerShowImage;
+  images: ProducerShowImage[];
   status: ShowStatus;
   createdAt: string;
 };
@@ -76,7 +82,7 @@ function kstAt(daysFromToday: number, hour: number, minute = 0) {
 const venue = (name: string, roadAddress: string): ShowVenue => ({
   name, roadAddress, detailAddress: "", zonecode: "", latitude: null, longitude: null,
 });
-const image = (fileId: number, url: string): AdminShowImage => ({ fileId, url });
+const image = (fileId: number, url: string): ProducerShowImage => ({ fileId, url });
 
 const shows: MockShow[] = [
   {
@@ -238,7 +244,7 @@ function toPublicShow(show: MockShow): PublicShow {
   };
 }
 
-function toAdminSummary(show: MockShow): AdminShowSummary {
+function toProducerSummary(show: MockShow): ProducerShowSummary {
   const ownSessions = showSessions(show.id);
   return {
     id: show.id,
@@ -253,7 +259,7 @@ function toAdminSummary(show: MockShow): AdminShowSummary {
   };
 }
 
-function toAdminShow(show: MockShow): AdminShow {
+function toProducerShow(show: MockShow): ProducerShow {
   const ownSessions = showSessions(show.id);
   return {
     id: show.id,
@@ -279,7 +285,7 @@ function toAdminShow(show: MockShow): AdminShow {
   };
 }
 
-function toAdminReservation(reservation: MockReservation): AdminReservation {
+function toProducerReservation(reservation: MockReservation): ProducerReservation {
   return {
     id: reservation.id,
     code: reservation.code,
@@ -404,14 +410,16 @@ export const showHandlers = [
     }, { status: 201 });
   }),
 
-  http.get("/api/v1/admin/shows", async () => {
+  http.get("/api/v1/shows", async () => {
+    if (realProducerApiEnabled) return passthrough();
     await delay(200);
     return HttpResponse.json({
-      shows: [...shows].sort((left, right) => right.createdAt.localeCompare(left.createdAt)).map(toAdminSummary),
+      shows: [...shows].sort((left, right) => right.createdAt.localeCompare(left.createdAt)).map(toProducerSummary),
     });
   }),
 
-  http.post("/api/v1/admin/shows", async ({ request }) => {
+  http.post("/api/v1/shows", async ({ request }) => {
+    if (realProducerApiEnabled) return passthrough();
     await delay(300);
     const body = (await request.json()) as SaveShow;
     const invalid = validateShow(body);
@@ -432,16 +440,18 @@ export const showHandlers = [
     };
     applyShow(show, body);
     shows.push(show);
-    return HttpResponse.json(toAdminShow(show), { status: 201 });
+    return HttpResponse.json(toProducerShow(show), { status: 201 });
   }),
 
-  http.get("/api/v1/admin/shows/:showId", async ({ params }) => {
+  http.get("/api/v1/shows/:showId", async ({ params }) => {
+    if (realProducerApiEnabled) return passthrough();
     await delay(200);
     const show = findShow(String(params.showId));
-    return show ? HttpResponse.json(toAdminShow(show)) : showNotFound();
+    return show ? HttpResponse.json(toProducerShow(show)) : showNotFound();
   }),
 
-  http.put("/api/v1/admin/shows/:showId", async ({ params, request }) => {
+  http.put("/api/v1/shows/:showId", async ({ params, request }) => {
+    if (realProducerApiEnabled) return passthrough();
     await delay(300);
     const show = findShow(String(params.showId));
     if (!show) return showNotFound();
@@ -449,10 +459,11 @@ export const showHandlers = [
     const invalid = validateShow(body);
     if (invalid) return invalidShow(invalid);
     applyShow(show, body);
-    return HttpResponse.json(toAdminShow(show));
+    return HttpResponse.json(toProducerShow(show));
   }),
 
-  http.delete("/api/v1/admin/shows/:showId", async ({ params }) => {
+  http.delete("/api/v1/shows/:showId", async ({ params }) => {
+    if (realProducerApiEnabled) return passthrough();
     await delay(250);
     const show = findShow(String(params.showId));
     if (!show) return showNotFound();
@@ -464,7 +475,8 @@ export const showHandlers = [
     return new HttpResponse(null, { status: 204 });
   }),
 
-  http.post("/api/v1/admin/shows/:showId/opening", async ({ params }) => {
+  http.post("/api/v1/shows/:showId/opening", async ({ params }) => {
+    if (realProducerApiEnabled) return passthrough();
     await delay(250);
     const show = findShow(String(params.showId));
     if (!show) return showNotFound();
@@ -472,19 +484,21 @@ export const showHandlers = [
       return apiError(409, "SHOW_NOT_OPENABLE", "예매 가능한 회차가 있어야 공연을 공개할 수 있습니다.");
     }
     show.status = "OPEN";
-    return HttpResponse.json(toAdminShow(show));
+    return HttpResponse.json(toProducerShow(show));
   }),
 
-  http.post("/api/v1/admin/shows/:showId/closing", async ({ params }) => {
+  http.post("/api/v1/shows/:showId/closing", async ({ params }) => {
+    if (realProducerApiEnabled) return passthrough();
     await delay(250);
     const show = findShow(String(params.showId));
     if (!show) return showNotFound();
     if (show.status === "DRAFT") return apiError(409, "SHOW_INVALID_STATUS", "예매 중인 공연만 마감할 수 있습니다.");
     show.status = "CLOSED";
-    return HttpResponse.json(toAdminShow(show));
+    return HttpResponse.json(toProducerShow(show));
   }),
 
-  http.post("/api/v1/admin/shows/:showId/sessions", async ({ params, request }) => {
+  http.post("/api/v1/shows/:showId/sessions", async ({ params, request }) => {
+    if (realProducerApiEnabled) return passthrough();
     await delay(250);
     const show = findShow(String(params.showId));
     if (!show) return showNotFound();
@@ -493,10 +507,11 @@ export const showHandlers = [
     if (invalid) return invalidShow(invalid);
     sessions.push({ id: nextSessionId, showId: show.id, startsAt: body.startsAt, capacity: body.capacity });
     nextSessionId += 1;
-    return HttpResponse.json(toAdminShow(show), { status: 201 });
+    return HttpResponse.json(toProducerShow(show), { status: 201 });
   }),
 
-  http.put("/api/v1/admin/shows/:showId/sessions/:sessionId", async ({ params, request }) => {
+  http.put("/api/v1/shows/:showId/sessions/:sessionId", async ({ params, request }) => {
+    if (realProducerApiEnabled) return passthrough();
     await delay(250);
     const show = findShow(String(params.showId));
     const session = sessions.find((item) => item.id === Number(params.sessionId) && item.showId === show?.id);
@@ -511,10 +526,11 @@ export const showHandlers = [
     }
     session.startsAt = body.startsAt;
     session.capacity = body.capacity;
-    return HttpResponse.json(toAdminShow(show));
+    return HttpResponse.json(toProducerShow(show));
   }),
 
-  http.delete("/api/v1/admin/shows/:showId/sessions/:sessionId", async ({ params }) => {
+  http.delete("/api/v1/shows/:showId/sessions/:sessionId", async ({ params }) => {
+    if (realProducerApiEnabled) return passthrough();
     await delay(250);
     const show = findShow(String(params.showId));
     const session = sessions.find((item) => item.id === Number(params.sessionId) && item.showId === show?.id);
@@ -524,10 +540,11 @@ export const showHandlers = [
       return apiError(409, "SHOW_SESSION_HAS_RESERVATIONS", "예매 기록이 있는 회차는 삭제할 수 없습니다.");
     }
     sessions.splice(sessions.indexOf(session), 1);
-    return HttpResponse.json(toAdminShow(show));
+    return HttpResponse.json(toProducerShow(show));
   }),
 
-  http.get("/api/v1/admin/shows/:showId/sessions/:sessionId/reservations", async ({ params }) => {
+  http.get("/api/v1/shows/:showId/sessions/:sessionId/reservations", async ({ params }) => {
+    if (realProducerApiEnabled) return passthrough();
     await delay(200);
     const show = findShow(String(params.showId));
     const session = sessions.find((item) => item.id === Number(params.sessionId) && item.showId === show?.id);
@@ -537,11 +554,12 @@ export const showHandlers = [
       reservations: reservations
         .filter((reservation) => reservation.sessionId === session.id)
         .sort((left, right) => left.createdAt.localeCompare(right.createdAt) || left.id - right.id)
-        .map(toAdminReservation),
+        .map(toProducerReservation),
     });
   }),
 
-  http.post("/api/v1/admin/reservations/:reservationId/cancellation", async ({ params }) => {
+  http.post("/api/v1/reservations/:reservationId/cancellation", async ({ params }) => {
+    if (realProducerApiEnabled) return passthrough();
     await delay(250);
     const reservation = reservations.find((item) => item.id === Number(params.reservationId));
     if (!reservation) return apiError(404, "RESERVATION_NOT_FOUND", "예매를 찾을 수 없습니다.");
@@ -549,10 +567,11 @@ export const showHandlers = [
       reservation.status = "CANCELED";
       reservation.canceledAt = new Date().toISOString();
     }
-    return HttpResponse.json(toAdminReservation(reservation));
+    return HttpResponse.json(toProducerReservation(reservation));
   }),
 
-  http.post("/api/v1/admin/show-images/upload-requests", async () => {
+  http.post("/api/v1/show-images/upload-requests", async () => {
+    if (realProducerApiEnabled) return passthrough();
     await delay(150);
     const fileId = nextFileId;
     nextFileId += 1;
@@ -570,7 +589,8 @@ export const showHandlers = [
     return new HttpResponse(null, { status: 200 });
   }),
 
-  http.patch("/api/v1/admin/show-images/:fileId/completion", async ({ params }) => {
+  http.patch("/api/v1/show-images/:fileId/completion", async ({ params }) => {
+    if (realProducerApiEnabled) return passthrough();
     await delay(100);
     return uploadedImageUrls.has(Number(params.fileId))
       ? new HttpResponse(null, { status: 204 })
