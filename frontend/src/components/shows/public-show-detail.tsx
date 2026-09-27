@@ -78,30 +78,31 @@ export function PublicShowDetail({ show, onReserved, onStale }: {
   );
 }
 
+/** 모바일은 포스터를 작게 두고 제목 옆에 붙여 회차 선택이 첫 화면에 들어오게 한다. */
 function ShowHero({ show, availability }: { readonly show: PublicShow; readonly availability: ShowAvailability }) {
   return (
-    <section className="grid gap-6 border-b border-border pb-8 sm:grid-cols-[200px_minmax(0,1fr)] sm:items-start md:grid-cols-[240px_minmax(0,1fr)]">
-      <div className="relative mx-auto aspect-[3/4] w-[min(100%,280px)] overflow-hidden rounded-card border border-border bg-border-soft sm:w-full">
-        <Image src={show.posterUrl} alt={`${show.title} 포스터`} fill unoptimized priority sizes="(min-width: 768px) 240px, 280px" className="object-cover" />
+    <section className="grid grid-cols-[112px_minmax(0,1fr)] items-start gap-x-4 gap-y-6 border-b border-border pb-8 sm:grid-cols-[200px_minmax(0,1fr)] sm:grid-rows-[auto_1fr] sm:gap-x-6 md:grid-cols-[240px_minmax(0,1fr)]">
+      <div className="relative aspect-[3/4] w-full overflow-hidden rounded-card border border-border bg-border-soft sm:row-span-2">
+        <Image src={show.posterUrl} alt={`${show.title} 포스터`} fill unoptimized priority sizes="(min-width: 768px) 240px, (min-width: 640px) 200px, 112px" className="object-cover" />
       </div>
-      <div className="min-w-0">
+      <div className="min-w-0 self-center sm:self-start">
         <div className="flex flex-wrap items-center gap-2">
           <ShowStatusBadge availability={availability} />
           <ShowGenreBadge genre={show.genre} />
         </div>
-        <h1 className="mt-3 text-[clamp(28px,4vw,40px)] font-bold leading-tight tracking-[-0.035em]">{show.title}</h1>
-        <dl className="mt-6 grid grid-cols-[88px_minmax(0,1fr)] gap-x-4 gap-y-3 text-base">
-          <dt className="text-muted">공연 기간</dt>
-          <dd className="num">{formatShowPeriod(show.sessions)}</dd>
-          <dt className="text-muted">공연 시간</dt>
-          <dd className="num">{show.runningMinutes}분</dd>
-          {show.ageRating ? <><dt className="text-muted">관람 연령</dt><dd>{show.ageRating}</dd></> : null}
-          <dt className="text-muted">장소</dt>
-          <dd className="break-words">{show.venue.name}</dd>
-          <dt className="text-muted">관람료</dt>
-          <dd className="font-semibold text-brand">무료</dd>
-        </dl>
+        <h1 className="mt-3 text-[clamp(24px,4vw,40px)] font-bold leading-tight tracking-[-0.035em]">{show.title}</h1>
       </div>
+      <dl className="col-span-2 grid grid-cols-[88px_minmax(0,1fr)] gap-x-4 gap-y-3 text-base sm:col-span-1">
+        <dt className="text-muted">공연 기간</dt>
+        <dd className="num">{formatShowPeriod(show.sessions)}</dd>
+        <dt className="text-muted">공연 시간</dt>
+        <dd className="num">{show.runningMinutes}분</dd>
+        {show.ageRating ? <><dt className="text-muted">관람 연령</dt><dd>{show.ageRating}</dd></> : null}
+        <dt className="text-muted">장소</dt>
+        <dd className="break-words">{show.venue.name}</dd>
+        <dt className="text-muted">관람료</dt>
+        <dd className="font-semibold text-brand">무료</dd>
+      </dl>
     </section>
   );
 }
