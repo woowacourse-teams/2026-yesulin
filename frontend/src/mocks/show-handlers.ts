@@ -341,6 +341,7 @@ function applyShow(show: MockShow, body: SaveShow) {
 
 function validateSession(body: SaveShowSession): string | null {
   if (!body.startsAt || Number.isNaN(Date.parse(body.startsAt))) return "회차 시작 시각을 입력해 주세요.";
+  if (Date.parse(body.startsAt) <= Date.now()) return "회차 시작 시각은 현재 이후로 입력해 주세요.";
   if (!Number.isInteger(body.capacity) || body.capacity < 1) return "회차 정원은 1명 이상이어야 합니다.";
   return null;
 }

@@ -251,6 +251,7 @@ function reservationErrorMessage(cause: unknown, inquiryPhone: string) {
     case RESERVATION_ERROR_CODES.invalidInput:
       return cause.message;
     default:
-      return "예매를 완료하지 못했어요. 잠시 후 다시 시도해 주세요.";
+      // 형식 검증(INVALID_REQUEST)은 서버가 항목별 사유를 메시지로 준다.
+      return cause.status === 400 ? cause.message : "예매를 완료하지 못했어요. 잠시 후 다시 시도해 주세요.";
   }
 }
