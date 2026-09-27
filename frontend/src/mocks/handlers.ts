@@ -32,6 +32,7 @@ import { validatePostingDraft } from "./auditions/posting-validation";
 import { authHandlers } from "./auth-handlers";
 import { adminLogHandlers } from "./admin-log-handlers";
 import { otrAuditionHandlers } from "./otr-audition-handlers";
+import { showHandlers } from "./show-handlers";
 
 const apiPath = "/api";
 const realProducerApiEnabled = frontendEnvironment.producerApiEnabled;
@@ -48,6 +49,7 @@ export const handlers = [
   ...authHandlers,
   ...adminLogHandlers,
   ...otrAuditionHandlers,
+  ...showHandlers,
   http.post(`${apiPath}/v1/upload-diagnostics`, () => new HttpResponse(null, { status: 204 })),
   http.get(`${apiPath}/v1/producers/me`, async () => {
     if (realProducerApiEnabled) return passthrough();

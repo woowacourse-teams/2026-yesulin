@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function MockScenarioHubPage() {
   if (process.env.NODE_ENV === "production" || !frontendEnvironment.apiMockingEnabled) notFound();
-  const areas = ["지원 양식", "심사 흐름"] as const;
+  const areas = ["지원 양식", "심사 흐름", "무료 공연"] as const;
 
   return <main className="min-h-screen bg-surface px-5 py-10 text-foreground md:px-8 md:py-14">
     <div className="mx-auto max-w-[1120px]">
