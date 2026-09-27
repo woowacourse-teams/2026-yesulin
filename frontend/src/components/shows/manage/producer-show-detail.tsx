@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -88,6 +88,8 @@ export function ProducerShowDetail({ showId }: { readonly showId: string }) {
   }
 
   const { show } = state;
+  // 서버는 시작 전 회차가 하나 이상 있어야 공개를 허용한다. 화면을 연 시각 기준으로 미리 막는다.
+  const openable = show.sessions.some((session) => Date.parse(session.startsAt) > openedAt);
   // 따로 고르지 않았으면 앞으로 열릴 첫 회차의 예매자를 보여 준다.
   const selectedSession = show.sessions.find((session) => session.id === selectedSessionId)
     ?? show.sessions.find((session) => Date.parse(session.startsAt) > openedAt)
@@ -118,13 +120,17 @@ export function ProducerShowDetail({ showId }: { readonly showId: string }) {
               <span className="text-sm font-semibold text-brand">{SHOW_GENRE_LABELS[show.genre]}</span>
             </div>
             <h1 className="mt-2 break-keep text-2xl font-bold tracking-[-0.025em] md:text-[28px]">{show.title}</h1>
-            <p className="mt-2 text-sm text-muted-strong">{statusGuide(show)}</p>
+            <p id="show-status-guide" className="mt-2 text-sm text-muted-strong">{statusGuide(show, openable)}</p>
           </div>
           <div className="flex flex-wrap gap-2">
             {show.status === "OPEN" ? (
               <SecondaryButton onClick={() => setPendingAction("close")} disabled={busy}>예매 마감</SecondaryButton>
             ) : (
-              <PrimaryButton onClick={() => void run(() => openShow(show.id), "공연을 공개했어요. 이제 관객이 예매할 수 있어요.")} disabled={busy}>
+              <PrimaryButton
+                onClick={() => void run(() => openShow(show.id), "공연을 공개했어요. 이제 관객이 예매할 수 있어요.")}
+                disabled={busy || !openable}
+                aria-describedby={openable ? undefined : "show-status-guide"}
+              >
                 {show.status === "DRAFT" ? "공개하기" : "다시 공개"}
               </PrimaryButton>
             )}
@@ -199,13 +205,19 @@ function BackLink() {
   );
 }
 
-function statusGuide(show: ProducerShow) {
+function statusGuide(show: ProducerShow, openable: boolean) {
   if (show.status === "OPEN") return "관객이 공연 페이지에서 예매하고 있어요.";
+  if (!openable) {
+    const prefix = show.status === "CLOSED" ? "예매를 마감했어요. " : "";
+    return `${prefix}${show.sessions.length ? "시작 전인 회차가 있어야 공개할 수 있어요. 회차를 추가해 주세요." : "회차를 추가한 뒤 공개해 주세요."}`;
+  }
   if (show.status === "CLOSED") return "예매를 마감했어요. 다시 공개하면 남은 회차를 예매할 수 있어요.";
-  return show.sessions.length ? "공개하기를 누르면 관객이 예매할 수 있어요." : "회차를 추가한 뒤 공개해 주세요.";
+  return "공개하기를 누르면 관객이 예매할 수 있어요.";
 }
 
 type RunAction = (action: () => Promise<ProducerShow>, success: string) => Promise<boolean>;
+
+const SESSION_RULES_ID = "session-manager-rules";
 
 function SessionManager({ show, selectedSessionId, onSelect, onRun, busy }: {
   readonly show: ProducerShow;
@@ -233,7 +245,9 @@ function SessionManager({ show, selectedSessionId, onSelect, onRun, busy }: {
               busy={busy}
               onCancel={() => setEditingId(null)}
               onSubmit={async (input) => {
-                if (await onRun(() => updateShowSession(show.id, session.id, input), "회차를 수정했어요.")) setEditingId(null);
+                const saved = await onRun(() => updateShowSession(show.id, session.id, input), "회차를 수정했어요.");
+                if (saved) setEditingId(null);
+                return saved;
               }}
             />
           </li>
@@ -251,16 +265,20 @@ function SessionManager({ show, selectedSessionId, onSelect, onRun, busy }: {
         ))}
         {editingId === "new" ? (
           <li className="px-5 py-4">
+            {/* 여러 회차를 연달아 넣을 수 있게 추가한 뒤에도 폼을 열어 두고 정원은 그대로 둔다. */}
             <SessionForm
               busy={busy}
               onCancel={show.sessions.length ? () => setEditingId(null) : undefined}
-              onSubmit={async (input) => {
-                if (await onRun(() => createShowSession(show.id, input), "회차를 추가했어요.")) setEditingId(null);
-              }}
+              onSubmit={(input) => onRun(() => createShowSession(show.id, input), "회차를 추가했어요. 다음 회차를 이어서 입력할 수 있어요.")}
             />
           </li>
         ) : null}
       </ul>
+      {show.sessions.some((session) => session.hasReservations || Date.parse(session.startsAt) <= now) ? (
+        <p id={SESSION_RULES_ID} className="border-t border-border-soft px-5 py-3 text-xs leading-5 text-muted">
+          예매가 있는 회차는 삭제할 수 없고, 지난 회차는 수정할 수 없어요.
+        </p>
+      ) : null}
       {deleteTarget ? (
         <ConfirmDialog
           title="회차를 삭제할까요?"
@@ -305,12 +323,8 @@ function SessionRow({ session, now, selected, busy, onSelect, onEdit, onDelete }
         </span>
       </button>
       <div className="flex gap-1">
-        <TextButton onClick={onEdit} disabled={busy || past}>수정</TextButton>
-        <TextButton
-          onClick={onDelete}
-          disabled={busy || session.hasReservations}
-          title={session.hasReservations ? "예매 기록이 있는 회차는 삭제할 수 없어요." : undefined}
-        >
+        <TextButton onClick={onEdit} disabled={busy || past} aria-describedby={past ? SESSION_RULES_ID : undefined}>수정</TextButton>
+        <TextButton onClick={onDelete} disabled={busy || session.hasReservations} aria-describedby={session.hasReservations ? SESSION_RULES_ID : undefined}>
           삭제
         </TextButton>
       </div>
@@ -321,12 +335,13 @@ function SessionRow({ session, now, selected, busy, onSelect, onEdit, onDelete }
 function SessionForm({ initial, busy, onSubmit, onCancel }: {
   readonly initial?: ProducerShowSession;
   readonly busy: boolean;
-  readonly onSubmit: (input: { readonly startsAt: string; readonly capacity: number }) => Promise<void>;
+  readonly onSubmit: (input: { readonly startsAt: string; readonly capacity: number }) => Promise<boolean>;
   readonly onCancel?: () => void;
 }) {
   const [startsAt, setStartsAt] = useState(initial ? toKstDateTimeInput(initial.startsAt) : "");
   const [capacity, setCapacity] = useState(initial ? String(initial.capacity) : "");
   const [error, setError] = useState("");
+  const startsAtId = useId();
   const minCapacity = Math.max(1, initial?.reservedTickets ?? 1);
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -339,7 +354,11 @@ function SessionForm({ initial, busy, onSubmit, onCancel }: {
       return setError(initial?.reservedTickets ? `정원은 이미 예매된 ${initial.reservedTickets}석 이상이어야 해요.` : "정원을 1명 이상 입력해 주세요.");
     }
     setError("");
-    void onSubmit({ startsAt: iso, capacity: count });
+    void onSubmit({ startsAt: iso, capacity: count }).then((saved) => {
+      if (!saved || initial) return;
+      setStartsAt("");
+      document.getElementById(startsAtId)?.focus();
+    });
   };
 
   return (
@@ -347,14 +366,14 @@ function SessionForm({ initial, busy, onSubmit, onCancel }: {
       <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_140px_auto] sm:items-end">
         <label className="block text-sm font-semibold text-muted-strong">
           시작 일시 (한국 시간)
-          <FieldInput type="datetime-local" value={startsAt} onChange={(event) => setStartsAt(event.target.value)} className="mt-2" />
+          <FieldInput id={startsAtId} type="datetime-local" value={startsAt} onChange={(event) => setStartsAt(event.target.value)} className="mt-2" />
         </label>
         <label className="block text-sm font-semibold text-muted-strong">
           정원
           <FieldInput type="number" inputMode="numeric" min={minCapacity} value={capacity} onChange={(event) => setCapacity(event.target.value)} placeholder="60" className="mt-2" />
         </label>
         <div className="flex gap-2">
-          {onCancel ? <SecondaryButton onClick={onCancel} disabled={busy}>취소</SecondaryButton> : null}
+          {onCancel ? <SecondaryButton onClick={onCancel} disabled={busy}>{initial ? "취소" : "닫기"}</SecondaryButton> : null}
           <PrimaryButton type="submit" disabled={busy}>{initial ? "저장" : "추가"}</PrimaryButton>
         </div>
       </div>
