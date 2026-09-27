@@ -25,6 +25,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -109,8 +110,11 @@ public class ShowManagementService {
         return result(show);
     }
 
-    /** 예매와 같은 회차 행 잠금을 잡아 정원을 줄이는 사이에 예매가 끼어들지 못하게 한다. */
-    @Transactional
+    /**
+     * 예매와 같은 회차 행 잠금을 잡아 정원을 줄이는 사이에 예매가 끼어들지 못하게 한다.
+     * 잠금 뒤 확정 매수를 최신 값으로 읽도록 예매와 같이 READ COMMITTED로 실행한다.
+     */
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public ProducerShowResult updateSession(long ownerId, UUID showId, long sessionId, SaveShowSessionCommand command) {
         Show show = getOwnedShow(ownerId, showId);
         ShowSession session = getSessionForUpdate(show, sessionId);
@@ -121,7 +125,7 @@ public class ShowManagementService {
         return result(show);
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public ProducerShowResult deleteSession(long ownerId, UUID showId, long sessionId) {
         Show show = getOwnedShow(ownerId, showId);
         ShowSession session = getSessionForUpdate(show, sessionId);

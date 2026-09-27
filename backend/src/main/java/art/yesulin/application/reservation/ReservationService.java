@@ -19,6 +19,7 @@ import java.time.Clock;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -36,8 +37,10 @@ public class ReservationService {
     /**
      * 한 회차의 예매는 모두 회차 행 잠금을 거친다. 잠금 안에서 중복 번호와 확정 매수를 다시 읽어
      * 동시에 들어온 예매가 정원을 넘기거나 같은 번호로 두 번 확정되지 않게 한다.
+     * MySQL 기본 격리 수준(REPEATABLE READ)은 잠금 전 첫 조회의 스냅샷을 계속 읽어 먼저 확정된 예매를
+     * 보지 못하므로, 잠금 뒤 조회가 최신 확정 데이터를 읽도록 READ COMMITTED로 실행한다.
      */
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public ReservationReceiptResult reserve(UUID showId, long sessionId, ReserveCommand command) {
         Show show = showRepository.findByPublicId(showId)
                 .filter(Show::isPublic)
