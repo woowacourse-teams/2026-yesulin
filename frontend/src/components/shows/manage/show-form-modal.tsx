@@ -83,7 +83,12 @@ export function ShowFormModal({ show, onClose, onSaved }: {
   // 한 번 오류가 난 항목은 입력할 때마다 다시 검사해, 고치면 바로 오류가 사라진다.
   const fieldError = (field: ShowFormField) => errors[field] ? validateShowField(field, values) ?? undefined : undefined;
   const invalidCount = SHOW_FORM_FIELDS.filter((field) => fieldError(field)).length;
-  const snapshot = JSON.stringify({ title, genre, description, venueName, address, runningMinutes, ageRating, inquiryPhone, poster: poster.url, images: images.map((slot) => slot.url) });
+  // 변경 여부 비교용. 지도가 자동으로 채우는 좌표와 큰 이미지 데이터(data URL)는 넣지 않는다.
+  const snapshot = JSON.stringify({
+    title, genre, description, venueName, runningMinutes, ageRating, inquiryPhone,
+    roadAddress: address.roadAddress, detailAddress: address.detailAddress, zonecode: address.zonecode,
+    poster: imageKey(poster), images: images.map(imageKey),
+  });
   const [initialSnapshot] = useState(snapshot);
 
   /** 입력한 내용이 있으면 바로 닫지 않고 한 번 더 묻는다. 배경 클릭·Escape·취소가 모두 여기로 온다. */
@@ -278,6 +283,12 @@ export function ShowFormModal({ show, onClose, onSaved }: {
       </form>
     </ModalShell>
   );
+}
+
+/** 저장된 이미지는 fileId, 새로 고른 이미지는 파일 정보로 구분한다. 비어 있으면 null. */
+function imageKey(slot: ImageSlot) {
+  if (!slot.url) return null;
+  return slot.file ? `${slot.file.name}:${slot.file.size}:${slot.file.lastModified}` : slot.fileId;
 }
 
 function errorId(field: ShowFormField) {

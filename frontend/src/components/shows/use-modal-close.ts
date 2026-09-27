@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useLayoutEffect, useRef } from "react";
 
 /**
  * ModalShell은 onClose가 바뀔 때마다 포커스를 다시 잡아서, 입력할 때마다 새 함수를 넘기면 입력 칸의 포커스가 빠진다.
@@ -8,7 +8,8 @@ import { useCallback, useEffect, useRef } from "react";
  */
 export function useModalClose(onClose: () => void, blocked: boolean) {
   const latest = useRef({ onClose, blocked });
-  useEffect(() => {
+  // 화면을 그리기 전에 갱신해, 렌더 직후의 닫기도 방금 바뀐 값을 쓰게 한다.
+  useLayoutEffect(() => {
     latest.current = { onClose, blocked };
   });
   return useCallback(() => {
