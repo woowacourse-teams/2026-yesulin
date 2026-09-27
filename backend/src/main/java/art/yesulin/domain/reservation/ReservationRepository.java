@@ -30,7 +30,15 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
             @Param("status") ReservationStatus status
     );
 
+    @Query("""
+            select distinct reservation.sessionId from Reservation reservation
+            where reservation.sessionId in :sessionIds
+            """)
+    List<Long> findSessionIdsWithReservations(@Param("sessionIds") Collection<Long> sessionIds);
+
     boolean existsBySessionIdAndBookerPhoneAndStatus(long sessionId, String phone, ReservationStatus status);
+
+    boolean existsByCode(String code);
 
     boolean existsBySessionIdIn(Collection<Long> sessionIds);
 

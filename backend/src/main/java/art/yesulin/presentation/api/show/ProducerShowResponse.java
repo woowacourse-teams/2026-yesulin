@@ -1,0 +1,50 @@
+package art.yesulin.presentation.api.show;
+
+import art.yesulin.application.show.ProducerShowResult;
+import art.yesulin.application.show.ProducerShowSessionResult;
+import art.yesulin.application.show.ShowVenueResult;
+import art.yesulin.domain.show.ShowGenre;
+import art.yesulin.domain.show.ShowStatus;
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+import java.util.function.LongFunction;
+
+public record ProducerShowResponse(
+        UUID id,
+        String title,
+        ShowGenre genre,
+        String description,
+        ShowVenueResult venue,
+        int runningMinutes,
+        String ageRating,
+        String inquiryPhone,
+        ShowImageResponse poster,
+        List<ShowImageResponse> images,
+        ShowStatus status,
+        boolean hasReservations,
+        List<ProducerShowSessionResult> sessions,
+        Instant createdAt
+) {
+
+    static ProducerShowResponse from(ProducerShowResult result, LongFunction<String> urlReader) {
+        return new ProducerShowResponse(
+                result.id(),
+                result.title(),
+                result.genre(),
+                result.description(),
+                result.venue(),
+                result.runningMinutes(),
+                result.ageRating(),
+                result.inquiryPhone(),
+                new ShowImageResponse(result.posterFileId(), urlReader.apply(result.posterFileId())),
+                result.imageFileIds().stream()
+                        .map(fileId -> new ShowImageResponse(fileId, urlReader.apply(fileId)))
+                        .toList(),
+                result.status(),
+                result.hasReservations(),
+                result.sessions(),
+                result.createdAt()
+        );
+    }
+}

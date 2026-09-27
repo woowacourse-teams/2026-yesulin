@@ -34,6 +34,17 @@
   기본 1차 서류 심사의 목록·상세·결정·마감 응답은 기존 심사 화면 계약과 같은 형태로 제공한다.
   새 지원서가 접수될 수 있는 동안 심사를 종료하지 않도록 지원 마감 다음 날부터 배역별 종료를 허용한다.
 
+## 무료 공연과 예매
+
+- `Show`는 소유 기획사, UUID 공개 ID, 제목, 장르(`MUSICAL`·`PLAY`), 소개, 장소(`PerformanceVenue` 재사용), 러닝타임,
+  관람 연령, 문의 전화, 포스터와 상세 이미지 파일 ID(최대 3개), `DRAFT/OPEN/CLOSED`를 소유한다. 오디션 `Performance`와 연결하지 않는다.
+- `ShowSession`은 공연 ID, 시작 시각, 정원만 저장하는 별도 aggregate다. 잔여석은 저장하지 않고 확정 예매 매수로 계산한다.
+- `Reservation`은 회차 ID, 8자리 예매번호, `Booker`(이름·휴대폰), 매수(1~10), 동의 문서 버전, `CONFIRMED/CANCELED`를 저장한다.
+  생성과 취소 때 `ReservationConfirmedEvent`, `ReservationCanceledEvent`를 등록한다.
+- `ReservationService.reserve`는 회차 행을 `PESSIMISTIC_WRITE`로 잠근 뒤 같은 번호의 확정 예매와 확정 매수를 다시 읽는다.
+  같은 회차의 예매는 모두 이 잠금을 거치므로 중복 번호와 정원 초과를 DB 제약 없이 막는다. 정원 수정·회차 삭제도 같은 잠금을 잡는다.
+- 포스터·상세 이미지는 `SHOW_POSTER`, `SHOW_IMAGE` 파일 참조로 연결하고 공연 수정 시 모두 다시 연결한다.
+
 ## 지원서
 
 - 일반 지원서는 `type=STANDARD`로 저장한다. 이전 요청처럼 `type`이 없으면 서버가 `STANDARD`로 간주한다.
