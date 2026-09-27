@@ -123,14 +123,18 @@ export function ReservationSheet({ open, show, session, onClose, onReserved, onS
             </p>
             <PrivacyConsent checked={values.privacyAgreed} error={errors.privacyAgreed} onChange={(checked) => update("privacyAgreed", checked)} />
           </div>
-
-          {formError ? (
-            <p role="alert" className="mt-5 rounded-control border border-fail/20 bg-fail-bg px-4 py-3 text-sm font-medium leading-6 text-fail">{formError}</p>
-          ) : null}
-          {!reservable && !formError ? (
-            <p role="status" className="mt-5 rounded-control border border-border bg-surface px-4 py-3 text-sm leading-6 text-muted-strong">이 회차는 지금 예매할 수 없어요. 다른 회차를 선택해 주세요.</p>
-          ) : null}
         </div>
+        {/* 스크롤 영역 끝에 두면 하단 버튼에 가려지므로 버튼 바로 위에 고정한다. */}
+        {formError ? (
+          <div className="px-5 pb-3 md:px-6">
+            <p role="alert" className="rounded-control border border-fail/20 bg-fail-bg px-4 py-3 text-sm font-medium leading-6 text-fail">{formError}</p>
+          </div>
+        ) : null}
+        {!reservable && !formError ? (
+          <div className="px-5 pb-3 md:px-6">
+            <p role="status" className="rounded-control border border-border bg-surface px-4 py-3 text-sm leading-6 text-muted-strong">이 회차는 지금 예매할 수 없어요. 다른 회차를 선택해 주세요.</p>
+          </div>
+        ) : null}
         <DialogFooter>
           <SecondaryButton type="button" onClick={close} disabled={submitting}>닫기</SecondaryButton>
           <PrimaryButton type="submit" disabled={!reservable || submitting} aria-busy={submitting || undefined}>
