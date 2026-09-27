@@ -54,7 +54,7 @@ export function ReservationComplete({ show, receipt, onBack }: {
             <dt className="text-muted">예매자</dt><dd>{receipt.bookerName}</dd>
           </dl>
 
-          <p className="mt-6 rounded-control border border-warn/20 bg-warn-bg px-4 py-3 text-left text-sm leading-6 text-warn">
+          <p className="mt-6 rounded-control border border-warn/30 bg-warn-bg px-4 py-3 text-left text-sm leading-6 text-foreground">
             취소는 공연 시작 1시간 전까지 <a href={`tel:${show.inquiryPhone.replaceAll("-", "")}`} className="num whitespace-nowrap font-semibold underline underline-offset-2">{show.inquiryPhone}</a>로 전화해 주세요. 예매번호를 알려 주시면 빨리 처리할 수 있어요.
           </p>
         </section>

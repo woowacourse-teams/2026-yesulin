@@ -10,6 +10,8 @@ import {
   formatShowPeriod,
   formatShowTime,
   sessionAvailability,
+  showAvailability,
+  type ShowAvailability,
 } from "@/features/shows/format";
 import type { PublicShow, PublicShowSession, ReservationReceipt } from "@/features/shows/types";
 import { ReservationSheet } from "./reservation-sheet";
@@ -32,20 +34,21 @@ export function PublicShowDetail({ show, onReserved, onStale }: {
   // 시트가 열린 사이 매진돼도 시트가 사라지지 않고 이유를 보여 주도록 예매 가능 여부와 관계없이 찾는다.
   const sheetSession = show.sessions.find((session) => session.id === selectedId) ?? null;
   const showsMobileAction = show.status === "OPEN";
+  const availability = showAvailability(show);
 
   const focusSessions = () => {
     const section = document.getElementById(SESSIONS_SECTION_ID);
     section?.scrollIntoView({ behavior: "smooth", block: "center" });
     section?.querySelector<HTMLInputElement>("input:not([disabled])")?.focus({ preventScroll: true });
   };
-  const action = { show, selectedSession, hasBookable: bookableSessions.length > 0, onReserve: () => setSheetOpen(true), onChoose: focusSessions };
+  const action = { show, availability, selectedSession, hasBookable: bookableSessions.length > 0, onReserve: () => setSheetOpen(true), onChoose: focusSessions };
 
   return (
     <main className={`min-h-screen bg-surface text-foreground ${showsMobileAction ? "pb-[calc(120px+env(safe-area-inset-bottom))]" : "pb-12"} min-[1200px]:pb-12`}>
       <ShowPageHeader />
       <div className="mx-auto max-w-[880px] px-5 py-8 md:px-8 md:py-12 min-[1200px]:grid min-[1200px]:max-w-[1200px] min-[1200px]:grid-cols-[minmax(0,1fr)_320px] min-[1200px]:gap-12">
         <article className="min-w-0">
-          <ShowHero show={show} />
+          <ShowHero show={show} availability={availability} />
           <SessionSelection show={show} selectedId={selectedSession?.id ?? null} onSelect={setSelectedId} />
           <ReservationNotice show={show} />
           {show.description ? (
@@ -75,7 +78,7 @@ export function PublicShowDetail({ show, onReserved, onStale }: {
   );
 }
 
-function ShowHero({ show }: { readonly show: PublicShow }) {
+function ShowHero({ show, availability }: { readonly show: PublicShow; readonly availability: ShowAvailability }) {
   return (
     <section className="grid gap-6 border-b border-border pb-8 sm:grid-cols-[200px_minmax(0,1fr)] sm:items-start md:grid-cols-[240px_minmax(0,1fr)]">
       <div className="relative mx-auto aspect-[3/4] w-[min(100%,280px)] overflow-hidden rounded-card border border-border bg-border-soft sm:w-full">
@@ -83,7 +86,7 @@ function ShowHero({ show }: { readonly show: PublicShow }) {
       </div>
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <ShowStatusBadge status={show.status} />
+          <ShowStatusBadge availability={availability} />
           <ShowGenreBadge genre={show.genre} />
         </div>
         <h1 className="mt-3 text-[clamp(28px,4vw,40px)] font-bold leading-tight tracking-[-0.035em]">{show.title}</h1>
@@ -138,9 +141,12 @@ function SessionCard({ session, selected, onSelect }: {
 }) {
   const availability = sessionAvailability(session);
   const disabled = !session.bookable;
-  const interaction = disabled ? "cursor-default border-border bg-border-soft" : "cursor-pointer hover:border-brand-line";
+  // 배경색 클래스가 둘 이상 붙으면 CSS 순서로 한쪽이 무시되므로 상태별로 하나만 고른다.
+  const tone = selected
+    ? "cursor-pointer border-brand bg-brand-soft shadow-[var(--shadow-1)]"
+    : disabled ? "cursor-default border-border bg-border-soft" : "cursor-pointer border-border bg-card hover:border-brand-line";
   return (
-    <label className={`block rounded-card border bg-card p-4 transition-[border-color,background-color,box-shadow] ${selected ? "border-brand bg-brand-soft shadow-[var(--shadow-1)]" : "border-border"} ${interaction}`}>
+    <label className={`block rounded-card border p-4 transition-[border-color,background-color,box-shadow] has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-brand ${tone}`}>
       <input
         type="radio"
         name="show-session"
@@ -148,10 +154,10 @@ function SessionCard({ session, selected, onSelect }: {
         checked={selected}
         disabled={disabled}
         onChange={() => onSelect(session.id)}
-        className="peer sr-only"
+        className="sr-only"
       />
       <span className="flex items-center gap-3">
-        <span aria-hidden="true" className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border-2 ${selected ? "border-brand bg-brand" : "border-muted-soft bg-card"} peer-focus-visible:ring-2 peer-focus-visible:ring-brand peer-focus-visible:ring-offset-2`}>
+        <span aria-hidden="true" className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border-2 ${selected ? "border-brand bg-brand" : "border-muted-soft bg-card"}`}>
           <span className={`text-xs font-bold text-white ${selected ? "block" : "hidden"}`}>•</span>
         </span>
         <span className="min-w-0 flex-1">
@@ -218,27 +224,21 @@ function InfoSection({ title, last = false, children }: {
 
 type ActionProps = {
   readonly show: PublicShow;
+  readonly availability: ShowAvailability;
   readonly selectedSession: PublicShowSession | null;
   readonly hasBookable: boolean;
   readonly onReserve: () => void;
   readonly onChoose: () => void;
 };
 
-function ActionButton({ show, selectedSession, hasBookable, onReserve, onChoose }: ActionProps) {
-  const unavailable = show.status !== "OPEN" || !hasBookable;
-  const label = show.status !== "OPEN" ? "예매 종료" : !hasBookable ? unavailableLabel(show) : selectedSession ? "예매하기" : "회차 선택하기";
+function ActionButton({ availability, selectedSession, hasBookable, onReserve, onChoose }: ActionProps) {
+  const unavailable = availability.kind !== "open" || !hasBookable;
+  const label = unavailable ? availability.label : selectedSession ? "예매하기" : "회차 선택하기";
   return (
     <PrimaryButton disabled={unavailable} onClick={selectedSession ? onReserve : onChoose} className="shrink-0 px-5">
       {label}
     </PrimaryButton>
   );
-}
-
-/** 남은 미래 회차가 모두 매진이면 "매진", 그 밖에는 예매할 회차가 없다고 알린다. */
-function unavailableLabel(show: PublicShow) {
-  return show.sessions.some((session) => session.remainingSeats <= 0 && Date.parse(session.startsAt) > Date.now())
-    ? "매진"
-    : "예매 가능한 회차 없음";
 }
 
 function SelectedSessionSummary({ selectedSession, hasBookable }: {

@@ -1,13 +1,21 @@
 import Link from "next/link";
-import type { SessionAvailability } from "@/features/shows/format";
+import type { SessionAvailability, ShowAvailability } from "@/features/shows/format";
 import { SHOW_GENRE_LABELS, showRoutes, type ShowGenre, type ShowStatus } from "@/features/shows/types";
 
-export function ShowStatusBadge({ status }: { readonly status: "OPEN" | "CLOSED" }) {
-  const open = status === "OPEN";
+const SHOW_AVAILABILITY_BADGE: Record<ShowAvailability["kind"], { readonly symbol: string; readonly tone: string }> = {
+  open: { symbol: "●", tone: "border-brand-line bg-brand-soft text-brand" },
+  soldOut: { symbol: "×", tone: "border-fail/30 bg-card text-fail" },
+  preparing: { symbol: "○", tone: "border-border bg-surface text-muted-strong" },
+  ended: { symbol: "−", tone: "border-border bg-surface text-muted-strong" },
+  closed: { symbol: "−", tone: "border-border bg-surface text-muted-strong" },
+};
+
+export function ShowStatusBadge({ availability }: { readonly availability: ShowAvailability }) {
+  const { symbol, tone } = SHOW_AVAILABILITY_BADGE[availability.kind];
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-semibold ${open ? "border-brand-line bg-brand-soft text-brand" : "border-border bg-surface text-muted-strong"}`}>
-      <span aria-hidden="true">{open ? "●" : "−"}</span>
-      {open ? "예매 중" : "예매 종료"}
+    <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-semibold ${tone}`}>
+      <span aria-hidden="true">{symbol}</span>
+      {availability.label}
     </span>
   );
 }
@@ -39,13 +47,19 @@ export function ShowGenreBadge({ genre }: { readonly genre: ShowGenre }) {
 
 const AVAILABILITY_TONE: Record<SessionAvailability["kind"], string> = {
   available: "text-muted-strong",
-  few: "text-warn",
+  few: "text-foreground",
   soldOut: "text-fail",
   closed: "text-muted",
 };
 
+/** 잔여석이 적을 때 경고색은 점에만 쓰고 글자는 본문색으로 둬 대비를 지킨다. */
 export function SessionAvailabilityText({ availability }: { readonly availability: SessionAvailability }) {
-  return <span className={`num text-sm font-semibold ${AVAILABILITY_TONE[availability.kind]}`}>{availability.label}</span>;
+  return (
+    <span className={`num whitespace-nowrap text-sm font-semibold ${AVAILABILITY_TONE[availability.kind]}`}>
+      {availability.kind === "few" ? <span aria-hidden="true" className="mr-1 text-warn">●</span> : null}
+      {availability.label}
+    </span>
+  );
 }
 
 export function ShowUnavailable() {
