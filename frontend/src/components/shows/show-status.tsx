@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { SessionAvailability } from "@/features/shows/format";
-import { SHOW_GENRE_LABELS, showRoutes, type ShowGenre } from "@/features/shows/types";
+import { SHOW_GENRE_LABELS, showRoutes, type ShowGenre, type ShowStatus } from "@/features/shows/types";
 
 export function ShowStatusBadge({ status }: { readonly status: "OPEN" | "CLOSED" }) {
   const open = status === "OPEN";
@@ -8,6 +8,23 @@ export function ShowStatusBadge({ status }: { readonly status: "OPEN" | "CLOSED"
     <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-semibold ${open ? "border-brand-line bg-brand-soft text-brand" : "border-border bg-surface text-muted-strong"}`}>
       <span aria-hidden="true">{open ? "●" : "−"}</span>
       {open ? "예매 중" : "예매 종료"}
+    </span>
+  );
+}
+
+const MANAGEMENT_STATUS = {
+  DRAFT: { label: "공개 전", symbol: "○", tone: "border-border bg-surface text-muted-strong" },
+  OPEN: { label: "예매 중", symbol: "●", tone: "border-brand-line bg-brand-soft text-brand" },
+  CLOSED: { label: "예매 종료", symbol: "−", tone: "border-border bg-border-soft text-muted" },
+} as const satisfies Record<ShowStatus, { label: string; symbol: string; tone: string }>;
+
+/** 기획사 화면의 공연 상태. 관객 화면에 없는 "공개 전"까지 문구로 구분한다. */
+export function ManagementStatusBadge({ status }: { readonly status: ShowStatus }) {
+  const { label, symbol, tone } = MANAGEMENT_STATUS[status];
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-semibold ${tone}`}>
+      <span aria-hidden="true">{symbol}</span>
+      {label}
     </span>
   );
 }

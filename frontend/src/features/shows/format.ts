@@ -77,3 +77,20 @@ export function sessionAvailability(session: Pick<PublicShowSession, "remainingS
   if (session.remainingSeats <= FEW_SEATS_THRESHOLD) return { kind: "few", label: `잔여 ${session.remainingSeats}석` };
   return { kind: "available", label: `잔여 ${session.remainingSeats}석` };
 }
+
+const KST_OFFSET = "+09:00";
+
+/** `datetime-local` 입력값(한국 시간 기준)을 서버가 받는 UTC ISO 문자열로 바꾼다. 형식이 틀리면 null. */
+export function fromKstDateTimeInput(value: string): string | null {
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) return null;
+  const instant = new Date(`${value}:00${KST_OFFSET}`);
+  return Number.isNaN(instant.getTime()) ? null : instant.toISOString();
+}
+
+/** 서버의 UTC ISO 문자열을 한국 시간 `datetime-local` 입력값으로 바꾼다. */
+export function toKstDateTimeInput(value: string): string {
+  const parts = showDateTimeParts(value);
+  if (!parts) return "";
+  const pad = (part: string) => part.padStart(2, "0");
+  return `${parts.year}-${pad(parts.month)}-${pad(parts.day)}T${parts.time}`;
+}

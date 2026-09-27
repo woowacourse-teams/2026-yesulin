@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { formatShowDateTime, formatShowFullDateTime, formatShowPeriod, sessionAvailability } from "./format";
+import {
+  formatShowDateTime,
+  formatShowFullDateTime,
+  formatShowPeriod,
+  fromKstDateTimeInput,
+  sessionAvailability,
+  toKstDateTimeInput,
+} from "./format";
 
 describe("show format", () => {
   it("UTC 회차 시각을 한국 시간과 요일로 표시한다", () => {
@@ -20,5 +27,12 @@ describe("show format", () => {
     expect(sessionAvailability({ remainingSeats: 5, bookable: false })).toEqual({ kind: "closed", label: "예매 마감" });
     expect(sessionAvailability({ remainingSeats: 2, bookable: true })).toEqual({ kind: "few", label: "잔여 2석" });
     expect(sessionAvailability({ remainingSeats: 40, bookable: true })).toEqual({ kind: "available", label: "잔여 40석" });
+  });
+
+  it("한국 시간 입력값과 UTC ISO 문자열을 서로 바꾼다", () => {
+    expect(fromKstDateTimeInput("2026-10-01T19:30")).toBe("2026-10-01T10:30:00.000Z");
+    expect(fromKstDateTimeInput("2026-10-01T00:10")).toBe("2026-09-30T15:10:00.000Z");
+    expect(fromKstDateTimeInput("2026-10-01")).toBeNull();
+    expect(toKstDateTimeInput("2026-09-30T15:10:00Z")).toBe("2026-10-01T00:10");
   });
 });
