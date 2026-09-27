@@ -46,7 +46,8 @@ export function ProducerShowDetail({ showId }: { readonly showId: string }) {
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [busy, setBusy] = useState(false);
   const [selectedSessionId, setSelectedSessionId] = useState<number | null>(null);
-  const [openedAt] = useState(() => Date.now());
+  // 회차 시작 여부를 판단한 시각. 공개하기를 누를 때 다시 잰다.
+  const [checkedAt, setCheckedAt] = useState(() => Date.now());
 
   /** 예매 취소처럼 다른 패널이 바꾼 매수를 다시 읽는다. */
   const refresh = useCallback(() => {
@@ -88,13 +89,21 @@ export function ProducerShowDetail({ showId }: { readonly showId: string }) {
   }
 
   const { show } = state;
-  // 서버는 시작 전 회차가 하나 이상 있어야 공개를 허용한다. 화면을 연 시각 기준으로 미리 막는다.
-  const openable = show.sessions.some((session) => Date.parse(session.startsAt) > openedAt);
+  // 서버는 시작 전 회차가 하나 이상 있어야 공개를 허용한다.
+  const openable = hasUpcomingSession(show, checkedAt);
   // 따로 고르지 않았으면 앞으로 열릴 첫 회차의 예매자를 보여 준다.
   const selectedSession = show.sessions.find((session) => session.id === selectedSessionId)
-    ?? show.sessions.find((session) => Date.parse(session.startsAt) > openedAt)
+    ?? show.sessions.find((session) => Date.parse(session.startsAt) > checkedAt)
     ?? show.sessions.at(-1)
     ?? null;
+
+  /** 화면을 오래 열어 둔 사이 마지막 회차가 시작됐을 수 있어 누르는 시각으로 다시 확인한다. */
+  const publish = () => {
+    const now = Date.now();
+    setCheckedAt(now);
+    if (!hasUpcomingSession(show, now)) return;
+    void run(() => openShow(show.id), "공연을 공개했어요. 이제 관객이 예매할 수 있어요.");
+  };
 
   const removeShow = async () => {
     setBusy(true);
@@ -127,7 +136,7 @@ export function ProducerShowDetail({ showId }: { readonly showId: string }) {
               <SecondaryButton onClick={() => setPendingAction("close")} disabled={busy}>예매 마감</SecondaryButton>
             ) : (
               <PrimaryButton
-                onClick={() => void run(() => openShow(show.id), "공연을 공개했어요. 이제 관객이 예매할 수 있어요.")}
+                onClick={publish}
                 disabled={busy || !openable}
                 aria-describedby={openable ? undefined : "show-status-guide"}
               >
@@ -203,6 +212,10 @@ function BackLink() {
       ← 무료 공연 목록
     </Link>
   );
+}
+
+function hasUpcomingSession(show: ProducerShow, now: number) {
+  return show.sessions.some((session) => Date.parse(session.startsAt) > now);
 }
 
 function statusGuide(show: ProducerShow, openable: boolean) {
@@ -322,13 +335,31 @@ function SessionRow({ session, now, selected, busy, onSelect, onEdit, onDelete }
           <span className="whitespace-nowrap">{remaining ? `잔여 ${remaining}석` : "매진"}</span>
         </span>
       </button>
+      {/* 규칙으로 막힌 버튼은 disabled 대신 aria-disabled로 두어 키보드로도 이유(안내 문구)를 들을 수 있게 한다. */}
       <div className="flex gap-1">
-        <TextButton onClick={onEdit} disabled={busy || past} aria-describedby={past ? SESSION_RULES_ID : undefined}>수정</TextButton>
-        <TextButton onClick={onDelete} disabled={busy || session.hasReservations} aria-describedby={session.hasReservations ? SESSION_RULES_ID : undefined}>
-          삭제
-        </TextButton>
+        <RuleGuardedButton blocked={past} busy={busy} onClick={onEdit}>수정</RuleGuardedButton>
+        <RuleGuardedButton blocked={session.hasReservations} busy={busy} onClick={onDelete}>삭제</RuleGuardedButton>
       </div>
     </li>
+  );
+}
+
+function RuleGuardedButton({ blocked, busy, onClick, children }: {
+  readonly blocked: boolean;
+  readonly busy: boolean;
+  readonly onClick: () => void;
+  readonly children: React.ReactNode;
+}) {
+  return (
+    <TextButton
+      onClick={blocked ? undefined : onClick}
+      disabled={busy}
+      aria-disabled={blocked || undefined}
+      aria-describedby={blocked ? SESSION_RULES_ID : undefined}
+      className="aria-disabled:cursor-not-allowed aria-disabled:text-muted-soft aria-disabled:hover:bg-transparent aria-disabled:hover:text-muted-soft aria-disabled:active:translate-y-0 aria-disabled:active:scale-100 aria-disabled:active:bg-transparent"
+    >
+      {children}
+    </TextButton>
   );
 }
 
@@ -354,10 +385,14 @@ function SessionForm({ initial, busy, onSubmit, onCancel }: {
       return setError(initial?.reservedTickets ? `정원은 이미 예매된 ${initial.reservedTickets}석 이상이어야 해요.` : "정원을 1명 이상 입력해 주세요.");
     }
     setError("");
+    const submitted = startsAt;
     void onSubmit({ startsAt: iso, capacity: count }).then((saved) => {
       if (!saved || initial) return;
+      // 요청이 끝나기 전에 다음 회차 일시를 입력했다면 지우지 않는다.
+      const input = document.getElementById(startsAtId);
+      if (!(input instanceof HTMLInputElement) || input.value !== submitted) return;
       setStartsAt("");
-      document.getElementById(startsAtId)?.focus();
+      input.focus();
     });
   };
 
