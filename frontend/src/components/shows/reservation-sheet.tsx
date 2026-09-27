@@ -15,6 +15,7 @@ import {
 } from "@/features/shows/types";
 import { validateReservationField, type ReservationField, type ReservationValues } from "@/features/shows/reservation-form";
 import { SessionAvailabilityText } from "./show-status";
+import { useModalClose } from "./use-modal-close";
 
 const TITLE_ID = "show-reservation-title";
 const EMPTY_VALUES: ReservationValues = { bookerName: "", bookerPhone: "", privacyAgreed: false };
@@ -54,7 +55,7 @@ export function ReservationSheet({ open, show, session, onClose, onReserved, onS
   const validateOnBlur = (field: ReservationField) => {
     setErrors((current) => ({ ...current, [field]: validateReservationField(field, values) ?? undefined }));
   };
-  const close = () => { if (!submitting) onClose(); };
+  const close = useModalClose(onClose, submitting);
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

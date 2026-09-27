@@ -2,6 +2,7 @@
 
 import { DialogFooter, DialogHeader, ModalShell } from "@/components/auditions/modal-shell";
 import { DestructiveButton, PrimaryButton, SecondaryButton } from "@/components/ui/controls";
+import { useModalClose } from "../use-modal-close";
 
 const TITLE_ID = "show-confirm-dialog-title";
 
@@ -16,10 +17,11 @@ export function ConfirmDialog({ title, description, confirmLabel, destructive = 
   readonly onClose: () => void;
 }) {
   const ConfirmButton = destructive ? DestructiveButton : PrimaryButton;
+  const close = useModalClose(onClose, busy);
   return (
     <ModalShell
       open
-      onClose={() => { if (!busy) onClose(); }}
+      onClose={close}
       labelledBy={TITLE_ID}
       placement="responsiveSheet"
       className="w-full overflow-hidden rounded-t-modal border border-border bg-card shadow-[var(--shadow-modal)] md:w-[min(480px,calc(100vw-40px))] md:rounded-modal"
@@ -27,7 +29,7 @@ export function ConfirmDialog({ title, description, confirmLabel, destructive = 
       <DialogHeader id={TITLE_ID} title={title} />
       <div className="px-5 py-6 text-base leading-7 text-muted-strong md:px-6 md:text-sm md:leading-6">{description}</div>
       <DialogFooter>
-        <SecondaryButton data-autofocus="true" onClick={onClose} disabled={busy}>닫기</SecondaryButton>
+        <SecondaryButton data-autofocus="true" onClick={close} disabled={busy}>닫기</SecondaryButton>
         <ConfirmButton onClick={onConfirm} disabled={busy} aria-busy={busy || undefined}>
           {busy ? "처리 중…" : confirmLabel}
         </ConfirmButton>

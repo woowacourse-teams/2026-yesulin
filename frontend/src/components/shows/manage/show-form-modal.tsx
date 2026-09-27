@@ -17,6 +17,7 @@ import {
   type SaveShow,
   type ShowGenre,
 } from "@/features/shows/types";
+import { useModalClose } from "../use-modal-close";
 
 const TITLE_ID = "show-form-title";
 const INQUIRY_PHONE_PATTERN = /^\d{2,4}-\d{3,4}(-\d{4})?$/;
@@ -54,6 +55,7 @@ export function ShowFormModal({ show, onClose, onSaved }: {
   ));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const close = useModalClose(onClose, saving);
 
   const updateImage = (index: number, next: Partial<ImageSlot>) => setImages((current) => current.map(
     (slot, slotIndex) => slotIndex === index ? { ...slot, ...next, fileId: null } : slot,
@@ -103,7 +105,7 @@ export function ShowFormModal({ show, onClose, onSaved }: {
   return (
     <ModalShell
       open
-      onClose={() => { if (!saving) onClose(); }}
+      onClose={close}
       labelledBy={TITLE_ID}
       placement="responsiveSheet"
       className="flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-modal bg-card shadow-[var(--shadow-modal)] md:w-[min(760px,calc(100vw-40px))] md:rounded-modal"
@@ -175,7 +177,7 @@ export function ShowFormModal({ show, onClose, onSaved }: {
           </fieldset>
         </div>
         <DialogFooter>
-          <SecondaryButton onClick={onClose} disabled={saving}>취소</SecondaryButton>
+          <SecondaryButton onClick={close} disabled={saving}>취소</SecondaryButton>
           <PrimaryButton type="submit" disabled={saving} aria-busy={saving || undefined}>
             {saving ? "저장 중…" : show ? "수정 저장" : "공연 등록"}
           </PrimaryButton>
