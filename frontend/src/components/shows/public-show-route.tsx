@@ -64,7 +64,7 @@ function ShowDetailLoading() {
     <main aria-label="공연 정보 불러오는 중" className="min-h-screen bg-surface text-foreground">
       <ShowPageHeader />
       <div className="mx-auto max-w-[880px] animate-pulse px-5 py-8 md:px-8 min-[1200px]:max-w-[1200px]">
-        <div className="grid gap-6 sm:grid-cols-[200px_minmax(0,1fr)]">
+        <div className="grid grid-cols-[112px_minmax(0,1fr)] gap-4 sm:grid-cols-[200px_minmax(0,1fr)] sm:gap-6">
           <div className="aspect-[3/4] rounded-card bg-border-soft" />
           <div>
             <div className="h-8 w-2/3 rounded bg-border-soft" />

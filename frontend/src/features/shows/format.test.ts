@@ -5,6 +5,7 @@ import {
   formatShowPeriod,
   fromKstDateTimeInput,
   sessionAvailability,
+  showAvailability,
   toKstDateTimeInput,
 } from "./format";
 
@@ -34,5 +35,16 @@ describe("show format", () => {
     expect(fromKstDateTimeInput("2026-10-01T00:10")).toBe("2026-09-30T15:10:00.000Z");
     expect(fromKstDateTimeInput("2026-10-01")).toBeNull();
     expect(toKstDateTimeInput("2026-09-30T15:10:00Z")).toBe("2026-10-01T00:10");
+  });
+
+  it("공연 상태는 예매 가능 여부와 매진·마감을 구분한다", () => {
+    const now = Date.parse("2026-09-28T00:00:00Z");
+    const future = "2026-10-01T10:00:00Z";
+    const past = "2026-09-27T10:00:00Z";
+    expect(showAvailability({ status: "CLOSED", sessions: [{ id: 1, startsAt: future, remainingSeats: 5, bookable: false }] }, now).label).toBe("예매 종료");
+    expect(showAvailability({ status: "OPEN", sessions: [{ id: 1, startsAt: future, remainingSeats: 5, bookable: true }] }, now).kind).toBe("open");
+    expect(showAvailability({ status: "OPEN", sessions: [{ id: 1, startsAt: future, remainingSeats: 0, bookable: false }] }, now).label).toBe("매진");
+    expect(showAvailability({ status: "OPEN", sessions: [{ id: 1, startsAt: past, remainingSeats: 3, bookable: false }] }, now).label).toBe("예매 마감");
+    expect(showAvailability({ status: "OPEN", sessions: [] }, now).label).toBe("회차 준비 중");
   });
 });

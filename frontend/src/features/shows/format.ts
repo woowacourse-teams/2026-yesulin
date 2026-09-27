@@ -1,4 +1,4 @@
-import type { PublicShowSession } from "./types";
+import type { PublicShow, PublicShowSession } from "./types";
 
 /** 잔여석이 이 값 이하이면 "잔여 n석"을 강조해 보여 준다. */
 export const FEW_SEATS_THRESHOLD = 10;
@@ -76,6 +76,21 @@ export function sessionAvailability(session: Pick<PublicShowSession, "remainingS
   if (!session.bookable) return { kind: "closed", label: "예매 마감" };
   if (session.remainingSeats <= FEW_SEATS_THRESHOLD) return { kind: "few", label: `잔여 ${session.remainingSeats}석` };
   return { kind: "available", label: `잔여 ${session.remainingSeats}석` };
+}
+
+export type ShowAvailability = {
+  readonly kind: "open" | "soldOut" | "preparing" | "ended" | "closed";
+  readonly label: string;
+};
+
+/** 상단 배지와 예매 버튼이 같은 상태를 말하도록 공연 단위 예매 상태를 한곳에서 정한다. */
+export function showAvailability(show: Pick<PublicShow, "status" | "sessions">, now = Date.now()): ShowAvailability {
+  if (show.status === "CLOSED") return { kind: "closed", label: "예매 종료" };
+  if (show.sessions.some((session) => session.bookable)) return { kind: "open", label: "예매 중" };
+  if (show.sessions.some((session) => session.remainingSeats <= 0 && Date.parse(session.startsAt) > now)) {
+    return { kind: "soldOut", label: "매진" };
+  }
+  return show.sessions.length ? { kind: "ended", label: "예매 마감" } : { kind: "preparing", label: "회차 준비 중" };
 }
 
 const KST_OFFSET = "+09:00";
