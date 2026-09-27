@@ -77,10 +77,13 @@ public class ShowManagementService {
         return result(show);
     }
 
-    @Transactional
+    /**
+     * 모든 회차 행을 잠근 뒤 예매 기록을 확인해, 확인과 삭제 사이에 들어온 예매가 삭제를 DB 오류로 만들지 못하게 한다.
+     */
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public void delete(long ownerId, UUID showId) {
         Show show = getOwnedShow(ownerId, showId);
-        List<ShowSession> sessions = sessionRepository.findAllByShowIdOrderByStartsAtAscIdAsc(show.getId());
+        List<ShowSession> sessions = sessionRepository.findAllByShowIdForUpdate(show.getId());
         if (!sessions.isEmpty() && reservationRepository.existsBySessionIdIn(sessionIds(sessions))) {
             throw new BusinessException(HAS_RESERVATIONS, "예매 기록이 있는 공연은 삭제할 수 없습니다. 예매를 마감해 주세요.");
         }

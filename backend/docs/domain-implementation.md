@@ -42,9 +42,9 @@
 - `Reservation`은 회차 ID, 8자리 예매번호, `Booker`(이름·휴대폰), 매수(1~10), 동의 문서 버전, `CONFIRMED/CANCELED`를 저장한다.
   생성과 취소 때 `ReservationConfirmedEvent`, `ReservationCanceledEvent`를 등록한다.
 - `ReservationService.reserve`는 회차 행을 `PESSIMISTIC_WRITE`로 잠근 뒤 같은 번호의 확정 예매와 확정 매수를 다시 읽는다.
-  같은 회차의 예매는 모두 이 잠금을 거치므로 중복 번호와 정원 초과를 DB 제약 없이 막는다. 정원 수정·회차 삭제도 같은 잠금을 잡는다.
+  같은 회차의 예매는 모두 이 잠금을 거치므로 중복 번호와 정원 초과를 DB 제약 없이 막는다. 정원 수정·회차 삭제·공연 삭제도 같은 잠금을 잡는다.
   MySQL 기본 REPEATABLE READ에서는 잠금 전 첫 조회의 스냅샷을 계속 읽어 먼저 확정된 예매를 놓치므로, 잠금에 기대는
-  예매·정원 수정·회차 삭제 트랜잭션은 `READ_COMMITTED`로 실행한다. H2 테스트는 이 차이를 재현하지 못한다.
+  예매·정원 수정·회차 삭제·공연 삭제 트랜잭션은 `READ_COMMITTED`로 실행한다. H2 테스트는 이 차이를 재현하지 못한다.
 - 포스터·상세 이미지는 `SHOW_POSTER`, `SHOW_IMAGE` 파일 참조로 연결하고 공연 수정 시 모두 다시 연결한다.
 
 ## 지원서

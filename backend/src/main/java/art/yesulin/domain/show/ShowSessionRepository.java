@@ -20,4 +20,8 @@ public interface ShowSessionRepository extends JpaRepository<ShowSession, Long> 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select session from ShowSession session where session.id = :id")
     Optional<ShowSession> findByIdForUpdate(@Param("id") long id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select session from ShowSession session where session.showId = :showId order by session.id asc")
+    List<ShowSession> findAllByShowIdForUpdate(@Param("showId") long showId);
 }
