@@ -18,6 +18,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.S3Exception;
@@ -124,5 +125,15 @@ class S3ObjectStorageTest {
         assertEquals("yesulin/files/20260820/image-id", captor.getValue().getObjectRequest().key());
         assertEquals(UPLOAD_EXPIRATION, captor.getValue().signatureDuration());
         assertEquals("https://storage.example.com/download", result);
+    }
+
+    @Test
+    void deletesObjectUnderTeamPrefix() {
+        objectStorage.delete("private/actor-photos/20260920/photo-id");
+
+        ArgumentCaptor<DeleteObjectRequest> captor = ArgumentCaptor.forClass(DeleteObjectRequest.class);
+        verify(s3Client).deleteObject(captor.capture());
+        assertEquals(BUCKET, captor.getValue().bucket());
+        assertEquals("yesulin/private/actor-photos/20260920/photo-id", captor.getValue().key());
     }
 }
