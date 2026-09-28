@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { PrimaryButton, SecondaryButton } from "@/components/ui/controls";
 import { formatShowFullDateTime } from "@/features/shows/format";
 import type { PublicShow, ReservationReceipt } from "@/features/shows/types";
+import { ShowLinkButtons } from "./show-links";
 import { ShowPageHeader } from "./show-page-header";
 
 /** 문자 안내가 붙기 전까지는 이 화면이 유일한 예매 확인 수단이라 캡처를 안내한다. */
@@ -57,6 +58,13 @@ export function ReservationComplete({ show, receipt, onBack }: {
           <p className="mt-6 rounded-control border border-warn/30 bg-warn-bg px-4 py-3 text-left text-sm leading-6 text-foreground">
             취소는 공연 시작 1시간 전까지 <a href={`tel:${show.inquiryPhone.replaceAll("-", "")}`} className="num whitespace-nowrap font-semibold underline underline-offset-2">{show.inquiryPhone}</a>로 전화해 주세요. 예매번호를 알려 주시면 빨리 처리할 수 있어요.
           </p>
+
+          {show.links.length ? (
+            <div className="mt-6 border-t border-border-soft pt-5 text-left">
+              <h2 className="text-sm font-semibold text-muted-strong">공연 소식 더 보기</h2>
+              <ShowLinkButtons links={show.links} className="mt-3" />
+            </div>
+          ) : null}
         </section>
         <PrimaryButton onClick={onBack} className="mt-6 w-full">공연 정보로 돌아가기</PrimaryButton>
       </div>

@@ -1,7 +1,9 @@
 import { delay, http, HttpResponse, passthrough } from "msw";
 import { frontendEnvironment } from "@/config/environment";
 import {
+  MAX_DIRECTIONS_NOTE_LENGTH,
   MAX_SHOW_IMAGES,
+  MAX_SHOW_LINKS,
   SHOW_GENRES,
   MAX_TICKETS_PER_RESERVATION,
   type ProducerReservation,
@@ -15,9 +17,11 @@ import {
   type SaveShow,
   type SaveShowSession,
   type ShowGenre,
+  type ShowLink,
   type ShowStatus,
   type ShowVenue,
 } from "@/features/shows/types";
+import { showLinkError } from "@/features/shows/show-form";
 
 /**
  * 백엔드 domain/show, domain/reservation 규칙을 따라가는 메모리 목. 새로고침하면 seed로 돌아간다.
@@ -32,9 +36,12 @@ type MockShow = {
   genre: ShowGenre;
   description: string;
   venue: ShowVenue;
+  directionsNote: string;
   runningMinutes: number;
   ageRating: string;
   inquiryPhone: string;
+  links: ShowLink[];
+  remainingSeatsVisible: boolean;
   poster: ProducerShowImage;
   images: ProducerShowImage[];
   status: ShowStatus;
@@ -91,9 +98,15 @@ const shows: MockShow[] = [
     genre: "MUSICAL",
     description: "예술in이 준비한 무료 창작 뮤지컬입니다.\n공연 시작 10분 전까지 입장해 주세요.",
     venue: venue("대학로 예술인 소극장", "서울특별시 종로구 대학로 12"),
+    directionsNote: "주차 공간이 협소하여 가급적 대중교통 이용을 부탁드립니다.\n혜화역 2번 출구에서 도보 약 5분 거리입니다.\n건물 정문이 아닌 오른쪽 골목에 위치한 공연장 전용 입구를 이용해 주세요.",
     runningMinutes: 100,
     ageRating: "8세 이상",
     inquiryPhone: "02-123-4567",
+    links: [
+      { label: "공연사 인스타그램 보기", url: "https://www.instagram.com/" },
+      { label: "공연사 홈페이지", url: "https://yesulin.art/" },
+    ],
+    remainingSeatsVisible: true,
     poster: image(9001, "/images/performances/moonlight.jpg"),
     images: [image(9002, "/images/performances/nightfall.jpg"), image(9003, "/images/performances/summerplay.jpg")],
     status: "OPEN",
@@ -105,9 +118,12 @@ const shows: MockShow[] = [
     genre: "PLAY",
     description: "단 하루, 한 회차만 열리는 낭독 연극입니다.",
     venue: venue("성수 블랙박스 극장", "서울특별시 성동구 성수이로 20"),
+    directionsNote: "",
     runningMinutes: 70,
     ageRating: "전체관람가",
     inquiryPhone: "010-2345-6789",
+    links: [],
+    remainingSeatsVisible: true,
     poster: image(9004, "/images/performances/summerplay.jpg"),
     images: [],
     status: "OPEN",
@@ -119,13 +135,33 @@ const shows: MockShow[] = [
     genre: "PLAY",
     description: "예매가 끝난 공연입니다.",
     venue: venue("예술in 라운지", "서울특별시 마포구 와우산로 30"),
+    directionsNote: "",
     runningMinutes: 60,
     ageRating: "",
     inquiryPhone: "02-123-4567",
+    links: [],
+    remainingSeatsVisible: true,
     poster: image(9005, "/images/performances/nightfall.jpg"),
     images: [],
     status: "CLOSED",
     createdAt: kstAt(-20, 10),
+  },
+  {
+    id: "seed_show_hidden_seats",
+    title: "골목길 낭독극",
+    genre: "PLAY",
+    description: "잔여석을 공개하지 않는 공연입니다. 회차에는 예매 가능·매진만 표시됩니다.",
+    venue: venue("혜화 골목 스튜디오", "서울특별시 종로구 동숭길 25"),
+    directionsNote: "건물 정문이 아닌 오른쪽 골목의 공연장 전용 입구를 이용해 주세요.",
+    runningMinutes: 80,
+    ageRating: "12세 이상",
+    inquiryPhone: "02-765-4321",
+    links: [{ label: "극단 인스타그램", url: "https://www.instagram.com/" }],
+    remainingSeatsVisible: false,
+    poster: image(9007, "/images/performances/nightfall.jpg"),
+    images: [],
+    status: "OPEN",
+    createdAt: kstAt(-3, 10),
   },
   {
     id: "seed_show_draft",
@@ -133,9 +169,12 @@ const shows: MockShow[] = [
     genre: "MUSICAL",
     description: "",
     venue: venue("대학로 예술인 소극장", "서울특별시 종로구 대학로 12"),
+    directionsNote: "",
     runningMinutes: 90,
     ageRating: "",
     inquiryPhone: "02-123-4567",
+    links: [],
+    remainingSeatsVisible: true,
     poster: image(9006, "/images/performances/moonlight.jpg"),
     images: [],
     status: "DRAFT",
@@ -149,6 +188,9 @@ const sessions: MockSession[] = [
   { id: 103, showId: "seed_show_moonlight", startsAt: kstAt(4, 15), capacity: 60 },
   { id: 201, showId: "seed_show_summer", startsAt: kstAt(10, 20), capacity: 30 },
   { id: 301, showId: "seed_show_nightfall", startsAt: kstAt(-3, 19), capacity: 40 },
+  { id: 401, showId: "seed_show_hidden_seats", startsAt: kstAt(5, 19), capacity: 50 },
+  { id: 402, showId: "seed_show_hidden_seats", startsAt: kstAt(6, 15), capacity: 20 },
+  { id: 403, showId: "seed_show_hidden_seats", startsAt: kstAt(6, 19), capacity: 10 },
 ];
 
 const reservations: MockReservation[] = [];
@@ -184,6 +226,9 @@ seedReservations(102, 45);
 seedReservations(103, 58);
 seedReservations(201, 30);
 seedReservations(301, 40);
+seedReservations(401, 12);
+seedReservations(402, 17);
+seedReservations(403, 10);
 
 function generateCode(): string {
   let code = "";
@@ -227,9 +272,11 @@ function toPublicShow(show: MockShow): PublicShow {
     posterUrl: show.poster.url,
     imageUrls: show.images.map((item) => item.url),
     venue: show.venue,
+    directionsNote: show.directionsNote,
     runningMinutes: show.runningMinutes,
     ageRating: show.ageRating,
     inquiryPhone: show.inquiryPhone,
+    links: show.links,
     status: show.status === "CLOSED" ? "CLOSED" : "OPEN",
     maxTicketsPerReservation: MAX_TICKETS_PER_RESERVATION,
     sessions: showSessions(show.id).map((session) => {
@@ -237,7 +284,8 @@ function toPublicShow(show: MockShow): PublicShow {
       return {
         id: session.id,
         startsAt: session.startsAt,
-        remainingSeats,
+        remainingSeats: show.remainingSeatsVisible ? remainingSeats : null,
+        maxTicketCount: Math.min(MAX_TICKETS_PER_RESERVATION, remainingSeats),
         bookable: show.status === "OPEN" && isBookable(session) && remainingSeats > 0,
       };
     }),
@@ -267,9 +315,12 @@ function toProducerShow(show: MockShow): ProducerShow {
     genre: show.genre,
     description: show.description,
     venue: show.venue,
+    directionsNote: show.directionsNote,
     runningMinutes: show.runningMinutes,
     ageRating: show.ageRating,
     inquiryPhone: show.inquiryPhone,
+    links: show.links,
+    remainingSeatsVisible: show.remainingSeatsVisible,
     poster: show.poster,
     images: show.images,
     status: show.status,
@@ -311,6 +362,9 @@ function validateShow(body: SaveShow): string | null {
   if (!SHOW_GENRES.includes(body.genre)) return "공연 장르를 선택해 주세요.";
   if ((body.description?.trim().length ?? 0) > 2000) return "공연 소개는 2000자를 넘을 수 없습니다.";
   if (!body.venue?.name?.trim() || !body.venue.roadAddress?.trim()) return "공연 장소명과 주소를 입력해 주세요.";
+  if ((body.directionsNote?.trim().length ?? 0) > MAX_DIRECTIONS_NOTE_LENGTH) {
+    return `오시는 길 추가 안내은(는) ${MAX_DIRECTIONS_NOTE_LENGTH}자를 넘을 수 없습니다.`;
+  }
   if (!Number.isInteger(body.runningMinutes) || body.runningMinutes < 1 || body.runningMinutes > 1440) {
     return "공연 시간은 1분 이상 1440분 이하로 입력해 주세요.";
   }
@@ -318,6 +372,10 @@ function validateShow(body: SaveShow): string | null {
   if (!INQUIRY_PHONE_PATTERN.test(body.inquiryPhone?.trim() ?? "")) {
     return "문의 전화번호는 02-123-4567 형식으로 입력해 주세요.";
   }
+  const links = body.links ?? [];
+  if (links.length > MAX_SHOW_LINKS) return `안내 링크는 최대 ${MAX_SHOW_LINKS}개까지 등록할 수 있습니다.`;
+  const invalidLink = links.map((link) => showLinkError(link)).find(Boolean);
+  if (invalidLink) return invalidLink;
   if (!body.posterFileId || imageUrl(body.posterFileId) === null) return "포스터를 등록해 주세요.";
   const imageFileIds = body.imageFileIds ?? [];
   if (imageFileIds.length > MAX_SHOW_IMAGES || new Set(imageFileIds).size !== imageFileIds.length
@@ -332,9 +390,12 @@ function applyShow(show: MockShow, body: SaveShow) {
   show.genre = body.genre;
   show.description = body.description?.trim() ?? "";
   show.venue = body.venue;
+  show.directionsNote = body.directionsNote?.trim() ?? "";
   show.runningMinutes = body.runningMinutes;
   show.ageRating = body.ageRating?.trim() ?? "";
   show.inquiryPhone = body.inquiryPhone.trim();
+  show.links = (body.links ?? []).map((link) => ({ label: link.label.trim(), url: link.url.trim() }));
+  show.remainingSeatsVisible = body.remainingSeatsVisible ?? true;
   show.poster = image(body.posterFileId, imageUrl(body.posterFileId) ?? "");
   show.images = (body.imageFileIds ?? []).map((fileId) => image(fileId, imageUrl(fileId) ?? ""));
 }
@@ -431,9 +492,12 @@ export const showHandlers = [
       genre: body.genre,
       description: "",
       venue: body.venue,
+      directionsNote: "",
       runningMinutes: 0,
       ageRating: "",
       inquiryPhone: "",
+      links: [],
+      remainingSeatsVisible: true,
       poster: image(0, ""),
       images: [],
       status: "DRAFT",

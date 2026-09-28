@@ -430,6 +430,8 @@ function ShowSummary({ show, onDelete, busy }: {
           {show.ageRating ? <><dt className="text-muted">관람 연령</dt><dd>{show.ageRating}</dd></> : null}
           <dt className="text-muted">문의 전화</dt><dd className="num">{show.inquiryPhone}</dd>
           <dt className="text-muted">상세 이미지</dt><dd className="num">{show.images.length}장</dd>
+          <dt className="text-muted">안내 링크</dt><dd className="num">{show.links.length ? `${show.links.length}개` : "없음"}</dd>
+          <dt className="text-muted">잔여석</dt><dd>{show.remainingSeatsVisible ? "관객에게 공개" : "관객에게 비공개"}</dd>
         </dl>
       </div>
       <div className="mt-5 border-t border-border-soft pt-4">

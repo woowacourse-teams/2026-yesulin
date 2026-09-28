@@ -70,10 +70,21 @@ export type SessionAvailability = {
   readonly label: string;
 };
 
-/** 회차 카드와 요약에 쓰는 상태. 매진과 마감은 색이 아니라 문구로도 구분한다. */
-export function sessionAvailability(session: Pick<PublicShowSession, "remainingSeats" | "bookable">): SessionAvailability {
-  if (session.remainingSeats <= 0) return { kind: "soldOut", label: "매진" };
+/** 잔여석을 숨긴 공연도 매수 상한이 0이면 매진이다. */
+export function isSoldOut(session: Pick<PublicShowSession, "maxTicketCount">) {
+  return session.maxTicketCount <= 0;
+}
+
+/**
+ * 회차 카드와 요약에 쓰는 상태. 매진과 마감은 색이 아니라 문구로도 구분한다.
+ * 공연이 잔여석을 숨기면(remainingSeats가 null) 숫자 대신 "예매 가능"만 보여 준다.
+ */
+export function sessionAvailability(
+  session: Pick<PublicShowSession, "remainingSeats" | "maxTicketCount" | "bookable">,
+): SessionAvailability {
+  if (isSoldOut(session)) return { kind: "soldOut", label: "매진" };
   if (!session.bookable) return { kind: "closed", label: "예매 마감" };
+  if (session.remainingSeats === null) return { kind: "available", label: "예매 가능" };
   if (session.remainingSeats <= FEW_SEATS_THRESHOLD) return { kind: "few", label: `잔여 ${session.remainingSeats}석` };
   return { kind: "available", label: `잔여 ${session.remainingSeats}석` };
 }
@@ -87,7 +98,7 @@ export type ShowAvailability = {
 export function showAvailability(show: Pick<PublicShow, "status" | "sessions">, now = Date.now()): ShowAvailability {
   if (show.status === "CLOSED") return { kind: "closed", label: "예매 종료" };
   if (show.sessions.some((session) => session.bookable)) return { kind: "open", label: "예매 중" };
-  if (show.sessions.some((session) => session.remainingSeats <= 0 && Date.parse(session.startsAt) > now)) {
+  if (show.sessions.some((session) => isSoldOut(session) && Date.parse(session.startsAt) > now)) {
     return { kind: "soldOut", label: "매진" };
   }
   return show.sessions.length ? { kind: "ended", label: "예매 마감" } : { kind: "preparing", label: "회차 준비 중" };

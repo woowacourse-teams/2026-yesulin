@@ -14,9 +14,11 @@ public record PublicShowResult(
         long posterFileId,
         List<Long> imageFileIds,
         ShowVenueResult venue,
+        String directionsNote,
         int runningMinutes,
         String ageRating,
         String inquiryPhone,
+        List<ShowLinkResult> links,
         ShowStatus status,
         int maxTicketsPerReservation,
         List<PublicShowSessionResult> sessions

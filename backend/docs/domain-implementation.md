@@ -38,6 +38,8 @@
 
 - `Show`는 소유 기획사, UUID 공개 ID, 제목, 장르(`MUSICAL`·`PLAY`), 소개, 장소(`PerformanceVenue` 재사용), 러닝타임,
   관람 연령, 문의 전화, 포스터와 상세 이미지 파일 ID(최대 3개), `DRAFT/OPEN/CLOSED`를 소유한다. 오디션 `Performance`와 연결하지 않는다.
+  관객 안내로 `ShowLink`(버튼 이름·http/https 주소, 최대 3개, `show_links`), 오시는 길 추가 안내, 잔여석 공개 여부를 갖고
+  `updateAudienceGuide`로 함께 바꾼다. 잔여석 숨김은 `PublicShowService`가 응답에서 `remainingSeats`를 비우는 방식이다.
 - `ShowSession`은 공연 ID, 시작 시각, 정원만 저장하는 별도 aggregate다. 잔여석은 저장하지 않고 확정 예매 매수로 계산한다.
 - `Reservation`은 회차 ID, 8자리 예매번호, `Booker`(이름·휴대폰), 매수(1~10), 동의 문서 버전, `CONFIRMED/CANCELED`를 저장한다.
   생성과 취소 때 `ReservationConfirmedEvent`, `ReservationCanceledEvent`를 등록한다.

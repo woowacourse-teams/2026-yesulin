@@ -3,6 +3,7 @@ package art.yesulin.application.show;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -144,8 +145,62 @@ class ShowManagementServiceTest {
 
         PublicShowResult publicShow = publicShowService.find(showId);
         assertEquals(1, publicShowService.findOpenShows().size());
-        assertEquals(10, publicShow.sessions().getFirst().remainingSeats());
+        assertEquals(10L, publicShow.sessions().getFirst().remainingSeats());
+        assertEquals(10, publicShow.sessions().getFirst().maxTicketCount());
         assertTrue(publicShow.sessions().getFirst().bookable());
+    }
+
+    @Test
+    void savesAudienceGuideAndHidesRemainingSeatsOnlyFromAudience() {
+        SaveShowCommand hidden = command(fixture.readyImage(OWNER_ID), List.of(), List.of(
+                new ShowLinkCommand("공연사 인스타그램 보기", "https://instagram.com/yesulin"),
+                new ShowLinkCommand("홈페이지", "http://yesulin.art/about")
+        ), "  혜화역 2번 출구에서 도보 5분  ", false);
+        UUID showId = showManagementService.create(OWNER_ID, hidden).id();
+        long sessionId = showManagementService.addSession(
+                OWNER_ID, showId, new SaveShowSessionCommand(ShowTestFixture.STARTS_AT, 8)
+        ).sessions().getFirst().id();
+        showManagementService.open(OWNER_ID, showId);
+        reservationService.reserve(showId, sessionId, new ReserveCommand("홍길동", "010-1111-2222", 3, true));
+
+        ProducerShowResult producerShow = showManagementService.find(OWNER_ID, showId);
+        PublicShowResult publicShow = publicShowService.find(showId);
+
+        assertFalse(producerShow.remainingSeatsVisible());
+        assertEquals("혜화역 2번 출구에서 도보 5분", producerShow.directionsNote());
+        assertEquals(List.of(
+                new ShowLinkResult("공연사 인스타그램 보기", "https://instagram.com/yesulin"),
+                new ShowLinkResult("홈페이지", "http://yesulin.art/about")
+        ), publicShow.links());
+        assertEquals("혜화역 2번 출구에서 도보 5분", publicShow.directionsNote());
+        assertEquals(3, producerShow.sessions().getFirst().reservedTickets());
+        assertNull(publicShow.sessions().getFirst().remainingSeats());
+        assertEquals(5, publicShow.sessions().getFirst().maxTicketCount());
+        assertTrue(publicShow.sessions().getFirst().bookable());
+
+        showManagementService.update(OWNER_ID, showId, command(producerShow.posterFileId(), List.of()));
+
+        PublicShowResult visible = publicShowService.find(showId);
+        assertEquals(5L, visible.sessions().getFirst().remainingSeats());
+        assertTrue(visible.links().isEmpty());
+        assertEquals("", visible.directionsNote());
+    }
+
+    @Test
+    void rejectsInvalidAudienceGuideLinks() {
+        long posterFileId = fixture.readyImage(OWNER_ID);
+
+        assertCode(ShowErrorCode.INVALID_INPUT, () -> showManagementService.create(OWNER_ID, command(
+                posterFileId, List.of(), List.of(new ShowLinkCommand("인스타그램", "instagram.com/yesulin")), "", true
+        )));
+        assertCode(ShowErrorCode.INVALID_INPUT, () -> showManagementService.create(OWNER_ID, command(
+                posterFileId, List.of(), List.of(
+                        new ShowLinkCommand("1", "https://a.example"),
+                        new ShowLinkCommand("2", "https://b.example"),
+                        new ShowLinkCommand("3", "https://c.example"),
+                        new ShowLinkCommand("4", "https://d.example")
+                ), "", true
+        )));
     }
 
     @Test
@@ -236,6 +291,16 @@ class ShowManagementServiceTest {
     }
 
     private static SaveShowCommand command(long posterFileId, List<Long> imageFileIds) {
+        return command(posterFileId, imageFileIds, List.of(), "", true);
+    }
+
+    private static SaveShowCommand command(
+            long posterFileId,
+            List<Long> imageFileIds,
+            List<ShowLinkCommand> links,
+            String directionsNote,
+            boolean remainingSeatsVisible
+    ) {
         return new SaveShowCommand(
                 "달빛 아래 소극장",
                 ShowGenre.MUSICAL,
@@ -245,7 +310,10 @@ class ShowManagementServiceTest {
                 "8세 이상",
                 "02-123-4567",
                 posterFileId,
-                imageFileIds
+                imageFileIds,
+                links,
+                directionsNote,
+                remainingSeatsVisible
         );
     }
 

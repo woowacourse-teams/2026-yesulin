@@ -21,7 +21,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 로그인 없는 관객에게 예매 중인 공연과 회차별 잔여석을 보여 준다. 정원과 예매 수는 따로 내보내지 않는다.
+ * 로그인 없는 관객에게 예매 중인 공연과 회차별 잔여석을 보여 준다. 정원과 예매 수는 따로 내보내지 않고,
+ * 공연이 잔여석을 숨기면 잔여석 숫자도 내보내지 않는다.
  */
 @Service
 @RequiredArgsConstructor
@@ -76,20 +77,32 @@ public class PublicShowService {
                 show.getPosterFileId(),
                 show.getImageFileIds(),
                 ShowVenueResult.from(show.getVenue()),
+                show.getDirectionsNote(),
                 show.getRunningMinutes(),
                 show.getAgeRating(),
                 show.getInquiryPhone(),
+                show.getLinks().stream().map(ShowLinkResult::from).toList(),
                 show.getStatus(),
                 Reservation.MAX_TICKET_COUNT,
                 sessions.stream()
-                        .map(session -> {
-                            long remainingSeats = session.remainingSeats(tickets.reserved(session));
-                            boolean bookable = open && session.isBookableAt(now) && remainingSeats > 0;
-                            return new PublicShowSessionResult(
-                                    session.getId(), session.getStartsAt(), remainingSeats, bookable
-                            );
-                        })
+                        .map(session -> sessionResult(show, session, tickets.reserved(session), open, now))
                         .toList()
+        );
+    }
+
+    /** 잔여석을 숨겨도 매수 상한은 잔여석까지다. 잔여석이 1회 최대 매수보다 적으면 상한으로 드러나는 것은 허용한다. */
+    private static PublicShowSessionResult sessionResult(
+            Show show, ShowSession session, long reservedTickets, boolean open, Instant now
+    ) {
+        long remainingSeats = session.remainingSeats(reservedTickets);
+        boolean bookable = open && session.isBookableAt(now) && remainingSeats > 0;
+        int maxTicketCount = (int) Math.min(Reservation.MAX_TICKET_COUNT, remainingSeats);
+        return new PublicShowSessionResult(
+                session.getId(),
+                session.getStartsAt(),
+                show.isRemainingSeatsVisible() ? remainingSeats : null,
+                maxTicketCount,
+                bookable
         );
     }
 

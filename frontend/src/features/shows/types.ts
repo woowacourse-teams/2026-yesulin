@@ -8,7 +8,17 @@ export const SHOW_GENRE_LABELS: Record<ShowGenre, string> = { MUSICAL: "뮤지�
 export type ReservationStatus = "CONFIRMED" | "CANCELED";
 
 export const MAX_SHOW_IMAGES = 3;
+export const MAX_SHOW_LINKS = 3;
+export const MAX_SHOW_LINK_LABEL_LENGTH = 30;
+export const MAX_SHOW_LINK_URL_LENGTH = 500;
+export const MAX_DIRECTIONS_NOTE_LENGTH = 1000;
 export const MAX_TICKETS_PER_RESERVATION = 10;
+
+/** 예매 안내에 보여 주는 외부 링크(공연사 SNS, 홈페이지 등). */
+export type ShowLink = {
+  readonly label: string;
+  readonly url: string;
+};
 
 export type ShowVenue = {
   readonly name: string;
@@ -32,7 +42,10 @@ export type PublicShowSummary = {
 export type PublicShowSession = {
   readonly id: number;
   readonly startsAt: string;
-  readonly remainingSeats: number;
+  /** 공연이 잔여석을 숨기면 null이다. */
+  readonly remainingSeats: number | null;
+  /** 한 번에 예매할 수 있는 최대 매수 = min(1회 최대 매수, 잔여석). 0이면 매진이다. */
+  readonly maxTicketCount: number;
   readonly bookable: boolean;
 };
 
@@ -44,9 +57,11 @@ export type PublicShow = {
   readonly posterUrl: string;
   readonly imageUrls: readonly string[];
   readonly venue: ShowVenue;
+  readonly directionsNote: string;
   readonly runningMinutes: number;
   readonly ageRating: string;
   readonly inquiryPhone: string;
+  readonly links: readonly ShowLink[];
   readonly status: Exclude<ShowStatus, "DRAFT">;
   readonly maxTicketsPerReservation: number;
   readonly sessions: readonly PublicShowSession[];
@@ -109,9 +124,12 @@ export type ProducerShow = {
   readonly genre: ShowGenre;
   readonly description: string;
   readonly venue: ShowVenue;
+  readonly directionsNote: string;
   readonly runningMinutes: number;
   readonly ageRating: string;
   readonly inquiryPhone: string;
+  readonly links: readonly ShowLink[];
+  readonly remainingSeatsVisible: boolean;
   readonly poster: ProducerShowImage;
   readonly images: readonly ProducerShowImage[];
   readonly status: ShowStatus;
@@ -125,9 +143,12 @@ export type SaveShow = {
   readonly genre: ShowGenre;
   readonly description: string;
   readonly venue: ShowVenue;
+  readonly directionsNote: string;
   readonly runningMinutes: number;
   readonly ageRating: string;
   readonly inquiryPhone: string;
+  readonly links: readonly ShowLink[];
+  readonly remainingSeatsVisible: boolean;
   readonly posterFileId: number;
   readonly imageFileIds: readonly number[];
 };

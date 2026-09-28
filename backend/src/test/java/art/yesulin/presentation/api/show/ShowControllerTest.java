@@ -1,6 +1,7 @@
 package art.yesulin.presentation.api.show;
 
 import static org.hamcrest.Matchers.matchesPattern;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -95,6 +96,10 @@ class ShowControllerTest {
                 .andExpect(jsonPath("$.poster.fileId").value(posterFileId))
                 .andExpect(jsonPath("$.poster.url").value(startsWith("https://cdn.test/")))
                 .andExpect(jsonPath("$.images[0].fileId").value(imageFileId))
+                .andExpect(jsonPath("$.links[0].label").value("공연사 인스타그램 보기"))
+                .andExpect(jsonPath("$.links[0].url").value("https://instagram.com/yesulin"))
+                .andExpect(jsonPath("$.directionsNote").value("혜화역 2번 출구에서 도보 5분"))
+                .andExpect(jsonPath("$.remainingSeatsVisible").value(true))
                 .andReturn().getResponse().getContentAsString();
         String showId = JsonPath.read(created, "$.id");
 
@@ -130,9 +135,29 @@ class ShowControllerTest {
                 .andExpect(jsonPath("$.posterUrl").isNotEmpty())
                 .andExpect(jsonPath("$.imageUrls.length()").value(1))
                 .andExpect(jsonPath("$.maxTicketsPerReservation").value(10))
+                .andExpect(jsonPath("$.links[0].label").value("공연사 인스타그램 보기"))
+                .andExpect(jsonPath("$.directionsNote").value("혜화역 2번 출구에서 도보 5분"))
+                .andExpect(jsonPath("$.remainingSeatsVisible").doesNotExist())
                 .andExpect(jsonPath("$.sessions[0].remainingSeats").value(20))
+                .andExpect(jsonPath("$.sessions[0].maxTicketCount").value(10))
                 .andExpect(jsonPath("$.sessions[0].bookable").value(true))
                 .andExpect(jsonPath("$.sessions[0].capacity").doesNotExist());
+
+        mockMvc.perform(put("/api/v1/shows/{showId}", showId)
+                        .with(csrf())
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, OWNER)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(showRequest(posterFileId, imageFileId)
+                                .replace("\"remainingSeatsVisible\": true", "\"remainingSeatsVisible\": false")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.remainingSeatsVisible").value(false))
+                .andExpect(jsonPath("$.sessions[0].capacity").value(20));
+
+        mockMvc.perform(get("/api/v1/public/shows/{showId}", showId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sessions[0].remainingSeats").value(nullValue()))
+                .andExpect(jsonPath("$.sessions[0].maxTicketCount").value(10))
+                .andExpect(jsonPath("$.sessions[0].bookable").value(true));
 
         mockMvc.perform(post("/api/v1/public/shows/{showId}/sessions/{sessionId}/reservations", showId, sessionId)
                         .with(csrf())
@@ -216,6 +241,22 @@ class ShowControllerTest {
                         .content(showRequest(fixture.readyImage(OWNER.memberId()), null)
                                 .replace("\"MUSICAL\"", "null")))
                 .andExpect(status().isBadRequest());
+        mockMvc.perform(put("/api/v1/shows/{showId}", show.getPublicId())
+                        .with(csrf())
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, OWNER)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(showRequest(fixture.readyImage(OWNER.memberId()), null)
+                                .replace("https://instagram.com/yesulin", "instagram.com/yesulin")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("SHOW_INVALID_INPUT"));
+        mockMvc.perform(put("/api/v1/shows/{showId}", show.getPublicId())
+                        .with(csrf())
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, OWNER)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(showRequest(fixture.readyImage(OWNER.memberId()), null)
+                                .replace("\"공연사 인스타그램 보기\"", "\"\"")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
         mockMvc.perform(get("/api/v1/public/shows/{showId}", show.getPublicId()))
                 .andExpect(status().isNotFound());
     }
@@ -234,9 +275,12 @@ class ShowControllerTest {
                     "latitude": null,
                     "longitude": null
                   },
+                  "directionsNote": "혜화역 2번 출구에서 도보 5분",
                   "runningMinutes": 100,
                   "ageRating": "8세 이상",
                   "inquiryPhone": "02-123-4567",
+                  "links": [{"label": "공연사 인스타그램 보기", "url": "https://instagram.com/yesulin"}],
+                  "remainingSeatsVisible": true,
                   "posterFileId": %d,
                   "imageFileIds": [%s]
                 }

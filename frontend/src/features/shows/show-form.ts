@@ -1,6 +1,6 @@
 /** 공연 등록·수정 폼의 클라이언트 검증. 서버 `SaveShowRequest` 규칙과 같은 기준을 쓴다. */
 
-import type { ShowGenre } from "./types";
+import { MAX_SHOW_LINK_LABEL_LENGTH, MAX_SHOW_LINK_URL_LENGTH, type ShowGenre, type ShowLink } from "./types";
 
 export type ShowFormValues = {
   readonly posterUrl: string;
@@ -10,16 +10,18 @@ export type ShowFormValues = {
   readonly inquiryPhone: string;
   readonly venueName: string;
   readonly roadAddress: string;
+  readonly links: readonly ShowLink[];
 };
 
 /** 화면 위에서 아래 순서. 첫 오류 항목으로 포커스를 옮길 때 이 순서를 따른다. */
-export const SHOW_FORM_FIELDS = ["poster", "title", "genre", "runningMinutes", "inquiryPhone", "venue"] as const;
+export const SHOW_FORM_FIELDS = ["poster", "title", "genre", "runningMinutes", "inquiryPhone", "venue", "links"] as const;
 
 export type ShowFormField = (typeof SHOW_FORM_FIELDS)[number];
 export type ShowFormErrors = Partial<Record<ShowFormField, string>>;
 
 const MAX_RUNNING_MINUTES = 1440;
 const INQUIRY_PHONE_PATTERN = /^\d{2,4}-\d{3,4}(-\d{4})?$/;
+const URL_SCHEME_PATTERN = /^[a-z][a-z\d+.-]*:/i;
 
 export function validateShowField(field: ShowFormField, values: ShowFormValues): string | null {
   switch (field) {
@@ -42,6 +44,10 @@ export function validateShowField(field: ShowFormField, values: ShowFormValues):
     case "venue":
       if (!values.venueName.trim()) return "공연 장소명을 입력해 주세요.";
       return values.roadAddress.trim() ? null : "주소 검색으로 공연장 주소를 입력해 주세요.";
+    case "links": {
+      const index = values.links.findIndex((link) => showLinkError(link));
+      return index < 0 ? null : `안내 링크 ${index + 1}: ${showLinkError(values.links[index]!)}`;
+    }
   }
 }
 
@@ -53,4 +59,45 @@ export function validateShowForm(values: ShowFormValues): ShowFormErrors {
     if (message) errors[field] = message;
   }
   return errors;
+}
+
+export function showLinkLabelError(label: string): string | null {
+  const value = label.trim();
+  if (!value) return "버튼 이름을 입력해 주세요.";
+  return value.length > MAX_SHOW_LINK_LABEL_LENGTH ? `버튼 이름은 ${MAX_SHOW_LINK_LABEL_LENGTH}자 이내로 입력해 주세요.` : null;
+}
+
+/** 서버 `ShowLink`와 같이 http/https이고 도메인에 점이 있는 주소만 받는다. 공백이 있으면 서버가 거절하므로 막는다. */
+export function showLinkUrlError(url: string): string | null {
+  const value = url.trim();
+  if (!value) return "링크 주소를 입력해 주세요.";
+  if (value.length > MAX_SHOW_LINK_URL_LENGTH) return `링크 주소는 ${MAX_SHOW_LINK_URL_LENGTH}자 이내로 입력해 주세요.`;
+  return isWebAddress(value) ? null : "https://로 시작하는 올바른 주소를 입력해 주세요.";
+}
+
+export function showLinkError(link: ShowLink): string | null {
+  return showLinkLabelError(link.label) ?? showLinkUrlError(link.url);
+}
+
+/**
+ * 운영자가 `instagram.com/...`처럼 scheme 없이 붙여넣은 주소에 https://를 붙이고, 한글 경로·도메인은
+ * 브라우저 표준 형식(퍼센트 인코딩, punycode)으로 바꾼다. 올바르지 않은 주소는 입력한 그대로 둬 검증에서 걸리게 한다.
+ */
+export function normalizeShowLinkUrl(url: string): string {
+  const value = url.trim();
+  if (!value) return "";
+  const withScheme = URL_SCHEME_PATTERN.test(value) ? value : `https://${value}`;
+  return isWebAddress(withScheme) ? new URL(withScheme).href : value;
+}
+
+function isWebAddress(value: string) {
+  if (/\s/.test(value)) return false;
+  try {
+    const url = new URL(value);
+    const host = url.hostname;
+    return (url.protocol === "https:" || url.protocol === "http:")
+      && host.includes(".") && !host.startsWith(".") && !host.endsWith(".");
+  } catch {
+    return false;
+  }
 }

@@ -2,6 +2,7 @@ package art.yesulin.presentation.api.show;
 
 import art.yesulin.application.show.ProducerShowResult;
 import art.yesulin.application.show.ProducerShowSessionResult;
+import art.yesulin.application.show.ShowLinkResult;
 import art.yesulin.application.show.ShowVenueResult;
 import art.yesulin.domain.show.ShowGenre;
 import art.yesulin.domain.show.ShowStatus;
@@ -16,9 +17,12 @@ public record ProducerShowResponse(
         ShowGenre genre,
         String description,
         ShowVenueResult venue,
+        String directionsNote,
         int runningMinutes,
         String ageRating,
         String inquiryPhone,
+        List<ShowLinkResult> links,
+        boolean remainingSeatsVisible,
         ShowImageResponse poster,
         List<ShowImageResponse> images,
         ShowStatus status,
@@ -34,9 +38,12 @@ public record ProducerShowResponse(
                 result.genre(),
                 result.description(),
                 result.venue(),
+                result.directionsNote(),
                 result.runningMinutes(),
                 result.ageRating(),
                 result.inquiryPhone(),
+                result.links(),
+                result.remainingSeatsVisible(),
                 new ShowImageResponse(result.posterFileId(), urlReader.apply(result.posterFileId())),
                 result.imageFileIds().stream()
                         .map(fileId -> new ShowImageResponse(fileId, urlReader.apply(fileId)))
