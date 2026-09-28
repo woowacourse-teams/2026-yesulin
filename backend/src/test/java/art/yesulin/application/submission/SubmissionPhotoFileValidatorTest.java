@@ -88,7 +88,7 @@ class SubmissionPhotoFileValidatorTest {
 
     private FileAsset readyFile(long fileId) {
         FileAsset file = pendingFile(fileId);
-        file.completeUpload("image/jpeg", 1_024L);
+        file.completeUpload("image/jpeg", 1_024L, java.time.Instant.now());
         return file;
     }
 

@@ -28,7 +28,7 @@ class SubmissionPhotoFileValidator {
             return;
         }
 
-        List<FileAsset> files = fileAssetRepository.findAllByIdInAndOwnerId(fileIds, applicantId);
+        List<FileAsset> files = fileAssetRepository.findAllByIdInAndOwnerIdForUpdate(fileIds, applicantId);
         Set<Long> foundFileIds = files.stream().map(FileAsset::getId).collect(Collectors.toSet());
         if (!foundFileIds.equals(fileIds)) {
             throw new BusinessException(NOT_FOUND, "제출할 사진 파일을 찾을 수 없습니다.");

@@ -323,7 +323,7 @@ class OtrSubmissionControllerTest {
         return List.of(1, 2, 3).stream().map(index -> {
             FileAsset file = new FileAsset("private/actor-photos/test-" + index, 1L,
                     new FileMetadata("photo.jpg", "image/jpeg", 1024L));
-            file.completeUpload("image/jpeg", 1024L);
+            file.completeUpload("image/jpeg", 1024L, java.time.Instant.now());
             return fileAssetRepository.saveAndFlush(file).getId();
         }).toList();
     }

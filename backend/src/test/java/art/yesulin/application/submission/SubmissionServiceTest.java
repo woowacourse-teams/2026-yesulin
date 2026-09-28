@@ -528,7 +528,7 @@ class SubmissionServiceTest {
 
     private long saveReadyImage(long ownerId, String objectKey) {
         FileAsset file = createImage(ownerId, objectKey);
-        file.completeUpload("image/jpeg", 1_024L);
+        file.completeUpload("image/jpeg", 1_024L, java.time.Instant.now());
         return fileAssetRepository.saveAndFlush(file).getId();
     }
 

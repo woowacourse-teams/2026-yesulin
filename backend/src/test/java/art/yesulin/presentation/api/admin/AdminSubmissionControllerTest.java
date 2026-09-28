@@ -232,7 +232,7 @@ class AdminSubmissionControllerTest {
                 prefix + "/20260830/" + UUID.randomUUID(), ownerId,
                 new FileMetadata("image.jpg", "image/jpeg", 100L)
         );
-        file.completeUpload("image/jpeg", 100L);
+        file.completeUpload("image/jpeg", 100L, java.time.Instant.now());
         return fileAssetRepository.saveAndFlush(file).getId();
     }
 }
