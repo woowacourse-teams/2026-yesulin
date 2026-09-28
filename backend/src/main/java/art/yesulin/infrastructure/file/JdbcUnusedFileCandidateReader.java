@@ -2,10 +2,9 @@ package art.yesulin.infrastructure.file;
 
 import art.yesulin.application.file.report.UnusedFileCandidate;
 import art.yesulin.application.file.report.UnusedFileCandidateReader;
-import art.yesulin.application.file.report.UnusedFileCursor;
 import art.yesulin.domain.file.FileStatus;
-import java.sql.Timestamp;
-import java.time.Instant;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -16,12 +15,14 @@ import org.springframework.stereotype.Repository;
 @RequiredArgsConstructor
 public class JdbcUnusedFileCandidateReader implements UnusedFileCandidateReader {
 
-    private static final int MAX_PAGE_SIZE = 500;
     private static final String QUERY = """
-            select f.id, f.status, f.created_at
+            select f.id, f.owner_id, f.status, f.created_at,
+                case when f.status = 'PENDING' then f.created_at
+                     else coalesce(f.unreferenced_at, f.created_at) end as unused_since,
+                case when f.object_key like 'private/%' then 'PRIVATE' else 'PUBLIC' end as storage_scope
             from file_assets f
-            where f.created_at <= ?
-              and f.status in ('PENDING', 'READY')
+            where f.status in ('PENDING', 'READY', 'DELETING')
+              and (f.status <> 'READY' or f.unreferenced_at is not null)
               and not exists (select 1 from file_references r where r.file_id = f.id)
               and not exists (select 1 from performances p where p.poster_file_id = f.id)
               and not exists (
@@ -36,43 +37,36 @@ public class JdbcUnusedFileCandidateReader implements UnusedFileCandidateReader 
               and not exists (select 1 from shows sh where sh.poster_file_id = f.id)
               and not exists (select 1 from show_images shi where shi.file_id = f.id)
             """;
-    private static final String AFTER = """
-              and (f.created_at > ? or (f.created_at = ? and f.id > ?))
-            """;
-    private static final String ORDER_AND_LIMIT = "order by f.created_at, f.id limit ?";
+    private static final String ORDER_AND_LIMIT = " order by unused_since, f.id limit ? offset ?";
 
     private final JdbcTemplate jdbcTemplate;
 
     @Override
-    public List<UnusedFileCandidate> readPage(Instant cutoff, Optional<UnusedFileCursor> after, int limit) {
-        if (limit < 1 || limit > MAX_PAGE_SIZE) {
-            throw new IllegalArgumentException("파일 조회 크기는 1~500이어야 합니다.");
+    public List<UnusedFileCandidate> readPage(Optional<FileStatus> status, int page, int size) {
+        if (page < 0 || size < 1 || size > 100) {
+            throw new IllegalArgumentException("페이지는 0 이상, 크기는 1~100이어야 합니다.");
         }
-        if (after.isPresent()) {
-            UnusedFileCursor cursor = after.orElseThrow();
-            return jdbcTemplate.query(
-                    QUERY + AFTER + ORDER_AND_LIMIT,
-                    (resultSet, rowNum) -> candidateFrom(resultSet),
-                    Timestamp.from(cutoff),
-                    Timestamp.from(cursor.createdAt()),
-                    Timestamp.from(cursor.createdAt()),
-                    cursor.fileId(),
-                    limit
-            );
+        int offset = Math.multiplyExact(page, size);
+        if (status.isPresent()) {
+            return jdbcTemplate.query(QUERY + " and f.status = ?" + ORDER_AND_LIMIT,
+                    this::candidateFrom, status.orElseThrow().name(), size + 1, offset);
         }
-        return jdbcTemplate.query(
-                QUERY + ORDER_AND_LIMIT,
-                (resultSet, rowNum) -> candidateFrom(resultSet),
-                Timestamp.from(cutoff),
-                limit
-        );
+        return jdbcTemplate.query(QUERY + ORDER_AND_LIMIT, this::candidateFrom, size + 1, offset);
     }
 
-    private UnusedFileCandidate candidateFrom(java.sql.ResultSet resultSet) throws java.sql.SQLException {
+    @Override
+    public Optional<UnusedFileCandidate> findById(long fileId) {
+        return jdbcTemplate.query(QUERY + " and f.id = ?", this::candidateFrom, fileId).stream().findFirst();
+    }
+
+    private UnusedFileCandidate candidateFrom(ResultSet resultSet, int rowNumber) throws SQLException {
         return new UnusedFileCandidate(
                 resultSet.getLong("id"),
+                resultSet.getLong("owner_id"),
                 FileStatus.valueOf(resultSet.getString("status")),
-                resultSet.getTimestamp("created_at").toInstant()
+                resultSet.getTimestamp("created_at").toInstant(),
+                resultSet.getTimestamp("unused_since").toInstant(),
+                resultSet.getString("storage_scope")
         );
     }
 }

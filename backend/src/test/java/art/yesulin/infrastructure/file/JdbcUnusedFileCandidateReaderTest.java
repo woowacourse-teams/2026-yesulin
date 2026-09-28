@@ -3,7 +3,7 @@ package art.yesulin.infrastructure.file;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import art.yesulin.application.file.report.UnusedFileCandidate;
-import art.yesulin.application.file.report.UnusedFileCursor;
+import art.yesulin.domain.file.FileStatus;
 import art.yesulin.support.ObjectStorageTestConfiguration;
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -35,7 +35,7 @@ class JdbcUnusedFileCandidateReaderTest {
     private JdbcTemplate jdbcTemplate;
 
     @Test
-    void readsOnlyOldUnusedFilesInStablePages() {
+    void readsRecentAndOldUnusedFilesInStablePages() {
         insertFile(201L, "PENDING", OLD);
         insertFile(202L, "READY", OLD);
         insertFile(203L, "PENDING", CUTOFF.plusNanos(1_000));
@@ -57,16 +57,11 @@ class JdbcUnusedFileCandidateReaderTest {
                 values (901, 206, 0)
                 """);
 
-        List<UnusedFileCandidate> first = reader.readPage(CUTOFF, Optional.empty(), 2);
-        UnusedFileCandidate last = first.getLast();
-        List<UnusedFileCandidate> second = reader.readPage(
-                CUTOFF,
-                Optional.of(new UnusedFileCursor(last.createdAt(), last.fileId())),
-                2
-        );
+        List<UnusedFileCandidate> first = reader.readPage(Optional.empty(), 0, 2);
+        List<UnusedFileCandidate> second = reader.readPage(Optional.empty(), 1, 2);
 
-        assertEquals(List.of(201L, 202L), first.stream().map(UnusedFileCandidate::fileId).toList());
-        assertEquals(List.of(207L), second.stream().map(UnusedFileCandidate::fileId).toList());
+        assertEquals(List.of(201L, 202L), first.stream().limit(2).map(UnusedFileCandidate::fileId).toList());
+        assertEquals(List.of(207L, 203L), second.stream().map(UnusedFileCandidate::fileId).toList());
     }
 
     @Test
@@ -78,16 +73,29 @@ class JdbcUnusedFileCandidateReaderTest {
                 values (902, 208, 0, current_timestamp)
                 """);
 
-        List<UnusedFileCandidate> candidates = reader.readPage(CUTOFF, Optional.empty(), 10);
+        List<UnusedFileCandidate> candidates = reader.readPage(Optional.of(FileStatus.READY), 0, 10);
 
         assertEquals(List.of(208L), candidates.stream().map(UnusedFileCandidate::fileId).toList());
+    }
+
+    @Test
+    void readyFileUsesLastUnlinkTimeInsteadOfCreationTime() {
+        insertFile(209L, "READY", OLD);
+        jdbcTemplate.update("update file_assets set unreferenced_at = ? where id = ?",
+                Timestamp.from(CUTOFF.plusSeconds(86_400)), 209L);
+
+        UnusedFileCandidate candidate = reader.findById(209L).orElseThrow();
+
+        assertEquals(CUTOFF.plusSeconds(86_400), candidate.unusedSince());
     }
 
     private void insertFile(long id, String status, Instant createdAt) {
         jdbcTemplate.update("""
                 insert into file_assets
-                    (id, object_key, owner_id, original_filename, content_type, file_type, size, status, created_at)
-                values (?, ?, 1, 'photo.png', 'image/png', 'IMAGE', 10, ?, ?)
-                """, id, "public/files/20260920/" + id, status, Timestamp.from(createdAt));
+                    (id, object_key, owner_id, original_filename, content_type, file_type, size,
+                     status, created_at, unreferenced_at)
+                values (?, ?, 1, 'photo.png', 'image/png', 'IMAGE', 10, ?, ?, ?)
+                """, id, "public/files/20260920/" + id, status, Timestamp.from(createdAt),
+                status.equals("READY") ? Timestamp.from(createdAt) : null);
     }
 }
