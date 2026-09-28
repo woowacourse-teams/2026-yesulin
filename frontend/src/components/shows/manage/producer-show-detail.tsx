@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { PickerScreen } from "@/components/auditions/picker-card";
 import { ScreenError } from "@/components/auditions/screen-status";
 import { useToast } from "@/components/auditions/toast";
-import { FieldInput, PrimaryButton, SecondaryButton, TextButton } from "@/components/ui/controls";
+import { FieldInput, PrimaryButton, SecondaryButton, SecondaryLink, TextButton } from "@/components/ui/controls";
 import { AuditionRequestError } from "@/features/auditions/api-client";
 import {
   formatShowDate,
@@ -130,8 +130,12 @@ export function ProducerShowDetail({ showId }: { readonly showId: string }) {
             </div>
             <h1 className="mt-2 break-keep text-2xl font-bold tracking-[-0.025em] md:text-[28px]">{show.title}</h1>
             <p id="show-status-guide" className="mt-2 text-sm text-muted-strong">{statusGuide(show, openable)}</p>
+            {show.status !== "DRAFT" ? <CopyShowLinkButton showId={show.id} variant="inline" /> : null}
           </div>
           <div className="flex flex-wrap gap-2">
+            {show.status !== "DRAFT" ? (
+              <SecondaryLink href={showRoutes.detail(show.id)} target="_blank">예매 페이지 보기</SecondaryLink>
+            ) : null}
             {show.status === "OPEN" ? (
               <SecondaryButton onClick={() => setPendingAction("close")} disabled={busy}>예매 마감</SecondaryButton>
             ) : (
@@ -146,14 +150,6 @@ export function ProducerShowDetail({ showId }: { readonly showId: string }) {
             <SecondaryButton onClick={() => setEditing(true)} disabled={busy}>정보 수정</SecondaryButton>
           </div>
         </header>
-
-        {show.status !== "DRAFT" ? (
-          <div className="mb-6 flex flex-wrap items-center gap-2 rounded-card border border-brand-line bg-brand-soft px-4 py-3">
-            <span className="min-w-0 flex-1 text-sm font-semibold text-brand">관객용 공연 페이지</span>
-            <Link href={showRoutes.detail(show.id)} target="_blank" className="inline-flex min-h-11 items-center rounded-control border border-brand-line bg-card px-3 text-sm font-semibold text-brand hover:bg-brand-soft">열기 ↗</Link>
-            <CopyShowLinkButton showId={show.id} />
-          </div>
-        ) : null}
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="min-w-0 space-y-6">

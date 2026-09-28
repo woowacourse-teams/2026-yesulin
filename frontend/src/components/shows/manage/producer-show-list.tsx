@@ -88,32 +88,39 @@ export function ProducerShowList({ autoOpenCreate = false }: { readonly autoOpen
 function ProducerShowRow({ show }: { readonly show: ProducerShowSummary }) {
   const href = showRoutes.manageDetail(show.id);
   return (
-    <li className="px-5 py-5 hover:bg-surface md:px-6">
-      <div className="flex gap-4">
-        <Image src={show.posterUrl} alt={`${show.title} 포스터`} width={72} height={96} unoptimized className="h-24 w-[72px] shrink-0 rounded-control border border-border object-cover" />
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <ManagementStatusBadge status={show.status} />
-            <span className="text-xs font-semibold text-brand">{SHOW_GENRE_LABELS[show.genre]}</span>
+    <li className="group relative px-5 py-5 transition-colors hover:bg-surface focus-within:bg-surface md:px-6">
+      <Link
+        href={href}
+        aria-label={`${show.title} 회차·예매 관리 열기`}
+        className="absolute inset-0 z-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-brand"
+      >
+        <span className="sr-only">{show.title} 회차·예매 관리 열기</span>
+      </Link>
+      <div className="pointer-events-none relative z-1">
+        <div className="flex gap-4">
+          <Image src={show.posterUrl} alt={`${show.title} 포스터`} width={72} height={96} unoptimized className="h-24 w-[72px] shrink-0 rounded-control border border-border object-cover" />
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <ManagementStatusBadge status={show.status} />
+              <span className="text-xs font-semibold text-brand">{SHOW_GENRE_LABELS[show.genre]}</span>
+            </div>
+            <h3 className="mt-2 line-clamp-2 text-lg font-bold group-hover:text-brand sm:line-clamp-1">{show.title}</h3>
           </div>
-          <h3 className="mt-2 truncate text-lg font-bold">
-            <Link href={href} className="hover:text-brand hover:underline">{show.title}</Link>
-          </h3>
-          <dl className="mt-2 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-3">
-            <div className="flex gap-2"><dt className="text-muted">다음 회차</dt><dd className="num font-semibold">{show.nextSessionStartsAt ? formatShowDateTime(show.nextSessionStartsAt) : "없음"}</dd></div>
-            <div className="flex gap-2"><dt className="text-muted">회차</dt><dd className="num font-semibold">{show.sessionCount}개</dd></div>
-            <div className="flex gap-2"><dt className="text-muted">예매</dt><dd className="num font-semibold">{show.reservedTickets}매</dd></div>
-          </dl>
         </div>
-      </div>
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        <Link href={href} className="inline-flex min-h-11 items-center rounded-control border border-brand bg-brand px-3 text-sm font-semibold text-white hover:bg-brand-strong">회차·예매 관리</Link>
-        {show.status !== "DRAFT" ? (
-          <>
-            <Link href={showRoutes.detail(show.id)} target="_blank" className="inline-flex min-h-11 items-center rounded-control border border-brand-line px-3 text-sm font-semibold text-brand hover:bg-brand-soft">공연 페이지 열기 ↗</Link>
-            <CopyShowLinkButton showId={show.id} />
-          </>
-        ) : null}
+        <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-border-soft pt-4 text-sm sm:grid-cols-3 sm:gap-x-6">
+          <div className="col-span-2 min-w-0 sm:col-span-1"><dt className="text-xs text-muted">다음 회차</dt><dd className="num mt-1 font-semibold">{show.nextSessionStartsAt ? formatShowDateTime(show.nextSessionStartsAt) : "없음"}</dd></div>
+          <div className="min-w-0"><dt className="text-xs text-muted">회차</dt><dd className="num mt-1 font-semibold">{show.sessionCount}개</dd></div>
+          <div className="min-w-0"><dt className="text-xs text-muted">예매</dt><dd className="num mt-1 font-semibold">{show.reservedTickets}매</dd></div>
+        </dl>
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <span aria-hidden="true" className="inline-flex min-h-11 items-center rounded-control border border-brand bg-brand px-3 text-sm font-semibold text-white">회차·예매 관리</span>
+          {show.status !== "DRAFT" ? (
+            <>
+              <Link href={showRoutes.detail(show.id)} target="_blank" className="pointer-events-auto inline-flex min-h-11 items-center rounded-control border border-brand-line px-3 text-sm font-semibold text-brand hover:bg-brand-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">공연 페이지 열기</Link>
+              <div className="pointer-events-auto"><CopyShowLinkButton showId={show.id} /></div>
+            </>
+          ) : null}
+        </div>
       </div>
     </li>
   );
