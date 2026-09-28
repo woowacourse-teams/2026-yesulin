@@ -16,6 +16,7 @@
 | MSW 시나리오 | [frontend/docs/msw-scenarios.md](../frontend/docs/msw-scenarios.md) |
 | 백엔드 구조·코드 규칙 | [backend/docs/architecture.md](../backend/docs/architecture.md) |
 | 파일 저장 | [backend/docs/storage.md](../backend/docs/storage.md) |
+| 미사용 파일 보고 작업 체크리스트 | [file-lifecycle-requirements.md](./file-lifecycle-requirements.md) |
 | WebKit 업로드 신뢰성·진단 | [upload-reliability.md](./upload-reliability.md) |
 | Git·Issue·PR | [git-workflow.md](./git-workflow.md) |
 
