@@ -119,6 +119,6 @@ export const MOCK_SCENARIOS: readonly MockScenarioDefinition[] = [
     title: "기획사 공연 관리",
     description: "초안·예매 중·마감 공연과 회차별 예매자를 관리합니다.",
     href: "/producers/shows",
-    checks: ["상태가 배지 텍스트로 구분된다", "예매가 있는 회차는 삭제할 수 없다", "예매 취소 후 잔여석이 늘어난다"],
+    checks: ["상태가 배지 텍스트로 구분된다", "예매가 있는 회차는 삭제할 수 없다", "예매 취소 후 잔여석이 늘어난다", "확정 예매자 번호 복사와 엑셀 다운로드에 취소 건이 빠진다"],
   },
 ];

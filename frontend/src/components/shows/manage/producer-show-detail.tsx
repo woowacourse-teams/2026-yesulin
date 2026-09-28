@@ -160,7 +160,7 @@ export function ProducerShowDetail({ showId }: { readonly showId: string }) {
               onRun={run}
               busy={busy}
             />
-            {selectedSession ? <SessionReservations key={selectedSession.id} showId={show.id} session={selectedSession} onChanged={refresh} /> : null}
+            {selectedSession ? <SessionReservations key={selectedSession.id} showId={show.id} showTitle={show.title} session={selectedSession} onChanged={refresh} /> : null}
           </div>
           <ShowSummary show={show} onDelete={() => setPendingAction("delete")} busy={busy} />
         </div>
