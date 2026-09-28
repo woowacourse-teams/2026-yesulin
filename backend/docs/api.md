@@ -348,7 +348,7 @@ submission ID와 변경할 status·memo·note 중 하나 이상을 요구한다.
 미사용 파일 목록은 7일 미만도 포함한다. `files`의 각 항목은 `fileId`, `ownerId`, `status`, `storageScope`,
 `createdAt`, `unusedSince`, `deletableAt`, `deletable`을 담는다. 응답에 `page`, `size`, `hasNext`가 포함된다.
 파일 DELETE는 `PENDING`이면 업로드 요청 시각, `READY`이면 업로드 완료·마지막 연결 해제 시각부터 7일 이상
-지난 경우만 허용한다. 요청 시 참조를 다시 검사하고 기존 지원서 삭제와 같은 확인 비밀번호를 요구한다.
+지난 경우만 허용한다. 요청 시 참조를 다시 검사하고 파일 삭제용 확인 비밀번호를 요구한다.
 사용 중이면 `409 FILE_STILL_IN_USE`, 7일 미만이면 `409 FILE_TOO_RECENT`, 없는 ID는 `404 FILE_NOT_FOUND`다.
 파일 삭제 확인 비밀번호는 `YESULIN_ADMIN_FILE_DELETION_PASSWORD`에 별도로 설정한다. 이 값은 지원서 삭제용
 BCrypt 해시와 무관하며, 미설정 시 파일 삭제는 `403 ADMIN_DELETION_CONFIRMATION_FAILED`로 거부된다.
