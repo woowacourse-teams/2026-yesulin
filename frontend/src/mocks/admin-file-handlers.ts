@@ -4,4 +4,5 @@ import { http, passthrough } from "msw";
 export const adminFileHandlers = [
   http.get("/api/v1/admin/files/unreferenced", () => passthrough()),
   http.delete("/api/v1/admin/files/:fileId", () => passthrough()),
+  http.post("/api/v1/admin/files/deletions", () => passthrough()),
 ];

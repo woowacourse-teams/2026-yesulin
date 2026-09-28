@@ -79,6 +79,14 @@ export type AdminUnusedFilesPage = {
   readonly hasNext: boolean;
 };
 
+export type AdminFileDeletionResult = {
+  readonly results: readonly {
+    readonly fileId: number;
+    readonly status: "DELETED" | "ALREADY_DELETED" | "FAILED";
+    readonly code: string | null;
+  }[];
+};
+
 export type AdminLogFormat = "STRUCTURED" | "LEGACY";
 export type AdminLogLevel = "TRACE" | "DEBUG" | "INFO" | "WARN" | "ERROR";
 

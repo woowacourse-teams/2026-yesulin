@@ -3,6 +3,7 @@ import { readErrorMessage, readErrorDetail } from "../api-error";
 import type {
   AdminAudition,
   AdminAuditLogPage,
+  AdminFileDeletionResult,
   AdminLog,
   AdminLogEntry,
   AdminOverview,
@@ -92,6 +93,20 @@ export async function deleteUnusedFile(fileId: number, confirmationPassword: str
     body: JSON.stringify({ confirmationPassword }),
   });
   if (!response.ok) throw await readAdminError(response, "파일을 삭제하지 못했습니다.");
+}
+
+export async function deleteUnusedFiles(
+  fileIds: readonly number[],
+  confirmationPassword: string,
+): Promise<AdminFileDeletionResult> {
+  const response = await fetch(`${API_BASE_PATH}/files/deletions`, {
+    method: "POST",
+    credentials: "include",
+    headers: await withCsrfHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ fileIds, confirmationPassword }),
+  });
+  if (!response.ok) throw await readAdminError(response, "선택한 파일을 삭제하지 못했습니다.");
+  return response.json() as Promise<AdminFileDeletionResult>;
 }
 
 export const LOG_LINE_LIMITS = [100, 200, 500] as const;
