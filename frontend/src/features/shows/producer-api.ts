@@ -97,9 +97,12 @@ function toShowBody(input: SaveShow) {
     genre: input.genre,
     description: input.description.trim(),
     venue: input.venue,
+    directionsNote: input.directionsNote.trim(),
     runningMinutes: input.runningMinutes,
     ageRating: input.ageRating.trim(),
     inquiryPhone: input.inquiryPhone.trim(),
+    links: input.links.map((link) => ({ label: link.label.trim(), url: link.url.trim() })),
+    remainingSeatsVisible: input.remainingSeatsVisible,
     posterFileId: input.posterFileId,
     imageFileIds: input.imageFileIds,
   };

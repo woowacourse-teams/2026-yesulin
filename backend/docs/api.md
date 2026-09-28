@@ -171,12 +171,18 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 
 `SaveShowRequest`는 `title`(200자 이하), `genre`(`MUSICAL`·`PLAY`), `description`(2000자 이하), `venue`(장소명·도로명주소 필수),
 `runningMinutes`(1~1440), `ageRating`(50자 이하), `inquiryPhone`(`02-123-4567` 형식), `posterFileId`,
-`imageFileIds`(서로 다른 파일 최대 3개)다. 포스터와 상세 이미지는 요청한 기획사가 올린 READY 공개 파일이어야 하며
+`imageFileIds`(서로 다른 파일 최대 3개)다. 선택 값으로 `directionsNote`(오시는 길 추가 안내, 1000자 이하),
+`links`(예매 안내 외부 링크 최대 3개, 각 `label` 30자 이하·`url` 500자 이하의 http/https 주소, 도메인에 점 필수),
+`remainingSeatsVisible`(관객에게 잔여석 숫자 공개 여부)을 받는다. 보내지 않으면 안내 없음·링크 없음·잔여석 공개로 저장하며,
+`ProducerShowResponse`는 세 값을 그대로 돌려준다. 잘못된 링크 주소는 `400 SHOW_INVALID_INPUT`이다.
+포스터와 상세 이미지는 요청한 기획사가 올린 READY 공개 파일이어야 하며
 `show-images` 업로드로 받는다. 새 공연은 `DRAFT`이고, 시작 전인 회차가 하나 이상 있어야 `opening`으로 `OPEN`이 된다.
 `closing`은 `OPEN`에서만 `CLOSED`로 바꾸며 `opening`으로 다시 열 수 있다. 회차 시작 시각은 ISO-8601 UTC이고 현재 이후여야 한다.
 
 관객 목록은 `OPEN` 공연만, 상세는 `OPEN`·`CLOSED` 공연을 반환하고 `DRAFT`는 `404 SHOW_NOT_FOUND`다.
-상세 회차는 정원·예매 수 대신 `remainingSeats`와 `bookable`(공연 `OPEN`, 시작 전, 잔여석 있음)만 준다.
+상세 회차는 정원·예매 수 대신 `remainingSeats`, `maxTicketCount`(`min(10, 잔여석)`, 0이면 매진),
+`bookable`(공연 `OPEN`, 시작 전, 잔여석 있음)만 준다. 공연이 잔여석을 숨기면(`remainingSeatsVisible=false`)
+`remainingSeats`는 `null`이고 나머지는 같다. 상세에는 `directionsNote`와 `links`(`label`, `url`)도 포함한다.
 예매는 1~10매, 휴대폰 `010-1234-5678` 형식, 개인정보 수집·이용 동의가 필요하다. 서버는 회차 행을 잠근 뒤
 같은 회차의 같은 휴대폰 확정 예매(`409 RESERVATION_DUPLICATE`)와 시작 시각 경과(`409 SHOW_SESSION_BOOKING_CLOSED`),
 잔여석 부족(`409 SHOW_SESSION_NOT_ENOUGH_SEATS`)을 확인한다. 응답의 `code`는 8자리 예매번호다.

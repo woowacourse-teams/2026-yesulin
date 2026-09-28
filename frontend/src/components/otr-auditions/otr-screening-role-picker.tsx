@@ -11,7 +11,7 @@ export function OtrScreeningRolePicker({ auditionId }: { readonly auditionId: st
   const audition = auditions.find((candidate) => candidate.id === auditionId);
 
   return <>
-    <Breadcrumb items={[{ label: "OTR 공고 관리", href: otrAuditionRoutes.list },
+    <Breadcrumb items={[{ label: "오디션 공고 관리", href: otrAuditionRoutes.list },
       { label: audition?.title ?? "배역별 심사 관리" }]} />
     <div className="mx-auto w-full max-w-5xl px-4 py-8 md:px-8">
       <h1 className="text-2xl font-bold">{audition ? `[${audition.otrId}] ${audition.title}` : "배역별 심사 관리"}</h1>

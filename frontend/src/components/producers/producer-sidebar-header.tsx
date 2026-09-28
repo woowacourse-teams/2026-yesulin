@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { auditionRoutes } from "@/features/auditions/routes";
+import { showRoutes } from "@/features/shows/types";
 
 export function ProducerSidebarHeader({ titleId, autoFocus = false, onClose }: {
   readonly titleId?: string;
@@ -9,8 +9,8 @@ export function ProducerSidebarHeader({ titleId, autoFocus = false, onClose }: {
 }) {
   return (
     <header className="flex min-h-20 shrink-0 items-center border-b border-sidebar-line">
-      <h2 id={titleId} className="sr-only">공연 관리</h2>
-      <Link href={auditionRoutes.performances} aria-label="예술in 공연 관리 홈" className="flex min-w-0 flex-1 px-4 py-3">
+      <h2 id={titleId} className="sr-only">예술in 관리</h2>
+      <Link href={showRoutes.manageList} aria-label="예술in 관리 홈" className="flex min-w-0 flex-1 px-4 py-3">
         <span className="relative block h-14 w-24 shrink-0">
           <Image
             src="/images/yesulin-logo.png"
@@ -25,7 +25,7 @@ export function ProducerSidebarHeader({ titleId, autoFocus = false, onClose }: {
       <button
         type="button"
         data-autofocus={autoFocus || undefined}
-        aria-label="공연 관리 사이드바 닫기"
+        aria-label="관리 사이드바 닫기"
         onClick={onClose}
         className="mr-3 min-h-11 shrink-0 rounded-control px-2 text-sm font-semibold text-sidebar-muted hover:bg-sidebar-hover hover:text-white"
       >

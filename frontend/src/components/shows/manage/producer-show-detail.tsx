@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { PickerScreen } from "@/components/auditions/picker-card";
 import { ScreenError } from "@/components/auditions/screen-status";
 import { useToast } from "@/components/auditions/toast";
-import { FieldInput, PrimaryButton, SecondaryButton, TextButton } from "@/components/ui/controls";
+import { FieldInput, PrimaryButton, SecondaryButton, SecondaryLink, TextButton } from "@/components/ui/controls";
 import { AuditionRequestError } from "@/features/auditions/api-client";
 import {
   formatShowDate,
@@ -130,8 +130,12 @@ export function ProducerShowDetail({ showId }: { readonly showId: string }) {
             </div>
             <h1 className="mt-2 break-keep text-2xl font-bold tracking-[-0.025em] md:text-[28px]">{show.title}</h1>
             <p id="show-status-guide" className="mt-2 text-sm text-muted-strong">{statusGuide(show, openable)}</p>
+            {show.status !== "DRAFT" ? <CopyShowLinkButton showId={show.id} variant="inline" /> : null}
           </div>
           <div className="flex flex-wrap gap-2">
+            {show.status !== "DRAFT" ? (
+              <SecondaryLink href={showRoutes.detail(show.id)} target="_blank">예매 페이지 보기</SecondaryLink>
+            ) : null}
             {show.status === "OPEN" ? (
               <SecondaryButton onClick={() => setPendingAction("close")} disabled={busy}>예매 마감</SecondaryButton>
             ) : (
@@ -147,14 +151,6 @@ export function ProducerShowDetail({ showId }: { readonly showId: string }) {
           </div>
         </header>
 
-        {show.status !== "DRAFT" ? (
-          <div className="mb-6 flex flex-wrap items-center gap-2 rounded-card border border-brand-line bg-brand-soft px-4 py-3">
-            <span className="min-w-0 flex-1 text-sm font-semibold text-brand">관객용 공연 페이지</span>
-            <Link href={showRoutes.detail(show.id)} target="_blank" className="inline-flex min-h-11 items-center rounded-control border border-brand-line bg-card px-3 text-sm font-semibold text-brand hover:bg-brand-soft">열기 ↗</Link>
-            <CopyShowLinkButton showId={show.id} />
-          </div>
-        ) : null}
-
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="min-w-0 space-y-6">
             <SessionManager
@@ -164,7 +160,7 @@ export function ProducerShowDetail({ showId }: { readonly showId: string }) {
               onRun={run}
               busy={busy}
             />
-            {selectedSession ? <SessionReservations key={selectedSession.id} showId={show.id} session={selectedSession} onChanged={refresh} /> : null}
+            {selectedSession ? <SessionReservations key={selectedSession.id} showId={show.id} showTitle={show.title} session={selectedSession} onChanged={refresh} /> : null}
           </div>
           <ShowSummary show={show} onDelete={() => setPendingAction("delete")} busy={busy} />
         </div>
@@ -434,6 +430,8 @@ function ShowSummary({ show, onDelete, busy }: {
           {show.ageRating ? <><dt className="text-muted">관람 연령</dt><dd>{show.ageRating}</dd></> : null}
           <dt className="text-muted">문의 전화</dt><dd className="num">{show.inquiryPhone}</dd>
           <dt className="text-muted">상세 이미지</dt><dd className="num">{show.images.length}장</dd>
+          <dt className="text-muted">안내 링크</dt><dd className="num">{show.links.length ? `${show.links.length}개` : "없음"}</dd>
+          <dt className="text-muted">잔여석</dt><dd>{show.remainingSeatsVisible ? "관객에게 공개" : "관객에게 비공개"}</dd>
         </dl>
       </div>
       <div className="mt-5 border-t border-border-soft pt-4">

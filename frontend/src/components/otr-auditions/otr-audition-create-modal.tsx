@@ -47,7 +47,7 @@ export function OtrAuditionCreateModal({ onClose, onCreated }: {
   }
 
   return <ModalShell open onClose={onClose} labelledBy={TITLE_ID} placement="responsiveSheet" className="flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-modal bg-card shadow-[var(--shadow-modal)] md:w-[min(680px,calc(100vw-40px))] md:rounded-modal">
-    <DialogHeader id={TITLE_ID} title="OTR 공고 만들기" subtitle="지원 링크가 즉시 발급됩니다. 지원서 목록과 심사는 아직 제공하지 않습니다." />
+    <DialogHeader id={TITLE_ID} title="오디션 공고 만들기" subtitle="지원 링크가 즉시 발급됩니다. 지원서 목록과 심사는 아직 제공하지 않습니다." />
     <form onSubmit={(event) => void submit(event)} className="flex min-h-0 flex-1 flex-col">
       <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5 md:px-6">
         {error ? <CreateError message={error} /> : null}

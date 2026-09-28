@@ -15,6 +15,7 @@ import {
 } from "@/features/shows/format";
 import type { PublicShow, PublicShowSession, ReservationReceipt } from "@/features/shows/types";
 import { ReservationSheet } from "./reservation-sheet";
+import { ShowLinkButtons } from "./show-links";
 import { ShowPageHeader } from "./show-page-header";
 import { SessionAvailabilityText, ShowGenreBadge, ShowStatusBadge } from "./show-status";
 
@@ -59,6 +60,12 @@ export function PublicShowDetail({ show, onReserved, onStale }: {
           {show.imageUrls.length ? <DetailImages show={show} /> : null}
           <InfoSection title="오시는 길" last>
             <PublicVenueGuide venue={show.venue.name} address={show.venue} note="공연이 열리는 장소입니다. 공연 시작 전까지 도착해 주세요." />
+            {show.directionsNote ? (
+              <div className="mt-4 rounded-card border border-border bg-card px-4 py-4 sm:px-5">
+                <h3 className="text-sm font-semibold text-brand">추가 안내</h3>
+                <p className="mt-2 whitespace-pre-line break-words text-base leading-7 text-muted-strong md:text-sm md:leading-6">{show.directionsNote}</p>
+              </div>
+            ) : null}
           </InfoSection>
         </article>
         <aside className="hidden min-[1200px]:block"><DesktopAction {...action} /></aside>
@@ -186,6 +193,7 @@ function ReservationNotice({ show }: { readonly show: PublicShow }) {
       >
         취소·단체 문의 <span className="num text-brand">{show.inquiryPhone}</span>
       </a>
+      <ShowLinkButtons links={show.links} className="mt-3" />
     </InfoSection>
   );
 }

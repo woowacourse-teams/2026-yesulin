@@ -54,6 +54,8 @@ import org.hibernate.type.SqlTypes;
 public class Show {
 
     public static final int MAX_IMAGE_COUNT = 3;
+    public static final int MAX_LINK_COUNT = 3;
+    public static final int MAX_DIRECTIONS_NOTE_LENGTH = 1000;
     private static final int MAX_TITLE_LENGTH = 200;
     private static final int MAX_DESCRIPTION_LENGTH = 2000;
     private static final int MAX_AGE_RATING_LENGTH = 50;
@@ -102,6 +104,19 @@ public class Show {
     @OrderColumn(name = "image_order")
     @Column(name = "file_id", nullable = false)
     private List<Long> imageFileIds = new ArrayList<>();
+
+    @Getter(AccessLevel.NONE)
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "show_links", joinColumns = @JoinColumn(name = "show_id"))
+    @OrderColumn(name = "link_order")
+    private List<ShowLink> links = new ArrayList<>();
+
+    @Column(name = "directions_note", nullable = false, length = MAX_DIRECTIONS_NOTE_LENGTH)
+    private String directionsNote = "";
+
+    /** 관객에게 회차별 잔여석 숫자를 보여 줄지. 예매 가능 여부와 매진 표시에는 영향을 주지 않는다. */
+    @Column(name = "remaining_seats_visible", nullable = false)
+    private boolean remainingSeatsVisible = true;
 
     @Convert(converter = ShowStatusConverter.class)
     @Column(nullable = false, length = 20)
@@ -152,6 +167,17 @@ public class Show {
     }
 
     /**
+     * 관객 화면의 예매 안내 링크, 오시는 길 추가 안내, 잔여석 공개 여부를 바꾼다. 새 공연의 기본값은 링크·안내 없음, 잔여석 공개다.
+     */
+    public void updateAudienceGuide(List<ShowLink> links, String directionsNote, boolean remainingSeatsVisible) {
+        this.links = new ArrayList<>(requireLinks(links));
+        this.directionsNote = requireMaxLength(
+                normalizeOptional(directionsNote), MAX_DIRECTIONS_NOTE_LENGTH, "오시는 길 추가 안내"
+        );
+        this.remainingSeatsVisible = remainingSeatsVisible;
+    }
+
+    /**
      * 예매 가능한 회차가 하나 이상 있어야 공개한다. 이미 예매 중이면 현재 상태를 유지한다.
      */
     public void open(Instant now, List<ShowSession> sessions) {
@@ -190,6 +216,10 @@ public class Show {
         return List.copyOf(imageFileIds);
     }
 
+    public List<ShowLink> getLinks() {
+        return List.copyOf(links);
+    }
+
     private static int requireRunningMinutes(int runningMinutes) {
         if (runningMinutes < 1 || runningMinutes > MAX_RUNNING_MINUTES) {
             throw new BusinessException(INVALID_INPUT, "공연 시간은 1분 이상 1440분 이하로 입력해 주세요.");
@@ -210,6 +240,14 @@ public class Show {
         if (values.size() > MAX_IMAGE_COUNT || values.stream().anyMatch(fileId -> fileId == null || fileId <= 0)
                 || new HashSet<>(values).size() != values.size()) {
             throw new BusinessException(INVALID_INPUT, "서로 다른 상세 이미지를 최대 3장까지 등록해 주세요.");
+        }
+        return values;
+    }
+
+    private static List<ShowLink> requireLinks(List<ShowLink> links) {
+        List<ShowLink> values = links == null ? List.of() : links;
+        if (values.size() > MAX_LINK_COUNT || values.stream().anyMatch(link -> link == null)) {
+            throw new BusinessException(INVALID_INPUT, "안내 링크는 최대 %d개까지 등록할 수 있습니다.", MAX_LINK_COUNT);
         }
         return values;
     }

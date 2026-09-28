@@ -60,6 +60,55 @@ class ShowTest {
     }
 
     @Test
+    void startsWithoutAudienceGuideAndShowsRemainingSeats() {
+        Show show = show(List.of());
+
+        assertTrue(show.getLinks().isEmpty());
+        assertEquals("", show.getDirectionsNote());
+        assertTrue(show.isRemainingSeatsVisible());
+    }
+
+    @Test
+    void updatesAudienceGuideWithTrimmedNote() {
+        Show show = show(List.of());
+
+        show.updateAudienceGuide(List.of(new ShowLink(" 인스타그램 ", "https://www.instagram.com/yesulin?hl=ko")),
+                "  건물 오른쪽 골목의 전용 입구를 이용해 주세요.\n", false);
+
+        assertEquals("인스타그램", show.getLinks().getFirst().getLabel());
+        assertEquals("https://www.instagram.com/yesulin?hl=ko", show.getLinks().getFirst().getUrl());
+        assertEquals("건물 오른쪽 골목의 전용 입구를 이용해 주세요.", show.getDirectionsNote());
+        assertFalse(show.isRemainingSeatsVisible());
+    }
+
+    @Test
+    void rejectsTooManyLinksOrTooLongDirectionsNote() {
+        Show show = show(List.of());
+        List<ShowLink> fourLinks = List.of(
+                new ShowLink("1", "https://a.example"), new ShowLink("2", "https://b.example"),
+                new ShowLink("3", "https://c.example"), new ShowLink("4", "https://d.example")
+        );
+
+        assertEquals(ShowErrorCode.INVALID_INPUT, assertThrows(BusinessException.class,
+                () -> show.updateAudienceGuide(fourLinks, "", true)).getErrorCode());
+        assertEquals(ShowErrorCode.INVALID_INPUT, assertThrows(BusinessException.class,
+                () -> show.updateAudienceGuide(List.of(), "가".repeat(1001), true)).getErrorCode());
+    }
+
+    @Test
+    void acceptsOnlyWebAddressesWithLabel() {
+        assertDoesNotThrow(() -> new ShowLink("홈페이지", "HTTP://yesulin.art"));
+        assertThrows(IllegalArgumentException.class, () -> new ShowLink(" ", "https://yesulin.art"));
+        for (String url : List.of("yesulin.art", "ftp://yesulin.art", "https://instagram", "javascript:alert(1)",
+                "https://yesulin .art", "https://" + "a".repeat(495) + ".art")) {
+            assertEquals(ShowErrorCode.INVALID_INPUT,
+                    assertThrows(BusinessException.class, () -> new ShowLink("링크", url)).getErrorCode(), url);
+        }
+        assertEquals(ShowErrorCode.INVALID_INPUT, assertThrows(BusinessException.class,
+                () -> new ShowLink("가".repeat(31), "https://yesulin.art")).getErrorCode());
+    }
+
+    @Test
     void opensOnlyWhenOwnSessionIsStillBookable() {
         Show show = persistedShow(1L);
         ShowSession pastSession = new ShowSession(1L, NOW.minusSeconds(60), 30);

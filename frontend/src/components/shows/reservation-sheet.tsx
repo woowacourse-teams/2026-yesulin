@@ -44,7 +44,8 @@ export function ReservationSheet({ open, show, session, onClose, onReserved, onS
   const [submitting, setSubmitting] = useState(false);
   const onPhoneChange = usePhoneInput(formatPhoneNumber);
 
-  const maxTickets = Math.min(show.maxTicketsPerReservation, session.remainingSeats);
+  // 서버가 잔여석과 1회 최대 매수 중 작은 값을 준다. 잔여석을 숨긴 공연도 이 값은 온다.
+  const maxTickets = Math.min(show.maxTicketsPerReservation, session.maxTicketCount);
   const count = Math.max(1, Math.min(ticketCount, maxTickets));
   const reservable = session.bookable && maxTickets > 0;
 

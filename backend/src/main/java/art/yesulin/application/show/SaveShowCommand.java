@@ -14,20 +14,33 @@ public record SaveShowCommand(
         String ageRating,
         String inquiryPhone,
         long posterFileId,
-        List<Long> imageFileIds
+        List<Long> imageFileIds,
+        List<ShowLinkCommand> links,
+        String directionsNote,
+        boolean remainingSeatsVisible
 ) {
 
     Show toShow(long ownerId) {
-        return new Show(
+        Show show = new Show(
                 ownerId, title, genre, description, venue.toVenue(), runningMinutes, ageRating,
                 inquiryPhone, posterFileId, imageFileIds
         );
+        applyAudienceGuideTo(show);
+        return show;
     }
 
     void applyTo(Show show) {
         show.update(
                 title, genre, description, venue.toVenue(), runningMinutes, ageRating,
                 inquiryPhone, posterFileId, imageFileIds
+        );
+        applyAudienceGuideTo(show);
+    }
+
+    private void applyAudienceGuideTo(Show show) {
+        List<ShowLinkCommand> values = links == null ? List.of() : links;
+        show.updateAudienceGuide(
+                values.stream().map(ShowLinkCommand::toLink).toList(), directionsNote, remainingSeatsVisible
         );
     }
 }

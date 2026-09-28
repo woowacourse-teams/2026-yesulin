@@ -5,12 +5,24 @@ import { CreateError, CreateField } from "@/components/auditions/create-form";
 import { DialogFooter, DialogHeader, ModalShell } from "@/components/auditions/modal-shell";
 import { PerformanceVenueField } from "@/components/auditions/performance-venue-field";
 import { PosterUploadField } from "@/components/auditions/poster-upload-field";
-import { DestructiveButton, FieldInput, FieldTextarea, PrimaryButton, SecondaryButton, SegmentButton } from "@/components/ui/controls";
+import {
+  AddButton,
+  DestructiveButton,
+  FieldInput,
+  FieldTextarea,
+  PrimaryButton,
+  SecondaryButton,
+  SegmentButton,
+  TextButton,
+} from "@/components/ui/controls";
 import { AuditionRequestError } from "@/features/auditions/api-client";
 import type { VenueAddress } from "@/features/auditions/creation-types";
 import { createShow, updateShow, uploadShowImage } from "@/features/shows/producer-api";
 import {
   SHOW_FORM_FIELDS,
+  normalizeShowLinkUrl,
+  showLinkLabelError,
+  showLinkUrlError,
   validateShowField,
   validateShowForm,
   type ShowFormErrors,
@@ -18,12 +30,17 @@ import {
   type ShowFormValues,
 } from "@/features/shows/show-form";
 import {
+  MAX_DIRECTIONS_NOTE_LENGTH,
   MAX_SHOW_IMAGES,
+  MAX_SHOW_LINK_LABEL_LENGTH,
+  MAX_SHOW_LINK_URL_LENGTH,
+  MAX_SHOW_LINKS,
   SHOW_GENRE_LABELS,
   SHOW_GENRES,
   type ProducerShow,
   type SaveShow,
   type ShowGenre,
+  type ShowLink,
 } from "@/features/shows/types";
 import { useModalClose } from "../use-modal-close";
 
@@ -39,7 +56,10 @@ const FIELD_FOCUS_SELECTOR: Record<ShowFormField, string> = {
   runningMinutes: "#show-running-minutes",
   inquiryPhone: "#show-inquiry-phone",
   venue: "#show-venue-field input",
+  links: "#show-links input",
 };
+
+const linkInputId = (index: number, part: "label" | "url") => `show-link-${index}-${part}`;
 
 /** 이미 저장된 이미지는 fileId를, 새로 고른 이미지는 저장할 때 올릴 파일을 가진다. */
 type ImageSlot = { readonly fileId: number | null; readonly url: string; readonly file: File | null };
@@ -62,9 +82,12 @@ export function ShowFormModal({ show, onClose, onSaved }: {
     latitude: show?.venue.latitude ?? null,
     longitude: show?.venue.longitude ?? null,
   }));
+  const [directionsNote, setDirectionsNote] = useState(show?.directionsNote ?? "");
   const [runningMinutes, setRunningMinutes] = useState(show ? String(show.runningMinutes) : "");
   const [ageRating, setAgeRating] = useState(show?.ageRating ?? "");
   const [inquiryPhone, setInquiryPhone] = useState(show?.inquiryPhone ?? "");
+  const [links, setLinks] = useState<readonly ShowLink[]>(show?.links ?? []);
+  const [remainingSeatsVisible, setRemainingSeatsVisible] = useState(show?.remainingSeatsVisible ?? true);
   const [poster, setPoster] = useState<ImageSlot>(
     show ? { fileId: show.poster.fileId, url: show.poster.url, file: null } : EMPTY_SLOT,
   );
@@ -79,13 +102,13 @@ export function ShowFormModal({ show, onClose, onSaved }: {
   const formRef = useRef<HTMLFormElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
 
-  const values: ShowFormValues = { posterUrl: poster.url, title, genre, runningMinutes, inquiryPhone, venueName, roadAddress: address.roadAddress };
+  const values: ShowFormValues = { posterUrl: poster.url, title, genre, runningMinutes, inquiryPhone, venueName, roadAddress: address.roadAddress, links };
   // 한 번 오류가 난 항목은 입력할 때마다 다시 검사해, 고치면 바로 오류가 사라진다.
   const fieldError = (field: ShowFormField) => errors[field] ? validateShowField(field, values) ?? undefined : undefined;
   const invalidCount = SHOW_FORM_FIELDS.filter((field) => fieldError(field)).length;
   // 변경 여부 비교용. 지도가 자동으로 채우는 좌표와 큰 이미지 데이터(data URL)는 넣지 않는다.
   const snapshot = JSON.stringify({
-    title, genre, description, venueName, runningMinutes, ageRating, inquiryPhone,
+    title, genre, description, venueName, directionsNote, runningMinutes, ageRating, inquiryPhone, links, remainingSeatsVisible,
     roadAddress: address.roadAddress, detailAddress: address.detailAddress, zonecode: address.zonecode,
     poster: imageKey(poster), images: images.map(imageKey),
   });
@@ -120,10 +143,23 @@ export function ShowFormModal({ show, onClose, onSaved }: {
     (slot, slotIndex) => slotIndex === index ? { ...slot, ...next, fileId: null } : slot,
   ));
 
-  const focusField = (field: ShowFormField) => {
+  const updateLink = (index: number, next: Partial<ShowLink>) => setLinks((current) => current.map(
+    (link, linkIndex) => linkIndex === index ? { ...link, ...next } : link,
+  ));
+  const addLink = () => {
+    setLinks((current) => [...current, { label: "", url: "" }]);
+    requestAnimationFrame(() => document.getElementById(linkInputId(links.length, "label"))?.focus());
+  };
+  const removeLink = (index: number) => {
+    setLinks((current) => current.filter((_, linkIndex) => linkIndex !== index));
+    // 지운 줄의 삭제 버튼이 사라지므로 포커스를 링크 영역에 남긴다.
+    requestAnimationFrame(() => document.getElementById(links.length > 1 ? linkInputId(Math.max(0, index - 1), "label") : "show-link-add")?.focus());
+  };
+
+  const focusField = (field: ShowFormField, formValues: ShowFormValues) => {
     // 장소명을 적었는데 주소만 비었으면 주소 검색 버튼으로 보낸다.
     const selector = field === "venue" && venueName.trim() ? "#show-venue-field button" : FIELD_FOCUS_SELECTOR[field];
-    const element = document.querySelector<HTMLElement>(selector);
+    const element = field === "links" ? firstInvalidLinkInput(formValues.links) : document.querySelector<HTMLElement>(selector);
     element?.focus({ preventScroll: true });
     element?.scrollIntoView({ block: "center" });
   };
@@ -131,12 +167,18 @@ export function ShowFormModal({ show, onClose, onSaved }: {
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setConfirmingClose(false);
-    const nextErrors = validateShowForm(values);
+    // 추가만 하고 비워 둔 링크 줄은 빼고, 붙여넣은 주소에 https://가 빠졌으면 채운 뒤 검사하고 저장한다.
+    const normalizedLinks = links
+      .filter((link) => link.label.trim() || link.url.trim())
+      .map((link) => ({ label: link.label.trim(), url: normalizeShowLinkUrl(link.url) }));
+    setLinks(normalizedLinks);
+    const submitted: ShowFormValues = { ...values, links: normalizedLinks };
+    const nextErrors = validateShowForm(submitted);
     setErrors(nextErrors);
     const firstInvalid = SHOW_FORM_FIELDS.find((field) => nextErrors[field]);
     if (firstInvalid) {
       setError("");
-      focusField(firstInvalid);
+      focusField(firstInvalid, submitted);
       return;
     }
     setSaving(true);
@@ -147,9 +189,12 @@ export function ShowFormModal({ show, onClose, onSaved }: {
         genre: genre!,
         description: description.trim(),
         venue: { name: venueName.trim(), ...address },
+        directionsNote: directionsNote.trim(),
         runningMinutes: Number(runningMinutes),
         ageRating: ageRating.trim(),
         inquiryPhone: inquiryPhone.trim(),
+        links: normalizedLinks,
+        remainingSeatsVisible,
         posterFileId: await fileIdOf(poster),
         imageFileIds: await uploadImages(images),
       };
@@ -241,6 +286,10 @@ export function ShowFormModal({ show, onClose, onSaved }: {
             <FieldError field="venue" message={fieldError("venue")} />
           </div>
 
+          <CreateField label="오시는 길 추가 안내 (선택)" htmlFor="show-directions-note" hint="주차, 입구 위치, 대중교통 이용 방법처럼 주소만으로 전하기 어려운 내용을 적어 주세요. 관객 화면의 오시는 길 아래에 보여요.">
+            <FieldTextarea id="show-directions-note" rows={3} maxLength={MAX_DIRECTIONS_NOTE_LENGTH} value={directionsNote} onChange={(event) => setDirectionsNote(event.target.value)} placeholder="예: 혜화역 2번 출구에서 도보 약 5분 거리입니다." className="resize-y" />
+          </CreateField>
+
           <fieldset>
             <legend className="mb-2 text-base font-semibold text-muted-strong md:text-sm">상세 이미지 (선택, 최대 {MAX_SHOW_IMAGES}장)</legend>
             <div className="grid gap-4 sm:grid-cols-3">
@@ -256,6 +305,43 @@ export function ShowFormModal({ show, onClose, onSaved }: {
                 />
               ))}
             </div>
+          </fieldset>
+
+          <fieldset id="show-links" aria-describedby="show-links-hint">
+            <legend className="mb-2 text-base font-semibold text-muted-strong md:text-sm">예매 안내 링크 (선택, 최대 {MAX_SHOW_LINKS}개)</legend>
+            <p id="show-links-hint" className="mb-3 text-base leading-relaxed text-muted md:text-sm">
+              인스타그램, 공연사 홈페이지처럼 관객이 더 볼 곳을 버튼으로 보여 줘요. 공연 페이지의 예매 안내와 예매 완료 화면에 나와요.
+            </p>
+            {links.length ? (
+              <ul className="mb-3 grid gap-3">
+                {links.map((link, index) => (
+                  <LinkRow
+                    key={index}
+                    index={index}
+                    link={link}
+                    showErrors={Boolean(errors.links)}
+                    onChange={(next) => updateLink(index, next)}
+                    onRemove={() => removeLink(index)}
+                  />
+                ))}
+              </ul>
+            ) : null}
+            <AddButton id="show-link-add" onClick={addLink} disabled={links.length >= MAX_SHOW_LINKS}>
+              + 안내 링크 추가 <span className="num ml-1 text-muted">{links.length}/{MAX_SHOW_LINKS}</span>
+            </AddButton>
+          </fieldset>
+
+          <fieldset aria-describedby="show-remaining-seats-hint">
+            <legend className="mb-2 text-base font-semibold text-muted-strong md:text-sm">관객에게 잔여석 표시</legend>
+            <div className="inline-flex overflow-hidden rounded-control border border-border">
+              <SegmentButton pressed={remainingSeatsVisible} onClick={() => setRemainingSeatsVisible(true)} className="min-h-11 px-5">공개</SegmentButton>
+              <SegmentButton pressed={!remainingSeatsVisible} onClick={() => setRemainingSeatsVisible(false)} className="min-h-11 px-5">비공개</SegmentButton>
+            </div>
+            <p id="show-remaining-seats-hint" className="mt-2 text-base leading-relaxed text-muted md:text-sm">
+              {remainingSeatsVisible
+                ? "회차마다 '잔여 32석'처럼 남은 좌석 수를 보여 줘요."
+                : "숫자 대신 '예매 가능'으로 보여 줘요. 매진은 그대로 표시되고, 남은 좌석이 10석보다 적으면 한 번에 고를 수 있는 매수가 그만큼 줄어요. 관리 화면에서는 계속 잔여석을 볼 수 있어요."}
+            </p>
           </fieldset>
         </div>
         {/* 스크롤 영역 위쪽에 두면 아래에서 저장을 눌렀을 때 보이지 않으므로 버튼 바로 위에 둔다. */}
@@ -293,6 +379,64 @@ function imageKey(slot: ImageSlot) {
 
 function errorId(field: ShowFormField) {
   return `show-form-${field}-error`;
+}
+
+function firstInvalidLinkInput(links: readonly ShowLink[]) {
+  const index = links.findIndex((link) => showLinkLabelError(link.label) || showLinkUrlError(link.url));
+  if (index < 0) return null;
+  return document.getElementById(linkInputId(index, showLinkLabelError(links[index]!.label) ? "label" : "url"));
+}
+
+/** 저장을 한 번 시도한 뒤(showErrors)부터 칸마다 오류를 바로 다시 검사해 보여 준다. */
+function LinkRow({ index, link, showErrors, onChange, onRemove }: {
+  readonly index: number;
+  readonly link: ShowLink;
+  readonly showErrors: boolean;
+  readonly onChange: (next: Partial<ShowLink>) => void;
+  readonly onRemove: () => void;
+}) {
+  const labelError = showErrors ? showLinkLabelError(link.label) : null;
+  const urlError = showErrors ? showLinkUrlError(link.url) : null;
+  const labelId = linkInputId(index, "label");
+  const urlId = linkInputId(index, "url");
+  return (
+    <li className="grid gap-3 rounded-card border border-border p-4 sm:grid-cols-[minmax(0,200px)_minmax(0,1fr)_auto] sm:items-start">
+      <div className="min-w-0">
+        <label htmlFor={labelId} className="mb-2 block text-base font-semibold text-muted-strong md:text-sm">버튼 이름</label>
+        <FieldInput
+          id={labelId}
+          maxLength={MAX_SHOW_LINK_LABEL_LENGTH}
+          value={link.label}
+          onChange={(event) => onChange({ label: event.target.value })}
+          placeholder="예: 공연사 인스타그램 보기"
+          aria-invalid={labelError ? true : undefined}
+          aria-describedby={labelError ? `${labelId}-error` : undefined}
+          className={labelError ? FIELD_ERROR_CLASS : ""}
+        />
+        {labelError ? <p id={`${labelId}-error`} className="mt-2 text-sm font-medium leading-6 text-fail">{labelError}</p> : null}
+      </div>
+      <div className="min-w-0">
+        <label htmlFor={urlId} className="mb-2 block text-base font-semibold text-muted-strong md:text-sm">링크 주소</label>
+        <FieldInput
+          id={urlId}
+          type="url"
+          inputMode="url"
+          autoCapitalize="none"
+          spellCheck={false}
+          maxLength={MAX_SHOW_LINK_URL_LENGTH}
+          value={link.url}
+          onChange={(event) => onChange({ url: event.target.value })}
+          onBlur={(event) => onChange({ url: normalizeShowLinkUrl(event.target.value) })}
+          placeholder="https://instagram.com/..."
+          aria-invalid={urlError ? true : undefined}
+          aria-describedby={urlError ? `${urlId}-error` : undefined}
+          className={urlError ? FIELD_ERROR_CLASS : ""}
+        />
+        {urlError ? <p id={`${urlId}-error`} className="mt-2 text-sm font-medium leading-6 text-fail">{urlError}</p> : null}
+      </div>
+      <TextButton onClick={onRemove} aria-label={`안내 링크 ${index + 1} 삭제`} className="justify-self-start sm:mt-7">삭제</TextButton>
+    </li>
+  );
 }
 
 function FieldError({ field, message }: { readonly field: ShowFormField; readonly message?: string }) {

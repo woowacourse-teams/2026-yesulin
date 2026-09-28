@@ -4,10 +4,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ModalShell } from "@/components/auditions/modal-shell";
-import { auditionRoutes } from "@/features/auditions/routes";
+import { showRoutes } from "@/features/shows/types";
 import { AnalyticsSettingsButton } from "@/components/analytics/analytics-settings-button";
 import { ProducerAccountPanel } from "./producer-account-panel";
-import { AuditionTreeNav } from "./audition-tree";
 import { OtrAuditionTreeNav } from "@/components/otr-auditions/otr-audition-tree";
 import { ShowManagementNav } from "@/components/shows/manage/show-management-nav";
 import { useRouteDisclosure } from "./use-route-disclosure";
@@ -23,7 +22,7 @@ export function MobileProducerNavigation() {
       <header className="glass-surface sticky top-0 z-30 flex min-h-16 items-center gap-3 border-b border-border px-4 lg:hidden">
         <button
           type="button"
-          aria-label="공연 관리 메뉴 열기"
+          aria-label="관리 메뉴 열기"
           aria-expanded={open}
           aria-controls="mobile-producer-navigation"
           onClick={openDisclosure}
@@ -36,7 +35,7 @@ export function MobileProducerNavigation() {
           </span>
         </button>
         <Link
-          href={auditionRoutes.performances}
+          href={showRoutes.manageList}
           className="flex min-h-11 min-w-0 items-center rounded-control px-1"
         >
           <span className="relative block h-10 w-[70px] shrink-0">
@@ -49,7 +48,7 @@ export function MobileProducerNavigation() {
               className="object-contain"
             />
           </span>
-          <span className="ml-2 truncate text-base font-semibold">공연 관리</span>
+          <span className="ml-2 truncate text-base font-semibold">예술in 관리</span>
         </Link>
         <AnalyticsSettingsButton className="ml-auto" />
       </header>
@@ -65,11 +64,11 @@ export function MobileProducerNavigation() {
         <div id="mobile-producer-navigation" className="flex min-h-0 flex-1 flex-col">
           <header className="flex min-h-16 items-center gap-3 border-b border-sidebar-line px-4">
             <h2 id={TITLE_ID} className="text-lg font-bold text-white">
-              공연 관리
+              예술in 관리
             </h2>
             <button
               type="button"
-              aria-label="공연 관리 메뉴 닫기"
+              aria-label="관리 메뉴 닫기"
               onClick={closeDisclosure}
               className="ml-auto min-h-11 rounded-control px-3 text-base text-sidebar-muted transition-[background-color,color,transform] duration-150 hover:bg-sidebar-hover hover:text-white active:scale-[0.97]"
             >
@@ -77,9 +76,8 @@ export function MobileProducerNavigation() {
             </button>
           </header>
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-2">
-            <OtrAuditionTreeNav onNavigate={closeDisclosure} />
             <ShowManagementNav onNavigate={closeDisclosure} />
-            <AuditionTreeNav onNavigate={closeDisclosure} />
+            <OtrAuditionTreeNav onNavigate={closeDisclosure} />
           </div>
           <ProducerAccountPanel />
         </div>
