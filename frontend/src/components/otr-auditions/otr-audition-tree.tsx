@@ -12,15 +12,15 @@ export function OtrAuditionTreeNav({ onNavigate }: { readonly onNavigate?: () =>
   const [open, setOpen] = useState(true);
   const isActive = pathname.startsWith(otrAuditionRoutes.list);
 
-  return <nav aria-label="OTR 공고" className="border-b border-sidebar-line px-2 pb-4 pt-2">
+  return <nav aria-label="오디션 공고" className="border-b border-sidebar-line px-2 pb-4 pt-2">
     <div className="flex items-center gap-0.5">
-      <button type="button" aria-label="OTR 공고 목록 펼치기/접기" aria-expanded={open} onClick={() => setOpen((value) => !value)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-control text-sidebar-muted hover:bg-sidebar-hover hover:text-white lg:h-[30px] lg:w-[26px]">
+      <button type="button" aria-label="오디션 공고 목록 펼치기/접기" aria-expanded={open} onClick={() => setOpen((value) => !value)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-control text-sidebar-muted hover:bg-sidebar-hover hover:text-white lg:h-[30px] lg:w-[26px]">
         <span aria-hidden="true" className={`inline-block border-y-4 border-l-[6px] border-y-transparent border-l-current transition-transform ${open ? "rotate-90" : ""}`} />
       </button>
       <Link href={otrAuditionRoutes.list} onClick={onNavigate} aria-current={pathname === otrAuditionRoutes.list ? "page" : undefined} className={`flex min-h-11 flex-1 items-center rounded-control py-2 pl-0.5 pr-1.5 text-left text-base font-bold transition-colors hover:bg-sidebar-hover lg:min-h-0 lg:text-dense ${isActive ? "text-brand-line" : "text-sidebar-muted hover:text-white"}`}>
-        OTR 공고 관리
+        오디션 공고 관리
       </Link>
-      <Link href={otrAuditionRoutes.create} onClick={onNavigate} aria-label="OTR 공고 만들기" title="OTR 공고 만들기" className="grid h-11 w-11 shrink-0 place-items-center rounded-control text-lg font-semibold text-sidebar-muted hover:bg-sidebar-hover hover:text-white lg:h-[30px] lg:w-[30px]">+</Link>
+      <Link href={otrAuditionRoutes.create} onClick={onNavigate} aria-label="오디션 공고 만들기" title="오디션 공고 만들기" className="grid h-11 w-11 shrink-0 place-items-center rounded-control text-lg font-semibold text-sidebar-muted hover:bg-sidebar-hover hover:text-white lg:h-[30px] lg:w-[30px]">+</Link>
     </div>
     {open ? <div className="ml-3.5 border-l border-sidebar-line pl-4">
       {loading ? <p role="status" className="px-2 py-2 text-xs text-sidebar-muted">공고 불러오는 중…</p> : null}

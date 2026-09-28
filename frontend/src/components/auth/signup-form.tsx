@@ -83,7 +83,7 @@ export function SignupForm() {
         producerStatus: serverSession.status,
       });
       toast("기획사/제작사 가입과 로그인이 완료되었습니다.", { type: "success" });
-      router.replace("/producers/performances");
+      router.replace("/producers/shows");
     } catch (cause) {
       console.error("[회원가입 실패]", cause);
       toast(cause instanceof Error ? cause.message : "기획사/제작사 계정을 만들지 못했습니다.", { type: "error" });

@@ -72,7 +72,7 @@ export function LoginForm({ returnTo, applicationFlow = false }: { readonly retu
       return;
     }
 
-    const producerAttribution = loginAttributionFor("/producers/performances", "producer");
+    const producerAttribution = loginAttributionFor("/producers/shows", "producer");
     trackLoginAttempt("password", producerAttribution);
 
     let serverSession: Awaited<ReturnType<typeof requestLogin>> | null = null;
@@ -106,9 +106,9 @@ export function LoginForm({ returnTo, applicationFlow = false }: { readonly retu
       displayName: trimmedIdentifier,
       producerStatus: serverSession?.status ?? "ACTIVE",
     });
-    trackLoginSuccess("/producers/performances", producerAttribution);
+    trackLoginSuccess("/producers/shows", producerAttribution);
     toast("기획사/제작사 계정으로 로그인했습니다.", { type: "success" });
-    router.push("/producers/performances");
+    router.push("/producers/shows");
   }
 
   async function handleSocialLogin(provider: SocialProvider) {

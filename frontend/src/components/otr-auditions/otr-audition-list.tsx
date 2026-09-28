@@ -28,10 +28,10 @@ export function OtrAuditionList({ selectedId, autoOpenCreate = false }: {
       <header className="mb-8 flex flex-wrap items-start gap-4">
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-brand">OTR 협업 공고</p>
-          <h1 className="mt-1 text-2xl font-bold tracking-[-0.025em] md:text-[28px]">OTR 공고 관리</h1>
+          <h1 className="mt-1 text-2xl font-bold tracking-[-0.025em] md:text-[28px]">오디션 공고 관리</h1>
           <p className="mt-2 text-sm text-muted-strong">OTR 공고 번호와 모집 정보를 등록하고 한곳에서 확인하세요.</p>
         </div>
-        <CreatePageButton onClick={() => setCreateOpen(true)}>OTR 공고 만들기</CreatePageButton>
+        <CreatePageButton onClick={() => setCreateOpen(true)}>오디션 공고 만들기</CreatePageButton>
       </header>
 
       {error ? <ScreenError message={error} onRetry={() => void reload()} /> : null}
