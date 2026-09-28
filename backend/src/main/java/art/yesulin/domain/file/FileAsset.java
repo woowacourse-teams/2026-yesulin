@@ -17,9 +17,11 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import java.time.Instant;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
 
 @Entity
 @Table(name = "file_assets", uniqueConstraints = {
@@ -38,6 +40,10 @@ public class FileAsset {
 
     @Column(name = "owner_id", nullable = false, updatable = false)
     private long ownerId;
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
 
     @Embedded
     private FileMetadata metadata;
