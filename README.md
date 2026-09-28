@@ -41,6 +41,17 @@ cd backend
 이 파일은 config 저장소에서 Git 추적하지 않으며, 없으면 로컬 Spring Boot가 시작되지 않는다.
 Docker Compose는 변수 치환에 기존 루트 `.env`를 계속 사용하지만, 백엔드 시작에는 `config/server/local.env`도 필요하다.
 
+변수 **이름**의 누락은 저장소 루트에서 비교한다. 복호화 키는 필요 없고 값은 출력하지 않는다.
+
+```sh
+sh scripts/config/compare-env-keys.sh # 기본: local.env와 dev.env
+sh scripts/config/compare-env-keys.sh config/server/local.env config/server/prod.env
+```
+
+종료 코드 `0`은 이름 일치, `1`은 차이 또는 형식 오류, `2`는 파일 누락 또는 SOPS 표시 누락이다.
+환경별로 필요한 이름이 다를 수 있으므로 차이를 무조건 같은 값으로 맞추지 않는다.
+배포 설정 변경과 버전 반영은 [config 변경 안내](./config/docs/workflow.md)를 따른다.
+
 기획사/제작사 인증 메일은 Google SMTP를 사용한다. `config/server/local.env`에 `GOOGLE_SMTP_USERNAME`,
 `GOOGLE_SMTP_APP_PASSWORD`, `GOOGLE_SMTP_FROM`, `EMAIL_VERIFICATION_URL`,
 `EMAIL_VERIFICATION_REDIRECT_URI`, `PASSWORD_RESET_URL`을 설정한다. 실제 Google 계정 비밀번호가 아니라
