@@ -6,6 +6,10 @@ DEV와 PROD의 Build 액션은 각각 `DEPLOY_ENV=dev`, `DEPLOY_ENV=prod`를 명
 빌드는 config 저장소의 `server/{DEPLOY_ENV}.env`를 선택하며 값이 없거나 다른 값이면 실패한다.
 두 Pipeline 모두 `CONFIG_COMMIT_ID`와 `config-version.txt`의 일치 검증을 통과해야 한다.
 
+OTR 공고 Slack 웹훅은 현재 `server/dev.env`에만 `YESULIN_SLACK_WEBHOOK_URL`로 저장한다.
+`server/prod.env`에는 아직 설정하지 않는다. 공고 알림 스케줄러와 서비스 진입점도 등록되지 않아 배포만으로 자동 전송되지는 않는다.
+자동 실행을 활성화할 때 DEV에서 중복 알림과 실패 재시도를 확인한 뒤 PROD 적용을 별도로 결정한다.
+
 1. PR CI가 Java 25로 Checkstyle과 test를 수행하고, CodeBuild가 실행 JAR를 빌드한다.
 2. JAR를 `application.jar`로 고정하고 revision과 SHA-256을 기록한다.
 3. JAR와 복호화한 환경 파일을 `/opt/yesulin/releases/{commit-id}`에 함께 설치한 뒤 `current` symlink를 교체한다.
