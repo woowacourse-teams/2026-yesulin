@@ -14,8 +14,8 @@ export const MAX_SHOW_LINK_LABEL_LENGTH = 30;
 export const MAX_SHOW_LINK_URL_LENGTH = 500;
 export const MAX_DIRECTIONS_NOTE_LENGTH = 1000;
 export const MAX_TICKETS_PER_RESERVATION = 10;
-/** 예매자 이름·휴대폰 보유 기간. 분실물 안내 등을 위해 관람 회차가 끝난 뒤 이 일수 안에 파기한다. */
-export const BOOKER_INFO_RETENTION_DAYS = 3;
+/** 복사하거나 내려받은 예매 관객 정보를 직접 삭제하도록 안내할 기간. */
+export const EXPORTED_BOOKER_DATA_DELETE_DAYS = 3;
 
 /** 예매 안내에 보여 주는 외부 링크(공연사 SNS, 홈페이지 등). */
 export type ShowLink = {

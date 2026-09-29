@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  bookerInfoDeleteBy,
   confirmedPhoneNumbers,
   formatSheetDateTime,
   phoneNumbersText,
@@ -38,28 +37,20 @@ describe("reservation export", () => {
     const sheet = reservationSheet([
       reservation(1, { ticketCount: 3 }),
       reservation(2, { status: "CANCELED" }),
-    ], "2026-10-02T10:30:00Z");
+    ]);
 
     expect(sheet.columns.map((column) => column.header)).toEqual(["예매번호", "이름", "휴대폰 번호", "매수", "예매 시각"]);
     expect(sheet.rows).toEqual([["CODE0001", "관객 1", "010-0000-0001", 3, "2026-09-28 13:30"]]);
   });
 
-  it("명단 맨 아래에 회차 날짜 기준 파기 기한을 적는다", () => {
-    const sheet = reservationSheet([reservation(1)], "2026-10-02T10:30:00Z");
+  it("명단 맨 아래에 복사본과 파일 삭제 안내를 적는다", () => {
+    const sheet = reservationSheet([reservation(1)]);
 
     expect(sheet.notes).toEqual([
-      "[개인정보 파기 안내]",
-      "이 명단의 이름·휴대폰 번호는 관람 회차 종료 후 3일 이내에 파기해야 합니다.",
-      "2026년 10월 5일 (월)까지 이 파일과 따로 복사해 둔 번호를 모두 삭제해 주세요.",
+      "[내려받은 명단 삭제 안내]",
+      "관람 회차 종료 후 3일 이내에 이 파일을 삭제해 주세요.",
+      "따로 복사해 둔 전화번호도 함께 삭제해 주세요.",
     ]);
-  });
-
-  it("파기 기한은 한국 시간 회차 날짜에서 3일 뒤이고 월이 바뀌어도 맞게 센다", () => {
-    // 한국 시간 10월 2일 00:30 회차
-    expect(bookerInfoDeleteBy("2026-10-01T15:30:00Z")).toBe("2026년 10월 5일 (월)");
-    expect(bookerInfoDeleteBy("2026-10-30T10:00:00Z")).toBe("2026년 11월 2일 (월)");
-    expect(bookerInfoDeleteBy("2026-12-30T10:00:00Z")).toBe("2027년 1월 2일 (토)");
-    expect(bookerInfoDeleteBy("잘못된 값")).toBe("");
   });
 
   it("한국 시간 기준으로 날짜가 바뀌는 시각도 맞게 표시한다", () => {

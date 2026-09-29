@@ -8,7 +8,6 @@ import { formatPhoneNumber, usePhoneInput } from "@/features/applications/phone-
 import { createReservation } from "@/features/shows/api";
 import { formatShowFullDateTime, sessionAvailability } from "@/features/shows/format";
 import {
-  BOOKER_INFO_RETENTION_DAYS,
   RESERVATION_ERROR_CODES,
   type PublicShow,
   type PublicShowSession,
@@ -232,8 +231,8 @@ function PrivacyConsent({ checked, error, onChange }: {
         <dl className="mt-1 grid grid-cols-[72px_minmax(0,1fr)] gap-x-3 gap-y-2 pb-2 leading-6">
           <dt className="text-muted">수집 항목</dt><dd>이름, 휴대폰 번호</dd>
           <dt className="text-muted">이용 목적</dt><dd>예매 확인, 공연 관련 안내와 취소 연락</dd>
-          {/* 분실물 안내 등을 위해 관람 회차 기준으로 며칠 더 둔다. 서버 자동 파기는 아직 없다(docs/implementation-gaps.md). */}
-          <dt className="text-muted">보유 기간</dt><dd>관람 회차 종료 후 {BOOKER_INFO_RETENTION_DAYS}일 이내 파기</dd>
+          {/* 보유 기간은 정책 미결정(U5) 상태의 임시 문구다. 확정되면 서버 동의 문서 버전과 함께 바꾼다. */}
+          <dt className="text-muted">보유 기간</dt><dd>공연 종료 후 지체 없이 파기</dd>
         </dl>
         <p className="pb-1 text-xs leading-5 text-muted">동의하지 않으면 예매할 수 없어요.</p>
       </details>

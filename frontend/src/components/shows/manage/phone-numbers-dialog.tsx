@@ -5,8 +5,8 @@ import { DialogFooter, DialogHeader, ModalShell } from "@/components/auditions/m
 import { useToast } from "@/components/auditions/toast";
 import { FieldTextarea, PrimaryButton, SecondaryButton } from "@/components/ui/controls";
 import { formatShowDateTime } from "@/features/shows/format";
-import { bookerInfoDeleteBy, phoneNumbersText } from "@/features/shows/reservation-export";
-import { BOOKER_INFO_RETENTION_DAYS } from "@/features/shows/types";
+import { phoneNumbersText } from "@/features/shows/reservation-export";
+import { EXPORTED_BOOKER_DATA_DELETE_DAYS } from "@/features/shows/types";
 import { useModalClose } from "../use-modal-close";
 
 const TITLE_ID = "phone-numbers-dialog-title";
@@ -26,7 +26,6 @@ export function PhoneNumbersDialog({ phones, sessionStartsAt, selectedOnly, onCl
   const toast = useToast();
   const [copyFailed, setCopyFailed] = useState(false);
   const close = useModalClose(onClose, false);
-  const deleteBy = bookerInfoDeleteBy(sessionStartsAt);
   const text = phoneNumbersText(phones);
 
   const copy = async () => {
@@ -64,8 +63,7 @@ export function PhoneNumbersDialog({ phones, sessionStartsAt, selectedOnly, onCl
           className="num resize-none leading-7"
         />
         <p className="mt-4 rounded-control border border-warn/30 bg-warn-bg px-4 py-3 text-sm leading-6 text-foreground">
-          복사한 번호와 내려받은 명단은 관람 회차 종료 후 {BOOKER_INFO_RETENTION_DAYS}일 이내에 지워 주세요.
-          {deleteBy ? <span className="mt-1 block">파기 기한: <strong className="num font-semibold">{deleteBy}</strong></span> : null}
+          복사한 번호와 내려받은 명단은 관람 회차 종료 후 {EXPORTED_BOOKER_DATA_DELETE_DAYS}일 이내에 지워 주세요.
         </p>
         {copyFailed ? (
           <p role="alert" className="mt-3 text-sm font-medium leading-6 text-fail">
