@@ -43,6 +43,16 @@ describe("reservation export", () => {
     expect(sheet.rows).toEqual([["CODE0001", "관객 1", "010-0000-0001", 3, "2026-09-28 13:30"]]);
   });
 
+  it("명단 맨 아래에 복사본과 파일 삭제 안내를 적는다", () => {
+    const sheet = reservationSheet([reservation(1)]);
+
+    expect(sheet.notes).toEqual([
+      "[내려받은 명단 삭제 안내]",
+      "관람 회차 종료 후 3일 이내에 이 파일을 삭제해 주세요.",
+      "따로 복사해 둔 전화번호도 함께 삭제해 주세요.",
+    ]);
+  });
+
   it("한국 시간 기준으로 날짜가 바뀌는 시각도 맞게 표시한다", () => {
     expect(formatSheetDateTime("2026-09-30T15:10:00Z")).toBe("2026-10-01 00:10");
   });

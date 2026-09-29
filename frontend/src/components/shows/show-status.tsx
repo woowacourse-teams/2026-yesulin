@@ -37,6 +37,14 @@ export function ManagementStatusBadge({ status }: { readonly status: ShowStatus 
   );
 }
 
+export function ManagementGenreBadge({ genre }: { readonly genre: ShowGenre }) {
+  return (
+    <span className="inline-flex min-h-8 items-center whitespace-nowrap rounded-full border border-border bg-surface px-3 text-base font-semibold text-muted-strong">
+      {SHOW_GENRE_LABELS[genre]}
+    </span>
+  );
+}
+
 export function ShowGenreBadge({ genre }: { readonly genre: ShowGenre }) {
   return (
     <span className="inline-flex items-center rounded-full border border-border bg-card px-3 py-1 text-sm font-semibold text-muted-strong">
@@ -64,7 +72,7 @@ export function SessionAvailabilityText({ availability }: { readonly availabilit
 
 export function ShowUnavailable() {
   return (
-    <main className="min-h-screen bg-surface px-5 py-16 sm:px-8">
+    <main className="min-h-screen break-keep bg-surface px-5 py-16 wrap-break-word sm:px-8">
       <section className="mx-auto max-w-[680px] rounded-card border border-border bg-card px-6 py-14 text-center">
         <p className="text-sm font-semibold text-fail">공연을 찾을 수 없어요</p>
         <h1 className="mt-3 text-2xl font-bold tracking-[-0.025em]">공연 링크가 올바른지 확인해 주세요.</h1>

@@ -1,7 +1,7 @@
 /** 기획사가 예매자에게 문자를 보내거나 현장 명단으로 쓸 수 있게 예매자 번호·명단을 내보낸다. 취소된 예매는 넣지 않는다. */
 
 import type { XlsxSheet } from "@/features/files/xlsx";
-import type { ProducerReservation } from "./types";
+import { EXPORTED_BOOKER_DATA_DELETE_DAYS, type ProducerReservation } from "./types";
 
 const koreaSheetDateTimeFormat = new Intl.DateTimeFormat("en-CA", {
   timeZone: "Asia/Seoul",
@@ -43,6 +43,18 @@ export function phoneNumbersText(phones: readonly string[]) {
   return phones.join("\n");
 }
 
+/**
+ * 명단 맨 아래 삭제 안내. 내려받은 파일은 기획사가 직접 지워야 한다.
+ * 인쇄해도 잘리지 않게 한 줄이 명단 열 폭(A~E)을 넘지 않도록 나눈다.
+ */
+function deleteNotice() {
+  return [
+    "[내려받은 명단 삭제 안내]",
+    `관람 회차 종료 후 ${EXPORTED_BOOKER_DATA_DELETE_DAYS}일 이내에 이 파일을 삭제해 주세요.`,
+    "따로 복사해 둔 전화번호도 함께 삭제해 주세요.",
+  ];
+}
+
 export function reservationSheet(reservations: readonly ProducerReservation[]): XlsxSheet {
   return {
     name: "예매자명단",
@@ -62,6 +74,7 @@ export function reservationSheet(reservations: readonly ProducerReservation[]): 
         reservation.ticketCount,
         formatSheetDateTime(reservation.createdAt),
       ]),
+    notes: deleteNotice(),
   };
 }
 

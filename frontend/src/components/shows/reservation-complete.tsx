@@ -32,7 +32,7 @@ export function ReservationComplete({ show, receipt, onBack }: {
   };
 
   return (
-    <main className="min-h-screen bg-surface pb-12 text-foreground">
+    <main className="min-h-screen break-keep bg-surface pb-12 text-foreground wrap-break-word">
       <ShowPageHeader />
       <div className="mx-auto max-w-[560px] px-5 py-8 md:py-12">
         <section className="rounded-modal border border-border bg-card px-5 py-8 text-center md:px-8">

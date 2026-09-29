@@ -20,6 +20,8 @@ flowchart TD
     LOGIN --> OTR_LIST
     FREE_SHOW --> FREE_SESSION["회차·예매 관리"]
     FREE_SESSION --> FREE_RESERVATIONS["회차별 예매자 관리"]
+    FREE_RESERVATIONS --> PHONE_LIST["전화번호 복사 모달<br>번호 목록·3일 이내 삭제 안내 확인"]
+    PHONE_LIST --> PHONE_COPY["선택한 번호 또는 전체 번호 복사"]
     LOGIN -. "직접 URL로 접근 가능" .-> PERFORMANCE["직접 등록한 공연 관리"]
     PERFORMANCE --> AUDITION["공고 기본 정보·배역·일정·지원 폼 저장"]
     AUDITION --> PUBLISH["PUT /api/v1/auditions/{auditionId}/publication"]

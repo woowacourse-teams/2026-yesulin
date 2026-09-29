@@ -52,6 +52,20 @@ describe("xlsx", () => {
     expect(sheet).not.toContain("<f>");
   });
 
+  it("안내 문구는 표 아래 한 행을 띄우고 A열에 굵게 넣는다", () => {
+    const files = readStoredZip(buildXlsx({
+      name: "예매자명단",
+      columns: [{ header: "이름", width: 14 }],
+      rows: [["홍길동"], ["김철수"]],
+      notes: ["첫째 안내", "둘째 안내"],
+    }));
+
+    const sheet = files.get("xl/worksheets/sheet1.xml")!;
+    expect(sheet).not.toContain('<row r="4">');
+    expect(sheet).toContain('<row r="5"><c r="A5" t="inlineStr" s="1"><is><t xml:space="preserve">첫째 안내</t></is></c></row>');
+    expect(sheet).toContain('<row r="6"><c r="A6" t="inlineStr" s="1"><is><t xml:space="preserve">둘째 안내</t></is></c></row>');
+  });
+
   it("시트 이름에서 Excel이 막는 글자를 빼고 31자로 자른다", () => {
     const files = readStoredZip(buildXlsx({ name: `a/b:${"가".repeat(40)}`, columns: [], rows: [] }));
     expect(files.get("xl/workbook.xml")).toContain(`<sheet name="a b ${"가".repeat(27)}"`);

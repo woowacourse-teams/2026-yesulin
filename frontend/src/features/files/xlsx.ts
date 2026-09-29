@@ -15,6 +15,8 @@ export type XlsxSheet = {
   readonly name: string;
   readonly columns: readonly XlsxColumn[];
   readonly rows: readonly (readonly XlsxCell[])[];
+  /** 표 아래에 한 행 띄우고 A열에 굵게 적는 안내 문구. 한 줄에 한 행씩. */
+  readonly notes?: readonly string[];
 };
 
 export const XLSX_MIME_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
@@ -88,10 +90,12 @@ function worksheetXml(sheet: XlsxSheet) {
     .join("");
   const header = rowXml(1, sheet.columns.map((column) => column.header), 1);
   const body = sheet.rows.map((row, index) => rowXml(index + 2, row, 0)).join("");
+  const firstNoteRow = sheet.rows.length + 3;
+  const notes = (sheet.notes ?? []).map((note, index) => rowXml(firstNoteRow + index, [note], 1)).join("");
   // 머리글 행을 고정해 명단이 길어도 열 이름이 보이게 한다.
   return `${XML_HEADER}<worksheet xmlns="${SPREADSHEET_NS}">`
     + '<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>'
-    + `<cols>${cols}</cols><sheetData>${header}${body}</sheetData></worksheet>`;
+    + `<cols>${cols}</cols><sheetData>${header}${body}${notes}</sheetData></worksheet>`;
 }
 
 function rowXml(rowNumber: number, cells: readonly XlsxCell[], style: number) {

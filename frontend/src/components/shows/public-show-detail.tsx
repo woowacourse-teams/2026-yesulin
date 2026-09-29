@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import Image from "next/image";
 import { PublicVenueGuide } from "@/components/applications/public-venue-guide";
 import { PrimaryButton } from "@/components/ui/controls";
@@ -16,6 +16,7 @@ import {
 import type { PublicShow, PublicShowSession, ReservationReceipt } from "@/features/shows/types";
 import { ReservationSheet } from "./reservation-sheet";
 import { ShowLinkButtons } from "./show-links";
+import { ShowImageLightbox } from "./show-image-lightbox";
 import { ShowPageHeader } from "./show-page-header";
 import { SessionAvailabilityText, ShowGenreBadge, ShowStatusBadge } from "./show-status";
 
@@ -45,7 +46,7 @@ export function PublicShowDetail({ show, onReserved, onStale }: {
   const action = { show, availability, selectedSession, hasBookable: bookableSessions.length > 0, onReserve: () => setSheetOpen(true), onChoose: focusSessions };
 
   return (
-    <main className={`min-h-screen bg-surface text-foreground ${showsMobileAction ? "pb-[calc(120px+env(safe-area-inset-bottom))]" : "pb-12"} min-[1200px]:pb-12`}>
+    <main className={`min-h-screen break-keep bg-surface text-foreground wrap-break-word ${showsMobileAction ? "pb-[calc(120px+env(safe-area-inset-bottom))]" : "pb-12"} min-[1200px]:pb-12`}>
       <ShowPageHeader />
       <div className="mx-auto max-w-[880px] px-5 py-8 md:px-8 md:py-12 min-[1200px]:grid min-[1200px]:max-w-[1200px] min-[1200px]:grid-cols-[minmax(0,1fr)_320px] min-[1200px]:gap-12">
         <article className="min-w-0">
@@ -183,9 +184,9 @@ function ReservationNotice({ show }: { readonly show: PublicShow }) {
   return (
     <InfoSection title="예매 안내">
       <ul className="grid gap-2 text-base leading-7 text-muted-strong md:text-sm md:leading-6">
-        <li>· 무료 공연이며 좌석은 따로 지정하지 않아요.</li>
-        <li>· 한 번에 최대 <strong className="font-semibold text-foreground">{show.maxTicketsPerReservation}매</strong>까지 예매할 수 있어요. 더 많은 인원은 단체 관람으로 문의해 주세요.</li>
-        <li>· 예매 취소는 <strong className="font-semibold text-foreground">공연 시작 1시간 전까지</strong> 전화로 요청해 주세요.</li>
+        <NoticeItem>무료 공연이며 좌석은 따로 지정하지 않아요.</NoticeItem>
+        <NoticeItem>한 번에 최대 <strong className="font-semibold text-foreground">{show.maxTicketsPerReservation}매</strong>까지 예매할 수 있어요. 더 많은 인원은 단체 관람으로 문의해 주세요.</NoticeItem>
+        <NoticeItem>예매 취소는 <strong className="font-semibold text-foreground">공연 시작 1시간 전까지</strong> 전화로 요청해 주세요.</NoticeItem>
       </ul>
       <a
         href={phoneHref}
@@ -193,27 +194,62 @@ function ReservationNotice({ show }: { readonly show: PublicShow }) {
       >
         취소·단체 문의 <span className="num text-brand">{show.inquiryPhone}</span>
       </a>
-      <ShowLinkButtons links={show.links} className="mt-3" />
+      {show.links.length ? (
+        <div className="mt-6">
+          <p className="text-sm font-semibold text-muted-strong">공연 소식</p>
+          <ShowLinkButtons links={show.links} className="mt-2" />
+        </div>
+      ) : null}
     </InfoSection>
   );
 }
 
+/** 두 줄로 넘어가도 둘째 줄이 글머리표가 아닌 글자 시작에 맞도록 표를 따로 둔다. */
+function NoticeItem({ children }: { readonly children: React.ReactNode }) {
+  return (
+    <li className="flex gap-1.5">
+      <span aria-hidden="true">·</span>
+      <span className="min-w-0">{children}</span>
+    </li>
+  );
+}
+
 function DetailImages({ show }: { readonly show: PublicShow }) {
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const closeLightbox = useCallback(() => setOpenIndex(null), []);
+
   return (
     <InfoSection title="상세 정보">
+      <p className="mb-4 text-sm text-muted-strong">이미지를 누르면 크게 볼 수 있어요.</p>
       <div className="grid gap-4">
         {show.imageUrls.map((url, index) => (
-          <Image
+          <button
             key={url}
-            src={url}
-            alt={`${show.title} 상세 이미지 ${index + 1}`}
-            width={880}
-            height={1200}
-            unoptimized
-            className="h-auto w-full rounded-card border border-border bg-card"
-          />
+            type="button"
+            aria-label={`${show.title} 상세 이미지 ${index + 1} 확대`}
+            onClick={() => setOpenIndex(index)}
+            className="block w-full cursor-zoom-in overflow-hidden rounded-card border border-border bg-card text-left transition-[border-color,filter] hover:border-brand-line hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          >
+            <Image
+              src={url}
+              alt={`${show.title} 상세 이미지 ${index + 1}`}
+              width={880}
+              height={1200}
+              unoptimized
+              className="h-auto w-full"
+            />
+          </button>
         ))}
       </div>
+      {openIndex !== null ? (
+        <ShowImageLightbox
+          title={show.title}
+          imageUrls={show.imageUrls}
+          index={openIndex}
+          onSelect={setOpenIndex}
+          onClose={closeLightbox}
+        />
+      ) : null}
     </InfoSection>
   );
 }

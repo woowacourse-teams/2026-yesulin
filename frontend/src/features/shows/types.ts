@@ -9,10 +9,13 @@ export type ReservationStatus = "CONFIRMED" | "CANCELED";
 
 export const MAX_SHOW_IMAGES = 3;
 export const MAX_SHOW_LINKS = 3;
+export const MAX_SHOW_DESCRIPTION_LENGTH = 2000;
 export const MAX_SHOW_LINK_LABEL_LENGTH = 30;
 export const MAX_SHOW_LINK_URL_LENGTH = 500;
 export const MAX_DIRECTIONS_NOTE_LENGTH = 1000;
 export const MAX_TICKETS_PER_RESERVATION = 10;
+/** 복사하거나 내려받은 예매 관객 정보를 직접 삭제하도록 안내할 기간. */
+export const EXPORTED_BOOKER_DATA_DELETE_DAYS = 3;
 
 /** 예매 안내에 보여 주는 외부 링크(공연사 SNS, 홈페이지 등). */
 export type ShowLink = {

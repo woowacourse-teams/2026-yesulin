@@ -10,8 +10,8 @@ import { ScreenError } from "@/components/auditions/screen-status";
 import { useToast } from "@/components/auditions/toast";
 import { formatShowDateTime } from "@/features/shows/format";
 import { getProducerShows } from "@/features/shows/producer-api";
-import { SHOW_GENRE_LABELS, showRoutes, type ProducerShowSummary } from "@/features/shows/types";
-import { ManagementStatusBadge } from "../show-status";
+import { showRoutes, type ProducerShowSummary } from "@/features/shows/types";
+import { ManagementGenreBadge, ManagementStatusBadge } from "../show-status";
 import { CopyShowLinkButton } from "./copy-show-link-button";
 import { ShowFormModal } from "./show-form-modal";
 
@@ -41,7 +41,7 @@ export function ProducerShowList({ autoOpenCreate = false }: { readonly autoOpen
 
   return (
     <PickerScreen>
-      <div className="mx-auto w-full max-w-[1120px]">
+      <div className="mx-auto w-full max-w-[1120px] break-keep wrap-break-word">
         <header className="mb-8 flex flex-wrap items-start gap-4">
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-brand">무료 공연 예매</p>
@@ -102,7 +102,7 @@ function ProducerShowRow({ show }: { readonly show: ProducerShowSummary }) {
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <ManagementStatusBadge status={show.status} />
-              <span className="text-xs font-semibold text-brand">{SHOW_GENRE_LABELS[show.genre]}</span>
+              <ManagementGenreBadge genre={show.genre} />
             </div>
             <h3 className="mt-2 line-clamp-2 text-lg font-bold group-hover:text-brand sm:line-clamp-1">{show.title}</h3>
           </div>
@@ -112,12 +112,13 @@ function ProducerShowRow({ show }: { readonly show: ProducerShowSummary }) {
           <div className="min-w-0"><dt className="text-xs text-muted">회차</dt><dd className="num mt-1 font-semibold">{show.sessionCount}개</dd></div>
           <div className="min-w-0"><dt className="text-xs text-muted">예매</dt><dd className="num mt-1 font-semibold">{show.reservedTickets}매</dd></div>
         </dl>
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          <span aria-hidden="true" className="inline-flex min-h-11 items-center rounded-control border border-brand bg-brand px-3 text-sm font-semibold text-white">회차·예매 관리</span>
+        {/* 모바일은 세 버튼이 한 줄에 안 들어가 하나만 내려가므로, 주 버튼을 한 줄에 두고 링크 버튼 둘을 나란히 둔다. */}
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+          <span aria-hidden="true" className="col-span-2 inline-flex min-h-11 items-center justify-center rounded-control border border-brand bg-brand px-3 text-sm font-semibold text-white">회차·예매 관리</span>
           {show.status !== "DRAFT" ? (
             <>
-              <Link href={showRoutes.detail(show.id)} target="_blank" className="pointer-events-auto inline-flex min-h-11 items-center rounded-control border border-brand-line px-3 text-sm font-semibold text-brand hover:bg-brand-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">공연 페이지 열기</Link>
-              <div className="pointer-events-auto"><CopyShowLinkButton showId={show.id} /></div>
+              <Link href={showRoutes.detail(show.id)} target="_blank" className="pointer-events-auto inline-flex min-h-11 items-center justify-center rounded-control border border-brand-line px-3 text-sm font-semibold text-brand hover:bg-brand-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">공연 페이지 열기</Link>
+              <div className="pointer-events-auto [&>button]:w-full"><CopyShowLinkButton showId={show.id} /></div>
             </>
           ) : null}
         </div>

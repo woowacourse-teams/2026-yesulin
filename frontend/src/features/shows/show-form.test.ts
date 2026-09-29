@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatInquiryPhone,
   normalizeShowLinkUrl,
   showLinkError,
   validateShowField,
@@ -30,6 +31,13 @@ const empty: ShowFormValues = {
 };
 
 describe("show form validation", () => {
+  it("문의 전화는 지역번호·휴대폰·대표번호에 맞춰 하이픈을 넣는다", () => {
+    expect(formatInquiryPhone("021234567")).toBe("02-123-4567");
+    expect(formatInquiryPhone("01023456789")).toBe("010-2345-6789");
+    expect(formatInquiryPhone("15881234")).toBe("1588-1234");
+    expect(formatInquiryPhone("02-123-4567")).toBe("02-123-4567");
+  });
+
   it("올바른 입력은 오류가 없다", () => {
     expect(validateShowForm(valid)).toEqual({});
   });

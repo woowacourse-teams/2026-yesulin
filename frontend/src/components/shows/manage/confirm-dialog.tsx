@@ -24,7 +24,7 @@ export function ConfirmDialog({ title, description, confirmLabel, destructive = 
       onClose={close}
       labelledBy={TITLE_ID}
       placement="responsiveSheet"
-      className="w-full overflow-hidden rounded-t-modal border border-border bg-card shadow-[var(--shadow-modal)] md:w-[min(480px,calc(100vw-40px))] md:rounded-modal"
+      className="w-full overflow-hidden break-keep rounded-t-modal wrap-break-word border border-border bg-card shadow-[var(--shadow-modal)] md:w-[min(480px,calc(100vw-40px))] md:rounded-modal"
     >
       <DialogHeader id={TITLE_ID} title={title} />
       <div className="px-5 py-6 text-base leading-7 text-muted-strong md:px-6 md:text-sm md:leading-6">{description}</div>
