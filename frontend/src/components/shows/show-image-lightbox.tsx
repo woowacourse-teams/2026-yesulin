@@ -23,6 +23,22 @@ export function ShowImageLightbox({ title, imageUrls, index, onSelect, onClose }
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      const frame = imageFrameRef.current;
+      if (zoomed && frame && event.target instanceof Node && frame.contains(event.target)) {
+        const step = { left: frame.clientWidth / 2, top: frame.clientHeight / 2 };
+        const offsets: Record<string, ScrollToOptions> = {
+          ArrowLeft: { left: -step.left, top: 0 },
+          ArrowRight: { left: step.left, top: 0 },
+          ArrowUp: { left: 0, top: -step.top },
+          ArrowDown: { left: 0, top: step.top },
+        };
+        const offset = offsets[event.key];
+        if (offset) {
+          event.preventDefault();
+          frame.scrollBy(offset);
+          return;
+        }
+      }
       if (event.key === "ArrowLeft" && index > 0) {
         event.preventDefault();
         selectImage(index - 1);
@@ -34,7 +50,7 @@ export function ShowImageLightbox({ title, imageUrls, index, onSelect, onClose }
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [imageUrls.length, index, selectImage]);
+  }, [imageUrls.length, index, selectImage, zoomed]);
 
   useEffect(() => {
     const frame = imageFrameRef.current;
@@ -64,7 +80,7 @@ export function ShowImageLightbox({ title, imageUrls, index, onSelect, onClose }
         <button type="button" onClick={onClose} className="min-h-11 rounded-control px-3 text-sm font-semibold text-white/80 hover:bg-white/10 hover:text-white">닫기</button>
       </header>
 
-      <div ref={imageFrameRef} className="min-h-0 flex-1 overscroll-contain overflow-auto bg-black">
+      <div ref={imageFrameRef} tabIndex={0} role="region" aria-label={`${title} 상세 이미지 확대 영역`} className="min-h-0 flex-1 overscroll-contain overflow-auto bg-black focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand">
         <div className={zoomed ? "relative h-[200%] w-[200%]" : "relative h-full w-full"}>
           <Image
             key={imageUrl}

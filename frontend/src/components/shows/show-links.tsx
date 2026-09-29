@@ -1,19 +1,28 @@
 import type { ShowLink } from "@/features/shows/types";
 
-/** 서버가 http/https만 저장하지만, 화면에서도 다른 scheme 링크는 만들지 않는다. */
-const WEB_URL_PATTERN = /^https?:\/\//i;
+/** 저장된 링크가 손상돼 있어도 화면은 계속 그릴 수 있도록 유효한 웹 주소만 고른다. */
+function parseWebLinks(links: readonly ShowLink[]) {
+  return links.flatMap((link) => {
+    try {
+      const url = new URL(link.url);
+      if (url.protocol !== "http:" && url.protocol !== "https:") return [];
+      return [{ link, hostname: url.hostname.replace(/^www\./i, "") }];
+    } catch {
+      return [];
+    }
+  });
+}
 
 /** 공연사가 등록한 안내 링크(SNS, 홈페이지 등). 새 창으로 열고 이 페이지 정보를 넘기지 않는다. */
 export function ShowLinkButtons({ links, className = "" }: {
   readonly links: readonly ShowLink[];
   readonly className?: string;
 }) {
-  const webLinks = links.filter((link) => WEB_URL_PATTERN.test(link.url));
+  const webLinks = parseWebLinks(links);
   if (!webLinks.length) return null;
   return (
     <ul className={`grid gap-3 sm:grid-cols-2 ${className}`}>
-      {webLinks.map((link, index) => {
-        const hostname = new URL(link.url).hostname.replace(/^www\./i, "");
+      {webLinks.map(({ link, hostname }, index) => {
         const isInstagram = hostname === "instagram.com";
         const isThreads = hostname === "threads.com" || hostname === "threads.net";
         return (
