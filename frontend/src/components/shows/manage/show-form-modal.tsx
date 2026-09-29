@@ -17,9 +17,11 @@ import {
 } from "@/components/ui/controls";
 import { AuditionRequestError } from "@/features/auditions/api-client";
 import type { VenueAddress } from "@/features/auditions/creation-types";
+import { usePhoneInput } from "@/features/applications/phone-number";
 import { createShow, updateShow, uploadShowImage } from "@/features/shows/producer-api";
 import {
   SHOW_FORM_FIELDS,
+  formatInquiryPhone,
   normalizeShowLinkUrl,
   showLinkLabelError,
   showLinkUrlError,
@@ -31,6 +33,7 @@ import {
 } from "@/features/shows/show-form";
 import {
   MAX_DIRECTIONS_NOTE_LENGTH,
+  MAX_SHOW_DESCRIPTION_LENGTH,
   MAX_SHOW_IMAGES,
   MAX_SHOW_LINK_LABEL_LENGTH,
   MAX_SHOW_LINK_URL_LENGTH,
@@ -86,6 +89,7 @@ export function ShowFormModal({ show, onClose, onSaved }: {
   const [runningMinutes, setRunningMinutes] = useState(show ? String(show.runningMinutes) : "");
   const [ageRating, setAgeRating] = useState(show?.ageRating ?? "");
   const [inquiryPhone, setInquiryPhone] = useState(show?.inquiryPhone ?? "");
+  const onInquiryPhoneChange = usePhoneInput(formatInquiryPhone);
   const [links, setLinks] = useState<readonly ShowLink[]>(show?.links ?? []);
   const [remainingSeatsVisible, setRemainingSeatsVisible] = useState(show?.remainingSeatsVisible ?? true);
   const [poster, setPoster] = useState<ImageSlot>(
@@ -270,7 +274,7 @@ export function ShowFormModal({ show, onClose, onSaved }: {
               </div>
               <div>
                 <CreateField label="취소·단체 문의 전화" htmlFor="show-inquiry-phone" hint="관객에게 공개되며, 예매 취소와 11명 이상 단체 관람 문의를 받습니다.">
-                  <FieldInput id="show-inquiry-phone" type="tel" maxLength={13} value={inquiryPhone} onChange={(event) => setInquiryPhone(event.target.value)} placeholder="02-123-4567" {...inputState("inquiryPhone")} />
+                  <FieldInput id="show-inquiry-phone" type="tel" inputMode="tel" maxLength={13} value={inquiryPhone} onChange={(event) => onInquiryPhoneChange(event, setInquiryPhone)} placeholder="02-123-4567" {...inputState("inquiryPhone")} />
                 </CreateField>
                 <FieldError field="inquiryPhone" message={fieldError("inquiryPhone")} />
               </div>
@@ -278,7 +282,8 @@ export function ShowFormModal({ show, onClose, onSaved }: {
           </div>
 
           <CreateField label="공연 소개 (선택)" htmlFor="show-description">
-            <FieldTextarea id="show-description" rows={5} maxLength={2000} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="줄거리, 출연진, 입장 안내 등을 적어 주세요." className="resize-y" />
+            <FieldTextarea id="show-description" rows={5} maxLength={MAX_SHOW_DESCRIPTION_LENGTH} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="줄거리, 출연진, 입장 안내 등을 적어 주세요." className="resize-none" />
+            <span className="num mt-1 block text-right text-xs text-muted">{description.length} / {MAX_SHOW_DESCRIPTION_LENGTH.toLocaleString("ko-KR")}자</span>
           </CreateField>
 
           <div id="show-venue-field">
@@ -287,7 +292,8 @@ export function ShowFormModal({ show, onClose, onSaved }: {
           </div>
 
           <CreateField label="오시는 길 추가 안내 (선택)" htmlFor="show-directions-note" hint="주차, 입구 위치, 대중교통 이용 방법처럼 주소만으로 전하기 어려운 내용을 적어 주세요. 관객 화면의 오시는 길 아래에 보여요.">
-            <FieldTextarea id="show-directions-note" rows={3} maxLength={MAX_DIRECTIONS_NOTE_LENGTH} value={directionsNote} onChange={(event) => setDirectionsNote(event.target.value)} placeholder="예: 혜화역 2번 출구에서 도보 약 5분 거리입니다." className="resize-y" />
+            <FieldTextarea id="show-directions-note" rows={3} maxLength={MAX_DIRECTIONS_NOTE_LENGTH} value={directionsNote} onChange={(event) => setDirectionsNote(event.target.value)} placeholder="예: 혜화역 2번 출구에서 도보 약 5분 거리입니다." className="resize-none" />
+            <span className="num mt-1 block text-right text-xs text-muted">{directionsNote.length} / {MAX_DIRECTIONS_NOTE_LENGTH.toLocaleString("ko-KR")}자</span>
           </CreateField>
 
           <fieldset>
@@ -333,9 +339,23 @@ export function ShowFormModal({ show, onClose, onSaved }: {
 
           <fieldset aria-describedby="show-remaining-seats-hint">
             <legend className="mb-2 text-base font-semibold text-muted-strong md:text-sm">관객에게 잔여석 표시</legend>
-            <div className="inline-flex overflow-hidden rounded-control border border-border">
-              <SegmentButton pressed={remainingSeatsVisible} onClick={() => setRemainingSeatsVisible(true)} className="min-h-11 px-5">공개</SegmentButton>
-              <SegmentButton pressed={!remainingSeatsVisible} onClick={() => setRemainingSeatsVisible(false)} className="min-h-11 px-5">비공개</SegmentButton>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                aria-pressed={remainingSeatsVisible}
+                onClick={() => setRemainingSeatsVisible(true)}
+                className={`min-h-11 rounded-control border px-4 py-3 text-left text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${remainingSeatsVisible ? "border-brand bg-brand-soft text-brand ring-1 ring-brand" : "border-border bg-card text-muted-strong hover:bg-surface"}`}
+              >
+                공개 <span className="mt-1 block text-xs font-normal">남은 좌석 수 표시</span>
+              </button>
+              <button
+                type="button"
+                aria-pressed={!remainingSeatsVisible}
+                onClick={() => setRemainingSeatsVisible(false)}
+                className={`min-h-11 rounded-control border px-4 py-3 text-left text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${!remainingSeatsVisible ? "border-brand bg-brand-soft text-brand ring-1 ring-brand" : "border-border bg-card text-muted-strong hover:bg-surface"}`}
+              >
+                비공개 <span className="mt-1 block text-xs font-normal">예매 가능 여부만 표시</span>
+              </button>
             </div>
             <p id="show-remaining-seats-hint" className="mt-2 text-base leading-relaxed text-muted md:text-sm">
               {remainingSeatsVisible

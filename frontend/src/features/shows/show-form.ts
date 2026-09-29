@@ -21,6 +21,20 @@ export type ShowFormErrors = Partial<Record<ShowFormField, string>>;
 
 const MAX_RUNNING_MINUTES = 1440;
 const INQUIRY_PHONE_PATTERN = /^\d{2,4}-\d{3,4}(-\d{4})?$/;
+
+/** 지역번호·휴대폰과 1588 같은 대표번호를 입력 중에도 읽기 쉬운 형식으로 만든다. */
+export function formatInquiryPhone(value: string) {
+  const digits = value.replace(/\D/g, "");
+  if (digits.startsWith("1")) {
+    const serviceNumber = digits.slice(0, 8);
+    return serviceNumber.length <= 4 ? serviceNumber : `${serviceNumber.slice(0, 4)}-${serviceNumber.slice(4)}`;
+  }
+  const phone = digits.slice(0, digits.startsWith("02") ? 10 : 11);
+  const prefixLength = phone.startsWith("02") ? 2 : 3;
+  if (phone.length <= prefixLength) return phone;
+  if (phone.length <= prefixLength + 4) return `${phone.slice(0, prefixLength)}-${phone.slice(prefixLength)}`;
+  return `${phone.slice(0, prefixLength)}-${phone.slice(prefixLength, -4)}-${phone.slice(-4)}`;
+}
 const URL_SCHEME_PATTERN = /^[a-z][a-z\d+.-]*:/i;
 
 export function validateShowField(field: ShowFormField, values: ShowFormValues): string | null {

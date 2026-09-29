@@ -9,6 +9,7 @@ export type ReservationStatus = "CONFIRMED" | "CANCELED";
 
 export const MAX_SHOW_IMAGES = 3;
 export const MAX_SHOW_LINKS = 3;
+export const MAX_SHOW_DESCRIPTION_LENGTH = 2000;
 export const MAX_SHOW_LINK_LABEL_LENGTH = 30;
 export const MAX_SHOW_LINK_URL_LENGTH = 500;
 export const MAX_DIRECTIONS_NOTE_LENGTH = 1000;

@@ -22,10 +22,11 @@ import {
   deleteShowSession,
   getProducerShow,
   openShow,
+  updateShow,
   updateShowSession,
 } from "@/features/shows/producer-api";
-import { SHOW_GENRE_LABELS, showRoutes, type ProducerShow, type ProducerShowSession } from "@/features/shows/types";
-import { ManagementStatusBadge } from "../show-status";
+import { showRoutes, type ProducerShow, type ProducerShowSession, type SaveShow } from "@/features/shows/types";
+import { ManagementGenreBadge, ManagementStatusBadge } from "../show-status";
 import { ConfirmDialog } from "./confirm-dialog";
 import { CopyShowLinkButton } from "./copy-show-link-button";
 import { SessionReservations } from "./session-reservations";
@@ -126,7 +127,7 @@ export function ProducerShowDetail({ showId }: { readonly showId: string }) {
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <ManagementStatusBadge status={show.status} />
-              <span className="text-sm font-semibold text-brand">{SHOW_GENRE_LABELS[show.genre]}</span>
+              <ManagementGenreBadge genre={show.genre} />
             </div>
             <h1 className="mt-2 break-keep text-2xl font-bold tracking-[-0.025em] md:text-[28px]">{show.title}</h1>
             <p id="show-status-guide" className="mt-2 text-sm text-muted-strong">{statusGuide(show, openable)}</p>
@@ -162,7 +163,15 @@ export function ProducerShowDetail({ showId }: { readonly showId: string }) {
             />
             {selectedSession ? <SessionReservations key={selectedSession.id} showId={show.id} showTitle={show.title} session={selectedSession} onChanged={refresh} /> : null}
           </div>
-          <ShowSummary show={show} onDelete={() => setPendingAction("delete")} busy={busy} />
+          <ShowSummary
+            show={show}
+            onDelete={() => setPendingAction("delete")}
+            onToggleRemainingSeats={() => void run(
+              () => updateShow(show.id, showInputWithRemainingSeats(show, !show.remainingSeatsVisible)),
+              show.remainingSeatsVisible ? "관객에게 잔여석을 숨겼어요." : "관객에게 잔여석을 공개했어요.",
+            )}
+            busy={busy}
+          />
         </div>
       </div>
 
@@ -413,9 +422,27 @@ function SessionForm({ initial, busy, onSubmit, onCancel }: {
   );
 }
 
-function ShowSummary({ show, onDelete, busy }: {
+function showInputWithRemainingSeats(show: ProducerShow, remainingSeatsVisible: boolean): SaveShow {
+  return {
+    title: show.title,
+    genre: show.genre,
+    description: show.description,
+    venue: show.venue,
+    directionsNote: show.directionsNote,
+    runningMinutes: show.runningMinutes,
+    ageRating: show.ageRating,
+    inquiryPhone: show.inquiryPhone,
+    links: show.links,
+    remainingSeatsVisible,
+    posterFileId: show.poster.fileId,
+    imageFileIds: show.images.map((image) => image.fileId),
+  };
+}
+
+function ShowSummary({ show, onDelete, onToggleRemainingSeats, busy }: {
   readonly show: ProducerShow;
   readonly onDelete: () => void;
+  readonly onToggleRemainingSeats: () => void;
   readonly busy: boolean;
 }) {
   return (
@@ -431,8 +458,18 @@ function ShowSummary({ show, onDelete, busy }: {
           <dt className="text-muted">문의 전화</dt><dd className="num">{show.inquiryPhone}</dd>
           <dt className="text-muted">상세 이미지</dt><dd className="num">{show.images.length}장</dd>
           <dt className="text-muted">안내 링크</dt><dd className="num">{show.links.length ? `${show.links.length}개` : "없음"}</dd>
-          <dt className="text-muted">잔여석</dt><dd>{show.remainingSeatsVisible ? "관객에게 공개" : "관객에게 비공개"}</dd>
         </dl>
+      </div>
+      <div className="mt-5 border-t border-border-soft pt-4">
+        <p className="text-sm font-semibold">관객에게 잔여석 표시</p>
+        <p className="mt-1 text-sm text-muted-strong">현재 {show.remainingSeatsVisible ? "공개 중" : "비공개"}</p>
+        <SecondaryButton
+          onClick={onToggleRemainingSeats}
+          disabled={busy}
+          className="mt-3 w-full"
+        >
+          {busy ? "저장 중…" : show.remainingSeatsVisible ? "잔여석 비공개로 변경" : "잔여석 공개로 변경"}
+        </SecondaryButton>
       </div>
       <div className="mt-5 border-t border-border-soft pt-4">
         <button
