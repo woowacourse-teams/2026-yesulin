@@ -37,6 +37,14 @@ export function ManagementStatusBadge({ status }: { readonly status: ShowStatus 
   );
 }
 
+export function ManagementGenreBadge({ genre }: { readonly genre: ShowGenre }) {
+  return (
+    <span className="inline-flex min-h-8 items-center whitespace-nowrap rounded-full border border-border bg-surface px-3 text-base font-semibold text-muted-strong">
+      {SHOW_GENRE_LABELS[genre]}
+    </span>
+  );
+}
+
 export function ShowGenreBadge({ genre }: { readonly genre: ShowGenre }) {
   return (
     <span className="inline-flex items-center rounded-full border border-border bg-card px-3 py-1 text-sm font-semibold text-muted-strong">

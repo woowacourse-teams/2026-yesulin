@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { ScreenError } from "@/components/auditions/screen-status";
 import { useToast } from "@/components/auditions/toast";
-import { SecondaryButton, TextButton } from "@/components/ui/controls";
+import { PrimaryButton, SecondaryButton, TextButton } from "@/components/ui/controls";
 import { AuditionRequestError } from "@/features/auditions/api-client";
 import { saveBlob } from "@/features/files/download";
 import { createXlsxBlob } from "@/features/files/xlsx";
@@ -26,7 +26,7 @@ type ReservationsState =
 const CHECKBOX_CLASS = "h-5 w-5 shrink-0 cursor-pointer accent-brand";
 
 /**
- * 선택한 회차의 예매자. 관객이 전화로 취소를 요청하면 예매번호·이름·번호로 찾아 취소하고,
+ * 선택한 회차의 예매 관객. 관객이 전화로 취소를 요청하면 예매번호·이름·번호로 찾아 취소하고,
  * 문자 안내용 전화번호 복사와 현장 명단용 엑셀 다운로드를 제공한다. 취소된 예매는 복사·엑셀에서 뺀다.
  */
 export function SessionReservations({ showId, showTitle, session, onChanged }: {
@@ -48,8 +48,8 @@ export function SessionReservations({ showId, showTitle, session, onChanged }: {
     getSessionReservations(showId, session.id)
       .then((reservations) => { if (active) setState({ status: "ready", reservations }); })
       .catch((cause) => {
-        console.error("[회차 예매자 조회 실패]", cause);
-        if (active) setState({ status: "error", message: cause instanceof Error ? cause.message : "예매자를 불러오지 못했습니다." });
+        console.error("[회차 예매 관객 조회 실패]", cause);
+        if (active) setState({ status: "error", message: cause instanceof Error ? cause.message : "예매 관객을 불러오지 못했습니다." });
       });
     return () => { active = false; };
   }, [showId, session.id, reloadToken]);
@@ -102,7 +102,7 @@ export function SessionReservations({ showId, showTitle, session, onChanged }: {
       await navigator.clipboard.writeText(phoneNumbersText(phones));
       toast(`전화번호 ${phones.length}개를 복사했어요. 한 줄에 번호 하나씩 들어 있어요.`, { type: "success" });
     } catch (cause) {
-      console.error("[예매자 전화번호 복사 실패]", cause);
+      console.error("[예매 관객 전화번호 복사 실패]", cause);
       toast("전화번호를 복사하지 못했어요. 다시 시도해 주세요.", { type: "error" });
     }
   };
@@ -112,7 +112,7 @@ export function SessionReservations({ showId, showTitle, session, onChanged }: {
       saveBlob(createXlsxBlob(reservationSheet(reservations)), reservationFileName(showTitle, session.startsAt));
       toast(`확정 예매 ${confirmed.length}건으로 엑셀 파일을 만들었어요.`, { type: "success" });
     } catch (cause) {
-      console.error("[예매자 명단 엑셀 만들기 실패]", cause);
+      console.error("[예매 관객 명단 엑셀 만들기 실패]", cause);
       toast("엑셀 파일을 만들지 못했어요. 다시 시도해 주세요.", { type: "error" });
     }
   };
@@ -121,13 +121,13 @@ export function SessionReservations({ showId, showTitle, session, onChanged }: {
     <section aria-labelledby="session-reservations-title" className="@container rounded-card border border-border bg-card">
       <div className="flex flex-wrap items-end justify-between gap-3 border-b border-border-soft px-5 py-4">
         <div>
-          <h2 id="session-reservations-title" className="text-base font-bold">예매자 · <span className="num">{formatShowDateTime(session.startsAt)}</span></h2>
+          <h2 id="session-reservations-title" className="text-base font-bold">예매 관객 · <span className="num">{formatShowDateTime(session.startsAt)}</span></h2>
           <p className="num mt-1 text-sm text-muted-strong">
             확정 {confirmed.length}건 · {confirmed.reduce((sum, item) => sum + item.ticketCount, 0)}매 / 정원 {session.capacity}석
           </p>
         </div>
         <label className="w-full max-w-xs text-sm font-semibold text-muted-strong">
-          <span className="sr-only">예매자 검색</span>
+          <span className="sr-only">예매 관객 검색</span>
           <input
             type="search"
             value={query}
@@ -139,21 +139,21 @@ export function SessionReservations({ showId, showTitle, session, onChanged }: {
       </div>
 
       {state.status === "ready" && confirmed.length > 0 ? (
-        <div role="toolbar" aria-label="예매자 내보내기" className="flex flex-wrap items-center gap-2 border-b border-border-soft px-5 py-3">
+        <div role="toolbar" aria-label="예매 관객 명단 내보내기" className="flex flex-wrap items-center gap-2 border-b border-border-soft px-5 py-3">
           <label className={`inline-flex min-h-11 items-center gap-2 pr-1 text-sm font-semibold text-muted-strong @min-[42rem]:hidden ${shownConfirmed.length ? "cursor-pointer" : "opacity-50"}`}>
             <SelectAllCheckbox checked={allShownSelected} indeterminate={!allShownSelected && someShownSelected} disabled={!shownConfirmed.length} onChange={toggleAllShown} />
             전체 선택
           </label>
-          <SecondaryButton onClick={() => void copyPhones()}>
+          <SecondaryButton onClick={() => void copyPhones()} className="w-full @min-[32rem]:w-auto">
             {selected.length ? <>선택한 <span className="num">{selected.length}</span>명 번호 복사</> : <>전화번호 전체 복사 <span className="num ml-1 text-muted">{confirmedPhoneNumbers(confirmed).length}명</span></>}
           </SecondaryButton>
-          <SecondaryButton onClick={downloadSheet}>엑셀 다운로드</SecondaryButton>
+          <PrimaryButton onClick={downloadSheet} title="엑셀(.xlsx) 파일로 다운로드" className="w-full @min-[32rem]:w-auto">예매 관객 내보내기</PrimaryButton>
           {selected.length ? <TextButton onClick={() => setSelectedIds(new Set())}>선택 해제</TextButton> : null}
           <p className="w-full text-xs leading-5 text-muted lg:ml-auto lg:w-auto">취소된 예매는 복사·엑셀에 넣지 않아요.</p>
         </div>
       ) : null}
 
-      {state.status === "loading" ? <p role="status" className="px-5 py-10 text-center text-sm text-muted">예매자를 불러오는 중…</p> : null}
+      {state.status === "loading" ? <p role="status" className="px-5 py-10 text-center text-sm text-muted">예매 관객을 불러오는 중…</p> : null}
       {state.status === "error" ? <div className="p-5"><ScreenError message={state.message} onRetry={reload} /></div> : null}
       {state.status === "ready" && reservations.length === 0 ? <p className="px-5 py-10 text-center text-sm text-muted">아직 예매한 관객이 없어요.</p> : null}
       {state.status === "ready" && reservations.length > 0 && shown.length === 0 ? <p className="px-5 py-10 text-center text-sm text-muted">검색 결과가 없어요.</p> : null}
@@ -191,12 +191,12 @@ export function SessionReservations({ showId, showTitle, session, onChanged }: {
                     </td>
                     <td className="num px-2 py-3 font-semibold tracking-[0.06em]">{item.code}</td>
                     <td className="px-2 py-3">{item.bookerName}</td>
-                    <td className="num px-2 py-3"><a href={`tel:${item.bookerPhone.replaceAll("-", "")}`} className="hover:text-brand hover:underline">{item.bookerPhone}</a></td>
+                    <td className="num px-2 py-3">{item.bookerPhone}</td>
                     <td className="num px-2 py-3">{item.ticketCount}매</td>
                     <td className="num px-2 py-3">{formatShowDateTime(item.createdAt)}</td>
                     {/* 칸을 아끼려고 상태와 취소 버튼을 한 칸에 둔다. */}
                     <td className="py-2 pl-2 pr-5">
-                      <div className="flex items-center justify-end gap-3">
+                      <div className="flex items-center justify-end gap-6">
                         <ReservationStatusText reservation={item} />
                         {item.status === "CONFIRMED" ? <CancelButton onClick={() => setTarget(item)} /> : null}
                       </div>
@@ -219,7 +219,7 @@ export function SessionReservations({ showId, showTitle, session, onChanged }: {
                     <div className="min-w-0">
                       <p className="num text-base font-bold tracking-[0.06em]">{item.code}</p>
                       <p className="mt-1 text-base">{item.bookerName} · <span className="num">{item.ticketCount}매</span></p>
-                      <a href={`tel:${item.bookerPhone.replaceAll("-", "")}`} className="num mt-1 inline-flex min-h-11 items-center text-base text-brand">{item.bookerPhone}</a>
+                      <p className="num mt-1 text-base text-muted-strong">{item.bookerPhone}</p>
                     </div>
                     <ReservationStatusText reservation={item} />
                   </div>
@@ -276,7 +276,7 @@ function SelectAllCheckbox({ checked, indeterminate, disabled, onChange }: {
 
 function ReservationStatusText({ reservation }: { readonly reservation: ProducerReservation }) {
   return reservation.status === "CONFIRMED"
-    ? <span className="whitespace-nowrap text-sm font-semibold text-pass">확정</span>
+    ? <span className="whitespace-nowrap text-sm font-semibold text-brand">확정</span>
     : <span className="whitespace-nowrap text-sm font-semibold text-muted">취소됨</span>;
 }
 

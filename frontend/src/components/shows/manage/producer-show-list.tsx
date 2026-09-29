@@ -10,8 +10,8 @@ import { ScreenError } from "@/components/auditions/screen-status";
 import { useToast } from "@/components/auditions/toast";
 import { formatShowDateTime } from "@/features/shows/format";
 import { getProducerShows } from "@/features/shows/producer-api";
-import { SHOW_GENRE_LABELS, showRoutes, type ProducerShowSummary } from "@/features/shows/types";
-import { ManagementStatusBadge } from "../show-status";
+import { showRoutes, type ProducerShowSummary } from "@/features/shows/types";
+import { ManagementGenreBadge, ManagementStatusBadge } from "../show-status";
 import { CopyShowLinkButton } from "./copy-show-link-button";
 import { ShowFormModal } from "./show-form-modal";
 
@@ -102,7 +102,7 @@ function ProducerShowRow({ show }: { readonly show: ProducerShowSummary }) {
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <ManagementStatusBadge status={show.status} />
-              <span className="text-xs font-semibold text-brand">{SHOW_GENRE_LABELS[show.genre]}</span>
+              <ManagementGenreBadge genre={show.genre} />
             </div>
             <h3 className="mt-2 line-clamp-2 text-lg font-bold group-hover:text-brand sm:line-clamp-1">{show.title}</h3>
           </div>
