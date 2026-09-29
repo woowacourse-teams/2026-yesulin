@@ -1,7 +1,7 @@
 /** 기획사가 예매자에게 문자를 보내거나 현장 명단으로 쓸 수 있게 예매자 번호·명단을 내보낸다. 취소된 예매는 넣지 않는다. */
 
 import type { XlsxSheet } from "@/features/files/xlsx";
-import type { ProducerReservation } from "./types";
+import { BOOKER_INFO_RETENTION_DAYS, type ProducerReservation } from "./types";
 
 const koreaSheetDateTimeFormat = new Intl.DateTimeFormat("en-CA", {
   timeZone: "Asia/Seoul",
@@ -43,7 +43,31 @@ export function phoneNumbersText(phones: readonly string[]) {
   return phones.join("\n");
 }
 
-export function reservationSheet(reservations: readonly ProducerReservation[]): XlsxSheet {
+const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
+
+/** 관람 회차 날짜(한국 시간)에 보유 기간을 더한 날 `2026년 10월 5일 (월)`. 이날까지 명단을 지우도록 안내한다. */
+export function bookerInfoDeleteBy(sessionStartsAt: string) {
+  const parts = kstParts(sessionStartsAt);
+  if (!parts) return "";
+  const [year, month, day] = parts.date.split("-").map(Number);
+  const deadline = new Date(Date.UTC(year!, month! - 1, day! + BOOKER_INFO_RETENTION_DAYS));
+  return `${deadline.getUTCFullYear()}년 ${deadline.getUTCMonth() + 1}월 ${deadline.getUTCDate()}일 (${WEEKDAYS[deadline.getUTCDay()]})`;
+}
+
+/**
+ * 명단 맨 아래 파기 안내. 내려받은 파일은 서버 파기와 상관없이 남으므로 기획사가 직접 지우도록 기한을 적는다.
+ * 인쇄해도 잘리지 않게 한 줄이 명단 열 폭(A~E)을 넘지 않도록 나눈다.
+ */
+function deleteNotice(sessionStartsAt: string) {
+  const deleteBy = bookerInfoDeleteBy(sessionStartsAt);
+  return [
+    "[개인정보 파기 안내]",
+    `이 명단의 이름·휴대폰 번호는 관람 회차 종료 후 ${BOOKER_INFO_RETENTION_DAYS}일 이내에 파기해야 합니다.`,
+    `${deleteBy ? `${deleteBy}까지 ` : ""}이 파일과 따로 복사해 둔 번호를 모두 삭제해 주세요.`,
+  ];
+}
+
+export function reservationSheet(reservations: readonly ProducerReservation[], sessionStartsAt: string): XlsxSheet {
   return {
     name: "예매자명단",
     columns: [
@@ -62,6 +86,7 @@ export function reservationSheet(reservations: readonly ProducerReservation[]): 
         reservation.ticketCount,
         formatSheetDateTime(reservation.createdAt),
       ]),
+    notes: deleteNotice(sessionStartsAt),
   };
 }
 

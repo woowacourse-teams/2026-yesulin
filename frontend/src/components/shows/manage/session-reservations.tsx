@@ -109,7 +109,7 @@ export function SessionReservations({ showId, showTitle, session, onChanged }: {
 
   const downloadSheet = () => {
     try {
-      saveBlob(createXlsxBlob(reservationSheet(reservations)), reservationFileName(showTitle, session.startsAt));
+      saveBlob(createXlsxBlob(reservationSheet(reservations, session.startsAt)), reservationFileName(showTitle, session.startsAt));
       toast(`확정 예매 ${confirmed.length}건으로 엑셀 파일을 만들었어요.`, { type: "success" });
     } catch (cause) {
       console.error("[예매 관객 명단 엑셀 만들기 실패]", cause);
