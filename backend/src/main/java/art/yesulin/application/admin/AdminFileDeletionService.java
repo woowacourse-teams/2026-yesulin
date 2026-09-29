@@ -16,12 +16,12 @@ public class AdminFileDeletionService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AdminFileDeletionService.class);
 
-    private final AdminFileDeletionConfirmation deletionConfirmation;
+    private final AdminDeletionConfirmation deletionConfirmation;
     private final AdminFileDeletionStateService stateService;
     private final ObjectStorage objectStorage;
 
     public void delete(long actorMemberId, long fileId, String confirmationPassword) {
-        deletionConfirmation.verify(confirmationPassword);
+        deletionConfirmation.verify(actorMemberId, confirmationPassword);
         Optional<FileDeletionTarget> target = stateService.prepare(fileId);
         if (target.isEmpty()) {
             return;
@@ -31,7 +31,7 @@ public class AdminFileDeletionService {
     }
 
     public BatchFileDeletionResult deleteBatch(long actorMemberId, List<Long> fileIds, String confirmationPassword) {
-        deletionConfirmation.verify(confirmationPassword);
+        deletionConfirmation.verify(actorMemberId, confirmationPassword);
         List<BatchFileDeletionResult.Item> results = new ArrayList<>();
         for (long fileId : fileIds) {
             results.add(deleteOne(actorMemberId, fileId));

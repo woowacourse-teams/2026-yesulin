@@ -97,8 +97,6 @@ yesulin:
     accounts: ${YESULIN_ADMIN_ACCOUNTS:}
     # 지원서 삭제 2차 확인 비밀번호의 BCrypt 해시다. 원문 비밀번호를 설정하거나 저장소에 기록하지 않는다.
     deletion-password-hash: ${YESULIN_ADMIN_DELETION_PASSWORD_HASH:}
-    # 미사용 파일 삭제용 비밀번호. 환경별 비밀 설정에서만 주입하고 저장소에 원문을 기록하지 않는다.
-    file-deletion-password: ${YESULIN_ADMIN_FILE_DELETION_PASSWORD:}
   mail:
     enabled: ${MAIL_ENABLED:true}
     from: ${GOOGLE_SMTP_FROM:}

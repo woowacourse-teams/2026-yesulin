@@ -17,6 +17,7 @@ import art.yesulin.domain.member.MemberStatus;
 import art.yesulin.domain.member.MemberType;
 import art.yesulin.support.FakeObjectStorage;
 import art.yesulin.support.ObjectStorageTestConfiguration;
+import at.favre.lib.crypto.bcrypt.BCrypt;
 import jakarta.servlet.ServletException;
 import java.sql.Timestamp;
 import java.time.Clock;
@@ -54,7 +55,8 @@ class AdminFileControllerTest {
 
     @DynamicPropertySource
     static void registerDeletionPassword(DynamicPropertyRegistry registry) {
-        registry.add("yesulin.admin.file-deletion-password", () -> "password");
+        registry.add("yesulin.admin.deletion-password-hash", () -> BCrypt.withDefaults()
+                .hashToString(10, "password".toCharArray()));
     }
 
     @Autowired

@@ -46,15 +46,13 @@ readiness에는 Spring의 readiness 상태와 DB 연결 상태가 포함된다. 
 세션 Cookie의 `Secure` 속성은 `SESSION_COOKIE_SECURE=true`로 켠다. 값을 바꾸고 재기동하면 비밀번호가 교체되고,
 값을 비우면 기존 계정은 남되 새로 만들지 않는다. 계정을 없애려면 DB에서 해당 회원을 직접 지운다.
 
-미사용 파일 수동 삭제는 운영자가 정한 공통 비밀번호를 `YESULIN_ADMIN_FILE_DELETION_PASSWORD`에 설정한다.
-해시 생성 단계는 없다. 대상 환경의 config 저장소 `server/dev.env` 또는 `server/prod.env`를 SOPS로 편집해
-`YESULIN_ADMIN_FILE_DELETION_PASSWORD=<정한 비밀번호>`를 넣고 새 config 버전을 배포한다.
-이 저장소나 PR, 메신저에 실제 비밀번호를 적지 않는다. 파일 삭제 API는 로그인한 ADMIN과 CSRF 토큰을 요구하고,
-선택한 파일 최대 100개를 한 요청에서 비밀번호 한 번으로 확인한다. 값이 비어 있으면 조회만 가능하고
-파일 삭제는 `403 ADMIN_DELETION_CONFIRMATION_FAILED`로 거부된다. 비밀번호를 바꾸려면 암호화된 config 값을
-수정하고 재배포한다. 운영 환경마다 서로 다른 긴 비밀번호를 권장한다. 이 공통 비밀번호는 독립적인 MFA가 아니다.
+지원서와 미사용 파일 삭제는 같은 2차 확인 비밀번호를 사용한다. 원문 대신 BCrypt 해시만
+`YESULIN_ADMIN_DELETION_PASSWORD_HASH`에 둔다. 이미 지원서 삭제가 작동한다면 파일 삭제용 설정을 추가할 필요가 없다.
+파일 삭제 API는 로그인한 ADMIN과 CSRF 토큰을 요구하고, 선택한 파일 최대 100개를 한 요청에서
+비밀번호 한 번으로 확인한다. 해시가 비어 있으면 두 삭제 기능 모두 거부되지만 조회는 가능하다.
+이 확인 비밀번호는 독립적인 MFA가 아니다.
 
-지원서 삭제용 별도 비밀번호는 원문 대신 BCrypt 해시만 `YESULIN_ADMIN_DELETION_PASSWORD_HASH`에 둔다.
+비밀번호를 새로 설정하거나 교체해야 한다면
 `backend` 디렉터리의 CMD 또는 PowerShell에서 아래 명령을 실행한다. 비밀번호는 별표로 표시되며 두 번 입력한다.
 `RemoteSigned`는 이 PowerShell 프로세스에만 적용하고 시스템 실행 정책은 변경하지 않는다.
 
@@ -71,7 +69,7 @@ Windows PowerShell 5.1의 UTF-8 BOM과 PowerShell 7의 BOM 없는 입력을 모�
 
 출력된 한 줄을 대상 환경의 config 저장소 `server/dev.env` 또는 `server/prod.env`에 SOPS로 편집하고 새 버전을 배포한다. 서버의 복호화된 파일을
 직접 수정하지 않는다. 이 값이 비어 있으면 admin 조회는 가능하지만
-지원서 삭제는 `403 ADMIN_DELETION_CONFIRMATION_FAILED`로 거부된다. 원문 비밀번호나 생성 명령의 입력값은 문서·메신저·저장소에 남기지 않는다.
+지원서와 파일 삭제는 `403 ADMIN_DELETION_CONFIRMATION_FAILED`로 거부된다. 원문 비밀번호나 생성 명령의 입력값은 문서·메신저·저장소에 남기지 않는다.
 
 지원서 삭제 비밀번호는 추가 확인 수단이며 OTP 같은 독립적인 MFA는 아니다.
 지원서 삭제 확인은 관리자 계정별 최근 10분 내 실패가 5회가 되면 그 시점부터 10분 동안 잠긴다. 조회·로그인은 계속 가능하다.
