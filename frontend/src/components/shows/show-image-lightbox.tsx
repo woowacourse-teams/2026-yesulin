@@ -56,7 +56,7 @@ export function ShowImageLightbox({ title, imageUrls, index, onSelect, onClose }
       labelledBy={TITLE_ID}
       layer={MODAL_LAYERS.video}
       scrimClassName="bg-foreground/85"
-      className="flex h-[calc(100dvh-24px)] max-h-[960px] w-[calc(100vw-24px)] max-w-[1200px] flex-col overflow-hidden rounded-modal bg-sidebar shadow-[var(--shadow-modal)]"
+      className="flex h-[calc(100dvh-24px)] max-h-[960px] w-[calc(100vw-24px)] max-w-[1200px] flex-col overflow-hidden break-keep rounded-modal wrap-break-word bg-sidebar shadow-[var(--shadow-modal)]"
     >
       <header className="flex min-h-16 items-center gap-3 border-b border-white/10 px-4 text-white sm:px-5">
         <h2 id={TITLE_ID} className="min-w-0 flex-1 truncate text-base font-semibold text-white">{title} · 상세 이미지</h2>

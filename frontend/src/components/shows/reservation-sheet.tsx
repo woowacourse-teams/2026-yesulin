@@ -88,7 +88,7 @@ export function ReservationSheet({ open, show, session, onClose, onReserved, onS
       onClose={close}
       labelledBy={TITLE_ID}
       placement="responsiveSheet"
-      className="flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-modal border border-border bg-card shadow-[var(--shadow-modal)] md:w-[min(520px,calc(100vw-40px))] md:rounded-modal"
+      className="flex max-h-[92dvh] w-full flex-col overflow-hidden break-keep rounded-t-modal wrap-break-word border border-border bg-card shadow-[var(--shadow-modal)] md:w-[min(520px,calc(100vw-40px))] md:rounded-modal"
     >
       <DialogHeader id={TITLE_ID} title="예매 정보 입력" subtitle={show.title} />
       <form noValidate onSubmit={submit} className="flex min-h-0 flex-1 flex-col">

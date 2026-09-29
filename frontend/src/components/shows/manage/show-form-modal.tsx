@@ -224,7 +224,7 @@ export function ShowFormModal({ show, onClose, onSaved }: {
       onClose={close}
       labelledBy={TITLE_ID}
       placement="responsiveSheet"
-      className="flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-modal bg-card shadow-[var(--shadow-modal)] md:w-[min(760px,calc(100vw-40px))] md:rounded-modal"
+      className="flex max-h-[92dvh] w-full flex-col overflow-hidden break-keep rounded-t-modal wrap-break-word bg-card shadow-[var(--shadow-modal)] md:w-[min(760px,calc(100vw-40px))] md:rounded-modal"
     >
       <DialogHeader
         id={TITLE_ID}
@@ -234,7 +234,8 @@ export function ShowFormModal({ show, onClose, onSaved }: {
       <form ref={formRef} noValidate onSubmit={(event) => void submit(event)} className="flex min-h-0 flex-1 flex-col">
         <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5 md:px-6">
           <div className="grid gap-5 md:grid-cols-[200px_minmax(0,1fr)]">
-            <div id="show-poster-field" className="min-w-0">
+            {/* 모바일에서 포스터 칸이 화면 폭을 다 차지하면 첫 화면이 포스터로만 채워지므로 폭을 줄인다. */}
+            <div id="show-poster-field" className="min-w-0 max-w-[200px] md:max-w-none">
               <PosterUploadField
                 label="포스터 (필수)"
                 value={poster.url}

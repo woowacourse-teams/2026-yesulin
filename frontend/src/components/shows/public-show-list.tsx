@@ -33,7 +33,7 @@ export function PublicShowList() {
   useEffect(() => load(), [load]);
 
   return (
-    <main className="min-h-screen bg-surface pb-16 text-foreground">
+    <main className="min-h-screen break-keep bg-surface pb-16 text-foreground wrap-break-word">
       <ShowPageHeader />
       <div className="mx-auto max-w-[880px] px-5 py-8 md:px-8 md:py-12 min-[1200px]:max-w-[1200px]">
         <section className="border-b border-border pb-8">

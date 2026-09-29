@@ -86,7 +86,7 @@ export function ProducerShowDetail({ showId }: { readonly showId: string }) {
     return <PickerScreen><p role="status" className="mx-auto max-w-[1120px] rounded-card border border-border bg-card px-5 py-14 text-center text-muted">공연을 불러오는 중…</p></PickerScreen>;
   }
   if (state.status === "error") {
-    return <PickerScreen><div className="mx-auto max-w-[1120px]"><BackLink /><ScreenError message={state.message} /></div></PickerScreen>;
+    return <PickerScreen><div className="mx-auto max-w-[1120px] break-keep wrap-break-word"><BackLink /><ScreenError message={state.message} /></div></PickerScreen>;
   }
 
   const { show } = state;
@@ -121,7 +121,7 @@ export function ProducerShowDetail({ showId }: { readonly showId: string }) {
 
   return (
     <PickerScreen>
-      <div className="mx-auto w-full max-w-[1120px]">
+      <div className="mx-auto w-full max-w-[1120px] break-keep wrap-break-word">
         <BackLink />
         <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start">
           <div className="min-w-0 flex-1">
@@ -129,11 +129,12 @@ export function ProducerShowDetail({ showId }: { readonly showId: string }) {
               <ManagementStatusBadge status={show.status} />
               <ManagementGenreBadge genre={show.genre} />
             </div>
-            <h1 className="mt-2 break-keep text-2xl font-bold tracking-[-0.025em] md:text-[28px]">{show.title}</h1>
+            <h1 className="mt-2 text-2xl font-bold tracking-[-0.025em] md:text-[28px]">{show.title}</h1>
             <p id="show-status-guide" className="mt-2 text-sm text-muted-strong">{statusGuide(show, openable)}</p>
             {show.status !== "DRAFT" ? <CopyShowLinkButton showId={show.id} variant="inline" /> : null}
           </div>
-          <div className="flex flex-wrap gap-2">
+          {/* 모바일에서 버튼이 한 줄에 안 들어가면 남은 폭을 채워 한 개만 덩그러니 내려가 보이지 않게 한다. */}
+          <div className="flex flex-wrap gap-2 [&>*]:grow sm:[&>*]:grow-0">
             {show.status !== "DRAFT" ? (
               <SecondaryLink href={showRoutes.detail(show.id)} target="_blank">예매 페이지 보기</SecondaryLink>
             ) : null}
@@ -412,7 +413,7 @@ function SessionForm({ initial, busy, onSubmit, onCancel }: {
           정원
           <FieldInput type="number" inputMode="numeric" min={minCapacity} value={capacity} onChange={(event) => setCapacity(event.target.value)} placeholder="60" className="mt-2" />
         </label>
-        <div className="flex gap-2">
+        <div className="flex gap-2 [&>*]:grow sm:[&>*]:grow-0">
           {onCancel ? <SecondaryButton onClick={onCancel} disabled={busy}>{initial ? "취소" : "닫기"}</SecondaryButton> : null}
           <PrimaryButton type="submit" disabled={busy}>{initial ? "저장" : "추가"}</PrimaryButton>
         </div>
@@ -446,16 +447,17 @@ function ShowSummary({ show, onDelete, onToggleRemainingSeats, busy }: {
   readonly busy: boolean;
 }) {
   return (
-    <aside className="h-fit rounded-card border border-border bg-card p-5">
-      <div className="flex gap-4 lg:block">
-        <div className="relative aspect-[3/4] w-24 shrink-0 overflow-hidden rounded-control border border-border bg-border-soft lg:w-full">
-          <Image src={show.poster.url} alt={`${show.title} 포스터`} fill unoptimized sizes="(min-width: 1024px) 280px, 96px" className="object-cover" />
+    <aside className="@container h-fit rounded-card border border-border bg-card p-5">
+      {/* 폭이 좁은 휴대폰에서는 포스터 옆에 두면 값 칸이 너무 좁아 전화번호가 끊기므로 아래로 내린다. */}
+      <div className="flex flex-col gap-4 @min-[17rem]:flex-row lg:block">
+        <div className="relative aspect-[3/4] w-20 shrink-0 overflow-hidden rounded-control border border-border bg-border-soft lg:w-full">
+          <Image src={show.poster.url} alt={`${show.title} 포스터`} fill unoptimized sizes="(min-width: 1024px) 280px, 80px" className="object-cover" />
         </div>
-        <dl className="grid min-w-0 flex-1 grid-cols-[72px_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm lg:mt-4">
-          <dt className="text-muted">장소</dt><dd className="break-words">{show.venue.name}</dd>
+        <dl className="grid min-w-0 flex-1 grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm lg:mt-4 [&>dt]:whitespace-nowrap">
+          <dt className="text-muted">장소</dt><dd>{show.venue.name}</dd>
           <dt className="text-muted">공연 시간</dt><dd className="num">{show.runningMinutes}분</dd>
           {show.ageRating ? <><dt className="text-muted">관람 연령</dt><dd>{show.ageRating}</dd></> : null}
-          <dt className="text-muted">문의 전화</dt><dd className="num">{show.inquiryPhone}</dd>
+          <dt className="text-muted">문의 전화</dt><dd className="num whitespace-nowrap">{show.inquiryPhone}</dd>
           <dt className="text-muted">상세 이미지</dt><dd className="num">{show.images.length}장</dd>
           <dt className="text-muted">안내 링크</dt><dd className="num">{show.links.length ? `${show.links.length}개` : "없음"}</dd>
         </dl>
