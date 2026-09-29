@@ -6,7 +6,13 @@ import { SecondaryButton, SecondaryLink } from "@/components/ui/controls";
 import { geocodeKakaoAddress, kakaoDirectionsUrl, kakaoMapSearchUrl, loadKakaoMapSdk } from "@/features/maps/kakao-map";
 import type { KakaoMapCoordinates } from "@/features/maps/kakao-map";
 
-export function PublicVenueGuide({ venue, address }: { readonly venue: string; readonly address: VenueAddress }) {
+const DEFAULT_VENUE_NOTE = "이곳은 공연이 열리는 장소입니다. 오디션 장소는 전형 안내를 별도로 확인해 주세요.";
+
+export function PublicVenueGuide({ venue, address, note = DEFAULT_VENUE_NOTE }: {
+  readonly venue: string;
+  readonly address: VenueAddress;
+  readonly note?: string;
+}) {
   const mapRef = useRef<HTMLDivElement>(null);
   const [coordinates, setCoordinates] = useState<KakaoMapCoordinates | null>(() => coordinatesOf(address));
   const [mapFailed, setMapFailed] = useState(false);
@@ -40,7 +46,7 @@ export function PublicVenueGuide({ venue, address }: { readonly venue: string; r
         <p className="text-sm font-semibold text-brand">공연 장소</p>
         <h3 id="performance-venue-title" className="mt-2 text-lg font-bold">{venueName}</h3>
         <p className="mt-2 break-words text-sm leading-6 text-muted-strong">{fullAddress || "상세 주소를 준비하고 있습니다."}</p>
-        <p className="mt-4 text-xs leading-5 text-muted">이곳은 공연이 열리는 장소입니다. 오디션 장소는 전형 안내를 별도로 확인해 주세요.</p>
+        <p className="mt-4 text-xs leading-5 text-muted">{note}</p>
         <VenueActionLinks label="공연장" venue={venue} address={address} coordinates={coordinates} className="mt-auto pt-5" />
       </div>
     </div>

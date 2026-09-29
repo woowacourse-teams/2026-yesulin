@@ -3,21 +3,21 @@ set -eu
 
 ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 LOCAL_ENV="${1:-$ROOT_DIR/config/server/local.env}"
-STAGING_ENV="${2:-$ROOT_DIR/config/server/staging.env}"
+DEPLOY_ENV="${2:-$ROOT_DIR/config/server/dev.env}"
 
 if [ ! -f "$LOCAL_ENV" ]; then
   printf '%s\n' "로컬 env 파일이 없습니다: $LOCAL_ENV" >&2
   exit 2
 fi
 
-if [ ! -f "$STAGING_ENV" ] || ! grep -q '^sops_mac=' "$STAGING_ENV"; then
-  printf '%s\n' "SOPS로 암호화된 staging env 파일이 없습니다: $STAGING_ENV" >&2
+if [ ! -f "$DEPLOY_ENV" ] || ! grep -q '^sops_mac=' "$DEPLOY_ENV"; then
+  printf '%s\n' "SOPS로 암호화된 배포 env 파일이 없습니다: $DEPLOY_ENV" >&2
   exit 2
 fi
 
 LOCAL_KEYS="$(mktemp)"
-STAGING_KEYS="$(mktemp)"
-trap 'rm -f "$LOCAL_KEYS" "$STAGING_KEYS"' 0
+DEPLOY_KEYS="$(mktemp)"
+trap 'rm -f "$LOCAL_KEYS" "$DEPLOY_KEYS"' 0
 
 extract_keys() {
   awk -F= '
@@ -42,16 +42,16 @@ extract_keys() {
 }
 
 extract_keys "$LOCAL_ENV" "$LOCAL_KEYS"
-extract_keys "$STAGING_ENV" "$STAGING_KEYS"
+extract_keys "$DEPLOY_ENV" "$DEPLOY_KEYS"
 
-if cmp -s "$LOCAL_KEYS" "$STAGING_KEYS"; then
-  printf '%s\n' '로컬과 staging의 환경 변수 이름이 모두 같습니다.'
+if cmp -s "$LOCAL_KEYS" "$DEPLOY_KEYS"; then
+  printf '%s\n' '로컬과 배포 환경의 변수 이름이 모두 같습니다.'
   exit 0
 fi
 
 printf '%s\n' '로컬에만 있는 변수 이름:'
-comm -23 "$LOCAL_KEYS" "$STAGING_KEYS"
-printf '%s\n' 'staging에만 있는 변수 이름:'
-comm -13 "$LOCAL_KEYS" "$STAGING_KEYS"
+comm -23 "$LOCAL_KEYS" "$DEPLOY_KEYS"
+printf '%s\n' '배포 환경에만 있는 변수 이름:'
+comm -13 "$LOCAL_KEYS" "$DEPLOY_KEYS"
 printf '%s\n' '값은 비교하거나 출력하지 않았습니다. 환경별로 의도한 차이인지 확인하세요.'
 exit 1

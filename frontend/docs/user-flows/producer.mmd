@@ -1,5 +1,5 @@
 flowchart TD
-    OTR_TREE["OTR 공고 관리 트리"] --> OTR_LIST["GET /api/v1/otr-auditions<br>공연사별 목록"]
+    OTR_TREE["오디션 공고 관리 트리"] --> OTR_LIST["GET /api/v1/otr-auditions<br>공연사별 목록"]
     OTR_LIST --> OTR_CREATE["POST /api/v1/otr-auditions<br>번호·제목·배역·마감일"]
     OTR_CREATE --> OTR_LIST
     OTR_LIST --> OTR_SOURCE["OTR 원문 링크 열기"]
@@ -16,7 +16,13 @@ flowchart TD
     RESET_MAIL --> RESET["GET token 확인 → PATCH 새 비밀번호"]
     RESET --> LOGIN_FORM
     FORGOT -- 아니오 --> LOGIN["POST /api/v1/sessions"]
-    LOGIN --> PERFORMANCE["공연 관리"]
+    LOGIN --> FREE_SHOW["무료 공연 관리<br>/producers/shows"]
+    LOGIN --> OTR_LIST
+    FREE_SHOW --> FREE_SESSION["회차·예매 관리"]
+    FREE_SESSION --> FREE_RESERVATIONS["회차별 예매자 관리"]
+    FREE_RESERVATIONS --> PHONE_LIST["전화번호 복사 모달<br>번호 목록·3일 이내 삭제 안내 확인"]
+    PHONE_LIST --> PHONE_COPY["선택한 번호 또는 전체 번호 복사"]
+    LOGIN -. "직접 URL로 접근 가능" .-> PERFORMANCE["직접 등록한 공연 관리"]
     PERFORMANCE --> AUDITION["공고 기본 정보·배역·일정·지원 폼 저장"]
     AUDITION --> PUBLISH["PUT /api/v1/auditions/{auditionId}/publication"]
     PUBLISH --> ROLE["공고 배역별 지원 현황"]

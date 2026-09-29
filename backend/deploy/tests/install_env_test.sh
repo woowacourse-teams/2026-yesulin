@@ -17,10 +17,10 @@ chmod +x "$TEST_ROOT/bin/sops" "$TEST_ROOT/bin/chown"
 
 printf 'test-key\n' > "$TEST_ROOT/key.txt"
 printf 'VERSION=blue\n' > "$TEST_ROOT/releases/1111111/yesulin.env"
-printf 'ciphertext=VERSION=green\n' > "$TEST_ROOT/staging.env"
+printf 'ciphertext=VERSION=green\n' > "$TEST_ROOT/runtime.env"
 
 PATH="$TEST_ROOT/bin:$PATH" sh "$INSTALL_SCRIPT" \
-  "$TEST_ROOT/staging.env" "$TEST_ROOT/key.txt" "$TEST_ROOT/releases/2222222"
+  "$TEST_ROOT/runtime.env" "$TEST_ROOT/key.txt" "$TEST_ROOT/releases/2222222"
 
 grep -Fxq 'VERSION=blue' "$TEST_ROOT/releases/1111111/yesulin.env"
 grep -Fxq 'VERSION=green' "$TEST_ROOT/releases/2222222/yesulin.env"
@@ -31,9 +31,9 @@ grep -Fxq 'VERSION=green' "$TEST_ROOT/current/yesulin.env"
 ln -sfn "$TEST_ROOT/releases/1111111" "$TEST_ROOT/current"
 grep -Fxq 'VERSION=blue' "$TEST_ROOT/current/yesulin.env"
 
-printf 'FAIL\n' > "$TEST_ROOT/staging.env"
+printf 'FAIL\n' > "$TEST_ROOT/runtime.env"
 if PATH="$TEST_ROOT/bin:$PATH" sh "$INSTALL_SCRIPT" \
-  "$TEST_ROOT/staging.env" "$TEST_ROOT/key.txt" "$TEST_ROOT/releases/2222222"; then
+  "$TEST_ROOT/runtime.env" "$TEST_ROOT/key.txt" "$TEST_ROOT/releases/2222222"; then
   echo 'Decryption failure unexpectedly succeeded' >&2
   exit 1
 fi
