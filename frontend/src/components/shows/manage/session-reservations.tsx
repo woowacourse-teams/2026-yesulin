@@ -11,12 +11,12 @@ import { formatShowDateTime, formatShowFullDateTime } from "@/features/shows/for
 import { cancelReservation, getSessionReservations } from "@/features/shows/producer-api";
 import {
   confirmedPhoneNumbers,
-  phoneNumbersText,
   reservationFileName,
   reservationSheet,
 } from "@/features/shows/reservation-export";
 import type { ProducerReservation, ProducerShowSession } from "@/features/shows/types";
 import { ConfirmDialog } from "./confirm-dialog";
+import { PhoneNumbersDialog } from "./phone-numbers-dialog";
 
 type ReservationsState =
   | { readonly status: "loading" }
@@ -42,6 +42,7 @@ export function SessionReservations({ showId, showTitle, session, onChanged }: {
   const [target, setTarget] = useState<ProducerReservation | null>(null);
   const [canceling, setCanceling] = useState(false);
   const [selectedIds, setSelectedIds] = useState<ReadonlySet<number>>(() => new Set());
+  const [phoneDialog, setPhoneDialog] = useState<{ readonly phones: readonly string[]; readonly selectedOnly: boolean } | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -80,6 +81,7 @@ export function SessionReservations({ showId, showTitle, session, onChanged }: {
 
   const reservations = state.status === "ready" ? state.reservations : [];
   const confirmed = reservations.filter((item) => item.status === "CONFIRMED");
+  const confirmedPhones = confirmedPhoneNumbers(confirmed);
   const selected = confirmed.filter((item) => selectedIds.has(item.id));
   const normalizedQuery = query.replaceAll("-", "").trim().toLowerCase();
   const shown = normalizedQuery
@@ -95,16 +97,10 @@ export function SessionReservations({ showId, showTitle, session, onChanged }: {
     ? withoutIds(current, shownConfirmed.map((item) => item.id))
     : new Set([...current, ...shownConfirmed.map((item) => item.id)]));
 
-  const copyPhones = async () => {
+  const openPhoneDialog = () => {
     const phones = confirmedPhoneNumbers(selected.length ? selected : confirmed);
     if (!phones.length) return;
-    try {
-      await navigator.clipboard.writeText(phoneNumbersText(phones));
-      toast(`전화번호 ${phones.length}개를 복사했어요. 한 줄에 번호 하나씩 들어 있어요.`, { type: "success" });
-    } catch (cause) {
-      console.error("[예매 관객 전화번호 복사 실패]", cause);
-      toast("전화번호를 복사하지 못했어요. 다시 시도해 주세요.", { type: "error" });
-    }
+    setPhoneDialog({ phones, selectedOnly: selected.length > 0 });
   };
 
   const downloadSheet = () => {
@@ -144,8 +140,8 @@ export function SessionReservations({ showId, showTitle, session, onChanged }: {
             <SelectAllCheckbox checked={allShownSelected} indeterminate={!allShownSelected && someShownSelected} disabled={!shownConfirmed.length} onChange={toggleAllShown} />
             전체 선택
           </label>
-          <SecondaryButton onClick={() => void copyPhones()} className="w-full @min-[32rem]:w-auto">
-            {selected.length ? <>선택한 <span className="num">{selected.length}</span>명 번호 복사</> : <>전화번호 전체 복사 <span className="num ml-1 text-muted">{confirmedPhoneNumbers(confirmed).length}명</span></>}
+          <SecondaryButton onClick={openPhoneDialog} aria-haspopup="dialog" className="w-full @min-[32rem]:w-auto">
+            {selected.length ? <>선택한 <span className="num">{selected.length}</span>명 번호 복사</> : <>전화번호 전체 복사 <span className="num ml-1 text-muted">{confirmedPhones.length}명</span></>}
           </SecondaryButton>
           <PrimaryButton onClick={downloadSheet} title="엑셀(.xlsx) 파일로 다운로드" className="w-full @min-[32rem]:w-auto">예매 관객 내보내기</PrimaryButton>
           {selected.length ? <TextButton onClick={() => setSelectedIds(new Set())}>선택 해제</TextButton> : null}
@@ -229,6 +225,15 @@ export function SessionReservations({ showId, showTitle, session, onChanged }: {
             ))}
           </ul>
         </>
+      ) : null}
+
+      {phoneDialog ? (
+        <PhoneNumbersDialog
+          phones={phoneDialog.phones}
+          sessionStartsAt={session.startsAt}
+          selectedOnly={phoneDialog.selectedOnly}
+          onClose={() => setPhoneDialog(null)}
+        />
       ) : null}
 
       {target ? (
