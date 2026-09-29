@@ -85,9 +85,11 @@
   `AuditionNoticeService`가 `NoticeRepository`를 직접 사용한다. 전체 실행을 트랜잭션으로 묶지 않고
   수집 결과 저장과 묶음 전송 완료 기록에만 짧은 트랜잭션을 적용한다. DB 트랜잭션을 잡은 채 외부 요청을 수행하지 않는다.
   동시 수집의 삽입 충돌은 유니크 제약으로 거절되고 해당 수집 트랜잭션은 롤백된다. 다음 실행에서 재수집한다.
-- 공고 알림 스케줄러는 현재 제거되어 있다. `AuditionNoticeService`도 아직 Spring bean으로 등록하지 않는다.
-  OTR 수집기와 Slack Incoming Webhook 전송 adapter는 구현되어 있으며, 우선 DEV에만 암호화된 웹훅 설정을 둔다.
-  자동 알림을 활성화할 진입점과 bean 등록은 별도 작업이다. PROD 웹훅 설정과 자동 실행은 아직 적용하지 않는다.
+- `AuditionNoticeService`는 Spring bean으로 등록한다. `@EnableScheduling`은 전체 환경에서 활성화하고
+  `presentation/scheduler/notice`의 공고 스케줄러만 DEV 프로필에서 실행한다.
+  매일 한국 시간 09:00~20:00에 10분 간격으로 실행한다.
+  OTR 수집기와 Slack Incoming Webhook 전송 adapter를 사용하며 웹훅은 DEV 암호화 설정에만 둔다.
+  PROD 웹훅 설정과 자동 실행은 아직 적용하지 않는다.
 - 현재 목록 여러 페이지 탐색과 분산 실행 잠금은 미구현이다. 별도 DB adapter는 두지 않는다.
   중복 저장 방지와 중복 전송 방지는 별개다. 배포 중 동시 실행 및 전송 성공 후 상태 저장 전 종료로 인한 재전송은
   아직 허용하며 exactly-once 전달을 보장하지 않는다. 수집 누락 방지를 위한 페이지 탐색 범위는 추후 adapter에서 정한다.

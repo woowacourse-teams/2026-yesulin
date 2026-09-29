@@ -43,6 +43,9 @@ public class SlackAuditionNoticeNotifier implements AuditionNoticeNotifier {
         StringBuilder message = new StringBuilder("공고 알림 ").append(contents.size()).append("건");
         for (int index = 0; index < contents.size(); index++) {
             AuditionContent content = contents.get(index);
+            if (index > 0) {
+                message.append("\n\n──────────");
+            }
             message.append("\n\n").append(index + 1).append(". ");
             if (!content.category().isBlank()) {
                 message.append('[').append(content.category()).append(" 공고] ");
