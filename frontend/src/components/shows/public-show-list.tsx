@@ -77,7 +77,7 @@ function GenreFilteredShows({ shows, genre, onGenreChange }: {
         ))}
       </div>
       {visibleShows.length ? (
-        <ul className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 min-[1200px]:grid-cols-4">
+        <ul className="grid gap-3 sm:grid-cols-2 min-[1200px]:grid-cols-3">
           {visibleShows.map((show) => <ShowCard key={show.id} show={show} />)}
         </ul>
       ) : (
@@ -97,24 +97,26 @@ function ShowCard({ show }: { readonly show: PublicShowSummary }) {
     <li className="min-w-0">
       <Link
         href={showRoutes.detail(show.id)}
-        className="group block rounded-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
+        className="group flex min-h-44 overflow-hidden rounded-card border border-border bg-card transition-[border-color,box-shadow] hover:border-brand-line hover:shadow-[var(--shadow-1)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
       >
-        <div className="relative aspect-[3/4] overflow-hidden rounded-card border border-border bg-border-soft">
+        <div className="relative w-28 shrink-0 bg-border-soft sm:w-32">
           <Image
             src={show.posterUrl}
             alt={`${show.title} 포스터`}
             fill
             unoptimized
-            sizes="(min-width: 1200px) 280px, (min-width: 640px) 33vw, 50vw"
+            sizes="(min-width: 640px) 128px, 112px"
             className="object-cover transition-transform duration-300 group-hover:scale-[1.02] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
           />
         </div>
-        <p className="mt-3 text-xs font-semibold text-brand">{SHOW_GENRE_LABELS[show.genre]}</p>
-        <h2 className="mt-1 line-clamp-2 text-base font-bold leading-6 group-hover:text-brand">{show.title}</h2>
-        <p className="mt-1 truncate text-sm text-muted-strong">{show.venueName}</p>
-        <p className="num mt-1 text-sm text-muted">
-          {show.nextSessionStartsAt ? `다음 회차 ${formatShowDateTime(show.nextSessionStartsAt)}` : "예매 가능한 회차 없음"}
-        </p>
+        <div className="flex min-w-0 flex-1 flex-col px-4 py-4">
+          <p className="text-xs font-semibold text-brand">{SHOW_GENRE_LABELS[show.genre]}</p>
+          <h2 className="mt-1 line-clamp-2 text-lg font-bold leading-6 group-hover:text-brand">{show.title}</h2>
+          <p className="mt-2 truncate text-sm text-muted-strong">{show.venueName}</p>
+          <p className="num mt-auto border-t border-border-soft pt-2 text-xs leading-5 text-muted-strong">
+            {show.nextSessionStartsAt ? `다음 회차 ${formatShowDateTime(show.nextSessionStartsAt)}` : "예매 가능한 회차 없음"}
+          </p>
+        </div>
       </Link>
     </li>
   );
@@ -131,12 +133,15 @@ function EmptyShows() {
 
 function ShowListSkeleton() {
   return (
-    <div aria-label="공연 목록 불러오는 중" className="grid animate-pulse grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 min-[1200px]:grid-cols-4">
+    <div aria-label="공연 목록 불러오는 중" className="grid animate-pulse gap-3 sm:grid-cols-2 min-[1200px]:grid-cols-3">
       {[0, 1, 2, 3].map((item) => (
-        <div key={item}>
-          <div className="aspect-[3/4] rounded-card bg-border-soft" />
-          <div className="mt-3 h-5 w-3/4 rounded bg-border-soft" />
-          <div className="mt-2 h-4 w-1/2 rounded bg-border-soft" />
+        <div key={item} className="flex min-h-44 overflow-hidden rounded-card border border-border bg-card">
+          <div className="w-28 shrink-0 bg-border-soft sm:w-32" />
+          <div className="min-w-0 flex-1 space-y-3 px-4 py-4">
+            <div className="h-4 w-1/3 rounded bg-border-soft" />
+            <div className="h-5 w-4/5 rounded bg-border-soft" />
+            <div className="h-4 w-2/3 rounded bg-border-soft" />
+          </div>
         </div>
       ))}
       <p className="sr-only">공연 목록을 불러오고 있습니다.</p>

@@ -10,11 +10,12 @@ export function ShowPageHeader() {
       <div className="mx-auto flex min-h-16 max-w-[880px] items-center gap-2 px-5 md:px-8 min-[1200px]:max-w-[1200px]">
         <Link
           href={showRoutes.list}
-          aria-label="예술in 무료 공연 목록"
-          className="inline-flex min-h-11 items-center gap-2 rounded-control px-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          aria-label="예술in 공연 예매 목록"
+          className="inline-flex min-h-11 items-center gap-3 rounded-control px-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
         >
           <Image src="/images/yesulin-logo.png" alt="" width={84} height={49} priority className="h-auto w-[84px] object-contain" />
-          <span className="rounded-full bg-brand-soft px-2.5 py-1 text-xs font-semibold text-brand">무료 공연</span>
+          <span aria-hidden="true" className="h-5 w-px bg-border" />
+          <span className="text-sm font-semibold text-foreground">공연 예매</span>
         </Link>
         <AnalyticsSettingsButton className="ml-auto" />
       </div>
