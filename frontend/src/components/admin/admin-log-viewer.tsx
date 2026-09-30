@@ -73,7 +73,7 @@ export function AdminLogViewer() {
     <AdminShell
       current="logs"
       title="애플리케이션 로그"
-      description="최신 로그부터 표시합니다. 행을 펼치면 전체 필드와 stack trace를 확인할 수 있습니다."
+      description="최신 로그부터 보여 줘요. 행을 펼치면 전체 필드와 stack trace를 확인할 수 있어요."
       actions={(
         <>
           <AdminActionButton onClick={refresh}>새로고침</AdminActionButton>
@@ -184,7 +184,7 @@ export function AdminLogViewer() {
           <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted">
             <span>
               {data.entries.length}건 조회
-              {data.truncated ? " · 오래된 내용은 잘렸습니다" : ""}
+              {data.truncated ? " · 오래된 내용은 잘렸어요" : ""}
               {pastDate && data.entries.length === 0
                 ? ` · 이 날짜의 보관 로그가 없어요 (보관 기간 ${LOG_RETENTION_DAYS}일)`
                 : ""}

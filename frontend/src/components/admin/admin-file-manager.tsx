@@ -141,7 +141,7 @@ export function AdminFileManager() {
     <AdminShell
       current="files"
       title="파일 관리"
-      description="참조 없는 업로드를 수동으로 확인해. 7일 이상 지난 파일만 삭제할 수 있어."
+      description="참조 없는 업로드를 직접 확인해요. 7일 이상 지난 파일만 삭제할 수 있어요."
       actions={(
         <>
           <AdminActionButton onClick={refresh}>새로고침</AdminActionButton>
@@ -172,7 +172,7 @@ export function AdminFileManager() {
               <li key={item.fileId}>파일 #{item.fileId}: {item.status === "DELETED" ? "삭제 완료" : item.status === "ALREADY_DELETED" ? "이미 삭제됨" : FAILURE_LABELS[item.code ?? ""] ?? "삭제 실패"}</li>
             ))}
           </ul>
-          {summary.retryableIds.length > 0 ? <p className="mt-3 text-red-700">재시도 가능: {summary.retryableIds.map((id) => `#${id}`).join(", ")} · 목록에서 다시 선택해줘.</p> : null}
+          {summary.retryableIds.length > 0 ? <p className="mt-3 text-red-700">재시도 가능: {summary.retryableIds.map((id) => `#${id}`).join(", ")} · 목록에서 다시 선택해 주세요.</p> : null}
         </section>
       ) : null}
 
@@ -185,7 +185,7 @@ export function AdminFileManager() {
             </label>
             <span className="text-sm text-neutral-600">선택 {selectedIds.length}개 · 페이지 {page + 1}</span>
           </div>
-          {filesPage.files.length === 0 ? <p className="rounded-xl border border-neutral-200 bg-white p-8 text-center text-sm text-neutral-500">조회된 미사용 파일이 없어.</p> : null}
+          {filesPage.files.length === 0 ? <p className="rounded-xl border border-neutral-200 bg-white p-8 text-center text-sm text-neutral-500">조회된 미사용 파일이 없어요.</p> : null}
           {filesPage.files.map((file) => (
             <article key={file.fileId} className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
               <div className="flex items-start gap-3">
@@ -226,9 +226,9 @@ export function AdminFileManager() {
 
       <ModalShell open={confirming} onClose={closeConfirmation} labelledBy="admin-file-delete-title" placement="responsiveSheet"
         className="w-full rounded-t-2xl bg-white shadow-2xl md:w-[min(520px,calc(100vw-48px))] md:rounded-2xl">
-        <DialogHeader id="admin-file-delete-title" title="파일 삭제 확인" subtitle="S3 원본을 삭제해. 복구하기 어려운 작업이야." />
+        <DialogHeader id="admin-file-delete-title" title="파일 삭제 확인" subtitle="S3 원본을 삭제해요. 복구하기 어려운 작업이에요." />
         <div className="space-y-4 p-5">
-          <p className="text-sm text-neutral-700">선택한 {selectedIds.length}개 파일을 다시 확인해줘.</p>
+          <p className="text-sm text-neutral-700">선택한 {selectedIds.length}개 파일을 다시 확인해 주세요.</p>
           <p className="max-h-24 overflow-y-auto break-words rounded bg-neutral-50 p-3 text-xs text-neutral-700">
             {selectedIds.map((id) => `#${id}`).join(", ")}
           </p>

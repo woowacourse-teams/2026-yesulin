@@ -89,12 +89,12 @@ export function AdminSubmissionBrowser({ audition, onDeleted }: Props) {
     onDeleted();
   }
 
-  if (loading) return <p role="status" className="px-4 py-5 text-sm text-muted">지원서를 불러오는 중입니다.</p>;
+  if (loading) return <p role="status" className="px-4 py-5 text-sm text-muted">지원서를 불러오는 중이에요.</p>;
   if (error) return <div className="flex items-center gap-3 px-4 py-5"><p role="alert" className="text-sm text-fail">{error}</p><button type="button" onClick={() => void load()} className="rounded-control border border-border px-3 py-1 text-sm">다시 시도</button></div>;
 
   return (
     <div className="bg-surface px-3 py-4 sm:px-5">
-      {submissions.length === 0 ? <p className="py-3 text-center text-sm text-muted">이 공고에 제출된 지원서가 없습니다.</p> : null}
+      {submissions.length === 0 ? <p className="py-3 text-center text-sm text-muted">이 공고에 제출된 지원서가 없어요.</p> : null}
       <div className="grid gap-2">
         {submissions.map((submission) => (
           <article key={submission.submissionId} className="grid gap-3 rounded-card border border-border bg-card p-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
@@ -161,10 +161,10 @@ function AdminSubmissionDialog({ open, submissionId, detail, error, onClose, onD
 
   return (
     <ModalShell open={open} onClose={close} labelledBy="admin-submission-title" placement="responsiveSheet" className="flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-2xl bg-card shadow-2xl md:w-[min(900px,calc(100vw-48px))] md:rounded-2xl">
-      <DialogHeader id="admin-submission-title" title={confirming ? "지원서 삭제 확인" : "지원서 상세"} subtitle={confirming ? "이 작업은 지원서와 심사 기록을 즉시 삭제합니다." : "제출 당시 저장된 읽기 전용 스냅샷입니다."} />
+      <DialogHeader id="admin-submission-title" title={confirming ? "지원서 삭제 확인" : "지원서 상세"} subtitle={confirming ? "이 작업은 지원서와 심사 기록을 즉시 삭제해요." : "제출 당시 저장된 읽기 전용 스냅샷이에요."} />
       <div className="min-h-0 flex-1 overflow-y-auto p-5 md:p-6">
         {error ? <p role="alert" className="text-sm text-fail">{error}</p> : null}
-        {!detail && !error ? <p role="status" className="py-12 text-center text-sm text-muted">상세를 불러오는 중입니다.</p> : null}
+        {!detail && !error ? <p role="status" className="py-12 text-center text-sm text-muted">상세를 불러오는 중이에요.</p> : null}
         {matchingDetail && !confirming ? <SubmissionDetailContent detail={matchingDetail} /> : null}
         {matchingDetail && confirming ? <DeleteConfirmation detail={matchingDetail} password={password} error={deleteError} disabled={deleting} onPasswordChange={setPassword} /> : null}
       </div>
@@ -185,7 +185,7 @@ function DeleteConfirmation({ detail, password, error, disabled, onPasswordChang
   readonly onPasswordChange: (value: string) => void;
 }) {
   const name = detail.applicant.basicInformation.name;
-  return <div className="space-y-5"><div className="rounded-control border border-fail/30 bg-fail-bg p-4 text-sm leading-6 text-fail"><strong className="block">삭제 대상</strong><span>{detail.auditionTitle} · {orDash(name)}</span><code className="mt-2 block break-all text-xs">{detail.submissionId}</code><p className="mt-3">지원서·동의·심사 기록과 파일 연결이 삭제됩니다. S3 파일 원본은 보존됩니다.</p></div><label htmlFor="admin-deletion-password" className="block"><span className="mb-2 block text-sm font-semibold text-foreground">별도 삭제 확인 비밀번호</span><input id="admin-deletion-password" data-autofocus="true" type="password" autoComplete="off" value={password} disabled={disabled} onChange={(event) => onPasswordChange(event.target.value)} className="min-h-12 w-full rounded-control border border-border px-3 text-base outline-none focus:border-brand" /></label>{error ? <p role="alert" className="rounded-control border border-fail/30 bg-fail-bg p-3 text-sm text-fail">{error}</p> : null}</div>;
+  return <div className="space-y-5"><div className="rounded-control border border-fail/30 bg-fail-bg p-4 text-sm leading-6 text-fail"><strong className="block">삭제 대상</strong><span>{detail.auditionTitle} · {orDash(name)}</span><code className="mt-2 block break-all text-xs">{detail.submissionId}</code><p className="mt-3">지원서·동의·심사 기록과 파일 연결이 삭제돼요. S3 파일 원본은 보존돼요.</p></div><label htmlFor="admin-deletion-password" className="block"><span className="mb-2 block text-sm font-semibold text-foreground">별도 삭제 확인 비밀번호</span><input id="admin-deletion-password" data-autofocus="true" type="password" autoComplete="off" value={password} disabled={disabled} onChange={(event) => onPasswordChange(event.target.value)} className="min-h-12 w-full rounded-control border border-border px-3 text-base outline-none focus:border-brand" /></label>{error ? <p role="alert" className="rounded-control border border-fail/30 bg-fail-bg p-3 text-sm text-fail">{error}</p> : null}</div>;
 }
 
 function SubmissionDetailContent({ detail }: { readonly detail: AdminSubmissionDetail }) {
@@ -198,4 +198,4 @@ function SubmissionDetailContent({ detail }: { readonly detail: AdminSubmissionD
 
 function DetailSection({ title, children }: { readonly title: string; readonly children: React.ReactNode }) { return <section className="rounded-card border border-border p-4"><h4 className="mb-4 text-sm font-semibold text-muted-strong">{title}</h4>{children}</section>; }
 function DetailRow({ label, value }: { readonly label: string; readonly value: string | null }) { return <div><dt className="text-xs text-muted">{label}</dt><dd className="mt-1 whitespace-pre-wrap break-words text-sm leading-6 text-foreground">{orDash(value)}</dd></div>; }
-function EmptyValue() { return <p className="text-sm text-muted">제출된 내용이 없습니다.</p>; }
+function EmptyValue() { return <p className="text-sm text-muted">제출된 내용이 없어요.</p>; }

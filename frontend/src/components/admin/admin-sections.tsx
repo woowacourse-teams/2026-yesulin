@@ -140,7 +140,7 @@ export function AdminProducersSection({ data, onChanged }: { readonly data: Dash
         <SummaryItem label="최근 7일 가입" value={overview.newProducersInLastWeek} unit="곳" />
       </SummaryStrip>
       <p className="-mt-2 text-xs leading-5 text-muted">
-        수동 활성화는 기획사 이메일 인증을 대신하므로 필요한 경우에만 사용하세요. 변경은 변경 기록에 남아요.
+        수동 활성화는 기획사 이메일 인증을 대신하므로 필요한 경우에만 사용해 주세요. 변경은 변경 기록에 남아요.
       </p>
       <div className="flex flex-wrap gap-2" role="group" aria-label="기획사 상태 필터">
         {PRODUCER_FILTERS.map((option) => (

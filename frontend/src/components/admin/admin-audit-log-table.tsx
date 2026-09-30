@@ -27,7 +27,7 @@ export function AdminAuditLogTable({ page, onPageChange }: Props) {
           <tbody>
             {page.logs.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-3 py-6 text-center text-muted">아직 기록이 없습니다.</td>
+                <td colSpan={5} className="px-3 py-6 text-center text-muted">아직 기록이 없어요.</td>
               </tr>
             ) : null}
             {page.logs.map((log) => (

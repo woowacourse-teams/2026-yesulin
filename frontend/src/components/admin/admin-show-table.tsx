@@ -54,7 +54,7 @@ function OccupancyBar({ reserved, capacity }: { readonly reserved: number; reado
 
 function SessionTable({ sessions, now }: { readonly sessions: readonly AdminShowSession[]; readonly now: number }) {
   if (sessions.length === 0) {
-    return <p className="px-4 py-4 text-sm text-muted">등록된 회차가 없습니다.</p>;
+    return <p className="px-4 py-4 text-sm text-muted">등록된 회차가 없어요.</p>;
   }
   return (
     <table className="w-full text-left text-sm">
@@ -129,7 +129,7 @@ export function AdminShowTable({ shows, now }: Props) {
             {visible.length === 0 ? (
               <tr>
                 <td colSpan={HEADERS.length} className="px-3 py-6 text-center text-muted">
-                  {shows.length === 0 ? "등록된 무료 공연이 없습니다." : "이 상태의 공연이 없습니다."}
+                  {shows.length === 0 ? "등록된 무료 공연이 없어요." : "이 상태의 공연이 없어요."}
                 </td>
               </tr>
             ) : null}

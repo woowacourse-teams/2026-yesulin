@@ -39,7 +39,7 @@ export function AdminAuditionTable({ auditions, onChanged }: Props) {
             {auditions.length === 0 ? (
               <tr>
                 <td colSpan={HEADERS.length} className="px-3 py-6 text-center text-muted">
-                  등록된 공고가 없습니다.
+                  등록된 공고가 없어요.
                 </td>
               </tr>
             ) : null}

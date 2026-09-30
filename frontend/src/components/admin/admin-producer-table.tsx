@@ -51,7 +51,7 @@ export function AdminProducerTable({ producers, onChanged }: Props) {
             {producers.length === 0 ? (
               <tr>
                 <td colSpan={HEADERS.length} className="px-3 py-6 text-center text-muted">
-                  해당 조건의 기획사가 없습니다.
+                  해당 조건의 기획사가 없어요.
                 </td>
               </tr>
             ) : null}

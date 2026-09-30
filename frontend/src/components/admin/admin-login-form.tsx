@@ -38,7 +38,7 @@ export function AdminLoginForm({ onSuccess }: Props) {
     <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center gap-6 px-6 py-16">
       <div>
         <h1 className="text-xl font-semibold text-foreground">운영 대시보드</h1>
-        <p className="mt-1 text-sm text-muted">운영자 계정으로만 접근할 수 있습니다.</p>
+        <p className="mt-1 text-sm text-muted">운영자 계정으로만 접근할 수 있어요.</p>
       </div>
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <label className="flex flex-col gap-1 text-sm text-muted-strong">
