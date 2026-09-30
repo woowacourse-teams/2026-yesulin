@@ -38,7 +38,7 @@ class FileAssetMigrationTest {
         Flyway.configure()
                 .dataSource(dataSource)
                 .locations("classpath:db/migration")
-                .target(MigrationVersion.fromVersion("20260925160000"))
+                .target(MigrationVersion.fromVersion("20260930101000"))
                 .load()
                 .migrate();
         JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
