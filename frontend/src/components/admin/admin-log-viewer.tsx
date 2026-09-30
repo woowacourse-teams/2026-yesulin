@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { LOG_LINE_LIMITS } from "@/features/admin/api";
 import type { AdminLogFilters } from "@/features/admin/log-view";
@@ -8,6 +7,7 @@ import type { AdminLogLevel } from "@/features/admin/types";
 import { logout } from "@/features/auth/session-api";
 import { AdminLoginForm } from "./admin-login-form";
 import { AdminLogLines } from "./admin-log-lines";
+import { AdminActionButton, AdminShell } from "./admin-shell";
 import { formatTime } from "./admin-format";
 import { REFRESH_INTERVAL_MS, useAdminLogs } from "./use-admin-logs";
 import { useDebouncedValue } from "./use-debounced-value";
@@ -65,37 +65,17 @@ export function AdminLogViewer() {
   }
 
   return (
-    <main className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold tracking-[-0.02em] text-foreground">애플리케이션 로그</h1>
-          <p className="mt-1 text-sm text-muted">
-            최신 로그부터 표시합니다. 행을 펼치면 전체 필드와 stack trace를 확인할 수 있습니다.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Link
-            href="/admin"
-            className="inline-flex min-h-11 items-center rounded-control border border-border bg-card px-4 text-sm font-semibold text-muted-strong hover:bg-surface"
-          >
-            대시보드
-          </Link>
-          <button
-            type="button"
-            onClick={refresh}
-            className="min-h-11 rounded-control border border-border bg-card px-4 text-sm font-semibold text-muted-strong hover:bg-surface"
-          >
-            새로고침
-          </button>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="min-h-11 rounded-control border border-border bg-card px-4 text-sm font-semibold text-muted-strong hover:bg-surface"
-          >
-            로그아웃
-          </button>
-        </div>
-      </header>
+    <AdminShell
+      current="logs"
+      title="애플리케이션 로그"
+      description="최신 로그부터 표시합니다. 행을 펼치면 전체 필드와 stack trace를 확인할 수 있습니다."
+      actions={(
+        <>
+          <AdminActionButton onClick={refresh}>새로고침</AdminActionButton>
+          <AdminActionButton onClick={handleLogout}>로그아웃</AdminActionButton>
+        </>
+      )}
+    >
 
       <section aria-label="로그 검색과 필터" className="rounded-card border border-border bg-card p-4 sm:p-5">
         <div className="grid gap-4 lg:grid-cols-[minmax(240px,1fr)_minmax(220px,0.7fr)_auto] lg:items-end">
@@ -195,6 +175,6 @@ export function AdminLogViewer() {
       ) : null}
 
       {!data && phase === "loading" ? <p className="text-sm text-muted">불러오는 중</p> : null}
-    </main>
+    </AdminShell>
   );
 }

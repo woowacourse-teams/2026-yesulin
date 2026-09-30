@@ -30,6 +30,7 @@ import { applicantHandlers } from "./applicants/handlers";
 import { screeningHandlers } from "./auditions/screening-handlers";
 import { validatePostingDraft } from "./auditions/posting-validation";
 import { authHandlers } from "./auth-handlers";
+import { adminHandlers } from "./admin-handlers";
 import { adminLogHandlers } from "./admin-log-handlers";
 import { adminFileHandlers } from "./admin-file-handlers";
 import { otrAuditionHandlers } from "./otr-audition-handlers";
@@ -50,6 +51,7 @@ const hasText = (value: unknown): value is string =>
 export const handlers = [
   ...noticeHandlers,
   ...authHandlers,
+  ...adminHandlers,
   ...adminLogHandlers,
   ...adminFileHandlers,
   ...otrAuditionHandlers,

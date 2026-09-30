@@ -37,11 +37,11 @@ export function AdminLoginForm({ onSuccess }: Props) {
   return (
     <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center gap-6 px-6 py-16">
       <div>
-        <h1 className="text-xl font-semibold text-neutral-900">운영 대시보드</h1>
-        <p className="mt-1 text-sm text-neutral-500">운영자 계정으로만 접근할 수 있습니다.</p>
+        <h1 className="text-xl font-semibold text-foreground">운영 대시보드</h1>
+        <p className="mt-1 text-sm text-muted">운영자 계정으로만 접근할 수 있습니다.</p>
       </div>
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-        <label className="flex flex-col gap-1 text-sm text-neutral-700">
+        <label className="flex flex-col gap-1 text-sm text-muted-strong">
           이메일
           <input
             type="email"
@@ -49,10 +49,10 @@ export function AdminLoginForm({ onSuccess }: Props) {
             autoComplete="username"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            className="rounded border border-neutral-300 px-3 py-2 text-neutral-900 focus:border-neutral-900 focus:outline-none"
+            className="rounded-control border border-border px-3 py-2 text-foreground focus:border-brand focus:outline-none"
           />
         </label>
-        <label className="flex flex-col gap-1 text-sm text-neutral-700">
+        <label className="flex flex-col gap-1 text-sm text-muted-strong">
           비밀번호
           <input
             type="password"
@@ -60,10 +60,10 @@ export function AdminLoginForm({ onSuccess }: Props) {
             autoComplete="current-password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            className="rounded border border-neutral-300 px-3 py-2 text-neutral-900 focus:border-neutral-900 focus:outline-none"
+            className="rounded-control border border-border px-3 py-2 text-foreground focus:border-brand focus:outline-none"
           />
         </label>
-        {error ? <p role="alert" className="text-sm text-red-600">{error}</p> : null}
+        {error ? <p role="alert" className="text-sm text-fail">{error}</p> : null}
         <button
           type="submit"
           disabled={submitting}

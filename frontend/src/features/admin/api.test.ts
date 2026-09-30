@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { deleteUnusedFiles, fetchAuditLogs, fetchLogs, fetchUnusedFiles, normalizeAdminLog } from "./api";
+import { deleteUnusedFiles, fetchAuditLogs, fetchLogs, fetchShows, fetchUnusedFiles, normalizeAdminLog } from "./api";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -92,5 +92,20 @@ describe("admin API", () => {
         body: JSON.stringify({ fileIds: [42, 43], confirmationPassword: "confirm-password" }),
       }),
     );
+  });
+
+  it("무료 공연 상태 필터를 전달하고 공연 목록만 돌려준다", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      shows: [{ showId: "show-1", title: "햄릿", sessions: [] }],
+    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const shows = await fetchShows("OPEN");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/v1/admin/shows?status=OPEN",
+      { method: "GET", credentials: "include" },
+    );
+    expect(shows.map((show) => show.title)).toEqual(["햄릿"]);
   });
 });

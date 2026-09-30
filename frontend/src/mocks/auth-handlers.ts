@@ -1,11 +1,14 @@
 import { delay, http, HttpResponse, passthrough } from "msw";
 import { frontendEnvironment } from "@/config/environment";
 import type { ProducerSignupRequest } from "@/features/auth/api";
+import type { SessionRole } from "@/features/auth/session-api";
 import { registerPendingProducer } from "./auditions/producer-profile";
 
 const emails = new Set<string>();
 const pendingProducerEmails = new Set<string>();
-let mockSession: { memberId: number; role: "APPLICANT" | "PRODUCER"; status: "PENDING" | "ACTIVE" } | null = null;
+let mockSession: { memberId: number; role: SessionRole; status: "PENDING" | "ACTIVE" } | null = null;
+/** 목 로그인에서 이 접두사의 이메일은 운영 대시보드용 ADMIN 세션이 된다. */
+const MOCK_ADMIN_EMAIL_PREFIX = "admin@";
 const realProducerLoginEnabled = frontendEnvironment.producerLoginEnabled;
 const realSocialLoginEnabled = frontendEnvironment.socialLoginEnabled;
 const MOCK_PASSWORD_RESET_TOKEN = "mock-password-reset-token";
@@ -21,6 +24,10 @@ function isRequestBody(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+export function mockSessionRole(): SessionRole | null {
+  return mockSession?.role ?? null;
+}
+
 export const authHandlers = [
   http.post("/api/v1/sessions", async ({ request }) => {
     if (realProducerLoginEnabled) return passthrough();
@@ -30,11 +37,13 @@ export const authHandlers = [
     if (!/^\S+@\S+\.\S+$/.test(email) || !body.password) {
       return error("INVALID_REQUEST", "요청 값을 확인해 주세요.");
     }
-    mockSession = {
-      memberId: 1,
-      role: "PRODUCER",
-      status: pendingProducerEmails.has(email) ? "PENDING" : "ACTIVE",
-    };
+    mockSession = email.startsWith(MOCK_ADMIN_EMAIL_PREFIX)
+      ? { memberId: 900, role: "ADMIN", status: "ACTIVE" }
+      : {
+        memberId: 1,
+        role: "PRODUCER",
+        status: pendingProducerEmails.has(email) ? "PENDING" : "ACTIVE",
+      };
     return HttpResponse.json(mockSession);
   }),
 
