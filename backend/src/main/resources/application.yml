@@ -77,6 +77,21 @@ management:
           include: readinessState,db
 
 yesulin:
+  sms:
+    enabled: ${SMS_ENABLED:false}
+    provider: ${SMS_PROVIDER:solapi}
+    sender: ${SMS_SENDER:${ALIGO_SENDER:}}
+    solapi:
+      api-key: ${SOLAPI_API_KEY:}
+      api-secret: ${SOLAPI_API_SECRET:}
+    aligo:
+      user-id: ${ALIGO_USER_ID:}
+      api-key: ${ALIGO_API_KEY:}
+    # 부가세 포함 실제 계정 단가. 미설정이면 발송을 차단한다.
+    sms-price: ${SMS_PRICE_INCLUDING_VAT:0}
+    lms-price: ${LMS_PRICE_INCLUDING_VAT:0}
+    request-limit: ${SMS_REQUEST_LIMIT:0}
+    daily-limit: ${SMS_DAILY_LIMIT:0}
   admin:
     # 운영 대시보드 계정. `email:password` 형식이고 여러 개는 쉼표로 잇는다. 비우면 계정을 만들지 않는다.
     accounts: ${YESULIN_ADMIN_ACCOUNTS:}
