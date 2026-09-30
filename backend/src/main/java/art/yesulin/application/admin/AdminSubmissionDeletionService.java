@@ -2,6 +2,7 @@ package art.yesulin.application.admin;
 
 import static art.yesulin.domain.submission.SubmissionErrorCode.NOT_FOUND;
 
+import art.yesulin.application.auditionnotice.NoticeStore;
 import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.admin.AdminAction;
 import art.yesulin.domain.admin.AdminAuditLog;
@@ -35,10 +36,12 @@ public class AdminSubmissionDeletionService {
     private final FileReferenceRepository fileReferenceRepository;
     private final AdminAuditLogRepository auditLogRepository;
     private final AdminDeletionConfirmation deletionConfirmation;
+    private final NoticeStore noticeStore;
 
     @Transactional
     public void delete(DeleteSubmissionCommand command) {
         deletionConfirmation.verify(command.actorMemberId(), command.confirmationPassword());
+        noticeStore.lock();
         Submission submission = submissionRepository.findBySubmissionIdForUpdate(command.submissionId())
                 .orElseThrow(() -> new BusinessException(NOT_FOUND, "지원서를 찾을 수 없습니다."));
         final long internalSubmissionId = submission.getId();
@@ -47,6 +50,7 @@ public class AdminSubmissionDeletionService {
                 .map(SelectedRole::auditionRoleId)
                 .toList();
 
+        noticeStore.eraseSubmission(submission.getSubmissionId());
         reviewRepository.deleteBySubmissionId(submission.getSubmissionId());
         completionRepository.deleteByAuditionRoleIdIn(roleIds);
         consentRepository.deleteBySubmissionId(submission.getSubmissionId());

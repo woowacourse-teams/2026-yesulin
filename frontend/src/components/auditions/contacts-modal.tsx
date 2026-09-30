@@ -60,8 +60,8 @@ export function ContactsModal() {
 
       <div className="flex-1 overflow-y-auto px-6 py-[17px]">
         <p className="mb-3.5 rounded-control border border-border bg-surface px-3 py-2.5 text-xs leading-relaxed text-muted-strong">
-          연락 및 알람 기능은 추가 예정입니다. 그때까지는 아래 연락처를 복사해 단체 채팅방·문자·전화 등
-          쓰시던 방법으로 연락해 주세요.
+          연락처를 복사해 쓰시던 방법으로 연락할 수 있습니다. 합격자 오디션 안내는 심사 화면의
+          ‘선택한 합격자에게 문자 보내기’를 이용해 주세요.
         </p>
 
         <div className="mb-2.5 flex gap-1">
