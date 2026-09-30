@@ -79,6 +79,54 @@ class FileLogReaderTest {
     }
 
     @Test
+    void readsRemainingArchivesWhenOldestPartsWereDeleted(@TempDir Path directory) throws IOException {
+        Path current = writeLines(directory, "app.log", 2);
+        writeArchive(current, ARCHIVED_DATE, 2, "c-1");
+        writeArchive(current, ARCHIVED_DATE, 3, "d-1");
+
+        LogLines result = readerOf(current).readRecent(new LogQuery("", 200, ARCHIVED_DATE));
+
+        assertEquals(List.of("c-1", "d-1"), result.lines());
+        assertTrue(result.truncated());
+    }
+
+    @Test
+    void readsNewestArchivesWhenPartsExceedLimit(@TempDir Path directory) throws IOException {
+        Path current = writeLines(directory, "app.log", 2);
+        for (int index = 0; index <= 200; index++) {
+            writeArchive(current, ARCHIVED_DATE, index, "part-" + index);
+        }
+
+        LogLines result = readerOf(current).readRecent(new LogQuery("", 2, ARCHIVED_DATE));
+
+        assertEquals(List.of("part-199", "part-200"), result.lines());
+        assertTrue(result.truncated());
+    }
+
+    @Test
+    void ignoresFilesOfOtherDatesAndNonNumericIndexes(@TempDir Path directory) throws IOException {
+        Path current = writeLines(directory, "app.log", 2);
+        writeArchive(current, ARCHIVED_DATE, 0, "target");
+        writeArchive(current, ARCHIVED_DATE.minusDays(1), 5, "other-date");
+        Files.writeString(Path.of(current + "." + ARCHIVED_DATE + ".tmp.gz"), "not an archive");
+
+        LogLines result = readerOf(current).readRecent(new LogQuery("", 200, ARCHIVED_DATE));
+
+        assertEquals(List.of("target"), result.lines());
+        assertFalse(result.truncated());
+    }
+
+    @Test
+    void reportsUnavailableWhenArchiveIsNotGzip(@TempDir Path directory) throws IOException {
+        Path current = writeLines(directory, "app.log", 2);
+        Files.writeString(Path.of(current + "." + ARCHIVED_DATE + ".0.gz"), "broken");
+
+        LogLines result = readerOf(current).readRecent(new LogQuery("", 200, ARCHIVED_DATE));
+
+        assertFalse(result.available());
+    }
+
+    @Test
     void returnsEmptyAvailableResultWhenPastDateHasNoArchive(@TempDir Path directory) throws IOException {
         Path current = writeLines(directory, "app.log", 2);
 

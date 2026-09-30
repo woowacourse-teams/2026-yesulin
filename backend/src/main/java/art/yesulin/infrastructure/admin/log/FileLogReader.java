@@ -5,10 +5,12 @@ import art.yesulin.application.admin.log.LogQuery;
 import art.yesulin.application.admin.log.LogReader;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -20,6 +22,8 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
+import java.util.NavigableMap;
+import java.util.TreeMap;
 import java.util.zip.GZIPInputStream;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -47,8 +51,9 @@ public class FileLogReader implements LogReader {
     private static final byte LINE_FEED = (byte) '\n';
     /** 하루치 보관 로그에서 풀어 읽는 최대 문자 수다. 최신 보관 파일부터 읽고 넘치면 더 오래된 파일은 건너뛴다. */
     static final long MAX_ARCHIVE_SCAN_CHARS = 64L * 1024 * 1024;
-    /** 하루 보관 파일 번호의 상한이다. 설정이 바뀌어도 무한히 찾지 않게 한다. */
+    /** 하루에 읽는 보관 파일 수의 상한이다. 넘으면 최신 파일만 남긴다. */
     private static final int MAX_ARCHIVE_PARTS = 200;
+    private static final String ARCHIVE_SUFFIX = ".gz";
 
     private final LogFileProperties properties;
     private final Clock clock;
@@ -105,13 +110,14 @@ public class FileLogReader implements LogReader {
     }
 
     private LogLines readArchived(Path current, LogQuery query, Instant readAt) throws IOException {
-        List<Path> parts = archiveParts(current, query.date());
+        ArchiveParts archive = archiveParts(current, query.date());
+        List<Path> parts = archive.paths();
         if (parts.isEmpty()) {
             return LogLines.empty(readAt);
         }
 
         Deque<String> collected = new ArrayDeque<>();
-        boolean truncated = false;
+        boolean truncated = archive.skippedOlder();
         long scanned = 0L;
         for (int index = parts.size() - 1; index >= 0; index--) {
             if (scanned >= MAX_ARCHIVE_SCAN_CHARS || collected.size() >= query.limit()) {
@@ -132,17 +138,46 @@ public class FileLogReader implements LogReader {
         return new LogLines(selected, selected.stream().map(logLineParser::parse).toList(), truncated, true, readAt);
     }
 
-    /** 번호 0부터 이어지는 보관 파일만 오래된 순으로 찾는다. */
-    private List<Path> archiveParts(Path current, LocalDate date) {
-        List<Path> parts = new ArrayList<>();
-        for (int index = 0; index < MAX_ARCHIVE_PARTS; index++) {
-            Path part = Path.of(current + "." + date + "." + index + ".gz");
-            if (!Files.isReadable(part)) {
-                break;
+    /**
+     * 그 날짜의 보관 파일을 번호 순(오래된 순)으로 찾고 최신 {@link #MAX_ARCHIVE_PARTS}개만 남긴다.
+     * 보관 용량 상한에 걸리면 logback이 앞 번호부터 지우므로 0번이 없어도 남은 파일을 읽는다.
+     */
+    private ArchiveParts archiveParts(Path current, LocalDate date) throws IOException {
+        Path directory = current.toAbsolutePath().getParent();
+        String prefix = current.getFileName() + "." + date + ".";
+        NavigableMap<Integer, Path> indexed = new TreeMap<>();
+        try (DirectoryStream<Path> entries = Files.newDirectoryStream(directory)) {
+            for (Path entry : entries) {
+                Integer index = archiveIndexOf(entry.getFileName().toString(), prefix);
+                if (index != null && Files.isReadable(entry)) {
+                    indexed.put(index, entry);
+                }
             }
-            parts.add(part);
         }
-        return parts;
+        if (indexed.isEmpty()) {
+            return new ArchiveParts(List.of(), false);
+        }
+
+        List<Path> parts = new ArrayList<>(indexed.values());
+        int first = Math.max(0, parts.size() - MAX_ARCHIVE_PARTS);
+        boolean skippedOlder = first > 0 || indexed.firstKey() > 0;
+        return new ArchiveParts(List.copyOf(parts.subList(first, parts.size())), skippedOlder);
+    }
+
+    /** `{prefix}{번호}.gz` 형식이면 번호를, 아니면 null을 돌려준다. */
+    private Integer archiveIndexOf(String fileName, String prefix) {
+        if (!fileName.startsWith(prefix) || !fileName.endsWith(ARCHIVE_SUFFIX)) {
+            return null;
+        }
+        String index = fileName.substring(prefix.length(), fileName.length() - ARCHIVE_SUFFIX.length());
+        if (index.isEmpty() || index.length() > 9 || !index.chars().allMatch(c -> c >= '0' && c <= '9')) {
+            return null;
+        }
+        return Integer.parseInt(index);
+    }
+
+    /** 오래된 순 보관 파일과, 지워졌거나 상한을 넘어 읽지 않은 더 오래된 파일이 있는지 여부다. */
+    private record ArchiveParts(List<Path> paths, boolean skippedOlder) {
     }
 
     /** 압축 파일 하나를 풀면서 조건에 맞는 마지막 줄만 남긴다. 파일 전체를 메모리에 올리지 않는다. */
@@ -150,8 +185,10 @@ public class FileLogReader implements LogReader {
         Deque<String> lines = new ArrayDeque<>(query.limit());
         boolean truncated = false;
         long scanned = 0L;
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(
-                new GZIPInputStream(Files.newInputStream(part)), StandardCharsets.UTF_8))) {
+        // gzip 헤더가 깨져 GZIPInputStream 생성이 실패해도 파일 스트림은 닫히도록 따로 선언한다.
+        try (InputStream file = Files.newInputStream(part);
+                BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(new GZIPInputStream(file), StandardCharsets.UTF_8))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 scanned += line.length() + 1L;
