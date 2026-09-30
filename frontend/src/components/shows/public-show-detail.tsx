@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import { PublicVenueGuide } from "@/components/applications/public-venue-guide";
 import { PrimaryButton } from "@/components/ui/controls";
+import { trackReservationEvent } from "@/features/analytics/events";
 import {
   formatShowDate,
   formatShowDateTime,
@@ -43,7 +44,16 @@ export function PublicShowDetail({ show, onReserved, onStale }: {
     section?.scrollIntoView({ behavior: "smooth", block: "center" });
     section?.querySelector<HTMLInputElement>("input:not([disabled])")?.focus({ preventScroll: true });
   };
-  const action = { show, availability, selectedSession, hasBookable: bookableSessions.length > 0, onReserve: () => setSheetOpen(true), onChoose: focusSessions };
+  const openReservation = () => {
+    trackReservationEvent("reservation_start", {});
+    setSheetOpen(true);
+  };
+  const action = { show, availability, selectedSession, hasBookable: bookableSessions.length > 0, onReserve: openReservation, onChoose: focusSessions };
+
+  // 좌석이 바뀌어 공연 정보를 다시 읽어도 같은 공연이면 조회 이벤트를 다시 보내지 않는다.
+  useEffect(() => {
+    trackReservationEvent("view_show", { session_count: show.sessions.length });
+  }, [show.id, show.sessions.length]);
 
   return (
     <main className={`min-h-screen break-keep bg-surface text-foreground wrap-break-word ${showsMobileAction ? "pb-[calc(120px+env(safe-area-inset-bottom))]" : "pb-12"} min-[1200px]:pb-12`}>
