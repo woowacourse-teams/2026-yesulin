@@ -102,7 +102,7 @@ public class Reservation extends AbstractAggregateRoot<Reservation> {
         }
         this.status = ReservationStatus.CANCELED;
         this.canceledAt = requireNonNull(canceledAt, "취소 시각은 필수입니다.");
-        registerEvent(new ReservationCanceledEvent(id));
+        registerEvent(new ReservationCanceledEvent(id, sessionId, ticketCount));
     }
 
     public boolean isConfirmed() {
@@ -111,7 +111,7 @@ public class Reservation extends AbstractAggregateRoot<Reservation> {
 
     @PostPersist
     private void registerConfirmedEvent() {
-        registerEvent(new ReservationConfirmedEvent(id));
+        registerEvent(new ReservationConfirmedEvent(id, sessionId, ticketCount));
     }
 
     private static String generateCode() {
