@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useProducerNavigation } from "@/components/producers/producer-navigation-context";
+import { ProducerSidebarToggle } from "@/components/producers/producer-sidebar-toggle";
 import { auditionRoutes } from "@/features/auditions/routes";
 
 export type CrumbItem = {
@@ -14,24 +15,13 @@ export type CrumbItem = {
 const SHOW_PROTOTYPE = process.env.NODE_ENV === "development";
 
 export function Breadcrumb({ items }: { items: readonly CrumbItem[] }) {
-  const { focusMode, sidebarOpen, openSidebar } = useProducerNavigation();
-  const showSidebarButton = focusMode || !sidebarOpen;
+  const { focusMode } = useProducerNavigation();
+  const showSidebarButton = focusMode;
   return (
     <div className={`glass-surface flex min-h-12 flex-wrap items-center gap-2 border-b border-border px-4 py-2 md:px-6 ${focusMode ? "lg:sticky lg:top-0 lg:z-30" : ""}`}>
       {showSidebarButton ? (
         <div className="mr-1 hidden shrink-0 items-center gap-2 lg:flex">
-          <button
-            type="button"
-            aria-label="공연 관리 사이드바 열기"
-            onClick={openSidebar}
-            className="grid h-10 w-10 place-items-center rounded-control border border-brand-line bg-brand-soft text-brand transition-colors hover:bg-brand-soft-strong"
-          >
-            <span aria-hidden="true" className="grid gap-1">
-              <span className="block h-0.5 w-5 rounded-full bg-current" />
-              <span className="block h-0.5 w-5 rounded-full bg-current" />
-              <span className="block h-0.5 w-5 rounded-full bg-current" />
-            </span>
-          </button>
+          <ProducerSidebarToggle />
           <Link href={auditionRoutes.performances} aria-label="예술in 공연 관리 홈" className="relative block h-10 w-[72px] rounded-control">
             <Image src="/images/yesulin-logo.png" alt="예술in" fill sizes="72px" priority className="object-contain" />
           </Link>
