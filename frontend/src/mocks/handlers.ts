@@ -33,6 +33,7 @@ import { authHandlers } from "./auth-handlers";
 import { adminLogHandlers } from "./admin-log-handlers";
 import { otrAuditionHandlers } from "./otr-audition-handlers";
 import { showHandlers } from "./show-handlers";
+import { noticeHandlers } from "./auditions/notice-handlers";
 
 const apiPath = "/api";
 const realProducerApiEnabled = frontendEnvironment.producerApiEnabled;
@@ -46,6 +47,7 @@ const hasText = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0;
 
 export const handlers = [
+  ...noticeHandlers,
   ...authHandlers,
   ...adminLogHandlers,
   ...otrAuditionHandlers,

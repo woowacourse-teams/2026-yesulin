@@ -12,7 +12,7 @@ const badRequest = (code: string, message: string) => HttpResponse.json({ code, 
 const isRoundNumber = (value: number): value is RoundNumber => ROUND_NUMBERS.some((round) => round === value);
 const parseRound = (raw: string): RoundNumber | null => { const parsed = Number(raw); return Number.isInteger(parsed) && isRoundNumber(parsed) ? parsed : null; };
 
-function buildBoard(rawRoleId: string, round: RoundNumber, url?: URL): AuditionBoardResponse | null {
+export function buildBoard(rawRoleId: string, round: RoundNumber, url?: URL): AuditionBoardResponse | null {
   const found = findRole(roleId(rawRoleId));
   if (!found) return null;
   const performance = CATALOG.find((candidate) => candidate.postings.some((posting) => posting.id === found.posting.id));

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useEffect, useEffectEvent, useRef, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 
 /** 겹쳐 뜨는 레이어의 쌓임 순서. 클래스로 흩어 두면 어느 쪽이 위인지 읽히지 않는다. */
@@ -50,6 +50,7 @@ export function ModalShell({
   children: React.ReactNode;
 }) {
   const panelRef = useRef<HTMLElement>(null);
+  const closeFromKeyboard = useEffectEvent(() => onClose());
   const clientReady = useSyncExternalStore(
     subscribeToClientReady,
     getClientReadySnapshot,
@@ -75,7 +76,7 @@ export function ModalShell({
       if (event.key === "Escape") {
         event.preventDefault();
         event.stopPropagation();
-        onClose();
+        closeFromKeyboard();
         return;
       }
       if (event.key !== "Tab") return;
@@ -120,7 +121,7 @@ export function ModalShell({
       document.body.style.overflow = previousBodyOverflow;
       if (previouslyFocused?.isConnected) previouslyFocused.focus();
     };
-  }, [clientReady, open, onClose]);
+  }, [clientReady, open]);
 
   if (!open || !clientReady) return null;
 

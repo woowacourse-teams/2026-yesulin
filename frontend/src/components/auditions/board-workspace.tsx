@@ -1,5 +1,7 @@
 "use client";
 
+import { NoticePanel } from "./notice-panel";
+
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { completeSourceScreening, saveScreeningReview, screeningApplicantHref, type ScreeningSource } from "@/features/auditions/screening-source";
@@ -283,6 +285,7 @@ export function BoardWorkspace({
           )}
         </div>
         <div className="pt-3">
+          <NoticePanel key={`${board.role.id}-${board.round}`} />
           <ApplicantList />
         </div>
       </div>

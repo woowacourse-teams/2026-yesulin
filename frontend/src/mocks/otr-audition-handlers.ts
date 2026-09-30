@@ -31,6 +31,17 @@ function screeningContext(id: string | undefined, rawOrder: string | undefined, 
   return { audition, roleOrder, roleName, key: `${audition.id}:${roleOrder}` };
 }
 
+export function otrNoticeAudience(id: string, roleOrder: string, round: string) {
+  const context = screeningContext(id, roleOrder, round);
+  if (!context) return null;
+  return {
+    posting: { title: context.audition.title },
+    applicants: mockSubmissions.filter(s => s.auditionId === id && s.selectedRole === context.roleName)
+      .map(s => ({ id: s.id, name: String(s.basicInformation.name ?? ""),
+        phone: String(s.basicInformation.phone ?? ""), review: { status: s.status } })),
+  };
+}
+
 function mockBoard(context: NonNullable<ReturnType<typeof screeningContext>>, search = new URLSearchParams()) {
   const all = mockSubmissions.filter((submission) => submission.auditionId === context.audition.id
     && submission.selectedRole === context.roleName);
