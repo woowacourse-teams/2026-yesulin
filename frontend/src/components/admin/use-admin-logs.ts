@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AdminApiError, fetchLogs } from "@/features/admin/api";
 import type { AdminLog } from "@/features/admin/types";
 
@@ -11,7 +11,8 @@ export const REFRESH_INTERVAL_MS = 5000;
 
 /**
  * 로그를 주기적으로 다시 읽는다.
- * 탭이 보이지 않는 동안에는 요청을 건너뛰고, 앞선 요청이 끝나기 전에는 새 요청을 보내지 않는다.
+ * 탭이 보이지 않는 동안에는 요청을 건너뛰고, 같은 조건의 앞선 요청이 끝나기 전에는 새 요청을 보내지 않는다.
+ * 조건(날짜·검색어·범위)이 바뀌면 이전 요청을 기다리지 않고 바로 다시 읽으며, 이전 응답은 버린다.
  * 지난 날짜(date)의 보관 로그는 바뀌지 않으므로 자동으로 다시 읽지 않는다.
  */
 export function useAdminLogs(keyword: string, limit: number, autoRefresh: boolean, date: string | null) {
@@ -19,14 +20,14 @@ export function useAdminLogs(keyword: string, limit: number, autoRefresh: boolea
   const [data, setData] = useState<AdminLog | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
-  const inFlight = useRef(false);
 
   useEffect(() => {
     let active = true;
+    let running = false;
 
     const load = () => {
-      if (inFlight.current) return;
-      inFlight.current = true;
+      if (running) return;
+      running = true;
 
       fetchLogs(keyword, limit, date)
         .then((next) => {
@@ -47,7 +48,7 @@ export function useAdminLogs(keyword: string, limit: number, autoRefresh: boolea
           setPhase("failed");
         })
         .finally(() => {
-          inFlight.current = false;
+          running = false;
         });
     };
 
