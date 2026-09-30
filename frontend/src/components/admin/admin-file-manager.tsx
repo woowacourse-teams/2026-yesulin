@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { DialogFooter, DialogHeader, ModalShell } from "@/components/auditions/modal-shell";
 import { AdminApiError, deleteUnusedFiles, fetchUnusedFiles } from "@/features/admin/api";
@@ -9,6 +8,7 @@ import type { AdminFileDeletionResult, AdminUnusedFilesPage, AdminUnusedFileStat
 import { logout } from "@/features/auth/session-api";
 import { AdminLoginForm } from "./admin-login-form";
 import { formatDateTime } from "./admin-format";
+import { AdminActionButton, AdminShell } from "./admin-shell";
 
 type StatusFilter = AdminUnusedFileStatus | "ALL";
 type Phase = "loading" | "ready" | "unauthorized" | "failed";
@@ -138,18 +138,17 @@ export function AdminFileManager() {
   }
 
   return (
-    <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <Link href="/admin" className="text-sm text-neutral-600 underline">운영 대시보드로 돌아가기</Link>
-          <h1 className="mt-3 text-xl font-semibold text-neutral-900">미사용 파일 관리</h1>
-          <p className="mt-1 text-sm text-neutral-600">참조 없는 업로드를 수동으로 확인해. 7일 이상 지난 파일만 삭제할 수 있어.</p>
-        </div>
-        <div className="flex gap-2">
-          <button type="button" onClick={refresh} className="min-h-11 rounded border border-neutral-300 px-4 text-sm">새로고침</button>
-          <button type="button" onClick={() => void signOut()} className="min-h-11 rounded border border-neutral-300 px-4 text-sm">로그아웃</button>
-        </div>
-      </header>
+    <AdminShell
+      current="files"
+      title="파일 관리"
+      description="참조 없는 업로드를 수동으로 확인해. 7일 이상 지난 파일만 삭제할 수 있어."
+      actions={(
+        <>
+          <AdminActionButton onClick={refresh}>새로고침</AdminActionButton>
+          <AdminActionButton onClick={() => void signOut()}>로그아웃</AdminActionButton>
+        </>
+      )}
+    >
 
       <section className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5" aria-label="파일 조회 조건">
         <label htmlFor="unused-file-status" className="block text-sm font-medium text-neutral-800">상태</label>
@@ -247,6 +246,6 @@ export function AdminFileManager() {
           </button>
         </DialogFooter>
       </ModalShell>
-    </main>
+    </AdminShell>
   );
 }
