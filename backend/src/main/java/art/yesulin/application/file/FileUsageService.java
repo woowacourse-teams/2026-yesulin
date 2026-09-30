@@ -1,10 +1,8 @@
 package art.yesulin.application.file;
 
-import art.yesulin.domain.file.FileAsset;
 import art.yesulin.domain.file.FileAssetRepository;
 import art.yesulin.domain.file.FileStatus;
 import java.time.Clock;
-import java.time.Instant;
 import java.util.Collection;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,11 +18,12 @@ public class FileUsageService {
 
     @Transactional(propagation = Propagation.MANDATORY)
     public void markReferencesRemoved(Collection<Long> fileIds) {
-        Instant at = clock.instant();
-        for (FileAsset file : fileAssetRepository.findAllById(fileIds)) {
-            if (file.getStatus() == FileStatus.READY) {
-                file.markUnreferenced(at);
-            }
+        for (long fileId : fileIds.stream().distinct().sorted().toList()) {
+            fileAssetRepository.findByIdForUpdate(fileId).ifPresent(file -> {
+                if (file.getStatus() == FileStatus.READY) {
+                    file.markUnreferenced(clock.instant());
+                }
+            });
         }
     }
 }
