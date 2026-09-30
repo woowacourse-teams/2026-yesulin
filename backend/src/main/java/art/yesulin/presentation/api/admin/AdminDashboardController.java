@@ -5,10 +5,13 @@ import art.yesulin.application.auth.MemberPrincipal;
 import art.yesulin.application.auth.annotation.LoginMember;
 import art.yesulin.application.auth.annotation.LoginRequired;
 import art.yesulin.domain.admin.AdminAuditLog;
+import art.yesulin.domain.admin.query.AdminActivity;
+import art.yesulin.domain.admin.query.AdminMemberStats;
 import art.yesulin.domain.admin.query.AdminOverview;
 import art.yesulin.domain.audition.AuditionStatus;
 import art.yesulin.domain.member.MemberStatus;
 import art.yesulin.domain.member.MemberType;
+import art.yesulin.domain.show.ShowStatus;
 import jakarta.validation.constraints.Min;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +39,20 @@ public class AdminDashboardController {
         return ResponseEntity.ok(adminDashboardService.findOverview());
     }
 
+    @GetMapping("/member-stats")
+    public ResponseEntity<AdminMemberStats> findMemberStats(
+            @LoginMember(roles = MemberType.ADMIN) MemberPrincipal principal
+    ) {
+        return ResponseEntity.ok(adminDashboardService.findMemberStats());
+    }
+
+    @GetMapping("/activity")
+    public ResponseEntity<AdminActivity> findActivity(
+            @LoginMember(roles = MemberType.ADMIN) MemberPrincipal principal
+    ) {
+        return ResponseEntity.ok(adminDashboardService.findActivity());
+    }
+
     @GetMapping("/producers")
     public ResponseEntity<AdminProducersResponse> findProducers(
             @LoginMember(roles = MemberType.ADMIN) MemberPrincipal principal,
@@ -50,6 +67,14 @@ public class AdminDashboardController {
             @RequestParam(required = false) AuditionStatus status
     ) {
         return ResponseEntity.ok(new AdminAuditionsResponse(adminDashboardService.findAuditions(status)));
+    }
+
+    @GetMapping("/shows")
+    public ResponseEntity<AdminShowsResponse> findShows(
+            @LoginMember(roles = MemberType.ADMIN) MemberPrincipal principal,
+            @RequestParam(required = false) ShowStatus status
+    ) {
+        return ResponseEntity.ok(new AdminShowsResponse(adminDashboardService.findShows(status)));
     }
 
     @GetMapping("/audit-logs")
