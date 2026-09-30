@@ -40,20 +40,19 @@ public class SlackAuditionNoticeNotifier implements AuditionNoticeNotifier {
         if (contents.isEmpty()) {
             throw new IllegalArgumentException("전송할 공고가 없습니다.");
         }
-        StringBuilder message = new StringBuilder("공고 알림 ").append(contents.size()).append("건");
+        StringBuilder message = new StringBuilder("🔔 예술in 오디션 공고 알림 · ").append(contents.size()).append("건\n");
         for (int index = 0; index < contents.size(); index++) {
             AuditionContent content = contents.get(index);
             if (index > 0) {
-                message.append("\n\n──────────");
+                message.append("\n\n──────────\n");
             }
-            message.append("\n\n").append(index + 1).append(". ");
             if (!content.category().isBlank()) {
-                message.append('[').append(content.category()).append(" 공고] ");
+                message.append("\n[").append(content.category()).append("] ");
             }
             message.append(content.title())
-                    .append("\n보수: ").append(display(content.pay()))
+                    .append("\n페이: ").append(display(content.pay()))
                     .append(" | 마감: ").append(display(content.deadline()))
-                    .append("\n원문: ").append(content.sourceUrl());
+                    .append("\n자세히 보기\n").append(content.sourceUrl());
         }
         post(message.toString());
     }
