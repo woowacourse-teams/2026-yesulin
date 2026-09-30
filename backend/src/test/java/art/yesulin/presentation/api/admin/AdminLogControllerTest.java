@@ -9,9 +9,11 @@ import art.yesulin.domain.member.MemberStatus;
 import art.yesulin.domain.member.MemberType;
 import art.yesulin.support.ObjectStorageTestConfiguration;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.zip.GZIPOutputStream;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,6 +43,29 @@ class AdminLogControllerTest {
         Path path = Path.of("build/tmp/admin-log-api-test.log");
         Files.createDirectories(path.getParent());
         Files.writeString(path, "INFO started\nWARN Disk Full\ninfo stopped\n", StandardCharsets.UTF_8);
+        Path archive = Path.of("build/tmp/admin-log-api-test.log.2026-01-02.0.gz");
+        try (OutputStream output = new GZIPOutputStream(Files.newOutputStream(archive))) {
+            output.write("INFO archived first\nINFO archived second\n".getBytes(StandardCharsets.UTF_8));
+        }
+    }
+
+    @Test
+    void readsArchivedLogOfRequestedDate() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/logs")
+                        .param("date", "2026-01-02")
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, ADMIN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.available").value(true))
+                .andExpect(jsonPath("$.lines.length()").value(2))
+                .andExpect(jsonPath("$.lines[1]").value("INFO archived second"));
+    }
+
+    @Test
+    void rejectsMalformedDate() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/logs")
+                        .param("date", "2026-13-40")
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, ADMIN))
+                .andExpect(status().isBadRequest());
     }
 
     /** 애플리케이션이 같은 파일에 계속 기록하므로 줄 수를 고정하지 않고 조회 가능 여부만 확인한다. */

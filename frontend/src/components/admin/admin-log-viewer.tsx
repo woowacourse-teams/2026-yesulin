@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { LOG_LINE_LIMITS } from "@/features/admin/api";
+import { LOG_RETENTION_DAYS, recentLogDates } from "@/features/admin/log-dates";
 import type { AdminLogFilters } from "@/features/admin/log-view";
 import type { AdminLogLevel } from "@/features/admin/types";
 import { logout } from "@/features/auth/session-api";
@@ -31,8 +32,12 @@ export function AdminLogViewer() {
   const [slowRequestsOnly, setSlowRequestsOnly] = useState(false);
   const [limit, setLimit] = useState<number>(200);
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [date, setDate] = useState<string | null>(null);
+  // 날짜 목록은 화면을 연 시점의 한국 날짜로 만든다. 자정을 넘기면 새로고침으로 다시 만든다.
+  const [dateOptions] = useState(() => recentLogDates(Date.now()));
   const keyword = useDebouncedValue(keywordInput.trim(), SEARCH_DEBOUNCE_MS);
-  const { phase, data, error, refresh, restart, signOut } = useAdminLogs(keyword, limit, autoRefresh);
+  const { phase, data, error, refresh, restart, signOut } = useAdminLogs(keyword, limit, autoRefresh, date);
+  const pastDate = date !== null;
   const filters: AdminLogFilters = {
     levels,
     slowRequestsOnly,
@@ -78,7 +83,7 @@ export function AdminLogViewer() {
     >
 
       <section aria-label="로그 검색과 필터" className="rounded-card border border-border bg-card p-4 sm:p-5">
-        <div className="grid gap-4 lg:grid-cols-[minmax(240px,1fr)_minmax(220px,0.7fr)_auto] lg:items-end">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(240px,1fr)_minmax(220px,0.7fr)_auto_auto] lg:items-end">
           <label className="flex min-w-0 flex-col gap-1.5 text-sm font-semibold text-muted-strong">
             키워드 검색
             <input
@@ -98,6 +103,18 @@ export function AdminLogViewer() {
               placeholder="전체 또는 앞 8자리"
               className="min-h-12 rounded-control border border-border bg-card px-3 font-mono text-foreground placeholder:font-sans placeholder:text-muted-soft"
             />
+          </label>
+          <label className="flex flex-col gap-1.5 text-sm font-semibold text-muted-strong">
+            날짜
+            <select
+              value={date ?? ""}
+              onChange={(event) => setDate(event.target.value || null)}
+              className="min-h-12 rounded-control border border-border bg-card px-3 text-foreground"
+            >
+              {dateOptions.map((option) => (
+                <option key={option.value ?? "today"} value={option.value ?? ""}>{option.label}</option>
+              ))}
+            </select>
           </label>
           <label className="flex flex-col gap-1.5 text-sm font-semibold text-muted-strong">
             조회 범위
@@ -147,19 +164,20 @@ export function AdminLogViewer() {
           >
             필터 초기화
           </button>
-          <label className="ml-auto flex min-h-11 items-center gap-2 text-sm text-muted-strong">
+          <label className={`ml-auto flex min-h-11 items-center gap-2 text-sm ${pastDate ? "text-muted" : "text-muted-strong"}`}>
             <input
               type="checkbox"
-              checked={autoRefresh}
+              checked={autoRefresh && !pastDate}
+              disabled={pastDate}
               onChange={(event) => setAutoRefresh(event.target.checked)}
               className="size-4 accent-brand"
             />
-            {REFRESH_INTERVAL_MS / 1000}초마다 자동 새로고침
+            {pastDate ? "지난 날짜는 자동 새로고침하지 않아요" : `${REFRESH_INTERVAL_MS / 1000}초마다 자동 새로고침`}
           </label>
         </div>
       </section>
 
-      {phase === "failed" && error ? <p role="alert" className="text-sm text-red-600">{error}</p> : null}
+      {phase === "failed" && error ? <p role="alert" className="text-sm text-fail">{error}</p> : null}
 
       {data ? (
         <div className="flex flex-col gap-2">
@@ -167,6 +185,9 @@ export function AdminLogViewer() {
             <span>
               {data.entries.length}건 조회
               {data.truncated ? " · 오래된 내용은 잘렸습니다" : ""}
+              {pastDate && data.entries.length === 0
+                ? ` · 이 날짜의 보관 로그가 없어요 (보관 기간 ${LOG_RETENTION_DAYS}일)`
+                : ""}
             </span>
             <span>마지막 조회 {formatTime(data.readAt)} (KST · 로그 시각과 같은 기준)</span>
           </div>

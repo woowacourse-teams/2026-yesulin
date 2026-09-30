@@ -10,15 +10,19 @@ import art.yesulin.application.admin.log.LogEntryFormat;
 import art.yesulin.application.admin.log.LogLines;
 import art.yesulin.application.admin.log.LogQuery;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.zip.GZIPOutputStream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import tools.jackson.databind.ObjectMapper;
@@ -39,6 +43,59 @@ class FileLogReaderTest {
         Path path = directory.resolve(name);
         Files.writeString(path, content, StandardCharsets.UTF_8);
         return path;
+    }
+
+    private static final LocalDate ARCHIVED_DATE = LocalDate.of(2026, 8, 25);
+
+    private void writeArchive(Path current, LocalDate date, int index, String... lines) throws IOException {
+        Path archive = Path.of(current + "." + date + "." + index + ".gz");
+        try (OutputStream output = new GZIPOutputStream(Files.newOutputStream(archive))) {
+            output.write((String.join("\n", lines) + "\n").getBytes(StandardCharsets.UTF_8));
+        }
+    }
+
+    @Test
+    void readsNewestArchivedLinesAcrossPartsOfPastDate(@TempDir Path directory) throws IOException {
+        Path current = writeLines(directory, "app.log", 2);
+        writeArchive(current, ARCHIVED_DATE, 0, "a-1", "a-2", "a-3");
+        writeArchive(current, ARCHIVED_DATE, 1, "b-1", "b-2", "b-3");
+
+        LogLines result = readerOf(current).readRecent(new LogQuery("", 4, ARCHIVED_DATE));
+
+        assertTrue(result.available());
+        assertEquals(List.of("a-3", "b-1", "b-2", "b-3"), result.lines());
+        assertTrue(result.truncated());
+    }
+
+    @Test
+    void filtersArchivedLinesByKeyword(@TempDir Path directory) throws IOException {
+        Path current = writeLines(directory, "app.log", 2);
+        writeArchive(current, ARCHIVED_DATE, 0, "INFO reservation", "WARN slow", "INFO RESERVATION_CONFIRMED");
+
+        LogLines result = readerOf(current).readRecent(new LogQuery("reservation", 200, ARCHIVED_DATE));
+
+        assertEquals(List.of("INFO reservation", "INFO RESERVATION_CONFIRMED"), result.lines());
+        assertFalse(result.truncated());
+    }
+
+    @Test
+    void returnsEmptyAvailableResultWhenPastDateHasNoArchive(@TempDir Path directory) throws IOException {
+        Path current = writeLines(directory, "app.log", 2);
+
+        LogLines result = readerOf(current).readRecent(new LogQuery("", 200, ARCHIVED_DATE));
+
+        assertTrue(result.available());
+        assertEquals(List.of(), result.lines());
+    }
+
+    @Test
+    void readsCurrentFileWhenDateIsToday(@TempDir Path directory) throws IOException {
+        Path current = writeLines(directory, "app.log", 3);
+        LocalDate today = LocalDate.ofInstant(CLOCK.instant(), ZoneId.systemDefault());
+
+        LogLines result = readerOf(current).readRecent(new LogQuery("", 200, today));
+
+        assertEquals(List.of("line-1", "line-2", "line-3"), result.lines());
     }
 
     @Test

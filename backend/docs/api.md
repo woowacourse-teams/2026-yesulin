@@ -340,7 +340,7 @@ submission ID와 변경할 status·memo·note 중 하나 이상을 요구한다.
 | GET | `/api/v1/admin/submissions/{submissionId}` | Admin | 없음 | `200 ApplicantSubmissionDetailResponse` |
 | GET | `/api/v1/admin/shows` | Admin | `status` query (`DRAFT`/`OPEN`/`CLOSED`, 선택) | `200 AdminShowsResponse` |
 | GET | `/api/v1/admin/audit-logs` | Admin | `page` query (선택, 0부터) | `200 AdminAuditLogsResponse` |
-| GET | `/api/v1/admin/logs` | Admin | `keyword`, `limit` query (선택) | `200 AdminLogResponse` |
+| GET | `/api/v1/admin/logs` | Admin | `keyword`, `limit`, `date`(`yyyy-MM-dd`) query (선택) | `200 AdminLogResponse` |
 | GET | `/api/v1/admin/files/unreferenced` | Admin | `status` (`PENDING`/`READY`/`DELETING`), `page`(0부터), `size`(1~100) query, 모두 선택 | `200 UnusedFilesResult` |
 | DELETE | `/api/v1/admin/files/{fileId}` | Admin | `DeleteAdminFileRequest(confirmationPassword)` | `204` |
 | POST | `/api/v1/admin/files/deletions` | Admin | `BatchDeleteAdminFilesRequest(fileIds, confirmationPassword)` | `200 BatchFileDeletionResult` |
@@ -387,6 +387,10 @@ S3 삭제 실패 시 `DELETING` 상태가 남으며 같은 파일 ID로 재시�
 [배포 문서](operations/deployment.md)를 따른다.
 
 로그 조회는 `logging.file.name`이 가리키는 파일의 끝부분만 읽는다. 파일 경로는 요청으로 바꿀 수 없고 쓰기도 하지 않는다.
+`date`가 서버 시간대 기준 지난 날짜면 그날 압축 보관된 `{로그 파일}.{date}.{번호}.gz`를 최신 번호부터 풀어 읽고,
+조건에 맞는 마지막 `limit`줄을 오래된 순으로 반환한다. 하루에 풀어 읽는 양에 상한이 있어 넘치면 더 오래된 보관 파일은
+건너뛰고 `truncated=true`다. 보관 파일이 없으면(보관 기간 14일이 지난 날짜 포함) `available=true`와 빈 목록이다.
+`date`가 없거나 오늘 이후면 현재 파일을 읽는다. 날짜 형식이 틀리면 `400 INVALID_REQUEST`다.
 `limit`은 1~500이며 기본값은 200이다. `keyword`는 대소문자를 구분하지 않는 부분 일치다. 한 번에 읽는 바이트에
 상한이 있다. 생략된 더 오래된 줄이 있으면 `truncated=true`이며, 읽기 상한과 줄 수 상한 어느 쪽 때문이든 참이 된다.
 파일을 읽을 수 없으면 `available=false`다. `AdminLogResponse.lines`는 기존 프론트 호환을 위해 원문 줄을 유지하고,

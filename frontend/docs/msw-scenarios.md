@@ -82,3 +82,4 @@ OTR `/sms-*`는 producer API 활성화 시 passthrough하고, 목 모드에서�
 MSW에서는 `/api/v1/admin/logs`에 정상 HTTP, 1초 이상 느린 HTTP, 예상 밖 ERROR와 기존 `LEGACY` 로그를 함께 반환한다.
 `/api/v1/admin/files/unreferenced` 조회와 단건·일괄 삭제는 실제 관리자 API로 전달한다.
 `/admin/logs`에서 6개 요약 필드, ERROR·WARN·INFO·DEBUG·TRACE 레벨 필터, 느린 요청 필터, request ID·키워드 검색과 stack trace 펼침을 확인한다.
+날짜에서 지난 날짜를 고르면 목은 INFO 로그만 돌려주고, 자동 새로고침이 꺼진다. 목은 날짜별로 다른 로그를 두지 않는다.

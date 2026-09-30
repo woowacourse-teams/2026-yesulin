@@ -12,8 +12,9 @@ export const REFRESH_INTERVAL_MS = 5000;
 /**
  * 로그를 주기적으로 다시 읽는다.
  * 탭이 보이지 않는 동안에는 요청을 건너뛰고, 앞선 요청이 끝나기 전에는 새 요청을 보내지 않는다.
+ * 지난 날짜(date)의 보관 로그는 바뀌지 않으므로 자동으로 다시 읽지 않는다.
  */
-export function useAdminLogs(keyword: string, limit: number, autoRefresh: boolean) {
+export function useAdminLogs(keyword: string, limit: number, autoRefresh: boolean, date: string | null) {
   const [phase, setPhase] = useState<LogPhase>("loading");
   const [data, setData] = useState<AdminLog | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +28,7 @@ export function useAdminLogs(keyword: string, limit: number, autoRefresh: boolea
       if (inFlight.current) return;
       inFlight.current = true;
 
-      fetchLogs(keyword, limit)
+      fetchLogs(keyword, limit, date)
         .then((next) => {
           if (!active) return;
           setData(next);
@@ -51,7 +52,7 @@ export function useAdminLogs(keyword: string, limit: number, autoRefresh: boolea
     };
 
     load();
-    if (!autoRefresh) {
+    if (!autoRefresh || date) {
       return () => {
         active = false;
       };
@@ -65,7 +66,7 @@ export function useAdminLogs(keyword: string, limit: number, autoRefresh: boolea
       active = false;
       window.clearInterval(timer);
     };
-  }, [keyword, limit, autoRefresh, reloadToken]);
+  }, [keyword, limit, autoRefresh, date, reloadToken]);
 
   const refresh = useCallback(() => setReloadToken((token) => token + 1), []);
 

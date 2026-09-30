@@ -45,6 +45,24 @@ describe("admin API", () => {
     );
   });
 
+  it("지난 날짜를 고르면 date를 함께 전달한다", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      lines: [],
+      entries: [],
+      truncated: false,
+      available: true,
+      readAt: "2026-08-31T05:00:00Z",
+    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await fetchLogs("", 200, "2026-08-29");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/v1/admin/logs?limit=200&date=2026-08-29",
+      { method: "GET", credentials: "include" },
+    );
+  });
+
   it("운영자 변경 기록의 요청 페이지를 API에 전달한다", async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
       logs: [],

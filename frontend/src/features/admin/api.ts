@@ -156,9 +156,11 @@ export function normalizeAdminLog(response: AdminLogResponse): AdminLog {
   return { ...response, entries };
 }
 
-export async function fetchLogs(keyword: string, limit: number): Promise<AdminLog> {
+/** date는 `yyyy-MM-dd` 한국 날짜다. 없으면 현재 로그 파일을 읽는다. */
+export async function fetchLogs(keyword: string, limit: number, date: string | null = null): Promise<AdminLog> {
   const params = new URLSearchParams({ limit: String(limit) });
   if (keyword.trim()) params.set("keyword", keyword.trim());
+  if (date) params.set("date", date);
   const response = await getJson<AdminLogResponse>(
     `/logs?${params.toString()}`,
     "로그를 불러오지 못했습니다.",
