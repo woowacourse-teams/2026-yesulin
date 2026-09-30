@@ -21,8 +21,9 @@ describe("reservation analytics events", () => {
     vi.stubEnv("NEXT_PUBLIC_GTM_ID", "GTM-TEST");
     const browser = stubBrowser("granted");
 
-    trackReservationEvent("reservation_submit_success", { ticket_count: 2 });
+    const sent = trackReservationEvent("reservation_submit_success", { ticket_count: 2 });
 
+    expect(sent).toBe(true);
     expect(browser.dataLayer).toEqual([{
       event: "reservation_submit_success",
       session_count: undefined,
@@ -35,8 +36,9 @@ describe("reservation analytics events", () => {
     vi.stubEnv("NEXT_PUBLIC_GTM_ID", "GTM-TEST");
     const browser = stubBrowser("denied");
 
-    trackReservationEvent("view_show", { session_count: 3 });
+    const sent = trackReservationEvent("view_show", { session_count: 3 });
 
+    expect(sent).toBe(false);
     expect(browser.dataLayer).toEqual([]);
   });
 });

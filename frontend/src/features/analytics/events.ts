@@ -99,14 +99,16 @@ export function trackAnalyticsEvent<Name extends keyof AnalyticsEventParameters>
   window.dataLayer.push({ event, ...definedParameters });
 }
 
+/** 분석 동의가 없어 보내지 않았으면 false를 돌려준다. 나중에 다시 보낼지 판단할 때 쓴다. */
 export function trackReservationEvent<Name extends ReservationEventName>(
   event: Name,
   parameters: AnalyticsEventParameters[Name],
-) {
-  if (!canSendAnalytics()) return;
+): boolean {
+  if (!canSendAnalytics()) return false;
   const cleared = Object.fromEntries(RESERVATION_PARAMETER_KEYS.map((key) => [key, undefined]));
   window.dataLayer = window.dataLayer ?? [];
   window.dataLayer.push({ event, ...cleared, ...parameters });
+  return true;
 }
 
 export function trackLoginEntry(attribution: LoginAttribution) {

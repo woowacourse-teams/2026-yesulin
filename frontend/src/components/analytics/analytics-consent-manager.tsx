@@ -6,6 +6,7 @@ import { DialogFooter, DialogHeader, MODAL_LAYERS, ModalShell } from "@/componen
 import { PrimaryButton, SecondaryButton } from "@/components/ui/controls";
 import {
   ANALYTICS_CONSENT_STORAGE_KEY,
+  ANALYTICS_READY_EVENT,
   clearGoogleAnalyticsCookies,
   readAnalyticsConsent,
   writeAnalyticsConsent,
@@ -50,6 +51,7 @@ export function AnalyticsConsentManager({ gtmId }: { readonly gtmId?: string }) 
     script.async = true;
     script.src = `https://www.googletagmanager.com/gtm.js?id=${encodeURIComponent(gtmId)}`;
     document.head.appendChild(script);
+    window.dispatchEvent(new Event(ANALYTICS_READY_EVENT));
   }, [consent, gtmId]);
 
   useEffect(() => {
