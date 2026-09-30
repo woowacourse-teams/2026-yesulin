@@ -67,7 +67,7 @@ import org.springframework.transaction.annotation.Transactional;
         "spring.flyway.enabled=false"
 })
 @org.springframework.test.context.jdbc.Sql(
-        scripts = "/db/migration/V20260929170000__create_audition_sms_notices.sql",
+        scripts = "/db/migration/V20260930100000__create_audition_sms_notices.sql",
         executionPhase = org.springframework.test.context.jdbc.Sql.ExecutionPhase.BEFORE_TEST_CLASS
 )
 @Import(ObjectStorageTestConfiguration.class)

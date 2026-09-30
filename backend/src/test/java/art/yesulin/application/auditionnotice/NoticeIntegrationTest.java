@@ -69,8 +69,8 @@ import tools.jackson.databind.ObjectMapper;
         "yesulin.sms.sms-price=10", "yesulin.sms.lms-price=30", "yesulin.sms.daily-limit=1000",
         "yesulin.sms.request-limit=500", "yesulin.sms.worker-enabled=false"
 })
-@Sql(scripts = {"/db/migration/V20260929170000__create_audition_sms_notices.sql",
-        "/db/migration/V20260929180000__scope_audition_sms_notices.sql"},
+@Sql(scripts = {"/db/migration/V20260930100000__create_audition_sms_notices.sql",
+        "/db/migration/V20260930101000__scope_audition_sms_notices.sql"},
         executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
 @Import(ObjectStorageTestConfiguration.class)
 @AutoConfigureMockMvc
