@@ -18,6 +18,63 @@
 쓰기 요청은 공개 여부와 관계없이 CSRF header가 필요하다. OAuth 시작 `/oauth2/authorization/{provider}`와 callback
 `/login/oauth2/code/{provider}`는 Spring Security 경로이며 아래 REST 목록에 포함하지 않는다.
 
+## 오디션 안내 문자
+
+일반 공고 prefix: `/api/v1/audition-roles/{roleId}/screening-rounds/{round}`.
+OTR 공고 prefix: `/api/v1/otr-auditions/{auditionId}/roles/{roleOrder}/screening-rounds/1`.
+OTR의 auditionId는 OTR 원문 번호가 아닌 내부 공개 UUID이고, roleOrder는 1부터 시작하는 배역 순번이다.
+두 경로는 아래의 동일한 suffix·요청·응답 계약을 사용한다.
+모두 Active Producer와 해당 공고 소유권을 요구한다. 쓰기는 CSRF가 필요하며, round는 stage ID가 아닌 순번이다.
+OTR은 해당 공고·배역의 1차 PASS만 대상으로 하며 targetStageId=null로 별도 일정을 안내한다.
+발송 직전에도 같은 출처에서 소유권·합격 여부를 재검증한다. 심사 마감 여부는 발송을 막지 않는다.
+발송 내역·상세·재발송·호환용 초안은 공고 종류와 OTR 공고 UUID까지 구분한다.
+본인 공고의 발송 내역이 없으면 200과 빈 배열을 반환하며, 없는 공고·다른 소유자·잘못된 배역/차수는
+404 SMS_NOT_FOUND다. 미인증 401, 역할/상태 불일치 403은 공통 인증 규칙을 따른다.
+
+| Method | suffix | 요청 / 응답 |
+| --- | --- | --- |
+| GET | `/sms-settings` | 발송 활성 여부, 발신번호, footer, messageHeader, 다음 전형, 합격자 이름·연락처 |
+| GET | `/sms-draft` | `{version, command}`. 없으면 version 0, command null |
+| PUT | `/sms-draft` | `{version, command}` → 증가한 version과 저장 내용 |
+| POST | `/sms-previews` | command → 개인별 문구·유형·바이트·가격·오류, 경고, total, sender, token, sendable |
+| POST | `/sms-batches` | `Idempotency-Key: UUID`, `{command, previewToken}` → 202 batch |
+| GET | `/sms-batches` | 해당 배역·차수 최근 100개 `{batch, firstRecipientName, retainedCount, deliveredCount, failedCount, pendingCount, unknownCount, messageType}` |
+| GET | `/sms-batches/{batchId}` | `{batch, deliveries}` |
+| POST | `/sms-batches/{batchId}/retry-preview` | `{deliveryIds}` → 이전 스냅샷 기준 새 비용 미리보기 |
+| POST | `/sms-batches/{batchId}/retries` | `Idempotency-Key`, `{deliveryIds, previewToken}` → 202 새 batch |
+
+command: `{targetStageId, template, recipients: [{submissionId, appointment}]}`.
+appointment는 `2026-10-01T14:30`처럼 한국 시간의 날짜·시간이다. 마지막 차수만 targetStageId=null이다.
+초안의 미완성 일시는 null로 저장할 수 있지만 발송에서는 거부한다. 대상은 1~500명 이내이며 운영 상한도 적용한다.
+template에는 `{오디션일시}`가 필요하며, `{이름}`은 template 또는 messageHeader에 있어야 한다.
+서버는 DB의 제작사명·공고명으로 인사와 오디션 대상자 선정 안내인 `messageHeader`를 구성하고,
+그 안의 `{이름}`을 수신자 이름으로 치환한다. 기본 template은 `오디션 일시: {오디션일시}`와 선택적 추가 안내사항이다.
+header를 앞에, `문의: {공연사 연락처}`인 footer를 끝에 각각 빈 줄로 구분해 추가한다.
+`footer`도 이 문의 문구다. 개인별 preview의 body가 저장·발송되는 최종 본문이며, 발송 내역은 당시 본문을 유지한다.
+오류는 수신자별 error에 모아 반환한다. 단가 미설정이면 price/total=null, sendable=false다.
+금액은 부가세 포함 KRW이며 내부 계산·발송 검증용으로 유지하되 공연사 UI에는 표시하지 않는다.
+최종 본문을 EUC-KR로 검증하며 SMS 90 / LMS 2,000바이트 한도를 적용한다.
+
+batch: `id, ownerId, roleId, sourceRound, sourceStageId, targetStageId, idempotencyKey, fingerprint, sender,
+createdAt, retryOf, estimatedCost, count, scopeKey`.
+scopeKey는 일반 공고 `STANDARD`, OTR `OTR:{공개 공고 UUID}`다. OTR의 roleId는 배역 순번이며
+별도 전형 엔티티가 없으므로 sourceStageId도 null이다. 기존 일반 공고 기록은 STANDARD로 유지된다.
+delivery: `id, batchId, submissionId, name, phone, appointment, body, type, price, status, providerId, code, updatedAt`.
+202는 전달 성공이 아니다. status는 QUEUED / SENDING / ACCEPTED / DELIVERED / FAILED / UNKNOWN이다.
+UNKNOWN은 자동 재전송하지 않는다. FAILED 중 code=RETRIED는 후속 시도가 있으므로 다시 재시도할 수 없다.
+솔라피 발송 요청의 HTTP 401/403은 인증·접근 거절로 `FAILED`, `SOLAPI_HTTP_401/403`을 저장한다.
+설정 확인 후 사용자가 재발송해야 하며 자동 재발송하지 않는다. 타임아웃·불명확한 오류는 UNKNOWN으로 유지한다.
+삭제·보관 기간 만료 후에는 배치 집계만 남고 deliveries가 비거나 줄어들 수 있다.
+목록의 상태별 인원은 남아 있는 수신자 기록만 집계하며 `count-retainedCount`는 기록 없음으로 표시한다.
+`firstRecipientName`은 남아 있는 이름 중 하나이며 `messageType`은 SMS / LMS / SMS/LMS 또는 기록이 없을 때 null이다.
+초안 API는 기존 데이터 정리·호환성을 위해 유지하지만 현재 문자 작성 UI에서는 조회·저장하지 않는다.
+
+- `409 SMS_DISABLED`: 비활성 또는 요금·발신번호·상한 미설정. 초안·미리보기는 사용 가능.
+- `409 SMS_CONFLICT`: 미리보기 변경, 동일 키의 다른 내용, 초안 버전 충돌.
+- `409 SMS_LIMIT_EXCEEDED`: 계정 전체 일일 예약 건수 또는 요청 상한 초과.
+- `404 SMS_NOT_FOUND`: 본인 공고/배역/발송 기록이 아니거나 없는 경우.
+- `400 INVALID_REQUEST`: 합격자가 아닌 대상, 과거 일시, 잘못된 재전송 대상 등.
+
 ## Health와 인증 — 9개
 
 | Method | URL | 인증 | Request | Response |
