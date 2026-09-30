@@ -4,30 +4,35 @@ import Image from "next/image";
 import { useState } from "react";
 import type { ApplicantPhoto } from "@/features/auditions/types";
 
-/**
- * 배우 사진. 외부 아바타 URL이 실패하면 인라인 SVG로 갈아끼운다.
- * 목 사진이라 최적화 이득이 없어 unoptimized로 두고 data URL도 그대로 통과시킨다.
- */
-export function ApplicantPhotoImage({
-  photo,
-  alt,
-  sizes,
-  className = "object-cover object-[center_20%]",
-  priority = false,
-}: {
+type ApplicantPhotoImageProps = {
   photo: ApplicantPhoto | undefined;
   alt: string;
   sizes: string;
   className?: string;
   priority?: boolean;
-}) {
+};
+
+/** 비공개 사진은 브라우저가 세션 Cookie를 포함해 원본 콘텐츠 API를 직접 조회한다. */
+export function ApplicantPhotoImage(props: ApplicantPhotoImageProps) {
+  if (!props.photo) return <PhotoUnavailable alt={props.alt} failed={false} />;
+  // 사진을 바꾸면 이전 사진의 실패 상태도 초기화한다.
+  return <PhotoImage key={props.photo.url} {...props} photo={props.photo} />;
+}
+
+function PhotoImage({
+  photo,
+  alt,
+  sizes,
+  className = "object-cover object-[center_20%]",
+  priority = false,
+}: ApplicantPhotoImageProps & { photo: ApplicantPhoto }) {
   const [failed, setFailed] = useState(false);
 
-  if (!photo) return null;
+  if (failed || !photo.url.trim()) return <PhotoUnavailable alt={alt} failed />;
 
   return (
     <Image
-      src={failed ? photo.fallbackUrl : photo.url}
+      src={photo.url}
       alt={alt}
       fill
       unoptimized
@@ -38,6 +43,31 @@ export function ApplicantPhotoImage({
       draggable={false}
       onError={() => setFailed(true)}
     />
+  );
+}
+
+function PhotoUnavailable({ alt, failed }: { alt: string; failed: boolean }) {
+  const message = failed ? "사진을 불러오지 못했습니다" : "제출된 사진이 없습니다";
+  return (
+    <span
+      role="img"
+      aria-label={alt ? `${alt}: ${message}` : message}
+      title={message}
+      className="@container absolute inset-0 flex flex-col items-center justify-center gap-2 bg-border-soft text-muted"
+    >
+      {failed ? (
+        <svg aria-hidden="true" viewBox="0 0 24 24" className="h-8 w-8 max-h-[40%] max-w-[60%] fill-none stroke-current stroke-[1.5]">
+          <rect x="3" y="3" width="18" height="18" rx="3" />
+          <path d="M12 7v6m0 3v1" />
+        </svg>
+      ) : (
+        <svg aria-hidden="true" viewBox="0 0 24 24" className="h-8 w-8 max-h-[40%] max-w-[60%] fill-none stroke-current stroke-[1.5]">
+          <circle cx="12" cy="8" r="4" />
+          <path d="M4 22v-2a8 8 0 0 1 16 0v2" />
+        </svg>
+      )}
+      <span className="hidden px-3 text-center text-xs @[120px]:block">{message}</span>
+    </span>
   );
 }
 

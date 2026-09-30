@@ -5,6 +5,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface OtrSubmissionRepository extends JpaRepository<OtrSubmission, Long> {
 
@@ -18,18 +19,24 @@ public interface OtrSubmissionRepository extends JpaRepository<OtrSubmission, Lo
             UUID publicId, long otrAuditionId, String selectedRole
     );
 
-    @Query(value = """
-            select exists(select 1 from otr_submission_photos photo
-                join otr_submissions submission on submission.id = photo.otr_submission_id
-                where photo.file_id = :fileId)
-            """, nativeQuery = true)
-    boolean existsSubmittedPhoto(long fileId);
+    @Query("""
+            select (count(submission) > 0)
+            from OtrSubmission submission
+            join submission.photoFileIds photoFileId
+            where photoFileId = :fileId
+            """)
+    boolean existsSubmittedPhoto(@Param("fileId") long fileId);
 
-    @Query(value = """
-            select exists(select 1 from otr_submission_photos photo
-                join otr_submissions submission on submission.id = photo.otr_submission_id
-                join otr_auditions audition on audition.id = submission.otr_audition_id
-                where photo.file_id = :fileId and audition.owner_id = :ownerId)
-            """, nativeQuery = true)
-    boolean existsSubmittedPhotoOwnedByProducer(long fileId, long ownerId);
+    @Query("""
+            select (count(submission) > 0)
+            from OtrSubmission submission
+            join submission.photoFileIds photoFileId, OtrAudition audition
+            where photoFileId = :fileId
+              and audition.id = submission.otrAuditionId
+              and audition.ownerId = :ownerId
+            """)
+    boolean existsSubmittedPhotoOwnedByProducer(
+            @Param("fileId") long fileId,
+            @Param("ownerId") long ownerId
+    );
 }
