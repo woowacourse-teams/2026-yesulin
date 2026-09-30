@@ -3,11 +3,15 @@ import { readErrorMessage, readErrorDetail } from "../api-error";
 import type {
   AdminAudition,
   AdminAuditLogPage,
+  AdminDailyActivity,
   AdminFileDeletionResult,
   AdminLog,
   AdminLogEntry,
+  AdminMemberStats,
   AdminOverview,
   AdminProducer,
+  AdminShow,
+  AdminShowStatus,
   AdminSubmissionDetail,
   AdminSubmissionSummary,
   AdminUnusedFileStatus,
@@ -44,6 +48,18 @@ export function fetchOverview(): Promise<AdminOverview> {
   return getJson<AdminOverview>("/overview", "현황을 불러오지 못했습니다.");
 }
 
+export function fetchMemberStats(): Promise<AdminMemberStats> {
+  return getJson<AdminMemberStats>("/member-stats", "회원 통계를 불러오지 못했습니다.");
+}
+
+export async function fetchActivity(): Promise<readonly AdminDailyActivity[]> {
+  const body = await getJson<{ days: readonly AdminDailyActivity[] }>(
+    "/activity",
+    "최근 활동을 불러오지 못했습니다.",
+  );
+  return body.days;
+}
+
 export async function fetchProducers(status?: MemberStatus): Promise<readonly AdminProducer[]> {
   const query = status ? `?status=${status}` : "";
   const body = await getJson<{ producers: readonly AdminProducer[] }>(
@@ -60,6 +76,15 @@ export async function fetchAuditions(status?: AuditionStatus): Promise<readonly 
     "공고 목록을 불러오지 못했습니다.",
   );
   return body.auditions;
+}
+
+export async function fetchShows(status?: AdminShowStatus): Promise<readonly AdminShow[]> {
+  const query = status ? `?status=${status}` : "";
+  const body = await getJson<{ shows: readonly AdminShow[] }>(
+    `/shows${query}`,
+    "무료 공연 목록을 불러오지 못했습니다.",
+  );
+  return body.shows;
 }
 
 export function fetchAuditLogs(page = 0): Promise<AdminAuditLogPage> {
@@ -131,9 +156,11 @@ export function normalizeAdminLog(response: AdminLogResponse): AdminLog {
   return { ...response, entries };
 }
 
-export async function fetchLogs(keyword: string, limit: number): Promise<AdminLog> {
+/** date는 `yyyy-MM-dd` 한국 날짜다. 없으면 현재 로그 파일을 읽는다. */
+export async function fetchLogs(keyword: string, limit: number, date: string | null = null): Promise<AdminLog> {
   const params = new URLSearchParams({ limit: String(limit) });
   if (keyword.trim()) params.set("keyword", keyword.trim());
+  if (date) params.set("date", date);
   const response = await getJson<AdminLogResponse>(
     `/logs?${params.toString()}`,
     "로그를 불러오지 못했습니다.",

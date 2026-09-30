@@ -80,9 +80,13 @@ export const adminLogHandlers = [
     const requestedLimit = Number(params.get("limit") ?? 200);
     const limit = Number.isFinite(requestedLimit) ? Math.min(500, Math.max(1, requestedLimit)) : 200;
     const keyword = params.get("keyword")?.trim().toLowerCase() ?? "";
-    const matched = keyword
-      ? entries.filter((entry) => entry.raw.toLowerCase().includes(keyword))
+    // 지난 날짜는 보관 로그 예시로 정상 요청만 돌려준다. 실제 날짜 필터링은 하지 않는다.
+    const source = params.get("date")
+      ? entries.filter((entry) => entry.level === "INFO")
       : entries;
+    const matched = keyword
+      ? source.filter((entry) => entry.raw.toLowerCase().includes(keyword))
+      : source;
     const recent = matched.slice(-limit);
     return HttpResponse.json({
       lines: recent.map((entry) => entry.raw),

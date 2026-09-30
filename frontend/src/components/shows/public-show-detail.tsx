@@ -1,9 +1,11 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { PublicVenueGuide } from "@/components/applications/public-venue-guide";
 import { PrimaryButton } from "@/components/ui/controls";
+import { ANALYTICS_READY_EVENT } from "@/features/analytics/consent";
+import { trackReservationEvent } from "@/features/analytics/events";
 import {
   formatShowDate,
   formatShowDateTime,
@@ -43,7 +45,25 @@ export function PublicShowDetail({ show, onReserved, onStale }: {
     section?.scrollIntoView({ behavior: "smooth", block: "center" });
     section?.querySelector<HTMLInputElement>("input:not([disabled])")?.focus({ preventScroll: true });
   };
-  const action = { show, availability, selectedSession, hasBookable: bookableSessions.length > 0, onReserve: () => setSheetOpen(true), onChoose: focusSessions };
+  const openReservation = () => {
+    trackReservationEvent("reservation_start", {});
+    setSheetOpen(true);
+  };
+  const action = { show, availability, selectedSession, hasBookable: bookableSessions.length > 0, onReserve: openReservation, onChoose: focusSessions };
+
+  // 좌석이 바뀌어 공연 정보를 다시 읽어도 같은 공연이면 조회 이벤트를 다시 보내지 않는다.
+  // 이 화면에서 분석에 동의하면 그때 한 번 보낸다. 실제로 보낸 뒤에만 보낸 공연으로 기록한다.
+  const viewedShowIdRef = useRef<PublicShow["id"] | null>(null);
+  const sessionCount = show.sessions.length;
+  useEffect(() => {
+    const trackView = () => {
+      if (viewedShowIdRef.current === show.id) return;
+      if (trackReservationEvent("view_show", { session_count: sessionCount })) viewedShowIdRef.current = show.id;
+    };
+    trackView();
+    window.addEventListener(ANALYTICS_READY_EVENT, trackView);
+    return () => window.removeEventListener(ANALYTICS_READY_EVENT, trackView);
+  }, [show.id, sessionCount]);
 
   return (
     <main className={`min-h-screen break-keep bg-surface text-foreground wrap-break-word ${showsMobileAction ? "pb-[calc(120px+env(safe-area-inset-bottom))]" : "pb-12"} min-[1200px]:pb-12`}>

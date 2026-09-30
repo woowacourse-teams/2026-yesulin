@@ -6,7 +6,9 @@ import art.yesulin.application.auth.MemberPrincipal;
 import art.yesulin.application.auth.annotation.LoginMember;
 import art.yesulin.application.auth.annotation.LoginRequired;
 import art.yesulin.domain.member.MemberType;
+import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,8 +27,9 @@ public class AdminLogController {
     public ResponseEntity<AdminLogResponse> findRecent(
             @LoginMember(roles = MemberType.ADMIN) MemberPrincipal principal,
             @RequestParam(required = false) String keyword,
-            @RequestParam(defaultValue = "" + LogQuery.DEFAULT_LIMIT) int limit
+            @RequestParam(defaultValue = "" + LogQuery.DEFAULT_LIMIT) int limit,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
     ) {
-        return ResponseEntity.ok(AdminLogResponse.from(adminLogService.findRecent(keyword, limit)));
+        return ResponseEntity.ok(AdminLogResponse.from(adminLogService.findRecent(keyword, limit, date)));
     }
 }

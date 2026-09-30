@@ -1,5 +1,6 @@
 import { delay, http, HttpResponse, passthrough } from "msw";
 import { frontendEnvironment } from "@/config/environment";
+import type { AdminShow, AdminShowSession } from "@/features/admin/types";
 import {
   MAX_DIRECTIONS_NOTE_LENGTH,
   MAX_SHOW_IMAGES,
@@ -405,6 +406,47 @@ function validateSession(body: SaveShowSession): string | null {
   if (Date.parse(body.startsAt) <= Date.now()) return "회차 시작 시각은 현재 이후로 입력해 주세요.";
   if (!Number.isInteger(body.capacity) || body.capacity < 1) return "회차 정원은 1명 이상이어야 합니다.";
   return null;
+}
+
+const MOCK_COMPANY_NAME = "극단 예술in";
+
+const countReservations = (sessionId: number, status: ReservationStatus) => reservations
+  .filter((reservation) => reservation.sessionId === sessionId && reservation.status === status)
+  .length;
+
+function toAdminSession(session: MockSession): AdminShowSession {
+  return {
+    sessionId: session.id,
+    startsAt: session.startsAt,
+    capacity: session.capacity,
+    reservedTickets: reservedTickets(session.id),
+    reservationCount: countReservations(session.id, "CONFIRMED"),
+    canceledReservationCount: countReservations(session.id, "CANCELED"),
+  };
+}
+
+/** 운영 대시보드 목이 같은 메모리 상태에서 공연별 예매 집계를 읽는다. 예매자 정보는 담지 않는다. */
+export function listAdminShows(status?: ShowStatus): AdminShow[] {
+  return shows
+    .filter((show) => !status || show.status === status)
+    .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+    .map((show) => {
+      const adminSessions = showSessions(show.id).map(toAdminSession);
+      const total = (pick: (session: AdminShowSession) => number) =>
+        adminSessions.reduce((sum, session) => sum + pick(session), 0);
+      return {
+        showId: show.id,
+        title: show.title,
+        status: show.status,
+        companyName: MOCK_COMPANY_NAME,
+        createdAt: show.createdAt,
+        totalCapacity: total((session) => session.capacity),
+        reservedTickets: total((session) => session.reservedTickets),
+        reservationCount: total((session) => session.reservationCount),
+        canceledReservationCount: total((session) => session.canceledReservationCount),
+        sessions: adminSessions,
+      };
+    });
 }
 
 export const showHandlers = [

@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 export default function AdminLayout({ children }: { readonly children: React.ReactNode }) {
   return (
     <MswProvider>
-      <div className="min-h-dvh bg-neutral-50">{children}</div>
+      <div className="min-h-dvh bg-surface">{children}</div>
     </MswProvider>
   );
 }

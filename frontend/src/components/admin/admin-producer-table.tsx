@@ -32,13 +32,13 @@ export function AdminProducerTable({ producers, onChanged }: Props) {
 
   return (
     <section aria-labelledby="producers-heading" className="flex flex-col gap-3">
-      <h2 id="producers-heading" className="text-sm font-semibold text-neutral-500">
+      <h2 id="producers-heading" className="text-sm font-semibold text-muted">
         기획사/제작사 ({producers.length})
       </h2>
-      {error ? <p role="alert" className="text-sm text-red-600">{error}</p> : null}
-      <div className="overflow-x-auto rounded border border-neutral-200 bg-white">
+      {error ? <p role="alert" className="text-sm text-fail">{error}</p> : null}
+      <div className="overflow-x-auto rounded-card border border-border bg-card">
         <table className="w-full min-w-[56rem] text-left text-sm">
-          <thead className="bg-neutral-50 text-xs text-neutral-500">
+          <thead className="bg-surface text-xs text-muted">
             <tr>
               {HEADERS.map((header, index) => (
                 <th key={header || `actions-${index}`} scope="col" className="px-3 py-2 font-medium">
@@ -50,29 +50,29 @@ export function AdminProducerTable({ producers, onChanged }: Props) {
           <tbody>
             {producers.length === 0 ? (
               <tr>
-                <td colSpan={HEADERS.length} className="px-3 py-6 text-center text-neutral-400">
-                  해당 조건의 기획사가 없습니다.
+                <td colSpan={HEADERS.length} className="px-3 py-6 text-center text-muted">
+                  해당 조건의 기획사가 없어요.
                 </td>
               </tr>
             ) : null}
             {producers.map((producer) => (
-              <tr key={producer.memberId} className="border-t border-neutral-100">
-                <td className="px-3 py-2 text-neutral-900">{orDash(producer.companyName)}</td>
-                <td className="px-3 py-2 text-neutral-600">
+              <tr key={producer.memberId} className="border-t border-border-soft">
+                <td className="px-3 py-2 text-foreground">{orDash(producer.companyName)}</td>
+                <td className="px-3 py-2 text-muted-strong">
                   {orDash(producer.contactName)}
-                  {producer.contactRole ? <span className="text-neutral-400"> · {producer.contactRole}</span> : null}
+                  {producer.contactRole ? <span className="text-muted"> · {producer.contactRole}</span> : null}
                 </td>
-                <td className="px-3 py-2 text-neutral-600">{producer.email}</td>
-                <td className="px-3 py-2 text-neutral-600">{orDash(producer.phone)}</td>
-                <td className="px-3 py-2 text-neutral-500">{formatDateTime(producer.joinedAt)}</td>
-                <td className="px-3 py-2 tabular-nums text-neutral-600">{producer.performanceCount}</td>
-                <td className="px-3 py-2 tabular-nums text-neutral-600">{producer.auditionCount}</td>
+                <td className="px-3 py-2 text-muted-strong">{producer.email}</td>
+                <td className="px-3 py-2 text-muted-strong">{orDash(producer.phone)}</td>
+                <td className="px-3 py-2 text-muted">{formatDateTime(producer.joinedAt)}</td>
+                <td className="px-3 py-2 num text-muted-strong">{producer.performanceCount}</td>
+                <td className="px-3 py-2 num text-muted-strong">{producer.auditionCount}</td>
                 <td className="px-3 py-2">
                   <span
-                    className={`rounded px-2 py-0.5 text-xs ${
+                    className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                       producer.status === "PENDING"
-                        ? "bg-amber-100 text-amber-800"
-                        : "bg-emerald-100 text-emerald-800"
+                        ? "bg-warn-bg text-warn"
+                        : "bg-pass-bg text-pass"
                     }`}
                   >
                     {producer.status === "PENDING" ? "인증 대기" : "활성"}
@@ -83,7 +83,7 @@ export function AdminProducerTable({ producers, onChanged }: Props) {
                     type="button"
                     disabled={pendingId === producer.memberId}
                     onClick={() => handleChange(producer, producer.status === "PENDING" ? "ACTIVE" : "PENDING")}
-                    className="rounded border border-neutral-300 px-2 py-1 text-xs text-neutral-700 hover:bg-neutral-50 disabled:opacity-50"
+                    className="min-h-9 whitespace-nowrap rounded-control border border-border bg-card px-3 text-sm font-semibold text-muted-strong hover:bg-surface disabled:opacity-50"
                   >
                     {producer.status === "PENDING" ? "수동 활성화" : "비활성화"}
                   </button>

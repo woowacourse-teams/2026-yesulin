@@ -35,6 +35,18 @@ export type LoginReturnTarget =
   | "producer_home"
   | "other";
 
+/** 예매 실패 사유다. 서버 오류 메시지 원문 대신 이 값만 보낸다. */
+export type ReservationAnalyticsErrorCode =
+  | "not_enough_seats"
+  | "booking_closed"
+  | "show_not_open"
+  | "duplicate"
+  | "session_changed"
+  | "invalid_input"
+  | "server_error"
+  | "network_error"
+  | "unknown";
+
 export type LoginAttribution = {
   readonly entry_point: LoginEntryPoint;
   readonly login_reason: LoginReason;
@@ -56,7 +68,19 @@ type AnalyticsEventParameters = {
   application_review_view: { is_authenticated: boolean; issue_count: number };
   application_submit_success: { selected_role_count: number; save_to_profile: boolean; profile_saved: boolean };
   application_submit_error: { error_code: "simulated_error" | "auth_expired" | "client_error" | "server_error" | "network_error" | "unknown" };
+  view_show: { session_count: number };
+  reservation_start: Record<string, never>;
+  reservation_submit_success: { ticket_count: number };
+  reservation_submit_error: { error_code: ReservationAnalyticsErrorCode };
 };
+
+type ReservationEventName = "view_show" | "reservation_start" | "reservation_submit_success" | "reservation_submit_error";
+
+/**
+ * GTM 데이터 영역 변수는 이전 push의 값을 기억해 다음 이벤트 태그에도 붙인다.
+ * 예매 이벤트는 보낼 때마다 예매 매개변수를 먼저 비워 회차 수·매수·오류 코드가 다른 이벤트에 섞이지 않게 한다.
+ */
+const RESERVATION_PARAMETER_KEYS = ["session_count", "ticket_count", "error_code"] as const;
 
 const LOGIN_ATTRIBUTION_KEY = "yesulin:analytics:login-attribution";
 const LOGIN_RETURN_PENDING_KEY = "yesulin:analytics:login-return-pending";
@@ -73,6 +97,18 @@ export function trackAnalyticsEvent<Name extends keyof AnalyticsEventParameters>
   );
   window.dataLayer = window.dataLayer ?? [];
   window.dataLayer.push({ event, ...definedParameters });
+}
+
+/** 분석 동의가 없어 보내지 않았으면 false를 돌려준다. 나중에 다시 보낼지 판단할 때 쓴다. */
+export function trackReservationEvent<Name extends ReservationEventName>(
+  event: Name,
+  parameters: AnalyticsEventParameters[Name],
+): boolean {
+  if (!canSendAnalytics()) return false;
+  const cleared = Object.fromEntries(RESERVATION_PARAMETER_KEYS.map((key) => [key, undefined]));
+  window.dataLayer = window.dataLayer ?? [];
+  window.dataLayer.push({ event, ...cleared, ...parameters });
+  return true;
 }
 
 export function trackLoginEntry(attribution: LoginAttribution) {

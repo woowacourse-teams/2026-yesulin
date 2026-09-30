@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { DialogFooter, DialogHeader, ModalShell } from "@/components/auditions/modal-shell";
 import { AdminApiError, deleteUnusedFiles, fetchUnusedFiles } from "@/features/admin/api";
@@ -9,6 +8,7 @@ import type { AdminFileDeletionResult, AdminUnusedFilesPage, AdminUnusedFileStat
 import { logout } from "@/features/auth/session-api";
 import { AdminLoginForm } from "./admin-login-form";
 import { formatDateTime } from "./admin-format";
+import { AdminActionButton, AdminShell } from "./admin-shell";
 
 type StatusFilter = AdminUnusedFileStatus | "ALL";
 type Phase = "loading" | "ready" | "unauthorized" | "failed";
@@ -25,6 +25,9 @@ const FAILURE_LABELS: Record<string, string> = {
   FILE_NOT_FOUND: "파일을 찾을 수 없음",
   FILE_DELETION_FAILED: "저장소 삭제 실패 · 다시 시도 가능",
 };
+
+const PAGE_BUTTON_CLASS =
+  "min-h-11 rounded-control border border-border bg-card px-4 text-sm font-semibold text-muted-strong hover:bg-surface disabled:cursor-not-allowed disabled:opacity-50";
 
 export function AdminFileManager() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
@@ -138,115 +141,128 @@ export function AdminFileManager() {
   }
 
   return (
-    <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <Link href="/admin" className="text-sm text-neutral-600 underline">운영 대시보드로 돌아가기</Link>
-          <h1 className="mt-3 text-xl font-semibold text-neutral-900">미사용 파일 관리</h1>
-          <p className="mt-1 text-sm text-neutral-600">참조 없는 업로드를 수동으로 확인해. 7일 이상 지난 파일만 삭제할 수 있어.</p>
-        </div>
-        <div className="flex gap-2">
-          <button type="button" onClick={refresh} className="min-h-11 rounded border border-neutral-300 px-4 text-sm">새로고침</button>
-          <button type="button" onClick={() => void signOut()} className="min-h-11 rounded border border-neutral-300 px-4 text-sm">로그아웃</button>
-        </div>
-      </header>
-
-      <section className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5" aria-label="파일 조회 조건">
-        <label htmlFor="unused-file-status" className="block text-sm font-medium text-neutral-800">상태</label>
-        <select id="unused-file-status" value={statusFilter} onChange={(event) => changeFilter(event.target.value as StatusFilter)}
-          className="mt-2 min-h-11 w-full rounded border border-neutral-300 bg-white px-3 text-sm sm:w-64">
-          <option value="ALL">전체</option>
-          <option value="PENDING">업로드 대기</option>
-          <option value="READY">업로드 완료</option>
-          <option value="DELETING">삭제 재시도 필요</option>
-        </select>
+    <AdminShell
+      current="files"
+      title="파일 관리"
+      description="참조 없는 업로드를 직접 확인해요. 7일 이상 지난 파일만 삭제할 수 있어요."
+      actions={(
+        <>
+          <AdminActionButton onClick={refresh}>새로고침</AdminActionButton>
+          <AdminActionButton onClick={() => void signOut()}>로그아웃</AdminActionButton>
+        </>
+      )}
+    >
+      <section className="rounded-card border border-border bg-card p-4 sm:p-5" aria-label="파일 조회 조건">
+        <label className="flex flex-col gap-1.5 text-sm font-semibold text-muted-strong sm:w-64">
+          상태
+          <select value={statusFilter} onChange={(event) => changeFilter(event.target.value as StatusFilter)}
+            className="min-h-12 rounded-control border border-border bg-card px-3 text-foreground">
+            <option value="ALL">전체</option>
+            <option value="PENDING">업로드 대기</option>
+            <option value="READY">업로드 완료</option>
+            <option value="DELETING">삭제 재시도 필요</option>
+          </select>
+        </label>
       </section>
 
-      {error ? <p role="alert" className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error} <button type="button" onClick={refresh} className="underline">다시 시도</button></p> : null}
-      {phase === "loading" ? <p role="status" className="text-sm text-neutral-500">파일을 불러오는 중…</p> : null}
+      {error ? (
+        <p role="alert" className="rounded-control border border-fail/30 bg-fail-bg px-4 py-3 text-sm text-fail">
+          {error} <button type="button" onClick={refresh} className="font-semibold underline">다시 시도</button>
+        </p>
+      ) : null}
+      {phase === "loading" ? <p role="status" className="text-sm text-muted">파일을 불러오는 중이에요.</p> : null}
 
       {result && summary ? (
-        <section aria-label="삭제 결과" className="rounded-xl border border-neutral-200 bg-white p-4 text-sm">
-          <h2 className="font-semibold text-neutral-900">삭제 결과 · 완료 {summary.deleted}개, 실패 {summary.failed}개</h2>
-          <ul className="mt-2 space-y-1 text-neutral-700">
+        <section aria-labelledby="file-deletion-result-heading" className="rounded-card border border-border bg-card px-5 py-4 text-sm">
+          <h2 id="file-deletion-result-heading" className="font-semibold text-foreground">
+            삭제 결과 · 완료 <span className="num">{summary.deleted}</span>개, 실패 <span className="num">{summary.failed}</span>개
+          </h2>
+          <ul className="mt-2 space-y-1 text-muted-strong">
             {result.results.map((item) => (
-              <li key={item.fileId}>파일 #{item.fileId}: {item.status === "DELETED" ? "삭제 완료" : item.status === "ALREADY_DELETED" ? "이미 삭제됨" : FAILURE_LABELS[item.code ?? ""] ?? "삭제 실패"}</li>
+              <li key={item.fileId}>파일 #<span className="num">{item.fileId}</span>: {item.status === "DELETED" ? "삭제 완료" : item.status === "ALREADY_DELETED" ? "이미 삭제됨" : FAILURE_LABELS[item.code ?? ""] ?? "삭제 실패"}</li>
             ))}
           </ul>
-          {summary.retryableIds.length > 0 ? <p className="mt-3 text-red-700">재시도 가능: {summary.retryableIds.map((id) => `#${id}`).join(", ")} · 목록에서 다시 선택해줘.</p> : null}
+          {summary.retryableIds.length > 0 ? <p className="mt-3 text-fail">재시도 가능: {summary.retryableIds.map((id) => `#${id}`).join(", ")} · 목록에서 다시 선택해 주세요.</p> : null}
         </section>
       ) : null}
 
       {filesPage && phase === "ready" ? (
-        <section className="space-y-3" aria-label="미사용 파일 목록">
+        <section className="flex flex-col gap-3" aria-label="미사용 파일 목록">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <label className="flex min-h-11 items-center gap-2 text-sm text-neutral-800">
-              <input type="checkbox" checked={allSelected} disabled={availableIds.length === 0} onChange={toggleAll} />
+            <label className="flex min-h-11 items-center gap-2 text-sm font-semibold text-muted-strong">
+              <input type="checkbox" checked={allSelected} disabled={availableIds.length === 0} onChange={toggleAll} className="size-4 accent-brand" />
               이 페이지의 삭제 가능 파일 모두 선택
             </label>
-            <span className="text-sm text-neutral-600">선택 {selectedIds.length}개 · 페이지 {page + 1}</span>
+            <span className="text-sm text-muted">선택 <span className="num">{selectedIds.length}</span>개 · 페이지 <span className="num">{page + 1}</span></span>
           </div>
-          {filesPage.files.length === 0 ? <p className="rounded-xl border border-neutral-200 bg-white p-8 text-center text-sm text-neutral-500">조회된 미사용 파일이 없어.</p> : null}
+          {filesPage.files.length === 0 ? <p className="rounded-card border border-border bg-card px-4 py-8 text-center text-sm text-muted">조회된 미사용 파일이 없어요.</p> : null}
           {filesPage.files.map((file) => (
-            <article key={file.fileId} className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
+            <article key={file.fileId} className="rounded-card border border-border bg-card p-4 sm:px-5">
               <div className="flex items-start gap-3">
                 <input type="checkbox" aria-label={`파일 ${file.fileId} 선택`} checked={selectedIds.includes(file.fileId)}
-                  disabled={!file.deletable} onChange={() => toggleFile(file.fileId)} className="mt-1" />
+                  disabled={!file.deletable} onChange={() => toggleFile(file.fileId)} className="mt-0.5 size-4 accent-brand" />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <strong className="text-sm text-neutral-900">파일 #{file.fileId}</strong>
-                    <span className="rounded bg-neutral-100 px-2 py-0.5 text-xs text-neutral-700">{STATUS_LABELS[file.status]}</span>
-                    <span className="text-xs text-neutral-500">{file.storageScope === "PUBLIC" ? "공개" : "비공개"}</span>
-                    <span className={`text-xs font-medium ${file.deletable ? "text-red-700" : "text-neutral-500"}`}>
+                    <strong className="text-sm font-semibold text-foreground">파일 #<span className="num">{file.fileId}</span></strong>
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${file.status === "DELETING" ? "bg-warn-bg text-warn" : "bg-surface text-muted-strong"}`}>
+                      {STATUS_LABELS[file.status]}
+                    </span>
+                    <span className="text-xs text-muted">{file.storageScope === "PUBLIC" ? "공개" : "비공개"}</span>
+                    <span className={`text-xs font-semibold ${file.deletable ? "text-fail" : "text-muted"}`}>
                       {file.deletable ? "삭제 가능" : "7일 미만 · 삭제 불가"}
                     </span>
                   </div>
-                  <dl className="mt-3 grid gap-2 text-xs text-neutral-600 sm:grid-cols-2 lg:grid-cols-4">
-                    <div><dt>소유자 ID</dt><dd className="mt-1 text-neutral-900">{file.ownerId}</dd></div>
-                    <div><dt>등록 시각</dt><dd className="mt-1 text-neutral-900">{formatDateTime(file.createdAt)}</dd></div>
-                    <div><dt>미사용 시작</dt><dd className="mt-1 text-neutral-900">{formatDateTime(file.unusedSince)}</dd></div>
-                    <div><dt>삭제 가능 시각</dt><dd className="mt-1 text-neutral-900">{formatDateTime(file.deletableAt)}</dd></div>
+                  <dl className="mt-3 grid gap-3 text-xs text-muted sm:grid-cols-2 lg:grid-cols-4">
+                    <div><dt>소유자 ID</dt><dd className="num mt-1 text-sm text-foreground">{file.ownerId}</dd></div>
+                    <div><dt>등록 시각</dt><dd className="num mt-1 text-sm text-foreground">{formatDateTime(file.createdAt)}</dd></div>
+                    <div><dt>미사용 시작</dt><dd className="num mt-1 text-sm text-foreground">{formatDateTime(file.unusedSince)}</dd></div>
+                    <div><dt>삭제 가능 시각</dt><dd className="num mt-1 text-sm text-foreground">{formatDateTime(file.deletableAt)}</dd></div>
                   </dl>
                 </div>
               </div>
             </article>
           ))}
-          <div className="flex items-center justify-between gap-3 pt-2">
-            <button type="button" disabled={page === 0} onClick={() => changePage(page - 1)} className="min-h-11 rounded border border-neutral-300 px-4 text-sm disabled:opacity-50">이전</button>
-            <button type="button" disabled={!filesPage.hasNext} onClick={() => changePage(page + 1)} className="min-h-11 rounded border border-neutral-300 px-4 text-sm disabled:opacity-50">다음</button>
-          </div>
+          <nav aria-label="미사용 파일 페이지" className="flex items-center justify-between gap-3 pt-1">
+            <button type="button" disabled={page === 0} onClick={() => changePage(page - 1)} className={PAGE_BUTTON_CLASS}>이전</button>
+            <button type="button" disabled={!filesPage.hasNext} onClick={() => changePage(page + 1)} className={PAGE_BUTTON_CLASS}>다음</button>
+          </nav>
         </section>
       ) : null}
 
-      <div className="sticky bottom-0 rounded-xl border border-neutral-200 bg-white/95 p-3 shadow-sm backdrop-blur">
+      <div className="sticky bottom-0 rounded-card border border-border bg-card/95 p-3 backdrop-blur">
         <button type="button" disabled={selectedIds.length === 0} onClick={() => { setDeleteError(null); setConfirming(true); }}
-          className="min-h-11 w-full rounded bg-red-600 px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto">
+          className="min-h-11 w-full rounded-control bg-fail px-5 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto">
           선택한 {selectedIds.length}개 파일 삭제
         </button>
       </div>
 
       <ModalShell open={confirming} onClose={closeConfirmation} labelledBy="admin-file-delete-title" placement="responsiveSheet"
-        className="w-full rounded-t-2xl bg-white shadow-2xl md:w-[min(520px,calc(100vw-48px))] md:rounded-2xl">
-        <DialogHeader id="admin-file-delete-title" title="파일 삭제 확인" subtitle="S3 원본을 삭제해. 복구하기 어려운 작업이야." />
+        className="w-full overflow-hidden rounded-t-2xl bg-card shadow-2xl md:w-[min(520px,calc(100vw-48px))] md:rounded-2xl">
+        <DialogHeader id="admin-file-delete-title" title="파일 삭제 확인" subtitle="S3 원본을 삭제해요. 복구하기 어려운 작업이에요." />
         <div className="space-y-4 p-5">
-          <p className="text-sm text-neutral-700">선택한 {selectedIds.length}개 파일을 다시 확인해줘.</p>
-          <p className="max-h-24 overflow-y-auto break-words rounded bg-neutral-50 p-3 text-xs text-neutral-700">
+          <p className="text-sm text-muted-strong">선택한 {selectedIds.length}개 파일을 다시 확인해 주세요.</p>
+          <p className="num max-h-24 overflow-y-auto break-words rounded-control bg-surface p-3 text-xs text-muted-strong">
             {selectedIds.map((id) => `#${id}`).join(", ")}
           </p>
-          <label htmlFor="admin-file-deletion-password" className="block text-sm font-semibold text-neutral-800">기존 삭제 확인 비밀번호</label>
-          <input id="admin-file-deletion-password" data-autofocus="true" type="password" autoComplete="off" value={password}
-            disabled={deleting} onChange={(event) => setPassword(event.target.value)}
-            className="min-h-12 w-full rounded border border-neutral-300 px-3 text-base outline-none focus:border-neutral-900" />
-          {deleteError ? <p role="alert" className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700">{deleteError}</p> : null}
+          <label htmlFor="admin-file-deletion-password" className="block">
+            <span className="mb-2 block text-sm font-semibold text-foreground">기존 삭제 확인 비밀번호</span>
+            <input id="admin-file-deletion-password" data-autofocus="true" type="password" autoComplete="off" value={password}
+              disabled={deleting} onChange={(event) => setPassword(event.target.value)}
+              className="min-h-12 w-full rounded-control border border-border px-3 text-base outline-none focus:border-brand" />
+          </label>
+          {deleteError ? <p role="alert" className="rounded-control border border-fail/30 bg-fail-bg p-3 text-sm text-fail">{deleteError}</p> : null}
         </div>
         <DialogFooter>
-          <button type="button" onClick={closeConfirmation} disabled={deleting} className="min-h-11 rounded border border-neutral-300 px-4 text-sm">취소</button>
+          <button type="button" onClick={closeConfirmation} disabled={deleting}
+            className="min-h-11 rounded-control border border-border px-4 text-sm font-medium text-muted-strong hover:bg-surface">
+            취소
+          </button>
           <button type="button" onClick={() => void confirmDeletion()} disabled={!password || deleting}
-            className="min-h-11 rounded bg-red-600 px-4 text-sm font-semibold text-white disabled:opacity-50">
+            className="min-h-11 rounded-control bg-fail px-4 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">
             {deleting ? "삭제 중…" : "비밀번호 확인 후 삭제"}
           </button>
         </DialogFooter>
       </ModalShell>
-    </main>
+    </AdminShell>
   );
 }
