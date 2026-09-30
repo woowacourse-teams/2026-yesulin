@@ -53,7 +53,7 @@ public class ShowTestFixture {
         FileAsset asset = new FileAsset(
                 "public/files/20260927/" + UUID.randomUUID(), ownerId, new FileMetadata("poster.png", "image/png", 100)
         );
-        asset.completeUpload("image/png", 100);
+        asset.completeUpload("image/png", 100, java.time.Instant.now());
         return fileAssetRepository.save(asset).getId();
     }
 

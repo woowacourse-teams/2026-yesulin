@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fetchAuditLogs, fetchLogs, normalizeAdminLog } from "./api";
+import { deleteUnusedFiles, fetchAuditLogs, fetchLogs, fetchUnusedFiles, normalizeAdminLog } from "./api";
 
 afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("admin log API", () => {
+describe("admin API", () => {
   it("구조화 entries가 없는 구버전 응답을 LEGACY 항목으로 정규화한다", () => {
     const result = normalizeAdminLog({
       lines: ["INFO legacy application log"],
@@ -60,6 +60,37 @@ describe("admin log API", () => {
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/v1/admin/audit-logs?page=2",
       { method: "GET", credentials: "include" },
+    );
+  });
+
+  it("미사용 파일 상태와 페이지를 관리자 API에 전달한다", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      files: [], page: 1, size: 25, hasNext: false,
+    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await fetchUnusedFiles({ status: "READY", page: 1, size: 25 });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/v1/admin/files/unreferenced?page=1&size=25&status=READY",
+      { method: "GET", credentials: "include" },
+    );
+  });
+
+  it("선택한 파일과 삭제 확인 비밀번호를 한 번에 전달하고 결과를 받는다", async () => {
+    const results = { results: [{ fileId: 42, status: "DELETED", code: null }] };
+    const fetchMock = vi.fn().mockResolvedValue(Response.json(results));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(deleteUnusedFiles([42, 43], "confirm-password")).resolves.toEqual(results);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/v1/admin/files/deletions",
+      expect.objectContaining({
+        method: "POST",
+        credentials: "include",
+        body: JSON.stringify({ fileIds: [42, 43], confirmationPassword: "confirm-password" }),
+      }),
     );
   });
 });

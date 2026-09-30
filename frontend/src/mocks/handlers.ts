@@ -31,6 +31,7 @@ import { screeningHandlers } from "./auditions/screening-handlers";
 import { validatePostingDraft } from "./auditions/posting-validation";
 import { authHandlers } from "./auth-handlers";
 import { adminLogHandlers } from "./admin-log-handlers";
+import { adminFileHandlers } from "./admin-file-handlers";
 import { otrAuditionHandlers } from "./otr-audition-handlers";
 import { showHandlers } from "./show-handlers";
 import { noticeHandlers } from "./auditions/notice-handlers";
@@ -50,6 +51,7 @@ export const handlers = [
   ...noticeHandlers,
   ...authHandlers,
   ...adminLogHandlers,
+  ...adminFileHandlers,
   ...otrAuditionHandlers,
   ...showHandlers,
   http.post(`${apiPath}/v1/upload-diagnostics`, () => new HttpResponse(null, { status: 204 })),

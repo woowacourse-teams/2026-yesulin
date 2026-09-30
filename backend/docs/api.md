@@ -325,7 +325,7 @@ submission ID와 변경할 status·memo·note 중 하나 이상을 요구한다.
 미선택자는 `PENDING`으로 보존하며, `PASS`만 다음 차수로 승격한다. 다음 차수 대상이 없으면 이후 빈 차수도
 자동 마감한다. 마감한 차수의 결과는 수정하거나 되돌릴 수 없다.
 
-## 운영 대시보드 — 6개
+## 운영 대시보드 — 11개
 
 개발팀 전용 경로다. 모두 `ADMIN` 세션만 통과하며 다른 역할은 `403 AUTH_FORBIDDEN`이다.
 
@@ -338,10 +338,25 @@ submission ID와 변경할 status·memo·note 중 하나 이상을 요구한다.
 | GET | `/api/v1/admin/submissions/{submissionId}` | Admin | 없음 | `200 ApplicantSubmissionDetailResponse` |
 | GET | `/api/v1/admin/audit-logs` | Admin | `page` query (선택, 0부터) | `200 AdminAuditLogsResponse` |
 | GET | `/api/v1/admin/logs` | Admin | `keyword`, `limit` query (선택) | `200 AdminLogResponse` |
+| GET | `/api/v1/admin/files/unreferenced` | Admin | `status` (`PENDING`/`READY`/`DELETING`), `page`(0부터), `size`(1~100) query, 모두 선택 | `200 UnusedFilesResult` |
+| DELETE | `/api/v1/admin/files/{fileId}` | Admin | `DeleteAdminFileRequest(confirmationPassword)` | `204` |
+| POST | `/api/v1/admin/files/deletions` | Admin | `BatchDeleteAdminFilesRequest(fileIds, confirmationPassword)` | `200 BatchFileDeletionResult` |
 | PATCH | `/api/v1/admin/members/{memberId}/status` | Admin | `ChangeMemberStatusRequest(status)` | `200 MemberStatusResult` |
 | DELETE | `/api/v1/admin/submissions/{submissionId}` | Admin | `DeleteAdminSubmissionRequest(confirmationPassword)` | `204` |
 
 `AdminOverview`는 회원·공연·공고·지원서 집계와 최근 7일 신규 수만 담고 개인 식별 정보를 담지 않는다.
+미사용 파일 목록은 7일 미만도 포함한다. `files`의 각 항목은 `fileId`, `ownerId`, `status`, `storageScope`,
+`createdAt`, `unusedSince`, `deletableAt`, `deletable`을 담는다. 응답에 `page`, `size`, `hasNext`가 포함된다.
+파일 DELETE는 `PENDING`이면 업로드 요청 시각, `READY`이면 업로드 완료·마지막 연결 해제 시각부터 7일 이상
+지난 경우만 허용한다. 요청 시 참조를 다시 검사하고 지원서 삭제와 같은 확인 비밀번호를 요구한다.
+사용 중이면 `409 FILE_STILL_IN_USE`, 7일 미만이면 `409 FILE_TOO_RECENT`, 없는 ID는 `404 FILE_NOT_FOUND`다.
+파일 삭제 확인은 지원서 삭제와 같은 `YESULIN_ADMIN_DELETION_PASSWORD_HASH` 설정과 관리자 계정별 입력 제한을 사용한다.
+해시 미설정 시 파일 삭제는 `403 ADMIN_DELETION_CONFIRMATION_FAILED`로 거부된다.
+일괄 삭제는 중복 없는 양의 파일 ID 1~100개와 확인 비밀번호를 한 번만 받는다. 결과는 요청 순서대로
+`results: [{fileId, status, code}]`이며 `status`는 `DELETED`·`ALREADY_DELETED`·`FAILED`다.
+실패 항목의 `code`는 `FILE_TOO_RECENT`, `FILE_STILL_IN_USE`, `FILE_NOT_FOUND`, `FILE_DELETION_FAILED` 중 하나다.
+비밀번호가 틀리면 전체 요청을 거부하고 어떤 파일도 삭제하지 않는다. 파일별 실패는 다른 파일의 처리를 막지 않는다.
+S3 삭제 실패 시 `DELETING` 상태가 남으며 같은 파일 ID로 재시도할 수 있다. 완료된 단건 삭제 재요청은 `204`다.
 기획사 목록은 이메일 미인증(`PENDING`) 계정을 앞에 두고 최근 가입 순으로 정렬한다. 공고 목록은 최근 생성 순으로 전체를 반환한다.
 공고별 지원서 목록과 상세는 제출 당시 스냅샷을 반환한다. 상세의 비공개 제출 사진은 운영자 세션으로 콘텐츠 API에서 읽는다.
 운영자 변경 기록은 최신순으로 페이지당 10건씩 반환한다. `AdminAuditLogsResponse`는 `logs`, `page`, `size`,

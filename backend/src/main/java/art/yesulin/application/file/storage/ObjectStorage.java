@@ -12,5 +12,7 @@ public interface ObjectStorage {
 
     Optional<StoredObjectContent> read(String objectKey);
 
+    void delete(String objectKey);
+
     String toPublicUrl(String objectKey);
 }

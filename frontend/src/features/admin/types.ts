@@ -59,6 +59,34 @@ export type AdminAuditLogPage = {
   readonly totalPages: number;
 };
 
+export type AdminUnusedFileStatus = "PENDING" | "READY" | "DELETING";
+
+export type AdminUnusedFile = {
+  readonly fileId: number;
+  readonly ownerId: number;
+  readonly status: AdminUnusedFileStatus;
+  readonly storageScope: "PUBLIC" | "PRIVATE";
+  readonly createdAt: string;
+  readonly unusedSince: string;
+  readonly deletableAt: string;
+  readonly deletable: boolean;
+};
+
+export type AdminUnusedFilesPage = {
+  readonly files: readonly AdminUnusedFile[];
+  readonly page: number;
+  readonly size: number;
+  readonly hasNext: boolean;
+};
+
+export type AdminFileDeletionResult = {
+  readonly results: readonly {
+    readonly fileId: number;
+    readonly status: "DELETED" | "ALREADY_DELETED" | "FAILED";
+    readonly code: string | null;
+  }[];
+};
+
 export type AdminLogFormat = "STRUCTURED" | "LEGACY";
 export type AdminLogLevel = "TRACE" | "DEBUG" | "INFO" | "WARN" | "ERROR";
 

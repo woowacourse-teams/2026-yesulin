@@ -125,7 +125,7 @@ class FileContentServiceTest {
                 "private/actor-photos/20260826/id", APPLICANT_ID,
                 new FileMetadata("profile.png", "image/png", 3L)
         );
-        file.completeUpload("image/png", 3L);
+        file.completeUpload("image/png", 3L, java.time.Instant.now());
         return file;
     }
 }

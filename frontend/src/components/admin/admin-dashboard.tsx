@@ -49,6 +49,12 @@ export function AdminDashboard() {
         </div>
         <div className="flex gap-2">
           <Link
+            href="/admin/files"
+            className="rounded border border-neutral-300 px-3 py-1.5 text-sm text-neutral-700 hover:bg-neutral-50"
+          >
+            파일 관리
+          </Link>
+          <Link
             href="/admin/logs"
             className="rounded border border-neutral-300 px-3 py-1.5 text-sm text-neutral-700 hover:bg-neutral-50"
           >

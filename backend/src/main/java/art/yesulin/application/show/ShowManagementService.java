@@ -7,6 +7,7 @@ import static art.yesulin.domain.show.ShowErrorCode.SESSION_HAS_RESERVATIONS;
 import static art.yesulin.domain.show.ShowErrorCode.SESSION_NOT_FOUND;
 
 import art.yesulin.application.file.FileReferenceService;
+import art.yesulin.application.file.FileUsageService;
 import art.yesulin.application.file.LinkFileCommand;
 import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.file.FileReferenceRepository;
@@ -44,6 +45,7 @@ public class ShowManagementService {
     private final ReservationRepository reservationRepository;
     private final FileReferenceService fileReferenceService;
     private final FileReferenceRepository fileReferenceRepository;
+    private final FileUsageService fileUsageService;
     private final Clock clock;
 
     @Transactional
@@ -72,7 +74,9 @@ public class ShowManagementService {
     public ProducerShowResult update(long ownerId, UUID showId, SaveShowCommand command) {
         Show show = getOwnedShow(ownerId, showId);
         command.applyTo(show);
+        List<Long> removedFileIds = referencedFileIds(show.getId());
         fileReferenceRepository.deleteByReferenceTypeInAndReferenceId(FILE_REFERENCE_TYPES, show.getId());
+        fileUsageService.markReferencesRemoved(removedFileIds);
         linkFiles(show);
         return result(show);
     }
@@ -88,7 +92,9 @@ public class ShowManagementService {
             throw new BusinessException(HAS_RESERVATIONS, "예매 기록이 있는 공연은 삭제할 수 없습니다. 예매를 마감해 주세요.");
         }
         sessionRepository.deleteAll(sessions);
+        List<Long> removedFileIds = referencedFileIds(show.getId());
         fileReferenceRepository.deleteByReferenceTypeInAndReferenceId(FILE_REFERENCE_TYPES, show.getId());
+        fileUsageService.markReferencesRemoved(removedFileIds);
         showRepository.delete(show);
     }
 
@@ -166,6 +172,11 @@ public class ShowManagementService {
         show.getImageFileIds().forEach(fileId -> fileReferenceService.linkFile(new LinkFileCommand(
                 show.getOwnerId(), fileId, IMAGE_REFERENCE_TYPE, show.getId()
         )));
+    }
+
+    private List<Long> referencedFileIds(long showId) {
+        return fileReferenceRepository.findAllByReferenceTypeInAndReferenceId(FILE_REFERENCE_TYPES, showId)
+                .stream().map(reference -> reference.getFileId()).distinct().toList();
     }
 
     private ProducerShowResult result(Show show) {

@@ -4,6 +4,7 @@ import static art.yesulin.domain.file.FileErrorCode.NOT_FOUND;
 import static art.yesulin.domain.photolibrary.PhotoLibraryErrorCode.PHOTO_NOT_FOUND;
 
 import art.yesulin.application.file.FileService;
+import art.yesulin.application.file.FileUsageService;
 import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.file.FileAsset;
 import art.yesulin.domain.file.FileAssetRepository;
@@ -32,6 +33,7 @@ public class PhotoLibraryService {
     private final FileAssetRepository fileAssetRepository;
     private final FileReferenceRepository fileReferenceRepository;
     private final FileService fileService;
+    private final FileUsageService fileUsageService;
     private final Clock clock;
 
     @Transactional
@@ -71,11 +73,14 @@ public class PhotoLibraryService {
     public void deletePhoto(long ownerId, long photoId) {
         PhotoLibrary library = findOwnedLibraryForUpdate(ownerId);
         PhotoLibraryItem deletedPhoto = library.deletePhoto(photoId, Instant.now(clock));
-        fileReferenceRepository.deleteByReferenceTypeAndReferenceIdAndFileId(
+        long removed = fileReferenceRepository.deleteByReferenceTypeAndReferenceIdAndFileId(
                 FILE_REFERENCE_TYPE,
                 deletedPhoto.getId(),
                 deletedPhoto.getFileId()
         );
+        if (removed > 0) {
+            fileUsageService.markReferencesRemoved(List.of(deletedPhoto.getFileId()));
+        }
     }
 
     private PhotoLibraryResult toLibraryResult(List<PhotoLibraryItem> items) {
@@ -122,7 +127,7 @@ public class PhotoLibraryService {
     }
 
     private FileAsset findUsableOwnedFile(long ownerId, long fileId) {
-        FileAsset fileAsset = fileAssetRepository.findByIdAndOwnerId(fileId, ownerId)
+        FileAsset fileAsset = fileAssetRepository.findByIdAndOwnerIdForUpdate(fileId, ownerId)
                 .orElseThrow(() -> new BusinessException(NOT_FOUND, "파일을 찾을 수 없습니다."));
         fileAsset.ensureUsable();
         if (!fileAsset.getObjectKey().startsWith("private/actor-photos/")) {

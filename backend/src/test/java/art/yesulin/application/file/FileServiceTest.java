@@ -1,6 +1,7 @@
 package art.yesulin.application.file;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -66,6 +67,7 @@ class FileServiceTest {
         assertEquals("IMAGE", fileType);
         assertEquals(FileType.IMAGE, fileAsset.getMetadata().getType());
         assertEquals(OWNER_ID, fileAsset.getOwnerId());
+        assertNotNull(fileAsset.getCreatedAt());
         assertTrue(fileAsset.getObjectKey().matches("public/files/\\d{8}/[0-9a-f-]{36}"));
     }
 

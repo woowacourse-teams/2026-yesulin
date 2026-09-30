@@ -3,12 +3,15 @@ import { readErrorMessage, readErrorDetail } from "../api-error";
 import type {
   AdminAudition,
   AdminAuditLogPage,
+  AdminFileDeletionResult,
   AdminLog,
   AdminLogEntry,
   AdminOverview,
   AdminProducer,
   AdminSubmissionDetail,
   AdminSubmissionSummary,
+  AdminUnusedFileStatus,
+  AdminUnusedFilesPage,
   AuditionStatus,
   MemberStatus,
 } from "./types";
@@ -64,6 +67,46 @@ export function fetchAuditLogs(page = 0): Promise<AdminAuditLogPage> {
     `/audit-logs?page=${page}`,
     "변경 기록을 불러오지 못했습니다.",
   );
+}
+
+export function fetchUnusedFiles(options: {
+  status?: AdminUnusedFileStatus;
+  page?: number;
+  size?: number;
+} = {}): Promise<AdminUnusedFilesPage> {
+  const params = new URLSearchParams({
+    page: String(options.page ?? 0),
+    size: String(options.size ?? 50),
+  });
+  if (options.status) params.set("status", options.status);
+  return getJson<AdminUnusedFilesPage>(
+    `/files/unreferenced?${params.toString()}`,
+    "미사용 파일 목록을 불러오지 못했습니다.",
+  );
+}
+
+export async function deleteUnusedFile(fileId: number, confirmationPassword: string): Promise<void> {
+  const response = await fetch(`${API_BASE_PATH}/files/${encodeURIComponent(String(fileId))}`, {
+    method: "DELETE",
+    credentials: "include",
+    headers: await withCsrfHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ confirmationPassword }),
+  });
+  if (!response.ok) throw await readAdminError(response, "파일을 삭제하지 못했습니다.");
+}
+
+export async function deleteUnusedFiles(
+  fileIds: readonly number[],
+  confirmationPassword: string,
+): Promise<AdminFileDeletionResult> {
+  const response = await fetch(`${API_BASE_PATH}/files/deletions`, {
+    method: "POST",
+    credentials: "include",
+    headers: await withCsrfHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ fileIds, confirmationPassword }),
+  });
+  if (!response.ok) throw await readAdminError(response, "선택한 파일을 삭제하지 못했습니다.");
+  return response.json() as Promise<AdminFileDeletionResult>;
 }
 
 export const LOG_LINE_LIMITS = [100, 200, 500] as const;
