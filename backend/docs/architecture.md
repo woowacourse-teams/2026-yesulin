@@ -64,6 +64,9 @@ infrastructure/    JPA·QueryDSL, OAuth, S3 등 외부 기술 adapter
   로그에 사용하지 않는다.
 - 인증된 업로드 진단은 최종 실패와 재시도 성공만 기록한다. `X-Request-Id` incident ID, 허용된 흐름·단계·오류
   코드, 시도 횟수, 거친 플랫폼·브라우저와 서비스 워커 제어 여부만 남긴다.
+- 예매 확정·취소는 커밋 뒤 `RESERVATION_CONFIRMED`, `RESERVATION_CANCELED` INFO로 예매 ID, 회차 ID와 매수만
+  기록한다. 예매자 이름·휴대폰과 예매번호는 담지 않는다. 롤백된 예매와 이미 취소된 예매의 재취소는 기록하지 않고,
+  예매 실패는 `HTTP_REQUEST`의 error code로 구분한다.
 - `FILE_METADATA_MISMATCH`는 `fileId`, 기대/실제 크기와 Content-Type을 기록한다. 파일명·소유자 ID·S3 URL은
   기록하지 않는다.
 - 운영자의 쓰기 작업은 `admin_audit_logs`에 실행자·대상·상태 변화 또는 리소스 UUID만 남기고 개인정보 원문은 담지 않는다.
