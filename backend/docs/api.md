@@ -336,7 +336,7 @@ submission ID와 변경할 status·memo·note 중 하나 이상을 요구한다.
 미선택자는 `PENDING`으로 보존하며, `PASS`만 다음 차수로 승격한다. 다음 차수 대상이 없으면 이후 빈 차수도
 자동 마감한다. 마감한 차수의 결과는 수정하거나 되돌릴 수 없다.
 
-## 운영 대시보드 — 15개
+## 운영 대시보드 — 16개
 
 개발팀 전용 경로다. 모두 `ADMIN` 세션만 통과하며 다른 역할은 `403 AUTH_FORBIDDEN`이다.
 
@@ -356,6 +356,7 @@ submission ID와 변경할 status·memo·note 중 하나 이상을 요구한다.
 | DELETE | `/api/v1/admin/files/{fileId}` | Admin | `DeleteAdminFileRequest(confirmationPassword)` | `204` |
 | POST | `/api/v1/admin/files/deletions` | Admin | `BatchDeleteAdminFilesRequest(fileIds, confirmationPassword)` | `200 BatchFileDeletionResult` |
 | PATCH | `/api/v1/admin/members/{memberId}/status` | Admin | `ChangeMemberStatusRequest(status)` | `200 MemberStatusResult` |
+| PUT | `/api/v1/admin/shows/{showId}/host-name` | Admin | `ChangeShowHostNameRequest(hostName)` | `200 AdminShowHostNameResult` |
 | DELETE | `/api/v1/admin/submissions/{submissionId}` | Admin | `DeleteAdminSubmissionRequest(confirmationPassword)` | `204` |
 
 `AdminOverview`는 회원·공연·공고·지원서, OTR 공고·지원서, 무료 공연·확정 예매 매수 집계와 최근 7일 신규 수만 담고
@@ -380,10 +381,14 @@ submission ID와 변경할 status·memo·note 중 하나 이상을 요구한다.
 S3 삭제 실패 시 `DELETING` 상태가 남으며 같은 파일 ID로 재시도할 수 있다. 완료된 단건 삭제 재요청은 `204`다.
 
 기획사 목록은 이메일 미인증(`PENDING`) 계정을 앞에 두고 최근 가입 순으로 정렬한다. 공고 목록은 최근 생성 순으로 전체를 반환한다.
-무료 공연 목록은 최근 생성 순으로 전체를 반환한다. 각 공연은 `showId`, `title`, `status`, `companyName`, `createdAt`,
+무료 공연 목록은 최근 생성 순으로 전체를 반환한다. 각 공연은 `showId`, `title`, `status`, `companyName`(계정 기획사명),
+`hostName`(공연에 따로 적은 주최 이름, 없으면 빈 문자열이며 관객에게는 `companyName`이 보임), `createdAt`,
 전체 회차 정원 합 `totalCapacity`, 확정 매수 `reservedTickets`, 확정 건수 `reservationCount`, 취소 건수
 `canceledReservationCount`와 시작 시각 순의 `sessions`를 담는다. 회차는 `sessionId`, `startsAt`, `capacity`와 같은 이름의
 회차별 집계를 담으며 예매가 없으면 0이다. 예매자 이름·휴대폰과 예매번호는 반환하지 않는다.
+`host-name`은 기획사가 계정 이름을 개인 이름으로 적은 경우처럼 운영자가 공연의 주최 이름을 대신 고칠 때 쓴다.
+50자 이하이고 빈 문자열이면 계정 기획사명으로 되돌린다. 응답은 `showId`, `hostName`, `companyName`이다.
+없는 공연은 `404 SHOW_NOT_FOUND`다. `admin_audit_logs`에 `SHOW_HOST_NAME_CHANGED`로 남기되 이름 원문은 담지 않는다.
 공고별 지원서 목록과 상세는 제출 당시 스냅샷을 반환한다. 상세의 비공개 제출 사진은 운영자 세션으로 콘텐츠 API에서 읽는다.
 운영자 변경 기록은 최신순으로 페이지당 10건씩 반환한다. `AdminAuditLogsResponse`는 `logs`, `page`, `size`,
 `totalElements`, `totalPages`를 담는다.

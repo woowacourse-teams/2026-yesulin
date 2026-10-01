@@ -36,13 +36,17 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.DynamicUpdate;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 /**
  * 기획사/제작사가 등록하는 무료 공연이다. 오디션용 {@code Performance}와는 연결하지 않고 장소 값 객체만 재사용한다.
+ * 기획사의 정보 수정과 운영자의 주최 이름 수정이 거의 동시에 저장돼도 서로 읽은 시점의 다른 값을 덮어쓰지 않도록
+ * 바뀐 컬럼만 갱신한다.
  */
 @Entity
+@DynamicUpdate
 @Table(name = "shows", uniqueConstraints = {
         @UniqueConstraint(name = "uk_shows_public_id", columnNames = "public_id")
 }, indexes = {
