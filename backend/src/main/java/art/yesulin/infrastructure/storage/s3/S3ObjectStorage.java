@@ -7,6 +7,7 @@ import art.yesulin.application.file.storage.StoredObjectMetadata;
 import java.util.Map;
 import java.util.Optional;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
@@ -95,6 +96,14 @@ public class S3ObjectStorage implements ObjectStorage {
             }
             throw exception;
         }
+    }
+
+    @Override
+    public void delete(String objectKey) {
+        s3Client.deleteObject(DeleteObjectRequest.builder()
+                .bucket(properties.bucket())
+                .key(toPhysicalKey(objectKey))
+                .build());
     }
 
     @Override

@@ -11,11 +11,14 @@ import art.yesulin.domain.file.FileReference;
 import art.yesulin.domain.file.FileReferenceRepository;
 import art.yesulin.support.FakeObjectStorage;
 import art.yesulin.support.ObjectStorageTestConfiguration;
+import java.sql.Timestamp;
+import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:h2:mem:file-reference;MODE=MySQL;DB_CLOSE_DELAY=-1",
@@ -42,6 +45,9 @@ class FileReferenceServiceTest {
 
     @Autowired
     private FakeObjectStorage objectStorage;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @BeforeEach
     void cleanUp() {
@@ -108,6 +114,25 @@ class FileReferenceServiceTest {
         );
 
         assertEquals(FileErrorCode.NOT_READY, exception.getErrorCode());
+    }
+
+    @Test
+    void unlinkRestartsReadyFilesUnusedPeriod() {
+        FileUploadResult upload = requestReadyUpload();
+        UnlinkFileCommand command = new UnlinkFileCommand(upload.fileId(), "PERFORMANCE_POSTER", 1L);
+        fileReferenceService.linkFile(new LinkFileCommand(OWNER_ID, upload.fileId(), "PERFORMANCE_POSTER", 1L));
+        jdbcTemplate.update("update file_assets set unreferenced_at = ? where id = ?",
+                Timestamp.from(Instant.parse("2026-01-01T00:00:00Z")), upload.fileId());
+        Instant beforeUnlink = Instant.now().minusSeconds(1);
+
+        // when
+        fileReferenceService.unlinkFile(command);
+
+        // then
+        Instant unreferencedAt = jdbcTemplate.queryForObject(
+                "select unreferenced_at from file_assets where id = ?",
+                (resultSet, rowNum) -> resultSet.getTimestamp(1).toInstant(), upload.fileId());
+        assertTrue(unreferencedAt.isAfter(beforeUnlink));
     }
 
     private FileUploadResult requestReadyUpload() {

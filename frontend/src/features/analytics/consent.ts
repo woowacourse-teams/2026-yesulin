@@ -1,5 +1,11 @@
 export const ANALYTICS_CONSENT_STORAGE_KEY = "yesulin:analytics-consent:v1";
 
+/**
+ * 분석 동의로 GTM을 불러올 때 window에 보내는 이벤트다. 동의 배너는 페이지를 다시 불러오지 않으므로,
+ * 동의 전이라 보내지 못한 화면 조회 이벤트는 이 신호를 받아 한 번 더 시도한다.
+ */
+export const ANALYTICS_READY_EVENT = "yesulin:analytics-ready";
+
 export type AnalyticsConsent = "granted" | "denied";
 
 export function readAnalyticsConsent(): AnalyticsConsent | null {

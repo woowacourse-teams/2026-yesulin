@@ -45,7 +45,7 @@ export function phoneNumbersText(phones: readonly string[]) {
 
 /**
  * 명단 맨 아래 삭제 안내. 내려받은 파일은 기획사가 직접 지워야 한다.
- * 인쇄해도 잘리지 않게 한 줄이 명단 열 폭(A~E)을 넘지 않도록 나눈다.
+ * 인쇄해도 잘리지 않게 한 줄이 명단 열 폭(A~F)을 넘지 않도록 나눈다.
  */
 function deleteNotice() {
   return [
@@ -53,6 +53,11 @@ function deleteNotice() {
     `관람 회차 종료 후 ${EXPORTED_BOOKER_DATA_DELETE_DAYS}일 이내에 이 파일을 삭제해 주세요.`,
     "따로 복사해 둔 전화번호도 함께 삭제해 주세요.",
   ];
+}
+
+/** 셀 안 줄바꿈은 줄 바꿈 서식이 없으면 한 줄로 붙어 보이므로 " / "로 이어 쓴다. */
+function sheetMemo(memo: string) {
+  return memo.trim().split(/\s*\n\s*/).filter(Boolean).join(" / ");
 }
 
 export function reservationSheet(reservations: readonly ProducerReservation[]): XlsxSheet {
@@ -64,6 +69,7 @@ export function reservationSheet(reservations: readonly ProducerReservation[]): 
       { header: "휴대폰 번호", width: 16 },
       { header: "매수", width: 8 },
       { header: "예매 시각", width: 18 },
+      { header: "메모", width: 40 },
     ],
     rows: reservations
       .filter((reservation) => reservation.status === "CONFIRMED")
@@ -73,6 +79,7 @@ export function reservationSheet(reservations: readonly ProducerReservation[]): 
         reservation.bookerPhone,
         reservation.ticketCount,
         formatSheetDateTime(reservation.createdAt),
+        sheetMemo(reservation.memo),
       ]),
     notes: deleteNotice(),
   };

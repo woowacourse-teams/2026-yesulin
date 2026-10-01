@@ -16,6 +16,7 @@ public record PublicShowListResponse(List<Item> shows) {
         return new PublicShowListResponse(results.stream()
                 .map(result -> new Item(
                         result.id(),
+                        result.hostName(),
                         result.title(),
                         result.genre(),
                         urlReader.apply(result.ownerId(), result.posterFileId()),
@@ -28,6 +29,7 @@ public record PublicShowListResponse(List<Item> shows) {
 
     public record Item(
             UUID id,
+            String hostName,
             String title,
             ShowGenre genre,
             String posterUrl,

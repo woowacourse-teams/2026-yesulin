@@ -18,6 +18,63 @@
 쓰기 요청은 공개 여부와 관계없이 CSRF header가 필요하다. OAuth 시작 `/oauth2/authorization/{provider}`와 callback
 `/login/oauth2/code/{provider}`는 Spring Security 경로이며 아래 REST 목록에 포함하지 않는다.
 
+## 오디션 안내 문자
+
+일반 공고 prefix: `/api/v1/audition-roles/{roleId}/screening-rounds/{round}`.
+OTR 공고 prefix: `/api/v1/otr-auditions/{auditionId}/roles/{roleOrder}/screening-rounds/1`.
+OTR의 auditionId는 OTR 원문 번호가 아닌 내부 공개 UUID이고, roleOrder는 1부터 시작하는 배역 순번이다.
+두 경로는 아래의 동일한 suffix·요청·응답 계약을 사용한다.
+모두 Active Producer와 해당 공고 소유권을 요구한다. 쓰기는 CSRF가 필요하며, round는 stage ID가 아닌 순번이다.
+OTR은 해당 공고·배역의 1차 PASS만 대상으로 하며 targetStageId=null로 별도 일정을 안내한다.
+발송 직전에도 같은 출처에서 소유권·합격 여부를 재검증한다. 심사 마감 여부는 발송을 막지 않는다.
+발송 내역·상세·재발송·호환용 초안은 공고 종류와 OTR 공고 UUID까지 구분한다.
+본인 공고의 발송 내역이 없으면 200과 빈 배열을 반환하며, 없는 공고·다른 소유자·잘못된 배역/차수는
+404 SMS_NOT_FOUND다. 미인증 401, 역할/상태 불일치 403은 공통 인증 규칙을 따른다.
+
+| Method | suffix | 요청 / 응답 |
+| --- | --- | --- |
+| GET | `/sms-settings` | 발송 활성 여부, 발신번호, footer, messageHeader, 다음 전형, 합격자 이름·연락처 |
+| GET | `/sms-draft` | `{version, command}`. 없으면 version 0, command null |
+| PUT | `/sms-draft` | `{version, command}` → 증가한 version과 저장 내용 |
+| POST | `/sms-previews` | command → 개인별 문구·유형·바이트·가격·오류, 경고, total, sender, token, sendable |
+| POST | `/sms-batches` | `Idempotency-Key: UUID`, `{command, previewToken}` → 202 batch |
+| GET | `/sms-batches` | 해당 배역·차수 최근 100개 `{batch, firstRecipientName, retainedCount, deliveredCount, failedCount, pendingCount, unknownCount, messageType}` |
+| GET | `/sms-batches/{batchId}` | `{batch, deliveries}` |
+| POST | `/sms-batches/{batchId}/retry-preview` | `{deliveryIds}` → 이전 스냅샷 기준 새 비용 미리보기 |
+| POST | `/sms-batches/{batchId}/retries` | `Idempotency-Key`, `{deliveryIds, previewToken}` → 202 새 batch |
+
+command: `{targetStageId, template, recipients: [{submissionId, appointment}]}`.
+appointment는 `2026-10-01T14:30`처럼 한국 시간의 날짜·시간이다. 마지막 차수만 targetStageId=null이다.
+초안의 미완성 일시는 null로 저장할 수 있지만 발송에서는 거부한다. 대상은 1~500명 이내이며 운영 상한도 적용한다.
+template에는 `{오디션일시}`가 필요하며, `{이름}`은 template 또는 messageHeader에 있어야 한다.
+서버는 DB의 제작사명·공고명으로 인사와 오디션 대상자 선정 안내인 `messageHeader`를 구성하고,
+그 안의 `{이름}`을 수신자 이름으로 치환한다. 기본 template은 `오디션 일시: {오디션일시}`와 선택적 추가 안내사항이다.
+header를 앞에, `문의: {공연사 연락처}`인 footer를 끝에 각각 빈 줄로 구분해 추가한다.
+`footer`도 이 문의 문구다. 개인별 preview의 body가 저장·발송되는 최종 본문이며, 발송 내역은 당시 본문을 유지한다.
+오류는 수신자별 error에 모아 반환한다. 단가 미설정이면 price/total=null, sendable=false다.
+금액은 부가세 포함 KRW이며 내부 계산·발송 검증용으로 유지하되 공연사 UI에는 표시하지 않는다.
+최종 본문을 EUC-KR로 검증하며 SMS 90 / LMS 2,000바이트 한도를 적용한다.
+
+batch: `id, ownerId, roleId, sourceRound, sourceStageId, targetStageId, idempotencyKey, fingerprint, sender,
+createdAt, retryOf, estimatedCost, count, scopeKey`.
+scopeKey는 일반 공고 `STANDARD`, OTR `OTR:{공개 공고 UUID}`다. OTR의 roleId는 배역 순번이며
+별도 전형 엔티티가 없으므로 sourceStageId도 null이다. 기존 일반 공고 기록은 STANDARD로 유지된다.
+delivery: `id, batchId, submissionId, name, phone, appointment, body, type, price, status, providerId, code, updatedAt`.
+202는 전달 성공이 아니다. status는 QUEUED / SENDING / ACCEPTED / DELIVERED / FAILED / UNKNOWN이다.
+UNKNOWN은 자동 재전송하지 않는다. FAILED 중 code=RETRIED는 후속 시도가 있으므로 다시 재시도할 수 없다.
+솔라피 발송 요청의 HTTP 401/403은 인증·접근 거절로 `FAILED`, `SOLAPI_HTTP_401/403`을 저장한다.
+설정 확인 후 사용자가 재발송해야 하며 자동 재발송하지 않는다. 타임아웃·불명확한 오류는 UNKNOWN으로 유지한다.
+삭제·보관 기간 만료 후에는 배치 집계만 남고 deliveries가 비거나 줄어들 수 있다.
+목록의 상태별 인원은 남아 있는 수신자 기록만 집계하며 `count-retainedCount`는 기록 없음으로 표시한다.
+`firstRecipientName`은 남아 있는 이름 중 하나이며 `messageType`은 SMS / LMS / SMS/LMS 또는 기록이 없을 때 null이다.
+초안 API는 기존 데이터 정리·호환성을 위해 유지하지만 현재 문자 작성 UI에서는 조회·저장하지 않는다.
+
+- `409 SMS_DISABLED`: 비활성 또는 요금·발신번호·상한 미설정. 초안·미리보기는 사용 가능.
+- `409 SMS_CONFLICT`: 미리보기 변경, 동일 키의 다른 내용, 초안 버전 충돌.
+- `409 SMS_LIMIT_EXCEEDED`: 계정 전체 일일 예약 건수 또는 요청 상한 초과.
+- `404 SMS_NOT_FOUND`: 본인 공고/배역/발송 기록이 아니거나 없는 경우.
+- `400 INVALID_REQUEST`: 합격자가 아닌 대상, 과거 일시, 잘못된 재전송 대상 등.
+
 ## Health와 인증 — 9개
 
 | Method | URL | 인증 | Request | Response |
@@ -143,7 +200,7 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 1차 서류 심사 한 차수를 제공한다. 배역별 심사 종료는 OTR 지원 마감 다음 날부터 가능하며,
 그 전에는 `409 SCREENING_ROUND_NOT_READY`를 반환한다. 종료 후 심사 결과 수정은 거부한다.
 
-## 무료 공연과 비회원 예매 — 17개
+## 무료 공연과 비회원 예매 — 19개
 
 오디션용 공연·공고와 별도의 저장 모델이다. 관리 API는 `PRODUCER + ACTIVE`만 호출할 수 있고 자기 공연만 보이며,
 다른 기획사의 공연·회차·예매는 `404`로 숨긴다. 관객 API는 로그인 없이 호출하지만 쓰기 요청은 CSRF 헤더가 필요하다.
@@ -166,15 +223,21 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 | DELETE | `/api/v1/shows/{showId}/sessions/{sessionId}` | Active Producer | 없음 | `200 ProducerShowResponse` |
 | GET | `/api/v1/shows/{showId}/sessions/{sessionId}/reservations` | Active Producer | 없음 | `200 ProducerReservationListResult` |
 | POST | `/api/v1/reservations/{reservationId}/cancellation` | Active Producer | 없음 | `200 ProducerReservationResult` |
+| PUT | `/api/v1/reservations/{reservationId}/ticket-count` | Active Producer | `ChangeTicketCountRequest(ticketCount)` | `200 ProducerReservationResult` |
+| PUT | `/api/v1/reservations/{reservationId}/memo` | Active Producer | `UpdateReservationMemoRequest(memo)` | `200 ProducerReservationResult` |
 | POST | `/api/v1/show-images/upload-requests` | Active Producer | `ShowImageUploadRequest(originalFilename, contentType, size)` | `201 FileUploadResult` |
 | PATCH | `/api/v1/show-images/{fileId}/completion` | Active Producer | 없음 | `204` |
 
 `SaveShowRequest`는 `title`(200자 이하), `genre`(`MUSICAL`·`PLAY`), `description`(2000자 이하), `venue`(장소명·도로명주소 필수),
 `runningMinutes`(1~1440), `ageRating`(50자 이하), `inquiryPhone`(`02-123-4567` 형식), `posterFileId`,
-`imageFileIds`(서로 다른 파일 최대 3개)다. 선택 값으로 `directionsNote`(오시는 길 추가 안내, 1000자 이하),
+`imageFileIds`(서로 다른 파일 최대 3개)다. 선택 값으로 `hostName`(관객에게 보여 줄 주최 이름, 50자 이하),
 `links`(예매 안내 외부 링크 최대 3개, 각 `label` 30자 이하·`url` 500자 이하의 http/https 주소, 도메인에 점 필수),
-`remainingSeatsVisible`(관객에게 잔여석 숫자 공개 여부)을 받는다. 보내지 않으면 안내 없음·링크 없음·잔여석 공개로 저장하며,
-`ProducerShowResponse`는 세 값을 그대로 돌려준다. 잘못된 링크 주소는 `400 SHOW_INVALID_INPUT`이다.
+`guides`(오시는 길 아래 추가 안내 최대 5개, 각 `title` 30자 이하·`content` 1000자 이하, 둘 다 필수),
+`remainingSeatsVisible`(관객에게 잔여석 숫자 공개 여부)을 받는다. `links`·`remainingSeatsVisible`을 보내지 않으면
+링크 없음·잔여석 공개로 저장하고, `hostName`·`guides`를 보내지 않으면 지금 값을 유지한다(새 공연은 계정 회사명으로
+주최 표시·안내 없음). 빈 문자열·빈 배열을 보내면 지운다. `ProducerShowResponse`는 네 값을 그대로 돌려준다. `ProducerShowResponse.hostName`은
+따로 적은 이름(없으면 빈 문자열)이고 `defaultHostName`은 비워 두면 대신 보일 기획사 계정 회사명이다.
+잘못된 링크 주소와 개수·길이를 넘은 안내는 `400 SHOW_INVALID_INPUT`이다.
 포스터와 상세 이미지는 요청한 기획사가 올린 READY 공개 파일이어야 하며
 `show-images` 업로드로 받는다. 새 공연은 `DRAFT`이고, 시작 전인 회차가 하나 이상 있어야 `opening`으로 `OPEN`이 된다.
 `closing`은 `OPEN`에서만 `CLOSED`로 바꾸며 `opening`으로 다시 열 수 있다. 회차 시작 시각은 ISO-8601 UTC이고 현재 이후여야 한다.
@@ -182,13 +245,18 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 관객 목록은 `OPEN` 공연만, 상세는 `OPEN`·`CLOSED` 공연을 반환하고 `DRAFT`는 `404 SHOW_NOT_FOUND`다.
 상세 회차는 정원·예매 수 대신 `remainingSeats`, `maxTicketCount`(`min(10, 잔여석)`, 0이면 매진),
 `bookable`(공연 `OPEN`, 시작 전, 잔여석 있음)만 준다. 공연이 잔여석을 숨기면(`remainingSeatsVisible=false`)
-`remainingSeats`는 `null`이고 나머지는 같다. 상세에는 `directionsNote`와 `links`(`label`, `url`)도 포함한다.
+`remainingSeats`는 `null`이고 나머지는 같다. 상세에는 `guides`(`title`, `content`)와 `links`(`label`, `url`)도 포함한다.
+관객 목록·상세의 `hostName`은 공연에 따로 적은 주최 이름이고, 비어 있으면 기획사 계정의 회사명이다.
 예매는 1~10매, 휴대폰 `010-1234-5678` 형식, 개인정보 수집·이용 동의가 필요하다. 서버는 회차 행을 잠근 뒤
 같은 회차의 같은 휴대폰 확정 예매(`409 RESERVATION_DUPLICATE`)와 시작 시각 경과(`409 SHOW_SESSION_BOOKING_CLOSED`),
 잔여석 부족(`409 SHOW_SESSION_NOT_ENOUGH_SEATS`)을 확인한다. 응답의 `code`는 8자리 예매번호다.
 취소된 예매는 같은 번호로 다시 예매할 수 있다.
 
 관객 본인 취소는 없다. 기획사가 전화 요청을 받아 `cancellation`으로 취소하며 이미 취소된 예매는 그대로 반환한다.
+`ticket-count`는 확정 예매의 매수를 1~10매로 바꾼다. 회차 행을 잠그고 정원을 넘으면 `409 SHOW_SESSION_NOT_ENOUGH_SEATS`,
+취소된 예매면 `409 RESERVATION_NOT_CHANGEABLE`이다. 기획사 예외 처리를 위해 회차 시작·공연 마감 후에도 바꿀 수 있다.
+`memo`는 관객별 메모(300자 이하, 빈 문자열이면 삭제)를 저장하며 취소된 예매에도 남길 수 있다. 메모는
+`ProducerReservationResult.memo`로만 내보내고 관객 API에는 포함하지 않는다.
 정원은 확정 매수보다 줄일 수 없고(`409 SHOW_SESSION_CAPACITY_BELOW_RESERVED`), 예매 기록이 있는 회차와 공연은
 삭제할 수 없다(`409 SHOW_SESSION_HAS_RESERVATIONS`, `409 SHOW_HAS_RESERVATIONS`).
 
@@ -268,24 +336,59 @@ submission ID와 변경할 status·memo·note 중 하나 이상을 요구한다.
 미선택자는 `PENDING`으로 보존하며, `PASS`만 다음 차수로 승격한다. 다음 차수 대상이 없으면 이후 빈 차수도
 자동 마감한다. 마감한 차수의 결과는 수정하거나 되돌릴 수 없다.
 
-## 운영 대시보드 — 6개
+## 운영 대시보드 — 16개
 
 개발팀 전용 경로다. 모두 `ADMIN` 세션만 통과하며 다른 역할은 `403 AUTH_FORBIDDEN`이다.
 
 | Method | URL | 인증 | Request | Response |
 | --- | --- | --- | --- | --- |
 | GET | `/api/v1/admin/overview` | Admin | 없음 | `200 AdminOverview` |
+| GET | `/api/v1/admin/member-stats` | Admin | 없음 | `200 AdminMemberStats` |
+| GET | `/api/v1/admin/activity` | Admin | 없음 | `200 AdminActivity` |
 | GET | `/api/v1/admin/producers` | Admin | `status` query (`PENDING`/`ACTIVE`, 선택) | `200 AdminProducersResponse` |
 | GET | `/api/v1/admin/auditions` | Admin | `status` query (`DRAFT`/`PUBLISHED`/`CLOSED`, 선택) | `200 AdminAuditionsResponse` |
 | GET | `/api/v1/admin/auditions/{auditionId}/submissions` | Admin | 없음 | `200 AdminSubmissionsResponse` |
 | GET | `/api/v1/admin/submissions/{submissionId}` | Admin | 없음 | `200 ApplicantSubmissionDetailResponse` |
+| GET | `/api/v1/admin/shows` | Admin | `status` query (`DRAFT`/`OPEN`/`CLOSED`, 선택) | `200 AdminShowsResponse` |
 | GET | `/api/v1/admin/audit-logs` | Admin | `page` query (선택, 0부터) | `200 AdminAuditLogsResponse` |
-| GET | `/api/v1/admin/logs` | Admin | `keyword`, `limit` query (선택) | `200 AdminLogResponse` |
+| GET | `/api/v1/admin/logs` | Admin | `keyword`, `limit`, `date`(`yyyy-MM-dd`) query (선택) | `200 AdminLogResponse` |
+| GET | `/api/v1/admin/files/unreferenced` | Admin | `status` (`PENDING`/`READY`/`DELETING`), `page`(0부터), `size`(1~100) query, 모두 선택 | `200 UnusedFilesResult` |
+| DELETE | `/api/v1/admin/files/{fileId}` | Admin | `DeleteAdminFileRequest(confirmationPassword)` | `204` |
+| POST | `/api/v1/admin/files/deletions` | Admin | `BatchDeleteAdminFilesRequest(fileIds, confirmationPassword)` | `200 BatchFileDeletionResult` |
 | PATCH | `/api/v1/admin/members/{memberId}/status` | Admin | `ChangeMemberStatusRequest(status)` | `200 MemberStatusResult` |
+| PUT | `/api/v1/admin/shows/{showId}/host-name` | Admin | `ChangeShowHostNameRequest(hostName)` | `200 AdminShowHostNameResult` |
 | DELETE | `/api/v1/admin/submissions/{submissionId}` | Admin | `DeleteAdminSubmissionRequest(confirmationPassword)` | `204` |
 
-`AdminOverview`는 회원·공연·공고·지원서 집계와 최근 7일 신규 수만 담고 개인 식별 정보를 담지 않는다.
+`AdminOverview`는 회원·공연·공고·지원서, OTR 공고·지원서, 무료 공연·확정 예매 매수 집계와 최근 7일 신규 수만 담고
+개인 식별 정보를 담지 않는다. 예매 매수와 최근 7일 예매 수(`newReservationsInLastWeek`)는 현재 확정 상태인 예매만 센다.
+`AdminMemberStats`는 배우·기획사 수, 가입 경로(`signupMethods`: 배우의 소셜 계정 `kakao`·`naver`·`google`, 기획사
+이메일 가입 `email`, 소셜 계정이 없는 배우 `unknownApplicants`)와 한국 시간 오늘·최근 7일·최근 30일 신규 배우·기획사
+수를 담는다. 한 배우가 여러 소셜 계정을 연결하면 경로마다 센다. 로그인·방문 기록은 저장하지 않으므로 활성 사용자 수는
+제공하지 않는다. `AdminActivity.days`는 오늘을 포함한 최근 14일을 한국 날짜 오래된 순으로 담고, 날마다 신규 배우·기획사,
+지원서, OTR 지원서, 현재 확정 상태인 예매 건수·매수를 0 포함으로 반환한다.
+
+미사용 파일 목록은 7일 미만도 포함한다. `files`의 각 항목은 `fileId`, `ownerId`, `status`, `storageScope`,
+`createdAt`, `unusedSince`, `deletableAt`, `deletable`을 담는다. 응답에 `page`, `size`, `hasNext`가 포함된다.
+파일 DELETE는 `PENDING`이면 업로드 요청 시각, `READY`이면 업로드 완료·마지막 연결 해제 시각부터 7일 이상
+지난 경우만 허용한다. 요청 시 참조를 다시 검사하고 지원서 삭제와 같은 확인 비밀번호를 요구한다.
+사용 중이면 `409 FILE_STILL_IN_USE`, 7일 미만이면 `409 FILE_TOO_RECENT`, 없는 ID는 `404 FILE_NOT_FOUND`다.
+파일 삭제 확인은 지원서 삭제와 같은 `YESULIN_ADMIN_DELETION_PASSWORD_HASH` 설정과 관리자 계정별 입력 제한을 사용한다.
+해시 미설정 시 파일 삭제는 `403 ADMIN_DELETION_CONFIRMATION_FAILED`로 거부된다.
+일괄 삭제는 중복 없는 양의 파일 ID 1~100개와 확인 비밀번호를 한 번만 받는다. 결과는 요청 순서대로
+`results: [{fileId, status, code}]`이며 `status`는 `DELETED`·`ALREADY_DELETED`·`FAILED`다.
+실패 항목의 `code`는 `FILE_TOO_RECENT`, `FILE_STILL_IN_USE`, `FILE_NOT_FOUND`, `FILE_DELETION_FAILED` 중 하나다.
+비밀번호가 틀리면 전체 요청을 거부하고 어떤 파일도 삭제하지 않는다. 파일별 실패는 다른 파일의 처리를 막지 않는다.
+S3 삭제 실패 시 `DELETING` 상태가 남으며 같은 파일 ID로 재시도할 수 있다. 완료된 단건 삭제 재요청은 `204`다.
+
 기획사 목록은 이메일 미인증(`PENDING`) 계정을 앞에 두고 최근 가입 순으로 정렬한다. 공고 목록은 최근 생성 순으로 전체를 반환한다.
+무료 공연 목록은 최근 생성 순으로 전체를 반환한다. 각 공연은 `showId`, `title`, `status`, `companyName`(계정 기획사명),
+`hostName`(공연에 따로 적은 주최 이름, 없으면 빈 문자열이며 관객에게는 `companyName`이 보임), `createdAt`,
+전체 회차 정원 합 `totalCapacity`, 확정 매수 `reservedTickets`, 확정 건수 `reservationCount`, 취소 건수
+`canceledReservationCount`와 시작 시각 순의 `sessions`를 담는다. 회차는 `sessionId`, `startsAt`, `capacity`와 같은 이름의
+회차별 집계를 담으며 예매가 없으면 0이다. 예매자 이름·휴대폰과 예매번호는 반환하지 않는다.
+`host-name`은 기획사가 계정 이름을 개인 이름으로 적은 경우처럼 운영자가 공연의 주최 이름을 대신 고칠 때 쓴다.
+50자 이하이고 빈 문자열이면 계정 기획사명으로 되돌린다. 응답은 `showId`, `hostName`, `companyName`이다.
+없는 공연은 `404 SHOW_NOT_FOUND`다. `admin_audit_logs`에 `SHOW_HOST_NAME_CHANGED`로 남기되 이름 원문은 담지 않는다.
 공고별 지원서 목록과 상세는 제출 당시 스냅샷을 반환한다. 상세의 비공개 제출 사진은 운영자 세션으로 콘텐츠 API에서 읽는다.
 운영자 변경 기록은 최신순으로 페이지당 10건씩 반환한다. `AdminAuditLogsResponse`는 `logs`, `page`, `size`,
 `totalElements`, `totalPages`를 담는다.
@@ -300,6 +403,10 @@ submission ID와 변경할 status·memo·note 중 하나 이상을 요구한다.
 [배포 문서](operations/deployment.md)를 따른다.
 
 로그 조회는 `logging.file.name`이 가리키는 파일의 끝부분만 읽는다. 파일 경로는 요청으로 바꿀 수 없고 쓰기도 하지 않는다.
+`date`가 서버 시간대 기준 지난 날짜면 그날 압축 보관된 `{로그 파일}.{date}.{번호}.gz`를 최신 번호부터 풀어 읽고,
+조건에 맞는 마지막 `limit`줄을 오래된 순으로 반환한다. 하루에 풀어 읽는 양에 상한이 있어 넘치면 더 오래된 보관 파일은
+건너뛰고 `truncated=true`다. 보관 파일이 없으면(보관 기간 14일이 지난 날짜 포함) `available=true`와 빈 목록이다.
+`date`가 없거나 오늘 이후면 현재 파일을 읽는다. 날짜 형식이 틀리면 `400 INVALID_REQUEST`다.
 `limit`은 1~500이며 기본값은 200이다. `keyword`는 대소문자를 구분하지 않는 부분 일치다. 한 번에 읽는 바이트에
 상한이 있다. 생략된 더 오래된 줄이 있으면 `truncated=true`이며, 읽기 상한과 줄 수 상한 어느 쪽 때문이든 참이 된다.
 파일을 읽을 수 없으면 `available=false`다. `AdminLogResponse.lines`는 기존 프론트 호환을 위해 원문 줄을 유지하고,
@@ -333,7 +440,7 @@ submission ID와 변경할 status·memo·note 중 하나 이상을 요구한다.
 | 지원서 | `SUBMISSION_INVALID*`, `SUBMISSION_NOT_FOUND`, `DUPLICATE_SUBMISSION`, `RECRUITMENT_CLOSED` |
 | 심사 | `INVALID_SCREENING_REVIEW`, `SCREENING_REVIEW_NOT_FOUND`, `SCREENING_ROUND_NOT_READY` |
 | 무료 공연 | `SHOW_NOT_FOUND`, `SHOW_SESSION_NOT_FOUND`, `SHOW_INVALID_INPUT`, `SHOW_INVALID_STATUS`, `SHOW_NOT_OPENABLE`, `SHOW_NOT_OPEN`, `SHOW_HAS_RESERVATIONS`, `SHOW_SESSION_BOOKING_CLOSED`, `SHOW_SESSION_NOT_ENOUGH_SEATS`, `SHOW_SESSION_CAPACITY_BELOW_RESERVED`, `SHOW_SESSION_HAS_RESERVATIONS` |
-| 예매 | `RESERVATION_NOT_FOUND`, `RESERVATION_INVALID_INPUT`, `RESERVATION_DUPLICATE` |
+| 예매 | `RESERVATION_NOT_FOUND`, `RESERVATION_INVALID_INPUT`, `RESERVATION_DUPLICATE`, `RESERVATION_NOT_CHANGEABLE` |
 | 운영 | `MEMBER_NOT_FOUND`, `MEMBER_STATUS_CHANGE_NOT_ALLOWED`, `ADMIN_DELETION_CONFIRMATION_FAILED` |
 
 인가 공통 오류는 `401 AUTH_UNAUTHENTICATED`, `403 AUTH_FORBIDDEN`, `403 AUTH_INACTIVE_MEMBER`다.

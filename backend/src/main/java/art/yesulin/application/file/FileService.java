@@ -10,6 +10,7 @@ import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.file.FileAsset;
 import art.yesulin.domain.file.FileAssetRepository;
 import art.yesulin.domain.file.FileMetadata;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.UUID;
@@ -27,6 +28,7 @@ public class FileService {
 
     private final FileAssetRepository fileAssetRepository;
     private final ObjectStorage objectStorage;
+    private final Clock clock;
 
     @Transactional
     public FileUploadResult requestUpload(long ownerId, FileUploadCommand command) {
@@ -56,12 +58,13 @@ public class FileService {
 
     @Transactional
     public void completeUpload(long ownerId, long fileId) {
-        FileAsset fileAsset = getOwnedFileAsset(ownerId, fileId);
+        FileAsset fileAsset = fileAssetRepository.findByIdAndOwnerIdForUpdate(fileId, ownerId)
+                .orElseThrow(() -> new BusinessException(NOT_FOUND, "파일을 찾을 수 없습니다."));
         StoredObjectMetadata metadata = objectStorage.inspect(fileAsset.getObjectKey()).orElseThrow(
                 () -> new BusinessException(UPLOAD_NOT_FOUND, "업로드 객체를 찾을 수 없습니다.")
         );
         logMetadataMismatch(fileAsset, metadata);
-        fileAsset.completeUpload(metadata.contentType(), metadata.size());
+        fileAsset.completeUpload(metadata.contentType(), metadata.size(), clock.instant());
     }
 
     @Transactional(readOnly = true)

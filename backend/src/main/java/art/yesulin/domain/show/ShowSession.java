@@ -80,6 +80,18 @@ public class ShowSession {
         }
     }
 
+    /**
+     * 기획사가 확정 예매의 매수를 바꿀 때 정원을 넘지 않는지 확인한다. {@code otherReservedTickets}는 바꾸는 예매를 뺀
+     * 확정 매수다. 운영자 예외 처리를 위해 시작 시각은 보지 않는다.
+     */
+    public void ensureTicketChangeFits(long otherReservedTickets, int requestedTickets) {
+        long availableTickets = remainingSeats(otherReservedTickets);
+        if (requestedTickets > availableTickets) {
+            throw new BusinessException(SESSION_NOT_ENOUGH_SEATS,
+                    "남은 좌석이 부족해 최대 %d매까지 바꿀 수 있습니다. 회차 정원을 먼저 늘려 주세요.", availableTickets);
+        }
+    }
+
     public long remainingSeats(long reservedTickets) {
         return Math.max(0, capacity - reservedTickets);
     }

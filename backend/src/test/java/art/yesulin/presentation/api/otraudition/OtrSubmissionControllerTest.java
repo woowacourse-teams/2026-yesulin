@@ -11,6 +11,8 @@ import static org.mockito.Mockito.doAnswer;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -37,6 +39,7 @@ import art.yesulin.domain.submission.SubmissionAdditionalInformation;
 import art.yesulin.domain.submission.SubmissionBasicInformation;
 import art.yesulin.domain.submission.SubmissionGender;
 import art.yesulin.domain.submission.SubmissionType;
+import art.yesulin.support.FakeObjectStorage;
 import art.yesulin.support.ObjectStorageTestConfiguration;
 import java.time.Clock;
 import java.time.Instant;
@@ -94,6 +97,8 @@ class OtrSubmissionControllerTest {
     private ProducerRepository producerRepository;
     @Autowired
     private FileAssetRepository fileAssetRepository;
+    @Autowired
+    private FakeObjectStorage objectStorage;
     @Autowired
     private PostingSnapshotVersionGenerator snapshotVersionGenerator;
     @Autowired
@@ -268,6 +273,45 @@ class OtrSubmissionControllerTest {
     }
 
     @Test
+    void submittedPhotoUrlsServeTheSameContentToApplicantAndAuditionOwner() throws Exception {
+        OtrAudition audition = createAudition(LocalDate.of(2026, 9, 22));
+        List<Long> files = createPhotos();
+        for (long fileId : files) {
+            FileAsset file = fileAssetRepository.findById(fileId).orElseThrow();
+            String uploadUrl = objectStorage.createUpload(file.getObjectKey(), "image/jpeg", 1024L).url();
+            objectStorage.upload(uploadUrl, "image/jpeg", 1024L);
+        }
+        mockMvc.perform(post("/api/v1/otr-auditions/{id}/submissions", audition.getPublicId())
+                        .with(csrf()).sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, APPLICANT)
+                        .contentType(MediaType.APPLICATION_JSON).content(request(audition, files, "햄릿")))
+                .andExpect(status().isCreated());
+
+        String base = "/api/v1/otr-auditions/" + audition.getPublicId() + "/roles/1/screening-rounds/1";
+        String submissionId = submissionRepository.findAll().getFirst().getPublicId().toString();
+        String photoUrl = "/api/v1/files/" + files.getFirst() + "/content";
+        mockMvc.perform(get(base + "/submissions").sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, PRODUCER))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.submissions[0].photos[0].url").value(photoUrl));
+        mockMvc.perform(get(base + "/submissions/" + submissionId)
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, PRODUCER))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.submission.photos[0].url").value(photoUrl));
+        for (long fileId : files) {
+            String url = "/api/v1/files/" + fileId + "/content";
+            for (MemberPrincipal reader : List.of(APPLICANT, PRODUCER)) {
+                mockMvc.perform(get(url).sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, reader))
+                        .andExpect(status().isOk())
+                        .andExpect(content().contentType("image/jpeg"))
+                        .andExpect(content().bytes(new byte[1024]))
+                        .andExpect(header().string("Cache-Control", "no-store, must-revalidate"));
+            }
+            mockMvc.perform(get(url).sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, OTHER_PRODUCER))
+                    .andExpect(status().isNotFound());
+            mockMvc.perform(get(url)).andExpect(status().isUnauthorized());
+        }
+    }
+
+    @Test
     void screeningCompletionWaitsForSubmissionAdmittedBeforeDeadlineToCommit() throws Exception {
         OtrAudition audition = createAudition(LocalDate.of(2026, 9, 21));
         OtrSubmissionInput input = new OtrSubmissionInput(SubmissionType.OTR,
@@ -323,7 +367,7 @@ class OtrSubmissionControllerTest {
         return List.of(1, 2, 3).stream().map(index -> {
             FileAsset file = new FileAsset("private/actor-photos/test-" + index, 1L,
                     new FileMetadata("photo.jpg", "image/jpeg", 1024L));
-            file.completeUpload("image/jpeg", 1024L);
+            file.completeUpload("image/jpeg", 1024L, java.time.Instant.now());
             return fileAssetRepository.saveAndFlush(file).getId();
         }).toList();
     }

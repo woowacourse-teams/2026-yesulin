@@ -79,7 +79,7 @@ export const MOCK_SCENARIOS: readonly MockScenarioDefinition[] = [
     title: "공개 공연 목록",
     description: "예매 중인 공연만 다음 회차 일시와 함께 표시합니다.",
     href: "/shows",
-    checks: ["예매 중 공연 3개만 표시된다", "마감·초안 공연은 표시되지 않는다"],
+    checks: ["예매 중 공연 3개만 표시된다", "마감·초안 공연은 표시되지 않는다", "카드마다 장르 옆에 주최가 보인다"],
   },
   {
     id: "shows-public-detail",
@@ -87,7 +87,7 @@ export const MOCK_SCENARIOS: readonly MockScenarioDefinition[] = [
     title: "회차 선택과 예매",
     description: "지난 회차, 잔여석이 적은 회차, 여유 있는 회차가 섞인 공연입니다.",
     href: "/shows/seed_show_moonlight",
-    checks: ["지난 회차는 선택할 수 없다", "잔여석 2매 회차에 3매 이상 예매하면 잔여석 안내가 나온다", "같은 번호로 같은 회차를 다시 예매하면 중복 안내가 나온다", "예매 안내 링크와 오시는 길 추가 안내가 보인다"],
+    checks: ["지난 회차는 선택할 수 없다", "잔여석 2매 회차에 3매 이상 예매하면 잔여석 안내가 나온다", "같은 번호로 같은 회차를 다시 예매하면 중복 안내가 나온다", "제목 아래 주최(기획사 이름)와 예매 안내 링크가 보인다", "지도 아래에 제목이 다른 추가 안내 3개가 보인다"],
   },
   {
     id: "shows-public-hidden-seats",
@@ -95,7 +95,7 @@ export const MOCK_SCENARIOS: readonly MockScenarioDefinition[] = [
     title: "잔여석 비공개 공연",
     description: "기획사가 잔여석 숫자를 숨긴 공연입니다.",
     href: "/shows/seed_show_hidden_seats",
-    checks: ["회차에 숫자 대신 예매 가능이 표시된다", "잔여 3석 회차는 최대 3매까지 고를 수 있다", "매진 회차는 매진으로 표시된다"],
+    checks: ["회차에 숫자 대신 예매 가능이 표시된다", "잔여 3석 회차는 최대 3매까지 고를 수 있다", "매진 회차는 매진으로 표시된다", "주최가 기획사 이름 대신 프로젝트 이름으로 보인다"],
   },
   {
     id: "shows-public-sold-out",
@@ -119,6 +119,6 @@ export const MOCK_SCENARIOS: readonly MockScenarioDefinition[] = [
     title: "기획사 공연 관리",
     description: "초안·예매 중·마감 공연과 회차별 예매자를 관리합니다.",
     href: "/producers/shows",
-    checks: ["상태가 배지 텍스트로 구분된다", "예매가 있는 회차는 삭제할 수 없다", "예매 취소 후 잔여석이 늘어난다", "확정 예매자 번호 복사와 엑셀 다운로드에 취소 건이 빠진다"],
+    checks: ["상태가 배지 텍스트로 구분된다", "예매가 있는 회차는 삭제할 수 없다", "예매 취소 후 잔여석이 늘어난다", "확정 예매자 번호 복사와 엑셀 다운로드에 취소 건이 빠진다", "메모가 있는 관객 줄에 메모 표시가 붙고 메모 있음 필터로 모아 볼 수 있다", "관객 줄을 누르면 매수 조정·메모·취소가 펼쳐진다", "매수는 숫자 입력이나 −/+로 남은 좌석까지만 늘릴 수 있다"],
   },
 ];

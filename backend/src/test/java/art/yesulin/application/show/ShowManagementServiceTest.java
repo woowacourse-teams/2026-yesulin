@@ -15,6 +15,8 @@ import art.yesulin.common.exception.ErrorCode;
 import art.yesulin.domain.file.FileAssetRepository;
 import art.yesulin.domain.file.FileErrorCode;
 import art.yesulin.domain.file.FileReferenceRepository;
+import art.yesulin.domain.producer.Producer;
+import art.yesulin.domain.producer.ProducerRepository;
 import art.yesulin.domain.reservation.Booker;
 import art.yesulin.domain.reservation.Reservation;
 import art.yesulin.domain.reservation.ReservationRepository;
@@ -84,6 +86,9 @@ class ShowManagementServiceTest {
     private FileReferenceRepository fileReferenceRepository;
 
     @Autowired
+    private ProducerRepository producerRepository;
+
+    @Autowired
     private PlatformTransactionManager transactionManager;
 
     private ShowTestFixture fixture;
@@ -94,6 +99,7 @@ class ShowManagementServiceTest {
                 showRepository, sessionRepository, reservationRepository, fileAssetRepository, fileReferenceRepository
         );
         fixture.cleanUp();
+        producerRepository.deleteAll();
     }
 
     @Test
@@ -152,10 +158,13 @@ class ShowManagementServiceTest {
 
     @Test
     void savesAudienceGuideAndHidesRemainingSeatsOnlyFromAudience() {
-        SaveShowCommand hidden = command(fixture.readyImage(OWNER_ID), List.of(), List.of(
+        SaveShowCommand hidden = command(fixture.readyImage(OWNER_ID), List.of(), "", List.of(
                 new ShowLinkCommand("공연사 인스타그램 보기", "https://instagram.com/yesulin"),
                 new ShowLinkCommand("홈페이지", "http://yesulin.art/about")
-        ), "  혜화역 2번 출구에서 도보 5분  ", false);
+        ), List.of(
+                new ShowGuideCommand(" 주차 안내 ", "  건물 지하 주차장을 2시간 무료로 이용할 수 있어요.  "),
+                new ShowGuideCommand("관람 안내", "공연 시작 후에는 입장이 어려워요.")
+        ), false);
         UUID showId = showManagementService.create(OWNER_ID, hidden).id();
         long sessionId = showManagementService.addSession(
                 OWNER_ID, showId, new SaveShowSessionCommand(ShowTestFixture.STARTS_AT, 8)
@@ -167,12 +176,16 @@ class ShowManagementServiceTest {
         PublicShowResult publicShow = publicShowService.find(showId);
 
         assertFalse(producerShow.remainingSeatsVisible());
-        assertEquals("혜화역 2번 출구에서 도보 5분", producerShow.directionsNote());
+        List<ShowGuideResult> guides = List.of(
+                new ShowGuideResult("주차 안내", "건물 지하 주차장을 2시간 무료로 이용할 수 있어요."),
+                new ShowGuideResult("관람 안내", "공연 시작 후에는 입장이 어려워요.")
+        );
+        assertEquals(guides, producerShow.guides());
         assertEquals(List.of(
                 new ShowLinkResult("공연사 인스타그램 보기", "https://instagram.com/yesulin"),
                 new ShowLinkResult("홈페이지", "http://yesulin.art/about")
         ), publicShow.links());
-        assertEquals("혜화역 2번 출구에서 도보 5분", publicShow.directionsNote());
+        assertEquals(guides, publicShow.guides());
         assertEquals(3, producerShow.sessions().getFirst().reservedTickets());
         assertNull(publicShow.sessions().getFirst().remainingSeats());
         assertEquals(5, publicShow.sessions().getFirst().maxTicketCount());
@@ -183,7 +196,73 @@ class ShowManagementServiceTest {
         PublicShowResult visible = publicShowService.find(showId);
         assertEquals(5L, visible.sessions().getFirst().remainingSeats());
         assertTrue(visible.links().isEmpty());
-        assertEquals("", visible.directionsNote());
+        assertTrue(visible.guides().isEmpty());
+    }
+
+    @Test
+    void showsCompanyNameUntilShowHasItsOwnHostName() {
+        producerRepository.save(new Producer(OWNER_ID, "달빛 극단", "01012345678"));
+        UUID showId = create().id();
+        showManagementService.addSession(OWNER_ID, showId, new SaveShowSessionCommand(ShowTestFixture.STARTS_AT, 10));
+        showManagementService.open(OWNER_ID, showId);
+
+        ProducerShowResult producerShow = showManagementService.find(OWNER_ID, showId);
+        assertEquals("", producerShow.hostName());
+        assertEquals("달빛 극단", producerShow.defaultHostName());
+        assertEquals("달빛 극단", publicShowService.find(showId).hostName());
+        assertEquals("달빛 극단", publicShowService.findOpenShows().getFirst().hostName());
+
+        showManagementService.update(OWNER_ID, showId, command(
+                producerShow.posterFileId(), List.of(), " 2026 청년 연극 프로젝트 ", List.of(), List.of(), true
+        ));
+
+        assertEquals("2026 청년 연극 프로젝트", showManagementService.find(OWNER_ID, showId).hostName());
+        assertEquals("2026 청년 연극 프로젝트", publicShowService.find(showId).hostName());
+        assertEquals("2026 청년 연극 프로젝트", publicShowService.findOpenShows().getFirst().hostName());
+    }
+
+    @Test
+    void keepsHostNameAndGuidesWhenOlderClientOmitsThem() {
+        long posterFileId = fixture.readyImage(OWNER_ID);
+        UUID showId = showManagementService.create(OWNER_ID, command(
+                posterFileId, List.of(), "청년 프로젝트", List.of(), List.of(new ShowGuideCommand("주차 안내", "지하 주차장")), true
+        )).id();
+
+        ProducerShowResult kept = showManagementService.update(OWNER_ID, showId, command(
+                posterFileId, List.of(), null, List.of(), null, true
+        ));
+
+        assertEquals("청년 프로젝트", kept.hostName());
+        assertEquals(List.of(new ShowGuideResult("주차 안내", "지하 주차장")), kept.guides());
+
+        ProducerShowResult cleared = showManagementService.update(OWNER_ID, showId, command(
+                posterFileId, List.of(), "", List.of(), List.of(), true
+        ));
+
+        assertEquals("", cleared.hostName());
+        assertTrue(cleared.guides().isEmpty());
+    }
+
+    @Test
+    void rejectsTooManyOrIncompleteGuides() {
+        long posterFileId = fixture.readyImage(OWNER_ID);
+        List<ShowGuideCommand> sixGuides = List.of(
+                new ShowGuideCommand("1", "내용"), new ShowGuideCommand("2", "내용"), new ShowGuideCommand("3", "내용"),
+                new ShowGuideCommand("4", "내용"), new ShowGuideCommand("5", "내용"), new ShowGuideCommand("6", "내용")
+        );
+
+        assertCode(ShowErrorCode.INVALID_INPUT, () -> showManagementService.create(OWNER_ID, command(
+                posterFileId, List.of(), "", List.of(), sixGuides, true
+        )));
+        assertCode(ShowErrorCode.INVALID_INPUT, () -> showManagementService.create(OWNER_ID, command(
+                posterFileId, List.of(), "", List.of(), List.of(new ShowGuideCommand("가".repeat(31), "내용")), true
+        )));
+        assertCode(ShowErrorCode.INVALID_INPUT, () -> showManagementService.create(OWNER_ID, command(
+                posterFileId, List.of(), "가".repeat(51), List.of(), List.of(), true
+        )));
+        assertThrows(IllegalArgumentException.class, () -> showManagementService.create(OWNER_ID, command(
+                posterFileId, List.of(), "", List.of(), List.of(new ShowGuideCommand("주차 안내", " ")), true
+        )));
     }
 
     @Test
@@ -191,15 +270,16 @@ class ShowManagementServiceTest {
         long posterFileId = fixture.readyImage(OWNER_ID);
 
         assertCode(ShowErrorCode.INVALID_INPUT, () -> showManagementService.create(OWNER_ID, command(
-                posterFileId, List.of(), List.of(new ShowLinkCommand("인스타그램", "instagram.com/yesulin")), "", true
+                posterFileId, List.of(), "", List.of(new ShowLinkCommand("인스타그램", "instagram.com/yesulin")),
+                List.of(), true
         )));
         assertCode(ShowErrorCode.INVALID_INPUT, () -> showManagementService.create(OWNER_ID, command(
-                posterFileId, List.of(), List.of(
+                posterFileId, List.of(), "", List.of(
                         new ShowLinkCommand("1", "https://a.example"),
                         new ShowLinkCommand("2", "https://b.example"),
                         new ShowLinkCommand("3", "https://c.example"),
                         new ShowLinkCommand("4", "https://d.example")
-                ), "", true
+                ), List.of(), true
         )));
     }
 
@@ -239,6 +319,20 @@ class ShowManagementServiceTest {
         assertTrue(showRepository.findByPublicId(showId).isEmpty());
         assertTrue(sessionRepository.findAll().isEmpty());
         assertTrue(fileReferenceRepository.findAll().isEmpty());
+    }
+
+    @Test
+    void deletesShowWithGuidesAndLinks() {
+        UUID showId = showManagementService.create(OWNER_ID, command(
+                fixture.readyImage(OWNER_ID), List.of(), "청년 프로젝트",
+                List.of(new ShowLinkCommand("홈페이지", "https://yesulin.art")),
+                List.of(new ShowGuideCommand("주차 안내", "지하 주차장"), new ShowGuideCommand("입장 안내", "10분 전 입장")), true
+        )).id();
+
+        showManagementService.delete(OWNER_ID, showId);
+
+        assertTrue(showRepository.findByPublicId(showId).isEmpty());
+        assertTrue(showRepository.findAll().isEmpty());
     }
 
     @Test
@@ -291,14 +385,15 @@ class ShowManagementServiceTest {
     }
 
     private static SaveShowCommand command(long posterFileId, List<Long> imageFileIds) {
-        return command(posterFileId, imageFileIds, List.of(), "", true);
+        return command(posterFileId, imageFileIds, "", List.of(), List.of(), true);
     }
 
     private static SaveShowCommand command(
             long posterFileId,
             List<Long> imageFileIds,
+            String hostName,
             List<ShowLinkCommand> links,
-            String directionsNote,
+            List<ShowGuideCommand> guides,
             boolean remainingSeatsVisible
     ) {
         return new SaveShowCommand(
@@ -311,8 +406,9 @@ class ShowManagementServiceTest {
                 "02-123-4567",
                 posterFileId,
                 imageFileIds,
+                hostName,
                 links,
-                directionsNote,
+                guides,
                 remainingSeatsVisible
         );
     }

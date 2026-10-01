@@ -2,6 +2,8 @@ package art.yesulin.application.admin;
 
 import static art.yesulin.domain.submission.SubmissionErrorCode.NOT_FOUND;
 
+import art.yesulin.application.auditionnotice.NoticeStore;
+import art.yesulin.application.file.FileUsageService;
 import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.admin.AdminAction;
 import art.yesulin.domain.admin.AdminAuditLog;
@@ -14,7 +16,9 @@ import art.yesulin.domain.submission.Submission;
 import art.yesulin.domain.submission.SubmissionConsentRepository;
 import art.yesulin.domain.submission.SubmissionRepository;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,12 +37,15 @@ public class AdminSubmissionDeletionService {
     private final ScreeningReviewRepository reviewRepository;
     private final ScreeningCompletionRepository completionRepository;
     private final FileReferenceRepository fileReferenceRepository;
+    private final FileUsageService fileUsageService;
     private final AdminAuditLogRepository auditLogRepository;
     private final AdminDeletionConfirmation deletionConfirmation;
+    private final NoticeStore noticeStore;
 
     @Transactional
     public void delete(DeleteSubmissionCommand command) {
         deletionConfirmation.verify(command.actorMemberId(), command.confirmationPassword());
+        noticeStore.lock();
         Submission submission = submissionRepository.findBySubmissionIdForUpdate(command.submissionId())
                 .orElseThrow(() -> new BusinessException(NOT_FOUND, "지원서를 찾을 수 없습니다."));
         final long internalSubmissionId = submission.getId();
@@ -47,12 +54,17 @@ public class AdminSubmissionDeletionService {
                 .map(SelectedRole::auditionRoleId)
                 .toList();
 
+        noticeStore.eraseSubmission(submission.getSubmissionId());
         reviewRepository.deleteBySubmissionId(submission.getSubmissionId());
         completionRepository.deleteByAuditionRoleIdIn(roleIds);
         consentRepository.deleteBySubmissionId(submission.getSubmissionId());
+        Set<Long> removedFileIds = fileReferenceRepository
+                .findAllByReferenceTypeInAndReferenceId(SUBMISSION_REFERENCE_TYPES, internalSubmissionId)
+                .stream().map(reference -> reference.getFileId()).collect(Collectors.toSet());
         fileReferenceRepository.deleteByReferenceTypeInAndReferenceId(
                 SUBMISSION_REFERENCE_TYPES, internalSubmissionId
         );
+        fileUsageService.markReferencesRemoved(removedFileIds);
         submissionRepository.delete(submission);
         submissionRepository.flush();
         auditLogRepository.save(new AdminAuditLog(

@@ -1,6 +1,14 @@
 /** 공연 등록·수정 폼의 클라이언트 검증. 서버 `SaveShowRequest` 규칙과 같은 기준을 쓴다. */
 
-import { MAX_SHOW_LINK_LABEL_LENGTH, MAX_SHOW_LINK_URL_LENGTH, type ShowGenre, type ShowLink } from "./types";
+import {
+  MAX_SHOW_GUIDE_CONTENT_LENGTH,
+  MAX_SHOW_GUIDE_TITLE_LENGTH,
+  MAX_SHOW_LINK_LABEL_LENGTH,
+  MAX_SHOW_LINK_URL_LENGTH,
+  type ShowGenre,
+  type ShowGuide,
+  type ShowLink,
+} from "./types";
 
 export type ShowFormValues = {
   readonly posterUrl: string;
@@ -10,11 +18,12 @@ export type ShowFormValues = {
   readonly inquiryPhone: string;
   readonly venueName: string;
   readonly roadAddress: string;
+  readonly guides: readonly ShowGuide[];
   readonly links: readonly ShowLink[];
 };
 
 /** 화면 위에서 아래 순서. 첫 오류 항목으로 포커스를 옮길 때 이 순서를 따른다. */
-export const SHOW_FORM_FIELDS = ["poster", "title", "genre", "runningMinutes", "inquiryPhone", "venue", "links"] as const;
+export const SHOW_FORM_FIELDS = ["poster", "title", "genre", "runningMinutes", "inquiryPhone", "venue", "guides", "links"] as const;
 
 export type ShowFormField = (typeof SHOW_FORM_FIELDS)[number];
 export type ShowFormErrors = Partial<Record<ShowFormField, string>>;
@@ -58,6 +67,10 @@ export function validateShowField(field: ShowFormField, values: ShowFormValues):
     case "venue":
       if (!values.venueName.trim()) return "공연 장소명을 입력해 주세요.";
       return values.roadAddress.trim() ? null : "주소 검색으로 공연장 주소를 입력해 주세요.";
+    case "guides": {
+      const index = values.guides.findIndex((guide) => showGuideError(guide));
+      return index < 0 ? null : `추가 안내 ${index + 1}: ${showGuideError(values.guides[index]!)}`;
+    }
     case "links": {
       const index = values.links.findIndex((link) => showLinkError(link));
       return index < 0 ? null : `안내 링크 ${index + 1}: ${showLinkError(values.links[index]!)}`;
@@ -73,6 +86,24 @@ export function validateShowForm(values: ShowFormValues): ShowFormErrors {
     if (message) errors[field] = message;
   }
   return errors;
+}
+
+export function showGuideTitleError(title: string): string | null {
+  const value = title.trim();
+  if (!value) return "안내 제목을 입력해 주세요.";
+  return value.length > MAX_SHOW_GUIDE_TITLE_LENGTH ? `안내 제목은 ${MAX_SHOW_GUIDE_TITLE_LENGTH}자 이내로 입력해 주세요.` : null;
+}
+
+export function showGuideContentError(content: string): string | null {
+  const value = content.trim();
+  if (!value) return "안내 내용을 입력해 주세요.";
+  return value.length > MAX_SHOW_GUIDE_CONTENT_LENGTH
+    ? `안내 내용은 ${MAX_SHOW_GUIDE_CONTENT_LENGTH.toLocaleString("ko-KR")}자 이내로 입력해 주세요.`
+    : null;
+}
+
+export function showGuideError(guide: ShowGuide): string | null {
+  return showGuideTitleError(guide.title) ?? showGuideContentError(guide.content);
 }
 
 export function showLinkLabelError(label: string): string | null {

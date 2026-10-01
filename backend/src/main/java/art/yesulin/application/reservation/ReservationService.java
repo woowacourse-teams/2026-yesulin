@@ -85,16 +85,57 @@ public class ReservationService {
     /** 관객의 전화 요청을 받은 기획사가 취소한다. 다른 기획사 공연의 예매는 찾을 수 없는 것으로 다룬다. */
     @Transactional
     public ProducerReservationResult cancel(long ownerId, long reservationId) {
-        Reservation reservation = reservationRepository.findById(reservationId)
-                .filter(found -> isOwnedBy(found, ownerId))
-                .orElseThrow(() -> new BusinessException(NOT_FOUND, "예매를 찾을 수 없습니다."));
+        Reservation reservation = getOwnedReservation(ownerId, reservationId);
         reservation.cancel(clock.instant());
         return ProducerReservationResult.from(reservationRepository.save(reservation));
     }
 
+    /**
+     * 관객의 전화 요청을 받은 기획사가 매수를 바꾼다. 예매와 같은 회차 행 잠금을 잡아 동시에 들어온 예매와 함께
+     * 정원을 넘지 않게 하고, 잠금 뒤 확정 매수를 최신 값으로 읽도록 READ COMMITTED로 실행한다.
+     * 예매 취소는 회차를 잠그지 않으므로, 예매는 회차를 잠근 뒤에 행 잠금과 함께 새로 읽는다. 그래야 잠금을
+     * 기다리는 사이 취소되거나 매수가 바뀐 예매를 낡은 상태로 바꾸지 않는다.
+     */
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public ProducerReservationResult changeTicketCount(long ownerId, long reservationId, int ticketCount) {
+        long sessionId = reservationRepository.findSessionIdById(reservationId)
+                .orElseThrow(() -> new BusinessException(NOT_FOUND, "예매를 찾을 수 없습니다."));
+        ShowSession session = sessionRepository.findByIdForUpdate(sessionId)
+                .filter(found -> isShowOwnedBy(found.getShowId(), ownerId))
+                .orElseThrow(() -> new BusinessException(NOT_FOUND, "예매를 찾을 수 없습니다."));
+        Reservation reservation = reservationRepository.findByIdForUpdate(reservationId)
+                .orElseThrow(() -> new BusinessException(NOT_FOUND, "예매를 찾을 수 없습니다."));
+        if (reservation.isConfirmed()) {
+            long otherReservedTickets = reservationRepository.sumTicketCountBySessionIdAndStatusExcluding(
+                    session.getId(), ReservationStatus.CONFIRMED, reservation.getId()
+            );
+            session.ensureTicketChangeFits(otherReservedTickets, ticketCount);
+        }
+        reservation.changeTicketCount(ticketCount);
+        return ProducerReservationResult.from(reservationRepository.save(reservation));
+    }
+
+    @Transactional
+    public ProducerReservationResult updateMemo(long ownerId, long reservationId, String memo) {
+        Reservation reservation = getOwnedReservation(ownerId, reservationId);
+        reservation.updateMemo(memo);
+        return ProducerReservationResult.from(reservationRepository.save(reservation));
+    }
+
+    private Reservation getOwnedReservation(long ownerId, long reservationId) {
+        return reservationRepository.findById(reservationId)
+                .filter(found -> isOwnedBy(found, ownerId))
+                .orElseThrow(() -> new BusinessException(NOT_FOUND, "예매를 찾을 수 없습니다."));
+    }
+
     private boolean isOwnedBy(Reservation reservation, long ownerId) {
         return sessionRepository.findById(reservation.getSessionId())
-                .flatMap(session -> showRepository.findById(session.getShowId()))
+                .filter(session -> isShowOwnedBy(session.getShowId(), ownerId))
+                .isPresent();
+    }
+
+    private boolean isShowOwnedBy(long showId, long ownerId) {
+        return showRepository.findById(showId)
                 .filter(show -> show.getOwnerId() == ownerId)
                 .isPresent();
     }

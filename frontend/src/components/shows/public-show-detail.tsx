@@ -1,9 +1,11 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { PublicVenueGuide } from "@/components/applications/public-venue-guide";
 import { PrimaryButton } from "@/components/ui/controls";
+import { ANALYTICS_READY_EVENT } from "@/features/analytics/consent";
+import { trackReservationEvent } from "@/features/analytics/events";
 import {
   formatShowDate,
   formatShowDateTime,
@@ -43,7 +45,25 @@ export function PublicShowDetail({ show, onReserved, onStale }: {
     section?.scrollIntoView({ behavior: "smooth", block: "center" });
     section?.querySelector<HTMLInputElement>("input:not([disabled])")?.focus({ preventScroll: true });
   };
-  const action = { show, availability, selectedSession, hasBookable: bookableSessions.length > 0, onReserve: () => setSheetOpen(true), onChoose: focusSessions };
+  const openReservation = () => {
+    trackReservationEvent("reservation_start", {});
+    setSheetOpen(true);
+  };
+  const action = { show, availability, selectedSession, hasBookable: bookableSessions.length > 0, onReserve: openReservation, onChoose: focusSessions };
+
+  // 좌석이 바뀌어 공연 정보를 다시 읽어도 같은 공연이면 조회 이벤트를 다시 보내지 않는다.
+  // 이 화면에서 분석에 동의하면 그때 한 번 보낸다. 실제로 보낸 뒤에만 보낸 공연으로 기록한다.
+  const viewedShowIdRef = useRef<PublicShow["id"] | null>(null);
+  const sessionCount = show.sessions.length;
+  useEffect(() => {
+    const trackView = () => {
+      if (viewedShowIdRef.current === show.id) return;
+      if (trackReservationEvent("view_show", { session_count: sessionCount })) viewedShowIdRef.current = show.id;
+    };
+    trackView();
+    window.addEventListener(ANALYTICS_READY_EVENT, trackView);
+    return () => window.removeEventListener(ANALYTICS_READY_EVENT, trackView);
+  }, [show.id, sessionCount]);
 
   return (
     <main className={`min-h-screen break-keep bg-surface text-foreground wrap-break-word ${showsMobileAction ? "pb-[calc(120px+env(safe-area-inset-bottom))]" : "pb-12"} min-[1200px]:pb-12`}>
@@ -61,12 +81,7 @@ export function PublicShowDetail({ show, onReserved, onStale }: {
           {show.imageUrls.length ? <DetailImages show={show} /> : null}
           <InfoSection title="오시는 길" last>
             <PublicVenueGuide venue={show.venue.name} address={show.venue} note="공연이 열리는 장소입니다. 공연 시작 전까지 도착해 주세요." />
-            {show.directionsNote ? (
-              <div className="mt-4 rounded-card border border-border bg-card px-4 py-4 sm:px-5">
-                <h3 className="text-sm font-semibold text-brand">추가 안내</h3>
-                <p className="mt-2 whitespace-pre-line break-words text-base leading-7 text-muted-strong md:text-sm md:leading-6">{show.directionsNote}</p>
-              </div>
-            ) : null}
+            {show.guides.length ? <ShowGuides guides={show.guides} /> : null}
           </InfoSection>
         </article>
         <aside className="hidden min-[1200px]:block"><DesktopAction {...action} /></aside>
@@ -99,6 +114,11 @@ function ShowHero({ show, availability }: { readonly show: PublicShow; readonly 
           <ShowGenreBadge genre={show.genre} />
         </div>
         <h1 className="mt-3 text-[clamp(24px,4vw,40px)] font-bold leading-tight tracking-[-0.035em]">{show.title}</h1>
+        {show.hostName ? (
+          <p className="mt-2 text-sm text-muted-strong md:text-base">
+            <span className="text-muted">주최</span> <span className="ml-1 font-medium">{show.hostName}</span>
+          </p>
+        ) : null}
       </div>
       <dl className="col-span-2 grid grid-cols-[88px_minmax(0,1fr)] gap-x-4 gap-y-3 text-base sm:col-span-1">
         <dt className="text-muted">공연 기간</dt>
@@ -201,6 +221,20 @@ function ReservationNotice({ show }: { readonly show: PublicShow }) {
         </div>
       ) : null}
     </InfoSection>
+  );
+}
+
+/** 기획사가 제목을 정한 추가 안내. 주차·입장처럼 주소만으로 전하기 어려운 내용을 지도 아래에 적은 순서대로 보여 준다. */
+function ShowGuides({ guides }: { readonly guides: PublicShow["guides"] }) {
+  return (
+    <div className="mt-4 grid gap-3">
+      {guides.map((guide, index) => (
+        <section key={index} className="rounded-card border border-border bg-card px-4 py-4 sm:px-5">
+          <h3 className="text-sm font-semibold text-brand">{guide.title}</h3>
+          <p className="mt-2 whitespace-pre-line break-words text-base leading-7 text-muted-strong md:text-sm md:leading-6">{guide.content}</p>
+        </section>
+      ))}
+    </div>
   );
 }
 
@@ -319,7 +353,7 @@ function DesktopAction(props: ActionProps) {
 
 function MobileAction(props: ActionProps) {
   return (
-    <div className="glass-surface fixed inset-x-0 bottom-0 z-20 border-x-0 border-b-0 min-[1200px]:hidden">
+    <div className="glass-surface fixed inset-x-0 bottom-0 z-20 border-x-0 border-b-0 pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] min-[1200px]:hidden">
       <div className="mx-auto flex max-w-[880px] items-center gap-3 px-5 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 md:px-8">
         <div className="min-w-0 flex-1"><SelectedSessionSummary selectedSession={props.selectedSession} hasBookable={props.hasBookable} /></div>
         <ActionButton {...props} />

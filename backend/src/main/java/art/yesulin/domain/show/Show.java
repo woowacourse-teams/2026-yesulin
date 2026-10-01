@@ -36,13 +36,17 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.DynamicUpdate;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 /**
  * 기획사/제작사가 등록하는 무료 공연이다. 오디션용 {@code Performance}와는 연결하지 않고 장소 값 객체만 재사용한다.
+ * 기획사의 정보 수정과 운영자의 주최 이름 수정이 거의 동시에 저장돼도 서로 읽은 시점의 다른 값을 덮어쓰지 않도록
+ * 바뀐 컬럼만 갱신한다.
  */
 @Entity
+@DynamicUpdate
 @Table(name = "shows", uniqueConstraints = {
         @UniqueConstraint(name = "uk_shows_public_id", columnNames = "public_id")
 }, indexes = {
@@ -55,7 +59,8 @@ public class Show {
 
     public static final int MAX_IMAGE_COUNT = 3;
     public static final int MAX_LINK_COUNT = 3;
-    public static final int MAX_DIRECTIONS_NOTE_LENGTH = 1000;
+    public static final int MAX_GUIDE_COUNT = 5;
+    public static final int MAX_HOST_NAME_LENGTH = 50;
     private static final int MAX_TITLE_LENGTH = 200;
     private static final int MAX_DESCRIPTION_LENGTH = 2000;
     private static final int MAX_AGE_RATING_LENGTH = 50;
@@ -111,8 +116,15 @@ public class Show {
     @OrderColumn(name = "link_order")
     private List<ShowLink> links = new ArrayList<>();
 
-    @Column(name = "directions_note", nullable = false, length = MAX_DIRECTIONS_NOTE_LENGTH)
-    private String directionsNote = "";
+    @Getter(AccessLevel.NONE)
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "show_guides", joinColumns = @JoinColumn(name = "show_id"))
+    @OrderColumn(name = "guide_order")
+    private List<ShowGuide> guides = new ArrayList<>();
+
+    /** 관객에게 보여 줄 주최 이름. 비어 있으면 기획사 계정의 회사명을 쓴다. */
+    @Column(name = "host_name", nullable = false, length = MAX_HOST_NAME_LENGTH)
+    private String hostName = "";
 
     /** 관객에게 회차별 잔여석 숫자를 보여 줄지. 예매 가능 여부와 매진 표시에는 영향을 주지 않는다. */
     @Column(name = "remaining_seats_visible", nullable = false)
@@ -167,14 +179,26 @@ public class Show {
     }
 
     /**
-     * 관객 화면의 예매 안내 링크, 오시는 길 추가 안내, 잔여석 공개 여부를 바꾼다. 새 공연의 기본값은 링크·안내 없음, 잔여석 공개다.
+     * 관객 화면의 주최 이름, 예매 안내 링크, 추가 안내, 잔여석 공개 여부를 바꾼다.
+     * 새 공연의 기본값은 계정 회사명으로 주최 표시, 링크·안내 없음, 잔여석 공개다.
      */
-    public void updateAudienceGuide(List<ShowLink> links, String directionsNote, boolean remainingSeatsVisible) {
+    public void updateAudienceGuide(
+            String hostName, List<ShowLink> links, List<ShowGuide> guides, boolean remainingSeatsVisible
+    ) {
+        updateHostName(hostName);
         this.links = new ArrayList<>(requireLinks(links));
-        this.directionsNote = requireMaxLength(
-                normalizeOptional(directionsNote), MAX_DIRECTIONS_NOTE_LENGTH, "오시는 길 추가 안내"
-        );
+        this.guides = new ArrayList<>(requireGuides(guides));
         this.remainingSeatsVisible = remainingSeatsVisible;
+    }
+
+    /** 관객에게 보여 줄 주최 이름만 바꾼다. 빈 값이면 기획사 계정의 회사명을 쓴다. 운영자 수정에도 쓴다. */
+    public void updateHostName(String hostName) {
+        this.hostName = requireMaxLength(normalizeOptional(hostName), MAX_HOST_NAME_LENGTH, "주최 이름");
+    }
+
+    /** 공연에 따로 적은 주최 이름이 없으면 기획사 계정의 회사명을 쓴다. */
+    public String hostNameOr(String defaultHostName) {
+        return hostName.isEmpty() ? defaultHostName : hostName;
     }
 
     /**
@@ -220,6 +244,10 @@ public class Show {
         return List.copyOf(links);
     }
 
+    public List<ShowGuide> getGuides() {
+        return List.copyOf(guides);
+    }
+
     private static int requireRunningMinutes(int runningMinutes) {
         if (runningMinutes < 1 || runningMinutes > MAX_RUNNING_MINUTES) {
             throw new BusinessException(INVALID_INPUT, "공연 시간은 1분 이상 1440분 이하로 입력해 주세요.");
@@ -248,6 +276,14 @@ public class Show {
         List<ShowLink> values = links == null ? List.of() : links;
         if (values.size() > MAX_LINK_COUNT || values.stream().anyMatch(link -> link == null)) {
             throw new BusinessException(INVALID_INPUT, "안내 링크는 최대 %d개까지 등록할 수 있습니다.", MAX_LINK_COUNT);
+        }
+        return values;
+    }
+
+    private static List<ShowGuide> requireGuides(List<ShowGuide> guides) {
+        List<ShowGuide> values = guides == null ? List.of() : guides;
+        if (values.size() > MAX_GUIDE_COUNT || values.stream().anyMatch(guide -> guide == null)) {
+            throw new BusinessException(INVALID_INPUT, "추가 안내는 최대 %d개까지 등록할 수 있습니다.", MAX_GUIDE_COUNT);
         }
         return values;
     }

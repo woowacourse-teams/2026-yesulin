@@ -18,4 +18,9 @@ public record LogLines(
     public static LogLines unavailable(Instant readAt) {
         return new LogLines(List.of(), List.of(), false, false, readAt);
     }
+
+    /** 읽을 수는 있지만 해당 조건의 로그가 없는 경우다. 보관 기간이 지난 날짜도 여기에 해당한다. */
+    public static LogLines empty(Instant readAt) {
+        return new LogLines(List.of(), List.of(), false, true, readAt);
+    }
 }

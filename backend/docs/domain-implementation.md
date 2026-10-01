@@ -38,16 +38,66 @@
 
 - `Show`는 소유 기획사, UUID 공개 ID, 제목, 장르(`MUSICAL`·`PLAY`), 소개, 장소(`PerformanceVenue` 재사용), 러닝타임,
   관람 연령, 문의 전화, 포스터와 상세 이미지 파일 ID(최대 3개), `DRAFT/OPEN/CLOSED`를 소유한다. 오디션 `Performance`와 연결하지 않는다.
-  관객 안내로 `ShowLink`(버튼 이름·http/https 주소, 최대 3개, `show_links`), 오시는 길 추가 안내, 잔여석 공개 여부를 갖고
-  `updateAudienceGuide`로 함께 바꾼다. 잔여석 숨김은 `PublicShowService`가 응답에서 `remainingSeats`를 비우는 방식이다.
+  관객 안내로 주최 이름(`host_name`, 빈 값이면 기획사 회사명), `ShowLink`(버튼 이름·http/https 주소, 최대 3개, `show_links`),
+  `ShowGuide`(제목·내용, 최대 5개, `show_guides`), 잔여석 공개 여부를 갖고 `updateAudienceGuide`로 함께 바꾼다.
+  주최 이름은 `Show.hostNameOr`로 정하며 회사명은 응답을 만들 때 `Producer`에서 읽는다(공연에 복사하지 않는다).
+  잔여석 숨김은 `PublicShowService`가 응답에서 `remainingSeats`를 비우는 방식이다.
 - `ShowSession`은 공연 ID, 시작 시각, 정원만 저장하는 별도 aggregate다. 잔여석은 저장하지 않고 확정 예매 매수로 계산한다.
-- `Reservation`은 회차 ID, 8자리 예매번호, `Booker`(이름·휴대폰), 매수(1~10), 동의 문서 버전, `CONFIRMED/CANCELED`를 저장한다.
-  생성과 취소 때 `ReservationConfirmedEvent`, `ReservationCanceledEvent`를 등록한다.
+- `Reservation`은 회차 ID, 8자리 예매번호, `Booker`(이름·휴대폰), 매수(1~10), 동의 문서 버전, `CONFIRMED/CANCELED`,
+  기획사 메모(300자 이하)를 저장한다. 생성·취소·매수 변경 때 `ReservationConfirmedEvent`, `ReservationCanceledEvent`,
+  `ReservationTicketCountChangedEvent`를 등록한다. 매수 변경은 확정 예매만 가능하다.
 - `ReservationService.reserve`는 회차 행을 `PESSIMISTIC_WRITE`로 잠근 뒤 같은 번호의 확정 예매와 확정 매수를 다시 읽는다.
-  같은 회차의 예매는 모두 이 잠금을 거치므로 중복 번호와 정원 초과를 DB 제약 없이 막는다. 정원 수정·회차 삭제·공연 삭제도 같은 잠금을 잡는다.
+  같은 회차의 예매는 모두 이 잠금을 거치므로 중복 번호와 정원 초과를 DB 제약 없이 막는다.
+  정원 수정·회차 삭제·공연 삭제·매수 변경도 같은 잠금을 잡는다. 예매 취소는 회차를 잠그지 않으므로 매수 변경은
+  회차를 잠근 뒤 예매 행도 잠가 새로 읽고, 그사이 취소된 예매는 `RESERVATION_NOT_CHANGEABLE`로 거절한다.
   MySQL 기본 REPEATABLE READ에서는 잠금 전 첫 조회의 스냅샷을 계속 읽어 먼저 확정된 예매를 놓치므로, 잠금에 기대는
-  예매·정원 수정·회차 삭제·공연 삭제 트랜잭션은 `READ_COMMITTED`로 실행한다. H2 테스트는 이 차이를 재현하지 못한다.
+  예매·정원 수정·회차 삭제·공연 삭제·매수 변경 트랜잭션은 `READ_COMMITTED`로 실행한다. H2 테스트는 이 차이를 재현하지 못한다.
 - 포스터·상세 이미지는 `SHOW_POSTER`, `SHOW_IMAGE` 파일 참조로 연결하고 공연 수정 시 모두 다시 연결한다.
+
+## 공고 알림
+
+- `domain/notice`는 지원 접수용 `OtrAudition`과 별개인 외부 공고 알림 이력을 정의한다.
+  `Notice`는 JPA 엔티티이며 `NoticeRepository`는 같은 domain 패키지에서 `JpaRepository`를 직접 확장한다.
+  `notices` 테이블과 `(source, external_id)` 유니크 제약은 Flyway migration으로 생성한다.
+- `Notice`는 출처와 외부 공고 ID를 별도 필드로 저장하고 두 컬럼의 유니크 제약으로 중복을 판별한다.
+  OTR adapter는 `source=OTR`, `externalId=vid`로 매핑한다. DB에는 기술 식별자와 두 값, 알림 상태만 보관한다.
+  알림 상태는 `NoticeStatusConverter`로 문자열 컬럼에 매핑한다.
+  이전 스키마에 저장하던 내용·시각 컬럼은 후속 migration에서 제거한다.
+- `application/notice`의 `AuditionContent`는 외부 공고 ID, 분류, 제목, 보수, 마감, 원문 URL을 담지만
+  DB에는 저장하지 않는다. 보수·마감은 `협의`, `상시` 등의 표현을 보존한다.
+  업로드 시각은 읽지 않으며 신규 판별에는 외부 공고 ID를 사용한다. ID·제목·링크는 필수다.
+- 최초 실행을 포함해 처음 발견한 공고는 `PENDING`으로 저장하고 알림을 시도한다.
+  수집한 공고마다 기존 출처·외부 ID를 확인하고 새 공고만 같은 트랜잭션에 등록한다.
+  빈 응답이나 수집 실패는 새 공고를 만들지 않는다.
+  같은 출처·외부 ID의 기존 상태는 덮어쓰지 않고 수정 알림은 보내지 않는다.
+  이미 카카오 오픈채팅방에 올린 공고를 다시 게시할지는 Slack 알림을 받은 운영자가 판단한다.
+- 전송 성공을 확인한 뒤 `SENT`로 바꾼다. 실패하면 `PENDING`을 유지하여 다음 실행에 재시도한다.
+  재시도 대상이 현재 목록에 있으면 목록의 데이터를 사용하고, 없으면 상세 페이지를 다시 조회한다.
+  최근 목록에 없는 미전송 공고는 `AuditionSource.fetchById`로 원문을 다시 조회한다.
+  원문 조회도 실패하거나 OTR에서 삭제되어 조회 불가능하면 대기 상태로 남는다.
+  수집 실패 시에도 기존 대기 공고 전송을 시도한다.
+  목록·상세 조회 실패는 해당 위치에서 `AuditionNoticeNotifier.sendError`로 별도 알림을 보낸다.
+  공고가 없어도 조회 실패 자체를 알린다.
+- 한 실행에서 최대 100개를 DB ID 순으로 조회하고, 5개씩 나누어 알림을 전송한다.
+  내용 조회에 실패한 공고는 대기 상태로 남기고 나머지를 전송한다. 묶음 전송 성공 후 해당 공고를
+  하나의 트랜잭션에서 `SENT`로 바꾼다. 한 묶음의 전송 실패는 뒤 묶음의 전송을 막지 않는다.
+  등록 실패는 해당 실행을 중단하고 다음 실행에서 재시도한다.
+- `application/notice`의 `AuditionSource`는 공고 수집 port이며 `getSource()`로 출처를 제공한다.
+  `AuditionNoticeNotifier`는 공고 알림과 수집 오류 알림을 각각 전송하는 port다.
+  `infrastructure/crawler`의 `OtrAuditionSource`는 Jsoup으로 목록 첫 페이지만 요청하고 상단 고정 공지를 제외한다.
+  목록 행 번호가 아닌 상세 링크의 `vid`를 식별자로 사용하며, 보수·마감 원문을 그대로 읽는다.
+  `fetchById`는 해당 `vid`의 상세 페이지에서 다시 읽는다. HTTP 또는 HTML 구조 오류는 예외로 전달한다.
+  `AuditionNoticeService`가 `NoticeRepository`를 직접 사용한다. 전체 실행을 트랜잭션으로 묶지 않고
+  수집 결과 저장과 묶음 전송 완료 기록에만 짧은 트랜잭션을 적용한다. DB 트랜잭션을 잡은 채 외부 요청을 수행하지 않는다.
+  동시 수집의 삽입 충돌은 유니크 제약으로 거절되고 해당 수집 트랜잭션은 롤백된다. 다음 실행에서 재수집한다.
+- `AuditionNoticeService`는 Spring bean으로 등록한다. `@EnableScheduling`은 전체 환경에서 활성화하고
+  `presentation/scheduler/notice`의 공고 스케줄러만 DEV 프로필에서 실행한다.
+  매일 한국 시간 09:00~20:00에 10분 간격으로 실행한다.
+  OTR 수집기와 Slack Incoming Webhook 전송 adapter를 사용하며 웹훅은 DEV 암호화 설정에만 둔다.
+  PROD 웹훅 설정과 자동 실행은 아직 적용하지 않는다.
+- 현재 목록 여러 페이지 탐색과 분산 실행 잠금은 미구현이다. 별도 DB adapter는 두지 않는다.
+  중복 저장 방지와 중복 전송 방지는 별개다. 배포 중 동시 실행 및 전송 성공 후 상태 저장 전 종료로 인한 재전송은
+  아직 허용하며 exactly-once 전달을 보장하지 않는다. 수집 누락 방지를 위한 페이지 탐색 범위는 추후 adapter에서 정한다.
 
 ## 지원서
 

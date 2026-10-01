@@ -1,14 +1,22 @@
 import { withCsrfHeaders } from "../csrf";
 import { readErrorMessage, readErrorDetail } from "../api-error";
 import type {
-  AdminAudition,
   AdminAuditLogPage,
+  AdminAudition,
+  AdminDailyActivity,
+  AdminFileDeletionResult,
   AdminLog,
   AdminLogEntry,
+  AdminMemberStats,
   AdminOverview,
   AdminProducer,
+  AdminShow,
+  AdminShowHostName,
+  AdminShowStatus,
   AdminSubmissionDetail,
   AdminSubmissionSummary,
+  AdminUnusedFileStatus,
+  AdminUnusedFilesPage,
   AuditionStatus,
   MemberStatus,
 } from "./types";
@@ -41,6 +49,18 @@ export function fetchOverview(): Promise<AdminOverview> {
   return getJson<AdminOverview>("/overview", "현황을 불러오지 못했습니다.");
 }
 
+export function fetchMemberStats(): Promise<AdminMemberStats> {
+  return getJson<AdminMemberStats>("/member-stats", "회원 통계를 불러오지 못했습니다.");
+}
+
+export async function fetchActivity(): Promise<readonly AdminDailyActivity[]> {
+  const body = await getJson<{ days: readonly AdminDailyActivity[] }>(
+    "/activity",
+    "최근 활동을 불러오지 못했습니다.",
+  );
+  return body.days;
+}
+
 export async function fetchProducers(status?: MemberStatus): Promise<readonly AdminProducer[]> {
   const query = status ? `?status=${status}` : "";
   const body = await getJson<{ producers: readonly AdminProducer[] }>(
@@ -59,11 +79,72 @@ export async function fetchAuditions(status?: AuditionStatus): Promise<readonly 
   return body.auditions;
 }
 
+export async function fetchShows(status?: AdminShowStatus): Promise<readonly AdminShow[]> {
+  const query = status ? `?status=${status}` : "";
+  const body = await getJson<{ shows: readonly AdminShow[] }>(
+    `/shows${query}`,
+    "무료 공연 목록을 불러오지 못했습니다.",
+  );
+  return body.shows;
+}
+
+/** 빈 문자열을 보내면 기획사 계정의 회사명으로 되돌린다. */
+export async function updateShowHostName(showId: string, hostName: string): Promise<AdminShowHostName> {
+  const response = await fetch(`${API_BASE_PATH}/shows/${encodeURIComponent(showId)}/host-name`, {
+    method: "PUT",
+    credentials: "include",
+    headers: await withCsrfHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ hostName: hostName.trim() }),
+  });
+  if (!response.ok) throw await readAdminError(response, "주최 이름을 바꾸지 못했습니다.");
+  return response.json() as Promise<AdminShowHostName>;
+}
+
 export function fetchAuditLogs(page = 0): Promise<AdminAuditLogPage> {
   return getJson<AdminAuditLogPage>(
     `/audit-logs?page=${page}`,
     "변경 기록을 불러오지 못했습니다.",
   );
+}
+
+export function fetchUnusedFiles(options: {
+  status?: AdminUnusedFileStatus;
+  page?: number;
+  size?: number;
+} = {}): Promise<AdminUnusedFilesPage> {
+  const params = new URLSearchParams({
+    page: String(options.page ?? 0),
+    size: String(options.size ?? 50),
+  });
+  if (options.status) params.set("status", options.status);
+  return getJson<AdminUnusedFilesPage>(
+    `/files/unreferenced?${params.toString()}`,
+    "미사용 파일 목록을 불러오지 못했습니다.",
+  );
+}
+
+export async function deleteUnusedFile(fileId: number, confirmationPassword: string): Promise<void> {
+  const response = await fetch(`${API_BASE_PATH}/files/${encodeURIComponent(String(fileId))}`, {
+    method: "DELETE",
+    credentials: "include",
+    headers: await withCsrfHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ confirmationPassword }),
+  });
+  if (!response.ok) throw await readAdminError(response, "파일을 삭제하지 못했습니다.");
+}
+
+export async function deleteUnusedFiles(
+  fileIds: readonly number[],
+  confirmationPassword: string,
+): Promise<AdminFileDeletionResult> {
+  const response = await fetch(`${API_BASE_PATH}/files/deletions`, {
+    method: "POST",
+    credentials: "include",
+    headers: await withCsrfHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ fileIds, confirmationPassword }),
+  });
+  if (!response.ok) throw await readAdminError(response, "선택한 파일을 삭제하지 못했습니다.");
+  return response.json() as Promise<AdminFileDeletionResult>;
 }
 
 export const LOG_LINE_LIMITS = [100, 200, 500] as const;
@@ -88,9 +169,11 @@ export function normalizeAdminLog(response: AdminLogResponse): AdminLog {
   return { ...response, entries };
 }
 
-export async function fetchLogs(keyword: string, limit: number): Promise<AdminLog> {
+/** date는 `yyyy-MM-dd` 한국 날짜다. 없으면 현재 로그 파일을 읽는다. */
+export async function fetchLogs(keyword: string, limit: number, date: string | null = null): Promise<AdminLog> {
   const params = new URLSearchParams({ limit: String(limit) });
   if (keyword.trim()) params.set("keyword", keyword.trim());
+  if (date) params.set("date", date);
   const response = await getJson<AdminLogResponse>(
     `/logs?${params.toString()}`,
     "로그를 불러오지 못했습니다.",

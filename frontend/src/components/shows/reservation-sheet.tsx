@@ -3,9 +3,11 @@
 import { useState } from "react";
 import { DialogFooter, DialogHeader, ModalShell } from "@/components/auditions/modal-shell";
 import { FieldInput, PrimaryButton, SecondaryButton } from "@/components/ui/controls";
+import { trackReservationEvent } from "@/features/analytics/events";
 import { AuditionRequestError } from "@/features/auditions/api-client";
 import { formatPhoneNumber, usePhoneInput } from "@/features/applications/phone-number";
 import { createReservation } from "@/features/shows/api";
+import { reservationAnalyticsErrorCode } from "@/features/shows/reservation-analytics";
 import { formatShowFullDateTime, sessionAvailability } from "@/features/shows/format";
 import {
   RESERVATION_ERROR_CODES,
@@ -71,8 +73,10 @@ export function ReservationSheet({ open, show, session, onClose, onReserved, onS
     setFormError(null);
     try {
       const receipt = await createReservation(show.id, session.id, { ...values, ticketCount: count });
+      trackReservationEvent("reservation_submit_success", { ticket_count: count });
       onReserved(receipt);
     } catch (cause) {
+      trackReservationEvent("reservation_submit_error", { error_code: reservationAnalyticsErrorCode(cause) });
       const code = cause instanceof AuditionRequestError ? cause.code : null;
       setFormError(reservationErrorMessage(cause, show.inquiryPhone));
       if (code && STALE_CODES.has(code)) await onStale();

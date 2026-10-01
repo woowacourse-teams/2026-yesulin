@@ -23,12 +23,12 @@ export function AdminAuditionTable({ auditions, onChanged }: Props) {
 
   return (
     <section aria-labelledby="auditions-heading" className="flex flex-col gap-3">
-      <h2 id="auditions-heading" className="text-sm font-semibold text-neutral-500">
+      <h2 id="auditions-heading" className="text-sm font-semibold text-muted">
         공고 ({auditions.length})
       </h2>
-      <div className="overflow-x-auto rounded border border-neutral-200 bg-white">
+      <div className="overflow-x-auto rounded-card border border-border bg-card">
         <table className="w-full min-w-[52rem] text-left text-sm">
-          <thead className="bg-neutral-50 text-xs text-neutral-500">
+          <thead className="bg-surface text-xs text-muted">
             <tr>
               {HEADERS.map((header) => (
                 <th key={header} scope="col" className="px-3 py-2 font-medium">{header}</th>
@@ -38,34 +38,34 @@ export function AdminAuditionTable({ auditions, onChanged }: Props) {
           <tbody>
             {auditions.length === 0 ? (
               <tr>
-                <td colSpan={HEADERS.length} className="px-3 py-6 text-center text-neutral-400">
-                  등록된 공고가 없습니다.
+                <td colSpan={HEADERS.length} className="px-3 py-6 text-center text-muted">
+                  등록된 공고가 없어요.
                 </td>
               </tr>
             ) : null}
             {auditions.map((audition) => {
               const expanded = expandedAuditionId === audition.auditionId;
               return <Fragment key={audition.auditionId}>
-                <tr className="border-t border-neutral-100">
-                  <td className="px-3 py-2 text-neutral-900">{audition.title}</td>
-                  <td className="px-3 py-2 text-neutral-600">{orDash(audition.performanceTitle)}</td>
-                  <td className="px-3 py-2 text-neutral-600">{orDash(audition.companyName)}</td>
-                  <td className="px-3 py-2 text-neutral-600">{STATUS_LABEL[audition.status]}</td>
-                  <td className="px-3 py-2 text-neutral-500">{formatDateTime(audition.createdAt)}</td>
-                  <td className="px-3 py-2 text-neutral-500">{formatDateTime(audition.publishedAt)}</td>
-                  <td className="px-3 py-2 tabular-nums text-neutral-600">{audition.submissionCount}</td>
+                <tr className="border-t border-border-soft">
+                  <td className="px-3 py-2 text-foreground">{audition.title}</td>
+                  <td className="px-3 py-2 text-muted-strong">{orDash(audition.performanceTitle)}</td>
+                  <td className="px-3 py-2 text-muted-strong">{orDash(audition.companyName)}</td>
+                  <td className="px-3 py-2 text-muted-strong">{STATUS_LABEL[audition.status]}</td>
+                  <td className="px-3 py-2 text-muted">{formatDateTime(audition.createdAt)}</td>
+                  <td className="px-3 py-2 text-muted">{formatDateTime(audition.publishedAt)}</td>
+                  <td className="px-3 py-2 num text-muted-strong">{audition.submissionCount}</td>
                   <td className="px-3 py-2">
                     <button
                       type="button"
                       aria-expanded={expanded}
                       onClick={() => setExpandedAuditionId(expanded ? null : audition.auditionId)}
-                      className="min-h-11 rounded border border-neutral-300 px-3 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+                      className="min-h-11 rounded-control border border-border px-3 text-sm font-medium text-muted-strong hover:bg-surface"
                     >
                       {expanded ? "접기" : "지원서 보기"}
                     </button>
                   </td>
                 </tr>
-                {expanded ? <tr className="border-t border-neutral-200"><td colSpan={HEADERS.length}><AdminSubmissionBrowser audition={audition} onDeleted={onChanged} /></td></tr> : null}
+                {expanded ? <tr className="border-t border-border"><td colSpan={HEADERS.length}><AdminSubmissionBrowser audition={audition} onDeleted={onChanged} /></td></tr> : null}
               </Fragment>;
             })}
           </tbody>

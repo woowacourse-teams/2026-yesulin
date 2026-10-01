@@ -121,7 +121,7 @@ public class OtrSubmissionService {
                 || Set.copyOf(fileIds).size() != fileIds.size()) {
             throw new BusinessException(INVALID_INPUT, "서로 다른 사진을 최대 3장까지 제출해 주세요.");
         }
-        List<FileAsset> assets = fileAssetRepository.findAllByIdInAndOwnerId(fileIds, applicantId);
+        List<FileAsset> assets = fileAssetRepository.findAllByIdInAndOwnerIdForUpdate(fileIds, applicantId);
         if (assets.size() != fileIds.size()) {
             throw new BusinessException(INVALID_INPUT, "본인이 업로드한 사진만 선택해 주세요.");
         }

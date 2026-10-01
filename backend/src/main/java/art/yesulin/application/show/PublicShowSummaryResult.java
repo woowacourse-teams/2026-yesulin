@@ -7,6 +7,7 @@ import java.util.UUID;
 public record PublicShowSummaryResult(
         UUID id,
         long ownerId,
+        String hostName,
         String title,
         ShowGenre genre,
         long posterFileId,

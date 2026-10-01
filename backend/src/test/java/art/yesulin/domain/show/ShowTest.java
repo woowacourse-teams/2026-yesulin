@@ -64,35 +64,57 @@ class ShowTest {
         Show show = show(List.of());
 
         assertTrue(show.getLinks().isEmpty());
-        assertEquals("", show.getDirectionsNote());
+        assertTrue(show.getGuides().isEmpty());
+        assertEquals("", show.getHostName());
+        assertEquals("달빛 극단", show.hostNameOr("달빛 극단"));
         assertTrue(show.isRemainingSeatsVisible());
     }
 
     @Test
-    void updatesAudienceGuideWithTrimmedNote() {
+    void updatesAudienceGuideWithTrimmedValues() {
         Show show = show(List.of());
 
-        show.updateAudienceGuide(List.of(new ShowLink(" 인스타그램 ", "https://www.instagram.com/yesulin?hl=ko")),
-                "  건물 오른쪽 골목의 전용 입구를 이용해 주세요.\n", false);
+        show.updateAudienceGuide(" 2026 청년 연극 프로젝트 ",
+                List.of(new ShowLink(" 인스타그램 ", "https://www.instagram.com/yesulin?hl=ko")),
+                List.of(new ShowGuide(" 오시는 길 ", "  건물 오른쪽 골목의 전용 입구를 이용해 주세요.\n")), false);
 
+        assertEquals("2026 청년 연극 프로젝트", show.getHostName());
+        assertEquals("2026 청년 연극 프로젝트", show.hostNameOr("달빛 극단"));
         assertEquals("인스타그램", show.getLinks().getFirst().getLabel());
         assertEquals("https://www.instagram.com/yesulin?hl=ko", show.getLinks().getFirst().getUrl());
-        assertEquals("건물 오른쪽 골목의 전용 입구를 이용해 주세요.", show.getDirectionsNote());
+        assertEquals("오시는 길", show.getGuides().getFirst().getTitle());
+        assertEquals("건물 오른쪽 골목의 전용 입구를 이용해 주세요.", show.getGuides().getFirst().getContent());
         assertFalse(show.isRemainingSeatsVisible());
     }
 
     @Test
-    void rejectsTooManyLinksOrTooLongDirectionsNote() {
+    void rejectsTooManyLinksOrGuidesAndTooLongHostName() {
         Show show = show(List.of());
         List<ShowLink> fourLinks = List.of(
                 new ShowLink("1", "https://a.example"), new ShowLink("2", "https://b.example"),
                 new ShowLink("3", "https://c.example"), new ShowLink("4", "https://d.example")
         );
+        List<ShowGuide> sixGuides = List.of(
+                new ShowGuide("1", "내용"), new ShowGuide("2", "내용"), new ShowGuide("3", "내용"),
+                new ShowGuide("4", "내용"), new ShowGuide("5", "내용"), new ShowGuide("6", "내용")
+        );
 
         assertEquals(ShowErrorCode.INVALID_INPUT, assertThrows(BusinessException.class,
-                () -> show.updateAudienceGuide(fourLinks, "", true)).getErrorCode());
+                () -> show.updateAudienceGuide("", fourLinks, List.of(), true)).getErrorCode());
         assertEquals(ShowErrorCode.INVALID_INPUT, assertThrows(BusinessException.class,
-                () -> show.updateAudienceGuide(List.of(), "가".repeat(1001), true)).getErrorCode());
+                () -> show.updateAudienceGuide("", List.of(), sixGuides, true)).getErrorCode());
+        assertEquals(ShowErrorCode.INVALID_INPUT, assertThrows(BusinessException.class,
+                () -> show.updateAudienceGuide("가".repeat(51), List.of(), List.of(), true)).getErrorCode());
+    }
+
+    @Test
+    void requiresGuideTitleAndContentWithinLimits() {
+        assertThrows(IllegalArgumentException.class, () -> new ShowGuide(" ", "내용"));
+        assertThrows(IllegalArgumentException.class, () -> new ShowGuide("주차 안내", ""));
+        assertEquals(ShowErrorCode.INVALID_INPUT, assertThrows(BusinessException.class,
+                () -> new ShowGuide("가".repeat(31), "내용")).getErrorCode());
+        assertEquals(ShowErrorCode.INVALID_INPUT, assertThrows(BusinessException.class,
+                () -> new ShowGuide("주차 안내", "가".repeat(1001))).getErrorCode());
     }
 
     @Test

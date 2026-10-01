@@ -66,6 +66,10 @@ import org.springframework.transaction.annotation.Transactional;
         "spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.flyway.enabled=false"
 })
+@org.springframework.test.context.jdbc.Sql(
+        scripts = "/db/migration/V20260930100000__create_audition_sms_notices.sql",
+        executionPhase = org.springframework.test.context.jdbc.Sql.ExecutionPhase.BEFORE_TEST_CLASS
+)
 @Import(ObjectStorageTestConfiguration.class)
 @AutoConfigureMockMvc
 @Transactional
@@ -228,7 +232,7 @@ class AdminSubmissionControllerTest {
                 prefix + "/20260830/" + UUID.randomUUID(), ownerId,
                 new FileMetadata("image.jpg", "image/jpeg", 100L)
         );
-        file.completeUpload("image/jpeg", 100L);
+        file.completeUpload("image/jpeg", 100L, java.time.Instant.now());
         return fileAssetRepository.saveAndFlush(file).getId();
     }
 }

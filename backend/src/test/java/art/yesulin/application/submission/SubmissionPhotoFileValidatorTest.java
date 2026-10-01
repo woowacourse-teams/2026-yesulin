@@ -38,19 +38,19 @@ class SubmissionPhotoFileValidatorTest {
     void validatesOwnedReadyPhotosWithOneBatchQuery() {
         FileAsset first = readyFile(10L);
         FileAsset second = readyFile(11L);
-        when(fileAssetRepository.findAllByIdInAndOwnerId(Set.of(10L, 11L), APPLICANT_ID))
+        when(fileAssetRepository.findAllByIdInAndOwnerIdForUpdate(Set.of(10L, 11L), APPLICANT_ID))
                 .thenReturn(List.of(first, second));
         PhotoRequirementAnswers answers = answers(10L, 11L);
 
         assertDoesNotThrow(() -> validator.validate(APPLICANT_ID, answers));
 
-        verify(fileAssetRepository).findAllByIdInAndOwnerId(Set.of(10L, 11L), APPLICANT_ID);
+        verify(fileAssetRepository).findAllByIdInAndOwnerIdForUpdate(Set.of(10L, 11L), APPLICANT_ID);
     }
 
     @Test
     void hidesMissingOrOtherOwnersPhotoAsNotFound() {
         FileAsset first = readyFile(10L);
-        when(fileAssetRepository.findAllByIdInAndOwnerId(Set.of(10L, 11L), APPLICANT_ID))
+        when(fileAssetRepository.findAllByIdInAndOwnerIdForUpdate(Set.of(10L, 11L), APPLICANT_ID))
                 .thenReturn(List.of(first));
 
         BusinessException exception = assertThrows(
@@ -63,7 +63,7 @@ class SubmissionPhotoFileValidatorTest {
     @Test
     void rejectsPendingPhoto() {
         FileAsset pending = pendingFile(10L);
-        when(fileAssetRepository.findAllByIdInAndOwnerId(Set.of(10L), APPLICANT_ID))
+        when(fileAssetRepository.findAllByIdInAndOwnerIdForUpdate(Set.of(10L), APPLICANT_ID))
                 .thenReturn(List.of(pending));
 
         BusinessException exception = assertThrows(
@@ -77,7 +77,7 @@ class SubmissionPhotoFileValidatorTest {
     void skipsRepositoryWhenSubmissionHasNoPhotos() {
         validator.validate(APPLICANT_ID, new PhotoRequirementAnswers(List.of()));
 
-        verify(fileAssetRepository, never()).findAllByIdInAndOwnerId(Set.of(), APPLICANT_ID);
+        verify(fileAssetRepository, never()).findAllByIdInAndOwnerIdForUpdate(Set.of(), APPLICANT_ID);
     }
 
     private PhotoRequirementAnswers answers(Long... fileIds) {
@@ -88,7 +88,7 @@ class SubmissionPhotoFileValidatorTest {
 
     private FileAsset readyFile(long fileId) {
         FileAsset file = pendingFile(fileId);
-        file.completeUpload("image/jpeg", 1_024L);
+        file.completeUpload("image/jpeg", 1_024L, java.time.Instant.now());
         return file;
     }
 

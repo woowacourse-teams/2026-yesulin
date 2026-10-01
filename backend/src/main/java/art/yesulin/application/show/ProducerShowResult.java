@@ -20,8 +20,10 @@ public record ProducerShowResult(
         String inquiryPhone,
         long posterFileId,
         List<Long> imageFileIds,
+        String hostName,
+        String defaultHostName,
         List<ShowLinkResult> links,
-        String directionsNote,
+        List<ShowGuideResult> guides,
         boolean remainingSeatsVisible,
         ShowStatus status,
         boolean hasReservations,
@@ -29,7 +31,9 @@ public record ProducerShowResult(
         Instant createdAt
 ) {
 
-    static ProducerShowResult of(Show show, List<ShowSession> sessions, SessionTickets tickets) {
+    static ProducerShowResult of(
+            Show show, String defaultHostName, List<ShowSession> sessions, SessionTickets tickets
+    ) {
         return new ProducerShowResult(
                 show.getPublicId(),
                 show.getOwnerId(),
@@ -42,8 +46,10 @@ public record ProducerShowResult(
                 show.getInquiryPhone(),
                 show.getPosterFileId(),
                 show.getImageFileIds(),
+                show.getHostName(),
+                defaultHostName,
                 show.getLinks().stream().map(ShowLinkResult::from).toList(),
-                show.getDirectionsNote(),
+                show.getGuides().stream().map(ShowGuideResult::from).toList(),
                 show.isRemainingSeatsVisible(),
                 show.getStatus(),
                 tickets.hasAnyReservations(),

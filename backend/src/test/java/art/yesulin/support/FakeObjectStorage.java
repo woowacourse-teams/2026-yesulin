@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class FakeObjectStorage implements ObjectStorage {
 
@@ -15,6 +16,7 @@ public class FakeObjectStorage implements ObjectStorage {
 
     private final Map<String, String> uploadTargets = new ConcurrentHashMap<>();
     private final Map<String, StoredObjectContent> objects = new ConcurrentHashMap<>();
+    private final AtomicBoolean failNextDelete = new AtomicBoolean();
 
     @Override
     public PresignedUpload createUpload(String objectKey, String contentType, long size) {
@@ -35,6 +37,14 @@ public class FakeObjectStorage implements ObjectStorage {
     }
 
     @Override
+    public void delete(String objectKey) {
+        if (failNextDelete.getAndSet(false)) {
+            throw new IllegalStateException("테스트 저장소 삭제 실패");
+        }
+        objects.remove(objectKey);
+    }
+
+    @Override
     public String toPublicUrl(String objectKey) {
         return "https://cdn.test/assets/" + objectKey.replaceFirst("^public/", "");
     }
@@ -50,5 +60,9 @@ public class FakeObjectStorage implements ObjectStorage {
             throw new IllegalArgumentException("발급되지 않은 업로드 URL입니다.");
         }
         objects.put(objectKey, new StoredObjectContent(contentType, new byte[Math.toIntExact(size)]));
+    }
+
+    public void failNextDelete() {
+        failNextDelete.set(true);
     }
 }

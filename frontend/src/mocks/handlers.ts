@@ -30,9 +30,12 @@ import { applicantHandlers } from "./applicants/handlers";
 import { screeningHandlers } from "./auditions/screening-handlers";
 import { validatePostingDraft } from "./auditions/posting-validation";
 import { authHandlers } from "./auth-handlers";
+import { adminHandlers } from "./admin-handlers";
 import { adminLogHandlers } from "./admin-log-handlers";
+import { adminFileHandlers } from "./admin-file-handlers";
 import { otrAuditionHandlers } from "./otr-audition-handlers";
 import { showHandlers } from "./show-handlers";
+import { noticeHandlers } from "./auditions/notice-handlers";
 
 const apiPath = "/api";
 const realProducerApiEnabled = frontendEnvironment.producerApiEnabled;
@@ -46,8 +49,11 @@ const hasText = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0;
 
 export const handlers = [
+  ...noticeHandlers,
   ...authHandlers,
+  ...adminHandlers,
   ...adminLogHandlers,
+  ...adminFileHandlers,
   ...otrAuditionHandlers,
   ...showHandlers,
   http.post(`${apiPath}/v1/upload-diagnostics`, () => new HttpResponse(null, { status: 204 })),

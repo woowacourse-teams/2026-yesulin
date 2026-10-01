@@ -165,7 +165,7 @@ export function AdminLogLines({ log, filters }: Props) {
   if (!log.available) {
     return (
       <p className="rounded-control border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-        로그 파일을 읽을 수 없습니다. 서버의 <code>logging.file.name</code> 설정과 파일 권한을 확인하세요.
+        로그 파일을 읽을 수 없어요. 서버의 <code>logging.file.name</code> 설정과 파일 권한을 확인해 주세요.
       </p>
     );
   }
@@ -175,7 +175,7 @@ export function AdminLogLines({ log, filters }: Props) {
     const filtering = filters.levels.length > 0 || filters.slowRequestsOnly || filters.requestId || filters.keyword;
     return (
       <p className="rounded-card border border-border bg-card px-4 py-10 text-center text-sm text-muted">
-        {filtering ? "현재 검색·필터 조건과 일치하는 로그가 없습니다." : "로그가 비어 있습니다."}
+        {filtering ? "현재 검색·필터 조건과 일치하는 로그가 없어요." : "로그가 비어 있어요."}
       </p>
     );
   }

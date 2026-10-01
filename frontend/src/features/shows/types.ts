@@ -12,8 +12,12 @@ export const MAX_SHOW_LINKS = 3;
 export const MAX_SHOW_DESCRIPTION_LENGTH = 2000;
 export const MAX_SHOW_LINK_LABEL_LENGTH = 30;
 export const MAX_SHOW_LINK_URL_LENGTH = 500;
-export const MAX_DIRECTIONS_NOTE_LENGTH = 1000;
+export const MAX_SHOW_GUIDES = 5;
+export const MAX_SHOW_GUIDE_TITLE_LENGTH = 30;
+export const MAX_SHOW_GUIDE_CONTENT_LENGTH = 1000;
+export const MAX_SHOW_HOST_NAME_LENGTH = 50;
 export const MAX_TICKETS_PER_RESERVATION = 10;
+export const MAX_RESERVATION_MEMO_LENGTH = 300;
 /** 복사하거나 내려받은 예매 관객 정보를 직접 삭제하도록 안내할 기간. */
 export const EXPORTED_BOOKER_DATA_DELETE_DAYS = 3;
 
@@ -21,6 +25,12 @@ export const EXPORTED_BOOKER_DATA_DELETE_DAYS = 3;
 export type ShowLink = {
   readonly label: string;
   readonly url: string;
+};
+
+/** 오시는 길 지도 아래에 보여 주는 추가 안내. 제목은 "주차 안내"처럼 기획사가 정한다. */
+export type ShowGuide = {
+  readonly title: string;
+  readonly content: string;
 };
 
 export type ShowVenue = {
@@ -34,6 +44,8 @@ export type ShowVenue = {
 
 export type PublicShowSummary = {
   readonly id: string;
+  /** 공연에 따로 적은 주최 이름. 없으면 기획사 계정의 회사명이다. */
+  readonly hostName: string;
   readonly title: string;
   readonly genre: ShowGenre;
   readonly posterUrl: string;
@@ -54,13 +66,15 @@ export type PublicShowSession = {
 
 export type PublicShow = {
   readonly id: string;
+  /** 공연에 따로 적은 주최 이름. 없으면 기획사 계정의 회사명이다. */
+  readonly hostName: string;
   readonly title: string;
   readonly genre: ShowGenre;
   readonly description: string;
   readonly posterUrl: string;
   readonly imageUrls: readonly string[];
   readonly venue: ShowVenue;
-  readonly directionsNote: string;
+  readonly guides: readonly ShowGuide[];
   readonly runningMinutes: number;
   readonly ageRating: string;
   readonly inquiryPhone: string;
@@ -127,11 +141,15 @@ export type ProducerShow = {
   readonly genre: ShowGenre;
   readonly description: string;
   readonly venue: ShowVenue;
-  readonly directionsNote: string;
   readonly runningMinutes: number;
   readonly ageRating: string;
   readonly inquiryPhone: string;
+  /** 공연에 따로 적은 주최 이름. 비어 있으면 관객에게 `defaultHostName`이 보인다. */
+  readonly hostName: string;
+  /** 기획사 계정의 회사명. */
+  readonly defaultHostName: string;
   readonly links: readonly ShowLink[];
+  readonly guides: readonly ShowGuide[];
   readonly remainingSeatsVisible: boolean;
   readonly poster: ProducerShowImage;
   readonly images: readonly ProducerShowImage[];
@@ -146,11 +164,13 @@ export type SaveShow = {
   readonly genre: ShowGenre;
   readonly description: string;
   readonly venue: ShowVenue;
-  readonly directionsNote: string;
   readonly runningMinutes: number;
   readonly ageRating: string;
   readonly inquiryPhone: string;
+  /** 빈 값이면 기획사 계정의 회사명으로 보여 준다. */
+  readonly hostName: string;
   readonly links: readonly ShowLink[];
+  readonly guides: readonly ShowGuide[];
   readonly remainingSeatsVisible: boolean;
   readonly posterFileId: number;
   readonly imageFileIds: readonly number[];
@@ -168,6 +188,8 @@ export type ProducerReservation = {
   readonly bookerPhone: string;
   readonly ticketCount: number;
   readonly status: ReservationStatus;
+  /** 기획사만 보는 관객별 메모. 없으면 빈 문자열이다. */
+  readonly memo: string;
   readonly createdAt: string;
   readonly canceledAt: string | null;
 };

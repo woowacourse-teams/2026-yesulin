@@ -11,6 +11,7 @@ import { MobileProducerNavigation } from "./mobile-producer-navigation";
 import { ProducerAccountPanel } from "./producer-account-panel";
 import { ProducerNavigationProvider } from "./producer-navigation-context";
 import { ProducerSidebarHeader } from "./producer-sidebar-header";
+import { ProducerSidebarToggle } from "./producer-sidebar-toggle";
 import { useRouteDisclosure } from "./use-route-disclosure";
 
 const DESKTOP_NAVIGATION_TITLE = "focused-producer-navigation-title";
@@ -93,6 +94,11 @@ function ProducerShellFrame({
 
         <div className={`min-w-0 ${focusMode || !desktopSidebarOpen ? "" : "lg:ml-[var(--sidebar-width)]"}`}>
           <MobileProducerNavigation />
+          {!focusMode && !desktopSidebarOpen ? (
+            <div className="glass-surface hidden min-h-16 items-center border-b border-border px-6 py-2 lg:flex">
+              <ProducerSidebarToggle />
+            </div>
+          ) : null}
           <main id="producer-main" className="min-h-screen">
             {children}
           </main>

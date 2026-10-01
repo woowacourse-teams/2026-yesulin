@@ -30,7 +30,7 @@ export function ActionBar() {
   </>;
 
   return <>
-    <div className="glass-surface-dark fixed inset-x-0 bottom-0 z-40 rounded-t-card border-x-0 border-b-0 px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 text-white shadow-[var(--shadow-3)] lg:hidden">
+    <div className="glass-surface-dark fixed inset-x-0 bottom-0 z-40 rounded-t-card border-x-0 border-b-0 pl-[max(16px,env(safe-area-inset-left))] pr-[max(16px,env(safe-area-inset-right))] pb-[max(12px,env(safe-area-inset-bottom))] pt-3 text-white shadow-[var(--shadow-3)] lg:hidden">
       <div className="flex min-h-9 items-center"><span className="text-sm font-semibold"><span className="num text-brand-line">{selected.size}</span>명 선택</span><button type="button" onClick={clearSelection} className="ml-auto min-h-9 rounded-control px-3 text-sm text-white/70 hover:bg-white/10 hover:text-white">선택 해제</button></div>
       <HorizontalScrollArea className="mt-2" scrollerClassName="pr-8" fadeClassName="from-sidebar via-sidebar/85"><div className="flex min-w-max gap-2">{actions}</div></HorizontalScrollArea>
     </div>

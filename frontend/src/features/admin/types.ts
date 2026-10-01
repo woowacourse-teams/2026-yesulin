@@ -2,6 +2,8 @@ export type MemberStatus = "PENDING" | "ACTIVE";
 
 export type AuditionStatus = "DRAFT" | "PUBLISHED" | "CLOSED";
 
+export type AdminShowStatus = "DRAFT" | "OPEN" | "CLOSED";
+
 export type AdminOverview = {
   readonly applicants: number;
   readonly producers: number;
@@ -15,6 +17,48 @@ export type AdminOverview = {
   readonly submissions: number;
   readonly newProducersInLastWeek: number;
   readonly newSubmissionsInLastWeek: number;
+  readonly otrAuditions: number;
+  readonly otrSubmissions: number;
+  readonly newOtrSubmissionsInLastWeek: number;
+  readonly shows: number;
+  readonly openShows: number;
+  /** 현재 확정 상태인 예매 매수 합계다. */
+  readonly reservedTickets: number;
+  readonly newReservationsInLastWeek: number;
+};
+
+export type AdminNewMembers = {
+  readonly applicants: number;
+  readonly producers: number;
+};
+
+/** 배우는 소셜 계정, 기획사는 이메일로 가입한다. 여러 소셜 계정을 연결한 배우는 경로마다 센다. */
+export type AdminSignupMethods = {
+  readonly kakao: number;
+  readonly naver: number;
+  readonly google: number;
+  readonly email: number;
+  readonly unknownApplicants: number;
+};
+
+export type AdminMemberStats = {
+  readonly applicants: number;
+  readonly producers: number;
+  readonly signupMethods: AdminSignupMethods;
+  readonly today: AdminNewMembers;
+  readonly lastWeek: AdminNewMembers;
+  readonly lastMonth: AdminNewMembers;
+};
+
+/** 한국 날짜 하루의 활동 수다. 예매는 그날 생성돼 현재 확정 상태인 예매만 센다. */
+export type AdminDailyActivity = {
+  readonly date: string;
+  readonly applicantSignups: number;
+  readonly producerSignups: number;
+  readonly submissions: number;
+  readonly otrSubmissions: number;
+  readonly reservations: number;
+  readonly reservedTickets: number;
 };
 
 export type AdminProducer = {
@@ -41,6 +85,39 @@ export type AdminAudition = {
   readonly submissionCount: number;
 };
 
+/** 회차 하나의 예매 집계다. 매수·건수는 확정 예매만, 취소 건수는 취소된 예매만 센다. */
+export type AdminShowSession = {
+  readonly sessionId: number;
+  readonly startsAt: string;
+  readonly capacity: number;
+  readonly reservedTickets: number;
+  readonly reservationCount: number;
+  readonly canceledReservationCount: number;
+};
+
+/** 무료 공연 한 건의 예매 집계다. 예매자 이름·휴대폰과 예매번호는 받지 않는다. */
+export type AdminShow = {
+  readonly showId: string;
+  readonly title: string;
+  readonly status: AdminShowStatus;
+  /** 기획사 계정의 회사명. */
+  readonly companyName: string | null;
+  /** 공연에 따로 적은 주최 이름. 비어 있으면 관객에게 `companyName`이 보인다. */
+  readonly hostName: string;
+  readonly createdAt: string;
+  readonly totalCapacity: number;
+  readonly reservedTickets: number;
+  readonly reservationCount: number;
+  readonly canceledReservationCount: number;
+  readonly sessions: readonly AdminShowSession[];
+};
+
+export type AdminShowHostName = {
+  readonly showId: string;
+  readonly hostName: string;
+  readonly companyName: string;
+};
+
 export type AdminAuditLog = {
   readonly id: number;
   readonly actorMemberId: number;
@@ -57,6 +134,34 @@ export type AdminAuditLogPage = {
   readonly size: number;
   readonly totalElements: number;
   readonly totalPages: number;
+};
+
+export type AdminUnusedFileStatus = "PENDING" | "READY" | "DELETING";
+
+export type AdminUnusedFile = {
+  readonly fileId: number;
+  readonly ownerId: number;
+  readonly status: AdminUnusedFileStatus;
+  readonly storageScope: "PUBLIC" | "PRIVATE";
+  readonly createdAt: string;
+  readonly unusedSince: string;
+  readonly deletableAt: string;
+  readonly deletable: boolean;
+};
+
+export type AdminUnusedFilesPage = {
+  readonly files: readonly AdminUnusedFile[];
+  readonly page: number;
+  readonly size: number;
+  readonly hasNext: boolean;
+};
+
+export type AdminFileDeletionResult = {
+  readonly results: readonly {
+    readonly fileId: number;
+    readonly status: "DELETED" | "ALREADY_DELETED" | "FAILED";
+    readonly code: string | null;
+  }[];
 };
 
 export type AdminLogFormat = "STRUCTURED" | "LEGACY";
