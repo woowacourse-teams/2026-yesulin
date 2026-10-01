@@ -7,7 +7,8 @@ public enum ReservationErrorCode implements ErrorCode {
 
     NOT_FOUND("RESERVATION_NOT_FOUND", ErrorType.NOT_FOUND),
     INVALID_INPUT("RESERVATION_INVALID_INPUT", ErrorType.BAD_REQUEST),
-    DUPLICATE("RESERVATION_DUPLICATE", ErrorType.CONFLICT);
+    DUPLICATE("RESERVATION_DUPLICATE", ErrorType.CONFLICT),
+    NOT_CHANGEABLE("RESERVATION_NOT_CHANGEABLE", ErrorType.CONFLICT);
 
     private final String code;
     private final ErrorType type;

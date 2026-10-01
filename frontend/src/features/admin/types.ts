@@ -100,13 +100,22 @@ export type AdminShow = {
   readonly showId: string;
   readonly title: string;
   readonly status: AdminShowStatus;
+  /** 기획사 계정의 회사명. */
   readonly companyName: string | null;
+  /** 공연에 따로 적은 주최 이름. 비어 있으면 관객에게 `companyName`이 보인다. */
+  readonly hostName: string;
   readonly createdAt: string;
   readonly totalCapacity: number;
   readonly reservedTickets: number;
   readonly reservationCount: number;
   readonly canceledReservationCount: number;
   readonly sessions: readonly AdminShowSession[];
+};
+
+export type AdminShowHostName = {
+  readonly showId: string;
+  readonly hostName: string;
+  readonly companyName: string;
 };
 
 export type AdminAuditLog = {

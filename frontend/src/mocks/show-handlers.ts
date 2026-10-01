@@ -2,7 +2,9 @@ import { delay, http, HttpResponse, passthrough } from "msw";
 import { frontendEnvironment } from "@/config/environment";
 import type { AdminShow, AdminShowSession } from "@/features/admin/types";
 import {
-  MAX_DIRECTIONS_NOTE_LENGTH,
+  MAX_RESERVATION_MEMO_LENGTH,
+  MAX_SHOW_GUIDES,
+  MAX_SHOW_HOST_NAME_LENGTH,
   MAX_SHOW_IMAGES,
   MAX_SHOW_LINKS,
   SHOW_GENRES,
@@ -18,11 +20,13 @@ import {
   type SaveShow,
   type SaveShowSession,
   type ShowGenre,
+  type ShowGuide,
   type ShowLink,
   type ShowStatus,
   type ShowVenue,
 } from "@/features/shows/types";
-import { showLinkError } from "@/features/shows/show-form";
+import { showGuideError, showLinkError } from "@/features/shows/show-form";
+import { producerProfile } from "./auditions/producer-profile";
 
 /**
  * 백엔드 domain/show, domain/reservation 규칙을 따라가는 메모리 목. 새로고침하면 seed로 돌아간다.
@@ -37,11 +41,12 @@ type MockShow = {
   genre: ShowGenre;
   description: string;
   venue: ShowVenue;
-  directionsNote: string;
   runningMinutes: number;
   ageRating: string;
   inquiryPhone: string;
+  hostName: string;
   links: ShowLink[];
+  guides: ShowGuide[];
   remainingSeatsVisible: boolean;
   poster: ProducerShowImage;
   images: ProducerShowImage[];
@@ -59,6 +64,7 @@ type MockReservation = {
   bookerPhone: string;
   ticketCount: number;
   status: ReservationStatus;
+  memo: string;
   createdAt: string;
   canceledAt: string | null;
 };
@@ -67,6 +73,7 @@ const PHONE_PATTERN = /^\d{3}-\d{4}-\d{4}$/;
 const INQUIRY_PHONE_PATTERN = /^\d{2,4}-\d{3,4}(-\d{4})?$/;
 const CODE_CHARACTERS = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
 const KST_OFFSET_HOURS = 9;
+const MOCK_COMPANY_NAME = "극단 예술in";
 
 const apiError = (status: number, code: string, message: string) =>
   HttpResponse.json({ code, message }, { status });
@@ -99,13 +106,18 @@ const shows: MockShow[] = [
     genre: "MUSICAL",
     description: "예술in이 준비한 무료 창작 뮤지컬입니다.\n공연 시작 10분 전까지 입장해 주세요.",
     venue: venue("대학로 예술인 소극장", "서울특별시 종로구 대학로 12"),
-    directionsNote: "주차 공간이 협소하여 가급적 대중교통 이용을 부탁드립니다.\n혜화역 2번 출구에서 도보 약 5분 거리입니다.\n건물 정문이 아닌 오른쪽 골목에 위치한 공연장 전용 입구를 이용해 주세요.",
     runningMinutes: 100,
     ageRating: "8세 이상",
     inquiryPhone: "02-123-4567",
+    hostName: "",
     links: [
       { label: "공연사 인스타그램 보기", url: "https://www.instagram.com/" },
       { label: "공연사 홈페이지", url: "https://yesulin.art/" },
+    ],
+    guides: [
+      { title: "주차 안내", content: "주차 공간이 협소하여 가급적 대중교통 이용을 부탁드립니다." },
+      { title: "찾아오는 길", content: "혜화역 2번 출구에서 도보 약 5분 거리입니다.\n건물 정문이 아닌 오른쪽 골목에 위치한 공연장 전용 입구를 이용해 주세요." },
+      { title: "휠체어 관람", content: "공연장 입구에 경사로가 있어요. 휠체어로 관람하시면 예매 후 문의 전화로 알려 주세요." },
     ],
     remainingSeatsVisible: true,
     poster: image(9001, "/images/performances/moonlight.jpg"),
@@ -119,11 +131,12 @@ const shows: MockShow[] = [
     genre: "PLAY",
     description: "단 하루, 한 회차만 열리는 낭독 연극입니다.",
     venue: venue("성수 블랙박스 극장", "서울특별시 성동구 성수이로 20"),
-    directionsNote: "",
     runningMinutes: 70,
     ageRating: "전체관람가",
     inquiryPhone: "010-2345-6789",
+    hostName: "",
     links: [],
+    guides: [],
     remainingSeatsVisible: true,
     poster: image(9004, "/images/performances/summerplay.jpg"),
     images: [],
@@ -136,11 +149,12 @@ const shows: MockShow[] = [
     genre: "PLAY",
     description: "예매가 끝난 공연입니다.",
     venue: venue("예술in 라운지", "서울특별시 마포구 와우산로 30"),
-    directionsNote: "",
     runningMinutes: 60,
     ageRating: "",
     inquiryPhone: "02-123-4567",
+    hostName: "",
     links: [],
+    guides: [],
     remainingSeatsVisible: true,
     poster: image(9005, "/images/performances/nightfall.jpg"),
     images: [],
@@ -153,11 +167,12 @@ const shows: MockShow[] = [
     genre: "PLAY",
     description: "잔여석을 공개하지 않는 공연입니다. 회차에는 예매 가능·매진만 표시됩니다.",
     venue: venue("혜화 골목 스튜디오", "서울특별시 종로구 동숭길 25"),
-    directionsNote: "건물 정문이 아닌 오른쪽 골목의 공연장 전용 입구를 이용해 주세요.",
     runningMinutes: 80,
     ageRating: "12세 이상",
     inquiryPhone: "02-765-4321",
+    hostName: "2026 골목길 낭독 프로젝트",
     links: [{ label: "극단 인스타그램", url: "https://www.instagram.com/" }],
+    guides: [{ title: "추가 안내", content: "건물 정문이 아닌 오른쪽 골목의 공연장 전용 입구를 이용해 주세요." }],
     remainingSeatsVisible: false,
     poster: image(9007, "/images/performances/nightfall.jpg"),
     images: [],
@@ -170,11 +185,12 @@ const shows: MockShow[] = [
     genre: "MUSICAL",
     description: "",
     venue: venue("대학로 예술인 소극장", "서울특별시 종로구 대학로 12"),
-    directionsNote: "",
     runningMinutes: 90,
     ageRating: "",
     inquiryPhone: "02-123-4567",
+    hostName: "",
     links: [],
+    guides: [],
     remainingSeatsVisible: true,
     poster: image(9006, "/images/performances/moonlight.jpg"),
     images: [],
@@ -215,6 +231,7 @@ function seedReservations(sessionId: number, tickets: number) {
       bookerPhone: `010-0000-${String(id).padStart(4, "0")}`,
       ticketCount: count,
       status: "CONFIRMED",
+      memo: "",
       createdAt: kstAt(-2, 12),
       canceledAt: null,
     });
@@ -230,6 +247,11 @@ seedReservations(301, 40);
 seedReservations(401, 12);
 seedReservations(402, 17);
 seedReservations(403, 10);
+
+// 관객별 메모 예시. 기획사 화면의 다가오는 첫 회차에서 보인다.
+const memoSeeds = reservations.filter((reservation) => reservation.sessionId === 102);
+memoSeeds[0]!.memo = "휠체어 이용. 입구 경사로 쪽으로 안내";
+memoSeeds[1]!.memo = "7세 아이 동반, 통로 쪽 자리 요청";
 
 function generateCode(): string {
   let code = "";
@@ -252,9 +274,14 @@ const isBookable = (session: MockSession) => Date.now() < Date.parse(session.sta
 const nextSessionStartsAt = (showId: string) =>
   showSessions(showId).find(isBookable)?.startsAt ?? null;
 
+/** 실제 백엔드처럼 공연에 따로 적은 이름이 없으면 기획사 계정의 회사명을 쓴다. 목 로그인은 회사명이 비어 있을 수 있다. */
+const companyName = () => producerProfile().companyName || MOCK_COMPANY_NAME;
+const hostNameOf = (show: MockShow) => show.hostName || companyName();
+
 function toPublicSummary(show: MockShow): PublicShowSummary {
   return {
     id: show.id,
+    hostName: hostNameOf(show),
     title: show.title,
     genre: show.genre,
     posterUrl: show.poster.url,
@@ -267,13 +294,14 @@ function toPublicSummary(show: MockShow): PublicShowSummary {
 function toPublicShow(show: MockShow): PublicShow {
   return {
     id: show.id,
+    hostName: hostNameOf(show),
     title: show.title,
     genre: show.genre,
     description: show.description,
     posterUrl: show.poster.url,
     imageUrls: show.images.map((item) => item.url),
     venue: show.venue,
-    directionsNote: show.directionsNote,
+    guides: show.guides,
     runningMinutes: show.runningMinutes,
     ageRating: show.ageRating,
     inquiryPhone: show.inquiryPhone,
@@ -316,11 +344,13 @@ function toProducerShow(show: MockShow): ProducerShow {
     genre: show.genre,
     description: show.description,
     venue: show.venue,
-    directionsNote: show.directionsNote,
     runningMinutes: show.runningMinutes,
     ageRating: show.ageRating,
     inquiryPhone: show.inquiryPhone,
+    hostName: show.hostName,
+    defaultHostName: companyName(),
     links: show.links,
+    guides: show.guides,
     remainingSeatsVisible: show.remainingSeatsVisible,
     poster: show.poster,
     images: show.images,
@@ -345,6 +375,7 @@ function toProducerReservation(reservation: MockReservation): ProducerReservatio
     bookerPhone: reservation.bookerPhone,
     ticketCount: reservation.ticketCount,
     status: reservation.status,
+    memo: reservation.memo,
     createdAt: reservation.createdAt,
     canceledAt: reservation.canceledAt,
   };
@@ -363,9 +394,6 @@ function validateShow(body: SaveShow): string | null {
   if (!SHOW_GENRES.includes(body.genre)) return "공연 장르를 선택해 주세요.";
   if ((body.description?.trim().length ?? 0) > 2000) return "공연 소개는 2000자를 넘을 수 없습니다.";
   if (!body.venue?.name?.trim() || !body.venue.roadAddress?.trim()) return "공연 장소명과 주소를 입력해 주세요.";
-  if ((body.directionsNote?.trim().length ?? 0) > MAX_DIRECTIONS_NOTE_LENGTH) {
-    return `오시는 길 추가 안내은(는) ${MAX_DIRECTIONS_NOTE_LENGTH}자를 넘을 수 없습니다.`;
-  }
   if (!Number.isInteger(body.runningMinutes) || body.runningMinutes < 1 || body.runningMinutes > 1440) {
     return "공연 시간은 1분 이상 1440분 이하로 입력해 주세요.";
   }
@@ -373,10 +401,17 @@ function validateShow(body: SaveShow): string | null {
   if (!INQUIRY_PHONE_PATTERN.test(body.inquiryPhone?.trim() ?? "")) {
     return "문의 전화번호는 02-123-4567 형식으로 입력해 주세요.";
   }
+  if ((body.hostName?.trim().length ?? 0) > MAX_SHOW_HOST_NAME_LENGTH) {
+    return `주최 이름은(는) ${MAX_SHOW_HOST_NAME_LENGTH}자를 넘을 수 없습니다.`;
+  }
   const links = body.links ?? [];
   if (links.length > MAX_SHOW_LINKS) return `안내 링크는 최대 ${MAX_SHOW_LINKS}개까지 등록할 수 있습니다.`;
   const invalidLink = links.map((link) => showLinkError(link)).find(Boolean);
   if (invalidLink) return invalidLink;
+  const guides = body.guides ?? [];
+  if (guides.length > MAX_SHOW_GUIDES) return `추가 안내는 최대 ${MAX_SHOW_GUIDES}개까지 등록할 수 있습니다.`;
+  const invalidGuide = guides.map((guide) => showGuideError(guide)).find(Boolean);
+  if (invalidGuide) return invalidGuide;
   if (!body.posterFileId || imageUrl(body.posterFileId) === null) return "포스터를 등록해 주세요.";
   const imageFileIds = body.imageFileIds ?? [];
   if (imageFileIds.length > MAX_SHOW_IMAGES || new Set(imageFileIds).size !== imageFileIds.length
@@ -391,11 +426,12 @@ function applyShow(show: MockShow, body: SaveShow) {
   show.genre = body.genre;
   show.description = body.description?.trim() ?? "";
   show.venue = body.venue;
-  show.directionsNote = body.directionsNote?.trim() ?? "";
   show.runningMinutes = body.runningMinutes;
   show.ageRating = body.ageRating?.trim() ?? "";
   show.inquiryPhone = body.inquiryPhone.trim();
+  show.hostName = body.hostName?.trim() ?? "";
   show.links = (body.links ?? []).map((link) => ({ label: link.label.trim(), url: link.url.trim() }));
+  show.guides = (body.guides ?? []).map((guide) => ({ title: guide.title.trim(), content: guide.content.trim() }));
   show.remainingSeatsVisible = body.remainingSeatsVisible ?? true;
   show.poster = image(body.posterFileId, imageUrl(body.posterFileId) ?? "");
   show.images = (body.imageFileIds ?? []).map((fileId) => image(fileId, imageUrl(fileId) ?? ""));
@@ -407,8 +443,6 @@ function validateSession(body: SaveShowSession): string | null {
   if (!Number.isInteger(body.capacity) || body.capacity < 1) return "회차 정원은 1명 이상이어야 합니다.";
   return null;
 }
-
-const MOCK_COMPANY_NAME = "극단 예술in";
 
 const countReservations = (sessionId: number, status: ReservationStatus) => reservations
   .filter((reservation) => reservation.sessionId === sessionId && reservation.status === status)
@@ -425,6 +459,14 @@ function toAdminSession(session: MockSession): AdminShowSession {
   };
 }
 
+/** 운영자가 공연의 주최 이름을 대신 고친다. 없는 공연이면 null. */
+export function changeMockShowHostName(showId: string, hostName: string) {
+  const show = findShow(showId);
+  if (!show) return null;
+  show.hostName = hostName.trim();
+  return { showId: show.id, hostName: show.hostName, companyName: companyName() };
+}
+
 /** 운영 대시보드 목이 같은 메모리 상태에서 공연별 예매 집계를 읽는다. 예매자 정보는 담지 않는다. */
 export function listAdminShows(status?: ShowStatus): AdminShow[] {
   return shows
@@ -438,7 +480,8 @@ export function listAdminShows(status?: ShowStatus): AdminShow[] {
         showId: show.id,
         title: show.title,
         status: show.status,
-        companyName: MOCK_COMPANY_NAME,
+        companyName: companyName(),
+        hostName: show.hostName,
         createdAt: show.createdAt,
         totalCapacity: total((session) => session.capacity),
         reservedTickets: total((session) => session.reservedTickets),
@@ -500,6 +543,7 @@ export const showHandlers = [
       bookerPhone,
       ticketCount: body.ticketCount,
       status: "CONFIRMED",
+      memo: "",
       createdAt: new Date().toISOString(),
       canceledAt: null,
     };
@@ -534,11 +578,12 @@ export const showHandlers = [
       genre: body.genre,
       description: "",
       venue: body.venue,
-      directionsNote: "",
       runningMinutes: 0,
       ageRating: "",
       inquiryPhone: "",
+      hostName: "",
       links: [],
+      guides: [],
       remainingSeatsVisible: true,
       poster: image(0, ""),
       images: [],
@@ -674,6 +719,41 @@ export const showHandlers = [
       reservation.status = "CANCELED";
       reservation.canceledAt = new Date().toISOString();
     }
+    return HttpResponse.json(toProducerReservation(reservation));
+  }),
+
+  http.put("/api/v1/reservations/:reservationId/ticket-count", async ({ params, request }) => {
+    if (realProducerApiEnabled) return passthrough();
+    await delay(250);
+    const reservation = reservations.find((item) => item.id === Number(params.reservationId));
+    if (!reservation) return apiError(404, "RESERVATION_NOT_FOUND", "예매를 찾을 수 없습니다.");
+    const { ticketCount } = (await request.json()) as { readonly ticketCount: number };
+    if (!Number.isInteger(ticketCount) || ticketCount < 1 || ticketCount > MAX_TICKETS_PER_RESERVATION) {
+      return apiError(400, "INVALID_REQUEST", "요청 값이 올바르지 않습니다.");
+    }
+    if (reservation.status !== "CONFIRMED") {
+      return apiError(409, "RESERVATION_NOT_CHANGEABLE", "취소된 예매는 매수를 바꿀 수 없습니다.");
+    }
+    const session = sessions.find((item) => item.id === reservation.sessionId);
+    const available = session ? session.capacity - reservedTickets(session.id) + reservation.ticketCount : 0;
+    if (ticketCount > available) {
+      return apiError(409, "SHOW_SESSION_NOT_ENOUGH_SEATS",
+        `남은 좌석이 부족해 최대 ${available}매까지 바꿀 수 있습니다. 회차 정원을 먼저 늘려 주세요.`);
+    }
+    reservation.ticketCount = ticketCount;
+    return HttpResponse.json(toProducerReservation(reservation));
+  }),
+
+  http.put("/api/v1/reservations/:reservationId/memo", async ({ params, request }) => {
+    if (realProducerApiEnabled) return passthrough();
+    await delay(200);
+    const reservation = reservations.find((item) => item.id === Number(params.reservationId));
+    if (!reservation) return apiError(404, "RESERVATION_NOT_FOUND", "예매를 찾을 수 없습니다.");
+    const { memo } = (await request.json()) as { readonly memo: string };
+    if (typeof memo !== "string" || memo.trim().length > MAX_RESERVATION_MEMO_LENGTH) {
+      return apiError(400, "INVALID_REQUEST", "요청 값이 올바르지 않습니다.");
+    }
+    reservation.memo = memo.trim();
     return HttpResponse.json(toProducerReservation(reservation));
   }),
 

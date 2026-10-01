@@ -13,7 +13,7 @@ import type {
   MemberStatus,
 } from "@/features/admin/types";
 import { mockSessionRole } from "./auth-handlers";
-import { listAdminShows } from "./show-handlers";
+import { changeMockShowHostName, listAdminShows } from "./show-handlers";
 
 /**
  * 운영 대시보드 화면 확인용 메모리 목이다. `admin@`으로 시작하는 이메일로 목 로그인하면 ADMIN 세션이 된다.
@@ -335,6 +335,30 @@ export const adminHandlers = [
     });
     nextAuditLogId += 1;
     return HttpResponse.json({ memberId: producer.memberId, status: producer.status });
+  }),
+
+  http.put("/api/v1/admin/shows/:showId/host-name", async ({ params, request }) => {
+    if (realLoginEnabled) return passthrough();
+    await delay(160);
+    const rejected = rejectNonAdmin();
+    if (rejected) return rejected;
+    const body = (await request.json().catch(() => null)) as { hostName?: unknown } | null;
+    if (typeof body?.hostName !== "string" || body.hostName.trim().length > 50) {
+      return apiError(400, "INVALID_REQUEST", "요청 값을 확인해 주세요.");
+    }
+    const result = changeMockShowHostName(String(params.showId), body.hostName);
+    if (!result) return apiError(404, "SHOW_NOT_FOUND", "공연을 찾을 수 없습니다.");
+    auditLogs.unshift({
+      id: nextAuditLogId,
+      actorMemberId: 900,
+      action: "SHOW_HOST_NAME_CHANGED",
+      targetType: "SHOW",
+      targetId: 1,
+      detail: result.hostName ? "주최 이름 직접 입력" : "주최 이름을 계정 기획사명으로 되돌림",
+      createdAt: new Date().toISOString(),
+    });
+    nextAuditLogId += 1;
+    return HttpResponse.json(result);
   }),
 
   http.get("/api/v1/admin/auditions/:auditionId/submissions", async ({ params }) => {

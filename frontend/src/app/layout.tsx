@@ -37,8 +37,13 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * iOS는 viewport-fit=cover가 있어야 env(safe-area-inset-*)를 실제 값으로 계산한다. 없으면 0이라
+ * 하단 고정 바가 홈 인디케이터에 붙는다. 대신 가로 모드에서는 노치 쪽까지 그려지므로 본문과 고정 바가 좌우 안전 영역을 띄운다.
+ */
 export const viewport: Viewport = {
   themeColor: "#ffffff",
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

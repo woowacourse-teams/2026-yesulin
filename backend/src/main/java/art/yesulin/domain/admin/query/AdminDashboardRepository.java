@@ -194,7 +194,8 @@ public class AdminDashboardRepository {
     public List<AdminShowRow> findShows(ShowStatus status) {
         BooleanExpression statusCondition = (status == null) ? null : SHOW.status.eq(status);
         List<Tuple> shows = queryFactory
-                .select(SHOW.id, SHOW.publicId, SHOW.title, SHOW.status, PRODUCER.companyName, SHOW.createdAt)
+                .select(SHOW.id, SHOW.publicId, SHOW.title, SHOW.status, PRODUCER.companyName, SHOW.hostName,
+                        SHOW.createdAt)
                 .from(SHOW)
                 .leftJoin(PRODUCER).on(PRODUCER.memberId.eq(SHOW.ownerId))
                 .where(statusCondition)
@@ -213,6 +214,7 @@ public class AdminDashboardRepository {
                         show.get(SHOW.title),
                         show.get(SHOW.status),
                         show.get(PRODUCER.companyName),
+                        show.get(SHOW.hostName),
                         show.get(SHOW.createdAt),
                         sessionsByShowId.getOrDefault(show.get(SHOW.id), List.of())
                 ))

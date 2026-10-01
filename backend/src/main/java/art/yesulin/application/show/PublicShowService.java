@@ -3,6 +3,8 @@ package art.yesulin.application.show;
 import static art.yesulin.domain.show.ShowErrorCode.NOT_FOUND;
 
 import art.yesulin.common.exception.BusinessException;
+import art.yesulin.domain.producer.Producer;
+import art.yesulin.domain.producer.ProducerRepository;
 import art.yesulin.domain.reservation.Reservation;
 import art.yesulin.domain.reservation.ReservationRepository;
 import art.yesulin.domain.show.Show;
@@ -31,6 +33,7 @@ public class PublicShowService {
     private final ShowRepository showRepository;
     private final ShowSessionRepository sessionRepository;
     private final ReservationRepository reservationRepository;
+    private final ProducerRepository producerRepository;
     private final Clock clock;
 
     @Transactional(readOnly = true)
@@ -43,11 +46,16 @@ public class PublicShowService {
                 .findAllByShowIdInOrderByStartsAtAscIdAsc(shows.stream().map(Show::getId).toList())
                 .stream()
                 .collect(Collectors.groupingBy(ShowSession::getShowId));
+        Map<Long, String> companyNames = producerRepository
+                .findAllByMemberIdIn(shows.stream().map(Show::getOwnerId).distinct().toList())
+                .stream()
+                .collect(Collectors.toMap(Producer::getMemberId, Producer::getCompanyName, (first, second) -> first));
         Instant now = clock.instant();
         return shows.stream()
                 .map(show -> new PublicShowSummaryResult(
                         show.getPublicId(),
                         show.getOwnerId(),
+                        show.hostNameOr(companyNames.getOrDefault(show.getOwnerId(), "")),
                         show.getTitle(),
                         show.getGenre(),
                         show.getPosterFileId(),
@@ -68,16 +76,20 @@ public class PublicShowService {
         SessionTickets tickets = SessionTickets.of(reservationRepository, sessions);
         Instant now = clock.instant();
         boolean open = show.getStatus() == ShowStatus.OPEN;
+        String companyName = producerRepository.findByMemberId(show.getOwnerId())
+                .map(Producer::getCompanyName)
+                .orElse("");
         return new PublicShowResult(
                 show.getPublicId(),
                 show.getOwnerId(),
+                show.hostNameOr(companyName),
                 show.getTitle(),
                 show.getGenre(),
                 show.getDescription(),
                 show.getPosterFileId(),
                 show.getImageFileIds(),
                 ShowVenueResult.from(show.getVenue()),
-                show.getDirectionsNote(),
+                show.getGuides().stream().map(ShowGuideResult::from).toList(),
                 show.getRunningMinutes(),
                 show.getAgeRating(),
                 show.getInquiryPhone(),

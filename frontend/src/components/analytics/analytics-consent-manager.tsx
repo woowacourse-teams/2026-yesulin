@@ -121,7 +121,7 @@ const pushGoogleConsent = function () {
 } as (...command: unknown[]) => void;
 
 function ConsentBanner({ onAccept, onReject }: { readonly onAccept: () => void; readonly onReject: () => void }) {
-  return <section aria-labelledby="analytics-consent-title" className="fixed inset-x-3 bottom-[max(12px,env(safe-area-inset-bottom))] z-70 mx-auto max-w-3xl rounded-card border border-border bg-card p-5 shadow-[var(--shadow-modal)] md:flex md:items-center md:gap-6 md:p-6">
+  return <section aria-labelledby="analytics-consent-title" className="fixed left-[max(12px,env(safe-area-inset-left))] right-[max(12px,env(safe-area-inset-right))] bottom-[max(12px,env(safe-area-inset-bottom))] z-70 mx-auto max-w-3xl rounded-card border border-border bg-card p-5 shadow-[var(--shadow-modal)] md:flex md:items-center md:gap-6 md:p-6">
     <div className="min-w-0 flex-1">
       <p className="text-xs font-semibold text-brand">선택 분석 쿠키</p>
       <h2 id="analytics-consent-title" className="mt-1 text-lg font-bold">서비스를 더 편리하게 개선하도록 도와주세요</h2>

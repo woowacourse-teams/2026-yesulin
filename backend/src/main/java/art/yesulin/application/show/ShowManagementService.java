@@ -11,6 +11,8 @@ import art.yesulin.application.file.FileUsageService;
 import art.yesulin.application.file.LinkFileCommand;
 import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.file.FileReferenceRepository;
+import art.yesulin.domain.producer.Producer;
+import art.yesulin.domain.producer.ProducerRepository;
 import art.yesulin.domain.reservation.ReservationRepository;
 import art.yesulin.domain.reservation.ReservationStatus;
 import art.yesulin.domain.show.Show;
@@ -46,6 +48,7 @@ public class ShowManagementService {
     private final FileReferenceService fileReferenceService;
     private final FileReferenceRepository fileReferenceRepository;
     private final FileUsageService fileUsageService;
+    private final ProducerRepository producerRepository;
     private final Clock clock;
 
     @Transactional
@@ -181,7 +184,12 @@ public class ShowManagementService {
 
     private ProducerShowResult result(Show show) {
         List<ShowSession> sessions = sessionRepository.findAllByShowIdOrderByStartsAtAscIdAsc(show.getId());
-        return ProducerShowResult.of(show, sessions, SessionTickets.of(reservationRepository, sessions));
+        String defaultHostName = producerRepository.findByMemberId(show.getOwnerId())
+                .map(Producer::getCompanyName)
+                .orElse("");
+        return ProducerShowResult.of(
+                show, defaultHostName, sessions, SessionTickets.of(reservationRepository, sessions)
+        );
     }
 
     private ProducerShowSummaryResult summary(Show show, List<ShowSession> sessions, Instant now) {

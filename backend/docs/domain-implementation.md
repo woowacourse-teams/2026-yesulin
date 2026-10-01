@@ -38,15 +38,20 @@
 
 - `Show`는 소유 기획사, UUID 공개 ID, 제목, 장르(`MUSICAL`·`PLAY`), 소개, 장소(`PerformanceVenue` 재사용), 러닝타임,
   관람 연령, 문의 전화, 포스터와 상세 이미지 파일 ID(최대 3개), `DRAFT/OPEN/CLOSED`를 소유한다. 오디션 `Performance`와 연결하지 않는다.
-  관객 안내로 `ShowLink`(버튼 이름·http/https 주소, 최대 3개, `show_links`), 오시는 길 추가 안내, 잔여석 공개 여부를 갖고
-  `updateAudienceGuide`로 함께 바꾼다. 잔여석 숨김은 `PublicShowService`가 응답에서 `remainingSeats`를 비우는 방식이다.
+  관객 안내로 주최 이름(`host_name`, 빈 값이면 기획사 회사명), `ShowLink`(버튼 이름·http/https 주소, 최대 3개, `show_links`),
+  `ShowGuide`(제목·내용, 최대 5개, `show_guides`), 잔여석 공개 여부를 갖고 `updateAudienceGuide`로 함께 바꾼다.
+  주최 이름은 `Show.hostNameOr`로 정하며 회사명은 응답을 만들 때 `Producer`에서 읽는다(공연에 복사하지 않는다).
+  잔여석 숨김은 `PublicShowService`가 응답에서 `remainingSeats`를 비우는 방식이다.
 - `ShowSession`은 공연 ID, 시작 시각, 정원만 저장하는 별도 aggregate다. 잔여석은 저장하지 않고 확정 예매 매수로 계산한다.
-- `Reservation`은 회차 ID, 8자리 예매번호, `Booker`(이름·휴대폰), 매수(1~10), 동의 문서 버전, `CONFIRMED/CANCELED`를 저장한다.
-  생성과 취소 때 `ReservationConfirmedEvent`, `ReservationCanceledEvent`를 등록한다.
+- `Reservation`은 회차 ID, 8자리 예매번호, `Booker`(이름·휴대폰), 매수(1~10), 동의 문서 버전, `CONFIRMED/CANCELED`,
+  기획사 메모(300자 이하)를 저장한다. 생성·취소·매수 변경 때 `ReservationConfirmedEvent`, `ReservationCanceledEvent`,
+  `ReservationTicketCountChangedEvent`를 등록한다. 매수 변경은 확정 예매만 가능하다.
 - `ReservationService.reserve`는 회차 행을 `PESSIMISTIC_WRITE`로 잠근 뒤 같은 번호의 확정 예매와 확정 매수를 다시 읽는다.
-  같은 회차의 예매는 모두 이 잠금을 거치므로 중복 번호와 정원 초과를 DB 제약 없이 막는다. 정원 수정·회차 삭제·공연 삭제도 같은 잠금을 잡는다.
+  같은 회차의 예매는 모두 이 잠금을 거치므로 중복 번호와 정원 초과를 DB 제약 없이 막는다.
+  정원 수정·회차 삭제·공연 삭제·매수 변경도 같은 잠금을 잡는다. 예매 취소는 회차를 잠그지 않으므로 매수 변경은
+  회차를 잠근 뒤 예매 행도 잠가 새로 읽고, 그사이 취소된 예매는 `RESERVATION_NOT_CHANGEABLE`로 거절한다.
   MySQL 기본 REPEATABLE READ에서는 잠금 전 첫 조회의 스냅샷을 계속 읽어 먼저 확정된 예매를 놓치므로, 잠금에 기대는
-  예매·정원 수정·회차 삭제·공연 삭제 트랜잭션은 `READ_COMMITTED`로 실행한다. H2 테스트는 이 차이를 재현하지 못한다.
+  예매·정원 수정·회차 삭제·공연 삭제·매수 변경 트랜잭션은 `READ_COMMITTED`로 실행한다. H2 테스트는 이 차이를 재현하지 못한다.
 - 포스터·상세 이미지는 `SHOW_POSTER`, `SHOW_IMAGE` 파일 참조로 연결하고 공연 수정 시 모두 다시 연결한다.
 
 ## 공고 알림

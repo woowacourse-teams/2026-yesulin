@@ -60,4 +60,39 @@ class ReservationTest {
         assertEquals(ReservationStatus.CANCELED, reservation.getStatus());
         assertEquals(firstCanceledAt, reservation.getCanceledAt());
     }
+
+    @Test
+    void changesTicketCountOfConfirmedReservationOnly() {
+        Reservation reservation = new Reservation(1L, BOOKER, 3, "privacy-v1");
+        ReflectionTestUtils.setField(reservation, "id", 1L);
+
+        reservation.changeTicketCount(4);
+
+        assertEquals(4, reservation.getTicketCount());
+        assertEquals(ReservationErrorCode.INVALID_INPUT, assertThrows(
+                BusinessException.class, () -> reservation.changeTicketCount(11)
+        ).getErrorCode());
+
+        reservation.cancel(Instant.parse("2026-10-01T10:00:00Z"));
+
+        assertEquals(ReservationErrorCode.NOT_CHANGEABLE, assertThrows(
+                BusinessException.class, () -> reservation.changeTicketCount(2)
+        ).getErrorCode());
+    }
+
+    @Test
+    void keepsTrimmedMemoWithinLimit() {
+        Reservation reservation = new Reservation(1L, BOOKER, 2, "privacy-v1");
+
+        reservation.updateMemo("  휠체어석 안내 필요  ");
+
+        assertEquals("휠체어석 안내 필요", reservation.getMemo());
+        assertEquals(ReservationErrorCode.INVALID_INPUT, assertThrows(
+                BusinessException.class, () -> reservation.updateMemo("가".repeat(301))
+        ).getErrorCode());
+
+        reservation.updateMemo(null);
+
+        assertEquals("", reservation.getMemo());
+    }
 }

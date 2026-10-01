@@ -110,7 +110,10 @@ function ShowCard({ show }: { readonly show: PublicShowSummary }) {
           />
         </div>
         <div className="flex min-w-0 flex-1 flex-col px-4 py-4">
-          <p className="text-xs font-semibold text-brand">{SHOW_GENRE_LABELS[show.genre]}</p>
+          <p className="flex min-w-0 items-center gap-1.5 text-xs">
+            <span className="shrink-0 font-semibold text-brand">{SHOW_GENRE_LABELS[show.genre]}</span>
+            {show.hostName ? <><span aria-hidden="true" className="text-muted-soft">·</span><span className="truncate text-muted-strong"><span className="sr-only">주최 </span>{show.hostName}</span></> : null}
+          </p>
           <h2 className="mt-1 line-clamp-2 text-lg font-bold leading-6 group-hover:text-brand">{show.title}</h2>
           <p className="mt-2 truncate text-sm text-muted-strong">{show.venueName}</p>
           <p className="num mt-auto border-t border-border-soft pt-2 text-xs leading-5 text-muted-strong">
