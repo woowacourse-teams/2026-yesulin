@@ -17,6 +17,18 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
             @Param("status") ReservationStatus status
     );
 
+    /** 매수를 바꾸는 예매를 뺀 나머지 매수. 잠금 전에 읽은 예매의 매수가 낡았어도 정원 계산이 틀리지 않게 한다. */
+    @Query("""
+            select coalesce(sum(reservation.ticketCount), 0) from Reservation reservation
+            where reservation.sessionId = :sessionId and reservation.status = :status
+              and reservation.id <> :excludedReservationId
+            """)
+    long sumTicketCountBySessionIdAndStatusExcluding(
+            @Param("sessionId") long sessionId,
+            @Param("status") ReservationStatus status,
+            @Param("excludedReservationId") long excludedReservationId
+    );
+
     @Query("""
             select new art.yesulin.domain.reservation.SessionReservedTickets(
                 reservation.sessionId, sum(reservation.ticketCount)

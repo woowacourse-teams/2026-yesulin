@@ -11,6 +11,7 @@ public record ProducerReservationResult(
         String bookerPhone,
         int ticketCount,
         ReservationStatus status,
+        String memo,
         Instant createdAt,
         Instant canceledAt
 ) {
@@ -23,6 +24,7 @@ public record ProducerReservationResult(
                 reservation.getBooker().getPhone(),
                 reservation.getTicketCount(),
                 reservation.getStatus(),
+                reservation.getMemo(),
                 reservation.getCreatedAt(),
                 reservation.getCanceledAt()
         );

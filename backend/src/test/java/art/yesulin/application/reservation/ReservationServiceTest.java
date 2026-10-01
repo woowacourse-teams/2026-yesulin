@@ -3,6 +3,7 @@ package art.yesulin.application.reservation;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import art.yesulin.common.exception.BusinessException;
 import art.yesulin.common.exception.ErrorCode;
@@ -29,6 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -245,6 +247,79 @@ class ReservationServiceTest {
     }
 
     @Test
+    void changesTicketCountWithinCapacityEvenAfterBookingCloses() {
+        Show show = fixture.openShow(OWNER_ID, 6);
+        ShowSession session = fixture.firstSession(show);
+        reservationService.reserve(show.getPublicId(), session.getId(), command("010-1111-0001", 3));
+        reservationService.reserve(show.getPublicId(), session.getId(), command("010-1111-0002", 2));
+        long reservationId = reservationRepository.findAll().getFirst().getId();
+        show.close();
+        showRepository.save(show);
+
+        assertEquals(4, reservationService.changeTicketCount(OWNER_ID, reservationId, 4).ticketCount());
+        assertCode(ShowErrorCode.SESSION_NOT_ENOUGH_SEATS,
+                () -> reservationService.changeTicketCount(OWNER_ID, reservationId, 5));
+        assertEquals(1, reservationService.changeTicketCount(OWNER_ID, reservationId, 1).ticketCount());
+        assertEquals(3, reservationRepository.sumTicketCountBySessionIdAndStatus(
+                session.getId(), ReservationStatus.CONFIRMED));
+    }
+
+    @Test
+    void rejectsTicketChangeOfCanceledOrOthersReservation() {
+        Show show = fixture.openShow(OWNER_ID, 10);
+        ShowSession session = fixture.firstSession(show);
+        reservationService.reserve(show.getPublicId(), session.getId(), command("010-1111-2222", 2));
+        long reservationId = reservationRepository.findAll().getFirst().getId();
+
+        assertCode(ReservationErrorCode.NOT_FOUND,
+                () -> reservationService.changeTicketCount(OTHER_OWNER_ID, reservationId, 3));
+        reservationService.cancel(OWNER_ID, reservationId);
+        assertCode(ReservationErrorCode.NOT_CHANGEABLE,
+                () -> reservationService.changeTicketCount(OWNER_ID, reservationId, 3));
+    }
+
+    @Test
+    void logsTicketChangeWithoutBookerDetails() {
+        Show show = fixture.openShow(OWNER_ID, 10);
+        ShowSession session = fixture.firstSession(show);
+        reservationService.reserve(show.getPublicId(), session.getId(), command("010-1111-2222", 3));
+        long reservationId = reservationRepository.findAll().getFirst().getId();
+        eventLogs.list.clear();
+
+        reservationService.changeTicketCount(OWNER_ID, reservationId, 3);
+        reservationService.changeTicketCount(OWNER_ID, reservationId, 4);
+
+        assertEquals(1, eventLogs.list.size());
+        ILoggingEvent log = eventLogs.list.getFirst();
+        assertEquals(Map.of(
+                "event", "RESERVATION_TICKETS_CHANGED",
+                "reservationId", reservationId,
+                "sessionId", session.getId(),
+                "previousTicketCount", 3,
+                "ticketCount", 4
+        ), keyValues(log));
+        assertFalse(log.getFormattedMessage().contains("홍길동"));
+        assertFalse(log.getFormattedMessage().contains("010-1111-2222"));
+    }
+
+    @Test
+    void onlyOwnerCanUpdateMemoIncludingCanceledReservation() {
+        Show show = fixture.openShow(OWNER_ID, 10);
+        ShowSession session = fixture.firstSession(show);
+        reservationService.reserve(show.getPublicId(), session.getId(), command("010-1111-2222", 2));
+        long reservationId = reservationRepository.findAll().getFirst().getId();
+
+        assertCode(ReservationErrorCode.NOT_FOUND,
+                () -> reservationService.updateMemo(OTHER_OWNER_ID, reservationId, "메모"));
+        assertEquals("휠체어석 안내", reservationService.updateMemo(OWNER_ID, reservationId, " 휠체어석 안내 ").memo());
+        reservationService.cancel(OWNER_ID, reservationId);
+        assertEquals("일정 변경으로 취소", reservationService.updateMemo(
+                OWNER_ID, reservationId, "일정 변경으로 취소").memo());
+        assertEquals("일정 변경으로 취소", reservationService.findSessionReservations(
+                OWNER_ID, show.getPublicId(), session.getId()).reservations().getFirst().memo());
+    }
+
+    @Test
     void concurrentReservationsNeverExceedCapacity() throws Exception {
         Show show = fixture.openShow(OWNER_ID, 10);
         ShowSession session = fixture.firstSession(show);
@@ -271,6 +346,93 @@ class ReservationServiceTest {
         assertEquals(3, succeeded);
         assertEquals(9, reservationRepository.sumTicketCountBySessionIdAndStatus(
                 session.getId(), ReservationStatus.CONFIRMED));
+    }
+
+    /**
+     * 남은 좌석 5석에서 기존 예매 5→8매 변경(3석 필요)과 새 4매 예매가 동시에 들어오면 둘 중 하나만 성공해야 한다.
+     * 순서가 매번 달라지도록 여러 번 반복한다.
+     */
+    @Test
+    void concurrentTicketChangeAndNewReservationNeverExceedCapacity() throws Exception {
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        for (int round = 0; round < 10; round++) {
+            Show show = fixture.openShow(OWNER_ID, 10);
+            ShowSession session = fixture.firstSession(show);
+            reservationService.reserve(show.getPublicId(), session.getId(), command("010-3333-0000", 5));
+            long reservationId = latestReservationId();
+            String newPhone = "010-3333-%04d".formatted(round + 1);
+            CountDownLatch start = new CountDownLatch(1);
+            Future<Boolean> change = executor.submit(() -> attempt(start, () ->
+                    reservationService.changeTicketCount(OWNER_ID, reservationId, 8)));
+            Future<Boolean> reserve = executor.submit(() -> attempt(start, () ->
+                    reservationService.reserve(show.getPublicId(), session.getId(), command(newPhone, 4))));
+            start.countDown();
+
+            int succeeded = (change.get() ? 1 : 0) + (reserve.get() ? 1 : 0);
+
+            assertEquals(1, succeeded, "round " + round);
+            long reserved = reservationRepository.sumTicketCountBySessionIdAndStatus(
+                    session.getId(), ReservationStatus.CONFIRMED);
+            assertTrue(reserved <= 10, "round " + round + " reserved " + reserved);
+        }
+        executor.shutdown();
+    }
+
+    @Test
+    void concurrentChangesOfSameReservationKeepCapacity() throws Exception {
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        Show show = fixture.openShow(OWNER_ID, 10);
+        ShowSession session = fixture.firstSession(show);
+        reservationService.reserve(show.getPublicId(), session.getId(), command("010-4444-0001", 2));
+        long reservationId = latestReservationId();
+        reservationService.reserve(show.getPublicId(), session.getId(), command("010-4444-0002", 2));
+        CountDownLatch start = new CountDownLatch(1);
+
+        Future<Boolean> first = executor.submit(() -> attempt(start, () ->
+                reservationService.changeTicketCount(OWNER_ID, reservationId, 8)));
+        Future<Boolean> second = executor.submit(() -> attempt(start, () ->
+                reservationService.changeTicketCount(OWNER_ID, reservationId, 7)));
+        start.countDown();
+        first.get();
+        second.get();
+        executor.shutdown();
+
+        long reserved = reservationRepository.sumTicketCountBySessionIdAndStatus(
+                session.getId(), ReservationStatus.CONFIRMED);
+        assertTrue(reserved <= 10, "reserved " + reserved);
+        int finalCount = reservationRepository.findById(reservationId).orElseThrow().getTicketCount();
+        assertTrue(finalCount == 8 || finalCount == 7, "final " + finalCount);
+    }
+
+    @Test
+    void memoSaveDoesNotReviveCanceledReservation() {
+        Show show = fixture.openShow(OWNER_ID, 10);
+        ShowSession session = fixture.firstSession(show);
+        reservationService.reserve(show.getPublicId(), session.getId(), command("010-5555-0001", 2));
+        long reservationId = latestReservationId();
+
+        reservationService.cancel(OWNER_ID, reservationId);
+        reservationService.updateMemo(OWNER_ID, reservationId, "취소 후 메모");
+
+        Reservation reloaded = reservationRepository.findById(reservationId).orElseThrow();
+        assertEquals(ReservationStatus.CANCELED, reloaded.getStatus());
+        assertEquals("취소 후 메모", reloaded.getMemo());
+        assertEquals(0, reservationRepository.sumTicketCountBySessionIdAndStatus(
+                session.getId(), ReservationStatus.CONFIRMED));
+    }
+
+    private long latestReservationId() {
+        return reservationRepository.findAll().stream().mapToLong(Reservation::getId).max().orElseThrow();
+    }
+
+    private static boolean attempt(CountDownLatch start, Runnable action) throws InterruptedException {
+        start.await();
+        try {
+            action.run();
+            return true;
+        } catch (BusinessException exception) {
+            return false;
+        }
     }
 
     private static ReserveCommand command(String phone, int ticketCount) {

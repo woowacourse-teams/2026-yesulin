@@ -200,7 +200,7 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 1차 서류 심사 한 차수를 제공한다. 배역별 심사 종료는 OTR 지원 마감 다음 날부터 가능하며,
 그 전에는 `409 SCREENING_ROUND_NOT_READY`를 반환한다. 종료 후 심사 결과 수정은 거부한다.
 
-## 무료 공연과 비회원 예매 — 17개
+## 무료 공연과 비회원 예매 — 19개
 
 오디션용 공연·공고와 별도의 저장 모델이다. 관리 API는 `PRODUCER + ACTIVE`만 호출할 수 있고 자기 공연만 보이며,
 다른 기획사의 공연·회차·예매는 `404`로 숨긴다. 관객 API는 로그인 없이 호출하지만 쓰기 요청은 CSRF 헤더가 필요하다.
@@ -223,15 +223,21 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 | DELETE | `/api/v1/shows/{showId}/sessions/{sessionId}` | Active Producer | 없음 | `200 ProducerShowResponse` |
 | GET | `/api/v1/shows/{showId}/sessions/{sessionId}/reservations` | Active Producer | 없음 | `200 ProducerReservationListResult` |
 | POST | `/api/v1/reservations/{reservationId}/cancellation` | Active Producer | 없음 | `200 ProducerReservationResult` |
+| PUT | `/api/v1/reservations/{reservationId}/ticket-count` | Active Producer | `ChangeTicketCountRequest(ticketCount)` | `200 ProducerReservationResult` |
+| PUT | `/api/v1/reservations/{reservationId}/memo` | Active Producer | `UpdateReservationMemoRequest(memo)` | `200 ProducerReservationResult` |
 | POST | `/api/v1/show-images/upload-requests` | Active Producer | `ShowImageUploadRequest(originalFilename, contentType, size)` | `201 FileUploadResult` |
 | PATCH | `/api/v1/show-images/{fileId}/completion` | Active Producer | 없음 | `204` |
 
 `SaveShowRequest`는 `title`(200자 이하), `genre`(`MUSICAL`·`PLAY`), `description`(2000자 이하), `venue`(장소명·도로명주소 필수),
 `runningMinutes`(1~1440), `ageRating`(50자 이하), `inquiryPhone`(`02-123-4567` 형식), `posterFileId`,
-`imageFileIds`(서로 다른 파일 최대 3개)다. 선택 값으로 `directionsNote`(오시는 길 추가 안내, 1000자 이하),
+`imageFileIds`(서로 다른 파일 최대 3개)다. 선택 값으로 `hostName`(관객에게 보여 줄 주최 이름, 50자 이하),
 `links`(예매 안내 외부 링크 최대 3개, 각 `label` 30자 이하·`url` 500자 이하의 http/https 주소, 도메인에 점 필수),
-`remainingSeatsVisible`(관객에게 잔여석 숫자 공개 여부)을 받는다. 보내지 않으면 안내 없음·링크 없음·잔여석 공개로 저장하며,
-`ProducerShowResponse`는 세 값을 그대로 돌려준다. 잘못된 링크 주소는 `400 SHOW_INVALID_INPUT`이다.
+`guides`(오시는 길 아래 추가 안내 최대 5개, 각 `title` 30자 이하·`content` 1000자 이하, 둘 다 필수),
+`remainingSeatsVisible`(관객에게 잔여석 숫자 공개 여부)을 받는다. `links`·`remainingSeatsVisible`을 보내지 않으면
+링크 없음·잔여석 공개로 저장하고, `hostName`·`guides`를 보내지 않으면 지금 값을 유지한다(새 공연은 계정 회사명으로
+주최 표시·안내 없음). 빈 문자열·빈 배열을 보내면 지운다. `ProducerShowResponse`는 네 값을 그대로 돌려준다. `ProducerShowResponse.hostName`은
+따로 적은 이름(없으면 빈 문자열)이고 `defaultHostName`은 비워 두면 대신 보일 기획사 계정 회사명이다.
+잘못된 링크 주소와 개수·길이를 넘은 안내는 `400 SHOW_INVALID_INPUT`이다.
 포스터와 상세 이미지는 요청한 기획사가 올린 READY 공개 파일이어야 하며
 `show-images` 업로드로 받는다. 새 공연은 `DRAFT`이고, 시작 전인 회차가 하나 이상 있어야 `opening`으로 `OPEN`이 된다.
 `closing`은 `OPEN`에서만 `CLOSED`로 바꾸며 `opening`으로 다시 열 수 있다. 회차 시작 시각은 ISO-8601 UTC이고 현재 이후여야 한다.
@@ -239,13 +245,18 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 관객 목록은 `OPEN` 공연만, 상세는 `OPEN`·`CLOSED` 공연을 반환하고 `DRAFT`는 `404 SHOW_NOT_FOUND`다.
 상세 회차는 정원·예매 수 대신 `remainingSeats`, `maxTicketCount`(`min(10, 잔여석)`, 0이면 매진),
 `bookable`(공연 `OPEN`, 시작 전, 잔여석 있음)만 준다. 공연이 잔여석을 숨기면(`remainingSeatsVisible=false`)
-`remainingSeats`는 `null`이고 나머지는 같다. 상세에는 `directionsNote`와 `links`(`label`, `url`)도 포함한다.
+`remainingSeats`는 `null`이고 나머지는 같다. 상세에는 `guides`(`title`, `content`)와 `links`(`label`, `url`)도 포함한다.
+관객 목록·상세의 `hostName`은 공연에 따로 적은 주최 이름이고, 비어 있으면 기획사 계정의 회사명이다.
 예매는 1~10매, 휴대폰 `010-1234-5678` 형식, 개인정보 수집·이용 동의가 필요하다. 서버는 회차 행을 잠근 뒤
 같은 회차의 같은 휴대폰 확정 예매(`409 RESERVATION_DUPLICATE`)와 시작 시각 경과(`409 SHOW_SESSION_BOOKING_CLOSED`),
 잔여석 부족(`409 SHOW_SESSION_NOT_ENOUGH_SEATS`)을 확인한다. 응답의 `code`는 8자리 예매번호다.
 취소된 예매는 같은 번호로 다시 예매할 수 있다.
 
 관객 본인 취소는 없다. 기획사가 전화 요청을 받아 `cancellation`으로 취소하며 이미 취소된 예매는 그대로 반환한다.
+`ticket-count`는 확정 예매의 매수를 1~10매로 바꾼다. 회차 행을 잠그고 정원을 넘으면 `409 SHOW_SESSION_NOT_ENOUGH_SEATS`,
+취소된 예매면 `409 RESERVATION_NOT_CHANGEABLE`이다. 기획사 예외 처리를 위해 회차 시작·공연 마감 후에도 바꿀 수 있다.
+`memo`는 관객별 메모(300자 이하, 빈 문자열이면 삭제)를 저장하며 취소된 예매에도 남길 수 있다. 메모는
+`ProducerReservationResult.memo`로만 내보내고 관객 API에는 포함하지 않는다.
 정원은 확정 매수보다 줄일 수 없고(`409 SHOW_SESSION_CAPACITY_BELOW_RESERVED`), 예매 기록이 있는 회차와 공연은
 삭제할 수 없다(`409 SHOW_SESSION_HAS_RESERVATIONS`, `409 SHOW_HAS_RESERVATIONS`).
 
@@ -424,7 +435,7 @@ S3 삭제 실패 시 `DELETING` 상태가 남으며 같은 파일 ID로 재시�
 | 지원서 | `SUBMISSION_INVALID*`, `SUBMISSION_NOT_FOUND`, `DUPLICATE_SUBMISSION`, `RECRUITMENT_CLOSED` |
 | 심사 | `INVALID_SCREENING_REVIEW`, `SCREENING_REVIEW_NOT_FOUND`, `SCREENING_ROUND_NOT_READY` |
 | 무료 공연 | `SHOW_NOT_FOUND`, `SHOW_SESSION_NOT_FOUND`, `SHOW_INVALID_INPUT`, `SHOW_INVALID_STATUS`, `SHOW_NOT_OPENABLE`, `SHOW_NOT_OPEN`, `SHOW_HAS_RESERVATIONS`, `SHOW_SESSION_BOOKING_CLOSED`, `SHOW_SESSION_NOT_ENOUGH_SEATS`, `SHOW_SESSION_CAPACITY_BELOW_RESERVED`, `SHOW_SESSION_HAS_RESERVATIONS` |
-| 예매 | `RESERVATION_NOT_FOUND`, `RESERVATION_INVALID_INPUT`, `RESERVATION_DUPLICATE` |
+| 예매 | `RESERVATION_NOT_FOUND`, `RESERVATION_INVALID_INPUT`, `RESERVATION_DUPLICATE`, `RESERVATION_NOT_CHANGEABLE` |
 | 운영 | `MEMBER_NOT_FOUND`, `MEMBER_STATUS_CHANGE_NOT_ALLOWED`, `ADMIN_DELETION_CONFIRMATION_FAILED` |
 
 인가 공통 오류는 `401 AUTH_UNAUTHENTICATED`, `403 AUTH_FORBIDDEN`, `403 AUTH_INACTIVE_MEMBER`다.
