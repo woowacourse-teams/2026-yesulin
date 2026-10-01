@@ -49,6 +49,7 @@ export function ReservationComplete({ show, receipt, onBack }: {
 
           <dl className="mt-6 grid grid-cols-[72px_minmax(0,1fr)] gap-x-4 gap-y-3 text-left text-base">
             <dt className="text-muted">공연</dt><dd className="font-semibold">{receipt.showTitle}</dd>
+            {show.hostName ? <><dt className="text-muted">주최</dt><dd className="break-words">{show.hostName}</dd></> : null}
             <dt className="text-muted">일시</dt><dd className="num">{formatShowFullDateTime(receipt.startsAt)}</dd>
             <dt className="text-muted">장소</dt><dd className="break-words">{show.venue.name}</dd>
             <dt className="text-muted">매수</dt><dd className="num">{receipt.ticketCount}매</dd>

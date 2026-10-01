@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   formatInquiryPhone,
   normalizeShowLinkUrl,
+  showGuideError,
   showLinkError,
   validateShowField,
   validateShowForm,
@@ -16,6 +17,7 @@ const valid: ShowFormValues = {
   inquiryPhone: "02-123-4567",
   venueName: "대학로 예술인 소극장",
   roadAddress: "서울특별시 종로구 대학로 12",
+  guides: [{ title: "주차 안내", content: "건물 지하 주차장을 이용해 주세요." }],
   links: [{ label: "공연사 인스타그램 보기", url: "https://instagram.com/yesulin" }],
 };
 
@@ -27,6 +29,7 @@ const empty: ShowFormValues = {
   inquiryPhone: "",
   venueName: "",
   roadAddress: "",
+  guides: [{ title: "", content: "" }],
   links: [{ label: "", url: "" }],
 };
 
@@ -43,7 +46,7 @@ describe("show form validation", () => {
   });
 
   it("비어 있는 필수 항목을 한 번에 모두 알려 준다", () => {
-    expect(Object.keys(validateShowForm(empty))).toEqual(["poster", "title", "genre", "runningMinutes", "inquiryPhone", "venue", "links"]);
+    expect(Object.keys(validateShowForm(empty))).toEqual(["poster", "title", "genre", "runningMinutes", "inquiryPhone", "venue", "guides", "links"]);
   });
 
   it("안내 링크는 버튼 이름과 http/https 주소가 모두 있어야 하고 몇 번째 링크인지 알려 준다", () => {
@@ -56,6 +59,16 @@ describe("show form validation", () => {
       expect(showLinkError({ label: "링크", url })).not.toBeNull();
     }
     expect(showLinkError({ label: "링크", url: "http://yesulin.art/about?tab=1" })).toBeNull();
+  });
+
+  it("추가 안내는 제목과 내용이 모두 있어야 하고 몇 번째 안내인지 알려 준다", () => {
+    expect(validateShowField("guides", { ...valid, guides: [] })).toBeNull();
+    expect(validateShowField("guides", { ...valid, guides: [...valid.guides, { title: "관람 안내", content: " " }] }))
+      .toBe("추가 안내 2: 안내 내용을 입력해 주세요.");
+    expect(showGuideError({ title: " ", content: "내용" })).toBe("안내 제목을 입력해 주세요.");
+    expect(showGuideError({ title: "가".repeat(31), content: "내용" })).not.toBeNull();
+    expect(showGuideError({ title: "주차 안내", content: "가".repeat(1001) })).not.toBeNull();
+    expect(showGuideError({ title: "가".repeat(30), content: "가".repeat(1000) })).toBeNull();
   });
 
   it("scheme 없이 붙여넣은 주소에 https://를 붙이고 올바르지 않은 주소는 그대로 둔다", () => {

@@ -15,6 +15,7 @@ import {
   SegmentButton,
   TextButton,
 } from "@/components/ui/controls";
+import { getProducerProfile } from "@/features/auditions/api";
 import { AuditionRequestError } from "@/features/auditions/api-client";
 import type { VenueAddress } from "@/features/auditions/creation-types";
 import { usePhoneInput } from "@/features/applications/phone-number";
@@ -23,6 +24,8 @@ import {
   SHOW_FORM_FIELDS,
   formatInquiryPhone,
   normalizeShowLinkUrl,
+  showGuideContentError,
+  showGuideTitleError,
   showLinkLabelError,
   showLinkUrlError,
   validateShowField,
@@ -32,8 +35,11 @@ import {
   type ShowFormValues,
 } from "@/features/shows/show-form";
 import {
-  MAX_DIRECTIONS_NOTE_LENGTH,
   MAX_SHOW_DESCRIPTION_LENGTH,
+  MAX_SHOW_GUIDE_CONTENT_LENGTH,
+  MAX_SHOW_GUIDE_TITLE_LENGTH,
+  MAX_SHOW_GUIDES,
+  MAX_SHOW_HOST_NAME_LENGTH,
   MAX_SHOW_IMAGES,
   MAX_SHOW_LINK_LABEL_LENGTH,
   MAX_SHOW_LINK_URL_LENGTH,
@@ -43,6 +49,7 @@ import {
   type ProducerShow,
   type SaveShow,
   type ShowGenre,
+  type ShowGuide,
   type ShowLink,
 } from "@/features/shows/types";
 import { useModalClose } from "../use-modal-close";
@@ -59,10 +66,12 @@ const FIELD_FOCUS_SELECTOR: Record<ShowFormField, string> = {
   runningMinutes: "#show-running-minutes",
   inquiryPhone: "#show-inquiry-phone",
   venue: "#show-venue-field input",
+  guides: "#show-guides input",
   links: "#show-links input",
 };
 
 const linkInputId = (index: number, part: "label" | "url") => `show-link-${index}-${part}`;
+const guideInputId = (index: number, part: "title" | "content") => `show-guide-${index}-${part}`;
 
 /** 이미 저장된 이미지는 fileId를, 새로 고른 이미지는 저장할 때 올릴 파일을 가진다. */
 type ImageSlot = { readonly fileId: number | null; readonly url: string; readonly file: File | null };
@@ -85,11 +94,13 @@ export function ShowFormModal({ show, onClose, onSaved }: {
     latitude: show?.venue.latitude ?? null,
     longitude: show?.venue.longitude ?? null,
   }));
-  const [directionsNote, setDirectionsNote] = useState(show?.directionsNote ?? "");
   const [runningMinutes, setRunningMinutes] = useState(show ? String(show.runningMinutes) : "");
   const [ageRating, setAgeRating] = useState(show?.ageRating ?? "");
   const [inquiryPhone, setInquiryPhone] = useState(show?.inquiryPhone ?? "");
   const onInquiryPhoneChange = usePhoneInput(formatInquiryPhone);
+  const [hostName, setHostName] = useState(show?.hostName ?? "");
+  const [defaultHostName, setDefaultHostName] = useState(show?.defaultHostName ?? "");
+  const [guides, setGuides] = useState<readonly ShowGuide[]>(show?.guides ?? []);
   const [links, setLinks] = useState<readonly ShowLink[]>(show?.links ?? []);
   const [remainingSeatsVisible, setRemainingSeatsVisible] = useState(show?.remainingSeatsVisible ?? true);
   const [poster, setPoster] = useState<ImageSlot>(
@@ -106,13 +117,13 @@ export function ShowFormModal({ show, onClose, onSaved }: {
   const formRef = useRef<HTMLFormElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
 
-  const values: ShowFormValues = { posterUrl: poster.url, title, genre, runningMinutes, inquiryPhone, venueName, roadAddress: address.roadAddress, links };
+  const values: ShowFormValues = { posterUrl: poster.url, title, genre, runningMinutes, inquiryPhone, venueName, roadAddress: address.roadAddress, guides, links };
   // 한 번 오류가 난 항목은 입력할 때마다 다시 검사해, 고치면 바로 오류가 사라진다.
   const fieldError = (field: ShowFormField) => errors[field] ? validateShowField(field, values) ?? undefined : undefined;
   const invalidCount = SHOW_FORM_FIELDS.filter((field) => fieldError(field)).length;
   // 변경 여부 비교용. 지도가 자동으로 채우는 좌표와 큰 이미지 데이터(data URL)는 넣지 않는다.
   const snapshot = JSON.stringify({
-    title, genre, description, venueName, directionsNote, runningMinutes, ageRating, inquiryPhone, links, remainingSeatsVisible,
+    title, genre, description, venueName, hostName, guides, runningMinutes, ageRating, inquiryPhone, links, remainingSeatsVisible,
     roadAddress: address.roadAddress, detailAddress: address.detailAddress, zonecode: address.zonecode,
     poster: imageKey(poster), images: images.map(imageKey),
   });
@@ -133,6 +144,17 @@ export function ShowFormModal({ show, onClose, onSaved }: {
   useEffect(() => {
     if (confirmingClose) document.getElementById(KEEP_WRITING_ID)?.focus();
   }, [confirmingClose]);
+
+  // 새 공연은 아직 응답에 기본 주최 이름이 없으므로 계정 회사명을 따로 읽어 안내에 쓴다. 실패해도 입력에는 지장이 없다.
+  const creating = !show;
+  useEffect(() => {
+    if (!creating) return;
+    let active = true;
+    getProducerProfile()
+      .then((profile) => { if (active) setDefaultHostName(profile.companyName); })
+      .catch((cause) => console.error("[기획사 이름 조회 실패]", cause));
+    return () => { active = false; };
+  }, [creating]);
 
   const keepWriting = () => {
     setConfirmingClose(false);
@@ -160,10 +182,24 @@ export function ShowFormModal({ show, onClose, onSaved }: {
     requestAnimationFrame(() => document.getElementById(links.length > 1 ? linkInputId(Math.max(0, index - 1), "label") : "show-link-add")?.focus());
   };
 
+  const updateGuide = (index: number, next: Partial<ShowGuide>) => setGuides((current) => current.map(
+    (guide, guideIndex) => guideIndex === index ? { ...guide, ...next } : guide,
+  ));
+  const addGuide = () => {
+    setGuides((current) => [...current, { title: "", content: "" }]);
+    requestAnimationFrame(() => document.getElementById(guideInputId(guides.length, "title"))?.focus());
+  };
+  const removeGuide = (index: number) => {
+    setGuides((current) => current.filter((_, guideIndex) => guideIndex !== index));
+    requestAnimationFrame(() => document.getElementById(guides.length > 1 ? guideInputId(Math.max(0, index - 1), "title") : "show-guide-add")?.focus());
+  };
+
   const focusField = (field: ShowFormField, formValues: ShowFormValues) => {
     // 장소명을 적었는데 주소만 비었으면 주소 검색 버튼으로 보낸다.
     const selector = field === "venue" && venueName.trim() ? "#show-venue-field button" : FIELD_FOCUS_SELECTOR[field];
-    const element = field === "links" ? firstInvalidLinkInput(formValues.links) : document.querySelector<HTMLElement>(selector);
+    const element = field === "links" ? firstInvalidLinkInput(formValues.links)
+      : field === "guides" ? firstInvalidGuideInput(formValues.guides)
+        : document.querySelector<HTMLElement>(selector);
     element?.focus({ preventScroll: true });
     element?.scrollIntoView({ block: "center" });
   };
@@ -176,7 +212,12 @@ export function ShowFormModal({ show, onClose, onSaved }: {
       .filter((link) => link.label.trim() || link.url.trim())
       .map((link) => ({ label: link.label.trim(), url: normalizeShowLinkUrl(link.url) }));
     setLinks(normalizedLinks);
-    const submitted: ShowFormValues = { ...values, links: normalizedLinks };
+    // 추가만 하고 비워 둔 안내 칸도 뺀다. 내용 안의 줄바꿈은 그대로 둔다.
+    const normalizedGuides = guides
+      .filter((guide) => guide.title.trim() || guide.content.trim())
+      .map((guide) => ({ title: guide.title.trim(), content: guide.content.trim() }));
+    setGuides(normalizedGuides);
+    const submitted: ShowFormValues = { ...values, guides: normalizedGuides, links: normalizedLinks };
     const nextErrors = validateShowForm(submitted);
     setErrors(nextErrors);
     const firstInvalid = SHOW_FORM_FIELDS.find((field) => nextErrors[field]);
@@ -193,11 +234,12 @@ export function ShowFormModal({ show, onClose, onSaved }: {
         genre: genre!,
         description: description.trim(),
         venue: { name: venueName.trim(), ...address },
-        directionsNote: directionsNote.trim(),
         runningMinutes: Number(runningMinutes),
         ageRating: ageRating.trim(),
         inquiryPhone: inquiryPhone.trim(),
+        hostName: hostName.trim(),
         links: normalizedLinks,
+        guides: normalizedGuides,
         remainingSeatsVisible,
         posterFileId: await fileIdOf(poster),
         imageFileIds: await uploadImages(images),
@@ -251,6 +293,15 @@ export function ShowFormModal({ show, onClose, onSaved }: {
                 </CreateField>
                 <FieldError field="title" message={fieldError("title")} />
               </div>
+              <CreateField
+                label="주최 (선택)"
+                htmlFor="show-host-name"
+                hint={defaultHostName
+                  ? `비워 두면 기획사 이름 '${defaultHostName}'으로 보여요. 프로젝트 이름으로 보여 주고 싶을 때만 입력하세요.`
+                  : "비워 두면 기획사 이름으로 보여요. 프로젝트 이름으로 보여 주고 싶을 때만 입력하세요."}
+              >
+                <FieldInput id="show-host-name" maxLength={MAX_SHOW_HOST_NAME_LENGTH} value={hostName} onChange={(event) => setHostName(event.target.value)} placeholder={defaultHostName || "예: 2026 청년 연극 프로젝트"} />
+              </CreateField>
               <fieldset id="show-genre" aria-describedby={describedBy("genre")}>
                 <legend className="mb-2 text-base font-semibold text-muted-strong md:text-sm">장르</legend>
                 <div className={`inline-flex overflow-hidden rounded-control border ${fieldError("genre") ? "border-fail" : "border-border"}`}>
@@ -292,10 +343,29 @@ export function ShowFormModal({ show, onClose, onSaved }: {
             <FieldError field="venue" message={fieldError("venue")} />
           </div>
 
-          <CreateField label="오시는 길 추가 안내 (선택)" htmlFor="show-directions-note" hint="주차, 입구 위치, 대중교통 이용 방법처럼 주소만으로 전하기 어려운 내용을 적어 주세요. 관객 화면의 오시는 길 아래에 보여요.">
-            <FieldTextarea id="show-directions-note" rows={3} maxLength={MAX_DIRECTIONS_NOTE_LENGTH} value={directionsNote} onChange={(event) => setDirectionsNote(event.target.value)} placeholder="예: 혜화역 2번 출구에서 도보 약 5분 거리입니다." className="resize-none" />
-            <span className="num mt-1 block text-right text-xs text-muted">{directionsNote.length} / {MAX_DIRECTIONS_NOTE_LENGTH.toLocaleString("ko-KR")}자</span>
-          </CreateField>
+          <fieldset id="show-guides" aria-describedby="show-guides-hint">
+            <legend className="mb-2 text-base font-semibold text-muted-strong md:text-sm">추가 안내 (선택, 최대 {MAX_SHOW_GUIDES}개)</legend>
+            <p id="show-guides-hint" className="mb-3 text-base leading-relaxed text-muted md:text-sm">
+              주차 안내, 입장 안내처럼 제목을 정해 자유롭게 적어 주세요. 관객 화면의 오시는 길 지도 아래에 적은 순서대로 보여요.
+            </p>
+            {guides.length ? (
+              <ul className="mb-3 grid gap-3">
+                {guides.map((guide, index) => (
+                  <GuideRow
+                    key={index}
+                    index={index}
+                    guide={guide}
+                    showErrors={Boolean(errors.guides)}
+                    onChange={(next) => updateGuide(index, next)}
+                    onRemove={() => removeGuide(index)}
+                  />
+                ))}
+              </ul>
+            ) : null}
+            <AddButton id="show-guide-add" onClick={addGuide} disabled={guides.length >= MAX_SHOW_GUIDES}>
+              + 추가 안내 넣기 <span className="num ml-1 text-muted">{guides.length}/{MAX_SHOW_GUIDES}</span>
+            </AddButton>
+          </fieldset>
 
           <fieldset>
             <legend className="mb-2 text-base font-semibold text-muted-strong md:text-sm">상세 이미지 (선택, 최대 {MAX_SHOW_IMAGES}장)</legend>
@@ -406,6 +476,62 @@ function firstInvalidLinkInput(links: readonly ShowLink[]) {
   const index = links.findIndex((link) => showLinkLabelError(link.label) || showLinkUrlError(link.url));
   if (index < 0) return null;
   return document.getElementById(linkInputId(index, showLinkLabelError(links[index]!.label) ? "label" : "url"));
+}
+
+function firstInvalidGuideInput(guides: readonly ShowGuide[]) {
+  const index = guides.findIndex((guide) => showGuideTitleError(guide.title) || showGuideContentError(guide.content));
+  if (index < 0) return null;
+  return document.getElementById(guideInputId(index, showGuideTitleError(guides[index]!.title) ? "title" : "content"));
+}
+
+function GuideRow({ index, guide, showErrors, onChange, onRemove }: {
+  readonly index: number;
+  readonly guide: ShowGuide;
+  readonly showErrors: boolean;
+  readonly onChange: (next: Partial<ShowGuide>) => void;
+  readonly onRemove: () => void;
+}) {
+  const titleError = showErrors ? showGuideTitleError(guide.title) : null;
+  const contentError = showErrors ? showGuideContentError(guide.content) : null;
+  const titleId = guideInputId(index, "title");
+  const contentId = guideInputId(index, "content");
+  return (
+    <li className="grid gap-3 rounded-card border border-border p-4">
+      <div className="flex items-end gap-3">
+        <div className="min-w-0 flex-1">
+          <label htmlFor={titleId} className="mb-2 block text-base font-semibold text-muted-strong md:text-sm">안내 제목</label>
+          <FieldInput
+            id={titleId}
+            maxLength={MAX_SHOW_GUIDE_TITLE_LENGTH}
+            value={guide.title}
+            onChange={(event) => onChange({ title: event.target.value })}
+            placeholder="예: 주차 안내"
+            aria-invalid={titleError ? true : undefined}
+            aria-describedby={titleError ? `${titleId}-error` : undefined}
+            className={titleError ? FIELD_ERROR_CLASS : ""}
+          />
+        </div>
+        <TextButton onClick={onRemove} aria-label={`추가 안내 ${index + 1} 삭제`} className="shrink-0">삭제</TextButton>
+      </div>
+      {titleError ? <p id={`${titleId}-error`} className="-mt-1 text-sm font-medium leading-6 text-fail">{titleError}</p> : null}
+      <div>
+        <label htmlFor={contentId} className="mb-2 block text-base font-semibold text-muted-strong md:text-sm">안내 내용</label>
+        <FieldTextarea
+          id={contentId}
+          rows={3}
+          maxLength={MAX_SHOW_GUIDE_CONTENT_LENGTH}
+          value={guide.content}
+          onChange={(event) => onChange({ content: event.target.value })}
+          placeholder="예: 건물 지하 주차장을 2시간 무료로 이용할 수 있어요. 주차 공간이 좁아 대중교통 이용을 권해요."
+          aria-invalid={contentError ? true : undefined}
+          aria-describedby={contentError ? `${contentId}-error` : undefined}
+          className={`resize-none ${contentError ? FIELD_ERROR_CLASS : ""}`}
+        />
+        <span className="num mt-1 block text-right text-xs text-muted">{guide.content.length} / {MAX_SHOW_GUIDE_CONTENT_LENGTH.toLocaleString("ko-KR")}자</span>
+        {contentError ? <p id={`${contentId}-error`} className="mt-1 text-sm font-medium leading-6 text-fail">{contentError}</p> : null}
+      </div>
+    </li>
+  );
 }
 
 /** 저장을 한 번 시도한 뒤(showErrors)부터 칸마다 오류를 바로 다시 검사해 보여 준다. */

@@ -81,12 +81,7 @@ export function PublicShowDetail({ show, onReserved, onStale }: {
           {show.imageUrls.length ? <DetailImages show={show} /> : null}
           <InfoSection title="오시는 길" last>
             <PublicVenueGuide venue={show.venue.name} address={show.venue} note="공연이 열리는 장소입니다. 공연 시작 전까지 도착해 주세요." />
-            {show.directionsNote ? (
-              <div className="mt-4 rounded-card border border-border bg-card px-4 py-4 sm:px-5">
-                <h3 className="text-sm font-semibold text-brand">추가 안내</h3>
-                <p className="mt-2 whitespace-pre-line break-words text-base leading-7 text-muted-strong md:text-sm md:leading-6">{show.directionsNote}</p>
-              </div>
-            ) : null}
+            {show.guides.length ? <ShowGuides guides={show.guides} /> : null}
           </InfoSection>
         </article>
         <aside className="hidden min-[1200px]:block"><DesktopAction {...action} /></aside>
@@ -119,6 +114,11 @@ function ShowHero({ show, availability }: { readonly show: PublicShow; readonly 
           <ShowGenreBadge genre={show.genre} />
         </div>
         <h1 className="mt-3 text-[clamp(24px,4vw,40px)] font-bold leading-tight tracking-[-0.035em]">{show.title}</h1>
+        {show.hostName ? (
+          <p className="mt-2 text-sm text-muted-strong md:text-base">
+            <span className="text-muted">주최</span> <span className="ml-1 font-medium">{show.hostName}</span>
+          </p>
+        ) : null}
       </div>
       <dl className="col-span-2 grid grid-cols-[88px_minmax(0,1fr)] gap-x-4 gap-y-3 text-base sm:col-span-1">
         <dt className="text-muted">공연 기간</dt>
@@ -221,6 +221,20 @@ function ReservationNotice({ show }: { readonly show: PublicShow }) {
         </div>
       ) : null}
     </InfoSection>
+  );
+}
+
+/** 기획사가 제목을 정한 추가 안내. 주차·입장처럼 주소만으로 전하기 어려운 내용을 지도 아래에 적은 순서대로 보여 준다. */
+function ShowGuides({ guides }: { readonly guides: PublicShow["guides"] }) {
+  return (
+    <div className="mt-4 grid gap-3">
+      {guides.map((guide, index) => (
+        <section key={index} className="rounded-card border border-border bg-card px-4 py-4 sm:px-5">
+          <h3 className="text-sm font-semibold text-brand">{guide.title}</h3>
+          <p className="mt-2 whitespace-pre-line break-words text-base leading-7 text-muted-strong md:text-sm md:leading-6">{guide.content}</p>
+        </section>
+      ))}
+    </div>
   );
 }
 

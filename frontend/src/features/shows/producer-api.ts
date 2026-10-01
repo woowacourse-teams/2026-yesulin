@@ -71,6 +71,22 @@ export function cancelReservation(reservationId: number): Promise<ProducerReserv
   return request<ProducerReservation>(`/v1/reservations/${reservationId}/cancellation`, { method: "POST" });
 }
 
+/** 관객의 전화 요청을 받아 확정 예매의 매수를 바꾼다. 정원을 넘으면 409로 거절된다. */
+export function changeReservationTicketCount(reservationId: number, ticketCount: number): Promise<ProducerReservation> {
+  return request<ProducerReservation>(`/v1/reservations/${reservationId}/ticket-count`, {
+    method: "PUT",
+    body: JSON.stringify({ ticketCount }),
+  });
+}
+
+/** 빈 문자열을 보내면 메모를 지운다. */
+export function updateReservationMemo(reservationId: number, memo: string): Promise<ProducerReservation> {
+  return request<ProducerReservation>(`/v1/reservations/${reservationId}/memo`, {
+    method: "PUT",
+    body: JSON.stringify({ memo: memo.trim() }),
+  });
+}
+
 /** 포스터와 상세 이미지는 같은 기획사 업로드 API를 쓰고 공연 저장 요청에 fileId만 보낸다. */
 export async function uploadShowImage(image: File): Promise<number> {
   const upload = await safeUpload({
@@ -97,11 +113,12 @@ function toShowBody(input: SaveShow) {
     genre: input.genre,
     description: input.description.trim(),
     venue: input.venue,
-    directionsNote: input.directionsNote.trim(),
     runningMinutes: input.runningMinutes,
     ageRating: input.ageRating.trim(),
     inquiryPhone: input.inquiryPhone.trim(),
+    hostName: input.hostName.trim(),
     links: input.links.map((link) => ({ label: link.label.trim(), url: link.url.trim() })),
+    guides: input.guides.map((guide) => ({ title: guide.title.trim(), content: guide.content.trim() })),
     remainingSeatsVisible: input.remainingSeatsVisible,
     posterFileId: input.posterFileId,
     imageFileIds: input.imageFileIds,

@@ -429,11 +429,12 @@ function showInputWithRemainingSeats(show: ProducerShow, remainingSeatsVisible: 
     genre: show.genre,
     description: show.description,
     venue: show.venue,
-    directionsNote: show.directionsNote,
     runningMinutes: show.runningMinutes,
     ageRating: show.ageRating,
     inquiryPhone: show.inquiryPhone,
+    hostName: show.hostName,
     links: show.links,
+    guides: show.guides,
     remainingSeatsVisible,
     posterFileId: show.poster.fileId,
     imageFileIds: show.images.map((image) => image.fileId),
@@ -454,12 +455,14 @@ function ShowSummary({ show, onDelete, onToggleRemainingSeats, busy }: {
           <Image src={show.poster.url} alt={`${show.title} 포스터`} fill unoptimized sizes="(min-width: 1024px) 280px, 80px" className="object-cover" />
         </div>
         <dl className="grid min-w-0 flex-1 grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm lg:mt-4 [&>dt]:whitespace-nowrap">
+          <dt className="text-muted">주최</dt><dd className="break-words">{show.hostName || show.defaultHostName || "기획사 이름"}</dd>
           <dt className="text-muted">장소</dt><dd>{show.venue.name}</dd>
           <dt className="text-muted">공연 시간</dt><dd className="num">{show.runningMinutes}분</dd>
           {show.ageRating ? <><dt className="text-muted">관람 연령</dt><dd>{show.ageRating}</dd></> : null}
           <dt className="text-muted">문의 전화</dt><dd className="num whitespace-nowrap">{show.inquiryPhone}</dd>
           <dt className="text-muted">상세 이미지</dt><dd className="num">{show.images.length}장</dd>
           <dt className="text-muted">안내 링크</dt><dd className="num">{show.links.length ? `${show.links.length}개` : "없음"}</dd>
+          <dt className="text-muted">추가 안내</dt><dd className="num">{show.guides.length ? `${show.guides.length}개` : "없음"}</dd>
         </dl>
       </div>
       <div className="mt-5 border-t border-border-soft pt-4">

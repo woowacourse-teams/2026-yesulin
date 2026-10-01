@@ -15,6 +15,7 @@ const reservation = (id: number, overrides: Partial<ProducerReservation> = {}): 
   bookerPhone: `010-0000-000${id}`,
   ticketCount: 2,
   status: "CONFIRMED",
+  memo: "",
   createdAt: "2026-09-28T04:30:00Z",
   canceledAt: null,
   ...overrides,
@@ -33,14 +34,18 @@ describe("reservation export", () => {
     expect(phoneNumbersText(phones)).toBe("010-0000-0001\n010-0000-0004");
   });
 
-  it("엑셀 명단은 확정 예매만 한 행씩, 예매 시각은 한국 시간으로 넣는다", () => {
+  it("엑셀 명단은 확정 예매만 한 행씩, 예매 시각은 한국 시간으로, 메모 줄바꿈은 한 줄로 넣는다", () => {
     const sheet = reservationSheet([
-      reservation(1, { ticketCount: 3 }),
-      reservation(2, { status: "CANCELED" }),
+      reservation(1, { ticketCount: 3, memo: " 휠체어 이용\n\n입구 경사로 안내 " }),
+      reservation(2, { status: "CANCELED", memo: "취소 메모" }),
+      reservation(3),
     ]);
 
-    expect(sheet.columns.map((column) => column.header)).toEqual(["예매번호", "이름", "휴대폰 번호", "매수", "예매 시각"]);
-    expect(sheet.rows).toEqual([["CODE0001", "관객 1", "010-0000-0001", 3, "2026-09-28 13:30"]]);
+    expect(sheet.columns.map((column) => column.header)).toEqual(["예매번호", "이름", "휴대폰 번호", "매수", "예매 시각", "메모"]);
+    expect(sheet.rows).toEqual([
+      ["CODE0001", "관객 1", "010-0000-0001", 3, "2026-09-28 13:30", "휠체어 이용 / 입구 경사로 안내"],
+      ["CODE0003", "관객 3", "010-0000-0003", 2, "2026-09-28 13:30", ""],
+    ]);
   });
 
   it("명단 맨 아래에 복사본과 파일 삭제 안내를 적는다", () => {
