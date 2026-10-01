@@ -353,7 +353,7 @@ function DesktopAction(props: ActionProps) {
 
 function MobileAction(props: ActionProps) {
   return (
-    <div className="glass-surface fixed inset-x-0 bottom-0 z-20 border-x-0 border-b-0 min-[1200px]:hidden">
+    <div className="glass-surface fixed inset-x-0 bottom-0 z-20 border-x-0 border-b-0 pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] min-[1200px]:hidden">
       <div className="mx-auto flex max-w-[880px] items-center gap-3 px-5 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 md:px-8">
         <div className="min-w-0 flex-1"><SelectedSessionSummary selectedSession={props.selectedSession} hasBookable={props.hasBookable} /></div>
         <ActionButton {...props} />

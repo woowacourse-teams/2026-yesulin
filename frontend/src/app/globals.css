@@ -142,6 +142,9 @@
     line-height: 1.6;
     letter-spacing: -0.005em;
     -webkit-font-smoothing: antialiased;
+    /* viewport-fit=cover에서 가로 모드 노치 영역에 본문이 들어가지 않게 한다. 세로 모드와 데스크톱은 0이다. */
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
   }
 
   button,
