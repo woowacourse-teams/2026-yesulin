@@ -2,6 +2,7 @@ package art.yesulin.application.reservation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -31,9 +32,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,6 +49,8 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:h2:mem:reservation-service;MODE=MySQL;DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=10000",
@@ -75,6 +81,9 @@ class ReservationServiceTest {
 
     @Autowired
     private FileReferenceRepository fileReferenceRepository;
+
+    @Autowired
+    private PlatformTransactionManager transactionManager;
 
     private ShowTestFixture fixture;
 
@@ -404,6 +413,44 @@ class ReservationServiceTest {
         assertTrue(finalCount == 8 || finalCount == 7, "final " + finalCount);
     }
 
+    /**
+     * 매수 변경이 회차 잠금을 기다리는 사이 예매가 취소되면, 잠금을 얻은 뒤 최신 상태를 읽어 거절해야 한다.
+     * 다른 트랜잭션이 회차 잠금을 쥐고 있는 동안 취소를 끝내 순서를 고정한다.
+     */
+    @Test
+    void ticketChangeSeesCancellationCommittedWhileWaitingForSessionLock() throws Exception {
+        Show show = fixture.openShow(OWNER_ID, 10);
+        ShowSession session = fixture.firstSession(show);
+        reservationService.reserve(show.getPublicId(), session.getId(), command("010-6666-0001", 2));
+        long reservationId = latestReservationId();
+        CountDownLatch sessionLocked = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        TransactionTemplate transaction = new TransactionTemplate(transactionManager);
+
+        final Future<?> holder = executor.submit(() -> transaction.executeWithoutResult(status -> {
+            sessionRepository.findByIdForUpdate(session.getId()).orElseThrow();
+            sessionLocked.countDown();
+            awaitQuietly(release);
+        }));
+        assertTrue(sessionLocked.await(5, TimeUnit.SECONDS));
+        Future<ProducerReservationResult> change = executor.submit(
+                () -> reservationService.changeTicketCount(OWNER_ID, reservationId, 4)
+        );
+        assertThrows(TimeoutException.class, () -> change.get(500, TimeUnit.MILLISECONDS));
+        reservationService.cancel(OWNER_ID, reservationId);
+        release.countDown();
+        holder.get(5, TimeUnit.SECONDS);
+        ExecutionException exception = assertThrows(ExecutionException.class, () -> change.get(5, TimeUnit.SECONDS));
+        executor.shutdown();
+
+        BusinessException cause = assertInstanceOf(BusinessException.class, exception.getCause());
+        assertEquals(ReservationErrorCode.NOT_CHANGEABLE, cause.getErrorCode());
+        Reservation reloaded = reservationRepository.findById(reservationId).orElseThrow();
+        assertEquals(ReservationStatus.CANCELED, reloaded.getStatus());
+        assertEquals(2, reloaded.getTicketCount());
+    }
+
     @Test
     void memoSaveDoesNotReviveCanceledReservation() {
         Show show = fixture.openShow(OWNER_ID, 10);
@@ -419,6 +466,15 @@ class ReservationServiceTest {
         assertEquals("취소 후 메모", reloaded.getMemo());
         assertEquals(0, reservationRepository.sumTicketCountBySessionIdAndStatus(
                 session.getId(), ReservationStatus.CONFIRMED));
+    }
+
+    private static void awaitQuietly(CountDownLatch latch) {
+        try {
+            assertTrue(latch.await(5, TimeUnit.SECONDS));
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(exception);
+        }
     }
 
     private long latestReservationId() {

@@ -93,13 +93,18 @@ public class ReservationService {
     /**
      * 관객의 전화 요청을 받은 기획사가 매수를 바꾼다. 예매와 같은 회차 행 잠금을 잡아 동시에 들어온 예매와 함께
      * 정원을 넘지 않게 하고, 잠금 뒤 확정 매수를 최신 값으로 읽도록 READ COMMITTED로 실행한다.
-     * 예매는 잠금 전에 읽으므로 그 매수 대신 이 예매를 뺀 나머지 확정 매수로 남은 좌석을 계산한다.
+     * 예매 취소는 회차를 잠그지 않으므로, 예매는 회차를 잠근 뒤에 행 잠금과 함께 새로 읽는다. 그래야 잠금을
+     * 기다리는 사이 취소되거나 매수가 바뀐 예매를 낡은 상태로 바꾸지 않는다.
      */
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public ProducerReservationResult changeTicketCount(long ownerId, long reservationId, int ticketCount) {
-        Reservation reservation = getOwnedReservation(ownerId, reservationId);
-        ShowSession session = sessionRepository.findByIdForUpdate(reservation.getSessionId())
-                .orElseThrow(() -> new BusinessException(SESSION_NOT_FOUND, "공연 회차를 찾을 수 없습니다."));
+        long sessionId = reservationRepository.findSessionIdById(reservationId)
+                .orElseThrow(() -> new BusinessException(NOT_FOUND, "예매를 찾을 수 없습니다."));
+        ShowSession session = sessionRepository.findByIdForUpdate(sessionId)
+                .filter(found -> isShowOwnedBy(found.getShowId(), ownerId))
+                .orElseThrow(() -> new BusinessException(NOT_FOUND, "예매를 찾을 수 없습니다."));
+        Reservation reservation = reservationRepository.findByIdForUpdate(reservationId)
+                .orElseThrow(() -> new BusinessException(NOT_FOUND, "예매를 찾을 수 없습니다."));
         if (reservation.isConfirmed()) {
             long otherReservedTickets = reservationRepository.sumTicketCountBySessionIdAndStatusExcluding(
                     session.getId(), ReservationStatus.CONFIRMED, reservation.getId()
@@ -125,7 +130,12 @@ public class ReservationService {
 
     private boolean isOwnedBy(Reservation reservation, long ownerId) {
         return sessionRepository.findById(reservation.getSessionId())
-                .flatMap(session -> showRepository.findById(session.getShowId()))
+                .filter(session -> isShowOwnedBy(session.getShowId(), ownerId))
+                .isPresent();
+    }
+
+    private boolean isShowOwnedBy(long showId, long ownerId) {
+        return showRepository.findById(showId)
                 .filter(show -> show.getOwnerId() == ownerId)
                 .isPresent();
     }

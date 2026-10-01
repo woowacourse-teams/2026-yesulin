@@ -1,12 +1,23 @@
 package art.yesulin.domain.reservation;
 
+import jakarta.persistence.LockModeType;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
+
+    /** 예매를 영속성 컨텍스트에 올리지 않고 회차 ID만 읽는다. 회차를 잠근 뒤 예매를 새로 읽기 위해 쓴다. */
+    @Query("select reservation.sessionId from Reservation reservation where reservation.id = :id")
+    Optional<Long> findSessionIdById(@Param("id") long id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select reservation from Reservation reservation where reservation.id = :id")
+    Optional<Reservation> findByIdForUpdate(@Param("id") long id);
 
     @Query("""
             select coalesce(sum(reservation.ticketCount), 0) from Reservation reservation
@@ -17,7 +28,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
             @Param("status") ReservationStatus status
     );
 
-    /** 매수를 바꾸는 예매를 뺀 나머지 매수. 잠금 전에 읽은 예매의 매수가 낡았어도 정원 계산이 틀리지 않게 한다. */
+    /** 매수를 바꾸는 예매를 뺀 나머지 확정 매수. */
     @Query("""
             select coalesce(sum(reservation.ticketCount), 0) from Reservation reservation
             where reservation.sessionId = :sessionId and reservation.status = :status
