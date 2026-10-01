@@ -459,6 +459,14 @@ function toAdminSession(session: MockSession): AdminShowSession {
   };
 }
 
+/** 운영자가 공연의 주최 이름을 대신 고친다. 없는 공연이면 null. */
+export function changeMockShowHostName(showId: string, hostName: string) {
+  const show = findShow(showId);
+  if (!show) return null;
+  show.hostName = hostName.trim();
+  return { showId: show.id, hostName: show.hostName, companyName: companyName() };
+}
+
 /** 운영 대시보드 목이 같은 메모리 상태에서 공연별 예매 집계를 읽는다. 예매자 정보는 담지 않는다. */
 export function listAdminShows(status?: ShowStatus): AdminShow[] {
   return shows
@@ -472,7 +480,8 @@ export function listAdminShows(status?: ShowStatus): AdminShow[] {
         showId: show.id,
         title: show.title,
         status: show.status,
-        companyName: MOCK_COMPANY_NAME,
+        companyName: companyName(),
+        hostName: show.hostName,
         createdAt: show.createdAt,
         totalCapacity: total((session) => session.capacity),
         reservedTickets: total((session) => session.reservedTickets),

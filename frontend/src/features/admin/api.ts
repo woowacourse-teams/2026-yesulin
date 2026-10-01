@@ -1,8 +1,8 @@
 import { withCsrfHeaders } from "../csrf";
 import { readErrorMessage, readErrorDetail } from "../api-error";
 import type {
-  AdminAudition,
   AdminAuditLogPage,
+  AdminAudition,
   AdminDailyActivity,
   AdminFileDeletionResult,
   AdminLog,
@@ -11,6 +11,7 @@ import type {
   AdminOverview,
   AdminProducer,
   AdminShow,
+  AdminShowHostName,
   AdminShowStatus,
   AdminSubmissionDetail,
   AdminSubmissionSummary,
@@ -85,6 +86,18 @@ export async function fetchShows(status?: AdminShowStatus): Promise<readonly Adm
     "무료 공연 목록을 불러오지 못했습니다.",
   );
   return body.shows;
+}
+
+/** 빈 문자열을 보내면 기획사 계정의 회사명으로 되돌린다. */
+export async function updateShowHostName(showId: string, hostName: string): Promise<AdminShowHostName> {
+  const response = await fetch(`${API_BASE_PATH}/shows/${encodeURIComponent(showId)}/host-name`, {
+    method: "PUT",
+    credentials: "include",
+    headers: await withCsrfHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ hostName: hostName.trim() }),
+  });
+  if (!response.ok) throw await readAdminError(response, "주최 이름을 바꾸지 못했습니다.");
+  return response.json() as Promise<AdminShowHostName>;
 }
 
 export function fetchAuditLogs(page = 0): Promise<AdminAuditLogPage> {
