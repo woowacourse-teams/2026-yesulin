@@ -77,6 +77,8 @@ management:
           include: readinessState,db
 
 yesulin:
+  notice:
+    link-base-url: ${YESULIN_NOTICE_LINK_BASE_URL}
   sms:
     enabled: ${SMS_ENABLED:false}
     provider: ${SMS_PROVIDER:solapi}

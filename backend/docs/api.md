@@ -166,6 +166,25 @@ PENDING 세션을 ACTIVE로 갱신하고 요청의 `redirectUri`로 302 redirect
 삭제는 배역·일정·지원 폼과 해당 배역의 심사 기록을 함께 지운다. 접수된 지원서가 한 건이라도 있으면
 `AUDITION_INVALID_STATUS`로 거부한다.
 
+## OTR 공고 알림 경유 링크
+
+| Method | URL | 인증 | Request | Response |
+| --- | --- | --- | --- | --- |
+| GET | `/api/v1/otr` | 공개 | query `vid`: OTR 원문 번호(숫자 1~30자) | `302 Location: https://otr.co.kr/audition/?vid={vid}` |
+| HEAD | 동일 경로 | 공개 | 동일 | `302`, 집계에서 제외 |
+
+검증한 번호로 OTR 원문 URL을 생성해 바로 이동한다. DB 조회·저장과 OTR 원문 존재 확인은 하지 않는다.
+응답은 `Cache-Control: no-store`로 캐시하지 않으며 `Referrer-Policy: no-referrer`를 설정한다.
+임의의 목적지 URL은 받지 않는다. 번호 누락·형식 오류는 `400 INVALID_REQUEST`다.
+이 경로는 로그인·CSRF 없이 열 수 있다. HEAD는 Spring MVC의 GET mapping 지원으로 처리한다.
+
+기존 `HTTP_REQUEST` 로그에서 `endpoint=/api/v1/otr`, `method=GET`, `status=302`만 집계한다.
+검증된 OTR 번호는 `otrId` 필드로 남긴다. 전체 쿼리 문자열은 로그에 기록하지 않는다.
+집계는 고유 방문자 수가 아닌 GET 요청 횟수다. 반복 클릭·미리보기 봇의 GET 요청도 포함될 수 있다.
+클릭별 별도 로그·DB 카운터·GA 이벤트는 추가하지 않는다. 관리자 개요에서 파일 로그 기반 집계를 조회한다.
+공유 링크는 `{프론트 origin}/otr?vid={번호}`다. Next.js의 `/otr` rewrite가 쿼리를 유지한 채
+`{API_ORIGIN}/api/v1/otr?vid={번호}`로 전달한다. 프론트 화면이나 클라이언트 JS를 실행하지 않는다.
+
 ## OTR 공고와 지원·심사 — 9개
 
 기존 공연·공고와 별도의 저장 모델이다. `PRODUCER + ACTIVE`만 호출할 수 있고 다른 공연사의 목록은 볼 수 없다.
@@ -352,6 +371,7 @@ submission ID와 변경할 status·memo·note 중 하나 이상을 요구한다.
 | GET | `/api/v1/admin/shows` | Admin | `status` query (`DRAFT`/`OPEN`/`CLOSED`, 선택) | `200 AdminShowsResponse` |
 | GET | `/api/v1/admin/audit-logs` | Admin | `page` query (선택, 0부터) | `200 AdminAuditLogsResponse` |
 | GET | `/api/v1/admin/logs` | Admin | `keyword`, `limit`, `date`(`yyyy-MM-dd`) query (선택) | `200 AdminLogResponse` |
+| GET | `/api/v1/admin/otr-redirects` | Admin | `days` query (1~14, 기본 14) | `200 OtrRedirectReport` |
 | GET | `/api/v1/admin/files/unreferenced` | Admin | `status` (`PENDING`/`READY`/`DELETING`), `page`(0부터), `size`(1~100) query, 모두 선택 | `200 UnusedFilesResult` |
 | DELETE | `/api/v1/admin/files/{fileId}` | Admin | `DeleteAdminFileRequest(confirmationPassword)` | `204` |
 | POST | `/api/v1/admin/files/deletions` | Admin | `BatchDeleteAdminFilesRequest(fileIds, confirmationPassword)` | `200 BatchFileDeletionResult` |
@@ -366,6 +386,18 @@ submission ID와 변경할 status·memo·note 중 하나 이상을 요구한다.
 수를 담는다. 한 배우가 여러 소셜 계정을 연결하면 경로마다 센다. 로그인·방문 기록은 저장하지 않으므로 활성 사용자 수는
 제공하지 않는다. `AdminActivity.days`는 오늘을 포함한 최근 14일을 한국 날짜 오래된 순으로 담고, 날마다 신규 배우·기획사,
 지원서, OTR 지원서, 현재 확정 상태인 예매 건수·매수를 0 포함으로 반환한다.
+
+`OtrRedirectReport`는 `environment`(`DEV`·`PROD`·`LOCAL`), 한국 날짜 `startDate`·`endDate`,
+`totalClicks`, `links: [{otrId, clicks, lastClickedAt}]`, `available`, `truncated`, `readAt`을 반환한다.
+현재 서버의 로그만 집계하며 다른 환경의 세션·서버·DB를 조회하지 않는다. 응답은 `Cache-Control: no-store`다.
+현재 JSON 로그 파일과 선택 기간의 날짜별 `.gz`(오늘 rolling 파일 포함)를 스트림으로 읽고,
+검증된 `otrId`가 있는 `HTTP_REQUEST`·GET·`endpoint=/api/v1/otr`·302만 센다. HEAD·실패·기존 텍스트는 제외한다.
+공고별 이동 수 내림차순, 동률이면 번호 문자열 순이다. 총합은 반환한 모든 공고의 합이며 최근 500줄 제한과 무관하다.
+파일 경로는 서버 설정으로 고정한다. 한 요청에 최신 파일부터 최대 200개·해제된 64 × 1024 × 1024문자까지 읽고,
+상한 또는 파일 읽기 오류가 있으면 `truncated=true`로 부분 집계를 표시한다. 읽을 파일이 없으면
+`available=false`다. 정상적으로 읽었으나 이동 로그가 없으면 `available=true`, `totalClicks=0`이다.
+기간은 오늘 포함 1~14일이다. 범위 밖·잘못된 숫자는 `400 INVALID_REQUEST`다. 삭제된 보관 로그와 배포 전
+기록은 복원하지 않으며 영구 누적 통계나 고유 방문자 수가 아니다.
 
 미사용 파일 목록은 7일 미만도 포함한다. `files`의 각 항목은 `fileId`, `ownerId`, `status`, `storageScope`,
 `createdAt`, `unusedSince`, `deletableAt`, `deletable`을 담는다. 응답에 `page`, `size`, `hasNext`가 포함된다.
