@@ -1,5 +1,5 @@
 import { delay, http, HttpResponse } from "msw";
-import type { AdminLogEntry } from "@/features/admin/types";
+import type { AdminLogEntry, AdminOtrRedirectReport } from "@/features/admin/types";
 
 const entries: readonly AdminLogEntry[] = [
   {
@@ -74,6 +74,25 @@ const entries: readonly AdminLogEntry[] = [
 ];
 
 export const adminLogHandlers = [
+  http.get("/api/v1/admin/otr-redirects", async ({ request }) => {
+    await delay(120);
+    const days = Number(new URL(request.url).searchParams.get("days") ?? 14);
+    if (!Number.isInteger(days) || days < 1 || days > 14) {
+      return HttpResponse.json({ code: "INVALID_REQUEST", message: "집계 기간은 1~14일이어야 합니다." }, { status: 400 });
+    }
+    const now = new Date();
+    const endDate = new Date(now.getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const startDate = new Date(Date.parse(`${endDate}T00:00:00Z`) - (days - 1) * 86400000).toISOString().slice(0, 10);
+    const report: AdminOtrRedirectReport = {
+      environment: "DEV", startDate, endDate, totalClicks: 50,
+      links: [
+        { otrId: "22310", clicks: 32, lastClickedAt: now.toISOString() },
+        { otrId: "22311", clicks: 18, lastClickedAt: now.toISOString() },
+      ],
+      available: true, truncated: false, readAt: now.toISOString(),
+    };
+    return HttpResponse.json(report);
+  }),
   http.get("/api/v1/admin/logs", async ({ request }) => {
     await delay(120);
     const params = new URL(request.url).searchParams;

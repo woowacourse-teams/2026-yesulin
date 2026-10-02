@@ -19,6 +19,15 @@ MSW 전용 경로를 어떻게 구분하는지만 설명한다.
 
 ## 실제 API 사용 영역
 
+OTR 공유 링크 `/otr?vid={번호}`는 클라이언트 API 호출이 아니다. Next.js rewrite로
+`/api/v1/otr?vid={번호}`에 전달하여 백엔드의 302 응답으로 원문을 연다.
+별도 DTO·MSW handler·프론트 화면 없이 실제 백엔드를 사용한다.
+DEV 공고 알림도 기본 공유 링크는 `https://yesulin.art`로 발급한다. 각 프론트의 rewrite는 여전히
+자기 환경의 백엔드를 가리키므로 실제 이동 기록은 링크를 연 환경에 남는다.
+관리자 개요의 `GET /api/v1/admin/otr-redirects?days={1~14}`는 현재 환경의 집계만 조회한다.
+`totalClicks`·`links` 외에 `environment`, `available`, `truncated`, 한국 날짜 범위와 조회 시각을 표시한다.
+조회 실패·로그 없음은 0건으로 대체하지 않는다. MSW에는 화면 확인용 DEV 집계 fixture를 제공한다.
+
 - `/api/v1/sessions`, `/api/v1/auth/email-verifications`, `/api/v1/auth/password-resets`
 - `/api/v1/producers`, `/api/v1/producers/me`
 - `/api/v1/performances`, `/api/v1/performance-posters`

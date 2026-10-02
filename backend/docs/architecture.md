@@ -48,6 +48,7 @@ infrastructure/    JPA·QueryDSL, OAuth, S3 등 외부 기술 adapter
 - 파일 JSON은 `@timestamp`, `level`, `logger_name`, `thread_name`, `message`와 MDC 필드를 분리해 저장한다.
 - 요청이 끝나면 `HTTP_REQUEST`를 한 건만 기록한다. method, query string을 뺀 URI, endpoint 패턴, status,
   elapsed time과 존재하는 error code를 JSON 최상위 필드로 남긴다.
+  OTR 경유 링크는 번호 검증 후 `otrId` 필드만 추가한다. 쿼리 문자열 전체는 기록하지 않는다.
 - 5xx는 `ERROR`, 1초 이상은 `WARN`, 나머지는 `INFO`다. 5xx가 느린 요청보다 우선하며, 짧은 주기의 폴링
   성공은 1초 미만일 때만 `DEBUG`로 낮춘다. 대상은 `/api/v1/health`, `/actuator/health/readiness`,
   `/api/v1/admin/logs`이며,
@@ -80,3 +81,5 @@ infrastructure/    JPA·QueryDSL, OAuth, S3 등 외부 기술 adapter
   조회 응답은 기존 `lines`와 구조화된 `entries`를 함께 제공한다. 배포 전에 남은 텍스트는 `LEGACY`, JSON은
   `STRUCTURED`로 판별하며, 파싱할 수 없는 줄 하나가 전체 조회를 실패시키지 않는다.
 - 기본 로그 파일은 실행 디렉터리 기준 `logs/yesulin.log`, 10MB 단위 압축, 14일·1GB 상한이다.
+- 운영자 공고 이동 집계는 `application/admin/log`의 port를 `infrastructure/admin/log` 파일 reader가 구현한다.
+  최근 줄 조회와 달리 현재 파일과 선택 기간의 보관 파일을 함께 읽으며 환경별 관리자 화면에서 별도로 확인한다.

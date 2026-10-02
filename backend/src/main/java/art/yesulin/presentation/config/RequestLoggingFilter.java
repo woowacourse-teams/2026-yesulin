@@ -99,6 +99,10 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
         if (errorCode != null) {
             event.addKeyValue("errorCode", errorCode);
         }
+        String otrId = RequestLogContext.getOtrId(request);
+        if (otrId != null) {
+            event.addKeyValue("otrId", otrId);
+        }
         event.log(
                 "HTTP method={} uri={} endpoint={} status={} elapsedMs={}",
                 request.getMethod(),

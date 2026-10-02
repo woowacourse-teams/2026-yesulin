@@ -12,6 +12,10 @@ const nextConfig: NextConfig = {
 
     return [
       {
+        source: "/otr",
+        destination: `${apiOrigin}/api/v1/otr`,
+      },
+      {
         source: "/api/v1/:path*",
         destination: `${apiOrigin}/api/v1/:path*`,
       },

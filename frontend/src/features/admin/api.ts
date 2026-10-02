@@ -9,6 +9,7 @@ import type {
   AdminLogEntry,
   AdminMemberStats,
   AdminOverview,
+  AdminOtrRedirectReport,
   AdminProducer,
   AdminShow,
   AdminShowHostName,
@@ -47,6 +48,13 @@ async function getJson<T>(path: string, fallback: string): Promise<T> {
 
 export function fetchOverview(): Promise<AdminOverview> {
   return getJson<AdminOverview>("/overview", "현황을 불러오지 못했습니다.");
+}
+
+export function fetchOtrRedirects(days = 14): Promise<AdminOtrRedirectReport> {
+  return getJson<AdminOtrRedirectReport>(
+    `/otr-redirects?days=${days}`,
+    "OTR 공고 이동 통계를 불러오지 못했습니다.",
+  );
 }
 
 export function fetchMemberStats(): Promise<AdminMemberStats> {
