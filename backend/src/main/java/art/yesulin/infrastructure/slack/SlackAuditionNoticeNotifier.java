@@ -2,6 +2,7 @@ package art.yesulin.infrastructure.slack;
 
 import art.yesulin.application.notice.AuditionContent;
 import art.yesulin.application.notice.AuditionNoticeNotifier;
+import art.yesulin.application.notice.OtrNoticeLink;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -25,13 +26,16 @@ public class SlackAuditionNoticeNotifier implements AuditionNoticeNotifier {
     private final String webhookUrl;
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
+    private final OtrNoticeLink noticeLink;
 
     public SlackAuditionNoticeNotifier(
             @Value("${YESULIN_SLACK_WEBHOOK_URL:}") String webhookUrl,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            OtrNoticeLink noticeLink
     ) {
         this.webhookUrl = webhookUrl;
         this.objectMapper = objectMapper;
+        this.noticeLink = noticeLink;
         this.httpClient = HttpClient.newBuilder().connectTimeout(CONNECT_TIMEOUT).build();
     }
 
@@ -52,7 +56,7 @@ public class SlackAuditionNoticeNotifier implements AuditionNoticeNotifier {
             message.append(content.title())
                     .append("\n페이: ").append(display(content.pay()))
                     .append(" | 마감: ").append(display(content.deadline()))
-                    .append("\n자세히 보기\n").append(content.sourceUrl());
+                    .append("\n자세히 보기\n").append(noticeLink.create(content.externalId()));
         }
         post(message.toString());
     }
@@ -72,7 +76,8 @@ public class SlackAuditionNoticeNotifier implements AuditionNoticeNotifier {
             body = objectMapper.writeValueAsString(Map.of(
                     "text", message,
                     "mrkdwn", false,
-                    "unfurl_links", false
+                    "unfurl_links", false,
+                    "unfurl_media", false
             ));
         } catch (JacksonException exception) {
             throw new IllegalStateException("Slack 알림을 생성하지 못했습니다.");

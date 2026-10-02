@@ -11,6 +11,28 @@ OTR 공고 Slack 웹훅은 현재 `server/dev.env`에만 `YESULIN_SLACK_WEBHOOK_
 09:00~20:00에 10분 간격으로 실행된다. DEV 첫 실행에는 첫 페이지의 기존 공고도 신규로 등록되어 최대 5건씩 묶여
 Slack으로 전송될 수 있다. 중복 알림과 실패 재시도를 확인한 뒤 PROD 적용을 별도로 결정한다.
 
+Slack의 공고 링크는 예술in의 `/otr?vid={OTR 번호}`를 경유한다.
+`YESULIN_NOTICE_LINK_BASE_URL`은 필수 환경 변수다. LOCAL은 `config/server/local.env`의
+`http://localhost:3000`, DEV·PROD는 SOPS 암호화된 `config/server/dev.env`·`prod.env`의 `https://yesulin.art`를 사용한다.
+알림은 DEV 스케줄러가 보내지만 실제 공유 링크는 PROD 프론트·백엔드로 연결한다.
+테스트용 DEV 링크는 `https://dev.yesulin.art/otr?vid={번호}`를 직접 사용한다.
+환경별 YAML을 추가하지 않고 `application.yml`에서 이 변수를 읽는다. 테스트는 test resource의 값을 사용한다.
+배포 환경 값은 다른 설정과 동일하게 `config/server/{환경}.env`에 SOPS로 편집하며
+EC2의 복호화된 파일을 직접 수정하지 않는다. 변경한 config는 commit·push 후 `config-version.txt`와 submodule SHA를
+같이 갱신한 릴리스로 배포한다. config push 전에는 버전 고정 파일을 바꾸지 않는다.
+프론트의 `/otr` rewrite가 **같은 환경의 백엔드**의 `/api/v1/otr`로 전달해야 한다.
+LOCAL은 프론트의 `API_ORIGIN=http://localhost:8080` 설정과 프론트 실행이 필요하다.
+백엔드와 프론트를 함께 배포해야 짧은 공유 링크가 동작한다.
+이미 발송된 Slack 메시지와 카카오 게시글의 OTR 직접 링크는 바뀌지 않는다. 배포 후 새 알림부터 적용된다.
+
+클릭 수는 별도 DB나 GA에 저장하지 않고 기존 HTTP 요청 로그를 집계한다.
+GET 요청 횟수이므로 고유 방문자 수는 아니며, 반복 클릭·메신저의 GET 미리보기도 포함될 수 있다.
+HEAD는 집계하지 않고 Slack 메시지의 링크·미디어 unfurl은 비활성화한다.
+로그 조회 및 CloudWatch 설정 조건은 [모니터링 문서](monitoring.md)의 공고 경유 링크 항목을 따른다.
+기본 확인 경로는 각 환경의 `/admin` 개요다. PROD 링크 이동은 PROD 관리자에서, DEV 테스트 링크 이동은 DEV
+관리자에서 확인한다. 두 환경 모두 이 백엔드와 프론트를 배포해야 하며 서로의 통계를 합산하거나 교차 조회하지 않는다.
+배포 서버에 JSON 로그 파일이 없으면 이동 집계도 불가하다. 기존 journal 콘솔 로그만으로 대신 집계하지 않는다.
+
 1. PR CI가 Java 25로 Checkstyle과 test를 수행하고, CodeBuild가 실행 JAR를 빌드한다.
 2. JAR를 `application.jar`로 고정하고 revision과 SHA-256을 기록한다.
 3. JAR와 복호화한 환경 파일을 `/opt/yesulin/releases/{commit-id}`에 함께 설치한 뒤 `current` symlink를 교체한다.

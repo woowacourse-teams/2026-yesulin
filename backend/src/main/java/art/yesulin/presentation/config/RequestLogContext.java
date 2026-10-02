@@ -9,6 +9,7 @@ public final class RequestLogContext {
     public static final String INTERNAL_ERROR_CODE = "INTERNAL_ERROR";
 
     private static final String ERROR_CODE_ATTRIBUTE = RequestLogContext.class.getName() + ".errorCode";
+    private static final String OTR_ID_ATTRIBUTE = RequestLogContext.class.getName() + ".otrId";
 
     private RequestLogContext() {
     }
@@ -25,5 +26,14 @@ public final class RequestLogContext {
     public static String resolveEndpoint(HttpServletRequest request) {
         Object pattern = request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE);
         return pattern == null ? request.getRequestURI() : pattern.toString();
+    }
+
+    public static void setOtrId(HttpServletRequest request, String otrId) {
+        request.setAttribute(OTR_ID_ATTRIBUTE, otrId);
+    }
+
+    public static String getOtrId(HttpServletRequest request) {
+        Object otrId = request.getAttribute(OTR_ID_ATTRIBUTE);
+        return otrId instanceof String value ? value : null;
     }
 }

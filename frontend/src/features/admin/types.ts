@@ -1,5 +1,20 @@
 export type MemberStatus = "PENDING" | "ACTIVE";
 
+export type AdminOtrRedirectReport = {
+  readonly environment: "DEV" | "PROD" | "LOCAL";
+  readonly startDate: string;
+  readonly endDate: string;
+  readonly totalClicks: number;
+  readonly links: readonly {
+    readonly otrId: string;
+    readonly clicks: number;
+    readonly lastClickedAt: string;
+  }[];
+  readonly available: boolean;
+  readonly truncated: boolean;
+  readonly readAt: string;
+};
+
 export type AuditionStatus = "DRAFT" | "PUBLISHED" | "CLOSED";
 
 export type AdminShowStatus = "DRAFT" | "OPEN" | "CLOSED";
