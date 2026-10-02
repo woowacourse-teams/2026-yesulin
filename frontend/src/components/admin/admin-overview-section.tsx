@@ -2,6 +2,7 @@ import Link from "next/link";
 import { buildAttentions } from "@/features/admin/insights";
 import { adminSectionHref } from "@/features/admin/sections";
 import { AdminActivityCharts } from "./admin-activity-charts";
+import { AdminOtrRedirectStats } from "./admin-otr-redirect-stats";
 import { StatGroup, StatTile } from "./admin-stat";
 import type { DashboardData } from "./use-admin-dashboard";
 
@@ -97,6 +98,8 @@ export function AdminOverviewSection({ data }: { readonly data: DashboardData })
       </div>
 
       <AdminActivityCharts days={data.activity} />
+
+      <AdminOtrRedirectStats refreshToken={data.loadedAt} />
 
       <p className="text-xs leading-5 text-muted">
         방문자·활성 사용자 수는 로그인·방문 기록을 저장하지 않아 이 화면에서 셀 수 없어요. 비회원 관객까지 포함한 방문 통계는

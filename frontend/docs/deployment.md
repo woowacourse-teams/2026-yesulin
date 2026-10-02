@@ -4,7 +4,7 @@
 - Node.js: 24.x
 - Production branch: `main`
 - Production domain: `https://yesulin.art`
-- `API_ORIGIN`: `https://dcijkydwh7e79.cloudfront.net`
+- `API_ORIGIN`: Production은 `https://api.yesulin.art`, DEV는 `https://dev-api.yesulin.art`
 - `NEXT_PUBLIC_GTM_ID`: `GTM-PZXXR8RG` (Production only)
 - `NEXT_PUBLIC_SENTRY_DSN`: Sentry `in-front/javascript-nextjs` 프로젝트의 public DSN
 - `NEXT_PUBLIC_SENTRY_ENVIRONMENT`: Production은 `production`, Preview는 `preview`
@@ -14,6 +14,14 @@
 
 브라우저는 같은 origin의 `/api/v1/**`, `/oauth2/**`, `/login/oauth2/**`를 호출하고 Next.js가 `API_ORIGIN`으로
 rewrite한다. Production·Preview에는 `NEXT_PUBLIC_API_MOCKING`을 설정하지 않는다.
+
+OTR 공고 공유 링크는 `/otr?vid={OTR 번호}`다. 화면을 렌더링하지 않고 같은 환경의
+`${API_ORIGIN}/api/v1/otr?vid={번호}`로 rewrite하며, 백엔드의 OTR 원문 302 응답을 브라우저에 전달한다.
+공유 링크에 백엔드 도메인이나 `/api/v1`을 노출하지 않는다. `API_ORIGIN`이 없으면 rewrite가 생성되지 않는다.
+백엔드의 해당 API와 프론트 rewrite를 함께 배포해야 하며 GA 이벤트는 발생시키지 않는다.
+DEV 스케줄러도 실제 알림에는 PROD 주소 `https://yesulin.art/otr?vid={번호}`를 사용한다.
+그 요청은 PROD `/admin` 개요에 집계된다. `https://dev.yesulin.art/otr?vid={번호}`로 직접 테스트한 요청은
+DEV `/admin`에 별도로 집계되며, 두 환경 모두 백엔드의 JSON 파일 로그 조회 API가 배포돼 있어야 한다.
 
 업로드는 백엔드에서 받은 presigned `uploadUrl`로 직접 PUT하고 완료 API를 호출한다. 조회 URL은 백엔드 응답을
 그대로 사용하며 프론트가 CloudFront 경로를 조합하지 않는다.

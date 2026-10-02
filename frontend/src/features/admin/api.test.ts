@@ -1,11 +1,26 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { deleteUnusedFiles, fetchAuditLogs, fetchLogs, fetchShows, fetchUnusedFiles, normalizeAdminLog } from "./api";
+import { deleteUnusedFiles, fetchAuditLogs, fetchLogs, fetchOtrRedirects, fetchShows, fetchUnusedFiles, normalizeAdminLog } from "./api";
 
 afterEach(() => {
   vi.unstubAllGlobals();
 });
 
 describe("admin API", () => {
+  it("공고 이동 집계는 같은 환경의 관리자 API에 기간과 세션을 전달한다", async () => {
+    const report = { environment: "PROD", totalClicks: 50, links: [], available: true, truncated: false };
+    const fetchMock = vi.fn().mockResolvedValue(Response.json(report));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchOtrRedirects(7)).resolves.toEqual(report);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/v1/admin/otr-redirects?days=7", { method: "GET", credentials: "include" },
+    );
+  });
+
+  it("공고 이동 조회 실패를 0건으로 바꾸지 않는다", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ message: "로그 조회 실패" }, { status: 500 })));
+    await expect(fetchOtrRedirects()).rejects.toThrow("로그 조회 실패");
+  });
   it("구조화 entries가 없는 구버전 응답을 LEGACY 항목으로 정규화한다", () => {
     const result = normalizeAdminLog({
       lines: ["INFO legacy application log"],
