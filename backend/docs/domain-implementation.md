@@ -54,6 +54,22 @@
   예매·정원 수정·회차 삭제·공연 삭제·매수 변경 트랜잭션은 `READ_COMMITTED`로 실행한다. H2 테스트는 이 차이를 재현하지 못한다.
 - 포스터·상세 이미지는 `SHOW_POSTER`, `SHOW_IMAGE` 파일 참조로 연결하고 공연 수정 시 모두 다시 연결한다.
 
+## 오디션 일정표
+
+- `Timetable`은 관리 열쇠, 안내 정보(`TimetableProfile`), 소요 시간·정원과 정렬된 `TimetableWindow` 목록
+  (`timetable_windows` element collection), `DRAFT/PUBLISHED`, 배우 직접 변경 잠금을 저장한다. 시간 칸(`TimeSlot`)은 저장하지
+  않고 시간대에서 계산한다. 공연·공고·회원과 연결하지 않는다.
+- `TimetableActor`는 일정표 ID, 개인 열쇠, 이름·휴대폰, 배정 칸(날짜·시작 시각, 미배정이면 null), 안내 시각과 배우 직접
+  변경 기록(기획사가 마지막으로 정한 이전 칸·변경 시각)을 가진 별도 엔티티다. `(timetable_id, phone)` 고유 제약으로 같은 번호를 막는다.
+- 정원·바운더리처럼 여러 배우에 걸친 규칙은 `TimetableBoard`가 일정표와 그 일정표의 배우 전체로 검사한다. 배정을 바꾸는
+  기획사 저장·확정·등록·삭제와 배우 직접 변경은 모두 일정표 행을 `PESSIMISTIC_WRITE`로 잠근 뒤 배우를 새로 읽고,
+  잠금 뒤 최신 커밋 값을 읽도록 `READ_COMMITTED`로 실행한다. 배우 경로는 열쇠로 일정표 ID만 먼저 읽고 잠근다.
+- `TimetableRequest`는 배우의 시간 조정 요청(`OPEN/RESOLVED`)이고, `TimetableMessage`는 받는 이름·번호·본문을 고정한
+  문자 대기열 행(`PENDING/SENT`, 발송 표시 운영자)이다. 문자 본문과 중복 억제는 `TimetableMessenger`가 맡는다.
+- 한 작업에서 넣은 문자는 `TimetableMessagesQueuedEvent` 하나로 묶고 커밋 뒤 `TimetableMessageRelay`에 전달한다. 현재 구현
+  `SlackTimetableMessageRelay`는 개인정보 없는 신호를 가상 스레드로 운영 Slack에 보내며 실패해도 대기열은 남는다. 문자 업체로
+  보내려면 이 포트의 구현만 바꾸고 보낸 문자를 `SENT`로 표시한다. Slack 전송은 OTR 공고 알림과 같은 `SlackWebhookClient`를 쓴다.
+
 ## 공고 알림
 
 - `domain/notice`는 지원 접수용 `OtrAudition`과 별개인 외부 공고 알림 이력을 정의한다.
