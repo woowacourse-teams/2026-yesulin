@@ -41,6 +41,7 @@ DEV 공고 알림도 기본 공유 링크는 `https://yesulin.art`로 발급한�
 - `/api/v1/audition-roles/{roleId}/screening-rounds/**`
 - `/api/v1/upload-diagnostics` (업로드 실패·재시도 성공의 개인정보 없는 진단)
 - `/api/v1/admin/**` (운영 대시보드 전용. 단, 로그 화면 시각 검증을 위한 `/logs` fixture는 MSW에 포함한다.)
+- `/api/v1/timetables/**` (오디션 일정표. 관리·배우 열쇠를 `X-Timetable-Key` 헤더로 보낸다.)
 
 `/admin/files`의 미사용 파일 조회·최대 100개 일괄 삭제도 실제 API를 사용한다. MSW가 켜져 있어도 해당 경로는 서버로 전달하며,
 삭제 확인 비밀번호나 S3 삭제 성공을 목 응답으로 대체하지 않는다.
@@ -84,6 +85,11 @@ DEV 공고 알림도 기본 공유 링크는 `https://yesulin.art`로 발급한�
 실제 공고 전용 prefill API는 없다. 프론트가 현재 프로필과 공개 공고 양식의 교집합을 만든다.
 
 ## 어댑터 주의사항
+
+- 오디션 일정표 API adapter(`features/timetables/api.ts`)는 서버의 `HH:mm:ss`를 화면의 `HH:mm`으로 줄이고, 요청에는
+  `HH:mm`을 보낸다. 관리·배우 열쇠는 주소(`/timetable/manage/{열쇠}`, `/timetable/{열쇠}`)에서 읽어 헤더로만 보낸다.
+  보드의 배정·시간대 변경은 `board-draft.ts` 편집본에서 고치고 저장할 때 옮긴 배우와 이전 시간만 보낸다. 배우 등록·삭제처럼
+  편집 중 새 보드를 받으면 기획사가 손대지 않은 값만 새 서버 값으로 맞춘다. 자동 배정도 저장 전 편집 기능이다.
 
 - OTR 생성·목록 응답의 `applicationPath`를 공연사 화면에서 지원 링크로 보여 준다. 지원 링크는
   `/apply/standard/{id}`로 바로 고정 폼을 열고, 서버의 `open` 및 제출 결과가 마감 여부의 정본이다.
