@@ -303,3 +303,31 @@ export type AdminTimetableMessages = {
   readonly pendingCount: number;
   readonly messages: readonly AdminTimetableMessage[];
 };
+
+export type AdminAuditionPostStatus = "PUBLISHED" | "HIDDEN";
+
+/** 운영자가 OTR에서 가져온 공고. `/api/v1/admin/audition-posts` 응답과 같다. */
+export type AdminAuditionPost = {
+  readonly id: number;
+  readonly source: string;
+  readonly externalId: string;
+  readonly sourceUrl: string;
+  readonly category: string;
+  readonly title: string;
+  readonly authorName: string;
+  readonly deadlineText: string;
+  readonly closed: boolean;
+  readonly status: AdminAuditionPostStatus;
+  readonly imageCount: number;
+  readonly attachmentCount: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+};
+
+export type AdminAuditionPostImport = {
+  readonly post: AdminAuditionPost;
+  /** 처음 가져왔으면 true, 원문으로 다시 가져와 교체했으면 false. */
+  readonly created: boolean;
+  /** 형식·크기 기준에 맞지 않아 옮기지 않은 첨부파일. */
+  readonly skippedAttachments: readonly { readonly filename: string; readonly reason: string }[];
+};

@@ -13,6 +13,7 @@ type NavItem = {
 
 const NAV_ITEMS: readonly NavItem[] = [
   ...ADMIN_SECTIONS.map((section) => ({ id: section.id, label: section.label, href: adminSectionHref(section.id) })),
+  { id: "posts", label: "공고 가져오기", href: "/admin/posts" },
   { id: "messages", label: "문자 대기열", href: "/admin/messages" },
   { id: "files", label: "파일 관리", href: "/admin/files" },
   { id: "logs", label: "애플리케이션 로그", href: "/admin/logs" },
@@ -43,7 +44,7 @@ function Badge({ count, dark }: { readonly count: number; readonly dark: boolean
 
 /** 운영 대시보드·파일 관리·로그 화면이 함께 쓰는 틀이다. 데스크톱은 왼쪽 메뉴, 모바일은 가로 탭으로 이동한다. */
 export function AdminShell({ current, title, description, actions, badges = {}, children }: Props) {
-  const badgeOf = (id: AdminNavTarget) => (id === "logs" || id === "files" || id === "messages" ? 0 : badges[id] ?? 0);
+  const badgeOf = (id: AdminNavTarget) => (id === "logs" || id === "files" || id === "messages" || id === "posts" ? 0 : badges[id] ?? 0);
   const mobileNavRef = useRef<HTMLElement>(null);
 
   // 모바일 가로 탭에서 뒤쪽 메뉴(파일·로그)에 있어도 현재 탭이 보이도록 가운데로 스크롤한다.
@@ -114,7 +115,7 @@ export function AdminShell({ current, title, description, actions, badges = {}, 
                         active ? "border-foreground text-foreground" : "border-transparent text-muted hover:text-foreground"
                       }`}
                     >
-                      {item.id === "logs" ? "로그" : item.id === "files" ? "파일" : item.label}
+                      {item.id === "logs" ? "로그" : item.id === "files" ? "파일" : item.id === "posts" ? "공고" : item.label}
                       {count > 0 ? <Badge count={count} dark={false} /> : null}
                     </Link>
                   </li>
