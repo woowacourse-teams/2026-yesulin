@@ -9,14 +9,14 @@ import static art.yesulin.domain.timetable.TimetableErrorCode.TOO_MANY_ACTORS;
 
 import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.timetable.Timetable;
-import art.yesulin.domain.timetable.TimetableActor;
-import art.yesulin.domain.timetable.TimetableActorRepository;
 import art.yesulin.domain.timetable.TimetableBoard;
 import art.yesulin.domain.timetable.TimetableKey;
-import art.yesulin.domain.timetable.TimetableMessage;
 import art.yesulin.domain.timetable.TimetableRepository;
-import art.yesulin.domain.timetable.TimetableRequestRepository;
-import art.yesulin.domain.timetable.TimetableRequestStatus;
+import art.yesulin.domain.timetable.actor.TimetableActor;
+import art.yesulin.domain.timetable.actor.TimetableActorRepository;
+import art.yesulin.domain.timetable.message.TimetableMessage;
+import art.yesulin.domain.timetable.request.TimetableRequestRepository;
+import art.yesulin.domain.timetable.request.TimetableRequestStatus;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -45,22 +45,17 @@ public class TimetableService {
     private final TimetableMessenger messenger;
     private final Clock clock;
 
-    /** 관리 링크는 화면에도 보여 주고, 잃어버리지 않게 기획사 번호로도 보낸다. */
     @Transactional
     public TimetableCreatedResult create(CreateTimetableCommand command) {
-        Timetable timetable = timetableRepository.save(new Timetable(
-                TimetableKey.generate(), command.profile().toProfile(), command.setting().toSetting()
-        ));
-        messenger.queue(timetable, List.of(messenger.organizerLink(timetable)));
-        return new TimetableCreatedResult(timetable.getManageKey(), boardOf(timetable, List.of()));
+        Timetable timetable = timetableRepository.save(command.toTimetable());
+        return new TimetableCreatedResult(timetable.getManageKey().getValue());
     }
 
     @Transactional(readOnly = true)
     public TimetableBoardResult find(String manageKey) {
-        if (!TimetableKey.isWellFormed(manageKey)) {
-            throw notFound();
-        }
-        Timetable timetable = timetableRepository.findByManageKey(manageKey).orElseThrow(this::notFound);
+        Timetable timetable = TimetableKey.parse(manageKey)
+                .flatMap(timetableRepository::findByManageKey)
+                .orElseThrow(this::notFound);
         return boardOf(timetable, actorsOf(timetable));
     }
 
@@ -104,9 +99,7 @@ public class TimetableService {
         actors.forEach(actor -> namesByPhone.put(actor.getPhone(), actor.getName()));
         List<TimetableActor> registered = new ArrayList<>();
         for (ActorContactCommand contact : contacts) {
-            TimetableActor actor = new TimetableActor(
-                    timetable.getId(), TimetableKey.generate(), contact.name(), contact.phone()
-            );
+            TimetableActor actor = new TimetableActor(timetable.getId(), contact.name(), contact.phone());
             String existing = namesByPhone.putIfAbsent(actor.getPhone(), actor.getName());
             if (existing != null) {
                 throw new BusinessException(DUPLICATE_ACTOR, "%s 번호는 ‘%s’ 배우로 이미 등록돼 있습니다.",
@@ -188,10 +181,9 @@ public class TimetableService {
     }
 
     private Timetable lock(String manageKey) {
-        if (!TimetableKey.isWellFormed(manageKey)) {
-            throw notFound();
-        }
-        return timetableRepository.findByManageKeyForUpdate(manageKey).orElseThrow(this::notFound);
+        return TimetableKey.parse(manageKey)
+                .flatMap(timetableRepository::findByManageKeyForUpdate)
+                .orElseThrow(this::notFound);
     }
 
     private List<TimetableActor> actorsOf(Timetable timetable) {

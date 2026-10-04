@@ -1,4 +1,6 @@
-package art.yesulin.domain.timetable;
+package art.yesulin.domain.timetable.actor;
+
+import art.yesulin.domain.timetable.setting.TimeSlot;
 
 /**
  * 기획사가 보드에서 배우 한 명을 옮긴 기록이다. {@code previous}는 기획사 화면이 본 시간이며,

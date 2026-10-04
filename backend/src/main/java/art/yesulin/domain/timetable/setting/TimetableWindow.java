@@ -1,11 +1,15 @@
-package art.yesulin.domain.timetable;
+package art.yesulin.domain.timetable.setting;
 
 import static art.yesulin.domain.common.validation.DomainValidator.requireNonNull;
 import static art.yesulin.domain.timetable.TimetableErrorCode.INVALID_INPUT;
 
 import art.yesulin.common.exception.BusinessException;
 import jakarta.persistence.Column;
-import jakarta.persistence.Embeddable;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
@@ -16,11 +20,8 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-/**
- * 기획사가 오디션을 열 수 있다고 정한 날짜의 시간대다. 자동 배정과 배우의 직접 변경은 이 바운더리 안에서만 일어난다.
- * 시각은 5분 단위이며 시간대 안에서 시작 시각부터 1인당 소요 시간 간격으로 시간 칸을 만든다.
- */
-@Embeddable
+@Entity
+@Table(name = "timetable_windows")
 @Getter
 @EqualsAndHashCode
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -28,8 +29,14 @@ public class TimetableWindow {
 
     public static final int MINUTE_STEP = 5;
 
-    static final Comparator<TimetableWindow> ORDER = Comparator.comparing(TimetableWindow::getDate)
+    public static final Comparator<TimetableWindow> ORDER = Comparator.comparing(TimetableWindow::getDate)
             .thenComparing(TimetableWindow::getStartTime);
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Getter(AccessLevel.NONE)
+    @EqualsAndHashCode.Exclude
+    private Long id;
 
     @Column(name = "window_date", nullable = false)
     private LocalDate date;
@@ -57,8 +64,7 @@ public class TimetableWindow {
         return date.equals(other.date) && startTime.isBefore(other.endTime) && other.startTime.isBefore(endTime);
     }
 
-    /** 시작 시각부터 소요 시간 간격으로, 끝나는 시각이 시간대를 넘지 않는 칸만 만든다. */
-    List<TimeSlot> slots(int slotMinutes) {
+    public List<TimeSlot> slots(int slotMinutes) {
         List<TimeSlot> slots = new ArrayList<>();
         int end = minuteOfDay(endTime);
         for (int start = minuteOfDay(startTime); start + slotMinutes <= end; start += slotMinutes) {
@@ -67,8 +73,12 @@ public class TimetableWindow {
         return slots;
     }
 
+    public static boolean isStepAligned(int minutes) {
+        return minutes % MINUTE_STEP == 0;
+    }
+
     private static LocalTime requireStepAligned(LocalTime time) {
-        if (time.getSecond() != 0 || time.getNano() != 0 || time.getMinute() % MINUTE_STEP != 0) {
+        if (time.getSecond() != 0 || time.getNano() != 0 || !isStepAligned(time.getMinute())) {
             throw new BusinessException(INVALID_INPUT, "시간대는 %d분 단위로 정해 주세요.", MINUTE_STEP);
         }
         return time;

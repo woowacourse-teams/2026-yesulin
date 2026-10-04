@@ -1,4 +1,4 @@
-package art.yesulin.domain.timetable;
+package art.yesulin.domain.timetable.message;
 
 public enum TimetableMessageType {
 

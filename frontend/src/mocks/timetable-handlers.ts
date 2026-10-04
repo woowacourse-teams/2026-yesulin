@@ -360,7 +360,7 @@ export const timetableHandlers = [
     };
     timetables.push(timetable);
     queue(timetable, "ORGANIZER_LINK", null);
-    return HttpResponse.json({ manageKey: timetable.manageKey, timetable: toBoard(timetable) }, { status: 201 });
+    return HttpResponse.json({ manageKey: timetable.manageKey }, { status: 201 });
   }),
 
   http.get(`${API}/manage`, async ({ request }) => {

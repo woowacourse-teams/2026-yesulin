@@ -1,7 +1,7 @@
 package art.yesulin.application.timetable;
 
-import art.yesulin.domain.timetable.TimeSlot;
 import art.yesulin.domain.timetable.Timetable;
+import art.yesulin.domain.timetable.setting.TimeSlot;
 import java.time.LocalDate;
 import java.time.LocalTime;
 

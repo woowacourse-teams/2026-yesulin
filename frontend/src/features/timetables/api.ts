@@ -65,11 +65,10 @@ function settingBody(setting: TimetableSetting) {
 const slotBody = (slot: TimeSlot | null) => (slot ? { date: slot.date, startTime: toHm(slot.startTime) } : null);
 
 export async function createTimetable(profile: TimetableProfile, setting: TimetableSetting): Promise<TimetableCreated> {
-  const created = await request<TimetableCreated>(TIMETABLES_PATH, {
+  return request<TimetableCreated>(TIMETABLES_PATH, {
     method: "POST",
     body: JSON.stringify({ profile: profileBody(profile), setting: settingBody(setting) }),
   });
-  return { manageKey: created.manageKey, timetable: toBoard(created.timetable) };
 }
 
 export async function getTimetableBoard(manageKey: string): Promise<TimetableBoard> {

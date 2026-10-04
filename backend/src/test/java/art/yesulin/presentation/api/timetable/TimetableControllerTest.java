@@ -15,10 +15,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import art.yesulin.application.auth.MemberPrincipal;
 import art.yesulin.domain.member.MemberStatus;
 import art.yesulin.domain.member.MemberType;
-import art.yesulin.domain.timetable.TimetableActorRepository;
-import art.yesulin.domain.timetable.TimetableMessageRepository;
 import art.yesulin.domain.timetable.TimetableRepository;
-import art.yesulin.domain.timetable.TimetableRequestRepository;
+import art.yesulin.domain.timetable.actor.TimetableActorRepository;
+import art.yesulin.domain.timetable.message.TimetableMessageRepository;
+import art.yesulin.domain.timetable.request.TimetableRequestRepository;
 import art.yesulin.support.ObjectStorageTestConfiguration;
 import com.jayway.jsonpath.JsonPath;
 import java.time.Clock;
@@ -121,7 +121,7 @@ class TimetableControllerTest {
                 .andExpect(jsonPath("$.status").value("PUBLISHED"))
                 .andExpect(jsonPath("$.actors[0].invited").value(true));
 
-        String accessKey = actorRepository.findById((long) first).orElseThrow().getAccessKey();
+        String accessKey = actorRepository.findById((long) first).orElseThrow().getAccessKey().getValue();
         mockMvc.perform(get("/api/v1/timetables/actor").header(KEY, accessKey))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Cache-Control", "no-store"))
@@ -283,10 +283,6 @@ class TimetableControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Cache-Control", "no-store"))
                 .andExpect(jsonPath("$.manageKey").value(matchesPattern("[A-Za-z0-9_-]{22}")))
-                .andExpect(jsonPath("$.timetable.status").value("DRAFT"))
-                .andExpect(jsonPath("$.timetable.organizerPhone").value("010-9999-0000"))
-                .andExpect(jsonPath("$.timetable.windows[0].startTime").value("10:00:00"))
-                .andExpect(jsonPath("$.timetable.selfChangeNoticeHours").value(24))
                 .andReturn().getResponse().getContentAsString();
         return JsonPath.read(created, "$.manageKey");
     }

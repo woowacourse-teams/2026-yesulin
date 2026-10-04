@@ -1,10 +1,10 @@
 package art.yesulin.application.timetable;
 
 import art.yesulin.domain.timetable.Timetable;
-import art.yesulin.domain.timetable.TimetableActor;
-import art.yesulin.domain.timetable.TimetableRequest;
 import art.yesulin.domain.timetable.TimetableStatus;
-import art.yesulin.domain.timetable.TimetableWindow;
+import art.yesulin.domain.timetable.actor.TimetableActor;
+import art.yesulin.domain.timetable.request.TimetableRequest;
+import art.yesulin.domain.timetable.setting.TimetableWindow;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -35,18 +35,18 @@ public record TimetableBoardResult(
         Map<Long, TimetableActor> actorsById = actors.stream()
                 .collect(Collectors.toMap(TimetableActor::getId, Function.identity()));
         return new TimetableBoardResult(
-                timetable.getTitle(),
-                timetable.getOrganizerName(),
-                timetable.getOrganizerPhone(),
-                timetable.getLocation(),
-                timetable.getGuide(),
+                timetable.getProfile().getTitle(),
+                timetable.getProfile().getOrganizerName(),
+                timetable.getProfile().getOrganizerPhone(),
+                timetable.getProfile().getLocation(),
+                timetable.getProfile().getGuide(),
                 timetable.getStatus(),
                 timetable.getPublishedAt(),
                 timetable.isSelfChangeLocked(),
                 Timetable.SELF_CHANGE_NOTICE.toHours(),
-                timetable.getSlotMinutes(),
-                timetable.getSlotCapacity(),
-                timetable.getWindows().stream().map(Window::from).toList(),
+                timetable.getSetting().getSlotMinutes(),
+                timetable.getSetting().getSlotCapacity(),
+                timetable.getSetting().getWindows().values().stream().map(Window::from).toList(),
                 actors.stream().map(actor -> Actor.of(actor, timetable)).toList(),
                 requests.stream()
                         .filter(request -> actorsById.containsKey(request.getActorId()))

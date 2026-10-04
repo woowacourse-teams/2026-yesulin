@@ -14,19 +14,19 @@ import art.yesulin.common.exception.BusinessException;
 import art.yesulin.common.exception.ErrorCode;
 import art.yesulin.domain.admin.AdminAction;
 import art.yesulin.domain.admin.AdminAuditLogRepository;
-import art.yesulin.domain.timetable.SelfChangeStatus;
-import art.yesulin.domain.timetable.SlotAssignment;
-import art.yesulin.domain.timetable.TimeSlot;
-import art.yesulin.domain.timetable.TimetableActorRepository;
 import art.yesulin.domain.timetable.TimetableErrorCode;
 import art.yesulin.domain.timetable.TimetableKey;
-import art.yesulin.domain.timetable.TimetableMessage;
-import art.yesulin.domain.timetable.TimetableMessageRepository;
-import art.yesulin.domain.timetable.TimetableMessageStatus;
-import art.yesulin.domain.timetable.TimetableMessageType;
 import art.yesulin.domain.timetable.TimetableRepository;
-import art.yesulin.domain.timetable.TimetableRequestRepository;
 import art.yesulin.domain.timetable.TimetableStatus;
+import art.yesulin.domain.timetable.actor.SelfChangeStatus;
+import art.yesulin.domain.timetable.actor.SlotAssignment;
+import art.yesulin.domain.timetable.actor.TimetableActorRepository;
+import art.yesulin.domain.timetable.message.TimetableMessage;
+import art.yesulin.domain.timetable.message.TimetableMessageRepository;
+import art.yesulin.domain.timetable.message.TimetableMessageStatus;
+import art.yesulin.domain.timetable.message.TimetableMessageType;
+import art.yesulin.domain.timetable.request.TimetableRequestRepository;
+import art.yesulin.domain.timetable.setting.TimeSlot;
 import art.yesulin.support.ObjectStorageTestConfiguration;
 import java.time.Clock;
 import java.time.Instant;
@@ -101,11 +101,12 @@ class TimetableServiceTest {
     @Test
     void createsTimetableAndQueuesManageLinkForOrganizer() {
         TimetableCreatedResult created = create(1);
+        TimetableBoardResult timetable = timetableService.find(created.manageKey());
 
-        assertEquals(TimetableStatus.DRAFT, created.timetable().status());
+        assertEquals(TimetableStatus.DRAFT, timetable.status());
         assertEquals(List.of(new TimetableBoardResult.Window(DAY, LocalTime.of(10, 0), LocalTime.of(11, 30))),
-                created.timetable().windows());
-        assertEquals(24, created.timetable().selfChangeNoticeHours());
+                timetable.windows());
+        assertEquals(24, timetable.selfChangeNoticeHours());
         TimetableMessage message = onlyMessage(TimetableMessageType.ORGANIZER_LINK);
         assertNull(message.getActorId());
         assertEquals("010-9999-0000", message.getRecipientPhone());
@@ -146,7 +147,7 @@ class TimetableServiceTest {
         assertTrue(published.actors().stream().allMatch(TimetableBoardResult.Actor::invited));
         List<TimetableMessage> invitations = messages(TimetableMessageType.ACTOR_INVITATION);
         assertEquals(2, invitations.size());
-        String accessKey = actorRepository.findById(first).orElseThrow().getAccessKey();
+        String accessKey = actorRepository.findById(first).orElseThrow().getAccessKey().getValue();
         assertEquals(22, accessKey.length());
         assertEquals("""
                 [예술인] 오디션 합격 안내
@@ -219,7 +220,7 @@ class TimetableServiceTest {
     void actorSeesOwnScheduleOnlyAfterPublishing() {
         String key = create(1).manageKey();
         long actorId = register(key, "김배우", "010-1111-1111").actors().getFirst().id();
-        String accessKey = actorRepository.findById(actorId).orElseThrow().getAccessKey();
+        String accessKey = actorRepository.findById(actorId).orElseThrow().getAccessKey().getValue();
         save(key, 1, new SlotAssignment(actorId, null, TEN));
         assertCode(TimetableErrorCode.NOT_FOUND, () -> actorTimetableService.find(accessKey));
 
@@ -345,8 +346,8 @@ class TimetableServiceTest {
         return new Published(
                 key,
                 first,
-                actorRepository.findById(first).orElseThrow().getAccessKey(),
-                actorRepository.findById(second).orElseThrow().getAccessKey()
+                actorRepository.findById(first).orElseThrow().getAccessKey().getValue(),
+                actorRepository.findById(second).orElseThrow().getAccessKey().getValue()
         );
     }
 

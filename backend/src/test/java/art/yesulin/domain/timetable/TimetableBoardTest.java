@@ -9,6 +9,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import art.yesulin.common.exception.BusinessException;
 import art.yesulin.common.exception.ErrorCode;
+import art.yesulin.domain.timetable.actor.SelfChangeStatus;
+import art.yesulin.domain.timetable.actor.SlotAssignment;
+import art.yesulin.domain.timetable.actor.TimetableActor;
+import art.yesulin.domain.timetable.setting.TimeSlot;
+import art.yesulin.domain.timetable.setting.TimetableSetting;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -171,7 +176,7 @@ class TimetableBoardTest {
     }
 
     private TimetableActor actor(long id, String name, String phone) {
-        TimetableActor actor = new TimetableActor(1L, TimetableKey.generate(), name, phone);
+        TimetableActor actor = new TimetableActor(1L, name, phone);
         ReflectionTestUtils.setField(actor, "id", id);
         return actor;
     }

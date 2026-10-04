@@ -9,6 +9,10 @@ import static art.yesulin.domain.timetable.TimetableErrorCode.SELF_CHANGE_CLOSED
 import static art.yesulin.domain.timetable.TimetableErrorCode.SLOT_UNAVAILABLE;
 
 import art.yesulin.common.exception.BusinessException;
+import art.yesulin.domain.timetable.actor.SelfChangeStatus;
+import art.yesulin.domain.timetable.actor.SlotAssignment;
+import art.yesulin.domain.timetable.actor.TimetableActor;
+import art.yesulin.domain.timetable.setting.TimeSlot;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -78,9 +82,9 @@ public class TimetableBoard {
                         "‘%s’ 배우의 시간(%s)이 정한 시간대에서 벗어났습니다.", actor.getName(), slot.label());
             }
             int count = counts.merge(slot, 1, Integer::sum);
-            if (count > timetable.getSlotCapacity()) {
+            if (count > timetable.getSetting().getSlotCapacity()) {
                 throw new BusinessException(SLOT_UNAVAILABLE, "%s 칸에 정원 %d명보다 많은 배우가 배정됐습니다.",
-                        slot.label(), timetable.getSlotCapacity());
+                        slot.label(), timetable.getSetting().getSlotCapacity());
             }
         }
     }
@@ -147,14 +151,14 @@ public class TimetableBoard {
         return timetable.slots().stream()
                 .filter(slot -> !slot.equals(actor.getSlot()))
                 .filter(slot -> timetable.isBeforeSelfChangeDeadline(slot, now))
-                .filter(slot -> counts.getOrDefault(slot, 0) < timetable.getSlotCapacity())
+                .filter(slot -> counts.getOrDefault(slot, 0) < timetable.getSetting().getSlotCapacity())
                 .toList();
     }
 
     private boolean isOpenFor(TimetableActor actor, TimeSlot slot, Instant now) {
         return timetable.slots().contains(slot)
                 && timetable.isBeforeSelfChangeDeadline(slot, now)
-                && occupancy().getOrDefault(slot, 0) < timetable.getSlotCapacity()
+                && occupancy().getOrDefault(slot, 0) < timetable.getSetting().getSlotCapacity()
                 && !slot.equals(actor.getSlot());
     }
 

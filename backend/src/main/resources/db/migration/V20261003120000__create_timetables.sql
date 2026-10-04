@@ -1,7 +1,7 @@
 create table timetables
 (
     id                 bigint        not null auto_increment,
-    manage_key         varchar(43)   not null,
+    manage_key         varchar(22)   not null,
     title              varchar(60)   not null,
     organizer_name     varchar(40)   not null,
     organizer_phone    varchar(13)   not null,
@@ -19,12 +19,12 @@ create table timetables
 
 create table timetable_windows
 (
-    timetable_id bigint  not null,
-    window_order integer not null,
-    window_date  date    not null,
-    start_time   time    not null,
-    end_time     time    not null,
-    constraint pk_timetable_windows primary key (timetable_id, window_order),
+    id           bigint not null auto_increment,
+    timetable_id bigint not null,
+    window_date  date   not null,
+    start_time   time   not null,
+    end_time     time   not null,
+    constraint pk_timetable_windows primary key (id),
     constraint fk_timetable_windows_timetable foreign key (timetable_id) references timetables (id)
 );
 
@@ -32,7 +32,7 @@ create table timetable_actors
 (
     id                       bigint       not null auto_increment,
     timetable_id             bigint       not null,
-    access_key               varchar(43)  not null,
+    access_key               varchar(22)  not null,
     name                     varchar(30)  not null,
     phone                    varchar(13)  not null,
     slot_date                date         null,

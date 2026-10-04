@@ -1,9 +1,10 @@
-package art.yesulin.domain.timetable;
+package art.yesulin.domain.timetable.message;
 
 import static art.yesulin.domain.common.validation.DomainValidator.requireNonNull;
 import static art.yesulin.domain.common.validation.DomainValidator.requirePositive;
 import static art.yesulin.domain.common.validation.DomainValidator.requireText;
 
+import art.yesulin.domain.timetable.MobilePhone;
 import art.yesulin.domain.timetable.converter.TimetableMessageStatusConverter;
 import art.yesulin.domain.timetable.converter.TimetableMessageTypeConverter;
 import jakarta.persistence.Column;

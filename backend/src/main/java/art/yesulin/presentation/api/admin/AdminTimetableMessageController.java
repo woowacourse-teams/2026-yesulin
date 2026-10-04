@@ -6,7 +6,7 @@ import art.yesulin.application.auth.MemberPrincipal;
 import art.yesulin.application.auth.annotation.LoginMember;
 import art.yesulin.application.auth.annotation.LoginRequired;
 import art.yesulin.domain.member.MemberType;
-import art.yesulin.domain.timetable.TimetableMessageStatus;
+import art.yesulin.domain.timetable.message.TimetableMessageStatus;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.CacheControl;

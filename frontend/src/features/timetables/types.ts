@@ -67,7 +67,6 @@ export type TimetableBoard = TimetableProfile & TimetableSetting & {
 
 export type TimetableCreated = {
   readonly manageKey: string;
-  readonly timetable: TimetableBoard;
 };
 
 export type ActorContact = {

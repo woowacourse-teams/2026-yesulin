@@ -10,7 +10,7 @@ public record TimetableProfileCommand(
         String guide
 ) {
 
-    TimetableProfile toProfile() {
+    public TimetableProfile toProfile() {
         return new TimetableProfile(title, organizerName, organizerPhone, location, guide);
     }
 }

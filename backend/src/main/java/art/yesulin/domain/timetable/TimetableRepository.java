@@ -9,11 +9,11 @@ import org.springframework.data.repository.query.Param;
 
 public interface TimetableRepository extends JpaRepository<Timetable, Long> {
 
-    Optional<Timetable> findByManageKey(String manageKey);
+    Optional<Timetable> findByManageKey(TimetableKey manageKey);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select timetable from Timetable timetable where timetable.manageKey = :manageKey")
-    Optional<Timetable> findByManageKeyForUpdate(@Param("manageKey") String manageKey);
+    Optional<Timetable> findByManageKeyForUpdate(@Param("manageKey") TimetableKey manageKey);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select timetable from Timetable timetable where timetable.id = :id")

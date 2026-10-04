@@ -1,11 +1,17 @@
-package art.yesulin.domain.timetable;
+package art.yesulin.domain.timetable.actor;
 
 import static art.yesulin.domain.common.validation.DomainValidator.requireNonNull;
 import static art.yesulin.domain.common.validation.DomainValidator.requirePositive;
 import static art.yesulin.domain.timetable.TimetableErrorCode.INVALID_INPUT;
 
 import art.yesulin.common.exception.BusinessException;
+import art.yesulin.domain.timetable.MobilePhone;
+import art.yesulin.domain.timetable.TimetableBoard;
+import art.yesulin.domain.timetable.TimetableKey;
+import art.yesulin.domain.timetable.setting.TimeSlot;
+import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -44,8 +50,9 @@ public class TimetableActor {
     @Column(name = "timetable_id", nullable = false, updatable = false)
     private long timetableId;
 
-    @Column(name = "access_key", nullable = false, updatable = false, length = TimetableKey.LENGTH)
-    private String accessKey;
+    @Embedded
+    @AttributeOverride(name = "value", column = @Column(name = "access_key", nullable = false, updatable = false))
+    private TimetableKey accessKey;
 
     @Column(nullable = false, updatable = false, length = MAX_NAME_LENGTH)
     private String name;
@@ -81,12 +88,9 @@ public class TimetableActor {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
-    public TimetableActor(long timetableId, String accessKey, String name, String phone) {
-        if (!TimetableKey.isWellFormed(accessKey)) {
-            throw new IllegalArgumentException("배우 링크 열쇠 형식이 올바르지 않습니다.");
-        }
+    public TimetableActor(long timetableId, String name, String phone) {
         this.timetableId = requirePositive(timetableId, "일정표 ID는 1 이상이어야 합니다.");
-        this.accessKey = accessKey;
+        this.accessKey = TimetableKey.generate();
         this.name = requireName(name);
         this.phone = MobilePhone.require(phone, "‘" + this.name + "’ 배우의");
     }
@@ -120,7 +124,7 @@ public class TimetableActor {
         }
     }
 
-    void assignByOrganizer(TimeSlot slot) {
+    public void assignByOrganizer(TimeSlot slot) {
         changeSlot(slot);
         this.actorChangedAt = null;
         this.previousSlotDate = null;
@@ -128,7 +132,7 @@ public class TimetableActor {
     }
 
     /** 배우가 여러 번 바꿔도 기획사가 마지막으로 정한 시간을 이전 시간으로 남긴다. */
-    void moveByActor(TimeSlot slot, Instant now) {
+    public void moveByActor(TimeSlot slot, Instant now) {
         if (actorChangedAt == null) {
             this.previousSlotDate = slotDate;
             this.previousSlotStartTime = slotStartTime;

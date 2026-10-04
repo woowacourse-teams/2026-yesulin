@@ -288,7 +288,7 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 
 | Method | URL | 인증 | Request | Response |
 | --- | --- | --- | --- | --- |
-| POST | `/api/v1/timetables` | 공개 | `CreateTimetableRequest(profile, setting)` | `201 TimetableCreatedResult(manageKey, timetable)` |
+| POST | `/api/v1/timetables` | 공개 | `CreateTimetableRequest(profile, setting)` | `201 TimetableCreatedResult(manageKey)` |
 | GET | `/api/v1/timetables/manage` | 관리 열쇠 | 없음 | `200 TimetableBoardResult` |
 | PUT | `/api/v1/timetables/manage/profile` | 관리 열쇠 | `TimetableProfileRequest` | `200 TimetableBoardResult` |
 | PUT | `/api/v1/timetables/manage/board` | 관리 열쇠 | `SaveTimetableBoardRequest(setting, assignments)` | `200 TimetableBoardResult` |

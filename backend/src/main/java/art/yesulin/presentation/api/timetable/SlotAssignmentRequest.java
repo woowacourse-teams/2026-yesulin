@@ -1,6 +1,6 @@
 package art.yesulin.presentation.api.timetable;
 
-import art.yesulin.domain.timetable.SlotAssignment;
+import art.yesulin.domain.timetable.actor.SlotAssignment;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 

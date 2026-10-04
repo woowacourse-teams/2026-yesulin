@@ -1,4 +1,4 @@
-package art.yesulin.domain.timetable;
+package art.yesulin.domain.timetable.setting;
 
 import static art.yesulin.domain.common.validation.DomainValidator.requireNonNull;
 

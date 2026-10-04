@@ -1,4 +1,4 @@
-package art.yesulin.domain.timetable;
+package art.yesulin.domain.timetable.actor;
 
 /** 배우가 링크에서 직접 시간을 바꿀 수 있는지. */
 public enum SelfChangeStatus {

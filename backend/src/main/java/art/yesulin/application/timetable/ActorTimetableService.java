@@ -3,16 +3,16 @@ package art.yesulin.application.timetable;
 import static art.yesulin.domain.timetable.TimetableErrorCode.NOT_FOUND;
 
 import art.yesulin.common.exception.BusinessException;
-import art.yesulin.domain.timetable.TimeSlot;
 import art.yesulin.domain.timetable.Timetable;
-import art.yesulin.domain.timetable.TimetableActor;
-import art.yesulin.domain.timetable.TimetableActorRepository;
 import art.yesulin.domain.timetable.TimetableBoard;
 import art.yesulin.domain.timetable.TimetableKey;
 import art.yesulin.domain.timetable.TimetableRepository;
-import art.yesulin.domain.timetable.TimetableRequest;
-import art.yesulin.domain.timetable.TimetableRequestRepository;
-import art.yesulin.domain.timetable.TimetableRequestStatus;
+import art.yesulin.domain.timetable.actor.TimetableActor;
+import art.yesulin.domain.timetable.actor.TimetableActorRepository;
+import art.yesulin.domain.timetable.request.TimetableRequest;
+import art.yesulin.domain.timetable.request.TimetableRequestRepository;
+import art.yesulin.domain.timetable.request.TimetableRequestStatus;
+import art.yesulin.domain.timetable.setting.TimeSlot;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
@@ -38,10 +38,9 @@ public class ActorTimetableService {
 
     @Transactional(readOnly = true)
     public ActorTimetableResult find(String accessKey) {
-        if (!TimetableKey.isWellFormed(accessKey)) {
-            throw notFound();
-        }
-        TimetableActor actor = actorRepository.findByAccessKey(accessKey).orElseThrow(this::notFound);
+        TimetableActor actor = TimetableKey.parse(accessKey)
+                .flatMap(actorRepository::findByAccessKey)
+                .orElseThrow(this::notFound);
         Timetable timetable = timetableRepository.findById(actor.getTimetableId()).orElseThrow(this::notFound);
         return resultOf(visible(new Access(timetable, actorsOf(timetable), actor)));
     }
@@ -74,14 +73,12 @@ public class ActorTimetableService {
     }
 
     private Access lock(String accessKey) {
-        if (!TimetableKey.isWellFormed(accessKey)) {
-            throw notFound();
-        }
-        long timetableId = actorRepository.findTimetableIdByAccessKey(accessKey).orElseThrow(this::notFound);
+        TimetableKey key = TimetableKey.parse(accessKey).orElseThrow(this::notFound);
+        long timetableId = actorRepository.findTimetableIdByAccessKey(key).orElseThrow(this::notFound);
         Timetable timetable = timetableRepository.findByIdForUpdate(timetableId).orElseThrow(this::notFound);
         List<TimetableActor> actors = actorsOf(timetable);
         TimetableActor actor = actors.stream()
-                .filter(candidate -> candidate.getAccessKey().equals(accessKey))
+                .filter(candidate -> candidate.getAccessKey().equals(key))
                 .findFirst()
                 .orElseThrow(this::notFound);
         return visible(new Access(timetable, actors, actor));
@@ -106,10 +103,10 @@ public class ActorTimetableService {
                 .map(open -> new ActorTimetableResult.Request(open.getMessage(), open.getCreatedAt()))
                 .orElse(null);
         return new ActorTimetableResult(
-                timetable.getTitle(),
-                timetable.getOrganizerName(),
-                timetable.getLocation(),
-                timetable.getGuide(),
+                timetable.getProfile().getTitle(),
+                timetable.getProfile().getOrganizerName(),
+                timetable.getProfile().getLocation(),
+                timetable.getProfile().getGuide(),
                 actor.getName(),
                 TimeSlotResult.of(slot, timetable),
                 board.selfChangeStatusOf(actor, now),

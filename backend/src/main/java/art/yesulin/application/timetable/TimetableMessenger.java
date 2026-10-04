@@ -1,11 +1,12 @@
 package art.yesulin.application.timetable;
 
 import art.yesulin.domain.timetable.Timetable;
-import art.yesulin.domain.timetable.TimetableActor;
-import art.yesulin.domain.timetable.TimetableMessage;
-import art.yesulin.domain.timetable.TimetableMessageRepository;
-import art.yesulin.domain.timetable.TimetableMessageStatus;
-import art.yesulin.domain.timetable.TimetableMessageType;
+import art.yesulin.domain.timetable.TimetableRepository;
+import art.yesulin.domain.timetable.actor.TimetableActor;
+import art.yesulin.domain.timetable.message.TimetableMessage;
+import art.yesulin.domain.timetable.message.TimetableMessageRepository;
+import art.yesulin.domain.timetable.message.TimetableMessageStatus;
+import art.yesulin.domain.timetable.message.TimetableMessageType;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -28,17 +29,23 @@ public class TimetableMessenger {
             TimetableMessageType.ACTOR_SCHEDULE_CHANGED
     );
 
+    private final TimetableRepository timetableRepository;
     private final TimetableMessageRepository messageRepository;
     private final TimetableLinks links;
     private final ApplicationEventPublisher eventPublisher;
 
-    public TimetableMessage organizerLink(Timetable timetable) {
+    public void sendManageLink(long timetableId) {
+        Timetable timetable = timetableRepository.findById(timetableId).orElseThrow();
+        queue(timetable, List.of(manageLinkMessage(timetable)));
+    }
+
+    private TimetableMessage manageLinkMessage(Timetable timetable) {
         String body = compose(
                 "오디션 일정표 관리 링크",
                 organizerGreeting(timetable),
                 """
                 '%s' 일정표를 만들었습니다.
-                아래 링크에서 합격자 등록과 일정 확정을 할 수 있습니다.""".formatted(timetable.getTitle()),
+                아래 링크에서 합격자 등록과 일정 확정을 할 수 있습니다.""".formatted(timetable.getProfile().getTitle()),
                 "일정표 관리",
                 links.manage(timetable.getManageKey()),
                 ORGANIZER_CAUTION
@@ -52,7 +59,7 @@ public class TimetableMessenger {
                 actorGreeting(actor),
                 """
                 %s 오디션에 합격하셨습니다.
-                아래 링크에서 '%s' 일정을 확인해 주세요.""".formatted(timetable.getOrganizerName(), timetable.getTitle()),
+                아래 링크에서 '%s' 일정을 확인해 주세요.""".formatted(timetable.getProfile().getOrganizerName(), timetable.getProfile().getTitle()),
                 "내 오디션 일정",
                 links.actor(actor.getAccessKey()),
                 ACTOR_CAUTION
@@ -71,7 +78,7 @@ public class TimetableMessenger {
                 actorGreeting(actor),
                 """
                 %s '%s' 일정이 변경되었습니다.
-                아래 링크에서 바뀐 시간을 확인해 주세요.""".formatted(timetable.getOrganizerName(), timetable.getTitle()),
+                아래 링크에서 바뀐 시간을 확인해 주세요.""".formatted(timetable.getProfile().getOrganizerName(), timetable.getProfile().getTitle()),
                 "내 오디션 일정",
                 links.actor(actor.getAccessKey()),
                 ACTOR_CAUTION
@@ -90,7 +97,7 @@ public class TimetableMessenger {
                 organizerGreeting(timetable),
                 """
                 '%s' 일정표에 배우의 시간 조정 요청이 들어왔습니다.
-                아래 링크에서 확인해 주세요.""".formatted(timetable.getTitle()),
+                아래 링크에서 확인해 주세요.""".formatted(timetable.getProfile().getTitle()),
                 "일정표 관리",
                 links.manage(timetable.getManageKey()),
                 ORGANIZER_CAUTION
@@ -104,7 +111,7 @@ public class TimetableMessenger {
         }
         messageRepository.saveAll(messages);
         eventPublisher.publishEvent(new TimetableMessagesQueuedEvent(
-                timetable.getId(), timetable.getTitle(), messages.size()
+                timetable.getId(), timetable.getProfile().getTitle(), messages.size()
         ));
     }
 
@@ -134,7 +141,7 @@ public class TimetableMessenger {
     }
 
     private static String organizerGreeting(Timetable timetable) {
-        return timetable.getOrganizerName() + " 담당자님, 안녕하세요.";
+        return timetable.getProfile().getOrganizerName() + " 담당자님, 안녕하세요.";
     }
 
     private static String actorGreeting(TimetableActor actor) {
@@ -143,7 +150,7 @@ public class TimetableMessenger {
 
     private TimetableMessage toOrganizer(Timetable timetable, TimetableMessageType type, String body) {
         return new TimetableMessage(
-                timetable.getId(), null, type, timetable.getOrganizerName(), timetable.getOrganizerPhone(), body
+                timetable.getId(), null, type, timetable.getProfile().getOrganizerName(), timetable.getProfile().getOrganizerPhone(), body
         );
     }
 

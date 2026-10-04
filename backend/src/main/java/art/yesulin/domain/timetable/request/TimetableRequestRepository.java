@@ -1,4 +1,4 @@
-package art.yesulin.domain.timetable;
+package art.yesulin.domain.timetable.request;
 
 import java.util.Collection;
 import java.util.List;

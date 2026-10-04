@@ -1,6 +1,6 @@
 package art.yesulin.application.timetable;
 
-import art.yesulin.domain.timetable.SelfChangeStatus;
+import art.yesulin.domain.timetable.actor.SelfChangeStatus;
 import java.time.Instant;
 import java.util.List;
 

@@ -1,7 +1,7 @@
 package art.yesulin.domain.timetable.converter;
 
 import art.yesulin.domain.common.converter.StringEnumConverter;
-import art.yesulin.domain.timetable.TimetableMessageType;
+import art.yesulin.domain.timetable.message.TimetableMessageType;
 import jakarta.persistence.Converter;
 
 @Converter
