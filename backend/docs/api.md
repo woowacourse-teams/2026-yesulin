@@ -170,10 +170,11 @@ PENDING 세션을 ACTIVE로 갱신하고 요청의 `redirectUri`로 302 redirect
 
 | Method | URL | 인증 | Request | Response |
 | --- | --- | --- | --- | --- |
-| GET | `/api/v1/otr` | 공개 | query `vid`: OTR 원문 번호(숫자 1~30자) | `302 Location: https://otr.co.kr/audition/?vid={vid}` |
+| GET | `/api/v1/otr` | 공개 | query `vid`: OTR 원문 번호(숫자 1~30자) | `302 Location: /posts/{postId}` 또는 `https://otr.co.kr/audition/?vid={vid}` |
 | HEAD | 동일 경로 | 공개 | 동일 | `302`, 집계에서 제외 |
 
-검증한 번호로 OTR 원문 URL을 생성해 바로 이동한다. DB 조회·저장과 OTR 원문 존재 확인은 하지 않는다.
+검증한 번호로 예술in에 공개 게시한 공고가 있으면 상대 경로 `/posts/{postId}`로, 없거나 숨겼으면 OTR 원문으로 이동한다.
+게시 여부만 DB에서 조회하고 저장이나 OTR 원문 존재 확인은 하지 않는다.
 응답은 `Cache-Control: no-store`로 캐시하지 않으며 `Referrer-Policy: no-referrer`를 설정한다.
 임의의 목적지 URL은 받지 않는다. 번호 누락·형식 오류는 `400 INVALID_REQUEST`다.
 이 경로는 로그인·CSRF 없이 열 수 있다. HEAD는 Spring MVC의 GET mapping 지원으로 처리한다.
@@ -250,7 +251,7 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 담는다. OTR 접속·구조 오류는 `409 AUDITION_POST_SOURCE_UNAVAILABLE`, 지원하지 않거나 20MB를 넘는 본문 사진은
 `409 AUDITION_POST_FILE_REJECTED`, 같은 번호의 동시 가져오기 충돌은 `409 AUDITION_POST_IMPORT_CONFLICT`다.
 분류가 연극·퍼포먼스·뮤지컬·단원·기획사가 아니면 파일을 받기 전에 `409 AUDITION_POST_CATEGORY_NOT_SUPPORTED`로 거절한다.
-운영 목록은 최근 가져온 200건을 상태와 관계없이 출처·원문 번호·원문 주소와 함께 반환한다. 가져오기와 공개 상태 변경은 `admin_audit_logs`에 남긴다.
+운영 목록은 최근 가져온 200건을 상태와 관계없이 출처·원문 번호·원문 주소, 자동 게시 여부(`autoPublished`)와 함께 반환한다. 가져오기와 공개 상태 변경은 `admin_audit_logs`에 남긴다.
 
 ## 무료 공연과 비회원 예매 — 19개
 

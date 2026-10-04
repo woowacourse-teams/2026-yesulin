@@ -29,8 +29,8 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.BatchSize;
 
 /**
- * 외부 공고 사이트(수집 허락을 받은 OTR)의 공고 한 건을 우리 서비스 공고로 옮긴 게시글. 운영자가 공고 알림을 받은
- * 번호로 가져와 바로 게시하고, 이후 제작사에 허락을 받는다. 거절하면 숨긴다.
+ * 외부 공고 사이트(수집 허락을 받은 OTR)의 공고 한 건을 우리 서비스 공고로 옮긴 게시글. 운영 서버는 새 공고를 알림과
+ * 함께 자동으로 게시하고, 운영자는 관리자 화면에서 직접 가져올 수도 있다. 게시 뒤 제작사에 허락을 받고 거절하면 숨긴다.
  * 같은 출처·번호를 다시 가져오면 새 행을 만들지 않고 내용과 파일을 원문 기준으로 교체한다.
  * 지원 접수용 {@code OtrAudition}, Slack 알림 이력 {@code Notice}와는 별개다. 공개 주소에는 숫자 ID를 그대로 쓴다.
  */
@@ -80,8 +80,9 @@ public class AuditionPost {
     @Column(nullable = false, length = 20)
     private AuditionPostStatus status;
 
-    @Column(name = "imported_by", nullable = false)
-    private long importedBy;
+    /** 마지막으로 가져온 운영자. 운영 서버가 새 공고를 자동으로 게시했으면 null이다. */
+    @Column(name = "imported_by")
+    private Long importedBy;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -94,7 +95,7 @@ public class AuditionPost {
             AuditionPostContent content,
             List<String> tags,
             List<AuditionPostFile> files,
-            long importedBy,
+            Long importedBy,
             Instant importedAt
     ) {
         if (origin == null) {
@@ -117,7 +118,7 @@ public class AuditionPost {
             AuditionPostContent content,
             List<String> tags,
             List<AuditionPostFile> files,
-            long importedBy,
+            Long importedBy,
             Instant refreshedAt
     ) {
         List<AuditionPostFile> previous = List.copyOf(this.files);
@@ -130,6 +131,10 @@ public class AuditionPost {
             throw invalid("공개 상태는 필수입니다.");
         }
         this.status = status;
+    }
+
+    public boolean isAutoPublished() {
+        return importedBy == null;
     }
 
     public boolean isPublished() {
@@ -152,13 +157,13 @@ public class AuditionPost {
             AuditionPostContent content,
             List<String> tags,
             List<AuditionPostFile> files,
-            long importedBy,
+            Long importedBy,
             Instant at
     ) {
         if (content == null) {
             throw invalid("공고 내용은 필수입니다.");
         }
-        if (importedBy <= 0) {
+        if (importedBy != null && importedBy <= 0) {
             throw invalid("가져온 운영자가 올바르지 않습니다.");
         }
         this.content = content;

@@ -15,6 +15,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -63,6 +64,14 @@ public class AuditionPostService {
                 .filter(AuditionPost::isPublished)
                 .orElseThrow(this::notFound);
         return PublicAuditionPostResult.from(post, today(), KOREA, storage::toPublicUrl);
+    }
+
+    /** 공고 알림 링크가 원문 대신 우리 공고로 보낼 수 있는지 확인한다. 숨긴 공고는 없는 것으로 본다. */
+    @Transactional(readOnly = true)
+    public Optional<Long> findPublishedId(String source, String externalId) {
+        return repository.findBySourceAndExternalId(source, externalId)
+                .filter(AuditionPost::isPublished)
+                .map(AuditionPost::getId);
     }
 
     @Transactional(readOnly = true)

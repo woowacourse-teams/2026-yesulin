@@ -25,6 +25,7 @@ public class AuditionNoticeService {
     private final AuditionNoticeNotifier noticeNotifier;
     private final NoticeRepository noticeRepository;
     private final PlatformTransactionManager transactionManager;
+    private final AuditionPublisher auditionPublisher;
 
     public void notifyAuditions() {
         String source = auditionSource.getSource();
@@ -72,6 +73,21 @@ public class AuditionNoticeService {
                 .toList();
     }
 
+    /** 알림보다 게시를 먼저 한다. 게시 실패는 알림을 막지 않고 운영자가 직접 가져오도록 따로 알린다. */
+    private void publish(AuditionContent content, String source) {
+        try {
+            auditionPublisher.publish(source, content.externalId());
+        } catch (RuntimeException exception) {
+            log.warn("공고 자동 게시 실패: {}-{}", source, content.externalId());
+            try {
+                noticeNotifier.sendError("[%s-%s] 자동 게시 실패: %s 관리자 화면에서 직접 가져와 주세요.".formatted(
+                        source, content.externalId(), exception.getMessage()));
+            } catch (RuntimeException alertFailure) {
+                log.error("공고 자동 게시 실패 알림 전송 실패");
+            }
+        }
+    }
+
     private Optional<AuditionContent> resolveContent(Notice notice, List<AuditionContent> recent) {
         try {
             return Optional.of(recent.stream()
@@ -86,6 +102,7 @@ public class AuditionNoticeService {
     }
 
     private void sendPendingBatch(List<AuditionContent> contents, String source) {
+        contents.forEach(content -> publish(content, source));
         try {
             noticeNotifier.send(contents);
         } catch (RuntimeException exception) {

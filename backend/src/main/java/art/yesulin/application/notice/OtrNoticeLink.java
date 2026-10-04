@@ -7,6 +7,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class OtrNoticeLink {
 
+    public static final String SOURCE = "OTR";
+
     private final String baseUrl;
 
     public OtrNoticeLink(@Value("${yesulin.notice.link-base-url}") String baseUrl) {

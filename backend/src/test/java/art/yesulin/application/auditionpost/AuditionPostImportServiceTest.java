@@ -184,6 +184,30 @@ class AuditionPostImportServiceTest {
     }
 
     @Test
+    void autoPublishCreatesPostWithoutAuditLog() {
+        importService.publish("OTR", OTR_ID);
+
+        AdminAuditionPostResult post = auditionPostService.findAllForAdmin().getFirst();
+        assertTrue(post.autoPublished());
+        assertEquals(AuditionPostStatus.PUBLISHED, post.status());
+        assertEquals(0, auditLogRepository.count());
+    }
+
+    @Test
+    void autoPublishSkipsPostAlreadyHandledByOperator() {
+        AuditionPostImportResult imported = importService.importPost(ADMIN_ID, OTR_ID);
+        auditionPostService.changeStatus(ADMIN_ID, imported.post().id(), AuditionPostStatus.HIDDEN);
+        source.post("<p>원문이 바뀜</p>", List.of(), List.of());
+
+        importService.publish("OTR", OTR_ID);
+
+        AdminAuditionPostResult post = auditionPostService.findAllForAdmin().getFirst();
+        assertEquals(AuditionPostStatus.HIDDEN, post.status());
+        assertFalse(post.autoPublished());
+        assertEquals(1, repository.count());
+    }
+
+    @Test
     void sourceFailureBecomesBusinessError() {
         source.failFetch();
 

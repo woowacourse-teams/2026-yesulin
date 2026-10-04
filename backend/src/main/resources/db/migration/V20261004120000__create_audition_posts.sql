@@ -13,7 +13,7 @@ create table audition_posts
     source_posted_at datetime(6),
     body_html        mediumtext   not null,
     status           varchar(20)  not null,
-    imported_by      bigint       not null,
+    imported_by      bigint,
     created_at       timestamp(6) not null,
     updated_at       timestamp(6) not null,
     constraint pk_audition_posts primary key (id),

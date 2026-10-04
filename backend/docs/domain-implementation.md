@@ -116,11 +116,12 @@
   `AuditionNoticeService`가 `NoticeRepository`를 직접 사용한다. 전체 실행을 트랜잭션으로 묶지 않고
   수집 결과 저장과 묶음 전송 완료 기록에만 짧은 트랜잭션을 적용한다. DB 트랜잭션을 잡은 채 외부 요청을 수행하지 않는다.
   동시 수집의 삽입 충돌은 유니크 제약으로 거절되고 해당 수집 트랜잭션은 롤백된다. 다음 실행에서 재수집한다.
+- 묶음마다 Slack 전송 전에 공고마다 `AuditionPublisher.publish`로 자동 게시한다. 게시 실패는 `sendError`로 따로 알리고
+  해당 공고의 알림은 그대로 보낸다. 전송이 실패해 다음 실행에서 다시 보낼 때는 이미 게시한 번호라 다시 가져오지 않는다.
 - `AuditionNoticeService`는 Spring bean으로 등록한다. `@EnableScheduling`은 전체 환경에서 활성화하고
-  `presentation/scheduler/notice`의 공고 스케줄러만 DEV 프로필에서 실행한다.
+  `presentation/scheduler/notice`의 공고 스케줄러만 PROD 프로필에서 실행한다. `yesulin.notice.scheduler-enabled=false`로 끌 수 있다.
   매일 한국 시간 09:00~20:00에 10분 간격으로 실행한다.
-  OTR 수집기와 Slack Incoming Webhook 전송 adapter를 사용하며 웹훅은 DEV 암호화 설정에만 둔다.
-  PROD 웹훅 설정과 자동 실행은 아직 적용하지 않는다.
+  OTR 수집기와 Slack Incoming Webhook 전송 adapter를 사용하며 웹훅은 PROD 암호화 설정에 둔다.
 - 현재 목록 여러 페이지 탐색과 분산 실행 잠금은 미구현이다. 별도 DB adapter는 두지 않는다.
   중복 저장 방지와 중복 전송 방지는 별개다. 배포 중 동시 실행 및 전송 성공 후 상태 저장 전 종료로 인한 재전송은
   아직 허용하며 exactly-once 전달을 보장하지 않는다. 수집 누락 방지를 위한 페이지 탐색 범위는 추후 adapter에서 정한다.
@@ -129,7 +130,7 @@
 
 - `domain/auditionpost`의 `AuditionPost`는 출처(`source`)·원문 번호(`external_id`)·원문 주소, 내용 `AuditionPostContent`(embeddable),
   태그(`audition_post_tags`)와 파일 `AuditionPostFile`(`audition_post_files`, 사진·첨부 구분과 저장소 키·원래 이름·형식·크기),
-  `PUBLISHED/HIDDEN`, 가져온 운영자, 생성·갱신 시각을 저장한다. `(source, external_id)`는 유니크이고 공개 주소에는 숫자 ID를 쓴다.
+  `PUBLISHED/HIDDEN`, 가져온 운영자(자동 게시면 null), 생성·갱신 시각을 저장한다. `(source, external_id)`는 유니크이고 공개 주소에는 숫자 ID를 쓴다.
 - 분류는 `AuditionCategory`(연극·퍼포먼스·뮤지컬·단원·기획사)만 받는다. `AuditionPostContent`가 생성 시 검사하므로
   가져오기는 파일을 받기 전에 거절된다. 공개 목록의 모집 중 조건은 `deadline`이 없거나 오늘 이후인 공고다.
 - 마감은 원문 문자열(`deadline_text`)과 `yyyy-MM-dd`일 때만 채우는 `deadline`을 함께 둔다. 원문 작성 시각은 한국 시간 `LocalDateTime`이다.
@@ -143,6 +144,8 @@
 - `AuditionPostImportService`는 원문과 파일을 받는 동안 트랜잭션을 잡지 않고 마지막 저장만 짧은 트랜잭션으로 처리한다.
   실패하면 이번에 올린 객체를 지우고, 다시 가져와 교체했으면 커밋 뒤 이전 객체를 지운다. 객체 삭제 실패는 경고 로그만 남긴다.
   같은 번호의 동시 삽입은 유니크 제약으로 거절해 `IMPORT_CONFLICT`로 바꾼다.
+- 자동 게시는 `application/notice`의 `AuditionPublisher` port를 `AuditionPostImportService.publish`가 구현한다.
+  같은 출처·번호가 이미 있으면 아무것도 하지 않고, 운영자 작업이 아니므로 감사 기록을 남기지 않는다.
 - 가져온 파일은 `file_assets`에 등록하지 않는다. 회원 소유 업로드가 아니며 미사용 파일 관리 대상에도 포함하지 않는다.
 
 ## 지원서

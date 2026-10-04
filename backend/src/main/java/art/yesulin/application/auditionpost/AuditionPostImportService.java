@@ -7,6 +7,7 @@ import static art.yesulin.domain.auditionpost.AuditionPostErrorCode.SOURCE_UNAVA
 import art.yesulin.application.auditionpost.AuditionPostImportResult.SkippedFile;
 import art.yesulin.application.file.storage.ObjectStorage;
 import art.yesulin.application.file.storage.ObjectUpload;
+import art.yesulin.application.notice.AuditionPublisher;
 import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.admin.AdminAction;
 import art.yesulin.domain.admin.AdminAuditLog;
@@ -41,7 +42,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  */
 @Slf4j
 @Service
-public class AuditionPostImportService {
+public class AuditionPostImportService implements AuditionPublisher {
 
     private static final ZoneId KOREA = ZoneId.of("Asia/Seoul");
     private static final DateTimeFormatter KEY_DATE = DateTimeFormatter.ofPattern("yyyyMMdd").withZone(ZoneOffset.UTC);
@@ -71,7 +72,29 @@ public class AuditionPostImportService {
         this.clock = clock;
     }
 
+    /** 운영자가 관리자 화면에서 가져온다. 이미 있으면 원문 기준으로 교체하고 감사 기록을 남긴다. */
     public AuditionPostImportResult importPost(long adminId, String externalId) {
+        return importAs(adminId, externalId);
+    }
+
+    /**
+     * 운영 서버의 공고 알림이 새 공고를 자동으로 게시한다. 이미 있는 번호는 운영자가 숨겼거나 다시 가져온 상태를
+     * 지키기 위해 건너뛴다. 운영자 작업이 아니므로 감사 기록은 남기지 않는다.
+     */
+    @Override
+    public void publish(String sourceName, String externalId) {
+        if (!source.getSource().equals(sourceName)
+                || repository.findBySourceAndExternalId(sourceName, externalId).isPresent()) {
+            return;
+        }
+        AuditionPostImportResult result = importAs(null, externalId);
+        if (!result.skippedAttachments().isEmpty()) {
+            log.info("자동 게시에서 첨부 {}개를 건너뜀: {}-{}", result.skippedAttachments().size(), sourceName, externalId);
+        }
+    }
+
+    /** {@code adminId}가 null이면 자동 게시다. */
+    private AuditionPostImportResult importAs(Long adminId, String externalId) {
         SourcePost post = fetch(externalId);
         AuditionPostOrigin origin = new AuditionPostOrigin(source.getSource(), post.externalId(), post.sourceUrl());
         AuditionPostContent content = new AuditionPostContent(
@@ -163,7 +186,7 @@ public class AuditionPostImportService {
     }
 
     private Saved save(
-            long adminId,
+            Long adminId,
             AuditionPostOrigin origin,
             AuditionPostContent content,
             List<String> tags,
@@ -193,7 +216,10 @@ public class AuditionPostImportService {
         }
     }
 
-    private void audit(long adminId, AuditionPost post, String detailFormat) {
+    private void audit(Long adminId, AuditionPost post, String detailFormat) {
+        if (adminId == null) {
+            return;
+        }
         auditLogRepository.save(new AdminAuditLog(
                 adminId,
                 AdminAction.AUDITION_POST_IMPORTED,

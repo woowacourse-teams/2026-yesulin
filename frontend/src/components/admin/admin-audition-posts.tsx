@@ -23,8 +23,8 @@ const ROW_BUTTON_CLASS =
   "inline-flex min-h-11 items-center rounded-control border border-border bg-card px-3 text-sm font-semibold text-muted-strong hover:border-brand-line hover:text-brand disabled:opacity-50";
 
 /**
- * 공고 알림으로 받은 OTR 공고를 번호로 가져와 우리 공고로 바로 게시한다. 게시한 뒤 제작사에 허락을 받고,
- * 거절하면 숨긴다. 같은 번호를 다시 가져오면 원문 내용으로 교체된다.
+ * 운영 서버는 새 OTR 공고를 알림과 함께 자동으로 게시한다. 자동 게시가 실패했거나 개발 환경에서는 여기서 번호로
+ * 직접 가져온다. 게시한 뒤 제작사에 허락을 받고 거절하면 숨긴다. 같은 번호를 다시 가져오면 원문 내용으로 교체된다.
  */
 export function AdminAuditionPosts() {
   const [phase, setPhase] = useState<Phase>("loading");
@@ -122,7 +122,7 @@ export function AdminAuditionPosts() {
     <AdminShell
       current="posts"
       title="공고 가져오기"
-      description="공고 알림으로 받은 OTR 번호나 주소를 넣으면 본문·사진·첨부파일까지 우리 공고로 바로 게시해요. 게시한 뒤 제작사에 허락을 받고, 거절하면 숨겨 주세요. 같은 번호를 다시 가져오면 원문 내용으로 바뀌어요."
+      description="운영 서버는 새 OTR 공고를 알림과 함께 자동으로 게시해요. 자동 게시가 실패했거나 개발 환경에서는 OTR 번호나 알림 링크를 넣어 직접 게시해 주세요. 게시한 뒤 제작사에 허락을 받고, 거절하면 숨겨 주세요."
       actions={(
         <>
           <AdminActionButton onClick={refresh}>새로고침</AdminActionButton>
@@ -179,6 +179,7 @@ export function AdminAuditionPosts() {
                 <span className={`rounded-full px-2.5 py-0.5 font-bold ${post.status === "PUBLISHED" ? "bg-pass-bg text-pass" : "bg-border-soft text-muted-strong"}`}>
                   {post.status === "PUBLISHED" ? "공개 중" : "숨김"}
                 </span>
+                {post.autoPublished ? <span className="rounded-full bg-brand-soft px-2.5 py-0.5 font-bold text-brand">자동 게시</span> : null}
                 {post.closed ? <span className="rounded-full bg-border-soft px-2.5 py-0.5 font-bold text-muted">마감</span> : null}
                 <span className="num text-muted">{post.source} {post.externalId}</span>
                 <span className="ml-auto text-muted">{formatDateTime(post.updatedAt)} 갱신</span>
