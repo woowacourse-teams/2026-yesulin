@@ -6,6 +6,7 @@ import art.yesulin.application.timetable.TimetableMessagesQueuedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 /**
@@ -23,15 +24,18 @@ public class SlackTimetableMessageRelay implements TimetableMessageRelay {
     private final String webhookUrl;
     private final SlackWebhookClient webhookClient;
     private final TimetableLinks links;
+    private final String environmentLabel;
 
     public SlackTimetableMessageRelay(
-            @Value("${yesulin.timetable.operator-slack-webhook-url:}") String webhookUrl,
+            @Value("${yesulin.slack.timetable-webhook-url:}") String webhookUrl,
             SlackWebhookClient webhookClient,
-            TimetableLinks links
+            TimetableLinks links,
+            Environment environment
     ) {
         this.webhookUrl = webhookUrl;
         this.webhookClient = webhookClient;
         this.links = links;
+        this.environmentLabel = SlackEnvironment.label(environment);
     }
 
     @Override
@@ -44,8 +48,8 @@ public class SlackTimetableMessageRelay implements TimetableMessageRelay {
         if (webhookUrl == null || webhookUrl.isBlank()) {
             return;
         }
-        String text = "📨 예술in 일정표 문자 %d건 발송 대기 · ‘%s’\n관리자 대기열에서 보내 주세요.\n%s"
-                .formatted(event.count(), event.timetableTitle(), links.messageQueue());
+        String text = "📨 %s 일정표 문자 %d건 발송 대기 · ‘%s’\n관리자 대기열에서 보내 주세요.\n%s"
+                .formatted(environmentLabel, event.count(), event.timetableTitle(), links.messageQueue());
         Thread.ofVirtual().name("timetable-slack-relay").start(() -> post(event, text));
     }
 

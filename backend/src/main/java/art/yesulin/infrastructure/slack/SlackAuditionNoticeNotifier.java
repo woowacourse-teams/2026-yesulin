@@ -15,7 +15,7 @@ public class SlackAuditionNoticeNotifier implements AuditionNoticeNotifier {
     private final OtrNoticeLink noticeLink;
 
     public SlackAuditionNoticeNotifier(
-            @Value("${YESULIN_SLACK_WEBHOOK_URL:}") String webhookUrl,
+            @Value("${yesulin.slack.notice-webhook-url:}") String webhookUrl,
             SlackWebhookClient webhookClient,
             OtrNoticeLink noticeLink
     ) {

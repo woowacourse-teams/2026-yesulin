@@ -68,8 +68,16 @@
 - `TimetableRequest`는 배우의 시간 조정 요청(`OPEN/RESOLVED`)이고, `TimetableMessage`는 받는 이름·번호·본문을 고정한
   문자 대기열 행(`PENDING/SENT`, 발송 표시 운영자)이다. 문자 본문과 중복 억제는 `TimetableMessenger`가 맡는다.
 - 한 작업에서 넣은 문자는 `TimetableMessagesQueuedEvent` 하나로 묶고 커밋 뒤 `TimetableMessageRelay`에 전달한다. 현재 구현
-  `SlackTimetableMessageRelay`는 개인정보 없는 신호를 가상 스레드로 운영 Slack에 보내며 실패해도 대기열은 남는다. 문자 업체로
-  보내려면 이 포트의 구현만 바꾸고 보낸 문자를 `SENT`로 표시한다. Slack 전송은 OTR 공고 알림과 같은 `SlackWebhookClient`를 쓴다.
+  `SlackTimetableMessageRelay`는 개인정보 없는 신호를 가상 스레드로 스케줄 알림 Slack에 보내며 실패해도 대기열은 남는다.
+  문자 업체로 보내려면 이 포트의 구현만 바꾸고 보낸 문자를 `SENT`로 표시한다. Slack 전송은 OTR 공고 알림과 같은
+  `SlackWebhookClient`를 쓰고, 로컬·DEV가 채널을 같이 쓰므로 메시지 앞에 `[LOCAL]`·`[DEV]`·`[PROD]`를 붙인다.
+
+## 서버 오류 알림
+
+- `RequestLoggingFilter`가 요청 밖으로 나온 예외를 `UNEXPECTED_ERROR`로 남길 때 `ErrorAlert`에도 요청 방식·요청 패턴·
+  예외 종류·요청 ID를 넘긴다. 예외 메시지와 요청 값은 개인정보가 섞일 수 있어 넘기지 않는다.
+- `SlackErrorAlert`는 버그 알림 Slack에 가상 스레드로 보내고, 같은 요청 패턴·예외는 10분에 한 번만 보낸다. 웹훅이 비어
+  있으면 아무것도 하지 않고, 전송 실패는 로그로만 남긴다.
 
 ## 공고 알림
 
