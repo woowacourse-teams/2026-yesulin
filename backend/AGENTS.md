@@ -20,7 +20,9 @@
 ./gradlew build
 ```
 
-- API 계약 변경은 Controller, DTO, Controller 테스트와 `docs/api.md`를 함께 맞춘다.
-- 비즈니스 규칙은 domain/application 테스트를 우선한다.
+- 테스트는 domain과 application에만 작성한다. presentation(Controller·DTO·필터, in)과 infrastructure(외부 연동·
+  Slack·문자 업체, out)는 당분간 새 테스트를 추가하지 않고 로컬 실행과 실제 요청으로 직접 확인한다.
+- 기존 presentation·infrastructure 테스트는 지우지 않으며, 변경으로 깨지면 그 변경에 맞게 고친다.
+- API 계약 변경은 Controller, DTO와 `docs/api.md`를 함께 맞추고 실제 요청으로 확인한다.
 - Checkstyle을 우회하지 않는다.
 

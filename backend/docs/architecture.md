@@ -38,7 +38,7 @@ infrastructure/    JPA·QueryDSL, OAuth, S3 등 외부 기술 adapter
 - 한 줄 120자, `var`와 제네릭 wildcard를 사용하지 않는다.
 - 입력이 필수인 숫자는 primitive, 생성 전 null이 필요한 JPA 식별자는 wrapper를 사용한다.
 - `common`, `global`, `util` 같은 포괄 폴더보다 역할 이름을 사용한다.
-- 테스트는 domain과 application의 규칙을 우선하고 Controller 테스트로 HTTP 계약을 검증한다.
+- 테스트는 domain과 application에만 작성한다. presentation과 infrastructure는 당분간 직접 실행해 확인한다.
 
 ## 로그
 
