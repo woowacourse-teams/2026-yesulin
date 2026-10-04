@@ -81,6 +81,18 @@ class AuditionNoticeServiceTest {
     }
 
     @Test
+    void notifiesOnlyCategoriesWePost() {
+        AuditionContent dance = new AuditionContent("22320", "댄스", "댄서 모집", "협의", "상시",
+                "https://otr.co.kr/audition/?vid=22320");
+        when(source.fetchRecent()).thenReturn(List.of(dance, content("22321")));
+
+        service.notifyAuditions();
+
+        verify(notifier).send(List.of(content("22321")));
+        assertThat(repository.existsBySourceAndExternalId("OTR", "22320")).isFalse();
+    }
+
+    @Test
     void sendsMultipleNewNoticesInOneBatch() {
         when(source.fetchRecent()).thenReturn(List.of(content("22310"), content("22311")));
 

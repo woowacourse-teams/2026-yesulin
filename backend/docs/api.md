@@ -219,6 +219,39 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 1차 서류 심사 한 차수를 제공한다. 배역별 심사 종료는 OTR 지원 마감 다음 날부터 가능하며,
 그 전에는 `409 SCREENING_ROUND_NOT_READY`를 반환한다. 종료 후 심사 결과 수정은 거부한다.
 
+## 가져온 공고(메인 목록) — 5개
+
+운영자가 공고 알림을 받은 OTR 공고를 우리 공고로 옮긴 `AuditionPost`다. 공개 응답에는 원문 출처·주소를 담지 않는다.
+공개 API는 로그인 없이 호출하고, 운영 API는 `ADMIN`만 호출한다.
+`postId`는 숫자 ID다. 모두 공개 대상인 공고라 다른 공고와 달리 UUID를 쓰지 않는다.
+
+| Method | URL | 인증 | Request | Response |
+| --- | --- | --- | --- | --- |
+| GET | `/api/v1/public/audition-posts` | 공개 | `page`(0부터, 기본 0), `size`(1~48, 기본 12), `includeClosed`(기본 false) query | `200 PublicAuditionPostPageResult(posts, page, size, totalPages, totalElements, openCount, allCount)` |
+| GET | `/api/v1/public/audition-posts/{postId}` | 공개 | 없음 | `200 PublicAuditionPostResult` |
+| GET | `/api/v1/admin/audition-posts` | Admin | 없음 | `200 AdminAuditionPostsResponse(posts)` |
+| POST | `/api/v1/admin/audition-posts/otr-imports` | Admin | `ImportOtrAuditionPostRequest(otrId)` | 처음이면 `201`, 다시 가져오면 `200 AuditionPostImportResult` |
+| PATCH | `/api/v1/admin/audition-posts/{postId}/status` | Admin | `ChangeAuditionPostStatusRequest(status: PUBLISHED/HIDDEN)` | `200 AdminAuditionPostResult` |
+
+공개 목록은 `PUBLISHED`만 원문 작성 시각 최신순으로 반환한다. 작성 시각을 읽지 못한 공고는 뒤에 온다.
+기본은 모집 중(마감일이 없거나 한국 날짜로 오늘 이후)인 공고만 세고, `includeClosed=true`면 마감된 공고도 포함한다.
+`totalElements`·`totalPages`는 요청 조건 기준이고, `openCount`·`allCount`는 조건과 관계없는 모집 중·전체 공개 공고 수다.
+목록 항목은 `id`, `category`, `title`, `authorName`, `pay`, `deadlineText`(원문 표현),
+`deadline`(날짜일 때만 `YYYY-MM-DD`), `closed`(한국 날짜 기준), `postedAt`(Instant), `thumbnailUrl`(본문 첫 사진, 없으면 null),
+`attachmentCount`를 담는다. 상세는 여기에 `bodyHtml`, `tags`, `attachments(name, contentType, size, url)`,
+`updatedAt`을 더한다. 숨김 또는 없는 공고는 `404 AUDITION_POST_NOT_FOUND`다. page·size 범위 오류는 `400 INVALID_REQUEST`다.
+
+`bodyHtml`은 서버가 Jsoup relaxed 허용 목록에서 `div`와 크기 속성을 뺀 태그만 남긴 HTML이다. 인라인 스타일과 스크립트는 없다.
+링크는 `target="_blank" rel="noopener noreferrer nofollow"`이고, 사진 `src`는 응답할 때 공개 저장소 주소로 채운다.
+첨부 `url`은 공개 저장소 주소이며 객체에 `Content-Disposition: attachment`와 원래 파일 이름이 설정돼 있다.
+
+가져오기는 `otrId` 앞뒤 공백을 허용하는 숫자 1~30자다. 서버가 OTR 상세·첨부를 직접 내려받는 동안 요청이 길어질 수 있다.
+`AuditionPostImportResult`는 `post`(`AdminAuditionPostResult`), `created`, 옮기지 않은 첨부 `skippedAttachments(filename, reason)`를
+담는다. OTR 접속·구조 오류는 `409 AUDITION_POST_SOURCE_UNAVAILABLE`, 지원하지 않거나 20MB를 넘는 본문 사진은
+`409 AUDITION_POST_FILE_REJECTED`, 같은 번호의 동시 가져오기 충돌은 `409 AUDITION_POST_IMPORT_CONFLICT`다.
+분류가 연극·퍼포먼스·뮤지컬·단원·기획사가 아니면 파일을 받기 전에 `409 AUDITION_POST_CATEGORY_NOT_SUPPORTED`로 거절한다.
+운영 목록은 최근 가져온 200건을 상태와 관계없이 출처·원문 번호·원문 주소와 함께 반환한다. 가져오기와 공개 상태 변경은 `admin_audit_logs`에 남긴다.
+
 ## 무료 공연과 비회원 예매 — 19개
 
 오디션용 공연·공고와 별도의 저장 모델이다. 관리 API는 `PRODUCER + ACTIVE`만 호출할 수 있고 자기 공연만 보이며,
@@ -532,6 +565,7 @@ S3 삭제 실패 시 `DELETING` 상태가 남으며 같은 파일 ID로 재시�
 | 심사 | `INVALID_SCREENING_REVIEW`, `SCREENING_REVIEW_NOT_FOUND`, `SCREENING_ROUND_NOT_READY` |
 | 무료 공연 | `SHOW_NOT_FOUND`, `SHOW_SESSION_NOT_FOUND`, `SHOW_INVALID_INPUT`, `SHOW_INVALID_STATUS`, `SHOW_NOT_OPENABLE`, `SHOW_NOT_OPEN`, `SHOW_HAS_RESERVATIONS`, `SHOW_SESSION_BOOKING_CLOSED`, `SHOW_SESSION_NOT_ENOUGH_SEATS`, `SHOW_SESSION_CAPACITY_BELOW_RESERVED`, `SHOW_SESSION_HAS_RESERVATIONS` |
 | 예매 | `RESERVATION_NOT_FOUND`, `RESERVATION_INVALID_INPUT`, `RESERVATION_DUPLICATE`, `RESERVATION_NOT_CHANGEABLE` |
+| 가져온 공고 | `AUDITION_POST_NOT_FOUND`, `AUDITION_POST_INVALID_INPUT`, `AUDITION_POST_CATEGORY_NOT_SUPPORTED`, `AUDITION_POST_SOURCE_UNAVAILABLE`, `AUDITION_POST_FILE_REJECTED`, `AUDITION_POST_IMPORT_CONFLICT` |
 | 오디션 일정표 | `TIMETABLE_NOT_FOUND`, `TIMETABLE_INVALID_INPUT`, `TIMETABLE_ACTOR_NOT_FOUND`, `TIMETABLE_DUPLICATE_ACTOR`, `TIMETABLE_TOO_MANY_ACTORS`, `TIMETABLE_SLOT_UNAVAILABLE`, `TIMETABLE_SETTING_NOT_EXTENDABLE`, `TIMETABLE_ASSIGNMENT_CONFLICT`, `TIMETABLE_NOT_PUBLISHABLE`, `TIMETABLE_SELF_CHANGE_CLOSED`, `TIMETABLE_REQUEST_NOT_FOUND`, `TIMETABLE_MESSAGE_NOT_FOUND` |
 | 운영 | `MEMBER_NOT_FOUND`, `MEMBER_STATUS_CHANGE_NOT_ALLOWED`, `ADMIN_DELETION_CONFIRMATION_FAILED` |
 

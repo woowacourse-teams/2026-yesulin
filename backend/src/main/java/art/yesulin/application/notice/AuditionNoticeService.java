@@ -1,5 +1,6 @@
 package art.yesulin.application.notice;
 
+import art.yesulin.domain.auditionpost.AuditionCategory;
 import art.yesulin.domain.notice.Notice;
 import art.yesulin.domain.notice.NoticeRepository;
 import art.yesulin.domain.notice.NoticeStatus;
@@ -27,7 +28,10 @@ public class AuditionNoticeService {
 
     public void notifyAuditions() {
         String source = auditionSource.getSource();
-        List<AuditionContent> contents = fetchRecent(source);
+        // 연극·퍼포먼스·뮤지컬·단원·기획사 공고만 알린다. 그 밖의 분류는 알림 이력도 만들지 않는다.
+        List<AuditionContent> contents = fetchRecent(source).stream()
+                .filter(content -> AuditionCategory.supports(content.category()))
+                .toList();
         registerNewNotices(contents, source);
 
         List<AuditionContent> pending = extractPendingNotices(contents, source);

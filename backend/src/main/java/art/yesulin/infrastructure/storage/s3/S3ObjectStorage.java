@@ -1,11 +1,13 @@
 package art.yesulin.infrastructure.storage.s3;
 
 import art.yesulin.application.file.storage.ObjectStorage;
+import art.yesulin.application.file.storage.ObjectUpload;
 import art.yesulin.application.file.storage.PresignedUpload;
 import art.yesulin.application.file.storage.StoredObjectContent;
 import art.yesulin.application.file.storage.StoredObjectMetadata;
 import java.util.Map;
 import java.util.Optional;
+import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
@@ -19,6 +21,8 @@ import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequ
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
 public class S3ObjectStorage implements ObjectStorage {
+
+    private static final String IMMUTABLE_CACHE_CONTROL = "public, max-age=31536000, immutable";
 
     private final S3Client s3Client;
     private final S3Presigner presigner;
@@ -49,6 +53,20 @@ public class S3ObjectStorage implements ObjectStorage {
                 presignedRequest.expiration(),
                 Map.of("Content-Type", contentType)
         );
+    }
+
+    @Override
+    public void put(String objectKey, ObjectUpload upload) {
+        PutObjectRequest.Builder request = PutObjectRequest.builder()
+                .bucket(properties.bucket())
+                .key(toPhysicalKey(objectKey))
+                .contentType(upload.contentType())
+                .contentLength(upload.size())
+                .cacheControl(IMMUTABLE_CACHE_CONTROL);
+        if (upload.contentDisposition() != null) {
+            request.contentDisposition(upload.contentDisposition());
+        }
+        s3Client.putObject(request.build(), RequestBody.fromInputStream(upload.content(), upload.size()));
     }
 
     @Override

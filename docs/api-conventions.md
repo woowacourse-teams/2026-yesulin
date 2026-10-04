@@ -7,6 +7,7 @@
 - REST API prefix는 `/api/v1`이다.
 - 리소스 경로는 복수 명사와 kebab-case를 사용한다.
 - 공고와 지원서는 외부에 UUID를 사용한다. 공연·배역·전형·파일·보관함 항목은 양의 정수 ID를 사용한다.
+  운영자가 게시하는 메인 공고(`AuditionPost`)는 모두 공개 대상이므로 양의 정수 ID를 사용한다.
 - 시간은 ISO 8601로 전송한다. `Instant`는 offset이 포함된 시각, `LocalDate`는 `YYYY-MM-DD`다.
 - 성공 응답에는 공통 envelope를 씌우지 않는다. 컬렉션 자체의 이름이 필요한 경우 도메인별 response record를 사용한다.
 
