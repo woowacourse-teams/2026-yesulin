@@ -1,11 +1,13 @@
 export type MockScenarioDefinition = {
   readonly id: string;
-  readonly area: "지원 양식" | "심사 흐름" | "무료 공연";
+  readonly area: "지원 양식" | "심사 흐름" | "무료 공연" | "오디션 일정표";
   readonly title: string;
   readonly description: string;
   readonly href: string;
   readonly checks: readonly string[];
 };
+
+import { SEED_TIMETABLE_KEYS } from "./timetable-handlers";
 
 /** 개발용 허브와 검증 문서가 공유하는 대표 시나리오 목록. */
 export const MOCK_SCENARIOS: readonly MockScenarioDefinition[] = [
@@ -120,5 +122,37 @@ export const MOCK_SCENARIOS: readonly MockScenarioDefinition[] = [
     description: "초안·예매 중·마감 공연과 회차별 예매자를 관리합니다.",
     href: "/producers/shows",
     checks: ["상태가 배지 텍스트로 구분된다", "예매가 있는 회차는 삭제할 수 없다", "예매 취소 후 잔여석이 늘어난다", "확정 예매자 번호 복사와 엑셀 다운로드에 취소 건이 빠진다", "메모가 있는 관객 줄에 메모 표시가 붙고 메모 있음 필터로 모아 볼 수 있다", "관객 줄을 누르면 매수 조정·메모·취소가 펼쳐진다", "매수는 숫자 입력이나 −/+로 남은 좌석까지만 늘릴 수 있다"],
+  },
+  {
+    id: "timetable-create",
+    area: "오디션 일정표",
+    title: "일정표 만들기",
+    description: "로그인 없이 일정표 정보와 오디션 날짜·시간(바운더리)을 정해 관리 링크를 받습니다.",
+    href: "/timetable/new",
+    checks: ["달력에서 누르면 선택·해제되고 끌면 여러 날이 한꺼번에 선택된다", "오디션 가능 시간 슬롯을 여러 개 두면 고른 날짜에 모두 적용되고 달력 높이는 그대로다", "아래 두 칸 일정 목록에서 날짜별 슬롯을 고치면 개별로 표시된다", "필수 칸을 비우고 생성하면 빨간 테두리와 함께 그 칸으로 이동한다", "만든 뒤 보드에 합격자 등록 칸이 크게 보이고 등록하면 빈 칸에 바로 배정된다", "만들면 관리 링크 저장 안내가 강조된다"],
+  },
+  {
+    id: "timetable-draft-board",
+    area: "오디션 일정표",
+    title: "작성 중 보드",
+    description: "미배정 배우 8명을 자동 배정하고 끌어다 놓아 고친 뒤 확정합니다.",
+    href: `/timetable/manage/${SEED_TIMETABLE_KEYS.draft}`,
+    checks: ["위쪽 3단계 안내에서 지금 할 일이 강조된다", "빈 칸을 누르면 넣을 배우를 고를 수 있다", "이름을 누르고 옮기기를 고르면 놓을 칸이 강조된다", "시간 늘리기에서 저장한 날짜·시간은 잠겨 있다"],
+  },
+  {
+    id: "timetable-published-board",
+    area: "오디션 일정표",
+    title: "확정된 보드",
+    description: "배우가 직접 바꾼 시간(↻)과 시간 조정 요청이 있는 확정 일정표입니다.",
+    href: `/timetable/manage/${SEED_TIMETABLE_KEYS.published}`,
+    checks: ["요청 패널에서 배우를 고를 수 있다", "확정 뒤 등록한 정배우가 명단에 추가 합격으로 표시된다", "안내한 배우를 옮겨 저장하면 변경 안내 확인 창이 뜬다", "배우 변경 막기를 켜고 끌 수 있다"],
+  },
+  {
+    id: "timetable-actor",
+    area: "오디션 일정표",
+    title: "배우 일정 링크",
+    description: "배우가 문자 링크로 일정을 보고 빈 시간으로 직접 옮기거나 요청을 남깁니다.",
+    href: `/t/${SEED_TIMETABLE_KEYS.actor}`,
+    checks: ["다른 배우의 이름·번호가 보이지 않는다", "빈 시간을 골라 바로 바꿀 수 있다", "요청을 보내면 보낸 내용이 표시된다"],
   },
 ];

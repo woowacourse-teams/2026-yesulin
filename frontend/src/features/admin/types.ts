@@ -275,3 +275,31 @@ export type AdminSubmissionDetail = {
     readonly agreedAt: string;
   }[];
 };
+
+/** 일정표 문자 발송 대기열. 문자 업체를 연결하기 전까지 운영자가 번호와 본문을 복사해 직접 보낸다. */
+export type AdminTimetableMessageType =
+  | "ORGANIZER_LINK"
+  | "ORGANIZER_TIME_REQUEST"
+  | "ACTOR_INVITATION"
+  | "ACTOR_SCHEDULE_CHANGED";
+
+export type AdminTimetableMessageStatus = "PENDING" | "SENT";
+
+export type AdminTimetableMessage = {
+  readonly id: number;
+  readonly type: AdminTimetableMessageType;
+  readonly status: AdminTimetableMessageStatus;
+  readonly timetableTitle: string;
+  readonly organizerName: string;
+  readonly recipientName: string;
+  readonly recipientPhone: string;
+  readonly body: string;
+  readonly createdAt: string;
+  readonly sentAt: string | null;
+};
+
+export type AdminTimetableMessages = {
+  /** 목록 상한과 관계없는 전체 대기 건수. */
+  readonly pendingCount: number;
+  readonly messages: readonly AdminTimetableMessage[];
+};

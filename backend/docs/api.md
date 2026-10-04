@@ -279,6 +279,56 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 정원은 확정 매수보다 줄일 수 없고(`409 SHOW_SESSION_CAPACITY_BELOW_RESERVED`), 예매 기록이 있는 회차와 공연은
 삭제할 수 없다(`409 SHOW_SESSION_HAS_RESERVATIONS`, `409 SHOW_HAS_RESERVATIONS`).
 
+## 오디션 일정표 — 12개
+
+로그인 없이 링크 열쇠로 쓰는 독립 일정표다. 관리 API는 기획사의 관리 링크 열쇠, 배우 API는 배우의 개인 링크 열쇠를
+`X-Timetable-Key` 헤더로 받는다. 열쇠는 URL-safe Base64 22자다. 열쇠는 요청 로그에 남지 않도록 경로·쿼리에 넣지 않는다. 헤더가 없으면
+`400 INVALID_REQUEST`, 형식이 틀리거나 없는 열쇠는 `404 TIMETABLE_NOT_FOUND`다. 쓰기 요청은 CSRF header가 필요하고
+응답은 모두 `Cache-Control: no-store`다. 날짜는 `YYYY-MM-DD`, 시각은 한국 시간이며 요청은 `HH:mm`, 응답은 `HH:mm:ss`다.
+
+| Method | URL | 인증 | Request | Response |
+| --- | --- | --- | --- | --- |
+| POST | `/api/v1/timetables` | 공개 | `CreateTimetableRequest(profile, setting)` | `201 TimetableCreatedResult(manageKey)` |
+| GET | `/api/v1/timetables/manage` | 관리 열쇠 | 없음 | `200 TimetableBoardResult` |
+| PUT | `/api/v1/timetables/manage/profile` | 관리 열쇠 | `TimetableProfileRequest` | `200 TimetableBoardResult` |
+| PUT | `/api/v1/timetables/manage/board` | 관리 열쇠 | `SaveTimetableBoardRequest(setting, assignments)` | `200 TimetableBoardResult` |
+| POST | `/api/v1/timetables/manage/actors` | 관리 열쇠 | `RegisterActorsRequest(actors: [{name, phone}])` | `201 TimetableBoardResult` |
+| DELETE | `/api/v1/timetables/manage/actors/{actorId}` | 관리 열쇠 | 없음 | `200 TimetableBoardResult` |
+| POST | `/api/v1/timetables/manage/publication` | 관리 열쇠 | 없음 | `200 TimetableBoardResult` |
+| PUT | `/api/v1/timetables/manage/self-change-lock` | 관리 열쇠 | `ChangeSelfChangeLockRequest(locked)` | `200 TimetableBoardResult` |
+| POST | `/api/v1/timetables/manage/requests/{requestId}/resolution` | 관리 열쇠 | 없음 | `200 TimetableBoardResult` |
+| GET | `/api/v1/timetables/actor` | 배우 열쇠 | 없음 | `200 ActorTimetableResult` |
+| PUT | `/api/v1/timetables/actor/slot` | 배우 열쇠 | `ChangeActorSlotRequest(current, next)` | `200 ActorTimetableResult` |
+| POST | `/api/v1/timetables/actor/requests` | 배우 열쇠 | `CreateTimeRequestRequest(message)` | `200 ActorTimetableResult` |
+
+`profile`은 `title`(60자 이하), `organizerName`(40자 이하), `organizerPhone`(`010-1234-5678`), 선택 `location`(200자 이하)·
+`guide`(1000자 이하)다. `setting`은 `slotMinutes`(5분 단위 5~240), `slotCapacity`(1~50), `windows`(1~200개의
+`{date, startTime, endTime}`, 5분 단위, 같은 날 겹침 불가)다. 일정표를 만들면 관리 열쇠를 응답으로 한 번 주고
+담당자 번호로 관리 링크 문자를 대기열에 넣는다. 형식·길이·시간대 규칙 위반은 `400 TIMETABLE_INVALID_INPUT`이다.
+
+`TimetableBoardResult`는 일정표 정보와 `status`(`DRAFT`·`PUBLISHED`), `publishedAt`, `selfChangeLocked`,
+`selfChangeNoticeHours`(24), 설정, `actors`와 열린 `requests`를 담는다. 배우는 `id`, `name`, `phone`, `slot`
+(`{date, startTime, endTime}` 또는 null), `invited`, 배우가 직접 바꿨을 때만 값이 있는 `previousSlot`·`actorChangedAt`,
+등록 시각 `registeredAt`이다. `registeredAt`이 `publishedAt`보다 늦으면 확정 뒤 등록한 추가 합격자다.
+
+보드 저장의 `assignments`는 옮긴 배우만 `{actorId, previous, next}`로 보낸다(null은 미배정, 최대 300개). `previous`가 지금
+시간과 다르면 `409 TIMETABLE_ASSIGNMENT_CONFLICT`, 같은 배우가 두 번이면 `400 TIMETABLE_INVALID_INPUT`이다. 시간대 설정을
+바꾼 뒤 모든 배정이 시간 칸 안에 있지 않거나 정원을 넘으면 `409 TIMETABLE_SLOT_UNAVAILABLE`, 확정 뒤 안내한 배우를
+비우면 `400 TIMETABLE_INVALID_INPUT`이다. 저장한 시간대는 늘리기만 한다. 기존 시간 칸이 하나라도 빠지거나
+`slotMinutes`가 바뀌거나 `slotCapacity`가 줄면 `409 TIMETABLE_SETTING_NOT_EXTENDABLE`이다. 확정한 일정표는 옮긴 안내 배우에게 변경 안내, 새로 시간을 받은 배우에게 첫 안내를
+대기열에 넣고, 옮긴 배우의 열린 요청을 닫는다. 배우 등록은 1~300명이며 한 일정표에 같은 번호가 있으면
+`409 TIMETABLE_DUPLICATE_ACTOR`, 합계 300명을 넘으면 `409 TIMETABLE_TOO_MANY_ACTORS`다. 확정은 배우가 없거나
+미배정 배우가 있으면 `409 TIMETABLE_NOT_PUBLISHABLE`이다. 없는 배우·요청은 `404 TIMETABLE_ACTOR_NOT_FOUND`,
+`404 TIMETABLE_REQUEST_NOT_FOUND`다.
+
+배우 API는 확정 뒤 안내를 받은 배우만 열 수 있고 그 밖에는 `404 TIMETABLE_NOT_FOUND`다. `ActorTimetableResult`는 일정표
+이름·단체명·장소·안내 사항, 배우 이름, `slot`, `selfChange`(`OPEN`·`LOCKED`·`DEADLINE_PASSED`), `changeDeadline`,
+`openSlots`(지금 옮길 수 있는 빈 칸), 열린 `request`(`message`, `createdAt`)를 담고 다른 배우의 이름·번호·칸별 인원은 담지 않는다.
+직접 변경은 일정표 행을 잠근 뒤 `current`가 지금 시간과 다르면 `409 TIMETABLE_ASSIGNMENT_CONFLICT`, 기획사가 막았거나 지금 시간의
+시작까지 24시간이 남지 않았으면 `409 TIMETABLE_SELF_CHANGE_CLOSED`, 옮길 칸이 바운더리 밖·정원 초과·24시간 이내면
+`409 TIMETABLE_SLOT_UNAVAILABLE`이다. 성공하면 바로 확정되고 그 배우의 열린 요청을 닫는다. 시간 조정 요청은 300자 이하이며
+열린 요청이 있으면 내용을 바꾸고, 담당자 요청 알림은 아직 보내지 않은 알림이 없을 때만 대기열에 넣는다.
+
 ## 배우 프로필과 보관함·비공개 파일 — 14개
 
 | Method | URL | 인증 | Request | Response |
@@ -355,7 +405,7 @@ submission ID와 변경할 status·memo·note 중 하나 이상을 요구한다.
 미선택자는 `PENDING`으로 보존하며, `PASS`만 다음 차수로 승격한다. 다음 차수 대상이 없으면 이후 빈 차수도
 자동 마감한다. 마감한 차수의 결과는 수정하거나 되돌릴 수 없다.
 
-## 운영 대시보드 — 16개
+## 운영 대시보드 — 18개
 
 개발팀 전용 경로다. 모두 `ADMIN` 세션만 통과하며 다른 역할은 `403 AUTH_FORBIDDEN`이다.
 
@@ -378,6 +428,8 @@ submission ID와 변경할 status·memo·note 중 하나 이상을 요구한다.
 | PATCH | `/api/v1/admin/members/{memberId}/status` | Admin | `ChangeMemberStatusRequest(status)` | `200 MemberStatusResult` |
 | PUT | `/api/v1/admin/shows/{showId}/host-name` | Admin | `ChangeShowHostNameRequest(hostName)` | `200 AdminShowHostNameResult` |
 | DELETE | `/api/v1/admin/submissions/{submissionId}` | Admin | `DeleteAdminSubmissionRequest(confirmationPassword)` | `204` |
+| GET | `/api/v1/admin/timetable-messages` | Admin | `status` query (`PENDING`/`SENT`, 기본 `PENDING`) | `200 AdminTimetableMessagesResult` |
+| POST | `/api/v1/admin/timetable-messages/completion` | Admin | `CompleteTimetableMessagesRequest(messageIds)` | `200 AdminTimetableMessagesResponse` |
 
 `AdminOverview`는 회원·공연·공고·지원서, OTR 공고·지원서, 무료 공연·확정 예매 매수 집계와 최근 7일 신규 수만 담고
 개인 식별 정보를 담지 않는다. 예매 매수와 최근 7일 예매 수(`newReservationsInLastWeek`)는 현재 확정 상태인 예매만 센다.
@@ -459,6 +511,13 @@ S3 삭제 실패 시 `DELETING` 상태가 남으며 같은 파일 ID로 재시�
 상태 변경 대상은 `PRODUCER` 계정뿐이다. `ACTIVE` 전환은 이메일 인증을 대신하는 수동 활성화다. 배우와 운영자 계정은 `409 MEMBER_STATUS_CHANGE_NOT_ALLOWED`,
 없는 회원은 `404 MEMBER_NOT_FOUND`다. 성공한 변경은 `admin_audit_logs`에 실행 운영자·대상·`이전 -> 이후`로 남는다.
 
+일정표 문자 대기열은 기획사에게 자동 발송으로 안내한 문자를 운영자가 직접 보내기 위한 목록이다. `PENDING`은 오래된 순
+최대 200건, `SENT`는 최근 보낸 순 최대 100건을 주며 `pendingCount`는 상한과 관계없는 전체 대기 건수다. 각 문자는 `type`
+(`ORGANIZER_LINK`·`ORGANIZER_TIME_REQUEST`·`ACTOR_INVITATION`·`ACTOR_SCHEDULE_CHANGED`), 일정표 이름·단체명, 받는 사람 이름·번호,
+본문, 대기·발송 시각을 담고 응답은 `Cache-Control: no-store`다. 완료 표시는 서로 다른 ID 1~100개를 받아 대기 문자만 `SENT`로
+바꾸고 `TIMETABLE_MESSAGE_SENT` 감사 기록을 번호·본문 없이 남긴다. 이미 보낸 문자는 처음 기록을 유지하고, 없는 ID가 섞이면
+`404 TIMETABLE_MESSAGE_NOT_FOUND`로 전체를 거절한다.
+
 ## 주요 오류 코드
 
 | 영역 | 주요 코드 |
@@ -473,6 +532,7 @@ S3 삭제 실패 시 `DELETING` 상태가 남으며 같은 파일 ID로 재시�
 | 심사 | `INVALID_SCREENING_REVIEW`, `SCREENING_REVIEW_NOT_FOUND`, `SCREENING_ROUND_NOT_READY` |
 | 무료 공연 | `SHOW_NOT_FOUND`, `SHOW_SESSION_NOT_FOUND`, `SHOW_INVALID_INPUT`, `SHOW_INVALID_STATUS`, `SHOW_NOT_OPENABLE`, `SHOW_NOT_OPEN`, `SHOW_HAS_RESERVATIONS`, `SHOW_SESSION_BOOKING_CLOSED`, `SHOW_SESSION_NOT_ENOUGH_SEATS`, `SHOW_SESSION_CAPACITY_BELOW_RESERVED`, `SHOW_SESSION_HAS_RESERVATIONS` |
 | 예매 | `RESERVATION_NOT_FOUND`, `RESERVATION_INVALID_INPUT`, `RESERVATION_DUPLICATE`, `RESERVATION_NOT_CHANGEABLE` |
+| 오디션 일정표 | `TIMETABLE_NOT_FOUND`, `TIMETABLE_INVALID_INPUT`, `TIMETABLE_ACTOR_NOT_FOUND`, `TIMETABLE_DUPLICATE_ACTOR`, `TIMETABLE_TOO_MANY_ACTORS`, `TIMETABLE_SLOT_UNAVAILABLE`, `TIMETABLE_SETTING_NOT_EXTENDABLE`, `TIMETABLE_ASSIGNMENT_CONFLICT`, `TIMETABLE_NOT_PUBLISHABLE`, `TIMETABLE_SELF_CHANGE_CLOSED`, `TIMETABLE_REQUEST_NOT_FOUND`, `TIMETABLE_MESSAGE_NOT_FOUND` |
 | 운영 | `MEMBER_NOT_FOUND`, `MEMBER_STATUS_CHANGE_NOT_ALLOWED`, `ADMIN_DELETION_CONFIRMATION_FAILED` |
 
 인가 공통 오류는 `401 AUTH_UNAUTHENTICATED`, `403 AUTH_FORBIDDEN`, `403 AUTH_INACTIVE_MEMBER`다.

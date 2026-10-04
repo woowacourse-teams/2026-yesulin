@@ -10,7 +10,7 @@ export const ADMIN_SECTIONS = [
 export type AdminSection = (typeof ADMIN_SECTIONS)[number]["id"];
 
 /** 사이드바에서 대시보드 섹션과 같은 줄에 놓는 별도 화면이다. */
-export type AdminNavTarget = AdminSection | "files" | "logs";
+export type AdminNavTarget = AdminSection | "messages" | "files" | "logs";
 
 const SECTION_IDS: ReadonlySet<string> = new Set(ADMIN_SECTIONS.map((section) => section.id));
 

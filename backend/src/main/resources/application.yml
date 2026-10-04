@@ -1,4 +1,8 @@
 spring:
+  config:
+    # 기능별 설정은 properties/에 나눠 두고 여기서 불러온다.
+    import:
+      - classpath:properties/slack.yml
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:local}
   application:
@@ -79,6 +83,9 @@ management:
 yesulin:
   notice:
     link-base-url: ${YESULIN_NOTICE_LINK_BASE_URL}
+  timetable:
+    # 일정표 문자에 넣는 같은 환경의 프론트 origin. 비우면 공고 경유 링크 주소를 쓴다.
+    link-base-url: ${YESULIN_TIMETABLE_LINK_BASE_URL:${YESULIN_NOTICE_LINK_BASE_URL}}
   sms:
     enabled: ${SMS_ENABLED:false}
     provider: ${SMS_PROVIDER:solapi}

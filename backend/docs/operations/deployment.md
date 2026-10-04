@@ -33,6 +33,21 @@ HEAD는 집계하지 않고 Slack 메시지의 링크·미디어 unfurl은 비�
 관리자에서 확인한다. 두 환경 모두 이 백엔드와 프론트를 배포해야 하며 서로의 통계를 합산하거나 교차 조회하지 않는다.
 배포 서버에 JSON 로그 파일이 없으면 이동 집계도 불가하다. 기존 journal 콘솔 로그만으로 대신 집계하지 않는다.
 
+오디션 일정표 문자에 넣는 링크는 `YESULIN_TIMETABLE_LINK_BASE_URL`(같은 환경의 프론트 origin)로 만든다. 값이 없으면
+`YESULIN_NOTICE_LINK_BASE_URL`을 쓰는데, DEV의 공고 링크 주소는 PROD 프론트이므로 DEV에는 `https://dev.yesulin.art`를 따로
+설정해야 DEV 일정표 링크가 DEV 백엔드로 연결된다. 문자 발송 대기 신호는 선택 변수 `YESULIN_TIMETABLE_SLACK_WEBHOOK_URL`의
+Incoming Webhook으로 보내며, 비어 있으면 `TIMETABLE_MESSAGES_QUEUED` 로그만 남긴다. 예상하지 못한 서버 오류는 선택 변수
+`YESULIN_ERROR_SLACK_WEBHOOK_URL`로 보낸다. OTR 공고 알림 채널과 섞지 않고 환경별로 아래 채널을 쓴다.
+
+| 변수 | LOCAL·DEV | PROD |
+| --- | --- | --- |
+| `YESULIN_TIMETABLE_SLACK_WEBHOOK_URL` | 로컬 및 dev용 알림 채널 | 스케줄 알림 채널 |
+| `YESULIN_ERROR_SLACK_WEBHOOK_URL` | 로컬 및 dev용 알림 채널 | 버그 알림 채널 |
+
+Slack 웹훅 세 개(OTR 공고 `YESULIN_SLACK_WEBHOOK_URL` 포함)는 `src/main/resources/properties/slack.yml`의 `yesulin.slack.*`로
+읽고 `application.yml`이 이 파일을 import한다. DEV·PROD 값은 다른 설정과 같이 `config/server/{환경}.env`에 SOPS로 편집하고,
+로컬은 Git에서 제외된 `config/server/local.env`에 둔다. 로컬과 DEV가 같은 채널을 쓰므로 메시지 앞의 `[LOCAL]`·`[DEV]`로 구분한다.
+
 1. PR CI가 Java 25로 Checkstyle과 test를 수행하고, CodeBuild가 실행 JAR를 빌드한다.
 2. JAR를 `application.jar`로 고정하고 revision과 SHA-256을 기록한다.
 3. JAR와 복호화한 환경 파일을 `/opt/yesulin/releases/{commit-id}`에 함께 설치한 뒤 `current` symlink를 교체한다.

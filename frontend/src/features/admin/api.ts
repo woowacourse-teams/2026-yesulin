@@ -16,6 +16,9 @@ import type {
   AdminShowStatus,
   AdminSubmissionDetail,
   AdminSubmissionSummary,
+  AdminTimetableMessage,
+  AdminTimetableMessages,
+  AdminTimetableMessageStatus,
   AdminUnusedFileStatus,
   AdminUnusedFilesPage,
   AuditionStatus,
@@ -225,4 +228,24 @@ export async function deleteAdminSubmission(
     body: JSON.stringify({ confirmationPassword }),
   });
   if (!response.ok) throw await readAdminError(response, "지원서를 삭제하지 못했습니다.");
+}
+
+export function fetchTimetableMessages(status: AdminTimetableMessageStatus): Promise<AdminTimetableMessages> {
+  return getJson<AdminTimetableMessages>(
+    `/timetable-messages?status=${status}`,
+    "문자 발송 대기열을 불러오지 못했습니다.",
+  );
+}
+
+/** 직접 보낸 문자를 발송 완료로 표시한다. 이미 완료된 문자는 처음 기록을 유지한다. */
+export async function completeTimetableMessages(messageIds: readonly number[]): Promise<readonly AdminTimetableMessage[]> {
+  const response = await fetch(`${API_BASE_PATH}/timetable-messages/completion`, {
+    method: "POST",
+    credentials: "include",
+    headers: await withCsrfHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ messageIds }),
+  });
+  if (!response.ok) throw await readAdminError(response, "발송 완료로 표시하지 못했습니다.");
+  const body = await response.json() as { readonly messages: readonly AdminTimetableMessage[] };
+  return body.messages;
 }

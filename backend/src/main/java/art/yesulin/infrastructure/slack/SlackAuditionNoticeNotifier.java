@@ -3,40 +3,25 @@ package art.yesulin.infrastructure.slack;
 import art.yesulin.application.notice.AuditionContent;
 import art.yesulin.application.notice.AuditionNoticeNotifier;
 import art.yesulin.application.notice.OtrNoticeLink;
-import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.List;
-import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
 
 @Component
 public class SlackAuditionNoticeNotifier implements AuditionNoticeNotifier {
 
-    private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(5);
-    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(10);
-
     private final String webhookUrl;
-    private final ObjectMapper objectMapper;
-    private final HttpClient httpClient;
+    private final SlackWebhookClient webhookClient;
     private final OtrNoticeLink noticeLink;
 
     public SlackAuditionNoticeNotifier(
-            @Value("${YESULIN_SLACK_WEBHOOK_URL:}") String webhookUrl,
-            ObjectMapper objectMapper,
+            @Value("${yesulin.slack.notice-webhook-url:}") String webhookUrl,
+            SlackWebhookClient webhookClient,
             OtrNoticeLink noticeLink
     ) {
         this.webhookUrl = webhookUrl;
-        this.objectMapper = objectMapper;
+        this.webhookClient = webhookClient;
         this.noticeLink = noticeLink;
-        this.httpClient = HttpClient.newBuilder().connectTimeout(CONNECT_TIMEOUT).build();
     }
 
     @Override
@@ -71,51 +56,9 @@ public class SlackAuditionNoticeNotifier implements AuditionNoticeNotifier {
     }
 
     private void post(String message) {
-        String body;
-        try {
-            body = objectMapper.writeValueAsString(Map.of(
-                    "text", message,
-                    "mrkdwn", false,
-                    "unfurl_links", false,
-                    "unfurl_media", false
-            ));
-        } catch (JacksonException exception) {
-            throw new IllegalStateException("Slack 알림을 생성하지 못했습니다.");
-        }
-
-        HttpRequest request = HttpRequest.newBuilder(webhookUri())
-                .timeout(REQUEST_TIMEOUT)
-                .header("Content-Type", "application/json; charset=utf-8")
-                .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8))
-                .build();
-        try {
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() != 200 || !"ok".equals(response.body().trim())) {
-                throw new IllegalStateException("Slack 알림 전송에 실패했습니다. HTTP " + response.statusCode());
-            }
-        } catch (IOException exception) {
-            throw new IllegalStateException("Slack 알림 서버에 연결하지 못했습니다.");
-        } catch (InterruptedException exception) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("Slack 알림 전송이 중단됐습니다.");
-        }
-    }
-
-    private URI webhookUri() {
         if (webhookUrl == null || webhookUrl.isBlank()) {
             throw new IllegalStateException("YESULIN_SLACK_WEBHOOK_URL이 설정되지 않았습니다.");
         }
-        try {
-            URI uri = URI.create(webhookUrl);
-            if (!"https".equals(uri.getScheme())
-                    || !("hooks.slack.com".equals(uri.getHost())
-                    || "hooks.slack-gov.com".equals(uri.getHost()))
-                    || uri.getPath() == null || !uri.getPath().startsWith("/services/")) {
-                throw new IllegalArgumentException("Slack Webhook URL 형식이 올바르지 않습니다.");
-            }
-            return uri;
-        } catch (IllegalArgumentException exception) {
-            throw new IllegalStateException("Slack Webhook URL 형식이 올바르지 않습니다.");
-        }
+        webhookClient.post(webhookUrl, message);
     }
 }

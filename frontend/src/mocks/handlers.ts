@@ -35,6 +35,7 @@ import { adminLogHandlers } from "./admin-log-handlers";
 import { adminFileHandlers } from "./admin-file-handlers";
 import { otrAuditionHandlers } from "./otr-audition-handlers";
 import { showHandlers } from "./show-handlers";
+import { timetableHandlers } from "./timetable-handlers";
 import { noticeHandlers } from "./auditions/notice-handlers";
 
 const apiPath = "/api";
@@ -56,6 +57,7 @@ export const handlers = [
   ...adminFileHandlers,
   ...otrAuditionHandlers,
   ...showHandlers,
+  ...timetableHandlers,
   http.post(`${apiPath}/v1/upload-diagnostics`, () => new HttpResponse(null, { status: 204 })),
   http.get(`${apiPath}/v1/producers/me`, async () => {
     if (realProducerApiEnabled) return passthrough();
