@@ -282,7 +282,7 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 ## 오디션 일정표 — 12개
 
 로그인 없이 링크 열쇠로 쓰는 독립 일정표다. 관리 API는 기획사의 관리 링크 열쇠, 배우 API는 배우의 개인 링크 열쇠를
-`X-Timetable-Key` 헤더로 받는다. 열쇠는 요청 로그에 남지 않도록 경로·쿼리에 넣지 않는다. 헤더가 없으면
+`X-Timetable-Key` 헤더로 받는다. 열쇠는 URL-safe Base64 22자다. 열쇠는 요청 로그에 남지 않도록 경로·쿼리에 넣지 않는다. 헤더가 없으면
 `400 INVALID_REQUEST`, 형식이 틀리거나 없는 열쇠는 `404 TIMETABLE_NOT_FOUND`다. 쓰기 요청은 CSRF header가 필요하고
 응답은 모두 `Cache-Control: no-store`다. 날짜는 `YYYY-MM-DD`, 시각은 한국 시간이며 요청은 `HH:mm`, 응답은 `HH:mm:ss`다.
 

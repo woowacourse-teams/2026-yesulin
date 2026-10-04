@@ -192,7 +192,7 @@ class TimetableControllerTest {
         mockMvc.perform(get("/api/v1/timetables/manage"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
-        mockMvc.perform(get("/api/v1/timetables/manage").header(KEY, "A".repeat(43)))
+        mockMvc.perform(get("/api/v1/timetables/manage").header(KEY, "A".repeat(22)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("TIMETABLE_NOT_FOUND"));
         mockMvc.perform(get("/api/v1/timetables/actor").header(KEY, manageKey))
@@ -252,7 +252,7 @@ class TimetableControllerTest {
                 .andExpect(jsonPath("$.messages[0].recipientPhone").value("010-9999-0000"))
                 .andExpect(jsonPath("$.messages[0].timetableTitle").value("남극장 2차 오디션"))
                 .andExpect(jsonPath("$.messages[0].body").value(matchesPattern(
-                        "(?s).*http://localhost:3000/timetable/manage/[A-Za-z0-9_-]{43}$")));
+                        "(?s).*http://localhost:3000/timetable/manage/[A-Za-z0-9_-]{22}\n.*")));
 
         mockMvc.perform(post("/api/v1/admin/timetable-messages/completion")
                         .with(csrf())
@@ -282,7 +282,7 @@ class TimetableControllerTest {
                                 """.formatted(profile(), setting())))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Cache-Control", "no-store"))
-                .andExpect(jsonPath("$.manageKey").value(matchesPattern("[A-Za-z0-9_-]{43}")))
+                .andExpect(jsonPath("$.manageKey").value(matchesPattern("[A-Za-z0-9_-]{22}")))
                 .andExpect(jsonPath("$.timetable.status").value("DRAFT"))
                 .andExpect(jsonPath("$.timetable.organizerPhone").value("010-9999-0000"))
                 .andExpect(jsonPath("$.timetable.windows[0].startTime").value("10:00:00"))

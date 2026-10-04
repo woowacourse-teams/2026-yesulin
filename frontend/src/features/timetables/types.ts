@@ -111,10 +111,13 @@ export const TIMETABLE_LIMITS = {
   requestLength: 300,
 } as const;
 
-export const TIMETABLE_KEY_PATTERN = /^[A-Za-z0-9_-]{43}$/;
+/** 문자에 넣는 링크가 짧도록 128비트 난수를 Base64 URL 문자 22자로 쓴다. */
+export const TIMETABLE_KEY_LENGTH = 22;
+export const TIMETABLE_KEY_PATTERN = new RegExp(`^[A-Za-z0-9_-]{${TIMETABLE_KEY_LENGTH}}$`);
 
 export const timetableRoutes = {
   create: "/timetable/new",
   manage: (manageKey: string) => `/timetable/manage/${encodeURIComponent(manageKey)}`,
-  actor: (accessKey: string) => `/timetable/${encodeURIComponent(accessKey)}`,
+  /** 배우가 가장 많이 받는 문자라 경로를 짧게 둔다. */
+  actor: (accessKey: string) => `/t/${encodeURIComponent(accessKey)}`,
 } as const;

@@ -27,8 +27,13 @@ public class TimetableLinks {
         return baseUrl + "/timetable/manage/" + manageKey;
     }
 
+    /** 배우가 가장 많이 받는 문자라 경로를 짧게 둔다. */
     public String actor(String accessKey) {
-        return baseUrl + "/timetable/" + accessKey;
+        return baseUrl + "/t/" + accessKey;
+    }
+
+    public String home() {
+        return baseUrl;
     }
 
     public String messageQueue() {

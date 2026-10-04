@@ -19,6 +19,7 @@ import art.yesulin.domain.timetable.SlotAssignment;
 import art.yesulin.domain.timetable.TimeSlot;
 import art.yesulin.domain.timetable.TimetableActorRepository;
 import art.yesulin.domain.timetable.TimetableErrorCode;
+import art.yesulin.domain.timetable.TimetableKey;
 import art.yesulin.domain.timetable.TimetableMessage;
 import art.yesulin.domain.timetable.TimetableMessageRepository;
 import art.yesulin.domain.timetable.TimetableMessageStatus;
@@ -108,7 +109,10 @@ class TimetableServiceTest {
         TimetableMessage message = onlyMessage(TimetableMessageType.ORGANIZER_LINK);
         assertNull(message.getActorId());
         assertEquals("010-9999-0000", message.getRecipientPhone());
-        assertTrue(message.getBody().endsWith("http://localhost:3000/timetable/manage/" + created.manageKey()));
+        assertTrue(message.getBody().startsWith("[예술인] 오디션 일정표 관리 링크\n\n남극장 담당자님, 안녕하세요."));
+        assertTrue(message.getBody().contains("▶ 일정표 관리\nhttp://localhost:3000/timetable/manage/" + created.manageKey()));
+        assertTrue(message.getBody().contains("[주의] 링크를 가진 사람은 누구나 일정표를 고칠 수 있습니다."));
+        assertTrue(message.getBody().endsWith("예술인 http://localhost:3000"));
         assertEquals(List.of(1), relay.counts());
     }
 
@@ -143,9 +147,20 @@ class TimetableServiceTest {
         List<TimetableMessage> invitations = messages(TimetableMessageType.ACTOR_INVITATION);
         assertEquals(2, invitations.size());
         String accessKey = actorRepository.findById(first).orElseThrow().getAccessKey();
+        assertEquals(22, accessKey.length());
         assertEquals("""
-                안녕하세요 예술인입니다. 남극장 오디션 합격입니다. 해당 링크에서 일정을 확인하세요.
-                http://localhost:3000/timetable/%s""".formatted(accessKey), invitations.getFirst().getBody());
+                [예술인] 오디션 합격 안내
+
+                지원자 김배우님, 안녕하세요.
+                남극장 오디션에 합격하셨습니다.
+                아래 링크에서 '남극장 2차 오디션' 일정을 확인해 주세요.
+
+                ▶ 내 오디션 일정
+                http://localhost:3000/t/%s
+
+                [주의] 본인만 쓰는 링크입니다. 다른 사람에게 보내지 마세요.
+
+                예술인 http://localhost:3000""".formatted(accessKey), invitations.getFirst().getBody());
         assertEquals(List.of(1, 2), relay.counts());
     }
 
@@ -180,7 +195,11 @@ class TimetableServiceTest {
 
         List<TimetableMessage> changes = messages(TimetableMessageType.ACTOR_SCHEDULE_CHANGED);
         assertEquals(1, changes.size());
-        assertTrue(changes.getFirst().getBody().startsWith("안녕하세요 예술인입니다. 남극장 오디션 일정이 변경되었습니다."));
+        assertTrue(changes.getFirst().getBody().startsWith("""
+                [예술인] 오디션 일정 변경 안내
+
+                지원자 김배우님, 안녕하세요.
+                남극장 '남극장 2차 오디션' 일정이 변경되었습니다."""));
         assertCode(TimetableErrorCode.INVALID_INPUT,
                 () -> save(published.key(), 1, new SlotAssignment(published.first(), ELEVEN, null)));
     }
@@ -313,7 +332,7 @@ class TimetableServiceTest {
 
         assertCode(TimetableErrorCode.NOT_FOUND, () -> timetableService.find("not-a-key"));
         assertCode(TimetableErrorCode.NOT_FOUND,
-                () -> timetableService.find("A".repeat(43)));
+                () -> timetableService.find("A".repeat(TimetableKey.LENGTH)));
     }
 
     private Published publishTwo() {

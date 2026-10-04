@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { FilterChip } from "@/components/ui/controls";
 import { AdminApiError, completeTimetableMessages, fetchTimetableMessages } from "@/features/admin/api";
+import { smsHref } from "@/features/admin/sms-link";
 import type { AdminTimetableMessage, AdminTimetableMessages, AdminTimetableMessageStatus, AdminTimetableMessageType } from "@/features/admin/types";
 import { logout } from "@/features/auth/session-api";
 import { AdminLoginForm } from "./admin-login-form";
@@ -23,7 +24,8 @@ const ROW_BUTTON_CLASS =
 
 /**
  * 오디션 일정표 문자 발송 대기열. 기획사 화면은 자동 발송으로 안내하므로 운영자가 오래된 순서대로 직접 보내고
- * 완료로 표시한다. 번호와 본문은 화면에서만 보여 주고 브라우저에 저장하지 않는다.
+ * 완료로 표시한다. 휴대폰에서는 번호와 본문을 채운 문자 앱을 한 사람씩 연다. 번호와 본문은 화면에서만 보여 주고
+ * 브라우저에 저장하지 않는다.
  */
 export function AdminMessageQueue() {
   const [status, setStatus] = useState<AdminTimetableMessageStatus>("PENDING");
@@ -96,7 +98,7 @@ export function AdminMessageQueue() {
     <AdminShell
       current="messages"
       title="문자 대기열"
-      description="오디션 일정표에서 생긴 문자예요. 기획사에는 자동 발송으로 안내하므로 오래된 순서대로 직접 보내고 완료로 표시해 주세요."
+      description="오디션 일정표에서 생긴 문자예요. 기획사에는 자동 발송으로 안내하므로 오래된 순서대로 문자 앱으로 열기 → 보내기 → 완료 표시 순서로 처리해 주세요."
       actions={(
         <>
           <AdminActionButton onClick={refresh}>새로고침</AdminActionButton>
@@ -143,6 +145,14 @@ export function AdminMessageQueue() {
                 <p className="whitespace-pre-line break-all rounded-control bg-surface px-3 py-2 text-sm text-foreground">{message.body}</p>
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
+                {status === "PENDING" ? (
+                  <a
+                    href={smsHref(message.recipientPhone, message.body, navigator.userAgent)}
+                    className="inline-flex min-h-11 items-center rounded-control border border-brand bg-brand-soft px-3 text-sm font-semibold text-brand hover:bg-brand-soft-strong"
+                  >
+                    문자 앱으로 열기
+                  </a>
+                ) : null}
                 <button type="button" className={ROW_BUTTON_CLASS} onClick={() => copy(`phone-${message.id}`, message.recipientPhone)}>
                   {copied === `phone-${message.id}` ? "번호 복사됨" : "번호 복사"}
                 </button>

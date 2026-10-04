@@ -3,8 +3,10 @@ import { frontendEnvironment } from "@/config/environment";
 import type { AdminTimetableMessage, AdminTimetableMessageType } from "@/features/admin/types";
 import { addDays, hmOf, minutesOf, sameSlot, slotKey, slotsOf, toHm, todayInSeoul } from "@/features/timetables/time";
 import {
+  TIMETABLE_KEY_LENGTH,
   TIMETABLE_KEY_PATTERN,
   TIMETABLE_LIMITS,
+  timetableRoutes,
   type ActorTimetable,
   type TimeSlot,
   type TimetableBoard,
@@ -23,9 +25,9 @@ const SELF_CHANGE_HOURS = 24;
 const realLoginEnabled = frontendEnvironment.producerLoginEnabled;
 
 export const SEED_TIMETABLE_KEYS = {
-  draft: "seed_manage_draft".padEnd(43, "0"),
-  published: "seed_manage_published".padEnd(43, "0"),
-  actor: "seed_actor_kim".padEnd(43, "0"),
+  draft: "seed_manage_draft".padEnd(TIMETABLE_KEY_LENGTH, "0"),
+  published: "seed_manage_published".padEnd(TIMETABLE_KEY_LENGTH, "0"),
+  actor: "seed_actor_kim".padEnd(TIMETABLE_KEY_LENGTH, "0"),
 } as const;
 
 type MockActor = {
@@ -68,7 +70,7 @@ const now = () => new Date().toISOString();
 
 function randomKey(): string {
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-  const bytes = crypto.getRandomValues(new Uint8Array(43));
+  const bytes = crypto.getRandomValues(new Uint8Array(TIMETABLE_KEY_LENGTH));
   return Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join("");
 }
 
@@ -168,13 +170,27 @@ function queue(timetable: MockTimetable, type: AdminTimetableMessageType, actor:
   if (type === "ORGANIZER_TIME_REQUEST" && pending.some((message) => message.timetableId === timetable.id
     && message.type === type)) return;
   const origin = typeof window === "undefined" ? "http://localhost:3000" : window.location.origin;
-  const actorLink = actor ? `${origin}/timetable/${actor.accessKey}` : "";
-  const manageLink = `${origin}/timetable/manage/${timetable.manageKey}`;
+  const actorLink = actor ? `${origin}${timetableRoutes.actor(actor.accessKey)}` : "";
+  const manageLink = `${origin}${timetableRoutes.manage(timetable.manageKey)}`;
+  const organizerGreeting = `${timetable.organizerName} 담당자님, 안녕하세요.`;
+  const actorGreeting = `지원자 ${actor?.name ?? ""}님, 안녕하세요.`;
+  const actorCaution = "[주의] 본인만 쓰는 링크입니다. 다른 사람에게 보내지 마세요.";
+  const organizerCaution = "[주의] 링크를 가진 사람은 누구나 일정표를 고칠 수 있습니다. 외부에 공유하지 마세요.";
+  const compose = (subject: string, greeting: string, content: string, label: string, link: string, caution: string) =>
+    `[예술인] ${subject}\n\n${greeting}\n${content}\n\n▶ ${label}\n${link}\n\n${caution}\n\n예술인 ${origin}`;
   const body = {
-    ORGANIZER_LINK: `안녕하세요 예술인입니다. ‘${timetable.title}’ 오디션 일정표를 만들었습니다.\n아래 관리 링크에서 배우 등록과 일정 확정을 할 수 있습니다. 링크를 가진 사람은 누구나 일정표를 고칠 수 있으니 외부에 공유하지 마세요.\n${manageLink}`,
-    ORGANIZER_TIME_REQUEST: `안녕하세요 예술인입니다. ‘${timetable.title}’ 일정표에 배우의 시간 조정 요청이 있습니다. 관리 링크에서 확인해 주세요.\n${manageLink}`,
-    ACTOR_INVITATION: `안녕하세요 예술인입니다. ${timetable.organizerName} 오디션 합격입니다. 해당 링크에서 일정을 확인하세요.\n${actorLink}`,
-    ACTOR_SCHEDULE_CHANGED: `안녕하세요 예술인입니다. ${timetable.organizerName} 오디션 일정이 변경되었습니다. 해당 링크에서 바뀐 일정을 확인하세요.\n${actorLink}`,
+    ORGANIZER_LINK: compose("오디션 일정표 관리 링크", organizerGreeting,
+      `'${timetable.title}' 일정표를 만들었습니다.\n아래 링크에서 합격자 등록과 일정 확정을 할 수 있습니다.`,
+      "일정표 관리", manageLink, organizerCaution),
+    ORGANIZER_TIME_REQUEST: compose("시간 조정 요청 알림", organizerGreeting,
+      `'${timetable.title}' 일정표에 배우의 시간 조정 요청이 들어왔습니다.\n아래 링크에서 확인해 주세요.`,
+      "일정표 관리", manageLink, organizerCaution),
+    ACTOR_INVITATION: compose("오디션 합격 안내", actorGreeting,
+      `${timetable.organizerName} 오디션에 합격하셨습니다.\n아래 링크에서 '${timetable.title}' 일정을 확인해 주세요.`,
+      "내 오디션 일정", actorLink, actorCaution),
+    ACTOR_SCHEDULE_CHANGED: compose("오디션 일정 변경 안내", actorGreeting,
+      `${timetable.organizerName} '${timetable.title}' 일정이 변경되었습니다.\n아래 링크에서 바뀐 시간을 확인해 주세요.`,
+      "내 오디션 일정", actorLink, actorCaution),
   }[type];
   messages.push({
     id: nextId(),

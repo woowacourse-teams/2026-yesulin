@@ -152,7 +152,7 @@ export const MOCK_SCENARIOS: readonly MockScenarioDefinition[] = [
     area: "오디션 일정표",
     title: "배우 일정 링크",
     description: "배우가 문자 링크로 일정을 보고 빈 시간으로 직접 옮기거나 요청을 남깁니다.",
-    href: `/timetable/${SEED_TIMETABLE_KEYS.actor}`,
+    href: `/t/${SEED_TIMETABLE_KEYS.actor}`,
     checks: ["다른 배우의 이름·번호가 보이지 않는다", "빈 시간을 골라 바로 바꿀 수 있다", "요청을 보내면 보낸 내용이 표시된다"],
   },
 ];
