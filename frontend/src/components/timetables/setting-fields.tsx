@@ -16,6 +16,7 @@ import {
   setDateRanges,
   sortRanges,
   toRangeForm,
+  windowKey,
   type RangeForm,
   type SettingForm,
   type SettingFormErrors,
@@ -26,9 +27,6 @@ import { TIMETABLE_LIMITS } from "@/features/timetables/types";
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"] as const;
 
-const LINK_CLASS =
-  "inline-flex min-h-8 items-center rounded-control text-sm font-semibold text-brand hover:underline hover:underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand disabled:text-muted-soft disabled:no-underline";
-
 const ICON_BUTTON_CLASS =
   "inline-flex size-8 shrink-0 items-center justify-center rounded-control text-muted-strong hover:bg-surface hover:text-foreground disabled:text-muted-soft";
 
@@ -36,24 +34,30 @@ const ICON_BUTTON_CLASS =
  * 왼쪽 달력에서 오디션 날짜를 고르고(누르면 선택·해제, 끌면 여러 날), 오른쪽에서 모든 날짜에 쓸 오디션 가능 시간과
  * 진행 시간·동시 인원을 정한다. 오른쪽은 달력 높이에 맞추고 넘치면 안에서 스크롤한다.
  * 고른 날짜는 아래 두 칸 목록에 나오고 날짜마다 시간을 따로 고칠 수 있다.
+ *
+ * `locked`를 주면 이미 저장한 일정표를 늘리는 화면이다. 저장한 날짜·시간은 빼거나 고칠 수 없고 진행 시간도 고정이며,
+ * 날짜·시간을 더하고 인원을 늘리기만 한다.
  */
-export function SettingFields({ form, errors, onChange, disabled = false }: {
+export function SettingFields({ form, errors, onChange, disabled = false, locked }: {
   readonly form: SettingForm;
   readonly errors: SettingFormErrors;
   readonly onChange: (form: SettingForm) => void;
   readonly disabled?: boolean;
+  readonly locked?: { readonly windowKeys: ReadonlySet<string>; readonly minCapacity: number };
 }) {
   const id = useId();
   const today = todayInSeoul();
   const [month, setMonth] = useState(() => (selectedDates(form)[0] ?? today).slice(0, 7));
   const [common, setCommon] = useState<readonly RangeForm[]>(() => commonRangesOf(form));
   const dates = selectedDates(form);
-  const custom = customDates(form, common);
+  const lockedIds = new Set(form.windows.filter((window) => locked?.windowKeys.has(windowKey(window))).map((window) => window.id));
+  const lockedDates = [...new Set(form.windows.filter((window) => lockedIds.has(window.id)).map((window) => window.date))];
+  const custom = customDates(form, common).filter((date) => !lockedDates.includes(date));
   const preview = readSettingForm(form).setting;
   const slotCount = preview ? slotsOf(preview).length : 0;
 
   const changeCommon = (next: readonly RangeForm[]) => {
-    onChange(changeCommonRanges(form, common, next));
+    onChange(changeCommonRanges(form, common, next, lockedDates));
     setCommon(next);
   };
 
@@ -66,12 +70,16 @@ export function SettingFields({ form, errors, onChange, disabled = false }: {
           today={today}
           selected={dates}
           custom={custom}
+          locked={lockedDates}
           invalid={Boolean(errors.windows) && dates.length === 0}
           disabled={disabled}
           onMonthChange={setMonth}
-          onToggle={(date) => onChange(dates.includes(date) ? removeDates(form, [date]) : selectDates(form, [date], common))}
+          onToggle={(date) => {
+            if (lockedDates.includes(date)) return;
+            onChange(dates.includes(date) ? removeDates(form, [date]) : selectDates(form, [date], common));
+          }}
           onRange={(from, to, mode) => {
-            const range = datesBetween(from, to);
+            const range = datesBetween(from, to).filter((date) => !lockedDates.includes(date));
             onChange(mode === "remove" ? removeDates(form, range) : selectDates(form, range.filter((date) => date >= today), common));
           }}
         />
@@ -87,14 +95,14 @@ export function SettingFields({ form, errors, onChange, disabled = false }: {
                 max={TIMETABLE_LIMITS.maxSlotMinutes}
                 step={TIMETABLE_LIMITS.minuteStep}
                 invalid={Boolean(errors.slotMinutes)}
-                disabled={disabled}
+                disabled={disabled || Boolean(locked)}
                 onChange={(slotMinutes) => onChange({ ...form, slotMinutes })}
               />
               <Stepper
                 label="동시 오디션 인원"
                 unit="명"
                 value={form.slotCapacity}
-                min={1}
+                min={locked?.minCapacity ?? 1}
                 max={TIMETABLE_LIMITS.maxSlotCapacity}
                 step={1}
                 invalid={Boolean(errors.slotCapacity)}
@@ -104,7 +112,13 @@ export function SettingFields({ form, errors, onChange, disabled = false }: {
             </div>
             {errors.slotMinutes ? <p className="text-sm text-fail">{errors.slotMinutes}</p> : null}
             {errors.slotCapacity ? <p className="text-sm text-fail">{errors.slotCapacity}</p> : null}
-            <CommonRanges common={common} slotMinutes={form.slotMinutes} disabled={disabled} onChange={changeCommon} />
+            <CommonRanges
+              label={locked ? "새 날짜의 오디션 가능 시간" : "오디션 가능 시간"}
+              common={common}
+              slotMinutes={form.slotMinutes}
+              disabled={disabled}
+              onChange={changeCommon}
+            />
           </div>
         </div>
       </div>
@@ -131,8 +145,9 @@ export function SettingFields({ form, errors, onChange, disabled = false }: {
                 key={date}
                 form={form}
                 date={date}
-                common={common}
                 isCustom={custom.includes(date)}
+                dateLocked={lockedDates.includes(date)}
+                lockedIds={lockedIds}
                 errors={errors}
                 disabled={disabled}
                 onChange={onChange}
@@ -146,7 +161,8 @@ export function SettingFields({ form, errors, onChange, disabled = false }: {
 }
 
 /** 모든 날짜에 쓸 오디션 가능 시간. 점심시간처럼 쉬는 시간은 시간을 나눠 두 슬롯으로 넣는다. */
-function CommonRanges({ common, slotMinutes, disabled, onChange }: {
+function CommonRanges({ label, common, slotMinutes, disabled, onChange }: {
+  readonly label: string;
   readonly common: readonly RangeForm[];
   readonly slotMinutes: string;
   readonly disabled: boolean;
@@ -155,10 +171,10 @@ function CommonRanges({ common, slotMinutes, disabled, onChange }: {
   const id = useId();
   return (
     <div>
-      <p id={`${id}-label`} className="text-sm font-semibold text-foreground">오디션 가능 시간</p>
+      <p id={`${id}-label`} className="text-sm font-semibold text-foreground">{label}</p>
       <SlotEditor
         labelledBy={`${id}-label`}
-        name="오디션 가능 시간"
+        name={label}
         ranges={common}
         slotMinutes={slotMinutes}
         disabled={disabled}
@@ -173,19 +189,38 @@ function CommonRanges({ common, slotMinutes, disabled, onChange }: {
  * 시간 범위를 슬롯(칩)으로 보여 주고, 시각을 적어 추가하거나 슬롯을 눌러 고친다. 슬롯은 하나 이상 남는다.
  * 넣기 전에 형식·순서·진행 시간·겹침을 검사하므로 저장된 슬롯은 항상 올바르다.
  */
-function SlotEditor({ labelledBy, name, ranges, slotMinutes, disabled, inputAlwaysVisible = false, onChange }: {
+function SlotEditor({
+  labelledBy,
+  name,
+  ranges,
+  slotMinutes,
+  disabled,
+  inputAlwaysVisible = false,
+  adding = false,
+  lockedIds,
+  onAddingChange,
+  onChange,
+}: {
   readonly labelledBy: string;
   readonly name: string;
   readonly ranges: readonly RangeForm[];
   readonly slotMinutes: string;
   readonly disabled: boolean;
   readonly inputAlwaysVisible?: boolean;
+  /** 입력 줄을 숨겨 두는 경우 바깥의 추가 버튼이 연다. */
+  readonly adding?: boolean;
+  readonly onAddingChange?: (adding: boolean) => void;
+  /** 저장해 고칠 수 없는 슬롯. 잠긴 모양으로만 보여 준다. */
+  readonly lockedIds?: ReadonlySet<string>;
   readonly onChange: (next: readonly RangeForm[]) => void;
 }) {
+  // 잠긴 슬롯이 있는 날짜는 새로 더한 슬롯을 모두 뺄 수 있고, 아니면 슬롯이 하나 이상 남아야 한다.
+  const lockedHere = ranges.some((range) => lockedIds?.has(range.id));
+  const removable = ranges.filter((range) => !lockedIds?.has(range.id)).length > (lockedHere ? 0 : 1);
   const [draft, setDraft] = useState<TimeRange>({ startTime: "", endTime: "" });
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const setAdding = (value: boolean) => onAddingChange?.(value);
   const inputVisible = inputAlwaysVisible || adding || editingId !== null;
 
   const reset = () => {
@@ -249,7 +284,16 @@ function SlotEditor({ labelledBy, name, ranges, slotMinutes, disabled, inputAlwa
     <>
       {inputAlwaysVisible ? input : null}
       <ul className="mt-2 flex flex-wrap gap-1.5" aria-labelledby={labelledBy}>
-        {ranges.map((range) => (
+        {ranges.map((range) => (lockedIds?.has(range.id) ? (
+          <li
+            key={range.id}
+            className="num inline-flex h-8 items-center gap-1 rounded-full border border-border bg-surface px-2.5 text-sm font-semibold text-muted-strong"
+            aria-label={`${name} ${range.startTime}~${range.endTime} (저장됨, 바꿀 수 없음)`}
+          >
+            <LockIcon />
+            {range.startTime}~{range.endTime}
+          </li>
+        ) : (
           <li
             key={range.id}
             className={`inline-flex h-8 items-center rounded-full border text-sm ${
@@ -266,11 +310,11 @@ function SlotEditor({ labelledBy, name, ranges, slotMinutes, disabled, inputAlwa
                 setError(null);
               }}
               aria-label={`${name} ${range.startTime}~${range.endTime} 고치기`}
-              className={`num h-full font-semibold ${ranges.length > 1 ? "pl-2.5 pr-0.5" : "px-2.5"}`}
+              className={`num h-full font-semibold ${removable ? "pl-2.5 pr-0.5" : "px-2.5"}`}
             >
               {range.startTime}~{range.endTime}
             </button>
-            {ranges.length > 1 ? (
+            {removable ? (
               <button
                 type="button"
                 disabled={disabled}
@@ -285,24 +329,7 @@ function SlotEditor({ labelledBy, name, ranges, slotMinutes, disabled, inputAlwa
               </button>
             ) : null}
           </li>
-        ))}
-        {!inputAlwaysVisible && !inputVisible ? (
-          <li>
-            <button
-              type="button"
-              disabled={disabled || ranges.length >= TIMETABLE_LIMITS.maxWindows}
-              onClick={() => {
-                setAdding(true);
-                setEditingId(null);
-                setDraft({ startTime: "", endTime: "" });
-              }}
-              aria-label={`${name} 추가`}
-              className="inline-flex h-8 items-center rounded-full border border-dashed border-muted-soft px-2.5 text-sm font-semibold text-muted-strong hover:border-brand-line hover:text-brand"
-            >
-              + 시간
-            </button>
-          </li>
-        ) : null}
+        )))}
       </ul>
       {!inputAlwaysVisible && inputVisible ? input : null}
     </>
@@ -353,17 +380,19 @@ function Stepper({ label, unit, value, min, max, step, invalid, disabled, onChan
   );
 }
 
-/** 고른 날짜 하나. 슬롯을 고치면 그 날짜만 바뀌고 "개별"로 표시된다. 전체 시간으로 되돌리거나 날짜를 뺄 수 있다. */
-function ScheduleCard({ form, date, common, isCustom, errors, disabled, onChange }: {
+/** 고른 날짜 하나. 슬롯을 고치면 그 날짜만 바뀌고 "개별"로 표시된다. */
+function ScheduleCard({ form, date, isCustom, dateLocked, lockedIds, errors, disabled, onChange }: {
   readonly form: SettingForm;
   readonly date: string;
-  readonly common: readonly TimeRange[];
   readonly isCustom: boolean;
+  readonly dateLocked: boolean;
+  readonly lockedIds: ReadonlySet<string>;
   readonly errors: SettingFormErrors;
   readonly disabled: boolean;
   readonly onChange: (form: SettingForm) => void;
 }) {
   const id = useId();
+  const [adding, setAdding] = useState(false);
   const ranges = rangesOf(form, date);
   const rowErrors = [...new Set(ranges.map((range) => errors[range.id]).filter(Boolean))];
   return (
@@ -371,21 +400,27 @@ function ScheduleCard({ form, date, common, isCustom, errors, disabled, onChange
       <div className="flex items-center gap-2">
         <span id={`${id}-date`} className="text-sm font-semibold text-foreground">{formatShortDate(date)}</span>
         {isCustom ? <span className="rounded-full bg-brand-soft px-2 py-0.5 text-xs font-semibold text-brand">개별</span> : null}
-        <span className="ml-auto flex items-center gap-2">
-          {isCustom ? (
-            <button type="button" disabled={disabled} onClick={() => onChange(setDateRanges(form, [date], common))} className={LINK_CLASS}>
-              되돌리기
-            </button>
-          ) : null}
+        <span className="ml-auto flex items-center">
           <button
             type="button"
-            aria-label={`${formatDate(date)} 빼기`}
-            disabled={disabled}
-            onClick={() => onChange(removeDates(form, [date]))}
-            className="inline-flex min-h-8 items-center rounded-control text-sm font-semibold text-muted-strong hover:text-fail"
+            aria-label={`${formatDate(date)} 시간 추가`}
+            disabled={disabled || adding || form.windows.length >= TIMETABLE_LIMITS.maxWindows}
+            onClick={() => setAdding(true)}
+            className="inline-flex h-8 items-center rounded-control px-2 text-sm font-semibold text-brand hover:bg-brand-soft disabled:text-muted-soft disabled:hover:bg-transparent"
           >
-            빼기
+            + 시간
           </button>
+          {dateLocked ? null : (
+            <button
+              type="button"
+              aria-label={`${formatDate(date)} 빼기`}
+              disabled={disabled}
+              onClick={() => onChange(removeDates(form, [date]))}
+              className={`${ICON_BUTTON_CLASS} hover:text-fail`}
+            >
+              ✕
+            </button>
+          )}
         </span>
       </div>
       <SlotEditor
@@ -394,6 +429,9 @@ function ScheduleCard({ form, date, common, isCustom, errors, disabled, onChange
         ranges={ranges}
         slotMinutes={form.slotMinutes}
         disabled={disabled}
+        adding={adding}
+        lockedIds={lockedIds}
+        onAddingChange={setAdding}
         onChange={(next) => onChange(setDateRanges(form, [date], next))}
       />
       {rowErrors.length > 0 ? <p className="mt-1 text-sm text-fail">{rowErrors.join(" ")}</p> : null}
@@ -457,12 +495,13 @@ type Drag = { readonly anchor: string; readonly current: string; readonly mode: 
  * 날짜를 누르면 고르거나 빼고, 누른 채 끌면 지나간 날짜를 한꺼번에 고른다. 고른 날짜에서 끌기 시작하면 한꺼번에 뺀다.
  * 마우스·터치는 포인터 이벤트로, 키보드는 버튼 활성화(click detail 0)로 처리한다.
  */
-function DateCalendar({ month, minMonth, today, selected, custom, invalid, disabled, onMonthChange, onToggle, onRange }: {
+function DateCalendar({ month, minMonth, today, selected, custom, locked, invalid, disabled, onMonthChange, onToggle, onRange }: {
   readonly month: string;
   readonly minMonth: string;
   readonly today: string;
   readonly selected: readonly string[];
   readonly custom: readonly string[];
+  readonly locked: readonly string[];
   readonly invalid: boolean;
   readonly disabled: boolean;
   readonly onMonthChange: (month: string) => void;
@@ -474,6 +513,7 @@ function DateCalendar({ month, minMonth, today, selected, custom, invalid, disab
   const [year, monthNumber] = month.split("-").map(Number);
   const selectedSet = new Set(selected);
   const customSet = new Set(custom);
+  const lockedSet = new Set(locked);
   const preview = drag && drag.anchor !== drag.current ? new Set(datesBetween(drag.anchor, drag.current)) : new Set<string>();
   const navClass = "inline-flex size-10 items-center justify-center rounded-control text-lg text-muted-strong hover:bg-surface disabled:text-muted-soft";
 
@@ -528,7 +568,9 @@ function DateCalendar({ month, minMonth, today, selected, custom, invalid, disab
           const inPreview = preview.has(date) && !isPast;
           const removing = inPreview && drag?.mode === "remove" && isSelected;
           const adding = inPreview && drag?.mode === "add" && !isSelected;
-          const tone = removing
+          const tone = lockedSet.has(date)
+            ? "bg-muted-strong font-bold text-white"
+            : removing
             ? "bg-brand/30 text-white line-through"
             : isSelected
               ? "bg-brand font-bold text-white hover:bg-brand-strong"
@@ -543,7 +585,7 @@ function DateCalendar({ month, minMonth, today, selected, custom, invalid, disab
               type="button"
               data-date={date}
               aria-pressed={isSelected}
-              aria-label={`${formatDate(date)}${customSet.has(date) ? " (개별 시간)" : ""}`}
+              aria-label={`${formatDate(date)}${lockedSet.has(date) ? " (저장됨)" : customSet.has(date) ? " (개별 시간)" : ""}`}
               aria-current={date === today ? "date" : undefined}
               disabled={disabled || (isPast && !isSelected)}
               onClick={(event) => {
@@ -560,7 +602,19 @@ function DateCalendar({ month, minMonth, today, selected, custom, invalid, disab
           );
         })}
       </div>
-      <p className="mt-2 text-xs text-muted">드래그로 여러 날 선택</p>
+      <p className="mt-2 text-xs text-muted">
+        드래그로 여러 날 선택
+        {locked.length > 0 ? <><span aria-hidden="true"> · </span><span className="inline-block size-2 rounded-sm bg-muted-strong align-middle" /> 저장된 날짜</> : null}
+      </p>
     </div>
+  );
+}
+
+function LockIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 16 16" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="1.6">
+      <rect x="3" y="7" width="10" height="7" rx="1.5" />
+      <path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" />
+    </svg>
   );
 }

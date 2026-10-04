@@ -109,11 +109,24 @@ export function setDateRanges(form: SettingForm, dates: readonly string[], range
   return { ...form, windows: [...kept, ...replaced] };
 }
 
-/** 전체 오디션 가능 시간을 바꾸면 그 시간을 따르던 날짜만 함께 바뀌고 따로 고친 날짜는 그대로 남는다. */
-export function changeCommonRanges(form: SettingForm, previous: readonly TimeRange[], next: readonly TimeRange[]): SettingForm {
-  const following = selectedDates(form).filter((date) => sameRanges(rangesOf(form, date), previous));
+/**
+ * 전체 오디션 가능 시간을 바꾸면 그 시간을 따르던 날짜만 함께 바뀌고 따로 고친 날짜는 그대로 남는다.
+ * 이미 저장해 바꿀 수 없는 날짜(`lockedDates`)는 건드리지 않는다.
+ */
+export function changeCommonRanges(
+  form: SettingForm,
+  previous: readonly TimeRange[],
+  next: readonly TimeRange[],
+  lockedDates: readonly string[] = [],
+): SettingForm {
+  const following = selectedDates(form)
+    .filter((date) => !lockedDates.includes(date) && sameRanges(rangesOf(form, date), previous));
   return setDateRanges(form, following, next);
 }
+
+/** 저장한 시간대를 값으로 알아보는 키. 화면 id는 불러올 때마다 바뀌므로 날짜·시각으로 비교한다. */
+export const windowKey = (window: { readonly date: string } & TimeRange) =>
+  `${window.date}|${window.startTime}|${window.endTime}`;
 
 /** 쉬는 시간을 두고 범위를 하나 더 만든다. 마지막 범위가 끝난 1시간 뒤부터 2시간이다. */
 export function nextRange(ranges: readonly TimeRange[]): TimeRange {

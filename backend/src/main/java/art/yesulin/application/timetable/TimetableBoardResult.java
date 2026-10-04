@@ -62,7 +62,10 @@ public record TimetableBoardResult(
         }
     }
 
-    /** {@code previousSlot}과 {@code actorChangedAt}은 배우가 링크에서 직접 바꿨을 때만 값이 있다. */
+    /**
+     * {@code previousSlot}과 {@code actorChangedAt}은 배우가 링크에서 직접 바꿨을 때만 값이 있다.
+     * {@code registeredAt}이 일정표 확정 시각보다 늦으면 확정 뒤에 등록한 추가 합격자다.
+     */
     public record Actor(
             long id,
             String name,
@@ -70,7 +73,8 @@ public record TimetableBoardResult(
             TimeSlotResult slot,
             boolean invited,
             TimeSlotResult previousSlot,
-            Instant actorChangedAt
+            Instant actorChangedAt,
+            Instant registeredAt
     ) {
 
         static Actor of(TimetableActor actor, Timetable timetable) {
@@ -81,7 +85,8 @@ public record TimetableBoardResult(
                     TimeSlotResult.of(actor.getSlot(), timetable),
                     actor.isInvited(),
                     TimeSlotResult.of(actor.getPreviousSlot(), timetable),
-                    actor.getActorChangedAt()
+                    actor.getActorChangedAt(),
+                    actor.getCreatedAt()
             );
         }
     }

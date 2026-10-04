@@ -44,6 +44,8 @@ export type TimetableActor = {
   /** 배우가 링크에서 직접 바꾸기 전, 기획사가 정했던 시간. 배우가 바꾼 적이 없으면 null. */
   readonly previousSlot: TimeSlotRange | null;
   readonly actorChangedAt: string | null;
+  /** 일정표 확정 시각보다 늦으면 확정 뒤에 등록한 추가 합격자다. */
+  readonly registeredAt: string;
 };
 
 export type TimetableRequest = {

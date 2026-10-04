@@ -37,6 +37,7 @@ type MockActor = {
   invitedAt: string | null;
   actorChangedAt: string | null;
   previousSlot: TimeSlot | null;
+  registeredAt: string;
 };
 
 type MockRequest = { id: number; actorId: number; message: string; open: boolean; createdAt: string };
@@ -112,6 +113,7 @@ function toBoard(timetable: MockTimetable): TimetableBoard {
       invited: actor.invitedAt !== null,
       previousSlot: range(timetable, actor.previousSlot),
       actorChangedAt: actor.actorChangedAt,
+      registeredAt: actor.registeredAt,
     })) as TimetableBoard["actors"],
     requests: timetable.requests.filter((request) => request.open).flatMap((request) => {
       const actor = timetable.actors.find((candidate) => candidate.id === request.actorId);
@@ -264,6 +266,7 @@ function seed() {
     invitedAt: null,
     actorChangedAt: null,
     previousSlot: null,
+    registeredAt: new Date(Date.now() - 2 * 86_400_000).toISOString(),
     ...extra,
   });
   timetables.push({
@@ -295,6 +298,7 @@ function seed() {
   });
   const park = actor("박배우", "010-2000-0003", "11:30", { invitedAt });
   const choi = actor("최배우", "010-2000-0004", "11:30", { invitedAt });
+  const jung = actor("정배우", "010-2000-0005", null, { registeredAt: new Date(Date.now() - 3_600_000).toISOString() });
   const published: MockTimetable = {
     id: nextId(),
     manageKey: SEED_TIMETABLE_KEYS.published,
@@ -309,11 +313,11 @@ function seed() {
     status: "PUBLISHED",
     publishedAt: invitedAt,
     selfChangeLocked: false,
-    actors: [kim, lee, park, choi],
+    actors: [kim, lee, park, choi, jung],
     requests: [{ id: nextId(), actorId: choi.id, message: "그 주에 지방 공연이 있어서 다음 주 평일 저녁이면 좋겠습니다.", open: true, createdAt: now() }],
   };
   timetables.push(published);
-  published.actors.forEach((invitee) => queue(published, "ACTOR_INVITATION", invitee));
+  [kim, lee, park, choi].forEach((invitee) => queue(published, "ACTOR_INVITATION", invitee));
   queue(published, "ORGANIZER_TIME_REQUEST", null);
 }
 
@@ -369,6 +373,14 @@ export const timetableHandlers = [
     };
     const problem = settingProblem(body.setting);
     if (problem) return invalid(problem);
+    // 서버처럼 저장한 시간대는 줄이거나 바꿀 수 없고 늘리기만 한다.
+    const nextSetting = normalizeSetting(body.setting);
+    const nextSlots = new Set(slotsOf(nextSetting).map(slotKey));
+    if (nextSetting.slotMinutes !== timetable.slotMinutes) return apiError(409, "TIMETABLE_SETTING_NOT_EXTENDABLE", "오디션 진행 시간은 바꿀 수 없습니다.");
+    if (nextSetting.slotCapacity < timetable.slotCapacity) return apiError(409, "TIMETABLE_SETTING_NOT_EXTENDABLE", "동시 오디션 인원은 줄일 수 없습니다.");
+    if (!slotsOf(timetable).every((slot) => nextSlots.has(slotKey(slot)))) {
+      return apiError(409, "TIMETABLE_SETTING_NOT_EXTENDABLE", "저장한 시간대는 줄이거나 바꿀 수 없고 늘리기만 할 수 있습니다.");
+    }
     const snapshot = structuredClone({ setting: normalizeSetting(timetable), actors: timetable.actors });
     Object.assign(timetable, normalizeSetting(body.setting));
     const moved: MockActor[] = [];
@@ -428,6 +440,7 @@ export const timetableHandlers = [
       invitedAt: null,
       actorChangedAt: null,
       previousSlot: null,
+      registeredAt: now(),
     }));
     return HttpResponse.json(toBoard(timetable), { status: 201 });
   }),

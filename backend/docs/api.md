@@ -308,12 +308,14 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 
 `TimetableBoardResult`는 일정표 정보와 `status`(`DRAFT`·`PUBLISHED`), `publishedAt`, `selfChangeLocked`,
 `selfChangeNoticeHours`(24), 설정, `actors`와 열린 `requests`를 담는다. 배우는 `id`, `name`, `phone`, `slot`
-(`{date, startTime, endTime}` 또는 null), `invited`, 배우가 직접 바꿨을 때만 값이 있는 `previousSlot`·`actorChangedAt`이다.
+(`{date, startTime, endTime}` 또는 null), `invited`, 배우가 직접 바꿨을 때만 값이 있는 `previousSlot`·`actorChangedAt`,
+등록 시각 `registeredAt`이다. `registeredAt`이 `publishedAt`보다 늦으면 확정 뒤 등록한 추가 합격자다.
 
 보드 저장의 `assignments`는 옮긴 배우만 `{actorId, previous, next}`로 보낸다(null은 미배정, 최대 300개). `previous`가 지금
 시간과 다르면 `409 TIMETABLE_ASSIGNMENT_CONFLICT`, 같은 배우가 두 번이면 `400 TIMETABLE_INVALID_INPUT`이다. 시간대 설정을
 바꾼 뒤 모든 배정이 시간 칸 안에 있지 않거나 정원을 넘으면 `409 TIMETABLE_SLOT_UNAVAILABLE`, 확정 뒤 안내한 배우를
-비우면 `400 TIMETABLE_INVALID_INPUT`이다. 확정한 일정표는 옮긴 안내 배우에게 변경 안내, 새로 시간을 받은 배우에게 첫 안내를
+비우면 `400 TIMETABLE_INVALID_INPUT`이다. 저장한 시간대는 늘리기만 한다. 기존 시간 칸이 하나라도 빠지거나
+`slotMinutes`가 바뀌거나 `slotCapacity`가 줄면 `409 TIMETABLE_SETTING_NOT_EXTENDABLE`이다. 확정한 일정표는 옮긴 안내 배우에게 변경 안내, 새로 시간을 받은 배우에게 첫 안내를
 대기열에 넣고, 옮긴 배우의 열린 요청을 닫는다. 배우 등록은 1~300명이며 한 일정표에 같은 번호가 있으면
 `409 TIMETABLE_DUPLICATE_ACTOR`, 합계 300명을 넘으면 `409 TIMETABLE_TOO_MANY_ACTORS`다. 확정은 배우가 없거나
 미배정 배우가 있으면 `409 TIMETABLE_NOT_PUBLISHABLE`이다. 없는 배우·요청은 `404 TIMETABLE_ACTOR_NOT_FOUND`,
@@ -530,7 +532,7 @@ S3 삭제 실패 시 `DELETING` 상태가 남으며 같은 파일 ID로 재시�
 | 심사 | `INVALID_SCREENING_REVIEW`, `SCREENING_REVIEW_NOT_FOUND`, `SCREENING_ROUND_NOT_READY` |
 | 무료 공연 | `SHOW_NOT_FOUND`, `SHOW_SESSION_NOT_FOUND`, `SHOW_INVALID_INPUT`, `SHOW_INVALID_STATUS`, `SHOW_NOT_OPENABLE`, `SHOW_NOT_OPEN`, `SHOW_HAS_RESERVATIONS`, `SHOW_SESSION_BOOKING_CLOSED`, `SHOW_SESSION_NOT_ENOUGH_SEATS`, `SHOW_SESSION_CAPACITY_BELOW_RESERVED`, `SHOW_SESSION_HAS_RESERVATIONS` |
 | 예매 | `RESERVATION_NOT_FOUND`, `RESERVATION_INVALID_INPUT`, `RESERVATION_DUPLICATE`, `RESERVATION_NOT_CHANGEABLE` |
-| 오디션 일정표 | `TIMETABLE_NOT_FOUND`, `TIMETABLE_INVALID_INPUT`, `TIMETABLE_ACTOR_NOT_FOUND`, `TIMETABLE_DUPLICATE_ACTOR`, `TIMETABLE_TOO_MANY_ACTORS`, `TIMETABLE_SLOT_UNAVAILABLE`, `TIMETABLE_ASSIGNMENT_CONFLICT`, `TIMETABLE_NOT_PUBLISHABLE`, `TIMETABLE_SELF_CHANGE_CLOSED`, `TIMETABLE_REQUEST_NOT_FOUND`, `TIMETABLE_MESSAGE_NOT_FOUND` |
+| 오디션 일정표 | `TIMETABLE_NOT_FOUND`, `TIMETABLE_INVALID_INPUT`, `TIMETABLE_ACTOR_NOT_FOUND`, `TIMETABLE_DUPLICATE_ACTOR`, `TIMETABLE_TOO_MANY_ACTORS`, `TIMETABLE_SLOT_UNAVAILABLE`, `TIMETABLE_SETTING_NOT_EXTENDABLE`, `TIMETABLE_ASSIGNMENT_CONFLICT`, `TIMETABLE_NOT_PUBLISHABLE`, `TIMETABLE_SELF_CHANGE_CLOSED`, `TIMETABLE_REQUEST_NOT_FOUND`, `TIMETABLE_MESSAGE_NOT_FOUND` |
 | 운영 | `MEMBER_NOT_FOUND`, `MEMBER_STATUS_CHANGE_NOT_ALLOWED`, `ADMIN_DELETION_CONFIRMATION_FAILED` |
 
 인가 공통 오류는 `401 AUTH_UNAUTHENTICATED`, `403 AUTH_FORBIDDEN`, `403 AUTH_INACTIVE_MEMBER`다.

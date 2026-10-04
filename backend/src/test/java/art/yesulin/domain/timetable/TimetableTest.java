@@ -88,6 +88,31 @@ class TimetableTest {
     }
 
     @Test
+    void extendsSavedWindowsButNeverShrinksOrShiftsThem() {
+        Timetable timetable = timetable(20, 2, List.of(window(DAY, "10:00", "12:00")));
+
+        timetable.updateSetting(new TimetableSetting(20, 3, List.of(
+                window(DAY, "10:00", "12:00"), window(DAY, "12:00", "13:00"), window(DAY.plusDays(1), "14:00", "15:00")
+        )));
+        timetable.updateSetting(new TimetableSetting(20, 3, List.of(
+                window(DAY, "10:00", "13:00"), window(DAY.plusDays(1), "14:00", "15:00")
+        )));
+        assertEquals(12, timetable.slots().size());
+
+        assertNotExtendable(timetable, new TimetableSetting(20, 3, List.of(window(DAY, "10:00", "13:00"))));
+        assertNotExtendable(timetable, new TimetableSetting(20, 3, List.of(
+                window(DAY, "10:10", "13:00"), window(DAY.plusDays(1), "14:00", "15:00")
+        )));
+        assertNotExtendable(timetable, new TimetableSetting(30, 3, List.of(
+                window(DAY, "10:00", "13:00"), window(DAY.plusDays(1), "14:00", "15:00")
+        )));
+        assertNotExtendable(timetable, new TimetableSetting(20, 2, List.of(
+                window(DAY, "10:00", "13:00"), window(DAY.plusDays(1), "14:00", "15:00")
+        )));
+        assertEquals(12, timetable.slots().size());
+    }
+
+    @Test
     void generatesUrlSafeKeysAndRejectsMalformedOnes() {
         String key = TimetableKey.generate();
 
@@ -103,6 +128,11 @@ class TimetableTest {
 
     static TimetableWindow window(LocalDate date, String start, String end) {
         return new TimetableWindow(date, LocalTime.parse(start), LocalTime.parse(end));
+    }
+
+    private static void assertNotExtendable(Timetable timetable, TimetableSetting setting) {
+        BusinessException exception = assertThrows(BusinessException.class, () -> timetable.updateSetting(setting));
+        assertEquals(TimetableErrorCode.SETTING_NOT_EXTENDABLE, exception.getErrorCode());
     }
 
     private static void assertInvalid(Runnable action) {

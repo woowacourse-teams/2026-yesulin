@@ -2,6 +2,7 @@ package art.yesulin.domain.timetable;
 
 import static art.yesulin.domain.common.validation.DomainValidator.requireNonNull;
 import static art.yesulin.domain.timetable.TimetableErrorCode.NOT_PUBLISHABLE;
+import static art.yesulin.domain.timetable.TimetableErrorCode.SETTING_NOT_EXTENDABLE;
 
 import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.timetable.converter.TimetableStatusConverter;
@@ -22,6 +23,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -100,7 +102,7 @@ public class Timetable {
         this.manageKey = manageKey;
         this.status = TimetableStatus.DRAFT;
         updateProfile(profile);
-        updateSetting(setting);
+        applySetting(requireNonNull(setting, "시간 칸 설정은 필수입니다."));
     }
 
     public void updateProfile(TimetableProfile profile) {
@@ -112,9 +114,28 @@ public class Timetable {
         this.guide = profile.guide();
     }
 
-    /** 배정이 새 규칙에 맞는지는 같은 트랜잭션에서 {@link TimetableBoard#ensureValid()}가 확인한다. */
+    /**
+     * 한 번 저장한 시간대는 줄이거나 바꿀 수 없고 늘리기만 한다. 배우가 이미 받은 시간과 직접 옮길 수 있는 범위가
+     * 사라지지 않도록, 진행 시간은 그대로이고 정원은 줄지 않으며 기존 시간 칸이 모두 새 시간 칸에 남아 있어야 한다.
+     * 날짜·시간대를 더하거나 끝 시각을 늦추는 것, 맞닿은 시간대를 하나로 합치는 것은 허용한다.
+     */
     public void updateSetting(TimetableSetting setting) {
         requireNonNull(setting, "시간 칸 설정은 필수입니다.");
+        if (setting.slotMinutes() != slotMinutes) {
+            throw new BusinessException(SETTING_NOT_EXTENDABLE, "오디션 진행 시간은 바꿀 수 없습니다.");
+        }
+        if (setting.slotCapacity() < slotCapacity) {
+            throw new BusinessException(SETTING_NOT_EXTENDABLE, "동시 오디션 인원은 줄일 수 없습니다.");
+        }
+        HashSet<TimeSlot> next = new HashSet<>();
+        setting.windows().forEach(window -> next.addAll(window.slots(setting.slotMinutes())));
+        if (!next.containsAll(slots())) {
+            throw new BusinessException(SETTING_NOT_EXTENDABLE, "저장한 시간대는 줄이거나 바꿀 수 없고 늘리기만 할 수 있습니다.");
+        }
+        applySetting(setting);
+    }
+
+    private void applySetting(TimetableSetting setting) {
         this.slotMinutes = setting.slotMinutes();
         this.slotCapacity = setting.slotCapacity();
         this.windows.clear();

@@ -91,6 +91,7 @@ class TimetableControllerTest {
                 .andExpect(jsonPath("$.actors", hasSize(2)))
                 .andExpect(jsonPath("$.actors[0].slot").value(nullValue()))
                 .andExpect(jsonPath("$.actors[0].invited").value(false))
+                .andExpect(jsonPath("$.actors[0].registeredAt").isNotEmpty())
                 .andReturn().getResponse().getContentAsString();
         int first = JsonPath.read(registered, "$.actors[0].id");
         int second = JsonPath.read(registered, "$.actors[1].id");

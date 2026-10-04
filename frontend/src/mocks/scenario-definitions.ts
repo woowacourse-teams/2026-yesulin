@@ -129,7 +129,7 @@ export const MOCK_SCENARIOS: readonly MockScenarioDefinition[] = [
     title: "일정표 만들기",
     description: "로그인 없이 일정표 정보와 오디션 날짜·시간(바운더리)을 정해 관리 링크를 받습니다.",
     href: "/timetable/new",
-    checks: ["달력에서 누르면 선택·해제되고 끌면 여러 날이 한꺼번에 선택된다", "오디션 가능 시간 슬롯을 여러 개 두면 고른 날짜에 모두 적용되고 달력 높이는 그대로다", "아래 두 칸 일정 목록에서 날짜별 슬롯을 고치면 개별로 표시된다", "필수 칸을 비우고 생성하면 빨간 테두리와 함께 그 칸으로 이동한다", "만들면 관리 링크 저장 안내가 강조된다"],
+    checks: ["달력에서 누르면 선택·해제되고 끌면 여러 날이 한꺼번에 선택된다", "오디션 가능 시간 슬롯을 여러 개 두면 고른 날짜에 모두 적용되고 달력 높이는 그대로다", "아래 두 칸 일정 목록에서 날짜별 슬롯을 고치면 개별로 표시된다", "필수 칸을 비우고 생성하면 빨간 테두리와 함께 그 칸으로 이동한다", "만든 뒤 보드에 합격자 등록 칸이 크게 보이고 등록하면 빈 칸에 바로 배정된다", "만들면 관리 링크 저장 안내가 강조된다"],
   },
   {
     id: "timetable-draft-board",
@@ -137,7 +137,7 @@ export const MOCK_SCENARIOS: readonly MockScenarioDefinition[] = [
     title: "작성 중 보드",
     description: "미배정 배우 8명을 자동 배정하고 끌어다 놓아 고친 뒤 확정합니다.",
     href: `/timetable/manage/${SEED_TIMETABLE_KEYS.draft}`,
-    checks: ["자동 배정 후 저장 전 이동이 점선으로 표시된다", "1인 칸에 놓으면 두 배우가 자리를 바꾼다", "저장하지 않으면 확정 버튼이 저장하고 확정으로 바뀐다"],
+    checks: ["위쪽 3단계 안내에서 지금 할 일이 강조된다", "빈 칸을 누르면 넣을 배우를 고를 수 있다", "이름을 누르고 옮기기를 고르면 놓을 칸이 강조된다", "시간 늘리기에서 저장한 날짜·시간은 잠겨 있다"],
   },
   {
     id: "timetable-published-board",
@@ -145,7 +145,7 @@ export const MOCK_SCENARIOS: readonly MockScenarioDefinition[] = [
     title: "확정된 보드",
     description: "배우가 직접 바꾼 시간(↻)과 시간 조정 요청이 있는 확정 일정표입니다.",
     href: `/timetable/manage/${SEED_TIMETABLE_KEYS.published}`,
-    checks: ["요청 패널에서 배우를 고를 수 있다", "안내한 배우를 옮겨 저장하면 변경 안내 확인 창이 뜬다", "배우 변경 막기를 켜고 끌 수 있다"],
+    checks: ["요청 패널에서 배우를 고를 수 있다", "확정 뒤 등록한 정배우가 명단에 추가 합격으로 표시된다", "안내한 배우를 옮겨 저장하면 변경 안내 확인 창이 뜬다", "배우 변경 막기를 켜고 끌 수 있다"],
   },
   {
     id: "timetable-actor",

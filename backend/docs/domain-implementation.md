@@ -58,7 +58,8 @@
 
 - `Timetable`은 관리 열쇠, 안내 정보(`TimetableProfile`), 소요 시간·정원과 정렬된 `TimetableWindow` 목록
   (`timetable_windows` element collection), `DRAFT/PUBLISHED`, 배우 직접 변경 잠금을 저장한다. 시간 칸(`TimeSlot`)은 저장하지
-  않고 시간대에서 계산한다. 공연·공고·회원과 연결하지 않는다.
+  않고 시간대에서 계산한다. 공연·공고·회원과 연결하지 않는다. `updateSetting`은 새 시간 칸이 기존 시간 칸을 모두 포함하고
+  진행 시간이 같으며 정원이 줄지 않을 때만 바꾼다(늘리기만 허용). 처음 만들 때는 이 검사를 하지 않는다.
 - `TimetableActor`는 일정표 ID, 개인 열쇠, 이름·휴대폰, 배정 칸(날짜·시작 시각, 미배정이면 null), 안내 시각과 배우 직접
   변경 기록(기획사가 마지막으로 정한 이전 칸·변경 시각)을 가진 별도 엔티티다. `(timetable_id, phone)` 고유 제약으로 같은 번호를 막는다.
 - 정원·바운더리처럼 여러 배우에 걸친 규칙은 `TimetableBoard`가 일정표와 그 일정표의 배우 전체로 검사한다. 배정을 바꾸는

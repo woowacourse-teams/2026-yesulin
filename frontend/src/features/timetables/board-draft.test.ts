@@ -3,8 +3,8 @@ import {
   assignmentsOf,
   autoAssign,
   changeCount,
-  changeSetting,
   draftFrom,
+  isAdditional,
   moveActor,
   noticesOnSave,
   problemsOf,
@@ -20,6 +20,7 @@ const actor = (id: number, name: string, startTime: string | null = null, invite
   invited,
   previousSlot: null,
   actorChangedAt: null,
+  registeredAt: "2026-10-01T00:00:00Z",
 });
 
 const board = (actors: TimetableActor[], overrides: Partial<TimetableBoard> = {}): TimetableBoard => ({
@@ -80,20 +81,6 @@ describe("timetable board draft", () => {
     expect(problemsOf(current, draft).map((problem) => problem.key)).toEqual(["outside-1", "unassigned-2"]);
   });
 
-  it("시간대를 줄이면 안내하지 않은 배우만 미배정으로 돌린다", () => {
-    const current = board([actor(1, "김배우", "11:00", true), actor(2, "이배우", "10:30")], { status: "PUBLISHED" });
-
-    const result = changeSetting(current, draftFrom(current), {
-      slotMinutes: 30,
-      slotCapacity: 1,
-      windows: [{ date: "2026-10-10", startTime: "10:00", endTime: "10:30" }],
-    });
-
-    expect(result.released).toBe(1);
-    expect(result.draft.slots).toEqual({ 1: "2026-10-10T11:00", 2: null });
-    expect(problemsOf(current, result.draft).map((problem) => problem.key)).toEqual(["outside-1"]);
-  });
-
   it("확정 뒤 저장하면 옮긴 배우와 새로 시간을 받은 배우에게 갈 안내를 미리 보여 준다", () => {
     const current = board(
       [actor(1, "김배우", "10:00", true), actor(2, "이배우", "10:30", true), actor(3, "박배우")],
@@ -118,5 +105,17 @@ describe("timetable board draft", () => {
       2: "2026-10-10T11:00",
       3: null,
     });
+  });
+
+  it("방금 등록한 배우만 골라 빈 칸에 배정하고 확정 뒤 등록한 배우를 추가 합격자로 본다", () => {
+    const current = board([actor(1, "김배우"), actor(2, "이배우"), actor(3, "박배우")]);
+
+    expect(autoAssign(current, draftFrom(current), [3]).draft.slots).toEqual({ 1: null, 2: null, 3: "2026-10-10T10:00" });
+
+    const published = board(
+      [actor(1, "김배우", "10:00", true), { ...actor(2, "이배우"), registeredAt: "2026-10-03T00:00:00Z" }],
+      { status: "PUBLISHED", publishedAt: "2026-10-02T00:00:00Z" },
+    );
+    expect(published.actors.map((item) => isAdditional(published, item))).toEqual([false, true]);
   });
 });
