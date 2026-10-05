@@ -3,6 +3,9 @@ import { readErrorMessage, readErrorDetail } from "../api-error";
 import type {
   AdminAuditLogPage,
   AdminAudition,
+  AdminAuditionPost,
+  AdminAuditionPostImport,
+  AdminAuditionPostStatus,
   AdminDailyActivity,
   AdminFileDeletionResult,
   AdminLog,
@@ -248,4 +251,38 @@ export async function completeTimetableMessages(messageIds: readonly number[]): 
   if (!response.ok) throw await readAdminError(response, "발송 완료로 표시하지 못했습니다.");
   const body = await response.json() as { readonly messages: readonly AdminTimetableMessage[] };
   return body.messages;
+}
+
+export async function fetchAuditionPosts(): Promise<readonly AdminAuditionPost[]> {
+  const body = await getJson<{ readonly posts: readonly AdminAuditionPost[] }>(
+    "/audition-posts",
+    "가져온 공고 목록을 불러오지 못했습니다.",
+  );
+  return body.posts;
+}
+
+/** 제작사 동의를 받은 OTR 공고를 본문·사진·첨부까지 가져와 바로 공개한다. 이미 있으면 원문으로 교체한다. */
+export async function importOtrAuditionPost(otrId: string): Promise<AdminAuditionPostImport> {
+  const response = await fetch(`${API_BASE_PATH}/audition-posts/otr-imports`, {
+    method: "POST",
+    credentials: "include",
+    headers: await withCsrfHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ otrId: otrId.trim() }),
+  });
+  if (!response.ok) throw await readAdminError(response, "OTR 공고를 가져오지 못했습니다.");
+  return response.json() as Promise<AdminAuditionPostImport>;
+}
+
+export async function changeAuditionPostStatus(
+  postId: number,
+  status: AdminAuditionPostStatus,
+): Promise<AdminAuditionPost> {
+  const response = await fetch(`${API_BASE_PATH}/audition-posts/${postId}/status`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: await withCsrfHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ status }),
+  });
+  if (!response.ok) throw await readAdminError(response, "공개 상태를 바꾸지 못했습니다.");
+  return response.json() as Promise<AdminAuditionPost>;
 }

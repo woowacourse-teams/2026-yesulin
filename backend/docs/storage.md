@@ -31,6 +31,15 @@ Content-Type·크기와 다르면 `READY`로 전환하지 않는다.
 해당 파일이 `SUBMISSION_PHOTO → Submission → Audition.ownerId`로 연결된 공고의 공연사여야 한다. 그 밖의
 회원과 존재하지 않는 파일에는 동일하게 `404`를 반환한다.
 
+## 서버가 직접 올리는 파일
+
+운영자가 OTR에서 가져온 공고의 본문 사진·첨부파일은 presigned URL 없이 서버가 `ObjectStorage.put`으로 올린다.
+키는 `public/audition-posts/{UTC yyyyMMdd}/{UUID}`이며 공개 CDN 주소로 응답한다. 키마다 내용이 바뀌지 않으므로
+`Cache-Control: public, max-age=31536000, immutable`을 붙이고, 첨부는 `Content-Disposition: attachment`와
+원래 파일 이름(RFC 6266 `filename*`)을 객체에 설정한다. 내용은 원문 응답 길이만큼 스트림으로 보낸다.
+이 파일은 `file_assets`·`file_references`에 기록하지 않고 `audition_post_files`가 키를 소유한다.
+원문으로 다시 가져와 교체하면 커밋 뒤 이전 객체를 지운다.
+
 ## 소유권과 참조
 
 - 모든 파일 동작은 소유 member ID를 검증한다.

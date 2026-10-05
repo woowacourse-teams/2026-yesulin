@@ -33,6 +33,7 @@ import { authHandlers } from "./auth-handlers";
 import { adminHandlers } from "./admin-handlers";
 import { adminLogHandlers } from "./admin-log-handlers";
 import { adminFileHandlers } from "./admin-file-handlers";
+import { auditionPostHandlers } from "./audition-post-handlers";
 import { otrAuditionHandlers } from "./otr-audition-handlers";
 import { showHandlers } from "./show-handlers";
 import { timetableHandlers } from "./timetable-handlers";
@@ -55,6 +56,7 @@ export const handlers = [
   ...adminHandlers,
   ...adminLogHandlers,
   ...adminFileHandlers,
+  ...auditionPostHandlers,
   ...otrAuditionHandlers,
   ...showHandlers,
   ...timetableHandlers,
