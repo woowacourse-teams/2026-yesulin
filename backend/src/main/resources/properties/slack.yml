@@ -1,8 +1,8 @@
 # Slack Incoming Webhook 설정. application.yml이 import한다. 값이 비어 있으면 해당 알림은 로그만 남긴다.
-# 환경별 값은 config/server/{local,dev,prod}.env에 두고, 로컬과 DEV는 같은 채널을 쓰므로 메시지 앞의 [LOCAL]·[DEV]로 구분한다.
+# 환경별 값은 config/server/{local,dev,prod}.env에 두고, 같은 채널을 쓰는 환경은 메시지 앞의 [LOCAL]·[DEV]·[PROD]로 구분한다.
 yesulin:
   slack:
-    # OTR 공고 알림 채널
+    # OTR 공고 알림 채널. 운영 자동 게시가 안정될 때까지 DEV와 PROD가 같은 채널을 쓴다.
     notice-webhook-url: ${YESULIN_SLACK_WEBHOOK_URL:}
     # 오디션 일정표 문자 발송 대기 신호(스케줄 알림) 채널
     timetable-webhook-url: ${YESULIN_TIMETABLE_SLACK_WEBHOOK_URL:}

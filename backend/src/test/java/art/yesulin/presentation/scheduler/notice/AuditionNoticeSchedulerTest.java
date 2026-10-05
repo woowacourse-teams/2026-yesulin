@@ -36,7 +36,7 @@ class AuditionNoticeSchedulerTest {
     @Test
     void enablesSchedulingGloballyButRunsNoticeOnlyInDev() {
         Profile schedulerProfile = AuditionNoticeScheduler.class.getAnnotation(Profile.class);
-        assertArrayEquals(new String[] {"prod"}, schedulerProfile.value());
+        assertArrayEquals(new String[] {"dev"}, schedulerProfile.value());
         assertNull(GlobalSchedulingConfiguration.class.getAnnotation(Profile.class));
         assertNotNull(GlobalSchedulingConfiguration.class.getAnnotation(EnableScheduling.class));
     }

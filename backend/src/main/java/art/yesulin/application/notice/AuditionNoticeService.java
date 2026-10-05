@@ -27,7 +27,17 @@ public class AuditionNoticeService {
     private final PlatformTransactionManager transactionManager;
     private final AuditionPublisher auditionPublisher;
 
+    /** 새 공고를 Slack으로만 알린다. 개발 서버가 운영 자동 게시가 안정될 때까지 쓴다. */
     public void notifyAuditions() {
+        run(false);
+    }
+
+    /** 새 공고를 우리 공고로 자동 게시한 뒤 Slack으로 알린다. 운영 서버가 쓴다. */
+    public void publishAndNotifyAuditions() {
+        run(true);
+    }
+
+    private void run(boolean publish) {
         String source = auditionSource.getSource();
         // 연극·퍼포먼스·뮤지컬·단원·기획사 공고만 알린다. 그 밖의 분류는 알림 이력도 만들지 않는다.
         List<AuditionContent> contents = fetchRecent(source).stream()
@@ -38,7 +48,7 @@ public class AuditionNoticeService {
         List<AuditionContent> pending = extractPendingNotices(contents, source);
         for (int start = 0; start < pending.size(); start += MAX_NOTICES_PER_MESSAGE) {
             int end = Math.min(start + MAX_NOTICES_PER_MESSAGE, pending.size());
-            sendPendingBatch(pending.subList(start, end), source);
+            sendPendingBatch(pending.subList(start, end), source, publish);
         }
     }
 
@@ -101,8 +111,10 @@ public class AuditionNoticeService {
         }
     }
 
-    private void sendPendingBatch(List<AuditionContent> contents, String source) {
-        contents.forEach(content -> publish(content, source));
+    private void sendPendingBatch(List<AuditionContent> contents, String source, boolean publish) {
+        if (publish) {
+            contents.forEach(content -> publish(content, source));
+        }
         try {
             noticeNotifier.send(contents);
         } catch (RuntimeException exception) {

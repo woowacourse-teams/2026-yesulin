@@ -6,18 +6,20 @@ DEV와 PROD의 Build 액션은 각각 `DEPLOY_ENV=dev`, `DEPLOY_ENV=prod`를 명
 빌드는 config 저장소의 `server/{DEPLOY_ENV}.env`를 선택하며 값이 없거나 다른 값이면 실패한다.
 두 Pipeline 모두 `CONFIG_COMMIT_ID`와 `config-version.txt`의 일치 검증을 통과해야 한다.
 
-공고 알림·자동 게시 스케줄러는 PROD 프로필에서만 매일 한국 시간 09:00~20:00에 10분 간격으로 실행된다.
-새 OTR 공고(연극·퍼포먼스·뮤지컬·단원·기획사)를 우리 공고로 게시한 뒤 Slack으로 알린다. DEV·LOCAL은 실행하지 않고
-관리자 화면 `/admin/posts`에서 직접 게시한다. 운영에서 잠시 멈추려면 `YESULIN_NOTICE_SCHEDULER_ENABLED=false`를 설정한다.
-Slack 웹훅 `YESULIN_SLACK_WEBHOOK_URL`은 `server/prod.env`에 둔다. 값이 없으면 게시는 되지만 알림 전송이 실패해
-알림 이력이 대기 상태로 남고, 웹훅을 넣은 뒤 다음 실행에서 한 번에 보낸다.
+공고 스케줄러는 매일 한국 시간 09:00~20:00에 10분 간격으로 실행되며 연극·퍼포먼스·뮤지컬·단원·기획사 공고만 다룬다.
+PROD의 `AuditionPublishScheduler`는 새 OTR 공고를 우리 공고로 게시한 뒤 Slack으로 알린다. 운영에서 잠시 멈추려면
+`YESULIN_NOTICE_SCHEDULER_ENABLED=false`를 설정한다. DEV의 기존 `AuditionNoticeScheduler`는 PROD 자동 게시가 안정될 때까지
+게시 없이 알림만 계속 보낸다. 두 서버가 같은 채널로 보내므로 같은 공고 알림이 두 번 오며, 메시지 앞의 `[DEV]`·`[PROD]`로 구분한다.
+PROD 동작을 확인하면 DEV 스케줄러를 제거한다. DEV·LOCAL의 공고 게시는 관리자 화면 `/admin/posts`에서 직접 한다.
+Slack 웹훅 `YESULIN_SLACK_WEBHOOK_URL`은 `server/dev.env`와 `server/prod.env`에 같은 채널 값으로 둔다.
+값이 없으면 게시는 되지만 알림 전송이 실패해 알림 이력이 대기 상태로 남고, 웹훅을 넣은 뒤 다음 실행에서 한 번에 보낸다.
 PROD 첫 실행에는 PROD DB에 알림 이력이 없으므로 OTR 목록 첫 페이지의 해당 분류 공고가 모두 새 공고로 게시·알림된다.
 현재 PROD는 인스턴스 한 대 기준이며 분산 실행 잠금은 없다. 여러 대로 늘리면 중복 알림을 막는 잠금을 먼저 추가한다.
 
 Slack의 공고 링크는 예술in의 `/otr?vid={OTR 번호}`를 경유한다.
 `YESULIN_NOTICE_LINK_BASE_URL`은 필수 환경 변수다. LOCAL은 `config/server/local.env`의
 `http://localhost:3000`, DEV·PROD는 SOPS 암호화된 `config/server/dev.env`·`prod.env`의 `https://yesulin.art`를 사용한다.
-알림은 PROD 스케줄러가 보내며, 링크는 예술in에 게시한 공고면 `/posts/{id}`로, 숨겼거나 게시하지 못했으면 OTR 원문으로 이동한다.
+DEV·PROD 알림 모두 링크 기준 주소가 PROD이므로, 링크는 PROD에 게시한 공고면 `/posts/{id}`로, 숨겼거나 게시하지 못했으면 OTR 원문으로 이동한다.
 테스트용 DEV 링크는 `https://dev.yesulin.art/otr?vid={번호}`를 직접 사용한다.
 환경별 YAML을 추가하지 않고 `application.yml`에서 이 변수를 읽는다. 테스트는 test resource의 값을 사용한다.
 배포 환경 값은 다른 설정과 동일하게 `config/server/{환경}.env`에 SOPS로 편집하며

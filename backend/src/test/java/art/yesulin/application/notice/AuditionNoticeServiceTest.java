@@ -88,7 +88,7 @@ class AuditionNoticeServiceTest {
     void publishesNewNoticeBeforeNotifying() {
         when(source.fetchRecent()).thenReturn(List.of(content("22330")));
 
-        service.notifyAuditions();
+        service.publishAndNotifyAuditions();
 
         InOrder order = inOrder(publisher, notifier);
         order.verify(publisher).publish("OTR", "22330");
@@ -101,11 +101,21 @@ class AuditionNoticeServiceTest {
         doThrow(new IllegalStateException("OTR 공고 페이지를 읽지 못했습니다."))
                 .when(publisher).publish("OTR", "22331");
 
-        service.notifyAuditions();
+        service.publishAndNotifyAuditions();
 
         verify(notifier).sendError(argThat(message -> message.contains("[OTR-22331] 자동 게시 실패")));
         verify(notifier).send(List.of(content("22331")));
         assertThat(stored("22331").getStatus()).isEqualTo(NoticeStatus.SENT);
+    }
+
+    @Test
+    void notifyOnlyModeDoesNotPublish() {
+        when(source.fetchRecent()).thenReturn(List.of(content("22332")));
+
+        service.notifyAuditions();
+
+        verify(notifier).send(List.of(content("22332")));
+        verify(publisher, never()).publish(any(), any());
     }
 
     @Test
