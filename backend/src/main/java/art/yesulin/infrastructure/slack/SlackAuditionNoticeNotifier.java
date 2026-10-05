@@ -1,5 +1,6 @@
 package art.yesulin.infrastructure.slack;
 
+import art.yesulin.application.notice.AuditionAlert;
 import art.yesulin.application.notice.AuditionContent;
 import art.yesulin.application.notice.AuditionNoticeNotifier;
 import art.yesulin.application.notice.OtrNoticeLink;
@@ -26,9 +27,17 @@ public class SlackAuditionNoticeNotifier implements AuditionNoticeNotifier {
 
     @Override
     public void send(List<AuditionContent> contents) {
-        if (contents.isEmpty()) {
+        sendAlerts(contents.stream()
+                .map(content -> new AuditionAlert(content, noticeLink.create(content.externalId())))
+                .toList());
+    }
+
+    @Override
+    public void sendAlerts(List<AuditionAlert> alerts) {
+        if (alerts.isEmpty()) {
             throw new IllegalArgumentException("전송할 공고가 없습니다.");
         }
+        List<AuditionContent> contents = alerts.stream().map(AuditionAlert::content).toList();
         StringBuilder message = new StringBuilder("🔔 예술in 오디션 공고 알림 · ").append(contents.size()).append("건\n");
         for (int index = 0; index < contents.size(); index++) {
             AuditionContent content = contents.get(index);
@@ -41,7 +50,7 @@ public class SlackAuditionNoticeNotifier implements AuditionNoticeNotifier {
             message.append(content.title())
                     .append("\n페이: ").append(display(content.pay()))
                     .append(" | 마감: ").append(display(content.deadline()))
-                    .append("\n자세히 보기\n").append(noticeLink.create(content.externalId()));
+                    .append("\n자세히 보기\n").append(alerts.get(index).link());
         }
         post(message.toString());
     }

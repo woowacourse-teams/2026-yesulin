@@ -46,7 +46,8 @@ public class AuditionPostImportService implements AuditionPublisher {
 
     private static final ZoneId KOREA = ZoneId.of("Asia/Seoul");
     private static final DateTimeFormatter KEY_DATE = DateTimeFormatter.ofPattern("yyyyMMdd").withZone(ZoneOffset.UTC);
-    private static final String OBJECT_KEY_FORMAT = "public/audition-posts/%s/%s";
+    /** 공연 포스터와 같은 공개 경로. CloudFront·버킷 정책이 이 경로만 공개한다. */
+    private static final String OBJECT_KEY_FORMAT = "public/files/%s/%s";
     private static final String TARGET_TYPE = "AUDITION_POST";
 
     private final AuditionPostSource source;
@@ -82,15 +83,19 @@ public class AuditionPostImportService implements AuditionPublisher {
      * 지키기 위해 건너뛴다. 운영자 작업이 아니므로 감사 기록은 남기지 않는다.
      */
     @Override
-    public void publish(String sourceName, String externalId) {
-        if (!source.getSource().equals(sourceName)
-                || repository.findBySourceAndExternalId(sourceName, externalId).isPresent()) {
-            return;
+    public Optional<Long> publish(String sourceName, String externalId) {
+        if (!source.getSource().equals(sourceName)) {
+            return Optional.empty();
+        }
+        Optional<AuditionPost> existing = repository.findBySourceAndExternalId(sourceName, externalId);
+        if (existing.isPresent()) {
+            return existing.filter(AuditionPost::isPublished).map(AuditionPost::getId);
         }
         AuditionPostImportResult result = importAs(null, externalId);
         if (!result.skippedAttachments().isEmpty()) {
             log.info("자동 게시에서 첨부 {}개를 건너뜀: {}-{}", result.skippedAttachments().size(), sourceName, externalId);
         }
+        return Optional.of(result.post().id());
     }
 
     /** {@code adminId}가 null이면 자동 게시다. */
