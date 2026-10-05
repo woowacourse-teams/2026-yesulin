@@ -19,6 +19,7 @@ import art.yesulin.domain.notice.NoticeRepository;
 import art.yesulin.domain.notice.NoticeStatus;
 import art.yesulin.infrastructure.querydsl.QueryDslConfiguration;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -53,13 +54,14 @@ class AuditionNoticeServiceTest {
     private final AuditionSource source = mock(AuditionSource.class);
     private final AuditionNoticeNotifier notifier = mock(AuditionNoticeNotifier.class);
     private final AuditionPublisher publisher = mock(AuditionPublisher.class);
+    private final OtrNoticeLink noticeLink = new OtrNoticeLink("https://yesulin.art");
     private AuditionNoticeService service;
 
     @BeforeEach
     void setUp() {
         repository.deleteAllInBatch();
         when(source.getSource()).thenReturn("OTR");
-        service = new AuditionNoticeService(source, notifier, repository, transactionManager, publisher);
+        service = new AuditionNoticeService(source, notifier, repository, transactionManager, publisher, noticeLink);
     }
 
     @Test
@@ -72,7 +74,7 @@ class AuditionNoticeServiceTest {
 
         when(source.fetchRecent()).thenReturn(List.of(content("22311"), content("22310"), content("22311")));
         AuditionNoticeService restarted =
-                new AuditionNoticeService(source, notifier, repository, transactionManager, publisher);
+                new AuditionNoticeService(source, notifier, repository, transactionManager, publisher, noticeLink);
         restarted.notifyAuditions();
         restarted.notifyAuditions();
 
@@ -86,13 +88,18 @@ class AuditionNoticeServiceTest {
 
     @Test
     void publishesNewNoticeBeforeNotifying() {
-        when(source.fetchRecent()).thenReturn(List.of(content("22330")));
+        when(source.fetchRecent()).thenReturn(List.of(content("22330"), content("22333")));
+        when(publisher.publish("OTR", "22330")).thenReturn(Optional.of(7L));
+        when(publisher.publish("OTR", "22333")).thenReturn(Optional.empty());
 
         service.publishAndNotifyAuditions();
 
         InOrder order = inOrder(publisher, notifier);
         order.verify(publisher).publish("OTR", "22330");
-        order.verify(notifier).send(List.of(content("22330")));
+        order.verify(notifier).sendAlerts(List.of(
+                new AuditionAlert(content("22330"), "https://yesulin.art/posts/7"),
+                new AuditionAlert(content("22333"), "https://otr.co.kr/audition/?vid=22333")
+        ));
     }
 
     @Test
@@ -104,7 +111,9 @@ class AuditionNoticeServiceTest {
         service.publishAndNotifyAuditions();
 
         verify(notifier).sendError(argThat(message -> message.contains("[OTR-22331] 자동 게시 실패")));
-        verify(notifier).send(List.of(content("22331")));
+        verify(notifier).sendAlerts(List.of(
+                new AuditionAlert(content("22331"), "https://otr.co.kr/audition/?vid=22331")
+        ));
         assertThat(stored("22331").getStatus()).isEqualTo(NoticeStatus.SENT);
     }
 
@@ -255,7 +264,7 @@ class AuditionNoticeServiceTest {
                 .thenThrow(new IllegalStateException("db failed"));
 
         AuditionNoticeService failingService = new AuditionNoticeService(
-                source, notifier, failingRepository, transactionManager, publisher);
+                source, notifier, failingRepository, transactionManager, publisher, noticeLink);
         assertThatThrownBy(failingService::notifyAuditions)
                 .isInstanceOf(IllegalStateException.class);
         assertThat(stored("22310").getStatus()).isEqualTo(NoticeStatus.PENDING);

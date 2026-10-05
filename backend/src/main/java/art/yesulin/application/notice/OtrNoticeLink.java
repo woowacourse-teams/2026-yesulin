@@ -27,6 +27,11 @@ public class OtrNoticeLink {
         return baseUrl + "/otr?vid=" + externalId;
     }
 
+    /** 예술in에 게시한 공고 상세 주소. */
+    public String postLink(long postId) {
+        return baseUrl + "/posts/" + postId;
+    }
+
     public URI destination(String externalId) {
         validateExternalId(externalId);
         return URI.create("https://otr.co.kr/audition/?vid=" + externalId);
