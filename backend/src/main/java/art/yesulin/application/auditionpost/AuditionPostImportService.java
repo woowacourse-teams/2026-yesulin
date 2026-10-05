@@ -46,8 +46,8 @@ public class AuditionPostImportService implements AuditionPublisher {
 
     private static final ZoneId KOREA = ZoneId.of("Asia/Seoul");
     private static final DateTimeFormatter KEY_DATE = DateTimeFormatter.ofPattern("yyyyMMdd").withZone(ZoneOffset.UTC);
-    /** 공연 포스터와 같은 공개 경로. CloudFront·버킷 정책이 이 경로만 공개한다. */
-    private static final String OBJECT_KEY_FORMAT = "public/files/%s/%s";
+    /** 공고 전용 공개 경로. CloudFront의 환경별 공고 동작으로 제공한다. */
+    private static final String OBJECT_KEY_FORMAT = "public/audition-posts/%s/%s";
     private static final String TARGET_TYPE = "AUDITION_POST";
 
     private final AuditionPostSource source;
