@@ -107,15 +107,16 @@ class AuditionPostImportServiceTest {
 
         PublicAuditionPostResult detail = auditionPostService.findPublishedPost(result.post().id());
         assertFalse(detail.bodyHtml().contains("post-file:"));
-        assertTrue(detail.bodyHtml().contains("https://cdn.test/assets/files/"));
+        assertTrue(detail.bodyHtml().contains("https://cdn.test/assets/audition-posts/"));
         assertEquals("지원서.hwp", detail.attachments().getFirst().name());
         assertEquals("application/x-hwp", detail.attachments().getFirst().contentType());
+        assertTrue(detail.attachments().getFirst().url().startsWith("https://cdn.test/assets/audition-posts/"));
         assertEquals(List.of("연극"), detail.tags());
         assertFalse(detail.closed());
 
         PublicAuditionPostPageResult page = auditionPostService.findPublishedPage(0, 12, false);
         assertEquals(1, page.posts().size());
-        assertTrue(page.posts().getFirst().thumbnailUrl().startsWith("https://cdn.test/assets/files/"));
+        assertTrue(page.posts().getFirst().thumbnailUrl().startsWith("https://cdn.test/assets/audition-posts/"));
     }
 
     @Test
