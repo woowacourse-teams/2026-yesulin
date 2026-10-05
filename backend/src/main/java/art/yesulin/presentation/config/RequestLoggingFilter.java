@@ -1,5 +1,6 @@
 package art.yesulin.presentation.config;
 
+import art.yesulin.application.alert.ErrorAlert;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -43,6 +44,7 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
     private static final long SLOW_REQUEST_MILLIS = 1_000L;
 
     private final MonotonicTimeSource timeSource;
+    private final ErrorAlert errorAlert;
 
     @Override
     protected void doFilterInternal(
@@ -142,6 +144,9 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
                 .addKeyValue("exception", exception.getClass().getSimpleName())
                 .setCause(exception)
                 .log("예상하지 못한 요청 처리 오류가 발생했습니다.");
+        errorAlert.unexpected(new ErrorAlert.UnexpectedError(
+                request.getMethod(), endpoint, exception.getClass().getSimpleName(), MDC.get(REQUEST_ID_MDC_KEY)
+        ));
     }
 
     private int resolveStatus(HttpServletResponse response, Throwable failure) {

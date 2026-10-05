@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -21,6 +22,7 @@ import java.util.List;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
@@ -50,13 +52,14 @@ class AuditionNoticeServiceTest {
 
     private final AuditionSource source = mock(AuditionSource.class);
     private final AuditionNoticeNotifier notifier = mock(AuditionNoticeNotifier.class);
+    private final AuditionPublisher publisher = mock(AuditionPublisher.class);
     private AuditionNoticeService service;
 
     @BeforeEach
     void setUp() {
         repository.deleteAllInBatch();
         when(source.getSource()).thenReturn("OTR");
-        service = new AuditionNoticeService(source, notifier, repository, transactionManager);
+        service = new AuditionNoticeService(source, notifier, repository, transactionManager, publisher);
     }
 
     @Test
@@ -68,7 +71,8 @@ class AuditionNoticeServiceTest {
         verify(notifier).send(List.of(content("22310")));
 
         when(source.fetchRecent()).thenReturn(List.of(content("22311"), content("22310"), content("22311")));
-        AuditionNoticeService restarted = new AuditionNoticeService(source, notifier, repository, transactionManager);
+        AuditionNoticeService restarted =
+                new AuditionNoticeService(source, notifier, repository, transactionManager, publisher);
         restarted.notifyAuditions();
         restarted.notifyAuditions();
 
@@ -78,6 +82,52 @@ class AuditionNoticeServiceTest {
         assertThat(stored("22311").getStatus()).isEqualTo(NoticeStatus.SENT);
         assertThat(stored("22311").getSource()).isEqualTo("OTR");
         assertThat(stored("22311").getExternalId()).isEqualTo("22311");
+    }
+
+    @Test
+    void publishesNewNoticeBeforeNotifying() {
+        when(source.fetchRecent()).thenReturn(List.of(content("22330")));
+
+        service.publishAndNotifyAuditions();
+
+        InOrder order = inOrder(publisher, notifier);
+        order.verify(publisher).publish("OTR", "22330");
+        order.verify(notifier).send(List.of(content("22330")));
+    }
+
+    @Test
+    void publishFailureIsReportedAndNoticeIsStillSent() {
+        when(source.fetchRecent()).thenReturn(List.of(content("22331")));
+        doThrow(new IllegalStateException("OTR 공고 페이지를 읽지 못했습니다."))
+                .when(publisher).publish("OTR", "22331");
+
+        service.publishAndNotifyAuditions();
+
+        verify(notifier).sendError(argThat(message -> message.contains("[OTR-22331] 자동 게시 실패")));
+        verify(notifier).send(List.of(content("22331")));
+        assertThat(stored("22331").getStatus()).isEqualTo(NoticeStatus.SENT);
+    }
+
+    @Test
+    void notifyOnlyModeDoesNotPublish() {
+        when(source.fetchRecent()).thenReturn(List.of(content("22332")));
+
+        service.notifyAuditions();
+
+        verify(notifier).send(List.of(content("22332")));
+        verify(publisher, never()).publish(any(), any());
+    }
+
+    @Test
+    void notifiesOnlyCategoriesWePost() {
+        AuditionContent dance = new AuditionContent("22320", "댄스", "댄서 모집", "협의", "상시",
+                "https://otr.co.kr/audition/?vid=22320");
+        when(source.fetchRecent()).thenReturn(List.of(dance, content("22321")));
+
+        service.notifyAuditions();
+
+        verify(notifier).send(List.of(content("22321")));
+        assertThat(repository.existsBySourceAndExternalId("OTR", "22320")).isFalse();
     }
 
     @Test
@@ -205,7 +255,7 @@ class AuditionNoticeServiceTest {
                 .thenThrow(new IllegalStateException("db failed"));
 
         AuditionNoticeService failingService = new AuditionNoticeService(
-                source, notifier, failingRepository, transactionManager);
+                source, notifier, failingRepository, transactionManager, publisher);
         assertThatThrownBy(failingService::notifyAuditions)
                 .isInstanceOf(IllegalStateException.class);
         assertThat(stored("22310").getStatus()).isEqualTo(NoticeStatus.PENDING);

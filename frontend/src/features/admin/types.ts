@@ -275,3 +275,62 @@ export type AdminSubmissionDetail = {
     readonly agreedAt: string;
   }[];
 };
+
+/** 일정표 문자 발송 대기열. 문자 업체를 연결하기 전까지 운영자가 번호와 본문을 복사해 직접 보낸다. */
+export type AdminTimetableMessageType =
+  | "ORGANIZER_LINK"
+  | "ORGANIZER_TIME_REQUEST"
+  | "ACTOR_INVITATION"
+  | "ACTOR_SCHEDULE_CHANGED";
+
+export type AdminTimetableMessageStatus = "PENDING" | "SENT";
+
+export type AdminTimetableMessage = {
+  readonly id: number;
+  readonly type: AdminTimetableMessageType;
+  readonly status: AdminTimetableMessageStatus;
+  readonly timetableTitle: string;
+  readonly organizerName: string;
+  readonly recipientName: string;
+  readonly recipientPhone: string;
+  readonly body: string;
+  readonly createdAt: string;
+  readonly sentAt: string | null;
+};
+
+export type AdminTimetableMessages = {
+  /** 목록 상한과 관계없는 전체 대기 건수. */
+  readonly pendingCount: number;
+  readonly messages: readonly AdminTimetableMessage[];
+};
+
+export type AdminAuditionPostStatus = "PUBLISHED" | "HIDDEN";
+
+/** 운영자가 OTR에서 가져온 공고. `/api/v1/admin/audition-posts` 응답과 같다. */
+export type AdminAuditionPost = {
+  readonly id: number;
+  readonly source: string;
+  readonly externalId: string;
+  readonly sourceUrl: string;
+  readonly category: string;
+  readonly title: string;
+  readonly authorName: string;
+  readonly deadlineText: string;
+  readonly closed: boolean;
+  readonly status: AdminAuditionPostStatus;
+  /** 운영 서버가 새 공고 알림과 함께 자동으로 게시했으면 true. 운영자가 다시 가져오면 false가 된다. */
+  readonly autoPublished: boolean;
+  readonly viewCount: number;
+  readonly imageCount: number;
+  readonly attachmentCount: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+};
+
+export type AdminAuditionPostImport = {
+  readonly post: AdminAuditionPost;
+  /** 처음 가져왔으면 true, 원문으로 다시 가져와 교체했으면 false. */
+  readonly created: boolean;
+  /** 형식·크기 기준에 맞지 않아 옮기지 않은 첨부파일. */
+  readonly skippedAttachments: readonly { readonly filename: string; readonly reason: string }[];
+};

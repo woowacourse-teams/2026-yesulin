@@ -1,5 +1,6 @@
 package art.yesulin.application.notice;
 
+import art.yesulin.domain.auditionpost.AuditionCategory;
 import art.yesulin.domain.notice.Notice;
 import art.yesulin.domain.notice.NoticeRepository;
 import art.yesulin.domain.notice.NoticeStatus;
@@ -24,16 +25,30 @@ public class AuditionNoticeService {
     private final AuditionNoticeNotifier noticeNotifier;
     private final NoticeRepository noticeRepository;
     private final PlatformTransactionManager transactionManager;
+    private final AuditionPublisher auditionPublisher;
 
+    /** 새 공고를 Slack으로만 알린다. 개발 서버가 운영 자동 게시가 안정될 때까지 쓴다. */
     public void notifyAuditions() {
+        run(false);
+    }
+
+    /** 새 공고를 우리 공고로 자동 게시한 뒤 Slack으로 알린다. 운영 서버가 쓴다. */
+    public void publishAndNotifyAuditions() {
+        run(true);
+    }
+
+    private void run(boolean publish) {
         String source = auditionSource.getSource();
-        List<AuditionContent> contents = fetchRecent(source);
+        // 연극·퍼포먼스·뮤지컬·단원·기획사 공고만 알린다. 그 밖의 분류는 알림 이력도 만들지 않는다.
+        List<AuditionContent> contents = fetchRecent(source).stream()
+                .filter(content -> AuditionCategory.supports(content.category()))
+                .toList();
         registerNewNotices(contents, source);
 
         List<AuditionContent> pending = extractPendingNotices(contents, source);
         for (int start = 0; start < pending.size(); start += MAX_NOTICES_PER_MESSAGE) {
             int end = Math.min(start + MAX_NOTICES_PER_MESSAGE, pending.size());
-            sendPendingBatch(pending.subList(start, end), source);
+            sendPendingBatch(pending.subList(start, end), source, publish);
         }
     }
 
@@ -68,6 +83,21 @@ public class AuditionNoticeService {
                 .toList();
     }
 
+    /** 알림보다 게시를 먼저 한다. 게시 실패는 알림을 막지 않고 운영자가 직접 가져오도록 따로 알린다. */
+    private void publish(AuditionContent content, String source) {
+        try {
+            auditionPublisher.publish(source, content.externalId());
+        } catch (RuntimeException exception) {
+            log.warn("공고 자동 게시 실패: {}-{}", source, content.externalId());
+            try {
+                noticeNotifier.sendError("[%s-%s] 자동 게시 실패: %s 관리자 화면에서 직접 가져와 주세요.".formatted(
+                        source, content.externalId(), exception.getMessage()));
+            } catch (RuntimeException alertFailure) {
+                log.error("공고 자동 게시 실패 알림 전송 실패");
+            }
+        }
+    }
+
     private Optional<AuditionContent> resolveContent(Notice notice, List<AuditionContent> recent) {
         try {
             return Optional.of(recent.stream()
@@ -81,7 +111,10 @@ public class AuditionNoticeService {
         }
     }
 
-    private void sendPendingBatch(List<AuditionContent> contents, String source) {
+    private void sendPendingBatch(List<AuditionContent> contents, String source, boolean publish) {
+        if (publish) {
+            contents.forEach(content -> publish(content, source));
+        }
         try {
             noticeNotifier.send(contents);
         } catch (RuntimeException exception) {

@@ -278,7 +278,7 @@ class RequestLoggingFilterTest {
                 return invocation++ == 0 ? 0L : elapsedNanos;
             }
         };
-        return new RequestLoggingFilter(timeSource);
+        return new RequestLoggingFilter(timeSource, error -> {});
     }
 
     private MockHttpServletRequest request() {

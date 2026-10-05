@@ -15,32 +15,38 @@ export function PublicVenueGuide({ venue, address, note = DEFAULT_VENUE_NOTE }: 
 }) {
   const mapRef = useRef<HTMLDivElement>(null);
   const [coordinates, setCoordinates] = useState<KakaoMapCoordinates | null>(() => coordinatesOf(address));
+  const [mapReady, setMapReady] = useState(false);
   const [mapFailed, setMapFailed] = useState(false);
   const mapKey = process.env.NEXT_PUBLIC_KAKAO_MAP_APP_KEY;
   const fullAddress = [address.roadAddress, address.detailAddress].filter(Boolean).join(" ");
   const venueName = venue.trim() && venue.trim() !== address.roadAddress.trim() ? venue.trim() : "공연 장소";
 
+  const { roadAddress, latitude, longitude } = address;
+
   useEffect(() => {
-    if (!mapKey || !address.roadAddress || !mapRef.current) return;
+    if (!mapKey || !roadAddress || !mapRef.current) return;
     let cancelled = false;
     loadKakaoMapSdk(mapKey)
       .then(async () => {
-        const nextCoordinates = coordinates ?? await geocodeKakaoAddress(address.roadAddress);
+        const nextCoordinates = latitude !== null && longitude !== null ? { latitude, longitude } : await geocodeKakaoAddress(roadAddress);
         if (cancelled || !mapRef.current || !window.kakao) return;
         const center = new window.kakao.maps.LatLng(nextCoordinates.latitude, nextCoordinates.longitude);
-        const map = new window.kakao.maps.Map(mapRef.current, { center, level: 3 });
-        new window.kakao.maps.Marker({ map, position: center });
+        mapRef.current.replaceChildren();
+        new window.kakao.maps.StaticMap(mapRef.current, { center, level: 3, marker: { position: center } });
         setCoordinates(nextCoordinates);
+        setMapReady(true);
         setMapFailed(false);
       })
       .catch((cause) => { if (!cancelled) { console.error("[공연장 지도 불러오기 실패]", cause); setMapFailed(true); } });
     return () => { cancelled = true; };
-  }, [address.roadAddress, coordinates, mapKey]);
+  }, [roadAddress, latitude, longitude, mapKey]);
 
   return <section aria-labelledby="performance-venue-title" className="rounded-card border border-border bg-card p-4 sm:p-5">
     <div className="grid gap-5 md:grid-cols-[minmax(0,1.2fr)_minmax(240px,0.8fr)] md:items-stretch">
-      <div ref={mapRef} aria-label="공연 장소 지도" className="h-56 overflow-hidden rounded-card border border-border bg-surface sm:h-64">
-        {!mapKey || mapFailed ? <MapFallback failed={mapFailed} /> : <div className="grid h-full place-items-center px-5 text-center text-sm text-muted">공연 장소 지도를 불러오고 있어요.</div>}
+      <div aria-label="공연 장소 지도" className="relative h-56 overflow-hidden rounded-card border border-border bg-surface sm:h-64">
+        <div ref={mapRef} className="absolute inset-0" />
+        {!mapKey || mapFailed ? <div className="absolute inset-0 bg-surface"><MapFallback failed={mapFailed} /></div>
+          : !mapReady ? <div className="absolute inset-0 grid place-items-center bg-surface px-5 text-center text-sm text-muted">공연 장소 지도를 불러오고 있어요.</div> : null}
       </div>
       <div className="flex min-w-0 flex-col">
         <p className="text-sm font-semibold text-brand">공연 장소</p>

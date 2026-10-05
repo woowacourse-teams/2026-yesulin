@@ -54,6 +54,31 @@
   예매·정원 수정·회차 삭제·공연 삭제·매수 변경 트랜잭션은 `READ_COMMITTED`로 실행한다. H2 테스트는 이 차이를 재현하지 못한다.
 - 포스터·상세 이미지는 `SHOW_POSTER`, `SHOW_IMAGE` 파일 참조로 연결하고 공연 수정 시 모두 다시 연결한다.
 
+## 오디션 일정표
+
+- `Timetable`은 관리 열쇠, 안내 정보(`TimetableProfile`), 소요 시간·정원과 정렬된 `TimetableWindow` 목록
+  (`timetable_windows` element collection), `DRAFT/PUBLISHED`, 배우 직접 변경 잠금을 저장한다. 시간 칸(`TimeSlot`)은 저장하지
+  않고 시간대에서 계산한다. 공연·공고·회원과 연결하지 않는다. `updateSetting`은 새 시간 칸이 기존 시간 칸을 모두 포함하고
+  진행 시간이 같으며 정원이 줄지 않을 때만 바꾼다(늘리기만 허용). 처음 만들 때는 이 검사를 하지 않는다.
+- `TimetableActor`는 일정표 ID, 개인 열쇠, 이름·휴대폰, 배정 칸(날짜·시작 시각, 미배정이면 null), 안내 시각과 배우 직접
+  변경 기록(기획사가 마지막으로 정한 이전 칸·변경 시각)을 가진 별도 엔티티다. `(timetable_id, phone)` 고유 제약으로 같은 번호를 막는다.
+- 정원·바운더리처럼 여러 배우에 걸친 규칙은 `TimetableBoard`가 일정표와 그 일정표의 배우 전체로 검사한다. 배정을 바꾸는
+  기획사 저장·확정·등록·삭제와 배우 직접 변경은 모두 일정표 행을 `PESSIMISTIC_WRITE`로 잠근 뒤 배우를 새로 읽고,
+  잠금 뒤 최신 커밋 값을 읽도록 `READ_COMMITTED`로 실행한다. 배우 경로는 열쇠로 일정표 ID만 먼저 읽고 잠근다.
+- `TimetableRequest`는 배우의 시간 조정 요청(`OPEN/RESOLVED`)이고, `TimetableMessage`는 받는 이름·번호·본문을 고정한
+  문자 대기열 행(`PENDING/SENT`, 발송 표시 운영자)이다. 문자 본문과 중복 억제는 `TimetableMessenger`가 맡는다.
+- 한 작업에서 넣은 문자는 `TimetableMessagesQueuedEvent` 하나로 묶고 커밋 뒤 `TimetableMessageRelay`에 전달한다. 현재 구현
+  `SlackTimetableMessageRelay`는 개인정보 없는 신호를 가상 스레드로 스케줄 알림 Slack에 보내며 실패해도 대기열은 남는다.
+  문자 업체로 보내려면 이 포트의 구현만 바꾸고 보낸 문자를 `SENT`로 표시한다. Slack 전송은 OTR 공고 알림과 같은
+  `SlackWebhookClient`를 쓰고, 로컬·DEV가 채널을 같이 쓰므로 메시지 앞에 `[LOCAL]`·`[DEV]`·`[PROD]`를 붙인다.
+
+## 서버 오류 알림
+
+- `RequestLoggingFilter`가 요청 밖으로 나온 예외를 `UNEXPECTED_ERROR`로 남길 때 `ErrorAlert`에도 요청 방식·요청 패턴·
+  예외 종류·요청 ID를 넘긴다. 예외 메시지와 요청 값은 개인정보가 섞일 수 있어 넘기지 않는다.
+- `SlackErrorAlert`는 버그 알림 Slack에 가상 스레드로 보내고, 같은 요청 패턴·예외는 10분에 한 번만 보낸다. 웹훅이 비어
+  있으면 아무것도 하지 않고, 전송 실패는 로그로만 남긴다.
+
 ## 공고 알림
 
 - `domain/notice`는 지원 접수용 `OtrAudition`과 별개인 외부 공고 알림 이력을 정의한다.
@@ -66,6 +91,7 @@
 - `application/notice`의 `AuditionContent`는 외부 공고 ID, 분류, 제목, 보수, 마감, 원문 URL을 담지만
   DB에는 저장하지 않는다. 보수·마감은 `협의`, `상시` 등의 표현을 보존한다.
   업로드 시각은 읽지 않으며 신규 판별에는 외부 공고 ID를 사용한다. ID·제목·링크는 필수다.
+- 목록에서 읽은 공고 중 `AuditionCategory`가 지원하는 분류만 등록한다. 그 밖의 분류는 알림 이력도 만들지 않는다.
 - 최초 실행을 포함해 처음 발견한 공고는 `PENDING`으로 저장하고 알림을 시도한다.
   수집한 공고마다 기존 출처·외부 ID를 확인하고 새 공고만 같은 트랜잭션에 등록한다.
   빈 응답이나 수집 실패는 새 공고를 만들지 않는다.
@@ -90,14 +116,38 @@
   `AuditionNoticeService`가 `NoticeRepository`를 직접 사용한다. 전체 실행을 트랜잭션으로 묶지 않고
   수집 결과 저장과 묶음 전송 완료 기록에만 짧은 트랜잭션을 적용한다. DB 트랜잭션을 잡은 채 외부 요청을 수행하지 않는다.
   동시 수집의 삽입 충돌은 유니크 제약으로 거절되고 해당 수집 트랜잭션은 롤백된다. 다음 실행에서 재수집한다.
-- `AuditionNoticeService`는 Spring bean으로 등록한다. `@EnableScheduling`은 전체 환경에서 활성화하고
-  `presentation/scheduler/notice`의 공고 스케줄러만 DEV 프로필에서 실행한다.
-  매일 한국 시간 09:00~20:00에 10분 간격으로 실행한다.
-  OTR 수집기와 Slack Incoming Webhook 전송 adapter를 사용하며 웹훅은 DEV 암호화 설정에만 둔다.
-  PROD 웹훅 설정과 자동 실행은 아직 적용하지 않는다.
+- 게시 모드에서는 묶음마다 Slack 전송 전에 공고마다 `AuditionPublisher.publish`로 자동 게시한다. 게시 실패는 `sendError`로 따로 알리고
+  해당 공고의 알림은 그대로 보낸다. 전송이 실패해 다음 실행에서 다시 보낼 때는 이미 게시한 번호라 다시 가져오지 않는다.
+- `AuditionNoticeService`는 Spring bean으로 등록한다. `@EnableScheduling`은 전체 환경에서 활성화한다.
+  `presentation/scheduler/notice`에서 PROD는 `AuditionPublishScheduler`가 `publishAndNotifyAuditions`(게시 후 알림)를,
+  DEV는 기존 `AuditionNoticeScheduler`가 `notifyAuditions`(알림만)를 실행한다. DEV 쪽은 PROD 자동 게시가 안정되면 제거한다.
+  PROD 스케줄러는 `yesulin.notice.scheduler-enabled=false`로 끌 수 있다. 둘 다 매일 한국 시간 09:00~20:00에 10분 간격이다.
+  OTR 수집기와 Slack Incoming Webhook 전송 adapter를 사용하며, 같은 채널의 서로 다른 봇 웹훅으로 구분한다.
 - 현재 목록 여러 페이지 탐색과 분산 실행 잠금은 미구현이다. 별도 DB adapter는 두지 않는다.
   중복 저장 방지와 중복 전송 방지는 별개다. 배포 중 동시 실행 및 전송 성공 후 상태 저장 전 종료로 인한 재전송은
   아직 허용하며 exactly-once 전달을 보장하지 않는다. 수집 누락 방지를 위한 페이지 탐색 범위는 추후 adapter에서 정한다.
+
+## 가져온 공고
+
+- `domain/auditionpost`의 `AuditionPost`는 출처(`source`)·원문 번호(`external_id`)·원문 주소, 내용 `AuditionPostContent`(embeddable),
+  태그(`audition_post_tags`)와 파일 `AuditionPostFile`(`audition_post_files`, 사진·첨부 구분과 저장소 키·원래 이름·형식·크기),
+  `PUBLISHED/HIDDEN`, 가져온 운영자(자동 게시면 null), 생성·갱신 시각을 저장한다. `(source, external_id)`는 유니크이고 공개 주소에는 숫자 ID를 쓴다.
+- 분류는 `AuditionCategory`(연극·퍼포먼스·뮤지컬·단원·기획사)만 받는다. `AuditionPostContent`가 생성 시 검사하므로
+  가져오기는 파일을 받기 전에 거절된다. 공개 목록의 모집 중 조건은 `deadline`이 없거나 오늘 이후인 공고다.
+- 마감은 원문 문자열(`deadline_text`)과 `yyyy-MM-dd`일 때만 채우는 `deadline`을 함께 둔다. 원문 작성 시각은 한국 시간 `LocalDateTime`이다.
+- `refresh`는 내용·태그·파일을 교체하고 이전 파일 목록을 돌려준다. 공개 상태와 공개 ID는 유지한다.
+- 본문은 사진 자리를 `post-file:{순번}`으로 저장하고 `AuditionPostBody.render`가 응답할 때 공개 저장소 주소로 바꾼다.
+  저장소 주소가 환경·LocalStack 포트마다 달라 본문에 주소를 고정하지 않는다. 순번에 파일이 없으면 사진 태그를 지운다.
+- `application/auditionpost`의 `AuditionPostSource` port를 `infrastructure/crawler/OtrAuditionPostSource`가 구현한다.
+  상세 페이지 canonical의 `vid`를 확인하고, 본문은 Jsoup으로 허용 태그만 남긴다. `otr.co.kr`의 `/wp-content/uploads/` https 사진만
+  옮기고 그 밖의 사진은 지운다. 첨부는 상세 페이지의 망보드 nonce로 `admin-ajax.php`에 경로를 받은 뒤 `?mb_ext=file`로 내려받는다.
+  파일 요청은 OTR 호스트로만 보내고 리다이렉트를 따르지 않는다. 길이를 알려 주면 스트림 그대로, 모르면 상한까지만 읽는다.
+- `AuditionPostImportService`는 원문과 파일을 받는 동안 트랜잭션을 잡지 않고 마지막 저장만 짧은 트랜잭션으로 처리한다.
+  실패하면 이번에 올린 객체를 지우고, 다시 가져와 교체했으면 커밋 뒤 이전 객체를 지운다. 객체 삭제 실패는 경고 로그만 남긴다.
+  같은 번호의 동시 삽입은 유니크 제약으로 거절해 `IMPORT_CONFLICT`로 바꾼다.
+- 자동 게시는 `application/notice`의 `AuditionPublisher` port를 `AuditionPostImportService.publish`가 구현한다.
+  같은 출처·번호가 이미 있으면 아무것도 하지 않고, 운영자 작업이 아니므로 감사 기록을 남기지 않는다.
+- 가져온 파일은 `file_assets`에 등록하지 않는다. 회원 소유 업로드가 아니며 미사용 파일 관리 대상에도 포함하지 않는다.
 
 ## 지원서
 

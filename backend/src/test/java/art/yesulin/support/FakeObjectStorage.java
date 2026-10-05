@@ -1,9 +1,12 @@
 package art.yesulin.support;
 
 import art.yesulin.application.file.storage.ObjectStorage;
+import art.yesulin.application.file.storage.ObjectUpload;
 import art.yesulin.application.file.storage.PresignedUpload;
 import art.yesulin.application.file.storage.StoredObjectContent;
 import art.yesulin.application.file.storage.StoredObjectMetadata;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
@@ -23,6 +26,16 @@ public class FakeObjectStorage implements ObjectStorage {
         String uploadUrl = "https://storage.test/uploads/" + objectKey;
         uploadTargets.put(uploadUrl, objectKey);
         return new PresignedUpload(uploadUrl, "PUT", EXPIRES_AT, Map.of("Content-Type", contentType));
+    }
+
+    @Override
+    public void put(String objectKey, ObjectUpload upload) {
+        try {
+            byte[] bytes = upload.content().readNBytes(Math.toIntExact(upload.size()));
+            objects.put(objectKey, new StoredObjectContent(upload.contentType(), bytes));
+        } catch (IOException exception) {
+            throw new UncheckedIOException(exception);
+        }
     }
 
     @Override
@@ -64,5 +77,13 @@ public class FakeObjectStorage implements ObjectStorage {
 
     public void failNextDelete() {
         failNextDelete.set(true);
+    }
+
+    public boolean contains(String objectKey) {
+        return objects.containsKey(objectKey);
+    }
+
+    public int objectCount() {
+        return objects.size();
     }
 }

@@ -193,3 +193,86 @@
     color: var(--ink);
   }
 }
+
+/*
+ * 외부에서 옮겨 온 공고 본문. 서버가 허용 태그만 남기고 인라인 스타일을 지웠으므로 기본 문서 모양만 입힌다.
+ * 원문 표·사진이 화면보다 넓어도 가로로 넘치지 않게 한다.
+ */
+@layer components {
+  .post-body {
+    font-size: 16px;
+    line-height: 1.8;
+    color: var(--ink);
+    overflow-wrap: anywhere;
+  }
+
+  .post-body p,
+  .post-body ul,
+  .post-body ol,
+  .post-body blockquote,
+  .post-body pre,
+  .post-body table {
+    margin: 0 0 0.25em;
+  }
+
+  .post-body h1,
+  .post-body h2,
+  .post-body h3,
+  .post-body h4 {
+    margin: 1.2em 0 0.4em;
+    font-size: 1.1em;
+    font-weight: 700;
+  }
+
+  .post-body ul,
+  .post-body ol {
+    padding-left: 1.4em;
+  }
+
+  .post-body ul {
+    list-style: disc;
+  }
+
+  .post-body ol {
+    list-style: decimal;
+  }
+
+  .post-body strong,
+  .post-body b {
+    font-weight: 700;
+  }
+
+  .post-body a {
+    color: var(--brand);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .post-body img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin: 12px auto;
+    border-radius: 12px;
+  }
+
+  .post-body table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    border-collapse: collapse;
+  }
+
+  .post-body th,
+  .post-body td {
+    border: 1px solid var(--line);
+    padding: 6px 10px;
+    vertical-align: top;
+  }
+
+  .post-body blockquote {
+    border-left: 3px solid var(--line);
+    padding-left: 12px;
+    color: var(--ink-60);
+  }
+}

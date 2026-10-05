@@ -20,6 +20,7 @@ interface Window {
       LatLng: new (latitude: number, longitude: number) => unknown;
       Map: new (container: HTMLElement, options: { center: unknown; level: number }) => unknown;
       Marker: new (options: { map: unknown; position: unknown }) => unknown;
+      StaticMap: new (container: HTMLElement, options: { center: unknown; level: number; marker?: { position: unknown; text?: string } }) => unknown;
       services: {
         Status: { OK: string };
         Geocoder: new () => { addressSearch: (address: string, callback: (result: KakaoGeocoderResult[], status: string) => void) => void };
