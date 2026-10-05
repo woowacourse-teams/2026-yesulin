@@ -66,6 +66,14 @@ public class AuditionPostService {
         return PublicAuditionPostResult.from(post, today(), KOREA, storage::toPublicUrl);
     }
 
+    /** 공개 상세를 연 브라우저가 한 번 보낸다. 숨겼거나 없는 공고는 404다. */
+    @Transactional
+    public void increaseViewCount(long postId) {
+        if (repository.increaseViewCount(postId, PUBLISHED) == 0) {
+            throw notFound();
+        }
+    }
+
     /** 공고 알림 링크가 원문 대신 우리 공고로 보낼 수 있는지 확인한다. 숨긴 공고는 없는 것으로 본다. */
     @Transactional(readOnly = true)
     public Optional<Long> findPublishedId(String source, String externalId) {

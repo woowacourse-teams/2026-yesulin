@@ -80,6 +80,10 @@ public class AuditionPost {
     @Column(nullable = false, length = 20)
     private AuditionPostStatus status;
 
+    /** 공개 상세 조회 수. 다시 가져와도 유지하며 증가는 저장소의 원자적 update로만 한다. */
+    @Column(name = "view_count", nullable = false)
+    private long viewCount;
+
     /** 마지막으로 가져온 운영자. 운영 서버가 새 공고를 자동으로 게시했으면 null이다. */
     @Column(name = "imported_by")
     private Long importedBy;

@@ -10,6 +10,7 @@ export type AuditionPostSummary = {
   /** 원문 마감이 날짜일 때만 `YYYY-MM-DD`. */
   readonly deadline: string | null;
   readonly closed: boolean;
+  readonly viewCount: number;
   readonly postedAt: string | null;
   readonly thumbnailUrl: string | null;
   readonly attachmentCount: number;
@@ -49,6 +50,7 @@ export type AuditionPost = {
   readonly deadlineText: string;
   readonly deadline: string | null;
   readonly closed: boolean;
+  readonly viewCount: number;
   readonly postedAt: string | null;
   /** 서버가 허용 태그만 남긴 HTML. 사진 주소는 응답에 이미 채워져 있다. */
   readonly bodyHtml: string;
@@ -64,6 +66,7 @@ export const auditionPostApiPaths = {
   list: ({ page, includeClosed }: AuditionPostQuery) =>
     `/v1/public/audition-posts?page=${page}&size=${AUDITION_POST_PAGE_SIZE}&includeClosed=${includeClosed}`,
   detail: (postId: number | string) => `/v1/public/audition-posts/${encodeURIComponent(String(postId))}`,
+  view: (postId: number) => `/v1/public/audition-posts/${postId}/views`,
 } as const;
 
 /** 공고 알림을 받는 카카오톡 오픈채팅방. */

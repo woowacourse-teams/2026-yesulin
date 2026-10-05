@@ -20,6 +20,7 @@ const POSTS: readonly AuditionPost[] = [
     deadlineText: daysFromToday(2),
     deadline: daysFromToday(2),
     closed: false,
+    viewCount: 12,
     postedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
     bodyHtml: "<p>낭독극 &lt;체크 포인트&gt;에 함께할 배우를 모집합니다.</p>"
       + "<img src=\"/images/performances/moonlight.jpg\" alt=\"모집 공고 1\">"
@@ -38,6 +39,7 @@ const POSTS: readonly AuditionPost[] = [
     deadlineText: daysFromToday(27),
     deadline: daysFromToday(27),
     closed: false,
+    viewCount: 12,
     postedAt: new Date(Date.now() - 26 * 60 * 60 * 1000).toISOString(),
     bodyHtml: "<p>저희 기획사에서 진행하는 연극의 매표 아르바이트 모집합니다.</p>"
       + "<p><span><strong>주말 공휴일 필수 근무</strong></span></p>"
@@ -60,6 +62,7 @@ const POSTS: readonly AuditionPost[] = [
     deadlineText: "채용 시 마감",
     deadline: null,
     closed: false,
+    viewCount: 12,
     postedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
     bodyHtml: "<p>여성 댄스팀 공연 멤버를 모집합니다. 총 7회 공연입니다.</p>",
     tags: [],
@@ -75,6 +78,7 @@ const POSTS: readonly AuditionPost[] = [
     deadlineText: daysFromToday(-5),
     deadline: daysFromToday(-5),
     closed: true,
+    viewCount: 87,
     postedAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
     bodyHtml: "<img src=\"/images/performances/summerplay.jpg\" alt=\"포스터\"><p>앙상블 배우를 모집합니다.</p>",
     tags: ["뮤지컬"],
@@ -94,6 +98,7 @@ function toSummary(post: AuditionPost): AuditionPostSummary {
     deadlineText: post.deadlineText,
     deadline: post.deadline,
     closed: post.closed,
+    viewCount: post.viewCount,
     postedAt: post.postedAt,
     thumbnailUrl: thumbnail ? thumbnail[1] : null,
     attachmentCount: post.attachments.length,
@@ -130,6 +135,11 @@ export const auditionPostHandlers = [
       return HttpResponse.json({ code: "AUDITION_POST_NOT_FOUND", message: "공고를 찾을 수 없습니다." }, { status: 404 });
     }
     return HttpResponse.json(post);
+  }),
+
+  http.post("/api/v1/public/audition-posts/:postId/views", async ({ params }) => {
+    const post = POSTS.find((candidate) => String(candidate.id) === String(params.postId));
+    return post ? new HttpResponse(null, { status: 204 }) : HttpResponse.json({ code: "AUDITION_POST_NOT_FOUND", message: "공고를 찾을 수 없습니다." }, { status: 404 });
   }),
 
   http.get("/api/v1/admin/audition-posts", () => passthrough()),

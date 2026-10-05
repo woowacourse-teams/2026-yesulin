@@ -32,6 +32,10 @@ export function AuditionPostCard({ post, today }: { readonly post: AuditionPostS
                 <dd className="num text-muted">{postedDate}</dd>
               </div>
             ) : null}
+            <div className="flex gap-1">
+              <dt className="sr-only">조회수</dt>
+              <dd className="text-muted">조회 <span className="num">{post.viewCount.toLocaleString("ko-KR")}</span></dd>
+            </div>
             {post.attachmentCount > 0 ? (
               <div className="flex gap-1">
                 <dt className="sr-only">첨부파일</dt>

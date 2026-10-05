@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { LandingFooter, LandingHeader } from "@/components/landing/landing-header";
-import { getAuditionPost } from "@/features/audition-posts/api";
+import { getAuditionPost, recordAuditionPostView } from "@/features/audition-posts/api";
 import { deadlineBadge, formatDeadline, formatFileSize, formatPostedDate, kstToday } from "@/features/audition-posts/format";
 import { auditionPostRoutes, type AuditionPost } from "@/features/audition-posts/types";
 import { DeadlineChip } from "./audition-post-badges";
@@ -55,6 +55,15 @@ export function AuditionPostRoute({ postId, initialPost }: {
 
 function AuditionPostDetail({ post }: { readonly post: AuditionPost }) {
   const [today] = useState(() => kstToday());
+  const [viewCount, setViewCount] = useState(post.viewCount);
+
+  useEffect(() => {
+    let active = true;
+    recordAuditionPostView(post.id)
+      .then((counted) => { if (active && counted) setViewCount((count) => count + 1); })
+      .catch((cause) => console.error("[공고 조회수 기록 실패]", cause));
+    return () => { active = false; };
+  }, [post.id]);
   const postedDate = formatPostedDate(post.postedAt);
 
   return (
@@ -70,6 +79,7 @@ function AuditionPostDetail({ post }: { readonly post: AuditionPost }) {
           <MetaRow label="페이">{post.pay || "미기재"}</MetaRow>
           <MetaRow label="마감">{formatDeadline(post)}</MetaRow>
           {postedDate ? <MetaRow label="게시일"><span className="num">{postedDate}</span></MetaRow> : null}
+          <MetaRow label="조회"><span className="num">{viewCount.toLocaleString("ko-KR")}</span></MetaRow>
         </dl>
       </header>
 

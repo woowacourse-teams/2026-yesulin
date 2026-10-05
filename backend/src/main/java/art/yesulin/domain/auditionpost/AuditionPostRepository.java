@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -39,4 +40,9 @@ public interface AuditionPostRepository extends JpaRepository<AuditionPost, Long
     long countOpen(@Param("status") AuditionPostStatus status, @Param("today") LocalDate today);
 
     List<AuditionPost> findAllByOrderByIdDesc(Pageable pageable);
+
+    /** 동시 조회에도 빠짐없이 세도록 DB에서 1을 더한다. 공개 공고가 아니면 0을 돌려준다. */
+    @Modifying(clearAutomatically = true)
+    @Query("update AuditionPost p set p.viewCount = p.viewCount + 1 where p.id = :id and p.status = :status")
+    int increaseViewCount(@Param("id") long id, @Param("status") AuditionPostStatus status);
 }

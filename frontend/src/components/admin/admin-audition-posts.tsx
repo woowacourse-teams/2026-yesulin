@@ -188,7 +188,7 @@ export function AdminAuditionPosts() {
               <p className="mt-1 text-sm text-muted-strong">
                 {[post.category, post.authorName, post.deadlineText && `마감 ${post.deadlineText}`].filter(Boolean).join(" · ")}
               </p>
-              <p className="mt-1 text-xs text-muted">사진 <span className="num">{post.imageCount}</span> · 첨부 <span className="num">{post.attachmentCount}</span></p>
+              <p className="mt-1 text-xs text-muted">사진 <span className="num">{post.imageCount}</span> · 첨부 <span className="num">{post.attachmentCount}</span> · 조회 <span className="num">{post.viewCount}</span></p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {post.status === "PUBLISHED" ? (
                   <Link href={auditionPostRoutes.detail(post.id)} target="_blank" className={ROW_BUTTON_CLASS}>공개 화면</Link>

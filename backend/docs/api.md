@@ -220,7 +220,7 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 1차 서류 심사 한 차수를 제공한다. 배역별 심사 종료는 OTR 지원 마감 다음 날부터 가능하며,
 그 전에는 `409 SCREENING_ROUND_NOT_READY`를 반환한다. 종료 후 심사 결과 수정은 거부한다.
 
-## 가져온 공고(메인 목록) — 5개
+## 가져온 공고(메인 목록) — 6개
 
 운영자가 공고 알림을 받은 OTR 공고를 우리 공고로 옮긴 `AuditionPost`다. 공개 응답에는 원문 출처·주소를 담지 않는다.
 공개 API는 로그인 없이 호출하고, 운영 API는 `ADMIN`만 호출한다.
@@ -230,6 +230,7 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 | --- | --- | --- | --- | --- |
 | GET | `/api/v1/public/audition-posts` | 공개 | `page`(0부터, 기본 0), `size`(1~48, 기본 12), `includeClosed`(기본 false) query | `200 PublicAuditionPostPageResult(posts, page, size, totalPages, totalElements, openCount, allCount)` |
 | GET | `/api/v1/public/audition-posts/{postId}` | 공개 | 없음 | `200 PublicAuditionPostResult` |
+| POST | `/api/v1/public/audition-posts/{postId}/views` | 공개 | 없음 | `204`, 숨김·없는 공고는 `404` |
 | GET | `/api/v1/admin/audition-posts` | Admin | 없음 | `200 AdminAuditionPostsResponse(posts)` |
 | POST | `/api/v1/admin/audition-posts/otr-imports` | Admin | `ImportOtrAuditionPostRequest(otrId)` | 처음이면 `201`, 다시 가져오면 `200 AuditionPostImportResult` |
 | PATCH | `/api/v1/admin/audition-posts/{postId}/status` | Admin | `ChangeAuditionPostStatusRequest(status: PUBLISHED/HIDDEN)` | `200 AdminAuditionPostResult` |
@@ -239,7 +240,8 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 `totalElements`·`totalPages`는 요청 조건 기준이고, `openCount`·`allCount`는 조건과 관계없는 모집 중·전체 공개 공고 수다.
 목록 항목은 `id`, `category`, `title`, `authorName`, `pay`, `deadlineText`(원문 표현),
 `deadline`(날짜일 때만 `YYYY-MM-DD`), `closed`(한국 날짜 기준), `postedAt`(Instant), `thumbnailUrl`(본문 첫 사진, 없으면 null),
-`attachmentCount`를 담는다. 상세는 여기에 `bodyHtml`, `tags`, `attachments(name, contentType, size, url)`,
+`attachmentCount`, `viewCount`를 담는다. 조회수는 상세 화면이 열릴 때 브라우저가 탭 세션당 한 번 보내는 POST로만 늘고,
+서버 렌더링·메타데이터 조회는 세지 않는다. 다시 가져와도 유지한다. 상세는 여기에 `bodyHtml`, `tags`, `attachments(name, contentType, size, url)`,
 `updatedAt`을 더한다. 숨김 또는 없는 공고는 `404 AUDITION_POST_NOT_FOUND`다. page·size 범위 오류는 `400 INVALID_REQUEST`다.
 
 `bodyHtml`은 서버가 Jsoup relaxed 허용 목록에서 `div`와 크기 속성을 뺀 태그만 남긴 HTML이다. 인라인 스타일과 스크립트는 없다.

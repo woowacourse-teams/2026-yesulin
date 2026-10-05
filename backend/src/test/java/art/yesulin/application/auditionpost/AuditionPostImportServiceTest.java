@@ -228,6 +228,20 @@ class AuditionPostImportServiceTest {
     }
 
     @Test
+    void countsViewsOfPublishedPostsAndKeepsThemOnReimport() {
+        AuditionPostImportResult imported = importService.importPost(ADMIN_ID, OTR_ID);
+        long postId = imported.post().id();
+
+        auditionPostService.increaseViewCount(postId);
+        auditionPostService.increaseViewCount(postId);
+        importService.importPost(ADMIN_ID, OTR_ID);
+
+        assertEquals(2, auditionPostService.findPublishedPost(postId).viewCount());
+        auditionPostService.changeStatus(ADMIN_ID, postId, AuditionPostStatus.HIDDEN);
+        assertCode(AuditionPostErrorCode.NOT_FOUND, () -> auditionPostService.increaseViewCount(postId));
+    }
+
+    @Test
     void rejectsOutOfRangePageSize() {
         assertThrows(IllegalArgumentException.class, () -> auditionPostService.findPublishedPage(0, 49, false));
         assertThrows(IllegalArgumentException.class, () -> auditionPostService.findPublishedPage(-1, 10, false));

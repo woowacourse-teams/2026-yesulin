@@ -9,9 +9,10 @@ DEV와 PROD의 Build 액션은 각각 `DEPLOY_ENV=dev`, `DEPLOY_ENV=prod`를 명
 공고 스케줄러는 매일 한국 시간 09:00~20:00에 10분 간격으로 실행되며 연극·퍼포먼스·뮤지컬·단원·기획사 공고만 다룬다.
 PROD의 `AuditionPublishScheduler`는 새 OTR 공고를 우리 공고로 게시한 뒤 Slack으로 알린다. 운영에서 잠시 멈추려면
 `YESULIN_NOTICE_SCHEDULER_ENABLED=false`를 설정한다. DEV의 기존 `AuditionNoticeScheduler`는 PROD 자동 게시가 안정될 때까지
-게시 없이 알림만 계속 보낸다. 두 서버가 같은 채널로 보내므로 같은 공고 알림이 두 번 오며, 메시지 앞의 `[DEV]`·`[PROD]`로 구분한다.
+게시 없이 알림만 계속 보낸다. 두 서버가 같은 채널로 보내므로 같은 공고 알림이 두 번 오며, 웹훅마다 다른 봇 이름으로 구분한다.
 PROD 동작을 확인하면 DEV 스케줄러를 제거한다. DEV·LOCAL의 공고 게시는 관리자 화면 `/admin/posts`에서 직접 한다.
-Slack 웹훅 `YESULIN_SLACK_WEBHOOK_URL`은 `server/dev.env`와 `server/prod.env`에 같은 채널 값으로 둔다.
+Slack 웹훅 `YESULIN_SLACK_WEBHOOK_URL`은 `server/dev.env`와 `server/prod.env`에 같은 채널의 서로 다른 봇 웹훅으로 둔다.
+DEV 알림 링크도 PROD 공고가 기대와 다를 때 대비해 PROD 주소(`https://yesulin.art`)를 쓴다.
 값이 없으면 게시는 되지만 알림 전송이 실패해 알림 이력이 대기 상태로 남고, 웹훅을 넣은 뒤 다음 실행에서 한 번에 보낸다.
 PROD 첫 실행에는 PROD DB에 알림 이력이 없으므로 OTR 목록 첫 페이지의 해당 분류 공고가 모두 새 공고로 게시·알림된다.
 현재 PROD는 인스턴스 한 대 기준이며 분산 실행 잠금은 없다. 여러 대로 늘리면 중복 알림을 막는 잠금을 먼저 추가한다.

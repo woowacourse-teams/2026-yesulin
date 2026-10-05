@@ -122,7 +122,7 @@
   `presentation/scheduler/notice`에서 PROD는 `AuditionPublishScheduler`가 `publishAndNotifyAuditions`(게시 후 알림)를,
   DEV는 기존 `AuditionNoticeScheduler`가 `notifyAuditions`(알림만)를 실행한다. DEV 쪽은 PROD 자동 게시가 안정되면 제거한다.
   PROD 스케줄러는 `yesulin.notice.scheduler-enabled=false`로 끌 수 있다. 둘 다 매일 한국 시간 09:00~20:00에 10분 간격이다.
-  OTR 수집기와 Slack Incoming Webhook 전송 adapter를 사용하며, 같은 채널로 보내므로 메시지 앞에 `[DEV]`·`[PROD]`를 붙인다.
+  OTR 수집기와 Slack Incoming Webhook 전송 adapter를 사용하며, 같은 채널의 서로 다른 봇 웹훅으로 구분한다.
 - 현재 목록 여러 페이지 탐색과 분산 실행 잠금은 미구현이다. 별도 DB adapter는 두지 않는다.
   중복 저장 방지와 중복 전송 방지는 별개다. 배포 중 동시 실행 및 전송 성공 후 상태 저장 전 종료로 인한 재전송은
   아직 허용하며 exactly-once 전달을 보장하지 않는다. 수집 누락 방지를 위한 페이지 탐색 범위는 추후 adapter에서 정한다.

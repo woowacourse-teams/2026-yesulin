@@ -22,6 +22,7 @@ public record PublicAuditionPostSummaryResult(
         String deadlineText,
         LocalDate deadline,
         boolean closed,
+        long viewCount,
         Instant postedAt,
         String thumbnailUrl,
         int attachmentCount
@@ -47,6 +48,7 @@ public record PublicAuditionPostSummaryResult(
                 content.getDeadlineText(),
                 content.getDeadline(),
                 post.isClosedOn(today),
+                post.getViewCount(),
                 content.getSourcePostedAt() == null ? null : content.getSourcePostedAt().atZone(zone).toInstant(),
                 thumbnailUrl,
                 post.attachments().size()
