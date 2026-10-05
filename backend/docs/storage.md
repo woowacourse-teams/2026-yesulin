@@ -34,7 +34,13 @@ Content-Type·크기와 다르면 `READY`로 전환하지 않는다.
 ## 서버가 직접 올리는 파일
 
 운영자가 OTR에서 가져온 공고의 본문 사진·첨부파일은 presigned URL 없이 서버가 `ObjectStorage.put`으로 올린다.
-키는 `public/audition-posts/{UTC yyyyMMdd}/{UUID}`이며 공개 CDN 주소로 응답한다. 키마다 내용이 바뀌지 않으므로
+키는 공고 전용 `public/audition-posts/{UTC yyyyMMdd}/{UUID}`이며 공개 CDN 주소로 응답한다.
+개발·운영 S3 실제 키는 각각 `yesulin/dev/public/audition-posts/...`, `yesulin/prod/public/audition-posts/...`다.
+CloudFront의 `/dev/audition-posts/*`, `/prod/audition-posts/*` 동작을 각 환경의 기존 공개 S3 원본에 연결하고,
+뷰어 요청 함수 `yesulin-public-path-rewrite`가 환경 접두사를 제거해 `/audition-posts/...`로 전달한다.
+함수는 `files`와 `audition-posts`만 허용하고 빈 경로 조각·`.`·`..`는 거부한다.
+공연 포스터와 이미 `public/files/`에 저장된 파일을 위해 기존 `/dev/files/*`, `/prod/files/*` 동작도 유지한다.
+기존 공고는 객체 이동·재가져오기 없이 같은 주소로 제공한다. 키마다 내용이 바뀌지 않으므로
 `Cache-Control: public, max-age=31536000, immutable`을 붙이고, 첨부는 `Content-Disposition: attachment`와
 원래 파일 이름(RFC 6266 `filename*`)을 객체에 설정한다. 내용은 원문 응답 길이만큼 스트림으로 보낸다.
 이 파일은 `file_assets`·`file_references`에 기록하지 않고 `audition_post_files`가 키를 소유한다.

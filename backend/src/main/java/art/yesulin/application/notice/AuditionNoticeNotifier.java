@@ -9,5 +9,8 @@ public interface AuditionNoticeNotifier {
      */
     void send(List<AuditionContent> contents);
 
+    /** {@link #send}와 같지만 공고마다 정해 준 주소로 연결한다. */
+    void sendAlerts(List<AuditionAlert> alerts);
+
     void sendError(String message);
 }

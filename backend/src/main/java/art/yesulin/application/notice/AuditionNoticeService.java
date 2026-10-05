@@ -26,6 +26,7 @@ public class AuditionNoticeService {
     private final NoticeRepository noticeRepository;
     private final PlatformTransactionManager transactionManager;
     private final AuditionPublisher auditionPublisher;
+    private final OtrNoticeLink noticeLink;
 
     /** 새 공고를 Slack으로만 알린다. 개발 서버가 운영 자동 게시가 안정될 때까지 쓴다. */
     public void notifyAuditions() {
@@ -83,10 +84,15 @@ public class AuditionNoticeService {
                 .toList();
     }
 
-    /** 알림보다 게시를 먼저 한다. 게시 실패는 알림을 막지 않고 운영자가 직접 가져오도록 따로 알린다. */
-    private void publish(AuditionContent content, String source) {
+    /**
+     * 알림보다 게시를 먼저 한다. 게시한 공고면 예술in 상세로, 숨겼거나 게시하지 못했으면 OTR 원문으로 바로 연결한다.
+     * 게시 실패는 알림을 막지 않고 운영자가 직접 가져오도록 따로 알린다.
+     */
+    private AuditionAlert publish(AuditionContent content, String source) {
         try {
-            auditionPublisher.publish(source, content.externalId());
+            return auditionPublisher.publish(source, content.externalId())
+                    .map(postId -> new AuditionAlert(content, noticeLink.postLink(postId)))
+                    .orElseGet(() -> originalAlert(content));
         } catch (RuntimeException exception) {
             log.warn("공고 자동 게시 실패: {}-{}", source, content.externalId());
             try {
@@ -95,7 +101,12 @@ public class AuditionNoticeService {
             } catch (RuntimeException alertFailure) {
                 log.error("공고 자동 게시 실패 알림 전송 실패");
             }
+            return originalAlert(content);
         }
+    }
+
+    private AuditionAlert originalAlert(AuditionContent content) {
+        return new AuditionAlert(content, noticeLink.destination(content.externalId()).toString());
     }
 
     private Optional<AuditionContent> resolveContent(Notice notice, List<AuditionContent> recent) {
@@ -112,11 +123,12 @@ public class AuditionNoticeService {
     }
 
     private void sendPendingBatch(List<AuditionContent> contents, String source, boolean publish) {
-        if (publish) {
-            contents.forEach(content -> publish(content, source));
-        }
         try {
-            noticeNotifier.send(contents);
+            if (publish) {
+                noticeNotifier.sendAlerts(contents.stream().map(content -> publish(content, source)).toList());
+            } else {
+                noticeNotifier.send(contents);
+            }
         } catch (RuntimeException exception) {
             log.error("공고 알림 처리 중 예외 발생");
             return;

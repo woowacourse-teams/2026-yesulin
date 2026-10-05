@@ -22,6 +22,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
@@ -109,6 +110,7 @@ class AuditionPostImportServiceTest {
         assertTrue(detail.bodyHtml().contains("https://cdn.test/assets/audition-posts/"));
         assertEquals("지원서.hwp", detail.attachments().getFirst().name());
         assertEquals("application/x-hwp", detail.attachments().getFirst().contentType());
+        assertTrue(detail.attachments().getFirst().url().startsWith("https://cdn.test/assets/audition-posts/"));
         assertEquals(List.of("연극"), detail.tags());
         assertFalse(detail.closed());
 
@@ -185,9 +187,10 @@ class AuditionPostImportServiceTest {
 
     @Test
     void autoPublishCreatesPostWithoutAuditLog() {
-        importService.publish("OTR", OTR_ID);
+        Optional<Long> postId = importService.publish("OTR", OTR_ID);
 
         AdminAuditionPostResult post = auditionPostService.findAllForAdmin().getFirst();
+        assertEquals(Optional.of(post.id()), postId);
         assertTrue(post.autoPublished());
         assertEquals(AuditionPostStatus.PUBLISHED, post.status());
         assertEquals(0, auditLogRepository.count());
@@ -199,7 +202,7 @@ class AuditionPostImportServiceTest {
         auditionPostService.changeStatus(ADMIN_ID, imported.post().id(), AuditionPostStatus.HIDDEN);
         source.post("<p>원문이 바뀜</p>", List.of(), List.of());
 
-        importService.publish("OTR", OTR_ID);
+        assertTrue(importService.publish("OTR", OTR_ID).isEmpty());
 
         AdminAuditionPostResult post = auditionPostService.findAllForAdmin().getFirst();
         assertEquals(AuditionPostStatus.HIDDEN, post.status());
