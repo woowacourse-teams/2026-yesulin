@@ -1,7 +1,7 @@
 package art.yesulin.support;
 
-import art.yesulin.application.submission.consent.SubmissionConsentDocumentMetadata;
-import art.yesulin.application.submission.consent.SubmissionConsentDocumentProvider;
+import art.yesulin.legacy.application.submission.consent.SubmissionConsentDocumentMetadata;
+import art.yesulin.legacy.application.submission.consent.SubmissionConsentDocumentProvider;
 import java.time.Instant;
 
 public class FakeSubmissionConsentDocumentProvider implements SubmissionConsentDocumentProvider {

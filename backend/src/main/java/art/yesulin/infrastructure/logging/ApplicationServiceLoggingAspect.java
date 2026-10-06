@@ -24,7 +24,8 @@ public class ApplicationServiceLoggingAspect {
 
     private final ServiceLoggingTimeSource timeSource;
 
-    @Around("execution(public * art.yesulin.application..*(..)) "
+    @Around("(execution(public * art.yesulin.application..*(..)) "
+            + "|| execution(public * art.yesulin.legacy.application..*(..))) "
             + "&& @within(org.springframework.stereotype.Service)")
     public Object logExecution(ProceedingJoinPoint joinPoint) throws Throwable {
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();

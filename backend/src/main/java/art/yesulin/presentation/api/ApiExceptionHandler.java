@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
-@RestControllerAdvice(basePackages = "art.yesulin.presentation.api")
+@RestControllerAdvice(basePackages = {"art.yesulin.presentation.api", "art.yesulin.legacy.presentation.api"})
 public class ApiExceptionHandler {
 
     private static final String INVALID_REQUEST = "INVALID_REQUEST";
