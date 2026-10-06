@@ -12,6 +12,7 @@ import { PublicApplicationExitDialog } from "./public-application-exit-dialog";
 import { PublicApplicationMedia } from "./public-application-media";
 import { PublicApplicationProvider, usePublicApplication } from "./public-application-context";
 import { PublicSubmissionReceipt } from "./public-submission-receipt";
+import { SiteFooter } from "@/components/policies/site-footer";
 import { PublicApplicationReview } from "./public-application-review";
 import { PublicApplicationSaveBadge, PublicApplicationSaveNotice } from "./public-application-save-status";
 import type { PostingId } from "@/features/auditions/types";
@@ -47,8 +48,9 @@ function PublicApplicationContent() {
   if (state.draftSaveStatus === "RESTORING") return <DraftRestoring />;
   if (meta.steps.length === 0) return <FormEmpty />;
   if (state.receipt) return <PublicSubmissionReceipt />;
-  if (state.reviewing) return <PublicApplicationReview />;
-  return <ApplicationStepScreen />;
+  // 작성 중에도 분석 설정에 들어갈 수 있게 정책 링크를 둔다. 모바일 하단 다음 버튼 높이만큼 푸터 아래 여백을 둔다.
+  if (state.reviewing) return <><PublicApplicationReview /><SiteFooter /></>;
+  return <><ApplicationStepScreen /><SiteFooter className="pb-[calc(148px+env(safe-area-inset-bottom))] md:pb-0" /></>;
 }
 
 function ApplicationStepScreen() {
@@ -56,7 +58,7 @@ function ApplicationStepScreen() {
   const step = meta.steps[state.stepIndex]!;
   const isLastStep = state.stepIndex === meta.steps.length - 1;
   const nextLabel = state.returnToReview ? "검토로 돌아가기" : isLastStep ? "검토하기" : "다음 단계";
-  return <main className="min-h-screen bg-surface pb-[calc(148px+env(safe-area-inset-bottom))] text-foreground md:pb-12">
+  return <main className="min-h-screen bg-surface pb-12 text-foreground">
     <header className="glass-surface sticky top-0 z-20 border-x-0 border-t-0">
       <div className="mx-auto flex min-h-16 max-w-[880px] items-center px-5 md:px-8">
         <TextButton onClick={actions.requestBack} className="px-2">← 공고로 돌아가기</TextButton>
