@@ -68,6 +68,7 @@ type AnalyticsEventParameters = {
   application_review_view: { is_authenticated: boolean; issue_count: number };
   application_submit_success: { selected_role_count: number; save_to_profile: boolean; profile_saved: boolean };
   application_submit_error: { error_code: "simulated_error" | "auth_expired" | "client_error" | "server_error" | "network_error" | "unknown" };
+  kakao_openchat_click: { entry_point: "home_alert_banner" };
   view_show: { session_count: number };
   reservation_start: Record<string, never>;
   reservation_submit_success: { ticket_count: number };

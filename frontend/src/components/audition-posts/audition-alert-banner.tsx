@@ -1,3 +1,6 @@
+"use client";
+
+import { trackAnalyticsEvent } from "@/features/analytics/events";
 import { AUDITION_ALERT_CHAT_URL } from "@/features/audition-posts/types";
 
 /**
@@ -34,6 +37,7 @@ export function AuditionAlertBanner() {
           href={AUDITION_ALERT_CHAT_URL}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => trackAnalyticsEvent("kakao_openchat_click", { entry_point: "home_alert_banner" })}
           className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-control bg-[#fee500] px-6 text-[15px] font-bold text-[#191919] shadow-[var(--shadow-1)] transition-[background-color,box-shadow,transform] hover:bg-[#f9d900] hover:shadow-[var(--shadow-2)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#191919] active:scale-[0.98] motion-reduce:transition-none"
         >
           <ChatBubbleIcon className="h-4 w-4" />

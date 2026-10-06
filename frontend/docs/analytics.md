@@ -36,6 +36,7 @@ Google Tag Manager 컨테이너는 `NEXT_PUBLIC_GTM_ID`가 설정된 환경에�
 | `application_review_view` | 최종 검토 화면 렌더링 | `is_authenticated`, `issue_count` |
 | `application_submit_success` | 제출 API 성공 응답 | `selected_role_count`, `save_to_profile`, `profile_saved` |
 | `application_submit_error` | 제출 실패 또는 인증 만료 | 제한된 `error_code` |
+| `kakao_openchat_click` | 메인 공고 알림 배너의 오픈채팅 참여 버튼 선택 | `entry_point`(`home_alert_banner`) |
 | `view_show` | 무료 공연 상세 화면 렌더링. 좌석 갱신으로 다시 읽어도 같은 공연이면 한 번. 꺼진 상태로 화면을 연 뒤 다시 켜면 그 시점에 한 번 | `session_count` |
 | `reservation_start` | 회차를 고른 뒤 예매 정보 입력 시트 열기 | 없음 |
 | `reservation_submit_success` | 예매 API 성공 응답 | `ticket_count` |
