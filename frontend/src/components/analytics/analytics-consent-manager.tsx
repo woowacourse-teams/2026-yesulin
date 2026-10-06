@@ -8,6 +8,7 @@ import {
   ANALYTICS_CONSENT_STORAGE_KEY,
   ANALYTICS_READY_EVENT,
   clearGoogleAnalyticsCookies,
+  isAnalyticsEnabled,
   readAnalyticsConsent,
   writeAnalyticsConsent,
 } from "@/features/analytics/consent";
@@ -31,7 +32,7 @@ export function AnalyticsConsentManager({ gtmId }: { readonly gtmId?: string }) 
   }, [pathname]);
 
   useEffect(() => {
-    if (!gtmId || consent !== "granted" || document.getElementById("yesulin-gtm")) return;
+    if (!gtmId || consent === undefined || !isAnalyticsEnabled(consent) || document.getElementById("yesulin-gtm")) return;
     window.dataLayer = window.dataLayer ?? [];
     pushGoogleConsent("consent", "default", {
       analytics_storage: "denied",
@@ -55,7 +56,7 @@ export function AnalyticsConsentManager({ gtmId }: { readonly gtmId?: string }) 
   }, [consent, gtmId]);
 
   useEffect(() => {
-    if (!gtmId || consent === undefined || consent === null) {
+    if (!gtmId || consent === undefined) {
       setAnalyticsSettingsOpener(null);
       return;
     }
@@ -68,7 +69,7 @@ export function AnalyticsConsentManager({ gtmId }: { readonly gtmId?: string }) 
     const onStorage = (event: StorageEvent) => {
       if (event.key !== ANALYTICS_CONSENT_STORAGE_KEY) return;
       const next = readAnalyticsConsent();
-      if (consent === "granted" && next !== "granted") {
+      if (consent !== undefined && isAnalyticsEnabled(consent) && !isAnalyticsEnabled(next)) {
         clearLoginAnalyticsState();
         clearGoogleAnalyticsCookies();
         window.location.reload();
@@ -83,7 +84,7 @@ export function AnalyticsConsentManager({ gtmId }: { readonly gtmId?: string }) 
   if (!gtmId || consent === undefined) return null;
 
   const choose = (next: AnalyticsConsent) => {
-    const revoking = consent === "granted" && next === "denied";
+    const revoking = isAnalyticsEnabled(consent) && next === "denied";
     writeAnalyticsConsent(next);
     setConsent(next);
     setSettingsOpen(false);
@@ -94,24 +95,23 @@ export function AnalyticsConsentManager({ gtmId }: { readonly gtmId?: string }) 
     }
   };
 
-  return <>
-    {consent === null ? <ConsentBanner onAccept={() => choose("granted")} onReject={() => choose("denied")} /> : null}
-    <ModalShell
-      open={settingsOpen}
-      onClose={() => setSettingsOpen(false)}
-      labelledBy={titleId}
-      layer={{ scrim: MODAL_LAYERS.video.panel + 1, panel: MODAL_LAYERS.video.panel + 2 }}
-      placement="responsiveSheet"
-      className="w-full overflow-hidden rounded-t-modal bg-card shadow-[var(--shadow-modal)] md:w-[min(560px,calc(100vw-40px))] md:rounded-modal"
-    >
-      <DialogHeader id={titleId} title="방문 분석 설정" subtitle="선택은 서비스 이용에 영향을 주지 않으며 언제든 변경할 수 있어요." />
-      <ConsentDetails current={consent} />
-      <DialogFooter>
-        <SecondaryButton onClick={() => choose("denied")}>분석 거부</SecondaryButton>
-        <PrimaryButton onClick={() => choose("granted")}>분석 동의</PrimaryButton>
-      </DialogFooter>
-    </ModalShell>
-  </>;
+  const enabled = isAnalyticsEnabled(consent);
+
+  return <ModalShell
+    open={settingsOpen}
+    onClose={() => setSettingsOpen(false)}
+    labelledBy={titleId}
+    layer={{ scrim: MODAL_LAYERS.video.panel + 1, panel: MODAL_LAYERS.video.panel + 2 }}
+    placement="responsiveSheet"
+    className="w-full overflow-hidden rounded-t-modal bg-card shadow-[var(--shadow-modal)] md:w-[min(560px,calc(100vw-40px))] md:rounded-modal"
+  >
+    <DialogHeader id={titleId} title="방문 분석 설정" subtitle="방문 분석은 기본으로 켜져 있어요. 꺼도 서비스 이용에는 영향이 없고 언제든 다시 켤 수 있어요." />
+    <ConsentDetails enabled={enabled} />
+    <DialogFooter>
+      <SecondaryButton onClick={() => setSettingsOpen(false)}>닫기</SecondaryButton>
+      <PrimaryButton onClick={() => choose(enabled ? "denied" : "granted")}>{enabled ? "분석 끄기" : "분석 켜기"}</PrimaryButton>
+    </DialogFooter>
+  </ModalShell>;
 }
 
 const pushGoogleConsent = function () {
@@ -120,29 +120,15 @@ const pushGoogleConsent = function () {
   window.dataLayer?.push(arguments);
 } as (...command: unknown[]) => void;
 
-function ConsentBanner({ onAccept, onReject }: { readonly onAccept: () => void; readonly onReject: () => void }) {
-  return <section aria-labelledby="analytics-consent-title" className="fixed left-[max(12px,env(safe-area-inset-left))] right-[max(12px,env(safe-area-inset-right))] bottom-[max(12px,env(safe-area-inset-bottom))] z-70 mx-auto max-w-3xl rounded-card border border-border bg-card p-5 shadow-[var(--shadow-modal)] md:flex md:items-center md:gap-6 md:p-6">
-    <div className="min-w-0 flex-1">
-      <p className="text-xs font-semibold text-brand">선택 분석 쿠키</p>
-      <h2 id="analytics-consent-title" className="mt-1 text-lg font-bold">서비스를 더 편리하게 개선하도록 도와주세요</h2>
-      <p className="mt-2 text-sm leading-6 text-muted-strong">Google Analytics로 방문과 로그인·지원 흐름을 분석합니다. 이름, 연락처, 지원서 내용은 보내지 않으며 거부해도 모든 기능을 이용할 수 있어요.</p>
-    </div>
-    <div className="mt-4 grid grid-cols-2 gap-2 md:mt-0 md:w-56">
-      <SecondaryButton onClick={onReject}>거부</SecondaryButton>
-      <PrimaryButton onClick={onAccept}>동의</PrimaryButton>
-    </div>
-  </section>;
-}
-
-function ConsentDetails({ current }: { readonly current: AnalyticsConsent | null }) {
+function ConsentDetails({ enabled }: { readonly enabled: boolean }) {
   return <div className="space-y-4 px-5 py-6 text-sm leading-6 text-muted-strong md:px-6">
-    <p className="rounded-control border border-brand-line bg-brand-soft px-4 py-3"><strong className="block text-foreground">현재 선택</strong>{current === "granted" ? "방문 분석에 동의했습니다." : "방문 분석을 거부했습니다."}</p>
+    <p className="rounded-control border border-brand-line bg-brand-soft px-4 py-3"><strong className="block text-foreground">현재 선택</strong>{enabled ? "방문 분석이 켜져 있습니다." : "방문 분석을 껐습니다."}</p>
     <dl className="grid grid-cols-[92px_1fr] gap-x-3 gap-y-2">
       <dt className="font-semibold text-foreground">도구</dt><dd>Google Analytics 4 · Google Tag Manager</dd>
       <dt className="font-semibold text-foreground">목적</dt><dd>페이지 이용, 로그인 진입과 지원 단계별 이탈 분석</dd>
       <dt className="font-semibold text-foreground">수집 제외</dt><dd>이름, 이메일, 전화번호, 지원서 답변, 사진·영상 URL</dd>
       <dt className="font-semibold text-foreground">쿠키</dt><dd><code>_ga</code> 계열, Google 기본 설정 기준 최대 2년</dd>
     </dl>
-    <p className="text-xs leading-5 text-muted">거부하거나 동의를 철회하면 GTM을 불러오지 않고 현재 브라우저의 Google Analytics 쿠키를 삭제합니다.</p>
+    <p className="text-xs leading-5 text-muted">끄면 GTM을 불러오지 않고 현재 브라우저의 Google Analytics 쿠키를 삭제합니다.</p>
   </div>;
 }

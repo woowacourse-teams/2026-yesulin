@@ -9,7 +9,6 @@ import { useToast } from "@/components/auditions/toast";
 import { getApplicantProfile } from "@/features/applicants/api";
 import { APPLICANT_PROFILE_CHANGED } from "@/features/applicants/events";
 import { applicantRoutes } from "@/features/applicants/routes";
-import { AnalyticsSettingsButton } from "@/components/analytics/analytics-settings-button";
 import type { ApplicantProfileResponse } from "@/features/applicants/types";
 import { useAuditionQuery } from "@/features/auditions/use-audition-query";
 import { SessionApiError } from "@/features/auth/session-api";
@@ -53,7 +52,6 @@ export function ApplicantShell({ children }: { readonly children: React.ReactNod
           {navigation.map((item) => <ApplicantNavLink key={item.href} {...item} pathname={pathname} />)}
         </nav>
         <div className="ml-auto flex items-center gap-2">
-          <AnalyticsSettingsButton />
           <ApplicantAccountMenu profile={profileQuery.data} onLogout={logout} />
         </div>
       </div>

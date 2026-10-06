@@ -32,7 +32,17 @@ describe("reservation analytics events", () => {
     }]);
   });
 
-  it("분석에 동의하지 않았으면 보내지 않는다", () => {
+  it("분석 설정을 고른 적 없으면 기본으로 보낸다", () => {
+    vi.stubEnv("NEXT_PUBLIC_GTM_ID", "GTM-TEST");
+    const browser = stubBrowser(null);
+
+    const sent = trackReservationEvent("reservation_start", {});
+
+    expect(sent).toBe(true);
+    expect(browser.dataLayer).toHaveLength(1);
+  });
+
+  it("분석을 껐으면 보내지 않는다", () => {
     vi.stubEnv("NEXT_PUBLIC_GTM_ID", "GTM-TEST");
     const browser = stubBrowser("denied");
 

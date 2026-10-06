@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ModalShell } from "@/components/auditions/modal-shell";
 import { showRoutes } from "@/features/shows/types";
-import { AnalyticsSettingsButton } from "@/components/analytics/analytics-settings-button";
 import { ProducerAccountPanel } from "./producer-account-panel";
 import { OtrAuditionTreeNav } from "@/components/otr-auditions/otr-audition-tree";
 import { ShowManagementNav } from "@/components/shows/manage/show-management-nav";
@@ -50,7 +49,6 @@ export function MobileProducerNavigation() {
           </span>
           <span className="ml-2 truncate text-base font-semibold">예술in 관리</span>
         </Link>
-        <AnalyticsSettingsButton className="ml-auto" />
       </header>
 
       <ModalShell

@@ -1,12 +1,17 @@
 export const ANALYTICS_CONSENT_STORAGE_KEY = "yesulin:analytics-consent:v1";
 
 /**
- * 분석 동의로 GTM을 불러올 때 window에 보내는 이벤트다. 동의 배너는 페이지를 다시 불러오지 않으므로,
- * 동의 전이라 보내지 못한 화면 조회 이벤트는 이 신호를 받아 한 번 더 시도한다.
+ * GTM을 불러올 때 window에 보내는 이벤트다. 분석을 다시 켜도 페이지를 다시 불러오지 않으므로,
+ * 꺼져 있어 보내지 못한 화면 조회 이벤트는 이 신호를 받아 한 번 더 시도한다.
  */
 export const ANALYTICS_READY_EVENT = "yesulin:analytics-ready";
 
 export type AnalyticsConsent = "granted" | "denied";
+
+/** 방문 분석은 기본으로 켜져 있고, 이용자가 분석 설정에서 끈 경우에만 보내지 않는다. */
+export function isAnalyticsEnabled(consent: AnalyticsConsent | null) {
+  return consent !== "denied";
+}
 
 export function readAnalyticsConsent(): AnalyticsConsent | null {
   if (typeof window === "undefined") return null;
@@ -27,7 +32,7 @@ export function writeAnalyticsConsent(consent: AnalyticsConsent) {
 }
 
 export function canSendAnalytics() {
-  return Boolean(process.env.NEXT_PUBLIC_GTM_ID) && readAnalyticsConsent() === "granted";
+  return Boolean(process.env.NEXT_PUBLIC_GTM_ID) && isAnalyticsEnabled(readAnalyticsConsent());
 }
 
 export function clearGoogleAnalyticsCookies() {
