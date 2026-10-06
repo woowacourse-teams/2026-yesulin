@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useState } from "react";
 import { DialogFooter, DialogHeader, MODAL_LAYERS, ModalShell } from "@/components/auditions/modal-shell";
@@ -10,6 +11,7 @@ import {
   clearGoogleAnalyticsCookies,
   isAnalyticsEnabled,
   readAnalyticsConsent,
+  resetLegacyAnalyticsRefusal,
   writeAnalyticsConsent,
 } from "@/features/analytics/consent";
 import type { AnalyticsConsent } from "@/features/analytics/consent";
@@ -21,9 +23,13 @@ export function AnalyticsConsentManager({ gtmId }: { readonly gtmId?: string }) 
   const titleId = useId();
   const [consent, setConsent] = useState<AnalyticsConsent | null>();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [refusalResetNotice, setRefusalResetNotice] = useState(false);
 
   useEffect(() => {
-    const frame = window.requestAnimationFrame(() => setConsent(readAnalyticsConsent()));
+    const frame = window.requestAnimationFrame(() => {
+      setRefusalResetNotice(resetLegacyAnalyticsRefusal());
+      setConsent(readAnalyticsConsent());
+    });
     return () => window.cancelAnimationFrame(frame);
   }, []);
 
@@ -97,21 +103,35 @@ export function AnalyticsConsentManager({ gtmId }: { readonly gtmId?: string }) 
 
   const enabled = isAnalyticsEnabled(consent);
 
-  return <ModalShell
-    open={settingsOpen}
-    onClose={() => setSettingsOpen(false)}
-    labelledBy={titleId}
-    layer={{ scrim: MODAL_LAYERS.video.panel + 1, panel: MODAL_LAYERS.video.panel + 2 }}
-    placement="responsiveSheet"
-    className="w-full overflow-hidden rounded-t-modal bg-card shadow-[var(--shadow-modal)] md:w-[min(560px,calc(100vw-40px))] md:rounded-modal"
-  >
-    <DialogHeader id={titleId} title="방문 분석 설정" subtitle="방문 분석은 기본으로 켜져 있어요. 꺼도 서비스 이용에는 영향이 없고 언제든 다시 켤 수 있어요." />
-    <ConsentDetails enabled={enabled} />
-    <DialogFooter>
-      <SecondaryButton onClick={() => setSettingsOpen(false)}>닫기</SecondaryButton>
-      <PrimaryButton onClick={() => choose(enabled ? "denied" : "granted")}>{enabled ? "분석 끄기" : "분석 켜기"}</PrimaryButton>
-    </DialogFooter>
-  </ModalShell>;
+  return <>
+    {refusalResetNotice && enabled ? <RefusalResetNotice
+      onKeep={() => setRefusalResetNotice(false)}
+      onTurnOff={() => {
+        setRefusalResetNotice(false);
+        choose("denied");
+      }}
+    /> : null}
+    <ModalShell
+      open={settingsOpen}
+      onClose={() => setSettingsOpen(false)}
+      labelledBy={titleId}
+      layer={{ scrim: MODAL_LAYERS.video.panel + 1, panel: MODAL_LAYERS.video.panel + 2 }}
+      placement="responsiveSheet"
+      className="w-full overflow-hidden rounded-t-modal bg-card shadow-[var(--shadow-modal)] md:w-[min(560px,calc(100vw-40px))] md:rounded-modal"
+    >
+      <DialogHeader id={titleId} title="방문 분석 설정" subtitle="방문 분석은 기본으로 켜져 있어요. 꺼도 서비스 이용에는 영향이 없고 언제든 다시 켤 수 있어요." />
+      <ConsentDetails enabled={enabled} />
+      <DialogFooter>
+        {enabled ? <>
+          <SecondaryButton onClick={() => choose("denied")}>분석 끄기</SecondaryButton>
+          <PrimaryButton onClick={() => setSettingsOpen(false)}>닫기</PrimaryButton>
+        </> : <>
+          <SecondaryButton onClick={() => setSettingsOpen(false)}>닫기</SecondaryButton>
+          <PrimaryButton onClick={() => choose("granted")}>분석 켜기</PrimaryButton>
+        </>}
+      </DialogFooter>
+    </ModalShell>
+  </>;
 }
 
 const pushGoogleConsent = function () {
@@ -119,6 +139,21 @@ const pushGoogleConsent = function () {
   // eslint-disable-next-line prefer-rest-params
   window.dataLayer?.push(arguments);
 } as (...command: unknown[]) => void;
+
+/**
+ * 1.0 배너에서 거부했던 이용자에게 한 번만 띄운다. 화면을 가리지 않게 하단에 작게 두고,
+ * 끄기 버튼은 확인 버튼과 같은 크기로 보여 바로 다시 거부할 수 있게 한다.
+ */
+function RefusalResetNotice({ onKeep, onTurnOff }: { readonly onKeep: () => void; readonly onTurnOff: () => void }) {
+  return <section aria-labelledby="analytics-reset-title" className="fixed left-[max(12px,env(safe-area-inset-left))] right-[max(12px,env(safe-area-inset-right))] bottom-[max(12px,env(safe-area-inset-bottom))] z-70 mx-auto max-w-md rounded-card border border-border bg-card p-4 shadow-[var(--shadow-modal)] md:left-auto md:right-6 md:mx-0 md:w-[400px]">
+    <h2 id="analytics-reset-title" className="text-sm font-bold text-foreground">방문 분석 방식이 바뀌었어요</h2>
+    <p className="mt-1.5 text-sm leading-6 text-muted-strong">처리방침 개정으로 이전에 거부하신 설정도 지금은 켜져 있어요. 공고·공연 화면을 개선하는 데 이동 흐름만 쓰고, 이름·연락처·지원서 내용은 보내지 않아요. <Link href="/privacy#analytics" className="font-medium text-brand hover:underline">자세히</Link></p>
+    <div className="mt-3 grid grid-cols-2 gap-2">
+      <SecondaryButton onClick={onTurnOff}>분석 끄기</SecondaryButton>
+      <PrimaryButton onClick={onKeep}>확인</PrimaryButton>
+    </div>
+  </section>;
+}
 
 function ConsentDetails({ enabled }: { readonly enabled: boolean }) {
   return <div className="space-y-4 px-5 py-6 text-sm leading-6 text-muted-strong md:px-6">

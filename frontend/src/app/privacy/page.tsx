@@ -139,7 +139,7 @@ export default function PrivacyPolicyPage() {
         <p>예술in은 로그인 유지와 보안을 위해 JavaScript가 읽을 수 없는 HttpOnly Session Cookie를 사용합니다. 기본 미사용 만료시간은 12시간입니다. 필요한 쿠키를 차단하면 로그인 등 일부 기능이 제한될 수 있습니다.</p>
         <p>작성 중 지원서와 사진은 현재 브라우저의 IndexedDB에 저장되며 다른 기기에서 이어 쓸 수 없습니다. 복원할 때 필수 동의 체크 상태는 복원하지 않습니다.</p>
         <p>광고·맞춤형 추천 쿠키, Google Signals와 User-ID는 사용하지 않습니다. 방문 분석은 기본으로 켜져 있으며, 이용자가 끄지 않은 경우 Google Tag Manager를 통해 Google Analytics 4를 불러옵니다. 이때 이름·이메일·전화번호·지원서 답변·사진·영상 URL과 내부 ID를 분석 이벤트에 넣지 않습니다.</p>
-        <p>페이지 하단의 분석 설정에서 언제든지 끄거나 다시 켤 수 있습니다. 끄면 현재 브라우저의 Google Analytics 쿠키를 삭제하고 Analytics를 다시 불러오지 않습니다.</p>
+        <p>페이지 하단의 분석 설정에서 언제든지 끄거나 다시 켤 수 있습니다. 끄면 현재 브라우저의 Google Analytics 쿠키를 삭제하고 Analytics를 다시 불러오지 않습니다. 처리방침 1.0에서 분석을 거부한 경우에도 1.1 시행 뒤 첫 방문 때 변경 사실을 안내하고 기본 설정을 적용하며, 안내에서 바로 끌 수 있습니다. 그 뒤에 끈 설정은 그대로 유지합니다.</p>
         <p>PC 브라우저에서는 Google이 제공하는 <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noreferrer" className="text-brand hover:underline">Google Analytics 차단 부가기능</a>으로도 거부할 수 있습니다. 브라우저 설정에서 쿠키를 차단할 수도 있지만, 모든 쿠키를 차단하면 로그인 등 일부 기능이 제한되므로 분석만 거부하려면 분석 설정을 이용해 주세요. 메뉴 이름은 브라우저 버전에 따라 다를 수 있습니다.</p>
         <ul className="list-disc space-y-2 pl-5 marker:text-brand">
           <li>Chrome: 설정 &gt; 개인정보 보호 및 보안 &gt; 사이트 설정 &gt; 추가 콘텐츠 설정 &gt; 온디바이스 사이트 데이터</li>
@@ -161,7 +161,7 @@ export default function PrivacyPolicyPage() {
       <PolicySection id="changes" title="13. 처리방침 변경">
         <p>이 처리방침이 변경되면 변경 내용, 사유와 시행일을 서비스에 알리고 이전 버전을 확인할 수 있게 보관합니다. 동의 내용이 실질적으로 바뀌면 필요한 경우 새 동의를 받습니다.</p>
         <PolicyTable headers={["버전", "시행일", "주요 내용"]} rows={[
-          ["1.1", "2026-10-06", "방문 분석을 별도 동의 방식에서 기본 수집·거부 가능 방식으로 변경, 분석 거부 방법과 국외 이전 시기·방법 보강"],
+          ["1.1", "2026-10-06", "방문 분석을 별도 동의 방식에서 기본 수집·거부 가능 방식으로 변경(1.0에서 거부한 경우 1회 안내 후 적용), 분석 거부 방법과 국외 이전 시기·방법 보강"],
           [<Link key="v1.0" href="/privacy/v1.0" className="text-brand hover:underline">1.0</Link>, "2026-09-07", "최초 시행"],
         ]} />
       </PolicySection>

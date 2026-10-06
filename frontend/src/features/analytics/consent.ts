@@ -1,4 +1,5 @@
 export const ANALYTICS_CONSENT_STORAGE_KEY = "yesulin:analytics-consent:v1";
+const LEGACY_REFUSAL_RESET_STORAGE_KEY = "yesulin:analytics-refusal-reset:v1";
 
 /**
  * GTM을 불러올 때 window에 보내는 이벤트다. 분석을 다시 켜도 페이지를 다시 불러오지 않으므로,
@@ -20,6 +21,24 @@ export function readAnalyticsConsent(): AnalyticsConsent | null {
     return stored === "granted" || stored === "denied" ? stored : null;
   } catch {
     return null;
+  }
+}
+
+/**
+ * 처리방침 1.1부터 방문 분석은 기본 수집이다. 1.0 동의 배너에서 거부한 기록은 브라우저마다 한 번만 지워
+ * 기본값으로 되돌리고, 바뀐 사실을 안내해 바로 다시 끌 수 있게 한다. 이 처리 뒤의 거부는 그대로 존중한다.
+ * 안내가 필요하면 true를 돌려준다.
+ */
+export function resetLegacyAnalyticsRefusal() {
+  try {
+    const storage = window.localStorage;
+    if (storage.getItem(LEGACY_REFUSAL_RESET_STORAGE_KEY)) return false;
+    storage.setItem(LEGACY_REFUSAL_RESET_STORAGE_KEY, "done");
+    if (storage.getItem(ANALYTICS_CONSENT_STORAGE_KEY) !== "denied") return false;
+    storage.removeItem(ANALYTICS_CONSENT_STORAGE_KEY);
+    return true;
+  } catch {
+    return false;
   }
 }
 
