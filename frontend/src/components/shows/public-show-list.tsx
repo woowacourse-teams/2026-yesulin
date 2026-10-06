@@ -8,6 +8,7 @@ import { FilterChip } from "@/components/ui/controls";
 import { getPublicShows } from "@/features/shows/api";
 import { formatShowDateTime } from "@/features/shows/format";
 import { SHOW_GENRE_LABELS, SHOW_GENRES, showRoutes, type PublicShowSummary, type ShowGenre } from "@/features/shows/types";
+import { SiteFooter } from "@/components/policies/site-footer";
 import { ShowPageHeader } from "./show-page-header";
 
 type ListState =
@@ -33,29 +34,32 @@ export function PublicShowList() {
   useEffect(() => load(), [load]);
 
   return (
-    <main className="min-h-screen break-keep bg-surface pb-16 text-foreground wrap-break-word">
-      <ShowPageHeader />
-      <div className="mx-auto max-w-[880px] px-5 py-8 md:px-8 md:py-12 min-[1200px]:max-w-[1200px]">
-        <section className="border-b border-border pb-8">
-          <p className="text-sm font-semibold text-brand">예술in 무료 공연</p>
-          <h1 className="mt-3 text-[clamp(28px,4vw,40px)] font-bold leading-tight tracking-[-0.035em]">지금 예매할 수 있는 공연</h1>
-          <p className="mt-2 text-base text-muted-strong">로그인 없이 이름과 휴대폰 번호만으로 예매할 수 있어요.</p>
-        </section>
-        <div className="pt-8">
-          {state.status === "loading" ? <ShowListSkeleton /> : null}
-          {state.status === "error" ? (
-            <ScreenError
-              message="공연 목록을 불러오지 못했어요."
-              onRetry={() => { setState({ status: "loading" }); load(); }}
-            />
-          ) : null}
-          {state.status === "ready" && state.shows.length === 0 ? <EmptyShows /> : null}
-          {state.status === "ready" && state.shows.length > 0 ? (
-            <GenreFilteredShows shows={state.shows} genre={genre} onGenreChange={setGenre} />
-          ) : null}
+    <>
+      <main className="min-h-screen break-keep bg-surface pb-16 text-foreground wrap-break-word">
+        <ShowPageHeader />
+        <div className="mx-auto max-w-[880px] px-5 py-8 md:px-8 md:py-12 min-[1200px]:max-w-[1200px]">
+          <section className="border-b border-border pb-8">
+            <p className="text-sm font-semibold text-brand">예술in 무료 공연</p>
+            <h1 className="mt-3 text-[clamp(28px,4vw,40px)] font-bold leading-tight tracking-[-0.035em]">지금 예매할 수 있는 공연</h1>
+            <p className="mt-2 text-base text-muted-strong">로그인 없이 이름과 휴대폰 번호만으로 예매할 수 있어요.</p>
+          </section>
+          <div className="pt-8">
+            {state.status === "loading" ? <ShowListSkeleton /> : null}
+            {state.status === "error" ? (
+              <ScreenError
+                message="공연 목록을 불러오지 못했어요."
+                onRetry={() => { setState({ status: "loading" }); load(); }}
+              />
+            ) : null}
+            {state.status === "ready" && state.shows.length === 0 ? <EmptyShows /> : null}
+            {state.status === "ready" && state.shows.length > 0 ? (
+              <GenreFilteredShows shows={state.shows} genre={genre} onGenreChange={setGenre} />
+            ) : null}
+          </div>
         </div>
-      </div>
-    </main>
+      </main>
+      <SiteFooter />
+    </>
   );
 }
 

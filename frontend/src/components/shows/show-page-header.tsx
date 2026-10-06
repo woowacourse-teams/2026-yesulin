@@ -1,6 +1,5 @@
 import Image from "next/image";
 import Link from "next/link";
-import { AnalyticsSettingsButton } from "@/components/analytics/analytics-settings-button";
 import { showRoutes } from "@/features/shows/types";
 
 /** 관객 화면 머리말. 오디션 메뉴와 로그인 버튼 없이 공연 목록으로만 돌아간다. */
@@ -17,7 +16,6 @@ export function ShowPageHeader() {
           <span aria-hidden="true" className="h-5 w-px bg-border" />
           <span className="text-sm font-semibold text-foreground">공연 예매</span>
         </Link>
-        <AnalyticsSettingsButton className="ml-auto" />
       </div>
     </header>
   );

@@ -9,10 +9,10 @@ import { useToast } from "@/components/auditions/toast";
 import { getApplicantProfile } from "@/features/applicants/api";
 import { APPLICANT_PROFILE_CHANGED } from "@/features/applicants/events";
 import { applicantRoutes } from "@/features/applicants/routes";
-import { AnalyticsSettingsButton } from "@/components/analytics/analytics-settings-button";
 import type { ApplicantProfileResponse } from "@/features/applicants/types";
 import { useAuditionQuery } from "@/features/auditions/use-audition-query";
 import { SessionApiError } from "@/features/auth/session-api";
+import { SiteFooter } from "@/components/policies/site-footer";
 import { DefaultProfileIcon } from "@/components/ui/default-profile-icon";
 
 const navigation = [
@@ -53,12 +53,13 @@ export function ApplicantShell({ children }: { readonly children: React.ReactNod
           {navigation.map((item) => <ApplicantNavLink key={item.href} {...item} pathname={pathname} />)}
         </nav>
         <div className="ml-auto flex items-center gap-2">
-          <AnalyticsSettingsButton />
           <ApplicantAccountMenu profile={profileQuery.data} onLogout={logout} />
         </div>
       </div>
     </header>
-    <main id="applicant-main" className="min-h-[calc(100vh-68px)] pb-24 md:pb-0">{children}</main>
+    <main id="applicant-main" className="min-h-[calc(100vh-68px)]">{children}</main>
+    {/* 모바일 하단 메뉴가 푸터를 가리지 않게 메뉴 높이만큼 아래 여백을 둔다. */}
+    <SiteFooter className="pb-24 md:pb-0" />
     <nav aria-label="배우 모바일 메뉴" className="glass-surface fixed inset-x-0 bottom-0 z-30 border-x-0 border-b-0 md:hidden">
       <div className="grid grid-cols-3 pb-[max(8px,env(safe-area-inset-bottom))] pt-1">
         {navigation.map((item) => {

@@ -12,12 +12,12 @@ import { readPublicApplicationDraft } from "@/features/applications/public-appli
 import { buildApplicationAuthReturnTo } from "@/features/auth/return-to";
 import { useAuthSession } from "@/components/auth/auth-session";
 import { applicantRoutes } from "@/features/applicants/routes";
-import { AnalyticsSettingsButton } from "@/components/analytics/analytics-settings-button";
 import { getApplicantSubmissions } from "@/features/applicants/api";
 import { applicationFormSteps } from "@/features/applications/application-form";
 import { applicationWriteRoute } from "@/features/applications/routes";
 import { PublicVenueGuide, VenueActionLinks } from "./public-venue-guide";
 import { TrackedLoginLink } from "@/components/analytics/tracked-login-link";
+import { SiteFooter } from "@/components/policies/site-footer";
 import { trackAnalyticsEvent } from "@/features/analytics/events";
 
 export function PublicPostingDetail({ posting, useProfilePrefill = false, resumeDraft = false, initialRoleIds = [] }: { posting: PublicPosting; useProfilePrefill?: boolean; resumeDraft?: boolean; initialRoleIds?: readonly string[] }) {
@@ -85,34 +85,38 @@ export function PublicPostingDetail({ posting, useProfilePrefill = false, resume
 
   if (restoring) return <DraftResumeLoading />;
 
-  return <main className={`min-h-screen bg-surface text-foreground ${showMobileAction ? "pb-[calc(152px+env(safe-area-inset-bottom))]" : "pb-12"} min-[1200px]:pb-12`}>
-    <header className="glass-surface sticky top-0 z-20 border-x-0 border-t-0">
-      <div className="mx-auto flex min-h-16 max-w-[880px] items-center px-5 md:px-8 min-[1200px]:max-w-[1200px]">
-        <Link href="/" aria-label="예술in 홈" className="inline-flex min-h-11 items-center rounded-control px-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"><Image src="/images/yesulin-logo.png" alt="예술in" width={84} height={49} priority className="h-auto w-[84px] object-contain" /></Link>
-        {authenticated ? <>
-          <AnalyticsSettingsButton className="ml-auto mr-2" /><span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-strong sm:text-sm"><span aria-hidden="true" className="h-2 w-2 rounded-full bg-brand" />로그인됨</span>
-          <Link href={applicantRoutes.submissions} className="ml-2 inline-flex min-h-11 items-center rounded-control px-3 text-sm font-semibold text-brand hover:bg-brand-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">내 지원서</Link>
-        </> : <>
-          <AnalyticsSettingsButton className="ml-auto mr-2" /><span className="text-xs text-muted-strong sm:text-sm">로그인 전 작성 가능</span>
-          <TrackedLoginLink href={loginHref} analytics={loginAnalytics} className="ml-2 inline-flex min-h-11 items-center rounded-control px-3 text-sm font-semibold text-muted-strong hover:bg-surface hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">로그인</TrackedLoginLink>
-        </>}
-      </div>
-    </header>
+  return <>
+    <main className="min-h-screen bg-surface pb-12 text-foreground">
+      <header className="glass-surface sticky top-0 z-20 border-x-0 border-t-0">
+        <div className="mx-auto flex min-h-16 max-w-[880px] items-center px-5 md:px-8 min-[1200px]:max-w-[1200px]">
+          <Link href="/" aria-label="예술in 홈" className="inline-flex min-h-11 items-center rounded-control px-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"><Image src="/images/yesulin-logo.png" alt="예술in" width={84} height={49} priority className="h-auto w-[84px] object-contain" /></Link>
+          {authenticated ? <>
+            <span className="ml-auto inline-flex items-center gap-1.5 text-xs font-medium text-muted-strong sm:text-sm"><span aria-hidden="true" className="h-2 w-2 rounded-full bg-brand" />로그인됨</span>
+            <Link href={applicantRoutes.submissions} className="ml-2 inline-flex min-h-11 items-center rounded-control px-3 text-sm font-semibold text-brand hover:bg-brand-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">내 지원서</Link>
+          </> : <>
+            <span className="ml-auto text-xs text-muted-strong sm:text-sm">로그인 전 작성 가능</span>
+            <TrackedLoginLink href={loginHref} analytics={loginAnalytics} className="ml-2 inline-flex min-h-11 items-center rounded-control px-3 text-sm font-semibold text-muted-strong hover:bg-surface hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">로그인</TrackedLoginLink>
+          </>}
+        </div>
+      </header>
 
-    <div className="mx-auto max-w-[880px] px-5 py-8 md:px-8 md:py-12 min-[1200px]:max-w-[1200px] min-[1200px]:grid min-[1200px]:grid-cols-[minmax(0,1fr)_320px] min-[1200px]:gap-12">
-      <article className="min-w-0">
-        <PostingHero posting={posting} />
-        <PostingAvailability posting={posting} />
-        <PostingSchedule posting={posting} />
-        <PerformanceInformation posting={posting} />
-        <RoleSelection posting={posting} selectedRoleIds={selectedRoleIds} onSelect={toggleRole} selectable={acceptingApplications && !skipsRoleChoice} />
-        <PostingDocuments posting={posting} />
-        <ProducerInformation posting={posting} />
-      </article>
-      <aside className="hidden min-[1200px]:block"><DesktopAction posting={posting} selectedRole={selectedRoleLabel} enabled={actionEnabled} hasDraft={hasLocalDraft} alreadySubmitted={alreadySubmitted} onAction={beginApplication} onChooseRole={focusRoleSelection} /></aside>
-    </div>
-    {showMobileAction ? <MobileAction posting={posting} selectedRole={selectedRoleLabel} enabled={actionEnabled} hasDraft={hasLocalDraft} alreadySubmitted={alreadySubmitted} onAction={beginApplication} onChooseRole={focusRoleSelection} /> : null}
-  </main>;
+      <div className="mx-auto max-w-[880px] px-5 py-8 md:px-8 md:py-12 min-[1200px]:max-w-[1200px] min-[1200px]:grid min-[1200px]:grid-cols-[minmax(0,1fr)_320px] min-[1200px]:gap-12">
+        <article className="min-w-0">
+          <PostingHero posting={posting} />
+          <PostingAvailability posting={posting} />
+          <PostingSchedule posting={posting} />
+          <PerformanceInformation posting={posting} />
+          <RoleSelection posting={posting} selectedRoleIds={selectedRoleIds} onSelect={toggleRole} selectable={acceptingApplications && !skipsRoleChoice} />
+          <PostingDocuments posting={posting} />
+          <ProducerInformation posting={posting} />
+        </article>
+        <aside className="hidden min-[1200px]:block"><DesktopAction posting={posting} selectedRole={selectedRoleLabel} enabled={actionEnabled} hasDraft={hasLocalDraft} alreadySubmitted={alreadySubmitted} onAction={beginApplication} onChooseRole={focusRoleSelection} /></aside>
+      </div>
+      {showMobileAction ? <MobileAction posting={posting} selectedRole={selectedRoleLabel} enabled={actionEnabled} hasDraft={hasLocalDraft} alreadySubmitted={alreadySubmitted} onAction={beginApplication} onChooseRole={focusRoleSelection} /> : null}
+    </main>
+    {/* 모바일 하단 지원 바가 푸터를 가리지 않게 바 높이만큼 아래 여백을 둔다. */}
+    <SiteFooter className={showMobileAction ? "pb-[calc(152px+env(safe-area-inset-bottom))] min-[1200px]:pb-0" : ""} />
+  </>;
 }
 
 function PostingHero({ posting }: { posting: PublicPosting }) {

@@ -19,6 +19,7 @@ import type { PublicShow, PublicShowSession, ReservationReceipt } from "@/featur
 import { ReservationSheet } from "./reservation-sheet";
 import { ShowLinkButtons } from "./show-links";
 import { ShowImageLightbox } from "./show-image-lightbox";
+import { SiteFooter } from "@/components/policies/site-footer";
 import { ShowPageHeader } from "./show-page-header";
 import { SessionAvailabilityText, ShowGenreBadge, ShowStatusBadge } from "./show-status";
 
@@ -66,38 +67,42 @@ export function PublicShowDetail({ show, onReserved, onStale }: {
   }, [show.id, sessionCount]);
 
   return (
-    <main className={`min-h-screen break-keep bg-surface text-foreground wrap-break-word ${showsMobileAction ? "pb-[calc(120px+env(safe-area-inset-bottom))]" : "pb-12"} min-[1200px]:pb-12`}>
-      <ShowPageHeader />
-      <div className="mx-auto max-w-[880px] px-5 py-8 md:px-8 md:py-12 min-[1200px]:grid min-[1200px]:max-w-[1200px] min-[1200px]:grid-cols-[minmax(0,1fr)_320px] min-[1200px]:gap-12">
-        <article className="min-w-0">
-          <ShowHero show={show} availability={availability} />
-          <SessionSelection show={show} selectedId={selectedSession?.id ?? null} onSelect={setSelectedId} />
-          <ReservationNotice show={show} />
-          {show.description ? (
-            <InfoSection title="공연 소개">
-              <p className="whitespace-pre-line text-base leading-7 text-muted-strong">{show.description}</p>
+    <>
+      <main className="min-h-screen break-keep bg-surface pb-12 text-foreground wrap-break-word">
+        <ShowPageHeader />
+        <div className="mx-auto max-w-[880px] px-5 py-8 md:px-8 md:py-12 min-[1200px]:grid min-[1200px]:max-w-[1200px] min-[1200px]:grid-cols-[minmax(0,1fr)_320px] min-[1200px]:gap-12">
+          <article className="min-w-0">
+            <ShowHero show={show} availability={availability} />
+            <SessionSelection show={show} selectedId={selectedSession?.id ?? null} onSelect={setSelectedId} />
+            <ReservationNotice show={show} />
+            {show.description ? (
+              <InfoSection title="공연 소개">
+                <p className="whitespace-pre-line text-base leading-7 text-muted-strong">{show.description}</p>
+              </InfoSection>
+            ) : null}
+            {show.imageUrls.length ? <DetailImages show={show} /> : null}
+            <InfoSection title="오시는 길" last>
+              <PublicVenueGuide venue={show.venue.name} address={show.venue} note="공연이 열리는 장소입니다. 공연 시작 전까지 도착해 주세요." />
+              {show.guides.length ? <ShowGuides guides={show.guides} /> : null}
             </InfoSection>
-          ) : null}
-          {show.imageUrls.length ? <DetailImages show={show} /> : null}
-          <InfoSection title="오시는 길" last>
-            <PublicVenueGuide venue={show.venue.name} address={show.venue} note="공연이 열리는 장소입니다. 공연 시작 전까지 도착해 주세요." />
-            {show.guides.length ? <ShowGuides guides={show.guides} /> : null}
-          </InfoSection>
-        </article>
-        <aside className="hidden min-[1200px]:block"><DesktopAction {...action} /></aside>
-      </div>
-      {showsMobileAction ? <MobileAction {...action} /> : null}
-      {sheetSession ? (
-        <ReservationSheet
-          open={sheetOpen}
-          show={show}
-          session={sheetSession}
-          onClose={() => setSheetOpen(false)}
-          onReserved={(receipt) => { setSheetOpen(false); onReserved(receipt); }}
-          onStale={onStale}
-        />
-      ) : null}
-    </main>
+          </article>
+          <aside className="hidden min-[1200px]:block"><DesktopAction {...action} /></aside>
+        </div>
+        {showsMobileAction ? <MobileAction {...action} /> : null}
+        {sheetSession ? (
+          <ReservationSheet
+            open={sheetOpen}
+            show={show}
+            session={sheetSession}
+            onClose={() => setSheetOpen(false)}
+            onReserved={(receipt) => { setSheetOpen(false); onReserved(receipt); }}
+            onStale={onStale}
+          />
+        ) : null}
+      </main>
+      {/* 모바일 하단 예매 바가 푸터를 가리지 않게 바 높이만큼 아래 여백을 둔다. */}
+      <SiteFooter className={showsMobileAction ? "pb-[calc(96px+env(safe-area-inset-bottom))] min-[1200px]:pb-0" : ""} />
+    </>
   );
 }
 
