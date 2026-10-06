@@ -65,12 +65,12 @@ describe("이전 동의 배너의 거부 기록", () => {
 });
 
 describe("저장소 오류", () => {
-  it("저장소를 읽을 수 없으면 고른 적 없는 상태와 구분하고 분석을 보내지 않는다", () => {
+  it("저장소를 읽을 수 없으면 고른 적 없는 상태로 보고 기본값대로 보낸다", () => {
     vi.stubEnv("NEXT_PUBLIC_GTM_ID", "GTM-TEST");
     stubBrokenStorage({ read: false });
 
-    expect(readAnalyticsConsent()).toBe("unavailable");
-    expect(canSendAnalytics()).toBe(false);
+    expect(readAnalyticsConsent()).toBeNull();
+    expect(canSendAnalytics()).toBe(true);
   });
 
   it("거부를 저장하지 못해도 현재 페이지에서는 분석을 막는다", () => {

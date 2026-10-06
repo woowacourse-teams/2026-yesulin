@@ -9,18 +9,15 @@ export const ANALYTICS_READY_EVENT = "yesulin:analytics-ready";
 
 export type AnalyticsConsent = "granted" | "denied";
 
-/**
- * 저장된 선택. `null`은 고른 적이 없다는 뜻이고, 저장소를 읽을 수 없으면 `unavailable`이다.
- * 읽기 실패를 `null`로 보면 끈 사람도 다시 켜지므로 둘을 구분한다.
- */
-export type AnalyticsConsentState = AnalyticsConsent | null | "unavailable";
+/** 저장된 선택. `null`은 고른 적이 없다는 뜻이며, 저장소를 읽을 수 없을 때도 기본값을 따르도록 `null`로 본다. */
+export type AnalyticsConsentState = AnalyticsConsent | null;
 
 /** 거부를 저장하지 못한 페이지에서는 새로고침 전까지 저장값과 관계없이 분석을 막는다. */
 let refusedWithoutStorage = false;
 
-/** 방문 분석은 기본으로 켜져 있고, 끈 경우와 저장소를 읽을 수 없는 경우에는 보내지 않는다. */
+/** 방문 분석은 기본으로 켜져 있고, 이용자가 끈 경우에만 보내지 않는다. */
 export function isAnalyticsEnabled(consent: AnalyticsConsentState) {
-  return consent === null || consent === "granted";
+  return consent !== "denied";
 }
 
 export function readAnalyticsConsent(): AnalyticsConsentState {
@@ -30,7 +27,7 @@ export function readAnalyticsConsent(): AnalyticsConsentState {
     const stored = window.localStorage.getItem(ANALYTICS_CONSENT_STORAGE_KEY);
     return stored === "granted" || stored === "denied" ? stored : null;
   } catch {
-    return "unavailable";
+    return null;
   }
 }
 

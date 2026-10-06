@@ -8,7 +8,7 @@ Google Tag Manager 컨테이너는 `NEXT_PUBLIC_GTM_ID`가 설정된 환경에�
 
 - 선택은 `yesulin:analytics-consent:v1` 로컬 스토리지에 `granted`(켜기) 또는 `denied`(끄기)로 저장한다. 값이 없으면 켜진 것으로 본다.
 - `denied` 상태에서는 GTM 네트워크 요청과 분석 이벤트 전송이 없어야 한다.
-- 저장소를 읽을 수 없으면 `null`(고른 적 없음)과 구분해 `unavailable`로 보고 분석을 막는다. 끄기를 저장하지 못하면 새로고침하지 않고, 현재 페이지에서 이벤트 전송을 막은 뒤 `analytics_storage`를 `denied`로 갱신한다.
+- 저장소를 읽을 수 없으면 고른 적 없는 상태(`null`)로 보고 기본값대로 수집한다. 끄기를 저장하지 못하면 새로고침하지 않고, 현재 페이지에서 이벤트 전송을 막은 뒤 `analytics_storage`를 `denied`로 갱신한다.
 - 끄면 `_ga`, `_gid`, `_gat` 계열 쿠키를 삭제하고 페이지를 다시 불러온다.
 - 처리방침 1.0 동의 배너에서 남은 `denied`는 브라우저마다 한 번만 지운다(`yesulin:analytics-refusal-reset:v1`). 지운 방문에서 하단 안내 카드로 바뀐 사실을 알리고 `분석 끄기`를 같은 크기로 제공한다. 이후의 `denied`는 지우지 않는다.
 - 분석 설정 버튼은 화면 머리말이 아니라 하단 정책 링크(`PolicyLinks`)와 기획사 사이드바 계정 영역(`ProducerAccountPanel`)에 둔다. 랜딩 푸터가 없는 공연 예매·배우·공고 지원 상세·지원서 작성·검토 화면은 `SiteFooter`로 같은 링크를 보여 준다. 처리방침이 이 버튼을 거부 방법으로 안내한다.
