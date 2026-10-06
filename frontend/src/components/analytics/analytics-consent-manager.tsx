@@ -14,14 +14,14 @@ import {
   resetLegacyAnalyticsRefusal,
   writeAnalyticsConsent,
 } from "@/features/analytics/consent";
-import type { AnalyticsConsent } from "@/features/analytics/consent";
+import type { AnalyticsConsent, AnalyticsConsentState } from "@/features/analytics/consent";
 import { clearLoginAnalyticsState, trackLoginReturnIfPending } from "@/features/analytics/events";
 import { setAnalyticsSettingsOpener } from "@/features/analytics/settings-entry";
 
 export function AnalyticsConsentManager({ gtmId }: { readonly gtmId?: string }) {
   const pathname = usePathname();
   const titleId = useId();
-  const [consent, setConsent] = useState<AnalyticsConsent | null>();
+  const [consent, setConsent] = useState<AnalyticsConsentState>();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [refusalResetNotice, setRefusalResetNotice] = useState(false);
 
@@ -91,14 +91,18 @@ export function AnalyticsConsentManager({ gtmId }: { readonly gtmId?: string }) 
 
   const choose = (next: AnalyticsConsent) => {
     const revoking = isAnalyticsEnabled(consent) && next === "denied";
-    writeAnalyticsConsent(next);
-    setConsent(next);
+    const saved = writeAnalyticsConsent(next);
+    setConsent(readAnalyticsConsent());
     setSettingsOpen(false);
-    if (revoking) {
-      clearLoginAnalyticsState();
-      clearGoogleAnalyticsCookies();
+    if (!revoking) return;
+    clearLoginAnalyticsState();
+    clearGoogleAnalyticsCookies();
+    if (saved) {
       window.location.reload();
+      return;
     }
+    // 거부를 저장하지 못했으니 새로고침하면 다시 켜진다. 이 페이지에 이미 불러온 GTM의 분석 저장만 끈다.
+    pushGoogleConsent("consent", "update", { analytics_storage: "denied" });
   };
 
   const enabled = isAnalyticsEnabled(consent);
@@ -120,12 +124,14 @@ export function AnalyticsConsentManager({ gtmId }: { readonly gtmId?: string }) 
       className="w-full overflow-hidden rounded-t-modal bg-card shadow-[var(--shadow-modal)] md:w-[min(560px,calc(100vw-40px))] md:rounded-modal"
     >
       <DialogHeader id={titleId} title="방문 분석 설정" subtitle="방문 분석은 기본으로 켜져 있어요. 꺼도 서비스 이용에는 영향이 없고 언제든 다시 켤 수 있어요." />
-      <ConsentDetails enabled={enabled} />
+      <ConsentDetails enabled={enabled} storageUnavailable={consent === "unavailable"} />
       <DialogFooter>
         {enabled ? <>
           <SecondaryButton onClick={() => choose("denied")}>분석 끄기</SecondaryButton>
           <PrimaryButton onClick={() => setSettingsOpen(false)}>닫기</PrimaryButton>
-        </> : <>
+        </> : consent === "unavailable" ? (
+          <PrimaryButton onClick={() => setSettingsOpen(false)}>닫기</PrimaryButton>
+        ) : <>
           <SecondaryButton onClick={() => setSettingsOpen(false)}>닫기</SecondaryButton>
           <PrimaryButton onClick={() => choose("granted")}>분석 켜기</PrimaryButton>
         </>}
@@ -155,9 +161,9 @@ function RefusalResetNotice({ onKeep, onTurnOff }: { readonly onKeep: () => void
   </section>;
 }
 
-function ConsentDetails({ enabled }: { readonly enabled: boolean }) {
+function ConsentDetails({ enabled, storageUnavailable }: { readonly enabled: boolean; readonly storageUnavailable: boolean }) {
   return <div className="space-y-4 px-5 py-6 text-sm leading-6 text-muted-strong md:px-6">
-    <p className="rounded-control border border-brand-line bg-brand-soft px-4 py-3"><strong className="block text-foreground">현재 선택</strong>{enabled ? "방문 분석이 켜져 있습니다." : "방문 분석을 껐습니다."}</p>
+    <p className="rounded-control border border-brand-line bg-brand-soft px-4 py-3"><strong className="block text-foreground">현재 선택</strong>{enabled ? "방문 분석이 켜져 있습니다." : storageUnavailable ? "브라우저 저장소를 사용할 수 없어 방문 분석을 꺼 두었습니다." : "방문 분석을 껐습니다."}</p>
     <dl className="grid grid-cols-[92px_1fr] gap-x-3 gap-y-2">
       <dt className="font-semibold text-foreground">도구</dt><dd>Google Analytics 4 · Google Tag Manager</dd>
       <dt className="font-semibold text-foreground">목적</dt><dd>페이지 이용, 로그인 진입과 지원 단계별 이탈 분석</dd>

@@ -51,4 +51,13 @@ describe("reservation analytics events", () => {
     expect(sent).toBe(false);
     expect(browser.dataLayer).toEqual([]);
   });
+
+  it("저장소를 읽을 수 없으면 보내지 않는다", () => {
+    vi.stubEnv("NEXT_PUBLIC_GTM_ID", "GTM-TEST");
+    const browser = { dataLayer: [] as unknown[], localStorage: { getItem: () => { throw new Error("저장소 읽기 실패"); } } };
+    vi.stubGlobal("window", browser);
+
+    expect(trackReservationEvent("reservation_start", {})).toBe(false);
+    expect(browser.dataLayer).toEqual([]);
+  });
 });

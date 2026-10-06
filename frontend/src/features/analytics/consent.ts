@@ -9,18 +9,28 @@ export const ANALYTICS_READY_EVENT = "yesulin:analytics-ready";
 
 export type AnalyticsConsent = "granted" | "denied";
 
-/** 방문 분석은 기본으로 켜져 있고, 이용자가 분석 설정에서 끈 경우에만 보내지 않는다. */
-export function isAnalyticsEnabled(consent: AnalyticsConsent | null) {
-  return consent !== "denied";
+/**
+ * 저장된 선택. `null`은 고른 적이 없다는 뜻이고, 저장소를 읽을 수 없으면 `unavailable`이다.
+ * 읽기 실패를 `null`로 보면 끈 사람도 다시 켜지므로 둘을 구분한다.
+ */
+export type AnalyticsConsentState = AnalyticsConsent | null | "unavailable";
+
+/** 거부를 저장하지 못한 페이지에서는 새로고침 전까지 저장값과 관계없이 분석을 막는다. */
+let refusedWithoutStorage = false;
+
+/** 방문 분석은 기본으로 켜져 있고, 끈 경우와 저장소를 읽을 수 없는 경우에는 보내지 않는다. */
+export function isAnalyticsEnabled(consent: AnalyticsConsentState) {
+  return consent === null || consent === "granted";
 }
 
-export function readAnalyticsConsent(): AnalyticsConsent | null {
+export function readAnalyticsConsent(): AnalyticsConsentState {
   if (typeof window === "undefined") return null;
+  if (refusedWithoutStorage) return "denied";
   try {
     const stored = window.localStorage.getItem(ANALYTICS_CONSENT_STORAGE_KEY);
     return stored === "granted" || stored === "denied" ? stored : null;
   } catch {
-    return null;
+    return "unavailable";
   }
 }
 
@@ -42,11 +52,15 @@ export function resetLegacyAnalyticsRefusal() {
   }
 }
 
+/** 저장에 성공하면 true를 돌려준다. 거부를 저장하지 못하면 현재 페이지에서라도 분석을 막는다. */
 export function writeAnalyticsConsent(consent: AnalyticsConsent) {
   try {
     window.localStorage.setItem(ANALYTICS_CONSENT_STORAGE_KEY, consent);
+    refusedWithoutStorage = false;
+    return true;
   } catch {
-    // 저장소를 사용할 수 없어도 현재 페이지의 선택은 유지한다.
+    if (consent === "denied") refusedWithoutStorage = true;
+    return false;
   }
 }
 
