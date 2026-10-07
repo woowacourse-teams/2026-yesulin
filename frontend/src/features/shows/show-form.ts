@@ -1,6 +1,7 @@
 /** 공연 등록·수정 폼의 클라이언트 검증. 서버 `SaveShowRequest` 규칙과 같은 기준을 쓴다. */
 
 import {
+  MAX_EXTERNAL_RESERVATION_URL_LENGTH,
   MAX_SHOW_GUIDE_CONTENT_LENGTH,
   MAX_SHOW_GUIDE_TITLE_LENGTH,
   MAX_SHOW_LINK_LABEL_LENGTH,
@@ -20,10 +21,16 @@ export type ShowFormValues = {
   readonly roadAddress: string;
   readonly guides: readonly ShowGuide[];
   readonly links: readonly ShowLink[];
+  /** 운영자가 등록하는 공연이면 주최 이름과 외부 예매 링크가 필수다. 기획사 공연은 둘 다 검사하지 않는다. */
+  readonly adminShow: boolean;
+  readonly hostName: string;
+  readonly externalReservationUrl: string;
 };
 
 /** 화면 위에서 아래 순서. 첫 오류 항목으로 포커스를 옮길 때 이 순서를 따른다. */
-export const SHOW_FORM_FIELDS = ["poster", "title", "genre", "runningMinutes", "inquiryPhone", "venue", "guides", "links"] as const;
+export const SHOW_FORM_FIELDS = [
+  "poster", "title", "hostName", "genre", "runningMinutes", "inquiryPhone", "venue", "guides", "links", "externalReservationUrl",
+] as const;
 
 export type ShowFormField = (typeof SHOW_FORM_FIELDS)[number];
 export type ShowFormErrors = Partial<Record<ShowFormField, string>>;
@@ -52,6 +59,8 @@ export function validateShowField(field: ShowFormField, values: ShowFormValues):
       return values.posterUrl ? null : "포스터를 등록해 주세요.";
     case "title":
       return values.title.trim() ? null : "공연명을 입력해 주세요.";
+    case "hostName":
+      return !values.adminShow || values.hostName.trim() ? null : "관객에게 보일 주최 이름을 입력해 주세요.";
     case "genre":
       return values.genre ? null : "장르를 선택해 주세요.";
     case "runningMinutes": {
@@ -61,7 +70,7 @@ export function validateShowField(field: ShowFormField, values: ShowFormValues):
     }
     case "inquiryPhone": {
       const phone = values.inquiryPhone.trim();
-      if (!phone) return "취소·단체 문의 전화번호를 입력해 주세요.";
+      if (!phone) return values.adminShow ? "문의 전화번호를 입력해 주세요." : "취소·단체 문의 전화번호를 입력해 주세요.";
       return INQUIRY_PHONE_PATTERN.test(phone) ? null : "문의 전화번호를 02-123-4567 형식으로 입력해 주세요.";
     }
     case "venue":
@@ -75,6 +84,8 @@ export function validateShowField(field: ShowFormField, values: ShowFormValues):
       const index = values.links.findIndex((link) => showLinkError(link));
       return index < 0 ? null : `안내 링크 ${index + 1}: ${showLinkError(values.links[index]!)}`;
     }
+    case "externalReservationUrl":
+      return values.adminShow ? externalReservationUrlError(values.externalReservationUrl) : null;
   }
 }
 
@@ -117,6 +128,16 @@ export function showLinkUrlError(url: string): string | null {
   const value = url.trim();
   if (!value) return "링크 주소를 입력해 주세요.";
   if (value.length > MAX_SHOW_LINK_URL_LENGTH) return `링크 주소는 ${MAX_SHOW_LINK_URL_LENGTH}자 이내로 입력해 주세요.`;
+  return isWebAddress(value) ? null : "https://로 시작하는 올바른 주소를 입력해 주세요.";
+}
+
+/** 운영자 공연의 외부 예매 링크도 서버 `Show`에서 안내 링크와 같은 주소 규칙을 쓴다. */
+export function externalReservationUrlError(url: string): string | null {
+  const value = url.trim();
+  if (!value) return "관객이 예매할 외부 페이지 주소를 입력해 주세요.";
+  if (value.length > MAX_EXTERNAL_RESERVATION_URL_LENGTH) {
+    return `외부 예매 링크는 ${MAX_EXTERNAL_RESERVATION_URL_LENGTH}자 이내로 입력해 주세요.`;
+  }
   return isWebAddress(value) ? null : "https://로 시작하는 올바른 주소를 입력해 주세요.";
 }
 

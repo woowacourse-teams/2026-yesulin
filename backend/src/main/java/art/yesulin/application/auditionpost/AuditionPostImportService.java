@@ -7,7 +7,7 @@ import static art.yesulin.domain.auditionpost.AuditionPostErrorCode.SOURCE_UNAVA
 import art.yesulin.application.auditionpost.AuditionPostImportResult.SkippedFile;
 import art.yesulin.application.file.storage.ObjectStorage;
 import art.yesulin.application.file.storage.ObjectUpload;
-import art.yesulin.application.notice.AuditionPublisher;
+import art.yesulin.application.notice.AuditionImporter;
 import art.yesulin.common.exception.BusinessException;
 import art.yesulin.domain.admin.AdminAction;
 import art.yesulin.domain.admin.AdminAuditLog;
@@ -36,13 +36,14 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * 운영자가 고른 원문 공고 한 건을 본문·사진·첨부파일까지 옮겨 바로 공개한다. 제작사 허락은 게시한 뒤 운영자가 받고,
- * 거절하면 숨긴다. 원문과 파일을 내려받는 동안에는 DB 트랜잭션을 잡지 않고, 마지막 저장만 짧은 트랜잭션으로 처리한다.
+ * 원문 공고 한 건을 본문·사진·첨부파일까지 숨김으로 옮긴다. 운영자가 지원서를 준비한 뒤 공개하고, 제작사가 내려 달라고
+ * 하면 다시 숨긴다. 원문과 파일을 내려받는 동안에는 DB 트랜잭션을 잡지 않고, 마지막 저장만 짧은 트랜잭션으로 처리한다.
  * 저장에 실패하면 이번에 올린 파일을 지우고, 다시 가져와 교체한 경우에는 커밋 뒤 예전 파일을 지운다.
+ * 자동 가져오기가 저장 직전에 이미 있는 번호를 만나면 내용을 바꾸지 않고 이번에 올린 파일을 지운다.
  */
 @Slf4j
 @Service
-public class AuditionPostImportService implements AuditionPublisher {
+public class AuditionPostImportService implements AuditionImporter {
 
     private static final ZoneId KOREA = ZoneId.of("Asia/Seoul");
     private static final DateTimeFormatter KEY_DATE = DateTimeFormatter.ofPattern("yyyyMMdd").withZone(ZoneOffset.UTC);
@@ -79,26 +80,26 @@ public class AuditionPostImportService implements AuditionPublisher {
     }
 
     /**
-     * 운영 서버의 공고 알림이 새 공고를 자동으로 게시한다. 이미 있는 번호는 운영자가 숨겼거나 다시 가져온 상태를
+     * 운영 서버의 공고 알림이 새 공고를 자동으로 가져온다. 이미 있는 번호는 운영자가 정한 공개 상태와 다시 가져온 내용을
      * 지키기 위해 건너뛴다. 운영자 작업이 아니므로 감사 기록은 남기지 않는다.
      */
     @Override
-    public Optional<Long> publish(String sourceName, String externalId) {
+    public Optional<Long> importIfAbsent(String sourceName, String externalId) {
         if (!source.getSource().equals(sourceName)) {
             return Optional.empty();
         }
         Optional<AuditionPost> existing = repository.findBySourceAndExternalId(sourceName, externalId);
         if (existing.isPresent()) {
-            return existing.filter(AuditionPost::isPublished).map(AuditionPost::getId);
+            return existing.map(AuditionPost::getId);
         }
         AuditionPostImportResult result = importAs(null, externalId);
         if (!result.skippedAttachments().isEmpty()) {
-            log.info("자동 게시에서 첨부 {}개를 건너뜀: {}-{}", result.skippedAttachments().size(), sourceName, externalId);
+            log.info("자동 가져오기에서 첨부 {}개를 건너뜀: {}-{}", result.skippedAttachments().size(), sourceName, externalId);
         }
         return Optional.of(result.post().id());
     }
 
-    /** {@code adminId}가 null이면 자동 게시다. */
+    /** {@code adminId}가 null이면 자동 가져오기다. */
     private AuditionPostImportResult importAs(Long adminId, String externalId) {
         SourcePost post = fetch(externalId);
         AuditionPostOrigin origin = new AuditionPostOrigin(source.getSource(), post.externalId(), post.sourceUrl());
@@ -112,7 +113,7 @@ public class AuditionPostImportService implements AuditionPublisher {
             List<SkippedFile> skipped = new ArrayList<>();
             files.addAll(storeAttachments(post.attachments(), uploadedKeys, skipped));
             Saved saved = save(adminId, origin, content, post.tags(), files);
-            deleteQuietly(saved.replaced().stream().map(AuditionPostFile::getObjectKey).toList());
+            deleteQuietly(saved.discarded().stream().map(AuditionPostFile::getObjectKey).toList());
             return new AuditionPostImportResult(saved.post(), saved.created(), skipped);
         } catch (RuntimeException exception) {
             deleteQuietly(uploadedKeys);
@@ -206,9 +207,12 @@ public class AuditionPostImportService implements AuditionPublisher {
                 );
                 if (existing.isPresent()) {
                     AuditionPost post = existing.get();
-                    List<AuditionPostFile> replaced = post.refresh(content, tags, files, adminId, now);
+                    if (adminId == null) {
+                        return new Saved(AdminAuditionPostResult.from(post, today), false, files);
+                    }
+                    List<AuditionPostFile> discarded = post.refresh(content, tags, files, adminId, now);
                     audit(adminId, post, "%s %s 원문으로 다시 가져옴");
-                    return new Saved(AdminAuditionPostResult.from(post, today), false, replaced);
+                    return new Saved(AdminAuditionPostResult.from(post, today), false, discarded);
                 }
                 AuditionPost post = repository.saveAndFlush(
                         new AuditionPost(origin, content, tags, files, adminId, now)
@@ -244,6 +248,6 @@ public class AuditionPostImportService implements AuditionPublisher {
         }
     }
 
-    private record Saved(AdminAuditionPostResult post, boolean created, List<AuditionPostFile> replaced) {
+    private record Saved(AdminAuditionPostResult post, boolean created, List<AuditionPostFile> discarded) {
     }
 }

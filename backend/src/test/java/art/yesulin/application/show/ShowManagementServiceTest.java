@@ -7,11 +7,14 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import art.yesulin.application.admin.AdminShowService;
+import art.yesulin.application.admin.ChangeShowHostNameCommand;
 import art.yesulin.application.performance.PerformanceVenueCommand;
 import art.yesulin.application.reservation.ReservationService;
 import art.yesulin.application.reservation.ReserveCommand;
 import art.yesulin.common.exception.BusinessException;
 import art.yesulin.common.exception.ErrorCode;
+import art.yesulin.domain.admin.AdminAuditLogRepository;
 import art.yesulin.domain.file.FileAssetRepository;
 import art.yesulin.domain.file.FileErrorCode;
 import art.yesulin.domain.file.FileReferenceRepository;
@@ -60,6 +63,8 @@ class ShowManagementServiceTest {
 
     private static final long OWNER_ID = 1L;
     private static final long OTHER_OWNER_ID = 2L;
+    private static final long ADMIN_ID = 99L;
+    private static final String NAVER_FORM_URL = "https://form.naver.com/response/abc123";
 
     @Autowired
     private ShowManagementService showManagementService;
@@ -69,6 +74,15 @@ class ShowManagementServiceTest {
 
     @Autowired
     private ReservationService reservationService;
+
+    @Autowired
+    private AdminShowManagementService adminShowManagementService;
+
+    @Autowired
+    private AdminShowService adminShowService;
+
+    @Autowired
+    private AdminAuditLogRepository adminAuditLogRepository;
 
     @Autowired
     private ShowRepository showRepository;
@@ -281,6 +295,104 @@ class ShowManagementServiceTest {
                         new ShowLinkCommand("4", "https://d.example")
                 ), List.of(), true
         )));
+    }
+
+    @Test
+    void adminShowSendsAudienceToExternalReservationPageAndStaysOutOfProducerManagement() {
+        UUID showId = adminShowManagementService.create(
+                ADMIN_ID, command(fixture.readyImage(ADMIN_ID), List.of()), " " + NAVER_FORM_URL + " "
+        ).id();
+        final long sessionId = adminShowManagementService.addSession(
+                showId, new SaveShowSessionCommand(ShowTestFixture.STARTS_AT, 10)
+        ).sessions().getFirst().id();
+        adminShowManagementService.open(ADMIN_ID, showId);
+
+        PublicShowResult publicShow = publicShowService.find(showId);
+        assertEquals(NAVER_FORM_URL, publicShow.externalReservationUrl());
+        assertNull(publicShow.sessions().getFirst().remainingSeats());
+        assertEquals(0, publicShow.sessions().getFirst().maxTicketCount());
+        assertTrue(publicShow.sessions().getFirst().bookable());
+        assertCode(ShowErrorCode.EXTERNAL_RESERVATION, () -> reservationService.reserve(
+                showId, sessionId, new ReserveCommand("홍길동", "010-1111-2222", 2, true)
+        ));
+
+        // 외부 링크 공연의 회차는 정원이 없고, 예매하기로 이동한 횟수만 센다.
+        publicShowService.recordExternalReservationVisit(showId);
+        publicShowService.recordExternalReservationVisit(showId);
+        ProducerShowResult adminShow = adminShowManagementService.find(showId);
+        assertEquals(0, adminShow.sessions().getFirst().capacity());
+        assertEquals(2, adminShow.externalReservationVisits());
+        assertTrue(showManagementService.findAll(OWNER_ID).isEmpty());
+        assertCode(ShowErrorCode.NOT_FOUND, () -> showManagementService.find(OWNER_ID, showId));
+    }
+
+    @Test
+    void rejectsClearingAdminShowHostNameWithoutChangingShowOrAuditLog() {
+        UUID showId = adminShowManagementService.create(
+                ADMIN_ID, command(fixture.readyImage(ADMIN_ID), List.of(), "서울숲 극단", List.of(), List.of(), true),
+                NAVER_FORM_URL
+        ).id();
+        long auditCount = adminAuditLogRepository.count();
+
+        for (String emptyHostName : List.of("", "   ")) {
+            assertCode(ShowErrorCode.INVALID_INPUT, () -> adminShowService.changeHostName(
+                    new ChangeShowHostNameCommand(ADMIN_ID, showId, emptyHostName)
+            ));
+            assertEquals("서울숲 극단", adminShowManagementService.find(showId).hostName());
+            assertEquals(auditCount, adminAuditLogRepository.count());
+        }
+
+        adminShowService.changeHostName(new ChangeShowHostNameCommand(ADMIN_ID, showId, " 새 주최 "));
+        assertEquals("새 주최", adminShowManagementService.find(showId).hostName());
+        assertEquals(auditCount + 1, adminAuditLogRepository.count());
+    }
+
+    @Test
+    void clearingProducerShowHostNameThroughAdminRestoresCompanyName() {
+        producerRepository.save(new Producer(OWNER_ID, "달빛 극단", "01012345678"));
+        UUID showId = create().id();
+        showManagementService.addSession(OWNER_ID, showId, new SaveShowSessionCommand(ShowTestFixture.STARTS_AT, 10));
+        showManagementService.open(OWNER_ID, showId);
+        adminShowService.changeHostName(new ChangeShowHostNameCommand(ADMIN_ID, showId, "별도 주최"));
+
+        adminShowService.changeHostName(new ChangeShowHostNameCommand(ADMIN_ID, showId, "   "));
+
+        assertEquals("", showManagementService.find(OWNER_ID, showId).hostName());
+        assertEquals("달빛 극단", publicShowService.find(showId).hostName());
+    }
+
+    @Test
+    void recordsVisitsOnlyForOpenExternalReservationShows() {
+        UUID producerShowId = create().id();
+        showManagementService.addSession(
+                OWNER_ID, producerShowId, new SaveShowSessionCommand(ShowTestFixture.STARTS_AT, 10)
+        );
+        showManagementService.open(OWNER_ID, producerShowId);
+        UUID draftAdminShowId = adminShowManagementService.create(
+                ADMIN_ID, command(fixture.readyImage(ADMIN_ID), List.of()), NAVER_FORM_URL
+        ).id();
+
+        assertCode(ShowErrorCode.INVALID_STATUS,
+                () -> publicShowService.recordExternalReservationVisit(producerShowId));
+        assertCode(ShowErrorCode.NOT_FOUND, () -> publicShowService.recordExternalReservationVisit(draftAdminShowId));
+        assertEquals(0, adminShowManagementService.find(draftAdminShowId).externalReservationVisits());
+    }
+
+    @Test
+    void adminManagesOnlyExternalReservationShows() {
+        UUID producerShowId = create().id();
+        long posterFileId = fixture.readyImage(ADMIN_ID);
+
+        assertCode(ShowErrorCode.NOT_FOUND, () -> adminShowManagementService.find(producerShowId));
+        assertCode(ShowErrorCode.NOT_FOUND, () -> adminShowManagementService.update(
+                producerShowId, command(posterFileId, List.of()), NAVER_FORM_URL
+        ));
+        assertCode(ShowErrorCode.INVALID_INPUT, () -> adminShowManagementService.create(
+                ADMIN_ID, command(posterFileId, List.of()), "form.naver.com/response/abc123"
+        ));
+        assertThrows(IllegalArgumentException.class, () -> adminShowManagementService.create(
+                ADMIN_ID, command(posterFileId, List.of()), " "
+        ));
     }
 
     @Test

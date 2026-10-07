@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { AnalyticsSettingsButton } from "@/components/analytics/analytics-settings-button";
 import { useAuthSession } from "@/components/auth/auth-session";
 import { useToast } from "@/components/auditions/toast";
 import { getProducerProfile } from "@/features/auditions/api";
@@ -55,6 +56,10 @@ export function ProducerAccountPanel() {
         </svg>
         로그아웃
       </button>
+      <div className="mt-2 flex items-center justify-center gap-4 text-xs">
+        <Link href="/privacy" className="inline-flex min-h-11 items-center text-sidebar-muted hover:text-white hover:underline">개인정보 처리방침</Link>
+        <AnalyticsSettingsButton className="inline-flex min-h-11 items-center text-sidebar-muted hover:text-white hover:underline" />
+      </div>
     </div>
   );
 }

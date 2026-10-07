@@ -26,6 +26,8 @@ public record ProducerShowResponse(
         List<ShowLinkResult> links,
         List<ShowGuideResult> guides,
         boolean remainingSeatsVisible,
+        String externalReservationUrl,
+        long externalReservationVisits,
         ShowImageResponse poster,
         List<ShowImageResponse> images,
         ShowStatus status,
@@ -49,6 +51,8 @@ public record ProducerShowResponse(
                 result.links(),
                 result.guides(),
                 result.remainingSeatsVisible(),
+                result.externalReservationUrl(),
+                result.externalReservationVisits(),
                 new ShowImageResponse(result.posterFileId(), urlReader.apply(result.posterFileId())),
                 result.imageFileIds().stream()
                         .map(fileId -> new ShowImageResponse(fileId, urlReader.apply(fileId)))

@@ -81,7 +81,7 @@ export const MOCK_SCENARIOS: readonly MockScenarioDefinition[] = [
     title: "공개 공연 목록",
     description: "예매 중인 공연만 다음 회차 일시와 함께 표시합니다.",
     href: "/shows",
-    checks: ["예매 중 공연 3개만 표시된다", "마감·초안 공연은 표시되지 않는다", "카드마다 장르 옆에 주최가 보인다"],
+    checks: ["예매 중 공연 4개만 표시된다", "마감·초안 공연은 표시되지 않는다", "카드마다 장르 옆에 주최가 보인다"],
   },
   {
     id: "shows-public-detail",
@@ -98,6 +98,14 @@ export const MOCK_SCENARIOS: readonly MockScenarioDefinition[] = [
     description: "기획사가 잔여석 숫자를 숨긴 공연입니다.",
     href: "/shows/seed_show_hidden_seats",
     checks: ["회차에 숫자 대신 예매 가능이 표시된다", "잔여 3석 회차는 최대 3매까지 고를 수 있다", "매진 회차는 매진으로 표시된다", "주최가 기획사 이름 대신 프로젝트 이름으로 보인다"],
+  },
+  {
+    id: "shows-public-external",
+    area: "무료 공연",
+    title: "외부 링크 예매 공연",
+    description: "운영자가 직접 등록한 공연으로 네이버 폼 같은 외부 예매 링크로만 예매받습니다.",
+    href: "/shows/seed_show_external",
+    checks: ["회차는 일정으로만 보이고 고를 수 없다", "예매하기를 누르면 외부 예매 페이지가 새 창으로 열린다", "잔여석과 1회 최대 매수 안내가 보이지 않는다"],
   },
   {
     id: "shows-public-sold-out",

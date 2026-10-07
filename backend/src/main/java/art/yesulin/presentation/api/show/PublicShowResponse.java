@@ -25,6 +25,7 @@ public record PublicShowResponse(
         String ageRating,
         String inquiryPhone,
         List<ShowLinkResult> links,
+        String externalReservationUrl,
         ShowStatus status,
         int maxTicketsPerReservation,
         List<PublicShowSessionResult> sessions
@@ -45,6 +46,7 @@ public record PublicShowResponse(
                 result.ageRating(),
                 result.inquiryPhone(),
                 result.links(),
+                result.externalReservationUrl(),
                 result.status(),
                 result.maxTicketsPerReservation(),
                 result.sessions()

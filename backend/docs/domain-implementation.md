@@ -42,7 +42,13 @@
   `ShowGuide`(제목·내용, 최대 5개, `show_guides`), 잔여석 공개 여부를 갖고 `updateAudienceGuide`로 함께 바꾼다.
   주최 이름은 `Show.hostNameOr`로 정하며 회사명은 응답을 만들 때 `Producer`에서 읽는다(공연에 복사하지 않는다).
   잔여석 숨김은 `PublicShowService`가 응답에서 `remainingSeats`를 비우는 방식이다.
+  외부 예매 주소(`external_reservation_url`)는 운영자 공연에만 있다. `AdminShowManagementService`가 등록한 운영자를 소유자로
+  공연을 만들고 `updateExternalReservationUrl`(빈 값 불가)로 주소를 정하며, 공연을 찾은 뒤의 동작은 `ShowManagementService`의
+  `Show`를 받는 메서드(`Propagation.MANDATORY`)를 같은 트랜잭션에서 재사용한다. 운영자 API는 주소가 있는 공연만 찾는다.
+  기획사 `SaveShowCommand`는 이 값을 건드리지 않고, `ReservationService.reserve`가 `Show.ensureReservableHere`로 거절한다.
+  예매하기 이동 기록은 `ExternalReservationVisit`(공연 ID·시각, `show_external_reservation_visits`)으로 쌓고 공연 삭제 때 함께 지운다.
 - `ShowSession`은 공연 ID, 시작 시각, 정원만 저장하는 별도 aggregate다. 잔여석은 저장하지 않고 확정 예매 매수로 계산한다.
+  외부 링크 공연의 회차는 `ShowSession.withoutCapacity`로 정원 0인 채 만들고 `reschedule`로 시작 시각만 바꾼다.
 - `Reservation`은 회차 ID, 8자리 예매번호, `Booker`(이름·휴대폰), 매수(1~10), 동의 문서 버전, `CONFIRMED/CANCELED`,
   기획사 메모(300자 이하)를 저장한다. 생성·취소·매수 변경 때 `ReservationConfirmedEvent`, `ReservationCanceledEvent`,
   `ReservationTicketCountChangedEvent`를 등록한다. 매수 변경은 확정 예매만 가능하다.
@@ -116,13 +122,13 @@
   `AuditionNoticeService`가 `NoticeRepository`를 직접 사용한다. 전체 실행을 트랜잭션으로 묶지 않고
   수집 결과 저장과 묶음 전송 완료 기록에만 짧은 트랜잭션을 적용한다. DB 트랜잭션을 잡은 채 외부 요청을 수행하지 않는다.
   동시 수집의 삽입 충돌은 유니크 제약으로 거절되고 해당 수집 트랜잭션은 롤백된다. 다음 실행에서 재수집한다.
-- 게시 모드에서는 묶음마다 Slack 전송 전에 공고마다 `AuditionPublisher.publish`로 자동 게시한다. 게시 실패는 `sendError`로 따로 알리고
-  해당 공고의 알림은 그대로 보낸다. 전송이 실패해 다음 실행에서 다시 보낼 때는 이미 게시한 번호라 다시 가져오지 않는다.
+- 묶음마다 Slack 전송 전에 공고마다 `AuditionImporter.importIfAbsent`로 숨긴 채 가져온다. 가져오기 실패는
+  `sendError`로 따로 알리고 해당 공고의 알림은 경유 링크 `/otr?vid=`로 그대로 보낸다. 가져온 공고 알림은 상태와 관계없이 `/posts/{id}`를 쓴다.
+  전송이 실패해 다음 실행에서 다시 보낼 때는 이미 가져온 번호라 다시 가져오지 않는다.
 - `AuditionNoticeService`는 Spring bean으로 등록한다. `@EnableScheduling`은 전체 환경에서 활성화한다.
-  `presentation/scheduler/notice`에서 PROD는 `AuditionPublishScheduler`가 `publishAndNotifyAuditions`(게시 후 알림)를,
-  DEV는 기존 `AuditionNoticeScheduler`가 `notifyAuditions`(알림만)를 실행한다. DEV 쪽은 PROD 자동 게시가 안정되면 제거한다.
-  PROD 스케줄러는 `yesulin.notice.scheduler-enabled=false`로 끌 수 있다. 둘 다 매일 한국 시간 09:00~20:00에 10분 간격이다.
-  OTR 수집기와 Slack Incoming Webhook 전송 adapter를 사용하며, 같은 채널의 서로 다른 봇 웹훅으로 구분한다.
+  `presentation/scheduler/notice`의 `AuditionImportScheduler`가 PROD에서만 `importAndNotifyAuditions`(가져온 뒤 알림)를
+  실행한다. DEV·LOCAL에는 공고 스케줄러가 없다. PROD 스케줄러는 `yesulin.notice.scheduler-enabled=false`로 끌 수 있고,
+  매일 한국 시간 09:00~20:00에 10분 간격이다. OTR 수집기와 Slack Incoming Webhook 전송 adapter를 사용한다.
 - 현재 목록 여러 페이지 탐색과 분산 실행 잠금은 미구현이다. 별도 DB adapter는 두지 않는다.
   중복 저장 방지와 중복 전송 방지는 별개다. 배포 중 동시 실행 및 전송 성공 후 상태 저장 전 종료로 인한 재전송은
   아직 허용하며 exactly-once 전달을 보장하지 않는다. 수집 누락 방지를 위한 페이지 탐색 범위는 추후 adapter에서 정한다.
@@ -131,7 +137,9 @@
 
 - `domain/auditionpost`의 `AuditionPost`는 출처(`source`)·원문 번호(`external_id`)·원문 주소, 내용 `AuditionPostContent`(embeddable),
   태그(`audition_post_tags`)와 파일 `AuditionPostFile`(`audition_post_files`, 사진·첨부 구분과 저장소 키·원래 이름·형식·크기),
-  `PUBLISHED/HIDDEN`, 가져온 운영자(자동 게시면 null), 생성·갱신 시각을 저장한다. `(source, external_id)`는 유니크이고 공개 주소에는 숫자 ID를 쓴다.
+  `PUBLISHED/HIDDEN`(생성 시 `HIDDEN`), 조회수·원문 이동 수, 가져온 운영자(자동 가져오기면 null), 생성·갱신 시각을 저장한다.
+  두 수는 저장소의 원자적 update로만 늘린다. 엔티티는 바뀐 컬럼만 갱신해 상태 변경·다시 가져오기가 두 수를 덮어쓰지 않는다.
+  조회수는 `PUBLISHED`, 원문 이동 수는 `HIDDEN`일 때만 늘어난다. `(source, external_id)`는 유니크이고 공개 주소에는 숫자 ID를 쓴다.
 - 분류는 `AuditionCategory`(연극·퍼포먼스·뮤지컬·단원·기획사)만 받는다. `AuditionPostContent`가 생성 시 검사하므로
   가져오기는 파일을 받기 전에 거절된다. 공개 목록의 모집 중 조건은 `deadline`이 없거나 오늘 이후인 공고다.
 - 마감은 원문 문자열(`deadline_text`)과 `yyyy-MM-dd`일 때만 채우는 `deadline`을 함께 둔다. 원문 작성 시각은 한국 시간 `LocalDateTime`이다.
@@ -145,8 +153,11 @@
 - `AuditionPostImportService`는 원문과 파일을 받는 동안 트랜잭션을 잡지 않고 마지막 저장만 짧은 트랜잭션으로 처리한다.
   실패하면 이번에 올린 객체를 지우고, 다시 가져와 교체했으면 커밋 뒤 이전 객체를 지운다. 객체 삭제 실패는 경고 로그만 남긴다.
   같은 번호의 동시 삽입은 유니크 제약으로 거절해 `IMPORT_CONFLICT`로 바꾼다.
-- 자동 게시는 `application/notice`의 `AuditionPublisher` port를 `AuditionPostImportService.publish`가 구현한다.
-  같은 출처·번호가 이미 있으면 아무것도 하지 않고, 운영자 작업이 아니므로 감사 기록을 남기지 않는다.
+- 자동 가져오기는 `application/notice`의 `AuditionImporter` port를 `AuditionPostImportService.importIfAbsent`가 구현한다.
+  같은 출처·번호가 이미 있으면 상태와 관계없이 그 ID만 돌려주고, 운영자 작업이 아니므로 감사 기록을 남기지 않는다.
+  원문을 받는 사이 운영자가 같은 번호를 가져왔어도 저장 트랜잭션에서 다시 확인해 내용을 바꾸지 않고 이번에 올린 파일을 지운다.
+- 공개 상세는 `AuditionPostService.findPublicPost`가 `PublicAuditionPostView`(`Published` 또는 원문 주소를 담은 `Hidden`)로
+  돌려주고, Controller가 `Hidden`을 302로 바꾼다.
 - 가져온 파일은 `file_assets`에 등록하지 않는다. 회원 소유 업로드가 아니며 미사용 파일 관리 대상에도 포함하지 않는다.
 
 ## 지원서

@@ -12,6 +12,7 @@ import art.yesulin.domain.performance.QPerformance;
 import art.yesulin.domain.producer.QProducer;
 import art.yesulin.domain.reservation.QReservation;
 import art.yesulin.domain.reservation.ReservationStatus;
+import art.yesulin.domain.show.QExternalReservationVisit;
 import art.yesulin.domain.show.QShow;
 import art.yesulin.domain.show.QShowSession;
 import art.yesulin.domain.show.ShowStatus;
@@ -47,6 +48,7 @@ public class AdminDashboardRepository {
     private static final QSubmission SUBMISSION = QSubmission.submission;
     private static final QShow SHOW = QShow.show;
     private static final QShowSession SESSION = QShowSession.showSession;
+    private static final QExternalReservationVisit VISIT = QExternalReservationVisit.externalReservationVisit;
     private static final QReservation RESERVATION = QReservation.reservation;
     private static final QOtrAudition OTR_AUDITION = QOtrAudition.otrAudition;
     private static final QOtrSubmission OTR_SUBMISSION = QOtrSubmission.otrSubmission;
@@ -193,9 +195,12 @@ public class AdminDashboardRepository {
     /** 무료 공연을 최근 생성 순으로, 회차는 시작 시각 순으로 예매 집계와 함께 반환한다. */
     public List<AdminShowRow> findShows(ShowStatus status) {
         BooleanExpression statusCondition = (status == null) ? null : SHOW.status.eq(status);
+        Expression<Long> visitCount = JPAExpressions.select(VISIT.count())
+                .from(VISIT)
+                .where(VISIT.showId.eq(SHOW.id));
         List<Tuple> shows = queryFactory
                 .select(SHOW.id, SHOW.publicId, SHOW.title, SHOW.status, PRODUCER.companyName, SHOW.hostName,
-                        SHOW.createdAt)
+                        SHOW.externalReservationUrl, visitCount, SHOW.createdAt)
                 .from(SHOW)
                 .leftJoin(PRODUCER).on(PRODUCER.memberId.eq(SHOW.ownerId))
                 .where(statusCondition)
@@ -215,6 +220,8 @@ public class AdminDashboardRepository {
                         show.get(SHOW.status),
                         show.get(PRODUCER.companyName),
                         show.get(SHOW.hostName),
+                        show.get(SHOW.externalReservationUrl),
+                        longValue(show.get(visitCount)),
                         show.get(SHOW.createdAt),
                         sessionsByShowId.getOrDefault(show.get(SHOW.id), List.of())
                 ))

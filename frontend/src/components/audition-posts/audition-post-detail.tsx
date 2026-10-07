@@ -80,6 +80,17 @@ function AuditionPostDetail({ post }: { readonly post: AuditionPost }) {
           <MetaRow label="마감">{formatDeadline(post)}</MetaRow>
           {postedDate ? <MetaRow label="게시일"><span className="num">{postedDate}</span></MetaRow> : null}
           <MetaRow label="조회"><span className="num">{viewCount.toLocaleString("ko-KR")}</span></MetaRow>
+          <MetaRow label="출처">
+            <a
+              href={post.sourceUrl}
+              target="_blank"
+              rel="nofollow noopener noreferrer"
+              aria-label={`${post.source} 원문 공고 새 창으로 보기`}
+              className="text-muted-strong underline-offset-2 hover:text-brand hover:underline"
+            >
+              {post.source} <span aria-hidden="true">↗</span>
+            </a>
+          </MetaRow>
         </dl>
       </header>
 

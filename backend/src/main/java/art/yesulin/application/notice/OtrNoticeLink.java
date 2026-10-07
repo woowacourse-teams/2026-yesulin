@@ -27,7 +27,7 @@ public class OtrNoticeLink {
         return baseUrl + "/otr?vid=" + externalId;
     }
 
-    /** 예술in에 게시한 공고 상세 주소. */
+    /** 예술in에 가져온 공고 상세 주소. 숨긴 공고면 상세가 원문으로 보낸다. */
     public String postLink(long postId) {
         return baseUrl + "/posts/" + postId;
     }

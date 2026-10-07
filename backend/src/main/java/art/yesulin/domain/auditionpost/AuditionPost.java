@@ -27,14 +27,18 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.BatchSize;
+import org.hibernate.annotations.DynamicUpdate;
 
 /**
  * 외부 공고 사이트(수집 허락을 받은 OTR)의 공고 한 건을 우리 서비스 공고로 옮긴 게시글. 운영 서버는 새 공고를 알림과
- * 함께 자동으로 게시하고, 운영자는 관리자 화면에서 직접 가져올 수도 있다. 게시 뒤 제작사에 허락을 받고 거절하면 숨긴다.
- * 같은 출처·번호를 다시 가져오면 새 행을 만들지 않고 내용과 파일을 원문 기준으로 교체한다.
+ * 함께 자동으로 가져오고, 운영자는 관리자 화면에서 직접 가져올 수도 있다. 어느 쪽이든 숨김으로 시작해 운영자가 지원서를
+ * 준비한 뒤 공개하고, 제작사가 내려 달라고 하면 다시 숨긴다. 같은 출처·번호를 다시 가져오면 새 행을 만들지 않고 내용과 파일을 원문 기준으로 교체한다.
  * 지원 접수용 {@code OtrAudition}, Slack 알림 이력 {@code Notice}와는 별개다. 공개 주소에는 숫자 ID를 그대로 쓴다.
+ * 조회수·원문 이동 수는 저장소의 원자적 update로만 늘리므로, 상태 변경·다시 가져오기가 읽은 시점의 수로
+ * 덮어쓰지 않도록 바뀐 컬럼만 갱신한다.
  */
 @Entity
+@DynamicUpdate
 @Table(name = "audition_posts", uniqueConstraints = {
         @UniqueConstraint(name = "uk_audition_posts_source_external_id", columnNames = {"source", "external_id"})
 }, indexes = @Index(name = "idx_audition_posts_status_posted", columnList = "status, source_posted_at"))
@@ -84,7 +88,11 @@ public class AuditionPost {
     @Column(name = "view_count", nullable = false)
     private long viewCount;
 
-    /** 마지막으로 가져온 운영자. 운영 서버가 새 공고를 자동으로 게시했으면 null이다. */
+    /** 숨긴 상태에서 상세 주소를 열어 원문으로 보낸 수. 조회수와 따로 세며 다시 가져와도 유지한다. */
+    @Column(name = "redirect_count", nullable = false)
+    private long redirectCount;
+
+    /** 마지막으로 가져온 운영자. 운영 서버가 새 공고를 자동으로 가져왔으면 null이다. */
     @Column(name = "imported_by")
     private Long importedBy;
 
@@ -108,7 +116,7 @@ public class AuditionPost {
         this.source = origin.source();
         this.externalId = origin.externalId();
         this.sourceUrl = origin.sourceUrl();
-        this.status = AuditionPostStatus.PUBLISHED;
+        this.status = AuditionPostStatus.HIDDEN;
         this.createdAt = requireTime(importedAt);
         apply(content, tags, files, importedBy, importedAt);
     }
@@ -137,7 +145,7 @@ public class AuditionPost {
         this.status = status;
     }
 
-    public boolean isAutoPublished() {
+    public boolean isAutoImported() {
         return importedBy == null;
     }
 

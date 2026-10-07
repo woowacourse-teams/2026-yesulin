@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** 운영자가 알림받은 OTR 공고를 우리 공고로 가져오고, 제작사가 허락하지 않으면 숨긴다. */
+/** 운영자가 OTR 공고를 숨김으로 가져오고, 지원서를 준비한 뒤 공개하거나 제작사 요청으로 다시 숨긴다. */
 @RestController
 @RequestMapping("/api/v1/admin/audition-posts")
 @RequiredArgsConstructor

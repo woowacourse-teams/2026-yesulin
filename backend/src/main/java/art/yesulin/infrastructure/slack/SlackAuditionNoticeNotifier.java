@@ -3,7 +3,6 @@ package art.yesulin.infrastructure.slack;
 import art.yesulin.application.notice.AuditionAlert;
 import art.yesulin.application.notice.AuditionContent;
 import art.yesulin.application.notice.AuditionNoticeNotifier;
-import art.yesulin.application.notice.OtrNoticeLink;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -13,23 +12,13 @@ public class SlackAuditionNoticeNotifier implements AuditionNoticeNotifier {
 
     private final String webhookUrl;
     private final SlackWebhookClient webhookClient;
-    private final OtrNoticeLink noticeLink;
 
     public SlackAuditionNoticeNotifier(
             @Value("${yesulin.slack.notice-webhook-url:}") String webhookUrl,
-            SlackWebhookClient webhookClient,
-            OtrNoticeLink noticeLink
+            SlackWebhookClient webhookClient
     ) {
         this.webhookUrl = webhookUrl;
         this.webhookClient = webhookClient;
-        this.noticeLink = noticeLink;
-    }
-
-    @Override
-    public void send(List<AuditionContent> contents) {
-        sendAlerts(contents.stream()
-                .map(content -> new AuditionAlert(content, noticeLink.create(content.externalId())))
-                .toList());
     }
 
     @Override

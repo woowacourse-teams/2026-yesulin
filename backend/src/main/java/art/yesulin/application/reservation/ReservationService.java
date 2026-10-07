@@ -45,6 +45,7 @@ public class ReservationService {
         Show show = showRepository.findByPublicId(showId)
                 .filter(Show::isPublic)
                 .orElseThrow(() -> new BusinessException(ShowErrorCode.NOT_FOUND, "공연을 찾을 수 없습니다."));
+        show.ensureReservableHere();
         ShowSession session = sessionRepository.findByIdForUpdate(sessionId)
                 .filter(found -> found.getShowId() == show.getId())
                 .orElseThrow(() -> new BusinessException(SESSION_NOT_FOUND, "공연 회차를 찾을 수 없습니다."));

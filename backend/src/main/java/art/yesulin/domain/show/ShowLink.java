@@ -53,8 +53,8 @@ public class ShowLink {
         return normalized;
     }
 
-    /** 도메인에 점이 없는 주소(https://instagram 등)는 입력 실수로 보고 받지 않는다. */
-    private static boolean isWebAddress(String value) {
+    /** 도메인에 점이 없는 주소(https://instagram 등)는 입력 실수로 보고 받지 않는다. 외부 예매 링크 검사에도 쓴다. */
+    static boolean isWebAddress(String value) {
         try {
             URI uri = new URI(value);
             String scheme = uri.getScheme();

@@ -131,6 +131,34 @@ class ShowTest {
     }
 
     @Test
+    void sendsAudienceToExternalReservationPageWhenUrlIsSet() {
+        Show show = show(List.of());
+
+        assertFalse(show.usesExternalReservation());
+        assertDoesNotThrow(show::ensureReservableHere);
+
+        show.updateExternalReservationUrl(" https://form.naver.com/response/abc123 ");
+
+        assertTrue(show.usesExternalReservation());
+        assertEquals("https://form.naver.com/response/abc123", show.getExternalReservationUrl());
+        assertEquals(ShowErrorCode.EXTERNAL_RESERVATION,
+                assertThrows(BusinessException.class, show::ensureReservableHere).getErrorCode());
+    }
+
+    @Test
+    void requiresWebAddressAsExternalReservationUrl() {
+        Show show = show(List.of());
+
+        assertThrows(IllegalArgumentException.class, () -> show.updateExternalReservationUrl("  "));
+        for (String url : List.of("form.naver.com/abc", "javascript:alert(1)", "https://naver",
+                "https://" + "a".repeat(495) + ".com")) {
+            assertEquals(ShowErrorCode.INVALID_INPUT, assertThrows(BusinessException.class,
+                    () -> show.updateExternalReservationUrl(url)).getErrorCode(), url);
+        }
+        assertFalse(show.usesExternalReservation());
+    }
+
+    @Test
     void opensOnlyWhenOwnSessionIsStillBookable() {
         Show show = persistedShow(1L);
         ShowSession pastSession = new ShowSession(1L, NOW.minusSeconds(60), 30);

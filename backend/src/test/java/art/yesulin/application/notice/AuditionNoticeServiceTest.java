@@ -18,9 +18,9 @@ import art.yesulin.domain.notice.Notice;
 import art.yesulin.domain.notice.NoticeRepository;
 import art.yesulin.domain.notice.NoticeStatus;
 import art.yesulin.infrastructure.querydsl.QueryDslConfiguration;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
@@ -53,7 +53,7 @@ class AuditionNoticeServiceTest {
 
     private final AuditionSource source = mock(AuditionSource.class);
     private final AuditionNoticeNotifier notifier = mock(AuditionNoticeNotifier.class);
-    private final AuditionPublisher publisher = mock(AuditionPublisher.class);
+    private final AuditionImporter importer = mock(AuditionImporter.class);
     private final OtrNoticeLink noticeLink = new OtrNoticeLink("https://yesulin.art");
     private AuditionNoticeService service;
 
@@ -61,25 +61,25 @@ class AuditionNoticeServiceTest {
     void setUp() {
         repository.deleteAllInBatch();
         when(source.getSource()).thenReturn("OTR");
-        service = new AuditionNoticeService(source, notifier, repository, transactionManager, publisher, noticeLink);
+        service = new AuditionNoticeService(source, notifier, repository, transactionManager, importer, noticeLink);
     }
 
     @Test
     void firstCollectionIsDeliveredAndRestartDoesNotSendAgain() {
         when(source.fetchRecent()).thenReturn(List.of(content("22310")));
-        service.notifyAuditions();
+        service.importAndNotifyAuditions();
 
         assertThat(stored("22310").getStatus()).isEqualTo(NoticeStatus.SENT);
-        verify(notifier).send(List.of(content("22310")));
+        verify(notifier).sendAlerts(alerts("22310"));
 
         when(source.fetchRecent()).thenReturn(List.of(content("22311"), content("22310"), content("22311")));
         AuditionNoticeService restarted =
-                new AuditionNoticeService(source, notifier, repository, transactionManager, publisher, noticeLink);
-        restarted.notifyAuditions();
-        restarted.notifyAuditions();
+                new AuditionNoticeService(source, notifier, repository, transactionManager, importer, noticeLink);
+        restarted.importAndNotifyAuditions();
+        restarted.importAndNotifyAuditions();
 
-        verify(notifier).send(List.of(content("22311")));
-        verify(notifier, times(1)).send(List.of(content("22310")));
+        verify(notifier).sendAlerts(alerts("22311"));
+        verify(notifier, times(1)).sendAlerts(alerts("22310"));
         assertThat(repository.count()).isEqualTo(2);
         assertThat(stored("22311").getStatus()).isEqualTo(NoticeStatus.SENT);
         assertThat(stored("22311").getSource()).isEqualTo("OTR");
@@ -87,44 +87,34 @@ class AuditionNoticeServiceTest {
     }
 
     @Test
-    void publishesNewNoticeBeforeNotifying() {
+    void importsNewNoticeBeforeNotifying() {
         when(source.fetchRecent()).thenReturn(List.of(content("22330"), content("22333")));
-        when(publisher.publish("OTR", "22330")).thenReturn(Optional.of(7L));
-        when(publisher.publish("OTR", "22333")).thenReturn(Optional.empty());
+        when(importer.importIfAbsent("OTR", "22330")).thenReturn(Optional.of(7L));
+        when(importer.importIfAbsent("OTR", "22333")).thenReturn(Optional.empty());
 
-        service.publishAndNotifyAuditions();
+        service.importAndNotifyAuditions();
 
-        InOrder order = inOrder(publisher, notifier);
-        order.verify(publisher).publish("OTR", "22330");
+        InOrder order = inOrder(importer, notifier);
+        order.verify(importer).importIfAbsent("OTR", "22330");
         order.verify(notifier).sendAlerts(List.of(
                 new AuditionAlert(content("22330"), "https://yesulin.art/posts/7"),
-                new AuditionAlert(content("22333"), "https://otr.co.kr/audition/?vid=22333")
+                new AuditionAlert(content("22333"), "https://yesulin.art/otr?vid=22333")
         ));
     }
 
     @Test
-    void publishFailureIsReportedAndNoticeIsStillSent() {
+    void importFailureIsReportedAndNoticeIsStillSent() {
         when(source.fetchRecent()).thenReturn(List.of(content("22331")));
         doThrow(new IllegalStateException("OTR 공고 페이지를 읽지 못했습니다."))
-                .when(publisher).publish("OTR", "22331");
+                .when(importer).importIfAbsent("OTR", "22331");
 
-        service.publishAndNotifyAuditions();
+        service.importAndNotifyAuditions();
 
-        verify(notifier).sendError(argThat(message -> message.contains("[OTR-22331] 자동 게시 실패")));
+        verify(notifier).sendError(argThat(message -> message.contains("[OTR-22331] 자동 가져오기 실패")));
         verify(notifier).sendAlerts(List.of(
-                new AuditionAlert(content("22331"), "https://otr.co.kr/audition/?vid=22331")
+                new AuditionAlert(content("22331"), "https://yesulin.art/otr?vid=22331")
         ));
         assertThat(stored("22331").getStatus()).isEqualTo(NoticeStatus.SENT);
-    }
-
-    @Test
-    void notifyOnlyModeDoesNotPublish() {
-        when(source.fetchRecent()).thenReturn(List.of(content("22332")));
-
-        service.notifyAuditions();
-
-        verify(notifier).send(List.of(content("22332")));
-        verify(publisher, never()).publish(any(), any());
     }
 
     @Test
@@ -133,9 +123,9 @@ class AuditionNoticeServiceTest {
                 "https://otr.co.kr/audition/?vid=22320");
         when(source.fetchRecent()).thenReturn(List.of(dance, content("22321")));
 
-        service.notifyAuditions();
+        service.importAndNotifyAuditions();
 
-        verify(notifier).send(List.of(content("22321")));
+        verify(notifier).sendAlerts(alerts("22321"));
         assertThat(repository.existsBySourceAndExternalId("OTR", "22320")).isFalse();
     }
 
@@ -143,9 +133,9 @@ class AuditionNoticeServiceTest {
     void sendsMultipleNewNoticesInOneBatch() {
         when(source.fetchRecent()).thenReturn(List.of(content("22310"), content("22311")));
 
-        service.notifyAuditions();
+        service.importAndNotifyAuditions();
 
-        verify(notifier).send(List.of(content("22310"), content("22311")));
+        verify(notifier).sendAlerts(alerts("22310", "22311"));
         assertThat(stored("22310").getStatus()).isEqualTo(NoticeStatus.SENT);
         assertThat(stored("22311").getStatus()).isEqualTo(NoticeStatus.SENT);
     }
@@ -159,9 +149,9 @@ class AuditionNoticeServiceTest {
         when(source.fetchRecent()).thenReturn(List.of(content("200"), content("300")));
         when(source.fetchById("100")).thenReturn(content("100"));
 
-        service.notifyAuditions();
+        service.importAndNotifyAuditions();
 
-        verify(notifier).send(List.of(content("100"), content("300")));
+        verify(notifier).sendAlerts(alerts("100", "300"));
         verify(source).fetchById("100");
         verify(source, never()).fetchById("200");
         assertThat(stored("100").getStatus()).isEqualTo(NoticeStatus.SENT);
@@ -173,14 +163,14 @@ class AuditionNoticeServiceTest {
         when(source.fetchRecent()).thenReturn(List.of()).thenThrow(new IllegalStateException("unavailable"))
                 .thenReturn(List.of(content("22310")));
 
-        service.notifyAuditions();
-        service.notifyAuditions();
+        service.importAndNotifyAuditions();
+        service.importAndNotifyAuditions();
         assertThat(repository.count()).isZero();
         verify(notifier).sendError("[OTR] 공고 목록 조회 실패: unavailable");
 
-        service.notifyAuditions();
+        service.importAndNotifyAuditions();
         assertThat(stored("22310").getStatus()).isEqualTo(NoticeStatus.SENT);
-        verify(notifier).send(List.of(content("22310")));
+        verify(notifier).sendAlerts(alerts("22310"));
     }
 
     @Test
@@ -189,19 +179,19 @@ class AuditionNoticeServiceTest {
                 .thenReturn(List.of());
         when(source.fetchById("22310")).thenReturn(content("22310"));
         when(source.fetchById("22311")).thenReturn(content("22311"));
-        List<AuditionContent> batch = List.of(content("22310"), content("22311"));
-        doThrow(new IllegalStateException("failed")).doNothing().when(notifier).send(batch);
+        List<AuditionAlert> batch = alerts("22310", "22311");
+        doThrow(new IllegalStateException("failed")).doNothing().when(notifier).sendAlerts(batch);
 
-        service.notifyAuditions();
+        service.importAndNotifyAuditions();
 
         assertThat(stored("22310").getStatus()).isEqualTo(NoticeStatus.PENDING);
         assertThat(stored("22311").getStatus()).isEqualTo(NoticeStatus.PENDING);
 
-        service.notifyAuditions();
+        service.importAndNotifyAuditions();
 
         verify(source).fetchById("22310");
         verify(source).fetchById("22311");
-        verify(notifier, times(2)).send(batch);
+        verify(notifier, times(2)).sendAlerts(batch);
         assertThat(stored("22310").getStatus()).isEqualTo(NoticeStatus.SENT);
         assertThat(stored("22311").getStatus()).isEqualTo(NoticeStatus.SENT);
     }
@@ -212,10 +202,10 @@ class AuditionNoticeServiceTest {
         when(source.fetchRecent()).thenThrow(new IllegalStateException("fetch failed"));
         when(source.fetchById("22310")).thenReturn(content("22310"));
 
-        service.notifyAuditions();
+        service.importAndNotifyAuditions();
 
         verify(notifier).sendError("[OTR] 공고 목록 조회 실패: fetch failed");
-        verify(notifier).send(List.of(content("22310")));
+        verify(notifier).sendAlerts(alerts("22310"));
         assertThat(stored("22310").getStatus()).isEqualTo(NoticeStatus.SENT);
     }
 
@@ -227,10 +217,10 @@ class AuditionNoticeServiceTest {
         when(source.fetchById("22310")).thenThrow(new IllegalStateException("detail unavailable"));
         when(source.fetchById("22311")).thenReturn(content("22311"));
 
-        service.notifyAuditions();
+        service.importAndNotifyAuditions();
 
         verify(notifier).sendError("[OTR-22310] 공고 상세 조회 실패: detail unavailable");
-        verify(notifier).send(List.of(content("22311")));
+        verify(notifier).sendAlerts(alerts("22311"));
         assertThat(stored("22310").getStatus()).isEqualTo(NoticeStatus.PENDING);
         assertThat(stored("22311").getStatus()).isEqualTo(NoticeStatus.SENT);
     }
@@ -243,11 +233,11 @@ class AuditionNoticeServiceTest {
         when(source.fetchById("22310")).thenThrow(new IllegalStateException("detail unavailable"));
         when(source.fetchById("22311")).thenReturn(content("22311"));
 
-        service.notifyAuditions();
+        service.importAndNotifyAuditions();
 
         verify(notifier).sendError("[OTR] 공고 목록 조회 실패: list unavailable");
         verify(notifier).sendError("[OTR-22310] 공고 상세 조회 실패: detail unavailable");
-        verify(notifier).send(List.of(content("22311")));
+        verify(notifier).sendAlerts(alerts("22311"));
         assertThat(stored("22310").getStatus()).isEqualTo(NoticeStatus.PENDING);
         assertThat(stored("22311").getStatus()).isEqualTo(NoticeStatus.SENT);
     }
@@ -264,14 +254,14 @@ class AuditionNoticeServiceTest {
                 .thenThrow(new IllegalStateException("db failed"));
 
         AuditionNoticeService failingService = new AuditionNoticeService(
-                source, notifier, failingRepository, transactionManager, publisher, noticeLink);
-        assertThatThrownBy(failingService::notifyAuditions)
+                source, notifier, failingRepository, transactionManager, importer, noticeLink);
+        assertThatThrownBy(failingService::importAndNotifyAuditions)
                 .isInstanceOf(IllegalStateException.class);
         assertThat(stored("22310").getStatus()).isEqualTo(NoticeStatus.PENDING);
 
-        service.notifyAuditions();
+        service.importAndNotifyAuditions();
 
-        verify(notifier, times(2)).send(List.of(content("22310")));
+        verify(notifier, times(2)).sendAlerts(alerts("22310"));
         assertThat(stored("22310").getStatus()).isEqualTo(NoticeStatus.SENT);
     }
 
@@ -286,11 +276,11 @@ class AuditionNoticeServiceTest {
             return content(externalId);
         });
 
-        service.notifyAuditions();
+        service.importAndNotifyAuditions();
 
         assertThat(pending()).isEmpty();
-        verify(notifier, times(8)).send(argThat(batch -> batch.size() == 5));
-        verify(notifier).send(argThat(batch -> batch.size() == 1));
+        verify(notifier, times(8)).sendAlerts(argThat(batch -> batch.size() == 5));
+        verify(notifier).sendAlerts(argThat(batch -> batch.size() == 1));
     }
 
     @Test
@@ -300,20 +290,19 @@ class AuditionNoticeServiceTest {
         }
         when(source.fetchRecent()).thenReturn(List.of());
         when(source.fetchById(any())).thenAnswer(invocation -> content(invocation.getArgument(0)));
-        List<AuditionContent> firstBatch = IntStream.rangeClosed(1, 5)
-                .mapToObj(index -> content(Integer.toString(index))).toList();
-        doThrow(new IllegalStateException("failed")).doNothing().when(notifier).send(firstBatch);
+        List<AuditionAlert> firstBatch = alerts("1", "2", "3", "4", "5");
+        doThrow(new IllegalStateException("failed")).doNothing().when(notifier).sendAlerts(firstBatch);
 
-        service.notifyAuditions();
+        service.importAndNotifyAuditions();
 
         assertThat(pending()).hasSize(5);
         assertThat(stored("6").getStatus()).isEqualTo(NoticeStatus.SENT);
-        verify(notifier).send(List.of(content("6")));
+        verify(notifier).sendAlerts(alerts("6"));
 
-        service.notifyAuditions();
+        service.importAndNotifyAuditions();
 
         assertThat(pending()).isEmpty();
-        verify(notifier, times(2)).send(firstBatch);
+        verify(notifier, times(2)).sendAlerts(firstBatch);
     }
 
     @Test
@@ -321,12 +310,12 @@ class AuditionNoticeServiceTest {
         when(source.getSource()).thenReturn("OTHER");
         when(source.fetchRecent()).thenReturn(List.of(content("22310")));
 
-        service.notifyAuditions();
+        service.importAndNotifyAuditions();
 
         assertThat(repository.findBySourceAndExternalId("OTHER", "22310")).isPresent();
         assertThat(repository.findBySourceAndExternalId("OTHER", "22310").orElseThrow().getStatus())
                 .isEqualTo(NoticeStatus.SENT);
-        verify(notifier).send(List.of(content("22310")));
+        verify(notifier).sendAlerts(alerts("22310"));
     }
 
     @Test
@@ -335,10 +324,10 @@ class AuditionNoticeServiceTest {
         when(source.fetchRecent()).thenReturn(List.of(content("22310"), oversized))
                 .thenReturn(List.of(content("22310")));
 
-        assertThatThrownBy(() -> service.notifyAuditions()).isInstanceOf(DataIntegrityViolationException.class);
+        assertThatThrownBy(service::importAndNotifyAuditions).isInstanceOf(DataIntegrityViolationException.class);
 
         assertThat(repository.count()).isZero();
-        service.notifyAuditions();
+        service.importAndNotifyAuditions();
         assertThat(stored("22310").getStatus()).isEqualTo(NoticeStatus.SENT);
     }
 
@@ -366,11 +355,11 @@ class AuditionNoticeServiceTest {
         doAnswer(invocation -> {
             assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
             return null;
-        }).when(notifier).send(List.of(content("22310")));
+        }).when(notifier).sendAlerts(alerts("22310"));
 
-        service.notifyAuditions();
+        service.importAndNotifyAuditions();
 
-        verify(notifier).send(List.of(content("22310")));
+        verify(notifier).sendAlerts(alerts("22310"));
         assertThat(stored("22310").getStatus()).isEqualTo(NoticeStatus.SENT);
     }
 
@@ -381,6 +370,12 @@ class AuditionNoticeServiceTest {
     private List<Notice> pending() {
         return repository.findAllBySourceAndStatusOrderByIdAsc("OTR", NoticeStatus.PENDING,
                 PageRequest.of(0, 100));
+    }
+
+    private List<AuditionAlert> alerts(String... externalIds) {
+        return Arrays.stream(externalIds)
+                .map(externalId -> new AuditionAlert(content(externalId), "https://yesulin.art/otr?vid=" + externalId))
+                .toList();
     }
 
     private AuditionContent content(String externalId) {

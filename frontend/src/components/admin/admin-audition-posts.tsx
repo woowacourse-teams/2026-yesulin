@@ -23,8 +23,9 @@ const ROW_BUTTON_CLASS =
   "inline-flex min-h-11 items-center rounded-control border border-border bg-card px-3 text-sm font-semibold text-muted-strong hover:border-brand-line hover:text-brand disabled:opacity-50";
 
 /**
- * 운영 서버는 새 OTR 공고를 알림과 함께 자동으로 게시한다. 자동 게시가 실패했거나 개발 환경에서는 여기서 번호로
- * 직접 가져온다. 게시한 뒤 제작사에 허락을 받고 거절하면 숨긴다. 같은 번호를 다시 가져오면 원문 내용으로 교체된다.
+ * 운영 서버는 새 OTR 공고를 알림과 함께 숨김으로 가져온다. 자동으로 가져오지 못했거나 개발 환경에서는 여기서 번호로
+ * 직접 가져온다. 지원서를 준비한 뒤 보여 주고, 제작사가 내려 달라고 하면 숨긴다. 숨긴 공고 링크는 원문으로 연결된다.
+ * 같은 번호를 다시 가져오면 공개 상태는 그대로 두고 원문 내용으로 교체된다.
  */
 export function AdminAuditionPosts() {
   const [phase, setPhase] = useState<Phase>("loading");
@@ -122,7 +123,7 @@ export function AdminAuditionPosts() {
     <AdminShell
       current="posts"
       title="공고 가져오기"
-      description="운영 서버는 새 OTR 공고를 알림과 함께 자동으로 게시해요. 자동 게시가 실패했거나 개발 환경에서는 OTR 번호나 알림 링크를 넣어 직접 게시해 주세요. 게시한 뒤 제작사에 허락을 받고, 거절하면 숨겨 주세요."
+      description="운영 서버는 새 OTR 공고를 알림과 함께 숨김으로 가져와요. 지원서를 준비한 뒤 '보여주기'를 누르면 공개되고, 제작사가 내려 달라고 하면 '숨기기'를 눌러 주세요. 숨긴 공고 링크는 OTR 원문으로 연결돼요. 자동으로 가져오지 못했거나 개발 환경에서는 OTR 번호나 알림 링크를 넣어 직접 가져와 주세요."
       actions={(
         <>
           <AdminActionButton onClick={refresh}>새로고침</AdminActionButton>
@@ -149,7 +150,7 @@ export function AdminAuditionPosts() {
             disabled={importing !== null}
             className="min-h-12 shrink-0 rounded-control bg-brand px-5 text-sm font-semibold text-white hover:bg-brand-strong disabled:opacity-60"
           >
-            {importing ? "가져오는 중…" : "가져와서 공개"}
+            {importing ? "가져오는 중…" : "가져오기"}
           </button>
         </div>
         {inputError ? (
@@ -179,7 +180,7 @@ export function AdminAuditionPosts() {
                 <span className={`rounded-full px-2.5 py-0.5 font-bold ${post.status === "PUBLISHED" ? "bg-pass-bg text-pass" : "bg-border-soft text-muted-strong"}`}>
                   {post.status === "PUBLISHED" ? "공개 중" : "숨김"}
                 </span>
-                {post.autoPublished ? <span className="rounded-full bg-brand-soft px-2.5 py-0.5 font-bold text-brand">자동 게시</span> : null}
+                {post.autoImported ? <span className="rounded-full bg-brand-soft px-2.5 py-0.5 font-bold text-brand">자동 수집</span> : null}
                 {post.closed ? <span className="rounded-full bg-border-soft px-2.5 py-0.5 font-bold text-muted">마감</span> : null}
                 <span className="num text-muted">{post.source} {post.externalId}</span>
                 <span className="ml-auto text-muted">{formatDateTime(post.updatedAt)} 갱신</span>
@@ -188,7 +189,7 @@ export function AdminAuditionPosts() {
               <p className="mt-1 text-sm text-muted-strong">
                 {[post.category, post.authorName, post.deadlineText && `마감 ${post.deadlineText}`].filter(Boolean).join(" · ")}
               </p>
-              <p className="mt-1 text-xs text-muted">사진 <span className="num">{post.imageCount}</span> · 첨부 <span className="num">{post.attachmentCount}</span> · 조회 <span className="num">{post.viewCount}</span></p>
+              <p className="mt-1 text-xs text-muted">사진 <span className="num">{post.imageCount}</span> · 첨부 <span className="num">{post.attachmentCount}</span> · 조회 <span className="num">{post.viewCount}</span> · OTR 이동 <span className="num">{post.redirectCount}</span></p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {post.status === "PUBLISHED" ? (
                   <Link href={auditionPostRoutes.detail(post.id)} target="_blank" className={ROW_BUTTON_CLASS}>공개 화면</Link>
@@ -208,7 +209,7 @@ export function AdminAuditionPosts() {
                   onClick={() => void toggleStatus(post)}
                   className="ml-auto min-h-11 rounded-control border border-foreground bg-foreground px-4 text-sm font-semibold text-white hover:bg-sidebar-hover disabled:opacity-50"
                 >
-                  {changing === post.id ? "바꾸는 중…" : post.status === "PUBLISHED" ? "숨기기" : "다시 공개"}
+                  {changing === post.id ? "바꾸는 중…" : post.status === "PUBLISHED" ? "숨기기" : "보여주기"}
                 </button>
               </div>
             </article>
@@ -223,7 +224,7 @@ function ImportResult({ result }: { readonly result: AdminAuditionPostImport }) 
   return (
     <section role="status" className="rounded-card border border-pass/30 bg-pass-bg px-4 py-4 text-sm sm:px-5">
       <p className="font-bold text-pass">
-        {result.created ? "새로 가져와 공개했어요." : "원문 내용으로 다시 가져왔어요."}
+        {result.created ? "숨김으로 가져왔어요. 지원서를 준비한 뒤 '보여주기'를 눌러 주세요." : "원문 내용으로 다시 가져왔어요."}
       </p>
       <p className="mt-1 text-foreground">
         {result.post.title} · 사진 <span className="num">{result.post.imageCount}</span> · 첨부 <span className="num">{result.post.attachmentCount}</span>

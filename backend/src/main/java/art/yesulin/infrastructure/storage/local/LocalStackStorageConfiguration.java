@@ -140,7 +140,7 @@ public class LocalStackStorageConfiguration {
         s3Client.putBucketCors(PutBucketCorsRequest.builder()
                 .bucket(properties.bucket())
                 .corsConfiguration(CORSConfiguration.builder().corsRules(CORSRule.builder()
-                        .allowedOrigins("http://localhost:3000", "http://localhost:3001")
+                        .allowedOrigins("http://localhost:3000", "http://localhost:3001", "http://localhost:3200")
                         .allowedMethods("GET", "HEAD", "PUT")
                         .allowedHeaders("*")
                         .exposeHeaders("ETag")

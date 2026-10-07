@@ -119,6 +119,10 @@ export type AdminShow = {
   readonly companyName: string | null;
   /** 공연에 따로 적은 주최 이름. 비어 있으면 관객에게 `companyName`이 보인다. */
   readonly hostName: string;
+  /** 운영자가 등록한 공연의 외부 예매 주소. 기획사 공연은 빈 문자열이다. */
+  readonly externalReservationUrl: string;
+  /** 관객이 예매하기를 눌러 외부 예매 페이지로 이동한 횟수. 기획사 공연은 0이다. */
+  readonly externalReservationVisits: number;
   readonly createdAt: string;
   readonly totalCapacity: number;
   readonly reservedTickets: number;
@@ -318,9 +322,11 @@ export type AdminAuditionPost = {
   readonly deadlineText: string;
   readonly closed: boolean;
   readonly status: AdminAuditionPostStatus;
-  /** 운영 서버가 새 공고 알림과 함께 자동으로 게시했으면 true. 운영자가 다시 가져오면 false가 된다. */
-  readonly autoPublished: boolean;
+  /** 운영 서버가 새 공고 알림과 함께 자동으로 가져왔으면 true. 운영자가 다시 가져오면 false가 된다. */
+  readonly autoImported: boolean;
   readonly viewCount: number;
+  /** 숨긴 상태에서 상세 주소를 열어 OTR 원문으로 보낸 수. 조회수와 따로 센다. */
+  readonly redirectCount: number;
   readonly imageCount: number;
   readonly attachmentCount: number;
   readonly createdAt: string;
