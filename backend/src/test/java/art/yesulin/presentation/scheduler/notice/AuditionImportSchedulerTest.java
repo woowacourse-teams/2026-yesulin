@@ -20,12 +20,12 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 
-class AuditionNoticeSchedulerTest {
+class AuditionImportSchedulerTest {
 
     @Test
     void runsEveryTenMinutesFromNineThroughTwentyInKorea() throws NoSuchMethodException {
-        Scheduled[] schedules = AuditionNoticeScheduler.class
-                .getMethod("notifyAuditions")
+        Scheduled[] schedules = AuditionImportScheduler.class
+                .getMethod("importAndNotifyAuditions")
                 .getAnnotationsByType(Scheduled.class);
 
         assertEquals(List.of("0 */10 9-19 * * *", "0 0 20 * * *"),
@@ -34,9 +34,9 @@ class AuditionNoticeSchedulerTest {
     }
 
     @Test
-    void enablesSchedulingGloballyButRunsNoticeOnlyInDev() {
-        Profile schedulerProfile = AuditionNoticeScheduler.class.getAnnotation(Profile.class);
-        assertArrayEquals(new String[] {"dev"}, schedulerProfile.value());
+    void enablesSchedulingGloballyButRunsImportOnlyInProd() {
+        Profile schedulerProfile = AuditionImportScheduler.class.getAnnotation(Profile.class);
+        assertArrayEquals(new String[] {"prod"}, schedulerProfile.value());
         assertNull(GlobalSchedulingConfiguration.class.getAnnotation(Profile.class));
         assertNotNull(GlobalSchedulingConfiguration.class.getAnnotation(EnableScheduling.class));
     }
@@ -44,12 +44,12 @@ class AuditionNoticeSchedulerTest {
     @Test
     void delegatesToNoticeServiceAndKeepsLaterRunsAvailableAfterFailure() {
         AuditionNoticeService service = mock(AuditionNoticeService.class);
-        AuditionNoticeScheduler scheduler = new AuditionNoticeScheduler(service);
-        doThrow(new IllegalStateException("database unavailable")).doNothing().when(service).notifyAuditions();
+        AuditionImportScheduler scheduler = new AuditionImportScheduler(service);
+        doThrow(new IllegalStateException("database unavailable")).doNothing().when(service).importAndNotifyAuditions();
 
-        assertDoesNotThrow(scheduler::notifyAuditions);
-        assertDoesNotThrow(scheduler::notifyAuditions);
+        assertDoesNotThrow(scheduler::importAndNotifyAuditions);
+        assertDoesNotThrow(scheduler::importAndNotifyAuditions);
 
-        verify(service, times(2)).notifyAuditions();
+        verify(service, times(2)).importAndNotifyAuditions();
     }
 }

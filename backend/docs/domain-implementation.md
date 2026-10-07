@@ -116,14 +116,13 @@
   `AuditionNoticeService`가 `NoticeRepository`를 직접 사용한다. 전체 실행을 트랜잭션으로 묶지 않고
   수집 결과 저장과 묶음 전송 완료 기록에만 짧은 트랜잭션을 적용한다. DB 트랜잭션을 잡은 채 외부 요청을 수행하지 않는다.
   동시 수집의 삽입 충돌은 유니크 제약으로 거절되고 해당 수집 트랜잭션은 롤백된다. 다음 실행에서 재수집한다.
-- 가져오기 모드에서는 묶음마다 Slack 전송 전에 공고마다 `AuditionImporter.importIfAbsent`로 숨긴 채 가져온다. 가져오기 실패는
+- 묶음마다 Slack 전송 전에 공고마다 `AuditionImporter.importIfAbsent`로 숨긴 채 가져온다. 가져오기 실패는
   `sendError`로 따로 알리고 해당 공고의 알림은 경유 링크 `/otr?vid=`로 그대로 보낸다. 가져온 공고 알림은 상태와 관계없이 `/posts/{id}`를 쓴다.
   전송이 실패해 다음 실행에서 다시 보낼 때는 이미 가져온 번호라 다시 가져오지 않는다.
 - `AuditionNoticeService`는 Spring bean으로 등록한다. `@EnableScheduling`은 전체 환경에서 활성화한다.
-  `presentation/scheduler/notice`에서 PROD는 `AuditionImportScheduler`가 `importAndNotifyAuditions`(가져온 뒤 알림)를,
-  DEV는 기존 `AuditionNoticeScheduler`가 `notifyAuditions`(알림만)를 실행한다. DEV 쪽은 PROD 자동 가져오기가 안정되면 제거한다.
-  PROD 스케줄러는 `yesulin.notice.scheduler-enabled=false`로 끌 수 있다. 둘 다 매일 한국 시간 09:00~20:00에 10분 간격이다.
-  OTR 수집기와 Slack Incoming Webhook 전송 adapter를 사용하며, 같은 채널의 서로 다른 봇 웹훅으로 구분한다.
+  `presentation/scheduler/notice`의 `AuditionImportScheduler`가 PROD에서만 `importAndNotifyAuditions`(가져온 뒤 알림)를
+  실행한다. DEV·LOCAL에는 공고 스케줄러가 없다. PROD 스케줄러는 `yesulin.notice.scheduler-enabled=false`로 끌 수 있고,
+  매일 한국 시간 09:00~20:00에 10분 간격이다. OTR 수집기와 Slack Incoming Webhook 전송 adapter를 사용한다.
 - 현재 목록 여러 페이지 탐색과 분산 실행 잠금은 미구현이다. 별도 DB adapter는 두지 않는다.
   중복 저장 방지와 중복 전송 방지는 별개다. 배포 중 동시 실행 및 전송 성공 후 상태 저장 전 종료로 인한 재전송은
   아직 허용하며 exactly-once 전달을 보장하지 않는다. 수집 누락 방지를 위한 페이지 탐색 범위는 추후 adapter에서 정한다.

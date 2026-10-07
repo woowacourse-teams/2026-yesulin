@@ -9,8 +9,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * 운영 서버에서 OTR 새 공고를 우리 공고로 숨긴 채 가져온 뒤 Slack으로 알린다. 개발 서버의 {@link AuditionNoticeScheduler}는
- * 운영 자동 가져오기가 안정될 때까지 알림만 계속 보낸다. 운영에서 잠시 멈추려면 {@code YESULIN_NOTICE_SCHEDULER_ENABLED=false}로 끈다.
+ * 운영 서버에서 OTR 새 공고를 우리 공고로 숨긴 채 가져온 뒤 Slack으로 알린다. 개발 서버는 공고를 수집·알림하지 않는다.
+ * 운영에서 잠시 멈추려면 {@code YESULIN_NOTICE_SCHEDULER_ENABLED=false}로 끈다.
  */
 @Slf4j
 @Component
