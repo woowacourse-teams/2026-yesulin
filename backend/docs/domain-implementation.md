@@ -132,7 +132,8 @@
 - `domain/auditionpost`의 `AuditionPost`는 출처(`source`)·원문 번호(`external_id`)·원문 주소, 내용 `AuditionPostContent`(embeddable),
   태그(`audition_post_tags`)와 파일 `AuditionPostFile`(`audition_post_files`, 사진·첨부 구분과 저장소 키·원래 이름·형식·크기),
   `PUBLISHED/HIDDEN`(생성 시 `HIDDEN`), 조회수·원문 이동 수, 가져온 운영자(자동 가져오기면 null), 생성·갱신 시각을 저장한다.
-  두 수는 저장소의 원자적 update로만 늘린다. 조회수는 `PUBLISHED`, 원문 이동 수는 `HIDDEN`일 때만 늘어난다. `(source, external_id)`는 유니크이고 공개 주소에는 숫자 ID를 쓴다.
+  두 수는 저장소의 원자적 update로만 늘린다. 엔티티는 바뀐 컬럼만 갱신해 상태 변경·다시 가져오기가 두 수를 덮어쓰지 않는다.
+  조회수는 `PUBLISHED`, 원문 이동 수는 `HIDDEN`일 때만 늘어난다. `(source, external_id)`는 유니크이고 공개 주소에는 숫자 ID를 쓴다.
 - 분류는 `AuditionCategory`(연극·퍼포먼스·뮤지컬·단원·기획사)만 받는다. `AuditionPostContent`가 생성 시 검사하므로
   가져오기는 파일을 받기 전에 거절된다. 공개 목록의 모집 중 조건은 `deadline`이 없거나 오늘 이후인 공고다.
 - 마감은 원문 문자열(`deadline_text`)과 `yyyy-MM-dd`일 때만 채우는 `deadline`을 함께 둔다. 원문 작성 시각은 한국 시간 `LocalDateTime`이다.

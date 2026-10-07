@@ -34,6 +34,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 
 @SpringBootTest(properties = {
@@ -291,6 +292,23 @@ class AuditionPostImportServiceTest {
         AdminAuditionPostResult post = auditionPostService.findAllForAdmin().getFirst();
         assertEquals(2, post.redirectCount());
         assertEquals(0, post.viewCount());
+    }
+
+    @Test
+    void statusChangeKeepsRedirectCountedAfterLoading() {
+        long id = importService.importPost(ADMIN_ID, OTR_ID).post().id();
+
+        new TransactionTemplate(transactionManager).executeWithoutResult(outer -> {
+            AuditionPost post = repository.findById(id).orElseThrow();
+            TransactionTemplate inner = new TransactionTemplate(transactionManager);
+            inner.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+            inner.executeWithoutResult(ignored -> auditionPostService.increaseRedirectCount(id));
+            post.changeStatus(AuditionPostStatus.PUBLISHED);
+        });
+
+        AdminAuditionPostResult post = auditionPostService.findAllForAdmin().getFirst();
+        assertEquals(1, post.redirectCount());
+        assertEquals(AuditionPostStatus.PUBLISHED, post.status());
     }
 
     @Test
