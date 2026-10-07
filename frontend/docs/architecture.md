@@ -29,7 +29,8 @@ src/config/              환경 변수 해석
   최상단에는 카카오톡 오픈채팅 공고 알림 안내(`AuditionAlertBanner`)를 둔다. 상세는 열릴 때 조회를 한 번 기록하고
   (`sessionStorage`로 탭당 한 번), 서버 렌더링에서는 세지 않는다. 상세 `/posts/{id}`는
   서버가 정리한 본문 HTML·첨부·태그와 작은 출처 링크(`OTR ↗`)를 보여 준다. 숨긴 공고는 서버 렌더링에서 백엔드의 302
-  `Location`을 읽고, 원문 이동 수 POST를 한 번 보낸 뒤 원문 공고로 `redirect()`한다. 링크는 `features/audition-posts/types.ts`의
+  `Location`을 읽고, 원문 이동 수 POST를 한 번 보내고(1.5초를 넘기면 기다리지 않는다) 원문 공고로 `redirect()`한다.
+  링크는 `features/audition-posts/types.ts`의
   `auditionPostRoutes`로만 만든다. 기존 배우용 소개 화면은 제거했다.
 - `/admin/posts`: 운영자가 공고 알림의 OTR 번호나 주소를 넣어 숨김으로 가져오고, 지원서를 준비한 뒤 보여 주거나
   제작사 요청으로 숨긴다.

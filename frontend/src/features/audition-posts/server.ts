@@ -1,6 +1,8 @@
 import "server-only";
 import { auditionPostApiPaths, type AuditionPost, type AuditionPostPage, type AuditionPostQuery } from "./types";
 
+const REDIRECT_COUNT_TIMEOUT_MS = 1_500;
+
 /** 상세 SSR 조회 결과. 숨긴 공고는 백엔드가 원문 공고 주소로 302를 준다. */
 export type AuditionPostLookup =
   | { readonly kind: "published"; readonly post: AuditionPost }
@@ -52,7 +54,10 @@ export async function auditionPostForServer(postId: string): Promise<AuditionPos
   return post ? { kind: "published", post } : null;
 }
 
-/** 숨긴 공고를 원문으로 보내기 직전에 이동 수를 한 번 센다. 기록에 실패해도 이동은 막지 않는다. */
+/** 숨긴 공고를 원문으로 보내기 직전에 이동 수를 한 번 센다. 기록에 실패하거나 1.5초 안에 끝나지 않아도 이동은 막지 않는다. */
 export async function recordAuditionPostRedirect(postId: string): Promise<void> {
-  await fetchForServer(`/api${auditionPostApiPaths.redirect(postId)}`, { method: "POST" });
+  await fetchForServer(`/api${auditionPostApiPaths.redirect(postId)}`, {
+    method: "POST",
+    signal: AbortSignal.timeout(REDIRECT_COUNT_TIMEOUT_MS),
+  });
 }
