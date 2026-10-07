@@ -16,8 +16,10 @@ type ListState =
   | { readonly status: "error" }
   | { readonly status: "ready"; readonly shows: readonly PublicShowSummary[] };
 
-export function PublicShowList() {
-  const [state, setState] = useState<ListState>({ status: "loading" });
+export function PublicShowList({ initialShows }: { readonly initialShows: readonly PublicShowSummary[] | null }) {
+  const [state, setState] = useState<ListState>(() => initialShows === null
+    ? { status: "loading" }
+    : { status: "ready", shows: initialShows });
   const [genre, setGenre] = useState<ShowGenre | null>(null);
 
   const load = useCallback(() => {
@@ -31,7 +33,10 @@ export function PublicShowList() {
     return () => { active = false; };
   }, []);
 
-  useEffect(() => load(), [load]);
+  useEffect(() => {
+    if (initialShows !== null) return;
+    return load();
+  }, [initialShows, load]);
 
   return (
     <>
