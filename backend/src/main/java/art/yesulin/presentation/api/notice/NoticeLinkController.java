@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** 공고 알림 링크. 예술in에 게시한 공고면 우리 상세로, 아니면 OTR 원문으로 보낸다. */
+/** 공고 알림 링크. 예술in에 공개 중인 공고면 우리 상세로, 아니면 OTR 원문으로 보낸다. */
 @RestController
 @RequestMapping("/api/v1/otr")
 @RequiredArgsConstructor

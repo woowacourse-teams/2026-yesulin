@@ -318,8 +318,8 @@ export type AdminAuditionPost = {
   readonly deadlineText: string;
   readonly closed: boolean;
   readonly status: AdminAuditionPostStatus;
-  /** 운영 서버가 새 공고 알림과 함께 자동으로 게시했으면 true. 운영자가 다시 가져오면 false가 된다. */
-  readonly autoPublished: boolean;
+  /** 운영 서버가 새 공고 알림과 함께 자동으로 가져왔으면 true. 운영자가 다시 가져오면 false가 된다. */
+  readonly autoImported: boolean;
   readonly viewCount: number;
   readonly imageCount: number;
   readonly attachmentCount: number;

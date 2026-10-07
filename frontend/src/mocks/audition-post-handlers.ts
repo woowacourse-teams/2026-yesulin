@@ -2,7 +2,8 @@ import { delay, http, HttpResponse, passthrough } from "msw";
 import type { AuditionPost, AuditionPostSummary } from "@/features/audition-posts/types";
 
 /**
- * 메인 공고 목록·상세 화면 확인용 메모리 목. 실제 서버는 운영자가 게시한 공고를 원문 작성 최신순으로 준다.
+ * 메인 공고 목록·상세 화면 확인용 메모리 목. 실제 서버는 운영자가 공개한 공고를 원문 작성 최신순으로 준다.
+ * 숨긴 공고 상세의 원문 이동(302)은 서버 렌더링에서만 처리하므로 목에는 공개 공고만 둔다.
  * 운영자 가져오기는 OTR과 저장소에 실제로 접속해야 의미가 있으므로 목으로 흉내 내지 않고 실제 서버로 넘긴다.
  */
 function daysFromToday(days: number): string {

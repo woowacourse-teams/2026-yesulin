@@ -25,20 +25,20 @@ public class AuditionNoticeService {
     private final AuditionNoticeNotifier noticeNotifier;
     private final NoticeRepository noticeRepository;
     private final PlatformTransactionManager transactionManager;
-    private final AuditionPublisher auditionPublisher;
+    private final AuditionImporter auditionImporter;
     private final OtrNoticeLink noticeLink;
 
-    /** 새 공고를 Slack으로만 알린다. 개발 서버가 운영 자동 게시가 안정될 때까지 쓴다. */
+    /** 새 공고를 Slack으로만 알린다. 개발 서버가 운영 자동 가져오기가 안정될 때까지 쓴다. */
     public void notifyAuditions() {
         run(false);
     }
 
-    /** 새 공고를 우리 공고로 자동 게시한 뒤 Slack으로 알린다. 운영 서버가 쓴다. */
-    public void publishAndNotifyAuditions() {
+    /** 새 공고를 우리 공고로 숨긴 채 가져온 뒤 Slack으로 알린다. 운영 서버가 쓴다. */
+    public void importAndNotifyAuditions() {
         run(true);
     }
 
-    private void run(boolean publish) {
+    private void run(boolean importPosts) {
         String source = auditionSource.getSource();
         // 연극·퍼포먼스·뮤지컬·단원·기획사 공고만 알린다. 그 밖의 분류는 알림 이력도 만들지 않는다.
         List<AuditionContent> contents = fetchRecent(source).stream()
@@ -49,7 +49,7 @@ public class AuditionNoticeService {
         List<AuditionContent> pending = extractPendingNotices(contents, source);
         for (int start = 0; start < pending.size(); start += MAX_NOTICES_PER_MESSAGE) {
             int end = Math.min(start + MAX_NOTICES_PER_MESSAGE, pending.size());
-            sendPendingBatch(pending.subList(start, end), source, publish);
+            sendPendingBatch(pending.subList(start, end), source, importPosts);
         }
     }
 
@@ -85,21 +85,22 @@ public class AuditionNoticeService {
     }
 
     /**
-     * 알림보다 게시를 먼저 한다. 게시한 공고면 예술in 상세로, 숨겼거나 게시하지 못했으면 OTR 원문으로 바로 연결한다.
-     * 게시 실패는 알림을 막지 않고 운영자가 직접 가져오도록 따로 알린다.
+     * 알림보다 가져오기를 먼저 한다. 가져온 공고면 상태와 관계없이 예술in 상세 링크를 쓴다. 상세는 숨김이면 원문으로,
+     * 공개 뒤에는 우리 상세로 열리므로 같은 메시지를 공개 뒤 그대로 공유할 수 있다. 가져오지 못했으면 OTR 원문으로 바로
+     * 연결하고, 실패는 알림을 막지 않고 운영자가 직접 가져오도록 따로 알린다.
      */
-    private AuditionAlert publish(AuditionContent content, String source) {
+    private AuditionAlert importAndLink(AuditionContent content, String source) {
         try {
-            return auditionPublisher.publish(source, content.externalId())
+            return auditionImporter.importIfAbsent(source, content.externalId())
                     .map(postId -> new AuditionAlert(content, noticeLink.postLink(postId)))
                     .orElseGet(() -> originalAlert(content));
         } catch (RuntimeException exception) {
-            log.warn("공고 자동 게시 실패: {}-{}", source, content.externalId());
+            log.warn("공고 자동 가져오기 실패: {}-{}", source, content.externalId());
             try {
-                noticeNotifier.sendError("[%s-%s] 자동 게시 실패: %s 관리자 화면에서 직접 가져와 주세요.".formatted(
+                noticeNotifier.sendError("[%s-%s] 자동 가져오기 실패: %s 관리자 화면에서 직접 가져와 주세요.".formatted(
                         source, content.externalId(), exception.getMessage()));
             } catch (RuntimeException alertFailure) {
-                log.error("공고 자동 게시 실패 알림 전송 실패");
+                log.error("공고 자동 가져오기 실패 알림 전송 실패");
             }
             return originalAlert(content);
         }
@@ -122,10 +123,10 @@ public class AuditionNoticeService {
         }
     }
 
-    private void sendPendingBatch(List<AuditionContent> contents, String source, boolean publish) {
+    private void sendPendingBatch(List<AuditionContent> contents, String source, boolean importPosts) {
         try {
-            if (publish) {
-                noticeNotifier.sendAlerts(contents.stream().map(content -> publish(content, source)).toList());
+            if (importPosts) {
+                noticeNotifier.sendAlerts(contents.stream().map(content -> importAndLink(content, source)).toList());
             } else {
                 noticeNotifier.send(contents);
             }

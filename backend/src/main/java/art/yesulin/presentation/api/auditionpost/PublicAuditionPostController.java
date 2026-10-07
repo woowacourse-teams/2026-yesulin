@@ -3,7 +3,10 @@ package art.yesulin.presentation.api.auditionpost;
 import art.yesulin.application.auditionpost.AuditionPostService;
 import art.yesulin.application.auditionpost.PublicAuditionPostPageResult;
 import art.yesulin.application.auditionpost.PublicAuditionPostResult;
+import art.yesulin.application.auditionpost.PublicAuditionPostView;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.CacheControl;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -36,8 +39,16 @@ public class PublicAuditionPostController {
         return ResponseEntity.noContent().build();
     }
 
+    /** 숨긴 공고는 원문 공고로 302 이동한다. 프론트 서버 렌더링이 이동을 따라가지 않고 주소만 읽어 브라우저를 보낸다. */
     @GetMapping("/{postId}")
     public ResponseEntity<PublicAuditionPostResult> find(@PathVariable long postId) {
-        return ResponseEntity.ok(auditionPostService.findPublishedPost(postId));
+        return switch (auditionPostService.findPublicPost(postId)) {
+            case PublicAuditionPostView.Published published -> ResponseEntity.ok(published.post());
+            case PublicAuditionPostView.Hidden hidden -> ResponseEntity.status(HttpStatus.FOUND)
+                    .location(hidden.originalUrl())
+                    .cacheControl(CacheControl.noStore())
+                    .header("Referrer-Policy", "no-referrer")
+                    .build();
+        };
     }
 }

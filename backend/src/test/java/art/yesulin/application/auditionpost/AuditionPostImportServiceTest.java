@@ -18,6 +18,7 @@ import art.yesulin.domain.auditionpost.AuditionPostStatus;
 import art.yesulin.support.FakeObjectStorage;
 import art.yesulin.support.ObjectStorageTestConfiguration;
 import java.io.ByteArrayInputStream;
+import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -76,7 +77,7 @@ class AuditionPostImportServiceTest {
     }
 
     @Test
-    void importsBodyImagesAndAttachmentsAndPublishesImmediately() {
+    void importsBodyImagesAndAttachmentsAsHiddenUntilPublished() {
         source.file("img-0", "image/png", 100);
         source.file("img-1", "application/octet-stream", 100);
         source.file("doc", "application/octet-stream", 100);
@@ -97,15 +98,18 @@ class AuditionPostImportServiceTest {
         assertTrue(result.created());
         assertEquals(2, result.post().imageCount());
         assertEquals(1, result.post().attachmentCount());
-        assertEquals(AuditionPostStatus.PUBLISHED, result.post().status());
+        assertEquals(AuditionPostStatus.HIDDEN, result.post().status());
         assertEquals(
                 List.of(new SkippedFile("setup.exe", "지원하지 않는 형식"), new SkippedFile("음원.mp3", "50MB 초과")),
                 result.skippedAttachments()
         );
         assertEquals(before + 3, storage.objectCount());
         assertEquals(1, auditLogRepository.count());
+        assertTrue(auditionPostService.findPublishedPage(0, 12, false).posts().isEmpty());
 
-        PublicAuditionPostResult detail = auditionPostService.findPublishedPost(result.post().id());
+        auditionPostService.changeStatus(ADMIN_ID, result.post().id(), AuditionPostStatus.PUBLISHED);
+
+        PublicAuditionPostResult detail = publishedDetail(result.post().id());
         assertFalse(detail.bodyHtml().contains("post-file:"));
         assertTrue(detail.bodyHtml().contains("https://cdn.test/assets/audition-posts/"));
         assertEquals("지원서.hwp", detail.attachments().getFirst().name());
@@ -123,7 +127,7 @@ class AuditionPostImportServiceTest {
     void reimportReplacesContentKeepsIdAndDeletesOldFiles() {
         source.file("img-0", "image/png", 100);
         source.post("<img src=\"post-file:0\">", List.of(new SourceFile("a.png", "img-0")), List.of());
-        AuditionPostImportResult first = importService.importPost(ADMIN_ID, OTR_ID);
+        AuditionPostImportResult first = importAndPublish(OTR_ID);
         final String oldKey = imageKeys(first).getFirst();
 
         source.post("<p>수정된 본문</p>", List.of(), List.of());
@@ -134,7 +138,8 @@ class AuditionPostImportServiceTest {
         assertEquals(0, second.post().imageCount());
         assertFalse(storage.contains(oldKey));
         assertEquals(1, repository.count());
-        assertEquals("<p>수정된 본문</p>", auditionPostService.findPublishedPost(first.post().id()).bodyHtml());
+        assertEquals(AuditionPostStatus.PUBLISHED, second.post().status());
+        assertEquals("<p>수정된 본문</p>", publishedDetail(first.post().id()).bodyHtml());
     }
 
     @Test
@@ -169,9 +174,10 @@ class AuditionPostImportServiceTest {
     @Test
     void listsOpenPostsByDefaultAndCountsBoth() {
         source.post("뮤지컬", "2000-01-01", "<p>마감</p>", List.of(), List.of());
-        importService.importPost(ADMIN_ID, "1");
+        importAndPublish("1");
         source.post("연극", "상시", "<p>상시</p>", List.of(), List.of());
-        importService.importPost(ADMIN_ID, "2");
+        importAndPublish("2");
+        importService.importPost(ADMIN_ID, "3");
 
         PublicAuditionPostPageResult open = auditionPostService.findPublishedPage(0, 12, false);
 
@@ -186,28 +192,34 @@ class AuditionPostImportServiceTest {
     }
 
     @Test
-    void autoPublishCreatesPostWithoutAuditLog() {
-        Optional<Long> postId = importService.publish("OTR", OTR_ID);
+    void autoImportCreatesHiddenPostWithoutAuditLog() {
+        Optional<Long> postId = importService.importIfAbsent("OTR", OTR_ID);
 
         AdminAuditionPostResult post = auditionPostService.findAllForAdmin().getFirst();
         assertEquals(Optional.of(post.id()), postId);
-        assertTrue(post.autoPublished());
-        assertEquals(AuditionPostStatus.PUBLISHED, post.status());
+        assertTrue(post.autoImported());
+        assertEquals(AuditionPostStatus.HIDDEN, post.status());
         assertEquals(0, auditLogRepository.count());
     }
 
     @Test
-    void autoPublishSkipsPostAlreadyHandledByOperator() {
-        AuditionPostImportResult imported = importService.importPost(ADMIN_ID, OTR_ID);
-        auditionPostService.changeStatus(ADMIN_ID, imported.post().id(), AuditionPostStatus.HIDDEN);
+    void autoImportKeepsPostAlreadyHandledByOperator() {
+        AuditionPostImportResult imported = importAndPublish(OTR_ID);
         source.post("<p>원문이 바뀜</p>", List.of(), List.of());
 
-        assertTrue(importService.publish("OTR", OTR_ID).isEmpty());
+        assertEquals(Optional.of(imported.post().id()), importService.importIfAbsent("OTR", OTR_ID));
 
         AdminAuditionPostResult post = auditionPostService.findAllForAdmin().getFirst();
-        assertEquals(AuditionPostStatus.HIDDEN, post.status());
-        assertFalse(post.autoPublished());
+        assertEquals(AuditionPostStatus.PUBLISHED, post.status());
+        assertFalse(post.autoImported());
+        assertEquals("<p>본문</p>", publishedDetail(post.id()).bodyHtml());
         assertEquals(1, repository.count());
+    }
+
+    @Test
+    void ignoresOtherSourceOnAutoImport() {
+        assertTrue(importService.importIfAbsent("PLAYDB", OTR_ID).isEmpty());
+        assertEquals(0, repository.count());
     }
 
     @Test
@@ -218,28 +230,36 @@ class AuditionPostImportServiceTest {
     }
 
     @Test
-    void hiddenPostDisappearsFromPublicListAndDetail() {
-        source.post("<p>본문</p>", List.of(), List.of());
-        AuditionPostImportResult result = importService.importPost(ADMIN_ID, OTR_ID);
+    void hiddenPostLeavesPublicListAndDetailPointsToOriginal() {
+        AuditionPostImportResult result = importAndPublish(OTR_ID);
 
         auditionPostService.changeStatus(ADMIN_ID, result.post().id(), AuditionPostStatus.HIDDEN);
 
         assertTrue(auditionPostService.findPublishedPage(0, 12, false).posts().isEmpty());
-        assertCode(AuditionPostErrorCode.NOT_FOUND, () -> auditionPostService.findPublishedPost(result.post().id()));
+        PublicAuditionPostView view = auditionPostService.findPublicPost(result.post().id());
+        assertEquals(
+                URI.create("https://otr.co.kr/audition/?vid=" + OTR_ID),
+                assertInstanceOf(PublicAuditionPostView.Hidden.class, view).originalUrl()
+        );
         assertEquals(AuditionPostStatus.HIDDEN, auditionPostService.findAllForAdmin().getFirst().status());
-        assertEquals(2, auditLogRepository.count());
+        assertEquals(3, auditLogRepository.count());
+    }
+
+    @Test
+    void missingPostIsNotFound() {
+        assertCode(AuditionPostErrorCode.NOT_FOUND, () -> auditionPostService.findPublicPost(999L));
     }
 
     @Test
     void countsViewsOfPublishedPostsAndKeepsThemOnReimport() {
-        AuditionPostImportResult imported = importService.importPost(ADMIN_ID, OTR_ID);
+        AuditionPostImportResult imported = importAndPublish(OTR_ID);
         long postId = imported.post().id();
 
         auditionPostService.increaseViewCount(postId);
         auditionPostService.increaseViewCount(postId);
         importService.importPost(ADMIN_ID, OTR_ID);
 
-        assertEquals(2, auditionPostService.findPublishedPost(postId).viewCount());
+        assertEquals(2, publishedDetail(postId).viewCount());
         auditionPostService.changeStatus(ADMIN_ID, postId, AuditionPostStatus.HIDDEN);
         assertCode(AuditionPostErrorCode.NOT_FOUND, () -> auditionPostService.increaseViewCount(postId));
     }
@@ -248,6 +268,17 @@ class AuditionPostImportServiceTest {
     void rejectsOutOfRangePageSize() {
         assertThrows(IllegalArgumentException.class, () -> auditionPostService.findPublishedPage(0, 49, false));
         assertThrows(IllegalArgumentException.class, () -> auditionPostService.findPublishedPage(-1, 10, false));
+    }
+
+    private AuditionPostImportResult importAndPublish(String otrId) {
+        AuditionPostImportResult imported = importService.importPost(ADMIN_ID, otrId);
+        auditionPostService.changeStatus(ADMIN_ID, imported.post().id(), AuditionPostStatus.PUBLISHED);
+        return imported;
+    }
+
+    private PublicAuditionPostResult publishedDetail(long postId) {
+        PublicAuditionPostView view = auditionPostService.findPublicPost(postId);
+        return assertInstanceOf(PublicAuditionPostView.Published.class, view).post();
     }
 
     private List<String> imageKeys(AuditionPostImportResult result) {

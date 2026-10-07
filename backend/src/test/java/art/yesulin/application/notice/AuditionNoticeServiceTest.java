@@ -53,7 +53,7 @@ class AuditionNoticeServiceTest {
 
     private final AuditionSource source = mock(AuditionSource.class);
     private final AuditionNoticeNotifier notifier = mock(AuditionNoticeNotifier.class);
-    private final AuditionPublisher publisher = mock(AuditionPublisher.class);
+    private final AuditionImporter importer = mock(AuditionImporter.class);
     private final OtrNoticeLink noticeLink = new OtrNoticeLink("https://yesulin.art");
     private AuditionNoticeService service;
 
@@ -61,7 +61,7 @@ class AuditionNoticeServiceTest {
     void setUp() {
         repository.deleteAllInBatch();
         when(source.getSource()).thenReturn("OTR");
-        service = new AuditionNoticeService(source, notifier, repository, transactionManager, publisher, noticeLink);
+        service = new AuditionNoticeService(source, notifier, repository, transactionManager, importer, noticeLink);
     }
 
     @Test
@@ -74,7 +74,7 @@ class AuditionNoticeServiceTest {
 
         when(source.fetchRecent()).thenReturn(List.of(content("22311"), content("22310"), content("22311")));
         AuditionNoticeService restarted =
-                new AuditionNoticeService(source, notifier, repository, transactionManager, publisher, noticeLink);
+                new AuditionNoticeService(source, notifier, repository, transactionManager, importer, noticeLink);
         restarted.notifyAuditions();
         restarted.notifyAuditions();
 
@@ -87,15 +87,15 @@ class AuditionNoticeServiceTest {
     }
 
     @Test
-    void publishesNewNoticeBeforeNotifying() {
+    void importsNewNoticeBeforeNotifying() {
         when(source.fetchRecent()).thenReturn(List.of(content("22330"), content("22333")));
-        when(publisher.publish("OTR", "22330")).thenReturn(Optional.of(7L));
-        when(publisher.publish("OTR", "22333")).thenReturn(Optional.empty());
+        when(importer.importIfAbsent("OTR", "22330")).thenReturn(Optional.of(7L));
+        when(importer.importIfAbsent("OTR", "22333")).thenReturn(Optional.empty());
 
-        service.publishAndNotifyAuditions();
+        service.importAndNotifyAuditions();
 
-        InOrder order = inOrder(publisher, notifier);
-        order.verify(publisher).publish("OTR", "22330");
+        InOrder order = inOrder(importer, notifier);
+        order.verify(importer).importIfAbsent("OTR", "22330");
         order.verify(notifier).sendAlerts(List.of(
                 new AuditionAlert(content("22330"), "https://yesulin.art/posts/7"),
                 new AuditionAlert(content("22333"), "https://otr.co.kr/audition/?vid=22333")
@@ -103,14 +103,14 @@ class AuditionNoticeServiceTest {
     }
 
     @Test
-    void publishFailureIsReportedAndNoticeIsStillSent() {
+    void importFailureIsReportedAndNoticeIsStillSent() {
         when(source.fetchRecent()).thenReturn(List.of(content("22331")));
         doThrow(new IllegalStateException("OTR 공고 페이지를 읽지 못했습니다."))
-                .when(publisher).publish("OTR", "22331");
+                .when(importer).importIfAbsent("OTR", "22331");
 
-        service.publishAndNotifyAuditions();
+        service.importAndNotifyAuditions();
 
-        verify(notifier).sendError(argThat(message -> message.contains("[OTR-22331] 자동 게시 실패")));
+        verify(notifier).sendError(argThat(message -> message.contains("[OTR-22331] 자동 가져오기 실패")));
         verify(notifier).sendAlerts(List.of(
                 new AuditionAlert(content("22331"), "https://otr.co.kr/audition/?vid=22331")
         ));
@@ -118,13 +118,13 @@ class AuditionNoticeServiceTest {
     }
 
     @Test
-    void notifyOnlyModeDoesNotPublish() {
+    void notifyOnlyModeDoesNotImport() {
         when(source.fetchRecent()).thenReturn(List.of(content("22332")));
 
         service.notifyAuditions();
 
         verify(notifier).send(List.of(content("22332")));
-        verify(publisher, never()).publish(any(), any());
+        verify(importer, never()).importIfAbsent(any(), any());
     }
 
     @Test
@@ -264,7 +264,7 @@ class AuditionNoticeServiceTest {
                 .thenThrow(new IllegalStateException("db failed"));
 
         AuditionNoticeService failingService = new AuditionNoticeService(
-                source, notifier, failingRepository, transactionManager, publisher, noticeLink);
+                source, notifier, failingRepository, transactionManager, importer, noticeLink);
         assertThatThrownBy(failingService::notifyAuditions)
                 .isInstanceOf(IllegalStateException.class);
         assertThat(stored("22310").getStatus()).isEqualTo(NoticeStatus.PENDING);
