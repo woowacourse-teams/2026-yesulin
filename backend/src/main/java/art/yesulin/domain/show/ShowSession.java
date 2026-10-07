@@ -24,6 +24,7 @@ import org.hibernate.annotations.CreationTimestamp;
 
 /**
  * 정원을 가진 공연 회차다. 예매는 이 행을 잠근 뒤 확정 매수를 다시 계산해 정원 초과를 막는다.
+ * 외부 링크 공연의 회차는 예술in에서 예매받지 않아 정원이 없다(0).
  */
 @Entity
 @Table(name = "show_sessions", indexes = {
@@ -54,6 +55,20 @@ public class ShowSession {
         this.showId = requirePositive(showId, "공연 ID는 1 이상이어야 합니다.");
         this.startsAt = requireNonNull(startsAt, "회차 시작 시각은 필수입니다.");
         this.capacity = requireCapacity(capacity);
+    }
+
+    /** 외부 링크 공연의 회차는 시작 시각만 가진다. 잔여석이 늘 0이라 예술in 예매가 들어와도 받지 않는다. */
+    public static ShowSession withoutCapacity(long showId, Instant startsAt) {
+        ShowSession session = new ShowSession();
+        session.showId = requirePositive(showId, "공연 ID는 1 이상이어야 합니다.");
+        session.startsAt = requireNonNull(startsAt, "회차 시작 시각은 필수입니다.");
+        session.capacity = 0;
+        return session;
+    }
+
+    /** 정원 없는 회차(외부 링크 공연)의 시작 시각만 바꾼다. */
+    public void reschedule(Instant startsAt) {
+        this.startsAt = requireNonNull(startsAt, "회차 시작 시각은 필수입니다.");
     }
 
     public void update(Instant startsAt, int capacity, long reservedTickets) {

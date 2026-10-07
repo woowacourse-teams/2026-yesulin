@@ -25,7 +25,8 @@ public class UploadDiagnosticController {
 
     @PostMapping
     public ResponseEntity<Void> record(
-            @LoginMember(roles = {MemberType.APPLICANT, MemberType.PRODUCER}) MemberPrincipal principal,
+            @LoginMember(roles = {MemberType.APPLICANT, MemberType.PRODUCER, MemberType.ADMIN})
+            MemberPrincipal principal,
             @RequestHeader("X-Request-Id") UUID incidentId,
             @Valid @RequestBody UploadDiagnosticRequest request
     ) {

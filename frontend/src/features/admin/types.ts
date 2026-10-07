@@ -119,6 +119,10 @@ export type AdminShow = {
   readonly companyName: string | null;
   /** 공연에 따로 적은 주최 이름. 비어 있으면 관객에게 `companyName`이 보인다. */
   readonly hostName: string;
+  /** 운영자가 등록한 공연의 외부 예매 주소. 기획사 공연은 빈 문자열이다. */
+  readonly externalReservationUrl: string;
+  /** 관객이 예매하기를 눌러 외부 예매 페이지로 이동한 횟수. 기획사 공연은 0이다. */
+  readonly externalReservationVisits: number;
   readonly createdAt: string;
   readonly totalCapacity: number;
   readonly reservedTickets: number;

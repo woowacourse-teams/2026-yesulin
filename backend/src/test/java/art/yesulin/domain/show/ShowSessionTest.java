@@ -13,6 +13,21 @@ class ShowSessionTest {
     private static final Instant STARTS_AT = Instant.parse("2026-10-10T10:00:00Z");
 
     @Test
+    void externalReservationSessionHasNoSeatsAndOnlyMovesStartTime() {
+        ShowSession session = ShowSession.withoutCapacity(1L, STARTS_AT);
+
+        assertEquals(0, session.getCapacity());
+        assertEquals(0, session.remainingSeats(0));
+        assertEquals(ShowErrorCode.SESSION_NOT_ENOUGH_SEATS, assertThrows(BusinessException.class,
+                () -> session.ensureReservable(STARTS_AT.minusSeconds(60), 0, 1)).getErrorCode());
+
+        session.reschedule(STARTS_AT.plusSeconds(3600));
+
+        assertEquals(STARTS_AT.plusSeconds(3600), session.getStartsAt());
+        assertEquals(0, session.getCapacity());
+    }
+
+    @Test
     void closesBookingAtStartTime() {
         ShowSession session = new ShowSession(1L, STARTS_AT, 30);
 

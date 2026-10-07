@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  externalReservationUrlError,
   formatInquiryPhone,
   normalizeShowLinkUrl,
   showGuideError,
@@ -19,6 +20,9 @@ const valid: ShowFormValues = {
   roadAddress: "서울특별시 종로구 대학로 12",
   guides: [{ title: "주차 안내", content: "건물 지하 주차장을 이용해 주세요." }],
   links: [{ label: "공연사 인스타그램 보기", url: "https://instagram.com/yesulin" }],
+  adminShow: false,
+  hostName: "",
+  externalReservationUrl: "",
 };
 
 const empty: ShowFormValues = {
@@ -31,6 +35,9 @@ const empty: ShowFormValues = {
   roadAddress: "",
   guides: [{ title: "", content: "" }],
   links: [{ label: "", url: "" }],
+  adminShow: false,
+  hostName: "",
+  externalReservationUrl: "",
 };
 
 describe("show form validation", () => {
@@ -47,6 +54,22 @@ describe("show form validation", () => {
 
   it("비어 있는 필수 항목을 한 번에 모두 알려 준다", () => {
     expect(Object.keys(validateShowForm(empty))).toEqual(["poster", "title", "genre", "runningMinutes", "inquiryPhone", "venue", "guides", "links"]);
+  });
+
+  it("운영자 공연은 주최 이름과 외부 예매 링크가 필수이고, 기획사 공연은 둘 다 검사하지 않는다", () => {
+    expect(Object.keys(validateShowForm({ ...valid, adminShow: true }))).toEqual(["hostName", "externalReservationUrl"]);
+    expect(validateShowForm({
+      ...valid, adminShow: true, hostName: "서울숲 거리극 모임", externalReservationUrl: "https://form.naver.com/response/abc123",
+    })).toEqual({});
+    expect(validateShowField("externalReservationUrl", { ...valid, externalReservationUrl: "아무 값" })).toBeNull();
+  });
+
+  it("외부 예매 링크는 http/https 주소여야 한다", () => {
+    expect(externalReservationUrlError(" ")).toBe("관객이 예매할 외부 페이지 주소를 입력해 주세요.");
+    expect(externalReservationUrlError("https://form.naver.com/response/abc123")).toBeNull();
+    for (const url of ["form.naver.com/response", "https://naver", "javascript:alert(1)", `https://${"a".repeat(495)}.com`]) {
+      expect(externalReservationUrlError(url)).not.toBeNull();
+    }
   });
 
   it("안내 링크는 버튼 이름과 http/https 주소가 모두 있어야 하고 몇 번째 링크인지 알려 준다", () => {

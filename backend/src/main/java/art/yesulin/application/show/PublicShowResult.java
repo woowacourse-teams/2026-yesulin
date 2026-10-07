@@ -20,6 +20,7 @@ public record PublicShowResult(
         String ageRating,
         String inquiryPhone,
         List<ShowLinkResult> links,
+        String externalReservationUrl,
         ShowStatus status,
         int maxTicketsPerReservation,
         List<PublicShowSessionResult> sessions

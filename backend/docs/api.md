@@ -273,6 +273,7 @@ page·size 범위 오류는 `400 INVALID_REQUEST`다.
 | --- | --- | --- | --- | --- |
 | GET | `/api/v1/public/shows` | 공개 | 없음 | `200 PublicShowListResponse` |
 | GET | `/api/v1/public/shows/{showId}` | 공개 | 없음 | `200 PublicShowResponse` |
+| POST | `/api/v1/public/shows/{showId}/external-reservation-visits` | 공개 | 없음 | `204` |
 | POST | `/api/v1/public/shows/{showId}/sessions/{sessionId}/reservations` | 공개 | `CreateReservationRequest(bookerName, bookerPhone, ticketCount, privacyAgreed)` | `201 ReservationReceiptResult` |
 | GET | `/api/v1/shows` | Active Producer | 없음 | `200 ProducerShowListResponse` |
 | POST | `/api/v1/shows` | Active Producer | `SaveShowRequest` | `201 ProducerShowResponse`, `Location` |
@@ -300,6 +301,9 @@ page·size 범위 오류는 `400 INVALID_REQUEST`다.
 링크 없음·잔여석 공개로 저장하고, `hostName`·`guides`를 보내지 않으면 지금 값을 유지한다(새 공연은 계정 회사명으로
 주최 표시·안내 없음). 빈 문자열·빈 배열을 보내면 지운다. `ProducerShowResponse`는 네 값을 그대로 돌려준다. `ProducerShowResponse.hostName`은
 따로 적은 이름(없으면 빈 문자열)이고 `defaultHostName`은 비워 두면 대신 보일 기획사 계정 회사명이다.
+`ProducerShowResponse.externalReservationUrl`은 운영자 공연의 외부 예매 주소이며 기획사 공연은 늘 빈 문자열이다.
+`externalReservationVisits`는 관객이 예매하기를 눌러 외부 예매 페이지로 이동한 횟수이고 기획사 공연은 0이다.
+기획사 요청으로는 바꿀 수 없고, 운영자가 등록한 공연은 기획사 API에서 찾을 수 없다(`404 SHOW_NOT_FOUND`).
 잘못된 링크 주소와 개수·길이를 넘은 안내는 `400 SHOW_INVALID_INPUT`이다.
 포스터와 상세 이미지는 요청한 기획사가 올린 READY 공개 파일이어야 하며
 `show-images` 업로드로 받는다. 새 공연은 `DRAFT`이고, 시작 전인 회차가 하나 이상 있어야 `opening`으로 `OPEN`이 된다.
@@ -309,6 +313,12 @@ page·size 범위 오류는 `400 INVALID_REQUEST`다.
 상세 회차는 정원·예매 수 대신 `remainingSeats`, `maxTicketCount`(`min(10, 잔여석)`, 0이면 매진),
 `bookable`(공연 `OPEN`, 시작 전, 잔여석 있음)만 준다. 공연이 잔여석을 숨기면(`remainingSeatsVisible=false`)
 `remainingSeats`는 `null`이고 나머지는 같다. 상세에는 `guides`(`title`, `content`)와 `links`(`label`, `url`)도 포함한다.
+상세의 `externalReservationUrl`은 외부 예매 주소이고 예술in 예매면 빈 문자열이다. 외부 예매 공연의 회차는 잔여석을 알 수 없어
+`remainingSeats`가 `null`, `maxTicketCount`가 0이고, `bookable`은 공연 `OPEN`이고 시작 전인지만 뜻한다.
+외부 예매 공연에 예매를 요청하면 `409 SHOW_EXTERNAL_RESERVATION`이다.
+`external-reservation-visits`는 관객이 외부 링크 공연에서 예매하기를 누를 때 화면이 보내는 이동 기록이다. 관객 정보 없이
+공연과 시각만 저장하며 CSRF 토큰이 필요하다. 없는 공연·`DRAFT`는 `404 SHOW_NOT_FOUND`, `OPEN`이 아니면 `409 SHOW_NOT_OPEN`,
+외부 링크 공연이 아니면 `409 SHOW_INVALID_STATUS`다.
 관객 목록·상세의 `hostName`은 공연에 따로 적은 주최 이름이고, 비어 있으면 기획사 계정의 회사명이다.
 예매는 1~10매, 휴대폰 `010-1234-5678` 형식, 개인정보 수집·이용 동의가 필요하다. 서버는 회차 행을 잠근 뒤
 같은 회차의 같은 휴대폰 확정 예매(`409 RESERVATION_DUPLICATE`)와 시작 시각 경과(`409 SHOW_SESSION_BOOKING_CLOSED`),
@@ -426,7 +436,7 @@ page·size 범위 오류는 `400 INVALID_REQUEST`다.
 
 | Method | URL | 인증 | Request | Response |
 | --- | --- | --- | --- | --- |
-| POST | `/api/v1/upload-diagnostics` | Applicant 또는 Producer | `UploadDiagnosticRequest` | `204` |
+| POST | `/api/v1/upload-diagnostics` | Applicant 또는 Producer 또는 Admin | `UploadDiagnosticRequest` | `204` |
 
 쓰기 요청이므로 CSRF header가 필요하다. 클라이언트가 생성한 UUID를 `X-Request-Id`로 보내면 응답 header와 Spring
 MDC에 같은 값이 남는다. Request는 업로드 흐름·단계·1~2회 시도·실패 또는 재시도 성공·허용된 오류 코드·선택적
@@ -471,6 +481,17 @@ submission ID와 변경할 status·memo·note 중 하나 이상을 요구한다.
 | POST | `/api/v1/admin/files/deletions` | Admin | `BatchDeleteAdminFilesRequest(fileIds, confirmationPassword)` | `200 BatchFileDeletionResult` |
 | PATCH | `/api/v1/admin/members/{memberId}/status` | Admin | `ChangeMemberStatusRequest(status)` | `200 MemberStatusResult` |
 | PUT | `/api/v1/admin/shows/{showId}/host-name` | Admin | `ChangeShowHostNameRequest(hostName)` | `200 AdminShowHostNameResult` |
+| POST | `/api/v1/admin/shows` | Admin | `AdminSaveShowRequest` | `201 ProducerShowResponse`, `Location` |
+| GET | `/api/v1/admin/shows/{showId}` | Admin | 없음 | `200 ProducerShowResponse` |
+| PUT | `/api/v1/admin/shows/{showId}` | Admin | `AdminSaveShowRequest` | `200 ProducerShowResponse` |
+| DELETE | `/api/v1/admin/shows/{showId}` | Admin | 없음 | `204` |
+| POST | `/api/v1/admin/shows/{showId}/opening` | Admin | 없음 | `200 ProducerShowResponse` |
+| POST | `/api/v1/admin/shows/{showId}/closing` | Admin | 없음 | `200 ProducerShowResponse` |
+| POST | `/api/v1/admin/shows/{showId}/sessions` | Admin | `AdminSaveShowSessionRequest(startsAt)` | `201 ProducerShowResponse` |
+| PUT | `/api/v1/admin/shows/{showId}/sessions/{sessionId}` | Admin | `AdminSaveShowSessionRequest(startsAt)` | `200 ProducerShowResponse` |
+| DELETE | `/api/v1/admin/shows/{showId}/sessions/{sessionId}` | Admin | 없음 | `200 ProducerShowResponse` |
+| POST | `/api/v1/admin/show-images/upload-requests` | Admin | `ShowImageUploadRequest` | `201 FileUploadResult` |
+| PATCH | `/api/v1/admin/show-images/{fileId}/completion` | Admin | 없음 | `204` |
 | DELETE | `/api/v1/admin/submissions/{submissionId}` | Admin | `DeleteAdminSubmissionRequest(confirmationPassword)` | `204` |
 | GET | `/api/v1/admin/timetable-messages` | Admin | `status` query (`PENDING`/`SENT`, 기본 `PENDING`) | `200 AdminTimetableMessagesResult` |
 | POST | `/api/v1/admin/timetable-messages/completion` | Admin | `CompleteTimetableMessagesRequest(messageIds)` | `200 AdminTimetableMessagesResponse` |
@@ -510,13 +531,24 @@ S3 삭제 실패 시 `DELETING` 상태가 남으며 같은 파일 ID로 재시�
 
 기획사 목록은 이메일 미인증(`PENDING`) 계정을 앞에 두고 최근 가입 순으로 정렬한다. 공고 목록은 최근 생성 순으로 전체를 반환한다.
 무료 공연 목록은 최근 생성 순으로 전체를 반환한다. 각 공연은 `showId`, `title`, `status`, `companyName`(계정 기획사명),
-`hostName`(공연에 따로 적은 주최 이름, 없으면 빈 문자열이며 관객에게는 `companyName`이 보임), `createdAt`,
+`hostName`(공연에 따로 적은 주최 이름, 없으면 빈 문자열이며 관객에게는 `companyName`이 보임),
+`externalReservationUrl`(운영자 공연의 외부 예매 주소, 기획사 공연은 빈 문자열이며 운영자 공연은 `companyName`이 `null`),
+`externalReservationVisits`(예매하기로 외부 예매 페이지에 간 횟수, 기획사 공연은 0), `createdAt`,
 전체 회차 정원 합 `totalCapacity`, 확정 매수 `reservedTickets`, 확정 건수 `reservationCount`, 취소 건수
 `canceledReservationCount`와 시작 시각 순의 `sessions`를 담는다. 회차는 `sessionId`, `startsAt`, `capacity`와 같은 이름의
 회차별 집계를 담으며 예매가 없으면 0이다. 예매자 이름·휴대폰과 예매번호는 반환하지 않는다.
 `host-name`은 기획사가 계정 이름을 개인 이름으로 적은 경우처럼 운영자가 공연의 주최 이름을 대신 고칠 때 쓴다.
-50자 이하이고 빈 문자열이면 계정 기획사명으로 되돌린다. 응답은 `showId`, `hostName`, `companyName`이다.
+50자 이하이고 기획사 공연은 빈 문자열이면 계정 기획사명으로 되돌린다. 외부 링크 공연은 주최 이름이 필수이며
+빈 문자열·공백만 보내면 `400 SHOW_INVALID_INPUT`으로 거절한다. 응답은 `showId`, `hostName`, `companyName`이다.
 없는 공연은 `404 SHOW_NOT_FOUND`다. `admin_audit_logs`에 `SHOW_HOST_NAME_CHANGED`로 남기되 이름 원문은 담지 않는다.
+`POST /api/v1/admin/shows`와 그 아래 경로는 기획사 계정이 없는 공연을 운영자가 직접 등록·관리할 때 쓴다. 이 공연은 등록한
+운영자가 소유하고, 네이버 폼 같은 외부 링크로만 예매받는다. `AdminSaveShowRequest`는 `SaveShowRequest`에서
+`remainingSeatsVisible`을 빼고 `hostName`(50자 이하)과 `externalReservationUrl`(500자 이하 http/https, 도메인에 점 필수)을
+필수로 받는다. 빠지거나 비어 있으면 `400 INVALID_REQUEST`, 주소 형식이 틀리면 `400 SHOW_INVALID_INPUT`이다.
+조회·수정·삭제·공개·마감·회차 API는 외부 링크 공연만 찾고 기획사 공연은 `404 SHOW_NOT_FOUND`로 다룬다. 회차는 정원 없이
+시작 시각만 받고 응답의 `capacity`는 0이다. 이미지는 요청한 운영자 계정의 파일로 올리며 공연 소유자의 파일만 연결된다.
+그 밖의 응답·회차 규칙은 기획사 API와 같다.
+`admin_audit_logs`에 등록(`SHOW_CREATED`), 공개·마감(`SHOW_STATUS_CHANGED`), 삭제(`SHOW_DELETED`)를 남긴다.
 공고별 지원서 목록과 상세는 제출 당시 스냅샷을 반환한다. 상세의 비공개 제출 사진은 운영자 세션으로 콘텐츠 API에서 읽는다.
 운영자 변경 기록은 최신순으로 페이지당 10건씩 반환한다. `AdminAuditLogsResponse`는 `logs`, `page`, `size`,
 `totalElements`, `totalPages`를 담는다.

@@ -104,6 +104,17 @@ export function showAvailability(show: Pick<PublicShow, "status" | "sessions">, 
   return show.sessions.length ? { kind: "ended", label: "예매 마감" } : { kind: "preparing", label: "회차 준비 중" };
 }
 
+/** 저장된 외부 예매 링크가 손상돼 있어도 http/https가 아닌 주소로 관객을 보내지 않는다. 쓸 수 없으면 null. */
+export function externalReservationHref(show: Pick<PublicShow, "externalReservationUrl">): string | null {
+  if (!show.externalReservationUrl) return null;
+  try {
+    const url = new URL(show.externalReservationUrl);
+    return url.protocol === "https:" || url.protocol === "http:" ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
 const KST_OFFSET = "+09:00";
 
 /** `datetime-local` 입력값(한국 시간 기준)을 서버가 받는 UTC ISO 문자열로 바꾼다. 형식이 틀리면 null. */

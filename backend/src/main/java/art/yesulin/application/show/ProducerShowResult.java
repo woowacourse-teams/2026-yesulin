@@ -25,6 +25,8 @@ public record ProducerShowResult(
         List<ShowLinkResult> links,
         List<ShowGuideResult> guides,
         boolean remainingSeatsVisible,
+        String externalReservationUrl,
+        long externalReservationVisits,
         ShowStatus status,
         boolean hasReservations,
         List<ProducerShowSessionResult> sessions,
@@ -32,7 +34,8 @@ public record ProducerShowResult(
 ) {
 
     static ProducerShowResult of(
-            Show show, String defaultHostName, List<ShowSession> sessions, SessionTickets tickets
+            Show show, String defaultHostName, List<ShowSession> sessions, SessionTickets tickets,
+            long externalReservationVisits
     ) {
         return new ProducerShowResult(
                 show.getPublicId(),
@@ -51,6 +54,8 @@ public record ProducerShowResult(
                 show.getLinks().stream().map(ShowLinkResult::from).toList(),
                 show.getGuides().stream().map(ShowGuideResult::from).toList(),
                 show.isRemainingSeatsVisible(),
+                show.getExternalReservationUrl(),
+                externalReservationVisits,
                 show.getStatus(),
                 tickets.hasAnyReservations(),
                 sessions.stream()

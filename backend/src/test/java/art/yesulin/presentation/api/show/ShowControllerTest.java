@@ -106,6 +106,7 @@ class ShowControllerTest {
                 .andExpect(jsonPath("$.guides[0].content").value("건물 지하 주차장을 이용해 주세요."))
                 .andExpect(jsonPath("$.directionsNote").doesNotExist())
                 .andExpect(jsonPath("$.remainingSeatsVisible").value(true))
+                .andExpect(jsonPath("$.externalReservationUrl").value(""))
                 .andReturn().getResponse().getContentAsString();
         String showId = JsonPath.read(created, "$.id");
 
@@ -247,6 +248,19 @@ class ShowControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("CANCELED"))
                 .andExpect(jsonPath("$.canceledAt").value("2026-09-27T00:00:00Z"));
+    }
+
+    @Test
+    void producerCannotSetExternalReservationUrl() throws Exception {
+        mockMvc.perform(post("/api/v1/shows")
+                        .with(csrf())
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, OWNER)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(showRequest(fixture.readyImage(OWNER.memberId()), null).replace(
+                                "\"remainingSeatsVisible\": true,",
+                                "\"remainingSeatsVisible\": true, \"externalReservationUrl\": \"https://form.naver.com/response/abc123\",")))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.externalReservationUrl").value(""));
     }
 
     @Test

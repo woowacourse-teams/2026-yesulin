@@ -21,6 +21,8 @@ Content-Type·크기와 다르면 `READY`로 전환하지 않는다.
   `/yesulin/public`이며, 응답 URL에서는 `public/`을 제외한 `/files/...` 경로를 사용한다.
 - 로컬 LocalStack의 공개 base URL은 버킷과 팀 prefix 뒤의 `/public`까지 포함한다. 따라서 운영 CDN과 동일하게
   `public/`을 제외한 `/files/...` 응답 URL로 실제 `yesulin/public/files/...` 객체를 읽는다.
+- 로컬 LocalStack의 브라우저 업로드 CORS는 `http://localhost:3000`, `http://localhost:3001`과 실제 API 검증용
+  `http://localhost:3200`을 허용한다.
 - 배우 사진은 `private/actor-photos/{UTC yyyyMMdd}/{UUID}` 논리 키로 저장한다. private 키는 CloudFront
   URL로 변환하지 않는다.
 - S3 실제 키는 논리 키 앞에 `YESULIN_STORAGE_S3_KEY_PREFIX`를 붙인다. 현재 staging 기준으로 포스터는
