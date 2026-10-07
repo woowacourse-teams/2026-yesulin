@@ -1,4 +1,4 @@
-/** 메인에 게시한 공고. 백엔드 `/api/v1/public/audition-posts` 응답과 같다. 원문 출처는 공개 응답에 없다. */
+/** 메인에 공개한 공고. 백엔드 `/api/v1/public/audition-posts` 응답과 같다. 원문 출처는 상세에만 있다. */
 export type AuditionPostSummary = {
   readonly id: number;
   readonly category: string;
@@ -56,6 +56,9 @@ export type AuditionPost = {
   readonly bodyHtml: string;
   readonly tags: readonly string[];
   readonly attachments: readonly AuditionPostAttachment[];
+  /** 원문 공고 사이트 이름(예: `OTR`). 상세에 작은 출처 링크로 보여 준다. */
+  readonly source: string;
+  readonly sourceUrl: string;
   readonly updatedAt: string;
 };
 

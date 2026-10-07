@@ -116,6 +116,8 @@ class AuditionPostImportServiceTest {
         assertEquals("application/x-hwp", detail.attachments().getFirst().contentType());
         assertTrue(detail.attachments().getFirst().url().startsWith("https://cdn.test/assets/audition-posts/"));
         assertEquals(List.of("연극"), detail.tags());
+        assertEquals("OTR", detail.source());
+        assertEquals("https://otr.co.kr/audition/?vid=" + OTR_ID, detail.sourceUrl());
         assertFalse(detail.closed());
 
         PublicAuditionPostPageResult page = auditionPostService.findPublishedPage(0, 12, false);

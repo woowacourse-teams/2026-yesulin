@@ -29,6 +29,8 @@ const POSTS: readonly AuditionPost[] = [
       + "<p>지원: <a href=\"https://forms.gle/example\" target=\"_blank\" rel=\"noopener noreferrer nofollow\">구글 폼</a></p>",
     tags: ["낭독극", "배우모집"],
     attachments: [],
+    source: "OTR",
+    sourceUrl: "https://otr.co.kr/audition/?vid=22391",
     updatedAt: new Date().toISOString(),
   },
   {
@@ -52,6 +54,8 @@ const POSTS: readonly AuditionPost[] = [
       size: 44_544,
       url: "/images/yesulin-logo.png",
     }],
+    source: "OTR",
+    sourceUrl: "https://otr.co.kr/audition/?vid=22392",
     updatedAt: new Date().toISOString(),
   },
   {
@@ -68,6 +72,8 @@ const POSTS: readonly AuditionPost[] = [
     bodyHtml: "<p>여성 댄스팀 공연 멤버를 모집합니다. 총 7회 공연입니다.</p>",
     tags: [],
     attachments: [],
+    source: "OTR",
+    sourceUrl: "https://otr.co.kr/audition/?vid=22393",
     updatedAt: new Date().toISOString(),
   },
   {
@@ -84,6 +90,8 @@ const POSTS: readonly AuditionPost[] = [
     bodyHtml: "<img src=\"/images/performances/summerplay.jpg\" alt=\"포스터\"><p>앙상블 배우를 모집합니다.</p>",
     tags: ["뮤지컬"],
     attachments: [],
+    source: "OTR",
+    sourceUrl: "https://otr.co.kr/audition/?vid=22394",
     updatedAt: new Date().toISOString(),
   },
 ];

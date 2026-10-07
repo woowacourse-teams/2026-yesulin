@@ -222,7 +222,7 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 
 ## 가져온 공고(메인 목록) — 6개
 
-운영자가 공고 알림을 받은 OTR 공고를 우리 공고로 옮긴 `AuditionPost`다. 공개 응답에는 원문 출처·주소를 담지 않는다.
+운영자가 공고 알림을 받은 OTR 공고를 우리 공고로 옮긴 `AuditionPost`다. 공개 상세에만 원문 출처·주소를 담는다.
 공개 API는 로그인 없이 호출하고, 운영 API는 `ADMIN`만 호출한다.
 `postId`는 숫자 ID다. 모두 공개 대상인 공고라 다른 공고와 달리 UUID를 쓰지 않는다.
 
@@ -241,8 +241,8 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 목록 항목은 `id`, `category`, `title`, `authorName`, `pay`, `deadlineText`(원문 표현),
 `deadline`(날짜일 때만 `YYYY-MM-DD`), `closed`(한국 날짜 기준), `postedAt`(Instant), `thumbnailUrl`(본문 첫 사진, 없으면 null),
 `attachmentCount`, `viewCount`를 담는다. 조회수는 상세 화면이 열릴 때 브라우저가 탭 세션당 한 번 보내는 POST로만 늘고,
-서버 렌더링·메타데이터 조회는 세지 않는다. 다시 가져와도 유지한다. 상세는 여기에 `bodyHtml`, `tags`, `attachments(name, contentType, size, url)`,
-`updatedAt`을 더한다. 숨긴 공고 상세는 본문 없이 `302 Location: {원문 주소}`로 원문 공고에 보낸다.
+서버 렌더링·메타데이터 조회는 세지 않는다. 다시 가져와도 유지한다. 상세는 여기에 `bodyHtml`, `tags`, `attachments(name, contentType, size, url)`, 원문 출처 `source`(예: `OTR`)·`sourceUrl`,
+`updatedAt`을 더한다. 숨긴 공고 상세는 본문 없이 `302 Location: {sourceUrl}`로 원문 공고에 보낸다.
 `Cache-Control: no-store`, `Referrer-Policy: no-referrer`를 붙인다. 프론트 서버 렌더링은 이동을 따라가지 않고 `Location`만 읽어
 브라우저를 원문으로 보낸다. 없는 공고는 `404 AUDITION_POST_NOT_FOUND`이고, 조회수 기록은 숨김도 404다.
 page·size 범위 오류는 `400 INVALID_REQUEST`다.
