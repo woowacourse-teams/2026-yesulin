@@ -148,6 +148,7 @@
   같은 번호의 동시 삽입은 유니크 제약으로 거절해 `IMPORT_CONFLICT`로 바꾼다.
 - 자동 가져오기는 `application/notice`의 `AuditionImporter` port를 `AuditionPostImportService.importIfAbsent`가 구현한다.
   같은 출처·번호가 이미 있으면 상태와 관계없이 그 ID만 돌려주고, 운영자 작업이 아니므로 감사 기록을 남기지 않는다.
+  원문을 받는 사이 운영자가 같은 번호를 가져왔어도 저장 트랜잭션에서 다시 확인해 내용을 바꾸지 않고 이번에 올린 파일을 지운다.
 - 공개 상세는 `AuditionPostService.findPublicPost`가 `PublicAuditionPostView`(`Published` 또는 원문 주소를 담은 `Hidden`)로
   돌려주고, Controller가 `Hidden`을 302로 바꾼다.
 - 가져온 파일은 `file_assets`에 등록하지 않는다. 회원 소유 업로드가 아니며 미사용 파일 관리 대상에도 포함하지 않는다.

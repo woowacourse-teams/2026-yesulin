@@ -219,6 +219,28 @@ class AuditionPostImportServiceTest {
     }
 
     @Test
+    void autoImportKeepsPostImportedByOperatorWhileFetching() {
+        source.file("img-0", "image/png", 100);
+        source.beforeFetch(() -> {
+            importService.importPost(ADMIN_ID, OTR_ID);
+            source.post("<p>원문이 바뀜</p>", List.of(new SourceFile("a.png", "img-0")), List.of());
+        });
+        final int before = storage.objectCount();
+
+        Optional<Long> id = importService.importIfAbsent("OTR", OTR_ID);
+
+        AdminAuditionPostResult post = auditionPostService.findAllForAdmin().getFirst();
+        assertEquals(Optional.of(post.id()), id);
+        assertEquals(1, repository.count());
+        assertFalse(post.autoImported());
+        assertEquals(AuditionPostStatus.HIDDEN, post.status());
+        assertEquals(before, storage.objectCount());
+        assertEquals(1, auditLogRepository.count());
+        auditionPostService.changeStatus(ADMIN_ID, id.orElseThrow(), AuditionPostStatus.PUBLISHED);
+        assertEquals("<p>본문</p>", publishedDetail(id.orElseThrow()).bodyHtml());
+    }
+
+    @Test
     void ignoresOtherSourceOnAutoImport() {
         assertTrue(importService.importIfAbsent("PLAYDB", OTR_ID).isEmpty());
         assertEquals(0, repository.count());
@@ -334,11 +356,13 @@ class AuditionPostImportServiceTest {
         private List<SourceFile> images;
         private List<SourceFile> attachments;
         private boolean failFetch;
+        private Runnable beforeFetch;
 
         void reset() {
             files.clear();
             post("<p>본문</p>", List.of(), List.of());
             failFetch = false;
+            beforeFetch = null;
         }
 
         void file(String url, String contentType, long size) {
@@ -367,6 +391,10 @@ class AuditionPostImportServiceTest {
             failFetch = true;
         }
 
+        void beforeFetch(Runnable hook) {
+            beforeFetch = hook;
+        }
+
         @Override
         public String getSource() {
             return "OTR";
@@ -376,6 +404,11 @@ class AuditionPostImportServiceTest {
         public SourcePost fetch(String externalId) {
             if (failFetch) {
                 throw new AuditionPostSourceException("OTR에 연결하지 못했습니다.");
+            }
+            if (beforeFetch != null) {
+                Runnable hook = beforeFetch;
+                beforeFetch = null;
+                hook.run();
             }
             return new SourcePost(
                     externalId, "https://otr.co.kr/audition/?vid=" + externalId, category, "배우 모집", "협의",
