@@ -15,6 +15,7 @@ import art.yesulin.domain.producer.Producer;
 import art.yesulin.domain.producer.ProducerRepository;
 import art.yesulin.domain.reservation.ReservationRepository;
 import art.yesulin.domain.reservation.ReservationStatus;
+import art.yesulin.domain.show.ExternalReservationVisitRepository;
 import art.yesulin.domain.show.Show;
 import art.yesulin.domain.show.ShowRepository;
 import art.yesulin.domain.show.ShowSession;
@@ -29,10 +30,13 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 기획사/제작사가 자기 무료 공연과 회차를 관리한다. 다른 기획사의 공연은 찾을 수 없는 것으로 다룬다.
+ * 공연을 이미 찾은 뒤의 동작({@code Show}를 받는 메서드)은 운영자 공연을 관리하는
+ * {@link AdminShowManagementService}도 같은 트랜잭션 안에서 쓴다.
  */
 @Service
 @RequiredArgsConstructor
@@ -49,11 +53,17 @@ public class ShowManagementService {
     private final FileReferenceRepository fileReferenceRepository;
     private final FileUsageService fileUsageService;
     private final ProducerRepository producerRepository;
+    private final ExternalReservationVisitRepository visitRepository;
     private final Clock clock;
 
     @Transactional
     public ProducerShowResult create(long ownerId, SaveShowCommand command) {
-        Show show = showRepository.saveAndFlush(command.toShow(ownerId));
+        return create(command.toShow(ownerId));
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public ProducerShowResult create(Show newShow) {
+        Show show = showRepository.saveAndFlush(newShow);
         linkFiles(show);
         return result(show);
     }
@@ -77,6 +87,12 @@ public class ShowManagementService {
     public ProducerShowResult update(long ownerId, UUID showId, SaveShowCommand command) {
         Show show = getOwnedShow(ownerId, showId);
         command.applyTo(show);
+        return relinkFiles(show);
+    }
+
+    /** 공연 정보를 바꾼 뒤 포스터·상세 이미지 참조를 새 값으로 다시 건다. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public ProducerShowResult relinkFiles(Show show) {
         List<Long> removedFileIds = referencedFileIds(show.getId());
         fileReferenceRepository.deleteByReferenceTypeInAndReferenceId(FILE_REFERENCE_TYPES, show.getId());
         fileUsageService.markReferencesRemoved(removedFileIds);
@@ -89,12 +105,19 @@ public class ShowManagementService {
      */
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public void delete(long ownerId, UUID showId) {
-        Show show = getOwnedShow(ownerId, showId);
+        delete(getOwnedShow(ownerId, showId));
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void delete(Show show) {
         List<ShowSession> sessions = sessionRepository.findAllByShowIdForUpdate(show.getId());
         if (!sessions.isEmpty() && reservationRepository.existsBySessionIdIn(sessionIds(sessions))) {
             throw new BusinessException(HAS_RESERVATIONS, "예매 기록이 있는 공연은 삭제할 수 없습니다. 예매를 마감해 주세요.");
         }
         sessionRepository.deleteAll(sessions);
+        if (show.usesExternalReservation()) {
+            visitRepository.deleteByShowId(show.getId());
+        }
         List<Long> removedFileIds = referencedFileIds(show.getId());
         fileReferenceRepository.deleteByReferenceTypeInAndReferenceId(FILE_REFERENCE_TYPES, show.getId());
         fileUsageService.markReferencesRemoved(removedFileIds);
@@ -103,22 +126,37 @@ public class ShowManagementService {
 
     @Transactional
     public ProducerShowResult open(long ownerId, UUID showId) {
-        Show show = getOwnedShow(ownerId, showId);
+        return open(getOwnedShow(ownerId, showId));
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public ProducerShowResult open(Show show) {
         show.open(clock.instant(), sessionRepository.findAllByShowIdOrderByStartsAtAscIdAsc(show.getId()));
         return result(show);
     }
 
     @Transactional
     public ProducerShowResult close(long ownerId, UUID showId) {
-        Show show = getOwnedShow(ownerId, showId);
+        return close(getOwnedShow(ownerId, showId));
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public ProducerShowResult close(Show show) {
         show.close();
         return result(show);
     }
 
     @Transactional
     public ProducerShowResult addSession(long ownerId, UUID showId, SaveShowSessionCommand command) {
-        Show show = getOwnedShow(ownerId, showId);
-        sessionRepository.save(new ShowSession(show.getId(), requireFuture(command.startsAt()), command.capacity()));
+        return addSession(getOwnedShow(ownerId, showId), command);
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public ProducerShowResult addSession(Show show, SaveShowSessionCommand command) {
+        Instant startsAt = requireFuture(command.startsAt());
+        sessionRepository.save(show.usesExternalReservation()
+                ? ShowSession.withoutCapacity(show.getId(), startsAt)
+                : new ShowSession(show.getId(), startsAt, command.capacity()));
         return result(show);
     }
 
@@ -128,8 +166,16 @@ public class ShowManagementService {
      */
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public ProducerShowResult updateSession(long ownerId, UUID showId, long sessionId, SaveShowSessionCommand command) {
-        Show show = getOwnedShow(ownerId, showId);
+        return updateSession(getOwnedShow(ownerId, showId), sessionId, command);
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public ProducerShowResult updateSession(Show show, long sessionId, SaveShowSessionCommand command) {
         ShowSession session = getSessionForUpdate(show, sessionId);
+        if (show.usesExternalReservation()) {
+            session.reschedule(requireFuture(command.startsAt()));
+            return result(show);
+        }
         long reservedTickets = reservationRepository.sumTicketCountBySessionIdAndStatus(
                 session.getId(), ReservationStatus.CONFIRMED
         );
@@ -139,7 +185,11 @@ public class ShowManagementService {
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public ProducerShowResult deleteSession(long ownerId, UUID showId, long sessionId) {
-        Show show = getOwnedShow(ownerId, showId);
+        return deleteSession(getOwnedShow(ownerId, showId), sessionId);
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public ProducerShowResult deleteSession(Show show, long sessionId) {
         ShowSession session = getSessionForUpdate(show, sessionId);
         if (reservationRepository.existsBySessionId(session.getId())) {
             throw new BusinessException(SESSION_HAS_RESERVATIONS, "예매 기록이 있는 회차는 삭제할 수 없습니다.");
@@ -182,13 +232,18 @@ public class ShowManagementService {
                 .stream().map(reference -> reference.getFileId()).distinct().toList();
     }
 
-    private ProducerShowResult result(Show show) {
+    @Transactional(propagation = Propagation.MANDATORY)
+    public ProducerShowResult result(Show show) {
         List<ShowSession> sessions = sessionRepository.findAllByShowIdOrderByStartsAtAscIdAsc(show.getId());
         String defaultHostName = producerRepository.findByMemberId(show.getOwnerId())
                 .map(Producer::getCompanyName)
                 .orElse("");
+        long externalReservationVisits = show.usesExternalReservation()
+                ? visitRepository.countByShowId(show.getId())
+                : 0;
         return ProducerShowResult.of(
-                show, defaultHostName, sessions, SessionTickets.of(reservationRepository, sessions)
+                show, defaultHostName, sessions, SessionTickets.of(reservationRepository, sessions),
+                externalReservationVisits
         );
     }
 

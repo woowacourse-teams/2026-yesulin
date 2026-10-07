@@ -14,6 +14,8 @@ public record AdminShowRow(
         ShowStatus status,
         String companyName,
         String hostName,
+        String externalReservationUrl,
+        long externalReservationVisits,
         Instant createdAt,
         long totalCapacity,
         long reservedTickets,
@@ -28,6 +30,8 @@ public record AdminShowRow(
             ShowStatus status,
             String companyName,
             String hostName,
+            String externalReservationUrl,
+            long externalReservationVisits,
             Instant createdAt,
             List<AdminShowSessionRow> sessions
     ) {
@@ -37,6 +41,8 @@ public record AdminShowRow(
                 status,
                 companyName,
                 hostName,
+                externalReservationUrl,
+                externalReservationVisits,
                 createdAt,
                 sessions.stream().mapToLong(AdminShowSessionRow::capacity).sum(),
                 sessions.stream().mapToLong(AdminShowSessionRow::reservedTickets).sum(),

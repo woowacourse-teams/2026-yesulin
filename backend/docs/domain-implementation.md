@@ -42,7 +42,13 @@
   `ShowGuide`(제목·내용, 최대 5개, `show_guides`), 잔여석 공개 여부를 갖고 `updateAudienceGuide`로 함께 바꾼다.
   주최 이름은 `Show.hostNameOr`로 정하며 회사명은 응답을 만들 때 `Producer`에서 읽는다(공연에 복사하지 않는다).
   잔여석 숨김은 `PublicShowService`가 응답에서 `remainingSeats`를 비우는 방식이다.
+  외부 예매 주소(`external_reservation_url`)는 운영자 공연에만 있다. `AdminShowManagementService`가 등록한 운영자를 소유자로
+  공연을 만들고 `updateExternalReservationUrl`(빈 값 불가)로 주소를 정하며, 공연을 찾은 뒤의 동작은 `ShowManagementService`의
+  `Show`를 받는 메서드(`Propagation.MANDATORY`)를 같은 트랜잭션에서 재사용한다. 운영자 API는 주소가 있는 공연만 찾는다.
+  기획사 `SaveShowCommand`는 이 값을 건드리지 않고, `ReservationService.reserve`가 `Show.ensureReservableHere`로 거절한다.
+  예매하기 이동 기록은 `ExternalReservationVisit`(공연 ID·시각, `show_external_reservation_visits`)으로 쌓고 공연 삭제 때 함께 지운다.
 - `ShowSession`은 공연 ID, 시작 시각, 정원만 저장하는 별도 aggregate다. 잔여석은 저장하지 않고 확정 예매 매수로 계산한다.
+  외부 링크 공연의 회차는 `ShowSession.withoutCapacity`로 정원 0인 채 만들고 `reschedule`로 시작 시각만 바꾼다.
 - `Reservation`은 회차 ID, 8자리 예매번호, `Booker`(이름·휴대폰), 매수(1~10), 동의 문서 버전, `CONFIRMED/CANCELED`,
   기획사 메모(300자 이하)를 저장한다. 생성·취소·매수 변경 때 `ReservationConfirmedEvent`, `ReservationCanceledEvent`,
   `ReservationTicketCountChangedEvent`를 등록한다. 매수 변경은 확정 예매만 가능하다.

@@ -16,6 +16,7 @@ export const MAX_SHOW_GUIDES = 5;
 export const MAX_SHOW_GUIDE_TITLE_LENGTH = 30;
 export const MAX_SHOW_GUIDE_CONTENT_LENGTH = 1000;
 export const MAX_SHOW_HOST_NAME_LENGTH = 50;
+export const MAX_EXTERNAL_RESERVATION_URL_LENGTH = 500;
 export const MAX_TICKETS_PER_RESERVATION = 10;
 export const MAX_RESERVATION_MEMO_LENGTH = 300;
 /** 복사하거나 내려받은 예매 관객 정보를 직접 삭제하도록 안내할 기간. */
@@ -54,6 +55,7 @@ export type PublicShowSummary = {
   readonly runningMinutes: number;
 };
 
+/** 외부 예매 공연은 잔여석을 알 수 없어 remainingSeats가 null, maxTicketCount가 0이고 bookable은 시작 전 회차인지만 뜻한다. */
 export type PublicShowSession = {
   readonly id: number;
   readonly startsAt: string;
@@ -79,6 +81,8 @@ export type PublicShow = {
   readonly ageRating: string;
   readonly inquiryPhone: string;
   readonly links: readonly ShowLink[];
+  /** 운영자가 등록한 공연은 네이버 폼 같은 외부 예매 주소다. 빈 문자열이면 예술in에서 예매받는다. */
+  readonly externalReservationUrl: string;
   readonly status: Exclude<ShowStatus, "DRAFT">;
   readonly maxTicketsPerReservation: number;
   readonly sessions: readonly PublicShowSession[];
@@ -106,6 +110,7 @@ export const RESERVATION_ERROR_CODES = {
   showNotFound: "SHOW_NOT_FOUND",
   sessionNotFound: "SHOW_SESSION_NOT_FOUND",
   showNotOpen: "SHOW_NOT_OPEN",
+  externalReservation: "SHOW_EXTERNAL_RESERVATION",
   bookingClosed: "SHOW_SESSION_BOOKING_CLOSED",
   notEnoughSeats: "SHOW_SESSION_NOT_ENOUGH_SEATS",
 } as const;
@@ -151,6 +156,10 @@ export type ProducerShow = {
   readonly links: readonly ShowLink[];
   readonly guides: readonly ShowGuide[];
   readonly remainingSeatsVisible: boolean;
+  /** 운영자가 등록한 공연의 외부 예매 주소. 기획사 공연은 빈 문자열이고 예술in에서 예매받는다. */
+  readonly externalReservationUrl: string;
+  /** 관객이 예매하기를 눌러 외부 예매 페이지로 이동한 횟수. 기획사 공연은 0이다. */
+  readonly externalReservationVisits: number;
   readonly poster: ProducerShowImage;
   readonly images: readonly ProducerShowImage[];
   readonly status: ShowStatus;
@@ -172,13 +181,16 @@ export type SaveShow = {
   readonly links: readonly ShowLink[];
   readonly guides: readonly ShowGuide[];
   readonly remainingSeatsVisible: boolean;
+  /** 운영자 공연에만 보내는 외부 예매 주소. 기획사 저장 요청에는 넣지 않는다. */
+  readonly externalReservationUrl?: string;
   readonly posterFileId: number;
   readonly imageFileIds: readonly number[];
 };
 
+/** 외부 링크 공연의 회차는 정원이 없어 `capacity`를 보내지 않는다. */
 export type SaveShowSession = {
   readonly startsAt: string;
-  readonly capacity: number;
+  readonly capacity?: number;
 };
 
 export type ProducerReservation = {

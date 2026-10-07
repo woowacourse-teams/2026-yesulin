@@ -25,7 +25,7 @@ import {
   type ShowStatus,
   type ShowVenue,
 } from "@/features/shows/types";
-import { showGuideError, showLinkError } from "@/features/shows/show-form";
+import { externalReservationUrlError, showGuideError, showLinkError } from "@/features/shows/show-form";
 import { producerProfile } from "./auditions/producer-profile";
 
 /**
@@ -48,6 +48,7 @@ type MockShow = {
   links: ShowLink[];
   guides: ShowGuide[];
   remainingSeatsVisible: boolean;
+  externalReservationUrl: string;
   poster: ProducerShowImage;
   images: ProducerShowImage[];
   status: ShowStatus;
@@ -120,6 +121,7 @@ const shows: MockShow[] = [
       { title: "휠체어 관람", content: "공연장 입구에 경사로가 있어요. 휠체어로 관람하시면 예매 후 문의 전화로 알려 주세요." },
     ],
     remainingSeatsVisible: true,
+    externalReservationUrl: "",
     poster: image(9001, "/images/performances/moonlight.jpg"),
     images: [image(9002, "/images/performances/nightfall.jpg"), image(9003, "/images/performances/summerplay.jpg")],
     status: "OPEN",
@@ -138,6 +140,7 @@ const shows: MockShow[] = [
     links: [],
     guides: [],
     remainingSeatsVisible: true,
+    externalReservationUrl: "",
     poster: image(9004, "/images/performances/summerplay.jpg"),
     images: [],
     status: "OPEN",
@@ -156,6 +159,7 @@ const shows: MockShow[] = [
     links: [],
     guides: [],
     remainingSeatsVisible: true,
+    externalReservationUrl: "",
     poster: image(9005, "/images/performances/nightfall.jpg"),
     images: [],
     status: "CLOSED",
@@ -174,10 +178,30 @@ const shows: MockShow[] = [
     links: [{ label: "극단 인스타그램", url: "https://www.instagram.com/" }],
     guides: [{ title: "추가 안내", content: "건물 정문이 아닌 오른쪽 골목의 공연장 전용 입구를 이용해 주세요." }],
     remainingSeatsVisible: false,
+    externalReservationUrl: "",
     poster: image(9007, "/images/performances/nightfall.jpg"),
     images: [],
     status: "OPEN",
     createdAt: kstAt(-3, 10),
+  },
+  {
+    id: "seed_show_external",
+    title: "숲속 버스킹 연극",
+    genre: "PLAY",
+    description: "운영자가 등록한 공연으로 네이버 폼에서 예매받습니다. 예매하기를 누르면 외부 예매 페이지가 새 창으로 열립니다.",
+    venue: venue("서울숲 야외무대", "서울특별시 성동구 뚝섬로 273"),
+    runningMinutes: 50,
+    ageRating: "전체관람가",
+    inquiryPhone: "010-3456-7890",
+    hostName: "서울숲 거리극 모임",
+    links: [],
+    guides: [],
+    remainingSeatsVisible: true,
+    externalReservationUrl: "https://form.naver.com/response/example",
+    poster: image(9008, "/images/performances/summerplay.jpg"),
+    images: [],
+    status: "OPEN",
+    createdAt: kstAt(-2, 10),
   },
   {
     id: "seed_show_draft",
@@ -192,6 +216,7 @@ const shows: MockShow[] = [
     links: [],
     guides: [],
     remainingSeatsVisible: true,
+    externalReservationUrl: "",
     poster: image(9006, "/images/performances/moonlight.jpg"),
     images: [],
     status: "DRAFT",
@@ -208,6 +233,9 @@ const sessions: MockSession[] = [
   { id: 401, showId: "seed_show_hidden_seats", startsAt: kstAt(5, 19), capacity: 50 },
   { id: 402, showId: "seed_show_hidden_seats", startsAt: kstAt(6, 15), capacity: 20 },
   { id: 403, showId: "seed_show_hidden_seats", startsAt: kstAt(6, 19), capacity: 10 },
+  { id: 501, showId: "seed_show_external", startsAt: kstAt(-2, 18), capacity: 0 },
+  { id: 502, showId: "seed_show_external", startsAt: kstAt(8, 18), capacity: 0 },
+  { id: 503, showId: "seed_show_external", startsAt: kstAt(9, 16), capacity: 0 },
 ];
 
 const reservations: MockReservation[] = [];
@@ -215,6 +243,8 @@ let nextSessionId = 1000;
 let nextReservationId = 1;
 let nextFileId = 10_000;
 const uploadedImageUrls = new Map<number, string>();
+/** 운영자 공연에서 관객이 예매하기로 외부 예매 페이지에 간 횟수. */
+const externalReservationVisits = new Map<string, number>([["seed_show_external", 12]]);
 
 /** seed 회차에 확정 예매를 채워 넣는다. 한 건은 최대 10매다. */
 function seedReservations(sessionId: number, tickets: number) {
@@ -306,9 +336,20 @@ function toPublicShow(show: MockShow): PublicShow {
     ageRating: show.ageRating,
     inquiryPhone: show.inquiryPhone,
     links: show.links,
+    externalReservationUrl: show.externalReservationUrl,
     status: show.status === "CLOSED" ? "CLOSED" : "OPEN",
     maxTicketsPerReservation: MAX_TICKETS_PER_RESERVATION,
     sessions: showSessions(show.id).map((session) => {
+      // 외부 예매는 잔여석을 알 수 없어 숫자를 내보내지 않고 시작 전 회차만 예매 가능으로 둔다.
+      if (show.externalReservationUrl) {
+        return {
+          id: session.id,
+          startsAt: session.startsAt,
+          remainingSeats: null,
+          maxTicketCount: 0,
+          bookable: show.status === "OPEN" && isBookable(session),
+        };
+      }
       const remainingSeats = Math.max(0, session.capacity - reservedTickets(session.id));
       return {
         id: session.id,
@@ -352,6 +393,8 @@ function toProducerShow(show: MockShow): ProducerShow {
     links: show.links,
     guides: show.guides,
     remainingSeatsVisible: show.remainingSeatsVisible,
+    externalReservationUrl: show.externalReservationUrl,
+    externalReservationVisits: externalReservationVisits.get(show.id) ?? 0,
     poster: show.poster,
     images: show.images,
     status: show.status,
@@ -437,10 +480,11 @@ function applyShow(show: MockShow, body: SaveShow) {
   show.images = (body.imageFileIds ?? []).map((fileId) => image(fileId, imageUrl(fileId) ?? ""));
 }
 
-function validateSession(body: SaveShowSession): string | null {
+/** 외부 링크 공연의 회차는 정원이 없어(0) 정원을 검사하지 않는다. */
+function validateSession(body: SaveShowSession, withCapacity: boolean): string | null {
   if (!body.startsAt || Number.isNaN(Date.parse(body.startsAt))) return "회차 시작 시각을 입력해 주세요.";
   if (Date.parse(body.startsAt) <= Date.now()) return "회차 시작 시각은 현재 이후로 입력해 주세요.";
-  if (!Number.isInteger(body.capacity) || body.capacity < 1) return "회차 정원은 1명 이상이어야 합니다.";
+  if (withCapacity && (!Number.isInteger(body.capacity) || body.capacity! < 1)) return "회차 정원은 1명 이상이어야 합니다.";
   return null;
 }
 
@@ -480,8 +524,10 @@ export function listAdminShows(status?: ShowStatus): AdminShow[] {
         showId: show.id,
         title: show.title,
         status: show.status,
-        companyName: companyName(),
+        companyName: isAdminShow(show) ? null : companyName(),
         hostName: show.hostName,
+        externalReservationUrl: show.externalReservationUrl,
+        externalReservationVisits: externalReservationVisits.get(show.id) ?? 0,
         createdAt: show.createdAt,
         totalCapacity: total((session) => session.capacity),
         reservedTickets: total((session) => session.reservedTickets),
@@ -490,6 +536,270 @@ export function listAdminShows(status?: ShowStatus): AdminShow[] {
         sessions: adminSessions,
       };
     });
+}
+
+/** 운영자가 등록한 공연은 외부 예매 주소가 있다. 기획사 화면에서는 보이지 않는다. */
+const isAdminShow = (show: MockShow) => show.externalReservationUrl !== "";
+
+/** 기획사 관리 API와 운영자 공연 관리 API가 같은 공연·회차 규칙을 쓰도록 범위만 바꿔 끼운다. */
+type ManagementScope = {
+  readonly basePath: string;
+  readonly imagesPath: string;
+  /** 실제 백엔드로 넘길 때 true. */
+  readonly bypass: () => boolean;
+  /** 권한이 없으면 오류 응답을 돌려준다. */
+  readonly reject: () => Response | null;
+  readonly find: (showId: string) => MockShow | undefined;
+  readonly includes: (show: MockShow) => boolean;
+  readonly validate: (body: SaveShow) => string | null;
+  readonly apply: (show: MockShow, body: SaveShow) => void;
+  /** 운영자 공연 목록은 운영 대시보드 조회(`GET /api/v1/admin/shows`)가 맡는다. */
+  readonly listable: boolean;
+  /** 운영자 공연(외부 링크)의 회차는 정원이 없다. */
+  readonly withCapacity: boolean;
+};
+
+const producerScope: ManagementScope = {
+  basePath: "/api/v1/shows",
+  imagesPath: "/api/v1/show-images",
+  bypass: () => realProducerApiEnabled,
+  reject: () => null,
+  find: (showId) => {
+    const show = findShow(showId);
+    return show && !isAdminShow(show) ? show : undefined;
+  },
+  includes: (show) => !isAdminShow(show),
+  validate: validateShow,
+  apply: applyShow,
+  listable: true,
+  withCapacity: true,
+};
+
+/** 운영자 공연은 기획사 계정이 없어 주최 이름이 필수이고, 외부 예매 주소로만 예매받는다. */
+function validateAdminShow(body: SaveShow): string | null {
+  const invalid = validateShow(body);
+  if (invalid) return invalid;
+  if (!body.hostName?.trim()) return "주최 이름은 필수입니다.";
+  return externalReservationUrlError(body.externalReservationUrl ?? "")
+    ? "외부 예매 링크는 https://로 시작하는 올바른 주소로 입력해 주세요."
+    : null;
+}
+
+/** 운영 대시보드 목에서 ADMIN 세션 확인과 실제 백엔드 전환 여부를 받아 운영자 공연 관리 API를 만든다. */
+export function adminShowHandlers(reject: () => Response | null, bypass: () => boolean) {
+  return showManagementRoutes({
+    basePath: "/api/v1/admin/shows",
+    imagesPath: "/api/v1/admin/show-images",
+    bypass,
+    reject,
+    find: (showId) => {
+      const show = findShow(showId);
+      return show && isAdminShow(show) ? show : undefined;
+    },
+    includes: isAdminShow,
+    validate: validateAdminShow,
+    apply: (show, body) => {
+      applyShow(show, body);
+      show.externalReservationUrl = body.externalReservationUrl?.trim() ?? "";
+    },
+    listable: false,
+    withCapacity: false,
+  });
+}
+
+function showManagementRoutes(scope: ManagementScope) {
+  const { basePath, imagesPath } = scope;
+  const guard = () => scope.reject();
+  const listRoutes = scope.listable ? [
+    http.get(basePath, async () => {
+      if (scope.bypass()) return passthrough();
+      await delay(200);
+      return guard() ?? HttpResponse.json({
+        shows: shows.filter(scope.includes)
+          .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+          .map(toProducerSummary),
+      });
+    }),
+  ] : [];
+  return [
+    ...listRoutes,
+
+    http.post(basePath, async ({ request }) => {
+      if (scope.bypass()) return passthrough();
+      await delay(300);
+      const rejected = guard();
+      if (rejected) return rejected;
+      const body = (await request.json()) as SaveShow;
+      const invalid = scope.validate(body);
+      if (invalid) return invalidShow(invalid);
+      const show: MockShow = {
+        id: crypto.randomUUID(),
+        title: "",
+        genre: body.genre,
+        description: "",
+        venue: body.venue,
+        runningMinutes: 0,
+        ageRating: "",
+        inquiryPhone: "",
+        hostName: "",
+        links: [],
+        guides: [],
+        remainingSeatsVisible: true,
+        externalReservationUrl: "",
+        poster: image(0, ""),
+        images: [],
+        status: "DRAFT",
+        createdAt: new Date().toISOString(),
+      };
+      scope.apply(show, body);
+      shows.push(show);
+      return HttpResponse.json(toProducerShow(show), { status: 201 });
+    }),
+
+    http.get(`${basePath}/:showId`, async ({ params }) => {
+      if (scope.bypass()) return passthrough();
+      await delay(200);
+      const rejected = guard();
+      if (rejected) return rejected;
+      const show = scope.find(String(params.showId));
+      return show ? HttpResponse.json(toProducerShow(show)) : showNotFound();
+    }),
+
+    http.put(`${basePath}/:showId`, async ({ params, request }) => {
+      if (scope.bypass()) return passthrough();
+      await delay(300);
+      const rejected = guard();
+      if (rejected) return rejected;
+      const show = scope.find(String(params.showId));
+      if (!show) return showNotFound();
+      const body = (await request.json()) as SaveShow;
+      const invalid = scope.validate(body);
+      if (invalid) return invalidShow(invalid);
+      scope.apply(show, body);
+      return HttpResponse.json(toProducerShow(show));
+    }),
+
+    http.delete(`${basePath}/:showId`, async ({ params }) => {
+      if (scope.bypass()) return passthrough();
+      await delay(250);
+      const rejected = guard();
+      if (rejected) return rejected;
+      const show = scope.find(String(params.showId));
+      if (!show) return showNotFound();
+      if (showSessions(show.id).some((session) => hasAnyReservation(session.id))) {
+        return apiError(409, "SHOW_HAS_RESERVATIONS", "예매 기록이 있는 공연은 삭제할 수 없습니다. 예매를 마감해 주세요.");
+      }
+      shows.splice(shows.indexOf(show), 1);
+      for (const session of showSessions(show.id)) sessions.splice(sessions.indexOf(session), 1);
+      return new HttpResponse(null, { status: 204 });
+    }),
+
+    http.post(`${basePath}/:showId/opening`, async ({ params }) => {
+      if (scope.bypass()) return passthrough();
+      await delay(250);
+      const rejected = guard();
+      if (rejected) return rejected;
+      const show = scope.find(String(params.showId));
+      if (!show) return showNotFound();
+      if (show.status !== "OPEN" && !showSessions(show.id).some(isBookable)) {
+        return apiError(409, "SHOW_NOT_OPENABLE", "예매 가능한 회차가 있어야 공연을 공개할 수 있습니다.");
+      }
+      show.status = "OPEN";
+      return HttpResponse.json(toProducerShow(show));
+    }),
+
+    http.post(`${basePath}/:showId/closing`, async ({ params }) => {
+      if (scope.bypass()) return passthrough();
+      await delay(250);
+      const rejected = guard();
+      if (rejected) return rejected;
+      const show = scope.find(String(params.showId));
+      if (!show) return showNotFound();
+      if (show.status === "DRAFT") return apiError(409, "SHOW_INVALID_STATUS", "예매 중인 공연만 마감할 수 있습니다.");
+      show.status = "CLOSED";
+      return HttpResponse.json(toProducerShow(show));
+    }),
+
+    http.post(`${basePath}/:showId/sessions`, async ({ params, request }) => {
+      if (scope.bypass()) return passthrough();
+      await delay(250);
+      const rejected = guard();
+      if (rejected) return rejected;
+      const show = scope.find(String(params.showId));
+      if (!show) return showNotFound();
+      const body = (await request.json()) as SaveShowSession;
+      const invalid = validateSession(body, scope.withCapacity);
+      if (invalid) return invalidShow(invalid);
+      sessions.push({ id: nextSessionId, showId: show.id, startsAt: body.startsAt, capacity: scope.withCapacity ? body.capacity! : 0 });
+      nextSessionId += 1;
+      return HttpResponse.json(toProducerShow(show), { status: 201 });
+    }),
+
+    http.put(`${basePath}/:showId/sessions/:sessionId`, async ({ params, request }) => {
+      if (scope.bypass()) return passthrough();
+      await delay(250);
+      const rejected = guard();
+      if (rejected) return rejected;
+      const show = scope.find(String(params.showId));
+      const session = sessions.find((item) => item.id === Number(params.sessionId) && item.showId === show?.id);
+      if (!show) return showNotFound();
+      if (!session) return sessionNotFound();
+      const body = (await request.json()) as SaveShowSession;
+      const invalid = validateSession(body, scope.withCapacity);
+      if (invalid) return invalidShow(invalid);
+      if (scope.withCapacity) {
+        const reserved = reservedTickets(session.id);
+        if (body.capacity! < reserved) {
+          return apiError(409, "SHOW_SESSION_CAPACITY_BELOW_RESERVED", `정원은 이미 예매된 ${reserved}매보다 적을 수 없습니다.`);
+        }
+        session.capacity = body.capacity!;
+      }
+      session.startsAt = body.startsAt;
+      return HttpResponse.json(toProducerShow(show));
+    }),
+
+    http.delete(`${basePath}/:showId/sessions/:sessionId`, async ({ params }) => {
+      if (scope.bypass()) return passthrough();
+      await delay(250);
+      const rejected = guard();
+      if (rejected) return rejected;
+      const show = scope.find(String(params.showId));
+      const session = sessions.find((item) => item.id === Number(params.sessionId) && item.showId === show?.id);
+      if (!show) return showNotFound();
+      if (!session) return sessionNotFound();
+      if (hasAnyReservation(session.id)) {
+        return apiError(409, "SHOW_SESSION_HAS_RESERVATIONS", "예매 기록이 있는 회차는 삭제할 수 없습니다.");
+      }
+      sessions.splice(sessions.indexOf(session), 1);
+      return HttpResponse.json(toProducerShow(show));
+    }),
+
+    http.post(`${imagesPath}/upload-requests`, async () => {
+      if (scope.bypass()) return passthrough();
+      await delay(150);
+      const rejected = guard();
+      if (rejected) return rejected;
+      const fileId = nextFileId;
+      nextFileId += 1;
+      return HttpResponse.json({
+        fileId,
+        uploadUrl: `/mock-uploads/show-images/${fileId}`,
+        method: "PUT",
+        expiresAt: new Date(Date.now() + 600_000).toISOString(),
+        headers: {},
+      }, { status: 201 });
+    }),
+
+    http.patch(`${imagesPath}/:fileId/completion`, async ({ params }) => {
+      if (scope.bypass()) return passthrough();
+      await delay(100);
+      const rejected = guard();
+      if (rejected) return rejected;
+      return uploadedImageUrls.has(Number(params.fileId))
+        ? new HttpResponse(null, { status: 204 })
+        : apiError(409, "FILE_NOT_UPLOADED", "파일 업로드가 끝나지 않았습니다.");
+    }),
+  ];
 }
 
 export const showHandlers = [
@@ -510,12 +820,25 @@ export const showHandlers = [
     return HttpResponse.json(toPublicShow(show));
   }),
 
+  http.post("/api/v1/public/shows/:showId/external-reservation-visits", async ({ params }) => {
+    await delay(100);
+    const show = findShow(String(params.showId));
+    if (!show || show.status === "DRAFT") return showNotFound();
+    if (show.status !== "OPEN") return apiError(409, "SHOW_NOT_OPEN", "예매 중인 공연이 아닙니다.");
+    if (!isAdminShow(show)) return apiError(409, "SHOW_INVALID_STATUS", "외부 링크로 예매받는 공연이 아닙니다.");
+    externalReservationVisits.set(show.id, (externalReservationVisits.get(show.id) ?? 0) + 1);
+    return new HttpResponse(null, { status: 204 });
+  }),
+
   http.post("/api/v1/public/shows/:showId/sessions/:sessionId/reservations", async ({ params, request }) => {
     await delay(400);
     const show = findShow(String(params.showId));
     const session = sessions.find((item) => item.id === Number(params.sessionId));
     if (!session || !show || session.showId !== show.id) return show ? sessionNotFound() : showNotFound();
     if (show.status !== "OPEN") return apiError(409, "SHOW_NOT_OPEN", "예매 중인 공연이 아닙니다.");
+    if (show.externalReservationUrl) {
+      return apiError(409, "SHOW_EXTERNAL_RESERVATION", "이 공연은 외부 예매 페이지에서 예매할 수 있습니다.");
+    }
     const body = (await request.json()) as CreateReservation;
     const bookerName = body.bookerName?.trim() ?? "";
     const bookerPhone = body.bookerPhone?.trim() ?? "";
@@ -558,147 +881,17 @@ export const showHandlers = [
     }, { status: 201 });
   }),
 
-  http.get("/api/v1/shows", async () => {
-    if (realProducerApiEnabled) return passthrough();
-    await delay(200);
-    return HttpResponse.json({
-      shows: [...shows].sort((left, right) => right.createdAt.localeCompare(left.createdAt)).map(toProducerSummary),
-    });
-  }),
+  ...showManagementRoutes(producerScope),
 
-  http.post("/api/v1/shows", async ({ request }) => {
-    if (realProducerApiEnabled) return passthrough();
-    await delay(300);
-    const body = (await request.json()) as SaveShow;
-    const invalid = validateShow(body);
-    if (invalid) return invalidShow(invalid);
-    const show: MockShow = {
-      id: crypto.randomUUID(),
-      title: "",
-      genre: body.genre,
-      description: "",
-      venue: body.venue,
-      runningMinutes: 0,
-      ageRating: "",
-      inquiryPhone: "",
-      hostName: "",
-      links: [],
-      guides: [],
-      remainingSeatsVisible: true,
-      poster: image(0, ""),
-      images: [],
-      status: "DRAFT",
-      createdAt: new Date().toISOString(),
-    };
-    applyShow(show, body);
-    shows.push(show);
-    return HttpResponse.json(toProducerShow(show), { status: 201 });
-  }),
-
-  http.get("/api/v1/shows/:showId", async ({ params }) => {
-    if (realProducerApiEnabled) return passthrough();
-    await delay(200);
-    const show = findShow(String(params.showId));
-    return show ? HttpResponse.json(toProducerShow(show)) : showNotFound();
-  }),
-
-  http.put("/api/v1/shows/:showId", async ({ params, request }) => {
-    if (realProducerApiEnabled) return passthrough();
-    await delay(300);
-    const show = findShow(String(params.showId));
-    if (!show) return showNotFound();
-    const body = (await request.json()) as SaveShow;
-    const invalid = validateShow(body);
-    if (invalid) return invalidShow(invalid);
-    applyShow(show, body);
-    return HttpResponse.json(toProducerShow(show));
-  }),
-
-  http.delete("/api/v1/shows/:showId", async ({ params }) => {
-    if (realProducerApiEnabled) return passthrough();
-    await delay(250);
-    const show = findShow(String(params.showId));
-    if (!show) return showNotFound();
-    if (showSessions(show.id).some((session) => hasAnyReservation(session.id))) {
-      return apiError(409, "SHOW_HAS_RESERVATIONS", "예매 기록이 있는 공연은 삭제할 수 없습니다. 예매를 마감해 주세요.");
-    }
-    shows.splice(shows.indexOf(show), 1);
-    for (const session of showSessions(show.id)) sessions.splice(sessions.indexOf(session), 1);
-    return new HttpResponse(null, { status: 204 });
-  }),
-
-  http.post("/api/v1/shows/:showId/opening", async ({ params }) => {
-    if (realProducerApiEnabled) return passthrough();
-    await delay(250);
-    const show = findShow(String(params.showId));
-    if (!show) return showNotFound();
-    if (show.status !== "OPEN" && !showSessions(show.id).some(isBookable)) {
-      return apiError(409, "SHOW_NOT_OPENABLE", "예매 가능한 회차가 있어야 공연을 공개할 수 있습니다.");
-    }
-    show.status = "OPEN";
-    return HttpResponse.json(toProducerShow(show));
-  }),
-
-  http.post("/api/v1/shows/:showId/closing", async ({ params }) => {
-    if (realProducerApiEnabled) return passthrough();
-    await delay(250);
-    const show = findShow(String(params.showId));
-    if (!show) return showNotFound();
-    if (show.status === "DRAFT") return apiError(409, "SHOW_INVALID_STATUS", "예매 중인 공연만 마감할 수 있습니다.");
-    show.status = "CLOSED";
-    return HttpResponse.json(toProducerShow(show));
-  }),
-
-  http.post("/api/v1/shows/:showId/sessions", async ({ params, request }) => {
-    if (realProducerApiEnabled) return passthrough();
-    await delay(250);
-    const show = findShow(String(params.showId));
-    if (!show) return showNotFound();
-    const body = (await request.json()) as SaveShowSession;
-    const invalid = validateSession(body);
-    if (invalid) return invalidShow(invalid);
-    sessions.push({ id: nextSessionId, showId: show.id, startsAt: body.startsAt, capacity: body.capacity });
-    nextSessionId += 1;
-    return HttpResponse.json(toProducerShow(show), { status: 201 });
-  }),
-
-  http.put("/api/v1/shows/:showId/sessions/:sessionId", async ({ params, request }) => {
-    if (realProducerApiEnabled) return passthrough();
-    await delay(250);
-    const show = findShow(String(params.showId));
-    const session = sessions.find((item) => item.id === Number(params.sessionId) && item.showId === show?.id);
-    if (!show) return showNotFound();
-    if (!session) return sessionNotFound();
-    const body = (await request.json()) as SaveShowSession;
-    const invalid = validateSession(body);
-    if (invalid) return invalidShow(invalid);
-    const reserved = reservedTickets(session.id);
-    if (body.capacity < reserved) {
-      return apiError(409, "SHOW_SESSION_CAPACITY_BELOW_RESERVED", `정원은 이미 예매된 ${reserved}매보다 적을 수 없습니다.`);
-    }
-    session.startsAt = body.startsAt;
-    session.capacity = body.capacity;
-    return HttpResponse.json(toProducerShow(show));
-  }),
-
-  http.delete("/api/v1/shows/:showId/sessions/:sessionId", async ({ params }) => {
-    if (realProducerApiEnabled) return passthrough();
-    await delay(250);
-    const show = findShow(String(params.showId));
-    const session = sessions.find((item) => item.id === Number(params.sessionId) && item.showId === show?.id);
-    if (!show) return showNotFound();
-    if (!session) return sessionNotFound();
-    if (hasAnyReservation(session.id)) {
-      return apiError(409, "SHOW_SESSION_HAS_RESERVATIONS", "예매 기록이 있는 회차는 삭제할 수 없습니다.");
-    }
-    sessions.splice(sessions.indexOf(session), 1);
-    return HttpResponse.json(toProducerShow(show));
+  http.put("/mock-uploads/show-images/:fileId", async ({ params, request }) => {
+    uploadedImageUrls.set(Number(params.fileId), URL.createObjectURL(await request.blob()));
+    return new HttpResponse(null, { status: 200 });
   }),
 
   http.get("/api/v1/shows/:showId/sessions/:sessionId/reservations", async ({ params }) => {
     if (realProducerApiEnabled) return passthrough();
     await delay(200);
-    const show = findShow(String(params.showId));
+    const show = producerScope.find(String(params.showId));
     const session = sessions.find((item) => item.id === Number(params.sessionId) && item.showId === show?.id);
     if (!show) return showNotFound();
     if (!session) return sessionNotFound();
@@ -755,32 +948,5 @@ export const showHandlers = [
     }
     reservation.memo = memo.trim();
     return HttpResponse.json(toProducerReservation(reservation));
-  }),
-
-  http.post("/api/v1/show-images/upload-requests", async () => {
-    if (realProducerApiEnabled) return passthrough();
-    await delay(150);
-    const fileId = nextFileId;
-    nextFileId += 1;
-    return HttpResponse.json({
-      fileId,
-      uploadUrl: `/mock-uploads/show-images/${fileId}`,
-      method: "PUT",
-      expiresAt: new Date(Date.now() + 600_000).toISOString(),
-      headers: {},
-    }, { status: 201 });
-  }),
-
-  http.put("/mock-uploads/show-images/:fileId", async ({ params, request }) => {
-    uploadedImageUrls.set(Number(params.fileId), URL.createObjectURL(await request.blob()));
-    return new HttpResponse(null, { status: 200 });
-  }),
-
-  http.patch("/api/v1/show-images/:fileId/completion", async ({ params }) => {
-    if (realProducerApiEnabled) return passthrough();
-    await delay(100);
-    return uploadedImageUrls.has(Number(params.fileId))
-      ? new HttpResponse(null, { status: 204 })
-      : apiError(409, "FILE_NOT_UPLOADED", "파일 업로드가 끝나지 않았습니다.");
   }),
 ];

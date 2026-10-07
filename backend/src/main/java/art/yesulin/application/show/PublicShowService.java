@@ -1,5 +1,6 @@
 package art.yesulin.application.show;
 
+import static art.yesulin.domain.show.ShowErrorCode.INVALID_STATUS;
 import static art.yesulin.domain.show.ShowErrorCode.NOT_FOUND;
 
 import art.yesulin.common.exception.BusinessException;
@@ -7,6 +8,8 @@ import art.yesulin.domain.producer.Producer;
 import art.yesulin.domain.producer.ProducerRepository;
 import art.yesulin.domain.reservation.Reservation;
 import art.yesulin.domain.reservation.ReservationRepository;
+import art.yesulin.domain.show.ExternalReservationVisit;
+import art.yesulin.domain.show.ExternalReservationVisitRepository;
 import art.yesulin.domain.show.Show;
 import art.yesulin.domain.show.ShowRepository;
 import art.yesulin.domain.show.ShowSession;
@@ -24,7 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 로그인 없는 관객에게 예매 중인 공연과 회차별 잔여석을 보여 준다. 정원과 예매 수는 따로 내보내지 않고,
- * 공연이 잔여석을 숨기면 잔여석 숫자도 내보내지 않는다.
+ * 공연이 잔여석을 숨기거나 외부 페이지에서 예매받으면 잔여석 숫자도 내보내지 않는다.
  */
 @Service
 @RequiredArgsConstructor
@@ -34,6 +37,7 @@ public class PublicShowService {
     private final ShowSessionRepository sessionRepository;
     private final ReservationRepository reservationRepository;
     private final ProducerRepository producerRepository;
+    private final ExternalReservationVisitRepository visitRepository;
     private final Clock clock;
 
     @Transactional(readOnly = true)
@@ -94,6 +98,7 @@ public class PublicShowService {
                 show.getAgeRating(),
                 show.getInquiryPhone(),
                 show.getLinks().stream().map(ShowLinkResult::from).toList(),
+                show.getExternalReservationUrl(),
                 show.getStatus(),
                 Reservation.MAX_TICKET_COUNT,
                 sessions.stream()
@@ -102,10 +107,26 @@ public class PublicShowService {
         );
     }
 
+    /** 관객이 외부 링크 공연에서 예매하기를 눌러 외부 예매 페이지로 간 기록을 남긴다. 예매 중인 공연만 받는다. */
+    @Transactional
+    public void recordExternalReservationVisit(UUID showId) {
+        Show show = showRepository.findByPublicId(showId)
+                .filter(Show::isPublic)
+                .orElseThrow(() -> new BusinessException(NOT_FOUND, "공연을 찾을 수 없습니다."));
+        show.ensureOpen();
+        if (!show.usesExternalReservation()) {
+            throw new BusinessException(INVALID_STATUS, "외부 링크로 예매받는 공연이 아닙니다.");
+        }
+        visitRepository.save(new ExternalReservationVisit(show.getId()));
+    }
+
     /** 잔여석을 숨겨도 매수 상한은 잔여석까지다. 잔여석이 1회 최대 매수보다 적으면 상한으로 드러나는 것은 허용한다. */
     private static PublicShowSessionResult sessionResult(
             Show show, ShowSession session, long reservedTickets, boolean open, Instant now
     ) {
+        if (show.usesExternalReservation()) {
+            return externalSessionResult(session, open, now);
+        }
         long remainingSeats = session.remainingSeats(reservedTickets);
         boolean bookable = open && session.isBookableAt(now) && remainingSeats > 0;
         int maxTicketCount = (int) Math.min(Reservation.MAX_TICKET_COUNT, remainingSeats);
@@ -115,6 +136,16 @@ public class PublicShowService {
                 show.isRemainingSeatsVisible() ? remainingSeats : null,
                 maxTicketCount,
                 bookable
+        );
+    }
+
+    /**
+     * 외부 페이지에서 예매받는 공연은 잔여석을 알 수 없어 시작 전 회차를 모두 예매 가능으로 보여 주고,
+     * 예술in에서 매수를 고르지 않으므로 매수 상한은 0으로 둔다.
+     */
+    private static PublicShowSessionResult externalSessionResult(ShowSession session, boolean open, Instant now) {
+        return new PublicShowSessionResult(
+                session.getId(), session.getStartsAt(), null, 0, open && session.isBookableAt(now)
         );
     }
 

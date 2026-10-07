@@ -193,6 +193,7 @@ export function AdminShowsSection({ data }: { readonly data: DashboardData }) {
       </SummaryStrip>
       <p className="-mt-2 text-xs leading-5 text-muted">
         예매자 이름·연락처는 이 화면에 표시하지 않아요. 명단은 각 기획사가 공연 관리 화면에서 확인해요.
+        기획사 계정이 없는 공연은 외부 링크 공연으로 등록하고, 공연명을 눌러 회차·공개를 관리해요.
       </p>
       <AdminShowTable shows={data.shows} now={data.loadedAt} />
     </>

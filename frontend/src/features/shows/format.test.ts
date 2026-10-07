@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  externalReservationHref,
   formatShowDateTime,
   formatShowFullDateTime,
   formatShowPeriod,
@@ -53,5 +54,20 @@ describe("show format", () => {
     expect(showAvailability({ status: "OPEN", sessions: [{ id: 1, startsAt: future, remainingSeats: null, maxTicketCount: 0, bookable: false }] }, now).label).toBe("매진");
     expect(showAvailability({ status: "OPEN", sessions: [{ id: 1, startsAt: past, remainingSeats: 3, maxTicketCount: 3, bookable: false }] }, now).label).toBe("예매 마감");
     expect(showAvailability({ status: "OPEN", sessions: [] }, now).label).toBe("회차 준비 중");
+  });
+
+  it("외부 예매 공연은 매수 상한이 0이어도 시작 전 회차가 있으면 예매 중, 모두 지나면 예매 마감이다", () => {
+    const now = Date.parse("2026-10-01T00:00:00Z");
+    const session = (startsAt: string, bookable: boolean) => ({ id: 1, startsAt, remainingSeats: null, maxTicketCount: 0, bookable });
+    expect(showAvailability({ status: "OPEN", sessions: [session("2026-10-02T10:00:00Z", true)] }, now).kind).toBe("open");
+    expect(showAvailability({ status: "OPEN", sessions: [session("2026-09-30T10:00:00Z", false)] }, now).label).toBe("예매 마감");
+  });
+
+  it("외부 예매 링크는 http/https 주소일 때만 예매하기 주소로 쓴다", () => {
+    expect(externalReservationHref({ externalReservationUrl: "https://form.naver.com/response/abc" }))
+      .toBe("https://form.naver.com/response/abc");
+    expect(externalReservationHref({ externalReservationUrl: "" })).toBeNull();
+    expect(externalReservationHref({ externalReservationUrl: "javascript:alert(1)" })).toBeNull();
+    expect(externalReservationHref({ externalReservationUrl: "form.naver.com" })).toBeNull();
   });
 });

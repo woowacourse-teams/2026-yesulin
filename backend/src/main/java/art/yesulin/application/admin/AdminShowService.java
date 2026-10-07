@@ -32,6 +32,9 @@ public class AdminShowService {
     public AdminShowHostNameResult changeHostName(ChangeShowHostNameCommand command) {
         Show show = showRepository.findByPublicId(command.showId())
                 .orElseThrow(() -> new BusinessException(ShowErrorCode.NOT_FOUND, "공연을 찾을 수 없습니다."));
+        if (show.usesExternalReservation() && (command.hostName() == null || command.hostName().isBlank())) {
+            throw new BusinessException(ShowErrorCode.INVALID_INPUT, "주최 이름은 필수입니다.");
+        }
         show.updateHostName(command.hostName());
         adminAuditLogRepository.save(new AdminAuditLog(
                 command.actorMemberId(),

@@ -12,6 +12,11 @@ export function getPublicShow(showId: string): Promise<PublicShow> {
   return request<PublicShow>(`${PUBLIC_SHOWS_PATH}/${encodeURIComponent(showId)}`);
 }
 
+/** 외부 링크 공연에서 예매하기를 누르면 예술in을 거쳐 예매하러 간 기록을 남긴다. 관객 이동은 기다리지 않는다. */
+export function recordExternalReservationVisit(showId: string): Promise<void> {
+  return request<void>(`${PUBLIC_SHOWS_PATH}/${encodeURIComponent(showId)}/external-reservation-visits`, { method: "POST" });
+}
+
 /** 비회원 예매. 휴대폰은 010-1234-5678 형식으로 보낸다. */
 export function createReservation(
   showId: string,

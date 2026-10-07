@@ -13,7 +13,7 @@ import type {
   MemberStatus,
 } from "@/features/admin/types";
 import { mockSessionRole } from "./auth-handlers";
-import { changeMockShowHostName, listAdminShows } from "./show-handlers";
+import { adminShowHandlers, changeMockShowHostName, listAdminShows } from "./show-handlers";
 
 /**
  * 운영 대시보드 화면 확인용 메모리 목이다. `admin@`으로 시작하는 이메일로 목 로그인하면 ADMIN 세션이 된다.
@@ -346,7 +346,12 @@ export const adminHandlers = [
     if (typeof body?.hostName !== "string" || body.hostName.trim().length > 50) {
       return apiError(400, "INVALID_REQUEST", "요청 값을 확인해 주세요.");
     }
-    const result = changeMockShowHostName(String(params.showId), body.hostName);
+    const showId = String(params.showId);
+    const show = listAdminShows().find((item) => item.showId === showId);
+    if (show?.externalReservationUrl && !body.hostName.trim()) {
+      return apiError(400, "SHOW_INVALID_INPUT", "주최 이름은 필수입니다.");
+    }
+    const result = changeMockShowHostName(showId, body.hostName);
     if (!result) return apiError(404, "SHOW_NOT_FOUND", "공연을 찾을 수 없습니다.");
     auditLogs.unshift({
       id: nextAuditLogId,
@@ -395,4 +400,6 @@ export const adminHandlers = [
     }
     return apiError(404, "SUBMISSION_NOT_FOUND", "지원서를 찾을 수 없습니다.");
   }),
+
+  ...adminShowHandlers(rejectNonAdmin, () => realLoginEnabled),
 ];

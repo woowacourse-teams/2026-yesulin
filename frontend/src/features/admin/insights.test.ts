@@ -18,6 +18,8 @@ const show = (status: AdminShow["status"], sessions: readonly AdminShowSession[]
   title: "햄릿",
   status,
   companyName: null,
+  externalReservationUrl: "",
+  externalReservationVisits: 0,
   hostName: "",
   createdAt: "2026-09-01T00:00:00Z",
   totalCapacity: 0,

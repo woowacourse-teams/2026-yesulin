@@ -9,11 +9,12 @@ import type { AdminShow, AdminShowHostName } from "@/features/admin/types";
 const TITLE_ID = "admin-show-host-name-title";
 const INPUT_ID = "admin-show-host-name-input";
 const HINT_ID = "admin-show-host-name-hint";
+const ERROR_ID = "admin-show-host-name-error";
 const MAX_HOST_NAME_LENGTH = 50;
 
 /**
  * 기획사가 계정 이름을 개인 이름으로 적은 경우처럼 운영자가 공연의 주최 이름을 대신 고친다.
- * 관객의 공연 목록·상세·예매 완료 화면에 바로 반영되고, 비우면 계정 기획사명으로 돌아간다.
+ * 기획사 공연은 비우면 계정 기획사명으로 돌아가고, 외부 링크 공연은 주최 이름이 필수다.
  */
 export function AdminShowHostNameDialog({ show, onClose, onSaved }: {
   readonly show: AdminShow;
@@ -25,10 +26,13 @@ export function AdminShowHostNameDialog({ show, onClose, onSaved }: {
   const [error, setError] = useState("");
   const close = useModalClose(onClose, saving);
   const companyName = show.companyName ?? "";
+  const hostNameRequired = Boolean(show.externalReservationUrl);
+  const hostNameError = hostNameRequired && !hostName.trim() ? "주최 이름은 필수입니다." : "";
   const unchanged = hostName.trim() === show.hostName;
   const preview = hostName.trim() || companyName;
 
   const save = async () => {
+    if (hostNameError) return;
     setSaving(true);
     setError("");
     try {
@@ -60,15 +64,21 @@ export function AdminShowHostNameDialog({ show, onClose, onSaved }: {
             maxLength={MAX_HOST_NAME_LENGTH}
             value={hostName}
             disabled={saving}
+            required={hostNameRequired}
             onChange={(event) => setHostName(event.target.value)}
             placeholder={companyName || "예: 극단 달빛"}
-            aria-describedby={HINT_ID}
+            aria-invalid={Boolean(hostNameError) || undefined}
+            aria-describedby={`${HINT_ID}${hostNameError ? ` ${ERROR_ID}` : ""}`}
             className="min-h-12 w-full rounded-control border border-border px-3 text-base outline-none focus:border-brand md:text-sm"
           />
           <p id={HINT_ID} className="text-xs leading-5 text-muted">
-            비워 두면 계정 기획사명{companyName ? ` '${companyName}'` : ""}으로 보여요. 저장하면 관객 화면에 바로 반영되고,
+            {hostNameRequired
+              ? "외부 링크 공연은 주최 이름이 필수입니다. "
+              : `비워 두면 계정 기획사명${companyName ? ` '${companyName}'` : ""}으로 보여요. `}
+            저장하면 관객 화면에 바로 반영되고,
             변경 기록에는 이름 없이 남아요.
           </p>
+          {hostNameError ? <p id={ERROR_ID} role="alert" className="text-sm font-medium text-fail">{hostNameError}</p> : null}
           <p className="rounded-control bg-surface px-3 py-2 text-sm text-muted-strong">
             관객 화면: <span className="font-semibold text-foreground">주최 {preview || "표시 안 함"}</span>
           </p>
@@ -79,7 +89,7 @@ export function AdminShowHostNameDialog({ show, onClose, onSaved }: {
             className="min-h-11 rounded-control border border-border px-4 text-sm font-medium text-muted-strong hover:bg-surface">
             취소
           </button>
-          <button type="submit" disabled={saving || unchanged} aria-busy={saving || undefined}
+          <button type="submit" disabled={saving || unchanged || Boolean(hostNameError)} aria-busy={saving || undefined}
             className="min-h-11 rounded-control bg-brand px-4 text-sm font-semibold text-white hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-50">
             {saving ? "저장 중…" : "저장"}
           </button>

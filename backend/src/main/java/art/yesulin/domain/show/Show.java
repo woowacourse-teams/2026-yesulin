@@ -3,6 +3,7 @@ package art.yesulin.domain.show;
 import static art.yesulin.domain.common.validation.DomainValidator.requireNonNull;
 import static art.yesulin.domain.common.validation.DomainValidator.requirePositive;
 import static art.yesulin.domain.common.validation.DomainValidator.requireText;
+import static art.yesulin.domain.show.ShowErrorCode.EXTERNAL_RESERVATION;
 import static art.yesulin.domain.show.ShowErrorCode.INVALID_INPUT;
 import static art.yesulin.domain.show.ShowErrorCode.INVALID_STATUS;
 import static art.yesulin.domain.show.ShowErrorCode.NOT_OPEN;
@@ -61,6 +62,7 @@ public class Show {
     public static final int MAX_LINK_COUNT = 3;
     public static final int MAX_GUIDE_COUNT = 5;
     public static final int MAX_HOST_NAME_LENGTH = 50;
+    public static final int MAX_EXTERNAL_RESERVATION_URL_LENGTH = 500;
     private static final int MAX_TITLE_LENGTH = 200;
     private static final int MAX_DESCRIPTION_LENGTH = 2000;
     private static final int MAX_AGE_RATING_LENGTH = 50;
@@ -130,6 +132,10 @@ public class Show {
     @Column(name = "remaining_seats_visible", nullable = false)
     private boolean remainingSeatsVisible = true;
 
+    /** 운영자가 등록한 공연에서 관객을 보낼 외부 예매 주소(네이버 폼 등). 기획사 공연은 비어 있고 예술in에서 예매받는다. */
+    @Column(name = "external_reservation_url", nullable = false, length = MAX_EXTERNAL_RESERVATION_URL_LENGTH)
+    private String externalReservationUrl = "";
+
     @Convert(converter = ShowStatusConverter.class)
     @Column(nullable = false, length = 20)
     private ShowStatus status;
@@ -194,6 +200,26 @@ public class Show {
     /** 관객에게 보여 줄 주최 이름만 바꾼다. 빈 값이면 기획사 계정의 회사명을 쓴다. 운영자 수정에도 쓴다. */
     public void updateHostName(String hostName) {
         this.hostName = requireMaxLength(normalizeOptional(hostName), MAX_HOST_NAME_LENGTH, "주최 이름");
+    }
+
+    /**
+     * 관객을 보낼 외부 예매 주소를 정한다. 운영자가 등록하는 공연만 외부 링크로 예매받고 주소가 반드시 있어야 하며,
+     * 기획사 공연은 이 값을 쓰지 않아 늘 예술in에서 예매받는다.
+     */
+    public void updateExternalReservationUrl(String externalReservationUrl) {
+        String url = requireText(externalReservationUrl, "외부 예매 링크는 필수입니다.");
+        this.externalReservationUrl = requireExternalReservationUrl(url);
+    }
+
+    public boolean usesExternalReservation() {
+        return !externalReservationUrl.isEmpty();
+    }
+
+    /** 외부 페이지에서 예매받는 공연은 예술in 예매 API로 예매할 수 없다. */
+    public void ensureReservableHere() {
+        if (usesExternalReservation()) {
+            throw new BusinessException(EXTERNAL_RESERVATION, "이 공연은 외부 예매 페이지에서 예매할 수 있습니다.");
+        }
     }
 
     /** 공연에 따로 적은 주최 이름이 없으면 기획사 계정의 회사명을 쓴다. */
@@ -286,6 +312,13 @@ public class Show {
             throw new BusinessException(INVALID_INPUT, "추가 안내는 최대 %d개까지 등록할 수 있습니다.", MAX_GUIDE_COUNT);
         }
         return values;
+    }
+
+    private static String requireExternalReservationUrl(String url) {
+        if (url.length() > MAX_EXTERNAL_RESERVATION_URL_LENGTH || !ShowLink.isWebAddress(url)) {
+            throw new BusinessException(INVALID_INPUT, "외부 예매 링크는 https://로 시작하는 올바른 주소로 입력해 주세요.");
+        }
+        return url;
     }
 
     private static String requireMaxLength(String value, int maxLength, String fieldName) {

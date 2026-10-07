@@ -29,6 +29,7 @@ const STALE_CODES = new Set<string>([
   RESERVATION_ERROR_CODES.bookingClosed,
   RESERVATION_ERROR_CODES.showNotOpen,
   RESERVATION_ERROR_CODES.sessionNotFound,
+  RESERVATION_ERROR_CODES.externalReservation,
 ]);
 
 export function ReservationSheet({ open, show, session, onClose, onReserved, onStale }: {
@@ -258,6 +259,8 @@ function reservationErrorMessage(cause: unknown, inquiryPhone: string) {
     case RESERVATION_ERROR_CODES.sessionNotFound:
     case RESERVATION_ERROR_CODES.showNotFound:
       return "회차 정보가 바뀌었어요. 회차를 다시 선택해 주세요.";
+    case RESERVATION_ERROR_CODES.externalReservation:
+      return "이 공연은 외부 예매 페이지에서 예매받아요. 창을 닫고 예매하기를 다시 눌러 주세요.";
     case RESERVATION_ERROR_CODES.invalidInput:
       return cause.message;
     default:

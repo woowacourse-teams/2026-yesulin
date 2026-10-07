@@ -19,7 +19,6 @@ import { getProducerProfile } from "@/features/auditions/api";
 import { AuditionRequestError } from "@/features/auditions/api-client";
 import type { VenueAddress } from "@/features/auditions/creation-types";
 import { usePhoneInput } from "@/features/applications/phone-number";
-import { createShow, updateShow, uploadShowImage } from "@/features/shows/producer-api";
 import {
   SHOW_FORM_FIELDS,
   formatInquiryPhone,
@@ -35,6 +34,7 @@ import {
   type ShowFormValues,
 } from "@/features/shows/show-form";
 import {
+  MAX_EXTERNAL_RESERVATION_URL_LENGTH,
   MAX_SHOW_DESCRIPTION_LENGTH,
   MAX_SHOW_GUIDE_CONTENT_LENGTH,
   MAX_SHOW_GUIDE_TITLE_LENGTH,
@@ -53,6 +53,7 @@ import {
   type ShowLink,
 } from "@/features/shows/types";
 import { useModalClose } from "../use-modal-close";
+import { useShowManagementApi } from "./show-management-api-context";
 
 const TITLE_ID = "show-form-title";
 const KEEP_WRITING_ID = "show-form-keep-writing";
@@ -62,12 +63,14 @@ const FIELD_ERROR_CLASS = "border-fail focus:border-fail focus:ring-fail-bg";
 const FIELD_FOCUS_SELECTOR: Record<ShowFormField, string> = {
   poster: "#show-poster-field input",
   title: "#show-title",
+  hostName: "#show-host-name",
   genre: "#show-genre button",
   runningMinutes: "#show-running-minutes",
   inquiryPhone: "#show-inquiry-phone",
   venue: "#show-venue-field input",
   guides: "#show-guides input",
   links: "#show-links input",
+  externalReservationUrl: "#show-external-reservation-url",
 };
 
 const linkInputId = (index: number, part: "label" | "url") => `show-link-${index}-${part}`;
@@ -78,11 +81,17 @@ type ImageSlot = { readonly fileId: number | null; readonly url: string; readonl
 
 const EMPTY_SLOT: ImageSlot = { fileId: null, url: "", file: null };
 
+/**
+ * 기획사 공연과 운영자 공연을 함께 등록·수정한다. 운영자 공연은 기획사 계정이 없어 주최 이름이 필수이고,
+ * 외부 링크로만 예매받으므로 잔여석 설정 대신 외부 예매 링크를 받는다.
+ */
 export function ShowFormModal({ show, onClose, onSaved }: {
   readonly show?: ProducerShow;
   readonly onClose: () => void;
   readonly onSaved: (show: ProducerShow) => void;
 }) {
+  const api = useShowManagementApi();
+  const adminShow = api.kind === "admin";
   const [title, setTitle] = useState(show?.title ?? "");
   const [genre, setGenre] = useState<ShowGenre | null>(show?.genre ?? null);
   const [description, setDescription] = useState(show?.description ?? "");
@@ -103,6 +112,7 @@ export function ShowFormModal({ show, onClose, onSaved }: {
   const [guides, setGuides] = useState<readonly ShowGuide[]>(show?.guides ?? []);
   const [links, setLinks] = useState<readonly ShowLink[]>(show?.links ?? []);
   const [remainingSeatsVisible, setRemainingSeatsVisible] = useState(show?.remainingSeatsVisible ?? true);
+  const [externalReservationUrl, setExternalReservationUrl] = useState(show?.externalReservationUrl ?? "");
   const [poster, setPoster] = useState<ImageSlot>(
     show ? { fileId: show.poster.fileId, url: show.poster.url, file: null } : EMPTY_SLOT,
   );
@@ -117,14 +127,17 @@ export function ShowFormModal({ show, onClose, onSaved }: {
   const formRef = useRef<HTMLFormElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
 
-  const values: ShowFormValues = { posterUrl: poster.url, title, genre, runningMinutes, inquiryPhone, venueName, roadAddress: address.roadAddress, guides, links };
+  const values: ShowFormValues = {
+    posterUrl: poster.url, title, genre, runningMinutes, inquiryPhone, venueName, roadAddress: address.roadAddress, guides, links,
+    adminShow, hostName, externalReservationUrl,
+  };
   // 한 번 오류가 난 항목은 입력할 때마다 다시 검사해, 고치면 바로 오류가 사라진다.
   const fieldError = (field: ShowFormField) => errors[field] ? validateShowField(field, values) ?? undefined : undefined;
   const invalidCount = SHOW_FORM_FIELDS.filter((field) => fieldError(field)).length;
   // 변경 여부 비교용. 지도가 자동으로 채우는 좌표와 큰 이미지 데이터(data URL)는 넣지 않는다.
   const snapshot = JSON.stringify({
     title, genre, description, venueName, hostName, guides, runningMinutes, ageRating, inquiryPhone, links, remainingSeatsVisible,
-    roadAddress: address.roadAddress, detailAddress: address.detailAddress, zonecode: address.zonecode,
+    externalReservationUrl, roadAddress: address.roadAddress, detailAddress: address.detailAddress, zonecode: address.zonecode,
     poster: imageKey(poster), images: images.map(imageKey),
   });
   const [initialSnapshot] = useState(snapshot);
@@ -146,15 +159,16 @@ export function ShowFormModal({ show, onClose, onSaved }: {
   }, [confirmingClose]);
 
   // 새 공연은 아직 응답에 기본 주최 이름이 없으므로 계정 회사명을 따로 읽어 안내에 쓴다. 실패해도 입력에는 지장이 없다.
-  const creating = !show;
+  // 운영자 공연은 기획사 계정이 없어 읽지 않는다.
+  const loadsCompanyName = !show && !adminShow;
   useEffect(() => {
-    if (!creating) return;
+    if (!loadsCompanyName) return;
     let active = true;
     getProducerProfile()
       .then((profile) => { if (active) setDefaultHostName(profile.companyName); })
       .catch((cause) => console.error("[기획사 이름 조회 실패]", cause));
     return () => { active = false; };
-  }, [creating]);
+  }, [loadsCompanyName]);
 
   const keepWriting = () => {
     setConfirmingClose(false);
@@ -217,7 +231,11 @@ export function ShowFormModal({ show, onClose, onSaved }: {
       .filter((guide) => guide.title.trim() || guide.content.trim())
       .map((guide) => ({ title: guide.title.trim(), content: guide.content.trim() }));
     setGuides(normalizedGuides);
-    const submitted: ShowFormValues = { ...values, guides: normalizedGuides, links: normalizedLinks };
+    const normalizedExternalUrl = adminShow ? normalizeShowLinkUrl(externalReservationUrl) : "";
+    if (adminShow) setExternalReservationUrl(normalizedExternalUrl);
+    const submitted: ShowFormValues = {
+      ...values, guides: normalizedGuides, links: normalizedLinks, externalReservationUrl: normalizedExternalUrl,
+    };
     const nextErrors = validateShowForm(submitted);
     setErrors(nextErrors);
     const firstInvalid = SHOW_FORM_FIELDS.find((field) => nextErrors[field]);
@@ -228,6 +246,7 @@ export function ShowFormModal({ show, onClose, onSaved }: {
     }
     setSaving(true);
     setError("");
+    const upload = (file: File) => api.uploadImage(file);
     try {
       const input: SaveShow = {
         title: title.trim(),
@@ -241,10 +260,11 @@ export function ShowFormModal({ show, onClose, onSaved }: {
         links: normalizedLinks,
         guides: normalizedGuides,
         remainingSeatsVisible,
-        posterFileId: await fileIdOf(poster),
-        imageFileIds: await uploadImages(images),
+        ...(adminShow ? { externalReservationUrl: normalizedExternalUrl } : {}),
+        posterFileId: await fileIdOf(poster, upload),
+        imageFileIds: await uploadImages(images, upload),
       };
-      onSaved(show ? await updateShow(show.id, input) : await createShow(input));
+      onSaved(show ? await api.updateShow(show.id, input) : await api.createShow(input));
     } catch (cause) {
       console.error("[무료 공연 저장 실패]", cause);
       setError(cause instanceof AuditionRequestError ? cause.message : "이미지를 올리거나 공연을 저장하지 못했습니다. 다시 시도해 주세요.");
@@ -270,8 +290,12 @@ export function ShowFormModal({ show, onClose, onSaved }: {
     >
       <DialogHeader
         id={TITLE_ID}
-        title={show ? "무료 공연 수정" : "무료 공연 등록"}
-        subtitle={show ? "수정한 내용은 공연 페이지에 바로 반영됩니다." : "등록한 공연은 회차를 추가하고 공개해야 관객에게 보입니다."}
+        title={show ? "무료 공연 수정" : adminShow ? "외부 링크 공연 등록" : "무료 공연 등록"}
+        subtitle={show
+          ? "수정한 내용은 공연 페이지에 바로 반영됩니다."
+          : adminShow
+            ? "운영자가 등록한 공연은 외부 예매 링크로만 예매받아요. 회차를 추가하고 공개해야 관객에게 보입니다."
+            : "등록한 공연은 회차를 추가하고 공개해야 관객에게 보입니다."}
       />
       <form ref={formRef} noValidate onSubmit={(event) => void submit(event)} className="flex min-h-0 flex-1 flex-col">
         <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5 md:px-6">
@@ -293,15 +317,24 @@ export function ShowFormModal({ show, onClose, onSaved }: {
                 </CreateField>
                 <FieldError field="title" message={fieldError("title")} />
               </div>
-              <CreateField
-                label="주최 (선택)"
-                htmlFor="show-host-name"
-                hint={defaultHostName
-                  ? `비워 두면 기획사 이름 '${defaultHostName}'으로 보여요. 프로젝트 이름으로 보여 주고 싶을 때만 입력하세요.`
-                  : "비워 두면 기획사 이름으로 보여요. 프로젝트 이름으로 보여 주고 싶을 때만 입력하세요."}
-              >
-                <FieldInput id="show-host-name" maxLength={MAX_SHOW_HOST_NAME_LENGTH} value={hostName} onChange={(event) => setHostName(event.target.value)} placeholder={defaultHostName || "예: 2026 청년 연극 프로젝트"} />
-              </CreateField>
+              {adminShow ? (
+                <div>
+                  <CreateField label="주최" htmlFor="show-host-name" hint="관객 화면에 주최로 보여요. 공연하는 단체나 프로젝트 이름을 적어 주세요.">
+                    <FieldInput id="show-host-name" maxLength={MAX_SHOW_HOST_NAME_LENGTH} value={hostName} onChange={(event) => setHostName(event.target.value)} placeholder="예: 서울숲 거리극 모임" {...inputState("hostName")} />
+                  </CreateField>
+                  <FieldError field="hostName" message={fieldError("hostName")} />
+                </div>
+              ) : (
+                <CreateField
+                  label="주최 (선택)"
+                  htmlFor="show-host-name"
+                  hint={defaultHostName
+                    ? `비워 두면 기획사 이름 '${defaultHostName}'으로 보여요. 프로젝트 이름으로 보여 주고 싶을 때만 입력하세요.`
+                    : "비워 두면 기획사 이름으로 보여요. 프로젝트 이름으로 보여 주고 싶을 때만 입력하세요."}
+                >
+                  <FieldInput id="show-host-name" maxLength={MAX_SHOW_HOST_NAME_LENGTH} value={hostName} onChange={(event) => setHostName(event.target.value)} placeholder={defaultHostName || "예: 2026 청년 연극 프로젝트"} />
+                </CreateField>
+              )}
               <fieldset id="show-genre" aria-describedby={describedBy("genre")}>
                 <legend className="mb-2 text-base font-semibold text-muted-strong md:text-sm">장르</legend>
                 <div className={`inline-flex overflow-hidden rounded-control border ${fieldError("genre") ? "border-fail" : "border-border"}`}>
@@ -325,7 +358,11 @@ export function ShowFormModal({ show, onClose, onSaved }: {
                 </CreateField>
               </div>
               <div>
-                <CreateField label="취소·단체 문의 전화" htmlFor="show-inquiry-phone" hint="관객에게 공개되며, 예매 취소와 11명 이상 단체 관람 문의를 받습니다.">
+                <CreateField
+                  label={adminShow ? "문의 전화" : "취소·단체 문의 전화"}
+                  htmlFor="show-inquiry-phone"
+                  hint={adminShow ? "관객에게 공개되며, 예매 관련 문의를 받습니다." : "관객에게 공개되며, 예매 취소와 11명 이상 단체 관람 문의를 받습니다."}
+                >
                   <FieldInput id="show-inquiry-phone" type="tel" inputMode="tel" maxLength={13} value={inquiryPhone} onChange={(event) => onInquiryPhoneChange(event, setInquiryPhone)} placeholder="02-123-4567" {...inputState("inquiryPhone")} />
                 </CreateField>
                 <FieldError field="inquiryPhone" message={fieldError("inquiryPhone")} />
@@ -408,32 +445,57 @@ export function ShowFormModal({ show, onClose, onSaved }: {
             </AddButton>
           </fieldset>
 
-          <fieldset aria-describedby="show-remaining-seats-hint">
-            <legend className="mb-2 text-base font-semibold text-muted-strong md:text-sm">관객에게 잔여석 표시</legend>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                aria-pressed={remainingSeatsVisible}
-                onClick={() => setRemainingSeatsVisible(true)}
-                className={`min-h-11 rounded-control border px-4 py-3 text-left text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${remainingSeatsVisible ? "border-brand bg-brand-soft text-brand ring-1 ring-brand" : "border-border bg-card text-muted-strong hover:bg-surface"}`}
+          {adminShow ? (
+            <div>
+              <CreateField
+                label="외부 예매 링크"
+                htmlFor="show-external-reservation-url"
+                hint="관객이 공연 페이지에서 예매하기를 누르면 이 주소가 새 창으로 열려요. 회차 선택과 예매자 명단은 그 페이지에서 관리해 주세요."
               >
-                공개 <span className="mt-1 block text-xs font-normal">남은 좌석 수 표시</span>
-              </button>
-              <button
-                type="button"
-                aria-pressed={!remainingSeatsVisible}
-                onClick={() => setRemainingSeatsVisible(false)}
-                className={`min-h-11 rounded-control border px-4 py-3 text-left text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${!remainingSeatsVisible ? "border-brand bg-brand-soft text-brand ring-1 ring-brand" : "border-border bg-card text-muted-strong hover:bg-surface"}`}
-              >
-                비공개 <span className="mt-1 block text-xs font-normal">예매 가능 여부만 표시</span>
-              </button>
+                <FieldInput
+                  id="show-external-reservation-url"
+                  type="url"
+                  inputMode="url"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  maxLength={MAX_EXTERNAL_RESERVATION_URL_LENGTH}
+                  value={externalReservationUrl}
+                  onChange={(event) => setExternalReservationUrl(event.target.value)}
+                  onBlur={(event) => setExternalReservationUrl(normalizeShowLinkUrl(event.target.value))}
+                  placeholder="https://form.naver.com/response/..."
+                  {...inputState("externalReservationUrl")}
+                />
+              </CreateField>
+              <FieldError field="externalReservationUrl" message={fieldError("externalReservationUrl")} />
             </div>
-            <p id="show-remaining-seats-hint" className="mt-2 text-base leading-relaxed text-muted md:text-sm">
-              {remainingSeatsVisible
-                ? "회차마다 '잔여 32석'처럼 남은 좌석 수를 보여 줘요."
-                : "숫자 대신 '예매 가능'으로 보여 줘요. 매진은 그대로 표시되고, 남은 좌석이 10석보다 적으면 한 번에 고를 수 있는 매수가 그만큼 줄어요. 관리 화면에서는 계속 잔여석을 볼 수 있어요."}
-            </p>
-          </fieldset>
+          ) : (
+            <fieldset aria-describedby="show-remaining-seats-hint">
+              <legend className="mb-2 text-base font-semibold text-muted-strong md:text-sm">관객에게 잔여석 표시</legend>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  aria-pressed={remainingSeatsVisible}
+                  onClick={() => setRemainingSeatsVisible(true)}
+                  className={`min-h-11 rounded-control border px-4 py-3 text-left text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${remainingSeatsVisible ? "border-brand bg-brand-soft text-brand ring-1 ring-brand" : "border-border bg-card text-muted-strong hover:bg-surface"}`}
+                >
+                  공개 <span className="mt-1 block text-xs font-normal">남은 좌석 수 표시</span>
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={!remainingSeatsVisible}
+                  onClick={() => setRemainingSeatsVisible(false)}
+                  className={`min-h-11 rounded-control border px-4 py-3 text-left text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${!remainingSeatsVisible ? "border-brand bg-brand-soft text-brand ring-1 ring-brand" : "border-border bg-card text-muted-strong hover:bg-surface"}`}
+                >
+                  비공개 <span className="mt-1 block text-xs font-normal">예매 가능 여부만 표시</span>
+                </button>
+              </div>
+              <p id="show-remaining-seats-hint" className="mt-2 text-base leading-relaxed text-muted md:text-sm">
+                {remainingSeatsVisible
+                  ? "회차마다 '잔여 32석'처럼 남은 좌석 수를 보여 줘요."
+                  : "숫자 대신 '예매 가능'으로 보여 줘요. 매진은 그대로 표시되고, 남은 좌석이 10석보다 적으면 한 번에 고를 수 있는 매수가 그만큼 줄어요. 관리 화면에서는 계속 잔여석을 볼 수 있어요."}
+              </p>
+            </fieldset>
+          )}
         </div>
         {/* 스크롤 영역 위쪽에 두면 아래에서 저장을 눌렀을 때 보이지 않으므로 버튼 바로 위에 둔다. */}
         <FooterNotice
@@ -609,17 +671,19 @@ function FooterNotice({ confirmingClose, editing, error, invalidCount }: {
   return message ? <div className="px-5 pb-3 md:px-6"><CreateError message={message} /></div> : null;
 }
 
-async function fileIdOf(slot: ImageSlot): Promise<number> {
-  if (slot.file) return uploadShowImage(slot.file);
+type UploadImage = (file: File) => Promise<number>;
+
+async function fileIdOf(slot: ImageSlot, upload: UploadImage): Promise<number> {
+  if (slot.file) return upload(slot.file);
   if (slot.fileId !== null) return slot.fileId;
   throw new Error("이미지 파일 정보가 없습니다.");
 }
 
 /** 비어 있는 칸은 건너뛰고 순서대로 올린다. 여러 장을 동시에 올리지 않아 모바일 업로드 실패를 줄인다. */
-async function uploadImages(slots: readonly ImageSlot[]): Promise<number[]> {
+async function uploadImages(slots: readonly ImageSlot[], upload: UploadImage): Promise<number[]> {
   const fileIds: number[] = [];
   for (const slot of slots) {
-    if (slot.url) fileIds.push(await fileIdOf(slot));
+    if (slot.url) fileIds.push(await fileIdOf(slot, upload));
   }
   return fileIds;
 }

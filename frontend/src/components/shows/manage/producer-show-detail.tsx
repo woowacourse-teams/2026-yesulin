@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useId, useState } from "react";
+import { Fragment, useCallback, useEffect, useId, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -15,22 +15,14 @@ import {
   fromKstDateTimeInput,
   toKstDateTimeInput,
 } from "@/features/shows/format";
-import {
-  closeShow,
-  createShowSession,
-  deleteShow,
-  deleteShowSession,
-  getProducerShow,
-  openShow,
-  updateShow,
-  updateShowSession,
-} from "@/features/shows/producer-api";
-import { showRoutes, type ProducerShow, type ProducerShowSession, type SaveShow } from "@/features/shows/types";
+import type { ShowManagementApi } from "@/features/shows/management-api";
+import { showRoutes, type ProducerShow, type ProducerShowSession, type SaveShow, type SaveShowSession } from "@/features/shows/types";
 import { ManagementGenreBadge, ManagementStatusBadge } from "../show-status";
 import { ConfirmDialog } from "./confirm-dialog";
 import { CopyShowLinkButton } from "./copy-show-link-button";
 import { SessionReservations } from "./session-reservations";
 import { ShowFormModal } from "./show-form-modal";
+import { useShowManagementApi } from "./show-management-api-context";
 
 type DetailState =
   | { readonly status: "loading" }
@@ -39,7 +31,12 @@ type DetailState =
 
 type PendingAction = "close" | "delete" | null;
 
+/**
+ * 공연 한 건의 회차·공개·예매자를 관리한다. 운영 대시보드도 운영자 API로 감싸 외부 링크 공연 관리에 같은 화면을 쓴다.
+ * 외부 링크 공연은 예술in 예매가 없으므로 예매자 명단 대신 외부 예매 주소를 보여 준다.
+ */
 export function ProducerShowDetail({ showId }: { readonly showId: string }) {
+  const api = useShowManagementApi();
   const router = useRouter();
   const toast = useToast();
   const [state, setState] = useState<DetailState>({ status: "loading" });
@@ -52,21 +49,21 @@ export function ProducerShowDetail({ showId }: { readonly showId: string }) {
 
   /** 예매 취소처럼 다른 패널이 바꾼 매수를 다시 읽는다. */
   const refresh = useCallback(() => {
-    getProducerShow(showId)
+    api.getShow(showId)
       .then((show) => setState({ status: "ready", show }))
       .catch((cause) => console.error("[무료 공연 다시 조회 실패]", cause));
-  }, [showId]);
+  }, [api, showId]);
 
   useEffect(() => {
     let active = true;
-    getProducerShow(showId)
+    api.getShow(showId)
       .then((show) => { if (active) setState({ status: "ready", show }); })
       .catch((cause) => {
         console.error("[무료 공연 조회 실패]", cause);
         if (active) setState({ status: "error", message: cause instanceof Error ? cause.message : "공연을 불러오지 못했습니다." });
       });
     return () => { active = false; };
-  }, [showId]);
+  }, [api, showId]);
 
   const run = async (action: () => Promise<ProducerShow>, success: string) => {
     setBusy(true);
@@ -82,14 +79,17 @@ export function ProducerShowDetail({ showId }: { readonly showId: string }) {
     }
   };
 
+  // 운영 대시보드는 자체 틀(AdminShell)이 여백을 주므로 기획사 화면의 바깥 여백을 쓰지 않는다.
+  const Screen = api.kind === "admin" ? Fragment : PickerScreen;
   if (state.status === "loading") {
-    return <PickerScreen><p role="status" className="mx-auto max-w-[1120px] rounded-card border border-border bg-card px-5 py-14 text-center text-muted">공연을 불러오는 중…</p></PickerScreen>;
+    return <Screen><p role="status" className="mx-auto max-w-[1120px] rounded-card border border-border bg-card px-5 py-14 text-center text-muted">공연을 불러오는 중…</p></Screen>;
   }
   if (state.status === "error") {
-    return <PickerScreen><div className="mx-auto max-w-[1120px] break-keep wrap-break-word"><BackLink /><ScreenError message={state.message} /></div></PickerScreen>;
+    return <Screen><div className="mx-auto max-w-[1120px] break-keep wrap-break-word"><BackLink api={api} /><ScreenError message={state.message} /></div></Screen>;
   }
 
   const { show } = state;
+  const external = show.externalReservationUrl !== "";
   // 서버는 시작 전 회차가 하나 이상 있어야 공개를 허용한다.
   const openable = hasUpcomingSession(show, checkedAt);
   // 따로 고르지 않았으면 앞으로 열릴 첫 회차의 예매자를 보여 준다.
@@ -103,15 +103,15 @@ export function ProducerShowDetail({ showId }: { readonly showId: string }) {
     const now = Date.now();
     setCheckedAt(now);
     if (!hasUpcomingSession(show, now)) return;
-    void run(() => openShow(show.id), "공연을 공개했어요. 이제 관객이 예매할 수 있어요.");
+    void run(() => api.openShow(show.id), "공연을 공개했어요. 이제 관객이 예매할 수 있어요.");
   };
 
   const removeShow = async () => {
     setBusy(true);
     try {
-      await deleteShow(show.id);
+      await api.deleteShow(show.id);
       toast("공연을 삭제했어요.", { type: "success" });
-      router.push(showRoutes.manageList);
+      router.push(api.listHref);
     } catch (cause) {
       toast(cause instanceof AuditionRequestError ? cause.message : "공연을 삭제하지 못했습니다.", { type: "error" });
       setBusy(false);
@@ -120,9 +120,9 @@ export function ProducerShowDetail({ showId }: { readonly showId: string }) {
   };
 
   return (
-    <PickerScreen>
+    <Screen>
       <div className="mx-auto w-full max-w-[1120px] break-keep wrap-break-word">
-        <BackLink />
+        <BackLink api={api} />
         <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start">
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
@@ -162,13 +162,14 @@ export function ProducerShowDetail({ showId }: { readonly showId: string }) {
               onRun={run}
               busy={busy}
             />
-            {selectedSession ? <SessionReservations key={selectedSession.id} showId={show.id} showTitle={show.title} session={selectedSession} onChanged={refresh} /> : null}
+            {external ? <ExternalReservationNotice url={show.externalReservationUrl} visits={show.externalReservationVisits} />
+              : selectedSession ? <SessionReservations key={selectedSession.id} showId={show.id} showTitle={show.title} session={selectedSession} onChanged={refresh} /> : null}
           </div>
           <ShowSummary
             show={show}
             onDelete={() => setPendingAction("delete")}
             onToggleRemainingSeats={() => void run(
-              () => updateShow(show.id, showInputWithRemainingSeats(show, !show.remainingSeatsVisible)),
+              () => api.updateShow(show.id, showInputWithRemainingSeats(show, !show.remainingSeatsVisible)),
               show.remainingSeatsVisible ? "관객에게 잔여석을 숨겼어요." : "관객에게 잔여석을 공개했어요.",
             )}
             busy={busy}
@@ -193,8 +194,10 @@ export function ProducerShowDetail({ showId }: { readonly showId: string }) {
           confirmLabel="예매 마감"
           busy={busy}
           onClose={() => setPendingAction(null)}
-          onConfirm={() => void run(() => closeShow(show.id), "예매를 마감했어요.").then(() => setPendingAction(null))}
-          description="관객 목록에서 공연이 빠지고 새 예매를 받지 않아요. 이미 받은 예매와 공연 페이지 링크는 그대로 유지되고, 언제든 다시 공개할 수 있어요."
+          onConfirm={() => void run(() => api.closeShow(show.id), "예매를 마감했어요.").then(() => setPendingAction(null))}
+          description={external
+            ? "관객 목록에서 공연이 빠지고 공연 페이지의 예매하기 버튼이 닫혀요. 외부 예매 페이지는 그 서비스에서 따로 마감해 주세요. 언제든 다시 공개할 수 있어요."
+            : "관객 목록에서 공연이 빠지고 새 예매를 받지 않아요. 이미 받은 예매와 공연 페이지 링크는 그대로 유지되고, 언제든 다시 공개할 수 있어요."}
         />
       ) : null}
       {pendingAction === "delete" ? (
@@ -208,14 +211,14 @@ export function ProducerShowDetail({ showId }: { readonly showId: string }) {
           description="공연 정보와 회차가 모두 삭제되고 되돌릴 수 없어요."
         />
       ) : null}
-    </PickerScreen>
+    </Screen>
   );
 }
 
-function BackLink() {
+function BackLink({ api }: { readonly api: ShowManagementApi }) {
   return (
-    <Link href={showRoutes.manageList} className="mb-4 inline-flex min-h-11 items-center rounded-control text-sm font-semibold text-muted-strong hover:text-brand">
-      ← 무료 공연 목록
+    <Link href={api.listHref} className="mb-4 inline-flex min-h-11 items-center rounded-control text-sm font-semibold text-muted-strong hover:text-brand">
+      ← {api.listLabel}
     </Link>
   );
 }
@@ -225,7 +228,9 @@ function hasUpcomingSession(show: ProducerShow, now: number) {
 }
 
 function statusGuide(show: ProducerShow, openable: boolean) {
-  if (show.status === "OPEN") return "관객이 공연 페이지에서 예매하고 있어요.";
+  if (show.status === "OPEN") {
+    return show.externalReservationUrl ? "관객이 공연 페이지에서 외부 예매 페이지로 이동해 예매하고 있어요." : "관객이 공연 페이지에서 예매하고 있어요.";
+  }
   if (!openable) {
     const prefix = show.status === "CLOSED" ? "예매를 마감했어요. " : "";
     return `${prefix}${show.sessions.length ? "시작 전인 회차가 있어야 공개할 수 있어요. 회차를 추가해 주세요." : "회차를 추가한 뒤 공개해 주세요."}`;
@@ -245,6 +250,8 @@ function SessionManager({ show, selectedSessionId, onSelect, onRun, busy }: {
   readonly onRun: RunAction;
   readonly busy: boolean;
 }) {
+  const api = useShowManagementApi();
+  const external = show.externalReservationUrl !== "";
   const [editingId, setEditingId] = useState<number | "new" | null>(show.sessions.length ? null : "new");
   // 지난 회차 표시에만 쓰므로 화면을 연 시각 기준이면 충분하다.
   const [now] = useState(() => Date.now());
@@ -256,15 +263,21 @@ function SessionManager({ show, selectedSessionId, onSelect, onRun, busy }: {
         <h2 id="session-manager-title" className="text-base font-bold">회차</h2>
         {editingId !== "new" ? <SecondaryButton onClick={() => setEditingId("new")} disabled={busy}>회차 추가</SecondaryButton> : null}
       </div>
+      {external ? (
+        <p className="border-b border-border-soft px-5 py-3 text-xs leading-5 text-muted">
+          외부 링크로 예매받는 공연이라 정원 없이 회차 일정만 관객에게 보여요.
+        </p>
+      ) : null}
       <ul className="divide-y divide-border-soft">
         {show.sessions.map((session) => editingId === session.id ? (
           <li key={session.id} className="px-5 py-4">
             <SessionForm
               initial={session}
+              external={external}
               busy={busy}
               onCancel={() => setEditingId(null)}
               onSubmit={async (input) => {
-                const saved = await onRun(() => updateShowSession(show.id, session.id, input), "회차를 수정했어요.");
+                const saved = await onRun(() => api.updateSession(show.id, session.id, input), "회차를 수정했어요.");
                 if (saved) setEditingId(null);
                 return saved;
               }}
@@ -274,6 +287,7 @@ function SessionManager({ show, selectedSessionId, onSelect, onRun, busy }: {
           <SessionRow
             key={session.id}
             session={session}
+            external={external}
             now={now}
             selected={session.id === selectedSessionId}
             busy={busy}
@@ -286,9 +300,10 @@ function SessionManager({ show, selectedSessionId, onSelect, onRun, busy }: {
           <li className="px-5 py-4">
             {/* 여러 회차를 연달아 넣을 수 있게 추가한 뒤에도 폼을 열어 두고 정원은 그대로 둔다. */}
             <SessionForm
+              external={external}
               busy={busy}
               onCancel={show.sessions.length ? () => setEditingId(null) : undefined}
-              onSubmit={(input) => onRun(() => createShowSession(show.id, input), "회차를 추가했어요. 다음 회차를 이어서 입력할 수 있어요.")}
+              onSubmit={(input) => onRun(() => api.createSession(show.id, input), "회차를 추가했어요. 다음 회차를 이어서 입력할 수 있어요.")}
             />
           </li>
         ) : null}
@@ -305,7 +320,7 @@ function SessionManager({ show, selectedSessionId, onSelect, onRun, busy }: {
           confirmLabel="회차 삭제"
           busy={busy}
           onClose={() => setDeleteTarget(null)}
-          onConfirm={() => void onRun(() => deleteShowSession(show.id, deleteTarget.id), "회차를 삭제했어요.").then(() => setDeleteTarget(null))}
+          onConfirm={() => void onRun(() => api.deleteSession(show.id, deleteTarget.id), "회차를 삭제했어요.").then(() => setDeleteTarget(null))}
           description={<span className="num">{formatShowDate(deleteTarget.startsAt)} {formatShowTime(deleteTarget.startsAt)} 회차를 삭제합니다.</span>}
         />
       ) : null}
@@ -313,8 +328,10 @@ function SessionManager({ show, selectedSessionId, onSelect, onRun, busy }: {
   );
 }
 
-function SessionRow({ session, now, selected, busy, onSelect, onEdit, onDelete }: {
+function SessionRow({ session, external, now, selected, busy, onSelect, onEdit, onDelete }: {
   readonly session: ProducerShowSession;
+  /** 외부 링크 공연은 예술in 예매와 정원이 없다. */
+  readonly external: boolean;
   readonly now: number;
   readonly selected: boolean;
   readonly busy: boolean;
@@ -336,10 +353,14 @@ function SessionRow({ session, now, selected, busy, onSelect, onEdit, onDelete }
           <span className="whitespace-nowrap">{formatShowDate(session.startsAt)} {formatShowTime(session.startsAt)}</span>
           {past ? <span className="whitespace-nowrap text-sm font-semibold">지난 회차</span> : null}
         </span>
-        <span className="num mt-0.5 flex flex-wrap gap-x-2 text-sm text-muted-strong">
-          <span className="whitespace-nowrap">예매 {session.reservedTickets} / 정원 {session.capacity}석</span>
-          <span className="whitespace-nowrap">{remaining ? `잔여 ${remaining}석` : "매진"}</span>
-        </span>
+        {external ? (
+          <span className="mt-0.5 block text-sm text-muted-strong">외부 링크로 예매</span>
+        ) : (
+          <span className="num mt-0.5 flex flex-wrap gap-x-2 text-sm text-muted-strong">
+            <span className="whitespace-nowrap">예매 {session.reservedTickets} / 정원 {session.capacity}석</span>
+            <span className="whitespace-nowrap">{remaining ? `잔여 ${remaining}석` : "매진"}</span>
+          </span>
+        )}
       </button>
       {/* 규칙으로 막힌 버튼은 disabled 대신 aria-disabled로 두어 키보드로도 이유(안내 문구)를 들을 수 있게 한다. */}
       <div className="flex gap-1">
@@ -369,10 +390,12 @@ function RuleGuardedButton({ blocked, busy, onClick, children }: {
   );
 }
 
-function SessionForm({ initial, busy, onSubmit, onCancel }: {
+/** 외부 링크 공연은 정원 없이 시작 일시만 받는다. */
+function SessionForm({ initial, external, busy, onSubmit, onCancel }: {
   readonly initial?: ProducerShowSession;
+  readonly external: boolean;
   readonly busy: boolean;
-  readonly onSubmit: (input: { readonly startsAt: string; readonly capacity: number }) => Promise<boolean>;
+  readonly onSubmit: (input: SaveShowSession) => Promise<boolean>;
   readonly onCancel?: () => void;
 }) {
   const [startsAt, setStartsAt] = useState(initial ? toKstDateTimeInput(initial.startsAt) : "");
@@ -387,12 +410,12 @@ function SessionForm({ initial, busy, onSubmit, onCancel }: {
     const count = Number(capacity);
     if (!iso) return setError("공연 날짜와 시작 시각을 입력해 주세요.");
     if (Date.parse(iso) <= Date.now()) return setError("회차 시작 시각은 지금 이후로 입력해 주세요.");
-    if (!Number.isInteger(count) || count < minCapacity) {
+    if (!external && (!Number.isInteger(count) || count < minCapacity)) {
       return setError(initial?.reservedTickets ? `정원은 이미 예매된 ${initial.reservedTickets}석 이상이어야 해요.` : "정원을 1명 이상 입력해 주세요.");
     }
     setError("");
     const submitted = startsAt;
-    void onSubmit({ startsAt: iso, capacity: count }).then((saved) => {
+    void onSubmit(external ? { startsAt: iso } : { startsAt: iso, capacity: count }).then((saved) => {
       if (!saved || initial) return;
       // 요청이 끝나기 전에 다음 회차 일시를 입력했다면 지우지 않는다.
       const input = document.getElementById(startsAtId);
@@ -404,15 +427,17 @@ function SessionForm({ initial, busy, onSubmit, onCancel }: {
 
   return (
     <form noValidate onSubmit={submit} aria-label={initial ? "회차 수정" : "회차 추가"}>
-      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_140px_auto] sm:items-end">
+      <div className={`grid gap-3 sm:items-end ${external ? "sm:grid-cols-[minmax(0,1fr)_auto]" : "sm:grid-cols-[minmax(0,1fr)_140px_auto]"}`}>
         <label className="block text-sm font-semibold text-muted-strong">
           시작 일시 (한국 시간)
           <FieldInput id={startsAtId} type="datetime-local" value={startsAt} onChange={(event) => setStartsAt(event.target.value)} className="mt-2" />
         </label>
-        <label className="block text-sm font-semibold text-muted-strong">
-          정원
-          <FieldInput type="number" inputMode="numeric" min={minCapacity} value={capacity} onChange={(event) => setCapacity(event.target.value)} placeholder="60" className="mt-2" />
-        </label>
+        {external ? null : (
+          <label className="block text-sm font-semibold text-muted-strong">
+            정원
+            <FieldInput type="number" inputMode="numeric" min={minCapacity} value={capacity} onChange={(event) => setCapacity(event.target.value)} placeholder="60" className="mt-2" />
+          </label>
+        )}
         <div className="flex gap-2 [&>*]:grow sm:[&>*]:grow-0">
           {onCancel ? <SecondaryButton onClick={onCancel} disabled={busy}>{initial ? "취소" : "닫기"}</SecondaryButton> : null}
           <PrimaryButton type="submit" disabled={busy}>{initial ? "저장" : "추가"}</PrimaryButton>
@@ -441,6 +466,33 @@ function showInputWithRemainingSeats(show: ProducerShow, remainingSeatsVisible: 
   };
 }
 
+/**
+ * 운영자가 등록한 외부 링크 공연이다. 예매자 명단은 외부 예매 서비스에 있으므로 관객이 이동할 주소와
+ * 예술in에서 예매하기를 눌러 이동한 횟수를 보여 준다.
+ */
+function ExternalReservationNotice({ url, visits }: { readonly url: string; readonly visits: number }) {
+  return (
+    <section aria-labelledby="external-reservation-title" className="rounded-card border border-border bg-card px-5 py-5">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 id="external-reservation-title" className="text-base font-bold">외부 링크로 예매받는 중</h2>
+        <p className="text-sm text-muted-strong">예매하기로 이동 <strong className="num text-base text-foreground">{visits.toLocaleString("ko-KR")}</strong>회</p>
+      </div>
+      <p className="mt-2 text-sm leading-6 text-muted-strong">
+        관객이 공연 페이지에서 예매하기를 누르면 아래 주소가 새 창으로 열려요. 예매자 명단과 인원 확인은 외부 예매 서비스에서 해 주세요.
+        주소는 정보 수정에서 바꿀 수 있어요.
+      </p>
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-3 block break-all rounded-control border border-border bg-surface px-3 py-2.5 text-sm font-medium text-brand hover:border-brand-line hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+      >
+        {url}<span className="sr-only"> (새 창에서 열림)</span>
+      </a>
+    </section>
+  );
+}
+
 function ShowSummary({ show, onDelete, onToggleRemainingSeats, busy }: {
   readonly show: ProducerShow;
   readonly onDelete: () => void;
@@ -463,19 +515,23 @@ function ShowSummary({ show, onDelete, onToggleRemainingSeats, busy }: {
           <dt className="text-muted">상세 이미지</dt><dd className="num">{show.images.length}장</dd>
           <dt className="text-muted">안내 링크</dt><dd className="num">{show.links.length ? `${show.links.length}개` : "없음"}</dd>
           <dt className="text-muted">추가 안내</dt><dd className="num">{show.guides.length ? `${show.guides.length}개` : "없음"}</dd>
+          {show.externalReservationUrl ? <><dt className="text-muted">예매</dt><dd>외부 링크</dd></> : null}
         </dl>
       </div>
-      <div className="mt-5 border-t border-border-soft pt-4">
-        <p className="text-sm font-semibold">관객에게 잔여석 표시</p>
-        <p className="mt-1 text-sm text-muted-strong">현재 {show.remainingSeatsVisible ? "공개 중" : "비공개"}</p>
-        <SecondaryButton
-          onClick={onToggleRemainingSeats}
-          disabled={busy}
-          className="mt-3 w-full"
-        >
-          {busy ? "저장 중…" : show.remainingSeatsVisible ? "잔여석 비공개로 변경" : "잔여석 공개로 변경"}
-        </SecondaryButton>
-      </div>
+      {/* 외부 링크 공연은 잔여석을 관객에게 보여 주지 않으므로 공개 설정을 숨긴다. */}
+      {show.externalReservationUrl ? null : (
+        <div className="mt-5 border-t border-border-soft pt-4">
+          <p className="text-sm font-semibold">관객에게 잔여석 표시</p>
+          <p className="mt-1 text-sm text-muted-strong">현재 {show.remainingSeatsVisible ? "공개 중" : "비공개"}</p>
+          <SecondaryButton
+            onClick={onToggleRemainingSeats}
+            disabled={busy}
+            className="mt-3 w-full"
+          >
+            {busy ? "저장 중…" : show.remainingSeatsVisible ? "잔여석 비공개로 변경" : "잔여석 공개로 변경"}
+          </SecondaryButton>
+        </div>
+      )}
       <div className="mt-5 border-t border-border-soft pt-4">
         <button
           type="button"

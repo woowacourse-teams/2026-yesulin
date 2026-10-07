@@ -3,10 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { PublicVenueGuide } from "@/components/applications/public-venue-guide";
-import { PrimaryButton } from "@/components/ui/controls";
+import { PrimaryButton, PrimaryLink } from "@/components/ui/controls";
 import { ANALYTICS_READY_EVENT } from "@/features/analytics/consent";
 import { trackReservationEvent } from "@/features/analytics/events";
+import { recordExternalReservationVisit } from "@/features/shows/api";
 import {
+  externalReservationHref,
   formatShowDate,
   formatShowDateTime,
   formatShowPeriod,
@@ -40,6 +42,8 @@ export function PublicShowDetail({ show, onReserved, onStale }: {
   const sheetSession = show.sessions.find((session) => session.id === selectedId) ?? null;
   const showsMobileAction = show.status === "OPEN";
   const availability = showAvailability(show);
+  // 외부 예매 공연은 회차를 여기서 고르지 않고, 예매하기가 기획사가 등록한 외부 예매 페이지를 새 창으로 연다.
+  const external = show.externalReservationUrl !== "";
 
   const focusSessions = () => {
     const section = document.getElementById(SESSIONS_SECTION_ID);
@@ -50,7 +54,10 @@ export function PublicShowDetail({ show, onReserved, onStale }: {
     trackReservationEvent("reservation_start", {});
     setSheetOpen(true);
   };
-  const action = { show, availability, selectedSession, hasBookable: bookableSessions.length > 0, onReserve: openReservation, onChoose: focusSessions };
+  const action = {
+    show, availability, selectedSession, hasBookable: bookableSessions.length > 0, external,
+    externalHref: externalReservationHref(show), onReserve: openReservation, onChoose: focusSessions,
+  };
 
   // 좌석이 바뀌어 공연 정보를 다시 읽어도 같은 공연이면 조회 이벤트를 다시 보내지 않는다.
   // 이 화면에서 분석에 동의하면 그때 한 번 보낸다. 실제로 보낸 뒤에만 보낸 공연으로 기록한다.
@@ -73,8 +80,10 @@ export function PublicShowDetail({ show, onReserved, onStale }: {
         <div className="mx-auto max-w-[880px] px-5 py-8 md:px-8 md:py-12 min-[1200px]:grid min-[1200px]:max-w-[1200px] min-[1200px]:grid-cols-[minmax(0,1fr)_320px] min-[1200px]:gap-12">
           <article className="min-w-0">
             <ShowHero show={show} availability={availability} />
-            <SessionSelection show={show} selectedId={selectedSession?.id ?? null} onSelect={setSelectedId} />
-            <ReservationNotice show={show} />
+            {external
+              ? <SessionSchedule show={show} />
+              : <SessionSelection show={show} selectedId={selectedSession?.id ?? null} onSelect={setSelectedId} />}
+            {external ? <ExternalReservationNotice show={show} /> : <ReservationNotice show={show} />}
             {show.description ? (
               <InfoSection title="공연 소개">
                 <p className="whitespace-pre-line text-base leading-7 text-muted-strong">{show.description}</p>
@@ -204,8 +213,35 @@ function SessionCard({ session, selected, onSelect }: {
   );
 }
 
+/** 외부 예매 공연은 회차를 고르지 않으므로 일정만 보여 준다. 잔여석은 알 수 없어 시작한 회차에만 마감을 표시한다. */
+function SessionSchedule({ show }: { readonly show: PublicShow }) {
+  const description = show.status === "CLOSED"
+    ? "예매가 종료된 공연이에요. 공연 정보는 계속 확인할 수 있어요."
+    : "회차는 예매하기를 눌러 열리는 예매 페이지에서 골라 주세요. 모든 시각은 한국 시간 기준입니다.";
+  return (
+    <section id={SESSIONS_SECTION_ID} aria-labelledby="show-schedule-title" className="border-b border-border py-8 sm:py-10">
+      <h2 id="show-schedule-title" className="text-xl font-bold tracking-[-0.02em]">공연 일정</h2>
+      <p className="mt-2 text-sm text-muted-strong">{description}</p>
+      {show.sessions.length ? (
+        <ul className="mt-5 grid gap-3 sm:grid-cols-2">
+          {show.sessions.map((session) => (
+            <li key={session.id} className={`flex items-center gap-3 rounded-card border border-border p-4 ${session.bookable ? "bg-card" : "bg-border-soft"}`}>
+              <span className="min-w-0 flex-1">
+                <span className={`num block text-base font-bold ${session.bookable ? "" : "text-muted"}`}>{formatShowDate(session.startsAt)}</span>
+                <span className={`num mt-0.5 block text-sm ${session.bookable ? "text-muted-strong" : "text-muted"}`}>{formatShowTime(session.startsAt)} 시작</span>
+              </span>
+              {session.bookable ? null : <span className="whitespace-nowrap text-sm font-semibold text-muted">예매 마감</span>}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-5 rounded-card border border-border bg-card px-4 py-3 text-sm text-muted-strong">회차를 준비하고 있어요.</p>
+      )}
+    </section>
+  );
+}
+
 function ReservationNotice({ show }: { readonly show: PublicShow }) {
-  const phoneHref = `tel:${show.inquiryPhone.replaceAll("-", "")}`;
   return (
     <InfoSection title="예매 안내">
       <ul className="grid gap-2 text-base leading-7 text-muted-strong md:text-sm md:leading-6">
@@ -213,20 +249,44 @@ function ReservationNotice({ show }: { readonly show: PublicShow }) {
         <NoticeItem>한 번에 최대 <strong className="font-semibold text-foreground">{show.maxTicketsPerReservation}매</strong>까지 예매할 수 있어요. 더 많은 인원은 단체 관람으로 문의해 주세요.</NoticeItem>
         <NoticeItem>예매 취소는 <strong className="font-semibold text-foreground">공연 시작 1시간 전까지</strong> 전화로 요청해 주세요.</NoticeItem>
       </ul>
-      <a
-        href={phoneHref}
-        className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-control border border-border bg-card px-4 text-sm font-semibold text-foreground transition-colors hover:border-brand-line hover:bg-brand-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-      >
-        취소·단체 문의 <span className="num text-brand">{show.inquiryPhone}</span>
-      </a>
-      {show.links.length ? (
-        <div className="mt-6">
-          <p className="text-sm font-semibold text-muted-strong">공연 소식</p>
-          <ShowLinkButtons links={show.links} className="mt-2" />
-        </div>
-      ) : null}
+      <InquiryPhoneLink show={show} label="취소·단체 문의" />
+      <ShowNews show={show} />
     </InfoSection>
   );
+}
+
+/** 예매 수와 취소 규칙은 외부 예매 페이지가 정하므로 예술in 예매 규칙(매수 상한, 취소 마감)은 보여 주지 않는다. */
+function ExternalReservationNotice({ show }: { readonly show: PublicShow }) {
+  return (
+    <InfoSection title="예매 안내">
+      <ul className="grid gap-2 text-base leading-7 text-muted-strong md:text-sm md:leading-6">
+        <NoticeItem>무료 공연이며 <strong className="font-semibold text-foreground">주최 측 예매 페이지</strong>에서 예매를 받아요.</NoticeItem>
+        <NoticeItem>예매하기를 누르면 예매 페이지가 새 창으로 열려요. 회차 선택과 예매 확인·취소는 그 페이지의 안내를 따라 주세요.</NoticeItem>
+      </ul>
+      <InquiryPhoneLink show={show} label="예매 문의" />
+      <ShowNews show={show} />
+    </InfoSection>
+  );
+}
+
+function InquiryPhoneLink({ show, label }: { readonly show: PublicShow; readonly label: string }) {
+  return (
+    <a
+      href={`tel:${show.inquiryPhone.replaceAll("-", "")}`}
+      className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-control border border-border bg-card px-4 text-sm font-semibold text-foreground transition-colors hover:border-brand-line hover:bg-brand-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+    >
+      {label} <span className="num text-brand">{show.inquiryPhone}</span>
+    </a>
+  );
+}
+
+function ShowNews({ show }: { readonly show: PublicShow }) {
+  return show.links.length ? (
+    <div className="mt-6">
+      <p className="text-sm font-semibold text-muted-strong">공연 소식</p>
+      <ShowLinkButtons links={show.links} className="mt-2" />
+    </div>
+  ) : null;
 }
 
 /** 기획사가 제목을 정한 추가 안내. 주차·입장처럼 주소만으로 전하기 어려운 내용을 지도 아래에 적은 순서대로 보여 준다. */
@@ -311,17 +371,49 @@ type ActionProps = {
   readonly availability: ShowAvailability;
   readonly selectedSession: PublicShowSession | null;
   readonly hasBookable: boolean;
+  readonly external: boolean;
+  /** 외부 예매 공연에서 예매하기가 열 주소. 저장된 주소를 쓸 수 없으면 null이다. */
+  readonly externalHref: string | null;
   readonly onReserve: () => void;
   readonly onChoose: () => void;
 };
 
-function ActionButton({ availability, selectedSession, hasBookable, onReserve, onChoose }: ActionProps) {
+function ActionButton({ show, availability, selectedSession, hasBookable, external, externalHref, onReserve, onChoose }: ActionProps) {
   const unavailable = availability.kind !== "open" || !hasBookable;
+  if (external) {
+    if (unavailable || !externalHref) {
+      return <PrimaryButton disabled className="shrink-0 px-5">{unavailable ? availability.label : "예매하기"}</PrimaryButton>;
+    }
+    return (
+      <PrimaryLink
+        href={externalHref}
+        target="_blank"
+        rel="noopener noreferrer"
+        // 새 창으로 바로 이동시키고, 이동 기록은 실패해도 관객에게 알리지 않는다.
+        onClick={() => void recordExternalReservationVisit(show.id).catch((cause) => console.error("[외부 예매 이동 기록 실패]", cause))}
+        className="shrink-0 px-5"
+      >
+        예매하기<span className="sr-only"> (주최 측 예매 페이지, 새 창에서 열림)</span>
+      </PrimaryLink>
+    );
+  }
   const label = unavailable ? availability.label : selectedSession ? "예매하기" : "회차 선택하기";
   return (
     <PrimaryButton disabled={unavailable} onClick={selectedSession ? onReserve : onChoose} className="shrink-0 px-5">
       {label}
     </PrimaryButton>
+  );
+}
+
+/** 외부 예매 공연은 고른 회차 대신 다음 회차를 보여 준다. */
+function ExternalReservationSummary({ show }: { readonly show: PublicShow }) {
+  const nextSession = show.sessions.find((session) => session.bookable);
+  if (!nextSession) return <strong className="block truncate text-sm">예매할 수 있는 회차가 없어요</strong>;
+  return (
+    <>
+      <strong className="num block truncate text-sm">{formatShowDateTime(nextSession.startsAt)}</strong>
+      <span className="block truncate text-sm text-muted-strong">주최 측 예매 페이지에서 예매해요</span>
+    </>
   );
 }
 
@@ -345,12 +437,18 @@ function DesktopAction(props: ActionProps) {
     <div className="glass-surface-strong sticky top-24 rounded-modal p-6">
       <p className="text-sm font-bold text-muted-strong">예매 요약</p>
       <div className="mt-5">
-        <span className="block text-xs font-medium text-muted">선택 회차</span>
-        <div className="mt-1"><SelectedSessionSummary selectedSession={props.selectedSession} hasBookable={props.hasBookable} /></div>
+        <span className="block text-xs font-medium text-muted">{props.external ? "다음 회차" : "선택 회차"}</span>
+        <div className="mt-1">
+          {props.external
+            ? <ExternalReservationSummary show={props.show} />
+            : <SelectedSessionSummary selectedSession={props.selectedSession} hasBookable={props.hasBookable} />}
+        </div>
       </div>
-      <div className="mt-6 [&>button]:w-full"><ActionButton {...props} /></div>
+      <div className="mt-6 [&>*]:w-full"><ActionButton {...props} /></div>
       <p className="mt-4 border-t border-border-soft pt-4 text-xs leading-5 text-muted">
-        로그인 없이 이름과 휴대폰 번호로 예매해요. 취소는 공연 1시간 전까지 <span className="num whitespace-nowrap">{props.show.inquiryPhone}</span>로 전화해 주세요.
+        {props.external
+          ? <>예매하기를 누르면 주최 측 예매 페이지가 새 창으로 열려요. 예매 문의는 <span className="num whitespace-nowrap">{props.show.inquiryPhone}</span>로 전화해 주세요.</>
+          : <>로그인 없이 이름과 휴대폰 번호로 예매해요. 취소는 공연 1시간 전까지 <span className="num whitespace-nowrap">{props.show.inquiryPhone}</span>로 전화해 주세요.</>}
       </p>
     </div>
   );
@@ -360,7 +458,11 @@ function MobileAction(props: ActionProps) {
   return (
     <div className="glass-surface fixed inset-x-0 bottom-0 z-20 border-x-0 border-b-0 pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] min-[1200px]:hidden">
       <div className="mx-auto flex max-w-[880px] items-center gap-3 px-5 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 md:px-8">
-        <div className="min-w-0 flex-1"><SelectedSessionSummary selectedSession={props.selectedSession} hasBookable={props.hasBookable} /></div>
+        <div className="min-w-0 flex-1">
+          {props.external
+            ? <ExternalReservationSummary show={props.show} />
+            : <SelectedSessionSummary selectedSession={props.selectedSession} hasBookable={props.hasBookable} />}
+        </div>
         <ActionButton {...props} />
       </div>
     </div>

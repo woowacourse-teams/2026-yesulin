@@ -42,6 +42,13 @@ public class PublicShowController {
         ));
     }
 
+    /** 외부 링크 공연에서 예매하기를 누를 때 화면이 보내는 이동 기록이다. 관객은 바로 외부 예매 페이지로 간다. */
+    @PostMapping("/{showId}/external-reservation-visits")
+    public ResponseEntity<Void> recordExternalReservationVisit(@PathVariable UUID showId) {
+        publicShowService.recordExternalReservationVisit(showId);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/{showId}/sessions/{sessionId}/reservations")
     public ResponseEntity<ReservationReceiptResult> reserve(
             @PathVariable UUID showId,
