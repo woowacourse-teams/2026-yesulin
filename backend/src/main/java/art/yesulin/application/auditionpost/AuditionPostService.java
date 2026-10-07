@@ -1,6 +1,7 @@
 package art.yesulin.application.auditionpost;
 
 import static art.yesulin.domain.auditionpost.AuditionPostErrorCode.NOT_FOUND;
+import static art.yesulin.domain.auditionpost.AuditionPostStatus.HIDDEN;
 import static art.yesulin.domain.auditionpost.AuditionPostStatus.PUBLISHED;
 
 import art.yesulin.application.file.storage.ObjectStorage;
@@ -74,6 +75,14 @@ public class AuditionPostService {
     @Transactional
     public void increaseViewCount(long postId) {
         if (repository.increaseViewCount(postId, PUBLISHED) == 0) {
+            throw notFound();
+        }
+    }
+
+    /** 숨긴 공고 상세를 원문으로 보내기 직전에 프론트 서버가 한 번 보낸다. 공개 중이거나 없는 공고는 404다. */
+    @Transactional
+    public void increaseRedirectCount(long postId) {
+        if (repository.increaseRedirectCount(postId, HIDDEN) == 0) {
             throw notFound();
         }
     }

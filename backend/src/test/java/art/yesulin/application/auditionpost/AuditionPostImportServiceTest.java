@@ -250,6 +250,25 @@ class AuditionPostImportServiceTest {
     @Test
     void missingPostIsNotFound() {
         assertCode(AuditionPostErrorCode.NOT_FOUND, () -> auditionPostService.findPublicPost(999L));
+        assertCode(AuditionPostErrorCode.NOT_FOUND, () -> auditionPostService.increaseRedirectCount(999L));
+    }
+
+    @Test
+    void countsRedirectsOfHiddenPostsSeparatelyFromViewsAndKeepsThemOnReimport() {
+        AuditionPostImportResult imported = importService.importPost(ADMIN_ID, OTR_ID);
+        long postId = imported.post().id();
+
+        auditionPostService.increaseRedirectCount(postId);
+        auditionPostService.increaseRedirectCount(postId);
+        importService.importPost(ADMIN_ID, OTR_ID);
+        assertCode(AuditionPostErrorCode.NOT_FOUND, () -> auditionPostService.increaseViewCount(postId));
+
+        auditionPostService.changeStatus(ADMIN_ID, postId, AuditionPostStatus.PUBLISHED);
+        assertCode(AuditionPostErrorCode.NOT_FOUND, () -> auditionPostService.increaseRedirectCount(postId));
+
+        AdminAuditionPostResult post = auditionPostService.findAllForAdmin().getFirst();
+        assertEquals(2, post.redirectCount());
+        assertEquals(0, post.viewCount());
     }
 
     @Test

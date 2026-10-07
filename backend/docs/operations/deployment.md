@@ -21,7 +21,8 @@ Slack의 공고 링크는 예술in의 `/otr?vid={OTR 번호}`를 경유한다.
 `YESULIN_NOTICE_LINK_BASE_URL`은 필수 환경 변수다. LOCAL은 `config/server/local.env`의
 `http://localhost:3000`, DEV·PROD는 SOPS 암호화된 `config/server/dev.env`·`prod.env`의 `https://yesulin.art`를 사용한다.
 PROD 알림은 경유 링크 없이 가져온 공고 주소(`https://yesulin.art/posts/{id}`)를 바로 쓴다. 숨김이면 원문으로, 공개 뒤에는
-예술in 상세로 열린다. 가져오지 못한 공고만 OTR 원문 주소를 쓴다. DEV 알림은 대비용으로 기존 경유 링크 `https://yesulin.art/otr?vid={번호}`를 유지하며, 안정화 뒤 제거한다.
+예술in 상세로 열린다. 가져오지 못한 공고도 경유 링크 `https://yesulin.art/otr?vid={번호}`를 쓴다.
+DEV 알림은 대비용으로 같은 경유 링크를 유지하며, 안정화 뒤 제거한다.
 테스트용 DEV 링크는 `https://dev.yesulin.art/otr?vid={번호}`를 직접 사용한다.
 환경별 YAML을 추가하지 않고 `application.yml`에서 이 변수를 읽는다. 테스트는 test resource의 값을 사용한다.
 배포 환경 값은 다른 설정과 동일하게 `config/server/{환경}.env`에 SOPS로 편집하며

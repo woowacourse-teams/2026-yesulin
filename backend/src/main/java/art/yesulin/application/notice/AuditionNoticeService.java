@@ -86,8 +86,9 @@ public class AuditionNoticeService {
 
     /**
      * 알림보다 가져오기를 먼저 한다. 가져온 공고면 상태와 관계없이 예술in 상세 링크를 쓴다. 상세는 숨김이면 원문으로,
-     * 공개 뒤에는 우리 상세로 열리므로 같은 메시지를 공개 뒤 그대로 공유할 수 있다. 가져오지 못했으면 OTR 원문으로 바로
-     * 연결하고, 실패는 알림을 막지 않고 운영자가 직접 가져오도록 따로 알린다.
+     * 공개 뒤에는 우리 상세로 열리므로 같은 메시지를 공개 뒤 그대로 공유할 수 있다. 가져오지 못했으면 경유 링크
+     * {@code /otr?vid=}로 연결해 이동 수를 세고, 운영자가 나중에 가져와 공개하면 같은 링크가 우리 상세로 열린다.
+     * 실패는 알림을 막지 않고 운영자가 직접 가져오도록 따로 알린다.
      */
     private AuditionAlert importAndLink(AuditionContent content, String source) {
         try {
@@ -107,7 +108,7 @@ public class AuditionNoticeService {
     }
 
     private AuditionAlert originalAlert(AuditionContent content) {
-        return new AuditionAlert(content, noticeLink.destination(content.externalId()).toString());
+        return new AuditionAlert(content, noticeLink.create(content.externalId()));
     }
 
     private Optional<AuditionContent> resolveContent(Notice notice, List<AuditionContent> recent) {

@@ -84,6 +84,10 @@ public class AuditionPost {
     @Column(name = "view_count", nullable = false)
     private long viewCount;
 
+    /** 숨긴 상태에서 상세 주소를 열어 원문으로 보낸 수. 조회수와 따로 세며 다시 가져와도 유지한다. */
+    @Column(name = "redirect_count", nullable = false)
+    private long redirectCount;
+
     /** 마지막으로 가져온 운영자. 운영 서버가 새 공고를 자동으로 가져왔으면 null이다. */
     @Column(name = "imported_by")
     private Long importedBy;

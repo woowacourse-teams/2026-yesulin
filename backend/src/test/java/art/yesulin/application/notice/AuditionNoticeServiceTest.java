@@ -98,7 +98,7 @@ class AuditionNoticeServiceTest {
         order.verify(importer).importIfAbsent("OTR", "22330");
         order.verify(notifier).sendAlerts(List.of(
                 new AuditionAlert(content("22330"), "https://yesulin.art/posts/7"),
-                new AuditionAlert(content("22333"), "https://otr.co.kr/audition/?vid=22333")
+                new AuditionAlert(content("22333"), "https://yesulin.art/otr?vid=22333")
         ));
     }
 
@@ -112,7 +112,7 @@ class AuditionNoticeServiceTest {
 
         verify(notifier).sendError(argThat(message -> message.contains("[OTR-22331] 자동 가져오기 실패")));
         verify(notifier).sendAlerts(List.of(
-                new AuditionAlert(content("22331"), "https://otr.co.kr/audition/?vid=22331")
+                new AuditionAlert(content("22331"), "https://yesulin.art/otr?vid=22331")
         ));
         assertThat(stored("22331").getStatus()).isEqualTo(NoticeStatus.SENT);
     }

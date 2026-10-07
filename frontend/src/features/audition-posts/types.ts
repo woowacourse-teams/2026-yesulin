@@ -70,6 +70,7 @@ export const auditionPostApiPaths = {
     `/v1/public/audition-posts?page=${page}&size=${AUDITION_POST_PAGE_SIZE}&includeClosed=${includeClosed}`,
   detail: (postId: number | string) => `/v1/public/audition-posts/${encodeURIComponent(String(postId))}`,
   view: (postId: number) => `/v1/public/audition-posts/${postId}/views`,
+  redirect: (postId: number | string) => `/v1/public/audition-posts/${encodeURIComponent(String(postId))}/redirects`,
 } as const;
 
 /** 공고 알림을 받는 카카오톡 오픈채팅방. */

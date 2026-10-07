@@ -321,6 +321,8 @@ export type AdminAuditionPost = {
   /** 운영 서버가 새 공고 알림과 함께 자동으로 가져왔으면 true. 운영자가 다시 가져오면 false가 된다. */
   readonly autoImported: boolean;
   readonly viewCount: number;
+  /** 숨긴 상태에서 상세 주소를 열어 OTR 원문으로 보낸 수. 조회수와 따로 센다. */
+  readonly redirectCount: number;
   readonly imageCount: number;
   readonly attachmentCount: number;
   readonly createdAt: string;

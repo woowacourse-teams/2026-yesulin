@@ -231,6 +231,7 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 | GET | `/api/v1/public/audition-posts` | 공개 | `page`(0부터, 기본 0), `size`(1~48, 기본 12), `includeClosed`(기본 false) query | `200 PublicAuditionPostPageResult(posts, page, size, totalPages, totalElements, openCount, allCount)` |
 | GET | `/api/v1/public/audition-posts/{postId}` | 공개 | 없음 | `200 PublicAuditionPostResult`, 숨김이면 `302 Location: {원문 주소}` |
 | POST | `/api/v1/public/audition-posts/{postId}/views` | 공개 | 없음 | `204`, 숨김·없는 공고는 `404` |
+| POST | `/api/v1/public/audition-posts/{postId}/redirects` | 공개 | 없음 | `204`, 공개 중·없는 공고는 `404` |
 | GET | `/api/v1/admin/audition-posts` | Admin | 없음 | `200 AdminAuditionPostsResponse(posts)` |
 | POST | `/api/v1/admin/audition-posts/otr-imports` | Admin | `ImportOtrAuditionPostRequest(otrId)` | 처음이면 `201`, 다시 가져오면 `200 AuditionPostImportResult` |
 | PATCH | `/api/v1/admin/audition-posts/{postId}/status` | Admin | `ChangeAuditionPostStatusRequest(status: PUBLISHED/HIDDEN)` | `200 AdminAuditionPostResult` |
@@ -245,6 +246,8 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 `updatedAt`을 더한다. 숨긴 공고 상세는 본문 없이 `302 Location: {sourceUrl}`로 원문 공고에 보낸다.
 `Cache-Control: no-store`, `Referrer-Policy: no-referrer`를 붙인다. 프론트 서버 렌더링은 이동을 따라가지 않고 `Location`만 읽어
 브라우저를 원문으로 보낸다. 없는 공고는 `404 AUDITION_POST_NOT_FOUND`이고, 조회수 기록은 숨김도 404다.
+원문 이동 수는 프론트 서버가 숨긴 공고를 원문으로 보내기 직전에 `redirects` POST를 한 번 보내 늘린다. 상세 GET은 세지 않는다.
+DB에서 1을 더하고 다시 가져와도 유지한다.
 page·size 범위 오류는 `400 INVALID_REQUEST`다.
 
 `bodyHtml`은 서버가 Jsoup relaxed 허용 목록에서 `div`와 크기 속성을 뺀 태그만 남긴 HTML이다. 인라인 스타일과 스크립트는 없다.
@@ -257,7 +260,8 @@ page·size 범위 오류는 `400 INVALID_REQUEST`다.
 `409 AUDITION_POST_FILE_REJECTED`, 같은 번호의 동시 가져오기 충돌은 `409 AUDITION_POST_IMPORT_CONFLICT`다.
 분류가 연극·퍼포먼스·뮤지컬·단원·기획사가 아니면 파일을 받기 전에 `409 AUDITION_POST_CATEGORY_NOT_SUPPORTED`로 거절한다.
 가져온 공고는 자동·직접 모두 `HIDDEN`으로 만들고, 다시 가져오면 공개 상태를 유지한다.
-운영 목록은 최근 가져온 200건을 상태와 관계없이 출처·원문 번호·원문 주소, 자동 가져오기 여부(`autoImported`)와 함께 반환한다. 가져오기와 공개 상태 변경은 `admin_audit_logs`에 남긴다.
+운영 목록은 최근 가져온 200건을 상태와 관계없이 출처·원문 번호·원문 주소, 자동 가져오기 여부(`autoImported`),
+조회수 `viewCount`와 원문 이동 수 `redirectCount`와 함께 반환한다. 가져오기와 공개 상태 변경은 `admin_audit_logs`에 남긴다.
 
 ## 무료 공연과 비회원 예매 — 19개
 
