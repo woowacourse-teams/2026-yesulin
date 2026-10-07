@@ -45,4 +45,9 @@ public interface AuditionPostRepository extends JpaRepository<AuditionPost, Long
     @Modifying(clearAutomatically = true)
     @Query("update AuditionPost p set p.viewCount = p.viewCount + 1 where p.id = :id and p.status = :status")
     int increaseViewCount(@Param("id") long id, @Param("status") AuditionPostStatus status);
+
+    /** 원문 이동 수도 같은 방식으로 DB에서 1을 더한다. 상태가 다르면 0을 돌려준다. */
+    @Modifying(clearAutomatically = true)
+    @Query("update AuditionPost p set p.redirectCount = p.redirectCount + 1 where p.id = :id and p.status = :status")
+    int increaseRedirectCount(@Param("id") long id, @Param("status") AuditionPostStatus status);
 }

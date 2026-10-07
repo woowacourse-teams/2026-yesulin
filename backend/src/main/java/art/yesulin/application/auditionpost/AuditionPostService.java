@@ -1,6 +1,7 @@
 package art.yesulin.application.auditionpost;
 
 import static art.yesulin.domain.auditionpost.AuditionPostErrorCode.NOT_FOUND;
+import static art.yesulin.domain.auditionpost.AuditionPostStatus.HIDDEN;
 import static art.yesulin.domain.auditionpost.AuditionPostStatus.PUBLISHED;
 
 import art.yesulin.application.file.storage.ObjectStorage;
@@ -11,6 +12,7 @@ import art.yesulin.domain.admin.AdminAuditLogRepository;
 import art.yesulin.domain.auditionpost.AuditionPost;
 import art.yesulin.domain.auditionpost.AuditionPostRepository;
 import art.yesulin.domain.auditionpost.AuditionPostStatus;
+import java.net.URI;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -57,19 +59,30 @@ public class AuditionPostService {
         );
     }
 
-    /** 숨긴 공고는 없는 공고와 같은 404로 응답한다. */
+    /** 공개 중이면 상세를, 숨겼으면 원문 공고 주소를 돌려준다. 없는 공고만 404다. */
     @Transactional(readOnly = true)
-    public PublicAuditionPostResult findPublishedPost(long postId) {
-        AuditionPost post = repository.findById(postId)
-                .filter(AuditionPost::isPublished)
-                .orElseThrow(this::notFound);
-        return PublicAuditionPostResult.from(post, today(), KOREA, storage::toPublicUrl);
+    public PublicAuditionPostView findPublicPost(long postId) {
+        AuditionPost post = repository.findById(postId).orElseThrow(this::notFound);
+        if (!post.isPublished()) {
+            return new PublicAuditionPostView.Hidden(URI.create(post.getSourceUrl()));
+        }
+        return new PublicAuditionPostView.Published(
+                PublicAuditionPostResult.from(post, today(), KOREA, storage::toPublicUrl)
+        );
     }
 
     /** 공개 상세를 연 브라우저가 한 번 보낸다. 숨겼거나 없는 공고는 404다. */
     @Transactional
     public void increaseViewCount(long postId) {
         if (repository.increaseViewCount(postId, PUBLISHED) == 0) {
+            throw notFound();
+        }
+    }
+
+    /** 숨긴 공고 상세를 원문으로 보내기 직전에 프론트 서버가 한 번 보낸다. 공개 중이거나 없는 공고는 404다. */
+    @Transactional
+    public void increaseRedirectCount(long postId) {
+        if (repository.increaseRedirectCount(postId, HIDDEN) == 0) {
             throw notFound();
         }
     }

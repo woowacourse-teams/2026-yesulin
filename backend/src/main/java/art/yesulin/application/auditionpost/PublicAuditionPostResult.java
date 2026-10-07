@@ -10,8 +10,10 @@ import java.util.List;
 import java.util.function.Function;
 
 /**
- * 공고 상세. 원문 출처·주소는 운영자 화면에만 있고 공개 응답에는 담지 않는다.
+ * 공고 상세. 출처는 상세 화면에 작은 원문 링크로 밝힌다.
  *
+ * @param source 원문 공고 사이트 이름(예: {@code OTR})
+ * @param sourceUrl 원문 공고 주소
  * @param bodyHtml 서버가 허용 태그만 남긴 HTML. 사진 주소는 이 응답을 만들 때 채운다.
  */
 public record PublicAuditionPostResult(
@@ -28,6 +30,8 @@ public record PublicAuditionPostResult(
         String bodyHtml,
         List<String> tags,
         List<Attachment> attachments,
+        String source,
+        String sourceUrl,
         Instant updatedAt
 ) {
 
@@ -53,6 +57,8 @@ public record PublicAuditionPostResult(
                 AuditionPostBody.render(content.getBodyHtml(), imageUrls),
                 List.copyOf(post.getTags()),
                 post.attachments().stream().map(file -> Attachment.from(file, publicUrl)).toList(),
+                post.getSource(),
+                post.getSourceUrl(),
                 post.getUpdatedAt()
         );
     }

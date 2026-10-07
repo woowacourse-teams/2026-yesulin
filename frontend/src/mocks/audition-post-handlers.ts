@@ -2,7 +2,8 @@ import { delay, http, HttpResponse, passthrough } from "msw";
 import type { AuditionPost, AuditionPostSummary } from "@/features/audition-posts/types";
 
 /**
- * 메인 공고 목록·상세 화면 확인용 메모리 목. 실제 서버는 운영자가 게시한 공고를 원문 작성 최신순으로 준다.
+ * 메인 공고 목록·상세 화면 확인용 메모리 목. 실제 서버는 운영자가 공개한 공고를 원문 작성 최신순으로 준다.
+ * 숨긴 공고 상세의 원문 이동(302)은 서버 렌더링에서만 처리하므로 목에는 공개 공고만 둔다.
  * 운영자 가져오기는 OTR과 저장소에 실제로 접속해야 의미가 있으므로 목으로 흉내 내지 않고 실제 서버로 넘긴다.
  */
 function daysFromToday(days: number): string {
@@ -28,6 +29,8 @@ const POSTS: readonly AuditionPost[] = [
       + "<p>지원: <a href=\"https://forms.gle/example\" target=\"_blank\" rel=\"noopener noreferrer nofollow\">구글 폼</a></p>",
     tags: ["낭독극", "배우모집"],
     attachments: [],
+    source: "OTR",
+    sourceUrl: "https://otr.co.kr/audition/?vid=22391",
     updatedAt: new Date().toISOString(),
   },
   {
@@ -51,6 +54,8 @@ const POSTS: readonly AuditionPost[] = [
       size: 44_544,
       url: "/images/yesulin-logo.png",
     }],
+    source: "OTR",
+    sourceUrl: "https://otr.co.kr/audition/?vid=22392",
     updatedAt: new Date().toISOString(),
   },
   {
@@ -67,6 +72,8 @@ const POSTS: readonly AuditionPost[] = [
     bodyHtml: "<p>여성 댄스팀 공연 멤버를 모집합니다. 총 7회 공연입니다.</p>",
     tags: [],
     attachments: [],
+    source: "OTR",
+    sourceUrl: "https://otr.co.kr/audition/?vid=22393",
     updatedAt: new Date().toISOString(),
   },
   {
@@ -83,6 +90,8 @@ const POSTS: readonly AuditionPost[] = [
     bodyHtml: "<img src=\"/images/performances/summerplay.jpg\" alt=\"포스터\"><p>앙상블 배우를 모집합니다.</p>",
     tags: ["뮤지컬"],
     attachments: [],
+    source: "OTR",
+    sourceUrl: "https://otr.co.kr/audition/?vid=22394",
     updatedAt: new Date().toISOString(),
   },
 ];

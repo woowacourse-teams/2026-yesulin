@@ -7,21 +7,17 @@ DEV와 PROD의 Build 액션은 각각 `DEPLOY_ENV=dev`, `DEPLOY_ENV=prod`를 명
 두 Pipeline 모두 `CONFIG_COMMIT_ID`와 `config-version.txt`의 일치 검증을 통과해야 한다.
 
 공고 스케줄러는 매일 한국 시간 09:00~20:00에 10분 간격으로 실행되며 연극·퍼포먼스·뮤지컬·단원·기획사 공고만 다룬다.
-PROD의 `AuditionPublishScheduler`는 새 OTR 공고를 우리 공고로 게시한 뒤 Slack으로 알린다. 운영에서 잠시 멈추려면
-`YESULIN_NOTICE_SCHEDULER_ENABLED=false`를 설정한다. DEV의 기존 `AuditionNoticeScheduler`는 PROD 자동 게시가 안정될 때까지
-게시 없이 알림만 계속 보낸다. 두 서버가 같은 채널로 보내므로 같은 공고 알림이 두 번 오며, 웹훅마다 다른 봇 이름으로 구분한다.
-PROD 동작을 확인하면 DEV 스케줄러를 제거한다. DEV·LOCAL의 공고 게시는 관리자 화면 `/admin/posts`에서 직접 한다.
-Slack 웹훅 `YESULIN_SLACK_WEBHOOK_URL`은 `server/dev.env`와 `server/prod.env`에 같은 채널의 서로 다른 봇 웹훅으로 둔다.
-DEV 알림 링크도 PROD 공고가 기대와 다를 때 대비해 PROD 주소(`https://yesulin.art`)를 쓴다.
-값이 없으면 게시는 되지만 알림 전송이 실패해 알림 이력이 대기 상태로 남고, 웹훅을 넣은 뒤 다음 실행에서 한 번에 보낸다.
-PROD 첫 실행에는 PROD DB에 알림 이력이 없으므로 OTR 목록 첫 페이지의 해당 분류 공고가 모두 새 공고로 게시·알림된다.
+PROD의 `AuditionImportScheduler`는 새 OTR 공고를 우리 공고로 숨긴 채 가져온 뒤 Slack으로 알린다. 운영에서 잠시 멈추려면
+`YESULIN_NOTICE_SCHEDULER_ENABLED=false`를 설정한다. DEV·LOCAL은 공고를 수집·알림하지 않고 관리자 화면 `/admin/posts`에서
+직접 가져온다. Slack 웹훅 `YESULIN_SLACK_WEBHOOK_URL`은 PROD에서만 쓰며 `server/dev.env`의 값은 사용하지 않는다.
+값이 없으면 가져오기는 되지만 알림 전송이 실패해 알림 이력이 대기 상태로 남는다. 웹훅을 넣으면 다음 실행부터
+한 번에 최대 100건씩 보내고, 남은 건은 그다음 실행에서 보낸다.
 현재 PROD는 인스턴스 한 대 기준이며 분산 실행 잠금은 없다. 여러 대로 늘리면 중복 알림을 막는 잠금을 먼저 추가한다.
 
-Slack의 공고 링크는 예술in의 `/otr?vid={OTR 번호}`를 경유한다.
 `YESULIN_NOTICE_LINK_BASE_URL`은 필수 환경 변수다. LOCAL은 `config/server/local.env`의
 `http://localhost:3000`, DEV·PROD는 SOPS 암호화된 `config/server/dev.env`·`prod.env`의 `https://yesulin.art`를 사용한다.
-PROD 알림은 경유 링크 없이 게시한 공고 주소(`https://yesulin.art/posts/{id}`)를 바로 쓰고, 숨겼거나 게시하지 못한 공고만
-OTR 원문 주소를 쓴다. DEV 알림은 대비용으로 기존 경유 링크 `https://yesulin.art/otr?vid={번호}`를 유지하며, 안정화 뒤 제거한다.
+PROD 알림은 가져온 공고 주소(`https://yesulin.art/posts/{id}`)를 바로 쓴다. 숨김이면 원문으로, 공개 뒤에는
+예술in 상세로 열린다. 가져오지 못한 공고만 경유 링크 `https://yesulin.art/otr?vid={번호}`를 쓴다. 예전에 공유한 경유 링크도 계속 동작한다.
 테스트용 DEV 링크는 `https://dev.yesulin.art/otr?vid={번호}`를 직접 사용한다.
 환경별 YAML을 추가하지 않고 `application.yml`에서 이 변수를 읽는다. 테스트는 test resource의 값을 사용한다.
 배포 환경 값은 다른 설정과 동일하게 `config/server/{환경}.env`에 SOPS로 편집하며

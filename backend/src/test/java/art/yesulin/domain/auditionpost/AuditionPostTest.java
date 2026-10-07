@@ -40,12 +40,13 @@ class AuditionPostTest {
     }
 
     @Test
-    void publishesOnImportAndSplitsImagesFromAttachments() {
+    void startsHiddenOnImportAndSplitsImagesFromAttachments() {
         AuditionPost post = new AuditionPost(
                 ORIGIN, content("2026-10-31"), List.of("연극"), List.of(image("a"), attachment("b")), 1L, NOW
         );
 
-        assertTrue(post.isPublished());
+        assertFalse(post.isPublished());
+        assertEquals(AuditionPostStatus.HIDDEN, post.getStatus());
         assertEquals(List.of("public/a"), post.images().stream().map(AuditionPostFile::getObjectKey).toList());
         assertEquals(List.of("public/b"), post.attachments().stream().map(AuditionPostFile::getObjectKey).toList());
         assertEquals(NOW, post.getCreatedAt());
@@ -54,7 +55,7 @@ class AuditionPostTest {
     @Test
     void refreshReplacesContentAndReturnsPreviousFiles() {
         AuditionPost post = new AuditionPost(ORIGIN, content("2026-10-31"), List.of(), List.of(image("old")), 1L, NOW);
-        post.changeStatus(AuditionPostStatus.HIDDEN);
+        post.changeStatus(AuditionPostStatus.PUBLISHED);
         Instant later = NOW.plusSeconds(60);
 
         List<AuditionPostFile> previous = post.refresh(content("상시"), List.of(), List.of(image("new")), 2L, later);
@@ -62,7 +63,7 @@ class AuditionPostTest {
         assertEquals(List.of("public/old"), previous.stream().map(AuditionPostFile::getObjectKey).toList());
         assertEquals(List.of("public/new"), post.images().stream().map(AuditionPostFile::getObjectKey).toList());
         assertEquals("상시", post.getContent().getDeadlineText());
-        assertEquals(AuditionPostStatus.HIDDEN, post.getStatus());
+        assertEquals(AuditionPostStatus.PUBLISHED, post.getStatus());
         assertEquals(later, post.getUpdatedAt());
         assertEquals(NOW, post.getCreatedAt());
     }
