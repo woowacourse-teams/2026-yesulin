@@ -76,7 +76,7 @@ tasks.register<JavaExec>("adminDeletionPasswordHash") {
     group = "application"
     description = "Prompts for the admin deletion password and prints only its BCrypt hash."
     classpath = sourceSets["main"].runtimeClasspath
-    mainClass = "art.yesulin.infrastructure.admin.AdminDeletionPasswordHashGenerator"
+    mainClass = "art.yesulin.auth.infrastructure.admin.AdminDeletionPasswordHashGenerator"
     standardInput = System.`in`
     if (project.hasProperty("adminDeletionPasswordFromStdin")) {
         args("--stdin")

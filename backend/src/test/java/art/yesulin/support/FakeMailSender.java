@@ -1,7 +1,7 @@
 package art.yesulin.support;
 
-import art.yesulin.application.mail.MailMessage;
-import art.yesulin.application.mail.MailSender;
+import art.yesulin.infrastructure.mail.MailMessage;
+import art.yesulin.infrastructure.mail.MailSender;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 

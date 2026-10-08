@@ -1,11 +1,34 @@
 # 백엔드 구조
 
+## 모듈
+
+```text
+auditionpost/   공고: 목록·상세, OTR 공고 가져오기·알림, 운영자 공고 관리
+show/           공연 예매: 공연·회차·예매, 기획사와 운영자의 공연 관리
+timetable/      오디션 일정표: 생성·관리·배우 페이지, 문자 대기열
+auth/           계정·인증: 회원, 세션, Spring Security, 소셜 로그인, 이메일 인증, 비밀번호 재설정, 운영자 계정
+producer/       기획사 가입과 프로필
+file/           파일 업로드·참조·조회, 저장소, 미사용 파일 정리, 업로드 진단
+operation/      운영자 대시보드 집계, 로그 조회, 공고 원문 이동 통계
+global/         앱 전체 공통: 예외, 검증, enum 변환, 요청 처리·로깅, 오류 알림 port, 운영 기록, 스케줄링·시간 설정
+infrastructure/ 여러 모듈이 함께 쓰는 외부 기술: 메일, Slack, QueryDSL 설정
+dormant/        현재 운영 화면과 연결되지 않은 기능(오디션 공고 관리, 지원, 심사, 배우 프로필 등)
+```
+
+- 기능 모듈은 안에서 아래 레이어로 나누고, `global`과 `infrastructure`는 레이어 대신 역할 이름의 패키지로 나눈다.
+- 모듈 이름과 다른 하위 기능은 레이어 아래 하위 패키지로 둔다. 예: `show/domain/reservation`
+- 특정 기능을 바꾸는 운영자 진입점은 그 기능 모듈의 `admin` 하위 패키지에 둔다.
+- 여러 기능을 함께 보는 운영자 조회만 `operation`이 담당한다.
+- 의존은 `global` ← `infrastructure` ← `auth` ← 기능 모듈 방향이며 모듈 사이에 순환 의존이 없다.
+- 인증과 Spring Security 설정은 `auth`만 안다. 다른 모듈은 `@LoginMember`, `@LoginRequired`, `MemberPrincipal`만 사용한다.
+- `operation`은 집계를 위해 다른 모듈의 엔티티를 QueryDSL 읽기 모델로 조회한다.
+
 ## 레이어
 
 ```text
+presentation/      REST API, 인증 진입점, event와 scheduling
 application/       use case 조합, 트랜잭션, command/result와 port
 domain/            aggregate, value object, repository interface와 불변식
-presentation/      REST API, 인증 진입점, event와 scheduling
 infrastructure/    JPA·QueryDSL, OAuth, S3 등 외부 기술 adapter
 ```
 
@@ -13,8 +36,8 @@ infrastructure/    JPA·QueryDSL, OAuth, S3 등 외부 기술 adapter
 - application service가 트랜잭션 경계다.
 - infrastructure는 application/domain이 선언한 port를 구현한다.
 - 관리 화면의 복합 조회는 QueryDSL read model을 사용하고 aggregate의 쓰기 책임과 분리한다.
-- 운영 대시보드 집계도 같은 방식으로 `domain/admin/query`의 읽기 모델이 담당한다.
-- 공통 예외는 `common/exception`, HTTP 변환은 `presentation/api/ApiExceptionHandler`가 담당한다.
+- 운영 대시보드 집계도 같은 방식으로 `operation/domain/query`의 읽기 모델이 담당한다.
+- 공통 예외는 `global/exception`, HTTP 변환은 `global/web/ApiExceptionHandler`가 담당한다.
 
 ## 인증과 권한
 
@@ -37,7 +60,7 @@ infrastructure/    JPA·QueryDSL, OAuth, S3 등 외부 기술 adapter
 - IDE format: `checkstyle/intellij-java-wooteco-style.xml`
 - 한 줄 120자, `var`와 제네릭 wildcard를 사용하지 않는다.
 - 입력이 필수인 숫자는 primitive, 생성 전 null이 필요한 JPA 식별자는 wrapper를 사용한다.
-- `common`, `global`, `util` 같은 포괄 폴더보다 역할 이름을 사용한다.
+- `global`과 `infrastructure` 아래에는 `common`, `util` 같은 포괄 폴더 대신 역할 이름의 패키지를 둔다.
 - 테스트는 domain과 application에만 작성한다. presentation과 infrastructure는 당분간 직접 실행해 확인한다.
 
 ## 로그
@@ -81,5 +104,5 @@ infrastructure/    JPA·QueryDSL, OAuth, S3 등 외부 기술 adapter
   조회 응답은 기존 `lines`와 구조화된 `entries`를 함께 제공한다. 배포 전에 남은 텍스트는 `LEGACY`, JSON은
   `STRUCTURED`로 판별하며, 파싱할 수 없는 줄 하나가 전체 조회를 실패시키지 않는다.
 - 기본 로그 파일은 실행 디렉터리 기준 `logs/yesulin.log`, 10MB 단위 압축, 14일·1GB 상한이다.
-- 운영자 공고 이동 집계는 `application/admin/log`의 port를 `infrastructure/admin/log` 파일 reader가 구현한다.
+- 운영자 공고 이동 집계는 `operation/application/log`의 port를 `operation/infrastructure/log` 파일 reader가 구현한다.
   최근 줄 조회와 달리 현재 파일과 선택 기간의 보관 파일을 함께 읽으며 환경별 관리자 화면에서 별도로 확인한다.

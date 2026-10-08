@@ -1,0 +1,90 @@
+package art.yesulin.dormant.application.screening;
+
+import static art.yesulin.dormant.domain.screening.ScreeningReviewErrorCode.NOT_FOUND;
+
+import art.yesulin.dormant.domain.audition.Audition;
+import art.yesulin.dormant.domain.audition.AuditionRepository;
+import art.yesulin.dormant.domain.audition.role.AuditionRoleSectionRepository;
+import art.yesulin.dormant.domain.audition.schedule.AuditionSchedule;
+import art.yesulin.dormant.domain.audition.schedule.AuditionScheduleRepository;
+import art.yesulin.dormant.domain.screening.AuditionScreening;
+import art.yesulin.dormant.domain.screening.ScreeningCompletionRepository;
+import art.yesulin.dormant.domain.screening.ScreeningReview;
+import art.yesulin.dormant.domain.screening.ScreeningReviewRepository;
+import art.yesulin.dormant.domain.screening.ScreeningRound;
+import art.yesulin.dormant.domain.submission.Submission;
+import art.yesulin.dormant.domain.submission.SubmissionRepository;
+import art.yesulin.global.exception.BusinessException;
+import java.time.Clock;
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@RequiredArgsConstructor
+public class ScreeningReviewService {
+
+    private final AuditionRepository auditionRepository;
+    private final AuditionRoleSectionRepository roleSectionRepository;
+    private final AuditionScheduleRepository scheduleRepository;
+    private final SubmissionRepository submissionRepository;
+    private final ScreeningReviewRepository reviewRepository;
+    private final ScreeningCompletionRepository completionRepository;
+    private final Clock clock;
+
+    @Transactional
+    public ScreeningReviewsResult save(long ownerId, long roleId, int round, SaveScreeningReviewsCommand command) {
+        ScreeningRound screeningRound = new ScreeningRound(round);
+        long auditionId = findAuditionId(roleId);
+        Audition audition = findAuditionForUpdate(ownerId, auditionId);
+        AuditionScreening screening = findScreening(audition.getId(), roleId);
+        List<ScreeningReview> changedReviews = screening.review(
+                command.submissionIds(), screeningRound, command.toChange()
+        );
+        List<ScreeningReview> savedReviews = reviewRepository.saveAll(changedReviews);
+        return ScreeningReviewsResult.from(roleId, screeningRound, savedReviews);
+    }
+
+    @Transactional
+    public ScreeningCompletionResult complete(long ownerId, long roleId, int round) {
+        ScreeningRound screeningRound = new ScreeningRound(round);
+        long auditionId = findAuditionId(roleId);
+        Audition audition = findAuditionForUpdate(ownerId, auditionId);
+        AuditionScreening screening = findScreening(audition.getId(), roleId);
+        return screening.complete(screeningRound, Instant.now(clock))
+                .map(completion -> {
+                    completionRepository.saveAll(completion.records());
+                    return ScreeningCompletionResult.from(round, completion);
+                })
+                .orElseGet(() -> ScreeningCompletionResult.alreadyClosed(round, screening.isCompleted()));
+    }
+
+    private long findAuditionId(long roleId) {
+        return roleSectionRepository.findAuditionIdByRoleId(roleId)
+                .orElseThrow(() -> new BusinessException(NOT_FOUND, "심사할 공고 배역이 없습니다."));
+    }
+
+    private Audition findAuditionForUpdate(long ownerId, long auditionId) {
+        return auditionRepository.findByIdAndOwnerIdForUpdate(auditionId, ownerId)
+                .orElseThrow(() -> new BusinessException(NOT_FOUND, "심사할 공고를 찾을 수 없습니다."));
+    }
+
+    private AuditionScreening findScreening(long auditionId, long roleId) {
+        AuditionSchedule schedule = scheduleRepository.findByAuditionId(auditionId)
+                .orElseThrow(() -> new IllegalStateException("공고의 일정 정보를 찾을 수 없습니다."));
+        List<Submission> submissions = submissionRepository.findAllForScreening(auditionId, roleId);
+        List<ScreeningReview> reviews = submissions.isEmpty()
+                ? List.of()
+                : reviewRepository.findAllByAuditionRoleIdAndSubmissionIdIn(roleId, submissionIds(submissions));
+        return new AuditionScreening(
+                roleId, submissions, schedule.getStages(), reviews, completionRepository.findAllByAuditionRoleId(roleId)
+        );
+    }
+
+    private List<UUID> submissionIds(List<Submission> submissions) {
+        return submissions.stream().map(Submission::getSubmissionId).toList();
+    }
+}

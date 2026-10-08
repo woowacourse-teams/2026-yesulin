@@ -1,0 +1,23 @@
+package art.yesulin.file.domain;
+
+import java.util.Collection;
+import java.util.Optional;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface FileReferenceRepository extends JpaRepository<FileReference, Long> {
+
+    Optional<FileReference> findByReferenceTypeAndReferenceIdAndFileId(
+            String referenceType,
+            long referenceId,
+            long fileId
+    );
+
+    boolean existsByReferenceTypeAndReferenceIdAndFileId(String referenceType, long referenceId, long fileId);
+
+    java.util.List<FileReference> findAllByReferenceTypeInAndReferenceId(
+            Collection<String> referenceTypes, long referenceId);
+
+    long deleteByReferenceTypeAndReferenceIdAndFileId(String referenceType, long referenceId, long fileId);
+
+    void deleteByReferenceTypeInAndReferenceId(Collection<String> referenceTypes, long referenceId);
+}

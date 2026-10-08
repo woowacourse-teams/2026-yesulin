@@ -5,7 +5,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import art.yesulin.application.mail.MailMessage;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import java.util.Properties;

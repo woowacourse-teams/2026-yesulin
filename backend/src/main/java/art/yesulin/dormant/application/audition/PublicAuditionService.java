@@ -1,0 +1,69 @@
+package art.yesulin.dormant.application.audition;
+
+import static art.yesulin.dormant.domain.audition.AuditionErrorCode.NOT_FOUND;
+
+import art.yesulin.dormant.application.audition.form.AuditionFormResult;
+import art.yesulin.dormant.application.audition.role.AuditionRolesResult;
+import art.yesulin.dormant.application.audition.schedule.AuditionScheduleResult;
+import art.yesulin.dormant.domain.audition.Audition;
+import art.yesulin.dormant.domain.audition.AuditionRepository;
+import art.yesulin.dormant.domain.audition.form.AuditionForm;
+import art.yesulin.dormant.domain.audition.form.AuditionFormRepository;
+import art.yesulin.dormant.domain.audition.role.AuditionRoleSection;
+import art.yesulin.dormant.domain.audition.role.AuditionRoleSectionRepository;
+import art.yesulin.dormant.domain.audition.schedule.AuditionSchedule;
+import art.yesulin.dormant.domain.audition.schedule.AuditionScheduleRepository;
+import art.yesulin.dormant.domain.performance.Performance;
+import art.yesulin.dormant.domain.performance.PerformanceRepository;
+import art.yesulin.global.exception.BusinessException;
+import art.yesulin.producer.domain.Producer;
+import art.yesulin.producer.domain.ProducerRepository;
+import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@RequiredArgsConstructor
+public class PublicAuditionService {
+
+    private final AuditionRepository auditionRepository;
+    private final PerformanceRepository performanceRepository;
+    private final ProducerRepository producerRepository;
+    private final AuditionRoleSectionRepository roleSectionRepository;
+    private final AuditionScheduleRepository scheduleRepository;
+    private final AuditionFormRepository formRepository;
+    private final PostingSnapshotVersionGenerator snapshotVersionGenerator;
+
+    @Transactional(readOnly = true)
+    public PublicAuditionResult find(UUID auditionId) {
+        Audition audition = auditionRepository.findByPublicId(auditionId)
+                .filter(Audition::isPublished)
+                .orElseThrow(() -> new BusinessException(NOT_FOUND, "공고를 찾을 수 없습니다."));
+        Performance performance = performanceRepository.findById(audition.getPerformanceId())
+                .orElseThrow(() -> new IllegalStateException("공고가 속한 공연을 찾을 수 없습니다."));
+        Producer producer = producerRepository.findByMemberId(audition.getOwnerId())
+                .orElseThrow(() -> new IllegalStateException("공고를 게시한 기획사·제작사 정보를 찾을 수 없습니다."));
+        long internalAuditionId = audition.getId();
+        AuditionRoleSection roles = roleSectionRepository.findByAuditionId(internalAuditionId)
+                .orElseThrow(() -> new IllegalStateException("게시된 공고의 배역 정보를 찾을 수 없습니다."));
+        AuditionSchedule schedule = scheduleRepository.findByAuditionId(internalAuditionId)
+                .orElseThrow(() -> new IllegalStateException("게시된 공고의 일정 정보를 찾을 수 없습니다."));
+        AuditionForm form = formRepository.findByAuditionId(internalAuditionId)
+                .orElseThrow(() -> new IllegalStateException("게시된 공고의 지원 폼을 찾을 수 없습니다."));
+        return new PublicAuditionResult(
+                snapshotVersionGenerator.generate(audition.getPublicId(), producer.getCompanyName()),
+                audition.getOwnerId(),
+                performance.getPosterFileId(),
+                performance.getTitle(),
+                performance.getRoadAddress(),
+                performance.getPerformanceStartDate(),
+                performance.getPerformanceEndDate(),
+                PublicProducerResult.from(producer),
+                AuditionResult.from(audition),
+                AuditionRolesResult.from(auditionId, roles, performance),
+                AuditionScheduleResult.from(auditionId, schedule),
+                AuditionFormResult.from(auditionId, form)
+        );
+    }
+}
