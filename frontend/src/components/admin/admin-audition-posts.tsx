@@ -14,7 +14,7 @@ import type { AdminAuditionPost, AdminAuditionPostImport } from "@/features/admi
 import { auditionPostRoutes } from "@/features/audition-posts/types";
 import { logout } from "@/features/auth/session-api";
 import { formatDateTime } from "./admin-format";
-import { AdminLoginForm } from "./admin-login-form";
+import { AdminSessionEnded } from "./admin-session-ended";
 import { AdminActionButton, AdminShell } from "./admin-shell";
 
 type Phase = "loading" | "ready" | "unauthorized" | "failed";
@@ -116,7 +116,7 @@ export function AdminAuditionPosts() {
   }
 
   if (phase === "unauthorized") {
-    return <AdminLoginForm onSuccess={() => { setPhase("loading"); refresh(); }} />;
+    return <AdminSessionEnded />;
   }
 
   return (

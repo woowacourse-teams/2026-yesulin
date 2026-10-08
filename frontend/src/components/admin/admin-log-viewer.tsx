@@ -6,7 +6,7 @@ import { LOG_RETENTION_DAYS, recentLogDates } from "@/features/admin/log-dates";
 import type { AdminLogFilters } from "@/features/admin/log-view";
 import type { AdminLogLevel } from "@/features/admin/types";
 import { logout } from "@/features/auth/session-api";
-import { AdminLoginForm } from "./admin-login-form";
+import { AdminSessionEnded } from "./admin-session-ended";
 import { AdminLogLines } from "./admin-log-lines";
 import { AdminActionButton, AdminShell } from "./admin-shell";
 import { formatTime } from "./admin-format";
@@ -36,7 +36,7 @@ export function AdminLogViewer() {
   // 날짜 목록은 화면을 연 시점의 한국 날짜로 만든다. 자정을 넘기면 새로고침으로 다시 만든다.
   const [dateOptions] = useState(() => recentLogDates(Date.now()));
   const keyword = useDebouncedValue(keywordInput.trim(), SEARCH_DEBOUNCE_MS);
-  const { phase, data, error, refresh, restart, signOut } = useAdminLogs(keyword, limit, autoRefresh, date);
+  const { phase, data, error, refresh, signOut } = useAdminLogs(keyword, limit, autoRefresh, date);
   const pastDate = date !== null;
   const filters: AdminLogFilters = {
     levels,
@@ -66,7 +66,7 @@ export function AdminLogViewer() {
   }
 
   if (phase === "unauthorized") {
-    return <AdminLoginForm onSuccess={restart} />;
+    return <AdminSessionEnded />;
   }
 
   return (
