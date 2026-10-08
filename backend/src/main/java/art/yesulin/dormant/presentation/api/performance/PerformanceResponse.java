@@ -1,0 +1,38 @@
+package art.yesulin.dormant.presentation.api.performance;
+
+import art.yesulin.dormant.application.performance.PerformanceResult;
+import art.yesulin.dormant.application.performance.PerformanceRoleResult;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
+
+public record PerformanceResponse(
+        long id,
+        long posterFileId,
+        String posterUrl,
+        String title,
+        String venue,
+        String roadAddress,
+        PerformanceVenueAddressResponse venueAddress,
+        LocalDate performanceStartDate,
+        LocalDate performanceEndDate,
+        Instant createdAt,
+        List<PerformanceRoleResult> roles
+) {
+
+    public static PerformanceResponse from(PerformanceResult result, String posterUrl) {
+        return new PerformanceResponse(
+                result.id(),
+                result.posterFileId(),
+                posterUrl,
+                result.title(),
+                result.venue(),
+                result.roadAddress(),
+                PerformanceVenueAddressResponse.from(result),
+                result.performanceStartDate(),
+                result.performanceEndDate(),
+                result.createdAt(),
+                result.roles()
+        );
+    }
+}

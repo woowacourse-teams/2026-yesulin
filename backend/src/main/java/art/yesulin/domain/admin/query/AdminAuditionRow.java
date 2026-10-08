@@ -1,6 +1,6 @@
 package art.yesulin.domain.admin.query;
 
-import art.yesulin.domain.audition.AuditionStatus;
+import art.yesulin.dormant.domain.audition.AuditionStatus;
 import java.time.Instant;
 import java.util.UUID;
 
