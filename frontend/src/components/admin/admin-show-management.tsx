@@ -6,7 +6,7 @@ import { ProducerShowDetail } from "@/components/shows/manage/producer-show-deta
 import { ShowManagementApiProvider } from "@/components/shows/manage/show-management-api-context";
 import { adminShowManagementApi } from "@/features/admin/show-api";
 import { fetchCurrentSession } from "@/features/auth/session-api";
-import { AdminLoginForm } from "./admin-login-form";
+import { AdminSessionEnded } from "./admin-session-ended";
 import { AdminShell } from "./admin-shell";
 
 type Phase = "checking" | "unauthorized" | "ready";
@@ -23,7 +23,7 @@ export function AdminShowManagement({ showId }: { readonly showId: string }) {
 
   useEffect(check, [check]);
 
-  if (phase === "unauthorized") return <AdminLoginForm onSuccess={check} />;
+  if (phase === "unauthorized") return <AdminSessionEnded />;
   return (
     <AdminShell current="shows" title="외부 링크 공연 관리">
       {phase === "ready" ? (

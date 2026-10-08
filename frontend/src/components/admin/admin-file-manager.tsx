@@ -6,7 +6,7 @@ import { AdminApiError, deleteUnusedFiles, fetchUnusedFiles } from "@/features/a
 import { selectableFileIds, summarizeDeletion } from "@/features/admin/file-management";
 import type { AdminFileDeletionResult, AdminUnusedFilesPage, AdminUnusedFileStatus } from "@/features/admin/types";
 import { logout } from "@/features/auth/session-api";
-import { AdminLoginForm } from "./admin-login-form";
+import { AdminSessionEnded } from "./admin-session-ended";
 import { formatDateTime } from "./admin-format";
 import { AdminActionButton, AdminShell } from "./admin-shell";
 
@@ -137,7 +137,7 @@ export function AdminFileManager() {
   }
 
   if (phase === "unauthorized") {
-    return <AdminLoginForm onSuccess={() => { setPhase("loading"); refresh(); }} />;
+    return <AdminSessionEnded />;
   }
 
   return (

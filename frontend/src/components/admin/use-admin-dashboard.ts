@@ -51,7 +51,7 @@ const isUnauthorized = (cause: unknown) =>
 
 /**
  * 운영 대시보드의 조회 상태를 담는다. 탭을 바꿔도 다시 부르지 않도록 섹션 데이터를 한 번에 읽고,
- * 페이지를 넘기는 변경 기록만 따로 읽는다. 401·403은 로그인 화면으로 되돌리는 신호로 구분한다.
+ * 페이지를 넘기는 변경 기록만 따로 읽는다. 401·403은 운영 화면을 닫고 서버 접근 검사를 다시 하는 신호로 구분한다.
  */
 export function useAdminDashboard(auditLogPage: number) {
   const [phase, setPhase] = useState<DashboardPhase>("loading");
