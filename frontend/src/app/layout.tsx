@@ -24,9 +24,9 @@ export const metadata: Metadata = {
     description: "기획사/제작사와 배우를 연결하는 공연 지원 관리 서비스",
     images: [{
       url: "/images/og-image.png",
-      width: 1536,
-      height: 1024,
-      alt: "공연 예술 오디션 지원을 더 간편하게, 예술in",
+      width: 1920,
+      height: 1080,
+      alt: "오디션 공고부터 공연 예매까지, 예술in",
     }],
   },
   twitter: {
