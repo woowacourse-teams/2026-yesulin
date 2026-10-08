@@ -66,8 +66,8 @@ export const AUDITION_POST_PAGE_SIZE = 12;
 
 /** 백엔드 공개 API 경로(`/api` 앞부분 제외). 브라우저와 서버 조회가 함께 쓴다. */
 export const auditionPostApiPaths = {
-  list: ({ page, includeClosed }: AuditionPostQuery) =>
-    `/v1/public/audition-posts?page=${page}&size=${AUDITION_POST_PAGE_SIZE}&includeClosed=${includeClosed}`,
+  list: ({ page, includeClosed }: AuditionPostQuery, size = AUDITION_POST_PAGE_SIZE) =>
+    `/v1/public/audition-posts?page=${page}&size=${size}&includeClosed=${includeClosed}`,
   detail: (postId: number | string) => `/v1/public/audition-posts/${encodeURIComponent(String(postId))}`,
   view: (postId: number) => `/v1/public/audition-posts/${postId}/views`,
   redirect: (postId: number | string) => `/v1/public/audition-posts/${encodeURIComponent(String(postId))}/redirects`,
