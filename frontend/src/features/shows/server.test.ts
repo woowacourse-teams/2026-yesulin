@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
+vi.mock("@/features/audition-posts/server", () => ({ auditionPostIdsForSitemap: async () => [] }));
 
 import sitemap from "@/app/sitemap";
 import { publicShowForServer, publicShowsForServer } from "./server";

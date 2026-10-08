@@ -1,19 +1,18 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
-import { LandingFooter, LandingHeader } from "@/components/landing/landing-header";
 import { getAuditionPost, recordAuditionPostView } from "@/features/audition-posts/api";
 import { deadlineBadge, formatDeadline, formatFileSize, formatPostedDate, kstToday } from "@/features/audition-posts/format";
-import { auditionPostRoutes, type AuditionPost } from "@/features/audition-posts/types";
+import type { AuditionPost } from "@/features/audition-posts/types";
 import { DeadlineChip } from "./audition-post-badges";
+import { AuditionPostScreen, MissingAuditionPost } from "./audition-post-screen";
 
 type DetailState =
   | { readonly status: "loading" }
   | { readonly status: "missing" }
   | { readonly status: "ready"; readonly post: AuditionPost };
 
-/** 상세는 서버가 미리 읽은 공고를 쓰고, 목 환경이나 조회 실패로 비어 있으면 브라우저에서 다시 읽는다. */
+/** 상세는 서버가 미리 읽은 공고를 쓰고, 목 환경·서버 API 미설정 시 브라우저에서 읽는다. */
 export function AuditionPostRoute({ postId, initialPost }: {
   readonly postId: string;
   readonly initialPost: AuditionPost | null;
@@ -35,21 +34,11 @@ export function AuditionPostRoute({ postId, initialPost }: {
   }, [postId, initialPost]);
 
   return (
-    <main className="min-h-screen break-keep bg-surface text-foreground wrap-break-word">
-      <LandingHeader service="applicant" />
-      <div className="mx-auto max-w-[800px] px-5 pb-20 pt-6 sm:px-8 md:pt-10">
-        <Link
-          href={auditionPostRoutes.list()}
-          className="-ml-2 inline-flex min-h-11 items-center rounded-control px-2 text-sm font-semibold text-muted-strong hover:bg-white hover:text-foreground"
-        >
-          ← 공고 목록
-        </Link>
-        {state.status === "loading" ? <DetailSkeleton /> : null}
-        {state.status === "missing" ? <MissingPost /> : null}
-        {state.status === "ready" ? <AuditionPostDetail post={state.post} /> : null}
-      </div>
-      <LandingFooter />
-    </main>
+    <AuditionPostScreen>
+      {state.status === "loading" ? <DetailSkeleton /> : null}
+      {state.status === "missing" ? <MissingAuditionPost /> : null}
+      {state.status === "ready" ? <AuditionPostDetail post={state.post} /> : null}
+    </AuditionPostScreen>
   );
 }
 
@@ -138,21 +127,6 @@ function MetaRow({ label, children }: { readonly label: string; readonly childre
       <dt className="w-12 shrink-0 text-muted">{label}</dt>
       <dd className="min-w-0 font-medium">{children}</dd>
     </div>
-  );
-}
-
-function MissingPost() {
-  return (
-    <section className="mt-3 rounded-card border border-border bg-card px-6 py-14 text-center">
-      <h1 className="text-lg font-bold">공고를 찾을 수 없어요</h1>
-      <p className="mt-2 text-sm text-muted-strong">내려간 공고이거나 주소가 바뀌었을 수 있어요.</p>
-      <Link
-        href={auditionPostRoutes.list()}
-        className="mt-4 inline-flex min-h-11 items-center rounded-control px-3 text-sm font-semibold text-brand hover:bg-brand-soft"
-      >
-        공고 목록 보기
-      </Link>
-    </section>
   );
 }
 
