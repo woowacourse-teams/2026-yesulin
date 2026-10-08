@@ -75,7 +75,7 @@ function GenreFilteredShows({ shows, genre, onGenreChange }: {
 }) {
   const visibleShows = genre ? shows.filter((show) => show.genre === genre) : shows;
   const countOf = (target: ShowGenre | null) => target ? shows.filter((show) => show.genre === target).length : shows.length;
-  const options: readonly (ShowGenre | null)[] = [null, ...SHOW_GENRES];
+  const options: readonly (ShowGenre | null)[] = [null, ...SHOW_GENRES.filter((option) => countOf(option) > 0)];
   return (
     <>
       <div role="group" aria-label="장르" className="mb-6 flex flex-wrap gap-2">

@@ -20,6 +20,24 @@ describe("공연 목록 최초 HTML", () => {
     expect(markup).not.toContain("공연 목록을 불러오고 있습니다.");
   });
 
+  it("공연이 있는 장르만 필터로 보여 준다", () => {
+    const show = {
+      hostName: "공연사",
+      posterUrl: "https://example.com/poster.jpg",
+      venueName: "공연장",
+      nextSessionStartsAt: "2026-10-10T08:00:00Z",
+      runningMinutes: 60,
+    };
+    const markup = renderToStaticMarkup(<PublicShowList initialShows={[
+      { ...show, id: "show-1", title: "햄릿", genre: "PLAY" },
+      { ...show, id: "show-2", title: "탱고의 밤", genre: "MUSIC" },
+    ]} />);
+
+    expect(markup).toContain("연극");
+    expect(markup).toContain("음악");
+    expect(markup).not.toContain("뮤지컬");
+  });
+
   it("빈 배열은 로딩 화면 대신 빈 목록을 렌더링한다", () => {
     const markup = renderToStaticMarkup(<PublicShowList initialShows={[]} />);
 
