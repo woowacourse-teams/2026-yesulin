@@ -292,7 +292,7 @@ page·size 범위 오류는 `400 INVALID_REQUEST`다.
 | POST | `/api/v1/show-images/upload-requests` | Active Producer | `ShowImageUploadRequest(originalFilename, contentType, size)` | `201 FileUploadResult` |
 | PATCH | `/api/v1/show-images/{fileId}/completion` | Active Producer | 없음 | `204` |
 
-`SaveShowRequest`는 `title`(200자 이하), `genre`(`MUSICAL`·`PLAY`), `description`(2000자 이하), `venue`(장소명·도로명주소 필수),
+`SaveShowRequest`는 `title`(200자 이하), `genre`(`MUSICAL`·`PLAY`·`MUSIC`), `description`(2000자 이하), `venue`(장소명·도로명주소 필수),
 `runningMinutes`(1~1440), `ageRating`(50자 이하), `inquiryPhone`(`02-123-4567` 형식), `posterFileId`,
 `imageFileIds`(서로 다른 파일 최대 3개)다. 선택 값으로 `hostName`(관객에게 보여 줄 주최 이름, 50자 이하),
 `links`(예매 안내 외부 링크 최대 3개, 각 `label` 30자 이하·`url` 500자 이하의 http/https 주소, 도메인에 점 필수),
