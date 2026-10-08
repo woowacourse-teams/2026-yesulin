@@ -1,6 +1,6 @@
 package art.yesulin.infrastructure.slack;
 
-import art.yesulin.application.alert.ErrorAlert;
+import art.yesulin.global.alert.ErrorAlert;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;

@@ -6,7 +6,7 @@ import { AdminApiError, completeTimetableMessages, fetchTimetableMessages } from
 import { smsHref } from "@/features/admin/sms-link";
 import type { AdminTimetableMessage, AdminTimetableMessages, AdminTimetableMessageStatus, AdminTimetableMessageType } from "@/features/admin/types";
 import { logout } from "@/features/auth/session-api";
-import { AdminLoginForm } from "./admin-login-form";
+import { AdminSessionEnded } from "./admin-session-ended";
 import { formatDateTime } from "./admin-format";
 import { AdminActionButton, AdminShell } from "./admin-shell";
 
@@ -91,7 +91,7 @@ export function AdminMessageQueue() {
   }
 
   if (phase === "unauthorized") {
-    return <AdminLoginForm onSuccess={() => { setPhase("loading"); refresh(); }} />;
+    return <AdminSessionEnded />;
   }
 
   return (

@@ -1,16 +1,16 @@
 package art.yesulin.support;
 
-import art.yesulin.domain.file.FileAsset;
-import art.yesulin.domain.file.FileAssetRepository;
-import art.yesulin.domain.file.FileMetadata;
-import art.yesulin.domain.file.FileReferenceRepository;
-import art.yesulin.domain.performance.PerformanceVenue;
-import art.yesulin.domain.reservation.ReservationRepository;
-import art.yesulin.domain.show.Show;
-import art.yesulin.domain.show.ShowGenre;
-import art.yesulin.domain.show.ShowRepository;
-import art.yesulin.domain.show.ShowSession;
-import art.yesulin.domain.show.ShowSessionRepository;
+import art.yesulin.file.domain.FileAsset;
+import art.yesulin.file.domain.FileAssetRepository;
+import art.yesulin.file.domain.FileMetadata;
+import art.yesulin.file.domain.FileReferenceRepository;
+import art.yesulin.show.domain.Show;
+import art.yesulin.show.domain.ShowGenre;
+import art.yesulin.show.domain.ShowRepository;
+import art.yesulin.show.domain.ShowSession;
+import art.yesulin.show.domain.ShowSessionRepository;
+import art.yesulin.show.domain.performance.PerformanceVenue;
+import art.yesulin.show.domain.reservation.ReservationRepository;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;

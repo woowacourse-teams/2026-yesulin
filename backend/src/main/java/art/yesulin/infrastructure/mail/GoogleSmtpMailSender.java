@@ -1,7 +1,5 @@
 package art.yesulin.infrastructure.mail;
 
-import art.yesulin.application.mail.MailMessage;
-import art.yesulin.application.mail.MailSender;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import java.nio.charset.StandardCharsets;

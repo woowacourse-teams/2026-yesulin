@@ -87,14 +87,14 @@
 
 ## 공고 알림
 
-- `domain/notice`는 지원 접수용 `OtrAudition`과 별개인 외부 공고 알림 이력을 정의한다.
+- `auditionpost/domain/notice`는 지원 접수용 `OtrAudition`과 별개인 외부 공고 알림 이력을 정의한다.
   `Notice`는 JPA 엔티티이며 `NoticeRepository`는 같은 domain 패키지에서 `JpaRepository`를 직접 확장한다.
   `notices` 테이블과 `(source, external_id)` 유니크 제약은 Flyway migration으로 생성한다.
 - `Notice`는 출처와 외부 공고 ID를 별도 필드로 저장하고 두 컬럼의 유니크 제약으로 중복을 판별한다.
   OTR adapter는 `source=OTR`, `externalId=vid`로 매핑한다. DB에는 기술 식별자와 두 값, 알림 상태만 보관한다.
   알림 상태는 `NoticeStatusConverter`로 문자열 컬럼에 매핑한다.
   이전 스키마에 저장하던 내용·시각 컬럼은 후속 migration에서 제거한다.
-- `application/notice`의 `AuditionContent`는 외부 공고 ID, 분류, 제목, 보수, 마감, 원문 URL을 담지만
+- `auditionpost/application/notice`의 `AuditionContent`는 외부 공고 ID, 분류, 제목, 보수, 마감, 원문 URL을 담지만
   DB에는 저장하지 않는다. 보수·마감은 `협의`, `상시` 등의 표현을 보존한다.
   업로드 시각은 읽지 않으며 신규 판별에는 외부 공고 ID를 사용한다. ID·제목·링크는 필수다.
 - 목록에서 읽은 공고 중 `AuditionCategory`가 지원하는 분류만 등록한다. 그 밖의 분류는 알림 이력도 만들지 않는다.
@@ -114,9 +114,9 @@
   내용 조회에 실패한 공고는 대기 상태로 남기고 나머지를 전송한다. 묶음 전송 성공 후 해당 공고를
   하나의 트랜잭션에서 `SENT`로 바꾼다. 한 묶음의 전송 실패는 뒤 묶음의 전송을 막지 않는다.
   등록 실패는 해당 실행을 중단하고 다음 실행에서 재시도한다.
-- `application/notice`의 `AuditionSource`는 공고 수집 port이며 `getSource()`로 출처를 제공한다.
+- `auditionpost/application/notice`의 `AuditionSource`는 공고 수집 port이며 `getSource()`로 출처를 제공한다.
   `AuditionNoticeNotifier`는 공고 알림과 수집 오류 알림을 각각 전송하는 port다.
-  `infrastructure/crawler`의 `OtrAuditionSource`는 Jsoup으로 목록 첫 페이지만 요청하고 상단 고정 공지를 제외한다.
+  `auditionpost/infrastructure/crawler`의 `OtrAuditionSource`는 Jsoup으로 목록 첫 페이지만 요청하고 상단 고정 공지를 제외한다.
   목록 행 번호가 아닌 상세 링크의 `vid`를 식별자로 사용하며, 보수·마감 원문을 그대로 읽는다.
   `fetchById`는 해당 `vid`의 상세 페이지에서 다시 읽는다. HTTP 또는 HTML 구조 오류는 예외로 전달한다.
   `AuditionNoticeService`가 `NoticeRepository`를 직접 사용한다. 전체 실행을 트랜잭션으로 묶지 않고
@@ -126,7 +126,7 @@
   `sendError`로 따로 알리고 해당 공고의 알림은 경유 링크 `/otr?vid=`로 그대로 보낸다. 가져온 공고 알림은 상태와 관계없이 `/posts/{id}`를 쓴다.
   전송이 실패해 다음 실행에서 다시 보낼 때는 이미 가져온 번호라 다시 가져오지 않는다.
 - `AuditionNoticeService`는 Spring bean으로 등록한다. `@EnableScheduling`은 전체 환경에서 활성화한다.
-  `presentation/scheduler/notice`의 `AuditionImportScheduler`가 PROD에서만 `importAndNotifyAuditions`(가져온 뒤 알림)를
+  `auditionpost/presentation/scheduler/notice`의 `AuditionImportScheduler`가 PROD에서만 `importAndNotifyAuditions`(가져온 뒤 알림)를
   실행한다. DEV·LOCAL에는 공고 스케줄러가 없다. PROD 스케줄러는 `yesulin.notice.scheduler-enabled=false`로 끌 수 있고,
   매일 한국 시간 09:00~20:00에 10분 간격이다. OTR 수집기와 Slack Incoming Webhook 전송 adapter를 사용한다.
 - 현재 목록 여러 페이지 탐색과 분산 실행 잠금은 미구현이다. 별도 DB adapter는 두지 않는다.
@@ -135,7 +135,7 @@
 
 ## 가져온 공고
 
-- `domain/auditionpost`의 `AuditionPost`는 출처(`source`)·원문 번호(`external_id`)·원문 주소, 내용 `AuditionPostContent`(embeddable),
+- `auditionpost/domain`의 `AuditionPost`는 출처(`source`)·원문 번호(`external_id`)·원문 주소, 내용 `AuditionPostContent`(embeddable),
   태그(`audition_post_tags`)와 파일 `AuditionPostFile`(`audition_post_files`, 사진·첨부 구분과 저장소 키·원래 이름·형식·크기),
   `PUBLISHED/HIDDEN`(생성 시 `HIDDEN`), 조회수·원문 이동 수, 가져온 운영자(자동 가져오기면 null), 생성·갱신 시각을 저장한다.
   두 수는 저장소의 원자적 update로만 늘린다. 엔티티는 바뀐 컬럼만 갱신해 상태 변경·다시 가져오기가 두 수를 덮어쓰지 않는다.
@@ -146,14 +146,14 @@
 - `refresh`는 내용·태그·파일을 교체하고 이전 파일 목록을 돌려준다. 공개 상태와 공개 ID는 유지한다.
 - 본문은 사진 자리를 `post-file:{순번}`으로 저장하고 `AuditionPostBody.render`가 응답할 때 공개 저장소 주소로 바꾼다.
   저장소 주소가 환경·LocalStack 포트마다 달라 본문에 주소를 고정하지 않는다. 순번에 파일이 없으면 사진 태그를 지운다.
-- `application/auditionpost`의 `AuditionPostSource` port를 `infrastructure/crawler/OtrAuditionPostSource`가 구현한다.
+- `auditionpost/application`의 `AuditionPostSource` port를 `auditionpost/infrastructure/crawler/OtrAuditionPostSource`가 구현한다.
   상세 페이지 canonical의 `vid`를 확인하고, 본문은 Jsoup으로 허용 태그만 남긴다. `otr.co.kr`의 `/wp-content/uploads/` https 사진만
   옮기고 그 밖의 사진은 지운다. 첨부는 상세 페이지의 망보드 nonce로 `admin-ajax.php`에 경로를 받은 뒤 `?mb_ext=file`로 내려받는다.
   파일 요청은 OTR 호스트로만 보내고 리다이렉트를 따르지 않는다. 길이를 알려 주면 스트림 그대로, 모르면 상한까지만 읽는다.
 - `AuditionPostImportService`는 원문과 파일을 받는 동안 트랜잭션을 잡지 않고 마지막 저장만 짧은 트랜잭션으로 처리한다.
   실패하면 이번에 올린 객체를 지우고, 다시 가져와 교체했으면 커밋 뒤 이전 객체를 지운다. 객체 삭제 실패는 경고 로그만 남긴다.
   같은 번호의 동시 삽입은 유니크 제약으로 거절해 `IMPORT_CONFLICT`로 바꾼다.
-- 자동 가져오기는 `application/notice`의 `AuditionImporter` port를 `AuditionPostImportService.importIfAbsent`가 구현한다.
+- 자동 가져오기는 `auditionpost/application/notice`의 `AuditionImporter` port를 `AuditionPostImportService.importIfAbsent`가 구현한다.
   같은 출처·번호가 이미 있으면 상태와 관계없이 그 ID만 돌려주고, 운영자 작업이 아니므로 감사 기록을 남기지 않는다.
   원문을 받는 사이 운영자가 같은 번호를 가져왔어도 저장 트랜잭션에서 다시 확인해 내용을 바꾸지 않고 이번에 올린 파일을 지운다.
 - 공개 상세는 `AuditionPostService.findPublicPost`가 `PublicAuditionPostView`(`Published` 또는 원문 주소를 담은 `Hidden`)로

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { adminSectionTitle, type AdminSection } from "@/features/admin/sections";
 import { logout } from "@/features/auth/session-api";
 import { formatTime } from "./admin-format";
-import { AdminLoginForm } from "./admin-login-form";
+import { AdminSessionEnded } from "./admin-session-ended";
 import { AdminOverviewSection } from "./admin-overview-section";
 import {
   AdminAuditionsSection,
@@ -45,7 +45,7 @@ function SectionBody({
 
 export function AdminDashboard({ section }: Props) {
   const [auditLogPage, setAuditLogPage] = useState(0);
-  const { phase, data, auditLogs, error, refresh, restart, signOut } = useAdminDashboard(auditLogPage);
+  const { phase, data, auditLogs, error, refresh, signOut } = useAdminDashboard(auditLogPage);
 
   async function handleLogout() {
     await logout().catch(() => null);
@@ -53,7 +53,7 @@ export function AdminDashboard({ section }: Props) {
   }
 
   if (phase === "unauthorized") {
-    return <AdminLoginForm onSuccess={restart} />;
+    return <AdminSessionEnded />;
   }
 
   const actions = (

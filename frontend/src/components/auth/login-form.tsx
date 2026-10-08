@@ -96,7 +96,8 @@ export function LoginForm({ returnTo, applicationFlow = false }: { readonly retu
     const serverRole = serverSession?.role;
     if (serverRole === "ADMIN") {
       toast("운영자 계정으로 로그인했습니다.", { type: "success" });
-      router.push("/admin");
+      // 이전 비로그인 방문의 경로 캐시를 쓰지 않고 새 세션으로 서버 접근 검사를 받는다.
+      window.location.assign("/admin");
       return;
     }
 
