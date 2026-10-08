@@ -1,14 +1,9 @@
 package art.yesulin.domain.admin.query;
 
 import art.yesulin.application.auth.social.SocialProvider;
-import art.yesulin.domain.audition.AuditionStatus;
-import art.yesulin.domain.audition.QAudition;
 import art.yesulin.domain.member.MemberStatus;
 import art.yesulin.domain.member.MemberType;
 import art.yesulin.domain.member.QMember;
-import art.yesulin.domain.otraudition.QOtrAudition;
-import art.yesulin.domain.otraudition.QOtrSubmission;
-import art.yesulin.domain.performance.QPerformance;
 import art.yesulin.domain.producer.QProducer;
 import art.yesulin.domain.reservation.QReservation;
 import art.yesulin.domain.reservation.ReservationStatus;
@@ -17,7 +12,12 @@ import art.yesulin.domain.show.QShow;
 import art.yesulin.domain.show.QShowSession;
 import art.yesulin.domain.show.ShowStatus;
 import art.yesulin.domain.social.QSocialAccount;
-import art.yesulin.domain.submission.QSubmission;
+import art.yesulin.dormant.domain.audition.AuditionStatus;
+import art.yesulin.dormant.domain.audition.QAudition;
+import art.yesulin.dormant.domain.otraudition.QOtrAudition;
+import art.yesulin.dormant.domain.otraudition.QOtrSubmission;
+import art.yesulin.dormant.domain.performance.QPerformance;
+import art.yesulin.dormant.domain.submission.QSubmission;
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.Expression;
 import com.querydsl.core.types.Projections;
