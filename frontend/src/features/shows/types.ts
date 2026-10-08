@@ -1,10 +1,10 @@
 /** 무료 공연 예매의 공개·기획사 API 계약. 공연 id는 공개 UUID, 회차·예매 id는 숫자다. */
 
 export type ShowStatus = "DRAFT" | "OPEN" | "CLOSED";
-export type ShowGenre = "MUSICAL" | "PLAY";
+export type ShowGenre = "MUSICAL" | "PLAY" | "MUSIC";
 
-export const SHOW_GENRES: readonly ShowGenre[] = ["MUSICAL", "PLAY"];
-export const SHOW_GENRE_LABELS: Record<ShowGenre, string> = { MUSICAL: "뮤지컬", PLAY: "연극" };
+export const SHOW_GENRES: readonly ShowGenre[] = ["MUSICAL", "PLAY", "MUSIC"];
+export const SHOW_GENRE_LABELS: Record<ShowGenre, string> = { MUSICAL: "뮤지컬", PLAY: "연극", MUSIC: "음악" };
 export type ReservationStatus = "CONFIRMED" | "CANCELED";
 
 export const MAX_SHOW_IMAGES = 3;
