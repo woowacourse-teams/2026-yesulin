@@ -6,13 +6,6 @@ import static art.yesulin.dormant.domain.otraudition.OtrAuditionErrorCode.INVALI
 import static art.yesulin.dormant.domain.otraudition.OtrAuditionErrorCode.NOT_FOUND;
 import static art.yesulin.dormant.domain.otraudition.OtrAuditionErrorCode.STALE_POSTING_SNAPSHOT;
 
-import art.yesulin.common.exception.BusinessException;
-import art.yesulin.domain.file.FileAsset;
-import art.yesulin.domain.file.FileAssetRepository;
-import art.yesulin.domain.file.FileReference;
-import art.yesulin.domain.file.FileReferenceRepository;
-import art.yesulin.domain.file.FileType;
-import art.yesulin.domain.producer.ProducerRepository;
 import art.yesulin.dormant.application.audition.PostingSnapshotVersionGenerator;
 import art.yesulin.dormant.application.submission.consent.SubmissionConsentDocumentMetadata;
 import art.yesulin.dormant.application.submission.consent.SubmissionConsentDocumentProvider;
@@ -23,6 +16,13 @@ import art.yesulin.dormant.domain.otraudition.OtrSubmissionRepository;
 import art.yesulin.dormant.domain.submission.SubmissionBasicInformation;
 import art.yesulin.dormant.domain.submission.SubmissionType;
 import art.yesulin.dormant.domain.video.YouTubeVideoUrl;
+import art.yesulin.file.domain.FileAsset;
+import art.yesulin.file.domain.FileAssetRepository;
+import art.yesulin.file.domain.FileReference;
+import art.yesulin.file.domain.FileReferenceRepository;
+import art.yesulin.file.domain.FileType;
+import art.yesulin.global.exception.BusinessException;
+import art.yesulin.producer.domain.ProducerRepository;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;

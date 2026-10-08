@@ -2,7 +2,7 @@ package art.yesulin.dormant.domain.audition.form;
 
 import static art.yesulin.dormant.domain.audition.AuditionErrorCode.INVALID_FORM;
 
-import art.yesulin.common.exception.BusinessException;
+import art.yesulin.global.exception.BusinessException;
 import java.util.Locale;
 
 public enum AdditionalInformationField {

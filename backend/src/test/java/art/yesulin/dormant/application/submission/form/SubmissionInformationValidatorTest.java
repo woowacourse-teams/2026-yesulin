@@ -4,13 +4,13 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import art.yesulin.common.exception.BusinessException;
 import art.yesulin.dormant.domain.audition.form.AdditionalInformationField;
 import art.yesulin.dormant.domain.audition.form.BasicInformationField;
 import art.yesulin.dormant.domain.submission.SubmissionAdditionalInformation;
 import art.yesulin.dormant.domain.submission.SubmissionBasicInformation;
 import art.yesulin.dormant.domain.submission.SubmissionEducationLevel;
 import art.yesulin.dormant.domain.submission.SubmissionErrorCode;
+import art.yesulin.global.exception.BusinessException;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 

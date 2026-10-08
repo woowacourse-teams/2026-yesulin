@@ -7,9 +7,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import art.yesulin.application.auth.MemberPrincipal;
-import art.yesulin.domain.member.MemberStatus;
-import art.yesulin.domain.member.MemberType;
+import art.yesulin.auth.application.MemberPrincipal;
+import art.yesulin.auth.domain.member.MemberStatus;
+import art.yesulin.auth.domain.member.MemberType;
 import art.yesulin.dormant.domain.otraudition.OtrAuditionRepository;
 import art.yesulin.support.ObjectStorageTestConfiguration;
 import java.time.Clock;

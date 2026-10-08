@@ -4,7 +4,7 @@ import static art.yesulin.dormant.domain.photolibrary.PhotoLibraryErrorCode.INVA
 import static art.yesulin.dormant.domain.photolibrary.PhotoLibraryErrorCode.LIMIT_EXCEEDED;
 import static art.yesulin.dormant.domain.photolibrary.PhotoLibraryErrorCode.PHOTO_NOT_FOUND;
 
-import art.yesulin.common.exception.BusinessException;
+import art.yesulin.global.exception.BusinessException;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.OneToMany;

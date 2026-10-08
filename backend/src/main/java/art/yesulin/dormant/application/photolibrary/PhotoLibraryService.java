@@ -1,18 +1,18 @@
 package art.yesulin.dormant.application.photolibrary;
 
-import static art.yesulin.domain.file.FileErrorCode.NOT_FOUND;
 import static art.yesulin.dormant.domain.photolibrary.PhotoLibraryErrorCode.PHOTO_NOT_FOUND;
+import static art.yesulin.file.domain.FileErrorCode.NOT_FOUND;
 
-import art.yesulin.application.file.FileService;
-import art.yesulin.application.file.FileUsageService;
-import art.yesulin.common.exception.BusinessException;
-import art.yesulin.domain.file.FileAsset;
-import art.yesulin.domain.file.FileAssetRepository;
-import art.yesulin.domain.file.FileReference;
-import art.yesulin.domain.file.FileReferenceRepository;
 import art.yesulin.dormant.domain.photolibrary.PhotoLibrary;
 import art.yesulin.dormant.domain.photolibrary.PhotoLibraryItem;
 import art.yesulin.dormant.domain.photolibrary.PhotoLibraryRepository;
+import art.yesulin.file.application.FileService;
+import art.yesulin.file.application.FileUsageService;
+import art.yesulin.file.domain.FileAsset;
+import art.yesulin.file.domain.FileAssetRepository;
+import art.yesulin.file.domain.FileReference;
+import art.yesulin.file.domain.FileReferenceRepository;
+import art.yesulin.global.exception.BusinessException;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;

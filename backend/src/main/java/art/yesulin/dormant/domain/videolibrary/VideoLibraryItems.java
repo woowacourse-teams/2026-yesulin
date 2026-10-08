@@ -5,8 +5,8 @@ import static art.yesulin.dormant.domain.videolibrary.VideoLibraryErrorCode.INVA
 import static art.yesulin.dormant.domain.videolibrary.VideoLibraryErrorCode.LIMIT_EXCEEDED;
 import static art.yesulin.dormant.domain.videolibrary.VideoLibraryErrorCode.VIDEO_NOT_FOUND;
 
-import art.yesulin.common.exception.BusinessException;
 import art.yesulin.dormant.domain.video.YouTubeVideoUrl;
+import art.yesulin.global.exception.BusinessException;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.OneToMany;

@@ -1,8 +1,5 @@
 package art.yesulin.support;
 
-import art.yesulin.domain.file.FileAsset;
-import art.yesulin.domain.file.FileAssetRepository;
-import art.yesulin.domain.file.FileMetadata;
 import art.yesulin.dormant.domain.audition.Audition;
 import art.yesulin.dormant.domain.audition.AuditionRepository;
 import art.yesulin.dormant.domain.audition.PerformancePeriod;
@@ -39,6 +36,9 @@ import art.yesulin.dormant.domain.submission.SubmissionGender;
 import art.yesulin.dormant.domain.submission.SubmissionRepository;
 import art.yesulin.dormant.domain.submission.VideoRequirementAnswer;
 import art.yesulin.dormant.domain.submission.VideoRequirementAnswers;
+import art.yesulin.file.domain.FileAsset;
+import art.yesulin.file.domain.FileAssetRepository;
+import art.yesulin.file.domain.FileMetadata;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;

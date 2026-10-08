@@ -1,6 +1,6 @@
 package art.yesulin.dormant.domain.audition.schedule;
 
-import static art.yesulin.domain.common.validation.DomainValidator.requireText;
+import static art.yesulin.global.validation.DomainValidator.requireText;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;

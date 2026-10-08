@@ -1,10 +1,10 @@
 package art.yesulin.dormant.domain.submission;
 
-import static art.yesulin.domain.common.validation.DomainValidator.requirePositive;
 import static art.yesulin.dormant.domain.submission.SubmissionErrorCode.INVALID_SUBMISSION;
+import static art.yesulin.global.validation.DomainValidator.requirePositive;
 
-import art.yesulin.common.exception.BusinessException;
 import art.yesulin.dormant.domain.submission.converter.SubmissionGenderConverter;
+import art.yesulin.global.exception.BusinessException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Embeddable;

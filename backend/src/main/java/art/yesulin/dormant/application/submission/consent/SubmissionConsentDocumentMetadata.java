@@ -1,12 +1,12 @@
 package art.yesulin.dormant.application.submission.consent;
 
-import static art.yesulin.domain.common.validation.DomainValidator.requireNonNull;
-import static art.yesulin.domain.common.validation.DomainValidator.requireText;
 import static art.yesulin.dormant.domain.submission.SubmissionErrorCode.INVALID_CONSENT;
+import static art.yesulin.global.validation.DomainValidator.requireNonNull;
+import static art.yesulin.global.validation.DomainValidator.requireText;
 
-import art.yesulin.common.exception.BusinessException;
 import art.yesulin.dormant.domain.submission.SubmissionConsent;
 import art.yesulin.dormant.domain.submission.SubmissionConsentType;
+import art.yesulin.global.exception.BusinessException;
 
 public record SubmissionConsentDocumentMetadata(
         String privacyCollectionAndUseVersion,

@@ -1,14 +1,14 @@
 package art.yesulin.dormant.domain.audition;
 
-import static art.yesulin.domain.common.validation.DomainValidator.requireNonNull;
-import static art.yesulin.domain.common.validation.DomainValidator.requirePositive;
-import static art.yesulin.domain.common.validation.DomainValidator.requireText;
 import static art.yesulin.dormant.domain.audition.AuditionErrorCode.INVALID_BASIC_INFORMATION;
 import static art.yesulin.dormant.domain.audition.AuditionErrorCode.INVALID_STATUS;
+import static art.yesulin.global.validation.DomainValidator.requireNonNull;
+import static art.yesulin.global.validation.DomainValidator.requirePositive;
+import static art.yesulin.global.validation.DomainValidator.requireText;
 
-import art.yesulin.common.exception.BusinessException;
 import art.yesulin.dormant.domain.audition.converter.AuditionStatusConverter;
 import art.yesulin.dormant.domain.audition.schedule.AuditionVenue;
+import art.yesulin.global.exception.BusinessException;
 import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.AttributeOverrides;
 import jakarta.persistence.Column;

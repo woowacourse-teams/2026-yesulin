@@ -2,7 +2,6 @@ package art.yesulin.dormant.application.audition;
 
 import static art.yesulin.dormant.domain.audition.AuditionErrorCode.NOT_FOUND;
 
-import art.yesulin.common.exception.BusinessException;
 import art.yesulin.dormant.domain.audition.Audition;
 import art.yesulin.dormant.domain.audition.AuditionRepository;
 import art.yesulin.dormant.domain.audition.PerformancePeriod;
@@ -10,6 +9,7 @@ import art.yesulin.dormant.domain.audition.schedule.AuditionScheduleRepository;
 import art.yesulin.dormant.domain.performance.Performance;
 import art.yesulin.dormant.domain.performance.PerformanceErrorCode;
 import art.yesulin.dormant.domain.performance.PerformanceRepository;
+import art.yesulin.global.exception.BusinessException;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.dao.DataIntegrityViolationException;

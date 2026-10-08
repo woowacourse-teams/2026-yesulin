@@ -1,10 +1,10 @@
 package art.yesulin.dormant.presentation.event.performance;
 
-import art.yesulin.application.file.FileReferenceService;
-import art.yesulin.application.file.LinkFileCommand;
-import art.yesulin.application.file.ReplaceLinkedFileCommand;
 import art.yesulin.dormant.domain.performance.event.PerformanceCreatedEvent;
 import art.yesulin.dormant.domain.performance.event.PerformancePosterChangedEvent;
+import art.yesulin.file.application.FileReferenceService;
+import art.yesulin.file.application.LinkFileCommand;
+import art.yesulin.file.application.ReplaceLinkedFileCommand;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;

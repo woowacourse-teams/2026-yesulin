@@ -1,12 +1,12 @@
 package art.yesulin.dormant.application.profile;
 
-import static art.yesulin.domain.common.validation.DomainValidator.requireNonNull;
-import static art.yesulin.domain.common.validation.DomainValidator.requirePositive;
 import static art.yesulin.dormant.domain.profile.ProfileErrorCode.INVALID_PROFILE;
+import static art.yesulin.global.validation.DomainValidator.requireNonNull;
+import static art.yesulin.global.validation.DomainValidator.requirePositive;
 
-import art.yesulin.common.exception.BusinessException;
 import art.yesulin.dormant.domain.profile.ApplicantProfile;
 import art.yesulin.dormant.domain.profile.ApplicantProfileRepository;
+import art.yesulin.global.exception.BusinessException;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneId;

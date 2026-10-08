@@ -1,12 +1,12 @@
 package art.yesulin.dormant.domain.profile;
 
-import static art.yesulin.domain.common.validation.DomainValidator.requireNonNull;
-import static art.yesulin.domain.common.validation.DomainValidator.requireText;
 import static art.yesulin.dormant.domain.profile.ProfileErrorCode.INVALID_PROFILE;
+import static art.yesulin.global.validation.DomainValidator.requireNonNull;
+import static art.yesulin.global.validation.DomainValidator.requireText;
 
-import art.yesulin.common.exception.BusinessException;
 import art.yesulin.dormant.domain.profile.converter.ProfileEducationLevelConverter;
 import art.yesulin.dormant.domain.profile.converter.ProfileMilitaryServiceStatusConverter;
+import art.yesulin.global.exception.BusinessException;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;

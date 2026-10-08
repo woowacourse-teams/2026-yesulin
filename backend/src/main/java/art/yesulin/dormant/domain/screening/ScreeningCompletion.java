@@ -1,6 +1,6 @@
 package art.yesulin.dormant.domain.screening;
 
-import static art.yesulin.domain.common.validation.DomainValidator.requirePositive;
+import static art.yesulin.global.validation.DomainValidator.requirePositive;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

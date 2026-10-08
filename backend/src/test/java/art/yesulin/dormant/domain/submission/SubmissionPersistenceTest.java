@@ -4,9 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import art.yesulin.domain.file.FileAsset;
-import art.yesulin.domain.file.FileAssetRepository;
-import art.yesulin.domain.file.FileMetadata;
+import art.yesulin.file.domain.FileAsset;
+import art.yesulin.file.domain.FileAssetRepository;
+import art.yesulin.file.domain.FileMetadata;
 import art.yesulin.support.ObjectStorageTestConfiguration;
 import jakarta.persistence.EntityManager;
 import java.time.Instant;

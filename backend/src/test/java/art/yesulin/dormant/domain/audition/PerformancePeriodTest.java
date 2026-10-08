@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import art.yesulin.common.exception.BusinessException;
+import art.yesulin.global.exception.BusinessException;
 import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
 

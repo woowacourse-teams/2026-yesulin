@@ -1,7 +1,7 @@
 package art.yesulin.dormant.domain.screening;
 
-import art.yesulin.common.exception.ErrorCode;
-import art.yesulin.common.exception.ErrorType;
+import art.yesulin.global.exception.ErrorCode;
+import art.yesulin.global.exception.ErrorType;
 
 public enum ScreeningReviewErrorCode implements ErrorCode {
 

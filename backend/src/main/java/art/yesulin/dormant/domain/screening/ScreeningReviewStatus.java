@@ -1,9 +1,9 @@
 package art.yesulin.dormant.domain.screening;
 
-import static art.yesulin.domain.common.validation.DomainValidator.requireText;
 import static art.yesulin.dormant.domain.screening.ScreeningReviewErrorCode.INVALID_REVIEW;
+import static art.yesulin.global.validation.DomainValidator.requireText;
 
-import art.yesulin.common.exception.BusinessException;
+import art.yesulin.global.exception.BusinessException;
 import java.util.Locale;
 
 public enum ScreeningReviewStatus {

@@ -1,10 +1,10 @@
 package art.yesulin.support;
 
-import art.yesulin.application.file.storage.ObjectStorage;
-import art.yesulin.application.file.storage.ObjectUpload;
-import art.yesulin.application.file.storage.PresignedUpload;
-import art.yesulin.application.file.storage.StoredObjectContent;
-import art.yesulin.application.file.storage.StoredObjectMetadata;
+import art.yesulin.file.application.storage.ObjectStorage;
+import art.yesulin.file.application.storage.ObjectUpload;
+import art.yesulin.file.application.storage.PresignedUpload;
+import art.yesulin.file.application.storage.StoredObjectContent;
+import art.yesulin.file.application.storage.StoredObjectMetadata;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.time.Instant;

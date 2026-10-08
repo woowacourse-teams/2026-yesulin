@@ -2,9 +2,9 @@ package art.yesulin.dormant.application.screening;
 
 import static art.yesulin.dormant.domain.screening.ScreeningReviewErrorCode.INVALID_REVIEW;
 
-import art.yesulin.common.exception.BusinessException;
 import art.yesulin.dormant.domain.screening.ScreeningReviewChange;
 import art.yesulin.dormant.domain.screening.ScreeningReviewStatus;
+import art.yesulin.global.exception.BusinessException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;

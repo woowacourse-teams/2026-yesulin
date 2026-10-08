@@ -1,6 +1,6 @@
 package art.yesulin.dormant.application.audition.schedule;
 
-import static art.yesulin.domain.common.validation.DomainValidator.requireNonNull;
+import static art.yesulin.global.validation.DomainValidator.requireNonNull;
 
 import art.yesulin.dormant.domain.audition.schedule.AuditionSchedulePlan;
 import art.yesulin.dormant.domain.audition.schedule.RecruitmentPeriod;

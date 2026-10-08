@@ -3,10 +3,10 @@ package art.yesulin.dormant.application.submission.form;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import art.yesulin.common.exception.BusinessException;
 import art.yesulin.dormant.application.submission.SubmitVideoRequirementAnswerCommand;
 import art.yesulin.dormant.domain.submission.SubmissionErrorCode;
 import art.yesulin.dormant.domain.submission.VideoRequirementAnswers;
+import art.yesulin.global.exception.BusinessException;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 

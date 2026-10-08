@@ -1,11 +1,8 @@
 package art.yesulin.dormant.application.auditionnotice;
 
-import art.yesulin.common.exception.BusinessException;
-import art.yesulin.domain.member.MemberRepository;
-import art.yesulin.domain.member.MemberStatus;
-import art.yesulin.domain.member.MemberType;
-import art.yesulin.domain.producer.Producer;
-import art.yesulin.domain.producer.ProducerRepository;
+import art.yesulin.auth.domain.member.MemberRepository;
+import art.yesulin.auth.domain.member.MemberStatus;
+import art.yesulin.auth.domain.member.MemberType;
 import art.yesulin.dormant.domain.audition.Audition;
 import art.yesulin.dormant.domain.audition.AuditionRepository;
 import art.yesulin.dormant.domain.audition.role.AuditionRoleSectionRepository;
@@ -24,6 +21,9 @@ import art.yesulin.dormant.domain.screening.ScreeningReviewStatus;
 import art.yesulin.dormant.domain.screening.ScreeningRound;
 import art.yesulin.dormant.domain.submission.Submission;
 import art.yesulin.dormant.domain.submission.SubmissionRepository;
+import art.yesulin.global.exception.BusinessException;
+import art.yesulin.producer.domain.Producer;
+import art.yesulin.producer.domain.ProducerRepository;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;

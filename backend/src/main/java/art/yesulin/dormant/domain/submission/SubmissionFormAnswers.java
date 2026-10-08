@@ -1,6 +1,6 @@
 package art.yesulin.dormant.domain.submission;
 
-import static art.yesulin.domain.common.validation.DomainValidator.requireNonNull;
+import static art.yesulin.global.validation.DomainValidator.requireNonNull;
 
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.Embedded;

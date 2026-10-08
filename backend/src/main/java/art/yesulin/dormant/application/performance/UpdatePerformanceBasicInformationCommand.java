@@ -1,6 +1,6 @@
 package art.yesulin.dormant.application.performance;
 
-import art.yesulin.application.performance.PerformanceVenueCommand;
+import art.yesulin.show.application.performance.PerformanceVenueCommand;
 import java.time.LocalDate;
 
 public record UpdatePerformanceBasicInformationCommand(

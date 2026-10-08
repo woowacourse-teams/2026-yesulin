@@ -1,13 +1,13 @@
 package art.yesulin.dormant.presentation.api.submission;
 
-import art.yesulin.application.auth.MemberPrincipal;
-import art.yesulin.application.auth.annotation.LoginMember;
-import art.yesulin.application.auth.annotation.LoginRequired;
-import art.yesulin.application.file.FileService;
-import art.yesulin.domain.member.MemberType;
+import art.yesulin.auth.application.MemberPrincipal;
+import art.yesulin.auth.application.annotation.LoginMember;
+import art.yesulin.auth.application.annotation.LoginRequired;
+import art.yesulin.auth.domain.member.MemberType;
 import art.yesulin.dormant.application.submission.SubmissionDetailResult;
 import art.yesulin.dormant.application.submission.SubmissionQueryService;
 import art.yesulin.dormant.application.submission.SubmissionSummaryResult;
+import art.yesulin.file.application.FileService;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

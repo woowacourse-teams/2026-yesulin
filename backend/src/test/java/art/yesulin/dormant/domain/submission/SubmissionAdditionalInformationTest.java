@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import art.yesulin.common.exception.BusinessException;
+import art.yesulin.global.exception.BusinessException;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;

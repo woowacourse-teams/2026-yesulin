@@ -1,11 +1,11 @@
 package art.yesulin.dormant.domain.performance;
 
-import static art.yesulin.domain.common.validation.DomainValidator.requirePositive;
-import static art.yesulin.domain.common.validation.DomainValidator.requireText;
+import static art.yesulin.global.validation.DomainValidator.requirePositive;
+import static art.yesulin.global.validation.DomainValidator.requireText;
 
-import art.yesulin.domain.performance.PerformanceVenue;
 import art.yesulin.dormant.domain.performance.event.PerformanceCreatedEvent;
 import art.yesulin.dormant.domain.performance.event.PerformancePosterChangedEvent;
+import art.yesulin.show.domain.performance.PerformanceVenue;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;

@@ -8,13 +8,13 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import art.yesulin.common.exception.BusinessException;
-import art.yesulin.domain.file.FileAsset;
-import art.yesulin.domain.file.FileAssetRepository;
-import art.yesulin.domain.file.FileErrorCode;
-import art.yesulin.domain.file.FileMetadata;
 import art.yesulin.dormant.domain.submission.PhotoRequirementAnswer;
 import art.yesulin.dormant.domain.submission.PhotoRequirementAnswers;
+import art.yesulin.file.domain.FileAsset;
+import art.yesulin.file.domain.FileAssetRepository;
+import art.yesulin.file.domain.FileErrorCode;
+import art.yesulin.file.domain.FileMetadata;
+import art.yesulin.global.exception.BusinessException;
 import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;

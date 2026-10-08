@@ -1,9 +1,9 @@
 package art.yesulin.dormant.presentation.api.profile;
 
-import art.yesulin.application.auth.MemberPrincipal;
-import art.yesulin.application.auth.annotation.LoginMember;
-import art.yesulin.application.auth.annotation.LoginRequired;
-import art.yesulin.domain.member.MemberType;
+import art.yesulin.auth.application.MemberPrincipal;
+import art.yesulin.auth.application.annotation.LoginMember;
+import art.yesulin.auth.application.annotation.LoginRequired;
+import art.yesulin.auth.domain.member.MemberType;
 import art.yesulin.dormant.application.profile.ApplicantProfileResult;
 import art.yesulin.dormant.application.profile.ApplicantProfileService;
 import jakarta.validation.Valid;

@@ -3,10 +3,10 @@ package art.yesulin.dormant.application.submission.consent;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import art.yesulin.common.exception.BusinessException;
 import art.yesulin.dormant.domain.submission.SubmissionConsent;
 import art.yesulin.dormant.domain.submission.SubmissionConsentType;
 import art.yesulin.dormant.domain.submission.SubmissionErrorCode;
+import art.yesulin.global.exception.BusinessException;
 import art.yesulin.support.FakeSubmissionConsentDocumentProvider;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;

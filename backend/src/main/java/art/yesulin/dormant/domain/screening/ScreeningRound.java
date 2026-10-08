@@ -2,7 +2,7 @@ package art.yesulin.dormant.domain.screening;
 
 import static art.yesulin.dormant.domain.screening.ScreeningReviewErrorCode.INVALID_REVIEW;
 
-import art.yesulin.common.exception.BusinessException;
+import art.yesulin.global.exception.BusinessException;
 
 public record ScreeningRound(int value) {
 

@@ -1,9 +1,9 @@
 package art.yesulin.dormant.domain.audition.role;
 
-import static art.yesulin.domain.common.validation.DomainValidator.requireNonNull;
 import static art.yesulin.dormant.domain.audition.AuditionErrorCode.INVALID_ROLE_SECTION;
+import static art.yesulin.global.validation.DomainValidator.requireNonNull;
 
-import art.yesulin.common.exception.BusinessException;
+import art.yesulin.global.exception.BusinessException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;

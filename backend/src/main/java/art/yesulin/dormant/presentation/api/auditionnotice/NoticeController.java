@@ -1,10 +1,10 @@
 package art.yesulin.dormant.presentation.api.auditionnotice;
 
-import art.yesulin.application.auth.MemberPrincipal;
-import art.yesulin.application.auth.annotation.LoginMember;
-import art.yesulin.application.auth.annotation.LoginRequired;
-import art.yesulin.domain.member.MemberStatus;
-import art.yesulin.domain.member.MemberType;
+import art.yesulin.auth.application.MemberPrincipal;
+import art.yesulin.auth.application.annotation.LoginMember;
+import art.yesulin.auth.application.annotation.LoginRequired;
+import art.yesulin.auth.domain.member.MemberStatus;
+import art.yesulin.auth.domain.member.MemberType;
 import art.yesulin.dormant.application.auditionnotice.NoticeCommand;
 import art.yesulin.dormant.application.auditionnotice.NoticeScope;
 import art.yesulin.dormant.application.auditionnotice.NoticeService;

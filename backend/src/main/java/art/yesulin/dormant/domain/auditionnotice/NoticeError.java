@@ -1,7 +1,7 @@
 package art.yesulin.dormant.domain.auditionnotice;
 
-import art.yesulin.common.exception.ErrorCode;
-import art.yesulin.common.exception.ErrorType;
+import art.yesulin.global.exception.ErrorCode;
+import art.yesulin.global.exception.ErrorType;
 
 public enum NoticeError implements ErrorCode {
     NOT_FOUND(ErrorType.NOT_FOUND),

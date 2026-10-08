@@ -2,7 +2,7 @@ package art.yesulin.dormant.application.submission;
 
 import static art.yesulin.dormant.domain.submission.SubmissionErrorCode.INVALID_CONSENT;
 
-import art.yesulin.common.exception.BusinessException;
+import art.yesulin.global.exception.BusinessException;
 
 public record SubmitConsentsCommand(
         boolean privacyCollectionAndUseAgreed,

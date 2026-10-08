@@ -1,7 +1,7 @@
 package art.yesulin.dormant.domain.videolibrary;
 
-import art.yesulin.common.exception.ErrorCode;
-import art.yesulin.common.exception.ErrorType;
+import art.yesulin.global.exception.ErrorCode;
+import art.yesulin.global.exception.ErrorType;
 
 public enum VideoLibraryErrorCode implements ErrorCode {
 

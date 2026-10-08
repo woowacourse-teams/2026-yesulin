@@ -42,7 +42,7 @@ public record CreatePerformanceRequest(
                 title,
                 venueAddress == null
                         ? (roadAddress == null || roadAddress.isBlank() ? null
-                        : new art.yesulin.application.performance.PerformanceVenueCommand(
+                        : new art.yesulin.show.application.performance.PerformanceVenueCommand(
                                 roadAddress, roadAddress, "", "", null, null))
                         : venueAddress.toCommand(venue),
                 performanceStartDate,

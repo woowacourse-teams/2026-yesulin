@@ -1,12 +1,12 @@
 package art.yesulin.dormant.domain.audition;
 
-import static art.yesulin.domain.common.validation.DomainValidator.requireNonNull;
 import static art.yesulin.dormant.domain.audition.AuditionErrorCode.PUBLISHING_NOT_READY;
+import static art.yesulin.global.validation.DomainValidator.requireNonNull;
 
-import art.yesulin.common.exception.BusinessException;
 import art.yesulin.dormant.domain.audition.form.AuditionForm;
 import art.yesulin.dormant.domain.audition.role.AuditionRoleSection;
 import art.yesulin.dormant.domain.audition.schedule.AuditionSchedule;
+import art.yesulin.global.exception.BusinessException;
 import java.time.Instant;
 import java.util.Optional;
 

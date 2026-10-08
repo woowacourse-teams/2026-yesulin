@@ -3,11 +3,11 @@ package art.yesulin.dormant.application.videolibrary;
 import static art.yesulin.dormant.domain.videolibrary.VideoLibraryErrorCode.INVALID_VIDEO_URL;
 import static art.yesulin.dormant.domain.videolibrary.VideoLibraryErrorCode.VIDEO_NOT_FOUND;
 
-import art.yesulin.common.exception.BusinessException;
 import art.yesulin.dormant.domain.video.YouTubeVideoUrl;
 import art.yesulin.dormant.domain.videolibrary.VideoLibrary;
 import art.yesulin.dormant.domain.videolibrary.VideoLibraryItem;
 import art.yesulin.dormant.domain.videolibrary.VideoLibraryRepository;
+import art.yesulin.global.exception.BusinessException;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

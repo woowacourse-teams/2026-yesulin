@@ -1,8 +1,8 @@
 package art.yesulin.dormant.application.submission;
 
-import art.yesulin.domain.file.FileAssetRepository;
-import art.yesulin.domain.file.FileReference;
-import art.yesulin.domain.file.FileReferenceRepository;
+import art.yesulin.file.domain.FileAssetRepository;
+import art.yesulin.file.domain.FileReference;
+import art.yesulin.file.domain.FileReferenceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

@@ -1,9 +1,9 @@
 package art.yesulin.dormant.application.auditionnotice;
 
-import art.yesulin.common.exception.BusinessException;
 import art.yesulin.dormant.domain.audition.schedule.ScreeningStage;
 import art.yesulin.dormant.domain.auditionnotice.NoticeError;
 import art.yesulin.dormant.domain.auditionnotice.NoticeMessage;
+import art.yesulin.global.exception.BusinessException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;

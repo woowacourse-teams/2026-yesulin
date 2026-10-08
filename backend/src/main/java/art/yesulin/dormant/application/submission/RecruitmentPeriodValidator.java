@@ -1,9 +1,9 @@
 package art.yesulin.dormant.application.submission;
 
-import static art.yesulin.domain.common.validation.DomainValidator.requireNonNull;
 import static art.yesulin.dormant.domain.submission.SubmissionErrorCode.RECRUITMENT_CLOSED;
+import static art.yesulin.global.validation.DomainValidator.requireNonNull;
 
-import art.yesulin.common.exception.BusinessException;
+import art.yesulin.global.exception.BusinessException;
 import java.time.Instant;
 import org.springframework.stereotype.Component;
 

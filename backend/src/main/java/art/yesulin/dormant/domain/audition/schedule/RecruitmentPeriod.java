@@ -1,10 +1,10 @@
 package art.yesulin.dormant.domain.audition.schedule;
 
-import static art.yesulin.domain.common.validation.DomainValidator.requireNonNull;
 import static art.yesulin.dormant.domain.audition.AuditionErrorCode.INVALID_SCHEDULE;
 import static art.yesulin.dormant.domain.audition.AuditionErrorCode.PUBLISHING_CLOSED;
+import static art.yesulin.global.validation.DomainValidator.requireNonNull;
 
-import art.yesulin.common.exception.BusinessException;
+import art.yesulin.global.exception.BusinessException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import java.time.Instant;

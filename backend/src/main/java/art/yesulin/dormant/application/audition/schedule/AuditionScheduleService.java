@@ -4,7 +4,6 @@ import static art.yesulin.dormant.domain.audition.AuditionErrorCode.INVALID_SCHE
 import static art.yesulin.dormant.domain.audition.AuditionErrorCode.NOT_FOUND;
 import static art.yesulin.dormant.domain.audition.AuditionErrorCode.SCHEDULE_NOT_FOUND;
 
-import art.yesulin.common.exception.BusinessException;
 import art.yesulin.dormant.domain.audition.Audition;
 import art.yesulin.dormant.domain.audition.AuditionRepository;
 import art.yesulin.dormant.domain.audition.schedule.AuditionSchedule;
@@ -13,6 +12,7 @@ import art.yesulin.dormant.domain.audition.schedule.AuditionScheduleRepository;
 import art.yesulin.dormant.domain.audition.schedule.ScreeningStage;
 import art.yesulin.dormant.domain.audition.schedule.ScreeningStagePlan;
 import art.yesulin.dormant.domain.screening.ScreeningReviewRepository;
+import art.yesulin.global.exception.BusinessException;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;

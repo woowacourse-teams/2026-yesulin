@@ -2,13 +2,7 @@ package art.yesulin.dormant.application.admin;
 
 import static art.yesulin.dormant.domain.submission.SubmissionErrorCode.NOT_FOUND;
 
-import art.yesulin.application.admin.AdminDeletionConfirmation;
-import art.yesulin.application.file.FileUsageService;
-import art.yesulin.common.exception.BusinessException;
-import art.yesulin.domain.admin.AdminAction;
-import art.yesulin.domain.admin.AdminAuditLog;
-import art.yesulin.domain.admin.AdminAuditLogRepository;
-import art.yesulin.domain.file.FileReferenceRepository;
+import art.yesulin.auth.application.admin.AdminDeletionConfirmation;
 import art.yesulin.dormant.application.auditionnotice.NoticeStore;
 import art.yesulin.dormant.domain.screening.ScreeningCompletionRepository;
 import art.yesulin.dormant.domain.screening.ScreeningReviewRepository;
@@ -16,6 +10,12 @@ import art.yesulin.dormant.domain.submission.SelectedRole;
 import art.yesulin.dormant.domain.submission.Submission;
 import art.yesulin.dormant.domain.submission.SubmissionConsentRepository;
 import art.yesulin.dormant.domain.submission.SubmissionRepository;
+import art.yesulin.file.application.FileUsageService;
+import art.yesulin.file.domain.FileReferenceRepository;
+import art.yesulin.global.audit.AdminAction;
+import art.yesulin.global.audit.AdminAuditLog;
+import art.yesulin.global.audit.AdminAuditLogRepository;
+import art.yesulin.global.exception.BusinessException;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;

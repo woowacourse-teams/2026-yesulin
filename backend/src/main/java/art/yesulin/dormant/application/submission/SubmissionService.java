@@ -1,11 +1,10 @@
 package art.yesulin.dormant.application.submission;
 
-import static art.yesulin.domain.common.validation.DomainValidator.requireNonNull;
-import static art.yesulin.domain.common.validation.DomainValidator.requirePositive;
 import static art.yesulin.dormant.domain.submission.SubmissionErrorCode.DUPLICATE_SUBMISSION;
 import static art.yesulin.dormant.domain.submission.SubmissionErrorCode.STALE_POSTING_SNAPSHOT;
+import static art.yesulin.global.validation.DomainValidator.requireNonNull;
+import static art.yesulin.global.validation.DomainValidator.requirePositive;
 
-import art.yesulin.common.exception.BusinessException;
 import art.yesulin.dormant.application.submission.consent.SubmissionConsentDocumentMetadata;
 import art.yesulin.dormant.application.submission.consent.SubmissionConsentDocumentProvider;
 import art.yesulin.dormant.application.submission.form.SubmissionFormAnswerValidator;
@@ -15,6 +14,7 @@ import art.yesulin.dormant.domain.submission.AuditionSnapshot;
 import art.yesulin.dormant.domain.submission.SelectedRoles;
 import art.yesulin.dormant.domain.submission.Submission;
 import art.yesulin.dormant.domain.submission.SubmissionRepository;
+import art.yesulin.global.exception.BusinessException;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Locale;

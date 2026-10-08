@@ -1,7 +1,7 @@
 package art.yesulin.dormant.application.audition;
 
-import static art.yesulin.domain.common.validation.DomainValidator.requireNonNull;
-import static art.yesulin.domain.common.validation.DomainValidator.requireText;
+import static art.yesulin.global.validation.DomainValidator.requireNonNull;
+import static art.yesulin.global.validation.DomainValidator.requireText;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;

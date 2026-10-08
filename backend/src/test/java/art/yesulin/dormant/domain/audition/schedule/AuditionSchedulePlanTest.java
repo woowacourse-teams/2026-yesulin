@@ -3,8 +3,8 @@ package art.yesulin.dormant.domain.audition.schedule;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import art.yesulin.common.exception.BusinessException;
 import art.yesulin.dormant.domain.audition.AuditionErrorCode;
+import art.yesulin.global.exception.BusinessException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;

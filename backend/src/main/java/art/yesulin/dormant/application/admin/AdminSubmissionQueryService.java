@@ -2,12 +2,12 @@ package art.yesulin.dormant.application.admin;
 
 import static art.yesulin.dormant.domain.submission.SubmissionErrorCode.NOT_FOUND;
 
-import art.yesulin.common.exception.BusinessException;
 import art.yesulin.dormant.application.submission.SubmissionDetailResult;
 import art.yesulin.dormant.domain.submission.Submission;
 import art.yesulin.dormant.domain.submission.SubmissionConsent;
 import art.yesulin.dormant.domain.submission.SubmissionConsentRepository;
 import art.yesulin.dormant.domain.submission.SubmissionRepository;
+import art.yesulin.global.exception.BusinessException;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;

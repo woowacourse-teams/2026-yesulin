@@ -1,13 +1,13 @@
 package art.yesulin.dormant.application.submission;
 
-import static art.yesulin.domain.file.FileErrorCode.NOT_FOUND;
-import static art.yesulin.domain.file.FileErrorCode.UNSUPPORTED_CONTENT_TYPE;
+import static art.yesulin.file.domain.FileErrorCode.NOT_FOUND;
+import static art.yesulin.file.domain.FileErrorCode.UNSUPPORTED_CONTENT_TYPE;
 
-import art.yesulin.common.exception.BusinessException;
-import art.yesulin.domain.file.FileAsset;
-import art.yesulin.domain.file.FileAssetRepository;
-import art.yesulin.domain.file.FileType;
 import art.yesulin.dormant.domain.submission.PhotoRequirementAnswers;
+import art.yesulin.file.domain.FileAsset;
+import art.yesulin.file.domain.FileAssetRepository;
+import art.yesulin.file.domain.FileType;
+import art.yesulin.global.exception.BusinessException;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;

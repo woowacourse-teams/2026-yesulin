@@ -5,9 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import art.yesulin.common.exception.BusinessException;
 import art.yesulin.dormant.domain.audition.schedule.ScreeningStage;
 import art.yesulin.dormant.domain.submission.Submission;
+import art.yesulin.global.exception.BusinessException;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;

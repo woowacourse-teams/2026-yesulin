@@ -1,6 +1,6 @@
 package art.yesulin.dormant.presentation.api.performance;
 
-import art.yesulin.application.file.FileUploadCommand;
+import art.yesulin.file.application.FileUploadCommand;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;

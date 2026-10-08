@@ -1,9 +1,9 @@
 package art.yesulin.dormant.presentation.api.photolibrary;
 
-import art.yesulin.application.auth.MemberPrincipal;
-import art.yesulin.application.auth.annotation.LoginMember;
-import art.yesulin.application.auth.annotation.LoginRequired;
-import art.yesulin.domain.member.MemberType;
+import art.yesulin.auth.application.MemberPrincipal;
+import art.yesulin.auth.application.annotation.LoginMember;
+import art.yesulin.auth.application.annotation.LoginRequired;
+import art.yesulin.auth.domain.member.MemberType;
 import art.yesulin.dormant.application.photolibrary.PhotoLibraryItemResult;
 import art.yesulin.dormant.application.photolibrary.PhotoLibraryResult;
 import art.yesulin.dormant.application.photolibrary.PhotoLibraryService;

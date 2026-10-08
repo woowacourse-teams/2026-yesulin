@@ -3,7 +3,6 @@ package art.yesulin.dormant.application.audition;
 import static art.yesulin.dormant.domain.audition.AuditionErrorCode.INVALID_STATUS;
 import static art.yesulin.dormant.domain.audition.AuditionErrorCode.NOT_FOUND;
 
-import art.yesulin.common.exception.BusinessException;
 import art.yesulin.dormant.domain.audition.Audition;
 import art.yesulin.dormant.domain.audition.AuditionRepository;
 import art.yesulin.dormant.domain.audition.form.AuditionFormRepository;
@@ -14,6 +13,7 @@ import art.yesulin.dormant.domain.audition.schedule.AuditionScheduleRepository;
 import art.yesulin.dormant.domain.screening.ScreeningCompletionRepository;
 import art.yesulin.dormant.domain.screening.ScreeningReviewRepository;
 import art.yesulin.dormant.domain.submission.SubmissionRepository;
+import art.yesulin.global.exception.BusinessException;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;

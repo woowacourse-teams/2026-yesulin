@@ -1,9 +1,9 @@
 package art.yesulin.dormant.domain.audition.form;
 
-import static art.yesulin.domain.common.validation.DomainValidator.requireText;
 import static art.yesulin.dormant.domain.audition.AuditionErrorCode.INVALID_FORM;
+import static art.yesulin.global.validation.DomainValidator.requireText;
 
-import art.yesulin.common.exception.BusinessException;
+import art.yesulin.global.exception.BusinessException;
 
 public record AdditionalQuestionPlan(Long questionId, String question, boolean required) {
 

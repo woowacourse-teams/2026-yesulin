@@ -1,12 +1,12 @@
 package art.yesulin.dormant.application.submission;
 
-import static art.yesulin.domain.common.validation.DomainValidator.requireNonNull;
-import static art.yesulin.domain.common.validation.DomainValidator.requirePositive;
 import static art.yesulin.dormant.domain.submission.SubmissionErrorCode.IDEMPOTENCY_KEY_REUSED;
+import static art.yesulin.global.validation.DomainValidator.requireNonNull;
+import static art.yesulin.global.validation.DomainValidator.requirePositive;
 
-import art.yesulin.common.exception.BusinessException;
 import art.yesulin.dormant.domain.submission.SubmissionIdempotencyRequest;
 import art.yesulin.dormant.domain.submission.SubmissionIdempotencyRequestRepository;
+import art.yesulin.global.exception.BusinessException;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Optional;

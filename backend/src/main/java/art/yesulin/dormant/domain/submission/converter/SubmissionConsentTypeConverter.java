@@ -1,7 +1,7 @@
 package art.yesulin.dormant.domain.submission.converter;
 
-import art.yesulin.domain.common.converter.StringEnumConverter;
 import art.yesulin.dormant.domain.submission.SubmissionConsentType;
+import art.yesulin.global.persistence.StringEnumConverter;
 import jakarta.persistence.Converter;
 
 @Converter

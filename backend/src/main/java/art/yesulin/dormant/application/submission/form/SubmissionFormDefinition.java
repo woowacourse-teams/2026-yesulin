@@ -1,6 +1,6 @@
 package art.yesulin.dormant.application.submission.form;
 
-import static art.yesulin.domain.common.validation.DomainValidator.requireNonNull;
+import static art.yesulin.global.validation.DomainValidator.requireNonNull;
 
 import art.yesulin.dormant.domain.audition.form.AdditionalInformationField;
 import art.yesulin.dormant.domain.audition.form.AuditionForm;

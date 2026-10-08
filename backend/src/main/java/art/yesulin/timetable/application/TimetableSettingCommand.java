@@ -1,0 +1,13 @@
+package art.yesulin.timetable.application;
+
+import art.yesulin.timetable.domain.setting.TimetableSetting;
+import java.util.List;
+
+public record TimetableSettingCommand(int slotMinutes, int slotCapacity, List<TimetableWindowCommand> windows) {
+
+    public TimetableSetting toSetting() {
+        return new TimetableSetting(slotMinutes, slotCapacity, windows.stream()
+                .map(TimetableWindowCommand::toWindow)
+                .toList());
+    }
+}

@@ -1,7 +1,7 @@
 package art.yesulin.dormant.domain.screening;
 
-import static art.yesulin.domain.common.validation.DomainValidator.requireNonNull;
-import static art.yesulin.domain.common.validation.DomainValidator.requirePositive;
+import static art.yesulin.global.validation.DomainValidator.requireNonNull;
+import static art.yesulin.global.validation.DomainValidator.requirePositive;
 
 import java.util.HashMap;
 import java.util.List;

@@ -5,8 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import art.yesulin.application.admin.AdminDeletionConfirmation;
-import art.yesulin.presentation.api.ErrorResponse;
+import art.yesulin.auth.application.admin.AdminDeletionConfirmation;
+import art.yesulin.global.web.ErrorResponse;
 import art.yesulin.support.ObjectStorageTestConfiguration;
 import at.favre.lib.crypto.bcrypt.BCrypt;
 import ch.qos.logback.classic.Logger;

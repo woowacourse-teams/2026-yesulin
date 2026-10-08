@@ -2,11 +2,11 @@ package art.yesulin.dormant.application.submission.form;
 
 import static art.yesulin.dormant.domain.submission.SubmissionErrorCode.INVALID_FORM_ANSWER;
 
-import art.yesulin.common.exception.BusinessException;
 import art.yesulin.dormant.domain.audition.form.AdditionalInformationField;
 import art.yesulin.dormant.domain.audition.form.BasicInformationField;
 import art.yesulin.dormant.domain.submission.SubmissionAdditionalInformation;
 import art.yesulin.dormant.domain.submission.SubmissionBasicInformation;
+import art.yesulin.global.exception.BusinessException;
 import java.util.List;
 import java.util.Set;
 import org.springframework.stereotype.Component;

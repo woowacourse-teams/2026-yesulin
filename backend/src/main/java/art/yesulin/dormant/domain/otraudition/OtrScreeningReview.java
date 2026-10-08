@@ -2,8 +2,8 @@ package art.yesulin.dormant.domain.otraudition;
 
 import static art.yesulin.dormant.domain.screening.ScreeningReviewErrorCode.INVALID_REVIEW;
 
-import art.yesulin.common.exception.BusinessException;
 import art.yesulin.dormant.domain.screening.ScreeningReviewStatus;
+import art.yesulin.global.exception.BusinessException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

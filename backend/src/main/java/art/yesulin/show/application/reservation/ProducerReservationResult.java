@@ -1,0 +1,32 @@
+package art.yesulin.show.application.reservation;
+
+import art.yesulin.show.domain.reservation.Reservation;
+import art.yesulin.show.domain.reservation.ReservationStatus;
+import java.time.Instant;
+
+public record ProducerReservationResult(
+        long id,
+        String code,
+        String bookerName,
+        String bookerPhone,
+        int ticketCount,
+        ReservationStatus status,
+        String memo,
+        Instant createdAt,
+        Instant canceledAt
+) {
+
+    static ProducerReservationResult from(Reservation reservation) {
+        return new ProducerReservationResult(
+                reservation.getId(),
+                reservation.getCode(),
+                reservation.getBooker().getName(),
+                reservation.getBooker().getPhone(),
+                reservation.getTicketCount(),
+                reservation.getStatus(),
+                reservation.getMemo(),
+                reservation.getCreatedAt(),
+                reservation.getCanceledAt()
+        );
+    }
+}

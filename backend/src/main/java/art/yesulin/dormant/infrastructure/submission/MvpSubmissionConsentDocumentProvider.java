@@ -1,8 +1,8 @@
 package art.yesulin.dormant.infrastructure.submission;
 
-import static art.yesulin.domain.common.validation.DomainValidator.requireNonNull;
-import static art.yesulin.domain.common.validation.DomainValidator.requirePositive;
-import static art.yesulin.domain.common.validation.DomainValidator.requireText;
+import static art.yesulin.global.validation.DomainValidator.requireNonNull;
+import static art.yesulin.global.validation.DomainValidator.requirePositive;
+import static art.yesulin.global.validation.DomainValidator.requireText;
 
 import art.yesulin.dormant.application.submission.consent.SubmissionConsentDocumentMetadata;
 import art.yesulin.dormant.application.submission.consent.SubmissionConsentDocumentProvider;

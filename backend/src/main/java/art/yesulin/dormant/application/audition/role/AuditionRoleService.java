@@ -4,7 +4,6 @@ import static art.yesulin.dormant.domain.audition.AuditionErrorCode.INVALID_ROLE
 import static art.yesulin.dormant.domain.audition.AuditionErrorCode.NOT_FOUND;
 import static art.yesulin.dormant.domain.audition.AuditionErrorCode.ROLE_SECTION_NOT_FOUND;
 
-import art.yesulin.common.exception.BusinessException;
 import art.yesulin.dormant.domain.audition.Audition;
 import art.yesulin.dormant.domain.audition.AuditionRepository;
 import art.yesulin.dormant.domain.audition.role.AuditionRoleSection;
@@ -13,6 +12,7 @@ import art.yesulin.dormant.domain.audition.role.AuditionRoleSelections;
 import art.yesulin.dormant.domain.performance.Performance;
 import art.yesulin.dormant.domain.performance.PerformanceRepository;
 import art.yesulin.dormant.domain.performance.PerformanceRole;
+import art.yesulin.global.exception.BusinessException;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;

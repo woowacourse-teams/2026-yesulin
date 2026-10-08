@@ -1,6 +1,6 @@
 package art.yesulin.dormant.application.submission;
 
-import static art.yesulin.domain.common.validation.DomainValidator.requireNonNull;
+import static art.yesulin.global.validation.DomainValidator.requireNonNull;
 
 import java.util.List;
 

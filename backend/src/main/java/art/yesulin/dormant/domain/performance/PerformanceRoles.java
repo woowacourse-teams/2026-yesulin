@@ -2,7 +2,7 @@ package art.yesulin.dormant.domain.performance;
 
 import static art.yesulin.dormant.domain.performance.PerformanceErrorCode.DUPLICATE_ROLE_NAME;
 
-import art.yesulin.common.exception.BusinessException;
+import art.yesulin.global.exception.BusinessException;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.OneToMany;

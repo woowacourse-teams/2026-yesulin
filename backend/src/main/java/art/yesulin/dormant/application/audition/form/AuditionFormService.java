@@ -3,12 +3,12 @@ package art.yesulin.dormant.application.audition.form;
 import static art.yesulin.dormant.domain.audition.AuditionErrorCode.FORM_NOT_FOUND;
 import static art.yesulin.dormant.domain.audition.AuditionErrorCode.NOT_FOUND;
 
-import art.yesulin.common.exception.BusinessException;
 import art.yesulin.dormant.domain.audition.Audition;
 import art.yesulin.dormant.domain.audition.AuditionRepository;
 import art.yesulin.dormant.domain.audition.form.AuditionForm;
 import art.yesulin.dormant.domain.audition.form.AuditionFormPlan;
 import art.yesulin.dormant.domain.audition.form.AuditionFormRepository;
+import art.yesulin.global.exception.BusinessException;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

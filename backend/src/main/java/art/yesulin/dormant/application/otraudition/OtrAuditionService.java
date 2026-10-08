@@ -4,9 +4,9 @@ import static art.yesulin.dormant.domain.otraudition.OtrAuditionErrorCode.DUPLIC
 import static art.yesulin.dormant.domain.otraudition.OtrAuditionErrorCode.INVALID_INPUT;
 import static art.yesulin.dormant.domain.otraudition.OtrAuditionErrorCode.NOT_FOUND;
 
-import art.yesulin.common.exception.BusinessException;
 import art.yesulin.dormant.domain.otraudition.OtrAudition;
 import art.yesulin.dormant.domain.otraudition.OtrAuditionRepository;
+import art.yesulin.global.exception.BusinessException;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneId;

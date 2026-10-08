@@ -2,13 +2,13 @@ package art.yesulin.dormant.application.audition;
 
 import static art.yesulin.dormant.domain.audition.AuditionErrorCode.NOT_FOUND;
 
-import art.yesulin.common.exception.BusinessException;
 import art.yesulin.dormant.domain.audition.Audition;
 import art.yesulin.dormant.domain.audition.AuditionPublicationPolicy;
 import art.yesulin.dormant.domain.audition.AuditionRepository;
 import art.yesulin.dormant.domain.audition.form.AuditionFormRepository;
 import art.yesulin.dormant.domain.audition.role.AuditionRoleSectionRepository;
 import art.yesulin.dormant.domain.audition.schedule.AuditionScheduleRepository;
+import art.yesulin.global.exception.BusinessException;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.UUID;

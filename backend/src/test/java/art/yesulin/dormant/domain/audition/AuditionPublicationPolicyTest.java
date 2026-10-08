@@ -3,7 +3,6 @@ package art.yesulin.dormant.domain.audition;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import art.yesulin.common.exception.BusinessException;
 import art.yesulin.dormant.domain.audition.form.AdditionalQuestionPlans;
 import art.yesulin.dormant.domain.audition.form.ApplicationFields;
 import art.yesulin.dormant.domain.audition.form.AuditionForm;
@@ -21,6 +20,7 @@ import art.yesulin.dormant.domain.audition.schedule.AuditionSchedulePlan;
 import art.yesulin.dormant.domain.audition.schedule.RecruitmentPeriod;
 import art.yesulin.dormant.domain.audition.schedule.ScreeningStagePlan;
 import art.yesulin.dormant.domain.audition.schedule.ScreeningStagePlans;
+import art.yesulin.global.exception.BusinessException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;

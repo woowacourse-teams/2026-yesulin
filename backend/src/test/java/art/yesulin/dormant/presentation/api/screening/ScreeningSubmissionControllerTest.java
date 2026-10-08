@@ -4,11 +4,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import art.yesulin.application.auth.MemberPrincipal;
-import art.yesulin.domain.file.FileAssetRepository;
-import art.yesulin.domain.file.FileReferenceRepository;
-import art.yesulin.domain.member.MemberStatus;
-import art.yesulin.domain.member.MemberType;
+import art.yesulin.auth.application.MemberPrincipal;
+import art.yesulin.auth.domain.member.MemberStatus;
+import art.yesulin.auth.domain.member.MemberType;
 import art.yesulin.dormant.application.screening.SaveScreeningReviewsCommand;
 import art.yesulin.dormant.application.screening.ScreeningReviewService;
 import art.yesulin.dormant.domain.audition.AuditionRepository;
@@ -18,6 +16,8 @@ import art.yesulin.dormant.domain.performance.PerformanceRepository;
 import art.yesulin.dormant.domain.screening.ScreeningCompletionRepository;
 import art.yesulin.dormant.domain.screening.ScreeningReviewRepository;
 import art.yesulin.dormant.domain.submission.SubmissionRepository;
+import art.yesulin.file.domain.FileAssetRepository;
+import art.yesulin.file.domain.FileReferenceRepository;
 import art.yesulin.support.ObjectStorageTestConfiguration;
 import art.yesulin.support.ScreeningTestFixture;
 import java.util.List;

@@ -1,11 +1,11 @@
 package art.yesulin.dormant.presentation.api.photolibrary;
 
-import art.yesulin.application.auth.MemberPrincipal;
-import art.yesulin.application.auth.annotation.LoginMember;
-import art.yesulin.application.auth.annotation.LoginRequired;
-import art.yesulin.application.file.FileService;
-import art.yesulin.application.file.FileUploadResult;
-import art.yesulin.domain.member.MemberType;
+import art.yesulin.auth.application.MemberPrincipal;
+import art.yesulin.auth.application.annotation.LoginMember;
+import art.yesulin.auth.application.annotation.LoginRequired;
+import art.yesulin.auth.domain.member.MemberType;
+import art.yesulin.file.application.FileService;
+import art.yesulin.file.application.FileUploadResult;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

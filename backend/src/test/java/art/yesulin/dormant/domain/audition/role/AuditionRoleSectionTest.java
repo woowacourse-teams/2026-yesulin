@@ -3,7 +3,7 @@ package art.yesulin.dormant.domain.audition.role;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import art.yesulin.common.exception.BusinessException;
+import art.yesulin.global.exception.BusinessException;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 

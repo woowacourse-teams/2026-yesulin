@@ -1,6 +1,6 @@
 package art.yesulin.dormant.domain.videolibrary;
 
-import static art.yesulin.domain.common.validation.DomainValidator.requireNonNull;
+import static art.yesulin.global.validation.DomainValidator.requireNonNull;
 
 import art.yesulin.dormant.domain.video.YouTubeVideoUrl;
 import jakarta.persistence.Column;

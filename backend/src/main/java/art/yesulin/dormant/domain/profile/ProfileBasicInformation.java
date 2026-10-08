@@ -2,8 +2,8 @@ package art.yesulin.dormant.domain.profile;
 
 import static art.yesulin.dormant.domain.profile.ProfileErrorCode.INVALID_PROFILE;
 
-import art.yesulin.common.exception.BusinessException;
 import art.yesulin.dormant.domain.profile.converter.ProfileGenderConverter;
+import art.yesulin.global.exception.BusinessException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Embeddable;

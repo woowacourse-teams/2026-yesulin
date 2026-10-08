@@ -2,10 +2,10 @@ package art.yesulin.dormant.application.submission.form;
 
 import static art.yesulin.dormant.domain.submission.SubmissionErrorCode.INVALID_FORM_ANSWER;
 
-import art.yesulin.common.exception.BusinessException;
 import art.yesulin.dormant.application.submission.SubmitVideoRequirementAnswerCommand;
 import art.yesulin.dormant.domain.submission.VideoRequirementAnswer;
 import art.yesulin.dormant.domain.submission.VideoRequirementAnswers;
+import art.yesulin.global.exception.BusinessException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;

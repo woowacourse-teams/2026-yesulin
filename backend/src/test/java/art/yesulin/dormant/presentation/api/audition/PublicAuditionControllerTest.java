@@ -5,13 +5,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import art.yesulin.application.file.FileService;
-import art.yesulin.application.file.FileUploadCommand;
-import art.yesulin.application.file.FileUploadResult;
-import art.yesulin.domain.file.FileAssetRepository;
-import art.yesulin.domain.file.FileReferenceRepository;
-import art.yesulin.domain.producer.Producer;
-import art.yesulin.domain.producer.ProducerRepository;
 import art.yesulin.dormant.application.audition.AuditionPublicationService;
 import art.yesulin.dormant.application.audition.AuditionService;
 import art.yesulin.dormant.application.audition.CreateAuditionCommand;
@@ -33,6 +26,13 @@ import art.yesulin.dormant.domain.audition.role.AuditionRoleSectionRepository;
 import art.yesulin.dormant.domain.audition.role.RoleGender;
 import art.yesulin.dormant.domain.audition.schedule.AuditionScheduleRepository;
 import art.yesulin.dormant.domain.performance.PerformanceRepository;
+import art.yesulin.file.application.FileService;
+import art.yesulin.file.application.FileUploadCommand;
+import art.yesulin.file.application.FileUploadResult;
+import art.yesulin.file.domain.FileAssetRepository;
+import art.yesulin.file.domain.FileReferenceRepository;
+import art.yesulin.producer.domain.Producer;
+import art.yesulin.producer.domain.ProducerRepository;
 import art.yesulin.support.FakeObjectStorage;
 import art.yesulin.support.ObjectStorageTestConfiguration;
 import java.time.Instant;

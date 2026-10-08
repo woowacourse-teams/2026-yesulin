@@ -1,6 +1,6 @@
 package art.yesulin.dormant.presentation.api.performance;
 
-import art.yesulin.application.performance.PerformanceVenueCommand;
+import art.yesulin.show.application.performance.PerformanceVenueCommand;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;

@@ -9,12 +9,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import art.yesulin.application.auth.MemberPrincipal;
-import art.yesulin.application.file.FileService;
-import art.yesulin.application.file.FileUploadCommand;
-import art.yesulin.application.file.FileUploadResult;
-import art.yesulin.domain.member.MemberStatus;
-import art.yesulin.domain.member.MemberType;
+import art.yesulin.auth.application.MemberPrincipal;
+import art.yesulin.auth.domain.member.MemberStatus;
+import art.yesulin.auth.domain.member.MemberType;
+import art.yesulin.file.application.FileService;
+import art.yesulin.file.application.FileUploadCommand;
+import art.yesulin.file.application.FileUploadResult;
 import art.yesulin.support.FakeObjectStorage;
 import art.yesulin.support.ObjectStorageTestConfiguration;
 import org.junit.jupiter.api.Test;

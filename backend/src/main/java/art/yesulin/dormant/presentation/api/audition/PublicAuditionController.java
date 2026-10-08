@@ -1,8 +1,8 @@
 package art.yesulin.dormant.presentation.api.audition;
 
-import art.yesulin.application.file.FileService;
 import art.yesulin.dormant.application.audition.PublicAuditionResult;
 import art.yesulin.dormant.application.audition.PublicAuditionService;
+import art.yesulin.file.application.FileService;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

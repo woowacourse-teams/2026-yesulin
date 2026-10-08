@@ -1,12 +1,12 @@
 package art.yesulin.dormant.domain.screening;
 
-import static art.yesulin.domain.common.validation.DomainValidator.requirePositive;
 import static art.yesulin.dormant.domain.screening.ScreeningReviewErrorCode.INVALID_REVIEW;
 import static art.yesulin.dormant.domain.screening.ScreeningReviewErrorCode.NOT_FOUND;
+import static art.yesulin.global.validation.DomainValidator.requirePositive;
 
-import art.yesulin.common.exception.BusinessException;
 import art.yesulin.dormant.domain.audition.schedule.ScreeningStage;
 import art.yesulin.dormant.domain.submission.Submission;
+import art.yesulin.global.exception.BusinessException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;

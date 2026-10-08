@@ -1,6 +1,6 @@
 package art.yesulin.dormant.domain.audition.form;
 
-import static art.yesulin.domain.common.validation.DomainValidator.requireNonNull;
+import static art.yesulin.global.validation.DomainValidator.requireNonNull;
 
 public record AuditionFormPlan(
         ApplicationFields fields,

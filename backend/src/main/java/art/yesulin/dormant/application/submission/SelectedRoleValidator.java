@@ -2,9 +2,9 @@ package art.yesulin.dormant.application.submission;
 
 import static art.yesulin.dormant.domain.submission.SubmissionErrorCode.INVALID_SELECTED_ROLE;
 
-import art.yesulin.common.exception.BusinessException;
 import art.yesulin.dormant.domain.submission.SelectedRole;
 import art.yesulin.dormant.domain.submission.SelectedRoles;
+import art.yesulin.global.exception.BusinessException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;

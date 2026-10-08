@@ -2,7 +2,7 @@ package art.yesulin.dormant.domain.otraudition;
 
 import static art.yesulin.dormant.domain.otraudition.OtrAuditionErrorCode.INVALID_INPUT;
 
-import art.yesulin.common.exception.BusinessException;
+import art.yesulin.global.exception.BusinessException;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;

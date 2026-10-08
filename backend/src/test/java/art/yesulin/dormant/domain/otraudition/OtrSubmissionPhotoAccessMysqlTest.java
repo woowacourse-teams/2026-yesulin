@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import art.yesulin.dormant.domain.submission.SubmissionAdditionalInformation;
 import art.yesulin.dormant.domain.submission.SubmissionBasicInformation;
 import art.yesulin.dormant.domain.submission.SubmissionGender;
-import art.yesulin.infrastructure.querydsl.QueryDslConfiguration;
+import art.yesulin.infrastructure.persistence.QueryDslConfiguration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;

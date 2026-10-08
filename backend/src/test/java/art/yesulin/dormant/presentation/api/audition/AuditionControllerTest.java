@@ -10,14 +10,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import art.yesulin.application.auth.MemberPrincipal;
-import art.yesulin.application.file.FileService;
-import art.yesulin.application.file.FileUploadCommand;
-import art.yesulin.application.file.FileUploadResult;
-import art.yesulin.domain.file.FileAssetRepository;
-import art.yesulin.domain.file.FileReferenceRepository;
-import art.yesulin.domain.member.MemberStatus;
-import art.yesulin.domain.member.MemberType;
+import art.yesulin.auth.application.MemberPrincipal;
+import art.yesulin.auth.domain.member.MemberStatus;
+import art.yesulin.auth.domain.member.MemberType;
 import art.yesulin.dormant.application.performance.CreatePerformanceCommand;
 import art.yesulin.dormant.application.performance.CreatePerformanceRoleCommand;
 import art.yesulin.dormant.application.performance.PerformanceResult;
@@ -25,6 +20,11 @@ import art.yesulin.dormant.application.performance.PerformanceService;
 import art.yesulin.dormant.domain.audition.AuditionRepository;
 import art.yesulin.dormant.domain.audition.role.AuditionRoleSectionRepository;
 import art.yesulin.dormant.domain.performance.PerformanceRepository;
+import art.yesulin.file.application.FileService;
+import art.yesulin.file.application.FileUploadCommand;
+import art.yesulin.file.application.FileUploadResult;
+import art.yesulin.file.domain.FileAssetRepository;
+import art.yesulin.file.domain.FileReferenceRepository;
 import art.yesulin.support.FakeObjectStorage;
 import art.yesulin.support.ObjectStorageTestConfiguration;
 import java.util.List;
@@ -334,7 +334,7 @@ class AuditionControllerTest {
                 new CreatePerformanceCommand(
                         uploadReadyImage(),
                         "햄릿",
-                        new art.yesulin.application.performance.PerformanceVenueCommand(
+                        new art.yesulin.show.application.performance.PerformanceVenueCommand(
                                 "대학로예술극장", "서울특별시 종로구 대학로 12", "", "", null, null),
                         java.time.LocalDate.of(2026, 11, 1),
                         null,

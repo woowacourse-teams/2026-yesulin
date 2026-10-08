@@ -4,7 +4,6 @@ import static art.yesulin.dormant.domain.submission.SubmissionErrorCode.NOT_FOUN
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import art.yesulin.common.exception.BusinessException;
 import art.yesulin.dormant.domain.submission.ApplicantSnapshot;
 import art.yesulin.dormant.domain.submission.AuditionSnapshot;
 import art.yesulin.dormant.domain.submission.MilitaryServiceStatus;
@@ -28,6 +27,7 @@ import art.yesulin.dormant.domain.submission.SubmissionGender;
 import art.yesulin.dormant.domain.submission.SubmissionRepository;
 import art.yesulin.dormant.domain.submission.VideoRequirementAnswer;
 import art.yesulin.dormant.domain.submission.VideoRequirementAnswers;
+import art.yesulin.global.exception.BusinessException;
 import art.yesulin.support.ObjectStorageTestConfiguration;
 import java.time.Instant;
 import java.time.LocalDate;

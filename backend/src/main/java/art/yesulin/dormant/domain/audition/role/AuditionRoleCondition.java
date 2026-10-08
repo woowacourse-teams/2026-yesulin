@@ -1,10 +1,10 @@
 package art.yesulin.dormant.domain.audition.role;
 
-import static art.yesulin.domain.common.validation.DomainValidator.requireNonNull;
 import static art.yesulin.dormant.domain.audition.AuditionErrorCode.INVALID_ROLE_SECTION;
+import static art.yesulin.global.validation.DomainValidator.requireNonNull;
 
-import art.yesulin.common.exception.BusinessException;
 import art.yesulin.dormant.domain.audition.role.converter.RoleGenderConverter;
+import art.yesulin.global.exception.BusinessException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Embeddable;
