@@ -146,8 +146,15 @@ AMI에 평문 secret이 남지 않았는지는 별도로 검증해야 한다. pr
 
 새 인스턴스를 자동 생성하는 Launch Template에는 `ec2-project` IAM Instance Profile과 Java 25·CodeDeploy Agent·
 `sops` 설치 및 배포 전용 키를 포함한 AMI를 지정해야 한다. 새 인스턴스에서 키를 읽을 수 없다면 `AfterInstall`이 실패하며,
-릴리스 환경 파일이 없으면 `ApplicationStart`가 실패한다. 현재 수동으로 설정한 EC2만 검증해서는 ASG 교체가
-준비되었다고 볼 수 없다.
+릴리스 환경 파일이 없으면 `ApplicationStart`가 실패한다.
+
+DEV ASG(`yesulin-backend-asg`)는 이 경로를 확인했다. 새 인스턴스가 뜨면 배포 그룹 `yesulin-backend-staging`의
+CodeDeploy 시작 후크가 마지막 성공 리비전을 배포한다. 2026-09-22에는 ELB 상태 확인 실패로 인스턴스가 자동 교체됐고,
+2026-10-09에는 용량을 늘려 띄운 t4g.micro 인스턴스가 배포까지 성공했다. PROD ASG 경로는 아직 확인하지 않았다.
+DEV Launch Template(`yesulin-backend-lt` 버전 4)은 t4g.micro이며, 사용자 데이터가 512MiB swap 파일을 만들고
+CodeDeploy 에이전트의 배포본 보관 수(`:max_revisions:`)를 2로 줄인다. 루트 디스크가 8GiB라 배포본을 5개씩 쌓으면
+여유가 부족하다. 계정 정책상 인스턴스를 직접 정지할 수 없으므로 인스턴스 유형은 Launch Template 새 버전으로
+새 인스턴스를 띄운 뒤 ASG 용량을 줄여 옛 인스턴스를 종료하는 방식으로 바꾼다.
 
 AMI를 만들기 전에는 원본 인스턴스에 `/etc/yesulin/yesulin.env`,
 `/opt/yesulin/releases/*/yesulin.env` 같은 평문 환경 파일이 없는지 확인한다. 현재 서비스가 읽는
