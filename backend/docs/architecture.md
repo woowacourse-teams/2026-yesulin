@@ -44,6 +44,8 @@ infrastructure/    JPA·QueryDSL, OAuth, S3 등 외부 기술 adapter
 - 기획사/제작사 이메일 로그인과 배우 OIDC 로그인 모두 `MemberPrincipal`을 HttpSession에 저장한다. 운영 HttpSession은
   Spring Session JDBC의 `SPRING_SESSION`, `SPRING_SESSION_ATTRIBUTES`에 영속화하므로 애플리케이션 재기동과 교체
   배포 후에도 유효 기간 안의 로그인을 유지한다.
+- 세션 속성은 JSON으로 저장하고, 로그인 정보는 클래스 경로 대신 고정된 이름과 값으로 저장한다. 세션처럼 프레임워크가
+  영속화하는 곳에는 클래스 경로가 저장 형식이 되지 않도록 도메인 클래스를 그대로 넣지 않는다.
 - `LoginRequiredInterceptor`가 세션 존재를, `LoginMemberArgumentResolver`가 역할과 회원 상태를 검사한다.
 - 공연·공고·심사는 `PRODUCER + ACTIVE`, 기획사 프로필은 상태와 무관한 `PRODUCER`, 배우 프로필·보관함은 `APPLICANT`를 요구한다.
 - `/api/v1/admin/**`은 `ADMIN`만 요구한다. 운영자 계정은 가입 경로가 없고 `AdminAccountInitializer`가

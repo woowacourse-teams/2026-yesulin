@@ -128,10 +128,14 @@ HTTP 본문이나 객체를 별도로 직렬화하는 로깅은 이 마스킹으
 세션과 이메일 인증 토큰은 Flyway가 만드는 `SPRING_SESSION`, `SPRING_SESSION_ATTRIBUTES`,
 `email_verifications`에 저장된다. 배포 전에 사용하는 DB 계정에 해당 migration의 DDL 권한이 있는지 확인한다.
 세션 만료는 `SESSION_TIMEOUT`의 idle timeout을 따르며 기본값은 12시간이다. 재배포는 세션 만료 사유가 아니다.
-다만 세션의 로그인 정보는 JDK 직렬화로 저장되므로 `MemberPrincipal`이나 그 필드 타입의 패키지·이름이 바뀌면
-배포 전 세션을 읽을 수 없다. 이런 세션은 `UnreadableSessionFilter`가 무효화하고 `UNREADABLE_SESSION_INVALIDATED`
-WARN 로그를 남기며, 사용자는 다시 로그인한다. 클래스 이름이 다르고 이 필터도 없는 이전 버전으로 롤백하면
-그 버전은 새 세션을 읽지 못해 500을 내므로, 롤백 직후 `DELETE FROM SPRING_SESSION;`으로 세션을 비운다.
+세션 속성은 JDK 직렬화 대신 JSON으로 저장한다(`SessionSerializationConfiguration`). 로그인 정보는 클래스 경로 없이
+고정된 이름 `memberPrincipal`과 회원 ID·역할·상태 값으로 저장하므로 `MemberPrincipal`의 패키지·이름이 바뀌어도
+기존 세션을 읽을 수 있다. 역할·상태 enum 상수 이름이나 저장 필드를 바꾸면 기존 세션을 읽지 못한다.
+소셜 로그인 중 저장되는 Spring Security 값은 Spring Security Jackson 모듈이 허용한 타입만 역직렬화한다.
+읽을 수 없는 세션은 `UnreadableSessionFilter`가 무효화하고 `UNREADABLE_SESSION_INVALIDATED` WARN 로그를 남기며,
+사용자는 다시 로그인한다. JSON 저장을 처음 배포하면 그 전의 JDK 직렬화 세션을 읽지 못하므로 로그인 사용자는 한 번
+다시 로그인한다. 이 필터가 있는 JDK 직렬화 버전으로 롤백하면 세션이 무효화될 뿐이지만, 필터가 없는 버전으로
+롤백하면 그 버전은 JSON 세션을 읽지 못해 500을 내므로 롤백 직후 `DELETE FROM SPRING_SESSION;`으로 세션을 비운다.
 
 EC2에는 Java 25, CodeDeploy Agent, `sops`, DB 네트워크 연결과 배포 전용 age private key
 `/etc/yesulin/sops/age/keys.txt`가 필요하다. 현재는 별도의 비밀 저장소 권한이 없어 배포 전용 키를
