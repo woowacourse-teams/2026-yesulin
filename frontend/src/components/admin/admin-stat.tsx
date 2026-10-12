@@ -59,16 +59,16 @@ export function StatTile({ label, value, unit, hint, emphasis = false }: TilePro
 /** 섹션 머리의 요약 숫자다. 표 위에 한 줄로 핵심 숫자만 놓는다. */
 export function SummaryStrip({ children }: { readonly children: ReactNode }) {
   return (
-    <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">{children}</dl>
+    <dl className="flex flex-wrap divide-border overflow-hidden rounded-card border border-border bg-card [&>div]:basis-1/2 [&>div]:grow sm:[&>div]:basis-0 sm:[&>div]:border-l sm:[&>div:first-child]:border-l-0">{children}</dl>
   );
 }
 
 export function SummaryItem({ label, value, unit, hint, emphasis = false }: TileProps) {
   return (
-    <div className="rounded-card border border-border bg-card px-4 py-3">
+    <div className="min-w-0 px-5 py-4">
       <dt className="text-xs font-semibold text-muted">{label}</dt>
       <dd className="mt-1">
-        <span className={`num text-xl font-bold ${emphasis ? "text-warn" : "text-foreground"}`}>{formatCount(value)}</span>
+        <span className={`num text-2xl font-bold tracking-tight ${emphasis ? "text-warn" : "text-foreground"}`}>{formatCount(value)}</span>
         {unit ? <span className="ml-0.5 text-sm font-semibold text-muted-strong">{unit}</span> : null}
         {hint ? <span className="mt-0.5 block text-xs text-muted">{hint}</span> : null}
       </dd>

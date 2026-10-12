@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Fragment, useState } from "react";
 import { ShowFormModal } from "@/components/shows/manage/show-form-modal";
 import { ShowManagementApiProvider } from "@/components/shows/manage/show-management-api-context";
-import { FilterChip, PrimaryButton } from "@/components/ui/controls";
+import { AdminActionButton, AdminEmptyState, AdminFilterButton } from "./admin-shell";
 import { adminShowManagementApi, adminShowRoutes } from "@/features/admin/show-api";
 import type { AdminShow, AdminShowSession, AdminShowStatus } from "@/features/admin/types";
 import { formatDateTime, orDash } from "./admin-format";
@@ -136,25 +136,30 @@ export function AdminShowTable({ shows: loadedShows, now }: Props) {
   return (
     <section aria-labelledby="shows-heading" className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 id="shows-heading" className="text-sm font-semibold text-muted">
-          무료 공연 예매 ({visible.length})
+        <h2 id="shows-heading" className="text-base font-semibold text-foreground">
+          공연 목록 <span className="num ml-1 text-sm font-normal text-muted">{visible.length}건</span>
         </h2>
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex flex-wrap gap-2" role="group" aria-label="공연 상태 필터">
-            {STATUS_FILTERS.map((filter) => (
-              <FilterChip
-                key={filter.value}
-                pressed={statusFilter === filter.value}
-                onClick={() => setStatusFilter(filter.value)}
-              >
-                {filter.label}
-              </FilterChip>
-            ))}
-          </div>
-          <PrimaryButton onClick={() => setCreating(true)}>외부 링크 공연 등록</PrimaryButton>
-        </div>
+        <AdminActionButton tone="primary" onClick={() => setCreating(true)}>외부 링크 공연 등록</AdminActionButton>
       </div>
-      <div className="overflow-x-auto rounded-card border border-border bg-card">
+      <div className="flex flex-wrap gap-2" role="group" aria-label="공연 상태 필터">
+        {STATUS_FILTERS.map((filter) => (
+          <AdminFilterButton
+            key={filter.value}
+            pressed={statusFilter === filter.value}
+            onClick={() => setStatusFilter(filter.value)}
+          >
+            {filter.label}
+          </AdminFilterButton>
+        ))}
+      </div>
+      {visible.length === 0 ? (
+        <AdminEmptyState
+          title={shows.length === 0 ? "등록된 공연이 없어요" : "이 상태의 공연이 없어요"}
+          description={shows.length === 0 ? "기획사 계정이 없는 공연은 외부 예매 링크로 등록할 수 있어요." : "다른 상태를 선택하거나 전체 목록을 확인해 주세요."}
+        >
+          {shows.length > 0 ? <AdminActionButton onClick={() => setStatusFilter("ALL")}>전체 공연 보기</AdminActionButton> : null}
+        </AdminEmptyState>
+      ) : <div className="overflow-x-auto rounded-card border border-border bg-card">
         {/* 공연명·주최만 줄바꿈하고 나머지 짧은 값은 한 줄로 둔다. 좁으면 표 안에서 가로로 넘긴다. */}
         <table className="w-full min-w-[64rem] whitespace-nowrap text-left text-sm">
           <thead className="bg-surface text-xs text-muted">
@@ -188,14 +193,13 @@ export function AdminShowTable({ shows: loadedShows, now }: Props) {
                       <div className="flex items-center gap-2">
                         <span className="min-w-0 break-keep text-foreground">{orDash(show.hostName || show.companyName)}</span>
                         {show.hostName ? <span className="shrink-0 rounded-full bg-brand-soft px-2 py-0.5 text-xs font-medium text-brand">직접 입력</span> : null}
-                        <button
-                          type="button"
+                        <AdminActionButton
                           onClick={() => setEditingShowId(show.showId)}
                           aria-label={`${show.title} 주최 이름 수정`}
-                          className="ml-auto min-h-9 shrink-0 rounded-control border border-border px-2.5 text-xs font-medium text-muted-strong hover:bg-surface"
+                          className="ml-auto shrink-0"
                         >
                           수정
-                        </button>
+                        </AdminActionButton>
                       </div>
                     </td>
                     <td className="px-3 py-2 text-muted-strong">
@@ -220,15 +224,13 @@ export function AdminShowTable({ shows: loadedShows, now }: Props) {
                     )}
                     <td className="px-3 py-2 text-muted">{formatDateTime(show.createdAt)}</td>
                     <td className="px-3 py-2">
-                      <button
-                        type="button"
+                      <AdminActionButton
                         aria-expanded={expanded}
                         aria-controls={`show-sessions-${show.showId}`}
                         onClick={() => setExpandedShowId(expanded ? null : show.showId)}
-                        className="min-h-11 rounded-control border border-border px-3 text-sm font-medium text-muted-strong hover:bg-surface"
                       >
                         {expanded ? "접기" : "회차 보기"}
-                      </button>
+                      </AdminActionButton>
                     </td>
                   </tr>
                   {expanded ? (
@@ -243,7 +245,7 @@ export function AdminShowTable({ shows: loadedShows, now }: Props) {
             })}
           </tbody>
         </table>
-      </div>
+      </div>}
       {editingShow ? (
         <AdminShowHostNameDialog
           show={editingShow}

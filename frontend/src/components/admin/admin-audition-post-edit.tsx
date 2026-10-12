@@ -81,8 +81,9 @@ export function AdminAuditionPostEdit({ postId, created = false }: {
   return (
     <AdminShell
       current="posts"
-      title="공고 고치기"
-      description="공고 내용을 고쳐요. 공개 상태는 바뀌지 않고, 공개 중인 공고는 저장하면 바로 반영돼요. 가져온 공고를 원문으로 다시 가져오면 고친 내용이 원문으로 돌아가요."
+      layout="form"
+      title="공고 수정"
+      description="공개 중인 공고는 저장하면 바로 반영돼요. OTR 원문으로 다시 가져오면 수정한 내용이 교체됩니다."
       actions={<AdminActionLink href={adminAuditionPostRoutes.list}>목록으로</AdminActionLink>}
     >
       {phase === "loading" ? <p role="status" className="text-sm text-muted">공고를 불러오는 중이에요.</p> : null}

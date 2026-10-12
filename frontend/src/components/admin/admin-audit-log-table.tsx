@@ -1,5 +1,6 @@
 import type { AdminAuditLogPage } from "@/features/admin/types";
 import { formatDateTime } from "./admin-format";
+import { AdminActionButton, AdminEmptyState } from "./admin-shell";
 
 type Props = {
   readonly page: AdminAuditLogPage;
@@ -15,7 +16,7 @@ export function AdminAuditLogTable({ page, onPageChange }: Props) {
       <h2 id="audit-logs-heading" className="text-sm font-semibold text-muted">
         운영자 변경 기록 (총 {page.totalElements}건 · 페이지당 {page.size}건)
       </h2>
-      <div className="overflow-x-auto rounded-card border border-border bg-card">
+      {page.logs.length === 0 ? <AdminEmptyState title="아직 변경 기록이 없어요" description="운영자가 회원 상태나 공고·공연 정보를 변경하면 여기에 기록됩니다." /> : <div className="overflow-x-auto rounded-card border border-border bg-card">
         <table className="w-full min-w-[40rem] text-left text-sm">
           <thead className="bg-surface text-xs text-muted">
             <tr>
@@ -41,28 +42,24 @@ export function AdminAuditLogTable({ page, onPageChange }: Props) {
             ))}
           </tbody>
         </table>
-      </div>
+      </div>}
       {page.totalPages > 1 ? (
         <nav aria-label="운영자 변경 기록 페이지" className="flex items-center justify-end gap-2">
-          <button
-            type="button"
+          <AdminActionButton
             disabled={!hasPreviousPage}
             onClick={() => onPageChange(page.page - 1)}
-            className="min-h-11 rounded-control border border-border px-4 text-sm font-semibold text-muted-strong enabled:hover:bg-surface disabled:cursor-not-allowed disabled:opacity-40"
           >
             이전
-          </button>
+          </AdminActionButton>
           <span aria-live="polite" className="min-w-16 text-center text-sm text-muted-strong">
             {page.page + 1} / {page.totalPages}
           </span>
-          <button
-            type="button"
+          <AdminActionButton
             disabled={!hasNextPage}
             onClick={() => onPageChange(page.page + 1)}
-            className="min-h-11 rounded-control border border-border px-4 text-sm font-semibold text-muted-strong enabled:hover:bg-surface disabled:cursor-not-allowed disabled:opacity-40"
           >
             다음
-          </button>
+          </AdminActionButton>
         </nav>
       ) : null}
     </section>

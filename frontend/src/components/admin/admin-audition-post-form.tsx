@@ -1,9 +1,12 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import { BodyEditorLoading } from "@/components/audition-posts/editor/body-editor-loading";
-import { FieldInput, FieldSelect, PrimaryButton } from "@/components/ui/controls";
+import { FieldInput, FieldSelect } from "@/components/ui/controls";
+import { AdminActionButton } from "./admin-shell";
+import { DialogFooter, DialogHeader, ModalShell } from "@/components/auditions/modal-shell";
 import { AdminApiError, uploadAuditionPostFile } from "@/features/admin/api";
 import {
   AUDITION_POST_ATTACHMENT_EXTENSIONS,
@@ -108,6 +111,9 @@ export function AuditionPostForm({ post, notice, submitLabel, onSubmit }: {
   readonly submitLabel: string;
   readonly onSubmit: (write: AdminAuditionPostWrite) => Promise<void>;
 }) {
+  const router = useRouter();
+  const allowLeaveRef = useRef(false);
+  const [leaveTarget, setLeaveTarget] = useState<string | null>(null);
   const creating = post === null;
   const [form, setForm] = useState<Form>(() => (post ? toForm(post) : EMPTY_FORM));
   const [bodyHtml, setBodyHtml] = useState<string | null>(null);
@@ -117,6 +123,9 @@ export function AuditionPostForm({ post, notice, submitLabel, onSubmit }: {
   const [removed, setRemoved] = useState<ReadonlySet<string>>(new Set());
   const [errors, setErrors] = useState<FieldErrors>({});
   const [saving, setSaving] = useState(false);
+  const [imageUploading, setImageUploading] = useState(false);
+  const [attachmentUploading, setAttachmentUploading] = useState(false);
+  const uploading = imageUploading || attachmentUploading;
   const [saveError, setSaveError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(notice ?? null);
 
@@ -130,11 +139,25 @@ export function AuditionPostForm({ post, notice, submitLabel, onSubmit }: {
 
   // 저장하지 않은 내용이 있으면 새로고침·창 닫기 전에 브라우저가 한 번 묻는다.
   useEffect(() => {
-    if (!dirty || saving) return;
-    const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); };
+    if ((!dirty && !uploading) || saving) return;
+    const warn = (event: BeforeUnloadEvent) => { if (!allowLeaveRef.current) event.preventDefault(); };
+    const interceptLink = (event: MouseEvent) => {
+      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const link = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>("a[href]") : null;
+      if (!link || link.target === "_blank" || link.hasAttribute("download") || link.getAttribute("href")?.startsWith("#")) return;
+      const destination = new URL(link.href);
+      if (destination.protocol !== "http:" && destination.protocol !== "https:") return;
+      if (destination.href === window.location.href) return;
+      event.preventDefault();
+      setLeaveTarget(destination.href);
+    };
     window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [dirty, saving]);
+    document.addEventListener("click", interceptLink, true);
+    return () => {
+      window.removeEventListener("beforeunload", warn);
+      document.removeEventListener("click", interceptLink, true);
+    };
+  }, [dirty, uploading, saving]);
 
   const changed = () => setStatus(null);
 
@@ -165,6 +188,7 @@ export function AuditionPostForm({ post, notice, submitLabel, onSubmit }: {
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (saving || uploading) return;
     const nextErrors = validate(form);
     setErrors(nextErrors);
     const firstInvalid = (Object.keys(FIELD_IDS) as FieldName[]).find((name) => nextErrors[name]);
@@ -197,7 +221,8 @@ export function AuditionPostForm({ post, notice, submitLabel, onSubmit }: {
     ?? (dirty ? "저장하지 않은 내용이 있어요." : creating ? "제목과 분류를 넣으면 숨김으로 만들 수 있어요." : "아직 고친 내용이 없어요.");
 
   return (
-    <form onSubmit={submit} noValidate className="flex flex-col gap-5">
+    <form onSubmit={submit} noValidate>
+      <fieldset disabled={saving} className="flex min-w-0 flex-col gap-5">
       <section aria-labelledby="post-fields" className="rounded-card border border-border bg-card p-4 sm:p-5">
         <h2 id="post-fields" className="text-base font-bold">기본 정보</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -246,28 +271,45 @@ export function AuditionPostForm({ post, notice, submitLabel, onSubmit }: {
             initialHtml={post?.bodyHtml ?? ""}
             onChange={(html) => { setBodyHtml(html); changed(); }}
             onUploadImage={uploadImage}
+            onUploadStateChange={setImageUploading}
+            disabled={saving}
           />
         </div>
       </section>
 
-      <AttachmentList attachments={attachments} removed={removed} onToggle={toggleAttachment} onAdd={addAttachment} />
+      <AttachmentList attachments={attachments} removed={removed} onToggle={toggleAttachment} onAdd={addAttachment} onUploadStateChange={setAttachmentUploading} />
 
       <div className="sticky bottom-0 -mx-4 flex flex-wrap items-center gap-3 border-t border-border bg-surface/95 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur lg:-mx-8 lg:px-8">
-        <PrimaryButton type="submit" disabled={saving || (!creating && !dirty)} className="min-h-12 px-6">
+        <AdminActionButton tone="primary" type="submit" disabled={saving || uploading || (!creating && !dirty)} className="px-6">
           {saving ? "저장하는 중…" : submitLabel}
-        </PrimaryButton>
-        <p role="status" className="text-sm text-muted-strong">{statusText}</p>
+        </AdminActionButton>
+        <p role="status" className="text-sm text-muted-strong">{uploading ? "파일을 올리는 중이에요. 업로드가 끝나면 저장할 수 있어요." : statusText}</p>
         {saveError ? <p role="alert" className="w-full text-sm text-fail">{saveError}</p> : null}
       </div>
+      </fieldset>
+      <ModalShell open={leaveTarget !== null} onClose={() => setLeaveTarget(null)} labelledBy="post-leave-title" placement="responsiveSheet" className="w-full rounded-t-2xl bg-card shadow-modal md:w-[min(480px,calc(100vw-48px))] md:rounded-modal">
+        <DialogHeader id="post-leave-title" title="저장하지 않은 내용이 있어요" subtitle="이동하면 입력한 내용과 추가한 파일이 공고에 저장되지 않아요." />
+        <DialogFooter>
+          <AdminActionButton onClick={() => setLeaveTarget(null)}>계속 작성</AdminActionButton>
+          <AdminActionButton tone="destructive" onClick={() => {
+            if (!leaveTarget) return;
+            allowLeaveRef.current = true;
+            const destination = new URL(leaveTarget);
+            if (destination.origin === window.location.origin) router.push(destination.pathname + destination.search + destination.hash);
+            else window.location.assign(destination.href);
+          }}>저장하지 않고 이동</AdminActionButton>
+        </DialogFooter>
+      </ModalShell>
     </form>
   );
 }
 
-function AttachmentList({ attachments, removed, onToggle, onAdd }: {
+function AttachmentList({ attachments, removed, onToggle, onAdd, onUploadStateChange }: {
   readonly attachments: readonly FormAttachment[];
   readonly removed: ReadonlySet<string>;
   readonly onToggle: (attachment: FormAttachment) => void;
   readonly onAdd: (attachment: FormAttachment) => void;
+  readonly onUploadStateChange: (uploading: boolean) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState<string | null>(null);
@@ -283,6 +325,7 @@ function AttachmentList({ attachments, removed, onToggle, onAdd }: {
       return;
     }
     setUploading(file.name);
+    onUploadStateChange(true);
     setError(null);
     try {
       const url = await uploadFile("ATTACHMENT", file);
@@ -291,6 +334,7 @@ function AttachmentList({ attachments, removed, onToggle, onAdd }: {
       setError(cause instanceof Error ? cause.message : "파일을 올리지 못했어요. 다시 시도해 주세요.");
     } finally {
       setUploading(null);
+      onUploadStateChange(false);
     }
   };
 
@@ -300,15 +344,14 @@ function AttachmentList({ attachments, removed, onToggle, onAdd }: {
         <h2 id="post-attachments" className="text-base font-bold">
           첨부파일 <span className="num text-muted">{attachments.length}</span>
         </h2>
-        <button
-          type="button"
+        <AdminActionButton
           disabled={uploading !== null}
           onClick={() => inputRef.current?.click()}
           aria-describedby="post-attachments-hint"
-          className="ml-auto min-h-11 rounded-control border border-border bg-card px-4 text-sm font-semibold text-muted-strong hover:border-brand-line hover:text-brand disabled:opacity-60"
+          className="ml-auto"
         >
           {uploading ? "올리는 중…" : "첨부 올리기"}
-        </button>
+        </AdminActionButton>
         <input ref={inputRef} type="file" accept={ATTACHMENT_ACCEPT} onChange={(event) => void choose(event)} className="sr-only" tabIndex={-1} aria-hidden="true" />
       </div>
       <p id="post-attachments-hint" className="mt-1 text-xs text-muted">지원서 양식(한글·워드)·PDF·악보·음원을 50MB까지 올릴 수 있어요.</p>
@@ -326,15 +369,14 @@ function AttachmentList({ attachments, removed, onToggle, onAdd }: {
                 <span className="num shrink-0 text-xs text-muted">{formatFileSize(attachment.size)}</span>
                 {attachment.uploaded ? <span className="shrink-0 text-xs font-semibold text-brand">새로 올림</span> : null}
                 {isRemoved ? <span className="shrink-0 text-xs font-semibold text-fail">저장하면 지워져요</span> : null}
-                <button
-                  type="button"
+                <AdminActionButton
                   aria-pressed={attachment.uploaded ? undefined : isRemoved}
                   aria-label={`${attachment.name} ${isRemoved ? "빼기 취소" : "빼기"}`}
                   onClick={() => onToggle(attachment)}
-                  className="min-h-11 shrink-0 rounded-control border border-border bg-card px-3 text-sm font-semibold text-muted-strong hover:border-brand-line hover:text-brand"
+                  className="shrink-0"
                 >
                   {isRemoved ? "되살리기" : "빼기"}
-                </button>
+                </AdminActionButton>
               </li>
             );
           })}

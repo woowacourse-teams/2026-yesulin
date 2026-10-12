@@ -34,8 +34,9 @@ export function AdminAuditionPostNew() {
   return (
     <AdminShell
       current="posts"
-      title="공고 직접 쓰기"
-      description="원문 없이 공고를 써요. 숨김으로 만들어지고, 목록에서 '보여주기'를 누르면 공개돼요. 숨기면 공고 주소는 '찾을 수 없는 공고'로 보여요."
+      layout="form"
+      title="공고 작성"
+      description="업체에서 전달받은 공고를 작성해 주세요. 숨김으로 저장되며, 목록에서 내용을 확인한 뒤 공개할 수 있어요."
       actions={<AdminActionLink href={adminAuditionPostRoutes.list}>목록으로</AdminActionLink>}
     >
       <AuditionPostForm post={null} submitLabel="숨김으로 만들기" onSubmit={create} />
