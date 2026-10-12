@@ -137,6 +137,10 @@ Logs Insights의 저장 쿼리 `yesulin/{환경}/error-details`에서 오류를 
   `logs:DescribeQueryDefinitions/PutQueryDefinition`이 필요하다.
 - 앱은 최대 18개 × 2환경, DB는 최대 19개 × 2환경, backend 호스트는 2개 × 2인스턴스다.
   매번 timestamp/requestId별 metric을 만들지 않는다. Agent가 이미 다른 지표를 수집하면 그 비용은 별도다.
+  서울 리전 custom metric 최초 10,000개 단가 $0.30/metric-month 기준으로, 앱/호스트만 최대 40개는
+  월 $12.00, DB까지 최대 78개는 월 $23.40다. 무료 10개를 모두 적용할 수 있으면 각각 $9.00/$20.40다.
+  모든 지표가 한 달 내내 송신되는 상한 추정이며 실제 활성 시간, 무료 사용량, 로그·검색·API와 세금은 별도다.
+  DB 수집은 앱 배포와 독립적으로 설치하므로 앱 PR만 머지해 DB 지표까지 활성화되지는 않는다.
 - 기본 Metric 대시보드는 직접 참조 46개와 현재 backend 2대의 호스트 4개로 최대 50개를 표시한다.
   AWS 무료 조건은 계정 내 dashboard 수·각 dashboard 참조 metric 수·계정 조건을 함께 확인해야 한다.
   custom metric, 로그 수집·보관·Insights, API 호출 비용은 dashboard 비용과 별개다.
@@ -159,7 +163,8 @@ Logs Insights의 저장 쿼리 `yesulin/{환경}/error-details`에서 오류를 
 참고: [EMF](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/CloudWatch_Embedded_Metric_Format.html),
 [Agent 지표](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/metrics-collected-by-CloudWatch-agent.html),
 [MySQL status](https://dev.mysql.com/doc/refman/8.4/en/server-status-variables.html),
-[AWS CloudWatch 요금](https://aws.amazon.com/cloudwatch/pricing/).
+[AWS CloudWatch 요금](https://aws.amazon.com/cloudwatch/pricing/),
+[서울 리전 가격표](https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonCloudWatch/current/ap-northeast-2/index.json).
 
 ## OTR 공고 경유 링크 집계
 
