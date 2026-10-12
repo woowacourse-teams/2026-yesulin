@@ -10,8 +10,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import art.yesulin.auditionpost.application.AdminAuditionPostDetailResult.Attachment;
 import art.yesulin.auditionpost.application.AuditionPostImportServiceTest.FakeSource;
 import art.yesulin.auditionpost.domain.AuditionPostErrorCode;
+import art.yesulin.auditionpost.domain.AuditionPostFileKind;
 import art.yesulin.auditionpost.domain.AuditionPostRepository;
 import art.yesulin.auditionpost.domain.AuditionPostStatus;
+import art.yesulin.auditionpost.domain.upload.AuditionPostUploadRepository;
 import art.yesulin.global.audit.AdminAuditLogRepository;
 import art.yesulin.global.exception.BusinessException;
 import art.yesulin.support.FakeObjectStorage;
@@ -62,10 +64,17 @@ class AuditionPostWriteServiceTest {
     @Autowired
     private FakeSource source;
 
+    @Autowired
+    private AuditionPostUploadService uploadService;
+
+    @Autowired
+    private AuditionPostUploadRepository uploadRepository;
+
     @BeforeEach
     void setUp() {
         repository.deleteAll();
         auditLogRepository.deleteAll();
+        uploadRepository.deleteAll();
         source.reset();
     }
 
@@ -144,6 +153,79 @@ class AuditionPostWriteServiceTest {
     }
 
     @Test
+    void writesHiddenPostWithUploadedImageAndAttachment() {
+        String imageUrl = upload(ADMIN_ID, AuditionPostFileKind.IMAGE, "포스터.png", "image/png");
+        String attachmentUrl = upload(ADMIN_ID, AuditionPostFileKind.ATTACHMENT, "지원서.hwp", "");
+        String body = "<p>직접 쓴 공고</p><p><img src=\"" + imageUrl + "\"></p><img src=\"https://tracker.test/x.gif\">";
+
+        AdminAuditionPostResult written = writeService.write(ADMIN_ID, command(body, List.of(attachmentUrl)));
+
+        assertEquals(AuditionPostStatus.HIDDEN, written.status());
+        assertEquals("YESULIN", written.source());
+        assertNull(written.externalId());
+        assertNull(written.sourceUrl());
+        assertFalse(written.autoImported());
+        assertEquals(1, written.imageCount());
+        assertEquals(1, written.attachmentCount());
+        AdminAuditionPostDetailResult detail = writeService.findForEdit(written.id());
+        assertEquals("<p>직접 쓴 공고</p><p><img src=\"" + imageUrl + "\"></p>", detail.bodyHtml());
+        assertEquals("application/x-hwp", detail.attachments().getFirst().contentType());
+        assertEquals(
+                AuditionPostFileRules.attachmentDisposition("지원서.hwp"),
+                storage.contentDisposition(objectKey(attachmentUrl))
+        );
+        assertEquals(0, uploadRepository.count());
+        assertCode(AuditionPostErrorCode.NOT_FOUND, () -> auditionPostService.findPublicPost(written.id()));
+
+        auditionPostService.changeStatus(ADMIN_ID, written.id(), AuditionPostStatus.PUBLISHED);
+        PublicAuditionPostResult published = ((PublicAuditionPostView.Published) auditionPostService
+                .findPublicPost(written.id())).post();
+        assertEquals(detail.bodyHtml(), published.bodyHtml());
+        assertNull(published.sourceUrl());
+    }
+
+    @Test
+    void ignoresUploadsOfAnotherAdmin() {
+        String imageUrl = upload(2L, AuditionPostFileKind.IMAGE, "a.png", "image/png");
+        String attachmentUrl = upload(2L, AuditionPostFileKind.ATTACHMENT, "a.pdf", "");
+
+        AdminAuditionPostResult written = writeService.write(
+                ADMIN_ID, command("<img src=\"" + imageUrl + "\">", List.of())
+        );
+        assertEquals(0, written.imageCount());
+        assertCode(
+                AuditionPostErrorCode.INVALID_INPUT,
+                () -> writeService.write(ADMIN_ID, command("<p>본문</p>", List.of(attachmentUrl)))
+        );
+        assertEquals(2, uploadRepository.count());
+    }
+
+    @Test
+    void rejectsUploadThatHasNotArrived() {
+        String attachmentUrl = uploadService.prepare(ADMIN_ID, AuditionPostFileKind.ATTACHMENT, "a.pdf", "", 10)
+                .publicUrl();
+
+        assertCode(
+                AuditionPostErrorCode.FILE_REJECTED,
+                () -> writeService.write(ADMIN_ID, command("<p>본문</p>", List.of(attachmentUrl)))
+        );
+        assertEquals(1, uploadRepository.count());
+        assertEquals(0, repository.count());
+    }
+
+    @Test
+    void editAddsUploadedAttachmentToImportedPost() {
+        long id = importWithFiles();
+        List<String> attachments = new ArrayList<>(attachmentUrls(writeService.findForEdit(id)));
+        attachments.add(upload(ADMIN_ID, AuditionPostFileKind.ATTACHMENT, "대본.pdf", ""));
+
+        AdminAuditionPostResult edited = writeService.edit(ADMIN_ID, id, command(null, attachments));
+
+        assertEquals(3, edited.attachmentCount());
+        assertEquals("대본.pdf", writeService.findForEdit(id).attachments().get(2).name());
+    }
+
+    @Test
     void missingPostIsNotFound() {
         assertCode(AuditionPostErrorCode.NOT_FOUND, () -> writeService.findForEdit(999L));
         assertCode(AuditionPostErrorCode.NOT_FOUND, () -> writeService.edit(ADMIN_ID, 999L, command(null, List.of())));
@@ -162,10 +244,17 @@ class AuditionPostWriteServiceTest {
         return importService.importPost(ADMIN_ID, OTR_ID).post().id();
     }
 
-    private static AuditionPostEditCommand command(String bodyHtml, List<String> attachmentUrls) {
-        return new AuditionPostEditCommand(
+    private static AuditionPostWriteCommand command(String bodyHtml, List<String> attachmentUrls) {
+        return new AuditionPostWriteCommand(
                 "뮤지컬", "고친 제목", "회당 5만원", "상시", "예술극단", bodyHtml, List.of("뮤지컬"), attachmentUrls
         );
+    }
+
+    /** 올릴 주소를 받고 브라우저처럼 그 주소로 올린 뒤 공개 주소를 돌려준다. */
+    private String upload(long uploaderId, AuditionPostFileKind kind, String filename, String reportedType) {
+        AuditionPostUploadResult prepared = uploadService.prepare(uploaderId, kind, filename, reportedType, 100);
+        storage.upload(prepared.url(), prepared.headers().get("Content-Type"), 100);
+        return prepared.publicUrl();
     }
 
     private static List<String> attachmentUrls(AdminAuditionPostDetailResult post) {

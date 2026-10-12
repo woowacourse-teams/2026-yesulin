@@ -310,12 +310,14 @@ export type AdminTimetableMessages = {
 
 export type AdminAuditionPostStatus = "PUBLISHED" | "HIDDEN";
 
-/** 운영자가 OTR에서 가져온 공고. `/api/v1/admin/audition-posts` 응답과 같다. */
+/** 운영자가 OTR에서 가져오거나 직접 쓴 공고. `/api/v1/admin/audition-posts` 응답과 같다. */
 export type AdminAuditionPost = {
   readonly id: number;
+  /** 원문 출처. 직접 쓴 공고는 `YESULIN`이다. */
   readonly source: string;
-  readonly externalId: string;
-  readonly sourceUrl: string;
+  /** 원문 번호. 직접 쓴 공고는 null이다. */
+  readonly externalId: string | null;
+  readonly sourceUrl: string | null;
   readonly category: string;
   readonly title: string;
   readonly authorName: string;
@@ -347,8 +349,8 @@ export type AdminAuditionPostAttachment = {
 export type AdminAuditionPostDetail = {
   readonly id: number;
   readonly source: string;
-  readonly externalId: string;
-  readonly sourceUrl: string;
+  readonly externalId: string | null;
+  readonly sourceUrl: string | null;
   readonly status: AdminAuditionPostStatus;
   readonly category: string;
   readonly title: string;
@@ -363,17 +365,29 @@ export type AdminAuditionPostDetail = {
   readonly updatedAt: string;
 };
 
-export type AdminAuditionPostEdit = {
+export type AdminAuditionPostWrite = {
   readonly category: string;
   readonly title: string;
   readonly pay: string;
   readonly deadlineText: string;
   readonly authorName: string;
-  /** 본문을 건드리지 않았으면 null. 서버가 원래 본문과 사진을 그대로 둔다. */
+  /** 고칠 때 본문을 건드리지 않았으면 null. 서버가 원래 본문과 사진을 그대로 둔다. */
   readonly bodyHtml: string | null;
   readonly tags: readonly string[];
-  /** 남길 첨부의 주소. 빠진 첨부는 서버가 지운다. */
+  /** 남기거나 새로 올린 첨부의 주소. 빠진 첨부는 서버가 지운다. */
   readonly attachmentUrls: readonly string[];
+};
+
+export type AdminAuditionPostFileKind = "IMAGE" | "ATTACHMENT";
+
+/** 브라우저가 공고 사진·첨부를 저장소로 바로 올릴 주소. */
+export type AdminAuditionPostUpload = {
+  readonly url: string;
+  readonly method: string;
+  readonly headers: Readonly<Record<string, string>>;
+  readonly expiresAt: string;
+  /** 올린 뒤 본문 사진 주소나 첨부 주소로 쓴다. 저장할 때 서버가 이 주소로 업로드를 확정한다. */
+  readonly publicUrl: string;
 };
 
 export type AdminAuditionPostImport = {

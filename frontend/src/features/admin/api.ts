@@ -1,12 +1,16 @@
 import { withCsrfHeaders } from "../csrf";
+import { safeUpload } from "../files/safe-upload";
+import { reportUploadDiagnostic } from "../files/upload-diagnostics";
 import { readErrorCode, readErrorMessage, readErrorDetail } from "../api-error";
 import type {
   AdminAuditLogPage,
   AdminAudition,
   AdminAuditionPost,
   AdminAuditionPostDetail,
-  AdminAuditionPostEdit,
+  AdminAuditionPostFileKind,
   AdminAuditionPostImport,
+  AdminAuditionPostUpload,
+  AdminAuditionPostWrite,
   AdminAuditionPostStatus,
   AdminDailyActivity,
   AdminFileDeletionResult,
@@ -305,13 +309,54 @@ export function fetchAuditionPostForEdit(postId: string): Promise<AdminAuditionP
   );
 }
 
-export async function updateAuditionPost(postId: string, edit: AdminAuditionPostEdit): Promise<AdminAuditionPost> {
+export async function updateAuditionPost(postId: string, write: AdminAuditionPostWrite): Promise<AdminAuditionPost> {
   const response = await fetch(`${API_BASE_PATH}/audition-posts/${encodeURIComponent(postId)}`, {
     method: "PUT",
     credentials: "include",
     headers: await withCsrfHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify(edit),
+    body: JSON.stringify(write),
   });
   if (!response.ok) throw await readAdminError(response, "공고를 저장하지 못했습니다.");
   return response.json() as Promise<AdminAuditionPost>;
+}
+
+/** 원문 없이 공고를 쓴다. 숨김으로 만들어지고 목록에서 보여주기를 눌러야 공개된다. */
+export async function createAuditionPost(write: AdminAuditionPostWrite): Promise<AdminAuditionPost> {
+  const response = await fetch(`${API_BASE_PATH}/audition-posts`, {
+    method: "POST",
+    credentials: "include",
+    headers: await withCsrfHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(write),
+  });
+  if (!response.ok) throw await readAdminError(response, "공고를 만들지 못했습니다.");
+  return response.json() as Promise<AdminAuditionPost>;
+}
+
+/**
+ * 공고 사진·첨부를 저장소로 바로 올리고 공개 주소를 돌려준다. 공고를 저장할 때 서버가 이 주소로 업로드를 확정하므로
+ * 별도 완료 요청은 없다. WebKit 파일 접근 실패에 대비한 메모리 복사와 재시도는 다른 업로드와 같은 방식을 쓴다.
+ */
+export async function uploadAuditionPostFile(kind: AdminAuditionPostFileKind, file: File): Promise<string> {
+  let publicUrl = "";
+  await safeUpload({
+    flow: "AUDITION_POST_FILE",
+    source: file,
+    originalFilename: file.name,
+    requestUpload: async (metadata, { incidentId }) => {
+      const response = await fetch(`${API_BASE_PATH}/audition-posts/uploads`, {
+        method: "POST",
+        credentials: "include",
+        headers: await withCsrfHeaders({ "Content-Type": "application/json", "X-Request-Id": incidentId }),
+        body: JSON.stringify({ kind, filename: metadata.originalFilename, contentType: metadata.contentType, size: metadata.size }),
+      });
+      if (!response.ok) throw await readAdminError(response, "파일을 올릴 준비를 하지 못했습니다.");
+      const upload = await response.json() as AdminAuditionPostUpload;
+      publicUrl = upload.publicUrl;
+      // 공고 파일은 파일 ID 대신 공개 주소로 확정하므로 fileId는 쓰지 않는다.
+      return { fileId: 0, uploadUrl: upload.url, method: upload.method, headers: upload.headers };
+    },
+    completeUpload: async () => {},
+    reportDiagnostic: reportUploadDiagnostic,
+  });
+  return publicUrl;
 }

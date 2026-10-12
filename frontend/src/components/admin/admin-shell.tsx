@@ -13,7 +13,7 @@ type NavItem = {
 
 const NAV_ITEMS: readonly NavItem[] = [
   ...ADMIN_SECTIONS.map((section) => ({ id: section.id, label: section.label, href: adminSectionHref(section.id) })),
-  { id: "posts", label: "공고 가져오기", href: "/admin/posts" },
+  { id: "posts", label: "공고 관리", href: "/admin/posts" },
   { id: "messages", label: "문자 대기열", href: "/admin/messages" },
   { id: "files", label: "파일 관리", href: "/admin/files" },
   { id: "logs", label: "애플리케이션 로그", href: "/admin/logs" },

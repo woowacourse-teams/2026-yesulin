@@ -220,9 +220,9 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 1차 서류 심사 한 차수를 제공한다. 배역별 심사 종료는 OTR 지원 마감 다음 날부터 가능하며,
 그 전에는 `409 SCREENING_ROUND_NOT_READY`를 반환한다. 종료 후 심사 결과 수정은 거부한다.
 
-## 가져온 공고(메인 목록) — 9개
+## 가져온 공고(메인 목록) — 11개
 
-운영자가 공고 알림을 받은 OTR 공고를 우리 공고로 옮긴 `AuditionPost`다. 공개 상세에만 원문 출처·주소를 담는다.
+운영자가 공고 알림을 받은 OTR 공고를 우리 공고로 옮기거나 원문 없이 직접 쓴 `AuditionPost`다. 공개 상세에만 원문 출처·주소를 담는다.
 공개 API는 로그인 없이 호출하고, 운영 API는 `ADMIN`만 호출한다.
 `postId`는 숫자 ID다. 모두 공개 대상인 공고라 다른 공고와 달리 UUID를 쓰지 않는다.
 
@@ -233,9 +233,11 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 | POST | `/api/v1/public/audition-posts/{postId}/views` | 공개 | 없음 | `204`, 숨김·없는 공고는 `404` |
 | POST | `/api/v1/public/audition-posts/{postId}/redirects` | 공개 | 없음 | `204`, 공개 중·없는 공고는 `404` |
 | GET | `/api/v1/admin/audition-posts` | Admin | 없음 | `200 AdminAuditionPostsResponse(posts)` |
+| POST | `/api/v1/admin/audition-posts` | Admin | `WriteAuditionPostRequest(category, title, pay, deadlineText, authorName, bodyHtml?, tags, attachmentUrls)` | `201 AdminAuditionPostResult` |
+| POST | `/api/v1/admin/audition-posts/uploads` | Admin | `PrepareAuditionPostUploadRequest(kind: IMAGE/ATTACHMENT, filename, contentType?, size)` | `201 AuditionPostUploadResult(url, method, headers, expiresAt, publicUrl)` |
 | POST | `/api/v1/admin/audition-posts/otr-imports` | Admin | `ImportOtrAuditionPostRequest(otrId, overwriteEdited?)` | 처음이면 `201`, 다시 가져오면 `200 AuditionPostImportResult` |
 | GET | `/api/v1/admin/audition-posts/{postId}` | Admin | 없음 | `200 AdminAuditionPostDetailResult` |
-| PUT | `/api/v1/admin/audition-posts/{postId}` | Admin | `EditAuditionPostRequest(category, title, pay, deadlineText, authorName, bodyHtml?, tags, attachmentUrls)` | `200 AdminAuditionPostResult` |
+| PUT | `/api/v1/admin/audition-posts/{postId}` | Admin | `WriteAuditionPostRequest(category, title, pay, deadlineText, authorName, bodyHtml?, tags, attachmentUrls)` | `200 AdminAuditionPostResult` |
 | PATCH | `/api/v1/admin/audition-posts/{postId}/status` | Admin | `ChangeAuditionPostStatusRequest(status: PUBLISHED/HIDDEN)` | `200 AdminAuditionPostResult` |
 
 공개 목록은 `PUBLISHED`만 원문 작성 시각 최신순으로 반환한다. 작성 시각을 읽지 못한 공고는 뒤에 온다.
@@ -245,7 +247,8 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 `deadline`(날짜일 때만 `YYYY-MM-DD`), `closed`(한국 날짜 기준), `postedAt`(Instant), `thumbnailUrl`(본문 첫 사진, 없으면 null),
 `attachmentCount`, `viewCount`를 담는다. 조회수는 상세 화면이 열릴 때 브라우저가 탭 세션당 한 번 보내는 POST로만 늘고,
 서버 렌더링·메타데이터 조회는 세지 않는다. 다시 가져와도 유지한다. 상세는 여기에 `bodyHtml`, `tags`, `attachments(name, contentType, size, url)`, 원문 출처 `source`(예: `OTR`)·`sourceUrl`,
-`updatedAt`을 더한다. 숨긴 공고 상세는 본문 없이 `302 Location: {sourceUrl}`로 원문 공고에 보낸다.
+`updatedAt`을 더한다. 직접 쓴 공고는 `source`가 `YESULIN`이고 `sourceUrl`이 null이다.
+숨긴 공고 상세는 본문 없이 `302 Location: {sourceUrl}`로 원문 공고에 보낸다. 원문 없이 직접 쓴 공고는 숨기면 보낼 곳이 없어 `404`다.
 `Cache-Control: no-store`, `Referrer-Policy: no-referrer`를 붙인다. 프론트 서버 렌더링은 이동을 따라가지 않고 `Location`만 읽어
 브라우저를 원문으로 보낸다. 없는 공고는 `404 AUDITION_POST_NOT_FOUND`이고, 조회수 기록은 숨김도 404다.
 원문 이동 수는 프론트 서버가 숨긴 공고를 원문으로 보내기 직전에 `redirects` POST를 한 번 보내 늘린다. 상세 GET은 세지 않는다.
@@ -270,9 +273,19 @@ page·size 범위 오류는 `400 INVALID_REQUEST`다.
 사진 자리를 공개 주소로 채운 `bodyHtml`, `attachments(name, contentType, size, url)`, `editedAt`, `updatedAt`을 담는다.
 수정은 공개 상태·출처·원문 작성 시각을 바꾸지 않는다. `bodyHtml`이 null이면 본문과 사진을 그대로 두고, 값이 있으면 공개 본문과
 같은 허용 목록으로 다시 거른 뒤 이 공고의 사진 공개 주소만 남긴다. 사진은 본문에 처음 나온 순서로 다시 정하고, 다른 주소의
-사진은 지운다. 기준 주소가 없으므로 상대 주소 링크는 주소를 버린다. `attachmentUrls`는 남길 첨부의 공개 주소 목록이며, 이 공고에
-없는 주소나 중복은 `400 AUDITION_POST_INVALID_INPUT`이다. 빠진 사진·첨부는 커밋 뒤 저장소에서 지운다. 사진·첨부를 새로
-더하는 기능은 아직 없다. 길이·분류 검증은 가져오기와 같다.
+사진은 지운다. 기준 주소가 없으므로 상대 주소 링크는 주소를 버린다. `attachmentUrls`는 남기거나 더할 첨부의 공개 주소
+목록이며, 이 공고의 첨부나 이번에 올린 첨부가 아닌 주소나 중복은 `400 AUDITION_POST_INVALID_INPUT`이다. 빠진 사진·첨부는
+커밋 뒤 저장소에서 지운다. 길이·분류 검증은 가져오기와 같다.
+
+직접 쓰기(`POST /admin/audition-posts`)는 같은 요청으로 원문 없는 공고를 `HIDDEN`으로 만든다. `bodyHtml`이 null이면 빈 본문이고,
+목록·정렬의 게시 시각(`postedAt`)은 작성 시각이다. 응답의 `source`는 `YESULIN`, `externalId`·`sourceUrl`은 null이며
+`autoImported`는 false다. 직접 쓴 공고는 원문으로 다시 가져올 수 없다.
+
+사진·첨부를 더할 때는 먼저 `uploads`로 올릴 자리를 받는다. 서버가 형식을 정하고(사진은 브라우저 형식을 먼저, 첨부는 확장자만 본다)
+가져오기와 같은 형식·크기 기준(사진 20MB, 첨부 50MB)을 넘으면 `409 AUDITION_POST_FILE_REJECTED`다. 브라우저는 `url`로 `method`와
+`headers`를 그대로 붙여 올린다. 서명에는 `Content-Type`만 들어간다. 올린 뒤 `publicUrl`을 본문 사진 `src`나 `attachmentUrls`에 넣어
+저장하면, 서버가 그 주소를 올린 운영자의 같은 종류 업로드로 확인하고 저장소의 형식·크기를 다시 확인한 뒤 공고 파일로 확정한다.
+다른 운영자의 업로드는 이 공고의 파일이 아닌 것으로 본다. 아직 올라오지 않았거나 크기·형식이 다르면 `409 AUDITION_POST_FILE_REJECTED`다.
 
 고친 공고(`editedAt`이 있는 공고)를 운영자가 다시 가져오면 `overwriteEdited=true`가 아닌 한 원문을 받기 전에
 `409 AUDITION_POST_EDITED`로 거절한다. 원문을 받는 사이에 고쳐진 경우도 저장 직전에 같은 오류로 거절하고 이번에 올린 파일을

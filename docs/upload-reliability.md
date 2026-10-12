@@ -38,7 +38,7 @@ iOS 26.5~26.6 WebKit에서는 사진 선택기나 IndexedDB에서 얻은 disk-ba
 클라이언트가 UUID `incidentId`를 만들고 Spring 요청의 `X-Request-Id`로 전달한다. 허용 필드는 다음과
 같다.
 
-- `uploadFlow`: `APPLICATION_PHOTO`, `PROFILE_PHOTO`, `PERFORMANCE_POSTER`
+- `uploadFlow`: `APPLICATION_PHOTO`, `PROFILE_PHOTO`, `PERFORMANCE_POSTER`, `SHOW_IMAGE`, `AUDITION_POST_FILE`
 - `stage`: `PREPARE`, `UPLOAD_REQUEST`, `PUT`, `COMPLETION`, `RETRY`, `SUBMISSION`
 - `attempt`: 1 또는 2
 - `result`: `FAILED` 또는 `RETRY_SUCCEEDED`

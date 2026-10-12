@@ -59,11 +59,16 @@ public class AuditionPostService {
         );
     }
 
-    /** 공개 중이면 상세를, 숨겼으면 원문 공고 주소를 돌려준다. 없는 공고만 404다. */
+    /**
+     * 공개 중이면 상세를, 숨겼으면 원문 공고 주소를 돌려준다. 원문 없이 직접 쓴 공고는 숨기면 보낼 곳이 없어 없는 공고처럼 404다.
+     */
     @Transactional(readOnly = true)
     public PublicAuditionPostView findPublicPost(long postId) {
         AuditionPost post = repository.findById(postId).orElseThrow(this::notFound);
         if (!post.isPublished()) {
+            if (!post.hasOrigin()) {
+                throw notFound();
+            }
             return new PublicAuditionPostView.Hidden(URI.create(post.getSourceUrl()));
         }
         return new PublicAuditionPostView.Published(

@@ -23,7 +23,7 @@ class AuditionPostEditorBodyTest {
                 + "<img src=\"https://tracker.test/pixel.gif\">"
                 + "<p><img src=\"https://cdn.test/poster.png\"><img src=\"https://cdn.test/detail.png\"></p>";
 
-        AuditionPostEditorBody.Result result = AuditionPostEditorBody.toStored(html, IMAGES);
+        AuditionPostEditorBody.Result result = AuditionPostEditorBody.toStored(html, IMAGES::get);
 
         assertEquals(
                 "<p><img src=\"post-file:0\" alt=\"상세\"></p>"
@@ -38,7 +38,7 @@ class AuditionPostEditorBodyTest {
         String html = "<p onclick=\"x()\">안내</p><script>alert(1)</script>"
                 + "<p><a href=\"https://forms.gle/abc\">지원서</a> <a href=\"/relative\">상대</a></p>";
 
-        AuditionPostEditorBody.Result result = AuditionPostEditorBody.toStored(html, IMAGES);
+        AuditionPostEditorBody.Result result = AuditionPostEditorBody.toStored(html, IMAGES::get);
 
         assertEquals(
                 "<p>안내</p><p><a href=\"https://forms.gle/abc\" target=\"_blank\" "

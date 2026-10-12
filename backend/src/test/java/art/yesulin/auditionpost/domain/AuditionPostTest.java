@@ -111,6 +111,19 @@ class AuditionPostTest {
     }
 
     @Test
+    void directPostStartsHiddenWithoutOrigin() {
+        AuditionPost post = AuditionPost.write(content("상시"), List.of("연극"), List.of(image("a")), 3L, NOW);
+
+        assertEquals(AuditionPost.DIRECT_SOURCE, post.getSource());
+        assertNull(post.getExternalId());
+        assertNull(post.getSourceUrl());
+        assertFalse(post.hasOrigin());
+        assertFalse(post.isAutoImported());
+        assertEquals(AuditionPostStatus.HIDDEN, post.getStatus());
+        assertThrows(BusinessException.class, () -> post.refresh(content("상시"), List.of(), List.of(), 3L, NOW));
+    }
+
+    @Test
     void trimsAndDeduplicatesTags() {
         AuditionPost post = new AuditionPost(
                 ORIGIN, content("상시"), List.of(" 연극 ", "연극", "", "뮤지컬"), List.of(), 1L, NOW

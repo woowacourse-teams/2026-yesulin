@@ -58,7 +58,8 @@ export type AuditionPost = {
   readonly attachments: readonly AuditionPostAttachment[];
   /** 원문 공고 사이트 이름(예: `OTR`). 상세에 작은 출처 링크로 보여 준다. */
   readonly source: string;
-  readonly sourceUrl: string;
+  /** 원문 주소. 원문 없이 직접 쓴 공고는 null이다. */
+  readonly sourceUrl: string | null;
   readonly updatedAt: string;
 };
 

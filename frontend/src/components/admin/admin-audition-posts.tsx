@@ -16,7 +16,7 @@ import { auditionPostRoutes } from "@/features/audition-posts/types";
 import { logout } from "@/features/auth/session-api";
 import { formatDateTime } from "./admin-format";
 import { AdminSessionEnded } from "./admin-session-ended";
-import { AdminActionButton, AdminShell } from "./admin-shell";
+import { AdminActionButton, AdminActionLink, AdminShell } from "./admin-shell";
 
 type Phase = "loading" | "ready" | "unauthorized" | "failed";
 
@@ -130,10 +130,11 @@ export function AdminAuditionPosts() {
   return (
     <AdminShell
       current="posts"
-      title="공고 가져오기"
-      description="운영 서버는 새 OTR 공고를 알림과 함께 숨김으로 가져와요. 지원서를 준비한 뒤 '보여주기'를 누르면 공개되고, 제작사가 내려 달라고 하면 '숨기기'를 눌러 주세요. 숨긴 공고 링크는 OTR 원문으로 연결돼요. 제목·마감·본문은 '수정'에서 고칠 수 있어요. 자동으로 가져오지 못했거나 개발 환경에서는 OTR 번호나 알림 링크를 넣어 직접 가져와 주세요."
+      title="공고 관리"
+      description="운영 서버는 새 OTR 공고를 알림과 함께 숨김으로 가져와요. 지원서를 준비한 뒤 '보여주기'를 누르면 공개되고, 제작사가 내려 달라고 하면 '숨기기'를 눌러 주세요. 숨긴 공고 링크는 OTR 원문으로 연결돼요. 제목·마감·본문은 '수정'에서 고칠 수 있어요. 자동으로 가져오지 못했거나 개발 환경에서는 OTR 번호나 알림 링크를 넣어 직접 가져와 주세요. OTR에 없는 공고는 '공고 직접 쓰기'로 올려 주세요."
       actions={(
         <>
+          <AdminActionLink href={adminAuditionPostRoutes.create}>공고 직접 쓰기</AdminActionLink>
           <AdminActionButton onClick={refresh}>새로고침</AdminActionButton>
           <AdminActionButton onClick={() => void signOut()}>로그아웃</AdminActionButton>
         </>
@@ -200,7 +201,11 @@ export function AdminAuditionPosts() {
                 {post.autoImported ? <span className="rounded-full bg-brand-soft px-2.5 py-0.5 font-bold text-brand">자동 수집</span> : null}
                 {post.closed ? <span className="rounded-full bg-border-soft px-2.5 py-0.5 font-bold text-muted">마감</span> : null}
                 {post.editedAt ? <span className="rounded-full bg-warn-bg px-2.5 py-0.5 font-bold text-warn">수정됨</span> : null}
-                <span className="num text-muted">{post.source} {post.externalId}</span>
+                {post.externalId ? (
+                  <span className="num text-muted">{post.source} {post.externalId}</span>
+                ) : (
+                  <span className="rounded-full bg-brand-soft px-2.5 py-0.5 font-bold text-brand">직접 작성</span>
+                )}
                 <span className="ml-auto text-muted">{formatDateTime(post.updatedAt)} 갱신</span>
               </header>
               <h3 className="mt-2 text-base font-bold">{post.title}</h3>
@@ -213,15 +218,12 @@ export function AdminAuditionPosts() {
                   <Link href={auditionPostRoutes.detail(post.id)} target="_blank" className={ROW_BUTTON_CLASS}>공개 화면</Link>
                 ) : null}
                 <Link href={adminAuditionPostRoutes.edit(post.id)} className={ROW_BUTTON_CLASS}>수정</Link>
-                <a href={post.sourceUrl} target="_blank" rel="noopener noreferrer" className={ROW_BUTTON_CLASS}>원문</a>
-                <button
-                  type="button"
-                  className={ROW_BUTTON_CLASS}
-                  disabled={importing !== null}
-                  onClick={() => void runImport(post.externalId)}
-                >
-                  {importing === post.externalId ? "다시 가져오는 중…" : "원문으로 다시 가져오기"}
-                </button>
+                {post.sourceUrl && post.externalId ? (
+                  <>
+                    <a href={post.sourceUrl} target="_blank" rel="noopener noreferrer" className={ROW_BUTTON_CLASS}>원문</a>
+                    <ReimportButton otrId={post.externalId} importing={importing} onImport={(otrId) => void runImport(otrId)} />
+                  </>
+                ) : null}
                 <button
                   type="button"
                   disabled={changing === post.id}
@@ -236,6 +238,18 @@ export function AdminAuditionPosts() {
         </section>
       ) : null}
     </AdminShell>
+  );
+}
+
+function ReimportButton({ otrId, importing, onImport }: {
+  readonly otrId: string;
+  readonly importing: string | null;
+  readonly onImport: (otrId: string) => void;
+}) {
+  return (
+    <button type="button" className={ROW_BUTTON_CLASS} disabled={importing !== null} onClick={() => onImport(otrId)}>
+      {importing === otrId ? "다시 가져오는 중…" : "원문으로 다시 가져오기"}
+    </button>
   );
 }
 

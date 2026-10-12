@@ -4,7 +4,8 @@ import Image from "@tiptap/extension-image";
 import { TableKit } from "@tiptap/extension-table";
 import { EditorContent, useEditor, useEditorState, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { useState, type KeyboardEvent } from "react";
+import { useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
+import { AUDITION_POST_IMAGE_TYPES, checkAuditionPostFile } from "@/features/admin/audition-posts";
 import { BodyEditorLoading } from "./body-editor-loading";
 
 type Props = {
@@ -15,6 +16,8 @@ type Props = {
   readonly initialHtml: string;
   /** 사용자가 본문을 고칠 때마다 부른다. 처음 채운 내용으로는 부르지 않는다. */
   readonly onChange: (html: string) => void;
+  /** 사진을 올리고 본문에 넣을 공개 주소를 돌려준다. 없으면 사진 추가 도구를 보여 주지 않는다. */
+  readonly onUploadImage?: (file: File) => Promise<string>;
 };
 
 type Tool = {
@@ -49,9 +52,9 @@ const TOOL_CLASS =
 
 /**
  * 공고 본문 편집기. 공개 상세와 같은 `.post-body` 스타일로 보여 준다. 저장할 때 서버가 허용 태그만 남기고 이 공고의 사진이 아닌
- * 이미지는 지우므로, 여기서는 서식 도구만 두고 사진 추가는 제공하지 않는다. 표는 원문 표를 잃지 않도록 읽고 고칠 수만 있게 한다.
+ * 이미지는 지우므로, 사진은 붙여 넣기가 아니라 사진 도구로 올린 것만 남는다. 표는 원문 표를 잃지 않도록 읽고 고칠 수만 있게 한다.
  */
-export function AuditionPostBodyEditor({ id, labelledBy, describedBy, initialHtml, onChange }: Props) {
+export function AuditionPostBodyEditor({ id, labelledBy, describedBy, initialHtml, onChange, onUploadImage }: Props) {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ link: { openOnClick: false, autolink: true, defaultProtocol: "https" } }),
@@ -101,6 +104,7 @@ export function AuditionPostBodyEditor({ id, labelledBy, describedBy, initialHtm
           </button>
         ))}
         <LinkTool editor={editor} active={state?.link ?? false} inputId={`${id}-link`} />
+        {onUploadImage ? <ImageTool editor={editor} upload={onUploadImage} errorId={`${id}-image-error`} /> : null}
         <span aria-hidden="true" className="mx-1 my-2 w-px bg-border" />
         <button type="button" disabled={!state?.canUndo} onClick={() => editor.chain().focus().undo().run()} className={TOOL_CLASS}>
           되돌리기
@@ -111,6 +115,62 @@ export function AuditionPostBodyEditor({ id, labelledBy, describedBy, initialHtm
       </div>
       <EditorContent editor={editor} />
     </div>
+  );
+}
+
+/** 사진을 골라 저장소에 올린 뒤 커서 자리에 넣는다. 올리는 동안에는 다시 누를 수 없다. */
+function ImageTool({ editor, upload, errorId }: {
+  readonly editor: Editor;
+  readonly upload: (file: File) => Promise<string>;
+  readonly errorId: string;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const choose = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    const problem = checkAuditionPostFile("IMAGE", file);
+    if (problem) {
+      setError(problem);
+      return;
+    }
+    setUploading(true);
+    setError(null);
+    try {
+      const src = await upload(file);
+      editor.chain().focus().setImage({ src, alt: file.name.replace(/\.[^.]+$/, "") }).run();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "사진을 올리지 못했어요. 다시 시도해 주세요.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <>
+      <button
+        type="button"
+        disabled={uploading}
+        aria-describedby={error ? errorId : undefined}
+        onClick={() => inputRef.current?.click()}
+        className={TOOL_CLASS}
+      >
+        {uploading ? "사진 올리는 중…" : "사진"}
+      </button>
+      <input
+        ref={inputRef}
+        type="file"
+        accept={AUDITION_POST_IMAGE_TYPES.join(",")}
+        onChange={(event) => void choose(event)}
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden="true"
+      />
+      {error ? <p id={errorId} role="alert" className="w-full px-2 pb-1 text-xs text-fail">{error}</p> : null}
+    </>
   );
 }
 
