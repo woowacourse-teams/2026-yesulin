@@ -3,7 +3,7 @@ set -u
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 state_dir=${MONITORING_STATE_DIRECTORY:-/var/lib/yesulin-monitoring}
-if sh "$script_dir/install_monitoring.sh"; then
+if timeout 120 sh "$script_dir/install_monitoring.sh"; then
   rm -f "$state_dir/backend-install-failed"
 else
   install -d -m 0700 "$state_dir"
