@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Read MySQL global status and Linux counters; write one bounded EMF event per invocation."""
+"""Read MySQL global status and Linux counters; write one bounded structured log event per invocation."""
 
 import argparse
+import datetime
 import json
 import math
 import os
@@ -55,29 +56,28 @@ def host_status():
 
 
 def collect(environment, status, host, previous, now, boot_id):
-    event = {"event": "DATABASE_METRICS", "Environment": environment}
-    definitions = []
+    event = {"event": "DATABASE_METRICS", "Environment": environment,
+             "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="milliseconds")}
 
-    def add(name, unit, value):
+    def add(name, value):
         if value is not None and math.isfinite(value) and value >= 0:
             event[name] = value
-            definitions.append({"Name": name, "Unit": unit, "StorageResolution": 60})
 
     def value(key):
         return status.get(key.lower())
 
     for source, name in (("Threads_connected", "MysqlConnections"), ("max_connections", "MysqlMaxConnections"),
                          ("Threads_running", "MysqlThreadsRunning"), ("Innodb_row_lock_current_waits", "RowLockCurrentWaits")):
-        add(name, "Count", value(source))
+        add(name, value(source))
     pages = value("Innodb_buffer_pool_pages_data")
     page_size = value("innodb_page_size")
-    add("BufferPoolUsedBytes", "Bytes", pages * page_size if pages is not None and page_size else None)
-    add("BufferPoolCapacityBytes", "Bytes", value("innodb_buffer_pool_size"))
+    add("BufferPoolUsedBytes", pages * page_size if pages is not None and page_size else None)
+    add("BufferPoolCapacityBytes", value("innodb_buffer_pool_size"))
     total = value("Innodb_buffer_pool_pages_total")
     dirty = value("Innodb_buffer_pool_pages_dirty")
-    add("BufferPoolDirtyPct", "Percent", dirty / total * 100 if total and dirty is not None else None)
+    add("BufferPoolDirtyPct", dirty / total * 100 if total and dirty is not None else None)
     for name in ("HostMemoryAvailable", "HostSwapUsed"):
-        add(name, "Bytes", host.get(name))
+        add(name, host.get(name))
 
     same_boot = previous and previous.get("boot_id") == boot_id
     seconds = now - previous.get("time", now) if same_boot else 0
@@ -94,21 +94,18 @@ def collect(environment, status, host, previous, now, boot_id):
         requests = delta(status, old_status, "innodb_buffer_pool_read_requests")
         # No reads means no ratio; counter resets and inconsistent samples are omitted, not shown as 100% hits.
         if requests and reads is not None and reads <= requests:
-            add("BufferPoolCacheHitPct", "Percent", (1 - reads / requests) * 100)
+            add("BufferPoolCacheHitPct", (1 - reads / requests) * 100)
         questions = delta(status, old_status, "questions")
-        add("QueriesPerSecond", "Count/Second", questions / seconds if questions is not None else None)
-        for source, name, unit in (("slow_queries", "SlowQueries", "Count"),
-                                   ("innodb_row_lock_waits", "RowLockWaits", "Count"),
-                                   ("innodb_row_lock_time", "RowLockTimeMs", "Milliseconds")):
-            add(name, unit, delta(status, old_status, source))
+        add("QueriesPerSecond", questions / seconds if questions is not None else None)
+        for source, name in (("slow_queries", "SlowQueries"),
+                             ("innodb_row_lock_waits", "RowLockWaits"),
+                             ("innodb_row_lock_time", "RowLockTimeMs")):
+            add(name, delta(status, old_status, source))
     if seconds > 0 and same_boot:
-        for source, name, unit in (("swap_in", "HostSwapInBytes", "Bytes"), ("swap_out", "HostSwapOutBytes", "Bytes"),
-                                   ("disk_read", "DataDiskReadBytes", "Bytes"), ("disk_write", "DataDiskWriteBytes", "Bytes"),
-                                   ("disk_io_ms", "DataDiskIoTimeMs", "Milliseconds")):
-            add(name, unit, delta(host, previous.get("host", {}), source))
-    event["_aws"] = {"Timestamp": int(time.time() * 1000), "CloudWatchMetrics": [{
-        "Namespace": "Yesulin/Database", "Dimensions": [["Environment"]], "Metrics": definitions,
-    }]}
+        for source, name in (("swap_in", "HostSwapInBytes"), ("swap_out", "HostSwapOutBytes"),
+                             ("disk_read", "DataDiskReadBytes"), ("disk_write", "DataDiskWriteBytes"),
+                             ("disk_io_ms", "DataDiskIoTimeMs")):
+            add(name, delta(host, previous.get("host", {}), source))
     return event, {"status": status, "host": host, "time": now, "boot_id": boot_id}
 
 

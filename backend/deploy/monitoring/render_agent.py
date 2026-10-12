@@ -1,4 +1,4 @@
-"""Merge the owned log source and minimal host metrics without losing unrelated sources."""
+"""Merge the owned structured log source without enabling custom metrics."""
 
 import json
 import sys
@@ -25,7 +25,7 @@ def render(existing, environment, role):
             "expression": r'"event"\s*:\s*"(HTTP_REQUEST|RUNTIME_METRICS|RUNTIME_METRICS_FAILURE|UNEXPECTED_ERROR|UNEXPECTED_SERVICE_ERROR|SLOW_SERVICE)"',
         }])
     else:
-        owned["retention_in_days"] = 14
+        owned.update(retention_in_days=14, timestamp_format="%Y-%m-%dT%H:%M:%S.%f", timezone="UTC")
     for entry in entries:
         if entry.get("file_path") == path:
             if entry.get("log_group_name") != owned["log_group_name"]:
@@ -35,16 +35,17 @@ def render(existing, environment, role):
             break
     else:
         entries.append(owned)
-    # Database host memory/swap/I/O is emitted by the SQL collector, avoiding duplicate custom metrics.
-    if role == "backend":
-        metrics = config.setdefault("metrics", {})
-        metrics.setdefault("namespace", "CWAgent")
-        metrics.setdefault("append_dimensions", {}).setdefault("InstanceId", "${aws:InstanceId}")
-        collected = metrics.setdefault("metrics_collected", {})
-        collected.setdefault("mem", {"measurement": ["mem_available"], "metrics_collection_interval": 60})
-        collected.setdefault("swap", {"measurement": ["swap_used_percent"], "metrics_collection_interval": 60})
-        for plugin in ("mem", "swap"):
-            collected[plugin].setdefault("append_dimensions", {}).update(Environment=environment, Service="backend")
+    # Remove only the exact host plugins previously installed by this script; keep unrelated metrics.
+    metrics = config.get("metrics", {})
+    collected = metrics.get("metrics_collected", {})
+    if metrics.get("namespace", "CWAgent") == "CWAgent":
+        for plugin, measurement in (("mem", "mem_available"), ("swap", "swap_used_percent")):
+            expected = {"measurement": [measurement], "metrics_collection_interval": 60,
+                        "append_dimensions": {"Environment": environment, "Service": "backend"}}
+            if collected.get(plugin) == expected:
+                del collected[plugin]
+        if not collected:
+            config.pop("metrics", None)
     return config
 
 

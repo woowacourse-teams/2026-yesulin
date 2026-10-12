@@ -5,8 +5,11 @@ import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
+import java.io.IOException;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.MemoryUsage;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
@@ -29,47 +32,40 @@ public class RuntimeMetricCollector {
 
     public synchronized Map<String, Object> collect(String environment, long timestamp, long nowNanos) {
         Map<String, Object> values = new LinkedHashMap<>();
-        List<Map<String, Object>> definitions = new ArrayList<>();
         values.put("event", "RUNTIME_METRICS");
         values.put("Environment", environment);
+        values.put("sampleTimestamp", timestamp);
         MemoryUsage heap = memory.getHeapMemoryUsage();
-        add(values, definitions, "JvmHeapUsed", "Bytes", heap.getUsed());
-        add(values, definitions, "JvmHeapMax", "Bytes", heap.getMax());
-        add(values, definitions, "JvmNonHeapUsed", "Bytes", memory.getNonHeapMemoryUsage().getUsed());
-        gauge(values, definitions, "process.cpu.usage", "ProcessCpuUsage", "Percent", 100);
-        gauge(values, definitions, "jvm.threads.live", "JvmThreadsLive", "Count", 1);
-        gauge(values, definitions, "tomcat.threads.busy", "TomcatThreadsBusy", "Count", 1);
-        gauge(values, definitions, "tomcat.threads.config.max", "TomcatThreadsMax", "Count", 1);
-        gauge(values, definitions, "hikaricp.connections.active", "DbConnectionsActive", "Count", 1);
-        gauge(values, definitions, "hikaricp.connections.idle", "DbConnectionsIdle", "Count", 1);
-        gauge(values, definitions, "hikaricp.connections.pending", "DbConnectionsPending", "Count", 1);
-        gauge(values, definitions, "hikaricp.connections.max", "DbConnectionsMax", "Count", 1);
-        timer(values, definitions, "hikaricp.connections.acquire", "DbConnectionAcquire", nowNanos);
-        counter(values, definitions, "hikaricp.connections.timeout", "DbConnectionTimeouts");
-        timer(values, definitions, "jvm.gc.pause", "GcPause", nowNanos);
+        add(values, "JvmHeapUsed", heap.getUsed());
+        add(values, "JvmHeapMax", heap.getMax());
+        add(values, "JvmNonHeapUsed", memory.getNonHeapMemoryUsage().getUsed());
+        gauge(values, "process.cpu.usage", "ProcessCpuUsage", 100);
+        gauge(values, "jvm.threads.live", "JvmThreadsLive", 1);
+        gauge(values, "tomcat.threads.busy", "TomcatThreadsBusy", 1);
+        gauge(values, "tomcat.threads.config.max", "TomcatThreadsMax", 1);
+        gauge(values, "hikaricp.connections.active", "DbConnectionsActive", 1);
+        gauge(values, "hikaricp.connections.idle", "DbConnectionsIdle", 1);
+        gauge(values, "hikaricp.connections.pending", "DbConnectionsPending", 1);
+        gauge(values, "hikaricp.connections.max", "DbConnectionsMax", 1);
+        timer(values, "hikaricp.connections.acquire", "DbConnectionAcquire", nowNanos);
+        counter(values, "hikaricp.connections.timeout", "DbConnectionTimeouts");
+        timer(values, "jvm.gc.pause", "GcPause", nowNanos);
         previous.keySet().removeIf(meter -> !registry.getMeters().contains(meter));
         previousNanos = nowNanos;
         sampled = true;
-        values.put("_aws", Map.of(
-                "Timestamp", timestamp,
-                "CloudWatchMetrics", List.of(Map.of(
-                        "Namespace", "Yesulin/Application",
-                        "Dimensions", List.of(List.of("Environment")),
-                        "Metrics", definitions
-                ))
-        ));
+        hostMemory(values);
         return values;
     }
 
-    private void gauge(Map<String, Object> values, List<Map<String, Object>> definitions,
-                       String meterName, String name, String unit, double multiplier) {
+    private void gauge(Map<String, Object> values,
+                       String meterName, String name, double multiplier) {
         List<Gauge> gauges = new ArrayList<>(registry.find(meterName).gauges());
         if (!gauges.isEmpty() && gauges.stream().allMatch(g -> valid(g.value()))) {
-            add(values, definitions, name, unit, gauges.stream().mapToDouble(Gauge::value).sum() * multiplier);
+            add(values, name, gauges.stream().mapToDouble(Gauge::value).sum() * multiplier);
         }
     }
 
-    private void counter(Map<String, Object> values, List<Map<String, Object>> definitions,
+    private void counter(Map<String, Object> values,
                          String meterName, String name) {
         List<Counter> counters = new ArrayList<>(registry.find(meterName).counters());
         double total = 0;
@@ -78,11 +74,11 @@ public class RuntimeMetricCollector {
             total += delta(counter, count, 0)[0];
         }
         if (sampled && !counters.isEmpty()) {
-            add(values, definitions, name, "Count", total);
+            add(values, name, total);
         }
     }
 
-    private void timer(Map<String, Object> values, List<Map<String, Object>> definitions,
+    private void timer(Map<String, Object> values,
                        String meterName, String prefix, long nowNanos) {
         List<Timer> timers = new ArrayList<>(registry.find(meterName).timers());
         double count = 0;
@@ -97,19 +93,19 @@ public class RuntimeMetricCollector {
         if (timers.isEmpty()) {
             return;
         }
-        add(values, definitions, prefix + "MaxMs", "Milliseconds", max);
+        add(values, prefix + "MaxMs", max);
         if (!sampled) {
             return;
         }
         if ("GcPause".equals(prefix)) {
-            add(values, definitions, "GcPauseCount", "Count", count);
-            add(values, definitions, "GcPauseTimeMs", "Milliseconds", elapsed);
+            add(values, "GcPauseCount", count);
+            add(values, "GcPauseTimeMs", elapsed);
             double intervalMillis = (nowNanos - previousNanos) / 1_000_000.0;
             if (intervalMillis > 0) {
-                add(values, definitions, "GcPauseRatio", "Percent", elapsed / intervalMillis * 100);
+                add(values, "GcPauseRatio", elapsed / intervalMillis * 100);
             }
         } else if (count > 0) {
-            add(values, definitions, prefix + "MeanMs", "Milliseconds", elapsed / count);
+            add(values, prefix + "MeanMs", elapsed / count);
         }
     }
 
@@ -121,15 +117,24 @@ public class RuntimeMetricCollector {
         return new double[]{count - last[0], elapsed - last[1]};
     }
 
+    private void hostMemory(Map<String, Object> values) {
+        try {
+            LinuxMemorySnapshot snapshot = LinuxMemorySnapshot.parse(Files.readAllLines(Path.of("/proc/meminfo")));
+            add(values, "HostMemoryAvailable", snapshot.availableBytes());
+            add(values, "HostSwapUsed", snapshot.swapUsedBytes());
+        } catch (IOException exception) {
+            // Linux proc가 없거나 읽을 수 없으면 호스트 값만 생략한다.
+        }
+    }
+
     private boolean valid(double value) {
         return Double.isFinite(value) && value >= 0;
     }
 
-    private void add(Map<String, Object> values, List<Map<String, Object>> definitions,
-                     String name, String unit, double value) {
+    private void add(Map<String, Object> values,
+                     String name, double value) {
         if (valid(value)) {
             values.put(name, value);
-            definitions.add(Map.of("Name", name, "Unit", unit, "StorageResolution", 60));
         }
     }
 }

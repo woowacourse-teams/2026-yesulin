@@ -10,7 +10,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -51,7 +50,6 @@ class StructuredFileLoggingTest {
                     .addKeyValue("event", "HTTP_REQUEST")
                     .addKeyValue("endpoint", "/api/v1/tests/{id}")
                     .addKeyValue("errorCode", "INVALID_REQUEST")
-                    .addKeyValue("_aws", Map.of("Timestamp", 1_800_000_000_000L))
                     .addKeyValue("JvmHeapUsed", 123.0)
                     .log(MARKER);
         } finally {
@@ -72,7 +70,7 @@ class StructuredFileLoggingTest {
         assertEquals("HTTP_REQUEST", event.get("event").asString());
         assertEquals("/api/v1/tests/{id}", event.get("endpoint").asString());
         assertEquals("INVALID_REQUEST", event.get("errorCode").asString());
-        assertEquals(1_800_000_000_000L, event.get("_aws").get("Timestamp").asLong());
+        assertTrue(!event.has("_aws"));
         assertEquals(123.0, event.get("JvmHeapUsed").asDouble());
     }
 }

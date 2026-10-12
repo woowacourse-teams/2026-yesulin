@@ -1,6 +1,7 @@
 """Pure aggregation/configuration checks. Does not access AWS, Docker, Linux counters or secrets."""
 
 import importlib.util
+import json
 from pathlib import Path
 import unittest
 
@@ -44,13 +45,12 @@ class DatabaseMetricsTest(unittest.TestCase):
         self.assertNotIn("QueriesPerSecond", reset)
         self.assertNotIn("RowLockTimeMs", reset)
 
-    def test_emf_has_no_high_cardinality_dimension_or_nonfinite_metric(self):
+    def test_snapshot_has_no_emf_or_nonfinite_value(self):
         event, _ = db.collect("prod", {}, {"HostMemoryAvailable": float("nan")}, {}, 0, "boot")
         self.assertNotIn("HostMemoryAvailable", event)
-        directive = event["_aws"]["CloudWatchMetrics"][0]
-        self.assertEqual([["Environment"]], directive["Dimensions"])
-        for metric in directive["Metrics"]:
-            self.assertIn(metric["Name"], event)
+        self.assertNotIn("_aws", event)
+        self.assertIn("timestamp", event)
+        json.dumps(event, allow_nan=False)
 
 
 class ConfigurationTest(unittest.TestCase):
@@ -77,10 +77,29 @@ class ConfigurationTest(unittest.TestCase):
         original = {"widgets": [infra, old_api, other, snapshot]}
         self.assertEqual([infra, other], dashboards.base_dashboard(original)["widgets"])
         self.assertEqual(4, len(original["widgets"]))
-        # 46 directly referenced custom metrics plus up to 4 host metrics on the current two backend instances.
-        body = dashboards.metric_dashboard()
-        literal = [m for w in body["widgets"] for m in w.get("properties", {}).get("metrics", []) if isinstance(m[0], str)]
-        self.assertEqual(46, len(literal))
+        queries = json.loads((ROOT / "ops/monitor/cloudwatch/queries.json").read_text())
+        groups = {"/yesulin/dev/backend", "/yesulin/prod/backend"}
+        body = dashboards.unified_dashboard(original, queries, groups)
+        self.assertEqual(body, dashboards.unified_dashboard(body, queries, groups))
+        self.assertEqual(1, sum(w == infra for w in body["widgets"]))
+        self.assertEqual(1, sum(dashboards.is_snapshot(w) for w in body["widgets"]))
+        self.assertTrue(all(w["type"] != "metric" or w == infra for w in body["widgets"]))
+        self.assertFalse(any("/database'" in w.get("properties", {}).get("query", "") for w in body["widgets"]))
+        complete = dashboards.unified_dashboard(original, queries, groups | {"/yesulin/dev/database"})
+        self.assertTrue(any("/yesulin/dev/database'" in w.get("properties", {}).get("query", "")
+                            for w in complete["widgets"]))
+
+    def test_removes_only_owned_host_metrics_from_previous_config(self):
+        old = {"metrics": {"namespace": "CWAgent", "metrics_collected": {
+            "mem": {"measurement": ["mem_available"], "metrics_collection_interval": 60,
+                    "append_dimensions": {"Environment": "dev", "Service": "backend"}},
+            "swap": {"measurement": ["swap_used_percent"], "metrics_collection_interval": 60,
+                     "append_dimensions": {"Environment": "dev", "Service": "backend"}},
+            "cpu": {"measurement": ["cpu_usage_idle"]},
+        }}}
+        result = agent.render(old, "dev", "backend")
+        self.assertEqual({"cpu": {"measurement": ["cpu_usage_idle"]}}, result["metrics"]["metrics_collected"])
+        self.assertNotIn("metrics", agent.render({}, "dev", "backend"))
 
 
 if __name__ == "__main__":

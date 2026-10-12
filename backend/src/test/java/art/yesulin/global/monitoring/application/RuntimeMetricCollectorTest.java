@@ -31,7 +31,7 @@ class RuntimeMetricCollectorTest {
     }
 
     @Test
-    void emitsNumericEmfWithOnlyEnvironmentDimensionAndOmitsMissingOrInvalidGauges() {
+    void emitsNumericSnapshotWithoutEmfAndOmitsMissingOrInvalidGauges() {
         Gauge.builder("jvm.threads.live", () -> 20).register(registry);
         Gauge.builder("process.cpu.usage", () -> 0.25).register(registry);
         Gauge.builder("hikaricp.connections.pending", () -> Double.NaN).register(registry);
@@ -41,13 +41,10 @@ class RuntimeMetricCollectorTest {
         assertThat(event.get("ProcessCpuUsage").asDouble()).isEqualTo(25);
         assertThat(event.has("TomcatThreadsBusy")).isFalse();
         assertThat(event.has("DbConnectionsPending")).isFalse();
-        JsonNode directive = event.get("_aws").get("CloudWatchMetrics").get(0);
-        assertThat(directive.get("Namespace").asString()).isEqualTo("Yesulin/Application");
-        assertThat(directive.get("Dimensions").toString()).isEqualTo("[[\"Environment\"]]");
-        for (JsonNode definition : directive.get("Metrics")) {
-            assertThat(event.get(definition.get("Name").asString()).isNumber()).isTrue();
-            assertThat(definition.get("StorageResolution").asInt()).isEqualTo(60);
-        }
+        assertThat(event.get("JvmHeapUsed").isNumber()).isTrue();
+        assertThat(event.get("Environment").asString()).isEqualTo("prod");
+        assertThat(event.get("sampleTimestamp").asLong()).isEqualTo(1_800_000_000_000L);
+        assertThat(event.has("_aws")).isFalse();
     }
 
     @Test

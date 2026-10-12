@@ -8,7 +8,7 @@
 스크립트는 password와 secret 원문을 출력하지 않는다. 현재 자동 재시작과 주기 실행은 설정하지 않는다.
 
 
-## CloudWatch 수집 경로
+## CloudWatch: 로그 기반 수집과 단일 대시보드
 
 DEV·PROD 공통 배포에서 `install_monitoring.sh`가 Ubuntu ARM64 CloudWatch Agent를 설치/활성화하고
 `/var/log/yesulin/yesulin.log`를 `/yesulin/{dev|prod}/backend`로 보낸다. 배포 번들의
@@ -23,9 +23,12 @@ Agent 바이너리는 미설치일 때만 AWS 공식 Ubuntu ARM64 패키지로 �
 파일의 ISO 시각대 `+09:00`을 해석하기 위해 Agent 서비스에만 `TZ=Asia/Seoul`을 설정하고 Local timestamp를 쓴다.
 기존 backend 로그 그룹 보관 설정은 바꾸지 않는다. 현재 DEV 30일, PROD 14일이며 새 그룹은 별도로 보관 기간을 지정한다.
 
-### 런타임 메트릭
+### 런타임 값
 
-기존 Actuator/Micrometer registry에서 값을 읽어 **CloudWatch EMF JSON** 한 줄을 1분마다 남긴다.
+기존 Actuator/Micrometer registry에서 최대 18개 앱 값을 읽어 **일반 JSON 로그** 한 줄을 1분마다 남긴다.
+`_aws` metadata·Metric Filter·PutMetricData로 custom metric을 만들지 않는다.
+Linux `/proc/meminfo`의 MemAvailable과 사용 swap bytes 2개도 같은 로그에 남긴다.
+MemAvailable은 reclaim 가능한 cache를 포함한다. 파일이 없거나 읽을 수 없으면 호스트 값만 생략한다.
 외부 HTTP endpoint는 기존대로 `health`만 노출한다. `/actuator/metrics` 공개나 새 포트 개방은 필요 없다.
 `dev` 또는 `prod` profile에서만 활성화하며 `YESULIN_MONITORING_ENABLED=false`로 끌 수 있다.
 별도 암호화 설정 변경 없이 기본 활성화되어 dev 배포 검증 후 main의 prod 배포에도 같은 코드가 적용된다.
@@ -34,12 +37,12 @@ Tomcat MBean registry는 `server.tomcat.mbeanregistry.enabled=true`로 켠다.
 - 앱 시작 완료 후 30초부터 전용 daemon 스레드 1개로 실행하며, 완료 후 60초를 기다린다.
   Servlet 요청 스레드나 기존 Spring 예약 작업의 실행 스레드를 공유하지 않는다. 종료할 때 스레드를 정리한다.
 - 앱은 로컬 파일만 기록하며 네트워크 전송은 Agent가 담당한다. JVM 수집은 DB 쿼리를 실행하지 않는다.
-- Namespace `Yesulin/Application`, dimension **Environment=dev|prod**만 사용한다.
-  요청 ID, 사용자, URI, JVM pool 이름을 metric dimension으로 만들지 않는다.
+- `Environment=dev|prod`, `sampleTimestamp`와 숫자 필드를 기록한다.
+  별도 CloudWatch custom metric을 등록하지 않고 Logs Insights에서 이 숫자를 집계한다.
 - 누락·NaN·음수 값은 생략한다. **데이터 없음은 0이 아니다.** 첫 표본은 누적 counter/timer의 기준점이다.
   여러 GC 원인/풀의 timer를 합치며 새 meter와 counter reset은 다음 표본부터 차분을 계산한다.
 
-| 지표 | 단위·의미 |
+| 로그 필드 | 단위·의미 |
 | --- | --- |
 | `JvmHeapUsed`, `JvmHeapMax`, `JvmNonHeapUsed` | Bytes, JVM 전체 heap와 non-heap; undefined max는 생략 |
 | `ProcessCpuUsage` | Percent, 프로세스 CPU 이용률 |
@@ -53,10 +56,11 @@ Tomcat MBean registry는 `server.tomcat.mbeanregistry.enabled=true`로 켠다.
 | `GcPauseMaxMs` | Milliseconds, Micrometer 최근 rolling window 최대 |
 | `GcPauseRatio` | Percent, pause 증가분 / 실제 monotonic 수집 간격; CPU 사용률과 다름 |
 
-Agent는 backend 호스트의 `mem_available`, `swap_used_percent`도 60초마다 `CWAgent` namespace로 보낸다.
-`InstanceId`와 plugin의 `Environment`, `Service=backend`로 환경별 호스트를 구분한다.
+`HostMemoryAvailable`, `HostSwapUsed`는 Bytes 단위의 로그 필드로 기록한다.
+Agent는 로그만 전송한다. 이전 버전의 이 스크립트가 만든 정확한 backend mem/swap plugin만 제거하며
+다른 Agent 지표 설정은 보존한다. 외부에서 이미 켠 custom metric 비용은 이 변경으로 사라지지 않는다.
 현재 환경별 backend 1대 기준이다. 여러 인스턴스로 늘리면 앱의 Environment만으로는 인스턴스 포화가 섞이므로
-차원/대시보드 비용과 집계 방식을 다시 결정한다. 1분의 순간 gauge는 짧은 포화를 놓칠 수 있으므로 부하 도구의
+log stream/인스턴스별 집계 쿼리를 다시 결정한다. 1분의 순간 gauge는 짧은 포화를 놓칠 수 있으므로 부하 도구의
 응답 시간, 오류, 분당 API 로그와 함께 해석한다. 수집 스레드·파일 기록·Agent 비용까지 포함해 부하를 측정한다.
 
 ### DB 서버 수집 (애플리케이션 배포와 별도)
@@ -80,7 +84,8 @@ systemd oneshot+timer가 완료 후 60초마다 SQL 2개와 Linux counter를 읽
 저장하며 재부팅/MySQL uptime 감소/개별 counter reset을 감지하면 잘못된 차분을 내보내지 않는다.
 실패한 수집은 timer service 실패로 표시되며, 마지막 값이나 임의의 0으로 성공을 가장하지 않는다.
 
-Namespace `Yesulin/Database`, dimension `Environment`를 사용한다.
+`event=DATABASE_METRICS`, `Environment`와 UTC timestamp 및 숫자 필드를 기록한다.
+EMF metadata가 없으며 DB 값도 로그 검색으로 그래프화한다.
 
 | 지표 | 의미 |
 | --- | --- |
@@ -99,72 +104,57 @@ DB collector 설치는 DB AMI/user-data 등 DB 서버 배포에도 포함해야 
 
 ### 대시보드와 오류 검색
 
-`ops/monitor/cloudwatch/update_dashboards.py`는 기존 기본 대시보드의 EC2·ALB·알람을 보존하고,
-이번 API 분석 위젯만 Log 대시보드로 이동한다. 원본 JSON을 작업 디렉터리에 백업한다.
-앱/DB 설치와 독립적으로 실행하므로 아직 수집되지 않은 지표는 빈 그래프다.
+`ops/monitor/cloudwatch/update_dashboards.py`는 **기존 `DASHBOARD-yesulin` 하나**에 로그 그래프를 추가한다.
+EC2·ALB·알람·스냅샷·다른 운영 메모를 보존하고 원본 JSON을 백업한다. 재실행해도 소유 위젯을 중복하지 않는다.
+별도 Log/Metric 대시보드를 만들지 않는다. 기본 조회는 최근 3시간이다.
+DB 그룹이 아직 없으면 설치 안내만 보여주며 DB 설치 후 재실행하면 그래프가 추가된다.
 
 ```bash
-# AWS 조회·수정 권한과 boto3가 있는 운영 터미널에서 실행
+# AWS 권한과 boto3가 있는 운영 터미널에서 실행
 python3 ops/monitor/cloudwatch/update_dashboards.py --plan
 python3 ops/monitor/cloudwatch/update_dashboards.py
-# AWS 변경 없이 검증
 python3 -m unittest discover -s ops/monitor/cloudwatch/tests -v
 ```
 
-- `DASHBOARD-yesulin`: 기존 인프라 대시보드
-- `DASHBOARD-yesulin-log`: DEV/PROD API 요청 수, `/api/v1/{target}` 첫 경로별 집계, method+endpoint 패턴별
-  p50/p95/p99, GET/공개 예매 POST 비율, 4xx/5xx·오류 코드, 느린 요청/서비스, 예외 상세
-- `DASHBOARD-yesulin-metric`: JVM·Tomcat·Hikari·GC, backend 메모리/swap, DB 주요 지표
-- 추가 지표는 Metrics → All metrics → `Yesulin/Application`, `Yesulin/Database`, `CWAgent`에서 확인한다.
+대시보드를 열면 저장한 쿼리 집계가 실행되므로 18개 값을 매번 직접 검색할 필요 없다.
+DEV/PROD 영역에서 API 요청 수, `/api/v1/{target}` 첫 경로별 집계, method+endpoint 패턴별 p50/p95/p99,
+조회/예매 비율, 오류와 앱 메모리·thread·커넥션·GC 및 DB 캐시·메모리·swap·I/O를 확인한다.
+관련 값을 단위별 한 그래프에 묶고 Bytes는 메모리 그래프에서 MiB로 표시한다.
+전체 숫자는 저장 쿼리 `yesulin/{환경}/runtime-latest`, `database-latest`의 원문을 펼쳐 본다.
+이 값들은 **All metrics의 새 custom metric이 아니라 로그에 있는 숫자 필드**다.
 
-Logs Insights의 저장 쿼리 `yesulin/{환경}/error-details`에서 오류를 찾아 `requestId`를 복사하고,
-`request-trace`의 `REPLACE_WITH_REQUEST_ID`를 바꿔 실행한다. 요청 완료와 예외 이벤트를 같은 ID로 추적한다.
-본문/stack_trace 열 또는 전체 `@message`를 펼쳐 원인을 확인한다. 4xx는 `api-error-codes`로 별도 확인하며
-정상적인 매진·인증 실패를 서버 장애와 섞지 않는다. 500ms 이상 비HTTP 서비스 실패는 현재 AOP 정책상
-`SLOW_SERVICE`에 outcome만 있으므로 해당 예외의 stack trace가 항상 존재하는 것은 아니다.
+저장 쿼리 `error-details`의 requestId를 복사하고 `request-trace`의 `REPLACE_WITH_REQUEST_ID`를 바꿔 실행한다.
+stack_trace/@message를 펼쳐 요청 완료·예외를 추적한다. 4xx는 `api-error-codes`로 확인한다.
+현재 AOP는 500ms 이상 비HTTP 서비스 실패를 `SLOW_SERVICE`의 outcome으로만 남겨 stack trace가 항상 있지는 않다.
 
-로그 수집 시작 이후의 원문만 검색할 수 있으며, Logs Insights는 로그 그룹 생성 시각보다 이른 event timestamp를
-검색하지 못한다. 요청 수는 고유 사용자 수가 아니고, elapsedMs는 ALB 대기·클라이언트 네트워크 시간을 제외한다.
-로그 위젯을 열거나 새로고침하면 Insights 조회가 실행되므로 기본 대시보드와 분리하고 필요한 기간만 선택한다.
+수집 이전 원문은 복원하지 않는다. Logs Insights는 그룹 생성 시각보다 이른 event timestamp를 검색하지 못한다.
+요청 수는 사람 수가 아니며 elapsedMs는 ALB 대기·네트워크를 제외한다.
+**열기·새로고침마다 검색이 실행되므로 자동 새로고침을 끄고 필요한 시간 범위만 선택한다.**
+로그 검색 그래프는 상시 metric alarm과 같은 방식이 아니며 새 런타임 알람은 만들지 않는다.
 
 ### 권한·비용·배포 확인
 
-- 앱 EMF는 기존 `logs:PutLogEvents` 경로에서 변환되어 앱에 AWS 자격 증명/PutMetricData 호출을 추가하지 않는다.
-- EC2 role은 Agent의 로그 그룹/stream 생성·조회·전송 권한이 필요하다. DB 보관 기간 설정에는
-  `logs:PutRetentionPolicy`, backend 호스트 지표에는 `cloudwatch:PutMetricData`가 필요하다.
-  기존 role이 허용하는지 확인한다. 이 변경은 IAM 권한을 자동으로 추가하지 않는다.
-- 대시보드 스크립트는 별도 운영 권한 `cloudwatch:GetDashboard/PutDashboard`,
-  `logs:DescribeQueryDefinitions/PutQueryDefinition`이 필요하다.
-- 앱은 최대 18개 × 2환경, DB는 최대 19개 × 2환경, backend 호스트는 2개 × 2인스턴스다.
-  매번 timestamp/requestId별 metric을 만들지 않는다. Agent가 이미 다른 지표를 수집하면 그 비용은 별도다.
-  서울 리전 custom metric 최초 10,000개 단가 $0.30/metric-month 기준으로, 앱/호스트만 최대 40개는
-  월 $12.00, DB까지 최대 78개는 월 $23.40다. 무료 10개를 모두 적용할 수 있으면 각각 $9.00/$20.40다.
-  모든 지표가 한 달 내내 송신되는 상한 추정이며 실제 활성 시간, 무료 사용량, 로그·검색·API와 세금은 별도다.
-  DB 수집은 앱 배포와 독립적으로 설치하므로 앱 PR만 머지해 DB 지표까지 활성화되지는 않는다.
-- 기본 Metric 대시보드는 직접 참조 46개와 현재 backend 2대의 호스트 4개로 최대 50개를 표시한다.
-  AWS 무료 조건은 계정 내 dashboard 수·각 dashboard 참조 metric 수·계정 조건을 함께 확인해야 한다.
-  custom metric, 로그 수집·보관·Insights, API 호출 비용은 dashboard 비용과 별개다.
-  수집 간격 1분은 호출/로그 양을 줄이며 **metric 개수에 따른 요금을 없애지 않는다.**
+- 이번 앱/호스트/DB 수집은 **새 CloudWatch custom metric 0개**다. 앞서 계산한 18개 × 환경별 metric 비용은 적용되지 않는다.
+  로그 수집·보관·Insights 스캔과 기존 dashboard/알람/API 비용은 남는다. 실제 조회량과 청구 내역을 확인한다.
+- 값을 버리지 않고 한 줄에 앱 18개+호스트 2개, DB 19개를 묶어 1분마다 기록한다.
+  기록량/기간/검색 횟수에 따라 로그 비용이 달라지며 무료 사용량이 남았다고 가정하지 않는다.
+- EC2 role에는 로그 그룹/stream 생성·조회·전송, DB 보관 설정에는 `logs:PutRetentionPolicy`가 필요하다.
+  이번 수집에는 `cloudwatch:PutMetricData`가 필요 없다. IAM을 자동 변경하지 않는다.
+- 대시보드는 `cloudwatch:GetDashboard/PutDashboard`, `logs:DescribeLogGroups`,
+  `logs:DescribeQueryDefinitions/PutQueryDefinition`을 사용한다.
 
-배포 후에는 dev부터 아래를 확인하고 main을 통해 prod에 배포한다. 애플리케이션을 먼저 빌드/배포하며
-현재 실행 중인 JAR의 YAML이나 복호화된 env를 즉석 수정하지 않는다.
+1. dev 병합/배포 후 readiness 200, `/actuator/metrics` 비노출을 확인한다.
+2. Agent active 여부와 AccessDenied/configuration 오류를 확인한다.
+3. 30~90초 뒤 파일과 CloudWatch의 `RUNTIME_METRICS` 숫자 필드 및 `_aws` 부재를 확인한다.
+4. 대시보드 스크립트를 실행하고 API/앱 그래프를 확인한다. GET 응답 X-Request-Id로 요청 원문도 확인한다.
+5. dev DB 수집기를 별도 설치·검증하고 스크립트를 재실행한다. 정상 확인 후 main에 앱을 배포하고 prod DB에도 적용한다.
+6. 중지: 앱 `YESULIN_MONITORING_ENABLED=false` 재배포, DB `systemctl disable --now yesulin-database-metrics.timer`.
+   Agent 전체 중지는 다른 수집도 멈추므로 설정을 검토한다. 이미 보관된 로그는 삭제하지 않는다.
 
-1. `/actuator/health/readiness` 200, `/actuator/metrics` 비노출 확인.
-2. `systemctl is-active amazon-cloudwatch-agent`, Agent 로그의 AccessDenied/configuration 오류 확인.
-3. 30~90초 뒤 앱 파일에 `RUNTIME_METRICS` JSON과 `_aws` 객체 확인. 2~5분 뒤 CloudWatch 실제 metric 확인.
-   Tomcat/Hikari가 빠져 있으면 0으로 취급하지 말고 meter 등록/설정을 점검한다.
-4. GET 한 건을 보내 응답의 `X-Request-Id`로 CloudWatch `HTTP_REQUEST`를 찾는다.
-   오류 검색은 실제 오류 로그가 생긴 경우 확인하며 검증 때문에 운영 500 오류를 일부러 만들지 않는다.
-5. DB collector는 dev DB에 먼저 설치하고 파일·그룹·metric을 확인한 후 prod DB에 설치한다.
-6. 필요하면 collector를 중지한다: 앱 `YESULIN_MONITORING_ENABLED=false` 후 재배포,
-   DB `systemctl disable --now yesulin-database-metrics.timer`, Agent `systemctl disable --now amazon-cloudwatch-agent`.
-   전체 Agent 중지는 다른 수집도 멈추므로 설정을 검토한다. 이미 보관된 로그는 삭제하지 않는다.
-
-참고: [EMF](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/CloudWatch_Embedded_Metric_Format.html),
-[Agent 지표](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/metrics-collected-by-CloudWatch-agent.html),
+참고: [로그 쿼리 대시보드](https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CWL_ExportQueryResults.html),
+[Logs Insights](https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CWL_QuerySyntax.html),
 [MySQL status](https://dev.mysql.com/doc/refman/8.4/en/server-status-variables.html),
-[AWS CloudWatch 요금](https://aws.amazon.com/cloudwatch/pricing/),
-[서울 리전 가격표](https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonCloudWatch/current/ap-northeast-2/index.json).
+[AWS CloudWatch 요금](https://aws.amazon.com/cloudwatch/pricing/).
 
 ## OTR 공고 경유 링크 집계
 
@@ -207,25 +197,8 @@ filter event = "HTTP_REQUEST"
 공고별 집계는 마지막 줄을 `| stats count(*) as redirects by otrId`로 바꾼다.
 조회 기간은 CloudWatch 콘솔에서 선택하며 보관 중인 과거 로그도 조회할 수 있다.
 
-### CloudWatch Metrics
+### 집계와 비용
 
-EC2 기본 지표에는 경로별 클릭 수가 없다. 로그 그룹(Standard class)에 아래 Metric Filter를 추가하면
-수집 로그를 커스텀 지표로 변환할 수 있다. 이 문서는 설정 방법만 안내하며 AWS 리소스를 생성하지 않는다.
-
-```text
-{ ($.event = "HTTP_REQUEST") && ($.method = "GET") && ($.endpoint = "/api/v1/otr") && ($.status = 302) }
-```
-
-- Namespace: DEV `Yesulin/Notice/Dev`, PROD `Yesulin/Notice/Prod`, Metric name: `OtrRedirectCount`
-- Metric value: `1`, Unit: `Count`, Default value: `0`
-- Dimensions: 없음. DEV·PROD는 서로 다른 로그 그룹과 namespace로 구분한다.
-- 그래프의 Statistic은 `Sum`으로 선택한다. 선택한 기간마다 매칭된 요청 수를 보여준다.
-
-Metric Filter는 생성 이후 수집된 로그만 집계하고 과거 로그를 소급하지 않는다.
-Default 0도 로그 수집 자체가 없는 시간에는 지표를 생성하지 않으므로 데이터 없음과 요청 0은 다를 수 있다.
-공고 번호를 dimension으로 만들면 공고마다 지표가 생기므로 공고별 분석은 Logs Insights를 사용한다.
-로그 수집·보관·Insights 쿼리 및 커스텀 지표는 계정 사용량/무료 범위에 따라 요금이 발생할 수 있다.
-필터는 드물게 중복 전달될 수 있어 정확한 과금·고유 사용자 집계 용도로 사용하지 않는다.
-
-참고: [AWS Metric Filter](https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/MonitoringLogData.html),
-[AWS CloudWatch 요금](https://aws.amazon.com/cloudwatch/pricing/).
+OTR도 위 Logs Insights 쿼리로 집계하며 이 변경은 경로/공고별 custom metric을 만들지 않는다.
+고유 사용자·정확한 과금 집계가 아니며 반복 클릭·봇과 드물게 중복 전달된 로그가 포함될 수 있다.
+조회 기간·보관 로그 범위에 따른 결과이므로 영구 누적 통계로 사용하지 않는다.
