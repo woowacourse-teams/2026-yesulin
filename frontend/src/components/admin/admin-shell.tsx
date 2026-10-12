@@ -80,7 +80,11 @@ export function AdminShell({ current, title, description, actions, badges = {}, 
             const count = badgeOf(item.id);
             return (
               <Fragment key={item.id}>
-                {item.id === "audit" ? <p className="mb-1 mt-5 px-3 text-xs font-medium text-sidebar-muted">운영 도구</p> : null}
+                {item.id === "audit" ? (
+                  <div className="mb-2 mt-5 border-t border-sidebar-line px-3 pt-5">
+                    <h2 className="text-xs font-bold tracking-wide text-sidebar-text">운영 도구</h2>
+                  </div>
+                ) : null}
                 <Link
                   href={item.href}
                   aria-current={active ? "page" : undefined}
@@ -114,7 +118,7 @@ export function AdminShell({ current, title, description, actions, badges = {}, 
                 const active = item.id === activeTarget;
                 const count = badgeOf(item.id);
                 return (
-                  <li key={item.id}>
+                  <li key={item.id} className={item.id === "audit" ? "ml-3 border-l border-border pl-3" : undefined}>
                     <Link
                       href={item.href}
                       aria-current={active ? "page" : undefined}
