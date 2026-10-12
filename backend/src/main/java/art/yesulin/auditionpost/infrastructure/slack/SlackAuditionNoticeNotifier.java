@@ -35,20 +35,14 @@ public class SlackAuditionNoticeNotifier implements AuditionNoticeNotifier {
         if (alerts.isEmpty()) {
             throw new IllegalArgumentException("전송할 공고가 없습니다.");
         }
-        List<AuditionContent> contents = alerts.stream().map(AuditionAlert::content).toList();
-        StringBuilder message = new StringBuilder("🔔 예술in 오디션 공고 알림 · ").append(contents.size()).append("건\n");
-        for (int index = 0; index < contents.size(); index++) {
-            AuditionContent content = contents.get(index);
+        StringBuilder message = SlackAuditionMessages.header(alerts.size());
+        for (int index = 0; index < alerts.size(); index++) {
+            AuditionContent content = alerts.get(index).content();
             if (index > 0) {
                 message.append("\n\n──────────\n");
             }
-            if (!content.category().isBlank()) {
-                message.append("\n[").append(content.category()).append("] ");
-            }
-            message.append(content.title())
-                    .append("\n페이: ").append(display(content.pay()))
-                    .append(" | 마감: ").append(display(content.deadline()))
-                    .append("\n자세히 보기\n").append(alerts.get(index).link());
+            SlackAuditionMessages.appendAlert(message, content.category(), content.title(), content.pay(),
+                    content.deadline(), alerts.get(index).link());
         }
         post(message.toString());
     }
@@ -64,10 +58,6 @@ public class SlackAuditionNoticeNotifier implements AuditionNoticeNotifier {
             return;
         }
         webhookClient.post(errorWebhookUrl, "⚠️ %s 공고 알림 전송 실패\n%s".formatted(environmentLabel, message));
-    }
-
-    private String display(String value) {
-        return value.isBlank() ? "미기재" : value;
     }
 
     private void post(String message) {

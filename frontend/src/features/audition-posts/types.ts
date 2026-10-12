@@ -3,6 +3,7 @@ export type AuditionPostSummary = {
   readonly id: number;
   readonly category: string;
   readonly title: string;
+  /** 기획사에 연결된 공고는 그 기획사의 지금 이름, 아니면 원문 닉네임이나 운영자가 쓴 이름이다. */
   readonly authorName: string;
   readonly pay: string;
   /** 원문 표현 그대로의 마감(`2026-10-31`, `상시`, `채용 시 마감` 등). */
@@ -45,6 +46,7 @@ export type AuditionPost = {
   readonly id: number;
   readonly category: string;
   readonly title: string;
+  /** 기획사에 연결된 공고는 그 기획사의 지금 이름, 아니면 원문 닉네임이나 운영자가 쓴 이름이다. */
   readonly authorName: string;
   readonly pay: string;
   readonly deadlineText: string;
@@ -90,6 +92,13 @@ export const auditionPostRoutes = {
     return query ? `/?${query}` : "/";
   },
   detail: (postId: number | string) => `/posts/${encodeURIComponent(String(postId))}`,
+} as const;
+
+/** 기획사가 자기 공고를 올리고 고치는 관리 화면. */
+export const producerAuditionPostRoutes = {
+  list: "/producers/audition-posts",
+  create: "/producers/audition-posts/new",
+  edit: (postId: number | string) => `/producers/audition-posts/${encodeURIComponent(String(postId))}/edit`,
 } as const;
 
 /** 주소의 `?page=2&closed=1`을 서버 조건으로 바꾼다. 잘못된 값은 첫 페이지·모집 중으로 본다. */

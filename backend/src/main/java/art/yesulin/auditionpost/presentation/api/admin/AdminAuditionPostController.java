@@ -1,13 +1,14 @@
 package art.yesulin.auditionpost.presentation.api.admin;
 
-import art.yesulin.auditionpost.application.AdminAuditionPostDetailResult;
 import art.yesulin.auditionpost.application.AdminAuditionPostResult;
+import art.yesulin.auditionpost.application.AuditionPostEditResult;
 import art.yesulin.auditionpost.application.AuditionPostImportResult;
 import art.yesulin.auditionpost.application.AuditionPostImportService;
 import art.yesulin.auditionpost.application.AuditionPostService;
 import art.yesulin.auditionpost.application.AuditionPostUploadResult;
 import art.yesulin.auditionpost.application.AuditionPostUploadService;
 import art.yesulin.auditionpost.application.AuditionPostWriteService;
+import art.yesulin.auditionpost.presentation.api.PrepareAuditionPostUploadRequest;
 import art.yesulin.auth.application.MemberPrincipal;
 import art.yesulin.auth.application.annotation.LoginMember;
 import art.yesulin.auth.application.annotation.LoginRequired;
@@ -25,7 +26,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** 운영자가 OTR 공고를 숨김으로 가져오고, 내용을 고치고, 지원서를 준비한 뒤 공개하거나 제작사 요청으로 다시 숨긴다. */
+/**
+ * 운영자가 OTR 공고를 숨김으로 가져오거나 직접 쓰고, 내용을 고친 뒤 공개하거나 제작사 요청으로 다시 숨긴다.
+ * 공고를 기획사 계정에 연결하면 그 기획사가 직접 고칠 수 있다.
+ */
 @RestController
 @RequestMapping("/api/v1/admin/audition-posts")
 @RequiredArgsConstructor
@@ -78,7 +82,7 @@ public class AdminAuditionPostController {
     }
 
     @GetMapping("/{postId}")
-    public ResponseEntity<AdminAuditionPostDetailResult> find(
+    public ResponseEntity<AuditionPostEditResult> find(
             @LoginMember(roles = MemberType.ADMIN) MemberPrincipal principal,
             @PathVariable long postId
     ) {
@@ -92,6 +96,16 @@ public class AdminAuditionPostController {
             @Valid @RequestBody WriteAuditionPostRequest request
     ) {
         return ResponseEntity.ok(writeService.edit(principal.memberId(), postId, request.toCommand()));
+    }
+
+    /** 연결을 끊으려면 {@code ownerId}를 null로 보낸다. */
+    @PatchMapping("/{postId}/owner")
+    public ResponseEntity<AdminAuditionPostResult> changeOwner(
+            @LoginMember(roles = MemberType.ADMIN) MemberPrincipal principal,
+            @PathVariable long postId,
+            @RequestBody ChangeAuditionPostOwnerRequest request
+    ) {
+        return ResponseEntity.ok(writeService.changeOwner(principal.memberId(), postId, request.ownerId()));
     }
 
     @PatchMapping("/{postId}/status")

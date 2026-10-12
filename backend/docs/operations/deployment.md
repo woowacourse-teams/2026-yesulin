@@ -9,7 +9,9 @@ DEV와 PROD의 Build 액션은 각각 `DEPLOY_ENV=dev`, `DEPLOY_ENV=prod`를 명
 공고 스케줄러는 매일 한국 시간 09:00~20:00에 10분 간격으로 실행되며 연극·퍼포먼스·뮤지컬·단원·기획사 공고만 다룬다.
 PROD의 `AuditionImportScheduler`는 새 OTR 공고를 우리 공고로 숨긴 채 가져온 뒤 Slack으로 알린다. 운영에서 잠시 멈추려면
 `YESULIN_NOTICE_SCHEDULER_ENABLED=false`를 설정한다. DEV·LOCAL은 공고를 수집·알림하지 않고 관리자 화면 `/admin/posts`에서
-직접 가져온다. Slack 웹훅 `YESULIN_SLACK_WEBHOOK_URL`은 PROD에서만 쓰며 `server/dev.env`의 값은 사용하지 않는다.
+직접 가져온다. Slack 웹훅 `YESULIN_SLACK_WEBHOOK_URL`을 OTR 공고 알림에는 PROD에서만 쓴다. 기획사가 공고를 올리거나 고친 알림은
+값이 있는 모든 환경에서 같은 웹훅으로 보내고, PROD가 아니면 메시지 앞에 `[DEV]`·`[LOCAL]`을 붙인다. `server/dev.env`에는 값이
+있으므로 DEV에서 기획사 공고를 올려도 공고 채널에 `[DEV]` 알림이 간다. 웹훅이 비어 있으면 기획사 공고 알림은 로그만 남긴다.
 값이 없으면 가져오기는 되지만 알림 전송이 실패해 알림 이력이 대기 상태로 남는다. 웹훅을 넣으면 다음 실행부터
 한 번에 최대 100건씩 보내고, 남은 건은 그다음 실행에서 보낸다.
 현재 PROD는 인스턴스 한 대 기준이며 분산 실행 잠금은 없다. 여러 대로 늘리면 중복 알림을 막는 잠금을 먼저 추가한다.

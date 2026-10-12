@@ -124,6 +124,40 @@ class AuditionPostTest {
     }
 
     @Test
+    void ownerPostIsPublishedAndOwnedByProducer() {
+        AuditionPost post = AuditionPost.publishByOwner(
+                content("상시"), List.of(), List.of(image("a.png")), 7L, NOW
+        );
+
+        assertEquals(AuditionPostStatus.PUBLISHED, post.getStatus());
+        assertEquals(AuditionPost.DIRECT_SOURCE, post.getSource());
+        assertFalse(post.hasOrigin());
+        assertNull(post.getImportedBy());
+        assertTrue(post.isWrittenByOwner());
+        assertTrue(post.isOwnedBy(7L));
+        assertFalse(post.isOwnedBy(8L));
+        assertThrows(
+                BusinessException.class,
+                () -> AuditionPost.publishByOwner(content("상시"), List.of(), List.of(), 0L, NOW)
+        );
+    }
+
+    @Test
+    void adminConnectsAndDisconnectsOwner() {
+        AuditionPost imported = new AuditionPost(ORIGIN, content("상시"), List.of(), List.of(), 1L, NOW);
+        final AuditionPost written = AuditionPost.write(content("상시"), List.of(), List.of(), 1L, NOW);
+
+        imported.changeOwner(7L);
+
+        assertTrue(imported.isOwnedBy(7L));
+        assertFalse(imported.isWrittenByOwner());
+        assertFalse(written.isWrittenByOwner());
+        imported.changeOwner(null);
+        assertFalse(imported.isOwnedBy(7L));
+        assertThrows(BusinessException.class, () -> imported.changeOwner(0L));
+    }
+
+    @Test
     void trimsAndDeduplicatesTags() {
         AuditionPost post = new AuditionPost(
                 ORIGIN, content("상시"), List.of(" 연극 ", "연극", "", "뮤지컬"), List.of(), 1L, NOW

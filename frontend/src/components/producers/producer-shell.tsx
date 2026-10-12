@@ -6,6 +6,7 @@ import { ModalShell } from "@/components/auditions/modal-shell";
 import { OtrAuditionProvider } from "@/components/otr-auditions/otr-audition-context";
 import { OtrAuditionTreeNav } from "@/components/otr-auditions/otr-audition-tree";
 import { ShowManagementNav } from "@/components/shows/manage/show-management-nav";
+import { AuditionPostManagementNav } from "@/components/audition-posts/manage/audition-post-management-nav";
 import { SidebarResizer } from "./sidebar-resizer";
 import { MobileProducerNavigation } from "./mobile-producer-navigation";
 import { ProducerAccountPanel } from "./producer-account-panel";
@@ -68,6 +69,7 @@ function ProducerShellFrame({
               <ProducerSidebarHeader onClose={() => setDesktopSidebarOpen(false)} />
               <div className="min-h-0 flex-1 overflow-y-auto py-2">
                 <ShowManagementNav />
+                <AuditionPostManagementNav />
                 <OtrAuditionTreeNav />
               </div>
               <ProducerAccountPanel />
@@ -87,6 +89,7 @@ function ProducerShellFrame({
           <ProducerSidebarHeader titleId={DESKTOP_NAVIGATION_TITLE} autoFocus onClose={closeFocusNavigation} />
           <div className="min-h-0 flex-1 overflow-y-auto py-2">
             <ShowManagementNav onNavigate={closeFocusNavigation} />
+            <AuditionPostManagementNav onNavigate={closeFocusNavigation} />
             <OtrAuditionTreeNav onNavigate={closeFocusNavigation} />
           </div>
           <ProducerAccountPanel />

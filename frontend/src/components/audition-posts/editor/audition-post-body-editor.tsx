@@ -5,7 +5,7 @@ import { TableKit } from "@tiptap/extension-table";
 import { EditorContent, useEditor, useEditorState, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
-import { AUDITION_POST_IMAGE_TYPES, checkAuditionPostFile } from "@/features/admin/audition-posts";
+import { AUDITION_POST_IMAGE_TYPES, checkAuditionPostFile } from "@/features/audition-posts/editing";
 import { BodyEditorLoading } from "./body-editor-loading";
 
 type Props = {

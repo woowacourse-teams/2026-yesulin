@@ -17,6 +17,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -24,7 +25,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** 가져온 공고의 공개 조회와 운영자 목록·공개 상태 변경. 마감 여부는 한국 날짜로 계산한다. */
+/** 공고의 공개 조회와 운영자 목록·공개 상태 변경. 마감 여부는 한국 날짜로 계산한다. */
 @Service
 @RequiredArgsConstructor
 public class AuditionPostService {
@@ -36,6 +37,7 @@ public class AuditionPostService {
 
     private final AuditionPostRepository repository;
     private final AdminAuditLogRepository auditLogRepository;
+    private final AuditionPostOwners owners;
     private final ObjectStorage storage;
     private final Clock clock;
 
@@ -50,8 +52,12 @@ public class AuditionPostService {
         Page<AuditionPost> result = includeClosed
                 ? repository.findAllByStatusOrderByContentSourcePostedAtDescIdDesc(PUBLISHED, pageable)
                 : repository.findOpen(PUBLISHED, today, pageable);
+        Map<Long, String> ownerNames = owners.namesOf(result.getContent());
         List<PublicAuditionPostSummaryResult> posts = result.stream()
-                .map(post -> PublicAuditionPostSummaryResult.from(post, today, KOREA, storage::toPublicUrl))
+                .map(post -> PublicAuditionPostSummaryResult.from(
+                        post, AuditionPostOwners.authorOf(post, AuditionPostOwners.nameIn(ownerNames, post)),
+                        today, KOREA, storage::toPublicUrl
+                ))
                 .toList();
         return new PublicAuditionPostPageResult(
                 posts, page, size, result.getTotalPages(), result.getTotalElements(),
@@ -71,9 +77,9 @@ public class AuditionPostService {
             }
             return new PublicAuditionPostView.Hidden(URI.create(post.getSourceUrl()));
         }
-        return new PublicAuditionPostView.Published(
-                PublicAuditionPostResult.from(post, today(), KOREA, storage::toPublicUrl)
-        );
+        return new PublicAuditionPostView.Published(PublicAuditionPostResult.from(
+                post, AuditionPostOwners.authorOf(post, owners.nameOf(post)), today(), KOREA, storage::toPublicUrl
+        ));
     }
 
     /** 공개 상세를 연 브라우저가 한 번 보낸다. 숨겼거나 없는 공고는 404다. */
@@ -103,8 +109,10 @@ public class AuditionPostService {
     @Transactional(readOnly = true)
     public List<AdminAuditionPostResult> findAllForAdmin() {
         LocalDate today = today();
-        return repository.findAllByOrderByIdDesc(PageRequest.of(0, ADMIN_LIST_LIMIT)).stream()
-                .map(post -> AdminAuditionPostResult.from(post, today))
+        List<AuditionPost> posts = repository.findAllByOrderByIdDesc(PageRequest.of(0, ADMIN_LIST_LIMIT));
+        Map<Long, String> ownerNames = owners.namesOf(posts);
+        return posts.stream()
+                .map(post -> AdminAuditionPostResult.from(post, today, AuditionPostOwners.nameIn(ownerNames, post)))
                 .toList();
     }
 
@@ -119,7 +127,7 @@ public class AuditionPostService {
                     "%s → %s".formatted(previous, status)
             ));
         }
-        return AdminAuditionPostResult.from(post, today());
+        return AdminAuditionPostResult.from(post, today(), owners.nameOf(post));
     }
 
     private LocalDate today() {

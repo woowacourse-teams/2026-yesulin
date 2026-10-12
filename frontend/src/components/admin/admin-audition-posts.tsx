@@ -131,7 +131,7 @@ export function AdminAuditionPosts() {
   const search = query.trim().toLocaleLowerCase("ko-KR");
   const visiblePosts = posts.filter((post) =>
     (statusFilter === "ALL" || post.status === statusFilter)
-    && (!search || [post.title, post.authorName, post.externalId].some((value) => value?.toLocaleLowerCase("ko-KR").includes(search))),
+    && (!search || [post.title, post.authorName, post.externalId, post.ownerName].some((value) => value?.toLocaleLowerCase("ko-KR").includes(search))),
   );
 
   return (
@@ -150,7 +150,7 @@ export function AdminAuditionPosts() {
         <SummaryItem label="조회된 공고" value={posts.length} unit="건" />
         <SummaryItem label="공개 중" value={posts.filter((post) => post.status === "PUBLISHED").length} unit="건" />
         <SummaryItem label="숨김" value={posts.filter((post) => post.status === "HIDDEN").length} unit="건" />
-        <SummaryItem label="직접 작성" value={posts.filter((post) => post.externalId === null).length} unit="건" />
+        <SummaryItem label="기획사 등록" value={posts.filter((post) => post.writtenByOwner).length} unit="건" />
       </SummaryStrip> : null}
       {phase === "ready" ? <p className="-mt-3 text-xs text-muted">최근 등록된 공고 200건까지 확인·검색할 수 있어요. 요약 숫자는 현재 목록 기준입니다.</p> : null}
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -218,7 +218,7 @@ export function AdminAuditionPosts() {
             </div>
             <label className="flex w-full flex-col gap-1.5 text-sm font-medium sm:w-72" htmlFor="post-search">
               공고 검색
-              <FieldInput id="post-search" name="post-search" type="search" autoComplete="off" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="제목, 작성자, OTR 번호…" />
+              <FieldInput id="post-search" name="post-search" type="search" autoComplete="off" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="제목, 작성자, 기획사, OTR 번호…" />
             </label>
           </div> : null}
           {posts.length === 0 ? (
@@ -239,8 +239,9 @@ export function AdminAuditionPosts() {
                 {post.externalId ? (
                   <span className="num text-muted">{post.source} {post.externalId}</span>
                 ) : (
-                  <span className="rounded-full bg-brand-soft px-2.5 py-0.5 font-bold text-brand">직접 작성</span>
+                  <span className="rounded-full bg-brand-soft px-2.5 py-0.5 font-bold text-brand">{post.writtenByOwner ? "기획사 등록" : "직접 작성"}</span>
                 )}
+                {post.ownerId !== null ? <span className="text-muted-strong">기획사 {post.ownerName ?? `회원 ${post.ownerId}`}</span> : null}
                 <span className="ml-auto text-muted">{formatDateTime(post.updatedAt)} 갱신</span>
               </header>
               <h3 className="mt-3 break-words text-lg font-semibold"><Link href={adminAuditionPostRoutes.edit(post.id)} className="hover:text-brand">{post.title}</Link></h3>

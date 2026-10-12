@@ -3,14 +3,16 @@ import { safeUpload } from "../files/safe-upload";
 import { reportUploadDiagnostic } from "../files/upload-diagnostics";
 import { readErrorCode, readErrorMessage, readErrorDetail } from "../api-error";
 import type {
+  AuditionPostFileKind,
+  AuditionPostUpload,
+  AuditionPostWrite,
+  EditableAuditionPost,
+} from "../audition-posts/editing";
+import type {
   AdminAuditLogPage,
   AdminAudition,
   AdminAuditionPost,
-  AdminAuditionPostDetail,
-  AdminAuditionPostFileKind,
   AdminAuditionPostImport,
-  AdminAuditionPostUpload,
-  AdminAuditionPostWrite,
   AdminAuditionPostStatus,
   AdminDailyActivity,
   AdminFileDeletionResult,
@@ -302,14 +304,26 @@ export async function changeAuditionPostStatus(
   return response.json() as Promise<AdminAuditionPost>;
 }
 
-export function fetchAuditionPostForEdit(postId: string): Promise<AdminAuditionPostDetail> {
-  return getJson<AdminAuditionPostDetail>(
+/** 공고를 기획사 계정에 연결하거나(`ownerId`) 연결을 끊는다(null). 연결된 기획사는 그 공고를 직접 고칠 수 있다. */
+export async function changeAuditionPostOwner(postId: number, ownerId: number | null): Promise<AdminAuditionPost> {
+  const response = await fetch(`${API_BASE_PATH}/audition-posts/${postId}/owner`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: await withCsrfHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ ownerId }),
+  });
+  if (!response.ok) throw await readAdminError(response, "기획사 연결을 바꾸지 못했습니다.");
+  return response.json() as Promise<AdminAuditionPost>;
+}
+
+export function fetchAuditionPostForEdit(postId: string): Promise<EditableAuditionPost> {
+  return getJson<EditableAuditionPost>(
     `/audition-posts/${encodeURIComponent(postId)}`,
     "공고를 불러오지 못했습니다.",
   );
 }
 
-export async function updateAuditionPost(postId: string, write: AdminAuditionPostWrite): Promise<AdminAuditionPost> {
+export async function updateAuditionPost(postId: string, write: AuditionPostWrite): Promise<AdminAuditionPost> {
   const response = await fetch(`${API_BASE_PATH}/audition-posts/${encodeURIComponent(postId)}`, {
     method: "PUT",
     credentials: "include",
@@ -321,7 +335,7 @@ export async function updateAuditionPost(postId: string, write: AdminAuditionPos
 }
 
 /** 원문 없이 공고를 쓴다. 숨김으로 만들어지고 목록에서 보여주기를 눌러야 공개된다. */
-export async function createAuditionPost(write: AdminAuditionPostWrite): Promise<AdminAuditionPost> {
+export async function createAuditionPost(write: AuditionPostWrite): Promise<AdminAuditionPost> {
   const response = await fetch(`${API_BASE_PATH}/audition-posts`, {
     method: "POST",
     credentials: "include",
@@ -336,7 +350,7 @@ export async function createAuditionPost(write: AdminAuditionPostWrite): Promise
  * 공고 사진·첨부를 저장소로 바로 올리고 공개 주소를 돌려준다. 공고를 저장할 때 서버가 이 주소로 업로드를 확정하므로
  * 별도 완료 요청은 없다. WebKit 파일 접근 실패에 대비한 메모리 복사와 재시도는 다른 업로드와 같은 방식을 쓴다.
  */
-export async function uploadAuditionPostFile(kind: AdminAuditionPostFileKind, file: File): Promise<string> {
+export async function uploadAuditionPostFile(kind: AuditionPostFileKind, file: File): Promise<string> {
   let publicUrl = "";
   await safeUpload({
     flow: "AUDITION_POST_FILE",
@@ -350,7 +364,7 @@ export async function uploadAuditionPostFile(kind: AdminAuditionPostFileKind, fi
         body: JSON.stringify({ kind, filename: metadata.originalFilename, contentType: metadata.contentType, size: metadata.size }),
       });
       if (!response.ok) throw await readAdminError(response, "파일을 올릴 준비를 하지 못했습니다.");
-      const upload = await response.json() as AdminAuditionPostUpload;
+      const upload = await response.json() as AuditionPostUpload;
       publicUrl = upload.publicUrl;
       // 공고 파일은 파일 ID 대신 공개 주소로 확정하므로 fileId는 쓰지 않는다.
       return { fileId: 0, uploadUrl: upload.url, method: upload.method, headers: upload.headers };

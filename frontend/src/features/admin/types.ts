@@ -310,7 +310,7 @@ export type AdminTimetableMessages = {
 
 export type AdminAuditionPostStatus = "PUBLISHED" | "HIDDEN";
 
-/** 운영자가 OTR에서 가져오거나 직접 쓴 공고. `/api/v1/admin/audition-posts` 응답과 같다. */
+/** OTR에서 가져오거나 운영자·기획사가 직접 쓴 공고. `/api/v1/admin/audition-posts` 응답과 같다. */
 export type AdminAuditionPost = {
   readonly id: number;
   /** 원문 출처. 직접 쓴 공고는 `YESULIN`이다. */
@@ -320,6 +320,7 @@ export type AdminAuditionPost = {
   readonly sourceUrl: string | null;
   readonly category: string;
   readonly title: string;
+  /** 저장된 작성자(원문 닉네임이나 운영자가 쓴 이름). 기획사에 연결된 공고는 공개 화면에 `ownerName`이 보인다. */
   readonly authorName: string;
   readonly deadlineText: string;
   readonly closed: boolean;
@@ -333,61 +334,14 @@ export type AdminAuditionPost = {
   readonly attachmentCount: number;
   readonly createdAt: string;
   readonly updatedAt: string;
-  /** 운영자가 마지막으로 직접 고친 시각. 고친 적이 없거나 원문으로 다시 가져왔으면 null. */
+  /** 운영자나 소유 기획사가 마지막으로 직접 고친 시각. 고친 적이 없거나 원문으로 다시 가져왔으면 null. */
   readonly editedAt: string | null;
-};
-
-export type AdminAuditionPostAttachment = {
-  readonly name: string;
-  readonly contentType: string;
-  readonly size: number;
-  /** 공개 저장소 주소. 수정할 때 남길 첨부를 이 주소로 알린다. */
-  readonly url: string;
-};
-
-/** 수정 화면에 채울 공고. `/api/v1/admin/audition-posts/{postId}` 응답과 같다. */
-export type AdminAuditionPostDetail = {
-  readonly id: number;
-  readonly source: string;
-  readonly externalId: string | null;
-  readonly sourceUrl: string | null;
-  readonly status: AdminAuditionPostStatus;
-  readonly category: string;
-  readonly title: string;
-  readonly pay: string;
-  readonly deadlineText: string;
-  readonly authorName: string;
-  /** 사진 자리를 공개 주소로 채운 본문. 편집기가 그대로 보여 준다. */
-  readonly bodyHtml: string;
-  readonly tags: readonly string[];
-  readonly attachments: readonly AdminAuditionPostAttachment[];
-  readonly editedAt: string | null;
-  readonly updatedAt: string;
-};
-
-export type AdminAuditionPostWrite = {
-  readonly category: string;
-  readonly title: string;
-  readonly pay: string;
-  readonly deadlineText: string;
-  readonly authorName: string;
-  /** 고칠 때 본문을 건드리지 않았으면 null. 서버가 원래 본문과 사진을 그대로 둔다. */
-  readonly bodyHtml: string | null;
-  readonly tags: readonly string[];
-  /** 남기거나 새로 올린 첨부의 주소. 빠진 첨부는 서버가 지운다. */
-  readonly attachmentUrls: readonly string[];
-};
-
-export type AdminAuditionPostFileKind = "IMAGE" | "ATTACHMENT";
-
-/** 브라우저가 공고 사진·첨부를 저장소로 바로 올릴 주소. */
-export type AdminAuditionPostUpload = {
-  readonly url: string;
-  readonly method: string;
-  readonly headers: Readonly<Record<string, string>>;
-  readonly expiresAt: string;
-  /** 올린 뒤 본문 사진 주소나 첨부 주소로 쓴다. 저장할 때 서버가 이 주소로 업로드를 확정한다. */
-  readonly publicUrl: string;
+  /** 이 공고를 고칠 수 있는 기획사 회원 ID. 연결되지 않았으면 null. */
+  readonly ownerId: number | null;
+  /** 연결된 기획사 이름. 연결이 없거나 기획사 정보가 없어졌으면 null. */
+  readonly ownerName: string | null;
+  /** 기획사가 직접 올린 공고면 true. */
+  readonly writtenByOwner: boolean;
 };
 
 export type AdminAuditionPostImport = {

@@ -1,15 +1,24 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
-import { AdminApiError, fetchAuditionPostForEdit, updateAuditionPost } from "@/features/admin/api";
+import { useCallback, useEffect, useId, useState } from "react";
+import { AuditionPostForm } from "@/components/audition-posts/editor/audition-post-form";
+import { FieldSelect } from "@/components/ui/controls";
+import {
+  AdminApiError,
+  changeAuditionPostOwner,
+  fetchAuditionPostForEdit,
+  fetchProducers,
+  updateAuditionPost,
+  uploadAuditionPostFile,
+} from "@/features/admin/api";
 import { adminAuditionPostRoutes } from "@/features/admin/audition-posts";
-import type { AdminAuditionPostDetail, AdminAuditionPostWrite } from "@/features/admin/types";
+import type { AdminProducer } from "@/features/admin/types";
+import type { AuditionPostWrite, EditableAuditionPost } from "@/features/audition-posts/editing";
 import { auditionPostRoutes } from "@/features/audition-posts/types";
 import { formatDateTime } from "./admin-format";
-import { AuditionPostForm } from "./admin-audition-post-form";
 import { AdminSessionEnded } from "./admin-session-ended";
-import { AdminActionLink, AdminShell } from "./admin-shell";
+import { AdminActionButton, AdminActionLink, AdminShell } from "./admin-shell";
 
 type Phase = "loading" | "ready" | "missing" | "failed" | "unauthorized";
 
@@ -19,7 +28,7 @@ function isAuthError(cause: unknown) {
 
 /**
  * 운영자가 공고의 분류·제목·페이·마감·작성자·태그·본문과 사진·첨부를 고친다. 저장하면 저장된 내용을 다시 불러와
- * 폼을 새로 채운다. 공개 상태는 바꾸지 않는다.
+ * 폼을 새로 채운다. 공개 상태는 바꾸지 않는다. 공고를 기획사 계정에 연결하면 그 기획사가 직접 고칠 수 있다.
  */
 export function AdminAuditionPostEdit({ postId, created = false }: {
   readonly postId: string;
@@ -27,9 +36,9 @@ export function AdminAuditionPostEdit({ postId, created = false }: {
   readonly created?: boolean;
 }) {
   const [phase, setPhase] = useState<Phase>("loading");
-  const [post, setPost] = useState<AdminAuditionPostDetail | null>(null);
+  const [post, setPost] = useState<EditableAuditionPost | null>(null);
   const [notice, setNotice] = useState<string | undefined>(
-    created ? "숨김으로 만들었어요. 목록에서 '보여주기'를 누르면 공개돼요." : undefined,
+    created ? "숨김으로 만들었어요. 업체 계정을 연결하고, 목록에서 '보여주기'를 누르면 공개돼요." : undefined,
   );
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
@@ -58,7 +67,7 @@ export function AdminAuditionPostEdit({ postId, created = false }: {
     return () => { active = false; };
   }, [postId, reloadToken]);
 
-  const save = useCallback(async (write: AdminAuditionPostWrite) => {
+  const save = useCallback(async (write: AuditionPostWrite) => {
     try {
       await updateAuditionPost(postId, write);
     } catch (cause) {
@@ -101,21 +110,33 @@ export function AdminAuditionPostEdit({ postId, created = false }: {
       {phase === "ready" && post ? (
         <>
           <PostSummary post={post} />
+          <OwnerPanel
+            post={post}
+            onChanged={(owner) => setPost((current) => (current ? { ...current, owner } : current))}
+            onUnauthorized={() => setPhase("unauthorized")}
+          />
           {/* 저장할 때마다 서버가 정리한 내용으로 폼과 편집기를 새로 채운다. */}
-          <AuditionPostForm key={post.updatedAt} post={post} notice={notice} submitLabel="저장" onSubmit={save} />
+          <AuditionPostForm
+            key={post.updatedAt}
+            post={post}
+            notice={notice}
+            submitLabel="저장"
+            uploadFile={uploadAuditionPostFile}
+            onSubmit={save}
+          />
         </>
       ) : null}
     </AdminShell>
   );
 }
 
-function PostSummary({ post }: { readonly post: AdminAuditionPostDetail }) {
+function PostSummary({ post }: { readonly post: EditableAuditionPost }) {
   return (
     <section aria-label="공고 출처와 상태" className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-card border border-border bg-card px-4 py-3 text-sm sm:px-5">
       <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${post.status === "PUBLISHED" ? "bg-pass-bg text-pass" : "bg-border-soft text-muted-strong"}`}>
         {post.status === "PUBLISHED" ? "공개 중" : "숨김"}
       </span>
-      <span className="num text-muted">{post.externalId ? `${post.source} ${post.externalId}` : "직접 작성"}</span>
+      <span className="num text-muted">{post.externalId ? `${post.source} ${post.externalId}` : "원문 없음"}</span>
       <span className="text-muted">{post.editedAt ? `마지막 수정 ${formatDateTime(post.editedAt)}` : "고친 적 없음"}</span>
       <span className="ml-auto flex flex-wrap gap-3">
         {post.sourceUrl ? (
@@ -125,6 +146,91 @@ function PostSummary({ post }: { readonly post: AdminAuditionPostDetail }) {
           <Link href={auditionPostRoutes.detail(post.id)} target="_blank" className="font-semibold text-brand underline underline-offset-2">공개 화면</Link>
         ) : null}
       </span>
+    </section>
+  );
+}
+
+function ownerLabel(producer: AdminProducer) {
+  return producer.companyName ? `${producer.companyName} · ${producer.email}` : producer.email;
+}
+
+/**
+ * 공고를 기획사 계정에 연결하거나 연결을 끊는다. 연결된 기획사는 자기 공고 목록에서 이 공고를 고칠 수 있다.
+ * 기획사 목록은 연결하려고 할 때만 불러온다.
+ */
+function OwnerPanel({ post, onChanged, onUnauthorized }: {
+  readonly post: EditableAuditionPost;
+  readonly onChanged: (owner: EditableAuditionPost["owner"]) => void;
+  readonly onUnauthorized: () => void;
+}) {
+  const selectId = useId();
+  const [producers, setProducers] = useState<readonly AdminProducer[] | null>(null);
+  const [choosing, setChoosing] = useState(false);
+  const [selected, setSelected] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fail = (cause: unknown, fallback: string) => {
+    if (isAuthError(cause)) {
+      onUnauthorized();
+      return;
+    }
+    setError(cause instanceof Error ? cause.message : fallback);
+  };
+
+  const startChoosing = async () => {
+    setChoosing(true);
+    setError(null);
+    if (producers) return;
+    try {
+      setProducers(await fetchProducers());
+    } catch (cause) {
+      fail(cause, "기획사 목록을 불러오지 못했어요.");
+      setChoosing(false);
+    }
+  };
+
+  const change = async (ownerId: number | null) => {
+    setBusy(true);
+    setError(null);
+    try {
+      const result = await changeAuditionPostOwner(post.id, ownerId);
+      onChanged(result.ownerId === null ? null : { memberId: result.ownerId, companyName: result.ownerName });
+      setChoosing(false);
+      setSelected("");
+    } catch (cause) {
+      fail(cause, "기획사 연결을 바꾸지 못했어요.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section aria-labelledby={`${selectId}-title`} className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-card border border-border bg-card px-4 py-3 text-sm sm:px-5">
+      <h2 id={`${selectId}-title`} className="font-bold">연결된 기획사</h2>
+      <span className={post.owner ? "font-semibold text-foreground" : "text-muted"}>
+        {post.owner ? post.owner.companyName ?? `회원 ${post.owner.memberId}` : "없음"}
+      </span>
+      {choosing ? (
+        <span className="flex w-full flex-wrap items-center gap-2 sm:ml-auto sm:w-auto">
+          <label htmlFor={selectId} className="sr-only">연결할 기획사</label>
+          <FieldSelect id={selectId} value={selected} disabled={busy || !producers} onChange={(event) => setSelected(event.target.value)} className="min-w-0 flex-1 sm:w-72 sm:flex-none">
+            <option value="" disabled>{producers ? "기획사를 골라 주세요" : "불러오는 중…"}</option>
+            {producers?.map((producer) => (
+              <option key={producer.memberId} value={producer.memberId}>{ownerLabel(producer)}</option>
+            ))}
+          </FieldSelect>
+          <AdminActionButton tone="primary" disabled={busy || !selected} onClick={() => void change(Number(selected))}>연결</AdminActionButton>
+          <AdminActionButton disabled={busy} onClick={() => setChoosing(false)}>취소</AdminActionButton>
+        </span>
+      ) : (
+        <span className="ml-auto flex flex-wrap gap-2">
+          {post.owner ? <AdminActionButton disabled={busy} onClick={() => void change(null)}>연결 끊기</AdminActionButton> : null}
+          <AdminActionButton disabled={busy} onClick={() => void startChoosing()}>{post.owner ? "다른 기획사로" : "기획사 연결"}</AdminActionButton>
+        </span>
+      )}
+      <p className="w-full text-xs text-muted">연결한 기획사는 기획사 관리 화면에서 이 공고를 직접 고칠 수 있어요. 고치면 Slack으로 알려 드려요.</p>
+      {error ? <p role="alert" className="w-full text-sm text-fail">{error}</p> : null}
     </section>
   );
 }

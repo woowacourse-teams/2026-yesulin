@@ -2,24 +2,25 @@
 
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
-import { BodyEditorLoading } from "@/components/audition-posts/editor/body-editor-loading";
-import { FieldInput, FieldSelect } from "@/components/ui/controls";
-import { AdminActionButton } from "./admin-shell";
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import { DialogFooter, DialogHeader, ModalShell } from "@/components/auditions/modal-shell";
-import { AdminApiError, uploadAuditionPostFile } from "@/features/admin/api";
+import { DestructiveButton, FieldInput, FieldSelect, PrimaryButton, SecondaryButton } from "@/components/ui/controls";
 import {
   AUDITION_POST_ATTACHMENT_EXTENSIONS,
   checkAuditionPostFile,
   parseTags,
-} from "@/features/admin/audition-posts";
-import type { AdminAuditionPostDetail, AdminAuditionPostFileKind, AdminAuditionPostWrite } from "@/features/admin/types";
+  type AuditionPostFileKind,
+  type AuditionPostWrite,
+  type EditableAuditionPost,
+  type UploadAuditionPostFile,
+} from "@/features/audition-posts/editing";
 import { formatFileSize } from "@/features/audition-posts/format";
 import { AUDITION_POST_CATEGORIES } from "@/features/audition-posts/types";
+import { BodyEditorLoading } from "./body-editor-loading";
 
 // 편집기는 브라우저에서만 그리고, 작성·수정 화면에 들어왔을 때만 불러온다.
 const AuditionPostBodyEditor = dynamic(
-  () => import("@/components/audition-posts/editor/audition-post-body-editor").then((module) => module.AuditionPostBodyEditor),
+  () => import("./audition-post-body-editor").then((module) => module.AuditionPostBodyEditor),
   { ssr: false, loading: () => <BodyEditorLoading /> },
 );
 
@@ -57,7 +58,7 @@ const MAX_TAGS = 20;
 const MAX_TAG_LENGTH = 50;
 const ATTACHMENT_ACCEPT = AUDITION_POST_ATTACHMENT_EXTENSIONS.map((extension) => `.${extension}`).join(",");
 
-function toForm(post: AdminAuditionPostDetail): Form {
+function toForm(post: EditableAuditionPost): Form {
   return {
     category: post.category,
     title: post.title,
@@ -83,33 +84,49 @@ function validate(form: Form): FieldErrors {
   return errors;
 }
 
-/** 업로드 실패는 서버가 알려 준 이유(형식·크기)를 먼저 보여 준다. */
+/** 업로드는 원인 오류를 `cause`에 담는다. 서버가 거절한 이유(형식·크기)가 있으면 그것을 먼저 보여 준다. */
 function uploadErrorMessage(cause: unknown): string {
-  if (cause instanceof Error && cause.cause instanceof AdminApiError) return cause.cause.message;
+  const inner = cause instanceof Error ? cause.cause : undefined;
+  if (inner instanceof Error && "status" in inner) return inner.message;
   return cause instanceof Error ? cause.message : "파일을 올리지 못했어요. 다시 시도해 주세요.";
 }
 
-async function uploadFile(kind: AdminAuditionPostFileKind, file: File): Promise<string> {
+async function uploadWithReason(upload: UploadAuditionPostFile, kind: AuditionPostFileKind, file: File): Promise<string> {
   try {
-    return await uploadAuditionPostFile(kind, file);
+    return await upload(kind, file);
   } catch (cause) {
     throw new Error(uploadErrorMessage(cause), { cause });
   }
 }
 
-const uploadImage = (file: File) => uploadFile("IMAGE", file);
+const ACTION_CLASS = "whitespace-nowrap";
+
+/** 기획사에 연결된 공고는 화면에 기획사 이름이 보이므로, 작성자 칸이 언제 쓰이는지 알려 준다. */
+function authorHint(post: EditableAuditionPost | null, creating: boolean): string | undefined {
+  if (creating) return "공고를 낸 단체 이름을 써 주세요.";
+  if (post?.owner) return `지금은 연결된 기획사 이름(${post.owner.companyName ?? "기획사"})으로 보여요. 이 이름은 연결을 끊으면 보여요.`;
+  return undefined;
+}
 
 /**
- * 공고를 직접 쓰거나 고치는 폼. 사진은 본문 편집기의 사진 도구로, 첨부는 첨부 목록에서 올린다. 올린 파일은 저장할 때 서버가
- * 이 공고의 파일로 확정한다. 고칠 때 본문을 건드리지 않으면 원래 본문을 그대로 두도록 본문 없이 저장한다.
+ * 운영자와 기획사가 공고를 쓰거나 고치는 폼. 사진은 본문 편집기의 사진 도구로, 첨부는 첨부 목록에서 올린다. 올린 파일은
+ * 저장할 때 서버가 이 공고의 파일로 확정한다. 고칠 때 본문을 건드리지 않으면 원래 본문을 그대로 두도록 본문 없이 저장한다.
+ * 기획사 공고의 작성자는 서버가 기획사 이름으로 정하므로 기획사 화면에서는 작성자를 고칠 수 없다.
  */
-export function AuditionPostForm({ post, notice, submitLabel, onSubmit }: {
+export function AuditionPostForm({ post, notice, submitLabel, createHint, authorEditable = true, fixedAuthorName, uploadFile, onSubmit }: {
   /** 고칠 공고. 새로 쓸 때는 null이다. */
-  readonly post: AdminAuditionPostDetail | null;
+  readonly post: EditableAuditionPost | null;
   /** 방금 저장한 결과처럼 저장 줄에 보여 줄 안내. */
   readonly notice?: string;
   readonly submitLabel: string;
-  readonly onSubmit: (write: AdminAuditionPostWrite) => Promise<void>;
+  /** 새로 쓸 때 아직 입력이 없으면 저장 줄에 보여 줄 안내. */
+  readonly createHint?: string;
+  /** false면 작성자를 보여 주기만 한다. */
+  readonly authorEditable?: boolean;
+  /** 작성자를 고칠 수 없을 때 새 공고에 보여 줄 이름. 서버가 같은 기획사 이름으로 정한다. */
+  readonly fixedAuthorName?: string;
+  readonly uploadFile: UploadAuditionPostFile;
+  readonly onSubmit: (write: AuditionPostWrite) => Promise<void>;
 }) {
   const router = useRouter();
   const allowLeaveRef = useRef(false);
@@ -128,6 +145,8 @@ export function AuditionPostForm({ post, notice, submitLabel, onSubmit }: {
   const uploading = imageUploading || attachmentUploading;
   const [saveError, setSaveError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(notice ?? null);
+  const uploadImage = useCallback((file: File) => uploadWithReason(uploadFile, "IMAGE", file), [uploadFile]);
+  const uploadAttachment = useCallback((file: File) => uploadWithReason(uploadFile, "ATTACHMENT", file), [uploadFile]);
 
   const dirty = useMemo(() => {
     const original = post ? toForm(post) : EMPTY_FORM;
@@ -218,7 +237,7 @@ export function AuditionPostForm({ post, notice, submitLabel, onSubmit }: {
   };
 
   const statusText = status
-    ?? (dirty ? "저장하지 않은 내용이 있어요." : creating ? "제목과 분류를 넣으면 숨김으로 만들 수 있어요." : "아직 고친 내용이 없어요.");
+    ?? (dirty ? "저장하지 않은 내용이 있어요." : creating ? createHint ?? "" : "아직 고친 내용이 없어요.");
 
   return (
     <form onSubmit={submit} noValidate>
@@ -238,11 +257,19 @@ export function AuditionPostForm({ post, notice, submitLabel, onSubmit }: {
               {AUDITION_POST_CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}
             </FieldSelect>
           </Field>
-          <TextField name="authorName" label="작성자" form={form} error={errors.authorName} onChange={update} hint={creating ? "공고를 낸 단체 이름을 써 주세요." : undefined} />
+          {authorEditable ? (
+            <TextField name="authorName" label="작성자" form={form} error={errors.authorName} onChange={update} hint={authorHint(post, creating)} />
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              <span className="text-sm font-bold">작성자</span>
+              <p className="flex min-h-11 items-center text-base text-foreground">{post?.owner?.companyName || post?.authorName || fixedAuthorName || "기획사 이름"}</p>
+              <p className="text-xs text-muted">작성자는 기획사 이름으로 표시돼요. 바꾸려면 예술in에 문의해 주세요.</p>
+            </div>
+          )}
           <div className="sm:col-span-2">
             <TextField name="title" label="제목" form={form} error={errors.title} onChange={update} />
           </div>
-          <TextField name="pay" label="페이" form={form} error={errors.pay} onChange={update} hint="'협의'처럼 원문 표현 그대로 써도 돼요." />
+          <TextField name="pay" label="페이" form={form} error={errors.pay} onChange={update} hint="'협의'처럼 글로 써도 돼요." />
           <TextField
             name="deadlineText"
             label="마감"
@@ -277,12 +304,12 @@ export function AuditionPostForm({ post, notice, submitLabel, onSubmit }: {
         </div>
       </section>
 
-      <AttachmentList attachments={attachments} removed={removed} onToggle={toggleAttachment} onAdd={addAttachment} onUploadStateChange={setAttachmentUploading} />
+      <AttachmentList attachments={attachments} removed={removed} upload={uploadAttachment} onToggle={toggleAttachment} onAdd={addAttachment} onUploadStateChange={setAttachmentUploading} />
 
       <div className="sticky bottom-0 -mx-4 flex flex-wrap items-center gap-3 border-t border-border bg-surface/95 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur lg:-mx-8 lg:px-8">
-        <AdminActionButton tone="primary" type="submit" disabled={saving || uploading || (!creating && !dirty)} className="px-6">
+        <PrimaryButton type="submit" disabled={saving || uploading || (!creating && !dirty)} className={`${ACTION_CLASS} px-6`}>
           {saving ? "저장하는 중…" : submitLabel}
-        </AdminActionButton>
+        </PrimaryButton>
         <p role="status" className="text-sm text-muted-strong">{uploading ? "파일을 올리는 중이에요. 업로드가 끝나면 저장할 수 있어요." : statusText}</p>
         {saveError ? <p role="alert" className="w-full text-sm text-fail">{saveError}</p> : null}
       </div>
@@ -290,23 +317,24 @@ export function AuditionPostForm({ post, notice, submitLabel, onSubmit }: {
       <ModalShell open={leaveTarget !== null} onClose={() => setLeaveTarget(null)} labelledBy="post-leave-title" placement="responsiveSheet" className="w-full rounded-t-2xl bg-card shadow-modal md:w-[min(480px,calc(100vw-48px))] md:rounded-modal">
         <DialogHeader id="post-leave-title" title="저장하지 않은 내용이 있어요" subtitle="이동하면 입력한 내용과 추가한 파일이 공고에 저장되지 않아요." />
         <DialogFooter>
-          <AdminActionButton onClick={() => setLeaveTarget(null)}>계속 작성</AdminActionButton>
-          <AdminActionButton tone="destructive" onClick={() => {
+          <SecondaryButton onClick={() => setLeaveTarget(null)} className={ACTION_CLASS}>계속 작성</SecondaryButton>
+          <DestructiveButton className={ACTION_CLASS} onClick={() => {
             if (!leaveTarget) return;
             allowLeaveRef.current = true;
             const destination = new URL(leaveTarget);
             if (destination.origin === window.location.origin) router.push(destination.pathname + destination.search + destination.hash);
             else window.location.assign(destination.href);
-          }}>저장하지 않고 이동</AdminActionButton>
+          }}>저장하지 않고 이동</DestructiveButton>
         </DialogFooter>
       </ModalShell>
     </form>
   );
 }
 
-function AttachmentList({ attachments, removed, onToggle, onAdd, onUploadStateChange }: {
+function AttachmentList({ attachments, removed, upload, onToggle, onAdd, onUploadStateChange }: {
   readonly attachments: readonly FormAttachment[];
   readonly removed: ReadonlySet<string>;
+  readonly upload: (file: File) => Promise<string>;
   readonly onToggle: (attachment: FormAttachment) => void;
   readonly onAdd: (attachment: FormAttachment) => void;
   readonly onUploadStateChange: (uploading: boolean) => void;
@@ -328,7 +356,7 @@ function AttachmentList({ attachments, removed, onToggle, onAdd, onUploadStateCh
     onUploadStateChange(true);
     setError(null);
     try {
-      const url = await uploadFile("ATTACHMENT", file);
+      const url = await upload(file);
       onAdd({ name: file.name, size: file.size, url, uploaded: true });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "파일을 올리지 못했어요. 다시 시도해 주세요.");
@@ -344,14 +372,14 @@ function AttachmentList({ attachments, removed, onToggle, onAdd, onUploadStateCh
         <h2 id="post-attachments" className="text-base font-bold">
           첨부파일 <span className="num text-muted">{attachments.length}</span>
         </h2>
-        <AdminActionButton
+        <SecondaryButton
           disabled={uploading !== null}
           onClick={() => inputRef.current?.click()}
           aria-describedby="post-attachments-hint"
-          className="ml-auto"
+          className={`${ACTION_CLASS} ml-auto`}
         >
           {uploading ? "올리는 중…" : "첨부 올리기"}
-        </AdminActionButton>
+        </SecondaryButton>
         <input ref={inputRef} type="file" accept={ATTACHMENT_ACCEPT} onChange={(event) => void choose(event)} className="sr-only" tabIndex={-1} aria-hidden="true" />
       </div>
       <p id="post-attachments-hint" className="mt-1 text-xs text-muted">지원서 양식(한글·워드)·PDF·악보·음원을 50MB까지 올릴 수 있어요.</p>
@@ -369,14 +397,14 @@ function AttachmentList({ attachments, removed, onToggle, onAdd, onUploadStateCh
                 <span className="num shrink-0 text-xs text-muted">{formatFileSize(attachment.size)}</span>
                 {attachment.uploaded ? <span className="shrink-0 text-xs font-semibold text-brand">새로 올림</span> : null}
                 {isRemoved ? <span className="shrink-0 text-xs font-semibold text-fail">저장하면 지워져요</span> : null}
-                <AdminActionButton
+                <SecondaryButton
                   aria-pressed={attachment.uploaded ? undefined : isRemoved}
                   aria-label={`${attachment.name} ${isRemoved ? "빼기 취소" : "빼기"}`}
                   onClick={() => onToggle(attachment)}
-                  className="shrink-0"
+                  className={`${ACTION_CLASS} shrink-0`}
                 >
                   {isRemoved ? "되살리기" : "빼기"}
-                </AdminActionButton>
+                </SecondaryButton>
               </li>
             );
           })}
