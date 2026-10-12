@@ -1,6 +1,7 @@
 package art.yesulin.auditionpost.infrastructure.crawler;
 
 import art.yesulin.auditionpost.application.AuditionPostBody;
+import art.yesulin.auditionpost.application.AuditionPostBodySanitizer;
 import art.yesulin.auditionpost.application.AuditionPostSource;
 import art.yesulin.auditionpost.application.AuditionPostSourceException;
 import art.yesulin.auditionpost.application.SourceFile;
@@ -32,7 +33,6 @@ import java.util.regex.Pattern;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import org.jsoup.safety.Safelist;
 import org.springframework.stereotype.Component;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
@@ -69,14 +69,6 @@ public class OtrAuditionPostSource implements AuditionPostSource {
     private static final Duration PAGE_TIMEOUT = Duration.ofSeconds(15);
     private static final Duration FILE_TIMEOUT = Duration.ofSeconds(60);
     private static final int MAX_PAGE_BYTES = 4 * 1024 * 1024;
-    private static final Safelist BODY_SAFELIST = Safelist.relaxed()
-            .removeTags("div")
-            .removeAttributes("img", "align", "width", "height")
-            .removeAttributes("table", "summary", "width")
-            .removeAttributes("td", "abbr", "axis", "width")
-            .removeAttributes("th", "abbr", "axis", "scope", "width")
-            .removeAttributes("col", "span", "width")
-            .removeAttributes("colgroup", "span", "width");
 
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
@@ -224,16 +216,12 @@ public class OtrAuditionPostSource implements AuditionPostSource {
 
     /**
      * 허용 태그만 남긴 뒤 OTR 사진은 자리 표시로 바꾸고 나머지 사진은 지운다. 같은 사진이 두 번 나오면 한 번만 옮긴다.
-     * OTR로 가는 링크는 글자만 남기고, 다른 링크는 새 창으로 열며 검색 엔진과 상대 사이트에 우리 페이지를 넘기지 않는다.
+     * OTR로 가는 링크는 글자만 남기고, 다른 링크는 공고 본문 공통 규칙을 따른다.
      */
     private String cleanBody(String rawHtml, String baseUrl, List<SourceFile> images) {
-        Document.OutputSettings output = new Document.OutputSettings().prettyPrint(false);
-        Document raw = Jsoup.parseBodyFragment(rawHtml, baseUrl);
-        raw.outputSettings(output);
+        Document raw = AuditionPostBodySanitizer.parse(rawHtml, baseUrl);
         keepBoldEmphasis(raw);
-        String cleaned = Jsoup.clean(raw.body().html(), baseUrl, BODY_SAFELIST, output);
-        Document body = Jsoup.parseBodyFragment(cleaned, baseUrl);
-        body.outputSettings(output);
+        Document body = AuditionPostBodySanitizer.clean(raw.body().html(), baseUrl);
         Map<String, Integer> indexes = new LinkedHashMap<>();
         for (Element image : body.select("img")) {
             String src = image.absUrl("src");
@@ -251,12 +239,9 @@ public class OtrAuditionPostSource implements AuditionPostSource {
             if (isOtrHost(link.absUrl("href"))) {
                 // 우리 공고로 게시하므로 OTR 페이지로 가는 링크는 글자만 남긴다.
                 link.unwrap();
-                continue;
             }
-            link.attr("target", "_blank");
-            link.attr("rel", "noopener noreferrer nofollow");
         }
-        return body.body().html();
+        return AuditionPostBodySanitizer.finish(body);
     }
 
     /** 원문은 굵게를 인라인 스타일로 주는 경우가 많다. 스타일을 버리기 전에 굵게만 {@code strong}으로 옮긴다. */
