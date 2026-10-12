@@ -320,6 +320,7 @@ export type AdminAuditionPost = {
   readonly sourceUrl: string | null;
   readonly category: string;
   readonly title: string;
+  /** 저장된 작성자(원문 닉네임이나 운영자가 쓴 이름). 기획사에 연결된 공고는 공개 화면에 `ownerName`이 보인다. */
   readonly authorName: string;
   readonly deadlineText: string;
   readonly closed: boolean;

@@ -3,6 +3,7 @@ export type AuditionPostSummary = {
   readonly id: number;
   readonly category: string;
   readonly title: string;
+  /** 기획사에 연결된 공고는 그 기획사의 지금 이름, 아니면 원문 닉네임이나 운영자가 쓴 이름이다. */
   readonly authorName: string;
   readonly pay: string;
   /** 원문 표현 그대로의 마감(`2026-10-31`, `상시`, `채용 시 마감` 등). */
@@ -45,6 +46,7 @@ export type AuditionPost = {
   readonly id: number;
   readonly category: string;
   readonly title: string;
+  /** 기획사에 연결된 공고는 그 기획사의 지금 이름, 아니면 원문 닉네임이나 운영자가 쓴 이름이다. */
   readonly authorName: string;
   readonly pay: string;
   readonly deadlineText: string;

@@ -25,6 +25,7 @@ export type EditableAuditionPost = {
   readonly title: string;
   readonly pay: string;
   readonly deadlineText: string;
+  /** 저장된 작성자(원문 닉네임이나 운영자가 쓴 이름). 기획사에 연결된 공고는 화면에 `owner.companyName`이 보인다. */
   readonly authorName: string;
   /** 사진 자리를 공개 주소로 채운 본문. 편집기가 그대로 보여 준다. */
   readonly bodyHtml: string;

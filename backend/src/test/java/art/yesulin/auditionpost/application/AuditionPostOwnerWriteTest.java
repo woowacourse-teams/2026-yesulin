@@ -198,6 +198,27 @@ class AuditionPostOwnerWriteTest {
     }
 
     @Test
+    void linkedPostShowsCurrentCompanyNameAsAuthor() {
+        source.post("<p>원문</p>", List.of(), List.of());
+        long id = importService.importPost(ADMIN_ID, "22397").post().id();
+        auditionPostService.changeStatus(ADMIN_ID, id, AuditionPostStatus.PUBLISHED);
+        assertEquals("예술극단", publicAuthor(id));
+
+        writeService.changeOwner(ADMIN_ID, id, PRODUCER_ID);
+        assertEquals(COMPANY, publicAuthor(id));
+        Producer producer = producerRepository.findByMemberId(PRODUCER_ID).orElseThrow();
+        producer.updateCompanyName("극단 새이름");
+        producerRepository.save(producer);
+        importService.importPost(ADMIN_ID, "22397", true);
+
+        assertEquals("극단 새이름", publicAuthor(id));
+        assertEquals("극단 새이름", auditionPostService.findPublishedPage(0, 12, true).posts().getFirst().authorName());
+        assertEquals("예술극단", writeService.findForEdit(id).authorName());
+        writeService.changeOwner(ADMIN_ID, id, null);
+        assertEquals("예술극단", publicAuthor(id));
+    }
+
+    @Test
     void ownerChangeWaitsForConcurrentChangeBeforeComparing() throws Exception {
         long id = writeService.publishByOwner(PRODUCER_ID, command("배우 모집", "<p>본문</p>", List.of())).id();
         writeService.changeOwner(ADMIN_ID, id, null);
@@ -234,6 +255,10 @@ class AuditionPostOwnerWriteTest {
             Thread.currentThread().interrupt();
             throw new IllegalStateException(exception);
         }
+    }
+
+    private String publicAuthor(long postId) {
+        return ((PublicAuditionPostView.Published) auditionPostService.findPublicPost(postId)).post().authorName();
     }
 
     private String upload(long uploaderId, AuditionPostFileKind kind, String filename, String reportedType) {

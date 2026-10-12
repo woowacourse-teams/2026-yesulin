@@ -101,6 +101,13 @@ async function uploadWithReason(upload: UploadAuditionPostFile, kind: AuditionPo
 
 const ACTION_CLASS = "whitespace-nowrap";
 
+/** 기획사에 연결된 공고는 화면에 기획사 이름이 보이므로, 작성자 칸이 언제 쓰이는지 알려 준다. */
+function authorHint(post: EditableAuditionPost | null, creating: boolean): string | undefined {
+  if (creating) return "공고를 낸 단체 이름을 써 주세요.";
+  if (post?.owner) return `지금은 연결된 기획사 이름(${post.owner.companyName ?? "기획사"})으로 보여요. 이 이름은 연결을 끊으면 보여요.`;
+  return undefined;
+}
+
 /**
  * 운영자와 기획사가 공고를 쓰거나 고치는 폼. 사진은 본문 편집기의 사진 도구로, 첨부는 첨부 목록에서 올린다. 올린 파일은
  * 저장할 때 서버가 이 공고의 파일로 확정한다. 고칠 때 본문을 건드리지 않으면 원래 본문을 그대로 두도록 본문 없이 저장한다.
@@ -251,11 +258,11 @@ export function AuditionPostForm({ post, notice, submitLabel, createHint, author
             </FieldSelect>
           </Field>
           {authorEditable ? (
-            <TextField name="authorName" label="작성자" form={form} error={errors.authorName} onChange={update} hint={creating ? "공고를 낸 단체 이름을 써 주세요." : undefined} />
+            <TextField name="authorName" label="작성자" form={form} error={errors.authorName} onChange={update} hint={authorHint(post, creating)} />
           ) : (
             <div className="flex flex-col gap-1.5">
               <span className="text-sm font-bold">작성자</span>
-              <p className="flex min-h-11 items-center text-base text-foreground">{post?.authorName || fixedAuthorName || "기획사 이름"}</p>
+              <p className="flex min-h-11 items-center text-base text-foreground">{post?.owner?.companyName || post?.authorName || fixedAuthorName || "기획사 이름"}</p>
               <p className="text-xs text-muted">작성자는 기획사 이름으로 표시돼요. 바꾸려면 예술in에 문의해 주세요.</p>
             </div>
           )}

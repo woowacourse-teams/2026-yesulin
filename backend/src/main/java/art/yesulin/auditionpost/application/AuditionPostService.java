@@ -52,8 +52,12 @@ public class AuditionPostService {
         Page<AuditionPost> result = includeClosed
                 ? repository.findAllByStatusOrderByContentSourcePostedAtDescIdDesc(PUBLISHED, pageable)
                 : repository.findOpen(PUBLISHED, today, pageable);
+        Map<Long, String> ownerNames = owners.namesOf(result.getContent());
         List<PublicAuditionPostSummaryResult> posts = result.stream()
-                .map(post -> PublicAuditionPostSummaryResult.from(post, today, KOREA, storage::toPublicUrl))
+                .map(post -> PublicAuditionPostSummaryResult.from(
+                        post, AuditionPostOwners.authorOf(post, AuditionPostOwners.nameIn(ownerNames, post)),
+                        today, KOREA, storage::toPublicUrl
+                ))
                 .toList();
         return new PublicAuditionPostPageResult(
                 posts, page, size, result.getTotalPages(), result.getTotalElements(),
@@ -73,9 +77,9 @@ public class AuditionPostService {
             }
             return new PublicAuditionPostView.Hidden(URI.create(post.getSourceUrl()));
         }
-        return new PublicAuditionPostView.Published(
-                PublicAuditionPostResult.from(post, today(), KOREA, storage::toPublicUrl)
-        );
+        return new PublicAuditionPostView.Published(PublicAuditionPostResult.from(
+                post, AuditionPostOwners.authorOf(post, owners.nameOf(post)), today(), KOREA, storage::toPublicUrl
+        ));
     }
 
     /** 공개 상세를 연 브라우저가 한 번 보낸다. 숨겼거나 없는 공고는 404다. */
@@ -108,9 +112,7 @@ public class AuditionPostService {
         List<AuditionPost> posts = repository.findAllByOrderByIdDesc(PageRequest.of(0, ADMIN_LIST_LIMIT));
         Map<Long, String> ownerNames = owners.namesOf(posts);
         return posts.stream()
-                .map(post -> AdminAuditionPostResult.from(
-                        post, today, post.getOwnerId() == null ? null : ownerNames.get(post.getOwnerId())
-                ))
+                .map(post -> AdminAuditionPostResult.from(post, today, AuditionPostOwners.nameIn(ownerNames, post)))
                 .toList();
     }
 

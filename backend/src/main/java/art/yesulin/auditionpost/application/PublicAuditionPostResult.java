@@ -12,6 +12,7 @@ import java.util.function.Function;
 /**
  * 공고 상세. 출처는 상세 화면에 작은 원문 링크로 밝힌다.
  *
+ * @param authorName 화면에 보이는 작성자. 기획사에 연결된 공고는 그 기획사의 지금 이름이다.
  * @param source 원문 공고 사이트 이름(예: {@code OTR})
  * @param sourceUrl 원문 공고 주소
  * @param bodyHtml 서버가 허용 태그만 남긴 HTML. 사진 주소는 이 응답을 만들 때 채운다.
@@ -37,6 +38,7 @@ public record PublicAuditionPostResult(
 
     static PublicAuditionPostResult from(
             AuditionPost post,
+            String authorName,
             LocalDate today,
             ZoneId zone,
             Function<String, String> publicUrl
@@ -47,7 +49,7 @@ public record PublicAuditionPostResult(
                 post.getId(),
                 content.getCategory(),
                 content.getTitle(),
-                content.getAuthorName(),
+                authorName,
                 content.getPay(),
                 content.getDeadlineText(),
                 content.getDeadline(),

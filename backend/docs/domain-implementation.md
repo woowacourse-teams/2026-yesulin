@@ -150,6 +150,8 @@
   회원, `imported_by`는 null이다. `isWrittenByOwner()`는 원문과 운영자가 없는 공고다. `owner_id`는 이 공고를 고칠 수 있는
   기획사이며 운영자가 `changeOwner`로 연결하거나 끊는다. 작성자 이름은 `AuditionPostWriteService`가 `producers.company_name`으로 정하고
   기획사가 고칠 때는 바꾸지 않는다. 기획사 화면의 다른 기획사 공고 조회·수정은 `NOT_FOUND`다.
+  공개 목록·상세의 작성자는 `AuditionPostOwners.authorOf`가 정한다. 연결된 기획사 이름이 있으면 그 이름, 없으면 저장된
+  `author_name`이다. 저장값은 바꾸지 않으므로 다시 가져오기가 원문 닉네임을 갱신해도 연결된 동안 보이는 이름은 그대로다.
 - 기획사가 올리거나 바뀐 항목(`AuditionPostChange`)이 있게 고치면 `ProducerAuditionPost*Event`를 발행한다.
   `presentation/event`의 핸들러가 커밋 뒤 `ProducerAuditionPostNotifier` port를 부르고, `infrastructure/slack`의 구현이
   공고 알림 웹훅으로 가상 스레드에서 보낸다. OTR 공고 알림과 같은 형식을 쓰며 공고 내용의 `& < >`는 Slack 해석을 막도록 바꿔 쓴다.
