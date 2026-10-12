@@ -69,6 +69,61 @@ class AuditionPostTest {
     }
 
     @Test
+    void editKeepsSourceAndStatusAndReturnsRemovedFiles() {
+        AuditionPost post = new AuditionPost(
+                ORIGIN, content("2026-10-31"), List.of("연극"), List.of(image("a"), image("b"), attachment("c")), 1L, NOW
+        );
+        post.changeStatus(AuditionPostStatus.PUBLISHED);
+        Instant later = NOW.plusSeconds(60);
+
+        List<AuditionPostFile> removed = post.edit(
+                content("상시"), List.of(" 뮤지컬 "), List.of(image("b"), attachment("c")), 3L, later
+        );
+
+        assertEquals(List.of("public/a"), removed.stream().map(AuditionPostFile::getObjectKey).toList());
+        assertEquals(List.of("public/b"), post.images().stream().map(AuditionPostFile::getObjectKey).toList());
+        assertEquals("상시", post.getContent().getDeadlineText());
+        assertEquals(List.of("뮤지컬"), post.getTags());
+        assertEquals(AuditionPostStatus.PUBLISHED, post.getStatus());
+        assertEquals(1L, post.getImportedBy());
+        assertTrue(post.isEdited());
+        assertEquals(3L, post.getEditedBy());
+        assertEquals(later, post.getUpdatedAt());
+    }
+
+    @Test
+    void refreshClearsEdit() {
+        AuditionPost post = new AuditionPost(ORIGIN, content("상시"), List.of(), List.of(), 1L, NOW);
+        post.edit(content("2026-10-31"), List.of(), List.of(), 2L, NOW.plusSeconds(60));
+
+        post.refresh(content("상시"), List.of(), List.of(), 2L, NOW.plusSeconds(120));
+
+        assertFalse(post.isEdited());
+        assertNull(post.getEditedBy());
+    }
+
+    @Test
+    void rejectsEditWithoutEditor() {
+        AuditionPost post = new AuditionPost(ORIGIN, content("상시"), List.of(), List.of(), 1L, NOW);
+
+        assertThrows(BusinessException.class, () -> post.edit(content("상시"), List.of(), List.of(), 0L, NOW));
+        assertFalse(post.isEdited());
+    }
+
+    @Test
+    void directPostStartsHiddenWithoutOrigin() {
+        AuditionPost post = AuditionPost.write(content("상시"), List.of("연극"), List.of(image("a")), 3L, NOW);
+
+        assertEquals(AuditionPost.DIRECT_SOURCE, post.getSource());
+        assertNull(post.getExternalId());
+        assertNull(post.getSourceUrl());
+        assertFalse(post.hasOrigin());
+        assertFalse(post.isAutoImported());
+        assertEquals(AuditionPostStatus.HIDDEN, post.getStatus());
+        assertThrows(BusinessException.class, () -> post.refresh(content("상시"), List.of(), List.of(), 3L, NOW));
+    }
+
+    @Test
     void trimsAndDeduplicatesTags() {
         AuditionPost post = new AuditionPost(
                 ORIGIN, content("상시"), List.of(" 연극 ", "연극", "", "뮤지컬"), List.of(), 1L, NOW

@@ -9,8 +9,7 @@ import { AdminOverviewSection } from "./admin-overview-section";
 import {
   AdminAuditionsSection,
   AdminAuditSection,
-  AdminMembersSection,
-  AdminProducersSection,
+  AdminMemberWorkspace,
   AdminShowsSection,
 } from "./admin-sections";
 import { AdminActionButton, AdminShell } from "./admin-shell";
@@ -33,9 +32,8 @@ function SectionBody({
     case "overview":
       return <AdminOverviewSection data={data} />;
     case "members":
-      return <AdminMembersSection data={data} />;
     case "producers":
-      return <AdminProducersSection data={data} onChanged={onChanged} />;
+      return <AdminMemberWorkspace view={section} data={data} onChanged={onChanged} />;
     case "auditions":
       return <AdminAuditionsSection data={data} onChanged={onChanged} />;
     case "shows":
@@ -64,16 +62,16 @@ export function AdminDashboard({ section }: Props) {
         </span>
       ) : null}
       <AdminActionButton onClick={refresh}>새로고침</AdminActionButton>
-      <AdminActionButton onClick={handleLogout}>로그아웃</AdminActionButton>
+      <AdminActionButton tone="quiet" onClick={handleLogout}>로그아웃</AdminActionButton>
     </>
   );
 
   return (
     <AdminShell
       current={section}
-      title={adminSectionTitle(section)}
+      title={section === "producers" ? "회원" : adminSectionTitle(section)}
       actions={actions}
-      badges={data ? { producers: data.overview.pendingProducers } : {}}
+      badges={data ? { members: data.overview.pendingProducers } : {}}
     >
       {phase === "failed" && error ? (
         <p role="alert" className="rounded-control border border-fail/30 bg-fail-bg px-4 py-3 text-sm text-fail">

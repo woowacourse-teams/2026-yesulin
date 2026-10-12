@@ -1,10 +1,16 @@
 import { withCsrfHeaders } from "../csrf";
-import { readErrorMessage, readErrorDetail } from "../api-error";
+import { safeUpload } from "../files/safe-upload";
+import { reportUploadDiagnostic } from "../files/upload-diagnostics";
+import { readErrorCode, readErrorMessage, readErrorDetail } from "../api-error";
 import type {
   AdminAuditLogPage,
   AdminAudition,
   AdminAuditionPost,
+  AdminAuditionPostDetail,
+  AdminAuditionPostFileKind,
   AdminAuditionPostImport,
+  AdminAuditionPostUpload,
+  AdminAuditionPostWrite,
   AdminAuditionPostStatus,
   AdminDailyActivity,
   AdminFileDeletionResult,
@@ -33,17 +39,20 @@ const API_BASE_PATH = "/api/v1/admin";
 /** 운영 API는 세션 역할이 ADMIN일 때만 통과한다. 401·403은 화면이 로그인 상태로 되돌리는 신호다. */
 export class AdminApiError extends Error {
   readonly status: number;
+  /** 서버 오류 코드. 같은 상태 코드 안에서 화면이 다르게 안내해야 할 때 쓴다. */
+  readonly code: string | null;
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, code: string | null = null) {
     super(message);
     this.name = "AdminApiError";
     this.status = status;
+    this.code = code;
   }
 }
 
 async function readAdminError(response: Response, fallback: string): Promise<AdminApiError> {
   const body: unknown = await response.json().catch(() => null);
-  return new AdminApiError(response.status, readErrorMessage(body, readErrorDetail(body)) || fallback);
+  return new AdminApiError(response.status, readErrorMessage(body, readErrorDetail(body)) || fallback, readErrorCode(body));
 }
 
 async function getJson<T>(path: string, fallback: string): Promise<T> {
@@ -261,13 +270,19 @@ export async function fetchAuditionPosts(): Promise<readonly AdminAuditionPost[]
   return body.posts;
 }
 
-/** 제작사 동의를 받은 OTR 공고를 본문·사진·첨부까지 가져와 바로 공개한다. 이미 있으면 원문으로 교체한다. */
-export async function importOtrAuditionPost(otrId: string): Promise<AdminAuditionPostImport> {
+/** 운영자가 고친 공고를 원문으로 다시 가져오려 하면 서버가 이 코드로 확인을 요청한다. */
+export const AUDITION_POST_EDITED = "AUDITION_POST_EDITED";
+
+/**
+ * OTR 공고를 본문·사진·첨부까지 숨김으로 가져온다. 이미 있으면 원문으로 교체한다.
+ * 운영자가 고친 공고는 `overwriteEdited`로 확인받았을 때만 교체한다.
+ */
+export async function importOtrAuditionPost(otrId: string, overwriteEdited = false): Promise<AdminAuditionPostImport> {
   const response = await fetch(`${API_BASE_PATH}/audition-posts/otr-imports`, {
     method: "POST",
     credentials: "include",
     headers: await withCsrfHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify({ otrId: otrId.trim() }),
+    body: JSON.stringify({ otrId: otrId.trim(), overwriteEdited }),
   });
   if (!response.ok) throw await readAdminError(response, "OTR 공고를 가져오지 못했습니다.");
   return response.json() as Promise<AdminAuditionPostImport>;
@@ -285,4 +300,63 @@ export async function changeAuditionPostStatus(
   });
   if (!response.ok) throw await readAdminError(response, "공개 상태를 바꾸지 못했습니다.");
   return response.json() as Promise<AdminAuditionPost>;
+}
+
+export function fetchAuditionPostForEdit(postId: string): Promise<AdminAuditionPostDetail> {
+  return getJson<AdminAuditionPostDetail>(
+    `/audition-posts/${encodeURIComponent(postId)}`,
+    "공고를 불러오지 못했습니다.",
+  );
+}
+
+export async function updateAuditionPost(postId: string, write: AdminAuditionPostWrite): Promise<AdminAuditionPost> {
+  const response = await fetch(`${API_BASE_PATH}/audition-posts/${encodeURIComponent(postId)}`, {
+    method: "PUT",
+    credentials: "include",
+    headers: await withCsrfHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(write),
+  });
+  if (!response.ok) throw await readAdminError(response, "공고를 저장하지 못했습니다.");
+  return response.json() as Promise<AdminAuditionPost>;
+}
+
+/** 원문 없이 공고를 쓴다. 숨김으로 만들어지고 목록에서 보여주기를 눌러야 공개된다. */
+export async function createAuditionPost(write: AdminAuditionPostWrite): Promise<AdminAuditionPost> {
+  const response = await fetch(`${API_BASE_PATH}/audition-posts`, {
+    method: "POST",
+    credentials: "include",
+    headers: await withCsrfHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(write),
+  });
+  if (!response.ok) throw await readAdminError(response, "공고를 만들지 못했습니다.");
+  return response.json() as Promise<AdminAuditionPost>;
+}
+
+/**
+ * 공고 사진·첨부를 저장소로 바로 올리고 공개 주소를 돌려준다. 공고를 저장할 때 서버가 이 주소로 업로드를 확정하므로
+ * 별도 완료 요청은 없다. WebKit 파일 접근 실패에 대비한 메모리 복사와 재시도는 다른 업로드와 같은 방식을 쓴다.
+ */
+export async function uploadAuditionPostFile(kind: AdminAuditionPostFileKind, file: File): Promise<string> {
+  let publicUrl = "";
+  await safeUpload({
+    flow: "AUDITION_POST_FILE",
+    source: file,
+    originalFilename: file.name,
+    requestUpload: async (metadata, { incidentId }) => {
+      const response = await fetch(`${API_BASE_PATH}/audition-posts/uploads`, {
+        method: "POST",
+        credentials: "include",
+        headers: await withCsrfHeaders({ "Content-Type": "application/json", "X-Request-Id": incidentId }),
+        body: JSON.stringify({ kind, filename: metadata.originalFilename, contentType: metadata.contentType, size: metadata.size }),
+      });
+      if (!response.ok) throw await readAdminError(response, "파일을 올릴 준비를 하지 못했습니다.");
+      const upload = await response.json() as AdminAuditionPostUpload;
+      publicUrl = upload.publicUrl;
+      // 공고 파일은 파일 ID 대신 공개 주소로 확정하므로 fileId는 쓰지 않는다.
+      return { fileId: 0, uploadUrl: upload.url, method: upload.method, headers: upload.headers };
+    },
+    completeUpload: async () => {},
+    reportDiagnostic: reportUploadDiagnostic,
+  });
+  return publicUrl;
 }

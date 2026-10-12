@@ -9,10 +9,12 @@ import java.util.Map;
 import java.util.Optional;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
+import software.amazon.awssdk.services.s3.model.MetadataDirective;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
@@ -67,6 +69,23 @@ public class S3ObjectStorage implements ObjectStorage {
             request.contentDisposition(upload.contentDisposition());
         }
         s3Client.putObject(request.build(), RequestBody.fromInputStream(upload.content(), upload.size()));
+    }
+
+    @Override
+    public void replaceHeaders(String objectKey, String contentType, String contentDisposition) {
+        String physicalKey = toPhysicalKey(objectKey);
+        CopyObjectRequest.Builder request = CopyObjectRequest.builder()
+                .sourceBucket(properties.bucket())
+                .sourceKey(physicalKey)
+                .destinationBucket(properties.bucket())
+                .destinationKey(physicalKey)
+                .metadataDirective(MetadataDirective.REPLACE)
+                .contentType(contentType)
+                .cacheControl(IMMUTABLE_CACHE_CONTROL);
+        if (contentDisposition != null) {
+            request.contentDisposition(contentDisposition);
+        }
+        s3Client.copyObject(request.build());
     }
 
     @Override

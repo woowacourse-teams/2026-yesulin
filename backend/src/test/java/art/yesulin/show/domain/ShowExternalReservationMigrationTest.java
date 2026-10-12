@@ -23,7 +23,9 @@ class ShowExternalReservationMigrationTest {
                 .target(MigrationVersion.fromVersion("20261007120000")).load().migrate();
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         insertExistingData(jdbc);
-        Flyway flyway = Flyway.configure().dataSource(dataSource).locations("classpath:db/migration").load();
+        // 뒤에 추가되는 마이그레이션과 관계없이 이 업그레이드만 확인한다.
+        Flyway flyway = Flyway.configure().dataSource(dataSource).locations("classpath:db/migration")
+                .target(MigrationVersion.fromVersion("20261007150000")).load();
 
         assertEquals(1, flyway.migrate().migrationsExecuted);
         flyway.validate();

@@ -19,6 +19,7 @@ import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 class AuditionPostFileStorageTest {
@@ -64,6 +65,38 @@ class AuditionPostFileStorageTest {
                 () -> fileStorage.store(AuditionPostFileKind.IMAGE, " ", "image/png", 3, content(3))
         );
         assertEquals(0, objectStorage.objectCount());
+    }
+
+    @Test
+    void confirmsBrowserUploadAndAddsDownloadName() {
+        AuditionPostFileStorage.PreparedUpload prepared = fileStorage.prepareUpload(
+                AuditionPostFileKind.ATTACHMENT, "지원서.hwp", "application/x-hwp", 5
+        );
+        AuditionPostFile file = prepared.file();
+
+        assertFalse(fileStorage.confirmUpload(file));
+        objectStorage.upload(prepared.upload().url(), "application/x-hwp", 4);
+        assertFalse(fileStorage.confirmUpload(file));
+        objectStorage.upload(prepared.upload().url(), "application/x-hwp", 5);
+
+        assertTrue(fileStorage.confirmUpload(file));
+        assertEquals(
+                AuditionPostFileRules.attachmentDisposition("지원서.hwp"),
+                objectStorage.contentDisposition(file.getObjectKey())
+        );
+    }
+
+    @Test
+    void findsObjectKeyOnlyFromOwnPublicUrl() {
+        String objectKey = fileStorage.prepareUpload(AuditionPostFileKind.IMAGE, "a.png", "image/png", 1)
+                .file().getObjectKey();
+
+        assertEquals(Optional.of(objectKey), fileStorage.objectKeyOf(objectStorage.toPublicUrl(objectKey)));
+        assertEquals(
+                Optional.empty(),
+                fileStorage.objectKeyOf("https://evil.test/assets/" + objectKey.replaceFirst("^public/", ""))
+        );
+        assertEquals(Optional.empty(), fileStorage.objectKeyOf("https://cdn.test/assets/files/a.png"));
     }
 
     @Test

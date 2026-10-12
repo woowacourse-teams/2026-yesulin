@@ -2,13 +2,43 @@
 
 import { useState } from "react";
 import type { AdminAuditLogPage, AdminMemberStats, AdminProducer } from "@/features/admin/types";
-import { FilterChip } from "@/components/ui/controls";
+import { AdminActionLink, AdminFilterButton } from "./admin-shell";
 import { AdminAuditLogTable } from "./admin-audit-log-table";
 import { AdminAuditionTable } from "./admin-audition-table";
 import { AdminProducerTable } from "./admin-producer-table";
 import { AdminShowTable } from "./admin-show-table";
 import { formatCount, SummaryItem, SummaryStrip } from "./admin-stat";
 import type { DashboardData } from "./use-admin-dashboard";
+
+export function AdminMemberWorkspace({ view, data, onChanged }: {
+  readonly view: "members" | "producers";
+  readonly data: DashboardData;
+  readonly onChanged: () => void;
+}) {
+  return (
+    <>
+      <nav aria-label="회원 관리" className="flex flex-wrap gap-2 border-b border-border pb-4">
+        {([
+          { id: "members", label: "회원 현황" },
+          { id: "producers", label: "기획사·제작사" },
+        ] as const).map((item) => (
+          <AdminActionLink
+            key={item.id}
+            href={`/admin?tab=${item.id}`}
+            aria-current={view === item.id ? "page" : undefined}
+            className={view === item.id ? "!border-foreground !bg-foreground !text-white" : ""}
+          >
+            {item.label}
+            {item.id === "producers" && data.overview.pendingProducers > 0 ? (
+              <span className="num ml-2 rounded bg-warn-bg px-1.5 text-xs text-warn">{data.overview.pendingProducers} 대기</span>
+            ) : null}
+          </AdminActionLink>
+        ))}
+      </nav>
+      {view === "members" ? <AdminMembersSection data={data} /> : <AdminProducersSection data={data} onChanged={onChanged} />}
+    </>
+  );
+}
 
 type SignupRow = {
   readonly label: string;
@@ -144,9 +174,9 @@ export function AdminProducersSection({ data, onChanged }: { readonly data: Dash
       </p>
       <div className="flex flex-wrap gap-2" role="group" aria-label="기획사 상태 필터">
         {PRODUCER_FILTERS.map((option) => (
-          <FilterChip key={option.value} pressed={filter === option.value} onClick={() => setFilter(option.value)}>
+          <AdminFilterButton key={option.value} pressed={filter === option.value} onClick={() => setFilter(option.value)}>
             {option.label}
-          </FilterChip>
+          </AdminFilterButton>
         ))}
       </div>
       <AdminProducerTable producers={producers} onChanged={onChanged} />

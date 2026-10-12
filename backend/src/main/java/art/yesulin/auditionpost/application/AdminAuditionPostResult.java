@@ -22,7 +22,8 @@ public record AdminAuditionPostResult(
         int imageCount,
         int attachmentCount,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        Instant editedAt
 ) {
 
     static AdminAuditionPostResult from(AuditionPost post, LocalDate today) {
@@ -43,7 +44,8 @@ public record AdminAuditionPostResult(
                 post.images().size(),
                 post.attachments().size(),
                 post.getCreatedAt(),
-                post.getUpdatedAt()
+                post.getUpdatedAt(),
+                post.getEditedAt()
         );
     }
 }

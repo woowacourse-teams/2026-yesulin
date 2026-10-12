@@ -143,7 +143,14 @@
 - 분류는 `AuditionCategory`(연극·퍼포먼스·뮤지컬·단원·기획사)만 받는다. `AuditionPostContent`가 생성 시 검사하므로
   가져오기는 파일을 받기 전에 거절된다. 공개 목록의 모집 중 조건은 `deadline`이 없거나 오늘 이후인 공고다.
 - 마감은 원문 문자열(`deadline_text`)과 `yyyy-MM-dd`일 때만 채우는 `deadline`을 함께 둔다. 원문 작성 시각은 한국 시간 `LocalDateTime`이다.
-- `refresh`는 내용·태그·파일을 교체하고 이전 파일 목록을 돌려준다. 공개 상태와 공개 ID는 유지한다.
+- `refresh`는 내용·태그·파일을 교체하고 이전 파일 목록을 돌려준다. 공개 상태와 공개 ID는 유지하고 수정 표시(`edited_at`, `edited_by`)는 지운다.
+- `AuditionPost.write`는 원문 없이 직접 쓴 공고를 만든다. 출처는 `YESULIN`, 원문 번호·주소는 null이고 `hasOrigin()`이 false다.
+  `imported_by`에 쓴 운영자를 두며, 자동 가져오기 여부는 원문이 있고 운영자가 없을 때만 참이다. 원문이 없으면 `refresh`를 거부한다.
+- `auditionpost/domain/upload`의 `AuditionPostUpload`는 브라우저가 공고 사진·첨부를 올릴 자리(키·올린 운영자·종류·형식·크기)다.
+  `AuditionPostUploadService.claim`이 저장 트랜잭션 안에서 키로 행을 잠그고 올린 사람·종류를 확인해 공고 파일로 바꾼 뒤 지운다.
+- `edit`는 운영자가 고친 내용·태그·파일로 바꾸고 빠진 파일을 돌려준다. 출처·공개 상태·가져온 운영자·원문 작성 시각은 유지한다.
+  `AuditionPostWriteService`가 편집기 본문을 `AuditionPostEditorBody`로 걸러 이 공고의 사진(기존 사진과 이번에 확정한 업로드)만
+  남기고, 빠진 파일은 커밋 뒤 지운다.
 - 본문은 사진 자리를 `post-file:{순번}`으로 저장하고 `AuditionPostBody.render`가 응답할 때 공개 저장소 주소로 바꾼다.
   저장소 주소가 환경·LocalStack 포트마다 달라 본문에 주소를 고정하지 않는다. 순번에 파일이 없으면 사진 태그를 지운다.
 - `auditionpost/application`의 `AuditionPostSource` port를 `auditionpost/infrastructure/crawler/OtrAuditionPostSource`가 구현한다.

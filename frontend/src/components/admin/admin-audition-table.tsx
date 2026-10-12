@@ -4,6 +4,7 @@ import { Fragment, useState } from "react";
 import type { AdminAudition } from "@/features/admin/types";
 import { AdminSubmissionBrowser } from "./admin-submission-browser";
 import { formatDateTime, orDash } from "./admin-format";
+import { AdminActionButton, AdminEmptyState } from "./admin-shell";
 
 type Props = {
   readonly auditions: readonly AdminAudition[];
@@ -23,10 +24,10 @@ export function AdminAuditionTable({ auditions, onChanged }: Props) {
 
   return (
     <section aria-labelledby="auditions-heading" className="flex flex-col gap-3">
-      <h2 id="auditions-heading" className="text-sm font-semibold text-muted">
-        공고 ({auditions.length})
+      <h2 id="auditions-heading" className="text-base font-semibold text-foreground">
+        오디션 목록 <span className="num ml-1 text-sm font-normal text-muted">{auditions.length}건</span>
       </h2>
-      <div className="overflow-x-auto rounded-card border border-border bg-card">
+      {auditions.length === 0 ? <AdminEmptyState title="등록된 오디션이 없어요" description="기획사·제작사가 등록한 오디션과 제출된 지원서를 여기서 확인할 수 있어요." /> : <div className="overflow-x-auto rounded-card border border-border bg-card">
         <table className="w-full min-w-[52rem] text-left text-sm">
           <thead className="bg-surface text-xs text-muted">
             <tr>
@@ -55,14 +56,12 @@ export function AdminAuditionTable({ auditions, onChanged }: Props) {
                   <td className="px-3 py-2 text-muted">{formatDateTime(audition.publishedAt)}</td>
                   <td className="px-3 py-2 num text-muted-strong">{audition.submissionCount}</td>
                   <td className="px-3 py-2">
-                    <button
-                      type="button"
+                    <AdminActionButton
                       aria-expanded={expanded}
                       onClick={() => setExpandedAuditionId(expanded ? null : audition.auditionId)}
-                      className="min-h-11 rounded-control border border-border px-3 text-sm font-medium text-muted-strong hover:bg-surface"
                     >
                       {expanded ? "접기" : "지원서 보기"}
-                    </button>
+                    </AdminActionButton>
                   </td>
                 </tr>
                 {expanded ? <tr className="border-t border-border"><td colSpan={HEADERS.length}><AdminSubmissionBrowser audition={audition} onDeleted={onChanged} /></td></tr> : null}
@@ -70,7 +69,7 @@ export function AdminAuditionTable({ auditions, onChanged }: Props) {
             })}
           </tbody>
         </table>
-      </div>
+      </div>}
     </section>
   );
 }

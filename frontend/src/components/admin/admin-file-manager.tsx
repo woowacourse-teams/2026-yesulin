@@ -26,9 +26,6 @@ const FAILURE_LABELS: Record<string, string> = {
   FILE_DELETION_FAILED: "저장소 삭제 실패 · 다시 시도 가능",
 };
 
-const PAGE_BUTTON_CLASS =
-  "min-h-11 rounded-control border border-border bg-card px-4 text-sm font-semibold text-muted-strong hover:bg-surface disabled:cursor-not-allowed disabled:opacity-50";
-
 export function AdminFileManager() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [page, setPage] = useState(0);
@@ -148,7 +145,7 @@ export function AdminFileManager() {
       actions={(
         <>
           <AdminActionButton onClick={refresh}>새로고침</AdminActionButton>
-          <AdminActionButton onClick={() => void signOut()}>로그아웃</AdminActionButton>
+          <AdminActionButton tone="quiet" onClick={() => void signOut()}>로그아웃</AdminActionButton>
         </>
       )}
     >
@@ -223,17 +220,16 @@ export function AdminFileManager() {
             </article>
           ))}
           <nav aria-label="미사용 파일 페이지" className="flex items-center justify-between gap-3 pt-1">
-            <button type="button" disabled={page === 0} onClick={() => changePage(page - 1)} className={PAGE_BUTTON_CLASS}>이전</button>
-            <button type="button" disabled={!filesPage.hasNext} onClick={() => changePage(page + 1)} className={PAGE_BUTTON_CLASS}>다음</button>
+            <AdminActionButton disabled={page === 0} onClick={() => changePage(page - 1)}>이전</AdminActionButton>
+            <AdminActionButton disabled={!filesPage.hasNext} onClick={() => changePage(page + 1)}>다음</AdminActionButton>
           </nav>
         </section>
       ) : null}
 
       <div className="sticky bottom-0 rounded-card border border-border bg-card/95 p-3 backdrop-blur">
-        <button type="button" disabled={selectedIds.length === 0} onClick={() => { setDeleteError(null); setConfirming(true); }}
-          className="min-h-11 w-full rounded-control bg-fail px-5 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto">
+        <AdminActionButton tone="destructive" disabled={selectedIds.length === 0} onClick={() => { setDeleteError(null); setConfirming(true); }} className="w-full sm:w-auto">
           선택한 {selectedIds.length}개 파일 삭제
-        </button>
+        </AdminActionButton>
       </div>
 
       <ModalShell open={confirming} onClose={closeConfirmation} labelledBy="admin-file-delete-title" placement="responsiveSheet"
@@ -253,14 +249,12 @@ export function AdminFileManager() {
           {deleteError ? <p role="alert" className="rounded-control border border-fail/30 bg-fail-bg p-3 text-sm text-fail">{deleteError}</p> : null}
         </div>
         <DialogFooter>
-          <button type="button" onClick={closeConfirmation} disabled={deleting}
-            className="min-h-11 rounded-control border border-border px-4 text-sm font-medium text-muted-strong hover:bg-surface">
+          <AdminActionButton onClick={closeConfirmation} disabled={deleting}>
             취소
-          </button>
-          <button type="button" onClick={() => void confirmDeletion()} disabled={!password || deleting}
-            className="min-h-11 rounded-control bg-fail px-4 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">
+          </AdminActionButton>
+          <AdminActionButton tone="destructive" onClick={() => void confirmDeletion()} disabled={!password || deleting}>
             {deleting ? "삭제 중…" : "비밀번호 확인 후 삭제"}
-          </button>
+          </AdminActionButton>
         </DialogFooter>
       </ModalShell>
     </AdminShell>
