@@ -114,7 +114,7 @@ def main():
     for name in [args.base, *dashboards]:
         try:
             backup = cw.get_dashboard(DashboardName=name)["DashboardBody"]
-        except cw.exceptions.ResourceNotFound:
+        except cw.exceptions.DashboardNotFoundError:
             continue
         (args.output / f"{name}-backup-{stamp}.json").write_text(backup)
         if name == args.base + "-log":
