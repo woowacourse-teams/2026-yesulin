@@ -12,8 +12,6 @@ import art.yesulin.auditionpost.domain.AuditionPostFile;
 import art.yesulin.auditionpost.domain.AuditionPostFileKind;
 import art.yesulin.auditionpost.domain.AuditionPostOrigin;
 import art.yesulin.auditionpost.domain.AuditionPostRepository;
-import art.yesulin.file.application.storage.ObjectStorage;
-import art.yesulin.file.application.storage.ObjectUpload;
 import art.yesulin.global.audit.AdminAction;
 import art.yesulin.global.audit.AdminAuditLog;
 import art.yesulin.global.audit.AdminAuditLogRepository;
@@ -22,13 +20,10 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -46,13 +41,10 @@ import org.springframework.transaction.support.TransactionTemplate;
 public class AuditionPostImportService implements AuditionImporter {
 
     private static final ZoneId KOREA = ZoneId.of("Asia/Seoul");
-    private static final DateTimeFormatter KEY_DATE = DateTimeFormatter.ofPattern("yyyyMMdd").withZone(ZoneOffset.UTC);
-    /** 공고 전용 공개 경로. CloudFront의 환경별 공고 동작으로 제공한다. */
-    private static final String OBJECT_KEY_FORMAT = "public/audition-posts/%s/%s";
     private static final String TARGET_TYPE = "AUDITION_POST";
 
     private final AuditionPostSource source;
-    private final ObjectStorage storage;
+    private final AuditionPostFileStorage fileStorage;
     private final AuditionPostRepository repository;
     private final AdminAuditLogRepository auditLogRepository;
     private final TransactionTemplate transactions;
@@ -60,14 +52,14 @@ public class AuditionPostImportService implements AuditionImporter {
 
     public AuditionPostImportService(
             AuditionPostSource source,
-            ObjectStorage storage,
+            AuditionPostFileStorage fileStorage,
             AuditionPostRepository repository,
             AdminAuditLogRepository auditLogRepository,
             PlatformTransactionManager transactionManager,
             Clock clock
     ) {
         this.source = source;
-        this.storage = storage;
+        this.fileStorage = fileStorage;
         this.repository = repository;
         this.auditLogRepository = auditLogRepository;
         this.transactions = new TransactionTemplate(transactionManager);
@@ -113,10 +105,10 @@ public class AuditionPostImportService implements AuditionImporter {
             List<SkippedFile> skipped = new ArrayList<>();
             files.addAll(storeAttachments(post.attachments(), uploadedKeys, skipped));
             Saved saved = save(adminId, origin, content, post.tags(), files);
-            deleteQuietly(saved.discarded().stream().map(AuditionPostFile::getObjectKey).toList());
+            fileStorage.deleteQuietly(saved.discarded().stream().map(AuditionPostFile::getObjectKey).toList());
             return new AuditionPostImportResult(saved.post(), saved.created(), skipped);
         } catch (RuntimeException exception) {
-            deleteQuietly(uploadedKeys);
+            fileStorage.deleteQuietly(uploadedKeys);
             throw exception;
         }
     }
@@ -137,10 +129,7 @@ public class AuditionPostImportService implements AuditionImporter {
                         .orElseThrow(() -> new BusinessException(
                                 FILE_REJECTED, "본문 사진 '%s'은(는) 지원하지 않는 형식입니다.", image.filename()
                         ));
-                String objectKey = store(content, contentType, null, uploadedKeys);
-                stored.add(new AuditionPostFile(
-                        AuditionPostFileKind.IMAGE, objectKey, image.filename(), contentType, content.size()
-                ));
+                stored.add(store(AuditionPostFileKind.IMAGE, image.filename(), contentType, content, uploadedKeys));
             } catch (SourceFileTooLargeException exception) {
                 throw new BusinessException(FILE_REJECTED, "본문 사진 '%s'이(가) 20MB를 넘습니다.", image.filename());
             } catch (AuditionPostSourceException exception) {
@@ -164,11 +153,8 @@ public class AuditionPostImportService implements AuditionImporter {
                 continue;
             }
             try (SourceFileContent content = source.open(attachment, AuditionPostFileRules.MAX_ATTACHMENT_BYTES)) {
-                String disposition = AuditionPostFileRules.attachmentDisposition(attachment.filename());
-                String objectKey = store(content, contentType.get(), disposition, uploadedKeys);
-                stored.add(new AuditionPostFile(
-                        AuditionPostFileKind.ATTACHMENT, objectKey, attachment.filename(), contentType.get(),
-                        content.size()
+                stored.add(store(
+                        AuditionPostFileKind.ATTACHMENT, attachment.filename(), contentType.get(), content, uploadedKeys
                 ));
             } catch (SourceFileTooLargeException exception) {
                 skipped.add(new SkippedFile(attachment.filename(), "50MB 초과"));
@@ -179,16 +165,16 @@ public class AuditionPostImportService implements AuditionImporter {
         return stored;
     }
 
-    private String store(
-            SourceFileContent content,
+    private AuditionPostFile store(
+            AuditionPostFileKind kind,
+            String filename,
             String contentType,
-            String disposition,
+            SourceFileContent content,
             List<String> uploadedKeys
     ) {
-        String objectKey = OBJECT_KEY_FORMAT.formatted(KEY_DATE.format(clock.instant()), UUID.randomUUID());
-        storage.put(objectKey, new ObjectUpload(contentType, disposition, content.size(), content.content()));
-        uploadedKeys.add(objectKey);
-        return objectKey;
+        AuditionPostFile file = fileStorage.store(kind, filename, contentType, content.size(), content.content());
+        uploadedKeys.add(file.getObjectKey());
+        return file;
     }
 
     private Saved save(
@@ -236,16 +222,6 @@ public class AuditionPostImportService implements AuditionImporter {
                 post.getId(),
                 detailFormat.formatted(post.getSource(), post.getExternalId())
         ));
-    }
-
-    private void deleteQuietly(List<String> objectKeys) {
-        for (String objectKey : objectKeys) {
-            try {
-                storage.delete(objectKey);
-            } catch (RuntimeException exception) {
-                log.warn("가져온 공고 파일 정리 실패: {}", exception.getClass().getSimpleName());
-            }
-        }
     }
 
     private record Saved(AdminAuditionPostResult post, boolean created, List<AuditionPostFile> discarded) {
