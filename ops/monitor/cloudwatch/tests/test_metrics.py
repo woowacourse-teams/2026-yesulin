@@ -73,9 +73,10 @@ class ConfigurationTest(unittest.TestCase):
         infra = {"type": "metric", "properties": {"title": "EC2 CPU"}}
         other = {"type": "text", "properties": {"markdown": "operational note"}}
         old_api = {"type": "log", "properties": {"title": "API DEV | requests"}}
-        original = {"widgets": [infra, old_api, other]}
+        snapshot = {"type": "text", "properties": {"markdown": "### PROD 오늘 로컬 파일 스냅샷 (자동 갱신 아님)"}}
+        original = {"widgets": [infra, old_api, other, snapshot]}
         self.assertEqual([infra, other], dashboards.base_dashboard(original)["widgets"])
-        self.assertEqual(3, len(original["widgets"]))
+        self.assertEqual(4, len(original["widgets"]))
         # 46 directly referenced custom metrics plus up to 4 host metrics on the current two backend instances.
         body = dashboards.metric_dashboard()
         literal = [m for w in body["widgets"] for m in w.get("properties", {}).get("metrics", []) if isinstance(m[0], str)]
