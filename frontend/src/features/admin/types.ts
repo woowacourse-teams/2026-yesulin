@@ -331,6 +331,49 @@ export type AdminAuditionPost = {
   readonly attachmentCount: number;
   readonly createdAt: string;
   readonly updatedAt: string;
+  /** 운영자가 마지막으로 직접 고친 시각. 고친 적이 없거나 원문으로 다시 가져왔으면 null. */
+  readonly editedAt: string | null;
+};
+
+export type AdminAuditionPostAttachment = {
+  readonly name: string;
+  readonly contentType: string;
+  readonly size: number;
+  /** 공개 저장소 주소. 수정할 때 남길 첨부를 이 주소로 알린다. */
+  readonly url: string;
+};
+
+/** 수정 화면에 채울 공고. `/api/v1/admin/audition-posts/{postId}` 응답과 같다. */
+export type AdminAuditionPostDetail = {
+  readonly id: number;
+  readonly source: string;
+  readonly externalId: string;
+  readonly sourceUrl: string;
+  readonly status: AdminAuditionPostStatus;
+  readonly category: string;
+  readonly title: string;
+  readonly pay: string;
+  readonly deadlineText: string;
+  readonly authorName: string;
+  /** 사진 자리를 공개 주소로 채운 본문. 편집기가 그대로 보여 준다. */
+  readonly bodyHtml: string;
+  readonly tags: readonly string[];
+  readonly attachments: readonly AdminAuditionPostAttachment[];
+  readonly editedAt: string | null;
+  readonly updatedAt: string;
+};
+
+export type AdminAuditionPostEdit = {
+  readonly category: string;
+  readonly title: string;
+  readonly pay: string;
+  readonly deadlineText: string;
+  readonly authorName: string;
+  /** 본문을 건드리지 않았으면 null. 서버가 원래 본문과 사진을 그대로 둔다. */
+  readonly bodyHtml: string | null;
+  readonly tags: readonly string[];
+  /** 남길 첨부의 주소. 빠진 첨부는 서버가 지운다. */
+  readonly attachmentUrls: readonly string[];
 };
 
 export type AdminAuditionPostImport = {

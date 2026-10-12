@@ -76,6 +76,9 @@ export const auditionPostApiPaths = {
 /** 공고 알림을 받는 카카오톡 오픈채팅방. */
 export const AUDITION_ALERT_CHAT_URL = "https://open.kakao.com/o/pCRrDXOi";
 
+/** 우리 서비스가 게시하는 공고 분류. 백엔드 `AuditionCategory`와 같다. */
+export const AUDITION_POST_CATEGORIES = ["연극", "퍼포먼스", "뮤지컬", "단원", "기획사"] as const;
+
 export const auditionPostRoutes = {
   /** 기본값(첫 페이지·모집 중만)은 주소에서 뺀다. */
   list: ({ page = 0, includeClosed = false }: Partial<AuditionPostQuery> = {}) => {

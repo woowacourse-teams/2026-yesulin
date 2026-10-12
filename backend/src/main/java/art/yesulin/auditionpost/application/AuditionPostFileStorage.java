@@ -48,6 +48,10 @@ public class AuditionPostFileStorage {
         return file;
     }
 
+    public String publicUrl(AuditionPostFile file) {
+        return storage.toPublicUrl(file.getObjectKey());
+    }
+
     /** 실패한 요청의 정리나 커밋 뒤 정리에 쓴다. 지우지 못해도 요청을 실패시키지 않는다. */
     public void deleteQuietly(List<String> objectKeys) {
         for (String objectKey : objectKeys) {

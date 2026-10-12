@@ -1,5 +1,6 @@
 package art.yesulin.auditionpost.application;
 
+import static art.yesulin.auditionpost.domain.AuditionPostErrorCode.EDITED;
 import static art.yesulin.auditionpost.domain.AuditionPostErrorCode.FILE_REJECTED;
 import static art.yesulin.auditionpost.domain.AuditionPostErrorCode.IMPORT_CONFLICT;
 import static art.yesulin.auditionpost.domain.AuditionPostErrorCode.SOURCE_UNAVAILABLE;
@@ -66,9 +67,24 @@ public class AuditionPostImportService implements AuditionImporter {
         this.clock = clock;
     }
 
-    /** 운영자가 관리자 화면에서 가져온다. 이미 있으면 원문 기준으로 교체하고 감사 기록을 남긴다. */
+    /** 운영자가 관리자 화면에서 가져온다. 이미 있으면 원문 기준으로 교체하고 감사 기록을 남긴다. 고친 공고는 덮어쓰지 않는다. */
     public AuditionPostImportResult importPost(long adminId, String externalId) {
-        return importAs(adminId, externalId);
+        return importPost(adminId, externalId, false);
+    }
+
+    /**
+     * 운영자가 고친 공고를 다시 가져오면 고친 내용이 원문으로 돌아가므로, {@code overwriteEdited}로 확인받았을 때만 교체한다.
+     * 원문을 내려받기 전에 먼저 확인해 불필요한 파일 업로드를 막는다.
+     */
+    public AuditionPostImportResult importPost(long adminId, String externalId, boolean overwriteEdited) {
+        if (!overwriteEdited) {
+            repository.findBySourceAndExternalId(source.getSource(), externalId)
+                    .filter(AuditionPost::isEdited)
+                    .ifPresent(post -> {
+                        throw editedConflict();
+                    });
+        }
+        return importAs(adminId, externalId, overwriteEdited);
     }
 
     /**
@@ -84,7 +100,7 @@ public class AuditionPostImportService implements AuditionImporter {
         if (existing.isPresent()) {
             return existing.map(AuditionPost::getId);
         }
-        AuditionPostImportResult result = importAs(null, externalId);
+        AuditionPostImportResult result = importAs(null, externalId, false);
         if (!result.skippedAttachments().isEmpty()) {
             log.info("자동 가져오기에서 첨부 {}개를 건너뜀: {}-{}", result.skippedAttachments().size(), sourceName, externalId);
         }
@@ -92,7 +108,7 @@ public class AuditionPostImportService implements AuditionImporter {
     }
 
     /** {@code adminId}가 null이면 자동 가져오기다. */
-    private AuditionPostImportResult importAs(Long adminId, String externalId) {
+    private AuditionPostImportResult importAs(Long adminId, String externalId, boolean overwriteEdited) {
         SourcePost post = fetch(externalId);
         AuditionPostOrigin origin = new AuditionPostOrigin(source.getSource(), post.externalId(), post.sourceUrl());
         AuditionPostContent content = new AuditionPostContent(
@@ -104,7 +120,7 @@ public class AuditionPostImportService implements AuditionImporter {
             List<AuditionPostFile> files = new ArrayList<>(storeImages(post.images(), uploadedKeys));
             List<SkippedFile> skipped = new ArrayList<>();
             files.addAll(storeAttachments(post.attachments(), uploadedKeys, skipped));
-            Saved saved = save(adminId, origin, content, post.tags(), files);
+            Saved saved = save(adminId, origin, content, post.tags(), files, overwriteEdited);
             fileStorage.deleteQuietly(saved.discarded().stream().map(AuditionPostFile::getObjectKey).toList());
             return new AuditionPostImportResult(saved.post(), saved.created(), skipped);
         } catch (RuntimeException exception) {
@@ -182,7 +198,8 @@ public class AuditionPostImportService implements AuditionImporter {
             AuditionPostOrigin origin,
             AuditionPostContent content,
             List<String> tags,
-            List<AuditionPostFile> files
+            List<AuditionPostFile> files,
+            boolean overwriteEdited
     ) {
         Instant now = clock.instant();
         LocalDate today = LocalDate.ofInstant(now, KOREA);
@@ -195,6 +212,10 @@ public class AuditionPostImportService implements AuditionImporter {
                     AuditionPost post = existing.get();
                     if (adminId == null) {
                         return new Saved(AdminAuditionPostResult.from(post, today), false, files);
+                    }
+                    // 원문을 내려받는 사이에 운영자가 고쳤을 수 있으므로 저장 직전에도 확인한다.
+                    if (post.isEdited() && !overwriteEdited) {
+                        throw editedConflict();
                     }
                     List<AuditionPostFile> discarded = post.refresh(content, tags, files, adminId, now);
                     audit(adminId, post, "%s %s 원문으로 다시 가져옴");
@@ -209,6 +230,12 @@ public class AuditionPostImportService implements AuditionImporter {
         } catch (DataIntegrityViolationException exception) {
             throw new BusinessException(IMPORT_CONFLICT, "같은 공고를 동시에 가져오고 있습니다. 잠시 후 다시 시도해 주세요.");
         }
+    }
+
+    private BusinessException editedConflict() {
+        return new BusinessException(
+                EDITED, "운영자가 고친 공고입니다. 원문으로 다시 가져오면 고친 내용이 원문으로 돌아갑니다."
+        );
     }
 
     private void audit(Long adminId, AuditionPost post, String detailFormat) {

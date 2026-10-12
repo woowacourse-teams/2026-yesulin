@@ -33,6 +33,7 @@ import org.hibernate.annotations.DynamicUpdate;
  * 외부 공고 사이트(수집 허락을 받은 OTR)의 공고 한 건을 우리 서비스 공고로 옮긴 게시글. 운영 서버는 새 공고를 알림과
  * 함께 자동으로 가져오고, 운영자는 관리자 화면에서 직접 가져올 수도 있다. 어느 쪽이든 숨김으로 시작해 운영자가 지원서를
  * 준비한 뒤 공개하고, 제작사가 내려 달라고 하면 다시 숨긴다. 같은 출처·번호를 다시 가져오면 새 행을 만들지 않고 내용과 파일을 원문 기준으로 교체한다.
+ * 운영자는 가져온 내용을 직접 고칠 수 있고, 고친 공고를 원문으로 다시 가져오면 수정 표시가 지워진다.
  * 지원 접수용 {@code OtrAudition}, Slack 알림 이력 {@code Notice}와는 별개다. 공개 주소에는 숫자 ID를 그대로 쓴다.
  * 조회수·원문 이동 수는 저장소의 원자적 update로만 늘리므로, 상태 변경·다시 가져오기가 읽은 시점의 수로
  * 덮어쓰지 않도록 바뀐 컬럼만 갱신한다.
@@ -96,6 +97,14 @@ public class AuditionPost {
     @Column(name = "imported_by")
     private Long importedBy;
 
+    /** 운영자가 마지막으로 직접 고친 시각. 원문으로 다시 가져오면 비운다. */
+    @Column(name = "edited_at")
+    private Instant editedAt;
+
+    /** 마지막으로 직접 고친 운영자. */
+    @Column(name = "edited_by")
+    private Long editedBy;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -122,7 +131,8 @@ public class AuditionPost {
     }
 
     /**
-     * 원문을 다시 읽은 내용으로 교체하고 더 이상 쓰지 않는 파일을 돌려준다. 공개 상태와 공개 ID는 유지한다.
+     * 원문을 다시 읽은 내용으로 교체하고 더 이상 쓰지 않는 파일을 돌려준다. 공개 상태와 공개 ID는 유지하고,
+     * 운영자가 고친 내용은 원문으로 돌아가므로 수정 표시를 지운다.
      *
      * @return 교체 전 파일 목록. 호출자가 커밋 뒤 저장소에서 지운다.
      */
@@ -133,9 +143,49 @@ public class AuditionPost {
             Long importedBy,
             Instant refreshedAt
     ) {
-        List<AuditionPostFile> previous = List.copyOf(this.files);
+        final List<AuditionPostFile> previous = List.copyOf(this.files);
         apply(content, tags, files, importedBy, refreshedAt);
+        this.editedAt = null;
+        this.editedBy = null;
         return previous;
+    }
+
+    /**
+     * 운영자가 고친 내용으로 바꾸고 이번 수정으로 빠진 파일을 돌려준다. 출처·공개 상태·가져온 운영자는 그대로 둔다.
+     *
+     * @return 고치기 전에 있었지만 이제 쓰지 않는 파일. 호출자가 커밋 뒤 저장소에서 지운다.
+     */
+    public List<AuditionPostFile> edit(
+            AuditionPostContent content,
+            List<String> tags,
+            List<AuditionPostFile> files,
+            long editorId,
+            Instant editedAt
+    ) {
+        if (content == null) {
+            throw invalid("공고 내용은 필수입니다.");
+        }
+        if (editorId <= 0) {
+            throw invalid("수정한 운영자가 올바르지 않습니다.");
+        }
+        if (editedAt == null) {
+            throw invalid("수정 시각은 필수입니다.");
+        }
+        final List<AuditionPostFile> previous = List.copyOf(this.files);
+        final List<AuditionPostFile> next = validateFiles(files);
+        this.content = content;
+        this.tags.clear();
+        this.tags.addAll(normalizeTags(tags));
+        this.files.clear();
+        this.files.addAll(next);
+        this.editedAt = editedAt;
+        this.editedBy = editorId;
+        this.updatedAt = editedAt;
+        return previous.stream().filter(file -> !next.contains(file)).toList();
+    }
+
+    public boolean isEdited() {
+        return editedAt != null;
     }
 
     public void changeStatus(AuditionPostStatus status) {

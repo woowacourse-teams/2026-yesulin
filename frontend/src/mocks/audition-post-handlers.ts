@@ -153,5 +153,7 @@ export const auditionPostHandlers = [
 
   http.get("/api/v1/admin/audition-posts", () => passthrough()),
   http.post("/api/v1/admin/audition-posts/otr-imports", () => passthrough()),
+  http.get("/api/v1/admin/audition-posts/:postId", () => passthrough()),
+  http.put("/api/v1/admin/audition-posts/:postId", () => passthrough()),
   http.patch("/api/v1/admin/audition-posts/:postId/status", () => passthrough()),
 ];

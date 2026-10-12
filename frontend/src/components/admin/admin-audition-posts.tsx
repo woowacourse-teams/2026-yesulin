@@ -5,11 +5,12 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { FieldInput } from "@/components/ui/controls";
 import {
   AdminApiError,
+  AUDITION_POST_EDITED,
   changeAuditionPostStatus,
   fetchAuditionPosts,
   importOtrAuditionPost,
 } from "@/features/admin/api";
-import { extractOtrId } from "@/features/admin/audition-posts";
+import { adminAuditionPostRoutes, extractOtrId } from "@/features/admin/audition-posts";
 import type { AdminAuditionPost, AdminAuditionPostImport } from "@/features/admin/types";
 import { auditionPostRoutes } from "@/features/audition-posts/types";
 import { logout } from "@/features/auth/session-api";
@@ -25,7 +26,7 @@ const ROW_BUTTON_CLASS =
 /**
  * 운영 서버는 새 OTR 공고를 알림과 함께 숨김으로 가져온다. 자동으로 가져오지 못했거나 개발 환경에서는 여기서 번호로
  * 직접 가져온다. 지원서를 준비한 뒤 보여 주고, 제작사가 내려 달라고 하면 숨긴다. 숨긴 공고 링크는 원문으로 연결된다.
- * 같은 번호를 다시 가져오면 공개 상태는 그대로 두고 원문 내용으로 교체된다.
+ * 같은 번호를 다시 가져오면 공개 상태는 그대로 두고 원문 내용으로 교체된다. 운영자가 고친 공고는 한 번 더 확인받는다.
  */
 export function AdminAuditionPosts() {
   const [phase, setPhase] = useState<Phase>("loading");
@@ -37,6 +38,8 @@ export function AdminAuditionPosts() {
   const [importing, setImporting] = useState<string | null>(null);
   const [result, setResult] = useState<AdminAuditionPostImport | null>(null);
   const [changing, setChanging] = useState<number | null>(null);
+  /** 고친 공고를 원문으로 덮어쓸지 확인받는 중인 OTR 번호. */
+  const [overwriteTarget, setOverwriteTarget] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -69,16 +72,21 @@ export function AdminAuditionPosts() {
     setError(cause instanceof Error ? cause.message : fallback);
   };
 
-  const runImport = async (otrId: string) => {
+  const runImport = async (otrId: string, overwriteEdited = false) => {
     setImporting(otrId);
     setError(null);
     setResult(null);
+    setOverwriteTarget(null);
     try {
-      const imported = await importOtrAuditionPost(otrId);
+      const imported = await importOtrAuditionPost(otrId, overwriteEdited);
       setResult(imported);
       setPosts((current) => [imported.post, ...current.filter((post) => post.id !== imported.post.id)]);
       setInput("");
     } catch (cause) {
+      if (cause instanceof AdminApiError && cause.code === AUDITION_POST_EDITED) {
+        setOverwriteTarget(otrId);
+        return;
+      }
       handleFailure(cause, "OTR 공고를 가져오지 못했습니다.");
     } finally {
       setImporting(null);
@@ -123,7 +131,7 @@ export function AdminAuditionPosts() {
     <AdminShell
       current="posts"
       title="공고 가져오기"
-      description="운영 서버는 새 OTR 공고를 알림과 함께 숨김으로 가져와요. 지원서를 준비한 뒤 '보여주기'를 누르면 공개되고, 제작사가 내려 달라고 하면 '숨기기'를 눌러 주세요. 숨긴 공고 링크는 OTR 원문으로 연결돼요. 자동으로 가져오지 못했거나 개발 환경에서는 OTR 번호나 알림 링크를 넣어 직접 가져와 주세요."
+      description="운영 서버는 새 OTR 공고를 알림과 함께 숨김으로 가져와요. 지원서를 준비한 뒤 '보여주기'를 누르면 공개되고, 제작사가 내려 달라고 하면 '숨기기'를 눌러 주세요. 숨긴 공고 링크는 OTR 원문으로 연결돼요. 제목·마감·본문은 '수정'에서 고칠 수 있어요. 자동으로 가져오지 못했거나 개발 환경에서는 OTR 번호나 알림 링크를 넣어 직접 가져와 주세요."
       actions={(
         <>
           <AdminActionButton onClick={refresh}>새로고침</AdminActionButton>
@@ -160,6 +168,15 @@ export function AdminAuditionPosts() {
         )}
       </form>
 
+      {overwriteTarget ? (
+        <OverwriteConfirm
+          otrId={overwriteTarget}
+          title={posts.find((post) => post.externalId === overwriteTarget)?.title}
+          onConfirm={() => void runImport(overwriteTarget, true)}
+          onCancel={() => setOverwriteTarget(null)}
+        />
+      ) : null}
+
       {result ? <ImportResult result={result} /> : null}
 
       {error ? (
@@ -182,6 +199,7 @@ export function AdminAuditionPosts() {
                 </span>
                 {post.autoImported ? <span className="rounded-full bg-brand-soft px-2.5 py-0.5 font-bold text-brand">자동 수집</span> : null}
                 {post.closed ? <span className="rounded-full bg-border-soft px-2.5 py-0.5 font-bold text-muted">마감</span> : null}
+                {post.editedAt ? <span className="rounded-full bg-warn-bg px-2.5 py-0.5 font-bold text-warn">수정됨</span> : null}
                 <span className="num text-muted">{post.source} {post.externalId}</span>
                 <span className="ml-auto text-muted">{formatDateTime(post.updatedAt)} 갱신</span>
               </header>
@@ -194,6 +212,7 @@ export function AdminAuditionPosts() {
                 {post.status === "PUBLISHED" ? (
                   <Link href={auditionPostRoutes.detail(post.id)} target="_blank" className={ROW_BUTTON_CLASS}>공개 화면</Link>
                 ) : null}
+                <Link href={adminAuditionPostRoutes.edit(post.id)} className={ROW_BUTTON_CLASS}>수정</Link>
                 <a href={post.sourceUrl} target="_blank" rel="noopener noreferrer" className={ROW_BUTTON_CLASS}>원문</a>
                 <button
                   type="button"
@@ -217,6 +236,34 @@ export function AdminAuditionPosts() {
         </section>
       ) : null}
     </AdminShell>
+  );
+}
+
+/** 고친 공고를 원문으로 덮어쓰기 전에 한 번 더 묻는다. 확인하면 같은 번호를 덮어쓰기로 다시 요청한다. */
+function OverwriteConfirm({ otrId, title, onConfirm, onCancel }: {
+  readonly otrId: string;
+  readonly title?: string;
+  readonly onConfirm: () => void;
+  readonly onCancel: () => void;
+}) {
+  return (
+    <section role="alert" className="rounded-card border border-warn/30 bg-warn-bg px-4 py-4 text-sm sm:px-5">
+      <p className="font-bold text-warn">고친 공고예요. 원문으로 다시 가져올까요?</p>
+      <p className="mt-1 font-semibold text-foreground">
+        <span className="num">OTR {otrId}</span>{title ? ` · ${title}` : ""}
+      </p>
+      <p className="mt-1 text-foreground">원문으로 다시 가져오면 운영자가 고친 제목·마감·본문 등이 모두 원문 내용으로 돌아가요.</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={onConfirm}
+          className="min-h-11 rounded-control border border-foreground bg-foreground px-4 text-sm font-semibold text-white hover:bg-sidebar-hover"
+        >
+          원문으로 덮어쓰기
+        </button>
+        <button type="button" onClick={onCancel} className={ROW_BUTTON_CLASS}>그대로 두기</button>
+      </div>
+    </section>
   );
 }
 

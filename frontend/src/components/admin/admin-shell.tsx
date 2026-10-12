@@ -140,3 +140,7 @@ const ACTION_CLASS =
 export function AdminActionButton(props: ButtonHTMLAttributes<HTMLButtonElement>) {
   return <button type="button" className={ACTION_CLASS} {...props} />;
 }
+
+export function AdminActionLink({ href, children }: { readonly href: string; readonly children: ReactNode }) {
+  return <Link href={href} className={ACTION_CLASS}>{children}</Link>;
+}
