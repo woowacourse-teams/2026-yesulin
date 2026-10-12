@@ -308,7 +308,10 @@ export type AdminTimetableMessages = {
   readonly messages: readonly AdminTimetableMessage[];
 };
 
-export type AdminAuditionPostStatus = "PUBLISHED" | "HIDDEN";
+export type AdminAuditionPostStatus = "PENDING" | "PUBLISHED" | "HIDDEN";
+
+/** 공고를 처음 만든 경로. 다시 가져오거나 고쳐도 바뀌지 않는다. */
+export type AdminAuditionPostCreation = "AUTO_IMPORT" | "ADMIN_IMPORT" | "ADMIN_WRITE" | "PRODUCER_WRITE";
 
 /** OTR에서 가져오거나 운영자·기획사가 직접 쓴 공고. `/api/v1/admin/audition-posts` 응답과 같다. */
 export type AdminAuditionPost = {
@@ -325,8 +328,7 @@ export type AdminAuditionPost = {
   readonly deadlineText: string;
   readonly closed: boolean;
   readonly status: AdminAuditionPostStatus;
-  /** 운영 서버가 새 공고 알림과 함께 자동으로 가져왔으면 true. 운영자가 다시 가져오면 false가 된다. */
-  readonly autoImported: boolean;
+  readonly createdVia: AdminAuditionPostCreation;
   readonly viewCount: number;
   /** 숨긴 상태에서 상세 주소를 열어 OTR 원문으로 보낸 수. 조회수와 따로 센다. */
   readonly redirectCount: number;
@@ -340,8 +342,6 @@ export type AdminAuditionPost = {
   readonly ownerId: number | null;
   /** 연결된 기획사 이름. 연결이 없거나 기획사 정보가 없어졌으면 null. */
   readonly ownerName: string | null;
-  /** 기획사가 직접 올린 공고면 true. */
-  readonly writtenByOwner: boolean;
 };
 
 /** 기획사 한 곳의 공고 수와 자동 연결된 원문 작성자. */
@@ -349,6 +349,7 @@ export type AdminAuditionPostOwner = {
   readonly ownerId: number;
   /** 기획사 정보가 없어졌으면 null. */
   readonly companyName: string | null;
+  readonly pendingCount: number;
   readonly publishedCount: number;
   readonly hiddenCount: number;
   /** 연결된 공고 중 가장 최근에 만든 시각. 공고가 없으면 null. */

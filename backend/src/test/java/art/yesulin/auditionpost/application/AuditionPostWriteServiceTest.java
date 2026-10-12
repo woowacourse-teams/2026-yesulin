@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import art.yesulin.auditionpost.application.AuditionPostEditResult.Attachment;
 import art.yesulin.auditionpost.application.AuditionPostImportServiceTest.FakeSource;
 import art.yesulin.auditionpost.domain.AuditionPost;
+import art.yesulin.auditionpost.domain.AuditionPostCreation;
 import art.yesulin.auditionpost.domain.AuditionPostErrorCode;
 import art.yesulin.auditionpost.domain.AuditionPostFile;
 import art.yesulin.auditionpost.domain.AuditionPostFileKind;
@@ -111,7 +112,7 @@ class AuditionPostWriteServiceTest {
         assertEquals("회당 5만원", after.pay());
         assertEquals("상시", after.deadlineText());
         assertEquals(List.of("뮤지컬"), after.tags());
-        assertEquals(AuditionPostStatus.HIDDEN, after.status());
+        assertEquals(AuditionPostStatus.PENDING, after.status());
         assertEquals(2, auditLogRepository.count());
     }
 
@@ -223,11 +224,11 @@ class AuditionPostWriteServiceTest {
 
         AdminAuditionPostResult written = writeService.write(ADMIN_ID, command(body, List.of(attachmentUrl)));
 
-        assertEquals(AuditionPostStatus.HIDDEN, written.status());
+        assertEquals(AuditionPostStatus.PENDING, written.status());
         assertEquals("YESULIN", written.source());
         assertNull(written.externalId());
         assertNull(written.sourceUrl());
-        assertFalse(written.autoImported());
+        assertEquals(AuditionPostCreation.ADMIN_WRITE, written.createdVia());
         assertEquals(1, written.imageCount());
         assertEquals(1, written.attachmentCount());
         AuditionPostEditResult detail = writeService.findForEdit(written.id());

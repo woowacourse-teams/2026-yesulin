@@ -322,7 +322,7 @@ export async function fillAuditionPostAuthors(beforeId: number | null): Promise<
 export const AUDITION_POST_EDITED = "AUDITION_POST_EDITED";
 
 /**
- * OTR 공고를 본문·사진·첨부까지 숨김으로 가져온다. 이미 있으면 원문으로 교체한다.
+ * OTR 공고를 본문·사진·첨부까지 검토 전으로 가져온다. 이미 있으면 원문으로 교체한다.
  * 운영자가 고친 공고는 `overwriteEdited`로 확인받았을 때만 교체한다.
  */
 export async function importOtrAuditionPost(otrId: string, overwriteEdited = false): Promise<AdminAuditionPostImport> {
@@ -380,7 +380,7 @@ export async function updateAuditionPost(postId: string, write: AuditionPostWrit
   return response.json() as Promise<AdminAuditionPost>;
 }
 
-/** 원문 없이 공고를 쓴다. 숨김으로 만들어지고 목록에서 보여주기를 눌러야 공개된다. */
+/** 원문 없이 공고를 쓴다. 검토 전으로 만들어지고 목록에서 공개하기를 눌러야 공개된다. */
 export async function createAuditionPost(write: AuditionPostWrite): Promise<AdminAuditionPost> {
   const response = await fetch(`${API_BASE_PATH}/audition-posts`, {
     method: "POST",

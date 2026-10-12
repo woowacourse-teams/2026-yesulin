@@ -122,7 +122,7 @@
   `AuditionNoticeService`가 `NoticeRepository`를 직접 사용한다. 전체 실행을 트랜잭션으로 묶지 않고
   수집 결과 저장과 묶음 전송 완료 기록에만 짧은 트랜잭션을 적용한다. DB 트랜잭션을 잡은 채 외부 요청을 수행하지 않는다.
   동시 수집의 삽입 충돌은 유니크 제약으로 거절되고 해당 수집 트랜잭션은 롤백된다. 다음 실행에서 재수집한다.
-- 묶음마다 Slack 전송 전에 공고마다 `AuditionImporter.importIfAbsent`로 숨긴 채 가져온다. 가져오기 실패는
+- 묶음마다 Slack 전송 전에 공고마다 `AuditionImporter.importIfAbsent`로 검토 전 상태로 가져온다. 가져오기 실패는
   `sendError`로 따로 알리고 해당 공고의 알림은 경유 링크 `/otr?vid=`로 그대로 보낸다. 가져온 공고 알림은 상태와 관계없이 `/posts/{id}`를 쓴다.
   전송이 실패해 다음 실행에서 다시 보낼 때는 이미 가져온 번호라 다시 가져오지 않는다.
 - `AuditionNoticeService`는 Spring bean으로 등록한다. `@EnableScheduling`은 전체 환경에서 활성화한다.
@@ -137,9 +137,11 @@
 
 - `auditionpost/domain`의 `AuditionPost`는 출처(`source`)·원문 번호(`external_id`)·원문 주소, 내용 `AuditionPostContent`(embeddable),
   태그(`audition_post_tags`)와 파일 `AuditionPostFile`(`audition_post_files`, 사진·첨부 구분과 저장소 키·원래 이름·형식·크기),
-  `PUBLISHED/HIDDEN`(생성 시 `HIDDEN`), 조회수·원문 이동 수, 가져온 운영자(자동 가져오기면 null), 생성·갱신 시각을 저장한다.
+  `PENDING/PUBLISHED/HIDDEN`(가져오기·운영자 작성은 `PENDING`, 기획사 작성은 `PUBLISHED`로 시작), 처음 만든 경로 `created_via`
+  (`AuditionPostCreation`, 수정 불가), 조회수·원문 이동 수, 마지막으로 가져온 운영자(자동 가져오기면 null), 생성·갱신 시각을 저장한다.
+  `changeStatus`는 공개하거나 내린 공고를 `PENDING`으로 되돌리지 않는다.
   두 수는 저장소의 원자적 update로만 늘린다. 엔티티는 바뀐 컬럼만 갱신해 상태 변경·다시 가져오기가 두 수를 덮어쓰지 않는다.
-  조회수는 `PUBLISHED`, 원문 이동 수는 `HIDDEN`일 때만 늘어난다. `(source, external_id)`는 유니크이고 공개 주소에는 숫자 ID를 쓴다.
+  조회수는 `PUBLISHED`일 때만, 원문 이동 수는 `PUBLISHED`가 아닐 때만 늘어난다. `(source, external_id)`는 유니크이고 공개 주소에는 숫자 ID를 쓴다.
 - 분류는 `AuditionCategory`(연극·퍼포먼스·뮤지컬·단원·기획사)만 받는다. `AuditionPostContent`가 생성 시 검사하므로
   가져오기는 파일을 받기 전에 거절된다. 공개 목록의 모집 중 조건은 `deadline`이 없거나 오늘 이후인 공고다.
 - 마감은 원문 문자열(`deadline_text`)과 `yyyy-MM-dd`일 때만 채우는 `deadline`을 함께 둔다. 원문 작성 시각은 한국 시간 `LocalDateTime`이다.

@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import art.yesulin.auditionpost.application.AuditionPostEditResult.Attachment;
 import art.yesulin.auditionpost.application.AuditionPostImportServiceTest.FakeSource;
 import art.yesulin.auditionpost.domain.AuditionPost;
+import art.yesulin.auditionpost.domain.AuditionPostCreation;
 import art.yesulin.auditionpost.domain.AuditionPostErrorCode;
 import art.yesulin.auditionpost.domain.AuditionPostFileKind;
 import art.yesulin.auditionpost.domain.AuditionPostRepository;
@@ -123,7 +124,7 @@ class AuditionPostOwnerWriteTest {
         );
         AdminAuditionPostResult listed = auditionPostService.findAllForAdmin(null).getFirst();
         assertEquals(COMPANY, listed.ownerName());
-        assertTrue(listed.writtenByOwner());
+        assertEquals(AuditionPostCreation.PRODUCER_WRITE, listed.createdVia());
     }
 
     @Test

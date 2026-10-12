@@ -11,7 +11,9 @@ import {
   importOtrAuditionPost,
 } from "@/features/admin/api";
 import { adminAuditionPostRoutes, extractOtrId } from "@/features/admin/audition-posts";
-import type { AdminAuditionPost, AdminAuditionPostImport } from "@/features/admin/types";
+import type { AdminAuditionPost, AdminAuditionPostImport, AdminAuditionPostStatus } from "@/features/admin/types";
+import { AuditionPostStatusBadge } from "@/components/audition-posts/audition-post-status-badge";
+import { AUDITION_POST_STATUS_LABELS } from "@/features/audition-posts/editing";
 import { auditionPostRoutes } from "@/features/audition-posts/types";
 import { logout } from "@/features/auth/session-api";
 import { formatDateTime } from "./admin-format";
@@ -22,9 +24,21 @@ import { SummaryItem, SummaryStrip } from "./admin-stat";
 
 type Phase = "loading" | "ready" | "unauthorized" | "failed";
 
+const STATUS_FILTERS = (["PENDING", "PUBLISHED", "HIDDEN"] as const).map((value) => ({
+  value,
+  label: AUDITION_POST_STATUS_LABELS[value],
+}));
+
+/** 공개 중이면 내리고, 검토 전이나 내린 공고는 공개한다. */
+const STATUS_ACTIONS: Readonly<Record<AdminAuditionPostStatus, string>> = {
+  PENDING: "공개하기",
+  PUBLISHED: "내리기",
+  HIDDEN: "다시 공개",
+};
+
 /**
- * 운영 서버는 새 OTR 공고를 알림과 함께 숨김으로 가져온다. 자동으로 가져오지 못했거나 개발 환경에서는 여기서 번호로
- * 직접 가져온다. 지원서를 준비한 뒤 보여 주고, 제작사가 내려 달라고 하면 숨긴다. 숨긴 공고 링크는 원문으로 연결된다.
+ * 운영 서버는 새 OTR 공고를 알림과 함께 검토 전으로 가져온다. 자동으로 가져오지 못했거나 개발 환경에서는 여기서 번호로
+ * 직접 가져온다. 내용을 확인한 뒤 공개하고, 제작사가 내려 달라고 하면 내린다. 공개하지 않은 공고 링크는 원문으로 연결된다.
  * 같은 번호를 다시 가져오면 공개 상태는 그대로 두고 원문 내용으로 교체된다. 운영자가 고친 공고는 한 번 더 확인받는다.
  */
 export function AdminAuditionPosts({ ownerId }: {
@@ -42,7 +56,7 @@ export function AdminAuditionPosts({ ownerId }: {
   const [changing, setChanging] = useState<number | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"ALL" | "PUBLISHED" | "HIDDEN">("ALL");
+  const [statusFilter, setStatusFilter] = useState<"ALL" | AdminAuditionPostStatus>("ALL");
   /** 고친 공고를 원문으로 덮어쓸지 확인받는 중인 OTR 번호. */
   const [overwriteTarget, setOverwriteTarget] = useState<string | null>(null);
 
@@ -135,6 +149,7 @@ export function AdminAuditionPosts({ ownerId }: {
     return <AdminSessionEnded />;
   }
 
+  const pendingCount = posts.filter((post) => post.status === "PENDING").length;
   const search = query.trim().toLocaleLowerCase("ko-KR");
   const visiblePosts = posts.filter((post) =>
     (statusFilter === "ALL" || post.status === statusFilter)
@@ -163,10 +178,10 @@ export function AdminAuditionPosts({ ownerId }: {
         </p>
       ) : null}
       {phase === "ready" ? <SummaryStrip>
-        <SummaryItem label="조회된 공고" value={posts.length} unit="건" />
+        <SummaryItem label="검토 전" value={pendingCount} unit="건" emphasis={pendingCount > 0} />
         <SummaryItem label="공개 중" value={posts.filter((post) => post.status === "PUBLISHED").length} unit="건" />
-        <SummaryItem label="숨김" value={posts.filter((post) => post.status === "HIDDEN").length} unit="건" />
-        <SummaryItem label="기획사 등록" value={posts.filter((post) => post.writtenByOwner).length} unit="건" />
+        <SummaryItem label="내림" value={posts.filter((post) => post.status === "HIDDEN").length} unit="건" />
+        <SummaryItem label="기획사 등록" value={posts.filter((post) => post.createdVia === "PRODUCER_WRITE").length} unit="건" />
       </SummaryStrip> : null}
       {phase === "ready" ? <p className="-mt-3 text-xs text-muted">최근 등록된 공고 200건까지 확인·검색할 수 있어요. 요약 숫자는 현재 목록 기준입니다.</p> : null}
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -202,7 +217,7 @@ export function AdminAuditionPosts({ ownerId }: {
         {inputError ? (
           <p id="otr-id-error" role="alert" className="mt-2 text-sm text-fail">{inputError}</p>
         ) : (
-          <p id="otr-id-hint" className="mt-2 text-sm text-muted">숨김으로 가져옵니다. 사진·첨부가 많으면 수십 초 걸릴 수 있어요.</p>
+          <p id="otr-id-hint" className="mt-2 text-sm text-muted">검토 전으로 가져와요. 사진·첨부가 많으면 수십 초 걸릴 수 있어요.</p>
         )}
       </form> : null}
 
@@ -228,7 +243,7 @@ export function AdminAuditionPosts({ ownerId }: {
         <section aria-label="공고 목록" className="flex flex-col gap-4">
           {posts.length > 0 ? <div className="flex flex-wrap items-end justify-between gap-3">
             <div role="group" aria-label="공고 공개 상태" className="flex flex-wrap gap-2">
-              {([{ value: "ALL", label: "전체" }, { value: "PUBLISHED", label: "공개 중" }, { value: "HIDDEN", label: "숨김" }] as const).map((filter) => (
+              {([{ value: "ALL", label: "전체" }, ...STATUS_FILTERS] as const).map((filter) => (
                 <AdminFilterButton key={filter.value} pressed={statusFilter === filter.value} onClick={() => setStatusFilter(filter.value)}>{filter.label}</AdminFilterButton>
               ))}
             </div>
@@ -246,16 +261,14 @@ export function AdminAuditionPosts({ ownerId }: {
           {visiblePosts.map((post) => (
             <article key={post.id} className="rounded-card border border-border bg-card p-4 sm:px-5">
               <header className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-                <span className={`rounded-full px-2.5 py-0.5 font-bold ${post.status === "PUBLISHED" ? "bg-pass-bg text-pass" : "bg-border-soft text-muted-strong"}`}>
-                  {post.status === "PUBLISHED" ? "공개 중" : "숨김"}
-                </span>
-                {post.autoImported ? <span className="rounded-full bg-brand-soft px-2.5 py-0.5 font-bold text-brand">자동 수집</span> : null}
+                <AuditionPostStatusBadge status={post.status} />
+                {post.createdVia === "AUTO_IMPORT" ? <span className="rounded-full bg-brand-soft px-2.5 py-0.5 font-bold text-brand">자동 수집</span> : null}
                 {post.closed ? <span className="rounded-full bg-border-soft px-2.5 py-0.5 font-bold text-muted">마감</span> : null}
                 {post.editedAt ? <span className="rounded-full bg-warn-bg px-2.5 py-0.5 font-bold text-warn">수정됨</span> : null}
                 {post.externalId ? (
                   <span className="num text-muted">{post.source} {post.externalId}</span>
                 ) : (
-                  <span className="rounded-full bg-brand-soft px-2.5 py-0.5 font-bold text-brand">{post.writtenByOwner ? "기획사 등록" : "직접 작성"}</span>
+                  <span className="rounded-full bg-brand-soft px-2.5 py-0.5 font-bold text-brand">{post.createdVia === "PRODUCER_WRITE" ? "기획사 등록" : "직접 작성"}</span>
                 )}
                 {post.ownerId !== null ? <span className="text-muted-strong">기획사 {post.ownerName ?? `회원 ${post.ownerId}`}</span> : null}
                 <span className="ml-auto text-muted">{formatDateTime(post.updatedAt)} 갱신</span>
@@ -281,7 +294,7 @@ export function AdminAuditionPosts({ ownerId }: {
                   onClick={() => void toggleStatus(post)}
                   className="ml-auto"
                 >
-                  {changing === post.id ? "바꾸는 중…" : post.status === "PUBLISHED" ? "숨기기" : "보여주기"}
+                  {changing === post.id ? "바꾸는 중…" : STATUS_ACTIONS[post.status]}
                 </AdminActionButton>
               </div>
             </article>
@@ -335,7 +348,7 @@ function ImportResult({ result }: { readonly result: AdminAuditionPostImport }) 
   return (
     <section role="status" className="rounded-card border border-pass/30 bg-pass-bg px-4 py-4 text-sm sm:px-5">
       <p className="font-bold text-pass">
-        {result.created ? "숨김으로 가져왔어요. 지원서를 준비한 뒤 '보여주기'를 눌러 주세요." : "원문 내용으로 다시 가져왔어요."}
+        {result.created ? "검토 전으로 가져왔어요. 내용을 확인한 뒤 '공개하기'를 눌러 주세요." : "원문 내용으로 다시 가져왔어요."}
       </p>
       <p className="mt-1 text-foreground">
         {result.post.title} · 사진 <span className="num">{result.post.imageCount}</span> · 첨부 <span className="num">{result.post.attachmentCount}</span>

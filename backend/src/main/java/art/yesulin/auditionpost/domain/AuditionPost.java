@@ -32,12 +32,13 @@ import org.hibernate.annotations.DynamicUpdate;
 
 /**
  * 외부 공고 사이트(수집 허락을 받은 OTR)의 공고 한 건을 우리 서비스 공고로 옮긴 게시글. 운영 서버는 새 공고를 알림과
- * 함께 자동으로 가져오고, 운영자는 관리자 화면에서 직접 가져올 수도 있다. 어느 쪽이든 숨김으로 시작해 운영자가 지원서를
- * 준비한 뒤 공개하고, 제작사가 내려 달라고 하면 다시 숨긴다. 같은 출처·번호를 다시 가져오면 새 행을 만들지 않고 내용과 파일을 원문 기준으로 교체한다.
+ * 함께 자동으로 가져오고, 운영자는 관리자 화면에서 직접 가져올 수도 있다. 어느 쪽이든 검토 전으로 시작해 운영자가 확인한 뒤
+ * 공개하고, 제작사가 내려 달라고 하면 내린다. 같은 출처·번호를 다시 가져오면 새 행을 만들지 않고 내용과 파일을 원문 기준으로 교체한다.
  * 운영자는 가져온 내용을 직접 고칠 수 있고, 고친 공고를 원문으로 다시 가져오면 수정 표시가 지워진다.
  * 원문 없이 운영자가 직접 쓴 공고와 기획사가 올린 공고도 같은 모델로 저장한다. 출처는 {@link #DIRECT_SOURCE}이고 원문
  * 번호·주소가 없다. 기획사가 올린 공고는 이메일 인증을 마친 계정만 올리므로 바로 공개한다. 공고에 연결된 기획사(소유자)는
- * 그 공고를 고칠 수 있고, 운영자는 소유자와 관계없이 모든 공고를 고치거나 숨긴다.
+ * 그 공고를 고칠 수 있고, 운영자는 소유자와 관계없이 모든 공고를 고치거나 내린다.
+ * 처음 만든 경로는 {@link AuditionPostCreation}으로 남기며 다시 가져오거나 고쳐도 바뀌지 않는다.
  * 지원 접수용 {@code OtrAudition}, Slack 알림 이력 {@code Notice}와는 별개다. 공개 주소에는 숫자 ID를 그대로 쓴다.
  * 조회수·원문 이동 수는 저장소의 원자적 update로만 늘리므로, 상태 변경·다시 가져오기가 읽은 시점의 수로
  * 덮어쓰지 않도록 바뀐 컬럼만 갱신한다.
@@ -105,6 +106,10 @@ public class AuditionPost {
     @Column(nullable = false, length = 20)
     private AuditionPostStatus status;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "created_via", nullable = false, updatable = false, length = 20)
+    private AuditionPostCreation createdVia;
+
     /** 공개 상세 조회 수. 다시 가져와도 유지하며 증가는 저장소의 원자적 update로만 한다. */
     @Column(name = "view_count", nullable = false)
     private long viewCount;
@@ -152,7 +157,8 @@ public class AuditionPost {
         this.source = origin.source();
         this.externalId = origin.externalId();
         this.sourceUrl = origin.sourceUrl();
-        this.status = AuditionPostStatus.HIDDEN;
+        this.status = AuditionPostStatus.PENDING;
+        this.createdVia = importedBy == null ? AuditionPostCreation.AUTO_IMPORT : AuditionPostCreation.ADMIN_IMPORT;
         this.createdAt = requireTime(importedAt);
         apply(content, tags, files, importedBy, importedAt);
     }
@@ -164,16 +170,18 @@ public class AuditionPost {
             Long writerId,
             Long ownerId,
             AuditionPostStatus status,
+            AuditionPostCreation createdVia,
             Instant writtenAt
     ) {
         this.source = DIRECT_SOURCE;
         this.ownerId = ownerId;
         this.status = status;
+        this.createdVia = createdVia;
         this.createdAt = requireTime(writtenAt);
         apply(content, tags, files, writerId, writtenAt);
     }
 
-    /** 운영자가 원문 없이 직접 쓴 공고. 가져온 공고처럼 숨김으로 시작하고 원문으로 다시 가져올 수 없다. */
+    /** 운영자가 원문 없이 직접 쓴 공고. 가져온 공고처럼 검토 전으로 시작하고 원문으로 다시 가져올 수 없다. */
     public static AuditionPost write(
             AuditionPostContent content,
             List<String> tags,
@@ -184,7 +192,10 @@ public class AuditionPost {
         if (writerId <= 0) {
             throw invalid("쓴 운영자가 올바르지 않습니다.");
         }
-        return new AuditionPost(content, tags, files, writerId, null, AuditionPostStatus.HIDDEN, writtenAt);
+        return new AuditionPost(
+                content, tags, files, writerId, null, AuditionPostStatus.PENDING, AuditionPostCreation.ADMIN_WRITE,
+                writtenAt
+        );
     }
 
     /** 기획사가 올린 공고. 올린 기획사가 소유자가 되고 바로 공개한다. */
@@ -198,7 +209,10 @@ public class AuditionPost {
         if (ownerId <= 0) {
             throw invalid("올린 기획사가 올바르지 않습니다.");
         }
-        return new AuditionPost(content, tags, files, null, ownerId, AuditionPostStatus.PUBLISHED, publishedAt);
+        return new AuditionPost(
+                content, tags, files, null, ownerId, AuditionPostStatus.PUBLISHED, AuditionPostCreation.PRODUCER_WRITE,
+                publishedAt
+        );
     }
 
     /**
@@ -289,14 +303,13 @@ public class AuditionPost {
         return ownerId != null && ownerId == memberId;
     }
 
-    /** 기획사가 직접 올린 공고인지. 운영자가 쓰거나 원문에서 가져온 공고가 아니다. */
-    public boolean isWrittenByOwner() {
-        return !hasOrigin() && importedBy == null;
-    }
-
+    /** 공개하거나 내린다. 공개 여부를 정한 공고를 검토 전으로 되돌리지는 않는다. */
     public void changeStatus(AuditionPostStatus status) {
         if (status == null) {
             throw invalid("공개 상태는 필수입니다.");
+        }
+        if (status == AuditionPostStatus.PENDING && this.status != AuditionPostStatus.PENDING) {
+            throw invalid("공개하거나 내린 공고는 검토 전으로 되돌릴 수 없습니다.");
         }
         this.status = status;
     }
@@ -304,10 +317,6 @@ public class AuditionPost {
     /** 원문에서 가져온 공고인지. 직접 쓴 공고는 원문 번호·주소가 없다. */
     public boolean hasOrigin() {
         return externalId != null;
-    }
-
-    public boolean isAutoImported() {
-        return hasOrigin() && importedBy == null;
     }
 
     public boolean isPublished() {

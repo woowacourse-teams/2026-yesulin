@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import art.yesulin.auditionpost.application.AuditionPostImportResult.SkippedFile;
 import art.yesulin.auditionpost.domain.AuditionPost;
+import art.yesulin.auditionpost.domain.AuditionPostCreation;
 import art.yesulin.auditionpost.domain.AuditionPostErrorCode;
 import art.yesulin.auditionpost.domain.AuditionPostFile;
 import art.yesulin.auditionpost.domain.AuditionPostRepository;
@@ -80,7 +81,7 @@ class AuditionPostImportServiceTest {
     }
 
     @Test
-    void importsBodyImagesAndAttachmentsAsHiddenUntilPublished() {
+    void importsBodyImagesAndAttachmentsAsPendingUntilPublished() {
         source.file("img-0", "image/png", 100);
         source.file("img-1", "application/octet-stream", 100);
         source.file("doc", "application/octet-stream", 100);
@@ -101,7 +102,7 @@ class AuditionPostImportServiceTest {
         assertTrue(result.created());
         assertEquals(2, result.post().imageCount());
         assertEquals(1, result.post().attachmentCount());
-        assertEquals(AuditionPostStatus.HIDDEN, result.post().status());
+        assertEquals(AuditionPostStatus.PENDING, result.post().status());
         assertEquals(
                 List.of(new SkippedFile("setup.exe", "지원하지 않는 형식"), new SkippedFile("음원.mp3", "50MB 초과")),
                 result.skippedAttachments()
@@ -197,13 +198,13 @@ class AuditionPostImportServiceTest {
     }
 
     @Test
-    void autoImportCreatesHiddenPostWithoutAuditLog() {
+    void autoImportCreatesPendingPostWithoutAuditLog() {
         Optional<Long> postId = importService.importIfAbsent("OTR", OTR_ID);
 
         AdminAuditionPostResult post = auditionPostService.findAllForAdmin(null).getFirst();
         assertEquals(Optional.of(post.id()), postId);
-        assertTrue(post.autoImported());
-        assertEquals(AuditionPostStatus.HIDDEN, post.status());
+        assertEquals(AuditionPostCreation.AUTO_IMPORT, post.createdVia());
+        assertEquals(AuditionPostStatus.PENDING, post.status());
         assertEquals(0, auditLogRepository.count());
     }
 
@@ -216,7 +217,7 @@ class AuditionPostImportServiceTest {
 
         AdminAuditionPostResult post = auditionPostService.findAllForAdmin(null).getFirst();
         assertEquals(AuditionPostStatus.PUBLISHED, post.status());
-        assertFalse(post.autoImported());
+        assertEquals(AuditionPostCreation.ADMIN_IMPORT, post.createdVia());
         assertEquals("<p>본문</p>", publishedDetail(post.id()).bodyHtml());
         assertEquals(1, repository.count());
     }
@@ -235,8 +236,8 @@ class AuditionPostImportServiceTest {
         AdminAuditionPostResult post = auditionPostService.findAllForAdmin(null).getFirst();
         assertEquals(Optional.of(post.id()), id);
         assertEquals(1, repository.count());
-        assertFalse(post.autoImported());
-        assertEquals(AuditionPostStatus.HIDDEN, post.status());
+        assertEquals(AuditionPostCreation.ADMIN_IMPORT, post.createdVia());
+        assertEquals(AuditionPostStatus.PENDING, post.status());
         assertEquals(before, storage.objectCount());
         assertEquals(1, auditLogRepository.count());
         auditionPostService.changeStatus(ADMIN_ID, id.orElseThrow(), AuditionPostStatus.PUBLISHED);
@@ -279,7 +280,7 @@ class AuditionPostImportServiceTest {
     }
 
     @Test
-    void countsRedirectsOfHiddenPostsSeparatelyFromViewsAndKeepsThemOnReimport() {
+    void countsRedirectsOfUnpublishedPostsSeparatelyFromViewsAndKeepsThemOnReimport() {
         AuditionPostImportResult imported = importService.importPost(ADMIN_ID, OTR_ID);
         long postId = imported.post().id();
 
@@ -290,9 +291,11 @@ class AuditionPostImportServiceTest {
 
         auditionPostService.changeStatus(ADMIN_ID, postId, AuditionPostStatus.PUBLISHED);
         assertCode(AuditionPostErrorCode.NOT_FOUND, () -> auditionPostService.increaseRedirectCount(postId));
+        auditionPostService.changeStatus(ADMIN_ID, postId, AuditionPostStatus.HIDDEN);
+        auditionPostService.increaseRedirectCount(postId);
 
         AdminAuditionPostResult post = auditionPostService.findAllForAdmin(null).getFirst();
-        assertEquals(2, post.redirectCount());
+        assertEquals(3, post.redirectCount());
         assertEquals(0, post.viewCount());
     }
 
