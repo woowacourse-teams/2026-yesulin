@@ -3,6 +3,7 @@ package art.yesulin.auditionpost.application;
 import art.yesulin.auditionpost.domain.AuditionPost;
 import art.yesulin.producer.domain.Producer;
 import art.yesulin.producer.domain.ProducerRepository;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -45,7 +46,12 @@ class AuditionPostOwners {
 
     /** 여러 공고의 기획사 이름을 한 번에 찾는다. 키는 소유 회원 번호다. */
     Map<Long, String> namesOf(List<AuditionPost> posts) {
-        List<Long> ownerIds = posts.stream().map(AuditionPost::getOwnerId).filter(Objects::nonNull).distinct().toList();
+        return namesOfIds(posts.stream().map(AuditionPost::getOwnerId).filter(Objects::nonNull).toList());
+    }
+
+    /** 기획사 회원 번호들의 이름을 한 번에 찾는다. 기획사 정보가 없는 번호는 결과에 없다. */
+    Map<Long, String> namesOfIds(Collection<Long> memberIds) {
+        List<Long> ownerIds = memberIds.stream().distinct().toList();
         if (ownerIds.isEmpty()) {
             return Map.of();
         }

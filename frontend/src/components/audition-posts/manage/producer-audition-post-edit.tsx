@@ -68,7 +68,7 @@ export function ProducerAuditionPostEdit({ postId }: { readonly postId: string }
             {post.status === "PUBLISHED" ? (
               <Link href={auditionPostRoutes.detail(post.id)} target="_blank" className="ml-auto font-semibold text-brand underline underline-offset-2">공개 화면</Link>
             ) : (
-              <span className="text-muted-strong">운영자가 숨긴 공고예요. 고쳐도 숨김 상태는 그대로예요.</span>
+              <span className="text-muted-strong">공개되지 않은 공고예요. 고쳐도 공개 상태는 그대로예요.</span>
             )}
           </section>
           {/* 저장할 때마다 서버가 정리한 내용으로 폼과 편집기를 새로 채운다. */}

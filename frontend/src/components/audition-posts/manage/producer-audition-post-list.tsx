@@ -77,7 +77,7 @@ function ProducerAuditionPostRow({ post }: { readonly post: ProducerAuditionPost
         <Link href={producerAuditionPostRoutes.edit(post.id)} className="hover:text-brand">{post.title}</Link>
       </h3>
       {post.status === "HIDDEN" ? (
-        <p className="mt-1 text-sm text-muted-strong">운영자가 숨긴 공고예요. 다시 공개하려면 예술in 카카오톡 채널로 문의해 주세요.</p>
+        <p className="mt-1 text-sm text-muted-strong">아직 공개되지 않았거나 운영자가 숨긴 공고예요. 공개 문의는 예술in 카카오톡 채널로 해 주세요.</p>
       ) : null}
       <dl className="mt-4 grid grid-cols-3 gap-x-4 border-t border-border-soft pt-4 text-sm sm:gap-x-6">
         <div className="min-w-0"><dt className="text-xs text-muted">마감</dt><dd className="mt-1 truncate font-semibold">{post.deadlineText || "미기재"}</dd></div>

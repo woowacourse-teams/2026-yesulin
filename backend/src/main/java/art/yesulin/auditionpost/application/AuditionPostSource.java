@@ -1,5 +1,7 @@
 package art.yesulin.auditionpost.application;
 
+import java.util.Optional;
+
 /**
  * 외부 공고 사이트에서 공고 한 건과 그 파일을 읽는 port. 원문 접속·HTML 구조 오류는
  * {@link AuditionPostSourceException}으로 알린다.
@@ -10,6 +12,13 @@ public interface AuditionPostSource {
 
     /** 원문 번호의 공고를 읽는다. 본문 사진 자리는 {@link AuditionPostBody#placeholder(int)}로 바꿔 둔다. */
     SourcePost fetch(String externalId);
+
+    /**
+     * 원문 공고의 작성자 회원 번호만 읽는다. 예전에 가져와 번호가 없는 공고를 채울 때 쓰며 파일은 받지 않는다.
+     *
+     * @return 작성자 회원 번호. 원문에 없으면 empty
+     */
+    Optional<String> fetchAuthorId(String externalId);
 
     /**
      * 파일을 스트림으로 연다. 호출자가 반드시 닫는다.

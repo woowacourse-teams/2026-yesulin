@@ -12,7 +12,10 @@ import type {
   AdminAuditLogPage,
   AdminAudition,
   AdminAuditionPost,
+  AdminAuditionPostAuthorFill,
+  AdminAuditionPostAuthorLinkResult,
   AdminAuditionPostImport,
+  AdminAuditionPostOwnerOverview,
   AdminAuditionPostStatus,
   AdminDailyActivity,
   AdminFileDeletionResult,
@@ -264,12 +267,55 @@ export async function completeTimetableMessages(messageIds: readonly number[]): 
   return body.messages;
 }
 
-export async function fetchAuditionPosts(): Promise<readonly AdminAuditionPost[]> {
+/** 최근 공고 200건. `ownerId`를 주면 그 기획사에 연결된 공고만 준다. */
+export async function fetchAuditionPosts(ownerId?: number): Promise<readonly AdminAuditionPost[]> {
   const body = await getJson<{ readonly posts: readonly AdminAuditionPost[] }>(
-    "/audition-posts",
-    "가져온 공고 목록을 불러오지 못했습니다.",
+    ownerId === undefined ? "/audition-posts" : `/audition-posts?ownerId=${ownerId}`,
+    "공고 목록을 불러오지 못했습니다.",
   );
   return body.posts;
+}
+
+export function fetchAuditionPostOwners(): Promise<AdminAuditionPostOwnerOverview> {
+  return getJson<AdminAuditionPostOwnerOverview>("/audition-post-owners", "업체별 공고를 불러오지 못했습니다.");
+}
+
+/** 원문 작성자를 기획사에 자동 연결한다. 그 작성자의 기존 공고 중 기획사가 없는 공고도 함께 연결된다. */
+export async function linkAuditionPostAuthor(
+  source: string,
+  sourceAuthorId: string,
+  ownerId: number,
+): Promise<AdminAuditionPostAuthorLinkResult> {
+  const response = await fetch(`${API_BASE_PATH}/audition-post-author-links`, {
+    method: "POST",
+    credentials: "include",
+    headers: await withCsrfHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ source, sourceAuthorId, ownerId }),
+  });
+  if (!response.ok) throw await readAdminError(response, "원문 작성자를 연결하지 못했습니다.");
+  return response.json() as Promise<AdminAuditionPostAuthorLinkResult>;
+}
+
+/** 자동 연결을 지운다. 이미 연결된 공고는 그대로다. */
+export async function unlinkAuditionPostAuthor(linkId: number): Promise<void> {
+  const response = await fetch(`${API_BASE_PATH}/audition-post-author-links/${linkId}`, {
+    method: "DELETE",
+    credentials: "include",
+    headers: await withCsrfHeaders(),
+  });
+  if (!response.ok) throw await readAdminError(response, "자동 연결을 해제하지 못했습니다.");
+}
+
+/** 원문 작성자 번호가 없는 공고의 번호를 원문에서 읽어 채운다. 한 번에 일부만 읽는다. */
+export async function fillAuditionPostAuthors(beforeId: number | null): Promise<AdminAuditionPostAuthorFill> {
+  const response = await fetch(`${API_BASE_PATH}/audition-post-author-links/fills`, {
+    method: "POST",
+    credentials: "include",
+    headers: await withCsrfHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ beforeId }),
+  });
+  if (!response.ok) throw await readAdminError(response, "원문 작성자 번호를 읽지 못했습니다.");
+  return response.json() as Promise<AdminAuditionPostAuthorFill>;
 }
 
 /** 운영자가 고친 공고를 원문으로 다시 가져오려 하면 서버가 이 코드로 확인을 요청한다. */

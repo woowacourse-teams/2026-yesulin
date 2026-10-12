@@ -220,7 +220,7 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 1차 서류 심사 한 차수를 제공한다. 배역별 심사 종료는 OTR 지원 마감 다음 날부터 가능하며,
 그 전에는 `409 SCREENING_ROUND_NOT_READY`를 반환한다. 종료 후 심사 결과 수정은 거부한다.
 
-## 가져온 공고(메인 목록) — 17개
+## 가져온 공고(메인 목록) — 21개
 
 운영자가 공고 알림을 받은 OTR 공고를 우리 공고로 옮기거나, 운영자나 기획사가 원문 없이 직접 쓴 `AuditionPost`다.
 공개 상세에만 원문 출처·주소를 담는다. 공개 API는 로그인 없이 호출하고, 운영 API는 `ADMIN`만, 기획사 API는 `PRODUCER + ACTIVE`만 호출한다.
@@ -232,7 +232,7 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 | GET | `/api/v1/public/audition-posts/{postId}` | 공개 | 없음 | `200 PublicAuditionPostResult`, 숨김이면 `302 Location: {원문 주소}` |
 | POST | `/api/v1/public/audition-posts/{postId}/views` | 공개 | 없음 | `204`, 숨김·없는 공고는 `404` |
 | POST | `/api/v1/public/audition-posts/{postId}/redirects` | 공개 | 없음 | `204`, 공개 중·없는 공고는 `404` |
-| GET | `/api/v1/admin/audition-posts` | Admin | 없음 | `200 AdminAuditionPostsResponse(posts)` |
+| GET | `/api/v1/admin/audition-posts` | Admin | `ownerId`(선택) query | `200 AdminAuditionPostsResponse(posts)` |
 | POST | `/api/v1/admin/audition-posts` | Admin | `WriteAuditionPostRequest(category, title, pay, deadlineText, authorName, bodyHtml?, tags, attachmentUrls)` | `201 AdminAuditionPostResult` |
 | POST | `/api/v1/admin/audition-posts/uploads` | Admin | `PrepareAuditionPostUploadRequest(kind: IMAGE/ATTACHMENT, filename, contentType?, size)` | `201 AuditionPostUploadResult(url, method, headers, expiresAt, publicUrl)` |
 | POST | `/api/v1/admin/audition-posts/otr-imports` | Admin | `ImportOtrAuditionPostRequest(otrId, overwriteEdited?)` | 처음이면 `201`, 다시 가져오면 `200 AuditionPostImportResult` |
@@ -240,6 +240,10 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 | PUT | `/api/v1/admin/audition-posts/{postId}` | Admin | `WriteAuditionPostRequest(category, title, pay, deadlineText, authorName, bodyHtml?, tags, attachmentUrls)` | `200 AdminAuditionPostResult` |
 | PATCH | `/api/v1/admin/audition-posts/{postId}/status` | Admin | `ChangeAuditionPostStatusRequest(status: PUBLISHED/HIDDEN)` | `200 AdminAuditionPostResult` |
 | PATCH | `/api/v1/admin/audition-posts/{postId}/owner` | Admin | `ChangeAuditionPostOwnerRequest(ownerId?)` | `200 AdminAuditionPostResult` |
+| GET | `/api/v1/admin/audition-post-owners` | Admin | 없음 | `200 AuditionPostOwnerOverview(owners, unlinkedAuthors, missingAuthorIdCount)` |
+| POST | `/api/v1/admin/audition-post-author-links` | Admin | `LinkAuditionPostAuthorRequest(source, sourceAuthorId, ownerId)` | `201 AuditionPostAuthorLinkResult` |
+| DELETE | `/api/v1/admin/audition-post-author-links/{linkId}` | Admin | 없음 | `204` |
+| POST | `/api/v1/admin/audition-post-author-links/fills` | Admin | `FillAuditionPostAuthorsRequest(beforeId?)` | `200 AuditionPostAuthorFillResult` |
 | GET | `/api/v1/producers/me/audition-posts` | Active Producer | 없음 | `200 ProducerAuditionPostsResponse(posts)` |
 | POST | `/api/v1/producers/me/audition-posts` | Active Producer | `ProducerWriteAuditionPostRequest(category, title, pay, deadlineText, bodyHtml?, tags, attachmentUrls)` | `201 ProducerAuditionPostResult` |
 | POST | `/api/v1/producers/me/audition-posts/uploads` | Active Producer | `PrepareAuditionPostUploadRequest(kind: IMAGE/ATTACHMENT, filename, contentType?, size)` | `201 AuditionPostUploadResult(url, method, headers, expiresAt, publicUrl)` |
@@ -279,7 +283,8 @@ page·size 범위 오류는 `400 INVALID_REQUEST`다.
 
 수정 상세(`AuditionPostEditResult`)는 출처·원문 번호·원문 주소·공개 상태와 `category`, `title`, `pay`, `deadlineText`, `authorName`, `tags`,
 사진 자리를 공개 주소로 채운 `bodyHtml`, `attachments(name, contentType, size, url)`, `editedAt`, `updatedAt`, 연결된 기획사
-`owner(memberId, companyName)`(없으면 null)를 담는다. 운영자와 기획사가 같은 모양을 받는다.
+`owner(memberId, companyName)`(없으면 null), OTR 작성자 회원 번호 `sourceAuthorId`(없으면 null), 그 작성자의 자동 연결
+`authorLink(id, ownerId, companyName)`(없으면 null)를 담는다. 운영자와 기획사가 같은 모양을 받는다.
 수정은 공개 상태·출처·원문 작성 시각을 바꾸지 않는다. `bodyHtml`이 null이면 본문과 사진을 그대로 두고, 값이 있으면 공개 본문과
 같은 허용 목록으로 다시 거른 뒤 이 공고의 사진 공개 주소만 남긴다. 사진은 본문에 처음 나온 순서로 다시 정하고, 다른 주소의
 사진은 지운다. 기준 주소가 없으므로 상대 주소 링크는 주소를 버린다. `attachmentUrls`는 남기거나 더할 첨부의 공개 주소
@@ -300,6 +305,23 @@ page·size 범위 오류는 `400 INVALID_REQUEST`다.
 `409 AUDITION_POST_EDITED`로 거절한다. 원문을 받는 사이에 고쳐진 경우도 저장 직전에 같은 오류로 거절하고 이번에 올린 파일을
 지운다. 덮어쓰면 수정 표시가 지워진다. 자동 가져오기는 이미 있는 번호를 건너뛰므로 고친 내용을 덮어쓰지 않는다.
 수정과 다시 가져오기는 공고 행을 잠그고 순서대로 처리한다. 나중에 저장한 요청은 앞 요청이 뺀 파일을 이 공고의 파일로 보지 않는다.
+
+운영 목록에 `ownerId`를 주면 그 기획사에 연결된 공고만 최근 200건 준다.
+
+OTR 작성자 자동 연결: 가져오기는 OTR 상세의 작성자 링크(`getUserMenu('회원 번호','공고 번호',…)`)에서 회원 번호를 읽어
+`sourceAuthorId`로 저장한다. 공고 번호가 맞지 않거나 링크가 없으면 비운다. `author-links` POST는 그 OTR 회원 번호를 기획사에
+자동 연결하고, 그 작성자의 기존 공고 중 기획사가 없는 공고를 함께 연결해 `connectedPostCount`로 알려 준다. 이후 운영자·자동
+가져오기로 들어오는 그 작성자의 공고는 기획사가 없으면 바로 연결된다. 이미 다른 기획사에 연결된 작성자는
+`409 AUDITION_POST_AUTHOR_ALREADY_LINKED`, 같은 기획사면 남은 공고만 다시 연결한다. 그 작성자의 공고가 없거나 기획사 정보가
+없는 회원이면 `400 AUDITION_POST_INVALID_INPUT`이다. DELETE는 규칙만 지우고 이미 연결된 공고는 그대로 둔다.
+둘 다 `admin_audit_logs`에 `AUDITION_POST_AUTHOR_LINKED`·`AUDITION_POST_AUTHOR_UNLINKED`로 남긴다.
+`fills`는 회원 번호 없이 가져온 OTR 공고를 최근 순서로 20건씩 다시 읽어 번호만 채운다. 파일은 받지 않는다. 채운 번호에 자동 연결이
+있으면 기획사가 없는 공고를 연결한다. 결과는 `checked`, `filled`, `connected`, `failed`(원문을 읽지 못한 수), 이어서 읽을
+`nextBeforeId`(끝이면 null), 남은 수 `remaining`이다.
+업체별 보기(`audition-post-owners`)의 `owners`는 공고나 자동 연결이 있는 기획사의 `ownerId`, `companyName`, `publishedCount`,
+`hiddenCount`, `latestCreatedAt`, `authorLinks(id, source, sourceAuthorId, sourceAuthorName)`를 최근 등록 순서로 담는다.
+`unlinkedAuthors`는 기획사가 없는 원문 공고를 작성자별로 묶은 `source`, `sourceAuthorId`(번호가 없으면 null이고 닉네임으로만 묶음),
+`authorName`, `postCount`, `latestCreatedAt`를 공고가 많은 순서로 100명까지 담고, 자동 연결이 있는 작성자는 뺀다.
 
 기획사 연결(`PATCH .../owner`)은 `ownerId`로 기획사 회원을 연결하고, null이면 연결을 끊는다. 기획사 정보가 없는 회원이면
 `400 AUDITION_POST_INVALID_INPUT`이다. 연결된 기획사는 기획사 API로 이 공고를 고칠 수 있다. 원문에서 가져온 공고도 연결할 수 있다.

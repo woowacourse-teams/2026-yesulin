@@ -13,6 +13,7 @@ import art.yesulin.auditionpost.domain.AuditionPostFile;
 import art.yesulin.auditionpost.domain.AuditionPostFileKind;
 import art.yesulin.auditionpost.domain.AuditionPostOrigin;
 import art.yesulin.auditionpost.domain.AuditionPostRepository;
+import art.yesulin.auditionpost.domain.authorlink.AuditionPostAuthorLinkRepository;
 import art.yesulin.global.audit.AdminAction;
 import art.yesulin.global.audit.AdminAuditLog;
 import art.yesulin.global.audit.AdminAuditLogRepository;
@@ -50,6 +51,7 @@ public class AuditionPostImportService implements AuditionImporter {
     private final AuditionPostRepository repository;
     private final AdminAuditLogRepository auditLogRepository;
     private final AuditionPostOwners owners;
+    private final AuditionPostAuthorLinkRepository authorLinkRepository;
     private final TransactionTemplate transactions;
     private final Clock clock;
 
@@ -59,6 +61,7 @@ public class AuditionPostImportService implements AuditionImporter {
             AuditionPostRepository repository,
             AdminAuditLogRepository auditLogRepository,
             AuditionPostOwners owners,
+            AuditionPostAuthorLinkRepository authorLinkRepository,
             PlatformTransactionManager transactionManager,
             Clock clock
     ) {
@@ -67,6 +70,7 @@ public class AuditionPostImportService implements AuditionImporter {
         this.repository = repository;
         this.auditLogRepository = auditLogRepository;
         this.owners = owners;
+        this.authorLinkRepository = authorLinkRepository;
         this.transactions = new TransactionTemplate(transactionManager);
         this.clock = clock;
     }
@@ -124,7 +128,7 @@ public class AuditionPostImportService implements AuditionImporter {
             List<AuditionPostFile> files = new ArrayList<>(storeImages(post.images(), uploadedKeys));
             List<SkippedFile> skipped = new ArrayList<>();
             files.addAll(storeAttachments(post.attachments(), uploadedKeys, skipped));
-            Saved saved = save(adminId, origin, content, post.tags(), files, overwriteEdited);
+            Saved saved = save(adminId, origin, post.authorId(), content, post.tags(), files, overwriteEdited);
             fileStorage.deleteQuietly(saved.discarded().stream().map(AuditionPostFile::getObjectKey).toList());
             return new AuditionPostImportResult(saved.post(), saved.created(), skipped);
         } catch (RuntimeException exception) {
@@ -200,6 +204,7 @@ public class AuditionPostImportService implements AuditionImporter {
     private Saved save(
             Long adminId,
             AuditionPostOrigin origin,
+            String sourceAuthorId,
             AuditionPostContent content,
             List<String> tags,
             List<AuditionPostFile> files,
@@ -222,22 +227,34 @@ public class AuditionPostImportService implements AuditionImporter {
                     if (post.isEdited() && !overwriteEdited) {
                         throw editedConflict();
                     }
-                    List<AuditionPostFile> discarded = post.refresh(content, tags, files, adminId, now);
+                    final List<AuditionPostFile> discarded = post.refresh(content, tags, files, adminId, now);
+                    post.recordSourceAuthor(sourceAuthorId);
+                    connectByAuthorLink(post);
                     audit(adminId, post, "%s %s 원문으로 다시 가져옴");
                     return new Saved(
                             AdminAuditionPostResult.from(post, today, owners.nameOf(post)), false, discarded
                     );
                 }
-                AuditionPost post = repository.saveAndFlush(
-                        new AuditionPost(origin, content, tags, files, adminId, now)
-                );
+                AuditionPost created = new AuditionPost(origin, content, tags, files, adminId, now);
+                created.recordSourceAuthor(sourceAuthorId);
+                connectByAuthorLink(created);
+                AuditionPost post = repository.saveAndFlush(created);
                 audit(adminId, post, "%s %s 처음 가져옴");
-                return new Saved(AdminAuditionPostResult.from(post, today, null), true, List.of());
+                return new Saved(AdminAuditionPostResult.from(post, today, owners.nameOf(post)), true, List.of());
             }));
         } catch (DataIntegrityViolationException | PessimisticLockingFailureException exception) {
             // 처음 가져오는 공고를 동시에 저장하면 MySQL은 빈 자리 잠금 때문에 중복 대신 교착으로 한쪽을 실패시킨다.
             throw new BusinessException(IMPORT_CONFLICT, "같은 공고를 동시에 가져오고 있습니다. 잠시 후 다시 시도해 주세요.");
         }
+    }
+
+    /** 원문 작성자에 자동 연결 규칙이 있으면 아직 기획사가 없는 공고를 그 기획사에 연결한다. 운영자가 정한 연결은 바꾸지 않는다. */
+    private void connectByAuthorLink(AuditionPost post) {
+        if (post.getOwnerId() != null || post.getSourceAuthorId() == null) {
+            return;
+        }
+        authorLinkRepository.findBySourceAndSourceAuthorId(post.getSource(), post.getSourceAuthorId())
+                .ifPresent(link -> post.changeOwner(link.getOwnerId()));
     }
 
     private BusinessException editedConflict() {

@@ -15,6 +15,7 @@ import type { AdminAuditionPost, AdminAuditionPostImport } from "@/features/admi
 import { auditionPostRoutes } from "@/features/audition-posts/types";
 import { logout } from "@/features/auth/session-api";
 import { formatDateTime } from "./admin-format";
+import { AdminAuditionPostTabs } from "./admin-audition-post-tabs";
 import { AdminSessionEnded } from "./admin-session-ended";
 import { AdminActionButton, AdminActionLink, AdminEmptyState, AdminFilterButton, AdminShell } from "./admin-shell";
 import { SummaryItem, SummaryStrip } from "./admin-stat";
@@ -26,7 +27,10 @@ type Phase = "loading" | "ready" | "unauthorized" | "failed";
  * 직접 가져온다. 지원서를 준비한 뒤 보여 주고, 제작사가 내려 달라고 하면 숨긴다. 숨긴 공고 링크는 원문으로 연결된다.
  * 같은 번호를 다시 가져오면 공개 상태는 그대로 두고 원문 내용으로 교체된다. 운영자가 고친 공고는 한 번 더 확인받는다.
  */
-export function AdminAuditionPosts() {
+export function AdminAuditionPosts({ ownerId }: {
+  /** 이 기획사에 연결된 공고만 본다. 업체별 보기의 "공고 보기"에서 들어온다. */
+  readonly ownerId?: number;
+}) {
   const [phase, setPhase] = useState<Phase>("loading");
   const [posts, setPosts] = useState<readonly AdminAuditionPost[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +48,7 @@ export function AdminAuditionPosts() {
 
   useEffect(() => {
     let active = true;
-    fetchAuditionPosts()
+    fetchAuditionPosts(ownerId)
       .then((next) => {
         if (!active) return;
         setPosts(next);
@@ -61,7 +65,7 @@ export function AdminAuditionPosts() {
         setPhase("failed");
       });
     return () => { active = false; };
-  }, [reloadToken]);
+  }, [ownerId, reloadToken]);
 
   const refresh = useCallback(() => setReloadToken((value) => value + 1), []);
 
@@ -81,7 +85,10 @@ export function AdminAuditionPosts() {
     try {
       const imported = await importOtrAuditionPost(otrId, overwriteEdited);
       setResult(imported);
-      setPosts((current) => [imported.post, ...current.filter((post) => post.id !== imported.post.id)]);
+      setPosts((current) => [
+        ...(ownerId === undefined || imported.post.ownerId === ownerId ? [imported.post] : []),
+        ...current.filter((post) => post.id !== imported.post.id),
+      ]);
       setInput("");
     } catch (cause) {
       if (cause instanceof AdminApiError && cause.code === AUDITION_POST_EDITED) {
@@ -146,6 +153,15 @@ export function AdminAuditionPosts() {
         </>
       )}
     >
+      <AdminAuditionPostTabs current="posts" />
+      {ownerId !== undefined ? (
+        <p className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-control border border-brand-line bg-brand-soft px-4 py-3 text-sm">
+          <span>
+            <strong className="font-semibold">{posts.find((post) => post.ownerName)?.ownerName ?? `기획사 회원 ${ownerId}`}</strong>에 연결된 공고만 보고 있어요.
+          </span>
+          <Link href={adminAuditionPostRoutes.list} className="font-semibold text-brand underline underline-offset-2">전체 공고 보기</Link>
+        </p>
+      ) : null}
       {phase === "ready" ? <SummaryStrip>
         <SummaryItem label="조회된 공고" value={posts.length} unit="건" />
         <SummaryItem label="공개 중" value={posts.filter((post) => post.status === "PUBLISHED").length} unit="건" />

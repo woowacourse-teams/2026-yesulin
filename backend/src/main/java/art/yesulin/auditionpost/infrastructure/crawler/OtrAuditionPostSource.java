@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -64,6 +65,8 @@ public class OtrAuditionPostSource implements AuditionPostSource {
     private static final Pattern BOLD_STYLE =
             Pattern.compile("font-weight\\s*:\\s*(bold|bolder|[6-9]00)", Pattern.CASE_INSENSITIVE);
     private static final Pattern FILE_PATH = Pattern.compile("[A-Za-z0-9%+/=_-]{1,2000}");
+    /** 작성자 링크의 {@code getUserMenu('회원 번호','공고 번호','닉네임')}. 회원 번호는 닉네임을 바꿔도 같다. */
+    private static final Pattern AUTHOR_MENU = Pattern.compile("getUserMenu\\('([0-9]{1,30})'\\s*,\\s*'([0-9]{1,30})'");
     private static final DateTimeFormatter POSTED_AT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
     private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(5);
     private static final Duration PAGE_TIMEOUT = Duration.ofSeconds(15);
@@ -110,12 +113,23 @@ public class OtrAuditionPostSource implements AuditionPostSource {
                 text(document, "#mb_audition_tr_ext2 td"),
                 text(document, "#mb_audition_tr_edate td"),
                 authorName(document),
+                authorId(document, externalId).orElse(null),
                 postedAt(titleRow),
                 bodyHtml,
                 tags(document),
                 images,
                 attachments(document)
         );
+    }
+
+    @Override
+    public Optional<String> fetchAuthorId(String externalId) {
+        if (externalId == null || !NUMERIC_ID.matcher(externalId).matches()) {
+            throw new IllegalArgumentException("OTR 공고 번호는 숫자 1~30자여야 합니다.");
+        }
+        Document document = fetchPage(AUDITION_URL + "?vid=" + externalId);
+        verifyCanonical(document, externalId);
+        return authorId(document, externalId);
     }
 
     @Override
@@ -326,6 +340,19 @@ public class OtrAuditionPostSource implements AuditionPostSource {
     private String authorName(Document document) {
         Element author = document.selectFirst("#mb_audition_tr_user_name td .btn-user-info");
         return author == null ? text(document, "#mb_audition_tr_user_name td") : author.text();
+    }
+
+    /** 작성자 링크가 이 공고의 것인지 공고 번호까지 확인한다. 비회원 글처럼 링크가 없으면 empty다. */
+    private Optional<String> authorId(Document document, String externalId) {
+        Element author = document.selectFirst("#mb_audition_tr_user_name td .btn-user-info[onclick]");
+        if (author == null) {
+            return Optional.empty();
+        }
+        Matcher matcher = AUTHOR_MENU.matcher(author.attr("onclick"));
+        if (!matcher.find() || !externalId.equals(matcher.group(2))) {
+            return Optional.empty();
+        }
+        return Optional.of(matcher.group(1));
     }
 
     private LocalDateTime postedAt(Element titleRow) {
