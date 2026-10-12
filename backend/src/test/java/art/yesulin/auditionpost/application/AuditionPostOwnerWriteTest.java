@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import art.yesulin.auditionpost.application.AuditionPostEditResult.Attachment;
 import art.yesulin.auditionpost.application.AuditionPostImportServiceTest.FakeSource;
+import art.yesulin.auditionpost.domain.AuditionPost;
 import art.yesulin.auditionpost.domain.AuditionPostErrorCode;
 import art.yesulin.auditionpost.domain.AuditionPostFileKind;
 import art.yesulin.auditionpost.domain.AuditionPostRepository;
@@ -21,6 +22,12 @@ import art.yesulin.producer.domain.ProducerRepository;
 import art.yesulin.support.FakeObjectStorage;
 import art.yesulin.support.ObjectStorageTestConfiguration;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
@@ -29,6 +36,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.event.ApplicationEvents;
 import org.springframework.test.context.event.RecordApplicationEvents;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:h2:mem:audition-post-import;MODE=MySQL;DB_CLOSE_DELAY=-1",
@@ -77,6 +86,9 @@ class AuditionPostOwnerWriteTest {
 
     @Autowired
     private ApplicationEvents events;
+
+    @Autowired
+    private PlatformTransactionManager transactionManager;
 
     @BeforeEach
     void setUp() {
@@ -183,6 +195,45 @@ class AuditionPostOwnerWriteTest {
         assertCode(AuditionPostErrorCode.NOT_FOUND, () -> writeService.findOwnedForEdit(PRODUCER_ID, id));
         assertEquals(2, auditLogRepository.findAll().stream()
                 .filter(log -> log.getAction() == AdminAction.AUDITION_POST_OWNER_CHANGED).count());
+    }
+
+    @Test
+    void ownerChangeWaitsForConcurrentChangeBeforeComparing() throws Exception {
+        long id = writeService.publishByOwner(PRODUCER_ID, command("배우 모집", "<p>본문</p>", List.of())).id();
+        writeService.changeOwner(ADMIN_ID, id, null);
+        CountDownLatch locked = new CountDownLatch(1);
+        CountDownLatch released = new CountDownLatch(1);
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        final Future<?> link = executor.submit(() -> new TransactionTemplate(transactionManager)
+                .executeWithoutResult(status -> {
+                    AuditionPost post = repository.findByIdForUpdate(id).orElseThrow();
+                    post.changeOwner(OTHER_PRODUCER_ID);
+                    locked.countDown();
+                    awaitQuietly(released);
+                }));
+        assertTrue(locked.await(5, TimeUnit.SECONDS));
+
+        Future<AdminAuditionPostResult> unlink = executor.submit(() -> writeService.changeOwner(ADMIN_ID, id, null));
+
+        try {
+            assertThrows(TimeoutException.class, () -> unlink.get(500, TimeUnit.MILLISECONDS));
+        } finally {
+            // 단언이 실패해도 잠금을 풀어 다음 테스트가 이 공고 잠금을 기다리지 않게 한다.
+            released.countDown();
+        }
+        link.get(5, TimeUnit.SECONDS);
+        assertNull(unlink.get(5, TimeUnit.SECONDS).ownerId());
+        executor.shutdown();
+        assertNull(writeService.findForEdit(id).owner());
+    }
+
+    private static void awaitQuietly(CountDownLatch latch) {
+        try {
+            assertTrue(latch.await(5, TimeUnit.SECONDS));
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(exception);
+        }
     }
 
     private String upload(long uploaderId, AuditionPostFileKind kind, String filename, String reportedType) {

@@ -181,7 +181,8 @@ public class AuditionPostWriteService {
     /** 운영자가 공고를 기획사 계정에 연결하거나 연결을 끊는다. 연결된 기획사는 이 공고를 직접 고칠 수 있다. */
     @Transactional
     public AdminAuditionPostResult changeOwner(long adminId, long postId, Long ownerId) {
-        AuditionPost post = repository.findById(postId).orElseThrow(this::notFound);
+        // 지금 소유자와 같으면 건너뛰므로, 동시에 바꾼 다른 요청의 결과를 보고 비교하도록 잠근다.
+        AuditionPost post = repository.findByIdForUpdate(postId).orElseThrow(this::notFound);
         String ownerName = ownerId == null ? null : owners.find(ownerId).map(Producer::getCompanyName)
                 .orElseThrow(() -> new BusinessException(INVALID_INPUT, "기획사 계정을 찾을 수 없습니다."));
         if (!Objects.equals(post.getOwnerId(), ownerId)) {
