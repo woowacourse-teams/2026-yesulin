@@ -3,6 +3,7 @@ export type AuditionPostSummary = {
   readonly id: number;
   readonly category: string;
   readonly title: string;
+  /** 기획사에 연결된 공고는 그 기획사의 지금 이름, 아니면 원문 닉네임이나 운영자가 쓴 이름이다. */
   readonly authorName: string;
   readonly pay: string;
   /** 원문 표현 그대로의 마감(`2026-10-31`, `상시`, `채용 시 마감` 등). */
@@ -45,6 +46,7 @@ export type AuditionPost = {
   readonly id: number;
   readonly category: string;
   readonly title: string;
+  /** 기획사에 연결된 공고는 그 기획사의 지금 이름, 아니면 원문 닉네임이나 운영자가 쓴 이름이다. */
   readonly authorName: string;
   readonly pay: string;
   readonly deadlineText: string;
@@ -58,7 +60,8 @@ export type AuditionPost = {
   readonly attachments: readonly AuditionPostAttachment[];
   /** 원문 공고 사이트 이름(예: `OTR`). 상세에 작은 출처 링크로 보여 준다. */
   readonly source: string;
-  readonly sourceUrl: string;
+  /** 원문 주소. 원문 없이 직접 쓴 공고는 null이다. */
+  readonly sourceUrl: string | null;
   readonly updatedAt: string;
 };
 
@@ -76,6 +79,9 @@ export const auditionPostApiPaths = {
 /** 공고 알림을 받는 카카오톡 오픈채팅방. */
 export const AUDITION_ALERT_CHAT_URL = "https://open.kakao.com/o/pCRrDXOi";
 
+/** 우리 서비스가 게시하는 공고 분류. 백엔드 `AuditionCategory`와 같다. */
+export const AUDITION_POST_CATEGORIES = ["연극", "퍼포먼스", "뮤지컬", "단원", "기획사"] as const;
+
 export const auditionPostRoutes = {
   /** 기본값(첫 페이지·모집 중만)은 주소에서 뺀다. */
   list: ({ page = 0, includeClosed = false }: Partial<AuditionPostQuery> = {}) => {
@@ -86,6 +92,13 @@ export const auditionPostRoutes = {
     return query ? `/?${query}` : "/";
   },
   detail: (postId: number | string) => `/posts/${encodeURIComponent(String(postId))}`,
+} as const;
+
+/** 기획사가 자기 공고를 올리고 고치는 관리 화면. */
+export const producerAuditionPostRoutes = {
+  list: "/producers/audition-posts",
+  create: "/producers/audition-posts/new",
+  edit: (postId: number | string) => `/producers/audition-posts/${encodeURIComponent(String(postId))}/edit`,
 } as const;
 
 /** 주소의 `?page=2&closed=1`을 서버 조건으로 바꾼다. 잘못된 값은 첫 페이지·모집 중으로 본다. */

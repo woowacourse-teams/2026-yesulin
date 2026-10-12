@@ -8,7 +8,7 @@
 | aggregate·service·repository | [domain-implementation.md](./docs/domain-implementation.md) |
 | 레이어·인증·QueryDSL·코드 스타일 | [architecture.md](./docs/architecture.md) |
 | S3·파일·보관함 | [storage.md](./docs/storage.md) |
-| 배포·백업·모니터링 | 해당 [operations](./docs/operations/) 문서 |
+| 배포·백업·모니터링·비용 | 해당 [operations](./docs/operations/) 문서 |
 
 공통 제품 규칙이 바뀌는 작업에서만 `../docs/domain.md`를 읽는다. 미구현·미결정 문서는 그 범위를 직접
 구현하거나 결정할 때만 읽는다. 개인정보·약관 문서는 정식 출시 정책 작업이 아니면 읽지 않는다.

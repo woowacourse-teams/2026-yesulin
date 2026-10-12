@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import art.yesulin.auditionpost.application.AuditionPostImportResult.SkippedFile;
 import art.yesulin.auditionpost.domain.AuditionPost;
+import art.yesulin.auditionpost.domain.AuditionPostCreation;
 import art.yesulin.auditionpost.domain.AuditionPostErrorCode;
 import art.yesulin.auditionpost.domain.AuditionPostFile;
 import art.yesulin.auditionpost.domain.AuditionPostRepository;
@@ -21,9 +22,11 @@ import java.io.ByteArrayInputStream;
 import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
@@ -78,7 +81,7 @@ class AuditionPostImportServiceTest {
     }
 
     @Test
-    void importsBodyImagesAndAttachmentsAsHiddenUntilPublished() {
+    void importsBodyImagesAndAttachmentsAsPendingUntilPublished() {
         source.file("img-0", "image/png", 100);
         source.file("img-1", "application/octet-stream", 100);
         source.file("doc", "application/octet-stream", 100);
@@ -99,7 +102,7 @@ class AuditionPostImportServiceTest {
         assertTrue(result.created());
         assertEquals(2, result.post().imageCount());
         assertEquals(1, result.post().attachmentCount());
-        assertEquals(AuditionPostStatus.HIDDEN, result.post().status());
+        assertEquals(AuditionPostStatus.PENDING, result.post().status());
         assertEquals(
                 List.of(new SkippedFile("setup.exe", "지원하지 않는 형식"), new SkippedFile("음원.mp3", "50MB 초과")),
                 result.skippedAttachments()
@@ -195,13 +198,13 @@ class AuditionPostImportServiceTest {
     }
 
     @Test
-    void autoImportCreatesHiddenPostWithoutAuditLog() {
+    void autoImportCreatesPendingPostWithoutAuditLog() {
         Optional<Long> postId = importService.importIfAbsent("OTR", OTR_ID);
 
-        AdminAuditionPostResult post = auditionPostService.findAllForAdmin().getFirst();
+        AdminAuditionPostResult post = auditionPostService.findAllForAdmin(null).getFirst();
         assertEquals(Optional.of(post.id()), postId);
-        assertTrue(post.autoImported());
-        assertEquals(AuditionPostStatus.HIDDEN, post.status());
+        assertEquals(AuditionPostCreation.AUTO_IMPORT, post.createdVia());
+        assertEquals(AuditionPostStatus.PENDING, post.status());
         assertEquals(0, auditLogRepository.count());
     }
 
@@ -212,9 +215,9 @@ class AuditionPostImportServiceTest {
 
         assertEquals(Optional.of(imported.post().id()), importService.importIfAbsent("OTR", OTR_ID));
 
-        AdminAuditionPostResult post = auditionPostService.findAllForAdmin().getFirst();
+        AdminAuditionPostResult post = auditionPostService.findAllForAdmin(null).getFirst();
         assertEquals(AuditionPostStatus.PUBLISHED, post.status());
-        assertFalse(post.autoImported());
+        assertEquals(AuditionPostCreation.ADMIN_IMPORT, post.createdVia());
         assertEquals("<p>본문</p>", publishedDetail(post.id()).bodyHtml());
         assertEquals(1, repository.count());
     }
@@ -230,11 +233,11 @@ class AuditionPostImportServiceTest {
 
         Optional<Long> id = importService.importIfAbsent("OTR", OTR_ID);
 
-        AdminAuditionPostResult post = auditionPostService.findAllForAdmin().getFirst();
+        AdminAuditionPostResult post = auditionPostService.findAllForAdmin(null).getFirst();
         assertEquals(Optional.of(post.id()), id);
         assertEquals(1, repository.count());
-        assertFalse(post.autoImported());
-        assertEquals(AuditionPostStatus.HIDDEN, post.status());
+        assertEquals(AuditionPostCreation.ADMIN_IMPORT, post.createdVia());
+        assertEquals(AuditionPostStatus.PENDING, post.status());
         assertEquals(before, storage.objectCount());
         assertEquals(1, auditLogRepository.count());
         auditionPostService.changeStatus(ADMIN_ID, id.orElseThrow(), AuditionPostStatus.PUBLISHED);
@@ -266,7 +269,7 @@ class AuditionPostImportServiceTest {
                 URI.create("https://otr.co.kr/audition/?vid=" + OTR_ID),
                 assertInstanceOf(PublicAuditionPostView.Hidden.class, view).originalUrl()
         );
-        assertEquals(AuditionPostStatus.HIDDEN, auditionPostService.findAllForAdmin().getFirst().status());
+        assertEquals(AuditionPostStatus.HIDDEN, auditionPostService.findAllForAdmin(null).getFirst().status());
         assertEquals(3, auditLogRepository.count());
     }
 
@@ -277,7 +280,7 @@ class AuditionPostImportServiceTest {
     }
 
     @Test
-    void countsRedirectsOfHiddenPostsSeparatelyFromViewsAndKeepsThemOnReimport() {
+    void countsRedirectsOfUnpublishedPostsSeparatelyFromViewsAndKeepsThemOnReimport() {
         AuditionPostImportResult imported = importService.importPost(ADMIN_ID, OTR_ID);
         long postId = imported.post().id();
 
@@ -288,9 +291,11 @@ class AuditionPostImportServiceTest {
 
         auditionPostService.changeStatus(ADMIN_ID, postId, AuditionPostStatus.PUBLISHED);
         assertCode(AuditionPostErrorCode.NOT_FOUND, () -> auditionPostService.increaseRedirectCount(postId));
+        auditionPostService.changeStatus(ADMIN_ID, postId, AuditionPostStatus.HIDDEN);
+        auditionPostService.increaseRedirectCount(postId);
 
-        AdminAuditionPostResult post = auditionPostService.findAllForAdmin().getFirst();
-        assertEquals(2, post.redirectCount());
+        AdminAuditionPostResult post = auditionPostService.findAllForAdmin(null).getFirst();
+        assertEquals(3, post.redirectCount());
         assertEquals(0, post.viewCount());
     }
 
@@ -306,7 +311,7 @@ class AuditionPostImportServiceTest {
             post.changeStatus(AuditionPostStatus.PUBLISHED);
         });
 
-        AdminAuditionPostResult post = auditionPostService.findAllForAdmin().getFirst();
+        AdminAuditionPostResult post = auditionPostService.findAllForAdmin(null).getFirst();
         assertEquals(1, post.redirectCount());
         assertEquals(AuditionPostStatus.PUBLISHED, post.status());
     }
@@ -368,6 +373,11 @@ class AuditionPostImportServiceTest {
     static class FakeSource implements AuditionPostSource {
 
         private final Map<String, FakeFile> files = new HashMap<>();
+        /** 원문 번호별 작성자 회원 번호. 없으면 작성자 번호가 없는 공고다. */
+        private final Map<String, String> authorIds = new HashMap<>();
+        /** 작성자 번호만 읽을 때 실패하는 원문 번호. */
+        private final Set<String> missingPages = new HashSet<>();
+        private String authorName;
         private String category;
         private String deadline;
         private String bodyHtml;
@@ -378,6 +388,9 @@ class AuditionPostImportServiceTest {
 
         void reset() {
             files.clear();
+            authorIds.clear();
+            missingPages.clear();
+            authorName = "예술극단";
             post("<p>본문</p>", List.of(), List.of());
             failFetch = false;
             beforeFetch = null;
@@ -409,6 +422,15 @@ class AuditionPostImportServiceTest {
             failFetch = true;
         }
 
+        void author(String externalId, String authorId, String name) {
+            authorIds.put(externalId, authorId);
+            authorName = name;
+        }
+
+        void pageGone(String externalId) {
+            missingPages.add(externalId);
+        }
+
         void beforeFetch(Runnable hook) {
             beforeFetch = hook;
         }
@@ -430,9 +452,17 @@ class AuditionPostImportServiceTest {
             }
             return new SourcePost(
                     externalId, "https://otr.co.kr/audition/?vid=" + externalId, category, "배우 모집", "협의",
-                    deadline, "예술극단", LocalDateTime.of(2026, 10, 4, 10, 16), bodyHtml, List.of("연극"),
-                    images, attachments
+                    deadline, authorName, authorIds.get(externalId), LocalDateTime.of(2026, 10, 4, 10, 16), bodyHtml,
+                    List.of("연극"), images, attachments
             );
+        }
+
+        @Override
+        public Optional<String> fetchAuthorId(String externalId) {
+            if (missingPages.contains(externalId)) {
+                throw new AuditionPostSourceException("OTR 공고 상세를 찾을 수 없습니다.");
+            }
+            return Optional.ofNullable(authorIds.get(externalId));
         }
 
         @Override

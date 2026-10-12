@@ -1,7 +1,6 @@
 package art.yesulin.auditionpost.application;
 
 import static art.yesulin.auditionpost.domain.AuditionPostErrorCode.NOT_FOUND;
-import static art.yesulin.auditionpost.domain.AuditionPostStatus.HIDDEN;
 import static art.yesulin.auditionpost.domain.AuditionPostStatus.PUBLISHED;
 
 import art.yesulin.auditionpost.domain.AuditionPost;
@@ -17,6 +16,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -24,7 +24,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** 가져온 공고의 공개 조회와 운영자 목록·공개 상태 변경. 마감 여부는 한국 날짜로 계산한다. */
+/** 공고의 공개 조회와 운영자 목록·공개 상태 변경. 마감 여부는 한국 날짜로 계산한다. */
 @Service
 @RequiredArgsConstructor
 public class AuditionPostService {
@@ -36,6 +36,7 @@ public class AuditionPostService {
 
     private final AuditionPostRepository repository;
     private final AdminAuditLogRepository auditLogRepository;
+    private final AuditionPostOwners owners;
     private final ObjectStorage storage;
     private final Clock clock;
 
@@ -50,8 +51,12 @@ public class AuditionPostService {
         Page<AuditionPost> result = includeClosed
                 ? repository.findAllByStatusOrderByContentSourcePostedAtDescIdDesc(PUBLISHED, pageable)
                 : repository.findOpen(PUBLISHED, today, pageable);
+        Map<Long, String> ownerNames = owners.namesOf(result.getContent());
         List<PublicAuditionPostSummaryResult> posts = result.stream()
-                .map(post -> PublicAuditionPostSummaryResult.from(post, today, KOREA, storage::toPublicUrl))
+                .map(post -> PublicAuditionPostSummaryResult.from(
+                        post, AuditionPostOwners.authorOf(post, AuditionPostOwners.nameIn(ownerNames, post)),
+                        today, KOREA, storage::toPublicUrl
+                ))
                 .toList();
         return new PublicAuditionPostPageResult(
                 posts, page, size, result.getTotalPages(), result.getTotalElements(),
@@ -59,16 +64,21 @@ public class AuditionPostService {
         );
     }
 
-    /** 공개 중이면 상세를, 숨겼으면 원문 공고 주소를 돌려준다. 없는 공고만 404다. */
+    /**
+     * 공개 중이면 상세를, 검토 전이거나 내렸으면 원문 공고 주소를 돌려준다. 원문 없이 쓴 공고는 보낼 곳이 없어 없는 공고처럼 404다.
+     */
     @Transactional(readOnly = true)
     public PublicAuditionPostView findPublicPost(long postId) {
         AuditionPost post = repository.findById(postId).orElseThrow(this::notFound);
         if (!post.isPublished()) {
+            if (!post.hasOrigin()) {
+                throw notFound();
+            }
             return new PublicAuditionPostView.Hidden(URI.create(post.getSourceUrl()));
         }
-        return new PublicAuditionPostView.Published(
-                PublicAuditionPostResult.from(post, today(), KOREA, storage::toPublicUrl)
-        );
+        return new PublicAuditionPostView.Published(PublicAuditionPostResult.from(
+                post, AuditionPostOwners.authorOf(post, owners.nameOf(post)), today(), KOREA, storage::toPublicUrl
+        ));
     }
 
     /** 공개 상세를 연 브라우저가 한 번 보낸다. 숨겼거나 없는 공고는 404다. */
@@ -79,10 +89,10 @@ public class AuditionPostService {
         }
     }
 
-    /** 숨긴 공고 상세를 원문으로 보내기 직전에 프론트 서버가 한 번 보낸다. 공개 중이거나 없는 공고는 404다. */
+    /** 공개하지 않은 공고 상세를 원문으로 보내기 직전에 프론트 서버가 한 번 보낸다. 공개 중이거나 없는 공고는 404다. */
     @Transactional
     public void increaseRedirectCount(long postId) {
-        if (repository.increaseRedirectCount(postId, HIDDEN) == 0) {
+        if (repository.increaseRedirectCountUnlessPublished(postId, PUBLISHED) == 0) {
             throw notFound();
         }
     }
@@ -95,11 +105,17 @@ public class AuditionPostService {
                 .map(AuditionPost::getId);
     }
 
+    /** 최근 200건. {@code ownerId}가 있으면 그 기획사에 연결된 공고만 최근 200건이다. */
     @Transactional(readOnly = true)
-    public List<AdminAuditionPostResult> findAllForAdmin() {
+    public List<AdminAuditionPostResult> findAllForAdmin(Long ownerId) {
         LocalDate today = today();
-        return repository.findAllByOrderByIdDesc(PageRequest.of(0, ADMIN_LIST_LIMIT)).stream()
-                .map(post -> AdminAuditionPostResult.from(post, today))
+        PageRequest page = PageRequest.of(0, ADMIN_LIST_LIMIT);
+        List<AuditionPost> posts = ownerId == null
+                ? repository.findAllByOrderByIdDesc(page)
+                : repository.findAllByOwnerIdOrderByIdDesc(ownerId, page);
+        Map<Long, String> ownerNames = owners.namesOf(posts);
+        return posts.stream()
+                .map(post -> AdminAuditionPostResult.from(post, today, AuditionPostOwners.nameIn(ownerNames, post)))
                 .toList();
     }
 
@@ -114,7 +130,7 @@ public class AuditionPostService {
                     "%s → %s".formatted(previous, status)
             ));
         }
-        return AdminAuditionPostResult.from(post, today());
+        return AdminAuditionPostResult.from(post, today(), owners.nameOf(post));
     }
 
     private LocalDate today() {

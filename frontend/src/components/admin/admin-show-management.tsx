@@ -7,7 +7,7 @@ import { ShowManagementApiProvider } from "@/components/shows/manage/show-manage
 import { adminShowManagementApi } from "@/features/admin/show-api";
 import { fetchCurrentSession } from "@/features/auth/session-api";
 import { AdminSessionEnded } from "./admin-session-ended";
-import { AdminShell } from "./admin-shell";
+import { AdminActionLink, AdminShell } from "./admin-shell";
 
 type Phase = "checking" | "unauthorized" | "ready";
 
@@ -25,7 +25,7 @@ export function AdminShowManagement({ showId }: { readonly showId: string }) {
 
   if (phase === "unauthorized") return <AdminSessionEnded />;
   return (
-    <AdminShell current="shows" title="외부 링크 공연 관리">
+    <AdminShell current="shows" title="외부 링크 공연 관리" actions={<AdminActionLink href="/admin?tab=shows">공연 목록으로</AdminActionLink>}>
       {phase === "ready" ? (
         <ToastProvider>
           <ShowManagementApiProvider api={adminShowManagementApi}>

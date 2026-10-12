@@ -77,7 +77,7 @@ export function AdminLogViewer() {
       actions={(
         <>
           <AdminActionButton onClick={refresh}>새로고침</AdminActionButton>
-          <AdminActionButton onClick={handleLogout}>로그아웃</AdminActionButton>
+          <AdminActionButton tone="quiet" onClick={handleLogout}>로그아웃</AdminActionButton>
         </>
       )}
     >

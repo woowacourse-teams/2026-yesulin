@@ -116,17 +116,32 @@ public class AuditionNoticeService {
     }
 
     private void sendPendingBatch(List<AuditionContent> contents, String source) {
+        List<String> externalIds = contents.stream().map(AuditionContent::externalId).toList();
         try {
             noticeNotifier.sendAlerts(contents.stream().map(content -> importAndLink(content, source)).toList());
         } catch (RuntimeException exception) {
-            log.error("공고 알림 처리 중 예외 발생");
+            reportDeliveryFailure(source, externalIds, exception);
             return;
         }
 
         if (!contents.isEmpty()) {
-            List<String> externalIds = contents.stream().map(AuditionContent::externalId).toList();
             new TransactionTemplate(transactionManager).executeWithoutResult(ignored ->
                     noticeRepository.findAllBySourceAndExternalIdIn(source, externalIds).forEach(Notice::markSent));
+        }
+    }
+
+    private void reportDeliveryFailure(String source, List<String> externalIds, RuntimeException exception) {
+        log.atError()
+                .addKeyValue("event", "AUDITION_NOTICE_DELIVERY_FAILED")
+                .addKeyValue("source", source)
+                .addKeyValue("externalIds", externalIds)
+                .log("공고 알림 전송 실패 source={} externalIds={} reason={}",
+                        source, externalIds, exception.getMessage());
+        try {
+            noticeNotifier.sendDeliveryFailure("[%s] %d건 %s: %s 다음 실행에서 다시 보냅니다.".formatted(
+                    source, externalIds.size(), externalIds, exception.getMessage()));
+        } catch (RuntimeException alertFailure) {
+            log.error("공고 알림 전송 실패 알림 전송 실패 reason={}", alertFailure.getMessage());
         }
     }
 }

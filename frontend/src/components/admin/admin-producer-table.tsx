@@ -4,6 +4,7 @@ import { useState } from "react";
 import { changeMemberStatus } from "@/features/admin/api";
 import type { AdminProducer, MemberStatus } from "@/features/admin/types";
 import { formatDateTime, orDash } from "./admin-format";
+import { AdminActionButton, AdminEmptyState } from "./admin-shell";
 
 type Props = {
   readonly producers: readonly AdminProducer[];
@@ -32,11 +33,11 @@ export function AdminProducerTable({ producers, onChanged }: Props) {
 
   return (
     <section aria-labelledby="producers-heading" className="flex flex-col gap-3">
-      <h2 id="producers-heading" className="text-sm font-semibold text-muted">
-        기획사/제작사 ({producers.length})
+      <h2 id="producers-heading" className="text-base font-semibold text-foreground">
+        기획사·제작사 목록 <span className="num ml-1 text-sm font-normal text-muted">{producers.length}곳</span>
       </h2>
       {error ? <p role="alert" className="text-sm text-fail">{error}</p> : null}
-      <div className="overflow-x-auto rounded-card border border-border bg-card">
+      {producers.length === 0 ? <AdminEmptyState title="해당 조건의 기획사·제작사가 없어요" description="가입한 기획사·제작사의 정보와 인증 상태를 여기서 확인할 수 있어요." /> : <div className="overflow-x-auto rounded-card border border-border bg-card">
         <table className="w-full min-w-[56rem] text-left text-sm">
           <thead className="bg-surface text-xs text-muted">
             <tr>
@@ -79,20 +80,18 @@ export function AdminProducerTable({ producers, onChanged }: Props) {
                   </span>
                 </td>
                 <td className="px-3 py-2 text-right">
-                  <button
-                    type="button"
+                  <AdminActionButton
                     disabled={pendingId === producer.memberId}
                     onClick={() => handleChange(producer, producer.status === "PENDING" ? "ACTIVE" : "PENDING")}
-                    className="min-h-9 whitespace-nowrap rounded-control border border-border bg-card px-3 text-sm font-semibold text-muted-strong hover:bg-surface disabled:opacity-50"
                   >
                     {producer.status === "PENDING" ? "수동 활성화" : "비활성화"}
-                  </button>
+                  </AdminActionButton>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-      </div>
+      </div>}
     </section>
   );
 }

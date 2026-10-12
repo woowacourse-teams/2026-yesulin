@@ -122,7 +122,7 @@
   `AuditionNoticeService`가 `NoticeRepository`를 직접 사용한다. 전체 실행을 트랜잭션으로 묶지 않고
   수집 결과 저장과 묶음 전송 완료 기록에만 짧은 트랜잭션을 적용한다. DB 트랜잭션을 잡은 채 외부 요청을 수행하지 않는다.
   동시 수집의 삽입 충돌은 유니크 제약으로 거절되고 해당 수집 트랜잭션은 롤백된다. 다음 실행에서 재수집한다.
-- 묶음마다 Slack 전송 전에 공고마다 `AuditionImporter.importIfAbsent`로 숨긴 채 가져온다. 가져오기 실패는
+- 묶음마다 Slack 전송 전에 공고마다 `AuditionImporter.importIfAbsent`로 검토 전 상태로 가져온다. 가져오기 실패는
   `sendError`로 따로 알리고 해당 공고의 알림은 경유 링크 `/otr?vid=`로 그대로 보낸다. 가져온 공고 알림은 상태와 관계없이 `/posts/{id}`를 쓴다.
   전송이 실패해 다음 실행에서 다시 보낼 때는 이미 가져온 번호라 다시 가져오지 않는다.
 - `AuditionNoticeService`는 Spring bean으로 등록한다. `@EnableScheduling`은 전체 환경에서 활성화한다.
@@ -137,13 +137,39 @@
 
 - `auditionpost/domain`의 `AuditionPost`는 출처(`source`)·원문 번호(`external_id`)·원문 주소, 내용 `AuditionPostContent`(embeddable),
   태그(`audition_post_tags`)와 파일 `AuditionPostFile`(`audition_post_files`, 사진·첨부 구분과 저장소 키·원래 이름·형식·크기),
-  `PUBLISHED/HIDDEN`(생성 시 `HIDDEN`), 조회수·원문 이동 수, 가져온 운영자(자동 가져오기면 null), 생성·갱신 시각을 저장한다.
+  `PENDING/PUBLISHED/HIDDEN`(가져오기·운영자 작성은 `PENDING`, 기획사 작성은 `PUBLISHED`로 시작), 처음 만든 경로 `created_via`
+  (`AuditionPostCreation`, 수정 불가), 조회수·원문 이동 수, 마지막으로 가져온 운영자(자동 가져오기면 null), 생성·갱신 시각을 저장한다.
+  `changeStatus`는 공개하거나 내린 공고를 `PENDING`으로 되돌리지 않는다.
   두 수는 저장소의 원자적 update로만 늘린다. 엔티티는 바뀐 컬럼만 갱신해 상태 변경·다시 가져오기가 두 수를 덮어쓰지 않는다.
-  조회수는 `PUBLISHED`, 원문 이동 수는 `HIDDEN`일 때만 늘어난다. `(source, external_id)`는 유니크이고 공개 주소에는 숫자 ID를 쓴다.
+  조회수는 `PUBLISHED`일 때만, 원문 이동 수는 `PUBLISHED`가 아닐 때만 늘어난다. `(source, external_id)`는 유니크이고 공개 주소에는 숫자 ID를 쓴다.
 - 분류는 `AuditionCategory`(연극·퍼포먼스·뮤지컬·단원·기획사)만 받는다. `AuditionPostContent`가 생성 시 검사하므로
   가져오기는 파일을 받기 전에 거절된다. 공개 목록의 모집 중 조건은 `deadline`이 없거나 오늘 이후인 공고다.
 - 마감은 원문 문자열(`deadline_text`)과 `yyyy-MM-dd`일 때만 채우는 `deadline`을 함께 둔다. 원문 작성 시각은 한국 시간 `LocalDateTime`이다.
-- `refresh`는 내용·태그·파일을 교체하고 이전 파일 목록을 돌려준다. 공개 상태와 공개 ID는 유지한다.
+- `refresh`는 내용·태그·파일을 교체하고 이전 파일 목록을 돌려준다. 공개 상태와 공개 ID는 유지하고 수정 표시(`edited_at`, `edited_by`)는 지운다.
+- `AuditionPost.write`는 원문 없이 직접 쓴 공고를 만든다. 출처는 `YESULIN`, 원문 번호·주소는 null이고 `hasOrigin()`이 false다.
+  `imported_by`에 쓴 운영자를 두며, 자동 가져오기 여부는 원문이 있고 운영자가 없을 때만 참이다. 원문이 없으면 `refresh`를 거부한다.
+- `AuditionPost.publishByOwner`는 기획사가 올린 공고를 만든다. 출처는 `YESULIN`, 처음 상태는 `PUBLISHED`, `owner_id`는 올린 기획사
+  회원, `imported_by`는 null이다. `isWrittenByOwner()`는 원문과 운영자가 없는 공고다. `owner_id`는 이 공고를 고칠 수 있는
+  기획사이며 운영자가 `changeOwner`로 연결하거나 끊는다. 작성자 이름은 `AuditionPostWriteService`가 `producers.company_name`으로 정하고
+  기획사가 고칠 때는 바꾸지 않는다. 기획사 화면의 다른 기획사 공고 조회·수정은 `NOT_FOUND`다.
+  공개 목록·상세의 작성자는 `AuditionPostOwners.authorOf`가 정한다. 연결된 기획사 이름이 있으면 그 이름, 없으면 저장된
+  `author_name`이다. 저장값은 바꾸지 않으므로 다시 가져오기가 원문 닉네임을 갱신해도 연결된 동안 보이는 이름은 그대로다.
+- `source_author_id`는 원문 작성자 회원 번호다. 가져올 때 `recordSourceAuthor`로 남기고, 원문에 번호가 없으면 이전 값을 지우지 않는다.
+  `auditionpost/domain/authorlink`의 `AuditionPostAuthorLink`(`audition_post_author_links`, `(source, source_author_id)` 유니크)는
+  원문 작성자를 기획사에 자동 연결하는 규칙이다. `AuditionPostImportService`가 저장 트랜잭션에서 기획사가 없는 공고에 규칙의
+  기획사를 붙이고, `AuditionPostAuthorLinkService`가 규칙을 만들 때 기존 공고를 `ownerId is null` 조건의 일괄 update로 연결한다.
+  일괄 update는 `owner_id`만 바꾸므로 잠근 수정과 겹쳐도 수정 내용을 덮어쓰지 않는다. 번호 채우기는 원문을 읽는 동안 트랜잭션을
+  잡지 않고 `source_author_id is null` 조건의 update로 채운다. 업체별 보기는 `countByOwner`·`countUnownedBySourceAuthor` JPQL 집계를 쓴다.
+- 기획사가 올리거나 바뀐 항목(`AuditionPostChange`)이 있게 고치면 `ProducerAuditionPost*Event`를 발행한다.
+  `presentation/event`의 핸들러가 커밋 뒤 `ProducerAuditionPostNotifier` port를 부르고, `infrastructure/slack`의 구현이
+  공고 알림 웹훅으로 가상 스레드에서 보낸다. OTR 공고 알림과 같은 형식을 쓰며 공고 내용의 `& < >`는 Slack 해석을 막도록 바꿔 쓴다.
+- `auditionpost/domain/upload`의 `AuditionPostUpload`는 브라우저가 공고 사진·첨부를 올릴 자리(키·올린 회원·종류·형식·크기)다.
+  운영자와 기획사가 같은 `members` ID를 쓰므로 올린 회원만 확인하면 서로의 업로드를 확정하지 못한다.
+  `AuditionPostUploadService.claim`이 저장 트랜잭션 안에서 키로 행을 잠그고 올린 사람·종류를 확인해 공고 파일로 바꾼 뒤 지운다.
+- `edit`는 운영자나 소유 기획사가 고친 내용·태그·파일로 바꾸고 빠진 파일을 돌려준다. 출처·공개 상태·가져온 운영자·소유자·원문
+  작성 시각은 유지한다. 수정과 다시 가져오기는 공고 행을 `PESSIMISTIC_WRITE`로 잠근 첫 조회로 시작해 순서대로 처리한다.
+  `AuditionPostWriteService`가 편집기 본문을 `AuditionPostEditorBody`로 걸러 이 공고의 사진(기존 사진과 이번에 확정한 업로드)만
+  남기고, 빠진 파일은 커밋 뒤 지운다.
 - 본문은 사진 자리를 `post-file:{순번}`으로 저장하고 `AuditionPostBody.render`가 응답할 때 공개 저장소 주소로 바꾼다.
   저장소 주소가 환경·LocalStack 포트마다 달라 본문에 주소를 고정하지 않는다. 순번에 파일이 없으면 사진 태그를 지운다.
 - `auditionpost/application`의 `AuditionPostSource` port를 `auditionpost/infrastructure/crawler/OtrAuditionPostSource`가 구현한다.

@@ -1,14 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { FilterChip } from "@/components/ui/controls";
 import { AdminApiError, completeTimetableMessages, fetchTimetableMessages } from "@/features/admin/api";
 import { smsHref } from "@/features/admin/sms-link";
 import type { AdminTimetableMessage, AdminTimetableMessages, AdminTimetableMessageStatus, AdminTimetableMessageType } from "@/features/admin/types";
 import { logout } from "@/features/auth/session-api";
 import { AdminSessionEnded } from "./admin-session-ended";
 import { formatDateTime } from "./admin-format";
-import { AdminActionButton, AdminShell } from "./admin-shell";
+import { AdminActionButton, AdminActionLink, AdminFilterButton, AdminEmptyState, AdminShell } from "./admin-shell";
 
 type Phase = "loading" | "ready" | "unauthorized" | "failed";
 
@@ -18,9 +17,6 @@ const TYPE_LABELS: Record<AdminTimetableMessageType, string> = {
   ACTOR_INVITATION: "배우 · 합격·일정 안내",
   ACTOR_SCHEDULE_CHANGED: "배우 · 일정 변경",
 };
-
-const ROW_BUTTON_CLASS =
-  "min-h-11 rounded-control border border-border bg-card px-3 text-sm font-semibold text-muted-strong hover:border-brand-line hover:text-brand disabled:opacity-50";
 
 /**
  * 오디션 일정표 문자 발송 대기열. 기획사 화면은 자동 발송으로 안내하므로 운영자가 오래된 순서대로 직접 보내고
@@ -102,15 +98,15 @@ export function AdminMessageQueue() {
       actions={(
         <>
           <AdminActionButton onClick={refresh}>새로고침</AdminActionButton>
-          <AdminActionButton onClick={() => void signOut()}>로그아웃</AdminActionButton>
+          <AdminActionButton tone="quiet" onClick={() => void signOut()}>로그아웃</AdminActionButton>
         </>
       )}
     >
       <div className="flex flex-wrap items-center gap-2" role="group" aria-label="발송 상태">
-        <FilterChip pressed={status === "PENDING"} onClick={() => { setStatus("PENDING"); setPhase("loading"); }}>
+        <AdminFilterButton pressed={status === "PENDING"} onClick={() => { setStatus("PENDING"); setPhase("loading"); }}>
           보낼 문자{data ? ` ${data.pendingCount}` : ""}
-        </FilterChip>
-        <FilterChip pressed={status === "SENT"} onClick={() => { setStatus("SENT"); setPhase("loading"); }}>최근 보낸 문자</FilterChip>
+        </AdminFilterButton>
+        <AdminFilterButton pressed={status === "SENT"} onClick={() => { setStatus("SENT"); setPhase("loading"); }}>최근 보낸 문자</AdminFilterButton>
       </div>
 
       {error ? (
@@ -123,9 +119,7 @@ export function AdminMessageQueue() {
       {data && phase === "ready" ? (
         <section aria-label={status === "PENDING" ? "보낼 문자" : "최근 보낸 문자"} className="flex flex-col gap-3">
           {data.messages.length === 0 ? (
-            <p className="rounded-card border border-border bg-card px-4 py-8 text-center text-sm text-muted">
-              {status === "PENDING" ? "보낼 문자가 없어요." : "보낸 문자가 없어요."}
-            </p>
+            <AdminEmptyState title={status === "PENDING" ? "보낼 문자가 없어요" : "보낸 문자가 없어요"} description="일정표에서 생성된 안내 문자를 여기서 확인하고 발송 완료로 표시할 수 있어요." />
           ) : null}
           {data.messages.map((message) => (
             <article key={message.id} className="rounded-card border border-border bg-card p-4 sm:px-5">
@@ -146,28 +140,26 @@ export function AdminMessageQueue() {
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
                 {status === "PENDING" ? (
-                  <a
+                  <AdminActionLink
                     href={smsHref(message.recipientPhone, message.body, navigator.userAgent)}
-                    className="inline-flex min-h-11 items-center rounded-control border border-brand bg-brand-soft px-3 text-sm font-semibold text-brand hover:bg-brand-soft-strong"
                   >
                     문자 앱으로 열기
-                  </a>
+                  </AdminActionLink>
                 ) : null}
-                <button type="button" className={ROW_BUTTON_CLASS} onClick={() => copy(`phone-${message.id}`, message.recipientPhone)}>
+                <AdminActionButton onClick={() => copy(`phone-${message.id}`, message.recipientPhone)}>
                   {copied === `phone-${message.id}` ? "번호 복사됨" : "번호 복사"}
-                </button>
-                <button type="button" className={ROW_BUTTON_CLASS} onClick={() => copy(`body-${message.id}`, message.body)}>
+                </AdminActionButton>
+                <AdminActionButton onClick={() => copy(`body-${message.id}`, message.body)}>
                   {copied === `body-${message.id}` ? "본문 복사됨" : "본문 복사"}
-                </button>
+                </AdminActionButton>
                 {status === "PENDING" ? (
-                  <button
-                    type="button"
+                  <AdminActionButton
                     disabled={completing.has(message.id)}
                     onClick={() => void complete([message])}
-                    className="ml-auto min-h-11 rounded-control border border-foreground bg-foreground px-4 text-sm font-semibold text-white hover:bg-sidebar-hover disabled:opacity-50"
+                    className="ml-auto"
                   >
                     {completing.has(message.id) ? "표시 중…" : "보냈어요 · 완료 표시"}
-                  </button>
+                  </AdminActionButton>
                 ) : null}
               </div>
             </article>

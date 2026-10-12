@@ -3,23 +3,31 @@ package art.yesulin.auditionpost.infrastructure.slack;
 import art.yesulin.auditionpost.application.notice.AuditionAlert;
 import art.yesulin.auditionpost.application.notice.AuditionContent;
 import art.yesulin.auditionpost.application.notice.AuditionNoticeNotifier;
+import art.yesulin.infrastructure.slack.SlackEnvironment;
 import art.yesulin.infrastructure.slack.SlackWebhookClient;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 @Component
 public class SlackAuditionNoticeNotifier implements AuditionNoticeNotifier {
 
     private final String webhookUrl;
+    private final String errorWebhookUrl;
     private final SlackWebhookClient webhookClient;
+    private final String environmentLabel;
 
     public SlackAuditionNoticeNotifier(
             @Value("${yesulin.slack.notice-webhook-url:}") String webhookUrl,
-            SlackWebhookClient webhookClient
+            @Value("${yesulin.slack.error-webhook-url:}") String errorWebhookUrl,
+            SlackWebhookClient webhookClient,
+            Environment environment
     ) {
         this.webhookUrl = webhookUrl;
+        this.errorWebhookUrl = errorWebhookUrl;
         this.webhookClient = webhookClient;
+        this.environmentLabel = SlackEnvironment.label(environment);
     }
 
     @Override
@@ -27,20 +35,14 @@ public class SlackAuditionNoticeNotifier implements AuditionNoticeNotifier {
         if (alerts.isEmpty()) {
             throw new IllegalArgumentException("전송할 공고가 없습니다.");
         }
-        List<AuditionContent> contents = alerts.stream().map(AuditionAlert::content).toList();
-        StringBuilder message = new StringBuilder("🔔 예술in 오디션 공고 알림 · ").append(contents.size()).append("건\n");
-        for (int index = 0; index < contents.size(); index++) {
-            AuditionContent content = contents.get(index);
+        StringBuilder message = SlackAuditionMessages.header(alerts.size());
+        for (int index = 0; index < alerts.size(); index++) {
+            AuditionContent content = alerts.get(index).content();
             if (index > 0) {
                 message.append("\n\n──────────\n");
             }
-            if (!content.category().isBlank()) {
-                message.append("\n[").append(content.category()).append("] ");
-            }
-            message.append(content.title())
-                    .append("\n페이: ").append(display(content.pay()))
-                    .append(" | 마감: ").append(display(content.deadline()))
-                    .append("\n자세히 보기\n").append(alerts.get(index).link());
+            SlackAuditionMessages.appendAlert(message, content.category(), content.title(), content.pay(),
+                    content.deadline(), alerts.get(index).link());
         }
         post(message.toString());
     }
@@ -50,8 +52,12 @@ public class SlackAuditionNoticeNotifier implements AuditionNoticeNotifier {
         post("공고 수집 오류\n" + message);
     }
 
-    private String display(String value) {
-        return value.isBlank() ? "미기재" : value;
+    @Override
+    public void sendDeliveryFailure(String message) {
+        if (errorWebhookUrl == null || errorWebhookUrl.isBlank()) {
+            return;
+        }
+        webhookClient.post(errorWebhookUrl, "⚠️ %s 공고 알림 전송 실패\n%s".formatted(environmentLabel, message));
     }
 
     private void post(String message) {

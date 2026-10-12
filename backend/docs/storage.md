@@ -44,9 +44,16 @@ CloudFront의 `/dev/audition-posts/*`, `/prod/audition-posts/*` 동작을 각 �
 공연 포스터와 이미 `public/files/`에 저장된 파일을 위해 기존 `/dev/files/*`, `/prod/files/*` 동작도 유지한다.
 기존 공고는 객체 이동·재가져오기 없이 같은 주소로 제공한다. 키마다 내용이 바뀌지 않으므로
 `Cache-Control: public, max-age=31536000, immutable`을 붙이고, 첨부는 `Content-Disposition: attachment`와
-원래 파일 이름(RFC 6266 `filename*`)을 객체에 설정한다. 내용은 원문 응답 길이만큼 스트림으로 보낸다.
+원래 파일 이름(RFC 6266 `filename*`)을 객체에 설정한다. 파일 이름은 한글 완성형(NFC)으로 맞춰 저장해, 맥에서 올린
+자모 분리형(NFD) 이름이 윈도우에서 풀려 보이지 않게 한다. 내용은 원문 응답 길이만큼 스트림으로 보낸다.
 이 파일은 `file_assets`·`file_references`에 기록하지 않고 `audition_post_files`가 키를 소유한다.
 원문으로 다시 가져와 교체하면 커밋 뒤 이전 객체를 지운다.
+
+운영자나 기획사가 공고를 쓰거나 고칠 때 더하는 사진·첨부도 같은 `public/audition-posts/` 키를 쓴다. 브라우저는 형식(`Content-Type`)만 서명한
+presigned PUT으로 바로 올려서 버킷 CORS에 다른 헤더를 허용하지 않아도 된다. 공고를 저장할 때 서버가 HEAD로 형식·크기를 확인하고,
+같은 키로 복사(`MetadataDirective=REPLACE`)해 서버가 올린 공고 파일과 같은 `Cache-Control`과 첨부의 `Content-Disposition`을 붙인다.
+올릴 자리는 `audition_post_uploads`에 키·올린 회원(운영자 또는 기획사)·형식·크기로 기록하고, 저장하면서 공고 파일로 확정할 때 지운다. 하루가 지나도록
+확정하지 않은 업로드는 매일 04:30(한국 시간) 정리 작업이 저장소 객체와 기록을 함께 지운다. 객체를 지우지 못하면 기록을 남겨 다음에 다시 시도한다.
 
 ## 소유권과 참조
 

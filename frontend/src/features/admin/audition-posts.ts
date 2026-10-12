@@ -8,3 +8,11 @@ export function extractOtrId(value: string): string | null {
   const match = /[?&]vid=([0-9]{1,30})(?:&|#|$)/.exec(trimmed);
   return match ? match[1] : null;
 }
+
+export const adminAuditionPostRoutes = {
+  list: "/admin/posts",
+  owners: "/admin/posts?view=owners",
+  byOwner: (ownerId: number) => `/admin/posts?owner=${ownerId}`,
+  create: "/admin/posts/new",
+  edit: (postId: number | string) => `/admin/posts/${encodeURIComponent(String(postId))}/edit`,
+} as const;

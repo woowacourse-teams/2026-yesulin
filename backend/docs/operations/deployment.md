@@ -7,16 +7,18 @@ DEV와 PROD의 Build 액션은 각각 `DEPLOY_ENV=dev`, `DEPLOY_ENV=prod`를 명
 두 Pipeline 모두 `CONFIG_COMMIT_ID`와 `config-version.txt`의 일치 검증을 통과해야 한다.
 
 공고 스케줄러는 매일 한국 시간 09:00~20:00에 10분 간격으로 실행되며 연극·퍼포먼스·뮤지컬·단원·기획사 공고만 다룬다.
-PROD의 `AuditionImportScheduler`는 새 OTR 공고를 우리 공고로 숨긴 채 가져온 뒤 Slack으로 알린다. 운영에서 잠시 멈추려면
+PROD의 `AuditionImportScheduler`는 새 OTR 공고를 우리 공고로 검토 전 상태로 가져온 뒤 Slack으로 알린다. 운영에서 잠시 멈추려면
 `YESULIN_NOTICE_SCHEDULER_ENABLED=false`를 설정한다. DEV·LOCAL은 공고를 수집·알림하지 않고 관리자 화면 `/admin/posts`에서
-직접 가져온다. Slack 웹훅 `YESULIN_SLACK_WEBHOOK_URL`은 PROD에서만 쓰며 `server/dev.env`의 값은 사용하지 않는다.
+직접 가져온다. Slack 웹훅 `YESULIN_SLACK_WEBHOOK_URL`을 OTR 공고 알림에는 PROD에서만 쓴다. 기획사가 공고를 올리거나 고친 알림은
+값이 있는 모든 환경에서 같은 웹훅으로 보내고, PROD가 아니면 메시지 앞에 `[DEV]`·`[LOCAL]`을 붙인다. `server/dev.env`에는 값이
+있으므로 DEV에서 기획사 공고를 올려도 공고 채널에 `[DEV]` 알림이 간다. 웹훅이 비어 있으면 기획사 공고 알림은 로그만 남긴다.
 값이 없으면 가져오기는 되지만 알림 전송이 실패해 알림 이력이 대기 상태로 남는다. 웹훅을 넣으면 다음 실행부터
 한 번에 최대 100건씩 보내고, 남은 건은 그다음 실행에서 보낸다.
 현재 PROD는 인스턴스 한 대 기준이며 분산 실행 잠금은 없다. 여러 대로 늘리면 중복 알림을 막는 잠금을 먼저 추가한다.
 
 `YESULIN_NOTICE_LINK_BASE_URL`은 필수 환경 변수다. LOCAL은 `config/server/local.env`의
 `http://localhost:3000`, DEV·PROD는 SOPS 암호화된 `config/server/dev.env`·`prod.env`의 `https://yesulin.art`를 사용한다.
-PROD 알림은 가져온 공고 주소(`https://yesulin.art/posts/{id}`)를 바로 쓴다. 숨김이면 원문으로, 공개 뒤에는
+PROD 알림은 가져온 공고 주소(`https://yesulin.art/posts/{id}`)를 바로 쓴다. 공개 전이거나 내렸으면 원문으로, 공개 뒤에는
 예술in 상세로 열린다. 가져오지 못한 공고만 경유 링크 `https://yesulin.art/otr?vid={번호}`를 쓴다. 예전에 공유한 경유 링크도 계속 동작한다.
 테스트용 DEV 링크는 `https://dev.yesulin.art/otr?vid={번호}`를 직접 사용한다.
 환경별 YAML을 추가하지 않고 `application.yml`에서 이 변수를 읽는다. 테스트는 test resource의 값을 사용한다.
@@ -40,7 +42,7 @@ HEAD는 집계하지 않고 Slack 메시지의 링크·미디어 unfurl은 비�
 `YESULIN_NOTICE_LINK_BASE_URL`을 쓰는데, DEV의 공고 링크 주소는 PROD 프론트이므로 DEV에는 `https://dev.yesulin.art`를 따로
 설정해야 DEV 일정표 링크가 DEV 백엔드로 연결된다. 문자 발송 대기 신호는 선택 변수 `YESULIN_TIMETABLE_SLACK_WEBHOOK_URL`의
 Incoming Webhook으로 보내며, 비어 있으면 `TIMETABLE_MESSAGES_QUEUED` 로그만 남긴다. 예상하지 못한 서버 오류는 선택 변수
-`YESULIN_ERROR_SLACK_WEBHOOK_URL`로 보낸다. OTR 공고 알림 채널과 섞지 않고 환경별로 아래 채널을 쓴다.
+`YESULIN_ERROR_SLACK_WEBHOOK_URL`로 보낸다. OTR 공고 알림 전송이 실패하면 공고 채널 대신 이 채널로 알린다. OTR 공고 알림 채널과 섞지 않고 환경별로 아래 채널을 쓴다.
 
 | 변수 | LOCAL·DEV | PROD |
 | --- | --- | --- |
@@ -56,7 +58,8 @@ Slack 웹훅 세 개(OTR 공고 `YESULIN_SLACK_WEBHOOK_URL` 포함)는 `src/main
 3. JAR와 복호화한 환경 파일을 `/opt/yesulin/releases/{commit-id}`에 함께 설치한 뒤 `current` symlink를 교체한다.
    복호화가 실패하면 `current`는 이전 릴리스를 계속 가리킨다. 롤백하면 이전 JAR와 환경 파일이 함께 선택된다.
 4. systemd가 `yesulin` 사용자로 Spring을 `0.0.0.0:80`에서 실행한다. 비특권 사용자에게는
-   `CAP_NET_BIND_SERVICE`만 부여한다.
+   `CAP_NET_BIND_SERVICE`만 부여한다. JVM 옵션은 환경 파일의 `JAVA_TOOL_OPTIONS`로 준다.
+   DEV는 `-Xmx384m`으로 힙 상한을 두고, PROD는 빈 값이라 기본값(물리 메모리의 1/4)을 쓴다.
 5. CodeDeploy가 `http://127.0.0.1:80/actuator/health/readiness`의 HTTP 200을 확인한다.
    일시적인 기동 편차는 최대 60회 재시도로 허용하며, 준비되면 즉시 다음 단계로 진행한다.
 6. ALB target group도 같은 readiness endpoint를 확인한 뒤에만 트래픽을 전달한다.
@@ -127,10 +130,14 @@ HTTP 본문이나 객체를 별도로 직렬화하는 로깅은 이 마스킹으
 세션과 이메일 인증 토큰은 Flyway가 만드는 `SPRING_SESSION`, `SPRING_SESSION_ATTRIBUTES`,
 `email_verifications`에 저장된다. 배포 전에 사용하는 DB 계정에 해당 migration의 DDL 권한이 있는지 확인한다.
 세션 만료는 `SESSION_TIMEOUT`의 idle timeout을 따르며 기본값은 12시간이다. 재배포는 세션 만료 사유가 아니다.
-다만 세션의 로그인 정보는 JDK 직렬화로 저장되므로 `MemberPrincipal`이나 그 필드 타입의 패키지·이름이 바뀌면
-배포 전 세션을 읽을 수 없다. 이런 세션은 `UnreadableSessionFilter`가 무효화하고 `UNREADABLE_SESSION_INVALIDATED`
-WARN 로그를 남기며, 사용자는 다시 로그인한다. 클래스 이름이 다르고 이 필터도 없는 이전 버전으로 롤백하면
-그 버전은 새 세션을 읽지 못해 500을 내므로, 롤백 직후 `DELETE FROM SPRING_SESSION;`으로 세션을 비운다.
+세션 속성은 JDK 직렬화 대신 JSON으로 저장한다(`SessionSerializationConfiguration`). 로그인 정보는 클래스 경로 없이
+고정된 이름 `memberPrincipal`과 회원 ID·역할·상태 값으로 저장하므로 `MemberPrincipal`의 패키지·이름이 바뀌어도
+기존 세션을 읽을 수 있다. 역할·상태 enum 상수 이름이나 저장 필드를 바꾸면 기존 세션을 읽지 못한다.
+소셜 로그인 중 저장되는 Spring Security 값은 Spring Security Jackson 모듈이 허용한 타입만 역직렬화한다.
+읽을 수 없는 세션은 `UnreadableSessionFilter`가 무효화하고 `UNREADABLE_SESSION_INVALIDATED` WARN 로그를 남기며,
+사용자는 다시 로그인한다. JSON 저장을 처음 배포하면 그 전의 JDK 직렬화 세션을 읽지 못하므로 로그인 사용자는 한 번
+다시 로그인한다. 이 필터가 있는 JDK 직렬화 버전으로 롤백하면 세션이 무효화될 뿐이지만, 필터가 없는 버전으로
+롤백하면 그 버전은 JSON 세션을 읽지 못해 500을 내므로 롤백 직후 `DELETE FROM SPRING_SESSION;`으로 세션을 비운다.
 
 EC2에는 Java 25, CodeDeploy Agent, `sops`, DB 네트워크 연결과 배포 전용 age private key
 `/etc/yesulin/sops/age/keys.txt`가 필요하다. 현재는 별도의 비밀 저장소 권한이 없어 배포 전용 키를
@@ -145,8 +152,15 @@ AMI에 평문 secret이 남지 않았는지는 별도로 검증해야 한다. pr
 
 새 인스턴스를 자동 생성하는 Launch Template에는 `ec2-project` IAM Instance Profile과 Java 25·CodeDeploy Agent·
 `sops` 설치 및 배포 전용 키를 포함한 AMI를 지정해야 한다. 새 인스턴스에서 키를 읽을 수 없다면 `AfterInstall`이 실패하며,
-릴리스 환경 파일이 없으면 `ApplicationStart`가 실패한다. 현재 수동으로 설정한 EC2만 검증해서는 ASG 교체가
-준비되었다고 볼 수 없다.
+릴리스 환경 파일이 없으면 `ApplicationStart`가 실패한다.
+
+DEV ASG(`yesulin-backend-asg`)는 이 경로를 확인했다. 새 인스턴스가 뜨면 배포 그룹 `yesulin-backend-staging`의
+CodeDeploy 시작 후크가 마지막 성공 리비전을 배포한다. 2026-09-22에는 ELB 상태 확인 실패로 인스턴스가 자동 교체됐고,
+2026-10-09에는 용량을 늘려 띄운 t4g.micro 인스턴스가 배포까지 성공했다. PROD ASG 경로는 아직 확인하지 않았다.
+DEV Launch Template(`yesulin-backend-lt` 버전 4)은 t4g.micro이며, 사용자 데이터가 512MiB swap 파일을 만들고
+CodeDeploy 에이전트의 배포본 보관 수(`:max_revisions:`)를 2로 줄인다. 루트 디스크가 8GiB라 배포본을 5개씩 쌓으면
+여유가 부족하다. 계정 정책상 인스턴스를 직접 정지할 수 없으므로 인스턴스 유형은 Launch Template 새 버전으로
+새 인스턴스를 띄운 뒤 ASG 용량을 줄여 옛 인스턴스를 종료하는 방식으로 바꾼다.
 
 AMI를 만들기 전에는 원본 인스턴스에 `/etc/yesulin/yesulin.env`,
 `/opt/yesulin/releases/*/yesulin.env` 같은 평문 환경 파일이 없는지 확인한다. 현재 서비스가 읽는

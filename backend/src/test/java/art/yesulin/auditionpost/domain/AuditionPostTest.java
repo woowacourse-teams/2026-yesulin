@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import art.yesulin.global.exception.BusinessException;
+import java.text.Normalizer;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -40,16 +41,33 @@ class AuditionPostTest {
     }
 
     @Test
-    void startsHiddenOnImportAndSplitsImagesFromAttachments() {
+    void startsPendingOnImportAndSplitsImagesFromAttachments() {
         AuditionPost post = new AuditionPost(
                 ORIGIN, content("2026-10-31"), List.of("연극"), List.of(image("a"), attachment("b")), 1L, NOW
         );
 
         assertFalse(post.isPublished());
-        assertEquals(AuditionPostStatus.HIDDEN, post.getStatus());
+        assertEquals(AuditionPostStatus.PENDING, post.getStatus());
+        assertEquals(AuditionPostCreation.ADMIN_IMPORT, post.getCreatedVia());
+        assertEquals(AuditionPostCreation.AUTO_IMPORT,
+                new AuditionPost(ORIGIN, content("상시"), List.of(), List.of(), null, NOW).getCreatedVia());
         assertEquals(List.of("public/a"), post.images().stream().map(AuditionPostFile::getObjectKey).toList());
         assertEquals(List.of("public/b"), post.attachments().stream().map(AuditionPostFile::getObjectKey).toList());
         assertEquals(NOW, post.getCreatedAt());
+    }
+
+    @Test
+    void reviewedPostCannotGoBackToPending() {
+        AuditionPost post = new AuditionPost(ORIGIN, content("상시"), List.of(), List.of(), 1L, NOW);
+
+        post.changeStatus(AuditionPostStatus.PENDING);
+        post.changeStatus(AuditionPostStatus.HIDDEN);
+
+        assertEquals(AuditionPostStatus.HIDDEN, post.getStatus());
+        assertThrows(BusinessException.class, () -> post.changeStatus(AuditionPostStatus.PENDING));
+        post.changeStatus(AuditionPostStatus.PUBLISHED);
+        assertThrows(BusinessException.class, () -> post.changeStatus(AuditionPostStatus.PENDING));
+        assertEquals(AuditionPostStatus.PUBLISHED, post.getStatus());
     }
 
     @Test
@@ -66,6 +84,95 @@ class AuditionPostTest {
         assertEquals(AuditionPostStatus.PUBLISHED, post.getStatus());
         assertEquals(later, post.getUpdatedAt());
         assertEquals(NOW, post.getCreatedAt());
+    }
+
+    @Test
+    void editKeepsSourceAndStatusAndReturnsRemovedFiles() {
+        AuditionPost post = new AuditionPost(
+                ORIGIN, content("2026-10-31"), List.of("연극"), List.of(image("a"), image("b"), attachment("c")), 1L, NOW
+        );
+        post.changeStatus(AuditionPostStatus.PUBLISHED);
+        Instant later = NOW.plusSeconds(60);
+
+        List<AuditionPostFile> removed = post.edit(
+                content("상시"), List.of(" 뮤지컬 "), List.of(image("b"), attachment("c")), 3L, later
+        );
+
+        assertEquals(List.of("public/a"), removed.stream().map(AuditionPostFile::getObjectKey).toList());
+        assertEquals(List.of("public/b"), post.images().stream().map(AuditionPostFile::getObjectKey).toList());
+        assertEquals("상시", post.getContent().getDeadlineText());
+        assertEquals(List.of("뮤지컬"), post.getTags());
+        assertEquals(AuditionPostStatus.PUBLISHED, post.getStatus());
+        assertEquals(1L, post.getImportedBy());
+        assertTrue(post.isEdited());
+        assertEquals(3L, post.getEditedBy());
+        assertEquals(later, post.getUpdatedAt());
+    }
+
+    @Test
+    void refreshClearsEdit() {
+        AuditionPost post = new AuditionPost(ORIGIN, content("상시"), List.of(), List.of(), 1L, NOW);
+        post.edit(content("2026-10-31"), List.of(), List.of(), 2L, NOW.plusSeconds(60));
+
+        post.refresh(content("상시"), List.of(), List.of(), 2L, NOW.plusSeconds(120));
+
+        assertFalse(post.isEdited());
+        assertNull(post.getEditedBy());
+    }
+
+    @Test
+    void rejectsEditWithoutEditor() {
+        AuditionPost post = new AuditionPost(ORIGIN, content("상시"), List.of(), List.of(), 1L, NOW);
+
+        assertThrows(BusinessException.class, () -> post.edit(content("상시"), List.of(), List.of(), 0L, NOW));
+        assertFalse(post.isEdited());
+    }
+
+    @Test
+    void directPostStartsPendingWithoutOrigin() {
+        AuditionPost post = AuditionPost.write(content("상시"), List.of("연극"), List.of(image("a")), 3L, NOW);
+
+        assertEquals(AuditionPost.DIRECT_SOURCE, post.getSource());
+        assertNull(post.getExternalId());
+        assertNull(post.getSourceUrl());
+        assertFalse(post.hasOrigin());
+        assertEquals(AuditionPostCreation.ADMIN_WRITE, post.getCreatedVia());
+        assertEquals(AuditionPostStatus.PENDING, post.getStatus());
+        assertThrows(BusinessException.class, () -> post.refresh(content("상시"), List.of(), List.of(), 3L, NOW));
+    }
+
+    @Test
+    void ownerPostIsPublishedAndOwnedByProducer() {
+        AuditionPost post = AuditionPost.publishByOwner(
+                content("상시"), List.of(), List.of(image("a.png")), 7L, NOW
+        );
+
+        assertEquals(AuditionPostStatus.PUBLISHED, post.getStatus());
+        assertEquals(AuditionPost.DIRECT_SOURCE, post.getSource());
+        assertFalse(post.hasOrigin());
+        assertNull(post.getImportedBy());
+        assertEquals(AuditionPostCreation.PRODUCER_WRITE, post.getCreatedVia());
+        assertTrue(post.isOwnedBy(7L));
+        assertFalse(post.isOwnedBy(8L));
+        assertThrows(
+                BusinessException.class,
+                () -> AuditionPost.publishByOwner(content("상시"), List.of(), List.of(), 0L, NOW)
+        );
+    }
+
+    @Test
+    void adminConnectsAndDisconnectsOwner() {
+        AuditionPost imported = new AuditionPost(ORIGIN, content("상시"), List.of(), List.of(), 1L, NOW);
+        final AuditionPost written = AuditionPost.write(content("상시"), List.of(), List.of(), 1L, NOW);
+
+        imported.changeOwner(7L);
+
+        assertTrue(imported.isOwnedBy(7L));
+        assertEquals(AuditionPostCreation.ADMIN_IMPORT, imported.getCreatedVia());
+        assertEquals(AuditionPostCreation.ADMIN_WRITE, written.getCreatedVia());
+        imported.changeOwner(null);
+        assertFalse(imported.isOwnedBy(7L));
+        assertThrows(BusinessException.class, () -> imported.changeOwner(0L));
     }
 
     @Test
@@ -100,6 +207,18 @@ class AuditionPostTest {
 
     private static AuditionPostFile image(String name) {
         return new AuditionPostFile(AuditionPostFileKind.IMAGE, "public/" + name, name + ".png", "image/png", 10);
+    }
+
+    @Test
+    void storesKoreanFilenameComposedSoWindowsShowsItAsWritten() {
+        String decomposed = Normalizer.normalize("한강대_오디션 지원서.hwp", Normalizer.Form.NFD);
+
+        AuditionPostFile file = new AuditionPostFile(
+                AuditionPostFileKind.ATTACHMENT, "public/a", decomposed, "application/x-hwp", 10
+        );
+
+        assertEquals("한강대_오디션 지원서.hwp", file.getOriginalFilename());
+        assertTrue(Normalizer.isNormalized(file.getOriginalFilename(), Normalizer.Form.NFC));
     }
 
     private static AuditionPostFile attachment(String name) {

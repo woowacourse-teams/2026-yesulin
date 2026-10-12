@@ -5,6 +5,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.net.http.HttpTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Map;
@@ -22,6 +23,7 @@ public class SlackWebhookClient {
 
     private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(5);
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(10);
+    private static final int MAX_ERROR_LENGTH = 100;
 
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
@@ -56,15 +58,23 @@ public class SlackWebhookClient {
                 .build();
         try {
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() != 200 || !"ok".equals(response.body().trim())) {
-                throw new IllegalStateException("Slack 알림 전송에 실패했습니다. HTTP " + response.statusCode());
+            String result = response.body().trim();
+            if (response.statusCode() != 200 || !"ok".equals(result)) {
+                throw new IllegalStateException("Slack 알림 전송에 실패했습니다. HTTP %d %s".formatted(
+                        response.statusCode(), abbreviate(result)));
             }
+        } catch (HttpTimeoutException exception) {
+            throw new IllegalStateException("Slack 응답 시간이 초과돼 전송 여부를 알 수 없습니다.");
         } catch (IOException exception) {
             throw new IllegalStateException("Slack 알림 서버에 연결하지 못했습니다.");
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Slack 알림 전송이 중단됐습니다.");
         }
+    }
+
+    private String abbreviate(String result) {
+        return result.length() > MAX_ERROR_LENGTH ? result.substring(0, MAX_ERROR_LENGTH) + "…" : result;
     }
 
     private URI webhookUri(String webhookUrl) {

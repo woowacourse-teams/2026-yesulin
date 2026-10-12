@@ -1,10 +1,21 @@
 import { withCsrfHeaders } from "../csrf";
-import { readErrorMessage, readErrorDetail } from "../api-error";
+import { safeUpload } from "../files/safe-upload";
+import { reportUploadDiagnostic } from "../files/upload-diagnostics";
+import { readErrorCode, readErrorMessage, readErrorDetail } from "../api-error";
+import type {
+  AuditionPostFileKind,
+  AuditionPostUpload,
+  AuditionPostWrite,
+  EditableAuditionPost,
+} from "../audition-posts/editing";
 import type {
   AdminAuditLogPage,
   AdminAudition,
   AdminAuditionPost,
+  AdminAuditionPostAuthorFill,
+  AdminAuditionPostAuthorLinkResult,
   AdminAuditionPostImport,
+  AdminAuditionPostOwnerOverview,
   AdminAuditionPostStatus,
   AdminDailyActivity,
   AdminFileDeletionResult,
@@ -33,17 +44,20 @@ const API_BASE_PATH = "/api/v1/admin";
 /** 운영 API는 세션 역할이 ADMIN일 때만 통과한다. 401·403은 화면이 로그인 상태로 되돌리는 신호다. */
 export class AdminApiError extends Error {
   readonly status: number;
+  /** 서버 오류 코드. 같은 상태 코드 안에서 화면이 다르게 안내해야 할 때 쓴다. */
+  readonly code: string | null;
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, code: string | null = null) {
     super(message);
     this.name = "AdminApiError";
     this.status = status;
+    this.code = code;
   }
 }
 
 async function readAdminError(response: Response, fallback: string): Promise<AdminApiError> {
   const body: unknown = await response.json().catch(() => null);
-  return new AdminApiError(response.status, readErrorMessage(body, readErrorDetail(body)) || fallback);
+  return new AdminApiError(response.status, readErrorMessage(body, readErrorDetail(body)) || fallback, readErrorCode(body));
 }
 
 async function getJson<T>(path: string, fallback: string): Promise<T> {
@@ -253,21 +267,70 @@ export async function completeTimetableMessages(messageIds: readonly number[]): 
   return body.messages;
 }
 
-export async function fetchAuditionPosts(): Promise<readonly AdminAuditionPost[]> {
+/** 최근 공고 200건. `ownerId`를 주면 그 기획사에 연결된 공고만 준다. */
+export async function fetchAuditionPosts(ownerId?: number): Promise<readonly AdminAuditionPost[]> {
   const body = await getJson<{ readonly posts: readonly AdminAuditionPost[] }>(
-    "/audition-posts",
-    "가져온 공고 목록을 불러오지 못했습니다.",
+    ownerId === undefined ? "/audition-posts" : `/audition-posts?ownerId=${ownerId}`,
+    "공고 목록을 불러오지 못했습니다.",
   );
   return body.posts;
 }
 
-/** 제작사 동의를 받은 OTR 공고를 본문·사진·첨부까지 가져와 바로 공개한다. 이미 있으면 원문으로 교체한다. */
-export async function importOtrAuditionPost(otrId: string): Promise<AdminAuditionPostImport> {
+export function fetchAuditionPostOwners(): Promise<AdminAuditionPostOwnerOverview> {
+  return getJson<AdminAuditionPostOwnerOverview>("/audition-post-owners", "업체별 공고를 불러오지 못했습니다.");
+}
+
+/** 원문 작성자를 기획사에 자동 연결한다. 그 작성자의 기존 공고 중 기획사가 없는 공고도 함께 연결된다. */
+export async function linkAuditionPostAuthor(
+  source: string,
+  sourceAuthorId: string,
+  ownerId: number,
+): Promise<AdminAuditionPostAuthorLinkResult> {
+  const response = await fetch(`${API_BASE_PATH}/audition-post-author-links`, {
+    method: "POST",
+    credentials: "include",
+    headers: await withCsrfHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ source, sourceAuthorId, ownerId }),
+  });
+  if (!response.ok) throw await readAdminError(response, "원문 작성자를 연결하지 못했습니다.");
+  return response.json() as Promise<AdminAuditionPostAuthorLinkResult>;
+}
+
+/** 자동 연결을 지운다. 이미 연결된 공고는 그대로다. */
+export async function unlinkAuditionPostAuthor(linkId: number): Promise<void> {
+  const response = await fetch(`${API_BASE_PATH}/audition-post-author-links/${linkId}`, {
+    method: "DELETE",
+    credentials: "include",
+    headers: await withCsrfHeaders(),
+  });
+  if (!response.ok) throw await readAdminError(response, "자동 연결을 해제하지 못했습니다.");
+}
+
+/** 원문 작성자 번호가 없는 공고의 번호를 원문에서 읽어 채운다. 한 번에 일부만 읽는다. */
+export async function fillAuditionPostAuthors(beforeId: number | null): Promise<AdminAuditionPostAuthorFill> {
+  const response = await fetch(`${API_BASE_PATH}/audition-post-author-links/fills`, {
+    method: "POST",
+    credentials: "include",
+    headers: await withCsrfHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ beforeId }),
+  });
+  if (!response.ok) throw await readAdminError(response, "원문 작성자 번호를 읽지 못했습니다.");
+  return response.json() as Promise<AdminAuditionPostAuthorFill>;
+}
+
+/** 운영자가 고친 공고를 원문으로 다시 가져오려 하면 서버가 이 코드로 확인을 요청한다. */
+export const AUDITION_POST_EDITED = "AUDITION_POST_EDITED";
+
+/**
+ * OTR 공고를 본문·사진·첨부까지 검토 전으로 가져온다. 이미 있으면 원문으로 교체한다.
+ * 운영자가 고친 공고는 `overwriteEdited`로 확인받았을 때만 교체한다.
+ */
+export async function importOtrAuditionPost(otrId: string, overwriteEdited = false): Promise<AdminAuditionPostImport> {
   const response = await fetch(`${API_BASE_PATH}/audition-posts/otr-imports`, {
     method: "POST",
     credentials: "include",
     headers: await withCsrfHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify({ otrId: otrId.trim() }),
+    body: JSON.stringify({ otrId: otrId.trim(), overwriteEdited }),
   });
   if (!response.ok) throw await readAdminError(response, "OTR 공고를 가져오지 못했습니다.");
   return response.json() as Promise<AdminAuditionPostImport>;
@@ -285,4 +348,75 @@ export async function changeAuditionPostStatus(
   });
   if (!response.ok) throw await readAdminError(response, "공개 상태를 바꾸지 못했습니다.");
   return response.json() as Promise<AdminAuditionPost>;
+}
+
+/** 공고를 기획사 계정에 연결하거나(`ownerId`) 연결을 끊는다(null). 연결된 기획사는 그 공고를 직접 고칠 수 있다. */
+export async function changeAuditionPostOwner(postId: number, ownerId: number | null): Promise<AdminAuditionPost> {
+  const response = await fetch(`${API_BASE_PATH}/audition-posts/${postId}/owner`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: await withCsrfHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ ownerId }),
+  });
+  if (!response.ok) throw await readAdminError(response, "기획사 연결을 바꾸지 못했습니다.");
+  return response.json() as Promise<AdminAuditionPost>;
+}
+
+export function fetchAuditionPostForEdit(postId: string): Promise<EditableAuditionPost> {
+  return getJson<EditableAuditionPost>(
+    `/audition-posts/${encodeURIComponent(postId)}`,
+    "공고를 불러오지 못했습니다.",
+  );
+}
+
+export async function updateAuditionPost(postId: string, write: AuditionPostWrite): Promise<AdminAuditionPost> {
+  const response = await fetch(`${API_BASE_PATH}/audition-posts/${encodeURIComponent(postId)}`, {
+    method: "PUT",
+    credentials: "include",
+    headers: await withCsrfHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(write),
+  });
+  if (!response.ok) throw await readAdminError(response, "공고를 저장하지 못했습니다.");
+  return response.json() as Promise<AdminAuditionPost>;
+}
+
+/** 원문 없이 공고를 쓴다. 검토 전으로 만들어지고 목록에서 공개하기를 눌러야 공개된다. */
+export async function createAuditionPost(write: AuditionPostWrite): Promise<AdminAuditionPost> {
+  const response = await fetch(`${API_BASE_PATH}/audition-posts`, {
+    method: "POST",
+    credentials: "include",
+    headers: await withCsrfHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(write),
+  });
+  if (!response.ok) throw await readAdminError(response, "공고를 만들지 못했습니다.");
+  return response.json() as Promise<AdminAuditionPost>;
+}
+
+/**
+ * 공고 사진·첨부를 저장소로 바로 올리고 공개 주소를 돌려준다. 공고를 저장할 때 서버가 이 주소로 업로드를 확정하므로
+ * 별도 완료 요청은 없다. WebKit 파일 접근 실패에 대비한 메모리 복사와 재시도는 다른 업로드와 같은 방식을 쓴다.
+ */
+export async function uploadAuditionPostFile(kind: AuditionPostFileKind, file: File): Promise<string> {
+  let publicUrl = "";
+  await safeUpload({
+    flow: "AUDITION_POST_FILE",
+    source: file,
+    originalFilename: file.name,
+    requestUpload: async (metadata, { incidentId }) => {
+      const response = await fetch(`${API_BASE_PATH}/audition-posts/uploads`, {
+        method: "POST",
+        credentials: "include",
+        headers: await withCsrfHeaders({ "Content-Type": "application/json", "X-Request-Id": incidentId }),
+        body: JSON.stringify({ kind, filename: metadata.originalFilename, contentType: metadata.contentType, size: metadata.size }),
+      });
+      if (!response.ok) throw await readAdminError(response, "파일을 올릴 준비를 하지 못했습니다.");
+      const upload = await response.json() as AuditionPostUpload;
+      publicUrl = upload.publicUrl;
+      // 공고 파일은 파일 ID 대신 공개 주소로 확정하므로 fileId는 쓰지 않는다.
+      return { fileId: 0, uploadUrl: upload.url, method: upload.method, headers: upload.headers };
+    },
+    completeUpload: async () => {},
+    reportDiagnostic: reportUploadDiagnostic,
+  });
+  return publicUrl;
 }

@@ -7,6 +7,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import java.text.Normalizer;
 import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -14,7 +15,8 @@ import lombok.NoArgsConstructor;
 
 /**
  * 원문에서 내려받아 우리 저장소에 둔 파일. 사진은 본문의 {@code post-file:{순번}} 자리에 들어가고,
- * 첨부파일은 본문 아래 목록으로 보인다. 파일 이름은 원문 그대로 보여 준다.
+ * 첨부파일은 본문 아래 목록으로 보인다. 파일 이름은 원문 그대로 보여 주되 한글은 완성형(NFC)으로 맞춘다. 맥은 파일 이름을
+ * 자모가 나뉜 형태(NFD)로 넘기는데, 그대로 두면 윈도우에서 내려받은 파일 이름이 자모로 풀려 보인다.
  */
 @Embeddable
 @Getter
@@ -71,7 +73,7 @@ public class AuditionPostFile {
     }
 
     private static String normalizeFilename(String filename) {
-        String trimmed = filename == null ? "" : filename.trim();
+        String trimmed = filename == null ? "" : Normalizer.normalize(filename, Normalizer.Form.NFC).trim();
         if (trimmed.isEmpty()) {
             throw invalid("파일 이름은 필수입니다.");
         }

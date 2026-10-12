@@ -220,33 +220,50 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 1차 서류 심사 한 차수를 제공한다. 배역별 심사 종료는 OTR 지원 마감 다음 날부터 가능하며,
 그 전에는 `409 SCREENING_ROUND_NOT_READY`를 반환한다. 종료 후 심사 결과 수정은 거부한다.
 
-## 가져온 공고(메인 목록) — 6개
+## 가져온 공고(메인 목록) — 21개
 
-운영자가 공고 알림을 받은 OTR 공고를 우리 공고로 옮긴 `AuditionPost`다. 공개 상세에만 원문 출처·주소를 담는다.
-공개 API는 로그인 없이 호출하고, 운영 API는 `ADMIN`만 호출한다.
+운영자가 공고 알림을 받은 OTR 공고를 우리 공고로 옮기거나, 운영자나 기획사가 원문 없이 직접 쓴 `AuditionPost`다.
+공개 상세에만 원문 출처·주소를 담는다. 공개 API는 로그인 없이 호출하고, 운영 API는 `ADMIN`만, 기획사 API는 `PRODUCER + ACTIVE`만 호출한다.
 `postId`는 숫자 ID다. 모두 공개 대상인 공고라 다른 공고와 달리 UUID를 쓰지 않는다.
 
 | Method | URL | 인증 | Request | Response |
 | --- | --- | --- | --- | --- |
 | GET | `/api/v1/public/audition-posts` | 공개 | `page`(0부터, 기본 0), `size`(1~48, 기본 12), `includeClosed`(기본 false) query | `200 PublicAuditionPostPageResult(posts, page, size, totalPages, totalElements, openCount, allCount)` |
-| GET | `/api/v1/public/audition-posts/{postId}` | 공개 | 없음 | `200 PublicAuditionPostResult`, 숨김이면 `302 Location: {원문 주소}` |
-| POST | `/api/v1/public/audition-posts/{postId}/views` | 공개 | 없음 | `204`, 숨김·없는 공고는 `404` |
+| GET | `/api/v1/public/audition-posts/{postId}` | 공개 | 없음 | `200 PublicAuditionPostResult`, 공개 중이 아니면 `302 Location: {원문 주소}`, 원문 없는 공고는 `404` |
+| POST | `/api/v1/public/audition-posts/{postId}/views` | 공개 | 없음 | `204`, 공개 중이 아니거나 없는 공고는 `404` |
 | POST | `/api/v1/public/audition-posts/{postId}/redirects` | 공개 | 없음 | `204`, 공개 중·없는 공고는 `404` |
-| GET | `/api/v1/admin/audition-posts` | Admin | 없음 | `200 AdminAuditionPostsResponse(posts)` |
-| POST | `/api/v1/admin/audition-posts/otr-imports` | Admin | `ImportOtrAuditionPostRequest(otrId)` | 처음이면 `201`, 다시 가져오면 `200 AuditionPostImportResult` |
+| GET | `/api/v1/admin/audition-posts` | Admin | `ownerId`(선택) query | `200 AdminAuditionPostsResponse(posts)` |
+| POST | `/api/v1/admin/audition-posts` | Admin | `WriteAuditionPostRequest(category, title, pay, deadlineText, authorName, bodyHtml?, tags, attachmentUrls)` | `201 AdminAuditionPostResult` |
+| POST | `/api/v1/admin/audition-posts/uploads` | Admin | `PrepareAuditionPostUploadRequest(kind: IMAGE/ATTACHMENT, filename, contentType?, size)` | `201 AuditionPostUploadResult(url, method, headers, expiresAt, publicUrl)` |
+| POST | `/api/v1/admin/audition-posts/otr-imports` | Admin | `ImportOtrAuditionPostRequest(otrId, overwriteEdited?)` | 처음이면 `201`, 다시 가져오면 `200 AuditionPostImportResult` |
+| GET | `/api/v1/admin/audition-posts/{postId}` | Admin | 없음 | `200 AuditionPostEditResult` |
+| PUT | `/api/v1/admin/audition-posts/{postId}` | Admin | `WriteAuditionPostRequest(category, title, pay, deadlineText, authorName, bodyHtml?, tags, attachmentUrls)` | `200 AdminAuditionPostResult` |
 | PATCH | `/api/v1/admin/audition-posts/{postId}/status` | Admin | `ChangeAuditionPostStatusRequest(status: PUBLISHED/HIDDEN)` | `200 AdminAuditionPostResult` |
+| PATCH | `/api/v1/admin/audition-posts/{postId}/owner` | Admin | `ChangeAuditionPostOwnerRequest(ownerId?)` | `200 AdminAuditionPostResult` |
+| GET | `/api/v1/admin/audition-post-owners` | Admin | 없음 | `200 AuditionPostOwnerOverview(owners, unlinkedAuthors, missingAuthorIdCount)` |
+| POST | `/api/v1/admin/audition-post-author-links` | Admin | `LinkAuditionPostAuthorRequest(source, sourceAuthorId, ownerId)` | `201 AuditionPostAuthorLinkResult` |
+| DELETE | `/api/v1/admin/audition-post-author-links/{linkId}` | Admin | 없음 | `204` |
+| POST | `/api/v1/admin/audition-post-author-links/fills` | Admin | `FillAuditionPostAuthorsRequest(beforeId?)` | `200 AuditionPostAuthorFillResult` |
+| GET | `/api/v1/producers/me/audition-posts` | Active Producer | 없음 | `200 ProducerAuditionPostsResponse(posts)` |
+| POST | `/api/v1/producers/me/audition-posts` | Active Producer | `ProducerWriteAuditionPostRequest(category, title, pay, deadlineText, bodyHtml?, tags, attachmentUrls)` | `201 ProducerAuditionPostResult` |
+| POST | `/api/v1/producers/me/audition-posts/uploads` | Active Producer | `PrepareAuditionPostUploadRequest(kind: IMAGE/ATTACHMENT, filename, contentType?, size)` | `201 AuditionPostUploadResult(url, method, headers, expiresAt, publicUrl)` |
+| GET | `/api/v1/producers/me/audition-posts/{postId}` | Active Producer | 없음 | `200 AuditionPostEditResult` |
+| PUT | `/api/v1/producers/me/audition-posts/{postId}` | Active Producer | `ProducerWriteAuditionPostRequest(category, title, pay, deadlineText, bodyHtml?, tags, attachmentUrls)` | `200 ProducerAuditionPostResult` |
 
 공개 목록은 `PUBLISHED`만 원문 작성 시각 최신순으로 반환한다. 작성 시각을 읽지 못한 공고는 뒤에 온다.
 기본은 모집 중(마감일이 없거나 한국 날짜로 오늘 이후)인 공고만 세고, `includeClosed=true`면 마감된 공고도 포함한다.
 `totalElements`·`totalPages`는 요청 조건 기준이고, `openCount`·`allCount`는 조건과 관계없는 모집 중·전체 공개 공고 수다.
 목록 항목은 `id`, `category`, `title`, `authorName`, `pay`, `deadlineText`(원문 표현),
 `deadline`(날짜일 때만 `YYYY-MM-DD`), `closed`(한국 날짜 기준), `postedAt`(Instant), `thumbnailUrl`(본문 첫 사진, 없으면 null),
-`attachmentCount`, `viewCount`를 담는다. 조회수는 상세 화면이 열릴 때 브라우저가 탭 세션당 한 번 보내는 POST로만 늘고,
+`attachmentCount`, `viewCount`를 담는다. 공개 응답의 `authorName`은 기획사에 연결된 공고면 그 기획사의 지금 이름이고,
+아니면 저장된 작성자(원문 닉네임이나 운영자가 쓴 이름)다. 운영 목록과 수정 상세의 `authorName`은 저장된 작성자다. 조회수는 상세 화면이 열릴 때 브라우저가 탭 세션당 한 번 보내는 POST로만 늘고,
 서버 렌더링·메타데이터 조회는 세지 않는다. 다시 가져와도 유지한다. 상세는 여기에 `bodyHtml`, `tags`, `attachments(name, contentType, size, url)`, 원문 출처 `source`(예: `OTR`)·`sourceUrl`,
-`updatedAt`을 더한다. 숨긴 공고 상세는 본문 없이 `302 Location: {sourceUrl}`로 원문 공고에 보낸다.
+`updatedAt`을 더한다. 운영자나 기획사가 직접 쓴 공고는 `source`가 `YESULIN`이고 `sourceUrl`이 null이다.
+공개 상태는 `PENDING`(검토 전), `PUBLISHED`(공개 중), `HIDDEN`(내림)이다. 공개 중이 아닌 공고 상세는 본문 없이
+`302 Location: {sourceUrl}`로 원문 공고에 보낸다. 원문 없이 쓴 공고는 보낼 곳이 없어 `404`다.
 `Cache-Control: no-store`, `Referrer-Policy: no-referrer`를 붙인다. 프론트 서버 렌더링은 이동을 따라가지 않고 `Location`만 읽어
-브라우저를 원문으로 보낸다. 없는 공고는 `404 AUDITION_POST_NOT_FOUND`이고, 조회수 기록은 숨김도 404다.
-원문 이동 수는 프론트 서버가 숨긴 공고를 원문으로 보내기 직전에 `redirects` POST를 한 번 보내 늘린다. 상세 GET은 세지 않는다.
+브라우저를 원문으로 보낸다. 없는 공고는 `404 AUDITION_POST_NOT_FOUND`이고, 조회수 기록은 공개 중이 아니어도 404다.
+원문 이동 수는 프론트 서버가 공개 중이 아닌 공고를 원문으로 보내기 직전에 `redirects` POST를 한 번 보내 늘린다. 상세 GET은 세지 않는다.
 DB에서 1을 더하고 다시 가져와도 유지한다.
 page·size 범위 오류는 `400 INVALID_REQUEST`다.
 
@@ -259,9 +276,65 @@ page·size 범위 오류는 `400 INVALID_REQUEST`다.
 담는다. OTR 접속·구조 오류는 `409 AUDITION_POST_SOURCE_UNAVAILABLE`, 지원하지 않거나 20MB를 넘는 본문 사진은
 `409 AUDITION_POST_FILE_REJECTED`, 같은 번호의 동시 가져오기 충돌은 `409 AUDITION_POST_IMPORT_CONFLICT`다.
 분류가 연극·퍼포먼스·뮤지컬·단원·기획사가 아니면 파일을 받기 전에 `409 AUDITION_POST_CATEGORY_NOT_SUPPORTED`로 거절한다.
-가져온 공고는 자동·직접 모두 `HIDDEN`으로 만들고, 다시 가져오면 공개 상태를 유지한다.
-운영 목록은 최근 가져온 200건을 상태와 관계없이 출처·원문 번호·원문 주소, 자동 가져오기 여부(`autoImported`),
-조회수 `viewCount`와 원문 이동 수 `redirectCount`와 함께 반환한다. 가져오기와 공개 상태 변경은 `admin_audit_logs`에 남긴다.
+가져온 공고는 자동·직접 모두 `PENDING`으로 만들고, 다시 가져오면 공개 상태를 유지한다. 상태 변경은 `PUBLISHED`와 `HIDDEN`만
+받으며, 공개하거나 내린 공고를 `PENDING`으로 되돌리면 `400 AUDITION_POST_INVALID_INPUT`이다.
+운영 목록은 최근 가져온 200건을 상태와 관계없이 출처·원문 번호·원문 주소, 처음 만든 경로 `createdVia`
+(`AUTO_IMPORT`, `ADMIN_IMPORT`, `ADMIN_WRITE`, `PRODUCER_WRITE`. 다시 가져오거나 고쳐도 바뀌지 않음),
+조회수 `viewCount`와 원문 이동 수 `redirectCount`, 마지막으로 직접 고친 시각 `editedAt`(없으면 null), 연결된 기획사
+`ownerId`·`ownerName`(없으면 null, 기획사 정보가 없어졌으면 이름만 null)과 함께 반환한다.
+가져오기, 공개 상태 변경, 내용 수정, 기획사 연결은 `admin_audit_logs`에 남긴다. 기획사의 작성·수정은 감사 기록 대신 Slack으로 알린다.
+
+수정 상세(`AuditionPostEditResult`)는 출처·원문 번호·원문 주소·공개 상태와 `category`, `title`, `pay`, `deadlineText`, `authorName`, `tags`,
+사진 자리를 공개 주소로 채운 `bodyHtml`, `attachments(name, contentType, size, url)`, `editedAt`, `updatedAt`, 연결된 기획사
+`owner(memberId, companyName)`(없으면 null), OTR 작성자 회원 번호 `sourceAuthorId`(없으면 null), 그 작성자의 자동 연결
+`authorLink(id, ownerId, companyName)`(없으면 null)를 담는다. 운영자와 기획사가 같은 모양을 받는다.
+수정은 공개 상태·출처·원문 작성 시각을 바꾸지 않는다. `bodyHtml`이 null이면 본문과 사진을 그대로 두고, 값이 있으면 공개 본문과
+같은 허용 목록으로 다시 거른 뒤 이 공고의 사진 공개 주소만 남긴다. 사진은 본문에 처음 나온 순서로 다시 정하고, 다른 주소의
+사진은 지운다. 기준 주소가 없으므로 상대 주소 링크는 주소를 버린다. `attachmentUrls`는 남기거나 더할 첨부의 공개 주소
+목록이며, 이 공고의 첨부나 이번에 올린 첨부가 아닌 주소나 중복은 `400 AUDITION_POST_INVALID_INPUT`이다. 빠진 사진·첨부는
+커밋 뒤 저장소에서 지운다. 길이·분류 검증은 가져오기와 같다.
+
+직접 쓰기(`POST /admin/audition-posts`)는 같은 요청으로 원문 없는 공고를 `PENDING`으로 만든다. `bodyHtml`이 null이면 빈 본문이고,
+목록·정렬의 게시 시각(`postedAt`)은 작성 시각이다. 응답의 `source`는 `YESULIN`, `externalId`·`sourceUrl`은 null이며
+`createdVia`는 `ADMIN_WRITE`다. 직접 쓴 공고는 원문으로 다시 가져올 수 없다.
+
+사진·첨부를 더할 때는 먼저 `uploads`로 올릴 자리를 받는다. 서버가 형식을 정하고(사진은 브라우저 형식을 먼저, 첨부는 확장자만 본다)
+가져오기와 같은 형식·크기 기준(사진 20MB, 첨부 50MB)을 넘으면 `409 AUDITION_POST_FILE_REJECTED`다. 브라우저는 `url`로 `method`와
+`headers`를 그대로 붙여 올린다. 서명에는 `Content-Type`만 들어간다. 올린 뒤 `publicUrl`을 본문 사진 `src`나 `attachmentUrls`에 넣어
+저장하면, 서버가 그 주소를 올린 운영자의 같은 종류 업로드로 확인하고 저장소의 형식·크기를 다시 확인한 뒤 공고 파일로 확정한다.
+다른 운영자의 업로드는 이 공고의 파일이 아닌 것으로 본다. 아직 올라오지 않았거나 크기·형식이 다르면 `409 AUDITION_POST_FILE_REJECTED`다.
+
+고친 공고(`editedAt`이 있는 공고)를 운영자가 다시 가져오면 `overwriteEdited=true`가 아닌 한 원문을 받기 전에
+`409 AUDITION_POST_EDITED`로 거절한다. 원문을 받는 사이에 고쳐진 경우도 저장 직전에 같은 오류로 거절하고 이번에 올린 파일을
+지운다. 덮어쓰면 수정 표시가 지워진다. 자동 가져오기는 이미 있는 번호를 건너뛰므로 고친 내용을 덮어쓰지 않는다.
+수정과 다시 가져오기는 공고 행을 잠그고 순서대로 처리한다. 나중에 저장한 요청은 앞 요청이 뺀 파일을 이 공고의 파일로 보지 않는다.
+
+운영 목록에 `ownerId`를 주면 그 기획사에 연결된 공고만 최근 200건 준다.
+
+OTR 작성자 자동 연결: 가져오기는 OTR 상세의 작성자 링크(`getUserMenu('회원 번호','공고 번호',…)`)에서 회원 번호를 읽어
+`sourceAuthorId`로 저장한다. 공고 번호가 맞지 않거나 링크가 없으면 비운다. `author-links` POST는 그 OTR 회원 번호를 기획사에
+자동 연결하고, 그 작성자의 기존 공고 중 기획사가 없는 공고를 함께 연결해 `connectedPostCount`로 알려 준다. 이후 운영자·자동
+가져오기로 들어오는 그 작성자의 공고는 기획사가 없으면 바로 연결된다. 이미 다른 기획사에 연결된 작성자는
+`409 AUDITION_POST_AUTHOR_ALREADY_LINKED`, 같은 기획사면 남은 공고만 다시 연결한다. 그 작성자의 공고가 없거나 기획사 정보가
+없는 회원이면 `400 AUDITION_POST_INVALID_INPUT`이다. DELETE는 규칙만 지우고 이미 연결된 공고는 그대로 둔다.
+둘 다 `admin_audit_logs`에 `AUDITION_POST_AUTHOR_LINKED`·`AUDITION_POST_AUTHOR_UNLINKED`로 남긴다.
+`fills`는 회원 번호 없이 가져온 OTR 공고를 최근 순서로 20건씩 다시 읽어 번호만 채운다. 파일은 받지 않는다. 채운 번호에 자동 연결이
+있으면 기획사가 없는 공고를 연결한다. 결과는 `checked`, `filled`, `connected`, `failed`(원문을 읽지 못한 수), 이어서 읽을
+`nextBeforeId`(끝이면 null), 남은 수 `remaining`이다.
+업체별 보기(`audition-post-owners`)의 `owners`는 공고나 자동 연결이 있는 기획사의 `ownerId`, `companyName`, `publishedCount`,
+`pendingCount`, `hiddenCount`, `latestCreatedAt`, `authorLinks(id, source, sourceAuthorId, sourceAuthorName)`를 최근 등록 순서로 담는다.
+`unlinkedAuthors`는 기획사가 없는 원문 공고를 작성자별로 묶은 `source`, `sourceAuthorId`(번호가 없으면 null이고 닉네임으로만 묶음),
+`authorName`, `postCount`, `latestCreatedAt`를 공고가 많은 순서로 100명까지 담고, 자동 연결이 있는 작성자는 뺀다.
+
+기획사 연결(`PATCH .../owner`)은 `ownerId`로 기획사 회원을 연결하고, null이면 연결을 끊는다. 기획사 정보가 없는 회원이면
+`400 AUDITION_POST_INVALID_INPUT`이다. 연결된 기획사는 기획사 API로 이 공고를 고칠 수 있다. 원문에서 가져온 공고도 연결할 수 있다.
+
+기획사 API는 자기가 올렸거나 운영자가 연결한 공고만 다룬다. 다른 기획사의 공고는 없는 공고처럼 `404 AUDITION_POST_NOT_FOUND`다.
+목록 `ProducerAuditionPostResult`는 `id`, `category`, `title`, `deadlineText`, `closed`, `status`, `viewCount`, `createdAt`,
+`updatedAt`을 최근 순 200건까지 담고, 검토 전·내린 공고도 포함한다. 올리기는 바로 `PUBLISHED`로 만들고 작성자를 기획사 이름으로
+정한다. 요청에 작성자는 없다. 고치기는 작성자와 공개 상태를 바꾸지 않는다. 본문·첨부 규칙과 업로드는 운영자와 같고, 저장할 때
+그 기획사가 올린 업로드만 확정한다. 올리기와 바뀐 항목이 있는 고치기는 커밋 뒤 공고 알림 Slack 채널로 알린다
+(`YESULIN_SLACK_WEBHOOK_URL`, 없으면 로그만 남긴다). 알림 실패는 저장 결과에 영향을 주지 않는다.
 
 ## 무료 공연과 비회원 예매 — 19개
 
@@ -608,7 +681,7 @@ S3 삭제 실패 시 `DELETING` 상태가 남으며 같은 파일 ID로 재시�
 | 심사 | `INVALID_SCREENING_REVIEW`, `SCREENING_REVIEW_NOT_FOUND`, `SCREENING_ROUND_NOT_READY` |
 | 무료 공연 | `SHOW_NOT_FOUND`, `SHOW_SESSION_NOT_FOUND`, `SHOW_INVALID_INPUT`, `SHOW_INVALID_STATUS`, `SHOW_NOT_OPENABLE`, `SHOW_NOT_OPEN`, `SHOW_HAS_RESERVATIONS`, `SHOW_SESSION_BOOKING_CLOSED`, `SHOW_SESSION_NOT_ENOUGH_SEATS`, `SHOW_SESSION_CAPACITY_BELOW_RESERVED`, `SHOW_SESSION_HAS_RESERVATIONS` |
 | 예매 | `RESERVATION_NOT_FOUND`, `RESERVATION_INVALID_INPUT`, `RESERVATION_DUPLICATE`, `RESERVATION_NOT_CHANGEABLE` |
-| 가져온 공고 | `AUDITION_POST_NOT_FOUND`, `AUDITION_POST_INVALID_INPUT`, `AUDITION_POST_CATEGORY_NOT_SUPPORTED`, `AUDITION_POST_SOURCE_UNAVAILABLE`, `AUDITION_POST_FILE_REJECTED`, `AUDITION_POST_IMPORT_CONFLICT` |
+| 가져온 공고 | `AUDITION_POST_NOT_FOUND`, `AUDITION_POST_INVALID_INPUT`, `AUDITION_POST_CATEGORY_NOT_SUPPORTED`, `AUDITION_POST_SOURCE_UNAVAILABLE`, `AUDITION_POST_FILE_REJECTED`, `AUDITION_POST_IMPORT_CONFLICT`, `AUDITION_POST_EDITED` |
 | 오디션 일정표 | `TIMETABLE_NOT_FOUND`, `TIMETABLE_INVALID_INPUT`, `TIMETABLE_ACTOR_NOT_FOUND`, `TIMETABLE_DUPLICATE_ACTOR`, `TIMETABLE_TOO_MANY_ACTORS`, `TIMETABLE_SLOT_UNAVAILABLE`, `TIMETABLE_SETTING_NOT_EXTENDABLE`, `TIMETABLE_ASSIGNMENT_CONFLICT`, `TIMETABLE_NOT_PUBLISHABLE`, `TIMETABLE_SELF_CHANGE_CLOSED`, `TIMETABLE_REQUEST_NOT_FOUND`, `TIMETABLE_MESSAGE_NOT_FOUND` |
 | 운영 | `MEMBER_NOT_FOUND`, `MEMBER_STATUS_CHANGE_NOT_ALLOWED`, `ADMIN_DELETION_CONFIRMATION_FAILED` |
 

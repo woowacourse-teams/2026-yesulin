@@ -20,6 +20,7 @@ public class FakeObjectStorage implements ObjectStorage {
     private final Map<String, String> uploadTargets = new ConcurrentHashMap<>();
     private final Map<String, StoredObjectContent> objects = new ConcurrentHashMap<>();
     private final AtomicBoolean failNextDelete = new AtomicBoolean();
+    private final Map<String, String> dispositions = new ConcurrentHashMap<>();
 
     @Override
     public PresignedUpload createUpload(String objectKey, String contentType, long size) {
@@ -35,6 +36,20 @@ public class FakeObjectStorage implements ObjectStorage {
             objects.put(objectKey, new StoredObjectContent(upload.contentType(), bytes));
         } catch (IOException exception) {
             throw new UncheckedIOException(exception);
+        }
+    }
+
+    @Override
+    public void replaceHeaders(String objectKey, String contentType, String contentDisposition) {
+        StoredObjectContent object = objects.get(objectKey);
+        if (object == null) {
+            throw new IllegalStateException("없는 객체의 헤더는 바꿀 수 없습니다.");
+        }
+        objects.put(objectKey, new StoredObjectContent(contentType, object.bytes()));
+        if (contentDisposition == null) {
+            dispositions.remove(objectKey);
+        } else {
+            dispositions.put(objectKey, contentDisposition);
         }
     }
 
@@ -77,6 +92,10 @@ public class FakeObjectStorage implements ObjectStorage {
 
     public void failNextDelete() {
         failNextDelete.set(true);
+    }
+
+    public String contentDisposition(String objectKey) {
+        return dispositions.get(objectKey);
     }
 
     public boolean contains(String objectKey) {

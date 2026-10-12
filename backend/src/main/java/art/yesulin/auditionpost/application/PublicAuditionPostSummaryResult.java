@@ -10,6 +10,7 @@ import java.util.function.Function;
 /**
  * 공고 목록 카드.
  *
+ * @param authorName 화면에 보이는 작성자. 기획사에 연결된 공고는 그 기획사의 지금 이름이다.
  * @param deadline 원문 마감이 날짜일 때만 값이 있다. 화면은 {@code deadlineText}를 그대로 보여 준다.
  * @param thumbnailUrl 본문 첫 사진. 사진이 없으면 null이다.
  */
@@ -30,6 +31,7 @@ public record PublicAuditionPostSummaryResult(
 
     static PublicAuditionPostSummaryResult from(
             AuditionPost post,
+            String authorName,
             LocalDate today,
             ZoneId zone,
             Function<String, String> publicUrl
@@ -43,7 +45,7 @@ public record PublicAuditionPostSummaryResult(
                 post.getId(),
                 content.getCategory(),
                 content.getTitle(),
-                content.getAuthorName(),
+                authorName,
                 content.getPay(),
                 content.getDeadlineText(),
                 content.getDeadline(),

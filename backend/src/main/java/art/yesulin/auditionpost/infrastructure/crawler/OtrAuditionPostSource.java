@@ -1,6 +1,7 @@
 package art.yesulin.auditionpost.infrastructure.crawler;
 
 import art.yesulin.auditionpost.application.AuditionPostBody;
+import art.yesulin.auditionpost.application.AuditionPostBodySanitizer;
 import art.yesulin.auditionpost.application.AuditionPostSource;
 import art.yesulin.auditionpost.application.AuditionPostSourceException;
 import art.yesulin.auditionpost.application.SourceFile;
@@ -26,13 +27,13 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import org.jsoup.safety.Safelist;
 import org.springframework.stereotype.Component;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
@@ -64,19 +65,13 @@ public class OtrAuditionPostSource implements AuditionPostSource {
     private static final Pattern BOLD_STYLE =
             Pattern.compile("font-weight\\s*:\\s*(bold|bolder|[6-9]00)", Pattern.CASE_INSENSITIVE);
     private static final Pattern FILE_PATH = Pattern.compile("[A-Za-z0-9%+/=_-]{1,2000}");
+    /** 작성자 링크의 {@code getUserMenu('회원 번호','공고 번호','닉네임')}. 회원 번호는 닉네임을 바꿔도 같다. */
+    private static final Pattern AUTHOR_MENU = Pattern.compile("getUserMenu\\('([0-9]{1,30})'\\s*,\\s*'([0-9]{1,30})'");
     private static final DateTimeFormatter POSTED_AT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
     private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(5);
     private static final Duration PAGE_TIMEOUT = Duration.ofSeconds(15);
     private static final Duration FILE_TIMEOUT = Duration.ofSeconds(60);
     private static final int MAX_PAGE_BYTES = 4 * 1024 * 1024;
-    private static final Safelist BODY_SAFELIST = Safelist.relaxed()
-            .removeTags("div")
-            .removeAttributes("img", "align", "width", "height")
-            .removeAttributes("table", "summary", "width")
-            .removeAttributes("td", "abbr", "axis", "width")
-            .removeAttributes("th", "abbr", "axis", "scope", "width")
-            .removeAttributes("col", "span", "width")
-            .removeAttributes("colgroup", "span", "width");
 
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
@@ -118,12 +113,23 @@ public class OtrAuditionPostSource implements AuditionPostSource {
                 text(document, "#mb_audition_tr_ext2 td"),
                 text(document, "#mb_audition_tr_edate td"),
                 authorName(document),
+                authorId(document, externalId).orElse(null),
                 postedAt(titleRow),
                 bodyHtml,
                 tags(document),
                 images,
                 attachments(document)
         );
+    }
+
+    @Override
+    public Optional<String> fetchAuthorId(String externalId) {
+        if (externalId == null || !NUMERIC_ID.matcher(externalId).matches()) {
+            throw new IllegalArgumentException("OTR 공고 번호는 숫자 1~30자여야 합니다.");
+        }
+        Document document = fetchPage(AUDITION_URL + "?vid=" + externalId);
+        verifyCanonical(document, externalId);
+        return authorId(document, externalId);
     }
 
     @Override
@@ -224,16 +230,12 @@ public class OtrAuditionPostSource implements AuditionPostSource {
 
     /**
      * 허용 태그만 남긴 뒤 OTR 사진은 자리 표시로 바꾸고 나머지 사진은 지운다. 같은 사진이 두 번 나오면 한 번만 옮긴다.
-     * OTR로 가는 링크는 글자만 남기고, 다른 링크는 새 창으로 열며 검색 엔진과 상대 사이트에 우리 페이지를 넘기지 않는다.
+     * OTR로 가는 링크는 글자만 남기고, 다른 링크는 공고 본문 공통 규칙을 따른다.
      */
     private String cleanBody(String rawHtml, String baseUrl, List<SourceFile> images) {
-        Document.OutputSettings output = new Document.OutputSettings().prettyPrint(false);
-        Document raw = Jsoup.parseBodyFragment(rawHtml, baseUrl);
-        raw.outputSettings(output);
+        Document raw = AuditionPostBodySanitizer.parse(rawHtml, baseUrl);
         keepBoldEmphasis(raw);
-        String cleaned = Jsoup.clean(raw.body().html(), baseUrl, BODY_SAFELIST, output);
-        Document body = Jsoup.parseBodyFragment(cleaned, baseUrl);
-        body.outputSettings(output);
+        Document body = AuditionPostBodySanitizer.clean(raw.body().html(), baseUrl);
         Map<String, Integer> indexes = new LinkedHashMap<>();
         for (Element image : body.select("img")) {
             String src = image.absUrl("src");
@@ -251,12 +253,9 @@ public class OtrAuditionPostSource implements AuditionPostSource {
             if (isOtrHost(link.absUrl("href"))) {
                 // 우리 공고로 게시하므로 OTR 페이지로 가는 링크는 글자만 남긴다.
                 link.unwrap();
-                continue;
             }
-            link.attr("target", "_blank");
-            link.attr("rel", "noopener noreferrer nofollow");
         }
-        return body.body().html();
+        return AuditionPostBodySanitizer.finish(body);
     }
 
     /** 원문은 굵게를 인라인 스타일로 주는 경우가 많다. 스타일을 버리기 전에 굵게만 {@code strong}으로 옮긴다. */
@@ -341,6 +340,19 @@ public class OtrAuditionPostSource implements AuditionPostSource {
     private String authorName(Document document) {
         Element author = document.selectFirst("#mb_audition_tr_user_name td .btn-user-info");
         return author == null ? text(document, "#mb_audition_tr_user_name td") : author.text();
+    }
+
+    /** 작성자 링크가 이 공고의 것인지 공고 번호까지 확인한다. 비회원 글처럼 링크가 없으면 empty다. */
+    private Optional<String> authorId(Document document, String externalId) {
+        Element author = document.selectFirst("#mb_audition_tr_user_name td .btn-user-info[onclick]");
+        if (author == null) {
+            return Optional.empty();
+        }
+        Matcher matcher = AUTHOR_MENU.matcher(author.attr("onclick"));
+        if (!matcher.find() || !externalId.equals(matcher.group(2))) {
+            return Optional.empty();
+        }
+        return Optional.of(matcher.group(1));
     }
 
     private LocalDateTime postedAt(Element titleRow) {
