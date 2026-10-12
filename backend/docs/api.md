@@ -229,7 +229,7 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 | Method | URL | 인증 | Request | Response |
 | --- | --- | --- | --- | --- |
 | GET | `/api/v1/public/audition-posts` | 공개 | `page`(0부터, 기본 0), `size`(1~48, 기본 12), `includeClosed`(기본 false) query | `200 PublicAuditionPostPageResult(posts, page, size, totalPages, totalElements, openCount, allCount)` |
-| GET | `/api/v1/public/audition-posts/{postId}` | 공개 | 없음 | `200 PublicAuditionPostResult`, 공개 중이 아니면 `302 Location: {원문 주소}` |
+| GET | `/api/v1/public/audition-posts/{postId}` | 공개 | 없음 | `200 PublicAuditionPostResult`, 공개 중이 아니면 `302 Location: {원문 주소}`, 원문 없는 공고는 `404` |
 | POST | `/api/v1/public/audition-posts/{postId}/views` | 공개 | 없음 | `204`, 공개 중이 아니거나 없는 공고는 `404` |
 | POST | `/api/v1/public/audition-posts/{postId}/redirects` | 공개 | 없음 | `204`, 공개 중·없는 공고는 `404` |
 | GET | `/api/v1/admin/audition-posts` | Admin | `ownerId`(선택) query | `200 AdminAuditionPostsResponse(posts)` |

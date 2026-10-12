@@ -13,7 +13,7 @@ import { ProducerAuditionPostFrame } from "./producer-audition-post-frame";
 
 type Phase = "loading" | "ready" | "missing" | "failed";
 
-/** 기획사가 자기 공고를 고친다. 저장하면 공개 화면에 바로 반영되고, 저장된 내용으로 폼을 새로 채운다. */
+/** 기획사가 자기 공고를 고친다. 공개 중이면 저장하자마자 공개 화면에 반영되고, 저장된 내용으로 폼을 새로 채운다. */
 export function ProducerAuditionPostEdit({ postId }: { readonly postId: string }) {
   const [phase, setPhase] = useState<Phase>("loading");
   const [post, setPost] = useState<EditableAuditionPost | null>(null);
@@ -45,8 +45,9 @@ export function ProducerAuditionPostEdit({ postId }: { readonly postId: string }
   const save = useCallback(async (write: AuditionPostWrite) => {
     await updateMyAuditionPost(postId, write);
     try {
-      setPost(await fetchMyAuditionPost(postId));
-      setNotice("저장했어요. 공개 화면에 바로 반영됐어요.");
+      const saved = await fetchMyAuditionPost(postId);
+      setPost(saved);
+      setNotice(saved.status === "PUBLISHED" ? "저장했어요. 공개 화면에 바로 반영됐어요." : "저장했어요.");
     } catch {
       throw new Error("저장했지만 저장된 내용을 다시 불러오지 못했어요. 새로고침해 주세요.");
     }
