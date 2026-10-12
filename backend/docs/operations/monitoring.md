@@ -17,6 +17,9 @@ DEV·PROD 공통 배포에서 `install_monitoring.sh`가 Ubuntu ARM64 CloudWatch
 서로 다른 환경의 로그 그룹을 가리키는 기존 경로는 자동 덮어쓰지 않고 실패한다.
 기존 설정은 `.before-yesulin`로 백업한다. 다중 append-config fragment를 별도로 운영하는 서버는 먼저 구성 병합을 확인한다.
 Agent 바이너리는 미설치일 때만 AWS 공식 Ubuntu ARM64 패키지로 설치한다.
+앱 배포의 후속 hook은 Agent 설치 실패가 앱 시작을 막지 않게 경고와
+`/var/lib/yesulin-monitoring/backend-install-failed` 표식을 남기고 계속 진행한다.
+이 경우 API 정상과 수집 정상을 혼동하지 말고 hook 출력/Agent 상태를 점검한다. 다음 성공 설치는 표식을 지운다.
 
 수집 이벤트는 `HTTP_REQUEST`, `UNEXPECTED_ERROR`, `UNEXPECTED_SERVICE_ERROR`, `SLOW_SERVICE`,
 `RUNTIME_METRICS`, `RUNTIME_METRICS_FAILURE`다. 요청 본문·Cookie·사용자 식별자를 추가로 기록하지 않는다.
@@ -66,6 +69,7 @@ log stream/인스턴스별 집계 쿼리를 다시 결정한다. 1분의 순간 
 ### DB 서버 수집 (애플리케이션 배포와 별도)
 
 DB는 EC2의 Docker `yesulin-mysql`이므로 앱 JAR 배포만으로 MySQL 내부 지표가 생기지 않는다.
+DB 서버도 **Ubuntu ARM64**를 전제로 하며 설치 시작 시 쓰기 전에 확인한다.
 DB 서버에 저장소의 아래 파일을 전달한 뒤 해당 환경에서 실행한다. 컨테이너의 기존 애플리케이션 계정으로
 `SHOW GLOBAL STATUS`/`SHOW GLOBAL VARIABLES`만 실행하며 계정 생성, 권한 변경, 설정 변경은 하지 않는다.
 먼저 조회가 성공하는지 확인하고, 실패하면 설치를 중단한다. 암호와 쿼리 결과 원문은 오류 로그에 출력하지 않는다.
@@ -82,6 +86,7 @@ systemd oneshot+timer가 완료 후 60초마다 SQL 2개와 Linux counter를 읽
 `/var/log/yesulin-monitoring/database.jsonl`를 `/yesulin/{환경}/database`로 전송한다. 로컬 파일은
 현재/직전 각 5MB, CloudWatch DB 그룹은 14일이다. 기준점은 `/var/lib/yesulin-monitoring/database-state.json`에
 저장하며 재부팅/MySQL uptime 감소/개별 counter reset을 감지하면 잘못된 차분을 내보내지 않는다.
+기준점 파일이 손상되면 경고 후 새 기준점을 만들며 복구 표본의 차분은 생략한다.
 실패한 수집은 timer service 실패로 표시되며, 마지막 값이나 임의의 0으로 성공을 가장하지 않는다.
 
 `event=DATABASE_METRICS`, `Environment`와 UTC timestamp 및 숫자 필드를 기록한다.
@@ -144,7 +149,7 @@ stack_trace/@message를 펼쳐 요청 완료·예외를 추적한다. 4xx는 `ap
   `logs:DescribeQueryDefinitions/PutQueryDefinition`을 사용한다.
 
 1. dev 병합/배포 후 readiness 200, `/actuator/metrics` 비노출을 확인한다.
-2. Agent active 여부와 AccessDenied/configuration 오류를 확인한다.
+2. Agent active 여부와 AccessDenied/configuration 오류, `backend-install-failed` 표식이 없는지 확인한다.
 3. 30~90초 뒤 파일과 CloudWatch의 `RUNTIME_METRICS` 숫자 필드 및 `_aws` 부재를 확인한다.
 4. 대시보드 스크립트를 실행하고 API/앱 그래프를 확인한다. GET 응답 X-Request-Id로 요청 원문도 확인한다.
 5. dev DB 수집기를 별도 설치·검증하고 스크립트를 재실행한다. 정상 확인 후 main에 앱을 배포하고 prod DB에도 적용한다.

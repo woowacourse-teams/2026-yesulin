@@ -4,6 +4,9 @@ set -eu
 environment=${1:?Usage: sudo sh ops/monitor/cloudwatch/install_database.sh dev|prod}
 case "$environment" in dev|prod) ;; *) exit 2 ;; esac
 [ "$(id -u)" = 0 ] || { echo 'Run as root' >&2; exit 1; }
+[ "$(uname -m)" = aarch64 ] || { echo 'Ubuntu ARM64 required' >&2; exit 1; }
+. /etc/os-release
+[ "$ID" = ubuntu ] || { echo 'Ubuntu required' >&2; exit 1; }
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 repo_root=$(CDPATH= cd -- "$script_dir/../../.." && pwd)
 # Verify read-only collection before enabling the timer or changing Agent configuration.

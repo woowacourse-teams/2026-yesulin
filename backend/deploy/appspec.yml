@@ -17,7 +17,7 @@ hooks:
   AfterInstall:
     - location: scripts/after_install.sh
       timeout: 60
-    - location: scripts/install_monitoring.sh
+    - location: scripts/after_install_monitoring.sh
       timeout: 180
   ApplicationStart:
     - location: scripts/application_start.sh

@@ -8,6 +8,7 @@ import math
 import os
 from pathlib import Path
 import subprocess
+import sys
 import time
 
 STATUS = (
@@ -109,6 +110,27 @@ def collect(environment, status, host, previous, now, boot_id):
     return event, {"status": status, "host": host, "time": now, "boot_id": boot_id}
 
 
+def load_state(path):
+    if not path.exists():
+        return {}
+    try:
+        state = json.loads(path.read_text())
+        if not state:
+            return {}
+        if (not isinstance(state, dict) or not isinstance(state.get("boot_id"), str)
+                or type(state.get("time")) not in (int, float) or not math.isfinite(state["time"])):
+            raise ValueError("Invalid baseline")
+        for name in ("status", "host"):
+            if not isinstance(state.get(name), dict) or not all(
+                    type(value) in (int, float) and math.isfinite(value) and value >= 0
+                    for value in state[name].values()):
+                raise ValueError("Invalid baseline counters")
+        return state
+    except (OSError, ValueError, TypeError):
+        print("Database counter baseline unavailable; recording a fresh baseline without interval deltas", file=sys.stderr)
+        return {}
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("environment", choices=["dev", "prod"])
@@ -116,7 +138,7 @@ def main():
     parser.add_argument("--once", action="store_true", help="Print a sample without writing log or updating baseline")
     args = parser.parse_args()
     state_file = Path("/var/lib/yesulin-monitoring/database-state.json")
-    previous = json.loads(state_file.read_text()) if state_file.exists() else {}
+    previous = load_state(state_file)
     event, state = collect(args.environment, mysql_status(args.container), host_status(), previous, time.monotonic(),
                            Path("/proc/sys/kernel/random/boot_id").read_text().strip())
     line = json.dumps(event, allow_nan=False, separators=(",", ":")) + "\n"

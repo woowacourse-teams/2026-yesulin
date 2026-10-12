@@ -28,7 +28,8 @@ def render(existing, environment, role):
         owned.update(retention_in_days=14, timestamp_format="%Y-%m-%dT%H:%M:%S.%f", timezone="UTC")
     for entry in entries:
         if entry.get("file_path") == path:
-            if entry.get("log_group_name") != owned["log_group_name"]:
+            existing_group = entry.get("log_group_name")
+            if existing_group and existing_group != owned["log_group_name"]:
                 raise ValueError("Owned log source points at another environment; refusing to replace")
             entry.clear()
             entry.update(owned)

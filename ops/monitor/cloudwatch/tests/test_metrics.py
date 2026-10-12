@@ -2,6 +2,9 @@
 
 import importlib.util
 import json
+import contextlib
+import io
+import tempfile
 from pathlib import Path
 import unittest
 
@@ -52,6 +55,17 @@ class DatabaseMetricsTest(unittest.TestCase):
         self.assertIn("timestamp", event)
         json.dumps(event, allow_nan=False)
 
+    def test_corrupt_baseline_recovers_without_emitting_false_deltas(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "state.json"
+            for text in ("broken json", '["wrong-shape"]', '{"time":"invalid"}'):
+                path.write_text(text)
+                with contextlib.redirect_stderr(io.StringIO()):
+                    state = db.load_state(path)
+                self.assertEqual({}, state)
+                event, _ = db.collect("dev", {"uptime": 5, "questions": 30}, {}, state, 100, "boot")
+                self.assertNotIn("QueriesPerSecond", event)
+
 
 class ConfigurationTest(unittest.TestCase):
     def test_migrates_http_only_source_preserving_unrelated_logs_and_is_idempotent(self):
@@ -66,6 +80,9 @@ class ConfigurationTest(unittest.TestCase):
         self.assertIn("RUNTIME_METRICS", entries[0]["filters"][0]["expression"])
         self.assertEqual(original["logs"]["logs_collected"]["files"]["collect_list"][1], entries[1])
         self.assertEqual(rendered, agent.render(rendered, "dev", "backend"))
+        missing_group = {"logs": {"logs_collected": {"files": {"collect_list": [{"file_path": "/var/log/yesulin/yesulin.log"}]}}}}
+        recovered = agent.render(missing_group, "dev", "backend")
+        self.assertEqual("/yesulin/dev/backend", recovered["logs"]["logs_collected"]["files"]["collect_list"][0]["log_group_name"])
         with self.assertRaises(ValueError):
             agent.render(original, "prod", "backend")
 
