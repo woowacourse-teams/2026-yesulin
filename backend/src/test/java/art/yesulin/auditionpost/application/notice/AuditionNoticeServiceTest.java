@@ -197,6 +197,37 @@ class AuditionNoticeServiceTest {
     }
 
     @Test
+    void deliveryFailureIsReportedWithNoticesAndReason() {
+        when(source.fetchRecent()).thenReturn(List.of(content("22310"), content("22311")));
+        doThrow(new IllegalStateException("Slack 알림 전송에 실패했습니다. HTTP 404 no_service"))
+                .when(notifier).sendAlerts(alerts("22310", "22311"));
+
+        service.importAndNotifyAuditions();
+
+        verify(notifier).sendDeliveryFailure(
+                "[OTR] 2건 [22310, 22311]: Slack 알림 전송에 실패했습니다. HTTP 404 no_service 다음 실행에서 다시 보냅니다.");
+        assertThat(stored("22310").getStatus()).isEqualTo(NoticeStatus.PENDING);
+        assertThat(stored("22311").getStatus()).isEqualTo(NoticeStatus.PENDING);
+    }
+
+    @Test
+    void failedDeliveryReportDoesNotStopNextBatch() {
+        for (int index = 1; index <= 6; index++) {
+            repository.save(Notice.pending("OTR", Integer.toString(index)));
+        }
+        when(source.fetchRecent()).thenReturn(List.of());
+        when(source.fetchById(any())).thenAnswer(invocation -> content(invocation.getArgument(0)));
+        doThrow(new IllegalStateException("failed")).when(notifier).sendAlerts(alerts("1", "2", "3", "4", "5"));
+        doThrow(new IllegalStateException("report failed")).when(notifier).sendDeliveryFailure(any());
+
+        service.importAndNotifyAuditions();
+
+        verify(notifier).sendAlerts(alerts("6"));
+        assertThat(stored("6").getStatus()).isEqualTo(NoticeStatus.SENT);
+        assertThat(pending()).hasSize(5);
+    }
+
+    @Test
     void collectionFailureDoesNotPreventRetryingStoredNotices() {
         repository.saveAndFlush(Notice.pending("OTR", "22310"));
         when(source.fetchRecent()).thenThrow(new IllegalStateException("fetch failed"));
