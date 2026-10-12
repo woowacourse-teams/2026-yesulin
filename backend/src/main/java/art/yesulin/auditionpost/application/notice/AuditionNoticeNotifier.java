@@ -11,4 +11,7 @@ public interface AuditionNoticeNotifier {
     void sendAlerts(List<AuditionAlert> alerts);
 
     void sendError(String message);
+
+    /** 공고 알림 채널이 실패했을 수 있으므로 다른 채널로 전송 실패를 알린다. */
+    void sendDeliveryFailure(String message);
 }

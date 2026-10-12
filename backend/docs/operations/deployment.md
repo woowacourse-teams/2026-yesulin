@@ -40,7 +40,7 @@ HEAD는 집계하지 않고 Slack 메시지의 링크·미디어 unfurl은 비�
 `YESULIN_NOTICE_LINK_BASE_URL`을 쓰는데, DEV의 공고 링크 주소는 PROD 프론트이므로 DEV에는 `https://dev.yesulin.art`를 따로
 설정해야 DEV 일정표 링크가 DEV 백엔드로 연결된다. 문자 발송 대기 신호는 선택 변수 `YESULIN_TIMETABLE_SLACK_WEBHOOK_URL`의
 Incoming Webhook으로 보내며, 비어 있으면 `TIMETABLE_MESSAGES_QUEUED` 로그만 남긴다. 예상하지 못한 서버 오류는 선택 변수
-`YESULIN_ERROR_SLACK_WEBHOOK_URL`로 보낸다. OTR 공고 알림 채널과 섞지 않고 환경별로 아래 채널을 쓴다.
+`YESULIN_ERROR_SLACK_WEBHOOK_URL`로 보낸다. OTR 공고 알림 전송이 실패하면 공고 채널 대신 이 채널로 알린다. OTR 공고 알림 채널과 섞지 않고 환경별로 아래 채널을 쓴다.
 
 | 변수 | LOCAL·DEV | PROD |
 | --- | --- | --- |
