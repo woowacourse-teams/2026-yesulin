@@ -25,6 +25,7 @@ public record AuditionPostOwnerOverview(
     public record Owner(
             long ownerId,
             String companyName,
+            long pendingCount,
             long publishedCount,
             long hiddenCount,
             Instant latestCreatedAt,

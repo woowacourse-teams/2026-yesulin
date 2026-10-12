@@ -8,12 +8,12 @@ import { AuditionRequestError } from "@/features/auditions/api-client";
 import type { AuditionPostWrite, EditableAuditionPost } from "@/features/audition-posts/editing";
 import { fetchMyAuditionPost, updateMyAuditionPost, uploadMyAuditionPostFile } from "@/features/audition-posts/producer-api";
 import { auditionPostRoutes, producerAuditionPostRoutes } from "@/features/audition-posts/types";
-import { AuditionPostStatusBadge } from "./audition-post-status-badge";
+import { AuditionPostStatusBadge } from "@/components/audition-posts/audition-post-status-badge";
 import { ProducerAuditionPostFrame } from "./producer-audition-post-frame";
 
 type Phase = "loading" | "ready" | "missing" | "failed";
 
-/** 기획사가 자기 공고를 고친다. 저장하면 공개 화면에 바로 반영되고, 저장된 내용으로 폼을 새로 채운다. */
+/** 기획사가 자기 공고를 고친다. 공개 중이면 저장하자마자 공개 화면에 반영되고, 저장된 내용으로 폼을 새로 채운다. */
 export function ProducerAuditionPostEdit({ postId }: { readonly postId: string }) {
   const [phase, setPhase] = useState<Phase>("loading");
   const [post, setPost] = useState<EditableAuditionPost | null>(null);
@@ -45,8 +45,9 @@ export function ProducerAuditionPostEdit({ postId }: { readonly postId: string }
   const save = useCallback(async (write: AuditionPostWrite) => {
     await updateMyAuditionPost(postId, write);
     try {
-      setPost(await fetchMyAuditionPost(postId));
-      setNotice("저장했어요. 공개 화면에 바로 반영됐어요.");
+      const saved = await fetchMyAuditionPost(postId);
+      setPost(saved);
+      setNotice(saved.status === "PUBLISHED" ? "저장했어요. 공개 화면에 바로 반영됐어요." : "저장했어요.");
     } catch {
       throw new Error("저장했지만 저장된 내용을 다시 불러오지 못했어요. 새로고침해 주세요.");
     }
@@ -68,7 +69,9 @@ export function ProducerAuditionPostEdit({ postId }: { readonly postId: string }
             {post.status === "PUBLISHED" ? (
               <Link href={auditionPostRoutes.detail(post.id)} target="_blank" className="ml-auto font-semibold text-brand underline underline-offset-2">공개 화면</Link>
             ) : (
-              <span className="text-muted-strong">공개되지 않은 공고예요. 고쳐도 공개 상태는 그대로예요.</span>
+              <span className="text-muted-strong">
+                {post.status === "PENDING" ? "예술in이 확인한 뒤 공개할 공고예요." : "운영자가 내린 공고예요."} 고쳐도 공개 상태는 그대로예요.
+              </span>
             )}
           </section>
           {/* 저장할 때마다 서버가 정리한 내용으로 폼과 편집기를 새로 채운다. */}

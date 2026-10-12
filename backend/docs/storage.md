@@ -44,7 +44,8 @@ CloudFront의 `/dev/audition-posts/*`, `/prod/audition-posts/*` 동작을 각 �
 공연 포스터와 이미 `public/files/`에 저장된 파일을 위해 기존 `/dev/files/*`, `/prod/files/*` 동작도 유지한다.
 기존 공고는 객체 이동·재가져오기 없이 같은 주소로 제공한다. 키마다 내용이 바뀌지 않으므로
 `Cache-Control: public, max-age=31536000, immutable`을 붙이고, 첨부는 `Content-Disposition: attachment`와
-원래 파일 이름(RFC 6266 `filename*`)을 객체에 설정한다. 내용은 원문 응답 길이만큼 스트림으로 보낸다.
+원래 파일 이름(RFC 6266 `filename*`)을 객체에 설정한다. 파일 이름은 한글 완성형(NFC)으로 맞춰 저장해, 맥에서 올린
+자모 분리형(NFD) 이름이 윈도우에서 풀려 보이지 않게 한다. 내용은 원문 응답 길이만큼 스트림으로 보낸다.
 이 파일은 `file_assets`·`file_references`에 기록하지 않고 `audition_post_files`가 키를 소유한다.
 원문으로 다시 가져와 교체하면 커밋 뒤 이전 객체를 지운다.
 

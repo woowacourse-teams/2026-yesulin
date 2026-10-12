@@ -3,7 +3,14 @@
  */
 export type AuditionPostFileKind = "IMAGE" | "ATTACHMENT";
 
-export type EditableAuditionPostStatus = "PUBLISHED" | "HIDDEN";
+/** 검토 전(가져오거나 운영자가 쓴 뒤 아직 공개하지 않음), 공개 중, 내림(공개했다가 내림). */
+export type EditableAuditionPostStatus = "PENDING" | "PUBLISHED" | "HIDDEN";
+
+export const AUDITION_POST_STATUS_LABELS: Readonly<Record<EditableAuditionPostStatus, string>> = {
+  PENDING: "검토 전",
+  PUBLISHED: "공개 중",
+  HIDDEN: "내림",
+};
 
 export type EditableAuditionPostAttachment = {
   readonly name: string;

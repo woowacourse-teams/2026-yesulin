@@ -8,7 +8,13 @@ import { PrimaryLink } from "@/components/ui/controls";
 import { formatPostedDate } from "@/features/audition-posts/format";
 import { fetchMyAuditionPosts, type ProducerAuditionPost } from "@/features/audition-posts/producer-api";
 import { auditionPostRoutes, producerAuditionPostRoutes } from "@/features/audition-posts/types";
-import { AuditionPostStatusBadge } from "./audition-post-status-badge";
+import { AuditionPostStatusBadge } from "@/components/audition-posts/audition-post-status-badge";
+
+/** 공개하지 않은 공고가 왜 메인에 없는지 알려 준다. */
+const UNPUBLISHED_NOTICE = {
+  PENDING: "예술in이 확인한 뒤 공개할 공고예요.",
+  HIDDEN: "운영자가 내린 공고예요. 다시 공개하려면 예술in 카카오톡 채널로 문의해 주세요.",
+} as const;
 
 type ListState =
   | { readonly status: "loading" }
@@ -76,9 +82,9 @@ function ProducerAuditionPostRow({ post }: { readonly post: ProducerAuditionPost
       <h3 className="mt-2 line-clamp-2 text-lg font-bold">
         <Link href={producerAuditionPostRoutes.edit(post.id)} className="hover:text-brand">{post.title}</Link>
       </h3>
-      {post.status === "HIDDEN" ? (
-        <p className="mt-1 text-sm text-muted-strong">아직 공개되지 않았거나 운영자가 숨긴 공고예요. 공개 문의는 예술in 카카오톡 채널로 해 주세요.</p>
-      ) : null}
+      {post.status === "PUBLISHED" ? null : (
+        <p className="mt-1 text-sm text-muted-strong">{UNPUBLISHED_NOTICE[post.status]}</p>
+      )}
       <dl className="mt-4 grid grid-cols-3 gap-x-4 border-t border-border-soft pt-4 text-sm sm:gap-x-6">
         <div className="min-w-0"><dt className="text-xs text-muted">마감</dt><dd className="mt-1 truncate font-semibold">{post.deadlineText || "미기재"}</dd></div>
         <div className="min-w-0"><dt className="text-xs text-muted">조회</dt><dd className="num mt-1 font-semibold">{post.viewCount}회</dd></div>

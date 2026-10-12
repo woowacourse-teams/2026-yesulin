@@ -205,6 +205,7 @@ public class AuditionPostAuthorLinkService {
             List<AuditionPostOwnerCount> counts,
             List<AuditionPostAuthorLink> links
     ) {
+        long pending = 0;
         long published = 0;
         long hidden = 0;
         Instant latest = null;
@@ -212,7 +213,9 @@ public class AuditionPostAuthorLinkService {
             if (count.ownerId() != ownerId) {
                 continue;
             }
-            if (count.status() == AuditionPostStatus.PUBLISHED) {
+            if (count.status() == AuditionPostStatus.PENDING) {
+                pending += count.count();
+            } else if (count.status() == AuditionPostStatus.PUBLISHED) {
                 published += count.count();
             } else {
                 hidden += count.count();
@@ -227,7 +230,7 @@ public class AuditionPostAuthorLinkService {
                         link.getId(), link.getSource(), link.getSourceAuthorId(), link.getSourceAuthorName()
                 ))
                 .toList();
-        return new Owner(ownerId, companyName, published, hidden, latest, authorLinks);
+        return new Owner(ownerId, companyName, pending, published, hidden, latest, authorLinks);
     }
 
     /**

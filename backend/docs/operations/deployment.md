@@ -7,7 +7,7 @@ DEV와 PROD의 Build 액션은 각각 `DEPLOY_ENV=dev`, `DEPLOY_ENV=prod`를 명
 두 Pipeline 모두 `CONFIG_COMMIT_ID`와 `config-version.txt`의 일치 검증을 통과해야 한다.
 
 공고 스케줄러는 매일 한국 시간 09:00~20:00에 10분 간격으로 실행되며 연극·퍼포먼스·뮤지컬·단원·기획사 공고만 다룬다.
-PROD의 `AuditionImportScheduler`는 새 OTR 공고를 우리 공고로 숨긴 채 가져온 뒤 Slack으로 알린다. 운영에서 잠시 멈추려면
+PROD의 `AuditionImportScheduler`는 새 OTR 공고를 우리 공고로 검토 전 상태로 가져온 뒤 Slack으로 알린다. 운영에서 잠시 멈추려면
 `YESULIN_NOTICE_SCHEDULER_ENABLED=false`를 설정한다. DEV·LOCAL은 공고를 수집·알림하지 않고 관리자 화면 `/admin/posts`에서
 직접 가져온다. Slack 웹훅 `YESULIN_SLACK_WEBHOOK_URL`을 OTR 공고 알림에는 PROD에서만 쓴다. 기획사가 공고를 올리거나 고친 알림은
 값이 있는 모든 환경에서 같은 웹훅으로 보내고, PROD가 아니면 메시지 앞에 `[DEV]`·`[LOCAL]`을 붙인다. `server/dev.env`에는 값이
@@ -18,7 +18,7 @@ PROD의 `AuditionImportScheduler`는 새 OTR 공고를 우리 공고로 숨긴 �
 
 `YESULIN_NOTICE_LINK_BASE_URL`은 필수 환경 변수다. LOCAL은 `config/server/local.env`의
 `http://localhost:3000`, DEV·PROD는 SOPS 암호화된 `config/server/dev.env`·`prod.env`의 `https://yesulin.art`를 사용한다.
-PROD 알림은 가져온 공고 주소(`https://yesulin.art/posts/{id}`)를 바로 쓴다. 숨김이면 원문으로, 공개 뒤에는
+PROD 알림은 가져온 공고 주소(`https://yesulin.art/posts/{id}`)를 바로 쓴다. 공개 전이거나 내렸으면 원문으로, 공개 뒤에는
 예술in 상세로 열린다. 가져오지 못한 공고만 경유 링크 `https://yesulin.art/otr?vid={번호}`를 쓴다. 예전에 공유한 경유 링크도 계속 동작한다.
 테스트용 DEV 링크는 `https://dev.yesulin.art/otr?vid={번호}`를 직접 사용한다.
 환경별 YAML을 추가하지 않고 `application.yml`에서 이 변수를 읽는다. 테스트는 test resource의 값을 사용한다.

@@ -172,7 +172,8 @@ class AuditionPostAuthorLinkServiceTest {
         assertEquals(1, overview.owners().size());
         assertEquals(COMPANY, owner.companyName());
         assertEquals(1, owner.publishedCount());
-        assertEquals(1, owner.hiddenCount());
+        assertEquals(1, owner.pendingCount());
+        assertEquals(0, owner.hiddenCount());
         assertEquals(List.of("48"), owner.authorLinks().stream()
                 .map(AuditionPostOwnerOverview.AuthorLink::sourceAuthorId).toList());
         assertEquals(

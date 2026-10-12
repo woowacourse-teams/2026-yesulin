@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useId, useState } from "react";
+import { AuditionPostStatusBadge } from "@/components/audition-posts/audition-post-status-badge";
 import { AuditionPostForm } from "@/components/audition-posts/editor/audition-post-form";
 import { FieldSelect } from "@/components/ui/controls";
 import {
@@ -39,7 +40,7 @@ export function AdminAuditionPostEdit({ postId, created = false }: {
   const [phase, setPhase] = useState<Phase>("loading");
   const [post, setPost] = useState<EditableAuditionPost | null>(null);
   const [notice, setNotice] = useState<string | undefined>(
-    created ? "숨김으로 만들었어요. 업체 계정을 연결하고, 목록에서 '보여주기'를 누르면 공개돼요." : undefined,
+    created ? "검토 전으로 만들었어요. 업체 계정을 연결하고, 목록에서 '공개하기'를 누르면 공개돼요." : undefined,
   );
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
@@ -134,9 +135,7 @@ export function AdminAuditionPostEdit({ postId, created = false }: {
 function PostSummary({ post }: { readonly post: EditableAuditionPost }) {
   return (
     <section aria-label="공고 출처와 상태" className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-card border border-border bg-card px-4 py-3 text-sm sm:px-5">
-      <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${post.status === "PUBLISHED" ? "bg-pass-bg text-pass" : "bg-border-soft text-muted-strong"}`}>
-        {post.status === "PUBLISHED" ? "공개 중" : "숨김"}
-      </span>
+      <AuditionPostStatusBadge status={post.status} />
       <span className="num text-muted">{post.externalId ? `${post.source} ${post.externalId}` : "원문 없음"}</span>
       <span className="text-muted">{post.editedAt ? `마지막 수정 ${formatDateTime(post.editedAt)}` : "고친 적 없음"}</span>
       <span className="ml-auto flex flex-wrap gap-3">

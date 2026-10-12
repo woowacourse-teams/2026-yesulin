@@ -1,6 +1,7 @@
 package art.yesulin.auditionpost.application;
 
 import art.yesulin.auditionpost.domain.AuditionPost;
+import art.yesulin.auditionpost.domain.AuditionPostCreation;
 import art.yesulin.auditionpost.domain.AuditionPostStatus;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -21,7 +22,7 @@ public record AdminAuditionPostResult(
         String deadlineText,
         boolean closed,
         AuditionPostStatus status,
-        boolean autoImported,
+        AuditionPostCreation createdVia,
         long viewCount,
         long redirectCount,
         int imageCount,
@@ -30,8 +31,7 @@ public record AdminAuditionPostResult(
         Instant updatedAt,
         Instant editedAt,
         Long ownerId,
-        String ownerName,
-        boolean writtenByOwner
+        String ownerName
 ) {
 
     /**
@@ -51,7 +51,7 @@ public record AdminAuditionPostResult(
                 post.getContent().getDeadlineText(),
                 post.isClosedOn(today),
                 post.getStatus(),
-                post.isAutoImported(),
+                post.getCreatedVia(),
                 post.getViewCount(),
                 post.getRedirectCount(),
                 post.images().size(),
@@ -60,8 +60,7 @@ public record AdminAuditionPostResult(
                 post.getUpdatedAt(),
                 post.getEditedAt(),
                 post.getOwnerId(),
-                ownerName,
-                post.isWrittenByOwner()
+                ownerName
         );
     }
 }

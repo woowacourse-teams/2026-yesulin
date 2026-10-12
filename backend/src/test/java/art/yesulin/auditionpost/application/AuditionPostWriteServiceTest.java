@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import art.yesulin.auditionpost.application.AuditionPostEditResult.Attachment;
 import art.yesulin.auditionpost.application.AuditionPostImportServiceTest.FakeSource;
 import art.yesulin.auditionpost.domain.AuditionPost;
+import art.yesulin.auditionpost.domain.AuditionPostCreation;
 import art.yesulin.auditionpost.domain.AuditionPostErrorCode;
 import art.yesulin.auditionpost.domain.AuditionPostFile;
 import art.yesulin.auditionpost.domain.AuditionPostFileKind;
@@ -21,6 +22,7 @@ import art.yesulin.global.audit.AdminAuditLogRepository;
 import art.yesulin.global.exception.BusinessException;
 import art.yesulin.support.FakeObjectStorage;
 import art.yesulin.support.ObjectStorageTestConfiguration;
+import java.text.Normalizer;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -111,7 +113,7 @@ class AuditionPostWriteServiceTest {
         assertEquals("회당 5만원", after.pay());
         assertEquals("상시", after.deadlineText());
         assertEquals(List.of("뮤지컬"), after.tags());
-        assertEquals(AuditionPostStatus.HIDDEN, after.status());
+        assertEquals(AuditionPostStatus.PENDING, after.status());
         assertEquals(2, auditLogRepository.count());
     }
 
@@ -223,11 +225,11 @@ class AuditionPostWriteServiceTest {
 
         AdminAuditionPostResult written = writeService.write(ADMIN_ID, command(body, List.of(attachmentUrl)));
 
-        assertEquals(AuditionPostStatus.HIDDEN, written.status());
+        assertEquals(AuditionPostStatus.PENDING, written.status());
         assertEquals("YESULIN", written.source());
         assertNull(written.externalId());
         assertNull(written.sourceUrl());
-        assertFalse(written.autoImported());
+        assertEquals(AuditionPostCreation.ADMIN_WRITE, written.createdVia());
         assertEquals(1, written.imageCount());
         assertEquals(1, written.attachmentCount());
         AuditionPostEditResult detail = writeService.findForEdit(written.id());
@@ -245,6 +247,20 @@ class AuditionPostWriteServiceTest {
                 .findPublicPost(written.id())).post();
         assertEquals(detail.bodyHtml(), published.bodyHtml());
         assertNull(published.sourceUrl());
+    }
+
+    @Test
+    void attachmentUploadedFromMacKeepsComposedKoreanName() {
+        String decomposed = Normalizer.normalize("한강대_오디션 지원서.hwp", Normalizer.Form.NFD);
+        String attachmentUrl = upload(ADMIN_ID, AuditionPostFileKind.ATTACHMENT, decomposed, "");
+
+        AdminAuditionPostResult written = writeService.write(ADMIN_ID, command("<p>본문</p>", List.of(attachmentUrl)));
+
+        assertEquals("한강대_오디션 지원서.hwp", writeService.findForEdit(written.id()).attachments().getFirst().name());
+        assertEquals(
+                AuditionPostFileRules.attachmentDisposition("한강대_오디션 지원서.hwp"),
+                storage.contentDisposition(objectKey(attachmentUrl))
+        );
     }
 
     @Test
