@@ -2,6 +2,7 @@ package art.yesulin.auditionpost.application;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -9,7 +10,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import art.yesulin.auditionpost.application.AdminAuditionPostDetailResult.Attachment;
 import art.yesulin.auditionpost.application.AuditionPostImportServiceTest.FakeSource;
+import art.yesulin.auditionpost.domain.AuditionPost;
 import art.yesulin.auditionpost.domain.AuditionPostErrorCode;
+import art.yesulin.auditionpost.domain.AuditionPostFile;
 import art.yesulin.auditionpost.domain.AuditionPostFileKind;
 import art.yesulin.auditionpost.domain.AuditionPostRepository;
 import art.yesulin.auditionpost.domain.AuditionPostStatus;
@@ -18,8 +21,16 @@ import art.yesulin.global.audit.AdminAuditLogRepository;
 import art.yesulin.global.exception.BusinessException;
 import art.yesulin.support.FakeObjectStorage;
 import art.yesulin.support.ObjectStorageTestConfiguration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,6 +39,8 @@ import org.junit.jupiter.api.function.Executable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:h2:mem:audition-post-import;MODE=MySQL;DB_CLOSE_DELAY=-1",
@@ -69,6 +82,9 @@ class AuditionPostWriteServiceTest {
 
     @Autowired
     private AuditionPostUploadRepository uploadRepository;
+
+    @Autowired
+    private PlatformTransactionManager transactionManager;
 
     @BeforeEach
     void setUp() {
@@ -150,6 +166,53 @@ class AuditionPostWriteServiceTest {
         assertEquals(id, reimported.post().id());
         assertEquals("배우 모집", reimported.post().title());
         assertNull(reimported.post().editedAt());
+    }
+
+    @Test
+    void editWaitsForEditInProgressAndRejectsAttachmentItRemoved() throws Exception {
+        long id = importWithFiles();
+        List<String> staleAttachments = attachmentUrls(writeService.findForEdit(id));
+        CountDownLatch locked = new CountDownLatch(1);
+        CountDownLatch released = new CountDownLatch(1);
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        final Future<?> first = executor.submit(() -> removeFirstAttachmentHolding(id, locked, released));
+        assertTrue(locked.await(5, TimeUnit.SECONDS));
+
+        Future<?> second = executor.submit(() -> writeService.edit(ADMIN_ID, id, command(null, staleAttachments)));
+
+        assertThrows(TimeoutException.class, () -> second.get(500, TimeUnit.MILLISECONDS));
+        released.countDown();
+        first.get(5, TimeUnit.SECONDS);
+        ExecutionException exception = assertThrows(ExecutionException.class, () -> second.get(5, TimeUnit.SECONDS));
+        executor.shutdown();
+
+        BusinessException cause = assertInstanceOf(BusinessException.class, exception.getCause());
+        assertEquals(AuditionPostErrorCode.INVALID_INPUT, cause.getErrorCode());
+        assertEquals(List.of("악보.pdf"), attachmentNames(id));
+    }
+
+    @Test
+    void reimportWaitsForEditInProgressAndDoesNotOverwriteIt() throws Exception {
+        long id = importWithFiles();
+        final int objects = storage.objectCount();
+        CountDownLatch locked = new CountDownLatch(1);
+        CountDownLatch released = new CountDownLatch(1);
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        final Future<?> edit = executor.submit(() -> removeFirstAttachmentHolding(id, locked, released));
+        assertTrue(locked.await(5, TimeUnit.SECONDS));
+
+        Future<?> reimport = executor.submit(() -> importService.importPost(ADMIN_ID, OTR_ID));
+
+        assertThrows(TimeoutException.class, () -> reimport.get(500, TimeUnit.MILLISECONDS));
+        released.countDown();
+        edit.get(5, TimeUnit.SECONDS);
+        ExecutionException exception = assertThrows(ExecutionException.class, () -> reimport.get(5, TimeUnit.SECONDS));
+        executor.shutdown();
+
+        BusinessException cause = assertInstanceOf(BusinessException.class, exception.getCause());
+        assertEquals(AuditionPostErrorCode.EDITED, cause.getErrorCode());
+        assertEquals(List.of("악보.pdf"), attachmentNames(id));
+        assertEquals(objects, storage.objectCount());
     }
 
     @Test
@@ -242,6 +305,31 @@ class AuditionPostWriteServiceTest {
                 List.of(new SourceFile("지원서.hwp", "doc"), new SourceFile("악보.pdf", "score"))
         );
         return importService.importPost(ADMIN_ID, OTR_ID).post().id();
+    }
+
+    /** 다른 운영자가 공고를 잠근 채 첫 첨부를 빼는 중인 상태를 만든다. {@code released}가 열리면 커밋한다. */
+    private void removeFirstAttachmentHolding(long postId, CountDownLatch locked, CountDownLatch released) {
+        new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
+            AuditionPost post = repository.findByIdForUpdate(postId).orElseThrow();
+            List<AuditionPostFile> files = new ArrayList<>(post.getFiles());
+            files.remove(post.attachments().getFirst());
+            post.edit(post.getContent(), List.copyOf(post.getTags()), files, ADMIN_ID, Instant.now());
+            locked.countDown();
+            awaitQuietly(released);
+        });
+    }
+
+    private static void awaitQuietly(CountDownLatch latch) {
+        try {
+            assertTrue(latch.await(5, TimeUnit.SECONDS));
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(exception);
+        }
+    }
+
+    private List<String> attachmentNames(long postId) {
+        return writeService.findForEdit(postId).attachments().stream().map(Attachment::name).toList();
     }
 
     private static AuditionPostWriteCommand command(String bodyHtml, List<String> attachmentUrls) {

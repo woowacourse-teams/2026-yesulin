@@ -90,7 +90,7 @@ public class AuditionPostWriteService {
 
     public AdminAuditionPostResult edit(long adminId, long postId, AuditionPostWriteCommand command) {
         Edited edited = Objects.requireNonNull(transactions.execute(status -> {
-            AuditionPost post = repository.findById(postId).orElseThrow(this::notFound);
+            AuditionPost post = repository.findByIdForUpdate(postId).orElseThrow(this::notFound);
             AuditionPostContent current = post.getContent();
             FileLookup files = new FileLookup(adminId, post.getFiles());
             String bodyHtml = current.getBodyHtml();

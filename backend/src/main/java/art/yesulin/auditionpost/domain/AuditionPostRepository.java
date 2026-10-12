@@ -1,11 +1,13 @@
 package art.yesulin.auditionpost.domain;
 
+import jakarta.persistence.LockModeType;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,6 +17,22 @@ public interface AuditionPostRepository extends JpaRepository<AuditionPost, Long
     String OPEN_CONDITION = "p.status = :status and (p.content.deadline is null or p.content.deadline >= :today)";
 
     Optional<AuditionPost> findBySourceAndExternalId(String source, String externalId);
+
+    /**
+     * 공고 내용·파일을 바꾸는 작업(수정, 다시 가져오기)을 한 번에 하나씩 처리하도록 잠근다. 먼저 끝난 작업이 뺀 파일을 지우므로,
+     * 나중 작업은 그 결과를 보고 판단해야 한다. 이어지는 파일 조회도 최신 상태를 보도록 트랜잭션의 첫 조회로 부른다.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select p from AuditionPost p where p.id = :id")
+    Optional<AuditionPost> findByIdForUpdate(@Param("id") long id);
+
+    /** {@link #findByIdForUpdate(long)}와 같은 잠금을 원문 번호로 건다. */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select p from AuditionPost p where p.source = :source and p.externalId = :externalId")
+    Optional<AuditionPost> findBySourceAndExternalIdForUpdate(
+            @Param("source") String source,
+            @Param("externalId") String externalId
+    );
 
     /** 원문 작성 시각이 최신인 순서. 작성 시각을 읽지 못한 공고는 MySQL 정렬 규칙상 뒤로 간다. */
     Page<AuditionPost> findAllByStatusOrderByContentSourcePostedAtDescIdDesc(

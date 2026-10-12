@@ -14,5 +14,7 @@ public interface AuditionPostUploadRepository extends JpaRepository<AuditionPost
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<AuditionPostUpload> findByObjectKey(String objectKey);
 
+    /** 정리하는 동안 같은 업로드를 공고에 확정하지 못하게 {@link #findByObjectKey(String)}와 같은 잠금을 건다. */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     List<AuditionPostUpload> findAllByCreatedAtBeforeOrderByIdAsc(Instant before, Pageable pageable);
 }

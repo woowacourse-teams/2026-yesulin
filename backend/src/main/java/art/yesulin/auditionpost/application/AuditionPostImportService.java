@@ -27,6 +27,7 @@ import java.util.Objects;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -205,7 +206,8 @@ public class AuditionPostImportService implements AuditionImporter {
         LocalDate today = LocalDate.ofInstant(now, KOREA);
         try {
             return Objects.requireNonNull(transactions.execute(status -> {
-                Optional<AuditionPost> existing = repository.findBySourceAndExternalId(
+                // 운영자 수정과 순서대로 처리해야 수정 확인과 뺀 파일 정리가 서로를 덮지 않는다.
+                Optional<AuditionPost> existing = repository.findBySourceAndExternalIdForUpdate(
                         origin.source(), origin.externalId()
                 );
                 if (existing.isPresent()) {
@@ -227,7 +229,8 @@ public class AuditionPostImportService implements AuditionImporter {
                 audit(adminId, post, "%s %s 처음 가져옴");
                 return new Saved(AdminAuditionPostResult.from(post, today), true, List.of());
             }));
-        } catch (DataIntegrityViolationException exception) {
+        } catch (DataIntegrityViolationException | PessimisticLockingFailureException exception) {
+            // 처음 가져오는 공고를 동시에 저장하면 MySQL은 빈 자리 잠금 때문에 중복 대신 교착으로 한쪽을 실패시킨다.
             throw new BusinessException(IMPORT_CONFLICT, "같은 공고를 동시에 가져오고 있습니다. 잠시 후 다시 시도해 주세요.");
         }
     }
