@@ -14,6 +14,8 @@ import java.util.function.Function;
  * @param authorName 저장된 작성자(원문 닉네임이나 운영자가 쓴 이름). 기획사에 연결된 공고는 화면에 기획사 이름이 보인다.
  * @param bodyHtml 사진 자리를 공개 주소로 채운 본문. 편집기가 그대로 보여 주고, 저장할 때 같은 주소로 사진을 알아본다.
  * @param owner 공고를 고칠 수 있는 기획사. 연결되지 않았으면 null이다.
+ * @param sourceAuthorId 원문 작성자 회원 번호. 직접 쓴 공고나 번호를 읽기 전에 가져온 공고는 null이다.
+ * @param authorLink 이 원문 작성자의 자동 연결 규칙. 없으면 null이다.
  */
 public record AuditionPostEditResult(
         long id,
@@ -31,13 +33,16 @@ public record AuditionPostEditResult(
         List<Attachment> attachments,
         Instant editedAt,
         Instant updatedAt,
-        Owner owner
+        Owner owner,
+        String sourceAuthorId,
+        AuthorLink authorLink
 ) {
 
     static AuditionPostEditResult from(
             AuditionPost post,
             Function<AuditionPostFile, String> publicUrl,
-            String ownerName
+            String ownerName,
+            AuthorLink authorLink
     ) {
         AuditionPostContent content = post.getContent();
         List<String> imageUrls = post.images().stream().map(publicUrl).toList();
@@ -57,7 +62,9 @@ public record AuditionPostEditResult(
                 post.attachments().stream().map(file -> Attachment.from(file, publicUrl)).toList(),
                 post.getEditedAt(),
                 post.getUpdatedAt(),
-                post.getOwnerId() == null ? null : new Owner(post.getOwnerId(), ownerName)
+                post.getOwnerId() == null ? null : new Owner(post.getOwnerId(), ownerName),
+                post.getSourceAuthorId(),
+                authorLink
         );
     }
 
@@ -67,6 +74,14 @@ public record AuditionPostEditResult(
      * @param companyName 기획사 정보가 없어졌으면 null이다.
      */
     public record Owner(long memberId, String companyName) {
+    }
+
+    /**
+     * 원문 작성자의 자동 연결 규칙.
+     *
+     * @param companyName 기획사 정보가 없어졌으면 null이다.
+     */
+    public record AuthorLink(long id, long ownerId, String companyName) {
     }
 
     public record Attachment(String name, String contentType, long size, String url) {

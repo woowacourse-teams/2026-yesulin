@@ -121,7 +121,7 @@ class AuditionPostOwnerWriteTest {
                 List.of(new ProducerAuditionPostPublishedEvent(published.id(), COMPANY, "뮤지컬", "배우 모집", "", "상시")),
                 events.stream(ProducerAuditionPostPublishedEvent.class).toList()
         );
-        AdminAuditionPostResult listed = auditionPostService.findAllForAdmin().getFirst();
+        AdminAuditionPostResult listed = auditionPostService.findAllForAdmin(null).getFirst();
         assertEquals(COMPANY, listed.ownerName());
         assertTrue(listed.writtenByOwner());
     }

@@ -61,6 +61,50 @@ public interface AuditionPostRepository extends JpaRepository<AuditionPost, Long
 
     List<AuditionPost> findAllByOwnerIdOrderByIdDesc(long ownerId, Pageable pageable);
 
+    Optional<AuditionPost> findFirstBySourceAndSourceAuthorIdOrderByIdDesc(String source, String sourceAuthorId);
+
+    /** 원문 작성자 번호를 아직 읽지 않은 원문 공고를 최근 순서로. {@code beforeId}보다 작은 ID만 본다. */
+    @Query("select p from AuditionPost p where p.source = :source and p.externalId is not null"
+            + " and p.sourceAuthorId is null and p.id < :beforeId order by p.id desc")
+    List<AuditionPost> findMissingSourceAuthor(
+            @Param("source") String source,
+            @Param("beforeId") long beforeId,
+            Pageable pageable
+    );
+
+    long countBySourceAndExternalIdIsNotNullAndSourceAuthorIdIsNull(String source);
+
+    /**
+     * 같은 원문 작성자의 공고 중 아직 기획사에 연결되지 않은 공고를 연결한다. 이미 연결된 공고와 다른 칸은 건드리지 않으므로
+     * 고치는 중인 공고와 겹쳐도 그 공고의 수정 내용을 덮어쓰지 않는다.
+     */
+    @Modifying(clearAutomatically = true)
+    @Query("update AuditionPost p set p.ownerId = :ownerId"
+            + " where p.source = :source and p.sourceAuthorId = :authorId and p.ownerId is null")
+    int connectUnownedBySourceAuthor(
+            @Param("source") String source,
+            @Param("authorId") String authorId,
+            @Param("ownerId") long ownerId
+    );
+
+    /** 나중에 읽은 원문 작성자 번호를 채운다. 그 사이 다른 작업이 채웠으면 0을 돌려준다. */
+    @Modifying(clearAutomatically = true)
+    @Query("update AuditionPost p set p.sourceAuthorId = :authorId where p.id = :id and p.sourceAuthorId is null")
+    int fillSourceAuthor(@Param("id") long id, @Param("authorId") String authorId);
+
+    /** 기획사별·공개 상태별 공고 수와 최근 등록 시각. */
+    @Query("select new art.yesulin.auditionpost.domain.AuditionPostOwnerCount("
+            + "p.ownerId, p.status, count(p), max(p.createdAt))"
+            + " from AuditionPost p where p.ownerId is not null group by p.ownerId, p.status")
+    List<AuditionPostOwnerCount> countByOwner();
+
+    /** 기획사에 연결되지 않은 원문 공고를 원문 작성자 번호·닉네임별로 센다. 번호가 없는 공고는 닉네임으로만 묶인다. */
+    @Query("select new art.yesulin.auditionpost.domain.AuditionPostAuthorCount("
+            + "p.source, p.sourceAuthorId, p.content.authorName, count(p), max(p.createdAt))"
+            + " from AuditionPost p where p.ownerId is null and p.externalId is not null"
+            + " group by p.source, p.sourceAuthorId, p.content.authorName")
+    List<AuditionPostAuthorCount> countUnownedBySourceAuthor();
+
     /** 동시 조회에도 빠짐없이 세도록 DB에서 1을 더한다. 공개 공고가 아니면 0을 돌려준다. */
     @Modifying(clearAutomatically = true)
     @Query("update AuditionPost p set p.viewCount = p.viewCount + 1 where p.id = :id and p.status = :status")

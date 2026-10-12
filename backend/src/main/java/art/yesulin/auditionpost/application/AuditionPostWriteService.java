@@ -8,6 +8,7 @@ import art.yesulin.auditionpost.domain.AuditionPostContent;
 import art.yesulin.auditionpost.domain.AuditionPostFile;
 import art.yesulin.auditionpost.domain.AuditionPostFileKind;
 import art.yesulin.auditionpost.domain.AuditionPostRepository;
+import art.yesulin.auditionpost.domain.authorlink.AuditionPostAuthorLinkRepository;
 import art.yesulin.global.audit.AdminAction;
 import art.yesulin.global.audit.AdminAuditLog;
 import art.yesulin.global.audit.AdminAuditLogRepository;
@@ -53,6 +54,7 @@ public class AuditionPostWriteService {
     private final AuditionPostUploadService uploadService;
     private final AdminAuditLogRepository auditLogRepository;
     private final AuditionPostOwners owners;
+    private final AuditionPostAuthorLinkRepository authorLinkRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final TransactionTemplate transactions;
     private final Clock clock;
@@ -63,6 +65,7 @@ public class AuditionPostWriteService {
             AuditionPostUploadService uploadService,
             AdminAuditLogRepository auditLogRepository,
             AuditionPostOwners owners,
+            AuditionPostAuthorLinkRepository authorLinkRepository,
             ApplicationEventPublisher eventPublisher,
             PlatformTransactionManager transactionManager,
             Clock clock
@@ -72,6 +75,7 @@ public class AuditionPostWriteService {
         this.uploadService = uploadService;
         this.auditLogRepository = auditLogRepository;
         this.owners = owners;
+        this.authorLinkRepository = authorLinkRepository;
         this.eventPublisher = eventPublisher;
         this.transactions = new TransactionTemplate(transactionManager);
         this.clock = clock;
@@ -80,7 +84,7 @@ public class AuditionPostWriteService {
     @Transactional(readOnly = true)
     public AuditionPostEditResult findForEdit(long postId) {
         AuditionPost post = repository.findById(postId).orElseThrow(this::notFound);
-        return AuditionPostEditResult.from(post, fileStorage::publicUrl, owners.nameOf(post));
+        return editResult(post);
     }
 
     /** 기획사가 올렸거나 운영자가 연결해 준 공고를 최근 순서로. 운영자가 숨긴 공고도 포함한다. */
@@ -97,7 +101,18 @@ public class AuditionPostWriteService {
     public AuditionPostEditResult findOwnedForEdit(long ownerId, long postId) {
         AuditionPost post = repository.findById(postId).filter(found -> found.isOwnedBy(ownerId))
                 .orElseThrow(this::notFound);
-        return AuditionPostEditResult.from(post, fileStorage::publicUrl, owners.nameOf(post));
+        return editResult(post);
+    }
+
+    private AuditionPostEditResult editResult(AuditionPost post) {
+        AuditionPostEditResult.AuthorLink authorLink = post.getSourceAuthorId() == null ? null : authorLinkRepository
+                .findBySourceAndSourceAuthorId(post.getSource(), post.getSourceAuthorId())
+                .map(link -> new AuditionPostEditResult.AuthorLink(
+                        link.getId(), link.getOwnerId(), owners.find(link.getOwnerId())
+                                .map(Producer::getCompanyName).orElse(null)
+                ))
+                .orElse(null);
+        return AuditionPostEditResult.from(post, fileStorage::publicUrl, owners.nameOf(post), authorLink);
     }
 
     /** 원문 없이 공고를 쓴다. 가져온 공고처럼 숨김으로 시작하고, 작성 시각을 목록 정렬 기준인 게시 시각으로 쓴다. */

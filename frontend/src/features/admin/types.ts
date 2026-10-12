@@ -344,6 +344,62 @@ export type AdminAuditionPost = {
   readonly writtenByOwner: boolean;
 };
 
+/** 기획사 한 곳의 공고 수와 자동 연결된 원문 작성자. */
+export type AdminAuditionPostOwner = {
+  readonly ownerId: number;
+  /** 기획사 정보가 없어졌으면 null. */
+  readonly companyName: string | null;
+  readonly publishedCount: number;
+  readonly hiddenCount: number;
+  /** 연결된 공고 중 가장 최근에 만든 시각. 공고가 없으면 null. */
+  readonly latestCreatedAt: string | null;
+  readonly authorLinks: readonly AdminAuditionPostAuthorLink[];
+};
+
+export type AdminAuditionPostAuthorLink = {
+  readonly id: number;
+  readonly source: string;
+  readonly sourceAuthorId: string;
+  /** 연결할 때의 원문 닉네임. */
+  readonly sourceAuthorName: string;
+};
+
+/** 기획사에 연결되지 않은 원문 공고의 작성자. */
+export type AdminUnlinkedAuthor = {
+  readonly source: string;
+  /** 원문 작성자 번호. 번호를 읽기 전에 가져온 공고만 있으면 null이고, 이때는 자동 연결을 걸 수 없다. */
+  readonly sourceAuthorId: string | null;
+  readonly authorName: string;
+  readonly postCount: number;
+  readonly latestCreatedAt: string;
+};
+
+/** 공고 관리 업체별 보기. `/api/v1/admin/audition-post-owners` 응답과 같다. */
+export type AdminAuditionPostOwnerOverview = {
+  readonly owners: readonly AdminAuditionPostOwner[];
+  readonly unlinkedAuthors: readonly AdminUnlinkedAuthor[];
+  /** 원문 작성자 번호를 아직 읽지 않은 원문 공고 수. 원문에 번호가 없는 공고도 포함한다. */
+  readonly missingAuthorIdCount: number;
+};
+
+export type AdminAuditionPostAuthorLinkResult = AdminAuditionPostAuthorLink & {
+  readonly ownerId: number;
+  readonly ownerName: string;
+  /** 함께 연결한 이 작성자의 기존 공고 수. */
+  readonly connectedPostCount: number;
+};
+
+/** 원문 작성자 번호 채우기 한 번의 결과. */
+export type AdminAuditionPostAuthorFill = {
+  readonly checked: number;
+  readonly filled: number;
+  readonly connected: number;
+  readonly failed: number;
+  /** 이어서 읽을 위치. 더 읽을 공고가 없으면 null. */
+  readonly nextBeforeId: number | null;
+  readonly remaining: number;
+};
+
 export type AdminAuditionPostImport = {
   readonly post: AdminAuditionPost;
   /** 처음 가져왔으면 true, 원문으로 다시 가져와 교체했으면 false. */

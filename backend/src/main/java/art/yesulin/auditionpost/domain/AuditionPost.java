@@ -23,6 +23,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.regex.Pattern;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -47,7 +48,8 @@ import org.hibernate.annotations.DynamicUpdate;
         @UniqueConstraint(name = "uk_audition_posts_source_external_id", columnNames = {"source", "external_id"})
 }, indexes = {
         @Index(name = "idx_audition_posts_status_posted", columnList = "status, source_posted_at"),
-        @Index(name = "idx_audition_posts_owner", columnList = "owner_id, id")
+        @Index(name = "idx_audition_posts_owner", columnList = "owner_id, id"),
+        @Index(name = "idx_audition_posts_source_author", columnList = "source, source_author_id")
 })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -59,6 +61,7 @@ public class AuditionPost {
     public static final int MAX_ATTACHMENTS = 20;
     /** 원문 없이 우리 서비스에서 직접 쓴 공고의 출처. */
     public static final String DIRECT_SOURCE = "YESULIN";
+    private static final Pattern SOURCE_AUTHOR_ID = Pattern.compile("[0-9A-Za-z_-]{1,30}");
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -74,6 +77,13 @@ public class AuditionPost {
     /** 원문 주소. 직접 쓴 공고는 null이다. */
     @Column(name = "source_url", length = 500)
     private String sourceUrl;
+
+    /**
+     * 원문 사이트의 작성자 회원 번호. 닉네임과 달리 바뀌지 않아 같은 작성자의 공고를 업체 계정에 자동으로 연결하는 데 쓴다.
+     * 직접 쓴 공고, 원문에 번호가 없는 공고, 번호를 읽기 전에 가져온 공고는 null이다.
+     */
+    @Column(name = "source_author_id", length = 30)
+    private String sourceAuthorId;
 
     @Embedded
     private AuditionPostContent content;
@@ -251,6 +261,20 @@ public class AuditionPost {
 
     public boolean isEdited() {
         return editedAt != null;
+    }
+
+    /** 원문에서 읽은 작성자 회원 번호를 남긴다. 원문에 번호가 없으면 이전 값을 지우지 않는다. */
+    public void recordSourceAuthor(String authorId) {
+        if (authorId == null) {
+            return;
+        }
+        if (!hasOrigin()) {
+            throw invalid("원문이 없는 공고에는 원문 작성자가 없습니다.");
+        }
+        if (!SOURCE_AUTHOR_ID.matcher(authorId).matches()) {
+            throw invalid("원문 작성자 번호가 올바르지 않습니다.");
+        }
+        this.sourceAuthorId = authorId;
     }
 
     /** 운영자가 공고를 기획사 계정에 연결하거나 연결을 끊는다. null이면 운영자만 고칠 수 있다. */

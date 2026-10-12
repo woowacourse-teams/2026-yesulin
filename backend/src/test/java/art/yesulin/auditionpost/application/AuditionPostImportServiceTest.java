@@ -21,9 +21,11 @@ import java.io.ByteArrayInputStream;
 import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
@@ -198,7 +200,7 @@ class AuditionPostImportServiceTest {
     void autoImportCreatesHiddenPostWithoutAuditLog() {
         Optional<Long> postId = importService.importIfAbsent("OTR", OTR_ID);
 
-        AdminAuditionPostResult post = auditionPostService.findAllForAdmin().getFirst();
+        AdminAuditionPostResult post = auditionPostService.findAllForAdmin(null).getFirst();
         assertEquals(Optional.of(post.id()), postId);
         assertTrue(post.autoImported());
         assertEquals(AuditionPostStatus.HIDDEN, post.status());
@@ -212,7 +214,7 @@ class AuditionPostImportServiceTest {
 
         assertEquals(Optional.of(imported.post().id()), importService.importIfAbsent("OTR", OTR_ID));
 
-        AdminAuditionPostResult post = auditionPostService.findAllForAdmin().getFirst();
+        AdminAuditionPostResult post = auditionPostService.findAllForAdmin(null).getFirst();
         assertEquals(AuditionPostStatus.PUBLISHED, post.status());
         assertFalse(post.autoImported());
         assertEquals("<p>본문</p>", publishedDetail(post.id()).bodyHtml());
@@ -230,7 +232,7 @@ class AuditionPostImportServiceTest {
 
         Optional<Long> id = importService.importIfAbsent("OTR", OTR_ID);
 
-        AdminAuditionPostResult post = auditionPostService.findAllForAdmin().getFirst();
+        AdminAuditionPostResult post = auditionPostService.findAllForAdmin(null).getFirst();
         assertEquals(Optional.of(post.id()), id);
         assertEquals(1, repository.count());
         assertFalse(post.autoImported());
@@ -266,7 +268,7 @@ class AuditionPostImportServiceTest {
                 URI.create("https://otr.co.kr/audition/?vid=" + OTR_ID),
                 assertInstanceOf(PublicAuditionPostView.Hidden.class, view).originalUrl()
         );
-        assertEquals(AuditionPostStatus.HIDDEN, auditionPostService.findAllForAdmin().getFirst().status());
+        assertEquals(AuditionPostStatus.HIDDEN, auditionPostService.findAllForAdmin(null).getFirst().status());
         assertEquals(3, auditLogRepository.count());
     }
 
@@ -289,7 +291,7 @@ class AuditionPostImportServiceTest {
         auditionPostService.changeStatus(ADMIN_ID, postId, AuditionPostStatus.PUBLISHED);
         assertCode(AuditionPostErrorCode.NOT_FOUND, () -> auditionPostService.increaseRedirectCount(postId));
 
-        AdminAuditionPostResult post = auditionPostService.findAllForAdmin().getFirst();
+        AdminAuditionPostResult post = auditionPostService.findAllForAdmin(null).getFirst();
         assertEquals(2, post.redirectCount());
         assertEquals(0, post.viewCount());
     }
@@ -306,7 +308,7 @@ class AuditionPostImportServiceTest {
             post.changeStatus(AuditionPostStatus.PUBLISHED);
         });
 
-        AdminAuditionPostResult post = auditionPostService.findAllForAdmin().getFirst();
+        AdminAuditionPostResult post = auditionPostService.findAllForAdmin(null).getFirst();
         assertEquals(1, post.redirectCount());
         assertEquals(AuditionPostStatus.PUBLISHED, post.status());
     }
@@ -368,6 +370,11 @@ class AuditionPostImportServiceTest {
     static class FakeSource implements AuditionPostSource {
 
         private final Map<String, FakeFile> files = new HashMap<>();
+        /** 원문 번호별 작성자 회원 번호. 없으면 작성자 번호가 없는 공고다. */
+        private final Map<String, String> authorIds = new HashMap<>();
+        /** 작성자 번호만 읽을 때 실패하는 원문 번호. */
+        private final Set<String> missingPages = new HashSet<>();
+        private String authorName;
         private String category;
         private String deadline;
         private String bodyHtml;
@@ -378,6 +385,9 @@ class AuditionPostImportServiceTest {
 
         void reset() {
             files.clear();
+            authorIds.clear();
+            missingPages.clear();
+            authorName = "예술극단";
             post("<p>본문</p>", List.of(), List.of());
             failFetch = false;
             beforeFetch = null;
@@ -409,6 +419,15 @@ class AuditionPostImportServiceTest {
             failFetch = true;
         }
 
+        void author(String externalId, String authorId, String name) {
+            authorIds.put(externalId, authorId);
+            authorName = name;
+        }
+
+        void pageGone(String externalId) {
+            missingPages.add(externalId);
+        }
+
         void beforeFetch(Runnable hook) {
             beforeFetch = hook;
         }
@@ -430,9 +449,17 @@ class AuditionPostImportServiceTest {
             }
             return new SourcePost(
                     externalId, "https://otr.co.kr/audition/?vid=" + externalId, category, "배우 모집", "협의",
-                    deadline, "예술극단", LocalDateTime.of(2026, 10, 4, 10, 16), bodyHtml, List.of("연극"),
-                    images, attachments
+                    deadline, authorName, authorIds.get(externalId), LocalDateTime.of(2026, 10, 4, 10, 16), bodyHtml,
+                    List.of("연극"), images, attachments
             );
+        }
+
+        @Override
+        public Optional<String> fetchAuthorId(String externalId) {
+            if (missingPages.contains(externalId)) {
+                throw new AuditionPostSourceException("OTR 공고 상세를 찾을 수 없습니다.");
+            }
+            return Optional.ofNullable(authorIds.get(externalId));
         }
 
         @Override

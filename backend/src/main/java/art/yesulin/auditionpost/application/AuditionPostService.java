@@ -106,10 +106,14 @@ public class AuditionPostService {
                 .map(AuditionPost::getId);
     }
 
+    /** 최근 200건. {@code ownerId}가 있으면 그 기획사에 연결된 공고만 최근 200건이다. */
     @Transactional(readOnly = true)
-    public List<AdminAuditionPostResult> findAllForAdmin() {
+    public List<AdminAuditionPostResult> findAllForAdmin(Long ownerId) {
         LocalDate today = today();
-        List<AuditionPost> posts = repository.findAllByOrderByIdDesc(PageRequest.of(0, ADMIN_LIST_LIMIT));
+        PageRequest page = PageRequest.of(0, ADMIN_LIST_LIMIT);
+        List<AuditionPost> posts = ownerId == null
+                ? repository.findAllByOrderByIdDesc(page)
+                : repository.findAllByOwnerIdOrderByIdDesc(ownerId, page);
         Map<Long, String> ownerNames = owners.namesOf(posts);
         return posts.stream()
                 .map(post -> AdminAuditionPostResult.from(post, today, AuditionPostOwners.nameIn(ownerNames, post)))

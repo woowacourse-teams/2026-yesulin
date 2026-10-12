@@ -35,6 +35,10 @@ export type EditableAuditionPost = {
   readonly updatedAt: string;
   /** 이 공고를 고칠 수 있는 기획사. 연결되지 않았으면 null. 기획사 정보가 없어졌으면 이름이 null이다. */
   readonly owner: { readonly memberId: number; readonly companyName: string | null } | null;
+  /** 원문 작성자 회원 번호. 직접 쓴 공고나 번호를 읽기 전에 가져온 공고는 null이다. */
+  readonly sourceAuthorId: string | null;
+  /** 이 원문 작성자를 기획사에 자동 연결하는 규칙. 없으면 null이다. */
+  readonly authorLink: { readonly id: number; readonly ownerId: number; readonly companyName: string | null } | null;
 };
 
 export type AuditionPostWrite = {

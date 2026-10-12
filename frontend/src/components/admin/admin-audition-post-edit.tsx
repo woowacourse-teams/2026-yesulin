@@ -9,6 +9,7 @@ import {
   changeAuditionPostOwner,
   fetchAuditionPostForEdit,
   fetchProducers,
+  linkAuditionPostAuthor,
   updateAuditionPost,
   uploadAuditionPostFile,
 } from "@/features/admin/api";
@@ -112,7 +113,7 @@ export function AdminAuditionPostEdit({ postId, created = false }: {
           <PostSummary post={post} />
           <OwnerPanel
             post={post}
-            onChanged={(owner) => setPost((current) => (current ? { ...current, owner } : current))}
+            onChanged={(changes) => setPost((current) => (current ? { ...current, ...changes } : current))}
             onUnauthorized={() => setPhase("unauthorized")}
           />
           {/* 저장할 때마다 서버가 정리한 내용으로 폼과 편집기를 새로 채운다. */}
@@ -156,14 +157,17 @@ function ownerLabel(producer: AdminProducer) {
 
 /**
  * 공고를 기획사 계정에 연결하거나 연결을 끊는다. 연결된 기획사는 자기 공고 목록에서 이 공고를 고칠 수 있다.
+ * OTR 회원 번호가 있는 공고는 연결하면서 같은 작성자의 다른 공고와 앞으로 가져올 공고도 자동으로 연결할 수 있다.
  * 기획사 목록은 연결하려고 할 때만 불러온다.
  */
 function OwnerPanel({ post, onChanged, onUnauthorized }: {
   readonly post: EditableAuditionPost;
-  readonly onChanged: (owner: EditableAuditionPost["owner"]) => void;
+  readonly onChanged: (changes: Partial<Pick<EditableAuditionPost, "owner" | "authorLink">>) => void;
   readonly onUnauthorized: () => void;
 }) {
   const selectId = useId();
+  const [linkAuthor, setLinkAuthor] = useState(false);
+  const canLinkAuthor = post.sourceAuthorId !== null && post.authorLink === null;
   const [producers, setProducers] = useState<readonly AdminProducer[] | null>(null);
   const [choosing, setChoosing] = useState(false);
   const [selected, setSelected] = useState("");
@@ -195,9 +199,14 @@ function OwnerPanel({ post, onChanged, onUnauthorized }: {
     setError(null);
     try {
       const result = await changeAuditionPostOwner(post.id, ownerId);
-      onChanged(result.ownerId === null ? null : { memberId: result.ownerId, companyName: result.ownerName });
+      onChanged({ owner: result.ownerId === null ? null : { memberId: result.ownerId, companyName: result.ownerName } });
+      if (ownerId !== null && linkAuthor && canLinkAuthor && post.sourceAuthorId) {
+        const authorLink = await linkAuditionPostAuthor(post.source, post.sourceAuthorId, ownerId);
+        onChanged({ authorLink: { id: authorLink.id, ownerId, companyName: authorLink.ownerName } });
+      }
       setChoosing(false);
       setSelected("");
+      setLinkAuthor(false);
     } catch (cause) {
       fail(cause, "기획사 연결을 바꾸지 못했어요.");
     } finally {
@@ -222,6 +231,12 @@ function OwnerPanel({ post, onChanged, onUnauthorized }: {
           </FieldSelect>
           <AdminActionButton tone="primary" disabled={busy || !selected} onClick={() => void change(Number(selected))}>연결</AdminActionButton>
           <AdminActionButton disabled={busy} onClick={() => setChoosing(false)}>취소</AdminActionButton>
+          {canLinkAuthor ? (
+            <label className="flex w-full items-start gap-2 text-sm">
+              <input type="checkbox" checked={linkAuthor} disabled={busy} onChange={(event) => setLinkAuthor(event.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-brand" />
+              <span>같은 OTR 작성자({post.authorName} #{post.sourceAuthorId})의 다른 공고와 앞으로 가져올 공고도 이 기획사에 연결</span>
+            </label>
+          ) : null}
         </span>
       ) : (
         <span className="ml-auto flex flex-wrap gap-2">
@@ -229,6 +244,12 @@ function OwnerPanel({ post, onChanged, onUnauthorized }: {
           <AdminActionButton disabled={busy} onClick={() => void startChoosing()}>{post.owner ? "다른 기획사로" : "기획사 연결"}</AdminActionButton>
         </span>
       )}
+      {post.authorLink ? (
+        <p className="w-full text-sm text-muted-strong">
+          OTR 작성자 #{post.sourceAuthorId}는 <strong className="font-semibold">{post.authorLink.companyName ?? `회원 ${post.authorLink.ownerId}`}</strong>에 자동 연결돼 있어요.
+          {" "}<Link href={adminAuditionPostRoutes.owners} className="font-semibold text-brand underline underline-offset-2">업체별 보기</Link>에서 해제할 수 있어요.
+        </p>
+      ) : null}
       <p className="w-full text-xs text-muted">연결한 기획사는 기획사 관리 화면에서 이 공고를 직접 고칠 수 있어요. 고치면 Slack으로 알려 드려요.</p>
       {error ? <p role="alert" className="w-full text-sm text-fail">{error}</p> : null}
     </section>

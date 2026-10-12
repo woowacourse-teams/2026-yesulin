@@ -152,6 +152,12 @@
   기획사가 고칠 때는 바꾸지 않는다. 기획사 화면의 다른 기획사 공고 조회·수정은 `NOT_FOUND`다.
   공개 목록·상세의 작성자는 `AuditionPostOwners.authorOf`가 정한다. 연결된 기획사 이름이 있으면 그 이름, 없으면 저장된
   `author_name`이다. 저장값은 바꾸지 않으므로 다시 가져오기가 원문 닉네임을 갱신해도 연결된 동안 보이는 이름은 그대로다.
+- `source_author_id`는 원문 작성자 회원 번호다. 가져올 때 `recordSourceAuthor`로 남기고, 원문에 번호가 없으면 이전 값을 지우지 않는다.
+  `auditionpost/domain/authorlink`의 `AuditionPostAuthorLink`(`audition_post_author_links`, `(source, source_author_id)` 유니크)는
+  원문 작성자를 기획사에 자동 연결하는 규칙이다. `AuditionPostImportService`가 저장 트랜잭션에서 기획사가 없는 공고에 규칙의
+  기획사를 붙이고, `AuditionPostAuthorLinkService`가 규칙을 만들 때 기존 공고를 `ownerId is null` 조건의 일괄 update로 연결한다.
+  일괄 update는 `owner_id`만 바꾸므로 잠근 수정과 겹쳐도 수정 내용을 덮어쓰지 않는다. 번호 채우기는 원문을 읽는 동안 트랜잭션을
+  잡지 않고 `source_author_id is null` 조건의 update로 채운다. 업체별 보기는 `countByOwner`·`countUnownedBySourceAuthor` JPQL 집계를 쓴다.
 - 기획사가 올리거나 바뀐 항목(`AuditionPostChange`)이 있게 고치면 `ProducerAuditionPost*Event`를 발행한다.
   `presentation/event`의 핸들러가 커밋 뒤 `ProducerAuditionPostNotifier` port를 부르고, `infrastructure/slack`의 구현이
   공고 알림 웹훅으로 가상 스레드에서 보낸다. OTR 공고 알림과 같은 형식을 쓰며 공고 내용의 `& < >`는 Slack 해석을 막도록 바꿔 쓴다.

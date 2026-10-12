@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -41,11 +42,13 @@ public class AdminAuditionPostController {
     private final AuditionPostWriteService writeService;
     private final AuditionPostUploadService uploadService;
 
+    /** {@code ownerId}를 주면 그 기획사에 연결된 공고만 준다. */
     @GetMapping
     public ResponseEntity<AdminAuditionPostsResponse> findAll(
-            @LoginMember(roles = MemberType.ADMIN) MemberPrincipal principal
+            @LoginMember(roles = MemberType.ADMIN) MemberPrincipal principal,
+            @RequestParam(required = false) Long ownerId
     ) {
-        return ResponseEntity.ok(new AdminAuditionPostsResponse(auditionPostService.findAllForAdmin()));
+        return ResponseEntity.ok(new AdminAuditionPostsResponse(auditionPostService.findAllForAdmin(ownerId)));
     }
 
     /** 원문 없이 쓴 공고는 숨김으로 만든다. */
