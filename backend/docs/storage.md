@@ -48,10 +48,10 @@ CloudFront의 `/dev/audition-posts/*`, `/prod/audition-posts/*` 동작을 각 �
 이 파일은 `file_assets`·`file_references`에 기록하지 않고 `audition_post_files`가 키를 소유한다.
 원문으로 다시 가져와 교체하면 커밋 뒤 이전 객체를 지운다.
 
-운영자가 공고를 쓰거나 고칠 때 더하는 사진·첨부도 같은 `public/audition-posts/` 키를 쓴다. 브라우저는 형식(`Content-Type`)만 서명한
+운영자나 기획사가 공고를 쓰거나 고칠 때 더하는 사진·첨부도 같은 `public/audition-posts/` 키를 쓴다. 브라우저는 형식(`Content-Type`)만 서명한
 presigned PUT으로 바로 올려서 버킷 CORS에 다른 헤더를 허용하지 않아도 된다. 공고를 저장할 때 서버가 HEAD로 형식·크기를 확인하고,
 같은 키로 복사(`MetadataDirective=REPLACE`)해 서버가 올린 공고 파일과 같은 `Cache-Control`과 첨부의 `Content-Disposition`을 붙인다.
-올릴 자리는 `audition_post_uploads`에 키·올린 운영자·형식·크기로 기록하고, 저장하면서 공고 파일로 확정할 때 지운다. 하루가 지나도록
+올릴 자리는 `audition_post_uploads`에 키·올린 회원(운영자 또는 기획사)·형식·크기로 기록하고, 저장하면서 공고 파일로 확정할 때 지운다. 하루가 지나도록
 확정하지 않은 업로드는 매일 04:30(한국 시간) 정리 작업이 저장소 객체와 기록을 함께 지운다. 객체를 지우지 못하면 기록을 남겨 다음에 다시 시도한다.
 
 ## 소유권과 참조

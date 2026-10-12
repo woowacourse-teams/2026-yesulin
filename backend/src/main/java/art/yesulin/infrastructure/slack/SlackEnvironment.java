@@ -20,4 +20,10 @@ public final class SlackEnvironment {
         }
         return "[LOCAL]";
     }
+
+    /** 운영 메시지는 그대로 다른 곳에 옮길 수 있게 표시 없이 보내고, 로컬·DEV 메시지만 앞에 환경을 붙인다. */
+    public static String nonProductionPrefix(Environment environment) {
+        String label = label(environment);
+        return "[PROD]".equals(label) ? "" : label + " ";
+    }
 }

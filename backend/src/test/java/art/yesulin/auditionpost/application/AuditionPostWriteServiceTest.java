@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import art.yesulin.auditionpost.application.AdminAuditionPostDetailResult.Attachment;
+import art.yesulin.auditionpost.application.AuditionPostEditResult.Attachment;
 import art.yesulin.auditionpost.application.AuditionPostImportServiceTest.FakeSource;
 import art.yesulin.auditionpost.domain.AuditionPost;
 import art.yesulin.auditionpost.domain.AuditionPostErrorCode;
@@ -97,7 +97,7 @@ class AuditionPostWriteServiceTest {
     @Test
     void editsTextAndKeepsBodyWhenBodyIsNotSent() {
         long id = importWithFiles();
-        AdminAuditionPostDetailResult before = writeService.findForEdit(id);
+        AuditionPostEditResult before = writeService.findForEdit(id);
 
         AdminAuditionPostResult edited = writeService.edit(ADMIN_ID, id, command(null, attachmentUrls(before)));
 
@@ -105,7 +105,7 @@ class AuditionPostWriteServiceTest {
         assertEquals("고친 제목", edited.title());
         assertEquals(2, edited.imageCount());
         assertEquals(2, edited.attachmentCount());
-        AdminAuditionPostDetailResult after = writeService.findForEdit(id);
+        AuditionPostEditResult after = writeService.findForEdit(id);
         assertEquals(before.bodyHtml(), after.bodyHtml());
         assertEquals("뮤지컬", after.category());
         assertEquals("회당 5만원", after.pay());
@@ -118,14 +118,14 @@ class AuditionPostWriteServiceTest {
     @Test
     void editedBodyKeepsOnlyOwnImagesAndRemovedFilesAreDeleted() {
         long id = importWithFiles();
-        AdminAuditionPostDetailResult before = writeService.findForEdit(id);
+        AuditionPostEditResult before = writeService.findForEdit(id);
         List<String> imageUrls = imageUrls(before.bodyHtml());
         String body = "<p>새 본문</p><img src=\"" + imageUrls.get(1) + "\">"
                 + "<img src=\"https://tracker.test/pixel.gif\"><script>alert(1)</script>";
 
         writeService.edit(ADMIN_ID, id, command(body, List.of(before.attachments().get(1).url())));
 
-        AdminAuditionPostDetailResult after = writeService.findForEdit(id);
+        AuditionPostEditResult after = writeService.findForEdit(id);
         assertEquals("<p>새 본문</p><img src=\"" + imageUrls.get(1) + "\">", after.bodyHtml());
         assertEquals(List.of("악보.pdf"), after.attachments().stream().map(Attachment::name).toList());
         assertFalse(storage.contains(objectKey(imageUrls.get(0))));
@@ -230,7 +230,7 @@ class AuditionPostWriteServiceTest {
         assertFalse(written.autoImported());
         assertEquals(1, written.imageCount());
         assertEquals(1, written.attachmentCount());
-        AdminAuditionPostDetailResult detail = writeService.findForEdit(written.id());
+        AuditionPostEditResult detail = writeService.findForEdit(written.id());
         assertEquals("<p>직접 쓴 공고</p><p><img src=\"" + imageUrl + "\"></p>", detail.bodyHtml());
         assertEquals("application/x-hwp", detail.attachments().getFirst().contentType());
         assertEquals(
@@ -345,7 +345,7 @@ class AuditionPostWriteServiceTest {
         return prepared.publicUrl();
     }
 
-    private static List<String> attachmentUrls(AdminAuditionPostDetailResult post) {
+    private static List<String> attachmentUrls(AuditionPostEditResult post) {
         return post.attachments().stream().map(Attachment::url).toList();
     }
 

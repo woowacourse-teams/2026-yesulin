@@ -59,6 +59,8 @@ public interface AuditionPostRepository extends JpaRepository<AuditionPost, Long
 
     List<AuditionPost> findAllByOrderByIdDesc(Pageable pageable);
 
+    List<AuditionPost> findAllByOwnerIdOrderByIdDesc(long ownerId, Pageable pageable);
+
     /** 동시 조회에도 빠짐없이 세도록 DB에서 1을 더한다. 공개 공고가 아니면 0을 돌려준다. */
     @Modifying(clearAutomatically = true)
     @Query("update AuditionPost p set p.viewCount = p.viewCount + 1 where p.id = :id and p.status = :status")

@@ -146,9 +146,18 @@
 - `refresh`는 내용·태그·파일을 교체하고 이전 파일 목록을 돌려준다. 공개 상태와 공개 ID는 유지하고 수정 표시(`edited_at`, `edited_by`)는 지운다.
 - `AuditionPost.write`는 원문 없이 직접 쓴 공고를 만든다. 출처는 `YESULIN`, 원문 번호·주소는 null이고 `hasOrigin()`이 false다.
   `imported_by`에 쓴 운영자를 두며, 자동 가져오기 여부는 원문이 있고 운영자가 없을 때만 참이다. 원문이 없으면 `refresh`를 거부한다.
-- `auditionpost/domain/upload`의 `AuditionPostUpload`는 브라우저가 공고 사진·첨부를 올릴 자리(키·올린 운영자·종류·형식·크기)다.
+- `AuditionPost.publishByOwner`는 기획사가 올린 공고를 만든다. 출처는 `YESULIN`, 처음 상태는 `PUBLISHED`, `owner_id`는 올린 기획사
+  회원, `imported_by`는 null이다. `isWrittenByOwner()`는 원문과 운영자가 없는 공고다. `owner_id`는 이 공고를 고칠 수 있는
+  기획사이며 운영자가 `changeOwner`로 연결하거나 끊는다. 작성자 이름은 `AuditionPostWriteService`가 `producers.company_name`으로 정하고
+  기획사가 고칠 때는 바꾸지 않는다. 기획사 화면의 다른 기획사 공고 조회·수정은 `NOT_FOUND`다.
+- 기획사가 올리거나 바뀐 항목(`AuditionPostChange`)이 있게 고치면 `ProducerAuditionPost*Event`를 발행한다.
+  `presentation/event`의 핸들러가 커밋 뒤 `ProducerAuditionPostNotifier` port를 부르고, `infrastructure/slack`의 구현이
+  공고 알림 웹훅으로 가상 스레드에서 보낸다. OTR 공고 알림과 같은 형식을 쓰며 공고 내용의 `& < >`는 Slack 해석을 막도록 바꿔 쓴다.
+- `auditionpost/domain/upload`의 `AuditionPostUpload`는 브라우저가 공고 사진·첨부를 올릴 자리(키·올린 회원·종류·형식·크기)다.
+  운영자와 기획사가 같은 `members` ID를 쓰므로 올린 회원만 확인하면 서로의 업로드를 확정하지 못한다.
   `AuditionPostUploadService.claim`이 저장 트랜잭션 안에서 키로 행을 잠그고 올린 사람·종류를 확인해 공고 파일로 바꾼 뒤 지운다.
-- `edit`는 운영자가 고친 내용·태그·파일로 바꾸고 빠진 파일을 돌려준다. 출처·공개 상태·가져온 운영자·원문 작성 시각은 유지한다.
+- `edit`는 운영자나 소유 기획사가 고친 내용·태그·파일로 바꾸고 빠진 파일을 돌려준다. 출처·공개 상태·가져온 운영자·소유자·원문
+  작성 시각은 유지한다. 수정과 다시 가져오기는 공고 행을 `PESSIMISTIC_WRITE`로 잠근 첫 조회로 시작해 순서대로 처리한다.
   `AuditionPostWriteService`가 편집기 본문을 `AuditionPostEditorBody`로 걸러 이 공고의 사진(기존 사진과 이번에 확정한 업로드)만
   남기고, 빠진 파일은 커밋 뒤 지운다.
 - 본문은 사진 자리를 `post-file:{순번}`으로 저장하고 `AuditionPostBody.render`가 응답할 때 공개 저장소 주소로 바꾼다.

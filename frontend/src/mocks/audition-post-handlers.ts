@@ -158,4 +158,10 @@ export const auditionPostHandlers = [
   http.get("/api/v1/admin/audition-posts/:postId", () => passthrough()),
   http.put("/api/v1/admin/audition-posts/:postId", () => passthrough()),
   http.patch("/api/v1/admin/audition-posts/:postId/status", () => passthrough()),
+  http.patch("/api/v1/admin/audition-posts/:postId/owner", () => passthrough()),
+  http.get("/api/v1/producers/me/audition-posts", () => passthrough()),
+  http.post("/api/v1/producers/me/audition-posts", () => passthrough()),
+  http.post("/api/v1/producers/me/audition-posts/uploads", () => passthrough()),
+  http.get("/api/v1/producers/me/audition-posts/:postId", () => passthrough()),
+  http.put("/api/v1/producers/me/audition-posts/:postId", () => passthrough()),
 ];

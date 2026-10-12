@@ -17,6 +17,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -24,7 +25,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** 가져온 공고의 공개 조회와 운영자 목록·공개 상태 변경. 마감 여부는 한국 날짜로 계산한다. */
+/** 공고의 공개 조회와 운영자 목록·공개 상태 변경. 마감 여부는 한국 날짜로 계산한다. */
 @Service
 @RequiredArgsConstructor
 public class AuditionPostService {
@@ -36,6 +37,7 @@ public class AuditionPostService {
 
     private final AuditionPostRepository repository;
     private final AdminAuditLogRepository auditLogRepository;
+    private final AuditionPostOwners owners;
     private final ObjectStorage storage;
     private final Clock clock;
 
@@ -103,8 +105,12 @@ public class AuditionPostService {
     @Transactional(readOnly = true)
     public List<AdminAuditionPostResult> findAllForAdmin() {
         LocalDate today = today();
-        return repository.findAllByOrderByIdDesc(PageRequest.of(0, ADMIN_LIST_LIMIT)).stream()
-                .map(post -> AdminAuditionPostResult.from(post, today))
+        List<AuditionPost> posts = repository.findAllByOrderByIdDesc(PageRequest.of(0, ADMIN_LIST_LIMIT));
+        Map<Long, String> ownerNames = owners.namesOf(posts);
+        return posts.stream()
+                .map(post -> AdminAuditionPostResult.from(
+                        post, today, post.getOwnerId() == null ? null : ownerNames.get(post.getOwnerId())
+                ))
                 .toList();
     }
 
@@ -119,7 +125,7 @@ public class AuditionPostService {
                     "%s → %s".formatted(previous, status)
             ));
         }
-        return AdminAuditionPostResult.from(post, today());
+        return AdminAuditionPostResult.from(post, today(), owners.nameOf(post));
     }
 
     private LocalDate today() {

@@ -18,6 +18,11 @@ flowchart TD
     FORGOT -- 아니오 --> LOGIN["POST /api/v1/sessions"]
     LOGIN --> FREE_SHOW["무료 공연 관리<br>/producers/shows"]
     LOGIN --> OTR_LIST
+    LOGIN --> POSTS["공고 게시<br>/producers/audition-posts"]
+    POSTS --> POST_NEW["공고 올리기<br>POST /api/v1/producers/me/audition-posts<br>바로 공개·운영자 Slack 알림"]
+    POSTS --> POST_EDIT["공고 수정<br>PUT .../audition-posts/{postId}<br>바로 반영·바뀐 항목 Slack 알림"]
+    POST_NEW --> POSTS
+    POST_EDIT --> POSTS
     FREE_SHOW --> FREE_SESSION["회차·예매 관리"]
     FREE_SESSION --> FREE_RESERVATIONS["회차별 예매자 관리"]
     FREE_RESERVATIONS --> PHONE_LIST["전화번호 복사 모달<br>번호 목록·3일 이내 삭제 안내 확인"]

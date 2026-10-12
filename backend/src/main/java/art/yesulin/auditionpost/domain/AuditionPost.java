@@ -34,7 +34,9 @@ import org.hibernate.annotations.DynamicUpdate;
  * 함께 자동으로 가져오고, 운영자는 관리자 화면에서 직접 가져올 수도 있다. 어느 쪽이든 숨김으로 시작해 운영자가 지원서를
  * 준비한 뒤 공개하고, 제작사가 내려 달라고 하면 다시 숨긴다. 같은 출처·번호를 다시 가져오면 새 행을 만들지 않고 내용과 파일을 원문 기준으로 교체한다.
  * 운영자는 가져온 내용을 직접 고칠 수 있고, 고친 공고를 원문으로 다시 가져오면 수정 표시가 지워진다.
- * 원문 없이 운영자가 직접 쓴 공고도 같은 모델로 저장한다. 출처는 {@link #DIRECT_SOURCE}이고 원문 번호·주소가 없다.
+ * 원문 없이 운영자가 직접 쓴 공고와 기획사가 올린 공고도 같은 모델로 저장한다. 출처는 {@link #DIRECT_SOURCE}이고 원문
+ * 번호·주소가 없다. 기획사가 올린 공고는 이메일 인증을 마친 계정만 올리므로 바로 공개한다. 공고에 연결된 기획사(소유자)는
+ * 그 공고를 고칠 수 있고, 운영자는 소유자와 관계없이 모든 공고를 고치거나 숨긴다.
  * 지원 접수용 {@code OtrAudition}, Slack 알림 이력 {@code Notice}와는 별개다. 공개 주소에는 숫자 ID를 그대로 쓴다.
  * 조회수·원문 이동 수는 저장소의 원자적 update로만 늘리므로, 상태 변경·다시 가져오기가 읽은 시점의 수로
  * 덮어쓰지 않도록 바뀐 컬럼만 갱신한다.
@@ -43,7 +45,10 @@ import org.hibernate.annotations.DynamicUpdate;
 @DynamicUpdate
 @Table(name = "audition_posts", uniqueConstraints = {
         @UniqueConstraint(name = "uk_audition_posts_source_external_id", columnNames = {"source", "external_id"})
-}, indexes = @Index(name = "idx_audition_posts_status_posted", columnList = "status, source_posted_at"))
+}, indexes = {
+        @Index(name = "idx_audition_posts_status_posted", columnList = "status, source_posted_at"),
+        @Index(name = "idx_audition_posts_owner", columnList = "owner_id, id")
+})
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class AuditionPost {
@@ -98,15 +103,22 @@ public class AuditionPost {
     @Column(name = "redirect_count", nullable = false)
     private long redirectCount;
 
-    /** 마지막으로 가져온 운영자. 직접 쓴 공고는 쓴 운영자다. 운영 서버가 새 공고를 자동으로 가져왔으면 null이다. */
+    /**
+     * 마지막으로 가져온 운영자. 운영자가 직접 쓴 공고는 쓴 운영자다. 운영 서버가 새 공고를 자동으로 가져왔거나 기획사가
+     * 올렸으면 null이다.
+     */
     @Column(name = "imported_by")
     private Long importedBy;
 
-    /** 운영자가 마지막으로 직접 고친 시각. 원문으로 다시 가져오면 비운다. */
+    /** 이 공고를 고칠 수 있는 기획사 회원. 기획사가 올렸거나 운영자가 연결한 공고에만 있다. */
+    @Column(name = "owner_id")
+    private Long ownerId;
+
+    /** 운영자나 소유 기획사가 마지막으로 직접 고친 시각. 원문으로 다시 가져오면 비운다. */
     @Column(name = "edited_at")
     private Instant editedAt;
 
-    /** 마지막으로 직접 고친 운영자. */
+    /** 마지막으로 직접 고친 회원(운영자 또는 소유 기획사). */
     @Column(name = "edited_by")
     private Long editedBy;
 
@@ -139,14 +151,14 @@ public class AuditionPost {
             AuditionPostContent content,
             List<String> tags,
             List<AuditionPostFile> files,
-            long writerId,
+            Long writerId,
+            Long ownerId,
+            AuditionPostStatus status,
             Instant writtenAt
     ) {
-        if (writerId <= 0) {
-            throw invalid("쓴 운영자가 올바르지 않습니다.");
-        }
         this.source = DIRECT_SOURCE;
-        this.status = AuditionPostStatus.HIDDEN;
+        this.ownerId = ownerId;
+        this.status = status;
         this.createdAt = requireTime(writtenAt);
         apply(content, tags, files, writerId, writtenAt);
     }
@@ -159,7 +171,24 @@ public class AuditionPost {
             long writerId,
             Instant writtenAt
     ) {
-        return new AuditionPost(content, tags, files, writerId, writtenAt);
+        if (writerId <= 0) {
+            throw invalid("쓴 운영자가 올바르지 않습니다.");
+        }
+        return new AuditionPost(content, tags, files, writerId, null, AuditionPostStatus.HIDDEN, writtenAt);
+    }
+
+    /** 기획사가 올린 공고. 올린 기획사가 소유자가 되고 바로 공개한다. */
+    public static AuditionPost publishByOwner(
+            AuditionPostContent content,
+            List<String> tags,
+            List<AuditionPostFile> files,
+            long ownerId,
+            Instant publishedAt
+    ) {
+        if (ownerId <= 0) {
+            throw invalid("올린 기획사가 올바르지 않습니다.");
+        }
+        return new AuditionPost(content, tags, files, null, ownerId, AuditionPostStatus.PUBLISHED, publishedAt);
     }
 
     /**
@@ -186,7 +215,8 @@ public class AuditionPost {
     }
 
     /**
-     * 운영자가 고친 내용으로 바꾸고 이번 수정으로 빠진 파일을 돌려준다. 출처·공개 상태·가져온 운영자는 그대로 둔다.
+     * 운영자나 소유 기획사가 고친 내용으로 바꾸고 이번 수정으로 빠진 파일을 돌려준다. 출처·공개 상태·가져온 운영자·소유자는
+     * 그대로 둔다.
      *
      * @return 고치기 전에 있었지만 이제 쓰지 않는 파일. 호출자가 커밋 뒤 저장소에서 지운다.
      */
@@ -201,7 +231,7 @@ public class AuditionPost {
             throw invalid("공고 내용은 필수입니다.");
         }
         if (editorId <= 0) {
-            throw invalid("수정한 운영자가 올바르지 않습니다.");
+            throw invalid("수정한 회원이 올바르지 않습니다.");
         }
         if (editedAt == null) {
             throw invalid("수정 시각은 필수입니다.");
@@ -221,6 +251,23 @@ public class AuditionPost {
 
     public boolean isEdited() {
         return editedAt != null;
+    }
+
+    /** 운영자가 공고를 기획사 계정에 연결하거나 연결을 끊는다. null이면 운영자만 고칠 수 있다. */
+    public void changeOwner(Long ownerId) {
+        if (ownerId != null && ownerId <= 0) {
+            throw invalid("연결할 기획사가 올바르지 않습니다.");
+        }
+        this.ownerId = ownerId;
+    }
+
+    public boolean isOwnedBy(long memberId) {
+        return ownerId != null && ownerId == memberId;
+    }
+
+    /** 기획사가 직접 올린 공고인지. 운영자가 쓰거나 원문에서 가져온 공고가 아니다. */
+    public boolean isWrittenByOwner() {
+        return !hasOrigin() && importedBy == null;
     }
 
     public void changeStatus(AuditionPostStatus status) {

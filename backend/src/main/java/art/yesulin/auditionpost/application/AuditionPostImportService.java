@@ -49,6 +49,7 @@ public class AuditionPostImportService implements AuditionImporter {
     private final AuditionPostFileStorage fileStorage;
     private final AuditionPostRepository repository;
     private final AdminAuditLogRepository auditLogRepository;
+    private final AuditionPostOwners owners;
     private final TransactionTemplate transactions;
     private final Clock clock;
 
@@ -57,6 +58,7 @@ public class AuditionPostImportService implements AuditionImporter {
             AuditionPostFileStorage fileStorage,
             AuditionPostRepository repository,
             AdminAuditLogRepository auditLogRepository,
+            AuditionPostOwners owners,
             PlatformTransactionManager transactionManager,
             Clock clock
     ) {
@@ -64,6 +66,7 @@ public class AuditionPostImportService implements AuditionImporter {
         this.fileStorage = fileStorage;
         this.repository = repository;
         this.auditLogRepository = auditLogRepository;
+        this.owners = owners;
         this.transactions = new TransactionTemplate(transactionManager);
         this.clock = clock;
     }
@@ -213,7 +216,7 @@ public class AuditionPostImportService implements AuditionImporter {
                 if (existing.isPresent()) {
                     AuditionPost post = existing.get();
                     if (adminId == null) {
-                        return new Saved(AdminAuditionPostResult.from(post, today), false, files);
+                        return new Saved(AdminAuditionPostResult.from(post, today, owners.nameOf(post)), false, files);
                     }
                     // 원문을 내려받는 사이에 운영자가 고쳤을 수 있으므로 저장 직전에도 확인한다.
                     if (post.isEdited() && !overwriteEdited) {
@@ -221,13 +224,15 @@ public class AuditionPostImportService implements AuditionImporter {
                     }
                     List<AuditionPostFile> discarded = post.refresh(content, tags, files, adminId, now);
                     audit(adminId, post, "%s %s 원문으로 다시 가져옴");
-                    return new Saved(AdminAuditionPostResult.from(post, today), false, discarded);
+                    return new Saved(
+                            AdminAuditionPostResult.from(post, today, owners.nameOf(post)), false, discarded
+                    );
                 }
                 AuditionPost post = repository.saveAndFlush(
                         new AuditionPost(origin, content, tags, files, adminId, now)
                 );
                 audit(adminId, post, "%s %s 처음 가져옴");
-                return new Saved(AdminAuditionPostResult.from(post, today), true, List.of());
+                return new Saved(AdminAuditionPostResult.from(post, today, null), true, List.of());
             }));
         } catch (DataIntegrityViolationException | PessimisticLockingFailureException exception) {
             // 처음 가져오는 공고를 동시에 저장하면 MySQL은 빈 자리 잠금 때문에 중복 대신 교착으로 한쪽을 실패시킨다.

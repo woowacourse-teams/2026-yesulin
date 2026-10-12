@@ -1,4 +1,4 @@
-package art.yesulin.auditionpost.presentation.api.admin;
+package art.yesulin.auditionpost.presentation.api;
 
 import art.yesulin.auditionpost.domain.AuditionPostFileKind;
 import jakarta.validation.constraints.NotBlank;

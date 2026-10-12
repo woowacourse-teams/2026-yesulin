@@ -92,6 +92,13 @@ export const auditionPostRoutes = {
   detail: (postId: number | string) => `/posts/${encodeURIComponent(String(postId))}`,
 } as const;
 
+/** 기획사가 자기 공고를 올리고 고치는 관리 화면. */
+export const producerAuditionPostRoutes = {
+  list: "/producers/audition-posts",
+  create: "/producers/audition-posts/new",
+  edit: (postId: number | string) => `/producers/audition-posts/${encodeURIComponent(String(postId))}/edit`,
+} as const;
+
 /** 주소의 `?page=2&closed=1`을 서버 조건으로 바꾼다. 잘못된 값은 첫 페이지·모집 중으로 본다. */
 export function parseAuditionPostQuery(params: {
   readonly page?: string | readonly string[];
