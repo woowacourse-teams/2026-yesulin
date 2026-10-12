@@ -31,11 +31,13 @@ DEPLOY_DIR=deploy
 BUNDLE_DIR=build/deployment
 
 rm -rf "$BUNDLE_DIR"
-mkdir -p "$BUNDLE_DIR/scripts" "$BUNDLE_DIR/systemd" "$BUNDLE_DIR/config"
+mkdir -p "$BUNDLE_DIR/scripts" "$BUNDLE_DIR/systemd" "$BUNDLE_DIR/config" "$BUNDLE_DIR/monitoring"
 cp build/libs/application.jar "$BUNDLE_DIR/application.jar"
 cp "$DEPLOY_DIR/appspec.yml" "$BUNDLE_DIR/appspec.yml"
 cp "$DEPLOY_DIR/scripts/"*.sh "$BUNDLE_DIR/scripts/"
 cp "$DEPLOY_DIR/systemd/yesulin.service" "$BUNDLE_DIR/systemd/yesulin.service"
+cp "$DEPLOY_DIR/monitoring/"*.py "$BUNDLE_DIR/monitoring/"
+printf '%s\n' "$DEPLOY_ENV" > "$BUNDLE_DIR/deployment-environment.txt"
 cp "$ENCRYPTED_ENV" "$BUNDLE_DIR/config/runtime.env"
 chmod +x "$BUNDLE_DIR/scripts/"*.sh
 printf '%s\n' "$REVISION" > "$BUNDLE_DIR/revision.txt"

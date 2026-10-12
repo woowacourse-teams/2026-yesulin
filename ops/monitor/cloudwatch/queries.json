@@ -1,0 +1,58 @@
+{
+  "resource-summary": {
+    "title": "리소스별 요청 수·지연·오류율 (/api/v1/{target})",
+    "view": "table",
+    "query": "filter event = \"HTTP_REQUEST\" and endpoint like /^\\/api\\/v1\\//\n| parse endpoint /^\\/api\\/v1\\/(?<target>[^\\/]+)/\n| fields concat(\"/api/v1/\", target) as apiGroup, if(status >= 400 and status < 500, 1, 0) as is4xx, if(status >= 500, 1, 0) as is5xx\n| stats count(*) as requests, pct(elapsedMs, 50) as p50Ms, pct(elapsedMs, 95) as p95Ms, pct(elapsedMs, 99) as p99Ms, sum(is4xx) as responses4xx, sum(is5xx) as responses5xx, 100 * sum(is5xx) / count(*) as error5xxPct by apiGroup\n| sort requests desc\n| limit 100"
+  },
+  "endpoint-summary": {
+    "title": "세부 API별 요청 수·지연·오류율 (method + 경로 패턴)",
+    "view": "table",
+    "query": "filter event = \"HTTP_REQUEST\" and endpoint like /^\\/api\\/v1\\//\n| fields if(status >= 400 and status < 500, 1, 0) as is4xx, if(status >= 500, 1, 0) as is5xx\n| stats count(*) as requests, pct(elapsedMs, 50) as p50Ms, pct(elapsedMs, 95) as p95Ms, pct(elapsedMs, 99) as p99Ms, max(elapsedMs) as maxMs, sum(is4xx) as responses4xx, sum(is5xx) as responses5xx, 100 * sum(is5xx) / count(*) as error5xxPct by method, endpoint\n| sort requests desc\n| limit 100"
+  },
+  "read-reservation-mix": {
+    "title": "조회·예매·기타 요청 비율 (공개 예매 POST만 예매)",
+    "view": "table",
+    "query": "filter event = \"HTTP_REQUEST\" and endpoint like /^\\/api\\/v1\\//\n| fields if(method = \"GET\", 1, 0) as isRead, if(method = \"POST\" and endpoint = \"/api/v1/public/shows/{showId}/sessions/{sessionId}/reservations\", 1, 0) as isReservation\n| stats count(*) as totalRequests, sum(isRead) as reads, sum(isReservation) as reservations\n| fields totalRequests, reads, reservations, totalRequests - reads - reservations as otherRequests, 100 * reads / totalRequests as readPct, 100 * reservations / totalRequests as reservationPct"
+  },
+  "resource-requests-minute": {
+    "title": "리소스별 요청 수 (1분 합계)",
+    "view": "timeSeries",
+    "query": "filter event = \"HTTP_REQUEST\" and endpoint like /^\\/api\\/v1\\//\n| parse endpoint /^\\/api\\/v1\\/(?<target>[^\\/]+)/\n| stats count(*) as requests by bin(1m), target"
+  },
+  "public-latency-minute": {
+    "title": "공개 API별 p95 응답 시간 (ms, 1분)",
+    "view": "timeSeries",
+    "query": "filter event = \"HTTP_REQUEST\" and endpoint like /^\\/api\\/v1\\/public\\//\n| fields concat(method, \" \", endpoint) as api\n| stats pct(elapsedMs, 95) as p95Ms by bin(1m), api"
+  },
+  "reservation-outcomes": {
+    "title": "예매 결과별 요청 수·p95 (매진·중복과 서버 오류 구분)",
+    "view": "table",
+    "query": "filter event = \"HTTP_REQUEST\" and method = \"POST\" and endpoint = \"/api/v1/public/shows/{showId}/sessions/{sessionId}/reservations\"\n| fields coalesce(errorCode, \"NONE\") as resultCode\n| stats count(*) as requests, pct(elapsedMs, 95) as p95Ms, max(elapsedMs) as maxMs by status, resultCode\n| sort requests desc"
+  },
+  "api-error-codes": {
+    "title": "API별 4xx·5xx와 오류 코드",
+    "view": "table",
+    "query": "filter event = \"HTTP_REQUEST\" and endpoint like /^\\/api\\/v1\\// and status >= 400\n| fields coalesce(errorCode, \"NONE\") as resultCode\n| stats count(*) as requests, pct(elapsedMs, 95) as p95Ms by method, endpoint, status, resultCode\n| sort requests desc\n| limit 100"
+  },
+  "slow-api-requests": {
+    "title": "느린 API 요청 상위 30개 (처리 시간 순)",
+    "view": "table",
+    "query": "filter event = \"HTTP_REQUEST\" and endpoint like /^\\/api\\/v1\\//\n| fields @timestamp, method, endpoint, status, elapsedMs, errorCode, requestId\n| sort elapsedMs desc\n| limit 30"
+  },
+  "error-details": {
+    "title": "오류 상세 · 예외와 stack trace",
+    "view": "table",
+    "query": "filter event in [\"UNEXPECTED_ERROR\", \"UNEXPECTED_SERVICE_ERROR\", \"RUNTIME_METRICS_FAILURE\"] or (event = \"HTTP_REQUEST\" and status >= 500)\n| fields @timestamp, event, method, endpoint, status, errorCode, requestId, exception, message, stack_trace\n| sort @timestamp desc\n| limit 100"
+  },
+  "request-trace": {
+    "title": "requestId 추적 (저장 쿼리에서 ID 교체)",
+    "view": "table",
+    "query": "filter requestId = \"REPLACE_WITH_REQUEST_ID\"\n| fields @timestamp, event, method, endpoint, status, elapsedMs, errorCode, exception, message, stack_trace, @message\n| sort @timestamp asc\n| limit 200",
+    "savedOnly": true
+  },
+  "slow-services": {
+    "title": "느린 서비스 호출 · 500ms 이상",
+    "view": "table",
+    "query": "filter event = \"SLOW_SERVICE\"\n| fields @timestamp, class, method, outcome, elapsedMs, requestId\n| sort elapsedMs desc\n| limit 30"
+  }
+}
