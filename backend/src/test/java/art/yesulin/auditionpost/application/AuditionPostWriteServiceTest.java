@@ -22,6 +22,7 @@ import art.yesulin.global.audit.AdminAuditLogRepository;
 import art.yesulin.global.exception.BusinessException;
 import art.yesulin.support.FakeObjectStorage;
 import art.yesulin.support.ObjectStorageTestConfiguration;
+import java.text.Normalizer;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -246,6 +247,20 @@ class AuditionPostWriteServiceTest {
                 .findPublicPost(written.id())).post();
         assertEquals(detail.bodyHtml(), published.bodyHtml());
         assertNull(published.sourceUrl());
+    }
+
+    @Test
+    void attachmentUploadedFromMacKeepsComposedKoreanName() {
+        String decomposed = Normalizer.normalize("한강대_오디션 지원서.hwp", Normalizer.Form.NFD);
+        String attachmentUrl = upload(ADMIN_ID, AuditionPostFileKind.ATTACHMENT, decomposed, "");
+
+        AdminAuditionPostResult written = writeService.write(ADMIN_ID, command("<p>본문</p>", List.of(attachmentUrl)));
+
+        assertEquals("한강대_오디션 지원서.hwp", writeService.findForEdit(written.id()).attachments().getFirst().name());
+        assertEquals(
+                AuditionPostFileRules.attachmentDisposition("한강대_오디션 지원서.hwp"),
+                storage.contentDisposition(objectKey(attachmentUrl))
+        );
     }
 
     @Test

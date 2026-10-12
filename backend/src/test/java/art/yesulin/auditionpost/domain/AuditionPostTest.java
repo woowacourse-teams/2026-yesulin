@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import art.yesulin.global.exception.BusinessException;
+import java.text.Normalizer;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -206,6 +207,18 @@ class AuditionPostTest {
 
     private static AuditionPostFile image(String name) {
         return new AuditionPostFile(AuditionPostFileKind.IMAGE, "public/" + name, name + ".png", "image/png", 10);
+    }
+
+    @Test
+    void storesKoreanFilenameComposedSoWindowsShowsItAsWritten() {
+        String decomposed = Normalizer.normalize("한강대_오디션 지원서.hwp", Normalizer.Form.NFD);
+
+        AuditionPostFile file = new AuditionPostFile(
+                AuditionPostFileKind.ATTACHMENT, "public/a", decomposed, "application/x-hwp", 10
+        );
+
+        assertEquals("한강대_오디션 지원서.hwp", file.getOriginalFilename());
+        assertTrue(Normalizer.isNormalized(file.getOriginalFilename(), Normalizer.Form.NFC));
     }
 
     private static AuditionPostFile attachment(String name) {
