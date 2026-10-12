@@ -90,6 +90,17 @@ def base_dashboard(original):
     return body
 
 
+def query_definitions(logs, environment):
+    definitions = []
+    request = {"queryDefinitionNamePrefix": f"yesulin/{environment}/"}
+    while True:
+        page = logs.describe_query_definitions(**request)
+        definitions.extend(page.get("queryDefinitions", []))
+        if not page.get("nextToken"):
+            return definitions
+        request["nextToken"] = page["nextToken"]
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--base", default="DASHBOARD-yesulin")
@@ -105,6 +116,7 @@ def main():
     if args.plan:
         return
     import boto3
+    from botocore.exceptions import ClientError
 
     cw = boto3.client("cloudwatch", region_name=REGION)
     logs = boto3.client("logs", region_name=REGION)
@@ -114,7 +126,9 @@ def main():
     for name in [args.base, *dashboards]:
         try:
             backup = cw.get_dashboard(DashboardName=name)["DashboardBody"]
-        except cw.exceptions.DashboardNotFoundError:
+        except ClientError as exception:
+            if exception.response["Error"]["Code"] not in ("ResourceNotFound", "DashboardNotFoundError"):
+                raise
             continue
         (args.output / f"{name}-backup-{stamp}.json").write_text(backup)
         if name == args.base + "-log":
@@ -131,9 +145,7 @@ def main():
         if result.get("DashboardValidationMessages"):
             raise RuntimeError(result["DashboardValidationMessages"])
     for env in ("dev", "prod"):
-        definitions = []
-        for page in logs.get_paginator("describe_query_definitions").paginate(queryDefinitionNamePrefix=f"yesulin/{env}/"):
-            definitions.extend(page["queryDefinitions"])
+        definitions = query_definitions(logs, env)
         for query_id, spec in queries.items():
             name = f"yesulin/{env}/{query_id}"
             existing = next((q for q in definitions if q["name"] == name), None)
