@@ -1,0 +1,11 @@
+[Unit]
+Description=Collect Yesulin database metrics every minute
+
+[Timer]
+OnBootSec=30s
+OnUnitInactiveSec=60s
+AccuracySec=1s
+Unit=yesulin-database-metrics.service
+
+[Install]
+WantedBy=timers.target

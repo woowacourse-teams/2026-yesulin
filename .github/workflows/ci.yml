@@ -82,4 +82,6 @@ jobs:
           sh deploy/tests/validate_service_test.sh
           sh deploy/tests/cleanup_releases_test.sh
           sh deploy/tests/install_env_test.sh
+          sh deploy/tests/after_install_monitoring_test.sh
           sh ../scripts/config/tests/deploy_env_test.sh
+          python3 -m unittest discover -s ../ops/monitor/cloudwatch/tests -v
