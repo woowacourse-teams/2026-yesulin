@@ -198,6 +198,52 @@ class AuditionPostImportServiceTest {
     }
 
     @Test
+    void preservesCountsOnPartialAndOutOfRangePages() {
+        source.post("뮤지컬", "상시", "<p>모집 중</p>", List.of(), List.of());
+        importAndPublish("1");
+        importAndPublish("2");
+        source.post("뮤지컬", "2000-01-01", "<p>마감</p>", List.of(), List.of());
+        importAndPublish("3");
+
+        PublicAuditionPostPageResult last = auditionPostService.findPublishedPage(1, 2, true, "뮤지컬");
+        assertEquals(1, last.posts().size());
+        assertEquals(3, last.totalElements());
+        assertEquals(2, last.totalPages());
+        assertEquals(2, last.openCount());
+        assertEquals(3, last.allCount());
+
+        PublicAuditionPostPageResult outside = auditionPostService.findPublishedPage(2, 2, true, "뮤지컬");
+        assertTrue(outside.posts().isEmpty());
+        assertEquals(3, outside.totalElements());
+        assertEquals(2, outside.totalPages());
+
+        PublicAuditionPostPageResult open = auditionPostService.findPublishedPage(1, 2, false, "뮤지컬");
+        assertTrue(open.posts().isEmpty());
+        assertEquals(2, open.totalElements());
+        assertEquals(1, open.totalPages());
+        assertEquals(3, open.allCount());
+    }
+
+    @Test
+    void returnsZeroCountsForEmptyResults() {
+        PublicAuditionPostPageResult empty = auditionPostService.findPublishedPage(0, 12, false, null);
+        assertTrue(empty.posts().isEmpty());
+        assertEquals(0, empty.totalElements());
+        assertEquals(0, empty.totalPages());
+        assertEquals(0, empty.openCount());
+        assertEquals(0, empty.allCount());
+
+        source.post("뮤지컬", "상시", "<p>모집 중</p>", List.of(), List.of());
+        importAndPublish("1");
+        PublicAuditionPostPageResult category = auditionPostService.findPublishedPage(0, 12, true, "연극");
+        assertTrue(category.posts().isEmpty());
+        assertEquals(0, category.totalElements());
+        assertEquals(0, category.totalPages());
+        assertEquals(0, category.openCount());
+        assertEquals(0, category.allCount());
+    }
+
+    @Test
     void filtersCategoryBeforePaginationAndCountsOnlyThatCategory() {
         source.post("뮤지컬", "2000-01-01", "<p>마감</p>", List.of(), List.of());
         importAndPublish("1");

@@ -5,6 +5,7 @@ import static art.yesulin.auditionpost.domain.AuditionPostStatus.PUBLISHED;
 
 import art.yesulin.auditionpost.domain.AuditionCategory;
 import art.yesulin.auditionpost.domain.AuditionPost;
+import art.yesulin.auditionpost.domain.AuditionPostCounts;
 import art.yesulin.auditionpost.domain.AuditionPostRepository;
 import art.yesulin.auditionpost.domain.AuditionPostStatus;
 import art.yesulin.file.application.storage.ObjectStorage;
@@ -20,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -53,20 +53,21 @@ public class AuditionPostService {
         String selectedCategory = category == null ? null : category.trim();
         LocalDate today = today();
         PageRequest pageable = PageRequest.of(page, size);
-        Page<AuditionPost> result = repository.findPublished(
+        List<AuditionPost> result = repository.findPublished(
                 PUBLISHED, today, includeClosed, selectedCategory, pageable
         );
-        Map<Long, String> ownerNames = owners.namesOf(result.getContent());
+        Map<Long, String> ownerNames = owners.namesOf(result);
         List<PublicAuditionPostSummaryResult> posts = result.stream()
                 .map(post -> PublicAuditionPostSummaryResult.from(
                         post, AuditionPostOwners.authorOf(post, AuditionPostOwners.nameIn(ownerNames, post)),
                         today, KOREA, storage::toPublicUrl
                 ))
                 .toList();
+        AuditionPostCounts counts = repository.countPublishedPosts(PUBLISHED, today, selectedCategory);
+        long totalElements = includeClosed ? counts.allCount() : counts.openCount();
+        int totalPages = (int) Math.ceil((double) totalElements / size);
         return new PublicAuditionPostPageResult(
-                posts, page, size, result.getTotalPages(), result.getTotalElements(),
-                repository.countOpen(PUBLISHED, today, selectedCategory),
-                repository.countPublished(PUBLISHED, selectedCategory)
+                posts, page, size, totalPages, totalElements, counts.openCount(), counts.allCount()
         );
     }
 
