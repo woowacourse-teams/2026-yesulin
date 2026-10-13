@@ -24,7 +24,7 @@ export type AuditionPostPage = {
   readonly size: number;
   readonly totalPages: number;
   readonly totalElements: number;
-  /** 모집 중인 공고 수와 마감 포함 전체 수. 필터 버튼 숫자에 쓴다. */
+  /** 선택한 분야의 모집 중·마감 포함 공개 공고 수. 분야를 생략하면 전체 분야다. */
   readonly openCount: number;
   readonly allCount: number;
 };
@@ -33,6 +33,7 @@ export type AuditionPostPage = {
 export type AuditionPostQuery = {
   readonly page: number;
   readonly includeClosed: boolean;
+  readonly category?: AuditionLandingCategory;
 };
 
 export type AuditionPostAttachment = {
@@ -69,8 +70,11 @@ export const AUDITION_POST_PAGE_SIZE = 12;
 
 /** 백엔드 공개 API 경로(`/api` 앞부분 제외). 브라우저와 서버 조회가 함께 쓴다. */
 export const auditionPostApiPaths = {
-  list: ({ page, includeClosed }: AuditionPostQuery, size = AUDITION_POST_PAGE_SIZE) =>
-    `/v1/public/audition-posts?page=${page}&size=${size}&includeClosed=${includeClosed}`,
+  list: ({ page, includeClosed, category }: AuditionPostQuery, size = AUDITION_POST_PAGE_SIZE) => {
+    const params = new URLSearchParams({ page: String(page), size: String(size), includeClosed: String(includeClosed) });
+    if (category) params.set("category", category);
+    return `/v1/public/audition-posts?${params}`;
+  },
   detail: (postId: number | string) => `/v1/public/audition-posts/${encodeURIComponent(String(postId))}`,
   view: (postId: number) => `/v1/public/audition-posts/${postId}/views`,
   redirect: (postId: number | string) => `/v1/public/audition-posts/${encodeURIComponent(String(postId))}/redirects`,
@@ -82,14 +86,28 @@ export const AUDITION_ALERT_CHAT_URL = "https://open.kakao.com/o/pCRrDXOi";
 /** 우리 서비스가 게시하는 공고 분류. 백엔드 `AuditionCategory`와 같다. */
 export const AUDITION_POST_CATEGORIES = ["연극", "퍼포먼스", "뮤지컬", "단원", "기획사"] as const;
 
+export const AUDITION_LANDING_CATEGORIES = {
+  musical: "뮤지컬",
+  theater: "연극",
+} as const;
+
+export type AuditionLandingCategory = typeof AUDITION_LANDING_CATEGORIES[keyof typeof AUDITION_LANDING_CATEGORIES];
+
+export function auditionLandingCategory(slug: string): AuditionLandingCategory | undefined {
+  return Object.hasOwn(AUDITION_LANDING_CATEGORIES, slug)
+    ? AUDITION_LANDING_CATEGORIES[slug as keyof typeof AUDITION_LANDING_CATEGORIES]
+    : undefined;
+}
+
 export const auditionPostRoutes = {
   /** 기본값(첫 페이지·모집 중만)은 주소에서 뺀다. */
-  list: ({ page = 0, includeClosed = false }: Partial<AuditionPostQuery> = {}) => {
+  list: ({ page = 0, includeClosed = false, category }: Partial<AuditionPostQuery> = {}) => {
+    const path = category === "뮤지컬" ? "/auditions/musical" : category === "연극" ? "/auditions/theater" : "/";
     const params = new URLSearchParams();
     if (includeClosed) params.set("closed", "1");
     if (page > 0) params.set("page", String(page + 1));
     const query = params.toString();
-    return query ? `/?${query}` : "/";
+    return query ? `${path}?${query}` : path;
   },
   detail: (postId: number | string) => `/posts/${encodeURIComponent(String(postId))}`,
 } as const;

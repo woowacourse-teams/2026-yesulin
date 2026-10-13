@@ -96,7 +96,8 @@ describe("공개 공고 사이트맵", () => {
     vi.stubGlobal("fetch", fetchMock);
     const entries = await sitemap();
     expect(entries.map((entry) => entry.url)).toEqual([
-      "https://yesulin.art/", "https://yesulin.art/producer-service", "https://yesulin.art/shows",
+      "https://yesulin.art/", "https://yesulin.art/producer-service",
+      "https://yesulin.art/auditions/musical", "https://yesulin.art/auditions/theater", "https://yesulin.art/shows",
       "https://yesulin.art/shows/show-1", "https://yesulin.art/posts/123",
       "https://yesulin.art/posts/124", "https://yesulin.art/posts/125",
     ]);

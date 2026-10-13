@@ -9,6 +9,7 @@ import { kstToday } from "@/features/audition-posts/format";
 import {
   AUDITION_POST_PAGE_SIZE,
   auditionPostRoutes,
+  type AuditionLandingCategory,
   type AuditionPostPage,
   type AuditionPostQuery,
 } from "@/features/audition-posts/types";
@@ -37,18 +38,18 @@ export function AuditionPostHome({ query, initialPage }: {
     initialPage ? { status: "ready", page: initialPage } : { status: "loading" },
   );
   const [today] = useState(() => kstToday());
-  const { page, includeClosed } = query;
+  const { page, includeClosed, category } = query;
 
   const load = useCallback(() => {
     let active = true;
-    getAuditionPosts({ page, includeClosed })
+    getAuditionPosts({ page, includeClosed, category })
       .then((next) => { if (active) setState({ status: "ready", page: next }); })
       .catch((cause) => {
         console.error("[공고 목록 조회 실패]", cause);
         if (active) setState({ status: "error" });
       });
     return () => { active = false; };
-  }, [page, includeClosed]);
+  }, [page, includeClosed, category]);
 
   useEffect(() => {
     if (initialPage) return;
@@ -61,13 +62,24 @@ export function AuditionPostHome({ query, initialPage }: {
       <div className="mx-auto max-w-[1280px] px-5 pb-20 pt-6 sm:px-8 md:pt-8 lg:px-10">
         <AuditionAlertBanner />
         <section className="mt-8 border-b border-border pb-7 md:mt-10">
-          <p className="text-sm font-semibold text-brand">공연예술 오디션 공고</p>
+          <p className="text-sm font-semibold text-brand">예술in · 공연예술 오디션 공고</p>
           <h1 className="mt-3 text-[clamp(26px,3.6vw,38px)] font-bold leading-tight tracking-[-0.035em]">
-            {includeClosed ? "전체 공고" : "지금 모집 중인 공고"}
+            {category ? `${category} 오디션 공고` : "뮤지컬·연극 오디션 공고"}
           </h1>
-          <p className="mt-2 text-base text-muted-strong">연극·뮤지컬·퍼포먼스 배우와 단원, 기획사 모집 공고를 한곳에서 확인하세요.</p>
+          <p className="mt-2 text-base text-muted-strong">
+            {category
+              ? `예술in에서 ${category} 배우 모집 공고와 마감일, 지원 방법을 확인하세요.`
+              : "예술in은 뮤지컬·연극·퍼포먼스 배우와 단원, 기획사 모집 공고를 모아 안내합니다. 마감일과 지원 방법을 한곳에서 확인하세요."}
+          </p>
         </section>
         <div className="pt-6">
+          <nav aria-label="오디션 분야" className="mb-5 flex flex-wrap gap-2">
+            <FilterLink href={auditionPostRoutes.list({ includeClosed })} current={!category} label="전체 분야" />
+            {(["뮤지컬", "연극"] as const).map((item) => (
+              <FilterLink key={item} href={auditionPostRoutes.list({ category: item, includeClosed })}
+                current={category === item} label={`${item} 오디션`} />
+            ))}
+          </nav>
           {state.status === "loading" ? <PostListSkeleton /> : null}
           {state.status === "error" ? (
             <ScreenError
@@ -75,7 +87,7 @@ export function AuditionPostHome({ query, initialPage }: {
               onRetry={() => { setState({ status: "loading" }); load(); }}
             />
           ) : null}
-          {state.status === "ready" ? <PostList data={state.page} includeClosed={includeClosed} today={today} /> : null}
+          {state.status === "ready" ? <PostList data={state.page} includeClosed={includeClosed} category={category} today={today} /> : null}
         </div>
       </div>
       <LandingFooter />
@@ -83,25 +95,26 @@ export function AuditionPostHome({ query, initialPage }: {
   );
 }
 
-function PostList({ data, includeClosed, today }: {
+function PostList({ data, includeClosed, category, today }: {
   readonly data: AuditionPostPage;
   readonly includeClosed: boolean;
+  readonly category?: AuditionLandingCategory;
   readonly today: string;
 }) {
   return (
     <>
       <nav aria-label="모집 상태" className="mb-5 flex flex-wrap gap-2">
-        <FilterLink href={auditionPostRoutes.list()} current={!includeClosed} label="모집 중" count={data.openCount} />
-        <FilterLink href={auditionPostRoutes.list({ includeClosed: true })} current={includeClosed} label="마감 포함" count={data.allCount} />
+        <FilterLink href={auditionPostRoutes.list({ category })} current={!includeClosed} label="모집 중" count={data.openCount} />
+        <FilterLink href={auditionPostRoutes.list({ includeClosed: true, category })} current={includeClosed} label="마감 포함" count={data.allCount} />
       </nav>
       {data.posts.length ? (
         <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {data.posts.map((post) => <AuditionPostCard key={post.id} post={post} today={today} />)}
         </ul>
       ) : (
-        <EmptyPosts data={data} includeClosed={includeClosed} />
+        <EmptyPosts data={data} includeClosed={includeClosed} category={category} />
       )}
-      <AuditionPostPagination page={data.page} totalPages={data.totalPages} includeClosed={includeClosed} />
+      <AuditionPostPagination page={data.page} totalPages={data.totalPages} includeClosed={includeClosed} category={category} />
     </>
   );
 }
@@ -110,7 +123,7 @@ function FilterLink({ href, current, label, count }: {
   readonly href: string;
   readonly current: boolean;
   readonly label: string;
-  readonly count: number;
+  readonly count?: number;
 }) {
   return (
     <Link
@@ -120,12 +133,16 @@ function FilterLink({ href, current, label, count }: {
         ? "border-foreground bg-foreground text-white shadow-[var(--shadow-1)]"
         : "border-border bg-card text-muted-strong hover:border-brand-line hover:bg-brand-soft hover:text-brand"}`}
     >
-      {label} <span className="num">{count}</span>
+      {label}{count !== undefined ? <> <span className="num">{count}</span></> : null}
     </Link>
   );
 }
 
-function EmptyPosts({ data, includeClosed }: { readonly data: AuditionPostPage; readonly includeClosed: boolean }) {
+function EmptyPosts({ data, includeClosed, category }: {
+  readonly data: AuditionPostPage;
+  readonly includeClosed: boolean;
+  readonly category?: AuditionLandingCategory;
+}) {
   const outOfRange = data.totalElements > 0;
   const showClosedLink = !outOfRange && !includeClosed && data.allCount > 0;
   return (
@@ -136,7 +153,7 @@ function EmptyPosts({ data, includeClosed }: { readonly data: AuditionPostPage; 
       <p className="mt-2 text-sm text-muted-strong">새 공고가 올라오면 이곳과 카카오톡 오픈채팅에서 안내할게요.</p>
       {outOfRange || showClosedLink ? (
         <Link
-          href={auditionPostRoutes.list({ includeClosed: includeClosed || showClosedLink })}
+          href={auditionPostRoutes.list({ includeClosed: includeClosed || showClosedLink, category })}
           className="mt-3 inline-flex min-h-11 items-center rounded-control px-3 text-sm font-semibold text-brand hover:bg-brand-soft"
         >
           {outOfRange ? "첫 페이지로" : "마감된 공고 보기"}
