@@ -50,6 +50,7 @@ class StructuredFileLoggingTest {
                     .addKeyValue("event", "HTTP_REQUEST")
                     .addKeyValue("endpoint", "/api/v1/tests/{id}")
                     .addKeyValue("errorCode", "INVALID_REQUEST")
+                    .addKeyValue("JvmHeapUsed", 123.0)
                     .log(MARKER);
         } finally {
             MDC.remove("requestId");
@@ -69,5 +70,7 @@ class StructuredFileLoggingTest {
         assertEquals("HTTP_REQUEST", event.get("event").asString());
         assertEquals("/api/v1/tests/{id}", event.get("endpoint").asString());
         assertEquals("INVALID_REQUEST", event.get("errorCode").asString());
+        assertTrue(!event.has("_aws"));
+        assertEquals(123.0, event.get("JvmHeapUsed").asDouble());
     }
 }

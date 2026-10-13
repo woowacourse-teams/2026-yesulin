@@ -1,0 +1,17 @@
+[Unit]
+Description=Yesulin MySQL and database host metrics
+After=docker.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/yesulin-monitoring/environment
+ExecStart=/usr/bin/python3 /opt/yesulin-monitoring/database_metrics.py ${MONITORING_ENVIRONMENT}
+TimeoutStartSec=20
+StateDirectory=yesulin-monitoring
+StateDirectoryMode=0700
+LogsDirectory=yesulin-monitoring
+LogsDirectoryMode=0700
+UMask=0077
+Nice=10
+IOSchedulingClass=idle
+NoNewPrivileges=true
