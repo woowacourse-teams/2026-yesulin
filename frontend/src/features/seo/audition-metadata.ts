@@ -25,7 +25,7 @@ export function auditionListMetadata(query: AuditionPostQuery): Metadata {
   return {
     title: query.category ? title : { absolute: title },
     description,
-    alternates: { canonical },
+    alternates: { canonical, types: { "application/rss+xml": "/rss.xml" } },
     openGraph: {
       type: "website", locale: "ko_KR", url: canonical, siteName: "예술in", title: socialTitle, description, images: [SHARE_IMAGE],
     },

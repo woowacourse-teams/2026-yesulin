@@ -9,6 +9,7 @@ describe("공고 목록 검색 정보", () => {
     const category = auditionListMetadata({ category: "연극", page: 1, includeClosed: true });
     expect(category.title).toBe("연극 오디션 공고 · 마감 포함 · 2페이지");
     expect(category.alternates?.canonical).toBe("/auditions/theater?closed=1&page=2");
+    expect(category.alternates?.types).toEqual({ "application/rss+xml": "/rss.xml" });
     expect(category.openGraph).toMatchObject({ title: "연극 오디션 공고 · 마감 포함 · 2페이지 | 예술in" });
     expect(category.twitter).toMatchObject({ title: "연극 오디션 공고 · 마감 포함 · 2페이지 | 예술in" });
   });
