@@ -3,6 +3,7 @@ package art.yesulin.auditionpost.application;
 import static art.yesulin.auditionpost.domain.AuditionPostErrorCode.NOT_FOUND;
 import static art.yesulin.auditionpost.domain.AuditionPostStatus.PUBLISHED;
 
+import art.yesulin.auditionpost.domain.AuditionCategory;
 import art.yesulin.auditionpost.domain.AuditionPost;
 import art.yesulin.auditionpost.domain.AuditionPostRepository;
 import art.yesulin.auditionpost.domain.AuditionPostStatus;
@@ -40,17 +41,21 @@ public class AuditionPostService {
     private final ObjectStorage storage;
     private final Clock clock;
 
-    /** 기본은 모집 중인 공고만, {@code includeClosed}면 마감된 공고도 함께 원문 작성 최신순으로 나눠 준다. */
+    /** 분야가 있으면 해당 분야만 센다. 기본은 모집 중이며 마감 포함 여부와 관계없이 원문 작성 최신순이다. */
     @Transactional(readOnly = true)
-    public PublicAuditionPostPageResult findPublishedPage(int page, int size, boolean includeClosed) {
+    public PublicAuditionPostPageResult findPublishedPage(int page, int size, boolean includeClosed, String category) {
         if (page < 0 || size < 1 || size > MAX_PAGE_SIZE) {
             throw new IllegalArgumentException("page는 0 이상, size는 1~%d여야 합니다.".formatted(MAX_PAGE_SIZE));
         }
+        if (category != null && !AuditionCategory.supports(category)) {
+            throw new IllegalArgumentException("지원하지 않는 공고 분류입니다.");
+        }
+        String selectedCategory = category == null ? null : category.trim();
         LocalDate today = today();
         PageRequest pageable = PageRequest.of(page, size);
-        Page<AuditionPost> result = includeClosed
-                ? repository.findAllByStatusOrderByContentSourcePostedAtDescIdDesc(PUBLISHED, pageable)
-                : repository.findOpen(PUBLISHED, today, pageable);
+        Page<AuditionPost> result = repository.findPublished(
+                PUBLISHED, today, includeClosed, selectedCategory, pageable
+        );
         Map<Long, String> ownerNames = owners.namesOf(result.getContent());
         List<PublicAuditionPostSummaryResult> posts = result.stream()
                 .map(post -> PublicAuditionPostSummaryResult.from(
@@ -60,7 +65,8 @@ public class AuditionPostService {
                 .toList();
         return new PublicAuditionPostPageResult(
                 posts, page, size, result.getTotalPages(), result.getTotalElements(),
-                repository.countOpen(PUBLISHED, today), repository.countByStatus(PUBLISHED)
+                repository.countOpen(PUBLISHED, today, selectedCategory),
+                repository.countPublished(PUBLISHED, selectedCategory)
         );
     }
 

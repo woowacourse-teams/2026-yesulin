@@ -109,7 +109,7 @@ class AuditionPostImportServiceTest {
         );
         assertEquals(before + 3, storage.objectCount());
         assertEquals(1, auditLogRepository.count());
-        assertTrue(auditionPostService.findPublishedPage(0, 12, false).posts().isEmpty());
+        assertTrue(auditionPostService.findPublishedPage(0, 12, false, null).posts().isEmpty());
 
         auditionPostService.changeStatus(ADMIN_ID, result.post().id(), AuditionPostStatus.PUBLISHED);
 
@@ -124,7 +124,7 @@ class AuditionPostImportServiceTest {
         assertEquals("https://otr.co.kr/audition/?vid=" + OTR_ID, detail.sourceUrl());
         assertFalse(detail.closed());
 
-        PublicAuditionPostPageResult page = auditionPostService.findPublishedPage(0, 12, false);
+        PublicAuditionPostPageResult page = auditionPostService.findPublishedPage(0, 12, false, null);
         assertEquals(1, page.posts().size());
         assertTrue(page.posts().getFirst().thumbnailUrl().startsWith("https://cdn.test/assets/audition-posts/"));
     }
@@ -185,16 +185,46 @@ class AuditionPostImportServiceTest {
         importAndPublish("2");
         importService.importPost(ADMIN_ID, "3");
 
-        PublicAuditionPostPageResult open = auditionPostService.findPublishedPage(0, 12, false);
+        PublicAuditionPostPageResult open = auditionPostService.findPublishedPage(0, 12, false, null);
 
         assertEquals(1, open.posts().size());
         assertEquals("상시", open.posts().getFirst().deadlineText());
         assertEquals(1, open.openCount());
         assertEquals(2, open.allCount());
 
-        PublicAuditionPostPageResult all = auditionPostService.findPublishedPage(0, 1, true);
+        PublicAuditionPostPageResult all = auditionPostService.findPublishedPage(0, 1, true, null);
         assertEquals(2, all.totalElements());
         assertEquals(2, all.totalPages());
+    }
+
+    @Test
+    void filtersCategoryBeforePaginationAndCountsOnlyThatCategory() {
+        source.post("뮤지컬", "2000-01-01", "<p>마감</p>", List.of(), List.of());
+        importAndPublish("1");
+        source.post("뮤지컬", "상시", "<p>모집 중</p>", List.of(), List.of());
+        final long openId = importAndPublish("2").post().id();
+        importService.importPost(ADMIN_ID, "3");
+        long hiddenId = importAndPublish("4").post().id();
+        auditionPostService.changeStatus(ADMIN_ID, hiddenId, AuditionPostStatus.HIDDEN);
+        source.post("연극", "상시", "<p>다른 분야</p>", List.of(), List.of());
+        importAndPublish("5");
+
+        PublicAuditionPostPageResult open = auditionPostService.findPublishedPage(0, 1, false, "뮤지컬");
+
+        assertEquals(List.of(openId), open.posts().stream().map(PublicAuditionPostSummaryResult::id).toList());
+        assertEquals(1, open.totalElements());
+        assertEquals(1, open.openCount());
+        assertEquals(2, open.allCount());
+        PublicAuditionPostPageResult second = auditionPostService.findPublishedPage(1, 1, true, "뮤지컬");
+        assertEquals(2, second.totalPages());
+        assertEquals("뮤지컬", second.posts().getFirst().category());
+        assertTrue(second.posts().getFirst().closed());
+        assertEquals(1, auditionPostService.findPublishedPage(0, 12, true, "연극").allCount());
+    }
+
+    @Test
+    void rejectsUnsupportedPublicCategory() {
+        assertThrows(IllegalArgumentException.class, () -> auditionPostService.findPublishedPage(0, 12, true, "영화"));
     }
 
     @Test
@@ -263,7 +293,7 @@ class AuditionPostImportServiceTest {
 
         auditionPostService.changeStatus(ADMIN_ID, result.post().id(), AuditionPostStatus.HIDDEN);
 
-        assertTrue(auditionPostService.findPublishedPage(0, 12, false).posts().isEmpty());
+        assertTrue(auditionPostService.findPublishedPage(0, 12, false, null).posts().isEmpty());
         PublicAuditionPostView view = auditionPostService.findPublicPost(result.post().id());
         assertEquals(
                 URI.create("https://otr.co.kr/audition/?vid=" + OTR_ID),
@@ -332,8 +362,8 @@ class AuditionPostImportServiceTest {
 
     @Test
     void rejectsOutOfRangePageSize() {
-        assertThrows(IllegalArgumentException.class, () -> auditionPostService.findPublishedPage(0, 49, false));
-        assertThrows(IllegalArgumentException.class, () -> auditionPostService.findPublishedPage(-1, 10, false));
+        assertThrows(IllegalArgumentException.class, () -> auditionPostService.findPublishedPage(0, 49, false, null));
+        assertThrows(IllegalArgumentException.class, () -> auditionPostService.findPublishedPage(-1, 10, false, null));
     }
 
     private AuditionPostImportResult importAndPublish(String otrId) {

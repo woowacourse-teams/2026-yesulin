@@ -11,7 +11,7 @@ export const homeStructuredData = {
       "@id": ORGANIZATION_ID,
       name: "예술in",
       url: `${SITE_URL}/`,
-      description: "뮤지컬·연극 오디션 지원 및 심사 관리 서비스",
+      description: "뮤지컬·연극 오디션 공고와 모집 배역, 마감일, 지원 방법을 안내하는 서비스",
       logo: {
         "@type": "ImageObject",
         url: `${SITE_URL}/images/yesulin-logo-mark.png`,

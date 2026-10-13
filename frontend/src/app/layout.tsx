@@ -3,10 +3,9 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { AnalyticsConsentManager } from "@/components/analytics/analytics-consent-manager";
 import { AuthSessionProvider } from "@/components/auth/auth-session";
 import { SITE_URL } from "@/config/site";
+import { HOME_DESCRIPTION, HOME_TITLE, SHARE_IMAGE } from "@/features/seo/audition-metadata";
 import "./globals.css";
 import "./interactions.css";
-
-const HOME_TITLE = "예술in | 뮤지컬·연극 오디션 지원 및 심사 관리";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -14,26 +13,21 @@ export const metadata: Metadata = {
     default: HOME_TITLE,
     template: "%s | 예술in",
   },
-  description: "기획사/제작사와 배우를 연결하는 공연 지원 관리 서비스",
+  description: HOME_DESCRIPTION,
   openGraph: {
     type: "website",
     locale: "ko_KR",
     url: "/",
     siteName: "예술in",
     title: HOME_TITLE,
-    description: "기획사/제작사와 배우를 연결하는 공연 지원 관리 서비스",
-    images: [{
-      url: "/images/og-image.png",
-      width: 1920,
-      height: 1080,
-      alt: "오디션 공고부터 공연 예매까지, 예술in",
-    }],
+    description: HOME_DESCRIPTION,
+    images: [SHARE_IMAGE],
   },
   twitter: {
     card: "summary_large_image",
     title: HOME_TITLE,
-    description: "기획사/제작사와 배우를 연결하는 공연 지원 관리 서비스",
-    images: ["/images/og-image.png"],
+    description: HOME_DESCRIPTION,
+    images: [SHARE_IMAGE.url],
   },
 };
 

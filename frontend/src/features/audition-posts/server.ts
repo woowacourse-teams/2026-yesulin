@@ -39,13 +39,14 @@ function httpsLocation(response: Response): string | null {
 export async function auditionPostPageForServer(query: AuditionPostQuery): Promise<AuditionPostPage | null> {
   // 메인 목록은 기존처럼 조회 실패 시 브라우저에서 재시도한다.
   try {
-    return await publishedPageForServer(query);
+    return await publishedAuditionPostPageForServer(query);
   } catch {
     return null;
   }
 }
 
-async function publishedPageForServer(query: AuditionPostQuery, size?: number): Promise<AuditionPostPage | null> {
+/** 분야별 목록·피드는 조회 실패를 빈 공고 목록으로 바꾸지 않는다. */
+export async function publishedAuditionPostPageForServer(query: AuditionPostQuery, size?: number): Promise<AuditionPostPage | null> {
   const response = await fetchForServer(`/api${auditionPostApiPaths.list(query, size)}`);
   if (!response) return null;
   if (!response.ok) throw new Error(`공개 공고 목록 조회 실패: ${response.status}`);
@@ -54,11 +55,11 @@ async function publishedPageForServer(query: AuditionPostQuery, size?: number): 
 
 /** 마감 여부와 무관하게 공개된 모든 페이지를 읽는다. 실패한 페이지를 빈 목록으로 바꾸지 않는다. */
 export async function auditionPostIdsForSitemap(): Promise<readonly number[]> {
-  const first = await publishedPageForServer({ page: 0, includeClosed: true }, SITEMAP_PAGE_SIZE);
+  const first = await publishedAuditionPostPageForServer({ page: 0, includeClosed: true }, SITEMAP_PAGE_SIZE);
   if (!first) return [];
   const ids = new Set(first.posts.map((post) => post.id));
   for (let page = 1; page < first.totalPages; page += 1) {
-    const result = await publishedPageForServer({ page, includeClosed: true }, SITEMAP_PAGE_SIZE);
+    const result = await publishedAuditionPostPageForServer({ page, includeClosed: true }, SITEMAP_PAGE_SIZE);
     if (!result) throw new Error("공개 공고 사이트맵 조회 중 서버 API 설정이 변경되었습니다.");
     result.posts.forEach((post) => ids.add(post.id));
   }

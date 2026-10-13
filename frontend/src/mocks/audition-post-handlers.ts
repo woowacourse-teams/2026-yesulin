@@ -1,5 +1,5 @@
 import { delay, http, HttpResponse, passthrough } from "msw";
-import type { AuditionPost, AuditionPostSummary } from "@/features/audition-posts/types";
+import { AUDITION_POST_CATEGORIES, type AuditionPost, type AuditionPostSummary } from "@/features/audition-posts/types";
 
 /**
  * 메인 공고 목록·상세 화면 확인용 메모리 목. 실제 서버는 운영자가 공개한 공고를 원문 작성 최신순으로 준다.
@@ -121,10 +121,15 @@ export const auditionPostHandlers = [
     const page = Number(url.searchParams.get("page") ?? "0");
     const size = Number(url.searchParams.get("size") ?? "12");
     const includeClosed = url.searchParams.get("includeClosed") === "true";
+    const category = url.searchParams.get("category")?.trim();
+    if (category !== undefined && !AUDITION_POST_CATEGORIES.some((supported) => supported === category)) {
+      return HttpResponse.json({ code: "INVALID_REQUEST", message: "지원하지 않는 공고 분류입니다." }, { status: 400 });
+    }
     if (!Number.isInteger(page) || page < 0 || !Number.isInteger(size) || size < 1 || size > 48) {
       return HttpResponse.json({ code: "INVALID_REQUEST", message: "페이지 범위가 올바르지 않습니다." }, { status: 400 });
     }
-    const sorted = [...POSTS].sort((left, right) => (right.postedAt ?? "").localeCompare(left.postedAt ?? ""));
+    const sorted = POSTS.filter((post) => !category || post.category === category)
+      .sort((left, right) => (right.postedAt ?? "").localeCompare(left.postedAt ?? ""));
     const matched = includeClosed ? sorted : sorted.filter((post) => !post.closed);
     return HttpResponse.json({
       posts: matched.slice(page * size, page * size + size).map(toSummary),

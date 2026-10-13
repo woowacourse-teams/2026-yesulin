@@ -213,7 +213,9 @@ class AuditionPostOwnerWriteTest {
         importService.importPost(ADMIN_ID, "22397", true);
 
         assertEquals("극단 새이름", publicAuthor(id));
-        assertEquals("극단 새이름", auditionPostService.findPublishedPage(0, 12, true).posts().getFirst().authorName());
+        assertEquals(
+                "극단 새이름", auditionPostService.findPublishedPage(0, 12, true, null).posts().getFirst().authorName()
+        );
         assertEquals("예술극단", writeService.findForEdit(id).authorName());
         writeService.changeOwner(ADMIN_ID, id, null);
         assertEquals("예술극단", publicAuthor(id));
