@@ -228,7 +228,7 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 
 | Method | URL | 인증 | Request | Response |
 | --- | --- | --- | --- | --- |
-| GET | `/api/v1/public/audition-posts` | 공개 | `page`(0부터, 기본 0), `size`(1~48, 기본 12), `includeClosed`(기본 false) query | `200 PublicAuditionPostPageResult(posts, page, size, totalPages, totalElements, openCount, allCount)` |
+| GET | `/api/v1/public/audition-posts` | 공개 | `page`(0부터, 기본 0), `size`(1~48, 기본 12), `includeClosed`(기본 false), `category`(선택: 연극·퍼포먼스·뮤지컬·단원·기획사) query | `200 PublicAuditionPostPageResult(posts, page, size, totalPages, totalElements, openCount, allCount)` |
 | GET | `/api/v1/public/audition-posts/{postId}` | 공개 | 없음 | `200 PublicAuditionPostResult`, 공개 중이 아니면 `302 Location: {원문 주소}`, 원문 없는 공고는 `404` |
 | POST | `/api/v1/public/audition-posts/{postId}/views` | 공개 | 없음 | `204`, 공개 중이 아니거나 없는 공고는 `404` |
 | POST | `/api/v1/public/audition-posts/{postId}/redirects` | 공개 | 없음 | `204`, 공개 중·없는 공고는 `404` |
@@ -252,7 +252,10 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 
 공개 목록은 `PUBLISHED`만 원문 작성 시각 최신순으로 반환한다. 작성 시각을 읽지 못한 공고는 뒤에 온다.
 기본은 모집 중(마감일이 없거나 한국 날짜로 오늘 이후)인 공고만 세고, `includeClosed=true`면 마감된 공고도 포함한다.
-`totalElements`·`totalPages`는 요청 조건 기준이고, `openCount`·`allCount`는 조건과 관계없는 모집 중·전체 공개 공고 수다.
+`category`는 선택 사항이며 연극·퍼포먼스·뮤지컬·단원·기획사 중 하나다. 앞뒤 공백을 제거하고 비교한다.
+분야를 지정하면 해당 분야만 대상으로 페이지를 나눈다. 생략하면 전체 분야다.
+`totalElements`·`totalPages`는 요청 조건 기준이고, `openCount`·`allCount`는 페이지·마감 포함 조건과 관계없이
+선택한 분야의 모집 중·전체 공개 공고 수다.
 목록 항목은 `id`, `category`, `title`, `authorName`, `pay`, `deadlineText`(원문 표현),
 `deadline`(날짜일 때만 `YYYY-MM-DD`), `closed`(한국 날짜 기준), `postedAt`(Instant), `thumbnailUrl`(본문 첫 사진, 없으면 null),
 `attachmentCount`, `viewCount`를 담는다. 공개 응답의 `authorName`은 기획사에 연결된 공고면 그 기획사의 지금 이름이고,
@@ -265,7 +268,7 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 브라우저를 원문으로 보낸다. 없는 공고는 `404 AUDITION_POST_NOT_FOUND`이고, 조회수 기록은 공개 중이 아니어도 404다.
 원문 이동 수는 프론트 서버가 공개 중이 아닌 공고를 원문으로 보내기 직전에 `redirects` POST를 한 번 보내 늘린다. 상세 GET은 세지 않는다.
 DB에서 1을 더하고 다시 가져와도 유지한다.
-page·size 범위 오류는 `400 INVALID_REQUEST`다.
+page·size 범위 오류와 지원하지 않는 category는 `400 INVALID_REQUEST`다.
 
 `bodyHtml`은 서버가 Jsoup relaxed 허용 목록에서 `div`와 크기 속성을 뺀 태그만 남긴 HTML이다. 인라인 스타일과 스크립트는 없다.
 링크는 `target="_blank" rel="noopener noreferrer nofollow"`이고, 사진 `src`는 응답할 때 공개 저장소 주소로 채운다.
