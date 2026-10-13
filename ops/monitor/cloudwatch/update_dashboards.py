@@ -71,7 +71,7 @@ def unified_dashboard(original, queries, groups):
 
 def query_definitions(logs, environment):
     definitions = []
-    request = {"queryDefinitionNamePrefix": f"yesulin/{environment}/"}
+    request = {"queryDefinitionNamePrefix": f"yesulin/{environment}"}
     while True:
         page = logs.describe_query_definitions(**request)
         definitions.extend(page.get("queryDefinitions", []))
