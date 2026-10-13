@@ -1,0 +1,6 @@
+/results/*
+!/results/.gitkeep
+/fixture.json
+/report.html
+
+/__pycache__/
