@@ -10,11 +10,11 @@ const hold = Number(__ENV.HOLD_SECONDS || 60);
 const warm = 30;
 const gap = 5;
 // Allocate before timing starts; dynamic allocation during a stall can lose arrivals.
-const slots = Math.min(500, Math.max(20, rps * 10 + 10));
+const slots = Math.min(2500, Math.max(20, rps * 12 + 20));
 const runId = __ENV.RUN_ID;
-if (!Number.isInteger(rps) || rps < 1 || rps > 100 || hold !== 60
+if (!Number.isInteger(rps) || rps < 1 || rps > 500 || hold !== 60
     || !runId || !/^[A-Za-z0-9._-]{1,30}$/.test(runId)) {
-  throw new Error('Use RPS=1..100, HOLD_SECONDS=60 and a 1..30 character safe RUN_ID');
+  throw new Error('Use RPS=1..500, HOLD_SECONDS=60 and a 1..30 character safe RUN_ID');
 }
 const wall = new Trend('list_end_to_end_ms', true);
 const duration = new Trend('list_http_ms', true);
@@ -22,6 +22,9 @@ const waiting = new Trend('list_waiting_ms', true);
 const blocked = new Trend('list_blocked_ms', true);
 const tls = new Trend('list_tls_ms', true);
 const failures = new Rate('list_errors');
+const httpFailures = new Rate('list_http_errors');
+const validationFailures = new Rate('list_validation_errors');
+const statuses = new Counter('list_status');
 const started = new Counter('list_started');
 const requests = new Counter('list_requests');
 
@@ -34,17 +37,17 @@ export const options = {
     measure: {
       executor: 'constant-arrival-rate', rate: rps, timeUnit: '1s', duration: `${hold}s`,
       startTime: `${warm + gap}s`, preAllocatedVUs: slots,
-      maxVUs: slots, gracefulStop: '5s',
+      maxVUs: slots, gracefulStop: '12s',
     },
   },
   thresholds: {
-    'list_end_to_end_ms{phase:measure}': [{threshold: 'p(95)<1000', abortOnFail: true,
-      delayAbortEval: `${warm + gap + 30}s`}],
-    'list_errors{phase:measure}': [{threshold: 'rate<0.01', abortOnFail: true,
-      delayAbortEval: `${warm + gap + 30}s`}],
-    'checks{phase:measure}': ['rate>0.99'],
+    // Emit measurement-only percentiles without using latency as a stop condition.
+    'list_end_to_end_ms{phase:measure}': ['p(95)>=0'],
+    'list_errors{phase:measure}': [{threshold: 'rate==0', abortOnFail: true,
+      delayAbortEval: `${warm + gap + 15}s`}],
+    'checks{phase:measure}': ['rate==1'],
     'dropped_iterations{scenario:measure}': [{threshold: 'count==0', abortOnFail: true,
-      delayAbortEval: `${warm + gap + 30}s`}],
+      delayAbortEval: `${warm + gap + 15}s`}],
   },
   summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(50)', 'p(95)', 'p(99)'],
   userAgent: 'yesulin-dev-loadtest-k6',
@@ -84,4 +87,7 @@ export default function () {
     'request ID returned': r => r.headers['X-Request-Id'] === requestId,
   }, tags);
   failures.add(!valid, tags);
+  httpFailures.add(response.status !== 200, tags);
+  validationFailures.add(response.status === 200 && !valid, tags);
+  statuses.add(1, {...tags, status: String(response.status), error_code: String(response.error_code || 0)});
 }

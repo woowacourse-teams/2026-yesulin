@@ -22,8 +22,8 @@ def main():
     now = dt.datetime.now(dt.timezone.utc)
     if credit_time.tzinfo is None or not dt.timedelta(0) <= now-credit_time <= dt.timedelta(minutes=15):
         p.error('CPU credit datapoint must be timezone-aware and at most 15 minutes old')
-    if min(args.app_credit, args.db_credit) < 50 or not 1 <= args.rps <= 100:
-        p.error('Require >=50 credits on both Standard DEV instances and RPS=1..100')
+    if min(args.app_credit, args.db_credit) < 50 or not 1 <= args.rps <= 500:
+        p.error('Require >=50 credits on both Standard DEV instances and RPS=1..500')
     if ROOT.joinpath('results', 'RUNNING').exists():
         p.error('Another run is marked active; inspect before clearing RUNNING')
     run_id = now.strftime('%Y%m%dT%H%M%SZ') + f'-r{args.rps}'
@@ -35,8 +35,8 @@ def main():
     fixture_path = result / 'fixture.json'
     fixture_path.write_text(json.dumps(fixture))
     meta = vars(args) | {'id': run_id, 'base': BASE, 'mode': 'rps', 'warmupSeconds': 30,
-                         'warmupRps': 1, 'gapSeconds': 5, 'holdSeconds': 60, 'preAllocatedVUs': min(500, max(20, args.rps*10+10)),
-                         'maxVUs': min(500, max(20, args.rps*10+10)),
+                         'warmupRps': 1, 'stopPolicy': 'first-error', 'graceSeconds': 12, 'latencyAbort': False, 'gapSeconds': 5, 'holdSeconds': 60, 'preAllocatedVUs': min(2500, max(20, args.rps*12+20)),
+                         'maxVUs': min(2500, max(20, args.rps*12+20)),
                          'fixture': fixture, 'scriptSha256': hashlib.sha256((ROOT/'list.js').read_bytes()).hexdigest(), 'sourceCommit': subprocess.check_output(
                              ['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
                          'k6Version': subprocess.check_output(['k6', 'version'], text=True).strip(),

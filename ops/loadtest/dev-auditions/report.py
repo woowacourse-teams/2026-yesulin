@@ -1,6 +1,5 @@
 """Build a standalone, offline report from measured RPS runs. Raw files stay local."""
 import datetime as dt
-import html
 import json
 import re
 from collections import defaultdict
@@ -39,22 +38,39 @@ def summarize(folder):
         return meta | {'status': '측정 없음', 'seconds': 0, 'rows': [], 'completed': 0}
     beginning = min(time(p['data']['time']) for p in starts)
     end = max(time(p['data']['time']) for p in points)
-    complete = end-beginning >= meta['holdSeconds']-.3
-    passed = meta['exitCode'] == 0 and complete
-    seconds = meta['holdSeconds'] if complete else min(meta['holdSeconds'], max(0, end-beginning))
     errors = values('list_errors')
     dropped = sum(p['data']['value'] for p in points if p['metric'] == 'dropped_iterations'
                   and p['data'].get('tags', {}).get('scenario') == 'measure')
+    scheduled = sum(values('list_started')) + dropped
+    complete = scheduled >= meta['rps'] * meta['holdSeconds'] - 1
+    passed = meta['exitCode'] == 0 and complete
+    # Finishing in-flight responses during grace must not lengthen the offered-load period.
+    seconds = min(meta['holdSeconds'], scheduled / meta['rps'])
+    completed_during = sum(p['data']['value'] for p in measured
+                           if p['metric'] == 'list_requests' and time(p['data']['time']) < beginning+seconds)
+    statuses = defaultdict(int)
+    codes = defaultdict(int)
+    for point in measured:
+        if point['metric'] == 'list_status':
+            tags = point['data'].get('tags', {})
+            statuses[tags['status']] += point['data']['value']
+            codes[tags['error_code']] += point['data']['value']
+    error_pct = lambda name: (100*sum(values(name))/len(values(name))) if values(name) else None
     bins = defaultdict(list)
     for p in measured:
         if p['metric'] == 'list_end_to_end_ms':
             bins[int(time(p['data']['time'])-beginning)].append(p['data']['value'])
-    rows = [{'second': s, 'requests': len(v), 'p95': percentile(v, .95), 'max': max(v)}
+    rows = [{'second': s, 'requests': len(v), 'p95': percentile(v, .95), 'p99': percentile(v, .99), 'max': max(v)}
             for s, v in sorted(bins.items())]
-    report = meta | {'status': '통과' if passed else '중단/실패', 'seconds': round(seconds, 2),
-                     'fullHold': complete, 'started': sum(values('list_started')),
+    report = meta | {'status': ('오류 없음' if meta.get('stopPolicy') == 'first-error' else '통과') if passed else '중단/실패', 'seconds': round(seconds, 2),
+                     'fullHold': complete, 'passed': passed, 'httpErrorPercent': error_pct('list_http_errors'),
+                     'validationErrorPercent': error_pct('list_validation_errors'),
+                     'statusCounts': dict(statuses), 'errorCodes': dict(codes),
+                     'latencySloExceeded': (percentile(values('list_end_to_end_ms'), .95) or 0) >= 1000, 'started': sum(values('list_started')),
                      'completed': sum(values('list_requests')), 'unfinished': sum(values('list_started'))-sum(values('list_requests')), 'dropped': dropped,
-                     'actualRps': round(sum(values('list_requests'))/seconds, 2) if seconds else None,
+                     'offeredRps': round(sum(values('list_started'))/seconds, 2) if seconds else None,
+                     'completedDuring': completed_during,
+                     'actualRps': round(completed_during/seconds, 2) if seconds else None,
                      'errorPercent': round(sum(errors)*100/len(errors), 2) if errors else None,
                      'p50': percentile(values('list_end_to_end_ms'), .5),
                      'p95': percentile(values('list_end_to_end_ms'), .95),
@@ -62,6 +78,7 @@ def summarize(folder):
                      'max': max(values('list_end_to_end_ms'), default=None),
                      'httpP95': percentile(values('list_http_ms'), .95),
                      'waitP95': percentile(values('list_waiting_ms'), .95),
+                     'blockedP95': percentile(values('list_blocked_ms'), .95),
                      'tlsP95': percentile(values('list_tls_ms'), .95), 'rows': rows}
     if (folder/'server.json').exists():
         report['server'] = json.loads((folder/'server.json').read_text())
