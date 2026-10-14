@@ -8,6 +8,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 VARIANTS = ('first', 'paged', 'all')
+# Keep incomplete exploratory runs as evidence outside the default comparison.
+ARCHIVED_RUNS = {
+    '20261013T105745Z-r40': 'Generator setup: dropped 21 arrivals',
+    '20261013T113841Z-r100': 'First-error abort: 26.93 seconds, 691 unfinished',
+}
 
 
 def percentile(values, q):
@@ -162,12 +167,18 @@ def summarize(folder):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--output', default='report.html', choices=['report.html', 'report-next.html'])
+    parser.add_argument('--include-archived', action='store_true',
+                        help='Include incomplete exploratory runs in the comparison')
     args = parser.parse_args()
     reports = []
     for folder in sorted((ROOT/'results').iterdir()):
         if folder.is_dir() and (folder/'metadata.json').exists() and (folder/'raw.ndjson').exists():
             r = summarize(folder)
             if r:
+                if r['id'] in ARCHIVED_RUNS:
+                    if not args.include_archived:
+                        continue
+                    r['archiveReason'] = ARCHIVED_RUNS[r['id']]
                 reports.append(r)
     display = [{k:v for k,v in r.items() if k != 'samples'} for r in reports]
     safe = json.dumps(display, ensure_ascii=False, separators=(',', ':')).replace('<', '\\u003c')

@@ -23,7 +23,7 @@ python3 -m http.server 13001 --bind 127.0.0.1 --directory ops/loadtest/dev-audit
 # http://localhost:13001/report.html
 ```
 
-13001은 PC의 HTML 열람 포트다. 최종 주소는 `/report.html` 하나로 사용한다. 회의 중 개편본은 `report-next.html`에서 검증했고 완료 후 최종 주소에 반영했다. 이전 HTML은 로컬 `report-before-full100.html`에 보존하며, 과거 실행 원본과 중단/전체 결과는 최종 보고서의 실행 선택에서도 확인할 수 있다. 별도 미리보기는 `report.py --output report-next.html`로 생성한다. HTML에 데이터와 그래프를 포함하므로 파일 자체도 공유할 수 있다. 원본 링크는 로컬 결과 파일이 있을 때만 열린다.
+13001은 PC의 HTML 열람 포트다. 최종 주소는 `/report.html` 하나로 사용한다. 이전 HTML과 과거 실행 원본은 보존한다. 첫 40 RPS와 첫 100 RPS의 중단 실행은 기본 비교 화면에서 제외하고 정상 완료한 40/100 RPS는 유지한다. 보관 실행을 다시 볼 때는 `report.py --include-archived --output report-next.html`을 사용한다. HTML에 데이터와 그래프를 포함하므로 파일 자체도 공유할 수 있다. 원본 링크는 로컬 결과 파일이 있을 때만 열린다.
 
 ## 부하 모델과 종료
 
@@ -64,3 +64,14 @@ fields @timestamp, requestId, elapsedMs, status
 100 RPS 시험 종료 후 ELB health 실패로 DEV APP이 ASG에서 자동 교체됐다. min=max=desired=1은 스케일 아웃을 막지만 unhealthy 교체를 막지 않는다. recovery.json의 AWS 활동 이력과 HTTP 503/200 회복 확인을 결과에 남긴다. 새 APP이 Unlimited로 생성된 것을 확인해 Standard로 변경했고 DEV ASG 시작 템플릿 version 5에 Standard를 지정했다. PROD 템플릿·서버는 변경하지 않았다. 추가 부하는 실행하지 않았다.
 
 참고: [일정 요청률 실행기](https://grafana.com/docs/k6/latest/using-k6/scenarios/executors/constant-arrival-rate/), [종료 유예](https://grafana.com/docs/k6/latest/using-k6/scenarios/concepts/graceful-stop/), [Dropped iterations](https://grafana.com/docs/k6/latest/using-k6/scenarios/concepts/dropped-iterations/).
+
+## 예열·간격·종료·타임아웃 해석
+
+- 예열/간격의 초수에 정해진 공식은 없다. 목적·시작 조건·실제 안정화 확인을 기록해야 비교할 수 있다. 현재 30초/1 RPS 예열과 5초 간격은 고정 조건이며 충분한 예열이나 작업 정리가 확인된 기준은 아니다.
+- 같은 APP 프로세스로 연속 단계를 올린다면 최초 한 번 예열할 수 있다. 독립 비교 사이에는 밀린 요청·Hikari pending이 정리되고 CPU/응답 시간이 안정됐는지 확인한다. APP 재시작/교체 또는 재배포로 새 JVM이 되면 기존 예열을 재사용하지 않는다. cold start는 별도 시나리오로 다룬다.
+- 5초는 예열 종료와 측정 시작을 구분하는 여유이며 그 자체가 회복 확인은 아니다. 서버는 클라이언트 timeout 뒤에도 작업을 계속할 수 있다.
+- k6 gracefulStop 12초는 진행 중 iteration의 종료 유예다. 최신 측정은 미완료 0건으로 결과를 모두 확인했다. APP의 graceful shutdown과 다르다. 당시 배포 코드에는 `server.shutdown=graceful`, Spring 종료 유예 25초, systemd TimeoutStopSec 30초가 있었으나 실제 ASG 교체에서 graceful 종료를 성공했는지는 종료 로그를 확보하지 못해 검증하지 않았다.
+- k6 요청 timeout 10초는 테스트에 명시한 클라이언트 제한 시간이며 기본값이 아니다. timeout을 포함한 p95/p99가 약 10초라는 사실은 서버가 10초에 처리를 중단했다는 뜻이 아니다. Hikari connectionTimeout은 풀에서 연결을 획득하는 대기 제한이며 SQL 실행시간 제한과 다르다. 공식 기본값은 30초이고 당시 DbConnectionTimeouts는 0건이었다.
+- 이전 서버 최대 elapsedMs 10.120초와 최신 최대 8.521초는 서버 필터 내부의 실제 경과 시간이다. 10초의 서버 deadline이 확인된 것이 아니다. 클라이언트 시간에는 필터 진입 전 대기·연결/네트워크 시간도 포함되므로 두 숫자는 동일하지 않다.
+
+다음 개선 순서와 cache/pool/thread 선택 조건은 [improvement-plan.md](./improvement-plan.md)에 정리한다. 현재는 계획이며 timeout, cache, pool, thread 설정을 추가 변경하거나 새 부하를 실행하지 않았다.
