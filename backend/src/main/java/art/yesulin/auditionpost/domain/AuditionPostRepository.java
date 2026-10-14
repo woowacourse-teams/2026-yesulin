@@ -4,7 +4,6 @@ import jakarta.persistence.LockModeType;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -14,7 +13,6 @@ import org.springframework.data.repository.query.Param;
 
 public interface AuditionPostRepository extends JpaRepository<AuditionPost, Long> {
 
-    String OPEN_CONDITION = "p.status = :status and (p.content.deadline is null or p.content.deadline >= :today)";
     String CATEGORY_CONDITION = "(:category is null or p.content.category = :category)";
 
     Optional<AuditionPost> findBySourceAndExternalId(String source, String externalId);
@@ -39,11 +37,9 @@ public interface AuditionPostRepository extends JpaRepository<AuditionPost, Long
     @Query(
             value = "select p from AuditionPost p where p.status = :status and " + CATEGORY_CONDITION
                     + " and (:includeClosed = true or p.content.deadline is null or p.content.deadline >= :today)"
-                    + " order by p.content.sourcePostedAt desc, p.id desc",
-            countQuery = "select count(p) from AuditionPost p where p.status = :status and " + CATEGORY_CONDITION
-                    + " and (:includeClosed = true or p.content.deadline is null or p.content.deadline >= :today)"
+                    + " order by p.content.sourcePostedAt desc, p.id desc"
     )
-    Page<AuditionPost> findPublished(
+    List<AuditionPost> findPublished(
             @Param("status") AuditionPostStatus status,
             @Param("today") LocalDate today,
             @Param("includeClosed") boolean includeClosed,
@@ -51,11 +47,11 @@ public interface AuditionPostRepository extends JpaRepository<AuditionPost, Long
             Pageable pageable
     );
 
-    @Query("select count(p) from AuditionPost p where p.status = :status and " + CATEGORY_CONDITION)
-    long countPublished(@Param("status") AuditionPostStatus status, @Param("category") String category);
-
-    @Query("select count(p) from AuditionPost p where " + OPEN_CONDITION + " and " + CATEGORY_CONDITION)
-    long countOpen(
+    @Query("select new art.yesulin.auditionpost.domain.AuditionPostCounts(count(p),"
+            + " coalesce(sum(case when p.content.deadline is null or p.content.deadline >= :today"
+            + " then 1L else 0L end), 0L))"
+            + " from AuditionPost p where p.status = :status and " + CATEGORY_CONDITION)
+    AuditionPostCounts countPublishedPosts(
             @Param("status") AuditionPostStatus status,
             @Param("today") LocalDate today,
             @Param("category") String category

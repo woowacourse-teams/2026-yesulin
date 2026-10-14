@@ -68,6 +68,27 @@ class DatabaseMetricsTest(unittest.TestCase):
 
 
 class ConfigurationTest(unittest.TestCase):
+    def test_query_definition_prefix_meets_aws_rules_across_pages(self):
+        class Logs:
+            def __init__(self):
+                self.tokens = []
+
+            def describe_query_definitions(self, **request):
+                prefix = request["queryDefinitionNamePrefix"]
+                if prefix.startswith("/") or prefix.endswith("/") or "//" in prefix:
+                    raise ValueError("Invalid AWS query definition prefix")
+                self.tokens.append(request.get("nextToken"))
+                if not request.get("nextToken"):
+                    return {"queryDefinitions": [{"name": prefix + "/runtime-latest"}], "nextToken": "page2"}
+                return {"queryDefinitions": [{"name": prefix + "/error-details"}]}
+
+        for environment in ("dev", "prod"):
+            logs = Logs()
+            result = dashboards.query_definitions(logs, environment)
+            self.assertEqual([None, "page2"], logs.tokens)
+            self.assertEqual([f"yesulin/{environment}/runtime-latest", f"yesulin/{environment}/error-details"],
+                             [definition["name"] for definition in result])
+
     def test_migrates_http_only_source_preserving_unrelated_logs_and_is_idempotent(self):
         original = {"logs": {"logs_collected": {"files": {"collect_list": [
             {"file_path": "/var/log/yesulin/yesulin.log", "log_group_name": "/yesulin/dev/backend"},
