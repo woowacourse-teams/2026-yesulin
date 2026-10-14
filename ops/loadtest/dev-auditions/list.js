@@ -16,6 +16,7 @@ if (!Number.isInteger(rps) || rps < 1 || rps > 500 || hold !== 60
     || !runId || !/^[A-Za-z0-9._-]{1,30}$/.test(runId)) {
   throw new Error('Use RPS=1..500, HOLD_SECONDS=60 and a 1..30 character safe RUN_ID');
 }
+const observation = new Trend('list_observation', true);
 const wall = new Trend('list_end_to_end_ms', true);
 const duration = new Trend('list_http_ms', true);
 const waiting = new Trend('list_waiting_ms', true);
@@ -43,11 +44,10 @@ export const options = {
   thresholds: {
     // Emit measurement-only percentiles without using latency as a stop condition.
     'list_end_to_end_ms{phase:measure}': ['p(95)>=0'],
-    'list_errors{phase:measure}': [{threshold: 'rate==0', abortOnFail: true,
-      delayAbortEval: `${warm + gap + 15}s`}],
+    // Record failures for the full bounded window, then evaluate at the end.
+    'list_errors{phase:measure}': ['rate==0'],
     'checks{phase:measure}': ['rate==1'],
-    'dropped_iterations{scenario:measure}': [{threshold: 'count==0', abortOnFail: true,
-      delayAbortEval: `${warm + gap + 15}s`}],
+    'dropped_iterations{scenario:measure}': ['count==0'],
   },
   summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(50)', 'p(95)', 'p(99)'],
   userAgent: 'yesulin-dev-loadtest-k6',
@@ -67,7 +67,8 @@ export default function () {
   const response = http.get(`${base}/api/v1/public/audition-posts?page=${page}&size=12${query}`, {
     tags, timeout: '10s', redirects: 0, headers: {'X-Request-Id': requestId},
   });
-  wall.add(Date.now() - start, tags);
+  const elapsed = Date.now() - start;
+  wall.add(elapsed, tags);
   duration.add(response.timings.duration, tags);
   waiting.add(response.timings.waiting, tags);
   blocked.add(response.timings.blocked, tags);
@@ -86,6 +87,10 @@ export default function () {
     },
     'request ID returned': r => r.headers['X-Request-Id'] === requestId,
   }, tags);
+  // Only this local-output metric carries unique request IDs; no custom metrics are sent to AWS.
+  observation.add(elapsed, {...tags, request_id: requestId, page: String(page),
+    status: String(response.status), error_code: String(response.error_code || 0),
+    validation_failed: String(response.status === 200 && !valid)});
   failures.add(!valid, tags);
   httpFailures.add(response.status !== 200, tags);
   validationFailures.add(response.status === 200 && !valid, tags);

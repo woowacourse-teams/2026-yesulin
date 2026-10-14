@@ -35,7 +35,7 @@ def main():
     fixture_path = result / 'fixture.json'
     fixture_path.write_text(json.dumps(fixture))
     meta = vars(args) | {'id': run_id, 'base': BASE, 'mode': 'rps', 'warmupSeconds': 30,
-                         'warmupRps': 1, 'stopPolicy': 'first-error', 'graceSeconds': 12, 'latencyAbort': False, 'gapSeconds': 5, 'holdSeconds': 60, 'preAllocatedVUs': min(2500, max(20, args.rps*12+20)),
+                         'warmupRps': 1, 'stopPolicy': 'fixed-window', 'graceSeconds': 12, 'httpTimeoutSeconds': 10, 'latencyAbort': False, 'gapSeconds': 5, 'holdSeconds': 60, 'preAllocatedVUs': min(2500, max(20, args.rps*12+20)),
                          'maxVUs': min(2500, max(20, args.rps*12+20)),
                          'fixture': fixture, 'scriptSha256': hashlib.sha256((ROOT/'list.js').read_bytes()).hexdigest(), 'sourceCommit': subprocess.check_output(
                              ['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
