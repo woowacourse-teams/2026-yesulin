@@ -47,15 +47,32 @@ public interface AuditionPostRepository extends JpaRepository<AuditionPost, Long
             Pageable pageable
     );
 
-    @Query("select new art.yesulin.auditionpost.domain.AuditionPostCounts(count(p),"
-            + " coalesce(sum(case when p.content.deadline is null or p.content.deadline >= :today"
-            + " then 1L else 0L end), 0L))"
-            + " from AuditionPost p where p.status = :status and " + CATEGORY_CONDITION)
-    AuditionPostCounts countPublishedPosts(
-            @Param("status") AuditionPostStatus status,
+    default AuditionPostCounts countPublishedPosts(AuditionPostStatus status, LocalDate today, String category) {
+        PublishedPostCounts counts = countPublishedPostValues(status.name(), today, category);
+        return new AuditionPostCounts(counts.getAllCount().longValue(), counts.getOpenCount().longValue());
+    }
+
+    /** COUNT는 deadline까지 인덱스에서 읽고, 목록 정렬용 인덱스는 목록 쿼리에 맡긴다. */
+    @Query(value = """
+            select /*+ INDEX(p idx_audition_posts_status_category_deadline) */
+                   count(p.id) as allCount,
+                   coalesce(sum(case when p.deadline is null or p.deadline >= :today then 1 else 0 end), 0)
+                       as openCount
+            from audition_posts p
+            where p.status = :status and (:category is null or p.category = :category)
+            """, nativeQuery = true)
+    PublishedPostCounts countPublishedPostValues(
+            @Param("status") String status,
             @Param("today") LocalDate today,
             @Param("category") String category
     );
+
+    interface PublishedPostCounts {
+
+        Number getAllCount();
+
+        Number getOpenCount();
+    }
 
     List<AuditionPost> findAllByOrderByIdDesc(Pageable pageable);
 
