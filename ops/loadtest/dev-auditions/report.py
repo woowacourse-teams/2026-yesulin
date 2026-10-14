@@ -145,14 +145,20 @@ def summarize(folder):
     stats = statistics(measured, beginning, seconds)
     final_rate = full_hold and stats['unfinished'] == 0 and dropped == 0
     passed = meta['exitCode'] == 0 and final_rate
+    latency_reference_exceeded = (stats['p95'] or 0) >= 1000
+    status = '중단 · 오류율 미확정'
+    if final_rate:
+        status = ('완료 · 오류 있음' if not passed else
+                  '완료 · 지연 관측' if latency_reference_exceeded else '완료 · 오류 없음')
     report = meta | stats | {
-        'status': ('완료 · 오류 없음' if passed else '완료 · 오류 있음') if final_rate else '중단 · 오류율 미확정',
+        'status': status,
         'seconds': round(seconds, 2), 'measurementStartUTC': dt.datetime.fromtimestamp(beginning, dt.timezone.utc).isoformat(),
         'fullHold': full_hold, 'rateFinal': final_rate, 'passed': passed, 'dropped': dropped,
         'finalErrorPercent': stats['errorPercent'] if final_rate else None,
         'unfinishedPercent': pct(stats['unfinished'], stats['started']),
         'coveragePercent': pct(stats['completed'], stats['started']),
-        'latencySloExceeded': (stats['p95'] or 0) >= 1000,
+        'latencyReferenceExceeded': latency_reference_exceeded,
+        'latencyReferenceMs': 1000,  # Display reference, not an agreed product SLO.
         'variants': {variant: statistics([p for p in measured if p['data'].get('tags', {}).get('variant') == variant],
                                           beginning, seconds) for variant in VARIANTS},
         'resources': resources(folder, beginning, seconds), 'dbVmstat': host_vmstat(folder)}
