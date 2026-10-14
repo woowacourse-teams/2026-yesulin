@@ -161,7 +161,7 @@ def summarize(folder):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--output', default='report-next.html', choices=['report.html', 'report-next.html'])
+    parser.add_argument('--output', default='report.html', choices=['report.html', 'report-next.html'])
     args = parser.parse_args()
     reports = []
     for folder in sorted((ROOT/'results').iterdir()):

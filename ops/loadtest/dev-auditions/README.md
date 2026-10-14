@@ -17,13 +17,13 @@ python3 ops/loadtest/dev-auditions/run.py --rps 100 \
 
 # 저장된 결과만 다시 생성. 부하/AWS 조회 없음
 python3 ops/loadtest/dev-auditions/report.py
-# 개편본: ops/loadtest/dev-auditions/report-next.html
+# 최종 보고서: ops/loadtest/dev-auditions/report.html
 
 python3 -m http.server 13001 --bind 127.0.0.1 --directory ops/loadtest/dev-auditions
-# http://localhost:13001/report-next.html
+# http://localhost:13001/report.html
 ```
 
-13001은 PC의 HTML 열람 포트다. 기존 회의용 `report.html`은 유지하고 개편본은 `report-next.html`에 생성한다. 기존 파일을 교체하려면 `report.py --output report.html`을 실행한다. HTML에 데이터와 그래프를 포함하므로 파일 자체도 공유할 수 있다. 원본 링크는 로컬 결과 파일이 있을 때만 열린다.
+13001은 PC의 HTML 열람 포트다. 최종 주소는 `/report.html` 하나로 사용한다. 회의 중 개편본은 `report-next.html`에서 검증했고 완료 후 최종 주소에 반영했다. 이전 HTML은 로컬 `report-before-full100.html`에 보존하며, 과거 실행 원본과 중단/전체 결과는 최종 보고서의 실행 선택에서도 확인할 수 있다. 별도 미리보기는 `report.py --output report-next.html`로 생성한다. HTML에 데이터와 그래프를 포함하므로 파일 자체도 공유할 수 있다. 원본 링크는 로컬 결과 파일이 있을 때만 열린다.
 
 ## 부하 모델과 종료
 
