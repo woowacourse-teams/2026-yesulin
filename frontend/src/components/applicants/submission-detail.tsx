@@ -50,7 +50,7 @@ function SubmissionReadView({ detail }: { readonly detail: ApplicantSubmissionDe
     <TextLink href={applicantRoutes.submissions} className="px-2">내 지원서</TextLink>
     <header className="mt-4 grid gap-6 rounded-card border border-border bg-card p-5 sm:grid-cols-[96px_minmax(0,1fr)_auto] sm:items-center md:p-7">
       <Image src={detail.posterUrl} alt={`${detail.performanceTitle} 포스터`} width={96} height={128} unoptimized className="h-32 w-24 rounded-control object-cover" />
-      <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><span className="rounded-full border border-border bg-surface px-2.5 py-1 text-xs font-semibold text-muted-strong">제출 완료</span><span className="text-xs text-muted">{detail.companyName}</span></div><h1 className="mt-3 truncate text-2xl font-bold tracking-[-0.025em]">{detail.performanceTitle}</h1><p className="mt-1 truncate text-muted-strong">{detail.postingTitle} · {roleNames}</p><p className="num mt-3 text-sm text-muted">{formatApplicantDate(detail.submittedAt, true)} 제출</p><TextLink href={`/apply/${encodeURIComponent(detail.postingId)}`} className="mt-2 -ml-2 px-2">공고 다시 보기</TextLink></div>
+      <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><span className="rounded-full border border-border bg-surface px-2.5 py-1 text-xs font-semibold text-muted-strong">제출 완료</span><span className="text-xs text-muted">{detail.companyName}</span></div><h1 className="mt-3 break-words text-2xl font-bold tracking-[-0.025em]">{detail.performanceTitle}</h1><p className="mt-1 break-words text-muted-strong">{detail.postingTitle} · {roleNames}</p><p className="num mt-3 text-sm text-muted">{formatApplicantDate(detail.submittedAt, true)} 제출</p><TextLink href={`/apply/${encodeURIComponent(detail.postingId)}`} className="mt-2 -ml-2 px-2">공고 다시 보기</TextLink></div>
       <span className="rounded-full border border-border bg-surface px-3 py-2 text-sm font-semibold text-muted-strong">읽기 전용</span>
     </header>
 
@@ -67,4 +67,4 @@ function AnswerSection({ title, answers, units, notice }: { readonly title: stri
 }
 
 function Container({ children }: { readonly children: React.ReactNode }) { return <div className="mx-auto max-w-[920px] px-5 py-8 md:px-8 md:py-10">{children}</div>; }
-function DetailSkeleton() { return <Container><div aria-label="지원서 상세 불러오는 중" className="animate-pulse"><div className="h-11 w-28 rounded bg-border-soft" /><div className="mt-4 h-48 rounded-modal bg-border" /><div className="mt-6 h-80 rounded-card bg-border-soft" /></div></Container>; }
+function DetailSkeleton() { return <Container><div role="status" aria-label="지원서 상세 불러오는 중" className="animate-pulse"><div className="h-11 w-28 rounded bg-border-soft" /><div className="mt-4 h-48 rounded-modal bg-border" /><div className="mt-6 h-80 rounded-card bg-border-soft" /></div></Container>; }

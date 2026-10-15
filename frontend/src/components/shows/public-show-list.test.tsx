@@ -1,6 +1,8 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { PublicShowList } from "./public-show-list";
+
+vi.mock("@/components/auth/auth-session", () => ({ useAuthSession: () => ({ session: null }) }));
 
 describe("공연 목록 최초 HTML", () => {
   it("자바스크립트 실행 전에 공연명과 상세 링크를 포함한다", () => {
@@ -50,5 +52,26 @@ describe("공연 목록 최초 HTML", () => {
 
     expect(markup).toContain("공연 목록을 불러오고 있습니다.");
     expect(markup).not.toContain("지금 예매할 수 있는 공연이 없어요");
+  });
+});
+
+describe("공연 일정에 따른 목록 구분", () => {
+  it("미래 회차와 지난 회차·예정 회차 없음을 구분하고 마감 공연도 열 수 있다", () => {
+    vi.spyOn(Date, "now").mockReturnValue(Date.parse("2026-10-15T00:00:00Z"));
+    try {
+      const common = { hostName: "공연사", genre: "PLAY" as const, posterUrl: "/poster.jpg", venueName: "극장", runningMinutes: 60 };
+      const html = renderToStaticMarkup(<PublicShowList initialShows={[
+        { ...common, id: "past", title: "지난 공연", nextSessionStartsAt: "2026-10-10T08:00:00Z" },
+        { ...common, id: "future", title: "다가올 공연", nextSessionStartsAt: "2026-10-20T08:00:00Z" },
+        { ...common, id: "none", title: "회차 없는 공연", nextSessionStartsAt: null },
+      ]} />);
+      const upcoming = html.slice(html.indexOf('aria-label="다가오는 공연"'), html.indexOf('aria-label="예매 마감"'));
+      const ended = html.slice(html.indexOf('aria-label="예매 마감"'));
+      expect(upcoming).toContain('href="/shows/future"');
+      expect(upcoming).not.toContain('href="/shows/past"');
+      expect(ended).toContain('href="/shows/past"');
+      expect(ended).toContain('href="/shows/none"');
+      expect(ended).toContain("예매 마감 · 예정 회차 없음");
+    } finally { vi.restoreAllMocks(); }
   });
 });

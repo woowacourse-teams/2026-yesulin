@@ -42,7 +42,7 @@ export function ApplicantShell({ children }: { readonly children: React.ReactNod
         toast(message, { type: "error" });
       });
   };
-  return <div className="min-h-screen bg-surface text-foreground">
+  return <div className="applicant-theme min-h-dvh break-keep bg-surface text-foreground wrap-break-word">
     <a href="#applicant-main" className="fixed left-4 top-3 z-50 -translate-y-24 rounded-control bg-foreground px-4 py-2 text-sm font-semibold text-white focus:translate-y-0">본문으로 바로가기</a>
     <header className="glass-surface sticky top-0 z-30 border-x-0 border-t-0">
       <div className="mx-auto flex min-h-[68px] max-w-[1180px] items-center px-5 md:px-8">
@@ -52,12 +52,12 @@ export function ApplicantShell({ children }: { readonly children: React.ReactNod
         <nav aria-label="배우 주요 메뉴" className="ml-10 hidden items-center gap-1 md:flex">
           {navigation.map((item) => <ApplicantNavLink key={item.href} {...item} pathname={pathname} />)}
         </nav>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-2"><Link href="/auditions" className="inline-flex min-h-11 items-center rounded-control px-3 text-sm font-semibold text-muted-strong hover:bg-brand-soft hover:text-brand">공고 찾기</Link>
           <ApplicantAccountMenu profile={profileQuery.data} onLogout={logout} />
         </div>
       </div>
     </header>
-    <main id="applicant-main" className="min-h-[calc(100vh-68px)]">{children}</main>
+    <main id="applicant-main" className="min-h-[calc(100dvh-68px)]">{children}</main>
     {/* 모바일 하단 메뉴가 푸터를 가리지 않게 메뉴 높이만큼 아래 여백을 둔다. */}
     <SiteFooter className="pb-24 md:pb-0" />
     <nav aria-label="배우 모바일 메뉴" className="glass-surface fixed inset-x-0 bottom-0 z-30 border-x-0 border-b-0 md:hidden">
@@ -74,6 +74,7 @@ export function ApplicantShell({ children }: { readonly children: React.ReactNod
 function ApplicantAccountMenu({ profile, onLogout }: { readonly profile: ApplicantProfileResponse | null; readonly onLogout: () => void }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const photoUrl = profile?.photoLibrary.find((photo) => photo.representative)?.url ?? profile?.photoLibrary[0]?.url;
 
   useEffect(() => {
@@ -82,7 +83,7 @@ function ApplicantAccountMenu({ profile, onLogout }: { readonly profile: Applica
       if (!containerRef.current?.contains(event.target as Node)) setOpen(false);
     };
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") { setOpen(false); triggerRef.current?.focus(); }
     };
     document.addEventListener("pointerdown", closeOnOutsideClick);
     document.addEventListener("keydown", closeOnEscape);
@@ -92,11 +93,11 @@ function ApplicantAccountMenu({ profile, onLogout }: { readonly profile: Applica
     };
   }, [open]);
 
-  return <div ref={containerRef} className="relative">
+  return <div ref={containerRef} className="relative" onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOpen(false); }}>
     <button
       type="button"
       aria-label="배우 계정 메뉴"
-      aria-haspopup="menu"
+      ref={triggerRef}
       aria-expanded={open}
       aria-controls="applicant-account-menu"
       onClick={() => setOpen((current) => !current)}
@@ -109,8 +110,8 @@ function ApplicantAccountMenu({ profile, onLogout }: { readonly profile: Applica
       </span>
       <svg aria-hidden="true" viewBox="0 0 20 20" className={`h-4 w-4 fill-current text-muted transition-transform ${open ? "rotate-180" : ""}`}><path d="m5.5 7.5 4.5 4 4.5-4" /></svg>
     </button>
-    {open ? <div id="applicant-account-menu" role="menu" className="absolute right-0 top-[calc(100%+8px)] z-40 w-40 rounded-card border border-border bg-card p-2 shadow-[var(--shadow-2)]">
-      <button type="button" role="menuitem" onClick={onLogout} className="flex min-h-11 w-full items-center gap-2 rounded-control px-3 text-left text-sm font-semibold text-muted-strong transition-colors hover:bg-surface hover:text-foreground">
+    {open ? <div id="applicant-account-menu" className="absolute right-0 top-[calc(100%+8px)] z-40 w-40 rounded-card border border-border bg-card p-2 shadow-[var(--shadow-2)]">
+      <button type="button" onClick={onLogout} className="flex min-h-11 w-full items-center gap-2 rounded-control px-3 text-left text-sm font-semibold text-muted-strong transition-colors hover:bg-surface hover:text-foreground">
         <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current stroke-2"><path d="M10 5H5v14h5M14 8l4 4-4 4M8 12h10" /></svg>
         로그아웃
       </button>

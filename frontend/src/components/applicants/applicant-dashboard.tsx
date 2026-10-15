@@ -82,5 +82,5 @@ function DashboardEmpty({ title, detail }: { readonly title: string; readonly de
 }
 
 function DashboardSkeleton() {
-  return <PageContainer><div aria-label="배우 홈 불러오는 중" className="animate-pulse"><div className="h-9 w-72 rounded-lg bg-border" /><div className="mt-4 h-5 w-96 max-w-full rounded bg-border-soft" /><div className="mt-9 grid gap-4 lg:grid-cols-2"><div className="h-64 rounded-modal bg-border" /><div className="h-64 rounded-modal bg-border-soft" /></div><div className="mt-12 h-52 rounded-modal bg-border-soft" /></div></PageContainer>;
+  return <PageContainer><div role="status" aria-label="배우 홈 불러오는 중" className="animate-pulse"><div className="h-9 w-72 rounded-lg bg-border" /><div className="mt-4 h-5 w-96 max-w-full rounded bg-border-soft" /><div className="mt-9 grid gap-4 lg:grid-cols-2"><div className="h-64 rounded-modal bg-border" /><div className="h-64 rounded-modal bg-border-soft" /></div><div className="mt-12 h-52 rounded-modal bg-border-soft" /></div></PageContainer>;
 }

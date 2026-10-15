@@ -61,7 +61,7 @@ export function PublicShowRoute({ showId, initialShow }: {
 
 function ShowDetailLoading() {
   return (
-    <main id="main" aria-label="공연 정보 불러오는 중" className="min-h-screen bg-surface text-foreground">
+    <main id="main" aria-busy="true" aria-label="공연 정보 불러오는 중" className="min-h-screen bg-surface text-foreground">
       <ShowPageHeader />
       <div className="notebook-container animate-pulse py-8">
         <div className="grid grid-cols-[112px_minmax(0,1fr)] gap-4 sm:grid-cols-[200px_minmax(0,1fr)] sm:gap-6">
@@ -72,7 +72,7 @@ function ShowDetailLoading() {
           </div>
         </div>
         <div className="mt-8 h-48 rounded-card bg-border" />
-        <p className="sr-only">공연 정보를 불러오고 있습니다.</p>
+        <p role="status" className="sr-only">공연 정보를 불러오고 있습니다.</p>
       </div>
     </main>
   );

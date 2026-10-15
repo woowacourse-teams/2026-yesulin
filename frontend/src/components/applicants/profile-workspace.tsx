@@ -21,4 +21,4 @@ export function ApplicantProfileWorkspace() {
 }
 
 function Container({ children }: { readonly children: React.ReactNode }) { return <div className="mx-auto max-w-[1040px] px-5 py-9 md:px-8 md:py-12">{children}</div>; }
-function ProfileSkeleton() { return <Container><div aria-label="프로필 불러오는 중" className="animate-pulse"><div className="h-9 w-96 max-w-full rounded bg-border" /><div className="mt-4 h-5 w-full max-w-2xl rounded bg-border-soft" /><div className="mt-9 h-14 rounded-card bg-border-soft" /><div className="mt-5 h-[520px] rounded-modal bg-border-soft" /></div></Container>; }
+function ProfileSkeleton() { return <Container><div role="status" aria-label="프로필 불러오는 중" className="animate-pulse"><div className="h-9 w-96 max-w-full rounded bg-border" /><div className="mt-4 h-5 w-full max-w-2xl rounded bg-border-soft" /><div className="mt-9 h-14 rounded-card bg-border-soft" /><div className="mt-5 h-[520px] rounded-modal bg-border-soft" /></div></Container>; }

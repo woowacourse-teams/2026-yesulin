@@ -89,6 +89,9 @@ export const AUDITION_POST_CATEGORIES = ["연극", "퍼포먼스", "뮤지컬", 
 export const AUDITION_LANDING_CATEGORIES = {
   musical: "뮤지컬",
   theater: "연극",
+  performance: "퍼포먼스",
+  troupe: "단원",
+  agency: "기획사",
 } as const;
 
 export type AuditionLandingCategory = typeof AUDITION_LANDING_CATEGORIES[keyof typeof AUDITION_LANDING_CATEGORIES];
@@ -102,7 +105,8 @@ export function auditionLandingCategory(slug: string): AuditionLandingCategory |
 export const auditionPostRoutes = {
   /** 기본값(첫 페이지·모집 중만)은 주소에서 뺀다. */
   list: ({ page = 0, includeClosed = false, category }: Partial<AuditionPostQuery> = {}) => {
-    const path = category === "뮤지컬" ? "/auditions/musical" : category === "연극" ? "/auditions/theater" : "/auditions";
+    const slug = Object.entries(AUDITION_LANDING_CATEGORIES).find(([, label]) => label === category)?.[0];
+    const path = slug ? `/auditions/${slug}` : "/auditions";
     const params = new URLSearchParams();
     if (includeClosed) params.set("closed", "1");
     if (page > 0) params.set("page", String(page + 1));
