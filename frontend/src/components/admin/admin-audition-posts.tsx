@@ -8,16 +8,23 @@ import {
   AUDITION_POST_EDITED,
   changeAuditionPostStatus,
   fetchAuditionPosts,
+  fetchCompanies,
   importOtrAuditionPost,
 } from "@/features/admin/api";
 import { adminAuditionPostRoutes, extractOtrId } from "@/features/admin/audition-posts";
-import type { AdminAuditionPost, AdminAuditionPostImport, AdminAuditionPostStatus } from "@/features/admin/types";
+import type {
+  AdminAuditionPost,
+  AdminAuditionPostImport,
+  AdminAuditionPostStatus,
+  AdminCompany,
+} from "@/features/admin/types";
 import { AuditionPostStatusBadge } from "@/components/audition-posts/audition-post-status-badge";
 import { AUDITION_POST_STATUS_LABELS } from "@/features/audition-posts/editing";
 import { auditionPostRoutes } from "@/features/audition-posts/types";
 import { logout } from "@/features/auth/session-api";
 import { formatDateTime } from "./admin-format";
 import { AdminAuditionPostTabs } from "./admin-audition-post-tabs";
+import { AdminPostCompanyEditor } from "./admin-post-company-editor";
 import { AdminSessionEnded } from "./admin-session-ended";
 import { AdminActionButton, AdminActionLink, AdminEmptyState, AdminFilterButton, AdminShell } from "./admin-shell";
 import { SummaryItem, SummaryStrip } from "./admin-stat";
@@ -59,6 +66,21 @@ export function AdminAuditionPosts({ ownerId }: {
   const [statusFilter, setStatusFilter] = useState<"ALL" | AdminAuditionPostStatus>("ALL");
   /** 고친 공고를 원문으로 덮어쓸지 확인받는 중인 OTR 번호. */
   const [overwriteTarget, setOverwriteTarget] = useState<string | null>(null);
+  /** 공연사 이름 표시와 공고별 연결 바꾸기 후보. 불러오지 못하면 연결 바꾸기를 숨긴다. */
+  const [companies, setCompanies] = useState<readonly AdminCompany[] | null>(null);
+  /** 공연사 정보를 쓰고 있는 공고. */
+  const [editingCompany, setEditingCompany] = useState<number | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    fetchCompanies()
+      .then((next) => { if (active) setCompanies(next); })
+      .catch((cause: unknown) => {
+        console.error("[공연사 목록 불러오기 실패]", cause);
+        if (active) setCompanies(null);
+      });
+    return () => { active = false; };
+  }, [reloadToken]);
 
   useEffect(() => {
     let active = true;
@@ -82,6 +104,7 @@ export function AdminAuditionPosts({ ownerId }: {
   }, [ownerId, reloadToken]);
 
   const refresh = useCallback(() => setReloadToken((value) => value + 1), []);
+  const endSession = useCallback(() => setPhase("unauthorized"), []);
 
   const handleFailure = (cause: unknown, fallback: string) => {
     if (cause instanceof AdminApiError && cause.status === 401) {
@@ -271,6 +294,7 @@ export function AdminAuditionPosts({ ownerId }: {
                   <span className="rounded-full bg-brand-soft px-2.5 py-0.5 font-bold text-brand">{post.createdVia === "PRODUCER_WRITE" ? "기획사 등록" : "직접 작성"}</span>
                 )}
                 {post.ownerId !== null ? <span className="text-muted-strong">기획사 {post.ownerName ?? `회원 ${post.ownerId}`}</span> : null}
+                {post.companyId !== null ? <span className="text-muted-strong">공연사 {companies?.find((company) => company.id === post.companyId)?.name ?? post.companyId}</span> : null}
                 <span className="ml-auto text-muted">{formatDateTime(post.updatedAt)} 갱신</span>
               </header>
               <h3 className="mt-3 break-words text-lg font-semibold"><Link href={adminAuditionPostRoutes.edit(post.id)} className="hover:text-brand">{post.title}</Link></h3>
@@ -290,6 +314,12 @@ export function AdminAuditionPosts({ ownerId }: {
                   </>
                 ) : null}
                 <AdminActionButton
+                  aria-expanded={editingCompany === post.id}
+                  onClick={() => setEditingCompany((current) => current === post.id ? null : post.id)}
+                >
+                  {post.companyId === null ? "공연사 정보 쓰기" : "공연사 정보 수정"}
+                </AdminActionButton>
+                <AdminActionButton
                   disabled={changing === post.id}
                   onClick={() => void toggleStatus(post)}
                   className="ml-auto"
@@ -297,6 +327,16 @@ export function AdminAuditionPosts({ ownerId }: {
                   {changing === post.id ? "바꾸는 중…" : STATUS_ACTIONS[post.status]}
                 </AdminActionButton>
               </div>
+              {editingCompany === post.id ? (
+                <AdminPostCompanyEditor
+                  postId={post.id}
+                  companies={companies}
+                  onCancel={() => setEditingCompany(null)}
+                  onUnauthorized={endSession}
+                  onSaved={() => { setEditingCompany(null); refresh(); }}
+                  onLinkChanged={() => { setEditingCompany(null); refresh(); }}
+                />
+              ) : null}
             </article>
           ))}
         </section>

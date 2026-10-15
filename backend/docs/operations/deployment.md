@@ -16,6 +16,9 @@ PROD의 `AuditionImportScheduler`는 새 OTR 공고를 우리 공고로 검토 �
 한 번에 최대 100건씩 보내고, 남은 건은 그다음 실행에서 보낸다.
 현재 PROD는 인스턴스 한 대 기준이며 분산 실행 잠금은 없다. 여러 대로 늘리면 중복 알림을 막는 잠금을 먼저 추가한다.
 
+`KOPIS_API_KEY`(공연예술통합전산망 Open API 인증키)는 선택이다. 있으면 운영자 공연사 정보 쓰기가 KOPIS 기획제작사로 처음 값을
+채우고, 없으면 KOPIS 없이 쓴다. LOCAL은 `config/server/local.env`, DEV·PROD는 SOPS 암호화된 env에 넣는다.
+
 `YESULIN_NOTICE_LINK_BASE_URL`은 필수 환경 변수다. LOCAL은 `config/server/local.env`의
 `http://localhost:3000`, DEV·PROD는 SOPS 암호화된 `config/server/dev.env`·`prod.env`의 `https://yesulin.art`를 사용한다.
 PROD 알림은 가져온 공고 주소(`https://yesulin.art/posts/{id}`)를 바로 쓴다. 공개 전이거나 내렸으면 원문으로, 공개 뒤에는

@@ -3,6 +3,7 @@ package art.yesulin.auditionpost.application;
 import art.yesulin.auditionpost.domain.AuditionPost;
 import art.yesulin.auditionpost.domain.AuditionPostContent;
 import art.yesulin.auditionpost.domain.AuditionPostFile;
+import art.yesulin.company.application.CompanySummary;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -16,6 +17,7 @@ import java.util.function.Function;
  * @param source 원문 공고 사이트 이름(예: {@code OTR})
  * @param sourceUrl 원문 공고 주소
  * @param bodyHtml 서버가 허용 태그만 남긴 HTML. 사진 주소는 이 응답을 만들 때 채운다.
+ * @param company 공고를 올린 공연사 요약. 연결이 없거나 공연사를 공개하기 전이면 null이다.
  */
 public record PublicAuditionPostResult(
         long id,
@@ -33,12 +35,14 @@ public record PublicAuditionPostResult(
         List<Attachment> attachments,
         String source,
         String sourceUrl,
-        Instant updatedAt
+        Instant updatedAt,
+        CompanySummary company
 ) {
 
     static PublicAuditionPostResult from(
             AuditionPost post,
             String authorName,
+            CompanySummary company,
             LocalDate today,
             ZoneId zone,
             Function<String, String> publicUrl
@@ -61,7 +65,8 @@ public record PublicAuditionPostResult(
                 post.attachments().stream().map(file -> Attachment.from(file, publicUrl)).toList(),
                 post.getSource(),
                 post.getSourceUrl(),
-                post.getUpdatedAt()
+                post.getUpdatedAt(),
+                company
         );
     }
 

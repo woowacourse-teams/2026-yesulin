@@ -78,6 +78,15 @@ public interface AuditionPostRepository extends JpaRepository<AuditionPost, Long
 
     List<AuditionPost> findAllByOwnerIdOrderByIdDesc(long ownerId, Pageable pageable);
 
+    /** 공연사 화면의 공고 목록. 마감한 공고도 원문 작성 최신순으로 함께 보여 준다. */
+    @Query("select p from AuditionPost p where p.companyId = :companyId and p.status = :status"
+            + " order by p.content.sourcePostedAt desc, p.id desc")
+    List<AuditionPost> findByCompany(
+            @Param("companyId") long companyId,
+            @Param("status") AuditionPostStatus status,
+            Pageable pageable
+    );
+
     Optional<AuditionPost> findFirstBySourceAndSourceAuthorIdOrderByIdDesc(String source, String sourceAuthorId);
 
     /** 원문 작성자 번호를 아직 읽지 않은 원문 공고를 최근 순서로. {@code beforeId}보다 작은 ID만 본다. */
@@ -103,6 +112,41 @@ public interface AuditionPostRepository extends JpaRepository<AuditionPost, Long
             @Param("authorId") String authorId,
             @Param("ownerId") long ownerId
     );
+
+    /**
+     * 같은 원문 작성자의 공고 중 아직 공연사가 없는 공고를 공연사에 연결한다. 운영자가 다른 공연사를 고른 공고와 다른 칸은
+     * 건드리지 않는다. 같은 트랜잭션에서 바꾼 묶음 규칙·공연사가 clear로 사라지지 않도록 먼저 flush한다.
+     */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("update AuditionPost p set p.companyId = :companyId"
+            + " where p.source = :source and p.sourceAuthorId = :authorId and p.companyId is null")
+    int connectCompanylessBySourceAuthor(
+            @Param("source") String source,
+            @Param("authorId") String authorId,
+            @Param("companyId") long companyId
+    );
+
+    /**
+     * 원문 작성자를 다른 공연사로 옮길 때, 예전 공연사에 묶여 있던 그 작성자의 공고도 함께 옮긴다. 같은 트랜잭션에서 옮긴 묶음
+     * 규칙이 clear로 사라지지 않도록 먼저 flush한다.
+     */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("update AuditionPost p set p.companyId = :toCompanyId"
+            + " where p.source = :source and p.sourceAuthorId = :authorId and p.companyId = :fromCompanyId")
+    int moveCompanyBySourceAuthor(
+            @Param("source") String source,
+            @Param("authorId") String authorId,
+            @Param("fromCompanyId") long fromCompanyId,
+            @Param("toCompanyId") long toCompanyId
+    );
+
+    /** 원문 공고를 원문 작성자 번호·닉네임별로 센다. 번호가 없는 공고는 닉네임으로만 묶인다. */
+    @Query("select new art.yesulin.auditionpost.domain.AuditionPostAuthorCompanyCount("
+            + "p.source, p.sourceAuthorId, p.content.authorName, count(p),"
+            + " sum(case when p.companyId is null then 1L else 0L end), max(p.createdAt))"
+            + " from AuditionPost p where p.externalId is not null"
+            + " group by p.source, p.sourceAuthorId, p.content.authorName")
+    List<AuditionPostAuthorCompanyCount> countBySourceAuthorForCompany();
 
     /** 나중에 읽은 원문 작성자 번호를 채운다. 그 사이 다른 작업이 채웠으면 0을 돌려준다. */
     @Modifying(clearAutomatically = true)

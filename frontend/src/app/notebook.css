@@ -1,4 +1,5 @@
-.public-notebook {
+.public-notebook,
+.public-theme {
   --ink:#234565;
   --ink-60:#486b8d;
   --ink-40:#516e88;
@@ -11,11 +12,22 @@
   --brand-soft:#e7f1fc;
   --brand-soft-strong:#dcecff;
   --brand-line:#a8c9ec;
-  background:#f5faff;
-  color:#234565;
+  --focus:var(--brand);
+  --pass:#15803d;
+  --warn:#a15c07;
+}
+
+.public-notebook {
+  background:var(--paper);
+  color:var(--ink);
   min-height:100dvh;
   word-break:keep-all;
   overflow-wrap:anywhere;
+}
+
+.applicant-theme {
+  --pass:#15803d;
+  --warn:#a15c07;
 }
 
 .notebook-container {
@@ -32,7 +44,7 @@
   transition:background-color .18s,border-color .18s,box-shadow .18s;
 }
 
-.public-notebook :is(a,button,summary,input):focus-visible {
+.public-notebook :is(a,button,summary,input,select,textarea):focus-visible {
   outline:3px solid #2564a8;
   outline-offset:4px;
 }
@@ -124,6 +136,9 @@
 .notebook-menu-toggle { display:grid; place-items:center; width:44px; height:44px; border-radius:8px; }
 .notebook-menu-toggle:hover { background:#e7f1fc; }
 .notebook-mobile-menu {
+  max-height:calc(100dvh - 72px);
+  overflow-y:auto;
+  overscroll-behavior:contain;
   position:absolute;
   inset:100% 0 auto;
   background:#fafdff;
@@ -314,7 +329,7 @@
   gap:6px;
   min-height:44px;
   border:1px solid #c9ddee;
-  border-radius:7px;
+  border-radius:var(--radius-control);
   padding:10px 14px;
   background:#fff;
   color:#496b8d;
@@ -322,7 +337,8 @@
   font-weight:600;
 }
 
-.notebook-filter[aria-current=true] {
+.notebook-filter[aria-current=true],
+.notebook-filter[aria-pressed=true] {
   background:#2564a8;
   border-color:#2564a8;
   color:#fff;
@@ -338,7 +354,7 @@
   gap:10px;
   border:1px solid #c9ddee;
   background:#fff;
-  border-radius:9px;
+  border-radius:var(--radius-control);
   min-height:48px;
   padding:10px 14px;
   width:300px;
@@ -372,7 +388,7 @@
 
 .notebook-post-grid {
   display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
+  grid-template-columns:repeat(2,minmax(0,1fr));
   gap:20px;
 }
 
@@ -380,7 +396,7 @@
   flex-direction:column;
   gap:0;
   padding:23px;
-  border-radius:10px;
+  border-radius:var(--radius-card);
   border-color:#c7dcec;
   box-shadow:none;
   background:#fff;
@@ -433,8 +449,12 @@
   margin-top:14px;
 }
 
+.notebook-post-card h2 + p {
+  margin-bottom:18px;
+}
+
 .notebook-post-card dl {
-  margin-top:18px;
+  margin-top:auto;
   padding-top:16px;
   gap:7px 14px;
 }
@@ -454,7 +474,7 @@
   min-height:44px;
   padding:10px 18px;
   border:1px solid #afc9e1;
-  border-radius:9px;
+  border-radius:var(--radius-control);
   font-size:14px;
   font-weight:600;
   background:#fff;
@@ -683,10 +703,6 @@
   aspect-ratio:4 / 3;
 }
 
-.notebook-chat-note:hover {
-  border-color:#6197cb;
-  box-shadow:0 4px 16px #3b6c9c16;
-}
 
 .notebook-footer {
   background:#deedf9;
@@ -726,7 +742,7 @@
 .notebook-footer-top nav :is(a,button) {
   display:inline-flex;
   align-items:center;
-  min-height:36px;
+  min-height:44px;
 }
 .notebook-footer-top nav button { align-self:flex-start; }
 
@@ -871,10 +887,10 @@
 .notebook-notice-confirm { display:block; width:100%; min-height:44px; margin-top:24px; border-radius:8px; background:#2564a8; color:#fff; font-size:15px; font-weight:600; }
 .notebook-notice-confirm:hover { background:#1d528d; }
 .notebook-notice-confirm:focus-visible { outline:3px solid #2564a8; outline-offset:3px; }
-.notebook-post-detail { border-radius:12px; }
+.notebook-post-detail { border-radius:var(--radius-card); }
 .notebook-auth { display:flex; justify-content:center; padding-block:48px 64px; }
 .notebook-auth.is-compact { padding-block:32px 48px; }
-.notebook-auth-card { width:100%; max-width:480px; background:#fff; border:1px solid #d7e3ed; border-radius:12px; padding:32px; }
+.notebook-auth-card { width:100%; max-width:480px; background:#fff; border:1px solid #d7e3ed; border-radius:var(--radius-card); padding:32px; }
 .notebook-auth-card h1 { font-size:28px; font-weight:750; line-height:1.4; }
 .notebook-auth-description { margin-top:10px; font-size:15px; line-height:1.7; color:#516e88; }
 .notebook-auth-footer { margin-top:24px; font-size:14px; line-height:1.7; color:#516e88; }
@@ -889,6 +905,10 @@
 .notebook-producer-features article:first-child { padding-top:0; }
 .notebook-producer-features h3 { font-size:20px; font-weight:650; }
 .notebook-producer-features p { margin-top:8px; font-size:15px; line-height:1.8; color:#516e88; }
+
+@media(min-width:1100px) {
+  .notebook-post-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+}
 
 @media(max-width:1080px) {
   .notebook-header-inner {
@@ -1056,7 +1076,7 @@
     font-size:13px;
   }
   .notebook-footer-top nav :is(a,button) {
-    min-height:40px;
+    min-height:44px;
   }
   .notebook-footer-bottom {
     flex-direction:column;
@@ -1120,4 +1140,48 @@
   .notebook-banner img {
     object-fit:contain;
   }
+}
+
+/* 분야 탐색과 모집 상태는 서로 다른 선택 단계로 구분한다. */
+.notebook-category-row { margin-bottom:20px; border-bottom:1px solid var(--line); }
+.notebook-category-tabs { display:flex; flex-wrap:wrap; gap:4px 18px; min-width:0; }
+.notebook-category-tab { display:inline-flex; align-items:center; min-height:48px; padding:10px 2px; border-bottom:3px solid transparent; font-size:15px; font-weight:600; color:var(--ink-40); white-space:nowrap; }
+.notebook-category-tab:hover,.notebook-category-tab[aria-current=true] { color:var(--brand); border-bottom-color:var(--brand); }
+.notebook-category-tab[aria-current=true] { font-weight:750; }
+.notebook-recruitment-filters { flex-shrink:0; }
+.notebook-recruitment-filters .notebook-filter { min-height:44px; padding:8px 12px; font-size:13px; }
+.notebook-toolbar.is-preview { flex-wrap:wrap; align-items:center; border-bottom:1px solid var(--line); padding-bottom:12px; }
+.notebook-toolbar.is-preview .notebook-recruitment-filters { margin-left:auto; }
+
+/* 기본 썸네일의 글자와 로고는 원본 이미지 위에 선명하게 표시한다. */
+.notebook-post-placeholder .notebook-default-art { object-position:right center; }
+.notebook-post-placeholder .notebook-default-copy { position:absolute; inset:14px auto 14px 16px; display:flex; flex-direction:column; align-items:flex-start; justify-content:space-between; width:48%; color:#17395a; }
+.notebook-post-placeholder .notebook-default-logo { display:block; width:66px; height:auto; object-fit:contain; }
+.notebook-post-placeholder .notebook-default-copy>span { font-size:20px; font-weight:750; line-height:1.3; }
+.notebook-post-placeholder .notebook-default-caption { display:block; margin-top:4px; font-size:11px; font-weight:600; color:#486b8d; }
+
+/* 공개 상단 탐색은 글자색과 밑줄로 선택·hover를 표시한다. */
+.notebook-main-nav :is(a,button) { position:relative; border-radius:0; }
+.notebook-main-nav :is(a,button)::after { content:""; position:absolute; bottom:3px; left:14px; right:14px; height:2px; background:transparent; }
+.notebook-main-nav :is(a,button):hover,.notebook-main-nav a[aria-current=page] { background:transparent; color:var(--brand); }
+.notebook-main-nav :is(a,button):hover::after,.notebook-main-nav a[aria-current=page]::after { background:var(--brand); }
+.notebook-footer-brand { min-width:0; }
+.notebook-footer-brand .notebook-footer-slogan { margin-top:20px; font-size:clamp(19px,2vw,24px); font-weight:750; line-height:1.5; color:var(--ink); }
+.notebook-footer-brand .notebook-footer-description { margin-top:10px; max-width:28rem; font-size:14px; line-height:1.8; }
+.notebook-footer-email { display:flex; flex-direction:column; align-items:flex-start; gap:4px; margin-top:24px; font-size:12px; }
+.notebook-email-address { max-width:100%; overflow-wrap:anywhere; user-select:all; font-size:16px; font-weight:650; color:var(--ink); }
+.notebook-show-card.is-ended .notebook-show-poster img,.public-show-card.is-ended img { filter:grayscale(1); opacity:.5; }
+.notebook-show-card.is-ended { background:#f3f7fb; }
+.public-show-card.is-ended { background:var(--paper); }
+.notebook-show-group+.notebook-show-group { margin-top:40px; padding-top:32px; border-top:1px solid var(--line); }
+.notebook-show-group-heading { display:flex; align-items:center; gap:8px; margin-bottom:16px; font-size:18px; font-weight:700; }
+.notebook-show-group-heading span { font-size:14px; color:var(--ink-40); font-weight:500; }
+
+@media(max-width:760px) {
+  .notebook-category-tabs { gap:0 16px; }
+  .notebook-category-tab { font-size:14px; }
+  .notebook-toolbar.is-preview { align-items:flex-start; gap:12px; }
+  .notebook-toolbar.is-preview .notebook-recruitment-filters { margin-left:0; }
+  .notebook-footer-top { gap:36px 24px; }
+  .notebook-footer-brand .notebook-footer-description { font-size:14px; }
 }

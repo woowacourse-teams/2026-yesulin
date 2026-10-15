@@ -6,8 +6,11 @@ import static art.yesulin.auditionpost.domain.AuditionPostStatus.PUBLISHED;
 import art.yesulin.auditionpost.domain.AuditionCategory;
 import art.yesulin.auditionpost.domain.AuditionPost;
 import art.yesulin.auditionpost.domain.AuditionPostCounts;
+import art.yesulin.auditionpost.domain.AuditionPostErrorCode;
 import art.yesulin.auditionpost.domain.AuditionPostRepository;
 import art.yesulin.auditionpost.domain.AuditionPostStatus;
+import art.yesulin.company.application.CompanyService;
+import art.yesulin.company.domain.CompanyErrorCode;
 import art.yesulin.file.application.storage.ObjectStorage;
 import art.yesulin.global.audit.AdminAction;
 import art.yesulin.global.audit.AdminAuditLog;
@@ -19,6 +22,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -32,6 +36,7 @@ public class AuditionPostService {
 
     public static final int MAX_PAGE_SIZE = 48;
     private static final int ADMIN_LIST_LIMIT = 200;
+    private static final int COMPANY_POST_LIMIT = 30;
     private static final ZoneId KOREA = ZoneId.of("Asia/Seoul");
     private static final String TARGET_TYPE = "AUDITION_POST";
 
@@ -40,6 +45,7 @@ public class AuditionPostService {
     private final AdminAuditLogRepository auditLogRepository;
     private final AuditionPostOwners owners;
     private final ObjectStorage storage;
+    private final CompanyService companies;
     private final Clock clock;
 
     /** 분야가 있으면 해당 분야만 센다. 기본은 모집 중이며 마감 포함 여부와 관계없이 원문 작성 최신순이다. */
@@ -85,8 +91,29 @@ public class AuditionPostService {
             return new PublicAuditionPostView.Hidden(URI.create(post.getSourceUrl()));
         }
         return new PublicAuditionPostView.Published(PublicAuditionPostResult.from(
-                post, AuditionPostOwners.authorOf(post, owners.nameOf(post)), today(), KOREA, storage::toPublicUrl
+                post, AuditionPostOwners.authorOf(post, owners.nameOf(post)),
+                companies.findPublishedSummary(post.getCompanyId()).orElse(null),
+                today(), KOREA, storage::toPublicUrl
         ));
+    }
+
+    /** 공연사 화면의 공고 목록. 공개한 공연사가 아니면 없는 공연사처럼 404다. */
+    @Transactional(readOnly = true)
+    public List<PublicAuditionPostSummaryResult> findCompanyPosts(long companyId) {
+        if (companies.findPublishedSummary(companyId).isEmpty()) {
+            throw new BusinessException(CompanyErrorCode.NOT_FOUND, "공연사를 찾을 수 없습니다.");
+        }
+        LocalDate today = today();
+        List<AuditionPost> result = repository.findByCompany(
+                companyId, PUBLISHED, PageRequest.of(0, COMPANY_POST_LIMIT)
+        );
+        Map<Long, String> ownerNames = owners.namesOf(result);
+        return result.stream()
+                .map(post -> PublicAuditionPostSummaryResult.from(
+                        post, AuditionPostOwners.authorOf(post, AuditionPostOwners.nameIn(ownerNames, post)),
+                        today, KOREA, storage::toPublicUrl
+                ))
+                .toList();
     }
 
     /** 공개 상세를 연 브라우저가 한 번 보낸다. 숨겼거나 없는 공고는 404다. */
@@ -137,6 +164,23 @@ public class AuditionPostService {
             auditLogRepository.save(new AdminAuditLog(
                     adminId, AdminAction.AUDITION_POST_STATUS_CHANGED, TARGET_TYPE, post.getId(),
                     "%s → %s".formatted(previous, status)
+            ));
+        }
+        return AdminAuditionPostResult.from(post, today(), owners.nameOf(post));
+    }
+
+    /** 운영자가 공고를 공연사에 연결하거나 연결을 끊는다. 공개 전인 공연사도 미리 연결할 수 있다. */
+    @Transactional
+    public AdminAuditionPostResult changeCompany(long adminId, long postId, Long companyId) {
+        AuditionPost post = repository.findById(postId).orElseThrow(this::notFound);
+        if (companyId != null && !companies.exists(companyId)) {
+            throw new BusinessException(AuditionPostErrorCode.INVALID_INPUT, "공연사를 찾을 수 없습니다.");
+        }
+        if (!Objects.equals(post.getCompanyId(), companyId)) {
+            post.changeCompany(companyId);
+            auditLogRepository.save(new AdminAuditLog(
+                    adminId, AdminAction.AUDITION_POST_COMPANY_CHANGED, TARGET_TYPE, post.getId(),
+                    companyId == null ? "공연사 연결 해제" : "공연사 %d 연결".formatted(companyId)
             ));
         }
         return AdminAuditionPostResult.from(post, today(), owners.nameOf(post));

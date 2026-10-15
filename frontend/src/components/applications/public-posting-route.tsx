@@ -40,14 +40,14 @@ export function PublicPostingRoute({ postingId, initialPosting, useProfilePrefil
 }
 
 function PublicPostingLoading() {
-  return <main aria-label="공개 공고 불러오는 중" className="min-h-screen bg-surface px-5 py-10 text-foreground">
+  return <main aria-busy="true" aria-label="공개 공고 불러오는 중" className="min-h-screen bg-surface px-5 py-10 text-foreground">
     <div className="mx-auto max-w-[1120px] animate-pulse">
       <div className="h-8 w-40 rounded bg-border-soft" />
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="h-[560px] rounded-modal bg-border-soft" />
         <div className="h-72 rounded-card bg-border" />
       </div>
-      <p className="sr-only">공고 정보를 불러오고 있습니다.</p>
+      <p role="status" className="sr-only">공고 정보를 불러오고 있습니다.</p>
     </div>
   </main>;
 }

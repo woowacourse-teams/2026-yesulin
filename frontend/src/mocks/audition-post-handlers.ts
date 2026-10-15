@@ -1,5 +1,6 @@
 import { delay, http, HttpResponse, passthrough } from "msw";
 import { AUDITION_POST_CATEGORIES, type AuditionPost, type AuditionPostSummary } from "@/features/audition-posts/types";
+import { companyHandlers, mockCompanyOfPost } from "./company-handlers";
 
 /**
  * 메인 공고 목록·상세 화면 확인용 메모리 목. 실제 서버는 운영자가 공개한 공고를 원문 작성 최신순으로 준다.
@@ -32,6 +33,7 @@ const POSTS: readonly AuditionPost[] = [
     source: "OTR",
     sourceUrl: "https://otr.co.kr/audition/?vid=22391",
     updatedAt: new Date().toISOString(),
+    company: null,
   },
   {
     id: 2,
@@ -57,6 +59,7 @@ const POSTS: readonly AuditionPost[] = [
     source: "OTR",
     sourceUrl: "https://otr.co.kr/audition/?vid=22392",
     updatedAt: new Date().toISOString(),
+    company: null,
   },
   {
     id: 3,
@@ -75,6 +78,7 @@ const POSTS: readonly AuditionPost[] = [
     source: "OTR",
     sourceUrl: "https://otr.co.kr/audition/?vid=22393",
     updatedAt: new Date().toISOString(),
+    company: null,
   },
   {
     id: 4,
@@ -93,6 +97,7 @@ const POSTS: readonly AuditionPost[] = [
     source: "OTR",
     sourceUrl: "https://otr.co.kr/audition/?vid=22394",
     updatedAt: new Date().toISOString(),
+    company: null,
   },
 ];
 
@@ -115,6 +120,9 @@ function toSummary(post: AuditionPost): AuditionPostSummary {
 }
 
 export const auditionPostHandlers = [
+  ...companyHandlers((postIds) => POSTS.filter((post) => postIds.includes(post.id))
+    .sort((left, right) => (right.postedAt ?? "").localeCompare(left.postedAt ?? ""))
+    .map(toSummary)),
   http.get("/api/v1/public/audition-posts", async ({ request }) => {
     await delay(200);
     const url = new URL(request.url);
@@ -148,7 +156,7 @@ export const auditionPostHandlers = [
     if (!post) {
       return HttpResponse.json({ code: "AUDITION_POST_NOT_FOUND", message: "공고를 찾을 수 없습니다." }, { status: 404 });
     }
-    return HttpResponse.json(post);
+    return HttpResponse.json({ ...post, company: mockCompanyOfPost(post.id) });
   }),
 
   http.post("/api/v1/public/audition-posts/:postId/views", async ({ params }) => {

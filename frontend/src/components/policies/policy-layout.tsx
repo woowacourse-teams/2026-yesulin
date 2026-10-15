@@ -41,6 +41,13 @@ export function PolicyLayout({
           </nav>
         </aside>
 
+        <details className="rounded-card border border-border bg-card p-4 lg:hidden">
+          <summary className="min-h-11 cursor-pointer py-2.5 text-sm font-semibold">목차 보기</summary>
+          <nav aria-label={`${title} 모바일 목차`} className="mt-2 grid border-t border-border-soft pt-2">
+            {navigation.map((item) => <a key={item.href} href={item.href} className="flex min-h-11 items-center rounded-control px-2 py-2 text-sm leading-6 text-muted-strong hover:bg-brand-soft hover:text-brand">{item.label}</a>)}
+          </nav>
+        </details>
+
         <article className="min-w-0 rounded-card border border-border bg-card px-5 py-8 shadow-[var(--shadow-1)] sm:px-8 sm:py-10 lg:px-12">
           <header className="border-b border-border pb-8">
             <p className="text-sm font-semibold text-brand">예술in 정책 문서</p>

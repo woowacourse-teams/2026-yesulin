@@ -50,6 +50,7 @@ import org.hibernate.annotations.DynamicUpdate;
 }, indexes = {
         @Index(name = "idx_audition_posts_status_posted", columnList = "status, source_posted_at"),
         @Index(name = "idx_audition_posts_owner", columnList = "owner_id, id"),
+        @Index(name = "idx_audition_posts_company", columnList = "company_id, id"),
         @Index(name = "idx_audition_posts_source_author", columnList = "source, source_author_id")
 })
 @Getter
@@ -128,6 +129,10 @@ public class AuditionPost {
     /** 이 공고를 고칠 수 있는 기획사 회원. 기획사가 올렸거나 운영자가 연결한 공고에만 있다. */
     @Column(name = "owner_id")
     private Long ownerId;
+
+    /** 공고를 올린 공연사. 운영자가 연결하며, 공연사를 공개해야 공고 상세에 함께 보인다. */
+    @Column(name = "company_id")
+    private Long companyId;
 
     /** 운영자나 소유 기획사가 마지막으로 직접 고친 시각. 원문으로 다시 가져오면 비운다. */
     @Column(name = "edited_at")
@@ -297,6 +302,14 @@ public class AuditionPost {
             throw invalid("연결할 기획사가 올바르지 않습니다.");
         }
         this.ownerId = ownerId;
+    }
+
+    /** 운영자가 공고를 공연사에 연결하거나 연결을 끊는다. */
+    public void changeCompany(Long companyId) {
+        if (companyId != null && companyId <= 0) {
+            throw invalid("연결할 공연사가 올바르지 않습니다.");
+        }
+        this.companyId = companyId;
     }
 
     public boolean isOwnedBy(long memberId) {

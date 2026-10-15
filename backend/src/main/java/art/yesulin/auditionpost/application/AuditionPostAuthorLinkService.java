@@ -14,6 +14,7 @@ import art.yesulin.auditionpost.domain.AuditionPostRepository;
 import art.yesulin.auditionpost.domain.AuditionPostStatus;
 import art.yesulin.auditionpost.domain.authorlink.AuditionPostAuthorLink;
 import art.yesulin.auditionpost.domain.authorlink.AuditionPostAuthorLinkRepository;
+import art.yesulin.auditionpost.domain.companylink.AuditionPostCompanyLinkRepository;
 import art.yesulin.global.audit.AdminAction;
 import art.yesulin.global.audit.AdminAuditLog;
 import art.yesulin.global.audit.AdminAuditLogRepository;
@@ -56,6 +57,7 @@ public class AuditionPostAuthorLinkService {
 
     private final AuditionPostRepository postRepository;
     private final AuditionPostAuthorLinkRepository linkRepository;
+    private final AuditionPostCompanyLinkRepository companyLinkRepository;
     private final AuditionPostOwners owners;
     private final AuditionPostSource source;
     private final AdminAuditLogRepository auditLogRepository;
@@ -65,6 +67,7 @@ public class AuditionPostAuthorLinkService {
     public AuditionPostAuthorLinkService(
             AuditionPostRepository postRepository,
             AuditionPostAuthorLinkRepository linkRepository,
+            AuditionPostCompanyLinkRepository companyLinkRepository,
             AuditionPostOwners owners,
             AuditionPostSource source,
             AdminAuditLogRepository auditLogRepository,
@@ -73,6 +76,7 @@ public class AuditionPostAuthorLinkService {
     ) {
         this.postRepository = postRepository;
         this.linkRepository = linkRepository;
+        this.companyLinkRepository = companyLinkRepository;
         this.owners = owners;
         this.source = source;
         this.auditLogRepository = auditLogRepository;
@@ -184,11 +188,17 @@ public class AuditionPostAuthorLinkService {
         );
     }
 
-    /** 번호를 채우고, 자동 연결 규칙이 있으면 기획사가 없는 이 작성자의 공고를 연결한다. 이 공고를 연결했으면 true다. */
+    /**
+     * 번호를 채우고, 자동 연결 규칙이 있으면 기획사가 없는 이 작성자의 공고를 연결한다. 공연사로 묶은 규칙이 있으면 공연사가 없는
+     * 공고도 그 공연사에 연결한다. 이 공고를 기획사에 연결했으면 true다.
+     */
     private boolean fill(long postId, String sourceName, String authorId) {
         if (postRepository.fillSourceAuthor(postId, authorId) == 0) {
             return false;
         }
+        companyLinkRepository.findBySourceAndSourceAuthorId(sourceName, authorId).ifPresent(companyLink ->
+                postRepository.connectCompanylessBySourceAuthor(sourceName, authorId, companyLink.getCompanyId())
+        );
         Optional<AuditionPostAuthorLink> link = linkRepository.findBySourceAndSourceAuthorId(sourceName, authorId);
         if (link.isEmpty()) {
             return false;

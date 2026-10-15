@@ -1,4 +1,4 @@
-import type { PublicShow, PublicShowSession } from "./types";
+import type { PublicShow, PublicShowSession, PublicShowSummary } from "./types";
 
 /** 잔여석이 이 값 이하이면 "잔여 n석"을 강조해 보여 준다. */
 export const FEW_SEATS_THRESHOLD = 10;
@@ -130,4 +130,9 @@ export function toKstDateTimeInput(value: string): string {
   if (!parts) return "";
   const pad = (part: string) => part.padStart(2, "0");
   return `${parts.year}-${pad(parts.month)}-${pad(parts.day)}T${parts.time}`;
+}
+
+/** 목록에는 좌석 정보가 없으므로 다음 회차 일시로 일정 유무만 구분한다. */
+export function hasUpcomingShowSession(show: Pick<PublicShowSummary, "nextSessionStartsAt">, now = Date.now()): boolean {
+  return show.nextSessionStartsAt !== null && Date.parse(show.nextSessionStartsAt) > now;
 }

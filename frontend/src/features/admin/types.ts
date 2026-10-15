@@ -1,3 +1,6 @@
+import type { VenueAddress } from "../auditions/creation-types";
+import type { CompanyField, CompanyWrite } from "../companies/profile-draft";
+
 export type MemberStatus = "PENDING" | "ACTIVE";
 
 export type AdminOtrRedirectReport = {
@@ -342,6 +345,8 @@ export type AdminAuditionPost = {
   readonly ownerId: number | null;
   /** 연결된 기획사 이름. 연결이 없거나 기획사 정보가 없어졌으면 null. */
   readonly ownerName: string | null;
+  /** 공고를 올린 공연사 ID. 공연사를 공개해야 공개 상세에 함께 보인다. 연결되지 않았으면 null. */
+  readonly companyId: number | null;
 };
 
 /** 기획사 한 곳의 공고 수와 자동 연결된 원문 작성자. */
@@ -408,3 +413,127 @@ export type AdminAuditionPostImport = {
   /** 형식·크기 기준에 맞지 않아 옮기지 않은 첨부파일. */
   readonly skippedAttachments: readonly { readonly filename: string; readonly reason: string }[];
 };
+
+export type AdminCompanyStatus = "PENDING" | "PUBLISHED" | "HIDDEN";
+
+/** 공고를 올린 공연사 정보. `/api/v1/admin/companies` 응답과 같다. 비워 둔 항목은 null이다. */
+export type AdminCompany = {
+  readonly id: number;
+  readonly name: string;
+  readonly representativeName: string | null;
+  /** 공연사가 대표자 이름 공개에 동의했는지. false면 공개 화면에 대표자 이름이 없다. */
+  readonly representativeNamePublic: boolean;
+  /** 홈페이지·SNS 같은 링크. 최대 3개. */
+  readonly links: readonly string[];
+  /** `YYYY-MM-DD` */
+  readonly foundedOn: string | null;
+  /** 공연사가 직접 알려 준 주소. 지도는 이 주소만 사용한다. */
+  readonly address: VenueAddress | null;
+  /** 공식 사업장 주소라 상세 주소와 지도를 공개하는지. false면 시·군·구까지만 보인다. */
+  readonly addressPublic: boolean;
+  /** 주소가 없을 때 대신 보일 지역(예: `서울`). */
+  readonly region: string | null;
+  readonly phone: string | null;
+  readonly description: string | null;
+  readonly history: string | null;
+  /** 대표 사진 공개 주소. 없으면 null이다. */
+  readonly photoUrl: string | null;
+  /** 정보를 확인한 출처. 운영자만 본다. */
+  readonly sourceNote: string | null;
+  readonly status: AdminCompanyStatus;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+};
+
+/** 공연사 정보 저장 본문. 이름 말고는 비워 둘 수 있고, 비운 항목은 지운다. */
+export type AdminCompanyWrite = CompanyWrite;
+
+/** 원문 공고를 올린 작성자 한 명. 같은 작성자의 공고를 한 공연사로 묶는다. */
+export type AdminCompanyAuthor = {
+  readonly source: string;
+  /** 원문 작성자 번호. 번호를 읽기 전에 가져온 공고만 있으면 null이고, 이때는 묶을 수 없다. */
+  readonly sourceAuthorId: string | null;
+  /** 가장 최근 공고의 닉네임. */
+  readonly authorName: string;
+  readonly postCount: number;
+  /** 아직 공연사에 연결되지 않은 공고 수. */
+  readonly companylessCount: number;
+  readonly latestCreatedAt: string;
+  readonly linkId: number | null;
+  readonly companyId: number | null;
+  readonly companyName: string | null;
+};
+
+export type AdminCompanyAuthorOverview = {
+  readonly authors: readonly AdminCompanyAuthor[];
+  /** 원문 작성자 번호를 아직 읽지 않은 원문 공고 수. */
+  readonly missingAuthorIdCount: number;
+};
+
+
+/** 운영자 공고 목록에서 연 공고의 공연사 정보. */
+export type AdminPostCompanyProfile = {
+  /** 이 공고의 공연사. 연결이 없으면 같은 원문 작성자로 이전에 쓴 공연사다. 둘 다 없으면 null. */
+  readonly company: AdminCompany | null;
+  /** 공고에는 연결되지 않았지만 같은 원문 작성자로 이전에 쓴 정보를 찾았는지. */
+  readonly sharedByAuthor: boolean;
+  /** 새로 쓸 때 이름 칸에 미리 넣을 원문 작성자 이름. */
+  readonly suggestedName: string;
+  /** 원문 작성자 번호. 있으면 저장할 때 같은 작성자의 공고에도 연결된다. */
+  readonly sourceAuthorId: string | null;
+};
+
+/** 공개 화면에서 누구나 보낸 공연사 정보 수정 요청. `/api/v1/admin/company-edit-requests` 응답 항목과 같다. */
+export type AdminCompanyEditRequest = {
+  readonly id: number;
+  /** 지금 공연사 정보. */
+  readonly company: AdminCompany;
+  /** 요청한 공연사 정보. 비워 달라는 항목은 null이다. 사진은 {@link adminEditRequestPhotoUrl}로 본다. */
+  readonly proposal: Omit<AdminCompany, "id" | "sourceNote" | "status" | "createdAt" | "updatedAt" | "photoUrl"> & {
+    /** 사진을 함께 보냈는지. */
+    readonly photoAttached: boolean;
+  };
+  /** 요청자가 바꾼 항목. 적용할 때 이 항목만 요청 값으로 덮어쓴다. */
+  readonly changedFields: readonly CompanyField[];
+  readonly reason: string;
+  /** 요청자가 남긴 연락처. 처리하면 지운다. */
+  readonly contact: string | null;
+  readonly createdAt: string;
+};
+
+/** 공연예술통합전산망(KOPIS)에 등록된 기획·제작사. 공연사 정보를 쓸 때 처음 값으로만 쓴다. */
+export type KopisCompany = {
+  /** KOPIS 기획제작사 ID(예: `AG019413`). */
+  readonly kopisId: string | null;
+  readonly name: string;
+  readonly genre: string | null;
+  readonly phone: string | null;
+  readonly homepage: string | null;
+  /** KOPIS에 등록된 최근 작품 이름. */
+  readonly recentWorks: readonly string[];
+};
+
+export type KopisCompanySearchResult = {
+  /** KOPIS를 불렀는지. 인증키가 없거나 응답하지 않으면 false다. */
+  readonly available: boolean;
+  /** 회사 형태 표시를 뗀, 실제로 찾은 이름. */
+  readonly query: string;
+  readonly companies: readonly KopisCompany[];
+};
+
+/** 브라우저가 공연사 사진을 저장소로 바로 올릴 주소. 백엔드 `CompanyPhotoUploadResult`와 같다. */
+export type CompanyPhotoUpload = {
+  readonly url: string;
+  readonly method: string;
+  readonly headers: Readonly<Record<string, string>>;
+  readonly expiresAt: string;
+  /** 운영자 업로드의 공개 주소. 공연사를 저장할 때 이 주소로 확정한다. */
+  readonly photoUrl: string | null;
+  /** 수정 요청 업로드의 키. 요청을 보낼 때 이 키로 확정한다. */
+  readonly uploadKey: string | null;
+};
+
+/** 수정 요청과 함께 온 사진. 적용 전이라 공개 주소가 없어 운영자 API로 본다. */
+export function adminEditRequestPhotoUrl(requestId: number): string {
+  return `/api/v1/admin/company-edit-requests/${requestId}/photo`;
+}

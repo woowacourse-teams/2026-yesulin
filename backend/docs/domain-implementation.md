@@ -193,6 +193,34 @@
   돌려주고, Controller가 `Hidden`을 302로 바꾼다.
 - 가져온 파일은 `file_assets`에 등록하지 않는다. 회원 소유 업로드가 아니며 미사용 파일 관리 대상에도 포함하지 않는다.
 
+## 공연사
+
+- `company/domain`의 `Company`(`companies`)는 공연사 이름·대표자(공개 동의 `representative_name_public`)·링크(`company_links`, 최대 3개)·설립일·주소 `CompanyAddress`(embeddable)와 상세 주소 공개 여부(`address_public`)·지역·연락처·소개·연혁·운영자용 정보 출처 메모와
+  공개 상태 `CompanyStatus`, 만든 운영자, 생성·갱신 시각을 저장한다. 기획사 계정(`producers`)과 연결하지 않는다.
+- 정보는 `CompanyProfile`로 통째로 바꾸고, `Company`가 공백 정리·길이·홈페이지 형식·설립일 범위·연락처 형식을 검사한다.
+  공고 카드 위치는 `Company.locationSummary`(주소의 앞 두 단어, 없으면 지역)가 정한다.
+  공개 응답은 `publicRepresentativeName`·`publicAddress`로 동의하지 않은 대표자 이름과 상세 주소를 뺀다.
+- 공고는 `audition_posts.company_id`로 공연사를 가리킨다. `company`가 `auditionpost`를 모르도록 공고 상세 요약과 공연사 공고 목록은
+  `AuditionPostService`가 `CompanyService`를 불러 만든다. 공개 중인 공연사만 요약을 붙이고, 공연사 공고 목록도 공개 중인 공연사만 준다.
+- `auditionpost/domain/companylink`의 `AuditionPostCompanyLink`(`audition_post_company_links`, `(source, source_author_id)` 유니크)는
+  원문 작성자를 공연사로 묶는 규칙이다. `AuditionPostCompanyLinkService`가 규칙을 만들거나 옮길 때 `company_id is null` 조건의 일괄
+  update로 기존 공고를 연결하고, 옮길 때는 예전 공연사에 연결됐던 그 작성자의 공고만 옮긴다. `AuditionPostImportService`와 작성자 번호
+  채우기(`AuditionPostAuthorLinkService.fill`)가 공연사 없는 공고에 규칙의 공연사를 붙인다. 작성자로 공연사를 만들 때는
+  `CompanyService.create`를 같은 트랜잭션에서 불러 묶기에 실패하면 공연사도 남기지 않는다.
+- 대표 사진은 `Company.photoKey`(공개 저장소 키)로 정보와 따로 바꾼다(`changePhoto`). `company/application/photo`의
+  `CompanyPhotoService`가 `company_photo_uploads`로 올릴 자리를 기록하고 확정·정리하며, `CompanyPhotoStorage`가 공개·비공개 키와
+  확인(HEAD·서명), 요청 사진의 공개 복사를 맡는다. `CompanyService`는 사진 확정을 정보 저장과 같은 트랜잭션에서 하고 이전 사진을
+  커밋 뒤 지운다. 수정 요청의 사진은 `CompanyEditRequest.photoKey`(비공개 키)이고 처리하면 비운다.
+- `company/application/kopis`의 `KopisCompanyService`는 이름에서 회사 형태 표시를 떼고 `KopisCompanySearch` 포트로 KOPIS
+  기획제작사를 찾는다. 구현 `company/infrastructure/kopis/KopisOpenApiClient`는 `https://kopis.or.kr/openApi/restful/mnfct`를 Java
+  `HttpClient`로 부르고 jsoup XML 파서로 읽으며, 성공한 결과만 Caffeine에 12시간 둔다. 인증키(`yesulin.kopis.api-key`)가 없거나
+  실패하면 `KopisUnavailableException`을 던지고 서비스가 `available=false`로 바꾼다. 인증키가 든 주소는 로그에 남기지 않는다.
+- `company/domain/editrequest`의 `CompanyEditRequest`(`company_edit_requests`, 링크는 `company_edit_request_links`)는 공개 화면의 정보 수정
+  요청이다. 요청 정보 전체를 `Company.normalize`(공연사 정보와 같은 검사)로 정리해 담고, 요청자가 바꾼 항목 `CompanyField`를
+  `changed_fields`에 쉼표로 저장한다. `PENDING`에서만 `APPLIED`·`REJECTED`로 끝나며 끝나면 연락처를 지운다. `CompanyEditRequestService`는
+  공개 중인 공연사에만 요청을 받고, 커밋 뒤 `CompanyEditRequestedEvent`로 `CompanyEditRequestNotifier`(Slack)를 부른다. 적용은
+  `CompanyService.update`를 같은 트랜잭션에서 부른다.
+
 ## 지원서
 
 - 일반 지원서는 `type=STANDARD`로 저장한다. 이전 요청처럼 `type`이 없으면 서버가 `STANDARD`로 간주한다.

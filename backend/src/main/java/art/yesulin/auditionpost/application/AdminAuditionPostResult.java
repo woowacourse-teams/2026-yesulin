@@ -10,6 +10,7 @@ import java.time.LocalDate;
  * 운영 공고 목록의 한 줄.
  *
  * @param authorName 저장된 작성자(원문 닉네임이나 운영자가 쓴 이름). 기획사에 연결된 공고는 화면에 {@code ownerName}이 보인다.
+ * @param companyId 연결된 공연사. 공개 전인 공연사도 연결할 수 있다.
  */
 public record AdminAuditionPostResult(
         long id,
@@ -31,7 +32,8 @@ public record AdminAuditionPostResult(
         Instant updatedAt,
         Instant editedAt,
         Long ownerId,
-        String ownerName
+        String ownerName,
+        Long companyId
 ) {
 
     /**
@@ -60,7 +62,8 @@ public record AdminAuditionPostResult(
                 post.getUpdatedAt(),
                 post.getEditedAt(),
                 post.getOwnerId(),
-                ownerName
+                ownerName,
+                post.getCompanyId()
         );
     }
 }

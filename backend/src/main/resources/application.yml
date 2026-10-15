@@ -91,6 +91,9 @@ yesulin:
       maximum-size: 32
   monitoring:
     enabled: ${YESULIN_MONITORING_ENABLED:true}
+  kopis:
+    # 공연예술통합전산망 Open API 인증키. 비우면 운영자 공연사 정보 쓰기에서 KOPIS 조회를 끈다.
+    api-key: ${KOPIS_API_KEY:}
   notice:
     link-base-url: ${YESULIN_NOTICE_LINK_BASE_URL}
   timetable:

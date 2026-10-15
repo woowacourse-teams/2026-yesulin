@@ -37,12 +37,12 @@ export function PublicApplicationReview() {
     tracked.current = true;
     trackAnalyticsEvent("application_review_view", { is_authenticated: meta.authenticated, issue_count: state.reviewIssues.length });
   }, [meta.authenticated, state.reviewIssues.length]);
-  return <main className="min-h-screen bg-surface pb-12 text-foreground">
+  return <main className="min-h-dvh break-keep bg-surface pb-12 text-foreground wrap-break-word">
     <header className="glass-surface sticky top-0 z-20 border-x-0 border-t-0"><div className="mx-auto flex min-h-16 max-w-[880px] items-center px-5 md:px-8"><span className="text-sm font-semibold text-brand">지원서 검토</span><PublicApplicationSaveBadge /></div></header>
     <div className="mx-auto max-w-[880px] px-5 py-8 md:px-8 md:py-12">
       <PublicApplicationSaveNotice />
       <p className="text-sm font-semibold text-brand">마지막 확인</p>
-      <h1 className="mt-2 text-2xl font-bold tracking-[-0.025em] md:text-[28px]">확인하고, 로그인한 뒤 제출하세요.</h1>
+      <h1 className="mt-2 text-2xl font-bold tracking-[-0.025em] md:text-[28px]">{meta.authenticated ? "내용을 확인하고 제출하세요." : "확인하고, 로그인한 뒤 제출하세요."}</h1>
       <ReviewFlow issues={state.reviewIssues.length} consent={state.consent} authenticated={meta.authenticated} authChecking={meta.authChecking} />
       <ReviewIssues disabled={submitting} />
 

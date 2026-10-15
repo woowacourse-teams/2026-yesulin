@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ScreenError } from "@/components/auditions/screen-status";
 import { getAuditionPosts } from "@/features/audition-posts/api";
 import { kstToday } from "@/features/audition-posts/format";
-import { auditionPostRoutes, type AuditionLandingCategory, type AuditionPostPage, type AuditionPostQuery } from "@/features/audition-posts/types";
+import { AUDITION_LANDING_CATEGORIES, auditionPostRoutes, type AuditionLandingCategory, type AuditionPostPage, type AuditionPostQuery } from "@/features/audition-posts/types";
 import { AuditionPostCard } from "./audition-post-card";
 import { AuditionPostPagination } from "./audition-post-pagination";
 import { SiteIcon } from "@/components/ui/site-icon";
@@ -39,14 +39,18 @@ export function AuditionPostListSection({ query, initialPage, preview = false }:
       <div><h1>{category ? `${category} 오디션 공고` : "오디션 공고"}</h1><p>모집 조건과 마감일을 확인해보세요.</p></div>
       {preview ? <Link href={auditionPostRoutes.list()} className="notebook-text-link">전체 보기</Link> : null}
     </div>
-    <div className="notebook-toolbar">
-      <nav aria-label="오디션 분야" className="notebook-filters">
-        <FilterLink href={auditionPostRoutes.list({ includeClosed })} current={!category} label="전체 분야" />
-        {(["뮤지컬", "연극"] as const).map((item) => <FilterLink key={item} href={auditionPostRoutes.list({ category: item, includeClosed })} current={category === item} label={item} />)}
+    <div className={preview ? "notebook-toolbar is-preview" : "notebook-category-row"}>
+      <nav aria-label="오디션 분야" className="notebook-category-tabs">
+        <FilterLink href={auditionPostRoutes.list({ includeClosed })} current={!category} label="전체 분야" categoryTab />
+        {Object.values(AUDITION_LANDING_CATEGORIES).map((item) => <FilterLink key={item} href={auditionPostRoutes.list({ category: item, includeClosed })} current={category === item} label={item} categoryTab />)}
       </nav>
-      {!preview ? <label className="notebook-search"><SiteIcon name="search" /><span className="sr-only">이 페이지 공고 검색</span><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="이 페이지 공고명·작성자 검색" /></label> : null}
+      {preview ? <RecruitmentFilters query={query} data={state.status === "ready" ? state.page : undefined} /> : null}
     </div>
-    {state.status === "loading" ? <div aria-label="공고 목록 불러오는 중" className="notebook-post-grid animate-pulse motion-reduce:animate-none">{Array.from({ length: preview ? 3 : 12 }, (_, item) => <div key={item} className="h-72 rounded-card border border-border bg-card" />)}</div> : null}
+    {!preview ? <div className="notebook-toolbar">
+      <RecruitmentFilters query={query} data={state.status === "ready" ? state.page : undefined} />
+      <label className="notebook-search"><SiteIcon name="search" /><span className="sr-only">이 페이지 공고 검색</span><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="이 페이지 공고명·작성자 검색" /></label>
+    </div> : null}
+    {state.status === "loading" ? <div role="status" aria-label="공고 목록 불러오는 중" className="notebook-post-grid animate-pulse motion-reduce:animate-none">{Array.from({ length: preview ? 3 : 12 }, (_, item) => <div key={item} className="h-72 rounded-card border border-border bg-card" />)}</div> : null}
     {state.status === "error" ? <ScreenError message="공고 목록을 불러오지 못했어요." onRetry={() => { setState({ status: "loading" }); load(); }} /> : null}
     {state.status === "ready" ? <PostList data={state.page} query={query} today={today} search={search.trim()} preview={preview} onResetSearch={() => setSearch("")} /> : null}
   </section>;
@@ -64,10 +68,6 @@ function PostList({ data, query, today, search, preview, onResetSearch }: {
   const matching = search ? data.posts.filter((post) => `${post.title} ${post.authorName}`.toLocaleLowerCase().includes(search.toLocaleLowerCase())) : data.posts;
   const visible = preview ? matching.slice(0, 3) : matching;
   return <>
-    <nav aria-label="모집 상태" className="notebook-filters">
-      <FilterLink href={auditionPostRoutes.list({ category })} current={!includeClosed} label="모집 중" count={data.openCount} />
-      <FilterLink href={auditionPostRoutes.list({ includeClosed: true, category })} current={includeClosed} label="마감 포함" count={data.allCount} />
-    </nav>
     <p className="notebook-list-note" role="status">{search ? `이 페이지 검색 결과 ${matching.length}개` : `공개 공고 ${data.totalElements.toLocaleString("ko-KR")}개${preview ? ` · ${visible.length}개 미리보기` : ` · ${data.page + 1}페이지`}`}</p>
     {visible.length ? <ul className="notebook-post-grid" id="audition-post-list">{visible.map((post) => <AuditionPostCard key={post.id} post={post} today={today} notebook />)}</ul> : search ? <div className="notebook-empty"><p>이 페이지에 검색어와 일치하는 공고가 없어요.</p><button type="button" className="notebook-outline-button" onClick={onResetSearch}>검색 초기화</button></div> : <EmptyPosts data={data} includeClosed={includeClosed} category={category} />}
     {preview && data.totalElements > visible.length ? <div className="notebook-list-actions"><Link href={auditionPostRoutes.list()} className="notebook-outline-button">전체 공고 보기</Link></div> : null}
@@ -75,8 +75,15 @@ function PostList({ data, query, today, search, preview, onResetSearch }: {
   </>;
 }
 
-function FilterLink({ href, current, label, count }: { readonly href: string; readonly current: boolean; readonly label: string; readonly count?: number }) {
-  return <Link href={href} aria-current={current ? "true" : undefined} className="notebook-filter">{label}{count !== undefined ? <span className="num">{count.toLocaleString("ko-KR")}</span> : null}</Link>;
+function RecruitmentFilters({ query, data }: { readonly query: AuditionPostQuery; readonly data?: AuditionPostPage }) {
+  return <nav aria-label="모집 상태" className="notebook-filters notebook-recruitment-filters">
+    <FilterLink href={auditionPostRoutes.list({ category: query.category })} current={!query.includeClosed} label="모집 중" count={data?.openCount} />
+    <FilterLink href={auditionPostRoutes.list({ includeClosed: true, category: query.category })} current={query.includeClosed} label="마감 포함" count={data?.allCount} />
+  </nav>;
+}
+
+function FilterLink({ href, current, label, count, categoryTab = false }: { readonly href: string; readonly current: boolean; readonly label: string; readonly count?: number; readonly categoryTab?: boolean }) {
+  return <Link href={href} aria-current={current ? "true" : undefined} className={categoryTab ? "notebook-category-tab" : "notebook-filter"}>{label}{count !== undefined ? <span className="num">{count.toLocaleString("ko-KR")}</span> : null}</Link>;
 }
 
 function EmptyPosts({ data, includeClosed, category }: { readonly data: AuditionPostPage; readonly includeClosed: boolean; readonly category?: AuditionLandingCategory }) {
