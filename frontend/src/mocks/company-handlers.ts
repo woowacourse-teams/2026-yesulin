@@ -1,6 +1,7 @@
 import { delay, http, HttpResponse, passthrough } from "msw";
 import { frontendEnvironment } from "@/config/environment";
-import type { AdminCompany, AdminCompanyStatus, AdminCompanyWrite } from "@/features/admin/types";
+import type { AdminCompany, AdminCompanyEditRequest, AdminCompanyStatus, AdminCompanyWrite } from "@/features/admin/types";
+import type { CompanyEditRequestWrite } from "@/features/companies/api";
 import type { AuditionPostSummary } from "@/features/audition-posts/types";
 import type { Company, CompanySummary } from "@/features/companies/types";
 import { mockSessionRole } from "./auth-handlers";
@@ -20,7 +21,7 @@ const companies: Mutable<AdminCompany>[] = [
     name: "프로젝트 운베칸트",
     representativeName: "김운베",
     representativeNamePublic: true,
-    homepage: "https://www.example.com/unbekannt",
+    links: ["https://www.example.com/unbekannt", "https://www.instagram.com/example_unbekannt"],
     foundedOn: "2019-04-12",
     address: {
       roadAddress: "서울 종로구 대학로 116",
@@ -33,6 +34,7 @@ const companies: Mutable<AdminCompany>[] = [
     region: null,
     phone: "02-765-4321",
     description: "대학로 소극장에서 낭독극과 창작극을 올리는 프로젝트 극단입니다.\n배우와 함께 오래 가는 작업을 지향합니다.",
+    history: "2019 창단\n2021 낭독극 <체크 포인트> 초연\n2024 대학로 정기공연 시작",
     sourceNote: "공식 홈페이지 연혁, 공연사 전화 확인",
     status: "PUBLISHED",
     createdAt: now,
@@ -43,13 +45,14 @@ const companies: Mutable<AdminCompany>[] = [
     name: "팀플레이예술기획",
     representativeName: "박팀플",
     representativeNamePublic: false,
-    homepage: null,
+    links: [],
     foundedOn: null,
     address: null,
     addressPublic: false,
     region: "서울",
     phone: null,
     description: null,
+    history: null,
     sourceNote: "OTR 작성자 닉네임",
     status: "PUBLISHED",
     createdAt: now,
@@ -60,17 +63,36 @@ const companies: Mutable<AdminCompany>[] = [
     name: "여름밤 컴퍼니",
     representativeName: null,
     representativeNamePublic: false,
-    homepage: "https://www.example.com/summer-night",
+    links: ["https://www.example.com/summer-night"],
     foundedOn: null,
     address: null,
     addressPublic: false,
     region: null,
     phone: null,
     description: null,
+    history: null,
     sourceNote: null,
     status: "PENDING",
     createdAt: now,
     updatedAt: now,
+  },
+];
+
+/** 공개 화면에서 보낸 수정 요청 중 처리하지 않은 것. 연혁·링크를 고쳐 달라는 요청 하나로 시작한다. */
+const editRequests: AdminCompanyEditRequest[] = [
+  {
+    id: 1,
+    company: companies[1],
+    proposal: {
+      ...companies[1],
+      representativeName: null,
+      links: ["https://www.instagram.com/example_teamplay"],
+      history: "2020 창단\n2023 대학로 첫 정기공연",
+    },
+    changedFields: ["LINKS", "HISTORY"],
+    reason: "팀플레이예술기획 기획팀입니다. 공식 인스타그램과 연혁을 넣어 주세요.",
+    contact: "teamplay@example.com",
+    createdAt: now,
   },
 ];
 
@@ -101,7 +123,7 @@ function toSummary(company: AdminCompany): CompanySummary {
     id: company.id,
     name: company.name,
     representativeName: company.representativeNamePublic ? company.representativeName : null,
-    homepage: company.homepage,
+    links: company.links,
     foundedOn: company.foundedOn,
     location: location(company),
   };
@@ -113,6 +135,7 @@ function toPublic(company: AdminCompany): Company {
     address: company.addressPublic ? company.address : null,
     phone: company.phone,
     description: company.description,
+    history: company.history,
     updatedAt: company.updatedAt,
   };
 }
@@ -130,8 +153,10 @@ const blankToNull = (value: string | null | undefined) => value?.trim() ? value.
 function validate(write: AdminCompanyWrite): string | null {
   if (!write.name?.trim()) return "공연사 이름은 필수입니다.";
   if (write.name.trim().length > 100) return "공연사 이름은 100자 이내여야 합니다.";
-  if (write.homepage?.trim() && !/^https?:\/\/[^/\s]+/i.test(write.homepage.trim())) {
-    return "홈페이지는 http:// 또는 https://로 시작하는 주소여야 합니다.";
+  const links = write.links.map((link) => link.trim()).filter(Boolean);
+  if (links.length > 3) return "링크는 3개까지 넣을 수 있습니다.";
+  if (links.some((link) => !/^https?:\/\/[^/\s]+/i.test(link))) {
+    return "링크는 http:// 또는 https://로 시작하는 주소여야 합니다.";
   }
   if (write.foundedOn && write.foundedOn > new Date().toISOString().slice(0, 10)) return "설립일이 올바르지 않습니다.";
   if (write.phone?.trim() && !/^[0-9][0-9 ()+-]{6,29}$/.test(write.phone.trim())) {
@@ -144,13 +169,14 @@ function apply(target: Mutable<AdminCompany>, write: AdminCompanyWrite) {
   target.name = write.name.trim();
   target.representativeName = blankToNull(write.representativeName);
   target.representativeNamePublic = write.representativeNamePublic;
-  target.homepage = blankToNull(write.homepage);
+  target.links = write.links.map((link) => link.trim()).filter(Boolean);
   target.foundedOn = write.foundedOn || null;
   target.address = write.address?.roadAddress.trim() ? write.address : null;
   target.addressPublic = write.addressPublic;
   target.region = blankToNull(write.region);
   target.phone = blankToNull(write.phone);
   target.description = blankToNull(write.description);
+  target.history = blankToNull(write.history);
   target.sourceNote = blankToNull(write.sourceNote);
   target.updatedAt = new Date().toISOString();
 }
@@ -175,6 +201,80 @@ export function companyHandlers(postsOf: (postIds: readonly number[]) => readonl
       const companyId = Number(params.companyId);
       if (!publishedCompany(companyId)) return apiError(404, "COMPANY_NOT_FOUND", "공연사를 찾을 수 없습니다.");
       return HttpResponse.json({ posts: postsOf(mockCompanyPostIds(companyId)) });
+    }),
+
+    http.post("/api/v1/public/companies/:companyId/edit-requests", async ({ params, request }) => {
+      await delay(150);
+      const company = publishedCompany(Number(params.companyId));
+      if (!company) return apiError(404, "COMPANY_NOT_FOUND", "공연사를 찾을 수 없습니다.");
+      const write = await request.json() as CompanyEditRequestWrite;
+      const invalid = validate(write.company);
+      if (invalid) return apiError(400, "COMPANY_INVALID_INPUT", invalid);
+      if (!write.changedFields.length) return apiError(400, "COMPANY_INVALID_INPUT", "바뀐 항목이 없습니다.");
+      if (!write.reason.trim()) return apiError(400, "COMPANY_INVALID_INPUT", "요청 사유는 필수입니다.");
+      const proposal: Mutable<AdminCompany> = { ...company };
+      apply(proposal, write.company);
+      const id = Math.max(0, ...editRequests.map((item) => item.id)) + 1;
+      editRequests.unshift({
+        id,
+        company: { ...company },
+        proposal: {
+          name: proposal.name,
+          representativeName: proposal.representativeName,
+          representativeNamePublic: proposal.representativeNamePublic,
+          links: proposal.links,
+          foundedOn: proposal.foundedOn,
+          address: proposal.address,
+          addressPublic: proposal.addressPublic,
+          region: proposal.region,
+          phone: proposal.phone,
+          description: proposal.description,
+          history: proposal.history,
+        },
+        changedFields: write.changedFields,
+        reason: write.reason.trim(),
+        contact: blankToNull(write.contact),
+        createdAt: new Date().toISOString(),
+      });
+      return HttpResponse.json({ id }, { status: 201 });
+    }),
+
+    http.get("/api/v1/admin/company-edit-requests", async () => {
+      if (realLoginEnabled) return passthrough();
+      await delay(120);
+      return rejectNonAdmin() ?? HttpResponse.json({
+        requests: editRequests.map((item) => ({
+          ...item, company: companies.find((company) => company.id === item.company.id) ?? item.company,
+        })),
+      });
+    }),
+
+    http.post("/api/v1/admin/company-edit-requests/:requestId/apply", async ({ params, request }) => {
+      if (realLoginEnabled) return passthrough();
+      await delay(150);
+      const rejected = rejectNonAdmin();
+      if (rejected) return rejected;
+      const index = editRequests.findIndex((item) => item.id === Number(params.requestId));
+      if (index < 0) return apiError(404, "COMPANY_EDIT_REQUEST_NOT_FOUND", "수정 요청을 찾을 수 없습니다.");
+      const company = companies.find((candidate) => candidate.id === editRequests[index].company.id);
+      if (!company) return apiError(404, "COMPANY_NOT_FOUND", "공연사를 찾을 수 없습니다.");
+      const write = await request.json() as AdminCompanyWrite;
+      const invalid = validate(write);
+      if (invalid) return apiError(400, "COMPANY_INVALID_INPUT", invalid);
+      apply(company, write);
+      editRequests.splice(index, 1);
+      return HttpResponse.json(company);
+    }),
+
+    http.post("/api/v1/admin/company-edit-requests/:requestId/reject", async ({ params }) => {
+      if (realLoginEnabled) return passthrough();
+      await delay(120);
+      const rejected = rejectNonAdmin();
+      if (rejected) return rejected;
+      const index = editRequests.findIndex((item) => item.id === Number(params.requestId));
+      if (index < 0) return apiError(404, "COMPANY_EDIT_REQUEST_NOT_FOUND", "수정 요청을 찾을 수 없습니다.");
+      editRequests.splice(index, 1);
+      return new HttpResponse(null, { status: 204 });
     }),
 
     http.get("/api/v1/admin/companies", async () => {
@@ -233,6 +333,8 @@ export function companyHandlers(postsOf: (postIds: readonly number[]) => readonl
     }),
 
     http.patch("/api/v1/admin/audition-posts/:postId/company", () => passthrough()),
+    http.get("/api/v1/admin/audition-posts/:postId/company-profile", () => passthrough()),
+    http.put("/api/v1/admin/audition-posts/:postId/company-profile", () => passthrough()),
     http.get("/api/v1/admin/audition-post-company-links", () => passthrough()),
     http.post("/api/v1/admin/audition-post-company-links", () => passthrough()),
     http.post("/api/v1/admin/audition-post-company-links/companies", () => passthrough()),

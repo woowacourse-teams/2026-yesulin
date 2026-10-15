@@ -12,7 +12,7 @@ public record CompanyAddressResult(
         BigDecimal longitude
 ) {
 
-    static CompanyAddressResult from(CompanyAddress address) {
+    public static CompanyAddressResult from(CompanyAddress address) {
         if (address == null) {
             return null;
         }

@@ -8,6 +8,7 @@ import art.yesulin.global.exception.BusinessException;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -20,12 +21,14 @@ class CompanyTest {
     @Test
     void trimsTextAndClearsBlankOptionalFields() {
         Company company = company(new CompanyProfile(
-                "  극단 예술in ", " ", false, " https://yesulin.art ", null, null, false, " ", "", "  ", " "
+                "  극단 예술in ", " ", false, List.of(" https://yesulin.art ", " ", "https://yesulin.art"), null, null, false,
+                " ", "", "  ", " ", " "
         ));
 
         assertEquals("극단 예술in", company.getName());
         assertNull(company.getRepresentativeName());
-        assertEquals("https://yesulin.art", company.getHomepage());
+        assertEquals(List.of("https://yesulin.art"), company.getLinks());
+        assertNull(company.getHistory());
         assertNull(company.getRegion());
         assertNull(company.getPhone());
         assertNull(company.getDescription());
@@ -40,8 +43,16 @@ class CompanyTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"yesulin.art", "javascript:alert(1)", "ftp://yesulin.art", "https://"})
-    void rejectsHomepageThatIsNotWebAddress(String homepage) {
-        assertThrows(BusinessException.class, () -> company(profile("극단", homepage, null, null)));
+    void rejectsLinkThatIsNotWebAddress(String link) {
+        assertThrows(BusinessException.class, () -> company(profile("극단", link, null, null)));
+    }
+
+    @Test
+    void allowsAtMostThreeLinks() {
+        List<String> four = List.of("https://a.kr", "https://b.kr", "https://c.kr", "https://d.kr");
+        assertThrows(BusinessException.class, () -> company(new CompanyProfile(
+                "극단", null, false, four, null, null, false, null, null, null, null, null
+        )));
     }
 
     @Test
@@ -62,10 +73,10 @@ class CompanyTest {
                 "서울 종로구 대학로 12", "3층", "03086", new BigDecimal("37.5822"), new BigDecimal("127.0017")
         );
         Company withAddress = company(
-                new CompanyProfile("극단", null, false, null, null, address, true, "부산", null, null, null)
+                new CompanyProfile("극단", null, false, null, null, address, true, "부산", null, null, null, null)
         );
         Company withRegion = company(
-                new CompanyProfile("극단", null, false, null, null, null, false, "부산", null, null, null)
+                new CompanyProfile("극단", null, false, null, null, null, false, "부산", null, null, null, null)
         );
         Company withoutLocation = company(profile("극단", null, null, null));
 
@@ -78,10 +89,10 @@ class CompanyTest {
     void hidesRepresentativeAndDetailedAddressWithoutConsent() {
         CompanyAddress address = new CompanyAddress("서울 마포구 성미산로 1", "101호", "", null, null);
         Company hidden = company(new CompanyProfile(
-                "극단", "홍길동", false, null, null, address, false, null, null, null, "대표 인스타그램"
+                "극단", "홍길동", false, null, null, address, false, null, null, null, null, "대표 인스타그램"
         ));
         final Company shown = company(new CompanyProfile(
-                "극단", "홍길동", true, null, null, address, true, null, null, null, null
+                "극단", "홍길동", true, null, null, address, true, null, null, null, null, null
         ));
 
         assertNull(hidden.publicRepresentativeName());
@@ -115,7 +126,8 @@ class CompanyTest {
         return new Company(profile, 1L, TODAY, NOW);
     }
 
-    private static CompanyProfile profile(String name, String homepage, LocalDate foundedOn, String phone) {
-        return new CompanyProfile(name, null, false, homepage, foundedOn, null, false, null, phone, null, null);
+    private static CompanyProfile profile(String name, String link, LocalDate foundedOn, String phone) {
+        List<String> links = link == null ? List.of() : List.of(link);
+        return new CompanyProfile(name, null, false, links, foundedOn, null, false, null, phone, null, null, null);
     }
 }

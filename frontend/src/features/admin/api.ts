@@ -19,8 +19,10 @@ import type {
   AdminAuditionPostStatus,
   AdminCompany,
   AdminCompanyAuthorOverview,
+  AdminCompanyEditRequest,
   AdminCompanyStatus,
   AdminCompanyWrite,
+  AdminPostCompanyProfile,
   AdminDailyActivity,
   AdminFileDeletionResult,
   AdminLog,
@@ -366,18 +368,6 @@ export async function changeAuditionPostOwner(postId: number, ownerId: number | 
   return response.json() as Promise<AdminAuditionPost>;
 }
 
-/** 공고를 공연사에 연결하거나(`companyId`) 연결을 끊는다(null). */
-export async function changeAuditionPostCompany(postId: number, companyId: number | null): Promise<AdminAuditionPost> {
-  const response = await fetch(`${API_BASE_PATH}/audition-posts/${postId}/company`, {
-    method: "PATCH",
-    credentials: "include",
-    headers: await withCsrfHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify({ companyId }),
-  });
-  if (!response.ok) throw await readAdminError(response, "공연사 연결을 바꾸지 못했습니다.");
-  return response.json() as Promise<AdminAuditionPost>;
-}
-
 export async function fetchCompanies(): Promise<readonly AdminCompany[]> {
   const response = await getJson<{ readonly companies: readonly AdminCompany[] }>(
     "/companies", "공연사 목록을 불러오지 못했습니다.",
@@ -396,6 +386,38 @@ export function updateCompany(companyId: number, write: AdminCompanyWrite): Prom
 
 export function changeCompanyStatus(companyId: number, status: AdminCompanyStatus): Promise<AdminCompany> {
   return sendCompany(`/companies/${companyId}/status`, "PATCH", { status }, "공개 상태를 바꾸지 못했습니다.");
+}
+
+export function fetchPostCompany(postId: number): Promise<AdminPostCompanyProfile> {
+  return getJson<AdminPostCompanyProfile>(`/audition-posts/${postId}/company-profile`, "공연사 정보를 불러오지 못했습니다.");
+}
+
+/** 공고의 공연사 정보를 쓴다. 같은 OTR 작성자의 공고와 이후 가져오는 공고에도 같은 정보가 연결된다. */
+export function savePostCompany(postId: number, company: AdminCompanyWrite, publish: boolean): Promise<AdminCompany> {
+  return sendCompany(
+    `/audition-posts/${postId}/company-profile`, "PUT", { company, publish }, "공연사 정보를 저장하지 못했습니다.",
+  );
+}
+
+export async function fetchCompanyEditRequests(): Promise<readonly AdminCompanyEditRequest[]> {
+  const response = await getJson<{ readonly requests: readonly AdminCompanyEditRequest[] }>(
+    "/company-edit-requests", "수정 요청을 불러오지 못했습니다.",
+  );
+  return response.requests;
+}
+
+/** 요청을 보고 다듬은 공연사 정보 전체로 고친다. 공개 상태는 그대로다. */
+export function applyCompanyEditRequest(requestId: number, write: AdminCompanyWrite): Promise<AdminCompany> {
+  return sendCompany(`/company-edit-requests/${requestId}/apply`, "POST", write, "수정 요청을 적용하지 못했습니다.");
+}
+
+export async function rejectCompanyEditRequest(requestId: number): Promise<void> {
+  const response = await fetch(`${API_BASE_PATH}/company-edit-requests/${requestId}/reject`, {
+    method: "POST",
+    credentials: "include",
+    headers: await withCsrfHeaders(),
+  });
+  if (!response.ok) throw await readAdminError(response, "수정 요청을 반려하지 못했습니다.");
 }
 
 export function fetchCompanyAuthors(): Promise<AdminCompanyAuthorOverview> {

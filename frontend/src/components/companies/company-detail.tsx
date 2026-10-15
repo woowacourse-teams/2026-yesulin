@@ -8,8 +8,9 @@ import { AuditionPostScreen } from "@/components/audition-posts/audition-post-sc
 import { kstToday } from "@/features/audition-posts/format";
 import { auditionPostRoutes, type AuditionPostSummary } from "@/features/audition-posts/types";
 import { getCompany, getCompanyPosts } from "@/features/companies/api";
-import { COMPANY_CORRECTION_URL, type Company } from "@/features/companies/types";
-import { CompanyFacts } from "./company-summary-card";
+import { SecondaryLink } from "@/components/ui/controls";
+import { COMPANY_CORRECTION_URL, companyRoutes, type Company } from "@/features/companies/types";
+import { CompanyFacts, Undisclosed } from "./company-summary-card";
 
 type CompanyState =
   | { readonly status: "loading" }
@@ -59,19 +60,17 @@ function CompanyDetail({ company, posts }: {
           <p className="text-sm font-semibold text-brand">공연사</p>
           <h1 className="mt-2 text-[clamp(24px,3.4vw,32px)] font-bold leading-snug tracking-[-0.03em]">{company.name}</h1>
           <CompanyFacts company={company} className="mt-5" />
-          {company.phone ? (
-            <p className="mt-2 flex gap-3 text-sm">
-              <span className="w-16 shrink-0 text-muted">연락처</span>
-              <a href={`tel:${company.phone.replace(/[^0-9+]/g, "")}`} className="num font-medium hover:text-brand">{company.phone}</a>
-            </p>
-          ) : null}
+          <p className="mt-2 flex gap-3 text-sm">
+            <span className="w-16 shrink-0 text-muted">연락처</span>
+            {company.phone
+              ? <a href={`tel:${company.phone.replace(/[^0-9+]/g, "")}`} className="num font-medium hover:text-brand">{company.phone}</a>
+              : <Undisclosed />}
+          </p>
         </header>
-        {company.description ? (
-          <section aria-labelledby="company-description" className="px-5 py-6 sm:px-8">
-            <h2 id="company-description" className="text-base font-bold">소개</h2>
-            <p className="mt-3 whitespace-pre-line text-[15px] leading-7 text-muted-strong">{company.description}</p>
-          </section>
-        ) : null}
+        <div className="divide-y divide-border-soft">
+          <TextSection id="company-description" title="소개" text={company.description} />
+          <TextSection id="company-history" title="연혁" text={company.history} />
+        </div>
       </article>
 
       {company.address ? (
@@ -97,14 +96,32 @@ function CompanyDetail({ company, posts }: {
         )}
       </section>
 
-      <p className="px-1 text-xs leading-5 text-muted">
-        공연사 정보는 공개된 자료와 공연사가 알려 준 내용을 운영자가 확인해 정리했어요. 잘못된 정보가 있거나 내리고 싶은 정보가 있으면{" "}
-        <a href={COMPANY_CORRECTION_URL} target="_blank" rel="noreferrer" className="font-semibold text-muted-strong underline underline-offset-2 hover:text-brand">
-          정보 수정·삭제 요청<span className="sr-only"> 새 창</span>
-        </a>
-        을 남겨 주세요.
-      </p>
+      <section aria-labelledby="company-correction" className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-dashed border-border bg-card px-5 py-5 sm:px-8">
+        <div className="min-w-0">
+          <h2 id="company-correction" className="text-sm font-bold">정보가 틀렸거나 빠졌나요?</h2>
+          <p className="mt-1 text-xs leading-5 text-muted">
+            공개된 자료와 공연사가 알려 준 내용을 운영자가 확인해 정리했어요. 수정 요청은 누구나 보낼 수 있고, 운영자가 확인한 뒤 반영해요.
+            정보를 아예 내리고 싶다면{" "}
+            <a href={COMPANY_CORRECTION_URL} target="_blank" rel="noreferrer" className="font-semibold text-muted-strong underline underline-offset-2 hover:text-brand">
+              카카오톡 채널<span className="sr-only"> 새 창</span>
+            </a>
+            로 알려 주세요.
+          </p>
+        </div>
+        <SecondaryLink href={companyRoutes.editRequest(company.id)} className="shrink-0">정보 수정 요청</SecondaryLink>
+      </section>
     </div>
+  );
+}
+
+function TextSection({ id, title, text }: { readonly id: string; readonly title: string; readonly text: string | null }) {
+  return (
+    <section aria-labelledby={id} className="px-5 py-6 sm:px-8">
+      <h2 id={id} className="text-base font-bold">{title}</h2>
+      {text
+        ? <p className="mt-3 whitespace-pre-line text-[15px] leading-7 text-muted-strong">{text}</p>
+        : <p className="mt-3 text-sm"><Undisclosed /></p>}
+    </section>
   );
 }
 

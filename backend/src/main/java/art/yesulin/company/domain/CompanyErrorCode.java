@@ -6,7 +6,9 @@ import art.yesulin.global.exception.ErrorType;
 public enum CompanyErrorCode implements ErrorCode {
 
     INVALID_INPUT("COMPANY_INVALID_INPUT", ErrorType.BAD_REQUEST),
-    NOT_FOUND("COMPANY_NOT_FOUND", ErrorType.NOT_FOUND);
+    NOT_FOUND("COMPANY_NOT_FOUND", ErrorType.NOT_FOUND),
+    EDIT_REQUEST_NOT_FOUND("COMPANY_EDIT_REQUEST_NOT_FOUND", ErrorType.NOT_FOUND),
+    EDIT_REQUEST_RESOLVED("COMPANY_EDIT_REQUEST_RESOLVED", ErrorType.CONFLICT);
 
     private final String code;
     private final ErrorType type;

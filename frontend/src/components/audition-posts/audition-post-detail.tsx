@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { getAuditionPost, recordAuditionPostView } from "@/features/audition-posts/api";
 import { deadlineBadge, formatDeadline, formatFileSize, formatPostedDate, kstToday } from "@/features/audition-posts/format";
 import type { AuditionPost } from "@/features/audition-posts/types";
-import { CompanySummaryCard } from "@/components/companies/company-summary-card";
+import { CompanyPendingCard, CompanySummaryCard } from "@/components/companies/company-summary-card";
 import { DeadlineChip } from "./audition-post-badges";
 import { AuditionPostScreen, MissingAuditionPost } from "./audition-post-screen";
 
@@ -122,7 +122,7 @@ function AuditionPostDetail({ post }: { readonly post: AuditionPost }) {
           </ul>
         ) : null}
       </article>
-      {post.company ? <CompanySummaryCard company={post.company} /> : null}
+      {post.company ? <CompanySummaryCard company={post.company} /> : <CompanyPendingCard authorName={post.authorName} />}
     </>
   );
 }

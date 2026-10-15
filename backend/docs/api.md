@@ -343,7 +343,7 @@ OTR 작성자 자동 연결: 가져오기는 OTR 상세의 작성자 링크(`get
 그 기획사가 올린 업로드만 확정한다. 올리기와 바뀐 항목이 있는 고치기는 커밋 뒤 공고 알림 Slack 채널로 알린다
 (`YESULIN_SLACK_WEBHOOK_URL`, 없으면 로그만 남긴다). 알림 실패는 저장 결과에 영향을 주지 않는다.
 
-## 공연사 — 12개
+## 공연사 — 18개
 
 공고를 올린 극단·제작사·기획사의 공개 정보(`Company`)다. 기획사 계정과 따로 있다. 공개 API는 로그인 없이, 운영 API는 `ADMIN`만 호출한다.
 `companyId`는 숫자 ID다.
@@ -352,20 +352,26 @@ OTR 작성자 자동 연결: 가져오기는 OTR 상세의 작성자 링크(`get
 | --- | --- | --- | --- | --- |
 | GET | `/api/v1/public/companies/{companyId}` | 공개 | 없음 | `200 PublicCompanyResult` |
 | GET | `/api/v1/public/companies/{companyId}/audition-posts` | 공개 | 없음 | `200 PublicCompanyAuditionPostsResponse(posts)` |
+| POST | `/api/v1/public/companies/{companyId}/edit-requests` | 공개 | `CreateRequest(company: WriteCompanyRequest, changedFields, reason, contact?)` | `201 CreatedResponse(id)` |
+| GET | `/api/v1/admin/company-edit-requests` | Admin | 없음 | `200 PendingResponse(requests: AdminCompanyEditRequestResult[])` |
+| POST | `/api/v1/admin/company-edit-requests/{requestId}/apply` | Admin | `WriteCompanyRequest` | `200 AdminCompanyResult` |
+| POST | `/api/v1/admin/company-edit-requests/{requestId}/reject` | Admin | 없음 | `204` |
 | GET | `/api/v1/admin/companies` | Admin | 없음 | `200 AdminCompaniesResponse(companies)` |
 | POST | `/api/v1/admin/companies` | Admin | `WriteCompanyRequest` | `201 AdminCompanyResult` |
 | GET | `/api/v1/admin/companies/{companyId}` | Admin | 없음 | `200 AdminCompanyResult` |
 | PUT | `/api/v1/admin/companies/{companyId}` | Admin | `WriteCompanyRequest` | `200 AdminCompanyResult` |
 | PATCH | `/api/v1/admin/companies/{companyId}/status` | Admin | `ChangeCompanyStatusRequest(status: PUBLISHED/HIDDEN)` | `200 AdminCompanyResult` |
+| GET | `/api/v1/admin/audition-posts/{postId}/company-profile` | Admin | 없음 | `200 AuditionPostCompanyProfile(company?, sharedByAuthor, suggestedName, sourceAuthorId?)` |
+| PUT | `/api/v1/admin/audition-posts/{postId}/company-profile` | Admin | `SaveRequest(company: WriteCompanyRequest, publish)` | `200 AdminCompanyResult` |
 | GET | `/api/v1/admin/audition-post-company-links` | Admin | 없음 | `200 AuditionPostCompanyAuthorOverview(authors, missingAuthorIdCount)` |
 | POST | `/api/v1/admin/audition-post-company-links` | Admin | `LinkRequest(source, sourceAuthorId, companyId)` | `200 AuditionPostCompanyLinkResult` |
 | POST | `/api/v1/admin/audition-post-company-links/companies` | Admin | `AuthorRequest(source, sourceAuthorId)` | `201 AuditionPostCompanyLinkResult` |
 | POST | `/api/v1/admin/audition-post-company-links/companies/bulk` | Admin | 없음 | `200 BulkResult(createdCount)` |
 | DELETE | `/api/v1/admin/audition-post-company-links/{linkId}` | Admin | 없음 | `204` |
 
-`WriteCompanyRequest`는 `name`(필수, 100자), `representativeName`(50자), `representativeNamePublic`(공개 동의, 기본 false), `homepage`(http·https 주소, 500자), `foundedOn`(`YYYY-MM-DD`,
+`WriteCompanyRequest`는 `name`(필수, 100자), `representativeName`(50자), `representativeNamePublic`(공개 동의, 기본 false), `links`(http·https 주소 최대 3개, 각 500자, 빈 칸은 빼고 같은 주소는 한 번만), `foundedOn`(`YYYY-MM-DD`,
 1900-01-01부터 한국 날짜로 오늘까지), `address(roadAddress, detailAddress, zonecode, latitude, longitude)`, `addressPublic`(상세 주소·지도 공개, 기본 false),
-`region`(50자), `phone`(숫자로 시작하고 숫자·공백·괄호·`+`·`-` 7~30자), `description`(2000자), `sourceNote`(운영자만 보는 정보 출처, 1000자)이다. 정보를 통째로 바꾸며, 빈 문자열이나 null인 항목은 지운다.
+`region`(50자), `phone`(숫자로 시작하고 숫자·공백·괄호·`+`·`-` 7~30자), `description`(2000자), `history`(연혁, 2000자), `sourceNote`(운영자만 보는 정보 출처, 1000자)이다. 정보를 통째로 바꾸며, 빈 문자열이나 null인 항목은 지운다.
 `address`가 null이거나 도로명주소가 비면 주소를 지운다. 위도·경도는 함께 보내거나 함께 비운다. 검증 오류는 `400 COMPANY_INVALID_INPUT`이다.
 
 새 공연사는 `PENDING`이다. 상태 변경은 `PUBLISHED`와 `HIDDEN`만 받으며, 공개하거나 내린 공연사를 `PENDING`으로 되돌리면
@@ -374,12 +380,29 @@ OTR 작성자 자동 연결: 가져오기는 OTR 상세의 작성자 링크(`get
 `COMPANY_STATUS_CHANGED`로 남기며 정보 원문은 담지 않는다.
 
 공개 API는 `PUBLISHED`인 공연사만 보여 주고, 없거나 공개 전·내린 공연사는 `404 COMPANY_NOT_FOUND`다. `PublicCompanyResult`는
-`id`, `name`, `representativeName`, `homepage`, `foundedOn`, `location`, `address`, `phone`, `description`, `updatedAt`이다.
+`id`, `name`, `representativeName`, `links`, `foundedOn`, `location`, `address`, `phone`, `description`, `history`, `updatedAt`이다.
 `representativeName`은 `representativeNamePublic`이 true일 때만, `address`는 `addressPublic`이 true일 때만 담고 아니면 null이다.
 `sourceNote`는 공개 응답에 담지 않는다.
 `location`은 주소가 있으면 도로명주소의 앞 두 단어(시·도와 시·군·구), 없으면 `region`이다. 지역은 공개 응답에 따로 담지 않는다.
-공고 상세의 `company`(`CompanySummary`)는 `id`, `name`, `representativeName`, `homepage`, `foundedOn`, `location`만 담는다.
+공고 상세의 `company`(`CompanySummary`)는 `id`, `name`, `representativeName`, `links`, `foundedOn`, `location`만 담는다. 비운 항목은 null(링크는 빈 배열)이고 화면이 "비공개"로 보인다.
 공연사 공고 목록은 그 공연사에 연결된 `PUBLISHED` 공고를 마감과 관계없이 원문 작성 최신순으로 30건까지 공개 목록 항목과 같은 모양으로 준다.
+
+공고별 공연사 정보(`company-profile`)는 운영자가 공고 목록에서 공연사 정보를 바로 쓰는 API다. GET은 공고의 공연사, 없으면 같은 원문
+작성자로 묶은 공연사(`sharedByAuthor=true`)를 주고, 둘 다 없으면 `company`가 null이며 `suggestedName`(원문 작성자 이름)을 준다.
+PUT은 같은 순서로 찾은 공연사를 통째로 고치고, 없으면 `PENDING`으로 새로 만든다. 공고를 그 공연사에 연결하고, 원문 작성자 번호가
+있고 그 작성자의 묶음 규칙이 없으면 규칙을 만들어 같은 작성자의 공연사 없는 공고와 이후 가져오는 공고에도 연결한다. `publish`면
+저장하면서 `PUBLISHED`로 바꾼다(운영자 화면은 항상 `true`로 보낸다). 없는 공고는 `404 AUDITION_POST_NOT_FOUND`다.
+
+정보 수정 요청(`edit-requests`)은 공개된 공연사 화면에서 로그인 없이 누구나 보낸다. 공개 전이거나 내린 공연사는
+`404 COMPANY_NOT_FOUND`다. `company`는 요청한 정보 전체이며 `WriteCompanyRequest`와 같은 규칙으로 검사하고 `sourceNote`는 무시한다.
+`changedFields`는 요청자가 바꾼 항목(`NAME`, `REPRESENTATIVE_NAME`, `LINKS`, `FOUNDED_ON`, `ADDRESS`, `REGION`, `PHONE`, `DESCRIPTION`,
+`HISTORY`)으로 하나 이상이어야 한다. 대표자 이름은 공개 동의, 주소는 상세 주소 공개까지 함께 묶는다. `reason`은 필수(1000자),
+`contact`는 선택(100자)이다. 저장 뒤 공고 알림 Slack 채널로 공연사 이름·사유 앞 200자·운영자 화면 주소를 알리며 연락처는 보내지 않는다.
+운영자 목록은 처리하지 않은 요청을 최근 순으로 100건까지 `id`, 지금 정보 `company`(`AdminCompanyResult`), 요청 정보 `proposal`,
+`changedFields`, `reason`, `contact`, `createdAt`으로 준다. 운영자 화면은 바꾼 항목만 요청 값으로 덮어쓴 정보를 다듬어 `apply`로 보내며,
+서버는 받은 정보로 공연사를 통째로 고치고 공개 상태는 그대로 둔다. 적용·반려하면 연락처를 지우고, 이미 처리한 요청은
+`409 COMPANY_EDIT_REQUEST_RESOLVED`, 없는 요청은 `404 COMPANY_EDIT_REQUEST_NOT_FOUND`다. 감사 로그는 `COMPANY_EDITED`와
+`COMPANY_EDIT_REQUEST_APPLIED`·`COMPANY_EDIT_REQUEST_REJECTED`로 남기며 요청 내용과 연락처는 담지 않는다.
 
 작성자별 묶기(`audition-post-company-links`)는 원문 작성자(`source`, `sourceAuthorId`=OTR 회원 번호)를 공연사로 묶는 규칙이다.
 `authors`는 원문 공고(`externalId`가 있는 공고)를 번호별로, 번호가 없으면 닉네임별로 묶어 `source`, `sourceAuthorId`(없으면 null),

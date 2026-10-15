@@ -1,12 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { PerformanceVenueField } from "@/components/auditions/performance-venue-field";
 import { AuditionPostStatusBadge } from "@/components/audition-posts/audition-post-status-badge";
-import { FieldInput, FieldTextarea } from "@/components/ui/controls";
+import { CompanyProfileFields } from "@/components/companies/company-profile-fields";
+import { FieldTextarea } from "@/components/ui/controls";
 import { AdminApiError, changeCompanyStatus, createCompany, fetchCompanies, updateCompany } from "@/features/admin/api";
 import type { AdminCompany, AdminCompanyStatus, AdminCompanyWrite } from "@/features/admin/types";
-import type { VenueAddress } from "@/features/auditions/creation-types";
+import {
+  COMPANY_FIELD_LABELS,
+  draftOf,
+  emptyDraft,
+  hideUndecided,
+  undecidedFields,
+  writeOf,
+  type CompanyDraft,
+} from "@/features/companies/profile-draft";
 import { companyRoutes } from "@/features/companies/types";
 import { logout } from "@/features/auth/session-api";
 import { formatDateTime } from "./admin-format";
@@ -23,51 +31,6 @@ const STATUS_ACTIONS: Readonly<Record<AdminCompanyStatus, string>> = {
   PUBLISHED: "내리기",
   HIDDEN: "다시 공개",
 };
-
-const EMPTY_ADDRESS: VenueAddress = { roadAddress: "", detailAddress: "", zonecode: "", latitude: null, longitude: null };
-
-type Draft = {
-  readonly name: string;
-  readonly representativeName: string;
-  readonly representativeNamePublic: boolean;
-  readonly homepage: string;
-  readonly foundedOn: string;
-  readonly address: VenueAddress;
-  readonly addressPublic: boolean;
-  readonly region: string;
-  readonly phone: string;
-  readonly description: string;
-  readonly sourceNote: string;
-};
-
-const EMPTY_DRAFT: Draft = {
-  name: "", representativeName: "", representativeNamePublic: false, homepage: "", foundedOn: "", address: EMPTY_ADDRESS,
-  addressPublic: false, region: "", phone: "", description: "", sourceNote: "",
-};
-
-function draftOf(company: AdminCompany): Draft {
-  return {
-    name: company.name,
-    representativeName: company.representativeName ?? "",
-    representativeNamePublic: company.representativeNamePublic,
-    homepage: company.homepage ?? "",
-    foundedOn: company.foundedOn ?? "",
-    address: company.address ?? EMPTY_ADDRESS,
-    addressPublic: company.addressPublic,
-    region: company.region ?? "",
-    phone: company.phone ?? "",
-    description: company.description ?? "",
-    sourceNote: company.sourceNote ?? "",
-  };
-}
-
-function writeOf(draft: Draft): AdminCompanyWrite {
-  return {
-    ...draft,
-    foundedOn: draft.foundedOn || null,
-    address: draft.address.roadAddress.trim() ? draft.address : null,
-  };
-}
 
 /**
  * 공고를 올린 공연사 정보를 만들고 고친다. 새 공연사는 검토 전이라 공고와 공연사 화면에 보이지 않고, 내용을 확인한 뒤
@@ -158,7 +121,7 @@ export function AdminCompanies() {
       {editing === "new" ? (
         <CompanyForm
           key="new"
-          initial={EMPTY_DRAFT}
+          initial={emptyDraft()}
           submitLabel="검토 전으로 만들기"
           onCancel={() => setEditing(null)}
           onSave={async (write) => {
@@ -230,9 +193,14 @@ export function AdminCompanies() {
   );
 }
 
-function CompanyForm({ initial, submitLabel, onSave, onCancel, onUnauthorized }: {
-  readonly initial: Draft;
+/**
+ * 공연사 정보 입력 폼. 선택 항목은 값을 적거나 "비공개"를 체크해야 저장된다. 정보 출처 메모는 운영자만 본다.
+ */
+export function CompanyForm({ initial, submitLabel, onSave, onCancel, onUnauthorized, footer }: {
+  readonly initial: CompanyDraft;
   readonly submitLabel: string;
+  /** 저장 버튼 위에 더 보일 칸(예: 저장하면서 공개). */
+  readonly footer?: React.ReactNode;
   readonly onSave: (write: AdminCompanyWrite) => Promise<void>;
   readonly onCancel: () => void;
   readonly onUnauthorized: () => void;
@@ -240,13 +208,19 @@ function CompanyForm({ initial, submitLabel, onSave, onCancel, onUnauthorized }:
   const [draft, setDraft] = useState(initial);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const set = <K extends keyof Draft>(key: K, value: Draft[K]) => setDraft((current) => ({ ...current, [key]: value }));
-  const nameMissing = !draft.name.trim();
+  const [checked, setChecked] = useState(false);
+  const undecided = new Set(checked ? undecidedFields(draft) : []);
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (nameMissing) {
+    setChecked(true);
+    if (!draft.name.trim()) {
       setError("공연사 이름을 입력해 주세요.");
+      return;
+    }
+    const missing = undecidedFields(draft);
+    if (missing.length) {
+      setError(`${missing.map((field) => COMPANY_FIELD_LABELS[field]).join(", ")}: 값을 적거나 비공개를 체크해 주세요.`);
       return;
     }
     setSaving(true);
@@ -266,86 +240,22 @@ function CompanyForm({ initial, submitLabel, onSave, onCancel, onUnauthorized }:
 
   return (
     <form onSubmit={(event) => void submit(event)} noValidate className="flex flex-col gap-4 rounded-card border border-brand-line bg-card p-4 sm:p-5">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field id="company-name" label="공연사 이름" required>
-          <FieldInput id="company-name" value={draft.name} maxLength={100} autoComplete="organization" onChange={(event) => set("name", event.target.value)} aria-invalid={error && nameMissing ? true : undefined} />
-        </Field>
-        <Field id="company-representative" label="대표자 이름" hint="개인정보예요. 공개 동의가 없으면 공개 화면에 보이지 않아요.">
-          <FieldInput id="company-representative" value={draft.representativeName} maxLength={50} autoComplete="off" onChange={(event) => set("representativeName", event.target.value)} />
-          <Consent id="company-representative-public" checked={draft.representativeNamePublic} onChange={(checked) => set("representativeNamePublic", checked)}>
-            공연사가 대표자 이름 공개에 동의했어요
-          </Consent>
-        </Field>
-        <Field id="company-homepage" label="홈페이지">
-          <FieldInput id="company-homepage" type="url" inputMode="url" value={draft.homepage} maxLength={500} placeholder="https://" onChange={(event) => set("homepage", event.target.value)} />
-        </Field>
-        <Field id="company-founded" label="설립일">
-          <FieldInput id="company-founded" type="date" value={draft.foundedOn} min="1900-01-01" onChange={(event) => set("foundedOn", event.target.value)} />
-        </Field>
-        <Field id="company-phone" label="대표 연락처" hint="공식 대표번호만 적어 주세요. 개인 휴대폰 번호는 쓰지 않아요.">
-          <FieldInput id="company-phone" type="tel" inputMode="tel" value={draft.phone} maxLength={30} placeholder="02-123-4567" onChange={(event) => set("phone", event.target.value)} />
-        </Field>
-        <Field id="company-region" label="지역" hint="주소가 없을 때 공고 카드에 대신 보여요.">
-          <FieldInput id="company-region" value={draft.region} maxLength={50} placeholder="서울" onChange={(event) => set("region", event.target.value)} />
-        </Field>
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-control bg-surface px-3 py-2 text-xs text-muted-strong">
+        <span>선택 항목은 값을 적거나 &quot;비공개&quot;를 체크해 주세요. 비공개 항목은 공개 화면에 &quot;비공개&quot;로 보여요.</span>
+        <AdminActionButton tone="quiet" className="!min-h-9" onClick={() => setDraft(hideUndecided)}>빈 항목 모두 비공개</AdminActionButton>
       </div>
-      <PerformanceVenueField
-        venue=""
-        address={draft.address}
-        onVenueChange={() => undefined}
-        onAddressChange={(address) => set("address", address)}
-        optional
-        hideVenueName
-        addressLabel="공연사 주소"
-        mapLabel="공연사 위치 지도"
-      />
-      <Consent id="company-address-public" checked={draft.addressPublic} onChange={(checked) => set("addressPublic", checked)}>
-        공식 사업장 주소예요. 상세 주소와 지도를 공개해요
-        <span className="mt-0.5 block text-xs font-normal text-muted">끄면 공개 화면에 시·군·구까지만 보여요. 집 주소일 수 있으면 꺼 두세요.</span>
-      </Consent>
-      <Field id="company-description" label="소개">
-        <FieldTextarea id="company-description" rows={4} value={draft.description} maxLength={2000} onChange={(event) => set("description", event.target.value)} />
-      </Field>
-      <Field id="company-source-note" label="정보 출처" hint="어디서 확인했는지 남겨 두세요(예: 공식 홈페이지 연혁, 공연사 전화 확인). 운영자만 봐요.">
-        <FieldTextarea id="company-source-note" rows={2} value={draft.sourceNote} maxLength={1000} onChange={(event) => set("sourceNote", event.target.value)} />
-      </Field>
+      <CompanyProfileFields draft={draft} onChange={setDraft} undecided={undecided} mode="admin" />
+      <div className="flex min-w-0 flex-col gap-1.5">
+        <label htmlFor="company-source-note" className="text-sm font-semibold">정보 출처<span className="ml-1 text-xs font-normal text-muted">운영자만 봐요</span></label>
+        <FieldTextarea id="company-source-note" rows={2} value={draft.sourceNote} maxLength={1000} onChange={(event) => setDraft((current) => ({ ...current, sourceNote: event.target.value }))} />
+        <p className="text-xs text-muted">어디서 확인했는지 남겨 두세요(예: 공식 홈페이지 연혁, 공연사 전화 확인).</p>
+      </div>
+      {footer}
       {error ? <p role="alert" className="text-sm text-fail">{error}</p> : null}
       <div className="flex flex-wrap justify-end gap-2">
         <AdminActionButton onClick={onCancel} disabled={saving}>취소</AdminActionButton>
         <AdminActionButton type="submit" tone="primary" disabled={saving}>{saving ? "저장하는 중…" : submitLabel}</AdminActionButton>
       </div>
     </form>
-  );
-}
-
-function Consent({ id, checked, onChange, children }: {
-  readonly id: string;
-  readonly checked: boolean;
-  readonly onChange: (checked: boolean) => void;
-  readonly children: React.ReactNode;
-}) {
-  return (
-    <label htmlFor={id} className="flex min-h-11 cursor-pointer items-start gap-2.5 text-sm font-medium">
-      <input id={id} type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="mt-0.5 size-4 shrink-0 accent-brand" />
-      <span className="min-w-0">{children}</span>
-    </label>
-  );
-}
-
-function Field({ id, label, hint, required = false, children }: {
-  readonly id: string;
-  readonly label: string;
-  readonly hint?: string;
-  readonly required?: boolean;
-  readonly children: React.ReactNode;
-}) {
-  return (
-    <div className="flex min-w-0 flex-col gap-1.5">
-      <label htmlFor={id} className="text-sm font-semibold">
-        {label}{required ? <span className="ml-1 text-fail" aria-hidden="true">*</span> : <span className="ml-1 text-xs font-normal text-muted">선택</span>}
-      </label>
-      {children}
-      {hint ? <p className="text-xs text-muted">{hint}</p> : null}
-    </div>
   );
 }

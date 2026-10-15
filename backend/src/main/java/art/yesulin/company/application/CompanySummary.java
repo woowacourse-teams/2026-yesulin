@@ -2,6 +2,7 @@ package art.yesulin.company.application;
 
 import art.yesulin.company.domain.Company;
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * 공고 상세에 함께 보이는 공연사 요약. 공개된 공연사만 만든다.
@@ -13,7 +14,7 @@ public record CompanySummary(
         long id,
         String name,
         String representativeName,
-        String homepage,
+        List<String> links,
         LocalDate foundedOn,
         String location
 ) {
@@ -23,7 +24,7 @@ public record CompanySummary(
                 company.getId(),
                 company.getName(),
                 company.publicRepresentativeName(),
-                company.getHomepage(),
+                List.copyOf(company.getLinks()),
                 company.getFoundedOn(),
                 company.locationSummary()
         );

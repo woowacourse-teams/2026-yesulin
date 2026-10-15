@@ -5,10 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import art.yesulin.auditionpost.application.AuditionPostCompanyAuthorOverview;
 import art.yesulin.auditionpost.application.AuditionPostCompanyLinkResult;
 import art.yesulin.auditionpost.application.AuditionPostCompanyLinkService;
+import art.yesulin.auditionpost.application.AuditionPostCompanyProfile;
 import art.yesulin.auditionpost.application.AuditionPostService;
 import art.yesulin.auditionpost.application.PublicAuditionPostResult;
 import art.yesulin.auditionpost.application.PublicAuditionPostView;
@@ -98,7 +100,7 @@ class CompanyServiceTest {
         long companyId = companyService.create(ADMIN_ID, profile()).id();
 
         AdminCompanyResult updated = companyService.update(ADMIN_ID, companyId, new CompanyProfile(
-                "극단 새이름", null, false, null, null, null, false, "부산", null, null, null
+                "극단 새이름", null, false, null, null, null, false, "부산", null, null, null, null
         ));
 
         assertEquals("극단 새이름", updated.name());
@@ -167,7 +169,7 @@ class CompanyServiceTest {
         long companyId = companyService.create(ADMIN_ID, new CompanyProfile(
                 "극단 예술in", "홍길동", false, null, null,
                 new CompanyAddress("서울 마포구 성미산로 1", "101호", "", null, null),
-                false, null, null, null, "대표 SNS"
+                false, null, null, null, null, "대표 SNS"
         )).id();
         companyService.changeStatus(ADMIN_ID, companyId, CompanyStatus.PUBLISHED);
 
@@ -217,6 +219,27 @@ class CompanyServiceTest {
         assertEquals(other, postRepository.findById(manual).orElseThrow().getCompanyId());
     }
 
+    @Test
+    void sharesInfoWrittenOnOnePostWithSameAuthor() {
+        final long first = otrPost("301", "9001", "극단 같은이");
+        final long second = otrPost("302", "9001", "극단 같은이");
+        final long stranger = otrPost("303", "9002", "다른 극단");
+        assertNull(linkService.findPostCompany(second).company());
+        assertEquals("극단 같은이", linkService.findPostCompany(second).suggestedName());
+
+        AdminCompanyResult saved = linkService.savePostCompany(ADMIN_ID, first, profile(), true);
+
+        assertEquals(CompanyStatus.PUBLISHED, saved.status());
+        assertEquals(saved.id(), postRepository.findById(second).orElseThrow().getCompanyId());
+        assertNull(postRepository.findById(stranger).orElseThrow().getCompanyId());
+        long later = otrPost("304", "9001", "극단 같은이");
+        AuditionPostCompanyProfile shared = linkService.findPostCompany(later);
+        assertEquals(saved.id(), shared.company().id());
+        assertTrue(shared.sharedByAuthor());
+        assertEquals(saved.id(), linkService.savePostCompany(ADMIN_ID, later, profile(), false).id());
+        assertEquals(saved.id(), postRepository.findById(later).orElseThrow().getCompanyId());
+    }
+
     private PublicAuditionPostResult publicPost(long postId) {
         return assertInstanceOf(PublicAuditionPostView.Published.class, auditionPostService.findPublicPost(postId))
                 .post();
@@ -247,11 +270,11 @@ class CompanyServiceTest {
 
     private static CompanyProfile profile() {
         return new CompanyProfile(
-                "극단 예술in", "홍길동", true, "https://yesulin.art", LocalDate.of(2015, 3, 1),
+                "극단 예술in", "홍길동", true, List.of("https://yesulin.art"), LocalDate.of(2015, 3, 1),
                 new CompanyAddress(
                         "서울 종로구 대학로 12", "3층", "03086", new BigDecimal("37.5822000"), new BigDecimal("127.0017000")
                 ),
-                true, null, "02-765-4321", "대학로 소극장 중심의 창작 극단", "홈페이지 연혁"
+                true, null, "02-765-4321", "대학로 소극장 중심의 창작 극단", "2015 창단", "홈페이지 연혁"
         );
     }
 

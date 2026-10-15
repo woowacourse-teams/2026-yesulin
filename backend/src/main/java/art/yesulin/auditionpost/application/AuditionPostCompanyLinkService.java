@@ -9,8 +9,10 @@ import art.yesulin.auditionpost.domain.AuditionPostAuthorCompanyCount;
 import art.yesulin.auditionpost.domain.AuditionPostRepository;
 import art.yesulin.auditionpost.domain.companylink.AuditionPostCompanyLink;
 import art.yesulin.auditionpost.domain.companylink.AuditionPostCompanyLinkRepository;
+import art.yesulin.company.application.AdminCompanyResult;
 import art.yesulin.company.application.CompanyService;
 import art.yesulin.company.domain.CompanyProfile;
+import art.yesulin.company.domain.CompanyStatus;
 import art.yesulin.global.audit.AdminAction;
 import art.yesulin.global.audit.AdminAuditLog;
 import art.yesulin.global.audit.AdminAuditLogRepository;
@@ -146,6 +148,67 @@ public class AuditionPostCompanyLinkService {
         } catch (BusinessException exception) {
             return false;
         }
+    }
+
+    /** 운영자 공고 목록에서 그 공고의 공연사 정보를 열 때 쓴다. 공고에 연결이 없으면 같은 원문 작성자로 묶은 공연사를 찾는다. */
+    @Transactional(readOnly = true)
+    public AuditionPostCompanyProfile findPostCompany(long postId) {
+        AuditionPost post = postRepository.findById(postId)
+                .orElseThrow(() -> new BusinessException(NOT_FOUND, "공고를 찾을 수 없습니다."));
+        Long companyId = post.getCompanyId();
+        boolean shared = false;
+        if (companyId == null) {
+            companyId = authorCompanyOf(post).orElse(null);
+            shared = companyId != null;
+        }
+        return new AuditionPostCompanyProfile(
+                companyId == null ? null : companies.findForAdmin(companyId), shared,
+                post.getContent().getAuthorName(), post.getSourceAuthorId()
+        );
+    }
+
+    /**
+     * 운영자가 공고 목록에서 공연사 정보를 직접 쓴다. 공고의 공연사, 없으면 같은 원문 작성자로 묶은 공연사를 고치고, 둘 다 없으면
+     * 새로 만든다. 원문 작성자 번호가 있으면 그 작성자를 이 공연사로 묶어 같은 작성자의 다른 공고와 이후 가져오는 공고에도
+     * 같은 정보가 연결된다. {@code publish}면 저장하면서 공개한다.
+     */
+    public AdminCompanyResult savePostCompany(long adminId, long postId, CompanyProfile profile, boolean publish) {
+        try {
+            return Objects.requireNonNull(transactions.execute(status -> {
+                AuditionPost post = postRepository.findByIdForUpdate(postId)
+                        .orElseThrow(() -> new BusinessException(NOT_FOUND, "공고를 찾을 수 없습니다."));
+                Long existing = post.getCompanyId() != null ? post.getCompanyId() : authorCompanyOf(post).orElse(null);
+                long companyId = existing == null
+                        ? companies.create(adminId, profile).id()
+                        : companies.update(adminId, existing, profile).id();
+                if (publish) {
+                    companies.changeStatus(adminId, companyId, CompanyStatus.PUBLISHED);
+                }
+                if (!Objects.equals(post.getCompanyId(), companyId)) {
+                    post.changeCompany(companyId);
+                    auditLogRepository.save(new AdminAuditLog(
+                            adminId, AdminAction.AUDITION_POST_COMPANY_CHANGED, "AUDITION_POST", post.getId(),
+                            "공연사 %d 연결".formatted(companyId)
+                    ));
+                }
+                String authorId = post.getSourceAuthorId();
+                if (authorId != null
+                        && linkRepository.findBySourceAndSourceAuthorId(post.getSource(), authorId).isEmpty()) {
+                    connect(adminId, post.getSource(), authorId, companyId, post);
+                }
+                return companies.findForAdmin(companyId);
+            }));
+        } catch (DataIntegrityViolationException exception) {
+            throw new BusinessException(INVALID_INPUT, "같은 작성자의 공연사 정보를 다른 운영자가 먼저 저장했습니다. 다시 열어 주세요.");
+        }
+    }
+
+    private Optional<Long> authorCompanyOf(AuditionPost post) {
+        if (post.getSourceAuthorId() == null) {
+            return Optional.empty();
+        }
+        return linkRepository.findBySourceAndSourceAuthorId(post.getSource(), post.getSourceAuthorId())
+                .map(AuditionPostCompanyLink::getCompanyId);
     }
 
     /** 묶는 규칙만 지운다. 이미 연결된 공고는 그대로 두고, 이후 가져오는 공고만 연결하지 않는다. */

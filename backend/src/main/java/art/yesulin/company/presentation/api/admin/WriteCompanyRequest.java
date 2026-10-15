@@ -8,6 +8,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * 공연사 정보를 통째로 저장한다. 이름 말고는 비워 둘 수 있고, 비운 항목은 지운다.
@@ -21,20 +22,22 @@ public record WriteCompanyRequest(
         @NotBlank @Size(max = Company.MAX_NAME_LENGTH) String name,
         @Size(max = Company.MAX_REPRESENTATIVE_NAME_LENGTH) String representativeName,
         boolean representativeNamePublic,
-        @Size(max = Company.MAX_HOMEPAGE_LENGTH) String homepage,
+        @Size(max = Company.MAX_LINKS) List<@Size(max = Company.MAX_LINK_LENGTH) String> links,
         LocalDate foundedOn,
         @Valid Address address,
         boolean addressPublic,
         @Size(max = Company.MAX_REGION_LENGTH) String region,
         @Size(max = Company.MAX_PHONE_LENGTH) String phone,
         @Size(max = Company.MAX_DESCRIPTION_LENGTH) String description,
+        @Size(max = Company.MAX_HISTORY_LENGTH) String history,
         @Size(max = Company.MAX_SOURCE_NOTE_LENGTH) String sourceNote
 ) {
 
     public CompanyProfile toProfile() {
         return new CompanyProfile(
-                name, representativeName, representativeNamePublic, homepage, foundedOn,
-                address == null ? null : address.toAddress(), addressPublic, region, phone, description, sourceNote
+                name, representativeName, representativeNamePublic, links, foundedOn,
+                address == null ? null : address.toAddress(), addressPublic, region, phone, description, history,
+                sourceNote
         );
     }
 

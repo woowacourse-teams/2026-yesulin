@@ -3,6 +3,7 @@ package art.yesulin.company.application;
 import art.yesulin.company.domain.Company;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * 공개된 공연사 화면. 비워 둔 항목은 null이다.
@@ -15,12 +16,13 @@ public record PublicCompanyResult(
         long id,
         String name,
         String representativeName,
-        String homepage,
+        List<String> links,
         LocalDate foundedOn,
         String location,
         CompanyAddressResult address,
         String phone,
         String description,
+        String history,
         Instant updatedAt
 ) {
 
@@ -29,12 +31,13 @@ public record PublicCompanyResult(
                 company.getId(),
                 company.getName(),
                 company.publicRepresentativeName(),
-                company.getHomepage(),
+                List.copyOf(company.getLinks()),
                 company.getFoundedOn(),
                 company.locationSummary(),
                 CompanyAddressResult.from(company.publicAddress()),
                 company.getPhone(),
                 company.getDescription(),
+                company.getHistory(),
                 company.getUpdatedAt()
         );
     }

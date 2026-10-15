@@ -1,4 +1,5 @@
 import type { VenueAddress } from "../auditions/creation-types";
+import type { CompanyField, CompanyWrite } from "../companies/profile-draft";
 
 export type MemberStatus = "PENDING" | "ACTIVE";
 
@@ -422,7 +423,8 @@ export type AdminCompany = {
   readonly representativeName: string | null;
   /** 공연사가 대표자 이름 공개에 동의했는지. false면 공개 화면에 대표자 이름이 없다. */
   readonly representativeNamePublic: boolean;
-  readonly homepage: string | null;
+  /** 홈페이지·SNS 같은 링크. 최대 3개. */
+  readonly links: readonly string[];
   /** `YYYY-MM-DD` */
   readonly foundedOn: string | null;
   /** 공연사가 직접 알려 준 주소. 지도는 이 주소만 사용한다. */
@@ -433,6 +435,7 @@ export type AdminCompany = {
   readonly region: string | null;
   readonly phone: string | null;
   readonly description: string | null;
+  readonly history: string | null;
   /** 정보를 확인한 출처. 운영자만 본다. */
   readonly sourceNote: string | null;
   readonly status: AdminCompanyStatus;
@@ -441,19 +444,7 @@ export type AdminCompany = {
 };
 
 /** 공연사 정보 저장 본문. 이름 말고는 비워 둘 수 있고, 비운 항목은 지운다. */
-export type AdminCompanyWrite = {
-  readonly name: string;
-  readonly representativeName: string;
-  readonly representativeNamePublic: boolean;
-  readonly homepage: string;
-  readonly foundedOn: string | null;
-  readonly address: VenueAddress | null;
-  readonly addressPublic: boolean;
-  readonly region: string;
-  readonly phone: string;
-  readonly description: string;
-  readonly sourceNote: string;
-};
+export type AdminCompanyWrite = CompanyWrite;
 
 /** 원문 공고를 올린 작성자 한 명. 같은 작성자의 공고를 한 공연사로 묶는다. */
 export type AdminCompanyAuthor = {
@@ -477,3 +468,30 @@ export type AdminCompanyAuthorOverview = {
   readonly missingAuthorIdCount: number;
 };
 
+
+/** 운영자 공고 목록에서 연 공고의 공연사 정보. */
+export type AdminPostCompanyProfile = {
+  /** 이 공고의 공연사. 연결이 없으면 같은 원문 작성자로 이전에 쓴 공연사다. 둘 다 없으면 null. */
+  readonly company: AdminCompany | null;
+  /** 공고에는 연결되지 않았지만 같은 원문 작성자로 이전에 쓴 정보를 찾았는지. */
+  readonly sharedByAuthor: boolean;
+  /** 새로 쓸 때 이름 칸에 미리 넣을 원문 작성자 이름. */
+  readonly suggestedName: string;
+  /** 원문 작성자 번호. 있으면 저장할 때 같은 작성자의 공고에도 연결된다. */
+  readonly sourceAuthorId: string | null;
+};
+
+/** 공개 화면에서 누구나 보낸 공연사 정보 수정 요청. `/api/v1/admin/company-edit-requests` 응답 항목과 같다. */
+export type AdminCompanyEditRequest = {
+  readonly id: number;
+  /** 지금 공연사 정보. */
+  readonly company: AdminCompany;
+  /** 요청한 공연사 정보. 비워 달라는 항목은 null이다. */
+  readonly proposal: Omit<AdminCompany, "id" | "sourceNote" | "status" | "createdAt" | "updatedAt">;
+  /** 요청자가 바꾼 항목. 적용할 때 이 항목만 요청 값으로 덮어쓴다. */
+  readonly changedFields: readonly CompanyField[];
+  readonly reason: string;
+  /** 요청자가 남긴 연락처. 처리하면 지운다. */
+  readonly contact: string | null;
+  readonly createdAt: string;
+};

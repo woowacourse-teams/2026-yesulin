@@ -2,11 +2,10 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { FieldInput, FieldSelect } from "@/components/ui/controls";
+import { FieldInput } from "@/components/ui/controls";
 import {
   AdminApiError,
   AUDITION_POST_EDITED,
-  changeAuditionPostCompany,
   changeAuditionPostStatus,
   fetchAuditionPosts,
   fetchCompanies,
@@ -25,6 +24,7 @@ import { auditionPostRoutes } from "@/features/audition-posts/types";
 import { logout } from "@/features/auth/session-api";
 import { formatDateTime } from "./admin-format";
 import { AdminAuditionPostTabs } from "./admin-audition-post-tabs";
+import { AdminPostCompanyEditor } from "./admin-post-company-editor";
 import { AdminSessionEnded } from "./admin-session-ended";
 import { AdminActionButton, AdminActionLink, AdminEmptyState, AdminFilterButton, AdminShell } from "./admin-shell";
 import { SummaryItem, SummaryStrip } from "./admin-stat";
@@ -68,7 +68,8 @@ export function AdminAuditionPosts({ ownerId }: {
   const [overwriteTarget, setOverwriteTarget] = useState<string | null>(null);
   /** 연결할 공연사 후보. 불러오지 못하면 연결 칸을 숨긴다. */
   const [companies, setCompanies] = useState<readonly AdminCompany[] | null>(null);
-  const [linking, setLinking] = useState<number | null>(null);
+  /** 공연사 정보를 쓰고 있는 공고. */
+  const [editingCompany, setEditingCompany] = useState<number | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -103,6 +104,7 @@ export function AdminAuditionPosts({ ownerId }: {
   }, [ownerId, reloadToken]);
 
   const refresh = useCallback(() => setReloadToken((value) => value + 1), []);
+  const endSession = useCallback(() => setPhase("unauthorized"), []);
 
   const handleFailure = (cause: unknown, fallback: string) => {
     if (cause instanceof AdminApiError && cause.status === 401) {
@@ -157,19 +159,6 @@ export function AdminAuditionPosts({ ownerId }: {
       handleFailure(cause, "공개 상태를 바꾸지 못했습니다.");
     } finally {
       setChanging(null);
-    }
-  };
-
-  const linkCompany = async (post: AdminAuditionPost, companyId: number | null) => {
-    setLinking(post.id);
-    setError(null);
-    try {
-      const updated = await changeAuditionPostCompany(post.id, companyId);
-      setPosts((current) => current.map((item) => item.id === updated.id ? updated : item));
-    } catch (cause) {
-      handleFailure(cause, "공연사 연결을 바꾸지 못했습니다.");
-    } finally {
-      setLinking(null);
     }
   };
 
@@ -324,14 +313,12 @@ export function AdminAuditionPosts({ ownerId }: {
                     <ReimportButton otrId={post.externalId} importing={importing} onImport={(otrId) => void runImport(otrId)} />
                   </>
                 ) : null}
-                {companies ? (
-                  <CompanyLink
-                    post={post}
-                    companies={companies}
-                    disabled={linking === post.id}
-                    onChange={(companyId) => void linkCompany(post, companyId)}
-                  />
-                ) : null}
+                <AdminActionButton
+                  aria-expanded={editingCompany === post.id}
+                  onClick={() => setEditingCompany((current) => current === post.id ? null : post.id)}
+                >
+                  {post.companyId === null ? "공연사 정보 쓰기" : "공연사 정보 수정"}
+                </AdminActionButton>
                 <AdminActionButton
                   disabled={changing === post.id}
                   onClick={() => void toggleStatus(post)}
@@ -340,40 +327,19 @@ export function AdminAuditionPosts({ ownerId }: {
                   {changing === post.id ? "바꾸는 중…" : STATUS_ACTIONS[post.status]}
                 </AdminActionButton>
               </div>
+              {editingCompany === post.id ? (
+                <AdminPostCompanyEditor
+                  postId={post.id}
+                  onCancel={() => setEditingCompany(null)}
+                  onUnauthorized={endSession}
+                  onSaved={() => { setEditingCompany(null); refresh(); }}
+                />
+              ) : null}
             </article>
           ))}
         </section>
       ) : null}
     </AdminShell>
-  );
-}
-
-/** 공고를 올린 공연사를 고른다. 검토 전인 공연사도 미리 연결할 수 있고, 공개해야 공고 상세에 보인다. */
-function CompanyLink({ post, companies, disabled, onChange }: {
-  readonly post: AdminAuditionPost;
-  readonly companies: readonly AdminCompany[];
-  readonly disabled: boolean;
-  readonly onChange: (companyId: number | null) => void;
-}) {
-  const id = `post-company-${post.id}`;
-  return (
-    <label htmlFor={id} className="flex min-w-0 items-center gap-2 text-sm">
-      <span className="shrink-0 font-medium text-muted-strong">공연사</span>
-      <FieldSelect
-        id={id}
-        value={post.companyId ?? ""}
-        disabled={disabled}
-        onChange={(event) => onChange(event.target.value ? Number(event.target.value) : null)}
-        className="min-h-10 w-44 min-w-0 py-1.5 text-sm"
-      >
-        <option value="">연결 안 함</option>
-        {companies.map((company) => (
-          <option key={company.id} value={company.id}>
-            {company.name}{company.status === "PUBLISHED" ? "" : ` (${AUDITION_POST_STATUS_LABELS[company.status]})`}
-          </option>
-        ))}
-      </FieldSelect>
-    </label>
   );
 }
 

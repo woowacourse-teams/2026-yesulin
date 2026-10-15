@@ -195,7 +195,7 @@
 
 ## 공연사
 
-- `company/domain`의 `Company`(`companies`)는 공연사 이름·대표자(공개 동의 `representative_name_public`)·홈페이지·설립일·주소 `CompanyAddress`(embeddable)와 상세 주소 공개 여부(`address_public`)·지역·연락처·소개·운영자용 정보 출처 메모와
+- `company/domain`의 `Company`(`companies`)는 공연사 이름·대표자(공개 동의 `representative_name_public`)·링크(`company_links`, 최대 3개)·설립일·주소 `CompanyAddress`(embeddable)와 상세 주소 공개 여부(`address_public`)·지역·연락처·소개·연혁·운영자용 정보 출처 메모와
   공개 상태 `CompanyStatus`, 만든 운영자, 생성·갱신 시각을 저장한다. 기획사 계정(`producers`)과 연결하지 않는다.
 - 정보는 `CompanyProfile`로 통째로 바꾸고, `Company`가 공백 정리·길이·홈페이지 형식·설립일 범위·연락처 형식을 검사한다.
   공고 카드 위치는 `Company.locationSummary`(주소의 앞 두 단어, 없으면 지역)가 정한다.
@@ -207,6 +207,11 @@
   update로 기존 공고를 연결하고, 옮길 때는 예전 공연사에 연결됐던 그 작성자의 공고만 옮긴다. `AuditionPostImportService`와 작성자 번호
   채우기(`AuditionPostAuthorLinkService.fill`)가 공연사 없는 공고에 규칙의 공연사를 붙인다. 작성자로 공연사를 만들 때는
   `CompanyService.create`를 같은 트랜잭션에서 불러 묶기에 실패하면 공연사도 남기지 않는다.
+- `company/domain/editrequest`의 `CompanyEditRequest`(`company_edit_requests`, 링크는 `company_edit_request_links`)는 공개 화면의 정보 수정
+  요청이다. 요청 정보 전체를 `Company.normalize`(공연사 정보와 같은 검사)로 정리해 담고, 요청자가 바꾼 항목 `CompanyField`를
+  `changed_fields`에 쉼표로 저장한다. `PENDING`에서만 `APPLIED`·`REJECTED`로 끝나며 끝나면 연락처를 지운다. `CompanyEditRequestService`는
+  공개 중인 공연사에만 요청을 받고, 커밋 뒤 `CompanyEditRequestedEvent`로 `CompanyEditRequestNotifier`(Slack)를 부른다. 적용은
+  `CompanyService.update`를 같은 트랜잭션에서 부른다.
 
 ## 지원서
 
