@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { NotebookFooter, NotebookHeader } from "@/components/landing/notebook-site-layout";
 import type { SessionAvailability, ShowAvailability } from "@/features/shows/format";
 import { SHOW_GENRE_LABELS, showRoutes, type ShowGenre, type ShowStatus } from "@/features/shows/types";
 
@@ -72,7 +73,7 @@ export function SessionAvailabilityText({ availability }: { readonly availabilit
 
 export function ShowUnavailable() {
   return (
-    <main className="min-h-screen break-keep bg-surface px-5 py-16 wrap-break-word sm:px-8">
+    <><NotebookHeader /><main id="main" className="notebook-container py-12">
       <section className="mx-auto max-w-[680px] rounded-card border border-border bg-card px-6 py-14 text-center">
         <p className="text-sm font-semibold text-fail">공연을 찾을 수 없어요</p>
         <h1 className="mt-3 text-2xl font-bold tracking-[-0.025em]">공연 링크가 올바른지 확인해 주세요.</h1>
@@ -84,6 +85,6 @@ export function ShowUnavailable() {
           다른 공연 보기
         </Link>
       </section>
-    </main>
+    </main><NotebookFooter /></>
   );
 }

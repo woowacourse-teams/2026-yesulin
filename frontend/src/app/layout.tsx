@@ -6,6 +6,7 @@ import { SITE_URL } from "@/config/site";
 import { HOME_DESCRIPTION, HOME_TITLE, SHARE_IMAGE } from "@/features/seo/audition-metadata";
 import "./globals.css";
 import "./interactions.css";
+import "./notebook.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

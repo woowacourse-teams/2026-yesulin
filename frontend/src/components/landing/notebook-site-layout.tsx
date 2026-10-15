@@ -1,0 +1,66 @@
+"use client";
+
+import Image from "next/image";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { TrackedLoginLink } from "@/components/analytics/tracked-login-link";
+import { PolicyLinks } from "@/components/policies/policy-links";
+import { AUDITION_ALERT_CHAT_URL, auditionPostRoutes } from "@/features/audition-posts/types";
+import { showRoutes } from "@/features/shows/types";
+import { SiteIcon } from "@/components/ui/site-icon";
+import { EventsNoticeDialog } from "./events-notice-dialog";
+
+const menuItems = [
+  { key: "auditions", href: auditionPostRoutes.list(), label: "오디션" },
+  { key: "shows", href: showRoutes.list, label: "무료 공연" },
+] as const;
+
+export function NotebookHeader({ service = "applicant" }: { readonly service?: "applicant" | "producer" }) {
+  const [eventsOpen, setEventsOpen] = useState(false);
+  const pathname = usePathname() ?? "/";
+  const current = pathname.startsWith("/shows") ? "shows" : pathname === "/auditions" || pathname.startsWith("/auditions/") || pathname.startsWith("/posts/") ? "auditions" : undefined;
+  return <><header className="notebook-header"><div className="notebook-container notebook-header-inner">
+    <Link href="/" aria-label="예술in 홈" className="notebook-logo"><Image src="/images/yesulin-logo-transparent.png" alt="예술in" width={96} height={56} priority /></Link>
+    <nav aria-label="주요 메뉴" className="notebook-main-nav">{menuItems.map((item) => <Link key={item.key} href={item.href} aria-current={current === item.key ? "page" : undefined}>{item.label}</Link>)}<button type="button" aria-haspopup="dialog" onClick={() => setEventsOpen(true)}>이벤트</button></nav>
+    <div className="notebook-account"><HeaderLogin service={service} /><Link href="/producer-service" className="notebook-producer-link">기획사·제작사 서비스</Link></div>
+    <MobileNavigation key={pathname} current={current} service={service} onEvents={() => setEventsOpen(true)} />
+  </div></header><EventsNoticeDialog open={eventsOpen} onClose={() => setEventsOpen(false)} /></>;
+}
+
+function HeaderLogin({ service }: { readonly service: "applicant" | "producer" }) {
+  const producer = service === "producer";
+  return <TrackedLoginLink href="/login" analytics={{ entry_point: producer ? "producer_landing_header" : "landing_header", login_reason: producer ? "manage_production" : "account_access", actor_type: service, return_target: producer ? "producer_home" : "applicant_home" }}>로그인</TrackedLoginLink>;
+}
+
+function MobileNavigation({ current, service, onEvents }: { readonly current?: string; readonly service: "applicant" | "producer"; readonly onEvents: () => void }) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const outside = (event: PointerEvent) => { if (!rootRef.current?.contains(event.target as Node)) setOpen(false); };
+    const escape = (event: KeyboardEvent) => { if (event.key === "Escape") { setOpen(false); buttonRef.current?.focus(); } };
+    document.addEventListener("pointerdown", outside);
+    document.addEventListener("keydown", escape);
+    return () => { document.removeEventListener("pointerdown", outside); document.removeEventListener("keydown", escape); };
+  }, [open]);
+  return <div ref={rootRef} className="notebook-mobile-navigation" onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOpen(false); }}>
+    <button ref={buttonRef} type="button" className="notebook-menu-toggle" aria-label={open ? "메뉴 닫기" : "메뉴 열기"} aria-expanded={open} aria-controls="notebook-mobile-menu" onClick={() => setOpen(!open)}><SiteIcon name={open ? "close" : "menu"} size={26} /></button>
+    {open ? <nav id="notebook-mobile-menu" aria-label="모바일 주요 메뉴" className="notebook-mobile-menu" onClick={(event) => { if ((event.target as HTMLElement).closest("a")) setOpen(false); }}>
+      {menuItems.map((item) => <Link key={item.key} href={item.href} aria-current={current === item.key ? "page" : undefined}>{item.label}</Link>)}
+      <button type="button" aria-haspopup="dialog" onClick={() => { buttonRef.current?.focus(); setOpen(false); onEvents(); }}>이벤트</button>
+      <div className="notebook-mobile-account"><HeaderLogin service={service} /><Link href="/producer-service">기획사·제작사 서비스</Link></div>
+    </nav> : null}
+  </div>;
+}
+
+export function NotebookFooter({ className = "" }: { readonly className?: string }) {
+  const [eventsOpen, setEventsOpen] = useState(false);
+  return <><footer className={`notebook-footer ${className}`}><div className="notebook-container">
+    <div className="notebook-footer-top"><div><Link href="/" aria-label="예술in 홈"><Image src="/images/yesulin-logo-transparent.png" alt="예술in" width={86} height={50} /></Link><p>공연예술의 기회와 만남을 연결합니다.</p></div>
+      <nav aria-label="푸터 서비스"><strong>예술in</strong><Link href="/about">서비스 소개</Link><Link href={auditionPostRoutes.list()}>오디션 공고</Link><Link href={showRoutes.list}>무료 공연</Link><button type="button" aria-haspopup="dialog" onClick={() => setEventsOpen(true)}>이벤트</button><Link href="/#faq">자주 묻는 질문</Link></nav>
+      <nav aria-label="문의"><strong>문의</strong><a href="mailto:contact@yesulin.art">이메일 문의</a><a href="https://pf.kakao.com/_pbTBX/chat" target="_blank" rel="noopener noreferrer" aria-label="카카오톡 문의 (새 창에서 열림)">카카오톡 문의</a><a href={AUDITION_ALERT_CHAT_URL} target="_blank" rel="noopener noreferrer" aria-label="공고 알림 (새 창에서 열림)">공고 알림</a></nav>
+    </div><div className="notebook-footer-bottom"><p>© 2026 예술in 프로젝트팀. All rights reserved.</p><PolicyLinks /></div>
+  </div></footer><EventsNoticeDialog open={eventsOpen} onClose={() => setEventsOpen(false)} /></>;
+}

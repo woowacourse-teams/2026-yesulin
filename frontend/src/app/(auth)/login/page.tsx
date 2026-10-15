@@ -17,10 +17,10 @@ export default async function LoginPage({ searchParams }: {
     <AuthShell
       intent={applicationContext ? "application" : "default"}
       fitViewport={!applicationContext}
-      title={applicationContext ? "지원서 제출을 계속할게요" : "로그인하고 이어가세요"}
+      title={applicationContext ? "지원서 제출을 위한 로그인" : "로그인"}
       description={applicationContext
         ? "소셜 계정으로 로그인하면 작성하던 지원서의 최종 검토 화면으로 돌아갑니다."
-        : <span className="sm:whitespace-nowrap">지원서 제출부터 캐스팅 관리까지 계정에서 편리하게 이어갈 수 있어요.</span>}
+        : "이용할 계정 종류를 선택해주세요."}
       footer={applicationContext
         ? <span>처음 이용해도 소셜 로그인과 함께 배우 계정이 자동으로 만들어집니다.</span>
         : undefined}

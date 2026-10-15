@@ -19,5 +19,5 @@ export const metadata: Metadata = {
 };
 
 export default function ShowsLayout({ children }: { readonly children: React.ReactNode }) {
-  return <MswProvider>{children}</MswProvider>;
+  return <MswProvider><div className="public-notebook"><a className="notebook-skip" href="#main">본문으로 바로가기</a>{children}</div></MswProvider>;
 }

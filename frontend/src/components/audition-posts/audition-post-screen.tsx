@@ -5,19 +5,20 @@ import { auditionPostRoutes } from "@/features/audition-posts/types";
 
 export function AuditionPostScreen({ children }: { readonly children: ReactNode }) {
   return (
-    <main className="min-h-screen break-keep bg-surface text-foreground wrap-break-word">
+    <div className="public-notebook">
+      <a className="notebook-skip" href="#main">본문으로 바로가기</a>
       <LandingHeader service="applicant" />
-      <div className="mx-auto max-w-[800px] px-5 pb-20 pt-6 sm:px-8 md:pt-10">
+      <main id="main" className="notebook-container notebook-reading pb-16 pt-6 md:pt-10">
         <Link
           href={auditionPostRoutes.list()}
           className="-ml-2 inline-flex min-h-11 items-center rounded-control px-2 text-sm font-semibold text-muted-strong hover:bg-white hover:text-foreground"
         >
-          ← 공고 목록
+          공고 목록
         </Link>
         {children}
-      </div>
+      </main>
       <LandingFooter />
-    </main>
+    </div>
   );
 }
 
