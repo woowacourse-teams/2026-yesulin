@@ -2,16 +2,23 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { FieldInput } from "@/components/ui/controls";
+import { FieldInput, FieldSelect } from "@/components/ui/controls";
 import {
   AdminApiError,
   AUDITION_POST_EDITED,
+  changeAuditionPostCompany,
   changeAuditionPostStatus,
   fetchAuditionPosts,
+  fetchCompanies,
   importOtrAuditionPost,
 } from "@/features/admin/api";
 import { adminAuditionPostRoutes, extractOtrId } from "@/features/admin/audition-posts";
-import type { AdminAuditionPost, AdminAuditionPostImport, AdminAuditionPostStatus } from "@/features/admin/types";
+import type {
+  AdminAuditionPost,
+  AdminAuditionPostImport,
+  AdminAuditionPostStatus,
+  AdminCompany,
+} from "@/features/admin/types";
 import { AuditionPostStatusBadge } from "@/components/audition-posts/audition-post-status-badge";
 import { AUDITION_POST_STATUS_LABELS } from "@/features/audition-posts/editing";
 import { auditionPostRoutes } from "@/features/audition-posts/types";
@@ -59,6 +66,20 @@ export function AdminAuditionPosts({ ownerId }: {
   const [statusFilter, setStatusFilter] = useState<"ALL" | AdminAuditionPostStatus>("ALL");
   /** 고친 공고를 원문으로 덮어쓸지 확인받는 중인 OTR 번호. */
   const [overwriteTarget, setOverwriteTarget] = useState<string | null>(null);
+  /** 연결할 공연사 후보. 불러오지 못하면 연결 칸을 숨긴다. */
+  const [companies, setCompanies] = useState<readonly AdminCompany[] | null>(null);
+  const [linking, setLinking] = useState<number | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    fetchCompanies()
+      .then((next) => { if (active) setCompanies(next); })
+      .catch((cause: unknown) => {
+        console.error("[공연사 목록 불러오기 실패]", cause);
+        if (active) setCompanies(null);
+      });
+    return () => { active = false; };
+  }, [reloadToken]);
 
   useEffect(() => {
     let active = true;
@@ -136,6 +157,19 @@ export function AdminAuditionPosts({ ownerId }: {
       handleFailure(cause, "공개 상태를 바꾸지 못했습니다.");
     } finally {
       setChanging(null);
+    }
+  };
+
+  const linkCompany = async (post: AdminAuditionPost, companyId: number | null) => {
+    setLinking(post.id);
+    setError(null);
+    try {
+      const updated = await changeAuditionPostCompany(post.id, companyId);
+      setPosts((current) => current.map((item) => item.id === updated.id ? updated : item));
+    } catch (cause) {
+      handleFailure(cause, "공연사 연결을 바꾸지 못했습니다.");
+    } finally {
+      setLinking(null);
     }
   };
 
@@ -271,6 +305,7 @@ export function AdminAuditionPosts({ ownerId }: {
                   <span className="rounded-full bg-brand-soft px-2.5 py-0.5 font-bold text-brand">{post.createdVia === "PRODUCER_WRITE" ? "기획사 등록" : "직접 작성"}</span>
                 )}
                 {post.ownerId !== null ? <span className="text-muted-strong">기획사 {post.ownerName ?? `회원 ${post.ownerId}`}</span> : null}
+                {post.companyId !== null ? <span className="text-muted-strong">공연사 {companies?.find((company) => company.id === post.companyId)?.name ?? post.companyId}</span> : null}
                 <span className="ml-auto text-muted">{formatDateTime(post.updatedAt)} 갱신</span>
               </header>
               <h3 className="mt-3 break-words text-lg font-semibold"><Link href={adminAuditionPostRoutes.edit(post.id)} className="hover:text-brand">{post.title}</Link></h3>
@@ -289,6 +324,14 @@ export function AdminAuditionPosts({ ownerId }: {
                     <ReimportButton otrId={post.externalId} importing={importing} onImport={(otrId) => void runImport(otrId)} />
                   </>
                 ) : null}
+                {companies ? (
+                  <CompanyLink
+                    post={post}
+                    companies={companies}
+                    disabled={linking === post.id}
+                    onChange={(companyId) => void linkCompany(post, companyId)}
+                  />
+                ) : null}
                 <AdminActionButton
                   disabled={changing === post.id}
                   onClick={() => void toggleStatus(post)}
@@ -302,6 +345,35 @@ export function AdminAuditionPosts({ ownerId }: {
         </section>
       ) : null}
     </AdminShell>
+  );
+}
+
+/** 공고를 올린 공연사를 고른다. 검토 전인 공연사도 미리 연결할 수 있고, 공개해야 공고 상세에 보인다. */
+function CompanyLink({ post, companies, disabled, onChange }: {
+  readonly post: AdminAuditionPost;
+  readonly companies: readonly AdminCompany[];
+  readonly disabled: boolean;
+  readonly onChange: (companyId: number | null) => void;
+}) {
+  const id = `post-company-${post.id}`;
+  return (
+    <label htmlFor={id} className="flex min-w-0 items-center gap-2 text-sm">
+      <span className="shrink-0 font-medium text-muted-strong">공연사</span>
+      <FieldSelect
+        id={id}
+        value={post.companyId ?? ""}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.value ? Number(event.target.value) : null)}
+        className="min-h-10 w-44 min-w-0 py-1.5 text-sm"
+      >
+        <option value="">연결 안 함</option>
+        {companies.map((company) => (
+          <option key={company.id} value={company.id}>
+            {company.name}{company.status === "PUBLISHED" ? "" : ` (${AUDITION_POST_STATUS_LABELS[company.status]})`}
+          </option>
+        ))}
+      </FieldSelect>
+    </label>
   );
 }
 

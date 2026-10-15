@@ -1,3 +1,5 @@
+import type { CompanySummary } from "@/features/companies/types";
+
 /** 메인에 공개한 공고. 백엔드 `/api/v1/public/audition-posts` 응답과 같다. 원문 출처는 상세에만 있다. */
 export type AuditionPostSummary = {
   readonly id: number;
@@ -64,6 +66,8 @@ export type AuditionPost = {
   /** 원문 주소. 원문 없이 직접 쓴 공고는 null이다. */
   readonly sourceUrl: string | null;
   readonly updatedAt: string;
+  /** 공고를 올린 공연사. 연결이 없거나 운영자가 공연사를 공개하기 전이면 null이다. */
+  readonly company: CompanySummary | null;
 };
 
 export const AUDITION_POST_PAGE_SIZE = 12;

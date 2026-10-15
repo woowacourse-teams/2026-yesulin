@@ -17,6 +17,10 @@ import type {
   AdminAuditionPostImport,
   AdminAuditionPostOwnerOverview,
   AdminAuditionPostStatus,
+  AdminCompany,
+  AdminCompanyAuthorOverview,
+  AdminCompanyStatus,
+  AdminCompanyWrite,
   AdminDailyActivity,
   AdminFileDeletionResult,
   AdminLog,
@@ -360,6 +364,86 @@ export async function changeAuditionPostOwner(postId: number, ownerId: number | 
   });
   if (!response.ok) throw await readAdminError(response, "기획사 연결을 바꾸지 못했습니다.");
   return response.json() as Promise<AdminAuditionPost>;
+}
+
+/** 공고를 공연사에 연결하거나(`companyId`) 연결을 끊는다(null). */
+export async function changeAuditionPostCompany(postId: number, companyId: number | null): Promise<AdminAuditionPost> {
+  const response = await fetch(`${API_BASE_PATH}/audition-posts/${postId}/company`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: await withCsrfHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ companyId }),
+  });
+  if (!response.ok) throw await readAdminError(response, "공연사 연결을 바꾸지 못했습니다.");
+  return response.json() as Promise<AdminAuditionPost>;
+}
+
+export async function fetchCompanies(): Promise<readonly AdminCompany[]> {
+  const response = await getJson<{ readonly companies: readonly AdminCompany[] }>(
+    "/companies", "공연사 목록을 불러오지 못했습니다.",
+  );
+  return response.companies;
+}
+
+/** 새 공연사는 검토 전으로 만든다. 공개해야 공고와 공연사 화면에 보인다. */
+export function createCompany(write: AdminCompanyWrite): Promise<AdminCompany> {
+  return sendCompany("/companies", "POST", write, "공연사를 만들지 못했습니다.");
+}
+
+export function updateCompany(companyId: number, write: AdminCompanyWrite): Promise<AdminCompany> {
+  return sendCompany(`/companies/${companyId}`, "PUT", write, "공연사 정보를 저장하지 못했습니다.");
+}
+
+export function changeCompanyStatus(companyId: number, status: AdminCompanyStatus): Promise<AdminCompany> {
+  return sendCompany(`/companies/${companyId}/status`, "PATCH", { status }, "공개 상태를 바꾸지 못했습니다.");
+}
+
+export function fetchCompanyAuthors(): Promise<AdminCompanyAuthorOverview> {
+  return getJson<AdminCompanyAuthorOverview>("/audition-post-company-links", "작성자 목록을 불러오지 못했습니다.");
+}
+
+/** 원문 작성자를 이미 있는 공연사로 묶는다. 다른 공연사에 묶여 있었으면 그 작성자의 공고와 함께 옮긴다. */
+export function linkCompanyAuthor(source: string, sourceAuthorId: string, companyId: number): Promise<unknown> {
+  return sendJson("/audition-post-company-links", "POST", { source, sourceAuthorId, companyId }, "공연사로 묶지 못했습니다.");
+}
+
+/** 원문 작성자의 닉네임으로 검토 전 공연사를 만들고 묶는다. */
+export function createCompanyFromAuthor(source: string, sourceAuthorId: string): Promise<unknown> {
+  return sendJson(
+    "/audition-post-company-links/companies", "POST", { source, sourceAuthorId }, "공연사를 만들지 못했습니다.",
+  );
+}
+
+/** 번호가 있고 아직 묶지 않은 작성자마다 검토 전 공연사를 만든다. */
+export async function createCompaniesFromAuthors(): Promise<number> {
+  const result = await sendJson(
+    "/audition-post-company-links/companies/bulk", "POST", {}, "공연사를 한꺼번에 만들지 못했습니다.",
+  ) as { readonly createdCount: number };
+  return result.createdCount;
+}
+
+export async function unlinkCompanyAuthor(linkId: number): Promise<void> {
+  const response = await fetch(`${API_BASE_PATH}/audition-post-company-links/${linkId}`, {
+    method: "DELETE",
+    credentials: "include",
+    headers: await withCsrfHeaders(),
+  });
+  if (!response.ok) throw await readAdminError(response, "묶음을 풀지 못했습니다.");
+}
+
+async function sendJson(path: string, method: string, body: unknown, fallback: string): Promise<unknown> {
+  const response = await fetch(`${API_BASE_PATH}${path}`, {
+    method,
+    credentials: "include",
+    headers: await withCsrfHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) throw await readAdminError(response, fallback);
+  return response.json();
+}
+
+async function sendCompany(path: string, method: string, body: unknown, fallback: string): Promise<AdminCompany> {
+  return await sendJson(path, method, body, fallback) as AdminCompany;
 }
 
 export function fetchAuditionPostForEdit(postId: string): Promise<EditableAuditionPost> {

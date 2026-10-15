@@ -1,6 +1,6 @@
 export type MockScenarioDefinition = {
   readonly id: string;
-  readonly area: "지원 양식" | "심사 흐름" | "무료 공연" | "오디션 일정표";
+  readonly area: "지원 양식" | "심사 흐름" | "무료 공연" | "오디션 일정표" | "공연사";
   readonly title: string;
   readonly description: string;
   readonly href: string;
@@ -162,5 +162,21 @@ export const MOCK_SCENARIOS: readonly MockScenarioDefinition[] = [
     description: "배우가 문자 링크로 일정을 보고 빈 시간으로 직접 옮기거나 요청을 남깁니다.",
     href: `/t/${SEED_TIMETABLE_KEYS.actor}`,
     checks: ["다른 배우의 이름·번호가 보이지 않는다", "빈 시간을 골라 바로 바꿀 수 있다", "요청을 보내면 보낸 내용이 표시된다"],
+  },
+  {
+    id: "company-post-card",
+    area: "공연사",
+    title: "공고의 공연사 카드",
+    description: "공개한 공연사에 연결된 공고 상세 아래에 공연사 요약이 붙습니다.",
+    href: "/posts/1",
+    checks: ["대표·홈페이지·설립·위치가 보인다", "공연사 정보 전체보기로 공연사 화면에 간다", "정보가 적은 /posts/2는 이름과 지역만 보인다"],
+  },
+  {
+    id: "company-detail",
+    area: "공연사",
+    title: "공연사 화면",
+    description: "공연사 정보와 소개, 공연사가 알려 준 주소 지도, 이 공연사의 공고를 봅니다.",
+    href: "/companies/1",
+    checks: ["연락처와 소개가 보인다", "공연사 위치 지도에서 주소 복사·길찾기를 쓸 수 있다", "공개 전인 /companies/3은 찾을 수 없음 화면이다"],
   },
 ];

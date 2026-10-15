@@ -1,3 +1,5 @@
+import type { VenueAddress } from "../auditions/creation-types";
+
 export type MemberStatus = "PENDING" | "ACTIVE";
 
 export type AdminOtrRedirectReport = {
@@ -342,6 +344,8 @@ export type AdminAuditionPost = {
   readonly ownerId: number | null;
   /** 연결된 기획사 이름. 연결이 없거나 기획사 정보가 없어졌으면 null. */
   readonly ownerName: string | null;
+  /** 공고를 올린 공연사 ID. 공연사를 공개해야 공개 상세에 함께 보인다. 연결되지 않았으면 null. */
+  readonly companyId: number | null;
 };
 
 /** 기획사 한 곳의 공고 수와 자동 연결된 원문 작성자. */
@@ -408,3 +412,68 @@ export type AdminAuditionPostImport = {
   /** 형식·크기 기준에 맞지 않아 옮기지 않은 첨부파일. */
   readonly skippedAttachments: readonly { readonly filename: string; readonly reason: string }[];
 };
+
+export type AdminCompanyStatus = "PENDING" | "PUBLISHED" | "HIDDEN";
+
+/** 공고를 올린 공연사 정보. `/api/v1/admin/companies` 응답과 같다. 비워 둔 항목은 null이다. */
+export type AdminCompany = {
+  readonly id: number;
+  readonly name: string;
+  readonly representativeName: string | null;
+  /** 공연사가 대표자 이름 공개에 동의했는지. false면 공개 화면에 대표자 이름이 없다. */
+  readonly representativeNamePublic: boolean;
+  readonly homepage: string | null;
+  /** `YYYY-MM-DD` */
+  readonly foundedOn: string | null;
+  /** 공연사가 직접 알려 준 주소. 지도는 이 주소만 사용한다. */
+  readonly address: VenueAddress | null;
+  /** 공식 사업장 주소라 상세 주소와 지도를 공개하는지. false면 시·군·구까지만 보인다. */
+  readonly addressPublic: boolean;
+  /** 주소가 없을 때 대신 보일 지역(예: `서울`). */
+  readonly region: string | null;
+  readonly phone: string | null;
+  readonly description: string | null;
+  /** 정보를 확인한 출처. 운영자만 본다. */
+  readonly sourceNote: string | null;
+  readonly status: AdminCompanyStatus;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+};
+
+/** 공연사 정보 저장 본문. 이름 말고는 비워 둘 수 있고, 비운 항목은 지운다. */
+export type AdminCompanyWrite = {
+  readonly name: string;
+  readonly representativeName: string;
+  readonly representativeNamePublic: boolean;
+  readonly homepage: string;
+  readonly foundedOn: string | null;
+  readonly address: VenueAddress | null;
+  readonly addressPublic: boolean;
+  readonly region: string;
+  readonly phone: string;
+  readonly description: string;
+  readonly sourceNote: string;
+};
+
+/** 원문 공고를 올린 작성자 한 명. 같은 작성자의 공고를 한 공연사로 묶는다. */
+export type AdminCompanyAuthor = {
+  readonly source: string;
+  /** 원문 작성자 번호. 번호를 읽기 전에 가져온 공고만 있으면 null이고, 이때는 묶을 수 없다. */
+  readonly sourceAuthorId: string | null;
+  /** 가장 최근 공고의 닉네임. */
+  readonly authorName: string;
+  readonly postCount: number;
+  /** 아직 공연사에 연결되지 않은 공고 수. */
+  readonly companylessCount: number;
+  readonly latestCreatedAt: string;
+  readonly linkId: number | null;
+  readonly companyId: number | null;
+  readonly companyName: string | null;
+};
+
+export type AdminCompanyAuthorOverview = {
+  readonly authors: readonly AdminCompanyAuthor[];
+  /** 원문 작성자 번호를 아직 읽지 않은 원문 공고 수. */
+  readonly missingAuthorIdCount: number;
+};
+
