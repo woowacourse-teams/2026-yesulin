@@ -1,58 +1,95 @@
 "use client";
 
+import Image from "next/image";
+import { useCallback, useEffect, useReducer, useRef, useState, useSyncExternalStore } from "react";
 import { trackAnalyticsEvent } from "@/features/analytics/events";
-import { AUDITION_ALERT_CHAT_URL } from "@/features/audition-posts/types";
+import { bannerSlideReducer, HOME_BANNERS, INITIAL_BANNER_SLIDE, type HomeBanner } from "@/features/landing/home-banners";
+import { SiteIcon } from "@/components/ui/site-icon";
 
-/**
- * 메인 최상단의 공고 알림 안내. 카카오톡 오픈채팅으로 이어지므로 버튼은 카카오 공식 노란색(#FEE500)과
- * 검정 글자를 쓴다. 바탕은 같은 계열의 옅은 노랑으로 목록 카드와 구분한다.
- */
-export function AuditionAlertBanner() {
-  return (
-    <section
-      aria-labelledby="audition-alert-title"
-      className="relative overflow-hidden rounded-card border border-[#f3dc5b] bg-[#fff9d9] px-5 py-5 sm:px-7 sm:py-6"
-    >
-      <div aria-hidden="true" className="pointer-events-none absolute -right-12 -top-16 h-48 w-48 rounded-full bg-[#fee500]/50 blur-3xl" />
-      <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:gap-6">
-        <div className="flex min-w-0 flex-1 items-start gap-4">
-          <span aria-hidden="true" className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#fee500] shadow-[var(--shadow-1)]">
-            <ChatBubbleIcon />
-          </span>
-          <div className="min-w-0">
-            <p className="text-xs font-bold tracking-[0.02em] text-[#5c4a00]">공고 알림 · 카카오톡 오픈채팅</p>
-            <h2 id="audition-alert-title" className="mt-1 text-lg font-bold leading-snug text-[#191919] sm:text-xl">
-              새 공고가 올라오면 카톡으로 가장 먼저 알려 드려요
-            </h2>
-            <p className="mt-1.5 text-sm leading-6 text-[#4a3f1a]">
-              연극·뮤지컬·퍼포먼스·단원·기획사 모집 공고를 오픈채팅방에서 바로 받아 보세요.
-            </p>
-            <ul aria-label="오픈채팅방 안내" className="mt-3 flex flex-wrap gap-1.5 text-xs font-semibold text-[#4a3f1a]">
-              <li className="rounded-full bg-white/80 px-2.5 py-1">새 공고 바로 알림</li>
-              <li className="rounded-full bg-white/80 px-2.5 py-1">익명 프로필로 참여</li>
-            </ul>
-          </div>
-        </div>
-        <a
-          href={AUDITION_ALERT_CHAT_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={() => trackAnalyticsEvent("kakao_openchat_click", { entry_point: "home_alert_banner" })}
-          className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-control bg-[#fee500] px-6 text-[15px] font-bold text-[#191919] shadow-[var(--shadow-1)] transition-[background-color,box-shadow,transform] hover:bg-[#f9d900] hover:shadow-[var(--shadow-2)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#191919] active:scale-[0.98] motion-reduce:transition-none"
-        >
-          <ChatBubbleIcon className="h-4 w-4" />
-          오픈채팅 참여하기
-          <span className="sr-only">(새 창에서 열림)</span>
-        </a>
-      </div>
-    </section>
-  );
+const MOTION_QUERY = "(prefers-reduced-motion: reduce)";
+const IMAGE_SIZES = "(min-width: 1208px) 1080px, (max-width: 760px) calc(100vw - 40px), calc(100vw - 128px)";
+
+function subscribeMotion(onChange: () => void) {
+  const query = window.matchMedia(MOTION_QUERY);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
 }
 
-function ChatBubbleIcon({ className = "h-6 w-6" }: { readonly className?: string }) {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className={className} fill="#191919">
-      <path d="M12 3C6.48 3 2 6.58 2 11c0 2.83 1.84 5.31 4.6 6.73l-.93 3.4c-.08.3.26.54.52.37l4.03-2.66c.58.08 1.17.12 1.78.12 5.52 0 10-3.58 10-8S17.52 3 12 3Z" />
-    </svg>
-  );
+function subscribeVisibility(onChange: () => void) {
+  document.addEventListener("visibilitychange", onChange);
+  return () => document.removeEventListener("visibilitychange", onChange);
+}
+
+/** 배너별 링크와 기존 공고 알림 집계를 유지하는 방향성 슬라이드. */
+export function AuditionAlertBanner() {
+  const [state, dispatch] = useReducer(bannerSlideReducer, INITIAL_BANNER_SLIDE);
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const reducedMotion = useSyncExternalStore(subscribeMotion, () => window.matchMedia(MOTION_QUERY).matches, () => false);
+  const visible = useSyncExternalStore(subscribeVisibility, () => document.visibilityState === "visible", () => true);
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const suppressClickUntil = useRef(0);
+  const move = useCallback((delta: number) => dispatch({ type: "move", delta, count: HOME_BANNERS.length, reducedMotion }), [reducedMotion]);
+  const finish = useCallback(() => dispatch({ type: "finish" }), []);
+  const playing = !hovered && !focused && !reducedMotion && visible;
+  const active = HOME_BANNERS[state.active];
+
+  useEffect(() => {
+    if (!playing || state.previous !== null) return;
+    const timer = window.setTimeout(() => move(1), 7_000);
+    return () => window.clearTimeout(timer);
+  }, [playing, state.active, state.previous, move]);
+
+  useEffect(() => {
+    if (state.previous === null) return;
+    // 설정 변경이나 백그라운드 탭에서 animationend가 생략되어도 잠금은 해제한다.
+    const timer = window.setTimeout(finish, 550);
+    return () => window.clearTimeout(timer);
+  }, [state.previous, finish]);
+
+  return <section className="notebook-banner" aria-label="예술in 소식" aria-roledescription="캐러셀" data-tone={active.tone}
+    onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
+    onFocusCapture={() => setFocused(true)} onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocused(false); }}
+    onKeyDown={(event) => { if (event.key === "ArrowLeft" || event.key === "ArrowRight") { event.preventDefault(); move(event.key === "ArrowRight" ? 1 : -1); } }}>
+    <div className="notebook-banner-stage"><div className="notebook-banner-viewport" data-direction={state.direction}
+      onTouchStart={(event) => { const touch = event.touches[0]; touchStart.current = { x: touch.clientX, y: touch.clientY }; }}
+      onTouchCancel={() => { touchStart.current = null; }}
+      onTouchEnd={(event) => {
+        const start = touchStart.current;
+        const touch = event.changedTouches[0];
+        touchStart.current = null;
+        if (!start || !touch) return;
+        const dx = touch.clientX - start.x, dy = touch.clientY - start.y;
+        if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.5) { suppressClickUntil.current = Date.now() + 500; move(dx < 0 ? 1 : -1); }
+      }}
+      onClickCapture={(event) => { if (Date.now() < suppressClickUntil.current) { event.preventDefault(); event.stopPropagation(); } }}>
+      {state.previous !== null ? <BannerArtwork key={`out-${state.previous}`} banner={HOME_BANNERS[state.previous]} outgoing /> : null}
+      <BannerArtwork key={`in-${state.active}`} banner={active} entering={state.previous !== null} onAnimationEnd={finish} />
+    </div>
+      <button type="button" className="notebook-banner-direction is-previous" aria-label="이전 배너" disabled={state.previous !== null} onClick={() => move(-1)}><SiteIcon name="previous" size={26} /></button>
+      <button type="button" className="notebook-banner-direction is-next" aria-label="다음 배너" disabled={state.previous !== null} onClick={() => move(1)}><SiteIcon name="next" size={26} /></button>
+    </div>
+    <span className="sr-only" aria-live={playing ? "off" : "polite"} aria-atomic="true">{active.title}</span>
+    <div className="notebook-banner-pagination" role="group" aria-label="배너 선택">
+      {HOME_BANNERS.map((banner, index) => <button key={banner.id} type="button" className="notebook-banner-page" aria-label={`${banner.title} 배너 보기`} aria-pressed={index === state.active} disabled={state.previous !== null} onClick={() => move(index - state.active)}><span /></button>)}
+    </div>
+  </section>;
+}
+
+function BannerArtwork({ banner, outgoing = false, entering = false, onAnimationEnd }: {
+  readonly banner: HomeBanner;
+  readonly outgoing?: boolean;
+  readonly entering?: boolean;
+  readonly onAnimationEnd?: () => void;
+}) {
+  return <div className={`notebook-banner-slide${outgoing ? " is-outgoing" : entering ? " is-entering" : ""}`}
+    aria-hidden={outgoing || undefined} inert={outgoing} role="group" aria-roledescription="슬라이드" aria-label={banner.title}
+    onAnimationEnd={(event) => { if (event.target === event.currentTarget) onAnimationEnd?.(); }}>
+    <a href={banner.href} target="_blank" rel="noopener noreferrer" aria-label={`${banner.linkLabel} (새 창에서 열림)`}
+      onClick={() => { if (banner.id === "audition-alert") trackAnalyticsEvent("kakao_openchat_click", { entry_point: "home_alert_banner" }); }}>
+      <picture><source media="(max-width: 640px)" srcSet={banner.mobile.src} width={banner.mobile.width} height={banner.mobile.height} />
+        <Image src={banner.desktop.src} alt={banner.alt} width={banner.desktop.width} height={banner.desktop.height} sizes={IMAGE_SIZES} priority />
+      </picture>
+    </a>
+  </div>;
 }
