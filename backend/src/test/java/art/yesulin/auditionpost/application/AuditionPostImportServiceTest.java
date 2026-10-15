@@ -59,6 +59,9 @@ class AuditionPostImportServiceTest {
     private AuditionPostService auditionPostService;
 
     @Autowired
+    private AuditionPostCountQuery countQuery;
+
+    @Autowired
     private AuditionPostRepository repository;
 
     @Autowired
@@ -75,6 +78,8 @@ class AuditionPostImportServiceTest {
 
     @BeforeEach
     void setUp() {
+        // 테스트 픽스처는 서비스 쓰기 경로를 거치지 않고 DB를 비운다.
+        countQuery.invalidateAfterCommit();
         repository.deleteAll();
         auditLogRepository.deleteAll();
         source.reset();
@@ -337,9 +342,12 @@ class AuditionPostImportServiceTest {
     void hiddenPostLeavesPublicListAndDetailPointsToOriginal() {
         AuditionPostImportResult result = importAndPublish(OTR_ID);
 
+        assertEquals(1, auditionPostService.findPublishedPage(0, 12, true, null).allCount());
+
         auditionPostService.changeStatus(ADMIN_ID, result.post().id(), AuditionPostStatus.HIDDEN);
 
         assertTrue(auditionPostService.findPublishedPage(0, 12, false, null).posts().isEmpty());
+        assertEquals(0, auditionPostService.findPublishedPage(0, 12, true, null).allCount());
         PublicAuditionPostView view = auditionPostService.findPublicPost(result.post().id());
         assertEquals(
                 URI.create("https://otr.co.kr/audition/?vid=" + OTR_ID),
@@ -347,6 +355,21 @@ class AuditionPostImportServiceTest {
         );
         assertEquals(AuditionPostStatus.HIDDEN, auditionPostService.findAllForAdmin(null).getFirst().status());
         assertEquals(3, auditLogRepository.count());
+    }
+
+    @Test
+    void rolledBackStatusChangeDoesNotPublishUncommittedCounts() {
+        AuditionPostImportResult result = importAndPublish(OTR_ID);
+        assertEquals(1, auditionPostService.findPublishedPage(0, 12, true, null).allCount());
+
+        new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
+            auditionPostService.changeStatus(ADMIN_ID, result.post().id(), AuditionPostStatus.HIDDEN);
+            assertEquals(0, auditionPostService.findPublishedPage(0, 12, true, null).allCount());
+            status.setRollbackOnly();
+        });
+
+        assertEquals(1, auditionPostService.findPublishedPage(0, 12, true, null).allCount());
+        assertEquals(AuditionPostStatus.PUBLISHED, repository.findById(result.post().id()).orElseThrow().getStatus());
     }
 
     @Test

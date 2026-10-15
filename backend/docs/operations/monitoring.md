@@ -58,6 +58,12 @@ Tomcat MBean registry는 `server.tomcat.mbeanregistry.enabled=true`로 켠다.
 | `GcPauseCount`, `GcPauseTimeMs` | Count / Milliseconds, 표본 간 GC 횟수·pause 합계 |
 | `GcPauseMaxMs` | Milliseconds, Micrometer 최근 rolling window 최대 |
 | `GcPauseRatio` | Percent, pause 증가분 / 실제 monotonic 수집 간격; CPU 사용률과 다름 |
+| `CacheHits`, `CacheMisses` | Count, 등록된 Caffeine 캐시의 JVM 기동 이후 누적 합계; 현재는 공고 COUNT 캐시 하나 |
+| `CacheSize` | Count, 캐시 항목 수 합계; 비활성화 시 0 |
+
+캐시 지표도 일반 `RUNTIME_METRICS` JSON 로그만 전송하며 별도 CloudWatch custom metric은 만들지 않는다.
+같은 JVM의 테스트 전후 누적 차이로 hit/miss를 비교한다. 동시 miss는 하나의 로딩을 기다릴 수 있으므로
+miss 수가 실제 COUNT SQL 실행 횟수와 같지는 않다. SQL 횟수는 DB 집계로 따로 확인한다.
 
 `HostMemoryAvailable`, `HostSwapUsed`는 Bytes 단위의 로그 필드로 기록한다.
 Agent는 로그만 전송한다. 이전 버전의 이 스크립트가 만든 정확한 backend mem/swap plugin만 제거하며
