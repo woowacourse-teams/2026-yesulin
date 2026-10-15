@@ -6,7 +6,7 @@ describe("분야별 공고 주소", () => {
     expect(auditionPostRoutes.list({ category: "뮤지컬", page: 1, includeClosed: true }))
       .toBe("/auditions/musical?closed=1&page=2");
     expect(auditionPostRoutes.list({ category: "연극" })).toBe("/auditions/theater");
-    expect(auditionPostRoutes.list({ page: 1 })).toBe("/?page=2");
+    expect(auditionPostRoutes.list({ page: 1 })).toBe("/auditions?page=2");
     const url = new URL(auditionPostApiPaths.list({ page: 1, includeClosed: true, category: "연극" }), "https://example.com");
     expect(url.searchParams.get("category")).toBe("연극");
     expect(url.searchParams.get("page")).toBe("1");

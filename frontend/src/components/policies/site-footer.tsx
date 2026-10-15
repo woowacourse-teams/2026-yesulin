@@ -1,3 +1,4 @@
+import { NotebookFooter } from "@/components/landing/notebook-site-layout";
 import { PolicyLinks } from "@/components/policies/policy-layout";
 
 /**
@@ -5,7 +6,8 @@ import { PolicyLinks } from "@/components/policies/policy-layout";
  * 처리방침이 안내하는 분석 설정 진입점이 여기에도 있어야 한다.
  * 화면 아래 고정 바가 있으면 className으로 그 높이만큼 아래 여백을 더한다.
  */
-export function SiteFooter({ className = "" }: { readonly className?: string }) {
+export function SiteFooter({ className = "", notebook = false }: { readonly className?: string; readonly notebook?: boolean }) {
+  if (notebook) return <NotebookFooter className={className} />;
   return (
     <footer className={`border-t border-border bg-white ${className}`}>
       <div className="mx-auto flex max-w-[1200px] flex-col gap-1 px-5 py-5 text-sm text-muted md:flex-row md:items-center md:justify-between md:px-8">

@@ -75,9 +75,9 @@ export function PublicShowDetail({ show, onReserved, onStale }: {
 
   return (
     <>
-      <main className="min-h-screen break-keep bg-surface pb-12 text-foreground wrap-break-word">
+      <main id="main" className="min-h-screen break-keep bg-surface pb-12 text-foreground wrap-break-word">
         <ShowPageHeader />
-        <div className="mx-auto max-w-[880px] px-5 py-8 md:px-8 md:py-12 min-[1200px]:grid min-[1200px]:max-w-[1200px] min-[1200px]:grid-cols-[minmax(0,1fr)_320px] min-[1200px]:gap-12">
+        <div className="notebook-container py-8 md:py-10 min-[1200px]:grid min-[1200px]:grid-cols-[minmax(0,1fr)_300px] min-[1200px]:gap-10">
           <article className="min-w-0">
             <ShowHero show={show} availability={availability} />
             {external
@@ -110,7 +110,7 @@ export function PublicShowDetail({ show, onReserved, onStale }: {
         ) : null}
       </main>
       {/* 모바일 하단 예매 바가 푸터를 가리지 않게 바 높이만큼 아래 여백을 둔다. */}
-      <SiteFooter className={showsMobileAction ? "pb-[calc(96px+env(safe-area-inset-bottom))] min-[1200px]:pb-0" : ""} />
+      <SiteFooter notebook className={showsMobileAction ? "pb-[calc(96px+env(safe-area-inset-bottom))] min-[1200px]:pb-0" : ""} />
     </>
   );
 }

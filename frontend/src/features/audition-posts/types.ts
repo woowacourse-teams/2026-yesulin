@@ -102,7 +102,7 @@ export function auditionLandingCategory(slug: string): AuditionLandingCategory |
 export const auditionPostRoutes = {
   /** 기본값(첫 페이지·모집 중만)은 주소에서 뺀다. */
   list: ({ page = 0, includeClosed = false, category }: Partial<AuditionPostQuery> = {}) => {
-    const path = category === "뮤지컬" ? "/auditions/musical" : category === "연극" ? "/auditions/theater" : "/";
+    const path = category === "뮤지컬" ? "/auditions/musical" : category === "연극" ? "/auditions/theater" : "/auditions";
     const params = new URLSearchParams();
     if (includeClosed) params.set("closed", "1");
     if (page > 0) params.set("page", String(page + 1));
