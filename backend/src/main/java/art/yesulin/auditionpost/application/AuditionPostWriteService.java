@@ -50,6 +50,7 @@ public class AuditionPostWriteService {
     private static final int OWNER_LIST_LIMIT = 200;
 
     private final AuditionPostRepository repository;
+    private final AuditionPostCountQuery countQuery;
     private final AuditionPostFileStorage fileStorage;
     private final AuditionPostUploadService uploadService;
     private final AdminAuditLogRepository auditLogRepository;
@@ -61,6 +62,7 @@ public class AuditionPostWriteService {
 
     public AuditionPostWriteService(
             AuditionPostRepository repository,
+            AuditionPostCountQuery countQuery,
             AuditionPostFileStorage fileStorage,
             AuditionPostUploadService uploadService,
             AdminAuditLogRepository auditLogRepository,
@@ -71,6 +73,7 @@ public class AuditionPostWriteService {
             Clock clock
     ) {
         this.repository = repository;
+        this.countQuery = countQuery;
         this.fileStorage = fileStorage;
         this.uploadService = uploadService;
         this.auditLogRepository = auditLogRepository;
@@ -131,6 +134,7 @@ public class AuditionPostWriteService {
                     AuditionPost.write(content, command.tags(), postFiles, adminId, now)
             );
             audit(adminId, post, AdminAction.AUDITION_POST_WRITTEN, "직접 작성");
+            countQuery.invalidateAfterCommit();
             return AdminAuditionPostResult.from(post, LocalDate.ofInstant(now, KOREA), null);
         }));
     }
@@ -156,6 +160,7 @@ public class AuditionPostWriteService {
                     post.getId(), producer.getCompanyName(), content.getCategory(), content.getTitle(),
                     content.getPay(), content.getDeadlineText()
             ));
+            countQuery.invalidateAfterCommit();
             return ProducerAuditionPostResult.from(post, LocalDate.ofInstant(now, KOREA));
         }));
     }
@@ -225,6 +230,7 @@ public class AuditionPostWriteService {
                 content(command, authorName, current.getSourcePostedAt(), bodyHtml), command.tags(),
                 files.withAttachments(images, command.attachmentUrls()), editorId, now
         );
+        countQuery.invalidateAfterCommit();
         return new Applied(removed, before.changesTo(post), LocalDate.ofInstant(now, KOREA));
     }
 

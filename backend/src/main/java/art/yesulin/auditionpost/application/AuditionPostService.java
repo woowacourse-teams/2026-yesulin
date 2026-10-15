@@ -36,6 +36,7 @@ public class AuditionPostService {
     private static final String TARGET_TYPE = "AUDITION_POST";
 
     private final AuditionPostRepository repository;
+    private final AuditionPostCountQuery countQuery;
     private final AdminAuditLogRepository auditLogRepository;
     private final AuditionPostOwners owners;
     private final ObjectStorage storage;
@@ -52,6 +53,7 @@ public class AuditionPostService {
         }
         String selectedCategory = category == null ? null : category.trim();
         LocalDate today = today();
+        AuditionPostCounts counts = countQuery.find(today, selectedCategory);
         PageRequest pageable = PageRequest.of(page, size);
         List<AuditionPost> result = repository.findPublished(
                 PUBLISHED, today, includeClosed, selectedCategory, pageable
@@ -63,7 +65,6 @@ public class AuditionPostService {
                         today, KOREA, storage::toPublicUrl
                 ))
                 .toList();
-        AuditionPostCounts counts = repository.countPublishedPosts(PUBLISHED, today, selectedCategory);
         long totalElements = includeClosed ? counts.allCount() : counts.openCount();
         int totalPages = (int) Math.ceil((double) totalElements / size);
         return new PublicAuditionPostPageResult(
@@ -132,6 +133,7 @@ public class AuditionPostService {
         AuditionPostStatus previous = post.getStatus();
         post.changeStatus(status);
         if (previous != status) {
+            countQuery.invalidateAfterCommit();
             auditLogRepository.save(new AdminAuditLog(
                     adminId, AdminAction.AUDITION_POST_STATUS_CHANGED, TARGET_TYPE, post.getId(),
                     "%s → %s".formatted(previous, status)
