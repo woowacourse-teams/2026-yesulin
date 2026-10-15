@@ -96,6 +96,19 @@ const editRequests: AdminCompanyEditRequest[] = [
   },
 ];
 
+/** KOPIS 기획제작사 검색 목. 이름에 찾는 말이 들어 있으면 돌려준다. */
+const KOPIS_COMPANIES = [
+  {
+    kopisId: "AG000001",
+    name: "(주)여름밤컴퍼니",
+    genre: "연극",
+    phone: "02-741-0000",
+    homepage: "www.example.com/summer-night",
+    recentWorks: ["여름밤의 꿈 [대학로]", "한여름 낭독회"],
+  },
+  { kopisId: "AG000002", name: "여름밤 프로젝트", genre: "뮤지컬", phone: null, homepage: null, recentWorks: [] },
+];
+
 /** 목 공고 번호 → 공연사 번호. */
 const POST_COMPANIES: Readonly<Record<number, number>> = { 1: 1, 2: 2, 4: 3 };
 
@@ -237,6 +250,17 @@ export function companyHandlers(postsOf: (postIds: readonly number[]) => readonl
         createdAt: new Date().toISOString(),
       });
       return HttpResponse.json({ id }, { status: 201 });
+    }),
+
+    http.get("/api/v1/admin/kopis-companies", async ({ request }) => {
+      if (realLoginEnabled) return passthrough();
+      await delay(200);
+      const rejected = rejectNonAdmin();
+      if (rejected) return rejected;
+      const query = (new URL(request.url).searchParams.get("name") ?? "")
+        .replace(/\((?:주|사|재|유|합)\)|㈜|주식회사|사단법인|재단법인|유한회사|협동조합/g, " ").replace(/\s+/g, " ").trim();
+      const companies = query.length < 2 ? [] : KOPIS_COMPANIES.filter((company) => company.name.includes(query));
+      return HttpResponse.json({ available: true, query, companies });
     }),
 
     http.get("/api/v1/admin/company-edit-requests", async () => {

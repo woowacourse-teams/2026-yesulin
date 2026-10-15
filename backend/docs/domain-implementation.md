@@ -207,6 +207,10 @@
   update로 기존 공고를 연결하고, 옮길 때는 예전 공연사에 연결됐던 그 작성자의 공고만 옮긴다. `AuditionPostImportService`와 작성자 번호
   채우기(`AuditionPostAuthorLinkService.fill`)가 공연사 없는 공고에 규칙의 공연사를 붙인다. 작성자로 공연사를 만들 때는
   `CompanyService.create`를 같은 트랜잭션에서 불러 묶기에 실패하면 공연사도 남기지 않는다.
+- `company/application/kopis`의 `KopisCompanyService`는 이름에서 회사 형태 표시를 떼고 `KopisCompanySearch` 포트로 KOPIS
+  기획제작사를 찾는다. 구현 `company/infrastructure/kopis/KopisOpenApiClient`는 `https://kopis.or.kr/openApi/restful/mnfct`를 Java
+  `HttpClient`로 부르고 jsoup XML 파서로 읽으며, 성공한 결과만 Caffeine에 12시간 둔다. 인증키(`yesulin.kopis.api-key`)가 없거나
+  실패하면 `KopisUnavailableException`을 던지고 서비스가 `available=false`로 바꾼다. 인증키가 든 주소는 로그에 남기지 않는다.
 - `company/domain/editrequest`의 `CompanyEditRequest`(`company_edit_requests`, 링크는 `company_edit_request_links`)는 공개 화면의 정보 수정
   요청이다. 요청 정보 전체를 `Company.normalize`(공연사 정보와 같은 검사)로 정리해 담고, 요청자가 바꾼 항목 `CompanyField`를
   `changed_fields`에 쉼표로 저장한다. `PENDING`에서만 `APPLIED`·`REJECTED`로 끝나며 끝나면 연락처를 지운다. `CompanyEditRequestService`는

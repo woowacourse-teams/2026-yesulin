@@ -343,7 +343,7 @@ OTR 작성자 자동 연결: 가져오기는 OTR 상세의 작성자 링크(`get
 그 기획사가 올린 업로드만 확정한다. 올리기와 바뀐 항목이 있는 고치기는 커밋 뒤 공고 알림 Slack 채널로 알린다
 (`YESULIN_SLACK_WEBHOOK_URL`, 없으면 로그만 남긴다). 알림 실패는 저장 결과에 영향을 주지 않는다.
 
-## 공연사 — 18개
+## 공연사 — 19개
 
 공고를 올린 극단·제작사·기획사의 공개 정보(`Company`)다. 기획사 계정과 따로 있다. 공개 API는 로그인 없이, 운영 API는 `ADMIN`만 호출한다.
 `companyId`는 숫자 ID다.
@@ -353,6 +353,7 @@ OTR 작성자 자동 연결: 가져오기는 OTR 상세의 작성자 링크(`get
 | GET | `/api/v1/public/companies/{companyId}` | 공개 | 없음 | `200 PublicCompanyResult` |
 | GET | `/api/v1/public/companies/{companyId}/audition-posts` | 공개 | 없음 | `200 PublicCompanyAuditionPostsResponse(posts)` |
 | POST | `/api/v1/public/companies/{companyId}/edit-requests` | 공개 | `CreateRequest(company: WriteCompanyRequest, changedFields, reason, contact?)` | `201 CreatedResponse(id)` |
+| GET | `/api/v1/admin/kopis-companies?name=` | Admin | 없음 | `200 KopisCompanySearchResult(available, query, companies)` |
 | GET | `/api/v1/admin/company-edit-requests` | Admin | 없음 | `200 PendingResponse(requests: AdminCompanyEditRequestResult[])` |
 | POST | `/api/v1/admin/company-edit-requests/{requestId}/apply` | Admin | `WriteCompanyRequest` | `200 AdminCompanyResult` |
 | POST | `/api/v1/admin/company-edit-requests/{requestId}/reject` | Admin | 없음 | `204` |
@@ -392,6 +393,12 @@ OTR 작성자 자동 연결: 가져오기는 OTR 상세의 작성자 링크(`get
 PUT은 같은 순서로 찾은 공연사를 통째로 고치고, 없으면 `PENDING`으로 새로 만든다. 공고를 그 공연사에 연결하고, 원문 작성자 번호가
 있고 그 작성자의 묶음 규칙이 없으면 규칙을 만들어 같은 작성자의 공연사 없는 공고와 이후 가져오는 공고에도 연결한다. `publish`면
 저장하면서 `PUBLISHED`로 바꾼다(운영자 화면은 항상 `true`로 보낸다). 없는 공고는 `404 AUDITION_POST_NOT_FOUND`다.
+
+KOPIS 검색(`kopis-companies`)은 운영자가 공연사 정보를 쓸 때 처음 값을 찾는 API다. `name`에서 "(주)"·"㈜"·"주식회사"·"(사)" 같은
+회사 형태 표시를 떼고 공연예술통합전산망 기획제작사 목록(`/openApi/restful/mnfct`, `entrpsnm`)을 최대 10건 찾는다. 뗀 이름이 2자보다
+짧으면 부르지 않고 빈 목록을 준다. `companies` 항목은 `kopisId`(mt30id), `name`, `genre`, `phone`, `homepage`(relateurl),
+`recentWorks`(최근 작품 최대 5개)이며 빈 값은 null이다. 인증키 `KOPIS_API_KEY`가 없거나 KOPIS가 응답하지 않으면 오류 대신
+`available=false`와 빈 목록을 준다. KOPIS는 짧은 시간에 여러 번 부르면 막으므로 같은 이름의 결과를 12시간 기억한다. 저장은 하지 않는다.
 
 정보 수정 요청(`edit-requests`)은 공개된 공연사 화면에서 로그인 없이 누구나 보낸다. 공개 전이거나 내린 공연사는
 `404 COMPANY_NOT_FOUND`다. `company`는 요청한 정보 전체이며 `WriteCompanyRequest`와 같은 규칙으로 검사하고 `sourceNote`는 무시한다.

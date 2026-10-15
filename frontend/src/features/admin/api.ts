@@ -23,6 +23,7 @@ import type {
   AdminCompanyStatus,
   AdminCompanyWrite,
   AdminPostCompanyProfile,
+  KopisCompanySearchResult,
   AdminDailyActivity,
   AdminFileDeletionResult,
   AdminLog,
@@ -396,6 +397,13 @@ export function fetchPostCompany(postId: number): Promise<AdminPostCompanyProfil
 export function savePostCompany(postId: number, company: AdminCompanyWrite, publish: boolean): Promise<AdminCompany> {
   return sendCompany(
     `/audition-posts/${postId}/company-profile`, "PUT", { company, publish }, "공연사 정보를 저장하지 못했습니다.",
+  );
+}
+
+/** KOPIS 기획제작사를 이름으로 찾는다. "(주)" 같은 회사 형태 표시는 서버가 떼고 찾는다. */
+export function fetchKopisCompanies(name: string): Promise<KopisCompanySearchResult> {
+  return getJson<KopisCompanySearchResult>(
+    `/kopis-companies?name=${encodeURIComponent(name)}`, "KOPIS에서 공연사를 찾지 못했습니다.",
   );
 }
 

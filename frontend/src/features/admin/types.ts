@@ -495,3 +495,23 @@ export type AdminCompanyEditRequest = {
   readonly contact: string | null;
   readonly createdAt: string;
 };
+
+/** 공연예술통합전산망(KOPIS)에 등록된 기획·제작사. 공연사 정보를 쓸 때 처음 값으로만 쓴다. */
+export type KopisCompany = {
+  /** KOPIS 기획제작사 ID(예: `AG019413`). */
+  readonly kopisId: string | null;
+  readonly name: string;
+  readonly genre: string | null;
+  readonly phone: string | null;
+  readonly homepage: string | null;
+  /** KOPIS에 등록된 최근 작품 이름. */
+  readonly recentWorks: readonly string[];
+};
+
+export type KopisCompanySearchResult = {
+  /** KOPIS를 불렀는지. 인증키가 없거나 응답하지 않으면 false다. */
+  readonly available: boolean;
+  /** 회사 형태 표시를 뗀, 실제로 찾은 이름. */
+  readonly query: string;
+  readonly companies: readonly KopisCompany[];
+};
