@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { AuditionPostHome } from "@/components/audition-posts/audition-post-home";
+import { AuditionPostList } from "@/components/audition-posts/audition-post-list";
 import { MswProvider } from "@/components/mocks/msw-provider";
 import { publishedAuditionPostPageForServer } from "@/features/audition-posts/server";
 import { auditionLandingCategory, parseAuditionPostQuery } from "@/features/audition-posts/types";
@@ -26,7 +26,7 @@ export default async function AuditionCategoryPage(props: Props) {
   const initialPage = await publishedAuditionPostPageForServer(query);
   return (
     <MswProvider>
-      <AuditionPostHome key={`${query.category}-${query.page}-${query.includeClosed}`} query={query} initialPage={initialPage} />
+      <AuditionPostList key={`${query.category}-${query.page}-${query.includeClosed}`} query={query} initialPage={initialPage} />
     </MswProvider>
   );
 }

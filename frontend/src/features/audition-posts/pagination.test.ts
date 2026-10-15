@@ -21,9 +21,9 @@ describe("audition post pagination", () => {
   });
 
   it("기본 조건은 주소에서 빼고 나머지만 붙인다", () => {
-    expect(auditionPostRoutes.list()).toBe("/");
-    expect(auditionPostRoutes.list({ page: 1 })).toBe("/?page=2");
-    expect(auditionPostRoutes.list({ page: 0, includeClosed: true })).toBe("/?closed=1");
+    expect(auditionPostRoutes.list()).toBe("/auditions");
+    expect(auditionPostRoutes.list({ page: 1 })).toBe("/auditions?page=2");
+    expect(auditionPostRoutes.list({ page: 0, includeClosed: true })).toBe("/auditions?closed=1");
     expect(auditionPostRoutes.detail(42)).toBe("/posts/42");
   });
 });
