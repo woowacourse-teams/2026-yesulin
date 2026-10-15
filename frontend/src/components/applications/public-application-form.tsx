@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
 import type { ApplicationType } from "@/features/applications/application-type";
@@ -40,7 +40,7 @@ export type PublicApplicationFormProps = {
 };
 
 export function PublicApplicationForm(props: PublicApplicationFormProps) {
-  return <PublicApplicationProvider {...props}><PublicApplicationContent /><PublicApplicationExitDialog /></PublicApplicationProvider>;
+  return <PublicApplicationProvider {...props}><div className="applicant-theme"><PublicApplicationContent /><PublicApplicationExitDialog /></div></PublicApplicationProvider>;
 }
 
 function PublicApplicationContent() {
@@ -56,9 +56,12 @@ function PublicApplicationContent() {
 function ApplicationStepScreen() {
   const { state, actions, meta } = usePublicApplication();
   const step = meta.steps[state.stepIndex]!;
+  useEffect(() => {
+    document.getElementById("application-step-title")?.focus();
+  }, [state.stepIndex]);
   const isLastStep = state.stepIndex === meta.steps.length - 1;
   const nextLabel = state.returnToReview ? "검토로 돌아가기" : isLastStep ? "검토하기" : "다음 단계";
-  return <main className="min-h-screen bg-surface pb-12 text-foreground">
+  return <main className="min-h-dvh break-keep bg-surface pb-12 text-foreground wrap-break-word">
     <header className="glass-surface sticky top-0 z-20 border-x-0 border-t-0">
       <div className="mx-auto flex min-h-16 max-w-[880px] items-center px-5 md:px-8">
         <TextButton onClick={actions.requestBack} className="px-2">← 공고로 돌아가기</TextButton>
@@ -90,13 +93,17 @@ function PrefillNotice() {
 }
 
 function ApplicationSectionHeader({ current, total, title, description }: { current: number; total: number; title: string; description: string }) {
-  return <div><p className="num text-sm font-semibold text-brand">{current} / {total}</p><h1 id="application-step-title" className="mt-2 text-2xl font-bold tracking-[-0.025em] md:text-[28px]">{title}</h1><p className="mt-3 max-w-[640px] leading-6 text-muted-strong">{description}</p></div>;
+  return <div><p className="num text-sm font-semibold text-brand">{current} / {total}</p><h1 id="application-step-title" tabIndex={-1} className="scroll-mt-24 outline-none focus-visible:ring-2 focus-visible:ring-brand mt-2 text-2xl font-bold tracking-[-0.025em] md:text-[28px]">{title}</h1><p className="mt-3 max-w-[640px] leading-6 text-muted-strong">{description}</p></div>;
 }
 
 function ApplicationStepper() {
   const { state, meta } = usePublicApplication();
   const current = meta.steps[state.stepIndex]!;
-  return <nav aria-label="지원서 단계" className="mb-8 md:mb-10"><p className="mb-3 text-sm text-muted-strong md:hidden"><span className="font-semibold text-foreground">현재 단계 {state.stepIndex + 1} / {meta.steps.length}</span><span aria-hidden="true"> · </span>{current.title}</p><ol className="scrollbar-hidden flex gap-2 overflow-x-auto pb-2">{meta.steps.map((step, index) => <StepButton key={step.key} index={index} title={step.title} />)}</ol></nav>;
+  const listRef = useRef<HTMLOListElement>(null);
+  useEffect(() => {
+    listRef.current?.querySelector<HTMLElement>('[aria-current="step"]')?.scrollIntoView({ block: "nearest", inline: "center", behavior: "instant" });
+  }, [state.stepIndex]);
+  return <nav aria-label="지원서 단계" className="mb-8 md:mb-10"><p className="mb-3 text-sm text-muted-strong md:hidden"><span className="font-semibold text-foreground">현재 단계 {state.stepIndex + 1} / {meta.steps.length}</span><span aria-hidden="true"> · </span>{current.title}</p><ol ref={listRef} className="scrollbar-hidden -mx-1 flex gap-2 overflow-x-auto px-1 py-1">{meta.steps.map((step, index) => <StepButton key={step.key} index={index} title={step.title} />)}</ol></nav>;
 }
 
 function StepButton({ index, title }: { index: number; title: string }) {
@@ -133,11 +140,11 @@ function EducationField({ field }: { field: ApplicationFieldInput }) {
     <p className="mb-3 text-sm leading-6 text-muted">최종 학력을 선택하고, 해당하는 학교와 전공을 입력해 주세요.</p>
     <div className="grid gap-2 sm:grid-cols-3">
       {([ ["NONE", "학력 없음"], ["HIGH_SCHOOL", "고등학교 졸업"], ["UNIVERSITY", "대학교 졸업"] ] as const).map(([value, label]) => <label key={value} className={`flex min-h-12 cursor-pointer items-center gap-2 rounded-control border px-3 text-sm font-medium ${level === value ? "border-brand bg-brand-soft text-brand" : "border-border bg-card"}`}>
-        <input type="radio" name="application-education-level" checked={level === value} onChange={() => updateLevel(value)} onBlur={() => actions.validateField(field.id)} className="accent-brand" />{label}
+        <input type="radio" name="application-education-level" checked={level === value} onChange={() => updateLevel(value)} onBlur={() => actions.validateField(field.id)} aria-describedby={error ? "application-SCHOOL-error" : undefined} className="accent-brand" />{label}
       </label>)}
     </div>
-    {active ? <label className="mt-4 block" htmlFor="application-school"><span className="mb-2 block text-sm font-semibold">학교</span><input id="application-school" value={state.values["SCHOOL.school"] ?? ""} placeholder={level === "HIGH_SCHOOL" ? "예: 예술고등학교" : "예: 한국예술종합학교"} maxLength={255} aria-invalid={Boolean(error) || undefined} onChange={(event) => actions.updateField("SCHOOL.school", event.target.value)} onBlur={() => actions.validateField(field.id)} className={`${fieldControlClass} ${error ? "border-fail focus:border-fail focus:ring-fail-bg" : ""}`} /></label> : null}
-    {level === "UNIVERSITY" ? <label className="mt-4 block" htmlFor="application-major"><span className="mb-2 block text-sm font-semibold">전공</span><textarea id="application-major" rows={3} value={state.values["SCHOOL.major"] ?? ""} placeholder="예: 연극원 연기과" maxLength={255} aria-invalid={Boolean(error) || undefined} onChange={(event) => actions.updateField("SCHOOL.major", event.target.value)} onBlur={() => actions.validateField(field.id)} className={`${fieldControlClass} resize-none ${error ? "border-fail focus:border-fail focus:ring-fail-bg" : ""}`} /></label> : null}
+    {active ? <label className="mt-4 block" htmlFor="application-school"><span className="mb-2 block text-sm font-semibold">학교</span><input id="application-school" value={state.values["SCHOOL.school"] ?? ""} placeholder={level === "HIGH_SCHOOL" ? "예: 예술고등학교" : "예: 한국예술종합학교"} maxLength={255} aria-describedby={error ? "application-SCHOOL-error" : undefined} aria-invalid={Boolean(error) || undefined} onChange={(event) => actions.updateField("SCHOOL.school", event.target.value)} onBlur={() => actions.validateField(field.id)} className={`${fieldControlClass} ${error ? "border-fail focus:border-fail focus:ring-fail-bg" : ""}`} /></label> : null}
+    {level === "UNIVERSITY" ? <label className="mt-4 block" htmlFor="application-major"><span className="mb-2 block text-sm font-semibold">전공</span><textarea id="application-major" rows={3} value={state.values["SCHOOL.major"] ?? ""} placeholder="예: 연극원 연기과" maxLength={255} aria-describedby={error ? "application-SCHOOL-error" : undefined} aria-invalid={Boolean(error) || undefined} onChange={(event) => actions.updateField("SCHOOL.major", event.target.value)} onBlur={() => actions.validateField(field.id)} className={`${fieldControlClass} resize-none ${error ? "border-fail focus:border-fail focus:ring-fail-bg" : ""}`} /></label> : null}
     {error ? <InlineError id="application-SCHOOL-error" error={error} /> : null}
   </fieldset>;
 }
@@ -229,7 +236,7 @@ function ApplicantStickyAction({ label }: { label: string }) {
     return () => viewport.removeEventListener("resize", updateKeyboardState);
   }, []);
   if (keyboardOpen) return null;
-  return <div className="glass-surface fixed inset-x-0 bottom-0 z-20 border-x-0 border-b-0 md:hidden"><div className="mx-auto flex max-w-[880px] items-center gap-3 px-5 pb-[max(12px,env(safe-area-inset-bottom))] pt-3"><span className="min-w-0 flex-1 text-xs leading-5 text-muted-strong">{Object.keys(state.fieldErrors).length ? `확인이 필요한 항목이 ${Object.keys(state.fieldErrors).length}개 있어요.` : `현재 ${state.stepIndex + 1} / ${state.stepProgress.length} 단계`}</span>{state.stepIndex > 0 ? <PreviousButton /> : null}<NextButton label={label} /></div></div>;
+  return <div className="glass-surface fixed inset-x-0 bottom-0 z-20 border-x-0 border-b-0 md:hidden"><div className="mx-auto flex max-w-[880px] flex-wrap items-center gap-3 px-5 pb-[max(12px,env(safe-area-inset-bottom))] pt-3"><span className="min-w-0 basis-full text-xs leading-5 text-muted-strong min-[400px]:basis-0 min-[400px]:flex-1">{Object.keys(state.fieldErrors).length ? `확인이 필요한 항목이 ${Object.keys(state.fieldErrors).length}개 있어요.` : `현재 ${state.stepIndex + 1} / ${state.stepProgress.length} 단계`}</span>{state.stepIndex > 0 ? <PreviousButton /> : null}<NextButton label={label} /></div></div>;
 }
 
 function FormEmpty() {

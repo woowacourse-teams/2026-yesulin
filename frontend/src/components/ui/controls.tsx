@@ -78,7 +78,7 @@ export function DarkLink(props: ControlLinkProps) {
 }
 
 export const fieldControlClass =
-  "min-h-12 w-full rounded-control border border-border bg-card px-3 py-2.5 text-base text-foreground outline-none transition-[border-color,box-shadow,background-color] duration-150 placeholder:text-muted-soft hover:border-muted-soft focus:border-brand focus:ring-2 focus:ring-brand-soft disabled:border-border disabled:bg-border-soft disabled:text-muted md:text-sm";
+  "min-h-12 w-full rounded-control border border-border bg-card px-3 py-2.5 text-base text-foreground outline-none transition-[border-color,box-shadow,background-color] duration-150 placeholder:text-muted-soft hover:border-muted-soft focus:border-brand focus:ring-2 focus:ring-brand-soft aria-invalid:border-fail aria-invalid:focus:border-fail aria-invalid:focus:ring-fail-bg disabled:border-border disabled:bg-border-soft disabled:text-muted md:text-sm";
 
 export function FieldInput({ className = "", ...props }: InputHTMLAttributes<HTMLInputElement>) {
   return <input className={`${fieldControlClass} ${className}`} {...props} />;
