@@ -4,6 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { useAuthSession } from "@/components/auth/auth-session";
+import { applicantRoutes } from "@/features/applicants/routes";
 import { TrackedLoginLink } from "@/components/analytics/tracked-login-link";
 import { PolicyLinks } from "@/components/policies/policy-links";
 import { AUDITION_ALERT_CHAT_URL, auditionPostRoutes } from "@/features/audition-posts/types";
@@ -29,6 +31,9 @@ export function NotebookHeader({ service = "applicant" }: { readonly service?: "
 }
 
 function HeaderLogin({ service }: { readonly service: "applicant" | "producer" }) {
+  const { session } = useAuthSession();
+  if (session?.role === "APPLICANT") return <Link href={applicantRoutes.submissions}>내 지원서</Link>;
+  if (session?.role === "PRODUCER") return <Link href="/producers/shows">공연사 대시보드</Link>;
   const producer = service === "producer";
   return <TrackedLoginLink href="/login" analytics={{ entry_point: producer ? "producer_landing_header" : "landing_header", login_reason: producer ? "manage_production" : "account_access", actor_type: service, return_target: producer ? "producer_home" : "applicant_home" }}>로그인</TrackedLoginLink>;
 }
@@ -58,9 +63,9 @@ function MobileNavigation({ current, service, onEvents }: { readonly current?: s
 export function NotebookFooter({ className = "" }: { readonly className?: string }) {
   const [eventsOpen, setEventsOpen] = useState(false);
   return <><footer className={`notebook-footer ${className}`}><div className="notebook-container">
-    <div className="notebook-footer-top"><div><Link href="/" aria-label="예술in 홈"><Image src="/images/yesulin-logo-transparent.png" alt="예술in" width={86} height={50} /></Link><p>공연예술의 기회와 만남을 연결합니다.</p></div>
+    <div className="notebook-footer-top"><div className="notebook-footer-brand"><Link href="/" aria-label="예술in 홈"><Image src="/images/yesulin-logo-transparent.png" alt="예술in" width={86} height={50} /></Link><p className="notebook-footer-slogan">예술의 문을 열다, 예술in</p><p className="notebook-footer-description">새로운 무대를 찾는 배우와<br />공연을 만나는 관객을 위한 공간입니다.</p><div className="notebook-footer-email"><span>이메일 문의</span><span className="notebook-email-address">contact@yesulin.art</span></div></div>
       <nav aria-label="푸터 서비스"><strong>예술in</strong><Link href="/about">서비스 소개</Link><Link href={auditionPostRoutes.list()}>오디션 공고</Link><Link href={showRoutes.list}>무료 공연</Link><button type="button" aria-haspopup="dialog" onClick={() => setEventsOpen(true)}>이벤트</button><Link href="/#faq">자주 묻는 질문</Link></nav>
-      <nav aria-label="문의"><strong>문의</strong><a href="mailto:contact@yesulin.art">이메일 문의</a><a href="https://pf.kakao.com/_pbTBX/chat" target="_blank" rel="noopener noreferrer" aria-label="카카오톡 문의 (새 창에서 열림)">카카오톡 문의</a><a href={AUDITION_ALERT_CHAT_URL} target="_blank" rel="noopener noreferrer" aria-label="공고 알림 (새 창에서 열림)">공고 알림</a></nav>
-    </div><div className="notebook-footer-bottom"><p>© 2026 예술in 프로젝트팀. All rights reserved.</p><PolicyLinks /></div>
+      <nav aria-label="문의"><strong>소식과 문의</strong><a href="https://pf.kakao.com/_pbTBX/chat" target="_blank" rel="noopener noreferrer" aria-label="카카오톡 문의 (새 창에서 열림)">카카오톡 문의</a><a href={AUDITION_ALERT_CHAT_URL} target="_blank" rel="noopener noreferrer" aria-label="공고 알림 (새 창에서 열림)">공고 알림</a></nav>
+    </div><div className="notebook-footer-bottom"><p>© 2026 예술in 프로젝트팀. All rights reserved.</p><PolicyLinks includeConsent={false} includeContact={false} /></div>
   </div></footer><EventsNoticeDialog open={eventsOpen} onClose={() => setEventsOpen(false)} /></>;
 }

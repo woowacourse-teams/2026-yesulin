@@ -16,6 +16,8 @@ const data: AuditionPostPage = {
   })),
 };
 
+vi.mock("@/components/auth/auth-session", () => ({ useAuthSession: () => ({ session: null }) }));
+
 describe("메인과 오디션 전용 목록", () => {
   it("기본 홈은 3개를 소개하고 전체 목록을 여는 경로를 제공한다", () => {
     pathname.mockReturnValue("/");

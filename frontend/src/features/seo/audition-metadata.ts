@@ -3,8 +3,8 @@ import { auditionPostRoutes, type AuditionPostQuery } from "@/features/audition-
 
 export const HOME_TITLE = "예술in | 오디션과 무료 공연";
 export const HOME_DESCRIPTION = "뮤지컬·연극 오디션 공고와 무료 공연을 예술in에서 만나보세요. 모집 소식과 공연 예매, 이용 안내를 한곳에서 확인할 수 있어요.";
-export const AUDITION_LIST_TITLE = "예술in | 뮤지컬·연극 오디션 공고";
-const AUDITION_LIST_DESCRIPTION = "모집 중인 뮤지컬·연극 오디션 공고를 확인하세요. 모집 배역, 마감일, 지원 방법을 예술in에서 한곳에 안내합니다.";
+export const AUDITION_LIST_TITLE = "예술in | 오디션 공고";
+const AUDITION_LIST_DESCRIPTION = "뮤지컬·연극·퍼포먼스와 단원·기획사 모집 공고를 확인하세요. 모집 배역, 마감일, 지원 방법을 예술in에서 한곳에 안내합니다.";
 
 /** 페이지가 openGraph·twitter를 정의하면 레이아웃 값을 통째로 대체하므로 공유 이미지를 함께 넣는다. */
 export const SHARE_IMAGE = {

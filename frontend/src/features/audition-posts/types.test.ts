@@ -20,3 +20,16 @@ describe("분야별 공고 주소", () => {
     expect(auditionLandingCategory("toString")).toBeUndefined();
   });
 });
+
+describe("기존 API 분류의 공개 탐색", () => {
+  it.each([
+    ["performance", "퍼포먼스"], ["troupe", "단원"], ["agency", "기획사"],
+  ] as const)("%s 경로에서 서버 분류 %s와 조회 조건을 유지한다", (slug, category) => {
+    expect(auditionLandingCategory(slug)).toBe(category);
+    expect(auditionPostRoutes.list({ category, page: 2, includeClosed: true })).toBe(`/auditions/${slug}?closed=1&page=3`);
+    const url = new URL(auditionPostApiPaths.list({ category, page: 2, includeClosed: true }), "https://example.com");
+    expect(url.searchParams.get("category")).toBe(category);
+    expect(url.searchParams.get("page")).toBe("2");
+    expect(url.searchParams.get("includeClosed")).toBe("true");
+  });
+});
