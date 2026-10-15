@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/config/site";
 import { auditionPostIdsForSitemap } from "@/features/audition-posts/server";
-import { auditionPostRoutes } from "@/features/audition-posts/types";
+import { AUDITION_LANDING_CATEGORIES, auditionPostRoutes } from "@/features/audition-posts/types";
 import { publicShowsForServer } from "@/features/shows/server";
 import { showRoutes } from "@/features/shows/types";
 
@@ -20,6 +20,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.8,
     },
+    {
+      url: `${SITE_URL}/about`,
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
+    {
+      url: `${SITE_URL}${auditionPostRoutes.list()}`,
+      changeFrequency: "daily",
+      priority: 0.9,
+    },
+    ...Object.values(AUDITION_LANDING_CATEGORIES).map((category) => ({
+      url: `${SITE_URL}${auditionPostRoutes.list({ category })}`,
+      changeFrequency: "daily" as const,
+      priority: 0.8,
+    })),
     {
       url: `${SITE_URL}${showRoutes.list}`,
       changeFrequency: "daily",

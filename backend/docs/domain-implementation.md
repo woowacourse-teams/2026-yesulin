@@ -144,6 +144,13 @@
   조회수는 `PUBLISHED`일 때만, 원문 이동 수는 `PUBLISHED`가 아닐 때만 늘어난다. `(source, external_id)`는 유니크이고 공개 주소에는 숫자 ID를 쓴다.
 - 분류는 `AuditionCategory`(연극·퍼포먼스·뮤지컬·단원·기획사)만 받는다. `AuditionPostContent`가 생성 시 검사하므로
   가져오기는 파일을 받기 전에 거절된다. 공개 목록의 모집 중 조건은 `deadline`이 없거나 오늘 이후인 공고다.
+- 공개 목록의 `allCount`·`openCount`만 한국 날짜·분류별 로컬 Caffeine 캐시로 재사용한다. 페이지·마감 포함 여부는
+  키에 넣지 않으며 목록·상세·엔티티는 캐싱하지 않는다. 같은 키의 첫 조회는 한 번만 집계하고 실패는 저장하지 않는다.
+  기본 만료는 저장 후 5초, 최대 32개이며 `YESULIN_AUDITION_COUNT_CACHE_ENABLED=false`로 DB 집계와 비교할 수 있다.
+  `YESULIN_AUDITION_COUNT_CACHE_TTL`은 양수 Duration(기본 `PT5S`)이다. 자정에는 다른 날짜 키를 사용한다.
+  추가·가져오기·수정·공개 상태 변경은 커밋 뒤 세대를 바꾼다. 이전 세대의 로딩이 늦게 끝나도 재사용하지 않으며
+  이전 항목은 만료·크기 제한으로 제거한다. 롤백은 무효화하지 않고 쓰기 트랜잭션 안의 조회는 캐시를 우회한다.
+  다른 인스턴스나 직접 SQL로 바꾼 집계는 만료 전까지 다를 수 있어 목록과 집계의 동시점 일치를 보장하지 않는다.
 - 마감은 원문 문자열(`deadline_text`)과 `yyyy-MM-dd`일 때만 채우는 `deadline`을 함께 둔다. 원문 작성 시각은 한국 시간 `LocalDateTime`이다.
 - `refresh`는 내용·태그·파일을 교체하고 이전 파일 목록을 돌려준다. 공개 상태와 공개 ID는 유지하고 수정 표시(`edited_at`, `edited_by`)는 지운다.
 - `AuditionPost.write`는 원문 없이 직접 쓴 공고를 만든다. 출처는 `YESULIN`, 원문 번호·주소는 null이고 `hasOrigin()`이 false다.

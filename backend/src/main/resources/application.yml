@@ -84,6 +84,11 @@ management:
           include: readinessState,db
 
 yesulin:
+  audition-post:
+    count-cache:
+      enabled: ${YESULIN_AUDITION_COUNT_CACHE_ENABLED:true}
+      ttl: ${YESULIN_AUDITION_COUNT_CACHE_TTL:PT5S}
+      maximum-size: 32
   monitoring:
     enabled: ${YESULIN_MONITORING_ENABLED:true}
   notice:

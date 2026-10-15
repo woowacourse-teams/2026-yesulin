@@ -30,6 +30,9 @@ describe("공개 공연 서버 조회와 사이트맵", () => {
     expect(entries.map((entry) => entry.url)).toEqual([
       "https://yesulin.art/",
       "https://yesulin.art/producer-service",
+      "https://yesulin.art/about",
+      "https://yesulin.art/auditions",
+      "https://yesulin.art/auditions/musical", "https://yesulin.art/auditions/theater",
       "https://yesulin.art/shows",
       "https://yesulin.art/shows/show%2F1",
     ]);

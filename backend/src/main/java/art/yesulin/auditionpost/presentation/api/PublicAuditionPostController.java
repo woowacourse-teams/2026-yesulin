@@ -27,9 +27,10 @@ public class PublicAuditionPostController {
     public ResponseEntity<PublicAuditionPostPageResult> findAll(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "12") int size,
-            @RequestParam(defaultValue = "false") boolean includeClosed
+            @RequestParam(defaultValue = "false") boolean includeClosed,
+            @RequestParam(required = false) String category
     ) {
-        return ResponseEntity.ok(auditionPostService.findPublishedPage(page, size, includeClosed));
+        return ResponseEntity.ok(auditionPostService.findPublishedPage(page, size, includeClosed, category));
     }
 
     /** 상세 화면이 열릴 때 브라우저가 한 번 보낸다. 서버 렌더링과 메타데이터 조회는 세지 않는다. */

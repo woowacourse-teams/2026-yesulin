@@ -56,7 +56,7 @@ function AuditionPostDetail({ post }: { readonly post: AuditionPost }) {
   const postedDate = formatPostedDate(post.postedAt);
 
   return (
-    <article className="mt-3 overflow-hidden rounded-card border border-border bg-card">
+    <article className="notebook-post-detail mt-3 overflow-hidden rounded-card border border-border bg-card">
       <header className="border-b border-border-soft px-5 py-6 sm:px-8 sm:py-8">
         <p className="flex flex-wrap items-center gap-2 text-sm">
           {post.category ? <span className="font-semibold text-brand">{post.category}</span> : null}
@@ -78,7 +78,7 @@ function AuditionPostDetail({ post }: { readonly post: AuditionPost }) {
                 aria-label={`${post.source} 원문 공고 새 창으로 보기`}
                 className="text-muted-strong underline-offset-2 hover:text-brand hover:underline"
               >
-                {post.source} <span aria-hidden="true">↗</span>
+                {post.source}
               </a>
             </MetaRow>
           ) : null}

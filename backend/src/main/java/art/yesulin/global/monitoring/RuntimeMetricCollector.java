@@ -1,6 +1,7 @@
 package art.yesulin.global.monitoring;
 
 import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.FunctionCounter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -50,6 +51,9 @@ public class RuntimeMetricCollector {
         timer(values, "hikaricp.connections.acquire", "DbConnectionAcquire", nowNanos);
         counter(values, "hikaricp.connections.timeout", "DbConnectionTimeouts");
         timer(values, "jvm.gc.pause", "GcPause", nowNanos);
+        cacheStatistics(values, "hit", "CacheHits");
+        cacheStatistics(values, "miss", "CacheMisses");
+        gauge(values, "cache.size", "CacheSize", 1);
         previous.keySet().removeIf(meter -> !registry.getMeters().contains(meter));
         previousNanos = nowNanos;
         sampled = true;
@@ -75,6 +79,14 @@ public class RuntimeMetricCollector {
         }
         if (sampled && !counters.isEmpty()) {
             add(values, name, total);
+        }
+    }
+
+    private void cacheStatistics(Map<String, Object> values, String result, String name) {
+        List<FunctionCounter> counters = new ArrayList<>(registry.find("cache.gets")
+                .tag("result", result).functionCounters());
+        if (!counters.isEmpty()) {
+            add(values, name, counters.stream().mapToDouble(FunctionCounter::count).sum());
         }
     }
 

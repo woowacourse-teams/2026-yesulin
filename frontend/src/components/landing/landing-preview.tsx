@@ -15,11 +15,11 @@ const previewFacts = [
 ] as const;
 
 const previewActions = [
-  { caption: "이전", mark: "↺", ring: "border-border", ink: "text-muted-strong" },
+  { caption: "이전", mark: "P", ring: "border-border", ink: "text-muted-strong" },
   { caption: "불합격", mark: "✕", ring: "border-fail/35", ink: "text-fail" },
   { caption: "합격", mark: "○", ring: "border-pass/35", ink: "text-pass" },
   { caption: "보류", mark: "⋯", ring: "border-etc/35", ink: "text-etc" },
-  { caption: "다음", mark: "→", ring: "border-border", ink: "text-muted-strong" },
+  { caption: "다음", mark: "N", ring: "border-border", ink: "text-muted-strong" },
 ] as const;
 
 /**

@@ -5,6 +5,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import art.yesulin.global.monitoring.RuntimeMetricCollector;
+import io.micrometer.core.instrument.FunctionCounter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -98,5 +99,22 @@ class RuntimeMetricCollectorTest {
     void omitsUndefinedHeapLimitAndDoesNotExposeNonHeapLimit() {
         when(memory.getHeapMemoryUsage()).thenReturn(new MemoryUsage(0, 100, 200, -1));
         assertThat(collector.collect("dev", 0, 0)).doesNotContainKeys("JvmHeapMax", "JvmNonHeapMax");
+    }
+
+    @Test
+    void readsCumulativeCacheFunctionCountersWithoutCustomMetricEnvelope() {
+        AtomicInteger hits = new AtomicInteger(10);
+        AtomicInteger misses = new AtomicInteger(2);
+        FunctionCounter.builder("cache.gets", hits, AtomicInteger::get)
+                .tags("cache", "counts", "result", "hit").register(registry);
+        FunctionCounter.builder("cache.gets", misses, AtomicInteger::get)
+                .tags("cache", "counts", "result", "miss").register(registry);
+        Gauge.builder("cache.size", () -> 1).tag("cache", "counts").register(registry);
+
+        assertThat(collector.collect("dev", 0, 0))
+                .containsEntry("CacheHits", 10.0).containsEntry("CacheMisses", 2.0).containsEntry("CacheSize", 1.0)
+                .doesNotContainKey("_aws");
+        hits.incrementAndGet();
+        assertThat(collector.collect("dev", 0, 60_000_000_000L)).containsEntry("CacheHits", 11.0);
     }
 }

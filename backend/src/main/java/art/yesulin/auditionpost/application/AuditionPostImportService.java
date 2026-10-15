@@ -49,6 +49,7 @@ public class AuditionPostImportService implements AuditionImporter {
     private final AuditionPostSource source;
     private final AuditionPostFileStorage fileStorage;
     private final AuditionPostRepository repository;
+    private final AuditionPostCountQuery countQuery;
     private final AdminAuditLogRepository auditLogRepository;
     private final AuditionPostOwners owners;
     private final AuditionPostAuthorLinkRepository authorLinkRepository;
@@ -59,6 +60,7 @@ public class AuditionPostImportService implements AuditionImporter {
             AuditionPostSource source,
             AuditionPostFileStorage fileStorage,
             AuditionPostRepository repository,
+            AuditionPostCountQuery countQuery,
             AdminAuditLogRepository auditLogRepository,
             AuditionPostOwners owners,
             AuditionPostAuthorLinkRepository authorLinkRepository,
@@ -68,6 +70,7 @@ public class AuditionPostImportService implements AuditionImporter {
         this.source = source;
         this.fileStorage = fileStorage;
         this.repository = repository;
+        this.countQuery = countQuery;
         this.auditLogRepository = auditLogRepository;
         this.owners = owners;
         this.authorLinkRepository = authorLinkRepository;
@@ -228,6 +231,7 @@ public class AuditionPostImportService implements AuditionImporter {
                         throw editedConflict();
                     }
                     final List<AuditionPostFile> discarded = post.refresh(content, tags, files, adminId, now);
+                    countQuery.invalidateAfterCommit();
                     post.recordSourceAuthor(sourceAuthorId);
                     connectByAuthorLink(post);
                     audit(adminId, post, "%s %s 원문으로 다시 가져옴");
@@ -239,6 +243,7 @@ public class AuditionPostImportService implements AuditionImporter {
                 created.recordSourceAuthor(sourceAuthorId);
                 connectByAuthorLink(created);
                 AuditionPost post = repository.saveAndFlush(created);
+                countQuery.invalidateAfterCommit();
                 audit(adminId, post, "%s %s 처음 가져옴");
                 return new Saved(AdminAuditionPostResult.from(post, today, owners.nameOf(post)), true, List.of());
             }));

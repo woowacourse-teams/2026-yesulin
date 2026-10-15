@@ -42,7 +42,9 @@ DEV 공고 알림도 기본 공유 링크는 `https://yesulin.art`로 발급한�
 - `/api/v1/upload-diagnostics` (업로드 실패·재시도 성공의 개인정보 없는 진단)
 - `/api/v1/admin/**` (운영 대시보드 전용. 단, 로그 화면 시각 검증을 위한 `/logs` fixture는 MSW에 포함한다.)
 - `/api/v1/timetables/**` (오디션 일정표. 관리·배우 열쇠를 `X-Timetable-Key` 헤더로 보낸다.)
-- `/api/v1/public/audition-posts/**` (메인 공고 목록·상세). MSW는 화면 확인용 seed 공고를 응답한다.
+- `/api/v1/public/audition-posts/**` (메인·분야별 공고 목록·상세). 분야별 목록은 `category=뮤지컬` 또는 `category=연극`을
+  보내며 서버가 분야를 적용한 뒤 페이지를 나눈다. `openCount`·`allCount`도 선택한 분야의 수다.
+  분류를 생략하면 기존 전체 분야 목록이며, 지원하지 않는 값은 `400 INVALID_REQUEST`다. MSW도 분야별 목록·개수를 응답한다.
 - `/api/v1/admin/audition-posts/**` (OTR 공고 가져오기·직접 쓰기·수정·사진과 첨부 업로드·공개 상태·기획사 연결)와 `/api/v1/producers/me/audition-posts/**` (기획사 공고 올리기·수정·업로드). OTR·저장소에 실제로 접속해야 하므로 MSW가 켜져 있어도 서버로 넘긴다.
 
 `/admin/files`의 미사용 파일 조회·최대 100개 일괄 삭제도 실제 API를 사용한다. MSW가 켜져 있어도 해당 경로는 서버로 전달하며,

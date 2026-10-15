@@ -1,0 +1,10 @@
+/results/*
+!/results/.gitkeep
+/fixture.json
+/report.html
+
+/__pycache__/
+
+/report-next.html
+
+/report-before-full100.html
