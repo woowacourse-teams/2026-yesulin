@@ -369,6 +369,18 @@ export async function changeAuditionPostOwner(postId: number, ownerId: number | 
   return response.json() as Promise<AdminAuditionPost>;
 }
 
+/** 이 공고만 다른 공연사에 연결하거나(`companyId`) 연결을 끊는다(null). 같은 작성자의 다른 공고는 그대로다. */
+export async function changeAuditionPostCompany(postId: number, companyId: number | null): Promise<AdminAuditionPost> {
+  const response = await fetch(`${API_BASE_PATH}/audition-posts/${postId}/company`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: await withCsrfHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ companyId }),
+  });
+  if (!response.ok) throw await readAdminError(response, "공연사 연결을 바꾸지 못했습니다.");
+  return response.json() as Promise<AdminAuditionPost>;
+}
+
 export async function fetchCompanies(): Promise<readonly AdminCompany[]> {
   const response = await getJson<{ readonly companies: readonly AdminCompany[] }>(
     "/companies", "공연사 목록을 불러오지 못했습니다.",

@@ -115,9 +115,9 @@ public interface AuditionPostRepository extends JpaRepository<AuditionPost, Long
 
     /**
      * 같은 원문 작성자의 공고 중 아직 공연사가 없는 공고를 공연사에 연결한다. 운영자가 다른 공연사를 고른 공고와 다른 칸은
-     * 건드리지 않는다.
+     * 건드리지 않는다. 같은 트랜잭션에서 바꾼 묶음 규칙·공연사가 clear로 사라지지 않도록 먼저 flush한다.
      */
-    @Modifying(clearAutomatically = true)
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("update AuditionPost p set p.companyId = :companyId"
             + " where p.source = :source and p.sourceAuthorId = :authorId and p.companyId is null")
     int connectCompanylessBySourceAuthor(
@@ -126,8 +126,11 @@ public interface AuditionPostRepository extends JpaRepository<AuditionPost, Long
             @Param("companyId") long companyId
     );
 
-    /** 원문 작성자를 다른 공연사로 옮길 때, 예전 공연사에 묶여 있던 그 작성자의 공고도 함께 옮긴다. */
-    @Modifying(clearAutomatically = true)
+    /**
+     * 원문 작성자를 다른 공연사로 옮길 때, 예전 공연사에 묶여 있던 그 작성자의 공고도 함께 옮긴다. 같은 트랜잭션에서 옮긴 묶음
+     * 규칙이 clear로 사라지지 않도록 먼저 flush한다.
+     */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("update AuditionPost p set p.companyId = :toCompanyId"
             + " where p.source = :source and p.sourceAuthorId = :authorId and p.companyId = :fromCompanyId")
     int moveCompanyBySourceAuthor(

@@ -39,6 +39,7 @@ public class KopisOpenApiClient implements KopisCompanySearch {
     private static final Duration CACHE_TTL = Duration.ofHours(12);
     private static final int MAX_RESULTS = 10;
     private static final int MAX_RECENT_WORKS = 5;
+    private static final String NO_DATA = "04";
 
     private final String apiKey;
     private final HttpClient httpClient;
@@ -92,6 +93,15 @@ public class KopisOpenApiClient implements KopisCompanySearch {
             throw unavailable("KOPIS가 기획제작사 목록을 주지 않았습니다. status=" + status, null);
         }
         Document document = Jsoup.parse(body, "", Parser.xmlParser());
+        Element returnCode = document.selectFirst("dbs > db > returncode");
+        if (returnCode != null) {
+            // 인증키·요청 오류도 200으로 온다. 결과 없음(04)만 빈 목록이고 나머지는 부르지 못한 것으로 본다.
+            String code = returnCode.text().trim();
+            if (NO_DATA.equals(code)) {
+                return List.of();
+            }
+            throw unavailable("KOPIS가 오류를 돌려줬습니다. returncode=" + code, null);
+        }
         return document.select("dbs > db").stream()
                 .map(KopisOpenApiClient::company)
                 .filter(company -> company.name() != null)

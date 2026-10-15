@@ -217,6 +217,9 @@ class CompanyServiceTest {
         assertEquals(1, moved.connectedPostCount());
         assertEquals(target, postRepository.findById(first).orElseThrow().getCompanyId());
         assertEquals(other, postRepository.findById(manual).orElseThrow().getCompanyId());
+        assertEquals(target, linkRepository.findBySourceAndSourceAuthorId("OTR", "8001").orElseThrow().getCompanyId());
+        long later = otrPost("203", "8001", "작성자 계정 1");
+        assertEquals(target, linkService.findPostCompany(later).company().id());
     }
 
     @Test
@@ -238,6 +241,18 @@ class CompanyServiceTest {
         assertTrue(shared.sharedByAuthor());
         assertEquals(saved.id(), linkService.savePostCompany(ADMIN_ID, later, profile(), false).id());
         assertEquals(saved.id(), postRepository.findById(later).orElseThrow().getCompanyId());
+    }
+
+    @Test
+    void keepsHiddenCompanyHiddenWhenEditedFromPostList() {
+        long postId = otrPost("401", "9101", "내린 극단");
+        long companyId = linkService.savePostCompany(ADMIN_ID, postId, profile(), true).id();
+        companyService.changeStatus(ADMIN_ID, companyId, CompanyStatus.HIDDEN);
+
+        AdminCompanyResult saved = linkService.savePostCompany(ADMIN_ID, postId, profile(), true);
+
+        assertEquals(companyId, saved.id());
+        assertEquals(CompanyStatus.HIDDEN, saved.status());
     }
 
     private PublicAuditionPostResult publicPost(long postId) {

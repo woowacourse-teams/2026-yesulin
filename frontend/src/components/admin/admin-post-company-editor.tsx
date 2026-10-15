@@ -1,8 +1,14 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import { FieldInput } from "@/components/ui/controls";
-import { AdminApiError, fetchKopisCompanies, fetchPostCompany, savePostCompany } from "@/features/admin/api";
+import { FieldInput, FieldSelect } from "@/components/ui/controls";
+import {
+  AdminApiError,
+  changeAuditionPostCompany,
+  fetchKopisCompanies,
+  fetchPostCompany,
+  savePostCompany,
+} from "@/features/admin/api";
 import type { AdminCompany, AdminPostCompanyProfile, KopisCompanySearchResult } from "@/features/admin/types";
 import { kstToday } from "@/features/audition-posts/format";
 import { draftFromKopis } from "@/features/companies/kopis-draft";
@@ -16,11 +22,16 @@ const WITHOUT_KOPIS = -1;
 /**
  * 공고 목록에서 그 공고를 올린 공연사의 정보를 바로 쓴다. 공고에 연결된 공연사가 없으면 같은 OTR 작성자로 이전에 쓴 정보를
  * 불러오고, 그것도 없으면 원문 작성자 이름으로 KOPIS 기획제작사를 찾아 처음 값으로 채운다. 운영자가 확인해 저장하면 바로 공개되고,
- * 같은 OTR 작성자의 다른 공고와 이후 가져오는 공고에도 같은 정보가 연결된다. 내리기는 공연사 탭에서 한다.
+ * 같은 OTR 작성자의 다른 공고와 이후 가져오는 공고에도 같은 정보가 연결된다. 내린 공연사는 내린 채로 저장하고, 내리기와
+ * 다시 공개는 공연사 탭에서 한다. 잘못 연결된 공고는 이 공고만 다른 공연사로 옮기거나 연결을 끊는다.
  */
-export function AdminPostCompanyEditor({ postId, onSaved, onCancel, onUnauthorized }: {
+export function AdminPostCompanyEditor({ postId, companies, onSaved, onLinkChanged, onCancel, onUnauthorized }: {
   readonly postId: number;
+  /** 이 공고만 다른 공연사로 바꿀 때 고를 후보. 불러오지 못했으면 null이고 연결 바꾸기를 숨긴다. */
+  readonly companies: readonly AdminCompany[] | null;
   readonly onSaved: (company: AdminCompany) => void;
+  /** 이 공고의 연결을 바꾸거나 끊었다. */
+  readonly onLinkChanged: () => void;
   readonly onCancel: () => void;
   readonly onUnauthorized: () => void;
 }) {
@@ -97,6 +108,7 @@ export function AdminPostCompanyEditor({ postId, onSaved, onCancel, onUnauthoriz
     );
   }
 
+  const hidden = profile.company?.status === "HIDDEN";
   const candidate = picked >= 0 ? kopisResult?.companies[picked] : undefined;
   const initial = profile.company
     ? draftOf(profile.company)
@@ -112,9 +124,18 @@ export function AdminPostCompanyEditor({ postId, onSaved, onCancel, onUnauthoriz
             : candidate
               ? "아직 공연사 정보가 없어서 KOPIS 공연예술통합전산망 정보로 채웠어요. 확인하고 고쳐 주세요."
               : "아직 공연사 정보가 없어요. 원문 작성자 이름을 미리 넣어 두었어요."}
-        {" "}저장하면 바로 공개돼요.
+        {hidden ? " 내린 공연사라 저장해도 내린 채로 두어요. 다시 공개는 공연사 탭에서 해요." : " 저장하면 바로 공개돼요."}
         {profile.sourceAuthorId ? " 같은 OTR 작성자의 다른 공고와 앞으로 가져오는 공고에도 이 정보가 쓰여요." : null}
       </p>
+      {companies ? (
+        <PostCompanyLink
+          postId={postId}
+          linked={profile.company && !profile.sharedByAuthor ? profile.company : null}
+          companies={companies}
+          onChanged={onLinkChanged}
+          onUnauthorized={onUnauthorized}
+        />
+      ) : null}
       {!profile.company ? (
         <KopisPanel
           result={kopisResult}
@@ -129,12 +150,78 @@ export function AdminPostCompanyEditor({ postId, onSaved, onCancel, onUnauthoriz
       <CompanyForm
         key={profile.company ? "company" : `kopis-${kopisVersion}-${picked}`}
         initial={initial}
-        submitLabel="저장하고 공개"
+        submitLabel={hidden ? "저장" : "저장하고 공개"}
         onCancel={onCancel}
         onUnauthorized={onUnauthorized}
         onSave={async (write) => onSaved(await savePostCompany(postId, write, true))}
       />
     </div>
+  );
+}
+
+/**
+ * 이 공고만 이미 있는 다른 공연사로 옮기거나 연결을 끊는다. 잘못 연결된 공고를 고칠 때 쓰며, 아래 폼으로 정보를 고치면
+ * 연결된 공연사 자체가 바뀌어 같은 공연사의 다른 공고에도 보인다.
+ */
+function PostCompanyLink({ postId, linked, companies, onChanged, onUnauthorized }: {
+  readonly postId: number;
+  /** 이 공고에 직접 연결된 공연사. 같은 작성자로만 찾은 공연사는 null이다. */
+  readonly linked: AdminCompany | null;
+  readonly companies: readonly AdminCompany[];
+  readonly onChanged: () => void;
+  readonly onUnauthorized: () => void;
+}) {
+  const [target, setTarget] = useState("");
+  const [changing, setChanging] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const candidates = companies.filter((company) => company.id !== linked?.id);
+
+  const change = async (companyId: number | null) => {
+    setChanging(true);
+    setError(null);
+    try {
+      await changeAuditionPostCompany(postId, companyId);
+      onChanged();
+    } catch (cause) {
+      if (cause instanceof AdminApiError && (cause.status === 401 || cause.status === 403)) {
+        onUnauthorized();
+        return;
+      }
+      setError(cause instanceof Error ? cause.message : "공연사 연결을 바꾸지 못했습니다.");
+    } finally {
+      setChanging(false);
+    }
+  };
+
+  return (
+    <section aria-label="이 공고의 공연사 연결" className="flex flex-col gap-2 rounded-card border border-border p-4 text-sm">
+      <p>
+        <span className="font-semibold">이 공고의 연결</span>{" "}
+        <span className="text-muted-strong">{linked ? `${linked.name} (공연사 ${linked.id})` : "연결 안 됨"}</span>
+      </p>
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <label htmlFor={`post-company-${postId}`} className="sr-only">이 공고만 연결할 공연사</label>
+        <FieldSelect
+          id={`post-company-${postId}`}
+          value={target}
+          disabled={changing}
+          onChange={(event) => setTarget(event.target.value)}
+          className="!min-h-10 w-0 min-w-48 flex-1 py-1.5"
+        >
+          <option value="">다른 공연사 고르기</option>
+          {candidates.map((company) => <option key={company.id} value={company.id}>{company.name} (공연사 {company.id})</option>)}
+        </FieldSelect>
+        <AdminActionButton disabled={changing || !target} onClick={() => void change(Number(target))}>이 공연사로 연결</AdminActionButton>
+        {linked ? (
+          <AdminActionButton tone="quiet" disabled={changing} onClick={() => void change(null)}>연결 끊기</AdminActionButton>
+        ) : null}
+      </div>
+      <p className="text-xs text-muted">
+        이 공고만 바꿔요. 같은 작성자의 공고를 함께 옮기려면 공연사 탭의 작성자별 묶기에서 바꿔 주세요.
+        작성자 묶음이 남아 있으면 이 공고에서 정보를 다시 저장할 때 그 공연사로 다시 연결돼요.
+      </p>
+      {error ? <p role="alert" className="text-fail">{error}</p> : null}
+    </section>
   );
 }
 

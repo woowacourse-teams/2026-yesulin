@@ -170,7 +170,8 @@ public class AuditionPostCompanyLinkService {
     /**
      * 운영자가 공고 목록에서 공연사 정보를 직접 쓴다. 공고의 공연사, 없으면 같은 원문 작성자로 묶은 공연사를 고치고, 둘 다 없으면
      * 새로 만든다. 원문 작성자 번호가 있으면 그 작성자를 이 공연사로 묶어 같은 작성자의 다른 공고와 이후 가져오는 공고에도
-     * 같은 정보가 연결된다. {@code publish}면 저장하면서 공개한다.
+     * 같은 정보가 연결된다. {@code publish}면 저장하면서 공개하되, 운영자가 내린 공연사는 내린 채로 둔다. 다시 공개는 공연사
+     * 관리에서 한다.
      */
     public AdminCompanyResult savePostCompany(long adminId, long postId, CompanyProfile profile, boolean publish) {
         try {
@@ -178,10 +179,11 @@ public class AuditionPostCompanyLinkService {
                 AuditionPost post = postRepository.findByIdForUpdate(postId)
                         .orElseThrow(() -> new BusinessException(NOT_FOUND, "공고를 찾을 수 없습니다."));
                 Long existing = post.getCompanyId() != null ? post.getCompanyId() : authorCompanyOf(post).orElse(null);
-                long companyId = existing == null
-                        ? companies.create(adminId, profile).id()
-                        : companies.update(adminId, existing, profile).id();
-                if (publish) {
+                AdminCompanyResult saved = existing == null
+                        ? companies.create(adminId, profile)
+                        : companies.update(adminId, existing, profile);
+                long companyId = saved.id();
+                if (publish && saved.status() != CompanyStatus.HIDDEN) {
                     companies.changeStatus(adminId, companyId, CompanyStatus.PUBLISHED);
                 }
                 if (!Objects.equals(post.getCompanyId(), companyId)) {

@@ -392,12 +392,12 @@ OTR 작성자 자동 연결: 가져오기는 OTR 상세의 작성자 링크(`get
 작성자로 묶은 공연사(`sharedByAuthor=true`)를 주고, 둘 다 없으면 `company`가 null이며 `suggestedName`(원문 작성자 이름)을 준다.
 PUT은 같은 순서로 찾은 공연사를 통째로 고치고, 없으면 `PENDING`으로 새로 만든다. 공고를 그 공연사에 연결하고, 원문 작성자 번호가
 있고 그 작성자의 묶음 규칙이 없으면 규칙을 만들어 같은 작성자의 공연사 없는 공고와 이후 가져오는 공고에도 연결한다. `publish`면
-저장하면서 `PUBLISHED`로 바꾼다(운영자 화면은 항상 `true`로 보낸다). 없는 공고는 `404 AUDITION_POST_NOT_FOUND`다.
+저장하면서 `PUBLISHED`로 바꾸되 `HIDDEN`인 공연사는 내린 채로 둔다(운영자 화면은 항상 `true`로 보낸다). 없는 공고는 `404 AUDITION_POST_NOT_FOUND`다.
 
 KOPIS 검색(`kopis-companies`)은 운영자가 공연사 정보를 쓸 때 처음 값을 찾는 API다. `name`에서 "(주)"·"㈜"·"주식회사"·"(사)" 같은
 회사 형태 표시를 떼고 공연예술통합전산망 기획제작사 목록(`/openApi/restful/mnfct`, `entrpsnm`)을 최대 10건 찾는다. 뗀 이름이 2자보다
 짧으면 부르지 않고 빈 목록을 준다. `companies` 항목은 `kopisId`(mt30id), `name`, `genre`, `phone`, `homepage`(relateurl),
-`recentWorks`(최근 작품 최대 5개)이며 빈 값은 null이다. 인증키 `KOPIS_API_KEY`가 없거나 KOPIS가 응답하지 않으면 오류 대신
+`recentWorks`(최근 작품 최대 5개)이며 빈 값은 null이다. 인증키 `KOPIS_API_KEY`가 없거나 KOPIS가 응답하지 않거나 `returncode`로 오류(결과 없음 `04` 제외)를 돌려주면 오류 대신
 `available=false`와 빈 목록을 준다. KOPIS는 짧은 시간에 여러 번 부르면 막으므로 같은 이름의 결과를 12시간 기억한다. 저장은 하지 않는다.
 
 정보 수정 요청(`edit-requests`)은 공개된 공연사 화면에서 로그인 없이 누구나 보낸다. 공개 전이거나 내린 공연사는

@@ -66,7 +66,7 @@ export function AdminAuditionPosts({ ownerId }: {
   const [statusFilter, setStatusFilter] = useState<"ALL" | AdminAuditionPostStatus>("ALL");
   /** 고친 공고를 원문으로 덮어쓸지 확인받는 중인 OTR 번호. */
   const [overwriteTarget, setOverwriteTarget] = useState<string | null>(null);
-  /** 연결할 공연사 후보. 불러오지 못하면 연결 칸을 숨긴다. */
+  /** 공연사 이름 표시와 공고별 연결 바꾸기 후보. 불러오지 못하면 연결 바꾸기를 숨긴다. */
   const [companies, setCompanies] = useState<readonly AdminCompany[] | null>(null);
   /** 공연사 정보를 쓰고 있는 공고. */
   const [editingCompany, setEditingCompany] = useState<number | null>(null);
@@ -330,9 +330,11 @@ export function AdminAuditionPosts({ ownerId }: {
               {editingCompany === post.id ? (
                 <AdminPostCompanyEditor
                   postId={post.id}
+                  companies={companies}
                   onCancel={() => setEditingCompany(null)}
                   onUnauthorized={endSession}
                   onSaved={() => { setEditingCompany(null); refresh(); }}
+                  onLinkChanged={() => { setEditingCompany(null); refresh(); }}
                 />
               ) : null}
             </article>
