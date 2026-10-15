@@ -17,6 +17,7 @@ import java.util.List;
  * @param address 도로명주소를 비우면 주소를 지운다.
  * @param addressPublic 공식 사업장 주소라 상세 주소와 지도를 공개할지. false면 시·군·구까지만 보인다.
  * @param sourceNote 정보를 확인한 출처. 운영자만 본다.
+ * @param photoUrl 대표 사진 공개 주소. 지금 사진이면 그대로 두고, 새로 올린 사진이면 바꾸고, 비우면 지운다.
  */
 public record WriteCompanyRequest(
         @NotBlank @Size(max = Company.MAX_NAME_LENGTH) String name,
@@ -30,8 +31,11 @@ public record WriteCompanyRequest(
         @Size(max = Company.MAX_PHONE_LENGTH) String phone,
         @Size(max = Company.MAX_DESCRIPTION_LENGTH) String description,
         @Size(max = Company.MAX_HISTORY_LENGTH) String history,
-        @Size(max = Company.MAX_SOURCE_NOTE_LENGTH) String sourceNote
+        @Size(max = Company.MAX_SOURCE_NOTE_LENGTH) String sourceNote,
+        @Size(max = MAX_PHOTO_URL_LENGTH) String photoUrl
 ) {
+
+    private static final int MAX_PHOTO_URL_LENGTH = 1000;
 
     public CompanyProfile toProfile() {
         return new CompanyProfile(

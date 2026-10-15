@@ -35,6 +35,7 @@ const companies: Mutable<AdminCompany>[] = [
     phone: "02-765-4321",
     description: "대학로 소극장에서 낭독극과 창작극을 올리는 프로젝트 극단입니다.\n배우와 함께 오래 가는 작업을 지향합니다.",
     history: "2019 창단\n2021 낭독극 <체크 포인트> 초연\n2024 대학로 정기공연 시작",
+    photoUrl: null,
     sourceNote: "공식 홈페이지 연혁, 공연사 전화 확인",
     status: "PUBLISHED",
     createdAt: now,
@@ -53,6 +54,7 @@ const companies: Mutable<AdminCompany>[] = [
     phone: null,
     description: null,
     history: null,
+    photoUrl: null,
     sourceNote: "OTR 작성자 닉네임",
     status: "PUBLISHED",
     createdAt: now,
@@ -71,6 +73,7 @@ const companies: Mutable<AdminCompany>[] = [
     phone: null,
     description: null,
     history: null,
+    photoUrl: null,
     sourceNote: null,
     status: "PENDING",
     createdAt: now,
@@ -88,6 +91,7 @@ const editRequests: AdminCompanyEditRequest[] = [
       representativeName: null,
       links: ["https://www.instagram.com/example_teamplay"],
       history: "2020 창단\n2023 대학로 첫 정기공연",
+      photoAttached: false,
     },
     changedFields: ["LINKS", "HISTORY"],
     reason: "팀플레이예술기획 기획팀입니다. 공식 인스타그램과 연혁을 넣어 주세요.",
@@ -95,6 +99,33 @@ const editRequests: AdminCompanyEditRequest[] = [
     createdAt: now,
   },
 ];
+
+/** 목 사진 저장소. 브라우저 메모리에만 두고 새로고침하면 사라진다. */
+const MOCK_STORAGE = "/mock-storage/company-photos";
+const mockPhotos = new Map<string, Blob>();
+/** 수정 요청 번호 → 함께 올린 사진 키. */
+const requestPhotos = new Map<number, string>();
+
+type PhotoUploadRequest = { readonly contentType: string; readonly size: number };
+
+function invalidPhoto(upload: PhotoUploadRequest): string | null {
+  if (!["image/jpeg", "image/png", "image/webp"].includes(upload.contentType)) {
+    return "사진은 JPG·PNG·WebP만 올릴 수 있습니다.";
+  }
+  if (upload.size <= 0 || upload.size > 10 * 1024 * 1024) return "사진은 10MB까지 올릴 수 있습니다.";
+  return null;
+}
+
+function mockUpload(key: string, photoUrl: string | null, uploadKey: string | null) {
+  return {
+    url: `${MOCK_STORAGE}/${key}`,
+    method: "PUT",
+    headers: { "Content-Type": "image/jpeg" },
+    expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+    photoUrl,
+    uploadKey,
+  };
+}
 
 /** KOPIS 기획제작사 검색 목. 이름에 찾는 말이 들어 있으면 돌려준다. */
 const KOPIS_COMPANIES = [
@@ -139,6 +170,7 @@ function toSummary(company: AdminCompany): CompanySummary {
     links: company.links,
     foundedOn: company.foundedOn,
     location: location(company),
+    photoUrl: company.photoUrl,
   };
 }
 
@@ -191,6 +223,7 @@ function apply(target: Mutable<AdminCompany>, write: AdminCompanyWrite) {
   target.description = blankToNull(write.description);
   target.history = blankToNull(write.history);
   target.sourceNote = blankToNull(write.sourceNote);
+  target.photoUrl = write.photoUrl;
   target.updatedAt = new Date().toISOString();
 }
 
@@ -243,13 +276,56 @@ export function companyHandlers(postsOf: (postIds: readonly number[]) => readonl
           phone: proposal.phone,
           description: proposal.description,
           history: proposal.history,
+          photoAttached: Boolean(write.photoUploadKey && write.changedFields.includes("PHOTO")),
         },
         changedFields: write.changedFields,
         reason: write.reason.trim(),
         contact: blankToNull(write.contact),
         createdAt: new Date().toISOString(),
       });
+      if (write.photoUploadKey && write.changedFields.includes("PHOTO")) requestPhotos.set(id, write.photoUploadKey);
       return HttpResponse.json({ id }, { status: 201 });
+    }),
+
+    http.post("/api/v1/public/companies/:companyId/edit-requests/photo-uploads", async ({ params, request }) => {
+      await delay(120);
+      if (!publishedCompany(Number(params.companyId))) return apiError(404, "COMPANY_NOT_FOUND", "공연사를 찾을 수 없습니다.");
+      const invalid = invalidPhoto(await request.json() as PhotoUploadRequest);
+      if (invalid) return apiError(400, "COMPANY_INVALID_INPUT", invalid);
+      const key = crypto.randomUUID();
+      return HttpResponse.json(mockUpload(key, null, key), { status: 201 });
+    }),
+
+    http.post("/api/v1/admin/company-photos/uploads", async ({ request }) => {
+      if (realLoginEnabled) return passthrough();
+      await delay(120);
+      const rejected = rejectNonAdmin();
+      if (rejected) return rejected;
+      const invalid = invalidPhoto(await request.json() as PhotoUploadRequest);
+      if (invalid) return apiError(400, "COMPANY_INVALID_INPUT", invalid);
+      const key = crypto.randomUUID();
+      return HttpResponse.json(mockUpload(key, `${MOCK_STORAGE}/${key}`, null), { status: 201 });
+    }),
+
+    http.put(`${MOCK_STORAGE}/:key`, async ({ params, request }) => {
+      mockPhotos.set(String(params.key), await request.blob());
+      return new HttpResponse(null, { status: 200 });
+    }),
+
+    http.get(`${MOCK_STORAGE}/:key`, ({ params }) => {
+      const photo = mockPhotos.get(String(params.key));
+      return photo
+        ? new HttpResponse(photo, { headers: { "Content-Type": photo.type } })
+        : new HttpResponse(null, { status: 404 });
+    }),
+
+    http.get("/api/v1/admin/company-edit-requests/:requestId/photo", ({ params }) => {
+      if (realLoginEnabled) return passthrough();
+      const key = requestPhotos.get(Number(params.requestId));
+      const photo = key ? mockPhotos.get(key) : undefined;
+      return photo
+        ? new HttpResponse(photo, { headers: { "Content-Type": photo.type } })
+        : apiError(404, "COMPANY_EDIT_REQUEST_NOT_FOUND", "수정 요청 사진을 찾을 수 없습니다.");
     }),
 
     http.get("/api/v1/admin/kopis-companies", async ({ request }) => {
@@ -282,10 +358,22 @@ export function companyHandlers(postsOf: (postIds: readonly number[]) => readonl
       if (index < 0) return apiError(404, "COMPANY_EDIT_REQUEST_NOT_FOUND", "수정 요청을 찾을 수 없습니다.");
       const company = companies.find((candidate) => candidate.id === editRequests[index].company.id);
       if (!company) return apiError(404, "COMPANY_NOT_FOUND", "공연사를 찾을 수 없습니다.");
-      const write = await request.json() as AdminCompanyWrite;
-      const invalid = validate(write);
+      const body = await request.json() as {
+        readonly company: AdminCompanyWrite;
+        readonly useRequestedPhoto: boolean;
+        readonly companyUpdatedAt: string;
+      };
+      if (body.companyUpdatedAt !== company.updatedAt) {
+        return apiError(409, "COMPANY_CHANGED", "그 사이 공연사 정보가 바뀌었습니다. 목록을 새로고침한 뒤 다시 적용해 주세요.");
+      }
+      const invalid = validate(body.company);
       if (invalid) return apiError(400, "COMPANY_INVALID_INPUT", invalid);
-      apply(company, write);
+      const requestedPhoto = requestPhotos.get(editRequests[index].id);
+      apply(company, {
+        ...body.company,
+        photoUrl: body.useRequestedPhoto && requestedPhoto ? `${MOCK_STORAGE}/${requestedPhoto}` : body.company.photoUrl,
+      });
+      requestPhotos.delete(editRequests[index].id);
       editRequests.splice(index, 1);
       return HttpResponse.json(company);
     }),

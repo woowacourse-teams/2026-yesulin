@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import { AuditionPostScreen } from "@/components/audition-posts/audition-post-screen";
 import { FieldInput, FieldTextarea, PrimaryButton, SecondaryLink } from "@/components/ui/controls";
-import { getCompany, requestCompanyEdit } from "@/features/companies/api";
+import { getCompany, requestCompanyEdit, uploadCompanyRequestPhoto } from "@/features/companies/api";
 import {
   changedFields,
   COMPANY_FIELD_LABELS,
@@ -91,7 +91,11 @@ function EditRequestForm({ company, onSent }: { readonly company: Company; reado
     setError(null);
     try {
       await requestCompanyEdit(company.id, {
-        company: writeOf(draft), changedFields: changed, reason: reason.trim(), contact: contact.trim(),
+        company: writeOf(draft),
+        changedFields: changed,
+        reason: reason.trim(),
+        contact: contact.trim(),
+        photoUploadKey: changed.includes("PHOTO") ? draft.photoUploadKey : null,
       });
       onSent();
     } catch (cause) {
@@ -113,7 +117,17 @@ function EditRequestForm({ company, onSent }: { readonly company: Company; reado
       </header>
 
       <section aria-label="공연사 정보" className="rounded-card border border-border bg-card px-5 py-6 sm:px-8">
-        <CompanyProfileFields draft={draft} onChange={setDraft} undecided={undecided} mode="request" />
+        <CompanyProfileFields
+          draft={draft}
+          onChange={setDraft}
+          undecided={undecided}
+          mode="request"
+          uploadPhoto={async (photo) => ({
+            uploadKey: await uploadCompanyRequestPhoto(company.id, photo),
+            // 운영자가 적용하기 전에는 공개 주소가 없으므로 고른 사진을 이 화면에서만 미리 보여 준다.
+            url: URL.createObjectURL(photo),
+          })}
+        />
       </section>
 
       <section aria-label="요청 내용" className="flex flex-col gap-4 rounded-card border border-border bg-card px-5 py-6 sm:px-8">

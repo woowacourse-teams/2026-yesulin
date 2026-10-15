@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CompanyAvatar } from "./company-avatar";
 import {
   COMPANY_CORRECTION_URL,
   companyRoutes,
@@ -21,7 +22,10 @@ export function CompanySummaryCard({ company }: { readonly company: CompanySumma
           공연사 정보 전체보기 <span aria-hidden="true" className="ml-1">→</span>
         </Link>
       </div>
-      <h2 id="post-company" className="mt-1 text-lg font-bold tracking-[-0.02em]">{company.name}</h2>
+      <div className="mt-2 flex min-w-0 items-center gap-3">
+        <CompanyAvatar name={company.name} photoUrl={company.photoUrl} size="md" />
+        <h2 id="post-company" className="min-w-0 break-words text-lg font-bold tracking-[-0.02em]">{company.name}</h2>
+      </div>
       <CompanyFacts company={company} className="mt-4" />
     </section>
   );

@@ -6,7 +6,11 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
-/** 운영자 공연사 목록과 편집 화면. 공개하지 않는 대표자 이름·상세 주소·정보 출처도 담는다. 비워 둔 항목은 null이다. */
+/**
+ * 운영자 공연사 목록과 편집 화면. 공개하지 않는 대표자 이름·상세 주소·정보 출처도 담는다. 비워 둔 항목은 null이다.
+ *
+ * @param photoUrl 대표 사진 공개 주소. 없으면 null이고 화면이 이름 첫 글자 이미지를 보인다.
+ */
 public record AdminCompanyResult(
         long id,
         String name,
@@ -20,13 +24,14 @@ public record AdminCompanyResult(
         String phone,
         String description,
         String history,
+        String photoUrl,
         String sourceNote,
         CompanyStatus status,
         Instant createdAt,
         Instant updatedAt
 ) {
 
-    static AdminCompanyResult from(Company company) {
+    static AdminCompanyResult from(Company company, String photoUrl) {
         return new AdminCompanyResult(
                 company.getId(),
                 company.getName(),
@@ -40,6 +45,7 @@ public record AdminCompanyResult(
                 company.getPhone(),
                 company.getDescription(),
                 company.getHistory(),
+                photoUrl,
                 company.getSourceNote(),
                 company.getStatus(),
                 company.getCreatedAt(),

@@ -207,6 +207,10 @@
   update로 기존 공고를 연결하고, 옮길 때는 예전 공연사에 연결됐던 그 작성자의 공고만 옮긴다. `AuditionPostImportService`와 작성자 번호
   채우기(`AuditionPostAuthorLinkService.fill`)가 공연사 없는 공고에 규칙의 공연사를 붙인다. 작성자로 공연사를 만들 때는
   `CompanyService.create`를 같은 트랜잭션에서 불러 묶기에 실패하면 공연사도 남기지 않는다.
+- 대표 사진은 `Company.photoKey`(공개 저장소 키)로 정보와 따로 바꾼다(`changePhoto`). `company/application/photo`의
+  `CompanyPhotoService`가 `company_photo_uploads`로 올릴 자리를 기록하고 확정·정리하며, `CompanyPhotoStorage`가 공개·비공개 키와
+  확인(HEAD·서명), 요청 사진의 공개 복사를 맡는다. `CompanyService`는 사진 확정을 정보 저장과 같은 트랜잭션에서 하고 이전 사진을
+  커밋 뒤 지운다. 수정 요청의 사진은 `CompanyEditRequest.photoKey`(비공개 키)이고 처리하면 비운다.
 - `company/application/kopis`의 `KopisCompanyService`는 이름에서 회사 형태 표시를 떼고 `KopisCompanySearch` 포트로 KOPIS
   기획제작사를 찾는다. 구현 `company/infrastructure/kopis/KopisOpenApiClient`는 `https://kopis.or.kr/openApi/restful/mnfct`를 Java
   `HttpClient`로 부르고 jsoup XML 파서로 읽으며, 성공한 결과만 Caffeine에 12시간 둔다. 인증키(`yesulin.kopis.api-key`)가 없거나

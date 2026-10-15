@@ -2,9 +2,17 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { AuditionPostStatusBadge } from "@/components/audition-posts/audition-post-status-badge";
+import { CompanyAvatar } from "@/components/companies/company-avatar";
 import { CompanyProfileFields } from "@/components/companies/company-profile-fields";
 import { FieldTextarea } from "@/components/ui/controls";
-import { AdminApiError, changeCompanyStatus, createCompany, fetchCompanies, updateCompany } from "@/features/admin/api";
+import {
+  AdminApiError,
+  changeCompanyStatus,
+  createCompany,
+  fetchCompanies,
+  updateCompany,
+  uploadCompanyPhoto,
+} from "@/features/admin/api";
 import type { AdminCompany, AdminCompanyStatus, AdminCompanyWrite } from "@/features/admin/types";
 import {
   COMPANY_FIELD_LABELS,
@@ -164,7 +172,10 @@ export function AdminCompanies() {
                 <span className="num text-muted">공연사 {company.id}</span>
                 <span className="ml-auto text-muted">{formatDateTime(company.updatedAt)} 갱신</span>
               </header>
-              <h3 className="mt-3 break-words text-lg font-semibold">{company.name}</h3>
+              <div className="mt-3 flex min-w-0 items-center gap-3">
+                <CompanyAvatar name={company.name} photoUrl={company.photoUrl} size="sm" />
+                <h3 className="min-w-0 break-words text-lg font-semibold">{company.name}</h3>
+              </div>
               <p className="mt-1 text-sm text-muted-strong">
                 {[
                   company.representativeName && `대표 ${company.representativeName}`,
@@ -244,7 +255,13 @@ export function CompanyForm({ initial, submitLabel, onSave, onCancel, onUnauthor
         <span>선택 항목은 값을 적거나 &quot;비공개&quot;를 체크해 주세요. 비공개 항목은 공개 화면에 &quot;비공개&quot;로 보여요.</span>
         <AdminActionButton tone="quiet" className="!min-h-9" onClick={() => setDraft(hideUndecided)}>빈 항목 모두 비공개</AdminActionButton>
       </div>
-      <CompanyProfileFields draft={draft} onChange={setDraft} undecided={undecided} mode="admin" />
+      <CompanyProfileFields
+        draft={draft}
+        onChange={setDraft}
+        undecided={undecided}
+        mode="admin"
+        uploadPhoto={async (photo) => ({ url: await uploadCompanyPhoto(photo), uploadKey: null })}
+      />
       <div className="flex min-w-0 flex-col gap-1.5">
         <label htmlFor="company-source-note" className="text-sm font-semibold">정보 출처<span className="ml-1 text-xs font-normal text-muted">운영자만 봐요</span></label>
         <FieldTextarea id="company-source-note" rows={2} value={draft.sourceNote} maxLength={1000} onChange={(event) => setDraft((current) => ({ ...current, sourceNote: event.target.value }))} />

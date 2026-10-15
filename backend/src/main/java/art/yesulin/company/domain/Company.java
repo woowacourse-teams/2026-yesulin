@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
 import lombok.AccessLevel;
@@ -95,6 +96,10 @@ public class Company {
     @Column(length = MAX_HISTORY_LENGTH)
     private String history;
 
+    /** 대표 사진의 공개 저장소 키. 없으면 화면이 이름 첫 글자 이미지를 보인다. */
+    @Column(name = "photo_key", length = 500)
+    private String photoKey;
+
     /** 정보를 확인한 출처. 운영자만 본다. */
     @Column(name = "source_note", length = MAX_SOURCE_NOTE_LENGTH)
     private String sourceNote;
@@ -133,6 +138,15 @@ public class Company {
         }
         if (this.status != status) {
             this.status = status;
+            this.updatedAt = now;
+        }
+    }
+
+    /** 대표 사진을 바꾸거나(키) 지운다(null). 사진은 정보와 따로 확정하므로 정보 수정과 나눈다. */
+    public void changePhoto(String photoKey, Instant now) {
+        String normalized = photoKey == null || photoKey.isBlank() ? null : photoKey;
+        if (!Objects.equals(this.photoKey, normalized)) {
+            this.photoKey = normalized;
             this.updatedAt = now;
         }
     }

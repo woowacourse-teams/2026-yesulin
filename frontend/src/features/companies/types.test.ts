@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { companyRoutes, displayLink, formatFoundedOn } from "./types";
+import { companyInitial, companyRoutes, displayLink, formatFoundedOn } from "./types";
 
 describe("공연사 표시", () => {
   it("설립일을 한국어 날짜로 보여 준다", () => {
@@ -15,5 +15,13 @@ describe("공연사 표시", () => {
 
   it("공연사 화면 주소를 만든다", () => {
     expect(companyRoutes.detail(12)).toBe("/companies/12");
+  });
+
+  it("기본 이미지에 쓸 첫 글자는 회사 형태와 앞말을 떼고 고른다", () => {
+    expect(companyInitial("(주)크리티브(픽시클래스)")).toBe("크");
+    expect(companyInitial("극단 예술in")).toBe("예");
+    expect(companyInitial("estc")).toBe("E");
+    expect(companyInitial("극단")).toBe("극");
+    expect(companyInitial("  ")).toBe("?");
   });
 });

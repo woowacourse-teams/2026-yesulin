@@ -14,5 +14,6 @@ public enum CompanyField {
     REGION,
     PHONE,
     DESCRIPTION,
-    HISTORY
+    HISTORY,
+    PHOTO
 }

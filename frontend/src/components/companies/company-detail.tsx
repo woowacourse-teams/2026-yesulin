@@ -10,6 +10,7 @@ import { auditionPostRoutes, type AuditionPostSummary } from "@/features/auditio
 import { getCompany, getCompanyPosts } from "@/features/companies/api";
 import { SecondaryLink } from "@/components/ui/controls";
 import { COMPANY_CORRECTION_URL, companyRoutes, type Company } from "@/features/companies/types";
+import { CompanyAvatar } from "./company-avatar";
 import { CompanyFacts, Undisclosed } from "./company-summary-card";
 
 type CompanyState =
@@ -57,8 +58,13 @@ function CompanyDetail({ company, posts }: {
     <div className="mt-3 space-y-4">
       <article className="overflow-hidden rounded-card border border-border bg-card">
         <header className="border-b border-border-soft px-5 py-6 sm:px-8 sm:py-8">
-          <p className="text-sm font-semibold text-brand">공연사</p>
-          <h1 className="mt-2 text-[clamp(24px,3.4vw,32px)] font-bold leading-snug tracking-[-0.03em]">{company.name}</h1>
+          <div className="flex min-w-0 items-center gap-4">
+            <CompanyAvatar name={company.name} photoUrl={company.photoUrl} size="lg" />
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-brand">공연사</p>
+              <h1 className="mt-1 break-words text-[clamp(24px,3.4vw,32px)] font-bold leading-snug tracking-[-0.03em]">{company.name}</h1>
+            </div>
+          </div>
           <CompanyFacts company={company} className="mt-5" />
           <p className="mt-2 flex gap-3 text-sm">
             <span className="w-16 shrink-0 text-muted">연락처</span>

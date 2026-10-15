@@ -15,10 +15,11 @@ export type CompanyField =
   | "REGION"
   | "PHONE"
   | "DESCRIPTION"
-  | "HISTORY";
+  | "HISTORY"
+  | "PHOTO";
 
-/** "비공개"로 체크할 수 있는 선택 항목. */
-export type PrivateField = Exclude<CompanyField, "NAME">;
+/** "비공개"로 체크할 수 있는 선택 항목. 대표 사진은 없으면 이름 첫 글자 이미지가 보이므로 비공개로 정하지 않는다. */
+export type PrivateField = Exclude<CompanyField, "NAME" | "PHOTO">;
 
 export const PRIVATE_FIELDS: readonly PrivateField[] = [
   "REPRESENTATIVE_NAME", "FOUNDED_ON", "PHONE", "REGION", "LINKS", "ADDRESS", "DESCRIPTION", "HISTORY",
@@ -34,6 +35,7 @@ export const COMPANY_FIELD_LABELS: Readonly<Record<CompanyField, string>> = {
   PHONE: "대표 연락처",
   DESCRIPTION: "소개",
   HISTORY: "연혁",
+  PHOTO: "대표 사진",
 };
 
 export const EMPTY_ADDRESS: VenueAddress = { roadAddress: "", detailAddress: "", zonecode: "", latitude: null, longitude: null };
@@ -51,6 +53,8 @@ export type CompanyProfileValues = {
   readonly phone: string | null;
   readonly description: string | null;
   readonly history: string | null;
+  /** 대표 사진 주소. 없으면 null이다. */
+  readonly photoUrl: string | null;
   readonly sourceNote?: string | null;
 };
 
@@ -67,6 +71,10 @@ export type CompanyDraft = {
   readonly description: string;
   readonly history: string;
   readonly sourceNote: string;
+  /** 대표 사진 주소. 새로 고른 사진이면 미리 보기 주소다. 없으면 null이다. */
+  readonly photoUrl: string | null;
+  /** 수정 요청에 새로 올린 사진의 업로드 키. 운영자 화면은 쓰지 않는다. */
+  readonly photoUploadKey: string | null;
   /** "비공개"로 체크한 항목. */
   readonly hidden: Readonly<Record<PrivateField, boolean>>;
 };
@@ -86,6 +94,8 @@ export type CompanyWrite = {
   readonly description: string;
   readonly history: string;
   readonly sourceNote: string;
+  /** 대표 사진 공개 주소. 지금 사진이면 그대로, 새로 올린 사진이면 바꾸고, null이면 지운다. */
+  readonly photoUrl: string | null;
 };
 
 const NOTHING_HIDDEN: Readonly<Record<PrivateField, boolean>> = {
@@ -97,7 +107,8 @@ const NOTHING_HIDDEN: Readonly<Record<PrivateField, boolean>> = {
 export function emptyDraft(name = ""): CompanyDraft {
   return {
     name, representativeName: "", representativeNamePublic: false, links: [""], foundedOn: "", address: EMPTY_ADDRESS,
-    addressPublic: false, region: "", phone: "", description: "", history: "", sourceNote: "", hidden: NOTHING_HIDDEN,
+    addressPublic: false, region: "", phone: "", description: "", history: "", sourceNote: "", photoUrl: null,
+    photoUploadKey: null, hidden: NOTHING_HIDDEN,
   };
 }
 
@@ -117,6 +128,8 @@ export function draftOf(values: CompanyProfileValues): CompanyDraft {
     description: values.description ?? "",
     history: values.history ?? "",
     sourceNote: values.sourceNote ?? "",
+    photoUrl: values.photoUrl,
+    photoUploadKey: null,
     hidden: Object.fromEntries(PRIVATE_FIELDS.map((field) => [field, !filled.has(field)])) as Record<PrivateField, boolean>,
   };
 }
@@ -138,6 +151,7 @@ export function writeOf(draft: CompanyDraft): CompanyWrite {
     description: shown("DESCRIPTION", draft.description),
     history: shown("HISTORY", draft.history),
     sourceNote: draft.sourceNote.trim(),
+    photoUrl: draft.photoUrl,
   };
 }
 
@@ -200,6 +214,7 @@ export function describeField(values: CompanyProfileValues, field: CompanyField)
     case "PHONE": return values.phone;
     case "DESCRIPTION": return values.description;
     case "HISTORY": return values.history;
+    case "PHOTO": return values.photoUrl ? "사진 있음" : null;
   }
 }
 
@@ -213,6 +228,7 @@ const FIELD_KEYS: Readonly<Record<CompanyField, readonly (keyof CompanyProfileVa
   PHONE: ["phone"],
   DESCRIPTION: ["description"],
   HISTORY: ["history"],
+  PHOTO: ["photoUrl"],
 };
 
 function writeValues(write: CompanyWrite): CompanyProfileValues {

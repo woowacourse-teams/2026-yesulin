@@ -39,7 +39,8 @@ public record AdminCompanyEditRequestResult(
                         request.getRegion(),
                         request.getPhone(),
                         request.getDescription(),
-                        request.getHistory()
+                        request.getHistory(),
+                        request.getPhotoKey() != null
                 ),
                 List.copyOf(request.changedFields()),
                 request.getReason(),
@@ -48,7 +49,11 @@ public record AdminCompanyEditRequestResult(
         );
     }
 
-    /** 요청한 공연사 정보. 비워 달라는 항목은 null이다. */
+    /**
+     * 요청한 공연사 정보. 비워 달라는 항목은 null이다.
+     *
+     * @param photoAttached 사진을 함께 보냈는지. 운영자 화면은 요청 사진 조회 API로 본다.
+     */
     public record Proposal(
             String name,
             String representativeName,
@@ -60,7 +65,8 @@ public record AdminCompanyEditRequestResult(
             String region,
             String phone,
             String description,
-            String history
+            String history,
+            boolean photoAttached
     ) {
     }
 }

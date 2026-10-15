@@ -89,7 +89,8 @@ src/config/              환경 변수 해석
   공개된 공연사가 없으면 원문 작성자 이름과 정보 등록 요청 링크만 있는 "준비 중" 카드를 보인다. 공연사 화면 아래의 "정보 수정 요청"은
   `/companies/{id}/edit-request`로 가며, 공개 정보로 채운 폼을 고쳐 사유·연락처와 함께 보낸다(삭제 요청은 카카오톡 채널).
   운영자 폼과 수정 요청 폼은 `CompanyProfileFields`와 `features/companies/profile-draft`를 같이 쓰며, 선택 항목마다 값을 적거나 "비공개"를
-  체크해야 저장된다. `?view=edit-requests`는 처리할 수정 요청을 바뀐 항목 비교와 함께 보이고, 바꾼 항목만 덮어쓴 폼으로 적용하거나 반려한다.
+  체크해야 저장된다. 대표 사진은 `features/companies/photo-image`가 브라우저에서 긴 변 1600px JPEG로 줄인 뒤 `safeUpload`로
+  올리고(운영자는 공개 주소, 수정 요청은 업로드 키), 없으면 `CompanyAvatar`가 `companyInitial`의 첫 글자를 보인다. `?view=edit-requests`는 처리할 수정 요청을 바뀐 항목 비교와 함께 보이고, 바꾼 항목만 덮어쓴 폼으로 적용하거나 반려한다.
 - `/producers/audition-posts`: 기획사가 자기 공고 목록을 보고 `/new`에서 올리고 `/{id}/edit`에서 고친다. 운영자와 같은
   `components/audition-posts/editor/AuditionPostForm`을 쓰고 업로드 함수만 바꿔 끼운다(`features/audition-posts/producer-api.ts`).
   작성자는 기획사 이름으로 고정이라 입력하지 않는다. 올리면 바로 공개되고, 연결된 공고 중 검토 전이거나 운영자가 내린 공고는 상태와 안내 문구로 구분해 보여 준다.

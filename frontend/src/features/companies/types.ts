@@ -14,6 +14,8 @@ export type CompanySummary = {
   readonly foundedOn: string | null;
   /** 주소가 있으면 시·군·구까지(예: `서울 종로구`), 없으면 지역. */
   readonly location: string | null;
+  /** 대표 사진 주소. 없으면 null이고 화면이 이름 첫 글자 이미지를 보인다. */
+  readonly photoUrl: string | null;
 };
 
 /** 공연사 화면. 백엔드 `/api/v1/public/companies/{id}` 응답과 같다. */
@@ -33,6 +35,8 @@ export const companyApiPaths = {
     `/v1/public/companies/${encodeURIComponent(String(companyId))}/audition-posts`,
   editRequests: (companyId: number | string) =>
     `/v1/public/companies/${encodeURIComponent(String(companyId))}/edit-requests`,
+  editRequestPhotoUploads: (companyId: number | string) =>
+    `/v1/public/companies/${encodeURIComponent(String(companyId))}/edit-requests/photo-uploads`,
 } as const;
 
 export const companyRoutes = {
@@ -66,3 +70,16 @@ export function displayLink(link: string): string {
  * 공개된 공연사 정보 수정은 공연사 화면의 수정 요청(`companyRoutes.editRequest`)으로 받는다.
  */
 export const COMPANY_CORRECTION_URL = "http://pf.kakao.com/_pbTBX/chat";
+
+/**
+ * 사진이 없는 공연사의 기본 이미지에 쓸 첫 글자. "(주)"·"극단" 같은 앞말을 떼고 첫 글자를 쓴다(예: `(주)크리티브` → `크`).
+ * 영문은 대문자로 보인다.
+ */
+export function companyInitial(name: string): string {
+  const core = name
+    .replace(/\((?:주|사|재|유|합)\)|㈜|주식회사|사단법인|재단법인|유한회사|협동조합/g, " ")
+    .replace(/^\s*(?:극단|프로젝트|컴퍼니)\s+/, "")
+    .trim();
+  const first = Array.from(core || name.trim()).find((character) => /[\p{L}\p{N}]/u.test(character));
+  return first ? first.toUpperCase() : "?";
+}

@@ -230,7 +230,7 @@ class CompanyServiceTest {
         assertNull(linkService.findPostCompany(second).company());
         assertEquals("극단 같은이", linkService.findPostCompany(second).suggestedName());
 
-        AdminCompanyResult saved = linkService.savePostCompany(ADMIN_ID, first, profile(), true);
+        AdminCompanyResult saved = linkService.savePostCompany(ADMIN_ID, first, profile(), null, true);
 
         assertEquals(CompanyStatus.PUBLISHED, saved.status());
         assertEquals(saved.id(), postRepository.findById(second).orElseThrow().getCompanyId());
@@ -239,17 +239,17 @@ class CompanyServiceTest {
         AuditionPostCompanyProfile shared = linkService.findPostCompany(later);
         assertEquals(saved.id(), shared.company().id());
         assertTrue(shared.sharedByAuthor());
-        assertEquals(saved.id(), linkService.savePostCompany(ADMIN_ID, later, profile(), false).id());
+        assertEquals(saved.id(), linkService.savePostCompany(ADMIN_ID, later, profile(), null, false).id());
         assertEquals(saved.id(), postRepository.findById(later).orElseThrow().getCompanyId());
     }
 
     @Test
     void keepsHiddenCompanyHiddenWhenEditedFromPostList() {
         long postId = otrPost("401", "9101", "내린 극단");
-        long companyId = linkService.savePostCompany(ADMIN_ID, postId, profile(), true).id();
+        long companyId = linkService.savePostCompany(ADMIN_ID, postId, profile(), null, true).id();
         companyService.changeStatus(ADMIN_ID, companyId, CompanyStatus.HIDDEN);
 
-        AdminCompanyResult saved = linkService.savePostCompany(ADMIN_ID, postId, profile(), true);
+        AdminCompanyResult saved = linkService.savePostCompany(ADMIN_ID, postId, profile(), null, true);
 
         assertEquals(companyId, saved.id());
         assertEquals(CompanyStatus.HIDDEN, saved.status());

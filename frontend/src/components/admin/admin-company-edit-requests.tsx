@@ -8,9 +8,15 @@ import {
   fetchCompanyEditRequests,
   rejectCompanyEditRequest,
 } from "@/features/admin/api";
-import type { AdminCompanyEditRequest } from "@/features/admin/types";
+import { adminEditRequestPhotoUrl, type AdminCompanyEditRequest } from "@/features/admin/types";
 import { logout } from "@/features/auth/session-api";
-import { COMPANY_FIELD_LABELS, describeField, mergeRequest } from "@/features/companies/profile-draft";
+import {
+  COMPANY_FIELD_LABELS,
+  describeField,
+  mergeRequest,
+  type CompanyProfileValues,
+} from "@/features/companies/profile-draft";
+import { CompanyAvatar } from "@/components/companies/company-avatar";
 import { companyRoutes } from "@/features/companies/types";
 import { CompanyForm } from "./admin-companies";
 import { formatDateTime } from "./admin-format";
@@ -140,15 +146,19 @@ export function AdminCompanyEditRequests() {
               {applying === request.id ? (
                 <div className="mt-4">
                   <CompanyForm
-                    initial={mergeRequest(request.company, request.proposal, request.changedFields)}
+                    initial={mergeRequest(request.company, proposalValues(request), request.changedFields)}
                     submitLabel="적용"
                     onCancel={() => setApplying(null)}
                     onUnauthorized={endSession}
                     onSave={async (write) => {
-                      await applyCompanyEditRequest(request.id, write);
-                      remove(request.id);
+                      await applyCompanyEditRequest(
+                        request.id, write, write.photoUrl === adminEditRequestPhotoUrl(request.id),
+                        request.company.updatedAt,
+                      );
                       setApplying(null);
                       setNotice(`${request.company.name} 정보에 수정 요청을 반영했어요.`);
+                      // 같은 공연사의 다른 요청이 방금 바뀐 정보로 다시 채워지도록 목록을 새로 불러온다.
+                      refresh();
                     }}
                   />
                 </div>
@@ -197,10 +207,14 @@ function ChangedFields({ request }: { readonly request: AdminCompanyEditRequest 
             <tr key={field} className="border-b border-border-soft align-top">
               <th scope="row" className="py-2 pr-3 font-semibold">{COMPANY_FIELD_LABELS[field]}</th>
               <td className="whitespace-pre-line break-words py-2 pr-3 text-muted-strong">
-                <FieldValue value={describeField(request.company, field)} />
+                {field === "PHOTO"
+                  ? <PhotoValue name={request.company.name} photoUrl={request.company.photoUrl} />
+                  : <FieldValue value={describeField(request.company, field)} />}
               </td>
               <td className="whitespace-pre-line break-words py-2">
-                <FieldValue value={describeField(request.proposal, field)} />
+                {field === "PHOTO"
+                  ? <PhotoValue name={request.proposal.name} photoUrl={proposalValues(request).photoUrl} />
+                  : <FieldValue value={describeField(proposalValues(request), field)} />}
               </td>
             </tr>
           ))}
@@ -212,4 +226,18 @@ function ChangedFields({ request }: { readonly request: AdminCompanyEditRequest 
 
 function FieldValue({ value }: { readonly value: string | null }) {
   return value ?? <span className="text-muted">비공개(비움)</span>;
+}
+
+/** 요청 정보. 요청 사진은 적용 전이라 공개 주소가 없어 운영자 API 주소로 본다. */
+function proposalValues(request: AdminCompanyEditRequest): CompanyProfileValues {
+  return { ...request.proposal, photoUrl: request.proposal.photoAttached ? adminEditRequestPhotoUrl(request.id) : null };
+}
+
+function PhotoValue({ name, photoUrl }: { readonly name: string; readonly photoUrl: string | null }) {
+  return (
+    <span className="flex items-center gap-2">
+      <CompanyAvatar name={name} photoUrl={photoUrl} size="md" />
+      {photoUrl ? null : <span className="text-muted">사진 없음</span>}
+    </span>
+  );
 }

@@ -89,6 +89,10 @@ public class CompanyEditRequest {
     @Column(length = Company.MAX_HISTORY_LENGTH)
     private String history;
 
+    /** 요청과 함께 보낸 사진의 비공개 저장소 키. 사진을 바꾸지 않았거나 지워 달라고 했으면 null이다. */
+    @Column(name = "photo_key", length = 500)
+    private String photoKey;
+
     /** 요청자가 바꾼 항목. {@link CompanyField} 이름을 쉼표로 이어 저장한다. */
     @Getter(AccessLevel.NONE)
     @Column(name = "changed_fields", nullable = false, length = 200)
@@ -98,7 +102,7 @@ public class CompanyEditRequest {
     @Column(nullable = false, length = MAX_REASON_LENGTH)
     private String reason;
 
-    /** 요청자가 남긴 이메일이나 전화번호. 처리하면 지운다. */
+    /** 요청자가 남긴 이메일이나 전화번호. 처리하면 지운다. 요청 사진 키도 처리하면 지운다. */
     @Column(length = MAX_CONTACT_LENGTH)
     private String contact;
 
@@ -159,6 +163,19 @@ public class CompanyEditRequest {
         );
     }
 
+    /** 요청과 함께 보낸 사진을 단다. 사진을 바꾼 요청에만 달 수 있다. */
+    public void attachPhoto(String photoKey) {
+        if (!changedFields().contains(CompanyField.PHOTO)) {
+            throw new BusinessException(INVALID_INPUT, "사진을 바꾼 요청에만 사진을 달 수 있습니다.");
+        }
+        this.photoKey = photoKey;
+    }
+
+    /** 사진을 바꿔 달라는 요청인지. 사진이 없으면 지워 달라는 뜻이다. */
+    public boolean requestsPhotoChange() {
+        return changedFields().contains(CompanyField.PHOTO);
+    }
+
     /** 요청자가 바꾼 항목. 항목 순서대로 준다. */
     public Set<CompanyField> changedFields() {
         return Arrays.stream(changedFields.split(","))
@@ -182,6 +199,7 @@ public class CompanyEditRequest {
         this.resolvedBy = requirePositive(adminId, "처리한 운영자 ID는 1 이상이어야 합니다.");
         this.resolvedAt = now;
         this.contact = null;
+        this.photoKey = null;
     }
 
     private static String joined(Set<CompanyField> fields) {

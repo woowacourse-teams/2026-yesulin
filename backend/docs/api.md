@@ -343,7 +343,7 @@ OTR 작성자 자동 연결: 가져오기는 OTR 상세의 작성자 링크(`get
 그 기획사가 올린 업로드만 확정한다. 올리기와 바뀐 항목이 있는 고치기는 커밋 뒤 공고 알림 Slack 채널로 알린다
 (`YESULIN_SLACK_WEBHOOK_URL`, 없으면 로그만 남긴다). 알림 실패는 저장 결과에 영향을 주지 않는다.
 
-## 공연사 — 19개
+## 공연사 — 22개
 
 공고를 올린 극단·제작사·기획사의 공개 정보(`Company`)다. 기획사 계정과 따로 있다. 공개 API는 로그인 없이, 운영 API는 `ADMIN`만 호출한다.
 `companyId`는 숫자 ID다.
@@ -352,10 +352,13 @@ OTR 작성자 자동 연결: 가져오기는 OTR 상세의 작성자 링크(`get
 | --- | --- | --- | --- | --- |
 | GET | `/api/v1/public/companies/{companyId}` | 공개 | 없음 | `200 PublicCompanyResult` |
 | GET | `/api/v1/public/companies/{companyId}/audition-posts` | 공개 | 없음 | `200 PublicCompanyAuditionPostsResponse(posts)` |
+| POST | `/api/v1/public/companies/{companyId}/edit-requests/photo-uploads` | 공개 | `PrepareCompanyPhotoUploadRequest(contentType, size)` | `201 CompanyPhotoUploadResult` |
+| POST | `/api/v1/admin/company-photos/uploads` | Admin | `PrepareCompanyPhotoUploadRequest(contentType, size)` | `201 CompanyPhotoUploadResult` |
+| GET | `/api/v1/admin/company-edit-requests/{requestId}/photo` | Admin | 없음 | `200` 사진 바이트(`Cache-Control: no-store`) |
 | POST | `/api/v1/public/companies/{companyId}/edit-requests` | 공개 | `CreateRequest(company: WriteCompanyRequest, changedFields, reason, contact?)` | `201 CreatedResponse(id)` |
 | GET | `/api/v1/admin/kopis-companies?name=` | Admin | 없음 | `200 KopisCompanySearchResult(available, query, companies)` |
 | GET | `/api/v1/admin/company-edit-requests` | Admin | 없음 | `200 PendingResponse(requests: AdminCompanyEditRequestResult[])` |
-| POST | `/api/v1/admin/company-edit-requests/{requestId}/apply` | Admin | `WriteCompanyRequest` | `200 AdminCompanyResult` |
+| POST | `/api/v1/admin/company-edit-requests/{requestId}/apply` | Admin | `ApplyCompanyEditRequest(company: WriteCompanyRequest, useRequestedPhoto, companyUpdatedAt)` | `200 AdminCompanyResult` |
 | POST | `/api/v1/admin/company-edit-requests/{requestId}/reject` | Admin | 없음 | `204` |
 | GET | `/api/v1/admin/companies` | Admin | 없음 | `200 AdminCompaniesResponse(companies)` |
 | POST | `/api/v1/admin/companies` | Admin | `WriteCompanyRequest` | `201 AdminCompanyResult` |
@@ -381,7 +384,15 @@ OTR 작성자 자동 연결: 가져오기는 OTR 상세의 작성자 링크(`get
 `COMPANY_STATUS_CHANGED`로 남기며 정보 원문은 담지 않는다.
 
 공개 API는 `PUBLISHED`인 공연사만 보여 주고, 없거나 공개 전·내린 공연사는 `404 COMPANY_NOT_FOUND`다. `PublicCompanyResult`는
-`id`, `name`, `representativeName`, `links`, `foundedOn`, `location`, `address`, `phone`, `description`, `history`, `updatedAt`이다.
+`id`, `name`, `representativeName`, `links`, `foundedOn`, `location`, `address`, `phone`, `description`, `history`, `photoUrl`, `updatedAt`이다.
+`photoUrl`은 대표 사진 공개 주소이고 없으면 null이며, 화면이 이름 첫 글자 이미지를 보인다. `CompanySummary`와 `AdminCompanyResult`에도 담는다.
+
+대표 사진은 한 장이다. 브라우저가 사진을 긴 변 1600px JPEG로 줄인 뒤 `photo-uploads`/`company-photos/uploads`로 올릴 자리를 받고,
+돌려받은 `url`·`method`·`headers`로 저장소에 바로 올린다. 형식은 `image/jpeg`·`image/png`·`image/webp`, 크기는 10MB까지이며 그 밖은
+`400 COMPANY_INVALID_INPUT`이다. 운영자 업로드는 공개 경로라 `photoUrl`을 주고, `WriteCompanyRequest.photoUrl`로 확정한다.
+`photoUrl`이 지금 사진이면 그대로, 이 운영자가 올린 사진이면 바꾸고, 비우면 지운다. 다른 주소나 다른 운영자의 업로드는 400이다.
+수정 요청 업로드는 비공개 경로라 `uploadKey`만 주고, 요청의 `photoUploadKey`로 확정한다. 확정할 때 서버가 저장소의 형식·크기와
+파일 앞부분(JPEG·PNG·WebP 서명)이 맞는지 확인하고, 다르면 400이다. 하루가 지나도록 확정하지 않은 업로드는 정리 작업이 지운다.
 `representativeName`은 `representativeNamePublic`이 true일 때만, `address`는 `addressPublic`이 true일 때만 담고 아니면 null이다.
 `sourceNote`는 공개 응답에 담지 않는다.
 `location`은 주소가 있으면 도로명주소의 앞 두 단어(시·도와 시·군·구), 없으면 `region`이다. 지역은 공개 응답에 따로 담지 않는다.
@@ -404,10 +415,16 @@ KOPIS 검색(`kopis-companies`)은 운영자가 공연사 정보를 쓸 때 처�
 `404 COMPANY_NOT_FOUND`다. `company`는 요청한 정보 전체이며 `WriteCompanyRequest`와 같은 규칙으로 검사하고 `sourceNote`는 무시한다.
 `changedFields`는 요청자가 바꾼 항목(`NAME`, `REPRESENTATIVE_NAME`, `LINKS`, `FOUNDED_ON`, `ADDRESS`, `REGION`, `PHONE`, `DESCRIPTION`,
 `HISTORY`)으로 하나 이상이어야 한다. 대표자 이름은 공개 동의, 주소는 상세 주소 공개까지 함께 묶는다. `reason`은 필수(1000자),
-`contact`는 선택(100자)이다. 저장 뒤 공고 알림 Slack 채널로 공연사 이름·사유 앞 200자·운영자 화면 주소를 알리며 연락처는 보내지 않는다.
-운영자 목록은 처리하지 않은 요청을 최근 순으로 100건까지 `id`, 지금 정보 `company`(`AdminCompanyResult`), 요청 정보 `proposal`,
+`contact`는 선택(100자)이다. `changedFields`에 `PHOTO`가 있으면 `photoUploadKey`의 사진으로 바꿔 달라는 뜻이고, 키가 없으면
+사진을 지워 달라는 뜻이다. 저장 뒤 공고 알림 Slack 채널로 공연사 이름·사유 앞 200자·운영자 화면 주소를 알리며 연락처는 보내지 않는다.
+운영자 목록은 처리하지 않은 요청을 최근 순으로 100건까지 `id`, 지금 정보 `company`(`AdminCompanyResult`), 요청 정보 `proposal`(사진은
+`photoAttached`로만 알리고 `GET .../{requestId}/photo`로 본다),
 `changedFields`, `reason`, `contact`, `createdAt`으로 준다. 운영자 화면은 바꾼 항목만 요청 값으로 덮어쓴 정보를 다듬어 `apply`로 보내며,
-서버는 받은 정보로 공연사를 통째로 고치고 공개 상태는 그대로 둔다. 적용·반려하면 연락처를 지우고, 이미 처리한 요청은
+서버는 받은 정보로 공연사를 통째로 고치고 공개 상태는 그대로 둔다.
+`useRequestedPhoto`면 요청 사진을 공개 경로로 복사해 대표 사진으로 쓰고, 아니면 `company.photoUrl`을 운영자 편집과 같이 쓴다.
+적용·반려하면 비공개 요청 사진을 커밋 뒤 지운다.
+정보는 통째로 저장하므로 `companyUpdatedAt`에 운영자가 본 공연사 정보의 `updatedAt`을 보낸다. 그 사이 다른 요청 적용이나 편집으로
+공연사가 바뀌었으면 오래된 정보로 덮어쓰지 않고 `409 COMPANY_CHANGED`로 거절하며, 요청은 처리하지 않은 채 남는다. 적용·반려하면 연락처를 지우고, 이미 처리한 요청은
 `409 COMPANY_EDIT_REQUEST_RESOLVED`, 없는 요청은 `404 COMPANY_EDIT_REQUEST_NOT_FOUND`다. 감사 로그는 `COMPANY_EDITED`와
 `COMPANY_EDIT_REQUEST_APPLIED`·`COMPANY_EDIT_REQUEST_REJECTED`로 남기며 요청 내용과 연락처는 담지 않는다.
 

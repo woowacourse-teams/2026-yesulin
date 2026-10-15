@@ -436,6 +436,8 @@ export type AdminCompany = {
   readonly phone: string | null;
   readonly description: string | null;
   readonly history: string | null;
+  /** 대표 사진 공개 주소. 없으면 null이다. */
+  readonly photoUrl: string | null;
   /** 정보를 확인한 출처. 운영자만 본다. */
   readonly sourceNote: string | null;
   readonly status: AdminCompanyStatus;
@@ -486,8 +488,11 @@ export type AdminCompanyEditRequest = {
   readonly id: number;
   /** 지금 공연사 정보. */
   readonly company: AdminCompany;
-  /** 요청한 공연사 정보. 비워 달라는 항목은 null이다. */
-  readonly proposal: Omit<AdminCompany, "id" | "sourceNote" | "status" | "createdAt" | "updatedAt">;
+  /** 요청한 공연사 정보. 비워 달라는 항목은 null이다. 사진은 {@link adminEditRequestPhotoUrl}로 본다. */
+  readonly proposal: Omit<AdminCompany, "id" | "sourceNote" | "status" | "createdAt" | "updatedAt" | "photoUrl"> & {
+    /** 사진을 함께 보냈는지. */
+    readonly photoAttached: boolean;
+  };
   /** 요청자가 바꾼 항목. 적용할 때 이 항목만 요청 값으로 덮어쓴다. */
   readonly changedFields: readonly CompanyField[];
   readonly reason: string;
@@ -515,3 +520,20 @@ export type KopisCompanySearchResult = {
   readonly query: string;
   readonly companies: readonly KopisCompany[];
 };
+
+/** 브라우저가 공연사 사진을 저장소로 바로 올릴 주소. 백엔드 `CompanyPhotoUploadResult`와 같다. */
+export type CompanyPhotoUpload = {
+  readonly url: string;
+  readonly method: string;
+  readonly headers: Readonly<Record<string, string>>;
+  readonly expiresAt: string;
+  /** 운영자 업로드의 공개 주소. 공연사를 저장할 때 이 주소로 확정한다. */
+  readonly photoUrl: string | null;
+  /** 수정 요청 업로드의 키. 요청을 보낼 때 이 키로 확정한다. */
+  readonly uploadKey: string | null;
+};
+
+/** 수정 요청과 함께 온 사진. 적용 전이라 공개 주소가 없어 운영자 API로 본다. */
+export function adminEditRequestPhotoUrl(requestId: number): string {
+  return `/api/v1/admin/company-edit-requests/${requestId}/photo`;
+}

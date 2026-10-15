@@ -41,7 +41,7 @@ public class AdminCompanyController {
             @Valid @RequestBody WriteCompanyRequest request
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(companyService.create(principal.memberId(), request.toProfile()));
+                .body(companyService.create(principal.memberId(), request.toProfile(), request.photoUrl()));
     }
 
     @GetMapping("/{companyId}")
@@ -58,7 +58,9 @@ public class AdminCompanyController {
             @PathVariable long companyId,
             @Valid @RequestBody WriteCompanyRequest request
     ) {
-        return ResponseEntity.ok(companyService.update(principal.memberId(), companyId, request.toProfile()));
+        return ResponseEntity.ok(
+                companyService.update(principal.memberId(), companyId, request.toProfile(), request.photoUrl())
+        );
     }
 
     @PatchMapping("/{companyId}/status")

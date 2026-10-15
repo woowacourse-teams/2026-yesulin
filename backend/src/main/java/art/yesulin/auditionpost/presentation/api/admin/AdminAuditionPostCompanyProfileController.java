@@ -45,7 +45,8 @@ public class AdminAuditionPostCompanyProfileController {
             @Valid @RequestBody SaveRequest request
     ) {
         return ResponseEntity.ok(linkService.savePostCompany(
-                principal.memberId(), postId, request.company().toProfile(), request.publish()
+                principal.memberId(), postId, request.company().toProfile(), request.company().photoUrl(),
+                request.publish()
         ));
     }
 

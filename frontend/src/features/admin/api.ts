@@ -23,6 +23,7 @@ import type {
   AdminCompanyStatus,
   AdminCompanyWrite,
   AdminPostCompanyProfile,
+  CompanyPhotoUpload,
   KopisCompanySearchResult,
   AdminDailyActivity,
   AdminFileDeletionResult,
@@ -426,9 +427,48 @@ export async function fetchCompanyEditRequests(): Promise<readonly AdminCompanyE
   return response.requests;
 }
 
-/** 요청을 보고 다듬은 공연사 정보 전체로 고친다. 공개 상태는 그대로다. */
-export function applyCompanyEditRequest(requestId: number, write: AdminCompanyWrite): Promise<AdminCompany> {
-  return sendCompany(`/company-edit-requests/${requestId}/apply`, "POST", write, "수정 요청을 적용하지 못했습니다.");
+/**
+ * 요청을 보고 다듬은 공연사 정보 전체로 고친다. 공개 상태는 그대로다.
+ *
+ * @param useRequestedPhoto 요청과 함께 온 사진을 대표 사진으로 쓸지
+ * @param companyUpdatedAt 화면에 보인 공연사 정보의 갱신 시각. 그 사이 바뀌었으면 서버가 409로 거절한다.
+ */
+export function applyCompanyEditRequest(
+  requestId: number,
+  write: AdminCompanyWrite,
+  useRequestedPhoto: boolean,
+  companyUpdatedAt: string,
+): Promise<AdminCompany> {
+  return sendCompany(
+    `/company-edit-requests/${requestId}/apply`, "POST", { company: write, useRequestedPhoto, companyUpdatedAt },
+    "수정 요청을 적용하지 못했습니다.",
+  );
+}
+
+/** 줄인 공연사 사진을 저장소로 바로 올리고 공개 주소를 준다. 공연사를 저장할 때 이 주소로 확정한다. */
+export async function uploadCompanyPhoto(photo: Blob): Promise<string> {
+  let photoUrl = "";
+  await safeUpload({
+    flow: "COMPANY_PHOTO",
+    source: photo,
+    originalFilename: "company-photo.jpg",
+    requestUpload: async (metadata, { incidentId }) => {
+      const response = await fetch(`${API_BASE_PATH}/company-photos/uploads`, {
+        method: "POST",
+        credentials: "include",
+        headers: await withCsrfHeaders({ "Content-Type": "application/json", "X-Request-Id": incidentId }),
+        body: JSON.stringify({ contentType: metadata.contentType, size: metadata.size }),
+      });
+      if (!response.ok) throw await readAdminError(response, "사진을 올릴 준비를 하지 못했습니다.");
+      const upload = await response.json() as CompanyPhotoUpload;
+      photoUrl = upload.photoUrl ?? "";
+      // 공연사 사진은 파일 ID 대신 공개 주소로 확정하므로 fileId는 쓰지 않는다.
+      return { fileId: 0, uploadUrl: upload.url, method: upload.method, headers: upload.headers };
+    },
+    completeUpload: async () => {},
+    reportDiagnostic: reportUploadDiagnostic,
+  });
+  return photoUrl;
 }
 
 export async function rejectCompanyEditRequest(requestId: number): Promise<void> {

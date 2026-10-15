@@ -173,15 +173,21 @@ public class AuditionPostCompanyLinkService {
      * 같은 정보가 연결된다. {@code publish}면 저장하면서 공개하되, 운영자가 내린 공연사는 내린 채로 둔다. 다시 공개는 공연사
      * 관리에서 한다.
      */
-    public AdminCompanyResult savePostCompany(long adminId, long postId, CompanyProfile profile, boolean publish) {
+    public AdminCompanyResult savePostCompany(
+            long adminId,
+            long postId,
+            CompanyProfile profile,
+            String photoUrl,
+            boolean publish
+    ) {
         try {
             return Objects.requireNonNull(transactions.execute(status -> {
                 AuditionPost post = postRepository.findByIdForUpdate(postId)
                         .orElseThrow(() -> new BusinessException(NOT_FOUND, "공고를 찾을 수 없습니다."));
                 Long existing = post.getCompanyId() != null ? post.getCompanyId() : authorCompanyOf(post).orElse(null);
                 AdminCompanyResult saved = existing == null
-                        ? companies.create(adminId, profile)
-                        : companies.update(adminId, existing, profile);
+                        ? companies.create(adminId, profile, photoUrl)
+                        : companies.update(adminId, existing, profile, photoUrl);
                 long companyId = saved.id();
                 if (publish && saved.status() != CompanyStatus.HIDDEN) {
                     companies.changeStatus(adminId, companyId, CompanyStatus.PUBLISHED);

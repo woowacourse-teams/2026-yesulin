@@ -22,6 +22,7 @@ const company: CompanyProfileValues = {
   phone: null,
   description: null,
   history: null,
+  photoUrl: null,
   sourceNote: "홈페이지",
 };
 

@@ -7,9 +7,12 @@ import art.yesulin.auth.domain.member.MemberType;
 import art.yesulin.company.application.AdminCompanyResult;
 import art.yesulin.company.application.editrequest.AdminCompanyEditRequestResult;
 import art.yesulin.company.application.editrequest.CompanyEditRequestService;
+import art.yesulin.file.application.storage.StoredObjectContent;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.CacheControl;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -39,9 +42,26 @@ public class AdminCompanyEditRequestController {
     public ResponseEntity<AdminCompanyResult> apply(
             @LoginMember(roles = MemberType.ADMIN) MemberPrincipal principal,
             @PathVariable long requestId,
-            @Valid @RequestBody WriteCompanyRequest request
+            @Valid @RequestBody ApplyCompanyEditRequest request
     ) {
-        return ResponseEntity.ok(editRequestService.apply(principal.memberId(), requestId, request.toProfile()));
+        return ResponseEntity.ok(editRequestService.apply(
+                principal.memberId(), requestId, request.company().toProfile(), request.company().photoUrl(),
+                request.useRequestedPhoto(), request.companyUpdatedAt()
+        ));
+    }
+
+    /** 요청과 함께 온 사진. 적용하기 전이라 공개 주소가 없으므로 운영자에게만 내용을 직접 보낸다. */
+    @GetMapping("/{requestId}/photo")
+    public ResponseEntity<byte[]> photo(
+            @LoginMember(roles = MemberType.ADMIN) MemberPrincipal principal,
+            @PathVariable long requestId
+    ) {
+        StoredObjectContent photo = editRequestService.findPhoto(requestId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(photo.contentType()))
+                .cacheControl(CacheControl.noStore())
+                .header("X-Content-Type-Options", "nosniff")
+                .body(photo.bytes());
     }
 
     @PostMapping("/{requestId}/reject")

@@ -1,6 +1,7 @@
 package art.yesulin.company.presentation.api;
 
 import art.yesulin.company.application.editrequest.CompanyEditRequestService;
+import art.yesulin.company.application.photo.CompanyPhotoUploadResult;
 import art.yesulin.company.domain.editrequest.CompanyEditRequest;
 import art.yesulin.company.domain.editrequest.CompanyField;
 import art.yesulin.company.presentation.api.admin.WriteCompanyRequest;
@@ -35,9 +36,20 @@ public class PublicCompanyEditRequestController {
     ) {
         long id = editRequestService.request(
                 companyId, request.company().toProfile(), Set.copyOf(request.changedFields()), request.reason(),
-                request.contact()
+                request.contact(), request.photoUploadKey()
         );
         return ResponseEntity.status(HttpStatus.CREATED).body(new CreatedResponse(id));
+    }
+
+    /** 요청에 넣을 사진을 브라우저가 저장소로 바로 올릴 주소를 준다. 운영자가 적용하기 전까지 비공개로 둔다. */
+    @PostMapping("/photo-uploads")
+    public ResponseEntity<CompanyPhotoUploadResult> preparePhotoUpload(
+            @PathVariable long companyId,
+            @Valid @RequestBody PrepareCompanyPhotoUploadRequest request
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                editRequestService.preparePhotoUpload(companyId, request.contentType(), request.size())
+        );
     }
 
     /**
@@ -45,12 +57,14 @@ public class PublicCompanyEditRequestController {
      *
      * @param changedFields 요청자가 바꾼 항목. 운영자는 이 항목만 요청 값으로 덮어쓴다.
      * @param contact 확인 연락을 받을 이메일이나 전화번호. 선택이다.
+     * @param photoUploadKey 사진을 바꿔 달라면서 함께 올린 사진의 업로드 키. 사진을 바꿨는데 없으면 사진을 지워 달라는 뜻이다.
      */
     public record CreateRequest(
             @Valid @NotNull WriteCompanyRequest company,
             @NotEmpty List<@NotNull CompanyField> changedFields,
             @NotBlank @Size(max = CompanyEditRequest.MAX_REASON_LENGTH) String reason,
-            @Size(max = CompanyEditRequest.MAX_CONTACT_LENGTH) String contact
+            @Size(max = CompanyEditRequest.MAX_CONTACT_LENGTH) String contact,
+            @Size(max = 500) String photoUploadKey
     ) {
     }
 

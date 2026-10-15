@@ -18,6 +18,7 @@ import art.yesulin.global.audit.AdminAuditLog;
 import art.yesulin.global.audit.AdminAuditLogRepository;
 import art.yesulin.global.exception.BusinessException;
 import art.yesulin.support.ObjectStorageTestConfiguration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
@@ -83,7 +84,7 @@ class CompanyEditRequestServiceTest {
         AdminCompanyResult updated = editRequestService.apply(ADMIN_ID, requestId, new CompanyProfile(
                 "극단 예술in", null, false, List.of(), null, null, false, "서울", null, null, "2015 창단",
                 "수정 요청 확인"
-        ));
+        ), null, false, seen(companyId));
 
         assertEquals("2015 창단", updated.history());
         assertEquals("수정 요청 확인", updated.sourceNote());
@@ -113,6 +114,27 @@ class CompanyEditRequestServiceTest {
         assertEquals(CompanyErrorCode.EDIT_REQUEST_RESOLVED, exception.getErrorCode());
     }
 
+    @Test
+    void refusesToApplyOverChangesMadeAfterAdminOpenedTheRequest() {
+        long companyId = publishedCompany();
+        long first = request(companyId);
+        long second = request(companyId);
+        Instant seenBoth = seen(companyId);
+
+        editRequestService.apply(ADMIN_ID, first, CompanyProfile.named("새 이름"), null, false, seenBoth);
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> editRequestService.apply(
+                ADMIN_ID, second, CompanyProfile.named("오래된 이름"), null, false, seenBoth
+        ));
+        assertEquals(CompanyErrorCode.CHANGED, exception.getErrorCode());
+        assertEquals("새 이름", companyService.findForAdmin(companyId).name());
+        assertEquals(CompanyEditRequestStatus.PENDING, repository.findById(second).orElseThrow().getStatus());
+    }
+
+    private Instant seen(long companyId) {
+        return companyService.findForAdmin(companyId).updatedAt();
+    }
+
     private long publishedCompany() {
         long companyId = companyService.create(ADMIN_ID, CompanyProfile.named("극단 예술in")).id();
         companyService.changeStatus(ADMIN_ID, companyId, CompanyStatus.PUBLISHED);
@@ -122,6 +144,6 @@ class CompanyEditRequestServiceTest {
     private long request(long companyId) {
         return editRequestService.request(companyId, new CompanyProfile(
                 "극단 예술in", null, false, List.of(), null, null, false, null, null, null, "2015 창단", "무시"
-        ), Set.of(CompanyField.HISTORY), "연혁을 넣어 주세요.", "help@yesulin.art");
+        ), Set.of(CompanyField.HISTORY), "연혁을 넣어 주세요.", "help@yesulin.art", null);
     }
 }
