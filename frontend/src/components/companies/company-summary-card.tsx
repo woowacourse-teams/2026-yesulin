@@ -19,7 +19,7 @@ export function CompanySummaryCard({ company }: { readonly company: CompanySumma
           href={companyRoutes.detail(company.id)}
           className="-mr-2 inline-flex min-h-11 items-center rounded-control px-2 text-sm font-semibold text-muted-strong hover:bg-brand-soft hover:text-brand"
         >
-          공연사 정보 전체보기 <span aria-hidden="true" className="ml-1">→</span>
+          공연사 정보 전체보기
         </Link>
       </div>
       <div className="mt-2 flex min-w-0 items-center gap-3">
@@ -50,7 +50,7 @@ export function CompanyFacts({ company, className = "" }: {
               rel="noopener noreferrer"
               className="break-all text-brand underline-offset-2 hover:underline"
             >
-              {displayLink(link)}<span className="sr-only"> 새 창</span> <span aria-hidden="true">↗</span>
+              {displayLink(link)}<span className="sr-only"> 새 창</span>
             </a>
           ))}
         </span>
@@ -90,7 +90,7 @@ export function CompanyPendingCard({ authorName }: { readonly authorName: string
         rel="noreferrer"
         className="-ml-2 mt-1 inline-flex min-h-11 items-center rounded-control px-2 text-sm font-semibold text-muted-strong hover:bg-brand-soft hover:text-brand"
       >
-        이 공연사라면 정보 등록 요청하기<span className="sr-only"> 새 창</span> <span aria-hidden="true" className="ml-1">↗</span>
+        이 공연사라면 정보 등록 요청하기<span className="sr-only"> 새 창</span>
       </a>
     </section>
   );

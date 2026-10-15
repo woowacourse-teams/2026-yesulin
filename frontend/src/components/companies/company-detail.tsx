@@ -148,7 +148,7 @@ function MissingCompany() {
 
 function CompanySkeleton() {
   return (
-    <div aria-label="공연사 정보 불러오는 중" className="mt-3 animate-pulse space-y-4 rounded-card border border-border bg-card px-5 py-8 sm:px-8">
+    <div role="status" aria-label="공연사 정보 불러오는 중" className="mt-3 animate-pulse space-y-4 rounded-card border border-border bg-card px-5 py-8 sm:px-8">
       <div className="h-4 w-1/6 rounded bg-border-soft" />
       <div className="h-8 w-2/3 rounded bg-border-soft" />
       <div className="h-4 w-1/2 rounded bg-border-soft" />
