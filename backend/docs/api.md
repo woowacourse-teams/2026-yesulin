@@ -220,7 +220,7 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 1차 서류 심사 한 차수를 제공한다. 배역별 심사 종료는 OTR 지원 마감 다음 날부터 가능하며,
 그 전에는 `409 SCREENING_ROUND_NOT_READY`를 반환한다. 종료 후 심사 결과 수정은 거부한다.
 
-## 가져온 공고(메인 목록) — 21개
+## 가져온 공고(메인 목록) — 22개
 
 운영자가 공고 알림을 받은 OTR 공고를 우리 공고로 옮기거나, 운영자나 기획사가 원문 없이 직접 쓴 `AuditionPost`다.
 공개 상세에만 원문 출처·주소를 담는다. 공개 API는 로그인 없이 호출하고, 운영 API는 `ADMIN`만, 기획사 API는 `PRODUCER + ACTIVE`만 호출한다.
@@ -240,6 +240,7 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 | PUT | `/api/v1/admin/audition-posts/{postId}` | Admin | `WriteAuditionPostRequest(category, title, pay, deadlineText, authorName, bodyHtml?, tags, attachmentUrls)` | `200 AdminAuditionPostResult` |
 | PATCH | `/api/v1/admin/audition-posts/{postId}/status` | Admin | `ChangeAuditionPostStatusRequest(status: PUBLISHED/HIDDEN)` | `200 AdminAuditionPostResult` |
 | PATCH | `/api/v1/admin/audition-posts/{postId}/owner` | Admin | `ChangeAuditionPostOwnerRequest(ownerId?)` | `200 AdminAuditionPostResult` |
+| PATCH | `/api/v1/admin/audition-posts/{postId}/company` | Admin | `ChangeAuditionPostCompanyRequest(companyId?)` | `200 AdminAuditionPostResult` |
 | GET | `/api/v1/admin/audition-post-owners` | Admin | 없음 | `200 AuditionPostOwnerOverview(owners, unlinkedAuthors, missingAuthorIdCount)` |
 | POST | `/api/v1/admin/audition-post-author-links` | Admin | `LinkAuditionPostAuthorRequest(source, sourceAuthorId, ownerId)` | `201 AuditionPostAuthorLinkResult` |
 | DELETE | `/api/v1/admin/audition-post-author-links/{linkId}` | Admin | 없음 | `204` |
@@ -261,7 +262,7 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 `attachmentCount`, `viewCount`를 담는다. 공개 응답의 `authorName`은 기획사에 연결된 공고면 그 기획사의 지금 이름이고,
 아니면 저장된 작성자(원문 닉네임이나 운영자가 쓴 이름)다. 운영 목록과 수정 상세의 `authorName`은 저장된 작성자다. 조회수는 상세 화면이 열릴 때 브라우저가 탭 세션당 한 번 보내는 POST로만 늘고,
 서버 렌더링·메타데이터 조회는 세지 않는다. 다시 가져와도 유지한다. 상세는 여기에 `bodyHtml`, `tags`, `attachments(name, contentType, size, url)`, 원문 출처 `source`(예: `OTR`)·`sourceUrl`,
-`updatedAt`을 더한다. 운영자나 기획사가 직접 쓴 공고는 `source`가 `YESULIN`이고 `sourceUrl`이 null이다.
+`updatedAt`, 공연사 요약 `company`(아래 공연사 절, 연결이 없거나 공개 전이면 null)를 더한다. 운영자나 기획사가 직접 쓴 공고는 `source`가 `YESULIN`이고 `sourceUrl`이 null이다.
 공개 상태는 `PENDING`(검토 전), `PUBLISHED`(공개 중), `HIDDEN`(내림)이다. 공개 중이 아닌 공고 상세는 본문 없이
 `302 Location: {sourceUrl}`로 원문 공고에 보낸다. 원문 없이 쓴 공고는 보낼 곳이 없어 `404`다.
 `Cache-Control: no-store`, `Referrer-Policy: no-referrer`를 붙인다. 프론트 서버 렌더링은 이동을 따라가지 않고 `Location`만 읽어
@@ -284,8 +285,8 @@ page·size 범위 오류와 지원하지 않는 category는 `400 INVALID_REQUEST
 운영 목록은 최근 가져온 200건을 상태와 관계없이 출처·원문 번호·원문 주소, 처음 만든 경로 `createdVia`
 (`AUTO_IMPORT`, `ADMIN_IMPORT`, `ADMIN_WRITE`, `PRODUCER_WRITE`. 다시 가져오거나 고쳐도 바뀌지 않음),
 조회수 `viewCount`와 원문 이동 수 `redirectCount`, 마지막으로 직접 고친 시각 `editedAt`(없으면 null), 연결된 기획사
-`ownerId`·`ownerName`(없으면 null, 기획사 정보가 없어졌으면 이름만 null)과 함께 반환한다.
-가져오기, 공개 상태 변경, 내용 수정, 기획사 연결은 `admin_audit_logs`에 남긴다. 기획사의 작성·수정은 감사 기록 대신 Slack으로 알린다.
+`ownerId`·`ownerName`(없으면 null, 기획사 정보가 없어졌으면 이름만 null), 연결된 공연사 `companyId`(없으면 null)과 함께 반환한다.
+가져오기, 공개 상태 변경, 내용 수정, 기획사 연결, 공연사 연결은 `admin_audit_logs`에 남긴다. 기획사의 작성·수정은 감사 기록 대신 Slack으로 알린다.
 
 수정 상세(`AuditionPostEditResult`)는 출처·원문 번호·원문 주소·공개 상태와 `category`, `title`, `pay`, `deadlineText`, `authorName`, `tags`,
 사진 자리를 공개 주소로 채운 `bodyHtml`, `attachments(name, contentType, size, url)`, `editedAt`, `updatedAt`, 연결된 기획사
@@ -332,12 +333,112 @@ OTR 작성자 자동 연결: 가져오기는 OTR 상세의 작성자 링크(`get
 기획사 연결(`PATCH .../owner`)은 `ownerId`로 기획사 회원을 연결하고, null이면 연결을 끊는다. 기획사 정보가 없는 회원이면
 `400 AUDITION_POST_INVALID_INPUT`이다. 연결된 기획사는 기획사 API로 이 공고를 고칠 수 있다. 원문에서 가져온 공고도 연결할 수 있다.
 
+공연사 연결(`PATCH .../company`)은 `companyId`로 공연사를 연결하고, null이면 연결을 끊는다. 없는 공연사면 `400 AUDITION_POST_INVALID_INPUT`이다.
+검토 전인 공연사도 연결할 수 있고 같은 공연사로 다시 보내면 기록하지 않는다. `AUDITION_POST_COMPANY_CHANGED`로 남긴다.
+
 기획사 API는 자기가 올렸거나 운영자가 연결한 공고만 다룬다. 다른 기획사의 공고는 없는 공고처럼 `404 AUDITION_POST_NOT_FOUND`다.
 목록 `ProducerAuditionPostResult`는 `id`, `category`, `title`, `deadlineText`, `closed`, `status`, `viewCount`, `createdAt`,
 `updatedAt`을 최근 순 200건까지 담고, 검토 전·내린 공고도 포함한다. 올리기는 바로 `PUBLISHED`로 만들고 작성자를 기획사 이름으로
 정한다. 요청에 작성자는 없다. 고치기는 작성자와 공개 상태를 바꾸지 않는다. 본문·첨부 규칙과 업로드는 운영자와 같고, 저장할 때
 그 기획사가 올린 업로드만 확정한다. 올리기와 바뀐 항목이 있는 고치기는 커밋 뒤 공고 알림 Slack 채널로 알린다
 (`YESULIN_SLACK_WEBHOOK_URL`, 없으면 로그만 남긴다). 알림 실패는 저장 결과에 영향을 주지 않는다.
+
+## 공연사 — 22개
+
+공고를 올린 극단·제작사·기획사의 공개 정보(`Company`)다. 기획사 계정과 따로 있다. 공개 API는 로그인 없이, 운영 API는 `ADMIN`만 호출한다.
+`companyId`는 숫자 ID다.
+
+| Method | URL | 인증 | Request | Response |
+| --- | --- | --- | --- | --- |
+| GET | `/api/v1/public/companies/{companyId}` | 공개 | 없음 | `200 PublicCompanyResult` |
+| GET | `/api/v1/public/companies/{companyId}/audition-posts` | 공개 | 없음 | `200 PublicCompanyAuditionPostsResponse(posts)` |
+| POST | `/api/v1/public/companies/{companyId}/edit-requests/photo-uploads` | 공개 | `PrepareCompanyPhotoUploadRequest(contentType, size)` | `201 CompanyPhotoUploadResult` |
+| POST | `/api/v1/admin/company-photos/uploads` | Admin | `PrepareCompanyPhotoUploadRequest(contentType, size)` | `201 CompanyPhotoUploadResult` |
+| GET | `/api/v1/admin/company-edit-requests/{requestId}/photo` | Admin | 없음 | `200` 사진 바이트(`Cache-Control: no-store`) |
+| POST | `/api/v1/public/companies/{companyId}/edit-requests` | 공개 | `CreateRequest(company: WriteCompanyRequest, changedFields, reason, contact?)` | `201 CreatedResponse(id)` |
+| GET | `/api/v1/admin/kopis-companies?name=` | Admin | 없음 | `200 KopisCompanySearchResult(available, query, companies)` |
+| GET | `/api/v1/admin/company-edit-requests` | Admin | 없음 | `200 PendingResponse(requests: AdminCompanyEditRequestResult[])` |
+| POST | `/api/v1/admin/company-edit-requests/{requestId}/apply` | Admin | `ApplyCompanyEditRequest(company: WriteCompanyRequest, useRequestedPhoto, companyUpdatedAt)` | `200 AdminCompanyResult` |
+| POST | `/api/v1/admin/company-edit-requests/{requestId}/reject` | Admin | 없음 | `204` |
+| GET | `/api/v1/admin/companies` | Admin | 없음 | `200 AdminCompaniesResponse(companies)` |
+| POST | `/api/v1/admin/companies` | Admin | `WriteCompanyRequest` | `201 AdminCompanyResult` |
+| GET | `/api/v1/admin/companies/{companyId}` | Admin | 없음 | `200 AdminCompanyResult` |
+| PUT | `/api/v1/admin/companies/{companyId}` | Admin | `WriteCompanyRequest` | `200 AdminCompanyResult` |
+| PATCH | `/api/v1/admin/companies/{companyId}/status` | Admin | `ChangeCompanyStatusRequest(status: PUBLISHED/HIDDEN)` | `200 AdminCompanyResult` |
+| GET | `/api/v1/admin/audition-posts/{postId}/company-profile` | Admin | 없음 | `200 AuditionPostCompanyProfile(company?, sharedByAuthor, suggestedName, sourceAuthorId?)` |
+| PUT | `/api/v1/admin/audition-posts/{postId}/company-profile` | Admin | `SaveRequest(company: WriteCompanyRequest, publish)` | `200 AdminCompanyResult` |
+| GET | `/api/v1/admin/audition-post-company-links` | Admin | 없음 | `200 AuditionPostCompanyAuthorOverview(authors, missingAuthorIdCount)` |
+| POST | `/api/v1/admin/audition-post-company-links` | Admin | `LinkRequest(source, sourceAuthorId, companyId)` | `200 AuditionPostCompanyLinkResult` |
+| POST | `/api/v1/admin/audition-post-company-links/companies` | Admin | `AuthorRequest(source, sourceAuthorId)` | `201 AuditionPostCompanyLinkResult` |
+| POST | `/api/v1/admin/audition-post-company-links/companies/bulk` | Admin | 없음 | `200 BulkResult(createdCount)` |
+| DELETE | `/api/v1/admin/audition-post-company-links/{linkId}` | Admin | 없음 | `204` |
+
+`WriteCompanyRequest`는 `name`(필수, 100자), `representativeName`(50자), `representativeNamePublic`(공개 동의, 기본 false), `links`(http·https 주소 최대 3개, 각 500자, 빈 칸은 빼고 같은 주소는 한 번만), `foundedOn`(`YYYY-MM-DD`,
+1900-01-01부터 한국 날짜로 오늘까지), `address(roadAddress, detailAddress, zonecode, latitude, longitude)`, `addressPublic`(상세 주소·지도 공개, 기본 false),
+`region`(50자), `phone`(숫자로 시작하고 숫자·공백·괄호·`+`·`-` 7~30자), `description`(2000자), `history`(연혁, 2000자), `sourceNote`(운영자만 보는 정보 출처, 1000자)이다. 정보를 통째로 바꾸며, 빈 문자열이나 null인 항목은 지운다.
+`address`가 null이거나 도로명주소가 비면 주소를 지운다. 위도·경도는 함께 보내거나 함께 비운다. 검증 오류는 `400 COMPANY_INVALID_INPUT`이다.
+
+새 공연사는 `PENDING`이다. 상태 변경은 `PUBLISHED`와 `HIDDEN`만 받으며, 공개하거나 내린 공연사를 `PENDING`으로 되돌리면
+`400 COMPANY_INVALID_INPUT`이다. `AdminCompanyResult`는 저장된 모든 항목과 `status`, `createdAt`, `updatedAt`을 담고 비운 항목은 null이다.
+운영 목록은 최근 만든 200곳까지 준다. 생성·수정·상태 변경은 `admin_audit_logs`에 `COMPANY_CREATED`·`COMPANY_EDITED`·
+`COMPANY_STATUS_CHANGED`로 남기며 정보 원문은 담지 않는다.
+
+공개 API는 `PUBLISHED`인 공연사만 보여 주고, 없거나 공개 전·내린 공연사는 `404 COMPANY_NOT_FOUND`다. `PublicCompanyResult`는
+`id`, `name`, `representativeName`, `links`, `foundedOn`, `location`, `address`, `phone`, `description`, `history`, `photoUrl`, `updatedAt`이다.
+`photoUrl`은 대표 사진 공개 주소이고 없으면 null이며, 화면이 이름 첫 글자 이미지를 보인다. `CompanySummary`와 `AdminCompanyResult`에도 담는다.
+
+대표 사진은 한 장이다. 브라우저가 사진을 긴 변 1600px JPEG로 줄인 뒤 `photo-uploads`/`company-photos/uploads`로 올릴 자리를 받고,
+돌려받은 `url`·`method`·`headers`로 저장소에 바로 올린다. 형식은 `image/jpeg`·`image/png`·`image/webp`, 크기는 10MB까지이며 그 밖은
+`400 COMPANY_INVALID_INPUT`이다. 운영자 업로드는 공개 경로라 `photoUrl`을 주고, `WriteCompanyRequest.photoUrl`로 확정한다.
+`photoUrl`이 지금 사진이면 그대로, 이 운영자가 올린 사진이면 바꾸고, 비우면 지운다. 다른 주소나 다른 운영자의 업로드는 400이다.
+수정 요청 업로드는 비공개 경로라 `uploadKey`만 주고, 요청의 `photoUploadKey`로 확정한다. 확정할 때 서버가 저장소의 형식·크기와
+파일 앞부분(JPEG·PNG·WebP 서명)이 맞는지 확인하고, 다르면 400이다. 하루가 지나도록 확정하지 않은 업로드는 정리 작업이 지운다.
+`representativeName`은 `representativeNamePublic`이 true일 때만, `address`는 `addressPublic`이 true일 때만 담고 아니면 null이다.
+`sourceNote`는 공개 응답에 담지 않는다.
+`location`은 주소가 있으면 도로명주소의 앞 두 단어(시·도와 시·군·구), 없으면 `region`이다. 지역은 공개 응답에 따로 담지 않는다.
+공고 상세의 `company`(`CompanySummary`)는 `id`, `name`, `representativeName`, `links`, `foundedOn`, `location`만 담는다. 비운 항목은 null(링크는 빈 배열)이고 화면이 "비공개"로 보인다.
+공연사 공고 목록은 그 공연사에 연결된 `PUBLISHED` 공고를 마감과 관계없이 원문 작성 최신순으로 30건까지 공개 목록 항목과 같은 모양으로 준다.
+
+공고별 공연사 정보(`company-profile`)는 운영자가 공고 목록에서 공연사 정보를 바로 쓰는 API다. GET은 공고의 공연사, 없으면 같은 원문
+작성자로 묶은 공연사(`sharedByAuthor=true`)를 주고, 둘 다 없으면 `company`가 null이며 `suggestedName`(원문 작성자 이름)을 준다.
+PUT은 같은 순서로 찾은 공연사를 통째로 고치고, 없으면 `PENDING`으로 새로 만든다. 공고를 그 공연사에 연결하고, 원문 작성자 번호가
+있고 그 작성자의 묶음 규칙이 없으면 규칙을 만들어 같은 작성자의 공연사 없는 공고와 이후 가져오는 공고에도 연결한다. `publish`면
+저장하면서 `PUBLISHED`로 바꾸되 `HIDDEN`인 공연사는 내린 채로 둔다(운영자 화면은 항상 `true`로 보낸다). 없는 공고는 `404 AUDITION_POST_NOT_FOUND`다.
+
+KOPIS 검색(`kopis-companies`)은 운영자가 공연사 정보를 쓸 때 처음 값을 찾는 API다. `name`에서 "(주)"·"㈜"·"주식회사"·"(사)" 같은
+회사 형태 표시를 떼고 공연예술통합전산망 기획제작사 목록(`/openApi/restful/mnfct`, `entrpsnm`)을 최대 10건 찾는다. 뗀 이름이 2자보다
+짧으면 부르지 않고 빈 목록을 준다. `companies` 항목은 `kopisId`(mt30id), `name`, `genre`, `phone`, `homepage`(relateurl),
+`recentWorks`(최근 작품 최대 5개)이며 빈 값은 null이다. 인증키 `KOPIS_API_KEY`가 없거나 KOPIS가 응답하지 않거나 `returncode`로 오류(결과 없음 `04` 제외)를 돌려주면 오류 대신
+`available=false`와 빈 목록을 준다. KOPIS는 짧은 시간에 여러 번 부르면 막으므로 같은 이름의 결과를 12시간 기억한다. 저장은 하지 않는다.
+
+정보 수정 요청(`edit-requests`)은 공개된 공연사 화면에서 로그인 없이 누구나 보낸다. 공개 전이거나 내린 공연사는
+`404 COMPANY_NOT_FOUND`다. `company`는 요청한 정보 전체이며 `WriteCompanyRequest`와 같은 규칙으로 검사하고 `sourceNote`는 무시한다.
+`changedFields`는 요청자가 바꾼 항목(`NAME`, `REPRESENTATIVE_NAME`, `LINKS`, `FOUNDED_ON`, `ADDRESS`, `REGION`, `PHONE`, `DESCRIPTION`,
+`HISTORY`)으로 하나 이상이어야 한다. 대표자 이름은 공개 동의, 주소는 상세 주소 공개까지 함께 묶는다. `reason`은 필수(1000자),
+`contact`는 선택(100자)이다. `changedFields`에 `PHOTO`가 있으면 `photoUploadKey`의 사진으로 바꿔 달라는 뜻이고, 키가 없으면
+사진을 지워 달라는 뜻이다. 저장 뒤 공고 알림 Slack 채널로 공연사 이름·사유 앞 200자·운영자 화면 주소를 알리며 연락처는 보내지 않는다.
+운영자 목록은 처리하지 않은 요청을 최근 순으로 100건까지 `id`, 지금 정보 `company`(`AdminCompanyResult`), 요청 정보 `proposal`(사진은
+`photoAttached`로만 알리고 `GET .../{requestId}/photo`로 본다),
+`changedFields`, `reason`, `contact`, `createdAt`으로 준다. 운영자 화면은 바꾼 항목만 요청 값으로 덮어쓴 정보를 다듬어 `apply`로 보내며,
+서버는 받은 정보로 공연사를 통째로 고치고 공개 상태는 그대로 둔다.
+`useRequestedPhoto`면 요청 사진을 공개 경로로 복사해 대표 사진으로 쓰고, 아니면 `company.photoUrl`을 운영자 편집과 같이 쓴다.
+적용·반려하면 비공개 요청 사진을 커밋 뒤 지운다.
+정보는 통째로 저장하므로 `companyUpdatedAt`에 운영자가 본 공연사 정보의 `updatedAt`을 보낸다. 그 사이 다른 요청 적용이나 편집으로
+공연사가 바뀌었으면 오래된 정보로 덮어쓰지 않고 `409 COMPANY_CHANGED`로 거절하며, 요청은 처리하지 않은 채 남는다. 적용·반려하면 연락처를 지우고, 이미 처리한 요청은
+`409 COMPANY_EDIT_REQUEST_RESOLVED`, 없는 요청은 `404 COMPANY_EDIT_REQUEST_NOT_FOUND`다. 감사 로그는 `COMPANY_EDITED`와
+`COMPANY_EDIT_REQUEST_APPLIED`·`COMPANY_EDIT_REQUEST_REJECTED`로 남기며 요청 내용과 연락처는 담지 않는다.
+
+작성자별 묶기(`audition-post-company-links`)는 원문 작성자(`source`, `sourceAuthorId`=OTR 회원 번호)를 공연사로 묶는 규칙이다.
+`authors`는 원문 공고(`externalId`가 있는 공고)를 번호별로, 번호가 없으면 닉네임별로 묶어 `source`, `sourceAuthorId`(없으면 null),
+`authorName`(최근 닉네임), `postCount`, `companylessCount`, `latestCreatedAt`, `linkId`·`companyId`·`companyName`(묶지 않았으면 null)을
+묶지 않은 작성자 먼저, 공고가 많은 순서로 500명까지 담는다. 번호가 없는 작성자는 묶을 수 없고, `missingAuthorIdCount`만큼 남은 공고는
+`POST /api/v1/admin/audition-post-author-links/fills`로 번호를 먼저 읽는다(읽을 때 묶음 규칙이 있으면 공연사도 연결한다).
+POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공고를 연결한다. 이미 다른 공연사에 묶여 있으면 규칙을 옮기고 예전 공연사에
+연결됐던 그 작성자의 공고도 함께 옮긴다. `connectedPostCount`는 이번에 연결하거나 옮긴 공고 수다. `companies`는 작성자의 최근
+닉네임으로 `PENDING` 공연사를 만들고 묶으며, `bulk`는 번호가 있고 묶지 않은 모든 작성자에 같은 일을 작성자마다 따로 저장한다.
+공고가 없는 작성자, 없는 공연사, 이미 묶은 작성자에게 공연사 만들기는 `400 AUDITION_POST_INVALID_INPUT`이다. DELETE는 규칙만 지우고
+이미 연결된 공고는 그대로 둔다. 이후 가져오는 공고는 기획사 자동 연결과 함께 묶음 규칙으로 공연사가 없는 공고에 공연사를 연결한다.
+`admin_audit_logs`에 `AUDITION_POST_COMPANY_AUTHOR_LINKED`·`AUDITION_POST_COMPANY_AUTHOR_UNLINKED`로 남긴다.
 
 ## 무료 공연과 비회원 예매 — 19개
 
@@ -685,6 +786,7 @@ S3 삭제 실패 시 `DELETING` 상태가 남으며 같은 파일 ID로 재시�
 | 무료 공연 | `SHOW_NOT_FOUND`, `SHOW_SESSION_NOT_FOUND`, `SHOW_INVALID_INPUT`, `SHOW_INVALID_STATUS`, `SHOW_NOT_OPENABLE`, `SHOW_NOT_OPEN`, `SHOW_HAS_RESERVATIONS`, `SHOW_SESSION_BOOKING_CLOSED`, `SHOW_SESSION_NOT_ENOUGH_SEATS`, `SHOW_SESSION_CAPACITY_BELOW_RESERVED`, `SHOW_SESSION_HAS_RESERVATIONS` |
 | 예매 | `RESERVATION_NOT_FOUND`, `RESERVATION_INVALID_INPUT`, `RESERVATION_DUPLICATE`, `RESERVATION_NOT_CHANGEABLE` |
 | 가져온 공고 | `AUDITION_POST_NOT_FOUND`, `AUDITION_POST_INVALID_INPUT`, `AUDITION_POST_CATEGORY_NOT_SUPPORTED`, `AUDITION_POST_SOURCE_UNAVAILABLE`, `AUDITION_POST_FILE_REJECTED`, `AUDITION_POST_IMPORT_CONFLICT`, `AUDITION_POST_EDITED` |
+| 공연사 | `COMPANY_NOT_FOUND`, `COMPANY_INVALID_INPUT` |
 | 오디션 일정표 | `TIMETABLE_NOT_FOUND`, `TIMETABLE_INVALID_INPUT`, `TIMETABLE_ACTOR_NOT_FOUND`, `TIMETABLE_DUPLICATE_ACTOR`, `TIMETABLE_TOO_MANY_ACTORS`, `TIMETABLE_SLOT_UNAVAILABLE`, `TIMETABLE_SETTING_NOT_EXTENDABLE`, `TIMETABLE_ASSIGNMENT_CONFLICT`, `TIMETABLE_NOT_PUBLISHABLE`, `TIMETABLE_SELF_CHANGE_CLOSED`, `TIMETABLE_REQUEST_NOT_FOUND`, `TIMETABLE_MESSAGE_NOT_FOUND` |
 | 운영 | `MEMBER_NOT_FOUND`, `MEMBER_STATUS_CHANGE_NOT_ALLOWED`, `ADMIN_DELETION_CONFIRMATION_FAILED` |
 

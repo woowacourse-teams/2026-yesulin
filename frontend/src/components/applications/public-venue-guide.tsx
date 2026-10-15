@@ -8,10 +8,14 @@ import type { KakaoMapCoordinates } from "@/features/maps/kakao-map";
 
 const DEFAULT_VENUE_NOTE = "이곳은 공연이 열리는 장소입니다. 오디션 장소는 전형 안내를 별도로 확인해 주세요.";
 
-export function PublicVenueGuide({ venue, address, note = DEFAULT_VENUE_NOTE }: {
+export function PublicVenueGuide({ venue, address, note = DEFAULT_VENUE_NOTE, label = "공연 장소", actionLabel = "공연장" }: {
   readonly venue: string;
   readonly address: VenueAddress;
   readonly note?: string;
+  /** 장소 종류. 제목 위 문구와 지도 이름에 쓴다. */
+  readonly label?: string;
+  /** 주소 복사·길찾기 버튼 앞에 붙는 이름. */
+  readonly actionLabel?: string;
 }) {
   const mapRef = useRef<HTMLDivElement>(null);
   const [coordinates, setCoordinates] = useState<KakaoMapCoordinates | null>(() => coordinatesOf(address));
@@ -19,7 +23,7 @@ export function PublicVenueGuide({ venue, address, note = DEFAULT_VENUE_NOTE }: 
   const [mapFailed, setMapFailed] = useState(false);
   const mapKey = process.env.NEXT_PUBLIC_KAKAO_MAP_APP_KEY;
   const fullAddress = [address.roadAddress, address.detailAddress].filter(Boolean).join(" ");
-  const venueName = venue.trim() && venue.trim() !== address.roadAddress.trim() ? venue.trim() : "공연 장소";
+  const venueName = venue.trim() && venue.trim() !== address.roadAddress.trim() ? venue.trim() : label;
 
   const { roadAddress, latitude, longitude } = address;
 
@@ -43,17 +47,17 @@ export function PublicVenueGuide({ venue, address, note = DEFAULT_VENUE_NOTE }: 
 
   return <section aria-labelledby="performance-venue-title" className="rounded-card border border-border bg-card p-4 sm:p-5">
     <div className="grid gap-5 md:grid-cols-[minmax(0,1.2fr)_minmax(240px,0.8fr)] md:items-stretch">
-      <div aria-label="공연 장소 지도" className="relative h-56 overflow-hidden rounded-card border border-border bg-surface sm:h-64">
+      <div aria-label={`${label} 지도`} className="relative h-56 overflow-hidden rounded-card border border-border bg-surface sm:h-64">
         <div ref={mapRef} className="absolute inset-0" />
-        {!mapKey || mapFailed ? <div className="absolute inset-0 bg-surface"><MapFallback failed={mapFailed} /></div>
-          : !mapReady ? <div className="absolute inset-0 grid place-items-center bg-surface px-5 text-center text-sm text-muted">공연 장소 지도를 불러오고 있어요.</div> : null}
+        {!mapKey || mapFailed ? <div className="absolute inset-0 bg-surface"><MapFallback failed={mapFailed} label={label} /></div>
+          : !mapReady ? <div className="absolute inset-0 grid place-items-center bg-surface px-5 text-center text-sm text-muted">{label} 지도를 불러오고 있어요.</div> : null}
       </div>
       <div className="flex min-w-0 flex-col">
-        <p className="text-sm font-semibold text-brand">공연 장소</p>
+        <p className="text-sm font-semibold text-brand">{label}</p>
         <h3 id="performance-venue-title" className="mt-2 text-lg font-bold">{venueName}</h3>
         <p className="mt-2 break-words text-sm leading-6 text-muted-strong">{fullAddress || "상세 주소를 준비하고 있습니다."}</p>
         <p className="mt-4 text-xs leading-5 text-muted">{note}</p>
-        <VenueActionLinks label="공연장" venue={venue} address={address} coordinates={coordinates} className="mt-auto pt-5" />
+        <VenueActionLinks label={actionLabel} venue={venue} address={address} coordinates={coordinates} className="mt-auto pt-5" />
       </div>
     </div>
   </section>;
@@ -106,6 +110,6 @@ function coordinatesOf(address: VenueAddress): KakaoMapCoordinates | null {
     : null;
 }
 
-function MapFallback({ failed }: { readonly failed: boolean }) {
-  return <div className="grid h-full place-items-center px-5 text-center text-sm leading-6 text-muted">{failed ? "지도를 불러오지 못했습니다. 주소와 카카오맵 링크를 이용해 주세요." : "주소와 카카오맵 링크로 공연 장소를 확인할 수 있어요."}</div>;
+function MapFallback({ failed, label }: { readonly failed: boolean; readonly label: string }) {
+  return <div className="grid h-full place-items-center px-5 text-center text-sm leading-6 text-muted">{failed ? "지도를 불러오지 못했습니다. 주소와 카카오맵 링크를 이용해 주세요." : `주소와 카카오맵 링크로 ${label}를 확인할 수 있어요.`}</div>;
 }
