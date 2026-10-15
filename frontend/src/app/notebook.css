@@ -243,7 +243,6 @@
 .notebook-banner-page span { width:14px; height:4px; background:#ffffff99; border-radius:2px; }
 .notebook-banner-page[aria-pressed=true] span { width:26px; background:#ffe18a; }
 .notebook-banner-page:focus-visible { outline:2px solid #fff; outline-offset:-5px; }
-.notebook-banner-page:disabled { cursor:default; }
 .notebook-banner-direction {
   position:absolute; top:50%; transform:translateY(-50%); z-index:2; display:grid; place-items:center;
   width:44px; height:44px; border-radius:50%; color:#234565; background:#ffffffe6;
@@ -252,7 +251,6 @@
 .notebook-banner-direction.is-previous { left:12px; }
 .notebook-banner-direction.is-next { right:12px; }
 .notebook-banner-direction:hover { color:#174677; background:#fff; }
-.notebook-banner-direction:disabled { cursor:default; opacity:.45; }
 
 .notebook-section {
   padding-block:40px;
