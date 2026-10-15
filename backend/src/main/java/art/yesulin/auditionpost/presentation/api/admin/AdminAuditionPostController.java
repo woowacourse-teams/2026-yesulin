@@ -111,6 +111,18 @@ public class AdminAuditionPostController {
         return ResponseEntity.ok(writeService.changeOwner(principal.memberId(), postId, request.ownerId()));
     }
 
+    /** 연결을 끊으려면 {@code companyId}를 null로 보낸다. */
+    @PatchMapping("/{postId}/company")
+    public ResponseEntity<AdminAuditionPostResult> changeCompany(
+            @LoginMember(roles = MemberType.ADMIN) MemberPrincipal principal,
+            @PathVariable long postId,
+            @RequestBody ChangeAuditionPostCompanyRequest request
+    ) {
+        return ResponseEntity.ok(
+                auditionPostService.changeCompany(principal.memberId(), postId, request.companyId())
+        );
+    }
+
     @PatchMapping("/{postId}/status")
     public ResponseEntity<AdminAuditionPostResult> changeStatus(
             @LoginMember(roles = MemberType.ADMIN) MemberPrincipal principal,

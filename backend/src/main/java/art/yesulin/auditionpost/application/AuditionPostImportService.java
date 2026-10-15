@@ -14,6 +14,7 @@ import art.yesulin.auditionpost.domain.AuditionPostFileKind;
 import art.yesulin.auditionpost.domain.AuditionPostOrigin;
 import art.yesulin.auditionpost.domain.AuditionPostRepository;
 import art.yesulin.auditionpost.domain.authorlink.AuditionPostAuthorLinkRepository;
+import art.yesulin.auditionpost.domain.companylink.AuditionPostCompanyLinkRepository;
 import art.yesulin.global.audit.AdminAction;
 import art.yesulin.global.audit.AdminAuditLog;
 import art.yesulin.global.audit.AdminAuditLogRepository;
@@ -53,6 +54,7 @@ public class AuditionPostImportService implements AuditionImporter {
     private final AdminAuditLogRepository auditLogRepository;
     private final AuditionPostOwners owners;
     private final AuditionPostAuthorLinkRepository authorLinkRepository;
+    private final AuditionPostCompanyLinkRepository companyLinkRepository;
     private final TransactionTemplate transactions;
     private final Clock clock;
 
@@ -64,6 +66,7 @@ public class AuditionPostImportService implements AuditionImporter {
             AdminAuditLogRepository auditLogRepository,
             AuditionPostOwners owners,
             AuditionPostAuthorLinkRepository authorLinkRepository,
+            AuditionPostCompanyLinkRepository companyLinkRepository,
             PlatformTransactionManager transactionManager,
             Clock clock
     ) {
@@ -74,6 +77,7 @@ public class AuditionPostImportService implements AuditionImporter {
         this.auditLogRepository = auditLogRepository;
         this.owners = owners;
         this.authorLinkRepository = authorLinkRepository;
+        this.companyLinkRepository = companyLinkRepository;
         this.transactions = new TransactionTemplate(transactionManager);
         this.clock = clock;
     }
@@ -253,13 +257,22 @@ public class AuditionPostImportService implements AuditionImporter {
         }
     }
 
-    /** 원문 작성자에 자동 연결 규칙이 있으면 아직 기획사가 없는 공고를 그 기획사에 연결한다. 운영자가 정한 연결은 바꾸지 않는다. */
+    /**
+     * 원문 작성자에 자동 연결 규칙이 있으면 아직 기획사가 없는 공고를 그 기획사에, 공연사로 묶은 규칙이 있으면 아직 공연사가 없는
+     * 공고를 그 공연사에 연결한다. 운영자가 정한 연결은 바꾸지 않는다.
+     */
     private void connectByAuthorLink(AuditionPost post) {
-        if (post.getOwnerId() != null || post.getSourceAuthorId() == null) {
+        if (post.getSourceAuthorId() == null) {
             return;
         }
-        authorLinkRepository.findBySourceAndSourceAuthorId(post.getSource(), post.getSourceAuthorId())
-                .ifPresent(link -> post.changeOwner(link.getOwnerId()));
+        if (post.getOwnerId() == null) {
+            authorLinkRepository.findBySourceAndSourceAuthorId(post.getSource(), post.getSourceAuthorId())
+                    .ifPresent(link -> post.changeOwner(link.getOwnerId()));
+        }
+        if (post.getCompanyId() == null) {
+            companyLinkRepository.findBySourceAndSourceAuthorId(post.getSource(), post.getSourceAuthorId())
+                    .ifPresent(link -> post.changeCompany(link.getCompanyId()));
+        }
     }
 
     private BusinessException editedConflict() {
