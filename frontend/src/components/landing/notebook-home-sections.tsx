@@ -20,7 +20,7 @@ export function HomeShowSection({ initialShows = null }: { readonly initialShows
   }, []);
   useEffect(() => { if (initialShows === null) return load(); }, [initialShows, load]);
   return <section id="shows" className="notebook-section notebook-shows">
-    <div className="notebook-section-heading"><div><h2>무료 공연</h2><p>보고 싶은 공연을 찾고 무료로 예매해보세요.</p></div><Link href={showRoutes.list} className="notebook-text-link">전체 보기</Link></div>
+    <div className="notebook-section-heading"><div className="notebook-section-title"><h2>무료 공연</h2><p>보고 싶은 공연을 찾고 무료로 예매해보세요.</p></div><Link href={showRoutes.list} className="notebook-text-link">전체 보기</Link></div>
     {state.status === "loading" ? <div className="notebook-show-grid" aria-label="공연 목록 불러오는 중">{[0, 1, 2].map((item) => <div key={item} className="notebook-show-skeleton animate-pulse motion-reduce:animate-none" />)}</div> : null}
     {state.status === "error" ? <div role="status" className="notebook-empty"><p>공연 목록을 불러오지 못했어요.</p><button className="notebook-outline-button" onClick={() => { setState({ status: "loading" }); load(); }}>다시 시도</button></div> : null}
     {state.status === "ready" && state.shows.length === 0 ? <div className="notebook-empty"><p>지금 예매할 수 있는 공연이 없어요.</p><p>새 공연이 열리면 이곳에 안내할게요.</p></div> : null}
