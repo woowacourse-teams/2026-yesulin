@@ -6,6 +6,7 @@
 ## 현재 상태 요약 (2026-10-10 기준)
 
 - DEV 앱은 t4g.micro 한 대(`yesulin-backend-dev2`)다. 옛 t4g.small은 2026-10-10 00:06에 ASG가 종료했다.
+- PROD 앱도 2026-10-19에 t4g.micro로 바꿨다(아래 작업 로그 2026-10-19 항목). PROD DB는 t4g.small 그대로다.
 - ASG는 원래 상태로 돌렸다(일시 중지 프로세스 없음, 축소 보호 없음). 용량은 1/1/1이다.
 - 남은 일: 1주 뒤(2026-10-17쯤) Cost Explorer 확인, 2순위(야간 정지) 방식 결정, 문서 커밋·PR.
 - 예상 효과: 월 약 73.0 → **약 59.2** (DEV 앱 small 몫 약 13.8 절감, micro가 공유 RI로 0원이 되는 경우).
@@ -39,6 +40,7 @@
 | --- | --- | --- |
 | 0 | 착수 전 확인 (조회만) | 완료 (2026-10-09) |
 | 1 | DEV 앱 t4g.micro 전환 | 적용 완료 (2026-10-10). ASG 원래 상태 복귀. 1주 관찰 중 |
+| 추가 | PROD 앱 t4g.micro 전환 | 적용 완료 (2026-10-19). ASG 원래 상태 복귀 |
 | 2 | DEV 앱·DB 야간 정지 | 대기 (1순위 다음) |
 | 완료 | 옛 staging Pipeline 삭제 | 완료 (2026-10-08) |
 | 보류 | CodeBuild 캐시·ARM 전환 | 팀 결정으로 하지 않음 |
@@ -551,6 +553,32 @@ DEV 앱 서버(`yesulin-backend-dev`)에서 Session Manager로 바꿨다.
 - 계획 문서: 1순위를 실제 적용 방식(ASG 교체)과 결과로 바꾸고, 되돌리기를 ASG 방식으로 고쳤다.
   2순위는 정지 권한이 없다는 전제로 경로 A(불가)·B(운영진)·C(ASG, 앱만)를 정리하고, `shutdown` 우회 방식은 쓰지 않는다고 적었다.
   운영진 요청 범위·진행 일정·남은 결정을 현재 상태에 맞췄다.
+
+#### PROD 앱 t4g.micro 전환 (2026-10-19)
+
+팀 결정: DEV micro 부하 테스트에서 80 RPS에서 막히던 서버가 400 RPS까지 처리했고, ALB·ASG로 바로 늘릴 수 있어
+PROD 앱도 micro로 낮춘다. PROD DB는 small을 유지한다. ASG 소속이 아니라 정지 권한 없이는 유형을 바꿀 수 없고,
+micro에서 MySQL OOM 이력이 있다.
+
+| 순서 | 작업 | 결과 |
+| --- | --- | --- |
+| 1 | config `server/prod.env`의 `JAVA_TOOL_OPTIONS`를 빈 값에서 `-Xmx384m`으로(config `ec315ad`), 버전 갱신 PR `main`·`dev` 병합 | PROD 배포 성공, small에서 health UP |
+| 2 | `yesulin-backend-prod-lt` 버전 2 `v2-prod-t4g-micro-swap-20261019`: 버전 1 + t4g.micro + 사용자 데이터에 swap 512MiB·배포본 2개 | 기존 두 줄(`disable yesulin`, `enable codedeploy-agent`)은 맨 뒤에 유지 |
+| 3 | ASG 시작 템플릿 버전 1 → 2, 최대 용량 1 → 2, 옛 small 축소 보호, 원하는 용량 1 → 2 | 13:29 micro 기동, CodeDeploy 시작 후크 배포 성공(2분 46초), 대상 그룹 두 대 Healthy |
+| 4 | 보호 맞바꾸고 원하는/최대 용량 1 (팀원 실행) | 13:36:57 옛 small 종료 시작, 연결 드레이닝 뒤 종료 |
+| 5 | 새 micro 축소 보호 해제 | ASG 최소-최대 0-1, 원하는 용량 1, 보호 없음 (원래 상태) |
+
+확인
+
+- `https://yesulin.art/api/v1/health` 교체 중·후 모두 200, `UP`·DB `UP`.
+- 새 인스턴스: `Picked up JAVA_TOOL_OPTIONS: -Xmx384m`, 힙 최대 371MiB, 메모리 전체 904MiB, swap 512MiB.
+  swap 사용은 13:58~14:06 150~176MiB, 14:07 Agent 설치 때 384MiB(같은 시각 가용 메모리 257 → 469MiB). 며칠 관찰한다.
+- CloudWatch Agent 설치가 처음에 실패했다. 부팅 직후 자동 업데이트가 dpkg 잠금을 잡고 있어 `dpkg -i`가 바로 실패했다
+  (다운로드는 성공). 배포는 설계대로 계속됐다. 14:07에 서버에서 `after_install_monitoring.sh`를 다시 실행해 설치했고,
+  설치 스크립트가 잠금을 기다리도록 고친 수정은 브랜치 `fix/monitoring-agent-dpkg-lock`으로 따로 올렸다.
+- 옛 small의 로그는 종료 직전(13:40)까지 CloudWatch에 있다. 서버 디스크에만 있던 로그와 `/admin` OTR 경유 집계는 사라졌다.
+- 콘솔 로그 스트림 목록의 "마지막 이벤트 시간"은 늦게 갱신된다. 수집 여부는 실제 이벤트로 확인한다.
+- 되돌리기: 같은 ASG 교체 방식으로 시작 템플릿 버전 1(t4g.small)을 띄운 뒤 micro를 종료한다.
 
 #### 두 인스턴스 분배 확인 (2026-10-09 23:53 KST, 조회만)
 
