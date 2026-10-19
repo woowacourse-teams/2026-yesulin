@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { getAuditionPost, recordAuditionPostView } from "@/features/audition-posts/api";
 import { deadlineBadge, formatDeadline, formatFileSize, formatPostedDate, kstToday } from "@/features/audition-posts/format";
 import type { AuditionPost } from "@/features/audition-posts/types";
+import { publicViewCount, viewCountClock } from "@/features/audition-posts/view-count";
 import { CompanyPendingCard, CompanySummaryCard } from "@/components/companies/company-summary-card";
 import { DeadlineChip } from "./audition-post-badges";
 import { AuditionPostScreen, MissingAuditionPost } from "./audition-post-screen";
@@ -45,6 +46,7 @@ export function AuditionPostRoute({ postId, initialPost }: {
 
 function AuditionPostDetail({ post }: { readonly post: AuditionPost }) {
   const [today] = useState(() => kstToday());
+  const [now] = useState(() => viewCountClock());
   const [viewCount, setViewCount] = useState(post.viewCount);
 
   useEffect(() => {
@@ -70,7 +72,7 @@ function AuditionPostDetail({ post }: { readonly post: AuditionPost }) {
             <MetaRow label="페이">{post.pay || "미기재"}</MetaRow>
             <MetaRow label="마감">{formatDeadline(post)}</MetaRow>
             {postedDate ? <MetaRow label="게시일"><span className="num">{postedDate}</span></MetaRow> : null}
-            <MetaRow label="조회"><span className="num">{viewCount.toLocaleString("ko-KR")}</span></MetaRow>
+            <MetaRow label="조회"><span className="num" suppressHydrationWarning>{publicViewCount({ ...post, viewCount }, now).toLocaleString("ko-KR")}</span></MetaRow>
             {post.sourceUrl ? (
               <MetaRow label="출처">
                 <a

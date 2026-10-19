@@ -16,7 +16,8 @@ DEV·PROD 공통 배포에서 `install_monitoring.sh`가 Ubuntu ARM64 CloudWatch
 기존 Agent JSON의 다른 로그 경로와 지표 설정을 보존하고 같은 파일 경로의 기존 HTTP 전용 필터만 갱신한다.
 서로 다른 환경의 로그 그룹을 가리키는 기존 경로는 자동 덮어쓰지 않고 실패한다.
 기존 설정은 `.before-yesulin`로 백업한다. 다중 append-config fragment를 별도로 운영하는 서버는 먼저 구성 병합을 확인한다.
-Agent 바이너리는 미설치일 때만 AWS 공식 Ubuntu ARM64 패키지로 설치한다.
+Agent 바이너리는 미설치일 때만 AWS 공식 Ubuntu ARM64 패키지로 설치한다. 새 인스턴스 부팅 직후의 자동 업데이트가
+패키지 잠금을 쥐고 있을 수 있어 설치는 잠금을 최대 60초 기다린다.
 앱 배포의 후속 hook은 Agent 설치를 120초로 제한하고 실패/timeout이 앱 시작을 막지 않게 경고와
 `/var/lib/yesulin-monitoring/backend-install-failed` 표식을 남기고 계속 진행한다.
 이 경우 API 정상과 수집 정상을 혼동하지 말고 hook 출력/Agent 상태를 점검한다. 다음 성공 설치는 표식을 지운다.

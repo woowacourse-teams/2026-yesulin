@@ -7,6 +7,7 @@ import { AuditionPostCard } from "@/components/audition-posts/audition-post-card
 import { AuditionPostScreen } from "@/components/audition-posts/audition-post-screen";
 import { kstToday } from "@/features/audition-posts/format";
 import { auditionPostRoutes, type AuditionPostSummary } from "@/features/audition-posts/types";
+import { viewCountClock } from "@/features/audition-posts/view-count";
 import { getCompany, getCompanyPosts } from "@/features/companies/api";
 import { SecondaryLink } from "@/components/ui/controls";
 import { COMPANY_CORRECTION_URL, companyRoutes, type Company } from "@/features/companies/types";
@@ -53,6 +54,7 @@ function CompanyDetail({ company, posts }: {
   readonly posts: readonly AuditionPostSummary[];
 }) {
   const [today] = useState(() => kstToday());
+  const [now] = useState(() => viewCountClock());
 
   return (
     <div className="mt-3 space-y-4">
@@ -95,7 +97,7 @@ function CompanyDetail({ company, posts }: {
         </h2>
         {posts.length ? (
           <ul className="mt-4 grid gap-3">
-            {posts.map((post) => <AuditionPostCard key={post.id} post={post} today={today} />)}
+            {posts.map((post) => <AuditionPostCard key={post.id} post={post} today={today} now={now} />)}
           </ul>
         ) : (
           <p className="mt-3 text-sm text-muted-strong">지금 공개된 공고가 없어요.</p>
