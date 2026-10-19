@@ -36,7 +36,7 @@ export function AuditionPostListSection({ query, initialPage, preview = false }:
 
   return <section id="auditions" className="notebook-section">
     <div className="notebook-section-heading">
-      <div><h1>{category ? `${category} 오디션 공고` : "오디션 공고"}</h1><p>모집 조건과 마감일을 확인해보세요.</p></div>
+      <div className="notebook-section-title"><h1>{category ? `${category} 오디션 공고` : "오디션 공고"}</h1><p>모집 조건과 마감일을 확인해보세요.</p></div>
       {preview ? <Link href={auditionPostRoutes.list()} className="notebook-text-link">전체 보기</Link> : null}
     </div>
     <div className={preview ? "notebook-toolbar is-preview" : "notebook-category-row"}>
@@ -68,7 +68,7 @@ function PostList({ data, query, today, search, preview, onResetSearch }: {
   const matching = search ? data.posts.filter((post) => `${post.title} ${post.authorName}`.toLocaleLowerCase().includes(search.toLocaleLowerCase())) : data.posts;
   const visible = preview ? matching.slice(0, 3) : matching;
   return <>
-    <p className="notebook-list-note" role="status">{search ? `이 페이지 검색 결과 ${matching.length}개` : `공개 공고 ${data.totalElements.toLocaleString("ko-KR")}개${preview ? ` · ${visible.length}개 미리보기` : ` · ${data.page + 1}페이지`}`}</p>
+    {!preview ? <p className="notebook-list-note" role="status">{search ? `이 페이지 검색 결과 ${matching.length}개` : `공개 공고 ${data.totalElements.toLocaleString("ko-KR")}개 · ${data.page + 1}페이지`}</p> : null}
     {visible.length ? <ul className="notebook-post-grid" id="audition-post-list">{visible.map((post) => <AuditionPostCard key={post.id} post={post} today={today} notebook />)}</ul> : search ? <div className="notebook-empty"><p>이 페이지에 검색어와 일치하는 공고가 없어요.</p><button type="button" className="notebook-outline-button" onClick={onResetSearch}>검색 초기화</button></div> : <EmptyPosts data={data} includeClosed={includeClosed} category={category} />}
     {preview && data.totalElements > visible.length ? <div className="notebook-list-actions"><Link href={auditionPostRoutes.list()} className="notebook-outline-button">전체 공고 보기</Link></div> : null}
     {!preview ? <AuditionPostPagination page={data.page} totalPages={data.totalPages} includeClosed={includeClosed} category={category} /> : null}

@@ -63,9 +63,21 @@ function MobileNavigation({ current, service, onEvents }: { readonly current?: s
 export function NotebookFooter({ className = "" }: { readonly className?: string }) {
   const [eventsOpen, setEventsOpen] = useState(false);
   return <><footer className={`notebook-footer ${className}`}><div className="notebook-container">
-    <div className="notebook-footer-top"><div className="notebook-footer-brand"><Link href="/" aria-label="예술in 홈"><Image src="/images/yesulin-logo-transparent.png" alt="예술in" width={86} height={50} /></Link><p className="notebook-footer-slogan">예술의 문을 열다, 예술in</p><p className="notebook-footer-description">새로운 무대를 찾는 배우와<br />공연을 만나는 관객을 위한 공간입니다.</p><div className="notebook-footer-email"><span>이메일 문의</span><span className="notebook-email-address">contact@yesulin.art</span></div></div>
-      <nav aria-label="푸터 서비스"><strong>예술in</strong><Link href="/about">서비스 소개</Link><Link href={auditionPostRoutes.list()}>오디션 공고</Link><Link href={showRoutes.list}>무료 공연</Link><button type="button" aria-haspopup="dialog" onClick={() => setEventsOpen(true)}>이벤트</button><Link href="/#faq">자주 묻는 질문</Link></nav>
-      <nav aria-label="문의"><strong>소식과 문의</strong><a href="https://pf.kakao.com/_pbTBX/chat" target="_blank" rel="noopener noreferrer" aria-label="카카오톡 문의 (새 창에서 열림)">카카오톡 문의</a><a href={AUDITION_ALERT_CHAT_URL} target="_blank" rel="noopener noreferrer" aria-label="공고 알림 (새 창에서 열림)">공고 알림</a></nav>
+    <div className="notebook-footer-top">
+      <div className="notebook-footer-brand">
+        <Link className="notebook-footer-logo" href="/" aria-label="예술in 홈"><Image src="/images/yesulin-logo-transparent.png" alt="예술in" width={86} height={50} /></Link>
+        <p className="notebook-footer-slogan">예술의 문을 열다, 예술in</p>
+      </div>
+      <div className="notebook-footer-navigation">
+        <nav aria-label="푸터 서비스" className="notebook-footer-nav">
+          <strong>둘러보기</strong>
+          <div className="notebook-footer-links"><Link href="/about">서비스 소개</Link><Link href={auditionPostRoutes.list()}>오디션 공고</Link><Link href={showRoutes.list}>무료 공연</Link><button type="button" aria-haspopup="dialog" onClick={() => setEventsOpen(true)}>이벤트</button><Link href="/#faq">자주 묻는 질문</Link></div>
+        </nav>
+        <nav aria-label="문의" className="notebook-footer-nav">
+          <strong>소식·문의</strong>
+          <div className="notebook-footer-links"><span className="notebook-email-address">contact@yesulin.art</span><a href="https://pf.kakao.com/_pbTBX/chat" target="_blank" rel="noopener noreferrer" aria-label="카카오톡 문의 (새 창에서 열림)">카카오톡 문의</a><a href={AUDITION_ALERT_CHAT_URL} target="_blank" rel="noopener noreferrer" aria-label="공고 알림 (새 창에서 열림)">공고 알림</a></div>
+        </nav>
+      </div>
     </div><div className="notebook-footer-bottom"><p>© 2026 예술in 프로젝트팀. All rights reserved.</p><PolicyLinks includeConsent={false} includeContact={false} /></div>
   </div></footer><EventsNoticeDialog open={eventsOpen} onClose={() => setEventsOpen(false)} /></>;
 }

@@ -25,7 +25,7 @@ describe("메인과 오디션 전용 목록", () => {
     expect(html).toContain('href="/posts/3"');
     expect(html).not.toContain('href="/posts/4"');
     expect(html).toContain("전체 공고 보기");
-    expect(html).toContain("공개 공고 30개 · 3개 미리보기");
+    expect(html).not.toContain("공개 공고 30개 · 3개 미리보기");
     expect(html).toContain('href="/auditions"');
     expect(html).toContain('id="shows"');
     expect(html).toContain('id="faq"');
