@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { deadlineBadge, formatPostedDate } from "@/features/audition-posts/format";
 import { auditionPostRoutes, type AuditionPostSummary } from "@/features/audition-posts/types";
+import { publicViewCount } from "@/features/audition-posts/view-count";
 import { DeadlineChip } from "./audition-post-badges";
 
 const categoryArtwork: Readonly<Record<string, string>> = {
@@ -12,7 +13,7 @@ const categoryArtwork: Readonly<Record<string, string>> = {
   기획사: "/images/thumbnails/audition-agency.webp",
 };
 
-export function AuditionPostCard({ post, today, notebook = false }: { readonly post: AuditionPostSummary; readonly today: string; readonly notebook?: boolean }) {
+export function AuditionPostCard({ post, today, now, notebook = false }: { readonly post: AuditionPostSummary; readonly today: string; readonly now: number; readonly notebook?: boolean }) {
   const badge = deadlineBadge(post, today);
   const postedDate = formatPostedDate(post.postedAt);
   const defaultArtwork = categoryArtwork[post.category ?? ""] ?? "/images/thumbnails/audition-default.webp";
@@ -44,7 +45,7 @@ export function AuditionPostCard({ post, today, notebook = false }: { readonly p
             ) : null}
             <div className="flex gap-1">
               <dt className="sr-only">조회수</dt>
-              <dd className="text-muted">조회 <span className="num">{post.viewCount.toLocaleString("ko-KR")}</span></dd>
+              <dd className="text-muted">조회 <span className="num" suppressHydrationWarning>{publicViewCount(post, now).toLocaleString("ko-KR")}</span></dd>
             </div>
             {post.attachmentCount > 0 ? (
               <div className="flex gap-1">
