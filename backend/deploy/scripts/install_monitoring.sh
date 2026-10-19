@@ -20,7 +20,8 @@ if [ ! -x "$agent_dir/bin/amazon-cloudwatch-agent-ctl" ]; then
   curl --fail --silent --show-error --connect-timeout 5 --max-time 60 \
     https://amazoncloudwatch-agent.s3.amazonaws.com/ubuntu/arm64/latest/amazon-cloudwatch-agent.deb \
     -o "$work_dir/agent.deb"
-  dpkg -i "$work_dir/agent.deb"
+  # 새 인스턴스는 부팅 직후 unattended-upgrades가 패키지 잠금을 잡고 있을 수 있어 잠금이 풀릴 때까지 기다린다.
+  DEBIAN_FRONTEND=noninteractive apt-get install -y -o DPkg::Lock::Timeout=60 "$work_dir/agent.deb"
 fi
 install -d /etc/systemd/system/amazon-cloudwatch-agent.service.d
 cat > "$work_dir/timezone.conf" <<'TIMEZONE'
