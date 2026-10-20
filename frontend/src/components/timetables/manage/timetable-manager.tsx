@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { ScreenError } from "@/components/auditions/screen-status";
 import { useToast } from "@/components/auditions/toast";
 import { ConfirmDialog } from "@/components/shows/manage/confirm-dialog";
-import { DarkButton, PrimaryButton, SecondaryButton, TextButton } from "@/components/ui/controls";
+import { DarkButton, PrimaryButton, SecondaryButton, SecondaryLink, TextButton } from "@/components/ui/controls";
 import { AuditionRequestError } from "@/features/auditions/api-client";
 import {
   getTimetableBoard,
@@ -35,6 +35,7 @@ import { formatShortDate, slotFromKey, slotKey } from "@/features/timetables/tim
 import {
   TIMETABLE_KEY_PATTERN,
   TIMETABLE_LIMITS,
+  timetableRoutes,
   type ActorContact,
   type TimetableActor,
   type TimetableBoard,
@@ -316,6 +317,13 @@ export function TimetableManager({ manageKey }: { readonly manageKey: string }) 
             {board.organizerName} · {draft.setting.slotMinutes}분씩 · 한 칸 {draft.setting.slotCapacity}명
           </p>
         </div>
+        {published ? (
+          pendingChanges > 0 ? (
+            <SecondaryButton disabled title="저장한 뒤 출력할 수 있어요." className="shrink-0">출력</SecondaryButton>
+          ) : (
+            <SecondaryLink href={timetableRoutes.print(manageKey)} target="_blank" rel="noopener" className="shrink-0">출력</SecondaryLink>
+          )
+        ) : null}
         <MoreMenu items={menuItems} />
         {published ? null : (
           <PrimaryButton onClick={() => setDialog("publish")} disabled={busy || !canPublish} className="shrink-0">

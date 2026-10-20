@@ -116,6 +116,7 @@ export const TIMETABLE_KEY_PATTERN = new RegExp(`^[A-Za-z0-9_-]{${TIMETABLE_KEY_
 export const timetableRoutes = {
   create: "/timetable/new",
   manage: (manageKey: string) => `/timetable/manage/${encodeURIComponent(manageKey)}`,
+  print: (manageKey: string) => `/timetable/manage/${encodeURIComponent(manageKey)}/print`,
   /** 배우가 가장 많이 받는 문자라 경로를 짧게 둔다. */
   actor: (accessKey: string) => `/t/${encodeURIComponent(accessKey)}`,
 } as const;
