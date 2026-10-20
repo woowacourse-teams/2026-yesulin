@@ -32,13 +32,19 @@ export function StatusSteps({ board, unassignedCount, additionalCount, onOpenReq
         {unassignedCount > 0 ? (
           <li className="rounded-full bg-warn-bg px-3 py-1.5 font-semibold text-warn">미배정 <span className="num">{unassignedCount}</span>명</li>
         ) : null}
-        {board.requests.length > 0 ? (
-          <li>
-            <button type="button" onClick={onOpenRequests} className="rounded-full bg-warn px-3 py-1.5 font-semibold text-white hover:opacity-90">
-              시간 변경 문의 <span className="num">{board.requests.length}</span>건 보기
-            </button>
-          </li>
-        ) : null}
+        <li>
+          <button
+            type="button"
+            onClick={onOpenRequests}
+            className={`rounded-full px-3 py-1.5 font-semibold ${
+              board.requests.length > 0
+                ? "bg-warn text-white hover:opacity-90"
+                : "border border-border bg-card text-muted-strong hover:border-brand-line hover:text-brand"
+            }`}
+          >
+            시간 변경 문의 <span className="num">{board.requests.length}</span>건 보기
+          </button>
+        </li>
       </ul>
     );
   }

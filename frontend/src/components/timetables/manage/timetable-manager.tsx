@@ -445,7 +445,7 @@ export function TimetableManager({ manageKey }: { readonly manageKey: string }) 
           busy={busy}
           onClose={() => setDialog(null)}
           onMove={startMoving}
-          onResolve={(requestId) => void run(() => resolveTimetableRequest(manageKey, requestId), "요청을 처리 완료로 닫았어요.", true)}
+          onResolve={(requestId) => void run(() => resolveTimetableRequest(manageKey, requestId), "문의를 처리 완료로 닫았어요.", true)}
         />
       ) : null}
       {dialog === "setting" ? (
