@@ -8,7 +8,6 @@ import { ConfirmDialog } from "@/components/shows/manage/confirm-dialog";
 import { DarkButton, PrimaryButton, SecondaryButton } from "@/components/ui/controls";
 import { AuditionRequestError } from "@/features/auditions/api-client";
 import {
-  changeSelfChangeLock,
   getTimetableBoard,
   publishTimetable,
   registerTimetableActors,
@@ -162,7 +161,6 @@ export function TimetableManager({ manageKey }: { readonly manageKey: string }) 
       additional: isAdditional(board, actor),
       unsaved,
       problem: problemActorIds.has(actor.id),
-      changedByActor: actor.actorChangedAt !== null && !unsaved,
       moving: movingActorId === actor.id,
     };
   };
@@ -301,16 +299,6 @@ export function TimetableManager({ manageKey }: { readonly manageKey: string }) 
         () => toast("주소창에서 복사해 주세요.", { type: "error" }),
       ),
     },
-    ...(published
-      ? [{
-        label: board.selfChangeLocked ? "배우 직접 변경 열기" : "배우 직접 변경 막기",
-        onSelect: () => void run(
-          () => changeSelfChangeLock(manageKey, !board.selfChangeLocked),
-          board.selfChangeLocked ? "배우가 다시 직접 바꿀 수 있어요." : "이제 배우가 직접 바꿀 수 없어요.",
-          true,
-        ),
-      }]
-      : []),
   ];
 
   return (
@@ -376,8 +364,6 @@ export function TimetableManager({ manageKey }: { readonly manageKey: string }) 
                 <li className="inline-flex items-center gap-1.5"><span aria-hidden="true" className="size-3 rounded-sm bg-brand" />최초 합격</li>
                 {additionalCount > 0 ? <li className="inline-flex items-center gap-1.5"><span aria-hidden="true" className="size-3 rounded-sm bg-etc" />추가 합격</li> : null}
                 <li className="inline-flex items-center gap-1.5"><span aria-hidden="true" className="size-3 rounded-sm border border-dashed border-warn" />저장 전</li>
-                {published ? <li className="inline-flex items-center gap-1.5"><span aria-hidden="true">↻</span>배우가 바꿈</li> : null}
-
               </ul>
             )}
             <ScheduleSheet

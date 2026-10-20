@@ -18,8 +18,6 @@ const actor = (id: number, name: string, startTime: string | null = null, invite
   phone: `010-0000-000${id}`,
   slot: startTime ? { date: "2026-10-10", startTime, endTime: "" } : null,
   invited,
-  previousSlot: null,
-  actorChangedAt: null,
   registeredAt: "2026-10-01T00:00:00Z",
 });
 
@@ -32,8 +30,6 @@ const board = (actors: TimetableActor[], overrides: Partial<TimetableBoard> = {}
   guide: "",
   status: "DRAFT",
   publishedAt: null,
-  selfChangeLocked: false,
-  selfChangeNoticeHours: 24,
   slotMinutes: 30,
   slotCapacity: 1,
   windows: [{ date: "2026-10-10", startTime: "10:00", endTime: "11:30" }],

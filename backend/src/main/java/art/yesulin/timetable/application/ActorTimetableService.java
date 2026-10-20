@@ -4,7 +4,6 @@ import static art.yesulin.timetable.domain.TimetableErrorCode.NOT_FOUND;
 
 import art.yesulin.global.exception.BusinessException;
 import art.yesulin.timetable.domain.Timetable;
-import art.yesulin.timetable.domain.TimetableBoard;
 import art.yesulin.timetable.domain.TimetableKey;
 import art.yesulin.timetable.domain.TimetableRepository;
 import art.yesulin.timetable.domain.actor.TimetableActor;
@@ -12,9 +11,6 @@ import art.yesulin.timetable.domain.actor.TimetableActorRepository;
 import art.yesulin.timetable.domain.request.TimetableRequest;
 import art.yesulin.timetable.domain.request.TimetableRequestRepository;
 import art.yesulin.timetable.domain.request.TimetableRequestStatus;
-import art.yesulin.timetable.domain.setting.TimeSlot;
-import java.time.Clock;
-import java.time.Instant;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -34,7 +30,6 @@ public class ActorTimetableService {
     private final TimetableActorRepository actorRepository;
     private final TimetableRequestRepository requestRepository;
     private final TimetableMessenger messenger;
-    private final Clock clock;
 
     @Transactional(readOnly = true)
     public ActorTimetableResult find(String accessKey) {
@@ -42,22 +37,9 @@ public class ActorTimetableService {
                 .flatMap(actorRepository::findByAccessKey)
                 .orElseThrow(this::notFound);
         Timetable timetable = timetableRepository.findById(actor.getTimetableId()).orElseThrow(this::notFound);
-        return resultOf(visible(new Access(timetable, actorsOf(timetable), actor)));
+        return resultOf(visible(new Access(timetable, actor)));
     }
 
-    /** 다른 배우가 같은 칸을 동시에 고르거나 기획사가 동시에 옮겨도 정원을 넘지 않게 일정표 행을 잠근다. */
-    @Transactional(isolation = Isolation.READ_COMMITTED)
-    public ActorTimetableResult changeSlot(String accessKey, TimeSlot current, TimeSlot next) {
-        Access access = lock(accessKey);
-        Instant now = clock.instant();
-        new TimetableBoard(access.timetable(), access.actors())
-                .moveByActor(access.actor().getId(), current, next, now);
-        requestRepository.findFirstByActorIdAndStatus(access.actor().getId(), TimetableRequestStatus.OPEN)
-                .ifPresent(request -> request.resolve(now));
-        return resultOf(access);
-    }
-
-    /** 바운더리 안에 맞는 시간이 없을 때 기획사에게 사정을 남긴다. 열린 요청이 있으면 내용을 바꾼다. */
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public ActorTimetableResult requestTime(String accessKey, String message) {
         Access access = lock(accessKey);
@@ -76,12 +58,8 @@ public class ActorTimetableService {
         TimetableKey key = TimetableKey.parse(accessKey).orElseThrow(this::notFound);
         long timetableId = actorRepository.findTimetableIdByAccessKey(key).orElseThrow(this::notFound);
         Timetable timetable = timetableRepository.findByIdForUpdate(timetableId).orElseThrow(this::notFound);
-        List<TimetableActor> actors = actorsOf(timetable);
-        TimetableActor actor = actors.stream()
-                .filter(candidate -> candidate.getAccessKey().equals(key))
-                .findFirst()
-                .orElseThrow(this::notFound);
-        return visible(new Access(timetable, actors, actor));
+        TimetableActor actor = actorRepository.findByAccessKey(key).orElseThrow(this::notFound);
+        return visible(new Access(timetable, actor));
     }
 
     /** 확정 전 일정표나 아직 안내하지 않은 배우의 링크는 없는 것으로 다룬다. */
@@ -95,9 +73,6 @@ public class ActorTimetableService {
     private ActorTimetableResult resultOf(Access access) {
         Timetable timetable = access.timetable();
         TimetableActor actor = access.actor();
-        Instant now = clock.instant();
-        TimetableBoard board = new TimetableBoard(timetable, access.actors());
-        TimeSlot slot = actor.getSlot();
         ActorTimetableResult.Request request = requestRepository
                 .findFirstByActorIdAndStatus(actor.getId(), TimetableRequestStatus.OPEN)
                 .map(open -> new ActorTimetableResult.Request(open.getMessage(), open.getCreatedAt()))
@@ -108,25 +83,15 @@ public class ActorTimetableService {
                 timetable.getProfile().getLocation(),
                 timetable.getProfile().getGuide(),
                 actor.getName(),
-                TimeSlotResult.of(slot, timetable),
-                board.selfChangeStatusOf(actor, now),
-                slot == null ? null : timetable.startInstantOf(slot).minus(Timetable.SELF_CHANGE_NOTICE),
-                Timetable.SELF_CHANGE_NOTICE.toHours(),
-                board.openSlotsFor(actor.getId(), now).stream()
-                        .map(open -> TimeSlotResult.of(open, timetable))
-                        .toList(),
+                TimeSlotResult.of(actor.getSlot(), timetable),
                 request
         );
-    }
-
-    private List<TimetableActor> actorsOf(Timetable timetable) {
-        return actorRepository.findAllByTimetableIdOrderByIdAsc(timetable.getId());
     }
 
     private BusinessException notFound() {
         return new BusinessException(NOT_FOUND, "일정을 찾을 수 없습니다. 문자로 받은 링크를 다시 확인해 주세요.");
     }
 
-    private record Access(Timetable timetable, List<TimetableActor> actors, TimetableActor actor) {
+    private record Access(Timetable timetable, TimetableActor actor) {
     }
 }

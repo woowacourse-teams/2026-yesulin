@@ -27,11 +27,10 @@ export function StatusSteps({ board, unassignedCount, additionalCount, onOpenReq
         {board.requests.length > 0 ? (
           <li>
             <button type="button" onClick={onOpenRequests} className="rounded-full bg-warn px-3 py-1.5 font-semibold text-white hover:opacity-90">
-              시간 조정 요청 <span className="num">{board.requests.length}</span>건 보기
+              시간 변경 문의 <span className="num">{board.requests.length}</span>건 보기
             </button>
           </li>
         ) : null}
-        {board.selfChangeLocked ? <li className="rounded-full bg-surface px-3 py-1.5 font-semibold text-muted-strong">배우 변경 막음</li> : null}
       </ul>
     );
   }

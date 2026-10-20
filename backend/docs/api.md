@@ -526,10 +526,8 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 | POST | `/api/v1/timetables/manage/actors` | 관리 열쇠 | `RegisterActorsRequest(actors: [{name, phone}])` | `201 TimetableBoardResult` |
 | DELETE | `/api/v1/timetables/manage/actors/{actorId}` | 관리 열쇠 | 없음 | `200 TimetableBoardResult` |
 | POST | `/api/v1/timetables/manage/publication` | 관리 열쇠 | 없음 | `200 TimetableBoardResult` |
-| PUT | `/api/v1/timetables/manage/self-change-lock` | 관리 열쇠 | `ChangeSelfChangeLockRequest(locked)` | `200 TimetableBoardResult` |
 | POST | `/api/v1/timetables/manage/requests/{requestId}/resolution` | 관리 열쇠 | 없음 | `200 TimetableBoardResult` |
 | GET | `/api/v1/timetables/actor` | 배우 열쇠 | 없음 | `200 ActorTimetableResult` |
-| PUT | `/api/v1/timetables/actor/slot` | 배우 열쇠 | `ChangeActorSlotRequest(current, next)` | `200 ActorTimetableResult` |
 | POST | `/api/v1/timetables/actor/requests` | 배우 열쇠 | `CreateTimeRequestRequest(message)` | `200 ActorTimetableResult` |
 
 `profile`은 `title`(작품명, 60자 이하), `organizerName`(40자 이하), `organizerPhone`(`010-1234-5678`), 선택
@@ -538,10 +536,8 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 `{date, startTime, endTime}`, 5분 단위, 같은 날 겹침 불가)다. 일정표를 만들면 관리 열쇠를 응답으로 한 번 주고
 담당자 번호로 관리 링크 문자를 대기열에 넣는다. 형식·길이·시간대 규칙 위반은 `400 TIMETABLE_INVALID_INPUT`이다.
 
-`TimetableBoardResult`는 일정표 정보와 `status`(`DRAFT`·`PUBLISHED`), `publishedAt`, `selfChangeLocked`,
-`selfChangeNoticeHours`(24), 설정, `actors`와 열린 `requests`를 담는다. 배우는 `id`, `name`, `phone`, `slot`
-(`{date, startTime, endTime}` 또는 null), `invited`, 배우가 직접 바꿨을 때만 값이 있는 `previousSlot`·`actorChangedAt`,
-등록 시각 `registeredAt`이다. `registeredAt`이 `publishedAt`보다 늦으면 확정 뒤 등록한 추가 합격자다.
+`TimetableBoardResult`는 일정표 정보와 `status`(`DRAFT`·`PUBLISHED`), `publishedAt`, 설정, `actors`와 열린 `requests`를
+담는다. 배우는 `id`, `name`, `phone`, `slot`(`{date, startTime, endTime}` 또는 null), `invited`, 등록 시각 `registeredAt`이다. `registeredAt`이 `publishedAt`보다 늦으면 확정 뒤 등록한 추가 합격자다.
 
 보드 저장의 `assignments`는 옮긴 배우만 `{actorId, previous, next}`로 보낸다(null은 미배정, 최대 300개). `previous`가 지금
 시간과 다르면 `409 TIMETABLE_ASSIGNMENT_CONFLICT`, 같은 배우가 두 번이면 `400 TIMETABLE_INVALID_INPUT`이다. 시간대 설정을
@@ -553,13 +549,10 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 미배정 배우가 있으면 `409 TIMETABLE_NOT_PUBLISHABLE`이다. 없는 배우·요청은 `404 TIMETABLE_ACTOR_NOT_FOUND`,
 `404 TIMETABLE_REQUEST_NOT_FOUND`다.
 
-배우 API는 확정 뒤 안내를 받은 배우만 열 수 있고 그 밖에는 `404 TIMETABLE_NOT_FOUND`다. `ActorTimetableResult`는 일정표
-이름·단체명·장소·안내 사항, 배우 이름, `slot`, `selfChange`(`OPEN`·`LOCKED`·`DEADLINE_PASSED`), `changeDeadline`,
-`openSlots`(지금 옮길 수 있는 빈 칸), 열린 `request`(`message`, `createdAt`)를 담고 다른 배우의 이름·번호·칸별 인원은 담지 않는다.
-직접 변경은 일정표 행을 잠근 뒤 `current`가 지금 시간과 다르면 `409 TIMETABLE_ASSIGNMENT_CONFLICT`, 기획사가 막았거나 지금 시간의
-시작까지 24시간이 남지 않았으면 `409 TIMETABLE_SELF_CHANGE_CLOSED`, 옮길 칸이 바운더리 밖·정원 초과·24시간 이내면
-`409 TIMETABLE_SLOT_UNAVAILABLE`이다. 성공하면 바로 확정되고 그 배우의 열린 요청을 닫는다. 시간 조정 요청은 300자 이하이며
-열린 요청이 있으면 내용을 바꾸고, 담당자 요청 알림은 아직 보내지 않은 알림이 없을 때만 대기열에 넣는다.
+배우 API는 확정 뒤 안내를 받은 배우만 열 수 있고 그 밖에는 `404 TIMETABLE_NOT_FOUND`다. `ActorTimetableResult`는
+작품명·단체명·장소·안내 사항, 배우 이름, `slot`, 열린 `request`(`message`, `createdAt`)를 담고 다른 배우의 이름·번호·칸별 인원은
+담지 않는다. 배우는 시간을 직접 바꿀 수 없다. 시간 변경 문의는 300자 이하이며 열린 문의가 있으면 내용을 바꾸고, 담당자 문의
+알림은 아직 보내지 않은 알림이 없을 때만 대기열에 넣는다.
 
 ## 배우 프로필과 보관함·비공개 파일 — 14개
 
@@ -788,7 +781,7 @@ S3 삭제 실패 시 `DELETING` 상태가 남으며 같은 파일 ID로 재시�
 | 예매 | `RESERVATION_NOT_FOUND`, `RESERVATION_INVALID_INPUT`, `RESERVATION_DUPLICATE`, `RESERVATION_NOT_CHANGEABLE` |
 | 가져온 공고 | `AUDITION_POST_NOT_FOUND`, `AUDITION_POST_INVALID_INPUT`, `AUDITION_POST_CATEGORY_NOT_SUPPORTED`, `AUDITION_POST_SOURCE_UNAVAILABLE`, `AUDITION_POST_FILE_REJECTED`, `AUDITION_POST_IMPORT_CONFLICT`, `AUDITION_POST_EDITED` |
 | 공연사 | `COMPANY_NOT_FOUND`, `COMPANY_INVALID_INPUT` |
-| 오디션 일정표 | `TIMETABLE_NOT_FOUND`, `TIMETABLE_INVALID_INPUT`, `TIMETABLE_ACTOR_NOT_FOUND`, `TIMETABLE_DUPLICATE_ACTOR`, `TIMETABLE_TOO_MANY_ACTORS`, `TIMETABLE_SLOT_UNAVAILABLE`, `TIMETABLE_SETTING_NOT_EXTENDABLE`, `TIMETABLE_ASSIGNMENT_CONFLICT`, `TIMETABLE_NOT_PUBLISHABLE`, `TIMETABLE_SELF_CHANGE_CLOSED`, `TIMETABLE_REQUEST_NOT_FOUND`, `TIMETABLE_MESSAGE_NOT_FOUND` |
+| 오디션 일정표 | `TIMETABLE_NOT_FOUND`, `TIMETABLE_INVALID_INPUT`, `TIMETABLE_ACTOR_NOT_FOUND`, `TIMETABLE_DUPLICATE_ACTOR`, `TIMETABLE_TOO_MANY_ACTORS`, `TIMETABLE_SLOT_UNAVAILABLE`, `TIMETABLE_SETTING_NOT_EXTENDABLE`, `TIMETABLE_ASSIGNMENT_CONFLICT`, `TIMETABLE_NOT_PUBLISHABLE`, `TIMETABLE_REQUEST_NOT_FOUND`, `TIMETABLE_MESSAGE_NOT_FOUND` |
 | 운영 | `MEMBER_NOT_FOUND`, `MEMBER_STATUS_CHANGE_NOT_ALLOWED`, `ADMIN_DELETION_CONFIRMATION_FAILED` |
 
 인가 공통 오류는 `401 AUTH_UNAUTHENTICATED`, `403 AUTH_FORBIDDEN`, `403 AUTH_INACTIVE_MEMBER`다.

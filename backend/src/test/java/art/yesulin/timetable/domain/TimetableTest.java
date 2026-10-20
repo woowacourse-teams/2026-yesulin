@@ -1,7 +1,6 @@
 package art.yesulin.timetable.domain;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -9,7 +8,6 @@ import art.yesulin.global.exception.BusinessException;
 import art.yesulin.timetable.domain.setting.TimeSlot;
 import art.yesulin.timetable.domain.setting.TimetableSetting;
 import art.yesulin.timetable.domain.setting.TimetableWindow;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
@@ -81,16 +79,6 @@ class TimetableTest {
         assertEquals("", new TimetableProfile("2차", "남극장", null, "010-1234-5678", "", "").getContactName());
         assertInvalid(() -> new TimetableProfile("2차", "남극장", "", "02-123-4567", "", ""));
         assertInvalid(() -> new TimetableProfile("2차", " ", "", "010-1234-5678", "", ""));
-    }
-
-    @Test
-    void allowsSelfChangeUntilExactlyTwentyFourHoursBeforeStart() {
-        Timetable timetable = timetable(30, 1, List.of(window(DAY, "10:00", "11:00")));
-        TimeSlot slot = new TimeSlot(DAY, LocalTime.of(10, 0));
-
-        assertEquals(Instant.parse("2026-10-10T01:00:00Z"), timetable.startInstantOf(slot));
-        assertTrue(timetable.isBeforeSelfChangeDeadline(slot, Instant.parse("2026-10-09T01:00:00Z")));
-        assertFalse(timetable.isBeforeSelfChangeDeadline(slot, Instant.parse("2026-10-09T01:00:01Z")));
     }
 
     @Test

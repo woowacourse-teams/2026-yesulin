@@ -10,7 +10,6 @@ import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,16 +26,6 @@ public class ActorTimetableController {
     @GetMapping
     public ResponseEntity<ActorTimetableResult> find(@RequestHeader(KEY_HEADER) String accessKey) {
         return ok(actorTimetableService.find(accessKey));
-    }
-
-    @PutMapping("/slot")
-    public ResponseEntity<ActorTimetableResult> changeSlot(
-            @RequestHeader(KEY_HEADER) String accessKey,
-            @Valid @RequestBody ChangeActorSlotRequest request
-    ) {
-        return ok(actorTimetableService.changeSlot(
-                accessKey, TimeSlotRequest.toSlot(request.current()), TimeSlotRequest.toSlot(request.next())
-        ));
     }
 
     @PostMapping("/requests")

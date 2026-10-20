@@ -21,7 +21,6 @@ import { mockSessionRole } from "./auth-handlers";
  */
 const API = "/api/v1/timetables";
 const KEY_HEADER = "X-Timetable-Key";
-const SELF_CHANGE_HOURS = 24;
 const realLoginEnabled = frontendEnvironment.producerLoginEnabled;
 
 export const SEED_TIMETABLE_KEYS = {
@@ -37,8 +36,6 @@ type MockActor = {
   phone: string;
   slot: TimeSlot | null;
   invitedAt: string | null;
-  actorChangedAt: string | null;
-  previousSlot: TimeSlot | null;
   registeredAt: string;
 };
 
@@ -49,7 +46,6 @@ type MockTimetable = TimetableProfile & TimetableSetting & {
   manageKey: string;
   status: "DRAFT" | "PUBLISHED";
   publishedAt: string | null;
-  selfChangeLocked: boolean;
   actors: MockActor[];
   requests: MockRequest[];
 };
@@ -81,10 +77,6 @@ const invalid = (message: string) => apiError(400, "TIMETABLE_INVALID_INPUT", me
 const timetables: MockTimetable[] = [];
 const messages: MockMessage[] = [];
 
-function startInstant(slot: TimeSlot): number {
-  return Date.parse(`${slot.date}T${toHm(slot.startTime)}:00+09:00`);
-}
-
 const withSeconds = (time: string) => `${toHm(time)}:00`;
 
 function range(timetable: MockTimetable, slot: TimeSlot | null) {
@@ -103,8 +95,6 @@ function toBoard(timetable: MockTimetable): TimetableBoard {
     guide: timetable.guide,
     status: timetable.status,
     publishedAt: timetable.publishedAt,
-    selfChangeLocked: timetable.selfChangeLocked,
-    selfChangeNoticeHours: SELF_CHANGE_HOURS,
     slotMinutes: timetable.slotMinutes,
     slotCapacity: timetable.slotCapacity,
     windows: timetable.windows.map((window) => ({ ...window, startTime: withSeconds(window.startTime), endTime: withSeconds(window.endTime) })),
@@ -114,8 +104,6 @@ function toBoard(timetable: MockTimetable): TimetableBoard {
       phone: actor.phone,
       slot: range(timetable, actor.slot),
       invited: actor.invitedAt !== null,
-      previousSlot: range(timetable, actor.previousSlot),
-      actorChangedAt: actor.actorChangedAt,
       registeredAt: actor.registeredAt,
     })) as TimetableBoard["actors"],
     requests: timetable.requests.filter((request) => request.open).flatMap((request) => {
@@ -133,20 +121,7 @@ function counts(timetable: MockTimetable): Map<string, number> {
   return result;
 }
 
-const beforeDeadline = (slot: TimeSlot) => Date.now() + SELF_CHANGE_HOURS * 3600_000 <= startInstant(slot);
-
-function selfChangeOf(timetable: MockTimetable, actor: MockActor): ActorTimetable["selfChange"] {
-  if (timetable.selfChangeLocked) return "LOCKED";
-  return actor.slot && beforeDeadline(actor.slot) ? "OPEN" : "DEADLINE_PASSED";
-}
-
 function toActorView(timetable: MockTimetable, actor: MockActor): ActorTimetable {
-  const selfChange = selfChangeOf(timetable, actor);
-  const used = counts(timetable);
-  const openSlots = selfChange === "OPEN"
-    ? slotsOf(timetable).filter((slot) => !sameSlot(slot, actor.slot) && beforeDeadline(slot)
-      && (used.get(slotKey(slot)) ?? 0) < timetable.slotCapacity)
-    : [];
   const request = timetable.requests.find((candidate) => candidate.actorId === actor.id && candidate.open);
   return {
     title: timetable.title,
@@ -155,12 +130,8 @@ function toActorView(timetable: MockTimetable, actor: MockActor): ActorTimetable
     guide: timetable.guide,
     actorName: actor.name,
     slot: range(timetable, actor.slot),
-    selfChange,
-    changeDeadline: actor.slot ? new Date(startInstant(actor.slot) - SELF_CHANGE_HOURS * 3600_000).toISOString() : null,
-    selfChangeNoticeHours: SELF_CHANGE_HOURS,
-    openSlots: openSlots.map((slot) => range(timetable, slot)!),
     request: request ? { message: request.message, createdAt: request.createdAt } : null,
-  } as ActorTimetable;
+  };
 }
 
 function queue(timetable: MockTimetable, type: AdminTimetableMessageType, actor: MockActor | null) {
@@ -183,8 +154,8 @@ function queue(timetable: MockTimetable, type: AdminTimetableMessageType, actor:
     ORGANIZER_LINK: compose("오디션 일정표 관리 링크", organizerGreeting,
       `'${timetable.title}' 오디션 일정표를 만들었습니다.\n아래 링크에서 합격자 등록과 일정 확정을 할 수 있습니다.`,
       "일정표 관리", manageLink, organizerCaution),
-    ORGANIZER_TIME_REQUEST: compose("시간 조정 요청 알림", organizerGreeting,
-      `'${timetable.title}' 오디션 일정표에 배우의 시간 조정 요청이 들어왔습니다.\n아래 링크에서 확인해 주세요.`,
+    ORGANIZER_TIME_REQUEST: compose("시간 변경 문의 알림", organizerGreeting,
+      `'${timetable.title}' 오디션 일정표에 배우의 시간 변경 문의가 들어왔습니다.\n아래 링크에서 확인해 주세요.`,
       "일정표 관리", manageLink, organizerCaution),
     ACTOR_INVITATION: compose("오디션 합격 안내", actorGreeting,
       `${timetable.organizerName} 오디션에 합격하셨습니다.\n아래 링크에서 '${timetable.title}' 오디션 일정을 확인해 주세요.`,
@@ -282,8 +253,6 @@ function seed() {
     phone,
     slot: slot ? { date: first, startTime: slot } : null,
     invitedAt: null,
-    actorChangedAt: null,
-    previousSlot: null,
     registeredAt: new Date(Date.now() - 2 * 86_400_000).toISOString(),
     ...extra,
   });
@@ -301,7 +270,6 @@ function seed() {
     ],
     status: "DRAFT",
     publishedAt: null,
-    selfChangeLocked: false,
     actors: ["김하늘", "이도윤", "박서연", "최민준", "정하은", "강지호", "윤채원", "임시우"].map((name, index) => (
       actor(name, `010-1000-${String(index + 1).padStart(4, "0")}`, null)
     )),
@@ -309,11 +277,7 @@ function seed() {
   });
   const invitedAt = new Date(Date.now() - 86_400_000).toISOString();
   const kim = actor("김배우", "010-2000-0001", "10:00", { accessKey: SEED_TIMETABLE_KEYS.actor, invitedAt });
-  const lee = actor("이배우", "010-2000-0002", "10:30", {
-    invitedAt,
-    actorChangedAt: new Date(Date.now() - 3_600_000).toISOString(),
-    previousSlot: { date: first, startTime: "11:00" },
-  });
+  const lee = actor("이배우", "010-2000-0002", "10:30", { invitedAt });
   const park = actor("박배우", "010-2000-0003", "11:30", { invitedAt });
   const choi = actor("최배우", "010-2000-0004", "11:30", { invitedAt });
   const jung = actor("정배우", "010-2000-0005", null, { registeredAt: new Date(Date.now() - 3_600_000).toISOString() });
@@ -330,7 +294,6 @@ function seed() {
     ],
     status: "PUBLISHED",
     publishedAt: invitedAt,
-    selfChangeLocked: false,
     actors: [kim, lee, park, choi, jung],
     requests: [{ id: nextId(), actorId: choi.id, message: "그 주에 지방 공연이 있어서 다음 주 평일 저녁이면 좋겠습니다.", open: true, createdAt: now() }],
   };
@@ -356,7 +319,6 @@ export const timetableHandlers = [
       ...normalizeSetting(body.setting),
       status: "DRAFT",
       publishedAt: null,
-      selfChangeLocked: false,
       actors: [],
       requests: [],
     };
@@ -413,8 +375,6 @@ export const timetableHandlers = [
         return apiError(409, "TIMETABLE_ASSIGNMENT_CONFLICT", `‘${actor.name}’ 배우의 시간이 그사이 바뀌었습니다. 새로 불러온 뒤 다시 옮겨 주세요.`);
       }
       actor.slot = toSlot(assignment.next);
-      actor.actorChangedAt = null;
-      actor.previousSlot = null;
       moved.push(actor);
     }
     const boardError = boardProblem(timetable);
@@ -456,8 +416,6 @@ export const timetableHandlers = [
       phone: contact.phone,
       slot: null,
       invitedAt: null,
-      actorChangedAt: null,
-      previousSlot: null,
       registeredAt: now(),
     }));
     return HttpResponse.json(toBoard(timetable), { status: 201 });
@@ -494,14 +452,6 @@ export const timetableHandlers = [
     return HttpResponse.json(toBoard(timetable));
   }),
 
-  http.put(`${API}/manage/self-change-lock`, async ({ request }) => {
-    await delay(140);
-    const timetable = byManageKey(request);
-    if (!timetable) return notFound();
-    timetable.selfChangeLocked = Boolean(((await request.json()) as { locked: boolean }).locked);
-    return HttpResponse.json(toBoard(timetable));
-  }),
-
   http.post(`${API}/manage/requests/:requestId/resolution`, async ({ request, params }) => {
     await delay(140);
     const timetable = byManageKey(request);
@@ -516,26 +466,6 @@ export const timetableHandlers = [
     await delay(160);
     const access = byAccessKey(request);
     return access ? HttpResponse.json(toActorView(access.timetable, access.actor)) : notFound();
-  }),
-
-  http.put(`${API}/actor/slot`, async ({ request }) => {
-    await delay(200);
-    const access = byAccessKey(request);
-    if (!access) return notFound();
-    const { timetable, actor } = access;
-    const body = await request.json() as { current: TimeSlot; next: TimeSlot };
-    const current = toSlot(body.current);
-    const next = toSlot(body.next);
-    if (!sameSlot(actor.slot, current)) return apiError(409, "TIMETABLE_ASSIGNMENT_CONFLICT", "일정이 그사이 바뀌었습니다. 새로고침한 뒤 다시 골라 주세요.");
-    const status = selfChangeOf(timetable, actor);
-    if (status !== "OPEN") return apiError(409, "TIMETABLE_SELF_CHANGE_CLOSED", status === "LOCKED" ? "기획사가 일정 변경을 마감했습니다." : "오디션 시작 24시간 전까지만 직접 바꿀 수 있습니다.");
-    const open = next && toActorView(timetable, actor).openSlots.some((slot) => sameSlot(slot, next));
-    if (!open || !next) return apiError(409, "TIMETABLE_SLOT_UNAVAILABLE", "선택한 시간은 이미 찼거나 바꿀 수 없는 시간입니다. 다른 시간을 골라 주세요.");
-    if (!actor.actorChangedAt) actor.previousSlot = actor.slot;
-    actor.slot = next;
-    actor.actorChangedAt = now();
-    timetable.requests.filter((item) => item.actorId === actor.id).forEach((item) => { item.open = false; });
-    return HttpResponse.json(toActorView(timetable, actor));
   }),
 
   http.post(`${API}/actor/requests`, async ({ request }) => {

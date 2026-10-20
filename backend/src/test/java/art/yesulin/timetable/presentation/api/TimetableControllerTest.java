@@ -74,7 +74,7 @@ class TimetableControllerTest {
     }
 
     @Test
-    void organizerBuildsAndPublishesTimetableThenActorMovesWithLink() throws Exception {
+    void organizerBuildsAndPublishesTimetableThenActorAsksForAnotherTime() throws Exception {
         String manageKey = create();
 
         String registered = mockMvc.perform(post("/api/v1/timetables/manage/actors")
@@ -127,21 +127,8 @@ class TimetableControllerTest {
                 .andExpect(header().string("Cache-Control", "no-store"))
                 .andExpect(jsonPath("$.actorName").value("김배우"))
                 .andExpect(jsonPath("$.organizerName").value("남극장"))
-                .andExpect(jsonPath("$.selfChange").value("OPEN"))
-                .andExpect(jsonPath("$.changeDeadline").value("2026-10-09T01:00:00Z"))
-                .andExpect(jsonPath("$.openSlots[0].startTime").value("11:00:00"))
+                .andExpect(jsonPath("$.slot.startTime").value("10:00:00"))
                 .andExpect(jsonPath("$.phone").doesNotExist());
-
-        mockMvc.perform(put("/api/v1/timetables/actor/slot")
-                        .with(csrf())
-                        .header(KEY, accessKey)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"current": {"date": "2026-10-10", "startTime": "10:00"},
-                                 "next": {"date": "2026-10-10", "startTime": "11:00"}}
-                                """))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.slot.startTime").value("11:00:00"));
 
         mockMvc.perform(post("/api/v1/timetables/actor/requests")
                         .with(csrf())
@@ -155,9 +142,7 @@ class TimetableControllerTest {
 
         String board = mockMvc.perform(get("/api/v1/timetables/manage").header(KEY, manageKey))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.actors[0].slot.startTime").value("11:00:00"))
-                .andExpect(jsonPath("$.actors[0].previousSlot.startTime").value("10:00:00"))
-                .andExpect(jsonPath("$.actors[0].actorChangedAt").value("2026-10-03T01:00:00Z"))
+                .andExpect(jsonPath("$.actors[0].slot.startTime").value("10:00:00"))
                 .andExpect(jsonPath("$.requests[0].actorName").value("김배우"))
                 .andReturn().getResponse().getContentAsString();
         int requestId = JsonPath.read(board, "$.requests[0].id");
@@ -167,16 +152,6 @@ class TimetableControllerTest {
                         .header(KEY, manageKey))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.requests", hasSize(0)));
-
-        mockMvc.perform(put("/api/v1/timetables/manage/self-change-lock")
-                        .with(csrf())
-                        .header(KEY, manageKey)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"locked": true}
-                                """))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.selfChangeLocked").value(true));
 
         mockMvc.perform(delete("/api/v1/timetables/manage/actors/{actorId}", second)
                         .with(csrf())

@@ -82,14 +82,6 @@ public class TimetableController {
         return ok(timetableService.publish(manageKey));
     }
 
-    @PutMapping("/manage/self-change-lock")
-    public ResponseEntity<TimetableBoardResult> changeSelfChangeLock(
-            @RequestHeader(KEY_HEADER) String manageKey,
-            @Valid @RequestBody ChangeSelfChangeLockRequest request
-    ) {
-        return ok(timetableService.changeSelfChangeLock(manageKey, request.locked()));
-    }
-
     @PostMapping("/manage/requests/{requestId}/resolution")
     public ResponseEntity<TimetableBoardResult> resolveRequest(
             @RequestHeader(KEY_HEADER) String manageKey,

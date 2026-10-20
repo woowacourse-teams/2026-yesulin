@@ -14,7 +14,7 @@ export function RequestsDialog({ requests, busy, onMove, onResolve, onClose }: {
   readonly onClose: () => void;
 }) {
   return (
-    <SheetDialog title={`시간 조정 요청 ${requests.length}건`} busy={busy} onClose={onClose}>
+    <SheetDialog title={`시간 변경 문의 ${requests.length}건`} busy={busy} onClose={onClose}>
       {requests.length === 0 ? <p className="py-6 text-center text-sm text-muted">남은 요청이 없어요.</p> : null}
       <ul className="space-y-3">
         {requests.map((request) => (

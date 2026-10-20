@@ -35,13 +35,12 @@ function toBoard(board: TimetableBoard): TimetableBoard {
     actors: board.actors.map((actor) => ({
       ...actor,
       slot: toRange(actor.slot),
-      previousSlot: toRange(actor.previousSlot),
     })),
   };
 }
 
 function toActorTimetable(timetable: ActorTimetable): ActorTimetable {
-  return { ...timetable, slot: toRange(timetable.slot), openSlots: timetable.openSlots.map(toRange) };
+  return { ...timetable, slot: toRange(timetable.slot) };
 }
 
 function profileBody(profile: TimetableProfile) {
@@ -129,14 +128,6 @@ export async function publishTimetable(manageKey: string): Promise<TimetableBoar
   }));
 }
 
-export async function changeSelfChangeLock(manageKey: string, locked: boolean): Promise<TimetableBoard> {
-  return toBoard(await request<TimetableBoard>(`${TIMETABLES_PATH}/manage/self-change-lock`, {
-    method: "PUT",
-    headers: keyHeaders(manageKey),
-    body: JSON.stringify({ locked }),
-  }));
-}
-
 export async function resolveTimetableRequest(manageKey: string, requestId: number): Promise<TimetableBoard> {
   return toBoard(await request<TimetableBoard>(`${TIMETABLES_PATH}/manage/requests/${requestId}/resolution`, {
     method: "POST",
@@ -151,14 +142,6 @@ export async function getActorTimetable(accessKey: string): Promise<ActorTimetab
 }
 
 /** `current`는 화면이 본 지금 시간이다. 그사이 기획사가 옮겼으면 서버가 거절한다. */
-export async function changeActorSlot(accessKey: string, current: TimeSlot, next: TimeSlot): Promise<ActorTimetable> {
-  return toActorTimetable(await request<ActorTimetable>(`${TIMETABLES_PATH}/actor/slot`, {
-    method: "PUT",
-    headers: keyHeaders(accessKey),
-    body: JSON.stringify({ current: slotBody(current), next: slotBody(next) }),
-  }));
-}
-
 export async function requestActorTime(accessKey: string, message: string): Promise<ActorTimetable> {
   return toActorTimetable(await request<ActorTimetable>(`${TIMETABLES_PATH}/actor/requests`, {
     method: "POST",

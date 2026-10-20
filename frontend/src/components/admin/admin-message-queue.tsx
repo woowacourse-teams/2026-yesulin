@@ -13,7 +13,7 @@ type Phase = "loading" | "ready" | "unauthorized" | "failed";
 
 const TYPE_LABELS: Record<AdminTimetableMessageType, string> = {
   ORGANIZER_LINK: "기획사 · 관리 링크",
-  ORGANIZER_TIME_REQUEST: "기획사 · 시간 조정 요청",
+  ORGANIZER_TIME_REQUEST: "기획사 · 시간 변경 문의",
   ACTOR_INVITATION: "배우 · 합격·일정 안내",
   ACTOR_SCHEDULE_CHANGED: "배우 · 일정 변경",
 };

@@ -19,7 +19,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PostPersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalTime;
 import java.util.List;
@@ -43,9 +42,6 @@ import org.springframework.data.domain.AbstractAggregateRoot;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Timetable extends AbstractAggregateRoot<Timetable> {
 
-    /** 배우가 직접 시간을 바꾸려면 지금 시간과 옮길 시간 모두 이만큼 남아 있어야 한다. 당일 혼란을 막는다. */
-    public static final Duration SELF_CHANGE_NOTICE = Duration.ofHours(24);
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -63,9 +59,6 @@ public class Timetable extends AbstractAggregateRoot<Timetable> {
     @Convert(converter = TimetableStatusConverter.class)
     @Column(nullable = false, length = 20)
     private TimetableStatus status;
-
-    @Column(name = "self_change_locked", nullable = false)
-    private boolean selfChangeLocked;
 
     @Column(name = "published_at")
     private Instant publishedAt;
@@ -97,10 +90,6 @@ public class Timetable extends AbstractAggregateRoot<Timetable> {
         this.publishedAt = requireNonNull(now, "확정 시각은 필수입니다.");
     }
 
-    public void changeSelfChangeLock(boolean locked) {
-        this.selfChangeLocked = locked;
-    }
-
     public boolean isPublished() {
         return status == TimetableStatus.PUBLISHED;
     }
@@ -111,15 +100,6 @@ public class Timetable extends AbstractAggregateRoot<Timetable> {
 
     public LocalTime endTimeOf(TimeSlot slot) {
         return slot.startTime().plusMinutes(setting.getSlotMinutes());
-    }
-
-    public Instant startInstantOf(TimeSlot slot) {
-        return slot.startsAt().atZone(TimeSlot.ZONE).toInstant();
-    }
-
-    /** 시작까지 직접 변경 마감 시간보다 많이 남은 칸인지. 마감 시각 정각까지는 바꿀 수 있다. */
-    public boolean isBeforeSelfChangeDeadline(TimeSlot slot, Instant now) {
-        return !now.plus(SELF_CHANGE_NOTICE).isAfter(startInstantOf(slot));
     }
     
     @PostPersist

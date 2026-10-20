@@ -23,8 +23,6 @@ public record TimetableBoardResult(
         String guide,
         TimetableStatus status,
         Instant publishedAt,
-        boolean selfChangeLocked,
-        long selfChangeNoticeHours,
         int slotMinutes,
         int slotCapacity,
         List<Window> windows,
@@ -44,8 +42,6 @@ public record TimetableBoardResult(
                 timetable.getProfile().getGuide(),
                 timetable.getStatus(),
                 timetable.getPublishedAt(),
-                timetable.isSelfChangeLocked(),
-                Timetable.SELF_CHANGE_NOTICE.toHours(),
                 timetable.getSetting().getSlotMinutes(),
                 timetable.getSetting().getSlotCapacity(),
                 timetable.getSetting().getWindows().values().stream().map(Window::from).toList(),
@@ -64,18 +60,13 @@ public record TimetableBoardResult(
         }
     }
 
-    /**
-     * {@code previousSlot}과 {@code actorChangedAt}은 배우가 링크에서 직접 바꿨을 때만 값이 있다.
-     * {@code registeredAt}이 일정표 확정 시각보다 늦으면 확정 뒤에 등록한 추가 합격자다.
-     */
+    /** {@code registeredAt}이 일정표 확정 시각보다 늦으면 확정 뒤에 등록한 추가 합격자다. */
     public record Actor(
             long id,
             String name,
             String phone,
             TimeSlotResult slot,
             boolean invited,
-            TimeSlotResult previousSlot,
-            Instant actorChangedAt,
             Instant registeredAt
     ) {
 
@@ -86,8 +77,6 @@ public record TimetableBoardResult(
                     actor.getPhone(),
                     TimeSlotResult.of(actor.getSlot(), timetable),
                     actor.isInvited(),
-                    TimeSlotResult.of(actor.getPreviousSlot(), timetable),
-                    actor.getActorChangedAt(),
                     actor.getCreatedAt()
             );
         }

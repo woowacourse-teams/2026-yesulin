@@ -94,10 +94,10 @@ public class TimetableMessenger {
             return Optional.empty();
         }
         String body = compose(
-                "시간 조정 요청 알림",
+                "시간 변경 문의 알림",
                 organizerGreeting(timetable),
                 """
-                '%s' 오디션 일정표에 배우의 시간 조정 요청이 들어왔습니다.
+                '%s' 오디션 일정표에 배우의 시간 변경 문의가 들어왔습니다.
                 아래 링크에서 확인해 주세요.""".formatted(timetable.getProfile().getTitle()),
                 "일정표 관리",
                 links.manage(timetable.getManageKey()),

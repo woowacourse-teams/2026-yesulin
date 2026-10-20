@@ -72,18 +72,6 @@ public class TimetableActor {
     @Column(name = "invited_at")
     private Instant invitedAt;
 
-    /** 배우가 링크에서 직접 바꾼 시각. 기획사가 다시 옮기면 지운다. */
-    @Column(name = "actor_changed_at")
-    private Instant actorChangedAt;
-
-    @Getter(AccessLevel.NONE)
-    @Column(name = "previous_slot_date")
-    private LocalDate previousSlotDate;
-
-    @Getter(AccessLevel.NONE)
-    @Column(name = "previous_slot_start_time")
-    private LocalTime previousSlotStartTime;
-
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -97,12 +85,7 @@ public class TimetableActor {
 
     /** 배정되지 않았으면 null이다. */
     public TimeSlot getSlot() {
-        return toSlot(slotDate, slotStartTime);
-    }
-
-    /** 배우가 직접 바꾸기 전의 시간. 배우가 바꾼 적이 없거나 기획사가 다시 옮겼으면 null이다. */
-    public TimeSlot getPreviousSlot() {
-        return toSlot(previousSlotDate, previousSlotStartTime);
+        return slotDate == null || slotStartTime == null ? null : new TimeSlot(slotDate, slotStartTime);
     }
 
     public boolean isAssigned() {
@@ -113,10 +96,6 @@ public class TimetableActor {
         return invitedAt != null;
     }
 
-    public boolean isChangedByActor() {
-        return actorChangedAt != null;
-    }
-
     /** 이미 안내했다면 처음 안내 시각을 유지한다. */
     public void markInvited(Instant now) {
         if (invitedAt == null) {
@@ -124,30 +103,9 @@ public class TimetableActor {
         }
     }
 
-    public void assignByOrganizer(TimeSlot slot) {
-        changeSlot(slot);
-        this.actorChangedAt = null;
-        this.previousSlotDate = null;
-        this.previousSlotStartTime = null;
-    }
-
-    /** 배우가 여러 번 바꿔도 기획사가 마지막으로 정한 시간을 이전 시간으로 남긴다. */
-    public void moveByActor(TimeSlot slot, Instant now) {
-        if (actorChangedAt == null) {
-            this.previousSlotDate = slotDate;
-            this.previousSlotStartTime = slotStartTime;
-        }
-        changeSlot(requireNonNull(slot, "옮길 시간은 필수입니다."));
-        this.actorChangedAt = requireNonNull(now, "변경 시각은 필수입니다.");
-    }
-
-    private void changeSlot(TimeSlot slot) {
+    public void assign(TimeSlot slot) {
         this.slotDate = slot == null ? null : slot.date();
         this.slotStartTime = slot == null ? null : slot.startTime();
-    }
-
-    private static TimeSlot toSlot(LocalDate date, LocalTime startTime) {
-        return date == null || startTime == null ? null : new TimeSlot(date, startTime);
     }
 
     private static String requireName(String name) {

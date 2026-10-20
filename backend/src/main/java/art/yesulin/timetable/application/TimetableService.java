@@ -140,13 +140,6 @@ public class TimetableService {
         return boardOf(timetable, actors);
     }
 
-    @Transactional
-    public TimetableBoardResult changeSelfChangeLock(String manageKey, boolean locked) {
-        Timetable timetable = lock(manageKey);
-        timetable.changeSelfChangeLock(locked);
-        return boardOf(timetable, actorsOf(timetable));
-    }
-
     /** 배우를 직접 옮기지 않고 전화 등으로 해결한 요청을 닫는다. 이미 닫힌 요청은 그대로 둔다. */
     @Transactional
     public TimetableBoardResult resolveRequest(String manageKey, long requestId) {

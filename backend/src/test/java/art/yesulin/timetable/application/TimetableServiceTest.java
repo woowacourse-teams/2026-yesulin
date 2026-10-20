@@ -19,7 +19,6 @@ import art.yesulin.timetable.domain.TimetableErrorCode;
 import art.yesulin.timetable.domain.TimetableKey;
 import art.yesulin.timetable.domain.TimetableRepository;
 import art.yesulin.timetable.domain.TimetableStatus;
-import art.yesulin.timetable.domain.actor.SelfChangeStatus;
 import art.yesulin.timetable.domain.actor.SlotAssignment;
 import art.yesulin.timetable.domain.actor.TimetableActorRepository;
 import art.yesulin.timetable.domain.message.TimetableMessage;
@@ -106,7 +105,6 @@ class TimetableServiceTest {
         assertEquals(TimetableStatus.DRAFT, timetable.status());
         assertEquals(List.of(new TimetableBoardResult.Window(DAY, LocalTime.of(10, 0), LocalTime.of(11, 30))),
                 timetable.windows());
-        assertEquals(24, timetable.selfChangeNoticeHours());
         TimetableMessage message = onlyMessage(TimetableMessageType.ORGANIZER_LINK);
         assertNull(message.getActorId());
         assertEquals("010-9999-0000", message.getRecipientPhone());
@@ -238,33 +236,7 @@ class TimetableServiceTest {
         assertEquals("김배우", result.actorName());
         assertEquals(TEN, slotOf(result.slot()));
         assertEquals(LocalTime.of(10, 30), result.slot().endTime());
-        assertEquals(SelfChangeStatus.OPEN, result.selfChange());
-        assertEquals(Instant.parse("2026-10-09T01:00:00Z"), result.changeDeadline());
-        assertEquals(List.of(TEN_THIRTY, ELEVEN), result.openSlots().stream().map(this::slotOf).toList());
         assertCode(TimetableErrorCode.NOT_FOUND, () -> actorTimetableService.find("short"));
-    }
-
-    @Test
-    void actorMovesIntoOpenSlotWithoutOrganizerApproval() {
-        Published published = publishTwo();
-
-        ActorTimetableResult result = actorTimetableService.changeSlot(published.firstKey(), TEN, ELEVEN);
-
-        assertEquals(ELEVEN, slotOf(result.slot()));
-        TimetableBoardResult.Actor actor = timetableService.find(published.key()).actors().getFirst();
-        assertEquals(ELEVEN, slotOf(actor.slot()));
-        assertEquals(TEN, slotOf(actor.previousSlot()));
-        assertEquals(NOW, actor.actorChangedAt());
-        assertEquals(0, messages(TimetableMessageType.ACTOR_SCHEDULE_CHANGED).size());
-        assertCode(TimetableErrorCode.SLOT_UNAVAILABLE,
-                () -> actorTimetableService.changeSlot(published.firstKey(), ELEVEN, TEN_THIRTY));
-        assertCode(TimetableErrorCode.ASSIGNMENT_CONFLICT,
-                () -> actorTimetableService.changeSlot(published.firstKey(), TEN, ELEVEN));
-
-        timetableService.changeSelfChangeLock(published.key(), true);
-        assertEquals(SelfChangeStatus.LOCKED, actorTimetableService.find(published.firstKey()).selfChange());
-        assertCode(TimetableErrorCode.SELF_CHANGE_CLOSED,
-                () -> actorTimetableService.changeSlot(published.firstKey(), ELEVEN, TEN));
     }
 
     @Test
