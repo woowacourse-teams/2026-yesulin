@@ -535,6 +535,16 @@ export async function changeEventStatus(eventId: number, status: AdminEventStatu
   return await sendJson(`/events/${eventId}/status`, "PATCH", { status }, "공개 상태를 바꾸지 못했습니다.") as AdminEvent;
 }
 
+/** 글과 이미지를 되돌릴 수 없게 지운다. */
+export async function deleteEvent(eventId: number): Promise<void> {
+  const response = await fetch(`${API_BASE_PATH}/events/${eventId}`, {
+    method: "DELETE",
+    credentials: "include",
+    headers: await withCsrfHeaders(),
+  });
+  if (!response.ok) throw await readAdminError(response, "이벤트를 지우지 못했습니다.");
+}
+
 /**
  * 이벤트 이미지를 원본 그대로 저장소에 올리고 공개 주소를 준다. 배너는 이미지 안에 글자가 있어 줄이지 않는다.
  * 이벤트를 저장할 때 서버가 이 주소로 업로드를 확정한다.

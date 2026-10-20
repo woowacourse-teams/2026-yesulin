@@ -96,6 +96,20 @@ public class EventService {
         return AdminEventResult.from(event, this::urlOf, today());
     }
 
+    /**
+     * 글을 지운다. 다른 기능이 참조하지 않는 운영자 글이라 행을 지우고, 이미지도 커밋 뒤 저장소에서 지운다. 감사 로그는 남긴다.
+     */
+    @Transactional
+    public void delete(long adminId, long eventId) {
+        Event event = find(eventId);
+        EventImages keys = event.images();
+        audit(adminId, event, AdminAction.EVENT_DELETED, "이벤트 삭제");
+        repository.delete(event);
+        images.deleteAfterCommit(keys.coverKey());
+        images.deleteAfterCommit(keys.bannerDesktopKey());
+        images.deleteAfterCommit(keys.bannerMobileKey());
+    }
+
     @Transactional(readOnly = true)
     public List<PublicEventSummaryResult> findPublished() {
         LocalDate today = today();

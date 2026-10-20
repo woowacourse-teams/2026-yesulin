@@ -135,6 +135,28 @@ class EventServiceTest {
     }
 
     @Test
+    void deletingEventRemovesRowImagesAndBannerAndLeavesAuditLog() {
+        AdminEventResult created = eventService.create(
+                ADMIN_ID, content("지울 이벤트"), banner("지울 이벤트", null, 0),
+                new EventImageUrls(uploaded(ADMIN_ID), uploaded(ADMIN_ID), uploaded(ADMIN_ID))
+        );
+        eventService.changeStatus(ADMIN_ID, created.id(), EventStatus.PUBLISHED);
+
+        eventService.delete(ADMIN_ID, created.id());
+
+        assertTrue(eventRepository.findById(created.id()).isEmpty());
+        assertTrue(eventService.findBanners().isEmpty());
+        assertFalse(storage.contains(keyOf(created.coverImageUrl())));
+        assertFalse(storage.contains(keyOf(created.banner().desktopImageUrl())));
+        assertFalse(storage.contains(keyOf(created.banner().mobileImageUrl())));
+        assertTrue(auditLogRepository.findAll().stream().anyMatch(log ->
+                log.getAction() == AdminAction.EVENT_DELETED && log.getTargetId() == created.id()));
+        BusinessException missing = assertThrows(BusinessException.class, () ->
+                eventService.delete(ADMIN_ID, created.id()));
+        assertEquals(EventErrorCode.NOT_FOUND, missing.getErrorCode());
+    }
+
+    @Test
     void rejectsImageUploadedByAnotherAdminUnknownAddressOrWrongContent() {
         String othersImage = uploaded(OTHER_ADMIN_ID);
         assertThrows(BusinessException.class, () -> eventService.create(

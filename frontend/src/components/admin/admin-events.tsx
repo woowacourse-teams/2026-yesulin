@@ -3,11 +3,13 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import { AuditionPostStatusBadge } from "@/components/audition-posts/audition-post-status-badge";
 import { EventPhaseBadge } from "@/components/events/event-screen";
+import { ConfirmDialog } from "@/components/shows/manage/confirm-dialog";
 import { FieldInput, FieldTextarea } from "@/components/ui/controls";
 import {
   AdminApiError,
   changeEventStatus,
   createEvent,
+  deleteEvent,
   fetchAdminEvents,
   updateEvent,
   uploadEventImage,
@@ -53,6 +55,9 @@ export function AdminEvents() {
   /** 편집 중인 글. `"new"`면 새로 쓴다. */
   const [editing, setEditing] = useState<number | "new" | null>(null);
   const [changing, setChanging] = useState<number | null>(null);
+  /** 삭제 확인 중인 글. */
+  const [deleting, setDeleting] = useState<AdminEvent | null>(null);
+  const [removing, setRemoving] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -94,6 +99,26 @@ export function AdminEvents() {
       setError(cause instanceof Error ? cause.message : "공개 상태를 바꾸지 못했습니다.");
     } finally {
       setChanging(null);
+    }
+  };
+
+  const remove = async (event: AdminEvent) => {
+    setRemoving(true);
+    setError(null);
+    try {
+      await deleteEvent(event.id);
+      setEvents((current) => current.filter((item) => item.id !== event.id));
+      if (editing === event.id) setEditing(null);
+      setDeleting(null);
+    } catch (cause) {
+      if (cause instanceof AdminApiError && cause.status === 401) {
+        setPhase("unauthorized");
+        return;
+      }
+      setDeleting(null);
+      setError(cause instanceof Error ? cause.message : "이벤트를 지우지 못했습니다.");
+    } finally {
+      setRemoving(false);
     }
   };
 
@@ -170,19 +195,38 @@ export function AdminEvents() {
               changing={changing === event.id}
               onEdit={() => setEditing(event.id)}
               onToggleStatus={() => void toggleStatus(event)}
+              onDelete={() => setDeleting(event)}
             />
           ))}
         </section>
+      ) : null}
+
+      {deleting ? (
+        <ConfirmDialog
+          title="이벤트를 지울까요?"
+          destructive
+          confirmLabel="이벤트 삭제"
+          busy={removing}
+          onClose={() => setDeleting(null)}
+          onConfirm={() => void remove(deleting)}
+          description={(
+            <>
+              <strong className="font-semibold text-foreground">{deleting.title}</strong>{" "}글과 대표·배너 이미지를 지워요. 되돌릴 수 없고,
+              메인 배너와 이벤트 화면에서도 바로 빠져요. 잠시 숨기기만 하려면 &quot;내리기&quot;를 써 주세요.
+            </>
+          )}
+        />
       ) : null}
     </AdminShell>
   );
 }
 
-function EventCard({ event, changing, onEdit, onToggleStatus }: {
+function EventCard({ event, changing, onEdit, onToggleStatus, onDelete }: {
   readonly event: AdminEvent;
   readonly changing: boolean;
   readonly onEdit: () => void;
   readonly onToggleStatus: () => void;
+  readonly onDelete: () => void;
 }) {
   const period = formatEventPeriod(event.startsOn, event.endsOn);
   return (
@@ -203,6 +247,7 @@ function EventCard({ event, changing, onEdit, onToggleStatus }: {
           <AdminActionLink href={eventRoutes.detail(event.id)} target="_blank">공개 화면</AdminActionLink>
         ) : null}
         <AdminActionButton onClick={onEdit}>수정</AdminActionButton>
+        <AdminActionButton tone="destructive" onClick={onDelete}>삭제</AdminActionButton>
         <AdminActionButton disabled={changing} onClick={onToggleStatus} className="ml-auto">
           {changing ? "바꾸는 중…" : STATUS_ACTIONS[event.status]}
         </AdminActionButton>

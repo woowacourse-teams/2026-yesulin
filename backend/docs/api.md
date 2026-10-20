@@ -440,7 +440,7 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 이미 연결된 공고는 그대로 둔다. 이후 가져오는 공고는 기획사 자동 연결과 함께 묶음 규칙으로 공연사가 없는 공고에 공연사를 연결한다.
 `admin_audit_logs`에 `AUDITION_POST_COMPANY_AUTHOR_LINKED`·`AUDITION_POST_COMPANY_AUTHOR_UNLINKED`로 남긴다.
 
-## 이벤트 — 9개
+## 이벤트 — 10개
 
 운영자가 쓰는 이벤트 글(`Event`)과 메인 상단 이벤트 배너다. 공개 API는 로그인 없이, 운영 API는 `ADMIN`만 호출한다. `eventId`는 숫자 ID다.
 
@@ -455,6 +455,7 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 | GET | `/api/v1/admin/events/{eventId}` | Admin | 없음 | `200 AdminEventResult` |
 | PUT | `/api/v1/admin/events/{eventId}` | Admin | `WriteEventRequest` | `200 AdminEventResult` |
 | PATCH | `/api/v1/admin/events/{eventId}/status` | Admin | `ChangeEventStatusRequest(status: PUBLISHED/HIDDEN)` | `200 AdminEventResult` |
+| DELETE | `/api/v1/admin/events/{eventId}` | Admin | 없음 | `204` |
 
 `WriteEventRequest`는 `title`(필수, 100자), `summary`(목록 소개, 200자), `body`(필수, 줄바꿈을 살린 텍스트, 5000자),
 `startsOn`·`endsOn`(`YYYY-MM-DD`, 종료일이 시작일보다 앞서면 400), `applyUrl`(http·https 주소, 500자), `applyLabel`(신청 버튼 문구,
@@ -466,7 +467,9 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 새 글은 `PENDING`이다. 상태 변경은 `PUBLISHED`와 `HIDDEN`만 받으며, 공개하거나 내린 글을 `PENDING`으로 되돌리면 400이다.
 `AdminEventResult`는 저장된 모든 항목과 이미지 공개 주소(`coverImageUrl`, `banner.desktopImageUrl`, `banner.mobileImageUrl`),
 지금 메인 배너에 보이는지(`bannerVisible`), `phase`, `status`, `createdAt`, `updatedAt`을 담는다. 운영 목록은 최근 만든 200건까지 준다.
-생성·수정·상태 변경은 `admin_audit_logs`에 `EVENT_CREATED`·`EVENT_EDITED`·`EVENT_STATUS_CHANGED`로 남기며 글 원문은 담지 않는다.
+삭제는 다른 기능이 참조하지 않는 운영자 글이라 행을 바로 지우고(되돌릴 수 없다) 대표·배너 이미지도 커밋 뒤 저장소에서 지운다.
+없는 글은 `404 EVENT_NOT_FOUND`다. 생성·수정·상태 변경·삭제는 `admin_audit_logs`에 `EVENT_CREATED`·`EVENT_EDITED`·
+`EVENT_STATUS_CHANGED`·`EVENT_DELETED`로 남기며 글 원문은 담지 않는다.
 
 공개 목록·상세는 `PUBLISHED`인 글만 보여 주고, 없거나 공개 전·내린 글은 `404 EVENT_NOT_FOUND`다. 목록은 최근 만든 순으로 100건까지
 `id`, `title`, `summary`, `startsOn`, `endsOn`, `phase`, `coverImageUrl`을 준다. 상세는 여기에 `body`, `applyUrl`, `applyLabel`을 더한다.

@@ -228,6 +228,17 @@ export const eventHandlers = [
     return HttpResponse.json(refreshed(event));
   }),
 
+  http.delete("/api/v1/admin/events/:eventId", async ({ params }) => {
+    if (realLoginEnabled) return passthrough();
+    await delay(120);
+    const rejected = rejectNonAdmin();
+    if (rejected) return rejected;
+    const index = events.findIndex((candidate) => candidate.id === Number(params.eventId));
+    if (index < 0) return apiError(404, "EVENT_NOT_FOUND", "이벤트를 찾을 수 없습니다.");
+    events.splice(index, 1);
+    return new HttpResponse(null, { status: 204 });
+  }),
+
   http.patch("/api/v1/admin/events/:eventId/status", async ({ params, request }) => {
     if (realLoginEnabled) return passthrough();
     await delay(120);

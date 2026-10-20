@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,7 +20,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** 운영자가 이벤트 글을 쓰고 고친 뒤 공개한다. 공개해야 이벤트 화면과 메인 배너에 보인다. */
+/** 운영자가 이벤트 글을 쓰고 고친 뒤 공개한다. 공개해야 이벤트 화면과 메인 배너에 보인다. 필요 없는 글은 지운다. */
 @RestController
 @RequestMapping("/api/v1/admin/events")
 @RequiredArgsConstructor
@@ -71,5 +72,14 @@ public class AdminEventController {
             @Valid @RequestBody ChangeEventStatusRequest request
     ) {
         return ResponseEntity.ok(eventService.changeStatus(principal.memberId(), eventId, request.status()));
+    }
+
+    @DeleteMapping("/{eventId}")
+    public ResponseEntity<Void> delete(
+            @LoginMember(roles = MemberType.ADMIN) MemberPrincipal principal,
+            @PathVariable long eventId
+    ) {
+        eventService.delete(principal.memberId(), eventId);
+        return ResponseEntity.noContent().build();
     }
 }
