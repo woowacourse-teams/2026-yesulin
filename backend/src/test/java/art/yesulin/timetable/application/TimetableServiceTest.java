@@ -118,6 +118,14 @@ class TimetableServiceTest {
     }
 
     @Test
+    void greetsOrganizerByContactNameWhenGiven() {
+        create(1, "김기획");
+
+        assertTrue(onlyMessage(TimetableMessageType.ORGANIZER_LINK).getBody()
+                .startsWith("[예술인] 오디션 일정표 관리 링크\n\n남극장 김기획님, 안녕하세요."));
+    }
+
+    @Test
     void registersActorsInBulkAndRejectsDuplicatePhones() {
         String key = create(1).manageKey();
 
@@ -154,7 +162,7 @@ class TimetableServiceTest {
 
                 지원자 김배우님, 안녕하세요.
                 남극장 오디션에 합격하셨습니다.
-                아래 링크에서 '남극장 2차 오디션' 일정을 확인해 주세요.
+                아래 링크에서 '남극장 2차 오디션' 오디션 일정을 확인해 주세요.
 
                 ▶ 내 오디션 일정
                 http://localhost:3000/t/%s
@@ -200,7 +208,7 @@ class TimetableServiceTest {
                 [예술인] 오디션 일정 변경 안내
 
                 지원자 김배우님, 안녕하세요.
-                남극장 '남극장 2차 오디션' 일정이 변경되었습니다."""));
+                남극장 '남극장 2차 오디션' 오디션 일정이 변경되었습니다."""));
         assertCode(TimetableErrorCode.INVALID_INPUT,
                 () -> save(published.key(), 1, new SlotAssignment(published.first(), ELEVEN, null)));
     }
@@ -352,8 +360,12 @@ class TimetableServiceTest {
     }
 
     private TimetableCreatedResult create(int capacity) {
+        return create(capacity, "");
+    }
+
+    private TimetableCreatedResult create(int capacity, String contactName) {
         return timetableService.create(new CreateTimetableCommand(
-                new TimetableProfileCommand("남극장 2차 오디션", "남극장", "010-9999-0000", "남극장 연습실", "대본 지참"),
+                new TimetableProfileCommand("남극장 2차 오디션", "남극장", contactName, "010-9999-0000", "남극장 연습실", "대본 지참"),
                 setting(capacity)
         ));
     }

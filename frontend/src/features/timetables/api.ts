@@ -48,6 +48,7 @@ function profileBody(profile: TimetableProfile) {
   return {
     title: profile.title.trim(),
     organizerName: profile.organizerName.trim(),
+    contactName: profile.contactName.trim(),
     organizerPhone: profile.organizerPhone.trim(),
     location: profile.location.trim(),
     guide: profile.guide.trim(),

@@ -20,7 +20,7 @@ class TimetableTest {
 
     private static final LocalDate DAY = LocalDate.of(2026, 10, 10);
     private static final TimetableProfile PROFILE = new TimetableProfile(
-            "남극장 2차 오디션", "남극장", "010-1234-5678", "", ""
+            "남극장 2차 오디션", "남극장", "", "010-1234-5678", "", ""
     );
 
     @Test
@@ -71,14 +71,16 @@ class TimetableTest {
 
     @Test
     void normalizesProfileAndRequiresMobilePhone() {
-        TimetableProfile profile = new TimetableProfile(" 2차 ", " 남극장 ", "010-123-4567", null, " 대본 지참 ");
+        TimetableProfile profile = new TimetableProfile(" 2차 ", " 남극장 ", " 김기획 ", "010-123-4567", null, " 대본 지참 ");
 
         assertEquals("2차", profile.getTitle());
         assertEquals("남극장", profile.getOrganizerName());
+        assertEquals("김기획", profile.getContactName());
         assertEquals("", profile.getLocation());
         assertEquals("대본 지참", profile.getGuide());
-        assertInvalid(() -> new TimetableProfile("2차", "남극장", "02-123-4567", "", ""));
-        assertInvalid(() -> new TimetableProfile("2차", " ", "010-1234-5678", "", ""));
+        assertEquals("", new TimetableProfile("2차", "남극장", null, "010-1234-5678", "", "").getContactName());
+        assertInvalid(() -> new TimetableProfile("2차", "남극장", "", "02-123-4567", "", ""));
+        assertInvalid(() -> new TimetableProfile("2차", " ", "", "010-1234-5678", "", ""));
     }
 
     @Test

@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 public record TimetableBoardResult(
         String title,
         String organizerName,
+        String contactName,
         String organizerPhone,
         String location,
         String guide,
@@ -37,6 +38,7 @@ public record TimetableBoardResult(
         return new TimetableBoardResult(
                 timetable.getProfile().getTitle(),
                 timetable.getProfile().getOrganizerName(),
+                timetable.getProfile().getContactName(),
                 timetable.getProfile().getOrganizerPhone(),
                 timetable.getProfile().getLocation(),
                 timetable.getProfile().getGuide(),

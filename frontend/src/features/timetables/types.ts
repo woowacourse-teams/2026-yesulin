@@ -30,6 +30,7 @@ export type TimetableSetting = {
 export type TimetableProfile = {
   readonly title: string;
   readonly organizerName: string;
+  readonly contactName: string;
   readonly organizerPhone: string;
   readonly location: string;
   readonly guide: string;
@@ -98,6 +99,7 @@ export type ActorTimetable = {
 export const TIMETABLE_LIMITS = {
   titleLength: 60,
   organizerNameLength: 40,
+  contactNameLength: 30,
   locationLength: 200,
   guideLength: 1000,
   actorNameLength: 30,

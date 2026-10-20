@@ -522,6 +522,7 @@ function profileOf(board: TimetableBoard): TimetableProfile {
   return {
     title: board.title,
     organizerName: board.organizerName,
+    contactName: board.contactName,
     organizerPhone: board.organizerPhone,
     location: board.location,
     guide: board.guide,

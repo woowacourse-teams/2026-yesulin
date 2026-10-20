@@ -532,7 +532,8 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 | PUT | `/api/v1/timetables/actor/slot` | 배우 열쇠 | `ChangeActorSlotRequest(current, next)` | `200 ActorTimetableResult` |
 | POST | `/api/v1/timetables/actor/requests` | 배우 열쇠 | `CreateTimeRequestRequest(message)` | `200 ActorTimetableResult` |
 
-`profile`은 `title`(60자 이하), `organizerName`(40자 이하), `organizerPhone`(`010-1234-5678`), 선택 `location`(200자 이하)·
+`profile`은 `title`(작품명, 60자 이하), `organizerName`(40자 이하), `organizerPhone`(`010-1234-5678`), 선택
+`contactName`(담당자명, 30자 이하)·`location`(200자 이하)·
 `guide`(1000자 이하)다. `setting`은 `slotMinutes`(5분 단위 5~240), `slotCapacity`(1~50), `windows`(1~200개의
 `{date, startTime, endTime}`, 5분 단위, 같은 날 겹침 불가)다. 일정표를 만들면 관리 열쇠를 응답으로 한 번 주고
 담당자 번호로 관리 링크 문자를 대기열에 넣는다. 형식·길이·시간대 규칙 위반은 `400 TIMETABLE_INVALID_INPUT`이다.
@@ -766,7 +767,7 @@ S3 삭제 실패 시 `DELETING` 상태가 남으며 같은 파일 ID로 재시�
 
 일정표 문자 대기열은 기획사에게 자동 발송으로 안내한 문자를 운영자가 직접 보내기 위한 목록이다. `PENDING`은 오래된 순
 최대 200건, `SENT`는 최근 보낸 순 최대 100건을 주며 `pendingCount`는 상한과 관계없는 전체 대기 건수다. 각 문자는 `type`
-(`ORGANIZER_LINK`·`ORGANIZER_TIME_REQUEST`·`ACTOR_INVITATION`·`ACTOR_SCHEDULE_CHANGED`), 일정표 이름·단체명, 받는 사람 이름·번호,
+(`ORGANIZER_LINK`·`ORGANIZER_TIME_REQUEST`·`ACTOR_INVITATION`·`ACTOR_SCHEDULE_CHANGED`), 작품명·단체명, 받는 사람 이름·번호,
 본문, 대기·발송 시각을 담고 응답은 `Cache-Control: no-store`다. 완료 표시는 서로 다른 ID 1~100개를 받아 대기 문자만 `SENT`로
 바꾸고 `TIMETABLE_MESSAGE_SENT` 감사 기록을 번호·본문 없이 남긴다. 이미 보낸 문자는 처음 기록을 유지하고, 없는 ID가 섞이면
 `404 TIMETABLE_MESSAGE_NOT_FOUND`로 전체를 거절한다.

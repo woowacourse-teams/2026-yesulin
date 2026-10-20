@@ -26,6 +26,7 @@ const actor = (id: number, name: string, startTime: string | null = null, invite
 const board = (actors: TimetableActor[], overrides: Partial<TimetableBoard> = {}): TimetableBoard => ({
   title: "남극장 2차 오디션",
   organizerName: "남극장",
+  contactName: "",
   organizerPhone: "010-9999-0000",
   location: "",
   guide: "",

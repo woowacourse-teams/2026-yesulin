@@ -97,6 +97,7 @@ function toBoard(timetable: MockTimetable): TimetableBoard {
   return {
     title: timetable.title,
     organizerName: timetable.organizerName,
+    contactName: timetable.contactName,
     organizerPhone: timetable.organizerPhone,
     location: timetable.location,
     guide: timetable.guide,
@@ -172,7 +173,7 @@ function queue(timetable: MockTimetable, type: AdminTimetableMessageType, actor:
   const origin = typeof window === "undefined" ? "http://localhost:3000" : window.location.origin;
   const actorLink = actor ? `${origin}${timetableRoutes.actor(actor.accessKey)}` : "";
   const manageLink = `${origin}${timetableRoutes.manage(timetable.manageKey)}`;
-  const organizerGreeting = `${timetable.organizerName} 담당자님, 안녕하세요.`;
+  const organizerGreeting = `${timetable.organizerName} ${timetable.contactName || "담당자"}님, 안녕하세요.`;
   const actorGreeting = `지원자 ${actor?.name ?? ""}님, 안녕하세요.`;
   const actorCaution = "[주의] 본인만 쓰는 링크입니다. 다른 사람에게 보내지 마세요.";
   const organizerCaution = "[주의] 링크를 가진 사람은 누구나 일정표를 고칠 수 있습니다. 외부에 공유하지 마세요.";
@@ -180,16 +181,16 @@ function queue(timetable: MockTimetable, type: AdminTimetableMessageType, actor:
     `[예술인] ${subject}\n\n${greeting}\n${content}\n\n▶ ${label}\n${link}\n\n${caution}\n\n예술인 ${origin}`;
   const body = {
     ORGANIZER_LINK: compose("오디션 일정표 관리 링크", organizerGreeting,
-      `'${timetable.title}' 일정표를 만들었습니다.\n아래 링크에서 합격자 등록과 일정 확정을 할 수 있습니다.`,
+      `'${timetable.title}' 오디션 일정표를 만들었습니다.\n아래 링크에서 합격자 등록과 일정 확정을 할 수 있습니다.`,
       "일정표 관리", manageLink, organizerCaution),
     ORGANIZER_TIME_REQUEST: compose("시간 조정 요청 알림", organizerGreeting,
-      `'${timetable.title}' 일정표에 배우의 시간 조정 요청이 들어왔습니다.\n아래 링크에서 확인해 주세요.`,
+      `'${timetable.title}' 오디션 일정표에 배우의 시간 조정 요청이 들어왔습니다.\n아래 링크에서 확인해 주세요.`,
       "일정표 관리", manageLink, organizerCaution),
     ACTOR_INVITATION: compose("오디션 합격 안내", actorGreeting,
-      `${timetable.organizerName} 오디션에 합격하셨습니다.\n아래 링크에서 '${timetable.title}' 일정을 확인해 주세요.`,
+      `${timetable.organizerName} 오디션에 합격하셨습니다.\n아래 링크에서 '${timetable.title}' 오디션 일정을 확인해 주세요.`,
       "내 오디션 일정", actorLink, actorCaution),
     ACTOR_SCHEDULE_CHANGED: compose("오디션 일정 변경 안내", actorGreeting,
-      `${timetable.organizerName} '${timetable.title}' 일정이 변경되었습니다.\n아래 링크에서 바뀐 시간을 확인해 주세요.`,
+      `${timetable.organizerName} '${timetable.title}' 오디션 일정이 변경되었습니다.\n아래 링크에서 바뀐 시간을 확인해 주세요.`,
       "내 오디션 일정", actorLink, actorCaution),
   }[type];
   messages.push({
@@ -269,6 +270,7 @@ function seed() {
   const second = addDays(first, 1);
   const profile = {
     organizerName: "남극장",
+    contactName: "김하늘",
     organizerPhone: "010-9000-0000",
     location: "서울 종로구 대학로 12, 남극장 3층 연습실",
     guide: "지정 대사 1분과 자유 연기 1분을 준비해 주세요.\n움직이기 편한 복장으로 오세요.",
@@ -343,7 +345,7 @@ export const timetableHandlers = [
   http.post(API, async ({ request }) => {
     await delay(200);
     const body = await request.json() as { profile: TimetableProfile; setting: TimetableSetting };
-    if (!body.profile?.title?.trim() || !body.profile.organizerName?.trim()) return invalid("일정표 이름과 단체명을 입력해 주세요.");
+    if (!body.profile?.title?.trim() || !body.profile.organizerName?.trim()) return invalid("작품명과 단체명을 입력해 주세요.");
     if (!/^01\d-\d{3,4}-\d{4}$/.test(body.profile.organizerPhone ?? "")) return invalid("담당자 휴대폰 번호는 010-1234-5678 형식으로 입력해 주세요.");
     const problem = settingProblem(body.setting);
     if (problem) return invalid(problem);
@@ -374,7 +376,7 @@ export const timetableHandlers = [
     const timetable = byManageKey(request);
     if (!timetable) return notFound();
     const body = await request.json() as TimetableProfile;
-    if (!body.title?.trim() || !body.organizerName?.trim()) return invalid("일정표 이름과 단체명을 입력해 주세요.");
+    if (!body.title?.trim() || !body.organizerName?.trim()) return invalid("작품명과 단체명을 입력해 주세요.");
     Object.assign(timetable, body);
     return HttpResponse.json(toBoard(timetable));
   }),
