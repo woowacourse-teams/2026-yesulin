@@ -1,5 +1,6 @@
 import type { VenueAddress } from "../auditions/creation-types";
 import type { CompanyField, CompanyWrite } from "../companies/profile-draft";
+import type { EventPhase } from "../events/types";
 
 export type MemberStatus = "PENDING" | "ACTIVE";
 
@@ -537,3 +538,63 @@ export type CompanyPhotoUpload = {
 export function adminEditRequestPhotoUrl(requestId: number): string {
   return `/api/v1/admin/company-edit-requests/${requestId}/photo`;
 }
+
+export type AdminEventStatus = "PENDING" | "PUBLISHED" | "HIDDEN";
+
+/** 이벤트 메인 배너 설정. 켜려면 PC·모바일 배너 이미지와 대체 문구가 모두 있어야 한다. */
+export type AdminEventBanner = {
+  readonly enabled: boolean;
+  /** PC 배너(3.2:1) 공개 주소 */
+  readonly desktopImageUrl: string | null;
+  /** 모바일 배너(4:3) 공개 주소 */
+  readonly mobileImageUrl: string | null;
+  /** 배너 이미지에 적힌 문구를 옮긴 대체 문구 */
+  readonly alt: string | null;
+  /** `YYYY-MM-DD`. 이 날까지 노출하고, 없으면 내릴 때까지 노출한다. */
+  readonly endsOn: string | null;
+  /** 0~99. 작은 순서가 먼저 보인다. */
+  readonly order: number;
+};
+
+/** 운영 화면의 이벤트 글. 백엔드 `AdminEventResult`와 같다. */
+export type AdminEvent = {
+  readonly id: number;
+  readonly title: string;
+  readonly summary: string | null;
+  readonly body: string;
+  readonly startsOn: string | null;
+  readonly endsOn: string | null;
+  readonly applyUrl: string | null;
+  readonly applyLabel: string | null;
+  readonly coverImageUrl: string | null;
+  readonly banner: AdminEventBanner;
+  /** 지금 메인 배너에 보이는지. 공개 상태와 노출 종료일까지 본 결과다. */
+  readonly bannerVisible: boolean;
+  readonly status: AdminEventStatus;
+  readonly phase: EventPhase;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+};
+
+/** 이벤트를 통째로 저장하는 요청. 백엔드 `WriteEventRequest`와 같고, 빈 값은 지운다. */
+export type AdminEventWrite = {
+  readonly title: string;
+  readonly summary: string | null;
+  readonly body: string;
+  readonly startsOn: string | null;
+  readonly endsOn: string | null;
+  readonly applyUrl: string | null;
+  readonly applyLabel: string | null;
+  readonly coverImageUrl: string | null;
+  readonly banner: AdminEventBanner;
+};
+
+/** 브라우저가 이벤트 이미지를 저장소로 바로 올릴 주소. 백엔드 `EventImageUploadResult`와 같다. */
+export type EventImageUpload = {
+  readonly url: string;
+  readonly method: string;
+  readonly headers: Readonly<Record<string, string>>;
+  readonly expiresAt: string;
+  /** 올린 뒤의 공개 주소. 이벤트를 저장할 때 이 주소로 확정한다. */
+  readonly imageUrl: string;
+};
