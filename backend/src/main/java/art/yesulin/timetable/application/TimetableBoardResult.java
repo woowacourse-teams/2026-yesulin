@@ -4,6 +4,7 @@ import art.yesulin.timetable.domain.Timetable;
 import art.yesulin.timetable.domain.TimetableStatus;
 import art.yesulin.timetable.domain.actor.TimetableActor;
 import art.yesulin.timetable.domain.actor.TimetableAttendance;
+import art.yesulin.timetable.domain.message.InvitationTemplate;
 import art.yesulin.timetable.domain.request.TimetableRequest;
 import art.yesulin.timetable.domain.setting.TimetableWindow;
 import java.time.Instant;
@@ -24,6 +25,8 @@ public record TimetableBoardResult(
         String guide,
         TimetableStatus status,
         Instant publishedAt,
+        String invitationTemplate,
+        String defaultInvitationTemplate,
         int slotMinutes,
         int slotCapacity,
         List<Window> windows,
@@ -43,6 +46,8 @@ public record TimetableBoardResult(
                 timetable.getProfile().getGuide(),
                 timetable.getStatus(),
                 timetable.getPublishedAt(),
+                timetable.getInvitationTemplate().getText(),
+                InvitationTemplate.DEFAULT_TEXT,
                 timetable.getSetting().getSlotMinutes(),
                 timetable.getSetting().getSlotCapacity(),
                 timetable.getSetting().getWindows().values().stream().map(Window::from).toList(),

@@ -258,6 +258,46 @@ class TimetableServiceTest {
     }
 
     @Test
+    void customInvitationTemplateFillsActorScheduleAndKeepsLink() {
+        String key = create(1).manageKey();
+        long first = register(key, "김배우", "010-1111-1111").actors().get(0).id();
+        timetableService.updateInvitationTemplate(key, "{이름}님 합격! {오디션일시}\n장소: {장소}\n준비: {안내사항}");
+        save(key, 1, new SlotAssignment(first, null, TEN));
+
+        timetableService.publish(key);
+
+        String accessKey = actorRepository.findById(first).orElseThrow().getAccessKey().getValue();
+        assertEquals("""
+                [예술인] 오디션 합격 안내
+
+                김배우님 합격! 10월 10일 (토) 10:00~10:30
+                장소: 남극장 연습실
+                준비: 대본 지참
+
+                ▶ 내 오디션 일정
+                http://localhost:3000/t/%s
+
+                [주의] 본인만 쓰는 링크입니다. 다른 사람에게 보내지 마세요.
+
+                예술인 http://localhost:3000""".formatted(accessKey),
+                onlyMessage(TimetableMessageType.ACTOR_INVITATION).getBody());
+    }
+
+    @Test
+    void pendingInvitationFollowsUpdatedTemplateAndMovedTime() {
+        Published published = publishTwo();
+
+        timetableService.updateInvitationTemplate(published.key(), "{이름}님 {오디션일시}");
+        assertTrue(invitationOf(published.first()).getBody().contains("김배우님 10월 10일 (토) 10:00~10:30"));
+
+        save(published.key(), 1, new SlotAssignment(published.first(), TEN, ELEVEN));
+
+        assertTrue(invitationOf(published.first()).getBody().contains("김배우님 10월 10일 (토) 11:00~11:30"));
+        assertEquals(2, messages(TimetableMessageType.ACTOR_INVITATION).size());
+        assertEquals(0, messages(TimetableMessageType.ACTOR_SCHEDULE_CHANGED).size());
+    }
+
+    @Test
     void groupsTimeRequestNoticesUntilOperatorSendsThem() {
         Published published = publishTwo();
 
@@ -391,6 +431,13 @@ class TimetableServiceTest {
 
     private List<TimetableMessage> messages(TimetableMessageType type) {
         return messageRepository.findAll().stream().filter(message -> message.getType() == type).toList();
+    }
+
+    private TimetableMessage invitationOf(long actorId) {
+        return messages(TimetableMessageType.ACTOR_INVITATION).stream()
+                .filter(message -> message.getActorId() == actorId)
+                .findFirst()
+                .orElseThrow();
     }
 
     private TimetableMessage onlyMessage(TimetableMessageType type) {

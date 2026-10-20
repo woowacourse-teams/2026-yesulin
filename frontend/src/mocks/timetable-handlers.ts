@@ -1,7 +1,8 @@
 import { delay, http, HttpResponse, passthrough } from "msw";
 import { frontendEnvironment } from "@/config/environment";
 import type { AdminTimetableMessage, AdminTimetableMessageType } from "@/features/admin/types";
-import { addDays, hmOf, minutesOf, sameSlot, slotKey, slotsOf, toHm, todayInSeoul } from "@/features/timetables/time";
+import { renderInvitation } from "@/features/timetables/invitation-template";
+import { addDays, formatSlotRange, hmOf, minutesOf, sameSlot, slotKey, slotsOf, toHm, todayInSeoul } from "@/features/timetables/time";
 import {
   TIMETABLE_KEY_LENGTH,
   TIMETABLE_KEY_PATTERN,
@@ -49,6 +50,7 @@ type MockTimetable = TimetableProfile & TimetableSetting & {
   manageKey: string;
   status: "DRAFT" | "PUBLISHED";
   publishedAt: string | null;
+  invitationTemplate: string;
   actors: MockActor[];
   requests: MockRequest[];
 };
@@ -98,6 +100,8 @@ function toBoard(timetable: MockTimetable): TimetableBoard {
     guide: timetable.guide,
     status: timetable.status,
     publishedAt: timetable.publishedAt,
+    invitationTemplate: timetable.invitationTemplate || DEFAULT_INVITATION_TEMPLATE,
+    defaultInvitationTemplate: DEFAULT_INVITATION_TEMPLATE,
     slotMinutes: timetable.slotMinutes,
     slotCapacity: timetable.slotCapacity,
     windows: timetable.windows.map((window) => ({ ...window, startTime: withSeconds(window.startTime), endTime: withSeconds(window.endTime) })),
@@ -140,36 +144,60 @@ function toActorView(timetable: MockTimetable, actor: MockActor): ActorTimetable
   };
 }
 
-function queue(timetable: MockTimetable, type: AdminTimetableMessageType, actor: MockActor | null) {
-  const pending = messages.filter((message) => message.status === "PENDING");
-  // 받는 사람이 링크에서 최신 일정을 보므로, 아직 보내지 않은 같은 목적의 문자가 있으면 더 쌓지 않는다.
-  if (type === "ACTOR_SCHEDULE_CHANGED" && actor && pending.some((message) => message.actorId === actor.id
-    && (message.type === "ACTOR_INVITATION" || message.type === "ACTOR_SCHEDULE_CHANGED"))) return;
-  if (type === "ORGANIZER_TIME_REQUEST" && pending.some((message) => message.timetableId === timetable.id
-    && message.type === type)) return;
+const DEFAULT_INVITATION_TEMPLATE = "지원자 {이름}님, 안녕하세요.\n{단체명} 오디션에 합격하셨습니다.\n아래 링크에서 '{작품명}' 오디션 일정을 확인해 주세요.";
+
+function messageBody(timetable: MockTimetable, type: AdminTimetableMessageType, actor: MockActor | null): string {
   const origin = typeof window === "undefined" ? "http://localhost:3000" : window.location.origin;
   const actorLink = actor ? `${origin}${timetableRoutes.actor(actor.accessKey)}` : "";
   const manageLink = `${origin}${timetableRoutes.manage(timetable.manageKey)}`;
   const organizerGreeting = `${timetable.organizerName} ${timetable.contactName || "담당자"}님, 안녕하세요.`;
-  const actorGreeting = `지원자 ${actor?.name ?? ""}님, 안녕하세요.`;
   const actorCaution = "[주의] 본인만 쓰는 링크입니다. 다른 사람에게 보내지 마세요.";
   const organizerCaution = "[주의] 링크를 가진 사람은 누구나 일정표를 고칠 수 있습니다. 외부에 공유하지 마세요.";
-  const compose = (subject: string, greeting: string, content: string, label: string, link: string, caution: string) =>
-    `[예술인] ${subject}\n\n${greeting}\n${content}\n\n▶ ${label}\n${link}\n\n${caution}\n\n예술인 ${origin}`;
-  const body = {
-    ORGANIZER_LINK: compose("오디션 일정표 관리 링크", organizerGreeting,
-      `'${timetable.title}' 오디션 일정표를 만들었습니다.\n아래 링크에서 합격자 등록과 일정 확정을 할 수 있습니다.`,
+  const compose = (subject: string, content: string, label: string, link: string, caution: string) =>
+    `[예술인] ${subject}\n\n${content}\n\n▶ ${label}\n${link}\n\n${caution}\n\n예술인 ${origin}`;
+  const slot = actor?.slot ? range(timetable, actor.slot) : null;
+  const invitation = renderInvitation(timetable.invitationTemplate || DEFAULT_INVITATION_TEMPLATE, {
+    actorName: actor?.name ?? "",
+    title: timetable.title,
+    organizerName: timetable.organizerName,
+    schedule: slot ? formatSlotRange(slot, slot.endTime) : "",
+    location: timetable.location,
+    guide: timetable.guide,
+  });
+  return {
+    ORGANIZER_LINK: compose("오디션 일정표 관리 링크",
+      `${organizerGreeting}\n'${timetable.title}' 오디션 일정표를 만들었습니다.\n아래 링크에서 합격자 등록과 일정 확정을 할 수 있습니다.`,
       "일정표 관리", manageLink, organizerCaution),
-    ORGANIZER_TIME_REQUEST: compose("시간 변경 문의 알림", organizerGreeting,
-      `'${timetable.title}' 오디션 일정표에 배우의 시간 변경 문의가 들어왔습니다.\n아래 링크에서 확인해 주세요.`,
+    ORGANIZER_TIME_REQUEST: compose("시간 변경 문의 알림",
+      `${organizerGreeting}\n'${timetable.title}' 오디션 일정표에 배우의 시간 변경 문의가 들어왔습니다.\n아래 링크에서 확인해 주세요.`,
       "일정표 관리", manageLink, organizerCaution),
-    ACTOR_INVITATION: compose("오디션 합격 안내", actorGreeting,
-      `${timetable.organizerName} 오디션에 합격하셨습니다.\n아래 링크에서 '${timetable.title}' 오디션 일정을 확인해 주세요.`,
-      "내 오디션 일정", actorLink, actorCaution),
-    ACTOR_SCHEDULE_CHANGED: compose("오디션 일정 변경 안내", actorGreeting,
-      `${timetable.organizerName} '${timetable.title}' 오디션 일정이 변경되었습니다.\n아래 링크에서 바뀐 시간을 확인해 주세요.`,
+    ACTOR_INVITATION: compose("오디션 합격 안내", invitation, "내 오디션 일정", actorLink, actorCaution),
+    ACTOR_SCHEDULE_CHANGED: compose("오디션 일정 변경 안내",
+      `지원자 ${actor?.name ?? ""}님, 안녕하세요.\n${timetable.organizerName} '${timetable.title}' 오디션 일정이 변경되었습니다.\n아래 링크에서 바뀐 시간을 확인해 주세요.`,
       "내 오디션 일정", actorLink, actorCaution),
   }[type];
+}
+
+function refreshPendingInvitations(timetable: MockTimetable) {
+  messages
+    .filter((message) => message.status === "PENDING" && message.timetableId === timetable.id && message.type === "ACTOR_INVITATION")
+    .forEach((message) => {
+      const actor = timetable.actors.find((candidate) => candidate.id === message.actorId) ?? null;
+      message.body = messageBody(timetable, "ACTOR_INVITATION", actor);
+    });
+}
+
+function queue(timetable: MockTimetable, type: AdminTimetableMessageType, actor: MockActor | null) {
+  const pending = messages.filter((message) => message.status === "PENDING");
+  // 아직 보내지 않은 안내·변경 문자가 있으면 새로 쌓지 않고 그 문자를 바뀐 일정으로 고친다.
+  const pendingNotices = actor ? pending.filter((message) => message.actorId === actor.id
+    && (message.type === "ACTOR_INVITATION" || message.type === "ACTOR_SCHEDULE_CHANGED")) : [];
+  if (type === "ACTOR_SCHEDULE_CHANGED" && pendingNotices.length > 0) {
+    pendingNotices.forEach((message) => { message.body = messageBody(timetable, message.type, actor); });
+    return;
+  }
+  if (type === "ORGANIZER_TIME_REQUEST" && pending.some((message) => message.timetableId === timetable.id
+    && message.type === type)) return;
   messages.push({
     id: nextId(),
     timetableId: timetable.id,
@@ -178,7 +206,7 @@ function queue(timetable: MockTimetable, type: AdminTimetableMessageType, actor:
     status: "PENDING",
     recipientName: actor?.name ?? timetable.organizerName,
     recipientPhone: actor?.phone ?? timetable.organizerPhone,
-    body,
+    body: messageBody(timetable, type, actor),
     createdAt: now(),
     sentAt: null,
   });
@@ -277,6 +305,7 @@ function seed() {
       { date: second, startTime: "14:00", endTime: "17:00" },
     ],
     status: "DRAFT",
+    invitationTemplate: "",
     publishedAt: null,
     actors: ["김하늘", "이도윤", "박서연", "최민준", "정하은", "강지호", "윤채원", "임시우"].map((name, index) => (
       actor(name, `010-1000-${String(index + 1).padStart(4, "0")}`, null)
@@ -304,6 +333,7 @@ function seed() {
       { date: second, startTime: "15:00", endTime: "18:00" },
     ],
     status: "PUBLISHED",
+    invitationTemplate: "{이름}님, 안녕하세요. {단체명}입니다.\n'{작품명}' 1차 오디션에 합격하신 것을 축하드립니다.\n\n■ 2차 오디션 일시: {오디션일시}\n■ 장소: {장소}\n■ 준비 사항\n{안내사항}",
     publishedAt: invitedAt,
     actors: [kim, lee, park, choi, jung],
     requests: [{ id: nextId(), actorId: choi.id, message: "그 주에 지방 공연이 있어서 다음 주 평일 저녁이면 좋겠습니다.", open: true, createdAt: now() }],
@@ -329,6 +359,7 @@ export const timetableHandlers = [
       ...body.profile,
       ...normalizeSetting(body.setting),
       status: "DRAFT",
+      invitationTemplate: "",
       publishedAt: null,
       actors: [],
       requests: [],
@@ -351,6 +382,19 @@ export const timetableHandlers = [
     const body = await request.json() as TimetableProfile;
     if (!body.title?.trim() || !body.organizerName?.trim()) return invalid("작품명과 단체명을 입력해 주세요.");
     Object.assign(timetable, body);
+    refreshPendingInvitations(timetable);
+    return HttpResponse.json(toBoard(timetable));
+  }),
+
+  http.put(`${API}/manage/invitation-template`, async ({ request }) => {
+    await delay(160);
+    const timetable = byManageKey(request);
+    if (!timetable) return notFound();
+    const { template } = await request.json() as { template: string };
+    const normalized = (template ?? "").trim();
+    if (normalized.length > TIMETABLE_LIMITS.invitationTemplateLength) return invalid("합격 문자 문구는 1000자를 넘을 수 없습니다.");
+    timetable.invitationTemplate = normalized === DEFAULT_INVITATION_TEMPLATE ? "" : normalized;
+    refreshPendingInvitations(timetable);
     return HttpResponse.json(toBoard(timetable));
   }),
 

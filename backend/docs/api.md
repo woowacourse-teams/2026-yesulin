@@ -522,6 +522,7 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 | POST | `/api/v1/timetables` | 공개 | `CreateTimetableRequest(profile, setting)` | `201 TimetableCreatedResult(manageKey)` |
 | GET | `/api/v1/timetables/manage` | 관리 열쇠 | 없음 | `200 TimetableBoardResult` |
 | PUT | `/api/v1/timetables/manage/profile` | 관리 열쇠 | `TimetableProfileRequest` | `200 TimetableBoardResult` |
+| PUT | `/api/v1/timetables/manage/invitation-template` | 관리 열쇠 | `InvitationTemplateRequest(template)` | `200 TimetableBoardResult` |
 | PUT | `/api/v1/timetables/manage/board` | 관리 열쇠 | `SaveTimetableBoardRequest(setting, assignments)` | `200 TimetableBoardResult` |
 | POST | `/api/v1/timetables/manage/actors` | 관리 열쇠 | `RegisterActorsRequest(actors: [{name, phone}])` | `201 TimetableBoardResult` |
 | DELETE | `/api/v1/timetables/manage/actors/{actorId}` | 관리 열쇠 | 없음 | `200 TimetableBoardResult` |
@@ -537,7 +538,8 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 `{date, startTime, endTime}`, 5분 단위, 같은 날 겹침 불가)다. 일정표를 만들면 관리 열쇠를 응답으로 한 번 주고
 담당자 번호로 관리 링크 문자를 대기열에 넣는다. 형식·길이·시간대 규칙 위반은 `400 TIMETABLE_INVALID_INPUT`이다.
 
-`TimetableBoardResult`는 일정표 정보와 `status`(`DRAFT`·`PUBLISHED`), `publishedAt`, 설정, `actors`와 열린 `requests`를
+`TimetableBoardResult`는 일정표 정보와 `status`(`DRAFT`·`PUBLISHED`), `publishedAt`, 지금 쓰는 합격 문자 문구
+`invitationTemplate`와 기본 문구 `defaultInvitationTemplate`, 설정, `actors`와 열린 `requests`를
 담는다. 배우는 `id`, `name`, `phone`, `slot`(`{date, startTime, endTime}` 또는 null), `invited`, 참석 여부 `attendance`(`UNANSWERED`·`ATTENDING`·`ABSENT`)와 응답 시각
 `attendanceAnsweredAt`, 등록 시각 `registeredAt`이다. `registeredAt`이 `publishedAt`보다 늦으면 확정 뒤 등록한 추가 합격자다.
 
@@ -550,6 +552,9 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 `409 TIMETABLE_DUPLICATE_ACTOR`, 합계 300명을 넘으면 `409 TIMETABLE_TOO_MANY_ACTORS`다. 확정은 배우가 없거나
 미배정 배우가 있으면 `409 TIMETABLE_NOT_PUBLISHABLE`이다. 없는 배우·요청은 `404 TIMETABLE_ACTOR_NOT_FOUND`,
 `404 TIMETABLE_REQUEST_NOT_FOUND`다.
+
+합격 문자 문구는 1000자 이하이며 비우거나 기본 문구와 같으면 기본 문구를 쓴다. 저장하면 아직 보내지 않은 합격 안내 본문을
+새 문구로 고친다.
 
 배우 API는 확정 뒤 안내를 받은 배우만 열 수 있고 그 밖에는 `404 TIMETABLE_NOT_FOUND`다. `ActorTimetableResult`는
 작품명·단체명·장소·안내 사항, 배우 이름, `slot`, `attendance`, 열린 `request`(`message`, `createdAt`)를 담고 다른 배우의 이름·번호·칸별 인원은

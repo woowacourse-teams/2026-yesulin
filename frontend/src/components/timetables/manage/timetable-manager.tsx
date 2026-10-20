@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { ScreenError } from "@/components/auditions/screen-status";
 import { useToast } from "@/components/auditions/toast";
 import { ConfirmDialog } from "@/components/shows/manage/confirm-dialog";
-import { DarkButton, PrimaryButton, SecondaryButton } from "@/components/ui/controls";
+import { DarkButton, PrimaryButton, SecondaryButton, TextButton } from "@/components/ui/controls";
 import { AuditionRequestError } from "@/features/auditions/api-client";
 import {
   getTimetableBoard,
@@ -14,6 +14,7 @@ import {
   removeTimetableActor,
   resolveTimetableRequest,
   saveTimetableBoard,
+  updateInvitationTemplate,
   updateTimetableProfile,
 } from "@/features/timetables/api";
 import {
@@ -29,6 +30,7 @@ import {
   rebaseDraft,
   type BoardDraft,
 } from "@/features/timetables/board-draft";
+import { previewValues, renderInvitation } from "@/features/timetables/invitation-template";
 import { formatShortDate, slotFromKey, slotKey } from "@/features/timetables/time";
 import {
   TIMETABLE_KEY_PATTERN,
@@ -42,6 +44,7 @@ import { TimetableHeader } from "../timetable-header";
 import { ActorDialog } from "./actor-dialog";
 import type { ChipState } from "./actor-chip";
 import { AssignDialog } from "./assign-dialog";
+import { InvitationDialog } from "./invitation-dialog";
 import { copyManageLink, ManageLinkNotice } from "./manage-link-card";
 import { MoreMenu } from "./more-menu";
 import { ProfileDialog } from "./profile-dialog";
@@ -61,6 +64,7 @@ type LoadState =
 type Dialog =
   | "setting"
   | "profile"
+  | "invitation"
   | "publish"
   | "save"
   | "register"
@@ -292,6 +296,7 @@ export function TimetableManager({ manageKey }: { readonly manageKey: string }) 
 
   const menuItems = [
     { label: "정보 수정", onSelect: () => setDialog("profile") },
+    { label: "합격 문자 문구", onSelect: () => setDialog("invitation") },
     { label: "시간 늘리기", onSelect: () => setDialog("setting") },
     {
       label: "관리 링크 복사",
@@ -454,6 +459,13 @@ export function TimetableManager({ manageKey }: { readonly manageKey: string }) 
           onSave={(profile) => run(() => updateTimetableProfile(manageKey, profile), "일정표 정보를 저장했어요.", true)}
         />
       ) : null}
+      {dialog === "invitation" ? (
+        <InvitationDialog
+          board={board}
+          onClose={() => setDialog(null)}
+          onSave={(template) => run(() => updateInvitationTemplate(manageKey, template), "합격 문자 문구를 저장했어요.", true)}
+        />
+      ) : null}
       {dialog === "publish" ? (
         <ConfirmDialog
           title="일정을 확정할까요?"
@@ -463,10 +475,11 @@ export function TimetableManager({ manageKey }: { readonly manageKey: string }) 
           onConfirm={() => void publish()}
           description={(
             <div className="space-y-3">
-              <p>배우 <strong className="num">{board.actors.length}</strong>명에게 이 문자가 발송돼요.</p>
-              <p className="rounded-control bg-surface px-3 py-2 text-sm text-foreground">
-                안녕하세요 예술인입니다. {board.organizerName} 오디션 합격입니다. 해당 링크에서 일정을 확인하세요.
+              <p>배우 <strong className="num">{board.actors.length}</strong>명에게 합격 문자가 발송돼요.</p>
+              <p className="whitespace-pre-line rounded-control bg-surface px-3 py-2 text-sm text-foreground">
+                {renderInvitation(board.invitationTemplate, previewValues(board))}
               </p>
+              <TextButton onClick={() => setDialog("invitation")} className="min-h-9 px-2">문구 고치기</TextButton>
             </div>
           )}
         />

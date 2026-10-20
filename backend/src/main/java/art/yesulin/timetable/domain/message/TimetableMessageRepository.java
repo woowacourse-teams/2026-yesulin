@@ -7,10 +7,16 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface TimetableMessageRepository extends JpaRepository<TimetableMessage, Long> {
 
-    boolean existsByActorIdAndStatusAndTypeIn(
+    List<TimetableMessage> findAllByActorIdAndStatusAndTypeIn(
             long actorId,
             TimetableMessageStatus status,
             Collection<TimetableMessageType> types
+    );
+
+    List<TimetableMessage> findAllByTimetableIdAndStatusAndType(
+            long timetableId,
+            TimetableMessageStatus status,
+            TimetableMessageType type
     );
 
     boolean existsByTimetableIdAndStatusAndType(

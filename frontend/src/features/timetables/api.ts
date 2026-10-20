@@ -122,6 +122,14 @@ export async function removeTimetableActor(manageKey: string, actorId: number): 
   }));
 }
 
+export async function updateInvitationTemplate(manageKey: string, template: string): Promise<TimetableBoard> {
+  return toBoard(await request<TimetableBoard>(`${TIMETABLES_PATH}/manage/invitation-template`, {
+    method: "PUT",
+    headers: keyHeaders(manageKey),
+    body: JSON.stringify({ template }),
+  }));
+}
+
 export async function publishTimetable(manageKey: string): Promise<TimetableBoard> {
   return toBoard(await request<TimetableBoard>(`${TIMETABLES_PATH}/manage/publication`, {
     method: "POST",

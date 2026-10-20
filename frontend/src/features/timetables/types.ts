@@ -59,6 +59,8 @@ export type TimetableRequest = {
 export type TimetableBoard = TimetableProfile & TimetableSetting & {
   readonly status: TimetableStatus;
   readonly publishedAt: string | null;
+  readonly invitationTemplate: string;
+  readonly defaultInvitationTemplate: string;
   readonly actors: readonly TimetableActor[];
   readonly requests: readonly TimetableRequest[];
 };
@@ -94,6 +96,7 @@ export const TIMETABLE_LIMITS = {
   titleLength: 60,
   organizerNameLength: 40,
   contactNameLength: 30,
+  invitationTemplateLength: 1000,
   locationLength: 200,
   guideLength: 1000,
   actorNameLength: 30,

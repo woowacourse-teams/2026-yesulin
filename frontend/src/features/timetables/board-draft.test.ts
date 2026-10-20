@@ -32,6 +32,8 @@ const board = (actors: TimetableActor[], overrides: Partial<TimetableBoard> = {}
   guide: "",
   status: "DRAFT",
   publishedAt: null,
+  invitationTemplate: "",
+  defaultInvitationTemplate: "",
   slotMinutes: 30,
   slotCapacity: 1,
   windows: [{ date: "2026-10-10", startTime: "10:00", endTime: "11:30" }],

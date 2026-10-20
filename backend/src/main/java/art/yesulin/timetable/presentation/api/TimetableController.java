@@ -51,6 +51,14 @@ public class TimetableController {
         return ok(timetableService.updateProfile(manageKey, request.toCommand()));
     }
 
+    @PutMapping("/manage/invitation-template")
+    public ResponseEntity<TimetableBoardResult> updateInvitationTemplate(
+            @RequestHeader(KEY_HEADER) String manageKey,
+            @Valid @RequestBody InvitationTemplateRequest request
+    ) {
+        return ok(timetableService.updateInvitationTemplate(manageKey, request.template()));
+    }
+
     @PutMapping("/manage/board")
     public ResponseEntity<TimetableBoardResult> saveBoard(
             @RequestHeader(KEY_HEADER) String manageKey,

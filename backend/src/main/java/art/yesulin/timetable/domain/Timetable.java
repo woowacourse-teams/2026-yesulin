@@ -6,6 +6,7 @@ import static art.yesulin.timetable.domain.TimetableErrorCode.NOT_PUBLISHABLE;
 import art.yesulin.global.exception.BusinessException;
 import art.yesulin.timetable.domain.converter.TimetableStatusConverter;
 import art.yesulin.timetable.domain.event.TimetableCreatedEvent;
+import art.yesulin.timetable.domain.message.InvitationTemplate;
 import art.yesulin.timetable.domain.setting.TimeSlot;
 import art.yesulin.timetable.domain.setting.TimetableSetting;
 import jakarta.persistence.AttributeOverride;
@@ -56,6 +57,9 @@ public class Timetable extends AbstractAggregateRoot<Timetable> {
     @Embedded
     private TimetableSetting setting;
 
+    @Embedded
+    private InvitationTemplate invitationTemplate;
+
     @Convert(converter = TimetableStatusConverter.class)
     @Column(nullable = false, length = 20)
     private TimetableStatus status;
@@ -72,10 +76,15 @@ public class Timetable extends AbstractAggregateRoot<Timetable> {
         this.status = TimetableStatus.DRAFT;
         updateProfile(profile);
         this.setting = requireNonNull(setting, "시간 칸 설정은 필수입니다.");
+        this.invitationTemplate = InvitationTemplate.defaultTemplate();
     }
 
     public void updateProfile(TimetableProfile profile) {
         this.profile = requireNonNull(profile, "일정표 안내 정보는 필수입니다.");
+    }
+
+    public void changeInvitationTemplate(InvitationTemplate template) {
+        this.invitationTemplate = requireNonNull(template, "합격 문자 문구는 필수입니다.");
     }
 
     public void updateSetting(TimetableSetting next) {
