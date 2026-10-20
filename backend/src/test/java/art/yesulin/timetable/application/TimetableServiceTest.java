@@ -21,6 +21,7 @@ import art.yesulin.timetable.domain.TimetableRepository;
 import art.yesulin.timetable.domain.TimetableStatus;
 import art.yesulin.timetable.domain.actor.SlotAssignment;
 import art.yesulin.timetable.domain.actor.TimetableActorRepository;
+import art.yesulin.timetable.domain.actor.TimetableAttendance;
 import art.yesulin.timetable.domain.message.TimetableMessage;
 import art.yesulin.timetable.domain.message.TimetableMessageRepository;
 import art.yesulin.timetable.domain.message.TimetableMessageStatus;
@@ -237,6 +238,23 @@ class TimetableServiceTest {
         assertEquals(TEN, slotOf(result.slot()));
         assertEquals(LocalTime.of(10, 30), result.slot().endTime());
         assertCode(TimetableErrorCode.NOT_FOUND, () -> actorTimetableService.find("short"));
+    }
+
+    @Test
+    void actorAnswersAttendanceAndOrganizerSeesItUntilMovingActor() {
+        Published published = publishTwo();
+
+        ActorTimetableResult result = actorTimetableService.answerAttendance(
+                published.firstKey(), TimetableAttendance.ABSENT
+        );
+
+        assertEquals(TimetableAttendance.ABSENT, result.attendance());
+        TimetableBoardResult.Actor first = timetableService.find(published.key()).actors().get(0);
+        assertEquals(TimetableAttendance.ABSENT, first.attendance());
+        assertEquals(NOW, first.attendanceAnsweredAt());
+
+        save(published.key(), 1, new SlotAssignment(published.first(), TEN, ELEVEN));
+        assertEquals(TimetableAttendance.UNANSWERED, timetableService.find(published.key()).actors().get(0).attendance());
     }
 
     @Test

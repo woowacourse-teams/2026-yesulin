@@ -528,6 +528,7 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 | POST | `/api/v1/timetables/manage/publication` | 관리 열쇠 | 없음 | `200 TimetableBoardResult` |
 | POST | `/api/v1/timetables/manage/requests/{requestId}/resolution` | 관리 열쇠 | 없음 | `200 TimetableBoardResult` |
 | GET | `/api/v1/timetables/actor` | 배우 열쇠 | 없음 | `200 ActorTimetableResult` |
+| PUT | `/api/v1/timetables/actor/attendance` | 배우 열쇠 | `AnswerAttendanceRequest(attendance)` | `200 ActorTimetableResult` |
 | POST | `/api/v1/timetables/actor/requests` | 배우 열쇠 | `CreateTimeRequestRequest(message)` | `200 ActorTimetableResult` |
 
 `profile`은 `title`(작품명, 60자 이하), `organizerName`(40자 이하), `organizerPhone`(`010-1234-5678`), 선택
@@ -537,7 +538,8 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 담당자 번호로 관리 링크 문자를 대기열에 넣는다. 형식·길이·시간대 규칙 위반은 `400 TIMETABLE_INVALID_INPUT`이다.
 
 `TimetableBoardResult`는 일정표 정보와 `status`(`DRAFT`·`PUBLISHED`), `publishedAt`, 설정, `actors`와 열린 `requests`를
-담는다. 배우는 `id`, `name`, `phone`, `slot`(`{date, startTime, endTime}` 또는 null), `invited`, 등록 시각 `registeredAt`이다. `registeredAt`이 `publishedAt`보다 늦으면 확정 뒤 등록한 추가 합격자다.
+담는다. 배우는 `id`, `name`, `phone`, `slot`(`{date, startTime, endTime}` 또는 null), `invited`, 참석 여부 `attendance`(`UNANSWERED`·`ATTENDING`·`ABSENT`)와 응답 시각
+`attendanceAnsweredAt`, 등록 시각 `registeredAt`이다. `registeredAt`이 `publishedAt`보다 늦으면 확정 뒤 등록한 추가 합격자다.
 
 보드 저장의 `assignments`는 옮긴 배우만 `{actorId, previous, next}`로 보낸다(null은 미배정, 최대 300개). `previous`가 지금
 시간과 다르면 `409 TIMETABLE_ASSIGNMENT_CONFLICT`, 같은 배우가 두 번이면 `400 TIMETABLE_INVALID_INPUT`이다. 시간대 설정을
@@ -550,8 +552,9 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 `404 TIMETABLE_REQUEST_NOT_FOUND`다.
 
 배우 API는 확정 뒤 안내를 받은 배우만 열 수 있고 그 밖에는 `404 TIMETABLE_NOT_FOUND`다. `ActorTimetableResult`는
-작품명·단체명·장소·안내 사항, 배우 이름, `slot`, 열린 `request`(`message`, `createdAt`)를 담고 다른 배우의 이름·번호·칸별 인원은
-담지 않는다. 배우는 시간을 직접 바꿀 수 없다. 시간 변경 문의는 300자 이하이며 열린 문의가 있으면 내용을 바꾸고, 담당자 문의
+작품명·단체명·장소·안내 사항, 배우 이름, `slot`, `attendance`, 열린 `request`(`message`, `createdAt`)를 담고 다른 배우의 이름·번호·칸별 인원은
+담지 않는다. 배우는 시간을 직접 바꿀 수 없다. 참석 여부는 `ATTENDING`·`ABSENT`만 보낼 수 있고 `UNANSWERED`는
+`400 TIMETABLE_INVALID_INPUT`이다. 기획사가 시간을 옮긴 배우의 응답은 `UNANSWERED`로 돌아간다. 시간 변경 문의는 300자 이하이며 열린 문의가 있으면 내용을 바꾸고, 담당자 문의
 알림은 아직 보내지 않은 알림이 없을 때만 대기열에 넣는다.
 
 ## 배우 프로필과 보관함·비공개 파일 — 14개

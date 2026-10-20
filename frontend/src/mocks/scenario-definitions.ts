@@ -153,7 +153,7 @@ export const MOCK_SCENARIOS: readonly MockScenarioDefinition[] = [
     title: "확정된 보드",
     description: "시간 변경 문의가 있는 확정 일정표입니다.",
     href: `/timetable/manage/${SEED_TIMETABLE_KEYS.published}`,
-    checks: ["문의 패널에서 배우를 고를 수 있다", "확정 뒤 등록한 정배우가 명단에 추가 합격으로 표시된다", "안내한 배우를 옮겨 저장하면 변경 안내 확인 창이 뜬다"],
+    checks: ["명단과 시간표에 참석·불참·미응답이 보인다", "문의 패널에서 배우를 고를 수 있다", "확정 뒤 등록한 정배우가 명단에 추가 합격으로 표시된다", "안내한 배우를 옮겨 저장하면 변경 안내 확인 창이 뜬다"],
   },
   {
     id: "timetable-actor",
@@ -161,7 +161,7 @@ export const MOCK_SCENARIOS: readonly MockScenarioDefinition[] = [
     title: "배우 일정 링크",
     description: "배우가 문자 링크로 일정을 보고, 시간 변경이 필요하면 담당자에게 문의합니다.",
     href: `/t/${SEED_TIMETABLE_KEYS.actor}`,
-    checks: ["다른 배우의 이름·번호가 보이지 않는다", "직접 시간을 바꾸는 버튼이 없다", "문의를 보내면 보낸 내용이 표시된다"],
+    checks: ["다른 배우의 이름·번호가 보이지 않는다", "참석·불참을 고르면 바로 표시된다", "직접 시간을 바꾸는 버튼이 없다", "문의를 보내면 보낸 내용이 표시된다"],
   },
   {
     id: "company-post-card",

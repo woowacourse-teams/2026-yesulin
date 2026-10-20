@@ -8,9 +8,11 @@ import art.yesulin.timetable.domain.TimetableKey;
 import art.yesulin.timetable.domain.TimetableRepository;
 import art.yesulin.timetable.domain.actor.TimetableActor;
 import art.yesulin.timetable.domain.actor.TimetableActorRepository;
+import art.yesulin.timetable.domain.actor.TimetableAttendance;
 import art.yesulin.timetable.domain.request.TimetableRequest;
 import art.yesulin.timetable.domain.request.TimetableRequestRepository;
 import art.yesulin.timetable.domain.request.TimetableRequestStatus;
+import java.time.Clock;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -30,6 +32,7 @@ public class ActorTimetableService {
     private final TimetableActorRepository actorRepository;
     private final TimetableRequestRepository requestRepository;
     private final TimetableMessenger messenger;
+    private final Clock clock;
 
     @Transactional(readOnly = true)
     public ActorTimetableResult find(String accessKey) {
@@ -38,6 +41,13 @@ public class ActorTimetableService {
                 .orElseThrow(this::notFound);
         Timetable timetable = timetableRepository.findById(actor.getTimetableId()).orElseThrow(this::notFound);
         return resultOf(visible(new Access(timetable, actor)));
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public ActorTimetableResult answerAttendance(String accessKey, TimetableAttendance answer) {
+        Access access = lock(accessKey);
+        access.actor().answerAttendance(answer, clock.instant());
+        return resultOf(access);
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -84,6 +94,7 @@ public class ActorTimetableService {
                 timetable.getProfile().getGuide(),
                 actor.getName(),
                 TimeSlotResult.of(actor.getSlot(), timetable),
+                actor.getAttendance(),
                 request
         );
     }

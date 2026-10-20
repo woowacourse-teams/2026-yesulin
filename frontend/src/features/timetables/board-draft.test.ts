@@ -18,6 +18,8 @@ const actor = (id: number, name: string, startTime: string | null = null, invite
   phone: `010-0000-000${id}`,
   slot: startTime ? { date: "2026-10-10", startTime, endTime: "" } : null,
   invited,
+  attendance: "UNANSWERED",
+  attendanceAnsweredAt: null,
   registeredAt: "2026-10-01T00:00:00Z",
 });
 

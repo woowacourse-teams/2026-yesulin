@@ -3,6 +3,7 @@ package art.yesulin.timetable.application;
 import art.yesulin.timetable.domain.Timetable;
 import art.yesulin.timetable.domain.TimetableStatus;
 import art.yesulin.timetable.domain.actor.TimetableActor;
+import art.yesulin.timetable.domain.actor.TimetableAttendance;
 import art.yesulin.timetable.domain.request.TimetableRequest;
 import art.yesulin.timetable.domain.setting.TimetableWindow;
 import java.time.Instant;
@@ -67,6 +68,8 @@ public record TimetableBoardResult(
             String phone,
             TimeSlotResult slot,
             boolean invited,
+            TimetableAttendance attendance,
+            Instant attendanceAnsweredAt,
             Instant registeredAt
     ) {
 
@@ -77,6 +80,8 @@ public record TimetableBoardResult(
                     actor.getPhone(),
                     TimeSlotResult.of(actor.getSlot(), timetable),
                     actor.isInvited(),
+                    actor.getAttendance(),
+                    actor.getAttendanceAnsweredAt(),
                     actor.getCreatedAt()
             );
         }

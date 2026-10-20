@@ -161,6 +161,7 @@ export function TimetableManager({ manageKey }: { readonly manageKey: string }) 
       additional: isAdditional(board, actor),
       unsaved,
       problem: problemActorIds.has(actor.id),
+      absent: actor.invited && actor.attendance === "ABSENT",
       moving: movingActorId === actor.id,
     };
   };

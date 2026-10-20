@@ -8,9 +8,11 @@ import art.yesulin.global.exception.BusinessException;
 import art.yesulin.timetable.domain.MobilePhone;
 import art.yesulin.timetable.domain.TimetableBoard;
 import art.yesulin.timetable.domain.TimetableKey;
+import art.yesulin.timetable.domain.converter.TimetableAttendanceConverter;
 import art.yesulin.timetable.domain.setting.TimeSlot;
 import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -72,6 +74,13 @@ public class TimetableActor {
     @Column(name = "invited_at")
     private Instant invitedAt;
 
+    @Convert(converter = TimetableAttendanceConverter.class)
+    @Column(nullable = false, length = 20)
+    private TimetableAttendance attendance = TimetableAttendance.UNANSWERED;
+
+    @Column(name = "attendance_answered_at")
+    private Instant attendanceAnsweredAt;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -106,6 +115,16 @@ public class TimetableActor {
     public void assign(TimeSlot slot) {
         this.slotDate = slot == null ? null : slot.date();
         this.slotStartTime = slot == null ? null : slot.startTime();
+        this.attendance = TimetableAttendance.UNANSWERED;
+        this.attendanceAnsweredAt = null;
+    }
+
+    public void answerAttendance(TimetableAttendance answer, Instant now) {
+        if (requireNonNull(answer, "참석 여부는 필수입니다.") == TimetableAttendance.UNANSWERED) {
+            throw new BusinessException(INVALID_INPUT, "참석 또는 불참을 골라 주세요.");
+        }
+        this.attendance = answer;
+        this.attendanceAnsweredAt = requireNonNull(now, "응답 시각은 필수입니다.");
     }
 
     private static String requireName(String name) {

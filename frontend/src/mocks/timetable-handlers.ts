@@ -8,6 +8,7 @@ import {
   TIMETABLE_LIMITS,
   timetableRoutes,
   type ActorTimetable,
+  type Attendance,
   type TimeSlot,
   type TimetableBoard,
   type TimetableProfile,
@@ -36,6 +37,8 @@ type MockActor = {
   phone: string;
   slot: TimeSlot | null;
   invitedAt: string | null;
+  attendance: Attendance;
+  attendanceAnsweredAt: string | null;
   registeredAt: string;
 };
 
@@ -104,6 +107,8 @@ function toBoard(timetable: MockTimetable): TimetableBoard {
       phone: actor.phone,
       slot: range(timetable, actor.slot),
       invited: actor.invitedAt !== null,
+      attendance: actor.attendance,
+      attendanceAnsweredAt: actor.attendanceAnsweredAt,
       registeredAt: actor.registeredAt,
     })) as TimetableBoard["actors"],
     requests: timetable.requests.filter((request) => request.open).flatMap((request) => {
@@ -130,6 +135,7 @@ function toActorView(timetable: MockTimetable, actor: MockActor): ActorTimetable
     guide: timetable.guide,
     actorName: actor.name,
     slot: range(timetable, actor.slot),
+    attendance: actor.attendance,
     request: request ? { message: request.message, createdAt: request.createdAt } : null,
   };
 }
@@ -253,6 +259,8 @@ function seed() {
     phone,
     slot: slot ? { date: first, startTime: slot } : null,
     invitedAt: null,
+    attendance: "UNANSWERED",
+    attendanceAnsweredAt: null,
     registeredAt: new Date(Date.now() - 2 * 86_400_000).toISOString(),
     ...extra,
   });
@@ -276,9 +284,12 @@ function seed() {
     requests: [],
   });
   const invitedAt = new Date(Date.now() - 86_400_000).toISOString();
-  const kim = actor("김배우", "010-2000-0001", "10:00", { accessKey: SEED_TIMETABLE_KEYS.actor, invitedAt });
+  const answeredAt = new Date(Date.now() - 3_600_000).toISOString();
+  const kim = actor("김배우", "010-2000-0001", "10:00", {
+    accessKey: SEED_TIMETABLE_KEYS.actor, invitedAt, attendance: "ATTENDING", attendanceAnsweredAt: answeredAt,
+  });
   const lee = actor("이배우", "010-2000-0002", "10:30", { invitedAt });
-  const park = actor("박배우", "010-2000-0003", "11:30", { invitedAt });
+  const park = actor("박배우", "010-2000-0003", "11:30", { invitedAt, attendance: "ABSENT", attendanceAnsweredAt: answeredAt });
   const choi = actor("최배우", "010-2000-0004", "11:30", { invitedAt });
   const jung = actor("정배우", "010-2000-0005", null, { registeredAt: new Date(Date.now() - 3_600_000).toISOString() });
   const published: MockTimetable = {
@@ -375,6 +386,8 @@ export const timetableHandlers = [
         return apiError(409, "TIMETABLE_ASSIGNMENT_CONFLICT", `‘${actor.name}’ 배우의 시간이 그사이 바뀌었습니다. 새로 불러온 뒤 다시 옮겨 주세요.`);
       }
       actor.slot = toSlot(assignment.next);
+      actor.attendance = "UNANSWERED";
+      actor.attendanceAnsweredAt = null;
       moved.push(actor);
     }
     const boardError = boardProblem(timetable);
@@ -416,6 +429,8 @@ export const timetableHandlers = [
       phone: contact.phone,
       slot: null,
       invitedAt: null,
+      attendance: "UNANSWERED",
+      attendanceAnsweredAt: null,
       registeredAt: now(),
     }));
     return HttpResponse.json(toBoard(timetable), { status: 201 });
@@ -466,6 +481,17 @@ export const timetableHandlers = [
     await delay(160);
     const access = byAccessKey(request);
     return access ? HttpResponse.json(toActorView(access.timetable, access.actor)) : notFound();
+  }),
+
+  http.put(`${API}/actor/attendance`, async ({ request }) => {
+    await delay(160);
+    const access = byAccessKey(request);
+    if (!access) return notFound();
+    const { attendance } = await request.json() as { attendance: Attendance };
+    if (attendance !== "ATTENDING" && attendance !== "ABSENT") return invalid("참석 또는 불참을 골라 주세요.");
+    access.actor.attendance = attendance;
+    access.actor.attendanceAnsweredAt = now();
+    return HttpResponse.json(toActorView(access.timetable, access.actor));
   }),
 
   http.post(`${API}/actor/requests`, async ({ request }) => {

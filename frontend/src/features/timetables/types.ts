@@ -4,6 +4,7 @@
  */
 
 export type TimetableStatus = "DRAFT" | "PUBLISHED";
+export type Attendance = "UNANSWERED" | "ATTENDING" | "ABSENT";
 
 export type TimeSlot = {
   readonly date: string;
@@ -41,6 +42,8 @@ export type TimetableActor = {
   readonly phone: string;
   readonly slot: TimeSlotRange | null;
   readonly invited: boolean;
+  readonly attendance: Attendance;
+  readonly attendanceAnsweredAt: string | null;
   /** 일정표 확정 시각보다 늦으면 확정 뒤에 등록한 추가 합격자다. */
   readonly registeredAt: string;
 };
@@ -83,6 +86,7 @@ export type ActorTimetable = {
   readonly guide: string;
   readonly actorName: string;
   readonly slot: TimeSlotRange | null;
+  readonly attendance: Attendance;
   readonly request: { readonly message: string; readonly createdAt: string } | null;
 };
 

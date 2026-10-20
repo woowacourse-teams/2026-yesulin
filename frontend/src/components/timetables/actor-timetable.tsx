@@ -5,9 +5,9 @@ import { ScreenError } from "@/components/auditions/screen-status";
 import { useToast } from "@/components/auditions/toast";
 import { FieldTextarea, PrimaryButton, SecondaryButton, TextButton } from "@/components/ui/controls";
 import { AuditionRequestError } from "@/features/auditions/api-client";
-import { getActorTimetable, requestActorTime } from "@/features/timetables/api";
+import { answerAttendance, getActorTimetable, requestActorTime } from "@/features/timetables/api";
 import { formatDate, formatInstant, toHm } from "@/features/timetables/time";
-import { TIMETABLE_KEY_PATTERN, TIMETABLE_LIMITS, type ActorTimetable } from "@/features/timetables/types";
+import { TIMETABLE_KEY_PATTERN, TIMETABLE_LIMITS, type ActorTimetable, type Attendance } from "@/features/timetables/types";
 import { TimetableHeader } from "./timetable-header";
 
 type LoadState =
@@ -105,8 +105,66 @@ function ActorSchedule({ accessKey, timetable, onChange }: {
         ) : null}
       </section>
 
+      {slot ? <AttendanceSection accessKey={accessKey} timetable={timetable} onChange={onChange} /> : null}
       <TimeRequestSection accessKey={accessKey} timetable={timetable} onChange={onChange} />
     </div>
+  );
+}
+
+const ATTENDANCE_CHOICES: readonly { readonly value: Attendance; readonly label: string; readonly selected: string }[] = [
+  { value: "ATTENDING", label: "참석", selected: "border-pass bg-pass text-white" },
+  { value: "ABSENT", label: "불참", selected: "border-fail bg-fail text-white" },
+];
+
+function AttendanceSection({ accessKey, timetable, onChange }: {
+  readonly accessKey: string;
+  readonly timetable: ActorTimetable;
+  readonly onChange: (timetable: ActorTimetable) => void;
+}) {
+  const id = useId();
+  const toast = useToast();
+  const [saving, setSaving] = useState<Attendance | null>(null);
+
+  const answer = async (attendance: Attendance) => {
+    setSaving(attendance);
+    try {
+      onChange(await answerAttendance(accessKey, attendance));
+      toast(attendance === "ATTENDING" ? "참석으로 알렸어요." : "불참으로 알렸어요. 담당자 화면에 바로 표시돼요.", { type: "success" });
+    } catch (cause) {
+      toast(errorMessage(cause, "참석 여부를 알리지 못했어요. 다시 시도해 주세요."), { type: "error" });
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  return (
+    <section aria-labelledby={`${id}-heading`} className="rounded-card border border-border bg-card px-5 py-5 md:px-6">
+      <h2 id={`${id}-heading`} className="text-base font-bold">참석하시나요?</h2>
+      <p className="mt-1 text-sm text-muted-strong">
+        {timetable.attendance === "UNANSWERED"
+          ? "참석 여부를 알려 주시면 담당자에게 바로 전달돼요."
+          : `${timetable.attendance === "ATTENDING" ? "참석" : "불참"}으로 알렸어요. 바뀌면 다시 골라 주세요.`}
+      </p>
+      <div role="group" aria-labelledby={`${id}-heading`} className="mt-4 grid grid-cols-2 gap-2">
+        {ATTENDANCE_CHOICES.map((choice) => {
+          const selected = timetable.attendance === choice.value;
+          return (
+            <button
+              key={choice.value}
+              type="button"
+              aria-pressed={selected}
+              disabled={saving !== null}
+              onClick={() => void answer(choice.value)}
+              className={`min-h-12 rounded-control border text-base font-bold transition-colors disabled:opacity-60 ${
+                selected ? choice.selected : "border-border bg-card text-foreground hover:bg-surface"
+              }`}
+            >
+              {saving === choice.value ? "알리는 중…" : choice.label}
+            </button>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 

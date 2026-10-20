@@ -3,6 +3,7 @@ import { toHm } from "./time";
 import type {
   ActorContact,
   ActorTimetable,
+  Attendance,
   SlotAssignment,
   TimeSlot,
   TimeSlotRange,
@@ -142,6 +143,14 @@ export async function getActorTimetable(accessKey: string): Promise<ActorTimetab
 }
 
 /** `current`는 화면이 본 지금 시간이다. 그사이 기획사가 옮겼으면 서버가 거절한다. */
+export async function answerAttendance(accessKey: string, attendance: Attendance): Promise<ActorTimetable> {
+  return toActorTimetable(await request<ActorTimetable>(`${TIMETABLES_PATH}/actor/attendance`, {
+    method: "PUT",
+    headers: keyHeaders(accessKey),
+    body: JSON.stringify({ attendance }),
+  }));
+}
+
 export async function requestActorTime(accessKey: string, message: string): Promise<ActorTimetable> {
   return toActorTimetable(await request<ActorTimetable>(`${TIMETABLES_PATH}/actor/requests`, {
     method: "POST",

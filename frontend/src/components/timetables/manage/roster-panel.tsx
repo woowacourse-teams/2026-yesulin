@@ -6,6 +6,7 @@ import type { BoardDraft } from "@/features/timetables/board-draft";
 import { formatShortDate, slotFromKey } from "@/features/timetables/time";
 import type { TimetableActor, TimetableBoard } from "@/features/timetables/types";
 import { barTone, type ChipState } from "./actor-chip";
+import { AttendanceBadge } from "./attendance-badge";
 
 type Filter = "all" | "unassigned" | "additional";
 
@@ -100,6 +101,7 @@ export function RosterPanel({ board, draft, chipState, busy, onAdd, onAutoAssign
                   <span className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
                     <span className="truncate">{actor.name}</span>
                     {state.additional ? <span className="shrink-0 rounded bg-etc px-1 text-[10px] font-bold leading-4 text-white">추가</span> : null}
+                    {actor.invited ? <AttendanceBadge attendance={actor.attendance} /> : null}
                   </span>
                   <span className="num block text-xs text-muted">{actor.phone}</span>
                 </span>

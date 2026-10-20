@@ -1,6 +1,6 @@
 "use client";
 
-import type { TimetableBoard } from "@/features/timetables/types";
+import type { Attendance, TimetableBoard } from "@/features/timetables/types";
 
 type Step = { readonly label: string; readonly detail: string; readonly done: boolean };
 
@@ -14,10 +14,18 @@ export function StatusSteps({ board, unassignedCount, additionalCount, onOpenReq
   readonly onOpenRequests: () => void;
 }) {
   if (board.status === "PUBLISHED") {
-    const invited = board.actors.filter((actor) => actor.invited).length;
+    const invitedActors = board.actors.filter((actor) => actor.invited);
+    const invited = invitedActors.length;
+    const countOf = (attendance: Attendance) => invitedActors.filter((actor) => actor.attendance === attendance).length;
     return (
       <ul className="flex flex-wrap gap-2 text-sm" aria-label="일정표 현황">
         <li className="rounded-full bg-pass-bg px-3 py-1.5 font-semibold text-pass">확정 · 안내 <span className="num">{invited}</span>명</li>
+        {invited > 0 ? (
+          <li className="rounded-full border border-border bg-card px-3 py-1.5 font-semibold text-muted-strong">
+            참석 <span className="num text-pass">{countOf("ATTENDING")}</span> · 불참 <span className="num text-fail">{countOf("ABSENT")}</span>
+            {" "}· 미응답 <span className="num">{countOf("UNANSWERED")}</span>
+          </li>
+        ) : null}
         {additionalCount > 0 ? (
           <li className="rounded-full bg-etc-bg px-3 py-1.5 font-semibold text-etc">추가 합격 <span className="num">{additionalCount}</span>명</li>
         ) : null}
