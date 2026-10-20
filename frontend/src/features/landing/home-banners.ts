@@ -1,14 +1,5 @@
 import { AUDITION_ALERT_CHAT_URL } from "@/features/audition-posts/types";
 
-export const SUPPORTERS_BANNER = {
-    id: "supporters", title: "1기 서포터즈 모집", tone: "coral",
-    href: "https://forms.gle/5g4qGphqcugfMYFc6",
-    linkLabel: "예술in 1기 서포터즈 신청하기",
-    alt: "예술in 1기 서포터즈 모집 · 10/16 신청 마감 · 활동 완료 시 3만 원 상당 기프티콘 · 서포터즈 신청하기",
-    desktop: { src: "/images/banners/supporters-sailing-desktop-v2.webp", width: 2172, height: 724 },
-    mobile: { src: "/images/banners/supporters-sailing-mobile.webp", width: 1448, height: 1086 },
-  } as const;
-
 export const HOME_BANNERS = [
   {
     id: "audition-alert", title: "오디션 알림", tone: "blue",
@@ -18,7 +9,6 @@ export const HOME_BANNERS = [
     desktop: { src: "/images/banners/openchat-slim-desktop.webp", width: 2171, height: 724 },
     mobile: { src: "/images/banners/openchat-highlight-mobile.webp", width: 1448, height: 1086 },
   },
-  SUPPORTERS_BANNER,
   {
     id: "actors-sharing", title: "배우 정보 공유방", tone: "mint",
     href: "https://open.kakao.com/o/pkaXyeSi",
