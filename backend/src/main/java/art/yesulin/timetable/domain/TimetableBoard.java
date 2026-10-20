@@ -5,11 +5,9 @@ import static art.yesulin.timetable.domain.TimetableErrorCode.ACTOR_NOT_FOUND;
 import static art.yesulin.timetable.domain.TimetableErrorCode.ASSIGNMENT_CONFLICT;
 import static art.yesulin.timetable.domain.TimetableErrorCode.INVALID_INPUT;
 import static art.yesulin.timetable.domain.TimetableErrorCode.NOT_PUBLISHABLE;
-import static art.yesulin.timetable.domain.TimetableErrorCode.SELF_CHANGE_CLOSED;
 import static art.yesulin.timetable.domain.TimetableErrorCode.SLOT_UNAVAILABLE;
 
 import art.yesulin.global.exception.BusinessException;
-import art.yesulin.timetable.domain.actor.SelfChangeStatus;
 import art.yesulin.timetable.domain.actor.SlotAssignment;
 import art.yesulin.timetable.domain.actor.TimetableActor;
 import art.yesulin.timetable.domain.setting.TimeSlot;
@@ -42,10 +40,7 @@ public class TimetableBoard {
         }
     }
 
-    /**
-     * 기획사가 보드에서 옮긴 배정을 적용하고 실제로 시간이 바뀐 배우를 돌려준다.
-     * 화면이 본 이전 시간이 지금과 다르면 그사이 배우가 직접 바꾼 것이므로 덮어쓰지 않는다.
-     */
+    /** 화면이 본 이전 시간이 지금과 다르면 다른 화면에서 먼저 옮긴 것이므로 덮어쓰지 않는다. */
     public List<TimetableActor> reassign(List<SlotAssignment> assignments) {
         Set<Long> seen = new HashSet<>();
         List<TimetableActor> moved = new ArrayList<>();
@@ -61,7 +56,7 @@ public class TimetableBoard {
             if (Objects.equals(assignment.previous(), assignment.next())) {
                 continue;
             }
-            actor.assignByOrganizer(assignment.next());
+            actor.assign(assignment.next());
             moved.add(actor);
         }
         return moved;
@@ -104,71 +99,6 @@ public class TimetableBoard {
         ensureValid();
         timetable.publish(now);
         return List.copyOf(actors.values());
-    }
-
-    /** 배우가 링크에서 바운더리 안의 빈 칸으로 직접 옮긴다. 화면이 본 지금 시간이 다르면 거절한다. */
-    public void moveByActor(long actorId, TimeSlot current, TimeSlot next, Instant now) {
-        TimetableActor actor = actor(actorId);
-        if (!Objects.equals(actor.getSlot(), current)) {
-            throw new BusinessException(ASSIGNMENT_CONFLICT, "일정이 그사이 바뀌었습니다. 새로고침한 뒤 다시 골라 주세요.");
-        }
-        SelfChangeStatus status = selfChangeStatusOf(actor, now);
-        if (status == SelfChangeStatus.LOCKED) {
-            throw new BusinessException(SELF_CHANGE_CLOSED, "기획사가 일정 변경을 마감했습니다.");
-        }
-        if (status == SelfChangeStatus.DEADLINE_PASSED) {
-            throw new BusinessException(SELF_CHANGE_CLOSED, "오디션 시작 %d시간 전까지만 직접 바꿀 수 있습니다.",
-                    Timetable.SELF_CHANGE_NOTICE.toHours());
-        }
-        requireNonNull(next, "옮길 시간은 필수입니다.");
-        if (next.equals(current)) {
-            throw new BusinessException(INVALID_INPUT, "지금과 같은 시간입니다.");
-        }
-        if (!isOpenFor(actor, next, now)) {
-            throw new BusinessException(SLOT_UNAVAILABLE, "선택한 시간은 이미 찼거나 바꿀 수 없는 시간입니다. 다른 시간을 골라 주세요.");
-        }
-        actor.moveByActor(next, now);
-    }
-
-    public SelfChangeStatus selfChangeStatusOf(TimetableActor actor, Instant now) {
-        if (timetable.isSelfChangeLocked()) {
-            return SelfChangeStatus.LOCKED;
-        }
-        TimeSlot current = actor.getSlot();
-        if (current == null || !timetable.isBeforeSelfChangeDeadline(current, now)) {
-            return SelfChangeStatus.DEADLINE_PASSED;
-        }
-        return SelfChangeStatus.OPEN;
-    }
-
-    /** 배우가 지금 직접 옮길 수 있는 빈 칸을 시간순으로 돌려준다. 직접 변경이 막혀 있으면 비어 있다. */
-    public List<TimeSlot> openSlotsFor(long actorId, Instant now) {
-        TimetableActor actor = actor(actorId);
-        if (selfChangeStatusOf(actor, now) != SelfChangeStatus.OPEN) {
-            return List.of();
-        }
-        Map<TimeSlot, Integer> counts = occupancy();
-        return timetable.slots().stream()
-                .filter(slot -> !slot.equals(actor.getSlot()))
-                .filter(slot -> timetable.isBeforeSelfChangeDeadline(slot, now))
-                .filter(slot -> counts.getOrDefault(slot, 0) < timetable.getSetting().getSlotCapacity())
-                .toList();
-    }
-
-    private boolean isOpenFor(TimetableActor actor, TimeSlot slot, Instant now) {
-        return timetable.slots().contains(slot)
-                && timetable.isBeforeSelfChangeDeadline(slot, now)
-                && occupancy().getOrDefault(slot, 0) < timetable.getSetting().getSlotCapacity()
-                && !slot.equals(actor.getSlot());
-    }
-
-    private Map<TimeSlot, Integer> occupancy() {
-        Map<TimeSlot, Integer> counts = new HashMap<>();
-        actors.values().stream()
-                .map(TimetableActor::getSlot)
-                .filter(Objects::nonNull)
-                .forEach(slot -> counts.merge(slot, 1, Integer::sum));
-        return counts;
     }
 
     /** 확정 뒤 안내를 받은 배우는 링크에서 볼 시간이 있어야 하므로 미배정으로 되돌릴 수 없다. */

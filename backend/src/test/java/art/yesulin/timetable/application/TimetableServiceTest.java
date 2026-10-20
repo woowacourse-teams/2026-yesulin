@@ -19,9 +19,9 @@ import art.yesulin.timetable.domain.TimetableErrorCode;
 import art.yesulin.timetable.domain.TimetableKey;
 import art.yesulin.timetable.domain.TimetableRepository;
 import art.yesulin.timetable.domain.TimetableStatus;
-import art.yesulin.timetable.domain.actor.SelfChangeStatus;
 import art.yesulin.timetable.domain.actor.SlotAssignment;
 import art.yesulin.timetable.domain.actor.TimetableActorRepository;
+import art.yesulin.timetable.domain.actor.TimetableAttendance;
 import art.yesulin.timetable.domain.message.TimetableMessage;
 import art.yesulin.timetable.domain.message.TimetableMessageRepository;
 import art.yesulin.timetable.domain.message.TimetableMessageStatus;
@@ -106,7 +106,6 @@ class TimetableServiceTest {
         assertEquals(TimetableStatus.DRAFT, timetable.status());
         assertEquals(List.of(new TimetableBoardResult.Window(DAY, LocalTime.of(10, 0), LocalTime.of(11, 30))),
                 timetable.windows());
-        assertEquals(24, timetable.selfChangeNoticeHours());
         TimetableMessage message = onlyMessage(TimetableMessageType.ORGANIZER_LINK);
         assertNull(message.getActorId());
         assertEquals("010-9999-0000", message.getRecipientPhone());
@@ -115,6 +114,14 @@ class TimetableServiceTest {
         assertTrue(message.getBody().contains("[주의] 링크를 가진 사람은 누구나 일정표를 고칠 수 있습니다."));
         assertTrue(message.getBody().endsWith("예술인 http://localhost:3000"));
         assertEquals(List.of(1), relay.counts());
+    }
+
+    @Test
+    void greetsOrganizerByContactNameWhenGiven() {
+        create(1, "김기획");
+
+        assertTrue(onlyMessage(TimetableMessageType.ORGANIZER_LINK).getBody()
+                .startsWith("[예술인] 오디션 일정표 관리 링크\n\n남극장 김기획님, 안녕하세요."));
     }
 
     @Test
@@ -154,7 +161,7 @@ class TimetableServiceTest {
 
                 지원자 김배우님, 안녕하세요.
                 남극장 오디션에 합격하셨습니다.
-                아래 링크에서 '남극장 2차 오디션' 일정을 확인해 주세요.
+                아래 링크에서 '남극장 2차 오디션' 오디션 일정을 확인해 주세요.
 
                 ▶ 내 오디션 일정
                 http://localhost:3000/t/%s
@@ -200,7 +207,7 @@ class TimetableServiceTest {
                 [예술인] 오디션 일정 변경 안내
 
                 지원자 김배우님, 안녕하세요.
-                남극장 '남극장 2차 오디션' 일정이 변경되었습니다."""));
+                남극장 '남극장 2차 오디션' 오디션 일정이 변경되었습니다."""));
         assertCode(TimetableErrorCode.INVALID_INPUT,
                 () -> save(published.key(), 1, new SlotAssignment(published.first(), ELEVEN, null)));
     }
@@ -230,33 +237,64 @@ class TimetableServiceTest {
         assertEquals("김배우", result.actorName());
         assertEquals(TEN, slotOf(result.slot()));
         assertEquals(LocalTime.of(10, 30), result.slot().endTime());
-        assertEquals(SelfChangeStatus.OPEN, result.selfChange());
-        assertEquals(Instant.parse("2026-10-09T01:00:00Z"), result.changeDeadline());
-        assertEquals(List.of(TEN_THIRTY, ELEVEN), result.openSlots().stream().map(this::slotOf).toList());
         assertCode(TimetableErrorCode.NOT_FOUND, () -> actorTimetableService.find("short"));
     }
 
     @Test
-    void actorMovesIntoOpenSlotWithoutOrganizerApproval() {
+    void actorAnswersAttendanceAndOrganizerSeesItUntilMovingActor() {
         Published published = publishTwo();
 
-        ActorTimetableResult result = actorTimetableService.changeSlot(published.firstKey(), TEN, ELEVEN);
+        ActorTimetableResult result = actorTimetableService.answerAttendance(
+                published.firstKey(), TimetableAttendance.ABSENT
+        );
 
-        assertEquals(ELEVEN, slotOf(result.slot()));
-        TimetableBoardResult.Actor actor = timetableService.find(published.key()).actors().getFirst();
-        assertEquals(ELEVEN, slotOf(actor.slot()));
-        assertEquals(TEN, slotOf(actor.previousSlot()));
-        assertEquals(NOW, actor.actorChangedAt());
+        assertEquals(TimetableAttendance.ABSENT, result.attendance());
+        TimetableBoardResult.Actor first = timetableService.find(published.key()).actors().get(0);
+        assertEquals(TimetableAttendance.ABSENT, first.attendance());
+        assertEquals(NOW, first.attendanceAnsweredAt());
+
+        save(published.key(), 1, new SlotAssignment(published.first(), TEN, ELEVEN));
+        assertEquals(TimetableAttendance.UNANSWERED, timetableService.find(published.key()).actors().get(0).attendance());
+    }
+
+    @Test
+    void customInvitationTemplateFillsActorScheduleAndKeepsLink() {
+        String key = create(1).manageKey();
+        long first = register(key, "김배우", "010-1111-1111").actors().get(0).id();
+        timetableService.updateInvitationTemplate(key, "{이름}님 합격! {오디션일시}\n장소: {장소}\n준비: {안내사항}");
+        save(key, 1, new SlotAssignment(first, null, TEN));
+
+        timetableService.publish(key);
+
+        String accessKey = actorRepository.findById(first).orElseThrow().getAccessKey().getValue();
+        assertEquals("""
+                [예술인] 오디션 합격 안내
+
+                김배우님 합격! 10월 10일 (토) 10:00~10:30
+                장소: 남극장 연습실
+                준비: 대본 지참
+
+                ▶ 내 오디션 일정
+                http://localhost:3000/t/%s
+
+                [주의] 본인만 쓰는 링크입니다. 다른 사람에게 보내지 마세요.
+
+                예술인 http://localhost:3000""".formatted(accessKey),
+                onlyMessage(TimetableMessageType.ACTOR_INVITATION).getBody());
+    }
+
+    @Test
+    void pendingInvitationFollowsUpdatedTemplateAndMovedTime() {
+        Published published = publishTwo();
+
+        timetableService.updateInvitationTemplate(published.key(), "{이름}님 {오디션일시}");
+        assertTrue(invitationOf(published.first()).getBody().contains("김배우님 10월 10일 (토) 10:00~10:30"));
+
+        save(published.key(), 1, new SlotAssignment(published.first(), TEN, ELEVEN));
+
+        assertTrue(invitationOf(published.first()).getBody().contains("김배우님 10월 10일 (토) 11:00~11:30"));
+        assertEquals(2, messages(TimetableMessageType.ACTOR_INVITATION).size());
         assertEquals(0, messages(TimetableMessageType.ACTOR_SCHEDULE_CHANGED).size());
-        assertCode(TimetableErrorCode.SLOT_UNAVAILABLE,
-                () -> actorTimetableService.changeSlot(published.firstKey(), ELEVEN, TEN_THIRTY));
-        assertCode(TimetableErrorCode.ASSIGNMENT_CONFLICT,
-                () -> actorTimetableService.changeSlot(published.firstKey(), TEN, ELEVEN));
-
-        timetableService.changeSelfChangeLock(published.key(), true);
-        assertEquals(SelfChangeStatus.LOCKED, actorTimetableService.find(published.firstKey()).selfChange());
-        assertCode(TimetableErrorCode.SELF_CHANGE_CLOSED,
-                () -> actorTimetableService.changeSlot(published.firstKey(), ELEVEN, TEN));
     }
 
     @Test
@@ -352,8 +390,12 @@ class TimetableServiceTest {
     }
 
     private TimetableCreatedResult create(int capacity) {
+        return create(capacity, "");
+    }
+
+    private TimetableCreatedResult create(int capacity, String contactName) {
         return timetableService.create(new CreateTimetableCommand(
-                new TimetableProfileCommand("남극장 2차 오디션", "남극장", "010-9999-0000", "남극장 연습실", "대본 지참"),
+                new TimetableProfileCommand("남극장 2차 오디션", "남극장", contactName, "010-9999-0000", "남극장 연습실", "대본 지참"),
                 setting(capacity)
         ));
     }
@@ -389,6 +431,13 @@ class TimetableServiceTest {
 
     private List<TimetableMessage> messages(TimetableMessageType type) {
         return messageRepository.findAll().stream().filter(message -> message.getType() == type).toList();
+    }
+
+    private TimetableMessage invitationOf(long actorId) {
+        return messages(TimetableMessageType.ACTOR_INVITATION).stream()
+                .filter(message -> message.getActorId() == actorId)
+                .findFirst()
+                .orElseThrow();
     }
 
     private TimetableMessage onlyMessage(TimetableMessageType type) {

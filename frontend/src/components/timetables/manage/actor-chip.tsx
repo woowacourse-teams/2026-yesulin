@@ -7,8 +7,7 @@ export type ChipState = {
   /** 불러온 뒤 옮겨 아직 저장하지 않았다. */
   readonly unsaved: boolean;
   readonly problem: boolean;
-  /** 배우가 링크에서 직접 바꾼 시간이다. */
-  readonly changedByActor: boolean;
+  readonly absent: boolean;
   /** 지금 옮기는 중인 배우다. */
   readonly moving: boolean;
 };
@@ -42,8 +41,8 @@ export function ActorChip({ actor, state, disabled, onClick, onDragStart, onDrag
   const labels = [
     state.additional ? "추가 합격" : "최초 합격",
     state.unsaved ? "저장 전" : null,
-    state.changedByActor ? "배우가 직접 바꿈" : null,
     state.problem ? "저장할 수 없음" : null,
+    state.absent ? "불참" : null,
   ].filter(Boolean).join(", ");
 
   return (
@@ -63,9 +62,9 @@ export function ActorChip({ actor, state, disabled, onClick, onDragStart, onDrag
         state.unsaved ? "border-dashed border-warn" : ""
       } ${state.moving ? "ring-2 ring-foreground ring-offset-1" : ""} ${className}`}
     >
-      <span className="truncate">{actor.name}</span>
+      <span className={`truncate ${state.absent ? "line-through opacity-60" : ""}`}>{actor.name}</span>
       {state.additional ? <span aria-hidden="true" className="shrink-0 rounded bg-etc px-1 text-[10px] font-bold leading-4 text-white">추가</span> : null}
-      {state.changedByActor ? <span aria-hidden="true" className="shrink-0 text-xs">↻</span> : null}
+      {state.absent ? <span aria-hidden="true" className="shrink-0 rounded bg-fail px-1 text-[10px] font-bold leading-4 text-white">불참</span> : null}
       {state.unsaved ? <span aria-hidden="true" className="absolute -right-1 -top-1 size-2 rounded-full bg-warn" /> : null}
     </button>
   );

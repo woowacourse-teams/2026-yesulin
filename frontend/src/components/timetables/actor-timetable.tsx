@@ -5,9 +5,9 @@ import { ScreenError } from "@/components/auditions/screen-status";
 import { useToast } from "@/components/auditions/toast";
 import { FieldTextarea, PrimaryButton, SecondaryButton, TextButton } from "@/components/ui/controls";
 import { AuditionRequestError } from "@/features/auditions/api-client";
-import { changeActorSlot, getActorTimetable, requestActorTime } from "@/features/timetables/api";
-import { formatDate, formatInstant, sameSlot, toHm } from "@/features/timetables/time";
-import { TIMETABLE_KEY_PATTERN, TIMETABLE_LIMITS, type ActorTimetable, type TimeSlotRange } from "@/features/timetables/types";
+import { answerAttendance, getActorTimetable, requestActorTime } from "@/features/timetables/api";
+import { formatDate, formatInstant, toHm } from "@/features/timetables/time";
+import { TIMETABLE_KEY_PATTERN, TIMETABLE_LIMITS, type ActorTimetable, type Attendance } from "@/features/timetables/types";
 import { TimetableHeader } from "./timetable-header";
 
 type LoadState =
@@ -18,10 +18,6 @@ type LoadState =
 
 const errorMessage = (cause: unknown, fallback: string) => (cause instanceof AuditionRequestError ? cause.message : fallback);
 
-/**
- * 배우가 문자로 받은 개인 링크로 여는 화면. 내 일정을 보고, 기획사가 정한 시간대 안의 빈 시간으로 바로 옮긴다.
- * 맞는 시간이 없을 때만 기획사에게 요청을 남긴다.
- */
 export function ActorTimetableView({ accessKey }: { readonly accessKey: string }) {
   const validKey = TIMETABLE_KEY_PATTERN.test(accessKey);
   const [state, setState] = useState<LoadState>(() => (validKey ? { status: "loading" } : { status: "notFound" }));
@@ -61,7 +57,6 @@ export function ActorTimetableView({ accessKey }: { readonly accessKey: string }
             accessKey={accessKey}
             timetable={state.timetable}
             onChange={(timetable) => setState({ status: "ready", timetable })}
-            onReload={() => setReloadToken((value) => value + 1)}
           />
         ) : null}
       </div>
@@ -69,11 +64,10 @@ export function ActorTimetableView({ accessKey }: { readonly accessKey: string }
   );
 }
 
-function ActorSchedule({ accessKey, timetable, onChange, onReload }: {
+function ActorSchedule({ accessKey, timetable, onChange }: {
   readonly accessKey: string;
   readonly timetable: ActorTimetable;
   readonly onChange: (timetable: ActorTimetable) => void;
-  readonly onReload: () => void;
 }) {
   const { slot } = timetable;
   return (
@@ -111,111 +105,65 @@ function ActorSchedule({ accessKey, timetable, onChange, onReload }: {
         ) : null}
       </section>
 
-      <SelfChangeSection accessKey={accessKey} timetable={timetable} onChange={onChange} onReload={onReload} />
+      {slot ? <AttendanceSection accessKey={accessKey} timetable={timetable} onChange={onChange} /> : null}
       <TimeRequestSection accessKey={accessKey} timetable={timetable} onChange={onChange} />
     </div>
   );
 }
 
-function SelfChangeSection({ accessKey, timetable, onChange, onReload }: {
+const ATTENDANCE_CHOICES: readonly { readonly value: Attendance; readonly label: string; readonly selected: string }[] = [
+  { value: "ATTENDING", label: "참석", selected: "border-pass bg-pass text-white" },
+  { value: "ABSENT", label: "불참", selected: "border-fail bg-fail text-white" },
+];
+
+function AttendanceSection({ accessKey, timetable, onChange }: {
   readonly accessKey: string;
   readonly timetable: ActorTimetable;
   readonly onChange: (timetable: ActorTimetable) => void;
-  readonly onReload: () => void;
 }) {
+  const id = useId();
   const toast = useToast();
-  const [open, setOpen] = useState(false);
-  const [choice, setChoice] = useState<TimeSlotRange | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [conflict, setConflict] = useState(false);
-  const { slot } = timetable;
+  const [saving, setSaving] = useState<Attendance | null>(null);
 
-  if (timetable.selfChange !== "OPEN" || !slot) {
-    return (
-      <section className="rounded-card border border-border bg-card px-5 py-4 text-sm text-muted-strong md:px-6">
-        <h2 className="text-base font-bold text-foreground">시간 바꾸기</h2>
-        <p className="mt-1">
-          {timetable.selfChange === "LOCKED"
-            ? "담당자가 일정 변경을 마감했어요. 꼭 바꿔야 한다면 아래에서 요청을 남겨 주세요."
-            : `오디션 시작 ${timetable.selfChangeNoticeHours}시간 전이 지나 직접 바꿀 수 없어요. 꼭 바꿔야 한다면 아래에서 요청을 남겨 주세요.`}
-        </p>
-      </section>
-    );
-  }
-
-  const dates = [...new Set(timetable.openSlots.map((open) => open.date))];
-  const confirm = async () => {
-    if (!choice) return;
-    setSaving(true);
+  const answer = async (attendance: Attendance) => {
+    setSaving(attendance);
     try {
-      const next = await changeActorSlot(accessKey, slot, choice);
-      onChange(next);
-      setOpen(false);
-      setChoice(null);
-      toast("시간을 바꿨어요. 담당자 화면에도 바로 반영돼요.", { type: "success" });
+      onChange(await answerAttendance(accessKey, attendance));
+      toast(attendance === "ATTENDING" ? "참석으로 알렸어요." : "불참으로 알렸어요. 담당자 화면에 바로 표시돼요.", { type: "success" });
     } catch (cause) {
-      if (cause instanceof AuditionRequestError && cause.status === 409) setConflict(true);
-      toast(errorMessage(cause, "시간을 바꾸지 못했어요. 다시 시도해 주세요."), { type: "error" });
+      toast(errorMessage(cause, "참석 여부를 알리지 못했어요. 다시 시도해 주세요."), { type: "error" });
     } finally {
-      setSaving(false);
+      setSaving(null);
     }
   };
 
   return (
-    <section aria-labelledby="self-change-heading" className="rounded-card border border-border bg-card px-5 py-5 md:px-6">
-      <h2 id="self-change-heading" className="text-base font-bold">시간 바꾸기</h2>
+    <section aria-labelledby={`${id}-heading`} className="rounded-card border border-border bg-card px-5 py-5 md:px-6">
+      <h2 id={`${id}-heading`} className="text-base font-bold">참석하시나요?</h2>
       <p className="mt-1 text-sm text-muted-strong">
-        담당자가 정한 시간대 안의 빈 시간으로 바로 바꿀 수 있어요. 따로 연락하지 않아도 돼요.
-        {timetable.changeDeadline ? ` ${formatInstant(timetable.changeDeadline)}까지 바꿀 수 있어요.` : ""}
+        {timetable.attendance === "UNANSWERED"
+          ? "참석 여부를 알려 주시면 담당자에게 바로 전달돼요."
+          : `${timetable.attendance === "ATTENDING" ? "참석" : "불참"}으로 알렸어요. 바뀌면 다시 골라 주세요.`}
       </p>
-      {conflict ? (
-        <div role="alert" className="mt-3 flex flex-wrap items-center gap-2 rounded-control bg-warn-bg px-3 py-2 text-sm text-warn">
-          그사이 일정이나 빈 시간이 바뀌었어요.
-          <TextButton onClick={() => { setConflict(false); setChoice(null); onReload(); }} className="min-h-9 px-2">새로 불러오기</TextButton>
-        </div>
-      ) : null}
-      {!open ? (
-        <SecondaryButton onClick={() => setOpen(true)} className="mt-4 w-full" disabled={timetable.openSlots.length === 0}>
-          {timetable.openSlots.length > 0 ? `다른 시간 보기 (빈 시간 ${timetable.openSlots.length}개)` : "지금 고를 수 있는 빈 시간이 없어요"}
-        </SecondaryButton>
-      ) : (
-        <div className="mt-4 space-y-4">
-          {dates.map((date) => (
-            <fieldset key={date}>
-              <legend className="text-sm font-bold">{formatDate(date)}</legend>
-              <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4">
-                {timetable.openSlots.filter((open) => open.date === date).map((open) => {
-                  const selected = sameSlot(choice, open);
-                  return (
-                    <button
-                      key={`${open.date}-${open.startTime}`}
-                      type="button"
-                      aria-pressed={selected}
-                      onClick={() => setChoice(selected ? null : open)}
-                      className={`num min-h-11 rounded-control border text-sm font-semibold transition-colors ${
-                        selected ? "border-foreground bg-foreground text-white" : "border-border bg-card text-foreground hover:border-brand-line hover:bg-brand-soft"
-                      }`}
-                    >
-                      {toHm(open.startTime)}
-                    </button>
-                  );
-                })}
-              </div>
-            </fieldset>
-          ))}
-          <div className="sticky bottom-0 -mx-5 border-t border-border bg-card px-5 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 md:-mx-6 md:px-6">
-            <p className="text-sm text-muted-strong" aria-live="polite">
-              {choice ? <><strong className="text-foreground">{formatDate(choice.date)} {toHm(choice.startTime)}~{toHm(choice.endTime)}</strong>으로 바꿀까요?</> : "바꿀 시간을 골라 주세요."}
-            </p>
-            <div className="mt-2 flex gap-2">
-              <SecondaryButton onClick={() => { setOpen(false); setChoice(null); }} disabled={saving} className="flex-1">닫기</SecondaryButton>
-              <PrimaryButton onClick={confirm} disabled={!choice || saving} aria-busy={saving || undefined} className="flex-1">
-                {saving ? "바꾸는 중…" : "이 시간으로 바꾸기"}
-              </PrimaryButton>
-            </div>
-          </div>
-        </div>
-      )}
+      <div role="group" aria-labelledby={`${id}-heading`} className="mt-4 grid grid-cols-2 gap-2">
+        {ATTENDANCE_CHOICES.map((choice) => {
+          const selected = timetable.attendance === choice.value;
+          return (
+            <button
+              key={choice.value}
+              type="button"
+              aria-pressed={selected}
+              disabled={saving !== null}
+              onClick={() => void answer(choice.value)}
+              className={`min-h-12 rounded-control border text-base font-bold transition-colors disabled:opacity-60 ${
+                selected ? choice.selected : "border-border bg-card text-foreground hover:bg-surface"
+              }`}
+            >
+              {saving === choice.value ? "알리는 중…" : choice.label}
+            </button>
+          );
+        })}
+      </div>
     </section>
   );
 }
@@ -240,9 +188,9 @@ function TimeRequestSection({ accessKey, timetable, onChange }: {
       onChange(await requestActorTime(accessKey, message));
       setEditing(false);
       setMessage("");
-      toast("담당자에게 요청을 전달했어요. 시간이 바뀌면 문자로 알려 드려요.", { type: "success" });
+      toast("담당자에게 문의를 전달했어요. 시간이 바뀌면 문자로 알려 드려요.", { type: "success" });
     } catch (cause) {
-      toast(errorMessage(cause, "요청을 보내지 못했어요. 다시 시도해 주세요."), { type: "error" });
+      toast(errorMessage(cause, "문의를 보내지 못했어요. 다시 시도해 주세요."), { type: "error" });
     } finally {
       setSending(false);
     }
@@ -250,17 +198,17 @@ function TimeRequestSection({ accessKey, timetable, onChange }: {
 
   return (
     <section aria-labelledby={`${id}-heading`} className="rounded-card border border-border bg-card px-5 py-5 md:px-6">
-      <h2 id={`${id}-heading`} className="text-base font-bold">맞는 시간이 없나요?</h2>
+      <h2 id={`${id}-heading`} className="text-base font-bold">시간 변경이 필요하신가요?</h2>
       {request && !editing ? (
         <div className="mt-2 space-y-2 text-sm">
-          <p className="text-muted-strong">{formatInstant(request.createdAt)}에 담당자에게 요청을 보냈어요. 시간이 바뀌면 문자로 알려 드려요.</p>
+          <p className="text-muted-strong">{formatInstant(request.createdAt)}에 담당자에게 문의를 보냈어요. 시간이 바뀌면 문자로 알려 드려요.</p>
           <p className="whitespace-pre-line rounded-control bg-surface px-3 py-2 text-foreground">{request.message}</p>
-          <TextButton onClick={() => { setMessage(request.message); setEditing(true); }} className="min-h-9 px-2">요청 내용 고치기</TextButton>
+          <TextButton onClick={() => { setMessage(request.message); setEditing(true); }} className="min-h-9 px-2">문의 내용 고치기</TextButton>
         </div>
       ) : (
         <form onSubmit={send} className="mt-2 space-y-2">
           <label htmlFor={`${id}-message`} className="block text-sm text-muted-strong">
-            가능한 날짜·시간이나 사정을 적어 주시면 담당자에게 전달해요.
+            시간은 담당자가 정해요. 가능한 날짜·시간이나 사정을 적어 주시면 담당자에게 전달해요.
           </label>
           <FieldTextarea
             id={`${id}-message`}
@@ -274,7 +222,7 @@ function TimeRequestSection({ accessKey, timetable, onChange }: {
           <div className="flex gap-2">
             {editing ? <SecondaryButton onClick={() => setEditing(false)} disabled={sending} className="flex-1">취소</SecondaryButton> : null}
             <PrimaryButton type="submit" disabled={sending || !message.trim()} className="flex-1">
-              {sending ? "보내는 중…" : "담당자에게 요청하기"}
+              {sending ? "보내는 중…" : "담당자에게 문의하기"}
             </PrimaryButton>
           </div>
         </form>

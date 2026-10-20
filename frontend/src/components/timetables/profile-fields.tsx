@@ -8,10 +8,6 @@ import { TIMETABLE_LIMITS, type TimetableProfile } from "@/features/timetables/t
 
 const INVALID_CLASS = "aria-invalid:border-fail aria-invalid:ring-2 aria-invalid:ring-fail-bg";
 
-/**
- * 일정표 이름·단체명·담당자 번호와 배우에게 보여 줄 장소·안내 사항. 설명은 placeholder로만 준다.
- * 잘못된 칸은 빨간 테두리로 표시하고, 비어 있는 칸이 아니라 형식이 틀린 칸에만 이유를 적는다.
- */
 export function ProfileFields({ form, errors, onChange, disabled = false }: {
   readonly form: TimetableProfile;
   readonly errors: ProfileFormErrors;
@@ -39,14 +35,19 @@ export function ProfileFields({ form, errors, onChange, disabled = false }: {
   return (
     <div className="grid gap-5 sm:grid-cols-2">
       <div className="sm:col-span-2">
-        {label("title", "일정표 이름", true)}
-        <FieldInput {...field("title")} maxLength={TIMETABLE_LIMITS.titleLength} placeholder="예: 정기공연 2차 오디션" className={`mt-2 ${INVALID_CLASS}`} />
+        {label("title", "작품명", true)}
+        <FieldInput {...field("title")} maxLength={TIMETABLE_LIMITS.titleLength} placeholder="예: 햄릿" className={`mt-2 ${INVALID_CLASS}`} />
         {error("title")}
       </div>
       <div>
         {label("organizerName", "단체명", true)}
         <FieldInput {...field("organizerName")} maxLength={TIMETABLE_LIMITS.organizerNameLength} placeholder="예: 극단 하늘" className={`mt-2 ${INVALID_CLASS}`} />
         {error("organizerName")}
+      </div>
+      <div>
+        {label("contactName", "담당자명", false)}
+        <FieldInput {...field("contactName")} maxLength={TIMETABLE_LIMITS.contactNameLength} placeholder="예: 김하늘" className={`mt-2 ${INVALID_CLASS}`} />
+        {error("contactName")}
       </div>
       <div>
         {label("organizerPhone", "담당자 휴대폰", true)}
@@ -62,7 +63,7 @@ export function ProfileFields({ form, errors, onChange, disabled = false }: {
         />
         {error("organizerPhone")}
       </div>
-      <div className="sm:col-span-2">
+      <div>
         {label("location", "오디션 장소", false)}
         <FieldInput {...field("location")} maxLength={TIMETABLE_LIMITS.locationLength} placeholder="예: 대학로 ○○빌딩 3층 연습실" className={`mt-2 ${INVALID_CLASS}`} />
         {error("location")}

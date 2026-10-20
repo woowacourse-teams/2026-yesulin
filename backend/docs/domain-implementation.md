@@ -63,15 +63,15 @@
 ## 오디션 일정표
 
 - `Timetable`은 관리 열쇠, 안내 정보(`TimetableProfile`), 소요 시간·정원과 정렬된 `TimetableWindow` 목록
-  (`timetable_windows` element collection), `DRAFT/PUBLISHED`, 배우 직접 변경 잠금을 저장한다. 시간 칸(`TimeSlot`)은 저장하지
+  (`timetable_windows` element collection), `DRAFT/PUBLISHED`를 저장한다. 시간 칸(`TimeSlot`)은 저장하지
   않고 시간대에서 계산한다. 공연·공고·회원과 연결하지 않는다. `updateSetting`은 새 시간 칸이 기존 시간 칸을 모두 포함하고
   진행 시간이 같으며 정원이 줄지 않을 때만 바꾼다(늘리기만 허용). 처음 만들 때는 이 검사를 하지 않는다.
-- `TimetableActor`는 일정표 ID, 개인 열쇠, 이름·휴대폰, 배정 칸(날짜·시작 시각, 미배정이면 null), 안내 시각과 배우 직접
-  변경 기록(기획사가 마지막으로 정한 이전 칸·변경 시각)을 가진 별도 엔티티다. `(timetable_id, phone)` 고유 제약으로 같은 번호를 막는다.
+- `TimetableActor`는 일정표 ID, 개인 열쇠, 이름·휴대폰, 배정 칸(날짜·시작 시각, 미배정이면 null), 안내 시각을 가진
+  별도 엔티티다. `(timetable_id, phone)` 고유 제약으로 같은 번호를 막는다.
 - 정원·바운더리처럼 여러 배우에 걸친 규칙은 `TimetableBoard`가 일정표와 그 일정표의 배우 전체로 검사한다. 배정을 바꾸는
-  기획사 저장·확정·등록·삭제와 배우 직접 변경은 모두 일정표 행을 `PESSIMISTIC_WRITE`로 잠근 뒤 배우를 새로 읽고,
+  기획사 저장·확정·등록·삭제와 배우 문의는 모두 일정표 행을 `PESSIMISTIC_WRITE`로 잠근 뒤 배우를 새로 읽고,
   잠금 뒤 최신 커밋 값을 읽도록 `READ_COMMITTED`로 실행한다. 배우 경로는 열쇠로 일정표 ID만 먼저 읽고 잠근다.
-- `TimetableRequest`는 배우의 시간 조정 요청(`OPEN/RESOLVED`)이고, `TimetableMessage`는 받는 이름·번호·본문을 고정한
+- `TimetableRequest`는 배우의 시간 변경 문의(`OPEN/RESOLVED`)이고, `TimetableMessage`는 받는 이름·번호·본문을 고정한
   문자 대기열 행(`PENDING/SENT`, 발송 표시 운영자)이다. 문자 본문과 중복 억제는 `TimetableMessenger`가 맡는다.
 - 한 작업에서 넣은 문자는 `TimetableMessagesQueuedEvent` 하나로 묶고 커밋 뒤 `TimetableMessageRelay`에 전달한다. 현재 구현
   `SlackTimetableMessageRelay`는 개인정보 없는 신호를 가상 스레드로 스케줄 알림 Slack에 보내며 실패해도 대기열은 남는다.

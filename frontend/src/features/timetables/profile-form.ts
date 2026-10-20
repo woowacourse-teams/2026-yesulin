@@ -6,6 +6,7 @@ export type ProfileFormErrors = Partial<Record<keyof TimetableProfile, string>>;
 export const EMPTY_PROFILE: TimetableProfile = {
   title: "",
   organizerName: "",
+  contactName: "",
   organizerPhone: "",
   location: "",
   guide: "",
@@ -17,11 +18,14 @@ export function readProfileForm(form: TimetableProfile): { profile: TimetablePro
   const title = form.title.trim();
   const organizerName = form.organizerName.trim();
   const organizerPhone = normalizePhone(form.organizerPhone);
-  if (!title) errors.title = "일정표 이름을 입력해 주세요.";
+  if (!title) errors.title = "작품명을 입력해 주세요.";
   else if (title.length > TIMETABLE_LIMITS.titleLength) errors.title = `${TIMETABLE_LIMITS.titleLength}자 이하로 적어 주세요.`;
   if (!organizerName) errors.organizerName = "배우에게 안내할 단체명을 입력해 주세요.";
   else if (organizerName.length > TIMETABLE_LIMITS.organizerNameLength) {
     errors.organizerName = `${TIMETABLE_LIMITS.organizerNameLength}자 이하로 적어 주세요.`;
+  }
+  if (form.contactName.trim().length > TIMETABLE_LIMITS.contactNameLength) {
+    errors.contactName = `${TIMETABLE_LIMITS.contactNameLength}자 이하로 적어 주세요.`;
   }
   if (!organizerPhone) errors.organizerPhone = "담당자 휴대폰 번호를 010-1234-5678 형식으로 입력해 주세요.";
   if (form.location.trim().length > TIMETABLE_LIMITS.locationLength) {
@@ -30,7 +34,14 @@ export function readProfileForm(form: TimetableProfile): { profile: TimetablePro
   if (form.guide.trim().length > TIMETABLE_LIMITS.guideLength) errors.guide = `${TIMETABLE_LIMITS.guideLength}자 이하로 적어 주세요.`;
   if (Object.keys(errors).length > 0 || !organizerPhone) return { profile: null, errors };
   return {
-    profile: { title, organizerName, organizerPhone, location: form.location.trim(), guide: form.guide.trim() },
+    profile: {
+      title,
+      organizerName,
+      contactName: form.contactName.trim(),
+      organizerPhone,
+      location: form.location.trim(),
+      guide: form.guide.trim(),
+    },
     errors,
   };
 }
