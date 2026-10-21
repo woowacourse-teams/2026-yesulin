@@ -7,6 +7,7 @@
 
 > 2026-10-10에 DEV 앱을 t4g.small에서 t4g.micro로 바꿨다. 아래 비용 표는 바꾸기 전 값이다.
 > t4g.micro가 지금처럼 RI로 0원이면 월 약 13.8이 줄어 약 59.2가 된다. 2026-10-17쯤 Cost Explorer로 확인해 표를 갱신한다.
+> 2026-10-19에 PROD 앱도 t4g.micro로 바꿨다. 같은 조건이면 small 1대분(월 약 13.8)이 더 줄어든다.
 
 ## 예산
 
@@ -63,7 +64,7 @@
 | --- | --- | --- | --- | --- |
 | DEV | 앱 | `yesulin-backend-dev2` (`yesulin-backend-asg` 소속) | t4g.micro · 루트 8GiB · swap 512MiB | 2026-10-09 ASG로 교체(Launch Template 버전 4). 옛 small은 2026-10-10 종료 |
 | DEV | DB | `yesulin-db-dev` | t4g.micro · 루트 12GiB · 데이터 20GiB | 분리 전 staging 데이터의 유일한 사본. ASG 소속 아님 |
-| PROD | 앱 | `yesulin-backend-prod` (`yesulin-backend-prod-asg` 소속) | t4g.small · 루트 8GiB | |
+| PROD | 앱 | `yesulin-backend-prod` (`yesulin-backend-prod-asg` 소속) | t4g.micro · 루트 8GiB · swap 512MiB | 2026-10-19 ASG로 교체(Launch Template 버전 2). 옛 small은 같은 날 종료 |
 | PROD | DB | `yesulin-db-prod` | t4g.small · 루트 12GiB · 데이터 20GiB | t4g.micro에서 증설 |
 | 공유 | API 입구 | `yesulin-backend-alb` | | Host 규칙으로 DEV/PROD 분기 |
 | 공유 | 파일 전달 | CloudFront 배포 1개 | | `/dev`, `/prod` 경로로 분기 |
@@ -100,8 +101,8 @@
   ALB는 계정 규칙상 지정 LB를 써야 하며 DEV와 PROD가 이미 한 개를 공유한다.
 - PROD DB는 t4g.micro(1GiB)에서 MySQL이 메모리 부족(OOM)으로 종료되어 t4g.small로 증설했다.
   MySQL 컨테이너 메모리 제한은 700MiB이고 swap은 없다. 증설 후 16분 관찰 기록만 있고 장시간·부하 상황은 확인하지 않았다.
-- 앱 서버의 systemd `ExecStart`에는 `-Xmx`가 없다. DEV는 환경 파일의 `JAVA_TOOL_OPTIONS=-Xmx384m`으로 힙 상한을 두고(2026-10-09),
-  PROD는 기본값인 물리 메모리의 1/4(약 460MiB)을 쓴다. DEV micro는 메모리가 작아 기본 GC가 SerialGC다(PROD는 G1).
+- 앱 서버의 systemd `ExecStart`에는 `-Xmx`가 없다. DEV(2026-10-09)와 PROD(2026-10-19) 모두 환경 파일의
+  `JAVA_TOOL_OPTIONS=-Xmx384m`으로 힙 상한을 둔다. 두 환경 모두 micro라 메모리가 작아 기본 GC가 SerialGC다.
 - 스냅샷은 9개다. Launch Template AMI용 `yesulin-backend-base-20260913-sops-v2` 1개와 DEV DB 주간 스냅샷
   `yesulin-db-staging-weekly` 8개(2026-08 말~2026-10-04)다. 주간 스냅샷 1개의 크기는 645~704MiB다.
 - 주간 EBS 스냅샷의 `RetentionDays=90` 태그는 자동 삭제가 아니다([백업](backup.md)). 삭제 정책이 없으면 스냅샷이 계속 쌓인다.
@@ -124,7 +125,7 @@
 | 항목 | `yesulin-backend-asg` (DEV) | `yesulin-backend-prod-asg` (PROD) |
 | --- | --- | --- |
 | 원하는 용량 / 최소-최대 | 1 / 1-1 (2026-10-10부터) | 1 / 0-1 |
-| Launch Template | `yesulin-backend-lt` 버전 4 (t4g.micro, 사용자 데이터에 swap 512MiB·CodeDeploy 배포본 2개 설정) | `yesulin-backend-prod-lt` 버전 1 |
+| Launch Template | `yesulin-backend-lt` 버전 4 (t4g.micro, 사용자 데이터에 swap 512MiB·CodeDeploy 배포본 2개 설정) | `yesulin-backend-prod-lt` 버전 2 (t4g.micro, 같은 swap·배포본 설정. 기존 `yesulin` 서비스 비활성 줄 유지) |
 | AMI | 2026-09-13 sops 기반 AMI | DEV와 같은 AMI |
 | 상태 확인 유형 | EC2, EBS, ELB (유예 300초) | EC2 (유예 300초) |
 | 일시 중지된 프로세스 | 없음 | 없음 |
@@ -133,7 +134,9 @@
 - DEV ASG는 최소 용량 1에 ELB 상태 확인을 쓴다. 인스턴스를 정지하면 ASG가 비정상으로 보고 새 인스턴스로 교체한다.
 - 새 인스턴스가 뜨면 CodeDeploy 후크(배포 그룹 `yesulin-backend-staging`)가 마지막 성공 리비전을 자동 배포한다.
   DEV에서는 이 경로가 2026-09-22(ELB 상태 확인 실패로 자동 교체)와 2026-10-09(용량 확장으로 micro 기동, 배포 2분 20초)에 성공했다.
-  PROD ASG 경로는 확인하지 않았다.
+  PROD(배포 그룹 `yesulin-backend-prod`)도 2026-10-19 micro 교체 때 같은 경로로 배포에 성공했다(2분 46초).
+- 새 인스턴스는 부팅 직후 자동 업데이트가 패키지 잠금을 잡고 있어 CloudWatch Agent 설치가 실패할 수 있다(2026-10-19 PROD에서 발생).
+  배포는 계속되므로 교체 뒤 로그 그룹에 새 인스턴스 스트림이 생겼는지 확인한다.
 - 공고 자동 수집·Slack 알림 스케줄러(`AuditionImportScheduler`)는 `prod` 프로필에서만 실행된다.
   DEV는 공고를 자동으로 수집하거나 알리지 않는다.
 - 백업 타이머는 DEV DB에서 매일 03:15, 일요일 04:15에 실행되며 `Persistent=true`다. PROD 전용 백업 설정 기록은 없다.
@@ -164,4 +167,4 @@ CloudShell은 콘솔에서 열리지 않았다.
 | RI 만료일 | 운영진 문의 (다른 계정 소유) | micro가 0원인 상태가 언제까지 이어지는지 |
 | 변경 작업 권한 | 실제 시도 또는 운영진 문의 | `autoscaling:SuspendProcesses`, `ec2:ModifyInstanceAttribute`, `ec2:StopInstances` 등 |
 | 로그 그룹 보관 기간 | CloudWatch · 로그 그룹 | 우리 태그 비용에 로그 요금은 없어 우선순위가 낮다 |
-| DEV 앱 micro 장기 메모리 | DEV 앱 서버 (`free -m`, swap 사용량, OOM 로그) | 배포·관리자 로그 집계 때도 여유가 있는지 |
+| 앱 micro 장기 메모리 | DEV·PROD 앱 서버 (`free -m`, swap 사용량, OOM 로그), 대시보드 런타임 그래프 | 실제 트래픽·배포·관리자 로그 집계 때도 여유가 있는지. PROD는 전환 직후 swap 150~384MiB를 썼다 |
