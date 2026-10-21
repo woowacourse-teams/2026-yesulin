@@ -72,8 +72,14 @@ Slack 웹훅 세 개(OTR 공고 `YESULIN_SLACK_WEBHOOK_URL` 포함)는 `src/main
 7. 최근 릴리스 5개를 유지한다.
 
 여러 인스턴스에 한 대씩 배포하면 배포 중 옛 버전과 새 버전이 같은 DB를 함께 쓰고, 롤백해도 Flyway는 되돌리지 않는다.
-그래서 한 번의 배포에서는 옛 코드가 계속 동작하는 변경(테이블·nullable 컬럼·인덱스 추가)만 한다. 컬럼 삭제·이름 변경·
-NOT NULL 추가는 새 구조를 쓰는 코드를 먼저 배포한 뒤 다음 배포에서 옛 구조를 지운다. 2026-10-21에 #328의 컬럼 삭제
+그래서 DB 구조는 Expand-Contract(확장-축소, Parallel Change)로 바꾼다. 한 번의 배포에서는 옛 코드가 계속 동작하는
+변경(테이블·인덱스 추가, nullable이거나 default가 있는 컬럼 추가)만 한다(Expand). 컬럼·테이블 삭제, 이름 변경, 기존 컬럼의
+NOT NULL·타입 변경(Contract)은 그 구조를 쓰지 않는 코드를 먼저 PROD까지 배포한 뒤 다음 배포에서 한다. dev에 모았다가
+main으로 한 번에 보내므로, Contract PR은 앞 단계가 PROD에 나간 것을 확인한 뒤 dev에 병합한다.
+
+PR CI의 `deploy/scripts/check_flyway_contract_changes.sh`는 새 마이그레이션에서 Contract 변경과 default 없는 필수 컬럼
+추가를 찾으면 실패한다. 앞 단계가 PROD에 배포된 뒤라면 파일에 `-- contract: 1단계 #123이 2026-10-22 PROD에 배포됨`처럼
+사유를 적어 통과시킨다. 길이만 늘리는 `modify ... not null`처럼 안전한 변경도 같은 방식으로 표시한다. 2026-10-21에 #328의 컬럼 삭제
 마이그레이션 때문에 직전 버전(#327)으로의 롤백이 시작 단계에서 실패했다([검증 기록](../../../design/zero-downtime-deployment-record.md)).
 
 PROD는 앱 2대(ASG 2-2)이고 배포 그룹 `yesulin-backend-prod`는 로드 밸런서 연동을 켠 `CodeDeployDefault.OneAtATime`이다.

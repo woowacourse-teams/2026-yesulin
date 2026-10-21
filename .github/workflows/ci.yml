@@ -64,6 +64,10 @@ jobs:
         if: github.event_name == 'pull_request'
         run: sh deploy/scripts/check_flyway_migration_order.sh "${{ github.event.pull_request.base.sha }}"
 
+      - name: Check Flyway contract changes
+        if: github.event_name == 'pull_request'
+        run: sh deploy/scripts/check_flyway_contract_changes.sh "${{ github.event.pull_request.base.sha }}"
+
       - name: Set up Java
         uses: actions/setup-java@v5
         with:
@@ -79,6 +83,7 @@ jobs:
       - name: Test deployment scripts
         run: |
           sh deploy/tests/check_flyway_migration_order_test.sh
+          sh deploy/tests/check_flyway_contract_changes_test.sh
           sh deploy/tests/validate_service_test.sh
           sh deploy/tests/cleanup_releases_test.sh
           sh deploy/tests/install_env_test.sh
