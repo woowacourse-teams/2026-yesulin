@@ -79,7 +79,7 @@ UNKNOWN은 자동 재전송하지 않는다. FAILED 중 code=RETRIED는 후속 �
 
 | Method | URL | 인증 | Request | Response |
 | --- | --- | --- | --- | --- |
-| GET | `/api/v1/health` | 공개 | 없음 | `200 HealthResponse`, DB 불가 시 `503 HealthResponse` |
+| GET | `/api/v1/health` | 공개 | 없음 | `200 HealthResponse`, DB 불가 시 `503 HealthResponse`. 응답한 서버의 사설 IP를 `X-Served-By` 헤더로 준다 |
 | POST | `/api/v1/sessions` | 공개 | `LoginRequest(email, password)` | `200 SessionResponse` |
 | GET | `/api/v1/sessions/current` | 세션 | 없음 | `200 SessionResponse` |
 | DELETE | `/api/v1/sessions/current` | 공개 | 없음 | `204` |
