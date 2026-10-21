@@ -220,7 +220,7 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 1차 서류 심사 한 차수를 제공한다. 배역별 심사 종료는 OTR 지원 마감 다음 날부터 가능하며,
 그 전에는 `409 SCREENING_ROUND_NOT_READY`를 반환한다. 종료 후 심사 결과 수정은 거부한다.
 
-## 가져온 공고(메인 목록) — 22개
+## 가져온 공고(메인 목록) — 24개
 
 운영자가 공고 알림을 받은 OTR 공고를 우리 공고로 옮기거나, 운영자나 기획사가 원문 없이 직접 쓴 `AuditionPost`다.
 공개 상세에만 원문 출처·주소를 담는다. 공개 API는 로그인 없이 호출하고, 운영 API는 `ADMIN`만, 기획사 API는 `PRODUCER + ACTIVE`만 호출한다.
@@ -245,6 +245,8 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 | POST | `/api/v1/admin/audition-post-author-links` | Admin | `LinkAuditionPostAuthorRequest(source, sourceAuthorId, ownerId)` | `201 AuditionPostAuthorLinkResult` |
 | DELETE | `/api/v1/admin/audition-post-author-links/{linkId}` | Admin | 없음 | `204` |
 | POST | `/api/v1/admin/audition-post-author-links/fills` | Admin | `FillAuditionPostAuthorsRequest(beforeId?)` | `200 AuditionPostAuthorFillResult` |
+| GET | `/api/v1/admin/alert-chat-members` | Admin | 없음 | `200 AdminAlertChatMembersResult(currentMemberCount, initialMemberCount, history)` |
+| POST | `/api/v1/admin/alert-chat-members` | Admin | `RecordAlertChatMembersRequest(memberCount)` | `201 AdminAlertChatMembersResult` |
 | GET | `/api/v1/producers/me/audition-posts` | Active Producer | 없음 | `200 ProducerAuditionPostsResponse(posts)` |
 | POST | `/api/v1/producers/me/audition-posts` | Active Producer | `ProducerWriteAuditionPostRequest(category, title, pay, deadlineText, bodyHtml?, tags, attachmentUrls)` | `201 ProducerAuditionPostResult` |
 | POST | `/api/v1/producers/me/audition-posts/uploads` | Active Producer | `PrepareAuditionPostUploadRequest(kind: IMAGE/ATTACHMENT, filename, contentType?, size)` | `201 AuditionPostUploadResult(url, method, headers, expiresAt, publicUrl)` |
@@ -259,10 +261,10 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 선택한 분야의 모집 중·전체 공개 공고 수다.
 목록 항목은 `id`, `category`, `title`, `authorName`, `pay`, `deadlineText`(원문 표현),
 `deadline`(날짜일 때만 `YYYY-MM-DD`), `closed`(한국 날짜 기준), `postedAt`(Instant), `thumbnailUrl`(본문 첫 사진, 없으면 null),
-`attachmentCount`, `viewCount`를 담는다. 공개 응답의 `authorName`은 기획사에 연결된 공고면 그 기획사의 지금 이름이고,
+`attachmentCount`, `viewCount`, `alertChatMembers`(아래 공고 알림 오픈채팅방 인원)를 담는다. 공개 응답의 `authorName`은 기획사에 연결된 공고면 그 기획사의 지금 이름이고,
 아니면 저장된 작성자(원문 닉네임이나 운영자가 쓴 이름)다. 운영 목록과 수정 상세의 `authorName`은 저장된 작성자다. 조회수는 상세 화면이 열릴 때 브라우저가 탭 세션당 한 번 보내는 POST로만 늘고,
 서버 렌더링·메타데이터 조회는 세지 않는다. 다시 가져와도 유지한다. 상세는 여기에 `bodyHtml`, `tags`, `attachments(name, contentType, size, url)`, 원문 출처 `source`(예: `OTR`)·`sourceUrl`,
-`updatedAt`, 공연사 요약 `company`(아래 공연사 절, 연결이 없거나 공개 전이면 null)를 더한다. 운영자나 기획사가 직접 쓴 공고는 `source`가 `YESULIN`이고 `sourceUrl`이 null이다.
+`updatedAt`, 공연사 요약 `company`(아래 공연사 절, 연결이 없거나 공개 전이면 null)를 더한다. 상세에도 `alertChatMembers`가 있다. 운영자나 기획사가 직접 쓴 공고는 `source`가 `YESULIN`이고 `sourceUrl`이 null이다.
 공개 상태는 `PENDING`(검토 전), `PUBLISHED`(공개 중), `HIDDEN`(내림)이다. 공개 중이 아닌 공고 상세는 본문 없이
 `302 Location: {sourceUrl}`로 원문 공고에 보낸다. 원문 없이 쓴 공고는 보낼 곳이 없어 `404`다.
 `Cache-Control: no-store`, `Referrer-Policy: no-referrer`를 붙인다. 프론트 서버 렌더링은 이동을 따라가지 않고 `Location`만 읽어
@@ -329,6 +331,14 @@ OTR 작성자 자동 연결: 가져오기는 OTR 상세의 작성자 링크(`get
 `pendingCount`, `hiddenCount`, `latestCreatedAt`, `authorLinks(id, source, sourceAuthorId, sourceAuthorName)`를 최근 등록 순서로 담는다.
 `unlinkedAuthors`는 기획사가 없는 원문 공고를 작성자별로 묶은 `source`, `sourceAuthorId`(번호가 없으면 null이고 닉네임으로만 묶음),
 `authorName`, `postCount`, `latestCreatedAt`를 공고가 많은 순서로 100명까지 담고, 자동 연결이 있는 작성자는 뺀다.
+
+공고 알림 오픈채팅방 인원: 공개 목록·상세·공연사 공고 목록의 `alertChatMembers`는 공고를 올린 시각(`postedAt`)까지 운영자가
+마지막으로 적은 공고 알림 카카오톡 오픈채팅방 인원이다. 프론트 공개 화면은 이 인원으로 알림을 보고 공고를 확인했을 인원을 추정해
+실제 조회수와 큰 값을 보여 준다. 처음 적기 전에 올라왔거나 `postedAt`이 null인 공고는 기록 전 인원 109명이다.
+`alert-chat-members` POST는 지금 인원(1~10,000)을 요청 시각으로 적고, 그 시각부터 올라오는 공고에만 적용한다. 이미 올라온 공고의
+인원은 바뀌지 않으며 기록은 고치거나 지우지 않는다. 범위 밖이거나 빠진 값은 `400 INVALID_REQUEST`다. 응답과 GET의
+`currentMemberCount`는 지금 적용하는 인원(기록이 없으면 109), `initialMemberCount`는 기록 전 인원, `history(id, memberCount, recordedAt)`는
+최근 기록부터 100건이다. 적을 때마다 `admin_audit_logs`에 `ALERT_CHAT_MEMBERS_RECORDED`로 바뀌기 전·후 인원을 남긴다.
 
 기획사 연결(`PATCH .../owner`)은 `ownerId`로 기획사 회원을 연결하고, null이면 연결을 끊는다. 기획사 정보가 없는 회원이면
 `400 AUDITION_POST_INVALID_INPUT`이다. 연결된 기획사는 기획사 API로 이 공고를 고칠 수 있다. 원문에서 가져온 공고도 연결할 수 있다.
