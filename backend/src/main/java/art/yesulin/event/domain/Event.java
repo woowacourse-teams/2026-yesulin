@@ -144,8 +144,8 @@ public class Event {
         return status == EventStatus.PUBLISHED;
     }
 
-    /** 공개한 글이고 배너를 켰으며 노출 종료일이 지나지 않았으면 메인 배너에 보인다. */
-    public boolean isBannerVisibleOn(LocalDate today) {
+    /** 공개한 글이고 배너를 켰으며 노출 종료일이 지나지 않았으면 메인 배너 후보다. 메인에는 후보 중 순서대로 몇 개만 보인다. */
+    public boolean isBannerCandidateOn(LocalDate today) {
         return isPublished() && bannerEnabled && (bannerEndsOn == null || !today.isAfter(bannerEndsOn));
     }
 

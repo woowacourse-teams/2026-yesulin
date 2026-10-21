@@ -61,18 +61,18 @@ class EventTest {
     }
 
     @Test
-    void bannerShowsOnlyWhilePublishedAndUntilItsEndDate() {
+    void bannerIsCandidateOnlyWhilePublishedAndUntilItsEndDate() {
         Event event = new Event(content("제목", "본문", null, null),
                 new EventBannerSetting(true, "서포터즈 모집", TODAY, 0), BANNER_IMAGES, 1L, NOW);
 
-        assertFalse(event.isBannerVisibleOn(TODAY));
+        assertFalse(event.isBannerCandidateOn(TODAY));
 
         event.changeStatus(EventStatus.PUBLISHED, NOW);
-        assertTrue(event.isBannerVisibleOn(TODAY));
-        assertFalse(event.isBannerVisibleOn(TODAY.plusDays(1)));
+        assertTrue(event.isBannerCandidateOn(TODAY));
+        assertFalse(event.isBannerCandidateOn(TODAY.plusDays(1)));
 
         event.changeStatus(EventStatus.HIDDEN, NOW);
-        assertFalse(event.isBannerVisibleOn(TODAY));
+        assertFalse(event.isBannerCandidateOn(TODAY));
     }
 
     @Test

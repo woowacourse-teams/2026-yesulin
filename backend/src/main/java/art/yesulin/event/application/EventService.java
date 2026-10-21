@@ -20,6 +20,8 @@ import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -51,14 +53,15 @@ public class EventService {
     @Transactional(readOnly = true)
     public List<AdminEventResult> findAllForAdmin() {
         LocalDate today = today();
+        Set<Long> shown = shownBannerIds(today);
         return repository.findAllByOrderByIdDesc(PageRequest.of(0, ADMIN_LIST_LIMIT)).stream()
-                .map(event -> AdminEventResult.from(event, this::urlOf, today))
+                .map(event -> AdminEventResult.from(event, this::urlOf, today, shown.contains(event.getId())))
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public AdminEventResult findForAdmin(long eventId) {
-        return AdminEventResult.from(find(eventId), this::urlOf, today());
+        return adminResult(find(eventId));
     }
 
     /** 새 글은 검토 전으로 만든다. 공개해야 이벤트 화면과 메인 배너에 보인다. */
@@ -67,7 +70,7 @@ public class EventService {
         EventImages keys = resolve(adminId, EventImages.none(), urls);
         Event event = repository.save(new Event(content, banner, keys, adminId, clock.instant()));
         audit(adminId, event, AdminAction.EVENT_CREATED, "이벤트 생성");
-        return AdminEventResult.from(event, this::urlOf, today());
+        return adminResult(event);
     }
 
     @Transactional
@@ -82,7 +85,7 @@ public class EventService {
         deleteReplaced(previous.bannerDesktopKey(), keys.bannerDesktopKey());
         deleteReplaced(previous.bannerMobileKey(), keys.bannerMobileKey());
         audit(adminId, event, AdminAction.EVENT_EDITED, "이벤트 수정");
-        return AdminEventResult.from(event, this::urlOf, today());
+        return adminResult(event);
     }
 
     @Transactional
@@ -93,7 +96,7 @@ public class EventService {
         if (previous != status) {
             audit(adminId, event, AdminAction.EVENT_STATUS_CHANGED, "%s → %s".formatted(previous, status));
         }
-        return AdminEventResult.from(event, this::urlOf, today());
+        return adminResult(event);
     }
 
     /**
@@ -128,16 +131,30 @@ public class EventService {
                 .orElseThrow(this::notFound);
     }
 
-    /** 지금 메인 배너에 보일 이벤트. 배너 순서가 작은 것부터, 같으면 최근 글부터 {@value #MAX_BANNERS}개까지다. */
     @Transactional(readOnly = true)
     public List<EventBannerResult> findBanners() {
-        LocalDate today = today();
-        return repository.findAllByStatusAndBannerEnabledTrue(EventStatus.PUBLISHED).stream()
-                .filter(event -> event.isBannerVisibleOn(today))
-                .sorted(BANNER_ORDER)
-                .limit(MAX_BANNERS)
+        return shownBanners(today()).stream()
                 .map(event -> EventBannerResult.from(event, this::urlOf))
                 .toList();
+    }
+
+    /** 지금 메인 배너에 보일 이벤트. 배너 순서가 작은 것부터, 같으면 최근 글부터 {@value #MAX_BANNERS}개까지다. */
+    private List<Event> shownBanners(LocalDate today) {
+        return repository.findAllByStatusAndBannerEnabledTrue(EventStatus.PUBLISHED).stream()
+                .filter(event -> event.isBannerCandidateOn(today))
+                .sorted(BANNER_ORDER)
+                .limit(MAX_BANNERS)
+                .toList();
+    }
+
+    private Set<Long> shownBannerIds(LocalDate today) {
+        return shownBanners(today).stream().map(Event::getId).collect(Collectors.toSet());
+    }
+
+    /** 운영 화면의 배너 노출 표시는 메인 배너와 같은 기준(5개 제한 포함)으로 정한다. */
+    private AdminEventResult adminResult(Event event) {
+        LocalDate today = today();
+        return AdminEventResult.from(event, this::urlOf, today, shownBannerIds(today).contains(event.getId()));
     }
 
     private EventImages resolve(long adminId, EventImages current, EventImageUrls urls) {

@@ -466,7 +466,7 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 
 새 글은 `PENDING`이다. 상태 변경은 `PUBLISHED`와 `HIDDEN`만 받으며, 공개하거나 내린 글을 `PENDING`으로 되돌리면 400이다.
 `AdminEventResult`는 저장된 모든 항목과 이미지 공개 주소(`coverImageUrl`, `banner.desktopImageUrl`, `banner.mobileImageUrl`),
-지금 메인 배너에 보이는지(`bannerVisible`), `phase`, `status`, `createdAt`, `updatedAt`을 담는다. 운영 목록은 최근 만든 200건까지 준다.
+지금 메인 배너에 보이는지(`bannerVisible`, 아래 배너 API와 같은 기준이라 5개 제한에 밀린 글은 false), `phase`, `status`, `createdAt`, `updatedAt`을 담는다. 운영 목록은 최근 만든 200건까지 준다.
 삭제는 다른 기능이 참조하지 않는 운영자 글이라 행을 바로 지우고(되돌릴 수 없다) 대표·배너 이미지도 커밋 뒤 저장소에서 지운다.
 없는 글은 `404 EVENT_NOT_FOUND`다. 생성·수정·상태 변경·삭제는 `admin_audit_logs`에 `EVENT_CREATED`·`EVENT_EDITED`·
 `EVENT_STATUS_CHANGED`·`EVENT_DELETED`로 남기며 글 원문은 담지 않는다.

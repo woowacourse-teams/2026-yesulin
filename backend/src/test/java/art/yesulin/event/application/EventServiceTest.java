@@ -24,7 +24,9 @@ import art.yesulin.support.ObjectStorageTestConfiguration;
 import java.io.ByteArrayInputStream;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -107,6 +109,25 @@ class EventServiceTest {
         assertEquals(List.of(first, later), banners.stream().map(EventBannerResult::eventId).toList());
         assertEquals("먼저 배너 배너", banners.getFirst().alt());
         assertTrue(banners.getFirst().desktopImageUrl().startsWith("https://cdn.test/assets/files/events/"));
+    }
+
+    @Test
+    void adminBannerVisibleFollowsTheSameFiveBannerLimitAsHome() {
+        List<Long> ids = new ArrayList<>();
+        for (int order = 0; order <= EventService.MAX_BANNERS; order++) {
+            ids.add(publishedWithBanner("배너 " + order, null, order));
+        }
+        long hiddenByLimit = ids.getLast();
+
+        List<Long> shownOnHome = eventService.findBanners().stream().map(EventBannerResult::eventId).toList();
+        List<Long> markedVisible = eventService.findAllForAdmin().stream()
+                .filter(AdminEventResult::bannerVisible)
+                .map(AdminEventResult::id)
+                .toList();
+
+        assertEquals(EventService.MAX_BANNERS, shownOnHome.size());
+        assertEquals(Set.copyOf(shownOnHome), Set.copyOf(markedVisible));
+        assertFalse(eventService.findForAdmin(hiddenByLimit).bannerVisible());
     }
 
     @Test

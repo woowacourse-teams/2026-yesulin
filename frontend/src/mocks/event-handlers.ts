@@ -56,11 +56,20 @@ function phaseOf(event: AdminEvent, today: string): EventPhase {
   return "ONGOING";
 }
 
+const MAX_BANNERS = 5;
+
+/** 서버처럼 공개 중·배너 켬·노출 종료일 전인 후보를 순서대로 줄 세워 앞의 5개만 메인에 보인다. */
+function shownBanners(today: string): readonly AdminEvent[] {
+  return events
+    .filter((event) => event.status === "PUBLISHED" && event.banner.enabled && (!event.banner.endsOn || today <= event.banner.endsOn))
+    .sort((left, right) => left.banner.order - right.banner.order || right.id - left.id)
+    .slice(0, MAX_BANNERS);
+}
+
 function refreshed(event: Mutable<AdminEvent>): AdminEvent {
   const today = koreaToday();
   event.phase = phaseOf(event, today);
-  event.bannerVisible = event.status === "PUBLISHED" && event.banner.enabled
-    && (!event.banner.endsOn || today <= event.banner.endsOn);
+  event.bannerVisible = shownBanners(today).some((shown) => shown.id === event.id);
   return { ...event };
 }
 
@@ -132,12 +141,7 @@ export const eventHandlers = [
   // `:eventId`보다 먼저 둬야 `banners`를 이벤트 번호로 읽지 않는다.
   http.get("/api/v1/public/events/banners", async () => {
     await delay(80);
-    const banners = published()
-      .filter((event) => event.bannerVisible)
-      .sort((left, right) => left.banner.order - right.banner.order || right.id - left.id)
-      .slice(0, 5)
-      .map(toBanner);
-    return HttpResponse.json({ banners });
+    return HttpResponse.json({ banners: shownBanners(koreaToday()).map(toBanner) });
   }),
 
   http.get("/api/v1/public/events/:eventId", async ({ params }) => {

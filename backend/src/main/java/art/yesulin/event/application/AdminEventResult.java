@@ -10,7 +10,7 @@ import java.util.function.UnaryOperator;
 /**
  * 운영 화면의 이벤트 글.
  *
- * @param bannerVisible 지금 메인 배너에 보이는지. 공개 상태와 노출 종료일까지 본 결과다.
+ * @param bannerVisible 지금 메인 배너에 보이는지. 공개 상태·노출 종료일과 메인 배너 개수 제한까지 본 결과다.
  */
 public record AdminEventResult(
         long id,
@@ -30,7 +30,7 @@ public record AdminEventResult(
         Instant updatedAt
 ) {
 
-    static AdminEventResult from(Event event, UnaryOperator<String> urlOf, LocalDate today) {
+    static AdminEventResult from(Event event, UnaryOperator<String> urlOf, LocalDate today, boolean bannerVisible) {
         return new AdminEventResult(
                 event.getId(),
                 event.getTitle(),
@@ -49,7 +49,7 @@ public record AdminEventResult(
                         event.getBannerEndsOn(),
                         event.getBannerOrder()
                 ),
-                event.isBannerVisibleOn(today),
+                bannerVisible,
                 event.getStatus(),
                 event.phaseOn(today),
                 event.getCreatedAt(),
