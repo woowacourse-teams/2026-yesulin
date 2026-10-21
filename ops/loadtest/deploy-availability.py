@@ -17,6 +17,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone, timedelta
 
 KST = timezone(timedelta(hours=9))
@@ -43,6 +44,8 @@ def probe(url, timeout):
 
 
 def run(url, interval, timeout, out_path, duration):
+    """응답을 기다리지 않고 간격마다 요청을 보낸다. 한 요청이 멈춰도 측정이 밀리지 않게 하고,
+    timeout 안에 끝나지 않은 요청은 그 시점에 실패(0)로 기록한다."""
     stopped = False
     deadline = time.monotonic() + duration if duration else None
 
@@ -52,15 +55,15 @@ def run(url, interval, timeout, out_path, duration):
 
     signal.signal(signal.SIGINT, stop)
     window_start, window_servers = None, set()
-    with open(out_path, "w", newline="", encoding="utf-8") as file:
+    pending = []
+    with open(out_path, "w", newline="", encoding="utf-8") as file, \
+            ThreadPoolExecutor(max_workers=max(4, int(timeout / interval) * 2)) as executor:
         writer = csv.writer(file)
         writer.writerow(["time_kst", "status", "latency_ms", "served_by"])
-        while not stopped and (deadline is None or time.monotonic() < deadline):
-            next_at = time.monotonic() + interval
-            at = datetime.now(KST)
-            status, latency, served_by = probe(url, timeout)
+
+        def record(at, status, latency, served_by):
+            nonlocal window_start, window_servers
             writer.writerow([at.isoformat(timespec="milliseconds"), status, latency, served_by])
-            file.flush()
             if status != 200:
                 print(f"{at:%H:%M:%S} 실패 status={status} latency={latency}ms", flush=True)
             if window_start is None:
@@ -71,15 +74,35 @@ def run(url, interval, timeout, out_path, duration):
                 print(f"{window_start:%H:%M:%S}~{at:%H:%M:%S} 응답 서버: {', '.join(sorted(window_servers)) or '없음'}",
                       flush=True)
                 window_start, window_servers = None, set()
+
+        def collect(force=False):
+            still = []
+            for at, sent, future in pending:
+                if future.done():
+                    record(at, *future.result())
+                elif force or time.monotonic() - sent > timeout:
+                    record(at, 0, round(timeout * 1000), "-")
+                else:
+                    still.append((at, sent, future))
+            pending[:] = still
+            file.flush()
+
+        while not stopped and (deadline is None or time.monotonic() < deadline):
+            next_at = time.monotonic() + interval
+            pending.append((datetime.now(KST), time.monotonic(), executor.submit(probe, url, timeout)))
+            collect()
             time.sleep(max(0.0, next_at - time.monotonic()))
+        time.sleep(min(timeout, 2.0))
+        collect(force=True)
+        executor.shutdown(wait=False, cancel_futures=True)
     summarize(out_path)
 
 
 def read_rows(path):
     with open(path, encoding="utf-8") as file:
-        return [(datetime.fromisoformat(row["time_kst"]), int(row["status"]), int(row["latency_ms"]),
-                 row.get("served_by") or "-")
-                for row in csv.DictReader(file)]
+        return sorted((datetime.fromisoformat(row["time_kst"]), int(row["status"]), int(row["latency_ms"]),
+                       row.get("served_by") or "-")
+                      for row in csv.DictReader(file))
 
 
 def longest_outage(rows):
