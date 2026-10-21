@@ -5,12 +5,13 @@ import art.yesulin.timetable.domain.TimetableProfile;
 public record TimetableProfileCommand(
         String title,
         String organizerName,
+        String contactName,
         String organizerPhone,
         String location,
         String guide
 ) {
 
     public TimetableProfile toProfile() {
-        return new TimetableProfile(title, organizerName, organizerPhone, location, guide);
+        return new TimetableProfile(title, organizerName, contactName, organizerPhone, location, guide);
     }
 }

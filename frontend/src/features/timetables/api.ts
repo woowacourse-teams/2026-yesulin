@@ -3,6 +3,7 @@ import { toHm } from "./time";
 import type {
   ActorContact,
   ActorTimetable,
+  Attendance,
   SlotAssignment,
   TimeSlot,
   TimeSlotRange,
@@ -35,19 +36,19 @@ function toBoard(board: TimetableBoard): TimetableBoard {
     actors: board.actors.map((actor) => ({
       ...actor,
       slot: toRange(actor.slot),
-      previousSlot: toRange(actor.previousSlot),
     })),
   };
 }
 
 function toActorTimetable(timetable: ActorTimetable): ActorTimetable {
-  return { ...timetable, slot: toRange(timetable.slot), openSlots: timetable.openSlots.map(toRange) };
+  return { ...timetable, slot: toRange(timetable.slot) };
 }
 
 function profileBody(profile: TimetableProfile) {
   return {
     title: profile.title.trim(),
     organizerName: profile.organizerName.trim(),
+    contactName: profile.contactName.trim(),
     organizerPhone: profile.organizerPhone.trim(),
     location: profile.location.trim(),
     guide: profile.guide.trim(),
@@ -121,18 +122,18 @@ export async function removeTimetableActor(manageKey: string, actorId: number): 
   }));
 }
 
+export async function updateInvitationTemplate(manageKey: string, template: string): Promise<TimetableBoard> {
+  return toBoard(await request<TimetableBoard>(`${TIMETABLES_PATH}/manage/invitation-template`, {
+    method: "PUT",
+    headers: keyHeaders(manageKey),
+    body: JSON.stringify({ template }),
+  }));
+}
+
 export async function publishTimetable(manageKey: string): Promise<TimetableBoard> {
   return toBoard(await request<TimetableBoard>(`${TIMETABLES_PATH}/manage/publication`, {
     method: "POST",
     headers: keyHeaders(manageKey),
-  }));
-}
-
-export async function changeSelfChangeLock(manageKey: string, locked: boolean): Promise<TimetableBoard> {
-  return toBoard(await request<TimetableBoard>(`${TIMETABLES_PATH}/manage/self-change-lock`, {
-    method: "PUT",
-    headers: keyHeaders(manageKey),
-    body: JSON.stringify({ locked }),
   }));
 }
 
@@ -150,11 +151,11 @@ export async function getActorTimetable(accessKey: string): Promise<ActorTimetab
 }
 
 /** `current`는 화면이 본 지금 시간이다. 그사이 기획사가 옮겼으면 서버가 거절한다. */
-export async function changeActorSlot(accessKey: string, current: TimeSlot, next: TimeSlot): Promise<ActorTimetable> {
-  return toActorTimetable(await request<ActorTimetable>(`${TIMETABLES_PATH}/actor/slot`, {
+export async function answerAttendance(accessKey: string, attendance: Attendance): Promise<ActorTimetable> {
+  return toActorTimetable(await request<ActorTimetable>(`${TIMETABLES_PATH}/actor/attendance`, {
     method: "PUT",
     headers: keyHeaders(accessKey),
-    body: JSON.stringify({ current: slotBody(current), next: slotBody(next) }),
+    body: JSON.stringify({ attendance }),
   }));
 }
 

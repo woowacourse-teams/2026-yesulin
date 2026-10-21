@@ -1,13 +1,15 @@
 import { delay, http, HttpResponse, passthrough } from "msw";
 import { frontendEnvironment } from "@/config/environment";
 import type { AdminTimetableMessage, AdminTimetableMessageType } from "@/features/admin/types";
-import { addDays, hmOf, minutesOf, sameSlot, slotKey, slotsOf, toHm, todayInSeoul } from "@/features/timetables/time";
+import { renderInvitation } from "@/features/timetables/invitation-template";
+import { addDays, formatSlotRange, hmOf, minutesOf, sameSlot, slotKey, slotsOf, toHm, todayInSeoul } from "@/features/timetables/time";
 import {
   TIMETABLE_KEY_LENGTH,
   TIMETABLE_KEY_PATTERN,
   TIMETABLE_LIMITS,
   timetableRoutes,
   type ActorTimetable,
+  type Attendance,
   type TimeSlot,
   type TimetableBoard,
   type TimetableProfile,
@@ -21,7 +23,6 @@ import { mockSessionRole } from "./auth-handlers";
  */
 const API = "/api/v1/timetables";
 const KEY_HEADER = "X-Timetable-Key";
-const SELF_CHANGE_HOURS = 24;
 const realLoginEnabled = frontendEnvironment.producerLoginEnabled;
 
 export const SEED_TIMETABLE_KEYS = {
@@ -37,8 +38,8 @@ type MockActor = {
   phone: string;
   slot: TimeSlot | null;
   invitedAt: string | null;
-  actorChangedAt: string | null;
-  previousSlot: TimeSlot | null;
+  attendance: Attendance;
+  attendanceAnsweredAt: string | null;
   registeredAt: string;
 };
 
@@ -49,7 +50,7 @@ type MockTimetable = TimetableProfile & TimetableSetting & {
   manageKey: string;
   status: "DRAFT" | "PUBLISHED";
   publishedAt: string | null;
-  selfChangeLocked: boolean;
+  invitationTemplate: string;
   actors: MockActor[];
   requests: MockRequest[];
 };
@@ -81,10 +82,6 @@ const invalid = (message: string) => apiError(400, "TIMETABLE_INVALID_INPUT", me
 const timetables: MockTimetable[] = [];
 const messages: MockMessage[] = [];
 
-function startInstant(slot: TimeSlot): number {
-  return Date.parse(`${slot.date}T${toHm(slot.startTime)}:00+09:00`);
-}
-
 const withSeconds = (time: string) => `${toHm(time)}:00`;
 
 function range(timetable: MockTimetable, slot: TimeSlot | null) {
@@ -97,13 +94,14 @@ function toBoard(timetable: MockTimetable): TimetableBoard {
   return {
     title: timetable.title,
     organizerName: timetable.organizerName,
+    contactName: timetable.contactName,
     organizerPhone: timetable.organizerPhone,
     location: timetable.location,
     guide: timetable.guide,
     status: timetable.status,
     publishedAt: timetable.publishedAt,
-    selfChangeLocked: timetable.selfChangeLocked,
-    selfChangeNoticeHours: SELF_CHANGE_HOURS,
+    invitationTemplate: timetable.invitationTemplate || DEFAULT_INVITATION_TEMPLATE,
+    defaultInvitationTemplate: DEFAULT_INVITATION_TEMPLATE,
     slotMinutes: timetable.slotMinutes,
     slotCapacity: timetable.slotCapacity,
     windows: timetable.windows.map((window) => ({ ...window, startTime: withSeconds(window.startTime), endTime: withSeconds(window.endTime) })),
@@ -113,8 +111,8 @@ function toBoard(timetable: MockTimetable): TimetableBoard {
       phone: actor.phone,
       slot: range(timetable, actor.slot),
       invited: actor.invitedAt !== null,
-      previousSlot: range(timetable, actor.previousSlot),
-      actorChangedAt: actor.actorChangedAt,
+      attendance: actor.attendance,
+      attendanceAnsweredAt: actor.attendanceAnsweredAt,
       registeredAt: actor.registeredAt,
     })) as TimetableBoard["actors"],
     requests: timetable.requests.filter((request) => request.open).flatMap((request) => {
@@ -132,20 +130,7 @@ function counts(timetable: MockTimetable): Map<string, number> {
   return result;
 }
 
-const beforeDeadline = (slot: TimeSlot) => Date.now() + SELF_CHANGE_HOURS * 3600_000 <= startInstant(slot);
-
-function selfChangeOf(timetable: MockTimetable, actor: MockActor): ActorTimetable["selfChange"] {
-  if (timetable.selfChangeLocked) return "LOCKED";
-  return actor.slot && beforeDeadline(actor.slot) ? "OPEN" : "DEADLINE_PASSED";
-}
-
 function toActorView(timetable: MockTimetable, actor: MockActor): ActorTimetable {
-  const selfChange = selfChangeOf(timetable, actor);
-  const used = counts(timetable);
-  const openSlots = selfChange === "OPEN"
-    ? slotsOf(timetable).filter((slot) => !sameSlot(slot, actor.slot) && beforeDeadline(slot)
-      && (used.get(slotKey(slot)) ?? 0) < timetable.slotCapacity)
-    : [];
   const request = timetable.requests.find((candidate) => candidate.actorId === actor.id && candidate.open);
   return {
     title: timetable.title,
@@ -154,44 +139,65 @@ function toActorView(timetable: MockTimetable, actor: MockActor): ActorTimetable
     guide: timetable.guide,
     actorName: actor.name,
     slot: range(timetable, actor.slot),
-    selfChange,
-    changeDeadline: actor.slot ? new Date(startInstant(actor.slot) - SELF_CHANGE_HOURS * 3600_000).toISOString() : null,
-    selfChangeNoticeHours: SELF_CHANGE_HOURS,
-    openSlots: openSlots.map((slot) => range(timetable, slot)!),
+    attendance: actor.attendance,
     request: request ? { message: request.message, createdAt: request.createdAt } : null,
-  } as ActorTimetable;
+  };
+}
+
+const DEFAULT_INVITATION_TEMPLATE = "지원자 {이름}님, 안녕하세요.\n{단체명} 오디션에 합격하셨습니다.\n아래 링크에서 '{작품명}' 오디션 일정을 확인해 주세요.";
+
+function messageBody(timetable: MockTimetable, type: AdminTimetableMessageType, actor: MockActor | null): string {
+  const origin = typeof window === "undefined" ? "http://localhost:3000" : window.location.origin;
+  const actorLink = actor ? `${origin}${timetableRoutes.actor(actor.accessKey)}` : "";
+  const manageLink = `${origin}${timetableRoutes.manage(timetable.manageKey)}`;
+  const organizerGreeting = `${timetable.organizerName} ${timetable.contactName || "담당자"}님, 안녕하세요.`;
+  const actorCaution = "[주의] 본인만 쓰는 링크입니다. 다른 사람에게 보내지 마세요.";
+  const organizerCaution = "[주의] 링크를 가진 사람은 누구나 일정표를 고칠 수 있습니다. 외부에 공유하지 마세요.";
+  const compose = (subject: string, content: string, label: string, link: string, caution: string) =>
+    `[예술인] ${subject}\n\n${content}\n\n▶ ${label}\n${link}\n\n${caution}\n\n예술인 ${origin}`;
+  const slot = actor?.slot ? range(timetable, actor.slot) : null;
+  const invitation = renderInvitation(timetable.invitationTemplate || DEFAULT_INVITATION_TEMPLATE, {
+    actorName: actor?.name ?? "",
+    title: timetable.title,
+    organizerName: timetable.organizerName,
+    schedule: slot ? formatSlotRange(slot, slot.endTime) : "",
+    location: timetable.location,
+    guide: timetable.guide,
+  });
+  return {
+    ORGANIZER_LINK: compose("오디션 일정표 관리 링크",
+      `${organizerGreeting}\n'${timetable.title}' 오디션 일정표를 만들었습니다.\n아래 링크에서 합격자 등록과 일정 확정을 할 수 있습니다.`,
+      "일정표 관리", manageLink, organizerCaution),
+    ORGANIZER_TIME_REQUEST: compose("시간 변경 문의 알림",
+      `${organizerGreeting}\n'${timetable.title}' 오디션 일정표에 배우의 시간 변경 문의가 들어왔습니다.\n아래 링크에서 확인해 주세요.`,
+      "일정표 관리", manageLink, organizerCaution),
+    ACTOR_INVITATION: compose("오디션 합격 안내", invitation, "내 오디션 일정", actorLink, actorCaution),
+    ACTOR_SCHEDULE_CHANGED: compose("오디션 일정 변경 안내",
+      `지원자 ${actor?.name ?? ""}님, 안녕하세요.\n${timetable.organizerName} '${timetable.title}' 오디션 일정이 변경되었습니다.\n아래 링크에서 바뀐 시간을 확인해 주세요.`,
+      "내 오디션 일정", actorLink, actorCaution),
+  }[type];
+}
+
+function refreshPendingInvitations(timetable: MockTimetable) {
+  messages
+    .filter((message) => message.status === "PENDING" && message.timetableId === timetable.id && message.type === "ACTOR_INVITATION")
+    .forEach((message) => {
+      const actor = timetable.actors.find((candidate) => candidate.id === message.actorId) ?? null;
+      message.body = messageBody(timetable, "ACTOR_INVITATION", actor);
+    });
 }
 
 function queue(timetable: MockTimetable, type: AdminTimetableMessageType, actor: MockActor | null) {
   const pending = messages.filter((message) => message.status === "PENDING");
-  // 받는 사람이 링크에서 최신 일정을 보므로, 아직 보내지 않은 같은 목적의 문자가 있으면 더 쌓지 않는다.
-  if (type === "ACTOR_SCHEDULE_CHANGED" && actor && pending.some((message) => message.actorId === actor.id
-    && (message.type === "ACTOR_INVITATION" || message.type === "ACTOR_SCHEDULE_CHANGED"))) return;
+  // 아직 보내지 않은 안내·변경 문자가 있으면 새로 쌓지 않고 그 문자를 바뀐 일정으로 고친다.
+  const pendingNotices = actor ? pending.filter((message) => message.actorId === actor.id
+    && (message.type === "ACTOR_INVITATION" || message.type === "ACTOR_SCHEDULE_CHANGED")) : [];
+  if (type === "ACTOR_SCHEDULE_CHANGED" && pendingNotices.length > 0) {
+    pendingNotices.forEach((message) => { message.body = messageBody(timetable, message.type, actor); });
+    return;
+  }
   if (type === "ORGANIZER_TIME_REQUEST" && pending.some((message) => message.timetableId === timetable.id
     && message.type === type)) return;
-  const origin = typeof window === "undefined" ? "http://localhost:3000" : window.location.origin;
-  const actorLink = actor ? `${origin}${timetableRoutes.actor(actor.accessKey)}` : "";
-  const manageLink = `${origin}${timetableRoutes.manage(timetable.manageKey)}`;
-  const organizerGreeting = `${timetable.organizerName} 담당자님, 안녕하세요.`;
-  const actorGreeting = `지원자 ${actor?.name ?? ""}님, 안녕하세요.`;
-  const actorCaution = "[주의] 본인만 쓰는 링크입니다. 다른 사람에게 보내지 마세요.";
-  const organizerCaution = "[주의] 링크를 가진 사람은 누구나 일정표를 고칠 수 있습니다. 외부에 공유하지 마세요.";
-  const compose = (subject: string, greeting: string, content: string, label: string, link: string, caution: string) =>
-    `[예술인] ${subject}\n\n${greeting}\n${content}\n\n▶ ${label}\n${link}\n\n${caution}\n\n예술인 ${origin}`;
-  const body = {
-    ORGANIZER_LINK: compose("오디션 일정표 관리 링크", organizerGreeting,
-      `'${timetable.title}' 일정표를 만들었습니다.\n아래 링크에서 합격자 등록과 일정 확정을 할 수 있습니다.`,
-      "일정표 관리", manageLink, organizerCaution),
-    ORGANIZER_TIME_REQUEST: compose("시간 조정 요청 알림", organizerGreeting,
-      `'${timetable.title}' 일정표에 배우의 시간 조정 요청이 들어왔습니다.\n아래 링크에서 확인해 주세요.`,
-      "일정표 관리", manageLink, organizerCaution),
-    ACTOR_INVITATION: compose("오디션 합격 안내", actorGreeting,
-      `${timetable.organizerName} 오디션에 합격하셨습니다.\n아래 링크에서 '${timetable.title}' 일정을 확인해 주세요.`,
-      "내 오디션 일정", actorLink, actorCaution),
-    ACTOR_SCHEDULE_CHANGED: compose("오디션 일정 변경 안내", actorGreeting,
-      `${timetable.organizerName} '${timetable.title}' 일정이 변경되었습니다.\n아래 링크에서 바뀐 시간을 확인해 주세요.`,
-      "내 오디션 일정", actorLink, actorCaution),
-  }[type];
   messages.push({
     id: nextId(),
     timetableId: timetable.id,
@@ -200,7 +206,7 @@ function queue(timetable: MockTimetable, type: AdminTimetableMessageType, actor:
     status: "PENDING",
     recipientName: actor?.name ?? timetable.organizerName,
     recipientPhone: actor?.phone ?? timetable.organizerPhone,
-    body,
+    body: messageBody(timetable, type, actor),
     createdAt: now(),
     sentAt: null,
   });
@@ -269,6 +275,7 @@ function seed() {
   const second = addDays(first, 1);
   const profile = {
     organizerName: "남극장",
+    contactName: "김하늘",
     organizerPhone: "010-9000-0000",
     location: "서울 종로구 대학로 12, 남극장 3층 연습실",
     guide: "지정 대사 1분과 자유 연기 1분을 준비해 주세요.\n움직이기 편한 복장으로 오세요.",
@@ -280,8 +287,8 @@ function seed() {
     phone,
     slot: slot ? { date: first, startTime: slot } : null,
     invitedAt: null,
-    actorChangedAt: null,
-    previousSlot: null,
+    attendance: "UNANSWERED",
+    attendanceAnsweredAt: null,
     registeredAt: new Date(Date.now() - 2 * 86_400_000).toISOString(),
     ...extra,
   });
@@ -298,21 +305,20 @@ function seed() {
       { date: second, startTime: "14:00", endTime: "17:00" },
     ],
     status: "DRAFT",
+    invitationTemplate: "",
     publishedAt: null,
-    selfChangeLocked: false,
     actors: ["김하늘", "이도윤", "박서연", "최민준", "정하은", "강지호", "윤채원", "임시우"].map((name, index) => (
       actor(name, `010-1000-${String(index + 1).padStart(4, "0")}`, null)
     )),
     requests: [],
   });
   const invitedAt = new Date(Date.now() - 86_400_000).toISOString();
-  const kim = actor("김배우", "010-2000-0001", "10:00", { accessKey: SEED_TIMETABLE_KEYS.actor, invitedAt });
-  const lee = actor("이배우", "010-2000-0002", "10:30", {
-    invitedAt,
-    actorChangedAt: new Date(Date.now() - 3_600_000).toISOString(),
-    previousSlot: { date: first, startTime: "11:00" },
+  const answeredAt = new Date(Date.now() - 3_600_000).toISOString();
+  const kim = actor("김배우", "010-2000-0001", "10:00", {
+    accessKey: SEED_TIMETABLE_KEYS.actor, invitedAt, attendance: "ATTENDING", attendanceAnsweredAt: answeredAt,
   });
-  const park = actor("박배우", "010-2000-0003", "11:30", { invitedAt });
+  const lee = actor("이배우", "010-2000-0002", "10:30", { invitedAt });
+  const park = actor("박배우", "010-2000-0003", "11:30", { invitedAt, attendance: "ABSENT", attendanceAnsweredAt: answeredAt });
   const choi = actor("최배우", "010-2000-0004", "11:30", { invitedAt });
   const jung = actor("정배우", "010-2000-0005", null, { registeredAt: new Date(Date.now() - 3_600_000).toISOString() });
   const published: MockTimetable = {
@@ -327,8 +333,8 @@ function seed() {
       { date: second, startTime: "15:00", endTime: "18:00" },
     ],
     status: "PUBLISHED",
+    invitationTemplate: "{이름}님, 안녕하세요. {단체명}입니다.\n'{작품명}' 1차 오디션에 합격하신 것을 축하드립니다.\n\n■ 2차 오디션 일시: {오디션일시}\n■ 장소: {장소}\n■ 준비 사항\n{안내사항}",
     publishedAt: invitedAt,
-    selfChangeLocked: false,
     actors: [kim, lee, park, choi, jung],
     requests: [{ id: nextId(), actorId: choi.id, message: "그 주에 지방 공연이 있어서 다음 주 평일 저녁이면 좋겠습니다.", open: true, createdAt: now() }],
   };
@@ -343,7 +349,7 @@ export const timetableHandlers = [
   http.post(API, async ({ request }) => {
     await delay(200);
     const body = await request.json() as { profile: TimetableProfile; setting: TimetableSetting };
-    if (!body.profile?.title?.trim() || !body.profile.organizerName?.trim()) return invalid("일정표 이름과 단체명을 입력해 주세요.");
+    if (!body.profile?.title?.trim() || !body.profile.organizerName?.trim()) return invalid("작품명과 단체명을 입력해 주세요.");
     if (!/^01\d-\d{3,4}-\d{4}$/.test(body.profile.organizerPhone ?? "")) return invalid("담당자 휴대폰 번호는 010-1234-5678 형식으로 입력해 주세요.");
     const problem = settingProblem(body.setting);
     if (problem) return invalid(problem);
@@ -353,8 +359,8 @@ export const timetableHandlers = [
       ...body.profile,
       ...normalizeSetting(body.setting),
       status: "DRAFT",
+      invitationTemplate: "",
       publishedAt: null,
-      selfChangeLocked: false,
       actors: [],
       requests: [],
     };
@@ -374,8 +380,21 @@ export const timetableHandlers = [
     const timetable = byManageKey(request);
     if (!timetable) return notFound();
     const body = await request.json() as TimetableProfile;
-    if (!body.title?.trim() || !body.organizerName?.trim()) return invalid("일정표 이름과 단체명을 입력해 주세요.");
+    if (!body.title?.trim() || !body.organizerName?.trim()) return invalid("작품명과 단체명을 입력해 주세요.");
     Object.assign(timetable, body);
+    refreshPendingInvitations(timetable);
+    return HttpResponse.json(toBoard(timetable));
+  }),
+
+  http.put(`${API}/manage/invitation-template`, async ({ request }) => {
+    await delay(160);
+    const timetable = byManageKey(request);
+    if (!timetable) return notFound();
+    const { template } = await request.json() as { template: string };
+    const normalized = (template ?? "").trim();
+    if (normalized.length > TIMETABLE_LIMITS.invitationTemplateLength) return invalid("합격 문자 문구는 1000자를 넘을 수 없습니다.");
+    timetable.invitationTemplate = normalized === DEFAULT_INVITATION_TEMPLATE ? "" : normalized;
+    refreshPendingInvitations(timetable);
     return HttpResponse.json(toBoard(timetable));
   }),
 
@@ -411,8 +430,8 @@ export const timetableHandlers = [
         return apiError(409, "TIMETABLE_ASSIGNMENT_CONFLICT", `‘${actor.name}’ 배우의 시간이 그사이 바뀌었습니다. 새로 불러온 뒤 다시 옮겨 주세요.`);
       }
       actor.slot = toSlot(assignment.next);
-      actor.actorChangedAt = null;
-      actor.previousSlot = null;
+      actor.attendance = "UNANSWERED";
+      actor.attendanceAnsweredAt = null;
       moved.push(actor);
     }
     const boardError = boardProblem(timetable);
@@ -454,8 +473,8 @@ export const timetableHandlers = [
       phone: contact.phone,
       slot: null,
       invitedAt: null,
-      actorChangedAt: null,
-      previousSlot: null,
+      attendance: "UNANSWERED",
+      attendanceAnsweredAt: null,
       registeredAt: now(),
     }));
     return HttpResponse.json(toBoard(timetable), { status: 201 });
@@ -492,14 +511,6 @@ export const timetableHandlers = [
     return HttpResponse.json(toBoard(timetable));
   }),
 
-  http.put(`${API}/manage/self-change-lock`, async ({ request }) => {
-    await delay(140);
-    const timetable = byManageKey(request);
-    if (!timetable) return notFound();
-    timetable.selfChangeLocked = Boolean(((await request.json()) as { locked: boolean }).locked);
-    return HttpResponse.json(toBoard(timetable));
-  }),
-
   http.post(`${API}/manage/requests/:requestId/resolution`, async ({ request, params }) => {
     await delay(140);
     const timetable = byManageKey(request);
@@ -516,24 +527,15 @@ export const timetableHandlers = [
     return access ? HttpResponse.json(toActorView(access.timetable, access.actor)) : notFound();
   }),
 
-  http.put(`${API}/actor/slot`, async ({ request }) => {
-    await delay(200);
+  http.put(`${API}/actor/attendance`, async ({ request }) => {
+    await delay(160);
     const access = byAccessKey(request);
     if (!access) return notFound();
-    const { timetable, actor } = access;
-    const body = await request.json() as { current: TimeSlot; next: TimeSlot };
-    const current = toSlot(body.current);
-    const next = toSlot(body.next);
-    if (!sameSlot(actor.slot, current)) return apiError(409, "TIMETABLE_ASSIGNMENT_CONFLICT", "일정이 그사이 바뀌었습니다. 새로고침한 뒤 다시 골라 주세요.");
-    const status = selfChangeOf(timetable, actor);
-    if (status !== "OPEN") return apiError(409, "TIMETABLE_SELF_CHANGE_CLOSED", status === "LOCKED" ? "기획사가 일정 변경을 마감했습니다." : "오디션 시작 24시간 전까지만 직접 바꿀 수 있습니다.");
-    const open = next && toActorView(timetable, actor).openSlots.some((slot) => sameSlot(slot, next));
-    if (!open || !next) return apiError(409, "TIMETABLE_SLOT_UNAVAILABLE", "선택한 시간은 이미 찼거나 바꿀 수 없는 시간입니다. 다른 시간을 골라 주세요.");
-    if (!actor.actorChangedAt) actor.previousSlot = actor.slot;
-    actor.slot = next;
-    actor.actorChangedAt = now();
-    timetable.requests.filter((item) => item.actorId === actor.id).forEach((item) => { item.open = false; });
-    return HttpResponse.json(toActorView(timetable, actor));
+    const { attendance } = await request.json() as { attendance: Attendance };
+    if (attendance !== "ATTENDING" && attendance !== "ABSENT") return invalid("참석 또는 불참을 골라 주세요.");
+    access.actor.attendance = attendance;
+    access.actor.attendanceAnsweredAt = now();
+    return HttpResponse.json(toActorView(access.timetable, access.actor));
   }),
 
   http.post(`${API}/actor/requests`, async ({ request }) => {

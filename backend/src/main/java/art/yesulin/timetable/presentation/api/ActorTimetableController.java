@@ -29,14 +29,12 @@ public class ActorTimetableController {
         return ok(actorTimetableService.find(accessKey));
     }
 
-    @PutMapping("/slot")
-    public ResponseEntity<ActorTimetableResult> changeSlot(
+    @PutMapping("/attendance")
+    public ResponseEntity<ActorTimetableResult> answerAttendance(
             @RequestHeader(KEY_HEADER) String accessKey,
-            @Valid @RequestBody ChangeActorSlotRequest request
+            @Valid @RequestBody AnswerAttendanceRequest request
     ) {
-        return ok(actorTimetableService.changeSlot(
-                accessKey, TimeSlotRequest.toSlot(request.current()), TimeSlotRequest.toSlot(request.next())
-        ));
+        return ok(actorTimetableService.answerAttendance(accessKey, request.attendance()));
     }
 
     @PostMapping("/requests")

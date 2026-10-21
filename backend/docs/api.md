@@ -79,7 +79,7 @@ UNKNOWN은 자동 재전송하지 않는다. FAILED 중 code=RETRIED는 후속 �
 
 | Method | URL | 인증 | Request | Response |
 | --- | --- | --- | --- | --- |
-| GET | `/api/v1/health` | 공개 | 없음 | `200 HealthResponse`, DB 불가 시 `503 HealthResponse` |
+| GET | `/api/v1/health` | 공개 | 없음 | `200 HealthResponse`, DB 불가 시 `503 HealthResponse`. 응답한 서버의 사설 IP를 `X-Served-By` 헤더로 준다 |
 | POST | `/api/v1/sessions` | 공개 | `LoginRequest(email, password)` | `200 SessionResponse` |
 | GET | `/api/v1/sessions/current` | 세션 | 없음 | `200 SessionResponse` |
 | DELETE | `/api/v1/sessions/current` | 공개 | 없음 | `204` |
@@ -440,6 +440,50 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 이미 연결된 공고는 그대로 둔다. 이후 가져오는 공고는 기획사 자동 연결과 함께 묶음 규칙으로 공연사가 없는 공고에 공연사를 연결한다.
 `admin_audit_logs`에 `AUDITION_POST_COMPANY_AUTHOR_LINKED`·`AUDITION_POST_COMPANY_AUTHOR_UNLINKED`로 남긴다.
 
+## 이벤트 — 10개
+
+운영자가 쓰는 이벤트 글(`Event`)과 메인 상단 이벤트 배너다. 공개 API는 로그인 없이, 운영 API는 `ADMIN`만 호출한다. `eventId`는 숫자 ID다.
+
+| Method | URL | 인증 | Request | Response |
+| --- | --- | --- | --- | --- |
+| GET | `/api/v1/public/events` | 공개 | 없음 | `200 PublicEventsResponse(events: PublicEventSummaryResult[])` |
+| GET | `/api/v1/public/events/{eventId}` | 공개 | 없음 | `200 PublicEventResult` |
+| GET | `/api/v1/public/events/banners` | 공개 | 없음 | `200 EventBannersResponse(banners: EventBannerResult[])` |
+| POST | `/api/v1/admin/event-images/uploads` | Admin | `PrepareEventImageUploadRequest(contentType, size)` | `201 EventImageUploadResult(url, method, headers, expiresAt, imageUrl)` |
+| GET | `/api/v1/admin/events` | Admin | 없음 | `200 AdminEventsResponse(events)` |
+| POST | `/api/v1/admin/events` | Admin | `WriteEventRequest` | `201 AdminEventResult` |
+| GET | `/api/v1/admin/events/{eventId}` | Admin | 없음 | `200 AdminEventResult` |
+| PUT | `/api/v1/admin/events/{eventId}` | Admin | `WriteEventRequest` | `200 AdminEventResult` |
+| PATCH | `/api/v1/admin/events/{eventId}/status` | Admin | `ChangeEventStatusRequest(status: PUBLISHED/HIDDEN)` | `200 AdminEventResult` |
+| DELETE | `/api/v1/admin/events/{eventId}` | Admin | 없음 | `204` |
+
+`WriteEventRequest`는 `title`(필수, 100자), `summary`(목록 소개, 200자), `body`(필수, 줄바꿈을 살린 텍스트, 5000자),
+`startsOn`·`endsOn`(`YYYY-MM-DD`, 종료일이 시작일보다 앞서면 400), `applyUrl`(http·https 주소, 500자), `applyLabel`(신청 버튼 문구,
+30자, `applyUrl`이 없으면 지운다), `coverImageUrl`(대표 이미지), `banner(enabled, desktopImageUrl, mobileImageUrl, alt, endsOn, order)`다.
+글을 통째로 바꾸며 빈 문자열이나 null인 항목은 지우고, `banner`가 null이면 배너를 끈다. 배너를 켜려면 PC·모바일 배너 이미지와 `alt`(200자)가
+모두 있어야 한다. `banner.endsOn`은 이 날(한국 날짜)까지 노출하고 비우면 내릴 때까지 노출한다. `order`는 0~99이고 작은 순서가 먼저다.
+검증 오류는 `400 EVENT_INVALID_INPUT`이다.
+
+새 글은 `PENDING`이다. 상태 변경은 `PUBLISHED`와 `HIDDEN`만 받으며, 공개하거나 내린 글을 `PENDING`으로 되돌리면 400이다.
+`AdminEventResult`는 저장된 모든 항목과 이미지 공개 주소(`coverImageUrl`, `banner.desktopImageUrl`, `banner.mobileImageUrl`),
+지금 메인 배너에 보이는지(`bannerVisible`, 아래 배너 API와 같은 기준이라 5개 제한에 밀린 글은 false), `phase`, `status`, `createdAt`, `updatedAt`을 담는다. 운영 목록은 최근 만든 200건까지 준다.
+삭제는 다른 기능이 참조하지 않는 운영자 글이라 행을 바로 지우고(되돌릴 수 없다) 대표·배너 이미지도 커밋 뒤 저장소에서 지운다.
+없는 글은 `404 EVENT_NOT_FOUND`다. 생성·수정·상태 변경·삭제는 `admin_audit_logs`에 `EVENT_CREATED`·`EVENT_EDITED`·
+`EVENT_STATUS_CHANGED`·`EVENT_DELETED`로 남기며 글 원문은 담지 않는다.
+
+공개 목록·상세는 `PUBLISHED`인 글만 보여 주고, 없거나 공개 전·내린 글은 `404 EVENT_NOT_FOUND`다. 목록은 최근 만든 순으로 100건까지
+`id`, `title`, `summary`, `startsOn`, `endsOn`, `phase`, `coverImageUrl`을 준다. 상세는 여기에 `body`, `applyUrl`, `applyLabel`을 더한다.
+`phase`는 한국 날짜로 시작일 전이면 `UPCOMING`, 종료일이 지났으면 `ENDED`, 나머지(기간을 비운 글 포함)는 `ONGOING`이다.
+배너 API는 `PUBLISHED`이고 배너를 켰으며 노출 종료일이 지나지 않은 글을 `order` 순(같으면 최근 글 먼저)으로 5개까지
+`eventId`, `title`, `alt`, `desktopImageUrl`, `mobileImageUrl`로 준다. 화면은 이 배너를 고정 배너 사이에 넣고 누르면 이벤트 상세로 간다.
+
+이미지는 대표 이미지와 PC(3.2:1)·모바일(4:3) 배너 세 자리다. 배너는 이미지 안에 글자가 있어 브라우저가 줄이지 않고 원본을
+`event-images/uploads`로 올릴 자리를 받아 저장소에 바로 올린다. 형식은 `image/jpeg`·`image/png`·`image/webp`, 크기는 5MB까지이며 그 밖은
+400이다. 공개 경로(`public/files/events/...`)라 `imageUrl`을 주고, 글을 저장할 때 이 주소로 확정한다. 각 이미지 주소가 지금 이미지면
+그대로, 이 운영자가 올린 이미지면 바꾸고, 비우면 지운다. 다른 주소나 다른 운영자의 업로드, 형식·크기·파일 앞부분(JPEG·PNG·WebP 서명)이
+다른 업로드는 400이다. 바꾸거나 지운 이미지는 커밋 뒤 저장소에서 지우고, 하루가 지나도록 확정하지 않은 업로드는 매일 04:50(한국 시간)
+정리 작업이 지운다.
+
 ## 무료 공연과 비회원 예매 — 19개
 
 오디션용 공연·공고와 별도의 저장 모델이다. 관리 API는 `PRODUCER + ACTIVE`만 호출할 수 있고 자기 공연만 보이며,
@@ -522,25 +566,26 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 | POST | `/api/v1/timetables` | 공개 | `CreateTimetableRequest(profile, setting)` | `201 TimetableCreatedResult(manageKey)` |
 | GET | `/api/v1/timetables/manage` | 관리 열쇠 | 없음 | `200 TimetableBoardResult` |
 | PUT | `/api/v1/timetables/manage/profile` | 관리 열쇠 | `TimetableProfileRequest` | `200 TimetableBoardResult` |
+| PUT | `/api/v1/timetables/manage/invitation-template` | 관리 열쇠 | `InvitationTemplateRequest(template)` | `200 TimetableBoardResult` |
 | PUT | `/api/v1/timetables/manage/board` | 관리 열쇠 | `SaveTimetableBoardRequest(setting, assignments)` | `200 TimetableBoardResult` |
 | POST | `/api/v1/timetables/manage/actors` | 관리 열쇠 | `RegisterActorsRequest(actors: [{name, phone}])` | `201 TimetableBoardResult` |
 | DELETE | `/api/v1/timetables/manage/actors/{actorId}` | 관리 열쇠 | 없음 | `200 TimetableBoardResult` |
 | POST | `/api/v1/timetables/manage/publication` | 관리 열쇠 | 없음 | `200 TimetableBoardResult` |
-| PUT | `/api/v1/timetables/manage/self-change-lock` | 관리 열쇠 | `ChangeSelfChangeLockRequest(locked)` | `200 TimetableBoardResult` |
 | POST | `/api/v1/timetables/manage/requests/{requestId}/resolution` | 관리 열쇠 | 없음 | `200 TimetableBoardResult` |
 | GET | `/api/v1/timetables/actor` | 배우 열쇠 | 없음 | `200 ActorTimetableResult` |
-| PUT | `/api/v1/timetables/actor/slot` | 배우 열쇠 | `ChangeActorSlotRequest(current, next)` | `200 ActorTimetableResult` |
+| PUT | `/api/v1/timetables/actor/attendance` | 배우 열쇠 | `AnswerAttendanceRequest(attendance)` | `200 ActorTimetableResult` |
 | POST | `/api/v1/timetables/actor/requests` | 배우 열쇠 | `CreateTimeRequestRequest(message)` | `200 ActorTimetableResult` |
 
-`profile`은 `title`(60자 이하), `organizerName`(40자 이하), `organizerPhone`(`010-1234-5678`), 선택 `location`(200자 이하)·
+`profile`은 `title`(작품명, 60자 이하), `organizerName`(40자 이하), `organizerPhone`(`010-1234-5678`), 선택
+`contactName`(담당자명, 30자 이하)·`location`(200자 이하)·
 `guide`(1000자 이하)다. `setting`은 `slotMinutes`(5분 단위 5~240), `slotCapacity`(1~50), `windows`(1~200개의
 `{date, startTime, endTime}`, 5분 단위, 같은 날 겹침 불가)다. 일정표를 만들면 관리 열쇠를 응답으로 한 번 주고
 담당자 번호로 관리 링크 문자를 대기열에 넣는다. 형식·길이·시간대 규칙 위반은 `400 TIMETABLE_INVALID_INPUT`이다.
 
-`TimetableBoardResult`는 일정표 정보와 `status`(`DRAFT`·`PUBLISHED`), `publishedAt`, `selfChangeLocked`,
-`selfChangeNoticeHours`(24), 설정, `actors`와 열린 `requests`를 담는다. 배우는 `id`, `name`, `phone`, `slot`
-(`{date, startTime, endTime}` 또는 null), `invited`, 배우가 직접 바꿨을 때만 값이 있는 `previousSlot`·`actorChangedAt`,
-등록 시각 `registeredAt`이다. `registeredAt`이 `publishedAt`보다 늦으면 확정 뒤 등록한 추가 합격자다.
+`TimetableBoardResult`는 일정표 정보와 `status`(`DRAFT`·`PUBLISHED`), `publishedAt`, 지금 쓰는 합격 문자 문구
+`invitationTemplate`와 기본 문구 `defaultInvitationTemplate`, 설정, `actors`와 열린 `requests`를
+담는다. 배우는 `id`, `name`, `phone`, `slot`(`{date, startTime, endTime}` 또는 null), `invited`, 참석 여부 `attendance`(`UNANSWERED`·`ATTENDING`·`ABSENT`)와 응답 시각
+`attendanceAnsweredAt`, 등록 시각 `registeredAt`이다. `registeredAt`이 `publishedAt`보다 늦으면 확정 뒤 등록한 추가 합격자다.
 
 보드 저장의 `assignments`는 옮긴 배우만 `{actorId, previous, next}`로 보낸다(null은 미배정, 최대 300개). `previous`가 지금
 시간과 다르면 `409 TIMETABLE_ASSIGNMENT_CONFLICT`, 같은 배우가 두 번이면 `400 TIMETABLE_INVALID_INPUT`이다. 시간대 설정을
@@ -552,13 +597,14 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 미배정 배우가 있으면 `409 TIMETABLE_NOT_PUBLISHABLE`이다. 없는 배우·요청은 `404 TIMETABLE_ACTOR_NOT_FOUND`,
 `404 TIMETABLE_REQUEST_NOT_FOUND`다.
 
-배우 API는 확정 뒤 안내를 받은 배우만 열 수 있고 그 밖에는 `404 TIMETABLE_NOT_FOUND`다. `ActorTimetableResult`는 일정표
-이름·단체명·장소·안내 사항, 배우 이름, `slot`, `selfChange`(`OPEN`·`LOCKED`·`DEADLINE_PASSED`), `changeDeadline`,
-`openSlots`(지금 옮길 수 있는 빈 칸), 열린 `request`(`message`, `createdAt`)를 담고 다른 배우의 이름·번호·칸별 인원은 담지 않는다.
-직접 변경은 일정표 행을 잠근 뒤 `current`가 지금 시간과 다르면 `409 TIMETABLE_ASSIGNMENT_CONFLICT`, 기획사가 막았거나 지금 시간의
-시작까지 24시간이 남지 않았으면 `409 TIMETABLE_SELF_CHANGE_CLOSED`, 옮길 칸이 바운더리 밖·정원 초과·24시간 이내면
-`409 TIMETABLE_SLOT_UNAVAILABLE`이다. 성공하면 바로 확정되고 그 배우의 열린 요청을 닫는다. 시간 조정 요청은 300자 이하이며
-열린 요청이 있으면 내용을 바꾸고, 담당자 요청 알림은 아직 보내지 않은 알림이 없을 때만 대기열에 넣는다.
+합격 문자 문구는 1000자 이하이며 비우거나 기본 문구와 같으면 기본 문구를 쓴다. 저장하면 아직 보내지 않은 합격 안내 본문을
+새 문구로 고친다.
+
+배우 API는 확정 뒤 안내를 받은 배우만 열 수 있고 그 밖에는 `404 TIMETABLE_NOT_FOUND`다. `ActorTimetableResult`는
+작품명·단체명·장소·안내 사항, 배우 이름, `slot`, `attendance`, 열린 `request`(`message`, `createdAt`)를 담고 다른 배우의 이름·번호·칸별 인원은
+담지 않는다. 배우는 시간을 직접 바꿀 수 없다. 참석 여부는 `ATTENDING`·`ABSENT`만 보낼 수 있고 `UNANSWERED`는
+`400 TIMETABLE_INVALID_INPUT`이다. 기획사가 시간을 옮긴 배우의 응답은 `UNANSWERED`로 돌아간다. 시간 변경 문의는 300자 이하이며 열린 문의가 있으면 내용을 바꾸고, 담당자 문의
+알림은 아직 보내지 않은 알림이 없을 때만 대기열에 넣는다.
 
 ## 배우 프로필과 보관함·비공개 파일 — 14개
 
@@ -766,7 +812,7 @@ S3 삭제 실패 시 `DELETING` 상태가 남으며 같은 파일 ID로 재시�
 
 일정표 문자 대기열은 기획사에게 자동 발송으로 안내한 문자를 운영자가 직접 보내기 위한 목록이다. `PENDING`은 오래된 순
 최대 200건, `SENT`는 최근 보낸 순 최대 100건을 주며 `pendingCount`는 상한과 관계없는 전체 대기 건수다. 각 문자는 `type`
-(`ORGANIZER_LINK`·`ORGANIZER_TIME_REQUEST`·`ACTOR_INVITATION`·`ACTOR_SCHEDULE_CHANGED`), 일정표 이름·단체명, 받는 사람 이름·번호,
+(`ORGANIZER_LINK`·`ORGANIZER_TIME_REQUEST`·`ACTOR_INVITATION`·`ACTOR_SCHEDULE_CHANGED`), 작품명·단체명, 받는 사람 이름·번호,
 본문, 대기·발송 시각을 담고 응답은 `Cache-Control: no-store`다. 완료 표시는 서로 다른 ID 1~100개를 받아 대기 문자만 `SENT`로
 바꾸고 `TIMETABLE_MESSAGE_SENT` 감사 기록을 번호·본문 없이 남긴다. 이미 보낸 문자는 처음 기록을 유지하고, 없는 ID가 섞이면
 `404 TIMETABLE_MESSAGE_NOT_FOUND`로 전체를 거절한다.
@@ -787,7 +833,8 @@ S3 삭제 실패 시 `DELETING` 상태가 남으며 같은 파일 ID로 재시�
 | 예매 | `RESERVATION_NOT_FOUND`, `RESERVATION_INVALID_INPUT`, `RESERVATION_DUPLICATE`, `RESERVATION_NOT_CHANGEABLE` |
 | 가져온 공고 | `AUDITION_POST_NOT_FOUND`, `AUDITION_POST_INVALID_INPUT`, `AUDITION_POST_CATEGORY_NOT_SUPPORTED`, `AUDITION_POST_SOURCE_UNAVAILABLE`, `AUDITION_POST_FILE_REJECTED`, `AUDITION_POST_IMPORT_CONFLICT`, `AUDITION_POST_EDITED` |
 | 공연사 | `COMPANY_NOT_FOUND`, `COMPANY_INVALID_INPUT` |
-| 오디션 일정표 | `TIMETABLE_NOT_FOUND`, `TIMETABLE_INVALID_INPUT`, `TIMETABLE_ACTOR_NOT_FOUND`, `TIMETABLE_DUPLICATE_ACTOR`, `TIMETABLE_TOO_MANY_ACTORS`, `TIMETABLE_SLOT_UNAVAILABLE`, `TIMETABLE_SETTING_NOT_EXTENDABLE`, `TIMETABLE_ASSIGNMENT_CONFLICT`, `TIMETABLE_NOT_PUBLISHABLE`, `TIMETABLE_SELF_CHANGE_CLOSED`, `TIMETABLE_REQUEST_NOT_FOUND`, `TIMETABLE_MESSAGE_NOT_FOUND` |
+| 이벤트 | `EVENT_NOT_FOUND`, `EVENT_INVALID_INPUT` |
+| 오디션 일정표 | `TIMETABLE_NOT_FOUND`, `TIMETABLE_INVALID_INPUT`, `TIMETABLE_ACTOR_NOT_FOUND`, `TIMETABLE_DUPLICATE_ACTOR`, `TIMETABLE_TOO_MANY_ACTORS`, `TIMETABLE_SLOT_UNAVAILABLE`, `TIMETABLE_SETTING_NOT_EXTENDABLE`, `TIMETABLE_ASSIGNMENT_CONFLICT`, `TIMETABLE_NOT_PUBLISHABLE`, `TIMETABLE_REQUEST_NOT_FOUND`, `TIMETABLE_MESSAGE_NOT_FOUND` |
 | 운영 | `MEMBER_NOT_FOUND`, `MEMBER_STATUS_CHANGE_NOT_ALLOWED`, `ADMIN_DELETION_CONFIRMATION_FAILED` |
 
 인가 공통 오류는 `401 AUTH_UNAUTHENTICATED`, `403 AUTH_FORBIDDEN`, `403 AUTH_INACTIVE_MEMBER`다.

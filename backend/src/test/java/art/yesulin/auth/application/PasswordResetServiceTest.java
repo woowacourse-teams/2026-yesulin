@@ -8,10 +8,10 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import art.yesulin.auth.domain.PasswordReset;
+import art.yesulin.auth.domain.PasswordResetRepository;
 import art.yesulin.auth.domain.member.Member;
 import art.yesulin.auth.domain.member.MemberRepository;
 import art.yesulin.auth.domain.member.MemberType;
-import art.yesulin.auth.infrastructure.persistence.passwordreset.CollectionPasswordResetRepository;
 import art.yesulin.global.exception.BusinessException;
 import art.yesulin.infrastructure.mail.MailMessage;
 import art.yesulin.infrastructure.mail.MailSender;
@@ -20,7 +20,9 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -30,7 +32,7 @@ class PasswordResetServiceTest {
     private static final Instant NOW = Instant.parse("2026-08-26T00:00:00Z");
     private static final String TOKEN = "fixed-password-reset-token";
 
-    private CollectionPasswordResetRepository passwordResetRepository;
+    private InMemoryPasswordResetRepository passwordResetRepository;
     private MemberRepository memberRepository;
     private VerificationTokenGenerator tokenGenerator;
     private PasswordEncoder passwordEncoder;
@@ -39,7 +41,7 @@ class PasswordResetServiceTest {
 
     @BeforeEach
     void setUp() {
-        passwordResetRepository = new CollectionPasswordResetRepository();
+        passwordResetRepository = new InMemoryPasswordResetRepository();
         memberRepository = mock(MemberRepository.class);
         tokenGenerator = mock(VerificationTokenGenerator.class);
         passwordEncoder = mock(PasswordEncoder.class);
@@ -109,5 +111,27 @@ class PasswordResetServiceTest {
         when(member.getType()).thenReturn(MemberType.PRODUCER);
         when(member.hasPassword()).thenReturn(true);
         return member;
+    }
+
+    private static class InMemoryPasswordResetRepository implements PasswordResetRepository {
+
+        private final Map<String, PasswordReset> passwordResets = new ConcurrentHashMap<>();
+
+        @Override
+        public void save(PasswordReset passwordReset, Instant now) {
+            passwordResets.entrySet().removeIf(entry ->
+                    entry.getValue().isExpiredAt(now) || entry.getValue().memberId() == passwordReset.memberId());
+            passwordResets.put(passwordReset.token(), passwordReset);
+        }
+
+        @Override
+        public Optional<PasswordReset> findByToken(String token) {
+            return Optional.ofNullable(passwordResets.get(token));
+        }
+
+        @Override
+        public Optional<PasswordReset> removeByToken(String token) {
+            return Optional.ofNullable(passwordResets.remove(token));
+        }
     }
 }

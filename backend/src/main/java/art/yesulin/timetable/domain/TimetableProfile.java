@@ -16,6 +16,7 @@ public class TimetableProfile {
 
     public static final int MAX_TITLE_LENGTH = 60;
     public static final int MAX_ORGANIZER_NAME_LENGTH = 40;
+    public static final int MAX_CONTACT_NAME_LENGTH = 30;
     public static final int MAX_LOCATION_LENGTH = 200;
     public static final int MAX_GUIDE_LENGTH = 1000;
 
@@ -24,6 +25,9 @@ public class TimetableProfile {
 
     @Column(name = "organizer_name", nullable = false, length = MAX_ORGANIZER_NAME_LENGTH)
     private String organizerName;
+
+    @Column(name = "contact_name", nullable = false, length = MAX_CONTACT_NAME_LENGTH)
+    private String contactName;
 
     @Column(name = "organizer_phone", nullable = false, length = MobilePhone.LENGTH)
     private String organizerPhone;
@@ -34,10 +38,18 @@ public class TimetableProfile {
     @Column(nullable = false, length = MAX_GUIDE_LENGTH)
     private String guide;
 
-    public TimetableProfile(String title, String organizerName, String organizerPhone, String location, String guide) {
-        this.title = required(title, MAX_TITLE_LENGTH, "일정표 이름을 입력해 주세요.", "일정표 이름은 %d자를 넘을 수 없습니다.");
+    public TimetableProfile(
+            String title,
+            String organizerName,
+            String contactName,
+            String organizerPhone,
+            String location,
+            String guide
+    ) {
+        this.title = required(title, MAX_TITLE_LENGTH, "작품명을 입력해 주세요.", "작품명은 %d자를 넘을 수 없습니다.");
         this.organizerName = required(organizerName, MAX_ORGANIZER_NAME_LENGTH,
                 "배우에게 안내할 단체명을 입력해 주세요.", "단체명은 %d자를 넘을 수 없습니다.");
+        this.contactName = optional(contactName, MAX_CONTACT_NAME_LENGTH, "담당자명은 %d자를 넘을 수 없습니다.");
         this.organizerPhone = MobilePhone.require(organizerPhone, "담당자");
         this.location = optional(location, MAX_LOCATION_LENGTH, "오디션 장소는 %d자를 넘을 수 없습니다.");
         this.guide = optional(guide, MAX_GUIDE_LENGTH, "안내 사항은 %d자를 넘을 수 없습니다.");

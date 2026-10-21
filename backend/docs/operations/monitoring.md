@@ -192,6 +192,8 @@ DEV `/otr?vid={번호}`를 직접 테스트한 요청은 DEV `/admin`에만 집�
 `available=false`를 표시한다. 기본 로그 파일 경로는 EC2에서 `/var/log/yesulin/yesulin.log`다.
 기존 텍스트·삭제된 보관 파일은 복원하지 않아 보관 중인 로그 기반 통계이지 영구 누적 통계는 아니다.
 요청 시 읽고 수동 새로고침하며 별도 DB 카운터는 만들지 않는다.
+이 파일은 인스턴스마다 따로 있으므로 인스턴스가 여러 대면 `/admin`은 그 요청을 받은 인스턴스의 이동만 보여준다.
+환경 전체 합계는 아래 CloudWatch Logs Insights 쿼리로 본다.
 
 ### CloudWatch Logs Insights (선택 사항)
 

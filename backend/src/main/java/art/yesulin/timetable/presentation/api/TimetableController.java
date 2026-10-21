@@ -51,6 +51,14 @@ public class TimetableController {
         return ok(timetableService.updateProfile(manageKey, request.toCommand()));
     }
 
+    @PutMapping("/manage/invitation-template")
+    public ResponseEntity<TimetableBoardResult> updateInvitationTemplate(
+            @RequestHeader(KEY_HEADER) String manageKey,
+            @Valid @RequestBody InvitationTemplateRequest request
+    ) {
+        return ok(timetableService.updateInvitationTemplate(manageKey, request.template()));
+    }
+
     @PutMapping("/manage/board")
     public ResponseEntity<TimetableBoardResult> saveBoard(
             @RequestHeader(KEY_HEADER) String manageKey,
@@ -80,14 +88,6 @@ public class TimetableController {
     @PostMapping("/manage/publication")
     public ResponseEntity<TimetableBoardResult> publish(@RequestHeader(KEY_HEADER) String manageKey) {
         return ok(timetableService.publish(manageKey));
-    }
-
-    @PutMapping("/manage/self-change-lock")
-    public ResponseEntity<TimetableBoardResult> changeSelfChangeLock(
-            @RequestHeader(KEY_HEADER) String manageKey,
-            @Valid @RequestBody ChangeSelfChangeLockRequest request
-    ) {
-        return ok(timetableService.changeSelfChangeLock(manageKey, request.locked()));
     }
 
     @PostMapping("/manage/requests/{requestId}/resolution")

@@ -10,7 +10,7 @@ import { ProfileFields } from "../profile-fields";
 
 const TITLE_ID = "timetable-profile-dialog-title";
 
-/** 일정표 이름·단체명·담당자 번호·장소·안내 사항을 바로 저장한다. */
+/** 작품명·단체명·담당자·장소·안내 사항을 바로 저장한다. */
 export function ProfileDialog({ profile, onSave, onClose }: {
   readonly profile: TimetableProfile;
   readonly onSave: (profile: TimetableProfile) => Promise<boolean>;

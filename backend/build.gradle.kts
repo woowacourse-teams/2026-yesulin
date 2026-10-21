@@ -26,6 +26,7 @@ checkstyle {
 
 dependencies {
     val querydslVersion = "7.6"
+    val shedlockVersion = "7.10.1"
 
     implementation(platform("software.amazon.awssdk:bom:2.49.2"))
     implementation(platform("org.testcontainers:testcontainers-bom:2.0.5"))
@@ -46,6 +47,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-security-oauth2-client")
     implementation("org.springframework.boot:spring-boot-starter-session-jdbc")
     implementation("org.flywaydb:flyway-mysql")
+    implementation("net.javacrumbs.shedlock:shedlock-spring:$shedlockVersion")
+    implementation("net.javacrumbs.shedlock:shedlock-provider-jdbc-template:$shedlockVersion")
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")
     annotationProcessor("io.github.openfeign.querydsl:querydsl-apt:$querydslVersion:jpa")

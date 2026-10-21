@@ -2,6 +2,7 @@ package art.yesulin.dormant.presentation.scheduling;
 
 import art.yesulin.dormant.application.auditionnotice.NoticeWorker;
 import lombok.RequiredArgsConstructor;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -18,6 +19,7 @@ public class NoticeScheduler {
     private final NoticeWorker worker;
 
     @Scheduled(fixedDelayString = "${yesulin.sms.worker-delay:10000}", initialDelay = 30000)
+    @SchedulerLock(name = "smsNoticeWorker", lockAtMostFor = "PT5M")
     public void run() {
         worker.tick();
     }

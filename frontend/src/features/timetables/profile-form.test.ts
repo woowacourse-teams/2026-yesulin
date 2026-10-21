@@ -6,12 +6,14 @@ describe("timetable profile form", () => {
     expect(readProfileForm({
       title: " 2차 오디션 ",
       organizerName: " 남극장 ",
+      contactName: " 김하늘 ",
       organizerPhone: "01012345678",
       location: " 연습실 ",
       guide: "",
     }).profile).toEqual({
       title: "2차 오디션",
       organizerName: "남극장",
+      contactName: "김하늘",
       organizerPhone: "010-1234-5678",
       location: "연습실",
       guide: "",

@@ -3,6 +3,7 @@ package art.yesulin.auditionpost.presentation.scheduler.upload;
 import art.yesulin.auditionpost.application.AuditionPostUploadService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -15,6 +16,7 @@ public class AuditionPostUploadCleanupScheduler {
     private final AuditionPostUploadService uploadService;
 
     @Scheduled(cron = "0 30 4 * * *", zone = "Asia/Seoul")
+    @SchedulerLock(name = "auditionPostUploadCleanup", lockAtLeastFor = "PT1M")
     public void deleteUnclaimedUploads() {
         try {
             int deleted = uploadService.deleteUnclaimed();

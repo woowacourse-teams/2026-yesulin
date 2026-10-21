@@ -1,13 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { redirect, readPosts, readShows } = vi.hoisted(() => ({
+const { redirect, readPosts, readShows, readEventBanners } = vi.hoisted(() => ({
   redirect: vi.fn((url: string) => { throw new Error(`redirect:${url}`); }),
   readPosts: vi.fn(async () => null),
   readShows: vi.fn(async () => []),
+  readEventBanners: vi.fn(async () => []),
 }));
 vi.mock("next/navigation", () => ({ redirect, usePathname: () => "/" }));
 vi.mock("@/features/audition-posts/server", () => ({ auditionPostPageForServer: readPosts }));
 vi.mock("@/features/shows/server", () => ({ publicShowsForServer: readShows }));
+vi.mock("@/features/events/server", () => ({ eventBannersForServer: readEventBanners }));
 
 import HomePage, { metadata } from "./page";
 
@@ -18,6 +20,7 @@ describe("메인과 과거 공고 목록 주소", () => {
     await HomePage({ searchParams: Promise.resolve({}) });
     expect(readPosts).toHaveBeenCalledWith({ page: 0, includeClosed: false });
     expect(readShows).toHaveBeenCalledOnce();
+    expect(readEventBanners).toHaveBeenCalledOnce();
     expect(redirect).not.toHaveBeenCalled();
     expect(metadata.alternates?.canonical).toBe("/");
   });
