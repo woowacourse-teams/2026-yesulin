@@ -12,7 +12,7 @@ const data: AuditionPostPage = {
   posts: Array.from({ length: 12 }, (_, index) => ({
     id: index + 1, category: "연극", title: `공개 오디션 ${index + 1}`, authorName: "극단",
     pay: "협의", deadlineText: "상시", deadline: null, closed: false, viewCount: 0,
-    postedAt: null, thumbnailUrl: null, attachmentCount: 0,
+    postedAt: null, alertChatMembers: 109, thumbnailUrl: null, attachmentCount: 0,
   })),
 };
 

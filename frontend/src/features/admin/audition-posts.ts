@@ -14,6 +14,7 @@ export const adminAuditionPostRoutes = {
   owners: "/admin/posts?view=owners",
   companies: "/admin/posts?view=companies",
   editRequests: "/admin/posts?view=edit-requests",
+  alertChat: "/admin/posts?view=alert-chat",
   byOwner: (ownerId: number) => `/admin/posts?owner=${ownerId}`,
   create: "/admin/posts/new",
   edit: (postId: number | string) => `/admin/posts/${encodeURIComponent(String(postId))}/edit`,

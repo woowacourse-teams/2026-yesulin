@@ -1,8 +1,6 @@
 import type { AuditionPostSummary } from "./types";
 
-/** 공고 알림 오픈채팅방 인원. 알림을 본 일부가 공고를 확인했다고 보고 공개 조회수의 하한을 정한다. */
-const ALERT_CHAT_MEMBERS = 109;
-/** 공고마다 20~35%가 확인한다. */
+/** 알림을 받은 오픈채팅방 인원 중 공고마다 20~35%가 확인한다. */
 const MIN_READ_RATE = 0.2;
 const READ_RATE_SPREAD = 0.15;
 /** 대부분은 공고마다 평균 2~6시간 안에, 일부는 며칠에 걸쳐 확인한다. */
@@ -24,11 +22,13 @@ function seeded(seed: string): number {
 }
 
 /**
- * 오픈채팅 알림을 보고 지금까지 공고를 확인했을 인원. 공고 ID로 인원과 각자의 확인 시각을 정하므로 누가 언제 열어도
- * 같고 시간이 지나면 늘기만 한다. 게시 시각을 모르면 모두 확인한 것으로 본다.
+ * 오픈채팅 알림을 보고 지금까지 공고를 확인했을 인원. `members`는 공고를 올린 시각의 오픈채팅방 인원이라 공고마다 고정이다.
+ * 공고 ID로 인원과 각자의 확인 시각을 정하므로 누가 언제 열어도 같고 시간이 지나면 늘기만 한다. 게시 시각을 모르면 모두 확인한
+ * 것으로 본다.
  */
-export function alertReaderCount(postId: number, postedAt: string | null, now: number): number {
-  const readers = Math.round(ALERT_CHAT_MEMBERS * (MIN_READ_RATE + seeded(`${postId}:rate`) * READ_RATE_SPREAD));
+export function alertReaderCount(postId: number, postedAt: string | null, members: number, now: number): number {
+  if (!Number.isFinite(members) || members <= 0) return 0;
+  const readers = Math.round(members * (MIN_READ_RATE + seeded(`${postId}:rate`) * READ_RATE_SPREAD));
   const posted = postedAt ? Date.parse(postedAt) : Number.NaN;
   if (Number.isNaN(posted)) return readers;
   const elapsedHours = (now - posted) / HOUR_MS;
@@ -46,8 +46,11 @@ export function alertReaderCount(postId: number, postedAt: string | null, now: n
  * 공개 화면의 조회수. 실제 조회수와 오픈채팅 알림 확인 추정치 중 큰 값이다. 링크로 들어온 사람은 이미 실제 조회수에
  * 있으므로 더하지 않고, 실제 조회수가 추정치를 넘으면 실제 값만 남는다. 운영자·기획사 화면은 실제 값을 그대로 쓴다.
  */
-export function publicViewCount(post: Pick<AuditionPostSummary, "id" | "viewCount" | "postedAt">, now: number): number {
-  return Math.max(post.viewCount, alertReaderCount(post.id, post.postedAt, now));
+export function publicViewCount(
+  post: Pick<AuditionPostSummary, "id" | "viewCount" | "postedAt" | "alertChatMembers">,
+  now: number,
+): number {
+  return Math.max(post.viewCount, alertReaderCount(post.id, post.postedAt, post.alertChatMembers, now));
 }
 
 /** 조회수 추정치를 계산할 시각. 서버 렌더링과 브라우저가 대부분 같은 값을 쓰도록 10분 단위로 자른다. */

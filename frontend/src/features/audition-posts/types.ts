@@ -15,6 +15,8 @@ export type AuditionPostSummary = {
   readonly closed: boolean;
   readonly viewCount: number;
   readonly postedAt: string | null;
+  /** 공고를 올린 시각의 공고 알림 오픈채팅방 인원. 공개 조회수 추정치에 쓴다. */
+  readonly alertChatMembers: number;
   readonly thumbnailUrl: string | null;
   readonly attachmentCount: number;
 };
@@ -57,6 +59,8 @@ export type AuditionPost = {
   readonly closed: boolean;
   readonly viewCount: number;
   readonly postedAt: string | null;
+  /** 공고를 올린 시각의 공고 알림 오픈채팅방 인원. 공개 조회수 추정치에 쓴다. */
+  readonly alertChatMembers: number;
   /** 서버가 허용 태그만 남긴 HTML. 사진 주소는 응답에 이미 채워져 있다. */
   readonly bodyHtml: string;
   readonly tags: readonly string[];
