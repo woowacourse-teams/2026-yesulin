@@ -3,6 +3,7 @@ package art.yesulin.company.presentation.scheduler;
 import art.yesulin.company.application.photo.CompanyPhotoService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -15,6 +16,7 @@ public class CompanyPhotoUploadCleanupScheduler {
     private final CompanyPhotoService photoService;
 
     @Scheduled(cron = "0 40 4 * * *", zone = "Asia/Seoul")
+    @SchedulerLock(name = "companyPhotoUploadCleanup", lockAtLeastFor = "PT1M")
     public void deleteUnclaimedUploads() {
         try {
             int deleted = photoService.deleteUnclaimed();

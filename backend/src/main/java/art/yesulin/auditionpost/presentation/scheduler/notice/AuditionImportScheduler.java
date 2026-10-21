@@ -3,6 +3,7 @@ package art.yesulin.auditionpost.presentation.scheduler.notice;
 import art.yesulin.auditionpost.application.notice.AuditionNoticeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -25,6 +26,7 @@ public class AuditionImportScheduler {
 
     @Scheduled(cron = "0 */10 9-19 * * *", zone = "Asia/Seoul")
     @Scheduled(cron = "0 0 20 * * *", zone = "Asia/Seoul")
+    @SchedulerLock(name = "auditionImport", lockAtMostFor = "PT9M", lockAtLeastFor = "PT1M")
     public void importAndNotifyAuditions() {
         try {
             noticeService.importAndNotifyAuditions();

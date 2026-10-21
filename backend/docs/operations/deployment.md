@@ -14,7 +14,8 @@ PROD의 `AuditionImportScheduler`는 새 OTR 공고를 우리 공고로 검토 �
 있으므로 DEV에서 기획사 공고를 올려도 공고 채널에 `[DEV]` 알림이 간다. 웹훅이 비어 있으면 기획사 공고 알림은 로그만 남긴다.
 값이 없으면 가져오기는 되지만 알림 전송이 실패해 알림 이력이 대기 상태로 남는다. 웹훅을 넣으면 다음 실행부터
 한 번에 최대 100건씩 보내고, 남은 건은 그다음 실행에서 보낸다.
-현재 PROD는 인스턴스 한 대 기준이며 분산 실행 잠금은 없다. 여러 대로 늘리면 중복 알림을 막는 잠금을 먼저 추가한다.
+모든 `@Scheduled` 작업은 DB `shedlock` 테이블로 잠가(ShedLock) 인스턴스가 여러 대여도 한 곳에서만 실행한다.
+공고 가져오기는 한 번에 최대 9분 잠그고 끝나도 1분은 잠금을 유지해, 서버 시각이 조금 달라도 같은 회차를 두 번 실행하지 않는다.
 
 `KOPIS_API_KEY`(공연예술통합전산망 Open API 인증키)는 선택이다. 있으면 운영자 공연사 정보 쓰기가 KOPIS 기획제작사로 처음 값을
 채우고, 없으면 KOPIS 없이 쓴다. LOCAL은 `config/server/local.env`, DEV·PROD는 SOPS 암호화된 env에 넣는다.
@@ -70,6 +71,10 @@ Slack 웹훅 세 개(OTR 공고 `YESULIN_SLACK_WEBHOOK_URL` 포함)는 `src/main
 6. ALB target group도 같은 readiness endpoint를 확인한 뒤에만 트래픽을 전달한다.
 7. 최근 릴리스 5개를 유지한다.
 
+여러 인스턴스에 한 대씩 배포하면 배포 중 옛 버전과 새 버전이 같은 DB를 함께 쓰고, 롤백해도 Flyway는 되돌리지 않는다.
+그래서 한 번의 배포에서는 옛 코드가 계속 동작하는 변경(테이블·nullable 컬럼·인덱스 추가)만 한다. 컬럼 삭제·이름 변경·
+NOT NULL 추가는 새 구조를 쓰는 코드를 먼저 배포한 뒤 다음 배포에서 옛 구조를 지운다.
+
 스테이징 target group의 deregistration delay는 60초로 운영한다. 현재 target이 한 대뿐이므로 드레이닝이 시작되면
 신규 요청을 받을 다른 인스턴스가 없고, 기본값 300초는 이미 처리 중인 요청을 보호하는 대신 배포 중 신규 요청 불가 시간을
 늘린다. 60초는 일반적인 API 요청에는 종료 여유를 주면서 배포마다 발생하던 약 5분의 대기를 줄이기 위한 값이다.
@@ -124,7 +129,8 @@ Windows PowerShell 5.1의 UTF-8 BOM과 PowerShell 7의 BOM 없는 입력을 모�
 잠금 전 확인 성공 시 실패 이력을 초기화한다. 잠금 중 요청은 비밀번호 비교 없이 거부하며 잠금 시간을 연장하지 않는다.
 여러 탭·재로그인·다른 지원서에서도 같은 계정의 제한을 공유한다. 오류 메시지에 남은 대기 초를 안내한다.
 상태는 서버 메모리만 사용하므로 DB 변경은 없지만 **재시작·재배포 시 초기화되며 서버 인스턴스 간에는 공유되지 않는다.**
-단일 인스턴스 베타 운영용이며, 다중 인스턴스 전환 전 DB·공유 캐시 기반 제한으로 교체해야 한다.
+인스턴스가 여러 대면 인스턴스마다 따로 세므로 계정별 허용 실패 횟수가 인스턴스 수만큼 늘어난다. 관리자 로그인과 CSRF가 앞에 있어
+이 한계를 두고 운영하며, DB·공유 캐시 기반 제한으로 바꾸는 일은 후속 과제다.
 만료 상태는 다음 삭제 확인 요청 때 정리한다. 실패 로그에는 관리자 내부 ID와 `REJECTED`/`LOCKED` 결과만 담는다.
 삭제 기능 활성화 전 HTTPS, `SESSION_COOKIE_SECURE=true`, root 전용 환경 파일 권한을 확인한다.
 요청 본문·DTO·Command를 로그로 남기지 않는다. 삭제 비밀번호 DTO·Command의 문자열 출력은 `[REDACTED]`로 마스킹하고,
@@ -132,8 +138,8 @@ Windows PowerShell 5.1의 UTF-8 BOM과 PowerShell 7의 BOM 없는 입력을 모�
 HTTP 본문이나 객체를 별도로 직렬화하는 로깅은 이 마스킹으로 보호되지 않으므로 활성화하지 않는다.
 위 조건의 실제 서버 적용 여부는 로컬 빌드 통과와 별도로 확인해야 한다.
 
-세션과 이메일 인증 토큰은 Flyway가 만드는 `SPRING_SESSION`, `SPRING_SESSION_ATTRIBUTES`,
-`email_verifications`에 저장된다. 배포 전에 사용하는 DB 계정에 해당 migration의 DDL 권한이 있는지 확인한다.
+세션·이메일 인증 토큰·비밀번호 재설정 토큰은 Flyway가 만드는 `SPRING_SESSION`, `SPRING_SESSION_ATTRIBUTES`,
+`email_verifications`, `password_resets`에 저장되므로 인스턴스가 여러 대여도 공유된다. 배포 전에 사용하는 DB 계정에 해당 migration의 DDL 권한이 있는지 확인한다.
 세션 만료는 `SESSION_TIMEOUT`의 idle timeout을 따르며 기본값은 12시간이다. 재배포는 세션 만료 사유가 아니다.
 세션 속성은 JDK 직렬화 대신 JSON으로 저장한다(`SessionSerializationConfiguration`). 로그인 정보는 클래스 경로 없이
 고정된 이름 `memberPrincipal`과 회원 ID·역할·상태 값으로 저장하므로 `MemberPrincipal`의 패키지·이름이 바뀌어도
