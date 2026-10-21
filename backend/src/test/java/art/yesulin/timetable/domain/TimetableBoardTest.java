@@ -3,13 +3,11 @@ package art.yesulin.timetable.domain;
 import static art.yesulin.timetable.domain.TimetableTest.timetable;
 import static art.yesulin.timetable.domain.TimetableTest.window;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import art.yesulin.global.exception.BusinessException;
 import art.yesulin.global.exception.ErrorCode;
-import art.yesulin.timetable.domain.actor.SelfChangeStatus;
 import art.yesulin.timetable.domain.actor.SlotAssignment;
 import art.yesulin.timetable.domain.actor.TimetableActor;
 import art.yesulin.timetable.domain.setting.TimeSlot;
@@ -102,66 +100,6 @@ class TimetableBoardTest {
         board.reassign(List.of(new SlotAssignment(10L, TEN, null)));
 
         assertCode(TimetableErrorCode.INVALID_INPUT, board::ensureValid);
-    }
-
-    @Test
-    void movesActorIntoOpenSlotAndRemembersOrganizerSlot() {
-        TimetableBoard board = publishedBoard();
-
-        assertEquals(List.of(ELEVEN), board.openSlotsFor(10L, NOW));
-        board.moveByActor(10L, TEN, ELEVEN, NOW);
-        board.moveByActor(10L, ELEVEN, TEN, NOW.plusSeconds(60));
-
-        assertEquals(TEN, first.getSlot());
-        assertEquals(TEN, first.getPreviousSlot());
-        assertEquals(NOW.plusSeconds(60), first.getActorChangedAt());
-    }
-
-    @Test
-    void rejectsFullStaleOrSameSlotForActor() {
-        TimetableBoard board = publishedBoard();
-
-        assertCode(TimetableErrorCode.SLOT_UNAVAILABLE, () -> board.moveByActor(10L, TEN, TEN_THIRTY, NOW));
-        assertCode(TimetableErrorCode.SLOT_UNAVAILABLE,
-                () -> board.moveByActor(10L, TEN, new TimeSlot(DAY, LocalTime.of(12, 0)), NOW));
-        assertCode(TimetableErrorCode.ASSIGNMENT_CONFLICT, () -> board.moveByActor(10L, ELEVEN, TEN, NOW));
-        assertCode(TimetableErrorCode.INVALID_INPUT, () -> board.moveByActor(10L, TEN, TEN, NOW));
-    }
-
-    @Test
-    void closesSelfChangeWhenLockedOrWithinTwentyFourHours() {
-        TimetableBoard board = publishedBoard();
-        Instant dayBefore = Instant.parse("2026-10-09T01:30:00Z");
-
-        assertEquals(SelfChangeStatus.OPEN, board.selfChangeStatusOf(first, NOW));
-        assertEquals(SelfChangeStatus.DEADLINE_PASSED, board.selfChangeStatusOf(first, dayBefore));
-        assertEquals(List.of(), board.openSlotsFor(10L, dayBefore));
-        assertCode(TimetableErrorCode.SELF_CHANGE_CLOSED, () -> board.moveByActor(10L, TEN, ELEVEN, dayBefore));
-
-        timetable.changeSelfChangeLock(true);
-        assertEquals(SelfChangeStatus.LOCKED, board.selfChangeStatusOf(first, NOW));
-        assertCode(TimetableErrorCode.SELF_CHANGE_CLOSED, () -> board.moveByActor(10L, TEN, ELEVEN, NOW));
-    }
-
-    @Test
-    void offersOnlySlotsStartingAtLeastTwentyFourHoursLater() {
-        timetable.updateSetting(new TimetableSetting(30, 1, List.of(
-                window(DAY, "10:00", "11:30"), window(DAY.minusDays(7), "10:30", "11:30")
-        )));
-        TimetableBoard board = publishedBoard();
-
-        assertEquals(List.of(ELEVEN), board.openSlotsFor(10L, NOW));
-    }
-
-    @Test
-    void clearsActorChangeMarksWhenOrganizerMovesActor() {
-        TimetableBoard board = publishedBoard();
-        board.moveByActor(10L, TEN, ELEVEN, NOW);
-
-        board.reassign(List.of(new SlotAssignment(10L, ELEVEN, TEN)));
-
-        assertNull(first.getActorChangedAt());
-        assertNull(first.getPreviousSlot());
     }
 
     private TimetableBoard publishedBoard() {

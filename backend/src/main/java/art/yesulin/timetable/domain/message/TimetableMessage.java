@@ -24,7 +24,7 @@ import org.hibernate.annotations.DynamicUpdate;
 
 /**
  * 일정표 때문에 보내야 하는 문자 한 건이다. 기획사 화면에는 자동 발송으로 안내하지만, 지금은 운영자가 대기열을 보고
- * 직접 보낸 뒤 발송 완료로 표시한다. 받는 번호와 본문은 넣을 때의 값으로 고정한다.
+ * 직접 보낸 뒤 발송 완료로 표시한다. 받는 번호는 넣을 때의 값으로 고정하고, 본문은 보내기 전에만 최신 일정으로 고친다.
  */
 @Entity
 @DynamicUpdate
@@ -37,7 +37,7 @@ import org.hibernate.annotations.DynamicUpdate;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class TimetableMessage {
 
-    public static final int MAX_BODY_LENGTH = 1000;
+    public static final int MAX_BODY_LENGTH = 3000;
     private static final int MAX_RECIPIENT_NAME_LENGTH = 40;
 
     @Id
@@ -61,7 +61,7 @@ public class TimetableMessage {
     @Column(name = "recipient_phone", nullable = false, updatable = false, length = MobilePhone.LENGTH)
     private String recipientPhone;
 
-    @Column(nullable = false, updatable = false, length = MAX_BODY_LENGTH)
+    @Column(nullable = false, length = MAX_BODY_LENGTH)
     private String body;
 
     @Convert(converter = TimetableMessageStatusConverter.class)
@@ -106,6 +106,13 @@ public class TimetableMessage {
         this.sentBy = operatorId;
     }
 
+    public void rewrite(String body) {
+        if (!isPending()) {
+            throw new IllegalStateException("이미 보낸 문자는 고칠 수 없습니다.");
+        }
+        this.body = requireBody(body);
+    }
+
     public boolean isPending() {
         return status == TimetableMessageStatus.PENDING;
     }
@@ -113,7 +120,7 @@ public class TimetableMessage {
     private static String requireBody(String body) {
         String normalized = requireText(body, "문자 본문은 필수입니다.");
         if (normalized.length() > MAX_BODY_LENGTH) {
-            throw new IllegalArgumentException("문자 본문은 1000자를 넘을 수 없습니다.");
+            throw new IllegalArgumentException("문자 본문은 " + MAX_BODY_LENGTH + "자를 넘을 수 없습니다.");
         }
         return normalized;
     }

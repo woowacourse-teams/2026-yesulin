@@ -22,7 +22,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.DynamicUpdate;
 
 /**
- * 바운더리 안에 맞는 빈 시간이 없는 배우가 남기는 시간 조정 요청이다. 기획사만 보고, 배우를 옮기거나 처리 완료로 닫는다.
+ * 배우가 남기는 시간 변경 문의다. 기획사만 보고, 배우를 옮기거나 처리 완료로 닫는다.
  * 배우마다 열린 요청은 하나이며 다시 보내면 내용을 바꾼다.
  */
 @Entity

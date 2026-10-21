@@ -47,6 +47,8 @@ DEV 공고 알림도 기본 공유 링크는 `https://yesulin.art`로 발급한�
   분류를 생략하면 기존 전체 분야 목록이며, 지원하지 않는 값은 `400 INVALID_REQUEST`다. MSW도 분야별 목록·개수를 응답한다.
 - `/api/v1/public/companies/**` (공연사 화면과 그 공연사의 공개 공고). 공고 상세 응답의 `company`도 같은 요약이다. MSW가 공연사
   3곳과 고정 연결을 응답하고, 운영자 공연사 관리(`/api/v1/admin/companies/**`)도 같은 메모리로 응답한다.
+- `/api/v1/public/events/**` (이벤트 목록·상세와 메인 이벤트 배너)와 `/api/v1/admin/events/**`, `/api/v1/admin/event-images/uploads`
+  (운영자 이벤트 관리·이미지 업로드). MSW가 마감된 1기 서포터즈 모집 글 하나로 시작하는 메모리 목을 응답한다.
 - `/api/v1/admin/audition-posts/**` (OTR 공고 가져오기·직접 쓰기·수정·사진과 첨부 업로드·공개 상태·기획사 연결·공연사 연결)와 `/api/v1/producers/me/audition-posts/**` (기획사 공고 올리기·수정·업로드). OTR·저장소에 실제로 접속해야 하므로 MSW가 켜져 있어도 서버로 넘긴다.
 
 `/admin/files`의 미사용 파일 조회·최대 100개 일괄 삭제도 실제 API를 사용한다. MSW가 켜져 있어도 해당 경로는 서버로 전달하며,

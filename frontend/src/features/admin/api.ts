@@ -22,8 +22,12 @@ import type {
   AdminCompanyEditRequest,
   AdminCompanyStatus,
   AdminCompanyWrite,
+  AdminEvent,
+  AdminEventStatus,
+  AdminEventWrite,
   AdminPostCompanyProfile,
   CompanyPhotoUpload,
+  EventImageUpload,
   KopisCompanySearchResult,
   AdminDailyActivity,
   AdminFileDeletionResult,
@@ -511,6 +515,63 @@ export async function unlinkCompanyAuthor(linkId: number): Promise<void> {
     headers: await withCsrfHeaders(),
   });
   if (!response.ok) throw await readAdminError(response, "묶음을 풀지 못했습니다.");
+}
+
+export async function fetchAdminEvents(): Promise<readonly AdminEvent[]> {
+  const response = await getJson<{ readonly events: readonly AdminEvent[] }>("/events", "이벤트 목록을 불러오지 못했습니다.");
+  return response.events;
+}
+
+/** 새 이벤트는 검토 전으로 만들어지고, 공개해야 이벤트 화면과 메인 배너에 보인다. */
+export async function createEvent(write: AdminEventWrite): Promise<AdminEvent> {
+  return await sendJson("/events", "POST", write, "이벤트를 만들지 못했습니다.") as AdminEvent;
+}
+
+export async function updateEvent(eventId: number, write: AdminEventWrite): Promise<AdminEvent> {
+  return await sendJson(`/events/${eventId}`, "PUT", write, "이벤트를 저장하지 못했습니다.") as AdminEvent;
+}
+
+export async function changeEventStatus(eventId: number, status: AdminEventStatus): Promise<AdminEvent> {
+  return await sendJson(`/events/${eventId}/status`, "PATCH", { status }, "공개 상태를 바꾸지 못했습니다.") as AdminEvent;
+}
+
+/** 글과 이미지를 되돌릴 수 없게 지운다. */
+export async function deleteEvent(eventId: number): Promise<void> {
+  const response = await fetch(`${API_BASE_PATH}/events/${eventId}`, {
+    method: "DELETE",
+    credentials: "include",
+    headers: await withCsrfHeaders(),
+  });
+  if (!response.ok) throw await readAdminError(response, "이벤트를 지우지 못했습니다.");
+}
+
+/**
+ * 이벤트 이미지를 원본 그대로 저장소에 올리고 공개 주소를 준다. 배너는 이미지 안에 글자가 있어 줄이지 않는다.
+ * 이벤트를 저장할 때 서버가 이 주소로 업로드를 확정한다.
+ */
+export async function uploadEventImage(image: File): Promise<string> {
+  let imageUrl = "";
+  await safeUpload({
+    flow: "EVENT_IMAGE",
+    source: image,
+    originalFilename: image.name,
+    requestUpload: async (metadata, { incidentId }) => {
+      const response = await fetch(`${API_BASE_PATH}/event-images/uploads`, {
+        method: "POST",
+        credentials: "include",
+        headers: await withCsrfHeaders({ "Content-Type": "application/json", "X-Request-Id": incidentId }),
+        body: JSON.stringify({ contentType: metadata.contentType, size: metadata.size }),
+      });
+      if (!response.ok) throw await readAdminError(response, "이미지를 올릴 준비를 하지 못했습니다.");
+      const upload = await response.json() as EventImageUpload;
+      imageUrl = upload.imageUrl;
+      // 이벤트 이미지는 파일 ID 대신 공개 주소로 확정하므로 fileId는 쓰지 않는다.
+      return { fileId: 0, uploadUrl: upload.url, method: upload.method, headers: upload.headers };
+    },
+    completeUpload: async () => {},
+    reportDiagnostic: reportUploadDiagnostic,
+  });
+  return imageUrl;
 }
 
 async function sendJson(path: string, method: string, body: unknown, fallback: string): Promise<unknown> {

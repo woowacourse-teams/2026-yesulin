@@ -14,6 +14,7 @@ import art.yesulin.timetable.domain.TimetableKey;
 import art.yesulin.timetable.domain.TimetableRepository;
 import art.yesulin.timetable.domain.actor.TimetableActor;
 import art.yesulin.timetable.domain.actor.TimetableActorRepository;
+import art.yesulin.timetable.domain.message.InvitationTemplate;
 import art.yesulin.timetable.domain.message.TimetableMessage;
 import art.yesulin.timetable.domain.request.TimetableRequestRepository;
 import art.yesulin.timetable.domain.request.TimetableRequestStatus;
@@ -63,7 +64,18 @@ public class TimetableService {
     public TimetableBoardResult updateProfile(String manageKey, TimetableProfileCommand command) {
         Timetable timetable = lock(manageKey);
         timetable.updateProfile(command.toProfile());
-        return boardOf(timetable, actorsOf(timetable));
+        List<TimetableActor> actors = actorsOf(timetable);
+        messenger.refreshPendingInvitations(timetable, actors);
+        return boardOf(timetable, actors);
+    }
+
+    @Transactional
+    public TimetableBoardResult updateInvitationTemplate(String manageKey, String template) {
+        Timetable timetable = lock(manageKey);
+        timetable.changeInvitationTemplate(new InvitationTemplate(template));
+        List<TimetableActor> actors = actorsOf(timetable);
+        messenger.refreshPendingInvitations(timetable, actors);
+        return boardOf(timetable, actors);
     }
 
     /**
@@ -138,13 +150,6 @@ public class TimetableService {
         }
         messenger.queue(timetable, messages);
         return boardOf(timetable, actors);
-    }
-
-    @Transactional
-    public TimetableBoardResult changeSelfChangeLock(String manageKey, boolean locked) {
-        Timetable timetable = lock(manageKey);
-        timetable.changeSelfChangeLock(locked);
-        return boardOf(timetable, actorsOf(timetable));
     }
 
     /** 배우를 직접 옮기지 않고 전화 등으로 해결한 요청을 닫는다. 이미 닫힌 요청은 그대로 둔다. */
