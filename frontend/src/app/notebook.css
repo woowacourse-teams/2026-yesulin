@@ -904,15 +904,6 @@
 }
 
 .notebook-reading { max-width:800px; }
-.notebook-notice-dialog {
-  --ink:#234565; --brand:#2564a8;
-  width:min(360px,calc(100vw - 40px)); padding:28px; border:1px solid #c9ddee;
-  border-radius:12px; background:#fff; color:#234565; box-shadow:var(--shadow-modal);
-}
-.notebook-notice-dialog h2 { font-size:22px; font-weight:700; line-height:1.5; }
-.notebook-notice-confirm { display:block; width:100%; min-height:44px; margin-top:24px; border-radius:8px; background:#2564a8; color:#fff; font-size:15px; font-weight:600; }
-.notebook-notice-confirm:hover { background:#1d528d; }
-.notebook-notice-confirm:focus-visible { outline:3px solid #2564a8; outline-offset:3px; }
 .notebook-post-detail { border-radius:var(--radius-card); }
 .notebook-auth { display:flex; justify-content:center; padding-block:48px 64px; }
 .notebook-auth.is-compact { padding-block:32px 48px; }

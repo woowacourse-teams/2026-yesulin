@@ -6,5 +6,6 @@ public enum UploadFlow {
     PERFORMANCE_POSTER,
     SHOW_IMAGE,
     AUDITION_POST_FILE,
-    COMPANY_PHOTO
+    COMPANY_PHOTO,
+    EVENT_IMAGE
 }
