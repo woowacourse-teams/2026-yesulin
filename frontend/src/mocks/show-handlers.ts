@@ -52,6 +52,7 @@ type MockShow = {
   poster: ProducerShowImage;
   images: ProducerShowImage[];
   status: ShowStatus;
+  hidden: boolean;
   createdAt: string;
 };
 
@@ -125,6 +126,7 @@ const shows: MockShow[] = [
     poster: image(9001, "/images/performances/moonlight.jpg"),
     images: [image(9002, "/images/performances/nightfall.jpg"), image(9003, "/images/performances/summerplay.jpg")],
     status: "OPEN",
+    hidden: false,
     createdAt: kstAt(-7, 10),
   },
   {
@@ -144,6 +146,7 @@ const shows: MockShow[] = [
     poster: image(9004, "/images/performances/summerplay.jpg"),
     images: [],
     status: "OPEN",
+    hidden: false,
     createdAt: kstAt(-5, 10),
   },
   {
@@ -163,6 +166,7 @@ const shows: MockShow[] = [
     poster: image(9005, "/images/performances/nightfall.jpg"),
     images: [],
     status: "CLOSED",
+    hidden: false,
     createdAt: kstAt(-20, 10),
   },
   {
@@ -182,6 +186,7 @@ const shows: MockShow[] = [
     poster: image(9007, "/images/performances/nightfall.jpg"),
     images: [],
     status: "OPEN",
+    hidden: false,
     createdAt: kstAt(-3, 10),
   },
   {
@@ -201,6 +206,7 @@ const shows: MockShow[] = [
     poster: image(9008, "/images/performances/summerplay.jpg"),
     images: [],
     status: "OPEN",
+    hidden: false,
     createdAt: kstAt(-2, 10),
   },
   {
@@ -220,6 +226,7 @@ const shows: MockShow[] = [
     poster: image(9006, "/images/performances/moonlight.jpg"),
     images: [],
     status: "DRAFT",
+    hidden: false,
     createdAt: kstAt(-1, 10),
   },
 ];
@@ -314,6 +321,7 @@ function toPublicSummary(show: MockShow): PublicShowSummary {
     hostName: hostNameOf(show),
     title: show.title,
     genre: show.genre,
+    status: show.status === "CLOSED" ? "CLOSED" : "OPEN",
     posterUrl: show.poster.url,
     venueName: show.venue.name,
     nextSessionStartsAt: nextSessionStartsAt(show.id),
@@ -347,7 +355,7 @@ function toPublicShow(show: MockShow): PublicShow {
           startsAt: session.startsAt,
           remainingSeats: null,
           maxTicketCount: 0,
-          bookable: show.status === "OPEN" && isBookable(session),
+          bookable: !show.hidden && show.status === "OPEN" && isBookable(session),
         };
       }
       const remainingSeats = Math.max(0, session.capacity - reservedTickets(session.id));
@@ -356,7 +364,7 @@ function toPublicShow(show: MockShow): PublicShow {
         startsAt: session.startsAt,
         remainingSeats: show.remainingSeatsVisible ? remainingSeats : null,
         maxTicketCount: Math.min(MAX_TICKETS_PER_RESERVATION, remainingSeats),
-        bookable: show.status === "OPEN" && isBookable(session) && remainingSeats > 0,
+        bookable: !show.hidden && show.status === "OPEN" && isBookable(session) && remainingSeats > 0,
       };
     }),
   };
@@ -370,6 +378,7 @@ function toProducerSummary(show: MockShow): ProducerShowSummary {
     genre: show.genre,
     posterUrl: show.poster.url,
     status: show.status,
+    hidden: show.hidden,
     sessionCount: ownSessions.length,
     reservedTickets: ownSessions.reduce((sum, session) => sum + reservedTickets(session.id), 0),
     nextSessionStartsAt: nextSessionStartsAt(show.id),
@@ -398,6 +407,7 @@ function toProducerShow(show: MockShow): ProducerShow {
     poster: show.poster,
     images: show.images,
     status: show.status,
+    hidden: show.hidden,
     hasReservations: ownSessions.some((session) => hasAnyReservation(session.id)),
     sessions: ownSessions.map((session) => ({
       id: session.id,
@@ -524,6 +534,7 @@ export function listAdminShows(status?: ShowStatus): AdminShow[] {
         showId: show.id,
         title: show.title,
         status: show.status,
+        hidden: show.hidden,
         companyName: isAdminShow(show) ? null : companyName(),
         hostName: show.hostName,
         externalReservationUrl: show.externalReservationUrl,
@@ -649,6 +660,7 @@ function showManagementRoutes(scope: ManagementScope) {
         poster: image(0, ""),
         images: [],
         status: "DRAFT",
+        hidden: false,
         createdAt: new Date().toISOString(),
       };
       scope.apply(show, body);
@@ -701,6 +713,7 @@ function showManagementRoutes(scope: ManagementScope) {
       if (rejected) return rejected;
       const show = scope.find(String(params.showId));
       if (!show) return showNotFound();
+      if (show.hidden) return apiError(409, "SHOW_INVALID_STATUS", "숨김을 해제한 뒤 예매를 열어 주세요.");
       if (show.status !== "OPEN" && !showSessions(show.id).some(isBookable)) {
         return apiError(409, "SHOW_NOT_OPENABLE", "예매 가능한 회차가 있어야 공연을 공개할 수 있습니다.");
       }
@@ -717,6 +730,20 @@ function showManagementRoutes(scope: ManagementScope) {
       if (!show) return showNotFound();
       if (show.status === "DRAFT") return apiError(409, "SHOW_INVALID_STATUS", "예매 중인 공연만 마감할 수 있습니다.");
       show.status = "CLOSED";
+      return HttpResponse.json(toProducerShow(show));
+    }),
+
+    http.patch(`${basePath}/:showId/visibility`, async ({ params, request }) => {
+      if (scope.bypass()) return passthrough();
+      await delay(250);
+      const rejected = guard();
+      if (rejected) return rejected;
+      const show = scope.find(String(params.showId));
+      if (!show) return showNotFound();
+      const body = await request.json().catch(() => null) as { hidden?: unknown } | null;
+      if (typeof body?.hidden !== "boolean") return apiError(400, "INVALID_REQUEST", "숨김 여부를 입력해 주세요.");
+      if (show.status === "DRAFT") return apiError(409, "SHOW_INVALID_STATUS", "공개한 공연만 숨기거나 다시 표시할 수 있습니다.");
+      show.hidden = body.hidden;
       return HttpResponse.json(toProducerShow(show));
     }),
 
@@ -807,7 +834,7 @@ export const showHandlers = [
     await delay(200);
     return HttpResponse.json({
       shows: shows
-        .filter((show) => show.status === "OPEN")
+        .filter((show) => !show.hidden && show.status !== "DRAFT")
         .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
         .map(toPublicSummary),
     });
@@ -816,14 +843,14 @@ export const showHandlers = [
   http.get("/api/v1/public/shows/:showId", async ({ params }) => {
     await delay(200);
     const show = findShow(String(params.showId));
-    if (!show || show.status === "DRAFT") return showNotFound();
+    if (!show || show.hidden || show.status === "DRAFT") return showNotFound();
     return HttpResponse.json(toPublicShow(show));
   }),
 
   http.post("/api/v1/public/shows/:showId/external-reservation-visits", async ({ params }) => {
     await delay(100);
     const show = findShow(String(params.showId));
-    if (!show || show.status === "DRAFT") return showNotFound();
+    if (!show || show.hidden || show.status === "DRAFT") return showNotFound();
     if (show.status !== "OPEN") return apiError(409, "SHOW_NOT_OPEN", "예매 중인 공연이 아닙니다.");
     if (!isAdminShow(show)) return apiError(409, "SHOW_INVALID_STATUS", "외부 링크로 예매받는 공연이 아닙니다.");
     externalReservationVisits.set(show.id, (externalReservationVisits.get(show.id) ?? 0) + 1);
@@ -833,8 +860,9 @@ export const showHandlers = [
   http.post("/api/v1/public/shows/:showId/sessions/:sessionId/reservations", async ({ params, request }) => {
     await delay(400);
     const show = findShow(String(params.showId));
+    if (!show || show.hidden || show.status === "DRAFT") return showNotFound();
     const session = sessions.find((item) => item.id === Number(params.sessionId));
-    if (!session || !show || session.showId !== show.id) return show ? sessionNotFound() : showNotFound();
+    if (!session || session.showId !== show.id) return sessionNotFound();
     if (show.status !== "OPEN") return apiError(409, "SHOW_NOT_OPEN", "예매 중인 공연이 아닙니다.");
     if (show.externalReservationUrl) {
       return apiError(409, "SHOW_EXTERNAL_RESERVATION", "이 공연은 외부 예매 페이지에서 예매할 수 있습니다.");

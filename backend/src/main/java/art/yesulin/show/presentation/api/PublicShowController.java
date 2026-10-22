@@ -30,7 +30,7 @@ public class PublicShowController {
     @GetMapping
     public ResponseEntity<PublicShowListResponse> findAll() {
         return ResponseEntity.ok(PublicShowListResponse.from(
-                publicShowService.findOpenShows(), fileService::readPublicUrl
+                publicShowService.findPublicShows(), fileService::readPublicUrl
         ));
     }
 

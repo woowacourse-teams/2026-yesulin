@@ -101,11 +101,11 @@ public class ShowManagementService {
     }
 
     /**
-     * 모든 회차 행을 잠근 뒤 예매 기록을 확인해, 확인과 삭제 사이에 들어온 예매가 삭제를 DB 오류로 만들지 못하게 한다.
+     * 예매와 같은 공연 → 회차 순서로 잠근 뒤 예매 기록을 확인해, 확인과 삭제 사이에 예매가 끼어들지 못하게 한다.
      */
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public void delete(long ownerId, UUID showId) {
-        delete(getOwnedShow(ownerId, showId));
+        delete(getOwnedShowForUpdate(ownerId, showId));
     }
 
     @Transactional(propagation = Propagation.MANDATORY)
@@ -132,6 +132,17 @@ public class ShowManagementService {
     @Transactional(propagation = Propagation.MANDATORY)
     public ProducerShowResult open(Show show) {
         show.open(clock.instant(), sessionRepository.findAllByShowIdOrderByStartsAtAscIdAsc(show.getId()));
+        return result(show);
+    }
+
+    @Transactional
+    public ProducerShowResult changeVisibility(long ownerId, UUID showId, boolean hidden) {
+        return changeVisibility(getOwnedShowForUpdate(ownerId, showId), hidden);
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public ProducerShowResult changeVisibility(Show show, boolean hidden) {
+        show.changeVisibility(hidden);
         return result(show);
     }
 
@@ -204,6 +215,11 @@ public class ShowManagementService {
                 .orElseThrow(() -> new BusinessException(NOT_FOUND, "공연을 찾을 수 없습니다."));
     }
 
+    private Show getOwnedShowForUpdate(long ownerId, UUID showId) {
+        return showRepository.findByPublicIdAndOwnerIdForUpdate(showId, ownerId)
+                .orElseThrow(() -> new BusinessException(NOT_FOUND, "공연을 찾을 수 없습니다."));
+    }
+
     private ShowSession getSessionForUpdate(Show show, long sessionId) {
         return sessionRepository.findByIdForUpdate(sessionId)
                 .filter(session -> session.getShowId() == show.getId())
@@ -261,6 +277,7 @@ public class ShowManagementService {
                 show.getGenre(),
                 show.getPosterFileId(),
                 show.getStatus(),
+                show.isHidden(),
                 sessions.size(),
                 tickets.totalReserved(),
                 nextSessionStartsAt,

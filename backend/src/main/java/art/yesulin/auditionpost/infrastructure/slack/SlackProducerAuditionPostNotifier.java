@@ -53,7 +53,7 @@ public class SlackProducerAuditionPostNotifier implements ProducerAuditionPostNo
                 .append(SlackAuditionMessages.escape(company(event.companyName()))).append('\n')
                 .append(SlackAuditionMessages.header(1));
         SlackAuditionMessages.appendAlert(message, event.category(), event.title(), event.pay(),
-                event.deadlineText(), links.postLink(event.postId()));
+                event.deadlineText(), links.openChatPostLink(event.postId()));
         send(event.postId(), message.toString());
     }
 

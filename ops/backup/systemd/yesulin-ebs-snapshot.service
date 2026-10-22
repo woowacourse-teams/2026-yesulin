@@ -1,10 +1,12 @@
 [Unit]
-Description=Yesulin staging MySQL EBS snapshot
+Description=Yesulin MySQL data volume EBS snapshot
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=oneshot
+# PROD처럼 기본값과 다른 환경은 이 파일에 BACKUP_LABEL·BACKUP_PREFIX·SNAPSHOT_NAME을 둔다. 없으면 DEV 기본값을 쓴다.
+EnvironmentFile=-/etc/yesulin/backup.env
 ExecStart=/usr/local/sbin/yesulin-create-ebs-snapshot
 User=root
 Group=root

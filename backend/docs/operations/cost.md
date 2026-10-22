@@ -101,12 +101,14 @@
 - ALB 일 비용 USD 0.54는 시간 요금 USD 0.0225 × 24시간과 같다. 트래픽 요금(LCU)은 거의 없다.
   ALB는 계정 규칙상 지정 LB를 써야 하며 DEV와 PROD가 이미 한 개를 공유한다.
 - PROD DB는 t4g.micro(1GiB)에서 MySQL이 메모리 부족(OOM)으로 종료되어 t4g.small로 증설했다.
-  MySQL 컨테이너 메모리 제한은 700MiB이고 swap은 없다. 증설 후 16분 관찰 기록만 있고 장시간·부하 상황은 확인하지 않았다.
+  MySQL 컨테이너 메모리 제한은 700MiB이고 swap은 없다. MySQL은 데이터가 4.5MiB인데도 기본 설정(`performance_schema` ON,
+  버퍼 풀 256MiB) 때문에 627MiB(상한의 90%)까지 늘었다. 2026-10-22에 `performance_schema=OFF`, 버퍼 풀 128MiB로 바꿔
+  235MiB로 줄였다(DEV도 같게). 자세한 내용은 [MySQL 메모리 조정 기록](../../../design/db-memory-tuning-record.md)을 본다.
 - 앱 서버의 systemd `ExecStart`에는 `-Xmx`가 없다. DEV(2026-10-09)와 PROD(2026-10-19) 모두 환경 파일의
   `JAVA_TOOL_OPTIONS=-Xmx384m`으로 힙 상한을 둔다. 두 환경 모두 micro라 메모리가 작아 기본 GC가 SerialGC다.
 - 스냅샷은 9개다. Launch Template AMI용 `yesulin-backend-base-20260913-sops-v2` 1개와 DEV DB 주간 스냅샷
   `yesulin-db-staging-weekly` 8개(2026-08 말~2026-10-04)다. 주간 스냅샷 1개의 크기는 645~704MiB다.
-- 주간 EBS 스냅샷의 `RetentionDays=90` 태그는 자동 삭제가 아니다([백업](backup.md)). 삭제 정책이 없으면 스냅샷이 계속 쌓인다.
+- 2026-10-22부터 스냅샷 스크립트가 같은 이름의 90일 지난 스냅샷을 지우고, S3 논리 백업은 수명 주기 규칙으로 90일 뒤 만료한다([백업](backup.md)).
 
 ### CI/CD
 
@@ -140,7 +142,7 @@
   배포는 계속되므로 교체 뒤 로그 그룹에 새 인스턴스 스트림이 생겼는지 확인한다.
 - 공고 자동 수집·Slack 알림 스케줄러(`AuditionImportScheduler`)는 `prod` 프로필에서만 실행된다.
   DEV는 공고를 자동으로 수집하거나 알리지 않는다.
-- 백업 타이머는 DEV DB에서 매일 03:15, 일요일 04:15에 실행되며 `Persistent=true`다. PROD 전용 백업 설정 기록은 없다.
+- 백업 타이머는 DEV·PROD DB에서 매일 03:15, 일요일 04:15에 실행되며 `Persistent=true`다. PROD는 2026-10-22에 적용했다([백업](backup.md)).
 
 ### 모니터링
 

@@ -19,9 +19,9 @@ MSW 전용 경로를 어떻게 구분하는지만 설명한다.
 
 ## 실제 API 사용 영역
 
-OTR 공유 링크 `/otr?vid={번호}`는 클라이언트 API 호출이 아니다. Next.js rewrite로
-`/api/v1/otr?vid={번호}`에 전달하여 백엔드의 302 응답으로 원문을 연다.
-별도 DTO·MSW handler·프론트 화면 없이 실제 백엔드를 사용한다.
+OTR 공유 링크 `/otr?vid={번호}`는 `app/otr` 페이지가 받아 `/api/v1/otr?vid={번호}`로 이동시키고,
+이 요청은 Next.js rewrite로 백엔드에 전달되어 302 응답으로 예술in 상세나 원문을 연다. 이동 자체는 DTO·MSW handler 없이
+실제 백엔드를 사용한다. `src=kakao_openchat`이 있으면 이동 전에 오픈채팅방 링크 방문 POST를 보내며, 이 POST는 MSW handler가 있다.
 DEV 공고 알림도 기본 공유 링크는 `https://yesulin.art`로 발급한다. 각 프론트의 rewrite는 여전히
 자기 환경의 백엔드를 가리키므로 실제 이동 기록은 링크를 연 환경에 남는다.
 관리자 개요의 `GET /api/v1/admin/otr-redirects?days={1~14}`는 현재 환경의 집계만 조회한다.
@@ -128,3 +128,7 @@ DEV 공고 알림도 기본 공유 링크는 `https://yesulin.art`로 발급한�
 - 기획사/제작사 이메일 인증 링크는 백엔드에서 검증한 뒤 설정된 Frontend 경로로 `302` redirect한다.
 - 비밀번호 재설정 메일은 Frontend `/forgot-password?token=...` 링크를 열고, 프론트가 토큰 확인 후 새 비밀번호를
   PATCH한다. 메일 요청 응답만으로 계정 존재 여부를 판단하지 않는다.
+
+공연 공개 목록은 숨기지 않은 `OPEN`·`CLOSED`를 모두 반환하고 항목에 `status`가 있다. 관리 목록·상세와 운영 대시보드에는
+`hidden`이 있으며 기획사·관리자 `PATCH .../shows/{id}/visibility`에 `{ hidden: boolean }`을 보내 숨김·해제한다.
+숨김 해제는 기존 예매 상태를 유지한다. 숨긴 공연의 공개 상세·예매·외부 이동 기록은 404다.

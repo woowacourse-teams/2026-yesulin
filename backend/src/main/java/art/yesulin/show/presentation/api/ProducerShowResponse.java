@@ -31,6 +31,7 @@ public record ProducerShowResponse(
         ShowImageResponse poster,
         List<ShowImageResponse> images,
         ShowStatus status,
+        boolean hidden,
         boolean hasReservations,
         List<ProducerShowSessionResult> sessions,
         Instant createdAt
@@ -58,6 +59,7 @@ public record ProducerShowResponse(
                         .map(fileId -> new ShowImageResponse(fileId, urlReader.apply(fileId)))
                         .toList(),
                 result.status(),
+                result.hidden(),
                 result.hasReservations(),
                 result.sessions(),
                 result.createdAt()

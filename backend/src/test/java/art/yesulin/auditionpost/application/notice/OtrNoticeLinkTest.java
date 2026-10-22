@@ -13,6 +13,15 @@ class OtrNoticeLinkTest {
     private final OtrNoticeLink noticeLink = new OtrNoticeLink("https://dev.yesulin.art/");
 
     @Test
+    void marksOnlyOpenChatShareLinksWithTheirSource() {
+        assertThat(noticeLink.openChatPostLink(7)).isEqualTo(
+                "https://dev.yesulin.art/posts/7?src=kakao_openchat");
+        assertThat(noticeLink.openChatOtrLink("22310")).isEqualTo(
+                "https://dev.yesulin.art/otr?vid=22310&src=kakao_openchat");
+        assertThat(noticeLink.postLink(7)).isEqualTo("https://dev.yesulin.art/posts/7");
+    }
+
+    @Test
     void createsProductionLinkForSharedNotifications() {
         assertThat(new OtrNoticeLink("https://yesulin.art").create("22310"))
                 .isEqualTo("https://yesulin.art/otr?vid=22310");

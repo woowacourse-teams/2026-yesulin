@@ -28,6 +28,26 @@ class ShowTest {
     }
 
     @Test
+    void restoresClosedShowAfterLastSessionWithoutReopeningBookings() {
+        Show show = show(List.of());
+        ReflectionTestUtils.setField(show, "id", 1L);
+        ShowSession session = new ShowSession(1L, NOW.plusSeconds(3600), 10);
+        show.open(NOW, List.of(session));
+        show.close();
+        show.changeVisibility(true);
+
+        assertFalse(show.isPublic());
+        // 숨김 해제에는 회차 시각 검사가 없어 지난 공연도 마감 상태로 다시 표시할 수 있다.
+        assertThrows(BusinessException.class, () -> show.open(NOW.plusSeconds(7200), List.of(session)));
+        show.changeVisibility(false);
+
+        assertTrue(show.isPublic());
+        assertEquals(ShowStatus.CLOSED, show.getStatus());
+        assertThrows(BusinessException.class, show::ensureOpen);
+        assertThrows(BusinessException.class, () -> show.open(NOW.plusSeconds(7200), List.of(session)));
+    }
+
+    @Test
     void requiresOwner() {
         assertThrows(IllegalArgumentException.class, () -> new Show(
                 0L, "햄릿", ShowGenre.PLAY, null, venue(), 120, null, "02-123-4567", 1L, List.of()

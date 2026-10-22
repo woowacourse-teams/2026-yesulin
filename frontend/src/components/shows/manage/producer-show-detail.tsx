@@ -29,7 +29,7 @@ type DetailState =
   | { readonly status: "error"; readonly message: string }
   | { readonly status: "ready"; readonly show: ProducerShow };
 
-type PendingAction = "close" | "delete" | null;
+type PendingAction = "close" | "hide" | "restore" | "delete" | null;
 
 /**
  * 공연 한 건의 회차·공개·예매자를 관리한다. 운영 대시보드도 운영자 API로 감싸 외부 링크 공연 관리에 같은 화면을 쓴다.
@@ -127,28 +127,34 @@ export function ProducerShowDetail({ showId }: { readonly showId: string }) {
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <ManagementStatusBadge status={show.status} />
+              {show.hidden ? <span className="rounded-full border border-border bg-surface px-2 py-1 text-xs font-semibold text-muted-strong">숨김</span> : null}
               <ManagementGenreBadge genre={show.genre} />
             </div>
             <h1 className="mt-2 text-2xl font-bold tracking-[-0.025em] md:text-[28px]">{show.title}</h1>
             <p id="show-status-guide" className="mt-2 text-sm text-muted-strong">{statusGuide(show, openable)}</p>
-            {show.status !== "DRAFT" ? <CopyShowLinkButton showId={show.id} variant="inline" /> : null}
+            {show.status !== "DRAFT" && !show.hidden ? <CopyShowLinkButton showId={show.id} variant="inline" /> : null}
           </div>
           {/* 모바일에서 버튼이 한 줄에 안 들어가면 남은 폭을 채워 한 개만 덩그러니 내려가 보이지 않게 한다. */}
           <div className="flex flex-wrap gap-2 [&>*]:grow sm:[&>*]:grow-0">
-            {show.status !== "DRAFT" ? (
+            {show.status !== "DRAFT" && !show.hidden ? (
               <SecondaryLink href={showRoutes.detail(show.id)} target="_blank">예매 페이지 보기</SecondaryLink>
             ) : null}
             {show.status === "OPEN" ? (
               <SecondaryButton onClick={() => setPendingAction("close")} disabled={busy}>예매 마감</SecondaryButton>
-            ) : (
+            ) : !show.hidden ? (
               <PrimaryButton
                 onClick={publish}
                 disabled={busy || !openable}
                 aria-describedby={openable ? undefined : "show-status-guide"}
               >
-                {show.status === "DRAFT" ? "공개하기" : "다시 공개"}
+                {show.status === "DRAFT" ? "공개하기" : "예매 다시 열기"}
               </PrimaryButton>
-            )}
+            ) : null}
+            {show.status !== "DRAFT" ? (
+              <SecondaryButton onClick={() => setPendingAction(show.hidden ? "restore" : "hide")} disabled={busy}>
+                {show.hidden ? "숨김 해제" : "공연 숨기기"}
+              </SecondaryButton>
+            ) : null}
             <SecondaryButton onClick={() => setEditing(true)} disabled={busy}>정보 수정</SecondaryButton>
           </div>
         </header>
@@ -188,6 +194,24 @@ export function ProducerShowDetail({ showId }: { readonly showId: string }) {
           }}
         />
       ) : null}
+      {pendingAction === "hide" || pendingAction === "restore" ? (
+        <ConfirmDialog
+          title={pendingAction === "hide" ? "공연을 숨길까요?" : "숨김을 해제할까요?"}
+          confirmLabel={pendingAction === "hide" ? "공연 숨기기" : "숨김 해제"}
+          busy={busy}
+          onClose={() => setPendingAction(null)}
+          onConfirm={() => {
+            const hidden = pendingAction === "hide";
+            void run(() => api.changeVisibility(show.id, hidden), hidden ? "공연을 숨겼어요." : "공연을 다시 표시했어요.")
+              .then((succeeded) => { if (succeeded) setPendingAction(null); });
+          }}
+          description={pendingAction === "hide"
+            ? "관객 목록과 상세에서 공연이 사라지고 새 예매를 받지 않아요. 공연 정보와 이미 받은 예매는 유지되며 나중에 숨김을 해제할 수 있어요."
+            : show.status === "CLOSED"
+              ? "예매 마감 상태로 목록과 상세에 다시 표시해요. 예매는 다시 열리지 않아요."
+              : "목록과 상세에 공연을 다시 표시해요. 시작 전인 회차는 다시 예매할 수 있어요."}
+        />
+      ) : null}
       {pendingAction === "close" ? (
         <ConfirmDialog
           title="예매를 마감할까요?"
@@ -196,8 +220,8 @@ export function ProducerShowDetail({ showId }: { readonly showId: string }) {
           onClose={() => setPendingAction(null)}
           onConfirm={() => void run(() => api.closeShow(show.id), "예매를 마감했어요.").then(() => setPendingAction(null))}
           description={external
-            ? "관객 목록에서 공연이 빠지고 공연 페이지의 예매하기 버튼이 닫혀요. 외부 예매 페이지는 그 서비스에서 따로 마감해 주세요. 언제든 다시 공개할 수 있어요."
-            : "관객 목록에서 공연이 빠지고 새 예매를 받지 않아요. 이미 받은 예매와 공연 페이지 링크는 그대로 유지되고, 언제든 다시 공개할 수 있어요."}
+            ? "공연은 관객 목록과 상세에 예매 마감으로 남고 예매하기 버튼이 닫혀요. 숨겨 둔 공연은 계속 숨겨져요. 외부 예매 페이지는 그 서비스에서 따로 마감해 주세요."
+            : "공연은 관객 목록과 상세에 예매 마감으로 남고 새 예매를 받지 않아요. 숨겨 둔 공연은 계속 숨겨져요. 이미 받은 예매는 유지돼요."}
         />
       ) : null}
       {pendingAction === "delete" ? (
@@ -228,14 +252,16 @@ function hasUpcomingSession(show: ProducerShow, now: number) {
 }
 
 function statusGuide(show: ProducerShow, openable: boolean) {
+  if (show.hidden) return show.status === "CLOSED"
+    ? "숨긴 공연이에요. 숨김을 해제하면 예매 마감 상태로 목록과 상세에 다시 표시해요."
+    : "숨긴 공연이에요. 관객 목록과 상세에서 보이지 않고 새 예매를 받지 않아요. 숨김을 해제하면 시작 전 회차의 예매도 다시 열려요.";
+  if (show.status === "CLOSED") return "예매를 마감했어요. 공연은 관객 목록과 상세에 계속 표시돼요. 예매 다시 열기는 시작 전 회차가 있어야 가능해요.";
   if (show.status === "OPEN") {
     return show.externalReservationUrl ? "관객이 공연 페이지에서 외부 예매 페이지로 이동해 예매하고 있어요." : "관객이 공연 페이지에서 예매하고 있어요.";
   }
   if (!openable) {
-    const prefix = show.status === "CLOSED" ? "예매를 마감했어요. " : "";
-    return `${prefix}${show.sessions.length ? "시작 전인 회차가 있어야 공개할 수 있어요. 회차를 추가해 주세요." : "회차를 추가한 뒤 공개해 주세요."}`;
+    return `${show.sessions.length ? "시작 전인 회차가 있어야 공개할 수 있어요. 회차를 추가해 주세요." : "회차를 추가한 뒤 공개해 주세요."}`;
   }
-  if (show.status === "CLOSED") return "예매를 마감했어요. 다시 공개하면 남은 회차를 예매할 수 있어요.";
   return "공개하기를 누르면 관객이 예매할 수 있어요.";
 }
 

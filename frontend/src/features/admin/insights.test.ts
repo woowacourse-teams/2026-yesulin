@@ -17,6 +17,7 @@ const show = (status: AdminShow["status"], sessions: readonly AdminShowSession[]
   showId: `${status}-${sessions.length}`,
   title: "햄릿",
   status,
+  hidden: false,
   companyName: null,
   externalReservationUrl: "",
   externalReservationVisits: 0,
@@ -41,6 +42,7 @@ describe("admin insights", () => {
         session("2026-09-29T10:00:00Z", 10, 10),
       ]),
       show("CLOSED", [session("2026-10-01T10:00:00Z", 10, 10)]),
+      { ...show("OPEN", [session("2026-10-01T10:00:00Z", 10, 10)]), hidden: true },
     ], NOW);
 
     expect(counts).toEqual({ soldOut: 1, nearlyFull: 1 });

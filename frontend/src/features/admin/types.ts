@@ -119,6 +119,7 @@ export type AdminShow = {
   readonly showId: string;
   readonly title: string;
   readonly status: AdminShowStatus;
+  readonly hidden: boolean;
   /** 기획사 계정의 회사명. */
   readonly companyName: string | null;
   /** 공연에 따로 적은 주최 이름. 비어 있으면 관객에게 `companyName`이 보인다. */
@@ -554,6 +555,20 @@ export type AdminEventBanner = {
   readonly endsOn: string | null;
   /** 0~99. 작은 순서가 먼저 보인다. */
   readonly order: number;
+};
+
+export type AdminOpenChatVisits = {
+  readonly posts: readonly {
+    readonly postId: number;
+    readonly title: string;
+    readonly status: AdminAuditionPostStatus;
+    readonly postedAt: string | null;
+    readonly visitCount: number;
+  }[];
+  readonly page: number;
+  readonly size: number;
+  readonly totalPages: number;
+  readonly totalElements: number;
 };
 
 /** 공고 알림 오픈채팅방 인원 기록 한 건. */

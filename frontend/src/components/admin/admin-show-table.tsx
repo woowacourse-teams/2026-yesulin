@@ -17,7 +17,7 @@ type Props = {
   readonly now: number;
 };
 
-type StatusFilter = AdminShowStatus | "ALL";
+type StatusFilter = AdminShowStatus | "ALL" | "HIDDEN";
 
 const HEADERS = ["공연", "주최(관객 화면)", "기획사 계정", "상태", "회차", "예매 매수 / 정원", "예매", "취소", "등록", "회차별"];
 
@@ -32,6 +32,7 @@ const STATUS_FILTERS: readonly { readonly label: string; readonly value: StatusF
   { label: "예매 중", value: "OPEN" },
   { label: "초안", value: "DRAFT" },
   { label: "마감", value: "CLOSED" },
+  { label: "숨김", value: "HIDDEN" },
 ];
 
 function ratio(reserved: number, capacity: number): number | null {
@@ -130,7 +131,7 @@ export function AdminShowTable({ shows: loadedShows, now }: Props) {
   const [hostNames, setHostNames] = useState<ReadonlyMap<string, string>>(() => new Map());
   const [editingShowId, setEditingShowId] = useState<string | null>(null);
   const shows = loadedShows.map((show) => hostNames.has(show.showId) ? { ...show, hostName: hostNames.get(show.showId)! } : show);
-  const visible = statusFilter === "ALL" ? shows : shows.filter((show) => show.status === statusFilter);
+  const visible = statusFilter === "ALL" ? shows : shows.filter((show) => statusFilter === "HIDDEN" ? show.hidden : !show.hidden && show.status === statusFilter);
   const editingShow = shows.find((show) => show.showId === editingShowId) ?? null;
 
   return (
@@ -207,7 +208,7 @@ export function AdminShowTable({ shows: loadedShows, now }: Props) {
                         ? <span className="rounded-full bg-brand-soft px-2 py-0.5 text-xs font-medium text-brand">운영자 등록 · 외부 링크</span>
                         : orDash(show.companyName)}
                     </td>
-                    <td className="px-3 py-2 text-muted-strong">{STATUS_LABEL[show.status]}</td>
+                    <td className="px-3 py-2 text-muted-strong">{STATUS_LABEL[show.status]}{show.hidden ? " · 숨김" : ""}</td>
                     <td className="px-3 py-2 num text-muted-strong">{show.sessions.length}</td>
                     {show.externalReservationUrl ? (
                       <>

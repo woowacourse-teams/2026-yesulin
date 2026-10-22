@@ -1,0 +1,115 @@
+# 2026-10-22 12:29 KST, yesulin-db-prod, Session Manager
+# 명령: yesulin-restore-drill (스크립트 커밋 f33b626), 서버의 /tmp/restore-drill-20261022.log (113줄)를 옮김
+== before
+2026-10-22T03:29:19+00:00
+               total        used        free      shared  buff/cache   available
+Mem:            1835        1137         181           1         684         697
+yesulin-mysql Up 3 weeks (healthy)
+
+Drill started: 2026-10-22 12:29:19 KST
+Backup: s3://techcourse-project-2026/yesulin/backups/mysql-prod/2026/10/22/yesulin-prod-20261022T031417Z.sql.gz
+yesulin-prod-20261022T031417Z.sql.gz: OK
+Downloaded and checksum verified: 144K, 3s
+Temporary MySQL ready (mysql@sha256:b3b90af2a6552ae30c266fdb7d5dd55f3afb72404bb78d37fe8a23eb857fd3fb, network none, memory 384m): 13s
+Restore started: 2026-10-22 12:29:36 KST
+Restore finished: 2026-10-22 12:29:40 KST, 4s
+Restored database yesulin_prod: 85 tables, 1015 rows
+
+table	at_backup	restored	result
+SPRING_SESSION	1	1	OK
+SPRING_SESSION_ATTRIBUTES	1	1	OK
+admin_audit_logs	151	151	OK
+applicant_profile_careers	6	6	OK
+applicant_profile_links	2	2	OK
+applicant_profiles	3	3	OK
+audition_additional_questions	0	0	OK
+audition_form_additional_fields	0	0	OK
+audition_form_basic_fields	0	0	OK
+audition_forms	0	0	OK
+audition_photo_requirements	0	0	OK
+audition_post_author_links	2	2	OK
+audition_post_company_links	1	1	OK
+audition_post_files	231	231	OK
+audition_post_tags	102	102	OK
+audition_post_uploads	3	3	OK
+audition_posts	131	131	OK
+audition_role_sections	0	0	OK
+audition_roles	0	0	OK
+audition_schedules	0	0	OK
+audition_screening_stages	0	0	OK
+audition_sms_batches	0	0	OK
+audition_sms_daily_usage	0	0	OK
+audition_sms_deliveries	0	0	OK
+audition_sms_drafts	0	0	OK
+audition_sms_lock	1	1	OK
+audition_video_requirements	0	0	OK
+auditions	0	0	OK
+companies	2	2	OK
+company_edit_request_links	0	0	OK
+company_edit_requests	0	0	OK
+company_links	3	3	OK
+company_photo_uploads	0	0	OK
+email_verifications	0	0	OK
+event_image_uploads	0	0	OK
+events	0	0	OK
+file_assets	10	10	OK
+file_references	10	10	OK
+flyway_schema_history	69	69	OK
+members	18	18	OK
+notices	129	129	OK
+otr_audition_roles	0	0	OK
+otr_auditions	0	0	OK
+otr_screening_completions	0	0	OK
+otr_screening_reviews	0	0	OK
+otr_submission_careers	0	0	OK
+otr_submission_links	0	0	OK
+otr_submission_photos	0	0	OK
+otr_submission_videos	0	0	OK
+otr_submissions	0	0	OK
+password_resets	0	0	OK
+performance_roles	0	0	OK
+performances	0	0	OK
+photo_libraries	1	1	OK
+photo_library_items	3	3	OK
+producers	5	5	OK
+reservations	76	76	OK
+screening_completions	0	0	OK
+screening_reviews	0	0	OK
+shedlock	4	4	OK
+show_external_reservation_visits	20	20	OK
+show_guides	4	4	OK
+show_images	4	4	OK
+show_links	2	2	OK
+show_sessions	5	5	OK
+shows	3	3	OK
+social_accounts	12	12	OK
+submission_additional_fields	0	0	OK
+submission_basic_fields	0	0	OK
+submission_careers	0	0	OK
+submission_consents	0	0	OK
+submission_idempotency_requests	0	0	OK
+submission_links	0	0	OK
+submission_photo_requirement_answers	0	0	OK
+submission_question_answers	0	0	OK
+submission_selected_roles	0	0	OK
+submission_video_requirement_answers	0	0	OK
+submissions	0	0	OK
+timetable_actors	0	0	OK
+timetable_messages	0	0	OK
+timetable_requests	0	0	OK
+timetable_windows	0	0	OK
+timetables	0	0	OK
+video_libraries	0	0	OK
+video_library_items	0	0	OK
+
+Row count check: 85 / 85 tables match the counts taken at backup time
+
+Summary: download+verify 3s, temporary MySQL 13s, restore 4s, total 21s
+Drill finished: 2026-10-22 12:29:40 KST. The temporary container and downloaded files are removed on exit.
+
+== after
+2026-10-22T03:29:41+00:00
+               total        used        free      shared  buff/cache   available
+Mem:            1835        1135         277           1         590         699
+yesulin-mysql Up 3 weeks (healthy)
+no temp files

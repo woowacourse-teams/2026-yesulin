@@ -10,6 +10,7 @@ import type {
 } from "../audition-posts/editing";
 import type {
   AdminAlertChatMembers,
+  AdminOpenChatVisits,
   AdminAuditLogPage,
   AdminAudition,
   AdminAuditionPost,
@@ -516,6 +517,10 @@ export async function unlinkCompanyAuthor(linkId: number): Promise<void> {
     headers: await withCsrfHeaders(),
   });
   if (!response.ok) throw await readAdminError(response, "묶음을 풀지 못했습니다.");
+}
+
+export function fetchOpenChatVisits(page = 0): Promise<AdminOpenChatVisits> {
+  return getJson(`/openchat/visits?page=${page}`, "오픈채팅방 링크 방문을 불러오지 못했습니다.");
 }
 
 export function fetchAlertChatMembers(): Promise<AdminAlertChatMembers> {

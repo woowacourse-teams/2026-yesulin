@@ -1,11 +1,13 @@
 [Unit]
-Description=Yesulin staging MySQL logical backup
+Description=Yesulin MySQL logical backup to S3
 After=docker.service network-online.target
 Requires=docker.service
 Wants=network-online.target
 
 [Service]
 Type=oneshot
+# PROD처럼 기본값과 다른 환경은 이 파일에 BACKUP_LABEL·BACKUP_PREFIX·SNAPSHOT_NAME을 둔다. 없으면 DEV 기본값을 쓴다.
+EnvironmentFile=-/etc/yesulin/backup.env
 ExecStart=/usr/local/sbin/yesulin-mysql-logical-backup
 User=root
 Group=root

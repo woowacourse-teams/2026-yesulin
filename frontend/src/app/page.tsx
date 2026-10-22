@@ -6,6 +6,7 @@ import { JsonLd } from "@/components/seo/json-ld";
 import { auditionPostPageForServer } from "@/features/audition-posts/server";
 import { eventBannersForServer } from "@/features/events/server";
 import { auditionPostRoutes, parseAuditionPostQuery } from "@/features/audition-posts/types";
+import { HOME_DESCRIPTION, HOME_TITLE, socialMetadata } from "@/features/seo/audition-metadata";
 import { homeStructuredData } from "@/features/seo/structured-data";
 import { publicShowsForServer } from "@/features/shows/server";
 
@@ -13,6 +14,7 @@ type SearchParams = Promise<{ readonly page?: string | string[]; readonly closed
 
 export const metadata: Metadata = {
   alternates: { canonical: "/", types: { "application/rss+xml": "/rss.xml" } },
+  ...socialMetadata({ title: HOME_TITLE, description: HOME_DESCRIPTION, url: "/" }),
 };
 
 export default async function HomePage({ searchParams }: { readonly searchParams: SearchParams }) {

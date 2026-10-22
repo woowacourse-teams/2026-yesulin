@@ -1,0 +1,25 @@
+# 2026-10-22 MySQL 메모리 설정 조정 (DEV → PROD), Session Manager
+## 공통 변경 (/opt/yesulin-db/compose.yml, 백업 compose.yml.bak-20261022)
+--innodb-buffer-pool-size=256M → 128M
+--performance-schema=OFF 추가 (MySQL 8.4 기본값은 ON)
+mem_limit 700m, max-connections 50은 그대로
+
+## DEV (yesulin-db-dev, t4g.micro, swap 1GiB)
+변경 전: mysqld VmRSS 99MiB + VmSwap 610MiB (가동 63일), 설정 performance_schema=1, buffer pool 256MiB
+재시작: 2026-10-22 15:43:27 KST → healthy 15:43:53 (26초)
+변경 후: mysqld VmRSS 231MiB, VmSwap 0, 서버 swap 사용 694 → 61MiB, buffer pool 128MiB, performance_schema=0
+DEV health 200, 공고 목록 200 (0.08s)
+
+## PROD 변경 전 MySQL 메모리 내역 (performance_schema 집계, 읽기 전용)
+추적 합계 673.5MiB = performance_schema 235.0MiB + InnoDB 395.9MiB(buffer pool 261.8, log buffer 64.0 ...) + 기타
+상위: innodb/buf_buf_pool 261.8, innodb/log_buffer_memory 64.0, performance_schema/events_statements_summary_by_digest 40.3,
+      innodb/ut0link_buf 24.0, sql/TABLE 21.1, performance_schema/events_statements_history_long 14.4
+
+## PROD (yesulin-db-prod, t4g.small, swap 없음)
+변경 전: mysqld VmRSS 627MiB, VmSwap 0, 컨테이너 631MiB/700MiB(90%), 서버 사용 가능 727MiB
+  (10/8 549MiB → 10/22 627MiB, 14일간 서버 사용 가능 최저 588MiB)
+재시작: 2026-10-22 15:47:26 KST → healthy 15:47:36 (10초)
+변경 후: mysqld VmRSS 235MiB, 컨테이너 221.8MiB/700MiB(31.7%), 서버 사용 가능 1,115MiB, 연결 22(앱 2대 재연결)
+
+## 되돌리기
+cd /opt/yesulin-db && sudo cp -p compose.yml.bak-20261022 compose.yml && sudo docker compose -f compose.yml up -d

@@ -15,10 +15,10 @@ export const metadata: Metadata = {
     template: "%s | 예술in",
   },
   description: HOME_DESCRIPTION,
+  // 주소는 페이지마다 다르므로 넣지 않는다. 넣으면 공유 정보를 따로 정하지 않은 페이지가 모두 홈 주소를 가리킨다.
   openGraph: {
     type: "website",
     locale: "ko_KR",
-    url: "/",
     siteName: "예술in",
     title: HOME_TITLE,
     description: HOME_DESCRIPTION,

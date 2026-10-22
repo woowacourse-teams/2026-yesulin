@@ -18,6 +18,8 @@ export const homeStructuredData = {
         width: 800,
         height: 320,
       },
+      // 네이버 연관 채널 마크업. 푸터에 연결한 공식 카카오톡 채널이다.
+      sameAs: ["https://pf.kakao.com/_pbTBX"],
     },
     {
       "@type": "WebSite",

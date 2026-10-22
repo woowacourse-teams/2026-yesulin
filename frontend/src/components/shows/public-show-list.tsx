@@ -7,7 +7,7 @@ import { SecondaryButton } from "@/components/ui/controls";
 import Link from "next/link";
 import { ScreenError } from "@/components/auditions/screen-status";
 import { getPublicShows } from "@/features/shows/api";
-import { formatShowDateTime, hasUpcomingShowSession } from "@/features/shows/format";
+import { formatShowDateTime, hasUpcomingShowSession, isShowBookingClosed } from "@/features/shows/format";
 import { SHOW_GENRE_LABELS, SHOW_GENRES, showRoutes, type PublicShowSummary, type ShowGenre } from "@/features/shows/types";
 import { SiteFooter } from "@/components/policies/site-footer";
 import { NotebookListHeading, NotebookPageMain } from "@/components/landing/notebook-page-main";
@@ -71,8 +71,8 @@ function GenreFilteredShows({ shows, genre, onGenreChange }: {
 }) {
   const [now] = useState(Date.now);
   const visibleShows = genre ? shows.filter((show) => show.genre === genre) : shows;
-  const upcoming = visibleShows.filter((show) => hasUpcomingShowSession(show, now));
-  const ended = visibleShows.filter((show) => !hasUpcomingShowSession(show, now));
+  const upcoming = visibleShows.filter((show) => !isShowBookingClosed(show, now));
+  const ended = visibleShows.filter((show) => isShowBookingClosed(show, now));
   const countOf = (target: ShowGenre | null) => target ? shows.filter((show) => show.genre === target).length : shows.length;
   const options: readonly (ShowGenre | null)[] = [null, ...SHOW_GENRES.filter((option) => countOf(option) > 0)];
   return (
@@ -87,8 +87,8 @@ function GenreFilteredShows({ shows, genre, onGenreChange }: {
       {visibleShows.length ? (
         <>
           <p className="mb-5 text-sm text-muted-strong">회차별 잔여석과 예매 가능 여부는 공연 상세에서 확인해 주세요.</p>
-          {upcoming.length ? <ShowGroup title="다가오는 공연" shows={upcoming} /> : <ContentState className="mb-8" title="지금 예정된 공연이 없어요" description="새 공연이 열리면 이곳에 안내할게요." />}
-          {ended.length ? <ShowGroup title="예매 마감" shows={ended} ended /> : null}
+          {upcoming.length ? <ShowGroup title="다가오는 공연" shows={upcoming} now={now} /> : <ContentState className="mb-8" title="지금 예정된 공연이 없어요" description="새 공연이 열리면 이곳에 안내할게요." />}
+          {ended.length ? <ShowGroup title="예매 마감" shows={ended} now={now} ended /> : null}
         </>
       ) : (
         <ContentState title={`지금 예매할 수 있는 ${genre ? SHOW_GENRE_LABELS[genre] : "공연"}이 없어요`} description="다른 장르의 공연도 살펴보세요." action={<SecondaryButton onClick={() => onGenreChange(null)}>전체 공연 보기</SecondaryButton>} />
@@ -97,16 +97,18 @@ function GenreFilteredShows({ shows, genre, onGenreChange }: {
   );
 }
 
-function ShowGroup({ title, shows, ended = false }: { readonly title: string; readonly shows: readonly PublicShowSummary[]; readonly ended?: boolean }) {
+function ShowGroup({ title, shows, now, ended = false }: { readonly title: string; readonly shows: readonly PublicShowSummary[]; readonly now: number; readonly ended?: boolean }) {
   return <section className="notebook-show-group" aria-label={title}>
     <h2 className="notebook-show-group-heading">{title}<span className="num">{shows.length}개</span></h2>
     <ul className="grid gap-4 min-[900px]:grid-cols-2 min-[1200px]:grid-cols-3">
-      {shows.map((show) => <ShowCard key={show.id} show={show} ended={ended} />)}
+      {shows.map((show) => <ShowCard key={show.id} show={show} now={now} ended={ended} />)}
     </ul>
   </section>;
 }
 
-function ShowCard({ show, ended }: { readonly show: PublicShowSummary; readonly ended: boolean }) {
+function ShowCard({ show, now, ended }: { readonly show: PublicShowSummary; readonly now: number; readonly ended: boolean }) {
+  // 마감 공연은 미래 회차가 남았을 때만 일정을 보여 주고, 이미 지난 회차를 다음 회차로 안내하지 않는다.
+  const nextSessionStartsAt = hasUpcomingShowSession(show, now) ? show.nextSessionStartsAt : null;
   return (
     <li className="min-w-0">
       <Link
@@ -131,7 +133,9 @@ function ShowCard({ show, ended }: { readonly show: PublicShowSummary; readonly 
           <h3 className="mt-1 line-clamp-2 text-lg font-bold leading-6 group-hover:text-brand">{show.title}</h3>
           <p className="mt-2 truncate text-sm text-muted-strong">{show.venueName}</p>
           <p className="num mt-auto border-t border-border-soft pt-2 text-xs leading-5 text-muted-strong">
-            {ended ? <strong className="font-semibold">예매 마감 · 예정 회차 없음</strong> : show.nextSessionStartsAt ? `다음 회차 ${formatShowDateTime(show.nextSessionStartsAt)}` : "예정 회차 없음"}
+            {ended ? <strong className="font-semibold">예매 마감</strong> : null}
+            {ended ? " · " : ""}
+            {nextSessionStartsAt ? `다음 회차 ${formatShowDateTime(nextSessionStartsAt)}` : "예정 회차 없음"}
           </p>
         </div>
       </Link>
