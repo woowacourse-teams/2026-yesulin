@@ -18,12 +18,13 @@ robots.txt는 운영과 같이 수집을 허용해 로봇이 이 헤더를 읽�
 브라우저는 같은 origin의 `/api/v1/**`, `/oauth2/**`, `/login/oauth2/**`를 호출하고 Next.js가 `API_ORIGIN`으로
 rewrite한다. Production·Preview에는 `NEXT_PUBLIC_API_MOCKING`을 설정하지 않는다.
 
-OTR 공고 공유 링크는 `/otr?vid={OTR 번호}`다. 화면을 렌더링하지 않고 같은 환경의
-`${API_ORIGIN}/api/v1/otr?vid={번호}`로 rewrite하며, 백엔드의 OTR 원문 302 응답을 브라우저에 전달한다.
+OTR 공고 공유 링크는 `/otr?vid={OTR 번호}`이고, Slack 새 공고 알림은 `&src=kakao_openchat`을 붙인다.
+`/otr`는 프론트 페이지다. 출처 표시가 없으면 서버 렌더링에서 같은 origin의 `/api/v1/otr?vid={번호}`로 바로 이동하고,
+있으면 브라우저가 오픈채팅방 링크 방문을 기록한 뒤(최대 1.5초) 같은 주소로 이동한다. `/api/v1/otr`는 `/api/v1/:path*`
+rewrite로 `${API_ORIGIN}`에 전달되고, 백엔드의 302 응답이 예술in 상세나 OTR 원문으로 보낸다. 번호가 없거나 형식이 틀리면 404다.
 공유 링크에 백엔드 도메인이나 `/api/v1`을 노출하지 않는다. `API_ORIGIN`이 없으면 rewrite가 생성되지 않는다.
-백엔드의 해당 API와 프론트 rewrite를 함께 배포해야 하며 GA 이벤트는 발생시키지 않는다.
-DEV 스케줄러도 실제 알림에는 PROD 주소 `https://yesulin.art/otr?vid={번호}`를 사용한다.
-그 요청은 PROD `/admin` 개요에 집계된다. `https://dev.yesulin.art/otr?vid={번호}`로 직접 테스트한 요청은
+백엔드의 해당 API와 프론트 `/otr` 페이지를 함께 배포해야 하며 GA 이벤트는 발생시키지 않는다.
+DEV 백엔드도 알림 링크에는 PROD 주소 `https://yesulin.art`를 사용하므로 그 링크의 요청은 PROD `/admin` 개요에 집계된다. `https://dev.yesulin.art/otr?vid={번호}`로 직접 테스트한 요청은
 DEV `/admin`에 별도로 집계되며, 두 환경 모두 백엔드의 JSON 파일 로그 조회 API가 배포돼 있어야 한다.
 
 업로드는 백엔드에서 받은 presigned `uploadUrl`로 직접 PUT하고 완료 API를 호출한다. 조회 URL은 백엔드 응답을

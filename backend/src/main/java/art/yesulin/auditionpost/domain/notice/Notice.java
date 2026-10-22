@@ -39,6 +39,10 @@ public class Notice {
     @Column(nullable = false, length = 20)
     private NoticeStatus status;
 
+    /** 공고를 가져오기 전에 OTR 경유 링크로 들어온 방문 수. 원자적 update로만 늘린다. */
+    @Column(name = "openchat_visit_count", nullable = false, updatable = false)
+    private long openChatVisitCount;
+
     private Notice(String source, String externalId, NoticeStatus status) {
         this.source = requireText(source, "공고 출처가 필요합니다.");
         this.externalId = requireText(externalId, "원문 공고 식별자가 필요합니다.");

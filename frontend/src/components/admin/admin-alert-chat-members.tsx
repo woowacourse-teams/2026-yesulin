@@ -6,8 +6,8 @@ import { AdminApiError, fetchAlertChatMembers, recordAlertChatMembers } from "@/
 import { ALERT_CHAT_MAX_MEMBER_COUNT, type AdminAlertChatMembers as AlertChatMembers } from "@/features/admin/types";
 import { logout } from "@/features/auth/session-api";
 import { formatDateTime } from "./admin-format";
-import { AdminAuditionPostTabs } from "./admin-audition-post-tabs";
 import { AdminSessionEnded } from "./admin-session-ended";
+import { AdminOpenChatVisits } from "./admin-openchat-visits";
 import { AdminActionButton, AdminShell } from "./admin-shell";
 
 type Phase = "loading" | "ready" | "unauthorized" | "failed";
@@ -60,6 +60,7 @@ export function AdminAlertChatMembers() {
   }, [reloadToken]);
 
   const refresh = useCallback(() => setReloadToken((value) => value + 1), []);
+  const endSession = useCallback(() => setPhase("unauthorized"), []);
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -112,9 +113,9 @@ export function AdminAlertChatMembers() {
 
   return (
     <AdminShell
-      current="posts"
-      title="공고 관리"
-      description="공고 알림 오픈채팅방 인원을 적어 주세요. 적은 시각부터 올라오는 공고의 공개 조회수에 반영되고, 이미 올라온 공고는 그대로예요."
+      current="openchat"
+      title="오픈채팅방 관리"
+      description="공고 알림 오픈채팅방의 인원을 기록하고, 공유한 공고 링크의 방문 수를 확인해요."
       actions={(
         <>
           <AdminActionButton onClick={refresh}>새로고침</AdminActionButton>
@@ -122,8 +123,6 @@ export function AdminAlertChatMembers() {
         </>
       )}
     >
-      <AdminAuditionPostTabs current="alert-chat" />
-
       {notice ? <p role="status" className="rounded-control border border-brand-line bg-brand-soft px-4 py-3 text-sm">{notice}</p> : null}
       {error ? (
         <p role="alert" className="rounded-control border border-fail/30 bg-fail-bg px-4 py-3 text-sm text-fail">
@@ -131,6 +130,8 @@ export function AdminAlertChatMembers() {
         </p>
       ) : null}
       {phase === "loading" ? <p role="status" className="text-sm text-muted">오픈채팅방 인원을 불러오는 중이에요.</p> : null}
+
+      <AdminOpenChatVisits key={reloadToken} onUnauthorized={endSession} />
 
       {members ? (
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
@@ -140,6 +141,7 @@ export function AdminAlertChatMembers() {
             <p className="mt-1 text-xs text-muted">
               {latest ? `${formatDateTime(latest.recordedAt)}에 적었어요.` : "아직 적지 않아 기록 전 인원을 쓰고 있어요."}
             </p>
+            <p className="mt-2 text-sm leading-6 text-muted-strong">인원은 기록한 시각부터 올라오는 공고의 공개 조회수 추정치에 적용해요. 위 링크 방문 수는 실제 방문을 따로 집계한 값이에요.</p>
 
             <form onSubmit={(event) => void submit(event)} noValidate className="mt-5 border-t border-border pt-4">
               <label htmlFor="alert-chat-member-count" className="text-sm font-bold">지금 오픈채팅방 인원</label>

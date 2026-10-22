@@ -32,6 +32,14 @@ public class OtrNoticeLink {
         return baseUrl + "/posts/" + postId;
     }
 
+    public String openChatPostLink(long postId) {
+        return postLink(postId) + "?src=kakao_openchat";
+    }
+
+    public String openChatOtrLink(String externalId) {
+        return create(externalId) + "&src=kakao_openchat";
+    }
+
     public URI destination(String externalId) {
         validateExternalId(externalId);
         return URI.create("https://otr.co.kr/audition/?vid=" + externalId);

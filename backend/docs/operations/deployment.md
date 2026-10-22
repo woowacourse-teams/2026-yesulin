@@ -22,19 +22,22 @@ PROD의 `AuditionImportScheduler`는 새 OTR 공고를 우리 공고로 검토 �
 
 `YESULIN_NOTICE_LINK_BASE_URL`은 필수 환경 변수다. LOCAL은 `config/server/local.env`의
 `http://localhost:3000`, DEV·PROD는 SOPS 암호화된 `config/server/dev.env`·`prod.env`의 `https://yesulin.art`를 사용한다.
-PROD 알림은 가져온 공고 주소(`https://yesulin.art/posts/{id}`)를 바로 쓴다. 공개 전이거나 내렸으면 원문으로, 공개 뒤에는
-예술in 상세로 열린다. 가져오지 못한 공고만 경유 링크 `https://yesulin.art/otr?vid={번호}`를 쓴다. 예전에 공유한 경유 링크도 계속 동작한다.
+PROD 알림은 가져온 공고 주소(`https://yesulin.art/posts/{id}?src=kakao_openchat`)를 바로 쓴다. 공개 전이거나 내렸으면
+원문으로, 공개 뒤에는 예술in 상세로 열린다. 가져오지 못한 공고만 경유 링크 `https://yesulin.art/otr?vid={번호}&src=kakao_openchat`를
+쓴다. `src`는 오픈채팅방 링크 방문 집계용 출처 표시이며, 표시 없이 예전에 공유한 링크도 계속 동작한다.
 테스트용 DEV 링크는 `https://dev.yesulin.art/otr?vid={번호}`를 직접 사용한다.
 환경별 YAML을 추가하지 않고 `application.yml`에서 이 변수를 읽는다. 테스트는 test resource의 값을 사용한다.
 배포 환경 값은 다른 설정과 동일하게 `config/server/{환경}.env`에 SOPS로 편집하며
 EC2의 복호화된 파일을 직접 수정하지 않는다. 변경한 config는 commit·push 후 `config-version.txt`와 submodule SHA를
 같이 갱신한 릴리스로 배포한다. config push 전에는 버전 고정 파일을 바꾸지 않는다.
-프론트의 `/otr` rewrite가 **같은 환경의 백엔드**의 `/api/v1/otr`로 전달해야 한다.
+프론트의 `/otr` 페이지가 같은 origin의 `/api/v1/otr`로 이동시키고, 이 요청은 `/api/v1/:path*` rewrite로
+**같은 환경의 백엔드**에 전달돼야 한다. 출처 표시가 있으면 이동 전에 브라우저가 오픈채팅방 링크 방문을 기록한다.
 LOCAL은 프론트의 `API_ORIGIN=http://localhost:8080` 설정과 프론트 실행이 필요하다.
 백엔드와 프론트를 함께 배포해야 짧은 공유 링크가 동작한다.
 이미 발송된 Slack 메시지와 카카오 게시글의 OTR 직접 링크는 바뀌지 않는다. 배포 후 새 알림부터 적용된다.
 
-클릭 수는 별도 DB나 GA에 저장하지 않고 기존 HTTP 요청 로그를 집계한다.
+경유 링크 이동 수는 별도 DB나 GA에 저장하지 않고 기존 HTTP 요청 로그를 집계한다. 오픈채팅방 링크 방문은 이와 별개로
+공고·알림별 누적 숫자를 DB에 저장한다([API 문서](../api.md)).
 GET 요청 횟수이므로 고유 방문자 수는 아니며, 반복 클릭·메신저의 GET 미리보기도 포함될 수 있다.
 HEAD는 집계하지 않고 Slack 메시지의 링크·미디어 unfurl은 비활성화한다.
 로그 조회 및 CloudWatch 설정 조건은 [모니터링 문서](monitoring.md)의 공고 경유 링크 항목을 따른다.

@@ -14,7 +14,7 @@ afterEach(() => {
   vi.resetModules();
 });
 
-describe("OTR notice link rewrite", () => {
+describe("OTR notice API rewrite", () => {
   it.each([
     ["https://api.yesulin.art", "https://yesulin.art"],
     ["https://dev-api.yesulin.art", "https://dev.yesulin.art"],
@@ -22,7 +22,7 @@ describe("OTR notice link rewrite", () => {
     vi.stubEnv("API_ORIGIN", apiOrigin);
     const { default: nextConfig } = await import("./next.config");
     const response = await unstable_getResponseFromNextConfig({
-      url: `${frontendOrigin}/otr?vid=22310`,
+      url: `${frontendOrigin}/api/v1/otr?vid=22310`,
       nextConfig,
     });
 
@@ -36,8 +36,8 @@ describe("OTR notice link rewrite", () => {
     const rewrites = await nextConfig.rewrites!();
 
     expect(rewrites).toContainEqual({
-      source: "/otr",
-      destination: "http://localhost:8080/api/v1/otr",
+      source: "/api/v1/:path*",
+      destination: "http://localhost:8080/api/v1/:path*",
     });
   });
 
@@ -45,7 +45,7 @@ describe("OTR notice link rewrite", () => {
     vi.stubEnv("API_ORIGIN", "https://api.yesulin.art");
     const { default: nextConfig } = await import("./next.config");
     const response = await unstable_getResponseFromNextConfig({
-      url: "https://yesulin.art/otr?vid=invalid&url=https%3A%2F%2Fexample.com",
+      url: "https://yesulin.art/api/v1/otr?vid=invalid&url=https%3A%2F%2Fexample.com",
       nextConfig,
     });
 

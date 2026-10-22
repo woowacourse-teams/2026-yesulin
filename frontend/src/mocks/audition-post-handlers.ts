@@ -141,6 +141,13 @@ const POSTS: readonly MockPost[] = [
   },
 ];
 
+const openChatVisits = new Map<string, number>();
+
+function recordOpenChatVisit(target: string) {
+  if (mockSessionRole() !== "ADMIN") openChatVisits.set(target, (openChatVisits.get(target) ?? 0) + 1);
+  return new HttpResponse(null, { status: 204 });
+}
+
 function toSummary(post: MockPost): AuditionPostSummary {
   const thumbnail = /<img[^>]*src="([^"]+)"/.exec(post.bodyHtml);
   return {
@@ -204,6 +211,42 @@ export const auditionPostHandlers = [
   http.post("/api/v1/public/audition-posts/:postId/views", async ({ params }) => {
     const post = POSTS.find((candidate) => String(candidate.id) === String(params.postId));
     return post ? new HttpResponse(null, { status: 204 }) : HttpResponse.json({ code: "AUDITION_POST_NOT_FOUND", message: "공고를 찾을 수 없습니다." }, { status: 404 });
+  }),
+
+  http.post("/api/v1/public/audition-posts/:postId/openchat-visits", async ({ params }) => {
+    if (realLoginEnabled) return passthrough();
+    const post = POSTS.find((candidate) => String(candidate.id) === String(params.postId));
+    if (!post) return HttpResponse.json({ code: "AUDITION_POST_NOT_FOUND", message: "공고를 찾을 수 없습니다." }, { status: 404 });
+    const otrId = post.sourceUrl ? /[?&]vid=([0-9]+)/.exec(post.sourceUrl)?.[1] : undefined;
+    return recordOpenChatVisit(otrId ? `OTR:${otrId}` : `YESULIN:${post.id}`);
+  }),
+
+  http.post("/api/v1/public/otr/:externalId/openchat-visits", async ({ params }) => {
+    if (realLoginEnabled) return passthrough();
+    if (!/^[0-9]{1,30}$/.test(String(params.externalId))) {
+      return HttpResponse.json({ code: "INVALID_REQUEST", message: "OTR 공고 번호가 올바르지 않습니다." }, { status: 400 });
+    }
+    return recordOpenChatVisit(`OTR:${params.externalId}`);
+  }),
+
+  http.get("/api/v1/admin/openchat/visits", async ({ request }) => {
+    if (realLoginEnabled) return passthrough();
+    const rejected = rejectNonAdmin();
+    if (rejected) return rejected;
+    const page = Number(new URL(request.url).searchParams.get("page") ?? "0");
+    if (!Number.isInteger(page) || page < 0) return HttpResponse.json({ code: "INVALID_REQUEST", message: "페이지 범위가 올바르지 않습니다." }, { status: 400 });
+    const posts = [...POSTS].sort((left, right) => right.id - left.id).map((post) => {
+      const otrId = post.sourceUrl ? /[?&]vid=([0-9]+)/.exec(post.sourceUrl)?.[1] : undefined;
+      const visits = openChatVisits.get(otrId ? `OTR:${otrId}` : `YESULIN:${post.id}`);
+      return {
+        postId: post.id,
+        title: post.title,
+        status: "PUBLISHED",
+        postedAt: post.postedAt,
+        visitCount: visits ?? 0,
+      };
+    });
+    return HttpResponse.json({ posts: posts.slice(page * 20, (page + 1) * 20), page, size: 20, totalPages: Math.ceil(posts.length / 20), totalElements: posts.length });
   }),
 
   http.get("/api/v1/admin/alert-chat-members", async () => {

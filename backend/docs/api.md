@@ -182,9 +182,11 @@ PENDING 세션을 ACTIVE로 갱신하고 요청의 `redirectUri`로 302 redirect
 기존 `HTTP_REQUEST` 로그에서 `endpoint=/api/v1/otr`, `method=GET`, `status=302`만 집계한다.
 검증된 OTR 번호는 `otrId` 필드로 남긴다. 전체 쿼리 문자열은 로그에 기록하지 않는다.
 집계는 고유 방문자 수가 아닌 GET 요청 횟수다. 반복 클릭·미리보기 봇의 GET 요청도 포함될 수 있다.
-클릭별 별도 로그·DB 카운터·GA 이벤트는 추가하지 않는다. 관리자 개요에서 파일 로그 기반 집계를 조회한다.
-공유 링크는 `{프론트 origin}/otr?vid={번호}`다. Next.js의 `/otr` rewrite가 쿼리를 유지한 채
-`{API_ORIGIN}/api/v1/otr?vid={번호}`로 전달한다. 프론트 화면이나 클라이언트 JS를 실행하지 않는다.
+이 이동 집계에는 클릭별 별도 로그·DB 카운터·GA 이벤트를 추가하지 않는다. 관리자 개요에서 파일 로그 기반 집계를 조회한다.
+공유 링크는 `{프론트 origin}/otr?vid={번호}`이고, Slack 새 공고 알림은 `&src=kakao_openchat`을 붙인다.
+`/otr`는 프론트 페이지다. 출처 표시가 없으면 서버 렌더링에서 바로 `/api/v1/otr?vid={번호}`로 이동하고, 있으면 브라우저가
+오픈채팅방 링크 방문 POST(아래 가져온 공고 절)를 보낸 뒤 최대 1.5초 안에 같은 주소로 이동한다. `/api/v1/otr`는
+Next.js의 `/api/v1/:path*` rewrite로 `{API_ORIGIN}`에 전달된다. 번호가 없거나 형식이 틀리면 프론트 404다.
 
 ## OTR 공고와 지원·심사 — 9개
 
@@ -220,7 +222,7 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 1차 서류 심사 한 차수를 제공한다. 배역별 심사 종료는 OTR 지원 마감 다음 날부터 가능하며,
 그 전에는 `409 SCREENING_ROUND_NOT_READY`를 반환한다. 종료 후 심사 결과 수정은 거부한다.
 
-## 가져온 공고(메인 목록) — 24개
+## 가져온 공고(메인 목록) — 27개
 
 운영자가 공고 알림을 받은 OTR 공고를 우리 공고로 옮기거나, 운영자나 기획사가 원문 없이 직접 쓴 `AuditionPost`다.
 공개 상세에만 원문 출처·주소를 담는다. 공개 API는 로그인 없이 호출하고, 운영 API는 `ADMIN`만, 기획사 API는 `PRODUCER + ACTIVE`만 호출한다.
@@ -247,6 +249,9 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 | POST | `/api/v1/admin/audition-post-author-links/fills` | Admin | `FillAuditionPostAuthorsRequest(beforeId?)` | `200 AuditionPostAuthorFillResult` |
 | GET | `/api/v1/admin/alert-chat-members` | Admin | 없음 | `200 AdminAlertChatMembersResult(currentMemberCount, initialMemberCount, history)` |
 | POST | `/api/v1/admin/alert-chat-members` | Admin | `RecordAlertChatMembersRequest(memberCount)` | `201 AdminAlertChatMembersResult` |
+| POST | `/api/v1/public/audition-posts/{postId}/openchat-visits` | 없음(CSRF 필요) | 없음 | `204` |
+| POST | `/api/v1/public/otr/{externalId}/openchat-visits` | 없음(CSRF 필요) | 없음 | `204` |
+| GET | `/api/v1/admin/openchat/visits` | Admin | `page`(기본 0) | `200 AdminOpenChatVisitsResult(posts, page, size, totalPages, totalElements)` |
 | GET | `/api/v1/producers/me/audition-posts` | Active Producer | 없음 | `200 ProducerAuditionPostsResponse(posts)` |
 | POST | `/api/v1/producers/me/audition-posts` | Active Producer | `ProducerWriteAuditionPostRequest(category, title, pay, deadlineText, bodyHtml?, tags, attachmentUrls)` | `201 ProducerAuditionPostResult` |
 | POST | `/api/v1/producers/me/audition-posts/uploads` | Active Producer | `PrepareAuditionPostUploadRequest(kind: IMAGE/ATTACHMENT, filename, contentType?, size)` | `201 AuditionPostUploadResult(url, method, headers, expiresAt, publicUrl)` |
@@ -272,6 +277,17 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 원문 이동 수는 프론트 서버가 공개 중이 아닌 공고를 원문으로 보내기 직전에 `redirects` POST를 한 번 보내 늘린다. 상세 GET은 세지 않는다.
 DB에서 1을 더하고 다시 가져와도 유지한다.
 page·size 범위 오류와 지원하지 않는 category는 `400 INVALID_REQUEST`다.
+
+오픈채팅방 링크 방문은 상세 GET·메타데이터 조회가 아니라 공유용 출처 표시를 읽은 브라우저의 `openchat-visits` POST로만
+늘린다. 브라우저가 공고별 집계 표시를 저장해 중복 전송을 줄이며, 서버에는 방문자 ID·쿠키 값·개별 방문 이력을 저장하지 않는다.
+공고/알림 행의 `openchat_visit_count`만 원자적으로 증가하므로 서버에서 같은 브라우저인지 재검증하지 않는다.
+관리자 로그인 상태면 증가 없이 `204`다. 일반 공고 POST는 공개 상세 또는 원문 이동이 가능한 공고만 허용하고 나머지는
+`404 AUDITION_POST_NOT_FOUND`다. OTR POST는 숫자 1~30자 원문 번호이며 해당 OTR 알림이 없으면 같은 404다.
+형식 오류는 `400 INVALID_REQUEST`다. GET·미리보기는 이 숫자를 늘리지 않는다.
+관리자 응답은 전체 공고를 ID 최신순으로 20개씩 반환하고 0회도 표시한다. 각 항목은 `postId`, `title`, `status`,
+`postedAt`(Instant 또는 null), `visitCount`다. 가져오기 전 경유 방문 숫자는 원문 출처·번호로 연결된 알림에서 합산하며,
+아직 가져오지 않은 알림의 숫자는 공고를 가져온 뒤 목록에 나타난다. 음수 page는 `400 INVALID_REQUEST`다.
+브라우저 저장값 삭제·동시 탭·요청 재시도 등에 따라 중복될 수 있는 대략적인 지표다.
 
 `bodyHtml`은 서버가 Jsoup relaxed 허용 목록에서 `div`와 크기 속성을 뺀 태그만 남긴 HTML이다. 인라인 스타일과 스크립트는 없다.
 링크는 `target="_blank" rel="noopener noreferrer nofollow"`이고, 사진 `src`는 응답할 때 공개 저장소 주소로 채운다.

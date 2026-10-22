@@ -88,11 +88,6 @@ export function AnalyticsConsentManager({ gtmId }: { readonly gtmId?: string }) 
   }, [consent]);
 
   if (consent === undefined) return null;
-  if (!gtmId) return <ModalShell open={settingsOpen} onClose={() => setSettingsOpen(false)} labelledBy={titleId} placement="responsiveSheet" className="w-full rounded-t-modal bg-card shadow-modal md:w-[min(560px,calc(100vw-40px))] md:rounded-modal">
-    <DialogHeader id={titleId} title="방문 분석 설정" subtitle="현재 환경에서는 방문 분석을 사용하지 않아요." />
-    <p className="px-5 py-6 text-sm leading-6 text-muted-strong md:px-6">방문 분석 도구가 연결되어 있지 않아 분석 데이터를 보내지 않아요.</p>
-    <DialogFooter><PrimaryButton onClick={() => setSettingsOpen(false)}>닫기</PrimaryButton></DialogFooter>
-  </ModalShell>;
 
   const choose = (next: AnalyticsConsent) => {
     const revoking = isAnalyticsEnabled(consent) && next === "denied";
@@ -129,7 +124,7 @@ export function AnalyticsConsentManager({ gtmId }: { readonly gtmId?: string }) 
       className="w-full overflow-hidden rounded-t-modal bg-card shadow-[var(--shadow-modal)] md:w-[min(560px,calc(100vw-40px))] md:rounded-modal"
     >
       <DialogHeader id={titleId} title="방문 분석 설정" subtitle="방문 분석은 기본으로 켜져 있어요. 꺼도 서비스 이용에는 영향이 없고 언제든 다시 켤 수 있어요." />
-      <ConsentDetails enabled={enabled} />
+      <ConsentDetails enabled={enabled} googleAnalyticsEnabled={Boolean(gtmId)} />
       <DialogFooter>
         {enabled ? <>
           <SecondaryButton onClick={() => choose("denied")}>분석 끄기</SecondaryButton>
@@ -164,15 +159,15 @@ function RefusalResetNotice({ onKeep, onTurnOff }: { readonly onKeep: () => void
   </section>;
 }
 
-function ConsentDetails({ enabled }: { readonly enabled: boolean }) {
+function ConsentDetails({ enabled, googleAnalyticsEnabled }: { readonly enabled: boolean; readonly googleAnalyticsEnabled: boolean }) {
   return <div className="space-y-4 px-5 py-6 text-sm leading-6 text-muted-strong md:px-6">
     <p className="rounded-control border border-brand-line bg-brand-soft px-4 py-3"><strong className="block text-foreground">현재 선택</strong>{enabled ? "방문 분석이 켜져 있습니다." : "방문 분석을 껐습니다."}</p>
     <dl className="grid grid-cols-[92px_1fr] gap-x-3 gap-y-2">
-      <dt className="font-semibold text-foreground">도구</dt><dd>Google Analytics 4 · Google Tag Manager</dd>
-      <dt className="font-semibold text-foreground">목적</dt><dd>페이지 이용, 로그인 진입과 지원 단계별 이탈 분석</dd>
+      <dt className="font-semibold text-foreground">도구</dt><dd>예술in 링크 방문 집계{googleAnalyticsEnabled ? " · Google Analytics 4 · Google Tag Manager" : ""}</dd>
+      <dt className="font-semibold text-foreground">목적</dt><dd>공고 알림 링크의 방문 수 확인{googleAnalyticsEnabled ? ", 페이지 이용과 지원 단계별 이탈 분석" : ""}</dd>
       <dt className="font-semibold text-foreground">수집 제외</dt><dd>이름, 이메일, 전화번호, 지원서 답변, 사진·영상 URL</dd>
-      <dt className="font-semibold text-foreground">쿠키</dt><dd><code>_ga</code> 계열, Google 기본 설정 기준 최대 2년</dd>
+      <dt className="font-semibold text-foreground">브라우저 저장</dt><dd>공고별 링크 방문 집계 여부{googleAnalyticsEnabled ? ", _ga 계열 쿠키(Google 기본 설정 기준 최대 2년)" : ""}</dd>
     </dl>
-    <p className="text-xs leading-5 text-muted">끄면 GTM을 불러오지 않고 현재 브라우저의 Google Analytics 쿠키를 삭제합니다.</p>
+    <p className="text-xs leading-5 text-muted">끄면 링크 방문을 전송하지 않아요. Google 분석이 연결된 환경에서는 GTM을 불러오지 않고 현재 브라우저의 Google Analytics 쿠키도 삭제해요.</p>
   </div>;
 }
