@@ -12,6 +12,12 @@ fi
 
 AWS_REGION="${AWS_REGION:-ap-northeast-2}"
 DATA_MOUNT="${DATA_MOUNT:-/data/mysql}"
+# DEV는 기본값, PROD는 /etc/yesulin/backup.env에서 이름과 설명을 바꾼다.
+SNAPSHOT_NAME="${SNAPSHOT_NAME:-yesulin-db-staging-weekly}"
+BACKUP_LABEL="${BACKUP_LABEL:-staging}"
+# 개인정보 처리방침의 "백업은 90일 순환 방식으로 만료"에 맞춘다.
+RETENTION_DAYS="${RETENTION_DAYS:-90}"
+
 source_device="$(findmnt -n -o SOURCE "$DATA_MOUNT")"
 if [ -z "$source_device" ] || [ ! -b "$source_device" ]; then
   echo "EBS device for $DATA_MOUNT is unavailable" >&2
@@ -31,9 +37,9 @@ esac
 timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
 snapshot_id="$(aws ec2 create-snapshot \
   --volume-id "$volume_id" \
-  --description "yesulin staging MySQL crash-consistent snapshot $timestamp" \
+  --description "yesulin $BACKUP_LABEL MySQL crash-consistent snapshot $timestamp" \
   --tag-specifications \
-    "ResourceType=snapshot,Tags=[{Key=Name,Value=yesulin-db-staging-weekly},{Key=Service,Value=techcourse},{Key=Role,Value=techcourse-etc},{Key=ProjectTeam,Value=yesulin},{Key=RetentionDays,Value=90}]" \
+    "ResourceType=snapshot,Tags=[{Key=Name,Value=$SNAPSHOT_NAME},{Key=Service,Value=techcourse},{Key=Role,Value=techcourse-etc},{Key=ProjectTeam,Value=yesulin},{Key=RetentionDays,Value=$RETENTION_DAYS}]" \
   --region "$AWS_REGION" \
   --query SnapshotId \
   --output text \
@@ -41,3 +47,21 @@ snapshot_id="$(aws ec2 create-snapshot \
 
 echo "EBS snapshot requested: $snapshot_id ($volume_id)"
 echo "This is crash-consistent. The daily logical backup remains the primary restore source."
+
+# 같은 이름의 스냅샷 중 보관 기간이 지난 것만 지운다. 방금 만든 스냅샷과 다른 이름의 스냅샷은 건드리지 않는다.
+cutoff="$(date -u -d "-$RETENTION_DAYS days" +%Y-%m-%dT%H:%M:%S)"
+expired_ids="$(aws ec2 describe-snapshots \
+  --owner-ids self \
+  --filters "Name=tag:Name,Values=$SNAPSHOT_NAME" "Name=tag:ProjectTeam,Values=yesulin" \
+  --query "Snapshots[?StartTime<'$cutoff'].SnapshotId" \
+  --output text \
+  --region "$AWS_REGION" \
+  --no-cli-pager)"
+
+for expired_id in $expired_ids; do
+  if [ "$expired_id" = "$snapshot_id" ] || [ "$expired_id" = "None" ]; then
+    continue
+  fi
+  aws ec2 delete-snapshot --snapshot-id "$expired_id" --region "$AWS_REGION" --no-cli-pager
+  echo "Expired EBS snapshot deleted: $expired_id (older than $RETENTION_DAYS days)"
+done
