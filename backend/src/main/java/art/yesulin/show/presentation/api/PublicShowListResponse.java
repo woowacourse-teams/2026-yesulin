@@ -2,6 +2,7 @@ package art.yesulin.show.presentation.api;
 
 import art.yesulin.show.application.PublicShowSummaryResult;
 import art.yesulin.show.domain.ShowGenre;
+import art.yesulin.show.domain.ShowStatus;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -19,6 +20,7 @@ public record PublicShowListResponse(List<Item> shows) {
                         result.hostName(),
                         result.title(),
                         result.genre(),
+                        result.status(),
                         urlReader.apply(result.ownerId(), result.posterFileId()),
                         result.venueName(),
                         result.nextSessionStartsAt(),
@@ -32,6 +34,7 @@ public record PublicShowListResponse(List<Item> shows) {
             String hostName,
             String title,
             ShowGenre genre,
+            ShowStatus status,
             String posterUrl,
             String venueName,
             Instant nextSessionStartsAt,

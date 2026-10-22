@@ -187,7 +187,7 @@ function overview(): AdminOverview {
     otrSubmissions: OTR_SUBMISSIONS,
     newOtrSubmissionsInLastWeek: 4,
     shows: shows.length,
-    openShows: shows.filter((show) => show.status === "OPEN").length,
+    openShows: shows.filter((show) => !show.hidden && show.status === "OPEN").length,
     reservedTickets: shows.reduce((sum, show) => sum + show.reservedTickets, 0),
     newReservationsInLastWeek: shows.reduce((sum, show) => sum + show.reservationCount, 0),
   };

@@ -119,6 +119,7 @@ export type AdminShow = {
   readonly showId: string;
   readonly title: string;
   readonly status: AdminShowStatus;
+  readonly hidden: boolean;
   /** 기획사 계정의 회사명. */
   readonly companyName: string | null;
   /** 공연에 따로 적은 주최 이름. 비어 있으면 관객에게 `companyName`이 보인다. */

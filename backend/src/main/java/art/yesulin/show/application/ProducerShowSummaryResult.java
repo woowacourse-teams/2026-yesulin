@@ -12,6 +12,7 @@ public record ProducerShowSummaryResult(
         ShowGenre genre,
         long posterFileId,
         ShowStatus status,
+        boolean hidden,
         int sessionCount,
         long reservedTickets,
         Instant nextSessionStartsAt,

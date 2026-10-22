@@ -136,3 +136,13 @@ export function toKstDateTimeInput(value: string): string {
 export function hasUpcomingShowSession(show: Pick<PublicShowSummary, "nextSessionStartsAt">, now = Date.now()): boolean {
   return show.nextSessionStartsAt !== null && Date.parse(show.nextSessionStartsAt) > now;
 }
+
+/** 관리자가 먼저 마감한 공연은 미래 회차가 있어도 마감 구역에 둔다. */
+export function isShowBookingClosed(show: Pick<PublicShowSummary, "status" | "nextSessionStartsAt">, now = Date.now()): boolean {
+  return show.status === "CLOSED" || !hasUpcomingShowSession(show, now);
+}
+
+/** 홈의 제한된 카드 수에서도 예매 중인 공연을 먼저 안내한다. 같은 상태에서는 서버의 최신순을 유지한다. */
+export function orderPublicShows(shows: readonly PublicShowSummary[], now = Date.now()): PublicShowSummary[] {
+  return [...shows].sort((left, right) => Number(isShowBookingClosed(left, now)) - Number(isShowBookingClosed(right, now)));
+}

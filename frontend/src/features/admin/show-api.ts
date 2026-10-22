@@ -66,6 +66,10 @@ export const adminShowManagementApi: ShowManagementApi = {
   deleteShow: (showId) => request<void>(showPath(showId), { method: "DELETE" }),
   openShow: (showId) => request<ProducerShow>(`${showPath(showId)}/opening`, { method: "POST" }),
   closeShow: (showId) => request<ProducerShow>(`${showPath(showId)}/closing`, { method: "POST" }),
+  changeVisibility: (showId, hidden) => request<ProducerShow>(`${showPath(showId)}/visibility`, {
+    method: "PATCH",
+    body: JSON.stringify({ hidden }),
+  }),
   // 운영자 공연은 외부 링크로 예매받아 회차에 정원이 없다. 시작 시각만 보낸다.
   createSession: (showId, input: SaveShowSession) => request<ProducerShow>(`${showPath(showId)}/sessions`, {
     method: "POST",

@@ -45,6 +45,10 @@ export function closeShow(showId: string): Promise<ProducerShow> {
   return request<ProducerShow>(`${showPath(showId)}/closing`, { method: "POST" });
 }
 
+export function changeShowVisibility(showId: string, hidden: boolean): Promise<ProducerShow> {
+  return request<ProducerShow>(`${showPath(showId)}/visibility`, { method: "PATCH", body: JSON.stringify({ hidden }) });
+}
+
 export function createShowSession(showId: string, input: SaveShowSession): Promise<ProducerShow> {
   return request<ProducerShow>(`${showPath(showId)}/sessions`, { method: "POST", body: JSON.stringify(input) });
 }

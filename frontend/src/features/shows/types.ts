@@ -44,6 +44,7 @@ export type ShowVenue = {
 };
 
 export type PublicShowSummary = {
+  readonly status: Exclude<ShowStatus, "DRAFT">;
   readonly id: string;
   /** 공연에 따로 적은 주최 이름. 없으면 기획사 계정의 회사명이다. */
   readonly hostName: string;
@@ -121,6 +122,7 @@ export type ProducerShowSummary = {
   readonly genre: ShowGenre;
   readonly posterUrl: string;
   readonly status: ShowStatus;
+  readonly hidden: boolean;
   readonly sessionCount: number;
   readonly reservedTickets: number;
   readonly nextSessionStartsAt: string | null;
@@ -163,6 +165,7 @@ export type ProducerShow = {
   readonly poster: ProducerShowImage;
   readonly images: readonly ProducerShowImage[];
   readonly status: ShowStatus;
+  readonly hidden: boolean;
   readonly hasReservations: boolean;
   readonly sessions: readonly ProducerShowSession[];
   readonly createdAt: string;

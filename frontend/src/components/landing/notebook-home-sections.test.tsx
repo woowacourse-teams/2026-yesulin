@@ -5,7 +5,7 @@ import { HomeShowSection } from "./notebook-home-sections";
 describe("홈 무료 공연 섹션", () => {
   it("실제 공개 공연을 최대 3개 소개하고 기존 상세·전체 목록으로 연결한다", () => {
     const html = renderToStaticMarkup(<HomeShowSection initialShows={Array.from({ length: 4 }, (_, index) => ({
-      id: `show-${index + 1}`, title: `공연 ${index + 1}`, hostName: "공연사", genre: "PLAY",
+      id: `show-${index + 1}`, title: `공연 ${index + 1}`, hostName: "공연사", genre: "PLAY", status: "OPEN",
       posterUrl: "/images/performances/moonlight.jpg", venueName: "극장", nextSessionStartsAt: null, runningMinutes: 60,
     }))} />);
     expect(html).toContain('href="/shows/show-3"');

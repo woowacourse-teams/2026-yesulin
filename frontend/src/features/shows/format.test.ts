@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   externalReservationHref,
+  isShowBookingClosed,
+  orderPublicShows,
   formatShowDateTime,
   formatShowFullDateTime,
   formatShowPeriod,
@@ -11,6 +13,29 @@ import {
 } from "./format";
 
 describe("show format", () => {
+  it("미래 회차가 있어도 관리자가 마감한 공연은 마감으로 구분한다", () => {
+    const now = Date.parse("2026-10-01T00:00:00Z");
+    const future = "2026-10-02T10:00:00Z";
+    expect(isShowBookingClosed({ status: "CLOSED", nextSessionStartsAt: future }, now)).toBe(true);
+    expect(isShowBookingClosed({ status: "OPEN", nextSessionStartsAt: future }, now)).toBe(false);
+    expect(isShowBookingClosed({ status: "OPEN", nextSessionStartsAt: null }, now)).toBe(true);
+    expect(isShowBookingClosed({ status: "OPEN", nextSessionStartsAt: "2026-09-30T10:00:00Z" }, now)).toBe(true);
+    expect(isShowBookingClosed({ status: "OPEN", nextSessionStartsAt: new Date(now).toISOString() }, now)).toBe(true);
+  });
+
+  it("홈에서 최근 마감 공연보다 예매 중 공연을 먼저 보여 준다", () => {
+    const now = Date.parse("2026-10-01T00:00:00Z");
+    const base = { hostName: "극단", title: "공연", genre: "PLAY" as const, posterUrl: "/poster.webp", venueName: "극장", runningMinutes: 60 };
+    const shows = [
+      { ...base, id: "closed", status: "CLOSED" as const, nextSessionStartsAt: "2026-10-02T10:00:00Z" },
+      { ...base, id: "open-new", status: "OPEN" as const, nextSessionStartsAt: "2026-10-03T10:00:00Z" },
+      { ...base, id: "ended", status: "OPEN" as const, nextSessionStartsAt: null },
+      { ...base, id: "open-old", status: "OPEN" as const, nextSessionStartsAt: "2026-10-02T10:00:00Z" },
+    ];
+    expect(orderPublicShows(shows, now).map((show) => show.id)).toEqual(["open-new", "open-old", "closed", "ended"]);
+    expect(shows[0].id).toBe("closed");
+  });
+
   it("UTC 회차 시각을 한국 시간과 요일로 표시한다", () => {
     expect(formatShowDateTime("2026-10-01T10:30:00Z")).toBe("10월 1일 (목) 19:30");
     expect(formatShowFullDateTime("2026-09-30T15:10:00Z")).toBe("2026년 10월 1일 (목) 00:10");

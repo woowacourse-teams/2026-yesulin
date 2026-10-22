@@ -53,7 +53,7 @@ public class AdminShowManagementService {
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public void delete(long actorMemberId, UUID showId) {
-        Show show = getAdminShow(showId);
+        Show show = getAdminShowForUpdate(showId);
         showManagementService.delete(show);
         audit(actorMemberId, AdminAction.SHOW_DELETED, show, "외부 링크 공연 삭제");
     }
@@ -75,6 +75,14 @@ public class AdminShowManagementService {
     }
 
     @Transactional
+    public ProducerShowResult changeVisibility(long actorMemberId, UUID showId, boolean hidden) {
+        Show show = getAdminShowForUpdate(showId);
+        ProducerShowResult result = showManagementService.changeVisibility(show, hidden);
+        audit(actorMemberId, AdminAction.SHOW_STATUS_CHANGED, show, hidden ? "숨김" : "숨김 해제");
+        return result;
+    }
+
+    @Transactional
     public ProducerShowResult addSession(UUID showId, SaveShowSessionCommand command) {
         return showManagementService.addSession(getAdminShow(showId), command);
     }
@@ -91,6 +99,12 @@ public class AdminShowManagementService {
 
     private Show getAdminShow(UUID showId) {
         return showRepository.findByPublicId(showId)
+                .filter(Show::usesExternalReservation)
+                .orElseThrow(() -> new BusinessException(NOT_FOUND, "공연을 찾을 수 없습니다."));
+    }
+
+    private Show getAdminShowForUpdate(UUID showId) {
+        return showRepository.findByPublicIdForUpdate(showId)
                 .filter(Show::usesExternalReservation)
                 .orElseThrow(() -> new BusinessException(NOT_FOUND, "공연을 찾을 수 없습니다."));
     }
