@@ -1,5 +1,6 @@
 "use client";
 
+import { SiteIcon } from "@/components/ui/site-icon";
 import Image from "next/image";
 import { useId, useState } from "react";
 import type { ApplicantAnswer } from "@/features/applicants/types";
@@ -59,5 +60,5 @@ function VideoCard({ url, label }: { readonly url: string; readonly label: strin
 }
 
 function LightboxArrow({ label, side, disabled, onClick }: { readonly label: string; readonly side: "left" | "right"; readonly disabled: boolean; readonly onClick: () => void }) {
-  return <button type="button" aria-label={label} disabled={disabled} onClick={onClick} className={`absolute top-1/2 grid h-12 w-12 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-2xl font-bold text-foreground shadow-[var(--shadow-2)] hover:bg-white disabled:pointer-events-none disabled:opacity-30 ${side === "left" ? "left-3" : "right-3"}`}>{side === "left" ? "‹" : "›"}</button>;
+  return <button type="button" aria-label={label} disabled={disabled} onClick={onClick} className={`absolute top-1/2 grid h-12 w-12 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-2xl font-bold text-foreground shadow-[var(--shadow-2)] hover:bg-white disabled:pointer-events-none disabled:opacity-30 ${side === "left" ? "left-3" : "right-3"}`}><SiteIcon name={side === "left" ? "previous" : "next"} size={24} /></button>;
 }

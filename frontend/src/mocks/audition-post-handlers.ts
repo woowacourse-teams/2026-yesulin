@@ -1,18 +1,58 @@
 import { delay, http, HttpResponse, passthrough } from "msw";
+import { frontendEnvironment } from "@/config/environment";
+import {
+  ALERT_CHAT_MAX_MEMBER_COUNT,
+  type AdminAlertChatMemberEntry,
+  type AdminAlertChatMembers,
+} from "@/features/admin/types";
 import { AUDITION_POST_CATEGORIES, type AuditionPost, type AuditionPostSummary } from "@/features/audition-posts/types";
+import { mockSessionRole } from "./auth-handlers";
 import { companyHandlers, mockCompanyOfPost } from "./company-handlers";
 
 /**
  * 메인 공고 목록·상세 화면 확인용 메모리 목. 실제 서버는 운영자가 공개한 공고를 원문 작성 최신순으로 준다.
  * 숨긴 공고 상세의 원문 이동(302)은 서버 렌더링에서만 처리하므로 목에는 공개 공고만 둔다.
  * 운영자 가져오기는 OTR과 저장소에 실제로 접속해야 의미가 있으므로 목으로 흉내 내지 않고 실제 서버로 넘긴다.
+ * 공고 알림 오픈채팅방 인원은 메모리에 두고, 서버처럼 공고마다 올린 시각의 인원을 준다. 새로고침하면 초기화된다.
  */
 function daysFromToday(days: number): string {
   const date = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
   return date.toISOString().slice(0, 10);
 }
 
-const POSTS: readonly AuditionPost[] = [
+const realLoginEnabled = frontendEnvironment.producerLoginEnabled;
+const HOUR_MS = 60 * 60 * 1000;
+const INITIAL_ALERT_CHAT_MEMBERS = 109;
+/** 최근 것부터. */
+const alertChatHistory: AdminAlertChatMemberEntry[] = [
+  { id: 2, memberCount: 181, recordedAt: new Date(Date.now() - 24 * HOUR_MS).toISOString() },
+  { id: 1, memberCount: 150, recordedAt: new Date(Date.now() - 10 * 24 * HOUR_MS).toISOString() },
+];
+
+function alertChatMembersAt(postedAt: string | null): number {
+  if (!postedAt) return INITIAL_ALERT_CHAT_MEMBERS;
+  const posted = Date.parse(postedAt);
+  return alertChatHistory.find((entry) => Date.parse(entry.recordedAt) <= posted)?.memberCount ?? INITIAL_ALERT_CHAT_MEMBERS;
+}
+
+function alertChatOverview(): AdminAlertChatMembers {
+  return {
+    currentMemberCount: alertChatHistory[0]?.memberCount ?? INITIAL_ALERT_CHAT_MEMBERS,
+    initialMemberCount: INITIAL_ALERT_CHAT_MEMBERS,
+    history: [...alertChatHistory],
+  };
+}
+
+function rejectNonAdmin() {
+  const role = mockSessionRole();
+  if (!role) return HttpResponse.json({ code: "AUTH_UNAUTHENTICATED", message: "로그인이 필요합니다." }, { status: 401 });
+  if (role !== "ADMIN") return HttpResponse.json({ code: "AUTH_FORBIDDEN", message: "접근 권한이 없습니다." }, { status: 403 });
+  return null;
+}
+
+type MockPost = Omit<AuditionPost, "alertChatMembers">;
+
+const POSTS: readonly MockPost[] = [
   {
     id: 1,
     category: "연극",
@@ -101,7 +141,7 @@ const POSTS: readonly AuditionPost[] = [
   },
 ];
 
-function toSummary(post: AuditionPost): AuditionPostSummary {
+function toSummary(post: MockPost): AuditionPostSummary {
   const thumbnail = /<img[^>]*src="([^"]+)"/.exec(post.bodyHtml);
   return {
     id: post.id,
@@ -114,6 +154,7 @@ function toSummary(post: AuditionPost): AuditionPostSummary {
     closed: post.closed,
     viewCount: post.viewCount,
     postedAt: post.postedAt,
+    alertChatMembers: alertChatMembersAt(post.postedAt),
     thumbnailUrl: thumbnail ? thumbnail[1] : null,
     attachmentCount: post.attachments.length,
   };
@@ -156,12 +197,36 @@ export const auditionPostHandlers = [
     if (!post) {
       return HttpResponse.json({ code: "AUDITION_POST_NOT_FOUND", message: "공고를 찾을 수 없습니다." }, { status: 404 });
     }
-    return HttpResponse.json({ ...post, company: mockCompanyOfPost(post.id) });
+    const detail: AuditionPost = { ...post, alertChatMembers: alertChatMembersAt(post.postedAt), company: mockCompanyOfPost(post.id) };
+    return HttpResponse.json(detail);
   }),
 
   http.post("/api/v1/public/audition-posts/:postId/views", async ({ params }) => {
     const post = POSTS.find((candidate) => String(candidate.id) === String(params.postId));
     return post ? new HttpResponse(null, { status: 204 }) : HttpResponse.json({ code: "AUDITION_POST_NOT_FOUND", message: "공고를 찾을 수 없습니다." }, { status: 404 });
+  }),
+
+  http.get("/api/v1/admin/alert-chat-members", async () => {
+    if (realLoginEnabled) return passthrough();
+    await delay(120);
+    return rejectNonAdmin() ?? HttpResponse.json(alertChatOverview());
+  }),
+
+  http.post("/api/v1/admin/alert-chat-members", async ({ request }) => {
+    if (realLoginEnabled) return passthrough();
+    await delay(150);
+    const rejected = rejectNonAdmin();
+    if (rejected) return rejected;
+    const { memberCount } = await request.json() as { readonly memberCount?: unknown };
+    if (typeof memberCount !== "number" || !Number.isInteger(memberCount) || memberCount < 1 || memberCount > ALERT_CHAT_MAX_MEMBER_COUNT) {
+      return HttpResponse.json({ code: "INVALID_REQUEST", message: "오픈채팅방 인원이 올바르지 않습니다." }, { status: 400 });
+    }
+    alertChatHistory.unshift({
+      id: Math.max(0, ...alertChatHistory.map((entry) => entry.id)) + 1,
+      memberCount,
+      recordedAt: new Date().toISOString(),
+    });
+    return HttpResponse.json(alertChatOverview(), { status: 201 });
   }),
 
   http.get("/api/v1/admin/audition-posts", () => passthrough()),

@@ -1,6 +1,5 @@
 import Image from "next/image";
 import Link from "next/link";
-import { showRoutes } from "@/features/shows/types";
 
 export function ProducerSidebarHeader({ titleId, autoFocus = false, onClose }: {
   readonly titleId?: string;
@@ -10,7 +9,7 @@ export function ProducerSidebarHeader({ titleId, autoFocus = false, onClose }: {
   return (
     <header className="flex min-h-20 shrink-0 items-center border-b border-sidebar-line">
       <h2 id={titleId} className="sr-only">예술in 관리</h2>
-      <Link href={showRoutes.manageList} aria-label="예술in 관리 홈" className="flex min-w-0 flex-1 px-4 py-3">
+      <Link href="/" aria-label="예술in 홈" className="flex min-w-0 flex-1 px-4 py-3">
         <span className="relative block h-14 w-24 shrink-0">
           <Image
             src="/images/yesulin-logo.png"

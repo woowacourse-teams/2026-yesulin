@@ -1,6 +1,9 @@
 "use client";
 
-import Link from "next/link";
+import { ContentState, ContentSkeleton } from "@/components/ui/content-state";
+import { ScreenError } from "@/components/auditions/screen-status";
+import { AuditionRequestError } from "@/features/auditions/api-client";
+import { SecondaryLink } from "@/components/ui/controls";
 import { useEffect, useState } from "react";
 import { PublicVenueGuide } from "@/components/applications/public-venue-guide";
 import { AuditionPostCard } from "@/components/audition-posts/audition-post-card";
@@ -9,7 +12,6 @@ import { kstToday } from "@/features/audition-posts/format";
 import { auditionPostRoutes, type AuditionPostSummary } from "@/features/audition-posts/types";
 import { viewCountClock } from "@/features/audition-posts/view-count";
 import { getCompany, getCompanyPosts } from "@/features/companies/api";
-import { SecondaryLink } from "@/components/ui/controls";
 import { COMPANY_CORRECTION_URL, companyRoutes, type Company } from "@/features/companies/types";
 import { CompanyAvatar } from "./company-avatar";
 import { CompanyFacts, Undisclosed } from "./company-summary-card";
@@ -17,6 +19,7 @@ import { CompanyFacts, Undisclosed } from "./company-summary-card";
 type CompanyState =
   | { readonly status: "loading" }
   | { readonly status: "missing" }
+  | { readonly status: "error" }
   | { readonly status: "ready"; readonly company: Company; readonly posts: readonly AuditionPostSummary[] };
 
 /** 공연사 화면은 서버가 미리 읽은 정보를 쓰고, 목 환경·서버 API 미설정 시 브라우저에서 읽는다. */
@@ -28,22 +31,25 @@ export function CompanyRoute({ companyId, initial }: {
     initial ? { status: "ready", ...initial } : { status: "loading" },
   );
 
+  const [reloadToken, setReloadToken] = useState(0);
+
   useEffect(() => {
-    if (initial) return;
+    if (initial && reloadToken === 0) return;
     let active = true;
     Promise.all([getCompany(companyId), getCompanyPosts(companyId)])
       .then(([company, posts]) => { if (active) setState({ status: "ready", company, posts }); })
       .catch((cause) => {
         console.error("[공연사 조회 실패]", cause);
-        if (active) setState({ status: "missing" });
+        if (active) setState({ status: cause instanceof AuditionRequestError && cause.status === 404 ? "missing" : "error" });
       });
     return () => { active = false; };
-  }, [companyId, initial]);
+  }, [companyId, initial, reloadToken]);
 
   return (
     <AuditionPostScreen>
       {state.status === "loading" ? <CompanySkeleton /> : null}
       {state.status === "missing" ? <MissingCompany /> : null}
+      {state.status === "error" ? <ScreenError message="정보를 불러오지 못했어요." onRetry={() => { setState({ status: "loading" }); setReloadToken((value) => value + 1); }} /> : null}
       {state.status === "ready" ? <CompanyDetail company={state.company} posts={state.posts} /> : null}
     </AuditionPostScreen>
   );
@@ -133,29 +139,17 @@ function TextSection({ id, title, text }: { readonly id: string; readonly title:
   );
 }
 
-function MissingCompany() {
-  return (
-    <section className="mt-3 rounded-card border border-border bg-card px-6 py-14 text-center">
-      <h1 className="text-lg font-bold">공연사 정보를 찾을 수 없어요</h1>
-      <p className="mt-2 text-sm text-muted-strong">아직 공개하지 않았거나 주소가 바뀌었을 수 있어요.</p>
-      <Link
-        href={auditionPostRoutes.list()}
-        className="mt-4 inline-flex min-h-11 items-center rounded-control px-3 text-sm font-semibold text-brand hover:bg-brand-soft"
-      >
-        공고 목록 보기
-      </Link>
-    </section>
-  );
+export function MissingCompany() {
+  return <ContentState headingLevel={1} className="mt-3" title="공연사 정보를 찾을 수 없어요" description="아직 공개하지 않았거나 주소가 바뀌었을 수 있어요." action={<SecondaryLink href={auditionPostRoutes.list()}>공고 목록 보기</SecondaryLink>} />;
 }
 
 function CompanySkeleton() {
   return (
-    <div role="status" aria-label="공연사 정보 불러오는 중" className="mt-3 animate-pulse space-y-4 rounded-card border border-border bg-card px-5 py-8 sm:px-8">
+    <ContentSkeleton label="공연사 정보 불러오는 중" className="mt-3 space-y-4 rounded-card border border-border bg-card px-5 py-8 sm:px-8">
       <div className="h-4 w-1/6 rounded bg-border-soft" />
       <div className="h-8 w-2/3 rounded bg-border-soft" />
       <div className="h-4 w-1/2 rounded bg-border-soft" />
       <div className="h-32 rounded bg-border-soft" />
-      <p className="sr-only">공연사 정보를 불러오고 있습니다.</p>
-    </div>
+      </ContentSkeleton>
   );
 }

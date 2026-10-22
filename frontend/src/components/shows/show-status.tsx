@@ -1,5 +1,6 @@
-import Link from "next/link";
-import { NotebookFooter, NotebookHeader } from "@/components/landing/notebook-site-layout";
+import { PublicScreen } from "@/components/landing/public-screen";
+import { ContentState } from "@/components/ui/content-state";
+import { SecondaryLink } from "@/components/ui/controls";
 import type { SessionAvailability, ShowAvailability } from "@/features/shows/format";
 import { SHOW_GENRE_LABELS, showRoutes, type ShowGenre, type ShowStatus } from "@/features/shows/types";
 
@@ -72,19 +73,7 @@ export function SessionAvailabilityText({ availability }: { readonly availabilit
 }
 
 export function ShowUnavailable() {
-  return (
-    <><NotebookHeader /><main id="main" className="notebook-container py-12">
-      <section className="mx-auto max-w-[680px] rounded-card border border-border bg-card px-6 py-14 text-center">
-        <p className="text-sm font-semibold text-fail">공연을 찾을 수 없어요</p>
-        <h1 className="mt-3 text-2xl font-bold tracking-[-0.025em]">공연 링크가 올바른지 확인해 주세요.</h1>
-        <p className="mt-3 text-muted-strong">공연이 내려갔거나 주소가 올바르지 않을 수 있어요.</p>
-        <Link
-          href={showRoutes.list}
-          className="mt-7 inline-flex min-h-11 items-center justify-center rounded-control bg-brand px-5 font-semibold text-white transition-colors hover:bg-brand-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-        >
-          다른 공연 보기
-        </Link>
-      </section>
-    </main><NotebookFooter /></>
-  );
+  return <PublicScreen backHref={showRoutes.list} backLabel="공연 목록">
+    <ContentState headingLevel={1} title="공연을 찾을 수 없어요" description="공연이 숨겨졌거나 주소가 바뀌었을 수 있어요." action={<SecondaryLink href={showRoutes.list}>다른 공연 보기</SecondaryLink>} />
+  </PublicScreen>;
 }

@@ -46,7 +46,7 @@ export function ApplicantShell({ children }: { readonly children: React.ReactNod
     <a href="#applicant-main" className="fixed left-4 top-3 z-50 -translate-y-24 rounded-control bg-foreground px-4 py-2 text-sm font-semibold text-white focus:translate-y-0">본문으로 바로가기</a>
     <header className="glass-surface sticky top-0 z-30 border-x-0 border-t-0">
       <div className="mx-auto flex min-h-[68px] max-w-[1180px] items-center px-5 md:px-8">
-        <Link href={applicantRoutes.home} aria-label="예술in 배우 홈" className="relative inline-flex h-12 w-24 rounded-control">
+        <Link href="/" aria-label="예술in 홈" className="relative inline-flex h-12 w-24 rounded-control">
           <Image src="/images/yesulin-logo.png" alt="예술in" fill sizes="96px" priority className="object-contain" />
         </Link>
         <nav aria-label="배우 주요 메뉴" className="ml-10 hidden items-center gap-1 md:flex">

@@ -1,5 +1,6 @@
 "use client";
 
+import { SiteIcon } from "@/components/ui/site-icon";
 import { useState } from "react";
 import { timetableRoutes } from "@/features/timetables/types";
 
@@ -16,11 +17,11 @@ export function ManageLinkNotice({ manageKey, onDismiss }: { readonly manageKey:
           const url = new URL(timetableRoutes.manage(manageKey), window.location.origin).href;
           navigator.clipboard.writeText(url).then(() => setCopied("success"), () => setCopied("error"));
         }}
-        className="min-h-9 rounded-control bg-brand px-3 font-semibold text-white hover:bg-brand-strong"
+        className="min-h-11 rounded-control bg-brand px-3 font-semibold text-white hover:bg-brand-strong"
       >
         {copied === "success" ? "복사됨" : copied === "error" ? "주소창에서 복사해 주세요" : "링크 복사"}
       </button>
-      <button type="button" aria-label="닫기" onClick={onDismiss} className="inline-flex size-9 items-center justify-center rounded-control text-muted-strong hover:bg-card">✕</button>
+      <button type="button" aria-label="닫기" onClick={onDismiss} className="inline-flex size-11 items-center justify-center rounded-control text-muted-strong hover:bg-card"><SiteIcon name="close" /></button>
     </div>
   );
 }

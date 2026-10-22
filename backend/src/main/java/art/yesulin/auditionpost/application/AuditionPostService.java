@@ -9,6 +9,7 @@ import art.yesulin.auditionpost.domain.AuditionPostCounts;
 import art.yesulin.auditionpost.domain.AuditionPostErrorCode;
 import art.yesulin.auditionpost.domain.AuditionPostRepository;
 import art.yesulin.auditionpost.domain.AuditionPostStatus;
+import art.yesulin.auditionpost.domain.alertchat.AlertChatMembers;
 import art.yesulin.company.application.CompanyService;
 import art.yesulin.company.domain.CompanyErrorCode;
 import art.yesulin.file.application.storage.ObjectStorage;
@@ -46,6 +47,7 @@ public class AuditionPostService {
     private final AuditionPostOwners owners;
     private final ObjectStorage storage;
     private final CompanyService companies;
+    private final AlertChatMemberService alertChatMemberService;
     private final Clock clock;
 
     /** 분야가 있으면 해당 분야만 센다. 기본은 모집 중이며 마감 포함 여부와 관계없이 원문 작성 최신순이다. */
@@ -65,10 +67,11 @@ public class AuditionPostService {
                 PUBLISHED, today, includeClosed, selectedCategory, pageable
         );
         Map<Long, String> ownerNames = owners.namesOf(result);
+        AlertChatMembers alertChatMembers = alertChatMemberService.members();
         List<PublicAuditionPostSummaryResult> posts = result.stream()
                 .map(post -> PublicAuditionPostSummaryResult.from(
                         post, AuditionPostOwners.authorOf(post, AuditionPostOwners.nameIn(ownerNames, post)),
-                        today, KOREA, storage::toPublicUrl
+                        today, KOREA, alertChatMembers, storage::toPublicUrl
                 ))
                 .toList();
         long totalElements = includeClosed ? counts.allCount() : counts.openCount();
@@ -93,7 +96,7 @@ public class AuditionPostService {
         return new PublicAuditionPostView.Published(PublicAuditionPostResult.from(
                 post, AuditionPostOwners.authorOf(post, owners.nameOf(post)),
                 companies.findPublishedSummary(post.getCompanyId()).orElse(null),
-                today(), KOREA, storage::toPublicUrl
+                today(), KOREA, alertChatMemberService.members(), storage::toPublicUrl
         ));
     }
 
@@ -108,10 +111,11 @@ public class AuditionPostService {
                 companyId, PUBLISHED, PageRequest.of(0, COMPANY_POST_LIMIT)
         );
         Map<Long, String> ownerNames = owners.namesOf(result);
+        AlertChatMembers alertChatMembers = alertChatMemberService.members();
         return result.stream()
                 .map(post -> PublicAuditionPostSummaryResult.from(
                         post, AuditionPostOwners.authorOf(post, AuditionPostOwners.nameIn(ownerNames, post)),
-                        today, KOREA, storage::toPublicUrl
+                        today, KOREA, alertChatMembers, storage::toPublicUrl
                 ))
                 .toList();
     }

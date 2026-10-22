@@ -1,3 +1,4 @@
+import { AdminAlertChatMembers } from "@/components/admin/admin-alert-chat-members";
 import { AdminCompanies } from "@/components/admin/admin-companies";
 import { AdminCompanyEditRequests } from "@/components/admin/admin-company-edit-requests";
 import { AdminAuditionPostOwners } from "@/components/admin/admin-audition-post-owners";
@@ -10,6 +11,7 @@ export default async function AdminAuditionPostsPage({ searchParams }: {
   if (view === "owners") return <AdminAuditionPostOwners />;
   if (view === "companies") return <AdminCompanies />;
   if (view === "edit-requests") return <AdminCompanyEditRequests />;
+  if (view === "alert-chat") return <AdminAlertChatMembers />;
   const ownerId = Number(owner);
   const validOwner = Number.isSafeInteger(ownerId) && ownerId > 0 ? ownerId : undefined;
   return <AdminAuditionPosts key={validOwner ?? "all"} ownerId={validOwner} />;

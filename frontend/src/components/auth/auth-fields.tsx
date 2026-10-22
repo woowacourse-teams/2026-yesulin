@@ -22,7 +22,7 @@ export function RoleField({ value, onChange, purpose = "default" }: { readonly v
           return (
             <label
               key={option.value}
-              className={`flex min-h-[76px] cursor-pointer flex-col justify-center rounded-control border px-4 py-3 transition-[border-color,background-color,color,box-shadow,transform] duration-150 active:scale-[0.99] ${
+              className={`has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-4 has-[:focus-visible]:outline-brand flex min-h-[76px] cursor-pointer flex-col justify-center rounded-control border px-4 py-3 transition-[border-color,background-color,color,box-shadow,transform] duration-150 active:scale-[0.99] ${
                 selected
                   ? "border-brand bg-brand text-white shadow-[var(--shadow-1)]"
                   : "border-border bg-card hover:border-brand-line hover:bg-brand-soft/45"

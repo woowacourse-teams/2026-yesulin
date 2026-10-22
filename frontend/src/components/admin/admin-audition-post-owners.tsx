@@ -189,7 +189,7 @@ function OwnerRow({ owner, busy, onUnlink }: {
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <h3 className="min-w-0 break-words text-base font-semibold">{owner.companyName ?? `기획사 회원 ${owner.ownerId}`}</h3>
         <span className="text-sm text-muted-strong">
-          공개 <span className="num font-semibold">{owner.publishedCount}</span> · 검토 전 <span className="num font-semibold">{owner.pendingCount}</span> · 내림 <span className="num font-semibold">{owner.hiddenCount}</span>
+          공개 <span className="num font-semibold">{owner.publishedCount}</span> · 검토 전 <span className="num font-semibold">{owner.pendingCount}</span> · 숨김 <span className="num font-semibold">{owner.hiddenCount}</span>
         </span>
         {owner.latestCreatedAt ? <span className="text-xs text-muted">최근 등록 {formatDateTime(owner.latestCreatedAt)}</span> : null}
         <AdminActionLink href={adminAuditionPostRoutes.byOwner(owner.ownerId)} className="ml-auto">공고 보기</AdminActionLink>

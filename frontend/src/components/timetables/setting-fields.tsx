@@ -1,5 +1,6 @@
 "use client";
 
+import { SiteIcon } from "@/components/ui/site-icon";
 import { useId, useRef, useState } from "react";
 import {
   changeCommonRanges,
@@ -28,7 +29,7 @@ import { TIMETABLE_LIMITS } from "@/features/timetables/types";
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"] as const;
 
 const ICON_BUTTON_CLASS =
-  "inline-flex size-8 shrink-0 items-center justify-center rounded-control text-muted-strong hover:bg-surface hover:text-foreground disabled:text-muted-soft";
+  "inline-flex size-11 shrink-0 items-center justify-center rounded-control text-muted-strong hover:bg-surface hover:text-foreground disabled:text-muted-soft";
 
 /**
  * 왼쪽 달력에서 오디션 날짜를 고르고(누르면 선택·해제, 끌면 여러 날), 오른쪽에서 모든 날짜에 쓸 오디션 가능 시간과
@@ -269,12 +270,12 @@ function SlotEditor({
         type="button"
         disabled={disabled}
         onClick={submit}
-        className={`${inputAlwaysVisible ? "h-10" : "h-9"} shrink-0 rounded-control bg-foreground px-3 text-sm font-semibold text-white hover:bg-sidebar-hover disabled:bg-border`}
+        className={`min-h-11 shrink-0 rounded-control bg-foreground px-3 text-sm font-semibold text-white hover:bg-sidebar-hover disabled:bg-border`}
       >
         {editingId ? "변경" : "추가"}
       </button>
       {editingId || adding ? (
-        <button type="button" onClick={reset} aria-label="입력 취소" className={ICON_BUTTON_CLASS}>✕</button>
+        <button type="button" onClick={reset} aria-label="입력 취소" className={ICON_BUTTON_CLASS}><SiteIcon name="close" size={18} /></button>
       ) : null}
       {error ? <p role="alert" className="basis-full text-sm text-fail">{error}</p> : null}
     </div>
@@ -287,7 +288,7 @@ function SlotEditor({
         {ranges.map((range) => (lockedIds?.has(range.id) ? (
           <li
             key={range.id}
-            className="num inline-flex h-8 items-center gap-1 rounded-full border border-border bg-surface px-2.5 text-sm font-semibold text-muted-strong"
+            className="num inline-flex min-h-11 items-center gap-1 rounded-full border border-border bg-surface px-2.5 text-sm font-semibold text-muted-strong"
             aria-label={`${name} ${range.startTime}~${range.endTime} (저장됨, 바꿀 수 없음)`}
           >
             <LockIcon />
@@ -296,7 +297,7 @@ function SlotEditor({
         ) : (
           <li
             key={range.id}
-            className={`inline-flex h-8 items-center rounded-full border text-sm ${
+            className={`inline-flex min-h-11 items-center rounded-full border text-sm ${
               editingId === range.id ? "border-foreground bg-foreground text-white" : "border-brand-line bg-brand-soft text-brand"
             }`}
           >
@@ -310,7 +311,7 @@ function SlotEditor({
                 setError(null);
               }}
               aria-label={`${name} ${range.startTime}~${range.endTime} 고치기`}
-              className={`num h-full font-semibold ${removable ? "pl-2.5 pr-0.5" : "px-2.5"}`}
+              className={`num min-h-11 font-semibold ${removable ? "pl-2.5 pr-0.5" : "px-2.5"}`}
             >
               {range.startTime}~{range.endTime}
             </button>
@@ -323,9 +324,9 @@ function SlotEditor({
                   onChange(ranges.filter((item) => item.id !== range.id));
                 }}
                 aria-label={`${name} ${range.startTime}~${range.endTime} 빼기`}
-                className="inline-flex size-6 items-center justify-center rounded-full text-xs opacity-70 hover:opacity-100"
+                className="inline-flex size-11 items-center justify-center rounded-full text-xs opacity-70 hover:opacity-100"
               >
-                ✕
+                <SiteIcon name="close" size={18} />
               </button>
             ) : null}
           </li>
@@ -353,16 +354,16 @@ function Stepper({ label, unit, value, min, max, step, invalid, disabled, onChan
   const valid = value !== "" && Number.isFinite(number);
   const down = () => onChange(String(Math.max(min, Math.ceil(number / step) * step - step)));
   const up = () => onChange(String(Math.min(max, Math.floor(number / step) * step + step)));
-  const buttonClass = "inline-flex size-9 shrink-0 items-center justify-center text-lg font-semibold text-muted-strong hover:bg-surface disabled:text-muted-soft";
+  const buttonClass = "inline-flex size-11 shrink-0 items-center justify-center text-lg font-semibold text-muted-strong hover:bg-surface disabled:text-muted-soft";
   return (
     <div className="min-w-0">
       <p id={id} className="text-sm font-semibold text-foreground">{label}</p>
       <div
         role="group"
         aria-labelledby={id}
-        className={`mt-2 flex h-10 items-center overflow-hidden rounded-control border bg-card ${invalid ? "border-fail ring-2 ring-fail-bg" : "border-border"}`}
+        className={`mt-2 flex min-h-11 items-center overflow-hidden rounded-control border bg-card ${invalid ? "border-fail ring-2 ring-fail-bg" : "border-border"}`}
       >
-        <button type="button" aria-label={`${label} 줄이기`} disabled={disabled || !valid || number <= min} onClick={down} className={buttonClass}>−</button>
+        <button type="button" aria-label={`${label} 줄이기`} disabled={disabled || !valid || number <= min} onClick={down} className={buttonClass}><SiteIcon name="minus" /></button>
         <input
           type="text"
           inputMode="numeric"
@@ -374,7 +375,7 @@ function Stepper({ label, unit, value, min, max, step, invalid, disabled, onChan
           className="num w-full min-w-0 bg-transparent text-right text-base font-semibold outline-none md:text-sm"
         />
         <span aria-hidden="true" className="pl-0.5 pr-1 text-sm text-muted">{unit}</span>
-        <button type="button" aria-label={`${label} 늘리기`} disabled={disabled || !valid || number >= max} onClick={up} className={buttonClass}>+</button>
+        <button type="button" aria-label={`${label} 늘리기`} disabled={disabled || !valid || number >= max} onClick={up} className={buttonClass}><SiteIcon name="plus" /></button>
       </div>
     </div>
   );
@@ -406,7 +407,7 @@ function ScheduleCard({ form, date, isCustom, dateLocked, lockedIds, errors, dis
             aria-label={`${formatDate(date)} 시간 추가`}
             disabled={disabled || adding || form.windows.length >= TIMETABLE_LIMITS.maxWindows}
             onClick={() => setAdding(true)}
-            className="inline-flex h-8 items-center rounded-control px-2 text-sm font-semibold text-brand hover:bg-brand-soft disabled:text-muted-soft disabled:hover:bg-transparent"
+            className="inline-flex min-h-11 items-center rounded-control px-2 text-sm font-semibold text-brand hover:bg-brand-soft disabled:text-muted-soft disabled:hover:bg-transparent"
           >
             + 시간
           </button>
@@ -418,7 +419,7 @@ function ScheduleCard({ form, date, isCustom, dateLocked, lockedIds, errors, dis
               onClick={() => onChange(removeDates(form, [date]))}
               className={`${ICON_BUTTON_CLASS} hover:text-fail`}
             >
-              ✕
+              <SiteIcon name="close" size={18} />
             </button>
           )}
         </span>
@@ -482,7 +483,7 @@ function TimeInput({ label, value, onChange, invalid, disabled, size }: {
         if (normalized !== event.target.value) onChange(normalized);
       }}
       className={`num min-w-0 rounded-control border border-border bg-card text-center text-foreground outline-none transition-[border-color,box-shadow] placeholder:text-muted-soft hover:border-muted-soft focus:border-brand focus:ring-2 focus:ring-brand-soft aria-invalid:border-fail aria-invalid:ring-2 aria-invalid:ring-fail-bg disabled:bg-border-soft disabled:text-muted ${
-        size === "sm" ? "h-9 w-16 text-sm" : "h-10 w-[4.5rem] text-base md:text-sm"
+        size === "sm" ? "h-11 w-16 text-sm" : "h-11 w-[4.5rem] text-base md:text-sm"
       }`}
     />
   );
@@ -515,7 +516,7 @@ function DateCalendar({ month, minMonth, today, selected, custom, locked, invali
   const customSet = new Set(custom);
   const lockedSet = new Set(locked);
   const preview = drag && drag.anchor !== drag.current ? new Set(datesBetween(drag.anchor, drag.current)) : new Set<string>();
-  const navClass = "inline-flex size-10 items-center justify-center rounded-control text-lg text-muted-strong hover:bg-surface disabled:text-muted-soft";
+  const navClass = "inline-flex size-11 items-center justify-center rounded-control text-lg text-muted-strong hover:bg-surface disabled:text-muted-soft";
 
   const dateAt = (x: number, y: number) => {
     const element = document.elementFromPoint(x, y);
@@ -529,9 +530,9 @@ function DateCalendar({ month, minMonth, today, selected, custom, locked, invali
       className={`rounded-control border p-3 ${invalid ? "border-fail ring-2 ring-fail-bg" : "border-border"}`}
     >
       <div className="flex items-center justify-between">
-        <button type="button" aria-label="이전 달" disabled={month <= minMonth} onClick={() => onMonthChange(shiftMonth(month, -1))} className={navClass}>‹</button>
+        <button type="button" aria-label="이전 달" disabled={month <= minMonth} onClick={() => onMonthChange(shiftMonth(month, -1))} className={navClass}><SiteIcon name="previous" /></button>
         <p className="num text-sm font-bold" aria-live="polite">{year}년 {monthNumber}월</p>
-        <button type="button" aria-label="다음 달" onClick={() => onMonthChange(shiftMonth(month, 1))} className={navClass}>›</button>
+        <button type="button" aria-label="다음 달" onClick={() => onMonthChange(shiftMonth(month, 1))} className={navClass}><SiteIcon name="next" /></button>
       </div>
       <div className="mt-1 grid grid-cols-7 gap-1 text-center">
         {WEEKDAYS.map((weekday) => (

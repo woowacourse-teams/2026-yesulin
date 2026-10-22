@@ -33,10 +33,10 @@ import { AdminActionButton, AdminActionLink, AdminEmptyState, AdminShell } from 
 
 type Phase = "loading" | "ready" | "unauthorized" | "failed";
 
-/** 검토 전이나 내린 글은 공개하고, 공개 중이면 내린다. */
+/** 검토 전이나 숨긴 글은 공개하고, 공개 중이면 숨긴다. */
 const STATUS_ACTIONS: Readonly<Record<AdminEventStatus, string>> = {
   PENDING: "공개하기",
-  PUBLISHED: "내리기",
+  PUBLISHED: "숨기기",
   HIDDEN: "다시 공개",
 };
 
@@ -212,7 +212,7 @@ export function AdminEvents() {
           description={(
             <>
               <strong className="font-semibold text-foreground">{deleting.title}</strong>{" "}글과 대표·배너 이미지를 지워요. 되돌릴 수 없고,
-              메인 배너와 이벤트 화면에서도 바로 빠져요. 잠시 숨기기만 하려면 &quot;내리기&quot;를 써 주세요.
+              메인 배너와 이벤트 화면에서도 바로 빠져요. 잠시 숨기기만 하려면 &quot;숨기기&quot;를 써 주세요.
             </>
           )}
         />

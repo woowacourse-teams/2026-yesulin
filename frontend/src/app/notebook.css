@@ -207,9 +207,13 @@
   border-radius:16px;
   border:1px solid var(--banner-border);
   background:var(--banner-paper);
-  touch-action:pan-y;
+  touch-action:pan-y pinch-zoom;
+  cursor:grab;
+  user-select:none;
   isolation:isolate;
 }
+
+.notebook-banner-viewport[data-dragging=true] { cursor:grabbing; }
 
 .notebook-banner-slide {
   position:absolute;
@@ -316,6 +320,20 @@
 .notebook-section-title h1,.notebook-section-title h2 { flex-shrink:0; }
 .notebook-section-title p { margin-top:0; }
 .notebook-section-heading>.notebook-text-link { flex-shrink:0; }
+
+.notebook-page-main { padding-block:24px 64px; }
+.notebook-list-heading { margin-bottom:24px; padding-bottom:24px; border-bottom:1px solid var(--line); }
+.notebook-list-heading h1 { font-size:22px; font-weight:700; line-height:1.375; }
+.notebook-list-heading p { margin-top:8px; font-size:16px; line-height:1.5; color:var(--ink-60); }
+.notebook-audition-results { scroll-margin-top:112px; }
+
+@media(min-width:761px) {
+  .notebook-list-heading h1 { font-size:29px; }
+}
+
+@media(min-width:768px) {
+  .notebook-page-main { padding-top:40px; }
+}
 
 
 .notebook-text-link {
@@ -443,7 +461,7 @@
 
 .notebook-post-image img {
   object-fit:cover;
-  object-position:center 65%;
+  object-position:center top;
 }
 
 .notebook-post-placeholder {
@@ -507,20 +525,6 @@
 
 .notebook-outline-button:hover {
   background:#e7f1fc;
-}
-
-.notebook-empty {
-  padding:38px 24px;
-  background:#fff;
-  border:1px solid #d7e3ed;
-  border-radius:12px;
-  text-align:center;
-  color:#516e88;
-  line-height:1.8;
-}
-
-.notebook-empty .notebook-outline-button {
-  margin-top:15px;
 }
 
 .notebook-shows {
@@ -903,7 +907,6 @@
   color:#516e88;
 }
 
-.notebook-reading { max-width:800px; }
 .notebook-post-detail { border-radius:var(--radius-card); }
 .notebook-auth { display:flex; justify-content:center; padding-block:48px 64px; }
 .notebook-auth.is-compact { padding-block:32px 48px; }
@@ -928,17 +931,10 @@
 }
 
 @media(max-width:1080px) {
+  .notebook-account, .notebook-main-nav { display:none; }
+  .notebook-mobile-navigation { display:block; margin-left:auto; }
   .notebook-header-inner {
     gap:24px;
-  }
-  .notebook-main-nav {
-    gap:5px;
-  }
-  .notebook-main-nav :is(a,button) {
-    padding-inline:10px;
-  }
-  .notebook-account .notebook-producer-link {
-    display:none;
   }
   .notebook-post-grid {
     gap:14px;
@@ -976,13 +972,6 @@
   .notebook-logo img {
     width:75px;
   }
-  .notebook-account {
-    display:none;
-  }
-  .notebook-main-nav {
-    display:none;
-  }
-  .notebook-mobile-navigation { display:block; margin-left:auto; }
   .notebook-content {
     padding-top:20px;
   }
