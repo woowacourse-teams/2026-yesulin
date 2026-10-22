@@ -128,3 +128,7 @@ DEV 공고 알림도 기본 공유 링크는 `https://yesulin.art`로 발급한�
 - 기획사/제작사 이메일 인증 링크는 백엔드에서 검증한 뒤 설정된 Frontend 경로로 `302` redirect한다.
 - 비밀번호 재설정 메일은 Frontend `/forgot-password?token=...` 링크를 열고, 프론트가 토큰 확인 후 새 비밀번호를
   PATCH한다. 메일 요청 응답만으로 계정 존재 여부를 판단하지 않는다.
+
+공연 공개 목록은 숨기지 않은 `OPEN`·`CLOSED`를 모두 반환하고 항목에 `status`가 있다. 관리 목록·상세와 운영 대시보드에는
+`hidden`이 있으며 기획사·관리자 `PATCH .../shows/{id}/visibility`에 `{ hidden: boolean }`을 보내 숨김·해제한다.
+숨김 해제는 기존 예매 상태를 유지한다. 숨긴 공연의 공개 상세·예매·외부 이동 기록은 404다.

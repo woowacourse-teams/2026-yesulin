@@ -102,6 +102,7 @@ function ProducerShowRow({ show }: { readonly show: ProducerShowSummary }) {
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <ManagementStatusBadge status={show.status} />
+              {show.hidden ? <span className="text-xs font-semibold text-muted-strong">숨김</span> : null}
               <ManagementGenreBadge genre={show.genre} />
             </div>
             <h3 className="mt-2 line-clamp-2 text-lg font-bold group-hover:text-brand sm:line-clamp-1">{show.title}</h3>
@@ -115,7 +116,7 @@ function ProducerShowRow({ show }: { readonly show: ProducerShowSummary }) {
         {/* 모바일은 세 버튼이 한 줄에 안 들어가 하나만 내려가므로, 주 버튼을 한 줄에 두고 링크 버튼 둘을 나란히 둔다. */}
         <div className="mt-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
           <span aria-hidden="true" className="col-span-2 inline-flex min-h-11 items-center justify-center rounded-control border border-brand bg-brand px-3 text-sm font-semibold text-white">회차·예매 관리</span>
-          {show.status !== "DRAFT" ? (
+          {show.status !== "DRAFT" && !show.hidden ? (
             <>
               <Link href={showRoutes.detail(show.id)} target="_blank" className="pointer-events-auto inline-flex min-h-11 items-center justify-center rounded-control border border-brand-line px-3 text-sm font-semibold text-brand hover:bg-brand-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">공연 페이지 열기</Link>
               <div className="pointer-events-auto [&>button]:w-full"><CopyShowLinkButton showId={show.id} /></div>

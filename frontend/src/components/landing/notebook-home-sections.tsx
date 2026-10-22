@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { AUDITION_ALERT_CHAT_URL, auditionPostRoutes } from "@/features/audition-posts/types";
 import { getPublicShows } from "@/features/shows/api";
-import { formatShowDateTime, hasUpcomingShowSession } from "@/features/shows/format";
+import { formatShowDateTime, isShowBookingClosed, orderPublicShows } from "@/features/shows/format";
 import { SHOW_GENRE_LABELS, showRoutes, type PublicShowSummary } from "@/features/shows/types";
 
 type ShowState = { readonly status: "loading" } | { readonly status: "error" } | { readonly status: "ready"; readonly shows: readonly PublicShowSummary[] };
@@ -26,7 +26,7 @@ export function HomeShowSection({ initialShows = null }: { readonly initialShows
     {state.status === "loading" ? <div className="notebook-show-grid" role="status" aria-label="공연 목록 불러오는 중">{[0, 1, 2].map((item) => <div key={item} className="notebook-show-skeleton animate-pulse motion-reduce:animate-none" />)}</div> : null}
     {state.status === "error" ? <ScreenError message="공연 목록을 불러오지 못했어요." onRetry={() => { setState({ status: "loading" }); load(); }} /> : null}
     {state.status === "ready" && state.shows.length === 0 ? <ContentState title="지금 예매할 수 있는 공연이 없어요" description="새 공연이 열리면 이곳에 안내할게요." /> : null}
-    {state.status === "ready" && state.shows.length > 0 ? <ul className="notebook-show-grid">{state.shows.slice(0, 3).map((show) => <li key={show.id}><Link href={showRoutes.detail(show.id)} className={`notebook-show-card${hasUpcomingShowSession(show, now) ? "" : " is-ended"}`}><div className="notebook-show-poster"><Image src={show.posterUrl} alt={`${show.title} 포스터`} fill unoptimized sizes="(min-width: 768px) 380px, 90vw" /><span>{hasUpcomingShowSession(show, now) ? "무료 관람" : "예매 마감"}</span></div><div className="notebook-show-info"><h3>{show.title}</h3><p>{SHOW_GENRE_LABELS[show.genre]} · {show.venueName}</p><p className="num">{hasUpcomingShowSession(show, now) && show.nextSessionStartsAt ? formatShowDateTime(show.nextSessionStartsAt) : "예매 가능한 회차 없음"}</p></div></Link></li>)}</ul> : null}
+    {state.status === "ready" && state.shows.length > 0 ? <ul className="notebook-show-grid">{orderPublicShows(state.shows, now).slice(0, 3).map((show) => <li key={show.id}><Link href={showRoutes.detail(show.id)} className={`notebook-show-card${!isShowBookingClosed(show, now) ? "" : " is-ended"}`}><div className="notebook-show-poster"><Image src={show.posterUrl} alt={`${show.title} 포스터`} fill unoptimized sizes="(min-width: 768px) 380px, 90vw" /><span>{!isShowBookingClosed(show, now) ? "무료 관람" : "예매 마감"}</span></div><div className="notebook-show-info"><h3>{show.title}</h3><p>{SHOW_GENRE_LABELS[show.genre]} · {show.venueName}</p><p className="num">{!isShowBookingClosed(show, now) && show.nextSessionStartsAt ? formatShowDateTime(show.nextSessionStartsAt) : "예매 가능한 회차 없음"}</p></div></Link></li>)}</ul> : null}
   </section>;
 }
 

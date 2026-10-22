@@ -1,4 +1,5 @@
 import {
+  changeShowVisibility,
   closeShow,
   createShow,
   createShowSession,
@@ -27,6 +28,7 @@ export type ShowManagementApi = {
   readonly deleteShow: (showId: string) => Promise<void>;
   readonly openShow: (showId: string) => Promise<ProducerShow>;
   readonly closeShow: (showId: string) => Promise<ProducerShow>;
+  readonly changeVisibility: (showId: string, hidden: boolean) => Promise<ProducerShow>;
   readonly createSession: (showId: string, input: SaveShowSession) => Promise<ProducerShow>;
   readonly updateSession: (showId: string, sessionId: number, input: SaveShowSession) => Promise<ProducerShow>;
   readonly deleteSession: (showId: string, sessionId: number) => Promise<ProducerShow>;
@@ -44,6 +46,7 @@ export const producerShowManagementApi: ShowManagementApi = {
   deleteShow,
   openShow,
   closeShow,
+  changeVisibility: changeShowVisibility,
   createSession: createShowSession,
   updateSession: updateShowSession,
   deleteSession: deleteShowSession,

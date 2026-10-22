@@ -20,7 +20,7 @@ export function countUpcomingSessions(shows: readonly AdminShow[], now: number):
   let soldOut = 0;
   let nearlyFull = 0;
   for (const show of shows) {
-    if (show.status !== "OPEN") continue;
+    if (show.hidden || show.status !== "OPEN") continue;
     for (const session of show.sessions) {
       if (Date.parse(session.startsAt) <= now || session.capacity <= 0) continue;
       const remaining = session.capacity - session.reservedTickets;
