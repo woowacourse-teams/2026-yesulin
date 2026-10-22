@@ -19,6 +19,7 @@ const post: AuditionPost = {
   deadline: "2026-11-10",
   closed: false,
   viewCount: 0,
+  alertChatMembers: 0,
   postedAt: "2026-10-18T00:00:00Z",
   bodyHtml: "<p>안녕하세요&nbsp;극단입니다.</p><p><img src=\"https://cdn.example.com/poster\" alt=\"poster.jpg\"></p>",
   tags: [],

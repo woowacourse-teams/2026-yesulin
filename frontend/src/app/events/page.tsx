@@ -2,13 +2,17 @@ import type { Metadata } from "next";
 import { EventsRoute } from "@/components/events/event-list";
 import { eventsForServer } from "@/features/events/server";
 import { eventRoutes } from "@/features/events/types";
+import { socialMetadata } from "@/features/seo/audition-metadata";
 
 export const dynamic = "force-dynamic";
 
+const DESCRIPTION = "예술in이 준비한 모집과 이벤트 소식을 모았어요.";
+
 export const metadata: Metadata = {
   title: "이벤트",
-  description: "예술in이 준비한 모집과 이벤트 소식을 모았어요.",
+  description: DESCRIPTION,
   alternates: { canonical: eventRoutes.list },
+  ...socialMetadata({ title: "이벤트 | 예술in", description: DESCRIPTION, url: eventRoutes.list }),
 };
 
 export default async function EventsPage() {

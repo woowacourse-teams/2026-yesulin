@@ -55,3 +55,23 @@ describe("OTR notice link rewrite", () => {
     expect(destination.searchParams.get("vid")).toBe("invalid");
   });
 });
+
+describe("search exclusion outside production", () => {
+  it.each(["preview", "development"])("sends noindex on every path in Vercel %s", async (vercelEnv) => {
+    vi.stubEnv("VERCEL_ENV", vercelEnv);
+    const { default: nextConfig } = await import("./next.config");
+
+    for (const path of ["/", "/posts/135", "/sitemap.xml", "/images/og-image.png"]) {
+      const response = await unstable_getResponseFromNextConfig({ url: `https://dev.yesulin.art${path}`, nextConfig });
+      expect(response.headers.get("x-robots-tag")).toBe("noindex");
+    }
+  });
+
+  it.each([["production"], [undefined]])("keeps pages indexable when VERCEL_ENV is %s", async (vercelEnv) => {
+    vi.stubEnv("VERCEL_ENV", vercelEnv);
+    const { default: nextConfig } = await import("./next.config");
+    const response = await unstable_getResponseFromNextConfig({ url: "https://yesulin.art/posts/135", nextConfig });
+
+    expect(response.headers.get("x-robots-tag")).toBeNull();
+  });
+});
