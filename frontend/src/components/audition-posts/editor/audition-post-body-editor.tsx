@@ -8,7 +8,10 @@ import { useEffect, useImperativeHandle, useRef, useState, type Ref, type Keyboa
 import { checkAuditionPostFile, isAuditionPostImageFile } from "@/features/audition-posts/editing";
 import { BodyEditorLoading } from "./body-editor-loading";
 
-export type BodyEditorHandle = { readonly insertImage: (file: File) => Promise<boolean> };
+/** 본문에 사진을 넣는다. 넣었으면 null을, 넣지 못했으면 화면에 보여 줄 이유를 돌려준다. */
+export type BodyEditorHandle = { readonly insertImage: (file: File) => Promise<string | null> };
+
+const EDITOR_NOT_READY = "본문 편집기를 불러오는 중이에요. 잠시 후 다시 시도해 주세요.";
 
 type Props = {
   readonly editorRef?: Ref<BodyEditorHandle>;
@@ -60,10 +63,21 @@ const TOOL_CLASS =
  * 이미지는 지우므로, 파일 추가·붙여 넣기·끌어 놓기로 업로드한 사진만 남는다. 표는 원문 표를 잃지 않도록 읽고 고칠 수만 있게 한다.
  */
 export function AuditionPostBodyEditor({ editorRef, id, labelledBy, describedBy, initialHtml, onChange, onUploadImage, onUploadStateChange, disabled = false }: Props) {
-  const insertRef = useRef<((file: File) => Promise<boolean>) | null>(null);
+  const insertRef = useRef<((file: File, position?: number) => Promise<string | null>) | null>(null);
   const uploadingRef = useRef(false);
+  /** 본문을 누른 적이 없으면 커서가 문서 맨 앞이라, 바깥에서 넣는 사진은 끝에 붙인다. */
+  const touchedRef = useRef(false);
   const [imageUploading, setImageUploading] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
+
+  const receiveImages = (event: Event, files: readonly File[], position?: number) => {
+    event.preventDefault();
+    if (files.length > 1) { setImageError("사진은 한 번에 한 장씩 넣어 주세요."); return true; }
+    setImageError(null);
+    void insertRef.current?.(files[0], position).then(setImageError);
+    return true;
+  };
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ link: { openOnClick: false, autolink: true, defaultProtocol: "https" } }),
@@ -75,21 +89,15 @@ export function AuditionPostBodyEditor({ editorRef, id, labelledBy, describedBy,
     editorProps: {
       handlePaste: (_view, event) => {
         const files = Array.from(event.clipboardData?.files ?? []);
-        const file = files.find(isAuditionPostImageFile);
-        if (!file || !onUploadImage) return false;
-        event.preventDefault();
-        if (files.length > 1) { setImageError("사진은 한 번에 한 장씩 넣어 주세요."); return true; }
-        void insertRef.current?.(file);
-        return true;
+        if (!onUploadImage || !files.some(isAuditionPostImageFile)) return false;
+        // Word·Excel·한글은 복사한 글자와 함께 내용 그림도 담는다. 글자가 있으면 그림 대신 글자를 붙여 넣는다.
+        if (event.clipboardData?.getData("text/plain").trim()) return false;
+        return receiveImages(event, files);
       },
-      handleDrop: (_view, event) => {
+      handleDrop: (view, event) => {
         const files = Array.from(event.dataTransfer?.files ?? []);
-        const file = files.find(isAuditionPostImageFile);
-        if (!file || !onUploadImage) return false;
-        event.preventDefault();
-        if (files.length > 1) { setImageError("사진은 한 번에 한 장씩 넣어 주세요."); return true; }
-        void insertRef.current?.(file);
-        return true;
+        if (!onUploadImage || !files.some(isAuditionPostImageFile)) return false;
+        return receiveImages(event, files, view.posAtCoords({ left: event.clientX, top: event.clientY })?.pos);
       },
       attributes: {
         id,
@@ -101,6 +109,7 @@ export function AuditionPostBodyEditor({ editorRef, id, labelledBy, describedBy,
         class: "post-body min-h-80 px-4 py-4 outline-none sm:px-5",
       },
     },
+    onFocus: () => { touchedRef.current = true; },
     onUpdate: ({ editor: current }) => onChange(current.getHTML()),
   });
 
@@ -117,22 +126,28 @@ export function AuditionPostBodyEditor({ editorRef, id, labelledBy, describedBy,
 
   useEffect(() => { editor?.setEditable(!disabled, false); }, [editor, disabled]);
 
-  const insertImage = async (file: File): Promise<boolean> => {
-    if (!editor || editor.isDestroyed || disabled || uploadingRef.current || !onUploadImage) return false;
+  /** 끌어 놓은 자리가 있으면 그곳에, 본문을 누른 적이 없으면 끝에, 아니면 커서 자리에 넣는다. */
+  const insertImage = async (file: File, position?: number): Promise<string | null> => {
+    if (!editor || editor.isDestroyed || !onUploadImage) return EDITOR_NOT_READY;
+    if (disabled) return "저장하는 중에는 사진을 넣을 수 없어요.";
+    if (uploadingRef.current) return "다른 사진을 올리는 중이에요. 끝난 뒤 다시 시도해 주세요.";
     const problem = checkAuditionPostFile("IMAGE", file);
-    if (problem) { setImageError(problem); return false; }
+    if (problem) return problem;
     uploadingRef.current = true;
     setImageUploading(true);
     onUploadStateChange?.(true);
-    setImageError(null);
     try {
       const src = await onUploadImage(file);
-      if (editor.isDestroyed) return false;
-      editor.chain().focus().setImage({ src, alt: file.name.replace(/\.[^.]+$/, "") }).run();
-      return true;
+      if (editor.isDestroyed) return EDITOR_NOT_READY;
+      const image = { type: "image", attrs: { src, alt: file.name.replace(/\.[^.]+$/, "") } };
+      if (position === undefined) {
+        editor.chain().focus(touchedRef.current ? null : "end").insertContent(image).run();
+      } else {
+        editor.chain().focus().insertContentAt(Math.min(position, editor.state.doc.content.size), image).run();
+      }
+      return null;
     } catch (cause) {
-      setImageError(cause instanceof Error ? cause.message : "사진을 올리지 못했어요. 다시 시도해 주세요.");
-      return false;
+      return cause instanceof Error ? cause.message : "사진을 올리지 못했어요. 다시 시도해 주세요.";
     } finally {
       uploadingRef.current = false;
       setImageUploading(false);
@@ -140,7 +155,7 @@ export function AuditionPostBodyEditor({ editorRef, id, labelledBy, describedBy,
     }
   };
   useEffect(() => { insertRef.current = insertImage; });
-  useImperativeHandle(editorRef, () => ({ insertImage }));
+  useImperativeHandle(editorRef, () => ({ insertImage: (file: File) => insertImage(file) }));
 
   // 편집기는 화면에 붙은 뒤 만들어지므로 첫 입력 전에는 서식 상태가 비어 있을 수 있다.
   if (!editor) return <BodyEditorLoading />;

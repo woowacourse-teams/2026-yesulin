@@ -86,10 +86,13 @@ function validate(form: Form): FieldErrors {
   return errors;
 }
 
-/** 업로드는 원인 오류를 `cause`에 담는다. 서버가 거절한 이유(형식·크기)가 있으면 그것을 먼저 보여 준다. */
+/**
+ * 업로드는 원인 오류를 `cause`에 담는다. 서버가 오류 코드와 함께 거절한 이유(형식·크기)가 있으면 그것을 먼저 보여 주고,
+ * 저장소 전송 실패(`S3 PUT rejected …`)처럼 코드가 없는 원인은 안내 문구를 쓴다.
+ */
 function uploadErrorMessage(cause: unknown): string {
   const inner = cause instanceof Error ? cause.cause : undefined;
-  if (inner instanceof Error && "status" in inner) return inner.message;
+  if (inner instanceof Error && "status" in inner && "code" in inner) return inner.message;
   return cause instanceof Error ? cause.message : "파일을 올리지 못했어요. 다시 시도해 주세요.";
 }
 
@@ -308,7 +311,7 @@ export function AuditionPostForm({ post, notice, submitLabel, createHint, author
         </div>
       </section>
 
-      <AttachmentList disabled={saving || imageUploading} onInsertImage={(file) => bodyEditorRef.current?.insertImage(file) ?? Promise.resolve(false)} attachments={attachments} removed={removed} upload={uploadAttachment} onToggle={toggleAttachment} onAdd={addAttachment} onUploadStateChange={setAttachmentUploading} />
+      <AttachmentList disabled={saving || imageUploading} onInsertImage={(file) => bodyEditorRef.current?.insertImage(file) ?? Promise.resolve("본문 편집기를 불러오는 중이에요. 잠시 후 다시 시도해 주세요.")} attachments={attachments} removed={removed} upload={uploadAttachment} onToggle={toggleAttachment} onAdd={addAttachment} onUploadStateChange={setAttachmentUploading} />
 
       <div className="sticky bottom-0 -mx-4 flex flex-wrap items-center gap-3 border-t border-border bg-surface/95 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur lg:-mx-8 lg:px-8">
         <PrimaryButton type="submit" disabled={saving || uploading || (!creating && !dirty)} className={`${ACTION_CLASS} px-6`}>
@@ -337,7 +340,8 @@ export function AuditionPostForm({ post, notice, submitLabel, createHint, author
 
 function AttachmentList({ disabled, onInsertImage, attachments, removed, upload, onToggle, onAdd, onUploadStateChange }: {
   readonly disabled: boolean;
-  readonly onInsertImage: (file: File) => Promise<boolean>;
+  /** 본문에 넣었으면 null을, 넣지 못했으면 이유를 돌려준다. */
+  readonly onInsertImage: (file: File) => Promise<string | null>;
   readonly attachments: readonly FormAttachment[];
   readonly removed: ReadonlySet<string>;
   readonly upload: (file: File) => Promise<string>;
@@ -360,14 +364,17 @@ function AttachmentList({ disabled, onInsertImage, attachments, removed, upload,
     if (files.length > 1) { setError("파일은 한 번에 하나씩 추가해 주세요."); return; }
     const file = files[0];
     const problem = checkAuditionPostFile("ATTACHMENT", file);
-    if (isAuditionPostImageFile(file) && (!problem || !checkAuditionPostFile("IMAGE", file))) {
+    const image = isAuditionPostImageFile(file);
+    const imageProblem = image ? checkAuditionPostFile("IMAGE", file) : null;
+    if (image && (!problem || !imageProblem)) {
       setError(null);
       receivingRef.current = true;
       setPendingImage(file);
       return;
     }
     if (problem) {
-      setError(problem);
+      // 사진은 첨부로 받지 않는 형식(GIF·WebP)도 있어 본문 사진 기준으로 알려 준다.
+      setError(imageProblem ?? problem);
       return;
     }
     receivingRef.current = true;
@@ -440,7 +447,8 @@ function AttachmentList({ disabled, onInsertImage, attachments, removed, upload,
         <p className="mt-1 text-xs text-muted">본문 사진 20MB · 지원서 양식·PDF·악보·음원 등 첨부파일 50MB · 한 번에 파일 하나</p>
       </div>
       {uploading ? <p role="status" className="mt-2 text-sm text-muted">{uploading} 올리는 중이에요.</p> : null}
-      {error ? <p role="alert" className="mt-2 text-sm text-fail">{error}</p> : null}
+      {/* 사진 용도를 고르는 창이 열려 있으면 오류는 창 안에서만 알린다. */}
+      {error && !pendingImage ? <p role="alert" className="mt-2 text-sm text-fail">{error}</p> : null}
       {attachments.length === 0 ? <p className="mt-2 text-sm text-muted">다운로드 첨부파일이 없어요.</p> : (
         <ul className="mt-3 flex flex-col gap-2">
           {attachments.map((attachment) => {
@@ -481,11 +489,12 @@ function AttachmentList({ disabled, onInsertImage, attachments, removed, upload,
         <PrimaryButton disabled={!!uploading || !!bodyProblem} onClick={async () => {
           if (!pendingImage) return;
           setUploading(pendingImage.name);
-          const inserted = await onInsertImage(pendingImage);
+          setError(null);
+          const problem = await onInsertImage(pendingImage);
           receivingRef.current = false;
           setUploading(null);
-          if (inserted) setPendingImage(null);
-          else setError("본문에 넣지 못했어요. 사진 형식·크기를 확인하고 다시 시도해 주세요. JPEG·PNG·GIF·WebP 사진을 사용할 수 있어요.");
+          if (problem === null) setPendingImage(null);
+          else setError(problem);
         }}>{uploading ? "올리는 중…" : "본문에 사진 넣기"}</PrimaryButton>
       </DialogFooter>
     </ModalShell>
