@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { AuditionPostRoute } from "@/components/audition-posts/audition-post-detail";
-import { formatDeadline } from "@/features/audition-posts/format";
 import { auditionPostForServer, recordAuditionPostRedirect } from "@/features/audition-posts/server";
 import { auditionPostRoutes } from "@/features/audition-posts/types";
+import { auditionPostMetadata } from "@/features/seo/audition-metadata";
 
 const POST_ID = /^[1-9][0-9]{0,17}$/;
 
@@ -15,21 +15,7 @@ export async function generateMetadata({ params }: { params: Promise<{ postId: s
   const canonical = auditionPostRoutes.detail(postId);
   if (found.kind === "client-only") return { title: "공고", alternates: { canonical } };
   if (found.kind === "hidden") return { title: "공고", robots: { index: false, follow: true } };
-  const { post } = found;
-  const description = [post.category, post.authorName, `마감 ${formatDeadline(post)}`].filter(Boolean).join(" · ");
-  return {
-    title: post.title,
-    description,
-    alternates: { canonical },
-    openGraph: {
-      type: "article",
-      locale: "ko_KR",
-      url: canonical,
-      siteName: "예술in",
-      title: post.title,
-      description,
-    },
-  };
+  return auditionPostMetadata(found.post);
 }
 
 export default async function AuditionPostPage({ params }: { params: Promise<{ postId: string }> }) {

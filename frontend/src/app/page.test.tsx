@@ -23,6 +23,7 @@ describe("메인과 과거 공고 목록 주소", () => {
     expect(readEventBanners).toHaveBeenCalledOnce();
     expect(redirect).not.toHaveBeenCalled();
     expect(metadata.alternates?.canonical).toBe("/");
+    expect(metadata.openGraph).toMatchObject({ url: "/" });
   });
 
   it.each([

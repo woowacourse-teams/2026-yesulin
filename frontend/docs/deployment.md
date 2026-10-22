@@ -12,6 +12,9 @@
 - `SENTRY_ORG`: `in-front`
 - `SENTRY_PROJECT`: `javascript-nextjs`
 
+Preview(`dev.yesulin.art` 포함)는 Vercel이 넣는 `VERCEL_ENV`로 판별해 모든 응답에 `X-Robots-Tag: noindex`를 붙인다.
+robots.txt는 운영과 같이 수집을 허용해 로봇이 이 헤더를 읽게 한다. `VERCEL_ENV`가 없는 로컬 빌드에는 붙이지 않는다.
+
 브라우저는 같은 origin의 `/api/v1/**`, `/oauth2/**`, `/login/oauth2/**`를 호출하고 Next.js가 `API_ORIGIN`으로
 rewrite한다. Production·Preview에는 `NEXT_PUBLIC_API_MOCKING`을 설정하지 않는다.
 
