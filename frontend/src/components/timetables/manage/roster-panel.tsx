@@ -55,7 +55,7 @@ export function RosterPanel({ board, draft, chipState, busy, onAdd, onAutoAssign
           type="button"
           onClick={onAdd}
           disabled={busy}
-          className="inline-flex h-9 items-center rounded-control bg-foreground px-3 text-sm font-semibold text-white hover:bg-sidebar-hover disabled:bg-border"
+          className="inline-flex min-h-11 items-center rounded-control bg-foreground px-3 text-sm font-semibold text-white hover:bg-sidebar-hover disabled:bg-border"
         >
           + 추가
         </button>

@@ -1,4 +1,7 @@
+"use client";
+
 import Image from "next/image";
+import { FallbackImage } from "@/components/ui/fallback-image";
 import Link from "next/link";
 import { deadlineBadge, formatPostedDate } from "@/features/audition-posts/format";
 import { auditionPostRoutes, type AuditionPostSummary } from "@/features/audition-posts/types";
@@ -24,7 +27,7 @@ export function AuditionPostCard({ post, today, now, notebook = false }: { reado
         href={auditionPostRoutes.detail(post.id)}
         className={`group flex h-full min-h-36 gap-4 rounded-card border border-border bg-card p-4 transition-[border-color,box-shadow] hover:border-brand-line hover:shadow-[var(--shadow-1)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand sm:p-5 ${post.closed ? "opacity-70" : ""} ${notebook ? "notebook-post-card" : ""}`}
       >
-        {notebook ? post.thumbnailUrl ? <div className="notebook-post-image"><Image src={post.thumbnailUrl} alt="" fill unoptimized sizes="(min-width: 768px) 360px, 90vw" /></div> : <div className="notebook-post-image notebook-post-placeholder" data-category={post.category ?? undefined} aria-hidden="true"><Image src={defaultArtwork} alt="" fill sizes="(min-width: 1100px) 320px, (min-width: 761px) 45vw, 90vw" className="notebook-default-art" /><span className="notebook-default-copy"><Image src="/images/yesulin-logo-transparent.png" alt="" width={90} height={52} className="notebook-default-logo" /><span><span className="notebook-default-label">{post.category || "오디션"}</span><span className="notebook-default-caption">오디션 공고</span></span></span></div> : null}
+        {notebook ? post.thumbnailUrl ? <div className="notebook-post-image"><FallbackImage src={post.thumbnailUrl} alt="" fill unoptimized sizes="(min-width: 768px) 360px, 90vw" fallback={<div className="notebook-post-image notebook-post-placeholder absolute inset-0" data-category={post.category ?? undefined} aria-hidden="true"><Image src={defaultArtwork} alt="" fill sizes="(min-width: 1100px) 320px, (min-width: 761px) 45vw, 90vw" className="notebook-default-art" /><span className="notebook-default-copy"><Image src="/images/yesulin-logo-transparent.png" alt="" width={90} height={52} className="notebook-default-logo" /><span><span className="notebook-default-label">{post.category || "오디션"}</span><span className="notebook-default-caption">오디션 공고</span></span></span></div>} /></div> : <div className="notebook-post-image notebook-post-placeholder" data-category={post.category ?? undefined} aria-hidden="true"><Image src={defaultArtwork} alt="" fill sizes="(min-width: 1100px) 320px, (min-width: 761px) 45vw, 90vw" className="notebook-default-art" /><span className="notebook-default-copy"><Image src="/images/yesulin-logo-transparent.png" alt="" width={90} height={52} className="notebook-default-logo" /><span><span className="notebook-default-label">{post.category || "오디션"}</span><span className="notebook-default-caption">오디션 공고</span></span></span></div> : null}
         <div className="flex min-w-0 flex-1 flex-col">
           <p className="flex min-w-0 items-center gap-2 text-xs">
             {post.category ? <span className="shrink-0 font-semibold text-brand">{post.category}</span> : null}
@@ -57,13 +60,13 @@ export function AuditionPostCard({ post, today, now, notebook = false }: { reado
         </div>
         {!notebook && post.thumbnailUrl ? (
           <div className="relative hidden h-24 w-20 shrink-0 overflow-hidden rounded-control bg-border-soft min-[400px]:block">
-            <Image
+            <FallbackImage
               src={post.thumbnailUrl}
               alt=""
               fill
               unoptimized
               sizes="80px"
-              className="object-cover"
+              className="object-cover object-top"
             />
           </div>
         ) : null}

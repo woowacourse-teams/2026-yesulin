@@ -2,11 +2,11 @@
 
 import { getImageProps } from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore, type PointerEvent } from "react";
 import { trackAnalyticsEvent } from "@/features/analytics/events";
 import { getEventBanners } from "@/features/events/api";
 import type { EventBanner } from "@/features/events/types";
-import { bannerSlideReducer, homeBanners, INITIAL_BANNER_SLIDE, type HomeBanner } from "@/features/landing/home-banners";
+import { bannerSlideReducer, bannerSwipeDirection, homeBanners, INITIAL_BANNER_SLIDE, type HomeBanner } from "@/features/landing/home-banners";
 import { SiteIcon } from "@/components/ui/site-icon";
 
 const MOTION_QUERY = "(prefers-reduced-motion: reduce)";
@@ -35,11 +35,12 @@ export function AuditionAlertBanner({ initialEventBanners = null }: { readonly i
   const [focused, setFocused] = useState(false);
   const reducedMotion = useSyncExternalStore(subscribeMotion, () => window.matchMedia(MOTION_QUERY).matches, () => false);
   const visible = useSyncExternalStore(subscribeVisibility, () => document.visibilityState === "visible", () => true);
-  const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const pointerStart = useRef<{ id: number; x: number; y: number; moved: boolean } | null>(null);
+  const [dragging, setDragging] = useState(false);
   const suppressClickUntil = useRef(0);
   const move = useCallback((delta: number) => dispatch({ type: "move", delta, count: banners.length, reducedMotion }), [banners.length, reducedMotion]);
   const finish = useCallback(() => dispatch({ type: "finish" }), []);
-  const playing = !hovered && !focused && !reducedMotion && visible;
+  const playing = !hovered && !focused && !dragging && !reducedMotion && visible;
   const active = banners[Math.min(state.active, banners.length - 1)];
 
   useEffect(() => {
@@ -64,22 +65,59 @@ export function AuditionAlertBanner({ initialEventBanners = null }: { readonly i
     return () => window.clearTimeout(timer);
   }, [state.previous, finish]);
 
+  const cancelDrag = (event: PointerEvent<HTMLDivElement>) => {
+    const start = pointerStart.current;
+    if (!start || start.id !== event.pointerId) return;
+    if (start.moved) suppressClickUntil.current = Date.now() + 500;
+    pointerStart.current = null;
+    setDragging(false);
+  };
+
+  const finishDrag = (event: PointerEvent<HTMLDivElement>) => {
+    const start = pointerStart.current;
+    if (!start || start.id !== event.pointerId) return;
+    const dx = event.clientX - start.x, dy = event.clientY - start.y;
+    pointerStart.current = null;
+    setDragging(false);
+    // 가로 전환 기준에 못 미친 드래그도 링크 클릭으로 처리하지 않는다.
+    if (start.moved || Math.hypot(dx, dy) > 8) suppressClickUntil.current = Date.now() + 500;
+    const delta = bannerSwipeDirection(dx, dy);
+    if (delta) move(delta);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+  };
+
   return <section className="notebook-banner" aria-label="예술in 소식" aria-roledescription="캐러셀" data-tone={active.tone}
     onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
     onFocusCapture={() => setFocused(true)} onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocused(false); }}
     onKeyDown={(event) => { if (event.key === "ArrowLeft" || event.key === "ArrowRight") { event.preventDefault(); move(event.key === "ArrowRight" ? 1 : -1); } }}>
-    <div className="notebook-banner-stage"><div className="notebook-banner-viewport" data-direction={state.direction}
-      onTouchStart={(event) => { const touch = event.touches[0]; touchStart.current = { x: touch.clientX, y: touch.clientY }; }}
-      onTouchCancel={() => { touchStart.current = null; }}
-      onTouchEnd={(event) => {
-        const start = touchStart.current;
-        const touch = event.changedTouches[0];
-        touchStart.current = null;
-        if (!start || !touch) return;
-        const dx = touch.clientX - start.x, dy = touch.clientY - start.y;
-        if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.5) { suppressClickUntil.current = Date.now() + 500; move(dx < 0 ? 1 : -1); }
+    <div className="notebook-banner-stage"><div className="notebook-banner-viewport" data-direction={state.direction} data-dragging={dragging || undefined}
+      onPointerDown={(event) => {
+        if (!event.isPrimary || event.button !== 0) return;
+        pointerStart.current = { id: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
+        suppressClickUntil.current = 0;
+        setDragging(true);
       }}
-      onClickCapture={(event) => { if (Date.now() < suppressClickUntil.current) { event.preventDefault(); event.stopPropagation(); } }}>
+      onPointerMove={(event) => {
+        const start = pointerStart.current;
+        if (!start || start.id !== event.pointerId) return;
+        const dx = event.clientX - start.x, dy = event.clientY - start.y;
+        if (Math.hypot(dx, dy) > 8) start.moved = true;
+        // 클릭·탭의 대상을 유지하다 가로 드래그일 때만 포인터를 잡는다. 영역 밖에서 놓아도 정상 종료한다.
+        if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy) * 1.5 && !event.currentTarget.hasPointerCapture(event.pointerId)) {
+          event.currentTarget.setPointerCapture(event.pointerId);
+        }
+      }}
+      onPointerUp={finishDrag} onPointerCancel={cancelDrag}
+      onPointerLeave={(event) => { if (!event.currentTarget.hasPointerCapture(event.pointerId)) cancelDrag(event); }}
+      onLostPointerCapture={(event) => { if (event.target === event.currentTarget) cancelDrag(event); }}
+      onDragStart={(event) => event.preventDefault()}
+      onClickCapture={(event) => {
+        if (event.detail !== 0 && Date.now() < suppressClickUntil.current) {
+          suppressClickUntil.current = 0;
+          event.preventDefault();
+          event.stopPropagation();
+        }
+      }}>
       {state.previous !== null ? <BannerArtwork key={`out-${state.previous}`} banner={banners[state.previous]} outgoing /> : null}
       <BannerArtwork key={`in-${state.active}`} banner={active} entering={state.previous !== null} onAnimationEnd={finish} />
     </div>
@@ -105,11 +143,11 @@ function BannerArtwork({ banner, outgoing = false, entering = false, onAnimation
     aria-hidden={outgoing || undefined} inert={outgoing} role="group" aria-roledescription="슬라이드" aria-label={banner.title}
     onAnimationEnd={(event) => { if (event.target === event.currentTarget) onAnimationEnd?.(); }}>
     {banner.external ? (
-      <a href={banner.href} target="_blank" rel="noopener noreferrer" aria-label={`${banner.linkLabel} (새 창에서 열림)`}
+      <a href={banner.href} target="_blank" rel="noopener noreferrer" draggable={false} aria-label={`${banner.linkLabel} (새 창에서 열림)`}
         onClick={() => { if (banner.id === "audition-alert") trackAnalyticsEvent("kakao_openchat_click", { entry_point: "home_alert_banner" }); }}>
         {picture}
       </a>
-    ) : <Link href={banner.href} aria-label={banner.linkLabel}>{picture}</Link>}
+    ) : <Link href={banner.href} draggable={false} aria-label={banner.linkLabel}>{picture}</Link>}
   </div>;
 }
 
@@ -119,7 +157,7 @@ function OptimizedBannerPicture({ banner }: { readonly banner: HomeBanner }) {
   const { props: { srcSet: mobileSrcSet } } = getImageProps({ ...common, ...banner.mobile });
   const { props: desktop } = getImageProps({ ...common, ...banner.desktop });
   return <picture><source media="(max-width: 640px)" srcSet={mobileSrcSet} sizes={IMAGE_SIZES} width={banner.mobile.width} height={banner.mobile.height} />
-    <img {...desktop} alt={banner.alt} />
+    <img {...desktop} alt={banner.alt} draggable={false} />
   </picture>;
 }
 
@@ -129,6 +167,6 @@ function OptimizedBannerPicture({ banner }: { readonly banner: HomeBanner }) {
  */
 function RemoteBannerPicture({ banner }: { readonly banner: HomeBanner }) {
   return <picture><source media="(max-width: 640px)" srcSet={banner.mobile.src} width={banner.mobile.width} height={banner.mobile.height} />
-    <img src={banner.desktop.src} alt={banner.alt} width={banner.desktop.width} height={banner.desktop.height} loading="eager" decoding="async" />
+    <img src={banner.desktop.src} alt={banner.alt} width={banner.desktop.width} height={banner.desktop.height} loading="eager" decoding="async" draggable={false} />
   </picture>;
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { ApplicantPageContainer } from "./applicant-page-container";
 import Image from "next/image";
 import Link from "next/link";
 import { getApplicantSubmission } from "@/features/applicants/api";
@@ -66,5 +67,5 @@ function AnswerSection({ title, answers, units, notice }: { readonly title: stri
   return <section className="overflow-hidden rounded-card border border-border bg-card"><div className="border-b border-border-soft bg-surface px-5 py-4"><h2 className="font-bold">{title}</h2>{notice ? <p className="mt-1 text-xs leading-5 text-muted">{notice}</p> : null}</div><dl className="divide-y divide-border-soft px-5">{answers.map((answer) => <div key={answer.key} className="grid gap-2 py-4 sm:grid-cols-[140px_minmax(0,1fr)]"><dt className="text-sm font-medium text-muted">{answer.label}</dt><dd className="whitespace-pre-wrap break-words text-sm font-medium leading-6">{answer.key === "PHOTOS" && answer.previewUrls?.length ? <div className="scrollbar-hidden flex gap-2 overflow-x-auto">{answer.previewUrls.map((url, index) => <Image key={url} src={url} alt={`제출 프로필 사진 ${index + 1}`} width={72} height={96} unoptimized className="h-24 w-[72px] rounded-md object-cover" />)}</div> : `${answerValueText(answer.value)}${units.get(answer.key) ?? ""}`}</dd></div>)}</dl></section>;
 }
 
-function Container({ children }: { readonly children: React.ReactNode }) { return <div className="mx-auto max-w-[920px] px-5 py-8 md:px-8 md:py-10">{children}</div>; }
+function Container({ children }: { readonly children: React.ReactNode }) { return <ApplicantPageContainer><div className="max-w-[856px]">{children}</div></ApplicantPageContainer>; }
 function DetailSkeleton() { return <Container><div role="status" aria-label="지원서 상세 불러오는 중" className="animate-pulse"><div className="h-11 w-28 rounded bg-border-soft" /><div className="mt-4 h-48 rounded-modal bg-border" /><div className="mt-6 h-80 rounded-card bg-border-soft" /></div></Container>; }

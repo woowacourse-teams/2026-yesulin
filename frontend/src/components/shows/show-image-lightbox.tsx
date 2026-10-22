@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Image from "next/image";
+import { FallbackImage as Image } from "@/components/ui/fallback-image";
 import { MODAL_LAYERS, ModalShell } from "@/components/auditions/modal-shell";
 
 const TITLE_ID = "show-image-lightbox-title";

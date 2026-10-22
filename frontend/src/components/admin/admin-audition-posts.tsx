@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { PiArrowSquareOut } from "react-icons/pi";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { FieldInput } from "@/components/ui/controls";
 import {
@@ -11,7 +12,7 @@ import {
   fetchCompanies,
   importOtrAuditionPost,
 } from "@/features/admin/api";
-import { adminAuditionPostRoutes, extractOtrId } from "@/features/admin/audition-posts";
+import { adminAuditionPostReadLink, adminAuditionPostRoutes, extractOtrId } from "@/features/admin/audition-posts";
 import type {
   AdminAuditionPost,
   AdminAuditionPostImport,
@@ -20,14 +21,17 @@ import type {
 } from "@/features/admin/types";
 import { AuditionPostStatusBadge } from "@/components/audition-posts/audition-post-status-badge";
 import { AUDITION_POST_STATUS_LABELS } from "@/features/audition-posts/editing";
-import { auditionPostRoutes } from "@/features/audition-posts/types";
+import { AUDITION_POST_CATEGORIES, auditionPostRoutes } from "@/features/audition-posts/types";
 import { logout } from "@/features/auth/session-api";
 import { formatDateTime } from "./admin-format";
 import { AdminAuditionPostTabs } from "./admin-audition-post-tabs";
+import { AdminPostActions } from "./admin-post-actions";
 import { AdminPostCompanyEditor } from "./admin-post-company-editor";
 import { AdminSessionEnded } from "./admin-session-ended";
 import { AdminActionButton, AdminActionLink, AdminEmptyState, AdminFilterButton, AdminShell } from "./admin-shell";
 import { SummaryItem, SummaryStrip } from "./admin-stat";
+
+const PAGE_SIZE = 20;
 
 type Phase = "loading" | "ready" | "unauthorized" | "failed";
 
@@ -36,10 +40,10 @@ const STATUS_FILTERS = (["PENDING", "PUBLISHED", "HIDDEN"] as const).map((value)
   label: AUDITION_POST_STATUS_LABELS[value],
 }));
 
-/** 공개 중이면 내리고, 검토 전이나 내린 공고는 공개한다. */
+/** 공개 중이면 숨기고, 검토 전이나 숨긴 공고는 공개한다. */
 const STATUS_ACTIONS: Readonly<Record<AdminAuditionPostStatus, string>> = {
   PENDING: "공개하기",
-  PUBLISHED: "내리기",
+  PUBLISHED: "숨기기",
   HIDDEN: "다시 공개",
 };
 
@@ -63,6 +67,8 @@ export function AdminAuditionPosts({ ownerId }: {
   const [changing, setChanging] = useState<number | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [category, setCategory] = useState("ALL");
+  const [page, setPage] = useState(0);
   const [statusFilter, setStatusFilter] = useState<"ALL" | AdminAuditionPostStatus>("ALL");
   /** 고친 공고를 원문으로 덮어쓸지 확인받는 중인 OTR 번호. */
   const [overwriteTarget, setOverwriteTarget] = useState<string | null>(null);
@@ -176,8 +182,19 @@ export function AdminAuditionPosts({ ownerId }: {
   const search = query.trim().toLocaleLowerCase("ko-KR");
   const visiblePosts = posts.filter((post) =>
     (statusFilter === "ALL" || post.status === statusFilter)
+    && (category === "ALL" || post.category === category)
     && (!search || [post.title, post.authorName, post.externalId, post.ownerName].some((value) => value?.toLocaleLowerCase("ko-KR").includes(search))),
   );
+
+  const pageCount = Math.max(1, Math.ceil(visiblePosts.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount - 1);
+  const pagePosts = visiblePosts.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
+
+  const goToPage = (next: number) => {
+    setPage(next);
+    document.getElementById("post-list-heading")?.focus();
+    document.getElementById("post-list-heading")?.scrollIntoView({ block: "start" });
+  };
 
   return (
     <AdminShell
@@ -203,12 +220,12 @@ export function AdminAuditionPosts({ ownerId }: {
       {phase === "ready" ? <SummaryStrip>
         <SummaryItem label="검토 전" value={pendingCount} unit="건" emphasis={pendingCount > 0} />
         <SummaryItem label="공개 중" value={posts.filter((post) => post.status === "PUBLISHED").length} unit="건" />
-        <SummaryItem label="내림" value={posts.filter((post) => post.status === "HIDDEN").length} unit="건" />
+        <SummaryItem label="숨김" value={posts.filter((post) => post.status === "HIDDEN").length} unit="건" />
         <SummaryItem label="기획사 등록" value={posts.filter((post) => post.createdVia === "PRODUCER_WRITE").length} unit="건" />
       </SummaryStrip> : null}
       {phase === "ready" ? <p className="-mt-3 text-xs text-muted">최근 등록된 공고 200건까지 확인·검색할 수 있어요. 요약 숫자는 현재 목록 기준입니다.</p> : null}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-base font-semibold">공고 목록 <span className="num ml-1 text-sm font-normal text-muted">{phase === "ready" ? `${visiblePosts.length}건` : ""}</span></h2>
+        <h2 id="post-list-heading" tabIndex={-1} className="text-base font-semibold">공고 목록 <span className="num ml-1 text-sm font-normal text-muted">{phase === "ready" ? `${visiblePosts.length}건` : ""}</span></h2>
         <div className="flex flex-wrap gap-2">
           <AdminActionButton aria-expanded={importOpen} aria-controls="otr-import" onClick={() => setImportOpen((open) => !open)}>OTR에서 가져오기</AdminActionButton>
           <AdminActionLink tone="primary" href={adminAuditionPostRoutes.create}>공고 작성</AdminActionLink>
@@ -264,96 +281,97 @@ export function AdminAuditionPosts({ ownerId }: {
 
       {phase === "ready" ? (
         <section aria-label="공고 목록" className="flex flex-col gap-4">
+          {posts.length > 0 ? <div role="group" aria-label="공고 분류" className="flex flex-wrap gap-2 border-b border-border pb-4">
+            {["ALL", ...AUDITION_POST_CATEGORIES].map((value) => (
+              <AdminFilterButton key={value} pressed={category === value} onClick={() => { setCategory(value); setPage(0); }}>
+                {value === "ALL" ? "전체 분류" : value}
+                <span className="num ml-1.5 text-xs opacity-70">{value === "ALL" ? posts.length : posts.filter((post) => post.category === value).length}</span>
+              </AdminFilterButton>
+            ))}
+          </div> : null}
           {posts.length > 0 ? <div className="flex flex-wrap items-end justify-between gap-3">
             <div role="group" aria-label="공고 공개 상태" className="flex flex-wrap gap-2">
               {([{ value: "ALL", label: "전체" }, ...STATUS_FILTERS] as const).map((filter) => (
-                <AdminFilterButton key={filter.value} pressed={statusFilter === filter.value} onClick={() => setStatusFilter(filter.value)}>{filter.label}</AdminFilterButton>
+                <AdminFilterButton key={filter.value} pressed={statusFilter === filter.value} onClick={() => { setStatusFilter(filter.value); setPage(0); }}>{filter.label}</AdminFilterButton>
               ))}
             </div>
             <label className="flex w-full flex-col gap-1.5 text-sm font-medium sm:w-72" htmlFor="post-search">
               공고 검색
-              <FieldInput id="post-search" name="post-search" type="search" autoComplete="off" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="제목, 작성자, 기획사, OTR 번호…" />
+              <FieldInput id="post-search" name="post-search" type="search" autoComplete="off" value={query} onChange={(event) => { setQuery(event.target.value); setPage(0); }} placeholder="제목, 작성자, 기획사, OTR 번호…" />
             </label>
           </div> : null}
           {posts.length === 0 ? (
             <AdminEmptyState title="첫 공고를 등록해 보세요" description="업체에서 전달받은 내용을 직접 작성하거나, OTR 공고 번호·주소로 가져올 수 있어요." />
           ) : null}
-          {posts.length > 0 && visiblePosts.length === 0 ? <AdminEmptyState title="조건에 맞는 공고가 없어요" description="검색어 또는 공개 상태를 바꿔 주세요.">
-            <AdminActionButton onClick={() => { setQuery(""); setStatusFilter("ALL"); }}>검색·필터 초기화</AdminActionButton>
+          {posts.length > 0 && visiblePosts.length === 0 ? <AdminEmptyState title="조건에 맞는 공고가 없어요" description="검색어, 분류 또는 공개 상태를 바꿔 주세요.">
+            <AdminActionButton onClick={() => { setQuery(""); setStatusFilter("ALL"); setCategory("ALL"); setPage(0); }}>검색·필터 초기화</AdminActionButton>
           </AdminEmptyState> : null}
-          {visiblePosts.map((post) => (
-            <article key={post.id} className="rounded-card border border-border bg-card p-4 sm:px-5">
-              <header className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-                <AuditionPostStatusBadge status={post.status} />
-                {post.createdVia === "AUTO_IMPORT" ? <span className="rounded-full bg-brand-soft px-2.5 py-0.5 font-bold text-brand">자동 수집</span> : null}
-                {post.closed ? <span className="rounded-full bg-border-soft px-2.5 py-0.5 font-bold text-muted">마감</span> : null}
-                {post.editedAt ? <span className="rounded-full bg-warn-bg px-2.5 py-0.5 font-bold text-warn">수정됨</span> : null}
-                {post.externalId ? (
-                  <span className="num text-muted">{post.source} {post.externalId}</span>
-                ) : (
-                  <span className="rounded-full bg-brand-soft px-2.5 py-0.5 font-bold text-brand">{post.createdVia === "PRODUCER_WRITE" ? "기획사 등록" : "직접 작성"}</span>
-                )}
-                {post.ownerId !== null ? <span className="text-muted-strong">기획사 {post.ownerName ?? `회원 ${post.ownerId}`}</span> : null}
-                {post.companyId !== null ? <span className="text-muted-strong">공연사 {companies?.find((company) => company.id === post.companyId)?.name ?? post.companyId}</span> : null}
-                <span className="ml-auto text-muted">{formatDateTime(post.updatedAt)} 갱신</span>
-              </header>
-              <h3 className="mt-3 break-words text-lg font-semibold"><Link href={adminAuditionPostRoutes.edit(post.id)} className="hover:text-brand">{post.title}</Link></h3>
-              <p className="mt-1 text-sm text-muted-strong">
-                {[post.category, post.authorName, post.deadlineText && `마감 ${post.deadlineText}`].filter(Boolean).join(" · ")}
-              </p>
-              <p className="mt-1 text-xs text-muted">사진 <span className="num">{post.imageCount}</span> · 첨부 <span className="num">{post.attachmentCount}</span> · 조회 <span className="num">{post.viewCount}</span> · OTR 이동 <span className="num">{post.redirectCount}</span></p>
-              <div className="mt-4 flex flex-wrap gap-2 border-t border-border-soft pt-4">
-                {post.status === "PUBLISHED" ? (
-                  <AdminActionLink href={auditionPostRoutes.detail(post.id)} target="_blank">공개 화면</AdminActionLink>
+          {pagePosts.map((post) => {
+            const readLink = adminAuditionPostReadLink(post);
+            return (
+              <article key={post.id} className="rounded-card border border-border bg-card p-4 sm:px-5">
+                <div className="flex items-start justify-between gap-3">
+                  <header className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+                    <AuditionPostStatusBadge status={post.status} />
+                    {post.createdVia === "AUTO_IMPORT" ? <span className="rounded-full bg-brand-soft px-2.5 py-0.5 font-bold text-brand">자동 수집</span> : null}
+                    {post.closed ? <span className="rounded-full bg-border-soft px-2.5 py-0.5 font-bold text-muted">마감</span> : null}
+                    {post.editedAt ? <span className="rounded-full bg-warn-bg px-2.5 py-0.5 font-bold text-warn">수정됨</span> : null}
+                    {post.externalId ? (
+                      <span className="num text-muted">{post.source} {post.externalId}</span>
+                    ) : (
+                      <span className="rounded-full bg-brand-soft px-2.5 py-0.5 font-bold text-brand">{post.createdVia === "PRODUCER_WRITE" ? "기획사 등록" : "직접 작성"}</span>
+                    )}
+                    {post.ownerId !== null ? <span className="text-muted-strong">기획사 {post.ownerName ?? `회원 ${post.ownerId}`}</span> : null}
+                    {post.companyId !== null ? <span className="text-muted-strong">공연사 {companies?.find((company) => company.id === post.companyId)?.name ?? post.companyId}</span> : null}
+                    <span className="w-full text-muted sm:ml-auto sm:w-auto">{formatDateTime(post.updatedAt)} 갱신</span>
+                  </header>
+                  <AdminPostActions post={post} importing={importing} onCompany={() => setEditingCompany((current) => current === post.id ? null : post.id)} onImport={(otrId) => void runImport(otrId)} />
+                </div>
+                <h3 className="mt-2 break-words text-lg font-semibold">
+                  <a href={readLink.href} target="_blank" rel="noopener noreferrer" aria-label={`${post.title} · ${readLink.label} (새 창)`} className="hover:text-brand">
+                    {post.title}<PiArrowSquareOut aria-hidden="true" className="ml-1.5 inline-block align-baseline text-muted" size={16} />
+                  </a>
+                </h3>
+                <p className="mt-1 text-sm text-muted-strong">
+                  {[post.category, post.authorName, post.deadlineText && `마감 ${post.deadlineText}`].filter(Boolean).join(" · ")}
+                </p>
+                <p className="mt-1 text-xs text-muted">사진 <span className="num">{post.imageCount}</span> · 첨부 <span className="num">{post.attachmentCount}</span> · 조회 <span className="num">{post.viewCount}</span> · OTR 이동 <span className="num">{post.redirectCount}</span></p>
+                <div className="mt-4 flex flex-wrap gap-2 border-t border-border-soft pt-4">
+                  <p className="my-auto text-xs text-muted">제목에서 {readLink.label} 보기 · 새 창</p>
+                  <AdminActionButton
+                    disabled={changing === post.id}
+                    onClick={() => void toggleStatus(post)}
+                    className="ml-auto"
+                  >
+                    {changing === post.id ? "바꾸는 중…" : STATUS_ACTIONS[post.status]}
+                  </AdminActionButton>
+                </div>
+                {editingCompany === post.id ? (
+                  <AdminPostCompanyEditor
+                    postId={post.id}
+                    companies={companies}
+                    onCancel={() => setEditingCompany(null)}
+                    onUnauthorized={endSession}
+                    onSaved={() => { setEditingCompany(null); refresh(); }}
+                    onLinkChanged={() => { setEditingCompany(null); refresh(); }}
+                  />
                 ) : null}
-                <AdminActionLink href={adminAuditionPostRoutes.edit(post.id)}>수정</AdminActionLink>
-                {post.sourceUrl && post.externalId ? (
-                  <>
-                    <AdminActionLink href={post.sourceUrl} target="_blank" rel="noopener noreferrer">원문</AdminActionLink>
-                    <ReimportButton otrId={post.externalId} importing={importing} onImport={(otrId) => void runImport(otrId)} />
-                  </>
-                ) : null}
-                <AdminActionButton
-                  aria-expanded={editingCompany === post.id}
-                  onClick={() => setEditingCompany((current) => current === post.id ? null : post.id)}
-                >
-                  {post.companyId === null ? "공연사 정보 쓰기" : "공연사 정보 수정"}
-                </AdminActionButton>
-                <AdminActionButton
-                  disabled={changing === post.id}
-                  onClick={() => void toggleStatus(post)}
-                  className="ml-auto"
-                >
-                  {changing === post.id ? "바꾸는 중…" : STATUS_ACTIONS[post.status]}
-                </AdminActionButton>
+              </article>
+            );
+          })}
+          {pageCount > 1 ? (
+            <nav aria-label="공고 목록 페이지" className="flex flex-wrap items-center justify-between gap-3 pt-2">
+              <p className="num text-sm text-muted">{currentPage * PAGE_SIZE + 1}–{Math.min((currentPage + 1) * PAGE_SIZE, visiblePosts.length)} / {visiblePosts.length}건</p>
+              <div className="flex items-center gap-3">
+                <AdminActionButton disabled={currentPage === 0} onClick={() => goToPage(currentPage - 1)}>이전</AdminActionButton>
+                <span className="num text-sm" aria-live="polite">{currentPage + 1} / {pageCount}</span>
+                <AdminActionButton disabled={currentPage === pageCount - 1} onClick={() => goToPage(currentPage + 1)}>다음</AdminActionButton>
               </div>
-              {editingCompany === post.id ? (
-                <AdminPostCompanyEditor
-                  postId={post.id}
-                  companies={companies}
-                  onCancel={() => setEditingCompany(null)}
-                  onUnauthorized={endSession}
-                  onSaved={() => { setEditingCompany(null); refresh(); }}
-                  onLinkChanged={() => { setEditingCompany(null); refresh(); }}
-                />
-              ) : null}
-            </article>
-          ))}
+            </nav>
+          ) : null}
         </section>
       ) : null}
     </AdminShell>
-  );
-}
-
-function ReimportButton({ otrId, importing, onImport }: {
-  readonly otrId: string;
-  readonly importing: string | null;
-  readonly onImport: (otrId: string) => void;
-}) {
-  return (
-    <AdminActionButton disabled={importing !== null} onClick={() => onImport(otrId)}>
-      {importing === otrId ? "다시 가져오는 중…" : "원문으로 다시 가져오기"}
-    </AdminActionButton>
   );
 }
 

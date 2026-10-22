@@ -29,8 +29,8 @@ export function RequestsDialog({ requests, busy, onMove, onResolve, onClose }: {
             </p>
             <p className="mt-1 whitespace-pre-line text-sm">{request.message}</p>
             <div className="mt-2 flex gap-2">
-              <SecondaryButton onClick={() => onMove(request.actorId)} className="min-h-9 px-3">시간 옮기기</SecondaryButton>
-              <TextButton onClick={() => onResolve(request.id)} disabled={busy} className="min-h-9 px-3">처리 완료</TextButton>
+              <SecondaryButton onClick={() => onMove(request.actorId)} className="min-h-11 px-3">시간 옮기기</SecondaryButton>
+              <TextButton onClick={() => onResolve(request.id)} disabled={busy} className="min-h-11 px-3">처리 완료</TextButton>
             </div>
           </li>
         ))}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { adminAuditionPostRoutes, extractOtrId } from "./audition-posts";
+import { adminAuditionPostReadLink, adminAuditionPostRoutes, extractOtrId } from "./audition-posts";
 
 describe("extractOtrId", () => {
   it("번호만 넣거나 원문 주소를 붙여 넣어도 번호를 꺼낸다", () => {
@@ -12,6 +12,20 @@ describe("extractOtrId", () => {
     expect(extractOtrId("")).toBeNull();
     expect(extractOtrId("https://otr.co.kr/audition/")).toBeNull();
     expect(extractOtrId("22a97")).toBeNull();
+  });
+});
+
+describe("adminAuditionPostReadLink", () => {
+  it("공개 중인 공고는 원문 유무에 관계없이 공개 상세를 연다", () => {
+    for (const sourceUrl of [null, "https://otr.co.kr/audition/?vid=22397"]) {
+      expect(adminAuditionPostReadLink({ id: 7, status: "PUBLISHED", sourceUrl }).href).toBe("/posts/7");
+    }
+  });
+
+  it.each(["PENDING", "HIDDEN"] as const)("%s 공고는 원문이 있으면 원문, 없으면 관리자 미리보기를 연다", (status) => {
+    const sourceUrl = "https://otr.co.kr/audition/?vid=22397";
+    expect(adminAuditionPostReadLink({ id: 7, status, sourceUrl }).href).toBe(sourceUrl);
+    expect(adminAuditionPostReadLink({ id: 7, status, sourceUrl: null }).href).toBe("/admin/posts/7/preview");
   });
 });
 

@@ -369,7 +369,7 @@ export function TimetableManager({ manageKey }: { readonly manageKey: string }) 
             {movingActor ? (
               <div role="status" className="sticky top-16 z-20 flex items-center gap-3 rounded-control bg-foreground px-4 py-3 text-sm text-white shadow-[var(--shadow-2)]">
                 <span className="min-w-0 flex-1"><strong>{movingActor.name}</strong> 님을 넣을 칸을 누르세요</span>
-                <button type="button" onClick={() => setMovingActorId(null)} className="min-h-9 shrink-0 rounded-control px-3 font-semibold text-white/80 hover:bg-white/10 hover:text-white">
+                <button type="button" onClick={() => setMovingActorId(null)} className="min-h-11 shrink-0 rounded-control px-3 font-semibold text-white/80 hover:bg-white/10 hover:text-white">
                   취소
                 </button>
               </div>
@@ -487,7 +487,7 @@ export function TimetableManager({ manageKey }: { readonly manageKey: string }) 
               <p className="whitespace-pre-line rounded-control bg-surface px-3 py-2 text-sm text-foreground">
                 {renderInvitation(board.invitationTemplate, previewValues(board))}
               </p>
-              <TextButton onClick={() => setDialog("invitation")} className="min-h-9 px-2">문구 고치기</TextButton>
+              <TextButton onClick={() => setDialog("invitation")} className="min-h-11 px-2">문구 고치기</TextButton>
             </div>
           )}
         />

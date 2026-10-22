@@ -75,6 +75,12 @@ type BannerSlideAction =
 
 export const INITIAL_BANNER_SLIDE: BannerSlideState = { active: 0, previous: null, direction: "next" };
 
+/** 세로 스크롤·짧은 흔들림을 제외하고, 가로로 충분히 민 방향만 이동으로 판단한다. */
+export function bannerSwipeDirection(dx: number, dy: number): -1 | 0 | 1 {
+  if (Math.abs(dx) <= 48 || Math.abs(dx) <= Math.abs(dy) * 1.5) return 0;
+  return dx < 0 ? 1 : -1;
+}
+
 /** 끝에서도 같은 방향으로 전환하며, 진행 중인 애니메이션에 중복 이동을 쌓지 않는다. */
 export function bannerSlideReducer(state: BannerSlideState, action: BannerSlideAction): BannerSlideState {
   if (action.type === "finish") return state.previous === null ? state : { ...state, previous: null };

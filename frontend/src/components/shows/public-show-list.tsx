@@ -1,13 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Image from "next/image";
+import { FallbackImage as Image } from "@/components/ui/fallback-image";
+import { ContentState, ContentSkeleton } from "@/components/ui/content-state";
+import { SecondaryButton } from "@/components/ui/controls";
 import Link from "next/link";
 import { ScreenError } from "@/components/auditions/screen-status";
 import { getPublicShows } from "@/features/shows/api";
 import { formatShowDateTime, hasUpcomingShowSession } from "@/features/shows/format";
 import { SHOW_GENRE_LABELS, SHOW_GENRES, showRoutes, type PublicShowSummary, type ShowGenre } from "@/features/shows/types";
 import { SiteFooter } from "@/components/policies/site-footer";
+import { NotebookListHeading, NotebookPageMain } from "@/components/landing/notebook-page-main";
 import { ShowPageHeader } from "./show-page-header";
 
 type ListState =
@@ -39,28 +42,23 @@ export function PublicShowList({ initialShows }: { readonly initialShows: readon
 
   return (
     <>
-      <main id="main" className="min-h-screen break-keep bg-surface pb-16 text-foreground wrap-break-word">
-        <ShowPageHeader />
-        <div className="notebook-container py-8 md:py-10">
-          <section className="border-b border-border pb-8">
-            <h1 className="text-[22px] font-bold leading-snug tracking-[-0.03em] min-[761px]:text-[29px]">무료 공연</h1>
-            <p className="mt-2 text-base text-muted-strong">보고 싶은 공연을 찾고 무료로 예매해보세요.</p>
-          </section>
-          <div className="pt-8">
-            {state.status === "loading" ? <ShowListSkeleton /> : null}
-            {state.status === "error" ? (
-              <ScreenError
-                message="공연 목록을 불러오지 못했어요."
-                onRetry={() => { setState({ status: "loading" }); load(); }}
-              />
-            ) : null}
-            {state.status === "ready" && state.shows.length === 0 ? <EmptyShows /> : null}
-            {state.status === "ready" && state.shows.length > 0 ? (
-              <GenreFilteredShows shows={state.shows} genre={genre} onGenreChange={setGenre} />
-            ) : null}
-          </div>
+      <ShowPageHeader />
+      <NotebookPageMain>
+        <NotebookListHeading title="무료 공연" description="보고 싶은 공연을 찾고 무료로 예매해보세요." />
+        <div>
+          {state.status === "loading" ? <ShowListSkeleton /> : null}
+          {state.status === "error" ? (
+            <ScreenError
+              message="공연 목록을 불러오지 못했어요."
+              onRetry={() => { setState({ status: "loading" }); load(); }}
+            />
+          ) : null}
+          {state.status === "ready" && state.shows.length === 0 ? <EmptyShows /> : null}
+          {state.status === "ready" && state.shows.length > 0 ? (
+            <GenreFilteredShows shows={state.shows} genre={genre} onGenreChange={setGenre} />
+          ) : null}
         </div>
-      </main>
+      </NotebookPageMain>
       <SiteFooter notebook />
     </>
   );
@@ -89,16 +87,11 @@ function GenreFilteredShows({ shows, genre, onGenreChange }: {
       {visibleShows.length ? (
         <>
           <p className="mb-5 text-sm text-muted-strong">회차별 잔여석과 예매 가능 여부는 공연 상세에서 확인해 주세요.</p>
-          {upcoming.length ? <ShowGroup title="다가오는 공연" shows={upcoming} /> : <p role="status" className="notebook-empty mb-8">지금 예정된 공연이 없어요. 새 공연이 열리면 안내할게요.</p>}
+          {upcoming.length ? <ShowGroup title="다가오는 공연" shows={upcoming} /> : <ContentState className="mb-8" title="지금 예정된 공연이 없어요" description="새 공연이 열리면 이곳에 안내할게요." />}
           {ended.length ? <ShowGroup title="예매 마감" shows={ended} ended /> : null}
         </>
       ) : (
-        <section className="rounded-card border border-border bg-card px-6 py-14 text-center">
-          <h2 className="text-lg font-bold">지금 예매할 수 있는 {genre ? SHOW_GENRE_LABELS[genre] : "공연"}이 없어요</h2>
-          <button type="button" onClick={() => onGenreChange(null)} className="mt-3 inline-flex min-h-11 items-center rounded-control px-3 text-sm font-semibold text-brand hover:bg-brand-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
-            전체 공연 보기
-          </button>
-        </section>
+        <ContentState title={`지금 예매할 수 있는 ${genre ? SHOW_GENRE_LABELS[genre] : "공연"}이 없어요`} description="다른 장르의 공연도 살펴보세요." action={<SecondaryButton onClick={() => onGenreChange(null)}>전체 공연 보기</SecondaryButton>} />
       )}
     </>
   );
@@ -147,17 +140,12 @@ function ShowCard({ show, ended }: { readonly show: PublicShowSummary; readonly 
 }
 
 function EmptyShows() {
-  return (
-    <section className="rounded-card border border-border bg-card px-6 py-14 text-center">
-      <h2 className="text-lg font-bold">지금 예매할 수 있는 공연이 없어요</h2>
-      <p className="mt-2 text-sm text-muted-strong">새 공연이 열리면 이곳에 안내할게요.</p>
-    </section>
-  );
+  return <ContentState title="지금 예매할 수 있는 공연이 없어요" description="새 공연이 열리면 이곳에 안내할게요." />;
 }
 
 function ShowListSkeleton() {
   return (
-    <div aria-label="공연 목록 불러오는 중" role="status" className="grid animate-pulse gap-4 min-[900px]:grid-cols-2 min-[1200px]:grid-cols-3">
+    <ContentSkeleton label="공연 목록을 불러오고 있습니다."><div className="grid gap-4 min-[900px]:grid-cols-2 min-[1200px]:grid-cols-3">
       {[0, 1, 2, 3].map((item) => (
         <div key={item} className="flex min-h-44 overflow-hidden rounded-card border border-border bg-card">
           <div className="w-28 shrink-0 bg-border-soft sm:w-32" />
@@ -168,7 +156,6 @@ function ShowListSkeleton() {
           </div>
         </div>
       ))}
-      <p className="sr-only">공연 목록을 불러오고 있습니다.</p>
-    </div>
+      </div></ContentSkeleton>
   );
 }

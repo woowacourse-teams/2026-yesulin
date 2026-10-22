@@ -2,12 +2,13 @@
 
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type FormEvent, type ReactNode } from "react";
 import { DialogFooter, DialogHeader, ModalShell } from "@/components/auditions/modal-shell";
 import { DestructiveButton, FieldInput, FieldSelect, PrimaryButton, SecondaryButton } from "@/components/ui/controls";
 import {
   AUDITION_POST_ATTACHMENT_EXTENSIONS,
   checkAuditionPostFile,
+  isAuditionPostImageFile,
   parseTags,
   type AuditionPostFileKind,
   type AuditionPostWrite,
@@ -16,6 +17,7 @@ import {
 } from "@/features/audition-posts/editing";
 import { formatFileSize } from "@/features/audition-posts/format";
 import { AUDITION_POST_CATEGORIES } from "@/features/audition-posts/types";
+import type { BodyEditorHandle } from "./audition-post-body-editor";
 import { BodyEditorLoading } from "./body-editor-loading";
 
 // 편집기는 브라우저에서만 그리고, 작성·수정 화면에 들어왔을 때만 불러온다.
@@ -56,7 +58,7 @@ const FIELD_IDS: Record<FieldName, string> = {
 const EMPTY_FORM: Form = { category: "", title: "", pay: "", deadlineText: "", authorName: "", tags: "" };
 const MAX_TAGS = 20;
 const MAX_TAG_LENGTH = 50;
-const ATTACHMENT_ACCEPT = AUDITION_POST_ATTACHMENT_EXTENSIONS.map((extension) => `.${extension}`).join(",");
+const ATTACHMENT_ACCEPT = [...new Set([...AUDITION_POST_ATTACHMENT_EXTENSIONS, "gif", "webp"])].map((extension) => `.${extension}`).join(",");
 
 function toForm(post: EditableAuditionPost): Form {
   return {
@@ -109,7 +111,7 @@ function authorHint(post: EditableAuditionPost | null, creating: boolean): strin
 }
 
 /**
- * 운영자와 기획사가 공고를 쓰거나 고치는 폼. 사진은 본문 편집기의 사진 도구로, 첨부는 첨부 목록에서 올린다. 올린 파일은
+ * 운영자와 기획사가 공고를 쓰거나 고치는 폼. 사진·문서는 파일 추가에서 받고 사진은 본문/다운로드 용도를 고른다. 올린 파일은
  * 저장할 때 서버가 이 공고의 파일로 확정한다. 고칠 때 본문을 건드리지 않으면 원래 본문을 그대로 두도록 본문 없이 저장한다.
  * 기획사 공고의 작성자는 서버가 기획사 이름으로 정하므로 기획사 화면에서는 작성자를 고칠 수 없다.
  */
@@ -129,6 +131,7 @@ export function AuditionPostForm({ post, notice, submitLabel, createHint, author
   readonly onSubmit: (write: AuditionPostWrite) => Promise<void>;
 }) {
   const router = useRouter();
+  const bodyEditorRef = useRef<BodyEditorHandle>(null);
   const allowLeaveRef = useRef(false);
   const [leaveTarget, setLeaveTarget] = useState<string | null>(null);
   const creating = post === null;
@@ -287,11 +290,12 @@ export function AuditionPostForm({ post, notice, submitLabel, createHint, author
       <section aria-labelledby="post-body-label" className="rounded-card border border-border bg-card p-4 sm:p-5">
         <h2 id="post-body-label" className="text-base font-bold">본문</h2>
         <p id="post-body-hint" className="mt-1 text-sm text-muted">
-          사진은 &apos;사진&apos; 도구로 올려 주세요. 다른 사이트의 사진을 붙여 넣으면 저장할 때 빠져요. 지원 방법(이메일·링크)을 꼭 적어 주세요.
+          지원 방법(이메일·링크)을 적어 주세요. 사진·문서는 아래 ‘파일 추가’에서 넣을 수 있어요.
           {!creating && bodyHtml === null ? " 본문을 고치지 않으면 지금 본문을 그대로 둬요." : null}
         </p>
         <div className="mt-3">
           <AuditionPostBodyEditor
+            editorRef={bodyEditorRef}
             id="post-body"
             labelledBy="post-body-label"
             describedBy="post-body-hint"
@@ -304,7 +308,7 @@ export function AuditionPostForm({ post, notice, submitLabel, createHint, author
         </div>
       </section>
 
-      <AttachmentList attachments={attachments} removed={removed} upload={uploadAttachment} onToggle={toggleAttachment} onAdd={addAttachment} onUploadStateChange={setAttachmentUploading} />
+      <AttachmentList disabled={saving || imageUploading} onInsertImage={(file) => bodyEditorRef.current?.insertImage(file) ?? Promise.resolve(false)} attachments={attachments} removed={removed} upload={uploadAttachment} onToggle={toggleAttachment} onAdd={addAttachment} onUploadStateChange={setAttachmentUploading} />
 
       <div className="sticky bottom-0 -mx-4 flex flex-wrap items-center gap-3 border-t border-border bg-surface/95 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur lg:-mx-8 lg:px-8">
         <PrimaryButton type="submit" disabled={saving || uploading || (!creating && !dirty)} className={`${ACTION_CLASS} px-6`}>
@@ -331,7 +335,9 @@ export function AuditionPostForm({ post, notice, submitLabel, createHint, author
   );
 }
 
-function AttachmentList({ attachments, removed, upload, onToggle, onAdd, onUploadStateChange }: {
+function AttachmentList({ disabled, onInsertImage, attachments, removed, upload, onToggle, onAdd, onUploadStateChange }: {
+  readonly disabled: boolean;
+  readonly onInsertImage: (file: File) => Promise<boolean>;
   readonly attachments: readonly FormAttachment[];
   readonly removed: ReadonlySet<string>;
   readonly upload: (file: File) => Promise<string>;
@@ -340,52 +346,102 @@ function AttachmentList({ attachments, removed, upload, onToggle, onAdd, onUploa
   readonly onUploadStateChange: (uploading: boolean) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const dragDepth = useRef(0);
+  const receivingRef = useRef(false);
+  const [dragOver, setDragOver] = useState(false);
+  const [pendingImage, setPendingImage] = useState<File | null>(null);
   const [uploading, setUploading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const choose = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
+  const busy = disabled || uploading !== null || pendingImage !== null;
+  const receiveFiles = async (files: readonly File[]) => {
+    if (busy || receivingRef.current || files.length === 0) return;
+    setError(null);
+    if (files.length > 1) { setError("파일은 한 번에 하나씩 추가해 주세요."); return; }
+    const file = files[0];
     const problem = checkAuditionPostFile("ATTACHMENT", file);
+    if (isAuditionPostImageFile(file) && (!problem || !checkAuditionPostFile("IMAGE", file))) {
+      setError(null);
+      receivingRef.current = true;
+      setPendingImage(file);
+      return;
+    }
     if (problem) {
       setError(problem);
       return;
     }
+    receivingRef.current = true;
+    await addDownload(file);
+  };
+
+  const addDownload = async (file: File) => {
     setUploading(file.name);
     onUploadStateChange(true);
     setError(null);
     try {
       const url = await upload(file);
       onAdd({ name: file.name, size: file.size, url, uploaded: true });
+      return true;
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "파일을 올리지 못했어요. 다시 시도해 주세요.");
+      return false;
     } finally {
+      receivingRef.current = false;
       setUploading(null);
       onUploadStateChange(false);
     }
   };
 
+  const bodyProblem = pendingImage ? checkAuditionPostFile("IMAGE", pendingImage) : null;
+  const downloadProblem = pendingImage ? checkAuditionPostFile("ATTACHMENT", pendingImage) : null;
   return (
-    <section aria-labelledby="post-attachments" className="rounded-card border border-border bg-card p-4 sm:p-5">
+    <>
+    <section
+      aria-labelledby="post-attachments"
+      onDragEnter={(event: DragEvent<HTMLElement>) => {
+        if (!event.dataTransfer.types.includes("Files")) return;
+        event.preventDefault();
+        dragDepth.current += 1;
+        if (!busy) setDragOver(true);
+      }}
+      onDragOver={(event) => {
+        if (!event.dataTransfer.types.includes("Files")) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = busy ? "none" : "copy";
+      }}
+      onDragLeave={() => { dragDepth.current = Math.max(0, dragDepth.current - 1); if (dragDepth.current === 0) setDragOver(false); }}
+      onDrop={(event) => {
+        if (!event.dataTransfer.types.includes("Files")) return;
+        event.preventDefault();
+        event.stopPropagation();
+        dragDepth.current = 0;
+        setDragOver(false);
+        void receiveFiles(Array.from(event.dataTransfer.files));
+      }}
+      className={`rounded-card border bg-card p-4 transition-colors sm:p-5 ${dragOver ? "border-brand ring-2 ring-brand-soft" : "border-border"}`}
+    >
       <div className="flex flex-wrap items-center gap-3">
         <h2 id="post-attachments" className="text-base font-bold">
-          첨부파일 <span className="num text-muted">{attachments.length}</span>
+          사진·첨부파일 <span className="ml-2 text-xs font-normal text-muted">다운로드 첨부 <span className="num">{attachments.filter((attachment) => !removed.has(attachment.url)).length}</span></span>
         </h2>
         <SecondaryButton
-          disabled={uploading !== null}
+          disabled={busy}
           onClick={() => inputRef.current?.click()}
           aria-describedby="post-attachments-hint"
           className={`${ACTION_CLASS} ml-auto`}
         >
-          {uploading ? "올리는 중…" : "첨부 올리기"}
+          {uploading ? "올리는 중…" : "파일 추가"}
         </SecondaryButton>
-        <input ref={inputRef} type="file" accept={ATTACHMENT_ACCEPT} onChange={(event) => void choose(event)} className="sr-only" tabIndex={-1} aria-hidden="true" />
+        <input ref={inputRef} type="file" accept={ATTACHMENT_ACCEPT} disabled={busy} onChange={(event) => { const files = Array.from(event.target.files ?? []); event.target.value = ""; void receiveFiles(files); }} className="sr-only" tabIndex={-1} aria-hidden="true" />
       </div>
-      <p id="post-attachments-hint" className="mt-1 text-xs text-muted">지원서 양식(한글·워드)·PDF·악보·음원을 50MB까지 올릴 수 있어요.</p>
+      <p id="post-attachments-hint" className="mt-2 text-xs leading-5 text-muted">사진은 본문에 표시할지 다운로드로 첨부할지 선택해요. 본문 첫 사진은 목록 썸네일로 사용돼요.</p>
+      <div className={`mt-3 rounded-control border border-dashed px-4 py-5 text-center text-sm leading-6 ${dragOver ? "border-brand bg-brand-soft text-brand" : "border-border bg-surface text-muted-strong"}`}>
+        <p>{dragOver ? "여기에 파일을 놓으세요" : "파일을 여기에 끌어 놓거나 ‘파일 추가’를 눌러 주세요"}</p>
+        <p className="mt-1 text-xs text-muted">본문 사진 20MB · 지원서 양식·PDF·악보·음원 등 첨부파일 50MB · 한 번에 파일 하나</p>
+      </div>
       {uploading ? <p role="status" className="mt-2 text-sm text-muted">{uploading} 올리는 중이에요.</p> : null}
       {error ? <p role="alert" className="mt-2 text-sm text-fail">{error}</p> : null}
-      {attachments.length === 0 ? <p className="mt-2 text-sm text-muted">첨부파일이 없어요.</p> : (
+      {attachments.length === 0 ? <p className="mt-2 text-sm text-muted">다운로드 첨부파일이 없어요.</p> : (
         <ul className="mt-3 flex flex-col gap-2">
           {attachments.map((attachment) => {
             const isRemoved = removed.has(attachment.url);
@@ -411,6 +467,29 @@ function AttachmentList({ attachments, removed, upload, onToggle, onAdd, onUploa
         </ul>
       )}
     </section>
+    <ModalShell open={pendingImage !== null} onClose={() => { if (!uploading) { receivingRef.current = false; setPendingImage(null); } }} labelledBy="attachment-image-purpose" placement="responsiveSheet" className="w-full rounded-t-modal bg-card shadow-modal md:w-[min(520px,calc(100vw-40px))] md:rounded-modal">
+      <DialogHeader id="attachment-image-purpose" title="이 사진을 어떻게 보여줄까요?" subtitle={pendingImage?.name} />
+      <div className="space-y-3 px-5 py-5 text-sm leading-6 text-muted-strong">
+        <p>본문 사진은 공고 화면에 바로 표시되고, 다운로드 첨부는 파일 이름과 내려받기 버튼으로 보여요.</p>
+        {bodyProblem ? <p>본문 사진: {bodyProblem}</p> : null}
+        {downloadProblem ? <p>다운로드 첨부: {downloadProblem}</p> : null}
+        {error ? <p role="alert" className="text-fail">{error}</p> : null}
+      </div>
+      <DialogFooter>
+        <SecondaryButton disabled={!!uploading} onClick={() => { receivingRef.current = false; setPendingImage(null); }}>취소</SecondaryButton>
+        <SecondaryButton disabled={!!uploading || !!downloadProblem} onClick={async () => { if (!pendingImage) return; if (await addDownload(pendingImage)) setPendingImage(null); }}>다운로드로 첨부</SecondaryButton>
+        <PrimaryButton disabled={!!uploading || !!bodyProblem} onClick={async () => {
+          if (!pendingImage) return;
+          setUploading(pendingImage.name);
+          const inserted = await onInsertImage(pendingImage);
+          receivingRef.current = false;
+          setUploading(null);
+          if (inserted) setPendingImage(null);
+          else setError("본문에 넣지 못했어요. 사진 형식·크기를 확인하고 다시 시도해 주세요. JPEG·PNG·GIF·WebP 사진을 사용할 수 있어요.");
+        }}>{uploading ? "올리는 중…" : "본문에 사진 넣기"}</PrimaryButton>
+      </DialogFooter>
+    </ModalShell>
+    </>
   );
 }
 

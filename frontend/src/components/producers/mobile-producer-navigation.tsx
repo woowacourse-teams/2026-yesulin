@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ModalShell } from "@/components/auditions/modal-shell";
-import { showRoutes } from "@/features/shows/types";
 import { ProducerAccountPanel } from "./producer-account-panel";
 import { OtrAuditionTreeNav } from "@/components/otr-auditions/otr-audition-tree";
 import { ShowManagementNav } from "@/components/shows/manage/show-management-nav";
@@ -35,7 +34,8 @@ export function MobileProducerNavigation() {
           </span>
         </button>
         <Link
-          href={showRoutes.manageList}
+          href="/"
+          aria-label="예술in 홈"
           className="flex min-h-11 min-w-0 items-center rounded-control px-1"
         >
           <span className="relative block h-10 w-[70px] shrink-0">
