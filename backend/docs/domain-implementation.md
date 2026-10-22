@@ -37,7 +37,7 @@
 ## 무료 공연과 예매
 
 - `Show`는 소유 기획사, UUID 공개 ID, 제목, 장르(`MUSICAL`·`PLAY`), 소개, 장소(`PerformanceVenue` 재사용), 러닝타임,
-  관람 연령, 문의 전화, 포스터와 상세 이미지 파일 ID(최대 3개), `DRAFT/OPEN/CLOSED`를 소유한다. 오디션 `Performance`와 연결하지 않는다.
+  관람 연령, 문의 전화, 포스터와 상세 이미지 파일 ID(최대 3개), `DRAFT/OPEN/CLOSED`와 별도 숨김 여부(`hidden`)를 소유한다. 오디션 `Performance`와 연결하지 않는다.
   관객 안내로 주최 이름(`host_name`, 빈 값이면 기획사 회사명), `ShowLink`(버튼 이름·http/https 주소, 최대 3개, `show_links`),
   `ShowGuide`(제목·내용, 최대 5개, `show_guides`), 잔여석 공개 여부를 갖고 `updateAudienceGuide`로 함께 바꾼다.
   주최 이름은 `Show.hostNameOr`로 정하며 회사명은 응답을 만들 때 `Producer`에서 읽는다(공연에 복사하지 않는다).

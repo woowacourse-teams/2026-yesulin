@@ -494,7 +494,7 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 다른 업로드는 400이다. 바꾸거나 지운 이미지는 커밋 뒤 저장소에서 지우고, 하루가 지나도록 확정하지 않은 업로드는 매일 04:50(한국 시간)
 정리 작업이 지운다.
 
-## 무료 공연과 비회원 예매 — 19개
+## 무료 공연과 비회원 예매 — 21개
 
 오디션용 공연·공고와 별도의 저장 모델이다. 관리 API는 `PRODUCER + ACTIVE`만 호출할 수 있고 자기 공연만 보이며,
 다른 기획사의 공연·회차·예매는 `404`로 숨긴다. 관객 API는 로그인 없이 호출하지만 쓰기 요청은 CSRF 헤더가 필요하다.
@@ -513,6 +513,7 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 | DELETE | `/api/v1/shows/{showId}` | Active Producer | 없음 | `204` |
 | POST | `/api/v1/shows/{showId}/opening` | Active Producer | 없음 | `200 ProducerShowResponse` |
 | POST | `/api/v1/shows/{showId}/closing` | Active Producer | 없음 | `200 ProducerShowResponse` |
+| PATCH | `/api/v1/shows/{showId}/visibility` | Active Producer | `ChangeShowVisibilityRequest(hidden)` | `200 ProducerShowResponse` |
 | POST | `/api/v1/shows/{showId}/sessions` | Active Producer | `SaveShowSessionRequest(startsAt, capacity)` | `201 ProducerShowResponse` |
 | PUT | `/api/v1/shows/{showId}/sessions/{sessionId}` | Active Producer | `SaveShowSessionRequest` | `200 ProducerShowResponse` |
 | DELETE | `/api/v1/shows/{showId}/sessions/{sessionId}` | Active Producer | 없음 | `200 ProducerShowResponse` |
@@ -540,7 +541,14 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 `show-images` 업로드로 받는다. 새 공연은 `DRAFT`이고, 시작 전인 회차가 하나 이상 있어야 `opening`으로 `OPEN`이 된다.
 `closing`은 `OPEN`에서만 `CLOSED`로 바꾸며 `opening`으로 다시 열 수 있다. 회차 시작 시각은 ISO-8601 UTC이고 현재 이후여야 한다.
 
-관객 목록은 `OPEN` 공연만, 상세는 `OPEN`·`CLOSED` 공연을 반환하고 `DRAFT`는 `404 SHOW_NOT_FOUND`다.
+관객 목록·상세는 숨기지 않은 `OPEN`·`CLOSED` 공연을 반환하고 `DRAFT`·숨긴 공연은 `404 SHOW_NOT_FOUND`다.
+목록 항목에는 `status`(`OPEN`·`CLOSED`)가 포함된다. 미래 회차가 있어도 `CLOSED`는 예매 마감으로 표시한다.
+`ProducerShowResponse`, `ProducerShowListResponse` 항목과 운영 대시보드의 `AdminShowRow`는 `hidden`(boolean)을 반환한다.
+`visibility`는 필수 boolean `hidden`만 받는다(누락·null은 `400 INVALID_REQUEST`). 공개 이력이 있는 공연만 바꿀 수 있고,
+초안은 `409 SHOW_INVALID_STATUS`다. 숨김 여부만 바꾸므로 기존 예매·예매 상태는 유지하고 회차 시각을 검사하지 않는다.
+숨김 해제는 지난 마감 공연에도 가능하며 `CLOSED`의 예매를 다시 열지 않는다. `OPEN`을 숨김 해제하면 시작 전 회차의 예매도 다시 가능하다.
+숨긴 동안 `opening`은 `409 SHOW_INVALID_STATUS`이며 숨김 해제 후 호출해야 한다. 숨긴 동안 `closing`으로 예매 마감은 가능하다.
+관객의 예매·외부 이동 기록 요청도 숨긴 공연은 `404 SHOW_NOT_FOUND`다.
 상세 회차는 정원·예매 수 대신 `remainingSeats`, `maxTicketCount`(`min(10, 잔여석)`, 0이면 매진),
 `bookable`(공연 `OPEN`, 시작 전, 잔여석 있음)만 준다. 공연이 잔여석을 숨기면(`remainingSeatsVisible=false`)
 `remainingSeats`는 `null`이고 나머지는 같다. 상세에는 `guides`(`title`, `content`)와 `links`(`label`, `url`)도 포함한다.
@@ -548,7 +556,7 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 `remainingSeats`가 `null`, `maxTicketCount`가 0이고, `bookable`은 공연 `OPEN`이고 시작 전인지만 뜻한다.
 외부 예매 공연에 예매를 요청하면 `409 SHOW_EXTERNAL_RESERVATION`이다.
 `external-reservation-visits`는 관객이 외부 링크 공연에서 예매하기를 누를 때 화면이 보내는 이동 기록이다. 관객 정보 없이
-공연과 시각만 저장하며 CSRF 토큰이 필요하다. 없는 공연·`DRAFT`는 `404 SHOW_NOT_FOUND`, `OPEN`이 아니면 `409 SHOW_NOT_OPEN`,
+공연과 시각만 저장하며 CSRF 토큰이 필요하다. 없는 공연·`DRAFT`·숨긴 공연은 `404 SHOW_NOT_FOUND`, `OPEN`이 아니면 `409 SHOW_NOT_OPEN`,
 외부 링크 공연이 아니면 `409 SHOW_INVALID_STATUS`다.
 관객 목록·상세의 `hostName`은 공연에 따로 적은 주최 이름이고, 비어 있으면 기획사 계정의 회사명이다.
 예매는 1~10매, 휴대폰 `010-1234-5678` 형식, 개인정보 수집·이용 동의가 필요하다. 서버는 회차 행을 잠근 뒤
@@ -720,6 +728,7 @@ submission ID와 변경할 status·memo·note 중 하나 이상을 요구한다.
 | DELETE | `/api/v1/admin/shows/{showId}` | Admin | 없음 | `204` |
 | POST | `/api/v1/admin/shows/{showId}/opening` | Admin | 없음 | `200 ProducerShowResponse` |
 | POST | `/api/v1/admin/shows/{showId}/closing` | Admin | 없음 | `200 ProducerShowResponse` |
+| PATCH | `/api/v1/admin/shows/{showId}/visibility` | Admin | `ChangeShowVisibilityRequest(hidden)` | `200 ProducerShowResponse` |
 | POST | `/api/v1/admin/shows/{showId}/sessions` | Admin | `AdminSaveShowSessionRequest(startsAt)` | `201 ProducerShowResponse` |
 | PUT | `/api/v1/admin/shows/{showId}/sessions/{sessionId}` | Admin | `AdminSaveShowSessionRequest(startsAt)` | `200 ProducerShowResponse` |
 | DELETE | `/api/v1/admin/shows/{showId}/sessions/{sessionId}` | Admin | 없음 | `200 ProducerShowResponse` |
@@ -778,10 +787,10 @@ S3 삭제 실패 시 `DELETING` 상태가 남으며 같은 파일 ID로 재시�
 운영자가 소유하고, 네이버 폼 같은 외부 링크로만 예매받는다. `AdminSaveShowRequest`는 `SaveShowRequest`에서
 `remainingSeatsVisible`을 빼고 `hostName`(50자 이하)과 `externalReservationUrl`(500자 이하 http/https, 도메인에 점 필수)을
 필수로 받는다. 빠지거나 비어 있으면 `400 INVALID_REQUEST`, 주소 형식이 틀리면 `400 SHOW_INVALID_INPUT`이다.
-조회·수정·삭제·공개·마감·회차 API는 외부 링크 공연만 찾고 기획사 공연은 `404 SHOW_NOT_FOUND`로 다룬다. 회차는 정원 없이
+조회·수정·삭제·공개·마감·숨김·회차 API는 외부 링크 공연만 찾고 기획사 공연은 `404 SHOW_NOT_FOUND`로 다룬다. 회차는 정원 없이
 시작 시각만 받고 응답의 `capacity`는 0이다. 이미지는 요청한 운영자 계정의 파일로 올리며 공연 소유자의 파일만 연결된다.
 그 밖의 응답·회차 규칙은 기획사 API와 같다.
-`admin_audit_logs`에 등록(`SHOW_CREATED`), 공개·마감(`SHOW_STATUS_CHANGED`), 삭제(`SHOW_DELETED`)를 남긴다.
+`admin_audit_logs`에 등록(`SHOW_CREATED`), 공개·마감·숨김·숨김 해제(`SHOW_STATUS_CHANGED`), 삭제(`SHOW_DELETED`)를 남긴다.
 공고별 지원서 목록과 상세는 제출 당시 스냅샷을 반환한다. 상세의 비공개 제출 사진은 운영자 세션으로 콘텐츠 API에서 읽는다.
 운영자 변경 기록은 최신순으로 페이지당 10건씩 반환한다. `AdminAuditLogsResponse`는 `logs`, `page`, `size`,
 `totalElements`, `totalPages`를 담는다.

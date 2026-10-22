@@ -136,6 +136,17 @@ public class ShowManagementService {
     }
 
     @Transactional
+    public ProducerShowResult changeVisibility(long ownerId, UUID showId, boolean hidden) {
+        return changeVisibility(getOwnedShow(ownerId, showId), hidden);
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public ProducerShowResult changeVisibility(Show show, boolean hidden) {
+        show.changeVisibility(hidden);
+        return result(show);
+    }
+
+    @Transactional
     public ProducerShowResult close(long ownerId, UUID showId) {
         return close(getOwnedShow(ownerId, showId));
     }
@@ -261,6 +272,7 @@ public class ShowManagementService {
                 show.getGenre(),
                 show.getPosterFileId(),
                 show.getStatus(),
+                show.isHidden(),
                 sessions.size(),
                 tickets.totalReserved(),
                 nextSessionStartsAt,

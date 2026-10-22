@@ -75,6 +75,14 @@ public class AdminShowManagementService {
     }
 
     @Transactional
+    public ProducerShowResult changeVisibility(long actorMemberId, UUID showId, boolean hidden) {
+        Show show = getAdminShow(showId);
+        ProducerShowResult result = showManagementService.changeVisibility(show, hidden);
+        audit(actorMemberId, AdminAction.SHOW_STATUS_CHANGED, show, hidden ? "숨김" : "숨김 해제");
+        return result;
+    }
+
+    @Transactional
     public ProducerShowResult addSession(UUID showId, SaveShowSessionCommand command) {
         return showManagementService.addSession(getAdminShow(showId), command);
     }

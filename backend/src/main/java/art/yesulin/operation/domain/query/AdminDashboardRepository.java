@@ -199,8 +199,8 @@ public class AdminDashboardRepository {
                 .from(VISIT)
                 .where(VISIT.showId.eq(SHOW.id));
         List<Tuple> shows = queryFactory
-                .select(SHOW.id, SHOW.publicId, SHOW.title, SHOW.status, PRODUCER.companyName, SHOW.hostName,
-                        SHOW.externalReservationUrl, visitCount, SHOW.createdAt)
+                .select(SHOW.id, SHOW.publicId, SHOW.title, SHOW.status, SHOW.hidden, PRODUCER.companyName,
+                        SHOW.hostName, SHOW.externalReservationUrl, visitCount, SHOW.createdAt)
                 .from(SHOW)
                 .leftJoin(PRODUCER).on(PRODUCER.memberId.eq(SHOW.ownerId))
                 .where(statusCondition)
@@ -218,6 +218,7 @@ public class AdminDashboardRepository {
                         show.get(SHOW.publicId),
                         show.get(SHOW.title),
                         show.get(SHOW.status),
+                        show.get(SHOW.hidden),
                         show.get(PRODUCER.companyName),
                         show.get(SHOW.hostName),
                         show.get(SHOW.externalReservationUrl),
@@ -317,7 +318,8 @@ public class AdminDashboardRepository {
 
     private long countShows(ShowStatus status) {
         BooleanExpression condition = (status == null) ? null : SHOW.status.eq(status);
-        return count(queryFactory.select(SHOW.count()).from(SHOW).where(condition));
+        BooleanExpression visibleCondition = status == ShowStatus.OPEN ? SHOW.hidden.isFalse() : null;
+        return count(queryFactory.select(SHOW.count()).from(SHOW).where(condition, visibleCondition));
     }
 
     private long sumConfirmedTickets() {

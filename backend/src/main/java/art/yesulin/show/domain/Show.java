@@ -140,6 +140,10 @@ public class Show {
     @Column(nullable = false, length = 20)
     private ShowStatus status;
 
+    /** 예매 상태와 별개로 관객 목록·상세에서 숨길지. 복원해도 예매 상태는 유지한다. */
+    @Column(nullable = false)
+    private boolean hidden;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -231,6 +235,9 @@ public class Show {
      * 예매 가능한 회차가 하나 이상 있어야 공개한다. 이미 예매 중이면 현재 상태를 유지한다.
      */
     public void open(Instant now, List<ShowSession> sessions) {
+        if (hidden) {
+            throw new BusinessException(INVALID_STATUS, "숨김을 해제한 뒤 예매를 열어 주세요.");
+        }
         if (status == ShowStatus.OPEN) {
             return;
         }
@@ -252,14 +259,21 @@ public class Show {
         this.status = ShowStatus.CLOSED;
     }
 
+    public void changeVisibility(boolean hidden) {
+        if (status == ShowStatus.DRAFT) {
+            throw new BusinessException(INVALID_STATUS, "공개한 공연만 숨기거나 다시 표시할 수 있습니다.");
+        }
+        this.hidden = hidden;
+    }
+
     public void ensureOpen() {
-        if (status != ShowStatus.OPEN) {
+        if (hidden || status != ShowStatus.OPEN) {
             throw new BusinessException(NOT_OPEN, "예매 중인 공연이 아닙니다.");
         }
     }
 
     public boolean isPublic() {
-        return status != ShowStatus.DRAFT;
+        return !hidden && status != ShowStatus.DRAFT;
     }
 
     public List<Long> getImageFileIds() {

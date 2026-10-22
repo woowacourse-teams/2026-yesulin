@@ -164,10 +164,100 @@ class ShowManagementServiceTest {
         showManagementService.open(OWNER_ID, showId);
 
         PublicShowResult publicShow = publicShowService.find(showId);
-        assertEquals(1, publicShowService.findOpenShows().size());
+        assertEquals(1, publicShowService.findPublicShows().size());
         assertEquals(10L, publicShow.sessions().getFirst().remainingSeats());
         assertEquals(10, publicShow.sessions().getFirst().maxTicketCount());
         assertTrue(publicShow.sessions().getFirst().bookable());
+    }
+
+    @Test
+    void closedShowsStayInPublicListAndCannotBeBooked() {
+        UUID showId = create().id();
+        final long sessionId = showManagementService.addSession(
+                OWNER_ID, showId, new SaveShowSessionCommand(ShowTestFixture.STARTS_AT, 10)
+        ).sessions().getFirst().id();
+        showManagementService.open(OWNER_ID, showId);
+
+        showManagementService.close(OWNER_ID, showId);
+
+        assertEquals(ShowStatus.CLOSED, publicShowService.findPublicShows().getFirst().status());
+        assertEquals(showId, publicShowService.findPublicShows().getFirst().id());
+        assertFalse(publicShowService.find(showId).sessions().getFirst().bookable());
+        assertCode(ShowErrorCode.NOT_OPEN, () -> reservationService.reserve(
+                showId, sessionId, new ReserveCommand("홍길동", "010-1111-2222", 1, true)
+        ));
+    }
+
+    @Test
+    void hidingBlocksPublicAccessAndReservationsButKeepsExistingReservations() {
+        UUID showId = create().id();
+        final long sessionId = showManagementService.addSession(
+                OWNER_ID, showId, new SaveShowSessionCommand(ShowTestFixture.STARTS_AT, 10)
+        ).sessions().getFirst().id();
+        showManagementService.open(OWNER_ID, showId);
+        reservationService.reserve(showId, sessionId, new ReserveCommand("홍길동", "010-1111-2222", 2, true));
+
+        ProducerShowResult hidden = showManagementService.changeVisibility(OWNER_ID, showId, true);
+
+        assertTrue(hidden.hidden());
+        assertEquals(ShowStatus.OPEN, hidden.status());
+        assertEquals(2, hidden.sessions().getFirst().reservedTickets());
+        assertTrue(showManagementService.findAll(OWNER_ID).getFirst().hidden());
+        assertTrue(publicShowService.findPublicShows().isEmpty());
+        assertCode(ShowErrorCode.NOT_FOUND, () -> publicShowService.find(showId));
+        assertCode(ShowErrorCode.NOT_FOUND, () -> reservationService.reserve(
+                showId, sessionId, new ReserveCommand("김관객", "010-2222-3333", 1, true)
+        ));
+        assertCode(ShowErrorCode.INVALID_STATUS, () -> showManagementService.open(OWNER_ID, showId));
+        assertCode(ShowErrorCode.NOT_FOUND,
+                () -> showManagementService.changeVisibility(OTHER_OWNER_ID, showId, false));
+
+        showManagementService.changeVisibility(OWNER_ID, showId, false);
+
+        assertTrue(publicShowService.find(showId).sessions().getFirst().bookable());
+        assertEquals(8L, publicShowService.find(showId).sessions().getFirst().remainingSeats());
+    }
+
+    @Test
+    void adminVisibilityKeepsClosedStateAndAuditsBothChanges() {
+        UUID showId = adminShowManagementService.create(
+                ADMIN_ID, command(fixture.readyImage(ADMIN_ID), List.of()), NAVER_FORM_URL
+        ).id();
+        adminShowManagementService.addSession(showId, new SaveShowSessionCommand(ShowTestFixture.STARTS_AT, 0));
+        adminShowManagementService.open(ADMIN_ID, showId);
+        adminShowManagementService.close(ADMIN_ID, showId);
+        final long auditCount = adminAuditLogRepository.count();
+
+        adminShowManagementService.changeVisibility(ADMIN_ID, showId, true);
+
+        assertTrue(adminShowManagementService.find(showId).hidden());
+        assertTrue(publicShowService.findPublicShows().isEmpty());
+        assertCode(ShowErrorCode.NOT_FOUND, () -> publicShowService.recordExternalReservationVisit(showId));
+        assertCode(ShowErrorCode.NOT_FOUND,
+                () -> showManagementService.changeVisibility(OWNER_ID, showId, false));
+
+        ProducerShowResult restored = adminShowManagementService.changeVisibility(ADMIN_ID, showId, false);
+
+        assertFalse(restored.hidden());
+        assertEquals(ShowStatus.CLOSED, restored.status());
+        assertEquals(ShowStatus.CLOSED, publicShowService.findPublicShows().getFirst().status());
+        assertFalse(publicShowService.find(showId).sessions().getFirst().bookable());
+        assertEquals(auditCount + 2, adminAuditLogRepository.count());
+        assertCode(ShowErrorCode.NOT_OPEN, () -> publicShowService.recordExternalReservationVisit(showId));
+        assertCode(ShowErrorCode.NOT_FOUND,
+                () -> adminShowManagementService.changeVisibility(ADMIN_ID, create().id(), true));
+    }
+
+    @Test
+    void draftCannotBeShownByChangingVisibility() {
+        UUID showId = create().id();
+
+        assertCode(ShowErrorCode.INVALID_STATUS,
+                () -> showManagementService.changeVisibility(OWNER_ID, showId, false));
+        assertCode(ShowErrorCode.INVALID_STATUS,
+                () -> showManagementService.changeVisibility(OWNER_ID, showId, true));
+        assertTrue(publicShowService.findPublicShows().isEmpty());
+        assertCode(ShowErrorCode.NOT_FOUND, () -> publicShowService.find(showId));
     }
 
     @Test
@@ -224,7 +314,7 @@ class ShowManagementServiceTest {
         assertEquals("", producerShow.hostName());
         assertEquals("달빛 극단", producerShow.defaultHostName());
         assertEquals("달빛 극단", publicShowService.find(showId).hostName());
-        assertEquals("달빛 극단", publicShowService.findOpenShows().getFirst().hostName());
+        assertEquals("달빛 극단", publicShowService.findPublicShows().getFirst().hostName());
 
         showManagementService.update(OWNER_ID, showId, command(
                 producerShow.posterFileId(), List.of(), " 2026 청년 연극 프로젝트 ", List.of(), List.of(), true
@@ -232,7 +322,7 @@ class ShowManagementServiceTest {
 
         assertEquals("2026 청년 연극 프로젝트", showManagementService.find(OWNER_ID, showId).hostName());
         assertEquals("2026 청년 연극 프로젝트", publicShowService.find(showId).hostName());
-        assertEquals("2026 청년 연극 프로젝트", publicShowService.findOpenShows().getFirst().hostName());
+        assertEquals("2026 청년 연극 프로젝트", publicShowService.findPublicShows().getFirst().hostName());
     }
 
     @Test

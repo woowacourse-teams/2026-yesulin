@@ -28,6 +28,7 @@ public record ProducerShowResult(
         String externalReservationUrl,
         long externalReservationVisits,
         ShowStatus status,
+        boolean hidden,
         boolean hasReservations,
         List<ProducerShowSessionResult> sessions,
         Instant createdAt
@@ -57,6 +58,7 @@ public record ProducerShowResult(
                 show.getExternalReservationUrl(),
                 externalReservationVisits,
                 show.getStatus(),
+                show.isHidden(),
                 tickets.hasAnyReservations(),
                 sessions.stream()
                         .map(session -> new ProducerShowSessionResult(

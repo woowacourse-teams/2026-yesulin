@@ -26,7 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 로그인 없는 관객에게 예매 중인 공연과 회차별 잔여석을 보여 준다. 정원과 예매 수는 따로 내보내지 않고,
+ * 로그인 없는 관객에게 예매 중·마감 공연과 회차별 잔여석을 보여 준다. 정원과 예매 수는 따로 내보내지 않고,
  * 공연이 잔여석을 숨기거나 외부 페이지에서 예매받으면 잔여석 숫자도 내보내지 않는다.
  */
 @Service
@@ -41,8 +41,10 @@ public class PublicShowService {
     private final Clock clock;
 
     @Transactional(readOnly = true)
-    public List<PublicShowSummaryResult> findOpenShows() {
-        List<Show> shows = showRepository.findAllByStatusOrderByCreatedAtDescIdDesc(ShowStatus.OPEN);
+    public List<PublicShowSummaryResult> findPublicShows() {
+        List<Show> shows = showRepository.findAllByStatusInAndHiddenFalseOrderByCreatedAtDescIdDesc(
+                List.of(ShowStatus.OPEN, ShowStatus.CLOSED)
+        );
         if (shows.isEmpty()) {
             return List.of();
         }
@@ -62,6 +64,7 @@ public class PublicShowService {
                         show.hostNameOr(companyNames.getOrDefault(show.getOwnerId(), "")),
                         show.getTitle(),
                         show.getGenre(),
+                        show.getStatus(),
                         show.getPosterFileId(),
                         show.getVenue().getName(),
                         nextSessionStartsAt(sessionsByShow.getOrDefault(show.getId(), List.of()), now),
