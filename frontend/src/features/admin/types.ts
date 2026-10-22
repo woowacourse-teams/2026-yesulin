@@ -556,6 +556,26 @@ export type AdminEventBanner = {
   readonly order: number;
 };
 
+/** 공고 알림 오픈채팅방 인원 기록 한 건. */
+export type AdminAlertChatMemberEntry = {
+  readonly id: number;
+  readonly memberCount: number;
+  readonly recordedAt: string;
+};
+
+/** 공고 알림 오픈채팅방 인원. 백엔드 `AdminAlertChatMembersResult`와 같다. */
+export type AdminAlertChatMembers = {
+  /** 지금 올라오는 공고에 적용하는 인원. 아직 적지 않았으면 기록 전 인원이다. */
+  readonly currentMemberCount: number;
+  /** 처음 적기 전에 올라왔거나 올린 시각을 모르는 공고에 적용하는 인원. */
+  readonly initialMemberCount: number;
+  /** 적은 기록. 최근 것부터다. */
+  readonly history: readonly AdminAlertChatMemberEntry[];
+};
+
+/** 잘못 친 숫자를 막는 상한. 백엔드 `AlertChatMemberCount.MAX_MEMBER_COUNT`와 같다. */
+export const ALERT_CHAT_MAX_MEMBER_COUNT = 10_000;
+
 /** 운영 화면의 이벤트 글. 백엔드 `AdminEventResult`와 같다. */
 export type AdminEvent = {
   readonly id: number;

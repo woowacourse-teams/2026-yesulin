@@ -1,15 +1,12 @@
 "use client";
 
 import { ScreenError } from "@/components/auditions/screen-status";
-import { ShowPageHeader } from "@/components/shows/show-page-header";
+import { PublicScreen } from "@/components/landing/public-screen";
 
 export default function ShowError({ reset }: { readonly reset: () => void }) {
   return (
-    <main id="main" className="min-h-screen bg-surface text-foreground">
-      <ShowPageHeader />
-      <div className="notebook-container py-8">
-        <ScreenError message="공연 정보를 불러오지 못했어요." onRetry={reset} />
-      </div>
-    </main>
+    <PublicScreen backHref="/shows" backLabel="공연 목록">
+      <ScreenError message="공연 정보를 불러오지 못했어요." onRetry={reset} />
+    </PublicScreen>
   );
 }

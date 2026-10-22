@@ -5,8 +5,7 @@ import { PrimaryButton, SecondaryButton } from "@/components/ui/controls";
 import { formatShowFullDateTime } from "@/features/shows/format";
 import type { PublicShow, ReservationReceipt } from "@/features/shows/types";
 import { ShowLinkButtons } from "./show-links";
-import { SiteFooter } from "@/components/policies/site-footer";
-import { ShowPageHeader } from "./show-page-header";
+import { PublicScreen } from "@/components/landing/public-screen";
 
 /** 문자 안내가 붙기 전까지는 이 화면이 유일한 예매 확인 수단이라 캡처를 안내한다. */
 export function ReservationComplete({ show, receipt, onBack }: {
@@ -33,10 +32,8 @@ export function ReservationComplete({ show, receipt, onBack }: {
   };
 
   return (
-    <>
-      <main id="main" className="min-h-screen break-keep bg-surface pb-12 text-foreground wrap-break-word">
-        <ShowPageHeader />
-        <div className="mx-auto max-w-[560px] px-5 py-8 md:py-12">
+    <PublicScreen>
+        <div className="mx-auto max-w-[560px] break-keep wrap-break-word">
           <section className="rounded-modal border border-border bg-card px-5 py-8 text-center md:px-8">
             <span aria-hidden="true" className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-pass-bg text-xl font-bold text-pass">✓</span>
             <h1 ref={headingRef} tabIndex={-1} className="mt-4 text-2xl font-bold tracking-[-0.025em] focus:outline-none">예매가 완료됐어요</h1>
@@ -71,8 +68,6 @@ export function ReservationComplete({ show, receipt, onBack }: {
           </section>
           <PrimaryButton onClick={onBack} className="mt-6 w-full">공연 정보로 돌아가기</PrimaryButton>
         </div>
-      </main>
-      <SiteFooter notebook />
-    </>
+    </PublicScreen>
   );
 }

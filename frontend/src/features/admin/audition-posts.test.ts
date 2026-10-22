@@ -15,9 +15,14 @@ describe("extractOtrId", () => {
   });
 });
 
+
 describe("adminAuditionPostRoutes", () => {
   it("업체별 보기와 기획사별 공고 목록 주소를 만든다", () => {
     expect(adminAuditionPostRoutes.owners).toBe("/admin/posts?view=owners");
     expect(adminAuditionPostRoutes.byOwner(9003)).toBe("/admin/posts?owner=9003");
+  });
+
+  it("공고 상태와 관계없이 관리자 미리보기 주소를 만든다", () => {
+    expect(adminAuditionPostRoutes.preview(7)).toBe("/admin/posts/7/preview");
   });
 });

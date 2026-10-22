@@ -22,7 +22,7 @@ const WITHOUT_KOPIS = -1;
 /**
  * 공고 목록에서 그 공고를 올린 공연사의 정보를 바로 쓴다. 공고에 연결된 공연사가 없으면 같은 OTR 작성자로 이전에 쓴 정보를
  * 불러오고, 그것도 없으면 원문 작성자 이름으로 KOPIS 기획제작사를 찾아 처음 값으로 채운다. 운영자가 확인해 저장하면 바로 공개되고,
- * 같은 OTR 작성자의 다른 공고와 이후 가져오는 공고에도 같은 정보가 연결된다. 내린 공연사는 내린 채로 저장하고, 내리기와
+ * 같은 OTR 작성자의 다른 공고와 이후 가져오는 공고에도 같은 정보가 연결된다. 숨긴 공연사는 숨긴 채로 저장하고, 숨기기와
  * 다시 공개는 공연사 탭에서 한다. 잘못 연결된 공고는 이 공고만 다른 공연사로 옮기거나 연결을 끊는다.
  */
 export function AdminPostCompanyEditor({ postId, companies, onSaved, onLinkChanged, onCancel, onUnauthorized }: {
@@ -124,7 +124,7 @@ export function AdminPostCompanyEditor({ postId, companies, onSaved, onLinkChang
             : candidate
               ? "아직 공연사 정보가 없어서 KOPIS 공연예술통합전산망 정보로 채웠어요. 확인하고 고쳐 주세요."
               : "아직 공연사 정보가 없어요. 원문 작성자 이름을 미리 넣어 두었어요."}
-        {hidden ? " 내린 공연사라 저장해도 내린 채로 두어요. 다시 공개는 공연사 탭에서 해요." : " 저장하면 바로 공개돼요."}
+        {hidden ? " 숨긴 공연사라 저장해도 숨긴 채로 두어요. 다시 공개는 공연사 탭에서 해요." : " 저장하면 바로 공개돼요."}
         {profile.sourceAuthorId ? " 같은 OTR 작성자의 다른 공고와 앞으로 가져오는 공고에도 이 정보가 쓰여요." : null}
       </p>
       {companies ? (

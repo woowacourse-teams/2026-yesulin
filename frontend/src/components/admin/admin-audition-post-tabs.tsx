@@ -6,9 +6,10 @@ const TABS = [
   { value: "owners", label: "업체별", href: adminAuditionPostRoutes.owners },
   { value: "companies", label: "공연사", href: adminAuditionPostRoutes.companies },
   { value: "edit-requests", label: "수정 요청", href: adminAuditionPostRoutes.editRequests },
+  { value: "alert-chat", label: "오픈채팅 인원", href: adminAuditionPostRoutes.alertChat },
 ] as const;
 
-/** 공고 관리의 전체 공고 목록, 업체별 보기, 공연사 정보와 공연사 정보 수정 요청을 오간다. */
+/** 공고 관리의 전체 공고 목록, 업체별 보기, 공연사 정보, 공연사 정보 수정 요청과 공고 알림 오픈채팅방 인원을 오간다. */
 export function AdminAuditionPostTabs({ current }: { readonly current: (typeof TABS)[number]["value"] }) {
   return (
     <nav aria-label="공고 보기" className="flex flex-wrap gap-2">

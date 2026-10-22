@@ -14,7 +14,10 @@ export const adminAuditionPostRoutes = {
   owners: "/admin/posts?view=owners",
   companies: "/admin/posts?view=companies",
   editRequests: "/admin/posts?view=edit-requests",
+  alertChat: "/admin/posts?view=alert-chat",
   byOwner: (ownerId: number) => `/admin/posts?owner=${ownerId}`,
   create: "/admin/posts/new",
   edit: (postId: number | string) => `/admin/posts/${encodeURIComponent(String(postId))}/edit`,
+  /** 우리가 저장한 본문·첨부를 상태와 관계없이 읽는다. 공개 조회수에 들어가지 않는다. */
+  preview: (postId: number | string) => `/admin/posts/${encodeURIComponent(String(postId))}/preview`,
 } as const;

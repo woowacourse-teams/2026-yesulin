@@ -1,5 +1,6 @@
 "use client";
 
+import { ApplicantPageContainer as Container } from "./applicant-page-container";
 import { useState } from "react";
 import { getApplicantProfile } from "@/features/applicants/api";
 import type { ApplicantProfileResponse } from "@/features/applicants/types";
@@ -16,9 +17,9 @@ export function ApplicantProfileWorkspace() {
   const percent = Math.round((profile.completeness.filled / profile.completeness.standardTotal) * 100);
   return <Container>
     <header className="grid gap-6 md:grid-cols-[minmax(0,1fr)_280px] md:items-end"><div><p className="text-sm font-semibold text-brand">내 프로필</p><h1 className="mt-2 text-[clamp(28px,4vw,38px)] font-bold tracking-[-0.035em]">한 번 저장하고, 다음 지원에 활용하세요.</h1><p className="mt-3 max-w-2xl leading-7 text-muted-strong">기본·추가정보와 사진·영상을 보관해 두면 공고가 요구하는 항목에 맞춰 다시 사용할 수 있어요. 프로필 수정은 이미 제출한 지원서에 영향을 주지 않습니다.</p></div><div className="rounded-card border border-brand-line bg-brand-soft p-4"><div className="flex items-end justify-between"><span className="text-sm font-semibold text-brand">필수 기본정보</span><strong className="num text-xl text-brand">{profile.completeness.filled} / {profile.completeness.standardTotal}</strong></div><div className="mt-3 h-2 overflow-hidden rounded-full bg-card"><div className="h-full rounded-full bg-brand" style={{ width: `${percent}%` }} /></div></div></header>
-    <ProfileEditor profile={profile} onSaved={setSaved} />
+    <div className="max-w-[976px]"><ProfileEditor profile={profile} onSaved={setSaved} /></div>
   </Container>;
 }
 
-function Container({ children }: { readonly children: React.ReactNode }) { return <div className="mx-auto max-w-[1040px] px-5 py-9 md:px-8 md:py-12">{children}</div>; }
+
 function ProfileSkeleton() { return <Container><div role="status" aria-label="프로필 불러오는 중" className="animate-pulse"><div className="h-9 w-96 max-w-full rounded bg-border" /><div className="mt-4 h-5 w-full max-w-2xl rounded bg-border-soft" /><div className="mt-9 h-14 rounded-card bg-border-soft" /><div className="mt-5 h-[520px] rounded-modal bg-border-soft" /></div></Container>; }

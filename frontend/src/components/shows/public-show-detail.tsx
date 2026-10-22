@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Image from "next/image";
+import { FallbackImage as Image } from "@/components/ui/fallback-image";
+import { PublicScreen } from "@/components/landing/public-screen";
 import { PublicVenueGuide } from "@/components/applications/public-venue-guide";
 import { PrimaryButton, PrimaryLink } from "@/components/ui/controls";
 import { ANALYTICS_READY_EVENT } from "@/features/analytics/consent";
@@ -17,12 +18,11 @@ import {
   showAvailability,
   type ShowAvailability,
 } from "@/features/shows/format";
+import { showRoutes } from "@/features/shows/types";
 import type { PublicShow, PublicShowSession, ReservationReceipt } from "@/features/shows/types";
 import { ReservationSheet } from "./reservation-sheet";
 import { ShowLinkButtons } from "./show-links";
 import { ShowImageLightbox } from "./show-image-lightbox";
-import { SiteFooter } from "@/components/policies/site-footer";
-import { ShowPageHeader } from "./show-page-header";
 import { SessionAvailabilityText, ShowGenreBadge, ShowStatusBadge } from "./show-status";
 
 const SESSIONS_SECTION_ID = "show-sessions";
@@ -74,10 +74,8 @@ export function PublicShowDetail({ show, onReserved, onStale }: {
   }, [show.id, sessionCount]);
 
   return (
-    <>
-      <main id="main" className="min-h-screen break-keep bg-surface pb-12 text-foreground wrap-break-word">
-        <ShowPageHeader />
-        <div className="notebook-container py-8 md:py-10 min-[1200px]:grid min-[1200px]:grid-cols-[minmax(0,1fr)_300px] min-[1200px]:gap-10">
+    <PublicScreen backHref={showRoutes.list} backLabel="공연 목록" footerClassName={showsMobileAction ? "pb-[calc(96px+env(safe-area-inset-bottom))] min-[1200px]:pb-0" : ""}>
+        <div className="break-keep wrap-break-word min-[1200px]:grid min-[1200px]:grid-cols-[minmax(0,1fr)_300px] min-[1200px]:gap-10">
           <article className="min-w-0">
             <ShowHero show={show} availability={availability} />
             {external
@@ -108,10 +106,7 @@ export function PublicShowDetail({ show, onReserved, onStale }: {
             onStale={onStale}
           />
         ) : null}
-      </main>
-      {/* 모바일 하단 예매 바가 푸터를 가리지 않게 바 높이만큼 아래 여백을 둔다. */}
-      <SiteFooter notebook className={showsMobileAction ? "pb-[calc(96px+env(safe-area-inset-bottom))] min-[1200px]:pb-0" : ""} />
-    </>
+    </PublicScreen>
   );
 }
 

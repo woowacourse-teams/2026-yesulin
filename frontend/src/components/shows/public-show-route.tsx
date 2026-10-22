@@ -5,7 +5,10 @@ import { getPublicShow } from "@/features/shows/api";
 import type { PublicShow, ReservationReceipt } from "@/features/shows/types";
 import { PublicShowDetail } from "./public-show-detail";
 import { ReservationComplete } from "./reservation-complete";
-import { ShowPageHeader } from "./show-page-header";
+import { PublicScreen } from "@/components/landing/public-screen";
+import { ContentSkeleton } from "@/components/ui/content-state";
+import { ScreenError } from "@/components/auditions/screen-status";
+import { AuditionRequestError } from "@/features/auditions/api-client";
 import { ShowUnavailable } from "./show-status";
 
 export function PublicShowRoute({ showId, initialShow }: {
@@ -13,7 +16,8 @@ export function PublicShowRoute({ showId, initialShow }: {
   readonly initialShow: PublicShow | null;
 }) {
   const [show, setShow] = useState(initialShow);
-  const [state, setState] = useState<"loading" | "ready" | "missing">(initialShow ? "ready" : "loading");
+  const [state, setState] = useState<"loading" | "ready" | "missing" | "error">(initialShow ? "ready" : "loading");
+  const [reloadToken, setReloadToken] = useState(0);
   const [receipt, setReceipt] = useState<ReservationReceipt | null>(null);
 
   /** 잔여석은 계속 바뀌므로 예매 실패나 완료 뒤에 다시 읽는다. */
@@ -24,12 +28,12 @@ export function PublicShowRoute({ showId, initialShow }: {
       setState("ready");
     } catch (cause) {
       console.error("[공개 공연 조회 실패]", cause);
-      setState((current) => current === "ready" ? current : "missing");
+      setState((current) => cause instanceof AuditionRequestError && cause.status === 404 ? "missing" : current === "ready" ? current : "error");
     }
   }, [showId]);
 
   useEffect(() => {
-    if (initialShow) return;
+    if (initialShow && reloadToken === 0) return;
     let active = true;
     getPublicShow(showId)
       .then((next) => {
@@ -40,12 +44,13 @@ export function PublicShowRoute({ showId, initialShow }: {
       .catch((cause) => {
         if (!active) return;
         console.error("[공개 공연 조회 실패]", cause);
-        setState("missing");
+        setState(cause instanceof AuditionRequestError && cause.status === 404 ? "missing" : "error");
       });
     return () => { active = false; };
-  }, [initialShow, showId]);
+  }, [initialShow, showId, reloadToken]);
 
   if (state === "loading") return <ShowDetailLoading />;
+  if (state === "error") return <PublicScreen backHref="/shows" backLabel="공연 목록"><ScreenError message="공연 정보를 불러오지 못했어요." onRetry={() => { setState("loading"); setReloadToken((value) => value + 1); }} /></PublicScreen>;
   if (state === "missing" || !show) return <ShowUnavailable />;
   if (receipt) {
     return (
@@ -61,9 +66,8 @@ export function PublicShowRoute({ showId, initialShow }: {
 
 function ShowDetailLoading() {
   return (
-    <main id="main" aria-busy="true" aria-label="공연 정보 불러오는 중" className="min-h-screen bg-surface text-foreground">
-      <ShowPageHeader />
-      <div className="notebook-container animate-pulse py-8">
+    <PublicScreen backHref="/shows" backLabel="공연 목록">
+      <ContentSkeleton label="공연 정보 불러오는 중">
         <div className="grid grid-cols-[112px_minmax(0,1fr)] gap-4 sm:grid-cols-[200px_minmax(0,1fr)] sm:gap-6">
           <div className="aspect-[3/4] rounded-card bg-border-soft" />
           <div>
@@ -72,8 +76,7 @@ function ShowDetailLoading() {
           </div>
         </div>
         <div className="mt-8 h-48 rounded-card bg-border" />
-        <p role="status" className="sr-only">공연 정보를 불러오고 있습니다.</p>
-      </div>
-    </main>
+        </ContentSkeleton>
+    </PublicScreen>
   );
 }

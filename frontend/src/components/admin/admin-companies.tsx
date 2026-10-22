@@ -33,10 +33,10 @@ import { AdminActionButton, AdminActionLink, AdminEmptyState, AdminShell } from 
 
 type Phase = "loading" | "ready" | "unauthorized" | "failed";
 
-/** 검토 전이나 내린 공연사는 공개하고, 공개 중이면 내린다. */
+/** 검토 전이나 숨긴 공연사는 공개하고, 공개 중이면 숨긴다. */
 const STATUS_ACTIONS: Readonly<Record<AdminCompanyStatus, string>> = {
   PENDING: "공개하기",
-  PUBLISHED: "내리기",
+  PUBLISHED: "숨기기",
   HIDDEN: "다시 공개",
 };
 

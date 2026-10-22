@@ -13,7 +13,7 @@ import { AuditionPostStatusBadge } from "@/components/audition-posts/audition-po
 /** 공개하지 않은 공고가 왜 메인에 없는지 알려 준다. */
 const UNPUBLISHED_NOTICE = {
   PENDING: "예술in이 확인한 뒤 공개할 공고예요.",
-  HIDDEN: "운영자가 내린 공고예요. 다시 공개하려면 예술in 카카오톡 채널로 문의해 주세요.",
+  HIDDEN: "운영자가 숨긴 공고예요. 다시 공개하려면 예술in 카카오톡 채널로 문의해 주세요.",
 } as const;
 
 type ListState =

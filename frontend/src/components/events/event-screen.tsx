@@ -1,6 +1,8 @@
+import { FallbackImage } from "@/components/ui/fallback-image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { NotebookFooter, NotebookHeader } from "@/components/landing/notebook-site-layout";
+import { NotebookPageMain } from "@/components/landing/notebook-page-main";
 import { EVENT_PHASE_LABELS, eventRoutes, type EventPhase } from "@/features/events/types";
 
 /** 이벤트 목록·상세가 함께 쓰는 틀. 상세에서는 목록으로 돌아가는 링크를 보인다. */
@@ -9,7 +11,7 @@ export function EventScreen({ backToList = false, children }: { readonly backToL
     <div className="public-notebook">
       <a className="notebook-skip" href="#main">본문으로 바로가기</a>
       <NotebookHeader />
-      <main id="main" className="notebook-container notebook-reading pb-16 pt-6 md:pt-10">
+      <NotebookPageMain>
         {backToList ? (
           <Link
             href={eventRoutes.list}
@@ -19,7 +21,7 @@ export function EventScreen({ backToList = false, children }: { readonly backToL
           </Link>
         ) : null}
         {children}
-      </main>
+      </NotebookPageMain>
       <NotebookFooter />
     </div>
   );
@@ -37,6 +39,5 @@ export function EventPhaseBadge({ phase }: { readonly phase: EventPhase }) {
 
 /** 운영자가 올린 이미지는 저장소 공개 주소를 그대로 보여 준다. */
 export function EventImage({ src, className = "" }: { readonly src: string; readonly className?: string }) {
-  // eslint-disable-next-line @next/next/no-img-element -- 저장소 공개 주소를 그대로 보여 준다.
-  return <img src={src} alt="" loading="lazy" decoding="async" className={`block w-full bg-surface ${className}`} />;
+  return <FallbackImage src={src} alt="" width={1080} height={608} unoptimized className={`block h-auto w-full bg-surface ${className}`} />;
 }

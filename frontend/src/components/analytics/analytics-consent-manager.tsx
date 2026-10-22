@@ -62,7 +62,7 @@ export function AnalyticsConsentManager({ gtmId }: { readonly gtmId?: string }) 
   }, [consent, gtmId]);
 
   useEffect(() => {
-    if (!gtmId || consent === undefined) {
+    if (consent === undefined) {
       setAnalyticsSettingsOpener(null);
       return;
     }
@@ -87,7 +87,12 @@ export function AnalyticsConsentManager({ gtmId }: { readonly gtmId?: string }) 
     return () => window.removeEventListener("storage", onStorage);
   }, [consent]);
 
-  if (!gtmId || consent === undefined) return null;
+  if (consent === undefined) return null;
+  if (!gtmId) return <ModalShell open={settingsOpen} onClose={() => setSettingsOpen(false)} labelledBy={titleId} placement="responsiveSheet" className="w-full rounded-t-modal bg-card shadow-modal md:w-[min(560px,calc(100vw-40px))] md:rounded-modal">
+    <DialogHeader id={titleId} title="방문 분석 설정" subtitle="현재 환경에서는 방문 분석을 사용하지 않아요." />
+    <p className="px-5 py-6 text-sm leading-6 text-muted-strong md:px-6">방문 분석 도구가 연결되어 있지 않아 분석 데이터를 보내지 않아요.</p>
+    <DialogFooter><PrimaryButton onClick={() => setSettingsOpen(false)}>닫기</PrimaryButton></DialogFooter>
+  </ModalShell>;
 
   const choose = (next: AnalyticsConsent) => {
     const revoking = isAnalyticsEnabled(consent) && next === "denied";

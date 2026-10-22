@@ -1,8 +1,10 @@
 "use client";
 
+import { ContentState, ContentSkeleton } from "@/components/ui/content-state";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { ScreenError } from "@/components/auditions/screen-status";
+import { NotebookListHeading } from "@/components/landing/notebook-page-main";
 import { getEvents } from "@/features/events/api";
 import { eventRoutes, formatEventPeriod, type PublicEventSummary } from "@/features/events/types";
 import { EventImage, EventPhaseBadge, EventScreen } from "./event-screen";
@@ -36,19 +38,14 @@ export function EventsRoute({ initialEvents }: { readonly initialEvents: readonl
 
   return (
     <EventScreen>
-      <section className="border-b border-border pb-6">
-        <h1 className="text-[22px] font-bold leading-snug tracking-[-0.03em] min-[761px]:text-[29px]">이벤트</h1>
-        <p className="mt-2 text-base text-muted-strong">예술in이 준비한 모집과 이벤트 소식을 모았어요.</p>
-      </section>
-      <div className="pt-6">
-        {state.status === "loading" ? <p role="status" className="text-sm text-muted">이벤트를 불러오는 중이에요.</p> : null}
+      <NotebookListHeading title="이벤트" description="예술in이 준비한 모집과 이벤트 소식을 모았어요." />
+      <div>
+        {state.status === "loading" ? <ContentSkeleton label="이벤트 목록 불러오는 중"><div className="space-y-4">{[0, 1, 2].map((item) => <div key={item} className="h-40 rounded-card border border-border bg-card p-5"><div className="h-5 w-1/4 rounded bg-border-soft" /><div className="mt-4 h-6 w-2/3 rounded bg-border-soft" /></div>)}</div></ContentSkeleton> : null}
         {state.status === "error" ? (
           <ScreenError message="이벤트를 불러오지 못했어요." onRetry={() => { setState({ status: "loading" }); load(); }} />
         ) : null}
         {state.status === "ready" && state.events.length === 0 ? (
-          <p className="rounded-card border border-dashed border-border bg-card px-5 py-14 text-center text-sm text-muted-strong">
-            지금 열린 이벤트가 없어요. 새 소식이 생기면 여기에 올릴게요.
-          </p>
+          <ContentState title="지금 열린 이벤트가 없어요" description="새 소식이 생기면 이곳에 안내할게요." />
         ) : null}
         {state.status === "ready" && state.events.length > 0 ? (
           <ul className="grid gap-4">

@@ -203,7 +203,7 @@ function TimeRequestSection({ accessKey, timetable, onChange }: {
         <div className="mt-2 space-y-2 text-sm">
           <p className="text-muted-strong">{formatInstant(request.createdAt)}에 담당자에게 문의를 보냈어요. 시간이 바뀌면 문자로 알려 드려요.</p>
           <p className="whitespace-pre-line rounded-control bg-surface px-3 py-2 text-foreground">{request.message}</p>
-          <TextButton onClick={() => { setMessage(request.message); setEditing(true); }} className="min-h-9 px-2">문의 내용 고치기</TextButton>
+          <TextButton onClick={() => { setMessage(request.message); setEditing(true); }} className="min-h-11 px-2">문의 내용 고치기</TextButton>
         </div>
       ) : (
         <form onSubmit={send} className="mt-2 space-y-2">
