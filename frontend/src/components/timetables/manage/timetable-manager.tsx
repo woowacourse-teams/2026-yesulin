@@ -47,7 +47,7 @@ import type { ChipState } from "./actor-chip";
 import { AssignDialog } from "./assign-dialog";
 import { InvitationDialog } from "./invitation-dialog";
 import { copyManageLink, ManageLinkNotice } from "./manage-link-card";
-import { MoreMenu } from "./more-menu";
+import { MoreMenu } from "@/components/ui/more-menu";
 import { ProfileDialog } from "./profile-dialog";
 import { RegisterActorsForm } from "./register-actors-form";
 import { RegisterDialog } from "./register-dialog";
@@ -324,7 +324,7 @@ export function TimetableManager({ manageKey }: { readonly manageKey: string }) 
             <SecondaryLink href={timetableRoutes.print(manageKey)} target="_blank" rel="noopener" className="shrink-0">출력</SecondaryLink>
           )
         ) : null}
-        <MoreMenu items={menuItems} />
+        <MoreMenu label="일정표 설정" items={menuItems} />
         {published ? null : (
           <PrimaryButton onClick={() => setDialog("publish")} disabled={busy || !canPublish} className="shrink-0">
             일정 확정

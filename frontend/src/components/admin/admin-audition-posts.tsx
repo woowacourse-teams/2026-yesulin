@@ -12,7 +12,7 @@ import {
   fetchCompanies,
   importOtrAuditionPost,
 } from "@/features/admin/api";
-import { adminAuditionPostReadLink, adminAuditionPostRoutes, extractOtrId } from "@/features/admin/audition-posts";
+import { adminAuditionPostRoutes, extractOtrId } from "@/features/admin/audition-posts";
 import type {
   AdminAuditionPost,
   AdminAuditionPostImport,
@@ -49,7 +49,7 @@ const STATUS_ACTIONS: Readonly<Record<AdminAuditionPostStatus, string>> = {
 
 /**
  * 운영 서버는 새 OTR 공고를 알림과 함께 검토 전으로 가져온다. 자동으로 가져오지 못했거나 개발 환경에서는 여기서 번호로
- * 직접 가져온다. 내용을 확인한 뒤 공개하고, 제작사가 내려 달라고 하면 내린다. 공개하지 않은 공고 링크는 원문으로 연결된다.
+ * 직접 가져온다. 내용을 확인한 뒤 공개하고, 제작사가 내려 달라고 하면 숨긴다. 공개하지 않은 공고 링크는 원문으로 연결된다.
  * 같은 번호를 다시 가져오면 공개 상태는 그대로 두고 원문 내용으로 교체된다. 운영자가 고친 공고는 한 번 더 확인받는다.
  */
 export function AdminAuditionPosts({ ownerId }: {
@@ -306,59 +306,57 @@ export function AdminAuditionPosts({ ownerId }: {
           {posts.length > 0 && visiblePosts.length === 0 ? <AdminEmptyState title="조건에 맞는 공고가 없어요" description="검색어, 분류 또는 공개 상태를 바꿔 주세요.">
             <AdminActionButton onClick={() => { setQuery(""); setStatusFilter("ALL"); setCategory("ALL"); setPage(0); }}>검색·필터 초기화</AdminActionButton>
           </AdminEmptyState> : null}
-          {pagePosts.map((post) => {
-            const readLink = adminAuditionPostReadLink(post);
-            return (
-              <article key={post.id} className="rounded-card border border-border bg-card p-4 sm:px-5">
-                <div className="flex items-start justify-between gap-3">
-                  <header className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-                    <AuditionPostStatusBadge status={post.status} />
-                    {post.createdVia === "AUTO_IMPORT" ? <span className="rounded-full bg-brand-soft px-2.5 py-0.5 font-bold text-brand">자동 수집</span> : null}
-                    {post.closed ? <span className="rounded-full bg-border-soft px-2.5 py-0.5 font-bold text-muted">마감</span> : null}
-                    {post.editedAt ? <span className="rounded-full bg-warn-bg px-2.5 py-0.5 font-bold text-warn">수정됨</span> : null}
-                    {post.externalId ? (
-                      <span className="num text-muted">{post.source} {post.externalId}</span>
-                    ) : (
-                      <span className="rounded-full bg-brand-soft px-2.5 py-0.5 font-bold text-brand">{post.createdVia === "PRODUCER_WRITE" ? "기획사 등록" : "직접 작성"}</span>
-                    )}
-                    {post.ownerId !== null ? <span className="text-muted-strong">기획사 {post.ownerName ?? `회원 ${post.ownerId}`}</span> : null}
-                    {post.companyId !== null ? <span className="text-muted-strong">공연사 {companies?.find((company) => company.id === post.companyId)?.name ?? post.companyId}</span> : null}
-                    <span className="w-full text-muted sm:ml-auto sm:w-auto">{formatDateTime(post.updatedAt)} 갱신</span>
-                  </header>
-                  <AdminPostActions post={post} importing={importing} onCompany={() => setEditingCompany((current) => current === post.id ? null : post.id)} onImport={(otrId) => void runImport(otrId)} />
-                </div>
-                <h3 className="mt-2 break-words text-lg font-semibold">
-                  <a href={readLink.href} target="_blank" rel="noopener noreferrer" aria-label={`${post.title} · ${readLink.label} (새 창)`} className="hover:text-brand">
-                    {post.title}<PiArrowSquareOut aria-hidden="true" className="ml-1.5 inline-block align-baseline text-muted" size={16} />
-                  </a>
-                </h3>
-                <p className="mt-1 text-sm text-muted-strong">
-                  {[post.category, post.authorName, post.deadlineText && `마감 ${post.deadlineText}`].filter(Boolean).join(" · ")}
-                </p>
-                <p className="mt-1 text-xs text-muted">사진 <span className="num">{post.imageCount}</span> · 첨부 <span className="num">{post.attachmentCount}</span> · 조회 <span className="num">{post.viewCount}</span> · OTR 이동 <span className="num">{post.redirectCount}</span></p>
-                <div className="mt-4 flex flex-wrap gap-2 border-t border-border-soft pt-4">
-                  <p className="my-auto text-xs text-muted">제목에서 {readLink.label} 보기 · 새 창</p>
-                  <AdminActionButton
-                    disabled={changing === post.id}
-                    onClick={() => void toggleStatus(post)}
-                    className="ml-auto"
-                  >
-                    {changing === post.id ? "바꾸는 중…" : STATUS_ACTIONS[post.status]}
-                  </AdminActionButton>
-                </div>
-                {editingCompany === post.id ? (
-                  <AdminPostCompanyEditor
-                    postId={post.id}
-                    companies={companies}
-                    onCancel={() => setEditingCompany(null)}
-                    onUnauthorized={endSession}
-                    onSaved={() => { setEditingCompany(null); refresh(); }}
-                    onLinkChanged={() => { setEditingCompany(null); refresh(); }}
-                  />
-                ) : null}
-              </article>
-            );
-          })}
+          {pagePosts.map((post) => (
+            <article key={post.id} className="rounded-card border border-border bg-card p-4 sm:px-5">
+              <div className="flex items-start justify-between gap-3">
+                <header className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+                  <AuditionPostStatusBadge status={post.status} />
+                  {post.createdVia === "AUTO_IMPORT" ? <span className="rounded-full bg-brand-soft px-2.5 py-0.5 font-bold text-brand">자동 수집</span> : null}
+                  {post.closed ? <span className="rounded-full bg-border-soft px-2.5 py-0.5 font-bold text-muted">마감</span> : null}
+                  {post.editedAt ? <span className="rounded-full bg-warn-bg px-2.5 py-0.5 font-bold text-warn">수정됨</span> : null}
+                  {post.externalId ? (
+                    <span className="num text-muted">{post.source} {post.externalId}</span>
+                  ) : (
+                    <span className="rounded-full bg-brand-soft px-2.5 py-0.5 font-bold text-brand">{post.createdVia === "PRODUCER_WRITE" ? "기획사 등록" : "직접 작성"}</span>
+                  )}
+                  {post.ownerId !== null ? <span className="text-muted-strong">기획사 {post.ownerName ?? `회원 ${post.ownerId}`}</span> : null}
+                  {post.companyId !== null ? <span className="text-muted-strong">공연사 {companies?.find((company) => company.id === post.companyId)?.name ?? post.companyId}</span> : null}
+                  <span className="w-full text-muted sm:ml-auto sm:w-auto">{formatDateTime(post.updatedAt)} 갱신</span>
+                </header>
+                <AdminPostActions post={post} importing={importing} onCompany={() => setEditingCompany((current) => current === post.id ? null : post.id)} onImport={(otrId) => void runImport(otrId)} />
+              </div>
+              <h3 className="mt-2 break-words text-lg font-semibold">
+                <a href={adminAuditionPostRoutes.preview(post.id)} target="_blank" rel="noopener noreferrer" aria-label={`${post.title} · 미리보기 (새 창)`} className="hover:text-brand">
+                  {post.title}<PiArrowSquareOut aria-hidden="true" className="ml-1.5 inline-block align-baseline text-muted" size={16} />
+                </a>
+              </h3>
+              <p className="mt-1 text-sm text-muted-strong">
+                {[post.category, post.authorName, post.deadlineText && `마감 ${post.deadlineText}`].filter(Boolean).join(" · ")}
+              </p>
+              <p className="mt-1 text-xs text-muted">사진 <span className="num">{post.imageCount}</span> · 첨부 <span className="num">{post.attachmentCount}</span> · 조회 <span className="num">{post.viewCount}</span> · OTR 이동 <span className="num">{post.redirectCount}</span></p>
+              <div className="mt-4 flex flex-wrap gap-2 border-t border-border-soft pt-4">
+                <p className="my-auto text-xs text-muted">제목을 누르면 새 창에서 미리보기를 열어요. 조회수에는 들어가지 않아요.</p>
+                <AdminActionButton
+                  disabled={changing === post.id}
+                  onClick={() => void toggleStatus(post)}
+                  className="ml-auto"
+                >
+                  {changing === post.id ? "바꾸는 중…" : STATUS_ACTIONS[post.status]}
+                </AdminActionButton>
+              </div>
+              {editingCompany === post.id ? (
+                <AdminPostCompanyEditor
+                  postId={post.id}
+                  companies={companies}
+                  onCancel={() => setEditingCompany(null)}
+                  onUnauthorized={endSession}
+                  onSaved={() => { setEditingCompany(null); refresh(); }}
+                  onLinkChanged={() => { setEditingCompany(null); refresh(); }}
+                />
+              ) : null}
+            </article>
+          ))}
+
           {pageCount > 1 ? (
             <nav aria-label="공고 목록 페이지" className="flex flex-wrap items-center justify-between gap-3 pt-2">
               <p className="num text-sm text-muted">{currentPage * PAGE_SIZE + 1}–{Math.min((currentPage + 1) * PAGE_SIZE, visiblePosts.length)} / {visiblePosts.length}건</p>

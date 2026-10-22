@@ -6,6 +6,7 @@ import { AuditionPostStatusBadge } from "@/components/audition-posts/audition-po
 import { AdminApiError, fetchAuditionPostForEdit } from "@/features/admin/api";
 import { adminAuditionPostRoutes } from "@/features/admin/audition-posts";
 import type { EditableAuditionPost } from "@/features/audition-posts/editing";
+import { auditionPostRoutes } from "@/features/audition-posts/types";
 import { AdminActionButton, AdminActionLink, AdminEmptyState, AdminShell } from "./admin-shell";
 import { AdminSessionEnded } from "./admin-session-ended";
 
@@ -15,7 +16,10 @@ type State =
   | { readonly phase: "unauthorized" | "missing" }
   | { readonly phase: "failed"; readonly message: string };
 
-/** 원문 없는 비공개 공고를 관리자 세션으로 읽는다. 공개 조회수는 기록하지 않는다. */
+/**
+ * 공개 상태와 관계없이 우리가 저장한 본문·첨부·태그를 관리자 세션으로 읽는다. 공개 화면과 달리 조회수를 기록하지 않으므로
+ * 검토 전 공고를 공개하기 전에 확인하거나 공개 중인 공고를 다시 볼 때 쓴다.
+ */
 export function AdminAuditionPostPreview({ postId }: { readonly postId: string }) {
   const [state, setState] = useState<State>({ phase: "loading" });
   const [reloadToken, setReloadToken] = useState(0);
@@ -40,8 +44,19 @@ export function AdminAuditionPostPreview({ postId }: { readonly postId: string }
   if (state.phase === "unauthorized") return <AdminSessionEnded />;
 
   return (
-    <AdminShell current="posts" layout="form" title="공고 미리보기" description="관리자에게만 보이는 미리보기입니다."
-      actions={<AdminActionLink href={adminAuditionPostRoutes.list}>공고 목록</AdminActionLink>}
+    <AdminShell current="posts" layout="form" title="공고 미리보기" description="관리자에게만 보이는 미리보기예요. 열어도 조회수에 들어가지 않아요."
+      actions={(
+        <>
+          <AdminActionLink href={adminAuditionPostRoutes.list}>공고 목록</AdminActionLink>
+          {state.phase === "ready" ? <AdminActionLink href={adminAuditionPostRoutes.edit(state.post.id)}>공고 수정</AdminActionLink> : null}
+          {state.phase === "ready" && state.post.status === "PUBLISHED" ? (
+            <AdminActionLink href={auditionPostRoutes.detail(state.post.id)} target="_blank">공개 화면<span className="sr-only"> (새 창, 조회수에 들어가요)</span></AdminActionLink>
+          ) : null}
+          {state.phase === "ready" && state.post.sourceUrl ? (
+            <AdminActionLink href={state.post.sourceUrl} target="_blank" rel="noopener noreferrer">원문<span className="sr-only"> (새 창)</span></AdminActionLink>
+          ) : null}
+        </>
+      )}
     >
       {state.phase === "loading" ? <p role="status" className="text-sm text-muted">공고를 불러오는 중이에요.</p> : null}
       {state.phase === "missing" ? <AdminEmptyState title="공고를 찾을 수 없어요" description="삭제되었거나 존재하지 않는 공고입니다." /> : null}
