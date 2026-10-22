@@ -11,13 +11,19 @@ if [ "$(id -u)" -ne 0 ]; then
   exit 1
 fi
 
+# 환경별 값은 /etc/yesulin/backup.env에 둔다(systemd와 수동 실행이 같은 값을 쓰게). 없으면 DEV 기본값을 쓴다.
+if [ -r /etc/yesulin/backup.env ]; then
+  . /etc/yesulin/backup.env
+fi
+
 CONTAINER_NAME="${CONTAINER_NAME:-yesulin-mysql}"
 BACKUP_BUCKET="${BACKUP_BUCKET:-techcourse-project-2026}"
 BACKUP_PREFIX="${BACKUP_PREFIX:-yesulin/backups/mysql}"
 AWS_REGION="${AWS_REGION:-ap-northeast-2}"
 DRILL_CONTAINER="${DRILL_CONTAINER:-yesulin-restore-drill}"
-DRILL_MEMORY="${DRILL_MEMORY:-512m}"
-MIN_AVAILABLE_MIB="${MIN_AVAILABLE_MIB:-700}"
+# 운영 MySQL(상한 700MiB)과 같은 서버에서 돌므로 작게 띄운다. swap이 없어 메모리가 모자라면 이 컨테이너가 먼저 종료되게 한다.
+DRILL_MEMORY="${DRILL_MEMORY:-384m}"
+MIN_AVAILABLE_MIB="${MIN_AVAILABLE_MIB:-600}"
 # sort와 join이 같은 정렬 기준을 쓰게 한다.
 export LC_ALL=C
 
@@ -86,10 +92,10 @@ echo "Downloaded and checksum verified: $(du -h "$work_dir/$backup_name" | cut -
 image="$(docker inspect "$CONTAINER_NAME" --format '{{.Config.Image}}')"
 drill_password="$(head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n')"
 step_started="$(now)"
-docker run -d --name "$DRILL_CONTAINER" --network none --memory "$DRILL_MEMORY" \
+docker run -d --name "$DRILL_CONTAINER" --network none --memory "$DRILL_MEMORY" --oom-score-adj 1000 \
   -e MYSQL_ROOT_PASSWORD="$drill_password" \
   "$image" \
-  --innodb-buffer-pool-size=64M --performance-schema=OFF --skip-log-bin >/dev/null
+  --innodb-buffer-pool-size=32M --performance-schema=OFF --skip-log-bin >/dev/null
 
 drill_mysql() {
   docker exec -i -e MYSQL_PWD="$drill_password" "$DRILL_CONTAINER" \

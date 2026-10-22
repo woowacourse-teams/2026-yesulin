@@ -1,5 +1,5 @@
 [Unit]
-Description=Run Yesulin staging MySQL EBS snapshot weekly
+Description=Run Yesulin MySQL data volume EBS snapshot weekly
 
 [Timer]
 OnCalendar=Sun *-*-* 04:15:00 Asia/Seoul

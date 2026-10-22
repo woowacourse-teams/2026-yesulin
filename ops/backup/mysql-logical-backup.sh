@@ -6,6 +6,11 @@ if [ "$(id -u)" -ne 0 ]; then
   exit 1
 fi
 
+# 환경별 값은 /etc/yesulin/backup.env에 둔다(systemd와 수동 실행이 같은 값을 쓰게). 없으면 DEV 기본값을 쓴다.
+if [ -r /etc/yesulin/backup.env ]; then
+  . /etc/yesulin/backup.env
+fi
+
 CONTAINER_NAME="${CONTAINER_NAME:-yesulin-mysql}"
 BACKUP_BUCKET="${BACKUP_BUCKET:-techcourse-project-2026}"
 BACKUP_PREFIX="${BACKUP_PREFIX:-yesulin/backups/mysql}"

@@ -1,5 +1,5 @@
 [Unit]
-Description=Yesulin staging MySQL logical backup
+Description=Yesulin MySQL logical backup to S3
 After=docker.service network-online.target
 Requires=docker.service
 Wants=network-online.target

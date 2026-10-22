@@ -1,5 +1,5 @@
 [Unit]
-Description=Yesulin staging MySQL EBS snapshot
+Description=Yesulin MySQL data volume EBS snapshot
 After=network-online.target
 Wants=network-online.target
 

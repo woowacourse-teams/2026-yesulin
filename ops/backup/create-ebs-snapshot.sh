@@ -10,6 +10,11 @@ if ! command -v aws >/dev/null 2>&1; then
   exit 1
 fi
 
+# 환경별 값은 /etc/yesulin/backup.env에 둔다(systemd와 수동 실행이 같은 값을 쓰게). 없으면 DEV 기본값을 쓴다.
+if [ -r /etc/yesulin/backup.env ]; then
+  . /etc/yesulin/backup.env
+fi
+
 AWS_REGION="${AWS_REGION:-ap-northeast-2}"
 DATA_MOUNT="${DATA_MOUNT:-/data/mysql}"
 # DEV는 기본값, PROD는 /etc/yesulin/backup.env에서 이름과 설명을 바꾼다.
