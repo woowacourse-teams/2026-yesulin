@@ -1,0 +1,25 @@
+# 2026-10-22 12:13~12:14 KST, yesulin-db-prod, Session Manager
+## 2-1. AWS CLI 설치 + 권한 확인
+unzip 6.0-28ubuntu4.1 설치 (apt)
+aws-cli/2.38.4 Python/3.14.6 Linux/7.0.0-1013-aws exe/aarch64.ubuntu.24
+== 권한 확인 (dry-run, 실제 변경 없음)
+An error occurred (DryRunOperation) when calling the CreateSnapshot operation: Request would have succeeded, but DryRun flag is set.
+An error occurred (DryRunOperation) when calling the DeleteSnapshot operation: Request would have succeeded, but DryRun flag is set.
+                           PRE mysql/
+(참고: apt가 "Pending kernel upgrade 7.0.0-1014" 안내를 출력. 백업과 무관하며 재부팅하지 않음)
+
+## 2-2. 백업 설치 + 첫 실행 (스크립트 커밋 f33b626cfdcca6482014601ef32b75a2a13c918c)
+Created symlink /etc/systemd/system/timers.target.wants/yesulin-mysql-backup.timer
+Created symlink /etc/systemd/system/timers.target.wants/yesulin-ebs-snapshot.timer
+== 첫 논리 백업 (수동)
+2026-10-22T03:14:17+00:00
+MySQL logical backup uploaded: s3://techcourse-project-2026/yesulin/backups/mysql-prod/2026/10/22/yesulin-prod-20261022T031417Z.sql.gz
+Tables counted: 85
+yesulin-mysql-backup.service: Deactivated successfully. Consumed 3.229s CPU time.
+== 첫 디스크 스냅샷 (수동)
+2026-10-22T03:14:21+00:00
+EBS snapshot requested: snap-036cf9087fd293507 (vol-0d8385b0e12a259e9)
+yesulin-ebs-snapshot.service: Deactivated successfully. Consumed 2.264s CPU time.
+== 타이머
+Thu 2026-10-22 18:21:25 UTC  15h  yesulin-mysql-backup.timer   (= 10/23 03:21 KST)
+Sat 2026-10-24 19:22:05 UTC  2 days ... (출력이 잘림, yesulin-ebs-snapshot.timer로 추정 = 10/25 일 04:22 KST)
