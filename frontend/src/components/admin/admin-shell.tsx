@@ -70,7 +70,7 @@ export function AdminShell({ current, title, description, actions, badges = {}, 
       <a href="#admin-content" className="sr-only z-50 rounded-control bg-card px-4 py-3 font-semibold focus:not-sr-only focus:fixed focus:left-4 focus:top-4">본문으로 바로가기</a>
       <aside className="hidden overflow-y-auto bg-sidebar text-sidebar-text lg:sticky lg:top-0 lg:flex lg:h-dvh lg:flex-col">
         <div className="border-b border-sidebar-line px-5 py-4">
-          <Link href="/admin" aria-label="운영 대시보드 개요" className="relative block h-12 w-20 rounded-control">
+          <Link href="/" aria-label="예술in 홈" className="relative block h-12 w-20 rounded-control">
             <Image src="/images/yesulin-logo.png" alt="예술in" fill sizes="80px" priority className="object-contain brightness-0 invert" />
           </Link>
           <p className="mt-2 text-xs text-sidebar-muted">관리자</p>
@@ -106,7 +106,7 @@ export function AdminShell({ current, title, description, actions, badges = {}, 
         <header className="sticky top-0 z-20 border-b border-border bg-card/95 backdrop-blur">
           <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-3 px-4 py-3 lg:px-8 lg:py-4">
             <div className="flex min-w-0 items-center gap-3">
-              <Link href="/admin" aria-label="운영 대시보드 개요" className="relative block h-8 w-14 shrink-0 rounded-control lg:hidden">
+              <Link href="/" aria-label="예술in 홈" className="relative block h-8 w-14 shrink-0 rounded-control lg:hidden">
                 <Image src="/images/yesulin-logo.png" alt="예술in" fill sizes="56px" priority className="object-contain" />
               </Link>
               <h1 className="text-lg font-bold tracking-[-0.02em] text-foreground lg:text-xl">{title}</h1>

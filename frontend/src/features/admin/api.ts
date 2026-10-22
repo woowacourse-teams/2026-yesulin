@@ -9,6 +9,7 @@ import type {
   EditableAuditionPost,
 } from "../audition-posts/editing";
 import type {
+  AdminAlertChatMembers,
   AdminAuditLogPage,
   AdminAudition,
   AdminAuditionPost,
@@ -515,6 +516,15 @@ export async function unlinkCompanyAuthor(linkId: number): Promise<void> {
     headers: await withCsrfHeaders(),
   });
   if (!response.ok) throw await readAdminError(response, "묶음을 풀지 못했습니다.");
+}
+
+export function fetchAlertChatMembers(): Promise<AdminAlertChatMembers> {
+  return getJson("/alert-chat-members", "오픈채팅방 인원을 불러오지 못했습니다.");
+}
+
+/** 지금 오픈채팅방 인원을 적는다. 적은 시각부터 올라오는 공고의 공개 조회수에만 쓰인다. */
+export async function recordAlertChatMembers(memberCount: number): Promise<AdminAlertChatMembers> {
+  return await sendJson("/alert-chat-members", "POST", { memberCount }, "오픈채팅방 인원을 저장하지 못했습니다.") as AdminAlertChatMembers;
 }
 
 export async function fetchAdminEvents(): Promise<readonly AdminEvent[]> {

@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { useProducerNavigation } from "@/components/producers/producer-navigation-context";
 import { ProducerSidebarToggle } from "@/components/producers/producer-sidebar-toggle";
-import { auditionRoutes } from "@/features/auditions/routes";
 
 export type CrumbItem = {
   readonly label: string;
@@ -22,7 +21,7 @@ export function Breadcrumb({ items }: { items: readonly CrumbItem[] }) {
       {showSidebarButton ? (
         <div className="mr-1 hidden shrink-0 items-center gap-2 lg:flex">
           <ProducerSidebarToggle />
-          <Link href={auditionRoutes.performances} aria-label="예술in 공연 관리 홈" className="relative block h-10 w-[72px] rounded-control">
+          <Link href="/" aria-label="예술in 홈" className="relative block h-10 w-[72px] rounded-control">
             <Image src="/images/yesulin-logo.png" alt="예술in" fill sizes="72px" priority className="object-contain" />
           </Link>
           <span aria-hidden="true" className="h-6 w-px bg-border" />

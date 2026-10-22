@@ -8,6 +8,7 @@
 > 2026-10-10에 DEV 앱을 t4g.small에서 t4g.micro로 바꿨다. 아래 비용 표는 바꾸기 전 값이다.
 > t4g.micro가 지금처럼 RI로 0원이면 월 약 13.8이 줄어 약 59.2가 된다. 2026-10-17쯤 Cost Explorer로 확인해 표를 갱신한다.
 > 2026-10-19에 PROD 앱도 t4g.micro로 바꿨다. 같은 조건이면 small 1대분(월 약 13.8)이 더 줄어든다.
+> 2026-10-21에 무중단 배포를 위해 PROD 앱 micro를 2대로 늘렸다. micro 1대분(정가 월 약 7.6 + EBS 약 0.7)이 늘 수 있다.
 
 ## 예산
 
@@ -64,7 +65,7 @@
 | --- | --- | --- | --- | --- |
 | DEV | 앱 | `yesulin-backend-dev2` (`yesulin-backend-asg` 소속) | t4g.micro · 루트 8GiB · swap 512MiB | 2026-10-09 ASG로 교체(Launch Template 버전 4). 옛 small은 2026-10-10 종료 |
 | DEV | DB | `yesulin-db-dev` | t4g.micro · 루트 12GiB · 데이터 20GiB | 분리 전 staging 데이터의 유일한 사본. ASG 소속 아님 |
-| PROD | 앱 | `yesulin-backend-prod` (`yesulin-backend-prod-asg` 소속) | t4g.micro · 루트 8GiB · swap 512MiB | 2026-10-19 ASG로 교체(Launch Template 버전 2). 옛 small은 같은 날 종료 |
+| PROD | 앱 | `yesulin-backend-prod` 2대 (`yesulin-backend-prod-asg` 소속) | t4g.micro · 루트 8GiB · swap 512MiB | 2026-10-19 ASG로 교체(Launch Template 버전 2). 2026-10-21 무중단 배포를 위해 2대로 증설 |
 | PROD | DB | `yesulin-db-prod` | t4g.small · 루트 12GiB · 데이터 20GiB | t4g.micro에서 증설 |
 | 공유 | API 입구 | `yesulin-backend-alb` | | Host 규칙으로 DEV/PROD 분기 |
 | 공유 | 파일 전달 | CloudFront 배포 1개 | | `/dev`, `/prod` 경로로 분기 |
@@ -124,7 +125,7 @@
 
 | 항목 | `yesulin-backend-asg` (DEV) | `yesulin-backend-prod-asg` (PROD) |
 | --- | --- | --- |
-| 원하는 용량 / 최소-최대 | 1 / 1-1 (2026-10-10부터) | 1 / 0-1 |
+| 원하는 용량 / 최소-최대 | 1 / 1-1 (2026-10-10부터) | 2 / 2-2 (2026-10-21부터) |
 | Launch Template | `yesulin-backend-lt` 버전 4 (t4g.micro, 사용자 데이터에 swap 512MiB·CodeDeploy 배포본 2개 설정) | `yesulin-backend-prod-lt` 버전 2 (t4g.micro, 같은 swap·배포본 설정. 기존 `yesulin` 서비스 비활성 줄 유지) |
 | AMI | 2026-09-13 sops 기반 AMI | DEV와 같은 AMI |
 | 상태 확인 유형 | EC2, EBS, ELB (유예 300초) | EC2 (유예 300초) |

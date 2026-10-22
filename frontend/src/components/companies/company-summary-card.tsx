@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SecondaryLink } from "@/components/ui/controls";
 import { CompanyAvatar } from "./company-avatar";
 import {
   COMPANY_CORRECTION_URL,
@@ -84,14 +85,14 @@ export function CompanyPendingCard({ authorName }: { readonly authorName: string
       <p className="text-sm font-semibold text-brand">공고를 올린 공연사</p>
       <h2 id="post-company" className="mt-1 text-lg font-bold tracking-[-0.02em]">{authorName || "공연사"}</h2>
       <p className="mt-2 text-sm leading-6 text-muted-strong">공연사 정보를 준비하고 있어요.</p>
-      <a
+      <SecondaryLink
         href={COMPANY_CORRECTION_URL}
         target="_blank"
-        rel="noreferrer"
-        className="-ml-2 mt-1 inline-flex min-h-11 items-center rounded-control px-2 text-sm font-semibold text-muted-strong hover:bg-brand-soft hover:text-brand"
+        rel="noopener noreferrer"
+        className="mt-4 w-full sm:w-auto"
       >
         이 공연사라면 정보 등록 요청하기<span className="sr-only"> 새 창</span>
-      </a>
+      </SecondaryLink>
     </section>
   );
 }

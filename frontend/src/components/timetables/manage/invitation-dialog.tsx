@@ -56,7 +56,7 @@ export function InvitationDialog({ board, onSave, onClose }: {
             key={placeholder.token}
             type="button"
             onClick={() => insert(placeholder.token)}
-            className="min-h-9 rounded-full border border-brand-line bg-brand-soft px-3 text-sm font-semibold text-brand hover:bg-brand-soft-strong"
+            className="min-h-11 rounded-full border border-brand-line bg-brand-soft px-3 text-sm font-semibold text-brand hover:bg-brand-soft-strong"
           >
             + {placeholder.label}
           </button>
@@ -71,10 +71,10 @@ export function InvitationDialog({ board, onSave, onClose }: {
         onChange={(event) => setText(event.target.value)}
         className="mt-3 resize-y"
       />
-      <div className="mt-1 flex min-h-9 items-center justify-between text-xs text-muted">
+      <div className="mt-1 flex min-h-11 items-center justify-between text-xs text-muted">
         <span className="num">{text.length}/{TIMETABLE_LIMITS.invitationTemplateLength}</span>
         {isDefault ? <span>기본 문구</span> : (
-          <TextButton onClick={() => setText(board.defaultInvitationTemplate)} className="min-h-9 px-2">기본 문구로 되돌리기</TextButton>
+          <TextButton onClick={() => setText(board.defaultInvitationTemplate)} className="min-h-11 px-2">기본 문구로 되돌리기</TextButton>
         )}
       </div>
 

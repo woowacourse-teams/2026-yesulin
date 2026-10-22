@@ -70,7 +70,7 @@ export function ProducerAuditionPostEdit({ postId }: { readonly postId: string }
               <Link href={auditionPostRoutes.detail(post.id)} target="_blank" className="ml-auto font-semibold text-brand underline underline-offset-2">공개 화면</Link>
             ) : (
               <span className="text-muted-strong">
-                {post.status === "PENDING" ? "예술in이 확인한 뒤 공개할 공고예요." : "운영자가 내린 공고예요."} 고쳐도 공개 상태는 그대로예요.
+                {post.status === "PENDING" ? "예술in이 확인한 뒤 공개할 공고예요." : "운영자가 숨긴 공고예요."} 고쳐도 공개 상태는 그대로예요.
               </span>
             )}
           </section>

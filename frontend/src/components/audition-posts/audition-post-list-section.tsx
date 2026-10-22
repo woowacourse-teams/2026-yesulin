@@ -1,8 +1,11 @@
 "use client";
 
+import { ContentState } from "@/components/ui/content-state";
+import { SecondaryButton, SecondaryLink } from "@/components/ui/controls";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { ScreenError } from "@/components/auditions/screen-status";
+import { NotebookListHeading } from "@/components/landing/notebook-page-main";
 import { getAuditionPosts } from "@/features/audition-posts/api";
 import { kstToday } from "@/features/audition-posts/format";
 import { AUDITION_LANDING_CATEGORIES, auditionPostRoutes, type AuditionLandingCategory, type AuditionPostPage, type AuditionPostQuery } from "@/features/audition-posts/types";
@@ -36,11 +39,11 @@ export function AuditionPostListSection({ query, initialPage, preview = false }:
   }, [page, includeClosed, category]);
   useEffect(() => { if (!initialPage) return load(); }, [initialPage, load]);
 
-  return <section id="auditions" className="notebook-section">
-    <div className="notebook-section-heading">
+  return <section id="auditions" className={preview ? "notebook-section" : "notebook-audition-results"}>
+    {preview ? <div className="notebook-section-heading">
       <div className="notebook-section-title"><h1>{category ? `${category} 오디션 공고` : "오디션 공고"}</h1><p>모집 조건과 마감일을 확인해보세요.</p></div>
-      {preview ? <Link href={auditionPostRoutes.list()} className="notebook-text-link">전체 보기</Link> : null}
-    </div>
+      <Link href={auditionPostRoutes.list()} className="notebook-text-link">전체 보기</Link>
+    </div> : <NotebookListHeading title={category ? `${category} 오디션 공고` : "오디션 공고"} description="모집 조건과 마감일을 확인해보세요." />}
     <div className={preview ? "notebook-toolbar is-preview" : "notebook-category-row"}>
       <nav aria-label="오디션 분야" className="notebook-category-tabs">
         <FilterLink href={auditionPostRoutes.list({ includeClosed })} current={!category} label="전체 분야" categoryTab />
@@ -72,7 +75,7 @@ function PostList({ data, query, today, now, search, preview, onResetSearch }: {
   const visible = preview ? matching.slice(0, 3) : matching;
   return <>
     {!preview ? <p className="notebook-list-note" role="status">{search ? `이 페이지 검색 결과 ${matching.length}개` : `공개 공고 ${data.totalElements.toLocaleString("ko-KR")}개 · ${data.page + 1}페이지`}</p> : null}
-    {visible.length ? <ul className="notebook-post-grid" id="audition-post-list">{visible.map((post) => <AuditionPostCard key={post.id} post={post} today={today} now={now} notebook />)}</ul> : search ? <div className="notebook-empty"><p>이 페이지에 검색어와 일치하는 공고가 없어요.</p><button type="button" className="notebook-outline-button" onClick={onResetSearch}>검색 초기화</button></div> : <EmptyPosts data={data} includeClosed={includeClosed} category={category} />}
+    {visible.length ? <ul className="notebook-post-grid" id="audition-post-list">{visible.map((post) => <AuditionPostCard key={post.id} post={post} today={today} now={now} notebook />)}</ul> : search ? <ContentState title="검색어와 일치하는 공고가 없어요" description="이 페이지의 공고명·작성자를 검색해요. 검색어를 바꾸거나 초기화해 주세요." action={<SecondaryButton onClick={onResetSearch}>검색 초기화</SecondaryButton>} /> : <EmptyPosts data={data} includeClosed={includeClosed} category={category} />}
     {preview && data.totalElements > visible.length ? <div className="notebook-list-actions"><Link href={auditionPostRoutes.list()} className="notebook-outline-button">전체 공고 보기</Link></div> : null}
     {!preview ? <AuditionPostPagination page={data.page} totalPages={data.totalPages} includeClosed={includeClosed} category={category} /> : null}
   </>;
@@ -92,5 +95,5 @@ function FilterLink({ href, current, label, count, categoryTab = false }: { read
 function EmptyPosts({ data, includeClosed, category }: { readonly data: AuditionPostPage; readonly includeClosed: boolean; readonly category?: AuditionLandingCategory }) {
   const outOfRange = data.totalElements > 0;
   const showClosedLink = !outOfRange && !includeClosed && data.allCount > 0;
-  return <section className="notebook-empty"><h2 className="text-lg font-bold">{outOfRange ? "이 페이지에는 공고가 없어요" : includeClosed ? "아직 올라온 공고가 없어요" : "지금 모집 중인 공고가 없어요"}</h2><p className="mt-2">새 공고가 올라오면 이곳과 카카오톡 오픈채팅에서 안내할게요.</p>{outOfRange || showClosedLink ? <Link href={auditionPostRoutes.list({ includeClosed: includeClosed || showClosedLink, category })} className="notebook-outline-button">{outOfRange ? "첫 페이지로" : "마감된 공고 보기"}</Link> : null}</section>;
+  return <ContentState title={outOfRange ? "이 페이지에는 공고가 없어요" : includeClosed ? "아직 올라온 공고가 없어요" : "지금 모집 중인 공고가 없어요"} description="새 공고가 올라오면 이곳과 카카오톡 오픈채팅에서 안내할게요." action={outOfRange || showClosedLink ? <SecondaryLink href={auditionPostRoutes.list({ includeClosed: includeClosed || showClosedLink, category })}>{outOfRange ? "첫 페이지로" : "마감된 공고 보기"}</SecondaryLink> : undefined} />;
 }

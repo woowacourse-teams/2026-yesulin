@@ -3,13 +3,13 @@
  */
 export type AuditionPostFileKind = "IMAGE" | "ATTACHMENT";
 
-/** 검토 전(가져오거나 운영자가 쓴 뒤 아직 공개하지 않음), 공개 중, 내림(공개했다가 내림). */
+/** 검토 전(가져오거나 운영자가 쓴 뒤 아직 공개하지 않음), 공개 중, 숨김(공개했다가 숨김). */
 export type EditableAuditionPostStatus = "PENDING" | "PUBLISHED" | "HIDDEN";
 
 export const AUDITION_POST_STATUS_LABELS: Readonly<Record<EditableAuditionPostStatus, string>> = {
   PENDING: "검토 전",
   PUBLISHED: "공개 중",
-  HIDDEN: "내림",
+  HIDDEN: "숨김",
 };
 
 export type EditableAuditionPostAttachment = {
@@ -89,6 +89,11 @@ export const AUDITION_POST_ATTACHMENT_EXTENSIONS = [
 const MAX_IMAGE_MB = 20;
 const MAX_ATTACHMENT_MB = 50;
 
+/** MIME이 비어 있는 파일 선택·드롭도 확장자로 사진 용도 선택을 제공한다. */
+export function isAuditionPostImageFile(file: { readonly name: string; readonly type: string }): boolean {
+  return file.type.toLowerCase().startsWith("image/") || /\.(jpe?g|png|gif|webp)$/i.test(file.name);
+}
+
 /** 공고 사진·첨부로 올릴 수 없는 파일이면 이유를, 올릴 수 있으면 null을 돌려준다. */
 export function checkAuditionPostFile(
   kind: "IMAGE" | "ATTACHMENT",
@@ -102,7 +107,7 @@ export function checkAuditionPostFile(
     if (file.size > MAX_IMAGE_MB * 1024 * 1024) return `사진은 ${MAX_IMAGE_MB}MB까지 올릴 수 있어요.`;
   } else {
     if (!AUDITION_POST_ATTACHMENT_EXTENSIONS.some((allowed) => allowed === extension)) {
-      return "첨부는 한글·워드·PDF·엑셀·파워포인트·압축·음원 파일만 올릴 수 있어요.";
+      return "첨부는 한글·워드·PDF·엑셀·파워포인트·압축·음원·JPEG·PNG 파일만 올릴 수 있어요.";
     }
     if (file.size > MAX_ATTACHMENT_MB * 1024 * 1024) return `첨부는 ${MAX_ATTACHMENT_MB}MB까지 올릴 수 있어요.`;
   }

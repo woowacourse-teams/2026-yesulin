@@ -1,17 +1,21 @@
 "use client";
 
+import { AuditionRequestError } from "@/features/auditions/api-client";
+import { ScreenError } from "@/components/auditions/screen-status";
 import { useEffect, useState } from "react";
 import { getAuditionPost, recordAuditionPostView } from "@/features/audition-posts/api";
-import { deadlineBadge, formatDeadline, formatFileSize, formatPostedDate, kstToday } from "@/features/audition-posts/format";
+import { deadlineBadge, formatDeadline, formatPostedDate, kstToday } from "@/features/audition-posts/format";
 import type { AuditionPost } from "@/features/audition-posts/types";
 import { publicViewCount, viewCountClock } from "@/features/audition-posts/view-count";
 import { CompanyPendingCard, CompanySummaryCard } from "@/components/companies/company-summary-card";
+import { AuditionPostContent } from "./audition-post-content";
 import { DeadlineChip } from "./audition-post-badges";
 import { AuditionPostScreen, MissingAuditionPost } from "./audition-post-screen";
 
 type DetailState =
   | { readonly status: "loading" }
   | { readonly status: "missing" }
+  | { readonly status: "error" }
   | { readonly status: "ready"; readonly post: AuditionPost };
 
 /** 상세는 서버가 미리 읽은 공고를 쓰고, 목 환경·서버 API 미설정 시 브라우저에서 읽는다. */
@@ -23,22 +27,25 @@ export function AuditionPostRoute({ postId, initialPost }: {
     initialPost ? { status: "ready", post: initialPost } : { status: "loading" },
   );
 
+  const [reloadToken, setReloadToken] = useState(0);
+
   useEffect(() => {
-    if (initialPost) return;
+    if (initialPost && reloadToken === 0) return;
     let active = true;
     getAuditionPost(postId)
       .then((post) => { if (active) setState({ status: "ready", post }); })
       .catch((cause) => {
         console.error("[공고 상세 조회 실패]", cause);
-        if (active) setState({ status: "missing" });
+        if (active) setState({ status: cause instanceof AuditionRequestError && cause.status === 404 ? "missing" : "error" });
       });
     return () => { active = false; };
-  }, [postId, initialPost]);
+  }, [postId, initialPost, reloadToken]);
 
   return (
     <AuditionPostScreen>
       {state.status === "loading" ? <DetailSkeleton /> : null}
       {state.status === "missing" ? <MissingAuditionPost /> : null}
+      {state.status === "error" ? <ScreenError message="공고를 불러오지 못했어요." onRetry={() => { setState({ status: "loading" }); setReloadToken((value) => value + 1); }} /> : null}
       {state.status === "ready" ? <AuditionPostDetail post={state.post} /> : null}
     </AuditionPostScreen>
   );
@@ -89,40 +96,7 @@ function AuditionPostDetail({ post }: { readonly post: AuditionPost }) {
           </dl>
         </header>
 
-        <div
-          className="post-body px-5 py-6 sm:px-8 sm:py-8"
-          // 서버가 허용 태그만 남기고 링크·사진 주소를 검사한 HTML이다.
-          dangerouslySetInnerHTML={{ __html: post.bodyHtml }}
-        />
-
-        {post.attachments.length ? (
-          <section aria-labelledby="post-attachments" className="border-t border-border-soft px-5 py-6 sm:px-8">
-            <h2 id="post-attachments" className="text-base font-bold">첨부파일 <span className="num text-muted">{post.attachments.length}</span></h2>
-            <ul className="mt-3 flex flex-col gap-2">
-              {post.attachments.map((attachment) => (
-                <li key={attachment.url}>
-                  <a
-                    href={attachment.url}
-                    download={attachment.name}
-                    className="flex min-h-12 items-center gap-3 rounded-control border border-border bg-surface px-4 py-2 text-sm hover:border-brand-line hover:bg-brand-soft"
-                  >
-                    <span aria-hidden="true" className="text-muted">⤓</span>
-                    <span className="min-w-0 flex-1 break-all font-semibold">{attachment.name}</span>
-                    <span className="num shrink-0 text-xs text-muted">{formatFileSize(attachment.size)}</span>
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
-
-        {post.tags.length ? (
-          <ul aria-label="태그" className="flex flex-wrap gap-2 border-t border-border-soft px-5 py-5 sm:px-8">
-            {post.tags.map((tag) => (
-              <li key={tag} className="rounded-full bg-surface px-3 py-1 text-xs font-semibold text-muted-strong">#{tag}</li>
-            ))}
-          </ul>
-        ) : null}
+        <AuditionPostContent post={post} />
       </article>
       {post.company ? <CompanySummaryCard company={post.company} /> : <CompanyPendingCard authorName={post.authorName} />}
     </>

@@ -1,8 +1,8 @@
 import type { IconType } from "react-icons";
-import { PiCaretLeft, PiCaretRight, PiInfo, PiList, PiMagnifyingGlass, PiMaskHappy, PiTicket, PiX } from "react-icons/pi";
+import { PiDownloadSimple, PiImage, PiMinus, PiPlus, PiCaretLeft, PiCaretRight, PiInfo, PiList, PiMagnifyingGlass, PiMaskHappy, PiTicket, PiX } from "react-icons/pi";
 
 const icons = {
-  menu: PiList, close: PiX, search: PiMagnifyingGlass,
+  menu: PiList, close: PiX, search: PiMagnifyingGlass, download: PiDownloadSimple, image: PiImage, minus: PiMinus, plus: PiPlus,
   previous: PiCaretLeft, next: PiCaretRight, auditions: PiMaskHappy,
   shows: PiTicket, about: PiInfo,
 } satisfies Record<string, IconType>;

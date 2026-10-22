@@ -1,5 +1,6 @@
 "use client";
 
+import { ApplicantPageContainer as PageContainer } from "./applicant-page-container";
 import Image from "next/image";
 import Link from "next/link";
 import { getApplicantSubmissions, getApplicantProfile, getRecommendedPostings } from "@/features/applicants/api";
@@ -73,9 +74,6 @@ function RecommendationCard({ posting }: { readonly posting: RecommendedPosting 
   return <li><Link href={`/apply/${posting.id}?prefill=1`} className="group flex min-h-52 flex-col rounded-card border border-border bg-card p-5 transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:border-brand-line hover:shadow-[var(--shadow-1)]"><div className="flex items-center gap-2"><PostingStatusBadge status={posting.status} /><span className="truncate text-xs text-muted">{posting.companyName}</span></div><strong className="mt-5 line-clamp-2 text-lg leading-7 group-hover:text-brand">{posting.performanceTitle}</strong><span className="mt-1 line-clamp-1 text-sm text-muted-strong">{posting.title}</span><span className="num mt-auto pt-5 text-sm font-medium text-muted">{label} · {formatApplicantDate(date)}</span></Link></li>;
 }
 
-function PageContainer({ children }: { readonly children: React.ReactNode }) {
-  return <div className="mx-auto w-full max-w-[1180px] px-5 py-9 md:px-8 md:py-12">{children}</div>;
-}
 
 function DashboardEmpty({ title, detail }: { readonly title: string; readonly detail: string }) {
   return <div className="mt-5 rounded-card border border-dashed border-border bg-surface px-5 py-8 text-center"><strong>{title}</strong><p className="mt-2 text-sm leading-6 text-muted">{detail}</p></div>;
