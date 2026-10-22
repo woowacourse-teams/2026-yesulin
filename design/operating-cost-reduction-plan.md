@@ -241,6 +241,7 @@
 - 절감은 13.8(RI 없음 7.6)이다. micro였을 때는 RI로 0원이었을 가능성이 높다.
 - PROD DB는 micro에서 MySQL이 OOM으로 종료된 이력이 있다.
 - 다시 꺼내려면 2주 메모리 측정, `performance_schema=OFF`·`innodb_buffer_pool_size` 조정, swap 추가, PROD 백업 선행, 점검 시간 공지가 필요하다.
+  2026-10-22 기준 이 중 PROD 백업과 MySQL 설정 조정(627 → 235MiB)은 끝났다. 남은 것은 2주 메모리 측정, swap, 운영진 요청(정지 권한)이다.
   변경 중 PROD가 2~5분 중단된다.
 - 1·2순위로 한도 안에 들어오면 하지 않는다.
 

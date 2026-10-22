@@ -101,7 +101,9 @@
 - ALB 일 비용 USD 0.54는 시간 요금 USD 0.0225 × 24시간과 같다. 트래픽 요금(LCU)은 거의 없다.
   ALB는 계정 규칙상 지정 LB를 써야 하며 DEV와 PROD가 이미 한 개를 공유한다.
 - PROD DB는 t4g.micro(1GiB)에서 MySQL이 메모리 부족(OOM)으로 종료되어 t4g.small로 증설했다.
-  MySQL 컨테이너 메모리 제한은 700MiB이고 swap은 없다. 증설 후 16분 관찰 기록만 있고 장시간·부하 상황은 확인하지 않았다.
+  MySQL 컨테이너 메모리 제한은 700MiB이고 swap은 없다. MySQL은 데이터가 4.5MiB인데도 기본 설정(`performance_schema` ON,
+  버퍼 풀 256MiB) 때문에 627MiB(상한의 90%)까지 늘었다. 2026-10-22에 `performance_schema=OFF`, 버퍼 풀 128MiB로 바꿔
+  235MiB로 줄였다(DEV도 같게). 자세한 내용은 [MySQL 메모리 조정 기록](../../../design/db-memory-tuning-record.md)을 본다.
 - 앱 서버의 systemd `ExecStart`에는 `-Xmx`가 없다. DEV(2026-10-09)와 PROD(2026-10-19) 모두 환경 파일의
   `JAVA_TOOL_OPTIONS=-Xmx384m`으로 힙 상한을 둔다. 두 환경 모두 micro라 메모리가 작아 기본 GC가 SerialGC다.
 - 스냅샷은 9개다. Launch Template AMI용 `yesulin-backend-base-20260913-sops-v2` 1개와 DEV DB 주간 스냅샷
