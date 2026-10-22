@@ -70,19 +70,22 @@ describe("공연 일정에 따른 목록 구분", () => {
       ]} />);
       const upcoming = html.slice(html.indexOf('aria-label="다가오는 공연"'), html.indexOf('aria-label="예매 마감"'));
       const ended = html.slice(html.indexOf('aria-label="예매 마감"'));
-      const cardText = (id: string) => {
+      const cardMarkup = (id: string) => {
         const start = ended.indexOf(`href="/shows/${id}"`);
-        return ended.slice(start, ended.indexOf("</a>", start)).replace(/<[^>]+>/g, "");
+        return ended.slice(start, ended.indexOf("</a>", start));
       };
       expect(upcoming).toContain('href="/shows/future"');
       expect(upcoming).not.toContain('href="/shows/past"');
       expect(upcoming).not.toContain('href="/shows/closed"');
       expect(ended).toContain('href="/shows/past"');
       expect(ended).toContain('href="/shows/none"');
-      expect(cardText("past")).toContain("예매 마감 · 예정 회차 없음");
-      expect(cardText("past")).not.toContain("다음 회차");
-      expect(cardText("none")).toContain("예매 마감 · 예정 회차 없음");
-      expect(cardText("closed")).toContain("예매 마감 · 다음 회차 10월 20일 (화) 17:00");
+      expect(cardMarkup("past")).toContain("예매 마감");
+      expect(cardMarkup("past")).toContain("예정 회차 없음");
+      expect(cardMarkup("past")).not.toContain("다음 회차");
+      expect(cardMarkup("none")).toContain("예매 마감");
+      expect(cardMarkup("none")).toContain("예정 회차 없음");
+      expect(cardMarkup("closed")).toContain("예매 마감");
+      expect(cardMarkup("closed")).toContain("다음 회차 10월 20일 (화) 17:00");
     } finally { vi.restoreAllMocks(); }
   });
 });
