@@ -101,11 +101,11 @@ public class ShowManagementService {
     }
 
     /**
-     * 모든 회차 행을 잠근 뒤 예매 기록을 확인해, 확인과 삭제 사이에 들어온 예매가 삭제를 DB 오류로 만들지 못하게 한다.
+     * 예매와 같은 공연 → 회차 순서로 잠근 뒤 예매 기록을 확인해, 확인과 삭제 사이에 예매가 끼어들지 못하게 한다.
      */
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public void delete(long ownerId, UUID showId) {
-        delete(getOwnedShow(ownerId, showId));
+        delete(getOwnedShowForUpdate(ownerId, showId));
     }
 
     @Transactional(propagation = Propagation.MANDATORY)
@@ -137,7 +137,7 @@ public class ShowManagementService {
 
     @Transactional
     public ProducerShowResult changeVisibility(long ownerId, UUID showId, boolean hidden) {
-        return changeVisibility(getOwnedShow(ownerId, showId), hidden);
+        return changeVisibility(getOwnedShowForUpdate(ownerId, showId), hidden);
     }
 
     @Transactional(propagation = Propagation.MANDATORY)
@@ -212,6 +212,11 @@ public class ShowManagementService {
 
     private Show getOwnedShow(long ownerId, UUID showId) {
         return showRepository.findByPublicIdAndOwnerId(showId, ownerId)
+                .orElseThrow(() -> new BusinessException(NOT_FOUND, "공연을 찾을 수 없습니다."));
+    }
+
+    private Show getOwnedShowForUpdate(long ownerId, UUID showId) {
+        return showRepository.findByPublicIdAndOwnerIdForUpdate(showId, ownerId)
                 .orElseThrow(() -> new BusinessException(NOT_FOUND, "공연을 찾을 수 없습니다."));
     }
 

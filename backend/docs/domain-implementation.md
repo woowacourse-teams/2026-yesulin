@@ -52,7 +52,11 @@
 - `Reservation`은 회차 ID, 8자리 예매번호, `Booker`(이름·휴대폰), 매수(1~10), 동의 문서 버전, `CONFIRMED/CANCELED`,
   기획사 메모(300자 이하)를 저장한다. 생성·취소·매수 변경 때 `ReservationConfirmedEvent`, `ReservationCanceledEvent`,
   `ReservationTicketCountChangedEvent`를 등록한다. 매수 변경은 확정 예매만 가능하다.
-- `ReservationService.reserve`는 회차 행을 `PESSIMISTIC_WRITE`로 잠근 뒤 같은 번호의 확정 예매와 확정 매수를 다시 읽는다.
+- 숨김·숨김 해제, 새 예매, 외부 예매 이동 기록은 같은 공연 행을 `PESSIMISTIC_WRITE`로 잠근다.
+  새 예매·이동 기록은 잠금을 얻은 뒤 공개 여부를 검사한다.
+  먼저 잠근 작업이 커밋될 때까지 다음 작업이 기다린다. 숨김이 먼저 완료되면 새 예매·이동 기록은 숨김 상태를 읽고 거절한다.
+  같은 공연의 서로 다른 회차 예매도 공연 행 잠금을 공유한다. 공연 삭제도 공연 → 회차 순서로 잠근다.
+- `ReservationService.reserve`는 공연 행 다음에 회차 행을 `PESSIMISTIC_WRITE`로 잠근 뒤 같은 번호의 확정 예매와 확정 매수를 다시 읽는다.
   같은 회차의 예매는 모두 이 잠금을 거치므로 중복 번호와 정원 초과를 DB 제약 없이 막는다.
   정원 수정·회차 삭제·공연 삭제·매수 변경도 같은 잠금을 잡는다. 예매 취소는 회차를 잠그지 않으므로 매수 변경은
   회차를 잠근 뒤 예매 행도 잠가 새로 읽고, 그사이 취소된 예매는 `RESERVATION_NOT_CHANGEABLE`로 거절한다.

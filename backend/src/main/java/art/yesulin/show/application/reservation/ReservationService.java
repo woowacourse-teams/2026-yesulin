@@ -35,6 +35,7 @@ public class ReservationService {
     private final Clock clock;
 
     /**
+     * 공연 행을 먼저 잠가 숨김 변경과 예매를 순서대로 처리한다.
      * 한 회차의 예매는 모두 회차 행 잠금을 거친다. 잠금 안에서 중복 번호와 확정 매수를 다시 읽어
      * 동시에 들어온 예매가 정원을 넘기거나 같은 번호로 두 번 확정되지 않게 한다.
      * MySQL 기본 격리 수준(REPEATABLE READ)은 잠금 전 첫 조회의 스냅샷을 계속 읽어 먼저 확정된 예매를
@@ -42,7 +43,7 @@ public class ReservationService {
      */
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public ReservationReceiptResult reserve(UUID showId, long sessionId, ReserveCommand command) {
-        Show show = showRepository.findByPublicId(showId)
+        Show show = showRepository.findByPublicIdForUpdate(showId)
                 .filter(Show::isPublic)
                 .orElseThrow(() -> new BusinessException(ShowErrorCode.NOT_FOUND, "공연을 찾을 수 없습니다."));
         show.ensureReservableHere();

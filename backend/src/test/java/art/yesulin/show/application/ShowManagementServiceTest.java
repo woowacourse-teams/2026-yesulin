@@ -20,6 +20,7 @@ import art.yesulin.show.application.admin.ChangeShowHostNameCommand;
 import art.yesulin.show.application.performance.PerformanceVenueCommand;
 import art.yesulin.show.application.reservation.ReservationService;
 import art.yesulin.show.application.reservation.ReserveCommand;
+import art.yesulin.show.domain.ExternalReservationVisitRepository;
 import art.yesulin.show.domain.ShowErrorCode;
 import art.yesulin.show.domain.ShowGenre;
 import art.yesulin.show.domain.ShowRepository;
@@ -50,6 +51,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 
 @SpringBootTest(properties = {
@@ -94,6 +96,9 @@ class ShowManagementServiceTest {
     private ReservationRepository reservationRepository;
 
     @Autowired
+    private ExternalReservationVisitRepository visitRepository;
+
+    @Autowired
     private FileAssetRepository fileAssetRepository;
 
     @Autowired
@@ -112,6 +117,7 @@ class ShowManagementServiceTest {
         fixture = new ShowTestFixture(
                 showRepository, sessionRepository, reservationRepository, fileAssetRepository, fileReferenceRepository
         );
+        visitRepository.deleteAll();
         fixture.cleanUp();
         producerRepository.deleteAll();
     }
@@ -258,6 +264,71 @@ class ShowManagementServiceTest {
                 () -> showManagementService.changeVisibility(OWNER_ID, showId, true));
         assertTrue(publicShowService.findPublicShows().isEmpty());
         assertCode(ShowErrorCode.NOT_FOUND, () -> publicShowService.find(showId));
+    }
+
+    @Test
+    void reservationWaitsForHidingToCommitAndThenRejectsHiddenShow() throws Exception {
+        UUID showId = create().id();
+        long sessionId = showManagementService.addSession(
+                OWNER_ID, showId, new SaveShowSessionCommand(ShowTestFixture.STARTS_AT, 10)
+        ).sessions().getFirst().id();
+        showManagementService.open(OWNER_ID, showId);
+
+        assertWaitsForCommit(
+                () -> showManagementService.changeVisibility(OWNER_ID, showId, true),
+                () -> assertCode(ShowErrorCode.NOT_FOUND, () -> reservationService.reserve(
+                        showId, sessionId, new ReserveCommand("홍길동", "010-1111-2222", 2, true)
+                ))
+        );
+
+        assertEquals(0, reservationRepository.count());
+    }
+
+    @Test
+    void hidingWaitsForReservationToCommitAndKeepsIt() throws Exception {
+        UUID showId = create().id();
+        long sessionId = showManagementService.addSession(
+                OWNER_ID, showId, new SaveShowSessionCommand(ShowTestFixture.STARTS_AT, 10)
+        ).sessions().getFirst().id();
+        showManagementService.open(OWNER_ID, showId);
+
+        assertWaitsForCommit(
+                () -> reservationService.reserve(
+                        showId, sessionId, new ReserveCommand("홍길동", "010-1111-2222", 2, true)
+                ),
+                () -> showManagementService.changeVisibility(OWNER_ID, showId, true)
+        );
+
+        ProducerShowResult hidden = showManagementService.find(OWNER_ID, showId);
+        assertTrue(hidden.hidden());
+        assertEquals(2, hidden.sessions().getFirst().reservedTickets());
+    }
+
+    @Test
+    void externalVisitWaitsForAdminHidingToCommitAndThenRejectsHiddenShow() throws Exception {
+        UUID showId = createOpenAdminShow();
+
+        assertWaitsForCommit(
+                () -> adminShowManagementService.changeVisibility(ADMIN_ID, showId, true),
+                () -> assertCode(ShowErrorCode.NOT_FOUND,
+                        () -> publicShowService.recordExternalReservationVisit(showId))
+        );
+
+        assertEquals(0, adminShowManagementService.find(showId).externalReservationVisits());
+    }
+
+    @Test
+    void adminHidingWaitsForExternalVisitToCommitAndKeepsIt() throws Exception {
+        UUID showId = createOpenAdminShow();
+
+        assertWaitsForCommit(
+                () -> publicShowService.recordExternalReservationVisit(showId),
+                () -> adminShowManagementService.changeVisibility(ADMIN_ID, showId, true)
+        );
+
+        ProducerShowResult hidden = adminShowManagementService.find(showId);
+        assertTrue(hidden.hidden());
+        assertEquals(1, hidden.externalReservationVisits());
     }
 
     @Test
@@ -580,6 +651,46 @@ class ShowManagementServiceTest {
             Thread.currentThread().interrupt();
             throw new IllegalStateException(exception);
         }
+    }
+
+    /** 먼저 시작한 작업을 커밋 전 멈춰 두고, 같은 공연을 쓰는 다음 작업이 커밋까지 기다리는지 확인한다. */
+    private void assertWaitsForCommit(Runnable first, Runnable second) throws Exception {
+        CountDownLatch firstCompleted = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        CountDownLatch secondStarted = new CountDownLatch(1);
+        TransactionTemplate transaction = new TransactionTemplate(transactionManager);
+        transaction.setIsolationLevel(TransactionDefinition.ISOLATION_READ_COMMITTED);
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            final Future<?> firstResult = executor.submit(() -> transaction.executeWithoutResult(status -> {
+                first.run();
+                firstCompleted.countDown();
+                awaitQuietly(release);
+            }));
+            assertTrue(firstCompleted.await(5, TimeUnit.SECONDS));
+            Future<?> secondResult = executor.submit(() -> {
+                secondStarted.countDown();
+                second.run();
+            });
+            assertTrue(secondStarted.await(5, TimeUnit.SECONDS));
+            assertThrows(TimeoutException.class, () -> secondResult.get(500, TimeUnit.MILLISECONDS));
+            release.countDown();
+            firstResult.get(5, TimeUnit.SECONDS);
+            secondResult.get(5, TimeUnit.SECONDS);
+        } finally {
+            release.countDown();
+            executor.shutdownNow();
+            assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS));
+        }
+    }
+
+    private UUID createOpenAdminShow() {
+        UUID showId = adminShowManagementService.create(
+                ADMIN_ID, command(fixture.readyImage(ADMIN_ID), List.of()), NAVER_FORM_URL
+        ).id();
+        adminShowManagementService.addSession(showId, new SaveShowSessionCommand(ShowTestFixture.STARTS_AT, 0));
+        adminShowManagementService.open(ADMIN_ID, showId);
+        return showId;
     }
 
     private ProducerShowResult create() {

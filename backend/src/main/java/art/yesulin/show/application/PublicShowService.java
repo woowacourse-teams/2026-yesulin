@@ -113,7 +113,7 @@ public class PublicShowService {
     /** 관객이 외부 링크 공연에서 예매하기를 눌러 외부 예매 페이지로 간 기록을 남긴다. 예매 중인 공연만 받는다. */
     @Transactional
     public void recordExternalReservationVisit(UUID showId) {
-        Show show = showRepository.findByPublicId(showId)
+        Show show = showRepository.findByPublicIdForUpdate(showId)
                 .filter(Show::isPublic)
                 .orElseThrow(() -> new BusinessException(NOT_FOUND, "공연을 찾을 수 없습니다."));
         show.ensureOpen();
