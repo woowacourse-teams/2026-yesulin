@@ -84,7 +84,7 @@ public class AuditionNoticeService {
     private AuditionAlert importAndLink(AuditionContent content, String source) {
         try {
             return auditionImporter.importIfAbsent(source, content.externalId())
-                    .map(postId -> new AuditionAlert(content, noticeLink.postLink(postId)))
+                    .map(postId -> new AuditionAlert(content, noticeLink.openChatPostLink(postId)))
                     .orElseGet(() -> originalAlert(content));
         } catch (RuntimeException exception) {
             log.warn("공고 자동 가져오기 실패: {}-{}", source, content.externalId());
@@ -99,7 +99,7 @@ public class AuditionNoticeService {
     }
 
     private AuditionAlert originalAlert(AuditionContent content) {
-        return new AuditionAlert(content, noticeLink.create(content.externalId()));
+        return new AuditionAlert(content, noticeLink.openChatOtrLink(content.externalId()));
     }
 
     private Optional<AuditionContent> resolveContent(Notice notice, List<AuditionContent> recent) {

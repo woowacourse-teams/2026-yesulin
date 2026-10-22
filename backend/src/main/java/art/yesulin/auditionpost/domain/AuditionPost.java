@@ -115,6 +115,10 @@ public class AuditionPost {
     @Column(name = "view_count", nullable = false)
     private long viewCount;
 
+    /** 브라우저가 중복을 제외하고 보낸 오픈채팅방 링크 방문. 원자적 update로만 늘린다. */
+    @Column(name = "openchat_visit_count", nullable = false, updatable = false)
+    private long openChatVisitCount;
+
     /** 숨긴 상태에서 상세 주소를 열어 원문으로 보낸 수. 조회수와 따로 세며 다시 가져와도 유지한다. */
     @Column(name = "redirect_count", nullable = false)
     private long redirectCount;

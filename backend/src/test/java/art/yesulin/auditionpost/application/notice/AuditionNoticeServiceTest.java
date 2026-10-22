@@ -97,8 +97,8 @@ class AuditionNoticeServiceTest {
         InOrder order = inOrder(importer, notifier);
         order.verify(importer).importIfAbsent("OTR", "22330");
         order.verify(notifier).sendAlerts(List.of(
-                new AuditionAlert(content("22330"), "https://yesulin.art/posts/7"),
-                new AuditionAlert(content("22333"), "https://yesulin.art/otr?vid=22333")
+                new AuditionAlert(content("22330"), "https://yesulin.art/posts/7?src=kakao_openchat"),
+                new AuditionAlert(content("22333"), "https://yesulin.art/otr?vid=22333&src=kakao_openchat")
         ));
     }
 
@@ -112,7 +112,7 @@ class AuditionNoticeServiceTest {
 
         verify(notifier).sendError(argThat(message -> message.contains("[OTR-22331] 자동 가져오기 실패")));
         verify(notifier).sendAlerts(List.of(
-                new AuditionAlert(content("22331"), "https://yesulin.art/otr?vid=22331")
+                new AuditionAlert(content("22331"), "https://yesulin.art/otr?vid=22331&src=kakao_openchat")
         ));
         assertThat(stored("22331").getStatus()).isEqualTo(NoticeStatus.SENT);
     }
@@ -405,7 +405,7 @@ class AuditionNoticeServiceTest {
 
     private List<AuditionAlert> alerts(String... externalIds) {
         return Arrays.stream(externalIds)
-                .map(externalId -> new AuditionAlert(content(externalId), "https://yesulin.art/otr?vid=" + externalId))
+                .map(externalId -> new AuditionAlert(content(externalId), "https://yesulin.art/otr?vid=" + externalId + "&src=kakao_openchat"))
                 .toList();
     }
 
