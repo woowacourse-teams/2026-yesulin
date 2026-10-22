@@ -1,0 +1,14 @@
+# 2026-10-22 12:31~12:32 KST, yesulin-db-dev, Session Manager
+== 바꾸기 전
+/usr/local/sbin: yesulin-create-ebs-snapshot, yesulin-mysql-logical-backup, yesulin-verify-logical-backup (2026-08-21 설치), yesulin-monitor-database
+/etc/yesulin/backup.env 없음 (DEV 기본값 사용)
+yesulin-mysql-backup.timer  마지막 2026-10-21 18:19:01 UTC (10/22 03:19 KST), 다음 2026-10-22 18:22 UTC
+yesulin-ebs-snapshot.timer  마지막 2026-10-17 19:29:52 UTC (10/18 04:29 KST), 다음 2026-10-24 19:21 UTC
+aws-cli/2.36.28, 메모리 전체 904MiB · 사용 가능 296MiB (복구 연습 최소 600MiB 미달이라 DEV에서는 복구 연습을 하지 않음)
+== 스크립트 교체 (커밋 f33b626) 후 수동 1회
+2026-10-22T03:32:15+00:00
+MySQL logical backup uploaded: s3://techcourse-project-2026/yesulin/backups/mysql/2026/10/22/yesulin-staging-20261022T033215Z.sql.gz
+Tables counted: 85
+yesulin-mysql-backup.service: Deactivated successfully. Consumed 3.738s CPU time.
+yesulin-mysql-backup.timer  다음 2026-10-22 18:15:55 UTC
+yesulin-ebs-snapshot.timer  다음 2026-10-24 19:28:20 UTC (이번 일요일부터 90일 지난 yesulin-db-staging-weekly 스냅샷 자동 삭제)

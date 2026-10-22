@@ -1,0 +1,27 @@
+# 2026-10-22 12:10 KST, yesulin-db-prod, Session Manager (읽기 전용 확인)
+== host
+2026-10-22T03:10:25+00:00
+ip-10-0-100-133
+ 03:10:25 up 25 days, 13:38,  0 user,  load average: 0.00, 0.01, 0.00
+== memory / disk
+               total        used        free      shared  buff/cache   available
+Mem:            1835        1096         149           1         751         738
+Swap:              0           0           0
+Filesystem     Type  Size  Used Avail Use% Mounted on
+/dev/root      ext4   11G  4.7G  6.0G  44% /
+/dev/nvme1n1   ext4   20G  262M   19G   2% /data/mysql
+== mysql container
+yesulin-mysql | b3b90af2a655 | Up 3 weeks (healthy)
+== compose (비밀값 줄 제외, 이미지 digest 일부 생략)
+image: mysql@sha256:b3b90af2… / container_name: yesulin-mysql / env_file: /etc/yesulin/mysql.env
+volumes: /data/mysql/data:/var/lib/mysql / --innodb-buffer-pool-size=256M / --max-connections=50 / mem_limit: 700m
+== 설치된 백업
+백업 스크립트 없음 (타이머는 yesulin-database-metrics.timer 하나뿐)
+== aws cli
+(없음)
+== data volume
+/dev/nvme1n1 vol-0d8385b0e12a259e9
+== db 크기
+yesulin_prod    85      4.5     (표 85개, 4.5MiB)
+== 권한 확인
+aws: command not found (AWS CLI 미설치)

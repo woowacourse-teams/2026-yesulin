@@ -106,7 +106,7 @@
   `JAVA_TOOL_OPTIONS=-Xmx384m`으로 힙 상한을 둔다. 두 환경 모두 micro라 메모리가 작아 기본 GC가 SerialGC다.
 - 스냅샷은 9개다. Launch Template AMI용 `yesulin-backend-base-20260913-sops-v2` 1개와 DEV DB 주간 스냅샷
   `yesulin-db-staging-weekly` 8개(2026-08 말~2026-10-04)다. 주간 스냅샷 1개의 크기는 645~704MiB다.
-- 주간 EBS 스냅샷의 `RetentionDays=90` 태그는 자동 삭제가 아니다([백업](backup.md)). 삭제 정책이 없으면 스냅샷이 계속 쌓인다.
+- 2026-10-22부터 스냅샷 스크립트가 같은 이름의 90일 지난 스냅샷을 지우고, S3 논리 백업은 수명 주기 규칙으로 90일 뒤 만료한다([백업](backup.md)).
 
 ### CI/CD
 
@@ -140,7 +140,7 @@
   배포는 계속되므로 교체 뒤 로그 그룹에 새 인스턴스 스트림이 생겼는지 확인한다.
 - 공고 자동 수집·Slack 알림 스케줄러(`AuditionImportScheduler`)는 `prod` 프로필에서만 실행된다.
   DEV는 공고를 자동으로 수집하거나 알리지 않는다.
-- 백업 타이머는 DEV DB에서 매일 03:15, 일요일 04:15에 실행되며 `Persistent=true`다. PROD 전용 백업 설정 기록은 없다.
+- 백업 타이머는 DEV·PROD DB에서 매일 03:15, 일요일 04:15에 실행되며 `Persistent=true`다. PROD는 2026-10-22에 적용했다([백업](backup.md)).
 
 ### 모니터링
 
