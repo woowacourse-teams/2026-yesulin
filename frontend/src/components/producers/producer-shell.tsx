@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { LogoutButton } from "@/components/auth/logout-button";
 import { ModalShell } from "@/components/auditions/modal-shell";
 import { OtrAuditionProvider } from "@/components/otr-auditions/otr-audition-context";
 import { OtrAuditionTreeNav } from "@/components/otr-auditions/otr-audition-tree";
@@ -100,11 +101,12 @@ function ProducerShellFrame({
 
         <div className={`min-w-0 ${focusMode || !desktopSidebarOpen ? "" : "lg:ml-[var(--sidebar-width)]"}`}>
           <MobileProducerNavigation />
-          {!focusMode && !desktopSidebarOpen ? (
-            <div className="glass-surface hidden min-h-16 items-center border-b border-border px-6 py-2 lg:flex">
-              <ProducerSidebarToggle />
+          <div className="glass-surface hidden min-h-16 items-center justify-between border-b border-border px-6 py-2 lg:flex">
+            {!focusMode ? <ProducerSidebarToggle /> : null}
+            <div className="ml-auto">
+              <LogoutButton className="min-h-11 rounded-control px-3 text-sm font-semibold text-muted-strong hover:bg-brand-soft hover:text-brand" />
             </div>
-          ) : null}
+          </div>
           <main id="producer-main" className="min-h-screen">
             {children}
           </main>

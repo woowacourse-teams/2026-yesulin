@@ -10,7 +10,7 @@ import {
   SessionApiError,
   login as requestLogin,
 } from "@/features/auth/session-api";
-import { rememberSocialLoginReturnTo } from "@/features/auth/social-login-return-to";
+import { DEFAULT_APPLICANT_LOGIN_RETURN_TO, rememberSocialLoginReturnTo } from "@/features/auth/social-login-return-to";
 import { frontendEnvironment } from "@/config/environment";
 import {
   createFrontendCredential,
@@ -130,9 +130,10 @@ export function LoginForm({ returnTo, applicationFlow = false }: { readonly retu
       displayName: `${PROVIDER_LABELS[provider]} 배우`,
       socialProvider: provider,
     });
-    trackLoginSuccess(returnTo ?? "/applicants", applicantAttribution);
+    const destination = returnTo ?? DEFAULT_APPLICANT_LOGIN_RETURN_TO;
+    trackLoginSuccess(destination, applicantAttribution);
     toast(applicationFlow ? "로그인했습니다. 지원서 검토 화면으로 돌아갑니다." : "배우 계정으로 로그인했습니다.", { type: "success" });
-    router.push(returnTo ?? "/applicants");
+    router.push(destination);
   }
 
   const applicantLogin = applicationFlow || role === "applicant";

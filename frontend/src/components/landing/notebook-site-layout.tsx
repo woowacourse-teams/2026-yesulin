@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useAuthSession } from "@/components/auth/auth-session";
+import { LogoutButton } from "@/components/auth/logout-button";
 import { applicantRoutes } from "@/features/applicants/routes";
 import { TrackedLoginLink } from "@/components/analytics/tracked-login-link";
 import { PolicyLinks } from "@/components/policies/policy-links";
@@ -39,10 +40,14 @@ function currentMenu(pathname: string): (typeof menuItems)[number]["key"] | unde
 
 function HeaderLogin({ service }: { readonly service: "applicant" | "producer" }) {
   const { session } = useAuthSession();
-  if (session?.role === "APPLICANT") return <Link href={applicantRoutes.submissions}>내 지원서</Link>;
-  if (session?.role === "PRODUCER") return <Link href="/producers/shows">공연사 대시보드</Link>;
+  if (session) return <>
+    {session.role === "APPLICANT"
+      ? <Link href={applicantRoutes.submissions}>내 지원서</Link>
+      : <Link href="/producers/shows">공연사 대시보드</Link>}
+    <LogoutButton />
+  </>;
   const producer = service === "producer";
-  return <TrackedLoginLink href="/login" analytics={{ entry_point: producer ? "producer_landing_header" : "landing_header", login_reason: producer ? "manage_production" : "account_access", actor_type: service, return_target: producer ? "producer_home" : "applicant_home" }}>로그인</TrackedLoginLink>;
+  return <TrackedLoginLink href="/login" analytics={{ entry_point: producer ? "producer_landing_header" : "landing_header", login_reason: producer ? "manage_production" : "account_access", actor_type: service, return_target: producer ? "producer_home" : "other" }}>로그인</TrackedLoginLink>;
 }
 
 function MobileNavigation({ current, service }: { readonly current?: string; readonly service: "applicant" | "producer" }) {
