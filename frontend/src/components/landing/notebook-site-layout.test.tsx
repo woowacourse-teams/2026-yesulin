@@ -12,6 +12,7 @@ describe("공개 헤더의 계정 이동", () => {
   it("방문자는 기존 로그인 경로를 이용한다", () => {
     const html = renderToStaticMarkup(<NotebookHeader />);
     expect(html).toContain('href="/login"');
+    expect(html).toContain('href="/producer-service"');
     expect(html).not.toContain("로그아웃");
   });
 
@@ -21,6 +22,7 @@ describe("공개 헤더의 계정 이동", () => {
     expect(html).toContain('href="/applicants/submissions"');
     expect(html).not.toContain('href="/login"');
     expect(html).toContain("로그아웃");
+    expect(html).not.toContain('href="/producer-service"');
   });
 
   it("공연사 세션은 기존 공연 관리로 연결한다", () => {
@@ -29,5 +31,6 @@ describe("공개 헤더의 계정 이동", () => {
     expect(html).toContain('href="/producers/shows"');
     expect(html).not.toContain('href="/applicants/submissions"');
     expect(html).toContain("로그아웃");
+    expect(html).not.toContain('href="/producer-service"');
   });
 });
