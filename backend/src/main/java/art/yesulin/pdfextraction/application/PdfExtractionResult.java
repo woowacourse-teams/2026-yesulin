@@ -1,5 +1,6 @@
 package art.yesulin.pdfextraction.application;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -9,15 +10,21 @@ public record PdfExtractionResult(
         String sourceSha256,
         String errorCode,
         List<String> warnings,
-        List<Page> pages
+        List<Page> pages,
+        @JsonInclude(JsonInclude.Include.NON_NULL) PdfApplicantInfo applicantInfo
 ) {
+
+    public PdfExtractionResult(String status, String sourceSha256, String errorCode, List<String> warnings,
+                               List<Page> pages) {
+        this(status, sourceSha256, errorCode, warnings, pages, null);
+    }
 
     public PdfExtractionResult withImageUrls(Function<String, String> urlOf) {
         List<Page> signed = pages.stream().map(page -> new Page(page.number(), page.text(), page.needsOcr(),
                 page.images().stream()
                         .map(image -> new Image(image.fileKey(), urlOf.apply(image.fileKey()), image.classification()))
                         .toList())).toList();
-        return new PdfExtractionResult(status, sourceSha256, errorCode, warnings, signed);
+        return new PdfExtractionResult(status, sourceSha256, errorCode, warnings, signed, applicantInfo);
     }
 
     public String extractedText() {

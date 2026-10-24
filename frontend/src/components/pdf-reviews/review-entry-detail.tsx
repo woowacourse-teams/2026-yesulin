@@ -8,7 +8,6 @@ import type { PdfExtractionJob } from "@/features/pdf-extractions/types";
 import { isUnauthorized } from "@/features/pdf-reviews/api";
 import { matchStatusLabels, sameKey, type ReviewDetail, type ReviewEntry } from "@/features/pdf-reviews/types";
 import { ReviewEntryForm } from "./review-entry-form";
-import { ReviewEntryReanalysis } from "./review-entry-reanalysis";
 
 type Props = {
   readonly review: ReviewDetail;
@@ -30,7 +29,6 @@ export function ReviewEntryDetail({ review, entry, refreshKey, onSaved, onUnauth
   const [job, setJob] = useState<PdfExtractionJob | null>(null);
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
-  const [mutating, setMutating] = useState(false);
   const role = entry.matchStatus === "MATCHED" ? review.roles.find(item => sameKey(item.id, entry.roleId))?.name : undefined;
 
   useEffect(() => {
@@ -54,11 +52,7 @@ export function ReviewEntryDetail({ review, entry, refreshKey, onSaved, onUnauth
         <ReadOnlyField label="배역 확인 상태" value={matchStatusLabels[entry.matchStatus]} />
         {entry.matchEvidence ? <ReadOnlyField label="지원서에 적힌 근거" value={entry.matchEvidence} muted /> : null}
       </dl>
-      <ReviewEntryReanalysis key={String(entry.id)} reviewId={review.id} entryId={entry.id}
-        ready={entry.matchStatus !== "WAITING" && job?.jobId === entry.jobId && !!job.result}
-        disabled={mutating} onBusyChange={setMutating} onSaved={onSaved} onUnauthorized={onUnauthorized} />
-      <div className="mt-5"><ReviewEntryForm key={String(entry.id)} reviewId={review.id} entry={entry}
-        disabled={mutating} onBusyChange={setMutating} onSaved={onSaved} onUnauthorized={onUnauthorized} /></div>
+      <div className="mt-5"><ReviewEntryForm key={String(entry.id)} reviewId={review.id} entry={entry} onSaved={onSaved} onUnauthorized={onUnauthorized} /></div>
     </section>
     {error ? <div role="alert" className="rounded-control border border-border bg-card p-4 text-sm text-fail">
       <p className="break-words">{error}</p>

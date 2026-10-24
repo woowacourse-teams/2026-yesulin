@@ -22,8 +22,6 @@ public final class PdfReviewAnalyzer {
             "키", "신장", "몸무게", "체중", "학력", "경력", "출연경력", "특기", "소속", "사진", "비고", "자기소개",
             "지원동기", "신체사항", "병역", "국적", "학교", "전공", "링크", "연도", "작품명"
     );
-    private static final String ROLE_SUFFIX_TEXT = "역";
-    private static final Pattern ROLE_SUFFIX = Pattern.compile("^(.*\\S)\\s*" + ROLE_SUFFIX_TEXT + "$");
     private static final Pattern LABEL = labelPattern();
     private static final Pattern DECORATION_ONLY = Pattern.compile("^[\\s•·▪■□◆◇○●*\\-\\[\\](]*(?:\\d+[.)]\\s*)?$");
     private static final Pattern LEADING_SEPARATORS = Pattern.compile("^[\\s:：|｜]+");
@@ -59,59 +57,17 @@ public final class PdfReviewAnalyzer {
         Set<String> values = candidates.stream()
                 .map(Labeled::value)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
-        List<RoleResolution> resolutions = values.stream().map(value -> resolve(value, roles)).toList();
-        Set<String> roleIds = resolutions.stream()
-                .filter(resolution -> resolution.role() != null)
-                .map(resolution -> resolution.role().getId())
-                .collect(Collectors.toSet());
-        boolean allResolved = resolutions.stream().allMatch(resolution -> resolution.role() != null);
-        if (!allResolved || roleIds.size() != 1) {
-            return needsCheck(applicantName, unresolvedEvidence(values));
-        }
-        return new PdfReviewAnalysis(applicantName, roleIds.iterator().next(), PdfReviewMatchStatus.MATCHED,
-                matchedEvidence(resolutions));
-    }
-
-    private static RoleResolution resolve(String value, List<PdfReviewRole> roles) {
-        List<PdfReviewRole> exact = namedRoles(roles, value);
-        if (!exact.isEmpty()) {
-            return new RoleResolution(value, exact.size() == 1 ? exact.get(0) : null, false);
-        }
-        Matcher suffixed = ROLE_SUFFIX.matcher(value);
-        if (!suffixed.matches()) {
-            return new RoleResolution(value, null, false);
-        }
-        String base = suffixed.group(1);
-        List<PdfReviewRole> fallback = namedRoles(roles, base);
-        boolean collidesWithSuffixedName = !namedRoles(roles, base + ROLE_SUFFIX_TEXT).isEmpty();
-        if (fallback.size() != 1 || collidesWithSuffixedName) {
-            return new RoleResolution(value, null, false);
-        }
-        return new RoleResolution(value, fallback.get(0), true);
-    }
-
-    private static List<PdfReviewRole> namedRoles(List<PdfReviewRole> roles, String name) {
-        return roles.stream().filter(role -> role.getName().equals(name)).toList();
-    }
-
-    private static String unresolvedEvidence(Set<String> values) {
-        String quoted = values.stream().map(PdfReviewAnalyzer::quote).collect(Collectors.joining(", "));
         if (values.size() > 1) {
-            return "지원 배역 값이 여러 개이거나 일부를 배역으로 확정할 수 없습니다: " + quoted;
+            return needsCheck(applicantName, "지원 배역 값이 여러 개입니다: "
+                    + values.stream().map(PdfReviewAnalyzer::quote).collect(Collectors.joining(", ")));
         }
-        return "지원 배역 " + quoted + "와(과) 정확히 일치하거나 끝의 '역'만 제외해 유일하게 일치하는 배역이 없습니다.";
-    }
-
-    private static String matchedEvidence(List<RoleResolution> resolutions) {
-        String roleName = quote(resolutions.get(0).role().getName());
-        String values = resolutions.stream()
-                .map(resolution -> quote(resolution.value()))
-                .collect(Collectors.joining(", "));
-        if (resolutions.stream().noneMatch(RoleResolution::suffixRemoved)) {
-            return "지원 배역 " + values + "와(과) 배역 이름이 정확히 일치합니다.";
+        String value = values.iterator().next();
+        List<PdfReviewRole> sameName = roles.stream().filter(role -> role.getName().equals(value)).toList();
+        if (sameName.size() != 1) {
+            return needsCheck(applicantName, "지원 배역 " + quote(value) + "와(과) 정확히 일치하는 배역이 없습니다.");
         }
-        return "지원 배역 " + values + "에서 끝의 '역'을 제외하면 배역 이름 " + roleName
-                + "와(과) 일치합니다(정확히 일치하는 배역 이름이 없을 때만 적용).";
+        return new PdfReviewAnalysis(applicantName, sameName.get(0).getId(), PdfReviewMatchStatus.MATCHED,
+                "지원 배역 " + quote(value) + "와(과) 배역 이름이 정확히 일치합니다.");
     }
 
     private static List<Labeled> roleCandidates(List<Labeled> found) {
@@ -238,9 +194,6 @@ public final class PdfReviewAnalyzer {
     }
 
     private record LabelMatch(String label, int start, int end) {
-    }
-
-    private record RoleResolution(String value, PdfReviewRole role, boolean suffixRemoved) {
     }
 
     private record Labeled(String label, String value) {

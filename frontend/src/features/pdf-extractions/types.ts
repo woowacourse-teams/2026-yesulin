@@ -11,6 +11,17 @@ export type PdfExtractionResult = {
     readonly needsOcr: boolean;
     readonly images: readonly { readonly fileKey: string; readonly url: string; readonly classification: string }[];
   }[];
+  readonly applicantInfo?: {
+    readonly version: "applicant-info-v1";
+    readonly status: "COMPLETED" | "FAILED" | "SKIPPED";
+    readonly provider: "bedrock" | "gemini" | "";
+    readonly model: string;
+    readonly applicantName: string | null;
+    readonly applicantNameEvidence: string | null;
+    readonly roleId: string | null;
+    readonly roleEvidence: string | null;
+    readonly reason: string;
+  };
 };
 
 export type PdfExtractionJob = {

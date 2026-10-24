@@ -84,16 +84,6 @@ public class PdfReviewController {
                         request.memo(), request.decision()));
     }
 
-    @PostMapping("/{reviewId}/entries/{entryId}/analysis")
-    public ResponseEntity<PdfReviewEntryView> reanalyzeEntry(
-            @LoginMember(roles = MemberType.PRODUCER, statuses = MemberStatus.ACTIVE) MemberPrincipal principal,
-            @PathVariable UUID reviewId,
-            @PathVariable UUID entryId
-    ) {
-        return ResponseEntity.ok().cacheControl(CacheControl.noStore())
-                .body(service.reanalyzeEntry(principal.memberId(), reviewId.toString(), entryId.toString()));
-    }
-
     public record ReviewsResponse(List<PdfReviewSummary> reviews) {
     }
 }

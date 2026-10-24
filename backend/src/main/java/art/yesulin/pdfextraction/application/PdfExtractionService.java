@@ -1,7 +1,6 @@
 package art.yesulin.pdfextraction.application;
 
 import static art.yesulin.pdfextraction.domain.PdfExtractionErrorCode.PDF_EXTRACTION_NOT_FOUND;
-import static art.yesulin.pdfextraction.domain.PdfExtractionErrorCode.PDF_EXTRACTION_RESULT_NOT_READY;
 
 import art.yesulin.global.exception.BusinessException;
 import art.yesulin.pdfextraction.domain.PdfExtractionJob;
@@ -67,23 +66,6 @@ public class PdfExtractionService {
         PdfExtractionJob job = repository.findByIdAndOwnerId(id, ownerId).orElseThrow(this::notFound);
         PdfExtractionResult result = includeResult && job.isFinished() ? storedResult(job) : null;
         return PdfExtractionView.of(job, pendingStatus(job), storage, result, includeResult);
-    }
-
-    @Transactional(readOnly = true)
-    public String findStoredText(long ownerId, String id) {
-        PdfExtractionJob job = repository.findByIdAndOwnerId(id, ownerId).orElseThrow(this::notFound);
-        if (!job.isFinished()) {
-            throw resultNotReady();
-        }
-        return payloads.findById(job.getId())
-                .map(payload -> mapper.readValue(payload.getPayloadJson(), PdfExtractionResult.class))
-                .map(PdfExtractionResult::extractedText)
-                .orElseThrow(this::resultNotReady);
-    }
-
-    private BusinessException resultNotReady() {
-        return new BusinessException(PDF_EXTRACTION_RESULT_NOT_READY,
-                "저장된 PDF 추출 결과가 아직 없습니다. 추출 완료 후 다시 확인해 주세요.");
     }
 
     private PdfExtractionResult storedResult(PdfExtractionJob job) {

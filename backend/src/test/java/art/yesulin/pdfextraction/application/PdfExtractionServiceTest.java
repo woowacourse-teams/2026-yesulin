@@ -2,7 +2,6 @@ package art.yesulin.pdfextraction.application;
 
 import static art.yesulin.pdfextraction.application.PdfExtractionFixtures.MAPPER;
 import static art.yesulin.pdfextraction.application.PdfExtractionFixtures.NOW;
-import static art.yesulin.pdfextraction.domain.PdfExtractionErrorCode.PDF_EXTRACTION_RESULT_NOT_READY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -150,56 +149,6 @@ class PdfExtractionServiceTest {
         assertEquals("QUEUED", detail.status());
         assertNull(detail.result());
         verify(payloads, never()).findById(anyString());
-    }
-
-    @Test
-    void storedAnalysisTextIsReadFromDatabaseWithoutSigningOrSourceVerification() {
-        String id = service.prepare(1L, "a.pdf", 100).jobId();
-        jobs.get(id).receiveResult("PARTIAL", NOW);
-        PdfExtractionResult stored = new PdfExtractionResult("PARTIAL", "abc", "", List.of(), List.of(
-                new PdfExtractionResult.Page(1, "이름: 테스트배우", false, List.of()),
-                new PdfExtractionResult.Page(2, "지원배역: 햄릿역", false, List.of())));
-        storedPayloads.put(id, new PdfExtractionPayload(id, MAPPER.writeValueAsString(stored), "digest", NOW));
-
-        assertEquals("이름: 테스트배우\n\n지원배역: 햄릿역", service.findStoredText(1L, id));
-        assertEquals(0, storage.verifications());
-        assertEquals(0, storage.signedUrls());
-    }
-
-    @Test
-    void anotherOwnerCannotReadStoredAnalysisText() {
-        String id = service.prepare(1L, "a.pdf", 100).jobId();
-        jobs.get(id).receiveResult("COMPLETED", NOW);
-
-        assertThrows(BusinessException.class, () -> service.findStoredText(2L, id));
-
-        verify(payloads, never()).findById(anyString());
-        assertEquals(0, storage.signedUrls());
-    }
-
-    @Test
-    void pendingOrMissingStoredResultCannotBeUsedForAnalysis() {
-        String id = service.prepare(1L, "a.pdf", 100).jobId();
-
-        BusinessException pending = assertThrows(BusinessException.class, () -> service.findStoredText(1L, id));
-        assertEquals(PDF_EXTRACTION_RESULT_NOT_READY, pending.getErrorCode());
-        verify(payloads, never()).findById(anyString());
-
-        jobs.get(id).receiveResult("COMPLETED", NOW);
-        BusinessException missing = assertThrows(BusinessException.class, () -> service.findStoredText(1L, id));
-        assertEquals(PDF_EXTRACTION_RESULT_NOT_READY, missing.getErrorCode());
-    }
-
-    @Test
-    void failedExtractionWithNoTextCanBeExplainedWithoutReextractingThePdf() {
-        String id = service.prepare(1L, "a.pdf", 100).jobId();
-        jobs.get(id).receiveResult("FAILED", NOW);
-        PdfExtractionResult stored = new PdfExtractionResult("FAILED", "abc", "INVALID_PDF", List.of(), List.of());
-        storedPayloads.put(id, new PdfExtractionPayload(id, MAPPER.writeValueAsString(stored), "digest", NOW));
-
-        assertEquals("", service.findStoredText(1L, id));
-        assertEquals(0, storage.verifications());
-        assertEquals(0, storage.signedUrls());
     }
 
     @Test

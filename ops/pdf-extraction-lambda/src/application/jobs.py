@@ -103,7 +103,7 @@ def process_job(event, settings, store, notify, remaining_ms=None):
                 image["key"] = f"{settings.result_prefix}{scope}{job_id}/{PIPELINE_VERSION}/images/{name}"
                 uploads.append((assets / name, image["key"]))
         # Spring 결과 읽기 상한과 맞춘다. 너무 큰 manifest를 정상 결과로 저장하지 않는다.
-        if len(json.dumps(result, ensure_ascii=False).encode("utf-8")) > 2 * 1024 * 1024:
+        if len(json.dumps(result, ensure_ascii=False).encode("utf-8")) > 2 * 1024 * 1024 - 8192:
             result.update({"status": "FAILED", "errorCode": "RESULT_SIZE_LIMIT_EXCEEDED", "pages": []})
         else:
             for path, key in uploads:

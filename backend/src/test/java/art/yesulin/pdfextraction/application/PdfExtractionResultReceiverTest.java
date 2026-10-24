@@ -124,6 +124,47 @@ class PdfExtractionResultReceiverTest {
     }
 
     @Test
+    void applicantInfoIsStoredInThePayloadAndCarriedByTheEvent() {
+        ObjectNode manifest = withApplicantInfo(manifest(job, storage, "COMPLETED", "본문"), "홍길동");
+
+        receiver.receive(command(job, storage, manifest));
+
+        PdfExtractionCompletedEvent event = (PdfExtractionCompletedEvent) events.get(0);
+        assertEquals("홍길동", event.applicantInfo().applicantName());
+        assertTrue(storedPayloads.get(job.getId()).getPayloadJson().contains("\"applicantName\":\"홍길동\""));
+    }
+
+    @Test
+    void resultWithoutApplicantInfoKeepsTheLegacyPayloadShape() {
+        receiver.receive(command(job, storage, manifest(job, storage, "COMPLETED", "본문")));
+
+        assertFalse(storedPayloads.get(job.getId()).getPayloadJson().contains("applicantInfo"));
+        assertNull(((PdfExtractionCompletedEvent) events.get(0)).applicantInfo());
+    }
+
+    @Test
+    void duplicateCallbackWithSameApplicantInfoIsStableAndDifferentOneConflicts() {
+        receiver.receive(command(job, storage, withApplicantInfo(manifest(job, storage, "COMPLETED", "본문"), "홍길동")));
+
+        receiver.receive(command(job, storage, withApplicantInfo(manifest(job, storage, "COMPLETED", "본문"), "홍길동")));
+        BusinessException exception = assertThrows(BusinessException.class, () -> receiver.receive(command(job, storage,
+                withApplicantInfo(manifest(job, storage, "COMPLETED", "본문"), "김철수"))));
+
+        assertEquals("PDF_EXTRACTION_RESULT_CONFLICT", exception.getErrorCode().code());
+        assertEquals(1, events.size());
+    }
+
+    @Test
+    void malformedApplicantInfoIsRejectedBeforeAnythingIsStored() {
+        ObjectNode manifest = manifest(job, storage, "COMPLETED", "본문");
+        manifest.putObject("applicantInfo").put("version", "applicant-info-v1").put("status", "MAYBE");
+
+        assertInvalid(command(job, storage, manifest));
+        verify(payloads, never()).save(any());
+        assertTrue(events.isEmpty());
+    }
+
+    @Test
     void failedResultPublishesCompletionSoWaitingScreensCanUpdate() {
         receiver.receive(command(job, storage, manifest(job, storage, "FAILED")));
         assertEquals(PdfExtractionStatus.FAILED, job.getStatus());
@@ -256,6 +297,13 @@ class PdfExtractionResultReceiverTest {
         return new PdfExtractionResultReceiver(repository, payloads,
                 new PdfExtractionResultParser(storage, MAPPER), publisher, MAPPER,
                 Clock.fixed(NOW, ZoneOffset.UTC));
+    }
+
+    private ObjectNode withApplicantInfo(ObjectNode manifest, String name) {
+        manifest.putObject("applicantInfo").put("version", "applicant-info-v1").put("status", "COMPLETED")
+                .put("provider", "bedrock").put("model", "model-1").put("applicantName", name)
+                .put("applicantNameEvidence", name);
+        return manifest;
     }
 
     private void assertInvalid(ReceivePdfExtractionResultCommand command) {

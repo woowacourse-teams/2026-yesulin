@@ -52,7 +52,8 @@ public class PdfExtractionResultParser {
             warningText(warning).ifPresent(warnings::add);
         }
         return new PdfExtractionResult(status, root.path("source").path("sha256").asText(),
-                root.path("errorCode").asText(""), List.copyOf(warnings), pages);
+                root.path("errorCode").asText(""), List.copyOf(warnings), pages,
+                PdfApplicantInfo.parse(root.path("applicantInfo")));
     }
 
     private List<PdfExtractionResult.Page> pages(PdfExtractionJob job, JsonNode sourcePages) {

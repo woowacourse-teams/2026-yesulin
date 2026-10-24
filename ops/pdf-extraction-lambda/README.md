@@ -1,7 +1,8 @@
 # 여러 PDF 업로드와 추출 확인
 
 이번 범위는 파일별 presigned 업로드, 실제 PDFium 텍스트·이미지 추출, 본인 결과 확인이다.
-후속 기능은 제목·배역으로 심사를 생성하고 명시된 지원 배역을 연결한 뒤 담당자가 메모·심사 결정을 저장한다. OCR·얼굴/로고 분류·Bedrock·SQS·DLQ·공유 IAM 변경은 포함하지 않는다.
+후속 기능은 제목·배역으로 심사를 생성하고 지원 정보를 연결한 뒤 담당자가 메모·심사 결정을 저장한다.
+선택적으로 Bedrock 또는 Gemini가 추출 문자를 구조화한다. OCR·얼굴/로고 분류·SQS·DLQ·공유 IAM 변경은 포함하지 않는다.
 실제 지원서·결과·ZIP 빌드 산출물은 `.gitignore`된 `output/`, `build/`에만 둔다.
 
 ## 구성과 패키지 경계
@@ -73,7 +74,8 @@ LocalStack 컨테이너를 삭제하면 로컬 S3·Lambda 데이터는 사라진
 ## 로컬 검증의 한계
 
 - LocalStack에서는 서명 없는 익명 원본 GET도 200으로 응답했다. 따라서 실제 AWS의 IAM·버킷 정책·비공개 차단은 검증하지 못했다.
-- 로컬 브라우저 업로드 → 실제 Lambda 컨테이너 → 완료 API → 결과 확인까지만 검증했다. 실제 AWS에서는 합성 PDF 업로드로 Lambda 자동 실행과 결과 JSON·이미지 저장을 확인했다. 완료 API의 DB 반영까지는 백엔드 배포 후 확인한다.
+- 로컬에서는 Lambda 컨테이너와 실제 Gemini 호출 후 완료 API의 심사 반영까지 가상 자료로 검증했다.
+  기존 AI 없는 추출·심사 흐름은 Dev에서도 확인됐지만, 이 AI 추가 계약과 Bedrock 역할 호출은 별도 배포·검증이 필요하다.
 - LocalStack 컨테이너의 Docker health가 unhealthy로 표시돼도 API와 Lambda는 동작했다. health 표시만으로 재시작하거나 삭제하지 않는다.
 - 비공개 버킷의 서명 없는 GET 차단과 서명 주소의 만료·CORS는 로컬이 아니라 실제 AWS에서 확인한다.
 
@@ -98,9 +100,9 @@ LocalStack 컨테이너를 삭제하면 로컬 S3·Lambda 데이터는 사라진
 일반 presigned URL은 객체 한 개용이다. 여러 파일에는 각각 URL을 발급하고 업로드를 제한된 동시성으로 실행한다.
 S3 멀티파트 업로드는 큰 파일 하나를 여러 조각으로 보내는 방식이며 여러 PDF 업로드와 구분한다.
 
-## 적용된 Dev 인프라와 미배포 상태
+## 적용된 Dev 인프라와 AI 배포 구분
 
-실제 AWS에서 S3 업로드 → Lambda 추출 → S3 결과 저장까지 확인했다. 아래 설정을 포함한 PR이 아직 배포되지 않아 완료 API의 DB 반영은 미검증이다.
+기존 PDF 추출·완료 API·심사 화면은 Dev에 배포됐다. AI 추가 계약은 별도 Spring·Lambda 배포와 제공자 활성화가 필요하다.
 
 **로컬 검증**: LocalStack과 로컬 Spring/브라우저에서 확인한 흐름이다. AWS 접근 제어는 검증하지 않았다.
 
@@ -125,7 +127,7 @@ S3 멀티파트 업로드는 큰 파일 하나를 여러 조각으로 보내는 
 2026-10-25에 개인정보 없는 36KB·1페이지 PDF를 실제 S3에 업로드하여 자동 실행과 `result.json` 및 PNG 1개 생성을 확인했다. 익명 원본 HEAD는 403이었다.
 현재 Dev 완료 API는 올바른 worker 토큰을 보내도 403을 반환하여 Lambda 전체 호출은 실패·재시도 상태다. 추출·저장 성공과 서버 반영 성공을 구분한다.
 콘솔 합성 시험 job은 Spring이 발급한 job이 아니므로, 배포 후에는 공연사 화면에서 새 job을 만들어 업로드한 뒤 DB 반영까지 확인한다.
-Bedrock·OCR·SQS는 사용하지 않는다.
+기본 설정에서는 AI를 호출하지 않는다. AI 제공자는 아래 환경 변수로 선택하며 OCR·SQS는 사용하지 않는다.
 
 ## 실패와 재실행
 
@@ -136,6 +138,53 @@ presigned URL이 만료돼도 본인 job의 기존 원본이 검증을 통과하
 별도 job에 올린 바이트가 같은 PDF의 SHA 기반 전역 중복 제거도 이번 범위가 아니다.
 
 손상 PDF·페이지 상한·결과 2MiB 상한 등은 FAILED manifest로 저장한다. 이미지 일부 실패는 PARTIAL과 경고를 남긴다.
+AI 정보가 추가될 공간을 위해 추출 manifest에는 8KiB의 여유를 남긴다.
+
+## AI 지원 정보 정리
+
+| Lambda 환경 변수 | 값 |
+| --- | --- |
+| `PDF_AI_PROVIDER` | `none`(기본), `gemini`, `bedrock` 중 하나 |
+| `GEMINI_API_KEY` | Gemini를 선택한 경우 서버 전용 API 키 |
+| `GEMINI_MODEL` | 기본 `gemini-3.5-flash-lite`. 실제 계정에서 사용할 수 있는 모델인지 확인한다 |
+| `BEDROCK_MODEL_ID` | Bedrock 선택 시 필수. JSON Schema 구조화 출력을 지원하는 모델/추론 프로파일 |
+| `BEDROCK_REGION` | 선택. 없으면 Lambda의 AWS SDK 기본 리전 |
+
+AI 제공자는 설정 시 하나를 선택한다. 호출 실패 때 다른 업체로 지원서 내용을 자동 전송하지 않는다.
+Bedrock 어댑터는 기존 boto3와 실행 역할의 임시 인증을 사용하고, Gemini는 별도 SDK 없이 HTTPS REST를 사용한다.
+키는 프론트 환경 변수·저장소·로그에 넣지 않는다. 실제 Lambda의 IAM 권한이나 API 키를 코드가 자동 생성하지 않는다.
+
+흐름은 `추출 캐시 → Bearer GET /internal/v1/pdf-extractions/{jobId}/review-context → AI JSON → 완료 POST`다.
+모델에는 추출 문자와 해당 심사의 배역 ID·이름만 보낸다. 원본·이미지 URL·fileKey는 모델에 전달하지 않는다.
+AI가 이름·명시적 지원 의향 배역·원문 인용을 반환하면 워커와 Spring이 각각 원문 근거·등록 배역을 검증한다.
+원문의 지시는 데이터로 취급한다. 합불·점수·메모를 생성하지 않는다.
+
+빈 텍스트·미연결 심사·32,000자 초과 본문은 모델을 호출하지 않고 생략 상태를 보낸다. 제공자 오류나 잘못된 응답은
+AI 실패로 기록하되 PDF 텍스트·이미지는 그대로 완료 API로 전달한다. AI 실패 후 자동 모델 재호출은 하지 않는다.
+AI를 다시 분석하는 사용자 기능은 별도 후속 작업이며, 기존 지원서에 임의로 새 결과를 덮어쓰지 않는다.
+외부 모델 호출은 25초 상한이며 남은 Lambda 실행 시간이 45초 미만이면 먼저 예외를 발생시켜 다음 실행이 추출 캐시를 재사용하게 한다.
+
+AI 결과는 동일 결과 폴더의 `applicant-info-v1.json`에 조건부 생성으로 저장한다. 완료 API 전송이 실패해 재시도돼도
+저장된 AI 결과를 다시 사용한다. 동시에 중복 이벤트가 시작되면 모델을 각각 호출할 가능성은 있지만,
+최초로 게시된 결과 하나만 완료 API에 전달한다. 정확히 한 번의 모델 호출을 보장하는 분산 잠금은 아직 없다.
+원본 추출 `result.json`은 수정하지 않는다. 이전 버전으로 이미 Spring에 저장한 작업은 `resultStored:true`로 확인해
+옛 콜백 본문을 그대로 재전송한다. AI 결과와 추출 원문은 Spring payload DB에 함께 저장된다.
+
+배포 순서는 **Spring의 context API·AI 콜백 계약 배포 → Lambda 코드 갱신 → 제공자 환경 변수 활성화**다.
+LocalStack에서 같은 경로를 검증할 수 있으나 실제 외부 모델 호출에는 해당 제공자의 키/권한이 필요하다.
+로컬 설정은 아래처럼 키를 파일 경로로 전달한다. 키 파일은 저장소 밖에 본인만 읽을 수 있게 보관한다.
+
+```bash
+PDF_AI_PROVIDER=gemini GEMINI_API_KEY_FILE=/path/to/private-key-file \
+  python ops/pdf-extraction-lambda/scripts/setup_local.py
+```
+
+무료 Gemini의 데이터 사용 조건이 있으므로 초기 연결 시험은 가상 자료로 진행한다.
+
+공식 문서: [Bedrock 인증](https://docs.aws.amazon.com/bedrock/latest/userguide/api-keys.html),
+[Bedrock 구조화 출력](https://docs.aws.amazon.com/bedrock/latest/userguide/structured-output.html),
+[Gemini 구조화 출력](https://ai.google.dev/gemini-api/docs/structured-output),
+[Gemini 요금·데이터 사용](https://ai.google.dev/gemini-api/docs/pricing).
 네트워크·저장소 오류·시간 부족은 함수 오류로 알려 비동기 재시도 대상으로 삼는다. PDF 25MiB·50쪽, 이미지 100개·총 PNG 40MiB,
 이미지 원본 20M 픽셀·출력 긴 변 1600px 제한을 사용한다. `needsOcr`는 빈 텍스트 힌트이며 스캔 확정이나 OCR 결과가 아니다.
 

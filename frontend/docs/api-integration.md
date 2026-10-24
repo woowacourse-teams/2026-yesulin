@@ -84,9 +84,6 @@ DEV 공고 알림도 기본 공유 링크는 `https://yesulin.art`로 발급한�
 ## PDF 추출 확인
 
 제목·배역으로 심사를 생성해 지원서를 연결하는 후속 흐름은 [PDF 지원서 심사](pdf-reviews.md)를 따른다.
-지원서 상세의 ‘배역 다시 확인’은 본문 없는 `POST /api/v1/pdf-reviews/{reviewId}/entries/{entryId}/analysis`를 호출하며
-CSRF 헤더를 보낸다. 응답으로 선택 항목과 배역별 집계를 갱신한다. 같은 항목의 메모·결정 입력 폼을 다시 마운트하지 않아
-저장 전 입력도 유지한다. 추출 결과가 있는 항목에만 제공하며 재업로드나 Lambda 호출은 하지 않는다.
 
 `features/pdf-extractions`가 `/api/v1/pdf-extractions/**`를 호출하고 `components/pdf-extractions`가 다중 파일 선택과
 파일별 상태·원본 viewer·추출 텍스트·이미지를 표시한다. `/producers/pdf-extractions`는 기존 공연사 세션을 사용한다.

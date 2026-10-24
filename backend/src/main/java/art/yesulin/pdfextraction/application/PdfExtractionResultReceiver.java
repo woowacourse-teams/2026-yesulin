@@ -49,7 +49,8 @@ public class PdfExtractionResultReceiver {
         }
         payloads.save(new PdfExtractionPayload(job.getId(), payloadJson, digest, clock.instant()));
         job.receiveResult(result.status(), clock.instant());
-        events.publishEvent(new PdfExtractionCompletedEvent(job.getId(), job.getOwnerId(), result.extractedText()));
+        events.publishEvent(new PdfExtractionCompletedEvent(job.getId(), job.getOwnerId(), result.extractedText(),
+                result.applicantInfo()));
         return new Receipt(job.getId(), job.getStatus().name());
     }
 

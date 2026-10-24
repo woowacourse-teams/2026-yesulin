@@ -15,12 +15,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import art.yesulin.global.exception.BusinessException;
+import art.yesulin.pdfextraction.application.PdfApplicantInfo;
 import art.yesulin.pdfextraction.application.PdfExtractionService;
 import art.yesulin.pdfextraction.application.PdfExtractionService.PreparedUpload;
 import art.yesulin.pdfextraction.application.PdfExtractionStorage;
 import art.yesulin.pdfextraction.domain.PdfExtractionErrorCode;
 import art.yesulin.pdfreview.domain.PdfReview;
-import art.yesulin.pdfreview.domain.PdfReviewAnalysis;
 import art.yesulin.pdfreview.domain.PdfReviewCount;
 import art.yesulin.pdfreview.domain.PdfReviewDecision;
 import art.yesulin.pdfreview.domain.PdfReviewEntry;
@@ -184,6 +184,45 @@ class PdfReviewServiceTest {
     }
 
     @Test
+    void applicantInfoReplacesLabelMatchingAndNeverTouchesMemoOrDecision() {
+        PdfReviewDetail created = service.create(OWNER, "제목", List.of("햄릿", "오필리아"));
+        PdfReviewEntryView uploaded = uploadEntry(created.id());
+        service.editEntry(OWNER, created.id(), uploaded.id(), "메모", PdfReviewDecision.PASS);
+        String ophelia = created.roles().get(1).id();
+
+        extractionService.applyExtraction(uploaded.jobId(), OWNER, "성명: 홍길동\n지원배역: 햄릿\n오필리아 지원",
+                applicantInfo("COMPLETED", "", "홍길동", "성명: 홍길동", ophelia, "오필리아 지원"));
+
+        PdfReviewEntryView entry = service.find(OWNER, created.id()).entries().get(0);
+        assertEquals(PdfReviewMatchStatus.MATCHED, entry.matchStatus());
+        assertEquals(ophelia, entry.roleId());
+        assertEquals("홍길동", entry.applicantName());
+        assertEquals("메모", entry.memo());
+        assertEquals(PdfReviewDecision.PASS, entry.decision());
+    }
+
+    @Test
+    void applicantInfoWithUnknownRoleOrFailureNeedsCheckWithoutFallingBackToLabels() {
+        PdfReviewDetail created = service.create(OWNER, "제목", List.of("햄릿"));
+        PdfReviewEntryView uploaded = uploadEntry(created.id());
+        String text = "성명: 홍길동\n지원배역: 햄릿";
+
+        extractionService.applyExtraction(uploaded.jobId(), OWNER, text,
+                applicantInfo("COMPLETED", "", "홍길동", "성명: 홍길동", UUID.randomUUID().toString(), "지원배역: 햄릿"));
+        PdfReviewEntryView unknownRole = service.find(OWNER, created.id()).entries().get(0);
+        assertEquals(PdfReviewMatchStatus.NEEDS_CHECK, unknownRole.matchStatus());
+        assertNull(unknownRole.roleId());
+        assertEquals("홍길동", unknownRole.applicantName());
+        extractionService.applyExtraction(uploaded.jobId(), OWNER, text,
+                applicantInfo("FAILED", "PROVIDER_ERROR", null, null, null, null));
+        PdfReviewEntryView failed = service.find(OWNER, created.id()).entries().get(0);
+
+        assertEquals(PdfReviewMatchStatus.NEEDS_CHECK, failed.matchStatus());
+        assertNull(failed.roleId());
+        assertNull(failed.applicantName());
+    }
+
+    @Test
     void repeatedResultKeepsTheSameStateAndEditedFields() {
         PdfReviewDetail created = service.create(OWNER, "제목", List.of("햄릿"));
         PdfReviewEntryView uploaded = uploadEntry(created.id());
@@ -199,69 +238,6 @@ class PdfReviewServiceTest {
         assertEquals("메모", second.memo());
         assertEquals(PdfReviewDecision.FAIL, second.decision());
         assertEquals(1, entries.size());
-    }
-
-    @Test
-    void reanalysisUpdatesAutomaticFieldsWhileKeepingHumanMemoAndDecision() {
-        PdfReviewDetail review = service.create(OWNER, "제목", List.of("햄릿"));
-        PdfReviewEntryView uploaded = uploadEntry(review.id());
-        entries.get(uploaded.id()).applyAnalysis(new PdfReviewAnalysis(null, null,
-                PdfReviewMatchStatus.NEEDS_CHECK, "이전 규칙으로 연결하지 못했습니다."));
-        service.editEntry(OWNER, review.id(), uploaded.id(), "직접 남긴 메모", PdfReviewDecision.HOLD);
-        when(extraction.findStoredText(OWNER, uploaded.jobId())).thenReturn("성명: 테스트배우\n지원배역: 햄릿역");
-
-        PdfReviewEntryView updated = service.reanalyzeEntry(OWNER, review.id(), uploaded.id());
-
-        assertEquals("테스트배우", updated.applicantName());
-        assertEquals(review.roles().getFirst().id(), updated.roleId());
-        assertEquals(PdfReviewMatchStatus.MATCHED, updated.matchStatus());
-        assertEquals("직접 남긴 메모", updated.memo());
-        assertEquals(PdfReviewDecision.HOLD, updated.decision());
-        assertEquals(uploaded.jobId(), updated.jobId());
-        assertEquals(1, entries.size());
-    }
-
-    @Test
-    void reanalysisRejectsAnotherOwnerOrAnEntryFromAnotherReviewBeforeReadingText() {
-        PdfReviewDetail review = service.create(OWNER, "첫째", List.of("햄릿"));
-        PdfReviewDetail otherReview = service.create(OWNER, "둘째", List.of("햄릿"));
-        PdfReviewEntryView uploaded = uploadEntry(review.id());
-
-        assertNotFound(() -> service.reanalyzeEntry(OTHER_OWNER, review.id(), uploaded.id()));
-        BusinessException crossed = assertThrows(BusinessException.class,
-                () -> service.reanalyzeEntry(OWNER, otherReview.id(), uploaded.id()));
-
-        assertEquals(PDF_REVIEW_ENTRY_NOT_FOUND, crossed.getErrorCode());
-        verify(extraction, never()).findStoredText(anyLong(), anyString());
-    }
-
-    @Test
-    void unavailableTextLeavesExistingAnalysisAndHumanFieldsUntouched() {
-        PdfReviewDetail review = service.create(OWNER, "제목", List.of("햄릿"));
-        PdfReviewEntryView uploaded = uploadEntry(review.id());
-        extractionService.applyExtraction(uploaded.jobId(), OWNER, "성명: 테스트배우\n지원배역: 햄릿");
-        service.editEntry(OWNER, review.id(), uploaded.id(), "저장한 메모", PdfReviewDecision.HOLD);
-        PdfReviewEntryView before = service.find(OWNER, review.id()).entries().getFirst();
-        when(extraction.findStoredText(OWNER, uploaded.jobId())).thenThrow(new BusinessException(
-                PdfExtractionErrorCode.PDF_EXTRACTION_RESULT_NOT_READY, "추출 결과 대기 중"));
-
-        assertThrows(BusinessException.class, () -> service.reanalyzeEntry(OWNER, review.id(), uploaded.id()));
-
-        assertEquals(before, service.find(OWNER, review.id()).entries().getFirst());
-    }
-
-    @Test
-    void repeatedReanalysisIsStableAndNeverCreatesAnotherUpload() {
-        PdfReviewDetail review = service.create(OWNER, "제목", List.of("햄릿"));
-        PdfReviewEntryView uploaded = uploadEntry(review.id());
-        when(extraction.findStoredText(OWNER, uploaded.jobId())).thenReturn("지원배역: 햄릿역");
-
-        PdfReviewEntryView first = service.reanalyzeEntry(OWNER, review.id(), uploaded.id());
-        PdfReviewEntryView second = service.reanalyzeEntry(OWNER, review.id(), uploaded.id());
-
-        assertEquals(first, second);
-        assertEquals(1, entries.size());
-        verify(extraction).prepare(OWNER, review.id(), "a.pdf", 10);
     }
 
     @Test
@@ -299,6 +275,12 @@ class PdfReviewServiceTest {
 
         assertThrows(IllegalStateException.class,
                 () -> extractionService.applyExtraction(uploaded.jobId(), OWNER, "지원배역: 햄릿"));
+    }
+
+    private PdfApplicantInfo applicantInfo(String status, String reason, String name, String nameEvidence,
+                                           String roleId, String roleEvidence) {
+        return new PdfApplicantInfo("applicant-info-v1", status, "bedrock", "model-1", name, nameEvidence, roleId,
+                roleEvidence, reason);
     }
 
     private PdfReviewEntryView uploadEntry(String reviewId) {
