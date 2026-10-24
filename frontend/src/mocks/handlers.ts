@@ -43,6 +43,17 @@ import { noticeHandlers } from "./auditions/notice-handlers";
 const apiPath = "/api";
 const realProducerApiEnabled = frontendEnvironment.producerApiEnabled;
 
+const pdfPassthroughPaths = [
+  "/api/v1/pdf-extractions",
+  "/api/v1/pdf-extractions/events",
+  "/api/v1/pdf-extractions/*",
+  "/api/v1/pdf-reviews",
+  "/api/v1/pdf-reviews/:reviewId",
+  "/api/v1/pdf-reviews/:reviewId/uploads",
+  "/api/v1/pdf-reviews/:reviewId/entries/:entryId",
+  "/api/v1/pdf-reviews/*",
+];
+
 const notFound = (message: string) => HttpResponse.json({ message }, { status: 404 });
 const badRequest = (message: string) => HttpResponse.json({ message }, { status: 400 });
 const apiError = (status: number, code: string, message: string) =>
@@ -52,6 +63,8 @@ const hasText = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0;
 
 export const handlers = [
+  // PDF 추출·심사는 MSW가 켜져 있어도 저장소·추출 결과·심사 기록을 가짜 성공으로 대체하지 않는다. SSE도 서버로 넘긴다.
+  ...pdfPassthroughPaths.map(path => http.all(path, () => passthrough())),
   ...noticeHandlers,
   ...authHandlers,
   ...adminHandlers,
