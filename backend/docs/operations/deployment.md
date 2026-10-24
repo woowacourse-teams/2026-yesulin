@@ -20,6 +20,11 @@ PROD의 `AuditionImportScheduler`는 새 OTR 공고를 우리 공고로 검토 �
 `KOPIS_API_KEY`(공연예술통합전산망 Open API 인증키)는 선택이다. 있으면 운영자 공연사 정보 쓰기가 KOPIS 기획제작사로 처음 값을
 채우고, 없으면 KOPIS 없이 쓴다. LOCAL은 `config/server/local.env`, DEV·PROD는 SOPS 암호화된 env에 넣는다.
 
+PDF 추출은 `YESULIN_PDF_EXTRACTION_ENABLED=true`와 32자 이상 `YESULIN_PDF_EXTRACTION_CALLBACK_SECRET`이 모두 있어야 동작한다.
+두 값은 DEV·PROD 각각 `config/server/{환경}.env`에 SOPS로 넣으며 Lambda의 `PDF_COMPLETION_API_TOKEN`과 같은 값을 쓴다.
+Lambda는 백엔드 도메인의 `/internal/v1/pdf-extractions/completions`로 POST하므로, 해당 도메인의 ALB 규칙이 이 경로를
+프론트가 아닌 같은 환경 백엔드 target group으로 전달해야 한다. EC2에는 Nginx가 없어 저장소에서 바꿀 프록시 설정은 없다.
+
 `YESULIN_NOTICE_LINK_BASE_URL`은 필수 환경 변수다. LOCAL은 `config/server/local.env`의
 `http://localhost:3000`, DEV·PROD는 SOPS 암호화된 `config/server/dev.env`·`prod.env`의 `https://yesulin.art`를 사용한다.
 PROD 알림은 가져온 공고 주소(`https://yesulin.art/posts/{id}?src=kakao_openchat`)를 바로 쓴다. 공개 전이거나 내렸으면

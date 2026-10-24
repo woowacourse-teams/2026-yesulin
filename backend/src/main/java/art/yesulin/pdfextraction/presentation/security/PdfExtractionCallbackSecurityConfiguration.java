@@ -7,17 +7,20 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 
-/** 프론트 세션·CSRF와 무관하게 서버 간 callback 경로 전체를 Bearer secret으로만 보호한다. */
+/** 프론트 세션과 무관하게 서버 간 callback 경로 전체를 Bearer secret으로만 보호하고, CSRF 예외는 완료 POST 하나로 좁힌다. */
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnProperty(prefix = "yesulin.pdf-extraction", name = "enabled", havingValue = "true")
 public class PdfExtractionCallbackSecurityConfiguration {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PdfExtractionCallbackSecurityConfiguration.class);
+    private static final String COMPLETION_PATH = "/internal/v1/pdf-extractions/completions";
 
     @Bean
     @Order(0)
@@ -32,7 +35,8 @@ public class PdfExtractionCallbackSecurityConfiguration {
         http.securityMatcher("/internal/v1/pdf-extractions/**")
                 .authorizeHttpRequests(authorize -> authorize.anyRequest()
                         .hasRole(PdfExtractionCallbackBearerFilter.WORKER_ROLE))
-                .csrf(csrf -> csrf.disable())
+                .csrf(csrf -> csrf.ignoringRequestMatchers(
+                        PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.POST, COMPLETION_PATH)))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .requestCache(cache -> cache.disable())
                 .anonymous(anonymous -> anonymous.disable())

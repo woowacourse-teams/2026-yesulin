@@ -112,7 +112,7 @@ PUT 완료가 Lambda 완료를 뜻하지 않는다. completion은 업로드만 �
 ### Lambda 결과 전달
 
 `POST /internal/v1/pdf-extractions/completions`는 `/api/v1`과 별도 보안 체인(`/internal/v1/pdf-extractions/**`, 전체 메서드)이며
-세션·CSRF를 쓰지 않는다. 모든 요청은 `Authorization: Bearer <secret>`을 요구하고, secret은 `YESULIN_PDF_EXTRACTION_CALLBACK_SECRET`
+세션을 쓰지 않고 CSRF 예외는 이 POST 하나뿐이다. 모든 요청은 `Authorization: Bearer <secret>`을 요구하고, secret은 `YESULIN_PDF_EXTRACTION_CALLBACK_SECRET`
 (`yesulin.pdf-extraction.callback-secret`)과 상수 시간으로 비교한다. 32자 미만이거나 미설정이면 모든 요청을 거부한다.
 인증 실패는 본문 없는 `401`이며 secret과 본문은 기록하지 않는다. 로컬 프로필의 값은 가짜 토큰이다.
 
