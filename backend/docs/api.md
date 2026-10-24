@@ -80,6 +80,8 @@ UNKNOWN은 자동 재전송하지 않는다. FAILED 중 code=RETRIED는 후속 �
 `YESULIN_PDF_EXTRACTION_ENABLED=true`일 때만 아래 mapping을 등록한다. `/api/v1/**` 요청은 Active Producer를 요구하며,
 본인 작업이 아니거나 없는 UUID에는 동일하게 `404 PDF_EXTRACTION_NOT_FOUND`를 반환한다. 쓰기는 CSRF가 필요하다.
 전체 응답은 `Cache-Control: no-store`다. 제목·배역 기반 심사 등록은 [PDF 심사 API](pdf-reviews.md)를 따른다. OCR·Bedrock은 포함하지 않는다.
+저장된 추출 본문으로 배역을 다시 확인하는 `POST /api/v1/pdf-reviews/{id}/entries/{entryId}/analysis`도 같은 문서를 따른다.
+이 API는 본문 없이 CSRF와 소유권을 확인하며, 추출 결과가 없으면 `409 PDF_EXTRACTION_RESULT_NOT_READY`다.
 
 | Method | URL | 요청 / 응답 |
 | --- | --- | --- |

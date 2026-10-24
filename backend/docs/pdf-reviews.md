@@ -28,6 +28,7 @@ PDF 추출 결과를 바탕으로 기획사가 지원서 PDF를 한곳에서 확
 | GET | `/api/v1/pdf-reviews/{id}` | ReviewDetail |
 | POST | `/api/v1/pdf-reviews/{id}/uploads` | `{originalFilename,size}` → 201 PreparedUpload |
 | PATCH | `/api/v1/pdf-reviews/{id}/entries/{entryId}` | `{memo,decision}` → 200 EntryView |
+| POST | `/api/v1/pdf-reviews/{id}/entries/{entryId}/analysis` | 본문 없음 → 200 EntryView (저장한 추출 본문으로 다시 분석) |
 
 - ReviewDetail은 `id,title,createdAt,roles:[{id,name}],entries:[EntryView]`이다. 배역은 입력 순서, 항목은 파일 이름순이다.
 - EntryView는 `id,jobId,originalFilename,applicantName,roleId,matchStatus,matchEvidence,memo,decision`이다.
@@ -38,6 +39,11 @@ PDF 추출 결과를 바탕으로 기획사가 지원서 PDF를 한곳에서 확
   `POST /api/v1/pdf-extractions/{jobId}/completion`과 상태 조회는 기존 API를 쓴다.
 - PATCH는 `memo`(필수, 빈 문자열 가능, 2000자 이하)와 `decision`(필수)을 모두 받는다. 항목 행을 잠근 뒤 바꾸므로
   같은 항목에 대한 자동 반영과 겹쳐도 서로의 값을 덮어쓰지 않는다.
+- POST `/entries/{entryId}/analysis`는 소유권을 확인하고 항목 행을 잠근 뒤 DB에 저장한 추출 본문으로 이름·배역·근거만
+  다시 계산한다. 메모·결정은 유지한다. PDF 재업로드·S3 결과 조회·Lambda 재실행·외부 AI 호출은 없다. 본문이 없는 POST도
+  CSRF가 필요하다. 추출 대기 중이거나 저장한 결과가 없으면 `409 PDF_EXTRACTION_RESULT_NOT_READY`이며 기존 항목은 유지된다.
+  실패·일부 추출도 저장 결과가 있으면 재분석할 수 있다. 텍스트가 비었으면 `NEEDS_CHECK`와 그 근거를 반환한다.
+  한 번에 한 항목만 처리하며 같은 내용으로 다시 요청해도 새 항목이나 업로드 작업을 만들지 않는다.
 - 오류: 형식·길이·중복 배역 `400 INVALID_REQUEST` 또는 `400 INVALID_PDF_REVIEW`, 없는 심사·항목 `404`.
 
 ## 자동 반영
@@ -55,10 +61,15 @@ PDF 추출 결과를 바탕으로 기획사가 지원서 PDF를 한곳에서 확
 - 텍스트에서 `지원배역`·`희망배역`·`지원분야`(공백 허용) 레이블 뒤의 값을 읽는다. 값은 같은 줄이거나, 레이블만 있는 줄의
   바로 다음 줄이다. 표의 `|`·탭 구분과 `성명: … 지원배역: …`처럼 한 줄에 이어 쓴 형태도 읽는다.
 - 위 레이블이 하나도 없을 때만 `배역` 레이블을 쓴다. `배역`은 줄이나 표 칸의 처음에 있을 때만 레이블로 본다.
-- 읽은 값을 현재 심사의 배역 이름과 NFC·공백 정규화 후 **정확히 일치**하는 경우만 연결한다. 단어 포함·유사도·약칭은
-  쓰지 않는다. 경력·소개 문장에 배역 이름이 나온 것은 레이블이 아니므로 연결하지 않는다.
-- 정확히 한 배역과 일치하면 `MATCHED`와 `roleId`다. 레이블이 없거나, 값이 없거나, 값이 여러 개이거나, 일치하는 배역이
-  없으면 `NEEDS_CHECK`이고 `roleId`는 null이다.
+- 읽은 값을 현재 심사의 배역 이름과 NFC·공백 정규화 후 비교한다. **정확히 일치**하는 이름을 우선한다.
+  정확히 일치하는 이름이 없을 때만 값 끝의 `역` 하나와 그 앞 공백을 제외해 유일하게 일치하는 배역에 연결한다.
+  예를 들어 `강하루역`·`강하루 역`은 등록 이름 `강하루`에 연결할 수 있다. 등록 이름 자체는 바꾸지 않는다.
+  `강하루`·`강하루역`이 모두 등록됐다면 `강하루역`은 정확히 일치하는 후자에 연결하고, `강하루 역`은 모호하므로 보류한다.
+- 여러 레이블의 값이 모두 같은 배역 하나로 해석될 때만 `MATCHED`와 `roleId`다. 레이블이 없거나 빈 값·알 수 없는 값·
+  서로 다른 배역이 섞이면 `NEEDS_CHECK`이고 `roleId`는 null이다. 단어 포함·유사도·약칭은 쓰지 않으며 경력·소개 문장으로
+  지원 의향을 추측하지 않는다. 근거에는 읽은 값과 `역` 보정 여부를 남긴다.
+- 새 추출 결과에는 현재 규칙을 적용한다. 이미 저장된 항목을 조회하는 것만으로 다시 분석하지 않으며,
+  `/entries/{entryId}/analysis`로 선택한 항목을 명시적으로 갱신한다.
 
 ### 지원자 이름
 

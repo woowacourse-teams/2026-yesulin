@@ -17,9 +17,8 @@ export function isUnauthorized(cause: unknown) {
 async function request<T>(path: string, method: "GET" | "POST" | "PATCH", body?: unknown, signal?: AbortSignal): Promise<T> {
   const response = await fetch(BASE + path, {
     method, credentials: "include", cache: "no-store", signal,
-    ...(body === undefined ? {} : {
-      headers: await withCsrfHeaders({ "Content-Type": "application/json" }), body: JSON.stringify(body),
-    }),
+    ...(method === "GET" ? {} : { headers: await withCsrfHeaders(body === undefined ? {} : { "Content-Type": "application/json" }) }),
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
   if (!response.ok) {
     const data: unknown = await response.json().catch(() => null);
@@ -50,4 +49,8 @@ export function preparePdfReviewUpload(reviewId: ReviewKey, file: File) {
 
 export function updatePdfReviewEntry(reviewId: ReviewKey, entryId: ReviewKey, change: { readonly memo: string; readonly decision: ReviewDecision }) {
   return request<ReviewEntry>(`${reviewPath(reviewId)}/entries/${encodeURIComponent(String(entryId))}`, "PATCH", change);
+}
+
+export function reanalyzePdfReviewEntry(reviewId: ReviewKey, entryId: ReviewKey) {
+  return request<ReviewEntry>(`${reviewPath(reviewId)}/entries/${encodeURIComponent(String(entryId))}/analysis`, "POST");
 }

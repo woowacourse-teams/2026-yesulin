@@ -7,6 +7,7 @@ import art.yesulin.global.exception.BusinessException;
 import art.yesulin.pdfextraction.application.PdfExtractionService;
 import art.yesulin.pdfextraction.application.PdfExtractionService.PreparedUpload;
 import art.yesulin.pdfreview.domain.PdfReview;
+import art.yesulin.pdfreview.domain.PdfReviewAnalyzer;
 import art.yesulin.pdfreview.domain.PdfReviewCount;
 import art.yesulin.pdfreview.domain.PdfReviewDecision;
 import art.yesulin.pdfreview.domain.PdfReviewEntry;
@@ -74,6 +75,16 @@ public class PdfReviewService {
         PdfReviewEntry entry = entries.findInReviewForUpdate(entryId, reviewId)
                 .orElseThrow(() -> new BusinessException(PDF_REVIEW_ENTRY_NOT_FOUND, "지원 항목을 찾을 수 없습니다."));
         entry.review(memo, decision);
+        return PdfReviewEntryView.of(entry);
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public PdfReviewEntryView reanalyzeEntry(long ownerId, String reviewId, String entryId) {
+        PdfReview review = findOwned(ownerId, reviewId);
+        PdfReviewEntry entry = entries.findInReviewForUpdate(entryId, reviewId)
+                .orElseThrow(() -> new BusinessException(PDF_REVIEW_ENTRY_NOT_FOUND, "지원 항목을 찾을 수 없습니다."));
+        String text = extraction.findStoredText(ownerId, entry.getJobId());
+        entry.applyAnalysis(PdfReviewAnalyzer.analyze(text, review.getRoles()));
         return PdfReviewEntryView.of(entry);
     }
 

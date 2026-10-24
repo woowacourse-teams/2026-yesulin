@@ -20,6 +20,7 @@ import art.yesulin.pdfextraction.application.PdfExtractionService.PreparedUpload
 import art.yesulin.pdfextraction.application.PdfExtractionStorage;
 import art.yesulin.pdfextraction.domain.PdfExtractionErrorCode;
 import art.yesulin.pdfreview.domain.PdfReview;
+import art.yesulin.pdfreview.domain.PdfReviewAnalysis;
 import art.yesulin.pdfreview.domain.PdfReviewCount;
 import art.yesulin.pdfreview.domain.PdfReviewDecision;
 import art.yesulin.pdfreview.domain.PdfReviewEntry;
@@ -198,6 +199,69 @@ class PdfReviewServiceTest {
         assertEquals("메모", second.memo());
         assertEquals(PdfReviewDecision.FAIL, second.decision());
         assertEquals(1, entries.size());
+    }
+
+    @Test
+    void reanalysisUpdatesAutomaticFieldsWhileKeepingHumanMemoAndDecision() {
+        PdfReviewDetail review = service.create(OWNER, "제목", List.of("햄릿"));
+        PdfReviewEntryView uploaded = uploadEntry(review.id());
+        entries.get(uploaded.id()).applyAnalysis(new PdfReviewAnalysis(null, null,
+                PdfReviewMatchStatus.NEEDS_CHECK, "이전 규칙으로 연결하지 못했습니다."));
+        service.editEntry(OWNER, review.id(), uploaded.id(), "직접 남긴 메모", PdfReviewDecision.HOLD);
+        when(extraction.findStoredText(OWNER, uploaded.jobId())).thenReturn("성명: 테스트배우\n지원배역: 햄릿역");
+
+        PdfReviewEntryView updated = service.reanalyzeEntry(OWNER, review.id(), uploaded.id());
+
+        assertEquals("테스트배우", updated.applicantName());
+        assertEquals(review.roles().getFirst().id(), updated.roleId());
+        assertEquals(PdfReviewMatchStatus.MATCHED, updated.matchStatus());
+        assertEquals("직접 남긴 메모", updated.memo());
+        assertEquals(PdfReviewDecision.HOLD, updated.decision());
+        assertEquals(uploaded.jobId(), updated.jobId());
+        assertEquals(1, entries.size());
+    }
+
+    @Test
+    void reanalysisRejectsAnotherOwnerOrAnEntryFromAnotherReviewBeforeReadingText() {
+        PdfReviewDetail review = service.create(OWNER, "첫째", List.of("햄릿"));
+        PdfReviewDetail otherReview = service.create(OWNER, "둘째", List.of("햄릿"));
+        PdfReviewEntryView uploaded = uploadEntry(review.id());
+
+        assertNotFound(() -> service.reanalyzeEntry(OTHER_OWNER, review.id(), uploaded.id()));
+        BusinessException crossed = assertThrows(BusinessException.class,
+                () -> service.reanalyzeEntry(OWNER, otherReview.id(), uploaded.id()));
+
+        assertEquals(PDF_REVIEW_ENTRY_NOT_FOUND, crossed.getErrorCode());
+        verify(extraction, never()).findStoredText(anyLong(), anyString());
+    }
+
+    @Test
+    void unavailableTextLeavesExistingAnalysisAndHumanFieldsUntouched() {
+        PdfReviewDetail review = service.create(OWNER, "제목", List.of("햄릿"));
+        PdfReviewEntryView uploaded = uploadEntry(review.id());
+        extractionService.applyExtraction(uploaded.jobId(), OWNER, "성명: 테스트배우\n지원배역: 햄릿");
+        service.editEntry(OWNER, review.id(), uploaded.id(), "저장한 메모", PdfReviewDecision.HOLD);
+        PdfReviewEntryView before = service.find(OWNER, review.id()).entries().getFirst();
+        when(extraction.findStoredText(OWNER, uploaded.jobId())).thenThrow(new BusinessException(
+                PdfExtractionErrorCode.PDF_EXTRACTION_RESULT_NOT_READY, "추출 결과 대기 중"));
+
+        assertThrows(BusinessException.class, () -> service.reanalyzeEntry(OWNER, review.id(), uploaded.id()));
+
+        assertEquals(before, service.find(OWNER, review.id()).entries().getFirst());
+    }
+
+    @Test
+    void repeatedReanalysisIsStableAndNeverCreatesAnotherUpload() {
+        PdfReviewDetail review = service.create(OWNER, "제목", List.of("햄릿"));
+        PdfReviewEntryView uploaded = uploadEntry(review.id());
+        when(extraction.findStoredText(OWNER, uploaded.jobId())).thenReturn("지원배역: 햄릿역");
+
+        PdfReviewEntryView first = service.reanalyzeEntry(OWNER, review.id(), uploaded.id());
+        PdfReviewEntryView second = service.reanalyzeEntry(OWNER, review.id(), uploaded.id());
+
+        assertEquals(first, second);
+        assertEquals(1, entries.size());
+        verify(extraction).prepare(OWNER, review.id(), "a.pdf", 10);
     }
 
     @Test
