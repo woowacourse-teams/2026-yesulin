@@ -73,13 +73,14 @@ LocalStack 컨테이너를 삭제하면 로컬 S3·Lambda 데이터는 사라진
 ## 로컬 검증의 한계
 
 - LocalStack에서는 서명 없는 익명 원본 GET도 200으로 응답했다. 따라서 실제 AWS의 IAM·버킷 정책·비공개 차단은 검증하지 못했다.
-- 로컬 브라우저 업로드 → 실제 Lambda 컨테이너 → 결과 확인까지만 검증했다. AWS 운영 환경의 전체 흐름은 아직 검증하지 않았다.
+- 로컬 브라우저 업로드 → 실제 Lambda 컨테이너 → 완료 API → 결과 확인까지만 검증했다. 실제 AWS에서는 합성 PDF 업로드로 Lambda 자동 실행과 결과 JSON·이미지 저장을 확인했다. 완료 API의 DB 반영까지는 백엔드 배포 후 확인한다.
 - LocalStack 컨테이너의 Docker health가 unhealthy로 표시돼도 API와 Lambda는 동작했다. health 표시만으로 재시작하거나 삭제하지 않는다.
-- 실제 AWS 배포 전에는 비공개 버킷에서 서명 없는 GET이 차단되는지와 서명 주소의 만료·CORS를 따로 확인한다.
+- 비공개 버킷의 서명 없는 GET 차단과 서명 주소의 만료·CORS는 로컬이 아니라 실제 AWS에서 확인한다.
 
 ## 실제 AWS 배포 조건
 
-이 변경은 실제 AWS 리소스를 자동 생성하거나 수정하지 않는다. 운영 기능은 기본 비활성이다.
+코드 변경이 AWS 리소스를 자동 생성하거나 수정하지 않는다. 기능은 기본 비활성이며 병합만으로 추출이 켜지지 않는다.
+아래 1~7은 일반 설정 절차이고, 실제로 적용한 Dev 상태는 이어지는 절에 따로 적는다.
 
 1. `YESULIN_PDF_EXTRACTION_ENABLED=true`로 Spring mapping을 활성화한다.
 2. S3 key prefix와 worker 환경 변수를 같은 환경으로 맞춘다. 예: Spring prefix가 `yesulin/dev`이면
@@ -89,13 +90,42 @@ LocalStack 컨테이너를 삭제하면 로컬 S3·Lambda 데이터는 사라진
    Python 3.12 / ARM64 / 메모리 1024MB / timeout 120초 / 임시 디스크 512MB가 초기값이다.
 4. **inputs prefix + `/source.pdf` suffix만** ObjectCreated 트리거 대상으로 삼는다. 결과 저장이 재호출을 만들면 안 된다.
 5. 실행 역할의 원본 GetObject, 결과 GetObject/PutObject, 해당 prefix ListBucket, 로그 권한을 검증한다.
-   Spring은 원본 업로드 확인을 위한 HEAD·Range GET과 원본·이미지 presigned URL 발급 권한이 필요하다. 결과 JSON을 읽는 권한은 완료 처리에 필요하지 않다. 기존 explicit deny는 Allow 추가만으로 해결되지 않는다.
+   Spring은 원본 업로드 확인을 위한 HEAD·Range GET과 원본·이미지 presigned URL 발급 권한이 필요하다. 결과 JSON을 읽는 권한은 완료 처리에 필요하지 않다. 버킷 정책의 explicit deny는 Allow 추가만으로 해결되지 않으므로 deny의 예외 조건을 확인한다.
 6. 버킷 CORS에 프론트 origin의 PUT/GET/HEAD와 `Content-Type`, `If-None-Match`를 허용한다.
-   이번 변경에서 공유 정책·IAM 역할·기존 함수·버킷 CORS를 수정하지 않는다.
+7. Lambda에 완료 API URL과 전용 토큰을 설정한다(아래 "직접 완료 API와 화면 알림").
 
-현재 실제 AWS의 원본 읽기 정책 차단은 별도 해결해야 한다. 로컬 성공을 실제 AWS 전체 흐름 성공으로 보고하지 않는다.
+로컬 성공을 실제 AWS 전체 흐름 성공으로 보고하지 않는다.
 일반 presigned URL은 객체 한 개용이다. 여러 파일에는 각각 URL을 발급하고 업로드를 제한된 동시성으로 실행한다.
 S3 멀티파트 업로드는 큰 파일 하나를 여러 조각으로 보내는 방식이며 여러 PDF 업로드와 구분한다.
+
+## 적용된 Dev 인프라와 미배포 상태
+
+실제 AWS에서 S3 업로드 → Lambda 추출 → S3 결과 저장까지 확인했다. 아래 설정을 포함한 PR이 아직 배포되지 않아 완료 API의 DB 반영은 미검증이다.
+
+**로컬 검증**: LocalStack과 로컬 Spring/브라우저에서 확인한 흐름이다. AWS 접근 제어는 검증하지 않았다.
+
+**적용된 Dev 인프라** (`yesulin-pdf-benchmark-dev`):
+
+- Lambda: Python 3.12, ARM64, handler `s3_handler.handler`. ZIP SHA256(base64) `Bn9PePkdPbx8uOpceeQ9V5+GoMErb3RNYeNJTzvj9JA=`.
+- 버킷 `techcourse-project-2026`의 `yesulin/dev/private/pdf-extractions/inputs/` prefix + `/source.pdf` suffix에 S3 ObjectCreated 트리거를 연결했다.
+  이미지와 재전송 캐시는 `results/` 아래에 쓴다.
+- 완료 callback 주소는 `https://dev-api.yesulin.art/internal/v1/pdf-extractions/completions`이다.
+  Lambda와 SOPS DEV 설정에 같은 전용 Bearer 토큰을 넣었다. 토큰 평문은 문서·Git에 두지 않는다.
+- DEV 암호화 설정은 config 저장소 커밋 `abaac89`로 반영했고 앱의 config 서브모듈 포인터가 이를 가리킨다(앱 커밋은 별도). PROD 설정은 바꾸지 않았다.
+- 새 IAM 역할이나 identity policy는 만들거나 수정하지 않았다. 버킷 정책만 바꿨다.
+  - 비공개 PDF 폴더의 읽기를 `ec2-project`와 정확한 Lambda 세션(`aws:userid` = `AROA4IVPY73FZIASIPJVG:yesulin-pdf-benchmark-dev`) 외 모두에게 거부한다. 익명 요청과 CloudFront 경유 읽기도 차단한다.
+  - 이 Lambda 세션은 추출 폴더 밖 읽기를 거부한다. 기존 나머지 정책 문장 9개는 바꾸지 않았다.
+- 기존 버킷 CORS가 Dev의 PUT/GET/HEAD를 이미 허용한다.
+
+**함수 이름 결속과 이름 변경 정책**: 버킷 정책의 예외가 세션 이름이 들어간 `aws:userid`에 고정돼 있다.
+함수를 이름 변경하거나 다른 함수·역할로 교체하면 추출 폴더 읽기가 거부되고 callback이 오지 않는다.
+이름을 바꿀 때는 새 `aws:userid`로 버킷 정책의 예외를 먼저 함께 바꾼다. 같은 이름으로 함수를 삭제 후 재생성해도 역할 ID가 바뀌면 같은 조치가 필요하다.
+
+**아직 배포되지 않은 것**: 완료 API를 담은 백엔드는 PR 병합·배포 전이라 Dev 서버에 없다.
+2026-10-25에 개인정보 없는 36KB·1페이지 PDF를 실제 S3에 업로드하여 자동 실행과 `result.json` 및 PNG 1개 생성을 확인했다. 익명 원본 HEAD는 403이었다.
+현재 Dev 완료 API는 올바른 worker 토큰을 보내도 403을 반환하여 Lambda 전체 호출은 실패·재시도 상태다. 추출·저장 성공과 서버 반영 성공을 구분한다.
+콘솔 합성 시험 job은 Spring이 발급한 job이 아니므로, 배포 후에는 공연사 화면에서 새 job을 만들어 업로드한 뒤 DB 반영까지 확인한다.
+Bedrock·OCR·SQS는 사용하지 않는다.
 
 ## 실패와 재실행
 

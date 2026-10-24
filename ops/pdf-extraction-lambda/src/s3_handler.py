@@ -1,4 +1,4 @@
-"""S3 ObjectCreated adapter. No API Gateway, callbacks, Bedrock or application queue."""
+"""S3 ObjectCreated adapter. Posts completed extraction to Spring; no Bedrock or application queue."""
 import json
 import os
 import re
