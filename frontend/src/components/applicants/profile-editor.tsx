@@ -83,12 +83,12 @@ export function ProfileEditor({ profile, onSaved }: { readonly profile: Applican
   const change = (key: string, value: ApplicantAnswerValue) => { setValues((current) => ({ ...current, [key]: value })); setError(""); };
   const informationTab = activeTab === "BASIC" || activeTab === "ADDITIONAL";
 
-  return <div className="mt-9 grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
-    <nav aria-label="프로필 항목" className="scrollbar-hidden -mx-1 flex snap-x snap-proximity gap-2 overflow-x-auto px-1 pb-2 pt-1 lg:flex-col lg:overflow-visible lg:pb-0">{tabs.map((tab) => {
+  return <div className="applicant-profile-editor">
+    <nav aria-label="프로필 항목" className="applicant-profile-tabs">{tabs.map((tab) => {
       const active = activeTab === tab.id;
-      return <button key={tab.id} type="button" aria-current={active ? "page" : undefined} onClick={() => { setActiveTab(tab.id); setError(""); }} className={`min-h-14 min-w-36 shrink-0 snap-start rounded-control border px-4 py-3 text-left transition-colors lg:min-w-0 ${active ? "border-brand bg-brand-soft text-brand" : "border-border bg-card text-muted-strong hover:border-brand-line hover:bg-brand-soft"}`}><span className="flex items-center justify-between gap-2"><strong className="text-sm">{tab.label}</strong><span className="num text-xs">{tabCount(tab.id)}</span></span><span className="mt-1 hidden text-xs lg:block">{tab.description}</span></button>;
+      return <button key={tab.id} type="button" aria-current={active ? "page" : undefined} onClick={() => { setActiveTab(tab.id); setError(""); }} className="applicant-profile-tab"><span className="flex items-center justify-between gap-2"><strong className="text-sm">{tab.label}</strong><span className="num text-xs">{tabCount(tab.id)}</span></span><span className="mt-1 hidden text-xs lg:block">{tab.description}</span></button>;
     })}</nav>
-    <section className="min-w-0 rounded-card border border-border bg-card p-5 md:p-7">
+    <section className="workspace-panel min-w-0">
       <div className="border-b border-border-soft pb-5"><h2 className="text-xl font-bold">{tabs.find((tab) => tab.id === activeTab)?.label}</h2><p className="mt-2 text-sm leading-6 text-muted">{activeTab === "BASIC" ? "지원서에 공통으로 사용하는 정보예요. 작성한 항목부터 저장할 수 있어요." : activeTab === "ADDITIONAL" ? "필요한 항목만 저장하면 공고에서 요청할 때 자동으로 채워집니다." : "추가·삭제·순서 변경 내용은 즉시 저장됩니다."}</p></div>
       {activeTab === "BASIC" ? <ProfileInformationSection tab="BASIC" fields={basicFields} values={values} onChange={change} /> : null}
       {activeTab === "ADDITIONAL" ? <ProfileInformationSection tab="ADDITIONAL" fields={additionalFields} values={values} onChange={change} /> : null}
