@@ -29,13 +29,22 @@ class PdfExtractionJobTest {
     }
 
     @Test
-    void requiresUploadConfirmationBeforeApplyingTerminalResult() {
+    void appliesOnlyTerminalResultsAndKeepsEarlierUploadTime() {
         PdfExtractionJob job = job("a.pdf", 10);
-        assertThrows(IllegalArgumentException.class, () -> job.finish("COMPLETED"));
+        assertThrows(IllegalArgumentException.class, () -> job.receiveResult("QUEUED", NOW));
         job.confirmUpload(NOW);
-        assertThrows(IllegalArgumentException.class, () -> job.finish("QUEUED"));
-        job.finish("PARTIAL");
+        job.receiveResult("PARTIAL", NOW.plusSeconds(30));
         assertEquals(PdfExtractionStatus.PARTIAL, job.getStatus());
+        assertEquals(NOW, job.getUploadedAt());
+    }
+
+    @Test
+    void resultReceivedBeforeUploadConfirmationRecordsUploadTimeAndSurvivesLateConfirmation() {
+        PdfExtractionJob job = job("a.pdf", 10);
+        job.receiveResult("COMPLETED", NOW.plusSeconds(30));
+        job.confirmUpload(NOW.plusSeconds(60));
+        assertEquals(NOW.plusSeconds(30), job.getUploadedAt());
+        assertEquals(PdfExtractionStatus.COMPLETED, job.getStatus());
     }
 
     private PdfExtractionJob job(String filename, long size) {

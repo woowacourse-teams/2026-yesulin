@@ -38,7 +38,14 @@ def validate_request(event, settings):
     source = event.get("source", {})
     if not isinstance(source, dict) or source.get("bucket") != settings.bucket:
         raise ValueError("SOURCE_BUCKET_NOT_ALLOWED")
-    if source.get("key") != f"{settings.input_prefix}{job_id}/source.pdf":
+    review_id = event.get("reviewId")
+    if review_id is not None:
+        if not isinstance(review_id, str) or not re.fullmatch(r"[0-9a-f-]{36}", review_id):
+            raise ValueError("INVALID_REVIEW_ID")
+        if str(uuid.UUID(review_id)) != review_id:
+            raise ValueError("INVALID_REVIEW_ID")
+    scope = f"{review_id}/" if review_id else ""
+    if source.get("key") != f"{settings.input_prefix}{scope}{job_id}/source.pdf":
         raise ValueError("SOURCE_KEY_NOT_ALLOWED")
     options = event.get("options", {})
     if not isinstance(options, dict) or set(options) - {"extractImages", "includeRegions"}:
@@ -61,7 +68,8 @@ def process_job(event, settings, store, notify, remaining_ms=None):
         raise ExtractionError("FILE_SIZE_LIMIT_EXCEEDED")
     fingerprint = hashlib.sha256(json.dumps({"source": source, "identity": identity, "options": options,
                                             "pipeline": PIPELINE_VERSION}, sort_keys=True).encode()).hexdigest()
-    result_key = f"{settings.result_prefix}{job_id}/{PIPELINE_VERSION}/result.json"
+    scope = f"{event['reviewId']}/" if event.get("reviewId") else ""
+    result_key = f"{settings.result_prefix}{scope}{job_id}/{PIPELINE_VERSION}/result.json"
     existing = store.read_json(result_key)
     if existing is not None:
         if existing.get("fingerprint") != fingerprint:
@@ -92,7 +100,7 @@ def process_job(event, settings, store, notify, remaining_ms=None):
                 if image["status"] != "EXTRACTED":
                     continue
                 name = image.pop("fileName")
-                image["key"] = f"{settings.result_prefix}{job_id}/{PIPELINE_VERSION}/images/{name}"
+                image["key"] = f"{settings.result_prefix}{scope}{job_id}/{PIPELINE_VERSION}/images/{name}"
                 uploads.append((assets / name, image["key"]))
         # Spring 결과 읽기 상한과 맞춘다. 너무 큰 manifest를 정상 결과로 저장하지 않는다.
         if len(json.dumps(result, ensure_ascii=False).encode("utf-8")) > 2 * 1024 * 1024:

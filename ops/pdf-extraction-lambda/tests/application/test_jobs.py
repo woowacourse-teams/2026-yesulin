@@ -98,6 +98,19 @@ class JobsTest(unittest.TestCase):
         self.assertNotIn("Yesulin PDF test", json.dumps(completion))
         self.assertEqual([completion], notifications)
 
+    def test_review_scopes_original_images_and_retry_cache_together(self):
+        review_id = "34c1f694-43b5-400c-b987-e1194d05b931"
+        event = {**self.event, "reviewId": review_id, "source": {"bucket": self.settings.bucket,
+                 "key": f"{self.settings.input_prefix}{review_id}/{self.job_id}/source.pdf"}}
+        store = MemoryStore(sample_pdf())
+        completion = process_job(event, self.settings, store, lambda value: None)
+        root = f"{self.settings.result_prefix}{review_id}/{self.job_id}/pdfium-v1/"
+        self.assertEqual(root + "result.json", completion["resultKey"])
+        self.assertTrue(store.objects[completion["resultKey"]]["pages"][0]["images"][0]["key"]
+                        .startswith(root + "images/"))
+        with self.assertRaises(ValueError):
+            process_job({**event, "reviewId": self.job_id}, self.settings, store, lambda value: None)
+
     def test_callback_retry_reuses_result_without_downloading_pdf(self):
         store = MemoryStore(sample_pdf())
 

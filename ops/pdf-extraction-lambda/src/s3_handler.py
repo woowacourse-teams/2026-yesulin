@@ -9,6 +9,7 @@ from botocore.config import Config
 
 from application.jobs import Settings, process_job
 from infrastructure.aws_storage import S3Store
+from infrastructure.completion_api import CompletionApi
 
 
 def requests_from_s3(event, settings):
@@ -26,14 +27,18 @@ def requests_from_s3(event, settings):
             raise ValueError("SOURCE_BUCKET_NOT_ALLOWED")
         item = source.get("object", {})
         key = unquote_plus(item.get("key", ""))
-        match = re.fullmatch(re.escape(settings.input_prefix) + r"([0-9a-f-]{36})/source\.pdf", key)
+        match = re.fullmatch(re.escape(settings.input_prefix)
+                             + r"(?:([0-9a-f-]{36})/)?([0-9a-f-]{36})/source\.pdf", key)
         if not match:
             raise ValueError("SOURCE_KEY_NOT_ALLOWED")
         source = {"bucket": settings.bucket, "key": key}
         if item.get("versionId"):
             source["versionId"] = item["versionId"]
-        requests.append({"jobId": match[1], "source": source,
-                         "options": {"extractImages": True, "includeRegions": False}})
+        request = {"jobId": match[2], "source": source,
+                   "options": {"extractImages": True, "includeRegions": False}}
+        if match[1]:
+            request["reviewId"] = match[1]
+        requests.append(request)
     return requests
 
 
@@ -45,7 +50,10 @@ def handler(event, context):
                               config=Config(connect_timeout=5, read_timeout=30,
                                             retries={"total_max_attempts": 3, "mode": "standard"}))
         store = S3Store(client, settings.bucket)
-        results = [process_job(request, settings, store, lambda completion: None,
+        notifier = CompletionApi(store, os.environ["PDF_COMPLETION_API_URL"],
+                                 os.environ["PDF_COMPLETION_API_TOKEN"],
+                                 allow_local_http=os.environ.get("PDF_LOCAL_CALLBACK") == "true")
+        results = [process_job(request, settings, store, notifier.notify,
                                remaining_ms=context.get_remaining_time_in_millis)
                    for request in requests_from_s3(event, settings)]
     except Exception as error:

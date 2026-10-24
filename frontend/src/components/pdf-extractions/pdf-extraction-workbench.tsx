@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuthSession } from "@/components/auth/auth-session";
 import { login } from "@/features/auth/session-api";
 import { completePdfUpload, fetchPdfExtraction, PdfExtractionApiError, listPdfExtractions, preparePdfUpload, putPdf } from "@/features/pdf-extractions/api";
-import { isPendingPdf, pdfStatusLabels, type PdfExtractionJob, type PreparedPdfUpload } from "@/features/pdf-extractions/types";
+import { pdfStatusLabels, type PdfExtractionJob, type PreparedPdfUpload } from "@/features/pdf-extractions/types";
+import { usePdfExtractionEvents } from "@/features/pdf-reviews/use-extraction-events";
 import { PdfExtractionResultPanel } from "./pdf-extraction-result";
 
 type Row = { id: string; name: string; size: number; job: PdfExtractionJob | null; phase: "SELECTED" | "UPLOADING" | "TRACKED" | "ERROR"; error: string; pendingJobId?: string };
@@ -12,6 +13,30 @@ const MAX_FILES = 800;
 const MAX_BYTES = 25 * 1024 * 1024;
 const message = (error: unknown) => error instanceof Error ? error.message : "처리하지 못했습니다. 다시 확인해 주세요.";
 const summary = (job: PdfExtractionJob): PdfExtractionJob => ({ ...job, sourceUrl: null, result: null });
+const isUploadUnconfirmed = (job: PdfExtractionJob) => job.status === "UPLOADING" || job.status === "UPLOAD_EXPIRED";
+const eventsText = { CONNECTING: "자동 갱신에 연결하는 중…", CONNECTED: "추출이 끝나면 자동으로 갱신됩니다.", DISCONNECTED: "자동 갱신이 멈췄습니다. ‘목록 새로고침’으로 확인해 주세요." } as const;
+
+function trackedRow(job: PdfExtractionJob): Row {
+  const unconfirmed = isUploadUnconfirmed(job);
+  return { id: job.jobId, name: job.originalFilename, size: job.size, job: summary(job), phase: unconfirmed ? "ERROR" : "TRACKED",
+    pendingJobId: unconfirmed ? job.jobId : undefined,
+    error: job.status === "UPLOAD_EXPIRED" ? "업로드 주소가 만료되었습니다. 이미 올라간 파일이 있으면 완료 확인으로 복구하고, 없으면 파일을 다시 선택해 주세요." : job.status === "UPLOADING" ? "업로드가 확인되지 않았습니다. 완료 확인을 다시 하거나 파일을 다시 선택해 주세요." : "" };
+}
+
+/** DB 목록을 jobId 기준으로 기존 행에 합친다. 고른 파일·업로드 중·실패 행은 목록에 없어도 잃지 않는다. */
+function mergeJobs(current: Row[], jobs: PdfExtractionJob[]): Row[] {
+  const byJobId = new Map(jobs.map(job => [job.jobId, job]));
+  const known = new Set<string>();
+  const merged = current.map((row): Row => {
+    const jobId = row.job?.jobId ?? row.pendingJobId;
+    const job = jobId ? byJobId.get(jobId) : undefined;
+    if (!jobId || !job) return row;
+    known.add(jobId);
+    if (row.phase === "UPLOADING" || (row.phase === "ERROR" && isUploadUnconfirmed(job))) return row;
+    return { ...row, job: summary(job), phase: "TRACKED", error: "", pendingJobId: undefined };
+  });
+  return [...merged, ...jobs.filter(job => !known.has(job.jobId)).map(trackedRow)];
+}
 
 export function PdfExtractionWorkbench({ local = false }: { readonly local?: boolean }) {
   const { session, setSession } = useAuthSession();
@@ -27,58 +52,38 @@ export function PdfExtractionWorkbench({ local = false }: { readonly local?: boo
   const files = useRef(new Map<string, File>());
   const targets = useRef(new Map<string, PreparedPdfUpload["upload"]>());
   const input = useRef<HTMLInputElement>(null);
-  const pollCursor = useRef(0);
+  const listSeq = useRef(0);
   const mounted = useRef(true);
+  const [eventsKey, setEventsKey] = useState(0);
   const authorized = session?.role === "PRODUCER";
-  const pendingIds = rows.filter(row => row.job && isPendingPdf(row.job.status)).map(row => row.job!.jobId).join(",");
   const selectedJob = rows.find(row => row.id === selected)?.job;
   const detailId = selectedJob?.jobId;
   const detailStatus = selectedJob?.status;
 
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
 
-  useEffect(() => {
-    if (!authorized) return;
-    let active = true;
-    void listPdfExtractions().then(jobs => {
-      if (!active) return;
-      setRows(jobs.map(job => ({ id: job.jobId, name: job.originalFilename, size: job.size, job,
-        phase: job.status === "UPLOADING" || job.status === "UPLOAD_EXPIRED" ? "ERROR" : "TRACKED",
-        pendingJobId: job.status === "UPLOADING" || job.status === "UPLOAD_EXPIRED" ? job.jobId : undefined,
-        error: job.status === "UPLOAD_EXPIRED" ? "업로드 주소가 만료되었습니다. 이미 올라간 파일이 있으면 완료 확인으로 복구하고, 없으면 파일을 다시 선택해 주세요." : job.status === "UPLOADING" ? "업로드가 확인되지 않았습니다. 완료 확인을 다시 하거나 파일을 다시 선택해 주세요." : "" })));
+  // 목록 요청은 항상 하나만 유효하다. 늦게 도착한 오래된 응답은 버리고, 도착한 응답은 기존 행에 합친다.
+  const loadList = useCallback(async () => {
+    const seq = ++listSeq.current;
+    try {
+      const jobs = await listPdfExtractions();
+      if (!mounted.current || seq !== listSeq.current) return;
+      setRows(current => mergeJobs(current, jobs));
       setError("");
-    }).catch(cause => { if (active) setError(message(cause)); })
-      .finally(() => { if (active) setListLoading(false); });
-    return () => { active = false; };
-  }, [authorized]);
+    } catch (cause) {
+      if (mounted.current && seq === listSeq.current) setError(message(cause));
+    } finally { if (mounted.current && seq === listSeq.current) setListLoading(false); }
+  }, []);
 
-  useEffect(() => {
-    if (!pendingIds || !authorized) return;
-    const ids = pendingIds.split(",");
-    const controller = new AbortController();
-    let active = true;
-    let timer: ReturnType<typeof setTimeout>;
-    async function poll() {
-      if (document.visibilityState === "hidden") { timer = setTimeout(poll, 3000); return; }
-      const start = pollCursor.current % ids.length;
-      const targets = Array.from({ length: Math.min(4, ids.length) }, (_, i) => ids[(start + i) % ids.length]);
-      pollCursor.current = start + targets.length;
-      // 여러 파일을 선택해도 동시에 상태 조회를 두 건까지만 수행한다.
-      for (let i = 0; i < targets.length && active; i += 2) {
-        await Promise.all(targets.slice(i, i + 2).map(async id => {
-          try {
-            const job = await fetchPdfExtraction(id, false, controller.signal);
-            if (active) setRows(current => current.map(row => row.job?.jobId === id ? { ...row, job: summary(job), error: "" } : row));
-          } catch (cause) {
-            if (active) setRows(current => current.map(row => row.job?.jobId === id ? { ...row, error: message(cause) } : row));
-          }
-        }));
-      }
-      if (active) timer = setTimeout(poll, 3000);
-    }
-    timer = setTimeout(poll, 1000);
-    return () => { active = false; clearTimeout(timer); controller.abort(); };
-  }, [pendingIds, authorized]);
+  useEffect(() => { if (authorized) void loadList(); }, [authorized, loadList]);
+
+  // 추출 완료 이벤트는 신호일 뿐이다. 연결·재연결·완료 때마다 DB 목록을 다시 읽어 누락을 복구한다.
+  const eventsState = usePdfExtractionEvents({ enabled: authorized, reconnectKey: eventsKey, sync: loadList });
+
+  function refreshList() {
+    if (eventsState === "DISCONNECTED") setEventsKey(value => value + 1);
+    void loadList();
+  }
 
   useEffect(() => {
     if (!detailId) return;
@@ -184,7 +189,9 @@ export function PdfExtractionWorkbench({ local = false }: { readonly local?: boo
             <label className={`inline-flex min-h-12 cursor-pointer items-center rounded-control border border-brand-line px-5 text-sm font-semibold text-brand focus-within:outline-2 focus-within:outline-brand ${busy || listLoading ? "pointer-events-none opacity-50" : ""}`}>PDF 여러 개 선택<input ref={input} type="file" accept=".pdf,application/pdf" multiple disabled={busy || listLoading} onChange={event => choose(event.target.files)} className="sr-only" /></label>
             <button type="button" onClick={() => void uploadAll()} disabled={!ready || busy} className="min-h-12 rounded-control bg-brand px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40">{busy ? "업로드 중…" : `선택한 ${ready}개 업로드`}</button>
             {local ? <button type="button" onClick={() => void localLogin()} disabled={loading || busy} className="min-h-12 rounded-control border border-brand-line px-5 text-sm font-semibold text-brand disabled:cursor-not-allowed disabled:opacity-40">{loading ? "로그인 중…" : "로컬 계정 다시 로그인"}</button> : null}
+            <button type="button" onClick={refreshList} disabled={listLoading} className="min-h-12 rounded-control border border-brand-line px-5 text-sm font-semibold text-brand disabled:cursor-not-allowed disabled:opacity-40">목록 새로고침</button>
             <p role="status" className="text-sm text-muted-strong">전체 {rows.length}개 · 추출 완료 {done}개</p>
+            <p className="text-xs text-muted-strong">{eventsText[eventsState]}</p>
           </div><p className="mt-3 text-xs leading-6 text-muted">파일당 25MiB · 최대 800개 · 동시에 2개씩 업로드합니다. 한 파일이 실패해도 나머지는 계속 진행합니다.</p>
         </section>
         <div className="grid min-w-0 items-start gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">

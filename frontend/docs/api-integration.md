@@ -83,10 +83,12 @@ DEV 공고 알림도 기본 공유 링크는 `https://yesulin.art`로 발급한�
 
 ## PDF 추출 확인
 
+제목·배역으로 심사를 생성해 지원서를 연결하는 후속 흐름은 [PDF 지원서 심사](pdf-reviews.md)를 따른다.
+
 `features/pdf-extractions`가 `/api/v1/pdf-extractions/**`를 호출하고 `components/pdf-extractions`가 다중 파일 선택과
 파일별 상태·원본 viewer·추출 텍스트·이미지를 표시한다. `/producers/pdf-extractions`는 기존 공연사 세션을 사용한다.
 파일은 하나씩 URL을 발급받아 동시에 2개만 읽고 PUT한다. 전체 선택 파일을 미리 arrayBuffer로 읽지 않는다.
-상태 조회는 최대 4개씩 순환하며 동시에 2개만 호출하고, 상세 텍스트와 이미지 URL은 선택한 파일만 보관한다.
+상태는 SSE 연결·재연결·완료 알림에 DB 목록을 병합해 갱신한다. 정기 폴링은 하지 않으며, 상세 텍스트와 이미지 URL은 선택한 파일만 보관한다.
 업로드 재시도는 기존 작업의 completion을 먼저 호출해 PUT 응답 유실을 복구한다. 원본이 없다는 409이고 저장된
 업로드 주소의 `expiresAt`이 지났으며 File이 남아 있을 때만 새 URL을 발급한다. 인증·서버·네트워크 오류에서는 새 작업을 만들지 않는다.
 새로고침한 `UPLOAD_EXPIRED` 행도 "업로드 완료 확인"으로 completion을 다시 호출할 수 있고, 원본이 없으면 파일 재선택을 안내한다.

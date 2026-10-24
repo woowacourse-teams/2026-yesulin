@@ -16,4 +16,8 @@ public interface PdfExtractionJobRepository extends JpaRepository<PdfExtractionJ
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select job from PdfExtractionJob job where job.id = :id and job.ownerId = :ownerId")
     Optional<PdfExtractionJob> findOwnedForUpdate(String id, long ownerId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select job from PdfExtractionJob job where job.id = :id")
+    Optional<PdfExtractionJob> findForUpdate(String id);
 }

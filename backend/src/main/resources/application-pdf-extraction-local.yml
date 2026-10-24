@@ -23,6 +23,7 @@ yesulin:
   pdf-extraction:
     enabled: true
     local-endpoint: http://localhost:4568
+    callback-secret: local-pdf-worker-token-for-localstack-only
   storage:
     s3:
       bucket: yesulin-pdf-local

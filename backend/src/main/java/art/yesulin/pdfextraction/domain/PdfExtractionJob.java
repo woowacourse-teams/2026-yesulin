@@ -47,11 +47,18 @@ public class PdfExtractionJob {
 
     private Instant uploadedAt;
 
+    @Column(length = 36, updatable = false)
+    private String reviewId;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private PdfExtractionStatus status;
 
     public PdfExtractionJob(long ownerId, String filename, long size, Instant now, Instant expiresAt) {
+        this(ownerId, filename, size, now, expiresAt, null);
+    }
+
+    public PdfExtractionJob(long ownerId, String filename, long size, Instant now, Instant expiresAt, String reviewId) {
         String normalized = Normalizer.normalize(Objects.requireNonNullElse(filename, "").strip(),
                 Normalizer.Form.NFC);
         if (ownerId < 1 || normalized.isEmpty() || normalized.length() > 255
@@ -66,6 +73,7 @@ public class PdfExtractionJob {
         this.size = size;
         this.createdAt = Objects.requireNonNull(now);
         this.uploadExpiresAt = Objects.requireNonNull(expiresAt);
+        this.reviewId = reviewId == null ? null : UUID.fromString(reviewId).toString();
         this.status = PdfExtractionStatus.UPLOADING;
     }
 
@@ -77,11 +85,18 @@ public class PdfExtractionJob {
         status = PdfExtractionStatus.QUEUED;
     }
 
-    public void finish(String resultStatus) {
+    public void receiveResult(String resultStatus, Instant now) {
         PdfExtractionStatus next = PdfExtractionStatus.valueOf(resultStatus);
-        if (uploadedAt == null || !next.isFinal()) {
+        if (!next.isFinal()) {
             throw new IllegalArgumentException("완료된 추출 결과만 반영할 수 있습니다.");
         }
+        if (uploadedAt == null) {
+            uploadedAt = Objects.requireNonNull(now);
+        }
         status = next;
+    }
+
+    public boolean isFinished() {
+        return status.isFinal();
     }
 }

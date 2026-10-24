@@ -29,7 +29,10 @@ def main():
         "ExposeHeaders": ["ETag"], "MaxAgeSeconds": 300}]})
     package = (ROOT / "build/yesulin-pdf-extractor-arm64.zip").read_bytes()
     environment = {"Variables": {"PDF_BUCKET": BUCKET, "PDF_INPUT_PREFIX": PREFIX + "inputs/",
-                    "PDF_RESULT_PREFIX": PREFIX + "results/", "PDF_S3_ENDPOINT": "http://localstack:4566"}}
+                    "PDF_RESULT_PREFIX": PREFIX + "results/", "PDF_S3_ENDPOINT": "http://localstack:4566",
+                    "PDF_COMPLETION_API_URL": "http://host.docker.internal:8093/internal/v1/pdf-extractions/completions",
+                    "PDF_COMPLETION_API_TOKEN": "local-pdf-worker-token-for-localstack-only",
+                    "PDF_LOCAL_CALLBACK": "true"}}
     if not any(f["FunctionName"] == FUNCTION for f in lamb.list_functions()["Functions"]):
         lamb.create_function(FunctionName=FUNCTION, Runtime="python3.12", Handler="s3_handler.handler",
                              Role="arn:aws:iam::000000000000:role/pdf-extraction-local",

@@ -5,15 +5,16 @@ import static art.yesulin.pdfextraction.domain.PdfExtractionErrorCode.PDF_EXTRAC
 import art.yesulin.global.exception.BusinessException;
 import art.yesulin.pdfextraction.domain.PdfExtractionJob;
 import art.yesulin.pdfextraction.domain.PdfExtractionJobRepository;
+import art.yesulin.pdfextraction.domain.PdfExtractionPayloadRepository;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.ObjectMapper;
 
 @Service
 @RequiredArgsConstructor
@@ -24,13 +25,20 @@ public class PdfExtractionService {
     private static final Duration DELAY_NOTICE_AFTER = Duration.ofMinutes(10);
 
     private final PdfExtractionJobRepository repository;
+    private final PdfExtractionPayloadRepository payloads;
     private final PdfExtractionStorage storage;
+    private final ObjectMapper mapper;
     private final Clock clock;
 
     @Transactional
     public PreparedUpload prepare(long ownerId, String filename, long size) {
+        return prepare(ownerId, null, filename, size);
+    }
+
+    @Transactional
+    public PreparedUpload prepare(long ownerId, String reviewId, String filename, long size) {
         Instant now = clock.instant();
-        PdfExtractionJob job = new PdfExtractionJob(ownerId, filename, size, now, now.plus(UPLOAD_WINDOW));
+        PdfExtractionJob job = new PdfExtractionJob(ownerId, filename, size, now, now.plus(UPLOAD_WINDOW), reviewId);
         repository.save(job);
         return new PreparedUpload(job.getId(), storage.sourceFileKey(job), storage.prepare(job));
     }
@@ -42,7 +50,7 @@ public class PdfExtractionService {
             storage.verifySource(job);
             job.confirmUpload(clock.instant());
         }
-        return PdfExtractionView.of(job, pendingStatus(job), storage, null);
+        return PdfExtractionView.of(job, pendingStatus(job), storage, null, false);
     }
 
     @Transactional(readOnly = true)
@@ -53,16 +61,18 @@ public class PdfExtractionService {
                 .toList();
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public PdfExtractionView find(long ownerId, String id, boolean includeResult) {
         PdfExtractionJob job = repository.findByIdAndOwnerId(id, ownerId).orElseThrow(this::notFound);
-        if (job.getUploadedAt() == null || (job.getStatus().isFinal() && !includeResult)) {
-            return PdfExtractionView.of(job, pendingStatus(job), storage, null, false);
-        }
-        Optional<PdfExtractionResult> result = storage.findResult(job);
-        result.ifPresent(value -> job.finish(value.status()));
-        return PdfExtractionView.of(job, result.map(PdfExtractionResult::status).orElse(pendingStatus(job)),
-                storage, includeResult ? result.orElse(null) : null, includeResult);
+        PdfExtractionResult result = includeResult && job.isFinished() ? storedResult(job) : null;
+        return PdfExtractionView.of(job, pendingStatus(job), storage, result, includeResult);
+    }
+
+    private PdfExtractionResult storedResult(PdfExtractionJob job) {
+        return payloads.findById(job.getId())
+                .map(payload -> mapper.readValue(payload.getPayloadJson(), PdfExtractionResult.class))
+                .map(result -> result.withImageUrls(fileKey -> storage.imageUrl(job, fileKey)))
+                .orElse(null);
     }
 
     private String pendingStatus(PdfExtractionJob job) {

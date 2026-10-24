@@ -1,7 +1,7 @@
 # 여러 PDF 업로드와 추출 확인
 
 이번 범위는 파일별 presigned 업로드, 실제 PDFium 텍스트·이미지 추출, 본인 결과 확인이다.
-심사 생성·배우 정보 정규화·OCR·얼굴/로고 분류·Bedrock·SQS·DLQ·공유 IAM 변경은 포함하지 않는다.
+후속 기능은 제목·배역으로 심사를 생성하고 명시된 지원 배역을 연결한 뒤 담당자가 메모·심사 결정을 저장한다. OCR·얼굴/로고 분류·Bedrock·SQS·DLQ·공유 IAM 변경은 포함하지 않는다.
 실제 지원서·결과·ZIP 빌드 산출물은 `.gitignore`된 `output/`, `build/`에만 둔다.
 
 ## 구성과 패키지 경계
@@ -15,7 +15,7 @@
   `s3_handler.handler`가 S3 ObjectCreated 입력을 검증해 application에 전달한다.
 
 Spring이 원본을 받아 중계하지 않는다. 브라우저가 파일별 URL로 PUT하면 S3가 Lambda를 비동기로 호출하고,
-Lambda가 원본을 읽어 PNG를 저장한 뒤 result.json을 마지막에 쓴다. Spring은 소유권을 확인한 후 그 결과를 읽는다.
+Lambda가 원본을 읽어 PNG를 저장한 뒤 재전송 캐시인 result.json을 쓴다. 이어 전용 Bearer 인증 완료 API에 텍스트·이미지 key를 본문으로 보낸다. Spring은 작업·키를 검증해 DB에 저장하며 S3 JSON을 읽지 않는다. 완료 DB 커밋 후 본인 화면에 SSE 변경 신호를 보낸다.
 프론트가 추출 텍스트·이미지 key를 서버에 제출하는 방식은 사용하지 않는다.
 
 ## 로컬 실행
@@ -89,7 +89,7 @@ LocalStack 컨테이너를 삭제하면 로컬 S3·Lambda 데이터는 사라진
    Python 3.12 / ARM64 / 메모리 1024MB / timeout 120초 / 임시 디스크 512MB가 초기값이다.
 4. **inputs prefix + `/source.pdf` suffix만** ObjectCreated 트리거 대상으로 삼는다. 결과 저장이 재호출을 만들면 안 된다.
 5. 실행 역할의 원본 GetObject, 결과 GetObject/PutObject, 해당 prefix ListBucket, 로그 권한을 검증한다.
-   Spring도 원본 확인과 결과 읽기에 필요한 읽기·목록 권한이 있어야 한다. 기존 explicit deny는 Allow 추가만으로 해결되지 않는다.
+   Spring은 원본 업로드 확인을 위한 HEAD·Range GET과 원본·이미지 presigned URL 발급 권한이 필요하다. 결과 JSON을 읽는 권한은 완료 처리에 필요하지 않다. 기존 explicit deny는 Allow 추가만으로 해결되지 않는다.
 6. 버킷 CORS에 프론트 origin의 PUT/GET/HEAD와 `Content-Type`, `If-None-Match`를 허용한다.
    이번 변경에서 공유 정책·IAM 역할·기존 함수·버킷 CORS를 수정하지 않는다.
 
@@ -99,9 +99,9 @@ S3 멀티파트 업로드는 큰 파일 하나를 여러 조각으로 보내는 
 
 ## 실패와 재실행
 
-원본은 `inputs/{jobId}/source.pdf`, 결과는 `results/{jobId}/pdfium-v1/result.json`이다.
+심사에서 올린 원본은 `inputs/{reviewId}/{jobId}/source.pdf`, 이미지와 재전송 캐시는 `results/{reviewId}/{jobId}/pdfium-v1/` 아래다. 독립 추출 실험은 기존 `{jobId}` 경로를 유지한다.
 원본은 conditional PUT으로 덮어쓰지 않는다. 업로드 완료 확인은 HEAD와 PDF 서명을 검사하며 Lambda를 호출하지 않는다.
-presigned URL이 만료돼도 본인 job의 기존 원본이 검증을 통과하면 completion으로 복구할 수 있다.
+presigned URL이 만료돼도 본인 job의 기존 원본이 검증을 통과하면 completion으로 업로드 확인을 복구할 수 있다. 결과 DB 반영은 Lambda의 완료 API로만 수행한다.
 같은 job·원본 identity·옵션·추출기 버전의 재호출은 완료 manifest를 재사용한다. 동시 중복 실행까지 한 번으로 보장하지는 않는다.
 별도 job에 올린 바이트가 같은 PDF의 SHA 기반 전역 중복 제거도 이번 범위가 아니다.
 
@@ -132,3 +132,11 @@ Lambda가 실행되고 정상 3개 완료·손상 1개 FAILED로 분리되는 �
 - https://docs.aws.amazon.com/lambda/latest/dg/invocation-async.html
 - https://docs.aws.amazon.com/lambda/latest/dg/invocation-async-error-handling.html
 - https://docs.aws.amazon.com/AmazonS3/latest/userguide/conditional-writes.html
+
+## 직접 완료 API와 화면 알림
+
+Lambda에 `PDF_COMPLETION_API_URL=https://<backend>/internal/v1/pdf-extractions/completions`, `PDF_COMPLETION_API_TOKEN`을 설정한다. Spring에는 같은 32자 이상 토큰을 `YESULIN_PDF_EXTRACTION_CALLBACK_SECRET`으로 설정한다. 실제 토큰은 저장소·로그에 넣지 않는다. 로컬은 전용 가짜 토큰과 host.docker.internal:8093을 사용하고, `PDF_LOCAL_CALLBACK=true`일 때만 정해진 로컬 호스트의 HTTP를 허용한다. 실제 AWS는 HTTPS를 사용한다. 리다이렉트에 인증 토큰을 전달하지 않는다.
+
+완료 본문은 `{jobId,sourceFileKey,pipelineVersion,result}`이고 result에 추출 문자와 이미지 fileKey 목록이 들어간다. Spring은 정규화된 결과를 DB에 저장하며 임시 URL은 저장하지 않는다. `result.json`은 Lambda의 재전송 캐시이므로 API 실패 후 재실행은 PDF를 다시 추출하지 않고 저장된 결과를 다시 보낸다. 동일 결과는 멱등 처리하고, 다른 결과로 덮어쓰려 하면 409다. Lambda 재시도를 모두 소진한 경우의 최종 재전송은 운영 후속 범위다.
+
+화면은 SSE `/api/v1/pdf-extractions/events`를 구독한다. 최초 연결·재연결과 `completed` 신호에 DB 목록을 동기화하고 S3 결과 폴링은 하지 않는다. SSE 알림은 현재 Spring 인스턴스 연결에 한정되므로 다중 인스턴스 간 중계는 별도 범위다. 심사 API는 `backend/docs/pdf-reviews.md`, 로컬 화면은 `/dev/pdf-reviews`다. 배역 매칭은 문서의 명시된 지원 배역만 비교하며 모델에 의한 적합성·합격 판단은 하지 않는다.
