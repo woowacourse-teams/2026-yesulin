@@ -75,6 +75,43 @@ UNKNOWN은 자동 재전송하지 않는다. FAILED 중 code=RETRIED는 후속 �
 - `404 SMS_NOT_FOUND`: 본인 공고/배역/발송 기록이 아니거나 없는 경우.
 - `400 INVALID_REQUEST`: 합격자가 아닌 대상, 과거 일시, 잘못된 재전송 대상 등.
 
+## PDF 추출 확인
+
+`YESULIN_PDF_EXTRACTION_ENABLED=true`일 때만 아래 mapping을 등록한다. 모든 요청은 Active Producer를 요구하며,
+본인 작업이 아니거나 없는 UUID에는 동일하게 `404 PDF_EXTRACTION_NOT_FOUND`를 반환한다. 쓰기는 CSRF가 필요하다.
+전체 응답은 `Cache-Control: no-store`다. 심사 생성·지원자 필드 정규화·OCR·Bedrock은 포함하지 않는다.
+
+| Method | URL | 요청 / 응답 |
+| --- | --- | --- |
+| POST | `/api/v1/pdf-extractions/uploads` | `{originalFilename,size}` → 201 `{jobId,fileKey,upload:{url,method,expiresAt,headers}}` |
+| POST | `/api/v1/pdf-extractions/{jobId}/completion` | 빈 JSON → 202 job. 원본 크기·형식·PDF 서명 확인. 이미 확인한 작업은 재사용 |
+| GET | `/api/v1/pdf-extractions` | 최근 본인 작업 최대 800개 `{jobs:[job]}`. DB 메타데이터만 반환 |
+| GET | `/api/v1/pdf-extractions/{jobId}?includeResult=false` | 파일별 상태 조회. 최종 상태를 저장한 뒤에는 S3 결과를 다시 읽지 않음 |
+| GET | `/api/v1/pdf-extractions/{jobId}?includeResult=true` | 원본 임시 GET URL과 페이지별 텍스트·추출 이미지 URL을 포함한 job |
+
+job은 `jobId,originalFilename,size,createdAt,uploadedAt,status,sourceFileKey,resultFileKey,sourceUrl,result`다.
+목록·상태 조회의 `sourceUrl,result`는 null이며, 상세 조회에서만 채운다. result는 `status,sourceSha256,errorCode,warnings,pages`이고,
+page는 `number,text,needsOcr,images`, image는 `fileKey,url,classification=UNCLASSIFIED`다.
+URL은 응답 시 새로 서명하며 원본·이미지는 공개 CDN으로 바꾸지 않는다.
+
+파일당 PDF 25MiB, 파일명 255자 이하를 받는다. 프론트는 최대 800개를 선택하되 파일별로 URL을 발급하고 동시에 2개만 PUT한다.
+URL은 파일 한 개의 PUT을 서명하며 파일 여러 개를 한 URL에 넣지 않는다. 크기·Content-Type·`If-None-Match: *`를 서명해
+같은 원본 키를 덮어쓰지 않는다. URL 만료는 새 PUT만 막는다. 본인 작업의 원본이 이미 있고 크기·형식·PDF 서명이 맞으면
+만료 후 시간이 지나도 completion이 확인하며, 확인을 마친 작업의 재확인은 멱등이다. 조회(GET)는 원본을 찾거나 확인하지 않는다.
+
+PUT 완료가 Lambda 완료를 뜻하지 않는다. completion은 업로드만 확인하며 Lambda를 호출하지 않는다.
+설정된 S3 ObjectCreated 트리거가 파일별 비동기 처리를 시작한다. 프론트는 3초 주기로 최대 4개 상태를 순환 확인하되
+동시에 조회하는 요청은 2개로 제한한다. 숨긴 탭·닫힌 화면에서는 폴링을 멈춘다.
+
+상태는 `UPLOADING`, `UPLOAD_EXPIRED`, `QUEUED`, `DELAYED`, `COMPLETED`, `PARTIAL`, `FAILED`다.
+10분 이상 결과가 없어도 실패로 단정하지 않고 DELAYED로 표시한다. `needsOcr`는 텍스트가 비었다는 힌트이며 OCR 수행 결과가 아니다.
+로고와 사람 사진을 자동 분류하지 않는다. 추출 상세 JSON은 최대 2MiB다. 상한 초과는 FAILED 결과로 기록한다.
+
+- `400 INVALID_PDF`: 확장자·크기·PDF 서명이 부적절하다.
+- `409 PDF_UPLOAD_NOT_READY`: 아직 객체가 없거나 업로드 크기·형식이 맞지 않는다.
+
+미확인 작업은 업로드 URL 만료 60초 뒤부터 목록·상태에서 `UPLOAD_EXPIRED`로 표시하지만 completion은 계속 가능하다.
+
 ## Health와 인증 — 9개
 
 | Method | URL | 인증 | Request | Response |

@@ -52,6 +52,9 @@ const hasText = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0;
 
 export const handlers = [
+  // PDF 추출은 MSW가 켜져 있어도 저장소·추출 결과를 가짜 성공으로 대체하지 않는다.
+  http.all("/api/v1/pdf-extractions", () => passthrough()),
+  http.all("/api/v1/pdf-extractions/*", () => passthrough()),
   ...noticeHandlers,
   ...authHandlers,
   ...adminHandlers,

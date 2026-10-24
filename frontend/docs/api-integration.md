@@ -81,6 +81,26 @@ DEV 공고 알림도 기본 공유 링크는 `https://yesulin.art`로 발급한�
 같은 탭의 응답 유실 재시도에 재사용한다. 원문과 연락처는 이 저장소에 기록하지 않는다.
 탭을 닫은 뒤에는 발송 내역을 먼저 확인한다. 마감 잠금은 심사 변경에만 적용하며 문자 기능을 막지 않는다.
 
+## PDF 추출 확인
+
+`features/pdf-extractions`가 `/api/v1/pdf-extractions/**`를 호출하고 `components/pdf-extractions`가 다중 파일 선택과
+파일별 상태·원본 viewer·추출 텍스트·이미지를 표시한다. `/producers/pdf-extractions`는 기존 공연사 세션을 사용한다.
+파일은 하나씩 URL을 발급받아 동시에 2개만 읽고 PUT한다. 전체 선택 파일을 미리 arrayBuffer로 읽지 않는다.
+상태 조회는 최대 4개씩 순환하며 동시에 2개만 호출하고, 상세 텍스트와 이미지 URL은 선택한 파일만 보관한다.
+업로드 재시도는 기존 작업의 completion을 먼저 호출해 PUT 응답 유실을 복구한다. 원본이 없다는 409이고 저장된
+업로드 주소의 `expiresAt`이 지났으며 File이 남아 있을 때만 새 URL을 발급한다. 인증·서버·네트워크 오류에서는 새 작업을 만들지 않는다.
+새로고침한 `UPLOAD_EXPIRED` 행도 "업로드 완료 확인"으로 completion을 다시 호출할 수 있고, 원본이 없으면 파일 재선택을 안내한다.
+새로고침하면 본인의 최근 800개 메타데이터를 읽는다. 원본·추출 내용·presigned URL을 localStorage에 저장하지 않는다.
+
+이 기능은 MSW 활성 중에도 실제 백엔드로 전달하며 가짜 추출 성공을 반환하지 않는다.
+쓰기·상태·상세 계약은 [백엔드 API의 PDF 추출 확인](../../backend/docs/api.md#pdf-추출-확인)을 따른다.
+S3 PUT에는 서버가 반환한 헤더만 전달하고 세션 Cookie나 CSRF 토큰을 보내지 않는다.
+
+별도 로컬 확인은 `API_ORIGIN=http://127.0.0.1:8093 PDF_EXTRACTION_LOCAL=true npm run dev -- --hostname 127.0.0.1 --port 3201`로
+실행한 `/dev/pdf-extractions`다. Vercel 또는 로컬 플래그가 없는 빌드에서는 이 경로가 404다.
+이 화면의 테스트 계정 버튼은 별도 H2 DB의 가상 계정으로 정상 세션 로그인을 수행한다. 운영 인증을 우회하지 않는다.
+LocalStack·Lambda·Spring 실행 방법은 [로컬 추출 실행 안내](../../ops/pdf-extraction-lambda/README.md)를 따른다.
+
 ## MSW 전용 계약
 
 다음 경로는 `seed_*` 화면과 목 시나리오에서만 사용하며 백엔드 API로 간주하지 않는다.
