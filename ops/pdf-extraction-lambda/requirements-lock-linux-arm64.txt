@@ -1,0 +1,10 @@
+# Resolved for Python 3.12 / Linux ARM64. Rebuild with scripts/build.py.
+boto3==1.43.116
+botocore==1.43.116
+jmespath==1.1.0
+pillow==12.3.0
+pypdfium2==5.14.0
+python-dateutil==2.9.0.post0
+s3transfer==0.19.3
+six==1.17.0
+urllib3==2.8.0

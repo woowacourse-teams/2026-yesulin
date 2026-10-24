@@ -84,6 +84,8 @@ management:
           include: readinessState,db
 
 yesulin:
+  pdf-extraction:
+    enabled: ${YESULIN_PDF_EXTRACTION_ENABLED:false}
   audition-post:
     count-cache:
       enabled: ${YESULIN_AUDITION_COUNT_CACHE_ENABLED:true}

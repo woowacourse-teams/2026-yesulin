@@ -75,6 +75,69 @@ UNKNOWN은 자동 재전송하지 않는다. FAILED 중 code=RETRIED는 후속 �
 - `404 SMS_NOT_FOUND`: 본인 공고/배역/발송 기록이 아니거나 없는 경우.
 - `400 INVALID_REQUEST`: 합격자가 아닌 대상, 과거 일시, 잘못된 재전송 대상 등.
 
+## PDF 추출 확인
+
+`YESULIN_PDF_EXTRACTION_ENABLED=true`일 때만 아래 mapping을 등록한다. `/api/v1/**` 요청은 Active Producer를 요구하며,
+본인 작업이 아니거나 없는 UUID에는 동일하게 `404 PDF_EXTRACTION_NOT_FOUND`를 반환한다. 쓰기는 CSRF가 필요하다.
+전체 응답은 `Cache-Control: no-store`다. 제목·배역 기반 심사 등록은 [PDF 심사 API](pdf-reviews.md)를 따른다. OCR·Bedrock은 포함하지 않는다.
+
+| Method | URL | 요청 / 응답 |
+| --- | --- | --- |
+| POST | `/api/v1/pdf-extractions/uploads` | `{originalFilename,size}` → 201 `{jobId,fileKey,upload:{url,method,expiresAt,headers}}` |
+| POST | `/api/v1/pdf-extractions/{jobId}/completion` | 빈 JSON → 202 job. 원본 크기·형식·PDF 서명 확인. 이미 확인한 작업은 재사용 |
+| GET | `/api/v1/pdf-extractions` | 최근 본인 작업 최대 800개 `{jobs:[job]}`. DB 메타데이터만 반환 |
+| GET | `/api/v1/pdf-extractions/{jobId}?includeResult=false` | 파일별 상태 조회. DB 상태만 읽고 S3는 조회하지 않음 |
+| GET | `/api/v1/pdf-extractions/{jobId}?includeResult=true` | 원본 임시 GET URL과 페이지별 텍스트·추출 이미지 URL을 포함한 job. 최종 상태일 때만 DB에 저장된 결과를 읽음 |
+| POST | `/internal/v1/pdf-extractions/completions` | Lambda 전용. 아래 "Lambda 결과 전달" 참고. 성공 시 200 `{jobId,status}` |
+
+job은 `jobId,originalFilename,size,createdAt,uploadedAt,status,sourceFileKey,resultFileKey,sourceUrl,result`다.
+목록·상태 조회의 `sourceUrl,result`는 null이며, 상세 조회에서만 채운다. result는 `status,sourceSha256,errorCode,warnings,pages`이고,
+page는 `number,text,needsOcr,images`, image는 `fileKey,url,classification=UNCLASSIFIED`다.
+URL은 응답 시 새로 서명하며 DB에는 저장하지 않는다. 원본·이미지는 공개 CDN으로 바꾸지 않는다.
+`resultFileKey`는 Lambda 재시도용 `result.json` 위치를 알려 줄 뿐 Spring은 이 객체를 읽지 않는다.
+
+파일당 PDF 25MiB, 파일명 255자 이하를 받는다. 프론트는 최대 800개를 선택하되 파일별로 URL을 발급하고 동시에 2개만 PUT한다.
+URL은 파일 한 개의 PUT을 서명하며 파일 여러 개를 한 URL에 넣지 않는다. 크기·Content-Type·`If-None-Match: *`를 서명해
+같은 원본 키를 덮어쓰지 않는다. URL 만료는 새 PUT만 막는다. 본인 작업의 원본이 이미 있고 크기·형식·PDF 서명이 맞으면
+만료 후 시간이 지나도 completion이 확인하며, 확인을 마친 작업의 재확인은 멱등이다. 조회(GET)는 원본을 찾거나 확인하지 않는다.
+
+PUT 완료가 Lambda 완료를 뜻하지 않는다. completion은 업로드만 확인하며 Lambda를 호출하지 않는다.
+설정된 S3 ObjectCreated 트리거가 파일별 비동기 처리를 시작한다.
+완료 알림은 로그인한 공연사의 SSE 연결(`/api/v1/pdf-extractions/events`)로 보낸다. 화면은 연결·재연결·완료 알림 때 DB 목록을 동기화하고, 정기적인 상태 폴링은 하지 않는다. 연결이 끊기면 수동 새로고침으로도 확인할 수 있다.
+
+상태는 `UPLOADING`, `UPLOAD_EXPIRED`, `QUEUED`, `DELAYED`, `COMPLETED`, `PARTIAL`, `FAILED`다.
+10분 이상 결과가 없어도 실패로 단정하지 않고 DELAYED로 표시한다. `needsOcr`는 텍스트가 비었다는 힌트이며 OCR 수행 결과가 아니다.
+로고와 사람 사진을 자동 분류하지 않는다. 추출 상세 JSON은 최대 2MiB다.
+
+### Lambda 결과 전달
+
+`POST /internal/v1/pdf-extractions/completions`는 `/api/v1`과 별도 보안 체인(`/internal/v1/pdf-extractions/**`, 전체 메서드)이며
+세션을 쓰지 않고 CSRF 예외는 이 POST 하나뿐이다. 모든 요청은 `Authorization: Bearer <secret>`을 요구하고, secret은 `YESULIN_PDF_EXTRACTION_CALLBACK_SECRET`
+(`yesulin.pdf-extraction.callback-secret`)과 상수 시간으로 비교한다. 32자 미만이거나 미설정이면 모든 요청을 거부한다.
+인증 실패는 본문 없는 `401`이며 secret과 본문은 기록하지 않는다. 로컬 프로필의 값은 가짜 토큰이다.
+
+요청은 `{jobId,sourceFileKey,pipelineVersion,result}`다. `sourceFileKey`는 응답 job의 `sourceFileKey`(물리 키)이고
+`pipelineVersion`은 `pdfium-v1`이다. `result`는 Lambda `result.json`과 같은 manifest(`jobId,pipelineVersion,source.key/sha256,
+status,warnings,pages[number,text,needsOcr,images[status,key]]`)다. 소유자는 `jobId`로 DB에서 찾으며 요청 값을 신뢰하지 않는다.
+요청에 포함된 URL은 읽지도 저장하지도 않는다.
+
+- 검증: `jobId`·`source.key`·`pipelineVersion`·이미지 key prefix(`.../results/{jobId}/pdfium-v1/images/*.png`)가 맞고,
+  `status`가 `COMPLETED/PARTIAL/FAILED`이며 직렬화 2MiB 이하, 50쪽 이하, 이미지 100개 이하, 쪽당 문자 100,000자 이하(전체 결과 JSON은 2MiB 이하),
+  쪽 번호가 1 이상이고 중복이 없어야 한다. 어긋나면 `400 INVALID_PDF_EXTRACTION_RESULT`, 없는 작업은 `404 PDF_EXTRACTION_NOT_FOUND`다.
+- 저장: 검증한 결과(경고는 표시 문장으로 변환, 이미지는 `EXTRACTED`만, URL 제외)를 작업당 한 번 `pdf_extraction_payloads`에
+  JSON과 서버가 계산한 SHA-256으로 저장하고 작업 상태·`uploadedAt`을 같은 트랜잭션에서 갱신한다. 프론트 completion보다 먼저 와도
+  유효하며 이때 `uploadedAt`을 기록한다. 이후 프론트 completion은 최종 상태를 덮지 않는다.
+- 멱등성: 같은 작업에 같은 결과를 다시 보내면 `200`이고 이벤트를 다시 발행하지 않는다. 다른 결과는 `409 PDF_EXTRACTION_RESULT_CONFLICT`다.
+- 이벤트: 최초 접수 시 실패 결과도 포함해 같은 트랜잭션에서 `PdfExtractionCompletedEvent(jobId, ownerId, text)`를 동기 발행한다.
+  `text`는 쪽 번호 순서로 `\n\n`으로 이은 추출 문자다. 리스너가 실패하면 저장과 상태 변경 전체를 되돌려 Lambda가 재시도할 수 있다.
+
+Spring은 `result.json`을 읽거나 목록 조회하지 않는다. 상세 조회는 DB 결과를 읽고 이미지·원본 URL만 새로 서명한다.
+
+- `400 INVALID_PDF`: 확장자·크기·PDF 서명이 부적절하다.
+- `409 PDF_UPLOAD_NOT_READY`: 아직 객체가 없거나 업로드 크기·형식이 맞지 않는다.
+
+미확인 작업은 업로드 URL 만료 60초 뒤부터 목록·상태에서 `UPLOAD_EXPIRED`로 표시하지만 completion은 계속 가능하다.
+
 ## Health와 인증 — 9개
 
 | Method | URL | 인증 | Request | Response |
@@ -873,3 +936,7 @@ S3 삭제 실패 시 `DELETING` 상태가 남으며 같은 파일 ID로 재시�
 | 운영 | `MEMBER_NOT_FOUND`, `MEMBER_STATUS_CHANGE_NOT_ALLOWED`, `ADMIN_DELETION_CONFIRMATION_FAILED` |
 
 인가 공통 오류는 `401 AUTH_UNAUTHENTICATED`, `403 AUTH_FORBIDDEN`, `403 AUTH_INACTIVE_MEMBER`다.
+
+### PDF 완료 알림
+
+`GET /api/v1/pdf-extractions/events`는 Active Producer 세션으로 접근하는 SSE다. `connected`와 `completed` 이벤트를 보내며 완료 데이터는 `{jobId}`만 포함한다. 본인 작업만 전달하고 DB 커밋 후 알린다. 15초 heartbeat와 3분 연결 만료 후 재연결을 사용한다. 알림 이력을 영구 보관하지 않으므로 재연결 시 DB 목록으로 동기화한다. 현재 인스턴스에 연결된 화면만 즉시 알림을 받으며 다중 인스턴스 간 알림 중계는 별도 범위다.

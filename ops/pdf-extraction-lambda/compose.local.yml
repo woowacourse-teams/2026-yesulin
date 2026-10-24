@@ -1,0 +1,21 @@
+name: yesulin-pdf-extraction-local
+services:
+  localstack:
+    image: localstack/localstack:3.8.1
+    ports:
+      - "127.0.0.1:4568:4566"
+    environment:
+      SERVICES: s3,lambda,logs,iam,sts
+      AWS_DEFAULT_REGION: ap-northeast-2
+      LAMBDA_DOCKER_NETWORK: yesulin-pdf-extraction-local
+      LAMBDA_KEEPALIVE_MS: "60000"
+      LOCALSTACK_HOST: localhost:4568
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      default:
+        aliases:
+          - localstack
+networks:
+  default:
+    name: yesulin-pdf-extraction-local
