@@ -22,6 +22,15 @@ export function PdfExtractionResultPanel({ job }: { readonly job: PdfExtractionJ
       <PdfOriginalViewer key={job.jobId} url={job.sourceUrl} filename={job.originalFilename} />
     </div> : null}
     {result ? <>
+      {result.applicantInfo && result.applicantInfo.reason !== "NO_REVIEW" ? <div role="status" className="mb-5 rounded-control bg-surface p-4 text-sm leading-6">
+        <p className="font-semibold">{result.applicantInfo.status === "COMPLETED" ? "AI 지원 정보 정리 완료"
+          : result.applicantInfo.status === "FAILED" ? "AI 지원 정보 정리 실패" : "AI 지원 정보 정리 생략"}</p>
+        <p className="mt-1 text-muted-strong">{result.applicantInfo.status === "COMPLETED"
+          ? "지원서 원문을 바탕으로 정리했습니다. 이름과 지원 배역의 근거를 확인한 뒤 심사해 주세요."
+          : result.applicantInfo.reason === "NO_TEXT" ? "읽을 수 있는 문자가 없어 정리하지 못했습니다. 원본 PDF를 확인해 주세요."
+          : result.applicantInfo.reason === "TEXT_LIMIT_EXCEEDED" ? "텍스트가 처리 한도를 넘어 정리하지 못했습니다. 원본 PDF를 확인해 주세요."
+          : "원본 PDF와 추출 결과는 확인할 수 있습니다. 지원 정보는 직접 확인해 주세요."}</p>
+      </div> : null}
       {result.errorCode ? <p role="alert" className="my-4 break-all rounded-control bg-fail-bg p-4 text-sm text-fail">추출을 완료하지 못했습니다. ({result.errorCode}) 원본 파일을 확인해 주세요.</p> : null}
       {result.warnings.length ? <div className="mb-5 rounded-control bg-surface p-4 text-sm"><p className="font-semibold">확인이 필요한 항목</p><ul className="mt-2 list-inside list-disc">{result.warnings.map((warning, i) => <li key={i} className="break-all">{warning}</li>)}</ul></div> : null}
       <h3 className="mb-3 font-semibold">추출 텍스트 · {result.pages.length}쪽</h3>

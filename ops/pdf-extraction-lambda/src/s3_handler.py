@@ -1,4 +1,4 @@
-"""S3 ObjectCreated adapter. Posts completed extraction to Spring; no Bedrock or application queue."""
+"""S3 ObjectCreated adapter. Optionally structure extracted text before direct delivery."""
 import json
 import os
 import re
@@ -10,6 +10,7 @@ from botocore.config import Config
 from application.jobs import Settings, process_job
 from infrastructure.aws_storage import S3Store
 from infrastructure.completion_api import CompletionApi
+from infrastructure.applicant_models import configured_processor
 
 
 def requests_from_s3(event, settings):
@@ -53,6 +54,8 @@ def handler(event, context):
         notifier = CompletionApi(store, os.environ["PDF_COMPLETION_API_URL"],
                                  os.environ["PDF_COMPLETION_API_TOKEN"],
                                  allow_local_http=os.environ.get("PDF_LOCAL_CALLBACK") == "true")
+        notifier.processor = configured_processor(notifier.context)
+        notifier.remaining_ms = context.get_remaining_time_in_millis
         results = [process_job(request, settings, store, notifier.notify,
                                remaining_ms=context.get_remaining_time_in_millis)
                    for request in requests_from_s3(event, settings)]

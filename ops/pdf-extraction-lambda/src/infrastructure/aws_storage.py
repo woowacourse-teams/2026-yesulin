@@ -62,3 +62,15 @@ class S3Store:
                                Body=json.dumps(result, ensure_ascii=False).encode("utf-8"),
                                ContentType="application/json; charset=utf-8", ServerSideEncryption="AES256",
                                CacheControl="no-store")
+
+    def write_json_once(self, key, result):
+        try:
+            self.client.put_object(Bucket=self.bucket, Key=key,
+                                   Body=json.dumps(result, ensure_ascii=False).encode("utf-8"),
+                                   ContentType="application/json; charset=utf-8", ServerSideEncryption="AES256",
+                                   CacheControl="no-store", IfNoneMatch="*")
+            return True
+        except self.client.exceptions.ClientError as error:
+            if error.response["Error"]["Code"] in {"PreconditionFailed", "412"}:
+                return False
+            raise

@@ -79,7 +79,8 @@ UNKNOWN은 자동 재전송하지 않는다. FAILED 중 code=RETRIED는 후속 �
 
 `YESULIN_PDF_EXTRACTION_ENABLED=true`일 때만 아래 mapping을 등록한다. `/api/v1/**` 요청은 Active Producer를 요구하며,
 본인 작업이 아니거나 없는 UUID에는 동일하게 `404 PDF_EXTRACTION_NOT_FOUND`를 반환한다. 쓰기는 CSRF가 필요하다.
-전체 응답은 `Cache-Control: no-store`다. 제목·배역 기반 심사 등록은 [PDF 심사 API](pdf-reviews.md)를 따른다. OCR·Bedrock은 포함하지 않는다.
+전체 응답은 `Cache-Control: no-store`다. 제목·배역 기반 심사 등록과 선택적 AI 정보 정리는 [PDF 심사 API](pdf-reviews.md)를 따른다.
+AI 호출은 Lambda에서 수행하며 OCR은 포함하지 않는다. 완료 결과에는 선택적으로 `applicantInfo`가 포함된다.
 
 | Method | URL | 요청 / 응답 |
 | --- | --- | --- |
@@ -89,9 +90,11 @@ UNKNOWN은 자동 재전송하지 않는다. FAILED 중 code=RETRIED는 후속 �
 | GET | `/api/v1/pdf-extractions/{jobId}?includeResult=false` | 파일별 상태 조회. DB 상태만 읽고 S3는 조회하지 않음 |
 | GET | `/api/v1/pdf-extractions/{jobId}?includeResult=true` | 원본 임시 GET URL과 페이지별 텍스트·추출 이미지 URL을 포함한 job. 최종 상태일 때만 DB에 저장된 결과를 읽음 |
 | POST | `/internal/v1/pdf-extractions/completions` | Lambda 전용. 아래 "Lambda 결과 전달" 참고. 성공 시 200 `{jobId,status}` |
+| GET | `/internal/v1/pdf-extractions/{jobId}/review-context` | 워커 Bearer 전용. 작업의 등록 심사·배역과 결과 저장 여부. [PDF 심사](pdf-reviews.md) 참고 |
 
 job은 `jobId,originalFilename,size,createdAt,uploadedAt,status,sourceFileKey,resultFileKey,sourceUrl,result`다.
-목록·상태 조회의 `sourceUrl,result`는 null이며, 상세 조회에서만 채운다. result는 `status,sourceSha256,errorCode,warnings,pages`이고,
+목록·상태 조회의 `sourceUrl,result`는 null이며, 상세 조회에서만 채운다. result는 `status,sourceSha256,errorCode,warnings,pages`와
+선택적 `applicantInfo`(이전 워커는 생략)이고,
 page는 `number,text,needsOcr,images`, image는 `fileKey,url,classification=UNCLASSIFIED`다.
 URL은 응답 시 새로 서명하며 DB에는 저장하지 않는다. 원본·이미지는 공개 CDN으로 바꾸지 않는다.
 `resultFileKey`는 Lambda 재시도용 `result.json` 위치를 알려 줄 뿐 Spring은 이 객체를 읽지 않는다.

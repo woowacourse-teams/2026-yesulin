@@ -77,7 +77,7 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
       <h1 className="text-2xl font-bold tracking-tight md:text-3xl">PDF 지원서 심사</h1>
       <p className="mt-3 max-w-3xl text-sm leading-7 text-muted-strong">심사 제목과 배역을 만든 뒤 지원서 PDF를 여러 개 올리면 지원자별로 정리됩니다. 원본을 보며 메모를 남기고 합격·불합격은 담당자가 직접 정합니다.</p>
       {local ? <p className="mt-3 rounded-control border border-brand-line bg-brand-soft px-4 py-3 text-sm leading-6 text-brand">
-        로컬 확인용 안내: 파일은 이 PC의 LocalStack에 올라가고 Lambda 컨테이너가 추출합니다. 지원 배역은 지원서에 명시된 문구만 근거로 분류하며 Bedrock은 아직 연결되지 않았습니다. 문구가 없거나 모호하면 ‘배역 확인 필요’로 남습니다.
+        로컬 확인용 안내: 파일은 이 PC의 LocalStack에 올라가고 Lambda 컨테이너가 추출합니다. AI를 설정하면 본문이 해당 외부 모델로 전송됩니다. 무료 연결 시험에는 가상 지원서를 사용하세요. AI를 설정하지 않으면 기존 지원 배역 레이블만 읽으며, 처리 여부는 선택한 PDF 결과에서 확인할 수 있습니다.
       </p> : null}
       {!authorized ? <ReviewLoginGate local={local} ready={sessionReady} /> : <>
         {expired ? <SessionExpiredNotice local={local} onRecheck={() => void recheckSession()} /> : null}

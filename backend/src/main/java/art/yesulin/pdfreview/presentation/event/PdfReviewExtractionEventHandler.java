@@ -17,6 +17,6 @@ public class PdfReviewExtractionEventHandler {
     // 커밋 뒤가 아니라 콜백과 같은 트랜잭션에서 반영한다. 예외는 삼키지 않아 콜백이 롤백되고 재시도된다.
     @EventListener
     public void handle(PdfExtractionCompletedEvent event) {
-        service.applyExtraction(event.jobId(), event.ownerId(), event.text());
+        service.applyExtraction(event.jobId(), event.ownerId(), event.text(), event.applicantInfo());
     }
 }

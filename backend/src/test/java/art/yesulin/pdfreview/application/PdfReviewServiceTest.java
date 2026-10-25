@@ -15,6 +15,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import art.yesulin.global.exception.BusinessException;
+import art.yesulin.pdfextraction.application.PdfApplicantInfo;
 import art.yesulin.pdfextraction.application.PdfExtractionService;
 import art.yesulin.pdfextraction.application.PdfExtractionService.PreparedUpload;
 import art.yesulin.pdfextraction.application.PdfExtractionStorage;
@@ -183,6 +184,45 @@ class PdfReviewServiceTest {
     }
 
     @Test
+    void applicantInfoReplacesLabelMatchingAndNeverTouchesMemoOrDecision() {
+        PdfReviewDetail created = service.create(OWNER, "제목", List.of("햄릿", "오필리아"));
+        PdfReviewEntryView uploaded = uploadEntry(created.id());
+        service.editEntry(OWNER, created.id(), uploaded.id(), "메모", PdfReviewDecision.PASS);
+        String ophelia = created.roles().get(1).id();
+
+        extractionService.applyExtraction(uploaded.jobId(), OWNER, "성명: 홍길동\n지원배역: 햄릿\n오필리아 지원",
+                applicantInfo("COMPLETED", "", "홍길동", "성명: 홍길동", ophelia, "오필리아 지원"));
+
+        PdfReviewEntryView entry = service.find(OWNER, created.id()).entries().get(0);
+        assertEquals(PdfReviewMatchStatus.MATCHED, entry.matchStatus());
+        assertEquals(ophelia, entry.roleId());
+        assertEquals("홍길동", entry.applicantName());
+        assertEquals("메모", entry.memo());
+        assertEquals(PdfReviewDecision.PASS, entry.decision());
+    }
+
+    @Test
+    void applicantInfoWithUnknownRoleOrFailureNeedsCheckWithoutFallingBackToLabels() {
+        PdfReviewDetail created = service.create(OWNER, "제목", List.of("햄릿"));
+        PdfReviewEntryView uploaded = uploadEntry(created.id());
+        String text = "성명: 홍길동\n지원배역: 햄릿";
+
+        extractionService.applyExtraction(uploaded.jobId(), OWNER, text,
+                applicantInfo("COMPLETED", "", "홍길동", "성명: 홍길동", UUID.randomUUID().toString(), "지원배역: 햄릿"));
+        PdfReviewEntryView unknownRole = service.find(OWNER, created.id()).entries().get(0);
+        assertEquals(PdfReviewMatchStatus.NEEDS_CHECK, unknownRole.matchStatus());
+        assertNull(unknownRole.roleId());
+        assertEquals("홍길동", unknownRole.applicantName());
+        extractionService.applyExtraction(uploaded.jobId(), OWNER, text,
+                applicantInfo("FAILED", "PROVIDER_ERROR", null, null, null, null));
+        PdfReviewEntryView failed = service.find(OWNER, created.id()).entries().get(0);
+
+        assertEquals(PdfReviewMatchStatus.NEEDS_CHECK, failed.matchStatus());
+        assertNull(failed.roleId());
+        assertNull(failed.applicantName());
+    }
+
+    @Test
     void repeatedResultKeepsTheSameStateAndEditedFields() {
         PdfReviewDetail created = service.create(OWNER, "제목", List.of("햄릿"));
         PdfReviewEntryView uploaded = uploadEntry(created.id());
@@ -235,6 +275,12 @@ class PdfReviewServiceTest {
 
         assertThrows(IllegalStateException.class,
                 () -> extractionService.applyExtraction(uploaded.jobId(), OWNER, "지원배역: 햄릿"));
+    }
+
+    private PdfApplicantInfo applicantInfo(String status, String reason, String name, String nameEvidence,
+                                           String roleId, String roleEvidence) {
+        return new PdfApplicantInfo("applicant-info-v1", status, "bedrock", "model-1", name, nameEvidence, roleId,
+                roleEvidence, reason);
     }
 
     private PdfReviewEntryView uploadEntry(String reviewId) {

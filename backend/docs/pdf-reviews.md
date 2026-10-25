@@ -42,6 +42,48 @@ PDF 추출 결과를 바탕으로 기획사가 지원서 PDF를 한곳에서 확
 
 ## 자동 반영
 
+### AI로 지원 정보 정리
+
+Lambda에 AI 제공자를 설정하면 PDFium으로 추출한 본문과 이 심사의 등록 배역 목록을 모델에 전달한다.
+AI가 `applicantName`, `applicantNameEvidence`, `roleId`, `roleEvidence`를 JSON Schema에 맞춰 반환한다.
+`roleId`는 등록된 배역 ID 또는 null이다. 배역의 별칭·접미사 정리는 모델이 수행하며 서버에 별도 보정 규칙을 추가하지 않는다.
+합불·점수·메모·이미지 fileKey는 모델의 출력 항목이 아니다.
+
+워커 전용 `GET /internal/v1/pdf-extractions/{jobId}/review-context`는 기존 완료 API의 Bearer 인증을 요구한다.
+응답은 `{jobId,reviewId,sourceFileKey,resultStored,roles:[{id,name}]}`이며 `Cache-Control: no-store`다.
+작업과 심사의 소유자가 다르거나 연결된 심사가 없으면 404다. 독립 추출 작업은 `reviewId:null,roles:[]`다.
+S3 객체 조회나 presigned URL 발급 없이 DB와 원본 키 규칙만 사용한다. 브라우저 세션은 이 API의 인증을 대체하지 못한다.
+
+기존 완료 POST의 `result.applicantInfo` 형식은 아래와 같다. 이 필드가 없는 이전 워커의 콜백은 기존 규칙으로 처리한다.
+명시적 null이나 잘못된 객체는 `400 INVALID_PDF_EXTRACTION_RESULT`다. 상태·타입·길이·UUID·알 수 없는 필드를 검증한다.
+
+```json
+{
+  "version": "applicant-info-v1",
+  "status": "COMPLETED",
+  "provider": "gemini",
+  "model": "gemini-3.5-flash-lite",
+  "applicantName": "가상배우",
+  "applicantNameEvidence": "성명: 가상배우",
+  "roleId": "00000000-0000-4000-8000-000000000001",
+  "roleEvidence": "강하루역에 지원합니다.",
+  "reason": ""
+}
+```
+
+- 상태는 `COMPLETED`, `FAILED`, `SKIPPED`다. 이름·근거·배역은 null일 수 있다. 이름은 100자, 근거는 각 500자,
+  모델은 150자 이하다. 실패·생략 상태에는 제안 값이 없어야 한다.
+- `COMPLETED`의 reason은 빈 문자열이다. `FAILED`는 `PROVIDER_ERROR` 또는 `INVALID_MODEL_OUTPUT`, `SKIPPED`는
+  `NO_TEXT`, `NO_REVIEW`, `TEXT_LIMIT_EXCEEDED`다.
+- 서버는 배역 ID가 해당 심사에 속하는지 확인한다. 이름·배역의 근거는 NFC·공백 정규화 후 원문에 실제로 포함돼야 하며,
+  이름 자체도 이름 근거에 포함돼야 한다. 검증되지 않은 값은 채택하지 않고 이유를 남긴다. 배역을 확정하지 못하면
+  `NEEDS_CHECK`다. 담당자가 원문을 함께 확인한다.
+- AI 실패·생략도 PDF 추출 결과는 저장하고 `NEEDS_CHECK`와 사유를 표시한다. AI 결과도 payload digest에 포함하므로
+  같은 결과 재전송은 멱등이고 다른 결과로 기존 지원서를 덮어쓸 수 없다. 메모·결정은 유지한다.
+- AI 호출 중에는 Spring 트랜잭션·DB 행 잠금을 잡지 않는다. Lambda가 AI 결과까지 만든 다음 한 번의 완료 API로 전달한다.
+
+### 이전 워커의 레이블 기반 반영
+
 추출 결과를 처음 받으면 `PdfExtractionCompletedEvent(jobId, ownerId, text)`가 콜백 트랜잭션 안에서 동기로 발행된다.
 중복 콜백은 이벤트를 발행하지 않는다. `presentation/event`의 리스너가 같은 트랜잭션에서 해당 `jobId`의 항목을 잠그고
 갱신하며, 예외는 삼키지 않아 콜백이 롤백되고 재시도된다. 항목이 없는 작업(기존 `/pdf-extractions`로 올린 파일)의
