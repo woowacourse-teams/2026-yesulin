@@ -13,6 +13,7 @@ import { ProducerAccountPanel } from "./producer-account-panel";
 import { ProducerNavigationProvider } from "./producer-navigation-context";
 import { ProducerSidebarHeader } from "./producer-sidebar-header";
 import { ProducerSidebarToggle } from "./producer-sidebar-toggle";
+import { PdfReviewNavigation } from "./pdf-review-navigation";
 import { useRouteDisclosure } from "./use-route-disclosure";
 
 const DESKTOP_NAVIGATION_TITLE = "focused-producer-navigation-title";
@@ -68,6 +69,7 @@ function ProducerShellFrame({
             <aside className="fixed bottom-0 left-0 top-0 z-30 hidden flex-col overflow-hidden rounded-r-modal border-r border-sidebar-line bg-sidebar text-sidebar-text lg:flex lg:w-[var(--sidebar-width)]">
               <ProducerSidebarHeader onClose={() => setDesktopSidebarOpen(false)} />
               <div className="min-h-0 flex-1 overflow-y-auto py-2">
+                <PdfReviewNavigation />
                 <ShowManagementNav />
                 <AuditionPostManagementNav />
                 <OtrAuditionTreeNav />
@@ -88,6 +90,7 @@ function ProducerShellFrame({
         >
           <ProducerSidebarHeader titleId={DESKTOP_NAVIGATION_TITLE} autoFocus onClose={closeFocusNavigation} />
           <div className="min-h-0 flex-1 overflow-y-auto py-2">
+            <PdfReviewNavigation onNavigate={closeFocusNavigation} />
             <ShowManagementNav onNavigate={closeFocusNavigation} />
             <AuditionPostManagementNav onNavigate={closeFocusNavigation} />
             <OtrAuditionTreeNav onNavigate={closeFocusNavigation} />

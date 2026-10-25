@@ -12,7 +12,7 @@ export function PdfOriginalViewer({ url, filename }: { readonly url: string; rea
   const [loaded, setLoaded] = useState<{ readonly url: string; readonly count: number } | null>(null);
   const [pageAt, setPageAt] = useState({ url, value: 1 });
   const [failure, setFailure] = useState<{ readonly url: string; readonly message: string } | null>(null);
-  const [zoom, setZoom] = useState(1);
+  const [zoom, setZoom] = useState(0.75);
   const [width, setWidth] = useState(0);
   const count = loaded?.url === url ? loaded.count : 0;
   const page = pageAt.url === url ? pageAt.value : 1;
@@ -79,10 +79,11 @@ export function PdfOriginalViewer({ url, filename }: { readonly url: string; rea
       <span role="status" className="px-2">{count ? `${page} / ${count}쪽` : "원본 읽는 중…"}</span>
       <button type="button" disabled={!count || page >= count} onClick={() => setPage(value => value + 1)} className="min-h-11 rounded-control border border-border px-3 disabled:opacity-40">다음 쪽</button>
       <button type="button" disabled={zoom <= 0.75} onClick={() => setZoom(value => Math.max(0.75, value - 0.25))} aria-label="원본 PDF 축소" className="min-h-11 min-w-11 rounded-control border border-border">−</button>
+      <span className="num" aria-label="PDF 확대 비율">{Math.round(zoom * 100)}%</span>
       <button type="button" disabled={zoom >= 2} onClick={() => setZoom(value => Math.min(2, value + 0.25))} aria-label="원본 PDF 확대" className="min-h-11 min-w-11 rounded-control border border-border">+</button>
     </div>
     {error ? <p role="alert" className="mb-3 rounded-control bg-fail-bg p-3 text-sm text-fail">{error}</p> : null}
-    <div ref={container} className="max-h-[650px] min-h-48 overflow-auto rounded-control border border-border bg-slate-200 p-3">
+    <div ref={container} className="h-[calc(94dvh-128px)] min-h-48 overflow-auto rounded-control border border-border bg-slate-200 p-3">
       <canvas ref={canvas} role="img" aria-label={`${filename} 원본 ${page}쪽`} className={`mx-auto bg-white shadow-sm ${count ? "block" : "hidden"}`} />
     </div>
   </div>;

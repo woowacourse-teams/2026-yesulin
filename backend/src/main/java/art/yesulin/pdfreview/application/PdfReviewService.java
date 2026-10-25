@@ -77,6 +77,24 @@ public class PdfReviewService {
         return PdfReviewEntryView.of(entry);
     }
 
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public List<PdfReviewEntryView> assignRoles(long ownerId, String reviewId, List<String> entryIds, String roleId) {
+        PdfReview review = findOwned(ownerId, reviewId);
+        if (entryIds == null || entryIds.isEmpty() || entryIds.size() > 300
+                || entryIds.stream().anyMatch(java.util.Objects::isNull)
+                || entryIds.stream().distinct().count() != entryIds.size()
+                || (roleId != null && review.getRoles().stream().noneMatch(role -> role.getId().equals(roleId)))) {
+            throw new BusinessException(art.yesulin.pdfreview.domain.PdfReviewErrorCode.INVALID_PDF_REVIEW,
+                    "이 심사의 지원자와 배역을 선택해 주세요.");
+        }
+        return entryIds.stream().sorted().map(id -> {
+            PdfReviewEntry entry = entries.findInReviewForUpdate(id, reviewId)
+                    .orElseThrow(() -> new BusinessException(PDF_REVIEW_ENTRY_NOT_FOUND, "지원 항목을 찾을 수 없습니다."));
+            entry.assignRole(roleId);
+            return PdfReviewEntryView.of(entry);
+        }).toList();
+    }
+
     private PdfReview findOwned(long ownerId, String reviewId) {
         return reviews.findByIdAndOwnerId(reviewId, ownerId)
                 .orElseThrow(() -> new BusinessException(PDF_REVIEW_NOT_FOUND, "PDF 심사를 찾을 수 없습니다."));

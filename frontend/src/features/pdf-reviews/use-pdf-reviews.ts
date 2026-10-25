@@ -84,8 +84,12 @@ export function usePdfReviews({ enabled, onUnauthorized }: Options) {
       setSelectedId(next.id); setDetail(next); setDetailError(""); setDetailLoading(false);
       void loadList();
     },
-    replaceEntry: (entry: ReviewEntry) => setDetail(current => current && {
-      ...current, entries: current.entries.map(item => sameKey(item.id, entry.id) ? entry : item),
-    }),
+    replaceEntry: (entry: ReviewEntry) => {
+      // An older SSE refresh must not undo the just-saved decision or role.
+      detailSeq.current += 1;
+      setDetail(current => current && {
+        ...current, entries: current.entries.map(item => sameKey(item.id, entry.id) ? entry : item),
+      });
+    },
   };
 }

@@ -37,6 +37,8 @@ export function useReviewUploads({ onUploaded, onUnauthorized }: Options) {
   const [rows, setRows] = useState<UploadRow[]>([]);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [messageReviewId, setMessageReviewId] = useState<ReviewKey | null>(null);
+  const running = useRef(false);
   const targets = useRef(new Map<string, PreparedPdfUpload["upload"]>());
   const mounted = useRef(true);
   const callbacks = useRef({ onUploaded, onUnauthorized });
@@ -46,8 +48,10 @@ export function useReviewUploads({ onUploaded, onUnauthorized }: Options) {
   const patch = (id: string, change: Partial<UploadRow>) =>
     setRows(current => current.map(row => row.id === id ? { ...row, ...change } : row));
 
-  function choose(reviewId: ReviewKey, selected: FileList | null, entryCount: number) {
-    if (!selected?.length) return;
+  function choose(reviewId: ReviewKey, selected: FileList | readonly File[] | null, entryCount: number) {
+    if (!selected?.length || running.current) return;
+    setMessageReviewId(reviewId);
+    if (selected.length > 300) { setMessage("한 번에 PDF 300개까지 선택해 주세요."); return; }
     const queued = rows.filter(row => sameKey(row.reviewId, reviewId)).length;
     if (entryCount + queued + selected.length > MAX_FILES) {
       setMessage("한 심사에는 최대 800개까지 올릴 수 있습니다."); return;
@@ -60,6 +64,7 @@ export function useReviewUploads({ onUploaded, onUnauthorized }: Options) {
       };
     });
     setRows(current => [...current, ...next]); setMessage("");
+    void run(next.filter(isUploadable));
   }
 
   async function uploadOne(row: UploadRow) {
@@ -110,7 +115,9 @@ export function useReviewUploads({ onUploaded, onUnauthorized }: Options) {
   }
 
   async function run(queue: UploadRow[]) {
-    if (busy || !queue.length) return;
+    if (running.current || !queue.length) return;
+    running.current = true;
+    setMessageReviewId(queue[0].reviewId);
     setBusy(true); setMessage("");
     let cursor = 0;
     let uploaded = 0;
@@ -118,6 +125,7 @@ export function useReviewUploads({ onUploaded, onUnauthorized }: Options) {
       while (mounted.current && cursor < queue.length) { if (await uploadOne(queue[cursor++])) uploaded += 1; }
     }
     await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+    running.current = false;
     if (!mounted.current) return;
     setBusy(false);
     const failed = queue.length - uploaded;
@@ -125,7 +133,7 @@ export function useReviewUploads({ onUploaded, onUnauthorized }: Options) {
   }
 
   return {
-    rows, busy, message,
+    rows, busy, message, messageReviewId,
     uploadAll: (reviewId: ReviewKey) => run(rows.filter(row => sameKey(row.reviewId, reviewId) && isUploadable(row))),
     retry: (row: UploadRow) => run([row]),
     choose,

@@ -277,6 +277,37 @@ class PdfReviewServiceTest {
                 () -> extractionService.applyExtraction(uploaded.jobId(), OWNER, "지원배역: 햄릿"));
     }
 
+    @Test
+    void manualRoleSurvivesLateExtractionAndPreservesHistoricalDecisionAndMemo() {
+        PdfReviewDetail review = service.create(OWNER, "제목", List.of("햄릿", "오필리아"));
+        PdfReviewEntryView uploaded = uploadEntry(review.id());
+        String role = review.roles().get(1).id();
+        service.editEntry(OWNER, review.id(), uploaded.id(), "기존 메모", PdfReviewDecision.HOLD);
+        service.assignRoles(OWNER, review.id(), List.of(uploaded.id()), role);
+        extractionService.applyExtraction(uploaded.jobId(), OWNER, "성명: 홍길동\n지원배역: 햄릿");
+        PdfReviewEntryView entry = service.find(OWNER, review.id()).entries().get(0);
+        assertEquals(role, entry.roleId());
+        assertEquals("홍길동", entry.applicantName());
+        assertEquals("기존 메모", entry.memo());
+        assertEquals(PdfReviewDecision.HOLD, entry.decision());
+    }
+
+    @Test
+    void rejectsOtherOwnersAndForeignRolesAndEntriesForAssignment() {
+        PdfReviewDetail review = service.create(OWNER, "제목", List.of("햄릿"));
+        PdfReviewDetail other = service.create(OTHER_OWNER, "다른 심사", List.of("햄릿"));
+        PdfReviewEntryView uploaded = uploadEntry(review.id());
+        service.prepareUpload(OTHER_OWNER, other.id(), "foreign.pdf", 10);
+        PdfReviewEntryView foreign = service.find(OTHER_OWNER, other.id()).entries().get(0);
+        assertNotFound(() -> service.assignRoles(OTHER_OWNER, review.id(), List.of(uploaded.id()), null));
+        assertThrows(BusinessException.class, () -> service.assignRoles(OWNER, review.id(),
+                List.of(uploaded.id()), other.roles().get(0).id()));
+        assertThrows(BusinessException.class, () -> service.assignRoles(OWNER, review.id(),
+                List.of(foreign.id()), null));
+        assertThrows(BusinessException.class, () -> service.assignRoles(OWNER, review.id(),
+                List.of(uploaded.id(), uploaded.id()), null));
+    }
+
     private PdfApplicantInfo applicantInfo(String status, String reason, String name, String nameEvidence,
                                            String roleId, String roleEvidence) {
         return new PdfApplicantInfo("applicant-info-v1", status, "bedrock", "model-1", name, nameEvidence, roleId,

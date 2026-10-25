@@ -51,3 +51,7 @@ export function preparePdfReviewUpload(reviewId: ReviewKey, file: File) {
 export function updatePdfReviewEntry(reviewId: ReviewKey, entryId: ReviewKey, change: { readonly memo: string; readonly decision: ReviewDecision }) {
   return request<ReviewEntry>(`${reviewPath(reviewId)}/entries/${encodeURIComponent(String(entryId))}`, "PATCH", change);
 }
+
+export function assignPdfReviewRoles(reviewId: ReviewKey, entryIds: readonly ReviewKey[], roleId: ReviewKey | null) {
+  return request<ReviewEntry[]>(`${reviewPath(reviewId)}/role-assignments`, "PATCH", { entryIds, roleId });
+}

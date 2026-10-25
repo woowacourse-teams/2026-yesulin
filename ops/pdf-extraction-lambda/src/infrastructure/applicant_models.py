@@ -1,4 +1,5 @@
 """Provider credentials stay in Lambda. Send only extracted text and registered roles."""
+import copy
 import json
 import os
 import re
@@ -17,18 +18,23 @@ class GeminiModel:
         self.opener = urllib.request.build_opener(NoRedirect())
 
     def __call__(self, system, prompt, schema):
+        # Gemini rejects the expanded nullable career schema with maxItems=50.
+        # Keep the canonical schema intact; application validation enforces the bound.
+        wire_schema = copy.deepcopy(schema)
+        profile = wire_schema.get("properties", {}).get("profile", {})
+        profile.get("properties", {}).get("careers", {}).pop("maxItems", None)
         body = {"systemInstruction": {"parts": [{"text": system}]},
                 "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-                "generationConfig": {"temperature": 0, "maxOutputTokens": 2048,
-                                     "responseMimeType": "application/json", "responseJsonSchema": schema}}
+                "generationConfig": {"temperature": 0, "maxOutputTokens": 16384,
+                                     "responseMimeType": "application/json", "responseJsonSchema": wire_schema}}
         request = urllib.request.Request(
             f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent",
             data=json.dumps(body, ensure_ascii=False).encode(), method="POST",
             headers={"Content-Type": "application/json", "x-goog-api-key": self.key})
         try:
             with self.opener.open(request, timeout=25) as response:
-                raw = response.read(65_537)
-            if len(raw) > 65_536:
+                raw = response.read(1_048_577)
+            if len(raw) > 1_048_576:
                 raise ModelFailure("INVALID_MODEL_OUTPUT")
             data = json.loads(raw)
             candidates = data.get("candidates", [])
@@ -52,7 +58,7 @@ class BedrockModel:
         try:
             result = self.client.converse(modelId=self.model, system=[{"text": system}],
                 messages=[{"role": "user", "content": [{"text": prompt}]}],
-                inferenceConfig={"maxTokens": 2048, "temperature": 0},
+                inferenceConfig={"maxTokens": 16384, "temperature": 0},
                 outputConfig={"textFormat": {"type": "json_schema", "structure": {"jsonSchema": {
                     "schema": json.dumps(schema), "name": "applicant_info"}}}})
             if result.get("stopReason") != "end_turn":

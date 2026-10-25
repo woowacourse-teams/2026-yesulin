@@ -11,7 +11,7 @@ type Props = {
   readonly busy: boolean;
   readonly message: string;
   readonly disabled: boolean;
-  readonly onChoose: (files: FileList | null) => void;
+  readonly onChoose: (files: FileList | readonly File[] | null) => void;
   readonly onUploadAll: () => void;
   readonly onRetry: (row: UploadRow) => void;
   readonly onRemove: (id: string) => void;
@@ -23,17 +23,19 @@ export function ReviewUploadPanel({ reviewId, rows, busy, message, disabled, onC
   const input = useRef<HTMLInputElement>(null);
   const mine = rows.filter(row => sameKey(row.reviewId, reviewId));
   const ready = mine.filter(isUploadable).length;
-  return <section aria-label="지원서 PDF 올리기" className="rounded-card border border-border bg-card p-5">
+  return <section aria-label="지원서 PDF 올리기" className="rounded-card border border-dashed border-brand-line bg-card p-3"
+    onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); if (!busy && !disabled) onChoose(event.dataTransfer.files); }}
+    onPaste={event => { if (event.clipboardData.files.length && !busy && !disabled) { event.preventDefault(); onChoose(event.clipboardData.files); } }}>
     <div className="flex flex-wrap items-center gap-3">
-      <label className={`inline-flex min-h-12 cursor-pointer items-center rounded-control border border-brand-line px-5 text-sm font-semibold text-brand focus-within:outline-2 focus-within:outline-brand ${busy || disabled ? "pointer-events-none opacity-50" : ""}`}>
-        PDF 여러 개 선택
+      <label className={`inline-flex min-h-12 cursor-pointer items-center rounded-control border border-brand bg-brand px-5 text-sm font-semibold text-white focus-within:outline-2 focus-within:outline-brand ${busy || disabled ? "pointer-events-none opacity-50" : ""}`}>
+        + PDF 추가
         <input ref={input} type="file" accept=".pdf,application/pdf" multiple disabled={busy || disabled} className="sr-only"
           onChange={event => { onChoose(event.target.files); if (input.current) input.current.value = ""; }} />
       </label>
-      <PrimaryButton onClick={onUploadAll} disabled={!ready || busy || disabled} className="min-h-12 px-5">{busy ? "업로드 중…" : `선택한 ${ready}개 올리기`}</PrimaryButton>
+      {ready > 0 && !busy ? <PrimaryButton onClick={onUploadAll} disabled={!ready || busy || disabled} className="min-h-12 px-5">{busy ? "업로드 중…" : `선택한 ${ready}개 다시 올리기`}</PrimaryButton> : null}
+      <p className="text-xs text-muted-strong">PDF를 선택하거나 여기에 놓아 주세요. 한 번에 300개 · 파일당 25MiB</p>
       <p role="status" className="text-sm text-muted-strong">{message}</p>
     </div>
-    <p className="mt-3 text-xs leading-6 text-muted">파일당 25MiB · 한 심사에 최대 800개 · 동시에 2개씩 올립니다. 한 파일이 실패해도 나머지는 계속 진행합니다. PDF 한 파일은 쪽 수와 관계없이 지원서 1개로 셉니다.</p>
     {mine.length ? <ul aria-label="올릴 파일" className="mt-4 max-h-64 space-y-2 overflow-y-auto">
       {mine.map(row => <li key={row.id} className="rounded-control border border-border p-3">
         <span className="block break-all text-sm font-semibold">{row.name}</span>

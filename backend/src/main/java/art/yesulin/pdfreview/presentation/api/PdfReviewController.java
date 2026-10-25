@@ -84,6 +84,25 @@ public class PdfReviewController {
                         request.memo(), request.decision()));
     }
 
+    @PatchMapping("/{reviewId}/role-assignments")
+    public ResponseEntity<List<PdfReviewEntryView>> assignRoles(
+            @LoginMember(roles = MemberType.PRODUCER, statuses = MemberStatus.ACTIVE) MemberPrincipal principal,
+            @PathVariable UUID reviewId,
+            @Valid @RequestBody AssignRolesRequest request
+    ) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore())
+                .body(service.assignRoles(principal.memberId(), reviewId.toString(),
+                        request.entryIds().stream().map(UUID::toString).toList(),
+                        request.roleId() == null ? null : request.roleId().toString()));
+    }
+
+    public record AssignRolesRequest(
+            @jakarta.validation.constraints.NotEmpty @jakarta.validation.constraints.Size(max = 300)
+            List<@jakarta.validation.constraints.NotNull UUID> entryIds,
+            UUID roleId
+    ) {
+    }
+
     public record ReviewsResponse(List<PdfReviewSummary> reviews) {
     }
 }

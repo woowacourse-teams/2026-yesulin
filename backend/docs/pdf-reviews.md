@@ -15,8 +15,8 @@ PDF 추출 결과를 바탕으로 기획사가 지원서 PDF를 한곳에서 확
 - PDF 한 개는 지원 항목 한 개다. 여러 쪽도 한 명의 지원자로 취급한다.
 - 임의 `jobId`를 심사에 붙이는 API는 없다. 항목은 `POST /uploads`가 추출 작업을 만드는 같은 트랜잭션에서
   생성되므로 항목의 소유권은 처음부터 심사에 묶인다. `job_id`는 고유하다.
-- 항목에서 사람이 바꿀 수 있는 값은 `memo`와 `decision`뿐이다. 지원자 이름·배역 연결은 직접 입력하지 못한다.
-- `decision`(`PENDING`·`PASS`·`FAIL`·`HOLD`)은 사람만 입력한다. 자동 처리는 지원자 이름과 지원 의향 배역 연결만 채우며
+- 담당자는 `memo`·`decision`과 등록 배역 연결을 바꾼다. 지원자 이름과 프로필 전사 값은 읽기 전용이다.
+- `decision`(`PENDING`·`PASS`·`FAIL`·`HOLD`)은 사람만 입력한다. 자동 처리는 이름·명시된 지원 배역·원문 프로필 사실을 채우며
   합불·메모를 만들거나 덮어쓰지 않는다. 지원자의 감성·능력·성별·나이·외모는 판단하지 않는다.
 
 ## API
@@ -28,6 +28,7 @@ PDF 추출 결과를 바탕으로 기획사가 지원서 PDF를 한곳에서 확
 | GET | `/api/v1/pdf-reviews/{id}` | ReviewDetail |
 | POST | `/api/v1/pdf-reviews/{id}/uploads` | `{originalFilename,size}` → 201 PreparedUpload |
 | PATCH | `/api/v1/pdf-reviews/{id}/entries/{entryId}` | `{memo,decision}` → 200 EntryView |
+| PATCH | `/api/v1/pdf-reviews/{id}/role-assignments` | `{entryIds:[UUID],roleId:UUID 또는 null}` → 200 EntryView[] |
 
 - ReviewDetail은 `id,title,createdAt,roles:[{id,name}],entries:[EntryView]`이다. 배역은 입력 순서, 항목은 파일 이름순이다.
 - EntryView는 `id,jobId,originalFilename,applicantName,roleId,matchStatus,matchEvidence,memo,decision`이다.
@@ -108,3 +109,39 @@ S3 객체 조회나 presigned URL 발급 없이 DB와 원본 키 규칙만 사�
 `성명 생년월일 지원배역 연락처`처럼 레이블이 이어진 표 머리글의 다음 레이블을 값으로 읽지 않는다.
 
 심사 업로드의 원본 key는 `inputs/{reviewId}/{jobId}/source.pdf`, 이미지와 worker 캐시는 `results/{reviewId}/{jobId}/pdfium-v1/` 아래다. 경로는 서버가 발급하고 사용자 입력 제목·파일명을 경로로 쓰지 않는다.
+
+## 프로필 화면과 v2 추출 계약
+
+새 워커는 `applicant-info-v2`를 사용한다. v1 payload와 기존 심사 기록은 계속 읽으며 자동 재추출하지 않는다.
+v2는 기존 이름·배역·근거 필드에 `profile`을 추가한다. 프로필은 없으면 null이고, 있으면 다음 구조다.
+
+```json
+{
+  "birthDate": {"value": "1998.07.04", "evidence": "생년월일: 1998.07.04"},
+  "age": {"value": null, "evidence": null},
+  "height": {"value": "165cm", "evidence": "키: 165cm"},
+  "education": {"value": null, "evidence": null},
+  "careers": [{
+    "title": "가상극", "venue": null, "part": null, "genre": "연극",
+    "period": "25.08 ~ 12", "company": null,
+    "evidence": "연극 가상극 25.08 ~ 12"
+  }]
+}
+```
+
+- 사실 value와 경력 각 값은 300자, 근거는 1000자 이하이고 값은 근거의 부분 문자열이어야 한다.
+  근거는 NFC·공백 정규화 후 연속된 원문 구절이어야 한다. 경력 최대 50개이며 작품명은 필수다.
+  null 사실의 근거도 null이다. 제공하지 않은 학교·전공·날짜를 추정하지 않는다.
+- birthDate·age·height·education은 원문 문자열이다. 워커는 원문의 날짜/단위를 수정하지 않는다.
+  화면에서 완전한 생년월일만 만나이로 계산하고, 직접 기재된 나이는 '지원서 기재'로 구분한다.
+- 실패·생략 상태나 v1에는 profile 객체를 넣을 수 없다. 워커와 완료 API가 형식·근거를 검증한다.
+  프롬프트가 예시·관람작·안내문 제외를 요구하지만, 근거 문자열 검증 자체가 의미 정확도를 보장하지는 않는다.
+- 사진은 모델이 분류하지 않는다. 워커의 크기·종횡비·페이지 점유율 규칙으로
+  `CANDIDATE/OTHER/UNCERTAIN`을 부여하고 이전 결과의 `UNCLASSIFIED`도 허용한다.
+  자동 갤러리는 CANDIDATE만 쓴다. 후보가 없으면 '사진을 자동으로 확인하지 못했습니다'와 원문 버튼을 보인다.
+  작은 프로필 사진이 제외되거나 큰 로고가 후보에 남을 수 있으며 얼굴 검출/OCR은 하지 않는다.
+- 새 심사 화면은 합격·불합격만 새 결정으로 제공한다. 기존 HOLD/PENDING API 값과 저장 기록은 유지한다.
+- 배역 변경 요청은 1~300개의 중복 없는 항목을 받으며 심사 소유권·항목 소속·등록 배역을 검증한다.
+  UUID 순서로 행을 잠가 한 트랜잭션에서 변경한다. null은 배역 연결 해제다.
+  수동 배역 선택은 `role_manually_assigned`로 보존하고 지연된 추출은 이름만 갱신한다. 메모·결정을 바꾸지 않는다.
+- 배포 시 `V20261025120000__pdf_review_manual_role.sql`을 적용하고, v2 워커보다 v2를 수용하는 API를 먼저 배포한다.

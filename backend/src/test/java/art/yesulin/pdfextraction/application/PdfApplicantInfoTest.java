@@ -60,7 +60,7 @@ class PdfApplicantInfoTest {
 
     @Test
     void foreignOrOversizedOrMistypedValuesAreRejected() {
-        assertInvalid(node -> node.put("version", "applicant-info-v2"));
+        assertInvalid(node -> node.put("version", "applicant-info-v99"));
         assertInvalid(node -> node.put("status", "DONE"));
         assertInvalid(node -> node.put("provider", "openai"));
         assertInvalid(node -> node.put("reason", "OTHER"));

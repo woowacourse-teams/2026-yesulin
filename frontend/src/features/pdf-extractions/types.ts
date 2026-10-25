@@ -1,3 +1,9 @@
+export type ProfileFact = { readonly value: string | null; readonly evidence: string | null };
+export type ProfileCareer = { readonly title: string; readonly venue: string | null; readonly part: string | null;
+  readonly genre: string | null; readonly period: string | null; readonly company: string | null; readonly evidence: string };
+export type PdfApplicantProfile = { readonly birthDate: ProfileFact; readonly age: ProfileFact; readonly height: ProfileFact;
+  readonly education: ProfileFact; readonly careers: readonly ProfileCareer[] };
+
 export type PdfExtractionStatus = "UPLOADING" | "UPLOAD_EXPIRED" | "QUEUED" | "DELAYED" | "COMPLETED" | "PARTIAL" | "FAILED";
 
 export type PdfExtractionResult = {
@@ -12,7 +18,8 @@ export type PdfExtractionResult = {
     readonly images: readonly { readonly fileKey: string; readonly url: string; readonly classification: string }[];
   }[];
   readonly applicantInfo?: {
-    readonly version: "applicant-info-v1";
+    readonly version: "applicant-info-v1" | "applicant-info-v2";
+    readonly profile?: PdfApplicantProfile | null;
     readonly status: "COMPLETED" | "FAILED" | "SKIPPED";
     readonly provider: "bedrock" | "gemini" | "";
     readonly model: string;

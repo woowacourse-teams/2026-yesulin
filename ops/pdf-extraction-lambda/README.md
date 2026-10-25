@@ -138,7 +138,7 @@ presigned URL이 만료돼도 본인 job의 기존 원본이 검증을 통과하
 별도 job에 올린 바이트가 같은 PDF의 SHA 기반 전역 중복 제거도 이번 범위가 아니다.
 
 손상 PDF·페이지 상한·결과 2MiB 상한 등은 FAILED manifest로 저장한다. 이미지 일부 실패는 PARTIAL과 경고를 남긴다.
-AI 정보가 추가될 공간을 위해 추출 manifest에는 8KiB의 여유를 남긴다.
+AI 정보가 추가될 공간을 위해 추출 manifest에는 384KiB의 여유를 남긴다.
 
 ## AI 지원 정보 정리
 
@@ -164,7 +164,7 @@ AI 실패로 기록하되 PDF 텍스트·이미지는 그대로 완료 API로 �
 AI를 다시 분석하는 사용자 기능은 별도 후속 작업이며, 기존 지원서에 임의로 새 결과를 덮어쓰지 않는다.
 외부 모델 호출은 25초 상한이며 남은 Lambda 실행 시간이 45초 미만이면 먼저 예외를 발생시켜 다음 실행이 추출 캐시를 재사용하게 한다.
 
-AI 결과는 동일 결과 폴더의 `applicant-info-v1.json`에 조건부 생성으로 저장한다. 완료 API 전송이 실패해 재시도돼도
+기존 v1 AI 결과는 동일 결과 폴더의 `applicant-info-v1.json`에 조건부 생성으로 저장한다. 새 v2 캐시는 아래 확장 계약을 따른다. 완료 API 전송이 실패해 재시도돼도
 저장된 AI 결과를 다시 사용한다. 동시에 중복 이벤트가 시작되면 모델을 각각 호출할 가능성은 있지만,
 최초로 게시된 결과 하나만 완료 API에 전달한다. 정확히 한 번의 모델 호출을 보장하는 분산 잠금은 아직 없다.
 원본 추출 `result.json`은 수정하지 않는다. 이전 버전으로 이미 Spring에 저장한 작업은 `resultStored:true`로 확인해
@@ -219,3 +219,21 @@ Lambda에 `PDF_COMPLETION_API_URL=https://<backend>/internal/v1/pdf-extractions/
 완료 본문은 `{jobId,sourceFileKey,pipelineVersion,result}`이고 result에 추출 문자와 이미지 fileKey 목록이 들어간다. Spring은 정규화된 결과를 DB에 저장하며 임시 URL은 저장하지 않는다. `result.json`은 Lambda의 재전송 캐시이므로 API 실패 후 재실행은 PDF를 다시 추출하지 않고 저장된 결과를 다시 보낸다. 동일 결과는 멱등 처리하고, 다른 결과로 덮어쓰려 하면 409다. Lambda 재시도를 모두 소진한 경우의 최종 재전송은 운영 후속 범위다.
 
 화면은 SSE `/api/v1/pdf-extractions/events`를 구독한다. 최초 연결·재연결과 `completed` 신호에 DB 목록을 동기화하고 S3 결과 폴링은 하지 않는다. SSE 알림은 현재 Spring 인스턴스 연결에 한정되므로 다중 인스턴스 간 중계는 별도 범위다. 심사 API는 `backend/docs/pdf-reviews.md`, 로컬 화면은 `/dev/pdf-reviews`다. 배역 매칭은 문서의 명시된 지원 배역만 비교하며 모델에 의한 적합성·합격 판단은 하지 않는다.
+
+### 프로필 전사 v2
+
+`application/applicant_info.py`의 SYSTEM과 JSON schema가 이름·지원 배역에 `profile`을 더한다.
+`profile_info.py`는 생년월일·명시된 나이·키·학력·경력 최대 50개와 연속된 원문 근거를 검증한다.
+profile JSON은 최대 256KiB이고 manifest는 AI 결과용 384KiB 여유를 남긴다. 모델 출력 한도는 16,384 tokens다.
+확실하지 않은 값은 null이며 실패 시 원본 텍스트/사진은 전달하고 프로필은 미확인으로 남긴다.
+키/링크/사진 분류/합불/점수/메모는 모델 schema에 포함하지 않는다.
+
+새 작업은 `applicant-info-v2.json`을 별도로 캐시한다. 기존 v1 캐시가 있으면 그대로 재사용해
+재전송 payload의 멱등성을 유지한다. 기존 DB 결과를 새 프로필로 덮어쓰거나 자동 재처리하지 않는다.
+운영 반영은 v2 지원 API → 워커 순서로 진행한다.
+
+이미지는 PDFium 추출을 유지하고 `geometry-v1` 규칙으로 후보를 나눈다. 작은 점유율·페이지 전체 이미지는
+UNCERTAIN, 작은 장식/가로 배너는 OTHER, 일반 사진 비율은 CANDIDATE다. 의미 기반 로고/얼굴 인식이 아니므로
+누락/오분류 가능성이 있다. 원본은 유지하며 UI는 미확인 안내와 원문 확인을 제공한다.
+
+Gemini 실연결에서 확장 경력 스키마의 `maxItems: 50` 포함 요청은 HTTP 400으로 거절되어, Gemini 전송본에서만 해당 제약을 제거한다. 원본 스키마와 Lambda·백엔드 검증의 50개 제한은 유지한다. Gemini 응답은 최대 1MiB까지만 읽고 프로필은 별도 256KiB 제한으로 검증한다.
