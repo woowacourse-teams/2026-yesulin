@@ -28,6 +28,10 @@ DEV 공고 알림도 기본 공유 링크는 `https://yesulin.art`로 발급한�
 `totalClicks`·`links` 외에 `environment`, `available`, `truncated`, 한국 날짜 범위와 조회 시각을 표시한다.
 조회 실패·로그 없음은 0건으로 대체하지 않는다. MSW에는 화면 확인용 DEV 집계 fixture를 제공한다.
 
+오픈채팅방 관리의 `GET /api/v1/admin/openchat/visits`는 `page`와 선택한 게시일 범위의 `startDate`·`endDate`를 함께 보낸다.
+전체는 날짜를 생략한다. 서버가 누적 링크 방문 수순으로 페이지를 나누며 `totalVisits`는 선택한 범위의 전체 페이지 합계다.
+MSW도 한국 시간의 게시일 필터·정렬·합계를 동일하게 적용한다.
+
 - `/api/v1/sessions`, `/api/v1/auth/email-verifications`, `/api/v1/auth/password-resets`
 - `/api/v1/producers`, `/api/v1/producers/me`
 - `/api/v1/performances`, `/api/v1/performance-posters`

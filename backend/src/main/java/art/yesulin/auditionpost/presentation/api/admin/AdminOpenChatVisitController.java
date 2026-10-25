@@ -6,7 +6,9 @@ import art.yesulin.auth.application.MemberPrincipal;
 import art.yesulin.auth.application.annotation.LoginMember;
 import art.yesulin.auth.application.annotation.LoginRequired;
 import art.yesulin.auth.domain.member.MemberType;
+import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,8 +27,11 @@ public class AdminOpenChatVisitController {
     @GetMapping
     public ResponseEntity<AdminOpenChatVisitsResult> find(
             @LoginMember(roles = MemberType.ADMIN) MemberPrincipal principal,
-            @RequestParam(defaultValue = "0") int page
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
     ) {
-        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.findForAdmin(page));
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore())
+                .body(service.findForAdmin(page, startDate, endDate));
     }
 }

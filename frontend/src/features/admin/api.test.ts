@@ -1,11 +1,27 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { deleteUnusedFiles, fetchAuditLogs, fetchLogs, fetchOtrRedirects, fetchShows, fetchUnusedFiles, normalizeAdminLog } from "./api";
+import { deleteUnusedFiles, fetchAuditLogs, fetchLogs, fetchOpenChatVisits, fetchOtrRedirects, fetchShows, fetchUnusedFiles, normalizeAdminLog } from "./api";
 
 afterEach(() => {
   vi.unstubAllGlobals();
 });
 
 describe("admin API", () => {
+  it("오픈채팅 방문 순위는 게시일 범위와 페이지를 보내고 전체 기간은 날짜를 생략한다", async () => {
+    const report = { posts: [], page: 1, size: 20, totalElements: 25, totalPages: 2, totalVisits: 9 };
+    const fetchMock = vi.fn().mockImplementation(async () => Response.json(report));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchOpenChatVisits(1, { startDate: "2026-10-19", endDate: "2026-10-25" })).resolves.toEqual(report);
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      "/api/v1/admin/openchat/visits?page=1&startDate=2026-10-19&endDate=2026-10-25",
+      { method: "GET", credentials: "include" },
+    );
+    await fetchOpenChatVisits();
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      "/api/v1/admin/openchat/visits?page=0", { method: "GET", credentials: "include" },
+    );
+  });
+
   it("공고 이동 집계는 같은 환경의 관리자 API에 기간과 세션을 전달한다", async () => {
     const report = { environment: "PROD", totalClicks: 50, links: [], available: true, truncated: false };
     const fetchMock = vi.fn().mockResolvedValue(Response.json(report));
