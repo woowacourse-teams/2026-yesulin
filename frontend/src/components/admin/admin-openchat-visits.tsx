@@ -68,9 +68,9 @@ export function AdminOpenChatVisits({ onUnauthorized }: { readonly onUnauthorize
   return (
     <section aria-labelledby="openchat-visits-heading" className="space-y-4">
       <div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center">
           <h2 id="openchat-visits-heading" className="text-lg font-bold">오픈채팅방 링크 방문</h2>
-          <button type="button" aria-label="링크 방문 집계 안내" aria-expanded={guideOpen} aria-controls="openchat-visits-guide" onClick={() => setGuideOpen((open) => !open)} className={`inline-flex size-11 shrink-0 items-center justify-center rounded-control transition-colors hover:bg-brand-soft hover:text-brand ${guideOpen ? "bg-brand-soft text-brand" : "text-muted"}`}>
+          <button type="button" aria-label="링크 방문 집계 안내" aria-expanded={guideOpen} aria-controls="openchat-visits-guide" onClick={() => setGuideOpen((open) => !open)} className={`inline-flex size-11 shrink-0 items-center justify-start rounded-control pl-1 transition-colors hover:bg-brand-soft hover:text-brand ${guideOpen ? "bg-brand-soft text-brand" : "text-muted"}`}>
             <SiteIcon name="about" size={18} />
           </button>
         </div>
