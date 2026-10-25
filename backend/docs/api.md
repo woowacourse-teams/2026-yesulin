@@ -293,7 +293,7 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 
 | Method | URL | 인증 | Request | Response |
 | --- | --- | --- | --- | --- |
-| GET | `/api/v1/public/audition-posts` | 공개 | `page`(0부터, 기본 0), `size`(1~48, 기본 12), `includeClosed`(기본 false), `category`(선택: 연극·퍼포먼스·뮤지컬·단원·기획사) query | `200 PublicAuditionPostPageResult(posts, page, size, totalPages, totalElements, openCount, allCount)` |
+| GET | `/api/v1/public/audition-posts` | 공개 | `page`(0부터, 기본 0), `size`(1~48, 기본 12), `includeClosed`(기본 false), `category`(선택: 연극·퍼포먼스·뮤지컬·단원·기획사), `sort`(`latest` 기본 / `deadline`) query | `200 PublicAuditionPostPageResult(posts, page, size, totalPages, totalElements, openCount, allCount)` |
 | GET | `/api/v1/public/audition-posts/{postId}` | 공개 | 없음 | `200 PublicAuditionPostResult`, 공개 중이 아니면 `302 Location: {원문 주소}`, 원문 없는 공고는 `404` |
 | POST | `/api/v1/public/audition-posts/{postId}/views` | 공개 | 없음 | `204`, 공개 중이 아니거나 없는 공고는 `404` |
 | POST | `/api/v1/public/audition-posts/{postId}/redirects` | 공개 | 없음 | `204`, 공개 중·없는 공고는 `404` |
@@ -321,7 +321,11 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 | GET | `/api/v1/producers/me/audition-posts/{postId}` | Active Producer | 없음 | `200 AuditionPostEditResult` |
 | PUT | `/api/v1/producers/me/audition-posts/{postId}` | Active Producer | `ProducerWriteAuditionPostRequest(category, title, pay, deadlineText, bodyHtml?, tags, attachmentUrls)` | `200 ProducerAuditionPostResult` |
 
-공개 목록은 `PUBLISHED`만 원문 작성 시각 최신순으로 반환한다. 작성 시각을 읽지 못한 공고는 뒤에 온다.
+공개 목록은 `PUBLISHED`만 반환하고, `sort=latest`(기본)는 원문 작성 시각 최신순이다. 작성 시각을 읽지 못한 공고는 뒤에 온다.
+`sort=deadline`은 한국 날짜 기준 오늘을 포함한 모집 중 날짜 공고를 마감일 오름차순으로 먼저 보여 준다.
+날짜가 없는 상시 공고가 다음이며, `includeClosed=true`로 포함한 지난 마감 공고는 마지막에 최근 마감일부터 보여 준다.
+같은 마감일·날짜 없는 공고끼리는 원문 작성 시각 최신순, 같은 작성 시각은 ID 내림차순이다.
+정렬과 분야·모집 상태 필터를 전체 공고에 적용한 뒤 페이지를 나눈다.
 기본은 모집 중(마감일이 없거나 한국 날짜로 오늘 이후)인 공고만 세고, `includeClosed=true`면 마감된 공고도 포함한다.
 `category`는 선택 사항이며 연극·퍼포먼스·뮤지컬·단원·기획사 중 하나다. 앞뒤 공백을 제거하고 비교한다.
 분야를 지정하면 해당 분야만 대상으로 페이지를 나눈다. 생략하면 전체 분야다.
@@ -339,7 +343,7 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 브라우저를 원문으로 보낸다. 없는 공고는 `404 AUDITION_POST_NOT_FOUND`이고, 조회수 기록은 공개 중이 아니어도 404다.
 원문 이동 수는 프론트 서버가 공개 중이 아닌 공고를 원문으로 보내기 직전에 `redirects` POST를 한 번 보내 늘린다. 상세 GET은 세지 않는다.
 DB에서 1을 더하고 다시 가져와도 유지한다.
-page·size 범위 오류와 지원하지 않는 category는 `400 INVALID_REQUEST`다.
+page·size 범위 오류와 지원하지 않는 category·sort는 `400 INVALID_REQUEST`다.
 
 오픈채팅방 링크 방문은 상세 GET·메타데이터 조회가 아니라 공유용 출처 표시를 읽은 브라우저의 `openchat-visits` POST로만
 늘린다. 브라우저가 공고별 집계 표시를 저장해 중복 전송을 줄이며, 서버에는 방문자 ID·쿠키 값·개별 방문 이력을 저장하지 않는다.

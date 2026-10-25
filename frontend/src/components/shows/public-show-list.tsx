@@ -44,7 +44,7 @@ export function PublicShowList({ initialShows }: { readonly initialShows: readon
     <>
       <ShowPageHeader />
       <NotebookPageMain>
-        <NotebookListHeading title="무료 공연" description="보고 싶은 공연을 찾고 무료로 예매해보세요." />
+        <NotebookListHeading title="무료 공연" />
         <div>
           {state.status === "loading" ? <ShowListSkeleton /> : null}
           {state.status === "error" ? (

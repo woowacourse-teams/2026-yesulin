@@ -44,7 +44,9 @@ DEV 공고 알림도 기본 공유 링크는 `https://yesulin.art`로 발급한�
 - `/api/v1/timetables/**` (오디션 일정표. 관리·배우 열쇠를 `X-Timetable-Key` 헤더로 보낸다.)
 - `/api/v1/public/audition-posts/**` (메인·분야별 공고 목록·상세). 분야별 목록은 `category=뮤지컬` 또는 `category=연극`을
   보내며 서버가 분야를 적용한 뒤 페이지를 나눈다. `openCount`·`allCount`도 선택한 분야의 수다.
-  분류를 생략하면 기존 전체 분야 목록이며, 지원하지 않는 값은 `400 INVALID_REQUEST`다. MSW도 분야별 목록·개수를 응답한다.
+  분류를 생략하면 기존 전체 분야 목록이며, 지원하지 않는 값은 `400 INVALID_REQUEST`다.
+  최신순은 `sort`를 생략하고, 마감 임박순은 `sort=deadline`을 보낸다. 서버가 전체 결과를 정렬한 뒤 페이지를 나누며,
+  분야·모집 상태·페이지 이동에서도 선택한 정렬을 주소에 유지한다. MSW도 같은 정렬과 분야별 목록·개수를 응답한다.
 - `/api/v1/public/companies/**` (공연사 화면과 그 공연사의 공개 공고). 공고 상세 응답의 `company`도 같은 요약이다. MSW가 공연사
   3곳과 고정 연결을 응답하고, 운영자 공연사 관리(`/api/v1/admin/companies/**`)도 같은 메모리로 응답한다.
 - `/api/v1/public/events/**` (이벤트 목록·상세와 메인 이벤트 배너)와 `/api/v1/admin/events/**`, `/api/v1/admin/event-images/uploads`

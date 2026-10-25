@@ -6,17 +6,18 @@ import {
   type AdminAlertChatMembers,
 } from "@/features/admin/types";
 import { AUDITION_POST_CATEGORIES, type AuditionPost, type AuditionPostSummary } from "@/features/audition-posts/types";
+import { kstToday } from "@/features/audition-posts/format";
 import { mockSessionRole } from "./auth-handlers";
 import { companyHandlers, mockCompanyOfPost } from "./company-handlers";
 
 /**
- * 메인 공고 목록·상세 화면 확인용 메모리 목. 실제 서버는 운영자가 공개한 공고를 원문 작성 최신순으로 준다.
+ * 메인 공고 목록·상세 화면 확인용 메모리 목. 서버와 같은 최신순·마감 임박순을 페이지를 나누기 전에 적용한다.
  * 숨긴 공고 상세의 원문 이동(302)은 서버 렌더링에서만 처리하므로 목에는 공개 공고만 둔다.
  * 운영자 가져오기는 OTR과 저장소에 실제로 접속해야 의미가 있으므로 목으로 흉내 내지 않고 실제 서버로 넘긴다.
  * 공고 알림 오픈채팅방 인원은 메모리에 두고, 서버처럼 공고마다 올린 시각의 인원을 준다. 새로고침하면 초기화된다.
  */
 function daysFromToday(days: number): string {
-  const date = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+  const date = new Date(Date.parse(`${kstToday()}T12:00:00+09:00`) + days * 24 * 60 * 60 * 1000);
   return date.toISOString().slice(0, 10);
 }
 
@@ -121,6 +122,25 @@ const POSTS: readonly MockPost[] = [
     company: null,
   },
   {
+    id: 5,
+    category: "연극",
+    title: "낭독극 <다음 장면> 배우 모집",
+    authorName: "다음장면 프로젝트",
+    pay: "협의",
+    deadlineText: daysFromToday(1),
+    deadline: daysFromToday(1),
+    closed: false,
+    viewCount: 0,
+    postedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+    bodyHtml: "<p>낭독극에 함께할 배우를 모집합니다.</p>",
+    tags: [],
+    attachments: [],
+    source: "OTR",
+    sourceUrl: "https://otr.co.kr/audition/?vid=22395",
+    updatedAt: new Date().toISOString(),
+    company: null,
+  },
+  {
     id: 4,
     category: "뮤지컬",
     title: "창작 뮤지컬 <여름밤> 앙상블 오디션",
@@ -178,14 +198,28 @@ export const auditionPostHandlers = [
     const size = Number(url.searchParams.get("size") ?? "12");
     const includeClosed = url.searchParams.get("includeClosed") === "true";
     const category = url.searchParams.get("category")?.trim();
+    const sort = url.searchParams.get("sort") ?? "latest";
+    if (sort !== "latest" && sort !== "deadline") {
+      return HttpResponse.json({ code: "INVALID_REQUEST", message: "지원하지 않는 공고 정렬입니다." }, { status: 400 });
+    }
     if (category !== undefined && !AUDITION_POST_CATEGORIES.some((supported) => supported === category)) {
       return HttpResponse.json({ code: "INVALID_REQUEST", message: "지원하지 않는 공고 분류입니다." }, { status: 400 });
     }
     if (!Number.isInteger(page) || page < 0 || !Number.isInteger(size) || size < 1 || size > 48) {
       return HttpResponse.json({ code: "INVALID_REQUEST", message: "페이지 범위가 올바르지 않습니다." }, { status: 400 });
     }
+    const today = kstToday();
+    const group = (post: MockPost) => !post.deadline ? 1 : post.deadline < today ? 2 : 0;
     const sorted = POSTS.filter((post) => !category || post.category === category)
-      .sort((left, right) => (right.postedAt ?? "").localeCompare(left.postedAt ?? ""));
+      .sort((left, right) => {
+        if (sort === "deadline") {
+          const groupDifference = group(left) - group(right);
+          if (groupDifference) return groupDifference;
+          const dateDifference = (left.deadline ?? "").localeCompare(right.deadline ?? "");
+          if (dateDifference) return group(left) === 2 ? -dateDifference : dateDifference;
+        }
+        return (right.postedAt ?? "").localeCompare(left.postedAt ?? "") || right.id - left.id;
+      });
     const matched = includeClosed ? sorted : sorted.filter((post) => !post.closed);
     return HttpResponse.json({
       posts: matched.slice(page * size, page * size + size).map(toSummary),

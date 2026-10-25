@@ -1,19 +1,20 @@
 import Link from "next/link";
 import { pageItems } from "@/features/audition-posts/pagination";
-import { auditionPostRoutes, type AuditionLandingCategory } from "@/features/audition-posts/types";
+import { auditionPostRoutes, type AuditionLandingCategory, type AuditionPostSort } from "@/features/audition-posts/types";
 
 const ITEM_CLASS =
   "num inline-flex h-11 min-w-11 items-center justify-center rounded-control px-3 text-sm font-semibold transition-colors";
 
 /** 주소(`?page=`)로 이동하는 번호 페이지. 뒤로 가기·새로고침·공유 때 같은 페이지가 열린다. */
-export function AuditionPostPagination({ page, totalPages, includeClosed, category }: {
+export function AuditionPostPagination({ page, totalPages, includeClosed, category, sort }: {
   readonly page: number;
   readonly totalPages: number;
   readonly includeClosed: boolean;
   readonly category?: AuditionLandingCategory;
+  readonly sort?: AuditionPostSort;
 }) {
   if (totalPages <= 1) return null;
-  const href = (target: number) => auditionPostRoutes.list({ page: target, includeClosed, category });
+  const href = (target: number) => auditionPostRoutes.list({ page: target, includeClosed, category, sort });
 
   return (
     <nav aria-label="공고 목록 페이지" className="mt-10 flex flex-wrap items-center justify-center gap-1">

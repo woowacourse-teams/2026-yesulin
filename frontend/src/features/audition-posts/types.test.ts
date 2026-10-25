@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { auditionLandingCategory, auditionPostApiPaths, auditionPostRoutes } from "./types";
+import { auditionLandingCategory, auditionPostApiPaths, auditionPostRoutes, parseAuditionPostQuery } from "./types";
 
 describe("분야별 공고 주소", () => {
   it("페이지와 마감 조건을 바꿔도 분야 주소를 유지한다", () => {
@@ -18,6 +18,24 @@ describe("분야별 공고 주소", () => {
     expect(auditionLandingCategory("theater")).toBe("연극");
     expect(auditionLandingCategory("film")).toBeUndefined();
     expect(auditionLandingCategory("toString")).toBeUndefined();
+  });
+});
+
+describe("공고 정렬 주소", () => {
+  it("마감순·분야·모집 상태·페이지를 화면과 API 주소에 함께 유지한다", () => {
+    const query = { category: "연극", page: 2, includeClosed: true, sort: "deadline" } as const;
+    expect(auditionPostRoutes.list(query)).toBe("/auditions/theater?closed=1&page=3&sort=deadline");
+    const api = new URL(auditionPostApiPaths.list(query), "https://example.com");
+    expect(Object.fromEntries(api.searchParams)).toEqual({ page: "2", size: "12", includeClosed: "true", category: "연극", sort: "deadline" });
+    expect(parseAuditionPostQuery({ page: "3", closed: "1", sort: "deadline" }))
+      .toEqual({ page: 2, includeClosed: true, sort: "deadline" });
+  });
+
+  it("최신순 기본값은 생략하고 지원하지 않는 주소 값도 최신순으로 읽는다", () => {
+    expect(auditionPostRoutes.list({ sort: "latest" })).toBe("/auditions");
+    expect(auditionPostApiPaths.list({ page: 0, includeClosed: false, sort: "latest" })).not.toContain("sort=");
+    expect(parseAuditionPostQuery({ sort: "unknown" })).toEqual({ page: 0, includeClosed: false });
+    expect(parseAuditionPostQuery({ sort: ["deadline", "latest"] })).toEqual({ page: 0, includeClosed: false, sort: "deadline" });
   });
 });
 

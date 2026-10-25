@@ -38,7 +38,7 @@ export function EventsRoute({ initialEvents }: { readonly initialEvents: readonl
 
   return (
     <EventScreen>
-      <NotebookListHeading title="이벤트" description="예술in이 준비한 모집과 이벤트 소식을 모았어요." />
+      <NotebookListHeading title="이벤트" />
       <div>
         {state.status === "loading" ? <ContentSkeleton label="이벤트 목록 불러오는 중"><div className="space-y-4">{[0, 1, 2].map((item) => <div key={item} className="h-40 rounded-card border border-border bg-card p-5"><div className="h-5 w-1/4 rounded bg-border-soft" /><div className="mt-4 h-6 w-2/3 rounded bg-border-soft" /></div>)}</div></ContentSkeleton> : null}
         {state.status === "error" ? (

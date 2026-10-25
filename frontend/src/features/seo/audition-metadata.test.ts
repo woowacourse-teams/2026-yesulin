@@ -68,6 +68,12 @@ describe("공고 상세 검색 정보", () => {
 });
 
 describe("공고 목록 검색 정보", () => {
+  it("마감순의 제목과 canonical도 선택한 페이지·분야 조건을 보존한다", () => {
+    const metadata = auditionListMetadata({ category: "연극", page: 1, includeClosed: true, sort: "deadline" });
+    expect(metadata.title).toBe("연극 오디션 공고 · 마감 포함 · 마감 임박순 · 2페이지");
+    expect(metadata.alternates?.canonical).toBe("/auditions/theater?closed=1&page=2&sort=deadline");
+  });
+
   it("분야·페이지·마감 조건이 다른 문서에 각각 canonical과 제목을 제공한다", () => {
     const home = auditionListMetadata({ page: 0, includeClosed: false });
     expect(home.title).toEqual({ absolute: AUDITION_LIST_TITLE });
