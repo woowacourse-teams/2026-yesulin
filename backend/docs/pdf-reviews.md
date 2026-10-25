@@ -15,8 +15,8 @@ PDF 추출 결과를 바탕으로 기획사가 지원서 PDF를 한곳에서 확
 - PDF 한 개는 지원 항목 한 개다. 여러 쪽도 한 명의 지원자로 취급한다.
 - 임의 `jobId`를 심사에 붙이는 API는 없다. 항목은 `POST /uploads`가 추출 작업을 만드는 같은 트랜잭션에서
   생성되므로 항목의 소유권은 처음부터 심사에 묶인다. `job_id`는 고유하다.
-- 항목에서 사람이 바꿀 수 있는 값은 `memo`와 `decision`뿐이다. 지원자 이름·배역 연결은 직접 입력하지 못한다.
-- `decision`(`PENDING`·`PASS`·`FAIL`·`HOLD`)은 사람만 입력한다. 자동 처리는 지원자 이름과 지원 의향 배역 연결만 채우며
+- 담당자는 `memo`·`decision`과 등록 배역 연결을 바꾼다. 지원자 이름과 프로필 전사 값은 읽기 전용이다.
+- `decision`(`PENDING`·`PASS`·`FAIL`·`HOLD`)은 사람만 입력한다. 자동 처리는 이름·명시된 지원 배역·원문 프로필 사실을 채우며
   합불·메모를 만들거나 덮어쓰지 않는다. 지원자의 감성·능력·성별·나이·외모는 판단하지 않는다.
 
 ## API
@@ -26,8 +26,10 @@ PDF 추출 결과를 바탕으로 기획사가 지원서 PDF를 한곳에서 확
 | POST | `/api/v1/pdf-reviews` | `{title,roles:["배역명"]}` → 201 ReviewDetail |
 | GET | `/api/v1/pdf-reviews` | `{reviews:[{id,title,createdAt,roleCount,entryCount}]}` 최신순 |
 | GET | `/api/v1/pdf-reviews/{id}` | ReviewDetail |
+| GET | `/api/v1/pdf-reviews/{id}/progress` | `{total,uploading,waiting,completed,partial,failed,complete}` |
 | POST | `/api/v1/pdf-reviews/{id}/uploads` | `{originalFilename,size}` → 201 PreparedUpload |
 | PATCH | `/api/v1/pdf-reviews/{id}/entries/{entryId}` | `{memo,decision}` → 200 EntryView |
+| PATCH | `/api/v1/pdf-reviews/{id}/role-assignments` | `{entryIds:[UUID],roleId:UUID 또는 null}` → 200 EntryView[] |
 
 - ReviewDetail은 `id,title,createdAt,roles:[{id,name}],entries:[EntryView]`이다. 배역은 입력 순서, 항목은 파일 이름순이다.
 - EntryView는 `id,jobId,originalFilename,applicantName,roleId,matchStatus,matchEvidence,memo,decision`이다.
@@ -39,6 +41,27 @@ PDF 추출 결과를 바탕으로 기획사가 지원서 PDF를 한곳에서 확
 - PATCH는 `memo`(필수, 빈 문자열 가능, 2000자 이하)와 `decision`(필수)을 모두 받는다. 항목 행을 잠근 뒤 바꾸므로
   같은 항목에 대한 자동 반영과 겹쳐도 서로의 값을 덮어쓰지 않는다.
 - 오류: 형식·길이·중복 배역 `400 INVALID_REQUEST` 또는 `400 INVALID_PDF_REVIEW`, 없는 심사·항목 `404`.
+
+### 처리 진행률
+
+본인의 Active Producer 세션으로만 조회한다. 다른 공연사·없는 심사는 모두 `404 PDF_REVIEW_NOT_FOUND`다.
+응답은 `Cache-Control: no-store`이며 DB에서 해당 심사의 작업 메타데이터만 집계한다.
+파일 URL·지원자 정보·본문·결과 JSON을 반환하지 않고, S3·Lambda·모델을 호출하지 않는다.
+
+```json
+{"total":300,"uploading":10,"waiting":100,"completed":180,"partial":5,"failed":5,"complete":false}
+```
+
+- `total`: 업로드 URL을 발급하며 서버에 접수한 PDF 작업 수. 아직 브라우저에서 대기하는 미접수 파일은 포함하지 않는다.
+- `uploading`: 업로드 확인 전 작업. URL 만료 후 60초 유예가 지나면 실패로 집계한다.
+- `waiting`: 업로드 확인 후 결과 콜백을 기다리는 작업. Lambda의 대기·PDF 추출·AI 정리를 구분하지 않으며, 오래 걸려도 임의로 실패 처리하지 않는다.
+- `completed`, `partial`, `failed`: 각각 PDF 추출의 완료·일부 완료·실패 상태다. `failed`는 업로드 만료도 포함한다.
+  AI 정리 실패나 누락 필드는 PDF 처리 성공과 별개이며 개별 결과에서 확인한다.
+- `total = uploading + waiting + completed + partial + failed`이고, `complete`는 `uploading == 0 && waiting == 0`이다.
+  빈 심사는 `total:0, complete:true`다. 실패가 남아도 처리가 끝났으면 `complete:true`이며 합불 심사 완료와 무관하다.
+
+콜백의 작업 상태·지원자 자동 반영은 같은 트랜잭션에서 커밋되므로, 종료 집계를 읽은 뒤 심사 목록을 읽으면 반영된 정보를 조회할 수 있다.
+클라이언트는 브라우저 업로드 대기열까지 끝나야 전체 처리 완료로 표시하고 폴링을 멈춘다.
 
 ## 자동 반영
 
@@ -108,3 +131,40 @@ S3 객체 조회나 presigned URL 발급 없이 DB와 원본 키 규칙만 사�
 `성명 생년월일 지원배역 연락처`처럼 레이블이 이어진 표 머리글의 다음 레이블을 값으로 읽지 않는다.
 
 심사 업로드의 원본 key는 `inputs/{reviewId}/{jobId}/source.pdf`, 이미지와 worker 캐시는 `results/{reviewId}/{jobId}/pdfium-v1/` 아래다. 경로는 서버가 발급하고 사용자 입력 제목·파일명을 경로로 쓰지 않는다.
+
+## 프로필 화면과 v2 추출 계약
+
+새 워커는 `applicant-info-v2`를 사용한다. v1 payload와 기존 심사 기록은 계속 읽으며 자동 재추출하지 않는다.
+v2는 기존 이름·배역·근거 필드에 `profile`을 추가한다. 프로필은 없으면 null이고, 있으면 다음 구조다.
+
+```json
+{
+  "birthDate": {"value": "1998.07.04", "evidence": "생년월일: 1998.07.04"},
+  "age": {"value": null, "evidence": null},
+  "height": {"value": "165cm", "evidence": "키: 165cm"},
+  "education": {"value": null, "evidence": null},
+  "careers": [{
+    "title": "가상극", "venue": null, "part": null, "genre": "연극",
+    "period": "25.08 ~ 12", "company": null,
+    "evidence": "연극 가상극 25.08 ~ 12"
+  }]
+}
+```
+
+- 사실 value와 경력 각 값은 300자, 근거는 1000자 이하이고 값은 근거의 부분 문자열이어야 한다.
+  근거는 NFC·공백 정규화 후 연속된 원문 구절이어야 한다. 새 워커의 경력 전사는 원문 순서 최대 5개이며 작품명은 필수다.
+  백엔드는 기존 v2 저장 결과와의 호환을 위해 과거 상한인 50개까지 수신할 수 있다.
+  null 사실의 근거도 null이다. 제공하지 않은 학교·전공·날짜를 추정하지 않는다.
+- birthDate·age·height·education은 원문 문자열이다. 워커는 원문의 날짜/단위를 수정하지 않는다.
+  화면에서 완전한 생년월일만 만나이로 계산하고, 직접 기재된 나이는 '지원서 기재'로 구분한다.
+- 실패·생략 상태나 v1에는 profile 객체를 넣을 수 없다. 워커와 완료 API가 형식·근거를 검증한다.
+  프롬프트가 예시·관람작·안내문 제외를 요구하지만, 근거 문자열 검증 자체가 의미 정확도를 보장하지는 않는다.
+- 사진은 모델이 분류하지 않는다. 워커의 크기·종횡비·페이지 점유율 규칙으로
+  `CANDIDATE/OTHER/UNCERTAIN`을 부여하고 이전 결과의 `UNCLASSIFIED`도 허용한다.
+  자동 갤러리는 CANDIDATE만 쓴다. 후보가 없으면 '사진을 자동으로 확인하지 못했습니다'와 원문 버튼을 보인다.
+  작은 프로필 사진이 제외되거나 큰 로고가 후보에 남을 수 있으며 얼굴 검출/OCR은 하지 않는다.
+- 새 심사 화면은 합격·불합격만 새 결정으로 제공한다. 기존 HOLD/PENDING API 값과 저장 기록은 유지한다.
+- 배역 변경 요청은 1~300개의 중복 없는 항목을 받으며 심사 소유권·항목 소속·등록 배역을 검증한다.
+  UUID 순서로 행을 잠가 한 트랜잭션에서 변경한다. null은 배역 연결 해제다.
+  수동 배역 선택은 `role_manually_assigned`로 보존하고 지연된 추출은 이름만 갱신한다. 메모·결정을 바꾸지 않는다.
+- 배포 시 `V20261025120000__pdf_review_manual_role.sql`을 적용하고, v2 워커보다 v2를 수용하는 API를 먼저 배포한다.

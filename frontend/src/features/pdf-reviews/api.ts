@@ -1,7 +1,7 @@
 import { withCsrfHeaders } from "../csrf";
 import { readErrorDetail, readErrorMessage } from "../api-error";
 import type { PreparedPdfUpload } from "../pdf-extractions/types";
-import type { ReviewDecision, ReviewDetail, ReviewEntry, ReviewKey, ReviewSummary } from "./types";
+import type { ReviewDecision, ReviewDetail, ReviewEntry, ReviewKey, ReviewProgress, ReviewSummary } from "./types";
 
 const BASE = "/api/v1/pdf-reviews";
 
@@ -44,10 +44,18 @@ export function fetchPdfReview(id: ReviewKey, signal?: AbortSignal) {
   return request<ReviewDetail>(reviewPath(id), "GET", undefined, signal);
 }
 
+export function fetchPdfReviewProgress(id: ReviewKey, signal?: AbortSignal) {
+  return request<ReviewProgress>(`${reviewPath(id)}/progress`, "GET", undefined, signal);
+}
+
 export function preparePdfReviewUpload(reviewId: ReviewKey, file: File) {
   return request<PreparedPdfUpload>(`${reviewPath(reviewId)}/uploads`, "POST", { originalFilename: file.name, size: file.size });
 }
 
 export function updatePdfReviewEntry(reviewId: ReviewKey, entryId: ReviewKey, change: { readonly memo: string; readonly decision: ReviewDecision }) {
   return request<ReviewEntry>(`${reviewPath(reviewId)}/entries/${encodeURIComponent(String(entryId))}`, "PATCH", change);
+}
+
+export function assignPdfReviewRoles(reviewId: ReviewKey, entryIds: readonly ReviewKey[], roleId: ReviewKey | null) {
+  return request<ReviewEntry[]>(`${reviewPath(reviewId)}/role-assignments`, "PATCH", { entryIds, roleId });
 }

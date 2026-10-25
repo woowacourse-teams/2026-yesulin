@@ -61,6 +61,9 @@ public class PdfReviewEntry {
     @Column(nullable = false, length = 20)
     private PdfReviewDecision decision;
 
+    @Column(nullable = false)
+    private boolean roleManuallyAssigned;
+
     public PdfReviewEntry(String reviewId, String jobId, String originalFilename) {
         this.id = UUID.randomUUID().toString();
         this.reviewId = Objects.requireNonNull(reviewId);
@@ -74,9 +77,19 @@ public class PdfReviewEntry {
 
     public void applyAnalysis(PdfReviewAnalysis analysis) {
         this.applicantName = analysis.applicantName();
+        if (roleManuallyAssigned) {
+            return;
+        }
         this.roleId = analysis.roleId();
         this.matchStatus = analysis.matchStatus();
         this.matchEvidence = PdfReviewText.abbreviate(analysis.evidence(), MAX_EVIDENCE_LENGTH);
+    }
+
+    public void assignRole(String roleId) {
+        this.roleId = roleId;
+        this.roleManuallyAssigned = true;
+        this.matchStatus = roleId == null ? PdfReviewMatchStatus.NEEDS_CHECK : PdfReviewMatchStatus.MATCHED;
+        this.matchEvidence = "담당자가 배역을 변경했습니다.";
     }
 
     public void review(String memo, PdfReviewDecision decision) {

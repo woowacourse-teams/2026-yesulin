@@ -37,17 +37,22 @@ export function useReviewUploads({ onUploaded, onUnauthorized }: Options) {
   const [rows, setRows] = useState<UploadRow[]>([]);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [messageReviewId, setMessageReviewId] = useState<ReviewKey | null>(null);
+  const running = useRef(false);
   const targets = useRef(new Map<string, PreparedPdfUpload["upload"]>());
   const mounted = useRef(true);
   const callbacks = useRef({ onUploaded, onUnauthorized });
   useEffect(() => { callbacks.current = { onUploaded, onUnauthorized }; });
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
 
-  const patch = (id: string, change: Partial<UploadRow>) =>
-    setRows(current => current.map(row => row.id === id ? { ...row, ...change } : row));
+  const patch = (id: string, change: Partial<UploadRow>) => {
+    if (mounted.current) setRows(current => current.map(row => row.id === id ? { ...row, ...change } : row));
+  };
 
-  function choose(reviewId: ReviewKey, selected: FileList | null, entryCount: number) {
-    if (!selected?.length) return;
+  function choose(reviewId: ReviewKey, selected: FileList | readonly File[] | null, entryCount: number) {
+    if (!selected?.length || running.current) return;
+    setMessageReviewId(reviewId);
+    if (selected.length > 300) { setMessage("한 번에 PDF 300개까지 선택해 주세요."); return; }
     const queued = rows.filter(row => sameKey(row.reviewId, reviewId)).length;
     if (entryCount + queued + selected.length > MAX_FILES) {
       setMessage("한 심사에는 최대 800개까지 올릴 수 있습니다."); return;
@@ -59,7 +64,13 @@ export function useReviewUploads({ onUploaded, onUnauthorized }: Options) {
         error: valid ? "" : "25MiB 이하의 PDF 파일만 올릴 수 있습니다.", file: valid ? file : undefined,
       };
     });
-    setRows(current => [...current, ...next]); setMessage("");
+    setRows(current => [...current, ...next]);
+    const uploadable = next.filter(isUploadable);
+    if (!uploadable.length) {
+      setMessage(`선택 ${next.length}개 · 업로드 완료 0개 · 제외 ${next.length}개. 파일별 형식과 크기를 확인해 주세요.`);
+      return;
+    }
+    void run(uploadable, next.length, next.length - uploadable.length);
   }
 
   async function uploadOne(row: UploadRow) {
@@ -100,32 +111,48 @@ export function useReviewUploads({ onUploaded, onUnauthorized }: Options) {
       }
       targets.current.delete(row.id);
       if (mounted.current) setRows(current => current.filter(item => item.id !== row.id));
-      callbacks.current.onUploaded();
+      if (mounted.current) callbacks.current.onUploaded();
       return true;
     } catch (cause) {
-      if (isUnauthorized(cause)) callbacks.current.onUnauthorized();
+      if (mounted.current && isUnauthorized(cause)) callbacks.current.onUnauthorized();
       if (mounted.current) patch(row.id, { phase: "ERROR", pendingJobId, error: failure(cause) });
       return false;
     }
   }
 
-  async function run(queue: UploadRow[]) {
-    if (busy || !queue.length) return;
-    setBusy(true); setMessage("");
+  async function run(queue: UploadRow[], selectedCount = queue.length, excludedCount = 0) {
+    if (running.current || !queue.length) return;
+    running.current = true;
+    setMessageReviewId(queue[0].reviewId);
+    setBusy(true);
     let cursor = 0;
     let uploaded = 0;
+    let finished = 0;
+    const showProgress = () => {
+      if (mounted.current) setMessage(`선택 ${selectedCount}개 · 업로드 완료 ${uploaded}개 · 실패 ${finished - uploaded}개 · 진행/대기 ${queue.length - finished}개 · 제외 ${excludedCount}개`);
+    };
+    showProgress();
     async function worker() {
-      while (mounted.current && cursor < queue.length) { if (await uploadOne(queue[cursor++])) uploaded += 1; }
+      // A component remount must stop UI updates, not silently cancel accepted files.
+      // File reads remain bounded to the two active workers.
+      while (cursor < queue.length) {
+        if (await uploadOne(queue[cursor++])) uploaded += 1;
+        finished += 1;
+        showProgress();
+      }
     }
-    await Promise.all(Array.from({ length: CONCURRENCY }, worker));
-    if (!mounted.current) return;
-    setBusy(false);
-    const failed = queue.length - uploaded;
-    setMessage(`${uploaded}개를 올렸습니다.${failed ? ` ${failed}개는 올리지 못해 목록에 남겨 두었습니다.` : ""}`);
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ""; };
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    try { await Promise.all(Array.from({ length: CONCURRENCY }, worker)); }
+    finally {
+      window.removeEventListener("beforeunload", warnBeforeUnload);
+      running.current = false;
+      if (mounted.current) setBusy(false);
+    }
   }
 
   return {
-    rows, busy, message,
+    rows, busy, message, messageReviewId,
     uploadAll: (reviewId: ReviewKey) => run(rows.filter(row => sameKey(row.reviewId, reviewId) && isUploadable(row))),
     retry: (row: UploadRow) => run([row]),
     choose,

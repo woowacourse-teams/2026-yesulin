@@ -1,118 +1,128 @@
 "use client";
-
 import { useCallback, useEffect, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAuthSession } from "@/components/auth/auth-session";
-import { SecondaryButton } from "@/components/ui/controls";
-import { sameKey, type EntryFilter, type ReviewDetail, type ReviewKey } from "@/features/pdf-reviews/types";
-import { usePdfExtractionEvents } from "@/features/pdf-reviews/use-extraction-events";
+import { ModalShell } from "@/components/auditions/modal-shell";
+import { PrimaryButton, SecondaryButton } from "@/components/ui/controls";
+import { matchesFilter, type EntryFilter, type ReviewDetail, type ReviewKey } from "@/features/pdf-reviews/types";
+import { useReviewProgress } from "@/features/pdf-reviews/use-review-progress";
 import { usePdfReviews } from "@/features/pdf-reviews/use-pdf-reviews";
 import { useReviewUploads } from "@/features/pdf-reviews/use-review-uploads";
 import { ReviewCreateForm } from "./review-create-form";
-import { ReviewEntryDetail } from "./review-entry-detail";
-import { ReviewEntryList } from "./review-entry-list";
 import { ReviewList } from "./review-list";
 import { ReviewLoginGate, SessionExpiredNotice } from "./review-session";
 import { ReviewUploadPanel } from "./review-upload-panel";
-
-const UPLOAD_SYNC_DELAY_MS = 600;
-const eventsText = { CONNECTING: "자동 갱신에 연결하는 중…", CONNECTED: "새 결과가 오면 자동으로 갱신됩니다.", DISCONNECTED: "자동 갱신이 멈췄습니다. ‘목록 새로고침’을 눌러 확인해 주세요." } as const;
+import { ReviewProcessingProgress } from "./review-processing-progress";
+import { ScreeningBoard } from "./screening-board";
+import styles from "./screening.module.css";
 
 export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean }) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [creating, setCreating] = useState(false);
+  const [createBusy, setCreateBusy] = useState(false);
+  const createOpen = creating || searchParams.get("create") === "1";
+  function closeCreate() {
+    setCreating(false);
+    if (searchParams.has("create")) {
+      const query = new URLSearchParams(searchParams);
+      query.delete("create");
+      router.replace(`${pathname}${query.size ? `?${query}` : ""}`, { scroll: false });
+    }
+  }
   const { session, sessionReady } = useAuthSession();
   const authorized = session?.role === "PRODUCER";
   const [expired, setExpired] = useState(false);
+  const [home, setHome] = useState(true);
   const [filter, setFilter] = useState<EntryFilter>("ALL");
-  const [entryId, setEntryId] = useState<ReviewKey | null>(null);
+  const [after, setAfter] = useState(false);
+  const [view, setView] = useState<"single" | "card" | "table">("single");
   const [detailRefresh, setDetailRefresh] = useState(0);
-  const [eventsKey, setEventsKey] = useState(0);
+  const [drag, setDrag] = useState(false);
+  const uploadInput = useRef<HTMLInputElement>(null);
+  const dirty = useRef(false);
+  const onDirtyChange = useCallback((value: boolean) => { dirty.current = value; }, []);
+  const [pendingNavigation, setPendingNavigation] = useState<{ action: () => void } | null>(null);
+  const navigate = useCallback((action: () => void) => { if (dirty.current) setPendingNavigation({ action }); else action(); }, []);
   const uploadSync = useRef<ReturnType<typeof setTimeout>>(undefined);
   const markExpired = useCallback(() => setExpired(true), []);
   const reviews = usePdfReviews({ enabled: authorized, onUnauthorized: markExpired });
   const { sync } = reviews;
   const review = reviews.detail;
-  const entry = review?.entries.find(item => sameKey(item.id, entryId)) ?? null;
-
-  // 파일을 연달아 올리는 동안에는 마지막 업로드 뒤 한 번만 다시 읽는다.
-  const onUploaded = useCallback(() => {
-    clearTimeout(uploadSync.current);
-    uploadSync.current = setTimeout(() => void sync(), UPLOAD_SYNC_DELAY_MS);
-  }, [sync]);
+  const visible = review?.entries.filter(item => matchesFilter(item, filter) && (after ? item.decision !== "PENDING" : item.decision === "PENDING")) ?? [];
+  const onUploaded = useCallback(() => { clearTimeout(uploadSync.current); uploadSync.current = setTimeout(() => void sync(), 600); }, [sync]);
   useEffect(() => () => clearTimeout(uploadSync.current), []);
   const uploads = useReviewUploads({ onUploaded, onUnauthorized: markExpired });
-
-  const eventsState = usePdfExtractionEvents({
-    enabled: authorized, reconnectKey: eventsKey,
-    sync: async completedJobIds => {
-      await sync();
-      if (entry && completedJobIds.includes(entry.jobId)) setDetailRefresh(value => value + 1);
-    },
+  useEffect(() => {
+    const handler = (event: BeforeUnloadEvent) => { if (dirty.current || uploads.rows.length) { event.preventDefault(); event.returnValue = ""; } };
+    window.addEventListener("beforeunload", handler); return () => window.removeEventListener("beforeunload", handler);
+  }, [uploads.rows.length]);
+  const uploading = uploads.busy && String(uploads.messageReviewId) === String(review?.id);
+  const { progress, error: progressError, recheck: recheckProgress } = useReviewProgress({
+    reviewId: authorized && !home ? review?.id ?? null : null, uploading,
+    refreshKey: `${detailRefresh}:${review?.entries.length ?? 0}`, onChanged: sync, onUnauthorized: markExpired,
   });
-
-  function openReview(id: ReviewKey) {
-    if (sameKey(reviews.selectedId, id)) return;
-    setFilter("ALL"); setEntryId(null);
-    reviews.open(id);
-  }
-
-  function created(next: ReviewDetail) {
-    setFilter("ALL"); setEntryId(null);
-    reviews.created(next);
-  }
-
-  async function recheckSession() {
-    setExpired(false);
-    setEventsKey(value => value + 1);
-    await reviews.refresh();
-  }
-
-  function manualRefresh() {
-    if (eventsState === "DISCONNECTED") setEventsKey(value => value + 1);
-    setDetailRefresh(value => value + 1);
-    void reviews.refresh();
-  }
-
-  return <div className="min-h-screen bg-surface px-5 py-8 text-foreground md:px-8">
-    <div className="mx-auto max-w-[1440px]">
-      <p className="mb-2 text-xs font-semibold tracking-wider text-brand">{local ? "LOCALSTACK · 로컬 전용" : "서류 심사"}</p>
-      <h1 className="text-2xl font-bold tracking-tight md:text-3xl">PDF 지원서 심사</h1>
-      <p className="mt-3 max-w-3xl text-sm leading-7 text-muted-strong">심사 제목과 배역을 만든 뒤 지원서 PDF를 여러 개 올리면 지원자별로 정리됩니다. 원본을 보며 메모를 남기고 합격·불합격은 담당자가 직접 정합니다.</p>
-      {local ? <p className="mt-3 rounded-control border border-brand-line bg-brand-soft px-4 py-3 text-sm leading-6 text-brand">
-        로컬 확인용 안내: 파일은 이 PC의 LocalStack에 올라가고 Lambda 컨테이너가 추출합니다. AI를 설정하면 본문이 해당 외부 모델로 전송됩니다. 무료 연결 시험에는 가상 지원서를 사용하세요. AI를 설정하지 않으면 기존 지원 배역 레이블만 읽으며, 처리 여부는 선택한 PDF 결과에서 확인할 수 있습니다.
-      </p> : null}
-      {!authorized ? <ReviewLoginGate local={local} ready={sessionReady} /> : <>
-        {expired ? <SessionExpiredNotice local={local} onRecheck={() => void recheckSession()} /> : null}
-        <div className="mt-5 flex flex-wrap items-center gap-3">
-          <SecondaryButton onClick={manualRefresh} disabled={reviews.refreshing} aria-label="목록 새로고침" className="min-h-11">{reviews.refreshing ? "불러오는 중…" : "목록 새로고침"}</SecondaryButton>
-          <p role="status" className="text-sm text-muted-strong">{eventsText[eventsState]}</p>
+  function openReview(id: ReviewKey) { navigate(() => { setFilter("ALL"); setAfter(false); setHome(false); reviews.open(id); }); }
+  function created(next: ReviewDetail) { closeCreate(); setFilter("ALL"); setAfter(false); setHome(false); reviews.created(next); }
+  function manualRefresh() { setExpired(false); setDetailRefresh(value => value + 1); void reviews.refresh(); }
+  const chips: { value: EntryFilter; label: string }[] = [{ value: "ALL", label: "전체 배역" },
+    ...(review?.roles ?? []).map(role => ({ value: { roleId: role.id }, label: role.name })), { value: "NEEDS_CHECK", label: "미기재" }];
+  const filterKey = typeof filter === "object" ? String(filter.roleId) : filter;
+  const uploadProps = { reviewId: review?.id ?? "", rows: uploads.rows, busy: uploads.busy,
+    message: String(uploads.messageReviewId) === String(review?.id) ? uploads.message : "", disabled: expired,
+    onChoose: (files: FileList | readonly File[] | null) => { if (review) uploads.choose(review.id, files, review.entries.length); },
+    onUploadAll: () => { if (review) void uploads.uploadAll(review.id); }, onRetry: (row: typeof uploads.rows[number]) => void uploads.retry(row), onRemove: uploads.remove };
+  return <div className={`${styles.root} ${home ? "" : `${styles.integrated} ${review?.entries.length ? styles.compactInbox : ""}`}`}
+    onDragOver={event => { if (!home && event.dataTransfer.types.includes("Files")) { event.preventDefault(); event.dataTransfer.dropEffect = uploads.busy || expired ? "none" : "copy"; setDrag(!uploads.busy && !expired); } }}
+    onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setDrag(false); }}
+    onDrop={event => { if (!home) { event.preventDefault(); setDrag(false); if (!uploads.busy && !expired) uploadProps.onChoose(event.dataTransfer.files); } }}
+    onPaste={event => { if (!home && !(event.target as HTMLElement).closest('input,textarea,[contenteditable=true]') && event.clipboardData.files.length && !uploads.busy && !expired) { event.preventDefault(); uploadProps.onChoose(event.clipboardData.files); } }}>
+    {drag && !!review?.entries.length && <div className={styles.dropOverlay}>PDF를 여기에 놓으세요</div>}
+    {!authorized ? <ReviewLoginGate local={local} ready={sessionReady} /> : <>
+      {expired && <SessionExpiredNotice local={local} onRecheck={manualRefresh} />}
+      {home ? <div className={`${styles.home} ${styles.controls}`}>
+        <header className={styles.homeHeader}><h1>내 심사함</h1><PrimaryButton onClick={() => setCreating(true)} className={styles.primary}><span aria-hidden="true">+</span> 심사함 추가하기</PrimaryButton></header>
+        <ReviewList reviews={reviews.reviews} selectedId={reviews.selectedId} loading={reviews.listLoading} error={reviews.listError} onSelect={openReview} onRetry={() => void reviews.refresh()} />
+      </div> : !review ? <p role="status" className="p-8">{reviews.detailError || "심사함을 불러오고 있습니다…"}</p> : <>
+        <div className={`${styles.controls} px-4 md:px-6 xl:px-8`}>
+          <header className={styles.header}><nav className={styles.breadcrumb} aria-label="심사함 경로"><ol><li><button type="button" className={styles.homeLink} onClick={() => navigate(() => setHome(true))}>심사함</button></li><li aria-hidden="true" className={styles.breadcrumbSeparator}>›</li><li aria-current="page"><h1>{review.title}</h1></li></ol></nav>
+            <p className={styles.reviewCounts}>전체 {review.entries.length}명 <span>·</span> 심사 완료 {review.entries.filter(item => item.decision !== "PENDING").length}명</p>
+          </header>
+          <ReviewUploadPanel {...uploadProps} inputRef={uploadInput}>
+            <nav className={styles.roleBar} aria-label="배역별 지원자"><div className={styles.roleChips}>{chips.map(chip => {
+              const key = typeof chip.value === "object" ? String(chip.value.roleId) : chip.value;
+              return <button type="button" key={key} aria-pressed={filterKey === key} onClick={() => navigate(() => setFilter(chip.value))}>{chip.label}<span className="num">{review.entries.filter(item => matchesFilter(item, chip.value)).length}</span></button>;
+            })}</div></nav>
+          </ReviewUploadPanel>
+          {filter === "NEEDS_CHECK" && <p className={styles.roleHint}>심사 배역이 아직 지정되지 않은 지원자입니다. PDF의 지원 배역을 확인하고 ‘배역 변경’으로 지정해 주세요.</p>}
+          {reviews.detailError && <p role="alert" className="text-fail">{reviews.detailError}</p>}
         </div>
-        <div className="mt-5 grid min-w-0 items-start gap-6 xl:grid-cols-[340px_minmax(0,1fr)]">
-          <div className="min-w-0 space-y-4">
-            <ReviewCreateForm onCreated={created} onUnauthorized={markExpired} />
-            <ReviewList reviews={reviews.reviews} selectedId={reviews.selectedId} loading={reviews.listLoading} error={reviews.listError} onSelect={openReview} onRetry={() => void reviews.refresh()} />
+        <div className="px-4 md:px-6 xl:px-8">
+          <div className="mb-2 flex flex-wrap items-center gap-3 border-b border-border py-2">
+            <div role="group" aria-label="심사 상태" className="flex gap-4">{[false,true].map(done => <button type="button" key={String(done)} aria-pressed={after === done} onClick={() => navigate(() => setAfter(done))} className={`min-h-10 border-b-2 text-sm font-semibold ${after === done ? "border-foreground" : "border-transparent text-muted"}`}>{done ? "심사 후" : "심사 전"} <span className="num ml-1">{review.entries.filter(item => done ? item.decision !== "PENDING" : item.decision === "PENDING").length}</span></button>)}</div>
+            <div role="group" aria-label="보기 방식" className="flex overflow-hidden rounded-control border border-border">{([['single','한 명씩'],['card','카드'],['table','표']] as const).map(([value,label]) => <button type="button" key={value} aria-pressed={view === value} onClick={() => navigate(() => setView(value))} className={`min-h-10 px-4 text-sm font-semibold ${view === value ? "bg-foreground text-white" : "text-muted-strong"}`}>{label}</button>)}</div>
           </div>
-          <div className="min-w-0 space-y-6">
-            {reviews.selectedId === null ? <p role="status" className="rounded-card border border-border bg-card p-8 text-sm leading-7 text-muted-strong">왼쪽에서 심사를 선택하거나 새로 만들면 지원서를 올리고 확인할 수 있습니다.</p>
-              : !review ? (reviews.detailError
-                ? <div role="alert" className="rounded-card border border-border bg-card p-6 text-sm text-fail"><p className="break-words">{reviews.detailError}</p><SecondaryButton onClick={() => void reviews.refresh()} className="mt-3">다시 불러오기</SecondaryButton></div>
-                : <p role="status" className="rounded-card border border-border bg-card p-8 text-sm text-muted-strong">심사를 불러오고 있습니다…</p>)
-                : <>
-                  <section aria-label="선택한 심사" className="min-w-0 rounded-card border border-border bg-card p-5">
-                    <h2 className="break-words text-lg font-bold">{review.title}</h2>
-                    <p className="mt-2 break-words text-sm text-muted-strong">배역 {review.roles.length}개: {review.roles.map(role => role.name).join(", ")}</p>
-                    {reviews.detailError ? <p role="alert" className="mt-3 break-words rounded-control bg-fail-bg p-3 text-sm text-fail">{reviews.detailError}</p> : null}
-                  </section>
-                  <ReviewUploadPanel reviewId={review.id} rows={uploads.rows} busy={uploads.busy} message={uploads.message} disabled={expired}
-                    onChoose={files => uploads.choose(review.id, files, review.entries.length)} onUploadAll={() => void uploads.uploadAll(review.id)}
-                    onRetry={row => void uploads.retry(row)} onRemove={uploads.remove} />
-                  <div className="grid min-w-0 items-start gap-6 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
-                    <ReviewEntryList key={String(review.id)} review={review} filter={filter} selectedEntryId={entryId} onFilter={setFilter} onSelect={item => setEntryId(item.id)} />
-                    {entry ? <ReviewEntryDetail key={String(entry.id)} review={review} entry={entry} refreshKey={detailRefresh} onSaved={reviews.replaceEntry} onUnauthorized={markExpired} />
-                      : <p role="status" className="rounded-card border border-border bg-card p-8 text-sm leading-7 text-muted-strong">지원 항목을 선택하면 원본 PDF와 추출 내용을 보며 메모와 결정을 남길 수 있습니다.</p>}
-                  </div>
-                </>}
-          </div>
+          {!visible.length ? review.entries.length ? <div className={styles.emptyDrop}><h2>이 조건에 해당하는 지원자가 없습니다.</h2><p>배역이나 심사 상태를 바꿔 확인해 주세요.</p></div> :
+            <button type="button" className={styles.uploadDropzone} data-dragging={drag} disabled={uploads.busy || expired} onClick={() => uploadInput.current?.click()} aria-labelledby="pdf-drop-title" aria-describedby="pdf-drop-description pdf-drop-limit">
+              <span className={styles.dropIcon} aria-hidden="true"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6M12 18v-7m-3 3 3-3 3 3" /></svg></span>
+              <span id="pdf-drop-title" className={styles.dropTitle}>{uploads.busy ? "PDF를 올리고 있어요" : drag ? "여기에 놓으면 업로드가 시작돼요" : "지원자 PDF를 여기에 끌어 놓으세요"}</span>
+              <span id="pdf-drop-description" className={styles.dropDescription}>{uploads.busy ? "준비된 지원자부터 바로 심사할 수 있어요." : "한 명씩, 또는 여러 명의 지원서를 한 번에 추가할 수 있어요."}</span>
+              <span className={styles.dropChoose} aria-hidden="true">{uploads.busy ? "업로드 중…" : "파일 선택하기"}<span aria-hidden="true">{uploads.busy ? "" : "→"}</span></span>
+              <span id="pdf-drop-limit" className={styles.dropLimit}>PDF · 한 번에 최대 300개 · 파일당 최대 25MiB</span>
+            </button>
+            : <ScreeningBoard key={`${review.id}-${filterKey}-${after}-${view}`} review={review} entries={visible} after={after} view={view} refreshKey={detailRefresh} onSaved={reviews.replaceEntry} onUnauthorized={markExpired} onDirtyChange={onDirtyChange} onApplicantOpened={recheckProgress} navigate={navigate} />}
         </div>
       </>}
-    </div>
+    </>}
+    {authorized && !home && review && <ReviewProcessingProgress key={review.id} progress={progress} uploading={uploading} uploadMessage={uploadProps.message} error={progressError} onRetry={manualRefresh} />}
+    <ModalShell open={authorized && createOpen} onClose={() => { if (!createBusy) closeCreate(); }} labelledBy="create-review-title" className={`${styles.createDialog} ${styles.controls} w-[calc(100vw-32px)] max-w-lg max-h-[90dvh] overflow-y-auto rounded-modal bg-card p-6 shadow-xl`}>
+      <header className="flex items-center justify-between gap-3"><h2 id="create-review-title" className="text-lg font-bold">심사함 추가하기</h2><SecondaryButton onClick={closeCreate} disabled={createBusy} aria-label="심사함 추가 닫기">닫기</SecondaryButton></header>
+      {createOpen && <ReviewCreateForm onCreated={created} onUnauthorized={markExpired} onBusyChange={setCreateBusy} />}
+    </ModalShell>
+    <ModalShell open={pendingNavigation !== null} onClose={() => setPendingNavigation(null)} labelledBy="unsaved-review-title" className="w-[calc(100vw-32px)] max-w-md rounded-modal bg-card p-6 shadow-xl">
+      <h2 id="unsaved-review-title" className="text-lg font-bold">저장하지 않은 메모가 있어요</h2><p className="mt-3 text-sm text-muted-strong">메모를 남겨두려면 취소 후 저장해 주세요.</p>
+      <div className="mt-6 flex justify-end gap-2"><SecondaryButton onClick={() => setPendingNavigation(null)}>취소</SecondaryButton><PrimaryButton onClick={() => { const action = pendingNavigation?.action; dirty.current = false; setPendingNavigation(null); action?.(); }}>저장하지 않고 이동</PrimaryButton></div>
+    </ModalShell>
   </div>;
 }

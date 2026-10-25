@@ -8,6 +8,8 @@ import art.yesulin.auth.domain.member.MemberType;
 import art.yesulin.pdfextraction.application.PdfExtractionService.PreparedUpload;
 import art.yesulin.pdfreview.application.PdfReviewDetail;
 import art.yesulin.pdfreview.application.PdfReviewEntryView;
+import art.yesulin.pdfreview.application.PdfReviewProgress;
+import art.yesulin.pdfreview.application.PdfReviewProgressService;
 import art.yesulin.pdfreview.application.PdfReviewService;
 import art.yesulin.pdfreview.application.PdfReviewSummary;
 import jakarta.validation.Valid;
@@ -34,6 +36,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class PdfReviewController {
 
     private final PdfReviewService service;
+    private final PdfReviewProgressService progress;
 
     @PostMapping
     public ResponseEntity<PdfReviewDetail> create(
@@ -61,6 +64,15 @@ public class PdfReviewController {
                 .body(service.find(principal.memberId(), reviewId.toString()));
     }
 
+    @GetMapping("/{reviewId}/progress")
+    public ResponseEntity<PdfReviewProgress> progress(
+            @LoginMember(roles = MemberType.PRODUCER, statuses = MemberStatus.ACTIVE) MemberPrincipal principal,
+            @PathVariable UUID reviewId
+    ) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore())
+                .body(progress.find(principal.memberId(), reviewId.toString()));
+    }
+
     @PostMapping("/{reviewId}/uploads")
     public ResponseEntity<PreparedUpload> prepareUpload(
             @LoginMember(roles = MemberType.PRODUCER, statuses = MemberStatus.ACTIVE) MemberPrincipal principal,
@@ -82,6 +94,25 @@ public class PdfReviewController {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())
                 .body(service.editEntry(principal.memberId(), reviewId.toString(), entryId.toString(),
                         request.memo(), request.decision()));
+    }
+
+    @PatchMapping("/{reviewId}/role-assignments")
+    public ResponseEntity<List<PdfReviewEntryView>> assignRoles(
+            @LoginMember(roles = MemberType.PRODUCER, statuses = MemberStatus.ACTIVE) MemberPrincipal principal,
+            @PathVariable UUID reviewId,
+            @Valid @RequestBody AssignRolesRequest request
+    ) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore())
+                .body(service.assignRoles(principal.memberId(), reviewId.toString(),
+                        request.entryIds().stream().map(UUID::toString).toList(),
+                        request.roleId() == null ? null : request.roleId().toString()));
+    }
+
+    public record AssignRolesRequest(
+            @jakarta.validation.constraints.NotEmpty @jakarta.validation.constraints.Size(max = 300)
+            List<@jakarta.validation.constraints.NotNull UUID> entryIds,
+            UUID roleId
+    ) {
     }
 
     public record ReviewsResponse(List<PdfReviewSummary> reviews) {

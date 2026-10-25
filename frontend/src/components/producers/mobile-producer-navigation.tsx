@@ -8,6 +8,7 @@ import { ProducerAccountPanel } from "./producer-account-panel";
 import { OtrAuditionTreeNav } from "@/components/otr-auditions/otr-audition-tree";
 import { ShowManagementNav } from "@/components/shows/manage/show-management-nav";
 import { AuditionPostManagementNav } from "@/components/audition-posts/manage/audition-post-management-nav";
+import { PdfReviewNavigation } from "./pdf-review-navigation";
 import { useRouteDisclosure } from "./use-route-disclosure";
 
 const TITLE_ID = "mobile-producer-navigation-title";
@@ -75,6 +76,7 @@ export function MobileProducerNavigation() {
             </button>
           </header>
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-2">
+            <PdfReviewNavigation onNavigate={closeDisclosure} />
             <ShowManagementNav onNavigate={closeDisclosure} />
             <AuditionPostManagementNav onNavigate={closeDisclosure} />
             <OtrAuditionTreeNav onNavigate={closeDisclosure} />

@@ -123,9 +123,9 @@ S3 멀티파트 업로드는 큰 파일 하나를 여러 조각으로 보내는 
 함수를 이름 변경하거나 다른 함수·역할로 교체하면 추출 폴더 읽기가 거부되고 callback이 오지 않는다.
 이름을 바꿀 때는 새 `aws:userid`로 버킷 정책의 예외를 먼저 함께 바꾼다. 같은 이름으로 함수를 삭제 후 재생성해도 역할 ID가 바뀌면 같은 조치가 필요하다.
 
-**아직 배포되지 않은 것**: 완료 API를 담은 백엔드는 PR 병합·배포 전이라 Dev 서버에 없다.
+**초기 연결 시험 기록**: 당시 완료 API를 담은 백엔드는 PR 병합·배포 전이었다.
 2026-10-25에 개인정보 없는 36KB·1페이지 PDF를 실제 S3에 업로드하여 자동 실행과 `result.json` 및 PNG 1개 생성을 확인했다. 익명 원본 HEAD는 403이었다.
-현재 Dev 완료 API는 올바른 worker 토큰을 보내도 403을 반환하여 Lambda 전체 호출은 실패·재시도 상태다. 추출·저장 성공과 서버 반영 성공을 구분한다.
+해당 시험 당시 Dev 완료 API는 올바른 worker 토큰을 보내도 403을 반환하여 Lambda 전체 호출은 실패·재시도 상태였다. 추출·저장 성공과 서버 반영 성공을 구분한다.
 콘솔 합성 시험 job은 Spring이 발급한 job이 아니므로, 배포 후에는 공연사 화면에서 새 job을 만들어 업로드한 뒤 DB 반영까지 확인한다.
 기본 설정에서는 AI를 호출하지 않는다. AI 제공자는 아래 환경 변수로 선택하며 OCR·SQS는 사용하지 않는다.
 
@@ -138,7 +138,7 @@ presigned URL이 만료돼도 본인 job의 기존 원본이 검증을 통과하
 별도 job에 올린 바이트가 같은 PDF의 SHA 기반 전역 중복 제거도 이번 범위가 아니다.
 
 손상 PDF·페이지 상한·결과 2MiB 상한 등은 FAILED manifest로 저장한다. 이미지 일부 실패는 PARTIAL과 경고를 남긴다.
-AI 정보가 추가될 공간을 위해 추출 manifest에는 8KiB의 여유를 남긴다.
+AI 정보가 추가될 공간을 위해 추출 manifest에는 384KiB의 여유를 남긴다.
 
 ## AI 지원 정보 정리
 
@@ -164,7 +164,7 @@ AI 실패로 기록하되 PDF 텍스트·이미지는 그대로 완료 API로 �
 AI를 다시 분석하는 사용자 기능은 별도 후속 작업이며, 기존 지원서에 임의로 새 결과를 덮어쓰지 않는다.
 외부 모델 호출은 25초 상한이며 남은 Lambda 실행 시간이 45초 미만이면 먼저 예외를 발생시켜 다음 실행이 추출 캐시를 재사용하게 한다.
 
-AI 결과는 동일 결과 폴더의 `applicant-info-v1.json`에 조건부 생성으로 저장한다. 완료 API 전송이 실패해 재시도돼도
+기존 v1 AI 결과는 동일 결과 폴더의 `applicant-info-v1.json`에 조건부 생성으로 저장한다. 새 v2 캐시는 아래 확장 계약을 따른다. 완료 API 전송이 실패해 재시도돼도
 저장된 AI 결과를 다시 사용한다. 동시에 중복 이벤트가 시작되면 모델을 각각 호출할 가능성은 있지만,
 최초로 게시된 결과 하나만 완료 API에 전달한다. 정확히 한 번의 모델 호출을 보장하는 분산 잠금은 아직 없다.
 원본 추출 `result.json`은 수정하지 않는다. 이전 버전으로 이미 Spring에 저장한 작업은 `resultStored:true`로 확인해
@@ -219,3 +219,55 @@ Lambda에 `PDF_COMPLETION_API_URL=https://<backend>/internal/v1/pdf-extractions/
 완료 본문은 `{jobId,sourceFileKey,pipelineVersion,result}`이고 result에 추출 문자와 이미지 fileKey 목록이 들어간다. Spring은 정규화된 결과를 DB에 저장하며 임시 URL은 저장하지 않는다. `result.json`은 Lambda의 재전송 캐시이므로 API 실패 후 재실행은 PDF를 다시 추출하지 않고 저장된 결과를 다시 보낸다. 동일 결과는 멱등 처리하고, 다른 결과로 덮어쓰려 하면 409다. Lambda 재시도를 모두 소진한 경우의 최종 재전송은 운영 후속 범위다.
 
 화면은 SSE `/api/v1/pdf-extractions/events`를 구독한다. 최초 연결·재연결과 `completed` 신호에 DB 목록을 동기화하고 S3 결과 폴링은 하지 않는다. SSE 알림은 현재 Spring 인스턴스 연결에 한정되므로 다중 인스턴스 간 중계는 별도 범위다. 심사 API는 `backend/docs/pdf-reviews.md`, 로컬 화면은 `/dev/pdf-reviews`다. 배역 매칭은 문서의 명시된 지원 배역만 비교하며 모델에 의한 적합성·합격 판단은 하지 않는다.
+
+### 프로필 전사 v2
+
+`application/applicant_info.py`의 SYSTEM과 JSON schema가 이름·지원 배역에 `profile`을 더한다.
+`profile_info.py`는 생년월일·명시된 나이·키·학력·경력 최대 5개와 연속된 원문 근거를 검증한다.
+경력은 원문 순서로 가져온다. 이전에 저장된 결과를 자동으로 잘라 내거나 다시 분석하지 않는다.
+profile JSON은 최대 256KiB이고 manifest는 AI 결과용 384KiB 여유를 남긴다. 모델 출력 한도는 16,384 tokens다.
+확실하지 않은 값은 null이며 실패 시 원본 텍스트/사진은 전달하고 프로필은 미확인으로 남긴다.
+키/링크/사진 분류/합불/점수/메모는 모델 schema에 포함하지 않는다.
+
+새 작업은 `applicant-info-v2.json`을 별도로 캐시한다. 기존 v1 캐시가 있으면 그대로 재사용해
+재전송 payload의 멱등성을 유지한다. 기존 DB 결과를 새 프로필로 덮어쓰거나 자동 재처리하지 않는다.
+운영 반영은 v2 지원 API → 워커 순서로 진행한다.
+
+이미지는 PDFium 추출을 유지하고 `geometry-v1` 규칙으로 후보를 나눈다. 작은 점유율·페이지 전체 이미지는
+UNCERTAIN, 작은 장식/가로 배너는 OTHER, 일반 사진 비율은 CANDIDATE다. 의미 기반 로고/얼굴 인식이 아니므로
+누락/오분류 가능성이 있다. 원본은 유지하며 UI는 미확인 안내와 원문 확인을 제공한다.
+
+Gemini 실연결에서 확장 경력 스키마의 `maxItems` 포함 요청이 HTTP 400으로 거절된 이력이 있어 Gemini 전송본에서만
+해당 제약을 제거한다. 새 워커는 원본 스키마·검증에서 5개 제한을 유지한다. 백엔드는 과거 v2 결과와의 호환을 위해
+기존 50개까지 수신할 수 있지만 새 모델 요청은 최대 5개다. Gemini 응답은 최대 1MiB, 프로필은 256KiB로 제한한다.
+
+### 소량 로컬 프롬프트 검증
+
+Lambda의 `src/`·테스트·의존성 잠금 파일은 같은 Git 저장소에서 관리하는 서비스 코드다. 콘솔 코드만 따로 고치지 않는다.
+현재 ZIP 배포는 수동이며 이 로컬 실험은 AWS Lambda·EC2·IAM·Bedrock 설정을 바꾸지 않는다.
+가상 정답셋은 `tests/fixtures/applicant-quality.json`이며 실제 지원서나 키를 커밋하지 않는다.
+
+```bash
+# ReportLab/Pillow와 한글 TrueType 폰트가 있는 Python으로 생성
+python scripts/make_quality_pdfs.py --font /path/to/korean-font.ttf
+# 키가 없으면 로컬 PDF 문자 추출만 한다.
+python scripts/probe_profile_prompt.py
+# PDFium/Pillow가 있는 Python에서 기존 키 파일을 명시해야 실제 Gemini를 호출한다.
+python scripts/probe_profile_prompt.py --key-file /path/to/private-gemini-key
+```
+
+기본 3개(전체 항목·경력 7개·복수 배역)를 10초 간격으로 요청하며 최대 3개만 허용한다.
+문서 해시가 생성 당시 가상 정답셋과 같은지 확인한 뒤 호출하고, 제공자·응답 오류가 나면 추가 요청을 멈춘다.
+결과와 프롬프트 SHA는 ignored `output/profile-ui-prompt-smoke/result.json`에 남긴다. 시간은 로컬 추출+모델 API 값이며 Lambda 성능 측정이 아니다.
+현재 중첩 profile 계약은 이메일·연락처와 전체 프로필 수동 수정 API를 포함하지 않는다.
+소량 프롬프트 검증은 이 항목들을 검증 범위에 포함하지 않는다.
+
+### 심사 진행률·화면 변경 배포
+
+- 프론트의 진행률 폴링은 Spring의 `/api/v1/pdf-reviews/{id}/progress`를 사용하므로 Spring을 먼저 배포한다.
+  새 환경 변수·DB migration·SQS·S3 알림·IAM 권한 추가는 필요하지 않다. 기존 Lambda의 완료 콜백을 그대로 사용한다.
+- PDF.js 디코더·글꼴 파일은 프론트의 `prebuild`에서 생성하므로 프론트도 새 빌드를 배포한다.
+- 프롬프트·출력 검증의 경력 최대 5개 제한은 기존 PDF Lambda의 ZIP도 갱신해야 적용된다.
+  같은 함수 이름·기존 실행 역할·업로드 트리거·콜백 설정을 유지한다. Bedrock 전환은 별도 작업이다.
+- 병합만으로 수동 Lambda ZIP 배포까지 완료되지는 않는다. Dev에서 새 PDF를 올린 후 콜백 DB 반영,
+  진행률 종료와 원본 PDF 표시까지 확인한다. 기존 저장 결과는 프롬프트 변경으로 재분석되지 않는다.

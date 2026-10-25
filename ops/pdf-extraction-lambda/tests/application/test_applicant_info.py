@@ -29,7 +29,7 @@ class ApplicantInfoTest(unittest.TestCase):
         self.roles = [{"id": "e372681e-25cf-466a-af09-2c3309283e1d", "name": "강하루"}]
         self.text = "배우 소개\n성명: 가상배우\n이번 공연에 지원하는 배역은 강하루역입니다.\n경력: 앙상블 역"
         self.value = {"applicantName": "가상배우", "applicantNameEvidence": "성명: 가상배우",
-                      "roleId": self.roles[0]["id"], "roleEvidence": "이번 공연에 지원하는 배역은 강하루역입니다."}
+                      "roleId": self.roles[0]["id"], "roleEvidence": "이번 공연에 지원하는 배역은 강하루역입니다.", "profile": None}
         self.result = {"fingerprint": "source-identity", "source": {"key": "scope/source.pdf"},
                        "pages": [{"number": 1, "text": self.text, "images": [{"key": "scope/images/a.png"}]}]}
         self.completion = {"jobId": "6c4ff9a9-9fdf-46f8-b5b6-14a5c9ed4366", "resultKey": "scope/pdfium-v1/result.json"}
@@ -71,6 +71,13 @@ class ApplicantInfoTest(unittest.TestCase):
         self.assertEqual("COMPLETED", info["status"])
         self.assertIsNone(info["roleId"])
         self.assertEqual("가상배우", info["applicantName"])
+
+    def test_quote_explaining_ambiguous_role_does_not_discard_profile(self):
+        value = {**self.value, "roleId": None, "roleEvidence": "지원 배역이 모호합니다."}
+        result = validate_output(value, self.text + "\n지원 배역이 모호합니다.", self.roles)
+        self.assertIsNone(result["roleId"])
+        self.assertIsNone(result["roleEvidence"])
+        self.assertEqual("가상배우", result["applicantName"])
 
     def test_control_character_in_model_quote_never_blocks_extracted_text_delivery(self):
         for control in ("\x00", "\x0c", "\x85"):
@@ -114,6 +121,44 @@ class ApplicantInfoTest(unittest.TestCase):
         self.assertEqual(self.result, self.processor.enrich(self.completion, self.result, self.store))
         self.invoke.assert_not_called()
         self.assertEqual({}, self.store.objects)
+
+    def test_legacy_cache_is_reused_without_model_or_payload_upgrade(self):
+        legacy = {"version": "applicant-info-v1", "status": "COMPLETED", **self.value}
+        legacy.pop("profile")
+        self.store.objects["scope/pdfium-v1/applicant-info-v1.json"] = {
+            "sourceFingerprint": self.result["fingerprint"], "applicantInfo": legacy}
+        enriched = self.processor.enrich(self.completion, self.result, self.store)
+        self.assertEqual(legacy, enriched["applicantInfo"])
+        self.invoke.assert_not_called()
+        self.context.assert_not_called()
+
+    def test_profile_values_require_contiguous_source_and_unknowns_stay_null(self):
+        from application.profile_info import FACTS
+        profile = {key: {"value": None, "evidence": None} for key in FACTS}
+        profile["careers"] = []
+        profile["height"] = {"value": "165cm", "evidence": "키: 165cm"}
+        value = {**self.value, "profile": profile}
+        source = self.text + "\n키: 165cm"
+        self.assertEqual(profile, validate_output(value, source, self.roles)["profile"])
+        for change in ({"value": "170cm", "evidence": "키: 165cm"},
+                       {"value": None, "evidence": "키: 165cm"},
+                       {"value": "165cm", "evidence": "키: 165cm 출연"}):
+            with self.subTest(change=change), self.assertRaises(ModelFailure):
+                validate_output({**value, "profile": {**profile, "height": change}}, source, self.roles)
+
+    def test_career_must_have_grounded_title_and_cannot_contain_decisions(self):
+        from application.profile_info import FACTS, CAREER_FIELDS
+        career = {key: None for key in CAREER_FIELDS}
+        career.update(title="가상극", period="25.08 ~ 12", evidence="가상극 25.08 ~ 12")
+        profile = {key: {"value": None, "evidence": None} for key in FACTS}
+        profile["careers"] = [career]
+        value = {**self.value, "profile": profile}
+        source = self.text + "\n가상극 25.08 ~ 12"
+        validate_output(value, source, self.roles)
+        for change in ({"part": "주연"}, {"title": None}, {"decision": "PASS"}):
+            with self.subTest(change=change), self.assertRaises(ModelFailure):
+                validate_output({**value, "profile": {**profile, "careers": [{**career, **change}]}},
+                                source, self.roles)
 
     def test_low_remaining_time_defers_model_until_next_lambda_invocation(self):
         with self.assertRaisesRegex(RuntimeError, "TIME_LIMIT"):

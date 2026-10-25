@@ -1,17 +1,21 @@
 "use client";
 
-import { useRef } from "react";
+import { type RefObject, type ReactNode } from "react";
 import { PrimaryButton, SecondaryButton, TextButton } from "@/components/ui/controls";
 import { sameKey, type ReviewKey } from "@/features/pdf-reviews/types";
 import { isUploadable, type UploadRow } from "@/features/pdf-reviews/use-review-uploads";
 
+import styles from "./screening.module.css";
+
 type Props = {
+  readonly children?: ReactNode;
+  readonly inputRef: RefObject<HTMLInputElement | null>;
   readonly reviewId: ReviewKey;
   readonly rows: readonly UploadRow[];
   readonly busy: boolean;
   readonly message: string;
   readonly disabled: boolean;
-  readonly onChoose: (files: FileList | null) => void;
+  readonly onChoose: (files: FileList | readonly File[] | null) => void;
   readonly onUploadAll: () => void;
   readonly onRetry: (row: UploadRow) => void;
   readonly onRemove: (id: string) => void;
@@ -19,21 +23,19 @@ type Props = {
 
 const phaseText = (row: UploadRow) => row.phase === "SELECTED" ? "업로드 전" : row.phase === "UPLOADING" ? "업로드 중" : "업로드 확인 필요";
 
-export function ReviewUploadPanel({ reviewId, rows, busy, message, disabled, onChoose, onUploadAll, onRetry, onRemove }: Props) {
-  const input = useRef<HTMLInputElement>(null);
+export function ReviewUploadPanel({ reviewId, rows, busy, message, disabled, onChoose, onUploadAll, onRetry, onRemove, children, inputRef: input }: Props) {
   const mine = rows.filter(row => sameKey(row.reviewId, reviewId));
   const ready = mine.filter(isUploadable).length;
-  return <section aria-label="지원서 PDF 올리기" className="rounded-card border border-border bg-card p-5">
-    <div className="flex flex-wrap items-center gap-3">
-      <label className={`inline-flex min-h-12 cursor-pointer items-center rounded-control border border-brand-line px-5 text-sm font-semibold text-brand focus-within:outline-2 focus-within:outline-brand ${busy || disabled ? "pointer-events-none opacity-50" : ""}`}>
-        PDF 여러 개 선택
-        <input ref={input} type="file" accept=".pdf,application/pdf" multiple disabled={busy || disabled} className="sr-only"
-          onChange={event => { onChoose(event.target.files); if (input.current) input.current.value = ""; }} />
-      </label>
-      <PrimaryButton onClick={onUploadAll} disabled={!ready || busy || disabled} className="min-h-12 px-5">{busy ? "업로드 중…" : `선택한 ${ready}개 올리기`}</PrimaryButton>
-      <p role="status" className="text-sm text-muted-strong">{message}</p>
+  return <section aria-label="지원서 PDF 올리기">
+    <div className={styles.uploadToolbar}>
+      {children}
+      <button type="button" disabled={busy || disabled} className={`${styles.primary} ${styles.uploadAction}`} onClick={() => input.current?.click()}>
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 16V3m-5 5 5-5 5 5M4 15v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5" /></svg>PDF 추가
+      </button>
+      <input ref={input} type="file" accept=".pdf,application/pdf" multiple disabled={busy || disabled} className={styles.hidden} aria-label="지원자 PDF 선택" onChange={event => { onChoose(event.target.files); event.currentTarget.value = ""; }} />
     </div>
-    <p className="mt-3 text-xs leading-6 text-muted">파일당 25MiB · 한 심사에 최대 800개 · 동시에 2개씩 올립니다. 한 파일이 실패해도 나머지는 계속 진행합니다. PDF 한 파일은 쪽 수와 관계없이 지원서 1개로 셉니다.</p>
+    {ready > 0 && !busy ? <PrimaryButton onClick={onUploadAll} disabled={disabled}>선택한 {ready}개 다시 올리기</PrimaryButton> : null}
+    {message && <details className={styles.uploads}><summary>업로드 결과 · {message}</summary><p role="status">한 번에 300개 · 파일당 최대 25MiB. 준비된 지원자부터 심사할 수 있습니다.</p></details>}
     {mine.length ? <ul aria-label="올릴 파일" className="mt-4 max-h-64 space-y-2 overflow-y-auto">
       {mine.map(row => <li key={row.id} className="rounded-control border border-border p-3">
         <span className="block break-all text-sm font-semibold">{row.name}</span>

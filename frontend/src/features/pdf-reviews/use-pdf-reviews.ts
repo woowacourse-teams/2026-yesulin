@@ -30,11 +30,13 @@ export function usePdfReviews({ enabled, onUnauthorized }: Options) {
     const seq = ++listSeq.current;
     try {
       const next = await listPdfReviews();
-      if (!mounted.current || seq !== listSeq.current) return;
+      if (!mounted.current || seq !== listSeq.current) return false;
       setReviews(next); setListError("");
+      return true;
     } catch (cause) {
       if (isUnauthorized(cause)) unauthorized.current();
       if (mounted.current && seq === listSeq.current) setListError(errorText(cause));
+      return false;
     } finally { if (mounted.current && seq === listSeq.current) setListLoading(false); }
   }, []);
 
@@ -42,11 +44,13 @@ export function usePdfReviews({ enabled, onUnauthorized }: Options) {
     const seq = ++detailSeq.current;
     try {
       const next = await fetchPdfReview(id);
-      if (!mounted.current || seq !== detailSeq.current) return;
+      if (!mounted.current || seq !== detailSeq.current) return false;
       setDetail(next); setDetailError("");
+      return true;
     } catch (cause) {
       if (isUnauthorized(cause)) unauthorized.current();
       if (mounted.current && seq === detailSeq.current) setDetailError(errorText(cause));
+      return false;
     } finally { if (mounted.current && seq === detailSeq.current) setDetailLoading(false); }
   }, []);
 
@@ -70,9 +74,10 @@ export function usePdfReviews({ enabled, onUnauthorized }: Options) {
     void loadDetail(id);
   }
 
-  /** 목록과 선택한 심사를 함께 다시 읽는다(요청 2개). SSE 완료 이벤트와 수동 새로고침이 같이 쓴다. */
+  /** 진행 집계가 바뀌었을 때 목록과 선택한 심사를 함께 다시 읽는다(요청 2개). */
   const sync = useCallback(async () => {
-    await Promise.all([loadList(), selected.current === null ? undefined : loadDetail(selected.current)]);
+    const results = await Promise.all([loadList(), selected.current === null ? true : loadDetail(selected.current)]);
+    return results.every(Boolean);
   }, [loadList, loadDetail]);
 
   return {
@@ -84,8 +89,12 @@ export function usePdfReviews({ enabled, onUnauthorized }: Options) {
       setSelectedId(next.id); setDetail(next); setDetailError(""); setDetailLoading(false);
       void loadList();
     },
-    replaceEntry: (entry: ReviewEntry) => setDetail(current => current && {
-      ...current, entries: current.entries.map(item => sameKey(item.id, entry.id) ? entry : item),
-    }),
+    replaceEntry: (entry: ReviewEntry) => {
+      // An older SSE refresh must not undo the just-saved decision or role.
+      detailSeq.current += 1;
+      setDetail(current => current && {
+        ...current, entries: current.entries.map(item => sameKey(item.id, entry.id) ? entry : item),
+      });
+    },
   };
 }

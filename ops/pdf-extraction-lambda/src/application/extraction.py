@@ -1,4 +1,4 @@
-"""Bounded PDF text/image extraction. No OCR, LLM, portrait classification or page renders."""
+"""Bounded PDF text/image extraction. No OCR, face recognition or page renders."""
 import ctypes
 import hashlib
 import math
@@ -76,6 +76,24 @@ def write_image(obj, path, limits):
         bitmap.close()
 
 
+def image_classification(metadata):
+    width, height = metadata["pixelWidth"], metadata["pixelHeight"]
+    box = metadata.get("bbox")
+    ratio = width / height
+    # Keep tiny decorations, wide banners and page scans out of automatic portraits.
+    if min(width, height) < 100 or ratio > 2.2 or ratio < 0.3:
+        return "OTHER"
+    if box:
+        coverage = (box[2] - box[0]) * (box[3] - box[1])
+        if coverage < 0.012:
+            return "UNCERTAIN"
+        if coverage > 0.85:
+            return "UNCERTAIN"
+        if box[3] < 0.18 and coverage < 0.06:
+            return "OTHER"
+    return "CANDIDATE" if 0.45 <= ratio <= 1.6 else "UNCERTAIN"
+
+
 def extract_pdf(source, output, *, limits=None, extract_images=True, include_regions=True, remaining_ms=None):
     limits = limits or Limits()
     source, output = Path(source), Path(output)
@@ -140,6 +158,7 @@ def extract_pdf(source, output, *, limits=None, extract_images=True, include_reg
                                 path.unlink(missing_ok=True)
                                 raise ExtractionError("ASSET_SIZE_LIMIT_EXCEEDED")
                             metadata["bbox"] = None if obj.level else normalized_box(page, obj.get_bounds())
+                            metadata["classification"] = image_classification(metadata)
                         except (ExtractionError, pdfium.PdfiumError, ValueError, OSError) as error:
                             path.unlink(missing_ok=True)
                             code = str(error) if isinstance(error, ExtractionError) else "IMAGE_EXTRACTION_FAILED"
@@ -158,6 +177,6 @@ def extract_pdf(source, output, *, limits=None, extract_images=True, include_reg
             "engine": "pypdfium2", "engineVersion": str(pdfium.PYPDFIUM_INFO),
             "status": "PARTIAL" if warnings else "COMPLETED", "pageCount": len(pages),
             "pages": pages, "warnings": warnings, "ocrPerformed": False,
-            "imageClassificationPerformed": False,
+            "imageClassificationPerformed": True, "imageClassificationMethod": "geometry-v1",
             "coordinateSpace": "normalized 0..1, top-left of displayed page; null for nested Form images",
             "durationMs": round((time.perf_counter() - started) * 1000)}

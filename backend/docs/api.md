@@ -79,7 +79,11 @@ UNKNOWN은 자동 재전송하지 않는다. FAILED 중 code=RETRIED는 후속 �
 
 `YESULIN_PDF_EXTRACTION_ENABLED=true`일 때만 아래 mapping을 등록한다. `/api/v1/**` 요청은 Active Producer를 요구하며,
 본인 작업이 아니거나 없는 UUID에는 동일하게 `404 PDF_EXTRACTION_NOT_FOUND`를 반환한다. 쓰기는 CSRF가 필요하다.
-전체 응답은 `Cache-Control: no-store`다. 제목·배역 기반 심사 등록과 선택적 AI 정보 정리는 [PDF 심사 API](pdf-reviews.md)를 따른다.
+전체 응답은 `Cache-Control: no-store`다. 제목·배역 기반 심사 등록과 선택적 AI 정보 정리(v1/v2 프로필)와 `PATCH /api/v1/pdf-reviews/{id}/role-assignments`는
+[PDF 심사 API](pdf-reviews.md)를 따른다.
+`GET /api/v1/pdf-reviews/{reviewId}/progress`는 본인 심사의 DB 작업 상태만 집계한
+`{total,uploading,waiting,completed,partial,failed,complete}`를 반환한다. PDF·S3·모델은 조회하지 않는다.
+`complete`는 처리 종료 여부이며 실패가 없다는 뜻은 아니다. 상세 집계 규칙은 같은 PDF 심사 API 문서를 따른다.
 AI 호출은 Lambda에서 수행하며 OCR은 포함하지 않는다. 완료 결과에는 선택적으로 `applicantInfo`가 포함된다.
 
 | Method | URL | 요청 / 응답 |

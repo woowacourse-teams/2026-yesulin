@@ -3,6 +3,7 @@ package art.yesulin.pdfextraction.application;
 import static art.yesulin.pdfextraction.domain.PdfExtractionErrorCode.INVALID_PDF_EXTRACTION_RESULT;
 
 import art.yesulin.global.exception.BusinessException;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.Set;
 import java.util.UUID;
 import tools.jackson.databind.JsonNode;
@@ -17,9 +18,19 @@ public record PdfApplicantInfo(
         String applicantNameEvidence,
         String roleId,
         String roleEvidence,
-        String reason
+        String reason,
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        PdfApplicantProfile profile
 ) {
 
+    public PdfApplicantInfo(String version, String status, String provider, String model,
+                            String applicantName, String applicantNameEvidence, String roleId,
+                            String roleEvidence, String reason) {
+        this(version, status, provider, model, applicantName, applicantNameEvidence,
+                roleId, roleEvidence, reason, null);
+    }
+
+    public static final String PROFILE_VERSION = "applicant-info-v2";
     public static final String VERSION = "applicant-info-v1";
     public static final String COMPLETED = "COMPLETED";
     public static final String FAILED = "FAILED";
@@ -29,7 +40,7 @@ public record PdfApplicantInfo(
     public static final int MAX_EVIDENCE_LENGTH = 500;
 
     private static final Set<String> FIELDS = Set.of("version", "status", "provider", "model", "applicantName",
-            "applicantNameEvidence", "roleId", "roleEvidence", "reason");
+            "applicantNameEvidence", "roleId", "roleEvidence", "reason", "profile");
     private static final Set<String> STATUSES = Set.of(COMPLETED, FAILED, SKIPPED);
     private static final Set<String> PROVIDERS = Set.of("bedrock", "gemini");
     private static final Set<String> REASONS = Set.of(
@@ -43,7 +54,8 @@ public record PdfApplicantInfo(
         require(node.isObject(), "AI 지원자 정보가 올바르지 않습니다.");
         node.propertyNames().forEach(name -> require(FIELDS.contains(name), "AI 지원자 정보에 알 수 없는 필드가 있습니다."));
         String status = text(node, "status", 20, true);
-        require(VERSION.equals(text(node, "version", 40, true)) && STATUSES.contains(status),
+        String version = text(node, "version", 40, true);
+        require(Set.of(VERSION, PROFILE_VERSION).contains(version) && STATUSES.contains(status),
                 "AI 지원자 정보의 버전 또는 상태가 올바르지 않습니다.");
         String provider = text(node, "provider", 20, false);
         String reason = text(node, "reason", 40, false);
@@ -66,8 +78,11 @@ public record PdfApplicantInfo(
                 "생략한 AI 지원자 정보의 사유가 올바르지 않습니다.");
         require(completed || (name == null && nameEvidence == null && roleId == null && roleEvidence == null),
                 "완료되지 않은 AI 지원자 정보에는 이름·배역·근거를 담을 수 없습니다.");
-        return new PdfApplicantInfo(VERSION, status, orEmpty(provider), orEmpty(model), name, nameEvidence,
-                roleId, roleEvidence, orEmpty(reason));
+        PdfApplicantProfile profile = PdfApplicantProfile.parse(node.path("profile"));
+        require(profile == null || (PROFILE_VERSION.equals(version) && completed),
+                "프로필은 완료된 v2 결과에만 담을 수 있습니다.");
+        return new PdfApplicantInfo(version, status, orEmpty(provider), orEmpty(model), name, nameEvidence,
+                roleId, roleEvidence, orEmpty(reason), profile);
     }
 
     public boolean completed() {
