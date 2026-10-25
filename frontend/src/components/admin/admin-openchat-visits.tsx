@@ -5,13 +5,15 @@ import { AdminApiError, fetchOpenChatVisits } from "@/features/admin/api";
 import { adminAuditionPostRoutes } from "@/features/admin/audition-posts";
 import { koreaToday, moveOpenChatPeriod, openChatPostedRange, type OpenChatPeriod } from "@/features/admin/openchat-period";
 import type { AdminOpenChatVisits as VisitPage } from "@/features/admin/types";
+import { SiteIcon } from "@/components/ui/site-icon";
 import { formatDateTime } from "./admin-format";
+import { AdminOpenChatVisitChart } from "./admin-openchat-visit-chart";
 import { AdminActionButton, AdminEmptyState, AdminFilterButton } from "./admin-shell";
 
 type State =
   | { readonly phase: "loading" }
   | { readonly phase: "failed"; readonly error: string }
-  | { readonly phase: "ready"; readonly result: VisitPage };
+  | { readonly phase: "ready"; readonly result: VisitPage; readonly topPosts: VisitPage["posts"] };
 
 const STATUS_LABELS = { PENDING: "검토 전", PUBLISHED: "공개 중", HIDDEN: "숨김" } as const;
 const PERIODS: readonly { readonly value: OpenChatPeriod; readonly label: string; readonly current: string }[] = [
@@ -27,14 +29,18 @@ export function AdminOpenChatVisits({ onUnauthorized }: { readonly onUnauthorize
   const [retry, setRetry] = useState(0);
   const [period, setPeriod] = useState<OpenChatPeriod>("WEEK");
   const [anchor, setAnchor] = useState(() => koreaToday());
+  const [guideOpen, setGuideOpen] = useState(false);
   const range = openChatPostedRange(period, anchor);
   const startDate = range?.startDate;
   const endDate = range?.endDate;
 
   useEffect(() => {
     let active = true;
-    fetchOpenChatVisits(page, startDate && endDate ? { startDate, endDate } : null)
-      .then((result) => { if (active) setState({ phase: "ready", result }); })
+    const postedRange = startDate && endDate ? { startDate, endDate } : null;
+    const currentPage = fetchOpenChatVisits(page, postedRange);
+    const firstPage = page === 0 ? currentPage : fetchOpenChatVisits(0, postedRange);
+    Promise.all([currentPage, firstPage])
+      .then(([result, first]) => { if (active) setState({ phase: "ready", result, topPosts: first.posts.slice(0, 5) }); })
       .catch((cause: unknown) => {
         if (!active) return;
         if (cause instanceof AdminApiError && (cause.status === 401 || cause.status === 403)) {
@@ -62,12 +68,20 @@ export function AdminOpenChatVisits({ onUnauthorized }: { readonly onUnauthorize
   return (
     <section aria-labelledby="openchat-visits-heading" className="space-y-4">
       <div>
-        <h2 id="openchat-visits-heading" className="text-lg font-bold">오픈채팅방 링크 방문</h2>
-        <p className="mt-1 text-sm leading-6 text-muted-strong">
-          공유용 링크로 공고를 연 브라우저 수예요. 브라우저에 집계 표시가 남아 있으면 같은 공고를 다시 세지 않으며, OTR 원문으로 넘어간 방문도 포함해요.
-          관리자 로그인 상태의 방문과 분석을 끈 브라우저는 제외해요.
-        </p>
-        <p className="mt-1 text-xs leading-5 text-muted">저장값을 지우거나 기기·브라우저를 바꾸면 다시 집계될 수 있어요. 방 참여자의 정확한 인원수와는 다를 수 있어요. 수집을 시작한 뒤의 방문만 표시해요.</p>
+        <div className="flex items-center gap-1">
+          <h2 id="openchat-visits-heading" className="text-lg font-bold">오픈채팅방 링크 방문</h2>
+          <button type="button" aria-label="링크 방문 집계 안내" aria-expanded={guideOpen} aria-controls="openchat-visits-guide" onClick={() => setGuideOpen((open) => !open)} className={`inline-flex size-11 shrink-0 items-center justify-center rounded-control transition-colors hover:bg-brand-soft hover:text-brand ${guideOpen ? "bg-brand-soft text-brand" : "text-muted"}`}>
+            <SiteIcon name="about" size={18} />
+          </button>
+        </div>
+        <div id="openchat-visits-guide" hidden={!guideOpen} className="mt-2 space-y-2 rounded-control border border-border bg-card p-4">
+          <p className="text-sm leading-6 text-muted-strong">
+            공유용 링크로 공고를 연 브라우저 수예요. 브라우저에 집계 표시가 남아 있으면 같은 공고를 다시 세지 않으며, OTR 원문으로 넘어간 방문도 포함해요.
+            관리자 로그인 상태의 방문과 분석을 끈 브라우저는 제외해요.
+          </p>
+          <p className="text-xs leading-5 text-muted">저장값을 지우거나 기기·브라우저를 바꾸면 다시 집계될 수 있어요. 방 참여자의 정확한 인원수와는 다를 수 있어요. 수집을 시작한 뒤의 방문만 표시해요.</p>
+          <p className="text-xs leading-5 text-muted-strong">선택한 기간에 게시된 공고의 누적 링크 방문 수를 비교해요. 기간이 지난 뒤의 방문도 계속 합산돼요. 주간은 월~일이며, 게시일이 없는 공고는 전체에서만 보여요.</p>
+        </div>
       </div>
 
       <div className="space-y-4 rounded-card border border-border bg-card p-4 sm:p-5">
@@ -94,7 +108,6 @@ export function AdminOpenChatVisits({ onUnauthorized }: { readonly onUnauthorize
         ) : null}
         <div>
           <p className="num text-sm font-semibold">게시일 기준 · {range ? range.startDate === range.endDate ? range.startDate : `${range.startDate} ~ ${range.endDate}` : "전체 기간"} <span className="font-normal text-muted">(한국 시간)</span></p>
-          <p className="mt-1 text-xs leading-5 text-muted-strong">이 기간에 게시된 공고의 누적 링크 방문 수 순위예요. 기간이 지난 뒤의 방문도 계속 합산돼요. 주간은 월~일이며, 게시일이 없는 공고는 전체에서만 보여요.</p>
         </div>
       </div>
 
@@ -111,18 +124,20 @@ export function AdminOpenChatVisits({ onUnauthorized }: { readonly onUnauthorize
             <div className="rounded-card border border-border bg-card p-4"><p className="text-sm text-muted-strong">게시 공고</p><p className="num mt-1 text-2xl font-bold">{state.result.totalElements.toLocaleString("ko-KR")}<span className="ml-1 text-sm font-normal">개</span></p></div>
             <div className="rounded-card border border-border bg-card p-4"><p className="text-sm text-muted-strong">누적 링크 방문</p><p className="num mt-1 text-2xl font-bold">{state.result.totalVisits.toLocaleString("ko-KR")}<span className="ml-1 text-sm font-normal">회</span></p></div>
           </div>
+          {state.result.totalElements > 0 ? <AdminOpenChatVisitChart posts={state.topPosts} /> : null}
           {state.result.posts.length === 0 ? <AdminEmptyState title="해당 기간에 게시된 공고가 없어요" description="다른 기간을 선택하거나 전체 공고를 확인해 주세요." /> : null}
-          <div className="grid gap-3">
+          <div className="grid gap-3 min-[540px]:grid-cols-2 xl:grid-cols-3">
             {state.result.posts.map((post, index) => (
-              <article key={post.postId} className="flex flex-col gap-3 rounded-card border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+              <article key={post.postId} className="flex min-w-0 flex-col gap-4 rounded-card border border-border bg-card p-4 sm:p-5">
                 <div className="min-w-0">
-                  <p className="text-xs text-muted"><span className="num font-bold text-foreground">{page * state.result.size + index + 1}위</span> · {STATUS_LABELS[post.status]} · 게시 {formatDateTime(post.postedAt)}</p>
-                  <h3 className="mt-1 break-words font-semibold">
+                  <p className="text-xs text-muted"><span className="num font-bold text-foreground">{page * state.result.size + index + 1}위</span> · {STATUS_LABELS[post.status]}</p>
+                  <h3 className="mt-2 break-words font-semibold leading-6">
                     <a href={adminAuditionPostRoutes.preview(post.postId)} target="_blank" rel="noopener noreferrer" aria-label={`${post.title} · 미리보기 (새 창)`} className="hover:text-brand hover:underline">{post.title}</a>
                   </h3>
+                  <p className="mt-2 text-xs text-muted">게시 {formatDateTime(post.postedAt)}</p>
                 </div>
-                <p className="shrink-0 text-sm text-muted-strong">
-                  누적 링크 방문 <span className="num ml-1 text-2xl font-bold text-foreground">{post.visitCount.toLocaleString("ko-KR")}</span>회
+                <p className="mt-auto flex items-baseline justify-between gap-2 border-t border-border-soft pt-3 text-sm text-muted-strong">
+                  <span>누적 링크 방문</span><span><span className="num text-2xl font-bold text-foreground">{post.visitCount.toLocaleString("ko-KR")}</span>회</span>
                 </p>
               </article>
             ))}
