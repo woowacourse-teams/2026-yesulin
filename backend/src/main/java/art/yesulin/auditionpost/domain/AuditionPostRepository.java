@@ -47,6 +47,24 @@ public interface AuditionPostRepository extends JpaRepository<AuditionPost, Long
             Pageable pageable
     );
 
+    /** 모집 중 날짜 공고, 날짜 없는 공고, 마감 공고 순으로 정렬한 뒤 페이지를 나눈다. */
+    @Query(
+            value = "select p from AuditionPost p where p.status = :status and " + CATEGORY_CONDITION
+                    + " and (:includeClosed = true or p.content.deadline is null or p.content.deadline >= :today)"
+                    + " order by case when p.content.deadline >= :today then 0"
+                    + " when p.content.deadline is null then 1 else 2 end,"
+                    + " case when p.content.deadline >= :today then p.content.deadline else null end asc,"
+                    + " case when p.content.deadline < :today then p.content.deadline else null end desc,"
+                    + " p.content.sourcePostedAt desc, p.id desc"
+    )
+    List<AuditionPost> findPublishedByDeadline(
+            @Param("status") AuditionPostStatus status,
+            @Param("today") LocalDate today,
+            @Param("includeClosed") boolean includeClosed,
+            @Param("category") String category,
+            Pageable pageable
+    );
+
     default AuditionPostCounts countPublishedPosts(AuditionPostStatus status, LocalDate today, String category) {
         PublishedPostCounts counts = countPublishedPostValues(status.name(), today, category);
         return new AuditionPostCounts(counts.getAllCount().longValue(), counts.getOpenCount().longValue());

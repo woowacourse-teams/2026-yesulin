@@ -50,22 +50,34 @@ public class AuditionPostService {
     private final AlertChatMemberService alertChatMemberService;
     private final Clock clock;
 
-    /** 분야가 있으면 해당 분야만 센다. 기본은 모집 중이며 마감 포함 여부와 관계없이 원문 작성 최신순이다. */
+    /** 정렬을 생략한 기존 호출은 원문 작성 최신순을 유지한다. */
     @Transactional(readOnly = true)
     public PublicAuditionPostPageResult findPublishedPage(int page, int size, boolean includeClosed, String category) {
+        return findPublishedPage(page, size, includeClosed, category, "latest");
+    }
+
+    /** 분야·모집 상태·정렬을 적용한 전체 공고를 페이지로 나눈다. */
+    @Transactional(readOnly = true)
+    public PublicAuditionPostPageResult findPublishedPage(
+            int page, int size, boolean includeClosed, String category, String sort
+    ) {
         if (page < 0 || size < 1 || size > MAX_PAGE_SIZE) {
             throw new IllegalArgumentException("page는 0 이상, size는 1~%d여야 합니다.".formatted(MAX_PAGE_SIZE));
         }
         if (category != null && !AuditionCategory.supports(category)) {
             throw new IllegalArgumentException("지원하지 않는 공고 분류입니다.");
         }
+        AuditionPostSort selectedSort = AuditionPostSort.from(sort);
         String selectedCategory = category == null ? null : category.trim();
         LocalDate today = today();
         AuditionPostCounts counts = countQuery.find(today, selectedCategory);
         PageRequest pageable = PageRequest.of(page, size);
-        List<AuditionPost> result = repository.findPublished(
-                PUBLISHED, today, includeClosed, selectedCategory, pageable
-        );
+        List<AuditionPost> result = switch (selectedSort) {
+            case LATEST -> repository.findPublished(PUBLISHED, today, includeClosed, selectedCategory, pageable);
+            case DEADLINE -> repository.findPublishedByDeadline(
+                    PUBLISHED, today, includeClosed, selectedCategory, pageable
+            );
+        };
         Map<Long, String> ownerNames = owners.namesOf(result);
         AlertChatMembers alertChatMembers = alertChatMemberService.members();
         List<PublicAuditionPostSummaryResult> posts = result.stream()

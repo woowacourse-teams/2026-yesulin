@@ -279,6 +279,30 @@ class AuditionPostImportServiceTest {
     }
 
     @Test
+    void listsDeadlineOrderAcrossPagesAndKeepsDefaultLatestOrder() {
+        source.post("연극", "2099-01-01", "<p>가까운 마감</p>", List.of(), List.of());
+        long soon = importAndPublish("1").post().id();
+        source.post("연극", "2099-12-31", "<p>먼 마감</p>", List.of(), List.of());
+        long later = importAndPublish("2").post().id();
+        source.post("연극", "상시", "<p>상시</p>", List.of(), List.of());
+        long undated = importAndPublish("3").post().id();
+
+        assertEquals(soon, auditionPostService.findPublishedPage(0, 1, false, null, "deadline")
+                .posts().getFirst().id());
+        assertEquals(later, auditionPostService.findPublishedPage(1, 1, false, null, "deadline")
+                .posts().getFirst().id());
+        assertEquals(undated, auditionPostService.findPublishedPage(2, 1, false, null, "deadline")
+                .posts().getFirst().id());
+        assertEquals(undated, auditionPostService.findPublishedPage(0, 1, false, null).posts().getFirst().id());
+    }
+
+    @Test
+    void rejectsUnsupportedPublicSort() {
+        assertThrows(IllegalArgumentException.class,
+                () -> auditionPostService.findPublishedPage(0, 12, false, null, "popular"));
+    }
+
+    @Test
     void autoImportCreatesPendingPostWithoutAuditLog() {
         Optional<Long> postId = importService.importIfAbsent("OTR", OTR_ID);
 

@@ -53,6 +53,22 @@ describe("메인과 오디션 전용 목록", () => {
     expect(html).not.toContain("3개 미리보기");
   });
 
+  it("마감순 정렬이 선택된 목록의 모든 탐색 링크가 정렬 조건을 유지한다", () => {
+    const html = renderToStaticMarkup(<AuditionPostList query={{ category: "연극", page: 1, includeClosed: true, sort: "deadline" }} initialPage={{ ...data, page: 1 }} />);
+    expect(html).toContain('href="/auditions/theater?closed=1&amp;page=3&amp;sort=deadline"');
+    expect(html).toContain('href="/auditions/musical?closed=1&amp;sort=deadline"');
+    expect(html).toContain('href="/auditions/theater?sort=deadline"');
+    expect(html).toContain('aria-label="공고 정렬"');
+    expect(html).toMatch(/<a\b(?=[^>]*href="\/auditions\/theater\?closed=1&amp;sort=deadline")(?=[^>]*aria-current="true")[^>]*>마감 임박순<\/a>/);
+  });
+
+  it("홈의 마감순 선택은 홈 정렬 주소와 전체 목록 정렬 주소에 연결된다", () => {
+    const html = renderToStaticMarkup(<AuditionPostHome initialPage={data} initialShows={[]} sort="deadline" />);
+    expect(html).toContain('href="/?sort=deadline#auditions"');
+    expect(html).toContain('href="/auditions?sort=deadline"');
+    expect(html).not.toContain("모집 조건과 마감일을 확인해보세요.");
+  });
+
   it("서버 조회가 없는 상태를 빈 데이터로 단정하지 않는다", () => {
     const html = renderToStaticMarkup(<AuditionPostHome initialPage={null} initialShows={null} />);
     expect(html).toContain("공고 목록 불러오는 중");

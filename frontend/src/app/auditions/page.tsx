@@ -6,7 +6,7 @@ import { parseAuditionPostQuery } from "@/features/audition-posts/types";
 import { auditionListMetadata } from "@/features/seo/audition-metadata";
 
 type Props = {
-  readonly searchParams: Promise<{ page?: string | string[]; closed?: string | string[] }>;
+  readonly searchParams: Promise<{ page?: string | string[]; closed?: string | string[]; sort?: string | string[] }>;
 };
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
@@ -16,5 +16,5 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 export default async function AuditionsPage({ searchParams }: Props) {
   const query = parseAuditionPostQuery(await searchParams);
   const initialPage = await publishedAuditionPostPageForServer(query);
-  return <MswProvider><AuditionPostList key={`${query.page}-${query.includeClosed}`} query={query} initialPage={initialPage} /></MswProvider>;
+  return <MswProvider><AuditionPostList key={`${query.page}-${query.includeClosed}-${query.sort ?? "latest"}`} query={query} initialPage={initialPage} /></MswProvider>;
 }

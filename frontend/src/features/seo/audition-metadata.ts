@@ -35,7 +35,7 @@ export function socialMetadata({ title, description, url, type = "website", imag
 
 export function auditionListMetadata(query: AuditionPostQuery): Metadata {
   const subject = query.category ? `${query.category} 오디션 공고` : AUDITION_LIST_TITLE;
-  const suffix = [query.includeClosed ? "마감 포함" : "", query.page > 0 ? `${query.page + 1}페이지` : ""]
+  const suffix = [query.includeClosed ? "마감 포함" : "", query.sort === "deadline" ? "마감 임박순" : "", query.page > 0 ? `${query.page + 1}페이지` : ""]
     .filter(Boolean).join(" · ");
   const title = suffix ? `${subject} · ${suffix}` : subject;
   const description = query.category
