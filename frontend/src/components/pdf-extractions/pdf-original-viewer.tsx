@@ -33,7 +33,13 @@ export function PdfOriginalViewer({ url, filename }: { readonly url: string; rea
     void import("pdfjs-dist").then(async pdfjs => {
       if (!active) return;
       pdfjs.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).toString();
-      loading = pdfjs.getDocument({ url, withCredentials: false, enableXfa: false, maxImageSize: 20_000_000 });
+      const assets = `/pdfjs/${pdfjs.version}/`;
+      loading = pdfjs.getDocument({ url, withCredentials: false, enableXfa: false,
+        cMapUrl: `${assets}cmaps/`, cMapPacked: true, standardFontDataUrl: `${assets}standard_fonts/`,
+        wasmUrl: `${assets}wasm/`, iccUrl: `${assets}iccs/`,
+        // Downsize decoded images when needed instead of omitting them from the original.
+        maxImageSize: -1, canvasMaxAreaInBytes: 32 * 1024 * 1024,
+      });
       const opened = await loading.promise;
       if (!active) return;
       document.current = opened;
@@ -81,6 +87,7 @@ export function PdfOriginalViewer({ url, filename }: { readonly url: string; rea
       <button type="button" disabled={zoom <= 0.75} onClick={() => setZoom(value => Math.max(0.75, value - 0.25))} aria-label="원본 PDF 축소" className="min-h-11 min-w-11 rounded-control border border-border">−</button>
       <span className="num" aria-label="PDF 확대 비율">{Math.round(zoom * 100)}%</span>
       <button type="button" disabled={zoom >= 2} onClick={() => setZoom(value => Math.min(2, value + 0.25))} aria-label="원본 PDF 확대" className="min-h-11 min-w-11 rounded-control border border-border">+</button>
+      <a href={url} target="_blank" rel="noopener noreferrer" className="ml-auto inline-flex min-h-11 items-center rounded-control border border-border px-3">원본 파일 새 창에서 열기<span className="sr-only"> (새 창)</span></a>
     </div>
     {error ? <p role="alert" className="mb-3 rounded-control bg-fail-bg p-3 text-sm text-fail">{error}</p> : null}
     <div ref={container} className="h-[calc(94dvh-128px)] min-h-48 overflow-auto rounded-control border border-border bg-slate-200 p-3">

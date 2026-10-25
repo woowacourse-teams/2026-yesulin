@@ -66,7 +66,9 @@ function FocusReviewContent({
   readonly onBack?: () => void;
   readonly onMove: (candidate: Applicant | undefined) => void;
 }) {
-  const { assignRoles, confirmNavigation, requestNavigation, source, renderDocument, renderProfile, onNoteDirty, filters, saving, reviewLocked, reviewFocused, patchReview, openApplicant } = useBoard();
+  const { assignRoles, confirmNavigation, requestNavigation, source, renderDocument, renderProfile, onNoteDirty, onApplicantViewed, onApplicantOpened, applicantRefreshKey, filters, saving, reviewLocked, reviewFocused, patchReview, openApplicant } = useBoard();
+  useEffect(() => onApplicantViewed?.(applicant.id), [applicant.id, onApplicantViewed, applicantRefreshKey]);
+  useEffect(() => onApplicantOpened?.(), [applicant.id, onApplicantOpened]);
   const [documentOpen, setDocumentOpen] = useState(false);
   const pdfProfile = source.kind === "PDF";
   const [otherOpen, setOtherOpen] = useState(false);
@@ -460,7 +462,8 @@ function usePdfPhotoSize(
     if (!enabled || !photo || !actions) return;
     const update = () => {
       const top = photo.getBoundingClientRect().top + window.scrollY;
-      const available = window.innerHeight - top - actions.offsetHeight - 24;
+      const toastOffset = Number.parseFloat(getComputedStyle(photo).getPropertyValue("--pdf-processing-toast-offset")) || 0;
+      const available = window.innerHeight - top - actions.offsetHeight - 24 - toastOffset;
       const gallery = photo.parentElement;
       const thumbnails = photo.previousElementSibling;
       const railWidth = thumbnails ? thumbnails.getBoundingClientRect().width + 12 : 0;
@@ -468,7 +471,8 @@ function usePdfPhotoSize(
       const image = photo.querySelector("img");
       const ratio = image?.naturalWidth && image.naturalHeight ? image.naturalWidth / image.naturalHeight : 3 / 4;
       const controlsHeight = (photo.querySelector<HTMLElement>("[data-photo-controls]")?.offsetHeight ?? 0) + 2;
-      const imageHeight = Math.max(1, Math.min(Math.max(160, available) - controlsHeight, (availableWidth - 2) / ratio));
+      const minimumHeight = toastOffset ? 96 : 160;
+      const imageHeight = Math.max(1, Math.min(Math.max(minimumHeight, available) - controlsHeight, (availableWidth - 2) / ratio));
       const next = { height: imageHeight + controlsHeight, width: imageHeight * ratio + 2 };
       setSize(current => current?.height === next.height && current.width === next.width ? current : next);
     };

@@ -113,7 +113,7 @@ export function ReviewEntryDetail({ review, entry, refreshKey, onSaved, onUnauth
     </header>
     {changingRole ? <label className="mb-3 flex flex-wrap items-center gap-3 rounded-control bg-surface p-3 text-sm">지원 배역
       <select aria-label="변경할 배역" value={entry.roleId ?? ""} disabled={saving} className="min-h-11 rounded-control border border-border bg-card px-3" onChange={event => void assignRole(event.target.value)}>
-        <option value="">배역 미일치</option>{review.roles.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
+        <option value="">미기재</option>{review.roles.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
       </select></label> : null}
     {error ? <div role="alert" className="mb-3 rounded-control bg-fail-bg p-3 text-sm text-fail">{error} <button type="button" className="underline" onClick={() => setRetry(value => value + 1)}>다시 확인</button></div> : null}
     <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)]">

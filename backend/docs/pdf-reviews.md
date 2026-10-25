@@ -26,6 +26,7 @@ PDF 추출 결과를 바탕으로 기획사가 지원서 PDF를 한곳에서 확
 | POST | `/api/v1/pdf-reviews` | `{title,roles:["배역명"]}` → 201 ReviewDetail |
 | GET | `/api/v1/pdf-reviews` | `{reviews:[{id,title,createdAt,roleCount,entryCount}]}` 최신순 |
 | GET | `/api/v1/pdf-reviews/{id}` | ReviewDetail |
+| GET | `/api/v1/pdf-reviews/{id}/progress` | `{total,uploading,waiting,completed,partial,failed,complete}` |
 | POST | `/api/v1/pdf-reviews/{id}/uploads` | `{originalFilename,size}` → 201 PreparedUpload |
 | PATCH | `/api/v1/pdf-reviews/{id}/entries/{entryId}` | `{memo,decision}` → 200 EntryView |
 | PATCH | `/api/v1/pdf-reviews/{id}/role-assignments` | `{entryIds:[UUID],roleId:UUID 또는 null}` → 200 EntryView[] |
@@ -40,6 +41,27 @@ PDF 추출 결과를 바탕으로 기획사가 지원서 PDF를 한곳에서 확
 - PATCH는 `memo`(필수, 빈 문자열 가능, 2000자 이하)와 `decision`(필수)을 모두 받는다. 항목 행을 잠근 뒤 바꾸므로
   같은 항목에 대한 자동 반영과 겹쳐도 서로의 값을 덮어쓰지 않는다.
 - 오류: 형식·길이·중복 배역 `400 INVALID_REQUEST` 또는 `400 INVALID_PDF_REVIEW`, 없는 심사·항목 `404`.
+
+### 처리 진행률
+
+본인의 Active Producer 세션으로만 조회한다. 다른 공연사·없는 심사는 모두 `404 PDF_REVIEW_NOT_FOUND`다.
+응답은 `Cache-Control: no-store`이며 DB에서 해당 심사의 작업 메타데이터만 집계한다.
+파일 URL·지원자 정보·본문·결과 JSON을 반환하지 않고, S3·Lambda·모델을 호출하지 않는다.
+
+```json
+{"total":300,"uploading":10,"waiting":100,"completed":180,"partial":5,"failed":5,"complete":false}
+```
+
+- `total`: 업로드 URL을 발급하며 서버에 접수한 PDF 작업 수. 아직 브라우저에서 대기하는 미접수 파일은 포함하지 않는다.
+- `uploading`: 업로드 확인 전 작업. URL 만료 후 60초 유예가 지나면 실패로 집계한다.
+- `waiting`: 업로드 확인 후 결과 콜백을 기다리는 작업. Lambda의 대기·PDF 추출·AI 정리를 구분하지 않으며, 오래 걸려도 임의로 실패 처리하지 않는다.
+- `completed`, `partial`, `failed`: 각각 PDF 추출의 완료·일부 완료·실패 상태다. `failed`는 업로드 만료도 포함한다.
+  AI 정리 실패나 누락 필드는 PDF 처리 성공과 별개이며 개별 결과에서 확인한다.
+- `total = uploading + waiting + completed + partial + failed`이고, `complete`는 `uploading == 0 && waiting == 0`이다.
+  빈 심사는 `total:0, complete:true`다. 실패가 남아도 처리가 끝났으면 `complete:true`이며 합불 심사 완료와 무관하다.
+
+콜백의 작업 상태·지원자 자동 반영은 같은 트랜잭션에서 커밋되므로, 종료 집계를 읽은 뒤 심사 목록을 읽으면 반영된 정보를 조회할 수 있다.
+클라이언트는 브라우저 업로드 대기열까지 끝나야 전체 처리 완료로 표시하고 폴링을 멈춘다.
 
 ## 자동 반영
 
@@ -130,7 +152,8 @@ v2는 기존 이름·배역·근거 필드에 `profile`을 추가한다. 프로�
 ```
 
 - 사실 value와 경력 각 값은 300자, 근거는 1000자 이하이고 값은 근거의 부분 문자열이어야 한다.
-  근거는 NFC·공백 정규화 후 연속된 원문 구절이어야 한다. 경력 최대 50개이며 작품명은 필수다.
+  근거는 NFC·공백 정규화 후 연속된 원문 구절이어야 한다. 새 워커의 경력 전사는 원문 순서 최대 5개이며 작품명은 필수다.
+  백엔드는 기존 v2 저장 결과와의 호환을 위해 과거 상한인 50개까지 수신할 수 있다.
   null 사실의 근거도 null이다. 제공하지 않은 학교·전공·날짜를 추정하지 않는다.
 - birthDate·age·height·education은 원문 문자열이다. 워커는 원문의 날짜/단위를 수정하지 않는다.
   화면에서 완전한 생년월일만 만나이로 계산하고, 직접 기재된 나이는 '지원서 기재'로 구분한다.

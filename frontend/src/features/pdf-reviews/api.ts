@@ -1,7 +1,7 @@
 import { withCsrfHeaders } from "../csrf";
 import { readErrorDetail, readErrorMessage } from "../api-error";
 import type { PreparedPdfUpload } from "../pdf-extractions/types";
-import type { ReviewDecision, ReviewDetail, ReviewEntry, ReviewKey, ReviewSummary } from "./types";
+import type { ReviewDecision, ReviewDetail, ReviewEntry, ReviewKey, ReviewProgress, ReviewSummary } from "./types";
 
 const BASE = "/api/v1/pdf-reviews";
 
@@ -42,6 +42,10 @@ export async function listPdfReviews(signal?: AbortSignal) {
 
 export function fetchPdfReview(id: ReviewKey, signal?: AbortSignal) {
   return request<ReviewDetail>(reviewPath(id), "GET", undefined, signal);
+}
+
+export function fetchPdfReviewProgress(id: ReviewKey, signal?: AbortSignal) {
+  return request<ReviewProgress>(`${reviewPath(id)}/progress`, "GET", undefined, signal);
 }
 
 export function preparePdfReviewUpload(reviewId: ReviewKey, file: File) {

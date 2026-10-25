@@ -33,8 +33,19 @@ export type ReviewDetail = {
   readonly entries: readonly ReviewEntry[];
 };
 
+export type ReviewProgress = {
+  readonly total: number;
+  readonly uploading: number;
+  readonly waiting: number;
+  readonly completed: number;
+  readonly partial: number;
+  readonly failed: number;
+  /** 실패·일부 완료도 처리 종료에 포함한다. 브라우저의 아직 미접수 파일은 포함하지 않는다. */
+  readonly complete: boolean;
+};
+
 export const matchStatusLabels: Record<MatchStatus, string> = {
-  WAITING: "내용 정리 중", MATCHED: "지원 배역 확인됨", NEEDS_CHECK: "배역 미일치",
+  WAITING: "내용 정리 중", MATCHED: "지원 배역 확인됨", NEEDS_CHECK: "미기재",
 };
 
 export const decisionLabels: Record<ReviewDecision, string> = {
@@ -48,7 +59,7 @@ export type EntryFilter = "ALL" | "WAITING" | "NEEDS_CHECK" | { readonly roleId:
 export const sameKey = (a: ReviewKey | null | undefined, b: ReviewKey | null | undefined) =>
   a != null && b != null && String(a) === String(b);
 
-/** 자동으로 명확히 매칭된 항목만 배역에 속하고, 나머지는 '배역 미일치'로 남긴다. */
+/** 자동으로 명확히 매칭된 항목만 배역에 속하고, 나머지는 '미기재'로 남긴다. */
 export function matchesFilter(entry: ReviewEntry, filter: EntryFilter) {
   if (filter === "ALL") return true;
   if (filter === "WAITING" || filter === "NEEDS_CHECK") return entry.matchStatus === filter;

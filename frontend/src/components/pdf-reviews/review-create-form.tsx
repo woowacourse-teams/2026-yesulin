@@ -7,9 +7,9 @@ import { parseRoleLines, type ReviewDetail } from "@/features/pdf-reviews/types"
 
 import styles from "./screening.module.css";
 
-type Props = { readonly onCreated: (review: ReviewDetail) => void; readonly onUnauthorized: () => void };
+type Props = { readonly onCreated: (review: ReviewDetail) => void; readonly onUnauthorized: () => void; readonly onBusyChange?: (busy: boolean) => void };
 
-export function ReviewCreateForm({ onCreated, onUnauthorized }: Props) {
+export function ReviewCreateForm({ onCreated, onUnauthorized, onBusyChange }: Props) {
   const id = useId();
   const [title, setTitle] = useState("");
   const [rolesText, setRolesText] = useState("");
@@ -36,6 +36,7 @@ export function ReviewCreateForm({ onCreated, onUnauthorized }: Props) {
     setErrors(checked.errors); setServerError("");
     if (checked.errors.title || checked.errors.roles) return;
     setBusy(true);
+    onBusyChange?.(true);
     try {
       const created = await createPdfReview(title.trim(), checked.roles);
       setTitle(""); setRolesText(""); setErrors({});
@@ -43,17 +44,17 @@ export function ReviewCreateForm({ onCreated, onUnauthorized }: Props) {
     } catch (cause) {
       if (isUnauthorized(cause)) onUnauthorized();
       setServerError(cause instanceof Error ? cause.message : "심사를 만들지 못했습니다.");
-    } finally { setBusy(false); }
+    } finally { setBusy(false); onBusyChange?.(false); }
   }
 
   return <form onSubmit={event => void submit(event)} noValidate aria-label="새 심사함 만들기" className={styles.create}>
     <label htmlFor={`${id}-title`} className="block px-1 text-sm font-semibold">심사함 이름</label>
-    <FieldInput id={`${id}-title`} value={title} placeholder="예: 드림스쿨 배우 오디션" autoComplete="off"
+    <FieldInput id={`${id}-title`} value={title} placeholder="예: 드림스쿨 배우 오디션" autoComplete="off" data-autofocus="true" disabled={busy}
       aria-invalid={!!errors.title} aria-describedby={errors.title ? `${id}-title-error` : undefined}
       onChange={event => setTitle(event.target.value)} onBlur={() => setErrors(current => ({ ...current, title: validate().errors.title }))} className="mt-2" />
     {errors.title ? <p id={`${id}-title-error`} className="mt-2 px-1 text-sm text-fail">{errors.title}</p> : null}
     <label htmlFor={`${id}-roles`} className="mt-4 block px-1 text-sm font-semibold">모집 배역</label>
-    <FieldInput id={`${id}-roles`} value={rolesText} placeholder="예: 예린, 허징, 진방글, 앙상블" autoComplete="off"
+    <FieldInput id={`${id}-roles`} value={rolesText} placeholder="예: 예린, 허징, 진방글, 앙상블" autoComplete="off" disabled={busy}
       aria-invalid={!!errors.roles} aria-describedby={errors.roles ? `${id}-roles-error` : undefined}
       onChange={event => setRolesText(event.target.value)} onBlur={() => setErrors(current => ({ ...current, roles: validate().errors.roles }))} className="mt-2 resize-y" />
     {errors.roles ? <p id={`${id}-roles-error`} className="mt-2 px-1 text-sm text-fail">{errors.roles}</p> : null}

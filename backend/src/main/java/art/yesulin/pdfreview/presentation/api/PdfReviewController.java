@@ -8,6 +8,8 @@ import art.yesulin.auth.domain.member.MemberType;
 import art.yesulin.pdfextraction.application.PdfExtractionService.PreparedUpload;
 import art.yesulin.pdfreview.application.PdfReviewDetail;
 import art.yesulin.pdfreview.application.PdfReviewEntryView;
+import art.yesulin.pdfreview.application.PdfReviewProgress;
+import art.yesulin.pdfreview.application.PdfReviewProgressService;
 import art.yesulin.pdfreview.application.PdfReviewService;
 import art.yesulin.pdfreview.application.PdfReviewSummary;
 import jakarta.validation.Valid;
@@ -34,6 +36,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class PdfReviewController {
 
     private final PdfReviewService service;
+    private final PdfReviewProgressService progress;
 
     @PostMapping
     public ResponseEntity<PdfReviewDetail> create(
@@ -59,6 +62,15 @@ public class PdfReviewController {
     ) {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())
                 .body(service.find(principal.memberId(), reviewId.toString()));
+    }
+
+    @GetMapping("/{reviewId}/progress")
+    public ResponseEntity<PdfReviewProgress> progress(
+            @LoginMember(roles = MemberType.PRODUCER, statuses = MemberStatus.ACTIVE) MemberPrincipal principal,
+            @PathVariable UUID reviewId
+    ) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore())
+                .body(progress.find(principal.memberId(), reviewId.toString()));
     }
 
     @PostMapping("/{reviewId}/uploads")

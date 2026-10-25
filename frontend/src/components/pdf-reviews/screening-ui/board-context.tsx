@@ -11,6 +11,9 @@ export type BoardContextValue = {
   renderProfile?: (applicant: Applicant) => ReactNode;
   confirmNavigation?: () => boolean; requestNavigation?: (action: () => void) => void;
   onNoteDirty?: (dirty: boolean) => void;
+  onApplicantViewed?: (id: SubmissionId) => (() => void) | void;
+  onApplicantOpened?: () => void;
+  applicantRefreshKey?: string;
   reviewFocused: (id: SubmissionId, status: ReviewStatus, memo?: string, note?: string, revision?: number) => Promise<{ applicants: Applicant[] } | null>;
   patchReview: (id: SubmissionId, patch: { memo?: string; note?: string; revision?: number }) => Promise<void>;
 };
