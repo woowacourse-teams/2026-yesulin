@@ -10,7 +10,7 @@ import { HOME_DESCRIPTION, HOME_TITLE, socialMetadata } from "@/features/seo/aud
 import { homeStructuredData } from "@/features/seo/structured-data";
 import { publicShowsForServer } from "@/features/shows/server";
 
-type SearchParams = Promise<{ readonly page?: string | string[]; readonly closed?: string | string[] }>;
+type SearchParams = Promise<{ readonly page?: string | string[]; readonly closed?: string | string[]; readonly sort?: string | string[] }>;
 
 export const metadata: Metadata = {
   alternates: { canonical: "/", types: { "application/rss+xml": "/rss.xml" } },
@@ -32,9 +32,11 @@ export default async function HomePage({ searchParams }: { readonly searchParams
       <JsonLd id="home-structured-data" data={homeStructuredData} />
       <MswProvider>
         <AuditionPostHome
+          key={query.sort ?? "latest"}
           initialPage={initialPage}
           initialShows={initialShows}
           initialEventBanners={initialEventBanners}
+          sort={query.sort}
         />
       </MswProvider>
     </>
