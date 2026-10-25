@@ -76,3 +76,10 @@ API·근거 규칙은 [백엔드 계약](../../backend/docs/pdf-reviews.md)이 �
 AI 설정 여부는 Lambda 환경에 따른다. AI가 없으면 기존 레이블 기반 동작을 유지하고,
 AI가 있으면 원문과 등록된 배역으로 지원 정보를 정리한다. 실제 처리 여부는 개별 PDF 결과에서 확인한다.
 이 한계는 `/dev/pdf-reviews` 안내에만 적고, 공연사 화면에는 구현 용어를 노출하지 않는다.
+
+## 기존 심사 UI 연결
+
+- `components/pdf-reviews/screening-ui/`는 기존 PDF 심사의 세로 썸네일·원본 비율 사진·원형 판정 버튼·사진 카드·표·확대 화면을 가져온 표시 계층이다.
+- `screening-adapter.ts`가 현재 Lambda 추출 결과를 화면 모델로 변환하고, `screening-board.tsx`가 현재 `/api/v1/pdf-reviews`와 `/api/v1/pdf-extractions`에 연결한다. 이전 pdf-inboxes API나 파이썬 추출 워커는 호출하지 않는다.
+- 사진·프로필 조회는 최대 4개씩 진행한다. 합격·불합격 저장 시 작성 중 메모도 함께 저장하고, 기존 HOLD 기록은 표시하되 새로운 보류 버튼은 제공하지 않는다. 메모 제한은 현재 API의 2,000자를 따른다.
+- 키·나이는 현재 추출 원문 및 기존 나이 표시 함수를 사용하며 UI 이식 과정에서 추출 규칙을 변경하지 않는다.

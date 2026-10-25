@@ -5,6 +5,8 @@ import { FieldInput, PrimaryButton } from "@/components/ui/controls";
 import { createPdfReview, isUnauthorized } from "@/features/pdf-reviews/api";
 import { parseRoleLines, type ReviewDetail } from "@/features/pdf-reviews/types";
 
+import styles from "./screening.module.css";
+
 type Props = { readonly onCreated: (review: ReviewDetail) => void; readonly onUnauthorized: () => void };
 
 export function ReviewCreateForm({ onCreated, onUnauthorized }: Props) {
@@ -44,19 +46,18 @@ export function ReviewCreateForm({ onCreated, onUnauthorized }: Props) {
     } finally { setBusy(false); }
   }
 
-  return <form onSubmit={event => void submit(event)} noValidate aria-label="새 심사함 만들기" className="rounded-card border border-border bg-card p-4">
-    <h2 className="mb-3 px-1 text-sm font-bold">새 심사함 만들기</h2>
-    <label htmlFor={`${id}-title`} className="block px-1 text-sm font-semibold">심사 제목</label>
-    <FieldInput id={`${id}-title`} value={title} placeholder="예: 뮤지컬 ○○ 1차 서류 심사" autoComplete="off"
+  return <form onSubmit={event => void submit(event)} noValidate aria-label="새 심사함 만들기" className={styles.create}>
+    <label htmlFor={`${id}-title`} className="block px-1 text-sm font-semibold">심사함 이름</label>
+    <FieldInput id={`${id}-title`} value={title} placeholder="예: 드림스쿨 배우 오디션" autoComplete="off"
       aria-invalid={!!errors.title} aria-describedby={errors.title ? `${id}-title-error` : undefined}
       onChange={event => setTitle(event.target.value)} onBlur={() => setErrors(current => ({ ...current, title: validate().errors.title }))} className="mt-2" />
     {errors.title ? <p id={`${id}-title-error`} className="mt-2 px-1 text-sm text-fail">{errors.title}</p> : null}
-    <label htmlFor={`${id}-roles`} className="mt-4 block px-1 text-sm font-semibold">배역</label>
-    <FieldInput id={`${id}-roles`} value={rolesText} placeholder="예: 엘리자벳, 프란츠 요제프, 앙상블" autoComplete="off"
+    <label htmlFor={`${id}-roles`} className="mt-4 block px-1 text-sm font-semibold">모집 배역</label>
+    <FieldInput id={`${id}-roles`} value={rolesText} placeholder="예: 예린, 허징, 진방글, 앙상블" autoComplete="off"
       aria-invalid={!!errors.roles} aria-describedby={errors.roles ? `${id}-roles-error` : undefined}
       onChange={event => setRolesText(event.target.value)} onBlur={() => setErrors(current => ({ ...current, roles: validate().errors.roles }))} className="mt-2 resize-y" />
     {errors.roles ? <p id={`${id}-roles-error`} className="mt-2 px-1 text-sm text-fail">{errors.roles}</p> : null}
     {serverError ? <p role="alert" className="mt-3 break-words rounded-control bg-fail-bg p-3 text-sm text-fail">{serverError}</p> : null}
-    <PrimaryButton type="submit" disabled={busy} className="mt-4 min-h-12 w-full">{busy ? "만드는 중…" : "심사함 만들기"}</PrimaryButton>
+    <PrimaryButton type="submit" disabled={busy} className={`${styles.primary} ${styles.createSubmit}`}>{busy ? "만드는 중…" : <>심사함 만들기<span aria-hidden="true">→</span></>}</PrimaryButton>
   </form>;
 }
