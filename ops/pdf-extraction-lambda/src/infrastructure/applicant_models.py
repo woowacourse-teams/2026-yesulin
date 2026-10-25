@@ -18,7 +18,7 @@ class GeminiModel:
         self.opener = urllib.request.build_opener(NoRedirect())
 
     def __call__(self, system, prompt, schema):
-        # Gemini rejects the expanded nullable career schema with maxItems=50.
+        # Keep provider-specific schema changes out of the canonical five-career bound.
         # Keep the canonical schema intact; application validation enforces the bound.
         wire_schema = copy.deepcopy(schema)
         profile = wire_schema.get("properties", {}).get("profile", {})

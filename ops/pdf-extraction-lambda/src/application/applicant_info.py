@@ -26,7 +26,7 @@ birthDate는 명시된 생년월일/출생연월/출생연도 원문만, age는 
 height는 키 칸에 명시된 값과 단위를 그대로 기록한다. education은 본인의 학교·전공·재학/졸업 상태 중
 명확하게 연결된 원문 구절만 기록한다. 항목 제목이나 '학교명/전공' 같은 빈 양식은 정보가 아니다.
 각 value는 해당 evidence 안에 그대로 있는 문자열이어야 한다. 날짜·단위·띄어쓰기를 임의로 정규화하지 않는다.
-careers는 본인이 실제 출연/참여한 경력만 최대 50개, 날짜가 명확하면 최근 경력부터 기록한다.
+careers는 본인이 실제 출연/참여한 경력만 원문에 적힌 순서대로 최대 5개 기록한다.
 관람 작품, 좋아하는 작품, 향후 계획, 예시, 작성 안내문은 경력이 아니다. 경력 없음도 작품으로 만들지 않는다.
 표는 행·열의 관계가 확실한 값만 연결한다. title=작품명, venue=공연장, part=맡은 배역,
 genre=장르, period=명시된 출연 기간, company=제작사이다. 각 값은 evidence에 그대로 포함되어야 한다.
@@ -73,8 +73,8 @@ def validate_output(value, text, roles):
     for key, evidence_key in (("applicantName", "applicantNameEvidence"), ("roleId", "roleEvidence")):
         item, evidence = value[key], value[evidence_key]
         if item is None:
-            if evidence is not None:
-                raise ModelFailure("INVALID_MODEL_OUTPUT")
+            # Ambiguous-role explanations are not adopted facts. Clear only the unused quote.
+            value = {**value, evidence_key: None}
         elif evidence is None or normalize(evidence) not in source:
             raise ModelFailure("INVALID_MODEL_OUTPUT")
     if value["applicantName"] is not None and normalize(value["applicantName"]) not in normalize(value["applicantNameEvidence"]):

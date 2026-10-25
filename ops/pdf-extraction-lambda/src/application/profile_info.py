@@ -5,6 +5,7 @@ import unicodedata
 
 FACTS = ("birthDate", "age", "height", "education")
 CAREER_FIELDS = ("title", "venue", "part", "genre", "period", "company")
+MAX_CAREERS = 5
 
 
 def profile_schema():
@@ -16,7 +17,7 @@ def profile_schema():
               "required": [*CAREER_FIELDS, "evidence"]}
     return {"type": ["object", "null"], "additionalProperties": False,
             "properties": {**{key: fact for key in FACTS},
-                           "careers": {"type": "array", "maxItems": 50, "items": career}},
+                           "careers": {"type": "array", "maxItems": MAX_CAREERS, "items": career}},
             "required": [*FACTS, "careers"]}
 
 
@@ -49,7 +50,7 @@ def validate_profile(profile, text):
               or normalized(evidence) not in source or normalized(value) not in normalized(evidence)):
             return False
     careers = profile["careers"]
-    if not isinstance(careers, list) or len(careers) > 50:
+    if not isinstance(careers, list) or len(careers) > MAX_CAREERS:
         return False
     for career in careers:
         if not isinstance(career, dict) or set(career) != {*CAREER_FIELDS, "evidence"}:

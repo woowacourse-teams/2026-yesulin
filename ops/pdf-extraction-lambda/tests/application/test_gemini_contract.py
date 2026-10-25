@@ -24,7 +24,7 @@ class GeminiContractTest(unittest.TestCase):
         raw = json.dumps({'candidates': [{'finishReason': 'STOP', 'content': {'parts': [{'text': json.dumps(value)}]}}]}).encode()
         result, request, _ = self.invoke(raw, canonical)
         self.assertEqual(value, result)
-        self.assertEqual(50, canonical['properties']['profile']['properties']['careers']['maxItems'])
+        self.assertEqual(5, canonical['properties']['profile']['properties']['careers']['maxItems'])
         self.assertNotIn('maxItems', request['generationConfig']['responseJsonSchema']['properties']['profile']['properties']['careers'])
 
     def test_korean_profile_over_old_64k_limit_is_read(self):
@@ -39,7 +39,7 @@ class GeminiContractTest(unittest.TestCase):
         with self.assertRaises(ModelFailure):
             self.invoke(b' ' * 1048577, schema([]))
 
-    def test_application_still_rejects_more_than_50_careers(self):
+    def test_application_still_rejects_more_than_five_careers(self):
         profile = {key: {'value': None, 'evidence': None} for key in ('birthDate', 'age', 'height', 'education')}
-        profile['careers'] = [{'title': '작품', 'venue': None, 'part': None, 'genre': None, 'period': None, 'company': None, 'evidence': '작품'}] * 51
+        profile['careers'] = [{'title': '작품', 'venue': None, 'part': None, 'genre': None, 'period': None, 'company': None, 'evidence': '작품'}] * 6
         self.assertFalse(validate_profile(profile, '작품'))

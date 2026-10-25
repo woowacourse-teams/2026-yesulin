@@ -72,6 +72,13 @@ class ApplicantInfoTest(unittest.TestCase):
         self.assertIsNone(info["roleId"])
         self.assertEqual("가상배우", info["applicantName"])
 
+    def test_quote_explaining_ambiguous_role_does_not_discard_profile(self):
+        value = {**self.value, "roleId": None, "roleEvidence": "지원 배역이 모호합니다."}
+        result = validate_output(value, self.text + "\n지원 배역이 모호합니다.", self.roles)
+        self.assertIsNone(result["roleId"])
+        self.assertIsNone(result["roleEvidence"])
+        self.assertEqual("가상배우", result["applicantName"])
+
     def test_control_character_in_model_quote_never_blocks_extracted_text_delivery(self):
         for control in ("\x00", "\x0c", "\x85"):
             with self.subTest(control=repr(control)):

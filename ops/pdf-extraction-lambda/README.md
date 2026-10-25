@@ -123,9 +123,9 @@ S3 멀티파트 업로드는 큰 파일 하나를 여러 조각으로 보내는 
 함수를 이름 변경하거나 다른 함수·역할로 교체하면 추출 폴더 읽기가 거부되고 callback이 오지 않는다.
 이름을 바꿀 때는 새 `aws:userid`로 버킷 정책의 예외를 먼저 함께 바꾼다. 같은 이름으로 함수를 삭제 후 재생성해도 역할 ID가 바뀌면 같은 조치가 필요하다.
 
-**아직 배포되지 않은 것**: 완료 API를 담은 백엔드는 PR 병합·배포 전이라 Dev 서버에 없다.
+**초기 연결 시험 기록**: 당시 완료 API를 담은 백엔드는 PR 병합·배포 전이었다.
 2026-10-25에 개인정보 없는 36KB·1페이지 PDF를 실제 S3에 업로드하여 자동 실행과 `result.json` 및 PNG 1개 생성을 확인했다. 익명 원본 HEAD는 403이었다.
-현재 Dev 완료 API는 올바른 worker 토큰을 보내도 403을 반환하여 Lambda 전체 호출은 실패·재시도 상태다. 추출·저장 성공과 서버 반영 성공을 구분한다.
+해당 시험 당시 Dev 완료 API는 올바른 worker 토큰을 보내도 403을 반환하여 Lambda 전체 호출은 실패·재시도 상태였다. 추출·저장 성공과 서버 반영 성공을 구분한다.
 콘솔 합성 시험 job은 Spring이 발급한 job이 아니므로, 배포 후에는 공연사 화면에서 새 job을 만들어 업로드한 뒤 DB 반영까지 확인한다.
 기본 설정에서는 AI를 호출하지 않는다. AI 제공자는 아래 환경 변수로 선택하며 OCR·SQS는 사용하지 않는다.
 
@@ -223,7 +223,8 @@ Lambda에 `PDF_COMPLETION_API_URL=https://<backend>/internal/v1/pdf-extractions/
 ### 프로필 전사 v2
 
 `application/applicant_info.py`의 SYSTEM과 JSON schema가 이름·지원 배역에 `profile`을 더한다.
-`profile_info.py`는 생년월일·명시된 나이·키·학력·경력 최대 50개와 연속된 원문 근거를 검증한다.
+`profile_info.py`는 생년월일·명시된 나이·키·학력·경력 최대 5개와 연속된 원문 근거를 검증한다.
+경력은 원문 순서로 가져온다. 이전에 저장된 결과를 자동으로 잘라 내거나 다시 분석하지 않는다.
 profile JSON은 최대 256KiB이고 manifest는 AI 결과용 384KiB 여유를 남긴다. 모델 출력 한도는 16,384 tokens다.
 확실하지 않은 값은 null이며 실패 시 원본 텍스트/사진은 전달하고 프로필은 미확인으로 남긴다.
 키/링크/사진 분류/합불/점수/메모는 모델 schema에 포함하지 않는다.
@@ -236,4 +237,37 @@ profile JSON은 최대 256KiB이고 manifest는 AI 결과용 384KiB 여유를 �
 UNCERTAIN, 작은 장식/가로 배너는 OTHER, 일반 사진 비율은 CANDIDATE다. 의미 기반 로고/얼굴 인식이 아니므로
 누락/오분류 가능성이 있다. 원본은 유지하며 UI는 미확인 안내와 원문 확인을 제공한다.
 
-Gemini 실연결에서 확장 경력 스키마의 `maxItems: 50` 포함 요청은 HTTP 400으로 거절되어, Gemini 전송본에서만 해당 제약을 제거한다. 원본 스키마와 Lambda·백엔드 검증의 50개 제한은 유지한다. Gemini 응답은 최대 1MiB까지만 읽고 프로필은 별도 256KiB 제한으로 검증한다.
+Gemini 실연결에서 확장 경력 스키마의 `maxItems` 포함 요청이 HTTP 400으로 거절된 이력이 있어 Gemini 전송본에서만
+해당 제약을 제거한다. 새 워커는 원본 스키마·검증에서 5개 제한을 유지한다. 백엔드는 과거 v2 결과와의 호환을 위해
+기존 50개까지 수신할 수 있지만 새 모델 요청은 최대 5개다. Gemini 응답은 최대 1MiB, 프로필은 256KiB로 제한한다.
+
+### 소량 로컬 프롬프트 검증
+
+Lambda의 `src/`·테스트·의존성 잠금 파일은 같은 Git 저장소에서 관리하는 서비스 코드다. 콘솔 코드만 따로 고치지 않는다.
+현재 ZIP 배포는 수동이며 이 로컬 실험은 AWS Lambda·EC2·IAM·Bedrock 설정을 바꾸지 않는다.
+가상 정답셋은 `tests/fixtures/applicant-quality.json`이며 실제 지원서나 키를 커밋하지 않는다.
+
+```bash
+# ReportLab/Pillow와 한글 TrueType 폰트가 있는 Python으로 생성
+python scripts/make_quality_pdfs.py --font /path/to/korean-font.ttf
+# 키가 없으면 로컬 PDF 문자 추출만 한다.
+python scripts/probe_profile_prompt.py
+# PDFium/Pillow가 있는 Python에서 기존 키 파일을 명시해야 실제 Gemini를 호출한다.
+python scripts/probe_profile_prompt.py --key-file /path/to/private-gemini-key
+```
+
+기본 3개(전체 항목·경력 7개·복수 배역)를 10초 간격으로 요청하며 최대 3개만 허용한다.
+문서 해시가 생성 당시 가상 정답셋과 같은지 확인한 뒤 호출하고, 제공자·응답 오류가 나면 추가 요청을 멈춘다.
+결과와 프롬프트 SHA는 ignored `output/profile-ui-prompt-smoke/result.json`에 남긴다. 시간은 로컬 추출+모델 API 값이며 Lambda 성능 측정이 아니다.
+현재 중첩 profile 계약은 이메일·연락처와 전체 프로필 수동 수정 API를 포함하지 않는다.
+소량 프롬프트 검증은 이 항목들을 검증 범위에 포함하지 않는다.
+
+### 심사 진행률·화면 변경 배포
+
+- 프론트의 진행률 폴링은 Spring의 `/api/v1/pdf-reviews/{id}/progress`를 사용하므로 Spring을 먼저 배포한다.
+  새 환경 변수·DB migration·SQS·S3 알림·IAM 권한 추가는 필요하지 않다. 기존 Lambda의 완료 콜백을 그대로 사용한다.
+- PDF.js 디코더·글꼴 파일은 프론트의 `prebuild`에서 생성하므로 프론트도 새 빌드를 배포한다.
+- 프롬프트·출력 검증의 경력 최대 5개 제한은 기존 PDF Lambda의 ZIP도 갱신해야 적용된다.
+  같은 함수 이름·기존 실행 역할·업로드 트리거·콜백 설정을 유지한다. Bedrock 전환은 별도 작업이다.
+- 병합만으로 수동 Lambda ZIP 배포까지 완료되지는 않는다. Dev에서 새 PDF를 올린 후 콜백 DB 반영,
+  진행률 종료와 원본 PDF 표시까지 확인한다. 기존 저장 결과는 프롬프트 변경으로 재분석되지 않는다.
