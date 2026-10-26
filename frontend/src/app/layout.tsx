@@ -7,6 +7,7 @@ import { HOME_DESCRIPTION, HOME_TITLE, SHARE_IMAGE } from "@/features/seo/auditi
 import "./globals.css";
 import "./interactions.css";
 import "./notebook.css";
+import "./workspace.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

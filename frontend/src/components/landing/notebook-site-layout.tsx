@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useAuthSession } from "@/components/auth/auth-session";
+import { LogoutButton } from "@/components/auth/logout-button";
 import { applicantRoutes } from "@/features/applicants/routes";
 import { TrackedLoginLink } from "@/components/analytics/tracked-login-link";
 import { PolicyLinks } from "@/components/policies/policy-links";
@@ -25,7 +26,7 @@ export function NotebookHeader({ service = "applicant" }: { readonly service?: "
   return <header className="notebook-header"><div className="notebook-container notebook-header-inner">
     <Link href="/" aria-label="예술in 홈" className="notebook-logo"><Image src="/images/yesulin-logo-transparent.png" alt="예술in" width={96} height={56} priority /></Link>
     <nav aria-label="주요 메뉴" className="notebook-main-nav">{menuItems.map((item) => <Link key={item.key} href={item.href} aria-current={current === item.key ? "page" : undefined}>{item.label}</Link>)}</nav>
-    <div className="notebook-account"><HeaderLogin service={service} /><Link href="/producer-service" className="notebook-producer-link">기획사·제작사 서비스</Link></div>
+    <div className="notebook-account"><HeaderAccountLinks service={service} producerLinkClassName="notebook-producer-link" /></div>
     <MobileNavigation key={pathname} current={current} service={service} />
   </div></header>;
 }
@@ -37,12 +38,19 @@ function currentMenu(pathname: string): (typeof menuItems)[number]["key"] | unde
   return undefined;
 }
 
-function HeaderLogin({ service }: { readonly service: "applicant" | "producer" }) {
+function HeaderAccountLinks({ service, producerLinkClassName }: { readonly service: "applicant" | "producer"; readonly producerLinkClassName?: string }) {
   const { session } = useAuthSession();
-  if (session?.role === "APPLICANT") return <Link href={applicantRoutes.submissions}>내 지원서</Link>;
-  if (session?.role === "PRODUCER") return <Link href="/producers/shows">공연사 대시보드</Link>;
+  if (session) return <>
+    {session.role === "APPLICANT"
+      ? <Link href={applicantRoutes.submissions}>내 지원서</Link>
+      : <Link href="/producers/shows">공연사 대시보드</Link>}
+    <LogoutButton />
+  </>;
   const producer = service === "producer";
-  return <TrackedLoginLink href="/login" analytics={{ entry_point: producer ? "producer_landing_header" : "landing_header", login_reason: producer ? "manage_production" : "account_access", actor_type: service, return_target: producer ? "producer_home" : "applicant_home" }}>로그인</TrackedLoginLink>;
+  return <>
+    <TrackedLoginLink href="/login" analytics={{ entry_point: producer ? "producer_landing_header" : "landing_header", login_reason: producer ? "manage_production" : "account_access", actor_type: service, return_target: producer ? "producer_home" : "other" }}>로그인</TrackedLoginLink>
+    <Link href="/producer-service" className={producerLinkClassName}>기획사·제작사 서비스</Link>
+  </>;
 }
 
 function MobileNavigation({ current, service }: { readonly current?: string; readonly service: "applicant" | "producer" }) {
@@ -61,7 +69,7 @@ function MobileNavigation({ current, service }: { readonly current?: string; rea
     <button ref={buttonRef} type="button" className="notebook-menu-toggle" aria-label={open ? "메뉴 닫기" : "메뉴 열기"} aria-expanded={open} aria-controls="notebook-mobile-menu" onClick={() => setOpen(!open)}><SiteIcon name={open ? "close" : "menu"} size={26} /></button>
     {open ? <nav id="notebook-mobile-menu" aria-label="모바일 주요 메뉴" className="notebook-mobile-menu" onClick={(event) => { if ((event.target as HTMLElement).closest("a")) setOpen(false); }}>
       {menuItems.map((item) => <Link key={item.key} href={item.href} aria-current={current === item.key ? "page" : undefined}>{item.label}</Link>)}
-      <div className="notebook-mobile-account"><HeaderLogin service={service} /><Link href="/producer-service">기획사·제작사 서비스</Link></div>
+      <div className="notebook-mobile-account"><HeaderAccountLinks service={service} /></div>
     </nav> : null}
   </div>;
 }

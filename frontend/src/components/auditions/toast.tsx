@@ -61,7 +61,7 @@ function ToastView({ toast, onClose }: { toast: ToastState; onClose: () => void 
     <div
       role={isError ? "alert" : "status"}
       aria-live={isError ? "assertive" : "polite"}
-      className={`toast-enter fixed bottom-[88px] left-1/2 z-90 flex w-[min(440px,calc(100vw-32px))] items-start gap-3 rounded-card border bg-card p-3 pr-2 text-left shadow-[var(--shadow-3)] lg:left-[calc(50%+var(--sidebar-width)/2)] ${TOAST_TONE[toast.type]}`}
+      className={`toast-enter fixed bottom-[88px] left-1/2 z-90 flex w-[min(440px,calc(100vw-32px))] items-start gap-3 rounded-card border bg-card p-3 pr-2 text-left shadow-[var(--shadow-3)] ${TOAST_TONE[toast.type]}`}
     >
       <ToastIcon type={toast.type} />
       <p className="min-w-0 flex-1 py-1.5 text-base font-medium leading-relaxed text-foreground md:text-sm">

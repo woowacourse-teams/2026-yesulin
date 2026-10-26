@@ -519,8 +519,16 @@ export async function unlinkCompanyAuthor(linkId: number): Promise<void> {
   if (!response.ok) throw await readAdminError(response, "묶음을 풀지 못했습니다.");
 }
 
-export function fetchOpenChatVisits(page = 0): Promise<AdminOpenChatVisits> {
-  return getJson(`/openchat/visits?page=${page}`, "오픈채팅방 링크 방문을 불러오지 못했습니다.");
+export function fetchOpenChatVisits(
+  page = 0,
+  range: { readonly startDate: string; readonly endDate: string } | null = null,
+): Promise<AdminOpenChatVisits> {
+  const params = new URLSearchParams({ page: String(page) });
+  if (range) {
+    params.set("startDate", range.startDate);
+    params.set("endDate", range.endDate);
+  }
+  return getJson(`/openchat/visits?${params}`, "오픈채팅방 링크 방문을 불러오지 못했습니다.");
 }
 
 export function fetchAlertChatMembers(): Promise<AdminAlertChatMembers> {

@@ -64,7 +64,7 @@ export function SettingFields({ form, errors, onChange, disabled = false, locked
 
   return (
     <div className="space-y-5">
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="timetable-setting-grid grid gap-4 md:grid-cols-2">
         <DateCalendar
           month={month}
           minMonth={[today, ...dates].sort()[0].slice(0, 7)}
@@ -86,7 +86,7 @@ export function SettingFields({ form, errors, onChange, disabled = false, locked
         />
 
         <div className="relative rounded-control border border-border">
-          <div className="space-y-5 p-4 md:absolute md:inset-0 md:overflow-y-auto">
+          <div className="timetable-setting-controls space-y-5 p-4 md:absolute md:inset-0 md:overflow-y-auto">
             <div className="grid grid-cols-2 gap-3">
               <Stepper
                 label="오디션 진행 시간"

@@ -321,7 +321,7 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 | POST | `/api/v1/admin/alert-chat-members` | Admin | `RecordAlertChatMembersRequest(memberCount)` | `201 AdminAlertChatMembersResult` |
 | POST | `/api/v1/public/audition-posts/{postId}/openchat-visits` | 없음(CSRF 필요) | 없음 | `204` |
 | POST | `/api/v1/public/otr/{externalId}/openchat-visits` | 없음(CSRF 필요) | 없음 | `204` |
-| GET | `/api/v1/admin/openchat/visits` | Admin | `page`(기본 0) | `200 AdminOpenChatVisitsResult(posts, page, size, totalPages, totalElements)` |
+| GET | `/api/v1/admin/openchat/visits` | Admin | `page` 기본 0, 선택 `startDate`·`endDate`(게시일, 함께 지정) | `200 AdminOpenChatVisitsResult(posts, page, size, totalPages, totalElements, totalVisits)` |
 | GET | `/api/v1/producers/me/audition-posts` | Active Producer | 없음 | `200 ProducerAuditionPostsResponse(posts)` |
 | POST | `/api/v1/producers/me/audition-posts` | Active Producer | `ProducerWriteAuditionPostRequest(category, title, pay, deadlineText, bodyHtml?, tags, attachmentUrls)` | `201 ProducerAuditionPostResult` |
 | POST | `/api/v1/producers/me/audition-posts/uploads` | Active Producer | `PrepareAuditionPostUploadRequest(kind: IMAGE/ATTACHMENT, filename, contentType?, size)` | `201 AuditionPostUploadResult(url, method, headers, expiresAt, publicUrl)` |
@@ -358,9 +358,13 @@ page·size 범위 오류와 지원하지 않는 category·sort는 `400 INVALID_R
 관리자 로그인 상태면 증가 없이 `204`다. 일반 공고 POST는 공개 상세 또는 원문 이동이 가능한 공고만 허용하고 나머지는
 `404 AUDITION_POST_NOT_FOUND`다. OTR POST는 숫자 1~30자 원문 번호이며 해당 OTR 알림이 없으면 같은 404다.
 형식 오류는 `400 INVALID_REQUEST`다. GET·미리보기는 이 숫자를 늘리지 않는다.
-관리자 응답은 전체 공고를 ID 최신순으로 20개씩 반환하고 0회도 표시한다. 각 항목은 `postId`, `title`, `status`,
+관리자 조회는 `startDate`·`endDate`(`YYYY-MM-DD`)를 함께 지정하면 한국 시간의 원문 게시일(`source_posted_at`)로
+양 끝 날짜를 포함해 거른다. 둘 다 생략하면 게시일이 없는 공고까지 포함한 전체 기간이다. 한쪽만 지정하거나
+시작일이 종료일보다 늦으면 `400 INVALID_REQUEST`다. 방문 발생일로 거르는 것이 아니므로 선택 기간 이후의 방문도 누적 수에 포함된다.
+관리자 응답은 누적 링크 방문 수 내림차순, 동률이면 ID 내림차순으로 20개씩 반환하고 0회도 표시한다. 각 항목은 `postId`, `title`, `status`,
 `postedAt`(Instant 또는 null), `visitCount`다. 가져오기 전 경유 방문 숫자는 원문 출처·번호로 연결된 알림에서 합산하며,
-아직 가져오지 않은 알림의 숫자는 공고를 가져온 뒤 목록에 나타난다. 음수 page는 `400 INVALID_REQUEST`다.
+아직 가져오지 않은 알림의 숫자는 공고를 가져온 뒤 목록에 나타난다. `totalElements`와 `totalVisits`는 페이지와 관계없이
+선택한 게시일 범위의 전체 공고 수와 누적 링크 방문 합계다. 음수 page는 `400 INVALID_REQUEST`다.
 브라우저 저장값 삭제·동시 탭·요청 재시도 등에 따라 중복될 수 있는 대략적인 지표다.
 
 `bodyHtml`은 서버가 Jsoup relaxed 허용 목록에서 `div`와 크기 속성을 뺀 태그만 남긴 HTML이다. 인라인 스타일과 스크립트는 없다.

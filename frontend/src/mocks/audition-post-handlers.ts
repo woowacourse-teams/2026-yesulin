@@ -267,9 +267,21 @@ export const auditionPostHandlers = [
     if (realLoginEnabled) return passthrough();
     const rejected = rejectNonAdmin();
     if (rejected) return rejected;
-    const page = Number(new URL(request.url).searchParams.get("page") ?? "0");
+    const params = new URL(request.url).searchParams;
+    const page = Number(params.get("page") ?? "0");
     if (!Number.isInteger(page) || page < 0) return HttpResponse.json({ code: "INVALID_REQUEST", message: "페이지 범위가 올바르지 않습니다." }, { status: 400 });
-    const posts = [...POSTS].sort((left, right) => right.id - left.id).map((post) => {
+    const startDate = params.get("startDate");
+    const endDate = params.get("endDate");
+    const validDate = (date: string) => /^\d{4}-\d{2}-\d{2}$/.test(date) && !Number.isNaN(Date.parse(`${date}T00:00:00Z`)) && new Date(`${date}T00:00:00Z`).toISOString().slice(0, 10) === date;
+    if ((startDate === null) !== (endDate === null) || (startDate !== null && endDate !== null && (!validDate(startDate) || !validDate(endDate) || startDate > endDate))) {
+      return HttpResponse.json({ code: "INVALID_REQUEST", message: "게시일 범위가 올바르지 않습니다." }, { status: 400 });
+    }
+    const posts = POSTS.filter((post) => {
+      if (!startDate || !endDate) return true;
+      if (!post.postedAt) return false;
+      const posted = Date.parse(post.postedAt);
+      return posted >= Date.parse(`${startDate}T00:00:00+09:00`) && posted < Date.parse(`${endDate}T00:00:00+09:00`) + 24 * HOUR_MS;
+    }).map((post) => {
       const otrId = post.sourceUrl ? /[?&]vid=([0-9]+)/.exec(post.sourceUrl)?.[1] : undefined;
       const visits = openChatVisits.get(otrId ? `OTR:${otrId}` : `YESULIN:${post.id}`);
       return {
@@ -279,8 +291,8 @@ export const auditionPostHandlers = [
         postedAt: post.postedAt,
         visitCount: visits ?? 0,
       };
-    });
-    return HttpResponse.json({ posts: posts.slice(page * 20, (page + 1) * 20), page, size: 20, totalPages: Math.ceil(posts.length / 20), totalElements: posts.length });
+    }).sort((left, right) => right.visitCount - left.visitCount || right.postId - left.postId);
+    return HttpResponse.json({ posts: posts.slice(page * 20, (page + 1) * 20), page, size: 20, totalPages: Math.ceil(posts.length / 20), totalElements: posts.length, totalVisits: posts.reduce((sum, post) => sum + post.visitCount, 0) });
   }),
 
   http.get("/api/v1/admin/alert-chat-members", async () => {

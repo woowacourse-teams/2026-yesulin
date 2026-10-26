@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { LogoutButton } from "@/components/auth/logout-button";
 import { ModalShell } from "@/components/auditions/modal-shell";
 import { ProducerAccountPanel } from "./producer-account-panel";
 import { OtrAuditionTreeNav } from "@/components/otr-auditions/otr-audition-tree";
@@ -51,6 +52,9 @@ export function MobileProducerNavigation() {
           </span>
           <span className="ml-2 truncate text-base font-semibold">예술in 관리</span>
         </Link>
+        <div className="ml-auto shrink-0">
+          <LogoutButton className="min-h-11 rounded-control px-3 text-sm font-semibold text-muted-strong hover:bg-brand-soft hover:text-brand" />
+        </div>
       </header>
 
       <ModalShell

@@ -5,8 +5,10 @@ import art.yesulin.auditionpost.domain.AuditionPostErrorCode;
 import art.yesulin.auditionpost.domain.AuditionPostRepository;
 import art.yesulin.auditionpost.domain.AuditionPostStatus;
 import art.yesulin.auditionpost.domain.alertchat.OpenChatVisitQuery;
+import art.yesulin.auditionpost.domain.alertchat.OpenChatVisitTotals;
 import art.yesulin.auditionpost.domain.notice.NoticeRepository;
 import art.yesulin.global.exception.BusinessException;
+import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -41,14 +43,20 @@ public class OpenChatVisitService {
     }
 
     @Transactional(readOnly = true)
-    public AdminOpenChatVisitsResult findForAdmin(int page) {
+    public AdminOpenChatVisitsResult findForAdmin(int page, LocalDate startDate, LocalDate endDate) {
         if (page < 0) {
             throw new IllegalArgumentException("page는 0 이상이어야 합니다.");
         }
-        long total = query.countPosts();
-        return new AdminOpenChatVisitsResult(query.findPosts(PageRequest.of(page, PAGE_SIZE)).stream()
+        if ((startDate == null) != (endDate == null)
+                || (startDate != null && startDate.isAfter(endDate))) {
+            throw new IllegalArgumentException("시작일과 종료일을 함께 지정하고 시작일은 종료일 이전이어야 합니다.");
+        }
+        OpenChatVisitTotals totals = query.summarize(startDate, endDate);
+        return new AdminOpenChatVisitsResult(query.findPosts(PageRequest.of(page, PAGE_SIZE), startDate, endDate)
+                .stream()
                 .map(AdminOpenChatVisitsResult.Post::from).toList(),
-                page, PAGE_SIZE, (int) Math.ceil((double) total / PAGE_SIZE), total);
+                page, PAGE_SIZE, (int) Math.ceil((double) totals.postCount() / PAGE_SIZE),
+                totals.postCount(), totals.visitCount());
     }
 
     private BusinessException notFound() {

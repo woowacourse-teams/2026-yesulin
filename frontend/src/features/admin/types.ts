@@ -569,6 +569,8 @@ export type AdminOpenChatVisits = {
   readonly size: number;
   readonly totalPages: number;
   readonly totalElements: number;
+  /** 선택한 게시일 범위에 속한 모든 공고의 누적 링크 방문 합계. */
+  readonly totalVisits: number;
 };
 
 /** 공고 알림 오픈채팅방 인원 기록 한 건. */
