@@ -11,7 +11,8 @@ import java.util.List;
 /**
  * 운영 화면의 참가 신청 한 건.
  *
- * @param photoUrl 배우 프로필 사진을 잠깐 열 수 있는 내려받기 주소. 공연사 관계자는 null이다.
+ * @param businessCardRequested 배우가 프로필 명함 제작을 희망했는지. 아니면 명함 정보(이메일·사진 등)가 비어 있다.
+ * @param photoUrl 배우 프로필 사진을 잠깐 열 수 있는 내려받기 주소. 명함을 원하지 않은 배우와 공연사 관계자는 null이다.
  * @param activityFields 배우가 고른 분야를 연극·뮤지컬·매체·유튜브·기타 순서로 준다. 공연사 관계자는 비어 있다.
  * @param otherActivity 기타 분야를 고른 배우가 직접 적은 분야
  * @param noCareer 신입이라 경력이 없다고 한 배우
@@ -22,6 +23,7 @@ public record AdminEventRegistrationResult(
         EventParticipantType participantType,
         String name,
         String phone,
+        boolean businessCardRequested,
         String email,
         String snsHandle,
         LocalDate birthDate,
@@ -40,6 +42,7 @@ public record AdminEventRegistrationResult(
                 registration.getParticipantType(),
                 registration.getName(),
                 registration.getPhone(),
+                registration.isBusinessCardRequested(),
                 registration.getEmail(),
                 registration.getSnsHandle(),
                 registration.getBirthDate(),

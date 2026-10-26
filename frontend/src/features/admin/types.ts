@@ -638,9 +638,11 @@ export type AdminEventRegistration = {
   readonly participantType: EventParticipantType;
   readonly name: string;
   readonly phone: string;
-  readonly email: string;
+  /** 배우가 프로필 명함 제작을 희망했는지. 아니면 이메일·사진 같은 명함 정보가 비어 있다. */
+  readonly businessCardRequested: boolean;
+  readonly email: string | null;
   readonly snsHandle: string | null;
-  /** `YYYY-MM-DD`. 배우만 있다. */
+  /** `YYYY-MM-DD`. 명함을 희망한 배우만 있다. */
   readonly birthDate: string | null;
   /** 공연사 관계자의 소속과 하는 일 */
   readonly affiliation: string | null;

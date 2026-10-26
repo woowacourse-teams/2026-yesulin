@@ -602,18 +602,19 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 `409 EVENT_REGISTRATION_CLOSED`다. 쓰기 요청은 CSRF 헤더가 필요하다.
 
 `RegisterRequest`는 `participantType`(`ACTOR`·`PRODUCER`), `name`(50자), `phone`(`010-1234-5678`, 숫자만 적어도 같은 형식으로 정리),
-`email`(254자), `snsHandle`(선택, 100자), `birthDate`(배우만 필수, 미래 날짜 불가), `affiliation`(공연사 관계자만 필수인 소속과 하는 일, 500자),
-`photoUploadKey`(배우만 필수), `activityFields`(배우만 하나 이상 필수, `THEATER`·`MUSICAL`·`MEDIA`·`YOUTUBE`·`OTHER`),
-`otherActivity`(`OTHER`를 고르면 필수인 직접 적은 분야, 50자), `noCareer`(신입이라 경력 없음), `careers`(배우가 `noCareer`가 아니면
-1~10줄 필수, 각 `performedMonth`(`YYYY-MM`)·`workTitle`(100자)·`role`(선택, 50자). `noCareer`면 비워야 한다), `privacyAgreed`(true 필수)다.
-구분에 맞지 않는 칸은 저장하지 않는다. 같은 이벤트에 같은 휴대폰 번호로
+`affiliation`(공연사 관계자만 필수인 소속과 하는 일, 500자), `businessCardRequested`(배우가 프로필 명함 제작을 희망하는지),
+`privacyAgreed`(true 필수)다. 명함을 희망한 배우는 명함에 들어갈 `email`(254자), `snsHandle`(선택, 100자), `birthDate`(미래 날짜 불가),
+`photoUploadKey`, `activityFields`(하나 이상, `THEATER`·`MUSICAL`·`MEDIA`·`YOUTUBE`·`OTHER`), `otherActivity`(`OTHER`를 고르면 필수, 50자),
+`noCareer`(신입이라 경력 없음), `careers`(`noCareer`가 아니면 1~10줄, 각 `performedMonth`(`YYYY-MM`)·`workTitle`(100자)·`role`(선택, 50자).
+`noCareer`면 비워야 한다)를 더 적는다. 휴대폰 번호는 명함에 넣지 않는다. 구분에 맞지 않는 칸과 명함을 원하지 않는 배우의 명함 정보는
+저장하지 않는다. 같은 이벤트에 같은 휴대폰 번호로
 다시 신청하면 `409 EVENT_REGISTRATION_DUPLICATE`, 검증 오류는 `400 EVENT_INVALID_INPUT`이다.
 
-배우는 먼저 `photo-uploads`로 비공개 경로(`private/event-registration-photos/...`)에 올릴 자리를 받아 저장소에 바로 올린 뒤, 받은 `uploadKey`를
+명함을 희망한 배우는 먼저 `photo-uploads`로 비공개 경로(`private/event-registration-photos/...`)에 올릴 자리를 받아 저장소에 바로 올린 뒤, 받은 `uploadKey`를
 신청에 담는다. 형식·크기·파일 앞부분 기준은 이벤트 이미지와 같다(JPEG·PNG·WebP, 5MB). 신청할 때 올라온 사진을 확인해 한 번만 확정하고,
 하루가 지나도록 확정하지 않은 업로드는 매일 04:55(한국 시간) 정리 작업이 지운다.
 
-운영 목록은 이벤트의 신청을 먼저 온 순서로 주며, 배우 사진은 잠깐 열리는 내려받기 주소(`photoUrl`)로 준다. 분야는 위 순서대로,
+운영 목록은 이벤트의 신청을 먼저 온 순서로 주며, 배우 사진은 잠깐 열리는 내려받기 주소(`photoUrl`)로 주고, 명함 희망 여부(`businessCardRequested`)를 함께 준다. 분야는 위 순서대로,
 경력은 적은 순서대로 준다. 없는 이벤트는 `404 EVENT_NOT_FOUND`다.
 신청 삭제는 되돌릴 수 없고 사진도 커밋 뒤 저장소에서 지우며, `admin_audit_logs`에 `EVENT_REGISTRATION_DELETED`로 남기되 신청 내용은 담지 않는다.
 이 이벤트에 없는 신청은 `404 EVENT_REGISTRATION_NOT_FOUND`다. 이벤트를 지우면 받은 신청과 사진도 함께 지운다.

@@ -30,9 +30,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
- * 로그인 없이 받은 이벤트 참가 신청 한 건. 같은 이벤트에는 휴대폰 번호 하나로 한 번만 신청한다.
- * 배우는 생년월일·프로필 사진·활동 분야와 경력(신입이면 경력 없음)이 필요하고, 공연사 관계자는 대신 소속과 하는 일을
- * 적는다.
+ * 로그인 없이 받은 이벤트 참가 신청 한 건. 같은 이벤트에는 휴대폰 번호 하나로 한 번만 신청한다. 모두 이름과 휴대폰을 적고,
+ * 공연사 관계자는 소속과 하는 일을 더 적는다. 배우는 프로필 명함 제작을 희망할 때만 명함에 들어갈 이메일·SNS·생년월일·
+ * 프로필 사진·활동 분야와 경력(신입이면 경력 없음)을 적는다. 휴대폰 번호는 명함에 넣지 않는다.
  */
 @Getter
 @Entity
@@ -68,8 +68,11 @@ public class EventRegistration {
     @Column(nullable = false, updatable = false, length = 20)
     private String phone;
 
-    @Column(nullable = false, updatable = false, length = MAX_EMAIL_LENGTH)
+    @Column(updatable = false, length = MAX_EMAIL_LENGTH)
     private String email;
+
+    @Column(name = "business_card_requested", nullable = false, updatable = false)
+    private boolean businessCardRequested;
 
     @Column(name = "sns_handle", updatable = false, length = MAX_SNS_HANDLE_LENGTH)
     private String snsHandle;
@@ -106,7 +109,7 @@ public class EventRegistration {
     /**
      * 신청서를 확인해 참가 신청을 만든다. 구분에 맞지 않는 칸은 버린다.
      *
-     * @param photoKey 확정한 비공개 사진 저장소 키. 배우만 받는다.
+     * @param photoKey 확정한 비공개 사진 저장소 키. 명함 제작을 희망한 배우만 받는다.
      * @param today 생년월일이 미래인지 볼 한국 날짜
      */
     public EventRegistration(
@@ -119,24 +122,30 @@ public class EventRegistration {
         this.participantType = form.participantType();
         this.name = required(form.name(), MAX_NAME_LENGTH, "이름");
         this.phone = phone(form.phone());
-        this.email = email(form.email());
-        this.snsHandle = optional(form.snsHandle(), MAX_SNS_HANDLE_LENGTH, "SNS 계정");
-        if (participantType == EventParticipantType.ACTOR) {
-            this.birthDate = birthDate(form.birthDate(), today);
-            if (photoKey == null || photoKey.isBlank()) {
-                throw invalid("프로필 사진을 올려 주세요.");
-            }
-            this.photoKey = photoKey;
-            this.activityFields = activityFields(form.activityFields());
-            this.otherActivity = this.activityFields.contains(EventActivityField.OTHER)
-                    ? required(form.otherActivity(), MAX_OTHER_ACTIVITY_LENGTH, "기타 분야")
-                    : null;
-            this.noCareer = form.noCareer();
-            this.careers = careers(form.noCareer(), form.careers());
-        } else {
+        if (participantType == EventParticipantType.PRODUCER) {
             this.affiliation = required(form.affiliation(), MAX_AFFILIATION_LENGTH, "소속과 하는 일");
+        } else if (form.businessCardRequested()) {
+            writeBusinessCard(form, photoKey, today);
         }
         this.createdAt = Objects.requireNonNull(createdAt);
+    }
+
+    /** 명함 제작을 희망한 배우가 적은 명함 정보. 이메일·생년월일·사진·분야와 경력(또는 경력 없음)이 필요하다. */
+    private void writeBusinessCard(EventRegistrationForm form, String photoKey, LocalDate today) {
+        this.businessCardRequested = true;
+        this.email = email(form.email());
+        this.snsHandle = optional(form.snsHandle(), MAX_SNS_HANDLE_LENGTH, "SNS 계정");
+        this.birthDate = birthDate(form.birthDate(), today);
+        if (photoKey == null || photoKey.isBlank()) {
+            throw invalid("프로필 사진을 올려 주세요.");
+        }
+        this.photoKey = photoKey;
+        this.activityFields = activityFields(form.activityFields());
+        this.otherActivity = this.activityFields.contains(EventActivityField.OTHER)
+                ? required(form.otherActivity(), MAX_OTHER_ACTIVITY_LENGTH, "기타 분야")
+                : null;
+        this.noCareer = form.noCareer();
+        this.careers = careers(form.noCareer(), form.careers());
     }
 
     /** 신청 화면과 같은 형식으로 휴대폰 번호를 정리한다. 숫자만 적어도 받는다. */

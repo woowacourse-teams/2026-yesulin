@@ -100,14 +100,38 @@ class EventRegistrationServiceTest {
     void producerRegistersWithoutPhoto() {
         long eventId = openEvent();
 
-        registrationService.register(eventId, new EventRegistrationForm(
-                EventParticipantType.PRODUCER, "이도현", "010-2345-6789", "dohyun@test.com", null, null,
-                "남극장 · 캐스팅 담당"
+        registrationService.register(eventId, EventRegistrationForm.withoutBusinessCard(
+                EventParticipantType.PRODUCER, "이도현", "010-2345-6789", "남극장 · 캐스팅 담당"
         ), null, true);
 
         AdminEventRegistrationResult registration = registrationService.findAllForAdmin(eventId).getFirst();
         assertEquals("남극장 · 캐스팅 담당", registration.affiliation());
         assertNull(registration.photoUrl());
+    }
+
+    @Test
+    void actorWithoutBusinessCardRegistersWithoutPhotoAndIgnoresUploadedPhoto() {
+        long eventId = openEvent();
+        String photoKey = uploadedPhoto(eventId);
+
+        registrationService.register(eventId, EventRegistrationForm.withoutBusinessCard(
+                EventParticipantType.ACTOR, "박서윤", "010-3456-7890", null
+        ), photoKey, true);
+
+        AdminEventRegistrationResult registration = registrationService.findAllForAdmin(eventId).getFirst();
+        assertFalse(registration.businessCardRequested());
+        assertNull(registration.photoUrl());
+        assertNull(registration.email());
+        assertTrue(uploadRepository.findByObjectKey(photoKey).isPresent());
+    }
+
+    @Test
+    void businessCardActorCannotRegisterWithoutPhoto() {
+        long eventId = openEvent();
+
+        assertThrows(BusinessException.class, () -> registrationService.register(
+                eventId, actor("010-1234-5678"), null, true));
+        assertTrue(registrationService.findAllForAdmin(eventId).isEmpty());
     }
 
     @Test
@@ -193,7 +217,7 @@ class EventRegistrationServiceTest {
 
     private static EventRegistrationForm actor(String phone) {
         return new EventRegistrationForm(
-                EventParticipantType.ACTOR, "김하늘", phone, "haneul@test.com", "@haneul", BIRTH_DATE, null,
+                EventParticipantType.ACTOR, "김하늘", phone, true, "haneul@test.com", "@haneul", BIRTH_DATE, null,
                 Set.of(EventActivityField.MUSICAL, EventActivityField.THEATER), null, false,
                 List.of(new EventRegistrationCareer("2025-09", "연극 <달빛 정거장>", "민수 역"))
         );

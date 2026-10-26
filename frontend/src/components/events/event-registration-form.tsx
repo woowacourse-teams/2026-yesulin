@@ -11,7 +11,7 @@ import {
   type RegistrationDraft,
 } from "@/features/events/registration-draft";
 import { EVENT_PARTICIPANT_LABELS, type EventParticipantType } from "@/features/events/types";
-import { ActorProfileFields } from "./event-registration-actor";
+import { BusinessCardFields } from "./event-registration-actor";
 import { RegistrationField, RequiredMark, koreaToday } from "./event-registration-field";
 
 const PARTICIPANT_HINTS: Readonly<Record<EventParticipantType, string>> = {
@@ -20,7 +20,8 @@ const PARTICIPANT_HINTS: Readonly<Record<EventParticipantType, string>> = {
 };
 
 /**
- * 로그인 없이 쓰는 참가 신청서. 배우는 생년월일·프로필 사진·활동 분야·경력을, 공연사 관계자는 소속과 하는 일을 적는다.
+ * 로그인 없이 쓰는 참가 신청서. 참가 구분을 먼저 고르면 이름·휴대폰 칸이 열리고, 공연사 관계자는 소속과 하는 일을,
+ * 프로필 명함을 희망한 배우는 명함에 들어갈 정보를 더 적는다.
  */
 export function EventRegistrationForm({ eventId, onDone }: { readonly eventId: number; readonly onDone: () => void }) {
   const [draft, setDraft] = useState<RegistrationDraft>(emptyRegistrationDraft);
@@ -48,11 +49,16 @@ export function EventRegistrationForm({ eventId, onDone }: { readonly eventId: n
     }
   };
 
-  // 배우에서 다른 구분으로 바꾸면 올린 사진은 버린다. 다시 배우로 오면 사진을 새로 올린다.
-  const chooseType = (option: EventParticipantType) => setDraft((current) => ({
+  // 명함 칸이 닫히면 사진 미리 보기도 사라지므로 올린 사진은 버린다. 다시 열면 사진을 새로 올린다.
+  const chooseType = (participantType: EventParticipantType) => setDraft((current) => ({
     ...current,
-    participantType: option,
-    photoUploadKey: option === "ACTOR" ? current.photoUploadKey : null,
+    participantType,
+    photoUploadKey: participantType === "ACTOR" ? current.photoUploadKey : null,
+  }));
+  const chooseCard = (businessCardRequested: boolean) => setDraft((current) => ({
+    ...current,
+    businessCardRequested,
+    photoUploadKey: businessCardRequested ? current.photoUploadKey : null,
   }));
 
   const type = draft.participantType;
@@ -71,48 +77,63 @@ export function EventRegistrationForm({ eventId, onDone }: { readonly eventId: n
             </label>
           ))}
         </div>
+        {type ? null : <p className="text-sm text-muted">참가 구분을 고르면 적을 칸이 나와요.</p>}
       </fieldset>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <RegistrationField id="registration-name" label="이름" required>
-          <FieldInput id="registration-name" autoComplete="name" value={draft.name} maxLength={50} onChange={(event) => update({ name: event.target.value })} />
-        </RegistrationField>
-        <RegistrationField id="registration-phone" label="휴대폰 번호" required>
-          <FieldInput id="registration-phone" type="tel" inputMode="numeric" autoComplete="tel" placeholder="010-1234-5678" value={draft.phone} onChange={(event) => update({ phone: formatPhoneInput(event.target.value) })} />
-        </RegistrationField>
-        <RegistrationField id="registration-email" label="이메일" required>
-          <FieldInput id="registration-email" type="email" inputMode="email" autoComplete="email" value={draft.email} maxLength={254} onChange={(event) => update({ email: event.target.value })} />
-        </RegistrationField>
-        <RegistrationField id="registration-sns" label="SNS 계정" hint="인스타그램 등. 예: @yesulin">
-          <FieldInput id="registration-sns" value={draft.snsHandle} maxLength={100} onChange={(event) => update({ snsHandle: event.target.value })} />
-        </RegistrationField>
-      </div>
+      {type ? (
+        <>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <RegistrationField id="registration-name" label="이름" required>
+              <FieldInput id="registration-name" autoComplete="name" value={draft.name} maxLength={50} onChange={(event) => update({ name: event.target.value })} />
+            </RegistrationField>
+            <RegistrationField id="registration-phone" label="휴대폰 번호" required hint="참가 확인과 행사 안내 연락에만 써요.">
+              <FieldInput id="registration-phone" type="tel" inputMode="numeric" autoComplete="tel" placeholder="010-1234-5678" value={draft.phone} onChange={(event) => update({ phone: formatPhoneInput(event.target.value) })} />
+            </RegistrationField>
+          </div>
 
-      {type === "ACTOR" ? (
-        <ActorProfileFields
-          eventId={eventId}
-          draft={draft}
-          onChange={update}
-          onPhotoChange={(photoUploadKey) => update({ photoUploadKey })}
-          onPhotoBusyChange={setPhotoBusy}
-        />
+          {type === "PRODUCER" ? (
+            <div className="flex flex-col gap-2 rounded-control border border-border-soft p-4">
+              <RegistrationField id="registration-affiliation" label="소속과 지금 하는 일" required hint="예: 남극장 · 캐스팅과 제작 담당">
+                <FieldTextarea id="registration-affiliation" rows={3} value={draft.affiliation} maxLength={500} onChange={(event) => update({ affiliation: event.target.value })} />
+              </RegistrationField>
+              <p className="text-xs text-muted">공연사 관계자는 프로필 명함을 만들지 않아요.</p>
+            </div>
+          ) : null}
+
+          {type === "ACTOR" ? (
+            <>
+              <div className="rounded-control border border-border-soft p-4">
+                <label className="flex min-h-11 cursor-pointer items-start gap-3">
+                  <input type="checkbox" checked={draft.businessCardRequested} onChange={(event) => chooseCard(event.target.checked)} className="mt-1 size-4 shrink-0 accent-brand" />
+                  <span>
+                    <span className="block font-semibold">프로필 명함 제작을 희망해요</span>
+                    <span className="mt-1 block text-sm text-muted-strong">
+                      행사 당일 나눠 드릴 내 프로필 명함을 무료로 만들어 드려요. 체크하면 명함에 들어갈 정보를 적는 칸이 열려요.
+                      명함 제작 기간은 위 신청 안내를 확인해 주세요.
+                    </span>
+                  </span>
+                </label>
+              </div>
+              {draft.businessCardRequested ? (
+                <BusinessCardFields
+                  eventId={eventId}
+                  draft={draft}
+                  onChange={update}
+                  onPhotoChange={(photoUploadKey) => update({ photoUploadKey })}
+                  onPhotoBusyChange={setPhotoBusy}
+                />
+              ) : null}
+            </>
+          ) : null}
+
+          <PrivacyConsent checked={draft.privacyAgreed} onChange={(privacyAgreed) => update({ privacyAgreed })} />
+
+          {error ? <p role="alert" className="rounded-control border border-fail/30 bg-fail-bg px-4 py-3 text-sm text-fail">{error}</p> : null}
+          <PrimaryButton type="submit" disabled={submitting || photoBusy} className="w-full sm:w-auto sm:self-end">
+            {submitting ? "보내는 중…" : photoBusy ? "사진 올리는 중…" : "신청하기"}
+          </PrimaryButton>
+        </>
       ) : null}
-
-      {type === "PRODUCER" ? (
-        <div className="flex flex-col gap-2 rounded-control border border-border-soft p-4">
-          <RegistrationField id="registration-affiliation" label="소속과 지금 하는 일" required hint="예: 남극장 · 캐스팅과 제작 담당">
-            <FieldTextarea id="registration-affiliation" rows={3} value={draft.affiliation} maxLength={500} onChange={(event) => update({ affiliation: event.target.value })} />
-          </RegistrationField>
-          <p className="text-xs text-muted">공연사 관계자는 프로필 명함을 만들지 않아요. 그래서 생년월일·사진·경력은 받지 않아요.</p>
-        </div>
-      ) : null}
-
-      <PrivacyConsent checked={draft.privacyAgreed} onChange={(privacyAgreed) => update({ privacyAgreed })} />
-
-      {error ? <p role="alert" className="rounded-control border border-fail/30 bg-fail-bg px-4 py-3 text-sm text-fail">{error}</p> : null}
-      <PrimaryButton type="submit" disabled={submitting || photoBusy} className="w-full sm:w-auto sm:self-end">
-        {submitting ? "보내는 중…" : photoBusy ? "사진 올리는 중…" : "신청하기"}
-      </PrimaryButton>
     </form>
   );
 }
@@ -122,9 +143,9 @@ function PrivacyConsent({ checked, onChange }: { readonly checked: boolean; read
     <div className="rounded-control border border-border-soft bg-surface p-4 text-sm">
       <p className="font-semibold">개인정보 수집·이용 동의<RequiredMark /></p>
       <ul className="mt-2 list-disc space-y-1 pl-5 text-muted-strong">
-        <li>수집 항목: 이름, 휴대폰 번호, 이메일, SNS 계정(선택), 배우는 생년월일·프로필 사진·활동 분야·경력, 공연사 관계자는 소속과 하는 일</li>
+        <li>수집 항목: 이름, 휴대폰 번호, 공연사 관계자는 소속과 하는 일, 명함을 희망한 배우는 이메일·SNS 계정(선택)·생년월일·프로필 사진·활동 분야·경력</li>
         <li>이용 목적: 참가 확인과 행사 안내 연락, 배우 프로필 명함 제작</li>
-        <li>명함 제작 대상 배우의 명함에 들어갈 정보는 명함 제작 업체에 전달해요.</li>
+        <li>명함에 들어갈 정보는 명함 제작 업체에 전달해요. 휴대폰 번호는 전달하지 않아요.</li>
         <li>보관 기간: 행사가 끝나고 15일 안에 파기해요.</li>
         <li>동의하지 않을 수 있지만, 그러면 참가 신청을 할 수 없어요.</li>
       </ul>
