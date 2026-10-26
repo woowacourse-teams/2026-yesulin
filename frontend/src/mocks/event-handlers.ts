@@ -129,13 +129,10 @@ function toPublic(event: AdminEvent): PublicEvent {
 /** 서버처럼 구분에 맞는 칸만 확인한다. 문제가 없으면 null이다. */
 function invalidRegistration(write: EventRegistrationWrite): string | null {
   if (!write.participantType) return "참가 구분을 선택해 주세요.";
-  if (!write.name?.trim() || !/^01[016789]-\d{3,4}-\d{4}$/.test(write.phone ?? "") || !/^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/.test(write.email ?? "")) {
-    return "이름·휴대폰 번호·이메일을 확인해 주세요.";
-  }
-  if (write.participantType === "ACTOR" && (!write.birthDate || !write.photoUploadKey || !pendingPhotoKeys.has(write.photoUploadKey))) {
-    return "생년월일과 프로필 사진을 확인해 주세요.";
-  }
-  if (write.participantType === "ACTOR") {
+  if (!write.name?.trim() || !/^01[016789]-\d{3,4}-\d{4}$/.test(write.phone ?? "")) return "이름과 휴대폰 번호를 확인해 주세요.";
+  if (write.participantType === "ACTOR" && write.businessCardRequested) {
+    if (!/^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/.test(write.email ?? "")) return "이메일 주소를 확인해 주세요.";
+    if (!write.birthDate || !write.photoUploadKey || !pendingPhotoKeys.has(write.photoUploadKey)) return "생년월일과 프로필 사진을 확인해 주세요.";
     if (!write.activityFields?.length) return "활동 분야를 하나 이상 골라 주세요.";
     if (write.activityFields.includes("OTHER") && !write.otherActivity?.trim()) return "기타 분야를 입력해 주세요.";
     if (write.noCareer ? write.careers?.length : !write.careers?.length) return "경력을 한 줄 이상 적거나 경력 없음을 골라 주세요.";
@@ -241,22 +238,24 @@ export const eventHandlers = [
       return apiError(409, "EVENT_REGISTRATION_DUPLICATE", "이미 이 휴대폰 번호로 신청했습니다.");
     }
     const actor = write.participantType === "ACTOR";
-    if (actor && write.photoUploadKey) pendingPhotoKeys.delete(write.photoUploadKey);
+    const card = actor && write.businessCardRequested;
+    if (card && write.photoUploadKey) pendingPhotoKeys.delete(write.photoUploadKey);
     const id = Math.max(0, ...registrations.map((item) => item.id)) + 1;
     registrations.push({
       id,
       participantType: write.participantType,
       name: write.name.trim(),
       phone: write.phone,
-      email: write.email.trim(),
-      snsHandle: write.snsHandle?.trim() || null,
-      birthDate: actor ? write.birthDate : null,
+      businessCardRequested: card,
+      email: card ? write.email?.trim() || null : null,
+      snsHandle: card ? write.snsHandle?.trim() || null : null,
+      birthDate: card ? write.birthDate : null,
       affiliation: actor ? null : write.affiliation?.trim() || null,
-      photoUrl: actor ? `${MOCK_STORAGE}/${write.photoUploadKey}` : null,
-      activityFields: actor ? write.activityFields : [],
-      otherActivity: actor && write.activityFields.includes("OTHER") ? write.otherActivity : null,
-      noCareer: actor && write.noCareer,
-      careers: actor && !write.noCareer ? write.careers : [],
+      photoUrl: card ? `${MOCK_STORAGE}/${write.photoUploadKey}` : null,
+      activityFields: card ? write.activityFields : [],
+      otherActivity: card && write.activityFields.includes("OTHER") ? write.otherActivity : null,
+      noCareer: card && write.noCareer,
+      careers: card && !write.noCareer ? write.careers : [],
       createdAt: new Date().toISOString(),
     });
     registrationEventIds.set(id, event.id);

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  careerYears,
   emptyCareer,
   emptyRegistrationDraft,
   formatPhoneInput,
@@ -12,30 +13,32 @@ import { EVENT_ACTIVITY_FIELDS } from "./types";
 
 const TODAY = "2026-10-26";
 
-const actor: RegistrationDraft = {
+const cardActor: RegistrationDraft = {
   ...emptyRegistrationDraft(),
   participantType: "ACTOR",
   name: " 김하늘 ",
   phone: "01012345678",
+  affiliation: "남극장",
+  businessCardRequested: true,
   email: " haneul@test.com ",
   snsHandle: " ",
   birthDate: "2001-03-14",
-  affiliation: "남극장",
   photoUploadKey: "upload-key",
   activityFields: ["THEATER", "OTHER"],
   otherActivity: " 성우 ",
   careers: [
-    { key: 1, performedMonth: "2025-09", workTitle: " 연극 <달빛 정거장> ", role: " 민수 역 " },
+    { key: 1, year: "2025", month: "09", workTitle: " 연극 <달빛 정거장> ", role: " 민수 역 " },
     emptyCareer(2),
   ],
   privacyAgreed: true,
 };
 
+const plainActor: RegistrationDraft = { ...cardActor, businessCardRequested: false, photoUploadKey: null, email: "" };
+
 const producer: RegistrationDraft = {
-  ...actor,
+  ...cardActor,
   participantType: "PRODUCER",
-  birthDate: "",
-  photoUploadKey: null,
+  businessCardRequested: false,
   affiliation: " 남극장 · 캐스팅 담당 ",
 };
 
@@ -52,16 +55,23 @@ describe("참가 신청서", () => {
     expect(toggleActivityField(fields, "THEATER", EVENT_ACTIVITY_FIELDS)).toEqual(["YOUTUBE"]);
   });
 
-  it("배우는 분야·경력·사진을, 공연사 관계자는 소속만 보낸다", () => {
-    expect(registrationProblem(actor, TODAY)).toBeNull();
-    expect(writeOfRegistration(actor)).toEqual({
+  it("경력 연도는 올해부터 1970년까지 거꾸로 고른다", () => {
+    const years = careerYears(TODAY);
+    expect(years[0]).toBe("2026");
+    expect(years.at(-1)).toBe("1970");
+  });
+
+  it("명함을 희망한 배우는 명함 정보를 모두 보낸다", () => {
+    expect(registrationProblem(cardActor, TODAY)).toBeNull();
+    expect(writeOfRegistration(cardActor)).toEqual({
       participantType: "ACTOR",
       name: "김하늘",
       phone: "010-1234-5678",
+      affiliation: null,
+      businessCardRequested: true,
       email: "haneul@test.com",
       snsHandle: null,
       birthDate: "2001-03-14",
-      affiliation: null,
       photoUploadKey: "upload-key",
       activityFields: ["THEATER", "OTHER"],
       otherActivity: "성우",
@@ -69,34 +79,48 @@ describe("참가 신청서", () => {
       careers: [{ performedMonth: "2025-09", workTitle: "연극 <달빛 정거장>", role: "민수 역" }],
       privacyAgreed: true,
     });
+  });
+
+  it("명함을 원하지 않는 배우와 공연사 관계자는 명함 정보를 보내지 않는다", () => {
+    expect(registrationProblem(plainActor, TODAY)).toBeNull();
+    expect(writeOfRegistration({ ...plainActor, photoUploadKey: "upload-key" })).toMatchObject({
+      businessCardRequested: false,
+      email: null,
+      birthDate: null,
+      photoUploadKey: null,
+      activityFields: [],
+      careers: [],
+      affiliation: null,
+    });
 
     expect(registrationProblem(producer, TODAY)).toBeNull();
-    const write = writeOfRegistration({ ...producer, birthDate: "2001-03-14", photoUploadKey: "upload-key" });
-    expect(write.affiliation).toBe("남극장 · 캐스팅 담당");
-    expect(write.birthDate).toBeNull();
-    expect(write.photoUploadKey).toBeNull();
-    expect(write.activityFields).toEqual([]);
-    expect(write.careers).toEqual([]);
+    expect(writeOfRegistration({ ...producer, businessCardRequested: true })).toMatchObject({
+      affiliation: "남극장 · 캐스팅 담당",
+      businessCardRequested: false,
+      email: null,
+      photoUploadKey: null,
+    });
   });
 
   it("경력 없음을 체크하면 적은 경력을 보내지 않는다", () => {
-    const newcomer = { ...actor, noCareer: true };
+    const newcomer = { ...cardActor, noCareer: true };
     expect(registrationProblem(newcomer, TODAY)).toBeNull();
     expect(writeOfRegistration(newcomer)).toMatchObject({ noCareer: true, careers: [] });
   });
 
   it("빠진 칸을 먼저 알려 준다", () => {
     expect(registrationProblem(emptyRegistrationDraft(), TODAY)).toContain("참가 구분");
-    expect(registrationProblem({ ...actor, phone: "02-123-4567" }, TODAY)).toContain("휴대폰");
-    expect(registrationProblem({ ...actor, email: "haneul" }, TODAY)).toContain("이메일");
-    expect(registrationProblem({ ...actor, birthDate: "2026-10-27" }, TODAY)).toContain("생년월일");
-    expect(registrationProblem({ ...actor, photoUploadKey: null }, TODAY)).toContain("사진");
-    expect(registrationProblem({ ...actor, activityFields: [] }, TODAY)).toContain("활동 분야");
-    expect(registrationProblem({ ...actor, otherActivity: " " }, TODAY)).toContain("기타");
-    expect(registrationProblem({ ...actor, careers: [emptyCareer(1)] }, TODAY)).toContain("경력 없음");
-    expect(registrationProblem({ ...actor, careers: [{ key: 1, performedMonth: "", workTitle: "작품", role: "" }] }, TODAY)).toContain("시기");
-    expect(registrationProblem({ ...actor, careers: [{ key: 1, performedMonth: "2025-09", workTitle: " ", role: "역" }] }, TODAY)).toContain("작품명");
+    expect(registrationProblem({ ...cardActor, phone: "02-123-4567" }, TODAY)).toContain("휴대폰");
+    expect(registrationProblem({ ...cardActor, email: "haneul" }, TODAY)).toContain("이메일");
+    expect(registrationProblem({ ...cardActor, birthDate: "" }, TODAY)).toContain("생년월일");
+    expect(registrationProblem({ ...cardActor, birthDate: "2026-10-27" }, TODAY)).toContain("생년월일");
+    expect(registrationProblem({ ...cardActor, photoUploadKey: null }, TODAY)).toContain("사진");
+    expect(registrationProblem({ ...cardActor, activityFields: [] }, TODAY)).toContain("활동 분야");
+    expect(registrationProblem({ ...cardActor, otherActivity: " " }, TODAY)).toContain("기타");
+    expect(registrationProblem({ ...cardActor, careers: [emptyCareer(1)] }, TODAY)).toContain("경력 없음");
+    expect(registrationProblem({ ...cardActor, careers: [{ key: 1, year: "2025", month: "", workTitle: "작품", role: "" }] }, TODAY)).toContain("연도와 월");
+    expect(registrationProblem({ ...cardActor, careers: [{ key: 1, year: "2025", month: "09", workTitle: " ", role: "역" }] }, TODAY)).toContain("작품명");
     expect(registrationProblem({ ...producer, affiliation: " " }, TODAY)).toContain("소속");
-    expect(registrationProblem({ ...actor, privacyAgreed: false }, TODAY)).toContain("동의");
+    expect(registrationProblem({ ...cardActor, privacyAgreed: false }, TODAY)).toContain("동의");
   });
 });

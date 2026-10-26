@@ -76,7 +76,7 @@ public class EventRegistrationService {
     /**
      * 참가 신청을 저장하고 신청 번호를 준다. 같은 이벤트에 같은 휴대폰 번호로 다시 신청하면 거절한다.
      *
-     * @param photoUploadKey 배우가 올린 프로필 사진의 업로드 키. 공연사 관계자는 무시한다.
+     * @param photoUploadKey 명함을 희망한 배우가 올린 프로필 사진의 업로드 키. 그 밖에는 무시한다.
      */
     @Transactional
     public long register(long eventId, EventRegistrationForm form, String photoUploadKey, boolean privacyAgreed) {
@@ -88,8 +88,9 @@ public class EventRegistrationService {
         if (phone != null && repository.existsByEventIdAndPhone(event.getId(), phone)) {
             throw duplicate();
         }
-        boolean actor = form != null && form.participantType() == EventParticipantType.ACTOR;
-        String photoKey = actor && photoUploadKey != null && !photoUploadKey.isBlank()
+        boolean card = form != null && form.participantType() == EventParticipantType.ACTOR
+                && form.businessCardRequested();
+        String photoKey = card && photoUploadKey != null && !photoUploadKey.isBlank()
                 ? claimPhoto(photoUploadKey)
                 : null;
         EventRegistration registration = new EventRegistration(event.getId(), form, photoKey, today(), clock.instant());

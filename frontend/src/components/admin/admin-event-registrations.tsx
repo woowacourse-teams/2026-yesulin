@@ -80,12 +80,13 @@ export function AdminEventRegistrations({ eventId, onUnauthorized }: { readonly 
                   <span className="num text-muted">{index + 1}</span>
                   {registration.name}
                   <span className="rounded-full bg-border-soft px-2 py-0.5 text-xs font-bold text-muted-strong">{EVENT_PARTICIPANT_LABELS[registration.participantType]}</span>
+                  {registration.businessCardRequested ? <span className="rounded-full bg-brand-soft px-2 py-0.5 text-xs font-bold text-brand">명함 희망</span> : null}
                 </p>
                 <p className="num mt-1 break-all text-muted-strong">
                   {[registration.phone, registration.email, registration.snsHandle, registration.birthDate].filter(Boolean).join(" · ")}
                 </p>
                 {registration.affiliation ? <p className="mt-1 whitespace-pre-line break-words text-muted-strong">{registration.affiliation}</p> : null}
-                {registration.participantType === "ACTOR" ? <ActorDetails registration={registration} /> : null}
+                {registration.businessCardRequested ? <ActorDetails registration={registration} /> : null}
                 <p className="mt-1 text-xs text-muted">{formatDateTime(registration.createdAt)} 신청</p>
               </div>
               <AdminActionButton tone="destructive" className="self-start" onClick={() => setDeleting(registration)}>삭제</AdminActionButton>
@@ -108,7 +109,7 @@ export function AdminEventRegistrations({ eventId, onUnauthorized }: { readonly 
   );
 }
 
-/** 배우가 고른 분야와 경력. 신입은 경력 대신 "경력 없음"을 보인다. */
+/** 명함을 희망한 배우가 고른 분야와 경력. 신입은 경력 대신 "경력 없음"을 보인다. */
 function ActorDetails({ registration }: { readonly registration: AdminEventRegistration }) {
   const fields = registration.activityFields
     .map((field) => field === "OTHER" && registration.otherActivity ? `기타(${registration.otherActivity})` : EVENT_ACTIVITY_LABELS[field])

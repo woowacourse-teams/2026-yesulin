@@ -1,29 +1,39 @@
 "use client";
 
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
-import { AddButton, FieldInput, SecondaryButton, TextButton } from "@/components/ui/controls";
+import { AddButton, FieldInput, FieldSelect, SecondaryButton, TextButton } from "@/components/ui/controls";
 import { shrinkPhoto } from "@/features/companies/photo-image";
 import { uploadEventRegistrationPhoto } from "@/features/events/api";
-import { emptyCareer, toggleActivityField, type CareerDraft, type RegistrationDraft } from "@/features/events/registration-draft";
+import { careerYears, emptyCareer, toggleActivityField, type CareerDraft, type RegistrationDraft } from "@/features/events/registration-draft";
 import { EVENT_ACTIVITY_FIELDS, EVENT_ACTIVITY_LABELS, MAX_REGISTRATION_CAREERS } from "@/features/events/types";
+import { BirthDateField } from "./event-registration-birth-date";
 import { RegistrationField, RequiredMark, koreaToday } from "./event-registration-field";
 
-type ActorDraft = Pick<RegistrationDraft, "birthDate" | "activityFields" | "otherActivity" | "noCareer" | "careers">;
+type CardDraft = Pick<RegistrationDraft, "email" | "snsHandle" | "birthDate" | "activityFields" | "otherActivity" | "noCareer" | "careers">;
 
-/** 배우만 적는 칸. 생년월일, 프로필 사진, 활동 분야, 경력(신입이면 경력 없음)을 받는다. */
-export function ActorProfileFields({ eventId, draft, onChange, onPhotoChange, onPhotoBusyChange }: {
+const MONTHS = Array.from({ length: 12 }, (_, index) => String(index + 1).padStart(2, "0"));
+
+/** 명함 제작을 희망한 배우만 적는 칸. 여기 적은 정보는 프로필 명함에 그대로 들어간다(휴대폰 번호는 넣지 않는다). */
+export function BusinessCardFields({ eventId, draft, onChange, onPhotoChange, onPhotoBusyChange }: {
   readonly eventId: number;
-  readonly draft: ActorDraft;
-  readonly onChange: (patch: Partial<ActorDraft>) => void;
+  readonly draft: CardDraft;
+  readonly onChange: (patch: Partial<CardDraft>) => void;
   readonly onPhotoChange: (uploadKey: string | null) => void;
   readonly onPhotoBusyChange: (busy: boolean) => void;
 }) {
   return (
-    <div className="flex flex-col gap-5 rounded-control border border-border-soft p-4">
-      <p className="text-sm font-semibold">배우 프로필</p>
-      <RegistrationField id="registration-birth-date" label="생년월일" required>
-        <FieldInput id="registration-birth-date" type="date" min="1900-01-01" max={koreaToday()} value={draft.birthDate} onChange={(event) => onChange({ birthDate: event.target.value })} />
+    <section aria-labelledby="registration-card-title" className="flex flex-col gap-5 rounded-control border border-brand-line bg-brand-soft/40 p-4">
+      <div>
+        <h2 id="registration-card-title" className="text-sm font-bold text-brand">프로필 명함에 들어갈 정보</h2>
+        <p className="mt-1 text-xs text-muted-strong">아래에 적은 정보는 명함에 그대로 들어가요. 휴대폰 번호는 명함에 넣지 않아요.</p>
+      </div>
+      <RegistrationField id="registration-email" label="이메일" required>
+        <FieldInput id="registration-email" type="email" inputMode="email" autoComplete="email" value={draft.email} maxLength={254} onChange={(event) => onChange({ email: event.target.value })} />
       </RegistrationField>
+      <RegistrationField id="registration-sns" label="SNS 계정" hint="인스타그램 등. 예: @yesulin">
+        <FieldInput id="registration-sns" value={draft.snsHandle} maxLength={100} onChange={(event) => onChange({ snsHandle: event.target.value })} />
+      </RegistrationField>
+      <BirthDateField value={draft.birthDate} today={koreaToday()} onChange={(birthDate) => onChange({ birthDate })} />
       <PhotoField eventId={eventId} onBusyChange={onPhotoBusyChange} onChange={onPhotoChange} />
 
       <fieldset className="flex flex-col gap-2">
@@ -46,24 +56,25 @@ export function ActorProfileFields({ eventId, draft, onChange, onPhotoChange, on
       </fieldset>
 
       <CareersField noCareer={draft.noCareer} careers={draft.careers} onChange={onChange} />
-    </div>
+    </section>
   );
 }
 
-/** 경력을 + 버튼으로 한 줄씩 더한다. 신입이면 경력 없음을 체크하고 줄은 접는다. */
+/** 경력을 + 버튼으로 한 줄씩 더한다. 시기는 연도와 월을 골라 휴대폰에서도 비어 보이지 않게 한다. 신입이면 경력 없음을 체크한다. */
 function CareersField({ noCareer, careers, onChange }: {
   readonly noCareer: boolean;
   readonly careers: readonly CareerDraft[];
-  readonly onChange: (patch: Partial<ActorDraft>) => void;
+  readonly onChange: (patch: Partial<CardDraft>) => void;
 }) {
   const update = (key: number, patch: Partial<CareerDraft>) =>
     onChange({ careers: careers.map((career) => career.key === key ? { ...career, ...patch } : career) });
   const nextKey = Math.max(0, ...careers.map((career) => career.key)) + 1;
+  const years = careerYears(koreaToday());
 
   return (
     <fieldset className="flex flex-col gap-2">
       <legend className="mb-1 text-sm font-semibold">경력<RequiredMark /></legend>
-      <p className="text-xs text-muted">시기, 작품, 맡은 역을 한 줄씩 적어 주세요. 신입이라면 &quot;경력 없음&quot;을 체크해 주세요.</p>
+      <p className="text-xs text-muted">언제, 어떤 작품에서, 어떤 역을 했는지 한 줄씩 적어 주세요. 신입이라면 &quot;경력 없음&quot;을 체크해 주세요.</p>
       <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm font-semibold">
         <input type="checkbox" checked={noCareer} onChange={(event) => onChange({ noCareer: event.target.checked })} className="size-4 accent-brand" />
         경력 없음 (신입이에요)
@@ -72,13 +83,25 @@ function CareersField({ noCareer, careers, onChange }: {
         <>
           <ol className="flex flex-col gap-2">
             {careers.map((career, index) => (
-              <li key={career.key} className="grid gap-2 rounded-control border border-border-soft p-3 sm:grid-cols-[9rem_minmax(0,1fr)_minmax(0,0.7fr)_auto] sm:items-center">
-                <FieldInput type="month" aria-label={`${index + 1}번째 경력 시기`} value={career.performedMonth} onChange={(event) => update(career.key, { performedMonth: event.target.value })} />
-                <FieldInput aria-label={`${index + 1}번째 경력 작품명`} placeholder="작품명 (예: 연극 <달빛 정거장>)" value={career.workTitle} maxLength={100} onChange={(event) => update(career.key, { workTitle: event.target.value })} />
-                <FieldInput aria-label={`${index + 1}번째 경력 역할`} placeholder="역할 (예: 민수 역)" value={career.role} maxLength={50} onChange={(event) => update(career.key, { role: event.target.value })} />
-                <TextButton aria-label={`${index + 1}번째 경력 지우기`} disabled={careers.length === 1} onClick={() => onChange({ careers: careers.filter((item) => item.key !== career.key) })}>
-                  지우기
-                </TextButton>
+              <li key={career.key} className="flex flex-col gap-2 rounded-control border border-border-soft bg-card p-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-muted-strong">경력 {index + 1}</span>
+                  <TextButton aria-label={`경력 ${index + 1} 지우기`} disabled={careers.length === 1} onClick={() => onChange({ careers: careers.filter((item) => item.key !== career.key) })}>
+                    지우기
+                  </TextButton>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <FieldSelect aria-label={`경력 ${index + 1} 연도`} value={career.year} onChange={(event) => update(career.key, { year: event.target.value })}>
+                    <option value="">연도</option>
+                    {years.map((year) => <option key={year} value={year}>{year}년</option>)}
+                  </FieldSelect>
+                  <FieldSelect aria-label={`경력 ${index + 1} 월`} value={career.month} onChange={(event) => update(career.key, { month: event.target.value })}>
+                    <option value="">월</option>
+                    {MONTHS.map((month) => <option key={month} value={month}>{Number(month)}월</option>)}
+                  </FieldSelect>
+                </div>
+                <FieldInput aria-label={`경력 ${index + 1} 작품명`} placeholder="작품명 (예: 연극 <달빛 정거장>)" value={career.workTitle} maxLength={100} onChange={(event) => update(career.key, { workTitle: event.target.value })} />
+                <FieldInput aria-label={`경력 ${index + 1} 역할`} placeholder="역할 (예: 민수 역, 선택)" value={career.role} maxLength={50} onChange={(event) => update(career.key, { role: event.target.value })} />
               </li>
             ))}
           </ol>
@@ -142,7 +165,7 @@ function PhotoField({ eventId, onBusyChange, onChange }: {
         </SecondaryButton>
       </div>
       <p id="registration-photo-hint" className="text-xs text-muted">
-        가장 잘 나온 프로필 사진 한 장을 골라 주세요. 휴대폰 사진(HEIC 포함)도 자동으로 줄이고, 촬영 위치 같은 정보는 지워요.
+        명함에 들어갈 가장 잘 나온 프로필 사진 한 장을 골라 주세요. 휴대폰 사진(HEIC 포함)도 자동으로 줄이고, 촬영 위치 같은 정보는 지워요.
       </p>
       {error ? <p role="alert" className="text-xs font-semibold text-fail">{error}</p> : null}
     </div>

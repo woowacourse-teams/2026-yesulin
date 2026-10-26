@@ -56,10 +56,12 @@ public class PublicEventRegistrationController {
     /**
      * 참가 신청서. 구분에 맞지 않는 칸은 저장하지 않는다.
      *
-     * @param birthDate 배우만 필수
+     * @param businessCardRequested 배우가 프로필 명함 제작을 희망하는지. 켜면 아래 명함 정보가 필수다.
+     * @param email 명함을 희망한 배우만 필수
+     * @param birthDate 명함을 희망한 배우만 필수
      * @param affiliation 공연사 관계자만 필수인 소속과 지금 하는 일
-     * @param photoUploadKey 배우가 올린 프로필 사진의 업로드 키. 배우만 필수다.
-     * @param activityFields 배우가 활동하거나 준비하는 분야. 배우만 하나 이상 필수다.
+     * @param photoUploadKey 명함을 희망한 배우가 올린 프로필 사진의 업로드 키
+     * @param activityFields 명함을 희망한 배우가 활동하거나 준비하는 분야. 하나 이상 필수다.
      * @param otherActivity 기타 분야를 고른 배우가 직접 적은 분야
      * @param noCareer 신입이라 경력이 없는 배우
      * @param careers 배우 경력. 경력 없음이 아니면 한 줄 이상 필수다.
@@ -68,7 +70,8 @@ public class PublicEventRegistrationController {
             @NotNull EventParticipantType participantType,
             @NotBlank @Size(max = EventRegistration.MAX_NAME_LENGTH) String name,
             @NotBlank @Size(max = 20) String phone,
-            @NotBlank @Size(max = EventRegistration.MAX_EMAIL_LENGTH) String email,
+            boolean businessCardRequested,
+            @Size(max = EventRegistration.MAX_EMAIL_LENGTH) String email,
             @Size(max = EventRegistration.MAX_SNS_HANDLE_LENGTH) String snsHandle,
             LocalDate birthDate,
             @Size(max = EventRegistration.MAX_AFFILIATION_LENGTH) String affiliation,
@@ -81,15 +84,15 @@ public class PublicEventRegistrationController {
     ) {
 
         EventRegistrationForm toForm() {
-            boolean actor = participantType == EventParticipantType.ACTOR;
+            boolean card = participantType == EventParticipantType.ACTOR && businessCardRequested;
             return new EventRegistrationForm(
-                    participantType, name, phone, email, snsHandle, birthDate, affiliation,
+                    participantType, name, phone, businessCardRequested, email, snsHandle, birthDate, affiliation,
                     activityFields == null || activityFields.isEmpty()
                             ? EnumSet.noneOf(EventActivityField.class)
                             : EnumSet.copyOf(activityFields),
                     otherActivity,
                     noCareer,
-                    actor && careers != null ? careers.stream().map(CareerRequest::toCareer).toList() : List.of()
+                    card && careers != null ? careers.stream().map(CareerRequest::toCareer).toList() : List.of()
             );
         }
     }

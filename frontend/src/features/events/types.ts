@@ -67,9 +67,12 @@ export type EventRegistrationWrite = {
   readonly participantType: EventParticipantType;
   readonly name: string;
   readonly phone: string;
-  readonly email: string;
+  /** 배우가 프로필 명함 제작을 희망하는지. 켜야 아래 명함 정보(이메일~경력)를 받는다. */
+  readonly businessCardRequested: boolean;
+  /** 명함을 희망한 배우만 필수다. */
+  readonly email: string | null;
   readonly snsHandle: string | null;
-  /** `YYYY-MM-DD`. 배우만 필수다. */
+  /** `YYYY-MM-DD`. 명함을 희망한 배우만 필수다. */
   readonly birthDate: string | null;
   /** 공연사 관계자만 필수인 소속과 지금 하는 일 */
   readonly affiliation: string | null;
