@@ -5,7 +5,7 @@ import { fetchPdfExtraction } from "@/features/pdf-extractions/api";
 import type { PdfExtractionJob } from "@/features/pdf-extractions/types";
 import { assignPdfReviewRoles, isUnauthorized, updatePdfReviewEntry } from "@/features/pdf-reviews/api";
 import { screeningApplicant } from "@/features/pdf-reviews/screening-adapter";
-import { sameKey, type ReviewDetail, type ReviewEntry } from "@/features/pdf-reviews/types";
+import { matchesDecision, sameKey, type DecisionFilter, type ReviewDetail, type ReviewEntry } from "@/features/pdf-reviews/types";
 import { ModalShell } from "@/components/auditions/modal-shell";
 import { ReviewOriginalDocument } from "./review-original-document";
 import { SecondaryButton } from "@/components/ui/controls";
@@ -15,11 +15,11 @@ import { ApplicantCards } from "./screening-ui/applicant-cards";
 import { ApplicantTable } from "./screening-ui/applicant-table";
 import styles from "./screening.module.css";
 
-type Props = { review: ReviewDetail; entries: readonly ReviewEntry[]; after: boolean; view: "single" | "card" | "table";
+type Props = { review: ReviewDetail; entries: readonly ReviewEntry[]; decision: DecisionFilter; view: "single" | "card" | "table";
   refreshKey: number; onSaved: (entry: ReviewEntry) => void; onUnauthorized: () => void;
   onDirtyChange: (dirty: boolean) => void; onApplicantOpened?: () => void; navigate: (action: () => void) => void };
 
-export function ScreeningBoard({ review, entries, after, view, refreshKey, onSaved, onUnauthorized, onDirtyChange, onApplicantOpened, navigate }: Props) {
+export function ScreeningBoard({ review, entries, decision, view, refreshKey, onSaved, onUnauthorized, onDirtyChange, onApplicantOpened, navigate }: Props) {
   const [jobs, setJobs] = useState<Record<string, PdfExtractionJob>>({});
   const cache = useRef(new Map<string, { job: PdfExtractionJob; signature: string; at: number; refresh: number }>());
   const [error, setError] = useState("");
@@ -90,7 +90,7 @@ export function ScreeningBoard({ review, entries, after, view, refreshKey, onSav
       const updated = await updatePdfReviewEntry(review.id, entry.id, { decision: status === "ETC" ? "HOLD" : status, memo: note ?? entry.memo ?? "" });
       onSaved(updated); onDirtyChange(false); setSavedMessage("저장했습니다.");
       const next = latest.current.entries.map(item => sameKey(item.id, updated.id) ? updated : item)
-        .filter(item => after ? item.decision !== "PENDING" : item.decision === "PENDING");
+        .filter(item => matchesDecision(item, decision));
       if (focused && !next.some(item => sameKey(item.id, focused))) setFocused(null);
       return { applicants: next.map(item => screeningApplicant(review, item, jobs[item.jobId])) };
     } catch (cause) {
@@ -117,7 +117,7 @@ export function ScreeningBoard({ review, entries, after, view, refreshKey, onSav
     fail: allEntries.filter(entry => entry.decision === "FAIL").length,
     etc: allEntries.filter(entry => entry.decision === "HOLD").length };
   return <BoardProvider value={{ source: { kind: "PDF" }, board: { role: { id: roleId(String(review.id)), postingId: postingId(String(review.id)), name: "PDF 지원자", description: "", quota: 0, gender: "ANY", ageMin: 0, ageMax: 0, applicantCount: allEntries.length, activeRound: 1, allRoundsClosed: false, counts, progress: { done, total: allEntries.length, percent: allEntries.length ? Math.round(done / allEntries.length * 100) : 0 } } },
-    filters: { work: after ? "DONE" : "PENDING" }, selected, saving, reviewLocked: false,
+    filters: { work: decision === "PENDING" ? "PENDING" : "DONE" }, selected, saving, reviewLocked: false,
     toggleSelected: id => setSelected(current => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next; }),
     openApplicant: id => navigate(() => setFocused(id)), assignRoles: openAssignment, requestNavigation: navigate, onNoteDirty: noteDirty,
     onApplicantViewed: refreshApplicant,

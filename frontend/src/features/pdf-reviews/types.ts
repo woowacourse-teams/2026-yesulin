@@ -2,6 +2,12 @@ export type ReviewKey = string | number;
 
 export type MatchStatus = "WAITING" | "MATCHED" | "NEEDS_CHECK";
 export type ReviewDecision = "PENDING" | "PASS" | "FAIL" | "HOLD";
+export type DecisionFilter = "PENDING" | "PASS" | "FAIL";
+
+/** 기존 보류 항목도 판정 대기에서 계속 확인할 수 있다. */
+export function matchesDecision(entry: Pick<ReviewEntry, "decision">, filter: DecisionFilter) {
+  return filter === "PENDING" ? entry.decision === "PENDING" || entry.decision === "HOLD" : entry.decision === filter;
+}
 
 export type ReviewSummary = {
   readonly id: ReviewKey;

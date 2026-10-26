@@ -21,6 +21,9 @@ export type UploadRow = {
 };
 
 type Options = { readonly onUploaded: () => void; readonly onUnauthorized: () => void };
+export type UploadNotice = Pick<UploadRow, "id" | "reviewId" | "name" | "size" | "error"> & {
+  readonly phase: UploadRow["phase"] | "UPLOADED";
+};
 
 const SESSION_EXPIRED = "로그인이 만료되었습니다. 다시 로그인한 뒤 이어서 올려 주세요.";
 const failure = (cause: unknown) => isUnauthorized(cause) ? SESSION_EXPIRED
@@ -35,8 +38,10 @@ export const isUploadable = (row: UploadRow) =>
  */
 export function useReviewUploads({ onUploaded, onUnauthorized }: Options) {
   const [rows, setRows] = useState<UploadRow[]>([]);
+  const [notices, setNotices] = useState<UploadNotice[]>([]);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [validationError, setValidationError] = useState("");
   const [messageReviewId, setMessageReviewId] = useState<ReviewKey | null>(null);
   const running = useRef(false);
   const targets = useRef(new Map<string, PreparedPdfUpload["upload"]>());
@@ -46,16 +51,23 @@ export function useReviewUploads({ onUploaded, onUnauthorized }: Options) {
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
 
   const patch = (id: string, change: Partial<UploadRow>) => {
-    if (mounted.current) setRows(current => current.map(row => row.id === id ? { ...row, ...change } : row));
+    if (mounted.current) {
+      setRows(current => current.map(row => row.id === id ? { ...row, ...change } : row));
+      // 알림에는 File 핸들이나 업로드 URL을 보관하지 않는다.
+      setNotices(current => current.map(row => row.id === id ? { ...row,
+        ...(change.phase ? { phase: change.phase } : {}), ...(change.error !== undefined ? { error: change.error } : {}),
+      } : row));
+    }
   };
 
   function choose(reviewId: ReviewKey, selected: FileList | readonly File[] | null, entryCount: number) {
     if (!selected?.length || running.current) return;
     setMessageReviewId(reviewId);
-    if (selected.length > 300) { setMessage("한 번에 PDF 300개까지 선택해 주세요."); return; }
+    setValidationError("");
+    if (selected.length > 300) { setMessage("한 번에 PDF 300개까지 선택해 주세요."); setValidationError("한 번에 PDF 300개까지 선택해 주세요."); return; }
     const queued = rows.filter(row => sameKey(row.reviewId, reviewId)).length;
     if (entryCount + queued + selected.length > MAX_FILES) {
-      setMessage("한 심사에는 최대 800개까지 올릴 수 있습니다."); return;
+      setMessage("한 심사에는 최대 800개까지 올릴 수 있습니다."); setValidationError("한 심사에는 최대 800개까지 올릴 수 있습니다."); return;
     }
     const next = Array.from(selected).map((file): UploadRow => {
       const valid = /\.pdf$/i.test(file.name) && file.size > 0 && file.size <= MAX_BYTES;
@@ -65,6 +77,7 @@ export function useReviewUploads({ onUploaded, onUnauthorized }: Options) {
       };
     });
     setRows(current => [...current, ...next]);
+    setNotices(current => [...current, ...next.map(({ id, reviewId, name, size, phase, error }) => ({ id, reviewId, name, size, phase, error }))]);
     const uploadable = next.filter(isUploadable);
     if (!uploadable.length) {
       setMessage(`선택 ${next.length}개 · 업로드 완료 0개 · 제외 ${next.length}개. 파일별 형식과 크기를 확인해 주세요.`);
@@ -111,6 +124,7 @@ export function useReviewUploads({ onUploaded, onUnauthorized }: Options) {
       }
       targets.current.delete(row.id);
       if (mounted.current) setRows(current => current.filter(item => item.id !== row.id));
+      if (mounted.current) setNotices(current => current.map(item => item.id === row.id ? { ...item, phase: "UPLOADED", error: "" } : item));
       if (mounted.current) callbacks.current.onUploaded();
       return true;
     } catch (cause) {
@@ -152,13 +166,23 @@ export function useReviewUploads({ onUploaded, onUnauthorized }: Options) {
   }
 
   return {
-    rows, busy, message, messageReviewId,
+    rows, notices, busy, message, messageReviewId, validationError,
     uploadAll: (reviewId: ReviewKey) => run(rows.filter(row => sameKey(row.reviewId, reviewId) && isUploadable(row))),
     retry: (row: UploadRow) => run([row]),
     choose,
     remove: (id: string) => {
+      if (running.current) return;
       targets.current.delete(id);
       setRows(current => current.filter(row => row.id !== id));
+      setNotices(current => current.filter(row => row.id !== id));
+      const removed = notices.find(row => row.id === id);
+      if (removed && sameKey(messageReviewId, removed.reviewId)
+        && !notices.some(row => row.id !== id && sameKey(row.reviewId, removed.reviewId))) setMessage("");
+    },
+    clearUploaded: (reviewId: ReviewKey) => {
+      setNotices(current => current.filter(row => !sameKey(row.reviewId, reviewId) || row.phase !== "UPLOADED"));
+      if (sameKey(messageReviewId, reviewId)
+        && !notices.some(row => sameKey(row.reviewId, reviewId) && row.phase !== "UPLOADED")) setMessage("");
     },
   };
 }
