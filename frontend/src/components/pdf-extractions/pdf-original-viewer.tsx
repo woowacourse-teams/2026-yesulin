@@ -1,97 +1,86 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import type { PDFDocumentLoadingTask, PDFDocumentProxy, RenderTask } from "pdfjs-dist";
+import dynamic from "next/dynamic";
+import { useEffect, useId, useRef, useState } from "react";
 
-/** 브라우저 PDF 플러그인에 의존하지 않고 선택한 원본 한 페이지만 그린다. */
-export function PdfOriginalViewer({ url, filename }: { readonly url: string; readonly filename: string }) {
-  const canvas = useRef<HTMLCanvasElement>(null);
-  const container = useRef<HTMLDivElement>(null);
-  const document = useRef<PDFDocumentProxy | null>(null);
-  const previousRender = useRef<Promise<unknown>>(Promise.resolve());
-  const [loaded, setLoaded] = useState<{ readonly url: string; readonly count: number } | null>(null);
-  const [pageAt, setPageAt] = useState({ url, value: 1 });
-  const [failure, setFailure] = useState<{ readonly url: string; readonly message: string } | null>(null);
-  const [zoom, setZoom] = useState(0.75);
-  const [width, setWidth] = useState(0);
-  const count = loaded?.url === url ? loaded.count : 0;
-  const page = pageAt.url === url ? pageAt.value : 1;
-  const error = failure?.url === url ? failure.message : "";
-  const setPage = (update: (value: number) => number) => setPageAt({ url, value: update(page) });
+const PdfCanvasViewer = dynamic(() => import("./pdf-canvas-viewer").then(module => module.PdfCanvasViewer), {
+  ssr: false,
+  loading: () => <p role="status" className="p-4 text-sm text-muted">원본 PDF를 불러오는 중입니다…</p>,
+});
 
+export type PdfViewMode = "original" | "canvas";
+
+/** 두 뷰어 모두 S3의 원본을 읽는다. 브라우저 보기를 우선하고 표시되지 않으면 앱 보기로 전환한다. */
+export function PdfOriginalViewer({ url, filename, onRefresh, initialMode = "original", onModeChange }: {
+  readonly url: string; readonly filename: string; readonly onRefresh?: () => void;
+  readonly initialMode?: PdfViewMode; readonly onModeChange?: (mode: PdfViewMode) => void;
+}) {
+  const [mode, setMode] = useState<PdfViewMode>(initialMode);
+  const chooseMode = (next: PdfViewMode) => { setMode(next); onModeChange?.(next); };
+  const helpId = useId();
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState("");
+  const active = useRef(true);
+  const downloadingRef = useRef(false);
+  const downloadController = useRef<AbortController | null>(null);
+  const downloadUrls = useRef(new Map<string, ReturnType<typeof setTimeout>>());
   useEffect(() => {
-    const element = container.current;
-    if (!element) return;
-    const observer = new ResizeObserver(entries => setWidth(Math.floor(entries[0].contentRect.width)));
-    observer.observe(element);
-    return () => observer.disconnect();
+    active.current = true;
+    const pending = downloadUrls.current;
+    return () => {
+      active.current = false;
+      downloadController.current?.abort();
+      for (const [value, timer] of pending) { clearTimeout(timer); URL.revokeObjectURL(value); }
+      pending.clear();
+    };
   }, []);
 
-  useEffect(() => {
-    let active = true;
-    let loading: PDFDocumentLoadingTask | undefined;
-    void import("pdfjs-dist").then(async pdfjs => {
-      if (!active) return;
-      pdfjs.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).toString();
-      const assets = `/pdfjs/${pdfjs.version}/`;
-      loading = pdfjs.getDocument({ url, withCredentials: false, enableXfa: false,
-        cMapUrl: `${assets}cmaps/`, cMapPacked: true, standardFontDataUrl: `${assets}standard_fonts/`,
-        wasmUrl: `${assets}wasm/`, iccUrl: `${assets}iccs/`,
-        // Downsize decoded images when needed instead of omitting them from the original.
-        maxImageSize: -1, canvasMaxAreaInBytes: 32 * 1024 * 1024,
-      });
-      const opened = await loading.promise;
-      if (!active) return;
-      document.current = opened;
-      setPageAt({ url, value: 1 });
-      setFailure(null);
-      setLoaded({ url, count: opened.numPages });
-    }).catch(() => { if (active) setFailure({ url, message: "원본 PDF를 표시하지 못했습니다. 결과를 새로고침하거나 새 창에서 확인해 주세요." }); });
-    return () => {
-      active = false;
-      document.current = null;
-      if (loading) void loading.destroy().catch(() => {});
-    };
-  }, [url]);
+  async function downloadOriginal() {
+    if (downloadingRef.current) return;
+    downloadingRef.current = true;
+    setDownloading(true); setDownloadError("");
+    const controller = new AbortController();
+    downloadController.current = controller;
+    try {
+      // Cross-origin download 속성 대신 원본 바이트를 받아 파일로 저장한다. 서명 URL은 변경하지 않는다.
+      const response = await fetch(url, { credentials: "omit", redirect: "error", signal: controller.signal });
+      if (!response.ok) throw new Error("SOURCE_UNAVAILABLE");
+      const blob = await response.blob();
+      if (!active.current || controller.signal.aborted) return;
+      const objectUrl = URL.createObjectURL(blob);
+      const timer = setTimeout(() => { URL.revokeObjectURL(objectUrl); downloadUrls.current.delete(objectUrl); }, 1000);
+      downloadUrls.current.set(objectUrl, timer);
+      const anchor = document.createElement("a");
+      anchor.href = objectUrl; anchor.download = filename;
+      document.body.append(anchor); anchor.click(); anchor.remove();
+    } catch {
+      if (active.current && !controller.signal.aborted) setDownloadError("원본을 저장하지 못했습니다. PDF를 다시 불러온 뒤 시도해 주세요.");
+    } finally {
+      downloadingRef.current = false;
+      if (active.current) setDownloading(false);
+    }
+  }
 
-  useEffect(() => {
-    const opened = document.current;
-    const target = canvas.current;
-    if (!opened || !target || !width || loaded?.url !== url) return;
-    let active = true;
-    let rendering: RenderTask | undefined;
-    void opened.getPage(page).then(async original => {
-      await previousRender.current;
-      if (!active) return;
-      const base = original.getViewport({ scale: 1 });
-      const fit = Math.min(Math.max(width - 24, 150) / base.width, 1.5) * zoom;
-      const ratio = Math.min(window.devicePixelRatio || 1, 2);
-      const viewport = original.getViewport({ scale: fit * ratio });
-      target.width = Math.ceil(viewport.width);
-      target.height = Math.ceil(viewport.height);
-      target.style.width = `${viewport.width / ratio}px`;
-      target.style.height = `${viewport.height / ratio}px`;
-      rendering = original.render({ canvas: target, viewport });
-      previousRender.current = rendering.promise.catch(() => {});
-      await rendering.promise;
-      if (active) setFailure(null);
-    }).catch(() => { if (active) setFailure({ url, message: "이 페이지를 표시하지 못했습니다. 새 창에서 원본을 확인해 주세요." }); });
-    return () => { active = false; rendering?.cancel(); };
-  }, [loaded, url, page, zoom, width]);
-
-  return <div>
-    <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
-      <button type="button" disabled={page <= 1 || !count} onClick={() => setPage(value => value - 1)} className="min-h-11 rounded-control border border-border px-3 disabled:opacity-40">이전 쪽</button>
-      <span role="status" className="px-2">{count ? `${page} / ${count}쪽` : "원본 읽는 중…"}</span>
-      <button type="button" disabled={!count || page >= count} onClick={() => setPage(value => value + 1)} className="min-h-11 rounded-control border border-border px-3 disabled:opacity-40">다음 쪽</button>
-      <button type="button" disabled={zoom <= 0.75} onClick={() => setZoom(value => Math.max(0.75, value - 0.25))} aria-label="원본 PDF 축소" className="min-h-11 min-w-11 rounded-control border border-border">−</button>
-      <span className="num" aria-label="PDF 확대 비율">{Math.round(zoom * 100)}%</span>
-      <button type="button" disabled={zoom >= 2} onClick={() => setZoom(value => Math.min(2, value + 0.25))} aria-label="원본 PDF 확대" className="min-h-11 min-w-11 rounded-control border border-border">+</button>
-      <a href={url} target="_blank" rel="noopener noreferrer" className="ml-auto inline-flex min-h-11 items-center rounded-control border border-border px-3">원본 파일 새 창에서 열기<span className="sr-only"> (새 창)</span></a>
+  return <div className="flex h-full min-h-0 flex-col gap-2" data-original-pdf-viewer>
+    <div className="flex shrink-0 flex-wrap items-center gap-2 text-xs">
+      <div role="group" aria-label="PDF 보기 방식" aria-describedby={helpId} className="flex rounded-control border border-border bg-surface p-1">
+        <button type="button" aria-pressed={mode === "original"} onClick={() => chooseMode("original")} className={`min-h-11 rounded-lg px-3 font-semibold ${mode === "original" ? "bg-card text-foreground shadow-sm" : "text-muted"}`}>브라우저 보기</button>
+        <button type="button" aria-pressed={mode === "canvas"} onClick={() => chooseMode("canvas")} className={`min-h-11 rounded-lg px-3 font-semibold ${mode === "canvas" ? "bg-card text-foreground shadow-sm" : "text-muted"}`}>앱에서 보기</button>
+      </div>
+      {onRefresh && <button type="button" onClick={onRefresh} className="min-h-11 rounded-control px-3 font-semibold text-muted-strong hover:bg-surface">다시 불러오기</button>}
+      <div className="ml-auto flex gap-2">
+        <button type="button" disabled={downloading} onClick={() => void downloadOriginal()} className="min-h-11 rounded-control border border-border px-3 font-semibold disabled:opacity-50">{downloading ? "저장 중…" : "원본 다운로드"}</button>
+        <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-control border border-border px-3 font-semibold">원본 새 창<span className="sr-only">에서 열기 (새 창)</span><span aria-hidden="true" className="ml-1">↗</span></a>
+      </div>
     </div>
-    {error ? <p role="alert" className="mb-3 rounded-control bg-fail-bg p-3 text-sm text-fail">{error}</p> : null}
-    <div ref={container} className="h-[calc(94dvh-128px)] min-h-48 overflow-auto rounded-control border border-border bg-slate-200 p-3">
-      <canvas ref={canvas} role="img" aria-label={`${filename} 원본 ${page}쪽`} className={`mx-auto bg-white shadow-sm ${count ? "block" : "hidden"}`} />
+    {downloadError && <p role="alert" className="shrink-0 text-xs text-fail">{downloadError}</p>}
+    <div id={helpId} className="shrink-0 rounded-control bg-surface px-3 py-2 text-xs leading-5 text-muted-strong">
+      <p>{mode === "original"
+        ? "Chrome·Safari에서는 브라우저 보기를 권장해요. GPT 브라우저에서 화면이 비어 있으면 ‘앱에서 보기’로 전환해 주세요."
+        : "Safari에서 표시되지 않으면 ‘브라우저 보기’로 전환해 주세요."}</p>
+      <p className="mt-0.5 text-muted">두 보기 모두 같은 원본 PDF를 사용해요. 계속 보이지 않으면 원본을 다운로드해 주세요.</p>
     </div>
+    {mode === "original" ? <iframe title={`${filename} 원본 PDF`} src={url} referrerPolicy="no-referrer" className="block min-h-[55dvh] w-full flex-1 rounded-control border border-border bg-slate-100" />
+      : <div className="min-h-0 flex-1 overflow-auto"><PdfCanvasViewer url={url} filename={filename} /></div>}
   </div>;
 }

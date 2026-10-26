@@ -13,7 +13,7 @@ vi.mock("../pdf-extractions/api", () => ({
 
 let root: Root | null;
 let uploads: ReturnType<typeof useReviewUploads>;
-let uploaded: ReturnType<typeof vi.fn>;
+let uploaded = vi.fn<() => void>();
 
 function mount() {
   uploaded = vi.fn();
@@ -67,6 +67,8 @@ describe("PDF 다중 업로드 접수", () => {
     expect(completePdfUpload).toHaveBeenCalledTimes(7);
     expect(uploads.rows).toHaveLength(0);
     expect(uploads.busy).toBe(false);
+    expect(uploads.notices).toHaveLength(7);
+    expect(uploads.notices.every(item => item.phase === "UPLOADED" && !("file" in item))).toBe(true);
   });
 
   it("파일 선택 입력을 비워도 복사된 7개 작업은 줄어들지 않는다", async () => {
@@ -156,5 +158,28 @@ describe("PDF 다중 업로드 접수", () => {
     const after = new Event("beforeunload", { cancelable: true });
     window.dispatchEvent(after);
     expect(after.defaultPrevented).toBe(false);
+  });
+
+  it("완료 알림을 지워도 실패한 파일의 재시도 작업은 남긴다", async () => {
+    mount();
+    const original = vi.mocked(preparePdfReviewUpload).getMockImplementation()!;
+    vi.mocked(preparePdfReviewUpload).mockImplementation(async (id, file) => {
+      if (file.name === "sample-2.pdf") throw new Error("temporary failure");
+      return original(id, file);
+    });
+    act(() => uploads.choose("review", files(3), 0));
+    await settle(() => expect(uploaded).toHaveBeenCalledTimes(2));
+    expect(uploads.busy).toBe(false);
+    expect(uploads.notices).toHaveLength(3);
+    act(() => uploads.clearUploaded("review"));
+    expect(uploads.notices).toHaveLength(1);
+    expect(uploads.rows).toHaveLength(1);
+    vi.mocked(preparePdfReviewUpload).mockImplementation(original);
+    act(() => { void uploads.retry(uploads.rows[0]); });
+    await settle(() => expect(uploaded).toHaveBeenCalledTimes(3));
+    expect(uploads.notices[0].phase).toBe("UPLOADED");
+    act(() => uploads.remove(uploads.notices[0].id));
+    expect(uploads.notices).toHaveLength(0);
+    expect(uploads.rows).toHaveLength(0);
   });
 });

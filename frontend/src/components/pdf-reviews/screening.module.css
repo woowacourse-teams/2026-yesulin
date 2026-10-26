@@ -1,6 +1,6 @@
 .root { color: var(--color-foreground, #111722); background: var(--color-surface, #f7f9fc); min-height: 100dvh; padding: 32px; font-size: 14px; }
-.root:has([data-pdf-processing-toast]) { --pdf-processing-toast-offset:144px; padding-bottom:calc(16px + var(--pdf-processing-toast-offset)); }
-.root:has([data-pdf-processing-toast][data-expanded=true]) { --pdf-processing-toast-offset:240px; }
+.root:has([data-pdf-processing-toast]) { --pdf-processing-toast-offset:88px; padding-bottom:calc(16px + var(--pdf-processing-toast-offset)); }
+.root:has([data-pdf-processing-toast][data-expanded=true]) { --pdf-processing-toast-offset:320px; }
 .controls * { box-sizing: border-box; }
 .controls button, .controls input, .controls select, .controls textarea { font: inherit; }
 .controls button, .controls select, .controls input:not([type=checkbox]), .controls textarea { border: 1px solid #dce3ec; border-radius: 10px; background: white; min-height: 44px; padding: 10px 12px; }
@@ -188,3 +188,69 @@
   .dropDescription { font-size:13px; }
 }
 @media(prefers-reduced-motion:reduce) { .uploadDropzone { transition:none; } }
+
+/* PDF 심사: 사진과 판정을 먼저, 정보와 관리 동작은 그 아래에 둔다. */
+.integrated .header { gap:8px 20px; padding-block:4px 8px; }
+.integrated .breadcrumb { flex:1; min-width:0; }
+.integrated .breadcrumb ol { flex-wrap:nowrap; gap:8px; }
+.integrated .breadcrumb li:last-child { flex:1; overflow:hidden; }
+.integrated .breadcrumb h1 { margin:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:16px; font-weight:600; line-height:1.5; letter-spacing:-.02em; }
+.integrated .breadcrumbSeparator { font-size:16px; }
+.integrated .controls .homeLink { padding:0 4px; color:var(--muted-strong); font-size:13px; }
+.integrated .header .reviewCounts { display:flex; flex-wrap:wrap; gap:12px; width:auto; padding:0; font-size:12px; line-height:1.5; color:var(--muted); }
+.integrated .reviewCounts span { padding:0; }
+.integrated .reviewCounts b { color:var(--muted-strong); font-weight:600; }
+.integrated .uploadToolbar { display:flex; flex-wrap:nowrap; align-items:center; gap:12px; padding:4px 0 8px; }
+.integrated .uploadToolbar .roleBar { order:0; flex:1; min-width:0; flex-basis:0; }
+.integrated .roleChips { gap:4px; padding:2px 0; scrollbar-width:thin; }
+.integrated .controls .roleChips button { min-height:44px; border:0; border-radius:8px; padding:8px 10px; background:transparent; font-size:13px; }
+.integrated .controls .roleChips button[aria-pressed=true] { color:var(--brand); background:var(--brand-soft); }
+.integrated .controls .roleChips button[aria-pressed=true]:hover { background:var(--brand-soft); border-color:transparent; }
+.integrated .controls .uploadAction { min-height:44px; margin:0; padding:8px 12px; gap:6px; font-size:13px; }
+.integrated .roleHint { margin:0 0 8px; font-size:12px; }
+.boardToolbar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px 20px; padding:4px 0 10px; margin-bottom:8px; border-bottom:1px solid var(--border); }
+.decisionTabs { display:flex; flex-shrink:0; gap:4px; }
+.decisionTabs button { display:flex; align-items:center; gap:6px; min-height:44px; padding:8px 12px; border-bottom:2px solid transparent; color:var(--muted); font-size:13px; font-weight:600; }
+.decisionTabs button[aria-pressed=true] { border-color:var(--foreground); color:var(--foreground); }
+.decisionTabs span { font-size:12px; }
+.viewTabs { display:flex; flex-shrink:0; margin-left:auto; padding:3px; border:1px solid var(--border); border-radius:10px; background:var(--surface); }
+.viewTabs button { min-height:44px; min-width:44px; padding:6px 12px; border-radius:7px; color:var(--muted); font-size:13px; font-weight:500; }
+.viewTabs button[aria-pressed=true] { background:var(--card); color:var(--foreground); box-shadow:0 1px 3px #11172215; }
+.focusReview { max-width:1400px; }
+.focusGrid { display:grid; grid-template-columns:minmax(0,1fr); align-items:start; gap:24px; min-width:0; }
+.photoColumn { display:flex; flex-direction:column; align-items:center; gap:8px; min-width:0; }
+.applicantPosition { display:flex; align-items:center; justify-content:space-between; min-height:24px; width:100%; color:var(--muted); font-size:12px; }
+.gallery { --review-photo-height:clamp(460px,72svh,880px); display:flex; justify-content:center; align-items:stretch; width:100%; min-width:0; gap:12px; }
+.photoFrame { position:relative; order:1; flex:0 1 auto; width:calc(var(--review-photo-height) * var(--review-photo-aspect, .75)); max-width:100%; aspect-ratio:var(--review-photo-aspect, .75); min-width:0; overflow:hidden; border:1px solid var(--border); border-radius:16px; background:var(--surface); }
+.gallery:has(.thumbnails) .photoFrame { max-width:calc(100% - 60px); }
+.thumbnails { contain:size; align-self:stretch; display:flex; order:0; flex:0 0 48px; flex-direction:column; min-width:0; gap:8px; overflow-x:hidden; overflow-y:auto; padding:2px; scrollbar-width:thin; }
+.thumbnails button { width:44px; height:60px; }
+.photoActions { width:100%; flex-shrink:0; padding:4px 0 12px; background:var(--background); }
+.profilePanel { width:100%; min-width:0; align-self:start; border:1px solid var(--border); border-radius:16px; background:var(--card); padding:20px; }
+.profileHeading { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; padding-bottom:12px; }
+.profileHeading h2 { font-size:14px; font-weight:600; color:var(--muted-strong); }
+.profileTools { display:flex; gap:6px; margin-left:auto; }
+.profileTools button { min-height:44px; padding:8px 10px; font-size:12px; }
+@media(min-width:1200px) {
+  .focusGrid { grid-template-columns:minmax(0,1fr) 360px; gap:28px; }
+  .gallery { --review-photo-height:clamp(520px,76svh,920px); }
+  .gallery:has(.thumbnails) .photoFrame { max-width:calc(100% - 68px); }
+  .thumbnails { flex-basis:56px; }
+  .thumbnails button { width:52px; height:72px; }
+
+  .profilePanel { position:sticky; top:80px; max-height:calc(100svh - 100px); overflow-y:auto; padding:20px; }
+}
+@media(max-width:700px) {
+  .integrated .header { flex-wrap:wrap; gap:0; }
+  .integrated .breadcrumb { flex-basis:100%; }
+  .integrated .header .reviewCounts { margin:0 0 4px 4px; gap:12px; }
+  .integrated .uploadToolbar { gap:8px; }
+  .decisionTabs button { padding:8px; gap:4px; }
+  .viewTabs button { padding:6px 9px; }
+  .boardToolbar { gap:4px 8px; }
+  .profilePanel { padding:16px; }
+}
+@media(max-width:700px) {
+  .photoActions { position:sticky; bottom:max(8px,env(safe-area-inset-bottom)); z-index:20; padding:10px 0 8px; border:1px solid var(--border); border-radius:16px; background:var(--card); box-shadow:0 4px 20px #1117220a; }
+  .root:has([data-review-actions]) [data-pdf-processing-toast] { bottom:calc(124px + env(safe-area-inset-bottom)); }
+}

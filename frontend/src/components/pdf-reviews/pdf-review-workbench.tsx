@@ -4,7 +4,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAuthSession } from "@/components/auth/auth-session";
 import { ModalShell } from "@/components/auditions/modal-shell";
 import { PrimaryButton, SecondaryButton } from "@/components/ui/controls";
-import { matchesFilter, type EntryFilter, type ReviewDetail, type ReviewKey } from "@/features/pdf-reviews/types";
+import { matchesDecision, matchesFilter, type DecisionFilter, type EntryFilter, type ReviewDetail, type ReviewKey } from "@/features/pdf-reviews/types";
 import { useReviewProgress } from "@/features/pdf-reviews/use-review-progress";
 import { usePdfReviews } from "@/features/pdf-reviews/use-pdf-reviews";
 import { useReviewUploads } from "@/features/pdf-reviews/use-review-uploads";
@@ -36,7 +36,7 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
   const [expired, setExpired] = useState(false);
   const [home, setHome] = useState(true);
   const [filter, setFilter] = useState<EntryFilter>("ALL");
-  const [after, setAfter] = useState(false);
+  const [decision, setDecision] = useState<DecisionFilter>("PENDING");
   const [view, setView] = useState<"single" | "card" | "table">("single");
   const [detailRefresh, setDetailRefresh] = useState(0);
   const [drag, setDrag] = useState(false);
@@ -50,7 +50,7 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
   const reviews = usePdfReviews({ enabled: authorized, onUnauthorized: markExpired });
   const { sync } = reviews;
   const review = reviews.detail;
-  const visible = review?.entries.filter(item => matchesFilter(item, filter) && (after ? item.decision !== "PENDING" : item.decision === "PENDING")) ?? [];
+  const visible = review?.entries.filter(item => matchesFilter(item, filter) && matchesDecision(item, decision)) ?? [];
   const onUploaded = useCallback(() => { clearTimeout(uploadSync.current); uploadSync.current = setTimeout(() => void sync(), 600); }, [sync]);
   useEffect(() => () => clearTimeout(uploadSync.current), []);
   const uploads = useReviewUploads({ onUploaded, onUnauthorized: markExpired });
@@ -63,16 +63,17 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
     reviewId: authorized && !home ? review?.id ?? null : null, uploading,
     refreshKey: `${detailRefresh}:${review?.entries.length ?? 0}`, onChanged: sync, onUnauthorized: markExpired,
   });
-  function openReview(id: ReviewKey) { navigate(() => { setFilter("ALL"); setAfter(false); setHome(false); reviews.open(id); }); }
-  function created(next: ReviewDetail) { closeCreate(); setFilter("ALL"); setAfter(false); setHome(false); reviews.created(next); }
+  function openReview(id: ReviewKey) { navigate(() => { setFilter("ALL"); setDecision("PENDING"); setHome(false); reviews.open(id); }); }
+  function created(next: ReviewDetail) { closeCreate(); setFilter("ALL"); setDecision("PENDING"); setHome(false); reviews.created(next); }
   function manualRefresh() { setExpired(false); setDetailRefresh(value => value + 1); void reviews.refresh(); }
   const chips: { value: EntryFilter; label: string }[] = [{ value: "ALL", label: "전체 배역" },
     ...(review?.roles ?? []).map(role => ({ value: { roleId: role.id }, label: role.name })), { value: "NEEDS_CHECK", label: "미기재" }];
   const filterKey = typeof filter === "object" ? String(filter.roleId) : filter;
-  const uploadProps = { reviewId: review?.id ?? "", rows: uploads.rows, busy: uploads.busy,
-    message: String(uploads.messageReviewId) === String(review?.id) ? uploads.message : "", disabled: expired,
+  const uploadProps = { busy: uploads.busy,
+    disabled: expired,
     onChoose: (files: FileList | readonly File[] | null) => { if (review) uploads.choose(review.id, files, review.entries.length); },
-    onUploadAll: () => { if (review) void uploads.uploadAll(review.id); }, onRetry: (row: typeof uploads.rows[number]) => void uploads.retry(row), onRemove: uploads.remove };
+  };
+  const uploadMessage = String(uploads.messageReviewId) === String(review?.id) ? uploads.message : "";
   return <div className={`${styles.root} ${home ? "" : `${styles.integrated} ${review?.entries.length ? styles.compactInbox : ""}`}`}
     onDragOver={event => { if (!home && event.dataTransfer.types.includes("Files")) { event.preventDefault(); event.dataTransfer.dropEffect = uploads.busy || expired ? "none" : "copy"; setDrag(!uploads.busy && !expired); } }}
     onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setDrag(false); }}
@@ -86,8 +87,8 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
         <ReviewList reviews={reviews.reviews} selectedId={reviews.selectedId} loading={reviews.listLoading} error={reviews.listError} onSelect={openReview} onRetry={() => void reviews.refresh()} />
       </div> : !review ? <p role="status" className="p-8">{reviews.detailError || "심사함을 불러오고 있습니다…"}</p> : <>
         <div className={`${styles.controls} px-4 md:px-6 xl:px-8`}>
-          <header className={styles.header}><nav className={styles.breadcrumb} aria-label="심사함 경로"><ol><li><button type="button" className={styles.homeLink} onClick={() => navigate(() => setHome(true))}>심사함</button></li><li aria-hidden="true" className={styles.breadcrumbSeparator}>›</li><li aria-current="page"><h1>{review.title}</h1></li></ol></nav>
-            <p className={styles.reviewCounts}>전체 {review.entries.length}명 <span>·</span> 심사 완료 {review.entries.filter(item => item.decision !== "PENDING").length}명</p>
+          <header className={styles.header}><nav className={styles.breadcrumb} aria-label="심사함 경로"><ol><li><button type="button" className={styles.homeLink} onClick={() => navigate(() => setHome(true))}>심사함</button></li><li aria-hidden="true" className={styles.breadcrumbSeparator}>›</li><li aria-current="page"><h1 title={review.title}>{review.title}</h1></li></ol></nav>
+            <p className={styles.reviewCounts}><span>전체 <b className="num">{review.entries.length}</b>명</span><span>판정 완료 <b className="num">{review.entries.filter(item => item.decision === "PASS" || item.decision === "FAIL").length}</b>명</span></p>
           </header>
           <ReviewUploadPanel {...uploadProps} inputRef={uploadInput}>
             <nav className={styles.roleBar} aria-label="배역별 지원자"><div className={styles.roleChips}>{chips.map(chip => {
@@ -99,9 +100,9 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
           {reviews.detailError && <p role="alert" className="text-fail">{reviews.detailError}</p>}
         </div>
         <div className="px-4 md:px-6 xl:px-8">
-          <div className="mb-2 flex flex-wrap items-center gap-3 border-b border-border py-2">
-            <div role="group" aria-label="심사 상태" className="flex gap-4">{[false,true].map(done => <button type="button" key={String(done)} aria-pressed={after === done} onClick={() => navigate(() => setAfter(done))} className={`min-h-10 border-b-2 text-sm font-semibold ${after === done ? "border-foreground" : "border-transparent text-muted"}`}>{done ? "심사 후" : "심사 전"} <span className="num ml-1">{review.entries.filter(item => done ? item.decision !== "PENDING" : item.decision === "PENDING").length}</span></button>)}</div>
-            <div role="group" aria-label="보기 방식" className="flex overflow-hidden rounded-control border border-border">{([['single','한 명씩'],['card','카드'],['table','표']] as const).map(([value,label]) => <button type="button" key={value} aria-pressed={view === value} onClick={() => navigate(() => setView(value))} className={`min-h-10 px-4 text-sm font-semibold ${view === value ? "bg-foreground text-white" : "text-muted-strong"}`}>{label}</button>)}</div>
+          <div className={styles.boardToolbar}>
+            <div role="group" aria-label="심사 상태" className={styles.decisionTabs}>{([['PENDING','대기'],['PASS','합격'],['FAIL','불합격']] as const).map(([value,label]) => <button type="button" key={value} aria-pressed={decision === value} onClick={() => navigate(() => setDecision(value))}>{label}<span className="num">{review.entries.filter(item => matchesFilter(item, filter) && matchesDecision(item, value)).length}</span></button>)}</div>
+            <div role="group" aria-label="보기 방식" className={styles.viewTabs}>{([['single','한 명씩'],['card','카드'],['table','표']] as const).map(([value,label]) => <button type="button" key={value} aria-pressed={view === value} onClick={() => navigate(() => setView(value))}>{label}</button>)}</div>
           </div>
           {!visible.length ? review.entries.length ? <div className={styles.emptyDrop}><h2>이 조건에 해당하는 지원자가 없습니다.</h2><p>배역이나 심사 상태를 바꿔 확인해 주세요.</p></div> :
             <button type="button" className={styles.uploadDropzone} data-dragging={drag} disabled={uploads.busy || expired} onClick={() => uploadInput.current?.click()} aria-labelledby="pdf-drop-title" aria-describedby="pdf-drop-description pdf-drop-limit">
@@ -111,11 +112,13 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
               <span className={styles.dropChoose} aria-hidden="true">{uploads.busy ? "업로드 중…" : "파일 선택하기"}<span aria-hidden="true">{uploads.busy ? "" : "→"}</span></span>
               <span id="pdf-drop-limit" className={styles.dropLimit}>PDF · 한 번에 최대 300개 · 파일당 최대 25MiB</span>
             </button>
-            : <ScreeningBoard key={`${review.id}-${filterKey}-${after}-${view}`} review={review} entries={visible} after={after} view={view} refreshKey={detailRefresh} onSaved={reviews.replaceEntry} onUnauthorized={markExpired} onDirtyChange={onDirtyChange} onApplicantOpened={recheckProgress} navigate={navigate} />}
+            : <ScreeningBoard key={`${review.id}-${filterKey}-${decision}-${view}`} review={review} entries={visible} decision={decision} view={view} refreshKey={detailRefresh} onSaved={reviews.replaceEntry} onUnauthorized={markExpired} onDirtyChange={onDirtyChange} onApplicantOpened={recheckProgress} navigate={navigate} />}
         </div>
       </>}
     </>}
-    {authorized && !home && review && <ReviewProcessingProgress key={review.id} progress={progress} uploading={uploading} uploadMessage={uploadProps.message} error={progressError} onRetry={manualRefresh} />}
+    {authorized && !home && review && <ReviewProcessingProgress key={review.id} progress={progress} uploading={uploading} uploadMessage={uploadMessage} uploadError={String(uploads.messageReviewId) === String(review.id) ? uploads.validationError : ""} error={progressError} onRetry={manualRefresh}
+      notices={uploads.notices.filter(item => String(item.reviewId) === String(review.id))} rows={uploads.rows}
+      uploadBusy={uploads.busy} disabled={expired} onRemove={uploads.remove} onClearUploaded={() => uploads.clearUploaded(review.id)} onRetryUpload={row => void uploads.retry(row)} />}
     <ModalShell open={authorized && createOpen} onClose={() => { if (!createBusy) closeCreate(); }} labelledBy="create-review-title" className={`${styles.createDialog} ${styles.controls} w-[calc(100vw-32px)] max-w-lg max-h-[90dvh] overflow-y-auto rounded-modal bg-card p-6 shadow-xl`}>
       <header className="flex items-center justify-between gap-3"><h2 id="create-review-title" className="text-lg font-bold">심사함 추가하기</h2><SecondaryButton onClick={closeCreate} disabled={createBusy} aria-label="심사함 추가 닫기">닫기</SecondaryButton></header>
       {createOpen && <ReviewCreateForm onCreated={created} onUnauthorized={markExpired} onBusyChange={setCreateBusy} />}

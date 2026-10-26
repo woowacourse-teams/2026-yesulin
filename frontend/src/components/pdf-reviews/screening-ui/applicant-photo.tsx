@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useState, type ReactEventHandler } from "react";
 import type { ApplicantPhoto } from "@/features/pdf-reviews/screening-types";
 
 type ApplicantPhotoImageProps = {
@@ -11,6 +11,7 @@ type ApplicantPhotoImageProps = {
   className?: string;
   priority?: boolean;
   emptyMessage?: string;
+  onLoad?: ReactEventHandler<HTMLImageElement>;
 };
 
 /** 비공개 사진은 브라우저가 세션 Cookie를 포함해 원본 콘텐츠 API를 직접 조회한다. */
@@ -26,6 +27,7 @@ function PhotoImage({
   sizes,
   className = "object-cover object-[center_20%]",
   priority = false,
+  onLoad,
 }: ApplicantPhotoImageProps & { photo: ApplicantPhoto }) {
   const [failed, setFailed] = useState(false);
 
@@ -42,6 +44,7 @@ function PhotoImage({
       className={className}
       // 브라우저 기본 끌어놓기가 시작되면 드래그 조작을 가로채 화면이 멈춘 것처럼 보인다.
       draggable={false}
+      onLoad={onLoad}
       onError={() => setFailed(true)}
     />
   );

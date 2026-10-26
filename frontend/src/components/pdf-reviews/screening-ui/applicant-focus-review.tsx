@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type CSSProperties } from "react";
 import { applicantEducationText } from "@/features/auditions/education-text";
 import { orderedCareersByRecency } from "@/features/auditions/featured-careers";
 import { selectGalleryIndex } from "@/features/auditions/gallery-navigation";
@@ -16,6 +16,7 @@ import { ZoomablePhoto } from "./zoomable-photo";
 import { PdfCareerList } from "@/components/pdf-reviews/career-list";
 import { ScreeningReferencePanel } from "./screening-reference-panel";
 import { StatusBadge } from "@/components/auditions/status-badge";
+import styles from "../screening.module.css";
 
 /**
  * 목록의 필터 결과 안에서 한 지원자에게만 집중하는 심사 화면이다.
@@ -90,13 +91,12 @@ function FocusReviewContent({
   const photoTrigger = useRef<"image" | "toolbar">("image");
   const sectionRef = useRef<HTMLElement>(null);
   const focusHeight = useViewportFitHeight(sectionRef);
-  const photoFrameRef = useRef<HTMLDivElement>(null);
-  const actionsRef = useRef<HTMLDivElement>(null);
 
+  const [photoAspect, setPhotoAspect] = useState<{ url: string; ratio: number } | null>(null);
   const photoCount = applicant.photos.length;
   const currentPhoto = selectGalleryIndex(photoIndex, photoCount);
   const photo = currentPhoto === null ? undefined : applicant.photos[currentPhoto];
-  const pdfPhotoSize = usePdfPhotoSize(photoFrameRef, actionsRef, pdfProfile, photo?.url);
+  const aspect = photoAspect?.url === photo?.url ? photoAspect?.ratio ?? 3 / 4 : 3 / 4;
 
   const showPrevious = useCallback(() => setPhotoIndex((slot) => Math.max(0, slot - 1)), []);
   const showNext = useCallback(
@@ -169,26 +169,24 @@ function FocusReviewContent({
       ref={sectionRef}
       aria-label="한 명씩 심사"
       style={pdfProfile || focusHeight === null ? undefined : { height: `${focusHeight}px` }}
-      className={`mx-auto flex w-full flex-col gap-3 ${pdfProfile ? "max-w-[1100px]" : "max-w-6xl"}`}
+      className={`mx-auto flex w-full flex-col gap-3 ${pdfProfile ? styles.focusReview : "max-w-6xl"}`}
     >
 
-      {pdfProfile && <header className="flex shrink-0 flex-wrap items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2">{onBack && <button type="button" onClick={onBack} aria-label="← 목록으로" title="목록으로" className="grid h-11 w-11 shrink-0 place-items-center rounded-control border border-border text-brand hover:bg-surface">←</button>}<div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h2 className="text-xl font-bold">{applicant.name}</h2><StatusBadge status={applicant.review.status} memo={applicant.review.memo} /></div><p className="mt-1 text-sm text-muted">{applicant.roleName} · {index + 1} / {rows.length}</p></div></div>
-        <div className="ml-auto flex items-center gap-2">{assignRoles && <SecondaryButton disabled={saving} onClick={() => assignRoles([applicant.id])}>배역 변경</SecondaryButton>}
-        {renderDocument && <SecondaryButton aria-expanded={documentOpen} onClick={() => setDocumentOpen(open => !open)}>{documentOpen ? "PDF 닫기" : "원본 PDF 보기"}</SecondaryButton>}</div>
-      </header>}
-      <div className={`grid min-h-0 min-w-0 flex-1 grid-cols-[minmax(0,1fr)] gap-5 ${pdfProfile ? "lg:grid-cols-[minmax(0,1fr)_320px]" : "lg:grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[minmax(0,1fr)_340px]"}`}>
-        <div className="flex min-h-0 min-w-0 flex-col items-center gap-3">
+      <div className={pdfProfile ? styles.focusGrid : "grid min-h-0 min-w-0 flex-1 grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[minmax(0,1fr)_340px]"}>
+        <div className={pdfProfile ? styles.photoColumn : "flex min-h-0 min-w-0 flex-col items-center gap-3"}>
+          {pdfProfile && <div className={styles.applicantPosition}>
+            {onBack && <button type="button" onClick={onBack} className="min-h-11 rounded-control px-3 text-sm font-semibold text-muted-strong">← 목록</button>}
+            <span className="num">지원자 {index + 1} / {rows.length}</span>
+          </div>}
           {/*
             썸네일을 사진 옆에 세워 두면 세로 높이를 사진이 그대로 쓴다.
             넓은 화면에서는 안쪽을 절대 배치로 채워 사진 높이가 남은 공간으로 확정되게 한다.
             그러지 않으면 사진의 가로세로비가 부모를 밀어 올려 화면 밖으로 넘친다.
           */}
           <div className={pdfProfile ? "relative flex w-full justify-center" : "relative min-h-0 w-full flex-1"}>
-          <div className={`flex w-full gap-3 ${pdfProfile ? "flex-row items-stretch justify-center" : "flex-col items-center lg:absolute lg:inset-0 lg:flex-row lg:items-stretch lg:justify-center"}`}>
+          <div style={pdfProfile ? { "--review-photo-aspect": aspect } as CSSProperties : undefined} className={pdfProfile ? styles.gallery : "flex w-full gap-3 flex-col items-center lg:absolute lg:inset-0 lg:flex-row lg:items-stretch lg:justify-center"}>
             {photoCount > 1 ? (
-              <div style={pdfProfile && pdfPhotoSize !== null ? { maxHeight: pdfPhotoSize.height } : undefined}
-                className={`scrollbar-hidden flex max-w-full shrink-0 gap-2 ${pdfProfile ? "order-1 max-h-[max(331.2px,51.84dvh)] flex-col overflow-x-hidden overflow-y-auto lg:max-h-[max(489.6px,calc(72dvh-165.6px))]" : "order-2 overflow-x-auto lg:order-1 lg:flex-col lg:overflow-x-hidden lg:overflow-y-auto lg:pr-0.5"}`}>
+              <div className={pdfProfile ? styles.thumbnails : "scrollbar-hidden flex max-w-full shrink-0 gap-2 order-2 overflow-x-auto lg:order-1 lg:flex-col lg:overflow-x-hidden lg:overflow-y-auto lg:pr-0.5"}>
                 {applicant.photos.map((candidate, slot) => (
                   <button
                     key={candidate.url}
@@ -196,7 +194,7 @@ function FocusReviewContent({
                     aria-pressed={slot === currentPhoto}
                     title={candidate.label}
                     onClick={() => setPhotoIndex(slot)}
-                    className={`relative aspect-[3/4] shrink-0 overflow-hidden rounded-lg border-2 bg-border-soft transition-[border-color,box-shadow,transform] duration-150 active:scale-[0.97] ${pdfProfile ? "h-auto w-11 lg:w-14" : "h-14 w-auto lg:h-auto lg:w-14"} ${
+                    className={`relative aspect-[3/4] shrink-0 overflow-hidden rounded-lg border-2 bg-border-soft transition-[border-color,box-shadow,transform] duration-150 active:scale-[0.97] ${pdfProfile ? "h-16 w-12 lg:h-auto lg:w-14" : "h-14 w-auto lg:h-auto lg:w-14"} ${
                       slot === currentPhoto
                         ? "border-brand shadow-[var(--shadow-selection-soft)]"
                         : "border-transparent hover:border-muted-soft"
@@ -208,11 +206,17 @@ function FocusReviewContent({
                 ))}
               </div>
             ) : null}
-            <div ref={photoFrameRef} style={pdfProfile && pdfPhotoSize !== null ? { ...pdfPhotoSize, width: photo ? pdfPhotoSize.width : "min(100%, 420px)" } : undefined} data-review-photo className={pdfProfile ? "relative order-2 h-[60dvh] min-w-0 w-[min(100%,420px)] shrink-0 overflow-hidden rounded-card border border-border bg-border-soft" : "relative order-1 aspect-[3/4] w-full max-w-[340px] overflow-hidden rounded-card border border-border bg-border-soft lg:order-2 lg:h-full lg:max-h-[600px] lg:w-auto lg:max-w-full"}>
+            <div data-review-photo className={pdfProfile ? styles.photoFrame : "relative order-1 aspect-[3/4] w-full max-w-[340px] overflow-hidden rounded-card border border-border bg-border-soft lg:order-2 lg:h-full lg:max-h-[600px] lg:w-auto lg:max-w-full"}>
             {photo ? (
               <>
                 {/* 휠로 바로 확대·이동하고, 누르면 전체 화면으로 연다. */}
-                {pdfProfile ? <button type="button" aria-label="사진 크게 보기" onClick={() => { photoTrigger.current = "image"; setExpanded(true); }} className="relative block h-full w-full cursor-zoom-in"><ApplicantPhotoImage photo={photo} alt={`${applicant.name} ${photo.label}`} sizes="(min-width: 1024px) 65vw, 94vw" className="object-contain" priority /></button> : <ZoomablePhoto
+                {pdfProfile ? <button type="button" aria-label="사진 크게 보기" onClick={() => { photoTrigger.current = "image"; setExpanded(true); }} className="relative block h-full w-full cursor-zoom-in"><ApplicantPhotoImage photo={photo} alt={`${applicant.name} ${photo.label}`} sizes="(min-width: 1024px) 65vw, 94vw" className="object-contain" priority onLoad={event => {
+                  const image = event.currentTarget;
+                  if (image.naturalWidth > 0 && image.naturalHeight > 0) {
+                    const ratio = image.naturalWidth / image.naturalHeight;
+                    setPhotoAspect(current => current?.url === photo.url && current.ratio === ratio ? current : { url: photo.url, ratio });
+                  }
+                }} /></button> : <ZoomablePhoto
                   key={currentPhoto}
                   photo={photo}
                   alt={`${applicant.name} ${photo.label}`}
@@ -269,7 +273,7 @@ function FocusReviewContent({
               마감된 전형은 결과를 변경할 수 없습니다.
             </p>
           ) : (
-            <div ref={actionsRef} data-review-actions role="group" aria-label="지원자 심사 판정" className="shrink-0">
+            <div data-review-actions role="group" aria-label="지원자 심사 판정" className={pdfProfile ? styles.photoActions : "shrink-0"}>
               <div className="flex shrink-0 items-start justify-center gap-2 max-[360px]:gap-1 sm:gap-3">
               <FocusAction caption="이전" label="이전 지원자" tone="neutral" size="sm" disabled={!previous} onClick={() => navigate(previous)}>
                 <UndoIcon />
@@ -350,12 +354,20 @@ function FocusReviewContent({
 
           {decided && filters.work === "DONE" && !reviewLocked ? (
             <SecondaryButton disabled={saving} onClick={() => void saveDecision("PENDING")} className="min-h-9 shrink-0 px-3 text-xs text-muted-strong">
-              심사 전으로 되돌리기
+              대기로 되돌리기
             </SecondaryButton>
           ) : null}
         </div>
 
-        <aside className={`min-h-0 rounded-card border border-border bg-card p-4 lg:p-5 ${pdfProfile ? "self-start w-full lg:sticky lg:top-16 lg:max-h-[calc(100dvh-80px)] lg:overflow-y-auto" : "overflow-y-auto"}`}>
+        <aside aria-label="지원자 정보" className={pdfProfile ? styles.profilePanel : "min-h-0 rounded-card border border-border bg-card p-4 lg:p-5 overflow-y-auto"}>
+          {pdfProfile && <>
+            <div className={styles.profileHeading}><h2>지원자 정보</h2><div className={styles.profileTools}>
+              {assignRoles && <SecondaryButton disabled={saving} onClick={() => assignRoles([applicant.id])}>배역 변경</SecondaryButton>}
+              {renderDocument && <SecondaryButton aria-expanded={documentOpen} onClick={() => setDocumentOpen(open => !open)}>{documentOpen ? "PDF 닫기" : "원본 PDF"}</SecondaryButton>}
+            </div></div>
+            <InfoRow label="이름"><p className="font-semibold">{applicant.name}</p></InfoRow>
+            <InfoRow label="배역">{applicant.roleName}</InfoRow>
+          </>}
           {!pdfProfile && <SecondaryButton onClick={() => openApplicant(applicant.id)} className="mb-3 min-h-9 w-full text-xs">
             상세 지원서 보기
           </SecondaryButton>}
@@ -415,7 +427,7 @@ function FocusReviewContent({
             </SecondaryButton>
           </FocusSection>
 
-          <p className="mt-4 border-t border-border-soft pt-3 text-xs leading-5 text-muted">
+          <p className="mt-4 hidden border-t border-border-soft pt-3 text-xs leading-5 text-muted lg:block">
             <Shortcut>A</Shortcut> 합격 · <Shortcut>D</Shortcut> 불합격 · <Shortcut>N</Shortcut> 다음 · <Shortcut>←</Shortcut><Shortcut>→</Shortcut> 사진
           </p>
         </aside>
@@ -446,49 +458,6 @@ function ReviewReasonPanel({ modal, onClose, children }: { modal: boolean; onClo
     <h2 id="review-reason-title" className="mb-3 text-lg font-bold">보류 사유 입력</h2>
     {children}
   </ModalShell>;
-}
-
-/** 원본 사진 비율로 틀을 맞춰 여백·잘림 없이 표시하고 판정 버튼 높이를 남긴다. */
-function usePdfPhotoSize(
-  photoRef: React.RefObject<HTMLDivElement | null>,
-  actionsRef: React.RefObject<HTMLDivElement | null>,
-  enabled: boolean,
-  photoUrl: string | undefined,
-) {
-  const [size, setSize] = useState<{ height: number; width: number } | null>(null);
-  useLayoutEffect(() => {
-    const photo = photoRef.current;
-    const actions = actionsRef.current;
-    if (!enabled || !photo || !actions) return;
-    const update = () => {
-      const top = photo.getBoundingClientRect().top + window.scrollY;
-      const toastOffset = Number.parseFloat(getComputedStyle(photo).getPropertyValue("--pdf-processing-toast-offset")) || 0;
-      const available = window.innerHeight - top - actions.offsetHeight - 24 - toastOffset;
-      const gallery = photo.parentElement;
-      const thumbnails = photo.previousElementSibling;
-      const railWidth = thumbnails ? thumbnails.getBoundingClientRect().width + 12 : 0;
-      const availableWidth = (gallery?.clientWidth ?? photo.clientWidth) - railWidth;
-      const image = photo.querySelector("img");
-      const ratio = image?.naturalWidth && image.naturalHeight ? image.naturalWidth / image.naturalHeight : 3 / 4;
-      const controlsHeight = (photo.querySelector<HTMLElement>("[data-photo-controls]")?.offsetHeight ?? 0) + 2;
-      const minimumHeight = toastOffset ? 96 : 160;
-      const imageHeight = Math.max(1, Math.min(Math.max(minimumHeight, available) - controlsHeight, (availableWidth - 2) / ratio));
-      const next = { height: imageHeight + controlsHeight, width: imageHeight * ratio + 2 };
-      setSize(current => current?.height === next.height && current.width === next.width ? current : next);
-    };
-    update();
-    const frame = requestAnimationFrame(update);
-    const observer = new ResizeObserver(update);
-    observer.observe(actions);
-    photo.addEventListener("load", update, true);
-    for (let node: HTMLElement | null = photo.parentElement; node; node = node.parentElement) {
-      observer.observe(node);
-      if (node.id === "producer-main") break;
-    }
-    window.addEventListener("resize", update);
-    return () => { cancelAnimationFrame(frame); observer.disconnect(); photo.removeEventListener("load", update, true); window.removeEventListener("resize", update); };
-  }, [photoRef, actionsRef, enabled, photoUrl]);
-  return size;
 }
 
 /** 화면 아래 여백. 카드가 창 바닥에 딱 붙지 않도록 조금 남긴다. */
@@ -638,7 +607,7 @@ function GalleryArrow({ label, direction, disabled, onClick }: { label: string; 
 
 function InfoRow({ label, children }: { readonly label: string; readonly children: ReactNode }) {
   return (
-    <div className="flex gap-3 border-b border-border-soft py-1.5 text-sm first:pt-0">
+    <div className="flex gap-4 border-b border-border-soft py-3 text-sm leading-6 first:pt-0">
       <span className="w-14 shrink-0 text-muted">{label}</span>
       <span className="min-w-0 break-words font-medium text-foreground">{children}</span>
     </div>
@@ -648,7 +617,7 @@ function InfoRow({ label, children }: { readonly label: string; readonly childre
 function FocusSection({ title, children }: { readonly title: string; readonly children: ReactNode }) {
   return (
     <section className="mt-4">
-      <h3 className="mb-1.5 text-xs font-bold uppercase tracking-wide text-muted">{title}</h3>
+      <h3 className="mb-3 text-sm font-semibold text-muted-strong">{title}</h3>
       {children}
     </section>
   );
