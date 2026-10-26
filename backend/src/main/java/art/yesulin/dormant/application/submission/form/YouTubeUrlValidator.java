@@ -1,6 +1,6 @@
 package art.yesulin.dormant.application.submission.form;
 
-import art.yesulin.dormant.domain.video.YouTubeVideoUrl;
+import art.yesulin.global.validation.YouTubeVideoUrl;
 import org.springframework.stereotype.Component;
 
 @Component
