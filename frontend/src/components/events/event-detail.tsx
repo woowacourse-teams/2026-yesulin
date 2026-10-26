@@ -1,6 +1,7 @@
 "use client";
 
 import { ContentState, ContentSkeleton } from "@/components/ui/content-state";
+import { ImageLightbox } from "@/components/ui/image-lightbox";
 import { ScreenError } from "@/components/auditions/screen-status";
 import { AuditionRequestError } from "@/features/auditions/api-client";
 import { PrimaryLink, SecondaryLink } from "@/components/ui/controls";
@@ -46,9 +47,10 @@ export function EventRoute({ eventId, initial }: { readonly eventId: string; rea
 function EventDetail({ event }: { readonly event: PublicEvent }) {
   const period = formatEventPeriod(event.startsOn, event.endsOn);
   const ended = event.phase === "ENDED";
+  const hasAction = Boolean(event.registrationEnabled || event.applyUrl);
   return (
-    <article className="mt-3 overflow-hidden rounded-card border border-border bg-card">
-      <header className="border-b border-border-soft px-5 py-6 sm:px-8 sm:py-8">
+    <article className={`event-detail ${event.coverImageUrl ? "event-detail--with-image" : ""} ${hasAction ? "event-detail--with-action" : ""} mt-3 overflow-hidden rounded-card border border-border bg-card`}>
+      <header className="event-detail-header border-b border-border-soft px-5 py-6 sm:px-8 sm:py-8">
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <EventPhaseBadge phase={event.phase} />
           {period ? <span className="num text-muted-strong">{period}</span> : null}
@@ -56,12 +58,12 @@ function EventDetail({ event }: { readonly event: PublicEvent }) {
         <h1 className="mt-3 break-words text-[clamp(24px,3.4vw,32px)] font-bold leading-snug tracking-[-0.03em]">{event.title}</h1>
         {event.summary ? <p className="mt-2 text-base leading-7 text-muted-strong">{event.summary}</p> : null}
       </header>
-      {event.coverImageUrl ? <EventImage src={event.coverImageUrl} className="border-b border-border-soft object-contain" /> : null}
-      <div className="px-5 py-6 sm:px-8">
+      {event.coverImageUrl ? <EventDetailImage key={event.coverImageUrl} src={event.coverImageUrl} title={event.title} /> : null}
+      <div className="event-detail-body px-5 py-6 sm:px-8">
         <p className="whitespace-pre-line text-[15px] leading-7 text-muted-strong">{event.body}</p>
       </div>
-      {event.registrationEnabled || event.applyUrl ? (
-        <footer className="border-t border-border-soft px-5 py-5 sm:px-8">
+      {hasAction ? (
+        <footer className="event-detail-action border-t border-border-soft px-5 py-5 sm:px-8">
           {ended ? (
             <p className="text-sm font-semibold text-muted-strong">마감된 이벤트예요. 다음 모집 소식은 이벤트 목록에서 알려 드릴게요.</p>
           ) : event.registrationEnabled ? (
@@ -79,7 +81,58 @@ function EventDetail({ event }: { readonly event: PublicEvent }) {
           ) : null}
         </footer>
       ) : null}
+      <EventDetailContent event={event} />
     </article>
+  );
+}
+
+/** 목록용 자르기와 별개로 상세 이미지 전체를 확대해서 읽는다. */
+function EventDetailImage({ src, title }: { readonly src: string; readonly title: string }) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div className="event-detail-media">
+      <button
+        type="button"
+        aria-label={`${title} 이미지 크게 보기`}
+        aria-haspopup="dialog"
+        onClick={() => setExpanded(true)}
+        className="event-detail-image relative block w-full cursor-zoom-in text-left"
+      >
+        <EventImage src={src} className="border-b border-border-soft object-contain" />
+        <span className="pointer-events-none absolute bottom-3 right-3 rounded-control bg-foreground/75 px-3 py-2 text-xs font-semibold text-white">크게 보기</span>
+      </button>
+      {expanded ? <ImageLightbox title={title} imageUrls={[src]} onClose={() => setExpanded(false)} /> : null}
+    </div>
+  );
+}
+
+
+/** 자유 형식 개요와 분리한 선택적 하단 상세 설명·이미지. */
+function EventDetailContent({ event }: { readonly event: PublicEvent }) {
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const imageUrls = event.detailImageUrls ?? [];
+  if (!event.detailBody && imageUrls.length === 0) return null;
+  return (
+    <section className="event-detail-content border-t border-border-soft px-5 py-6 sm:px-8" aria-label="상세 안내">
+      <div className="mx-auto max-w-[760px]">
+        <h2 className="text-xl font-bold">상세 안내</h2>
+        {event.detailBody ? <p className="mt-6 whitespace-pre-line wrap-break-word text-[15px] leading-7 text-muted-strong">{event.detailBody}</p> : null}
+        {imageUrls.length > 0 ? <div className="mt-8 space-y-6">
+          {imageUrls.map((url, index) => <button
+            key={url}
+            type="button"
+            aria-label={`${event.title} 상세 이미지 ${index + 1} 크게 보기`}
+            aria-haspopup="dialog"
+            onClick={() => setOpenIndex(index)}
+            className="relative block w-full cursor-zoom-in overflow-hidden rounded-card border border-border text-left"
+          >
+            <EventImage src={url} />
+            <span className="pointer-events-none absolute bottom-3 right-3 rounded-control bg-foreground/75 px-3 py-2 text-xs font-semibold text-white">크게 보기</span>
+          </button>)}
+        </div> : null}
+      </div>
+      {openIndex !== null ? <ImageLightbox title={event.title} imageUrls={imageUrls} index={openIndex} onSelect={setOpenIndex} onClose={() => setOpenIndex(null)} /> : null}
+    </section>
   );
 }
 

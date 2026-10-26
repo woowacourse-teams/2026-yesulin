@@ -116,6 +116,34 @@ class EventTest {
         assertThrows(BusinessException.class, () -> event.changeStatus(EventStatus.PENDING, NOW));
     }
 
+    @Test
+    void overviewAndDetailTextAreIndependentAndKeepLineBreaks() {
+        Event event = event(new EventContent(
+                "제목", null, " 자유 개요\r\n둘째 줄 ", null, null, null, null,
+                false, null, " 자세한 설명\r\n다음 줄 "
+        ));
+
+        assertEquals("자유 개요\n둘째 줄", event.getBody());
+        assertEquals("자세한 설명\n다음 줄", event.getDetailBody());
+        assertThrows(BusinessException.class, () -> event(new EventContent(
+                "제목", null, "개요", null, null, null, null, false, null, "가".repeat(5001)
+        )));
+    }
+
+    @Test
+    void detailImagesPreserveOrderAndRejectDuplicatesAndExcess() {
+        EventImages images = new EventImages(null, null, null, java.util.List.of("second", "first"));
+
+        assertEquals(java.util.List.of("second", "first"), images.detailKeys());
+        assertThrows(UnsupportedOperationException.class, () -> images.detailKeys().add("third"));
+        assertThrows(BusinessException.class, () -> new EventImages(null, null, null,
+                java.util.List.of("same", "same")));
+        assertThrows(BusinessException.class, () -> new EventImages(null, null, null,
+                java.util.List.of(" ")));
+        assertThrows(BusinessException.class, () -> new EventImages(null, null, null,
+                java.util.stream.IntStream.range(0, 11).mapToObj(Integer::toString).toList()));
+    }
+
     private static Event event(EventContent content) {
         return new Event(content, EventBannerSetting.disabled(), EventImages.none(), 1L, NOW);
     }

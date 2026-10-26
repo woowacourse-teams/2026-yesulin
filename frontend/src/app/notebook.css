@@ -1229,3 +1229,73 @@
   .notebook-post-grid { gap:20px; }
   .notebook-post-card h2+p { margin-bottom:16px; }
 }
+
+
+/* PC에서는 포스터와 안내를 나란히 두고 모바일의 읽기 순서를 유지한다. */
+@media (min-width:1100px) {
+  .event-detail {
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+    grid-template-rows:max-content max-content minmax(0,1fr);
+    column-gap:48px;
+    row-gap:24px;
+    max-width:760px;
+    margin-inline:auto;
+    overflow:visible;
+    border:0;
+    border-radius:0;
+    background:transparent;
+  }
+  .event-detail--with-image {
+    grid-template-columns:minmax(0,360px) minmax(0,1fr);
+    max-width:none;
+  }
+  .event-detail-header {
+    grid-column:-2 / -1;
+    grid-row:1;
+    min-width:0;
+    padding:8px 0 0;
+    border:0;
+  }
+  .event-detail-header h1 { margin-top:16px; }
+  .event-detail-header h1+p { margin-top:16px; }
+  .event-detail-media {
+    grid-column:1;
+    grid-row:1 / span 3;
+    align-self:start;
+    position:sticky;
+    top:120px;
+    overflow:hidden;
+    border:1px solid var(--line);
+    border-radius:var(--radius-card);
+    background:var(--white);
+  }
+  .event-detail-media img {
+    max-height:min(720px,calc(100dvh - 176px));
+    border:0;
+  }
+  .event-detail-body {
+    grid-column:-2 / -1;
+    grid-row:2;
+    min-width:0;
+    padding:0;
+    overflow-wrap:anywhere;
+  }
+  .event-detail--with-action .event-detail-body { grid-row:3; }
+  .event-detail-action {
+    grid-column:-2 / -1;
+    grid-row:2;
+    padding:0 0 24px;
+    border-top:0;
+    border-bottom:1px solid var(--line);
+  }
+  .event-detail-action a { min-width:200px; min-height:48px; }
+  .event-detail-content {
+    grid-column:1 / -1;
+    grid-row:4;
+    margin-top:24px;
+    padding:40px 0 0;
+  }
+}
+
+.public-notebook .event-detail-image:focus-visible { outline-offset:-4px; }

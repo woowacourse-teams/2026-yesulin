@@ -599,6 +599,8 @@ export type AdminEvent = {
   readonly title: string;
   readonly summary: string | null;
   readonly body: string;
+  readonly detailBody: string | null;
+  readonly detailImageUrls: readonly string[];
   readonly startsOn: string | null;
   readonly endsOn: string | null;
   readonly applyUrl: string | null;
@@ -622,6 +624,8 @@ export type AdminEventWrite = {
   readonly title: string;
   readonly summary: string | null;
   readonly body: string;
+  readonly detailBody: string | null;
+  readonly detailImageUrls: readonly string[];
   readonly startsOn: string | null;
   readonly endsOn: string | null;
   readonly applyUrl: string | null;

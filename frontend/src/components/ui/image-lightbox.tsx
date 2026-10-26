@@ -1,24 +1,23 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { FallbackImage as Image } from "@/components/ui/fallback-image";
 import { MODAL_LAYERS, ModalShell } from "@/components/auditions/modal-shell";
 
-const TITLE_ID = "show-image-lightbox-title";
-
-export function ShowImageLightbox({ title, imageUrls, index, onSelect, onClose }: {
+export function ImageLightbox({ title, imageUrls, index = 0, onSelect, onClose }: {
   readonly title: string;
   readonly imageUrls: readonly string[];
-  readonly index: number;
-  readonly onSelect: (index: number) => void;
+  readonly index?: number;
+  readonly onSelect?: (index: number) => void;
   readonly onClose: () => void;
 }) {
+  const titleId = useId();
   const [zoomed, setZoomed] = useState(false);
   const imageFrameRef = useRef<HTMLDivElement>(null);
 
   const selectImage = useCallback((nextIndex: number) => {
     setZoomed(false);
-    onSelect(nextIndex);
+    onSelect?.(nextIndex);
   }, [onSelect]);
 
   useEffect(() => {
@@ -69,13 +68,13 @@ export function ShowImageLightbox({ title, imageUrls, index, onSelect, onClose }
     <ModalShell
       open
       onClose={onClose}
-      labelledBy={TITLE_ID}
+      labelledBy={titleId}
       layer={MODAL_LAYERS.video}
       scrimClassName="bg-foreground/85"
-      className="flex h-[calc(100dvh-24px)] max-h-[960px] w-[calc(100vw-24px)] max-w-[1200px] flex-col overflow-hidden break-keep rounded-modal wrap-break-word bg-sidebar shadow-[var(--shadow-modal)]"
+      className="public-theme flex h-[calc(100dvh-24px)] max-h-[960px] w-[calc(100vw-24px)] max-w-[1200px] flex-col overflow-hidden break-keep rounded-modal wrap-break-word bg-sidebar shadow-[var(--shadow-modal)]"
     >
       <header className="flex min-h-16 items-center gap-3 border-b border-white/10 px-4 text-white sm:px-5">
-        <h2 id={TITLE_ID} className="min-w-0 flex-1 truncate text-base font-semibold text-white">{title} · 상세 이미지</h2>
+        <h2 id={titleId} className="min-w-0 flex-1 truncate text-base font-semibold text-white">{title} · 상세 이미지</h2>
         <span className="num shrink-0 text-sm text-white/65">{index + 1} / {imageUrls.length}</span>
         <button type="button" onClick={onClose} className="min-h-11 rounded-control px-3 text-sm font-semibold text-white/80 hover:bg-white/10 hover:text-white">닫기</button>
       </header>

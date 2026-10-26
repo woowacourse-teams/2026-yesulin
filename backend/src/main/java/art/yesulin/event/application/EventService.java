@@ -19,8 +19,9 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -83,9 +84,7 @@ public class EventService {
         EventImages previous = event.images();
         EventImages keys = resolve(adminId, previous, urls);
         event.write(content, banner, keys, clock.instant());
-        deleteReplaced(previous.coverKey(), keys.coverKey());
-        deleteReplaced(previous.bannerDesktopKey(), keys.bannerDesktopKey());
-        deleteReplaced(previous.bannerMobileKey(), keys.bannerMobileKey());
+        previous.allKeys().stream().filter(key -> !keys.allKeys().contains(key)).forEach(images::deleteAfterCommit);
         audit(adminId, event, AdminAction.EVENT_EDITED, "이벤트 수정");
         return adminResult(event);
     }
@@ -112,9 +111,7 @@ public class EventService {
         audit(adminId, event, AdminAction.EVENT_DELETED, "이벤트 삭제");
         registrations.deleteAllOf(event.getId());
         repository.delete(event);
-        images.deleteAfterCommit(keys.coverKey());
-        images.deleteAfterCommit(keys.bannerDesktopKey());
-        images.deleteAfterCommit(keys.bannerMobileKey());
+        keys.allKeys().forEach(images::deleteAfterCommit);
     }
 
     @Transactional(readOnly = true)
@@ -163,28 +160,24 @@ public class EventService {
 
     private EventImages resolve(long adminId, EventImages current, EventImageUrls urls) {
         EventImageUrls requested = urls == null ? new EventImageUrls(null, null, null) : urls;
+        // 이미지 확정 전에 개수·빈 주소·중복을 확인한다. URL과 키는 같은 목록 규칙을 따른다.
+        new EventImages(null, null, null, requested.detailUrls());
+        Map<String, String> known = new HashMap<>();
+        current.allKeys().forEach(key -> known.put(imageStorage.publicUrl(key), key));
         return new EventImages(
-                resolve(adminId, current.coverKey(), requested.coverUrl()),
-                resolve(adminId, current.bannerDesktopKey(), requested.bannerDesktopUrl()),
-                resolve(adminId, current.bannerMobileKey(), requested.bannerMobileUrl())
+                resolve(adminId, known, requested.coverUrl()),
+                resolve(adminId, known, requested.bannerDesktopUrl()),
+                resolve(adminId, known, requested.bannerMobileUrl()),
+                requested.detailUrls().stream().map(url -> resolve(adminId, known, url)).toList()
         );
     }
 
-    /** 비었으면 지우고, 지금 이미지 주소면 그대로 두고, 아니면 이 운영자가 올린 이미지로 확정한다. */
-    private String resolve(long adminId, String currentKey, String url) {
+    /** 같은 이벤트에서 유지하거나 위치를 바꾼 이미지는 재확정하지 않고, 새 이미지는 올린 운영자만 확정한다. */
+    private String resolve(long adminId, Map<String, String> known, String url) {
         if (url == null || url.isBlank()) {
             return null;
         }
-        if (currentKey != null && imageStorage.publicUrl(currentKey).equals(url)) {
-            return currentKey;
-        }
-        return images.claim(adminId, url);
-    }
-
-    private void deleteReplaced(String previousKey, String currentKey) {
-        if (previousKey != null && !Objects.equals(previousKey, currentKey)) {
-            images.deleteAfterCommit(previousKey);
-        }
+        return known.computeIfAbsent(url, requested -> images.claim(adminId, requested));
     }
 
     private String urlOf(String objectKey) {

@@ -4,17 +4,23 @@ import static art.yesulin.event.domain.EventErrorCode.INVALID_INPUT;
 import static art.yesulin.global.validation.DomainValidator.requirePositive;
 
 import art.yesulin.global.exception.BusinessException;
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OrderColumn;
 import jakarta.persistence.Table;
 import java.net.URI;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -51,6 +57,15 @@ public class Event {
 
     @Column(nullable = false, length = MAX_BODY_LENGTH)
     private String body;
+
+    @Column(name = "detail_body", length = MAX_BODY_LENGTH)
+    private String detailBody;
+
+    @ElementCollection
+    @CollectionTable(name = "event_detail_images", joinColumns = @JoinColumn(name = "event_id"))
+    @OrderColumn(name = "image_order")
+    @Column(name = "object_key", nullable = false, length = 500)
+    private List<String> detailImageKeys = new ArrayList<>();
 
     @Column(name = "starts_on")
     private LocalDate startsOn;
@@ -119,6 +134,9 @@ public class Event {
         this.title = normalized.title();
         this.summary = normalized.summary();
         this.body = normalized.body();
+        this.detailBody = normalized.detailBody();
+        this.detailImageKeys.clear();
+        this.detailImageKeys.addAll(keys.detailKeys());
         this.startsOn = normalized.startsOn();
         this.endsOn = normalized.endsOn();
         this.applyUrl = normalized.applyUrl();
@@ -174,7 +192,7 @@ public class Event {
     }
 
     public EventImages images() {
-        return new EventImages(coverImageKey, bannerDesktopKey, bannerMobileKey);
+        return new EventImages(coverImageKey, bannerDesktopKey, bannerMobileKey, detailImageKeys);
     }
 
     /**
@@ -208,7 +226,8 @@ public class Event {
                 applyUrl,
                 hasButton ? optional(content.applyLabel(), MAX_APPLY_LABEL_LENGTH, "신청 버튼 문구") : null,
                 registration,
-                notice
+                notice,
+                optional(normalizeLines(content.detailBody()), MAX_BODY_LENGTH, "상세 설명")
         );
     }
 

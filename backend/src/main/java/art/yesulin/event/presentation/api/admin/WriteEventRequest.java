@@ -4,12 +4,14 @@ import art.yesulin.event.application.EventImageUrls;
 import art.yesulin.event.domain.Event;
 import art.yesulin.event.domain.EventBannerSetting;
 import art.yesulin.event.domain.EventContent;
+import art.yesulin.event.domain.EventImages;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * 이벤트 글을 통째로 저장한다. 제목과 본문 말고는 비워 둘 수 있고, 비운 항목은 지운다.
@@ -30,6 +32,9 @@ public record WriteEventRequest(
         boolean registrationEnabled,
         @Size(max = Event.MAX_REGISTRATION_NOTICE_LENGTH) String registrationNotice,
         @Size(max = MAX_IMAGE_URL_LENGTH) String coverImageUrl,
+        @Size(max = Event.MAX_BODY_LENGTH) String detailBody,
+        @Size(max = EventImages.MAX_DETAIL_IMAGES)
+        List<@NotBlank @Size(max = MAX_IMAGE_URL_LENGTH) String> detailImageUrls,
         @Valid Banner banner
 ) {
 
@@ -37,7 +42,8 @@ public record WriteEventRequest(
 
     public EventContent toContent() {
         return new EventContent(
-                title, summary, body, startsOn, endsOn, applyUrl, applyLabel, registrationEnabled, registrationNotice
+                title, summary, body, startsOn, endsOn, applyUrl, applyLabel,
+                registrationEnabled, registrationNotice, detailBody
         );
     }
 
@@ -49,7 +55,8 @@ public record WriteEventRequest(
         return new EventImageUrls(
                 coverImageUrl,
                 banner == null ? null : banner.desktopImageUrl(),
-                banner == null ? null : banner.mobileImageUrl()
+                banner == null ? null : banner.mobileImageUrl(),
+                detailImageUrls
         );
     }
 

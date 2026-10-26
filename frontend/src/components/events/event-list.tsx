@@ -65,7 +65,7 @@ function EventCard({ event }: { readonly event: PublicEventSummary }) {
         href={eventRoutes.detail(event.id)}
         className={`block overflow-hidden rounded-card border border-border bg-card transition-colors hover:border-brand-line ${event.phase === "ENDED" ? "opacity-80" : ""}`}
       >
-        {event.coverImageUrl ? <EventImage src={event.coverImageUrl} className="aspect-[16/9] object-cover" /> : null}
+        {event.coverImageUrl ? <EventImage src={event.coverImageUrl} className="aspect-[4/3] object-cover" /> : null}
         <div className="px-5 py-5 sm:px-6">
           <div className="flex flex-wrap items-center gap-2 text-xs">
             <EventPhaseBadge phase={event.phase} />

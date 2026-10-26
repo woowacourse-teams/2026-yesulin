@@ -26,7 +26,7 @@ import {
   type EventDraft,
   type EventImageSlot,
 } from "@/features/events/draft";
-import { eventRoutes, formatEventPeriod } from "@/features/events/types";
+import { MAX_EVENT_DETAIL_IMAGES, eventRoutes, formatEventPeriod } from "@/features/events/types";
 import { formatDateTime } from "./admin-format";
 import { AdminSessionEnded } from "./admin-session-ended";
 import { AdminActionButton, AdminActionLink, AdminEmptyState, AdminShell } from "./admin-shell";
@@ -312,6 +312,7 @@ function EventForm({ initial, submitLabel, onSave, onCancel, onUnauthorized }: {
 
   const imageProps = (slot: EventImageSlot, key: "coverImageUrl" | "bannerDesktopImageUrl" | "bannerMobileImageUrl") => ({
     slot,
+    disabled: busy,
     url: draft[key],
     onChange: (url: string | null) => set(key, url),
     onBusyChange: (busyNow: boolean) => setUploading((count) => count + (busyNow ? 1 : -1)),
@@ -325,7 +326,7 @@ function EventForm({ initial, submitLabel, onSave, onCancel, onUnauthorized }: {
       <Field id="event-summary" label="요약" hint="목록 카드에 한두 줄로 보여요.">
         <FieldInput id="event-summary" value={draft.summary} maxLength={200} onChange={(event) => set("summary", event.target.value)} />
       </Field>
-      <Field id="event-body" label="본문" required hint="줄바꿈을 그대로 보여요.">
+      <Field id="event-body" label="개요" required hint="대표 이미지 옆에 보여요. 이벤트 소개와 안내를 자유롭게 적어 주세요. 줄바꿈을 그대로 유지해요.">
         <FieldTextarea id="event-body" rows={8} value={draft.body} maxLength={5000} onChange={(event) => set("body", event.target.value)} />
       </Field>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -363,6 +364,41 @@ function EventForm({ initial, submitLabel, onSave, onCancel, onUnauthorized }: {
       <ImageField label="대표 이미지" hint="목록 카드와 상세 위쪽에 보여요. 선택 사항이에요." {...imageProps("cover", "coverImageUrl")} />
 
       <fieldset className="flex flex-col gap-4 rounded-control border border-border-soft p-4">
+        <legend className="px-1 text-sm font-semibold">하단 상세 내용</legend>
+        <Field id="event-detail-body" label="상세 설명" hint="개요 아래 별도 영역에 보여요. 상세 이미지만 등록해도 돼요.">
+          <FieldTextarea id="event-detail-body" rows={8} maxLength={5000} value={draft.detailBody} onChange={(event) => set("detailBody", event.target.value)} />
+        </Field>
+        {draft.detailImageUrls.map((url, index) => (
+          <div key={url} className="space-y-2 rounded-control border border-border-soft p-3">
+            <ImageField
+              id={`event-detail-image-${index}`}
+              slot="detail"
+              label={`상세 이미지 ${index + 1}`}
+              hint="상세 설명 아래에 원본 비율로 보여요."
+              url={url}
+              disabled={busy}
+              onBusyChange={(busyNow) => setUploading((count) => count + (busyNow ? 1 : -1))}
+              onChange={(next) => setDraft((current) => ({ ...current, detailImageUrls: current.detailImageUrls.flatMap((item, slot) => slot === index ? next ? [next] : [] : [item]) }))}
+            />
+            <div className="flex gap-2">
+              <AdminActionButton disabled={busy || index === 0} onClick={() => setDraft((current) => ({ ...current, detailImageUrls: moveDetailImage(current.detailImageUrls, index, -1) }))} aria-label={`상세 이미지 ${index + 1} 위로`}>위로</AdminActionButton>
+              <AdminActionButton disabled={busy || index === draft.detailImageUrls.length - 1} onClick={() => setDraft((current) => ({ ...current, detailImageUrls: moveDetailImage(current.detailImageUrls, index, 1) }))} aria-label={`상세 이미지 ${index + 1} 아래로`}>아래로</AdminActionButton>
+            </div>
+          </div>
+        ))}
+        {draft.detailImageUrls.length < MAX_EVENT_DETAIL_IMAGES ? <ImageField
+          id="event-detail-image-add"
+          slot="detail"
+          label="상세 이미지 추가"
+          hint={`최대 ${MAX_EVENT_DETAIL_IMAGES}장까지 등록할 수 있고, 위에서부터 차례로 보여요.`}
+          url={null}
+          disabled={busy}
+          onBusyChange={(busyNow) => setUploading((count) => count + (busyNow ? 1 : -1))}
+          onChange={(url) => { if (url) setDraft((current) => ({ ...current, detailImageUrls: [...current.detailImageUrls, url] })); }}
+        /> : null}
+      </fieldset>
+
+      <fieldset className="flex flex-col gap-4 rounded-control border border-border-soft p-4">
         <legend className="px-1 text-sm font-semibold">메인 배너</legend>
         <label className="flex min-h-11 items-center gap-2 text-sm font-semibold">
           <input type="checkbox" checked={draft.bannerEnabled} onChange={(event) => set("bannerEnabled", event.target.checked)} className="size-4 accent-brand" />
@@ -397,6 +433,14 @@ function EventForm({ initial, submitLabel, onSave, onCancel, onUnauthorized }: {
   );
 }
 
+function moveDetailImage(urls: readonly string[], index: number, direction: -1 | 1): readonly string[] {
+  const target = index + direction;
+  if (target < 0 || target >= urls.length) return urls;
+  const next = [...urls];
+  [next[index], next[target]] = [next[target], next[index]];
+  return next;
+}
+
 function Field({ id, label, required = false, hint, children }: {
   readonly id: string;
   readonly label: string;
@@ -417,7 +461,9 @@ function Field({ id, label, required = false, hint, children }: {
 }
 
 /** 이미지를 원본 그대로 올린다. 배너는 칸 비율과 크게 다르면 잘리는 쪽을 안내하지만 막지는 않는다. */
-function ImageField({ slot, label, hint, url, onChange, onBusyChange }: {
+function ImageField({ id, slot, label, hint, url, disabled = false, onChange, onBusyChange }: {
+  readonly id?: string;
+  readonly disabled?: boolean;
   readonly slot: EventImageSlot;
   readonly label: string;
   readonly hint: string;
@@ -429,7 +475,7 @@ function ImageField({ slot, label, hint, url, onChange, onBusyChange }: {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
-  const titleId = `event-image-${slot}`;
+  const titleId = id ?? `event-image-${slot}`;
 
   const choose = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -448,7 +494,7 @@ function ImageField({ slot, label, hint, url, onChange, onBusyChange }: {
     setUploading(true);
     onBusyChange(true);
     try {
-      if (slot !== "cover") {
+      if (slot === "bannerDesktop" || slot === "bannerMobile") {
         const size = await imageSize(file);
         setWarning(size ? bannerRatioWarning(slot, size.width, size.height) : null);
       }
@@ -470,11 +516,11 @@ function ImageField({ slot, label, hint, url, onChange, onBusyChange }: {
         <img src={url} alt="" className={`w-full rounded-control border border-border-soft bg-surface ${aspect}`} />
       ) : null}
       <div className="flex flex-wrap gap-2">
-        <input ref={input} type="file" accept={IMAGE_TYPES.join(",")} className="sr-only" disabled={uploading} onChange={(event) => void choose(event)} aria-label={`${label} 파일 고르기`} />
-        <AdminActionButton disabled={uploading} onClick={() => input.current?.click()}>
+        <input ref={input} type="file" accept={IMAGE_TYPES.join(",")} className="sr-only" disabled={uploading || disabled} onChange={(event) => void choose(event)} aria-label={`${label} 파일 고르기`} />
+        <AdminActionButton disabled={uploading || disabled} onClick={() => input.current?.click()}>
           {uploading ? "올리는 중…" : url ? "이미지 바꾸기" : "이미지 올리기"}
         </AdminActionButton>
-        {url ? <AdminActionButton tone="quiet" disabled={uploading} onClick={() => { onChange(null); setWarning(null); }}>지우기</AdminActionButton> : null}
+        {url ? <AdminActionButton tone="quiet" disabled={uploading || disabled} onClick={() => { onChange(null); setWarning(null); }}>지우기</AdminActionButton> : null}
       </div>
       <p className="text-xs text-muted">{hint} JPG·PNG·WebP, 5MB까지 원본 그대로 올려요.</p>
       {warning ? <p className="text-xs font-semibold text-warn">{warning}</p> : null}

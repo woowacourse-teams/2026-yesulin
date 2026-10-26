@@ -1,3 +1,5 @@
+export const MAX_EVENT_DETAIL_IMAGES = 10;
+
 /** 진행 기간으로 본 이벤트 단계. 백엔드가 한국 날짜로 계산한다. 기간을 비운 이벤트는 늘 진행 중이다. */
 export type EventPhase = "UPCOMING" | "ONGOING" | "ENDED";
 
@@ -16,8 +18,11 @@ export type PublicEventSummary = {
 
 /** 이벤트 상세. 백엔드 `PublicEventResult`와 같다. */
 export type PublicEvent = PublicEventSummary & {
-  /** 줄바꿈을 그대로 보여 준다. */
+  /** 대표 이미지 옆의 자유 형식 개요. 줄바꿈을 유지한다. */
   readonly body: string;
+  /** 하단의 상세 설명과 표시 순서대로 정렬한 이미지. */
+  readonly detailBody: string | null;
+  readonly detailImageUrls: readonly string[];
   /** 신청 버튼이 여는 주소. 없으면 버튼이 없다. 참가 신청서를 켠 글은 이 주소 대신 신청서를 연다. */
   readonly applyUrl: string | null;
   readonly applyLabel: string | null;

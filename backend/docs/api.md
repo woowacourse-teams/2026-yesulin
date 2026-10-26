@@ -565,23 +565,26 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 | GET | `/api/v1/admin/events/{eventId}/registrations` | Admin | 없음 | `200 AdminEventRegistrationsResponse(registrations)` |
 | DELETE | `/api/v1/admin/events/{eventId}/registrations/{registrationId}` | Admin | 없음 | `204` |
 
-`WriteEventRequest`는 `title`(필수, 100자), `summary`(목록 소개, 200자), `body`(필수, 줄바꿈을 살린 텍스트, 5000자),
+`WriteEventRequest`는 `title`(필수, 100자), `summary`(목록 소개, 200자), `body`(필수 개요, 대표 이미지 옆에 보이는 자유 형식 텍스트, 줄바꿈 유지, 5000자),
 `startsOn`·`endsOn`(`YYYY-MM-DD`, 종료일이 시작일보다 앞서면 400), `applyUrl`(http·https 주소, 500자), `applyLabel`(신청 버튼 문구,
 30자, `applyUrl`도 참가 신청서도 없으면 지운다), `registrationEnabled`(켜면 신청 버튼이 외부 주소 대신 예술in 참가 신청서를 연다),
-`registrationNotice`(참가 신청서 위에 보일 보증금·계좌 같은 안내, 줄바꿈을 살린 2000자, 신청서를 끄면 지운다), `coverImageUrl`(대표 이미지), `banner(enabled, desktopImageUrl, mobileImageUrl, alt, endsOn, order)`다.
+`registrationNotice`(참가 신청서 위에 보일 보증금·계좌 같은 안내, 줄바꿈을 살린 2000자, 신청서를 끄면 지운다), `coverImageUrl`(대표 이미지), `detailBody`(선택적 하단 상세 설명, 줄바꿈 유지, 5000자),
+`detailImageUrls`(선택적 하단 상세 이미지 주소 배열, 순서 유지, 최대 10장, 빈 주소·중복 거절), `banner(enabled, desktopImageUrl, mobileImageUrl, alt, endsOn, order)`다.
+`detailBody`와 `detailImageUrls`는 각각 독립적이라 설명만 또는 이미지만 등록할 수 있다. 상세 이미지 배열을 생략하거나 null·빈 배열로 보내면 모두 지운다.
+이미지는 기존 이벤트 이미지 업로드 API로 올리며, 이 이벤트에서 이미 쓰는 주소 또는 해당 운영자가 새로 올린 주소만 확정한다.
 글을 통째로 바꾸며 빈 문자열이나 null인 항목은 지우고, `banner`가 null이면 배너를 끈다. 배너를 켜려면 PC·모바일 배너 이미지와 `alt`(200자)가
 모두 있어야 한다. `banner.endsOn`은 이 날(한국 날짜)까지 노출하고 비우면 내릴 때까지 노출한다. `order`는 0~99이고 작은 순서가 먼저다.
 검증 오류는 `400 EVENT_INVALID_INPUT`이다.
 
 새 글은 `PENDING`이다. 상태 변경은 `PUBLISHED`와 `HIDDEN`만 받으며, 공개하거나 내린 글을 `PENDING`으로 되돌리면 400이다.
-`AdminEventResult`는 저장된 모든 항목과 이미지 공개 주소(`coverImageUrl`, `banner.desktopImageUrl`, `banner.mobileImageUrl`),
+`AdminEventResult`는 저장된 모든 항목(`detailBody`, `detailImageUrls` 포함)과 이미지 공개 주소(`coverImageUrl`, `banner.desktopImageUrl`, `banner.mobileImageUrl`),
 지금 메인 배너에 보이는지(`bannerVisible`, 아래 배너 API와 같은 기준이라 5개 제한에 밀린 글은 false), `phase`, `status`, `createdAt`, `updatedAt`을 담는다. 운영 목록은 최근 만든 200건까지 준다.
-삭제는 운영자 글이라 행을 바로 지우고(되돌릴 수 없다) 받은 참가 신청과 대표·배너 이미지·신청 사진도 커밋 뒤 저장소에서 지운다.
+삭제는 운영자 글이라 행을 바로 지우고(되돌릴 수 없다) 받은 참가 신청과 대표·상세·배너 이미지·신청 사진도 커밋 뒤 저장소에서 지운다. 같은 이벤트의 다른 이미지 위치에서 계속 쓰는 객체는 수정 시 지우지 않는다.
 없는 글은 `404 EVENT_NOT_FOUND`다. 생성·수정·상태 변경·삭제는 `admin_audit_logs`에 `EVENT_CREATED`·`EVENT_EDITED`·
 `EVENT_STATUS_CHANGED`·`EVENT_DELETED`로 남기며 글 원문은 담지 않는다.
 
 공개 목록·상세는 `PUBLISHED`인 글만 보여 주고, 없거나 공개 전·내린 글은 `404 EVENT_NOT_FOUND`다. 목록은 최근 만든 순으로 100건까지
-`id`, `title`, `summary`, `startsOn`, `endsOn`, `phase`, `coverImageUrl`을 준다. 상세는 여기에 `body`, `applyUrl`, `applyLabel`,
+`id`, `title`, `summary`, `startsOn`, `endsOn`, `phase`, `coverImageUrl`을 준다. 상세는 여기에 `body`(개요), `detailBody`, `detailImageUrls`(등록 순서), `applyUrl`, `applyLabel`,
 `registrationEnabled`, `registrationOpen`(지금 참가 신청을 받는지), `registrationNotice`를 더한다. 운영 결과도 `registrationEnabled`와
 `registrationNotice`를 준다.
 `phase`는 한국 날짜로 시작일 전이면 `UPCOMING`, 종료일이 지났으면 `ENDED`, 나머지(기간을 비운 글 포함)는 `ONGOING`이다.
