@@ -37,6 +37,7 @@ public class Event {
     public static final int MAX_APPLY_LABEL_LENGTH = 30;
     public static final int MAX_BANNER_ALT_LENGTH = 200;
     public static final int MAX_BANNER_ORDER = 99;
+    public static final int MAX_REGISTRATION_NOTICE_LENGTH = 2000;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -62,6 +63,12 @@ public class Event {
 
     @Column(name = "apply_label", length = MAX_APPLY_LABEL_LENGTH)
     private String applyLabel;
+
+    @Column(name = "registration_enabled", nullable = false)
+    private boolean registrationEnabled;
+
+    @Column(name = "registration_notice", length = MAX_REGISTRATION_NOTICE_LENGTH)
+    private String registrationNotice;
 
     @Column(name = "cover_image_key", length = 500)
     private String coverImageKey;
@@ -116,6 +123,8 @@ public class Event {
         this.endsOn = normalized.endsOn();
         this.applyUrl = normalized.applyUrl();
         this.applyLabel = normalized.applyLabel();
+        this.registrationEnabled = normalized.registrationEnabled();
+        this.registrationNotice = normalized.registrationNotice();
         this.coverImageKey = blankToNull(keys.coverKey());
         this.bannerDesktopKey = blankToNull(keys.bannerDesktopKey());
         this.bannerMobileKey = blankToNull(keys.bannerMobileKey());
@@ -149,6 +158,11 @@ public class Event {
         return isPublished() && bannerEnabled && (bannerEndsOn == null || !today.isAfter(bannerEndsOn));
     }
 
+    /** 공개한 글이고 참가 신청서를 켰으며 종료일이 지나지 않았으면 참가 신청을 받는다. */
+    public boolean isAcceptingRegistrationsOn(LocalDate today) {
+        return isPublished() && registrationEnabled && phaseOn(today) != EventPhase.ENDED;
+    }
+
     public EventPhase phaseOn(LocalDate today) {
         if (startsOn != null && today.isBefore(startsOn)) {
             return EventPhase.UPCOMING;
@@ -163,7 +177,10 @@ public class Event {
         return new EventImages(coverImageKey, bannerDesktopKey, bannerMobileKey);
     }
 
-    /** 내용 규칙에 맞는지 확인하고 앞뒤 공백과 빈 칸을 정리한다. 신청 링크가 없으면 버튼 문구도 지운다. */
+    /**
+     * 내용 규칙에 맞는지 확인하고 앞뒤 공백과 빈 칸을 정리한다. 신청 링크와 참가 신청서가 모두 없으면 버튼 문구도 지우고,
+     * 참가 신청서를 끄면 안내 문구도 지운다.
+     */
     private static EventContent normalize(EventContent content) {
         if (content == null) {
             throw invalid("이벤트 내용은 필수입니다.");
@@ -177,6 +194,11 @@ public class Event {
             throw invalid("종료일은 시작일보다 앞설 수 없습니다.");
         }
         String applyUrl = webAddress(content.applyUrl(), "신청 링크");
+        boolean registration = content.registrationEnabled();
+        String notice = registration
+                ? optional(normalizeLines(content.registrationNotice()), MAX_REGISTRATION_NOTICE_LENGTH, "신청 안내")
+                : null;
+        boolean hasButton = applyUrl != null || registration;
         return new EventContent(
                 title,
                 optional(content.summary(), MAX_SUMMARY_LENGTH, "요약"),
@@ -184,7 +206,9 @@ public class Event {
                 content.startsOn(),
                 content.endsOn(),
                 applyUrl,
-                applyUrl == null ? null : optional(content.applyLabel(), MAX_APPLY_LABEL_LENGTH, "신청 버튼 문구")
+                hasButton ? optional(content.applyLabel(), MAX_APPLY_LABEL_LENGTH, "신청 버튼 문구") : null,
+                registration,
+                notice
         );
     }
 

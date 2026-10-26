@@ -21,6 +21,8 @@ public record AdminEventResult(
         LocalDate endsOn,
         String applyUrl,
         String applyLabel,
+        boolean registrationEnabled,
+        String registrationNotice,
         String coverImageUrl,
         Banner banner,
         boolean bannerVisible,
@@ -40,6 +42,8 @@ public record AdminEventResult(
                 event.getEndsOn(),
                 event.getApplyUrl(),
                 event.getApplyLabel(),
+                event.isRegistrationEnabled(),
+                event.getRegistrationNotice(),
                 urlOf.apply(event.getCoverImageKey()),
                 new Banner(
                         event.isBannerEnabled(),

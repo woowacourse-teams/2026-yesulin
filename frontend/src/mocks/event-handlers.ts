@@ -1,12 +1,12 @@
 import { delay, http, HttpResponse, passthrough } from "msw";
 import { frontendEnvironment } from "@/config/environment";
-import type { AdminEvent, AdminEventStatus, AdminEventWrite } from "@/features/admin/types";
-import type { EventBanner, EventPhase, PublicEvent, PublicEventSummary } from "@/features/events/types";
+import type { AdminEvent, AdminEventRegistration, AdminEventStatus, AdminEventWrite } from "@/features/admin/types";
+import type { EventBanner, EventPhase, EventRegistrationWrite, PublicEvent, PublicEventSummary } from "@/features/events/types";
 import { mockSessionRole } from "./auth-handlers";
 
 /**
  * 이벤트 화면과 운영자 이벤트 관리 확인용 메모리 목. 운영자가 공개한 글만 이벤트 화면에 보이고, 배너를 켠 글은 노출 종료일까지
- * 메인 배너에도 보인다. 새로고침하면 초기화된다.
+ * 메인 배너에도 보인다. 참가 신청서를 켠 글은 로그인 없이 신청을 받고 운영자가 신청자를 본다. 새로고침하면 초기화된다.
  */
 type Mutable<T> = { -readonly [K in keyof T]: T[K] };
 
@@ -25,6 +25,8 @@ const events: Mutable<AdminEvent>[] = [
     endsOn: "2026-10-16",
     applyUrl: "https://forms.gle/5g4qGphqcugfMYFc6",
     applyLabel: "서포터즈 신청하기",
+    registrationEnabled: false,
+    registrationNotice: null,
     coverImageUrl: null,
     banner: { enabled: false, desktopImageUrl: null, mobileImageUrl: null, alt: null, endsOn: null, order: 0 },
     bannerVisible: false,
@@ -33,7 +35,30 @@ const events: Mutable<AdminEvent>[] = [
     createdAt: now,
     updatedAt: now,
   },
+  {
+    id: 2,
+    title: "월요살롱 vol.1 배우·제작자 교류의 밤",
+    summary: "공연 없는 월요일, 샤로수길 남극장에서 배우와 공연 제작자가 만나요.",
+    body: "극장이 쉬는 월요일 저녁, 배우와 공연을 만드는 사람들이 한자리에 모여요.\n\n· 일시: 11월 9일(월) 17:00~19:00\n· 장소: 남극장 (서울 관악로14나길 13, 4층)\n· 참가비 무료, 저녁 식사(피자) 제공",
+    startsOn: null,
+    endsOn: "2026-11-09",
+    applyUrl: null,
+    applyLabel: "참가 신청하기",
+    registrationEnabled: true,
+    registrationNotice: "노쇼 방지를 위해 보증금 5,000원을 받아요. 11월 9일 현장에 오시면 그대로 돌려드려요.\n입금 계좌: (추후 안내)",
+    coverImageUrl: null,
+    banner: { enabled: false, desktopImageUrl: null, mobileImageUrl: null, alt: null, endsOn: null, order: 0 },
+    bannerVisible: false,
+    status: "PUBLISHED",
+    phase: "ONGOING",
+    createdAt: now,
+    updatedAt: now,
+  },
 ];
+
+const registrations: AdminEventRegistration[] = [];
+const registrationEventIds = new Map<number, number>();
+const pendingPhotoKeys = new Set<string>();
 
 const apiError = (status: number, code: string, message: string) =>
   HttpResponse.json({ code, message }, { status });
@@ -85,8 +110,39 @@ function toSummary(event: AdminEvent): PublicEventSummary {
   };
 }
 
+function acceptsRegistrations(event: AdminEvent): boolean {
+  return event.status === "PUBLISHED" && event.registrationEnabled && event.phase !== "ENDED";
+}
+
 function toPublic(event: AdminEvent): PublicEvent {
-  return { ...toSummary(event), body: event.body, applyUrl: event.applyUrl, applyLabel: event.applyLabel };
+  return {
+    ...toSummary(event),
+    body: event.body,
+    applyUrl: event.applyUrl,
+    applyLabel: event.applyLabel,
+    registrationEnabled: event.registrationEnabled,
+    registrationOpen: acceptsRegistrations(event),
+    registrationNotice: event.registrationNotice,
+  };
+}
+
+/** 서버처럼 구분에 맞는 칸만 확인한다. 문제가 없으면 null이다. */
+function invalidRegistration(write: EventRegistrationWrite): string | null {
+  if (!write.participantType) return "참가 구분을 선택해 주세요.";
+  if (!write.name?.trim() || !/^01[016789]-\d{3,4}-\d{4}$/.test(write.phone ?? "") || !/^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/.test(write.email ?? "")) {
+    return "이름·휴대폰 번호·이메일을 확인해 주세요.";
+  }
+  if (write.participantType === "ACTOR" && (!write.birthDate || !write.photoUploadKey || !pendingPhotoKeys.has(write.photoUploadKey))) {
+    return "생년월일과 프로필 사진을 확인해 주세요.";
+  }
+  if (write.participantType === "ACTOR") {
+    if (!write.activityFields?.length) return "활동 분야를 하나 이상 골라 주세요.";
+    if (write.activityFields.includes("OTHER") && !write.otherActivity?.trim()) return "기타 분야를 입력해 주세요.";
+    if (write.noCareer ? write.careers?.length : !write.careers?.length) return "경력을 한 줄 이상 적거나 경력 없음을 골라 주세요.";
+  }
+  if (write.participantType === "PRODUCER" && !write.affiliation?.trim()) return "소속과 하는 일을 입력해 주세요.";
+  if (!write.privacyAgreed) return "개인정보 수집·이용에 동의해 주세요.";
+  return null;
 }
 
 function toBanner(event: AdminEvent): EventBanner {
@@ -117,7 +173,9 @@ function apply(target: Mutable<AdminEvent>, write: AdminEventWrite) {
   target.startsOn = write.startsOn || null;
   target.endsOn = write.endsOn || null;
   target.applyUrl = write.applyUrl?.trim() || null;
-  target.applyLabel = target.applyUrl ? write.applyLabel?.trim() || null : null;
+  target.registrationEnabled = Boolean(write.registrationEnabled);
+  target.registrationNotice = target.registrationEnabled ? write.registrationNotice?.trim() || null : null;
+  target.applyLabel = target.applyUrl || target.registrationEnabled ? write.applyLabel?.trim() || null : null;
   target.coverImageUrl = write.coverImageUrl || null;
   target.banner = {
     enabled: Boolean(write.banner?.enabled),
@@ -148,6 +206,83 @@ export const eventHandlers = [
     await delay(120);
     const event = published().find((candidate) => candidate.id === Number(params.eventId));
     return event ? HttpResponse.json(toPublic(event)) : apiError(404, "EVENT_NOT_FOUND", "이벤트를 찾을 수 없습니다.");
+  }),
+
+  http.post("/api/v1/public/events/:eventId/registrations/photo-uploads", async ({ params, request }) => {
+    await delay(120);
+    const event = published().find((candidate) => candidate.id === Number(params.eventId));
+    if (!event) return apiError(404, "EVENT_NOT_FOUND", "이벤트를 찾을 수 없습니다.");
+    if (!acceptsRegistrations(event)) return apiError(409, "EVENT_REGISTRATION_CLOSED", "참가 신청을 받지 않는 이벤트입니다.");
+    const upload = await request.json() as { readonly contentType: string; readonly size: number };
+    if (!["image/jpeg", "image/png", "image/webp"].includes(upload.contentType)) {
+      return apiError(400, "EVENT_INVALID_INPUT", "사진은 JPG·PNG·WebP만 올릴 수 있습니다.");
+    }
+    if (upload.size <= 0 || upload.size > 5 * 1024 * 1024) return apiError(400, "EVENT_INVALID_INPUT", "사진은 5MB까지 올릴 수 있습니다.");
+    const key = crypto.randomUUID();
+    pendingPhotoKeys.add(key);
+    return HttpResponse.json({
+      url: `${MOCK_STORAGE}/${key}`,
+      method: "PUT",
+      headers: { "Content-Type": upload.contentType },
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+      uploadKey: key,
+    }, { status: 201 });
+  }),
+
+  http.post("/api/v1/public/events/:eventId/registrations", async ({ params, request }) => {
+    await delay(150);
+    const event = published().find((candidate) => candidate.id === Number(params.eventId));
+    if (!event) return apiError(404, "EVENT_NOT_FOUND", "이벤트를 찾을 수 없습니다.");
+    if (!acceptsRegistrations(event)) return apiError(409, "EVENT_REGISTRATION_CLOSED", "참가 신청을 받지 않는 이벤트입니다.");
+    const write = await request.json() as EventRegistrationWrite;
+    const invalid = invalidRegistration(write);
+    if (invalid) return apiError(400, "EVENT_INVALID_INPUT", invalid);
+    if (registrations.some((item) => registrationEventIds.get(item.id) === event.id && item.phone === write.phone)) {
+      return apiError(409, "EVENT_REGISTRATION_DUPLICATE", "이미 이 휴대폰 번호로 신청했습니다.");
+    }
+    const actor = write.participantType === "ACTOR";
+    if (actor && write.photoUploadKey) pendingPhotoKeys.delete(write.photoUploadKey);
+    const id = Math.max(0, ...registrations.map((item) => item.id)) + 1;
+    registrations.push({
+      id,
+      participantType: write.participantType,
+      name: write.name.trim(),
+      phone: write.phone,
+      email: write.email.trim(),
+      snsHandle: write.snsHandle?.trim() || null,
+      birthDate: actor ? write.birthDate : null,
+      affiliation: actor ? null : write.affiliation?.trim() || null,
+      photoUrl: actor ? `${MOCK_STORAGE}/${write.photoUploadKey}` : null,
+      activityFields: actor ? write.activityFields : [],
+      otherActivity: actor && write.activityFields.includes("OTHER") ? write.otherActivity : null,
+      noCareer: actor && write.noCareer,
+      careers: actor && !write.noCareer ? write.careers : [],
+      createdAt: new Date().toISOString(),
+    });
+    registrationEventIds.set(id, event.id);
+    return HttpResponse.json({ id }, { status: 201 });
+  }),
+
+  http.get("/api/v1/admin/events/:eventId/registrations", async ({ params }) => {
+    if (realLoginEnabled) return passthrough();
+    await delay(120);
+    const rejected = rejectNonAdmin();
+    if (rejected) return rejected;
+    const eventId = Number(params.eventId);
+    if (!events.some((event) => event.id === eventId)) return apiError(404, "EVENT_NOT_FOUND", "이벤트를 찾을 수 없습니다.");
+    return HttpResponse.json({ registrations: registrations.filter((item) => registrationEventIds.get(item.id) === eventId) });
+  }),
+
+  http.delete("/api/v1/admin/events/:eventId/registrations/:registrationId", async ({ params }) => {
+    if (realLoginEnabled) return passthrough();
+    await delay(120);
+    const rejected = rejectNonAdmin();
+    if (rejected) return rejected;
+    const index = registrations.findIndex((item) => item.id === Number(params.registrationId)
+      && registrationEventIds.get(item.id) === Number(params.eventId));
+    if (index < 0) return apiError(404, "EVENT_REGISTRATION_NOT_FOUND", "참가 신청을 찾을 수 없습니다.");
+    registrations.splice(index, 1);
+    return new HttpResponse(null, { status: 204 });
   }),
 
   http.post("/api/v1/admin/event-images/uploads", async ({ request }) => {

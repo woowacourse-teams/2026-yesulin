@@ -25,6 +25,7 @@ import type {
   AdminCompanyStatus,
   AdminCompanyWrite,
   AdminEvent,
+  AdminEventRegistration,
   AdminEventStatus,
   AdminEventWrite,
   AdminPostCompanyProfile,
@@ -566,6 +567,24 @@ export async function deleteEvent(eventId: number): Promise<void> {
     headers: await withCsrfHeaders(),
   });
   if (!response.ok) throw await readAdminError(response, "이벤트를 지우지 못했습니다.");
+}
+
+/** 이벤트 참가 신청을 먼저 온 순서로 준다. 배우 사진 주소는 잠깐만 열린다. */
+export async function fetchEventRegistrations(eventId: number): Promise<readonly AdminEventRegistration[]> {
+  const response = await getJson<{ readonly registrations: readonly AdminEventRegistration[] }>(
+    `/events/${eventId}/registrations`, "참가 신청자를 불러오지 못했습니다.",
+  );
+  return response.registrations;
+}
+
+/** 참가 신청을 지운다. 되돌릴 수 없고 사진도 함께 지운다. */
+export async function deleteEventRegistration(eventId: number, registrationId: number): Promise<void> {
+  const response = await fetch(`${API_BASE_PATH}/events/${eventId}/registrations/${registrationId}`, {
+    method: "DELETE",
+    credentials: "include",
+    headers: await withCsrfHeaders(),
+  });
+  if (!response.ok) throw await readAdminError(response, "참가 신청을 지우지 못했습니다.");
 }
 
 /**

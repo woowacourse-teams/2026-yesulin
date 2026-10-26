@@ -1,6 +1,6 @@
 import type { VenueAddress } from "../auditions/creation-types";
 import type { CompanyField, CompanyWrite } from "../companies/profile-draft";
-import type { EventPhase } from "../events/types";
+import type { EventActivityField, EventParticipantType, EventPhase, EventRegistrationCareer } from "../events/types";
 
 export type MemberStatus = "PENDING" | "ACTIVE";
 
@@ -603,6 +603,10 @@ export type AdminEvent = {
   readonly endsOn: string | null;
   readonly applyUrl: string | null;
   readonly applyLabel: string | null;
+  /** 켜면 신청 버튼이 외부 주소 대신 예술in 참가 신청서를 연다. */
+  readonly registrationEnabled: boolean;
+  /** 참가 신청서 위에 보일 보증금·계좌 같은 안내 */
+  readonly registrationNotice: string | null;
   readonly coverImageUrl: string | null;
   readonly banner: AdminEventBanner;
   /** 지금 메인 배너에 보이는지. 공개 상태와 노출 종료일까지 본 결과다. */
@@ -622,8 +626,32 @@ export type AdminEventWrite = {
   readonly endsOn: string | null;
   readonly applyUrl: string | null;
   readonly applyLabel: string | null;
+  readonly registrationEnabled: boolean;
+  readonly registrationNotice: string | null;
   readonly coverImageUrl: string | null;
   readonly banner: AdminEventBanner;
+};
+
+/** 운영 화면의 이벤트 참가 신청 한 건. 백엔드 `AdminEventRegistrationResult`와 같다. */
+export type AdminEventRegistration = {
+  readonly id: number;
+  readonly participantType: EventParticipantType;
+  readonly name: string;
+  readonly phone: string;
+  readonly email: string;
+  readonly snsHandle: string | null;
+  /** `YYYY-MM-DD`. 배우만 있다. */
+  readonly birthDate: string | null;
+  /** 공연사 관계자의 소속과 하는 일 */
+  readonly affiliation: string | null;
+  /** 배우 프로필 사진을 잠깐 열 수 있는 주소. 공연사 관계자는 null이다. */
+  readonly photoUrl: string | null;
+  /** 연극·뮤지컬·매체·유튜브·기타 순서 */
+  readonly activityFields: readonly EventActivityField[];
+  readonly otherActivity: string | null;
+  readonly noCareer: boolean;
+  readonly careers: readonly EventRegistrationCareer[];
+  readonly createdAt: string;
 };
 
 /** 브라우저가 이벤트 이미지를 저장소로 바로 올릴 주소. 백엔드 `EventImageUploadResult`와 같다. */
