@@ -40,7 +40,7 @@ export function EventsRoute({ initialEvents }: { readonly initialEvents: readonl
     <EventScreen>
       <NotebookListHeading title="이벤트" />
       <div>
-        {state.status === "loading" ? <ContentSkeleton label="이벤트 목록 불러오는 중"><div className="space-y-4">{[0, 1, 2].map((item) => <div key={item} className="h-40 rounded-card border border-border bg-card p-5"><div className="h-5 w-1/4 rounded bg-border-soft" /><div className="mt-4 h-6 w-2/3 rounded bg-border-soft" /></div>)}</div></ContentSkeleton> : null}
+        {state.status === "loading" ? <ContentSkeleton label="이벤트 목록 불러오는 중"><div className="grid grid-cols-1 gap-4 min-[761px]:grid-cols-2 min-[1100px]:grid-cols-4">{[0, 1, 2, 3].map((item) => <div key={item} className="h-40 rounded-card border border-border bg-card p-4"><div className="h-5 w-1/4 rounded bg-border-soft" /><div className="mt-4 h-6 w-2/3 rounded bg-border-soft" /></div>)}</div></ContentSkeleton> : null}
         {state.status === "error" ? (
           <ScreenError message="이벤트를 불러오지 못했어요." onRetry={() => { setState({ status: "loading" }); load(); }} />
         ) : null}
@@ -48,7 +48,7 @@ export function EventsRoute({ initialEvents }: { readonly initialEvents: readonl
           <ContentState title="지금 열린 이벤트가 없어요" description="새 소식이 생기면 이곳에 안내할게요." />
         ) : null}
         {state.status === "ready" && state.events.length > 0 ? (
-          <ul className="grid gap-4">
+          <ul className="grid grid-cols-1 gap-4 min-[761px]:grid-cols-2 min-[1100px]:grid-cols-4">
             {state.events.map((event) => <EventCard key={event.id} event={event} />)}
           </ul>
         ) : null}
@@ -60,18 +60,18 @@ export function EventsRoute({ initialEvents }: { readonly initialEvents: readonl
 function EventCard({ event }: { readonly event: PublicEventSummary }) {
   const period = formatEventPeriod(event.startsOn, event.endsOn);
   return (
-    <li>
+    <li className="min-w-0">
       <Link
         href={eventRoutes.detail(event.id)}
-        className={`block overflow-hidden rounded-card border border-border bg-card transition-colors hover:border-brand-line ${event.phase === "ENDED" ? "opacity-80" : ""}`}
+        className={`block h-full overflow-hidden rounded-card border border-border bg-card transition-colors hover:border-brand-line ${event.phase === "ENDED" ? "opacity-80" : ""}`}
       >
         {event.coverImageUrl ? <EventImage src={event.coverImageUrl} className="aspect-[16/9] object-cover" /> : null}
-        <div className="px-5 py-5 sm:px-6">
+        <div className="p-4">
           <div className="flex flex-wrap items-center gap-2 text-xs">
             <EventPhaseBadge phase={event.phase} />
             {period ? <span className="num text-muted">{period}</span> : null}
           </div>
-          <h2 className="mt-2 break-words text-lg font-bold leading-snug">{event.title}</h2>
+          <h2 className="mt-2 break-words text-base font-bold leading-snug">{event.title}</h2>
           {event.summary ? <p className="mt-1 text-sm leading-6 text-muted-strong">{event.summary}</p> : null}
         </div>
       </Link>
