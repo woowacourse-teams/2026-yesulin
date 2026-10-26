@@ -439,34 +439,32 @@
 .notebook-post-grid {
   display:grid;
   grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:24px;
+  gap:20px;
 }
 
 .notebook-post-card {
   flex-direction:column;
   gap:0;
-  padding:0;
-  overflow:hidden;
+  padding:23px;
   border-radius:var(--radius-card);
-  border-color:#dce7f1;
+  border-color:#c7dcec;
   box-shadow:none;
   background:#fff;
 }
 
 .notebook-post-card:hover {
   border-color:#8badcf;
-  box-shadow:0 6px 20px #2345650d;
+  box-shadow:0 3px 12px #2345650a;
 }
 
 .notebook-post-image {
   position:relative;
   width:100%;
-  height:auto;
-  aspect-ratio:3 / 4;
+  height:154px;
   overflow:hidden;
-  border-radius:0;
+  border-radius:7px;
   background:#e4effa;
-  margin-bottom:0;
+  margin-bottom:18px;
 }
 
 .notebook-post-image img {
@@ -495,26 +493,20 @@
 }
 
 .notebook-post-card h2 {
-  font-size:18px;
-  font-weight:600;
-  line-height:1.55;
-  min-height:56px;
-  margin-top:12px;
-  color:#203b55;
+  font-size:19px;
+  line-height:1.5;
+  min-height:58px;
+  margin-top:14px;
 }
 
 .notebook-post-card h2 + p {
-  margin-bottom:20px;
-  font-size:13px;
-  color:var(--ink-40);
+  margin-bottom:18px;
 }
 
-.notebook-post-card dl:not(.notebook-post-terms) {
-  margin-top:16px;
-  padding-top:12px;
-  gap:7px 12px;
-  border-color:var(--line-soft);
-  font-size:11px;
+.notebook-post-card dl {
+  margin-top:auto;
+  padding-top:16px;
+  gap:7px 14px;
 }
 
 .notebook-list-actions {
@@ -956,7 +948,7 @@
     gap:14px;
   }
   .notebook-post-card {
-    padding:0;
+    padding:20px;
   }
   .notebook-post-card h2 {
     font-size:17px;
@@ -1041,14 +1033,14 @@
     gap:14px;
   }
   .notebook-post-card {
-    padding:0;
+    padding:23px;
   }
   .notebook-post-card h2 {
     font-size:18px;
     min-height:0;
   }
   .notebook-post-image {
-    height:auto;
+    height:164px;
   }
   .notebook-shows {
     padding:24px 20px;
@@ -1167,7 +1159,7 @@
 .notebook-toolbar.is-preview { flex-wrap:wrap; align-items:center; border-bottom:1px solid var(--line); padding-bottom:12px; }
 .notebook-toolbar.is-preview .notebook-recruitment-filters { margin-left:auto; }
 
-/* 기본 그림의 글자는 불투명한 하단 영역으로 분리해 그림과 겹치지 않는다. */
+/* 기본 썸네일의 글자와 로고는 원본 이미지 위에 선명하게 표시한다. */
 .notebook-post-placeholder { --category-ink:#17395a; --category-accent:#7da8d0; --category-wash:#e3f0ff; }
 .notebook-post-placeholder[data-category="연극"] { --category-ink:#882743; --category-accent:#ce6c83; --category-wash:#ffe7ec; }
 .notebook-post-placeholder[data-category="뮤지컬"] { --category-ink:#60318b; --category-accent:#a47bcb; --category-wash:#f0e4ff; }
@@ -1175,16 +1167,17 @@
 .notebook-post-placeholder[data-category="단원"] { --category-ink:#146453; --category-accent:#5cae92; --category-wash:#d9f6e9; }
 .notebook-post-placeholder[data-category="기획사"] { --category-ink:#1d5590; --category-accent:#6c9bca; --category-wash:#e1efff; }
 .notebook-post-placeholder .notebook-default-art { object-position:right center; }
-.notebook-post-placeholder .notebook-default-copy { position:absolute; inset:0; display:flex; flex-direction:column; align-items:flex-start; justify-content:space-between; color:var(--category-ink); }
-.notebook-post-placeholder .notebook-default-logo { display:block; width:66px; height:auto; margin:18px 20px; object-fit:contain; }
-.notebook-post-placeholder .notebook-default-text { display:block; width:100%; padding:16px 20px 18px; border-top:1px solid var(--line-soft); background:#fff; }
-.notebook-post-placeholder .notebook-default-label { display:inline-block; position:relative; isolation:isolate; padding:0 3px; font-size:28px; font-weight:650; line-height:1.35; letter-spacing:-.02em; }
+.notebook-post-placeholder .notebook-default-copy { position:absolute; inset:14px auto 14px 16px; display:flex; flex-direction:column; align-items:flex-start; justify-content:space-between; width:48%; color:var(--category-ink); }
+.notebook-post-placeholder .notebook-default-logo { display:block; width:66px; height:auto; object-fit:contain; }
+.notebook-post-placeholder .notebook-default-label { display:inline-block; position:relative; isolation:isolate; padding:0 3px; font-size:22px; font-weight:800; line-height:1.35; letter-spacing:-.04em; }
 .notebook-default-label::after { content:""; position:absolute; z-index:-1; left:0; right:0; bottom:1px; height:7px; background:var(--category-accent); opacity:.35; border-radius:2px; transform:rotate(-3deg); }
+.notebook-post-placeholder[data-category="연극"] .notebook-default-label { font-family:"AppleMyungjo","Batang",serif; font-weight:700; letter-spacing:-.06em; }
 .notebook-post-placeholder[data-category="뮤지컬"] .notebook-default-label::after { transform:rotate(-5deg); border-radius:50%; }
-.notebook-post-placeholder[data-category="단원"] .notebook-default-label { padding:1px 8px; border:1px solid var(--category-accent); border-radius:6px; background:var(--category-wash); }
+.notebook-post-placeholder[data-category="퍼포먼스"] .notebook-default-label { font-style:italic; letter-spacing:-.06em; }
+.notebook-post-placeholder[data-category="단원"] .notebook-default-label { padding:1px 8px; border:1px solid var(--category-accent); border-radius:6px; background:var(--category-wash); font-size:20px; }
 .notebook-post-placeholder[data-category="단원"] .notebook-default-label::after { display:none; }
 .notebook-post-placeholder[data-category="기획사"] .notebook-default-label::after { height:2px; opacity:1; transform:none; }
-.notebook-post-placeholder .notebook-default-caption { display:block; margin-top:5px; padding-left:3px; font-size:13px; font-weight:500; letter-spacing:.02em; color:var(--category-ink); }
+.notebook-post-placeholder .notebook-default-caption { display:block; margin-top:5px; padding-left:3px; font-size:11px; font-weight:500; letter-spacing:.02em; color:var(--category-ink); }
 
 /* 공개 상단 탐색은 글자색과 밑줄로 선택·hover를 표시한다. */
 .notebook-main-nav :is(a,button) { position:relative; border-radius:0; }
@@ -1208,24 +1201,4 @@
   .notebook-category-tab { font-size:14px; }
   .notebook-toolbar.is-preview { align-items:flex-start; gap:12px; }
   .notebook-toolbar.is-preview .notebook-recruitment-filters { margin-left:0; }
-}
-
-/* 기존 브랜드를 유지하며 공고의 모집 조건과 보조 정보를 구분한다. */
-.notebook-post-copy { padding:20px; }
-.notebook-post-deadline { margin-left:auto; padding:5px 9px; }
-.notebook-post-card .notebook-post-terms {
-  display:grid;
-  gap:8px;
-  margin-top:auto;
-  padding-top:0;
-  font-size:12px;
-}
-.notebook-post-terms>div { display:flex; justify-content:space-between; gap:12px; }
-.notebook-post-terms dt { color:var(--ink-40); flex-shrink:0; }
-.notebook-post-terms dd { color:var(--ink); font-weight:600; text-align:right; overflow-wrap:anywhere; }
-@media(max-width:760px) {
-  .notebook-post-copy { padding:20px; }
-  .notebook-post-card h2 { min-height:0; }
-  .notebook-post-grid { gap:20px; }
-  .notebook-post-card h2+p { margin-bottom:16px; }
 }
