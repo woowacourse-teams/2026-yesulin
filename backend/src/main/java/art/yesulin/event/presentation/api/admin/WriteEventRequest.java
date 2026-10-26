@@ -14,6 +14,8 @@ import java.time.LocalDate;
 /**
  * 이벤트 글을 통째로 저장한다. 제목과 본문 말고는 비워 둘 수 있고, 비운 항목은 지운다.
  *
+ * @param registrationEnabled 켜면 신청 버튼이 외부 주소 대신 예술in 참가 신청서를 연다.
+ * @param registrationNotice 참가 신청서 위에 보여 줄 보증금·계좌 같은 안내
  * @param coverImageUrl 대표 이미지 공개 주소. 지금 이미지면 그대로 두고, 새로 올린 이미지면 바꾸고, 비우면 지운다.
  * @param banner 메인 배너 설정. 비우면 배너를 끈다.
  */
@@ -25,6 +27,8 @@ public record WriteEventRequest(
         LocalDate endsOn,
         @Size(max = Event.MAX_URL_LENGTH) String applyUrl,
         @Size(max = Event.MAX_APPLY_LABEL_LENGTH) String applyLabel,
+        boolean registrationEnabled,
+        @Size(max = Event.MAX_REGISTRATION_NOTICE_LENGTH) String registrationNotice,
         @Size(max = MAX_IMAGE_URL_LENGTH) String coverImageUrl,
         @Valid Banner banner
 ) {
@@ -32,7 +36,9 @@ public record WriteEventRequest(
     private static final int MAX_IMAGE_URL_LENGTH = 1000;
 
     public EventContent toContent() {
-        return new EventContent(title, summary, body, startsOn, endsOn, applyUrl, applyLabel);
+        return new EventContent(
+                title, summary, body, startsOn, endsOn, applyUrl, applyLabel, registrationEnabled, registrationNotice
+        );
     }
 
     public EventBannerSetting toBannerSetting() {

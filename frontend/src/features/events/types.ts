@@ -18,9 +18,81 @@ export type PublicEventSummary = {
 export type PublicEvent = PublicEventSummary & {
   /** 줄바꿈을 그대로 보여 준다. */
   readonly body: string;
-  /** 신청 버튼이 여는 주소. 없으면 버튼이 없다. */
+  /** 신청 버튼이 여는 주소. 없으면 버튼이 없다. 참가 신청서를 켠 글은 이 주소 대신 신청서를 연다. */
   readonly applyUrl: string | null;
   readonly applyLabel: string | null;
+  /** 예술in 참가 신청서를 쓰는 글인지 */
+  readonly registrationEnabled: boolean;
+  /** 지금 참가 신청을 받는지. 신청서를 켠 글이 마감되면 false다. */
+  readonly registrationOpen: boolean;
+  /** 참가 신청서 위에 보일 보증금·계좌 같은 안내. 줄바꿈을 그대로 보여 준다. */
+  readonly registrationNotice: string | null;
+};
+
+/** 참가 신청자 구분. 배우는 프로필 명함에 쓸 생년월일·사진을, 공연사 관계자는 소속과 하는 일을 적는다. */
+export type EventParticipantType = "ACTOR" | "PRODUCER";
+
+export const EVENT_PARTICIPANT_LABELS: Readonly<Record<EventParticipantType, string>> = {
+  ACTOR: "배우",
+  PRODUCER: "공연사 관계자",
+};
+
+/** 배우가 활동하거나 준비하는 분야. 기타를 고르면 분야 이름을 직접 적는다. */
+export type EventActivityField = "THEATER" | "MUSICAL" | "MEDIA" | "YOUTUBE" | "OTHER";
+
+export const EVENT_ACTIVITY_FIELDS: readonly EventActivityField[] = ["THEATER", "MUSICAL", "MEDIA", "YOUTUBE", "OTHER"];
+
+export const EVENT_ACTIVITY_LABELS: Readonly<Record<EventActivityField, string>> = {
+  THEATER: "연극",
+  MUSICAL: "뮤지컬",
+  MEDIA: "매체",
+  YOUTUBE: "유튜브",
+  OTHER: "기타",
+};
+
+/** 배우 경력 한 줄. */
+export type EventRegistrationCareer = {
+  /** `YYYY-MM` */
+  readonly performedMonth: string;
+  readonly workTitle: string;
+  /** 맡은 역. 비울 수 있다. */
+  readonly role: string | null;
+};
+
+/** 경력은 이 줄 수까지 적는다. */
+export const MAX_REGISTRATION_CAREERS = 10;
+
+/** 참가 신청 요청. 백엔드 `RegisterRequest`와 같다. 구분에 맞지 않는 칸은 서버가 저장하지 않는다. */
+export type EventRegistrationWrite = {
+  readonly participantType: EventParticipantType;
+  readonly name: string;
+  readonly phone: string;
+  readonly email: string;
+  readonly snsHandle: string | null;
+  /** `YYYY-MM-DD`. 배우만 필수다. */
+  readonly birthDate: string | null;
+  /** 공연사 관계자만 필수인 소속과 지금 하는 일 */
+  readonly affiliation: string | null;
+  /** 배우가 올린 프로필 사진의 업로드 키 */
+  readonly photoUploadKey: string | null;
+  /** 배우만 하나 이상 고른다. */
+  readonly activityFields: readonly EventActivityField[];
+  /** 기타를 고른 배우가 직접 적은 분야 */
+  readonly otherActivity: string | null;
+  /** 신입이라 경력이 없는 배우 */
+  readonly noCareer: boolean;
+  /** 배우 경력. 경력 없음이 아니면 한 줄 이상 적는다. */
+  readonly careers: readonly EventRegistrationCareer[];
+  readonly privacyAgreed: boolean;
+};
+
+/** 브라우저가 참가 신청 사진을 저장소로 바로 올릴 주소. 백엔드 `EventRegistrationPhotoUploadResult`와 같다. */
+export type EventRegistrationPhotoUpload = {
+  readonly url: string;
+  readonly method: string;
+  readonly headers: Readonly<Record<string, string>>;
+  readonly expiresAt: string;
+  readonly uploadKey: string;
 };
 
 /** 메인 상단에 지금 보일 이벤트 배너. 누르면 이벤트 상세로 간다. 백엔드 `EventBannerResult`와 같다. */
@@ -44,11 +116,15 @@ export const eventApiPaths = {
   list: "/v1/public/events",
   detail: (eventId: number | string) => `/v1/public/events/${encodeURIComponent(String(eventId))}`,
   banners: "/v1/public/events/banners",
+  registrations: (eventId: number | string) => `/v1/public/events/${encodeURIComponent(String(eventId))}/registrations`,
+  registrationPhotoUploads: (eventId: number | string) =>
+    `/v1/public/events/${encodeURIComponent(String(eventId))}/registrations/photo-uploads`,
 } as const;
 
 export const eventRoutes = {
   list: "/events",
   detail: (eventId: number | string) => `/events/${encodeURIComponent(String(eventId))}`,
+  register: (eventId: number | string) => `/events/${encodeURIComponent(String(eventId))}/register`,
 } as const;
 
 /** `2026.10.01 ~ 10.16`처럼 기간을 짧게 쓴다. 해가 다르면 끝에도 해를 쓰고, 기간이 없으면 null이다. */

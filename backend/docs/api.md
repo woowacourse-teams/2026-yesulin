@@ -544,7 +544,7 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 이미 연결된 공고는 그대로 둔다. 이후 가져오는 공고는 기획사 자동 연결과 함께 묶음 규칙으로 공연사가 없는 공고에 공연사를 연결한다.
 `admin_audit_logs`에 `AUDITION_POST_COMPANY_AUTHOR_LINKED`·`AUDITION_POST_COMPANY_AUTHOR_UNLINKED`로 남긴다.
 
-## 이벤트 — 10개
+## 이벤트 — 14개
 
 운영자가 쓰는 이벤트 글(`Event`)과 메인 상단 이벤트 배너다. 공개 API는 로그인 없이, 운영 API는 `ADMIN`만 호출한다. `eventId`는 숫자 ID다.
 
@@ -560,10 +560,15 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 | PUT | `/api/v1/admin/events/{eventId}` | Admin | `WriteEventRequest` | `200 AdminEventResult` |
 | PATCH | `/api/v1/admin/events/{eventId}/status` | Admin | `ChangeEventStatusRequest(status: PUBLISHED/HIDDEN)` | `200 AdminEventResult` |
 | DELETE | `/api/v1/admin/events/{eventId}` | Admin | 없음 | `204` |
+| POST | `/api/v1/public/events/{eventId}/registrations/photo-uploads` | 공개 | `PreparePhotoUploadRequest(contentType, size)` | `201 EventRegistrationPhotoUploadResult(url, method, headers, expiresAt, uploadKey)` |
+| POST | `/api/v1/public/events/{eventId}/registrations` | 공개 | `RegisterRequest` | `201 CreatedResponse(id)` |
+| GET | `/api/v1/admin/events/{eventId}/registrations` | Admin | 없음 | `200 AdminEventRegistrationsResponse(registrations)` |
+| DELETE | `/api/v1/admin/events/{eventId}/registrations/{registrationId}` | Admin | 없음 | `204` |
 
 `WriteEventRequest`는 `title`(필수, 100자), `summary`(목록 소개, 200자), `body`(필수, 줄바꿈을 살린 텍스트, 5000자),
 `startsOn`·`endsOn`(`YYYY-MM-DD`, 종료일이 시작일보다 앞서면 400), `applyUrl`(http·https 주소, 500자), `applyLabel`(신청 버튼 문구,
-30자, `applyUrl`이 없으면 지운다), `coverImageUrl`(대표 이미지), `banner(enabled, desktopImageUrl, mobileImageUrl, alt, endsOn, order)`다.
+30자, `applyUrl`도 참가 신청서도 없으면 지운다), `registrationEnabled`(켜면 신청 버튼이 외부 주소 대신 예술in 참가 신청서를 연다),
+`registrationNotice`(참가 신청서 위에 보일 보증금·계좌 같은 안내, 줄바꿈을 살린 2000자, 신청서를 끄면 지운다), `coverImageUrl`(대표 이미지), `banner(enabled, desktopImageUrl, mobileImageUrl, alt, endsOn, order)`다.
 글을 통째로 바꾸며 빈 문자열이나 null인 항목은 지우고, `banner`가 null이면 배너를 끈다. 배너를 켜려면 PC·모바일 배너 이미지와 `alt`(200자)가
 모두 있어야 한다. `banner.endsOn`은 이 날(한국 날짜)까지 노출하고 비우면 내릴 때까지 노출한다. `order`는 0~99이고 작은 순서가 먼저다.
 검증 오류는 `400 EVENT_INVALID_INPUT`이다.
@@ -571,12 +576,14 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 새 글은 `PENDING`이다. 상태 변경은 `PUBLISHED`와 `HIDDEN`만 받으며, 공개하거나 내린 글을 `PENDING`으로 되돌리면 400이다.
 `AdminEventResult`는 저장된 모든 항목과 이미지 공개 주소(`coverImageUrl`, `banner.desktopImageUrl`, `banner.mobileImageUrl`),
 지금 메인 배너에 보이는지(`bannerVisible`, 아래 배너 API와 같은 기준이라 5개 제한에 밀린 글은 false), `phase`, `status`, `createdAt`, `updatedAt`을 담는다. 운영 목록은 최근 만든 200건까지 준다.
-삭제는 다른 기능이 참조하지 않는 운영자 글이라 행을 바로 지우고(되돌릴 수 없다) 대표·배너 이미지도 커밋 뒤 저장소에서 지운다.
+삭제는 운영자 글이라 행을 바로 지우고(되돌릴 수 없다) 받은 참가 신청과 대표·배너 이미지·신청 사진도 커밋 뒤 저장소에서 지운다.
 없는 글은 `404 EVENT_NOT_FOUND`다. 생성·수정·상태 변경·삭제는 `admin_audit_logs`에 `EVENT_CREATED`·`EVENT_EDITED`·
 `EVENT_STATUS_CHANGED`·`EVENT_DELETED`로 남기며 글 원문은 담지 않는다.
 
 공개 목록·상세는 `PUBLISHED`인 글만 보여 주고, 없거나 공개 전·내린 글은 `404 EVENT_NOT_FOUND`다. 목록은 최근 만든 순으로 100건까지
-`id`, `title`, `summary`, `startsOn`, `endsOn`, `phase`, `coverImageUrl`을 준다. 상세는 여기에 `body`, `applyUrl`, `applyLabel`을 더한다.
+`id`, `title`, `summary`, `startsOn`, `endsOn`, `phase`, `coverImageUrl`을 준다. 상세는 여기에 `body`, `applyUrl`, `applyLabel`,
+`registrationEnabled`, `registrationOpen`(지금 참가 신청을 받는지), `registrationNotice`를 더한다. 운영 결과도 `registrationEnabled`와
+`registrationNotice`를 준다.
 `phase`는 한국 날짜로 시작일 전이면 `UPCOMING`, 종료일이 지났으면 `ENDED`, 나머지(기간을 비운 글 포함)는 `ONGOING`이다.
 배너 API는 `PUBLISHED`이고 배너를 켰으며 노출 종료일이 지나지 않은 글을 `order` 순(같으면 최근 글 먼저)으로 5개까지
 `eventId`, `title`, `alt`, `desktopImageUrl`, `mobileImageUrl`로 준다. 화면은 이 배너를 고정 배너 사이에 넣고 누르면 이벤트 상세로 간다.
@@ -587,6 +594,29 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 그대로, 이 운영자가 올린 이미지면 바꾸고, 비우면 지운다. 다른 주소나 다른 운영자의 업로드, 형식·크기·파일 앞부분(JPEG·PNG·WebP 서명)이
 다른 업로드는 400이다. 바꾸거나 지운 이미지는 커밋 뒤 저장소에서 지우고, 하루가 지나도록 확정하지 않은 업로드는 매일 04:50(한국 시간)
 정리 작업이 지운다.
+
+### 이벤트 참가 신청
+
+`registrationEnabled`를 켠 이벤트는 로그인 없이 예술in 참가 신청서로 신청을 받는다. 공개했고 참가 신청서를 켰으며 한국 날짜로
+종료일이 지나지 않은 이벤트만 받는다. 공개하지 않은 이벤트는 `404 EVENT_NOT_FOUND`, 신청서를 끄거나 종료일이 지난 이벤트는
+`409 EVENT_REGISTRATION_CLOSED`다. 쓰기 요청은 CSRF 헤더가 필요하다.
+
+`RegisterRequest`는 `participantType`(`ACTOR`·`PRODUCER`), `name`(50자), `phone`(`010-1234-5678`, 숫자만 적어도 같은 형식으로 정리),
+`email`(254자), `snsHandle`(선택, 100자), `birthDate`(배우만 필수, 미래 날짜 불가), `affiliation`(공연사 관계자만 필수인 소속과 하는 일, 500자),
+`photoUploadKey`(배우만 필수), `activityFields`(배우만 하나 이상 필수, `THEATER`·`MUSICAL`·`MEDIA`·`YOUTUBE`·`OTHER`),
+`otherActivity`(`OTHER`를 고르면 필수인 직접 적은 분야, 50자), `noCareer`(신입이라 경력 없음), `careers`(배우가 `noCareer`가 아니면
+1~10줄 필수, 각 `performedMonth`(`YYYY-MM`)·`workTitle`(100자)·`role`(선택, 50자). `noCareer`면 비워야 한다), `privacyAgreed`(true 필수)다.
+구분에 맞지 않는 칸은 저장하지 않는다. 같은 이벤트에 같은 휴대폰 번호로
+다시 신청하면 `409 EVENT_REGISTRATION_DUPLICATE`, 검증 오류는 `400 EVENT_INVALID_INPUT`이다.
+
+배우는 먼저 `photo-uploads`로 비공개 경로(`private/event-registration-photos/...`)에 올릴 자리를 받아 저장소에 바로 올린 뒤, 받은 `uploadKey`를
+신청에 담는다. 형식·크기·파일 앞부분 기준은 이벤트 이미지와 같다(JPEG·PNG·WebP, 5MB). 신청할 때 올라온 사진을 확인해 한 번만 확정하고,
+하루가 지나도록 확정하지 않은 업로드는 매일 04:55(한국 시간) 정리 작업이 지운다.
+
+운영 목록은 이벤트의 신청을 먼저 온 순서로 주며, 배우 사진은 잠깐 열리는 내려받기 주소(`photoUrl`)로 준다. 분야는 위 순서대로,
+경력은 적은 순서대로 준다. 없는 이벤트는 `404 EVENT_NOT_FOUND`다.
+신청 삭제는 되돌릴 수 없고 사진도 커밋 뒤 저장소에서 지우며, `admin_audit_logs`에 `EVENT_REGISTRATION_DELETED`로 남기되 신청 내용은 담지 않는다.
+이 이벤트에 없는 신청은 `404 EVENT_REGISTRATION_NOT_FOUND`다. 이벤트를 지우면 받은 신청과 사진도 함께 지운다.
 
 ## 무료 공연과 비회원 예매 — 21개
 

@@ -9,6 +9,8 @@ export type EventDraft = {
   readonly endsOn: string;
   readonly applyUrl: string;
   readonly applyLabel: string;
+  readonly registrationEnabled: boolean;
+  readonly registrationNotice: string;
   readonly coverImageUrl: string | null;
   readonly bannerEnabled: boolean;
   readonly bannerDesktopImageUrl: string | null;
@@ -38,6 +40,8 @@ export function emptyEventDraft(): EventDraft {
     endsOn: "",
     applyUrl: "",
     applyLabel: "",
+    registrationEnabled: false,
+    registrationNotice: "",
     coverImageUrl: null,
     bannerEnabled: false,
     bannerDesktopImageUrl: null,
@@ -57,6 +61,8 @@ export function draftOfEvent(event: AdminEvent): EventDraft {
     endsOn: event.endsOn ?? "",
     applyUrl: event.applyUrl ?? "",
     applyLabel: event.applyLabel ?? "",
+    registrationEnabled: event.registrationEnabled,
+    registrationNotice: event.registrationNotice ?? "",
     coverImageUrl: event.coverImageUrl,
     bannerEnabled: event.banner.enabled,
     bannerDesktopImageUrl: event.banner.desktopImageUrl,
@@ -77,6 +83,8 @@ export function writeOfEvent(draft: EventDraft): AdminEventWrite {
     endsOn: blankToNull(draft.endsOn),
     applyUrl: blankToNull(draft.applyUrl),
     applyLabel: blankToNull(draft.applyLabel),
+    registrationEnabled: draft.registrationEnabled,
+    registrationNotice: draft.registrationEnabled ? blankToNull(draft.registrationNotice) : null,
     coverImageUrl: draft.coverImageUrl,
     banner: {
       enabled: draft.bannerEnabled,

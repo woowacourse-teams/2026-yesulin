@@ -11,6 +11,8 @@ import java.time.LocalDate;
  * @param endsOn 진행 종료일. 지나면 마감으로 보인다.
  * @param applyUrl 상세 화면의 신청 버튼이 여는 주소. 비우면 버튼이 없다.
  * @param applyLabel 신청 버튼 문구. 주소만 있으면 화면이 기본 문구를 쓴다.
+ * @param registrationEnabled 켜면 신청 버튼이 외부 주소 대신 예술in 참가 신청서를 연다.
+ * @param registrationNotice 참가 신청서 위에 보여 줄 보증금·계좌 같은 안내. 신청서를 끄면 지운다.
  */
 public record EventContent(
         String title,
@@ -19,6 +21,21 @@ public record EventContent(
         LocalDate startsOn,
         LocalDate endsOn,
         String applyUrl,
-        String applyLabel
+        String applyLabel,
+        boolean registrationEnabled,
+        String registrationNotice
 ) {
+
+    /** 참가 신청서 없이 쓰는 글. */
+    public EventContent(
+            String title,
+            String summary,
+            String body,
+            LocalDate startsOn,
+            LocalDate endsOn,
+            String applyUrl,
+            String applyLabel
+    ) {
+        this(title, summary, body, startsOn, endsOn, applyUrl, applyLabel, false, null);
+    }
 }

@@ -4,6 +4,7 @@ import static art.yesulin.event.domain.EventErrorCode.NOT_FOUND;
 
 import art.yesulin.event.application.image.EventImageService;
 import art.yesulin.event.application.image.EventImageStorage;
+import art.yesulin.event.application.registration.EventRegistrationService;
 import art.yesulin.event.domain.Event;
 import art.yesulin.event.domain.EventBannerSetting;
 import art.yesulin.event.domain.EventContent;
@@ -48,6 +49,7 @@ public class EventService {
     private final AdminAuditLogRepository auditLogRepository;
     private final EventImageService images;
     private final EventImageStorage imageStorage;
+    private final EventRegistrationService registrations;
     private final Clock clock;
 
     @Transactional(readOnly = true)
@@ -100,13 +102,15 @@ public class EventService {
     }
 
     /**
-     * 글을 지운다. 다른 기능이 참조하지 않는 운영자 글이라 행을 지우고, 이미지도 커밋 뒤 저장소에서 지운다. 감사 로그는 남긴다.
+     * 글을 지운다. 운영자 글이라 행을 바로 지우고, 받은 참가 신청과 이미지·신청 사진도 함께(저장소는 커밋 뒤) 지운다.
+     * 감사 로그는 남긴다.
      */
     @Transactional
     public void delete(long adminId, long eventId) {
         Event event = find(eventId);
-        EventImages keys = event.images();
+        final EventImages keys = event.images();
         audit(adminId, event, AdminAction.EVENT_DELETED, "이벤트 삭제");
+        registrations.deleteAllOf(event.getId());
         repository.delete(event);
         images.deleteAfterCommit(keys.coverKey());
         images.deleteAfterCommit(keys.bannerDesktopKey());

@@ -30,6 +30,7 @@ import { eventRoutes, formatEventPeriod } from "@/features/events/types";
 import { formatDateTime } from "./admin-format";
 import { AdminSessionEnded } from "./admin-session-ended";
 import { AdminActionButton, AdminActionLink, AdminEmptyState, AdminShell } from "./admin-shell";
+import { AdminEventRegistrations } from "./admin-event-registrations";
 
 type Phase = "loading" | "ready" | "unauthorized" | "failed";
 
@@ -196,6 +197,7 @@ export function AdminEvents() {
               onEdit={() => setEditing(event.id)}
               onToggleStatus={() => void toggleStatus(event)}
               onDelete={() => setDeleting(event)}
+              onUnauthorized={() => setPhase("unauthorized")}
             />
           ))}
         </section>
@@ -211,7 +213,7 @@ export function AdminEvents() {
           onConfirm={() => void remove(deleting)}
           description={(
             <>
-              <strong className="font-semibold text-foreground">{deleting.title}</strong>{" "}글과 대표·배너 이미지를 지워요. 되돌릴 수 없고,
+              <strong className="font-semibold text-foreground">{deleting.title}</strong>{" "}글과 대표·배너 이미지, 받은 참가 신청과 사진을 지워요. 되돌릴 수 없고,
               메인 배너와 이벤트 화면에서도 바로 빠져요. 잠시 숨기기만 하려면 &quot;숨기기&quot;를 써 주세요.
             </>
           )}
@@ -221,14 +223,16 @@ export function AdminEvents() {
   );
 }
 
-function EventCard({ event, changing, onEdit, onToggleStatus, onDelete }: {
+function EventCard({ event, changing, onEdit, onToggleStatus, onDelete, onUnauthorized }: {
   readonly event: AdminEvent;
   readonly changing: boolean;
   readonly onEdit: () => void;
   readonly onToggleStatus: () => void;
   readonly onDelete: () => void;
+  readonly onUnauthorized: () => void;
 }) {
   const period = formatEventPeriod(event.startsOn, event.endsOn);
+  const [showRegistrations, setShowRegistrations] = useState(false);
   return (
     <article className="rounded-card border border-border bg-card p-4 sm:px-5">
       <header className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
@@ -247,11 +251,17 @@ function EventCard({ event, changing, onEdit, onToggleStatus, onDelete }: {
           <AdminActionLink href={eventRoutes.detail(event.id)} target="_blank">공개 화면</AdminActionLink>
         ) : null}
         <AdminActionButton onClick={onEdit}>수정</AdminActionButton>
+        {event.registrationEnabled ? (
+          <AdminActionButton aria-expanded={showRegistrations} onClick={() => setShowRegistrations((value) => !value)}>
+            {showRegistrations ? "신청자 접기" : "신청자 보기"}
+          </AdminActionButton>
+        ) : null}
         <AdminActionButton tone="destructive" onClick={onDelete}>삭제</AdminActionButton>
         <AdminActionButton disabled={changing} onClick={onToggleStatus} className="ml-auto">
           {changing ? "바꾸는 중…" : STATUS_ACTIONS[event.status]}
         </AdminActionButton>
       </div>
+      {showRegistrations ? <AdminEventRegistrations eventId={event.id} onUnauthorized={onUnauthorized} /> : null}
     </article>
   );
 }
@@ -334,6 +344,22 @@ function EventForm({ initial, submitLabel, onSave, onCancel, onUnauthorized }: {
           <FieldInput id="event-apply-label" value={draft.applyLabel} maxLength={30} onChange={(event) => set("applyLabel", event.target.value)} />
         </Field>
       </div>
+      <fieldset className="flex flex-col gap-4 rounded-control border border-border-soft p-4">
+        <legend className="px-1 text-sm font-semibold">참가 신청서</legend>
+        <label className="flex min-h-11 items-center gap-2 text-sm font-semibold">
+          <input type="checkbox" checked={draft.registrationEnabled} onChange={(event) => set("registrationEnabled", event.target.checked)} className="size-4 accent-brand" />
+          예술in 참가 신청서로 신청 받기
+        </label>
+        <p className="-mt-3 text-xs text-muted">
+          켜면 신청 버튼이 위 신청 링크 대신 로그인 없이 쓰는 신청서를 열어요. 배우는 생년월일·프로필 사진을, 공연사 관계자는 소속과 하는 일을 받아요.
+          종료일이 지나면 신청을 닫아요.
+        </p>
+        {draft.registrationEnabled ? (
+          <Field id="event-registration-notice" label="신청 안내" hint="신청서 위와 신청 완료 화면에 그대로 보여요. 보증금·계좌·반환 안내를 적어 주세요.">
+            <FieldTextarea id="event-registration-notice" rows={5} value={draft.registrationNotice} maxLength={2000} onChange={(event) => set("registrationNotice", event.target.value)} />
+          </Field>
+        ) : null}
+      </fieldset>
       <ImageField label="대표 이미지" hint="목록 카드와 상세 위쪽에 보여요. 선택 사항이에요." {...imageProps("cover", "coverImageUrl")} />
 
       <fieldset className="flex flex-col gap-4 rounded-control border border-border-soft p-4">

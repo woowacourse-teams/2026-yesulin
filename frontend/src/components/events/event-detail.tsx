@@ -60,15 +60,23 @@ function EventDetail({ event }: { readonly event: PublicEvent }) {
       <div className="px-5 py-6 sm:px-8">
         <p className="whitespace-pre-line text-[15px] leading-7 text-muted-strong">{event.body}</p>
       </div>
-      {event.applyUrl ? (
+      {event.registrationEnabled || event.applyUrl ? (
         <footer className="border-t border-border-soft px-5 py-5 sm:px-8">
           {ended ? (
             <p className="text-sm font-semibold text-muted-strong">마감된 이벤트예요. 다음 모집 소식은 이벤트 목록에서 알려 드릴게요.</p>
-          ) : (
+          ) : event.registrationEnabled ? (
+            event.registrationOpen ? (
+              <PrimaryLink href={eventRoutes.register(event.id)} className="w-full sm:w-auto">
+                {event.applyLabel ?? DEFAULT_APPLY_LABEL}
+              </PrimaryLink>
+            ) : (
+              <p className="text-sm font-semibold text-muted-strong">지금은 참가 신청을 받지 않아요.</p>
+            )
+          ) : event.applyUrl ? (
             <PrimaryLink href={event.applyUrl} target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
               {event.applyLabel ?? DEFAULT_APPLY_LABEL}<span className="sr-only"> (새 창에서 열림)</span>
             </PrimaryLink>
-          )}
+          ) : null}
         </footer>
       ) : null}
     </article>

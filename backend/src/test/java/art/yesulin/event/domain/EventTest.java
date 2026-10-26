@@ -86,6 +86,29 @@ class EventTest {
     }
 
     @Test
+    void acceptsRegistrationsOnlyWhilePublishedEnabledAndNotEnded() {
+        Event event = event(new EventContent(
+                "월요살롱", null, "본문", null, TODAY, null, "참가 신청하기", true, " 보증금 5,000원\r\n현장 반환 "
+        ));
+
+        assertEquals("보증금 5,000원\n현장 반환", event.getRegistrationNotice());
+        assertEquals("참가 신청하기", event.getApplyLabel());
+        assertFalse(event.isAcceptingRegistrationsOn(TODAY));
+        event.changeStatus(EventStatus.PUBLISHED, NOW);
+        assertTrue(event.isAcceptingRegistrationsOn(TODAY));
+        assertFalse(event.isAcceptingRegistrationsOn(TODAY.plusDays(1)));
+    }
+
+    @Test
+    void turningRegistrationOffClearsNotice() {
+        Event event = event(new EventContent("제목", null, "본문", null, null, null, "신청", false, "안내"));
+
+        assertFalse(event.isRegistrationEnabled());
+        assertNull(event.getRegistrationNotice());
+        assertNull(event.getApplyLabel());
+    }
+
+    @Test
     void decidedEventCannotGoBackToPending() {
         Event event = event(content("제목", "본문", null, null));
         event.changeStatus(EventStatus.PUBLISHED, NOW);
