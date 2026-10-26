@@ -30,7 +30,8 @@ export type RegistrationDraft = {
 };
 
 const PHONE = /^01[016789]-\d{3,4}-\d{4}$/;
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+/** 서버와 같은 모양. 도메인은 점을 뺀 조각끼리 점으로 잇게 맞춰 긴 입력에서도 느려지지 않는다. */
+const EMAIL = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/;
 const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 export function emptyCareer(key: number): CareerDraft {

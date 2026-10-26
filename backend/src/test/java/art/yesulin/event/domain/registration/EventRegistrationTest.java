@@ -102,6 +102,10 @@ class EventRegistrationTest {
         assertThrows(BusinessException.class, () -> withContacts("02-123-4567", "haneul@test.com"));
         assertThrows(BusinessException.class, () -> withContacts("010-1234-5678", "haneul"));
         assertThrows(BusinessException.class, () -> withContacts("010-1234-5678", " "));
+        assertThrows(BusinessException.class, () -> withContacts("010-1234-5678", "haneul@test"));
+        assertThrows(BusinessException.class, () -> withContacts("010-1234-5678", "haneul@test..com"));
+        assertThrows(BusinessException.class, () -> withContacts("010-1234-5678", "!@!." + "!.".repeat(120)));
+        assertEquals("haneul@mail.test.co.kr", withContacts("010-1234-5678", "haneul@mail.test.co.kr").getEmail());
     }
 
     private static EventRegistration actor(LocalDate birthDate, String photoKey) {

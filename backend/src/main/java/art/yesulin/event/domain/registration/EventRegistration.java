@@ -47,7 +47,8 @@ public class EventRegistration {
     public static final int MAX_OTHER_ACTIVITY_LENGTH = 50;
     public static final int MAX_CAREERS = 10;
     private static final Pattern PHONE = Pattern.compile("01[016789]-\\d{3,4}-\\d{4}");
-    private static final Pattern EMAIL = Pattern.compile("[^\\s@]+@[^\\s@]+\\.[^\\s@]+");
+    /** 도메인은 점을 뺀 조각끼리 점으로 잇게 맞춰, 긴 입력에서도 되돌아가며 다시 맞추는 일이 생기지 않게 한다. */
+    private static final Pattern EMAIL = Pattern.compile("[^\\s@]+@[^\\s@.]+(?:\\.[^\\s@.]+)+");
     private static final LocalDate EARLIEST_BIRTH_DATE = LocalDate.of(1900, 1, 1);
 
     @Id

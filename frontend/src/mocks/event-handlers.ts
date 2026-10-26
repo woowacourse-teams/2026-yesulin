@@ -129,7 +129,7 @@ function toPublic(event: AdminEvent): PublicEvent {
 /** 서버처럼 구분에 맞는 칸만 확인한다. 문제가 없으면 null이다. */
 function invalidRegistration(write: EventRegistrationWrite): string | null {
   if (!write.participantType) return "참가 구분을 선택해 주세요.";
-  if (!write.name?.trim() || !/^01[016789]-\d{3,4}-\d{4}$/.test(write.phone ?? "") || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(write.email ?? "")) {
+  if (!write.name?.trim() || !/^01[016789]-\d{3,4}-\d{4}$/.test(write.phone ?? "") || !/^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/.test(write.email ?? "")) {
     return "이름·휴대폰 번호·이메일을 확인해 주세요.";
   }
   if (write.participantType === "ACTOR" && (!write.birthDate || !write.photoUploadKey || !pendingPhotoKeys.has(write.photoUploadKey))) {
