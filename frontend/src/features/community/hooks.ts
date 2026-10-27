@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CommunityEntry, CommunityPage } from "./types";
+import { communityDraftNavigation } from "./draft-navigation";
 
 export function errorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
@@ -75,21 +76,6 @@ function mergePage(previous: readonly CommunityEntry[], incoming: readonly Commu
 export function useDraftGuard(dirty: boolean) {
   useEffect(() => {
     if (!dirty) return;
-    const unload = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ""; };
-    window.addEventListener("beforeunload", unload);
-    document.addEventListener("click", confirmDraftNavigation, true);
-    return () => {
-      window.removeEventListener("beforeunload", unload);
-      document.removeEventListener("click", confirmDraftNavigation, true);
-    };
+    return communityDraftNavigation().register();
   }, [dirty]);
-}
-
-function confirmDraftNavigation(event: MouseEvent) {
-  if (!(event.target instanceof Element)) return;
-  const link = event.target.closest("a");
-  if (!link || link.target === "_blank" || link.getAttribute("href")?.startsWith("#")) return;
-  if (window.confirm("작성 중인 내용이 사라져요. 이동할까요?")) return;
-  event.preventDefault();
-  event.stopPropagation();
 }
