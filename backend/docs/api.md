@@ -568,7 +568,8 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 `WriteEventRequest`는 `title`(필수, 100자), `summary`(목록 소개, 200자), `body`(필수 개요, 대표 이미지 옆에 보이는 자유 형식 텍스트, 줄바꿈 유지, 5000자),
 `startsOn`·`endsOn`(`YYYY-MM-DD`, 종료일이 시작일보다 앞서면 400), `applyUrl`(http·https 주소, 500자), `applyLabel`(신청 버튼 문구,
 30자, `applyUrl`도 참가 신청서도 없으면 지운다), `registrationEnabled`(켜면 신청 버튼이 외부 주소 대신 예술in 참가 신청서를 연다),
-`registrationNotice`(참가 신청서 위에 보일 보증금·계좌 같은 안내, 줄바꿈을 살린 2000자, 신청서를 끄면 지운다), `coverImageUrl`(대표 이미지), `detailBody`(선택적 하단 상세 설명, 줄바꿈 유지, 5000자),
+`registrationNotice`(참가 신청서 위에 보일 보증금·계좌 같은 안내, 줄바꿈을 살린 2000자, 신청서를 끄면 지운다),
+`businessCardClosesAt`(배우의 프로필 명함 제작 희망을 받는 마감 시각, ISO-8601, 비우면 신청 기간 내내 받고 신청서를 끄면 지운다), `coverImageUrl`(대표 이미지), `detailBody`(선택적 하단 상세 설명, 줄바꿈 유지, 5000자),
 `detailImageUrls`(선택적 하단 상세 이미지 주소 배열, 순서 유지, 최대 10장, 빈 주소·중복 거절), `banner(enabled, desktopImageUrl, mobileImageUrl, alt, endsOn, order)`다.
 `detailBody`와 `detailImageUrls`는 각각 독립적이라 설명만 또는 이미지만 등록할 수 있다. 상세 이미지 배열을 생략하거나 null·빈 배열로 보내면 모두 지운다.
 이미지는 기존 이벤트 이미지 업로드 API로 올리며, 이 이벤트에서 이미 쓰는 주소 또는 해당 운영자가 새로 올린 주소만 확정한다.
@@ -585,8 +586,9 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 
 공개 목록·상세는 `PUBLISHED`인 글만 보여 주고, 없거나 공개 전·내린 글은 `404 EVENT_NOT_FOUND`다. 목록은 최근 만든 순으로 100건까지
 `id`, `title`, `summary`, `startsOn`, `endsOn`, `phase`, `coverImageUrl`을 준다. 상세는 여기에 `body`(개요), `detailBody`, `detailImageUrls`(등록 순서), `applyUrl`, `applyLabel`,
-`registrationEnabled`, `registrationOpen`(지금 참가 신청을 받는지), `registrationNotice`를 더한다. 운영 결과도 `registrationEnabled`와
-`registrationNotice`를 준다.
+`registrationEnabled`, `registrationOpen`(지금 참가 신청을 받는지), `registrationNotice`, `businessCardClosesAt`,
+`businessCardOpen`(참가 신청을 받는 중이고 명함 제작 마감 시각 전인지)을 더한다. 운영 결과도 `registrationEnabled`,
+`registrationNotice`, `businessCardClosesAt`을 준다.
 `phase`는 한국 날짜로 시작일 전이면 `UPCOMING`, 종료일이 지났으면 `ENDED`, 나머지(기간을 비운 글 포함)는 `ONGOING`이다.
 배너 API는 `PUBLISHED`이고 배너를 켰으며 노출 종료일이 지나지 않은 글을 `order` 순(같으면 최근 글 먼저)으로 5개까지
 `eventId`, `title`, `alt`, `desktopImageUrl`, `mobileImageUrl`로 준다. 화면은 이 배너를 고정 배너 사이에 넣고 누르면 이벤트 상세로 간다.
@@ -602,7 +604,8 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 
 `registrationEnabled`를 켠 이벤트는 로그인 없이 예술in 참가 신청서로 신청을 받는다. 공개했고 참가 신청서를 켰으며 한국 날짜로
 종료일이 지나지 않은 이벤트만 받는다. 공개하지 않은 이벤트는 `404 EVENT_NOT_FOUND`, 신청서를 끄거나 종료일이 지난 이벤트는
-`409 EVENT_REGISTRATION_CLOSED`다. 쓰기 요청은 CSRF 헤더가 필요하다.
+`409 EVENT_REGISTRATION_CLOSED`다. 명함 제작 마감 시각이 지나면 참가 신청은 계속 받되, 명함 희망 신청과 명함 사진 업로드는
+`409 EVENT_BUSINESS_CARD_CLOSED`다. 쓰기 요청은 CSRF 헤더가 필요하다.
 
 `RegisterRequest`는 `participantType`(`ACTOR`·`PRODUCER`), `name`(50자), `phone`(`010-1234-5678`, 숫자만 적어도 같은 형식으로 정리),
 `affiliation`(공연사 관계자만 필수인 소속과 하는 일, 500자), `businessCardRequested`(배우가 프로필 명함 제작을 희망하는지),

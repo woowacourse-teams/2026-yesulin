@@ -77,7 +77,12 @@ function Registration({ event }: { readonly event: PublicEvent }) {
           <SecondaryLink href={eventRoutes.detail(event.id)} className="mt-5">이벤트 글로 돌아가기</SecondaryLink>
         </section>
       ) : (
-        <EventRegistrationForm eventId={event.id} onDone={() => { setDone(true); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
+        <EventRegistrationForm
+          eventId={event.id}
+          businessCardOpen={event.businessCardOpen}
+          businessCardClosesAt={event.businessCardClosesAt}
+          onDone={() => { setDone(true); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+        />
       )}
     </article>
   );

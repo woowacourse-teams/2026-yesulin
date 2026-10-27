@@ -10,6 +10,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -18,6 +19,7 @@ import java.util.List;
  *
  * @param registrationEnabled 켜면 신청 버튼이 외부 주소 대신 예술in 참가 신청서를 연다.
  * @param registrationNotice 참가 신청서 위에 보여 줄 보증금·계좌 같은 안내
+ * @param businessCardClosesAt 배우의 프로필 명함 제작 희망을 받는 마감 시각. 비우면 신청 기간 내내 받는다.
  * @param coverImageUrl 대표 이미지 공개 주소. 지금 이미지면 그대로 두고, 새로 올린 이미지면 바꾸고, 비우면 지운다.
  * @param banner 메인 배너 설정. 비우면 배너를 끈다.
  */
@@ -35,7 +37,8 @@ public record WriteEventRequest(
         @Size(max = Event.MAX_BODY_LENGTH) String detailBody,
         @Size(max = EventImages.MAX_DETAIL_IMAGES)
         List<@NotBlank @Size(max = MAX_IMAGE_URL_LENGTH) String> detailImageUrls,
-        @Valid Banner banner
+        @Valid Banner banner,
+        Instant businessCardClosesAt
 ) {
 
     private static final int MAX_IMAGE_URL_LENGTH = 1000;
@@ -43,7 +46,7 @@ public record WriteEventRequest(
     public EventContent toContent() {
         return new EventContent(
                 title, summary, body, startsOn, endsOn, applyUrl, applyLabel,
-                registrationEnabled, registrationNotice, detailBody
+                registrationEnabled, registrationNotice, detailBody, businessCardClosesAt
         );
     }
 

@@ -1,5 +1,6 @@
 package art.yesulin.event.application.registration;
 
+import static art.yesulin.event.domain.EventErrorCode.BUSINESS_CARD_CLOSED;
 import static art.yesulin.event.domain.EventErrorCode.INVALID_INPUT;
 import static art.yesulin.event.domain.EventErrorCode.NOT_FOUND;
 import static art.yesulin.event.domain.EventErrorCode.REGISTRATION_CLOSED;
@@ -55,10 +56,10 @@ public class EventRegistrationService {
     private final AdminAuditLogRepository auditLogRepository;
     private final Clock clock;
 
-    /** 신청을 받는 이벤트에서만 사진 올릴 자리를 준다. */
+    /** 신청을 받고 명함 제작 마감 전인 이벤트에서만 명함 사진 올릴 자리를 준다. */
     @Transactional
     public EventRegistrationPhotoUploadResult preparePhotoUpload(long eventId, String reportedType, long size) {
-        acceptingEvent(eventId);
+        requireBusinessCardOpen(acceptingEvent(eventId));
         String contentType = EventImageRules.contentType(reportedType).orElseThrow(() ->
                 new BusinessException(INVALID_INPUT, "사진은 JPG·PNG·WebP만 올릴 수 있습니다."));
         if (size <= 0 || size > EventImageRules.MAX_BYTES) {
@@ -90,6 +91,9 @@ public class EventRegistrationService {
         }
         boolean card = form != null && form.participantType() == EventParticipantType.ACTOR
                 && form.businessCardRequested();
+        if (card) {
+            requireBusinessCardOpen(event);
+        }
         String photoKey = card && photoUploadKey != null && !photoUploadKey.isBlank()
                 ? claimPhoto(photoUploadKey)
                 : null;
@@ -188,6 +192,15 @@ public class EventRegistrationService {
             throw new BusinessException(REGISTRATION_CLOSED, "참가 신청을 받지 않는 이벤트입니다.");
         }
         return event;
+    }
+
+    /** 명함 제작 마감 시각이 지나면 명함 희망을 받지 않는다. 참가 신청 자체는 종료일까지 받는다. */
+    private void requireBusinessCardOpen(Event event) {
+        if (!event.isAcceptingBusinessCardsAt(clock.instant())) {
+            throw new BusinessException(
+                    BUSINESS_CARD_CLOSED, "프로필 명함 제작 신청 기간이 끝났어요. 명함 희망을 끄고 신청해 주세요."
+            );
+        }
     }
 
     private LocalDate today() {

@@ -1,5 +1,6 @@
 package art.yesulin.event.domain;
 
+import java.time.Instant;
 import java.time.LocalDate;
 
 /**
@@ -14,6 +15,7 @@ import java.time.LocalDate;
  * @param applyLabel 신청 버튼 문구. 주소만 있으면 화면이 기본 문구를 쓴다.
  * @param registrationEnabled 켜면 신청 버튼이 외부 주소 대신 예술in 참가 신청서를 연다.
  * @param registrationNotice 참가 신청서 위에 보여 줄 보증금·계좌 같은 안내. 신청서를 끄면 지운다.
+ * @param businessCardClosesAt 배우의 프로필 명함 제작 희망을 받는 마감 시각. 비우면 신청 기간 내내 받고, 신청서를 끄면 지운다.
  */
 public record EventContent(
         String title,
@@ -25,8 +27,19 @@ public record EventContent(
         String applyLabel,
         boolean registrationEnabled,
         String registrationNotice,
-        String detailBody
+        String detailBody,
+        Instant businessCardClosesAt
 ) {
+
+    /** 명함 제작 마감 없이 쓰는 글. */
+    public EventContent(
+            String title, String summary, String body, LocalDate startsOn, LocalDate endsOn,
+            String applyUrl, String applyLabel, boolean registrationEnabled, String registrationNotice,
+            String detailBody
+    ) {
+        this(title, summary, body, startsOn, endsOn, applyUrl, applyLabel,
+                registrationEnabled, registrationNotice, detailBody, null);
+    }
 
     /** 상세 설명 없이 쓰던 글도 같은 개요를 유지한다. */
     public EventContent(

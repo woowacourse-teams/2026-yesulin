@@ -87,6 +87,9 @@ public class Event {
     @Column(name = "registration_notice", length = MAX_REGISTRATION_NOTICE_LENGTH)
     private String registrationNotice;
 
+    @Column(name = "business_card_closes_at")
+    private Instant businessCardClosesAt;
+
     @Column(name = "cover_image_key", length = 500)
     private String coverImageKey;
 
@@ -145,6 +148,7 @@ public class Event {
         this.applyLabel = normalized.applyLabel();
         this.registrationEnabled = normalized.registrationEnabled();
         this.registrationNotice = normalized.registrationNotice();
+        this.businessCardClosesAt = normalized.businessCardClosesAt();
         this.coverImageKey = blankToNull(keys.coverKey());
         this.bannerDesktopKey = blankToNull(keys.bannerDesktopKey());
         this.bannerMobileKey = blankToNull(keys.bannerMobileKey());
@@ -183,6 +187,11 @@ public class Event {
         return isPublished() && registrationEnabled && phaseOn(today) != EventPhase.ENDED;
     }
 
+    /** 참가 신청을 받는 동안 배우의 프로필 명함 제작 희망도 받는지. 마감 시각을 비우면 신청 기간 내내 받는다. */
+    public boolean isAcceptingBusinessCardsAt(Instant now) {
+        return businessCardClosesAt == null || now.isBefore(businessCardClosesAt);
+    }
+
     public EventPhase phaseOn(LocalDate today) {
         if (startsOn != null && today.isBefore(startsOn)) {
             return EventPhase.UPCOMING;
@@ -199,7 +208,7 @@ public class Event {
 
     /**
      * 내용 규칙에 맞는지 확인하고 앞뒤 공백과 빈 칸을 정리한다. 신청 링크와 참가 신청서가 모두 없으면 버튼 문구도 지우고,
-     * 참가 신청서를 끄면 안내 문구도 지운다.
+     * 참가 신청서를 끄면 안내 문구와 명함 제작 마감 시각도 지운다.
      */
     private static EventContent normalize(EventContent content) {
         if (content == null) {
@@ -229,7 +238,8 @@ public class Event {
                 hasButton ? optional(content.applyLabel(), MAX_APPLY_LABEL_LENGTH, "신청 버튼 문구") : null,
                 registration,
                 notice,
-                optional(normalizeLines(content.detailBody()), MAX_BODY_LENGTH, "상세 설명")
+                optional(normalizeLines(content.detailBody()), MAX_BODY_LENGTH, "상세 설명"),
+                registration ? content.businessCardClosesAt() : null
         );
     }
 
