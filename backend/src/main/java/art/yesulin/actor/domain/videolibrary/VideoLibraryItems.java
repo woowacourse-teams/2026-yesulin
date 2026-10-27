@@ -5,6 +5,7 @@ import static art.yesulin.actor.domain.videolibrary.VideoLibraryErrorCode.INVALI
 import static art.yesulin.actor.domain.videolibrary.VideoLibraryErrorCode.LIMIT_EXCEEDED;
 import static art.yesulin.actor.domain.videolibrary.VideoLibraryErrorCode.VIDEO_NOT_FOUND;
 
+import art.yesulin.actor.domain.page.ActorPageVideoVisibility;
 import art.yesulin.global.exception.BusinessException;
 import art.yesulin.global.validation.YouTubeVideoUrl;
 import jakarta.persistence.CascadeType;
@@ -66,6 +67,10 @@ public class VideoLibraryItems {
                 .filter(item -> item.hasId(videoId))
                 .findFirst()
                 .orElseThrow(() -> new BusinessException(VIDEO_NOT_FOUND, "영상보관함에서 영상을 찾을 수 없습니다."));
+    }
+
+    void changeVisibility(long itemId, ActorPageVideoVisibility visibility) {
+        find(itemId).changeVisibility(visibility);
     }
 
     private void reorder(List<VideoLibraryItem> items) {

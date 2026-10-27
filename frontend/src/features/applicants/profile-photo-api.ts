@@ -12,6 +12,7 @@ type BackendPhoto = {
   readonly displayOrder: number;
   readonly representative: boolean;
   readonly createdAt: string;
+  readonly visibility: "PUBLIC" | "PRIVATE";
 };
 
 type BackendPhotoLibrary = { readonly photos: readonly BackendPhoto[] };
@@ -120,6 +121,7 @@ function toPhotos(
       url: photo.imageUrl,
       representative: photo.representative,
       fileId: photo.fileId,
+      visibility: photo.visibility,
     }));
 }
 

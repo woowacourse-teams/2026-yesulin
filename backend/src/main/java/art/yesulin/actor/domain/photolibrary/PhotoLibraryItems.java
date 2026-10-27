@@ -4,6 +4,7 @@ import static art.yesulin.actor.domain.photolibrary.PhotoLibraryErrorCode.INVALI
 import static art.yesulin.actor.domain.photolibrary.PhotoLibraryErrorCode.LIMIT_EXCEEDED;
 import static art.yesulin.actor.domain.photolibrary.PhotoLibraryErrorCode.PHOTO_NOT_FOUND;
 
+import art.yesulin.actor.domain.page.ActorPagePhotoVisibility;
 import art.yesulin.global.exception.BusinessException;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Embeddable;
@@ -66,6 +67,10 @@ public class PhotoLibraryItems {
                 .filter(item -> item.hasId(photoId))
                 .findFirst()
                 .orElseThrow(() -> new BusinessException(PHOTO_NOT_FOUND, "사진보관함에서 사진을 찾을 수 없습니다."));
+    }
+
+    void changeVisibility(long itemId, ActorPagePhotoVisibility visibility) {
+        findActive(itemId).changeVisibility(visibility);
     }
 
     private void reorder(List<PhotoLibraryItem> items) {

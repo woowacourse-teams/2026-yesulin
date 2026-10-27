@@ -1,5 +1,6 @@
 package art.yesulin.actor.application.photolibrary;
 
+import art.yesulin.actor.domain.page.ActorPagePhotoVisibility;
 import art.yesulin.actor.domain.photolibrary.PhotoLibraryItem;
 import java.time.Instant;
 
@@ -9,7 +10,8 @@ public record PhotoLibraryItemResult(
         String imageUrl,
         int displayOrder,
         boolean representative,
-        Instant createdAt
+        Instant createdAt,
+        ActorPagePhotoVisibility visibility
 ) {
 
     public static PhotoLibraryItemResult from(PhotoLibraryItem item, String imageUrl) {
@@ -19,7 +21,8 @@ public record PhotoLibraryItemResult(
                 imageUrl,
                 item.getDisplayOrder(),
                 item.isRepresentative(),
-                item.getCreatedAt()
+                item.getCreatedAt(),
+                item.getVisibility()
         );
     }
 }

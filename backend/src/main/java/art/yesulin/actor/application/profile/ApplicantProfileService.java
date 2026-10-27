@@ -4,6 +4,8 @@ import static art.yesulin.actor.domain.profile.ProfileErrorCode.INVALID_PROFILE;
 import static art.yesulin.global.validation.DomainValidator.requireNonNull;
 import static art.yesulin.global.validation.DomainValidator.requirePositive;
 
+import art.yesulin.actor.application.page.ActorPageContentState;
+import art.yesulin.actor.application.page.ActorPageContentSync;
 import art.yesulin.actor.domain.profile.ApplicantProfile;
 import art.yesulin.actor.domain.profile.ApplicantProfileRepository;
 import art.yesulin.global.exception.BusinessException;
@@ -20,6 +22,7 @@ public class ApplicantProfileService {
 
     private static final ZoneId PROFILE_DATE_ZONE = ZoneId.of("Asia/Seoul");
 
+    private final ActorPageContentSync contentSync;
     private final ApplicantProfileRepository profileRepository;
     private final Clock clock;
 
@@ -33,6 +36,7 @@ public class ApplicantProfileService {
 
     @Transactional
     public ApplicantProfileResult update(long ownerId, UpdateApplicantProfileCommand command) {
+        final ActorPageContentState pageState = contentSync.lock(ownerId);
         long validOwnerId = requirePositive(ownerId, "프로필 소유자 ID는 1 이상이어야 합니다.");
         UpdateApplicantProfileCommand validCommand = requireNonNull(command, "수정할 프로필은 필수입니다.");
         ensureUpdateExists(validCommand);
@@ -46,7 +50,9 @@ public class ApplicantProfileService {
         if (validCommand.additionalInformation() != null) {
             profile.replaceAdditionalInformation(validCommand.additionalInformation().toInformation());
         }
-        return ApplicantProfileResult.from(profileRepository.saveAndFlush(profile));
+        ApplicantProfileResult result = ApplicantProfileResult.from(profileRepository.saveAndFlush(profile));
+        contentSync.synchronize(pageState);
+        return result;
     }
 
     private void ensureUpdateExists(UpdateApplicantProfileCommand command) {
