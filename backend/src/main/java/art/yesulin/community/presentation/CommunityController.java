@@ -1,8 +1,10 @@
 package art.yesulin.community.presentation;
 
+import art.yesulin.community.application.CommunityLikeService;
 import art.yesulin.community.application.CommunityPage;
 import art.yesulin.community.application.CommunityService;
 import art.yesulin.community.application.EntryResult;
+import art.yesulin.community.application.LikeResult;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
@@ -33,6 +35,7 @@ public class CommunityController {
 
     private static final String OWNER_HEADER = "X-Community-Key";
     private final CommunityService service;
+    private final CommunityLikeService likes;
 
     @ModelAttribute
     public void preventSharedCaching(HttpServletResponse response) {
@@ -40,14 +43,25 @@ public class CommunityController {
     }
 
     @GetMapping
-    public CommunityPage posts(@RequestParam(defaultValue = "9223372036854775807") @Positive long before) {
-        return service.posts(before);
+    public CommunityPage posts(@RequestParam(defaultValue = "9223372036854775807") @Positive long before,
+                               @RequestHeader(value = OWNER_HEADER, required = false) String secret) {
+        return service.posts(before, secret);
     }
 
     @GetMapping("/{id}")
     public EntryResult post(@PathVariable @Positive long id,
                             @RequestHeader(value = OWNER_HEADER, required = false) String secret) {
         return service.post(id, secret);
+    }
+
+    @PutMapping("/{id}/likes")
+    public LikeResult like(@PathVariable @Positive long id, @RequestHeader(OWNER_HEADER) String secret) {
+        return likes.like(id, secret);
+    }
+
+    @DeleteMapping("/{id}/likes")
+    public LikeResult unlike(@PathVariable @Positive long id, @RequestHeader(OWNER_HEADER) String secret) {
+        return likes.unlike(id, secret);
     }
 
     @PostMapping

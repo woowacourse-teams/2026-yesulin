@@ -63,7 +63,13 @@ export function useCommunityFeed(loader: (cursor?: number) => Promise<CommunityP
     });
     return () => { requests.current++; };
   }, [loader, initial]);
-  return { items, cursor, loading, error, load };
+  const update = (id: number, change: Partial<CommunityEntry>) => {
+    setItems(previous => previous.map(entry => {
+      if (entry.id === id) return { ...entry, ...change };
+      return entry;
+    }));
+  };
+  return { items, cursor, loading, error, load, update };
 }
 
 function mergePage(previous: readonly CommunityEntry[], incoming: readonly CommunityEntry[], cursor?: number, replace = false) {

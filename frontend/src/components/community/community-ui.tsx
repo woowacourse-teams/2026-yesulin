@@ -13,8 +13,8 @@ export function AnonymousAvatar({ small = false }: { readonly small?: boolean })
   return <span className={className} aria-hidden="true"><PiUser size={23} /></span>;
 }
 
-export function CommunityAuthor({ createdAt, updatedAt }: { readonly createdAt: string; readonly updatedAt: string }) {
-  return <div className="community-author"><AnonymousAvatar /><div className="community-author-copy"><strong>익명</strong>
+export function CommunityAuthor({ author, createdAt, updatedAt }: { readonly author: string; readonly createdAt: string; readonly updatedAt: string }) {
+  return <div className="community-author"><AnonymousAvatar /><div className="community-author-copy"><strong>{author}</strong>
     <CommunityMeta createdAt={createdAt} updatedAt={updatedAt} /></div></div>;
 }
 
@@ -47,5 +47,5 @@ function TextPart({ text }: { readonly text: string }) {
 
 export function BrowserOwnershipNotice() {
   return <p className="community-hint">로그인 없이 익명으로 올릴 수 있어요. 수정·삭제는 작성한 브라우저에서만 가능해요.
-    브라우저 데이터를 지우거나 시크릿 창을 닫으면 수정·삭제할 수 없어요.</p>;
+    브라우저 데이터를 지우거나 시크릿 창을 닫으면 수정·삭제할 수 없고 익명 번호도 달라질 수 있어요.</p>;
 }

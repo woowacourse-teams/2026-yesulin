@@ -6,10 +6,11 @@ import { PiPaperPlaneTilt, PiPencilSimple, PiTrash } from "react-icons/pi";
 import { AuditionRequestError } from "@/features/auditions/api-client";
 import { deletePost, getPost } from "@/features/community/api";
 import { errorMessage, useCommunityAction } from "@/features/community/hooks";
-import type { CommunityEntry } from "@/features/community/types";
+import type { CommunityEntry, CommunityLikeState } from "@/features/community/types";
 import { CommunityAuthor, CommunityError, CommunityMissing, PlainText } from "./community-ui";
 import { PostEditor } from "./post-editor";
 import { CommunityComments } from "./community-comments";
+import { LikeButton } from "./like-button";
 import { ReportForm } from "./report-form";
 
 export function CommunityDetail({ id }: { readonly id: number }) {
@@ -38,13 +39,18 @@ export function CommunityDetail({ id }: { readonly id: number }) {
   return <>
     <CommunityError message={error} retry={() => void reload()} />
     {!post && !error && <p role="status">글을 불러오고 있어요.</p>}
-    {post && <><article className="community-post"><CommunityAuthor createdAt={post.createdAt} updatedAt={post.updatedAt} /><h1>{post.title}</h1>
+    {post && <><article className="community-post"><CommunityAuthor author={post.author} createdAt={post.createdAt} updatedAt={post.updatedAt} /><h1>{post.title}</h1>
       <PlainText text={post.body ?? ""} />
-      <PostActions post={post} edit={() => setEditing(true)} /><ReportForm entryId={post.id} />
+      <PostActions post={post} edit={() => setEditing(true)} onLiked={state => setPost(current => {
+        if (!current) return current;
+        return { ...current, ...state };
+      })} /><ReportForm entryId={post.id} />
     </article><CommunityComments postId={id} count={post.commentCount} onChanged={reload} /></>}</>;
 }
 
-function PostActions({ post, edit }: { readonly post: CommunityEntry; readonly edit: () => void }) {
+type ActionProps = { readonly post: CommunityEntry; readonly edit: () => void; readonly onLiked: (state: CommunityLikeState) => void };
+
+function PostActions({ post, edit, onLiked }: ActionProps) {
   const router = useRouter();
   const action = useCommunityAction();
   const [copied, setCopied] = useState(false);
@@ -55,7 +61,7 @@ function PostActions({ post, edit }: { readonly post: CommunityEntry; readonly e
   async function share() {
     await action.run(async () => { await navigator.clipboard.writeText(window.location.href); setCopied(true); });
   }
-  return <><div className="community-actions"><button className="community-button" onClick={share} disabled={action.busy}><PiPaperPlaneTilt size={19} aria-hidden="true" />링크 복사</button>
+  return <><div className="community-actions"><LikeButton post={post} onChanged={onLiked} /><button className="community-button" onClick={share} disabled={action.busy}><PiPaperPlaneTilt size={19} aria-hidden="true" />링크 복사</button>
     {post.editable && <><button className="community-button" onClick={edit} disabled={action.busy}><PiPencilSimple size={18} aria-hidden="true" />수정</button>
       <button className="community-button" onClick={remove} disabled={action.busy}><PiTrash size={18} aria-hidden="true" />삭제</button></>}
     {copied && <span role="status">링크를 복사했어요.</span>}</div><CommunityError message={action.error} /></>;

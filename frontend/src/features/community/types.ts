@@ -7,7 +7,11 @@ export type CommunityEntry = {
   readonly updatedAt: string;
   readonly commentCount: number;
   readonly editable: boolean;
+  readonly likeCount: number;
+  readonly liked: boolean;
 };
+
+export type CommunityLikeState = Pick<CommunityEntry, "likeCount" | "liked">;
 
 export type CommunityPage = {
   readonly items: readonly CommunityEntry[];
