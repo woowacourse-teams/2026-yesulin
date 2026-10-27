@@ -1,6 +1,7 @@
 package art.yesulin.actor.domain.page;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import art.yesulin.support.ObjectStorageTestConfiguration;
 import java.util.UUID;
@@ -25,7 +26,8 @@ class ActorPageMigrationTest {
 
     @Test
     void appliesMigrationToEmptyDatabaseAndValidatesJpaSchema() {
-        assertEquals("20261027150000", flyway.info().current().getVersion().getVersion());
+        assertTrue(flyway.info().current().getVersion().isAtLeast("20261027150000"));
+        assertEquals(0, flyway.info().pending().length);
     }
 
     @Test
