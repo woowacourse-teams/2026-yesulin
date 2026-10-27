@@ -42,6 +42,7 @@ dependencies {
     implementation("io.github.openfeign.querydsl:querydsl-jpa:$querydslVersion")
     implementation("at.favre.lib:bcrypt:0.10.2")
     implementation("software.amazon.awssdk:s3")
+    implementation("software.amazon.awssdk:cloudfront")
     implementation("software.amazon.awssdk:url-connection-client")
     implementation("org.testcontainers:testcontainers-localstack")
     implementation("org.springframework.boot:spring-boot-starter-security-oauth2-client")
