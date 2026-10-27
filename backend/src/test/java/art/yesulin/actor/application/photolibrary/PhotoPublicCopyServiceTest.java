@@ -20,6 +20,7 @@ import art.yesulin.actor.domain.page.ActorPageAutoHiddenReason;
 import art.yesulin.actor.domain.page.ActorPageRepository;
 import art.yesulin.actor.domain.page.ActorPageStatus;
 import art.yesulin.actor.domain.photolibrary.PhotoLibraryErrorCode;
+import art.yesulin.actor.domain.photolibrary.PhotoPublicCopyDeletionRepository;
 import art.yesulin.actor.domain.photolibrary.PhotoPublicCopyUploadRepository;
 import art.yesulin.actor.domain.photolibrary.PhotoVisibility;
 import art.yesulin.actor.domain.profile.ProfileGender;
@@ -78,6 +79,8 @@ class PhotoPublicCopyServiceTest {
     @Autowired
     private PhotoPublicCopyUploadRepository uploads;
     @Autowired
+    private PhotoPublicCopyDeletionRepository deletions;
+    @Autowired
     private FileService files;
     @Autowired
     private FakeObjectStorage storage;
@@ -109,7 +112,7 @@ class PhotoPublicCopyServiceTest {
         assertEquals(PublicPhotoCopyStorage.CACHE_CONTROL, storage.cacheControl(key));
         assertEquals(storage.toPublicUrl(key), result.publicCopyUrl());
         assertEquals("/api/v1/files/" + result.fileId() + "/content", result.imageUrl());
-        assertTrue(uploads.findByObjectKey(key).isEmpty());
+        assertFalse(uploadRecorded(key));
     }
 
     @Test
@@ -175,6 +178,30 @@ class PhotoPublicCopyServiceTest {
         String deleted = copyKey(second);
         photos.deletePhoto(owner, second);
         assertRemoved(deleted);
+    }
+
+    @Test
+    void copyThatFailedToDeleteStaysRecordedUntilCleanupDeletesIt() {
+        long photoId = publicPhoto();
+        copy(photoId);
+        final String key = copyKey(photoId);
+        storage.failNextDelete();
+
+        photos.changeVisibility(owner, photoId, PhotoVisibility.PRIVATE);
+
+        assertNull(copyKey(photoId));
+        assertTrue(storage.contains(key));
+        assertFalse(cache.evicted().contains(key));
+        assertTrue(deletions.existsByObjectKey(key));
+
+        storage.failNextDelete();
+        copies.retryFailedDeletions();
+        assertTrue(storage.contains(key));
+        assertTrue(deletions.existsByObjectKey(key));
+
+        copies.retryFailedDeletions();
+        assertRemoved(key);
+        assertFalse(deletions.existsByObjectKey(key));
     }
 
     @Test
@@ -248,7 +275,7 @@ class PhotoPublicCopyServiceTest {
         when(clock.instant()).thenReturn(NOW.plus(Duration.ofDays(1)).plusSeconds(1));
         copies.deleteUnclaimed();
         assertFalse(storage.contains(upload.uploadKey()));
-        assertTrue(uploads.findByObjectKey(upload.uploadKey()).isEmpty());
+        assertFalse(uploadRecorded(upload.uploadKey()));
     }
 
     private long readyPage() {
@@ -288,6 +315,11 @@ class PhotoPublicCopyServiceTest {
                 .findFirst().orElseThrow()
                 .publicCopyUrl();
         return url == null ? null : "public/" + url.substring("https://cdn.test/assets/".length());
+    }
+
+    /** 업로드 기록 조회는 잠금을 걸어 트랜잭션 밖에서 쓸 수 없으므로 전체 목록에서 찾는다. */
+    private boolean uploadRecorded(String objectKey) {
+        return uploads.findAll().stream().anyMatch(upload -> upload.getObjectKey().equals(objectKey));
     }
 
     private void assertRemoved(String objectKey) {

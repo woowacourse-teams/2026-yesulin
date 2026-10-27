@@ -18,3 +18,14 @@ create table photo_public_copy_uploads
 );
 
 create index idx_photo_public_copy_uploads_created on photo_public_copy_uploads (created_at, id);
+
+-- 사진에서 떼어 냈지만 커밋 뒤 저장소에서 지우지 못한 공개 사본. 공개 주소로 계속 열리므로
+-- 매일 정리 작업이 다시 지우고, 지운 뒤에 기록을 지운다.
+create table photo_public_copy_deletions
+(
+    id         bigint       not null auto_increment,
+    object_key varchar(500) not null,
+    created_at timestamp(6) not null,
+    constraint pk_photo_public_copy_deletions primary key (id),
+    constraint uk_photo_public_copy_deletions_object_key unique (object_key)
+);

@@ -11,6 +11,8 @@ import art.yesulin.actor.application.page.PublicPhotoCopyStorage.PreparedCopy;
 import art.yesulin.actor.domain.photolibrary.PhotoLibrary;
 import art.yesulin.actor.domain.photolibrary.PhotoLibraryItem;
 import art.yesulin.actor.domain.photolibrary.PhotoLibraryRepository;
+import art.yesulin.actor.domain.photolibrary.PhotoPublicCopyDeletion;
+import art.yesulin.actor.domain.photolibrary.PhotoPublicCopyDeletionRepository;
 import art.yesulin.actor.domain.photolibrary.PhotoPublicCopyRules;
 import art.yesulin.actor.domain.photolibrary.PhotoPublicCopyUpload;
 import art.yesulin.actor.domain.photolibrary.PhotoPublicCopyUploadRepository;
@@ -26,8 +28,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 배우 페이지 공개 사진 사본 업로드. 화면이 보관함 원본을 줄여 저장소로 바로 올리고, 확정하면 사진에 붙인다. 사본은 공개로 설정한
- * 사진에만 붙이며, 사본이 있는 공개 사진이 하나 이상이어야 배우 페이지를 공개할 수 있다. 하루가 지나도록 확정하지 않은 업로드는
- * 저장소에서 지운다.
+ * 사진에만 붙이며, 사본이 있는 공개 사진이 하나 이상이어야 배우 페이지를 공개할 수 있다. 하루가 지나도록 확정하지 않은 업로드와
+ * 떼어 낸 뒤 지우지 못한 사본은 정리 작업이 저장소에서 지운다.
  */
 @Service
 @RequiredArgsConstructor
@@ -40,6 +42,7 @@ public class PhotoPublicCopyService {
     private final ActorPageContentSync contentSync;
     private final PhotoLibraryRepository photoLibraryRepository;
     private final PhotoPublicCopyUploadRepository uploadRepository;
+    private final PhotoPublicCopyDeletionRepository deletionRepository;
     private final PublicPhotoCopyStorage storage;
     private final FileService fileService;
     private final Clock clock;
@@ -104,6 +107,19 @@ public class PhotoPublicCopyService {
                 .filter(upload -> storage.tryDelete(upload.getObjectKey()))
                 .toList();
         uploadRepository.deleteAll(deleted);
+        return deleted.size();
+    }
+
+    /** 사진에서 떼어 냈지만 커밋 뒤 지우지 못한 사본을 다시 지운다. 지운 사본만 기록을 지우고 CDN 캐시 무효화를 요청한다. */
+    @Transactional
+    public int retryFailedDeletions() {
+        List<PhotoPublicCopyDeletion> pending = deletionRepository.findAllByOrderByIdAsc(
+                PageRequest.of(0, CLEANUP_BATCH_SIZE)
+        );
+        List<String> deleted = storage.delete(pending.stream().map(PhotoPublicCopyDeletion::getObjectKey).toList());
+        deletionRepository.deleteAll(pending.stream()
+                .filter(deletion -> deleted.contains(deletion.getObjectKey()))
+                .toList());
         return deleted.size();
     }
 
