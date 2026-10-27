@@ -6,10 +6,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import art.yesulin.actor.domain.page.ActorPage;
 import art.yesulin.actor.domain.page.ActorPageErrorCode;
-import art.yesulin.actor.domain.page.ActorPagePhotoVisibility;
 import art.yesulin.actor.domain.page.ActorPageStatus;
 import art.yesulin.actor.domain.photolibrary.PhotoLibrary;
 import art.yesulin.actor.domain.photolibrary.PhotoLibraryRepository;
+import art.yesulin.actor.domain.photolibrary.PhotoVisibility;
 import art.yesulin.actor.domain.profile.ApplicantProfile;
 import art.yesulin.actor.domain.profile.ApplicantProfileRepository;
 import art.yesulin.actor.domain.profile.ProfileBasicInformation;
@@ -63,7 +63,7 @@ class ActorPageConcurrencyTest {
             PhotoLibrary library = new PhotoLibrary(OWNER);
             library.addPhoto(1L);
             photos.saveAndFlush(library);
-            library.changeVisibility(library.getPhotos().getFirst().getId(), ActorPagePhotoVisibility.PUBLIC);
+            library.changeVisibility(library.getPhotos().getFirst().getId(), PhotoVisibility.PUBLIC);
             pages.changeHandle(OWNER, "concurrent_actor");
         });
         CountDownLatch changed = new CountDownLatch(1);

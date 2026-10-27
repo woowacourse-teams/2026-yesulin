@@ -23,13 +23,13 @@ import art.yesulin.actor.domain.page.ActorPageAutoHiddenReason;
 import art.yesulin.actor.domain.page.ActorPageErrorCode;
 import art.yesulin.actor.domain.page.ActorPageField;
 import art.yesulin.actor.domain.page.ActorPageHandleUnavailableReason;
-import art.yesulin.actor.domain.page.ActorPagePhotoVisibility;
 import art.yesulin.actor.domain.page.ActorPagePublishConsentRepository;
 import art.yesulin.actor.domain.page.ActorPageRepository;
 import art.yesulin.actor.domain.page.ActorPageStatus;
-import art.yesulin.actor.domain.page.ActorPageVideoVisibility;
 import art.yesulin.actor.domain.page.ActorPageVisibility;
+import art.yesulin.actor.domain.photolibrary.PhotoVisibility;
 import art.yesulin.actor.domain.profile.ProfileGender;
+import art.yesulin.actor.domain.videolibrary.VideoVisibility;
 import art.yesulin.auth.domain.member.Member;
 import art.yesulin.auth.domain.member.MemberRepository;
 import art.yesulin.file.application.FileService;
@@ -187,7 +187,7 @@ class ActorPageServiceTest {
     void makingLastPublicPhotoPrivateSucceedsAndHidesPage() {
         long photoId = ready();
         pages.publish(owner, true, ActorPage.CONSENT_VERSION);
-        photos.changeVisibility(owner, photoId, ActorPagePhotoVisibility.PRIVATE);
+        photos.changeVisibility(owner, photoId, PhotoVisibility.PRIVATE);
         assertHidden(ActorPageAutoHiddenReason.MISSING_REQUIRED);
         assertNull(pages.find(owner).pageRepresentativePhotoId());
     }
@@ -225,7 +225,7 @@ class ActorPageServiceTest {
         final long first = ready();
         long second = addPhoto();
         final long third = addPhoto();
-        photos.changeVisibility(owner, second, ActorPagePhotoVisibility.PUBLIC);
+        photos.changeVisibility(owner, second, PhotoVisibility.PUBLIC);
         pages.publish(owner, true, ActorPage.CONSENT_VERSION);
         tick();
         photos.makeRepresentative(owner, third);
@@ -244,8 +244,8 @@ class ActorPageServiceTest {
         final long first = videos.addVideo(owner, new AddVideoToLibraryCommand("https://youtu.be/aqz-KE-bpKQ")).id();
         long second = videos.addVideo(owner, new AddVideoToLibraryCommand("https://youtu.be/dQw4w9WgXcQ")).id();
         assertEquals(NOW, page().getLastPublicActivityAt());
-        videos.changeVisibility(owner, first, ActorPageVideoVisibility.PUBLIC);
-        videos.changeVisibility(owner, second, ActorPageVideoVisibility.PUBLIC);
+        videos.changeVisibility(owner, first, VideoVisibility.PUBLIC);
+        videos.changeVisibility(owner, second, VideoVisibility.PUBLIC);
         assertEquals(NOW.plusSeconds(60), page().getLastPublicActivityAt());
         when(clock.instant()).thenReturn(NOW.plusSeconds(120));
         videos.moveVideo(owner, second, 0);
@@ -282,7 +282,7 @@ class ActorPageServiceTest {
         profiles.update(owner, basic("배우", BIRTH));
         pages.changeHandle(owner, "actor");
         long id = addPhoto();
-        photos.changeVisibility(owner, id, ActorPagePhotoVisibility.PUBLIC);
+        photos.changeVisibility(owner, id, PhotoVisibility.PUBLIC);
         return id;
     }
 
@@ -293,7 +293,7 @@ class ActorPageServiceTest {
         storage.upload(upload.uploadUrl(), "image/png", 1_024L);
         files.completeUpload(owner, upload.fileId());
         PhotoLibraryItemResult result = photos.addPhoto(owner, new AddPhotoToLibraryCommand(upload.fileId()));
-        assertEquals(ActorPagePhotoVisibility.PRIVATE, result.visibility());
+        assertEquals(PhotoVisibility.PRIVATE, result.visibility());
         return result.id();
     }
 

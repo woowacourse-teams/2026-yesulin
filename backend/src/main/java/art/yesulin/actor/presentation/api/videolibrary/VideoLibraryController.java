@@ -60,7 +60,7 @@ public class VideoLibraryController {
     public ResponseEntity<VideoLibraryResult> changeVisibility(
             @LoginMember(roles = MemberType.APPLICANT) MemberPrincipal principal,
             @PathVariable long videoId,
-            @Valid @RequestBody ActorPageVideoVisibilityRequest request
+            @Valid @RequestBody ChangeVideoVisibilityRequest request
     ) {
         return ResponseEntity.ok(
                 videoLibraryService.changeVisibility(principal.memberId(), videoId, request.visibility())

@@ -68,7 +68,7 @@ public class PhotoLibraryController {
     public ResponseEntity<PhotoLibraryResult> changeVisibility(
             @LoginMember(roles = MemberType.APPLICANT) MemberPrincipal principal,
             @PathVariable long photoId,
-            @Valid @RequestBody ActorPagePhotoVisibilityRequest request
+            @Valid @RequestBody ChangePhotoVisibilityRequest request
     ) {
         return ResponseEntity.ok(
                 photoLibraryService.changeVisibility(principal.memberId(), photoId, request.visibility())

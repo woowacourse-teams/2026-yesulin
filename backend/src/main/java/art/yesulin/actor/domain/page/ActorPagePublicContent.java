@@ -2,6 +2,7 @@ package art.yesulin.actor.domain.page;
 
 import art.yesulin.actor.domain.photolibrary.PhotoLibrary;
 import art.yesulin.actor.domain.photolibrary.PhotoLibraryItem;
+import art.yesulin.actor.domain.photolibrary.PhotoVisibility;
 import art.yesulin.actor.domain.profile.ApplicantProfile;
 import art.yesulin.actor.domain.profile.ProfileAdditionalInformation;
 import art.yesulin.actor.domain.profile.ProfileBasicInformation;
@@ -10,6 +11,7 @@ import art.yesulin.actor.domain.profile.ProfileEducationLevel;
 import art.yesulin.actor.domain.profile.ProfileGender;
 import art.yesulin.actor.domain.videolibrary.VideoLibrary;
 import art.yesulin.actor.domain.videolibrary.VideoLibraryItem;
+import art.yesulin.actor.domain.videolibrary.VideoVisibility;
 import java.util.List;
 
 public record ActorPagePublicContent(
@@ -63,10 +65,10 @@ public record ActorPagePublicContent(
                 visible(page, ActorPageField.NATIONALITY) ? additional.nationality() : null,
                 visible(page, ActorPageField.LINKS) ? additional.links() : List.of(),
                 photos == null ? List.of() : photos.getPhotos().stream()
-                        .filter(photo -> photo.getVisibility() == ActorPagePhotoVisibility.PUBLIC)
+                        .filter(photo -> photo.getVisibility() == PhotoVisibility.PUBLIC)
                         .map(PhotoLibraryItem::getId).toList(),
                 videos == null ? List.of() : videos.getVideos().stream()
-                        .filter(video -> video.getVisibility() == ActorPageVideoVisibility.PUBLIC)
+                        .filter(video -> video.getVisibility() == VideoVisibility.PUBLIC)
                         .map(VideoLibraryItem::getId).toList()
         );
     }

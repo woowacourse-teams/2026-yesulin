@@ -2,7 +2,6 @@ package art.yesulin.actor.domain.photolibrary;
 
 import static art.yesulin.global.validation.DomainValidator.requirePositive;
 
-import art.yesulin.actor.domain.page.ActorPagePhotoVisibility;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
@@ -64,7 +63,7 @@ public class PhotoLibrary {
         return items.delete(photoId, deletedAt);
     }
 
-    public void changeVisibility(long itemId, ActorPagePhotoVisibility visibility) {
+    public void changeVisibility(long itemId, PhotoVisibility visibility) {
         items.changeVisibility(itemId, visibility);
     }
 
@@ -74,7 +73,7 @@ public class PhotoLibrary {
 
     public Optional<PhotoLibraryItem> getPageRepresentativePhoto() {
         return getPhotos().stream()
-                .filter(photo -> photo.getVisibility() == ActorPagePhotoVisibility.PUBLIC)
+                .filter(photo -> photo.getVisibility() == PhotoVisibility.PUBLIC)
                 .findFirst();
     }
 

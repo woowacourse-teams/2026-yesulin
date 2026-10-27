@@ -2,7 +2,6 @@ package art.yesulin.actor.domain.videolibrary;
 
 import static art.yesulin.global.validation.DomainValidator.requirePositive;
 
-import art.yesulin.actor.domain.page.ActorPageVideoVisibility;
 import art.yesulin.global.validation.YouTubeVideoUrl;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
@@ -60,7 +59,7 @@ public class VideoLibrary {
         items.delete(videoId);
     }
 
-    public void changeVisibility(long itemId, ActorPageVideoVisibility visibility) {
+    public void changeVisibility(long itemId, VideoVisibility visibility) {
         items.changeVisibility(itemId, visibility);
     }
 

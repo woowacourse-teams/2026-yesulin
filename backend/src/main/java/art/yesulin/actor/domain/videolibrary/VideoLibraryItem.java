@@ -2,7 +2,6 @@ package art.yesulin.actor.domain.videolibrary;
 
 import static art.yesulin.global.validation.DomainValidator.requireNonNull;
 
-import art.yesulin.actor.domain.page.ActorPageVideoVisibility;
 import art.yesulin.global.validation.YouTubeVideoUrl;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -47,7 +46,7 @@ public class VideoLibraryItem {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "visibility", nullable = false, length = 20)
-    private ActorPageVideoVisibility visibility = ActorPageVideoVisibility.PRODUCER;
+    private VideoVisibility visibility = VideoVisibility.PRODUCER;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -61,7 +60,7 @@ public class VideoLibraryItem {
         moveTo(displayOrder);
     }
 
-    void changeVisibility(ActorPageVideoVisibility visibility) {
+    void changeVisibility(VideoVisibility visibility) {
         this.visibility = requireNonNull(visibility, "공개 범위는 필수입니다.");
     }
 

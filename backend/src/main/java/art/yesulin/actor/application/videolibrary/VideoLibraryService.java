@@ -5,10 +5,10 @@ import static art.yesulin.actor.domain.videolibrary.VideoLibraryErrorCode.VIDEO_
 
 import art.yesulin.actor.application.page.ActorPageContentState;
 import art.yesulin.actor.application.page.ActorPageContentSync;
-import art.yesulin.actor.domain.page.ActorPageVideoVisibility;
 import art.yesulin.actor.domain.videolibrary.VideoLibrary;
 import art.yesulin.actor.domain.videolibrary.VideoLibraryItem;
 import art.yesulin.actor.domain.videolibrary.VideoLibraryRepository;
+import art.yesulin.actor.domain.videolibrary.VideoVisibility;
 import art.yesulin.global.exception.BusinessException;
 import art.yesulin.global.validation.YouTubeVideoUrl;
 import java.util.List;
@@ -62,7 +62,7 @@ public class VideoLibraryService {
     }
 
     @Transactional
-    public VideoLibraryResult changeVisibility(long ownerId, long itemId, ActorPageVideoVisibility visibility) {
+    public VideoLibraryResult changeVisibility(long ownerId, long itemId, VideoVisibility visibility) {
         final ActorPageContentState pageState = contentSync.lock(ownerId);
         VideoLibrary library = findOwnedLibraryForUpdate(ownerId);
         library.changeVisibility(itemId, visibility);

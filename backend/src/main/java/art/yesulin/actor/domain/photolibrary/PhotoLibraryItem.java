@@ -3,7 +3,6 @@ package art.yesulin.actor.domain.photolibrary;
 import static art.yesulin.global.validation.DomainValidator.requireNonNull;
 import static art.yesulin.global.validation.DomainValidator.requirePositive;
 
-import art.yesulin.actor.domain.page.ActorPagePhotoVisibility;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -51,7 +50,7 @@ public class PhotoLibraryItem {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "visibility", nullable = false, length = 20)
-    private ActorPagePhotoVisibility visibility = ActorPagePhotoVisibility.PRIVATE;
+    private PhotoVisibility visibility = PhotoVisibility.PRIVATE;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -66,7 +65,7 @@ public class PhotoLibraryItem {
         moveTo(displayOrder);
     }
 
-    void changeVisibility(ActorPagePhotoVisibility visibility) {
+    void changeVisibility(PhotoVisibility visibility) {
         this.visibility = requireNonNull(visibility, "공개 범위는 필수입니다.");
     }
 

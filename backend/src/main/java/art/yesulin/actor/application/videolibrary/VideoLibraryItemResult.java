@@ -1,7 +1,7 @@
 package art.yesulin.actor.application.videolibrary;
 
-import art.yesulin.actor.domain.page.ActorPageVideoVisibility;
 import art.yesulin.actor.domain.videolibrary.VideoLibraryItem;
+import art.yesulin.actor.domain.videolibrary.VideoVisibility;
 import java.time.Instant;
 
 public record VideoLibraryItemResult(
@@ -10,7 +10,7 @@ public record VideoLibraryItemResult(
         String youtubeId,
         int displayOrder,
         Instant createdAt,
-        ActorPageVideoVisibility visibility
+        VideoVisibility visibility
 ) {
 
     public static VideoLibraryItemResult from(VideoLibraryItem item) {

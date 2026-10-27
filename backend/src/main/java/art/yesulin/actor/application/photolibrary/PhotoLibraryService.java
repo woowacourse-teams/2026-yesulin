@@ -5,10 +5,10 @@ import static art.yesulin.file.domain.FileErrorCode.NOT_FOUND;
 
 import art.yesulin.actor.application.page.ActorPageContentState;
 import art.yesulin.actor.application.page.ActorPageContentSync;
-import art.yesulin.actor.domain.page.ActorPagePhotoVisibility;
 import art.yesulin.actor.domain.photolibrary.PhotoLibrary;
 import art.yesulin.actor.domain.photolibrary.PhotoLibraryItem;
 import art.yesulin.actor.domain.photolibrary.PhotoLibraryRepository;
+import art.yesulin.actor.domain.photolibrary.PhotoVisibility;
 import art.yesulin.file.application.FileService;
 import art.yesulin.file.application.FileUsageService;
 import art.yesulin.file.domain.FileAsset;
@@ -96,7 +96,7 @@ public class PhotoLibraryService {
     }
 
     @Transactional
-    public PhotoLibraryResult changeVisibility(long ownerId, long itemId, ActorPagePhotoVisibility visibility) {
+    public PhotoLibraryResult changeVisibility(long ownerId, long itemId, PhotoVisibility visibility) {
         final ActorPageContentState pageState = contentSync.lock(ownerId);
         PhotoLibrary library = findOwnedLibraryForUpdate(ownerId);
         library.changeVisibility(itemId, visibility);
