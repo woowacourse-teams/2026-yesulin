@@ -33,6 +33,7 @@ import { authHandlers } from "./auth-handlers";
 import { adminHandlers } from "./admin-handlers";
 import { adminLogHandlers } from "./admin-log-handlers";
 import { adminFileHandlers } from "./admin-file-handlers";
+import { communityHandlers } from "./community-handlers";
 import { eventHandlers } from "./event-handlers";
 import { auditionPostHandlers } from "./audition-post-handlers";
 import { otrAuditionHandlers } from "./otr-audition-handlers";
@@ -52,6 +53,7 @@ const hasText = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0;
 
 export const handlers = [
+  ...communityHandlers,
   ...noticeHandlers,
   ...authHandlers,
   ...adminHandlers,
