@@ -57,9 +57,6 @@ public class ActorPageService {
         ActorPageContentState state = contentSync.lock(ownerId);
         ActorPage page = pageOrNew(state, ownerId);
         page.changeHandle(new ActorPageHandle(handle));
-        if (pageRepository.existsByHandleAndOwnerMemberIdNot(page.getHandle(), ownerId)) {
-            throw handleTaken();
-        }
         save(page);
         return result(page, state);
     }

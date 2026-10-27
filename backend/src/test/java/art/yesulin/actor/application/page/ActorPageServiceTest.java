@@ -161,6 +161,14 @@ class ActorPageServiceTest {
     }
 
     @Test
+    void rejectsAnotherMembersHandleWhenChangingExistingPageHandle() {
+        pages.changeHandle(72L, "actor");
+        pages.changeHandle(owner, "first");
+        BusinessException exception = assertThrows(BusinessException.class, () -> pages.changeHandle(owner, "actor"));
+        assertEquals(ActorPageErrorCode.ACTOR_HANDLE_TAKEN, exception.getErrorCode());
+    }
+
+    @Test
     void clearingNameSucceedsAndAutomaticallyHidesPage() {
         ready();
         pages.publish(owner, true, ActorPage.CONSENT_VERSION);
