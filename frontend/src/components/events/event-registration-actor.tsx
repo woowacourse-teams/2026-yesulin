@@ -25,12 +25,12 @@ export function BusinessCardFields({ eventId, draft, onChange, onPhotoChange, on
     <section aria-labelledby="registration-card-title" className="flex flex-col gap-5 rounded-control border border-brand-line bg-brand-soft/40 p-4">
       <div>
         <h2 id="registration-card-title" className="text-sm font-bold text-brand">프로필 명함에 들어갈 정보</h2>
-        <p className="mt-1 text-xs text-muted-strong">아래에 적은 정보는 명함에 그대로 들어가요. 휴대폰 번호는 명함에 넣지 않아요.</p>
+        <p className="mt-1 text-xs text-muted-strong">아래 정보가 명함에 그대로 들어갑니다. 휴대폰 번호는 명함에 넣지 않습니다.</p>
       </div>
       <RegistrationField id="registration-email" label="이메일" required>
         <FieldInput id="registration-email" type="email" inputMode="email" autoComplete="email" value={draft.email} maxLength={254} onChange={(event) => onChange({ email: event.target.value })} />
       </RegistrationField>
-      <RegistrationField id="registration-sns" label="SNS 계정" hint="인스타그램 등. 예: @yesulin">
+      <RegistrationField id="registration-sns" label="SNS 계정" hint="예: @yesulin">
         <FieldInput id="registration-sns" value={draft.snsHandle} maxLength={100} onChange={(event) => onChange({ snsHandle: event.target.value })} />
       </RegistrationField>
       <BirthDateField value={draft.birthDate} today={koreaToday()} onChange={(birthDate) => onChange({ birthDate })} />
@@ -38,7 +38,7 @@ export function BusinessCardFields({ eventId, draft, onChange, onPhotoChange, on
 
       <fieldset className="flex flex-col gap-2">
         <legend className="mb-1 text-sm font-semibold">활동 분야<RequiredMark /></legend>
-        <p className="text-xs text-muted">활동하거나 준비하는 분야를 모두 골라 주세요.</p>
+        <p className="text-xs text-muted">중복 선택 가능합니다.</p>
         <div className="flex flex-wrap gap-2">
           {EVENT_ACTIVITY_FIELDS.map((field) => {
             const checked = draft.activityFields.includes(field);
@@ -74,10 +74,10 @@ function CareersField({ noCareer, careers, onChange }: {
   return (
     <fieldset className="flex flex-col gap-2">
       <legend className="mb-1 text-sm font-semibold">경력<RequiredMark /></legend>
-      <p className="text-xs text-muted">언제, 어떤 작품에서, 어떤 역을 했는지 한 줄씩 적어 주세요. 신입이라면 &quot;경력 없음&quot;을 체크해 주세요.</p>
+      <p className="text-xs text-muted">시기·작품·역할을 한 줄씩 적습니다. 신입은 &quot;경력 없음&quot;을 체크합니다.</p>
       <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm font-semibold">
         <input type="checkbox" checked={noCareer} onChange={(event) => onChange({ noCareer: event.target.checked })} className="size-4 accent-brand" />
-        경력 없음 (신입이에요)
+        경력 없음 (신입)
       </label>
       {noCareer ? null : (
         <>
@@ -108,7 +108,7 @@ function CareersField({ noCareer, careers, onChange }: {
           {careers.length < MAX_REGISTRATION_CAREERS ? (
             <AddButton onClick={() => onChange({ careers: [...careers, emptyCareer(nextKey)] })}>+ 경력 추가</AddButton>
           ) : (
-            <p className="text-xs text-muted">경력은 {MAX_REGISTRATION_CAREERS}줄까지 적을 수 있어요.</p>
+            <p className="text-xs text-muted">경력은 {MAX_REGISTRATION_CAREERS}줄까지 적을 수 있습니다.</p>
           )}
         </>
       )}
@@ -143,7 +143,7 @@ function PhotoField({ eventId, onBusyChange, onChange }: {
       setPreview(URL.createObjectURL(photo));
       onChange(uploadKey);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "사진을 올리지 못했어요. 다시 시도해 주세요.");
+      setError(cause instanceof Error ? cause.message : "사진을 올리지 못했습니다. 다시 시도해 주세요.");
     } finally {
       setStatus("idle");
       onBusyChange(false);
@@ -165,7 +165,7 @@ function PhotoField({ eventId, onBusyChange, onChange }: {
         </SecondaryButton>
       </div>
       <p id="registration-photo-hint" className="text-xs text-muted">
-        명함에 들어갈 가장 잘 나온 프로필 사진 한 장을 골라 주세요. 휴대폰 사진(HEIC 포함)도 자동으로 줄이고, 촬영 위치 같은 정보는 지워요.
+        명함에 들어갈 프로필 사진 1장입니다.
       </p>
       {error ? <p role="alert" className="text-xs font-semibold text-fail">{error}</p> : null}
     </div>
