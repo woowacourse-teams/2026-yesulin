@@ -34,15 +34,15 @@ class ActorPageReadinessTest {
 
     @Test
     void reportsEachMissingFieldIndividually() {
-        assertEquals(List.of(ActorPageMissingField.HANDLE), 
+        assertEquals(List.of(ActorPageMissingField.HANDLE),
                 readiness(null, "배우", ProfileGender.FEMALE, TODAY.minusYears(20), true).missing());
-        assertEquals(List.of(ActorPageMissingField.NAME), 
+        assertEquals(List.of(ActorPageMissingField.NAME),
                 readiness("actor", null, ProfileGender.FEMALE, TODAY.minusYears(20), true).missing());
-        assertEquals(List.of(ActorPageMissingField.GENDER), 
+        assertEquals(List.of(ActorPageMissingField.GENDER),
                 readiness("actor", "배우", null, TODAY.minusYears(20), true).missing());
-        assertEquals(List.of(ActorPageMissingField.BIRTH_DATE), 
+        assertEquals(List.of(ActorPageMissingField.BIRTH_DATE),
                 readiness("actor", "배우", ProfileGender.FEMALE, null, true).missing());
-        assertEquals(List.of(ActorPageMissingField.PUBLIC_PHOTO), 
+        assertEquals(List.of(ActorPageMissingField.PUBLIC_PHOTO),
                 readiness("actor", "배우", ProfileGender.FEMALE, TODAY.minusYears(20), false).missing());
     }
 
