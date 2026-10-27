@@ -363,7 +363,7 @@
   flex-wrap:wrap;
 }
 
-.notebook-sort-options { display:flex; align-items:center; gap:16px; min-height:44px; margin-left:auto; font-size:13px; color:var(--ink-40); }
+.notebook-sort-options { display:flex; align-items:center; gap:16px; min-height:44px; font-size:13px; color:var(--ink-40); }
 .notebook-sort-options a { display:inline-flex; align-items:center; min-height:44px; padding:8px 0; }
 .notebook-sort-options a[aria-current=true] { color:var(--brand); font-weight:650; text-decoration:underline; text-underline-offset:6px; }
 
@@ -428,12 +428,6 @@
 
 .notebook-search input::placeholder {
   color:#516e88;
-}
-
-.notebook-list-note {
-  color:#516e88;
-  font-size:13px;
-  margin-block:14px 18px;
 }
 
 .notebook-post-grid {
@@ -507,14 +501,6 @@
   margin-top:auto;
   padding-top:16px;
   gap:7px 14px;
-}
-
-.notebook-list-actions {
-  display:flex;
-  justify-content:center;
-  gap:12px;
-  flex-wrap:wrap;
-  margin-top:26px;
 }
 
 .notebook-outline-button {
@@ -1149,15 +1135,19 @@
 }
 
 /* 분야 탐색과 모집 상태는 서로 다른 선택 단계로 구분한다. */
-.notebook-category-row { margin-bottom:20px; border-bottom:1px solid var(--line); }
+.notebook-category-row { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px 20px; margin-bottom:20px; border-bottom:1px solid var(--line); }
+.notebook-category-row .notebook-recruitment-filters { margin-left:auto; }
 .notebook-category-tabs { display:flex; flex-wrap:wrap; gap:4px 18px; min-width:0; }
 .notebook-category-tab { display:inline-flex; align-items:center; min-height:48px; padding:10px 2px; border-bottom:3px solid transparent; font-size:15px; font-weight:600; color:var(--ink-40); white-space:nowrap; }
 .notebook-category-tab:hover,.notebook-category-tab[aria-current=true] { color:var(--brand); border-bottom-color:var(--brand); }
 .notebook-category-tab[aria-current=true] { font-weight:750; }
-.notebook-recruitment-filters { flex-shrink:0; }
-.notebook-recruitment-filters .notebook-filter { min-height:44px; padding:8px 12px; font-size:13px; }
+.notebook-recruitment-filters { flex-shrink:0; gap:20px; }
+.notebook-recruitment-filters .notebook-filter { position:relative; min-height:48px; padding:10px 2px; border:0; border-radius:0; background:transparent; font-size:13px; font-weight:500; color:var(--ink-40); }
+.notebook-recruitment-filters .notebook-filter:hover { color:var(--brand); }
+.notebook-recruitment-filters .notebook-filter[aria-current=true] { color:var(--brand); font-weight:650; }
+.notebook-recruitment-filters .notebook-filter[aria-current=true]::after { content:""; position:absolute; left:2px; right:2px; bottom:10px; height:1px; background:currentColor; }
 .notebook-toolbar.is-preview { flex-wrap:wrap; align-items:center; border-bottom:1px solid var(--line); padding-bottom:12px; }
-.notebook-toolbar.is-preview .notebook-recruitment-filters { margin-left:auto; }
+.notebook-toolbar.is-preview .notebook-text-link { margin-left:auto; flex-shrink:0; }
 
 /* 기본 썸네일의 글자와 로고는 원본 이미지 위에 선명하게 표시한다. */
 .notebook-post-placeholder { --category-ink:#17395a; --category-accent:#7da8d0; --category-wash:#e3f0ff; }
@@ -1200,7 +1190,6 @@
   .notebook-category-tabs { gap:0 16px; }
   .notebook-category-tab { font-size:14px; }
   .notebook-toolbar.is-preview { align-items:flex-start; gap:12px; }
-  .notebook-toolbar.is-preview .notebook-recruitment-filters { margin-left:0; }
 }
 
 /* PC에서는 포스터와 안내를 나란히 두고 모바일의 읽기 순서를 유지한다. */
