@@ -8,3 +8,4 @@ yesulin:
     timetable-webhook-url: ${YESULIN_TIMETABLE_SLACK_WEBHOOK_URL:}
     # 예상하지 못한 서버 오류(버그 알림) 채널
     error-webhook-url: ${YESULIN_ERROR_SLACK_WEBHOOK_URL:}
+    community-webhook-url: ${YESULIN_COMMUNITY_SLACK_WEBHOOK_URL:}

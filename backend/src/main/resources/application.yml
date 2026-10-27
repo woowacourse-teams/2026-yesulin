@@ -84,6 +84,9 @@ management:
           include: readinessState,db
 
 yesulin:
+  community:
+    link-base-url: ${YESULIN_COMMUNITY_LINK_BASE_URL:}
+    notifications-enabled: ${YESULIN_COMMUNITY_NOTIFICATIONS_ENABLED:true}
   audition-post:
     count-cache:
       enabled: ${YESULIN_AUDITION_COUNT_CACHE_ENABLED:true}

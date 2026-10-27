@@ -873,3 +873,44 @@ S3 삭제 실패 시 `DELETING` 상태가 남으며 같은 파일 ID로 재시�
 | 운영 | `MEMBER_NOT_FOUND`, `MEMBER_STATUS_CHANGE_NOT_ALLOWED`, `ADMIN_DELETION_CONFIRMATION_FAILED` |
 
 인가 공통 오류는 `401 AUTH_UNAUTHENTICATED`, `403 AUTH_FORBIDDEN`, `403 AUTH_INACTIVE_MEMBER`다.
+
+## 공개 익명 커뮤니티
+
+모든 경로는 로그인 없이 사용한다. 쓰기는 기존 CSRF 쿠키·헤더가 필요하며 인증 설정을 우회하지 않는다.
+작성·수정·삭제·신고는 `X-Community-Key` 헤더에 브라우저에서 만든 32바이트 난수의 소문자 hex 64자를 보낸다.
+서버에는 SHA-256 해시만 저장하고 공개 응답·URL·로그에는 원문이나 해시를 넣지 않는다.
+읽기는 헤더 없이 가능하다. 선택적으로 헤더를 보내면 상세·댓글의 `editable`이 본인 여부를 나타낸다.
+글·댓글 조회 응답은 `Cache-Control: no-store`다.
+
+| Method | 경로 (`/api/v1/public/community` 뒤) | 요청 / 응답 |
+| --- | --- | --- |
+| GET | `/posts?before={id}` | 최신 글 20개. 생략 시 처음부터. `before`는 양수, 해당 ID 미포함 |
+| POST | `/posts` | `{requestId: UUID, title, body}` → 201 작성물 |
+| GET | `/posts/{postId}` | 200 작성물, 없거나 삭제되었으면 404 |
+| PUT | `/posts/{postId}` | `{title, body}` → 200 수정 작성물 |
+| DELETE | `/posts/{postId}` | 204, 본인만 가능 |
+| GET | `/posts/{postId}/comments?after={id}` | 오래된 댓글부터 20개. `after` 기본 0, 해당 ID 미포함 |
+| POST | `/posts/{postId}/comments` | `{requestId: UUID, body}` → 201 작성물 |
+| PUT | `/posts/{postId}/comments/{commentId}` | `{body}` → 200 수정 작성물 |
+| DELETE | `/posts/{postId}/comments/{commentId}` | 204, 본인만 가능 |
+| POST | `/entries/{entryId}/reports` | `{requestId: UUID, reason, detail?}` → 204 접수 |
+
+작성물 응답은 `{id, title, body, author: "익명", createdAt, updatedAt, commentCount, editable}`다.
+댓글의 `title`은 null이며 글 목록에도 본문을 포함한다. 글 목록의 `editable`은 항상 false다. 댓글의 `commentCount`는 0이다.
+목록은 `{items: 작성물[], nextCursor: number | null}`이고 다음 페이지가 없으면 null이다.
+날짜는 ISO Instant이며 `updatedAt`이 `createdAt`과 다르면 수정 표시를 한다.
+제목은 1~100자, 글 본문 1~5,000자, 댓글 1~1,000자다. 요청의 최대 길이를 검사한 뒤 줄바꿈·앞뒤 공백을 정리한다.
+
+신고 사유는 `SPAM`, `HARASSMENT`, `PERSONAL_INFORMATION`, `OTHER`이고 선택 설명은 최대 1,000자다.
+신고 원문·신고자·접수 목록을 공개하는 API는 없다. 접수 성공은 Slack 수신 완료를 뜻하지 않는다.
+
+생성 요청 번호는 글·댓글 전체에서 고유하며, 신고 요청 번호는 신고 전체에서 고유하다.
+같은 번호·같은 권한·같은 원래 내용·같은 대상의 재시도는 중복 저장하지 않는다(생성 재시도도 201).
+편집 후에도 원래 생성 내용으로 재시도할 수 있고, 현재 작성물을 반환한다. 삭제 뒤 재시도는 404다.
+쓰기 도중 타임아웃이 나면 같은 번호로 재시도한다. 다른 내용이나 브라우저에서 번호를 재사용하면
+409 `COMMUNITY_REQUEST_CONFLICT`다. 잘못된 입력은 400, 다른 작성자의 수정·삭제는
+403 `COMMUNITY_NOT_OWNER`, 없는 글·댓글이나 다른 글에 속한 댓글은 404 `COMMUNITY_NOT_FOUND`다.
+삭제 API를 다시 호출하면 404이며 댓글 수는 두 번 차감되지 않는다.
+
+글 행을 잠근 상태에서 글 수정·삭제, 댓글 변경과 신고를 처리해 댓글 수와 삭제 상태를 함께 맞춘다.
+최초 신고 알림도 같은 트랜잭션에 기록한다. 별도 사용자 추적·조회수·분석 API는 없다.

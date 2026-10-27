@@ -56,7 +56,7 @@ Incoming Webhook으로 보내며, 비어 있으면 `TIMETABLE_MESSAGES_QUEUED` �
 | `YESULIN_TIMETABLE_SLACK_WEBHOOK_URL` | 로컬 및 dev용 알림 채널 | 스케줄 알림 채널 |
 | `YESULIN_ERROR_SLACK_WEBHOOK_URL` | 로컬 및 dev용 알림 채널 | 버그 알림 채널 |
 
-Slack 웹훅 세 개(OTR 공고 `YESULIN_SLACK_WEBHOOK_URL` 포함)는 `src/main/resources/properties/slack.yml`의 `yesulin.slack.*`로
+Slack 웹훅(OTR 공고 `YESULIN_SLACK_WEBHOOK_URL` 포함)은 `src/main/resources/properties/slack.yml`의 `yesulin.slack.*`로
 읽고 `application.yml`이 이 파일을 import한다. DEV·PROD 값은 다른 설정과 같이 `config/server/{환경}.env`에 SOPS로 편집하고,
 로컬은 Git에서 제외된 `config/server/local.env`에 둔다. 로컬과 DEV가 같은 채널을 쓰므로 메시지 앞의 `[LOCAL]`·`[DEV]`로 구분한다.
 
@@ -221,3 +221,31 @@ SOCIAL_LOGIN_FAILURE_REDIRECT=https://yesulin.art/login?socialLoginError=true
 
 Spring 로그 기본 경로는 `/var/log/yesulin/yesulin.log`이며 한 이벤트당 한 줄인 JSON으로 기록한다. journal에는
 같은 이벤트를 짧은 텍스트로 출력한다. systemd unit은 `TZ=Asia/Seoul`을 지정해 파일 JSON과 journal의 시각대를 맞춘다.
+
+## 커뮤니티 신고 알림
+
+기존 워크스페이스의 커뮤니티 신고 전용 채널을 권장하며 수신 채널은 웹훅에 연결된 채널로 정한다.
+기존 공고·장애 채널 웹훅을 자동으로 재사용하지 않는다. 실제 채널 생성과 웹훅 등록·수신 확인은 별도 출시 작업이다.
+
+| 환경 변수 | 의미 |
+| --- | --- |
+| `YESULIN_COMMUNITY_SLACK_WEBHOOK_URL` | 커뮤니티 신고 채널의 Incoming Webhook. 비어 있으면 전송하지 않고 DB 대기열에 유지 |
+| `YESULIN_COMMUNITY_LINK_BASE_URL` | 같은 환경의 프론트 origin. 예: DEV `https://dev.yesulin.art`, PROD `https://yesulin.art`. 웹훅을 설정하면 필수 |
+| `YESULIN_COMMUNITY_NOTIFICATIONS_ENABLED` | 기본 true. false면 커뮤니티 알림 스케줄러만 멈추며 신고는 계속 저장 |
+
+공고 알림의 공통 링크 주소는 DEV에서도 PROD를 가리킬 수 있으므로 커뮤니티는 전용 링크 설정을 사용한다.
+값은 기존 SOPS config 배포 절차로 넣고, 웹훅 원문은 이슈·문서·로그에 기록하지 않는다.
+
+신고 대상마다 첫 신고만 `community_reports.notification=true`로 저장한다. 5초 간격 작업이 대기 중인
+알림을 최대 10개 읽고, ShedLock과 신고 행 잠금으로 중복 실행을 조정한다. 외부 HTTP 호출에는 기존
+Slack 클라이언트의 연결 5초·요청 10초 제한이 적용된다. DB 트랜잭션에서 전송 결과를 기록하며 전송 실패는
+30초 × 누적 시도 수(최대 1시간) 뒤 다시 보낸다. 재시도 횟수 제한은 없다.
+웹훅을 나중에 설정하면 이전 대기 알림도 전송한다. 이를 원하지 않으면 운영 전 테스트 DB와 운영 DB를 구분한다.
+
+`delivered_at`이 있으면 전송 완료, `notification=true`이면서 없으면 대기/재시도다. `attempts`,
+`next_attempt_at`과 `COMMUNITY_REPORT_NOTIFICATION_FAILED reportId=... attempts=...` 로그로 확인한다.
+HTTP 성공 뒤 DB 커밋 실패나 응답 유실에서는 중복 수신될 수 있으며 Slack 메시지의 신고 ID로 구분한다.
+메시지에는 환경·대상 종류/ID·공개 링크·사유 분류·접수 시각만 보낸다. 자유 설명·본문·브라우저 비밀값은 보내지 않는다.
+
+출시 전에 해당 환경에서 첫 신고 수신, 추가 신고의 무알림, 실패 후 재전송을 확인한다.
+현재 자동 테스트는 외부 전송을 대체하며 실제 Slack 수신을 검증하지 않는다.
