@@ -1,3 +1,4 @@
+import { fromKoreaLocalInput, toKoreaLocalInput } from "./korea-time";
 import { MAX_EVENT_DETAIL_IMAGES } from "./types";
 import type { AdminEvent, AdminEventWrite } from "@/features/admin/types";
 
@@ -14,6 +15,8 @@ export type EventDraft = {
   readonly applyLabel: string;
   readonly registrationEnabled: boolean;
   readonly registrationNotice: string;
+  /** 명함 제작 마감 시각. `datetime-local` 입력 값이고 한국 시각이다. */
+  readonly businessCardClosesAt: string;
   readonly coverImageUrl: string | null;
   readonly bannerEnabled: boolean;
   readonly bannerDesktopImageUrl: string | null;
@@ -47,6 +50,7 @@ export function emptyEventDraft(): EventDraft {
     applyLabel: "",
     registrationEnabled: false,
     registrationNotice: "",
+    businessCardClosesAt: "",
     coverImageUrl: null,
     bannerEnabled: false,
     bannerDesktopImageUrl: null,
@@ -70,6 +74,7 @@ export function draftOfEvent(event: AdminEvent): EventDraft {
     applyLabel: event.applyLabel ?? "",
     registrationEnabled: event.registrationEnabled,
     registrationNotice: event.registrationNotice ?? "",
+    businessCardClosesAt: toKoreaLocalInput(event.businessCardClosesAt),
     coverImageUrl: event.coverImageUrl,
     bannerEnabled: event.banner.enabled,
     bannerDesktopImageUrl: event.banner.desktopImageUrl,
@@ -94,6 +99,7 @@ export function writeOfEvent(draft: EventDraft): AdminEventWrite {
     applyLabel: blankToNull(draft.applyLabel),
     registrationEnabled: draft.registrationEnabled,
     registrationNotice: draft.registrationEnabled ? blankToNull(draft.registrationNotice) : null,
+    businessCardClosesAt: draft.registrationEnabled ? fromKoreaLocalInput(draft.businessCardClosesAt) : null,
     coverImageUrl: draft.coverImageUrl,
     banner: {
       enabled: draft.bannerEnabled,
@@ -116,6 +122,9 @@ export function eventDraftProblem(draft: EventDraft): string | null {
   if (draft.startsOn && draft.endsOn && draft.endsOn < draft.startsOn) return "종료일은 시작일보다 앞설 수 없어요.";
   if (draft.applyUrl.trim() && !/^https?:\/\/\S+$/i.test(draft.applyUrl.trim())) {
     return "신청 링크는 http:// 또는 https://로 시작해야 해요.";
+  }
+  if (draft.registrationEnabled && draft.businessCardClosesAt && !fromKoreaLocalInput(draft.businessCardClosesAt)) {
+    return "명함 제작 마감 시각을 확인해 주세요.";
   }
   if (draft.bannerEnabled && (!draft.bannerDesktopImageUrl || !draft.bannerMobileImageUrl || !draft.bannerAlt.trim())) {
     return "배너를 노출하려면 PC·모바일 배너 이미지와 대체 문구가 모두 필요해요.";

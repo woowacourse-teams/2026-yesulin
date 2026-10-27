@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { FieldInput, FieldTextarea, PrimaryButton } from "@/components/ui/controls";
 import { registerForEvent } from "@/features/events/api";
+import { formatKoreaDeadline } from "@/features/events/korea-time";
 import {
   emptyRegistrationDraft,
   formatPhoneInput,
@@ -23,7 +24,13 @@ const PARTICIPANT_HINTS: Readonly<Record<EventParticipantType, string>> = {
  * 로그인 없이 쓰는 참가 신청서. 참가 구분을 먼저 고르면 이름·휴대폰 칸이 열리고, 공연사 관계자는 소속과 하는 일을,
  * 프로필 명함을 희망한 배우는 명함에 들어갈 정보를 더 적는다.
  */
-export function EventRegistrationForm({ eventId, onDone }: { readonly eventId: number; readonly onDone: () => void }) {
+export function EventRegistrationForm({ eventId, businessCardOpen, businessCardClosesAt, onDone }: {
+  readonly eventId: number;
+  /** 지금 명함 제작 희망을 받는지. 마감 시각이 지나면 명함 체크 칸 대신 현장 안내를 보인다. */
+  readonly businessCardOpen: boolean;
+  readonly businessCardClosesAt: string | null;
+  readonly onDone: () => void;
+}) {
   const [draft, setDraft] = useState<RegistrationDraft>(emptyRegistrationDraft);
   const [photoBusy, setPhotoBusy] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -32,7 +39,7 @@ export function EventRegistrationForm({ eventId, onDone }: { readonly eventId: n
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const problem = registrationProblem(draft, koreaToday());
+    const problem = registrationProblem(businessCardOpen ? draft : { ...draft, businessCardRequested: false }, koreaToday());
     if (problem) {
       setError(problem);
       return;
@@ -40,10 +47,10 @@ export function EventRegistrationForm({ eventId, onDone }: { readonly eventId: n
     setSubmitting(true);
     setError(null);
     try {
-      await registerForEvent(eventId, writeOfRegistration(draft));
+      await registerForEvent(eventId, writeOfRegistration(businessCardOpen ? draft : { ...draft, businessCardRequested: false }));
       onDone();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "신청을 보내지 못했어요. 다시 시도해 주세요.");
+      setError(cause instanceof Error ? cause.message : "신청을 보내지 못했습니다. 다시 시도해 주십시오.");
     } finally {
       setSubmitting(false);
     }
@@ -77,7 +84,7 @@ export function EventRegistrationForm({ eventId, onDone }: { readonly eventId: n
             </label>
           ))}
         </div>
-        {type ? null : <p className="text-sm text-muted">참가 구분을 고르면 적을 칸이 나와요.</p>}
+        {type ? null : <p className="text-sm text-muted">참가 구분을 선택하면 입력 칸이 열립니다.</p>}
       </fieldset>
 
       {type ? (
@@ -86,7 +93,7 @@ export function EventRegistrationForm({ eventId, onDone }: { readonly eventId: n
             <RegistrationField id="registration-name" label="이름" required>
               <FieldInput id="registration-name" autoComplete="name" value={draft.name} maxLength={50} onChange={(event) => update({ name: event.target.value })} />
             </RegistrationField>
-            <RegistrationField id="registration-phone" label="휴대폰 번호" required hint="참가 확인과 행사 안내 연락에만 써요.">
+            <RegistrationField id="registration-phone" label="휴대폰 번호" required hint="참가 확인과 행사 안내 연락에만 사용합니다.">
               <FieldInput id="registration-phone" type="tel" inputMode="numeric" autoComplete="tel" placeholder="010-1234-5678" value={draft.phone} onChange={(event) => update({ phone: formatPhoneInput(event.target.value) })} />
             </RegistrationField>
           </div>
@@ -96,25 +103,34 @@ export function EventRegistrationForm({ eventId, onDone }: { readonly eventId: n
               <RegistrationField id="registration-affiliation" label="소속과 지금 하는 일" required hint="예: 남극장 · 캐스팅과 제작 담당">
                 <FieldTextarea id="registration-affiliation" rows={3} value={draft.affiliation} maxLength={500} onChange={(event) => update({ affiliation: event.target.value })} />
               </RegistrationField>
-              <p className="text-xs text-muted">공연사 관계자는 프로필 명함을 만들지 않아요.</p>
+              <p className="text-xs text-muted">공연사 관계자는 프로필 명함을 제작하지 않습니다.</p>
             </div>
           ) : null}
 
           {type === "ACTOR" ? (
             <>
-              <div className="rounded-control border border-border-soft p-4">
-                <label className="flex min-h-11 cursor-pointer items-start gap-3">
-                  <input type="checkbox" checked={draft.businessCardRequested} onChange={(event) => chooseCard(event.target.checked)} className="mt-1 size-4 shrink-0 accent-brand" />
-                  <span>
-                    <span className="block font-semibold">프로필 명함 제작을 희망해요</span>
-                    <span className="mt-1 block text-sm text-muted-strong">
-                      행사 당일 나눠 드릴 내 프로필 명함을 무료로 만들어 드려요. 체크하면 명함에 들어갈 정보를 적는 칸이 열려요.
-                      명함 제작 기간은 위 신청 안내를 확인해 주세요.
+              {businessCardOpen ? (
+                <div className="rounded-control border border-border-soft p-4">
+                  <label className="flex min-h-11 cursor-pointer items-start gap-3">
+                    <input type="checkbox" checked={draft.businessCardRequested} onChange={(event) => chooseCard(event.target.checked)} className="mt-1 size-4 shrink-0 accent-brand" />
+                    <span>
+                      <span className="block font-semibold">프로필 명함 제작을 희망합니다</span>
+                      <span className="mt-1 block text-sm text-muted-strong">
+                        행사 당일 나눠 드릴 프로필 명함을 무료로 제작합니다. 체크하면 명함 정보 입력 칸이 열립니다.
+                      </span>
+                      {businessCardClosesAt ? (
+                        <span className="mt-1 block text-sm font-semibold text-brand">{formatKoreaDeadline(businessCardClosesAt)}까지 신청한 분만 제작합니다.</span>
+                      ) : null}
                     </span>
-                  </span>
-                </label>
-              </div>
-              {draft.businessCardRequested ? (
+                  </label>
+                </div>
+              ) : (
+                <p className="rounded-control border border-border-soft bg-surface p-4 text-sm text-muted-strong">
+                  {businessCardClosesAt ? `프로필 명함 제작 신청은 ${formatKoreaDeadline(businessCardClosesAt)}에 마감되었습니다. ` : "프로필 명함 제작 신청은 마감되었습니다. "}
+                  행사 당일 현장에서 명함 용지에 직접 작성해 교환할 수 있습니다.
+                </p>
+              )}
+              {businessCardOpen && draft.businessCardRequested ? (
                 <BusinessCardFields
                   eventId={eventId}
                   draft={draft}
@@ -145,13 +161,13 @@ function PrivacyConsent({ checked, onChange }: { readonly checked: boolean; read
       <ul className="mt-2 list-disc space-y-1 pl-5 text-muted-strong">
         <li>수집 항목: 이름, 휴대폰 번호, 공연사 관계자는 소속과 하는 일, 명함을 희망한 배우는 이메일·SNS 계정(선택)·생년월일·프로필 사진·활동 분야·경력</li>
         <li>이용 목적: 참가 확인과 행사 안내 연락, 배우 프로필 명함 제작</li>
-        <li>명함에 들어갈 정보는 명함 제작 업체에 전달해요. 휴대폰 번호는 전달하지 않아요.</li>
-        <li>보관 기간: 행사가 끝나고 15일 안에 파기해요.</li>
-        <li>동의하지 않을 수 있지만, 그러면 참가 신청을 할 수 없어요.</li>
+        <li>명함에 들어갈 정보는 명함 제작 업체에 전달합니다. 휴대폰 번호는 전달하지 않습니다.</li>
+        <li>보관 기간: 행사 종료 후 15일 이내 파기합니다.</li>
+        <li>동의를 거부할 수 있으나, 이 경우 참가 신청을 할 수 없습니다.</li>
       </ul>
       <label className="mt-3 flex min-h-11 cursor-pointer items-center gap-2 font-semibold">
         <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="size-4 accent-brand" />
-        위 내용에 동의해요
+        위 내용에 동의합니다
       </label>
     </div>
   );

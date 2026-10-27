@@ -30,6 +30,7 @@ const events: Mutable<AdminEvent>[] = [
     applyLabel: "서포터즈 신청하기",
     registrationEnabled: false,
     registrationNotice: null,
+    businessCardClosesAt: null,
     coverImageUrl: null,
     banner: { enabled: false, desktopImageUrl: null, mobileImageUrl: null, alt: null, endsOn: null, order: 0 },
     bannerVisible: false,
@@ -50,7 +51,8 @@ const events: Mutable<AdminEvent>[] = [
     applyUrl: null,
     applyLabel: "참가 신청하기",
     registrationEnabled: true,
-    registrationNotice: "노쇼 방지를 위해 보증금 5,000원을 받아요. 11월 9일 현장에 오시면 그대로 돌려드려요.\n입금 계좌: (추후 안내)",
+    registrationNotice: "노쇼 방지를 위해 보증금 5,000원을 받습니다. 11월 9일 현장에 오시면 그대로 돌려드립니다.\n입금 계좌: (추후 안내)",
+    businessCardClosesAt: "2026-11-02T00:00:00.000Z",
     coverImageUrl: null,
     banner: { enabled: false, desktopImageUrl: null, mobileImageUrl: null, alt: null, endsOn: null, order: 0 },
     bannerVisible: false,
@@ -130,7 +132,13 @@ function toPublic(event: AdminEvent): PublicEvent {
     registrationEnabled: event.registrationEnabled,
     registrationOpen: acceptsRegistrations(event),
     registrationNotice: event.registrationNotice,
+    businessCardClosesAt: event.businessCardClosesAt,
+    businessCardOpen: acceptsBusinessCards(event),
   };
+}
+
+function acceptsBusinessCards(event: AdminEvent): boolean {
+  return acceptsRegistrations(event) && (!event.businessCardClosesAt || Date.now() < Date.parse(event.businessCardClosesAt));
 }
 
 /** 서버처럼 구분에 맞는 칸만 확인한다. 문제가 없으면 null이다. */
@@ -184,6 +192,7 @@ function apply(target: Mutable<AdminEvent>, write: AdminEventWrite) {
   target.applyUrl = write.applyUrl?.trim() || null;
   target.registrationEnabled = Boolean(write.registrationEnabled);
   target.registrationNotice = target.registrationEnabled ? write.registrationNotice?.trim() || null : null;
+  target.businessCardClosesAt = target.registrationEnabled ? write.businessCardClosesAt || null : null;
   target.applyLabel = target.applyUrl || target.registrationEnabled ? write.applyLabel?.trim() || null : null;
   target.coverImageUrl = write.coverImageUrl || null;
   target.banner = {
@@ -222,6 +231,7 @@ export const eventHandlers = [
     const event = published().find((candidate) => candidate.id === Number(params.eventId));
     if (!event) return apiError(404, "EVENT_NOT_FOUND", "이벤트를 찾을 수 없습니다.");
     if (!acceptsRegistrations(event)) return apiError(409, "EVENT_REGISTRATION_CLOSED", "참가 신청을 받지 않는 이벤트입니다.");
+    if (!acceptsBusinessCards(event)) return apiError(409, "EVENT_BUSINESS_CARD_CLOSED", "프로필 명함 제작 신청 기간이 끝났습니다. 명함 희망을 끄고 신청해 주십시오.");
     const upload = await request.json() as { readonly contentType: string; readonly size: number };
     if (!["image/jpeg", "image/png", "image/webp"].includes(upload.contentType)) {
       return apiError(400, "EVENT_INVALID_INPUT", "사진은 JPG·PNG·WebP만 올릴 수 있습니다.");
@@ -251,6 +261,9 @@ export const eventHandlers = [
     }
     const actor = write.participantType === "ACTOR";
     const card = actor && write.businessCardRequested;
+    if (card && !acceptsBusinessCards(event)) {
+      return apiError(409, "EVENT_BUSINESS_CARD_CLOSED", "프로필 명함 제작 신청 기간이 끝났습니다. 명함 희망을 끄고 신청해 주십시오.");
+    }
     if (card && write.photoUploadKey) pendingPhotoKeys.delete(write.photoUploadKey);
     const id = Math.max(0, ...registrations.map((item) => item.id)) + 1;
     registrations.push({

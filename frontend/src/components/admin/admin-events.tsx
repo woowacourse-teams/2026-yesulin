@@ -360,6 +360,11 @@ function EventForm({ initial, submitLabel, onSave, onCancel, onUnauthorized }: {
             <FieldTextarea id="event-registration-notice" rows={5} value={draft.registrationNotice} maxLength={2000} onChange={(event) => set("registrationNotice", event.target.value)} />
           </Field>
         ) : null}
+        {draft.registrationEnabled ? (
+          <Field id="event-business-card-closes-at" label="명함 제작 신청 마감 (한국 시각)" hint="이 시각이 지나면 배우 신청서에서 '프로필 명함 제작 희망'을 닫아요. 참가 신청은 종료일까지 계속 받아요. 비우면 신청 기간 내내 받아요.">
+            <FieldInput id="event-business-card-closes-at" type="datetime-local" value={draft.businessCardClosesAt} onChange={(event) => set("businessCardClosesAt", event.target.value)} />
+          </Field>
+        ) : null}
       </fieldset>
       <ImageField label="대표 이미지" hint="목록 카드와 상세 위쪽에 보여요. 선택 사항이에요." {...imageProps("cover", "coverImageUrl")} />
 

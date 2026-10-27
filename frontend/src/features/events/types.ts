@@ -32,6 +32,10 @@ export type PublicEvent = PublicEventSummary & {
   readonly registrationOpen: boolean;
   /** 참가 신청서 위에 보일 보증금·계좌 같은 안내. 줄바꿈을 그대로 보여 준다. */
   readonly registrationNotice: string | null;
+  /** 배우의 프로필 명함 제작 희망을 받는 마감 시각(ISO). 없으면 신청 기간 내내 받는다. */
+  readonly businessCardClosesAt: string | null;
+  /** 지금 명함 제작 희망을 받는지. 참가 신청을 받는 중이고 마감 시각 전이어야 true다. */
+  readonly businessCardOpen: boolean;
 };
 
 /** 참가 신청자 구분. 배우는 프로필 명함에 쓸 생년월일·사진을, 공연사 관계자는 소속과 하는 일을 적는다. */

@@ -128,7 +128,7 @@ public class EventService {
     public PublicEventResult findPublic(long eventId) {
         return repository.findById(eventId)
                 .filter(Event::isPublished)
-                .map(event -> PublicEventResult.from(event, this::urlOf, today()))
+                .map(event -> PublicEventResult.from(event, this::urlOf, today(), clock.instant()))
                 .orElseThrow(this::notFound);
     }
 

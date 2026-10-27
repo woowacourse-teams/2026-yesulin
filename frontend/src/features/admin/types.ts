@@ -609,6 +609,8 @@ export type AdminEvent = {
   readonly registrationEnabled: boolean;
   /** 참가 신청서 위에 보일 보증금·계좌 같은 안내 */
   readonly registrationNotice: string | null;
+  /** 배우의 프로필 명함 제작 희망을 받는 마감 시각(ISO). 없으면 신청 기간 내내 받는다. */
+  readonly businessCardClosesAt: string | null;
   readonly coverImageUrl: string | null;
   readonly banner: AdminEventBanner;
   /** 지금 메인 배너에 보이는지. 공개 상태와 노출 종료일까지 본 결과다. */
@@ -632,6 +634,7 @@ export type AdminEventWrite = {
   readonly applyLabel: string | null;
   readonly registrationEnabled: boolean;
   readonly registrationNotice: string | null;
+  readonly businessCardClosesAt: string | null;
   readonly coverImageUrl: string | null;
   readonly banner: AdminEventBanner;
 };

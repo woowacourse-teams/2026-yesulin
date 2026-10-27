@@ -26,6 +26,7 @@ public record AdminEventResult(
         String applyLabel,
         boolean registrationEnabled,
         String registrationNotice,
+        Instant businessCardClosesAt,
         String coverImageUrl,
         Banner banner,
         boolean bannerVisible,
@@ -49,6 +50,7 @@ public record AdminEventResult(
                 event.getApplyLabel(),
                 event.isRegistrationEnabled(),
                 event.getRegistrationNotice(),
+                event.getBusinessCardClosesAt(),
                 urlOf.apply(event.getCoverImageKey()),
                 new Banner(
                         event.isBannerEnabled(),

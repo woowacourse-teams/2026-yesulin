@@ -101,11 +101,26 @@ class EventTest {
 
     @Test
     void turningRegistrationOffClearsNotice() {
-        Event event = event(new EventContent("제목", null, "본문", null, null, null, "신청", false, "안내"));
+        Event event = event(new EventContent(
+                "제목", null, "본문", null, null, null, "신청", false, "안내", null, NOW.plusSeconds(60)
+        ));
 
         assertFalse(event.isRegistrationEnabled());
         assertNull(event.getRegistrationNotice());
         assertNull(event.getApplyLabel());
+        assertNull(event.getBusinessCardClosesAt());
+    }
+
+    @Test
+    void acceptsBusinessCardsUntilDeadlineOrAlwaysWithoutOne() {
+        Event withDeadline = event(new EventContent(
+                "제목", null, "본문", null, null, null, null, true, null, null, NOW
+        ));
+        Event withoutDeadline = event(new EventContent("제목", null, "본문", null, null, null, null, true, null));
+
+        assertTrue(withDeadline.isAcceptingBusinessCardsAt(NOW.minusSeconds(1)));
+        assertFalse(withDeadline.isAcceptingBusinessCardsAt(NOW));
+        assertTrue(withoutDeadline.isAcceptingBusinessCardsAt(NOW.plusSeconds(86_400)));
     }
 
     @Test

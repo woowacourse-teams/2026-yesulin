@@ -26,6 +26,7 @@ import art.yesulin.global.exception.BusinessException;
 import art.yesulin.support.FakeObjectStorage;
 import art.yesulin.support.ObjectStorageTestConfiguration;
 import java.io.ByteArrayInputStream;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
@@ -135,6 +136,32 @@ class EventRegistrationServiceTest {
     }
 
     @Test
+    void stopsBusinessCardsAfterDeadlineButKeepsTakingRegistrations() {
+        long eventId = published(cardClosingAt(Instant.now().minusSeconds(60)));
+
+        assertCode(EventErrorCode.BUSINESS_CARD_CLOSED,
+                () -> registrationService.preparePhotoUpload(eventId, "image/jpeg", JPEG.length));
+        assertCode(EventErrorCode.BUSINESS_CARD_CLOSED,
+                () -> registrationService.register(eventId, actor("010-1234-5678"), null, true));
+        registrationService.register(eventId, EventRegistrationForm.withoutBusinessCard(
+                EventParticipantType.ACTOR, "박서윤", "010-3456-7890", null
+        ), null, true);
+
+        assertEquals(1, registrationService.findAllForAdmin(eventId).size());
+        assertFalse(eventService.findPublic(eventId).businessCardOpen());
+    }
+
+    @Test
+    void takesBusinessCardsBeforeDeadline() {
+        long eventId = published(cardClosingAt(Instant.now().plusSeconds(3_600)));
+
+        registrationService.register(eventId, actor("010-1234-5678"), uploadedPhoto(eventId), true);
+
+        assertTrue(registrationService.findAllForAdmin(eventId).getFirst().businessCardRequested());
+        assertTrue(eventService.findPublic(eventId).businessCardOpen());
+    }
+
+    @Test
     void rejectsSamePhoneTwiceInOneEvent() {
         long eventId = openEvent();
         registrationService.register(eventId, actor("010-1234-5678"), uploadedPhoto(eventId), true);
@@ -220,6 +247,12 @@ class EventRegistrationServiceTest {
                 EventParticipantType.ACTOR, "김하늘", phone, true, "haneul@test.com", "@haneul", BIRTH_DATE, null,
                 Set.of(EventActivityField.MUSICAL, EventActivityField.THEATER), null, false,
                 List.of(new EventRegistrationCareer("2025-09", "연극 <달빛 정거장>", "민수 역"))
+        );
+    }
+
+    private static EventContent cardClosingAt(Instant closesAt) {
+        return new EventContent(
+                "월요살롱", null, "본문", null, null, null, null, true, "보증금 안내", null, closesAt
         );
     }
 
