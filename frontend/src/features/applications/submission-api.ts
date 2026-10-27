@@ -29,6 +29,7 @@ export type ApplicationSubmissionResult = Omit<V1SubmissionReceipt, "submissionI
   readonly submissionId: string;
   /** 프로필 저장을 선택했을 때만 채워진다. 저장 실패는 제출 성공에 영향을 주지 않는다. */
   readonly profileSaved?: boolean;
+  readonly profileCareerOverflowCount?: number;
 };
 
 export async function createApplicationSubmission(input: CreateApplicationSubmissionInput): Promise<ApplicationSubmissionResult> {
@@ -49,8 +50,11 @@ export async function createApplicationSubmission(input: CreateApplicationSubmis
     }, input.photos);
     const result = { ...receipt, submissionId: String(receipt.submissionId) };
     if (!input.saveToProfile) return result;
-    const profileSaved = await saveSubmissionInformationToProfile(information).then(() => true, () => false);
-    return { ...result, profileSaved };
+    const profileSave = await saveSubmissionInformationToProfile(information).then(
+      ({ skippedCareerCount }) => ({ profileSaved: true, profileCareerOverflowCount: skippedCareerCount }),
+      () => ({ profileSaved: false }),
+    );
+    return { ...result, ...profileSave };
   }
   if (isBackendAuditionId(input.postingId)) {
     const receipt = await createV1Submission({
@@ -67,9 +71,11 @@ export async function createApplicationSubmission(input: CreateApplicationSubmis
       thirdPartyConsent: input.thirdPartyConsent,
     });
     if (!input.saveToProfile) return receipt;
-    const profileSaved = await saveSubmissionInformationToProfile(applicantInformation(input))
-      .then(() => true, () => false);
-    return { ...receipt, profileSaved };
+    const profileSave = await saveSubmissionInformationToProfile(applicantInformation(input)).then(
+      ({ skippedCareerCount }) => ({ profileSaved: true, profileCareerOverflowCount: skippedCareerCount }),
+      () => ({ profileSaved: false }),
+    );
+    return { ...receipt, ...profileSave };
   }
 
   const answers = input.fields.filter((field) => field.enabled).map((field) => ({
@@ -92,6 +98,6 @@ export async function createApplicationSubmission(input: CreateApplicationSubmis
     submissionId: response.submissionId,
     submittedAt: response.submittedAt,
     // 시드 공고는 목 서버가 제출과 함께 프로필을 갱신하므로 선택했다면 저장 완료로 본다.
-    ...(input.saveToProfile ? { profileSaved: true } : {}),
+    ...(input.saveToProfile ? { profileSaved: true, profileCareerOverflowCount: response.profileCareerOverflowCount ?? 0 } : {}),
   };
 }

@@ -1,15 +1,16 @@
 "use client";
 
+import { appendProfileCareer, MAX_APPLICATION_CAREERS as MAX_CAREER_COUNT, profileCareerChoices } from "@/features/applications/application-careers";
+import { profileCareerGenreLabel } from "@/features/applicants/career-genre";
+import type { CareerEntry } from "@/features/applicants/types";
 import type { CareerDraft } from "@/features/applications/application-form-state";
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
 import { careerDraftError } from "@/features/applications/application-form-state";
 import { AddButton, fieldControlClass, TextButton } from "@/components/ui/controls";
 import { usePublicApplication } from "./public-application-context";
 
-const MAX_CAREER_COUNT = 10;
-
 export function PublicApplicationCareer({ field }: { field: ApplicationFieldInput }) {
-  const { state, actions } = usePublicApplication();
+  const { state, actions, meta } = usePublicApplication();
   const errorId = `application-${field.id}-error`;
   const fieldError = state.fieldErrors[field.id] ?? "";
   // 카드 하나가 잘못된 경우의 오류는 CAREER-<카드 id>로 저장된다. 비어 있음 오류와 키가 달라 따로 찾는다.
@@ -18,7 +19,23 @@ export function PublicApplicationCareer({ field }: { field: ApplicationFieldInpu
   const addCareer = () => actions.updateCareers([...state.careers, { id: crypto.randomUUID(), title: "", part: "", year: "" }]);
   const patchCareer = (id: string, update: Partial<CareerDraft>) => actions.updateCareers(state.careers.map((career) => career.id === id ? { ...career, ...update } : career));
 
-  return <section id={`application-field-${field.id}`}><label className="flex cursor-pointer items-start gap-3 rounded-card border border-border bg-surface p-4"><input type="checkbox" checked={state.noCareer} onChange={(event) => actions.updateNoCareer(event.target.checked)} aria-invalid={Boolean(emptyError) || undefined} aria-describedby={emptyError ? errorId : undefined} className="mt-1 h-4 w-4 shrink-0 accent-brand" /><span><strong className="block text-sm">아직 공연 경력이 없습니다</strong><span className="mt-1 block text-sm leading-6 text-muted">경력이 없어도 지원할 수 있어요. 자기소개에서 준비 과정을 알려 주세요.</span></span></label>{state.noCareer ? <p className="mt-4 rounded-control border border-brand-line bg-brand-soft px-4 py-3 text-sm text-brand">경력 입력을 건너뛰었어요.</p> : <div className="mt-5 space-y-4">{state.careers.length === 0 ? <p className="rounded-control border border-dashed border-border bg-surface px-4 py-3 text-sm leading-6 text-muted">등록한 경력이 없어요. 경력이 있다면 아래에서 추가해 주세요.</p> : null}{state.careers.map((career, index) => <CareerCard key={career.id} career={career} index={index} fieldId={field.id} required={field.required} showErrors={Boolean(fieldError) || hasDraftError} onChange={(update) => patchCareer(career.id, update)} onRemove={() => actions.updateCareers(state.careers.filter((item) => item.id !== career.id))} />)}{state.careers.length < MAX_CAREER_COUNT ? <AddButton onClick={addCareer} className="min-h-12 w-full">+ 경력 추가</AddButton> : <p className="text-sm text-muted">경력은 최대 {MAX_CAREER_COUNT}개까지 추가할 수 있어요.</p>}</div>}{emptyError ? <p id={errorId} role="alert" className="mt-3 text-sm font-medium leading-6 text-fail">{emptyError}</p> : null}</section>;
+  return <section id={`application-field-${field.id}`}><label className="flex cursor-pointer items-start gap-3 rounded-card border border-border bg-surface p-4"><input type="checkbox" checked={state.noCareer} onChange={(event) => actions.updateNoCareer(event.target.checked)} aria-invalid={Boolean(emptyError) || undefined} aria-describedby={emptyError ? errorId : undefined} className="mt-1 h-4 w-4 shrink-0 accent-brand" /><span><strong className="block text-sm">아직 공연 경력이 없습니다</strong><span className="mt-1 block text-sm leading-6 text-muted">경력이 없어도 지원할 수 있어요. 자기소개에서 준비 과정을 알려 주세요.</span></span></label>{state.noCareer ? <p className="mt-4 rounded-control border border-brand-line bg-brand-soft px-4 py-3 text-sm text-brand">경력 입력을 건너뛰었어요.</p> : <div className="mt-5 space-y-4">{state.careers.length === 0 ? <p className="rounded-control border border-dashed border-border bg-surface px-4 py-3 text-sm leading-6 text-muted">등록한 경력이 없어요. 경력이 있다면 아래에서 추가해 주세요.</p> : null}{state.careers.map((career, index) => <CareerCard key={career.id} career={career} index={index} fieldId={field.id} required={field.required} showErrors={Boolean(fieldError) || hasDraftError} onChange={(update) => patchCareer(career.id, update)} onRemove={() => actions.updateCareers(state.careers.filter((item) => item.id !== career.id))} />)}{(meta.profileCareers?.length ?? 0) > 0 ? <ProfileCareerPicker profileCareers={meta.profileCareers!} selected={state.careers} onAdd={(career) => actions.updateCareers(appendProfileCareer(state.careers, career, crypto.randomUUID()))} /> : null}{state.careers.length < MAX_CAREER_COUNT ? <AddButton onClick={addCareer} className="min-h-12 w-full">+ 경력 추가</AddButton> : <p className="text-sm text-muted">경력은 최대 {MAX_CAREER_COUNT}개까지 추가할 수 있어요.</p>}</div>}{emptyError ? <p id={errorId} role="alert" className="mt-3 text-sm font-medium leading-6 text-fail">{emptyError}</p> : null}</section>;
+}
+
+function ProfileCareerPicker({ profileCareers, selected, onAdd }: {
+  readonly profileCareers: readonly CareerEntry[];
+  readonly selected: readonly CareerDraft[];
+  readonly onAdd: (career: CareerEntry) => void;
+}) {
+  const choices = profileCareerChoices(profileCareers, selected);
+  const full = selected.length >= MAX_CAREER_COUNT;
+  return <details className="rounded-card border border-border bg-surface p-4">
+    <summary className="cursor-pointer text-sm font-semibold text-brand">프로필 경력에서 추가</summary>
+    <p className="mt-3 text-sm leading-6 text-muted">{full ? "지원서 경력은 10개까지 넣을 수 있어요. 기존 경력을 삭제한 뒤 골라 주세요." : "지원서에 없는 프로필 경력을 골라 추가하세요."}</p>
+    <div className="mt-3 grid gap-2">{choices.map((career, index) => <AddButton key={index} disabled={full} onClick={() => onAdd(career)} className="h-auto min-h-12 w-full whitespace-normal text-left">
+      <span className="min-w-0 flex-1"><span className="block break-words">{career.year} · {career.title} · {career.part}</span><span className="mt-1 block text-xs font-normal text-muted">{profileCareerGenreLabel(career.genre)}</span></span><span className="ml-3 shrink-0">추가</span>
+    </AddButton>)}{choices.length === 0 ? <p className="py-2 text-sm text-muted">추가할 프로필 경력이 없어요.</p> : null}</div>
+  </details>;
 }
 
 function CareerCard({ career, index, fieldId, required, showErrors, onChange, onRemove }: { career: CareerDraft; index: number; fieldId: string; required: boolean; showErrors: boolean; onChange: (update: Partial<CareerDraft>) => void; onRemove: () => void }) {

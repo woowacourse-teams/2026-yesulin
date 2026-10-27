@@ -319,7 +319,7 @@ export function PublicApplicationProvider({
     submit,
   };
 
-  return <PublicApplicationContext value={{ state, actions, meta: { applicationType, postingId, postingSnapshotVersion, fields, steps, performanceTitle, postingTitle, companyName, roleIds, roleName, authenticated, authChecking, onBack, prefillSummary: prefill ? { filledCount: prefill.filledCount, requiredCount: prefill.requiredCount, missingKeys: prefill.missingKeys } : undefined } }}>{children}</PublicApplicationContext>;
+  return <PublicApplicationContext value={{ state, actions, meta: { applicationType, postingId, postingSnapshotVersion, fields, steps, performanceTitle, postingTitle, companyName, roleIds, roleName, authenticated, authChecking, onBack, profileCareers: draft.profileCareers, prefillSummary: prefill ? { filledCount: prefill.filledCount, requiredCount: prefill.requiredCount, missingKeys: prefill.missingKeys } : undefined } }}>{children}</PublicApplicationContext>;
 }
 
 function submissionErrorMessage(cause: unknown) {

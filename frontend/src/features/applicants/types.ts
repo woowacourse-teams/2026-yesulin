@@ -1,7 +1,9 @@
+import type { ProfileCareerGenre } from "./career-genre";
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
 import type { SubmissionId } from "@/features/auditions/types";
 
 export type CareerEntry = {
+  readonly genre?: ProfileCareerGenre | null;
   readonly year: number;
   readonly title: string;
   readonly part: string;
@@ -169,6 +171,7 @@ export type CreateSubmissionResponse = {
   readonly submissionId: SubmissionId;
   readonly receiptNumber: string;
   readonly submittedAt: string;
+  readonly profileCareerOverflowCount?: number;
   readonly profileClaimToken: string | null;
   readonly profileClaimExpiresAt: string | null;
 };

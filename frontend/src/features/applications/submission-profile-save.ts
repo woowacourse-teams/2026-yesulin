@@ -1,3 +1,4 @@
+import { mergeProfileCareers } from "@/features/applicants/profile-careers";
 import type { BackendProfileResponse, BackendProfileUpdateRequest } from "@/features/applicants/profile-contract";
 import { applicantRequest } from "@/features/applicants/request";
 import type { ApplicantInformation } from "./submission-v1";
@@ -7,15 +8,26 @@ const PROFILE_PATH = "/v1/applicants/me/profile";
 /**
  * 제출 성공 후 이번 지원서의 기본·추가 정보를 재사용 프로필에 저장한다.
  * 값을 입력한 수집 필드만 덮어쓰고, 비워 둔 항목과 공고가 수집하지 않은 필드는
- * 기존 프로필 값을 유지한다. 사진·영상·커스텀 답변은 저장하지 않는다.
+ * 기존 프로필 값을 유지한다. 경력은 기존 값과 장르를 보존하고 새 경력만 추가한다.
+ * 사진·영상·커스텀 답변은 저장하지 않는다.
  */
-export async function saveSubmissionInformationToProfile(submitted: ApplicantInformation): Promise<void> {
+export async function saveSubmissionInformationToProfile(submitted: ApplicantInformation): Promise<{ readonly skippedCareerCount: number }> {
   const current = await applicantRequest<BackendProfileResponse>(PROFILE_PATH);
+  const merged = mergeProfileCareers(
+    current.additionalInformation.careers.map((career) => ({ ...career, part: career.roleName })),
+    submitted.additionalInformation.careers.map((career) => ({ ...career, part: career.roleName })),
+  );
   const body: BackendProfileUpdateRequest = {
     basicInformation: mergeBasicInformation(current.basicInformation, submitted.basicInformation),
-    additionalInformation: mergeAdditionalInformation(current.additionalInformation, submitted.additionalInformation),
+    additionalInformation: {
+      ...mergeAdditionalInformation(current.additionalInformation, submitted.additionalInformation),
+      careers: merged.careers.map((career) => ({
+        year: career.year, title: career.title, roleName: career.part, genre: career.genre ?? null,
+      })),
+    },
   };
   await applicantRequest<BackendProfileResponse>(PROFILE_PATH, { method: "PATCH", body: JSON.stringify(body) });
+  return { skippedCareerCount: merged.skippedCareerCount };
 }
 
 function mergeBasicInformation(
@@ -48,6 +60,6 @@ function mergeAdditionalInformation(
     specialty: submitted.specialty ?? current.specialty,
     hobbies: submitted.hobbies ?? current.hobbies,
     militaryServiceStatus: submitted.militaryServiceStatus ?? current.militaryServiceStatus,
-    careers: submitted.careers.length ? submitted.careers : current.careers,
+    careers: current.careers,
   };
 }

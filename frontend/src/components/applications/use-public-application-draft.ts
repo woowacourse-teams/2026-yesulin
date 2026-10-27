@@ -140,7 +140,7 @@ export function usePublicApplicationDraft({ postingId, fields, prefill, initialR
     thirdPartyConsent, setThirdPartyConsent: setter(setThirdPartyConsentBase),
     saveToProfile, setSaveToProfile: setter(setSaveToProfileBase), stepIndex, setStepIndex: setter(setStepIndexBase),
     completedStepIndexes, setCompletedStepIndexes: setter(setCompletedStepIndexesBase), reviewing, setReviewing: setter(setReviewingBase),
-    roleIds, saveStatus, saveError, lastSavedAt, restored, storageReady, retrySave,
+    roleIds, saveStatus, saveError, lastSavedAt, restored, storageReady, retrySave, profileCareers: initial.profileCareers,
     hasUnsavedChanges: saveStatus === "SAVING" || saveStatus === "ERROR",
   };
 }

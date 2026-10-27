@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { ApplicantAnswerValue, CareerEntry } from "@/features/applicants/types";
+import { MAX_PROFILE_CAREER_COUNT, PROFILE_CAREER_GENRES, profileCareerGenreLabel, type ProfileCareerGenre } from "@/features/applicants/career-genre";
 import { educationInformation } from "@/features/applicants/education";
 import { formatKoreanPhone, integerMeasurementError, isIntegerMeasurement, isValidEmail, isValidKoreanPhone } from "@/features/applicants/profile-input";
 import { usePhoneInput } from "@/features/applications/phone-number";
@@ -74,7 +75,30 @@ function ExternalLinksField({ value, onChange }: { readonly value: readonly stri
 
 function CareerSection({ value, onChange }: { readonly value: readonly CareerEntry[]; readonly onChange: (value: ApplicantAnswerValue) => void }) {
   const patch = (index: number, update: Partial<CareerEntry>) => onChange(value.map((career, candidate) => candidate === index ? { ...career, ...update } : career));
-  return <section className="border-t border-border-soft pt-7"><div><h3 className="font-bold">경력 <span className="text-xs font-normal text-muted">(선택)</span></h3><p className="mt-1 text-sm leading-6 text-muted">최근 경력부터 정리하면 지원서에도 같은 순서로 채워집니다.</p></div><div className="mt-4 space-y-4">{value.map((career, index) => <article key={index} className="rounded-card border border-border bg-surface p-4"><div className="mb-3 flex items-center"><strong className="text-sm">경력 {index + 1}</strong><TextButton onClick={() => onChange(value.filter((_, candidate) => candidate !== index))} className="ml-auto px-3 text-fail hover:bg-fail-bg hover:text-fail">삭제</TextButton></div><div className="grid gap-3 sm:grid-cols-[100px_1fr_160px]"><label><span className="mb-1 block text-xs text-muted">연도</span><FieldInput type="number" value={career.year || ""} onChange={(event) => patch(index, { year: Number(event.target.value) })} /></label><label><span className="mb-1 block text-xs text-muted">작품명</span><FieldInput value={career.title} onChange={(event) => patch(index, { title: event.target.value })} /></label><label><span className="mb-1 block text-xs text-muted">배역</span><FieldInput value={career.part} onChange={(event) => patch(index, { part: event.target.value })} /></label></div></article>)}{value.length === 0 ? <div className="rounded-card border border-dashed border-border bg-surface px-5 py-8 text-center text-sm text-muted">저장한 경력이 없어요.</div> : null}{value.length < 10 ? <AddButton onClick={() => onChange([...value, { year: new Date().getFullYear(), title: "", part: "" }])} className="min-h-12 w-full">+ 경력 추가</AddButton> : <p className="text-sm text-muted">경력은 최대 10개까지 추가할 수 있어요.</p>}</div></section>;
+  return <section className="border-t border-border-soft pt-7">
+    <div className="flex items-start justify-between gap-3">
+      <div><h3 className="font-bold">경력 <span className="text-xs font-normal text-muted">(선택)</span></h3>
+        <p className="mt-1 text-sm leading-6 text-muted">지원서에는 최근 연도 경력 10개가 먼저 채워지고, 지원서에서 바꿀 수 있어요.</p></div>
+      <span className="num shrink-0 text-xs text-muted">{value.length} / {MAX_PROFILE_CAREER_COUNT}</span>
+    </div>
+    <div className="mt-4 space-y-4">{value.map((career, index) => <article key={index} className="rounded-card border border-border bg-surface p-4">
+      <div className="mb-3 flex items-center gap-2"><strong className="text-sm">경력 {index + 1}</strong>
+        <span className="text-xs text-muted">{profileCareerGenreLabel(career.genre)}</span>
+        <TextButton onClick={() => onChange(value.filter((_, candidate) => candidate !== index))} aria-label={`경력 ${index + 1} 삭제`} className="ml-auto px-3 text-fail hover:bg-fail-bg hover:text-fail">삭제</TextButton>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[100px_140px_minmax(0,1fr)_160px]">
+        <label><span className="mb-1 block text-xs text-muted">연도</span><FieldInput type="number" min={1000} max={9999} value={career.year || ""} onChange={(event) => patch(index, { year: Number(event.target.value) })} /></label>
+        <label><span className="mb-1 block text-xs text-muted">장르</span><FieldSelect aria-label={`경력 ${index + 1} 장르`} value={career.genre ?? ""} onChange={(event) => patch(index, { genre: event.target.value ? event.target.value as ProfileCareerGenre : null })}>
+          <option value="">선택 안 함</option>{PROFILE_CAREER_GENRES.map((genre) => <option key={genre.value} value={genre.value}>{genre.label}</option>)}
+        </FieldSelect></label>
+        <label className="min-w-0"><span className="mb-1 block text-xs text-muted">작품명</span><FieldInput value={career.title} onChange={(event) => patch(index, { title: event.target.value })} /></label>
+        <label className="min-w-0"><span className="mb-1 block text-xs text-muted">배역</span><FieldInput value={career.part} onChange={(event) => patch(index, { part: event.target.value })} /></label>
+      </div>
+    </article>)}
+      {value.length === 0 ? <div className="rounded-card border border-dashed border-border bg-surface px-5 py-8 text-center text-sm text-muted">저장한 경력이 없어요.</div> : null}
+      {value.length < MAX_PROFILE_CAREER_COUNT ? <AddButton onClick={() => onChange([...value, { year: new Date().getFullYear(), title: "", part: "", genre: null }])} className="min-h-12 w-full">+ 경력 추가</AddButton> : <p className="text-sm text-muted">경력은 최대 {MAX_PROFILE_CAREER_COUNT}개까지 추가할 수 있어요.</p>}
+    </div>
+  </section>;
 }
 
 function isCareer(value: unknown): value is CareerEntry { return typeof value === "object" && value !== null && "year" in value && "title" in value && "part" in value; }
