@@ -1,6 +1,8 @@
+import { mergeProfileCareers, profileCareersError } from "@/features/applicants/profile-careers";
 import { submissionId, type SubmissionId } from "@/features/auditions/types";
 import type {
   ApplicantAnswer,
+  CareerEntry,
   ApplicantSubmissionDetail,
   ApplicantSubmissionSummary,
   ApplicantProfileResponse,
@@ -25,7 +27,7 @@ const seededAnswers: ApplicantAnswer[] = [
   { key: "HEIGHT", label: "키", value: 166 },
   { key: "WEIGHT", label: "몸무게", value: 52 },
   { key: "SCHOOL", label: "학력", value: { level: "UNIVERSITY", school: "한국예술종합학교", major: "연극원 연기과" } },
-  { key: "CAREER", label: "경력", value: [{ year: 2025, title: "푸른 방", part: "윤서" }] },
+  { key: "CAREER", label: "경력", value: [{ year: 2025, title: "푸른 방", part: "윤서", genre: "THEATER" }] },
   { key: "LINK", label: "SNS / 외부 링크", value: "https://example.com/harin" },
   { key: "NATIONALITY", label: "국적", value: "대한민국" },
   { key: "COVER_LETTER", label: "자기소개", value: "인물의 작은 선택이 장면 전체의 온도를 바꾼다고 믿습니다. 상대 배우의 호흡을 세심하게 듣고 반복되는 연습에서도 새로운 반응을 발견하는 배우 김하린입니다." },
@@ -70,12 +72,20 @@ export function applicantProfile(): ApplicantProfileResponse {
 }
 
 export function patchApplicantProfile(body: UpdateProfileRequest): ApplicantProfileResponse {
+  const incomingCareers = body.answers?.find((answer) => answer.key === "CAREER");
+  if (incomingCareers) {
+    const error = profileCareersError(incomingCareers.value);
+    if (error) throw new Error(error);
+  }
   const remove = new Set(body.removeKeys ?? []);
   profileAnswers = profileAnswers.filter((answer) => !remove.has(answer.key));
   for (const next of body.answers ?? []) {
     if (!reusableKeys.has(next.key)) continue;
     const current = profileAnswers.find((answer) => answer.key === next.key);
-    const answer: ApplicantAnswer = { ...current, ...next, label: next.label ?? current?.label ?? next.key, updatedAt: new Date().toISOString() };
+    const value = next.key === "CAREER"
+      ? (next.value as readonly CareerEntry[]).map((career) => ({ ...career, genre: career.genre ?? null }))
+      : next.value;
+    const answer: ApplicantAnswer = { ...current, ...next, value, label: next.label ?? current?.label ?? next.key, updatedAt: new Date().toISOString() };
     profileAnswers = current
       ? profileAnswers.map((candidate) => candidate.key === next.key ? answer : candidate)
       : [...profileAnswers, answer];
@@ -85,6 +95,17 @@ export function patchApplicantProfile(body: UpdateProfileRequest): ApplicantProf
   if (body.videoLibrary) videoLibrary = clone(body.videoLibrary).slice(0, 10)
     .map((video) => ({ ...video, visibility: video.visibility ?? "PRODUCER" }));
   return applicantProfile();
+}
+
+export function saveSubmissionAnswersToProfile(answers: readonly ApplicantAnswer[]) {
+  const current = applicantProfile().answers.find((answer) => answer.key === "CAREER")?.value;
+  const submitted = answers.find((answer) => answer.key === "CAREER")?.value;
+  const merged = mergeProfileCareers(
+    Array.isArray(current) ? current as readonly CareerEntry[] : [],
+    Array.isArray(submitted) ? submitted as readonly CareerEntry[] : [],
+  );
+  patchApplicantProfile({ answers: answers.map((answer) => answer.key === "CAREER" ? { ...answer, value: merged.careers } : answer) });
+  return merged.skippedCareerCount;
 }
 
 function toSummary(detail: ApplicantSubmissionDetail): ApplicantSubmissionSummary {

@@ -1,4 +1,5 @@
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
+import { applicationCareersFromProfile } from "./application-careers";
 import { orderedApplicationPhotos } from "./application-form-state";
 import { applicationLinkKey, MAX_APPLICATION_LINKS } from "./application-links";
 import type { ApplicationPhoto, CareerDraft } from "./application-form-state";
@@ -10,6 +11,7 @@ export function applicationDraftFromPrefill(prefill?: ProfilePrefillResponse, fi
   let photos: ApplicationPhoto[] = [];
   let videoUrl = "";
   let careers: CareerDraft[] = [];
+  let profileCareers: CareerEntry[] = [];
   for (const answer of prefill?.answers ?? []) {
     if (answer.key === "PHOTOS") {
       // 보관함 사진은 지원서마다 사용자가 직접 고른다. 프로필 prefill로 자동 첨부하지 않는다.
@@ -20,7 +22,8 @@ export function applicationDraftFromPrefill(prefill?: ProfilePrefillResponse, fi
       if (firstRequirement) values[`${answer.key}.${firstRequirement.id}`] = answer.value;
       else videoUrl = answer.value;
     } else if (answer.key === "CAREER" && Array.isArray(answer.value)) {
-      careers = answer.value.filter(isCareerEntry).map((career, index) => ({ id: `prefill-career-${index}`, title: career.title, part: career.part, year: String(career.year) }));
+      profileCareers = answer.value.filter(isCareerEntry);
+      careers = applicationCareersFromProfile(profileCareers);
     } else if (answer.key === "LINK" && Array.isArray(answer.value)) {
       answer.value
         .filter((item): item is string => typeof item === "string" && Boolean(item.trim()))
@@ -37,7 +40,7 @@ export function applicationDraftFromPrefill(prefill?: ProfilePrefillResponse, fi
       values[answer.key] = String(answer.value);
     }
   }
-  return { values, photos, videoUrl, careers };
+  return { values, photos, videoUrl, careers, profileCareers };
 }
 
 function isCareerEntry(value: unknown): value is CareerEntry {

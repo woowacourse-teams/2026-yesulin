@@ -27,7 +27,7 @@ import lombok.NoArgsConstructor;
 public class ProfileAdditionalInformation {
 
     public static final int MAX_LINK_COUNT = 5;
-    public static final int MAX_CAREER_COUNT = 10;
+    public static final int MAX_CAREER_COUNT = 30;
     public static final int MAX_SCHOOL_LENGTH = 255;
     public static final int MAX_LINK_LENGTH = 255;
     public static final int MAX_NATIONALITY_LENGTH = 100;
@@ -137,7 +137,7 @@ public class ProfileAdditionalInformation {
     private static List<ProfileCareer> copyCareers(List<ProfileCareer> careers) {
         List<ProfileCareer> safeCareers = requireNonNull(careers, "경력 목록은 필수입니다.");
         if (safeCareers.size() > MAX_CAREER_COUNT) {
-            throw new BusinessException(INVALID_PROFILE, "경력은 최대 10개까지 저장할 수 있습니다.");
+            throw new BusinessException(INVALID_PROFILE, "경력은 최대 30개까지 저장할 수 있습니다.");
         }
         safeCareers.forEach(career -> requireNonNull(career, "경력은 비어 있을 수 없습니다."));
         return List.copyOf(safeCareers);

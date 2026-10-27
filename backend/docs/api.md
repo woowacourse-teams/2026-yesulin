@@ -785,7 +785,11 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 
 프로필 기본 정보는 이름, 양수 키·몸무게, 미래가 아닌 생년월일, 성별, `000-0000-0000` 연락처, email과 거주 지역이다.
 거주 지역은 100자 문자열이고, 프론트가 `시·도 시·군·구` 형태로만 채운다.
-추가 정보의 학력은 `educationLevel`(`NONE`·`HIGH_SCHOOL`·`UNIVERSITY`), `school`, `major`로 표현한다. 학력 없음은 학교·전공 없이, 고등학교 졸업은 학교만, 대학교 졸업은 학교와 전공을 함께 보낸다. 링크 최대 5개, 경력 최대 10개다.
+추가 정보의 학력은 `educationLevel`(`NONE`·`HIGH_SCHOOL`·`UNIVERSITY`), `school`, `major`로 표현한다. 학력 없음은 학교·전공 없이, 고등학교 졸업은 학교만, 대학교 졸업은 학교와 전공을 함께 보낸다. 링크 최대 5개, 프로필 경력 최대 30개다.
+프로필 경력은 `{year, title, roleName, genre?}`이며 genre는 선택 값이다. 생략하거나 null이면 미분류로 유지한다.
+장르 값은 `THEATER`(연극), `MUSICAL`(뮤지컬), `DANCE`(무용), `FILM`(영화), `DRAMA`(드라마),
+`WEB_DRAMA`(웹드라마), `SHORT_FORM`(숏폼), `COMMERCIAL`(광고), `OTHER`(기타)다. 잘못된 값은 `400 INVALID_REQUEST`다.
+지원서 제출 경력은 기존대로 최대 10개이고 `{year, title, roleName}`만 받으며 장르는 포함하지 않는다.
 배우 사진은 JPEG·PNG·WebP 최대 20MB, 사진 보관함 최대 3개, 영상 보관함 최대 3개다.
 사진 항목 응답은 `{id, fileId, imageUrl, displayOrder, representative, createdAt, visibility}`이며 visibility는
 `PUBLIC/PRIVATE`(기존 행·새 사진 모두 기본 PRIVATE)다. 영상 항목 응답은

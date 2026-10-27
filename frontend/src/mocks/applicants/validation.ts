@@ -1,3 +1,4 @@
+import { MAX_APPLICATION_CAREERS } from "@/features/applications/application-careers";
 import { MAX_VIDEO_REQUIREMENTS, type ApplicationFieldInput } from "@/features/auditions/creation-types";
 import type { ApplicantAnswerValue } from "@/features/applicants/types";
 import { topicParticle } from "@/features/korean";
@@ -9,7 +10,7 @@ const textTypes = new Set(["TEXT", "TEL", "DATE", "SELECT", "TEXTAREA", "URL"]);
 const hasText = (value: unknown): value is string => typeof value === "string" && value.trim().length > 0;
 
 function validCareer(value: unknown) {
-  return Array.isArray(value) && value.every((item) => typeof item === "object" && item !== null
+  return Array.isArray(value) && value.length <= MAX_APPLICATION_CAREERS && value.every((item) => typeof item === "object" && item !== null
     && "year" in item && Number.isInteger(item.year)
     && "title" in item && hasText(item.title)
     && "part" in item && hasText(item.part));

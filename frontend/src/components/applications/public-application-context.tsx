@@ -246,6 +246,7 @@ export function PublicApplicationProvider({
         submissionId: response.submissionId,
         submittedAt: response.submittedAt,
         profileSaved: response.profileSaved,
+        profileCareerOverflowCount: response.profileCareerOverflowCount,
       });
       trackAnalyticsEvent("application_submit_success", { selected_role_count: roleIds.length, save_to_profile: saveToProfile, profile_saved: Boolean(response.profileSaved) });
       void deletePublicApplicationDraft(postingId).catch(() => undefined);
@@ -319,7 +320,7 @@ export function PublicApplicationProvider({
     submit,
   };
 
-  return <PublicApplicationContext value={{ state, actions, meta: { applicationType, postingId, postingSnapshotVersion, fields, steps, performanceTitle, postingTitle, companyName, roleIds, roleName, authenticated, authChecking, onBack, prefillSummary: prefill ? { filledCount: prefill.filledCount, requiredCount: prefill.requiredCount, missingKeys: prefill.missingKeys } : undefined } }}>{children}</PublicApplicationContext>;
+  return <PublicApplicationContext value={{ state, actions, meta: { applicationType, postingId, postingSnapshotVersion, fields, steps, performanceTitle, postingTitle, companyName, roleIds, roleName, authenticated, authChecking, onBack, profileCareers: draft.profileCareers, prefillSummary: prefill ? { filledCount: prefill.filledCount, requiredCount: prefill.requiredCount, missingKeys: prefill.missingKeys } : undefined } }}>{children}</PublicApplicationContext>;
 }
 
 function submissionErrorMessage(cause: unknown) {

@@ -17,6 +17,7 @@ import art.yesulin.actor.application.profile.ApplicantProfileService;
 import art.yesulin.actor.application.profile.UpdateApplicantProfileCommand;
 import art.yesulin.actor.application.profile.UpdateProfileAdditionalInformationCommand;
 import art.yesulin.actor.application.profile.UpdateProfileBasicInformationCommand;
+import art.yesulin.actor.application.profile.UpdateProfileCareerCommand;
 import art.yesulin.actor.application.videolibrary.AddVideoToLibraryCommand;
 import art.yesulin.actor.application.videolibrary.VideoLibraryService;
 import art.yesulin.actor.domain.page.ActorPage;
@@ -30,6 +31,7 @@ import art.yesulin.actor.domain.page.ActorPageRepository;
 import art.yesulin.actor.domain.page.ActorPageStatus;
 import art.yesulin.actor.domain.page.ActorPageVisibility;
 import art.yesulin.actor.domain.photolibrary.PhotoVisibility;
+import art.yesulin.actor.domain.profile.ProfileCareerGenre;
 import art.yesulin.actor.domain.profile.ProfileGender;
 import art.yesulin.actor.domain.videolibrary.VideoVisibility;
 import art.yesulin.auth.domain.member.Member;
@@ -48,6 +50,8 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -310,6 +314,26 @@ class ActorPageServiceTest {
 
         BusinessException translated = assertInstanceOf(BusinessException.class, ActorPageService.translate(exception));
         assertEquals(ActorPageErrorCode.ACTOR_PAGE_CONFLICT, translated.getErrorCode());
+    }
+
+    @ParameterizedTest
+    @EnumSource(ActorPageVisibility.class)
+    void onlyPublicCareerGenreChangesRefreshActivity(ActorPageVisibility visibility) {
+        ready();
+        profiles.update(owner, career(ProfileCareerGenre.THEATER));
+        pages.changeVisibilities(owner, Map.of(ActorPageField.CAREERS, visibility));
+        pages.publish(owner, true, ActorPage.CONSENT_VERSION);
+        tick();
+        profiles.update(owner, career(ProfileCareerGenre.MUSICAL));
+        assertEquals(visibility == ActorPageVisibility.PUBLIC ? NOW.plusSeconds(60) : NOW,
+                page().getLastPublicActivityAt());
+    }
+
+    private UpdateApplicantProfileCommand career(ProfileCareerGenre genre) {
+        return new UpdateApplicantProfileCommand(null, new UpdateProfileAdditionalInformationCommand(
+                null, null, null, List.of(), null, null, null, null, null,
+                List.of(new UpdateProfileCareerCommand(2026, "작품", "배역", genre))
+        ));
     }
 
     private long ready() {

@@ -1,10 +1,11 @@
+import { profileCareersError } from "@/features/applicants/profile-careers";
 import { delay, http, HttpResponse } from "msw";
 import type { CreateSubmissionRequest, UpdateProfileRequest } from "@/features/applicants/types";
 import { publicPostingById } from "@/features/applications/public-posting";
 import { submissionId, postingId } from "@/features/auditions/types";
 import { findPerformance, findPosting } from "../auditions/aggregate";
 import { addScreeningApplicant } from "../auditions/store";
-import { applicantSubmission, applicantSubmissions, applicantProfile, addApplicantSubmission, hasSubmissionForPosting, patchApplicantProfile, recommendedPostings } from "./store";
+import { applicantSubmission, applicantSubmissions, applicantProfile, addApplicantSubmission, hasSubmissionForPosting, patchApplicantProfile, saveSubmissionAnswersToProfile, recommendedPostings } from "./store";
 import { toScreeningApplicant } from "./to-screening-applicant";
 import { toBackendSubmissionDetail, toBackendSubmissionList } from "./submission-contract";
 import { validateApplicationAnswers } from "./validation";
@@ -19,6 +20,9 @@ export const applicantHandlers = [
     await delay(240);
     const body = (await request.json()) as UpdateProfileRequest;
     if (!(body.answers?.length || body.removeKeys?.length || body.photoLibrary || body.videoLibrary)) return apiError(400, "NOTHING_TO_UPDATE", "변경할 프로필 항목이 없습니다.");
+    const careers = body.answers?.find((answer) => answer.key === "CAREER");
+    const careerError = careers ? profileCareersError(careers.value) : null;
+    if (careerError) return apiError(400, "PROFILE_INVALID", careerError);
     return HttpResponse.json(patchApplicantProfile(body));
   }),
   http.get(`${apiPath}/me/profile/prefill`, async ({ request }) => {
@@ -99,7 +103,9 @@ export const applicantHandlers = [
     };
     addApplicantSubmission(submission, receiptNumber);
     addScreeningApplicant(toScreeningApplicant(submission, performance.id));
-    if (body.saveToProfile) patchApplicantProfile({ answers: answers.filter((answer) => !answer.key.startsWith("custom-") && !fields.find((field) => field.id === answer.key)?.custom) });
-    return HttpResponse.json({ submissionId: createdSubmissionId, receiptNumber, submittedAt, profileClaimToken: null, profileClaimExpiresAt: null }, { status: 201 });
+    const profileCareerOverflowCount = body.saveToProfile
+      ? saveSubmissionAnswersToProfile(answers.filter((answer) => !answer.key.startsWith("custom-") && !fields.find((field) => field.id === answer.key)?.custom))
+      : undefined;
+    return HttpResponse.json({ submissionId: createdSubmissionId, receiptNumber, submittedAt, profileClaimToken: null, profileClaimExpiresAt: null, ...(body.saveToProfile ? { profileCareerOverflowCount } : {}) }, { status: 201 });
   }),
 ];
