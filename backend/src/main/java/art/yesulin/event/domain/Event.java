@@ -25,6 +25,7 @@ import java.util.Locale;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.BatchSize;
 
 /**
  * 운영자가 쓰는 이벤트 글. 공개해야 이벤트 화면에 보이고, 배너 노출을 켜면 노출 종료일까지 메인 상단 배너에도 보인다.
@@ -61,6 +62,7 @@ public class Event {
     @Column(name = "detail_body", length = MAX_BODY_LENGTH)
     private String detailBody;
 
+    @BatchSize(size = 50)
     @ElementCollection
     @CollectionTable(name = "event_detail_images", joinColumns = @JoinColumn(name = "event_id"))
     @OrderColumn(name = "image_order")
