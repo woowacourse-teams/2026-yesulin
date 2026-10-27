@@ -3,6 +3,7 @@ package art.yesulin.actor.domain.photolibrary;
 import static art.yesulin.actor.domain.photolibrary.PhotoLibraryErrorCode.INVALID_DISPLAY_ORDER;
 import static art.yesulin.actor.domain.photolibrary.PhotoLibraryErrorCode.LIMIT_EXCEEDED;
 import static art.yesulin.actor.domain.photolibrary.PhotoLibraryErrorCode.PHOTO_NOT_FOUND;
+import static art.yesulin.actor.domain.photolibrary.PhotoLibraryErrorCode.PHOTO_NOT_PUBLIC;
 
 import art.yesulin.global.exception.BusinessException;
 import jakarta.persistence.CascadeType;
@@ -70,6 +71,18 @@ public class PhotoLibraryItems {
 
     void changeVisibility(long itemId, PhotoVisibility visibility) {
         findActive(itemId).changeVisibility(visibility);
+    }
+
+    PhotoLibraryItem findPublic(long photoId) {
+        PhotoLibraryItem photo = findActive(photoId);
+        if (!photo.isPublic()) {
+            throw new BusinessException(PHOTO_NOT_PUBLIC, "공개로 설정한 사진만 배우 페이지용 사본을 만들 수 있습니다.");
+        }
+        return photo;
+    }
+
+    void removePublicCopies() {
+        activeValues().forEach(PhotoLibraryItem::removePublicCopy);
     }
 
     private void reorder(List<PhotoLibraryItem> items) {

@@ -52,6 +52,10 @@ public class PhotoLibraryItem {
     @Column(name = "visibility", nullable = false, length = 20)
     private PhotoVisibility visibility = PhotoVisibility.PRIVATE;
 
+    /** 배우 페이지에 보일 공개 사본의 저장소 키. 공개 사진에만 있고, 비공개로 바꾸거나 지우면 없어진다. */
+    @Column(name = "public_copy_object_key", length = 500)
+    private String publicCopyObjectKey;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -67,6 +71,25 @@ public class PhotoLibraryItem {
 
     void changeVisibility(PhotoVisibility visibility) {
         this.visibility = requireNonNull(visibility, "공개 범위는 필수입니다.");
+        if (visibility != PhotoVisibility.PUBLIC) {
+            publicCopyObjectKey = null;
+        }
+    }
+
+    void attachPublicCopy(String objectKey) {
+        this.publicCopyObjectKey = requireNonNull(objectKey, "공개 사본 키는 필수입니다.");
+    }
+
+    void removePublicCopy() {
+        publicCopyObjectKey = null;
+    }
+
+    public boolean isPublic() {
+        return visibility == PhotoVisibility.PUBLIC;
+    }
+
+    public boolean hasPublicCopy() {
+        return publicCopyObjectKey != null;
     }
 
     void moveTo(int displayOrder) {
@@ -78,6 +101,7 @@ public class PhotoLibraryItem {
 
     void softDelete(Instant deletedAt) {
         this.deletedAt = requireNonNull(deletedAt, "사진 삭제 시각은 필수입니다.");
+        publicCopyObjectKey = null;
     }
 
     boolean hasId(long photoId) {

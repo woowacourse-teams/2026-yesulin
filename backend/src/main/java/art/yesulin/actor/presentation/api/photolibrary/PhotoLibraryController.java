@@ -3,6 +3,8 @@ package art.yesulin.actor.presentation.api.photolibrary;
 import art.yesulin.actor.application.photolibrary.PhotoLibraryItemResult;
 import art.yesulin.actor.application.photolibrary.PhotoLibraryResult;
 import art.yesulin.actor.application.photolibrary.PhotoLibraryService;
+import art.yesulin.actor.application.photolibrary.PhotoPublicCopyService;
+import art.yesulin.actor.application.photolibrary.PhotoPublicCopyUploadResult;
 import art.yesulin.auth.application.MemberPrincipal;
 import art.yesulin.auth.application.annotation.LoginMember;
 import art.yesulin.auth.application.annotation.LoginRequired;
@@ -10,6 +12,7 @@ import art.yesulin.auth.domain.member.MemberType;
 import jakarta.validation.Valid;
 import java.net.URI;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,6 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class PhotoLibraryController {
 
     private final PhotoLibraryService photoLibraryService;
+    private final PhotoPublicCopyService publicCopyService;
 
     @GetMapping
     public ResponseEntity<PhotoLibraryResult> findPhotos(
@@ -73,6 +77,26 @@ public class PhotoLibraryController {
         return ResponseEntity.ok(
                 photoLibraryService.changeVisibility(principal.memberId(), photoId, request.visibility())
         );
+    }
+
+    @PostMapping("/{photoId}/public-copy/upload-requests")
+    public ResponseEntity<PhotoPublicCopyUploadResult> preparePublicCopyUpload(
+            @LoginMember(roles = MemberType.APPLICANT) MemberPrincipal principal,
+            @PathVariable long photoId,
+            @Valid @RequestBody PreparePhotoPublicCopyUploadRequest request
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(publicCopyService.prepareUpload(
+                principal.memberId(), photoId, request.contentType(), request.size()
+        ));
+    }
+
+    @PatchMapping("/{photoId}/public-copy/completion")
+    public ResponseEntity<PhotoLibraryItemResult> completePublicCopy(
+            @LoginMember(roles = MemberType.APPLICANT) MemberPrincipal principal,
+            @PathVariable long photoId,
+            @Valid @RequestBody CompletePhotoPublicCopyRequest request
+    ) {
+        return ResponseEntity.ok(publicCopyService.complete(principal.memberId(), photoId, request.uploadKey()));
     }
 
     @DeleteMapping("/{photoId}")

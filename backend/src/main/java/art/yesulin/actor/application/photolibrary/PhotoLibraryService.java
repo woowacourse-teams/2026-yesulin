@@ -5,6 +5,7 @@ import static art.yesulin.file.domain.FileErrorCode.NOT_FOUND;
 
 import art.yesulin.actor.application.page.ActorPageContentState;
 import art.yesulin.actor.application.page.ActorPageContentSync;
+import art.yesulin.actor.application.page.PublicPhotoCopyStorage;
 import art.yesulin.actor.domain.photolibrary.PhotoLibrary;
 import art.yesulin.actor.domain.photolibrary.PhotoLibraryItem;
 import art.yesulin.actor.domain.photolibrary.PhotoLibraryRepository;
@@ -38,6 +39,7 @@ public class PhotoLibraryService {
     private final FileReferenceRepository fileReferenceRepository;
     private final FileService fileService;
     private final FileUsageService fileUsageService;
+    private final PublicPhotoCopyStorage publicCopies;
     private final Clock clock;
 
     @Transactional
@@ -144,7 +146,8 @@ public class PhotoLibraryService {
     }
 
     private PhotoLibraryItemResult toResult(PhotoLibraryItem item, FileAsset fileAsset) {
-        return PhotoLibraryItemResult.from(item, fileService.privateContentUrl(fileAsset.getId()));
+        String publicCopyUrl = item.hasPublicCopy() ? publicCopies.publicUrl(item.getPublicCopyObjectKey()) : null;
+        return PhotoLibraryItemResult.from(item, fileService.privateContentUrl(fileAsset.getId()), publicCopyUrl);
     }
 
     private FileAsset findUsableOwnedFile(long ownerId, long fileId) {

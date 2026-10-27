@@ -24,8 +24,6 @@ import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignReques
 
 public class S3ObjectStorage implements ObjectStorage {
 
-    private static final String IMMUTABLE_CACHE_CONTROL = "public, max-age=31536000, immutable";
-
     private final S3Client s3Client;
     private final S3Presigner presigner;
     private final S3StorageProperties properties;
@@ -72,7 +70,7 @@ public class S3ObjectStorage implements ObjectStorage {
     }
 
     @Override
-    public void replaceHeaders(String objectKey, String contentType, String contentDisposition) {
+    public void replaceHeaders(String objectKey, String contentType, String contentDisposition, String cacheControl) {
         String physicalKey = toPhysicalKey(objectKey);
         CopyObjectRequest.Builder request = CopyObjectRequest.builder()
                 .sourceBucket(properties.bucket())
@@ -81,7 +79,7 @@ public class S3ObjectStorage implements ObjectStorage {
                 .destinationKey(physicalKey)
                 .metadataDirective(MetadataDirective.REPLACE)
                 .contentType(contentType)
-                .cacheControl(IMMUTABLE_CACHE_CONTROL);
+                .cacheControl(cacheControl);
         if (contentDisposition != null) {
             request.contentDisposition(contentDisposition);
         }

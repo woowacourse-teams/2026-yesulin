@@ -13,6 +13,7 @@ type BackendPhoto = {
   readonly representative: boolean;
   readonly createdAt: string;
   readonly visibility: "PUBLIC" | "PRIVATE";
+  readonly publicCopyUrl: string | null;
 };
 
 type BackendPhotoLibrary = { readonly photos: readonly BackendPhoto[] };
@@ -122,6 +123,7 @@ function toPhotos(
       representative: photo.representative,
       fileId: photo.fileId,
       visibility: photo.visibility,
+      publicCopyUrl: photo.publicCopyUrl,
     }));
 }
 

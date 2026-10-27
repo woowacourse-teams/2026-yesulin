@@ -48,6 +48,8 @@ export type ApplicantProfilePhoto = {
   /** 보관함 사진이 가리키는 업로드 파일. 지원서에서 재업로드 없이 그대로 제출한다. */
   readonly fileId?: number;
   readonly visibility?: "PUBLIC" | "PRIVATE";
+  /** 배우 페이지에 보일 공개 사본 주소. 공개 사진이어도 사본을 아직 만들지 않았으면 비어 있다. */
+  readonly publicCopyUrl?: string | null;
 };
 
 export type ApplicantProfileVideo = {

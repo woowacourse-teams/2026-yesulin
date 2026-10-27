@@ -90,6 +90,7 @@ public class ActorPageService {
         ActorPage page = pageOrNew(state, ownerId);
         page.unpublish();
         save(page);
+        contentSync.synchronize(state);
         return result(page, state);
     }
 

@@ -136,6 +136,9 @@ yesulin:
       region: ${AWS_REGION:ap-northeast-2}
       upload-expiration: ${YESULIN_STORAGE_S3_UPLOAD_EXPIRATION:PT10M}
       download-expiration: ${YESULIN_STORAGE_S3_DOWNLOAD_EXPIRATION:PT10M}
+    cloudfront:
+      # 공개 파일 CDN 배포 ID. 넣으면 배우 페이지 공개 사진 사본을 지울 때 무효화를 요청하고, 비우면 요청하지 않는다.
+      distribution-id: ${YESULIN_STORAGE_CLOUDFRONT_DISTRIBUTION_ID:}
   social-login:
     enabled: ${SOCIAL_LOGIN_ENABLED:true}
     redirect-uri: ${SOCIAL_LOGIN_REDIRECT_URI:}
