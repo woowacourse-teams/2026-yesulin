@@ -660,6 +660,8 @@ export type AdminEventRegistration = {
   readonly otherActivity: string | null;
   readonly noCareer: boolean;
   readonly careers: readonly EventRegistrationCareer[];
+  /** 명함 뒷면에 넣을 한 줄 소개 */
+  readonly intro: string | null;
   readonly createdAt: string;
 };
 

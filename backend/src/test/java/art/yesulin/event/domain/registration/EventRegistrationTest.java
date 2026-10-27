@@ -49,6 +49,21 @@ class EventRegistrationTest {
     }
 
     @Test
+    void businessCardKeepsOptionalIntroUpToLimit() {
+        EventRegistration registration = new EventRegistration(1L, new EventRegistrationForm(
+                EventParticipantType.ACTOR, "김하늘", "010-1234-5678", true, "haneul@test.com", null, BIRTH_DATE, null,
+                THEATER, null, true, List.of(), " 무대 위에서 가장 솔직한 배우 "
+        ), "photo-key", TODAY, NOW);
+
+        assertEquals("무대 위에서 가장 솔직한 배우", registration.getIntro());
+        assertNull(cardWith(BIRTH_DATE, "photo-key", "haneul@test.com").getIntro());
+        assertThrows(BusinessException.class, () -> new EventRegistration(1L, new EventRegistrationForm(
+                EventParticipantType.ACTOR, "김하늘", "010-1234-5678", true, "haneul@test.com", null, BIRTH_DATE, null,
+                THEATER, null, true, List.of(), "가".repeat(41)
+        ), "photo-key", TODAY, NOW));
+    }
+
+    @Test
     void actorWithoutBusinessCardKeepsOnlyNameAndPhone() {
         EventRegistration registration = new EventRegistration(1L, new EventRegistrationForm(
                 EventParticipantType.ACTOR, "김하늘", "010-1234-5678", false, "haneul@test.com", "@haneul",

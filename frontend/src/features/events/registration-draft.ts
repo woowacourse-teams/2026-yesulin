@@ -31,6 +31,8 @@ export type RegistrationDraft = {
   /** 신입이라 경력이 없다고 체크했는지. 체크하면 경력 줄은 보내지 않는다. */
   readonly noCareer: boolean;
   readonly careers: readonly CareerDraft[];
+  /** 명함 뒷면에 넣을 한 줄 소개. 선택이다. */
+  readonly intro: string;
   readonly privacyAgreed: boolean;
 };
 
@@ -57,6 +59,7 @@ export function emptyRegistrationDraft(): RegistrationDraft {
     otherActivity: "",
     noCareer: false,
     careers: [emptyCareer(1)],
+    intro: "",
     privacyAgreed: false,
   };
 }
@@ -143,6 +146,7 @@ export function writeOfRegistration(draft: RegistrationDraft): EventRegistration
         role: blankToNull(career.role),
       }))
       : [],
+    intro: card ? blankToNull(draft.intro) : null,
     privacyAgreed: draft.privacyAgreed,
   };
 }

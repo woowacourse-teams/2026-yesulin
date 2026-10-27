@@ -77,6 +77,7 @@ describe("참가 신청서", () => {
       otherActivity: "성우",
       noCareer: false,
       careers: [{ performedMonth: "2025-09", workTitle: "연극 <달빛 정거장>", role: "민수 역" }],
+      intro: null,
       privacyAgreed: true,
     });
   });
@@ -100,6 +101,12 @@ describe("참가 신청서", () => {
       email: null,
       photoUploadKey: null,
     });
+  });
+
+  it("한 줄 소개는 명함을 희망한 배우만 보낸다", () => {
+    expect(writeOfRegistration({ ...cardActor, intro: " 노래로 이야기를 전하는 배우 " }).intro).toBe("노래로 이야기를 전하는 배우");
+    expect(writeOfRegistration({ ...cardActor, intro: " " }).intro).toBeNull();
+    expect(writeOfRegistration({ ...plainActor, intro: "소개" }).intro).toBeNull();
   });
 
   it("경력 없음을 체크하면 적은 경력을 보내지 않는다", () => {

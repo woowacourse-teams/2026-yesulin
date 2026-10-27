@@ -5,11 +5,11 @@ import { AddButton, FieldInput, FieldSelect, SecondaryButton, TextButton } from 
 import { shrinkPhoto } from "@/features/companies/photo-image";
 import { uploadEventRegistrationPhoto } from "@/features/events/api";
 import { careerYears, emptyCareer, toggleActivityField, type CareerDraft, type RegistrationDraft } from "@/features/events/registration-draft";
-import { EVENT_ACTIVITY_FIELDS, EVENT_ACTIVITY_LABELS, MAX_REGISTRATION_CAREERS } from "@/features/events/types";
+import { EVENT_ACTIVITY_FIELDS, EVENT_ACTIVITY_LABELS, MAX_REGISTRATION_CAREERS, MAX_REGISTRATION_INTRO } from "@/features/events/types";
 import { BirthDateField } from "./event-registration-birth-date";
 import { RegistrationField, RequiredMark, koreaToday } from "./event-registration-field";
 
-type CardDraft = Pick<RegistrationDraft, "email" | "snsHandle" | "birthDate" | "activityFields" | "otherActivity" | "noCareer" | "careers">;
+type CardDraft = Pick<RegistrationDraft, "email" | "snsHandle" | "birthDate" | "activityFields" | "otherActivity" | "noCareer" | "careers" | "intro">;
 
 const MONTHS = Array.from({ length: 12 }, (_, index) => String(index + 1).padStart(2, "0"));
 
@@ -56,6 +56,10 @@ export function BusinessCardFields({ eventId, draft, onChange, onPhotoChange, on
       </fieldset>
 
       <CareersField noCareer={draft.noCareer} careers={draft.careers} onChange={onChange} />
+
+      <RegistrationField id="registration-intro" label="한 줄 소개" hint="명함 뒷면에 들어갑니다. 예: 노래로 이야기를 전하는 배우, 박서윤입니다.">
+        <FieldInput id="registration-intro" value={draft.intro} maxLength={MAX_REGISTRATION_INTRO} onChange={(event) => onChange({ intro: event.target.value })} />
+      </RegistrationField>
     </section>
   );
 }

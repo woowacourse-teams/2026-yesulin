@@ -544,7 +544,7 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 이미 연결된 공고는 그대로 둔다. 이후 가져오는 공고는 기획사 자동 연결과 함께 묶음 규칙으로 공연사가 없는 공고에 공연사를 연결한다.
 `admin_audit_logs`에 `AUDITION_POST_COMPANY_AUTHOR_LINKED`·`AUDITION_POST_COMPANY_AUTHOR_UNLINKED`로 남긴다.
 
-## 이벤트 — 14개
+## 이벤트 — 15개
 
 운영자가 쓰는 이벤트 글(`Event`)과 메인 상단 이벤트 배너다. 공개 API는 로그인 없이, 운영 API는 `ADMIN`만 호출한다. `eventId`는 숫자 ID다.
 
@@ -563,6 +563,7 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 | POST | `/api/v1/public/events/{eventId}/registrations/photo-uploads` | 공개 | `PreparePhotoUploadRequest(contentType, size)` | `201 EventRegistrationPhotoUploadResult(url, method, headers, expiresAt, uploadKey)` |
 | POST | `/api/v1/public/events/{eventId}/registrations` | 공개 | `RegisterRequest` | `201 CreatedResponse(id)` |
 | GET | `/api/v1/admin/events/{eventId}/registrations` | Admin | 없음 | `200 AdminEventRegistrationsResponse(registrations)` |
+| GET | `/api/v1/admin/events/{eventId}/registrations/business-card-archive` | Admin | 없음 | `200 application/zip` |
 | DELETE | `/api/v1/admin/events/{eventId}/registrations/{registrationId}` | Admin | 없음 | `204` |
 
 `WriteEventRequest`는 `title`(필수, 100자), `summary`(목록 소개, 200자), `body`(필수 개요, 대표 이미지 옆에 보이는 자유 형식 텍스트, 줄바꿈 유지, 5000자),
@@ -612,7 +613,7 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 `privacyAgreed`(true 필수)다. 명함을 희망한 배우는 명함에 들어갈 `email`(254자), `snsHandle`(선택, 100자), `birthDate`(미래 날짜 불가),
 `photoUploadKey`, `activityFields`(하나 이상, `THEATER`·`MUSICAL`·`MEDIA`·`YOUTUBE`·`OTHER`), `otherActivity`(`OTHER`를 고르면 필수, 50자),
 `noCareer`(신입이라 경력 없음), `careers`(`noCareer`가 아니면 1~10줄, 각 `performedMonth`(`YYYY-MM`)·`workTitle`(100자)·`role`(선택, 50자).
-`noCareer`면 비워야 한다)를 더 적는다. 휴대폰 번호는 명함에 넣지 않는다. 구분에 맞지 않는 칸과 명함을 원하지 않는 배우의 명함 정보는
+`noCareer`면 비워야 한다), `intro`(뒷면 한 줄 소개, 선택, 40자)를 더 적는다. 휴대폰 번호는 명함에 넣지 않는다. 구분에 맞지 않는 칸과 명함을 원하지 않는 배우의 명함 정보는
 저장하지 않는다. 같은 이벤트에 같은 휴대폰 번호로
 다시 신청하면 `409 EVENT_REGISTRATION_DUPLICATE`, 검증 오류는 `400 EVENT_INVALID_INPUT`이다.
 
@@ -624,6 +625,12 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 경력은 적은 순서대로 준다. 없는 이벤트는 `404 EVENT_NOT_FOUND`다.
 신청 삭제는 되돌릴 수 없고 사진도 커밋 뒤 저장소에서 지우며, `admin_audit_logs`에 `EVENT_REGISTRATION_DELETED`로 남기되 신청 내용은 담지 않는다.
 이 이벤트에 없는 신청은 `404 EVENT_REGISTRATION_NOT_FOUND`다. 이벤트를 지우면 받은 신청과 사진도 함께 지운다.
+
+명함 자료 내려받기(`business-card-archive`)는 명함을 희망한 배우만 먼저 온 순서로 zip 하나에 담는다. `business-cards.json`(명함 생성용,
+`id`·`name`·`birthDate`·`email`·`snsHandle`·`activityFields`·`otherActivity`·`noCareer`·`careers`·`intro`·`photoFile`·`createdAt`),
+`business-cards.csv`(엑셀용 UTF-8 BOM, 수식으로 읽히지 않게 `=`·`+`·`-`·`@`로 시작하는 칸 앞에 `'`), `photos/{신청 번호}.{jpg|png|webp}`를 넣는다.
+휴대폰 번호와 저장소 키는 넣지 않는다. 사진은 한 장씩 읽어 바로 내보내며, 읽지 못한 사진은 `photoFile`을 비운다.
+내려받을 때마다 `admin_audit_logs`에 `EVENT_REGISTRATION_EXPORTED`(인원 수만)로 남긴다. 없는 이벤트는 `404 EVENT_NOT_FOUND`다.
 
 ## 무료 공연과 비회원 예매 — 21개
 

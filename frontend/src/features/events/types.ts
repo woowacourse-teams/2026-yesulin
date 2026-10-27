@@ -71,6 +71,9 @@ export type EventRegistrationCareer = {
 /** 경력은 이 줄 수까지 적는다. */
 export const MAX_REGISTRATION_CAREERS = 10;
 
+/** 명함 뒷면 한 줄 소개는 이 글자 수까지 적는다. */
+export const MAX_REGISTRATION_INTRO = 40;
+
 /** 참가 신청 요청. 백엔드 `RegisterRequest`와 같다. 구분에 맞지 않는 칸은 서버가 저장하지 않는다. */
 export type EventRegistrationWrite = {
   readonly participantType: EventParticipantType;
@@ -95,6 +98,8 @@ export type EventRegistrationWrite = {
   readonly noCareer: boolean;
   /** 배우 경력. 경력 없음이 아니면 한 줄 이상 적는다. */
   readonly careers: readonly EventRegistrationCareer[];
+  /** 명함 뒷면에 넣을 한 줄 소개. 선택이다. */
+  readonly intro: string | null;
   readonly privacyAgreed: boolean;
 };
 
