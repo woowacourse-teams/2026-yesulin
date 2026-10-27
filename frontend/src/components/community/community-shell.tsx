@@ -15,7 +15,7 @@ const destinations = [
 
 export function CommunityShell({ children }: { readonly children: ReactNode }) {
   const pathname = usePathname();
-  return <div className="community-app"><a className="community-skip" href="#main">본문으로 바로가기</a>
+  return <div className="community-app public-theme"><a className="community-skip" href="#main">본문으로 바로가기</a>
     <CommunityRail pathname={pathname} /><div className="community-layout"><div className="community-column">
       <header className="community-topbar"><CommunityBack pathname={pathname} /><Link href="/community">커뮤니티</Link><span className="community-topbar-note">예술in</span></header>
       <main id="main" className="community-content">{children}</main></div><CommunityAside /></div>
