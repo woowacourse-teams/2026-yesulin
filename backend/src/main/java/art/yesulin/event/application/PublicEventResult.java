@@ -3,6 +3,7 @@ package art.yesulin.event.application;
 import art.yesulin.event.domain.Event;
 import art.yesulin.event.domain.EventPhase;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.function.UnaryOperator;
 
 /**
@@ -19,6 +20,8 @@ public record PublicEventResult(
         String title,
         String summary,
         String body,
+        String detailBody,
+        List<String> detailImageUrls,
         LocalDate startsOn,
         LocalDate endsOn,
         EventPhase phase,
@@ -36,6 +39,8 @@ public record PublicEventResult(
                 event.getTitle(),
                 event.getSummary(),
                 event.getBody(),
+                event.getDetailBody(),
+                event.getDetailImageKeys().stream().map(urlOf).toList(),
                 event.getStartsOn(),
                 event.getEndsOn(),
                 event.phaseOn(today),

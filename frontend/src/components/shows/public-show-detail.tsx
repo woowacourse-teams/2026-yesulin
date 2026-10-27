@@ -22,7 +22,7 @@ import { showRoutes } from "@/features/shows/types";
 import type { PublicShow, PublicShowSession, ReservationReceipt } from "@/features/shows/types";
 import { ReservationSheet } from "./reservation-sheet";
 import { ShowLinkButtons } from "./show-links";
-import { ShowImageLightbox } from "./show-image-lightbox";
+import { ImageLightbox } from "@/components/ui/image-lightbox";
 import { SessionAvailabilityText, ShowGenreBadge, ShowStatusBadge } from "./show-status";
 
 const SESSIONS_SECTION_ID = "show-sessions";
@@ -336,7 +336,7 @@ function DetailImages({ show }: { readonly show: PublicShow }) {
         ))}
       </div>
       {openIndex !== null ? (
-        <ShowImageLightbox
+        <ImageLightbox
           title={show.title}
           imageUrls={show.imageUrls}
           index={openIndex}

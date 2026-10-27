@@ -25,6 +25,25 @@ describe("이벤트 폼", () => {
   });
 });
 
+describe("이벤트 개요와 하단 상세", () => {
+  it("개요와 상세 설명, 이미지 순서를 독립적으로 저장한다", () => {
+    const write = writeOfEvent({ ...emptyEventDraft(), title: "이벤트", body: " 개요 ", detailBody: " 상세\n설명 ", detailImageUrls: ["/second.webp", "/first.webp"] });
+    expect(write.body).toBe("개요");
+    expect(write.detailBody).toBe("상세\n설명");
+    expect(write.detailImageUrls).toEqual(["/second.webp", "/first.webp"]);
+    expect(writeOfEvent(emptyEventDraft()).detailBody).toBeNull();
+    expect(writeOfEvent(emptyEventDraft()).detailImageUrls).toEqual([]);
+  });
+
+  it("설명 없이 이미지만 등록할 수 있고 중복·개수·길이를 확인한다", () => {
+    const draft = { ...emptyEventDraft(), title: "이벤트", body: "개요", detailImageUrls: ["/one.webp"] };
+    expect(eventDraftProblem(draft)).toBeNull();
+    expect(eventDraftProblem({ ...draft, detailImageUrls: ["/one.webp", "/one.webp"] })).toContain("중복");
+    expect(eventDraftProblem({ ...draft, detailImageUrls: Array.from({ length: 11 }, (_, i) => `/${i}.webp`) })).toContain("10장");
+    expect(eventDraftProblem({ ...draft, detailBody: "가".repeat(5001) })).toContain("5000자");
+  });
+});
+
 describe("배너 비율 안내", () => {
   it("칸 비율과 10% 안쪽이면 안내하지 않는다", () => {
     expect(bannerRatioWarning("bannerDesktop", 2172, 724)).toBeNull();

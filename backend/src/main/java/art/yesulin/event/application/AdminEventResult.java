@@ -5,6 +5,7 @@ import art.yesulin.event.domain.EventPhase;
 import art.yesulin.event.domain.EventStatus;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.function.UnaryOperator;
 
 /**
@@ -17,6 +18,8 @@ public record AdminEventResult(
         String title,
         String summary,
         String body,
+        String detailBody,
+        List<String> detailImageUrls,
         LocalDate startsOn,
         LocalDate endsOn,
         String applyUrl,
@@ -38,6 +41,8 @@ public record AdminEventResult(
                 event.getTitle(),
                 event.getSummary(),
                 event.getBody(),
+                event.getDetailBody(),
+                event.getDetailImageKeys().stream().map(urlOf).toList(),
                 event.getStartsOn(),
                 event.getEndsOn(),
                 event.getApplyUrl(),

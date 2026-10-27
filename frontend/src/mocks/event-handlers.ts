@@ -1,6 +1,7 @@
 import { delay, http, HttpResponse, passthrough } from "msw";
 import { frontendEnvironment } from "@/config/environment";
 import type { AdminEvent, AdminEventRegistration, AdminEventStatus, AdminEventWrite } from "@/features/admin/types";
+import { MAX_EVENT_DETAIL_IMAGES } from "@/features/events/types";
 import type { EventBanner, EventPhase, EventRegistrationWrite, PublicEvent, PublicEventSummary } from "@/features/events/types";
 import { mockSessionRole } from "./auth-handlers";
 
@@ -21,6 +22,8 @@ const events: Mutable<AdminEvent>[] = [
     title: "예술in 1기 서포터즈 모집",
     summary: "1기 서포터즈 모집을 마쳤어요. 함께해 주신 분들께 감사드려요.",
     body: "예술in과 함께 공연예술 오디션 소식을 알릴 1기 서포터즈를 모집했어요.\n\n· 신청 마감: 10월 16일\n· 활동 혜택: 활동을 마치면 3만 원 상당 기프티콘\n\n다음 기수 모집도 이곳에서 알려 드릴게요.",
+    detailBody: null,
+    detailImageUrls: [],
     startsOn: null,
     endsOn: "2026-10-16",
     applyUrl: "https://forms.gle/5g4qGphqcugfMYFc6",
@@ -40,6 +43,8 @@ const events: Mutable<AdminEvent>[] = [
     title: "월요살롱 vol.1 배우·제작자 교류의 밤",
     summary: "공연 없는 월요일, 샤로수길 남극장에서 배우와 공연 제작자가 만나요.",
     body: "극장이 쉬는 월요일 저녁, 배우와 공연을 만드는 사람들이 한자리에 모여요.\n\n· 일시: 11월 9일(월) 17:00~19:00\n· 장소: 남극장 (서울 관악로14나길 13, 4층)\n· 참가비 무료, 저녁 식사(피자) 제공",
+    detailBody: null,
+    detailImageUrls: [],
     startsOn: null,
     endsOn: "2026-11-09",
     applyUrl: null,
@@ -118,6 +123,8 @@ function toPublic(event: AdminEvent): PublicEvent {
   return {
     ...toSummary(event),
     body: event.body,
+    detailBody: event.detailBody,
+    detailImageUrls: event.detailImageUrls,
     applyUrl: event.applyUrl,
     applyLabel: event.applyLabel,
     registrationEnabled: event.registrationEnabled,
@@ -154,6 +161,9 @@ function toBanner(event: AdminEvent): EventBanner {
 
 function invalidWrite(write: AdminEventWrite): string | null {
   if (!write.title?.trim() || !write.body?.trim()) return "제목과 본문은 필수입니다.";
+  if ((write.detailBody?.length ?? 0) > 5000) return "상세 설명은 5000자 이내여야 합니다.";
+  const detailUrls = write.detailImageUrls ?? [];
+  if (detailUrls.length > MAX_EVENT_DETAIL_IMAGES || detailUrls.some((url) => !url?.trim()) || new Set(detailUrls).size !== detailUrls.length) return "상세 이미지 개수와 중복을 확인해 주세요.";
   if (write.startsOn && write.endsOn && write.endsOn < write.startsOn) return "종료일은 시작일보다 앞설 수 없습니다.";
   if (write.applyUrl && !/^https?:\/\//i.test(write.applyUrl)) return "신청 링크는 http:// 또는 https://로 시작하는 주소여야 합니다.";
   const banner = write.banner;
@@ -167,6 +177,8 @@ function apply(target: Mutable<AdminEvent>, write: AdminEventWrite) {
   target.title = write.title.trim();
   target.summary = write.summary?.trim() || null;
   target.body = write.body.trim();
+  target.detailBody = write.detailBody?.trim() || null;
+  target.detailImageUrls = [...(write.detailImageUrls ?? [])];
   target.startsOn = write.startsOn || null;
   target.endsOn = write.endsOn || null;
   target.applyUrl = write.applyUrl?.trim() || null;

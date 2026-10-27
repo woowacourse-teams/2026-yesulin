@@ -201,6 +201,73 @@ class EventServiceTest {
                 imageService.prepare(ADMIN_ID, "image/png", 5L * 1024 * 1024 + 1));
     }
 
+    @Test
+    void storesReordersRemovesAndDeletesDetailImagesAndText() {
+        String first = uploaded(ADMIN_ID);
+        String second = uploaded(ADMIN_ID);
+        EventContent content = new EventContent(
+                "범용 이벤트", null, "자유로운 개요", null, null, null, null, false, null, "상세 설명"
+        );
+        AdminEventResult created = eventService.create(
+                ADMIN_ID, content, null, new EventImageUrls(null, null, null, List.of(first, second))
+        );
+        eventService.changeStatus(ADMIN_ID, created.id(), EventStatus.PUBLISHED);
+
+        assertEquals("상세 설명", eventService.findPublic(created.id()).detailBody());
+        assertEquals(List.of(first, second), eventService.findPublic(created.id()).detailImageUrls());
+        assertEquals("자유로운 개요", created.body());
+
+        AdminEventResult reordered = eventService.update(
+                ADMIN_ID, created.id(), content, null, new EventImageUrls(null, null, null, List.of(second, first))
+        );
+        assertEquals(List.of(second, first), reordered.detailImageUrls());
+        assertTrue(storage.contains(keyOf(first)));
+
+        eventService.update(ADMIN_ID, created.id(), content, null,
+                new EventImageUrls(null, null, null, List.of(second)));
+        assertFalse(storage.contains(keyOf(first)));
+        assertTrue(storage.contains(keyOf(second)));
+        eventService.delete(ADMIN_ID, created.id());
+        assertFalse(storage.contains(keyOf(second)));
+        assertTrue(eventRepository.findById(created.id()).isEmpty());
+    }
+
+    @Test
+    void keepsImageWhileAnotherSlotStillUsesItAndCanMoveItToDetails() {
+        String shared = uploaded(ADMIN_ID);
+        AdminEventResult created = eventService.create(ADMIN_ID, content("제목"), null,
+                new EventImageUrls(shared, null, null, List.of(shared)));
+
+        eventService.update(ADMIN_ID, created.id(), content("제목"), null,
+                new EventImageUrls(shared, null, null, List.of()));
+        assertTrue(storage.contains(keyOf(shared)));
+
+        AdminEventResult moved = eventService.update(ADMIN_ID, created.id(), content("제목"), null,
+                new EventImageUrls(null, null, null, List.of(shared)));
+        assertNull(moved.coverImageUrl());
+        assertEquals(List.of(shared), moved.detailImageUrls());
+        eventService.delete(ADMIN_ID, created.id());
+        assertFalse(storage.contains(keyOf(shared)));
+    }
+
+    @Test
+    void detailImageClaimFailureRollsBackChangesAndUploadClaim() {
+        String current = uploaded(ADMIN_ID);
+        String fresh = uploaded(ADMIN_ID);
+        String foreign = uploaded(OTHER_ADMIN_ID);
+        AdminEventResult created = eventService.create(ADMIN_ID, content("기존"), null,
+                new EventImageUrls(null, null, null, List.of(current)));
+
+        assertThrows(BusinessException.class, () -> eventService.update(
+                ADMIN_ID, created.id(), content("바뀐 제목"), null,
+                new EventImageUrls(null, null, null, List.of(fresh, foreign))
+        ));
+        assertEquals("기존", eventService.findForAdmin(created.id()).title());
+        assertEquals(List.of(current), eventService.findForAdmin(created.id()).detailImageUrls());
+        assertTrue(storage.contains(keyOf(current)));
+        assertTrue(uploadRepository.findByObjectKey(keyOf(fresh)).isPresent());
+    }
+
     private long publishedWithBanner(String title, LocalDate endsOn, int order) {
         AdminEventResult created = eventService.create(
                 ADMIN_ID, content(title), banner(title, endsOn, order), bannerUrls()
