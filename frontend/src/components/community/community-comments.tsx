@@ -22,7 +22,7 @@ export function CommunityComments({ postId, count, onChanged }: CommentsProps) {
     focused.current = true;
   }, [feed.items]);
   const changed = async (createdId?: number) => { await Promise.all([feed.load(newCommentCursor(createdId), true), onChanged()]); };
-  return <section className="community-comments" aria-labelledby="comments-heading"><h2 id="comments-heading">댓글 {count}</h2>
+  return <section className="community-comments" aria-labelledby="comments-heading"><h2 id="comments-heading">댓글 {count}</h2><p className="community-hint">익명 번호는 이 글 안에서만 유지돼요. 글쓴이는 익명1이에요.</p>
     <CommentEditor postId={postId} onSaved={changed} />
     <button className="community-text-button" disabled={feed.loading} onClick={() => {
       window.history.replaceState(window.history.state, "", window.location.pathname);
@@ -79,7 +79,7 @@ function CommentItem({ comment, postId, onChanged }: ItemProps) {
     await action.run(async () => { await deleteComment(postId, comment.id); await onChanged(); });
   }
   if (editing) return <li id={`comment-${comment.id}`}><CommentEditor postId={postId} comment={comment} onCancel={() => setEditing(false)} onSaved={async () => { setEditing(false); await onChanged(); }} /></li>;
-  return <li id={`comment-${comment.id}`} className="community-comment"><CommunityAuthor createdAt={comment.createdAt} updatedAt={comment.updatedAt} />
+  return <li id={`comment-${comment.id}`} className="community-comment"><CommunityAuthor author={comment.author} createdAt={comment.createdAt} updatedAt={comment.updatedAt} />
     <PlainText text={comment.body ?? ""} /><div className="community-actions">{comment.editable && <>
       <button className="community-button" disabled={action.busy} onClick={() => setEditing(true)}>댓글 수정</button>
       <button className="community-button" disabled={action.busy} onClick={remove}>댓글 삭제</button></>}</div>

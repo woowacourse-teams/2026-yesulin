@@ -33,7 +33,7 @@ export function PostEditor({ post, onSaved, onCancel }: Props) {
     router.push("/community");
   }
   return <form className="community-editor" onSubmit={submit} onChange={() => setDirty(true)}>
-    <h1>{post && "글 수정"}{!post && "새로운 이야기"}</h1><div className="community-author"><AnonymousAvatar /><strong>익명</strong></div><BrowserOwnershipNotice />
+    <h1>{post && "글 수정"}{!post && "새로운 이야기"}</h1><div className="community-author"><AnonymousAvatar /><strong>익명1</strong></div><BrowserOwnershipNotice />
     <fieldset disabled={action.busy}><label htmlFor="post-title">제목 <span>최대 100자</span></label>
       <input id="post-title" name="title" required maxLength={100} defaultValue={post?.title ?? ""} placeholder="어떤 이야기를 나눌까요?" />
       <label htmlFor="post-body">내용 <span>최대 5,000자</span></label>

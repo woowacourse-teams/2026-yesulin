@@ -877,9 +877,9 @@ S3 삭제 실패 시 `DELETING` 상태가 남으며 같은 파일 ID로 재시�
 ## 공개 익명 커뮤니티
 
 모든 경로는 로그인 없이 사용한다. 쓰기는 기존 CSRF 쿠키·헤더가 필요하며 인증 설정을 우회하지 않는다.
-작성·수정·삭제·신고는 `X-Community-Key` 헤더에 브라우저에서 만든 32바이트 난수의 소문자 hex 64자를 보낸다.
+작성·수정·삭제·신고·좋아요·좋아요 취소는 `X-Community-Key` 헤더에 브라우저에서 만든 32바이트 난수의 소문자 hex 64자를 보낸다.
 서버에는 SHA-256 해시만 저장하고 공개 응답·URL·로그에는 원문이나 해시를 넣지 않는다.
-읽기는 헤더 없이 가능하다. 선택적으로 헤더를 보내면 상세·댓글의 `editable`이 본인 여부를 나타낸다.
+읽기는 헤더 없이 가능하다. 선택적으로 헤더를 보내면 상세·댓글의 `editable`이 본인 여부를, 글 목록·상세의 `liked`가 좋아요 여부를 나타낸다.
 글·댓글 조회 응답은 `Cache-Control: no-store`다.
 
 | Method | 경로 (`/api/v1/public/community` 뒤) | 요청 / 응답 |
@@ -893,9 +893,15 @@ S3 삭제 실패 시 `DELETING` 상태가 남으며 같은 파일 ID로 재시�
 | POST | `/posts/{postId}/comments` | `{requestId: UUID, body}` → 201 작성물 |
 | PUT | `/posts/{postId}/comments/{commentId}` | `{body}` → 200 수정 작성물 |
 | DELETE | `/posts/{postId}/comments/{commentId}` | 204, 본인만 가능 |
+| PUT | `/posts/{postId}/likes` | 본문 없음 → 200 `{likeCount, liked: true}`. 반복해도 한 번만 반영 |
+| DELETE | `/posts/{postId}/likes` | 본문 없음 → 200 `{likeCount, liked: false}`. 이미 취소했어도 200 |
 | POST | `/entries/{entryId}/reports` | `{requestId: UUID, reason, detail?}` → 204 접수 |
 
-작성물 응답은 `{id, title, body, author: "익명", createdAt, updatedAt, commentCount, editable}`다.
+작성물 응답은 `{id, title, body, author, createdAt, updatedAt, commentCount, editable, likeCount, liked}`다.
+`author`는 글쓴이 `익명1`, 다른 댓글 작성 브라우저는 첫 작성 순서의 `익명2`·`익명3`이다. 같은 글 안에서만 유지한다.
+삭제된 댓글도 번호 배정에 포함하며 기존 글·댓글에도 같은 규칙을 적용한다. 공개 응답에는 작성자 해시를 넣지 않는다.
+`likeCount`는 글의 좋아요 수이며 `liked`는 해당 브라우저의 선택 여부다. 헤더가 없으면 `liked`는 false다.
+댓글에는 좋아요를 지원하지 않아 `likeCount: 0`, `liked: false`다.
 댓글의 `title`은 null이며 글 목록에도 본문을 포함한다. 글 목록의 `editable`은 항상 false다. 댓글의 `commentCount`는 0이다.
 목록은 `{items: 작성물[], nextCursor: number | null}`이고 다음 페이지가 없으면 null이다.
 날짜는 ISO Instant이며 `updatedAt`이 `createdAt`과 다르면 수정 표시를 한다.
@@ -912,5 +918,7 @@ S3 삭제 실패 시 `DELETING` 상태가 남으며 같은 파일 ID로 재시�
 403 `COMMUNITY_NOT_OWNER`, 없는 글·댓글이나 다른 글에 속한 댓글은 404 `COMMUNITY_NOT_FOUND`다.
 삭제 API를 다시 호출하면 404이며 댓글 수는 두 번 차감되지 않는다.
 
-글 행을 잠근 상태에서 글 수정·삭제, 댓글 변경과 신고를 처리해 댓글 수와 삭제 상태를 함께 맞춘다.
+글 행을 잠근 상태에서 글 수정·삭제, 댓글 변경·신고·좋아요 등록/취소를 처리해 상태를 함께 맞춘다.
+좋아요는 `(post_id, owner_hash)` 고유 제약을 두며 토글 요청 대신 원하는 상태를 PUT/DELETE로 지정한다.
+두 요청이 동시에 오면 서버에서 처리한 순서대로 반영한다. 삭제·없는 글과 댓글 ID에 대한 좋아요 요청은 404다.
 최초 신고 알림도 같은 트랜잭션에 기록한다. 별도 사용자 추적·조회수·분석 API는 없다.

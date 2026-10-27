@@ -1,7 +1,7 @@
 import { request } from "@/features/auditions/api-client";
 import { communityListMemory } from "./list-memory";
 import { readIdentity, writeIdentity } from "./identity";
-import { communityPath, type CommunityEntry, type CommunityPage, type ReportReason } from "./types";
+import { communityPath, type CommunityEntry, type CommunityLikeState, type CommunityPage, type ReportReason } from "./types";
 
 function read<T>(path: string): Promise<T> {
   return request<T>(path, { headers: readIdentity(), cache: "no-store" });
@@ -53,4 +53,10 @@ export function deleteComment(postId: number, id: number): Promise<void> {
 
 export function reportEntry(id: number, reason: ReportReason, detail: string, requestId: string): Promise<void> {
   return write(`/v1/public/community/entries/${id}/reports`, "POST", { reason, detail, requestId });
+}
+
+export function setPostLike(id: number, liked: boolean): Promise<CommunityLikeState> {
+  let method = "DELETE";
+  if (liked) method = "PUT";
+  return write(`${communityPath}/${id}/likes`, method);
 }

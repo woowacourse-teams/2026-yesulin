@@ -10,6 +10,10 @@ import org.springframework.data.jpa.repository.Query;
 
 public interface CommunityEntryRepository extends JpaRepository<CommunityEntry, Long> {
 
+    @Query("select e.ownerHash from CommunityEntry e where e.id = :postId or e.parentId = :postId "
+            + "group by e.ownerHash order by min(e.id)")
+    List<String> authors(long postId);
+
     Optional<CommunityEntry> findByRequestKey(String requestKey);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

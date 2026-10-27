@@ -142,3 +142,9 @@
   .community-comment > .community-actions { padding-left: 40px; }
   .community-comment > .community-report { margin-left: 48px; }
 }
+
+.community-like { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 44px; min-height: 44px; padding: 6px 10px; border-radius: 24px; color: var(--ink-60); cursor: pointer; }
+.community-like:hover { background: var(--brand-soft); }
+.community-app .community-like[aria-pressed="true"] { color: var(--brand); }
+.community-reactions { flex-wrap: wrap; }
+.community-reactions > .community-error { flex-basis: 100%; }

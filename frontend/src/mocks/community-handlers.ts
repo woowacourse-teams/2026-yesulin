@@ -13,6 +13,7 @@ class CommunityStore {
   private entries = new Map<number, StoredEntry>();
   private reports = new Map<string, string>();
   private sequence = 0;
+  private likes = new Map<number, Set<string>>();
 
   find(id: number): StoredEntry {
     const entry = this.entries.get(id);
@@ -35,7 +36,27 @@ class CommunityStore {
   }
 
   view(entry: StoredEntry, owner: string): CommunityEntry {
-    return { ...entry.value, editable: entry.owner === owner };
+    const likes = this.likes.get(entry.value.id) ?? new Set<string>();
+    return { ...entry.value, editable: entry.owner === owner, likeCount: likes.size, liked: likes.has(owner) };
+  }
+
+  react(id: number, owner: string, liked: boolean) {
+    this.post(id);
+    const likes = this.likes.get(id) ?? new Set<string>();
+    this.likes.set(id, likes);
+    if (liked) likes.add(owner);
+    if (!liked) likes.delete(owner);
+    return { likeCount: likes.size, liked: likes.has(owner) };
+  }
+
+  private author(parent: number | null, owner: string) {
+    if (parent === null) return "익명1";
+    const owners = new Set([this.post(parent).owner]);
+    for (const entry of this.entries.values()) {
+      if (entry.parent === parent) owners.add(entry.owner);
+    }
+    owners.add(owner);
+    return `익명${[...owners].indexOf(owner) + 1}`;
   }
 
   list(parent: number | null, cursor: number, owner: string): CommunityPage {
@@ -84,7 +105,7 @@ class CommunityStore {
   private insert(parent: number | null, owner: string, requestId: string, content: { title: string | null; body: string }, original: string) {
     const id = ++this.sequence;
     const createdAt = new Date().toISOString();
-    const value = { id, ...content, author: "익명", createdAt, updatedAt: createdAt, commentCount: 0, editable: false };
+    const value = { id, ...content, author: this.author(parent, owner), createdAt, updatedAt: createdAt, commentCount: 0, editable: false, likeCount: 0, liked: false };
     const entry = { value, owner, parent, deleted: false, requestId, original };
     this.entries.set(id, entry);
     if (parent !== null) this.changeCount(parent, 1);
@@ -102,7 +123,7 @@ class CommunityStore {
   }
 
   private listView(entry: StoredEntry, owner: string, parent: number | null) {
-    if (parent === null) return { ...entry.value, editable: false };
+    if (parent === null) return { ...this.view(entry, owner), editable: false };
     return this.view(entry, owner);
   }
 }
@@ -170,6 +191,8 @@ export function createCommunityHandlers() {
   const base = "*/api/v1/public/community/posts";
   return [
     http.get(base, ({ request }) => respond(() => store.list(null, cursorOf(request, "before", Number.MAX_SAFE_INTEGER, 1), ownerOf(request)))),
+    http.put(`${base}/:id/likes`, ({ request, params }) => respond(() => store.react(Number(params.id), ownerOf(request), true))),
+    http.delete(`${base}/:id/likes`, ({ request, params }) => respond(() => store.react(Number(params.id), ownerOf(request), false))),
     http.get(`${base}/:id`, ({ request, params }) => respond(() => store.view(store.post(Number(params.id)), ownerOf(request)))),
     http.post(base, ({ request }) => respond(async () => store.create(null, ownerOf(request), await request.json() as Payload), 201)),
     http.put(`${base}/:id`, ({ request, params }) => respond(async () => store.edit(store.post(Number(params.id)), ownerOf(request), await request.json() as Payload))),
