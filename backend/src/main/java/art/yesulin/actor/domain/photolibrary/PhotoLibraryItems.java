@@ -68,6 +68,10 @@ public class PhotoLibraryItems {
                 .orElseThrow(() -> new BusinessException(PHOTO_NOT_FOUND, "사진보관함에서 사진을 찾을 수 없습니다."));
     }
 
+    void changeVisibility(long itemId, PhotoVisibility visibility) {
+        findActive(itemId).changeVisibility(visibility);
+    }
+
     private void reorder(List<PhotoLibraryItem> items) {
         for (int index = 0; index < items.size(); index++) {
             items.get(index).moveTo(index);

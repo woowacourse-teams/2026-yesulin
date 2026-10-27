@@ -8,7 +8,7 @@ show/           공연 예매: 공연·회차·예매, 기획사와 운영자의
 timetable/      오디션 일정표: 생성·관리·배우 페이지, 문자 대기열
 auth/           계정·인증: 회원, 세션, Spring Security, 소셜 로그인, 이메일 인증, 비밀번호 재설정, 운영자 계정
 producer/       기획사 가입과 프로필
-actor/          배우: 배우 프로필, 사진·영상 보관함
+actor/          배우: 배우 프로필, 사진·영상 보관함, 배우 페이지 공개 설정
 company/        공연사: 공고를 올린 극단·제작사의 공개 정보와 운영자 관리
 event/          이벤트: 운영자가 쓰는 이벤트 글과 메인 상단 이벤트 배너
 file/           파일 업로드·참조·조회, 저장소, 미사용 파일 정리, 업로드 진단
@@ -50,7 +50,7 @@ infrastructure/    JPA·QueryDSL, OAuth, S3 등 외부 기술 adapter
 - 세션 속성은 JSON으로 저장하고, 로그인 정보는 클래스 경로 대신 고정된 이름과 값으로 저장한다. 세션처럼 프레임워크가
   영속화하는 곳에는 클래스 경로가 저장 형식이 되지 않도록 도메인 클래스를 그대로 넣지 않는다.
 - `LoginRequiredInterceptor`가 세션 존재를, `LoginMemberArgumentResolver`가 역할과 회원 상태를 검사한다.
-- 공연·공고·심사는 `PRODUCER + ACTIVE`, 기획사 프로필은 상태와 무관한 `PRODUCER`, 배우 프로필·보관함은 `APPLICANT`를 요구한다.
+- 공연·공고·심사는 `PRODUCER + ACTIVE`, 기획사 프로필은 상태와 무관한 `PRODUCER`, 배우 프로필·보관함·배우 페이지 설정은 `APPLICANT`를 요구한다.
 - `/api/v1/admin/**`은 `ADMIN`만 요구한다. 운영자 계정은 가입 경로가 없고 `AdminAccountInitializer`가
   `yesulin.admin.accounts` 설정을 읽어 기동 시점에 만들거나 비밀번호를 맞춘다. 이미 다른 유형이 쓰는 이메일이면 기동을 멈춘다.
 - Spring Security는 application 경로의 CSRF 검증을 담당한다. Cookie는 `XSRF-TOKEN`, header는 `X-CSRF-Token`이다.

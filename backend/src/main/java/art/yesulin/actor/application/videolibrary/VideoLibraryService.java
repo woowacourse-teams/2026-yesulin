@@ -3,9 +3,12 @@ package art.yesulin.actor.application.videolibrary;
 import static art.yesulin.actor.domain.videolibrary.VideoLibraryErrorCode.INVALID_VIDEO_URL;
 import static art.yesulin.actor.domain.videolibrary.VideoLibraryErrorCode.VIDEO_NOT_FOUND;
 
+import art.yesulin.actor.application.page.ActorPageContentState;
+import art.yesulin.actor.application.page.ActorPageContentSync;
 import art.yesulin.actor.domain.videolibrary.VideoLibrary;
 import art.yesulin.actor.domain.videolibrary.VideoLibraryItem;
 import art.yesulin.actor.domain.videolibrary.VideoLibraryRepository;
+import art.yesulin.actor.domain.videolibrary.VideoVisibility;
 import art.yesulin.global.exception.BusinessException;
 import art.yesulin.global.validation.YouTubeVideoUrl;
 import java.util.List;
@@ -17,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class VideoLibraryService {
 
+    private final ActorPageContentSync contentSync;
     private final VideoLibraryRepository videoLibraryRepository;
 
     @Transactional(readOnly = true)
@@ -29,26 +33,41 @@ public class VideoLibraryService {
 
     @Transactional
     public VideoLibraryItemResult addVideo(long ownerId, AddVideoToLibraryCommand command) {
+        final ActorPageContentState pageState = contentSync.lock(ownerId);
         YouTubeVideoUrl video = YouTubeVideoUrl.parse(command.url())
                 .orElseThrow(() -> new BusinessException(INVALID_VIDEO_URL, "올바른 YouTube 영상 URL을 입력해 주세요."));
         VideoLibrary library = videoLibraryRepository.findByOwnerIdForUpdate(ownerId)
                 .orElseGet(() -> new VideoLibrary(ownerId));
         library.addVideo(video);
         VideoLibrary savedLibrary = videoLibraryRepository.saveAndFlush(library);
+        contentSync.synchronize(pageState);
         return VideoLibraryItemResult.from(savedLibrary.getVideos().getLast());
     }
 
     @Transactional
     public VideoLibraryResult moveVideo(long ownerId, long videoId, int displayOrder) {
+        final ActorPageContentState pageState = contentSync.lock(ownerId);
         VideoLibrary library = findOwnedLibraryForUpdate(ownerId);
         library.moveVideo(videoId, displayOrder);
+        contentSync.synchronize(pageState);
         return toResult(library.getVideos());
     }
 
     @Transactional
     public void deleteVideo(long ownerId, long videoId) {
+        final ActorPageContentState pageState = contentSync.lock(ownerId);
         VideoLibrary library = findOwnedLibraryForUpdate(ownerId);
         library.deleteVideo(videoId);
+        contentSync.synchronize(pageState);
+    }
+
+    @Transactional
+    public VideoLibraryResult changeVisibility(long ownerId, long itemId, VideoVisibility visibility) {
+        final ActorPageContentState pageState = contentSync.lock(ownerId);
+        VideoLibrary library = findOwnedLibraryForUpdate(ownerId);
+        library.changeVisibility(itemId, visibility);
+        contentSync.synchronize(pageState);
+        return toResult(library.getVideos());
     }
 
     private VideoLibrary findOwnedLibraryForUpdate(long ownerId) {

@@ -63,8 +63,18 @@ public class PhotoLibrary {
         return items.delete(photoId, deletedAt);
     }
 
+    public void changeVisibility(long itemId, PhotoVisibility visibility) {
+        items.changeVisibility(itemId, visibility);
+    }
+
     public List<PhotoLibraryItem> getPhotos() {
         return items.activeValues();
+    }
+
+    public Optional<PhotoLibraryItem> getPageRepresentativePhoto() {
+        return getPhotos().stream()
+                .filter(photo -> photo.getVisibility() == PhotoVisibility.PUBLIC)
+                .findFirst();
     }
 
     public Optional<PhotoLibraryItem> getRepresentativePhoto() {

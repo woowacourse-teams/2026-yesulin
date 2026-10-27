@@ -5,6 +5,8 @@ import static art.yesulin.global.validation.DomainValidator.requireNonNull;
 import art.yesulin.global.validation.YouTubeVideoUrl;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -42,6 +44,10 @@ public class VideoLibraryItem {
     @Column(name = "display_order", nullable = false)
     private int displayOrder;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "visibility", nullable = false, length = 20)
+    private VideoVisibility visibility = VideoVisibility.PRODUCER;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -52,6 +58,10 @@ public class VideoLibraryItem {
         this.url = validVideo.url();
         this.youtubeId = validVideo.videoId();
         moveTo(displayOrder);
+    }
+
+    void changeVisibility(VideoVisibility visibility) {
+        this.visibility = requireNonNull(visibility, "공개 범위는 필수입니다.");
     }
 
     void moveTo(int displayOrder) {

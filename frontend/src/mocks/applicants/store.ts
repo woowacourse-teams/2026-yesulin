@@ -45,11 +45,11 @@ const seededAnswers: ApplicantAnswer[] = [
 const reusableKeys = new Set(["NAME", "HEIGHT", "WEIGHT", "BIRTH", "GENDER", "PHONE", "EMAIL", "ADDRESS", "SCHOOL", "CAREER", "LINK", "NATIONALITY", "COVER_LETTER", "SPECIALTY", "HOBBIES", "MILITARY"]);
 let profileAnswers: ApplicantAnswer[] = seededAnswers.filter((answer) => reusableKeys.has(answer.key));
 let photoLibrary: ApplicantProfilePhoto[] = [
-  { id: "seed-photo-1", name: "김하린 프로필.jpg", url: "/images/applicants/kim-harin-profile.png", representative: true },
-  { id: "seed-photo-2", name: "김하린 전신.jpg", url: "/images/applicants/kim-harin-full-body.png", representative: false },
-  { id: "seed-photo-3", name: "김하린 연기 이미지 1.jpg", url: "/images/applicants/kim-harin-acting-1.png", representative: false },
+  { id: "seed-photo-1", name: "김하린 프로필.jpg", url: "/images/applicants/kim-harin-profile.png", representative: true, visibility: "PRIVATE" },
+  { id: "seed-photo-2", name: "김하린 전신.jpg", url: "/images/applicants/kim-harin-full-body.png", representative: false, visibility: "PRIVATE" },
+  { id: "seed-photo-3", name: "김하린 연기 이미지 1.jpg", url: "/images/applicants/kim-harin-acting-1.png", representative: false, visibility: "PRIVATE" },
 ];
-let videoLibrary: ApplicantProfileVideo[] = [{ id: "seed-video-1", url: "https://youtu.be/aqz-KE-bpKQ", youtubeId: "aqz-KE-bpKQ" }];
+let videoLibrary: ApplicantProfileVideo[] = [{ id: "seed-video-1", url: "https://youtu.be/aqz-KE-bpKQ", youtubeId: "aqz-KE-bpKQ", visibility: "PRODUCER" }];
 let submissions: ApplicantSubmissionDetail[] = [{
   id: submissionId("00000000-0000-4000-8000-000026081201"), postingId: "seed_posting_1", performanceTitle: "달빛 아래 우리", postingTitle: "2026 하반기 주·조연 배우 모집",
   posterUrl: "/images/performances/moonlight.jpg", companyName: "예술in 스테이지",
@@ -80,8 +80,10 @@ export function patchApplicantProfile(body: UpdateProfileRequest): ApplicantProf
       ? profileAnswers.map((candidate) => candidate.key === next.key ? answer : candidate)
       : [...profileAnswers, answer];
   }
-  if (body.photoLibrary) photoLibrary = clone(body.photoLibrary).slice(0, MAX_ACTOR_PHOTO_COUNT);
-  if (body.videoLibrary) videoLibrary = clone(body.videoLibrary).slice(0, 10);
+  if (body.photoLibrary) photoLibrary = clone(body.photoLibrary).slice(0, MAX_ACTOR_PHOTO_COUNT)
+    .map((photo) => ({ ...photo, visibility: photo.visibility ?? "PRIVATE" }));
+  if (body.videoLibrary) videoLibrary = clone(body.videoLibrary).slice(0, 10)
+    .map((video) => ({ ...video, visibility: video.visibility ?? "PRODUCER" }));
   return applicantProfile();
 }
 

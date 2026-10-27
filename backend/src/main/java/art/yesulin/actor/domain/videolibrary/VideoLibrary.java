@@ -59,6 +59,10 @@ public class VideoLibrary {
         items.delete(videoId);
     }
 
+    public void changeVisibility(long itemId, VideoVisibility visibility) {
+        items.changeVisibility(itemId, visibility);
+    }
+
     public List<VideoLibraryItem> getVideos() {
         return items.orderedValues();
     }

@@ -3,9 +3,12 @@ package art.yesulin.actor.application.photolibrary;
 import static art.yesulin.actor.domain.photolibrary.PhotoLibraryErrorCode.PHOTO_NOT_FOUND;
 import static art.yesulin.file.domain.FileErrorCode.NOT_FOUND;
 
+import art.yesulin.actor.application.page.ActorPageContentState;
+import art.yesulin.actor.application.page.ActorPageContentSync;
 import art.yesulin.actor.domain.photolibrary.PhotoLibrary;
 import art.yesulin.actor.domain.photolibrary.PhotoLibraryItem;
 import art.yesulin.actor.domain.photolibrary.PhotoLibraryRepository;
+import art.yesulin.actor.domain.photolibrary.PhotoVisibility;
 import art.yesulin.file.application.FileService;
 import art.yesulin.file.application.FileUsageService;
 import art.yesulin.file.domain.FileAsset;
@@ -29,6 +32,7 @@ public class PhotoLibraryService {
 
     public static final String FILE_REFERENCE_TYPE = "PHOTO_LIBRARY_ITEM";
 
+    private final ActorPageContentSync contentSync;
     private final PhotoLibraryRepository photoLibraryRepository;
     private final FileAssetRepository fileAssetRepository;
     private final FileReferenceRepository fileReferenceRepository;
@@ -38,6 +42,7 @@ public class PhotoLibraryService {
 
     @Transactional
     public PhotoLibraryItemResult addPhoto(long ownerId, AddPhotoToLibraryCommand command) {
+        final ActorPageContentState pageState = contentSync.lock(ownerId);
         FileAsset fileAsset = findUsableOwnedFile(ownerId, command.fileId());
         PhotoLibrary library = photoLibraryRepository.findByOwnerIdForUpdate(ownerId)
                 .orElseGet(() -> new PhotoLibrary(ownerId));
@@ -46,6 +51,7 @@ public class PhotoLibraryService {
         PhotoLibrary savedLibrary = photoLibraryRepository.saveAndFlush(library);
         PhotoLibraryItem savedItem = savedLibrary.getPhotos().getLast();
         fileReferenceRepository.save(new FileReference(FILE_REFERENCE_TYPE, savedItem.getId(), fileAsset.getId()));
+        contentSync.synchronize(pageState);
         return toResult(savedItem, fileAsset);
     }
 
@@ -57,20 +63,25 @@ public class PhotoLibraryService {
 
     @Transactional
     public PhotoLibraryResult makeRepresentative(long ownerId, long photoId) {
+        final ActorPageContentState pageState = contentSync.lock(ownerId);
         PhotoLibrary library = findOwnedLibraryForUpdate(ownerId);
         library.movePhotoToFront(photoId);
+        contentSync.synchronize(pageState);
         return toLibraryResult(library.getPhotos());
     }
 
     @Transactional
     public PhotoLibraryResult movePhoto(long ownerId, long photoId, int displayOrder) {
+        final ActorPageContentState pageState = contentSync.lock(ownerId);
         PhotoLibrary library = findOwnedLibraryForUpdate(ownerId);
         library.movePhoto(photoId, displayOrder);
+        contentSync.synchronize(pageState);
         return toLibraryResult(library.getPhotos());
     }
 
     @Transactional
     public void deletePhoto(long ownerId, long photoId) {
+        final ActorPageContentState pageState = contentSync.lock(ownerId);
         PhotoLibrary library = findOwnedLibraryForUpdate(ownerId);
         PhotoLibraryItem deletedPhoto = library.deletePhoto(photoId, Instant.now(clock));
         long removed = fileReferenceRepository.deleteByReferenceTypeAndReferenceIdAndFileId(
@@ -81,6 +92,16 @@ public class PhotoLibraryService {
         if (removed > 0) {
             fileUsageService.markReferencesRemoved(List.of(deletedPhoto.getFileId()));
         }
+        contentSync.synchronize(pageState);
+    }
+
+    @Transactional
+    public PhotoLibraryResult changeVisibility(long ownerId, long itemId, PhotoVisibility visibility) {
+        final ActorPageContentState pageState = contentSync.lock(ownerId);
+        PhotoLibrary library = findOwnedLibraryForUpdate(ownerId);
+        library.changeVisibility(itemId, visibility);
+        contentSync.synchronize(pageState);
+        return toLibraryResult(library.getPhotos());
     }
 
     private PhotoLibraryResult toLibraryResult(List<PhotoLibraryItem> items) {

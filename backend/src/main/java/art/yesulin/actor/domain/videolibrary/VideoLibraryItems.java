@@ -68,6 +68,10 @@ public class VideoLibraryItems {
                 .orElseThrow(() -> new BusinessException(VIDEO_NOT_FOUND, "영상보관함에서 영상을 찾을 수 없습니다."));
     }
 
+    void changeVisibility(long itemId, VideoVisibility visibility) {
+        find(itemId).changeVisibility(visibility);
+    }
+
     private void reorder(List<VideoLibraryItem> items) {
         for (int index = 0; index < items.size(); index++) {
             items.get(index).moveTo(index);

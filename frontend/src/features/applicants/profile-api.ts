@@ -11,6 +11,7 @@ type BackendVideo = {
   readonly youtubeId: string;
   readonly displayOrder: number;
   readonly createdAt: string;
+  readonly visibility: "PUBLIC" | "PRODUCER";
 };
 
 type BackendVideoLibrary = { readonly videos: readonly BackendVideo[] };
@@ -106,7 +107,7 @@ function assembleProfile(
 function toVideos(videos: readonly BackendVideo[]): readonly ApplicantProfileVideo[] {
   return [...videos]
     .sort((left, right) => left.displayOrder - right.displayOrder)
-    .map((video) => ({ id: String(video.id), url: video.url, youtubeId: video.youtubeId }));
+    .map((video) => ({ id: String(video.id), url: video.url, youtubeId: video.youtubeId, visibility: video.visibility }));
 }
 
 async function refreshVideos(current: ApplicantProfileResponse) {

@@ -64,6 +64,17 @@ public class PhotoLibraryController {
         );
     }
 
+    @PatchMapping("/{photoId}/visibility")
+    public ResponseEntity<PhotoLibraryResult> changeVisibility(
+            @LoginMember(roles = MemberType.APPLICANT) MemberPrincipal principal,
+            @PathVariable long photoId,
+            @Valid @RequestBody ChangePhotoVisibilityRequest request
+    ) {
+        return ResponseEntity.ok(
+                photoLibraryService.changeVisibility(principal.memberId(), photoId, request.visibility())
+        );
+    }
+
     @DeleteMapping("/{photoId}")
     public ResponseEntity<Void> deletePhoto(
             @LoginMember(roles = MemberType.APPLICANT) MemberPrincipal principal,

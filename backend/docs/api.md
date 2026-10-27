@@ -755,7 +755,7 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 `400 TIMETABLE_INVALID_INPUT`이다. 기획사가 시간을 옮긴 배우의 응답은 `UNANSWERED`로 돌아간다. 시간 변경 문의는 300자 이하이며 열린 문의가 있으면 내용을 바꾸고, 담당자 문의
 알림은 아직 보내지 않은 알림이 없을 때만 대기열에 넣는다.
 
-## 배우 프로필과 보관함·비공개 파일 — 14개
+## 배우 프로필과 보관함·비공개 파일 — 16개
 
 | Method | URL | 인증 | Request | Response |
 | --- | --- | --- | --- | --- |
@@ -767,10 +767,12 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 | POST | `/api/v1/applicants/me/photo-library/photos` | Applicant | `AddPhotoToLibraryRequest(fileId)` | `201 PhotoLibraryItemResult` |
 | PATCH | `/api/v1/applicants/me/photo-library/photos/{photoId}/representative` | Applicant | 없음 | `200 PhotoLibraryResult` |
 | PATCH | `/api/v1/applicants/me/photo-library/photos/{photoId}` | Applicant | `MovePhotoRequest(displayOrder)` | `200 PhotoLibraryResult` |
+| PATCH | `/api/v1/applicants/me/photo-library/photos/{photoId}/visibility` | Applicant | `{visibility: PUBLIC/PRIVATE}` | `200 PhotoLibraryResult` |
 | DELETE | `/api/v1/applicants/me/photo-library/photos/{photoId}` | Applicant | 없음 | `204` |
 | GET | `/api/v1/applicants/me/video-library/videos` | Applicant | 없음 | `200 VideoLibraryResult` |
 | POST | `/api/v1/applicants/me/video-library/videos` | Applicant | `AddVideoToLibraryRequest(url)` | `201 VideoLibraryItemResult` |
 | PATCH | `/api/v1/applicants/me/video-library/videos/{videoId}` | Applicant | `MoveVideoRequest(displayOrder)` | `200 VideoLibraryResult` |
+| PATCH | `/api/v1/applicants/me/video-library/videos/{videoId}/visibility` | Applicant | `{visibility: PUBLIC/PRODUCER}` | `200 VideoLibraryResult` |
 | DELETE | `/api/v1/applicants/me/video-library/videos/{videoId}` | Applicant | 없음 | `204` |
 | GET | `/api/v1/files/{fileId}/content` | 세션 | 없음 | `200` 원본 Content-Type의 파일 바이트 |
 
@@ -778,8 +780,62 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 거주 지역은 100자 문자열이고, 프론트가 `시·도 시·군·구` 형태로만 채운다.
 추가 정보의 학력은 `educationLevel`(`NONE`·`HIGH_SCHOOL`·`UNIVERSITY`), `school`, `major`로 표현한다. 학력 없음은 학교·전공 없이, 고등학교 졸업은 학교만, 대학교 졸업은 학교와 전공을 함께 보낸다. 링크 최대 5개, 경력 최대 10개다.
 배우 사진은 JPEG·PNG·WebP 최대 20MB, 사진 보관함 최대 3개, 영상 보관함 최대 3개다.
+사진 항목 응답은 `{id, fileId, imageUrl, displayOrder, representative, createdAt, visibility}`이며 visibility는
+`PUBLIC/PRIVATE`(기존 행·새 사진 모두 기본 PRIVATE)다. 영상 항목 응답은
+`{id, url, youtubeId, displayOrder, createdAt, visibility}`이며 `PUBLIC/PRODUCER`(기본 PRODUCER)다.
+기존 대표 사진(`representative`)은 지원서용 보관함 첫 사진이고, 페이지 대표는 PUBLIC 사진 중 첫 사진이다.
+다른 회원의 사진·영상 ID와 없는 ID는 기존 보관함 NOT_FOUND 규칙을 따른다.
 비공개 사진 내용은 파일 소유 배우나 그 파일이 첨부된 지원서의 공고 소유 공연사만 조회한다. 사진을 찾을 수 없거나 접근할
 수 없으면 모두 `404 FILE_NOT_FOUND`를 반환하고, `Cache-Control: no-store, must-revalidate`를 사용한다.
+
+## 배우 페이지 설정(배우용) — 7개
+
+모두 Applicant 세션이 필요하고 쓰기는 기존 CSRF 규칙을 따른다. 설정 조회는 페이지가 없어도 저장하지 않은 기본값을 반환한다.
+
+| Method | URL | Request | Response |
+| --- | --- | --- | --- |
+| GET | `/api/v1/applicants/me/actor-page` | 없음 | `200 ActorPageSettingsResult` |
+| GET | `/api/v1/applicants/me/actor-page/handle-availability?handle=` | handle query | `200 {handle, available, reason}` |
+| PUT | `/api/v1/applicants/me/actor-page/handle` | `{handle}` | `200 ActorPageSettingsResult` |
+| PATCH | `/api/v1/applicants/me/actor-page/visibility` | `{education?, careers?, coverLetter?, specialty?, hobbies?, nationality?, links?}` | `200 ActorPageSettingsResult` |
+| PUT | `/api/v1/applicants/me/actor-page/publication` | `{agreed, consentVersion}` | `200 ActorPageSettingsResult` |
+| DELETE | `/api/v1/applicants/me/actor-page/publication` | 없음 | `200 ActorPageSettingsResult` |
+| POST | `/api/v1/applicants/me/actor-page/publish-prompt` | 없음 | `204` |
+
+`ActorPageSettingsResult`는 다음 필드를 반환한다.
+
+```text
+publicId(UUID, 미저장 기본값은 null), handle(null 가능), handleEditable, status(PRIVATE/PUBLIC),
+autoHiddenReason(null/UNDER_14/MISSING_REQUIRED), locked, lockReason, unlockedAt,
+firstPublishedAt, publishedAt,
+fieldVisibilities{education, careers, coverLetter, specialty, hobbies, nationality, links},
+readiness{ready, missing[], underAge, locked}, publishPromptShown, consentVersion,
+pageRepresentativePhotoId(null 가능)
+```
+
+항목별 visibility는 PUBLIC/PRIVATE이고 생략된 항목은 유지한다. 저장된 설정이 없으면 PRIVATE다.
+readiness.missing은 HANDLE, NAME, GENDER, BIRTH_DATE, PUBLIC_PHOTO 중 부족한 항목이며, 만 14세 미만이거나 잠금 중이면 ready=false다.
+현재 consentVersion은 `actor-page-publish-v1.0`이다. 공개 요청은 동의·현재 버전, 잠금, readiness 순으로 검사한다.
+이미 공개 중이면 시각·동의 기록을 추가하지 않고, 비공개 요청도 멱등이다. 팝업 표시 시각은 최초 한 번만 기록한다.
+
+아이디는 앞뒤 공백 제거·소문자로 정규화하고 영문 소문자·숫자·마침표·밑줄 1~30자만 허용한다.
+마침표 시작·끝·연속은 금지한다. 예약어는 admin, administrator, yesulin, official, support, help, api, www,
+me, root, system, null, undefined이며 정확히 일치할 때만 금지한다. 처음 공개한 후에는 배우가 변경할 수 없다.
+availability는 정규화된 handle과 available, reason(null/INVALID_FORMAT/RESERVED/TAKEN/LOCKED)을 반환한다.
+내 현재 아이디는 available=true이며, 다른 아이디는 handleEditable=false일 때 LOCKED다.
+
+| 코드 | 상태 | 상황 |
+| --- | --- | --- |
+| ACTOR_HANDLE_INVALID | 400 | 아이디 형식 위반 |
+| ACTOR_HANDLE_RESERVED | 400 | 예약어 |
+| ACTOR_HANDLE_TAKEN | 409 | 다른 페이지에서 사용 중(동시 요청의 DB 중복 포함) |
+| ACTOR_HANDLE_LOCKED | 409 | 처음 공개 후 아이디 변경 |
+| ACTOR_PAGE_CONSENT_REQUIRED | 400 | 동의 없음·버전 불일치 |
+| ACTOR_PAGE_LOCKED | 409 | 잠금 중 공개 시도 |
+| ACTOR_PAGE_NOT_READY | 409 | 공개 조건 부족(한국어 메시지) |
+| ACTOR_PAGE_CONFLICT | 409 | 프로필이 없는 회원의 첫 쓰기 요청이 동시에 들어와 페이지 생성이 겹침. 다시 시도하면 된다 |
+
+잘못된 enum과 필수 값 누락은 기존 `400 INVALID_REQUEST`다. 공개 조회·미리보기와 운영자 API는 이 절에 포함하지 않는다.
 
 ## 지원서 — 3개
 
