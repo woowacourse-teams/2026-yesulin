@@ -762,7 +762,7 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 `400 TIMETABLE_INVALID_INPUT`이다. 기획사가 시간을 옮긴 배우의 응답은 `UNANSWERED`로 돌아간다. 시간 변경 문의는 300자 이하이며 열린 문의가 있으면 내용을 바꾸고, 담당자 문의
 알림은 아직 보내지 않은 알림이 없을 때만 대기열에 넣는다.
 
-## 배우 프로필과 보관함·비공개 파일 — 16개
+## 배우 프로필과 보관함·비공개 파일 — 18개
 
 | Method | URL | 인증 | Request | Response |
 | --- | --- | --- | --- | --- |
@@ -775,6 +775,8 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 | PATCH | `/api/v1/applicants/me/photo-library/photos/{photoId}/representative` | Applicant | 없음 | `200 PhotoLibraryResult` |
 | PATCH | `/api/v1/applicants/me/photo-library/photos/{photoId}` | Applicant | `MovePhotoRequest(displayOrder)` | `200 PhotoLibraryResult` |
 | PATCH | `/api/v1/applicants/me/photo-library/photos/{photoId}/visibility` | Applicant | `{visibility: PUBLIC/PRIVATE}` | `200 PhotoLibraryResult` |
+| POST | `/api/v1/applicants/me/photo-library/photos/{photoId}/public-copy/upload-requests` | Applicant | `{contentType, size}` | `201 {url, method, headers, expiresAt, uploadKey}` |
+| PATCH | `/api/v1/applicants/me/photo-library/photos/{photoId}/public-copy/completion` | Applicant | `{uploadKey}` | `200 PhotoLibraryItemResult` |
 | DELETE | `/api/v1/applicants/me/photo-library/photos/{photoId}` | Applicant | 없음 | `204` |
 | GET | `/api/v1/applicants/me/video-library/videos` | Applicant | 없음 | `200 VideoLibraryResult` |
 | POST | `/api/v1/applicants/me/video-library/videos` | Applicant | `AddVideoToLibraryRequest(url)` | `201 VideoLibraryItemResult` |
@@ -791,10 +793,21 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 `WEB_DRAMA`(웹드라마), `SHORT_FORM`(숏폼), `COMMERCIAL`(광고), `OTHER`(기타)다. 잘못된 값은 `400 INVALID_REQUEST`다.
 지원서 제출 경력은 기존대로 최대 10개이고 `{year, title, roleName}`만 받으며 장르는 포함하지 않는다.
 배우 사진은 JPEG·PNG·WebP 최대 20MB, 사진 보관함 최대 3개, 영상 보관함 최대 3개다.
-사진 항목 응답은 `{id, fileId, imageUrl, displayOrder, representative, createdAt, visibility}`이며 visibility는
-`PUBLIC/PRIVATE`(기존 행·새 사진 모두 기본 PRIVATE)다. 영상 항목 응답은
-`{id, url, youtubeId, displayOrder, createdAt, visibility}`이며 `PUBLIC/PRODUCER`(기본 PRODUCER)다.
-기존 대표 사진(`representative`)은 지원서용 보관함 첫 사진이고, 페이지 대표는 PUBLIC 사진 중 첫 사진이다.
+사진 항목 응답은 `{id, fileId, imageUrl, displayOrder, representative, createdAt, visibility, publicCopyUrl}`이며 visibility는
+`PUBLIC/PRIVATE`(기존 행·새 사진 모두 기본 PRIVATE)다. `publicCopyUrl`은 배우 페이지용 공개 사본의 CDN 주소이고, 사본이 없으면
+null이다. 영상 항목 응답은 `{id, url, youtubeId, displayOrder, createdAt, visibility}`이며 `PUBLIC/PRODUCER`(기본 PRODUCER)다.
+기존 대표 사진(`representative`)은 지원서용 보관함 첫 사진이고, 페이지 대표는 공개 사본이 있는 PUBLIC 사진 중 첫 사진이다.
+
+공개 사본은 화면이 보관함 원본(`imageUrl`)을 받아 JPEG로 줄인 뒤 만든다. 업로드 준비는 PUBLIC 사진에만 할 수 있고
+`contentType`은 `image/jpeg`, `size`는 10MB 이하여야 한다. 받은 `url`에 `headers`를 그대로 붙여 PUT하고, 같은 사진의
+completion에 `uploadKey`를 보내면 서버가 형식·크기·JPEG 서명을 확인한 뒤 사진에 붙이고 그 사진 항목을 돌려준다.
+이미 붙은 키로 다시 확정하면 같은 결과를 돌려준다. 새 사본을 붙이면 이전 사본은 커밋 뒤 지운다.
+
+| 코드 | 상태 | 상황 |
+| --- | --- | --- |
+| PHOTO_LIBRARY_PHOTO_NOT_PUBLIC | 409 | 비공개 사진에 사본을 준비하거나 확정 |
+| PHOTO_LIBRARY_INVALID_PUBLIC_COPY | 400 | JPEG가 아니거나 10MB 초과, 이 배우·사진에 준비하지 않은 업로드 키 |
+| FILE_METADATA_MISMATCH | 409 | 아직 올리지 않았거나 크기·형식이 다르거나 JPEG가 아님. 같은 주소로 다시 올린 뒤 확정한다 |
 다른 회원의 사진·영상 ID와 없는 ID는 기존 보관함 NOT_FOUND 규칙을 따른다.
 비공개 사진 내용은 파일 소유 배우나 그 파일이 첨부된 지원서의 공고 소유 공연사만 조회한다. 사진을 찾을 수 없거나 접근할
 수 없으면 모두 `404 FILE_NOT_FOUND`를 반환하고, `Cache-Control: no-store, must-revalidate`를 사용한다.
@@ -826,6 +839,8 @@ pageRepresentativePhotoId(null 가능)
 
 항목별 visibility는 PUBLIC/PRIVATE이고 생략된 항목은 유지한다. 저장된 설정이 없으면 PRIVATE다.
 readiness.missing은 HANDLE, NAME, GENDER, BIRTH_DATE, PUBLIC_PHOTO 중 부족한 항목이며, 만 14세 미만이거나 잠금 중이면 ready=false다.
+PUBLIC_PHOTO는 공개 사본이 있는 PUBLIC 사진이 하나도 없다는 뜻이다. PUBLIC 사진이어도 사본이 없으면 채우지 않는다.
+비공개 요청(DELETE)은 공개 중이던 페이지의 모든 사진 사본을 지운다. 다시 공개하려면 사본을 다시 만든다.
 현재 consentVersion은 `actor-page-publish-v1.0`이다. 공개 요청은 동의·현재 버전, 잠금, readiness 순으로 검사한다.
 이미 공개 중이면 시각·동의 기록을 추가하지 않고, 비공개 요청도 멱등이다. 팝업 표시 시각은 최초 한 번만 기록한다.
 

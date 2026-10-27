@@ -13,6 +13,8 @@ import static org.mockito.Mockito.when;
 import art.yesulin.actor.application.photolibrary.AddPhotoToLibraryCommand;
 import art.yesulin.actor.application.photolibrary.PhotoLibraryItemResult;
 import art.yesulin.actor.application.photolibrary.PhotoLibraryService;
+import art.yesulin.actor.application.photolibrary.PhotoPublicCopyService;
+import art.yesulin.actor.application.photolibrary.PhotoPublicCopyUploadResult;
 import art.yesulin.actor.application.profile.ApplicantProfileService;
 import art.yesulin.actor.application.profile.UpdateApplicantProfileCommand;
 import art.yesulin.actor.application.profile.UpdateProfileAdditionalInformationCommand;
@@ -26,6 +28,7 @@ import art.yesulin.actor.domain.page.ActorPageErrorCode;
 import art.yesulin.actor.domain.page.ActorPageField;
 import art.yesulin.actor.domain.page.ActorPageHandle;
 import art.yesulin.actor.domain.page.ActorPageHandleUnavailableReason;
+import art.yesulin.actor.domain.page.ActorPageMissingField;
 import art.yesulin.actor.domain.page.ActorPagePublishConsentRepository;
 import art.yesulin.actor.domain.page.ActorPageRepository;
 import art.yesulin.actor.domain.page.ActorPageStatus;
@@ -71,6 +74,7 @@ class ActorPageServiceTest {
     private long owner;
     private static final Instant NOW = Instant.parse("2026-10-27T00:00:00Z");
     private static final LocalDate BIRTH = LocalDate.of(2000, 1, 1);
+    private static final byte[] JPEG = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) 0xE0, 0, 0x10};
 
     @Autowired
     private MemberRepository members;
@@ -84,6 +88,8 @@ class ActorPageServiceTest {
     private ApplicantProfileService profiles;
     @Autowired
     private PhotoLibraryService photos;
+    @Autowired
+    private PhotoPublicCopyService copies;
     @Autowired
     private VideoLibraryService videos;
     @Autowired
@@ -126,7 +132,7 @@ class ActorPageServiceTest {
 
     @Test
     void storesOneConsentPerActualPublicationAndKeepsFirstPublicationTime() {
-        ready();
+        final long photoId = ready();
         pages.publish(owner, true, ActorPage.CONSENT_VERSION);
         final Instant first = page().getFirstPublishedAt();
         tick();
@@ -134,6 +140,7 @@ class ActorPageServiceTest {
         assertEquals(1, consents.countByActorPageId(page().getId()));
         assertEquals(first, page().getPublishedAt());
         pages.unpublish(owner);
+        copy(photoId);
         pages.publish(owner, true, ActorPage.CONSENT_VERSION);
         assertEquals(2, consents.countByActorPageId(page().getId()));
         assertEquals(first, page().getFirstPublishedAt());
@@ -192,7 +199,7 @@ class ActorPageServiceTest {
 
     @Test
     void deletingLastPublicPhotoSucceedsAndHidesPage() {
-        long photoId = ready();
+        final long photoId = ready();
         pages.publish(owner, true, ActorPage.CONSENT_VERSION);
         photos.deletePhoto(owner, photoId);
         assertHidden(ActorPageAutoHiddenReason.MISSING_REQUIRED);
@@ -200,7 +207,7 @@ class ActorPageServiceTest {
 
     @Test
     void makingLastPublicPhotoPrivateSucceedsAndHidesPage() {
-        long photoId = ready();
+        final long photoId = ready();
         pages.publish(owner, true, ActorPage.CONSENT_VERSION);
         photos.changeVisibility(owner, photoId, PhotoVisibility.PRIVATE);
         assertHidden(ActorPageAutoHiddenReason.MISSING_REQUIRED);
@@ -241,6 +248,7 @@ class ActorPageServiceTest {
         long second = addPhoto();
         final long third = addPhoto();
         photos.changeVisibility(owner, second, PhotoVisibility.PUBLIC);
+        copy(second);
         pages.publish(owner, true, ActorPage.CONSENT_VERSION);
         tick();
         photos.makeRepresentative(owner, third);
@@ -281,11 +289,13 @@ class ActorPageServiceTest {
 
     @Test
     void restoresConditionsAndRepublishesWithFreshConsent() {
-        ready();
+        final long photoId = ready();
         pages.publish(owner, true, ActorPage.CONSENT_VERSION);
         profiles.update(owner, basic(null, BIRTH));
         profiles.update(owner, basic("복원한 배우", BIRTH));
         assertHidden(ActorPageAutoHiddenReason.MISSING_REQUIRED);
+        assertEquals(List.of(ActorPageMissingField.PUBLIC_PHOTO), pages.find(owner).readiness().missing());
+        copy(photoId);
         tick();
         pages.publish(owner, true, ActorPage.CONSENT_VERSION);
         assertEquals(ActorPageStatus.PUBLIC, page().getStatus());
@@ -316,6 +326,39 @@ class ActorPageServiceTest {
         assertEquals(ActorPageErrorCode.ACTOR_PAGE_CONFLICT, translated.getErrorCode());
     }
 
+    @Test
+    void publicPhotoWithoutCopyDoesNotSatisfyPublishCondition() {
+        profiles.update(owner, basic("배우", BIRTH));
+        pages.changeHandle(owner, "actor");
+        long photoId = addPhoto();
+        photos.changeVisibility(owner, photoId, PhotoVisibility.PUBLIC);
+
+        assertEquals(List.of(ActorPageMissingField.PUBLIC_PHOTO), pages.find(owner).readiness().missing());
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> pages.publish(owner, true, ActorPage.CONSENT_VERSION));
+        assertEquals(ActorPageErrorCode.ACTOR_PAGE_NOT_READY, exception.getErrorCode());
+
+        copy(photoId);
+        pages.publish(owner, true, ActorPage.CONSENT_VERSION);
+        assertEquals(ActorPageStatus.PUBLIC, page().getStatus());
+        assertEquals(photoId, pages.find(owner).pageRepresentativePhotoId());
+    }
+
+    @Test
+    void pageRepresentativeSkipsPublicPhotoWhoseCopyIsNotReady() {
+        profiles.update(owner, basic("배우", BIRTH));
+        pages.changeHandle(owner, "actor");
+        long first = addPhoto();
+        long second = addPhoto();
+        photos.changeVisibility(owner, first, PhotoVisibility.PUBLIC);
+        photos.changeVisibility(owner, second, PhotoVisibility.PUBLIC);
+        copy(second);
+
+        assertEquals(second, pages.find(owner).pageRepresentativePhotoId());
+        copy(first);
+        assertEquals(first, pages.find(owner).pageRepresentativePhotoId());
+    }
+
     @ParameterizedTest
     @EnumSource(ActorPageVisibility.class)
     void onlyPublicCareerGenreChangesRefreshActivity(ActorPageVisibility visibility) {
@@ -341,7 +384,14 @@ class ActorPageServiceTest {
         pages.changeHandle(owner, "actor");
         long id = addPhoto();
         photos.changeVisibility(owner, id, PhotoVisibility.PUBLIC);
+        copy(id);
         return id;
+    }
+
+    private PhotoLibraryItemResult copy(long photoId) {
+        PhotoPublicCopyUploadResult upload = copies.prepareUpload(owner, photoId, "image/jpeg", JPEG.length);
+        storage.upload(upload.url(), "image/jpeg", JPEG);
+        return copies.complete(owner, photoId, upload.uploadKey());
     }
 
     private long addPhoto() {

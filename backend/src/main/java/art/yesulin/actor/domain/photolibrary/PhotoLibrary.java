@@ -13,6 +13,8 @@ import jakarta.persistence.UniqueConstraint;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -67,14 +69,44 @@ public class PhotoLibrary {
         items.changeVisibility(itemId, visibility);
     }
 
+    /** 공개 사본을 만들 수 있는 사진. 보관함에 있고 공개로 설정했어야 한다. */
+    public PhotoLibraryItem getPublicPhoto(long photoId) {
+        return items.findPublic(photoId);
+    }
+
+    /** 공개 사본을 붙이거나 바꾼다. 바뀐 이전 사본은 저장소에서 지워야 한다. */
+    public PhotoLibraryItem attachPublicCopy(long photoId, String objectKey) {
+        PhotoLibraryItem photo = items.findPublic(photoId);
+        photo.attachPublicCopy(objectKey);
+        return photo;
+    }
+
+    /** 배우 페이지가 공개에서 내려가면 모든 사진의 공개 사본을 뗀다. 저장소에서도 지워야 한다. */
+    public void removePublicCopies() {
+        items.removePublicCopies();
+    }
+
+    public Set<String> publicCopyObjectKeys() {
+        return getPhotos().stream()
+                .filter(PhotoLibraryItem::hasPublicCopy)
+                .map(PhotoLibraryItem::getPublicCopyObjectKey)
+                .collect(Collectors.toUnmodifiableSet());
+    }
+
     public List<PhotoLibraryItem> getPhotos() {
         return items.activeValues();
     }
 
+    /** 공개 사본이 준비된 공개 사진 중 보관함 순서가 가장 앞인 것. 사본이 없는 사진은 페이지에 보이지 않는다. */
     public Optional<PhotoLibraryItem> getPageRepresentativePhoto() {
+        return getPagePhotos().stream().findFirst();
+    }
+
+    /** 배우 페이지에 보이는 사진. 공개로 설정했고 공개 사본이 준비된 사진이다. */
+    public List<PhotoLibraryItem> getPagePhotos() {
         return getPhotos().stream()
-                .filter(photo -> photo.getVisibility() == PhotoVisibility.PUBLIC)
-                .findFirst();
+                .filter(photo -> photo.isPublic() && photo.hasPublicCopy())
+                .toList();
     }
 
     public Optional<PhotoLibraryItem> getRepresentativePhoto() {

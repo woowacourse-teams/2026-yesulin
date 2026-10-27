@@ -2,7 +2,6 @@ package art.yesulin.actor.domain.page;
 
 import art.yesulin.actor.domain.photolibrary.PhotoLibrary;
 import art.yesulin.actor.domain.photolibrary.PhotoLibraryItem;
-import art.yesulin.actor.domain.photolibrary.PhotoVisibility;
 import art.yesulin.actor.domain.profile.ApplicantProfile;
 import art.yesulin.actor.domain.profile.ProfileAdditionalInformation;
 import art.yesulin.actor.domain.profile.ProfileBasicInformation;
@@ -64,9 +63,7 @@ public record ActorPagePublicContent(
                 visible(page, ActorPageField.HOBBIES) ? additional.hobbies() : null,
                 visible(page, ActorPageField.NATIONALITY) ? additional.nationality() : null,
                 visible(page, ActorPageField.LINKS) ? additional.links() : List.of(),
-                photos == null ? List.of() : photos.getPhotos().stream()
-                        .filter(photo -> photo.getVisibility() == PhotoVisibility.PUBLIC)
-                        .map(PhotoLibraryItem::getId).toList(),
+                photos == null ? List.of() : photos.getPagePhotos().stream().map(PhotoLibraryItem::getId).toList(),
                 videos == null ? List.of() : videos.getVideos().stream()
                         .filter(video -> video.getVisibility() == VideoVisibility.PUBLIC)
                         .map(VideoLibraryItem::getId).toList()

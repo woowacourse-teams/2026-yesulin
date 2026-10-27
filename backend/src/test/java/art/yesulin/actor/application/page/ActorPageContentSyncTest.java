@@ -45,7 +45,9 @@ class ActorPageContentSyncTest {
         when(photos.findByOwnerIdForUpdate(1L)).thenReturn(Optional.of(photoLibrary));
         when(videos.findByOwnerIdForUpdate(1L)).thenReturn(Optional.of(videoLibrary));
         when(pages.findByOwnerMemberIdForUpdate(1L)).thenReturn(Optional.of(new ActorPage(1L)));
-        ActorPageContentSync sync = new ActorPageContentSync(profiles, photos, videos, pages, Clock.systemUTC());
+        ActorPageContentSync sync = new ActorPageContentSync(
+                profiles, photos, videos, pages, mock(PublicPhotoCopyStorage.class), Clock.systemUTC()
+        );
         ActorPageContentState state = sync.lock(1L);
         sync.synchronize(state);
         InOrder order = inOrder(profiles, photos, videos, pages);
@@ -66,7 +68,9 @@ class ActorPageContentSyncTest {
         PhotoLibraryRepository photos = mock(PhotoLibraryRepository.class);
         VideoLibraryRepository videos = mock(VideoLibraryRepository.class);
         ActorPageRepository pages = mock(ActorPageRepository.class);
-        ActorPageContentSync sync = new ActorPageContentSync(profiles, photos, videos, pages, Clock.systemUTC());
+        ActorPageContentSync sync = new ActorPageContentSync(
+                profiles, photos, videos, pages, mock(PublicPhotoCopyStorage.class), Clock.systemUTC()
+        );
         ActorPageContentState state = sync.lock(1L);
         sync.synchronize(state);
         assertNull(state.before());
@@ -77,7 +81,7 @@ class ActorPageContentSyncTest {
     void mapsDatabaseUniquenessViolationToHandleTaken() {
         ActorPageRepository repository = mock(ActorPageRepository.class);
         ActorPageContentSync sync = mock(ActorPageContentSync.class);
-        when(sync.lock(1L)).thenReturn(new ActorPageContentState(null, null, null, null, null));
+        when(sync.lock(1L)).thenReturn(new ActorPageContentState(null, null, null, null, null, null));
         when(repository.saveAndFlush(any())).thenThrow(violation("PUBLIC.UK_ACTOR_PAGES_HANDLE_INDEX_7"));
         ActorPageService service = new ActorPageService(
                 repository, mock(ActorPagePublishConsentRepository.class), sync, Clock.systemUTC()
@@ -90,7 +94,7 @@ class ActorPageContentSyncTest {
     void mapsConcurrentFirstPageCreationToRetryableConflictInsteadOfHandleTaken() {
         ActorPageRepository repository = mock(ActorPageRepository.class);
         ActorPageContentSync sync = mock(ActorPageContentSync.class);
-        when(sync.lock(1L)).thenReturn(new ActorPageContentState(null, null, null, null, null));
+        when(sync.lock(1L)).thenReturn(new ActorPageContentState(null, null, null, null, null, null));
         when(repository.saveAndFlush(any()))
                 .thenThrow(violation("actor_pages.uk_actor_pages_owner_member_id"));
         ActorPageService service = new ActorPageService(
