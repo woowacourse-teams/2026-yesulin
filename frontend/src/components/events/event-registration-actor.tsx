@@ -143,7 +143,7 @@ function PhotoField({ eventId, onBusyChange, onChange }: {
       setPreview(URL.createObjectURL(photo));
       onChange(uploadKey);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "사진을 올리지 못했습니다. 다시 시도해 주세요.");
+      setError(cause instanceof Error ? cause.message : "사진을 올리지 못했습니다. 다시 시도해 주십시오.");
     } finally {
       setStatus("idle");
       onBusyChange(false);

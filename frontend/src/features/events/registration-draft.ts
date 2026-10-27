@@ -92,31 +92,31 @@ export function formatPhoneInput(value: string): string {
  * @param today 생년월일이 미래인지 볼 `YYYY-MM-DD`
  */
 export function registrationProblem(draft: RegistrationDraft, today: string): string | null {
-  if (!draft.participantType) return "참가 구분을 골라 주세요.";
-  if (!draft.name.trim()) return "이름을 입력해 주세요.";
-  if (!PHONE.test(formatPhoneInput(draft.phone))) return "휴대폰 번호를 010-1234-5678 형식으로 입력해 주세요.";
-  if (draft.participantType === "PRODUCER" && !draft.affiliation.trim()) return "소속과 지금 하는 일을 적어 주세요.";
+  if (!draft.participantType) return "참가 구분을 선택해 주십시오.";
+  if (!draft.name.trim()) return "이름을 입력해 주십시오.";
+  if (!PHONE.test(formatPhoneInput(draft.phone))) return "휴대폰 번호를 010-1234-5678 형식으로 입력해 주십시오.";
+  if (draft.participantType === "PRODUCER" && !draft.affiliation.trim()) return "소속과 지금 하는 일을 입력해 주십시오.";
   if (draft.participantType === "ACTOR" && draft.businessCardRequested) {
     const problem = businessCardProblem(draft, today);
     if (problem) return problem;
   }
-  if (!draft.privacyAgreed) return "개인정보 수집·이용에 동의해 주세요.";
+  if (!draft.privacyAgreed) return "개인정보 수집·이용에 동의해 주십시오.";
   return null;
 }
 
 function businessCardProblem(draft: RegistrationDraft, today: string): string | null {
-  if (!EMAIL.test(draft.email.trim())) return "이메일 주소를 확인해 주세요.";
-  if (!draft.birthDate) return "생년월일을 입력해 주세요.";
-  if (draft.birthDate > today || draft.birthDate < "1900-01-01") return "생년월일을 확인해 주세요.";
-  if (!draft.photoUploadKey) return "프로필 사진을 올려 주세요.";
-  if (draft.activityFields.length === 0) return "활동 분야를 하나 이상 골라 주세요.";
-  if (draft.activityFields.includes("OTHER") && !draft.otherActivity.trim()) return "기타 분야를 적어 주세요.";
+  if (!EMAIL.test(draft.email.trim())) return "이메일 주소를 확인해 주십시오.";
+  if (!draft.birthDate) return "생년월일을 입력해 주십시오.";
+  if (draft.birthDate > today || draft.birthDate < "1900-01-01") return "생년월일을 확인해 주십시오.";
+  if (!draft.photoUploadKey) return "프로필 사진을 올려 주십시오.";
+  if (draft.activityFields.length === 0) return "활동 분야를 하나 이상 선택해 주십시오.";
+  if (draft.activityFields.includes("OTHER") && !draft.otherActivity.trim()) return "기타 분야를 입력해 주십시오.";
   if (draft.noCareer) return null;
   const careers = filledCareers(draft.careers);
-  if (careers.length === 0) return "경력을 한 줄 이상 적거나 '경력 없음'을 체크해 주세요.";
-  if (careers.length > MAX_REGISTRATION_CAREERS) return `경력은 ${MAX_REGISTRATION_CAREERS}줄까지 적을 수 있어요.`;
-  if (careers.some((career) => !career.year || !career.month)) return "경력마다 연도와 월을 골라 주세요.";
-  if (careers.some((career) => !career.workTitle.trim())) return "경력마다 작품명을 적어 주세요.";
+  if (careers.length === 0) return "경력을 한 줄 이상 입력하거나 '경력 없음'을 체크해 주십시오.";
+  if (careers.length > MAX_REGISTRATION_CAREERS) return `경력은 ${MAX_REGISTRATION_CAREERS}줄까지 입력할 수 있습니다.`;
+  if (careers.some((career) => !career.year || !career.month)) return "경력마다 연도와 월을 선택해 주십시오.";
+  if (careers.some((career) => !career.workTitle.trim())) return "경력마다 작품명을 입력해 주십시오.";
   return null;
 }
 

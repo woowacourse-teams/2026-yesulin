@@ -198,7 +198,7 @@ public class EventRegistrationService {
     private void requireBusinessCardOpen(Event event) {
         if (!event.isAcceptingBusinessCardsAt(clock.instant())) {
             throw new BusinessException(
-                    BUSINESS_CARD_CLOSED, "프로필 명함 제작 신청 기간이 끝났어요. 명함 희망을 끄고 신청해 주세요."
+                    BUSINESS_CARD_CLOSED, "프로필 명함 제작 신청 기간이 끝났습니다. 명함 희망을 끄고 신청해 주십시오."
             );
         }
     }
