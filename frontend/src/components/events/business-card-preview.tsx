@@ -67,6 +67,7 @@ export function BusinessCardPreview({ content, photoUrl }: { readonly content: B
             onPointerDown={(event) => { start.current = { x: event.clientX, moved: false }; event.currentTarget.setPointerCapture(event.pointerId); }}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
+            onPointerCancel={() => { start.current = null; setDrag(null); }}
             onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setFlipped((value) => !value); } }}
           >
             <Face><FrontFace content={content} photoUrl={photoUrl} /></Face>
