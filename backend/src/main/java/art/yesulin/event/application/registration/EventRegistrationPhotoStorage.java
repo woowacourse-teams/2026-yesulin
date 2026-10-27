@@ -60,6 +60,11 @@ public class EventRegistrationPhotoStorage {
         return objectKey != null && KEY.matcher(objectKey).matches();
     }
 
+    /** 명함 자료 내려받기에 넣을 사진 원본. 없으면 empty다. */
+    public Optional<StoredObjectContent> read(String objectKey) {
+        return storage.read(objectKey);
+    }
+
     public String downloadUrl(String objectKey) {
         return storage.createDownloadUrl(objectKey);
     }

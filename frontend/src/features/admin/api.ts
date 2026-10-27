@@ -577,6 +577,22 @@ export async function fetchEventRegistrations(eventId: number): Promise<readonly
   return response.registrations;
 }
 
+/** 명함 희망 배우의 정보(CSV·JSON)와 사진을 zip 하나로 내려받는다. 브라우저 다운로드로 저장한다. */
+export async function downloadBusinessCardArchive(eventId: number): Promise<void> {
+  const response = await fetch(`${API_BASE_PATH}/events/${eventId}/registrations/business-card-archive`, {
+    credentials: "include",
+  });
+  if (!response.ok) throw await readAdminError(response, "명함 자료를 내려받지 못했습니다.");
+  const url = URL.createObjectURL(await response.blob());
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `business-cards-event-${eventId}.zip`;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 /** 참가 신청을 지운다. 되돌릴 수 없고 사진도 함께 지운다. */
 export async function deleteEventRegistration(eventId: number, registrationId: number): Promise<void> {
   const response = await fetch(`${API_BASE_PATH}/events/${eventId}/registrations/${registrationId}`, {

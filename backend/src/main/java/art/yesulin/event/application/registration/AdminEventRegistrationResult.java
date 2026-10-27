@@ -17,6 +17,7 @@ import java.util.List;
  * @param otherActivity 기타 분야를 고른 배우가 직접 적은 분야
  * @param noCareer 신입이라 경력이 없다고 한 배우
  * @param careers 배우 경력. 적은 순서대로다.
+ * @param intro 명함 뒷면에 넣을 한 줄 소개
  */
 public record AdminEventRegistrationResult(
         long id,
@@ -33,6 +34,7 @@ public record AdminEventRegistrationResult(
         String otherActivity,
         boolean noCareer,
         List<Career> careers,
+        String intro,
         Instant createdAt
 ) {
 
@@ -52,6 +54,7 @@ public record AdminEventRegistrationResult(
                 registration.getOtherActivity(),
                 registration.isNoCareer(),
                 registration.getCareers().stream().map(Career::from).toList(),
+                registration.getIntro(),
                 registration.getCreatedAt()
         );
     }

@@ -26,10 +26,16 @@ import art.yesulin.global.exception.BusinessException;
 import art.yesulin.support.FakeObjectStorage;
 import art.yesulin.support.ObjectStorageTestConfiguration;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -69,6 +75,9 @@ class EventRegistrationServiceTest {
 
     @Autowired
     private FakeObjectStorage storage;
+
+    @Autowired
+    private BusinessCardArchive businessCardArchive;
 
     @BeforeEach
     void setUp() {
@@ -159,6 +168,42 @@ class EventRegistrationServiceTest {
 
         assertTrue(registrationService.findAllForAdmin(eventId).getFirst().businessCardRequested());
         assertTrue(eventService.findPublic(eventId).businessCardOpen());
+    }
+
+    @Test
+    void exportsOnlyBusinessCardActorsWithPhotosAndLeavesAuditLog() throws Exception {
+        long eventId = openEvent();
+        String photoKey = uploadedPhoto(eventId);
+        final long cardId = registrationService.register(eventId, new EventRegistrationForm(
+                EventParticipantType.ACTOR, "김하늘", "010-1234-5678", true, "haneul@test.com", "@haneul", BIRTH_DATE,
+                null, Set.of(EventActivityField.MUSICAL), null, false,
+                List.of(new EventRegistrationCareer("2025-09", "연극 <달빛, 정거장>", "민수 역")),
+                " 노래로 이야기를 전하는 배우 "
+        ), photoKey, true);
+        registrationService.register(eventId, EventRegistrationForm.withoutBusinessCard(
+                EventParticipantType.ACTOR, "박서윤", "010-3456-7890", null
+        ), null, true);
+
+        List<BusinessCardEntry> entries = registrationService.prepareBusinessCardExport(ADMIN_ID, eventId);
+        ByteArrayOutputStream zip = new ByteArrayOutputStream();
+        businessCardArchive.write(entries, zip);
+
+        assertEquals(1, entries.size());
+        assertEquals("노래로 이야기를 전하는 배우", entries.getFirst().intro());
+        Map<String, byte[]> files = unzip(zip.toByteArray());
+        assertTrue(files.containsKey("photos/%d.jpg".formatted(cardId)));
+        String json = new String(files.get("business-cards.json"), StandardCharsets.UTF_8);
+        assertTrue(json.contains("\"name\" : \"김하늘\""));
+        assertTrue(json.contains("\"photoFile\" : \"photos/%d.jpg\"".formatted(cardId)));
+        assertFalse(json.contains("010-1234-5678"));
+        assertFalse(json.contains("private/"));
+        String csv = new String(files.get("business-cards.csv"), StandardCharsets.UTF_8);
+        assertTrue(csv.startsWith("﻿신청번호"));
+        assertTrue(csv.contains("\"2025-09 연극 <달빛, 정거장> 민수 역\""));
+        assertTrue(csv.contains("'@haneul"));
+        assertTrue(auditLogRepository.findAll().stream()
+                .map(AdminAuditLog::getAction)
+                .anyMatch(AdminAction.EVENT_REGISTRATION_EXPORTED::equals));
     }
 
     @Test
@@ -265,5 +310,15 @@ class EventRegistrationServiceTest {
     private static void assertCode(EventErrorCode code, Runnable action) {
         BusinessException exception = assertThrows(BusinessException.class, action::run);
         assertEquals(code, exception.getErrorCode());
+    }
+
+    private static Map<String, byte[]> unzip(byte[] bytes) throws Exception {
+        Map<String, byte[]> files = new HashMap<>();
+        try (ZipInputStream zip = new ZipInputStream(new ByteArrayInputStream(bytes), StandardCharsets.UTF_8)) {
+            for (ZipEntry entry = zip.getNextEntry(); entry != null; entry = zip.getNextEntry()) {
+                files.put(entry.getName(), zip.readAllBytes());
+            }
+        }
+        return files;
     }
 }

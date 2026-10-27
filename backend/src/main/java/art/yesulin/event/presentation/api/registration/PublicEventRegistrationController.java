@@ -65,6 +65,7 @@ public class PublicEventRegistrationController {
      * @param otherActivity 기타 분야를 고른 배우가 직접 적은 분야
      * @param noCareer 신입이라 경력이 없는 배우
      * @param careers 배우 경력. 경력 없음이 아니면 한 줄 이상 필수다.
+     * @param intro 명함 뒷면에 넣을 한 줄 소개. 선택이다.
      */
     public record RegisterRequest(
             @NotNull EventParticipantType participantType,
@@ -80,6 +81,7 @@ public class PublicEventRegistrationController {
             @Size(max = EventRegistration.MAX_OTHER_ACTIVITY_LENGTH) String otherActivity,
             boolean noCareer,
             @Size(max = EventRegistration.MAX_CAREERS) List<@Valid @NotNull CareerRequest> careers,
+            @Size(max = EventRegistration.MAX_INTRO_LENGTH) String intro,
             boolean privacyAgreed
     ) {
 
@@ -92,7 +94,8 @@ public class PublicEventRegistrationController {
                             : EnumSet.copyOf(activityFields),
                     otherActivity,
                     noCareer,
-                    card && careers != null ? careers.stream().map(CareerRequest::toCareer).toList() : List.of()
+                    card && careers != null ? careers.stream().map(CareerRequest::toCareer).toList() : List.of(),
+                    intro
             );
         }
     }

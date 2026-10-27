@@ -119,6 +119,25 @@ public class EventRegistrationService {
                 .toList();
     }
 
+    /**
+     * 명함 자료 내려받기에 담을 명함 희망 배우를 먼저 온 순서로 준다. 개인정보를 내보내므로 감사 로그를 남긴다(내용은 담지 않는다).
+     */
+    @Transactional
+    public List<BusinessCardEntry> prepareBusinessCardExport(long adminId, long eventId) {
+        if (!eventRepository.existsById(eventId)) {
+            throw eventNotFound();
+        }
+        List<BusinessCardEntry> entries = repository.findAllByEventIdOrderByIdAsc(eventId).stream()
+                .filter(EventRegistration::isBusinessCardRequested)
+                .map(BusinessCardEntry::from)
+                .toList();
+        auditLogRepository.save(new AdminAuditLog(
+                adminId, AdminAction.EVENT_REGISTRATION_EXPORTED, "EVENT", eventId,
+                "명함 자료 %d명 내려받기".formatted(entries.size())
+        ));
+        return entries;
+    }
+
     /** 신청을 지운다. 되돌릴 수 없고, 사진은 커밋 뒤 저장소에서 지운다. 감사 로그에는 신청 내용을 담지 않는다. */
     @Transactional
     public void delete(long adminId, long eventId, long registrationId) {

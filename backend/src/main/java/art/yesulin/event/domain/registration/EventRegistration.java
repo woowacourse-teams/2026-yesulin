@@ -43,6 +43,7 @@ public class EventRegistration {
     public static final int MAX_NAME_LENGTH = 50;
     public static final int MAX_EMAIL_LENGTH = 254;
     public static final int MAX_SNS_HANDLE_LENGTH = 100;
+    public static final int MAX_INTRO_LENGTH = 40;
     public static final int MAX_AFFILIATION_LENGTH = 500;
     public static final int MAX_OTHER_ACTIVITY_LENGTH = 50;
     public static final int MAX_CAREERS = 10;
@@ -76,6 +77,9 @@ public class EventRegistration {
 
     @Column(name = "sns_handle", updatable = false, length = MAX_SNS_HANDLE_LENGTH)
     private String snsHandle;
+
+    @Column(updatable = false, length = MAX_INTRO_LENGTH)
+    private String intro;
 
     @Column(name = "birth_date", updatable = false)
     private LocalDate birthDate;
@@ -130,11 +134,15 @@ public class EventRegistration {
         this.createdAt = Objects.requireNonNull(createdAt);
     }
 
-    /** 명함 제작을 희망한 배우가 적은 명함 정보. 이메일·생년월일·사진·분야와 경력(또는 경력 없음)이 필요하다. */
+    /**
+     * 명함 제작을 희망한 배우가 적은 명함 정보. 이메일·생년월일·사진·분야와 경력(또는 경력 없음)이 필요하고, SNS와 뒷면
+     * 한 줄 소개는 선택이다.
+     */
     private void writeBusinessCard(EventRegistrationForm form, String photoKey, LocalDate today) {
         this.businessCardRequested = true;
         this.email = email(form.email());
         this.snsHandle = optional(form.snsHandle(), MAX_SNS_HANDLE_LENGTH, "SNS 계정");
+        this.intro = optional(form.intro(), MAX_INTRO_LENGTH, "한 줄 소개");
         this.birthDate = birthDate(form.birthDate(), today);
         if (photoKey == null || photoKey.isBlank()) {
             throw invalid("프로필 사진을 올려 주세요.");

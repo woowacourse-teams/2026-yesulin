@@ -17,6 +17,7 @@ import java.util.Set;
  * @param otherActivity 기타 분야를 고른 배우가 직접 적은 분야
  * @param noCareer 신입이라 경력이 없는 배우. 켜면 경력을 받지 않는다.
  * @param careers 배우 경력. 경력이 없다고 하지 않았으면 한 줄 이상 적는다.
+ * @param intro 명함 뒷면에 넣을 한 줄 소개. 명함을 희망한 배우만 받고 선택이다.
  */
 public record EventRegistrationForm(
         EventParticipantType participantType,
@@ -30,8 +31,28 @@ public record EventRegistrationForm(
         Set<EventActivityField> activityFields,
         String otherActivity,
         boolean noCareer,
-        List<EventRegistrationCareer> careers
+        List<EventRegistrationCareer> careers,
+        String intro
 ) {
+
+    /** 한 줄 소개 없이 쓰는 신청서. */
+    public EventRegistrationForm(
+            EventParticipantType participantType,
+            String name,
+            String phone,
+            boolean businessCardRequested,
+            String email,
+            String snsHandle,
+            LocalDate birthDate,
+            String affiliation,
+            Set<EventActivityField> activityFields,
+            String otherActivity,
+            boolean noCareer,
+            List<EventRegistrationCareer> careers
+    ) {
+        this(participantType, name, phone, businessCardRequested, email, snsHandle, birthDate, affiliation,
+                activityFields, otherActivity, noCareer, careers, null);
+    }
 
     /** 명함 정보 없이 쓰는 신청서. 공연사 관계자와 명함을 원하지 않는 배우가 쓴다. */
     public static EventRegistrationForm withoutBusinessCard(

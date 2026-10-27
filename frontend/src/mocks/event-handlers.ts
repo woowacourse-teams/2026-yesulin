@@ -52,7 +52,7 @@ const events: Mutable<AdminEvent>[] = [
     applyLabel: "참가 신청하기",
     registrationEnabled: true,
     registrationNotice: "노쇼 방지를 위해 보증금 5,000원을 받습니다. 11월 9일 현장에 오시면 그대로 돌려드립니다.\n입금 계좌: (추후 안내)",
-    businessCardClosesAt: "2026-11-02T00:00:00.000Z",
+    businessCardClosesAt: "2026-11-05T01:00:00.000Z",
     coverImageUrl: null,
     banner: { enabled: false, desktopImageUrl: null, mobileImageUrl: null, alt: null, endsOn: null, order: 0 },
     bannerVisible: false,
@@ -281,6 +281,7 @@ export const eventHandlers = [
       otherActivity: card && write.activityFields.includes("OTHER") ? write.otherActivity : null,
       noCareer: card && write.noCareer,
       careers: card && !write.noCareer ? write.careers : [],
+      intro: card ? write.intro?.trim() || null : null,
       createdAt: new Date().toISOString(),
     });
     registrationEventIds.set(id, event.id);
@@ -295,6 +296,16 @@ export const eventHandlers = [
     const eventId = Number(params.eventId);
     if (!events.some((event) => event.id === eventId)) return apiError(404, "EVENT_NOT_FOUND", "이벤트를 찾을 수 없습니다.");
     return HttpResponse.json({ registrations: registrations.filter((item) => registrationEventIds.get(item.id) === eventId) });
+  }),
+
+  // 목에서는 zip 대신 명함 희망자 JSON만 내려 준다. 실제 서버는 CSV·JSON·사진을 묶은 zip을 준다.
+  http.get("/api/v1/admin/events/:eventId/registrations/business-card-archive", async ({ params }) => {
+    if (realLoginEnabled) return passthrough();
+    const rejected = rejectNonAdmin();
+    if (rejected) return rejected;
+    const eventId = Number(params.eventId);
+    const cards = registrations.filter((item) => registrationEventIds.get(item.id) === eventId && item.businessCardRequested);
+    return new HttpResponse(JSON.stringify(cards, null, 2), { headers: { "Content-Type": "application/zip" } });
   }),
 
   http.delete("/api/v1/admin/events/:eventId/registrations/:registrationId", async ({ params }) => {

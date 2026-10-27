@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ConfirmDialog } from "@/components/shows/manage/confirm-dialog";
-import { AdminApiError, deleteEventRegistration, fetchEventRegistrations } from "@/features/admin/api";
+import { AdminApiError, deleteEventRegistration, downloadBusinessCardArchive, fetchEventRegistrations } from "@/features/admin/api";
 import type { AdminEventRegistration } from "@/features/admin/types";
 import { EVENT_ACTIVITY_LABELS, EVENT_PARTICIPANT_LABELS } from "@/features/events/types";
 import { formatDateTime } from "./admin-format";
@@ -15,6 +15,7 @@ export function AdminEventRegistrations({ eventId, onUnauthorized }: { readonly 
   const [reloadToken, setReloadToken] = useState(0);
   const [deleting, setDeleting] = useState<AdminEventRegistration | null>(null);
   const [removing, setRemoving] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   /** 부모가 매번 새 함수를 넘겨도 다시 읽지 않게 최신 콜백만 기억한다. */
   const unauthorized = useRef(onUnauthorized);
   useEffect(() => { unauthorized.current = onUnauthorized; }, [onUnauthorized]);
@@ -53,6 +54,23 @@ export function AdminEventRegistrations({ eventId, onUnauthorized }: { readonly 
   };
 
   const actors = registrations?.filter((item) => item.participantType === "ACTOR").length ?? 0;
+  const cards = registrations?.filter((item) => item.businessCardRequested).length ?? 0;
+
+  const download = async () => {
+    setDownloading(true);
+    setError(null);
+    try {
+      await downloadBusinessCardArchive(eventId);
+    } catch (cause) {
+      if (cause instanceof AdminApiError && cause.status === 401) {
+        unauthorized.current();
+        return;
+      }
+      setError(cause instanceof Error ? cause.message : "명함 자료를 내려받지 못했습니다.");
+    } finally {
+      setDownloading(false);
+    }
+  };
   return (
     <section aria-label="참가 신청자" className="mt-4 flex flex-col gap-3 border-t border-border-soft pt-4">
       <div className="flex flex-wrap items-center gap-2">
@@ -60,7 +78,12 @@ export function AdminEventRegistrations({ eventId, onUnauthorized }: { readonly 
           참가 신청자
           {registrations ? <span className="num ml-1 font-normal text-muted">{registrations.length}명 (배우 {actors} · 공연사 {registrations.length - actors})</span> : null}
         </h4>
-        <AdminActionButton tone="quiet" className="ml-auto" onClick={() => setReloadToken((value) => value + 1)}>새로고침</AdminActionButton>
+        {cards > 0 ? (
+          <AdminActionButton className="ml-auto" disabled={downloading} onClick={() => void download()}>
+            {downloading ? "내려받는 중…" : `명함 자료 내려받기 (${cards}명)`}
+          </AdminActionButton>
+        ) : null}
+        <AdminActionButton tone="quiet" className={cards > 0 ? "" : "ml-auto"} onClick={() => setReloadToken((value) => value + 1)}>새로고침</AdminActionButton>
       </div>
       {error ? <p role="alert" className="text-sm text-fail">{error}</p> : null}
       {!registrations && !error ? <p role="status" className="text-sm text-muted">신청자를 불러오는 중이에요.</p> : null}
@@ -117,6 +140,7 @@ function ActorDetails({ registration }: { readonly registration: AdminEventRegis
   return (
     <div className="mt-1 text-muted-strong">
       {fields ? <p>분야: {fields}</p> : null}
+      {registration.intro ? <p>한 줄 소개: {registration.intro}</p> : null}
       {registration.noCareer ? <p>경력 없음 (신입)</p> : (
         <ul className="mt-1 list-disc pl-5">
           {registration.careers.map((career, index) => (
