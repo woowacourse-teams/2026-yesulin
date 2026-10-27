@@ -11,7 +11,8 @@ public enum ActorPageErrorCode implements ErrorCode {
     ACTOR_HANDLE_LOCKED(ErrorType.CONFLICT),
     ACTOR_PAGE_CONSENT_REQUIRED(ErrorType.BAD_REQUEST),
     ACTOR_PAGE_LOCKED(ErrorType.CONFLICT),
-    ACTOR_PAGE_NOT_READY(ErrorType.CONFLICT);
+    ACTOR_PAGE_NOT_READY(ErrorType.CONFLICT),
+    ACTOR_PAGE_CONFLICT(ErrorType.CONFLICT);
 
     private final ErrorType type;
 

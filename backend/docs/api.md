@@ -833,6 +833,7 @@ availability는 정규화된 handle과 available, reason(null/INVALID_FORMAT/RES
 | ACTOR_PAGE_CONSENT_REQUIRED | 400 | 동의 없음·버전 불일치 |
 | ACTOR_PAGE_LOCKED | 409 | 잠금 중 공개 시도 |
 | ACTOR_PAGE_NOT_READY | 409 | 공개 조건 부족(한국어 메시지) |
+| ACTOR_PAGE_CONFLICT | 409 | 프로필이 없는 회원의 첫 쓰기 요청이 동시에 들어와 페이지 생성이 겹침. 다시 시도하면 된다 |
 
 잘못된 enum과 필수 값 누락은 기존 `400 INVALID_REQUEST`다. 공개 조회·미리보기와 운영자 API는 이 절에 포함하지 않는다.
 

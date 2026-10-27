@@ -2,6 +2,7 @@ package art.yesulin.actor.application.page;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
@@ -21,8 +22,10 @@ import art.yesulin.actor.domain.profile.ApplicantProfileRepository;
 import art.yesulin.actor.domain.videolibrary.VideoLibrary;
 import art.yesulin.actor.domain.videolibrary.VideoLibraryRepository;
 import art.yesulin.global.exception.BusinessException;
+import java.sql.SQLException;
 import java.time.Clock;
 import java.util.Optional;
+import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -75,11 +78,45 @@ class ActorPageContentSyncTest {
         ActorPageRepository repository = mock(ActorPageRepository.class);
         ActorPageContentSync sync = mock(ActorPageContentSync.class);
         when(sync.lock(1L)).thenReturn(new ActorPageContentState(null, null, null, null, null));
-        when(repository.saveAndFlush(any())).thenThrow(new DataIntegrityViolationException("unique handle"));
+        when(repository.saveAndFlush(any())).thenThrow(violation("PUBLIC.UK_ACTOR_PAGES_HANDLE_INDEX_7"));
         ActorPageService service = new ActorPageService(
                 repository, mock(ActorPagePublishConsentRepository.class), sync, Clock.systemUTC()
         );
         BusinessException exception = assertThrows(BusinessException.class, () -> service.changeHandle(1L, "actor"));
         assertEquals(ActorPageErrorCode.ACTOR_HANDLE_TAKEN, exception.getErrorCode());
+    }
+
+    @Test
+    void mapsConcurrentFirstPageCreationToRetryableConflictInsteadOfHandleTaken() {
+        ActorPageRepository repository = mock(ActorPageRepository.class);
+        ActorPageContentSync sync = mock(ActorPageContentSync.class);
+        when(sync.lock(1L)).thenReturn(new ActorPageContentState(null, null, null, null, null));
+        when(repository.saveAndFlush(any()))
+                .thenThrow(violation("actor_pages.uk_actor_pages_owner_member_id"));
+        ActorPageService service = new ActorPageService(
+                repository, mock(ActorPagePublishConsentRepository.class), sync, Clock.systemUTC()
+        );
+
+        BusinessException handle = assertThrows(BusinessException.class, () -> service.changeHandle(1L, "actor"));
+        BusinessException prompt = assertThrows(BusinessException.class, () -> service.recordPublishPrompt(1L));
+
+        assertEquals(ActorPageErrorCode.ACTOR_PAGE_CONFLICT, handle.getErrorCode());
+        assertEquals(ActorPageErrorCode.ACTOR_PAGE_CONFLICT, prompt.getErrorCode());
+    }
+
+    @Test
+    void rethrowsIntegrityViolationsOfOtherConstraints() {
+        DataIntegrityViolationException unknown = violation("pk_actor_pages");
+        DataIntegrityViolationException withoutConstraint = new DataIntegrityViolationException("unknown");
+
+        assertSame(unknown, ActorPageService.translate(unknown));
+        assertSame(withoutConstraint, ActorPageService.translate(withoutConstraint));
+    }
+
+    private static DataIntegrityViolationException violation(String constraintName) {
+        SQLException cause = new SQLException("duplicate key");
+        return new DataIntegrityViolationException(
+                "duplicate key", new ConstraintViolationException("duplicate key", cause, constraintName)
+        );
     }
 }

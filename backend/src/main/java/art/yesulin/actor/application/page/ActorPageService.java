@@ -1,6 +1,7 @@
 package art.yesulin.actor.application.page;
 
 import static art.yesulin.actor.domain.page.ActorPageErrorCode.ACTOR_HANDLE_TAKEN;
+import static art.yesulin.actor.domain.page.ActorPageErrorCode.ACTOR_PAGE_CONFLICT;
 
 import art.yesulin.actor.domain.page.ActorPage;
 import art.yesulin.actor.domain.page.ActorPageField;
@@ -13,9 +14,11 @@ import art.yesulin.actor.domain.page.ActorPageVisibility;
 import art.yesulin.global.exception.BusinessException;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +26,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class ActorPageService {
+
+    private static final String HANDLE_CONSTRAINT = "uk_actor_pages_handle";
+    private static final String OWNER_CONSTRAINT = "uk_actor_pages_owner_member_id";
 
     private final ActorPageRepository pageRepository;
     private final ActorPagePublishConsentRepository consentRepository;
@@ -54,11 +60,7 @@ public class ActorPageService {
         if (pageRepository.existsByHandleAndOwnerMemberIdNot(page.getHandle(), ownerId)) {
             throw handleTaken();
         }
-        try {
-            pageRepository.saveAndFlush(page);
-        } catch (DataIntegrityViolationException exception) {
-            throw handleTaken();
-        }
+        save(page);
         return result(page, state);
     }
 
@@ -67,7 +69,7 @@ public class ActorPageService {
         ActorPageContentState state = contentSync.lock(ownerId);
         ActorPage page = pageOrNew(state, ownerId);
         page.changeVisibilities(changes);
-        pageRepository.saveAndFlush(page);
+        save(page);
         contentSync.synchronize(state);
         return result(page, state);
     }
@@ -78,7 +80,7 @@ public class ActorPageService {
         ActorPage page = pageOrNew(state, ownerId);
         Instant now = Instant.now(clock);
         boolean published = page.publish(agreed, consentVersion, state.readiness(page, contentSync.today()), now);
-        pageRepository.saveAndFlush(page);
+        save(page);
         if (published) {
             consentRepository.save(new ActorPagePublishConsent(page.getId(), ownerId, consentVersion, now));
         }
@@ -90,7 +92,7 @@ public class ActorPageService {
         ActorPageContentState state = contentSync.lock(ownerId);
         ActorPage page = pageOrNew(state, ownerId);
         page.unpublish();
-        pageRepository.saveAndFlush(page);
+        save(page);
         return result(page, state);
     }
 
@@ -99,7 +101,7 @@ public class ActorPageService {
         ActorPageContentState state = contentSync.lock(ownerId);
         ActorPage page = pageOrNew(state, ownerId);
         page.recordPublishPrompt(Instant.now(clock));
-        pageRepository.saveAndFlush(page);
+        save(page);
     }
 
     private ActorPageHandleUnavailableReason unavailableReason(long ownerId, String handle, ActorPage page) {
@@ -126,7 +128,41 @@ public class ActorPageService {
         return ActorPageSettingsResult.from(page, state, contentSync.today());
     }
 
-    private BusinessException handleTaken() {
+    private void save(ActorPage page) {
+        try {
+            pageRepository.saveAndFlush(page);
+        } catch (DataIntegrityViolationException exception) {
+            throw translate(exception);
+        }
+    }
+
+    /**
+     * 다른 회원과 아이디가 겹치면 아이디 제약에, 프로필이 없어 잠글 행이 없는 회원의 첫 쓰기 요청이 동시에 페이지를 만들면
+     * 회원당 1개 제약에 걸린다. 앞의 것은 아이디 중복으로, 뒤의 것은 다시 시도하면 되는 충돌로 돌려준다.
+     */
+    static RuntimeException translate(DataIntegrityViolationException exception) {
+        String constraint = violatedConstraint(exception);
+        if (constraint.contains(HANDLE_CONSTRAINT)) {
+            return handleTaken();
+        }
+        if (constraint.contains(OWNER_CONSTRAINT)) {
+            return new BusinessException(ACTOR_PAGE_CONFLICT, "다른 요청과 동시에 처리되어 저장하지 못했습니다. 다시 시도해 주세요.");
+        }
+        return exception;
+    }
+
+    private static String violatedConstraint(DataIntegrityViolationException exception) {
+        Throwable cause = exception;
+        while (cause != null) {
+            if (cause instanceof ConstraintViolationException violation && violation.getConstraintName() != null) {
+                return violation.getConstraintName().toLowerCase(Locale.ROOT);
+            }
+            cause = cause.getCause();
+        }
+        return "";
+    }
+
+    private static BusinessException handleTaken() {
         return new BusinessException(ACTOR_HANDLE_TAKEN, "다른 배우 페이지에서 사용 중인 아이디입니다.");
     }
 }

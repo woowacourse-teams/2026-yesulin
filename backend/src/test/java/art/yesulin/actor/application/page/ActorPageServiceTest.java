@@ -2,6 +2,7 @@ package art.yesulin.actor.application.page;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -22,6 +23,7 @@ import art.yesulin.actor.domain.page.ActorPage;
 import art.yesulin.actor.domain.page.ActorPageAutoHiddenReason;
 import art.yesulin.actor.domain.page.ActorPageErrorCode;
 import art.yesulin.actor.domain.page.ActorPageField;
+import art.yesulin.actor.domain.page.ActorPageHandle;
 import art.yesulin.actor.domain.page.ActorPageHandleUnavailableReason;
 import art.yesulin.actor.domain.page.ActorPagePublishConsentRepository;
 import art.yesulin.actor.domain.page.ActorPageRepository;
@@ -49,6 +51,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -278,6 +281,29 @@ class ActorPageServiceTest {
         assertEquals(2, consents.countByActorPageId(page().getId()));
     }
 
+    @Test
+    void translatesRealHandleConstraintViolationToHandleTaken() {
+        long other = members.saveAndFlush(Member.ofApplicant()).getId();
+        pageRepository.saveAndFlush(pageWithHandle(owner, "same.handle"));
+
+        DataIntegrityViolationException exception = assertThrows(DataIntegrityViolationException.class,
+                () -> pageRepository.saveAndFlush(pageWithHandle(other, "same.handle")));
+
+        BusinessException translated = assertInstanceOf(BusinessException.class, ActorPageService.translate(exception));
+        assertEquals(ActorPageErrorCode.ACTOR_HANDLE_TAKEN, translated.getErrorCode());
+    }
+
+    @Test
+    void translatesRealOwnerConstraintViolationToRetryableConflict() {
+        pageRepository.saveAndFlush(new ActorPage(owner));
+
+        DataIntegrityViolationException exception = assertThrows(DataIntegrityViolationException.class,
+                () -> pageRepository.saveAndFlush(new ActorPage(owner)));
+
+        BusinessException translated = assertInstanceOf(BusinessException.class, ActorPageService.translate(exception));
+        assertEquals(ActorPageErrorCode.ACTOR_PAGE_CONFLICT, translated.getErrorCode());
+    }
+
     private long ready() {
         profiles.update(owner, basic("배우", BIRTH));
         pages.changeHandle(owner, "actor");
@@ -295,6 +321,12 @@ class ActorPageServiceTest {
         PhotoLibraryItemResult result = photos.addPhoto(owner, new AddPhotoToLibraryCommand(upload.fileId()));
         assertEquals(PhotoVisibility.PRIVATE, result.visibility());
         return result.id();
+    }
+
+    private static ActorPage pageWithHandle(long memberId, String handle) {
+        ActorPage page = new ActorPage(memberId);
+        page.changeHandle(new ActorPageHandle(handle));
+        return page;
     }
 
     private UpdateApplicantProfileCommand basic(String name, LocalDate birth) {
