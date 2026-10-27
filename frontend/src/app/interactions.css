@@ -52,6 +52,16 @@
   }
 }
 
+/* 명함 미리보기가 가만히 있을 때 종이처럼 살짝 흔들린다. 움직임 줄이기 설정에서는 아래 공통 규칙이 멈춘다. */
+.business-card-float {
+  animation: business-card-float 6s ease-in-out infinite;
+}
+
+@keyframes business-card-float {
+  0%, 100% { transform: rotateX(4deg) rotateY(-9deg) translateY(0); }
+  50% { transform: rotateX(-2deg) rotateY(9deg) translateY(-4px); }
+}
+
 @supports not (backdrop-filter: blur(1px)) {
   .glass-surface,
   .glass-surface-strong {

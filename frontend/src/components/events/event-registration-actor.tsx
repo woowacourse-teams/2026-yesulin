@@ -4,12 +4,14 @@ import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { AddButton, FieldInput, FieldSelect, SecondaryButton, TextButton } from "@/components/ui/controls";
 import { shrinkPhoto } from "@/features/companies/photo-image";
 import { uploadEventRegistrationPhoto } from "@/features/events/api";
+import { businessCardContent } from "@/features/events/business-card-preview";
 import { careerYears, emptyCareer, toggleActivityField, type CareerDraft, type RegistrationDraft } from "@/features/events/registration-draft";
 import { EVENT_ACTIVITY_FIELDS, EVENT_ACTIVITY_LABELS, MAX_REGISTRATION_CAREERS, MAX_REGISTRATION_INTRO } from "@/features/events/types";
+import { BusinessCardPreview } from "./business-card-preview";
 import { BirthDateField } from "./event-registration-birth-date";
 import { RegistrationField, RequiredMark, koreaToday } from "./event-registration-field";
 
-type CardDraft = Pick<RegistrationDraft, "email" | "snsHandle" | "birthDate" | "activityFields" | "otherActivity" | "noCareer" | "careers" | "intro">;
+type CardDraft = Pick<RegistrationDraft, "name" | "email" | "snsHandle" | "birthDate" | "activityFields" | "otherActivity" | "noCareer" | "careers" | "intro">;
 
 const MONTHS = Array.from({ length: 12 }, (_, index) => String(index + 1).padStart(2, "0"));
 
@@ -21,12 +23,14 @@ export function BusinessCardFields({ eventId, draft, onChange, onPhotoChange, on
   readonly onPhotoChange: (uploadKey: string | null) => void;
   readonly onPhotoBusyChange: (busy: boolean) => void;
 }) {
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   return (
     <section aria-labelledby="registration-card-title" className="flex flex-col gap-5 rounded-control border border-brand-line bg-brand-soft/40 p-4">
       <div>
         <h2 id="registration-card-title" className="text-sm font-bold text-brand">프로필 명함에 들어갈 정보</h2>
         <p className="mt-1 text-xs text-muted-strong">아래 정보가 명함에 그대로 들어갑니다. 휴대폰 번호는 명함에 넣지 않습니다.</p>
       </div>
+      <BusinessCardPreview content={businessCardContent(draft)} photoUrl={photoPreview} />
       <RegistrationField id="registration-email" label="이메일" required>
         <FieldInput id="registration-email" type="email" inputMode="email" autoComplete="email" value={draft.email} maxLength={254} onChange={(event) => onChange({ email: event.target.value })} />
       </RegistrationField>
@@ -34,7 +38,7 @@ export function BusinessCardFields({ eventId, draft, onChange, onPhotoChange, on
         <FieldInput id="registration-sns" value={draft.snsHandle} maxLength={100} onChange={(event) => onChange({ snsHandle: event.target.value })} />
       </RegistrationField>
       <BirthDateField value={draft.birthDate} today={koreaToday()} onChange={(birthDate) => onChange({ birthDate })} />
-      <PhotoField eventId={eventId} onBusyChange={onPhotoBusyChange} onChange={onPhotoChange} />
+      <PhotoField eventId={eventId} preview={photoPreview} onPreviewChange={setPhotoPreview} onBusyChange={onPhotoBusyChange} onChange={onPhotoChange} />
 
       <fieldset className="flex flex-col gap-2">
         <legend className="mb-1 text-sm font-semibold">활동 분야<RequiredMark /></legend>
@@ -121,13 +125,15 @@ function CareersField({ noCareer, careers, onChange }: {
 }
 
 /** 휴대폰 사진(HEIC 포함)을 긴 변 1600px JPEG로 줄여 비공개 경로에 바로 올린다. */
-function PhotoField({ eventId, onBusyChange, onChange }: {
+function PhotoField({ eventId, preview, onPreviewChange, onBusyChange, onChange }: {
   readonly eventId: number;
+  /** 줄인 사진의 미리 보기 주소. 명함 미리보기도 같은 주소를 쓴다. */
+  readonly preview: string | null;
+  readonly onPreviewChange: (url: string | null) => void;
   readonly onBusyChange: (busy: boolean) => void;
   readonly onChange: (uploadKey: string | null) => void;
 }) {
   const input = useRef<HTMLInputElement>(null);
-  const [preview, setPreview] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "shrinking" | "uploading">("idle");
   const [error, setError] = useState<string | null>(null);
 
@@ -144,7 +150,7 @@ function PhotoField({ eventId, onBusyChange, onChange }: {
       const photo = await shrinkPhoto(file);
       setStatus("uploading");
       const uploadKey = await uploadEventRegistrationPhoto(eventId, photo);
-      setPreview(URL.createObjectURL(photo));
+      onPreviewChange(URL.createObjectURL(photo));
       onChange(uploadKey);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "사진을 올리지 못했습니다. 다시 시도해 주십시오.");
