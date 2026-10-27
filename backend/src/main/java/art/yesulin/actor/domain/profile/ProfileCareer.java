@@ -3,15 +3,19 @@ package art.yesulin.actor.domain.profile;
 import static art.yesulin.actor.domain.profile.ProfileErrorCode.INVALID_PROFILE;
 import static art.yesulin.global.validation.DomainValidator.requireText;
 
+import art.yesulin.actor.domain.profile.converter.ProfileCareerGenreConverter;
 import art.yesulin.global.exception.BusinessException;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Embeddable;
 
 @Embeddable
 public record ProfileCareer(
         @Column(name = "career_year", nullable = false) int year,
         @Column(name = "title", nullable = false, length = MAX_TITLE_LENGTH) String title,
-        @Column(name = "role_name", nullable = false, length = MAX_ROLE_NAME_LENGTH) String roleName
+        @Column(name = "role_name", nullable = false, length = MAX_ROLE_NAME_LENGTH) String roleName,
+        @Convert(converter = ProfileCareerGenreConverter.class)
+        @Column(name = "genre", length = 20) ProfileCareerGenre genre
 ) {
 
     public static final int MAX_TITLE_LENGTH = 255;
@@ -19,6 +23,10 @@ public record ProfileCareer(
 
     private static final int MINIMUM_YEAR = 1_000;
     private static final int MAXIMUM_YEAR = 9_999;
+
+    public ProfileCareer(int year, String title, String roleName) {
+        this(year, title, roleName, null);
+    }
 
     public ProfileCareer {
         if (year < MINIMUM_YEAR || year > MAXIMUM_YEAR) {
