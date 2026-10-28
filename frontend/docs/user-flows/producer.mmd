@@ -23,6 +23,10 @@ flowchart TD
     POSTS --> POST_EDIT["공고 수정<br>PUT .../audition-posts/{postId}<br>바로 반영·바뀐 항목 Slack 알림"]
     POST_NEW --> POSTS
     POST_EDIT --> POSTS
+    LOGIN --> BOOKMARKS["관심 배우<br>/producers/actor-bookmarks<br>저장 N/300명·숨긴 수 안내"]
+    BOOKMARKS --> ACTORS["배우 목록·배우 페이지<br>GET /api/v1/producers/me/actor-bookmark-ids로 버튼 상태"]
+    ACTORS --> BOOKMARK_TOGGLE["관심 배우 저장·해제<br>PUT·DELETE .../actor-bookmarks/{publicId}<br>300명 한도는 숨긴 저장 포함"]
+    BOOKMARK_TOGGLE --> BOOKMARKS
     FREE_SHOW --> FREE_SESSION["회차·예매 관리"]
     FREE_SESSION --> FREE_RESERVATIONS["회차별 예매자 관리"]
     FREE_RESERVATIONS --> PHONE_LIST["전화번호 복사 모달<br>번호 목록·3일 이내 삭제 안내 확인"]

@@ -9,6 +9,7 @@ import { ProducerAccountPanel } from "./producer-account-panel";
 import { OtrAuditionTreeNav } from "@/components/otr-auditions/otr-audition-tree";
 import { ShowManagementNav } from "@/components/shows/manage/show-management-nav";
 import { AuditionPostManagementNav } from "@/components/audition-posts/manage/audition-post-management-nav";
+import { ActorBookmarkNav } from "@/components/actor-pages/actor-bookmark-nav";
 import { PdfReviewNavigation } from "./pdf-review-navigation";
 import { useRouteDisclosure } from "./use-route-disclosure";
 
@@ -83,6 +84,7 @@ export function MobileProducerNavigation() {
             <PdfReviewNavigation onNavigate={closeDisclosure} />
             <ShowManagementNav onNavigate={closeDisclosure} />
             <AuditionPostManagementNav onNavigate={closeDisclosure} />
+            <ActorBookmarkNav onNavigate={closeDisclosure} />
             <OtrAuditionTreeNav onNavigate={closeDisclosure} />
           </div>
           <ProducerAccountPanel />

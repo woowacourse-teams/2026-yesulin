@@ -14,6 +14,7 @@ import {
   type PublicActorPageSummary,
 } from "@/features/actor-pages/types";
 import { pageItems } from "@/features/audition-posts/pagination";
+import { ActorBookmarkButton } from "./actor-bookmarks";
 import { ActorPageScreen, ActorPhoto } from "./actor-page-screen";
 
 type ListState =
@@ -74,16 +75,19 @@ export function ActorListRoute({ page, initialList }: { readonly page: number; r
   );
 }
 
-function ActorCard({ actor }: { readonly actor: PublicActorPageSummary }) {
+/** 공연사에게는 사진 위에 관심 배우 저장 버튼이 보인다. 버튼은 링크 밖에 둔다. */
+export function ActorCard({ actor, headingLevel = 2 }: { readonly actor: PublicActorPageSummary; readonly headingLevel?: 2 | 3 }) {
   const body = actorBodyLine(actor);
+  const Heading = headingLevel === 2 ? "h2" : "h3";
   return (
-    <li className="min-w-0">
+    <li className="relative min-w-0">
       <Link href={actorPageRoutes.detail(actor.handle)} className="group block rounded-card focus-visible:outline-offset-4">
         <ActorPhoto src={actor.representativePhotoUrl} alt="" className="rounded-card transition-opacity group-hover:opacity-90" />
-        <h2 className="mt-3 truncate text-base font-bold group-hover:underline">{actor.name}</h2>
+        <Heading className="mt-3 truncate text-base font-bold group-hover:underline">{actor.name}</Heading>
         <p className="mt-0.5 text-sm text-muted-strong">{actorIdentityLine(actor)}</p>
         {body ? <p className="num text-sm text-muted">{body}</p> : null}
       </Link>
+      <div className="absolute right-2 top-2"><ActorBookmarkButton publicId={actor.publicId} name={actor.name} variant="overlay" /></div>
     </li>
   );
 }
@@ -91,20 +95,30 @@ function ActorCard({ actor }: { readonly actor: PublicActorPageSummary }) {
 const PAGE_ITEM = "num inline-flex h-11 min-w-11 items-center justify-center rounded-control px-3 text-sm font-semibold transition-colors";
 
 /** 주소(`?page=`)로 이동하는 번호 페이지. 뒤로 가기·새로고침·공유 때 같은 페이지가 열린다. */
-function ActorListPagination({ page, totalPages }: { readonly page: number; readonly totalPages: number }) {
+export function ActorListPagination({
+  page,
+  totalPages,
+  href = actorPageRoutes.list,
+  label = "배우 목록 페이지",
+}: {
+  readonly page: number;
+  readonly totalPages: number;
+  readonly href?: (page: number) => string;
+  readonly label?: string;
+}) {
   if (totalPages <= 1) return null;
   const link = `${PAGE_ITEM} text-muted-strong hover:bg-white hover:text-foreground`;
   return (
-    <nav aria-label="배우 목록 페이지" className="mt-10 flex flex-wrap items-center justify-center gap-1">
-      {page > 0 ? <Link href={actorPageRoutes.list(page - 1)} className={link}>이전<span className="sr-only"> 페이지</span></Link> : null}
+    <nav aria-label={label} className="mt-10 flex flex-wrap items-center justify-center gap-1">
+      {page > 0 ? <Link href={href(page - 1)} className={link}>이전<span className="sr-only"> 페이지</span></Link> : null}
       {pageItems(page, totalPages).map((item) => item.kind === "gap" ? (
         <span key={item.key} aria-hidden="true" className="px-1 text-muted">…</span>
       ) : item.page === page ? (
         <span key={item.page} aria-current="page" className={`${PAGE_ITEM} bg-foreground text-white`}>{item.page + 1}</span>
       ) : (
-        <Link key={item.page} href={actorPageRoutes.list(item.page)} aria-label={`${item.page + 1}페이지`} className={link}>{item.page + 1}</Link>
+        <Link key={item.page} href={href(item.page)} aria-label={`${item.page + 1}페이지`} className={link}>{item.page + 1}</Link>
       ))}
-      {page < totalPages - 1 ? <Link href={actorPageRoutes.list(page + 1)} className={link}>다음<span className="sr-only"> 페이지</span></Link> : null}
+      {page < totalPages - 1 ? <Link href={href(page + 1)} className={link}>다음<span className="sr-only"> 페이지</span></Link> : null}
     </nav>
   );
 }

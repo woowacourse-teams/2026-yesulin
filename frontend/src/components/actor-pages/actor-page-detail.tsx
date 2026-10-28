@@ -17,6 +17,7 @@ import {
 import { profileCareerGenreLabel } from "@/features/applicants/career-genre";
 import { educationText } from "@/features/applicants/education";
 import { AuditionRequestError } from "@/features/auditions/api-client";
+import { ActorBookmarkButton } from "./actor-bookmarks";
 import { ActorPageScreen, ActorPhoto } from "./actor-page-screen";
 
 type PageState =
@@ -110,7 +111,12 @@ export function ActorPageView({ actorPage, preview = false }: { readonly actorPa
           <NameHeading className="mt-1 break-words text-3xl font-bold leading-tight">{name}</NameHeading>
           {identity ? <p className="mt-2 text-base text-muted-strong">{identity}</p> : null}
           {body ? <p className="num text-base text-muted-strong">{body}</p> : null}
-          {!preview && actorPage.handle ? <div className="mt-5"><ShareButton name={name} handle={actorPage.handle} /></div> : null}
+          {!preview && actorPage.handle ? (
+            <div className="mt-5 flex flex-wrap items-start gap-2">
+              {actorPage.publicId ? <ActorBookmarkButton publicId={actorPage.publicId} name={name} /> : null}
+              <ShareButton name={name} handle={actorPage.handle} />
+            </div>
+          ) : null}
         </div>
       </header>
 
