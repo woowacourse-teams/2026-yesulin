@@ -236,6 +236,14 @@ export const MOCK_SCENARIOS: readonly MockScenarioDefinition[] = [
     checks: ["공개 사진이 빠져 비공개로 바뀌었다는 안내가 보인다", "사진을 공개로 바꾸면 다시 공개할 수 있다", "/applicants?mockActorPage=public은 마이페이지 홈에 공개 중과 주소가 보인다"],
   },
   {
+    id: "actor-profile-import",
+    area: "배우 페이지",
+    title: "PDF로 프로필 채우기",
+    description: "PDF 프로필에서 읽은 값을 골라 편집 화면 입력란에 넣고 사진 후보를 보관함에 넣습니다.",
+    href: "/applicants/profile",
+    checks: ["'PDF로 채우기'에서 아무 PDF나 올리면 몇 초 뒤 결과가 보인다", "지금 값과 같은 항목은 고를 수 없고, 다른 키는 바꿀지 직접 고른다", "두 자리 연도·배역이 없는 경력은 빈칸으로 들어가고, 이미 있는 경력은 고를 수 없다", "넣은 뒤 '프로필 저장'을 눌러야 저장된다", "?mockProfileImport=used는 오늘 이미 썼다는 안내, failed는 읽지 못한 결과, result는 바로 결과를 보여 준다"],
+  },
+  {
     id: "actor-page-admin",
     area: "배우 페이지",
     title: "운영자 배우 페이지 관리",

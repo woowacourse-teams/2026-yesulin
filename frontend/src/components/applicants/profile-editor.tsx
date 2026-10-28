@@ -14,7 +14,9 @@ import { ActorPagePublishDialog } from "@/components/actor-pages/actor-page-publ
 import { ActorPageSettingsPanel, publishedActorPageToast, useActorPageSettings } from "@/components/actor-pages/actor-page-settings";
 import { recordActorPagePublishPrompt } from "@/features/actor-pages/owner-api";
 import { shouldPromptPublish, type ActorPageSettings } from "@/features/actor-pages/settings";
+import { reloadApplicantProfilePhotos } from "@/features/applicants/profile-photo-api";
 import { ProfileInformationSection } from "./profile-editor-sections";
+import { ProfileImport } from "./profile-import";
 import { MAX_LIBRARY_PHOTOS, ProfilePhotoLibrary } from "./profile-photo-library";
 import { MAX_LIBRARY_VIDEOS, ProfileVideoLibrary } from "./profile-video-library";
 
@@ -95,6 +97,22 @@ export function ProfileEditor({ profile, onSaved, initialTab = "BASIC" }: { read
     }
   };
   const libraryChanged = (next: ApplicantProfileResponse) => { onSaved(next); void actorPage.refresh(); };
+  /** PDF에서 고른 값은 입력란에만 넣는다. 저장은 다른 변경과 같이 '프로필 저장'으로 한다. */
+  const applyImport = (updates: Readonly<DraftValues>, needsCareerInput: boolean) => {
+    setValues((current) => ({ ...current, ...updates }));
+    setError("");
+    setActiveTab(needsCareerInput || !BASIC_KEYS.some((key) => key in updates) ? "ADDITIONAL" : "BASIC");
+    toast(needsCareerInput
+      ? "고른 값을 입력란에 넣었어요. 빈 경력 연도·배역을 채운 뒤 '프로필 저장'을 눌러 주세요."
+      : "고른 값을 입력란에 넣었어요. '프로필 저장'을 눌러야 저장돼요.", { type: "success" });
+  };
+  const importedPhotoAdded = async () => {
+    try {
+      libraryChanged(await reloadApplicantProfilePhotos(profile));
+    } catch (cause) {
+      console.error("[사진 보관함 다시 읽기 실패]", cause);
+    }
+  };
 
   const tabCount = (tab: ProfileTab) => {
     if (tab === "ACTOR_PAGE") return actorPage.settings ? actorPage.settings.locked ? "잠김" : actorPage.settings.status === "PUBLIC" ? "공개" : "비공개" : "";
@@ -112,7 +130,7 @@ export function ProfileEditor({ profile, onSaved, initialTab = "BASIC" }: { read
       return <button key={tab.id} type="button" aria-current={active ? "page" : undefined} onClick={() => { setActiveTab(tab.id); setError(""); }} className="applicant-profile-tab"><span className="flex items-center justify-between gap-2"><strong className="text-sm">{tab.label}</strong><span className="num text-xs">{tabCount(tab.id)}</span></span><span className="mt-1 hidden text-xs lg:block">{tab.description}</span></button>;
     })}</nav>
     <section className="workspace-panel min-w-0">
-      <div className="border-b border-border-soft pb-5"><h2 className="text-xl font-bold">{tabs.find((tab) => tab.id === activeTab)?.label}</h2><p className="mt-2 text-sm leading-6 text-muted">{activeTab === "BASIC" ? "지원서에 공통으로 사용하는 정보예요. 작성한 항목부터 저장할 수 있어요." : activeTab === "ADDITIONAL" ? "필요한 항목만 저장하면 공고에서 요청할 때 자동으로 채워집니다." : activeTab === "ACTOR_PAGE" ? "누구나 보는 배우 페이지에 무엇을 보일지 정해요. 변경 내용은 즉시 저장됩니다." : "추가·삭제·순서 변경 내용은 즉시 저장됩니다."}</p></div>
+      <div className="flex flex-wrap items-start gap-3 border-b border-border-soft pb-5"><div className="min-w-0 flex-1"><h2 className="text-xl font-bold">{tabs.find((tab) => tab.id === activeTab)?.label}</h2><p className="mt-2 text-sm leading-6 text-muted">{activeTab === "BASIC" ? "지원서에 공통으로 사용하는 정보예요. 작성한 항목부터 저장할 수 있어요." : activeTab === "ADDITIONAL" ? "필요한 항목만 저장하면 공고에서 요청할 때 자동으로 채워집니다." : activeTab === "ACTOR_PAGE" ? "누구나 보는 배우 페이지에 무엇을 보일지 정해요. 변경 내용은 즉시 저장됩니다." : "추가·삭제·순서 변경 내용은 즉시 저장됩니다."}</p></div>{informationTab ? <ProfileImport values={values} photoCount={profile.photoLibrary.length} onApply={applyImport} onPhotoAdded={importedPhotoAdded} /> : null}</div>
       {activeTab === "BASIC" ? <ProfileInformationSection tab="BASIC" fields={basicFields} values={values} onChange={change} /> : null}
       {activeTab === "ADDITIONAL" ? <ProfileInformationSection tab="ADDITIONAL" fields={additionalFields} values={values} onChange={change} /> : null}
       {activeTab === "PHOTOS" ? <ProfilePhotoLibrary profile={profile} onSaved={libraryChanged} /> : null}

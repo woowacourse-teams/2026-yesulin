@@ -97,6 +97,14 @@ export function patchApplicantProfile(body: UpdateProfileRequest): ApplicantProf
   return applicantProfile();
 }
 
+/** 서버가 만든 사진(PDF 사진 후보 복사 등)을 보관함 맨 뒤에 넣는다. 가득 찼으면 넣지 않고 null이다. */
+export function addApplicantLibraryPhoto(photo: Omit<ApplicantProfilePhoto, "representative" | "visibility">): ApplicantProfilePhoto | null {
+  if (photoLibrary.length >= MAX_ACTOR_PHOTO_COUNT) return null;
+  const added: ApplicantProfilePhoto = { ...photo, representative: photoLibrary.length === 0, visibility: "PRIVATE" };
+  photoLibrary = [...photoLibrary, added];
+  return clone(added);
+}
+
 /** 배우 페이지가 비공개가 되면 서버처럼 공개 사본을 모두 지운다. */
 export function clearApplicantPhotoPublicCopies() {
   photoLibrary = photoLibrary.map((photo) => ({ ...photo, publicCopyUrl: null }));

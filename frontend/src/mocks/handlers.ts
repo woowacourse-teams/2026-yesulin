@@ -27,6 +27,7 @@ import {
 } from "./auditions/manage";
 import { patchProducerProfile, producerProfile } from "./auditions/producer-profile";
 import { applicantHandlers } from "./applicants/handlers";
+import { profileImportHandlers } from "./applicants/profile-import-handlers";
 import { screeningHandlers } from "./auditions/screening-handlers";
 import { validatePostingDraft } from "./auditions/posting-validation";
 import { authHandlers } from "./auth-handlers";
@@ -98,6 +99,7 @@ export const handlers = [
   }),
 
   ...applicantHandlers,
+  ...profileImportHandlers,
 
   http.get(`${apiPath}/v1/producers/me/navigation-tree`, async () => {
     if (realProducerApiEnabled) return passthrough();
