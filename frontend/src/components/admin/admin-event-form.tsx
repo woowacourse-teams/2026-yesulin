@@ -4,7 +4,7 @@ import { useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } fr
 import { FieldInput, FieldTextarea } from "@/components/ui/controls";
 import { AdminApiError, uploadEventImage } from "@/features/admin/api";
 import type { AdminEventWrite } from "@/features/admin/types";
-import { BANNER_RATIOS, bannerRatioWarning, eventDraftProblem, writeOfEvent, type EventDraft, type EventImageSlot } from "@/features/events/draft";
+import { BANNER_RATIOS, bannerRatioWarning, EVENT_BODY_MAX_LENGTH, eventDraftProblem, writeOfEvent, type EventDraft, type EventImageSlot } from "@/features/events/draft";
 import { MAX_EVENT_DETAIL_IMAGES } from "@/features/events/types";
 import { AdminActionButton } from "./admin-shell";
 
@@ -64,7 +64,7 @@ export function AdminEventForm({ initial, submitLabel, onSave, onCancel, onUnaut
         <FieldInput id="event-summary" value={draft.summary} maxLength={200} onChange={(event) => set("summary", event.target.value)} />
       </Field>
       <Field id="event-body" label="개요" required hint="대표 이미지 옆에 보여요. 이벤트 소개와 안내를 자유롭게 적어 주세요. 줄바꿈을 그대로 유지해요.">
-        <FieldTextarea id="event-body" rows={8} value={draft.body} maxLength={5000} onChange={(event) => set("body", event.target.value)} />
+        <FieldTextarea id="event-body" rows={8} value={draft.body} maxLength={EVENT_BODY_MAX_LENGTH} onChange={(event) => set("body", event.target.value)} />
       </Field>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field id="event-starts-on" label="시작일" hint="비우면 시작일 없이 진행 중으로 보여요.">
@@ -127,7 +127,7 @@ export function AdminEventForm({ initial, submitLabel, onSave, onCancel, onUnaut
       <fieldset className="flex flex-col gap-4 rounded-control border border-border-soft p-4">
         <legend className="px-1 text-sm font-semibold">하단 상세 내용</legend>
         <Field id="event-detail-body" label="상세 설명" hint="개요 아래 별도 영역에 보여요. 상세 이미지만 등록해도 돼요.">
-          <FieldTextarea id="event-detail-body" rows={8} maxLength={5000} value={draft.detailBody} onChange={(event) => set("detailBody", event.target.value)} />
+          <FieldTextarea id="event-detail-body" rows={8} maxLength={EVENT_BODY_MAX_LENGTH} value={draft.detailBody} onChange={(event) => set("detailBody", event.target.value)} />
         </Field>
         {draft.detailImageUrls.map((url, index) => (
           <div key={url} className="space-y-2 rounded-control border border-border-soft p-3">

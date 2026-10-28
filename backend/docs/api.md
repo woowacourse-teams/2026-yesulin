@@ -568,14 +568,14 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 | PATCH | `/api/v1/admin/events/{eventId}/registration-status` | Admin | `{ closed: boolean }` | `200 AdminEventResult` |
 | PATCH | `/api/v1/admin/events/{eventId}/registrations/{registrationId}/payment-status` | Admin | `{ paymentStatus: PENDING 또는 CONFIRMED }` | `200 AdminEventRegistrationResult` |
 
-`WriteEventRequest`는 `title`(필수, 100자), `summary`(목록 소개, 200자), `body`(필수 개요, 대표 이미지 옆에 보이는 자유 형식 텍스트, 줄바꿈 유지, 5000자),
+`WriteEventRequest`는 `title`(필수, 100자), `summary`(목록 소개, 200자), `body`(필수 개요, 대표 이미지 옆에 보이는 자유 형식 텍스트, 줄바꿈 유지, 2000자),
 `registrationCapacity`(관계자·배우(일반 참가자 포함) 합산 총정원, null은 무제한, 1명 이상의 정수),
 `startsOn`·`endsOn`(`YYYY-MM-DD`, 종료일이 시작일보다 앞서면 400), `applyUrl`(http·https 주소, 500자), `applyLabel`(신청 버튼 문구,
 30자, `applyUrl`도 참가 신청서도 없으면 지운다), `registrationEnabled`(켜면 신청 버튼이 외부 주소 대신 예술in 참가 신청서를 연다),
 `registrationNotice`(참가 신청서 위에 보일 보증금·계좌 같은 안내, 줄바꿈을 살린 2000자, 신청서를 끄면 지운다),
 `registrationConfirmationEnabled`(기본 false, 신청 전 확인 팝업 사용), `registrationConfirmationMessage`(팝업 안내, 줄바꿈 유지, 2000자,
 팝업을 켜면 필수이며 공백만 있는 값은 거절한다. 팝업이나 참가 신청서를 끄면 내용을 지운다),
-`businessCardClosesAt`(배우의 프로필 명함 제작 희망을 받는 마감 시각, ISO-8601, 비우면 신청 기간 내내 받고 신청서를 끄면 지운다), `coverImageUrl`(대표 이미지), `detailBody`(선택적 하단 상세 설명, 줄바꿈 유지, 5000자),
+`businessCardClosesAt`(배우의 프로필 명함 제작 희망을 받는 마감 시각, ISO-8601, 비우면 신청 기간 내내 받고 신청서를 끄면 지운다), `coverImageUrl`(대표 이미지), `detailBody`(선택적 하단 상세 설명, 줄바꿈 유지, 2000자),
 `detailImageUrls`(선택적 하단 상세 이미지 주소 배열, 순서 유지, 최대 10장, 빈 주소·중복 거절), `banner(enabled, desktopImageUrl, mobileImageUrl, alt, endsOn, order)`다.
 `detailBody`와 `detailImageUrls`는 각각 독립적이라 설명만 또는 이미지만 등록할 수 있다. 상세 이미지 배열을 생략하거나 null·빈 배열로 보내면 모두 지운다.
 이미지는 기존 이벤트 이미지 업로드 API로 올리며, 이 이벤트에서 이미 쓰는 주소 또는 해당 운영자가 새로 올린 주소만 확정한다.

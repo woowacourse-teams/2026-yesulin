@@ -53,7 +53,8 @@ describe("이벤트 개요와 하단 상세", () => {
     expect(eventDraftProblem(draft)).toBeNull();
     expect(eventDraftProblem({ ...draft, detailImageUrls: ["/one.webp", "/one.webp"] })).toContain("중복");
     expect(eventDraftProblem({ ...draft, detailImageUrls: Array.from({ length: 11 }, (_, i) => `/${i}.webp`) })).toContain("10장");
-    expect(eventDraftProblem({ ...draft, detailBody: "가".repeat(5001) })).toContain("5000자");
+    expect(eventDraftProblem({ ...draft, detailBody: "가".repeat(2001) })).toContain("2000자");
+    expect(eventDraftProblem({ ...draft, body: "가".repeat(2001) })).toContain("2000자");
   });
 });
 

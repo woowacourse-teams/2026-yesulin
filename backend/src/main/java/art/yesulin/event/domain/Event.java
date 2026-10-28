@@ -39,7 +39,7 @@ public class Event {
 
     public static final int MAX_TITLE_LENGTH = 100;
     public static final int MAX_SUMMARY_LENGTH = 200;
-    public static final int MAX_BODY_LENGTH = 5000;
+    public static final int MAX_BODY_LENGTH = 2000;
     public static final int MAX_URL_LENGTH = 500;
     public static final int MAX_APPLY_LABEL_LENGTH = 30;
     public static final int MAX_BANNER_ALT_LENGTH = 200;
@@ -96,7 +96,8 @@ public class Event {
     @Column(name = "registration_confirmation_enabled", nullable = false)
     private boolean registrationConfirmationEnabled;
 
-    @Column(name = "registration_confirmation_message", length = MAX_REGISTRATION_NOTICE_LENGTH)
+    /** events 행이 MySQL 한 행 한도(65,535바이트)에 가까워 VARCHAR 대신 TEXT로 둔다. 길이는 도메인에서 제한한다. */
+    @Column(name = "registration_confirmation_message", columnDefinition = "text")
     private String registrationConfirmationMessage;
 
     @Column(name = "business_card_closes_at")
