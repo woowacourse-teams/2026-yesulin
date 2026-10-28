@@ -176,7 +176,7 @@ function acceptsBusinessCards(event: AdminEvent): boolean {
 
 /** 서버처럼 구분에 맞는 칸만 확인한다. 문제가 없으면 null이다. */
 function invalidRegistration(write: EventRegistrationWrite): string | null {
-  if (!["ACTOR", "PRODUCER", "GENERAL"].includes(write.participantType)) return "참가 구분을 선택해 주세요.";
+  if (!["ACTOR", "PRODUCER"].includes(write.participantType)) return "참가 구분을 선택해 주세요.";
   if (!write.name?.trim() || !/^01[016789]-\d{3,4}-\d{4}$/.test(write.phone ?? "")) return "이름과 휴대폰 번호를 확인해 주세요.";
   if (write.participantType === "ACTOR" && write.businessCardRequested) {
     const snsProblem = registrationSnsProblem(write.snsPlatform ?? null, write.snsHandle ?? null);

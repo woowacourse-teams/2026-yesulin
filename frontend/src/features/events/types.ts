@@ -61,12 +61,11 @@ export type PublicEvent = PublicEventSummary & {
 };
 
 /** 참가 신청자 구분. 배우는 프로필 명함에 쓸 생년월일·사진을, 공연사 관계자는 소속과 하는 일을 적는다. */
-export type EventParticipantType = "ACTOR" | "PRODUCER" | "GENERAL";
+export type EventParticipantType = "ACTOR" | "PRODUCER";
 
 export const EVENT_PARTICIPANT_LABELS: Readonly<Record<EventParticipantType, string>> = {
   ACTOR: "배우",
   PRODUCER: "관계자",
-  GENERAL: "일반인",
 };
 
 /** 배우가 활동하거나 준비하는 분야. 기타를 고르면 분야 이름을 직접 적는다. */

@@ -1261,7 +1261,7 @@
 .public-notebook .event-detail-image:focus-visible { outline-offset:-4px; }
 
 /* 참가 구분은 선택 상태를 배경·테두리·체크로 함께 표시하는 버튼형 라디오다. */
-.event-participant-options { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; width:100%; max-width:480px; }
+.event-participant-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; width:100%; max-width:360px; }
 .event-participant-option { position:relative; min-width:0; cursor:pointer; }
 .event-participant-option > span { position:relative; display:flex; min-height:52px; align-items:center; justify-content:center; gap:8px; padding:12px 10px; border:1px solid var(--line); border-radius:12px; background:var(--white); color:var(--ink-60); font-size:15px; font-weight:600; transition:background-color .15s,border-color .15s,color .15s; }
 .event-participant-option:hover > span { border-color:var(--brand-line); background:var(--brand-soft); }

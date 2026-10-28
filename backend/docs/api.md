@@ -569,7 +569,7 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 | PATCH | `/api/v1/admin/events/{eventId}/registrations/{registrationId}/payment-status` | Admin | `{ paymentStatus: PENDING 또는 CONFIRMED }` | `200 AdminEventRegistrationResult` |
 
 `WriteEventRequest`는 `title`(필수, 100자), `summary`(목록 소개, 200자), `body`(필수 개요, 대표 이미지 옆에 보이는 자유 형식 텍스트, 줄바꿈 유지, 5000자),
-`registrationCapacity`(관계자·배우·일반인 합산 총정원, null은 무제한, 1명 이상의 정수),
+`registrationCapacity`(관계자·배우(일반 참가자 포함) 합산 총정원, null은 무제한, 1명 이상의 정수),
 `startsOn`·`endsOn`(`YYYY-MM-DD`, 종료일이 시작일보다 앞서면 400), `applyUrl`(http·https 주소, 500자), `applyLabel`(신청 버튼 문구,
 30자, `applyUrl`도 참가 신청서도 없으면 지운다), `registrationEnabled`(켜면 신청 버튼이 외부 주소 대신 예술in 참가 신청서를 연다),
 `registrationNotice`(참가 신청서 위에 보일 보증금·계좌 같은 안내, 줄바꿈을 살린 2000자, 신청서를 끄면 지운다),
@@ -614,7 +614,7 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 `409 EVENT_REGISTRATION_CLOSED`다. 명함 제작 마감 시각이 지나면 참가 신청은 계속 받되, 명함 희망 신청과 명함 사진 업로드는
 `409 EVENT_BUSINESS_CARD_CLOSED`다. 쓰기 요청은 CSRF 헤더가 필요하다.
 
-`RegisterRequest`는 `participantType`(`ACTOR` 배우·`PRODUCER` 관계자·`GENERAL` 일반인), `name`(50자), `phone`(`010-1234-5678`, 숫자만 적어도 같은 형식으로 정리),
+`RegisterRequest`는 `participantType`(`ACTOR` 배우/일반 참가자·`PRODUCER` 관계자), `name`(50자), `phone`(`010-1234-5678`, 숫자만 적어도 같은 형식으로 정리),
 `affiliation`(공연사 관계자만 필수인 소속과 하는 일, 500자), `businessCardRequested`(배우가 프로필 명함 제작을 희망하는지),
 `privacyAgreed`(true 필수)다. 명함을 희망한 배우는 명함에 들어갈 `email`(254자), 선택적인 `snsPlatform`(`INSTAGRAM`·`THREADS`·`YOUTUBE`)과
 `snsHandle`(계정명 또는 채널명, 20자 이내, URL 불가), `birthDate`(미래 날짜 불가),
@@ -648,7 +648,7 @@ false로 바꿔도 종료일과 정원 조건을 다시 검사한다. 변경은 
 운영 명단은 `paymentStatus`(`PENDING` 기본·`CONFIRMED`)와 `paymentConfirmedAt`(미확인은 null)을 포함한다.
 입금 상태 PATCH는 해당 이벤트의 신청만 수정한다. 없는 신청·다른 이벤트의 신청은 404, 누락·잘못된 상태는 400이다.
 동일 상태는 확인 시각과 감사 기록을 추가하지 않는다. 실제 변경은 `EVENT_REGISTRATION_PAYMENT_CHANGED`로 남긴다.
-기존 데이터도 미확인으로 시작하며 은행 조회는 하지 않는다. 일반인은 이름·휴대폰·동의만 필요하고 명함·소속은 저장하지 않는다.
+기존 데이터도 미확인으로 시작하며 은행 조회는 하지 않는다. 일반 참가자는 `ACTOR`로 신청하며 명함 제작을 선택하지 않으면 이름·휴대폰·동의만 필요하다. 별도 일반인 구분은 없다.
 
 명함 자료 내려받기(`business-card-archive`)는 명함을 희망한 배우만 먼저 온 순서로 zip 하나에 담는다. `business-cards.json`(명함 생성용,
 `id`·`name`·`birthDate`·`email`·`snsHandle`·`snsPlatform`·`activityFields`·`otherActivity`·`noCareer`·`careers`·`intro`·`photoFile`·`createdAt`),

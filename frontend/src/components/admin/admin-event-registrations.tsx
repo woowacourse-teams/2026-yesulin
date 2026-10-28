@@ -12,7 +12,6 @@ import { AdminActionButton } from "./admin-shell";
 const PARTICIPANT_BADGE_TONES: Readonly<Record<EventParticipantType, string>> = {
   ACTOR: "border-brand-line bg-brand-soft text-brand-strong",
   PRODUCER: "border-etc/20 bg-etc-bg text-etc",
-  GENERAL: "border-border bg-surface text-muted-strong",
 };
 
 /** 이벤트 참가 신청자를 먼저 온 순서로 보여 준다. 배우 사진은 잠깐 열리는 주소라 다시 열려면 새로고침한다. */
@@ -122,7 +121,7 @@ export function AdminEventRegistrations({ eventId, onUnauthorized, onChanged }: 
         ) : null}
         <AdminActionButton tone="quiet" className={cards > 0 ? "" : "ml-auto"} onClick={() => setReloadToken((value) => value + 1)}>새로고침</AdminActionButton>
       </div>
-      {registrations ? <p className="text-xs leading-6 text-muted-strong">관계자 {registrations.filter((item) => item.participantType === "PRODUCER").length}명 · 배우 {actors}명 · 일반인 {registrations.filter((item) => item.participantType === "GENERAL").length}명<br />입금 확인 {confirmed}명 · 미확인 {registrations.length - confirmed}명 · 상태를 바꾸면 바로 저장됩니다.</p> : null}
+      {registrations ? <p className="text-xs leading-6 text-muted-strong">관계자 {registrations.filter((item) => item.participantType === "PRODUCER").length}명 · 배우 {actors}명<br />입금 확인 {confirmed}명 · 미확인 {registrations.length - confirmed}명 · 상태를 바꾸면 바로 저장됩니다.</p> : null}
       {registrations && registrations.length > 0 ? <>
         <div role="search" aria-label="참가자 검색 및 필터" className="grid gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]">
           <div className="min-w-0">
@@ -133,7 +132,7 @@ export function AdminEventRegistrations({ eventId, onUnauthorized, onChanged }: 
             <label htmlFor="event-participant-type" className="mb-1 block text-xs font-semibold text-muted-strong">참가 유형</label>
             <FieldSelect id="event-participant-type" value={participantType} onChange={(event) => { setParticipantType(event.target.value as EventParticipantType | "ALL"); setPage(1); }}>
               <option value="ALL">전체 유형</option>
-              <option value="PRODUCER">관계자</option><option value="ACTOR">배우</option><option value="GENERAL">일반인</option>
+              <option value="PRODUCER">관계자</option><option value="ACTOR">배우</option>
             </FieldSelect>
           </div>
           <div>

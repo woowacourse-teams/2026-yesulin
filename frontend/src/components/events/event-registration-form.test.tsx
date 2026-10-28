@@ -268,15 +268,18 @@ describe("참가 신청 전 안내", () => {
 });
 
 
-it("일반인 선택에는 소속과 명함 입력 없이 참가 신청한다", async () => {
+it("일반 참가자도 두 구분 중 배우를 선택하고 명함 없이 신청한다", async () => {
   await open(false);
-  await act(async () => document.querySelector<HTMLInputElement>('[value="GENERAL"]')!.click());
-  expect(document.querySelectorAll('[type="radio"]')).toHaveLength(3);
+  await act(async () => document.querySelector<HTMLInputElement>('[value="ACTOR"]')!.click());
+  expect(document.querySelectorAll('[type="radio"]')).toHaveLength(2);
+  expect(document.querySelector('[value="GENERAL"]')).toBeNull();
+  expect(document.querySelector('#registration-participant-guide')?.textContent).toContain('일반 참가자도 ‘배우’를 선택');
   expect(document.querySelector('#registration-affiliation')).toBeNull();
-  expect(document.querySelector('#business-card-intro')).toBeNull();
+  expect(button('무료 명함 만들기')).toBeDefined();
+  expect(document.querySelector('[role="dialog"]')).toBeNull();
   await input("#registration-name", "일반 참가자");
   await input("#registration-phone", "01012345678");
   await act(async () => document.querySelector<HTMLInputElement>('[type="checkbox"]')!.click());
   await submit();
-  expect(registerForEvent).toHaveBeenCalledWith(2, expect.objectContaining({ participantType: "GENERAL", affiliation: null, businessCardRequested: false }));
+  expect(registerForEvent).toHaveBeenCalledWith(2, expect.objectContaining({ participantType: "ACTOR", affiliation: null, businessCardRequested: false }));
 });

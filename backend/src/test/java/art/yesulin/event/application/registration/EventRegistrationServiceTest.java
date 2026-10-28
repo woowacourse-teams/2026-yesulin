@@ -342,16 +342,18 @@ class EventRegistrationServiceTest {
     @Test
     void combinedCapacityCountsAllParticipantTypesAndPreservesApplicants() {
         long eventId = capacityEvent(3);
-        for (EventParticipantType type : EventParticipantType.values()) {
+        List<EventParticipantType> types = List.of(
+                EventParticipantType.ACTOR, EventParticipantType.PRODUCER, EventParticipantType.ACTOR);
+        for (int index = 0; index < types.size(); index++) {
             registrationService.register(eventId, EventRegistrationForm.withoutBusinessCard(
-                    type, "참가자", "010-0000-%04d".formatted(type.ordinal()), "극단 · 관계자"
+                    types.get(index), "참가자", "010-0000-%04d".formatted(index), "극단 · 관계자"
             ), null, true);
         }
         assertEquals(3, registrationRepository.countByEventId(eventId));
         assertEquals(EventRegistrationStatus.FULL, eventService.findPublic(eventId).registrationStatus());
         assertFalse(eventService.findPublic(eventId).registrationOpen());
         assertCode(EventErrorCode.REGISTRATION_CLOSED, () -> registrationService.register(eventId,
-                EventRegistrationForm.withoutBusinessCard(EventParticipantType.GENERAL, "초과", "010-1234-9000", null),
+                EventRegistrationForm.withoutBusinessCard(EventParticipantType.ACTOR, "초과", "010-1234-9000", null),
                 null, true));
         assertEquals(3, registrationService.findAllForAdmin(eventId).size());
     }
@@ -360,14 +362,14 @@ class EventRegistrationServiceTest {
     void manualClosingAndCapacityChangesKeepNoticeAndExistingApplicants() {
         long eventId = capacityEvent(3);
         registrationService.register(eventId, EventRegistrationForm.withoutBusinessCard(
-                EventParticipantType.GENERAL, "일반 참가자", "010-1234-9001", null), null, true);
+                EventParticipantType.ACTOR, "일반 참가자", "010-1234-9001", null), null, true);
         AdminEventResult closed = eventService.changeRegistrationClosed(ADMIN_ID, eventId, true);
         assertEquals(EventRegistrationStatus.CLOSED, closed.registrationStatus());
         assertEquals(1, closed.registrationCount());
         assertEquals("보증금 안내", closed.registrationNotice());
         assertEquals("신청 전 안내", closed.registrationConfirmationMessage());
         assertCode(EventErrorCode.REGISTRATION_CLOSED, () -> registrationService.register(eventId,
-                EventRegistrationForm.withoutBusinessCard(EventParticipantType.GENERAL, "추가", "010-1234-9002", null),
+                EventRegistrationForm.withoutBusinessCard(EventParticipantType.ACTOR, "추가", "010-1234-9002", null),
                 null, true));
         eventService.update(ADMIN_ID, eventId, capacityContent(1), null, null);
         assertEquals(EventRegistrationStatus.CLOSED, eventService.findPublic(eventId).registrationStatus());
@@ -382,7 +384,7 @@ class EventRegistrationServiceTest {
     void paymentConfirmationIsIdempotentAuditedAndDoesNotChangeCapacity() {
         long eventId = capacityEvent(1);
         long id = registrationService.register(eventId, EventRegistrationForm.withoutBusinessCard(
-                EventParticipantType.GENERAL, "일반 참가자", "010-1234-9003", null), null, true);
+                EventParticipantType.ACTOR, "일반 참가자", "010-1234-9003", null), null, true);
         AdminEventRegistrationResult initial = registrationService.findAllForAdmin(eventId).getFirst();
         assertEquals(EventPaymentStatus.PENDING, initial.paymentStatus());
         assertNull(initial.paymentConfirmedAt());
@@ -417,7 +419,7 @@ class EventRegistrationServiceTest {
                     start.await();
                     try {
                         registrationService.register(eventId, EventRegistrationForm.withoutBusinessCard(
-                                EventParticipantType.GENERAL, "동시 신청", phone, null), null, true);
+                                EventParticipantType.ACTOR, "동시 신청", phone, null), null, true);
                         return true;
                     } catch (BusinessException exception) {
                         assertEquals(EventErrorCode.REGISTRATION_CLOSED, exception.getErrorCode());
@@ -441,7 +443,7 @@ class EventRegistrationServiceTest {
     void deletionRestoresAutomaticSlotButKeepsManualClosure() {
         long eventId = capacityEvent(1);
         long id = registrationService.register(eventId, EventRegistrationForm.withoutBusinessCard(
-                EventParticipantType.GENERAL, "취소 참가자", "010-1234-9004", null), null, true);
+                EventParticipantType.ACTOR, "취소 참가자", "010-1234-9004", null), null, true);
         assertEquals(EventRegistrationStatus.FULL, eventService.findPublic(eventId).registrationStatus());
         registrationService.delete(ADMIN_ID, eventId, id);
         assertTrue(eventService.findPublic(eventId).registrationOpen());

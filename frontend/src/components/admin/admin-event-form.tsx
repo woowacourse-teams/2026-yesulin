@@ -93,7 +93,7 @@ export function AdminEventForm({ initial, submitLabel, onSave, onCancel, onUnaut
           종료일이 지나거나 총정원이 차면 신청을 닫아요. 모집 마감 버튼은 기존 안내와 신청자를 유지해요.
         </p>
         {draft.registrationEnabled ? (
-          <Field id="event-registration-capacity" label="합산 모집 정원" hint="배우·관계자·일반인을 모두 합산해 신청 완료 순으로 받습니다. 비우면 제한이 없습니다. 입금 상태는 정원에 영향을 주지 않습니다.">
+          <Field id="event-registration-capacity" label="합산 모집 정원" hint="배우(일반 참가자 포함)와 관계자를 합산해 신청 완료 순으로 받습니다. 비우면 제한이 없습니다. 입금 상태는 정원에 영향을 주지 않습니다.">
             <FieldInput id="event-registration-capacity" type="number" min={1} max={2147483647} step={1} inputMode="numeric" placeholder="정원 제한 없음" value={draft.registrationCapacity} onChange={(event) => set("registrationCapacity", event.target.value)} />
           </Field>
         ) : null}

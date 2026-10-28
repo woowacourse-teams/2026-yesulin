@@ -14,7 +14,7 @@ vi.mock("@/features/admin/api", () => ({
 let root: Root;
 let container: HTMLDivElement;
 const pending: AdminEventRegistration = {
-  id: 1, participantType: "GENERAL", name: "일반 참가자", phone: "010-1234-5678",
+  id: 1, participantType: "ACTOR", name: "일반 참가자", phone: "010-1234-5678",
   businessCardRequested: false, email: null, snsHandle: null, snsPlatform: null, birthDate: null,
   affiliation: null, photoUrl: null, activityFields: [], otherActivity: null, noCareer: false,
   careers: [], intro: null, createdAt: "2026-10-28T06:00:00Z", paymentStatus: "PENDING", paymentConfirmedAt: null,
@@ -64,9 +64,9 @@ it("참가 유형과 입금 필터를 함께 적용하고 초기화한다", asyn
   vi.mocked(fetchEventRegistrations).mockResolvedValue([
     pending,
     { ...pending, id: 2, name: "입금한 일반인", paymentStatus: "CONFIRMED" },
-    { ...pending, id: 3, name: "배우", participantType: "ACTOR" },
+    { ...pending, id: 3, name: "관계자", participantType: "PRODUCER", paymentStatus: "CONFIRMED", paymentConfirmedAt: "2026-10-28T07:00:00Z" },
   ]);
-  await open(); await filter("event-participant-type", "GENERAL");
+  await open(); await filter("event-participant-type", "ACTOR");
   await filter("event-participant-payment", "PENDING");
   expect(container.querySelectorAll("ol > li")).toHaveLength(1);
   expect(container.querySelector("ol")?.textContent).toContain("일반 참가자");

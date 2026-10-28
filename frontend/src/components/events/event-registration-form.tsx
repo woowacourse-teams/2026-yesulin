@@ -22,7 +22,6 @@ import { RegistrationField, RequiredMark, koreaToday } from "./event-registratio
 const PARTICIPANT_HINTS: Readonly<Record<EventParticipantType, string>> = {
   ACTOR: "배우·배우 지망생, 관련 학과 학생",
   PRODUCER: "공연 제작사·극단 등에서 일하는 분",
-  GENERAL: "공연예술에 관심 있는 일반 참가자",
 };
 
 /**
@@ -112,16 +111,17 @@ export function EventRegistrationForm({ eventId, businessCardOpen, businessCardC
   const type = draft.participantType;
   return (
     <form onSubmit={(event) => void submit(event)} noValidate className="flex flex-col gap-6 px-5 py-6 sm:px-8 sm:py-8">
-      <fieldset className="flex flex-col gap-2" aria-describedby="registration-participant-hint">
+      <fieldset className="flex flex-col gap-2" aria-describedby="registration-participant-guide registration-participant-hint">
         <legend className="mb-2 text-sm font-semibold">참가 구분<RequiredMark /></legend>
         <div className="event-participant-options">
-          {(["ACTOR", "PRODUCER", "GENERAL"] as const).map((option) => (
+          {(["ACTOR", "PRODUCER"] as const).map((option) => (
             <label key={option} className="event-participant-option">
               <input type="radio" name="participant-type" value={option} checked={type === option} onChange={() => chooseType(option)} aria-label={`${EVENT_PARTICIPANT_LABELS[option]} ${PARTICIPANT_HINTS[option]}`} className="sr-only" />
               <span>{EVENT_PARTICIPANT_LABELS[option]}</span>
             </label>
           ))}
         </div>
+        <p id="registration-participant-guide" className="mt-1 text-sm font-medium leading-6 text-foreground">일반 참가자도 ‘배우’를 선택해 주세요. 명함 제작은 선택 사항입니다.</p>
         <p id="registration-participant-hint" className="mt-1 text-sm text-muted-strong">{type ? PARTICIPANT_HINTS[type] : "참가 구분을 선택하면 입력 칸이 열립니다."}</p>
       </fieldset>
 

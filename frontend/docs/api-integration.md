@@ -172,6 +172,6 @@ LocalStack·Lambda·Spring 실행 방법은 [로컬 추출 실행 안내](../../
 
 - 이벤트 쓰기는 registrationCapacity(number|null)를 보낸다. 공개 목록은 registrationStatus, 상세와 관리자 글은 총정원·신청 수·수동 마감 여부를 함께 받는다.
 - 모집 마감은 PATCH /api/v1/admin/events/{id}/registration-status의 closed로 바꾼다. 신청서를 끄는 동작과 분리해 안내와 기존 명단을 유지한다.
-- 참가 구분은 ACTOR·PRODUCER·GENERAL이며 기존 PRODUCER는 관계자로 표시한다. GENERAL은 이름·휴대폰·동의만 보낸다.
+- 참가 구분은 ACTOR·PRODUCER 두 가지이며 PRODUCER는 관계자로 표시한다. 일반 참가자는 안내에 따라 ACTOR를 선택하고 관리자에서도 배우로 집계한다. 명함 제작은 선택 사항이다.
 - 운영 명단의 paymentStatus는 PENDING·CONFIRMED다. payment-status PATCH가 성공한 결과로만 상태와 확인 시각을 갱신하고 실패 시 이전 값을 유지한다.
 - MSW도 합산 정원·수동 마감·입금 변경과 재조회, 일반인 신청을 같은 계약으로 재현한다. 최종 정원 판정은 서버가 한다.
