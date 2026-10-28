@@ -236,6 +236,14 @@ export const MOCK_SCENARIOS: readonly MockScenarioDefinition[] = [
     checks: ["공개 사진이 빠져 비공개로 바뀌었다는 안내가 보인다", "사진을 공개로 바꾸면 다시 공개할 수 있다", "/applicants?mockActorPage=public은 마이페이지 홈에 공개 중과 주소가 보인다"],
   },
   {
+    id: "actor-page-admin",
+    area: "배우 페이지",
+    title: "운영자 배우 페이지 관리",
+    description: "실제 운영자 세션과 API로 확인합니다. 브라우저 목 로그인만으로는 운영 화면이 404입니다.",
+    href: "/admin/actor-pages",
+    checks: ["/login의 기획사/제작사 폼에서 실제 운영자로 로그인한다", "아이디 일부로 찾고 상세에서 공개 내용·공연사만 영상·연락처를 본다", "사유 없이는 잠글 수 없고, 사유를 고친 뒤 풀어도 비공개로 남는다", "아이디 중복 오류와 옛 링크 경고를 확인하고 첫 공개 뒤에도 아이디를 바꿀 수 있다", "잠금·해제·아이디 변경만 변경 기록에 남고 연락처 열람은 남지 않는다"],
+  },
+  {
     id: "actor-bookmarks",
     area: "배우 페이지",
     title: "공연사 관심 배우",

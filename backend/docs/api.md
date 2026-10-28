@@ -886,7 +886,7 @@ availability는 정규화된 handle과 available, reason(null/INVALID_FORMAT/RES
 | ACTOR_PAGE_NOT_READY | 409 | 공개 조건 부족(한국어 메시지) |
 | ACTOR_PAGE_CONFLICT | 409 | 프로필이 없는 회원의 첫 쓰기 요청이 동시에 들어와 페이지 생성이 겹침. 다시 시도하면 된다 |
 
-잘못된 enum과 필수 값 누락은 기존 `400 INVALID_REQUEST`다. 공개 조회는 다음 절에 있고, 운영자 API는 아직 없다.
+잘못된 enum과 필수 값 누락은 기존 `400 INVALID_REQUEST`다. 공개 조회와 운영자 API는 아래 절을 따른다.
 
 미리보기는 공개 상태·공개 조건과 무관하게 지금 공개하면 보일 내용을 공개 조회(`PublicActorPageResult`)와 같은 모양으로 준다.
 항목·영상 공개 규칙은 공개 조회와 같고, 사진은 PUBLIC 사진을 보관함 순서로 담되 공개 사본이 없으면 본인만 받는 원본 주소
@@ -930,7 +930,53 @@ coverLetter, specialty, hobbies, nationality, education{level, school, major}(nu
 | --- | --- | --- |
 | ACTOR_PAGE_NOT_FOUND | 404 | 아이디 형식 위반, 없는 아이디, 비공개·운영자 잠금·자동 비공개·공개 조건 미충족. 모두 같은 응답이다 |
 
-공연사의 관심 저장 여부는 이 응답에 넣지 않는다. 저장 버튼은 다음 절의 공연사 전용 API로 상태를 받아 화면에서 그린다.
+공연사의 관심 저장 여부는 이 응답에 넣지 않는다. 저장 버튼은 아래 공연사 관심 배우 API로 상태를 받아 화면에서 그린다.
+
+## 배우 페이지 관리(운영자용) — 5개
+
+모두 Admin 세션이 필요하고 쓰기는 기존 CSRF 규칙을 따른다. `publicId`는 배우 페이지의 UUID이며 아이디가 바뀌어도 유지된다.
+
+| Method | URL | Request | Response |
+| --- | --- | --- | --- |
+| GET | `/api/v1/admin/actor-pages?handle=&page=0&size=20` | query | `200 AdminActorPagePageResult(actorPages, page, size, totalPages, totalElements)` |
+| GET | `/api/v1/admin/actor-pages/{publicId}` | 없음 | `200 AdminActorPageResult` |
+| PUT | `/api/v1/admin/actor-pages/{publicId}/lock` | `{reason}` | `200 AdminActorPageResult` |
+| DELETE | `/api/v1/admin/actor-pages/{publicId}/lock` | 없음 | `200 AdminActorPageResult` |
+| PUT | `/api/v1/admin/actor-pages/{publicId}/handle` | `{handle}` | `200 AdminActorPageResult` |
+
+목록은 공개·비공개·잠금·자동 비공개 페이지를 모두 포함한다. `handle`은 앞뒤 공백 제거·소문자 정규화 후 부분 일치로 찾고,
+생략하거나 비우면 전체다. `page`는 0 이상, `size`는 1~100이며 범위를 벗어나면 `400 INVALID_REQUEST`다.
+`updatedAt` 내림차순, 같으면 페이지 ID 내림차순이다. 목록 항목(`AdminActorPageSummaryResult`)은 다음 필드다.
+
+```text
+publicId, handle(null 가능), name(null 가능), status(PRIVATE/PUBLIC), autoHiddenReason,
+locked, lastPublicActivityAt(null 가능), updatedAt
+```
+
+상세와 변경 성공 응답은 연락처가 있어 `Cache-Control: no-store`로 응답한다. `AdminActorPageResult`는 다음 필드다.
+
+```text
+publicId, handle(null 가능), ownerMemberId, status, autoHiddenReason, locked, lockReason,
+lockedAt, unlockedAt, firstPublishedAt, publishedAt, lastPublicActivityAt,
+readiness{ready, missing[], underAge, locked}, content(PublicActorPageResult),
+producerOnlyVideos[{url, youtubeId}], phone(null 가능), email(null 가능)
+```
+
+- `content`는 페이지 상태와 무관하게 배우가 공개로 설정한 항목과 PUBLIC 영상을 담는다. 사진은 공개 사본만 담고
+  원본 주소로 대체하지 않는다. 잠금 등으로 공개 사본을 지운 페이지는 사진이 비어 있다.
+- `producerOnlyVideos`는 PRODUCER 영상이며, `phone`·`email`은 현재 프로필 연락처다. 연락처 열람은 기록하지 않는다.
+- 잠금 사유는 공백만 있는 값을 허용하지 않고 500자 이하다. 앞뒤 공백을 제거해 저장하며 배우 설정 화면에 그대로 보인다.
+  잠그면 비공개로 전환하고 모든 공개 사본을 뗀다. 이미 잠겨 있으면 사유와 잠금 시각을 바꾼다.
+- 해제해도 비공개로 남고 해제 시각을 기록한다. 배우가 내용을 확인하고 공개 사본을 다시 만든 뒤 직접 공개한다.
+  잠기지 않은 페이지의 해제 요청은 변경·감사 기록 없이 현재 상세를 반환한다.
+- 운영자는 처음 공개한 뒤에도 아이디를 바꿀 수 있다. 배우용과 같은 정규화·형식·예약어·중복 규칙을 적용하지만
+  `ACTOR_HANDLE_LOCKED`는 적용하지 않는다. 옛 아이디는 바로 풀리며 옛 주소에서 새 주소로 이동시키지 않는다.
+  같은 아이디 요청은 변경·감사 기록 없이 현재 상세를 반환한다.
+- 잠금(사유 수정 포함)·해제·아이디 변경은 `ACTOR_PAGE_LOCKED`, `ACTOR_PAGE_UNLOCKED`, `ACTOR_PAGE_HANDLE_CHANGED`로
+  운영자 변경 기록에 남긴다. 대상 유형은 `ACTOR_PAGE`, 대상 ID는 내부 페이지 ID이며 사유 원문·연락처는 기록하지 않는다.
+
+없는 페이지는 `404 ACTOR_PAGE_NOT_FOUND`다. 잘못된 UUID·필수 값 누락·잠금 사유 위반은 `400 INVALID_REQUEST`이며,
+아이디 변경은 `400 ACTOR_HANDLE_INVALID`, `400 ACTOR_HANDLE_RESERVED`, `409 ACTOR_HANDLE_TAKEN`을 반환할 수 있다.
 
 ## 공연사 관심 배우 — 4개
 
