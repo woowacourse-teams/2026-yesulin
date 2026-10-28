@@ -18,6 +18,7 @@ import jakarta.persistence.OrderColumn;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.LinkedHashSet;
@@ -170,7 +171,7 @@ public class EventRegistration {
         this.careers = careers(form.noCareer(), form.careers());
     }
 
-    /** 같은 상태를 다시 저장하면 기존 확인 시각을 유지한다. */
+    /** 같은 상태를 다시 저장하면 기존 확인 시각을 유지한다. 확인 시각은 DB와 같은 마이크로초 단위로 보관한다. */
     public boolean changePaymentStatus(EventPaymentStatus status, Instant now) {
         if (status == null) {
             throw invalid("입금 상태를 선택해 주세요.");
@@ -179,7 +180,8 @@ public class EventRegistration {
             return false;
         }
         this.paymentStatus = status;
-        this.paymentConfirmedAt = status == EventPaymentStatus.CONFIRMED ? Objects.requireNonNull(now) : null;
+        this.paymentConfirmedAt = status == EventPaymentStatus.CONFIRMED
+                ? Objects.requireNonNull(now).truncatedTo(ChronoUnit.MICROS) : null;
         return true;
     }
 

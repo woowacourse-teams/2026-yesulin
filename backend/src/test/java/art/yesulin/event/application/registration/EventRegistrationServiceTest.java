@@ -31,6 +31,8 @@ import art.yesulin.support.ObjectStorageTestConfiguration;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -48,7 +50,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:h2:mem:event-registration-service;MODE=MySQL;DB_CLOSE_DELAY=-1",
@@ -56,7 +61,7 @@ import org.springframework.context.annotation.Import;
         "spring.flyway.enabled=true",
         "spring.jpa.hibernate.ddl-auto=validate"
 })
-@Import(ObjectStorageTestConfiguration.class)
+@Import({ObjectStorageTestConfiguration.class, EventRegistrationServiceTest.PrecisionClockConfiguration.class})
 class EventRegistrationServiceTest {
 
     private static final long ADMIN_ID = 1L;
@@ -384,6 +389,8 @@ class EventRegistrationServiceTest {
         AdminEventRegistrationResult confirmed = registrationService.changePaymentStatus(
                 ADMIN_ID, eventId, id, EventPaymentStatus.CONFIRMED);
         assertTrue(confirmed.paymentConfirmedAt() != null);
+        assertEquals(confirmed.paymentConfirmedAt(),
+                registrationService.findAllForAdmin(eventId).getFirst().paymentConfirmedAt());
         assertEquals(confirmed.paymentConfirmedAt(), registrationService.changePaymentStatus(
                 ADMIN_ID, eventId, id, EventPaymentStatus.CONFIRMED).paymentConfirmedAt());
         assertEquals(1, auditLogRepository.findAll().stream()
@@ -449,6 +456,17 @@ class EventRegistrationServiceTest {
     private static EventContent capacityContent(Integer capacity) {
         return new EventContent("선착순 이벤트", null, "본문", null, null, null, null,
                 true, "보증금 안내", null, null, true, "신청 전 안내", capacity);
+    }
+
+    @TestConfiguration(proxyBeanMethods = false)
+    static class PrecisionClockConfiguration {
+
+        @Bean
+        @Primary
+        Clock highPrecisionClock() {
+            // OS와 관계없이 DB의 마이크로초보다 정밀한 나노초 값을 사용한다.
+            return Clock.offset(Clock.tick(Clock.systemUTC(), Duration.ofMillis(1)), Duration.ofNanos(123_456));
+        }
     }
 
 }
