@@ -125,11 +125,15 @@ export function writeOfEvent(draft: EventDraft): AdminEventWrite {
   };
 }
 
+/** 개요와 상세 설명의 최대 글자 수. 백엔드 `Event.MAX_BODY_LENGTH`와 같다. */
+export const EVENT_BODY_MAX_LENGTH = 2000;
+
 /** 저장 전에 고칠 점. 서버도 같은 규칙으로 거절하지만 먼저 알려 준다. 문제가 없으면 null이다. */
 export function eventDraftProblem(draft: EventDraft): string | null {
   if (!draft.title.trim()) return "제목을 입력해 주세요.";
   if (!draft.body.trim()) return "개요를 입력해 주세요.";
-  if (draft.detailBody.length > 5000) return "상세 설명은 5000자 이내로 입력해 주세요.";
+  if (draft.body.trim().length > EVENT_BODY_MAX_LENGTH) return `개요는 ${EVENT_BODY_MAX_LENGTH}자 이내로 입력해 주세요.`;
+  if (draft.detailBody.length > EVENT_BODY_MAX_LENGTH) return `상세 설명은 ${EVENT_BODY_MAX_LENGTH}자 이내로 입력해 주세요.`;
   if (draft.detailImageUrls.length > MAX_EVENT_DETAIL_IMAGES) return `상세 이미지는 ${MAX_EVENT_DETAIL_IMAGES}장까지 등록할 수 있어요.`;
   if (new Set(draft.detailImageUrls).size !== draft.detailImageUrls.length) return "같은 상세 이미지를 중복 등록할 수 없어요.";
   if (draft.startsOn && draft.endsOn && draft.endsOn < draft.startsOn) return "종료일은 시작일보다 앞설 수 없어요.";

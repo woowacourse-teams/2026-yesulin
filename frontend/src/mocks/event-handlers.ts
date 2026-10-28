@@ -4,6 +4,7 @@ import type { AdminEvent, AdminEventRegistration, AdminEventStatus, AdminEventWr
 import { MAX_EVENT_DETAIL_IMAGES, registrationClosedMessage } from "@/features/events/types";
 import type { EventBanner, EventPhase, EventRegistrationStatus, EventRegistrationWrite, PublicEvent, PublicEventSummary } from "@/features/events/types";
 import { mockSessionRole } from "./auth-handlers";
+import { EVENT_BODY_MAX_LENGTH } from "@/features/events/draft";
 import { registrationSnsProblem } from "@/features/events/registration-draft";
 
 /**
@@ -204,7 +205,9 @@ function toBanner(event: AdminEvent): EventBanner {
 
 function invalidWrite(write: AdminEventWrite): string | null {
   if (!write.title?.trim() || !write.body?.trim()) return "제목과 본문은 필수입니다.";
-  if ((write.detailBody?.length ?? 0) > 5000) return "상세 설명은 5000자 이내여야 합니다.";
+  if ((write.body?.length ?? 0) > EVENT_BODY_MAX_LENGTH || (write.detailBody?.length ?? 0) > EVENT_BODY_MAX_LENGTH) {
+    return `개요와 상세 설명은 ${EVENT_BODY_MAX_LENGTH}자 이내여야 합니다.`;
+  }
   const detailUrls = write.detailImageUrls ?? [];
   if (detailUrls.length > MAX_EVENT_DETAIL_IMAGES || detailUrls.some((url) => !url?.trim()) || new Set(detailUrls).size !== detailUrls.length) return "상세 이미지 개수와 중복을 확인해 주세요.";
   if (write.startsOn && write.endsOn && write.endsOn < write.startsOn) return "종료일은 시작일보다 앞설 수 없습니다.";
