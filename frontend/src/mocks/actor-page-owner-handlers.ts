@@ -64,25 +64,25 @@ const published = (): OwnerPage => ({
   publishPromptShown: true,
 });
 
-/** 주소에서 온 이름으로 찾으므로 객체 속성이 아닌 Map으로 둬 `constructor` 같은 이름이 걸리지 않게 한다. */
-const SEEDS: ReadonlyMap<string, () => OwnerPage> = new Map<string, () => OwnerPage>([
-  ["public", () => {
-    seedApplicantPhotoVisibility(["seed-photo-1", "seed-photo-3"], true);
-    return { ...published(), status: "PUBLIC", fieldVisibilities: { ...visibilities("PUBLIC"), hobbies: "PRIVATE" } };
-  }],
-  ["locked", () => {
-    seedApplicantPhotoVisibility(["seed-photo-1"], false);
-    return { ...published(), lockReason: "다른 사람의 사진이라는 문의가 들어와 확인하고 있어요." };
-  }],
-  ["unlocked", () => {
-    seedApplicantPhotoVisibility(["seed-photo-1"], false);
-    return { ...published(), unlockedAt: "2026-10-25T10:00:00+09:00" };
-  }],
-  ["auto-hidden", () => {
-    seedApplicantPhotoVisibility([], false);
-    return { ...published(), autoHiddenReason: "MISSING_REQUIRED" };
-  }],
-]);
+/** `?mockActorPage=` 시작 상태. 주소에서 온 값이라 함수를 찾아 부르지 않고 정해 둔 이름만 받는다. */
+function seededPage(name: string): OwnerPage | null {
+  switch (name) {
+    case "public":
+      seedApplicantPhotoVisibility(["seed-photo-1", "seed-photo-3"], true);
+      return { ...published(), status: "PUBLIC", fieldVisibilities: { ...visibilities("PUBLIC"), hobbies: "PRIVATE" } };
+    case "locked":
+      seedApplicantPhotoVisibility(["seed-photo-1"], false);
+      return { ...published(), lockReason: "다른 사람의 사진이라는 문의가 들어와 확인하고 있어요." };
+    case "unlocked":
+      seedApplicantPhotoVisibility(["seed-photo-1"], false);
+      return { ...published(), unlockedAt: "2026-10-25T10:00:00+09:00" };
+    case "auto-hidden":
+      seedApplicantPhotoVisibility([], false);
+      return { ...published(), autoHiddenReason: "MISSING_REQUIRED" };
+    default:
+      return null;
+  }
+}
 
 let page: OwnerPage = fresh();
 let appliedSeed: string | null = null;
@@ -93,9 +93,10 @@ let appliedSeed: string | null = null;
  */
 function applySeed() {
   const seed = new URLSearchParams(globalThis.location?.search ?? "").get("mockActorPage");
-  const seedPage = seed && seed !== appliedSeed ? SEEDS.get(seed) : undefined;
-  if (!seedPage) return;
-  page = seedPage();
+  if (!seed || seed === appliedSeed) return;
+  const seeded = seededPage(seed);
+  if (!seeded) return;
+  page = seeded;
   appliedSeed = seed;
 }
 
