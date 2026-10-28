@@ -49,6 +49,28 @@ function button(label: string) {
   return [...document.querySelectorAll("button")].find((item) => item.textContent?.trim() === label)!;
 }
 
+it("이름 있는 파일 입력을 키보드 이동에서 빼고 모달의 첫 포커스와 순환은 PDF 선택 버튼을 쓴다", async () => {
+  const frames: FrameRequestCallback[] = [];
+  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => { frames.push(callback); return frames.length; });
+  vi.stubGlobal("matchMedia", () => ({ matches: true }));
+  vi.mocked(getProfileImportOverview).mockResolvedValue({ usedToday: false, current: null });
+  await render();
+  await act(async () => button("PDF로 채우기").click());
+  await act(async () => frames.forEach((frame) => frame(0)));
+
+  const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
+  expect(input.getAttribute("aria-label")).toBe("PDF 파일 선택");
+  expect(input.tabIndex).toBe(-1);
+  expect(document.activeElement).toBe(button("PDF 선택"));
+
+  document.querySelectorAll<HTMLElement>('[role="dialog"] button, [role="dialog"] input').forEach((element) => {
+    element.getClientRects = () => ({ length: 1 } as DOMRectList);
+  });
+  button("창 닫기").focus();
+  document.dispatchEvent(new KeyboardEvent("keydown", { key: "Tab", bubbles: true, cancelable: true }));
+  expect(document.activeElement).toBe(button("PDF 선택"));
+});
+
 it("결과를 여는 것만으로 입력란을 바꾸지 않고, 배우가 적용을 눌러야 고른 값만 전달한다", async () => {
   vi.mocked(getProfileImportOverview).mockResolvedValue({ usedToday: true, current: result });
   await render();

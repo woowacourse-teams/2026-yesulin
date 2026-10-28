@@ -143,7 +143,7 @@ export type ImportedCareer = {
   readonly entry: CareerEntry;
   /** 연도나 배역을 읽지 못해 저장하기 전에 직접 채워야 한다. */
   readonly needsInput: boolean;
-  /** 이미 프로필에 같은 연도·작품·배역이 있다. */
+  /** 프로필이나 앞선 제안에 같은 연도·작품·배역이 있다. */
   readonly duplicate: boolean;
   /** 연도나 배역을 읽지 못했는데 같은 작품 경력이 이미 있다. 같은 경력일 수 있어 미리 고르지 않는다. */
   readonly similar: boolean;
@@ -157,7 +157,9 @@ export function importedCareers(careers: readonly ProfileImportCareer[], current
     const year = careerYearOf(career.period, today);
     const entry: CareerEntry = { year: year ?? 0, title: career.title.trim(), part: career.part?.trim() ?? "", genre: careerGenreOf(career.genre) };
     const needsInput = year === null || !entry.part;
-    const duplicate = year !== null && existing.has(careerIdentity(entry));
+    const identity = careerIdentity(entry);
+    const duplicate = year !== null && existing.has(identity);
+    if (year !== null) existing.add(identity);
     return { entry, needsInput, duplicate, similar: !duplicate && needsInput && titles.has(entry.title) };
   });
 }

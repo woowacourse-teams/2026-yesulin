@@ -174,7 +174,7 @@ function ImportStart({ usedToday, onStarted, onFailed }: {
       <li>· 하루에 한 번 쓸 수 있어요. 읽지 못했거나 제안할 값이 없으면 세지 않아요.</li>
       <li>· 올린 PDF와 읽은 내용은 결과를 지우면 삭제돼요. 남겨 둔 결과는 나온 뒤 24시간이 지나면 순서대로 정리해요.</li>
     </ul>
-    <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="sr-only" onChange={(event) => void upload(event)} />
+    <input ref={inputRef} type="file" accept="application/pdf,.pdf" aria-label="PDF 파일 선택" tabIndex={-1} disabled={busy} className="sr-only" onChange={(event) => void upload(event)} />
     <PrimaryButton onClick={() => inputRef.current?.click()} disabled={busy} className="mt-5 min-h-12 w-full">
       {busy ? "PDF 올리는 중…" : "PDF 선택"}
     </PrimaryButton>

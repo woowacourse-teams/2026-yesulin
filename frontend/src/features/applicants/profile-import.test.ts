@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { birthDateOf, careerGenreOf, careerYearOf, heightOf, importedCareers, profileImportFileError } from "./profile-import";
+import { MAX_PROFILE_IMPORT_BYTES, birthDateOf, careerGenreOf, careerYearOf, heightOf, importedCareers, profileImportFileError } from "./profile-import";
 
 const TODAY = new Date("2026-10-29T00:00:00+09:00");
 
@@ -47,6 +47,23 @@ describe("career year and genre", () => {
 });
 
 describe("imported careers", () => {
+  it("marks repeated proposals as duplicates while preserving different years and roles", () => {
+    const career = { title: "햄릿", part: "오필리아", genre: "연극", period: "2025", venue: null, company: null, evidence: "2025 햄릿 오필리아" };
+    const careers = importedCareers([
+      career,
+      { ...career, title: " 햄릿 ", part: " 오필리아 " },
+      { ...career, part: "햄릿" },
+      { ...career, period: "2024" },
+    ], [], TODAY);
+
+    expect(careers.map((item) => item.duplicate)).toEqual([false, true, false, false]);
+  });
+
+  it("does not assume proposals with unreadable years are the same career", () => {
+    const career = { title: "햄릿", part: "오필리아", genre: "연극", period: null, venue: null, company: null, evidence: "햄릿 오필리아" };
+    expect(importedCareers([career, career], [], TODAY).map((item) => item.duplicate)).toEqual([false, false]);
+  });
+
   it("leaves unreadable year and role blank and marks careers already saved", () => {
     const careers = importedCareers([
       { title: "햄릿", part: "오필리아", genre: "연극", period: "2025", venue: null, company: null, evidence: "연극 햄릿 오필리아 2025" },
@@ -68,7 +85,16 @@ describe("imported careers", () => {
   });
 });
 
-it("accepts PDFs up to 25MB", () => {
+it("accepts PDFs and rejects other formats", () => {
   expect(profileImportFileError(new File(["x"], "profile.pdf", { type: "application/pdf" }))).toBeNull();
   expect(profileImportFileError(new File(["x"], "profile.png", { type: "image/png" }))).toBe("PDF 파일만 올릴 수 있어요.");
+});
+
+it.each([
+  [MAX_PROFILE_IMPORT_BYTES, null],
+  [MAX_PROFILE_IMPORT_BYTES + 1, "PDF는 25MB 이하만 올릴 수 있어요."],
+])("checks the PDF size boundary at %i bytes", (size, expected) => {
+  const file = new File(["x"], "profile.pdf", { type: "application/pdf" });
+  Object.defineProperty(file, "size", { value: size });
+  expect(profileImportFileError(file)).toBe(expected);
 });
