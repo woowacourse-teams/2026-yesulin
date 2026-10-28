@@ -10,9 +10,7 @@ import art.yesulin.actor.domain.page.ActorPageRepository;
 import art.yesulin.actor.domain.page.ActorPageStatus;
 import art.yesulin.actor.domain.photolibrary.PhotoLibrary;
 import art.yesulin.actor.domain.photolibrary.PhotoLibraryItem;
-import art.yesulin.actor.domain.photolibrary.PhotoLibraryRepository;
 import art.yesulin.actor.domain.profile.ApplicantProfile;
-import art.yesulin.actor.domain.profile.ApplicantProfileRepository;
 import art.yesulin.actor.domain.profile.ProfileBasicInformation;
 import art.yesulin.actor.domain.videolibrary.VideoLibrary;
 import art.yesulin.actor.domain.videolibrary.VideoLibraryItem;
@@ -41,9 +39,8 @@ public class PublicActorPageService {
     static final int MAX_PAGE_SIZE = 48;
 
     private final ActorPageRepository pageRepository;
-    private final ApplicantProfileRepository profileRepository;
-    private final PhotoLibraryRepository photoRepository;
     private final ActorPageContentSync contentSync;
+    private final ActorPageSummaries summaries;
     private final PublicPhotoCopyStorage publicCopies;
     private final FileService fileService;
 
@@ -94,34 +91,8 @@ public class PublicActorPageService {
         Page<ActorPage> found = pageRepository.findAllByStatusAndLockedAtIsNull(
                 ActorPageStatus.PUBLIC, PageRequest.of(page, size, condition.sort().sort())
         );
-        List<Long> ownerIds = found.getContent().stream().map(ActorPage::getOwnerMemberId).toList();
-        Map<Long, ApplicantProfile> profiles = ownerIds.isEmpty() ? Map.of()
-                : profileRepository.findAllByOwnerIdIn(ownerIds).stream()
-                        .collect(Collectors.toMap(ApplicantProfile::getOwnerId, Function.identity()));
-        Map<Long, PhotoLibrary> photos = ownerIds.isEmpty() ? Map.of()
-                : photoRepository.findAllWithPhotosByOwnerIdIn(ownerIds).stream()
-                        .collect(Collectors.toMap(PhotoLibrary::getOwnerId, Function.identity()));
-        LocalDate today = contentSync.today();
-        List<PublicActorPageSummaryResult> summaries = found.getContent().stream()
-                .map(actorPage -> summary(
-                        actorPage, profiles.get(actorPage.getOwnerMemberId()),
-                        photos.get(actorPage.getOwnerMemberId()), today
-                ))
-                .toList();
-        return new PublicActorPagePageResult(summaries, page, size, found.getTotalPages(), found.getTotalElements());
-    }
-
-    private PublicActorPageSummaryResult summary(
-            ActorPage page, ApplicantProfile profile, PhotoLibrary photos, LocalDate today
-    ) {
-        ProfileBasicInformation basic = basicOf(profile);
-        String photoUrl = photos == null ? null : photos.getPageRepresentativePhoto()
-                .map(photo -> publicCopies.publicUrl(photo.getPublicCopyObjectKey()))
-                .orElse(null);
-        return new PublicActorPageSummaryResult(
-                page.getPublicId(), page.getHandle(), basic.name(), basic.gender(),
-                basic.birthDate() == null ? null : basic.birthDate().getYear(), age(profile, today),
-                basic.height(), basic.weight(), photoUrl
+        return new PublicActorPagePageResult(
+                summaries.of(found.getContent()), page, size, found.getTotalPages(), found.getTotalElements()
         );
     }
 
