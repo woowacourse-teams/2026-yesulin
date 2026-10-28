@@ -9,7 +9,6 @@ import { getActorPage } from "@/features/actor-pages/api";
 import {
   ACTOR_PAGE_INQUIRY_URL,
   actorBodyLine,
-  actorIdentityLine,
   actorPageRoutes,
   type ActorPageContent,
   type PublicActorPage,
@@ -18,7 +17,8 @@ import { profileCareerGenreLabel } from "@/features/applicants/career-genre";
 import { educationText } from "@/features/applicants/education";
 import { AuditionRequestError } from "@/features/auditions/api-client";
 import { ActorBookmarkButton } from "./actor-bookmarks";
-import { ActorPageScreen, ActorPhoto } from "./actor-page-screen";
+import { ActorPageScreen } from "./actor-page-screen";
+import { ActorPhotoGallery } from "./actor-photo-gallery";
 
 type PageState =
   | { readonly status: "loading" }
@@ -60,7 +60,7 @@ export function ActorPageRoute({ handle, initial }: { readonly handle: string; r
     <ActorPageScreen backToList>
       {state.status === "loading" ? (
         <ContentSkeleton label="배우 페이지 불러오는 중" className="mt-4">
-          <div className="grid gap-6 min-[761px]:grid-cols-[minmax(0,320px)_1fr]"><div className="aspect-[3/4] rounded-card bg-border-soft" /><div><div className="h-8 w-1/3 rounded bg-border-soft" /><div className="mt-3 h-5 w-1/2 rounded bg-border-soft" /></div></div>
+          <div className="grid gap-6 min-[901px]:grid-cols-[minmax(0,340px)_1fr]"><div className="aspect-[3/4] rounded-card bg-border-soft" /><div><div className="h-8 w-1/3 rounded bg-border-soft" /><div className="mt-3 h-5 w-1/2 rounded bg-border-soft" /></div></div>
         </ContentSkeleton>
       ) : null}
       {state.status === "missing" ? <MissingActorPage /> : null}
@@ -93,8 +93,12 @@ export function ActorPageView({ actorPage, preview = false }: { readonly actorPa
   const name = actorPage.name ?? "이름 미입력";
   const NameHeading = preview ? "h2" : "h1";
   const { gender, birthYear, age } = actorPage;
-  const identity = gender && birthYear !== null && age !== null ? actorIdentityLine({ gender, birthYear, age }) : null;
   const body = actorBodyLine(actorPage);
+  const basicInformation = [
+    gender ? { label: "성별", value: gender === "FEMALE" ? "여성" : "남성" } : null,
+    birthYear !== null ? { label: "출생", value: `${birthYear}년생${age !== null ? ` (만 ${age}세)` : ""}` } : null,
+    body ? { label: "신체", value: body } : null,
+  ].filter((item) => item !== null);
   const GroupHeading = preview ? "h4" : "h3";
   const otherInformation = [
     actorPage.education ? { label: "학력", value: educationText({ level: actorPage.education.level, school: actorPage.education.school ?? "", major: actorPage.education.major ?? "" }) } : null,
@@ -104,104 +108,111 @@ export function ActorPageView({ actorPage, preview = false }: { readonly actorPa
 
   return (
     <article className="mt-4">
-      <header className="grid gap-6 min-[761px]:grid-cols-[minmax(0,320px)_1fr] min-[761px]:items-end">
-        <ActorPhoto src={actorPage.representativePhotoUrl} alt={`${name} 대표 사진`} className="rounded-card" />
-        <div className="min-w-0">
-          {actorPage.handle ? <p className="text-sm font-semibold text-muted-strong">@{actorPage.handle}</p> : null}
-          <NameHeading className="mt-1 break-words text-3xl font-bold leading-tight">{name}</NameHeading>
-          {identity ? <p className="mt-2 text-base text-muted-strong">{identity}</p> : null}
-          {body ? <p className="num text-base text-muted-strong">{body}</p> : null}
-          {!preview && actorPage.handle ? (
-            <div className="mt-5 flex flex-wrap items-start gap-2">
-              {actorPage.publicId ? <ActorBookmarkButton publicId={actorPage.publicId} name={name} /> : null}
-              <ShareButton name={name} handle={actorPage.handle} />
+      <div className="grid items-start gap-7 min-[901px]:grid-cols-[minmax(0,340px)_minmax(0,1fr)] min-[901px]:gap-10">
+        <ActorPhotoGallery name={name} representativePhotoUrl={actorPage.representativePhotoUrl} photos={actorPage.photos} />
+
+        <div className="grid min-w-0 gap-5">
+          <header className="rounded-card border border-border bg-card p-5 min-[761px]:p-7">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="min-w-0">
+                {actorPage.handle ? <p className="text-sm font-semibold text-muted-strong">@{actorPage.handle}</p> : null}
+                <NameHeading className="mt-1 break-words text-[32px] font-bold leading-tight tracking-tight min-[761px]:text-4xl">{name}</NameHeading>
+              </div>
+              {!preview && actorPage.handle ? (
+                <div className="flex flex-wrap items-start gap-2">
+                  {actorPage.publicId ? <ActorBookmarkButton publicId={actorPage.publicId} name={name} /> : null}
+                  <ShareButton name={name} handle={actorPage.handle} />
+                </div>
+              ) : null}
             </div>
+            {basicInformation.length > 0 ? (
+              <dl className="mt-6 flex flex-wrap gap-x-7 gap-y-4 border-t border-border-soft pt-5">
+                {basicInformation.map((item) => (
+                  <div key={item.label}>
+                    <dt className="text-xs font-medium text-muted-strong">{item.label}</dt>
+                    <dd className="num mt-1 text-sm font-semibold">{item.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            ) : null}
+          </header>
+
+          <aside className="rounded-card border border-brand-line bg-brand-soft p-5 text-sm leading-6">
+            <p className="font-semibold">이 배우와 함께하고 싶다면</p>
+            <p className="mt-1 text-muted-strong">연락처 대신 예술in이 배우에게 문의를 전달해 드려요.</p>
+            <a href={ACTOR_PAGE_INQUIRY_URL} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex min-h-11 items-center rounded-control bg-brand px-4 font-semibold text-white hover:bg-brand-strong">
+              카카오톡으로 문의하기<span className="sr-only"> (새 창에서 열림)</span>
+            </a>
+          </aside>
+
+          {actorPage.coverLetter ? <Section preview={preview} title="자기소개"><p className="whitespace-pre-line break-words leading-7">{actorPage.coverLetter}</p></Section> : null}
+
+          {actorPage.videos.length > 0 ? (
+            <Section preview={preview} title="영상">
+              <ul className="grid gap-4">
+                {actorPage.videos.map((video, index) => (
+                  <li key={video.youtubeId} className="overflow-hidden rounded-card border border-border bg-foreground">
+                    <div className="aspect-video">
+                      <iframe
+                        src={`https://www.youtube-nocookie.com/embed/${video.youtubeId}?rel=0&playsinline=1`}
+                        title={`${name} 영상 ${index + 1}`}
+                        loading="lazy"
+                        allow="encrypted-media; picture-in-picture; fullscreen"
+                        allowFullScreen
+                        referrerPolicy="strict-origin-when-cross-origin"
+                        className="h-full w-full border-0"
+                      />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          ) : null}
+
+          {actorPage.careerGroups.length > 0 ? (
+            <Section preview={preview} title="경력">
+              <div className="grid gap-6">
+                {actorPage.careerGroups.map((group) => (
+                  <section key={group.genre ?? "UNCLASSIFIED"} aria-label={profileCareerGenreLabel(group.genre)}>
+                    <GroupHeading className="text-sm font-bold text-muted-strong">{profileCareerGenreLabel(group.genre)}</GroupHeading>
+                    <ul className="mt-2 divide-y divide-border-soft border-y border-border-soft">
+                      {group.careers.map((career, index) => (
+                        <li key={`${career.year}-${career.title}-${index}`} className="flex gap-4 py-2.5 text-sm">
+                          <span className="num w-12 shrink-0 text-muted">{career.year}</span>
+                          <span className="min-w-0 break-words"><strong className="font-semibold">{career.title}</strong> <span className="text-muted-strong">{career.roleName} 역</span></span>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                ))}
+              </div>
+            </Section>
+          ) : null}
+
+          {actorPage.specialty ? <Section preview={preview} title="특기"><p className="whitespace-pre-line break-words leading-7">{actorPage.specialty}</p></Section> : null}
+
+          {otherInformation.length > 0 || actorPage.links.length > 0 ? (
+            <Section preview={preview} title="더 알아보기">
+              <dl className="grid gap-3 text-sm">
+                {otherInformation.map((item) => (
+                  <div key={item.label} className="grid grid-cols-[4rem_1fr] gap-3">
+                    <dt className="font-semibold text-muted-strong">{item.label}</dt>
+                    <dd className="min-w-0 break-words">{item.value}</dd>
+                  </div>
+                ))}
+                {actorPage.links.length > 0 ? (
+                  <div className="grid grid-cols-[4rem_1fr] gap-3">
+                    <dt className="font-semibold text-muted-strong">링크</dt>
+                    <dd className="grid min-w-0 gap-1">{actorPage.links.map((link) => <ExternalLink key={link.url} url={link.url} />)}</dd>
+                  </div>
+                ) : null}
+              </dl>
+            </Section>
           ) : null}
         </div>
-      </header>
+      </div>
 
-      <aside className="mt-8 rounded-card border border-border bg-card p-4 text-sm leading-6">
-        <p className="font-semibold">이 배우에게 연락하려면 예술in에 문의해 주세요.</p>
-        <p className="text-muted-strong">배우의 연락처는 공개하지 않아요. 예술in이 배우에게 전달해 드려요.</p>
-        <a href={ACTOR_PAGE_INQUIRY_URL} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex min-h-11 items-center font-semibold text-brand hover:underline">
-          카카오톡으로 문의하기<span className="sr-only"> (새 창에서 열림)</span>
-        </a>
-      </aside>
-
-      {actorPage.coverLetter ? <Section preview={preview} title="자기소개"><p className="whitespace-pre-line break-words leading-7">{actorPage.coverLetter}</p></Section> : null}
-
-      {actorPage.photos.length > 0 ? (
-        <Section preview={preview} title="사진">
-          <ul className="grid grid-cols-2 gap-3 min-[761px]:grid-cols-3">
-            {actorPage.photos.map((photo, index) => <li key={photo.url}><ActorPhoto src={photo.url} alt={`${name} 사진 ${index + 1}`} className="rounded-card" /></li>)}
-          </ul>
-        </Section>
-      ) : null}
-
-      {actorPage.videos.length > 0 ? (
-        <Section preview={preview} title="영상">
-          <ul className="grid gap-4 min-[761px]:grid-cols-2">
-            {actorPage.videos.map((video, index) => (
-              <li key={video.youtubeId} className="overflow-hidden rounded-card border border-border bg-foreground">
-                <div className="aspect-video">
-                  <iframe
-                    src={`https://www.youtube-nocookie.com/embed/${video.youtubeId}?rel=0&playsinline=1`}
-                    title={`${name} 영상 ${index + 1}`}
-                    loading="lazy"
-                    allow="encrypted-media; picture-in-picture; fullscreen"
-                    allowFullScreen
-                    referrerPolicy="strict-origin-when-cross-origin"
-                    className="h-full w-full border-0"
-                  />
-                </div>
-              </li>
-            ))}
-          </ul>
-        </Section>
-      ) : null}
-
-      {actorPage.careerGroups.length > 0 ? (
-        <Section preview={preview} title="경력">
-          <div className="grid gap-6">
-            {actorPage.careerGroups.map((group) => (
-              <section key={group.genre ?? "UNCLASSIFIED"} aria-label={profileCareerGenreLabel(group.genre)}>
-                <GroupHeading className="text-sm font-bold text-muted-strong">{profileCareerGenreLabel(group.genre)}</GroupHeading>
-                <ul className="mt-2 divide-y divide-border-soft border-y border-border-soft">
-                  {group.careers.map((career, index) => (
-                    <li key={`${career.year}-${career.title}-${index}`} className="flex gap-4 py-2.5 text-sm">
-                      <span className="num w-12 shrink-0 text-muted">{career.year}</span>
-                      <span className="min-w-0 break-words"><strong className="font-semibold">{career.title}</strong> <span className="text-muted-strong">{career.roleName} 역</span></span>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            ))}
-          </div>
-        </Section>
-      ) : null}
-
-      {actorPage.specialty ? <Section preview={preview} title="특기"><p className="whitespace-pre-line break-words leading-7">{actorPage.specialty}</p></Section> : null}
-
-      {otherInformation.length > 0 || actorPage.links.length > 0 ? (
-        <Section preview={preview} title="더 알아보기">
-          <dl className="grid gap-3 text-sm">
-            {otherInformation.map((item) => (
-              <div key={item.label} className="grid grid-cols-[4rem_1fr] gap-3">
-                <dt className="font-semibold text-muted-strong">{item.label}</dt>
-                <dd className="min-w-0 break-words">{item.value}</dd>
-              </div>
-            ))}
-            {actorPage.links.length > 0 ? (
-              <div className="grid grid-cols-[4rem_1fr] gap-3">
-                <dt className="font-semibold text-muted-strong">링크</dt>
-                <dd className="grid min-w-0 gap-1">{actorPage.links.map((link) => <ExternalLink key={link.url} url={link.url} />)}</dd>
-              </div>
-            ) : null}
-          </dl>
-        </Section>
-      ) : null}
-
-      <footer className="mt-12 border-t border-border-soft pt-5 text-sm text-muted-strong">
+      <footer className="mt-10 border-t border-border pt-5 text-sm text-muted-strong">
         문제가 있는 페이지는 예술in에 알려 주세요.{" "}
         <a href={ACTOR_PAGE_INQUIRY_URL} target="_blank" rel="noopener noreferrer" className="font-semibold text-brand hover:underline">
           문의하기<span className="sr-only"> (새 창에서 열림)</span>
@@ -214,8 +225,8 @@ export function ActorPageView({ actorPage, preview = false }: { readonly actorPa
 function Section({ title, preview, children }: { readonly title: string; readonly preview: boolean; readonly children: ReactNode }) {
   const Heading = preview ? "h3" : "h2";
   return (
-    <section className="mt-10">
-      <Heading className="mb-3 text-lg font-bold">{title}</Heading>
+    <section className="min-w-0 rounded-card border border-border bg-card p-5 min-[761px]:p-7">
+      <Heading className="mb-4 text-lg font-bold tracking-tight">{title}</Heading>
       {children}
     </section>
   );
