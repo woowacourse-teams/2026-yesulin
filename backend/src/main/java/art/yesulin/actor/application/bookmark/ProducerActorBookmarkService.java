@@ -10,12 +10,13 @@ import art.yesulin.actor.domain.bookmark.ProducerActorBookmarkRepository;
 import art.yesulin.actor.domain.page.ActorPage;
 import art.yesulin.actor.domain.page.ActorPageRepository;
 import art.yesulin.actor.domain.page.ActorPageStatus;
+import art.yesulin.auth.domain.member.MemberErrorCode;
+import art.yesulin.auth.domain.member.MemberRepository;
 import art.yesulin.global.exception.BusinessException;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -35,15 +36,18 @@ public class ProducerActorBookmarkService {
     private final ActorPageRepository pageRepository;
     private final ActorPageSummaries summaries;
     private final Clock clock;
+    private final MemberRepository members;
 
     /**
      * 같은 요청을 반복해도 결과가 같다. 이미 저장했으면 배우가 지금 비공개여도 그대로 성공한다. 새로 저장할 때는 배우 목록에
      * 보이는 페이지만 받고, 그 밖은 공개 조회처럼 존재 여부를 알 수 없는 404다.
      *
-     * <p>쓰기는 한 행 추가뿐이라 서비스 트랜잭션으로 묶지 않는다. 같은 저장이 동시에 들어와 유일 제약에 걸리면 그 추가만
-     * 롤백되므로, 이미 저장된 것을 확인하고 같은 결과로 답한다. 한도 검사는 같은 공연사의 동시 저장까지 막지는 않는다.
+     * <p>공연사 회원 행을 먼저 잠그고 한도 검사와 저장을 한 트랜잭션에서 처리한다. 첫 저장부터 같은 공연사의 요청이
+     * 순서대로 실행되므로, 서로 다른 배우의 동시 저장도 한도를 넘지 않고 같은 배우의 저장은 멱등이다.
      */
+    @Transactional
     public void save(long producerId, UUID publicId) {
+        lockProducer(producerId);
         ActorPage page = pageRepository.findByPublicId(publicId).orElseThrow(ProducerActorBookmarkService::notFound);
         if (bookmarkRepository.existsByProducerMemberIdAndActorPageId(producerId, page.getId())) {
             return;
@@ -55,18 +59,13 @@ public class ProducerActorBookmarkService {
         if (saved >= MAX_PER_PRODUCER) {
             throw limitExceeded(producerId, saved);
         }
-        try {
-            bookmarkRepository.saveAndFlush(new ProducerActorBookmark(producerId, page.getId(), Instant.now(clock)));
-        } catch (DataIntegrityViolationException exception) {
-            if (!bookmarkRepository.existsByProducerMemberIdAndActorPageId(producerId, page.getId())) {
-                throw exception;
-            }
-        }
+        bookmarkRepository.saveAndFlush(new ProducerActorBookmark(producerId, page.getId(), Instant.now(clock)));
     }
 
     /** 저장하지 않았거나 없는 페이지여도 같은 결과로 답한다. */
     @Transactional
     public void remove(long producerId, UUID publicId) {
+        lockProducer(producerId);
         pageRepository.findByPublicId(publicId)
                 .ifPresent(page -> bookmarkRepository.deleteSaved(producerId, page.getId()));
     }
@@ -89,6 +88,11 @@ public class ProducerActorBookmarkService {
                 summaries.of(listed.getContent()), page, size, listed.getTotalPages(), listed.getTotalElements(),
                 saved, saved - listed.getTotalElements(), MAX_PER_PRODUCER
         );
+    }
+
+    private void lockProducer(long producerId) {
+        members.findForUpdate(producerId)
+                .orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND, "회원을 찾을 수 없습니다."));
     }
 
     private BusinessException limitExceeded(long producerId, long saved) {

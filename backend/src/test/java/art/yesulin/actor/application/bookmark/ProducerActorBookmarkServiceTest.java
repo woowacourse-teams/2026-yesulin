@@ -26,6 +26,8 @@ import art.yesulin.actor.domain.photolibrary.PhotoVisibility;
 import art.yesulin.actor.domain.profile.ProfileGender;
 import art.yesulin.auth.domain.member.Member;
 import art.yesulin.auth.domain.member.MemberRepository;
+import art.yesulin.auth.domain.member.MemberStatus;
+import art.yesulin.auth.domain.member.MemberType;
 import art.yesulin.file.application.FileService;
 import art.yesulin.file.application.FileUploadCommand;
 import art.yesulin.file.application.FileUploadResult;
@@ -57,8 +59,8 @@ import org.springframework.transaction.annotation.Transactional;
 class ProducerActorBookmarkServiceTest {
 
     private static final Instant NOW = Instant.parse("2026-10-28T00:00:00Z");
-    private static final long PRODUCER = 1L;
-    private static final long OTHER_PRODUCER = 2L;
+    private long producer;
+    private long otherProducer;
     private static final byte[] JPEG = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) 0xE0, 0, 0x10};
 
     @Autowired
@@ -86,6 +88,8 @@ class ProducerActorBookmarkServiceTest {
 
     @BeforeEach
     void fixTime() {
+        producer = members.saveAndFlush(new Member(null, null, MemberType.PRODUCER, MemberStatus.ACTIVE)).getId();
+        otherProducer = members.saveAndFlush(new Member(null, null, MemberType.PRODUCER, MemberStatus.ACTIVE)).getId();
         at(NOW);
         when(clock.getZone()).thenReturn(ZoneId.of("UTC"));
         when(clock.withZone(any())).thenAnswer(invocation -> Clock.fixed(clock.instant(), invocation.getArgument(0)));
@@ -96,37 +100,37 @@ class ProducerActorBookmarkServiceTest {
         final UUID first = publicActor("first").publicId();
         final UUID second = publicActor("second").publicId();
 
-        bookmarks.save(PRODUCER, first);
+        bookmarks.save(producer, first);
         at(NOW.plusSeconds(60));
-        bookmarks.save(PRODUCER, second);
-        bookmarks.save(PRODUCER, first);
+        bookmarks.save(producer, second);
+        bookmarks.save(producer, first);
 
-        ProducerActorBookmarkPageResult result = bookmarks.findPage(PRODUCER, 0, 12);
+        ProducerActorBookmarkPageResult result = bookmarks.findPage(producer, 0, 12);
         assertEquals(List.of("second", "first"), handles(result));
         assertEquals(2, result.savedCount());
         assertEquals(0, result.hiddenCount());
-        assertEquals(List.of(second, first), bookmarks.findSavedIds(PRODUCER).publicIds());
-        assertTrue(bookmarks.findSavedIds(OTHER_PRODUCER).publicIds().isEmpty());
+        assertEquals(List.of(second, first), bookmarks.findSavedIds(producer).publicIds());
+        assertTrue(bookmarks.findSavedIds(otherProducer).publicIds().isEmpty());
     }
 
     @Test
     void privateActorIsHiddenButStaysSavedUntilPublicAgain() {
         PublicActor actor = publicActor("actor");
-        bookmarks.save(PRODUCER, actor.publicId());
+        bookmarks.save(producer, actor.publicId());
 
         pages.unpublish(actor.owner());
 
-        ProducerActorBookmarkPageResult hidden = bookmarks.findPage(PRODUCER, 0, 12);
+        ProducerActorBookmarkPageResult hidden = bookmarks.findPage(producer, 0, 12);
         assertEquals(0, hidden.totalElements());
         assertEquals(1, hidden.savedCount());
         assertEquals(1, hidden.hiddenCount());
-        assertEquals(List.of(actor.publicId()), bookmarks.findSavedIds(PRODUCER).publicIds());
-        assertDoesNotThrow(() -> bookmarks.save(PRODUCER, actor.publicId()));
+        assertEquals(List.of(actor.publicId()), bookmarks.findSavedIds(producer).publicIds());
+        assertDoesNotThrow(() -> bookmarks.save(producer, actor.publicId()));
 
         copy(actor.owner(), actor.photoId());
         pages.publish(actor.owner(), true, ActorPage.CONSENT_VERSION);
 
-        assertEquals(List.of("actor"), handles(bookmarks.findPage(PRODUCER, 0, 12)));
+        assertEquals(List.of("actor"), handles(bookmarks.findPage(producer, 0, 12)));
     }
 
     @Test
@@ -137,7 +141,7 @@ class ProducerActorBookmarkServiceTest {
 
         for (UUID publicId : List.of(privatePage, UUID.randomUUID())) {
             BusinessException exception = assertThrows(
-                    BusinessException.class, () -> bookmarks.save(PRODUCER, publicId)
+                    BusinessException.class, () -> bookmarks.save(producer, publicId)
             );
             assertEquals(ActorPageErrorCode.ACTOR_PAGE_NOT_FOUND, exception.getErrorCode());
         }
@@ -149,36 +153,36 @@ class ProducerActorBookmarkServiceTest {
                 .mapToObj(owner -> new ActorPage(10_000 + owner))
                 .toList());
         bookmarkRepository.saveAll(privatePages.stream()
-                .map(page -> new ProducerActorBookmark(PRODUCER, page.getId(), NOW))
+                .map(page -> new ProducerActorBookmark(producer, page.getId(), NOW))
                 .toList());
         UUID actor = publicActor("actor").publicId();
 
-        BusinessException exception = assertThrows(BusinessException.class, () -> bookmarks.save(PRODUCER, actor));
+        BusinessException exception = assertThrows(BusinessException.class, () -> bookmarks.save(producer, actor));
 
         assertEquals(ProducerActorBookmarkErrorCode.ACTOR_BOOKMARK_LIMIT_EXCEEDED, exception.getErrorCode());
         assertTrue(exception.getMessage().contains("배우 300명도 포함"));
-        assertEquals(300, bookmarks.findPage(PRODUCER, 0, 12).hiddenCount());
-        assertDoesNotThrow(() -> bookmarks.save(OTHER_PRODUCER, actor));
+        assertEquals(300, bookmarks.findPage(producer, 0, 12).hiddenCount());
+        assertDoesNotThrow(() -> bookmarks.save(otherProducer, actor));
     }
 
     @Test
     void removingIsIdempotent() {
         UUID actor = publicActor("actor").publicId();
-        bookmarks.save(PRODUCER, actor);
+        bookmarks.save(producer, actor);
 
-        bookmarks.remove(PRODUCER, actor);
-        bookmarks.remove(PRODUCER, actor);
-        bookmarks.remove(PRODUCER, UUID.randomUUID());
+        bookmarks.remove(producer, actor);
+        bookmarks.remove(producer, actor);
+        bookmarks.remove(producer, UUID.randomUUID());
 
-        assertTrue(bookmarks.findSavedIds(PRODUCER).publicIds().isEmpty());
-        assertEquals(0, bookmarks.findPage(PRODUCER, 0, 12).savedCount());
+        assertTrue(bookmarks.findSavedIds(producer).publicIds().isEmpty());
+        assertEquals(0, bookmarks.findPage(producer, 0, 12).savedCount());
     }
 
     @Test
     void rejectsPageOutOfRange() {
-        assertThrows(IllegalArgumentException.class, () -> bookmarks.findPage(PRODUCER, -1, 12));
+        assertThrows(IllegalArgumentException.class, () -> bookmarks.findPage(producer, -1, 12));
         assertThrows(IllegalArgumentException.class,
-                () -> bookmarks.findPage(PRODUCER, 0, ProducerActorBookmarkService.MAX_PAGE_SIZE + 1));
+                () -> bookmarks.findPage(producer, 0, ProducerActorBookmarkService.MAX_PAGE_SIZE + 1));
     }
 
     private PublicActor publicActor(String handle) {

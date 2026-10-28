@@ -26,6 +26,8 @@ import art.yesulin.actor.application.photolibrary.PhotoLibraryService;
 import art.yesulin.actor.domain.photolibrary.PhotoLibraryErrorCode;
 import art.yesulin.actor.domain.photolibrary.PhotoVisibility;
 import art.yesulin.actor.domain.profileimport.ProfileImportErrorCode;
+import art.yesulin.auth.domain.member.Member;
+import art.yesulin.auth.domain.member.MemberRepository;
 import art.yesulin.file.application.FileService;
 import art.yesulin.global.exception.BusinessException;
 import art.yesulin.global.exception.ErrorCode;
@@ -79,7 +81,9 @@ class ProfileImportServiceTest {
         extraction = new PdfExtractionService(repository, payloads, storage, MAPPER, clock);
         receiver = new PdfExtractionResultReceiver(repository, payloads,
                 new PdfExtractionResultParser(storage, MAPPER), storage, event -> {}, MAPPER, clock);
-        service = new ProfileImportService(repository, payloads, storage, extraction, files, photos, clock);
+        MemberRepository members = mock(MemberRepository.class);
+        when(members.findForUpdate(anyLong())).thenReturn(Optional.of(Member.ofApplicant()));
+        service = new ProfileImportService(repository, payloads, storage, extraction, files, photos, clock, members);
         when(photos.findPhotos(ACTOR)).thenReturn(new PhotoLibraryResult(List.of()));
     }
 

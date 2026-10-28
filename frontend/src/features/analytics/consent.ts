@@ -6,6 +6,7 @@ const LEGACY_REFUSAL_RESET_STORAGE_KEY = "yesulin:analytics-refusal-reset:v1";
  * 꺼져 있어 보내지 못한 화면 조회 이벤트는 이 신호를 받아 한 번 더 시도한다.
  */
 export const ANALYTICS_READY_EVENT = "yesulin:analytics-ready";
+export const ANALYTICS_SCRIPT_ID = "yesulin-gtm";
 
 export type AnalyticsConsent = "granted" | "denied";
 
@@ -63,6 +64,11 @@ export function writeAnalyticsConsent(consent: AnalyticsConsent) {
 
 export function canSendAnalytics() {
   return Boolean(process.env.NEXT_PUBLIC_GTM_ID) && isAnalyticsEnabled(readAnalyticsConsent());
+}
+
+/** 이 스크립트는 동의 명령과 gtm.js를 큐에 넣은 뒤 붙인다. 이미 준비된 뒤의 화면 진입도 확인한다. */
+export function isAnalyticsInitialized() {
+  return typeof document !== "undefined" && document.getElementById(ANALYTICS_SCRIPT_ID) !== null;
 }
 
 export function clearGoogleAnalyticsCookies() {

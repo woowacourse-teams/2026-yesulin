@@ -16,6 +16,7 @@ import {
 import { pageItems } from "@/features/audition-posts/pagination";
 import { ActorBookmarkButton } from "./actor-bookmarks";
 import { ActorPageScreen, ActorPhoto } from "./actor-page-screen";
+import { ActorScreenView } from "./actor-screen-view";
 
 type ListState =
   | { readonly status: "loading" }
@@ -48,6 +49,7 @@ export function ActorListRoute({ page, initialList }: { readonly page: number; r
 
   return (
     <ActorPageScreen>
+      {state.status === "ready" ? <ActorScreenView key={page} screen="actor_list" /> : null}
       <NotebookListHeading title="배우" />
       <p className="-mt-2 mb-6 text-sm leading-6 text-muted-strong">예술in에 프로필 페이지를 공개한 배우들이에요. 최근 소식이 있는 배우부터 보여요.</p>
       {state.status === "loading" ? (

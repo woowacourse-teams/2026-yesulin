@@ -268,6 +268,36 @@ python scripts/probe_profile_prompt.py --key-file /path/to/private-gemini-key
 현재 중첩 profile 계약은 이메일·연락처와 전체 프로필 수동 수정 API를 포함하지 않는다.
 소량 프롬프트 검증은 이 항목들을 검증 범위에 포함하지 않는다.
 
+### 배우 PDF로 프로필 채우기(P8) 배포
+
+P8 API·워커 코드와 실제 AWS 배포·검증을 구분한다. 이 절은 배포 절차이며 IAM 적용이나 dev 검증 완료 기록이 아니다.
+
+1. Spring 실행 역할(`ec2-project`)의 기존 원본 업로드 권한에 더해 다음 권한을 확인한다.
+   `ListBucket`은 버킷 ARN에 적용하고 `s3:prefix` 조건으로 `yesulin/dev/private/pdf-extractions/*`만 허용한다.
+   `GetObject`·`DeleteObject`는 `arn:aws:s3:::techcourse-project-2026/yesulin/dev/private/pdf-extractions/*`에 적용한다.
+   사진 후보는 `results/`에서 읽고 정리는 `inputs/{jobId}/`와 `results/{jobId}/`를 모두 지운다.
+   사용자 로컬 자격 증명의 성공만으로 Spring 역할의 권한이 있다고 판단하지 않는다. 버킷 정책의 거부 조건도 함께 확인한다.
+2. `ACTOR_PROFILE` 작업 목적 migration과 context·완료 API를 담은 Spring을 먼저 배포한다.
+   기존 `YESULIN_PDF_EXTRACTION_ENABLED`·callback 토큰을 유지하며, 배우 API는 `APPLICANT` 세션으로만 접근한다.
+3. 같은 소스 버전의 워커 application 테스트를 통과시킨 뒤 `python scripts/build.py`로 ZIP을 만든다.
+   기존 `yesulin-pdf-benchmark-dev` 함수의 코드를 갱신한다. 함수 이름·역할·S3 트리거·완료 URL·토큰을 유지한다.
+   워커가 `purpose=ACTOR_PROFILE` context를 받고 `roles=[]`에서도 이름·프로필을 정리하는지 확인한다.
+4. 프론트를 배포하고 개인정보 없는 가상 PDF로 배우 편집 화면에서 새 작업을 만든다. 조회·사진 추가·삭제 요청의
+   `jobId`를 기준으로 아래 결과를 확인한다. 공연사 PDF 심사 작업을 시험 자료로 대신 쓰지 않는다.
+
+| dev 확인 항목 | 완료 기준 |
+| --- | --- |
+| 추출·반영 | `COMPLETED/PARTIAL`, 원문 근거와 제안 값이 보임. 고른 값은 입력란에만 들어가고 프로필 저장 전에는 저장되지 않음 |
+| 권한 분리 | 다른 배우와 공연사 PDF API로 이 작업을 읽지 못함 |
+| 사진 복사 | 후보를 보관함에 넣으면 새 비공개 배우 사진 파일이 만들어짐 |
+| 결과 지우기 | 배우 API로 결과를 지운 뒤 이 작업의 `inputs/{jobId}/`·`results/{jobId}/` 객체가 모두 없고 DB payload도 없음. 복사한 보관함 사진은 남음 |
+| 자동 정리 | 결과 생성 후 24시간 경과한 가상 작업이 다음 30분 주기 정리에서 삭제됨. 실패하면 다음 정리 때 재시도됨 |
+| 기존 심사 | 새 공연사 PDF 심사 작업의 배역 context·완료 callback이 계속 동작함 |
+
+API가 성공한 것과 S3 객체가 실제로 사라진 것을 각각 확인한다. 권한 부족·일괄 삭제 일부 실패는 삭제 완료로 처리하지 않는다.
+CloudFront 공개 사진 사본 무효화는 별도 [#393](https://github.com/woowacourse-teams/2026-yesulin/issues/393)이며,
+이 비공개 PDF 정리 검증으로 완료 처리하지 않는다.
+
 ### 심사 진행률·화면 변경 배포
 
 - 프론트의 진행률 폴링은 Spring의 `/api/v1/pdf-reviews/{id}/progress`를 사용하므로 Spring을 먼저 배포한다.

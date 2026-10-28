@@ -8,6 +8,7 @@ import { PrimaryButton, SecondaryButton } from "@/components/ui/controls";
 import {
   ANALYTICS_CONSENT_STORAGE_KEY,
   ANALYTICS_READY_EVENT,
+  ANALYTICS_SCRIPT_ID,
   clearGoogleAnalyticsCookies,
   isAnalyticsEnabled,
   readAnalyticsConsent,
@@ -38,26 +39,31 @@ export function AnalyticsConsentManager({ gtmId }: { readonly gtmId?: string }) 
   }, [pathname]);
 
   useEffect(() => {
-    if (!gtmId || consent === undefined || !isAnalyticsEnabled(consent) || document.getElementById("yesulin-gtm")) return;
+    if (!gtmId || consent === undefined || !isAnalyticsEnabled(consent)) return;
+    const initialized = document.getElementById(ANALYTICS_SCRIPT_ID) !== null;
     window.dataLayer = window.dataLayer ?? [];
-    pushGoogleConsent("consent", "default", {
-      analytics_storage: "denied",
-      ad_storage: "denied",
-      ad_user_data: "denied",
-      ad_personalization: "denied",
-    });
+    if (!initialized) {
+      pushGoogleConsent("consent", "default", {
+        analytics_storage: "denied",
+        ad_storage: "denied",
+        ad_user_data: "denied",
+        ad_personalization: "denied",
+      });
+    }
     pushGoogleConsent("consent", "update", {
       analytics_storage: "granted",
       ad_storage: "denied",
       ad_user_data: "denied",
       ad_personalization: "denied",
     });
-    window.dataLayer.push({ "gtm.start": Date.now(), event: "gtm.js" });
-    const script = document.createElement("script");
-    script.id = "yesulin-gtm";
-    script.async = true;
-    script.src = `https://www.googletagmanager.com/gtm.js?id=${encodeURIComponent(gtmId)}`;
-    document.head.appendChild(script);
+    if (!initialized) {
+      window.dataLayer.push({ "gtm.start": Date.now(), event: "gtm.js" });
+      const script = document.createElement("script");
+      script.id = ANALYTICS_SCRIPT_ID;
+      script.async = true;
+      script.src = `https://www.googletagmanager.com/gtm.js?id=${encodeURIComponent(gtmId)}`;
+      document.head.appendChild(script);
+    }
     window.dispatchEvent(new Event(ANALYTICS_READY_EVENT));
   }, [consent, gtmId]);
 
