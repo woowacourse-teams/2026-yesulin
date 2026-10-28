@@ -14,6 +14,7 @@ export type EventDraft = {
   readonly applyUrl: string;
   readonly applyLabel: string;
   readonly registrationEnabled: boolean;
+  readonly registrationCapacity: string;
   readonly registrationNotice: string;
   readonly registrationConfirmationEnabled: boolean;
   readonly registrationConfirmationMessage: string;
@@ -51,6 +52,7 @@ export function emptyEventDraft(): EventDraft {
     applyUrl: "",
     applyLabel: "",
     registrationEnabled: false,
+    registrationCapacity: "",
     registrationNotice: "",
     registrationConfirmationEnabled: false,
     registrationConfirmationMessage: "",
@@ -77,6 +79,7 @@ export function draftOfEvent(event: AdminEvent): EventDraft {
     applyUrl: event.applyUrl ?? "",
     applyLabel: event.applyLabel ?? "",
     registrationEnabled: event.registrationEnabled,
+    registrationCapacity: event.registrationCapacity?.toString() ?? "",
     registrationNotice: event.registrationNotice ?? "",
     registrationConfirmationEnabled: event.registrationConfirmationEnabled ?? false,
     registrationConfirmationMessage: event.registrationConfirmationMessage ?? "",
@@ -104,6 +107,7 @@ export function writeOfEvent(draft: EventDraft): AdminEventWrite {
     applyUrl: blankToNull(draft.applyUrl),
     applyLabel: blankToNull(draft.applyLabel),
     registrationEnabled: draft.registrationEnabled,
+    registrationCapacity: draft.registrationCapacity.trim() ? Number(draft.registrationCapacity) : null,
     registrationNotice: draft.registrationEnabled ? blankToNull(draft.registrationNotice) : null,
     registrationConfirmationEnabled: draft.registrationEnabled && draft.registrationConfirmationEnabled,
     registrationConfirmationMessage: draft.registrationEnabled && draft.registrationConfirmationEnabled
@@ -132,6 +136,9 @@ export function eventDraftProblem(draft: EventDraft): string | null {
   if (draft.applyUrl.trim() && !/^https?:\/\/\S+$/i.test(draft.applyUrl.trim())) {
     return "신청 링크는 http:// 또는 https://로 시작해야 해요.";
   }
+  if (draft.registrationCapacity.trim() && (!/^\d+$/.test(draft.registrationCapacity.trim())
+    || !Number.isSafeInteger(Number(draft.registrationCapacity)) || Number(draft.registrationCapacity) < 1
+    || Number(draft.registrationCapacity) > 2147483647)) return "모집 정원은 1명 이상의 정수로 입력해 주세요.";
   if (draft.registrationEnabled && draft.businessCardClosesAt && !fromKoreaLocalInput(draft.businessCardClosesAt)) {
     return "명함 제작 마감 시각을 확인해 주세요.";
   }

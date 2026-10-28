@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -57,8 +58,11 @@ public class EventService {
     public List<AdminEventResult> findAllForAdmin() {
         LocalDate today = today();
         Set<Long> shown = shownBannerIds(today);
-        return repository.findAllByOrderByIdDesc(PageRequest.of(0, ADMIN_LIST_LIMIT)).stream()
-                .map(event -> AdminEventResult.from(event, this::urlOf, today, shown.contains(event.getId())))
+        List<Event> events = repository.findAllByOrderByIdDesc(PageRequest.of(0, ADMIN_LIST_LIMIT));
+        Map<Long, Long> counts = registrations.counts(events.stream().map(Event::getId).toList());
+        return events.stream()
+                .map(event -> AdminEventResult.from(event, this::urlOf, today, shown.contains(event.getId()),
+                        counts.getOrDefault(event.getId(), 0L)))
                 .toList();
     }
 
@@ -68,7 +72,7 @@ public class EventService {
     }
 
     /** 새 글은 검토 전으로 만든다. 공개해야 이벤트 화면과 메인 배너에 보인다. */
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public AdminEventResult create(long adminId, EventContent content, EventBannerSetting banner, EventImageUrls urls) {
         EventImages keys = resolve(adminId, EventImages.none(), urls);
         Event event = repository.save(new Event(content, banner, keys, adminId, clock.instant()));
@@ -76,11 +80,11 @@ public class EventService {
         return adminResult(event);
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public AdminEventResult update(
             long adminId, long eventId, EventContent content, EventBannerSetting banner, EventImageUrls urls
     ) {
-        Event event = find(eventId);
+        Event event = findForUpdate(eventId);
         EventImages previous = event.images();
         EventImages keys = resolve(adminId, previous, urls);
         event.write(content, banner, keys, clock.instant());
@@ -89,9 +93,9 @@ public class EventService {
         return adminResult(event);
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public AdminEventResult changeStatus(long adminId, long eventId, EventStatus status) {
-        Event event = find(eventId);
+        Event event = findForUpdate(eventId);
         EventStatus previous = event.getStatus();
         event.changeStatus(status, clock.instant());
         if (previous != status) {
@@ -104,9 +108,9 @@ public class EventService {
      * 글을 지운다. 운영자 글이라 행을 바로 지우고, 받은 참가 신청과 이미지·신청 사진도 함께(저장소는 커밋 뒤) 지운다.
      * 감사 로그는 남긴다.
      */
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public void delete(long adminId, long eventId) {
-        Event event = find(eventId);
+        Event event = findForUpdate(eventId);
         final EventImages keys = event.images();
         audit(adminId, event, AdminAction.EVENT_DELETED, "이벤트 삭제");
         registrations.deleteAllOf(event.getId());
@@ -117,9 +121,12 @@ public class EventService {
     @Transactional(readOnly = true)
     public List<PublicEventSummaryResult> findPublished() {
         LocalDate today = today();
-        return repository.findAllByStatusOrderByIdDesc(EventStatus.PUBLISHED, PageRequest.of(0, PUBLIC_LIST_LIMIT))
-                .stream()
-                .map(event -> PublicEventSummaryResult.from(event, this::urlOf, today))
+        List<Event> events = repository.findAllByStatusOrderByIdDesc(
+                EventStatus.PUBLISHED, PageRequest.of(0, PUBLIC_LIST_LIMIT));
+        Map<Long, Long> counts = registrations.counts(events.stream().map(Event::getId).toList());
+        return events.stream()
+                .map(event -> PublicEventSummaryResult.from(event, this::urlOf, today,
+                        counts.getOrDefault(event.getId(), 0L)))
                 .toList();
     }
 
@@ -128,7 +135,8 @@ public class EventService {
     public PublicEventResult findPublic(long eventId) {
         return repository.findById(eventId)
                 .filter(Event::isPublished)
-                .map(event -> PublicEventResult.from(event, this::urlOf, today(), clock.instant()))
+                .map(event -> PublicEventResult.from(
+                        event, this::urlOf, today(), clock.instant(), registrations.count(event.getId())))
                 .orElseThrow(this::notFound);
     }
 
@@ -155,7 +163,8 @@ public class EventService {
     /** 운영 화면의 배너 노출 표시는 메인 배너와 같은 기준(5개 제한 포함)으로 정한다. */
     private AdminEventResult adminResult(Event event) {
         LocalDate today = today();
-        return AdminEventResult.from(event, this::urlOf, today, shownBannerIds(today).contains(event.getId()));
+        return AdminEventResult.from(event, this::urlOf, today, shownBannerIds(today).contains(event.getId()),
+                registrations.count(event.getId()));
     }
 
     private EventImages resolve(long adminId, EventImages current, EventImageUrls urls) {
@@ -182,6 +191,22 @@ public class EventService {
 
     private String urlOf(String objectKey) {
         return objectKey == null ? null : imageStorage.publicUrl(objectKey);
+    }
+
+    /** 정원 변경·수동 마감·신청·삭제는 같은 이벤트 행 잠금 뒤에 최신 신청 수를 읽는다. */
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public AdminEventResult changeRegistrationClosed(long adminId, long eventId, boolean closed) {
+        Event event = findForUpdate(eventId);
+        boolean previous = event.isRegistrationClosed();
+        event.changeRegistrationClosed(closed, clock.instant());
+        if (previous != closed) {
+            audit(adminId, event, AdminAction.EVENT_REGISTRATION_STATUS_CHANGED, closed ? "모집 마감" : "모집 재개");
+        }
+        return adminResult(event);
+    }
+
+    private Event findForUpdate(long eventId) {
+        return repository.findByIdForUpdate(eventId).orElseThrow(this::notFound);
     }
 
     private Event find(long eventId) {

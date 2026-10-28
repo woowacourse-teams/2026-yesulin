@@ -180,4 +180,19 @@ class EventRegistrationTest {
                 THEATER, null, true, List.of()
         ), photoKey, TODAY, NOW);
     }
+    @Test
+    void paymentConfirmationUsesMicrosecondsAndKeepsTheTimeWhenRepeated() {
+        EventRegistration registration = new EventRegistration(1L, EventRegistrationForm.withoutBusinessCard(
+                EventParticipantType.ACTOR, "일반 참가자", "010-1234-5678", null), null, TODAY, NOW);
+        Instant preciseNow = Instant.parse("2026-10-28T09:07:07.115123456Z");
+        Instant storedTime = Instant.parse("2026-10-28T09:07:07.115123Z");
+
+        assertTrue(registration.changePaymentStatus(EventPaymentStatus.CONFIRMED, preciseNow));
+        assertEquals(storedTime, registration.getPaymentConfirmedAt());
+        assertFalse(registration.changePaymentStatus(EventPaymentStatus.CONFIRMED, preciseNow.plusSeconds(60)));
+        assertEquals(storedTime, registration.getPaymentConfirmedAt());
+        assertTrue(registration.changePaymentStatus(EventPaymentStatus.PENDING, preciseNow.plusSeconds(120)));
+        assertNull(registration.getPaymentConfirmedAt());
+    }
+
 }

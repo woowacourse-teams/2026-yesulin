@@ -7,6 +7,7 @@ import art.yesulin.auth.domain.member.MemberType;
 import art.yesulin.event.application.AdminEventResult;
 import art.yesulin.event.application.EventService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -72,6 +73,19 @@ public class AdminEventController {
             @Valid @RequestBody ChangeEventStatusRequest request
     ) {
         return ResponseEntity.ok(eventService.changeStatus(principal.memberId(), eventId, request.status()));
+    }
+
+    @PatchMapping("/{eventId}/registration-status")
+    public ResponseEntity<AdminEventResult> changeRegistrationClosed(
+            @LoginMember(roles = MemberType.ADMIN) MemberPrincipal principal,
+            @PathVariable long eventId,
+            @Valid @RequestBody RegistrationStatusRequest request
+    ) {
+        return ResponseEntity.ok(eventService.changeRegistrationClosed(
+                principal.memberId(), eventId, request.closed()));
+    }
+
+    public record RegistrationStatusRequest(@NotNull Boolean closed) {
     }
 
     @DeleteMapping("/{eventId}")

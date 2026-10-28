@@ -2,6 +2,7 @@ package art.yesulin.event.application;
 
 import art.yesulin.event.domain.Event;
 import art.yesulin.event.domain.EventPhase;
+import art.yesulin.event.domain.EventRegistrationStatus;
 import art.yesulin.event.domain.EventStatus;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -35,10 +36,16 @@ public record AdminEventResult(
         Instant createdAt,
         Instant updatedAt,
         boolean registrationConfirmationEnabled,
-        String registrationConfirmationMessage
+        String registrationConfirmationMessage,
+        Integer registrationCapacity,
+        long registrationCount,
+        boolean registrationClosed,
+        EventRegistrationStatus registrationStatus
 ) {
 
-    static AdminEventResult from(Event event, UnaryOperator<String> urlOf, LocalDate today, boolean bannerVisible) {
+    static AdminEventResult from(
+            Event event, UnaryOperator<String> urlOf, LocalDate today, boolean bannerVisible, long registrationCount
+    ) {
         return new AdminEventResult(
                 event.getId(),
                 event.getTitle(),
@@ -68,7 +75,11 @@ public record AdminEventResult(
                 event.getCreatedAt(),
                 event.getUpdatedAt(),
                 event.isRegistrationConfirmationEnabled(),
-                event.getRegistrationConfirmationMessage()
+                event.getRegistrationConfirmationMessage(),
+                event.getRegistrationCapacity(),
+                registrationCount,
+                event.isRegistrationClosed(),
+                event.registrationStatusOn(today, registrationCount)
         );
     }
 

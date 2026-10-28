@@ -1,6 +1,6 @@
 import type { VenueAddress } from "../auditions/creation-types";
 import type { CompanyField, CompanyWrite } from "../companies/profile-draft";
-import type { EventActivityField, EventParticipantType, EventPhase, EventRegistrationCareer, EventSnsPlatform } from "../events/types";
+import type { EventActivityField, EventParticipantType, EventPhase, EventRegistrationCareer, EventSnsPlatform, EventPaymentStatus, EventRegistrationStatus } from "../events/types";
 
 export type MemberStatus = "PENDING" | "ACTIVE";
 
@@ -622,6 +622,10 @@ export type AdminEvent = {
   readonly phase: EventPhase;
   readonly createdAt: string;
   readonly updatedAt: string;
+  readonly registrationCapacity: number | null;
+  readonly registrationCount: number;
+  readonly registrationClosed: boolean;
+  readonly registrationStatus: EventRegistrationStatus;
 };
 
 /** 이벤트를 통째로 저장하는 요청. 백엔드 `WriteEventRequest`와 같고, 빈 값은 지운다. */
@@ -643,6 +647,7 @@ export type AdminEventWrite = {
   readonly businessCardClosesAt: string | null;
   readonly coverImageUrl: string | null;
   readonly banner: AdminEventBanner;
+  readonly registrationCapacity: number | null;
 };
 
 /** 운영 화면의 이벤트 참가 신청 한 건. 백엔드 `AdminEventRegistrationResult`와 같다. */
@@ -670,6 +675,8 @@ export type AdminEventRegistration = {
   /** 명함 뒷면에 넣을 한 줄 소개 */
   readonly intro: string | null;
   readonly createdAt: string;
+  readonly paymentStatus: EventPaymentStatus;
+  readonly paymentConfirmedAt: string | null;
 };
 
 

@@ -2,6 +2,21 @@ export const MAX_EVENT_DETAIL_IMAGES = 10;
 
 /** 진행 기간으로 본 이벤트 단계. 백엔드가 한국 날짜로 계산한다. 기간을 비운 이벤트는 늘 진행 중이다. */
 export type EventPhase = "UPCOMING" | "ONGOING" | "ENDED";
+export type EventRegistrationStatus = "OPEN" | "CLOSED" | "FULL" | "ENDED" | "DISABLED";
+export type EventPaymentStatus = "PENDING" | "CONFIRMED";
+export const EVENT_REGISTRATION_STATUS_LABELS: Readonly<Record<EventRegistrationStatus, string>> = {
+  OPEN: "모집 중", CLOSED: "모집 마감", FULL: "선착순 마감", ENDED: "기간 종료", DISABLED: "접수 불가",
+};
+export const EVENT_PAYMENT_STATUS_LABELS: Readonly<Record<EventPaymentStatus, string>> = {
+  PENDING: "입금 미확인", CONFIRMED: "입금 확인",
+};
+
+export function registrationClosedMessage(status: EventRegistrationStatus): string {
+  if (status === "FULL") return "선착순 모집 정원이 마감되었습니다.";
+  if (status === "CLOSED") return "모집이 마감되었습니다.";
+  if (status === "ENDED") return "참가 신청 기간이 끝났습니다.";
+  return "지금은 참가 신청을 받지 않습니다.";
+}
 
 /** 이벤트 목록 카드. 백엔드 `PublicEventSummaryResult`와 같다. */
 export type PublicEventSummary = {
@@ -14,6 +29,7 @@ export type PublicEventSummary = {
   readonly endsOn: string | null;
   readonly phase: EventPhase;
   readonly coverImageUrl: string | null;
+  readonly registrationStatus: EventRegistrationStatus;
 };
 
 /** 이벤트 상세. 백엔드 `PublicEventResult`와 같다. */
@@ -30,6 +46,9 @@ export type PublicEvent = PublicEventSummary & {
   readonly registrationEnabled: boolean;
   /** 지금 참가 신청을 받는지. 신청서를 켠 글이 마감되면 false다. */
   readonly registrationOpen: boolean;
+  readonly registrationCapacity: number | null;
+  readonly registrationCount: number;
+  readonly registrationClosed: boolean;
   /** 참가 신청서 위에 보일 보증금·계좌 같은 안내. 줄바꿈을 그대로 보여 준다. */
   readonly registrationNotice: string | null;
   /** 신청 전 확인 팝업 설정. 켜면 안내 내용을 확인한 뒤 신청한다. */
@@ -46,7 +65,7 @@ export type EventParticipantType = "ACTOR" | "PRODUCER";
 
 export const EVENT_PARTICIPANT_LABELS: Readonly<Record<EventParticipantType, string>> = {
   ACTOR: "배우",
-  PRODUCER: "공연사 관계자",
+  PRODUCER: "관계자",
 };
 
 /** 배우가 활동하거나 준비하는 분야. 기타를 고르면 분야 이름을 직접 적는다. */

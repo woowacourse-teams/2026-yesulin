@@ -6,7 +6,7 @@ import { ContentSkeleton, ContentState } from "@/components/ui/content-state";
 import { SecondaryLink } from "@/components/ui/controls";
 import { AuditionRequestError } from "@/features/auditions/api-client";
 import { getEvent } from "@/features/events/api";
-import { eventRoutes, formatEventPeriod, type PublicEvent } from "@/features/events/types";
+import { eventRoutes, formatEventPeriod, registrationClosedMessage, type PublicEvent } from "@/features/events/types";
 import { MissingEvent } from "./event-detail";
 import { EventRegistrationForm } from "./event-registration-form";
 import { EventScreen } from "./event-screen";
@@ -53,7 +53,7 @@ function Registration({ event }: { readonly event: PublicEvent }) {
       <ContentState
         headingLevel={1}
         className="mt-3"
-        title="지금은 참가 신청을 받지 않습니다"
+        title={registrationClosedMessage(event.registrationStatus)}
         description="신청이 마감되었거나 아직 열리지 않았습니다. 자세한 내용은 이벤트 글에서 확인해 주십시오."
         action={<SecondaryLink href={eventRoutes.detail(event.id)}>이벤트 글 보기</SecondaryLink>}
       />
@@ -66,6 +66,7 @@ function Registration({ event }: { readonly event: PublicEvent }) {
         <p className="text-sm font-semibold text-brand">참가 신청</p>
         <h1 className="mt-2 break-words text-[clamp(22px,3.2vw,30px)] font-bold leading-snug tracking-[-0.03em]">{event.title}</h1>
         {period ? <p className="num mt-2 text-sm text-muted-strong">{period}</p> : null}
+        {event.registrationCapacity !== null ? <p className="mt-3 text-sm text-brand">총 {event.registrationCapacity}명 선착순 모집 · 현재 {event.registrationCount}명 접수<br /><span className="text-muted-strong">참가 구분과 입금 여부에 관계없이 신청 완료 순으로 접수됩니다.</span></p> : null}
       </header>
       {event.registrationNotice ? <Notice text={event.registrationNotice} /> : null}
       {done ? (

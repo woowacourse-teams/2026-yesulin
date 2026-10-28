@@ -68,7 +68,7 @@ function EventCard({ event }: { readonly event: PublicEventSummary }) {
         {event.coverImageUrl ? <EventImage src={event.coverImageUrl} className="aspect-[4/3] object-cover" /> : null}
         <div className="p-4">
           <div className="flex flex-wrap items-center gap-2 text-xs">
-            <EventPhaseBadge phase={event.phase} />
+            <EventPhaseBadge phase={event.phase} registrationStatus={event.registrationStatus} />
             {period ? <span className="num text-muted">{period}</span> : null}
           </div>
           <h2 className="mt-2 break-words text-base font-bold leading-snug">{event.title}</h2>
