@@ -3,12 +3,15 @@ package art.yesulin.actor.presentation.api.page;
 import art.yesulin.actor.application.page.ActorPageHandleAvailabilityResult;
 import art.yesulin.actor.application.page.ActorPageService;
 import art.yesulin.actor.application.page.ActorPageSettingsResult;
+import art.yesulin.actor.application.page.PublicActorPageResult;
+import art.yesulin.actor.application.page.PublicActorPageService;
 import art.yesulin.auth.application.MemberPrincipal;
 import art.yesulin.auth.application.annotation.LoginMember;
 import art.yesulin.auth.application.annotation.LoginRequired;
 import art.yesulin.auth.domain.member.MemberType;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,12 +30,23 @@ import org.springframework.web.bind.annotation.RestController;
 public class ActorPageController {
 
     private final ActorPageService actorPageService;
+    private final PublicActorPageService publicActorPageService;
 
     @GetMapping
     public ResponseEntity<ActorPageSettingsResult> find(
             @LoginMember(roles = MemberType.APPLICANT) MemberPrincipal principal
     ) {
         return ResponseEntity.ok(actorPageService.find(principal.memberId()));
+    }
+
+    /** 비공개여도 본인은 공개하면 보일 모습을 미리 본다. 공개 조회와 같은 응답 모양이다. */
+    @GetMapping("/preview")
+    public ResponseEntity<PublicActorPageResult> preview(
+            @LoginMember(roles = MemberType.APPLICANT) MemberPrincipal principal
+    ) {
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .body(publicActorPageService.preview(principal.memberId()));
     }
 
     @GetMapping("/handle-availability")

@@ -1,9 +1,11 @@
 import { delay, http, HttpResponse } from "msw";
 import type { PublicActorPage, PublicActorPageSummary } from "@/features/actor-pages/types";
+import { actorPageOwnerHandlers, actorPageSeedHandler, ownerPublicActorPage } from "./actor-page-owner-handlers";
 
 /**
- * 배우 목록·배우 페이지 확인용 읽기 전용 목. 공개 페이지 14개(목록 2페이지)만 담는다. 서버처럼 아이디는 대소문자를
- * 가리지 않고 찾고, 비공개 페이지(`hidden.actor` 시나리오)와 없는 아이디는 목록에 없으므로 같은 404로 답한다.
+ * 배우 목록·배우 페이지 확인용 목. 고정 공개 페이지 14개(목록 2페이지)에, 목 배우가 편집 화면에서 공개하면 그 페이지를
+ * 맨 앞에 더한다. 서버처럼 아이디는 대소문자를 가리지 않고 찾고, 비공개 페이지(`hidden.actor` 시나리오)와 없는 아이디는
+ * 목록에 없으므로 같은 404로 답한다.
  */
 const PHOTOS = [
   "/images/applicants/kim-harin-profile.png",
@@ -62,7 +64,12 @@ const OTHERS: PublicActorPage[] = NAMES.map((name, index) => ({
   links: [],
 }));
 
-const listed: readonly PublicActorPage[] = [FEATURED, ...OTHERS];
+const fixed: readonly PublicActorPage[] = [FEATURED, ...OTHERS];
+
+function listed(): readonly PublicActorPage[] {
+  const owner = ownerPublicActorPage();
+  return owner ? [owner, ...fixed] : fixed;
+}
 
 function toSummary(page: PublicActorPage): PublicActorPageSummary {
   const { publicId, handle, name, gender, birthYear, age, height, weight, representativePhotoUrl } = page;
@@ -72,6 +79,8 @@ function toSummary(page: PublicActorPage): PublicActorPageSummary {
 const notFound = () => HttpResponse.json({ code: "ACTOR_PAGE_NOT_FOUND", message: "배우 페이지를 찾을 수 없습니다." }, { status: 404 });
 
 export const actorPageHandlers = [
+  actorPageSeedHandler,
+
   http.get("/api/v1/public/actor-pages", async ({ request }) => {
     await delay(120);
     const params = new URL(request.url).searchParams;
@@ -80,19 +89,22 @@ export const actorPageHandlers = [
     if (!Number.isInteger(page) || page < 0 || !Number.isInteger(size) || size < 1 || size > 48 || (params.get("sort") ?? "recent") !== "recent") {
       return HttpResponse.json({ code: "INVALID_REQUEST", message: "목록 조회 조건이 올바르지 않습니다." }, { status: 400 });
     }
+    const pages = listed();
     return HttpResponse.json({
-      actorPages: listed.slice(page * size, (page + 1) * size).map(toSummary),
+      actorPages: pages.slice(page * size, (page + 1) * size).map(toSummary),
       page,
       size,
-      totalPages: Math.ceil(listed.length / size),
-      totalElements: listed.length,
+      totalPages: Math.ceil(pages.length / size),
+      totalElements: pages.length,
     });
   }),
 
   http.get("/api/v1/public/actor-pages/by-handle/:handle", async ({ params }) => {
     await delay(120);
     const handle = String(params.handle).toLowerCase();
-    const actorPage = listed.find((candidate) => candidate.handle === handle);
+    const actorPage = listed().find((candidate) => candidate.handle === handle);
     return actorPage ? HttpResponse.json(actorPage) : notFound();
   }),
+
+  ...actorPageOwnerHandlers((handle) => handle === "hidden.actor" || fixed.some((candidate) => candidate.handle === handle)),
 ];

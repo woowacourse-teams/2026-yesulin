@@ -52,8 +52,9 @@ public record PublicActorPageResult(
             ActorPage page, ActorPagePublicContent content, Integer age, List<String> photoUrls, List<Video> videos
     ) {
         return new PublicActorPageResult(
-                page.getPublicId(), page.getHandle(), content.name(), content.gender(), content.birthYear(), age,
-                content.height(), content.weight(), photoUrls.isEmpty() ? null : photoUrls.getFirst(),
+                page.getId() == null ? null : page.getPublicId(), page.getHandle(), content.name(), content.gender(),
+                content.birthYear(), age, content.height(), content.weight(),
+                photoUrls.isEmpty() ? null : photoUrls.getFirst(),
                 photoUrls.stream().map(Photo::new).toList(), videos, CareerGroup.groupsOf(content.careers()),
                 content.coverLetter(), content.specialty(), content.hobbies(), content.nationality(),
                 Education.of(content.educationLevel(), content.school(), content.major()),

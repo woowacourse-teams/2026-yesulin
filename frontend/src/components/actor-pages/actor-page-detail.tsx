@@ -11,6 +11,7 @@ import {
   actorBodyLine,
   actorIdentityLine,
   actorPageRoutes,
+  type ActorPageContent,
   type PublicActorPage,
 } from "@/features/actor-pages/types";
 import { profileCareerGenreLabel } from "@/features/applicants/career-genre";
@@ -83,8 +84,17 @@ export function MissingActorPage() {
   );
 }
 
-function ActorPageView({ actorPage }: { readonly actorPage: PublicActorPage }) {
+/**
+ * 배우 페이지 본문. 본인 미리보기(`preview`)는 마이페이지 안에 그려 제목 단계를 한 단계 내리고, 아직 입력하지 않은 이름·성별·
+ * 생년월일과 정하지 않은 아이디는 비워 두며 공유 버튼을 숨긴다.
+ */
+export function ActorPageView({ actorPage, preview = false }: { readonly actorPage: ActorPageContent; readonly preview?: boolean }) {
+  const name = actorPage.name ?? "이름 미입력";
+  const NameHeading = preview ? "h2" : "h1";
+  const { gender, birthYear, age } = actorPage;
+  const identity = gender && birthYear !== null && age !== null ? actorIdentityLine({ gender, birthYear, age }) : null;
   const body = actorBodyLine(actorPage);
+  const GroupHeading = preview ? "h4" : "h3";
   const otherInformation = [
     actorPage.education ? { label: "학력", value: educationText({ level: actorPage.education.level, school: actorPage.education.school ?? "", major: actorPage.education.major ?? "" }) } : null,
     actorPage.nationality ? { label: "국적", value: actorPage.nationality } : null,
@@ -94,13 +104,13 @@ function ActorPageView({ actorPage }: { readonly actorPage: PublicActorPage }) {
   return (
     <article className="mt-4">
       <header className="grid gap-6 min-[761px]:grid-cols-[minmax(0,320px)_1fr] min-[761px]:items-end">
-        <ActorPhoto src={actorPage.representativePhotoUrl} alt={`${actorPage.name} 대표 사진`} className="rounded-card" />
+        <ActorPhoto src={actorPage.representativePhotoUrl} alt={`${name} 대표 사진`} className="rounded-card" />
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-muted-strong">@{actorPage.handle}</p>
-          <h1 className="mt-1 break-words text-3xl font-bold leading-tight">{actorPage.name}</h1>
-          <p className="mt-2 text-base text-muted-strong">{actorIdentityLine(actorPage)}</p>
+          {actorPage.handle ? <p className="text-sm font-semibold text-muted-strong">@{actorPage.handle}</p> : null}
+          <NameHeading className="mt-1 break-words text-3xl font-bold leading-tight">{name}</NameHeading>
+          {identity ? <p className="mt-2 text-base text-muted-strong">{identity}</p> : null}
           {body ? <p className="num text-base text-muted-strong">{body}</p> : null}
-          <div className="mt-5"><ShareButton name={actorPage.name} handle={actorPage.handle} /></div>
+          {!preview && actorPage.handle ? <div className="mt-5"><ShareButton name={name} handle={actorPage.handle} /></div> : null}
         </div>
       </header>
 
@@ -112,25 +122,25 @@ function ActorPageView({ actorPage }: { readonly actorPage: PublicActorPage }) {
         </a>
       </aside>
 
-      {actorPage.coverLetter ? <Section title="자기소개"><p className="whitespace-pre-line break-words leading-7">{actorPage.coverLetter}</p></Section> : null}
+      {actorPage.coverLetter ? <Section preview={preview} title="자기소개"><p className="whitespace-pre-line break-words leading-7">{actorPage.coverLetter}</p></Section> : null}
 
       {actorPage.photos.length > 0 ? (
-        <Section title="사진">
+        <Section preview={preview} title="사진">
           <ul className="grid grid-cols-2 gap-3 min-[761px]:grid-cols-3">
-            {actorPage.photos.map((photo, index) => <li key={photo.url}><ActorPhoto src={photo.url} alt={`${actorPage.name} 사진 ${index + 1}`} className="rounded-card" /></li>)}
+            {actorPage.photos.map((photo, index) => <li key={photo.url}><ActorPhoto src={photo.url} alt={`${name} 사진 ${index + 1}`} className="rounded-card" /></li>)}
           </ul>
         </Section>
       ) : null}
 
       {actorPage.videos.length > 0 ? (
-        <Section title="영상">
+        <Section preview={preview} title="영상">
           <ul className="grid gap-4 min-[761px]:grid-cols-2">
             {actorPage.videos.map((video, index) => (
               <li key={video.youtubeId} className="overflow-hidden rounded-card border border-border bg-foreground">
                 <div className="aspect-video">
                   <iframe
                     src={`https://www.youtube-nocookie.com/embed/${video.youtubeId}?rel=0&playsinline=1`}
-                    title={`${actorPage.name} 영상 ${index + 1}`}
+                    title={`${name} 영상 ${index + 1}`}
                     loading="lazy"
                     allow="encrypted-media; picture-in-picture; fullscreen"
                     allowFullScreen
@@ -145,11 +155,11 @@ function ActorPageView({ actorPage }: { readonly actorPage: PublicActorPage }) {
       ) : null}
 
       {actorPage.careerGroups.length > 0 ? (
-        <Section title="경력">
+        <Section preview={preview} title="경력">
           <div className="grid gap-6">
             {actorPage.careerGroups.map((group) => (
               <section key={group.genre ?? "UNCLASSIFIED"} aria-label={profileCareerGenreLabel(group.genre)}>
-                <h3 className="text-sm font-bold text-muted-strong">{profileCareerGenreLabel(group.genre)}</h3>
+                <GroupHeading className="text-sm font-bold text-muted-strong">{profileCareerGenreLabel(group.genre)}</GroupHeading>
                 <ul className="mt-2 divide-y divide-border-soft border-y border-border-soft">
                   {group.careers.map((career, index) => (
                     <li key={`${career.year}-${career.title}-${index}`} className="flex gap-4 py-2.5 text-sm">
@@ -164,10 +174,10 @@ function ActorPageView({ actorPage }: { readonly actorPage: PublicActorPage }) {
         </Section>
       ) : null}
 
-      {actorPage.specialty ? <Section title="특기"><p className="whitespace-pre-line break-words leading-7">{actorPage.specialty}</p></Section> : null}
+      {actorPage.specialty ? <Section preview={preview} title="특기"><p className="whitespace-pre-line break-words leading-7">{actorPage.specialty}</p></Section> : null}
 
       {otherInformation.length > 0 || actorPage.links.length > 0 ? (
-        <Section title="더 알아보기">
+        <Section preview={preview} title="더 알아보기">
           <dl className="grid gap-3 text-sm">
             {otherInformation.map((item) => (
               <div key={item.label} className="grid grid-cols-[4rem_1fr] gap-3">
@@ -195,10 +205,11 @@ function ActorPageView({ actorPage }: { readonly actorPage: PublicActorPage }) {
   );
 }
 
-function Section({ title, children }: { readonly title: string; readonly children: ReactNode }) {
+function Section({ title, preview, children }: { readonly title: string; readonly preview: boolean; readonly children: ReactNode }) {
+  const Heading = preview ? "h3" : "h2";
   return (
     <section className="mt-10">
-      <h2 className="mb-3 text-lg font-bold">{title}</h2>
+      <Heading className="mb-3 text-lg font-bold">{title}</Heading>
       {children}
     </section>
   );

@@ -47,6 +47,19 @@ export type PublicActorPage = PublicActorPageSummary & {
   readonly links: readonly { readonly url: string }[];
 };
 
+/**
+ * 본인 미리보기. 공개 조회와 같은 모양이지만 공개 조건과 무관하게 주므로 이름·성별·생년월일을 아직 입력하지 않았거나
+ * 아이디를 정하지 않았으면 비어 있다. 공개 페이지도 이 모양으로 그릴 수 있다.
+ */
+export type ActorPageContent = Omit<PublicActorPage, "publicId" | "handle" | "name" | "gender" | "birthYear" | "age"> & {
+  readonly publicId: string | null;
+  readonly handle: string | null;
+  readonly name: string | null;
+  readonly gender: ActorGender | null;
+  readonly birthYear: number | null;
+  readonly age: number | null;
+};
+
 export const ACTOR_LIST_PAGE_SIZE = 12;
 
 /** 배우에게 연락하거나 문제가 있는 페이지를 알릴 때 쓰는 예술in 카카오톡 채널. */
@@ -74,6 +87,11 @@ export const actorPageRoutes = {
 export function parseActorListPage(value: string | readonly string[] | undefined): number {
   const page = Number(Array.isArray(value) ? value[0] : value);
   return Number.isInteger(page) && page >= 1 && page <= 10_000 ? page - 1 : 0;
+}
+
+/** 아이디 입력값을 서버와 같은 규칙(앞뒤 공백 제거·소문자)으로 바꾼다. */
+export function normalizeActorHandle(value: string): string {
+  return value.trim().toLowerCase();
 }
 
 const GENDER_LABELS: Readonly<Record<ActorGender, string>> = { FEMALE: "여성", MALE: "남성" };

@@ -97,6 +97,19 @@ export function patchApplicantProfile(body: UpdateProfileRequest): ApplicantProf
   return applicantProfile();
 }
 
+/** 배우 페이지가 비공개가 되면 서버처럼 공개 사본을 모두 지운다. */
+export function clearApplicantPhotoPublicCopies() {
+  photoLibrary = photoLibrary.map((photo) => ({ ...photo, publicCopyUrl: null }));
+}
+
+/** 배우 페이지 목 시나리오의 시작 상태. 고른 사진만 공개로 두고, 목에서는 원본 주소를 공개 사본 대신 쓴다. */
+export function seedApplicantPhotoVisibility(publicPhotoIds: readonly string[], withPublicCopies: boolean) {
+  photoLibrary = photoLibrary.map((photo) => {
+    const isPublic = publicPhotoIds.includes(photo.id);
+    return { ...photo, visibility: isPublic ? "PUBLIC" : "PRIVATE", publicCopyUrl: isPublic && withPublicCopies ? photo.url : null };
+  });
+}
+
 export function saveSubmissionAnswersToProfile(answers: readonly ApplicantAnswer[]) {
   const current = applicantProfile().answers.find((answer) => answer.key === "CAREER")?.value;
   const submitted = answers.find((answer) => answer.key === "CAREER")?.value;

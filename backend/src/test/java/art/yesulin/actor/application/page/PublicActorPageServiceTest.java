@@ -222,6 +222,48 @@ class PublicActorPageServiceTest {
     }
 
     @Test
+    void previewShowsWhatWouldBePublicWhilePrivate() {
+        final long owner = actor();
+        addPhoto(owner);
+        final long publicPhoto = addPhoto(owner);
+        photos.changeVisibility(owner, publicPhoto, PhotoVisibility.PUBLIC);
+        final long copiedPhoto = publicPhotoWithCopy(owner);
+        profiles.update(owner, new UpdateApplicantProfileCommand(null, new UpdateProfileAdditionalInformationCommand(
+                null, null, null, List.of(), null, "무대에 서는 배우입니다.", "탭댄스", null, null, List.of()
+        )));
+        videos.addVideo(owner, new AddVideoToLibraryCommand(youtube("aaaaaaaaaaa")));
+        pages.changeHandle(owner, "actor");
+        pages.changeVisibilities(owner, Map.of(ActorPageField.COVER_LETTER, ActorPageVisibility.PUBLIC));
+
+        PublicActorPageResult preview = publicPages.preview(owner);
+
+        assertEquals("actor", preview.handle());
+        assertEquals("배우", preview.name());
+        assertEquals(List.of(imageUrl(owner, publicPhoto), copyUrl(owner, copiedPhoto)),
+                preview.photos().stream().map(PublicActorPageResult.Photo::url).toList());
+        assertEquals(imageUrl(owner, publicPhoto), preview.representativePhotoUrl());
+        assertEquals("무대에 서는 배우입니다.", preview.coverLetter());
+        assertNull(preview.specialty());
+        assertTrue(preview.videos().isEmpty());
+        assertThrows(BusinessException.class, () -> publicPages.findByHandle("actor"));
+    }
+
+    @Test
+    void previewWithoutPageUsesPrivateDefaults() {
+        long owner = actor();
+        publicPhotoWithCopy(owner);
+
+        PublicActorPageResult preview = publicPages.preview(owner);
+
+        assertNull(preview.publicId());
+        assertNull(preview.handle());
+        assertEquals("배우", preview.name());
+        assertEquals(1, preview.photos().size());
+        assertTrue(preview.careerGroups().isEmpty());
+        assertNull(preview.coverLetter());
+    }
+
+    @Test
     void rejectsUnknownSortAndPageOutOfRange() {
         assertThrows(IllegalArgumentException.class, () -> ActorPageSort.from("popular"));
         assertThrows(IllegalArgumentException.class, () -> publicPages.findPage(RECENT, -1, 12));
@@ -263,6 +305,14 @@ class PublicActorPageServiceTest {
                 .filter(photo -> photo.id() == photoId)
                 .findFirst()
                 .map(PhotoLibraryItemResult::publicCopyUrl)
+                .orElseThrow();
+    }
+
+    private String imageUrl(long owner, long photoId) {
+        return photos.findPhotos(owner).photos().stream()
+                .filter(photo -> photo.id() == photoId)
+                .findFirst()
+                .map(PhotoLibraryItemResult::imageUrl)
                 .orElseThrow();
     }
 

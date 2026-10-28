@@ -7,6 +7,7 @@ import { SiteIcon } from "@/components/ui/site-icon";
 import { ApplicantProfileOverview, profileAnswerText } from "./applicant-profile-overview";
 import Link from "next/link";
 import { getApplicantSubmissions, getApplicantProfile, getRecommendedPostings } from "@/features/applicants/api";
+import { getActorPageSettings } from "@/features/actor-pages/owner-api";
 import { frontendEnvironment } from "@/config/environment";
 import { formatApplicantDate } from "@/features/applicants/presentation";
 import { applicantRoutes } from "@/features/applicants/routes";
@@ -23,21 +24,22 @@ const recommendationsAvailable = frontendEnvironment.apiMockingEnabled;
  * 실패하면 홈 전체를 다시 시도하도록 그대로 던진다.
  */
 async function loadDashboard() {
-  const [profile, submissions, recommendations] = await Promise.all([
+  const [profile, submissions, recommendations, actorPage] = await Promise.all([
     getApplicantProfile(),
     getApplicantSubmissions().then((response) => response.submissions, () => null),
     recommendationsAvailable
       ? getRecommendedPostings(undefined, 3).then((response) => response.postings, () => [])
       : Promise.resolve([]),
+    getActorPageSettings().catch((cause: unknown) => { console.error("[배우 페이지 설정 조회 실패]", cause); return null; }),
   ]);
-  return { profile, submissions, recommendations };
+  return { profile, submissions, recommendations, actorPage };
 }
 
 export function ApplicantDashboard() {
   const query = useAuditionQuery("applicant-dashboard", loadDashboard, "배우 홈을 불러오지 못했습니다.");
   if (query.loading) return <DashboardSkeleton />;
   if (query.error || !query.data) return <PageContainer><ScreenError message={query.error} onRetry={query.reload} /></PageContainer>;
-  const { profile, submissions, recommendations } = query.data;
+  const { profile, submissions, recommendations, actorPage } = query.data;
   const name = profileAnswerText(profile, "NAME");
 
   return <PageContainer>
@@ -48,7 +50,7 @@ export function ApplicantDashboard() {
       description="저장한 프로필과 제출한 지원서를 한눈에 확인하세요."
       action={<Link href="/auditions" className="workspace-text-link">오디션 공고 둘러보기 <SiteIcon name="next" size={16} /></Link>}
     />
-    <ApplicantProfileOverview profile={profile} />
+    <ApplicantProfileOverview profile={profile} actorPage={actorPage} />
     <section className="applicant-recent" aria-labelledby="recent-submissions-title">
       <div className="workspace-section-heading">
         <div><h2 id="recent-submissions-title">최근 제출한 지원서</h2><p>지원서에 담은 내용과 제출 내역을 확인하세요.</p></div>

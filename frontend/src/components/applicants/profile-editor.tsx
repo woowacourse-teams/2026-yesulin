@@ -10,11 +10,15 @@ import { APPLICATION_FIELD_OPTIONS } from "@/features/auditions/creation-types";
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
 import { useToast } from "@/components/auditions/toast";
 import { PrimaryButton } from "@/components/ui/controls";
+import { ActorPagePublishDialog } from "@/components/actor-pages/actor-page-publish-dialog";
+import { ActorPageSettingsPanel, publishedActorPageToast, useActorPageSettings } from "@/components/actor-pages/actor-page-settings";
+import { recordActorPagePublishPrompt } from "@/features/actor-pages/owner-api";
+import { shouldPromptPublish, type ActorPageSettings } from "@/features/actor-pages/settings";
 import { ProfileInformationSection } from "./profile-editor-sections";
 import { MAX_LIBRARY_PHOTOS, ProfilePhotoLibrary } from "./profile-photo-library";
 import { MAX_LIBRARY_VIDEOS, ProfileVideoLibrary } from "./profile-video-library";
 
-type ProfileTab = "BASIC" | "ADDITIONAL" | "PHOTOS" | "VIDEOS";
+export type ProfileTab = "BASIC" | "ADDITIONAL" | "PHOTOS" | "VIDEOS" | "ACTOR_PAGE";
 type DraftValues = Record<string, ApplicantAnswerValue>;
 
 const BASIC_KEYS = ["NAME", "HEIGHT", "WEIGHT", "BIRTH", "GENDER", "PHONE", "EMAIL", "ADDRESS"] as const;
@@ -27,6 +31,7 @@ const tabs: readonly { id: ProfileTab; label: string; description: string }[] = 
   { id: "ADDITIONAL", label: "추가정보", description: "선택해서 저장하는 정보" },
   { id: "PHOTOS", label: "사진", description: `최대 ${MAX_LIBRARY_PHOTOS}장 보관` },
   { id: "VIDEOS", label: "영상", description: "YouTube 영상 보관" },
+  { id: "ACTOR_PAGE", label: "배우 페이지", description: "공개 페이지 설정" },
 ];
 
 const standardFields: readonly ApplicationFieldInput[] = APPLICATION_FIELD_OPTIONS.map((field) => ({
@@ -34,10 +39,12 @@ const standardFields: readonly ApplicationFieldInput[] = APPLICATION_FIELD_OPTIO
   section: field.section, inputType: field.inputType, order: field.order, layout: field.layout, config: field.config,
 }));
 
-export function ProfileEditor({ profile, onSaved }: { readonly profile: ApplicantProfileResponse; readonly onSaved: (profile: ApplicantProfileResponse) => void }) {
+export function ProfileEditor({ profile, onSaved, initialTab = "BASIC" }: { readonly profile: ApplicantProfileResponse; readonly onSaved: (profile: ApplicantProfileResponse) => void; readonly initialTab?: ProfileTab }) {
   const toast = useToast();
+  const actorPage = useActorPageSettings();
+  const [publishPrompt, setPublishPrompt] = useState<ActorPageSettings | null>(null);
   const initial = Object.fromEntries(profile.answers.filter((answer) => INFORMATION_KEYS.has(answer.key)).map((answer) => [answer.key, answer.value])) as DraftValues;
-  const [activeTab, setActiveTab] = useState<ProfileTab>("BASIC");
+  const [activeTab, setActiveTab] = useState<ProfileTab>(initialTab);
   const [values, setValues] = useState<DraftValues>(initial);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -66,6 +73,7 @@ export function ProfileEditor({ profile, onSaved }: { readonly profile: Applican
       toast("프로필 정보를 저장했어요. 다음 지원서의 미리 채우기에 사용됩니다.", { type: "success" });
       notifyApplicantProfileChanged();
       onSaved(next);
+      void promptPublishOnce();
     } catch (cause) {
       console.error("[배우 프로필 저장 실패]", cause);
       setError(cause instanceof Error ? cause.message : "프로필 정보를 저장하지 못했습니다.");
@@ -74,7 +82,22 @@ export function ProfileEditor({ profile, onSaved }: { readonly profile: Applican
     }
   };
 
+  /** 저장으로 공개 조건이나 자동 비공개가 바뀌었을 수 있어 설정을 다시 읽고, 처음 한 번만 공개 팝업을 띄운다. */
+  const promptPublishOnce = async () => {
+    const latest = await actorPage.refresh();
+    if (!latest || !shouldPromptPublish(latest)) return;
+    setPublishPrompt(latest);
+    try {
+      await recordActorPagePublishPrompt();
+      actorPage.update({ ...latest, publishPromptShown: true });
+    } catch (cause) {
+      console.error("[배우 페이지 공개 팝업 기록 실패]", cause);
+    }
+  };
+  const libraryChanged = (next: ApplicantProfileResponse) => { onSaved(next); void actorPage.refresh(); };
+
   const tabCount = (tab: ProfileTab) => {
+    if (tab === "ACTOR_PAGE") return actorPage.settings ? actorPage.settings.locked ? "잠김" : actorPage.settings.status === "PUBLIC" ? "공개" : "비공개" : "";
     if (tab === "BASIC") return `${basicFilled(values)}/8`;
     if (tab === "ADDITIONAL") return `${ADDITIONAL_KEYS.filter((key) => hasValue(values[key])).length}/8`;
     if (tab === "PHOTOS") return `${profile.photoLibrary.length}/${MAX_LIBRARY_PHOTOS}`;
@@ -89,14 +112,29 @@ export function ProfileEditor({ profile, onSaved }: { readonly profile: Applican
       return <button key={tab.id} type="button" aria-current={active ? "page" : undefined} onClick={() => { setActiveTab(tab.id); setError(""); }} className="applicant-profile-tab"><span className="flex items-center justify-between gap-2"><strong className="text-sm">{tab.label}</strong><span className="num text-xs">{tabCount(tab.id)}</span></span><span className="mt-1 hidden text-xs lg:block">{tab.description}</span></button>;
     })}</nav>
     <section className="workspace-panel min-w-0">
-      <div className="border-b border-border-soft pb-5"><h2 className="text-xl font-bold">{tabs.find((tab) => tab.id === activeTab)?.label}</h2><p className="mt-2 text-sm leading-6 text-muted">{activeTab === "BASIC" ? "지원서에 공통으로 사용하는 정보예요. 작성한 항목부터 저장할 수 있어요." : activeTab === "ADDITIONAL" ? "필요한 항목만 저장하면 공고에서 요청할 때 자동으로 채워집니다." : "추가·삭제·순서 변경 내용은 즉시 저장됩니다."}</p></div>
+      <div className="border-b border-border-soft pb-5"><h2 className="text-xl font-bold">{tabs.find((tab) => tab.id === activeTab)?.label}</h2><p className="mt-2 text-sm leading-6 text-muted">{activeTab === "BASIC" ? "지원서에 공통으로 사용하는 정보예요. 작성한 항목부터 저장할 수 있어요." : activeTab === "ADDITIONAL" ? "필요한 항목만 저장하면 공고에서 요청할 때 자동으로 채워집니다." : activeTab === "ACTOR_PAGE" ? "누구나 보는 배우 페이지에 무엇을 보일지 정해요. 변경 내용은 즉시 저장됩니다." : "추가·삭제·순서 변경 내용은 즉시 저장됩니다."}</p></div>
       {activeTab === "BASIC" ? <ProfileInformationSection tab="BASIC" fields={basicFields} values={values} onChange={change} /> : null}
       {activeTab === "ADDITIONAL" ? <ProfileInformationSection tab="ADDITIONAL" fields={additionalFields} values={values} onChange={change} /> : null}
-      {activeTab === "PHOTOS" ? <ProfilePhotoLibrary profile={profile} onSaved={onSaved} /> : null}
-      {activeTab === "VIDEOS" ? <ProfileVideoLibrary profile={profile} onSaved={onSaved} /> : null}
+      {activeTab === "PHOTOS" ? <ProfilePhotoLibrary profile={profile} onSaved={libraryChanged} /> : null}
+      {activeTab === "VIDEOS" ? <ProfileVideoLibrary profile={profile} onSaved={libraryChanged} /> : null}
+      {activeTab === "ACTOR_PAGE" ? <ActorPageSettingsPanel profile={profile} actorPage={actorPage} onProfileChange={onSaved} /> : null}
       {error ? <p role="alert" className="mt-5 rounded-control border border-fail/25 bg-fail-bg px-4 py-3 text-sm font-medium text-fail">{error}</p> : null}
       {informationTab ? <div className="mt-7 flex flex-wrap items-center gap-3 border-t border-border-soft pt-5"><p className="min-w-0 flex-1 text-sm text-muted-strong">{changeCount ? `${changeCount}개 변경 사항이 있어요.` : "모든 변경 사항이 저장되어 있어요."}</p><PrimaryButton onClick={save} disabled={saving || !changeCount} className="min-h-12 px-5">{saving ? "저장 중…" : "프로필 저장"}</PrimaryButton></div> : null}
     </section>
+    {publishPrompt ? <ActorPagePublishDialog
+      mode="prompt"
+      settings={publishPrompt}
+      profile={profile}
+      onClose={() => setPublishPrompt(null)}
+      onOpenSettings={() => { setPublishPrompt(null); setActiveTab("ACTOR_PAGE"); setError(""); }}
+      onPublished={(result) => {
+        setPublishPrompt(null);
+        actorPage.update(result.settings);
+        onSaved(result.profile);
+        notifyApplicantProfileChanged();
+        publishedActorPageToast(toast, result);
+      }}
+    /> : null}
   </div>;
 }
 
