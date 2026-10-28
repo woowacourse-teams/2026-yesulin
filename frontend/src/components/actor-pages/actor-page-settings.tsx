@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useId, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { ScreenError } from "@/components/auditions/screen-status";
 import { useToast } from "@/components/auditions/toast";
 import { PrimaryButton, SecondaryButton, SegmentButton } from "@/components/ui/controls";
@@ -63,19 +63,29 @@ async function loadSettings(): Promise<LoadedSettings> {
   }
 }
 
-/** 프로필·사진을 바꾸면 자동 비공개나 공개 조건이 달라질 수 있어 편집 화면이 함께 다시 읽는다. */
+/**
+ * 프로필·사진을 바꾸면 자동 비공개나 공개 조건이 달라질 수 있어 편집 화면이 함께 다시 읽는다. 여러 조회가 겹치면 늦게 도착한
+ * 옛 응답이 더 새 조회나 공개·변경 응답으로 받은 설정을 덮지 않도록 마지막 요청만 반영한다.
+ */
 export function useActorPageSettings(): ActorPageSettingsState {
   const [state, setState] = useState<LoadedSettings>({ settings: null, error: "" });
+  const latestRequest = useRef(0);
   const refresh = useCallback(async () => {
+    const request = ++latestRequest.current;
     const result = await loadSettings();
-    setState((current) => ({ settings: result.settings ?? current.settings, error: result.error }));
+    if (request === latestRequest.current) {
+      setState((current) => ({ settings: result.settings ?? current.settings, error: result.error }));
+    }
     return result.settings;
   }, []);
-  const update = useCallback((settings: ActorPageSettings) => setState({ settings, error: "" }), []);
+  const update = useCallback((settings: ActorPageSettings) => {
+    latestRequest.current += 1;
+    setState({ settings, error: "" });
+  }, []);
   useEffect(() => {
-    let active = true;
-    void loadSettings().then((result) => { if (active) setState(result); });
-    return () => { active = false; };
+    const request = ++latestRequest.current;
+    void loadSettings().then((result) => { if (request === latestRequest.current) setState(result); });
+    return () => { latestRequest.current += 1; };
   }, []);
   return { settings: state.settings, error: state.error, refresh, update };
 }

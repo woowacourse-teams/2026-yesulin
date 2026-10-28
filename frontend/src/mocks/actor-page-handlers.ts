@@ -1,6 +1,6 @@
 import { delay, http, HttpResponse } from "msw";
 import type { PublicActorPage, PublicActorPageSummary } from "@/features/actor-pages/types";
-import { actorPageOwnerHandlers, ownerPublicActorPage } from "./actor-page-owner-handlers";
+import { actorPageOwnerHandlers, actorPageSeedHandler, ownerPublicActorPage } from "./actor-page-owner-handlers";
 
 /**
  * 배우 목록·배우 페이지 확인용 목. 고정 공개 페이지 14개(목록 2페이지)에, 목 배우가 편집 화면에서 공개하면 그 페이지를
@@ -79,6 +79,8 @@ function toSummary(page: PublicActorPage): PublicActorPageSummary {
 const notFound = () => HttpResponse.json({ code: "ACTOR_PAGE_NOT_FOUND", message: "배우 페이지를 찾을 수 없습니다." }, { status: 404 });
 
 export const actorPageHandlers = [
+  actorPageSeedHandler,
+
   http.get("/api/v1/public/actor-pages", async ({ request }) => {
     await delay(120);
     const params = new URL(request.url).searchParams;

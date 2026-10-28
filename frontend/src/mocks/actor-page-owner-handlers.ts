@@ -64,24 +64,25 @@ const published = (): OwnerPage => ({
   publishPromptShown: true,
 });
 
-const SEEDS: Readonly<Record<string, () => OwnerPage>> = {
-  public: () => {
+/** 주소에서 온 이름으로 찾으므로 객체 속성이 아닌 Map으로 둬 `constructor` 같은 이름이 걸리지 않게 한다. */
+const SEEDS: ReadonlyMap<string, () => OwnerPage> = new Map<string, () => OwnerPage>([
+  ["public", () => {
     seedApplicantPhotoVisibility(["seed-photo-1", "seed-photo-3"], true);
     return { ...published(), status: "PUBLIC", fieldVisibilities: { ...visibilities("PUBLIC"), hobbies: "PRIVATE" } };
-  },
-  locked: () => {
+  }],
+  ["locked", () => {
     seedApplicantPhotoVisibility(["seed-photo-1"], false);
     return { ...published(), lockReason: "다른 사람의 사진이라는 문의가 들어와 확인하고 있어요." };
-  },
-  unlocked: () => {
+  }],
+  ["unlocked", () => {
     seedApplicantPhotoVisibility(["seed-photo-1"], false);
     return { ...published(), unlockedAt: "2026-10-25T10:00:00+09:00" };
-  },
-  "auto-hidden": () => {
+  }],
+  ["auto-hidden", () => {
     seedApplicantPhotoVisibility([], false);
     return { ...published(), autoHiddenReason: "MISSING_REQUIRED" };
-  },
-};
+  }],
+]);
 
 let page: OwnerPage = fresh();
 let appliedSeed: string | null = null;
@@ -92,8 +93,9 @@ let appliedSeed: string | null = null;
  */
 function applySeed() {
   const seed = new URLSearchParams(globalThis.location?.search ?? "").get("mockActorPage");
-  if (!seed || seed === appliedSeed || !SEEDS[seed]) return;
-  page = SEEDS[seed]();
+  const seedPage = seed && seed !== appliedSeed ? SEEDS.get(seed) : undefined;
+  if (!seedPage) return;
+  page = seedPage();
   appliedSeed = seed;
 }
 
@@ -104,10 +106,12 @@ const text = (key: string) => {
   return typeof value === "string" ? value.trim() : "";
 };
 
-function ageOn(birth: string, today = new Date()) {
-  const [year, month, day] = birth.split("-").map(Number);
-  const beforeBirthday = today.getMonth() + 1 < month! || (today.getMonth() + 1 === month && today.getDate() < day!);
-  return today.getFullYear() - year! - (beforeBirthday ? 1 : 0);
+const SEOUL_DATE = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit" });
+
+/** 서버처럼 한국 날짜 기준 만 나이다. 생년월일과 오늘을 `YYYY-MM-DD`로 맞춰 비교한다. */
+function ageOn(birth: string, today = SEOUL_DATE.format(new Date())) {
+  const age = Number(today.slice(0, 4)) - Number(birth.slice(0, 4));
+  return today.slice(5) < birth.slice(5, 10) ? age - 1 : age;
 }
 
 function readiness(): ActorPageSettings["readiness"] {
@@ -226,11 +230,12 @@ function handleError(handle: string, isTaken: (handle: string) => boolean) {
 
 const BASE = "/api/v1/applicants/me/actor-page";
 
+/** 배우 페이지 목 중 맨 앞에 두어, 공개 배우 페이지를 처음 열 때도 주소의 시나리오 값을 먼저 적용한다. */
+export const actorPageSeedHandler = http.all("/api/*", () => { applySeed(); });
+
 /** 다른 배우가 쓰는 아이디는 공개 배우 목이 알려 준다. */
 export function actorPageOwnerHandlers(isTaken: (handle: string) => boolean) {
   return [
-    http.all("/api/*", () => { applySeed(); }),
-
     http.get(BASE, async () => {
       await delay(160);
       return HttpResponse.json(settings());
