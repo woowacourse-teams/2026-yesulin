@@ -79,6 +79,8 @@ UNKNOWN은 자동 재전송하지 않는다. FAILED 중 code=RETRIED는 후속 �
 
 `YESULIN_PDF_EXTRACTION_ENABLED=true`일 때만 아래 mapping을 등록한다. `/api/v1/**` 요청은 Active Producer를 요구하며,
 본인 작업이 아니거나 없는 UUID에는 동일하게 `404 PDF_EXTRACTION_NOT_FOUND`를 반환한다. 쓰기는 CSRF가 필요하다.
+이 API는 공연사 심사 작업(`PDF_REVIEW`)만 다룬다. 배우의 PDF로 프로필 채우기 작업은
+[별도 API](#pdf로-프로필-채우기배우용--6개)가 다룬다.
 전체 응답은 `Cache-Control: no-store`다. 제목·배역 기반 심사 등록과 선택적 AI 정보 정리(v1/v2 프로필)와 `PATCH /api/v1/pdf-reviews/{id}/role-assignments`는
 [PDF 심사 API](pdf-reviews.md)를 따른다.
 `GET /api/v1/pdf-reviews/{reviewId}/progress`는 본인 심사의 DB 작업 상태만 집계한
@@ -94,7 +96,7 @@ AI 호출은 Lambda에서 수행하며 OCR은 포함하지 않는다. 완료 결
 | GET | `/api/v1/pdf-extractions/{jobId}?includeResult=false` | 파일별 상태 조회. DB 상태만 읽고 S3는 조회하지 않음 |
 | GET | `/api/v1/pdf-extractions/{jobId}?includeResult=true` | 원본 임시 GET URL과 페이지별 텍스트·추출 이미지 URL을 포함한 job. 최종 상태일 때만 DB에 저장된 결과를 읽음 |
 | POST | `/internal/v1/pdf-extractions/completions` | Lambda 전용. 아래 "Lambda 결과 전달" 참고. 성공 시 200 `{jobId,status}` |
-| GET | `/internal/v1/pdf-extractions/{jobId}/review-context` | 워커 Bearer 전용. 작업의 등록 심사·배역과 결과 저장 여부. [PDF 심사](pdf-reviews.md) 참고 |
+| GET | `/internal/v1/pdf-extractions/{jobId}/review-context` | 워커 Bearer 전용. 작업 목적과 등록 심사·배역, 결과 저장 여부. [PDF 심사](pdf-reviews.md) 참고 |
 
 job은 `jobId,originalFilename,size,createdAt,uploadedAt,status,sourceFileKey,resultFileKey,sourceUrl,result`다.
 목록·상태 조회의 `sourceUrl,result`는 null이며, 상세 조회에서만 채운다. result는 `status,sourceSha256,errorCode,warnings,pages`와
@@ -1006,6 +1008,45 @@ savedCount, hiddenCount, limit
 - 공연사당 300명까지이며 숨긴 저장도 포함한다. 한도에 닿은 상태에서 새로 저장하면 `409 ACTOR_BOOKMARK_LIMIT_EXCEEDED`이고,
   메시지에 숨긴 저장 수를 함께 적는다. 같은 공연사가 여러 배우를 동시에 저장하는 경우까지 한도를 잠그지는 않는다.
 - 배우에게 누가, 몇 명이 저장했는지 알려 주는 API는 없다.
+
+## PDF로 프로필 채우기(배우용) — 6개
+
+`YESULIN_PDF_EXTRACTION_ENABLED=true`일 때만 등록한다. 모두 Applicant 세션이 필요하고 쓰기는 기존 CSRF 규칙을 따른다.
+응답은 `Cache-Control: no-store`다. 업로드·추출은 [PDF 추출 확인](#pdf-추출-확인)과 같은 흐름이지만 작업 목적이
+`ACTOR_PROFILE`이라 공연사 PDF API와 서로의 작업을 보지 않는다. 본인 작업이 아니거나 없거나 지운 작업은 같은
+`404 PROFILE_IMPORT_NOT_FOUND`다.
+
+| Method | URL | Request | Response |
+| --- | --- | --- | --- |
+| GET | `/api/v1/applicants/me/profile-imports` | 없음 | `200 {usedToday, current}` |
+| POST | `/api/v1/applicants/me/profile-imports/uploads` | `{originalFilename,size}` | `201 {jobId,upload:{url,method,expiresAt,headers}}` |
+| POST | `/api/v1/applicants/me/profile-imports/{jobId}/completion` | 없음 | `200 ProfileImportResult` |
+| GET | `/api/v1/applicants/me/profile-imports/{jobId}` | 없음 | `200 ProfileImportResult` |
+| POST | `/api/v1/applicants/me/profile-imports/{jobId}/photos` | `{fileKey}` | `201 PhotoLibraryItemResult` |
+| DELETE | `/api/v1/applicants/me/profile-imports/{jobId}` | 없음 | `204` |
+
+```text
+ProfileImportResult: jobId, status, originalFilename, createdAt, deletesAt, analysisStatus, analysisReason, proposals
+proposals: name, birthDate, age, height, education ({value, evidence} 또는 null),
+           careers[{title, part, genre, period, venue, company, evidence}], photos[{fileKey, url}]
+```
+
+- `current`는 아직 지우지 않은 가장 최근 가져오기이고 없으면 null이다. `usedToday`는 오늘(한국 날짜) 제안 값이 나온
+  가져오기를 했는지다.
+- status는 PDF 추출 확인과 같다(`UPLOADING`, `UPLOAD_EXPIRED`, `QUEUED`, `DELAYED`, `COMPLETED`, `PARTIAL`, `FAILED`).
+  proposals는 결과가 나왔을 때만 있다. 화면은 몇 초 간격으로 상태를 다시 읽으며, 공연사 완료 알림(SSE)은 쓰지 않는다.
+- 제안 값은 워커가 원문에서 옮겨 적은 문자열 그대로이고 근거 구절을 함께 준다. 날짜·키 단위·장르를 바꾸거나 추정하지 않는다.
+  워커가 옮기는 경력은 원문 순서로 최대 5개다. photos는 워커가 사진일 가능성이 높다고 분류한(`CANDIDATE`) 이미지만 담고,
+  url은 잠시 동안만 쓸 수 있는 비공개 주소다. 자동으로 프로필에 저장하지 않는다.
+- 하루 1회(한국 날짜)다. 실패와 제안 값이 하나도 없는 결과는 세지 않고, 일부만 나온 결과는 1회로 센다. 닫거나 지운 작업도
+  센다. 이미 썼으면 업로드 준비가 `409 PROFILE_IMPORT_DAILY_LIMIT`이다. 올리는 중이거나 읽는 중인 작업이 있으면 새 업로드와
+  닫기가 `409 PROFILE_IMPORT_IN_PROGRESS`다. 같은 배우가 정확히 동시에 올리는 경우까지 잠그지는 않는다.
+- 사진 추가는 결과의 사진 후보 키만 받는다(아니면 `404 PROFILE_IMPORT_PHOTO_NOT_FOUND`, 결과 전이면
+  `409 PROFILE_IMPORT_NOT_FINISHED`). 이미지를 새 비공개 배우 사진 파일로 복사해 사진 보관함 맨 뒤에 넣으며, 보관함 한도는
+  기존 `409 PHOTO_LIBRARY_LIMIT_EXCEEDED`다. 넣은 사진은 추출 결과를 지워도 남는다.
+- 닫으면 원본 PDF·추출 본문·이미지를 바로 지우고, 이미 지운 작업을 다시 닫아도 `204`다. 닫지 않아도 결과가 나온 뒤(결과가
+  없으면 올린 뒤) 24시간이 지나면 30분마다 도는 정리 작업이 지운다. `deletesAt`이 그 시각이다. 지운 뒤 늦게 온 워커 결과는
+  저장하지 않고 워커가 남긴 객체를 다시 지운다.
 
 ## 지원서 — 3개
 

@@ -41,6 +41,7 @@ class PdfReviewWorkerContextServiceTest {
 
         PdfReviewWorkerContext context = service.find(job.getId());
 
+        assertEquals("PDF_REVIEW", context.purpose());
         assertEquals(review.getId(), context.reviewId());
         assertEquals(storage.sourceFileKey(job), context.sourceFileKey());
         assertEquals(List.of("햄릿", "오필리아"), context.roles().stream().map(PdfReviewWorkerContext.Role::name).toList());
@@ -59,6 +60,18 @@ class PdfReviewWorkerContextServiceTest {
 
         PdfReviewWorkerContext context = service.find(job.getId());
 
+        assertNull(context.reviewId());
+        assertEquals(List.of(), context.roles());
+    }
+
+    @Test
+    void actorProfileImportTellsTheWorkerToSkipRoles() {
+        PdfExtractionJob job = PdfExtractionJob.forActorProfile(7L, "프로필.pdf", 100, NOW, NOW.plusSeconds(600));
+        when(jobs.findById(job.getId())).thenReturn(Optional.of(job));
+
+        PdfReviewWorkerContext context = service.find(job.getId());
+
+        assertEquals("ACTOR_PROFILE", context.purpose());
         assertNull(context.reviewId());
         assertEquals(List.of(), context.roles());
     }

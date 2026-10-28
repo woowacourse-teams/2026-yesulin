@@ -29,6 +29,7 @@ public class PdfExtractionResultReceiver {
     private final PdfExtractionJobRepository jobs;
     private final PdfExtractionPayloadRepository payloads;
     private final PdfExtractionResultParser parser;
+    private final PdfExtractionStorage storage;
     private final ApplicationEventPublisher events;
     private final ObjectMapper mapper;
     private final Clock clock;
@@ -37,6 +38,11 @@ public class PdfExtractionResultReceiver {
     public Receipt receive(ReceivePdfExtractionResultCommand command) {
         PdfExtractionJob job = jobs.findForUpdate(command.jobId()).orElseThrow(() ->
                 new BusinessException(PDF_EXTRACTION_NOT_FOUND, "PDF 추출 작업을 찾을 수 없습니다."));
+        if (job.isDeleted()) {
+            // 배우가 닫았거나 보관 기간이 지나 지운 작업이다. 늦게 온 결과는 저장하지 않고 워커가 남긴 객체를 다시 지운다.
+            storage.deleteAll(job);
+            return new Receipt(job.getId(), job.getStatus().name());
+        }
         PdfExtractionResult result = parser.parse(job, command);
         String payloadJson = mapper.writeValueAsString(result);
         String digest = sha256(payloadJson);
@@ -49,6 +55,7 @@ public class PdfExtractionResultReceiver {
         }
         payloads.save(new PdfExtractionPayload(job.getId(), payloadJson, digest, clock.instant()));
         job.receiveResult(result.status(), clock.instant());
+        job.recordDailyQuotaUse(result.hasProfileProposal());
         events.publishEvent(new PdfExtractionCompletedEvent(job.getId(), job.getOwnerId(), result.extractedText(),
                 result.applicantInfo()));
         return new Receipt(job.getId(), job.getStatus().name());

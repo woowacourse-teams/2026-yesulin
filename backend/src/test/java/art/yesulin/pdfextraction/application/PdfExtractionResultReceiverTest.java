@@ -58,7 +58,7 @@ class PdfExtractionResultReceiverTest {
         payloads = mock(PdfExtractionPayloadRepository.class);
         when(repository.findForUpdate(anyString())).thenAnswer(call ->
                 Optional.ofNullable(jobs.get(call.getArgument(0))));
-        when(repository.findOwnedForUpdate(anyString(), anyLong())).thenAnswer(call ->
+        when(repository.findOwnedForUpdate(anyString(), anyLong(), any())).thenAnswer(call ->
                 Optional.ofNullable(jobs.get(call.getArgument(0))));
         when(payloads.findById(anyString())).thenAnswer(call ->
                 Optional.ofNullable(storedPayloads.get(call.getArgument(0))));
@@ -295,7 +295,7 @@ class PdfExtractionResultReceiverTest {
 
     private PdfExtractionResultReceiver receiverPublishingTo(ApplicationEventPublisher publisher) {
         return new PdfExtractionResultReceiver(repository, payloads,
-                new PdfExtractionResultParser(storage, MAPPER), publisher, MAPPER,
+                new PdfExtractionResultParser(storage, MAPPER), storage, publisher, MAPPER,
                 Clock.fixed(NOW, ZoneOffset.UTC));
     }
 

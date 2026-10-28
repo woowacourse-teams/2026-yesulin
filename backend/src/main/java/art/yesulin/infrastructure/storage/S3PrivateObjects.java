@@ -3,17 +3,21 @@ package art.yesulin.infrastructure.storage;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.Delete;
+import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
+import software.amazon.awssdk.services.s3.model.ObjectIdentifier;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
@@ -69,6 +73,27 @@ public class S3PrivateObjects {
         }
         GetObjectRequest request = GetObjectRequest.builder().bucket(bucket).key(key).build();
         return Optional.of(read(request, maxBytes, true));
+    }
+
+    /** 접두사 아래 객체를 모두 지운다. 지운 개수를 돌려준다. */
+    public int deleteAll(String logicalPrefix) {
+        String prefix = physicalKey(logicalPrefix);
+        int deleted = 0;
+        String token = null;
+        do {
+            ListObjectsV2Response listing = client.listObjectsV2(ListObjectsV2Request.builder()
+                    .bucket(bucket).prefix(prefix).continuationToken(token).build());
+            List<ObjectIdentifier> keys = listing.contents().stream()
+                    .map(object -> ObjectIdentifier.builder().key(object.key()).build())
+                    .toList();
+            if (!keys.isEmpty()) {
+                client.deleteObjects(DeleteObjectsRequest.builder().bucket(bucket)
+                        .delete(Delete.builder().objects(keys).quiet(true).build()).build());
+                deleted += keys.size();
+            }
+            token = Boolean.TRUE.equals(listing.isTruncated()) ? listing.nextContinuationToken() : null;
+        } while (token != null);
+        return deleted;
     }
 
     public String downloadUrl(String logicalKey) {

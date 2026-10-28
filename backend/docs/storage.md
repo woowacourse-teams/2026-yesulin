@@ -25,6 +25,10 @@ Content-Type·크기와 다르면 `READY`로 전환하지 않는다.
   `http://localhost:3200`을 허용한다.
 - 배우 사진은 `private/actor-photos/{UTC yyyyMMdd}/{UUID}` 논리 키로 저장한다. private 키는 CloudFront
   URL로 변환하지 않는다.
+- PDF로 프로필 채우기에서 보관함에 넣은 사진 후보는 서버가 추출 이미지를 읽어 같은 배우 사진 키로 새로 올린다.
+  원본 PDF(`private/pdf-extractions/inputs/{jobId}/`)와 추출 결과·이미지(`private/pdf-extractions/results/{jobId}/`)는
+  배우가 결과를 닫거나 결과가 나온 뒤 24시간이 지나면 접두사째 지우고, 추출 결과 DB 행도 함께 지운다. 공연사 PDF 심사의
+  원본·결과는 이 규칙으로 지우지 않는다.
 - S3 실제 키는 논리 키 앞에 `YESULIN_STORAGE_S3_KEY_PREFIX`를 붙인다. 현재 staging 기준으로 포스터는
   `yesulin/public/files/...`, 배우 사진은 `yesulin/private/actor-photos/...`이다.
 

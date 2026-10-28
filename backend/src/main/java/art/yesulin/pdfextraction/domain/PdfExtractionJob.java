@@ -54,6 +54,24 @@ public class PdfExtractionJob {
     @Column(nullable = false, length = 20)
     private PdfExtractionStatus status;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, updatable = false, length = 20)
+    private PdfExtractionPurpose purpose;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, updatable = false, length = 20)
+    private PdfExtractionOwnerType ownerType;
+
+    /** 처음 결과를 받은 시각. 배우 가져오기는 이 시각부터 24시간 뒤 지운다. */
+    private Instant finishedAt;
+
+    /** 배우 가져오기의 하루 1회에 센 작업인지. 실패하거나 제안할 값이 없으면 세지 않는다. */
+    @Column(nullable = false)
+    private boolean dailyQuotaUsed;
+
+    /** 원본·추출 본문·이미지를 지운 시각. 지운 뒤에는 결과를 돌려주지 않는다. */
+    private Instant deletedAt;
+
     public PdfExtractionJob(long ownerId, String filename, long size, Instant now, Instant expiresAt) {
         this(ownerId, filename, size, now, expiresAt, null);
     }
@@ -75,6 +93,18 @@ public class PdfExtractionJob {
         this.uploadExpiresAt = Objects.requireNonNull(expiresAt);
         this.reviewId = reviewId == null ? null : UUID.fromString(reviewId).toString();
         this.status = PdfExtractionStatus.UPLOADING;
+        this.purpose = PdfExtractionPurpose.PDF_REVIEW;
+        this.ownerType = PdfExtractionOwnerType.PRODUCER;
+    }
+
+    /** 배우가 자기 PDF 프로필로 편집 화면을 채우는 작업. 공연사 심사와 섞이지 않도록 심사에 묶지 않는다. */
+    public static PdfExtractionJob forActorProfile(
+            long ownerId, String filename, long size, Instant now, Instant expiresAt
+    ) {
+        PdfExtractionJob job = new PdfExtractionJob(ownerId, filename, size, now, expiresAt, null);
+        job.purpose = PdfExtractionPurpose.ACTOR_PROFILE;
+        job.ownerType = PdfExtractionOwnerType.APPLICANT;
+        return job;
     }
 
     public void confirmUpload(Instant now) {
@@ -93,7 +123,39 @@ public class PdfExtractionJob {
         if (uploadedAt == null) {
             uploadedAt = Objects.requireNonNull(now);
         }
+        if (finishedAt == null) {
+            finishedAt = now;
+        }
         status = next;
+    }
+
+    /** 배우 가져오기는 제안할 값이 하나라도 나온 작업만 하루 1회에 센다. 일부만 나와도 센다. */
+    public void recordDailyQuotaUse(boolean hasProposal) {
+        if (purpose == PdfExtractionPurpose.ACTOR_PROFILE && hasProposal) {
+            dailyQuotaUsed = true;
+        }
+    }
+
+    /** 업로드 주소가 아직 유효하거나 결과를 기다리는 중이다. 업로드 만료는 60초 유예 뒤로 본다. */
+    public boolean isInProgress(Instant now) {
+        if (status == PdfExtractionStatus.QUEUED) {
+            return true;
+        }
+        return status == PdfExtractionStatus.UPLOADING && !now.isAfter(uploadExpiresAt.plusSeconds(60));
+    }
+
+    public void markDeleted(Instant now) {
+        if (deletedAt == null) {
+            deletedAt = Objects.requireNonNull(now);
+        }
+    }
+
+    public boolean isDeleted() {
+        return deletedAt != null;
+    }
+
+    public boolean isActorProfile() {
+        return purpose == PdfExtractionPurpose.ACTOR_PROFILE;
     }
 
     public boolean isFinished() {

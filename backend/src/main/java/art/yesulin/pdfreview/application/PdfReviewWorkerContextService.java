@@ -30,13 +30,17 @@ public class PdfReviewWorkerContextService {
                 new BusinessException(PDF_EXTRACTION_NOT_FOUND, "PDF 추출 작업을 찾을 수 없습니다."));
         String sourceFileKey = storage.sourceFileKey(job);
         if (job.getReviewId() == null) {
-            return new PdfReviewWorkerContext(job.getId(), null, sourceFileKey, job.isFinished(), List.of());
+            return new PdfReviewWorkerContext(
+                    job.getId(), job.getPurpose().name(), null, sourceFileKey, job.isFinished(), List.of()
+            );
         }
         PdfReview review = reviews.findByIdAndOwnerId(job.getReviewId(), job.getOwnerId()).orElseThrow(() ->
                 new BusinessException(PDF_REVIEW_NOT_FOUND, "PDF 심사를 찾을 수 없습니다."));
         List<PdfReviewWorkerContext.Role> roles = review.getRoles().stream()
                 .map(role -> new PdfReviewWorkerContext.Role(role.getId(), role.getName()))
                 .toList();
-        return new PdfReviewWorkerContext(job.getId(), review.getId(), sourceFileKey, job.isFinished(), roles);
+        return new PdfReviewWorkerContext(
+                job.getId(), job.getPurpose().name(), review.getId(), sourceFileKey, job.isFinished(), roles
+        );
     }
 }

@@ -9,6 +9,7 @@ import art.yesulin.pdfextraction.application.PdfExtractionResultParser;
 import art.yesulin.pdfextraction.application.PdfExtractionStorage;
 import art.yesulin.pdfextraction.domain.PdfExtractionJob;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
@@ -69,6 +70,21 @@ public class PdfExtractionStorageService implements PdfExtractionStorage {
             throw new IllegalArgumentException("PDF 추출 이미지의 저장소 키가 올바르지 않습니다.");
         }
         return objects.downloadUrl(imageRoot(job) + imageFileKey.substring(prefix.length()));
+    }
+
+    @Override
+    public Optional<byte[]> readImage(PdfExtractionJob job, String imageFileKey, int maxBytes) {
+        String prefix = imageFileKeyPrefix(job);
+        if (!imageFileKey.startsWith(prefix)) {
+            throw new IllegalArgumentException("PDF 추출 이미지의 저장소 키가 올바르지 않습니다.");
+        }
+        return objects.readIfPresent(imageRoot(job) + imageFileKey.substring(prefix.length()), maxBytes);
+    }
+
+    @Override
+    public void deleteAll(PdfExtractionJob job) {
+        objects.deleteAll(ROOT + "inputs/" + scope(job) + job.getId() + "/");
+        objects.deleteAll(ROOT + "results/" + scope(job) + job.getId() + "/");
     }
 
     private String sourceKey(PdfExtractionJob job) {

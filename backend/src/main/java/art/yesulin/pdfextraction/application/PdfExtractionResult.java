@@ -14,6 +14,9 @@ public record PdfExtractionResult(
         @JsonInclude(JsonInclude.Include.NON_NULL) PdfApplicantInfo applicantInfo
 ) {
 
+    /** 워커가 크기·비율로 사진일 가능성이 높다고 분류한 이미지. */
+    public static final String CANDIDATE = "CANDIDATE";
+
     public PdfExtractionResult(String status, String sourceSha256, String errorCode, List<String> warnings,
                                List<Page> pages) {
         this(status, sourceSha256, errorCode, warnings, pages, null);
@@ -25,6 +28,14 @@ public record PdfExtractionResult(
                         .map(image -> new Image(image.fileKey(), urlOf.apply(image.fileKey()), image.classification()))
                         .toList())).toList();
         return new PdfExtractionResult(status, sourceSha256, errorCode, warnings, signed, applicantInfo);
+    }
+
+    /** 배우 프로필 가져오기에서 제안할 값이 있는지. 사진 후보도 값으로 친다. */
+    public boolean hasProfileProposal() {
+        boolean photo = pages.stream()
+                .flatMap(page -> page.images().stream())
+                .anyMatch(image -> CANDIDATE.equals(image.classification()));
+        return photo || (applicantInfo != null && applicantInfo.hasProposal());
     }
 
     public String extractedText() {
