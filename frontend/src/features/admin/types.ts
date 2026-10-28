@@ -1,3 +1,5 @@
+import type { ActorPageAutoHiddenReason, ActorPageSettings } from "../actor-pages/settings";
+import type { ActorPageContent } from "../actor-pages/types";
 import type { VenueAddress } from "../auditions/creation-types";
 import type { CompanyField, CompanyWrite } from "../companies/profile-draft";
 import type { EventActivityField, EventParticipantType, EventPhase, EventRegistrationCareer, EventSnsPlatform, EventPaymentStatus, EventRegistrationStatus } from "../events/types";
@@ -688,4 +690,40 @@ export type EventImageUpload = {
   readonly expiresAt: string;
   /** 올린 뒤의 공개 주소. 이벤트를 저장할 때 이 주소로 확정한다. */
   readonly imageUrl: string;
+};
+
+/** 운영자 목록의 배우 페이지 한 줄. 잠그면 상태도 비공개가 된다. */
+export type AdminActorPageSummary = {
+  readonly publicId: string;
+  readonly handle: string | null;
+  readonly name: string | null;
+  readonly status: "PUBLIC" | "PRIVATE";
+  readonly autoHiddenReason: ActorPageAutoHiddenReason | null;
+  readonly locked: boolean;
+  readonly lastPublicActivityAt: string | null;
+  readonly updatedAt: string;
+};
+
+export type AdminActorPageList = {
+  readonly actorPages: readonly AdminActorPageSummary[];
+  readonly page: number;
+  readonly size: number;
+  readonly totalPages: number;
+  readonly totalElements: number;
+};
+
+/** 운영자 상세. 공개 페이지 내용에 '공연사만' 영상과 연락처를 더한다. 연락처는 화면에만 쓰고 저장하거나 기록하지 않는다. */
+export type AdminActorPage = Omit<AdminActorPageSummary, "name" | "updatedAt"> & {
+  readonly ownerMemberId: number;
+  readonly lockReason: string | null;
+  readonly lockedAt: string | null;
+  readonly unlockedAt: string | null;
+  readonly firstPublishedAt: string | null;
+  readonly publishedAt: string | null;
+  readonly readiness: ActorPageSettings["readiness"];
+  /** 배우가 누구나 보도록 설정한 내용. 사진은 공개 사본만 담아 비공개·잠금 페이지는 비어 있다. */
+  readonly content: ActorPageContent;
+  readonly producerOnlyVideos: readonly { readonly url: string; readonly youtubeId: string }[];
+  readonly phone: string | null;
+  readonly email: string | null;
 };

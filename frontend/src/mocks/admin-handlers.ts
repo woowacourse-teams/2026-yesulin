@@ -14,6 +14,13 @@ import type {
 } from "@/features/admin/types";
 import { mockSessionRole } from "./auth-handlers";
 import { adminShowHandlers, changeMockShowHostName, listAdminShows } from "./show-handlers";
+import {
+  changeMockActorHandle,
+  listMockAdminActorPages,
+  lockMockActorPage,
+  mockAdminActorPage,
+  unlockMockActorPage,
+} from "./actor-page-handlers";
 
 /**
  * 운영 대시보드 화면 확인용 메모리 목이다. `admin@`으로 시작하는 이메일로 목 로그인하면 ADMIN 세션이 된다.
@@ -237,6 +244,20 @@ function rejectNonAdmin() {
   return null;
 }
 
+/** 실제 서버처럼 공개 주소인 아이디만 적고 잠금 사유 원문은 적지 않는다. */
+function recordActorPageAudit(action: string, detail: string) {
+  auditLogs.unshift({
+    id: nextAuditLogId,
+    actorMemberId: 900,
+    action,
+    targetType: "ACTOR_PAGE",
+    targetId: 1,
+    detail,
+    createdAt: new Date().toISOString(),
+  });
+  nextAuditLogId += 1;
+}
+
 const isMemberStatus = (value: unknown): value is MemberStatus => value === "PENDING" || value === "ACTIVE";
 const isShowStatus = (value: string | null): value is AdminShowStatus =>
   value === "DRAFT" || value === "OPEN" || value === "CLOSED";
@@ -364,6 +385,74 @@ export const adminHandlers = [
     });
     nextAuditLogId += 1;
     return HttpResponse.json(result);
+  }),
+
+  http.get("/api/v1/admin/actor-pages", async ({ request }) => {
+    if (realLoginEnabled) return passthrough();
+    await delay(140);
+    const rejected = rejectNonAdmin();
+    if (rejected) return rejected;
+    const query = new URL(request.url).searchParams;
+    const page = Number(query.get("page") ?? 0);
+    const size = Number(query.get("size") ?? 20);
+    if (!Number.isInteger(page) || page < 0 || !Number.isInteger(size) || size < 1 || size > 100) {
+      return apiError(400, "INVALID_REQUEST", "요청 값을 확인해 주세요.");
+    }
+    const rows = listMockAdminActorPages(query.get("handle") ?? "");
+    return HttpResponse.json({
+      actorPages: rows.slice(page * size, (page + 1) * size),
+      page,
+      size,
+      totalPages: Math.ceil(rows.length / size),
+      totalElements: rows.length,
+    });
+  }),
+
+  http.get("/api/v1/admin/actor-pages/:publicId", async ({ params }) => {
+    if (realLoginEnabled) return passthrough();
+    await delay(140);
+    const actorPage = mockAdminActorPage(String(params.publicId));
+    return rejectNonAdmin() ?? (actorPage ? HttpResponse.json(actorPage) : apiError(404, "ACTOR_PAGE_NOT_FOUND", "배우 페이지를 찾을 수 없습니다."));
+  }),
+
+  http.put("/api/v1/admin/actor-pages/:publicId/lock", async ({ params, request }) => {
+    if (realLoginEnabled) return passthrough();
+    await delay(180);
+    const rejected = rejectNonAdmin();
+    if (rejected) return rejected;
+    const body = (await request.json().catch(() => null)) as { reason?: unknown } | null;
+    if (typeof body?.reason !== "string" || !body.reason.trim() || body.reason.length > 500) {
+      return apiError(400, "INVALID_REQUEST", "잠금 사유를 500자 이내로 입력해 주세요.");
+    }
+    const actorPage = lockMockActorPage(String(params.publicId), body.reason.trim());
+    if (!actorPage) return apiError(404, "ACTOR_PAGE_NOT_FOUND", "배우 페이지를 찾을 수 없습니다.");
+    recordActorPageAudit("ACTOR_PAGE_LOCKED", `@${actorPage.handle} 잠금`);
+    return HttpResponse.json(actorPage);
+  }),
+
+  http.delete("/api/v1/admin/actor-pages/:publicId/lock", async ({ params }) => {
+    if (realLoginEnabled) return passthrough();
+    await delay(160);
+    const rejected = rejectNonAdmin();
+    if (rejected) return rejected;
+    const result = unlockMockActorPage(String(params.publicId));
+    if (!result) return apiError(404, "ACTOR_PAGE_NOT_FOUND", "배우 페이지를 찾을 수 없습니다.");
+    if (result.changed) recordActorPageAudit("ACTOR_PAGE_UNLOCKED", `@${result.actorPage.handle} 잠금 해제`);
+    return HttpResponse.json(result.actorPage);
+  }),
+
+  http.put("/api/v1/admin/actor-pages/:publicId/handle", async ({ params, request }) => {
+    if (realLoginEnabled) return passthrough();
+    await delay(180);
+    const rejected = rejectNonAdmin();
+    if (rejected) return rejected;
+    const body = (await request.json().catch(() => null)) as { handle?: unknown } | null;
+    if (typeof body?.handle !== "string") return apiError(400, "INVALID_REQUEST", "요청 값을 확인해 주세요.");
+    const result = changeMockActorHandle(String(params.publicId), body.handle);
+    if (!result) return apiError(404, "ACTOR_PAGE_NOT_FOUND", "배우 페이지를 찾을 수 없습니다.");
+    if (result.kind === "error") return apiError(result.status, result.code, result.message);
+    if (result.kind === "changed") recordActorPageAudit("ACTOR_PAGE_HANDLE_CHANGED", `아이디 변경 @${result.previous} → @${result.actorPage.handle}`);
+    return HttpResponse.json(result.actorPage);
   }),
 
   http.get("/api/v1/admin/auditions/:auditionId/submissions", async ({ params }) => {

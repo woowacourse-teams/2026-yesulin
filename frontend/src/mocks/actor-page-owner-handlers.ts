@@ -26,6 +26,8 @@ import { applicantProfile, clearApplicantPhotoPublicCopies, seedApplicantPhotoVi
  */
 const CONSENT_VERSION = "actor-page-publish-v1.0";
 const RESERVED = new Set(["admin", "administrator", "yesulin", "official", "support", "help", "api", "www", "me", "root", "system", "null", "undefined"]);
+
+export const isReservedActorHandle = (handle: string) => RESERVED.has(handle);
 const FIELDS: readonly ActorPageField[] = ["education", "careers", "coverLetter", "specialty", "hobbies", "nationality", "links"];
 const SEED_PUBLISHED_AT = "2026-10-20T10:00:00+09:00";
 

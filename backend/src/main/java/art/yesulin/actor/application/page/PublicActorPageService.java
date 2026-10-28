@@ -83,6 +83,18 @@ public class PublicActorPageService {
         );
     }
 
+    /**
+     * 운영자 상세용. 공개 상태와 무관하게 배우가 누구나 보도록 설정한 내용을 공개 조회와 같은 모양으로 담는다. 사진은 공개
+     * 사본만 담으므로 비공개·잠금 페이지는 사진이 비어 있다. 호출하는 쪽의 트랜잭션 안에서 쓴다.
+     */
+    public PublicActorPageResult contentOf(ActorPageContentState state) {
+        ActorPagePublicContent content = state.publicContent();
+        return PublicActorPageResult.of(
+                state.page(), content, age(state.profile(), contentSync.today()), photoUrls(state.photos(), content),
+                videos(state.videos(), content)
+        );
+    }
+
     @Transactional(readOnly = true)
     public PublicActorPagePageResult findPage(ActorPageSearchCondition condition, int page, int size) {
         if (page < 0 || size < 1 || size > MAX_PAGE_SIZE) {

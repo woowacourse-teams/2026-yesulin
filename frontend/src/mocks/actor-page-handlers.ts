@@ -1,6 +1,7 @@
 import { delay, http, HttpResponse } from "msw";
-import type { PublicActorPage, PublicActorPageSummary } from "@/features/actor-pages/types";
-import { actorPageOwnerHandlers, actorPageSeedHandler, ownerPublicActorPage } from "./actor-page-owner-handlers";
+import { isActorHandleAddress, normalizeActorHandle, type PublicActorPage, type PublicActorPageSummary } from "@/features/actor-pages/types";
+import type { AdminActorPage, AdminActorPageSummary } from "@/features/admin/types";
+import { actorPageOwnerHandlers, actorPageSeedHandler, isReservedActorHandle, ownerPublicActorPage } from "./actor-page-owner-handlers";
 
 /**
  * 배우 목록·배우 페이지 확인용 목. 고정 공개 페이지 14개(목록 2페이지)에, 목 배우가 편집 화면에서 공개하면 그 페이지를
@@ -66,9 +67,124 @@ const OTHERS: PublicActorPage[] = NAMES.map((name, index) => ({
 
 const fixed: readonly PublicActorPage[] = [FEATURED, ...OTHERS];
 
+/** 운영자 목에만 보이는 비공개 배우. 공개 목록에는 없고 아이디는 사용 중으로 답한다. */
+const PRIVATE_ACTOR: PublicActorPage = { ...OTHERS[0]!, publicId: "00000000-0000-4000-8000-000000000099", handle: "hidden.actor", name: "윤비공" };
+
+/**
+ * 운영자 목이 바꾼 잠금·아이디. 잠근 배우는 공개 목록·페이지에서 빠진다. 목 배우(김하린)의 페이지는 편집 화면 목이 따로
+ * 관리하므로 운영자 목에는 없다.
+ */
+type AdminState = { lockReason: string | null; lockedAt: string | null; unlockedAt: string | null; handle: string; unpublished: boolean };
+const adminStates = new Map<string, AdminState>();
+const adminStateOf = (page: PublicActorPage): AdminState =>
+  adminStates.get(page.publicId) ?? { lockReason: null, lockedAt: null, unlockedAt: null, handle: page.handle, unpublished: false };
+
 function listed(): readonly PublicActorPage[] {
   const owner = ownerPublicActorPage();
-  return owner ? [owner, ...fixed] : fixed;
+  const pages = fixed
+    .filter((page) => !adminStateOf(page).unpublished)
+    .map((page) => ({ ...page, handle: adminStateOf(page).handle }));
+  return owner ? [owner, ...pages] : pages;
+}
+
+const MOCK_ACTIVITY_START = Date.parse("2026-10-27T10:00:00+09:00");
+
+function adminSummary(page: PublicActorPage, index: number): AdminActorPageSummary {
+  const state = adminStateOf(page);
+  const published = page !== PRIVATE_ACTOR;
+  return {
+    publicId: page.publicId,
+    handle: state.handle,
+    name: page.name,
+    status: published && !state.unpublished ? "PUBLIC" : "PRIVATE",
+    autoHiddenReason: null,
+    locked: Boolean(state.lockReason),
+    lastPublicActivityAt: published ? new Date(MOCK_ACTIVITY_START - index * 3_600_000).toISOString() : null,
+    updatedAt: state.lockedAt ?? state.unlockedAt ?? new Date(MOCK_ACTIVITY_START - index * 3_600_000).toISOString(),
+  };
+}
+
+const adminPages = () => [...fixed, PRIVATE_ACTOR];
+
+/** 최근에 바뀐 페이지부터, 아이디 일부로 찾는다. */
+export function listMockAdminActorPages(handle: string): readonly AdminActorPageSummary[] {
+  const keyword = normalizeActorHandle(handle);
+  return adminPages()
+    .map(adminSummary)
+    .filter((row) => !keyword || row.handle?.includes(keyword))
+    .sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt));
+}
+
+export function mockAdminActorPage(publicId: string): AdminActorPage | null {
+  const index = adminPages().findIndex((page) => page.publicId === publicId);
+  const page = adminPages()[index];
+  if (!page) return null;
+  const summary = adminSummary(page, index);
+  const state = adminStateOf(page);
+  const visible = summary.status === "PUBLIC";
+  return {
+    publicId: summary.publicId,
+    handle: summary.handle,
+    status: summary.status,
+    autoHiddenReason: summary.autoHiddenReason,
+    locked: summary.locked,
+    lastPublicActivityAt: summary.lastPublicActivityAt,
+    ownerMemberId: 500 + index,
+    lockReason: state.lockReason,
+    lockedAt: state.lockedAt,
+    unlockedAt: state.unlockedAt,
+    firstPublishedAt: page === PRIVATE_ACTOR ? null : "2026-10-20T10:00:00+09:00",
+    publishedAt: page === PRIVATE_ACTOR ? null : "2026-10-20T10:00:00+09:00",
+    readiness: { ready: !state.lockReason, missing: state.unpublished ? ["PUBLIC_PHOTO"] : [], underAge: false, locked: Boolean(state.lockReason) },
+    content: {
+      ...page,
+      handle: state.handle,
+      representativePhotoUrl: visible ? page.representativePhotoUrl : null,
+      photos: visible ? page.photos : [],
+    },
+    producerOnlyVideos: page === FEATURED ? [{ url: "https://youtu.be/M7lc1UVf-VE", youtubeId: "M7lc1UVf-VE" }] : [],
+    phone: `010-0000-${String(1000 + index)}`,
+    email: `${state.handle}@example.com`,
+  };
+}
+
+/** 잠그면 공개 목록에서 빠진다. 이미 잠겨 있으면 사유만 바꾼다. */
+export function lockMockActorPage(publicId: string, reason: string): AdminActorPage | null {
+  const page = adminPages().find((candidate) => candidate.publicId === publicId);
+  if (!page) return null;
+  adminStates.set(publicId, { ...adminStateOf(page), lockReason: reason, lockedAt: new Date().toISOString(), unpublished: true });
+  return mockAdminActorPage(publicId);
+}
+
+/** 서버처럼 풀어도 비공개로 둔다. 목에는 다시 공개할 배우가 없어 새로고침하기 전까지 비공개로 남는다. */
+export function unlockMockActorPage(publicId: string): { readonly actorPage: AdminActorPage; readonly changed: boolean } | null {
+  const page = adminPages().find((candidate) => candidate.publicId === publicId);
+  if (!page) return null;
+  const state = adminStateOf(page);
+  if (state.lockReason) adminStates.set(publicId, { ...state, lockReason: null, lockedAt: null, unlockedAt: new Date().toISOString() });
+  return { actorPage: mockAdminActorPage(publicId)!, changed: Boolean(state.lockReason) };
+}
+
+export type MockHandleChange =
+  | { readonly kind: "changed"; readonly actorPage: AdminActorPage; readonly previous: string }
+  | { readonly kind: "same"; readonly actorPage: AdminActorPage }
+  | { readonly kind: "error"; readonly status: number; readonly code: string; readonly message: string }
+  | null;
+
+/** 옛 아이디는 바로 풀린다. 형식·예약어·중복은 서버와 같은 코드로 막는다. */
+export function changeMockActorHandle(publicId: string, value: string): MockHandleChange {
+  const page = adminPages().find((candidate) => candidate.publicId === publicId);
+  if (!page) return null;
+  const handle = normalizeActorHandle(value);
+  const state = adminStateOf(page);
+  if (!isActorHandleAddress(handle)) return { kind: "error", status: 400, code: "ACTOR_HANDLE_INVALID", message: "아이디는 영문 소문자·숫자·마침표·밑줄 1~30자로 입력해 주세요." };
+  if (isReservedActorHandle(handle)) return { kind: "error", status: 400, code: "ACTOR_HANDLE_RESERVED", message: "사용할 수 없는 예약된 아이디입니다." };
+  if (handle === state.handle) return { kind: "same", actorPage: mockAdminActorPage(publicId)! };
+  const taken = adminPages().some((candidate) => candidate.publicId !== publicId && adminStateOf(candidate).handle === handle)
+    || ownerPublicActorPage()?.handle === handle;
+  if (taken) return { kind: "error", status: 409, code: "ACTOR_HANDLE_TAKEN", message: "다른 배우 페이지에서 사용 중인 아이디입니다." };
+  adminStates.set(publicId, { ...state, handle });
+  return { kind: "changed", actorPage: mockAdminActorPage(publicId)!, previous: state.handle };
 }
 
 function toSummary(page: PublicActorPage): PublicActorPageSummary {
@@ -127,7 +243,7 @@ export const actorPageHandlers = [
     return actorPage ? HttpResponse.json(actorPage) : notFound();
   }),
 
-  ...actorPageOwnerHandlers((handle) => handle === "hidden.actor" || fixed.some((candidate) => candidate.handle === handle)),
+  ...actorPageOwnerHandlers((handle) => adminPages().some((candidate) => adminStateOf(candidate).handle === handle)),
 
   http.get("/api/v1/producers/me/actor-bookmark-ids", async () => {
     await delay(100);
