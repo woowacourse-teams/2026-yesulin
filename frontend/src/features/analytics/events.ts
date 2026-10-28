@@ -1,7 +1,7 @@
 "use client";
 
 import type { ApplicationStepKey } from "@/features/applications/application-form";
-import { canSendAnalytics } from "./consent";
+import { canSendAnalytics, isAnalyticsInitialized } from "./consent";
 
 declare global {
   interface Window {
@@ -104,7 +104,7 @@ export function trackAnalyticsEvent<Name extends keyof AnalyticsEventParameters>
 
 /** 배우 이름·아이디가 있는 실제 주소·문서 제목 대신 고정된 화면 정보만 보낸다. */
 export function trackActorScreenView(screen: ActorScreenName): boolean {
-  if (!canSendAnalytics()) return false;
+  if (!canSendAnalytics() || !isAnalyticsInitialized()) return false;
   trackAnalyticsEvent("actor_screen_view", {
     screen_name: screen,
     page_title: screen === "actor_list" ? "배우 목록" : "배우 페이지",
