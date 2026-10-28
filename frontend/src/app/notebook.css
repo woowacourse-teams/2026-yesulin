@@ -1260,14 +1260,17 @@
 
 .public-notebook .event-detail-image:focus-visible { outline-offset:-4px; }
 
-/* 참가 구분은 공개 탐색과 같은 밑줄 선택 방식으로 간결하게 표시한다. */
-.event-participant-options { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); width:100%; max-width:480px; border-bottom:1px solid var(--line); }
+/* 참가 구분은 선택 상태를 배경·테두리·체크로 함께 표시하는 버튼형 라디오다. */
+.event-participant-options { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; width:100%; max-width:480px; }
 .event-participant-option { position:relative; min-width:0; cursor:pointer; }
-.event-participant-option > span { position:relative; display:flex; min-height:52px; align-items:center; justify-content:center; padding:12px 16px; color:var(--ink-60); font-size:16px; font-weight:600; transition:color .15s; }
-.event-participant-option > span::after { content:""; position:absolute; inset:auto 0 -1px; height:3px; background:transparent; }
-.event-participant-option:hover > span,.event-participant-option input:checked + span { color:var(--brand); }
-.event-participant-option input:checked + span::after { background:var(--brand); }
+.event-participant-option > span { position:relative; display:flex; min-height:52px; align-items:center; justify-content:center; gap:8px; padding:12px 10px; border:1px solid var(--line); border-radius:12px; background:var(--white); color:var(--ink-60); font-size:15px; font-weight:600; transition:background-color .15s,border-color .15s,color .15s; }
+.event-participant-option:hover > span { border-color:var(--brand-line); background:var(--brand-soft); }
+.event-participant-option input:checked + span { border-color:var(--brand); background:var(--brand-soft); color:var(--brand); box-shadow:inset 0 0 0 1px var(--brand); }
+.event-participant-option input:checked + span::before { content:""; width:12px; height:7px; flex-shrink:0; border-bottom:2px solid currentColor; border-left:2px solid currentColor; transform:translateY(-2px) rotate(-45deg); }
 .event-participant-option input:focus-visible + span { outline:2px solid var(--brand); outline-offset:3px; }
+@media (prefers-reduced-motion:reduce) {
+  .event-participant-option > span { transition:none; }
+}
 
 /* 명함 미리보기는 고정 비율의 원고를 화면 너비에 맞춰 줄이고 텍스트를 모두 맞춘다. */
 .event-card-example { width:100%; max-width:420px; margin-inline:auto; min-width:0; }
