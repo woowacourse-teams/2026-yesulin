@@ -109,7 +109,9 @@ export function ActorPageView({ actorPage, preview = false }: { readonly actorPa
   return (
     <article className="mt-4">
       <div className="grid items-start gap-7 min-[901px]:grid-cols-[minmax(0,340px)_minmax(0,1fr)] min-[901px]:gap-10">
-        <ActorPhotoGallery name={name} representativePhotoUrl={actorPage.representativePhotoUrl} photos={actorPage.photos} />
+        <div className="min-w-0 min-[901px]:sticky min-[901px]:top-[104px] min-[901px]:-m-2 min-[901px]:max-h-[calc(100dvh-120px)] min-[901px]:overflow-y-auto min-[901px]:p-2">
+          <ActorPhotoGallery name={name} representativePhotoUrl={actorPage.representativePhotoUrl} photos={actorPage.photos} />
+        </div>
 
         <div className="grid min-w-0 gap-5">
           <header className="rounded-card border border-border bg-card p-5 min-[761px]:p-7">
