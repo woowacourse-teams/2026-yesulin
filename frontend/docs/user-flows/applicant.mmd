@@ -23,3 +23,13 @@ flowchart TD
     PATCH --> OVERFLOW["추가하지 못한 경력 수 안내"]
     OVERFLOW --> DONE
     DONE --> HISTORY["GET /api/v1/applicants/me/submissions"]
+    PROFILE_SAVE["/applicants/profile 프로필 저장"] --> PROMPT{"비공개·잠금 아님·공개 팝업 처음?"}
+    PROMPT -- 예 --> PROMPT_SHOW["공개 팝업 표시와 POST publish-prompt 기록"]
+    PROMPT_SHOW --> PROMPT_READY{"공개 조건 충족?"}
+    PROMPT_READY -- 아니오 --> AP_TAB["배우 페이지 탭: 아이디·항목·사진·영상 공개 설정"]
+    PROMPT_READY -- 예 --> AP_CONSENT["필수 공개 동의 체크"]
+    AP_TAB --> AP_PREVIEW["GET /api/v1/applicants/me/actor-page/preview 미리보기"]
+    AP_TAB --> AP_CONSENT
+    AP_CONSENT --> AP_COPY["사본 없는 공개 사진의 공개 사본 생성: 실패한 사진만 제외"]
+    AP_COPY --> AP_PUBLISH["PUT /api/v1/applicants/me/actor-page/publication"]
+    AP_PUBLISH --> AP_PAGE["/@아이디 공개, 아이디 고정"]
