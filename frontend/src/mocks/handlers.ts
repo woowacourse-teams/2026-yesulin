@@ -33,6 +33,7 @@ import { authHandlers } from "./auth-handlers";
 import { adminHandlers } from "./admin-handlers";
 import { adminLogHandlers } from "./admin-log-handlers";
 import { adminFileHandlers } from "./admin-file-handlers";
+import { actorPageHandlers } from "./actor-page-handlers";
 import { eventHandlers } from "./event-handlers";
 import { auditionPostHandlers } from "./audition-post-handlers";
 import { otrAuditionHandlers } from "./otr-audition-handlers";
@@ -73,6 +74,7 @@ export const handlers = [
   ...adminLogHandlers,
   ...adminFileHandlers,
   ...eventHandlers,
+  ...actorPageHandlers,
   ...auditionPostHandlers,
   ...otrAuditionHandlers,
   ...showHandlers,

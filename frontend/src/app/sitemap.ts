@@ -1,5 +1,7 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/config/site";
+import { actorHandlesForSitemap } from "@/features/actor-pages/server";
+import { actorPageRoutes } from "@/features/actor-pages/types";
 import { auditionPostIdsForSitemap } from "@/features/audition-posts/server";
 import { AUDITION_LANDING_CATEGORIES, auditionPostRoutes } from "@/features/audition-posts/types";
 import { publicShowsForServer } from "@/features/shows/server";
@@ -8,7 +10,9 @@ import { showRoutes } from "@/features/shows/types";
 export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [shows, postIds] = await Promise.all([publicShowsForServer(), auditionPostIdsForSitemap()]);
+  const [shows, postIds, actorHandles] = await Promise.all([
+    publicShowsForServer(), auditionPostIdsForSitemap(), actorHandlesForSitemap(),
+  ]);
   return [
     {
       url: `${SITE_URL}/`,
@@ -49,6 +53,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: `${SITE_URL}${auditionPostRoutes.detail(postId)}`,
       changeFrequency: "daily" as const,
       priority: 0.7,
+    })),
+    {
+      url: `${SITE_URL}${actorPageRoutes.list()}`,
+      changeFrequency: "daily",
+      priority: 0.7,
+    },
+    ...actorHandles.map((handle) => ({
+      url: `${SITE_URL}${actorPageRoutes.detail(handle)}`,
+      changeFrequency: "weekly" as const,
+      priority: 0.6,
     })),
   ];
 }

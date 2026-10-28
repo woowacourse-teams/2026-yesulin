@@ -1,6 +1,6 @@
 export type MockScenarioDefinition = {
   readonly id: string;
-  readonly area: "지원 양식" | "심사 흐름" | "무료 공연" | "오디션 일정표" | "공연사";
+  readonly area: "지원 양식" | "심사 흐름" | "무료 공연" | "오디션 일정표" | "공연사" | "배우 페이지";
   readonly title: string;
   readonly description: string;
   readonly href: string;
@@ -178,5 +178,29 @@ export const MOCK_SCENARIOS: readonly MockScenarioDefinition[] = [
     description: "공연사 정보와 소개, 공연사가 알려 준 주소 지도, 이 공연사의 공고를 봅니다.",
     href: "/companies/1",
     checks: ["연락처와 소개가 보인다", "공연사 위치 지도에서 주소 복사·길찾기를 쓸 수 있다", "공개 전인 /companies/3은 찾을 수 없음 화면이다"],
+  },
+  {
+    id: "actor-list",
+    area: "배우 페이지",
+    title: "배우 목록",
+    description: "메인 '배우' 탭에서 공개 배우 페이지 14개를 12개씩 나눠 봅니다.",
+    href: "/actors",
+    checks: ["메인 메뉴에서 '배우' 탭이 선택된다", "카드에 대표 사진·이름·성별·출생연도(만 나이)·입력한 키/몸무게가 보인다", "대표 사진이 없는 카드는 이미지 준비 중으로 보인다", "2페이지로 넘기면 주소가 /actors?page=2가 된다"],
+  },
+  {
+    id: "actor-page",
+    area: "배우 페이지",
+    title: "배우 페이지",
+    description: "마침표·밑줄이 들어간 아이디의 배우 페이지에서 공개 항목만 봅니다.",
+    href: "/@min.zzun_",
+    checks: ["자기소개·사진·영상·경력(장르별, 미분류는 맨 뒤)·특기·학력·국적·취미·링크가 보인다", "연락 안내와 하단 문의 링크가 카카오톡 채널로 열린다", "페이지 공유는 공유 창을 열거나 주소를 복사한다", "/@MIN.ZZUN_으로 열면 소문자 주소로 바뀐다"],
+  },
+  {
+    id: "actor-page-missing",
+    area: "배우 페이지",
+    title: "찾을 수 없는 배우 페이지",
+    description: "비공개 페이지와 없는 아이디가 같은 화면으로 보이는지 봅니다.",
+    href: "/@hidden.actor",
+    checks: ["비공개 배우는 찾을 수 없음 화면이다", "/@nobody도 같은 화면이다", "/@min.zzun_/posts는 404다"],
   },
 ];
