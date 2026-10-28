@@ -107,6 +107,30 @@ class ApplicantInfoTest(unittest.TestCase):
                 self.assertEqual(reason, info["reason"])
         self.invoke.assert_not_called()
 
+    def test_actor_profile_import_transcribes_name_and_profile_without_roles(self):
+        self.context.return_value.update(purpose="ACTOR_PROFILE", reviewId=None, roles=[])
+        self.invoke.return_value = {**self.value, "roleId": None, "roleEvidence": None}
+        info = self.processor.enrich(self.completion, self.result, self.store)["applicantInfo"]
+        self.assertEqual("COMPLETED", info["status"])
+        self.assertEqual("가상배우", info["applicantName"])
+        self.assertIsNone(info["roleId"])
+        self.assertEqual({"roles": [], "documentText": self.text}, json.loads(self.invoke.call_args.args[1]))
+
+    def test_producer_job_without_review_still_skips_without_calling_model(self):
+        for purpose in (None, "PDF_REVIEW"):
+            with self.subTest(purpose=purpose):
+                self.context.return_value.update(purpose=purpose, reviewId=None, roles=[])
+                info = self.processor.enrich(self.completion, self.result, Cache())["applicantInfo"]
+                self.assertEqual("SKIPPED", info["status"])
+                self.assertEqual("NO_REVIEW", info["reason"])
+        self.invoke.assert_not_called()
+
+    def test_actor_profile_import_with_review_roles_is_rejected(self):
+        self.context.return_value["purpose"] = "ACTOR_PROFILE"
+        with self.assertRaisesRegex(ValueError, "INVALID_APPLICANT_CONTEXT"):
+            self.processor.enrich(self.completion, self.result, self.store)
+        self.invoke.assert_not_called()
+
     def test_source_context_and_cache_identity_mismatch_never_call_model(self):
         self.context.return_value["sourceFileKey"] = "other-review/source.pdf"
         with self.assertRaisesRegex(ValueError, "CONTEXT_IDENTITY"):
