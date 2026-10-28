@@ -11,6 +11,8 @@ import art.yesulin.actor.application.photolibrary.AddPhotoToLibraryCommand;
 import art.yesulin.actor.application.photolibrary.PhotoLibraryItemResult;
 import art.yesulin.actor.application.photolibrary.PhotoLibraryService;
 import art.yesulin.actor.domain.photolibrary.PhotoLibrary;
+import art.yesulin.auth.domain.member.MemberErrorCode;
+import art.yesulin.auth.domain.member.MemberRepository;
 import art.yesulin.file.application.FileService;
 import art.yesulin.global.exception.BusinessException;
 import art.yesulin.pdfextraction.application.PdfExtractionResult;
@@ -37,7 +39,7 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * 배우가 자기 PDF 프로필로 편집 화면을 채운다. 공연사 PDF 심사와 같은 업로드·추출 흐름을 쓰되 작업 목적으로 데이터와 권한을
  * 나눈다. 하루 1회(한국 날짜)이고 실패·빈 결과는 세지 않는다. 결과를 닫거나 결과가 나온 뒤 24시간이 지나면 원본·추출 본문·
- * 이미지를 지우며, 보관함에 넣은 사진은 새 배우 사진 파일이라 남는다. 같은 배우가 동시에 올리는 경우까지 잠그지는 않는다.
+ * 이미지를 지우며, 보관함에 넣은 사진은 새 배우 사진 파일이라 남는다. 업로드 준비는 회원 행을 잠가 같은 배우의 요청을 직렬화한다.
  */
 @Slf4j
 @Service
@@ -59,6 +61,7 @@ public class ProfileImportService {
     private final FileService files;
     private final PhotoLibraryService photos;
     private final Clock clock;
+    private final MemberRepository members;
 
     @Transactional(readOnly = true)
     public ProfileImportOverview findCurrent(long ownerId) {
@@ -74,6 +77,8 @@ public class ProfileImportService {
     /** 진행 중인 가져오기가 있거나 오늘 이미 썼으면 새로 올리지 못한다. */
     @Transactional
     public PreparedProfileImport prepare(long ownerId, String filename, long size) {
+        members.findForUpdate(ownerId)
+                .orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND, "회원을 찾을 수 없습니다."));
         Instant now = clock.instant();
         List<PdfExtractionJob> recent = recent(ownerId, now);
         if (recent.stream().anyMatch(job -> !job.isDeleted() && job.isInProgress(now))) {
