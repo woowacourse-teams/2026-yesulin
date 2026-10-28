@@ -138,7 +138,7 @@ public class ActorPageService {
      * 다른 회원과 아이디가 겹치면 아이디 제약에, 프로필이 없어 잠글 행이 없는 회원의 첫 쓰기 요청이 동시에 페이지를 만들면
      * 회원당 1개 제약에 걸린다. 앞의 것은 아이디 중복으로, 뒤의 것은 다시 시도하면 되는 충돌로 돌려준다.
      */
-    static RuntimeException translate(DataIntegrityViolationException exception) {
+    public static RuntimeException translate(DataIntegrityViolationException exception) {
         String constraint = violatedConstraint(exception);
         if (constraint.contains(HANDLE_CONSTRAINT)) {
             return handleTaken();

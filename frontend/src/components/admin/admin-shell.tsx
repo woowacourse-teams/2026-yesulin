@@ -19,6 +19,7 @@ const NAV_ITEMS: readonly NavItem[] = [
   { id: "posts", label: "공고 관리", href: "/admin/posts" },
   { id: "openchat", label: "오픈채팅방 관리", href: adminOpenChatRoutes.root },
   { id: "events", label: "이벤트", href: "/admin/events" },
+  { id: "actor-pages", label: "배우 페이지", href: "/admin/actor-pages" },
   ...ADMIN_SECTIONS.filter((section) => section.id !== "overview" && section.id !== "producers" && section.id !== "audit")
     .map((section) => ({ id: section.id, label: section.label, href: adminSectionHref(section.id) })),
   { id: "messages", label: "문자 대기열", href: "/admin/messages" },
@@ -54,7 +55,7 @@ function Badge({ count, dark }: { readonly count: number; readonly dark: boolean
 /** 운영 대시보드·파일 관리·로그 화면이 함께 쓰는 틀이다. 데스크톱은 왼쪽 메뉴, 모바일은 가로 탭으로 이동한다. */
 export function AdminShell({ current, title, description, actions, badges = {}, children, layout = "workspace" }: Props) {
   const activeTarget = current === "producers" ? "members" : current;
-  const badgeOf = (id: AdminNavTarget) => (id === "logs" || id === "files" || id === "messages" || id === "posts" || id === "openchat" || id === "events" ? 0 : badges[id] ?? 0);
+  const badgeOf = (id: AdminNavTarget) => (id === "logs" || id === "files" || id === "messages" || id === "posts" || id === "openchat" || id === "events" || id === "actor-pages" ? 0 : badges[id] ?? 0);
   const mobileNavRef = useRef<HTMLElement>(null);
 
   // 모바일 가로 탭에서 뒤쪽 메뉴(파일·로그)에 있어도 현재 탭이 보이도록 가운데로 스크롤한다.

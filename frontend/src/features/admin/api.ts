@@ -10,6 +10,8 @@ import type {
   EditableAuditionPost,
 } from "../audition-posts/editing";
 import type {
+  AdminActorPage,
+  AdminActorPageList,
   AdminAlertChatMembers,
   AdminOpenChatVisits,
   AdminAuditLogPage,
@@ -645,6 +647,33 @@ export async function uploadEventImage(image: File): Promise<string> {
     reportDiagnostic: reportUploadDiagnostic,
   });
   return imageUrl;
+}
+
+/** 최근에 바뀐 페이지부터 보인다. 아이디 일부로 찾을 수 있다. */
+export function fetchAdminActorPages(handle: string, page: number): Promise<AdminActorPageList> {
+  const query = new URLSearchParams({ page: String(page), size: "20" });
+  if (handle.trim()) query.set("handle", handle.trim());
+  return getJson<AdminActorPageList>(`/actor-pages?${query}`, "배우 페이지 목록을 불러오지 못했습니다.");
+}
+
+/** 연락처가 담겨 있어 화면에서만 쓰고 저장하지 않는다. */
+export function fetchAdminActorPage(publicId: string): Promise<AdminActorPage> {
+  return getJson<AdminActorPage>(`/actor-pages/${encodeURIComponent(publicId)}`, "배우 페이지를 불러오지 못했습니다.");
+}
+
+/** 잠그면 페이지가 비공개로 내려가고 사유가 배우 편집 화면에 보인다. 이미 잠겨 있으면 사유만 바꾼다. */
+export async function lockActorPage(publicId: string, reason: string): Promise<AdminActorPage> {
+  return await sendJson(`/actor-pages/${encodeURIComponent(publicId)}/lock`, "PUT", { reason: reason.trim() }, "배우 페이지를 잠그지 못했습니다.") as AdminActorPage;
+}
+
+/** 풀어도 비공개로 두고, 배우가 내용을 확인한 뒤 직접 다시 공개한다. */
+export async function unlockActorPage(publicId: string): Promise<AdminActorPage> {
+  return await sendJson(`/actor-pages/${encodeURIComponent(publicId)}/lock`, "DELETE", undefined, "잠금을 풀지 못했습니다.") as AdminActorPage;
+}
+
+/** 옛 아이디는 바로 풀려 옛 주소는 끊기고 다른 배우가 곧바로 쓸 수 있다. */
+export async function changeActorPageHandle(publicId: string, handle: string): Promise<AdminActorPage> {
+  return await sendJson(`/actor-pages/${encodeURIComponent(publicId)}/handle`, "PUT", { handle }, "아이디를 바꾸지 못했습니다.") as AdminActorPage;
 }
 
 async function sendJson(path: string, method: string, body: unknown, fallback: string): Promise<unknown> {

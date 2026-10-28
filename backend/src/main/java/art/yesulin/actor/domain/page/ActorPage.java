@@ -130,6 +130,14 @@ public class ActorPage {
         this.handle = handle.value();
     }
 
+    /**
+     * 운영자가 아이디를 바꾼다. 처음 공개한 뒤에도 바꿀 수 있고, 옛 아이디는 이동 없이 바로 풀려 다른 배우가 쓸 수 있다.
+     * 다른 페이지와 겹치는지는 저장할 때 유일 제약으로 막는다.
+     */
+    public void changeHandleByAdmin(ActorPageHandle handle) {
+        this.handle = handle.value();
+    }
+
     public ActorPageVisibility visibilityOf(ActorPageField field) {
         return fieldVisibilities.getOrDefault(field, ActorPageVisibility.PRIVATE);
     }

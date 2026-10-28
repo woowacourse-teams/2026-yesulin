@@ -20,6 +20,9 @@ public interface ActorPageRepository extends JpaRepository<ActorPage, Long> {
 
     Optional<ActorPage> findByPublicId(UUID publicId);
 
+    /** 운영자 목록. 아이디 일부로 찾는다. */
+    Page<ActorPage> findAllByHandleContaining(String handle, Pageable pageable);
+
     /** 배우 목록에 나오는 페이지. 운영자 잠금은 상태를 비공개로 바꾸지만 잠금 여부도 함께 거른다. */
     Page<ActorPage> findAllByStatusAndLockedAtIsNull(ActorPageStatus status, Pageable pageable);
 
