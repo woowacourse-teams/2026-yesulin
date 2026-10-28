@@ -1,8 +1,8 @@
 import { delay, http, HttpResponse, passthrough } from "msw";
 import { frontendEnvironment } from "@/config/environment";
 import type { AdminEvent, AdminEventRegistration, AdminEventStatus, AdminEventWrite } from "@/features/admin/types";
-import { MAX_EVENT_DETAIL_IMAGES } from "@/features/events/types";
-import type { EventBanner, EventPhase, EventRegistrationWrite, PublicEvent, PublicEventSummary } from "@/features/events/types";
+import { MAX_EVENT_DETAIL_IMAGES, registrationClosedMessage } from "@/features/events/types";
+import type { EventBanner, EventPhase, EventRegistrationStatus, EventRegistrationWrite, PublicEvent, PublicEventSummary } from "@/features/events/types";
 import { mockSessionRole } from "./auth-handlers";
 import { registrationSnsProblem } from "@/features/events/registration-draft";
 
@@ -30,6 +30,10 @@ const events: Mutable<AdminEvent>[] = [
     applyUrl: "https://forms.gle/5g4qGphqcugfMYFc6",
     applyLabel: "서포터즈 신청하기",
     registrationEnabled: false,
+    registrationCapacity: null,
+    registrationCount: 0,
+    registrationClosed: false,
+    registrationStatus: "DISABLED",
     registrationNotice: null,
     registrationConfirmationEnabled: false,
     registrationConfirmationMessage: null,
@@ -54,6 +58,10 @@ const events: Mutable<AdminEvent>[] = [
     applyUrl: null,
     applyLabel: "참가 신청하기",
     registrationEnabled: true,
+    registrationCapacity: null,
+    registrationCount: 0,
+    registrationClosed: false,
+    registrationStatus: "OPEN",
     registrationNotice: "노쇼 방지를 위해 보증금 5,000원을 받습니다. 11월 9일 현장에 오시면 그대로 돌려드립니다.\n입금 계좌: (추후 안내)",
     registrationConfirmationEnabled: true,
     registrationConfirmationMessage: "참가 신청 후 신청서 위의 보증금 안내를 확인해 주세요.\n행사 소식은 남겨 주신 휴대폰 번호로 안내합니다.",
@@ -106,6 +114,8 @@ function shownBanners(today: string): readonly AdminEvent[] {
 function refreshed(event: Mutable<AdminEvent>): AdminEvent {
   const today = koreaToday();
   event.phase = phaseOf(event, today);
+  event.registrationCount = countOf(event.id);
+  event.registrationStatus = registrationStatusOf(event);
   event.bannerVisible = shownBanners(today).some((shown) => shown.id === event.id);
   return { ...event };
 }
@@ -119,11 +129,24 @@ function toSummary(event: AdminEvent): PublicEventSummary {
     endsOn: event.endsOn,
     phase: event.phase,
     coverImageUrl: event.coverImageUrl,
+    registrationStatus: registrationStatusOf(event),
   };
 }
 
+function countOf(eventId: number): number {
+  return registrations.filter((registration) => registrationEventIds.get(registration.id) === eventId).length;
+}
+
+function registrationStatusOf(event: AdminEvent): EventRegistrationStatus {
+  if (event.status !== "PUBLISHED" || !event.registrationEnabled) return "DISABLED";
+  if (event.phase === "ENDED") return "ENDED";
+  if (event.registrationClosed) return "CLOSED";
+  if (event.registrationCapacity !== null && countOf(event.id) >= event.registrationCapacity) return "FULL";
+  return "OPEN";
+}
+
 function acceptsRegistrations(event: AdminEvent): boolean {
-  return event.status === "PUBLISHED" && event.registrationEnabled && event.phase !== "ENDED";
+  return registrationStatusOf(event) === "OPEN";
 }
 
 function toPublic(event: AdminEvent): PublicEvent {
@@ -136,6 +159,9 @@ function toPublic(event: AdminEvent): PublicEvent {
     applyLabel: event.applyLabel,
     registrationEnabled: event.registrationEnabled,
     registrationOpen: acceptsRegistrations(event),
+    registrationCapacity: event.registrationCapacity,
+    registrationCount: countOf(event.id),
+    registrationClosed: event.registrationClosed,
     registrationNotice: event.registrationNotice,
     registrationConfirmationEnabled: event.registrationConfirmationEnabled,
     registrationConfirmationMessage: event.registrationConfirmationMessage,
@@ -150,7 +176,7 @@ function acceptsBusinessCards(event: AdminEvent): boolean {
 
 /** 서버처럼 구분에 맞는 칸만 확인한다. 문제가 없으면 null이다. */
 function invalidRegistration(write: EventRegistrationWrite): string | null {
-  if (!write.participantType) return "참가 구분을 선택해 주세요.";
+  if (!["ACTOR", "PRODUCER", "GENERAL"].includes(write.participantType)) return "참가 구분을 선택해 주세요.";
   if (!write.name?.trim() || !/^01[016789]-\d{3,4}-\d{4}$/.test(write.phone ?? "")) return "이름과 휴대폰 번호를 확인해 주세요.";
   if (write.participantType === "ACTOR" && write.businessCardRequested) {
     const snsProblem = registrationSnsProblem(write.snsPlatform ?? null, write.snsHandle ?? null);
@@ -183,6 +209,7 @@ function invalidWrite(write: AdminEventWrite): string | null {
   if (detailUrls.length > MAX_EVENT_DETAIL_IMAGES || detailUrls.some((url) => !url?.trim()) || new Set(detailUrls).size !== detailUrls.length) return "상세 이미지 개수와 중복을 확인해 주세요.";
   if (write.startsOn && write.endsOn && write.endsOn < write.startsOn) return "종료일은 시작일보다 앞설 수 없습니다.";
   if (write.applyUrl && !/^https?:\/\//i.test(write.applyUrl)) return "신청 링크는 http:// 또는 https://로 시작하는 주소여야 합니다.";
+  if (write.registrationCapacity != null && (!Number.isInteger(write.registrationCapacity) || write.registrationCapacity < 1 || write.registrationCapacity > 2147483647)) return "모집 정원은 1명 이상의 정수여야 합니다.";
   if (write.registrationEnabled && write.registrationConfirmationEnabled) {
     if (!write.registrationConfirmationMessage?.trim()) return "신청 전 팝업 안내 내용을 입력해 주세요.";
     if (write.registrationConfirmationMessage.length > 2000) return "신청 전 팝업 안내는 2000자 이내여야 합니다.";
@@ -204,6 +231,7 @@ function apply(target: Mutable<AdminEvent>, write: AdminEventWrite) {
   target.endsOn = write.endsOn || null;
   target.applyUrl = write.applyUrl?.trim() || null;
   target.registrationEnabled = Boolean(write.registrationEnabled);
+  target.registrationCapacity = write.registrationCapacity ?? null;
   target.registrationNotice = target.registrationEnabled ? write.registrationNotice?.trim() || null : null;
   target.registrationConfirmationEnabled = target.registrationEnabled && Boolean(write.registrationConfirmationEnabled);
   target.registrationConfirmationMessage = target.registrationConfirmationEnabled ? write.registrationConfirmationMessage?.trim().replace(/\r\n?/g, "\n") || null : null;
@@ -245,7 +273,7 @@ export const eventHandlers = [
     await delay(120);
     const event = published().find((candidate) => candidate.id === Number(params.eventId));
     if (!event) return apiError(404, "EVENT_NOT_FOUND", "이벤트를 찾을 수 없습니다.");
-    if (!acceptsRegistrations(event)) return apiError(409, "EVENT_REGISTRATION_CLOSED", "참가 신청을 받지 않는 이벤트입니다.");
+    if (!acceptsRegistrations(event)) return apiError(409, "EVENT_REGISTRATION_CLOSED", registrationClosedMessage(registrationStatusOf(event)));
     if (!acceptsBusinessCards(event)) return apiError(409, "EVENT_BUSINESS_CARD_CLOSED", "프로필 명함 제작 신청 기간이 끝났습니다. 명함 희망을 끄고 신청해 주십시오.");
     const upload = await request.json() as { readonly contentType: string; readonly size: number };
     if (!["image/jpeg", "image/png", "image/webp"].includes(upload.contentType)) {
@@ -267,8 +295,9 @@ export const eventHandlers = [
     await delay(150);
     const event = published().find((candidate) => candidate.id === Number(params.eventId));
     if (!event) return apiError(404, "EVENT_NOT_FOUND", "이벤트를 찾을 수 없습니다.");
-    if (!acceptsRegistrations(event)) return apiError(409, "EVENT_REGISTRATION_CLOSED", "참가 신청을 받지 않는 이벤트입니다.");
+    if (!acceptsRegistrations(event)) return apiError(409, "EVENT_REGISTRATION_CLOSED", registrationClosedMessage(registrationStatusOf(event)));
     const write = await request.json() as EventRegistrationWrite;
+    if (!acceptsRegistrations(event)) return apiError(409, "EVENT_REGISTRATION_CLOSED", registrationClosedMessage(registrationStatusOf(event)));
     const invalid = invalidRegistration(write);
     if (invalid) return apiError(400, "EVENT_INVALID_INPUT", invalid);
     if (registrations.some((item) => registrationEventIds.get(item.id) === event.id && item.phone === write.phone)) {
@@ -291,7 +320,7 @@ export const eventHandlers = [
       snsHandle: card ? write.snsHandle?.trim() || null : null,
       snsPlatform: card && write.snsHandle?.trim() ? write.snsPlatform ?? null : null,
       birthDate: card ? write.birthDate : null,
-      affiliation: actor ? null : write.affiliation?.trim() || null,
+      affiliation: write.participantType === "PRODUCER" ? write.affiliation?.trim() || null : null,
       photoUrl: card ? `${MOCK_STORAGE}/${write.photoUploadKey}` : null,
       activityFields: card ? write.activityFields : [],
       otherActivity: card && write.activityFields.includes("OTHER") ? write.otherActivity : null,
@@ -299,9 +328,36 @@ export const eventHandlers = [
       careers: card && !write.noCareer ? write.careers : [],
       intro: card ? write.intro?.trim() || null : null,
       createdAt: new Date().toISOString(),
+      paymentStatus: "PENDING",
+      paymentConfirmedAt: null,
     });
     registrationEventIds.set(id, event.id);
     return HttpResponse.json({ id }, { status: 201 });
+  }),
+
+  http.patch("/api/v1/admin/events/:eventId/registration-status", async ({ params, request }) => {
+    if (realLoginEnabled) return passthrough();
+    const rejected = rejectNonAdmin(); if (rejected) return rejected;
+    const event = events.find((item) => item.id === Number(params.eventId));
+    if (!event) return apiError(404, "EVENT_NOT_FOUND", "이벤트를 찾을 수 없습니다.");
+    const write = await request.json() as { closed: boolean };
+    if (typeof write.closed !== "boolean" || !event.registrationEnabled) return apiError(400, "EVENT_INVALID_INPUT", "모집 상태를 확인해 주세요.");
+    event.registrationClosed = write.closed;
+    event.updatedAt = new Date().toISOString();
+    return HttpResponse.json(refreshed(event));
+  }),
+
+  http.patch("/api/v1/admin/events/:eventId/registrations/:registrationId/payment-status", async ({ params, request }) => {
+    if (realLoginEnabled) return passthrough();
+    const rejected = rejectNonAdmin(); if (rejected) return rejected;
+    if (!events.some((item) => item.id === Number(params.eventId))) return apiError(404, "EVENT_NOT_FOUND", "이벤트를 찾을 수 없습니다.");
+    const index = registrations.findIndex((item) => item.id === Number(params.registrationId) && registrationEventIds.get(item.id) === Number(params.eventId));
+    if (index < 0) return apiError(404, "EVENT_REGISTRATION_NOT_FOUND", "참가 신청을 찾을 수 없습니다.");
+    const write = await request.json() as { paymentStatus: "PENDING" | "CONFIRMED" };
+    if (!["PENDING", "CONFIRMED"].includes(write.paymentStatus)) return apiError(400, "EVENT_INVALID_INPUT", "입금 상태를 선택해 주세요.");
+    const current = registrations[index];
+    if (current.paymentStatus !== write.paymentStatus) registrations[index] = { ...current, paymentStatus: write.paymentStatus, paymentConfirmedAt: write.paymentStatus === "CONFIRMED" ? new Date().toISOString() : null };
+    return HttpResponse.json(registrations[index]);
   }),
 
   http.get("/api/v1/admin/events/:eventId/registrations", async ({ params }) => {

@@ -2,6 +2,7 @@ package art.yesulin.event.application.registration;
 
 import art.yesulin.event.domain.registration.EventActivityField;
 import art.yesulin.event.domain.registration.EventParticipantType;
+import art.yesulin.event.domain.registration.EventPaymentStatus;
 import art.yesulin.event.domain.registration.EventRegistration;
 import art.yesulin.event.domain.registration.EventRegistrationCareer;
 import art.yesulin.event.domain.registration.EventSnsPlatform;
@@ -37,7 +38,9 @@ public record AdminEventRegistrationResult(
         List<Career> careers,
         String intro,
         Instant createdAt,
-        EventSnsPlatform snsPlatform
+        EventSnsPlatform snsPlatform,
+        EventPaymentStatus paymentStatus,
+        Instant paymentConfirmedAt
 ) {
 
     static AdminEventRegistrationResult from(EventRegistration registration, String photoUrl) {
@@ -58,7 +61,9 @@ public record AdminEventRegistrationResult(
                 registration.getCareers().stream().map(Career::from).toList(),
                 registration.getIntro(),
                 registration.getCreatedAt(),
-                registration.getSnsPlatform()
+                registration.getSnsPlatform(),
+                registration.getPaymentStatus(),
+                registration.getPaymentConfirmedAt()
         );
     }
 

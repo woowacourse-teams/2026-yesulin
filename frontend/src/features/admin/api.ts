@@ -1,3 +1,4 @@
+import type { EventPaymentStatus } from "@/features/events/types";
 import { withCsrfHeaders } from "../csrf";
 import { safeUpload } from "../files/safe-upload";
 import { reportUploadDiagnostic } from "../files/upload-diagnostics";
@@ -546,6 +547,10 @@ export async function fetchAdminEvents(): Promise<readonly AdminEvent[]> {
   return response.events;
 }
 
+export function fetchAdminEvent(eventId: number): Promise<AdminEvent> {
+  return getJson(`/events/${eventId}`, "이벤트를 불러오지 못했습니다.");
+}
+
 /** 새 이벤트는 검토 전으로 만들어지고, 공개해야 이벤트 화면과 메인 배너에 보인다. */
 export async function createEvent(write: AdminEventWrite): Promise<AdminEvent> {
   return await sendJson("/events", "POST", write, "이벤트를 만들지 못했습니다.") as AdminEvent;
@@ -557,6 +562,16 @@ export async function updateEvent(eventId: number, write: AdminEventWrite): Prom
 
 export async function changeEventStatus(eventId: number, status: AdminEventStatus): Promise<AdminEvent> {
   return await sendJson(`/events/${eventId}/status`, "PATCH", { status }, "공개 상태를 바꾸지 못했습니다.") as AdminEvent;
+}
+
+/** 안내·신청자를 유지하면서 모집만 마감하거나 다시 연다. */
+export async function changeEventRegistrationClosed(eventId: number, closed: boolean): Promise<AdminEvent> {
+  return await sendJson(`/events/${eventId}/registration-status`, "PATCH", { closed }, "모집 상태를 바꾸지 못했습니다.") as AdminEvent;
+}
+
+/** 운영자가 확인한 입금 상태를 저장한다. */
+export async function changeEventPaymentStatus(eventId: number, registrationId: number, paymentStatus: EventPaymentStatus): Promise<AdminEventRegistration> {
+  return await sendJson(`/events/${eventId}/registrations/${registrationId}/payment-status`, "PATCH", { paymentStatus }, "입금 상태를 저장하지 못했습니다.") as AdminEventRegistration;
 }
 
 /** 글과 이미지를 되돌릴 수 없게 지운다. */

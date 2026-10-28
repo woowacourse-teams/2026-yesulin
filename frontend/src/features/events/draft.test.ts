@@ -77,3 +77,16 @@ describe("이벤트 기간 표시", () => {
     expect(formatEventPeriod(null, null)).toBeNull();
   });
 });
+
+
+describe("이벤트 합산 총정원", () => {
+  it("빈 정원은 제한이 없고 1명 이상의 정수만 저장한다", () => {
+    const ready = { ...emptyEventDraft(), title: "선착순 행사", body: "안내", registrationEnabled: true };
+    expect(writeOfEvent(ready).registrationCapacity).toBeNull();
+    for (const value of ["0", "-1", "1.5", "2147483648", "abc"]) {
+      expect(eventDraftProblem({ ...ready, registrationCapacity: value })).toContain("정원");
+    }
+    expect(eventDraftProblem({ ...ready, registrationCapacity: "30" })).toBeNull();
+    expect(writeOfEvent({ ...ready, registrationCapacity: "30" }).registrationCapacity).toBe(30);
+  });
+});

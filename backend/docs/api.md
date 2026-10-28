@@ -544,7 +544,7 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 이미 연결된 공고는 그대로 둔다. 이후 가져오는 공고는 기획사 자동 연결과 함께 묶음 규칙으로 공연사가 없는 공고에 공연사를 연결한다.
 `admin_audit_logs`에 `AUDITION_POST_COMPANY_AUTHOR_LINKED`·`AUDITION_POST_COMPANY_AUTHOR_UNLINKED`로 남긴다.
 
-## 이벤트 — 15개
+## 이벤트 — 17개
 
 운영자가 쓰는 이벤트 글(`Event`)과 메인 상단 이벤트 배너다. 공개 API는 로그인 없이, 운영 API는 `ADMIN`만 호출한다. `eventId`는 숫자 ID다.
 
@@ -565,8 +565,11 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 | GET | `/api/v1/admin/events/{eventId}/registrations` | Admin | 없음 | `200 AdminEventRegistrationsResponse(registrations)` |
 | GET | `/api/v1/admin/events/{eventId}/registrations/business-card-archive` | Admin | 없음 | `200 application/zip` |
 | DELETE | `/api/v1/admin/events/{eventId}/registrations/{registrationId}` | Admin | 없음 | `204` |
+| PATCH | `/api/v1/admin/events/{eventId}/registration-status` | Admin | `{ closed: boolean }` | `200 AdminEventResult` |
+| PATCH | `/api/v1/admin/events/{eventId}/registrations/{registrationId}/payment-status` | Admin | `{ paymentStatus: PENDING 또는 CONFIRMED }` | `200 AdminEventRegistrationResult` |
 
 `WriteEventRequest`는 `title`(필수, 100자), `summary`(목록 소개, 200자), `body`(필수 개요, 대표 이미지 옆에 보이는 자유 형식 텍스트, 줄바꿈 유지, 5000자),
+`registrationCapacity`(관계자·배우·일반인 합산 총정원, null은 무제한, 1명 이상의 정수),
 `startsOn`·`endsOn`(`YYYY-MM-DD`, 종료일이 시작일보다 앞서면 400), `applyUrl`(http·https 주소, 500자), `applyLabel`(신청 버튼 문구,
 30자, `applyUrl`도 참가 신청서도 없으면 지운다), `registrationEnabled`(켜면 신청 버튼이 외부 주소 대신 예술in 참가 신청서를 연다),
 `registrationNotice`(참가 신청서 위에 보일 보증금·계좌 같은 안내, 줄바꿈을 살린 2000자, 신청서를 끄면 지운다),
@@ -611,7 +614,7 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 `409 EVENT_REGISTRATION_CLOSED`다. 명함 제작 마감 시각이 지나면 참가 신청은 계속 받되, 명함 희망 신청과 명함 사진 업로드는
 `409 EVENT_BUSINESS_CARD_CLOSED`다. 쓰기 요청은 CSRF 헤더가 필요하다.
 
-`RegisterRequest`는 `participantType`(`ACTOR`·`PRODUCER`), `name`(50자), `phone`(`010-1234-5678`, 숫자만 적어도 같은 형식으로 정리),
+`RegisterRequest`는 `participantType`(`ACTOR` 배우·`PRODUCER` 관계자·`GENERAL` 일반인), `name`(50자), `phone`(`010-1234-5678`, 숫자만 적어도 같은 형식으로 정리),
 `affiliation`(공연사 관계자만 필수인 소속과 하는 일, 500자), `businessCardRequested`(배우가 프로필 명함 제작을 희망하는지),
 `privacyAgreed`(true 필수)다. 명함을 희망한 배우는 명함에 들어갈 `email`(254자), 선택적인 `snsPlatform`(`INSTAGRAM`·`THREADS`·`YOUTUBE`)과
 `snsHandle`(계정명 또는 채널명, 20자 이내, URL 불가), `birthDate`(미래 날짜 불가),
@@ -631,6 +634,21 @@ SNS 유형(`snsPlatform`, 기존 신청은 null 가능)을 함께 준다. 명함
 경력은 적은 순서대로 준다. 없는 이벤트는 `404 EVENT_NOT_FOUND`다.
 신청 삭제는 되돌릴 수 없고 사진도 커밋 뒤 저장소에서 지우며, `admin_audit_logs`에 `EVENT_REGISTRATION_DELETED`로 남기되 신청 내용은 담지 않는다.
 이 이벤트에 없는 신청은 `404 EVENT_REGISTRATION_NOT_FOUND`다. 이벤트를 지우면 받은 신청과 사진도 함께 지운다.
+
+참가 신청은 입금 여부와 무관하게 접수 완료 순으로 총정원을 차지한다. 정원 도달·수동 마감·기간 종료 후 POST와 사진 업로드는
+`409 EVENT_REGISTRATION_CLOSED`로 거절한다. 기존 신청과 안내는 유지한다. 정원 축소 시 기존 신청을 지우지 않는다.
+관리자·공개 상세는 `registrationCapacity`, `registrationCount`, `registrationClosed`, `registrationStatus`를 포함한다.
+공개 목록도 `registrationStatus`를 포함하며 값은 `OPEN`·`CLOSED`(수동)·`FULL`(정원 도달)·`ENDED`·`DISABLED`다.
+`registrationOpen`은 이 상태가 OPEN일 때만 true다. 공개 여부·종료일·수동 마감·정원 순으로 판정한다.
+
+모집 상태 PATCH는 참가 신청서를 사용하는 이벤트의 수동 마감 여부만 바꾼다. 안내·팝업·명함 마감·신청자는 유지한다.
+false로 바꿔도 종료일과 정원 조건을 다시 검사한다. 변경은 `EVENT_REGISTRATION_STATUS_CHANGED`로 기록한다.
+신청 삭제로 빈자리가 생기면 자동 마감은 해제되지만 수동 마감은 유지한다.
+
+운영 명단은 `paymentStatus`(`PENDING` 기본·`CONFIRMED`)와 `paymentConfirmedAt`(미확인은 null)을 포함한다.
+입금 상태 PATCH는 해당 이벤트의 신청만 수정한다. 없는 신청·다른 이벤트의 신청은 404, 누락·잘못된 상태는 400이다.
+동일 상태는 확인 시각과 감사 기록을 추가하지 않는다. 실제 변경은 `EVENT_REGISTRATION_PAYMENT_CHANGED`로 남긴다.
+기존 데이터도 미확인으로 시작하며 은행 조회는 하지 않는다. 일반인은 이름·휴대폰·동의만 필요하고 명함·소속은 저장하지 않는다.
 
 명함 자료 내려받기(`business-card-archive`)는 명함을 희망한 배우만 먼저 온 순서로 zip 하나에 담는다. `business-cards.json`(명함 생성용,
 `id`·`name`·`birthDate`·`email`·`snsHandle`·`snsPlatform`·`activityFields`·`otherActivity`·`noCareer`·`careers`·`intro`·`photoFile`·`createdAt`),

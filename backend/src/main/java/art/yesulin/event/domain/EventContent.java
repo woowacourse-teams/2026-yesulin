@@ -32,8 +32,21 @@ public record EventContent(
         String detailBody,
         Instant businessCardClosesAt,
         boolean registrationConfirmationEnabled,
-        String registrationConfirmationMessage
+        String registrationConfirmationMessage,
+        Integer registrationCapacity
 ) {
+
+    /** 정원을 두지 않은 기존 이벤트 글. */
+    public EventContent(
+            String title, String summary, String body, LocalDate startsOn, LocalDate endsOn,
+            String applyUrl, String applyLabel, boolean registrationEnabled, String registrationNotice,
+            String detailBody, Instant businessCardClosesAt, boolean registrationConfirmationEnabled,
+            String registrationConfirmationMessage
+    ) {
+        this(title, summary, body, startsOn, endsOn, applyUrl, applyLabel, registrationEnabled, registrationNotice,
+                detailBody, businessCardClosesAt, registrationConfirmationEnabled,
+                registrationConfirmationMessage, null);
+    }
 
     /** 팝업 안내 없이 쓰는 글. */
     public EventContent(

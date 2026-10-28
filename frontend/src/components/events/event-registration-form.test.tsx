@@ -266,3 +266,17 @@ describe("참가 신청 전 안내", () => {
     expect(done).toHaveBeenCalledTimes(1);
   });
 });
+
+
+it("일반인 선택에는 소속과 명함 입력 없이 참가 신청한다", async () => {
+  await open(false);
+  await act(async () => document.querySelector<HTMLInputElement>('[value="GENERAL"]')!.click());
+  expect(document.querySelectorAll('[type="radio"]')).toHaveLength(3);
+  expect(document.querySelector('#registration-affiliation')).toBeNull();
+  expect(document.querySelector('#business-card-intro')).toBeNull();
+  await input("#registration-name", "일반 참가자");
+  await input("#registration-phone", "01012345678");
+  await act(async () => document.querySelector<HTMLInputElement>('[type="checkbox"]')!.click());
+  await submit();
+  expect(registerForEvent).toHaveBeenCalledWith(2, expect.objectContaining({ participantType: "GENERAL", affiliation: null, businessCardRequested: false }));
+});

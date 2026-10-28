@@ -2,6 +2,7 @@ package art.yesulin.event.application;
 
 import art.yesulin.event.domain.Event;
 import art.yesulin.event.domain.EventPhase;
+import art.yesulin.event.domain.EventRegistrationStatus;
 import java.time.LocalDate;
 import java.util.function.UnaryOperator;
 
@@ -13,10 +14,13 @@ public record PublicEventSummaryResult(
         LocalDate startsOn,
         LocalDate endsOn,
         EventPhase phase,
-        String coverImageUrl
+        String coverImageUrl,
+        EventRegistrationStatus registrationStatus
 ) {
 
-    static PublicEventSummaryResult from(Event event, UnaryOperator<String> urlOf, LocalDate today) {
+    static PublicEventSummaryResult from(
+            Event event, UnaryOperator<String> urlOf, LocalDate today, long registrationCount
+    ) {
         return new PublicEventSummaryResult(
                 event.getId(),
                 event.getTitle(),
@@ -24,7 +28,8 @@ public record PublicEventSummaryResult(
                 event.getStartsOn(),
                 event.getEndsOn(),
                 event.phaseOn(today),
-                urlOf.apply(event.getCoverImageKey())
+                urlOf.apply(event.getCoverImageKey()),
+                event.registrationStatusOn(today, registrationCount)
         );
     }
 }

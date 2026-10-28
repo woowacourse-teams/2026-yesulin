@@ -78,6 +78,13 @@ public class EventRegistration {
     @Column(name = "business_card_requested", nullable = false, updatable = false)
     private boolean businessCardRequested;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_status", nullable = false, length = 20)
+    private EventPaymentStatus paymentStatus = EventPaymentStatus.PENDING;
+
+    @Column(name = "payment_confirmed_at")
+    private Instant paymentConfirmedAt;
+
     // 기존 신청의 긴 SNS 값을 보존하고 새 신청에만 20자 제한을 적용한다.
     @Column(name = "sns_handle", updatable = false, length = 100)
     private String snsHandle;
@@ -135,7 +142,7 @@ public class EventRegistration {
         this.phone = phone(form.phone());
         if (participantType == EventParticipantType.PRODUCER) {
             this.affiliation = required(form.affiliation(), MAX_AFFILIATION_LENGTH, "소속과 하는 일");
-        } else if (form.businessCardRequested()) {
+        } else if (participantType == EventParticipantType.ACTOR && form.businessCardRequested()) {
             writeBusinessCard(form, photoKey, today);
         }
         this.createdAt = Objects.requireNonNull(createdAt);
@@ -161,6 +168,19 @@ public class EventRegistration {
                 : null;
         this.noCareer = form.noCareer();
         this.careers = careers(form.noCareer(), form.careers());
+    }
+
+    /** 같은 상태를 다시 저장하면 기존 확인 시각을 유지한다. */
+    public boolean changePaymentStatus(EventPaymentStatus status, Instant now) {
+        if (status == null) {
+            throw invalid("입금 상태를 선택해 주세요.");
+        }
+        if (this.paymentStatus == status) {
+            return false;
+        }
+        this.paymentStatus = status;
+        this.paymentConfirmedAt = status == EventPaymentStatus.CONFIRMED ? Objects.requireNonNull(now) : null;
+        return true;
     }
 
     private void writeSns(EventSnsPlatform platform, String handle) {

@@ -10,10 +10,12 @@ import art.yesulin.event.application.AdminEventResult;
 import art.yesulin.event.application.EventService;
 import art.yesulin.event.domain.EventContent;
 import art.yesulin.event.domain.EventErrorCode;
+import art.yesulin.event.domain.EventRegistrationStatus;
 import art.yesulin.event.domain.EventRepository;
 import art.yesulin.event.domain.EventStatus;
 import art.yesulin.event.domain.registration.EventActivityField;
 import art.yesulin.event.domain.registration.EventParticipantType;
+import art.yesulin.event.domain.registration.EventPaymentStatus;
 import art.yesulin.event.domain.registration.EventRegistrationCareer;
 import art.yesulin.event.domain.registration.EventRegistrationForm;
 import art.yesulin.event.domain.registration.EventRegistrationPhotoUploadRepository;
@@ -31,10 +33,15 @@ import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import org.junit.jupiter.api.BeforeEach;
@@ -327,4 +334,121 @@ class EventRegistrationServiceTest {
         }
         return files;
     }
+    @Test
+    void combinedCapacityCountsAllParticipantTypesAndPreservesApplicants() {
+        long eventId = capacityEvent(3);
+        for (EventParticipantType type : EventParticipantType.values()) {
+            registrationService.register(eventId, EventRegistrationForm.withoutBusinessCard(
+                    type, "참가자", "010-0000-%04d".formatted(type.ordinal()), "극단 · 관계자"
+            ), null, true);
+        }
+        assertEquals(3, registrationRepository.countByEventId(eventId));
+        assertEquals(EventRegistrationStatus.FULL, eventService.findPublic(eventId).registrationStatus());
+        assertFalse(eventService.findPublic(eventId).registrationOpen());
+        assertCode(EventErrorCode.REGISTRATION_CLOSED, () -> registrationService.register(eventId,
+                EventRegistrationForm.withoutBusinessCard(EventParticipantType.GENERAL, "초과", "010-1234-9000", null),
+                null, true));
+        assertEquals(3, registrationService.findAllForAdmin(eventId).size());
+    }
+
+    @Test
+    void manualClosingAndCapacityChangesKeepNoticeAndExistingApplicants() {
+        long eventId = capacityEvent(3);
+        registrationService.register(eventId, EventRegistrationForm.withoutBusinessCard(
+                EventParticipantType.GENERAL, "일반 참가자", "010-1234-9001", null), null, true);
+        AdminEventResult closed = eventService.changeRegistrationClosed(ADMIN_ID, eventId, true);
+        assertEquals(EventRegistrationStatus.CLOSED, closed.registrationStatus());
+        assertEquals(1, closed.registrationCount());
+        assertEquals("보증금 안내", closed.registrationNotice());
+        assertEquals("신청 전 안내", closed.registrationConfirmationMessage());
+        assertCode(EventErrorCode.REGISTRATION_CLOSED, () -> registrationService.register(eventId,
+                EventRegistrationForm.withoutBusinessCard(EventParticipantType.GENERAL, "추가", "010-1234-9002", null),
+                null, true));
+        eventService.update(ADMIN_ID, eventId, capacityContent(1), null, null);
+        assertEquals(EventRegistrationStatus.CLOSED, eventService.findPublic(eventId).registrationStatus());
+        eventService.changeRegistrationClosed(ADMIN_ID, eventId, false);
+        assertEquals(EventRegistrationStatus.FULL, eventService.findPublic(eventId).registrationStatus());
+        eventService.update(ADMIN_ID, eventId, capacityContent(2), null, null);
+        assertTrue(eventService.findPublic(eventId).registrationOpen());
+        assertEquals(1, registrationService.findAllForAdmin(eventId).size());
+    }
+
+    @Test
+    void paymentConfirmationIsIdempotentAuditedAndDoesNotChangeCapacity() {
+        long eventId = capacityEvent(1);
+        long id = registrationService.register(eventId, EventRegistrationForm.withoutBusinessCard(
+                EventParticipantType.GENERAL, "일반 참가자", "010-1234-9003", null), null, true);
+        AdminEventRegistrationResult initial = registrationService.findAllForAdmin(eventId).getFirst();
+        assertEquals(EventPaymentStatus.PENDING, initial.paymentStatus());
+        assertNull(initial.paymentConfirmedAt());
+        AdminEventRegistrationResult confirmed = registrationService.changePaymentStatus(
+                ADMIN_ID, eventId, id, EventPaymentStatus.CONFIRMED);
+        assertTrue(confirmed.paymentConfirmedAt() != null);
+        assertEquals(confirmed.paymentConfirmedAt(), registrationService.changePaymentStatus(
+                ADMIN_ID, eventId, id, EventPaymentStatus.CONFIRMED).paymentConfirmedAt());
+        assertEquals(1, auditLogRepository.findAll().stream()
+                .filter(log -> log.getAction() == AdminAction.EVENT_REGISTRATION_PAYMENT_CHANGED).count());
+        assertEquals(EventRegistrationStatus.FULL, eventService.findPublic(eventId).registrationStatus());
+        AdminEventRegistrationResult pending = registrationService.changePaymentStatus(
+                ADMIN_ID, eventId, id, EventPaymentStatus.PENDING);
+        assertNull(pending.paymentConfirmedAt());
+        assertEquals(1, registrationRepository.countByEventId(eventId));
+        long otherEvent = capacityEvent(1);
+        assertCode(EventErrorCode.REGISTRATION_NOT_FOUND, () -> registrationService.changePaymentStatus(
+                ADMIN_ID, otherEvent, id, EventPaymentStatus.CONFIRMED));
+    }
+
+    @Test
+    void concurrentRegistrationsCannotExceedTheCombinedCapacity() throws Exception {
+        long eventId = capacityEvent(3);
+        CountDownLatch start = new CountDownLatch(1);
+        List<Future<Boolean>> results = new ArrayList<>();
+        try (var executor = Executors.newFixedThreadPool(12)) {
+            for (int index = 0; index < 12; index++) {
+                final String phone = "010-0001-%04d".formatted(index);
+                results.add(executor.submit(() -> {
+                    start.await();
+                    try {
+                        registrationService.register(eventId, EventRegistrationForm.withoutBusinessCard(
+                                EventParticipantType.GENERAL, "동시 신청", phone, null), null, true);
+                        return true;
+                    } catch (BusinessException exception) {
+                        assertEquals(EventErrorCode.REGISTRATION_CLOSED, exception.getErrorCode());
+                        return false;
+                    }
+                }));
+            }
+            start.countDown();
+            int success = 0;
+            for (Future<Boolean> result : results) {
+                if (result.get(10, TimeUnit.SECONDS)) {
+                    success++;
+                }
+            }
+            assertEquals(3, success);
+        }
+        assertEquals(3, registrationRepository.countByEventId(eventId));
+    }
+
+    @Test
+    void deletionRestoresAutomaticSlotButKeepsManualClosure() {
+        long eventId = capacityEvent(1);
+        long id = registrationService.register(eventId, EventRegistrationForm.withoutBusinessCard(
+                EventParticipantType.GENERAL, "취소 참가자", "010-1234-9004", null), null, true);
+        assertEquals(EventRegistrationStatus.FULL, eventService.findPublic(eventId).registrationStatus());
+        registrationService.delete(ADMIN_ID, eventId, id);
+        assertTrue(eventService.findPublic(eventId).registrationOpen());
+        eventService.changeRegistrationClosed(ADMIN_ID, eventId, true);
+        assertEquals(EventRegistrationStatus.CLOSED, eventService.findPublic(eventId).registrationStatus());
+    }
+
+    private long capacityEvent(Integer capacity) {
+        return published(capacityContent(capacity));
+    }
+
+    private static EventContent capacityContent(Integer capacity) {
+        return new EventContent("선착순 이벤트", null, "본문", null, null, null, null,
+                true, "보증금 안내", null, null, true, "신청 전 안내", capacity);
+    }
+
 }

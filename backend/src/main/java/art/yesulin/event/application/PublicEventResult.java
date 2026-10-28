@@ -2,6 +2,7 @@ package art.yesulin.event.application;
 
 import art.yesulin.event.domain.Event;
 import art.yesulin.event.domain.EventPhase;
+import art.yesulin.event.domain.EventRegistrationStatus;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -37,11 +38,17 @@ public record PublicEventResult(
         boolean businessCardOpen,
         String coverImageUrl,
         boolean registrationConfirmationEnabled,
-        String registrationConfirmationMessage
+        String registrationConfirmationMessage,
+        Integer registrationCapacity,
+        long registrationCount,
+        boolean registrationClosed,
+        EventRegistrationStatus registrationStatus
 ) {
 
-    static PublicEventResult from(Event event, UnaryOperator<String> urlOf, LocalDate today, Instant now) {
-        boolean registrationOpen = event.isAcceptingRegistrationsOn(today);
+    static PublicEventResult from(
+            Event event, UnaryOperator<String> urlOf, LocalDate today, Instant now, long registrationCount
+    ) {
+        boolean registrationOpen = event.registrationStatusOn(today, registrationCount) == EventRegistrationStatus.OPEN;
         return new PublicEventResult(
                 event.getId(),
                 event.getTitle(),
@@ -61,7 +68,11 @@ public record PublicEventResult(
                 registrationOpen && event.isAcceptingBusinessCardsAt(now),
                 urlOf.apply(event.getCoverImageKey()),
                 event.isRegistrationConfirmationEnabled(),
-                event.getRegistrationConfirmationMessage()
+                event.getRegistrationConfirmationMessage(),
+                event.getRegistrationCapacity(),
+                registrationCount,
+                event.isRegistrationClosed(),
+                event.registrationStatusOn(today, registrationCount)
         );
     }
 }

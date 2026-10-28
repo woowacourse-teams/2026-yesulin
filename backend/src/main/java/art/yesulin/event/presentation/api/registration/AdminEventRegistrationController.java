@@ -8,6 +8,9 @@ import art.yesulin.event.application.registration.AdminEventRegistrationResult;
 import art.yesulin.event.application.registration.BusinessCardArchive;
 import art.yesulin.event.application.registration.BusinessCardEntry;
 import art.yesulin.event.application.registration.EventRegistrationService;
+import art.yesulin.event.domain.registration.EventPaymentStatus;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ContentDisposition;
@@ -16,7 +19,9 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
@@ -54,6 +59,20 @@ public class AdminEventRegistrationController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
                 .header(HttpHeaders.CACHE_CONTROL, "no-store")
                 .body(output -> businessCardArchive.write(entries, output));
+    }
+
+    @PatchMapping("/{registrationId}/payment-status")
+    public ResponseEntity<AdminEventRegistrationResult> changePaymentStatus(
+            @LoginMember(roles = MemberType.ADMIN) MemberPrincipal principal,
+            @PathVariable long eventId,
+            @PathVariable long registrationId,
+            @Valid @RequestBody PaymentStatusRequest request
+    ) {
+        return ResponseEntity.ok(registrationService.changePaymentStatus(
+                principal.memberId(), eventId, registrationId, request.paymentStatus()));
+    }
+
+    public record PaymentStatusRequest(@NotNull EventPaymentStatus paymentStatus) {
     }
 
     @DeleteMapping("/{registrationId}")

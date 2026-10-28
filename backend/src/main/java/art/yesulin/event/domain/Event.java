@@ -84,6 +84,12 @@ public class Event {
     @Column(name = "registration_enabled", nullable = false)
     private boolean registrationEnabled;
 
+    @Column(name = "registration_capacity")
+    private Integer registrationCapacity;
+
+    @Column(name = "registration_closed", nullable = false)
+    private boolean registrationClosed;
+
     @Column(name = "registration_notice", length = MAX_REGISTRATION_NOTICE_LENGTH)
     private String registrationNotice;
 
@@ -153,6 +159,7 @@ public class Event {
         this.applyUrl = normalized.applyUrl();
         this.applyLabel = normalized.applyLabel();
         this.registrationEnabled = normalized.registrationEnabled();
+        this.registrationCapacity = normalized.registrationCapacity();
         this.registrationNotice = normalized.registrationNotice();
         this.registrationConfirmationEnabled = normalized.registrationConfirmationEnabled();
         this.registrationConfirmationMessage = normalized.registrationConfirmationMessage();
@@ -192,7 +199,33 @@ public class Event {
 
     /** 공개한 글이고 참가 신청서를 켰으며 종료일이 지나지 않았으면 참가 신청을 받는다. */
     public boolean isAcceptingRegistrationsOn(LocalDate today) {
-        return isPublished() && registrationEnabled && phaseOn(today) != EventPhase.ENDED;
+        return isPublished() && registrationEnabled && !registrationClosed && phaseOn(today) != EventPhase.ENDED;
+    }
+
+    /** 입금 여부와 무관하게 저장된 신청 수로 총정원의 남은 자리를 판단한다. */
+    public EventRegistrationStatus registrationStatusOn(LocalDate today, long registrationCount) {
+        if (!isPublished() || !registrationEnabled) {
+            return EventRegistrationStatus.DISABLED;
+        }
+        if (phaseOn(today) == EventPhase.ENDED) {
+            return EventRegistrationStatus.ENDED;
+        }
+        if (registrationClosed) {
+            return EventRegistrationStatus.CLOSED;
+        }
+        if (registrationCapacity != null && registrationCount >= registrationCapacity) {
+            return EventRegistrationStatus.FULL;
+        }
+        return EventRegistrationStatus.OPEN;
+    }
+
+    /** 신청과 안내 설정을 그대로 두고 수동 접수 마감 여부만 바꾼다. */
+    public void changeRegistrationClosed(boolean closed, Instant now) {
+        if (!registrationEnabled) {
+            throw invalid("참가 신청서를 사용하는 이벤트만 모집 상태를 바꿀 수 있습니다.");
+        }
+        this.registrationClosed = closed;
+        this.updatedAt = now;
     }
 
     /** 참가 신청을 받는 동안 배우의 프로필 명함 제작 희망도 받는지. 마감 시각을 비우면 신청 기간 내내 받는다. */
@@ -230,6 +263,9 @@ public class Event {
         if (content.startsOn() != null && content.endsOn() != null && content.endsOn().isBefore(content.startsOn())) {
             throw invalid("종료일은 시작일보다 앞설 수 없습니다.");
         }
+        if (content.registrationCapacity() != null && content.registrationCapacity() < 1) {
+            throw invalid("모집 정원은 1명 이상이어야 합니다.");
+        }
         String applyUrl = webAddress(content.applyUrl(), "신청 링크");
         boolean registration = content.registrationEnabled();
         String notice = registration
@@ -256,7 +292,8 @@ public class Event {
                 optional(normalizeLines(content.detailBody()), MAX_BODY_LENGTH, "상세 설명"),
                 registration ? content.businessCardClosesAt() : null,
                 confirmation,
-                confirmationMessage
+                confirmationMessage,
+                content.registrationCapacity()
         );
     }
 

@@ -143,3 +143,10 @@ describe("참가 신청서", () => {
     expect(registrationProblem({ ...cardActor, privacyAgreed: false }, TODAY)).toContain("동의");
   });
 });
+
+
+it("일반인은 이름·휴대폰·동의만 필요하고 명함과 소속은 보내지 않는다", () => {
+  const general: RegistrationDraft = { ...emptyRegistrationDraft(), participantType: "GENERAL", name: "일반 참가자", phone: "01012345678", privacyAgreed: true, businessCardRequested: true, affiliation: "무시", email: "무시" };
+  expect(registrationProblem(general, TODAY)).toBeNull();
+  expect(writeOfRegistration(general)).toMatchObject({ participantType: "GENERAL", businessCardRequested: false, affiliation: null, email: null, photoUploadKey: null, activityFields: [], careers: [] });
+});

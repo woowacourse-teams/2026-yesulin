@@ -21,7 +21,8 @@ import { RegistrationField, RequiredMark, koreaToday } from "./event-registratio
 
 const PARTICIPANT_HINTS: Readonly<Record<EventParticipantType, string>> = {
   ACTOR: "배우·배우 지망생, 관련 학과 학생",
-  PRODUCER: "공연 제작사·극단에서 일하는 분",
+  PRODUCER: "공연 제작사·극단 등에서 일하는 분",
+  GENERAL: "공연예술에 관심 있는 일반 참가자",
 };
 
 /**
@@ -114,7 +115,7 @@ export function EventRegistrationForm({ eventId, businessCardOpen, businessCardC
       <fieldset className="flex flex-col gap-2" aria-describedby="registration-participant-hint">
         <legend className="mb-2 text-sm font-semibold">참가 구분<RequiredMark /></legend>
         <div className="event-participant-options">
-          {(["ACTOR", "PRODUCER"] as const).map((option) => (
+          {(["ACTOR", "PRODUCER", "GENERAL"] as const).map((option) => (
             <label key={option} className="event-participant-option">
               <input type="radio" name="participant-type" value={option} checked={type === option} onChange={() => chooseType(option)} aria-label={`${EVENT_PARTICIPANT_LABELS[option]} ${PARTICIPANT_HINTS[option]}`} className="sr-only" />
               <span>{EVENT_PARTICIPANT_LABELS[option]}</span>

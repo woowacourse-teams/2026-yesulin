@@ -9,9 +9,11 @@ import static art.yesulin.event.domain.EventErrorCode.REGISTRATION_NOT_FOUND;
 
 import art.yesulin.event.application.registration.EventRegistrationPhotoStorage.PreparedPhoto;
 import art.yesulin.event.domain.Event;
+import art.yesulin.event.domain.EventRegistrationStatus;
 import art.yesulin.event.domain.EventRepository;
 import art.yesulin.event.domain.image.EventImageRules;
 import art.yesulin.event.domain.registration.EventParticipantType;
+import art.yesulin.event.domain.registration.EventPaymentStatus;
 import art.yesulin.event.domain.registration.EventRegistration;
 import art.yesulin.event.domain.registration.EventRegistrationForm;
 import art.yesulin.event.domain.registration.EventRegistrationPhotoUpload;
@@ -26,10 +28,13 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -59,7 +64,7 @@ public class EventRegistrationService {
     /** 신청을 받고 명함 제작 마감 전인 이벤트에서만 명함 사진 올릴 자리를 준다. */
     @Transactional
     public EventRegistrationPhotoUploadResult preparePhotoUpload(long eventId, String reportedType, long size) {
-        requireBusinessCardOpen(acceptingEvent(eventId));
+        requireBusinessCardOpen(acceptingEvent(eventId, false));
         String contentType = EventImageRules.contentType(reportedType).orElseThrow(() ->
                 new BusinessException(INVALID_INPUT, "사진은 JPG·PNG·WebP만 올릴 수 있습니다."));
         if (size <= 0 || size > EventImageRules.MAX_BYTES) {
@@ -79,9 +84,9 @@ public class EventRegistrationService {
      *
      * @param photoUploadKey 명함을 희망한 배우가 올린 프로필 사진의 업로드 키. 그 밖에는 무시한다.
      */
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public long register(long eventId, EventRegistrationForm form, String photoUploadKey, boolean privacyAgreed) {
-        Event event = acceptingEvent(eventId);
+        Event event = acceptingEvent(eventId, true);
         if (!privacyAgreed) {
             throw new BusinessException(INVALID_INPUT, "개인정보 수집·이용에 동의해 주세요.");
         }
@@ -103,6 +108,39 @@ public class EventRegistrationService {
         } catch (DataIntegrityViolationException exception) {
             throw duplicate();
         }
+    }
+
+    /** 목록 전체의 접수 수를 한 번에 조회해 이벤트별로 정리한다. */
+    public Map<Long, Long> counts(List<Long> eventIds) {
+        if (eventIds.isEmpty()) {
+            return Map.of();
+        }
+        return repository.countForEventIds(eventIds).stream().collect(Collectors.toMap(
+                EventRegistrationRepository.RegistrationCount::getEventId,
+                EventRegistrationRepository.RegistrationCount::getTotal
+        ));
+    }
+
+    public long count(long eventId) {
+        return repository.countByEventId(eventId);
+    }
+
+    /** 입금 확인을 저장한다. 접수 순서와 정원 계산은 입금 여부로 달라지지 않는다. */
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public AdminEventRegistrationResult changePaymentStatus(
+            long adminId, long eventId, long registrationId, EventPaymentStatus status
+    ) {
+        eventRepository.findByIdForUpdate(eventId).orElseThrow(EventRegistrationService::eventNotFound);
+        EventRegistration registration = repository.findById(registrationId)
+                .filter(candidate -> candidate.getEventId() == eventId)
+                .orElseThrow(() -> new BusinessException(REGISTRATION_NOT_FOUND, "참가 신청을 찾을 수 없습니다."));
+        EventPaymentStatus previous = registration.getPaymentStatus();
+        if (registration.changePaymentStatus(status, clock.instant())) {
+            auditLogRepository.save(new AdminAuditLog(adminId, AdminAction.EVENT_REGISTRATION_PAYMENT_CHANGED,
+                    TARGET_TYPE, registration.getId(), "%s → %s".formatted(previous, status)));
+        }
+        return AdminEventRegistrationResult.from(registration,
+                registration.getPhotoKey() == null ? null : storage.downloadUrl(registration.getPhotoKey()));
     }
 
     /** 이벤트의 참가 신청을 먼저 온 순서로 준다. 사진은 잠깐 열리는 내려받기 주소로 준다. */
@@ -139,8 +177,9 @@ public class EventRegistrationService {
     }
 
     /** 신청을 지운다. 되돌릴 수 없고, 사진은 커밋 뒤 저장소에서 지운다. 감사 로그에는 신청 내용을 담지 않는다. */
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public void delete(long adminId, long eventId, long registrationId) {
+        eventRepository.findByIdForUpdate(eventId).orElseThrow(EventRegistrationService::eventNotFound);
         EventRegistration registration = repository.findById(registrationId)
                 .filter(candidate -> candidate.getEventId() == eventId)
                 .orElseThrow(() -> new BusinessException(REGISTRATION_NOT_FOUND, "참가 신청을 찾을 수 없습니다."));
@@ -203,12 +242,15 @@ public class EventRegistrationService {
     }
 
     /** 공개하지 않은 이벤트는 없는 이벤트처럼 404, 신청서를 끄거나 종료일이 지난 이벤트는 409다. */
-    private Event acceptingEvent(long eventId) {
-        Event event = eventRepository.findById(eventId)
+    private Event acceptingEvent(long eventId, boolean lock) {
+        Event event = (lock ? eventRepository.findByIdForUpdate(eventId) : eventRepository.findById(eventId))
                 .filter(Event::isPublished)
                 .orElseThrow(EventRegistrationService::eventNotFound);
-        if (!event.isAcceptingRegistrationsOn(today())) {
-            throw new BusinessException(REGISTRATION_CLOSED, "참가 신청을 받지 않는 이벤트입니다.");
+        EventRegistrationStatus status = event.registrationStatusOn(today(), repository.countByEventId(eventId));
+        if (status != EventRegistrationStatus.OPEN) {
+            String message = status == EventRegistrationStatus.FULL
+                    ? "선착순 모집 정원이 마감되었습니다." : "참가 신청을 받지 않는 이벤트입니다.";
+            throw new BusinessException(REGISTRATION_CLOSED, message);
         }
         return event;
     }

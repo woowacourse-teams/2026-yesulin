@@ -187,4 +187,21 @@ class EventTest {
     private static EventContent content(String title, String body, LocalDate startsOn, LocalDate endsOn) {
         return new EventContent(title, null, body, startsOn, endsOn, null, null);
     }
+    @Test
+    void capacityMustBePositiveAndDefaultsToUnlimited() {
+        Event event = new Event(capacityContent(null), null, null, 1L, NOW);
+        event.changeStatus(EventStatus.PUBLISHED, NOW);
+        assertEquals(EventRegistrationStatus.OPEN, event.registrationStatusOn(TODAY, 100));
+        event.write(capacityContent(2), null, null, NOW);
+        assertEquals(EventRegistrationStatus.OPEN, event.registrationStatusOn(TODAY, 1));
+        assertEquals(EventRegistrationStatus.FULL, event.registrationStatusOn(TODAY, 2));
+        assertThrows(BusinessException.class, () -> event.write(capacityContent(0), null, null, NOW));
+        assertThrows(BusinessException.class, () -> event.write(capacityContent(-1), null, null, NOW));
+    }
+
+    private static EventContent capacityContent(Integer capacity) {
+        return new EventContent("모집 이벤트", null, "본문", null, null, null, null,
+                true, "안내", null, null, false, null, capacity);
+    }
+
 }

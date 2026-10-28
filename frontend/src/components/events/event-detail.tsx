@@ -7,7 +7,7 @@ import { AuditionRequestError } from "@/features/auditions/api-client";
 import { PrimaryLink, SecondaryLink } from "@/components/ui/controls";
 import { useEffect, useState } from "react";
 import { getEvent } from "@/features/events/api";
-import { DEFAULT_APPLY_LABEL, eventRoutes, formatEventPeriod, type PublicEvent } from "@/features/events/types";
+import { DEFAULT_APPLY_LABEL, eventRoutes, formatEventPeriod, registrationClosedMessage, type PublicEvent } from "@/features/events/types";
 import { EventImage, EventPhaseBadge, EventScreen } from "./event-screen";
 
 type EventState =
@@ -52,10 +52,11 @@ function EventDetail({ event }: { readonly event: PublicEvent }) {
     <article className={`event-detail ${event.coverImageUrl ? "event-detail--with-image" : ""} ${hasAction ? "event-detail--with-action" : ""} mt-3 overflow-hidden rounded-card border border-border bg-card`}>
       <header className="event-detail-header border-b border-border-soft px-5 py-6 sm:px-8 sm:py-8">
         <div className="flex flex-wrap items-center gap-2 text-sm">
-          <EventPhaseBadge phase={event.phase} />
+          <EventPhaseBadge phase={event.phase} registrationStatus={event.registrationStatus} />
           {period ? <span className="num text-muted-strong">{period}</span> : null}
         </div>
         <h1 className="mt-3 break-words text-[clamp(24px,3.4vw,32px)] font-bold leading-snug tracking-[-0.03em]">{event.title}</h1>
+        {event.registrationEnabled && event.registrationCapacity !== null ? <p className="mt-3 text-sm font-semibold text-brand">총 {event.registrationCapacity}명 선착순 모집 · {event.registrationCount}명 접수</p> : null}
         {event.summary ? <p className="mt-2 wrap-anywhere text-base leading-7 text-muted-strong">{event.summary}</p> : null}
       </header>
       {event.coverImageUrl ? <EventDetailImage key={event.coverImageUrl} src={event.coverImageUrl} title={event.title} /> : null}
@@ -72,7 +73,7 @@ function EventDetail({ event }: { readonly event: PublicEvent }) {
                 {event.applyLabel ?? DEFAULT_APPLY_LABEL}
               </PrimaryLink>
             ) : (
-              <p className="text-sm font-semibold text-muted-strong">지금은 참가 신청을 받지 않아요.</p>
+              <p className="text-sm font-semibold text-muted-strong">{registrationClosedMessage(event.registrationStatus)}</p>
             )
           ) : event.applyUrl ? (
             <PrimaryLink href={event.applyUrl} target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
