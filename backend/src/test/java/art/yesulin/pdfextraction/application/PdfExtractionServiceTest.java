@@ -47,14 +47,19 @@ class PdfExtractionServiceTest {
             jobs.put(job.getId(), job);
             return job;
         });
-        when(repository.findByIdAndOwnerId(anyString(), anyLong())).thenAnswer(call ->
+        when(repository.findByIdAndOwnerIdAndPurpose(anyString(), anyLong(), any())).thenAnswer(call ->
                 Optional.ofNullable(jobs.get(call.getArgument(0)))
-                        .filter(job -> job.getOwnerId() == (long) call.getArgument(1)));
-        when(repository.findOwnedForUpdate(anyString(), anyLong())).thenAnswer(call ->
+                        .filter(job -> job.getOwnerId() == (long) call.getArgument(1))
+                        .filter(job -> job.getPurpose() == call.getArgument(2)));
+        when(repository.findOwnedForUpdate(anyString(), anyLong(), any())).thenAnswer(call ->
                 Optional.ofNullable(jobs.get(call.getArgument(0)))
-                        .filter(job -> job.getOwnerId() == (long) call.getArgument(1)));
-        when(repository.findTop800ByOwnerIdOrderByCreatedAtDesc(anyLong())).thenAnswer(call ->
-                jobs.values().stream().filter(job -> job.getOwnerId() == (long) call.getArgument(0)).toList());
+                        .filter(job -> job.getOwnerId() == (long) call.getArgument(1))
+                        .filter(job -> job.getPurpose() == call.getArgument(2)));
+        when(repository.findTop800ByOwnerIdAndPurposeOrderByCreatedAtDesc(anyLong(), any())).thenAnswer(call ->
+                jobs.values().stream()
+                        .filter(job -> job.getOwnerId() == (long) call.getArgument(0))
+                        .filter(job -> job.getPurpose() == call.getArgument(1))
+                        .toList());
         when(payloads.findById(anyString())).thenAnswer(call ->
                 Optional.ofNullable(storedPayloads.get(call.getArgument(0))));
         service = serviceAt(Clock.fixed(NOW, ZoneOffset.UTC));

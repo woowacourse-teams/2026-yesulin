@@ -7,6 +7,7 @@ import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Stream;
 import tools.jackson.databind.JsonNode;
 
 /** 원문 구절에 근거한 전사 값. 나이·외모·능력을 추정하지 않는다. */
@@ -38,6 +39,12 @@ public record PdfApplicantProfile(Fact birthDate, Fact age, Fact height, Fact ed
         }
         return new PdfApplicantProfile(fact(node.path("birthDate")), fact(node.path("age")),
                 fact(node.path("height")), fact(node.path("education")), List.copyOf(careers));
+    }
+
+    /** 배우 프로필 가져오기에서 제안할 사실이나 경력이 하나라도 있는지. */
+    public boolean hasValue() {
+        return !careers.isEmpty() || Stream.of(birthDate, age, height, education)
+                .anyMatch(fact -> fact != null && fact.value() != null);
     }
 
     public void validateEvidence(String source) {

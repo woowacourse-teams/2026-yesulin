@@ -4,12 +4,14 @@ import static art.yesulin.file.domain.FileErrorCode.NOT_FOUND;
 import static art.yesulin.file.domain.FileErrorCode.UPLOAD_NOT_FOUND;
 
 import art.yesulin.file.application.storage.ObjectStorage;
+import art.yesulin.file.application.storage.ObjectUpload;
 import art.yesulin.file.application.storage.PresignedUpload;
 import art.yesulin.file.application.storage.StoredObjectMetadata;
 import art.yesulin.file.domain.FileAsset;
 import art.yesulin.file.domain.FileAssetRepository;
 import art.yesulin.file.domain.FileMetadata;
 import art.yesulin.global.exception.BusinessException;
+import java.io.ByteArrayInputStream;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -54,6 +56,23 @@ public class FileService {
     @Transactional
     public FileUploadResult requestPrivateActorPhotoUpload(long ownerId, FileUploadCommand command) {
         return requestUpload(ownerId, command, "private/actor-photos");
+    }
+
+    /**
+     * 서버가 가진 이미지로 배우 사진 파일을 바로 만든다. PDF에서 뽑은 사진 후보를 보관함에 넣을 때 쓰며, 원본 추출 이미지와 떨어진
+     * 새 객체라 추출 결과를 지워도 남는다. 저장소에 올리지 못하면 파일 행도 남기지 않는다.
+     */
+    @Transactional
+    public long createPrivateActorPhoto(long ownerId, String originalFilename, String contentType, byte[] content) {
+        FileMetadata metadata = new FileMetadata(originalFilename, contentType, content.length);
+        FileAsset fileAsset = fileAssetRepository.save(
+                new FileAsset(createObjectKey("private/actor-photos"), ownerId, metadata)
+        );
+        objectStorage.put(fileAsset.getObjectKey(), new ObjectUpload(
+                metadata.getContentType(), null, content.length, new ByteArrayInputStream(content)
+        ));
+        fileAsset.completeUpload(metadata.getContentType(), content.length, clock.instant());
+        return fileAsset.getId();
     }
 
     @Transactional

@@ -46,6 +46,11 @@ public record PdfApplicantInfo(
     private static final Set<String> REASONS = Set.of(
             "NO_TEXT", "NO_REVIEW", "TEXT_LIMIT_EXCEEDED", "PROVIDER_ERROR", "INVALID_MODEL_OUTPUT");
 
+    /** 배우 프로필 가져오기에서 제안할 이름이나 프로필 값이 하나라도 있는지. */
+    public boolean hasProposal() {
+        return applicantName != null || (profile != null && profile.hasValue());
+    }
+
     /** 콜백 JSON의 applicantInfo를 검증한다. 필드가 없으면 null이고, 있는데 잘못되면 거부한다. */
     public static PdfApplicantInfo parse(JsonNode node) {
         if (node == null || node.isMissingNode()) {

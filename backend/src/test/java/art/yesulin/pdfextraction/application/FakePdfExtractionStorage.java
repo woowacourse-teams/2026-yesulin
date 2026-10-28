@@ -2,13 +2,32 @@ package art.yesulin.pdfextraction.application;
 
 import art.yesulin.pdfextraction.domain.PdfExtractionJob;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public class FakePdfExtractionStorage implements PdfExtractionStorage {
 
     private int verifications;
     private int signedUrls;
     private boolean rejectUpload;
+    private final List<String> deletedJobs = new ArrayList<>();
+    private int failingDeletes;
+    private final Map<String, byte[]> images = new HashMap<>();
+
+    public List<String> deletedJobs() {
+        return deletedJobs;
+    }
+
+    public void failNextDeletes(int count) {
+        failingDeletes = count;
+    }
+
+    public void storeImage(String imageFileKey, byte[] content) {
+        images.put(imageFileKey, content);
+    }
 
     public int verifications() {
         return verifications;
@@ -60,5 +79,22 @@ public class FakePdfExtractionStorage implements PdfExtractionStorage {
     public String imageUrl(PdfExtractionJob job, String imageFileKey) {
         signedUrls++;
         return "http://localhost/" + imageFileKey;
+    }
+
+    @Override
+    public Optional<byte[]> readImage(PdfExtractionJob job, String imageFileKey, int maxBytes) {
+        if (!imageFileKey.startsWith(imageFileKeyPrefix(job))) {
+            throw new IllegalArgumentException("PDF 추출 이미지의 저장소 키가 올바르지 않습니다.");
+        }
+        return Optional.ofNullable(images.get(imageFileKey));
+    }
+
+    @Override
+    public void deleteAll(PdfExtractionJob job) {
+        if (failingDeletes > 0) {
+            failingDeletes--;
+            throw new IllegalStateException("저장소 객체를 지우지 못했습니다.");
+        }
+        deletedJobs.add(job.getId());
     }
 }

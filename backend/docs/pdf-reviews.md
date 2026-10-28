@@ -73,8 +73,10 @@ AI가 `applicantName`, `applicantNameEvidence`, `roleId`, `roleEvidence`를 JSON
 합불·점수·메모·이미지 fileKey는 모델의 출력 항목이 아니다.
 
 워커 전용 `GET /internal/v1/pdf-extractions/{jobId}/review-context`는 기존 완료 API의 Bearer 인증을 요구한다.
-응답은 `{jobId,reviewId,sourceFileKey,resultStored,roles:[{id,name}]}`이며 `Cache-Control: no-store`다.
+응답은 `{jobId,purpose,reviewId,sourceFileKey,resultStored,roles:[{id,name}]}`이며 `Cache-Control: no-store`다.
 작업과 심사의 소유자가 다르거나 연결된 심사가 없으면 404다. 독립 추출 작업은 `reviewId:null,roles:[]`다.
+`purpose`는 `PDF_REVIEW` 또는 `ACTOR_PROFILE`이다. 배우 프로필 가져오기(`ACTOR_PROFILE`)는 심사·배역이 없으므로 워커가
+`NO_REVIEW`로 생략하지 않고 배역 없이 이름과 v2 프로필만 정리한다. 이 응답에 `purpose`가 없으면 공연사 심사로 본다.
 S3 객체 조회나 presigned URL 발급 없이 DB와 원본 키 규칙만 사용한다. 브라우저 세션은 이 API의 인증을 대체하지 못한다.
 
 기존 완료 POST의 `result.applicantInfo` 형식은 아래와 같다. 이 필드가 없는 이전 워커의 콜백은 기존 규칙으로 처리한다.
