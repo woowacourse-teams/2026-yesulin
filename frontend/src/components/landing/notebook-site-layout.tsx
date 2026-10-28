@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useAuthSession } from "@/components/auth/auth-session";
 import { LogoutButton } from "@/components/auth/logout-button";
+import { actorPageRoutes } from "@/features/actor-pages/types";
 import { applicantRoutes } from "@/features/applicants/routes";
 import { TrackedLoginLink } from "@/components/analytics/tracked-login-link";
 import { PolicyLinks } from "@/components/policies/policy-links";
@@ -18,6 +19,7 @@ const menuItems = [
   { key: "auditions", href: auditionPostRoutes.list(), label: "오디션" },
   { key: "shows", href: showRoutes.list, label: "무료 공연" },
   { key: "events", href: eventRoutes.list, label: "이벤트" },
+  { key: "actors", href: actorPageRoutes.list(), label: "배우" },
 ] as const;
 
 export function NotebookHeader({ service = "applicant" }: { readonly service?: "applicant" | "producer" }) {
@@ -34,6 +36,7 @@ export function NotebookHeader({ service = "applicant" }: { readonly service?: "
 function currentMenu(pathname: string): (typeof menuItems)[number]["key"] | undefined {
   if (pathname.startsWith("/shows")) return "shows";
   if (pathname === "/events" || pathname.startsWith("/events/")) return "events";
+  if (pathname === "/actors" || pathname.startsWith("/@") || pathname.startsWith("/actor-page/")) return "actors";
   if (pathname === "/auditions" || pathname.startsWith("/auditions/") || pathname.startsWith("/posts/")) return "auditions";
   return undefined;
 }
@@ -84,7 +87,7 @@ export function NotebookFooter({ className = "" }: { readonly className?: string
       <div className="notebook-footer-navigation">
         <nav aria-label="푸터 서비스" className="notebook-footer-nav">
           <strong>둘러보기</strong>
-          <div className="notebook-footer-links"><Link href="/about">서비스 소개</Link><Link href={auditionPostRoutes.list()}>오디션 공고</Link><Link href={showRoutes.list}>무료 공연</Link><Link href={eventRoutes.list}>이벤트</Link><Link href="/#faq">자주 묻는 질문</Link></div>
+          <div className="notebook-footer-links"><Link href="/about">서비스 소개</Link><Link href={auditionPostRoutes.list()}>오디션 공고</Link><Link href={showRoutes.list}>무료 공연</Link><Link href={eventRoutes.list}>이벤트</Link><Link href={actorPageRoutes.list()}>배우</Link><Link href="/#faq">자주 묻는 질문</Link></div>
         </nav>
         <nav aria-label="문의" className="notebook-footer-nav">
           <strong>소식·문의</strong>

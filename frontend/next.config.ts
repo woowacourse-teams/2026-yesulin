@@ -21,10 +21,23 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  // App Router는 `@`로 시작하는 폴더를 병렬 라우트 슬롯으로 보므로 `/@아이디`를 내부 경로로 넘긴다.
+  // 내부 경로로 바로 들어오면 정규 주소로 보낸다. 리다이렉트는 들어온 주소에만 적용되어 rewrite 결과와 순환하지 않는다.
+  async redirects() {
+    return [
+      { source: "/actor-page/:handle", destination: "/@:handle", permanent: true },
+      { source: "/actor-page/:handle/:path*", destination: "/@:handle/:path*", permanent: true },
+    ];
+  },
   async rewrites() {
-    if (!apiOrigin) return [];
+    const actorPages = [
+      { source: "/@:handle", destination: "/actor-page/:handle" },
+      { source: "/@:handle/:path*", destination: "/actor-page/:handle/:path*" },
+    ];
+    if (!apiOrigin) return actorPages;
 
     return [
+      ...actorPages,
       {
         source: "/api/v1/:path*",
         destination: `${apiOrigin}/api/v1/:path*`,

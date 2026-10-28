@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/features/audition-posts/server", () => ({ auditionPostIdsForSitemap: async () => [] }));
+vi.mock("@/features/actor-pages/server", () => ({ actorHandlesForSitemap: async () => [] }));
 
 import sitemap from "@/app/sitemap";
 import { publicShowForServer, publicShowsForServer } from "./server";
@@ -36,6 +37,7 @@ describe("공개 공연 서버 조회와 사이트맵", () => {
       "https://yesulin.art/auditions/performance", "https://yesulin.art/auditions/troupe", "https://yesulin.art/auditions/agency",
       "https://yesulin.art/shows",
       "https://yesulin.art/shows/show%2F1",
+      "https://yesulin.art/actors",
     ]);
   });
 
