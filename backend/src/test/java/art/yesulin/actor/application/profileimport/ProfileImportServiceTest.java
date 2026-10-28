@@ -184,6 +184,23 @@ class ProfileImportServiceTest {
     }
 
     @Test
+    void failedStorageDeletionIsNotRecordedAndIsRetried() {
+        String jobId = uploaded();
+        receive(jobId, true);
+        storage.failNextDeletes(2);
+
+        assertThrows(IllegalStateException.class, () -> service.close(ACTOR, jobId));
+        assertFalse(jobs.get(jobId).isDeleted());
+        assertFalse(storedPayloads.isEmpty());
+
+        now.set(NOW.plus(Duration.ofHours(24)).plusSeconds(1));
+        assertEquals(0, service.deleteExpired());
+        assertEquals(1, service.deleteExpired());
+        assertTrue(jobs.get(jobId).isDeleted());
+        assertTrue(storedPayloads.isEmpty());
+    }
+
+    @Test
     void photoCandidateIsCopiedIntoNewActorPhoto() {
         String jobId = uploaded();
         receive(jobId, true);

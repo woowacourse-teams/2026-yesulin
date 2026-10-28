@@ -11,6 +11,7 @@ import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.Delete;
 import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectsResponse;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
@@ -75,7 +76,10 @@ public class S3PrivateObjects {
         return Optional.of(read(request, maxBytes, true));
     }
 
-    /** 접두사 아래 객체를 모두 지운다. 지운 개수를 돌려준다. */
+    /**
+     * 접두사 아래 객체를 모두 지운다. 지운 개수를 돌려준다. 일괄 삭제는 일부 객체가 실패해도 성공 응답을 주므로 실패 목록을 확인해
+     * 하나라도 남았으면 예외를 던진다. 호출한 쪽은 지운 것으로 기록하지 않고 다음에 다시 지운다.
+     */
     public int deleteAll(String logicalPrefix) {
         String prefix = physicalKey(logicalPrefix);
         int deleted = 0;
@@ -87,8 +91,12 @@ public class S3PrivateObjects {
                     .map(object -> ObjectIdentifier.builder().key(object.key()).build())
                     .toList();
             if (!keys.isEmpty()) {
-                client.deleteObjects(DeleteObjectsRequest.builder().bucket(bucket)
+                DeleteObjectsResponse response = client.deleteObjects(DeleteObjectsRequest.builder().bucket(bucket)
                         .delete(Delete.builder().objects(keys).quiet(true).build()).build());
+                if (response.hasErrors() && !response.errors().isEmpty()) {
+                    throw new IllegalStateException("저장소 객체 %d개를 지우지 못했습니다. 첫 오류: %s"
+                            .formatted(response.errors().size(), response.errors().getFirst().code()));
+                }
                 deleted += keys.size();
             }
             token = Boolean.TRUE.equals(listing.isTruncated()) ? listing.nextContinuationToken() : null;

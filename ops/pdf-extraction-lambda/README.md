@@ -92,7 +92,10 @@ LocalStack 컨테이너를 삭제하면 로컬 S3·Lambda 데이터는 사라진
    Python 3.12 / ARM64 / 메모리 1024MB / timeout 120초 / 임시 디스크 512MB가 초기값이다.
 4. **inputs prefix + `/source.pdf` suffix만** ObjectCreated 트리거 대상으로 삼는다. 결과 저장이 재호출을 만들면 안 된다.
 5. 실행 역할의 원본 GetObject, 결과 GetObject/PutObject, 해당 prefix ListBucket, 로그 권한을 검증한다.
-   Spring은 원본 업로드 확인을 위한 HEAD·Range GET과 원본·이미지 presigned URL 발급 권한이 필요하다. 결과 JSON을 읽는 권한은 완료 처리에 필요하지 않다. 버킷 정책의 explicit deny는 Allow 추가만으로 해결되지 않으므로 deny의 예외 조건을 확인한다.
+   Spring은 원본 업로드 확인을 위한 HEAD·Range GET과 원본·이미지 presigned URL 발급 권한이 필요하다.
+   배우 PDF로 프로필 채우기를 켜면 `private/pdf-extractions/` 아래 원본·결과를 지우는 ListBucket·DeleteObject와
+   사진 후보 이미지를 읽는 GetObject도 필요하다. 일괄 삭제가 일부 객체를 지우지 못하면 Spring은 지운 것으로 기록하지 않고
+   다음 정리 때 다시 지운다. 결과 JSON을 읽는 권한은 완료 처리에 필요하지 않다. 버킷 정책의 explicit deny는 Allow 추가만으로 해결되지 않으므로 deny의 예외 조건을 확인한다.
 6. 버킷 CORS에 프론트 origin의 PUT/GET/HEAD와 `Content-Type`, `If-None-Match`를 허용한다.
 7. Lambda에 완료 API URL과 전용 토큰을 설정한다(아래 "직접 완료 API와 화면 알림").
 

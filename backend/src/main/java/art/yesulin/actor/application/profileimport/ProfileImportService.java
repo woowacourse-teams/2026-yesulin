@@ -164,6 +164,7 @@ public class ProfileImportService {
         return deleted;
     }
 
+    /** 저장소에서 지우지 못하면 예외가 나서 지운 것으로 기록하지 않으므로, 정리 작업이 다음에 다시 지운다. */
     private void delete(PdfExtractionJob job) {
         storage.deleteAll(job);
         payloads.findById(job.getId()).ifPresent(payloads::delete);

@@ -14,10 +14,15 @@ public class FakePdfExtractionStorage implements PdfExtractionStorage {
     private int signedUrls;
     private boolean rejectUpload;
     private final List<String> deletedJobs = new ArrayList<>();
+    private int failingDeletes;
     private final Map<String, byte[]> images = new HashMap<>();
 
     public List<String> deletedJobs() {
         return deletedJobs;
+    }
+
+    public void failNextDeletes(int count) {
+        failingDeletes = count;
     }
 
     public void storeImage(String imageFileKey, byte[] content) {
@@ -86,6 +91,10 @@ public class FakePdfExtractionStorage implements PdfExtractionStorage {
 
     @Override
     public void deleteAll(PdfExtractionJob job) {
+        if (failingDeletes > 0) {
+            failingDeletes--;
+            throw new IllegalStateException("저장소 객체를 지우지 못했습니다.");
+        }
         deletedJobs.add(job.getId());
     }
 }
