@@ -812,13 +812,14 @@ completion에 `uploadKey`를 보내면 서버가 형식·크기·JPEG 서명을 
 비공개 사진 내용은 파일 소유 배우나 그 파일이 첨부된 지원서의 공고 소유 공연사만 조회한다. 사진을 찾을 수 없거나 접근할
 수 없으면 모두 `404 FILE_NOT_FOUND`를 반환하고, `Cache-Control: no-store, must-revalidate`를 사용한다.
 
-## 배우 페이지 설정(배우용) — 7개
+## 배우 페이지 설정(배우용) — 8개
 
 모두 Applicant 세션이 필요하고 쓰기는 기존 CSRF 규칙을 따른다. 설정 조회는 페이지가 없어도 저장하지 않은 기본값을 반환한다.
 
 | Method | URL | Request | Response |
 | --- | --- | --- | --- |
 | GET | `/api/v1/applicants/me/actor-page` | 없음 | `200 ActorPageSettingsResult` |
+| GET | `/api/v1/applicants/me/actor-page/preview` | 없음 | `200 PublicActorPageResult` |
 | GET | `/api/v1/applicants/me/actor-page/handle-availability?handle=` | handle query | `200 {handle, available, reason}` |
 | PUT | `/api/v1/applicants/me/actor-page/handle` | `{handle}` | `200 ActorPageSettingsResult` |
 | PATCH | `/api/v1/applicants/me/actor-page/visibility` | `{education?, careers?, coverLetter?, specialty?, hobbies?, nationality?, links?}` | `200 ActorPageSettingsResult` |
@@ -861,7 +862,12 @@ availability는 정규화된 handle과 available, reason(null/INVALID_FORMAT/RES
 | ACTOR_PAGE_NOT_READY | 409 | 공개 조건 부족(한국어 메시지) |
 | ACTOR_PAGE_CONFLICT | 409 | 프로필이 없는 회원의 첫 쓰기 요청이 동시에 들어와 페이지 생성이 겹침. 다시 시도하면 된다 |
 
-잘못된 enum과 필수 값 누락은 기존 `400 INVALID_REQUEST`다. 공개 조회는 다음 절에 있고, 미리보기와 운영자 API는 아직 없다.
+잘못된 enum과 필수 값 누락은 기존 `400 INVALID_REQUEST`다. 공개 조회는 다음 절에 있고, 운영자 API는 아직 없다.
+
+미리보기는 공개 상태·공개 조건과 무관하게 지금 공개하면 보일 내용을 공개 조회(`PublicActorPageResult`)와 같은 모양으로 준다.
+항목·영상 공개 규칙은 공개 조회와 같고, 사진은 PUBLIC 사진을 보관함 순서로 담되 공개 사본이 없으면 본인만 받는 원본 주소
+(`/api/v1/files/{fileId}/content`)를 쓴다. 페이지를 만든 적이 없으면 publicId·handle이 null이고 모든 항목이 비공개다.
+이름·성별·생년월일을 입력하지 않았으면 name·gender·birthYear·age도 null이다. `Cache-Control: no-store`로 응답한다.
 
 ## 배우 목록과 배우 페이지(공개) — 2개
 
