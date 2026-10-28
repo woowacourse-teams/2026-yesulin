@@ -633,7 +633,7 @@ SNS 유형(`snsPlatform`, 기존 신청은 null 가능)을 함께 준다. 명함
 이 이벤트에 없는 신청은 `404 EVENT_REGISTRATION_NOT_FOUND`다. 이벤트를 지우면 받은 신청과 사진도 함께 지운다.
 
 명함 자료 내려받기(`business-card-archive`)는 명함을 희망한 배우만 먼저 온 순서로 zip 하나에 담는다. `business-cards.json`(명함 생성용,
-`id`·`name`·`birthDate`·`email`·`snsHandle`·`activityFields`·`otherActivity`·`noCareer`·`careers`·`intro`·`photoFile`·`createdAt`),
+`id`·`name`·`birthDate`·`email`·`snsHandle`·`snsPlatform`·`activityFields`·`otherActivity`·`noCareer`·`careers`·`intro`·`photoFile`·`createdAt`),
 `business-cards.csv`(엑셀용 UTF-8 BOM, 수식으로 읽히지 않게 `=`·`+`·`-`·`@`로 시작하는 칸 앞에 `'`), `photos/{신청 번호}.{jpg|png|webp}`를 넣는다.
 휴대폰 번호와 저장소 키는 넣지 않는다. 사진은 한 장씩 읽어 바로 내보내며, 읽지 못한 사진은 `photoFile`을 비운다.
 내려받을 때마다 `admin_audit_logs`에 `EVENT_REGISTRATION_EXPORTED`(인원 수만)로 남긴다. 없는 이벤트는 `404 EVENT_NOT_FOUND`다.
