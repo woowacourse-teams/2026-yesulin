@@ -1,6 +1,6 @@
 import type { VenueAddress } from "../auditions/creation-types";
 import type { CompanyField, CompanyWrite } from "../companies/profile-draft";
-import type { EventActivityField, EventParticipantType, EventPhase, EventRegistrationCareer } from "../events/types";
+import type { EventActivityField, EventParticipantType, EventPhase, EventRegistrationCareer, EventSnsPlatform } from "../events/types";
 
 export type MemberStatus = "PENDING" | "ACTIVE";
 
@@ -609,6 +609,9 @@ export type AdminEvent = {
   readonly registrationEnabled: boolean;
   /** 참가 신청서 위에 보일 보증금·계좌 같은 안내 */
   readonly registrationNotice: string | null;
+  /** 신청 전 확인 팝업 설정. 켜면 안내 내용을 확인한 뒤 신청한다. */
+  readonly registrationConfirmationEnabled: boolean;
+  readonly registrationConfirmationMessage: string | null;
   /** 배우의 프로필 명함 제작 희망을 받는 마감 시각(ISO). 없으면 신청 기간 내내 받는다. */
   readonly businessCardClosesAt: string | null;
   readonly coverImageUrl: string | null;
@@ -634,6 +637,9 @@ export type AdminEventWrite = {
   readonly applyLabel: string | null;
   readonly registrationEnabled: boolean;
   readonly registrationNotice: string | null;
+  /** 신청 전 확인 팝업 설정. 켜면 안내 내용을 확인한 뒤 신청한다. */
+  readonly registrationConfirmationEnabled: boolean;
+  readonly registrationConfirmationMessage: string | null;
   readonly businessCardClosesAt: string | null;
   readonly coverImageUrl: string | null;
   readonly banner: AdminEventBanner;
@@ -649,6 +655,7 @@ export type AdminEventRegistration = {
   readonly businessCardRequested: boolean;
   readonly email: string | null;
   readonly snsHandle: string | null;
+  readonly snsPlatform: EventSnsPlatform | null;
   /** `YYYY-MM-DD`. 명함을 희망한 배우만 있다. */
   readonly birthDate: string | null;
   /** 공연사 관계자의 소속과 하는 일 */
@@ -664,6 +671,7 @@ export type AdminEventRegistration = {
   readonly intro: string | null;
   readonly createdAt: string;
 };
+
 
 /** 브라우저가 이벤트 이미지를 저장소로 바로 올릴 주소. 백엔드 `EventImageUploadResult`와 같다. */
 export type EventImageUpload = {

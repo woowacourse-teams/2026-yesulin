@@ -163,6 +163,27 @@ class EventTest {
         return new Event(content, EventBannerSetting.disabled(), EventImages.none(), 1L, NOW);
     }
 
+    @Test
+    void confirmationNeedsMessageAndClearsWhenDisabled() {
+        Event event = event(confirmation(true, true, " 안내\r\n둘째 줄 "));
+        assertTrue(event.isRegistrationConfirmationEnabled());
+        assertEquals("안내\n둘째 줄", event.getRegistrationConfirmationMessage());
+        assertThrows(BusinessException.class, () -> event(confirmation(true, true, " ")));
+        assertThrows(BusinessException.class, () -> event(confirmation(true, true, "가".repeat(2001))));
+
+        event.write(confirmation(true, false, "기존 안내"), null, null, NOW);
+        assertFalse(event.isRegistrationConfirmationEnabled());
+        assertNull(event.getRegistrationConfirmationMessage());
+        event.write(confirmation(false, true, "기존 안내"), null, null, NOW);
+        assertFalse(event.isRegistrationConfirmationEnabled());
+        assertNull(event.getRegistrationConfirmationMessage());
+    }
+
+    private static EventContent confirmation(boolean registration, boolean enabled, String message) {
+        return new EventContent("제목", null, "본문", null, null, null, null,
+                registration, null, null, null, enabled, message);
+    }
+
     private static EventContent content(String title, String body, LocalDate startsOn, LocalDate endsOn) {
         return new EventContent(title, null, body, startsOn, endsOn, null, null);
     }

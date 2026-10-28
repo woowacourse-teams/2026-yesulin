@@ -33,7 +33,9 @@ public record AdminEventResult(
         EventStatus status,
         EventPhase phase,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        boolean registrationConfirmationEnabled,
+        String registrationConfirmationMessage
 ) {
 
     static AdminEventResult from(Event event, UnaryOperator<String> urlOf, LocalDate today, boolean bannerVisible) {
@@ -64,7 +66,9 @@ public record AdminEventResult(
                 event.getStatus(),
                 event.phaseOn(today),
                 event.getCreatedAt(),
-                event.getUpdatedAt()
+                event.getUpdatedAt(),
+                event.isRegistrationConfirmationEnabled(),
+                event.getRegistrationConfirmationMessage()
         );
     }
 

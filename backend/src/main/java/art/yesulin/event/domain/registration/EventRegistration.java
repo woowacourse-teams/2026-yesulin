@@ -42,7 +42,10 @@ public class EventRegistration {
 
     public static final int MAX_NAME_LENGTH = 50;
     public static final int MAX_EMAIL_LENGTH = 254;
-    public static final int MAX_SNS_HANDLE_LENGTH = 100;
+    public static final int MAX_SNS_HANDLE_LENGTH = 20;
+    private static final Pattern SNS_LINK = Pattern.compile(
+            "https?://|www\\.|[/\\\\]|youtu\\.be", Pattern.CASE_INSENSITIVE
+    );
     public static final int MAX_INTRO_LENGTH = 40;
     public static final int MAX_AFFILIATION_LENGTH = 500;
     public static final int MAX_OTHER_ACTIVITY_LENGTH = 50;
@@ -75,11 +78,15 @@ public class EventRegistration {
     @Column(name = "business_card_requested", nullable = false, updatable = false)
     private boolean businessCardRequested;
 
-    @Column(name = "sns_handle", updatable = false, length = MAX_SNS_HANDLE_LENGTH)
+    // 기존 신청의 긴 SNS 값을 보존하고 새 신청에만 20자 제한을 적용한다.
+    @Column(name = "sns_handle", updatable = false, length = 100)
     private String snsHandle;
 
     @Column(updatable = false, length = MAX_INTRO_LENGTH)
     private String intro;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "sns_platform", updatable = false, length = 20)
+    private EventSnsPlatform snsPlatform;
 
     @Column(name = "birth_date", updatable = false)
     private LocalDate birthDate;
@@ -141,7 +148,7 @@ public class EventRegistration {
     private void writeBusinessCard(EventRegistrationForm form, String photoKey, LocalDate today) {
         this.businessCardRequested = true;
         this.email = email(form.email());
-        this.snsHandle = optional(form.snsHandle(), MAX_SNS_HANDLE_LENGTH, "SNS 계정");
+        writeSns(form.snsPlatform(), form.snsHandle());
         this.intro = optional(form.intro(), MAX_INTRO_LENGTH, "한 줄 소개");
         this.birthDate = birthDate(form.birthDate(), today);
         if (photoKey == null || photoKey.isBlank()) {
@@ -154,6 +161,21 @@ public class EventRegistration {
                 : null;
         this.noCareer = form.noCareer();
         this.careers = careers(form.noCareer(), form.careers());
+    }
+
+    private void writeSns(EventSnsPlatform platform, String handle) {
+        String normalized = optional(handle, MAX_SNS_HANDLE_LENGTH, "SNS 계정명");
+        if (platform == null && normalized == null) {
+            return;
+        }
+        if (platform == null || normalized == null) {
+            throw invalid("SNS 유형과 계정명을 함께 입력하거나 모두 비워 주세요.");
+        }
+        if (SNS_LINK.matcher(normalized).find()) {
+            throw invalid("SNS 링크 대신 계정명이나 채널명을 입력해 주세요.");
+        }
+        this.snsPlatform = platform;
+        this.snsHandle = normalized;
     }
 
     /** 신청 화면과 같은 형식으로 휴대폰 번호를 정리한다. 숫자만 적어도 받는다. */

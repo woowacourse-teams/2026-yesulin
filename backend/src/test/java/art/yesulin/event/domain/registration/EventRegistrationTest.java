@@ -28,7 +28,7 @@ class EventRegistrationTest {
         EventRegistration registration = new EventRegistration(1L, new EventRegistrationForm(
                 EventParticipantType.ACTOR, " 김하늘 ", "01012345678", true, " haneul@test.com ", " @haneul ",
                 BIRTH_DATE, "남극장", Set.of(EventActivityField.YOUTUBE, EventActivityField.THEATER), "무시",
-                false, CAREERS
+                false, CAREERS, null, EventSnsPlatform.INSTAGRAM
         ), "photo-key", TODAY, NOW);
 
         assertEquals("김하늘", registration.getName());
@@ -36,6 +36,7 @@ class EventRegistrationTest {
         assertTrue(registration.isBusinessCardRequested());
         assertEquals("haneul@test.com", registration.getEmail());
         assertEquals("@haneul", registration.getSnsHandle());
+        assertEquals(EventSnsPlatform.INSTAGRAM, registration.getSnsPlatform());
         assertEquals(BIRTH_DATE, registration.getBirthDate());
         assertEquals("photo-key", registration.getPhotoKey());
         assertNull(registration.getAffiliation());
@@ -148,6 +149,28 @@ class EventRegistrationTest {
         return new EventRegistration(1L, new EventRegistrationForm(
                 EventParticipantType.ACTOR, "김하늘", "010-1234-5678", true, "haneul@test.com", null, BIRTH_DATE,
                 null, fields, otherActivity, noCareer, careers
+        ), "photo-key", TODAY, NOW);
+    }
+
+    @Test
+    void snsRequiresTypeAndShortNameAndRejectsLinks() {
+        for (EventSnsPlatform platform : EventSnsPlatform.values()) {
+            assertEquals(platform, sns(platform, " 예술배우 ").getSnsPlatform());
+            assertEquals("예술배우", sns(platform, " 예술배우 ").getSnsHandle());
+        }
+        assertNull(sns(null, " ").getSnsPlatform());
+        assertThrows(BusinessException.class, () -> sns(null, "예술배우"));
+        assertThrows(BusinessException.class, () -> sns(EventSnsPlatform.THREADS, " "));
+        assertThrows(BusinessException.class, () -> sns(EventSnsPlatform.INSTAGRAM, "가".repeat(21)));
+        assertThrows(BusinessException.class, () -> sns(EventSnsPlatform.YOUTUBE, "https://a"));
+        assertThrows(BusinessException.class, () -> sns(EventSnsPlatform.YOUTUBE, "youtu.be"));
+        assertEquals("가".repeat(20), sns(EventSnsPlatform.YOUTUBE, "가".repeat(20)).getSnsHandle());
+    }
+
+    private static EventRegistration sns(EventSnsPlatform platform, String handle) {
+        return new EventRegistration(1L, new EventRegistrationForm(
+                EventParticipantType.ACTOR, "김예술", "010-1234-5678", true, "actor@example.test", handle,
+                BIRTH_DATE, null, THEATER, null, true, List.of(), null, platform
         ), "photo-key", TODAY, NOW);
     }
 

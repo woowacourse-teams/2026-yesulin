@@ -3,6 +3,7 @@ package art.yesulin.event.application.registration;
 import art.yesulin.event.application.registration.AdminEventRegistrationResult.Career;
 import art.yesulin.event.domain.registration.EventActivityField;
 import art.yesulin.event.domain.registration.EventRegistration;
+import art.yesulin.event.domain.registration.EventSnsPlatform;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -19,6 +20,7 @@ public record BusinessCardEntry(
         LocalDate birthDate,
         String email,
         String snsHandle,
+        EventSnsPlatform snsPlatform,
         List<EventActivityField> activityFields,
         String otherActivity,
         boolean noCareer,
@@ -36,6 +38,7 @@ public record BusinessCardEntry(
                 registration.getBirthDate(),
                 registration.getEmail(),
                 registration.getSnsHandle(),
+                registration.getSnsPlatform(),
                 registration.getActivityFields().stream().sorted().toList(),
                 registration.getOtherActivity(),
                 registration.isNoCareer(),
@@ -48,7 +51,7 @@ public record BusinessCardEntry(
     }
 
     BusinessCardEntry withPhotoFile(String file) {
-        return new BusinessCardEntry(id, name, birthDate, email, snsHandle, activityFields, otherActivity, noCareer,
-                careers, intro, file, photoKey, createdAt);
+        return new BusinessCardEntry(id, name, birthDate, email, snsHandle, snsPlatform, activityFields, otherActivity,
+                noCareer, careers, intro, file, photoKey, createdAt);
     }
 }

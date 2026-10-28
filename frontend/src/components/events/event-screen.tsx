@@ -6,21 +6,23 @@ import { NotebookPageMain } from "@/components/landing/notebook-page-main";
 import { EVENT_PHASE_LABELS, eventRoutes, type EventPhase } from "@/features/events/types";
 
 /** 이벤트 목록·상세가 함께 쓰는 틀. 상세에서는 목록으로 돌아가는 링크를 보인다. */
-export function EventScreen({ backToList = false, children }: { readonly backToList?: boolean; readonly children: ReactNode }) {
+export function EventScreen({ backToList = false, contentClassName, children }: { readonly backToList?: boolean; readonly contentClassName?: string; readonly children: ReactNode }) {
   return (
     <div className="public-notebook">
       <a className="notebook-skip" href="#main">본문으로 바로가기</a>
       <NotebookHeader />
       <NotebookPageMain>
-        {backToList ? (
-          <Link
-            href={eventRoutes.list}
-            className="-ml-2 inline-flex min-h-11 items-center rounded-control px-2 text-sm font-semibold text-muted-strong hover:bg-white hover:text-foreground"
-          >
-            이벤트 목록
-          </Link>
-        ) : null}
-        {children}
+        <div className={contentClassName}>
+          {backToList ? (
+            <Link
+              href={eventRoutes.list}
+              className="-ml-2 inline-flex min-h-11 items-center rounded-control px-2 text-sm font-semibold text-muted-strong hover:bg-white hover:text-foreground"
+            >
+              이벤트 목록
+            </Link>
+          ) : null}
+          {children}
+        </div>
       </NotebookPageMain>
       <NotebookFooter />
     </div>

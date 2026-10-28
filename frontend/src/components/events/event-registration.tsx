@@ -61,7 +61,7 @@ function Registration({ event }: { readonly event: PublicEvent }) {
   }
 
   return (
-    <article className="mt-3 overflow-hidden rounded-card border border-border bg-card">
+    <article className="mt-3 rounded-card border border-border bg-card">
       <header className="border-b border-border-soft px-5 py-6 sm:px-8 sm:py-8">
         <p className="text-sm font-semibold text-brand">참가 신청</p>
         <h1 className="mt-2 break-words text-[clamp(22px,3.2vw,30px)] font-bold leading-snug tracking-[-0.03em]">{event.title}</h1>
@@ -81,6 +81,8 @@ function Registration({ event }: { readonly event: PublicEvent }) {
           eventId={event.id}
           businessCardOpen={event.businessCardOpen}
           businessCardClosesAt={event.businessCardClosesAt}
+          registrationConfirmationEnabled={event.registrationConfirmationEnabled}
+          registrationConfirmationMessage={event.registrationConfirmationMessage}
           onDone={() => { setDone(true); window.scrollTo({ top: 0, behavior: "smooth" }); }}
         />
       )}

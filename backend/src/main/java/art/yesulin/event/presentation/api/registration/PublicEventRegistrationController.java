@@ -7,6 +7,7 @@ import art.yesulin.event.domain.registration.EventParticipantType;
 import art.yesulin.event.domain.registration.EventRegistration;
 import art.yesulin.event.domain.registration.EventRegistrationCareer;
 import art.yesulin.event.domain.registration.EventRegistrationForm;
+import art.yesulin.event.domain.registration.EventSnsPlatform;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -82,7 +83,8 @@ public class PublicEventRegistrationController {
             boolean noCareer,
             @Size(max = EventRegistration.MAX_CAREERS) List<@Valid @NotNull CareerRequest> careers,
             @Size(max = EventRegistration.MAX_INTRO_LENGTH) String intro,
-            boolean privacyAgreed
+            boolean privacyAgreed,
+            EventSnsPlatform snsPlatform
     ) {
 
         EventRegistrationForm toForm() {
@@ -95,7 +97,8 @@ public class PublicEventRegistrationController {
                     otherActivity,
                     noCareer,
                     card && careers != null ? careers.stream().map(CareerRequest::toCareer).toList() : List.of(),
-                    intro
+                    intro,
+                    snsPlatform
             );
         }
     }

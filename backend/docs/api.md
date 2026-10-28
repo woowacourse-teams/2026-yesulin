@@ -570,6 +570,8 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 `startsOn`·`endsOn`(`YYYY-MM-DD`, 종료일이 시작일보다 앞서면 400), `applyUrl`(http·https 주소, 500자), `applyLabel`(신청 버튼 문구,
 30자, `applyUrl`도 참가 신청서도 없으면 지운다), `registrationEnabled`(켜면 신청 버튼이 외부 주소 대신 예술in 참가 신청서를 연다),
 `registrationNotice`(참가 신청서 위에 보일 보증금·계좌 같은 안내, 줄바꿈을 살린 2000자, 신청서를 끄면 지운다),
+`registrationConfirmationEnabled`(기본 false, 신청 전 확인 팝업 사용), `registrationConfirmationMessage`(팝업 안내, 줄바꿈 유지, 2000자,
+팝업을 켜면 필수이며 공백만 있는 값은 거절한다. 팝업이나 참가 신청서를 끄면 내용을 지운다),
 `businessCardClosesAt`(배우의 프로필 명함 제작 희망을 받는 마감 시각, ISO-8601, 비우면 신청 기간 내내 받고 신청서를 끄면 지운다), `coverImageUrl`(대표 이미지), `detailBody`(선택적 하단 상세 설명, 줄바꿈 유지, 5000자),
 `detailImageUrls`(선택적 하단 상세 이미지 주소 배열, 순서 유지, 최대 10장, 빈 주소·중복 거절), `banner(enabled, desktopImageUrl, mobileImageUrl, alt, endsOn, order)`다.
 `detailBody`와 `detailImageUrls`는 각각 독립적이라 설명만 또는 이미지만 등록할 수 있다. 상세 이미지 배열을 생략하거나 null·빈 배열로 보내면 모두 지운다.
@@ -589,7 +591,8 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 `id`, `title`, `summary`, `startsOn`, `endsOn`, `phase`, `coverImageUrl`을 준다. 상세는 여기에 `body`(개요), `detailBody`, `detailImageUrls`(등록 순서), `applyUrl`, `applyLabel`,
 `registrationEnabled`, `registrationOpen`(지금 참가 신청을 받는지), `registrationNotice`, `businessCardClosesAt`,
 `businessCardOpen`(참가 신청을 받는 중이고 명함 제작 마감 시각 전인지)을 더한다. 운영 결과도 `registrationEnabled`,
-`registrationNotice`, `businessCardClosesAt`을 준다.
+`registrationNotice`, `businessCardClosesAt`, `registrationConfirmationEnabled`, `registrationConfirmationMessage`를 준다.
+공개 상세도 팝업 설정 두 필드를 포함한다. 팝업은 입력 검사를 통과한 뒤 표시하며 최종 확인 전에는 신청을 보내지 않는다.
 `phase`는 한국 날짜로 시작일 전이면 `UPCOMING`, 종료일이 지났으면 `ENDED`, 나머지(기간을 비운 글 포함)는 `ONGOING`이다.
 배너 API는 `PUBLISHED`이고 배너를 켰으며 노출 종료일이 지나지 않은 글을 `order` 순(같으면 최근 글 먼저)으로 5개까지
 `eventId`, `title`, `alt`, `desktopImageUrl`, `mobileImageUrl`로 준다. 화면은 이 배너를 고정 배너 사이에 넣고 누르면 이벤트 상세로 간다.
@@ -610,24 +613,27 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 
 `RegisterRequest`는 `participantType`(`ACTOR`·`PRODUCER`), `name`(50자), `phone`(`010-1234-5678`, 숫자만 적어도 같은 형식으로 정리),
 `affiliation`(공연사 관계자만 필수인 소속과 하는 일, 500자), `businessCardRequested`(배우가 프로필 명함 제작을 희망하는지),
-`privacyAgreed`(true 필수)다. 명함을 희망한 배우는 명함에 들어갈 `email`(254자), `snsHandle`(선택, 100자), `birthDate`(미래 날짜 불가),
+`privacyAgreed`(true 필수)다. 명함을 희망한 배우는 명함에 들어갈 `email`(254자), 선택적인 `snsPlatform`(`INSTAGRAM`·`THREADS`·`YOUTUBE`)과
+`snsHandle`(계정명 또는 채널명, 20자 이내, URL 불가), `birthDate`(미래 날짜 불가),
 `photoUploadKey`, `activityFields`(하나 이상, `THEATER`·`MUSICAL`·`MEDIA`·`YOUTUBE`·`OTHER`), `otherActivity`(`OTHER`를 고르면 필수, 50자),
 `noCareer`(신입이라 경력 없음), `careers`(`noCareer`가 아니면 1~10줄, 각 `performedMonth`(`YYYY-MM`)·`workTitle`(100자)·`role`(선택, 50자).
 `noCareer`면 비워야 한다), `intro`(뒷면 한 줄 소개, 선택, 40자)를 더 적는다. 휴대폰 번호는 명함에 넣지 않는다. 구분에 맞지 않는 칸과 명함을 원하지 않는 배우의 명함 정보는
-저장하지 않는다. 같은 이벤트에 같은 휴대폰 번호로
+저장하지 않는다. SNS 유형과 계정명은 함께 입력하거나 둘 다 비운다. 예전 신청의 긴 SNS 값은 보존하고 유형을 추정해 채우지 않는다.
+같은 이벤트에 같은 휴대폰 번호로
 다시 신청하면 `409 EVENT_REGISTRATION_DUPLICATE`, 검증 오류는 `400 EVENT_INVALID_INPUT`이다.
 
 명함을 희망한 배우는 먼저 `photo-uploads`로 비공개 경로(`private/event-registration-photos/...`)에 올릴 자리를 받아 저장소에 바로 올린 뒤, 받은 `uploadKey`를
 신청에 담는다. 형식·크기·파일 앞부분 기준은 이벤트 이미지와 같다(JPEG·PNG·WebP, 5MB). 신청할 때 올라온 사진을 확인해 한 번만 확정하고,
 하루가 지나도록 확정하지 않은 업로드는 매일 04:55(한국 시간) 정리 작업이 지운다.
 
-운영 목록은 이벤트의 신청을 먼저 온 순서로 주며, 배우 사진은 잠깐 열리는 내려받기 주소(`photoUrl`)로 주고, 명함 희망 여부(`businessCardRequested`)를 함께 준다. 분야는 위 순서대로,
+운영 목록은 이벤트의 신청을 먼저 온 순서로 주며, 배우 사진은 잠깐 열리는 내려받기 주소(`photoUrl`)로 주고, 명함 희망 여부(`businessCardRequested`)와
+SNS 유형(`snsPlatform`, 기존 신청은 null 가능)을 함께 준다. 명함 자료 내려받기의 JSON과 CSV에도 SNS 유형을 포함한다. 분야는 위 순서대로,
 경력은 적은 순서대로 준다. 없는 이벤트는 `404 EVENT_NOT_FOUND`다.
 신청 삭제는 되돌릴 수 없고 사진도 커밋 뒤 저장소에서 지우며, `admin_audit_logs`에 `EVENT_REGISTRATION_DELETED`로 남기되 신청 내용은 담지 않는다.
 이 이벤트에 없는 신청은 `404 EVENT_REGISTRATION_NOT_FOUND`다. 이벤트를 지우면 받은 신청과 사진도 함께 지운다.
 
 명함 자료 내려받기(`business-card-archive`)는 명함을 희망한 배우만 먼저 온 순서로 zip 하나에 담는다. `business-cards.json`(명함 생성용,
-`id`·`name`·`birthDate`·`email`·`snsHandle`·`activityFields`·`otherActivity`·`noCareer`·`careers`·`intro`·`photoFile`·`createdAt`),
+`id`·`name`·`birthDate`·`email`·`snsHandle`·`snsPlatform`·`activityFields`·`otherActivity`·`noCareer`·`careers`·`intro`·`photoFile`·`createdAt`),
 `business-cards.csv`(엑셀용 UTF-8 BOM, 수식으로 읽히지 않게 `=`·`+`·`-`·`@`로 시작하는 칸 앞에 `'`), `photos/{신청 번호}.{jpg|png|webp}`를 넣는다.
 휴대폰 번호와 저장소 키는 넣지 않는다. 사진은 한 장씩 읽어 바로 내보내며, 읽지 못한 사진은 `photoFile`을 비운다.
 내려받을 때마다 `admin_audit_logs`에 `EVENT_REGISTRATION_EXPORTED`(인원 수만)로 남긴다. 없는 이벤트는 `404 EVENT_NOT_FOUND`다.

@@ -1194,11 +1194,13 @@
 
 /* PC에서는 포스터와 안내를 나란히 두고 모바일의 읽기 순서를 유지한다. */
 @media (min-width:1100px) {
+  .event-detail-layout { width:100%; max-width:1000px; margin-inline:auto; }
+  .event-detail-layout--text { max-width:760px; }
   .event-detail {
     display:grid;
     grid-template-columns:minmax(0,1fr);
     grid-template-rows:max-content max-content minmax(0,1fr);
-    column-gap:48px;
+    column-gap:40px;
     row-gap:24px;
     max-width:760px;
     margin-inline:auto;
@@ -1224,15 +1226,12 @@
     grid-column:1;
     grid-row:1 / span 3;
     align-self:start;
-    position:sticky;
-    top:120px;
     overflow:hidden;
     border:1px solid var(--line);
     border-radius:var(--radius-card);
     background:var(--white);
   }
   .event-detail-media img {
-    max-height:min(720px,calc(100dvh - 176px));
     border:0;
   }
   .event-detail-body {
@@ -1261,3 +1260,37 @@
 
 .public-notebook .event-detail-image:focus-visible { outline-offset:-4px; }
 
+/* 참가 구분은 공개 탐색과 같은 밑줄 선택 방식으로 간결하게 표시한다. */
+.event-participant-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); width:100%; max-width:360px; border-bottom:1px solid var(--line); }
+.event-participant-option { position:relative; min-width:0; cursor:pointer; }
+.event-participant-option > span { position:relative; display:flex; min-height:52px; align-items:center; justify-content:center; padding:12px 16px; color:var(--ink-60); font-size:16px; font-weight:600; transition:color .15s; }
+.event-participant-option > span::after { content:""; position:absolute; inset:auto 0 -1px; height:3px; background:transparent; }
+.event-participant-option:hover > span,.event-participant-option input:checked + span { color:var(--brand); }
+.event-participant-option input:checked + span::after { background:var(--brand); }
+.event-participant-option input:focus-visible + span { outline:2px solid var(--brand); outline-offset:3px; }
+
+/* 명함 미리보기는 고정 비율의 원고를 화면 너비에 맞춰 줄이고 텍스트를 모두 맞춘다. */
+.event-card-example { width:100%; max-width:420px; margin-inline:auto; min-width:0; }
+.event-card-example-paper { --card-scale:.5; position:relative; width:100%; aspect-ratio:720/452; overflow:hidden; border-radius:10px; background:#eeeae2; color:#51483e; box-shadow:0 8px 24px rgb(40 57 73 / .12); }
+.event-card-example-canvas { position:absolute; inset:0 auto auto 0; width:720px; height:452px; transform:scale(var(--card-scale)); transform-origin:top left; }
+.event-card-example-photo { position:absolute; inset:0 auto 0 0; display:grid; place-items:center; width:400px; overflow:hidden; background:#d9d2c7; color:#62594f; font-size:22px; mask-image:linear-gradient(to right,#000 45%,rgb(0 0 0 / .8) 60%,transparent 86%); }
+.event-card-example-photo img { width:100%; height:100%; object-fit:cover; object-position:center 30%; }
+.event-card-example-info { position:absolute; top:54px; right:48px; width:324px; height:344px; font-size:24px; line-height:1.5; overflow-wrap:anywhere; }
+.event-card-example-qr { position:absolute; right:48px; bottom:36px; width:140px; height:140px; background:#fff; }
+.event-card-example-logo { position:absolute; top:44px; right:64px; width:108px; height:64px; object-fit:contain; }
+.event-card-example-name { font-size:1.6em; font-weight:600; letter-spacing:.04em; }
+.event-card-example-rule { width:40px; height:2px; margin-block:16px; background:#8b8072; }
+.event-card-example-back { position:absolute; inset:44px 230px 44px 54px; font-size:24px; line-height:1.45; overflow-wrap:anywhere; }
+.event-card-example-back .event-card-example-name { font-size:1.35em; }
+.event-card-example-fields { display:flex; flex-wrap:wrap; gap:4px 16px; margin:12px 0 0; padding:0; list-style:none; }
+.event-card-example-fields li { max-width:100%; }
+.event-card-example-careers { display:flex; flex-direction:column; gap:8px; margin:0; padding:0; list-style:none; }
+.event-card-density-note { display:none; }
+.event-card-example:has([data-compact="true"]) .event-card-density-note { display:block; }
+
+@media (max-width:1023px) {
+  .event-card-editor { top:var(--event-editor-top,0px); left:0; width:100%; height:var(--event-editor-height,100dvh); max-height:none; transform:none; translate:none; border:0; border-radius:0; }
+  .event-card-editor-header { padding-top:max(8px,env(safe-area-inset-top)); padding-bottom:12px; }
+  .event-card-editor-footer { padding-bottom:max(12px,env(safe-area-inset-bottom)); }
+  .event-card-editor-body { overscroll-behavior:contain; scroll-padding-block:20px; }
+}

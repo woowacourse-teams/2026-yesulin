@@ -55,7 +55,12 @@ MSW도 한국 시간의 게시일 필터·정렬·합계를 동일하게 적용�
   3곳과 고정 연결을 응답하고, 운영자 공연사 관리(`/api/v1/admin/companies/**`)도 같은 메모리로 응답한다.
 - `/api/v1/public/events/**` (이벤트 목록·상세와 메인 이벤트 배너)와 `/api/v1/admin/events/**`, `/api/v1/admin/event-images/uploads`
   (운영자 이벤트 관리·이미지 업로드). `body`는 자유 형식 개요로 유지하며, 하단 상세 설명 `detailBody`와 순서가 있는
-  `detailImageUrls`는 별도로 저장한다. MSW는 서포터즈 모집과 참가 신청 행사로 시작하는 메모리 목을 응답한다.
+  `detailImageUrls`는 별도로 저장한다. 운영자 폼에서 `registrationConfirmationEnabled`·`registrationConfirmationMessage`로
+  신청 전 안내 팝업을 설정한다. 팝업을 켜면 입력 검사를 통과한 뒤 안내를 열고, 최종 확인 시에만 참가 신청을 보낸다.
+  팝업 안내는 2000자까지이며 켜면 필수다. MSW도 같은 설정·검증을 따른다.
+  SNS는 `snsPlatform`(`INSTAGRAM`·`THREADS`·`YOUTUBE`)과 20자 이하의 계정명·채널명 `snsHandle`을 함께 보내거나 둘 다 null로 보낸다.
+  URL은 거절하며 관리자 신청자 목록에도 유형을 표시한다. MSW는 같은 검증을 따른다.
+  MSW는 서포터즈 모집과 참가 신청 행사로 시작하는 메모리 목을 응답한다.
 - `/api/v1/admin/audition-posts/**` (OTR 공고 가져오기·직접 쓰기·수정·사진과 첨부 업로드·공개 상태·기획사 연결·공연사 연결)와 `/api/v1/producers/me/audition-posts/**` (기획사 공고 올리기·수정·업로드). OTR·저장소에 실제로 접속해야 하므로 MSW가 켜져 있어도 서버로 넘긴다.
 
 `/admin/files`의 미사용 파일 조회·최대 100개 일괄 삭제도 실제 API를 사용한다. MSW가 켜져 있어도 해당 경로는 서버로 전달하며,

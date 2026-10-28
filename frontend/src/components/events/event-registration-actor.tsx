@@ -1,69 +1,98 @@
 "use client";
 
-import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from "react";
 import { AddButton, FieldInput, FieldSelect, SecondaryButton, TextButton } from "@/components/ui/controls";
 import { shrinkPhoto } from "@/features/companies/photo-image";
 import { uploadEventRegistrationPhoto } from "@/features/events/api";
-import { businessCardContent } from "@/features/events/business-card-preview";
 import { careerYears, emptyCareer, toggleActivityField, type CareerDraft, type RegistrationDraft } from "@/features/events/registration-draft";
-import { EVENT_ACTIVITY_FIELDS, EVENT_ACTIVITY_LABELS, MAX_REGISTRATION_CAREERS, MAX_REGISTRATION_INTRO } from "@/features/events/types";
-import { BusinessCardPreview } from "./business-card-preview";
+import { EVENT_ACTIVITY_FIELDS, EVENT_ACTIVITY_LABELS, EVENT_SNS_LABELS, EVENT_SNS_PLATFORMS, MAX_EVENT_SNS_HANDLE_LENGTH, MAX_REGISTRATION_CAREERS, MAX_REGISTRATION_INTRO, type EventSnsPlatform } from "@/features/events/types";
 import { BirthDateField } from "./event-registration-birth-date";
+import type { CardPreviewSide } from "./event-business-card-preview";
 import { RegistrationField, RequiredMark, koreaToday } from "./event-registration-field";
 
-type CardDraft = Pick<RegistrationDraft, "name" | "email" | "snsHandle" | "birthDate" | "activityFields" | "otherActivity" | "noCareer" | "careers" | "intro">;
+type CardDraft = Pick<RegistrationDraft, "name" | "email" | "snsHandle" | "snsPlatform" | "birthDate" | "activityFields" | "otherActivity" | "noCareer" | "careers" | "intro">;
 
 const MONTHS = Array.from({ length: 12 }, (_, index) => String(index + 1).padStart(2, "0"));
 
 /** 명함 제작을 희망한 배우만 적는 칸. 여기 적은 정보는 프로필 명함에 그대로 들어간다(휴대폰 번호는 넣지 않는다). */
-export function BusinessCardFields({ eventId, draft, onChange, onPhotoChange, onPhotoBusyChange }: {
+export function BusinessCardFields({ eventId, draft, preview, photoUrl, mobileView, onPreviewSideChange, onChange, onPhotoChange, onPhotoBusyChange }: {
   readonly eventId: number;
   readonly draft: CardDraft;
+  readonly preview: ReactNode;
+  readonly photoUrl: string | null;
+  readonly mobileView: "input" | "preview";
+  readonly onPreviewSideChange: (side: CardPreviewSide) => void;
   readonly onChange: (patch: Partial<CardDraft>) => void;
-  readonly onPhotoChange: (uploadKey: string | null) => void;
+  readonly onPhotoChange: (uploadKey: string, photo: Blob) => void;
   readonly onPhotoBusyChange: (busy: boolean) => void;
 }) {
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   return (
-    <section aria-labelledby="registration-card-title" className="flex flex-col gap-5 rounded-control border border-brand-line bg-brand-soft/40 p-4">
-      <div>
+    <section aria-labelledby="registration-card-title" className="flex flex-col gap-5">
+      <div className={mobileView === "preview" ? "hidden lg:block" : ""}>
         <h2 id="registration-card-title" className="text-sm font-bold text-brand">프로필 명함에 들어갈 정보</h2>
         <p className="mt-1 text-xs text-muted-strong">아래 정보가 명함에 그대로 들어갑니다. 휴대폰 번호는 명함에 넣지 않습니다.</p>
       </div>
-      <BusinessCardPreview content={businessCardContent(draft)} photoUrl={photoPreview} />
-      <RegistrationField id="registration-email" label="이메일" required>
-        <FieldInput id="registration-email" type="email" inputMode="email" autoComplete="email" value={draft.email} maxLength={254} onChange={(event) => onChange({ email: event.target.value })} />
-      </RegistrationField>
-      <RegistrationField id="registration-sns" label="SNS 계정" hint="예: @yesulin">
-        <FieldInput id="registration-sns" value={draft.snsHandle} maxLength={100} onChange={(event) => onChange({ snsHandle: event.target.value })} />
-      </RegistrationField>
-      <BirthDateField value={draft.birthDate} today={koreaToday()} onChange={(birthDate) => onChange({ birthDate })} />
-      <PhotoField eventId={eventId} preview={photoPreview} onPreviewChange={setPhotoPreview} onBusyChange={onPhotoBusyChange} onChange={onPhotoChange} />
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,.85fr)]">
+        <div id="event-card-panel-input" role="tabpanel" aria-labelledby="event-card-tab-input" className={`min-w-0 flex-col gap-6 lg:flex ${mobileView === "input" ? "flex" : "hidden"}`}>
+          <div className="flex flex-col gap-5" onFocusCapture={() => onPreviewSideChange("front")}>
+            <RegistrationField id="registration-card-name" label="명함에 들어갈 이름" required>
+              <FieldInput id="registration-card-name" value={draft.name} maxLength={50} onChange={(event) => onChange({ name: event.target.value })} />
+            </RegistrationField>
+            <RegistrationField id="registration-email" label="이메일" required>
+              <FieldInput id="registration-email" type="email" inputMode="email" autoComplete="email" value={draft.email} maxLength={254} onChange={(event) => onChange({ email: event.target.value })} />
+            </RegistrationField>
+            <fieldset className="flex min-w-0 flex-col gap-2">
+              <legend className="mb-1 text-sm font-semibold">SNS <span className="ml-1 text-xs font-normal text-muted">선택</span></legend>
+              <p id="registration-sns-hint" className="text-xs leading-5 text-muted-strong">링크 대신 계정명이나 채널명을 {MAX_EVENT_SNS_HANDLE_LENGTH}자 이내로 적어 주세요.</p>
+              <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
+                <FieldSelect aria-label="SNS 유형" value={draft.snsPlatform} onChange={(event) => {
+                  const snsPlatform = event.target.value as EventSnsPlatform | "";
+                  onChange({ snsPlatform, ...(snsPlatform ? {} : { snsHandle: "" }) });
+                }}>
+                  <option value="">선택 안 함</option>
+                  {EVENT_SNS_PLATFORMS.map((platform) => <option key={platform} value={platform}>{EVENT_SNS_LABELS[platform]}</option>)}
+                </FieldSelect>
+                <FieldInput id="registration-sns" aria-label="SNS 계정명 또는 채널명" aria-describedby="registration-sns-hint registration-sns-count" placeholder="예: 예술배우" autoCapitalize="none" autoCorrect="off" value={draft.snsHandle} maxLength={MAX_EVENT_SNS_HANDLE_LENGTH} onChange={(event) => onChange({ snsHandle: event.target.value.slice(0, MAX_EVENT_SNS_HANDLE_LENGTH) })} />
+              </div>
+              <p id="registration-sns-count" className="num text-right text-xs text-muted">{draft.snsHandle.length} / {MAX_EVENT_SNS_HANDLE_LENGTH}자</p>
+            </fieldset>
+            <BirthDateField value={draft.birthDate} today={koreaToday()} onChange={(birthDate) => onChange({ birthDate })} />
+            <PhotoField eventId={eventId} preview={photoUrl} onBusyChange={onPhotoBusyChange} onChange={onPhotoChange} />
+          </div>
 
-      <fieldset className="flex flex-col gap-2">
-        <legend className="mb-1 text-sm font-semibold">활동 분야<RequiredMark /></legend>
-        <p className="text-xs text-muted">중복 선택 가능합니다.</p>
-        <div className="flex flex-wrap gap-2">
-          {EVENT_ACTIVITY_FIELDS.map((field) => {
-            const checked = draft.activityFields.includes(field);
-            return (
-              <label key={field} className={`inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-control border px-3 text-sm font-semibold ${checked ? "border-brand bg-brand-soft text-brand" : "border-border bg-card"}`}>
-                <input type="checkbox" checked={checked} onChange={() => onChange({ activityFields: toggleActivityField(draft.activityFields, field, EVENT_ACTIVITY_FIELDS) })} className="size-4 accent-brand" />
-                {EVENT_ACTIVITY_LABELS[field]}
-              </label>
-            );
-          })}
+          <fieldset className="flex flex-col gap-2" onFocusCapture={() => onPreviewSideChange("back")}>
+            <legend className="mb-1 text-sm font-semibold">활동 분야<RequiredMark /></legend>
+            <p className="text-xs text-muted">중복 선택 가능합니다.</p>
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+              {EVENT_ACTIVITY_FIELDS.map((field) => {
+                const checked = draft.activityFields.includes(field);
+                return (
+                  <label key={field} className={`inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-control border px-3 text-sm font-semibold ${checked ? "border-brand bg-brand-soft text-brand" : "border-border bg-card"}`}>
+                    <input type="checkbox" checked={checked} onChange={() => onChange({ activityFields: toggleActivityField(draft.activityFields, field, EVENT_ACTIVITY_FIELDS) })} className="size-4 accent-brand" />
+                    {EVENT_ACTIVITY_LABELS[field]}
+                  </label>
+                );
+              })}
+            </div>
+            {draft.activityFields.includes("OTHER") ? (
+              <FieldInput aria-label="기타 분야" placeholder="예: 성우, 무용" value={draft.otherActivity} maxLength={50} onChange={(event) => onChange({ otherActivity: event.target.value })} />
+            ) : null}
+          </fieldset>
+
+          <div onFocusCapture={() => onPreviewSideChange("back")}>
+            <CareersField noCareer={draft.noCareer} careers={draft.careers} onChange={onChange} />
+            <div className="mt-5">
+              <RegistrationField id="registration-intro" label="한 줄 소개" hint="명함 뒷면에 들어갑니다. 예: 노래로 이야기를 전하는 배우입니다.">
+                <FieldInput id="registration-intro" value={draft.intro} maxLength={MAX_REGISTRATION_INTRO} onChange={(event) => onChange({ intro: event.target.value })} />
+              </RegistrationField>
+            </div>
+          </div>
         </div>
-        {draft.activityFields.includes("OTHER") ? (
-          <FieldInput aria-label="기타 분야" placeholder="예: 성우, 무용" value={draft.otherActivity} maxLength={50} onChange={(event) => onChange({ otherActivity: event.target.value })} />
-        ) : null}
-      </fieldset>
-
-      <CareersField noCareer={draft.noCareer} careers={draft.careers} onChange={onChange} />
-
-      <RegistrationField id="registration-intro" label="한 줄 소개" hint="명함 뒷면에 들어갑니다. 예: 노래로 이야기를 전하는 배우, 박서윤입니다.">
-        <FieldInput id="registration-intro" value={draft.intro} maxLength={MAX_REGISTRATION_INTRO} onChange={(event) => onChange({ intro: event.target.value })} />
-      </RegistrationField>
+        <aside id="event-card-panel-preview" role="tabpanel" aria-labelledby="event-card-tab-preview" className={`min-w-0 rounded-control bg-surface p-4 lg:sticky lg:top-0 lg:block ${mobileView === "preview" ? "block" : "hidden"}`}>
+          <h3 className="mb-4 text-sm font-semibold">입력한 명함 미리보기</h3>
+          {preview}
+        </aside>
+      </div>
     </section>
   );
 }
@@ -125,19 +154,18 @@ function CareersField({ noCareer, careers, onChange }: {
 }
 
 /** 휴대폰 사진(HEIC 포함)을 긴 변 1600px JPEG로 줄여 비공개 경로에 바로 올린다. */
-function PhotoField({ eventId, preview, onPreviewChange, onBusyChange, onChange }: {
+function PhotoField({ eventId, preview, onBusyChange, onChange }: {
   readonly eventId: number;
-  /** 줄인 사진의 미리 보기 주소. 명함 미리보기도 같은 주소를 쓴다. */
   readonly preview: string | null;
-  readonly onPreviewChange: (url: string | null) => void;
   readonly onBusyChange: (busy: boolean) => void;
-  readonly onChange: (uploadKey: string | null) => void;
+  readonly onChange: (uploadKey: string, photo: Blob) => void;
 }) {
   const input = useRef<HTMLInputElement>(null);
+  const active = useRef(true);
   const [status, setStatus] = useState<"idle" | "shrinking" | "uploading">("idle");
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
+  useEffect(() => { active.current = true; return () => { active.current = false; }; }, []);
 
   const choose = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -148,15 +176,15 @@ function PhotoField({ eventId, preview, onPreviewChange, onBusyChange, onChange 
     try {
       setStatus("shrinking");
       const photo = await shrinkPhoto(file);
+      if (!active.current) return;
       setStatus("uploading");
       const uploadKey = await uploadEventRegistrationPhoto(eventId, photo);
-      onPreviewChange(URL.createObjectURL(photo));
-      onChange(uploadKey);
+      if (!active.current) return;
+      onChange(uploadKey, photo);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "사진을 올리지 못했습니다. 다시 시도해 주십시오.");
+      if (active.current) setError(cause instanceof Error ? cause.message : "사진을 올리지 못했습니다. 다시 시도해 주십시오.");
     } finally {
-      setStatus("idle");
-      onBusyChange(false);
+      if (active.current) { setStatus("idle"); onBusyChange(false); }
     }
   };
 
@@ -166,7 +194,7 @@ function PhotoField({ eventId, preview, onPreviewChange, onBusyChange, onChange 
       <span id="registration-photo-title" className="text-sm font-semibold">프로필 사진<RequiredMark /></span>
       {preview ? (
         // eslint-disable-next-line @next/next/no-img-element -- 브라우저에서 줄인 사진을 그대로 미리 보여 준다.
-        <img src={preview} alt="올린 프로필 사진 미리 보기" className="h-48 w-36 rounded-control border border-border-soft bg-surface object-cover" />
+        <img src={preview} alt="올린 프로필 사진 미리 보기" className="h-32 w-24 rounded-control border border-border-soft bg-surface object-cover sm:h-48 sm:w-36" />
       ) : null}
       <div>
         <input ref={input} type="file" accept="image/*,.heic,.heif" className="sr-only" disabled={busy} onChange={(event) => void choose(event)} aria-label="프로필 사진 고르기" />

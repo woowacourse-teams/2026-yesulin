@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ConfirmDialog } from "@/components/shows/manage/confirm-dialog";
 import { AdminApiError, deleteEventRegistration, downloadBusinessCardArchive, fetchEventRegistrations } from "@/features/admin/api";
 import type { AdminEventRegistration } from "@/features/admin/types";
-import { EVENT_ACTIVITY_LABELS, EVENT_PARTICIPANT_LABELS } from "@/features/events/types";
+import { EVENT_ACTIVITY_LABELS, EVENT_PARTICIPANT_LABELS, EVENT_SNS_LABELS } from "@/features/events/types";
 import { formatDateTime } from "./admin-format";
 import { AdminActionButton } from "./admin-shell";
 
@@ -106,7 +106,7 @@ export function AdminEventRegistrations({ eventId, onUnauthorized }: { readonly 
                   {registration.businessCardRequested ? <span className="rounded-full bg-brand-soft px-2 py-0.5 text-xs font-bold text-brand">명함 희망</span> : null}
                 </p>
                 <p className="num mt-1 break-all text-muted-strong">
-                  {[registration.phone, registration.email, registration.snsHandle, registration.birthDate].filter(Boolean).join(" · ")}
+                  {[registration.phone, registration.email, registration.snsHandle ? `${registration.snsPlatform ? `${EVENT_SNS_LABELS[registration.snsPlatform]}: ` : ""}${registration.snsHandle}` : null, registration.birthDate].filter(Boolean).join(" · ")}
                 </p>
                 {registration.affiliation ? <p className="mt-1 whitespace-pre-line break-words text-muted-strong">{registration.affiliation}</p> : null}
                 {registration.businessCardRequested ? <ActorDetails registration={registration} /> : null}

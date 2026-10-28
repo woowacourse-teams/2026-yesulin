@@ -18,6 +18,7 @@ import art.yesulin.event.domain.registration.EventRegistrationCareer;
 import art.yesulin.event.domain.registration.EventRegistrationForm;
 import art.yesulin.event.domain.registration.EventRegistrationPhotoUploadRepository;
 import art.yesulin.event.domain.registration.EventRegistrationRepository;
+import art.yesulin.event.domain.registration.EventSnsPlatform;
 import art.yesulin.file.application.storage.ObjectUpload;
 import art.yesulin.global.audit.AdminAction;
 import art.yesulin.global.audit.AdminAuditLog;
@@ -99,6 +100,8 @@ class EventRegistrationServiceTest {
         AdminEventRegistrationResult registration = registrations.getFirst();
         assertEquals(EventParticipantType.ACTOR, registration.participantType());
         assertEquals(BIRTH_DATE, registration.birthDate());
+        assertEquals(EventSnsPlatform.INSTAGRAM, registration.snsPlatform());
+        assertEquals("@haneul", registration.snsHandle());
         assertEquals(storage.createDownloadUrl(photoKey), registration.photoUrl());
         assertEquals(List.of(EventActivityField.THEATER, EventActivityField.MUSICAL), registration.activityFields());
         assertEquals(List.of(new AdminEventRegistrationResult.Career("2025-09", "연극 <달빛 정거장>", "민수 역")),
@@ -178,7 +181,7 @@ class EventRegistrationServiceTest {
                 EventParticipantType.ACTOR, "김하늘", "010-1234-5678", true, "haneul@test.com", "@haneul", BIRTH_DATE,
                 null, Set.of(EventActivityField.MUSICAL), null, false,
                 List.of(new EventRegistrationCareer("2025-09", "연극 <달빛, 정거장>", "민수 역")),
-                " 노래로 이야기를 전하는 배우 "
+                " 노래로 이야기를 전하는 배우 ", EventSnsPlatform.INSTAGRAM
         ), photoKey, true);
         registrationService.register(eventId, EventRegistrationForm.withoutBusinessCard(
                 EventParticipantType.ACTOR, "박서윤", "010-3456-7890", null
@@ -190,17 +193,19 @@ class EventRegistrationServiceTest {
 
         assertEquals(1, entries.size());
         assertEquals("노래로 이야기를 전하는 배우", entries.getFirst().intro());
+        assertEquals(EventSnsPlatform.INSTAGRAM, entries.getFirst().snsPlatform());
         Map<String, byte[]> files = unzip(zip.toByteArray());
         assertTrue(files.containsKey("photos/%d.jpg".formatted(cardId)));
         String json = new String(files.get("business-cards.json"), StandardCharsets.UTF_8);
         assertTrue(json.contains("\"name\" : \"김하늘\""));
+        assertTrue(json.contains("\"snsPlatform\" : \"INSTAGRAM\""));
         assertTrue(json.contains("\"photoFile\" : \"photos/%d.jpg\"".formatted(cardId)));
         assertFalse(json.contains("010-1234-5678"));
         assertFalse(json.contains("private/"));
         String csv = new String(files.get("business-cards.csv"), StandardCharsets.UTF_8);
         assertTrue(csv.startsWith("﻿신청번호"));
         assertTrue(csv.contains("\"2025-09 연극 <달빛, 정거장> 민수 역\""));
-        assertTrue(csv.contains("'@haneul"));
+        assertTrue(csv.contains("'@haneul,INSTAGRAM"));
         assertTrue(auditLogRepository.findAll().stream()
                 .map(AdminAuditLog::getAction)
                 .anyMatch(AdminAction.EVENT_REGISTRATION_EXPORTED::equals));
@@ -291,7 +296,8 @@ class EventRegistrationServiceTest {
         return new EventRegistrationForm(
                 EventParticipantType.ACTOR, "김하늘", phone, true, "haneul@test.com", "@haneul", BIRTH_DATE, null,
                 Set.of(EventActivityField.MUSICAL, EventActivityField.THEATER), null, false,
-                List.of(new EventRegistrationCareer("2025-09", "연극 <달빛 정거장>", "민수 역"))
+                List.of(new EventRegistrationCareer("2025-09", "연극 <달빛 정거장>", "민수 역")),
+                null, EventSnsPlatform.INSTAGRAM
         );
     }
 

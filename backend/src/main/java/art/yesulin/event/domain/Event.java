@@ -87,6 +87,12 @@ public class Event {
     @Column(name = "registration_notice", length = MAX_REGISTRATION_NOTICE_LENGTH)
     private String registrationNotice;
 
+    @Column(name = "registration_confirmation_enabled", nullable = false)
+    private boolean registrationConfirmationEnabled;
+
+    @Column(name = "registration_confirmation_message", length = MAX_REGISTRATION_NOTICE_LENGTH)
+    private String registrationConfirmationMessage;
+
     @Column(name = "business_card_closes_at")
     private Instant businessCardClosesAt;
 
@@ -148,6 +154,8 @@ public class Event {
         this.applyLabel = normalized.applyLabel();
         this.registrationEnabled = normalized.registrationEnabled();
         this.registrationNotice = normalized.registrationNotice();
+        this.registrationConfirmationEnabled = normalized.registrationConfirmationEnabled();
+        this.registrationConfirmationMessage = normalized.registrationConfirmationMessage();
         this.businessCardClosesAt = normalized.businessCardClosesAt();
         this.coverImageKey = blankToNull(keys.coverKey());
         this.bannerDesktopKey = blankToNull(keys.bannerDesktopKey());
@@ -227,6 +235,13 @@ public class Event {
         String notice = registration
                 ? optional(normalizeLines(content.registrationNotice()), MAX_REGISTRATION_NOTICE_LENGTH, "신청 안내")
                 : null;
+        boolean confirmation = registration && content.registrationConfirmationEnabled();
+        String confirmationMessage = confirmation
+                ? optional(normalizeLines(content.registrationConfirmationMessage()),
+                        MAX_REGISTRATION_NOTICE_LENGTH, "신청 전 팝업 안내") : null;
+        if (confirmation && confirmationMessage == null) {
+            throw invalid("신청 전 안내 팝업을 켜려면 안내 내용을 입력해야 합니다.");
+        }
         boolean hasButton = applyUrl != null || registration;
         return new EventContent(
                 title,
@@ -239,7 +254,9 @@ public class Event {
                 registration,
                 notice,
                 optional(normalizeLines(content.detailBody()), MAX_BODY_LENGTH, "상세 설명"),
-                registration ? content.businessCardClosesAt() : null
+                registration ? content.businessCardClosesAt() : null,
+                confirmation,
+                confirmationMessage
         );
     }
 
