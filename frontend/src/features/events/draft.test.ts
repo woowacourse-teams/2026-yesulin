@@ -3,6 +3,19 @@ import { bannerRatioWarning, emptyEventDraft, eventDraftProblem, writeOfEvent } 
 import { formatEventPeriod } from "./types";
 
 describe("이벤트 폼", () => {
+  it("신청 전 팝업은 켰을 때 내용을 요구하고 끄면 저장할 내용을 비운다", () => {
+    const draft = { ...emptyEventDraft(), title: "행사", body: "소개", registrationEnabled: true, registrationConfirmationEnabled: true };
+    expect(eventDraftProblem(draft)).toContain("팝업");
+    expect(eventDraftProblem({ ...draft, registrationConfirmationMessage: "가".repeat(2001) })).toContain("2000자");
+    const ready = { ...draft, registrationConfirmationMessage: " 안내\n둘째 줄 " };
+    expect(eventDraftProblem(ready)).toBeNull();
+    expect(writeOfEvent(ready).registrationConfirmationMessage).toBe("안내\n둘째 줄");
+    expect(writeOfEvent({ ...ready, registrationConfirmationEnabled: false }).registrationConfirmationMessage).toBeNull();
+    const disabled = writeOfEvent({ ...ready, registrationEnabled: false });
+    expect(disabled.registrationConfirmationEnabled).toBe(false);
+    expect(disabled.registrationConfirmationMessage).toBeNull();
+  });
+
   it("빈 칸은 null로 바꾸고 앞뒤 공백을 지운다", () => {
     const write = writeOfEvent({ ...emptyEventDraft(), title: " 1기 서포터즈 ", body: " 본문\n둘째 줄 ", summary: " ", bannerOrder: "3" });
 

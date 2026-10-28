@@ -32,6 +32,9 @@ export type PublicEvent = PublicEventSummary & {
   readonly registrationOpen: boolean;
   /** 참가 신청서 위에 보일 보증금·계좌 같은 안내. 줄바꿈을 그대로 보여 준다. */
   readonly registrationNotice: string | null;
+  /** 신청 전 확인 팝업 설정. 켜면 안내 내용을 확인한 뒤 신청한다. */
+  readonly registrationConfirmationEnabled: boolean;
+  readonly registrationConfirmationMessage: string | null;
   /** 배우의 프로필 명함 제작 희망을 받는 마감 시각(ISO). 없으면 신청 기간 내내 받는다. */
   readonly businessCardClosesAt: string | null;
   /** 지금 명함 제작 희망을 받는지. 참가 신청을 받는 중이고 마감 시각 전이어야 true다. */
@@ -73,6 +76,12 @@ export const MAX_REGISTRATION_CAREERS = 10;
 
 /** 명함 뒷면 한 줄 소개는 이 글자 수까지 적는다. */
 export const MAX_REGISTRATION_INTRO = 40;
+export type EventSnsPlatform = "INSTAGRAM" | "THREADS" | "YOUTUBE";
+export const EVENT_SNS_PLATFORMS: readonly EventSnsPlatform[] = ["INSTAGRAM", "THREADS", "YOUTUBE"];
+export const EVENT_SNS_LABELS: Readonly<Record<EventSnsPlatform, string>> = {
+  INSTAGRAM: "인스타그램", THREADS: "스레드", YOUTUBE: "유튜브",
+};
+export const MAX_EVENT_SNS_HANDLE_LENGTH = 20;
 
 /** 참가 신청 요청. 백엔드 `RegisterRequest`와 같다. 구분에 맞지 않는 칸은 서버가 저장하지 않는다. */
 export type EventRegistrationWrite = {
@@ -84,6 +93,7 @@ export type EventRegistrationWrite = {
   /** 명함을 희망한 배우만 필수다. */
   readonly email: string | null;
   readonly snsHandle: string | null;
+  readonly snsPlatform: EventSnsPlatform | null;
   /** `YYYY-MM-DD`. 명함을 희망한 배우만 필수다. */
   readonly birthDate: string | null;
   /** 공연사 관계자만 필수인 소속과 지금 하는 일 */

@@ -5,6 +5,7 @@ import {
   emptyRegistrationDraft,
   formatPhoneInput,
   registrationProblem,
+  registrationSnsProblem,
   toggleActivityField,
   writeOfRegistration,
   type RegistrationDraft,
@@ -43,6 +44,16 @@ const producer: RegistrationDraft = {
 };
 
 describe("참가 신청서", () => {
+  it("SNS 유형과 계정명은 함께 받으며 20자 이하의 이름만 받는다", () => {
+    expect(registrationSnsProblem(null, " ")).toBeNull();
+    expect(registrationSnsProblem(null, "예술배우")).toContain("유형");
+    expect(registrationSnsProblem("INSTAGRAM", " ")).toContain("계정명");
+    expect(registrationSnsProblem("THREADS", "가".repeat(21))).toContain("20자");
+    expect(registrationSnsProblem("YOUTUBE", "https://a")).toContain("링크 대신");
+    expect(registrationSnsProblem("YOUTUBE", "youtu.be")).toContain("링크 대신");
+    expect(registrationSnsProblem("YOUTUBE", "가".repeat(20))).toBeNull();
+    expect(writeOfRegistration({ ...cardActor, snsPlatform: "THREADS", snsHandle: " 예술배우 " })).toMatchObject({ snsPlatform: "THREADS", snsHandle: "예술배우" });
+  });
   it("휴대폰 번호에 하이픈을 넣는다", () => {
     expect(formatPhoneInput("01012345678")).toBe("010-1234-5678");
     expect(formatPhoneInput("010-123-4567")).toBe("010-123-4567");
@@ -71,6 +82,7 @@ describe("참가 신청서", () => {
       businessCardRequested: true,
       email: "haneul@test.com",
       snsHandle: null,
+      snsPlatform: null,
       birthDate: "2001-03-14",
       photoUploadKey: "upload-key",
       activityFields: ["THEATER", "OTHER"],

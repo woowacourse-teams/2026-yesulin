@@ -16,6 +16,8 @@ import java.time.LocalDate;
  * @param registrationEnabled 켜면 신청 버튼이 외부 주소 대신 예술in 참가 신청서를 연다.
  * @param registrationNotice 참가 신청서 위에 보여 줄 보증금·계좌 같은 안내. 신청서를 끄면 지운다.
  * @param businessCardClosesAt 배우의 프로필 명함 제작 희망을 받는 마감 시각. 비우면 신청 기간 내내 받고, 신청서를 끄면 지운다.
+ * @param registrationConfirmationEnabled 신청을 보내기 전에 안내 팝업을 보여 주는지
+ * @param registrationConfirmationMessage 팝업 안내문. 팝업을 켜면 필수이며 신청서를 끄면 지운다.
  */
 public record EventContent(
         String title,
@@ -28,8 +30,20 @@ public record EventContent(
         boolean registrationEnabled,
         String registrationNotice,
         String detailBody,
-        Instant businessCardClosesAt
+        Instant businessCardClosesAt,
+        boolean registrationConfirmationEnabled,
+        String registrationConfirmationMessage
 ) {
+
+    /** 팝업 안내 없이 쓰는 글. */
+    public EventContent(
+            String title, String summary, String body, LocalDate startsOn, LocalDate endsOn,
+            String applyUrl, String applyLabel, boolean registrationEnabled, String registrationNotice,
+            String detailBody, Instant businessCardClosesAt
+    ) {
+        this(title, summary, body, startsOn, endsOn, applyUrl, applyLabel,
+                registrationEnabled, registrationNotice, detailBody, businessCardClosesAt, false, null);
+    }
 
     /** 명함 제작 마감 없이 쓰는 글. */
     public EventContent(

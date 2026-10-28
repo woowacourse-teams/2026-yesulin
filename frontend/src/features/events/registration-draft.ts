@@ -1,4 +1,4 @@
-import { MAX_REGISTRATION_CAREERS, type EventActivityField, type EventParticipantType, type EventRegistrationWrite } from "./types";
+import { EVENT_SNS_PLATFORMS, MAX_EVENT_SNS_HANDLE_LENGTH, MAX_REGISTRATION_CAREERS, type EventActivityField, type EventParticipantType, type EventRegistrationWrite, type EventSnsPlatform } from "./types";
 
 /** 경력 입력 한 줄. `key`는 줄을 지우고 더해도 입력 칸이 섞이지 않게 붙인 화면용 번호다. */
 export type CareerDraft = {
@@ -22,6 +22,7 @@ export type RegistrationDraft = {
   readonly businessCardRequested: boolean;
   readonly email: string;
   readonly snsHandle: string;
+  readonly snsPlatform: EventSnsPlatform | "";
   /** `YYYY-MM-DD` */
   readonly birthDate: string;
   /** 올린 프로필 사진의 업로드 키. 사진을 고르지 않았으면 null이다. */
@@ -53,6 +54,7 @@ export function emptyRegistrationDraft(): RegistrationDraft {
     businessCardRequested: false,
     email: "",
     snsHandle: "",
+    snsPlatform: "",
     birthDate: "",
     photoUploadKey: null,
     activityFields: [],
@@ -107,8 +109,10 @@ export function registrationProblem(draft: RegistrationDraft, today: string): st
   return null;
 }
 
-function businessCardProblem(draft: RegistrationDraft, today: string): string | null {
+export function businessCardProblem(draft: RegistrationDraft, today: string): string | null {
   if (!EMAIL.test(draft.email.trim())) return "이메일 주소를 확인해 주십시오.";
+  const snsProblem = registrationSnsProblem(draft.snsPlatform || null, draft.snsHandle);
+  if (snsProblem) return snsProblem;
   if (!draft.birthDate) return "생년월일을 입력해 주십시오.";
   if (draft.birthDate > today || draft.birthDate < "1900-01-01") return "생년월일을 확인해 주십시오.";
   if (!draft.photoUploadKey) return "프로필 사진을 올려 주십시오.";
@@ -123,6 +127,17 @@ function businessCardProblem(draft: RegistrationDraft, today: string): string | 
   return null;
 }
 
+/** SNS는 유형과 짧은 표시 이름을 함께 받는다. 둘 다 비우면 선택하지 않은 것으로 본다. */
+export function registrationSnsProblem(platform: EventSnsPlatform | null, handle: string | null): string | null {
+  const name = handle?.trim() ?? "";
+  if (!platform && !name) return null;
+  if (!platform || !EVENT_SNS_PLATFORMS.includes(platform)) return "SNS 유형을 선택해 주세요.";
+  if (!name) return "SNS 계정명이나 채널명을 입력하거나 유형 선택을 해제해 주세요.";
+  if (name.length > MAX_EVENT_SNS_HANDLE_LENGTH) return `SNS 계정명은 ${MAX_EVENT_SNS_HANDLE_LENGTH}자 이내로 입력해 주세요.`;
+  if (/https?:\/\/|www\.|[/\\]|youtu\.be/i.test(name)) return "SNS 링크 대신 계정명이나 채널명을 입력해 주세요.";
+  return null;
+}
+
 /** 구분과 명함 희망 여부에 맞는 칸만 담아 보낸다. {@link registrationProblem}을 통과한 신청서만 넘긴다. */
 export function writeOfRegistration(draft: RegistrationDraft): EventRegistrationWrite {
   const card = draft.participantType === "ACTOR" && draft.businessCardRequested;
@@ -134,6 +149,7 @@ export function writeOfRegistration(draft: RegistrationDraft): EventRegistration
     businessCardRequested: card,
     email: card ? blankToNull(draft.email) : null,
     snsHandle: card ? blankToNull(draft.snsHandle) : null,
+    snsPlatform: card && draft.snsHandle.trim() ? draft.snsPlatform || null : null,
     birthDate: card ? blankToNull(draft.birthDate) : null,
     photoUploadKey: card ? draft.photoUploadKey : null,
     activityFields: card ? draft.activityFields : [],

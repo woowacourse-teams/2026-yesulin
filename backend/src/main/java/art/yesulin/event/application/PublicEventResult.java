@@ -35,7 +35,9 @@ public record PublicEventResult(
         String registrationNotice,
         Instant businessCardClosesAt,
         boolean businessCardOpen,
-        String coverImageUrl
+        String coverImageUrl,
+        boolean registrationConfirmationEnabled,
+        String registrationConfirmationMessage
 ) {
 
     static PublicEventResult from(Event event, UnaryOperator<String> urlOf, LocalDate today, Instant now) {
@@ -57,7 +59,9 @@ public record PublicEventResult(
                 event.getRegistrationNotice(),
                 event.getBusinessCardClosesAt(),
                 registrationOpen && event.isAcceptingBusinessCardsAt(now),
-                urlOf.apply(event.getCoverImageKey())
+                urlOf.apply(event.getCoverImageKey()),
+                event.isRegistrationConfirmationEnabled(),
+                event.getRegistrationConfirmationMessage()
         );
     }
 }

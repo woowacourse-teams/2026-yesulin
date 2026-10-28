@@ -38,7 +38,9 @@ public record WriteEventRequest(
         @Size(max = EventImages.MAX_DETAIL_IMAGES)
         List<@NotBlank @Size(max = MAX_IMAGE_URL_LENGTH) String> detailImageUrls,
         @Valid Banner banner,
-        Instant businessCardClosesAt
+        Instant businessCardClosesAt,
+        boolean registrationConfirmationEnabled,
+        @Size(max = Event.MAX_REGISTRATION_NOTICE_LENGTH) String registrationConfirmationMessage
 ) {
 
     private static final int MAX_IMAGE_URL_LENGTH = 1000;
@@ -46,7 +48,8 @@ public record WriteEventRequest(
     public EventContent toContent() {
         return new EventContent(
                 title, summary, body, startsOn, endsOn, applyUrl, applyLabel,
-                registrationEnabled, registrationNotice, detailBody, businessCardClosesAt
+                registrationEnabled, registrationNotice, detailBody, businessCardClosesAt,
+                registrationConfirmationEnabled, registrationConfirmationMessage
         );
     }
 

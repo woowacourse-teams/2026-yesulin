@@ -4,6 +4,7 @@ import type { AdminEvent, AdminEventRegistration, AdminEventStatus, AdminEventWr
 import { MAX_EVENT_DETAIL_IMAGES } from "@/features/events/types";
 import type { EventBanner, EventPhase, EventRegistrationWrite, PublicEvent, PublicEventSummary } from "@/features/events/types";
 import { mockSessionRole } from "./auth-handlers";
+import { registrationSnsProblem } from "@/features/events/registration-draft";
 
 /**
  * 이벤트 화면과 운영자 이벤트 관리 확인용 메모리 목. 운영자가 공개한 글만 이벤트 화면에 보이고, 배너를 켠 글은 노출 종료일까지
@@ -30,6 +31,8 @@ const events: Mutable<AdminEvent>[] = [
     applyLabel: "서포터즈 신청하기",
     registrationEnabled: false,
     registrationNotice: null,
+    registrationConfirmationEnabled: false,
+    registrationConfirmationMessage: null,
     businessCardClosesAt: null,
     coverImageUrl: null,
     banner: { enabled: false, desktopImageUrl: null, mobileImageUrl: null, alt: null, endsOn: null, order: 0 },
@@ -52,7 +55,9 @@ const events: Mutable<AdminEvent>[] = [
     applyLabel: "참가 신청하기",
     registrationEnabled: true,
     registrationNotice: "노쇼 방지를 위해 보증금 5,000원을 받습니다. 11월 9일 현장에 오시면 그대로 돌려드립니다.\n입금 계좌: (추후 안내)",
-    businessCardClosesAt: "2026-11-05T01:00:00.000Z",
+    registrationConfirmationEnabled: true,
+    registrationConfirmationMessage: "참가 신청 후 신청서 위의 보증금 안내를 확인해 주세요.\n행사 소식은 남겨 주신 휴대폰 번호로 안내합니다.",
+    businessCardClosesAt: "2026-11-02T00:00:00.000Z",
     coverImageUrl: null,
     banner: { enabled: false, desktopImageUrl: null, mobileImageUrl: null, alt: null, endsOn: null, order: 0 },
     bannerVisible: false,
@@ -132,6 +137,8 @@ function toPublic(event: AdminEvent): PublicEvent {
     registrationEnabled: event.registrationEnabled,
     registrationOpen: acceptsRegistrations(event),
     registrationNotice: event.registrationNotice,
+    registrationConfirmationEnabled: event.registrationConfirmationEnabled,
+    registrationConfirmationMessage: event.registrationConfirmationMessage,
     businessCardClosesAt: event.businessCardClosesAt,
     businessCardOpen: acceptsBusinessCards(event),
   };
@@ -146,6 +153,8 @@ function invalidRegistration(write: EventRegistrationWrite): string | null {
   if (!write.participantType) return "참가 구분을 선택해 주세요.";
   if (!write.name?.trim() || !/^01[016789]-\d{3,4}-\d{4}$/.test(write.phone ?? "")) return "이름과 휴대폰 번호를 확인해 주세요.";
   if (write.participantType === "ACTOR" && write.businessCardRequested) {
+    const snsProblem = registrationSnsProblem(write.snsPlatform ?? null, write.snsHandle ?? null);
+    if (snsProblem) return snsProblem;
     if (!/^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/.test(write.email ?? "")) return "이메일 주소를 확인해 주세요.";
     if (!write.birthDate || !write.photoUploadKey || !pendingPhotoKeys.has(write.photoUploadKey)) return "생년월일과 프로필 사진을 확인해 주세요.";
     if (!write.activityFields?.length) return "활동 분야를 하나 이상 골라 주세요.";
@@ -174,6 +183,10 @@ function invalidWrite(write: AdminEventWrite): string | null {
   if (detailUrls.length > MAX_EVENT_DETAIL_IMAGES || detailUrls.some((url) => !url?.trim()) || new Set(detailUrls).size !== detailUrls.length) return "상세 이미지 개수와 중복을 확인해 주세요.";
   if (write.startsOn && write.endsOn && write.endsOn < write.startsOn) return "종료일은 시작일보다 앞설 수 없습니다.";
   if (write.applyUrl && !/^https?:\/\//i.test(write.applyUrl)) return "신청 링크는 http:// 또는 https://로 시작하는 주소여야 합니다.";
+  if (write.registrationEnabled && write.registrationConfirmationEnabled) {
+    if (!write.registrationConfirmationMessage?.trim()) return "신청 전 팝업 안내 내용을 입력해 주세요.";
+    if (write.registrationConfirmationMessage.length > 2000) return "신청 전 팝업 안내는 2000자 이내여야 합니다.";
+  }
   const banner = write.banner;
   if (banner?.enabled && (!banner.desktopImageUrl || !banner.mobileImageUrl || !banner.alt?.trim())) {
     return "배너를 노출하려면 PC·모바일 배너 이미지와 대체 문구가 모두 필요합니다.";
@@ -192,6 +205,8 @@ function apply(target: Mutable<AdminEvent>, write: AdminEventWrite) {
   target.applyUrl = write.applyUrl?.trim() || null;
   target.registrationEnabled = Boolean(write.registrationEnabled);
   target.registrationNotice = target.registrationEnabled ? write.registrationNotice?.trim() || null : null;
+  target.registrationConfirmationEnabled = target.registrationEnabled && Boolean(write.registrationConfirmationEnabled);
+  target.registrationConfirmationMessage = target.registrationConfirmationEnabled ? write.registrationConfirmationMessage?.trim().replace(/\r\n?/g, "\n") || null : null;
   target.businessCardClosesAt = target.registrationEnabled ? write.businessCardClosesAt || null : null;
   target.applyLabel = target.applyUrl || target.registrationEnabled ? write.applyLabel?.trim() || null : null;
   target.coverImageUrl = write.coverImageUrl || null;
@@ -274,6 +289,7 @@ export const eventHandlers = [
       businessCardRequested: card,
       email: card ? write.email?.trim() || null : null,
       snsHandle: card ? write.snsHandle?.trim() || null : null,
+      snsPlatform: card && write.snsHandle?.trim() ? write.snsPlatform ?? null : null,
       birthDate: card ? write.birthDate : null,
       affiliation: actor ? null : write.affiliation?.trim() || null,
       photoUrl: card ? `${MOCK_STORAGE}/${write.photoUploadKey}` : null,

@@ -15,6 +15,8 @@ export type EventDraft = {
   readonly applyLabel: string;
   readonly registrationEnabled: boolean;
   readonly registrationNotice: string;
+  readonly registrationConfirmationEnabled: boolean;
+  readonly registrationConfirmationMessage: string;
   /** 명함 제작 마감 시각. `datetime-local` 입력 값이고 한국 시각이다. */
   readonly businessCardClosesAt: string;
   readonly coverImageUrl: string | null;
@@ -50,6 +52,8 @@ export function emptyEventDraft(): EventDraft {
     applyLabel: "",
     registrationEnabled: false,
     registrationNotice: "",
+    registrationConfirmationEnabled: false,
+    registrationConfirmationMessage: "",
     businessCardClosesAt: "",
     coverImageUrl: null,
     bannerEnabled: false,
@@ -74,6 +78,8 @@ export function draftOfEvent(event: AdminEvent): EventDraft {
     applyLabel: event.applyLabel ?? "",
     registrationEnabled: event.registrationEnabled,
     registrationNotice: event.registrationNotice ?? "",
+    registrationConfirmationEnabled: event.registrationConfirmationEnabled ?? false,
+    registrationConfirmationMessage: event.registrationConfirmationMessage ?? "",
     businessCardClosesAt: toKoreaLocalInput(event.businessCardClosesAt),
     coverImageUrl: event.coverImageUrl,
     bannerEnabled: event.banner.enabled,
@@ -99,6 +105,9 @@ export function writeOfEvent(draft: EventDraft): AdminEventWrite {
     applyLabel: blankToNull(draft.applyLabel),
     registrationEnabled: draft.registrationEnabled,
     registrationNotice: draft.registrationEnabled ? blankToNull(draft.registrationNotice) : null,
+    registrationConfirmationEnabled: draft.registrationEnabled && draft.registrationConfirmationEnabled,
+    registrationConfirmationMessage: draft.registrationEnabled && draft.registrationConfirmationEnabled
+      ? blankToNull(draft.registrationConfirmationMessage) : null,
     businessCardClosesAt: draft.registrationEnabled ? fromKoreaLocalInput(draft.businessCardClosesAt) : null,
     coverImageUrl: draft.coverImageUrl,
     banner: {
@@ -125,6 +134,10 @@ export function eventDraftProblem(draft: EventDraft): string | null {
   }
   if (draft.registrationEnabled && draft.businessCardClosesAt && !fromKoreaLocalInput(draft.businessCardClosesAt)) {
     return "명함 제작 마감 시각을 확인해 주세요.";
+  }
+  if (draft.registrationEnabled && draft.registrationConfirmationEnabled) {
+    if (!draft.registrationConfirmationMessage.trim()) return "신청 전 팝업 안내 내용을 입력해 주세요.";
+    if (draft.registrationConfirmationMessage.length > 2000) return "신청 전 팝업 안내는 2000자 이내로 입력해 주세요.";
   }
   if (draft.bannerEnabled && (!draft.bannerDesktopImageUrl || !draft.bannerMobileImageUrl || !draft.bannerAlt.trim())) {
     return "배너를 노출하려면 PC·모바일 배너 이미지와 대체 문구가 모두 필요해요.";

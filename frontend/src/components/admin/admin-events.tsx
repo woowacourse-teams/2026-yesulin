@@ -361,6 +361,20 @@ function EventForm({ initial, submitLabel, onSave, onCancel, onUnauthorized }: {
           </Field>
         ) : null}
         {draft.registrationEnabled ? (
+          <div className="flex flex-col gap-3 border-t border-border-soft pt-4">
+            <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm font-semibold">
+              <input type="checkbox" checked={draft.registrationConfirmationEnabled} onChange={(event) => set("registrationConfirmationEnabled", event.target.checked)} className="size-4 accent-brand" />
+              신청 전 안내 팝업 사용
+            </label>
+            <p className="text-xs text-muted">입력을 마치고 신청하기를 누르면 안내가 떠요. 안내를 확인한 뒤 최종 신청해요. 끄면 바로 접수돼요.</p>
+            {draft.registrationConfirmationEnabled ? (
+              <Field id="event-registration-confirmation" label="팝업 안내 내용" required hint="신청서 위의 안내와 별도로 설정해요. 줄바꿈을 그대로 보여요.">
+                <FieldTextarea id="event-registration-confirmation" rows={5} value={draft.registrationConfirmationMessage} maxLength={2000} onChange={(event) => set("registrationConfirmationMessage", event.target.value)} />
+              </Field>
+            ) : null}
+          </div>
+        ) : null}
+        {draft.registrationEnabled ? (
           <Field id="event-business-card-closes-at" label="명함 제작 신청 마감 (한국 시각)" hint="이 시각이 지나면 배우 신청서에서 '프로필 명함 제작 희망'을 닫아요. 참가 신청은 종료일까지 계속 받아요. 비우면 신청 기간 내내 받아요.">
             <FieldInput id="event-business-card-closes-at" type="datetime-local" value={draft.businessCardClosesAt} onChange={(event) => set("businessCardClosesAt", event.target.value)} />
           </Field>

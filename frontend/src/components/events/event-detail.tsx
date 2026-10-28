@@ -35,7 +35,7 @@ export function EventRoute({ eventId, initial }: { readonly eventId: string; rea
   }, [eventId, initial, reloadToken]);
 
   return (
-    <EventScreen backToList>
+    <EventScreen backToList contentClassName={`event-detail-layout ${state.status === "ready" && !state.event.coverImageUrl ? "event-detail-layout--text" : ""}`}>
       {state.status === "loading" ? <ContentSkeleton label="이벤트 불러오는 중" className="mt-3 rounded-card border border-border bg-card p-6"><div className="h-8 w-2/3 rounded bg-border-soft" /><div className="mt-6 h-48 rounded bg-border-soft" /></ContentSkeleton> : null}
       {state.status === "missing" ? <MissingEvent /> : null}
       {state.status === "error" ? <ScreenError message="정보를 불러오지 못했어요." onRetry={() => { setState({ status: "loading" }); setReloadToken((value) => value + 1); }} /> : null}
@@ -56,11 +56,11 @@ function EventDetail({ event }: { readonly event: PublicEvent }) {
           {period ? <span className="num text-muted-strong">{period}</span> : null}
         </div>
         <h1 className="mt-3 break-words text-[clamp(24px,3.4vw,32px)] font-bold leading-snug tracking-[-0.03em]">{event.title}</h1>
-        {event.summary ? <p className="mt-2 text-base leading-7 text-muted-strong">{event.summary}</p> : null}
+        {event.summary ? <p className="mt-2 wrap-anywhere text-base leading-7 text-muted-strong">{event.summary}</p> : null}
       </header>
       {event.coverImageUrl ? <EventDetailImage key={event.coverImageUrl} src={event.coverImageUrl} title={event.title} /> : null}
       <div className="event-detail-body px-5 py-6 sm:px-8">
-        <p className="whitespace-pre-line text-[15px] leading-7 text-muted-strong">{event.body}</p>
+        <p className="whitespace-pre-line wrap-anywhere text-[15px] leading-7 text-muted-strong">{event.body}</p>
       </div>
       {hasAction ? (
         <footer className="event-detail-action border-t border-border-soft px-5 py-5 sm:px-8">

@@ -70,6 +70,7 @@ public class BusinessCardArchive {
         value.put("birthDate", entry.birthDate() == null ? null : entry.birthDate().toString());
         value.put("email", entry.email());
         value.put("snsHandle", entry.snsHandle());
+        value.put("snsPlatform", entry.snsPlatform());
         value.put("activityFields", entry.activityFields().stream().map(Enum::name).toList());
         value.put("otherActivity", entry.otherActivity());
         value.put("noCareer", entry.noCareer());
@@ -81,7 +82,7 @@ public class BusinessCardArchive {
     }
 
     private static byte[] csv(List<BusinessCardEntry> entries) {
-        StringBuilder text = new StringBuilder("신청번호,이름,생년월일,이메일,SNS,활동분야,기타분야,경력없음,경력,한줄소개,사진,신청시각\n");
+        StringBuilder text = new StringBuilder("신청번호,이름,생년월일,이메일,SNS,SNS유형,활동분야,기타분야,경력없음,경력,한줄소개,사진,신청시각\n");
         for (BusinessCardEntry entry : entries) {
             String careers = entry.careers().stream()
                     .map(BusinessCardArchive::careerLine)
@@ -92,6 +93,7 @@ public class BusinessCardArchive {
                     cell(entry.birthDate() == null ? null : entry.birthDate().toString()),
                     cell(entry.email()),
                     cell(entry.snsHandle()),
+                    cell(entry.snsPlatform() == null ? null : entry.snsPlatform().name()),
                     cell(entry.activityFields().stream().map(Enum::name).collect(Collectors.joining(" "))),
                     cell(entry.otherActivity()),
                     entry.noCareer() ? "Y" : "",

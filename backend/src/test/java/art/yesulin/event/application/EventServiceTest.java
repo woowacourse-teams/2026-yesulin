@@ -93,6 +93,26 @@ class EventServiceTest {
     }
 
     @Test
+    void persistsConfirmationSettingsForAdminAndPublicDetail() {
+        EventContent content = new EventContent("행사", null, "소개", null, null, null, null,
+                true, null, null, null, true, " 안내\r\n둘째 줄 ");
+        AdminEventResult created = eventService.create(ADMIN_ID, content, null, null);
+        eventService.changeStatus(ADMIN_ID, created.id(), EventStatus.PUBLISHED);
+
+        AdminEventResult stored = eventService.findForAdmin(created.id());
+        assertTrue(stored.registrationConfirmationEnabled());
+        assertEquals("안내\n둘째 줄", stored.registrationConfirmationMessage());
+        PublicEventResult published = eventService.findPublic(created.id());
+        assertTrue(published.registrationConfirmationEnabled());
+        assertEquals(stored.registrationConfirmationMessage(), published.registrationConfirmationMessage());
+
+        eventService.update(ADMIN_ID, created.id(), content("행사"), null, null);
+        PublicEventResult disabled = eventService.findPublic(created.id());
+        assertFalse(disabled.registrationConfirmationEnabled());
+        assertNull(disabled.registrationConfirmationMessage());
+    }
+
+    @Test
     void bannerIsListedWhilePublishedAndUntilItsEndDateInOrder() {
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
         long later = publishedWithBanner("나중 배너", today.plusDays(7), 5);

@@ -4,6 +4,7 @@ import art.yesulin.event.domain.registration.EventActivityField;
 import art.yesulin.event.domain.registration.EventParticipantType;
 import art.yesulin.event.domain.registration.EventRegistration;
 import art.yesulin.event.domain.registration.EventRegistrationCareer;
+import art.yesulin.event.domain.registration.EventSnsPlatform;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -35,7 +36,8 @@ public record AdminEventRegistrationResult(
         boolean noCareer,
         List<Career> careers,
         String intro,
-        Instant createdAt
+        Instant createdAt,
+        EventSnsPlatform snsPlatform
 ) {
 
     static AdminEventRegistrationResult from(EventRegistration registration, String photoUrl) {
@@ -55,7 +57,8 @@ public record AdminEventRegistrationResult(
                 registration.isNoCareer(),
                 registration.getCareers().stream().map(Career::from).toList(),
                 registration.getIntro(),
-                registration.getCreatedAt()
+                registration.getCreatedAt(),
+                registration.getSnsPlatform()
         );
     }
 
