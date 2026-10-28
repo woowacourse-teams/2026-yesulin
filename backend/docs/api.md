@@ -912,6 +912,37 @@ coverLetter, specialty, hobbies, nationality, education{level, school, major}(nu
 | --- | --- | --- |
 | ACTOR_PAGE_NOT_FOUND | 404 | 아이디 형식 위반, 없는 아이디, 비공개·운영자 잠금·자동 비공개·공개 조건 미충족. 모두 같은 응답이다 |
 
+공연사의 관심 저장 여부는 이 응답에 넣지 않는다. 저장 버튼은 다음 절의 공연사 전용 API로 상태를 받아 화면에서 그린다.
+
+## 공연사 관심 배우 — 4개
+
+모두 이메일 인증을 마친 공연사(`PRODUCER + ACTIVE`) 세션이 필요하고 쓰기는 기존 CSRF 규칙을 따른다. 저장은 아이디가 아니라
+배우 페이지의 `publicId`를 쓴다.
+
+| Method | URL | Request | Response |
+| --- | --- | --- | --- |
+| GET | `/api/v1/producers/me/actor-bookmarks?page=0&size=12` | query | `200 ProducerActorBookmarkPageResult` |
+| GET | `/api/v1/producers/me/actor-bookmark-ids` | 없음 | `200 {publicIds}` |
+| PUT | `/api/v1/producers/me/actor-bookmarks/{publicId}` | 없음 | `204` |
+| DELETE | `/api/v1/producers/me/actor-bookmarks/{publicId}` | 없음 | `204` |
+
+```text
+ProducerActorBookmarkPageResult: actorPages[카드], page, size, totalPages, totalElements,
+savedCount, hiddenCount, limit
+```
+
+- 목록은 배우 목록과 같은 기준(공개 중이고 잠기지 않음)으로 보이는 저장만 저장한 최신순으로 담는다. 카드는 배우 목록 카드와 같다.
+  page는 0 이상, size는 1~48이다(그 밖은 `400`). totalElements는 보이는 저장 수다.
+- 배우가 비공개·잠금·자동 비공개가 되면 저장은 지우지 않고 목록에서만 숨긴다. savedCount는 숨긴 저장도 포함한 수이고
+  hiddenCount는 그중 숨긴 수다. 다시 공개되면 목록에 다시 보인다.
+- publicIds는 저장 버튼 상태용으로 숨긴 저장도 포함해 저장한 최신순으로 준다(최대 300개).
+- 저장·해제는 같은 요청을 반복해도 결과가 같다. 이미 저장했으면 배우가 지금 비공개여도 `204`다. 새로 저장할 때는 배우 목록에
+  보이는 페이지만 받고, 없는 ID·비공개 페이지는 공개 조회와 같은 `404 ACTOR_PAGE_NOT_FOUND`다. 해제는 저장하지 않았거나 없는
+  ID여도 `204`다.
+- 공연사당 300명까지이며 숨긴 저장도 포함한다. 한도에 닿은 상태에서 새로 저장하면 `409 ACTOR_BOOKMARK_LIMIT_EXCEEDED`이고,
+  메시지에 숨긴 저장 수를 함께 적는다. 같은 공연사가 여러 배우를 동시에 저장하는 경우까지 한도를 잠그지는 않는다.
+- 배우에게 누가, 몇 명이 저장했는지 알려 주는 API는 없다.
+
 ## 지원서 — 3개
 
 | Method | URL | 인증 | Request | Response |

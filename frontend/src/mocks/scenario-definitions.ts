@@ -235,4 +235,12 @@ export const MOCK_SCENARIOS: readonly MockScenarioDefinition[] = [
     href: "/applicants/profile?tab=actor-page&mockActorPage=auto-hidden",
     checks: ["공개 사진이 빠져 비공개로 바뀌었다는 안내가 보인다", "사진을 공개로 바꾸면 다시 공개할 수 있다", "/applicants?mockActorPage=public은 마이페이지 홈에 공개 중과 주소가 보인다"],
   },
+  {
+    id: "actor-bookmarks",
+    area: "배우 페이지",
+    title: "공연사 관심 배우",
+    description: "목 공연사로 로그인한 뒤 배우 목록·배우 페이지에서 관심 배우를 저장하고 대시보드에서 모아 봅니다.",
+    href: "/login",
+    checks: ["기획사/제작사로 목 로그인하면 사이드바에 '관심 배우'가 보인다", "저장 3/300명과 비공개로 바뀐 배우 1명 안내가 보인다", "'배우 둘러보기'로 간 목록 카드와 배우 페이지에서 저장·해제된다", "비로그인·배우 계정에는 저장 버튼이 없다"],
+  },
 ];

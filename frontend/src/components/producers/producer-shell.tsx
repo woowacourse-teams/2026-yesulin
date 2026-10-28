@@ -8,6 +8,7 @@ import { OtrAuditionProvider } from "@/components/otr-auditions/otr-audition-con
 import { OtrAuditionTreeNav } from "@/components/otr-auditions/otr-audition-tree";
 import { ShowManagementNav } from "@/components/shows/manage/show-management-nav";
 import { AuditionPostManagementNav } from "@/components/audition-posts/manage/audition-post-management-nav";
+import { ActorBookmarkNav } from "@/components/actor-pages/actor-bookmark-nav";
 import { SidebarResizer } from "./sidebar-resizer";
 import { MobileProducerNavigation } from "./mobile-producer-navigation";
 import { ProducerAccountPanel } from "./producer-account-panel";
@@ -73,6 +74,7 @@ function ProducerShellFrame({
                 <PdfReviewNavigation />
                 <ShowManagementNav />
                 <AuditionPostManagementNav />
+                <ActorBookmarkNav />
                 <OtrAuditionTreeNav />
               </div>
               <ProducerAccountPanel />
@@ -94,6 +96,7 @@ function ProducerShellFrame({
             <PdfReviewNavigation onNavigate={closeFocusNavigation} />
             <ShowManagementNav onNavigate={closeFocusNavigation} />
             <AuditionPostManagementNav onNavigate={closeFocusNavigation} />
+            <ActorBookmarkNav onNavigate={closeFocusNavigation} />
             <OtrAuditionTreeNav onNavigate={closeFocusNavigation} />
           </div>
           <ProducerAccountPanel />
