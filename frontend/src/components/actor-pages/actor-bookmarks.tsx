@@ -25,26 +25,30 @@ const ActorBookmarksContext = createContext<ActorBookmarks>(DISABLED);
 
 /**
  * 공개 응답은 누가 보든 같으므로, 저장 버튼 상태는 공연사 전용 API로 저장한 페이지 ID를 한 번 받아 화면에서 그린다.
- * 목록 카드마다 따로 묻지 않도록 배우 목록·배우 페이지·관심 배우 화면을 이 Provider로 감싼다.
+ * 목록 카드마다 따로 묻지 않도록 배우 목록·배우 페이지·관심 배우 화면을 이 Provider로 감싼다. 받은 목록은 받은 세션의 것으로만
+ * 쓰므로, 같은 탭에서 다른 공연사로 다시 로그인하면 새로 받을 때까지 버튼을 숨긴다.
+ *
+ * @param onChange 저장·해제에 성공한 뒤 부른다. 관심 배우 화면이 목록과 저장 수를 다시 읽는다.
  */
-export function ActorBookmarksProvider({ children }: { readonly children: ReactNode }) {
+export function ActorBookmarksProvider({ children, onChange }: { readonly children: ReactNode; readonly onChange?: () => void }) {
   const { session } = useAuthSession();
   const toast = useToast();
-  const producer = session?.role === "PRODUCER" && session.producerStatus === "ACTIVE";
-  const [saved, setSaved] = useState<ReadonlySet<string> | null>(null);
+  const owner = session?.role === "PRODUCER" && session.producerStatus === "ACTIVE" ? session.credential : null;
+  const [loaded, setLoaded] = useState<{ readonly owner: string; readonly ids: ReadonlySet<string> } | null>(null);
   const [pending, setPending] = useState<ReadonlySet<string>>(new Set());
+  const saved = loaded && loaded.owner === owner ? loaded.ids : null;
 
   useEffect(() => {
-    if (!producer) return;
+    if (!owner) return;
     let active = true;
     getActorBookmarkIds()
-      .then((result) => { if (active) setSaved(new Set(result.publicIds)); })
+      .then((result) => { if (active) setLoaded({ owner, ids: new Set(result.publicIds) }); })
       .catch((cause) => {
         // 버튼 상태를 모르면 잘못 그리지 않도록 버튼을 숨긴다.
         console.error("[관심 배우 저장 목록 조회 실패]", cause);
       });
     return () => { active = false; };
-  }, [producer]);
+  }, [owner]);
 
   const toggle = useCallback(async (publicId: string, name: string) => {
     if (!saved || pending.has(publicId)) return;
@@ -53,12 +57,14 @@ export function ActorBookmarksProvider({ children }: { readonly children: ReactN
     try {
       if (wasSaved) await removeActorBookmark(publicId);
       else await saveActorBookmark(publicId);
-      setSaved((current) => {
-        const next = new Set(current);
-        if (wasSaved) next.delete(publicId);
-        else next.add(publicId);
-        return next;
+      setLoaded((current) => {
+        if (!current) return current;
+        const ids = new Set(current.ids);
+        if (wasSaved) ids.delete(publicId);
+        else ids.add(publicId);
+        return { ...current, ids };
       });
+      onChange?.();
       toast(wasSaved ? `${name} 배우를 관심 배우에서 뺐어요.` : `${name} 배우를 관심 배우에 저장했어요.`, { type: "success" });
     } catch (cause) {
       console.error("[관심 배우 저장 실패]", cause);
@@ -70,14 +76,14 @@ export function ActorBookmarksProvider({ children }: { readonly children: ReactN
         return next;
       });
     }
-  }, [pending, saved, toast]);
+  }, [onChange, pending, saved, toast]);
 
-  const value = useMemo<ActorBookmarks>(() => producer && saved ? {
+  const value = useMemo<ActorBookmarks>(() => saved ? {
     enabled: true,
     isSaved: (publicId) => saved.has(publicId),
     isPending: (publicId) => pending.has(publicId),
     toggle,
-  } : DISABLED, [pending, producer, saved, toggle]);
+  } : DISABLED, [pending, saved, toggle]);
 
   return <ActorBookmarksContext value={value}>{children}</ActorBookmarksContext>;
 }

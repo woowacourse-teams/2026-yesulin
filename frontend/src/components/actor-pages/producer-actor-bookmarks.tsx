@@ -20,7 +20,7 @@ const GRID = "grid grid-cols-2 gap-x-3 gap-y-6 min-[761px]:grid-cols-3 min-[1100
 
 /**
  * 공연사가 저장한 관심 배우. 저장한 최신순이고, 비공개가 된 배우는 숨기되 한도에는 포함한다고 알려 준다.
- * 카드의 버튼으로 빼면 다시 읽을 때 목록에서 사라진다.
+ * 카드의 버튼으로 빼거나 다시 저장하면 목록과 저장 수를 다시 읽는다.
  */
 export function ProducerActorBookmarks({ page }: { readonly page: number }) {
   const [state, setState] = useState<ListState>({ status: "loading" });
@@ -59,7 +59,7 @@ export function ProducerActorBookmarks({ page }: { readonly page: number }) {
             : <PickerEmpty title="아직 저장한 배우가 없어요" description="배우 목록이나 배우 페이지에서 '관심 배우 저장'을 누르면 이곳에 모여요." />
         ) : null}
         {state.status === "ready" && state.list.actorPages.length > 0 ? (
-          <ActorBookmarksProvider>
+          <ActorBookmarksProvider onChange={load}>
             <ul className={GRID}>{state.list.actorPages.map((actor) => <ActorCard key={actor.publicId} actor={actor} headingLevel={3} />)}</ul>
             <ActorListPagination page={page} totalPages={state.list.totalPages} href={actorBookmarkRoutes.list} label="관심 배우 페이지" />
           </ActorBookmarksProvider>
