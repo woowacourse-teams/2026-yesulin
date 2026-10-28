@@ -861,7 +861,44 @@ availability는 정규화된 handle과 available, reason(null/INVALID_FORMAT/RES
 | ACTOR_PAGE_NOT_READY | 409 | 공개 조건 부족(한국어 메시지) |
 | ACTOR_PAGE_CONFLICT | 409 | 프로필이 없는 회원의 첫 쓰기 요청이 동시에 들어와 페이지 생성이 겹침. 다시 시도하면 된다 |
 
-잘못된 enum과 필수 값 누락은 기존 `400 INVALID_REQUEST`다. 공개 조회·미리보기와 운영자 API는 이 절에 포함하지 않는다.
+잘못된 enum과 필수 값 누락은 기존 `400 INVALID_REQUEST`다. 공개 조회는 다음 절에 있고, 미리보기와 운영자 API는 아직 없다.
+
+## 배우 목록과 배우 페이지(공개) — 2개
+
+세션을 읽지 않으므로 로그인 여부·역할과 무관하게 같은 응답이다. 비공개 전환이 바로 보이도록 `Cache-Control: no-store`로 응답한다.
+
+| Method | URL | 인증 | Request | Response |
+| --- | --- | --- | --- | --- |
+| GET | `/api/v1/public/actor-pages?page=0&size=12&sort=recent` | 공개 | query | `200 PublicActorPagePageResult(actorPages, page, size, totalPages, totalElements)` |
+| GET | `/api/v1/public/actor-pages/by-handle/{handle}` | 공개 | 없음 | `200 PublicActorPageResult` |
+
+목록은 공개 중이고 잠기지 않은 페이지만 담는다. page는 0 이상, size는 1~48이고 sort는 `recent`만 받는다(그 밖은 `400`).
+`recent`는 `lastPublicActivityAt` 내림차순, 같으면 페이지 ID 내림차순이다. 카드(`PublicActorPageSummaryResult`)는 다음 필드다.
+
+```text
+publicId, handle, name, gender(FEMALE/MALE), birthYear, age, height(null 가능), weight(null 가능),
+representativePhotoUrl(null 가능)
+```
+
+`PublicActorPageResult`는 카드 필드에 다음 필드를 더한다.
+
+```text
+photos[{url}], videos[{url, youtubeId}], careerGroups[{genre(null=미분류), careers[{year, title, roleName}]}],
+coverLetter, specialty, hobbies, nationality, education{level, school, major}(null 가능), links[{url}]
+```
+
+- age는 한국 날짜 기준 만 나이다. 생년월일 전체·연락처·주소·병역은 담지 않는다.
+- 학력·경력·자기소개·특기·취미·국적·외부 링크는 배우가 공개로 설정한 항목만 담고, 나머지는 null 또는 빈 배열이다.
+  학력은 공개여도 입력한 값이 없으면 null이다.
+- photos는 공개 사본이 있는 PUBLIC 사진을 보관함 순서로 담은 공개 사본 주소이고, 첫 번째가 representativePhotoUrl이다.
+  videos는 PUBLIC 영상만 담는다. PRODUCER 영상은 누가 보더라도 담지 않는다.
+- careerGroups는 장르 순서(THEATER, MUSICAL, DANCE, FILM, DRAMA, WEB_DRAMA, SHORT_FORM, COMMERCIAL, OTHER) 뒤에
+  미분류를 둔다. 묶음 안에서는 연도가 최근인 순이고, 같은 연도는 프로필 순서다.
+- handle은 대소문자를 구분하지 않고 찾는다. 응답의 handle이 정규 아이디이므로 프론트가 다르면 정규 주소로 이동한다.
+
+| 코드 | 상태 | 상황 |
+| --- | --- | --- |
+| ACTOR_PAGE_NOT_FOUND | 404 | 아이디 형식 위반, 없는 아이디, 비공개·운영자 잠금·자동 비공개·공개 조건 미충족. 모두 같은 응답이다 |
 
 ## 지원서 — 3개
 
