@@ -33,6 +33,7 @@ Google Tag Manager 컨테이너는 `NEXT_PUBLIC_GTM_ID`가 설정된 환경에�
 
 | 이벤트 | 발생 기준 | 주요 파라미터 |
 | --- | --- | --- |
+| `actor_screen_view` | 배우 목록·공개 배우 페이지를 성공적으로 읽어 렌더링. 화면 방문마다 한 번, 분석을 껐다가 켜면 그때 한 번 | `screen_name`(`actor_list`, `actor_page`), 고정 화면 제목·주소, 빈 유입 주소 |
 | `view_posting` | 공개 공고 화면 렌더링 | `posting_status`, `role_count` |
 | `login_prompt_view` | 로그인 유도 UI 노출 | `login_reason`, `has_draft` |
 | `login_prompt_action` | 유도 UI에서 로그인·비회원 계속·닫기 선택 | `login_reason`, `action`, `has_draft` |
@@ -63,6 +64,18 @@ GA4는 단계별 이탈을 보는 용도다.
 않는다.
 
 ## GTM 설정
+
+배우 화면의 `actor_screen_view`는 `screen_name`으로 목록(`actor_list`)과 공개 상세(`actor_page`)를 구분한다.
+목록 페이지 번호·검색어, 배우 이름·아이디·publicId는 보내지 않는다. 본인 미리보기·운영자 화면과 조회 실패는 이 이벤트에 포함하지 않는다.
+`page_title`은 `배우 목록`·`배우 페이지`, `page_location`은 현재 origin 아래 `/actors`·`/actors/profile`로 고정하고
+`page_referrer`는 빈 문자열로 보낸다. `/actors/profile`은 분석용 이름이며 실제 배우 주소가 아니다.
+
+GTM의 해당 GA4 이벤트 태그에는 이 세 페이지 매개변수도 Data Layer Variable로 명시적으로 연결한다.
+Google 태그의 자동 page_view와 향상된 측정의 브라우저 기록 기반 페이지 변경은 실제 `/@아이디` 주소·배우 이름이 들어간 문서 제목을
+보낼 수 있으므로 배우 경로에서는 끄거나 같은 고정값을 쓰도록 설정한다. 이전 페이지가 배우 상세인 다른 화면의 `page_referrer`에도
+실제 배우 주소가 남지 않도록 확인한다. 이 저장소 변경만으로 GTM 게시 설정이 바뀌지는 않는다.
+Preview에서 실제 GA4 전송의 `page_location`, `page_title`, `page_referrer`를 확인한 뒤 게시한다.
+자동 페이지 조회와 브라우저 기록 설정은 [Google 공식 페이지 조회 안내](https://developers.google.com/analytics/devguides/collection/ga4/views)를 따른다.
 
 GTM의 Google 태그는 GA4 측정 ID `G-JSQZT648EC`에 연결한다. Google 태그의 구성 매개변수에는
 `allow_google_signals=false`, `allow_ad_personalization_signals=false`를 지정한다. 커스텀 이벤트를 GA4로

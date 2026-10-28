@@ -19,6 +19,7 @@ import { AuditionRequestError } from "@/features/auditions/api-client";
 import { ActorBookmarkButton } from "./actor-bookmarks";
 import { ActorPageScreen } from "./actor-page-screen";
 import { ActorPhotoGallery } from "./actor-photo-gallery";
+import { ActorScreenView } from "./actor-screen-view";
 
 type PageState =
   | { readonly status: "loading" }
@@ -58,6 +59,7 @@ export function ActorPageRoute({ handle, initial }: { readonly handle: string; r
 
   return (
     <ActorPageScreen backToList>
+      {state.status === "ready" ? <ActorScreenView key={state.actorPage.publicId} screen="actor_page" /> : null}
       {state.status === "loading" ? (
         <ContentSkeleton label="배우 페이지 불러오는 중" className="mt-4">
           <div className="grid gap-6 min-[901px]:grid-cols-[minmax(0,340px)_1fr]"><div className="aspect-[3/4] rounded-card bg-border-soft" /><div><div className="h-8 w-1/3 rounded bg-border-soft" /><div className="mt-3 h-5 w-1/2 rounded bg-border-soft" /></div></div>
