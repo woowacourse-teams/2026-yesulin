@@ -48,7 +48,7 @@ export const PRODUCER_ONLY_VIDEO_GUIDE = "지금은 예술in 운영자만 볼 �
 
 export const ACTOR_HANDLE_CONTACT_EMAIL = "contact@yesulin.art";
 
-/** 화면에 보이는 페이지 주소. `yesulin.art/@아이디`처럼 프로토콜을 뺀다. */
+/** 화면에 보이는 페이지 주소. `yesulin.art/actors/@아이디`처럼 프로토콜을 뺀다. */
 export function actorPageAddress(handle: string): string {
   return `${SITE_URL.replace(/^https?:\/\//, "")}${actorPageRoutes.detail(handle)}`;
 }

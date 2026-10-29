@@ -80,7 +80,7 @@ export const actorPageApiPaths = {
 export const actorPageRoutes = {
   /** 목록 주소의 page는 1부터 센다. 첫 페이지는 쿼리를 붙이지 않는다. */
   list: (page = 0) => page > 0 ? `/actors?page=${page + 1}` : "/actors",
-  detail: (handle: string) => `/@${handle}`,
+  detail: (handle: string) => `/actors/@${handle}`,
 } as const;
 
 /** 목록 주소의 `?page=`(1부터)를 API의 page(0부터)로 바꾼다. 잘못된 값은 첫 페이지다. */

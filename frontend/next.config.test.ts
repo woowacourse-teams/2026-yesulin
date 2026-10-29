@@ -80,11 +80,11 @@ describe("actor page address", () => {
   const thirtyCharacters = "a".repeat(30);
 
   it.each([
-    ["/@minzzun.__", "/actor-page/minzzun.__"],
-    ["/@a", "/actor-page/a"],
-    [`/@${thirtyCharacters}`, `/actor-page/${thirtyCharacters}`],
-    ["/@MinZzun", "/actor-page/MinZzun"],
-    ["/@minzzun.__/posts", "/actor-page/minzzun.__/posts"],
+    ["/actors/@minzzun.__", "/actor-page/minzzun.__"],
+    ["/actors/@a", "/actor-page/a"],
+    [`/actors/@${thirtyCharacters}`, `/actor-page/${thirtyCharacters}`],
+    ["/actors/@MinZzun", "/actor-page/MinZzun"],
+    ["/actors/@minzzun.__/posts", "/actor-page/minzzun.__/posts"],
   ])("serves %s from the internal route", async (path, internal) => {
     const { default: nextConfig } = await import("./next.config");
     const response = await unstable_getResponseFromNextConfig({ url: `https://yesulin.art${path}`, nextConfig });
@@ -96,14 +96,14 @@ describe("actor page address", () => {
   it("keeps the actor page rewrite next to the backend rewrite", async () => {
     vi.stubEnv("API_ORIGIN", "https://api.yesulin.art");
     const { default: nextConfig } = await import("./next.config");
-    const response = await unstable_getResponseFromNextConfig({ url: "https://yesulin.art/@min.zzun", nextConfig });
+    const response = await unstable_getResponseFromNextConfig({ url: "https://yesulin.art/actors/@min.zzun", nextConfig });
 
     expect(new URL(getRewrittenUrl(response)!).pathname).toBe("/actor-page/min.zzun");
   });
 
   it.each([
-    ["/actor-page/minzzun", "/@minzzun"],
-    ["/actor-page/minzzun/posts", "/@minzzun/posts"],
+    ["/actor-page/minzzun", "/actors/@minzzun"],
+    ["/actor-page/minzzun/posts", "/actors/@minzzun/posts"],
   ])("moves the internal route %s to the public address", async (path, publicPath) => {
     const { default: nextConfig } = await import("./next.config");
     const response = await unstable_getResponseFromNextConfig({ url: `https://yesulin.art${path}`, nextConfig });

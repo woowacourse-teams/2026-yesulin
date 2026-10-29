@@ -36,7 +36,7 @@ export function NotebookHeader({ service = "applicant" }: { readonly service?: "
 function currentMenu(pathname: string): (typeof menuItems)[number]["key"] | undefined {
   if (pathname.startsWith("/shows")) return "shows";
   if (pathname === "/events" || pathname.startsWith("/events/")) return "events";
-  if (pathname === "/actors" || pathname.startsWith("/@") || pathname.startsWith("/actor-page/")) return "actors";
+  if (pathname === "/actors" || pathname.startsWith("/actors/") || pathname.startsWith("/actor-page/")) return "actors";
   if (pathname === "/auditions" || pathname.startsWith("/auditions/") || pathname.startsWith("/posts/")) return "auditions";
   return undefined;
 }

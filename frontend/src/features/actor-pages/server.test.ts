@@ -41,8 +41,8 @@ describe("배우 페이지 서버 조회와 사이트맵", () => {
     const urls = (await sitemap()).map((entry) => entry.url);
 
     expect(urls).toContain("https://yesulin.art/actors");
-    expect(urls).toContain("https://yesulin.art/@min.zzun_");
-    expect(urls).toContain("https://yesulin.art/@actor2");
+    expect(urls).toContain("https://yesulin.art/actors/@min.zzun_");
+    expect(urls).toContain("https://yesulin.art/actors/@actor2");
     expect(fetchMock.mock.calls.map(([url]) => (url as URL).search)).toEqual([
       "?page=0&size=48&sort=recent", "?page=1&size=48&sort=recent",
     ]);
