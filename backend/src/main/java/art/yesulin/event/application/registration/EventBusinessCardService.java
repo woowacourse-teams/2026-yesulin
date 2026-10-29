@@ -37,7 +37,8 @@ public class EventBusinessCardService {
             EventRegistrationRepository repository, MemberLinkCodeService memberLinkCodeService,
             AdminAuditLogRepository auditLogRepository, EventBusinessCardVisitRepository visitRepository,
             EventRepository eventRepository, Clock clock,
-            @Value("${yesulin.notice.link-base-url}") String baseUrl
+            @Value("${yesulin.event.business-card-base-url:${yesulin.notice.link-base-url}}") String baseUrl,
+            @Value("${yesulin.notice.link-base-url}") String noticeBaseUrl
     ) {
         this.repository = repository;
         this.memberLinkCodeService = memberLinkCodeService;
@@ -45,7 +46,7 @@ public class EventBusinessCardService {
         this.visitRepository = visitRepository;
         this.eventRepository = eventRepository;
         this.clock = clock;
-        this.baseUrl = baseUrl.replaceAll("/+$", "");
+        this.baseUrl = (baseUrl.isBlank() ? noticeBaseUrl : baseUrl).strip().replaceAll("/+$", "");
     }
 
     public EventBusinessCardResult describe(EventRegistration registration) {
@@ -74,6 +75,9 @@ public class EventBusinessCardService {
         if (!isUuid(publicId)) {
             throw notFound();
         }
+        long eventId = repository.findEventIdByBusinessCardKey(publicId)
+                .orElseThrow(EventBusinessCardService::notFound);
+        eventRepository.findByIdForUpdate(eventId).orElseThrow(EventBusinessCardService::notFound);
         EventRegistration registration = repository.findByBusinessCardKeyForUpdate(publicId)
                 .orElseThrow(EventBusinessCardService::notFound);
         String destination = absoluteProfileUrl(registration.getBusinessCardProfileUrl());
@@ -130,9 +134,12 @@ public class EventBusinessCardService {
     }
 
     private EventRegistration registrationForUpdate(long eventId, long registrationId) {
-        return repository.findByIdForUpdate(registrationId)
+        eventRepository.findByIdForUpdate(eventId).orElseThrow(EventBusinessCardService::notFound);
+        EventRegistration registration = repository.findByIdForUpdate(registrationId)
                 .filter(candidate -> candidate.getEventId() == eventId && candidate.isBusinessCardRequested())
                 .orElseThrow(EventBusinessCardService::notFound);
+        registration.ensureBusinessCardKey();
+        return registration;
     }
 
     private void audit(long adminId, long eventId, long registrationId) {

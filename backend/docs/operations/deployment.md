@@ -61,6 +61,10 @@ Incoming Webhook으로 보내며, 비어 있으면 `TIMETABLE_MESSAGES_QUEUED` �
 | `YESULIN_TIMETABLE_SLACK_WEBHOOK_URL` | 로컬 및 dev용 알림 채널 | 스케줄 알림 채널 |
 | `YESULIN_ERROR_SLACK_WEBHOOK_URL` | 로컬 및 dev용 알림 채널 | 버그 알림 채널 |
 
+명함 QR과 서비스 내부 프로필 링크의 프론트 origin은 `YESULIN_EVENT_BUSINESS_CARD_BASE_URL`로 따로 지정한다.
+기본값은 공고 링크 origin이며, `dev` 프로필은 공고 링크가 PROD를 가리켜도 `https://dev.yesulin.art`를 기본으로 쓴다.
+다른 DEV 프론트를 쓰면 이 변수를 해당 주소로 지정한다. 기존 인쇄 QR 키와 목적지는 바꾸지 않는다.
+
 이벤트 참가 신청 완료 알림은 `YESULIN_EVENT_REGISTRATION_SLACK_WEBHOOK_URL`에 연결된 전용 채널로 보낸다.
 비어 있으면 `EVENT_REGISTERED` 로그만 남긴다. 저장 커밋 뒤 가상 스레드에서 보내며, 전송 실패는
 `EVENT_REGISTRATION_SLACK_FAILED` 로그로 남기고 자동 재전송하지 않는다. 접수 데이터는 유지된다.

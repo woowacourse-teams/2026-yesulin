@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { act, useState, type ButtonHTMLAttributes } from "react";
+import qrCode from "qrcode";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { connectEventBusinessCard, connectEventBusinessCardMember, disconnectEventBusinessCardMember } from "@/features/admin/api";
@@ -60,4 +61,9 @@ it("keeps the card unchanged and displays the error when a code has already been
   await act(async () => button("코드로 회원 연결").click());
   expect(container.querySelector('[role="alert"]')?.textContent).toContain("만료·사용");
   expect(container.textContent).toContain("아직 회원이 연결되지 않았어요");
+});
+
+it("encodes the fixed card URL rather than its editable profile destination", () => {
+  expect(qrCode.toString).toHaveBeenCalledWith(initial.url,
+    expect.objectContaining({ type: "svg", errorCorrectionLevel: "M" }));
 });

@@ -4,6 +4,8 @@ export type MemberLinkCode = {
   readonly code: string;
   readonly expiresAt: string;
   readonly reissueAvailableAt: string;
+  readonly expiresInSeconds: number;
+  readonly reissueAfterSeconds: number;
 };
 
 export function issueMemberLinkCode(): Promise<MemberLinkCode> {

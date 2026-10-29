@@ -88,7 +88,7 @@ public class EventRegistration {
     @Column(name = "payment_confirmed_at")
     private Instant paymentConfirmedAt;
 
-    @Column(name = "business_card_key", updatable = false, length = 36, unique = true)
+    @Column(name = "business_card_key", length = 36, unique = true)
     private String businessCardKey;
 
     @Column(name = "business_card_profile_url", length = 2000)
@@ -200,6 +200,13 @@ public class EventRegistration {
         this.paymentConfirmedAt = status == EventPaymentStatus.CONFIRMED
                 ? Objects.requireNonNull(now).truncatedTo(ChronoUnit.MICROS) : null;
         return true;
+    }
+
+    /** 구버전 서버가 배포 중 접수한 명함의 누락 키만 보완한다. 호출자는 이벤트 행을 먼저 잠근다. */
+    public void ensureBusinessCardKey() {
+        if (businessCardRequested && businessCardKey == null) {
+            businessCardKey = UUID.randomUUID().toString();
+        }
     }
 
     /** 인쇄한 주소는 유지하고 목적지와 회원 연결만 교체한다. 공개 QR은 회원 연결 권한이 아니다. */

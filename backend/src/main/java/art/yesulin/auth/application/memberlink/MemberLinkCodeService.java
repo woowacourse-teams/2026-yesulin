@@ -52,7 +52,8 @@ public class MemberLinkCodeService {
                 throw issueRetry();
             }
             return new MemberLinkCodeResult(code.substring(0, 4) + "-" + code.substring(4),
-                    issued.getExpiresAt(), now.plus(MemberLinkCode.REISSUE_INTERVAL));
+                    issued.getExpiresAt(), now.plus(MemberLinkCode.REISSUE_INTERVAL),
+                    MemberLinkCode.VALIDITY.toSeconds(), MemberLinkCode.REISSUE_INTERVAL.toSeconds());
         }
         throw issueRetry();
     }

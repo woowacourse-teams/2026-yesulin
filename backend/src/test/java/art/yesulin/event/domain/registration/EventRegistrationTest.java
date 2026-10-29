@@ -47,7 +47,9 @@ class EventRegistrationTest {
         for (String url : List.of("javascript:alert(1)", "http://example.test", "//example.test",
                 "https://user:password@example.test/a", "https://example.test/n/another-card",
                 "https://example.test/events/cards/another-card", "https://example.test/%65vents/cards/another-card",
-                "https://example.test/%6e/another-card", "https://example.test/a\r\nLocation:x")) {
+                "https://example.test/%6e/another-card", "https://example.test/x/../n/another-card",
+                "https://example.test/x/%2e%2e/events/cards/another-card", "https://example.test/../n/another-card",
+                "https://example.test/a\r\nLocation:x")) {
             assertThrows(BusinessException.class, () -> registration.connectBusinessCard(url, null));
         }
     }

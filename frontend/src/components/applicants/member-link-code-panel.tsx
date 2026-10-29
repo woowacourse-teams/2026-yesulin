@@ -10,19 +10,20 @@ import { ApplicantRequestError } from "@/features/applicants/request";
 export function MemberLinkCodePanel() {
   const router = useRouter();
   const { setSession } = useAuthSession();
-  const [issued, setIssued] = useState<MemberLinkCode | null>(null);
-  const [now, setNow] = useState(Date.now);
+  const [issued, setIssued] = useState<(MemberLinkCode & { receivedAt: number }) | null>(null);
+  const [now, setNow] = useState(() => performance.now());
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   useEffect(() => {
     if (!issued) return;
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    const timer = window.setInterval(() => setNow(performance.now()), 1000);
     return () => window.clearInterval(timer);
   }, [issued]);
 
-  const seconds = issued ? Math.max(0, Math.ceil((Date.parse(issued.expiresAt) - now) / 1000)) : 0;
-  const cooldown = issued ? Math.max(0, Math.ceil((Date.parse(issued.reissueAvailableAt) - now) / 1000)) : 0;
+  const elapsed = issued ? Math.max(0, now - issued.receivedAt) / 1000 : 0;
+  const seconds = issued ? Math.max(0, Math.ceil(issued.expiresInSeconds - elapsed)) : 0;
+  const cooldown = issued ? Math.max(0, Math.ceil(issued.reissueAfterSeconds - elapsed)) : 0;
   const expired = issued !== null && seconds === 0;
   const issue = async () => {
     setPending(true);
@@ -30,8 +31,9 @@ export function MemberLinkCodePanel() {
     setNotice(null);
     try {
       const next = await issueMemberLinkCode();
-      setNow(Date.now());
-      setIssued(next);
+      const receivedAt = performance.now();
+      setNow(receivedAt);
+      setIssued({ ...next, receivedAt });
       setNotice("연결 코드를 발급했습니다. 현장 운영자에게 보여주세요.");
     } catch (cause) {
       if (cause instanceof ApplicantRequestError && cause.status === 401) {

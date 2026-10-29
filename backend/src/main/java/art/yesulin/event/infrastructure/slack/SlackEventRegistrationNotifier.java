@@ -26,11 +26,12 @@ public class SlackEventRegistrationNotifier implements EventRegistrationNotifier
             @Value("${yesulin.slack.event-registration-webhook-url:}") String webhookUrl,
             @Value("${yesulin.slack.event-registration-admin-base-url:${yesulin.notice.link-base-url}}")
             String adminBaseUrl,
+            @Value("${yesulin.notice.link-base-url}") String noticeBaseUrl,
             SlackWebhookClient webhookClient,
             Environment environment
     ) {
         this.webhookUrl = webhookUrl;
-        this.adminBaseUrl = adminBaseUrl.replaceAll("/+$", "");
+        this.adminBaseUrl = (adminBaseUrl.isBlank() ? noticeBaseUrl : adminBaseUrl).strip().replaceAll("/+$", "");
         this.webhookClient = webhookClient;
         this.prefix = SlackEnvironment.nonProductionPrefix(environment);
     }

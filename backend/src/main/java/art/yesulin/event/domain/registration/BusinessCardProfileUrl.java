@@ -3,6 +3,7 @@ package art.yesulin.event.domain.registration;
 import art.yesulin.event.domain.EventErrorCode;
 import art.yesulin.global.exception.BusinessException;
 import java.net.URI;
+import java.net.URISyntaxException;
 
 /** 운영자가 확인한 공개 프로필 주소. QR 경유 주소를 다시 연결해 순환시키지 않는다. */
 public final class BusinessCardProfileUrl {
@@ -24,7 +25,7 @@ public final class BusinessCardProfileUrl {
             if (normalized.length() > 2000 || !"https".equalsIgnoreCase(uri.getScheme())
                     || uri.getHost() == null || uri.getRawUserInfo() != null
                     || normalized.chars().anyMatch(character -> character <= 32 || character == 127)
-                    || uri.getPath().matches("(?i)/(?:n|events/cards)(?:/.*)?")) {
+                    || normalizedPath(uri).matches("(?i)/(?:n|events/cards)(?:/.*)?")) {
                 throw new IllegalArgumentException();
             }
             String ascii = uri.toASCIIString();
@@ -32,8 +33,13 @@ public final class BusinessCardProfileUrl {
                 throw new IllegalArgumentException();
             }
             return ascii;
-        } catch (IllegalArgumentException exception) {
+        } catch (IllegalArgumentException | URISyntaxException exception) {
             throw new BusinessException(EventErrorCode.INVALID_INPUT, "공개 프로필의 HTTPS 주소를 입력해 주세요.");
         }
+    }
+
+    private static String normalizedPath(URI uri) throws URISyntaxException {
+        // 디코딩한 경로로 점 세그먼트도 정리하고, 브라우저처럼 루트 위의 부모 경로는 무시한다.
+        return new URI(null, null, uri.getPath(), null).normalize().getPath().replaceFirst("^/(?:\\.\\./)+", "/");
     }
 }

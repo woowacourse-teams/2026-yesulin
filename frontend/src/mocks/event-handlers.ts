@@ -2,7 +2,6 @@ import { eventBankAccountProblem } from "@/features/events/bank-account";
 import { businessCardProfileUrlProblem } from "@/features/events/business-card";
 import { consumeMockMemberLinkCode, invalidMemberLinkCode, realMemberLinkEnabled } from "./member-link-codes";
 import { delay, http, HttpResponse, passthrough } from "msw";
-import { frontendEnvironment } from "@/config/environment";
 import type { AdminEvent, AdminEventBusinessCard, AdminEventRegistration, AdminEventStatus, AdminEventWrite } from "@/features/admin/types";
 import { MAX_EVENT_DETAIL_IMAGES, registrationClosedMessage } from "@/features/events/types";
 import type { EventBanner, EventPhase, EventRegistrationStatus, EventRegistrationWrite, PublicEvent, PublicEventSummary } from "@/features/events/types";
@@ -16,7 +15,8 @@ import { registrationSnsProblem } from "@/features/events/registration-draft";
  */
 type Mutable<T> = { -readonly [K in keyof T]: T[K] };
 
-const realLoginEnabled = frontendEnvironment.producerLoginEnabled;
+// 실제 회원 코드를 쓰는 환경에서는 신청·사진·QR·운영 관리도 같은 백엔드에 저장한다.
+const realEventsEnabled = realMemberLinkEnabled;
 const MOCK_STORAGE = "/mock-storage/event-images";
 const mockImages = new Map<string, Blob>();
 const cardVisits = new Map<number, string[]>();
@@ -267,23 +267,27 @@ const published = () => events.filter((event) => event.status === "PUBLISHED").m
 
 export const eventHandlers = [
   http.get("/api/v1/public/events", async () => {
+    if (realEventsEnabled) return passthrough();
     await delay(120);
     return HttpResponse.json({ events: published().sort((left, right) => right.id - left.id).map(toSummary) });
   }),
 
   // `:eventId`보다 먼저 둬야 `banners`를 이벤트 번호로 읽지 않는다.
   http.get("/api/v1/public/events/banners", async () => {
+    if (realEventsEnabled) return passthrough();
     await delay(80);
     return HttpResponse.json({ banners: shownBanners(koreaToday()).map(toBanner) });
   }),
 
   http.get("/api/v1/public/events/:eventId", async ({ params }) => {
+    if (realEventsEnabled) return passthrough();
     await delay(120);
     const event = published().find((candidate) => candidate.id === Number(params.eventId));
     return event ? HttpResponse.json(toPublic(event)) : apiError(404, "EVENT_NOT_FOUND", "이벤트를 찾을 수 없습니다.");
   }),
 
   http.post("/api/v1/public/events/:eventId/registrations/photo-uploads", async ({ params, request }) => {
+    if (realEventsEnabled) return passthrough();
     await delay(120);
     const event = published().find((candidate) => candidate.id === Number(params.eventId));
     if (!event) return apiError(404, "EVENT_NOT_FOUND", "이벤트를 찾을 수 없습니다.");
@@ -306,6 +310,7 @@ export const eventHandlers = [
   }),
 
   http.post("/api/v1/public/events/:eventId/registrations", async ({ params, request }) => {
+    if (realEventsEnabled) return passthrough();
     await delay(150);
     const event = published().find((candidate) => candidate.id === Number(params.eventId));
     if (!event) return apiError(404, "EVENT_NOT_FOUND", "이벤트를 찾을 수 없습니다.");
@@ -353,7 +358,7 @@ export const eventHandlers = [
   }),
 
   http.patch("/api/v1/admin/events/:eventId/registration-status", async ({ params, request }) => {
-    if (realLoginEnabled) return passthrough();
+    if (realEventsEnabled) return passthrough();
     const rejected = rejectNonAdmin(); if (rejected) return rejected;
     const event = events.find((item) => item.id === Number(params.eventId));
     if (!event) return apiError(404, "EVENT_NOT_FOUND", "이벤트를 찾을 수 없습니다.");
@@ -365,7 +370,7 @@ export const eventHandlers = [
   }),
 
   http.patch("/api/v1/admin/events/:eventId/registrations/:registrationId/payment-status", async ({ params, request }) => {
-    if (realLoginEnabled) return passthrough();
+    if (realEventsEnabled) return passthrough();
     const rejected = rejectNonAdmin(); if (rejected) return rejected;
     if (!events.some((item) => item.id === Number(params.eventId))) return apiError(404, "EVENT_NOT_FOUND", "이벤트를 찾을 수 없습니다.");
     const index = registrations.findIndex((item) => item.id === Number(params.registrationId) && registrationEventIds.get(item.id) === Number(params.eventId));
@@ -378,7 +383,7 @@ export const eventHandlers = [
   }),
 
   http.get("/api/v1/admin/events/:eventId/registrations", async ({ params }) => {
-    if (realLoginEnabled) return passthrough();
+    if (realEventsEnabled) return passthrough();
     await delay(120);
     const rejected = rejectNonAdmin();
     if (rejected) return rejected;
@@ -389,7 +394,7 @@ export const eventHandlers = [
 
   // 목에서는 zip 대신 명함 희망자 JSON만 내려 준다. 실제 서버는 CSV·JSON·사진을 묶은 zip을 준다.
   http.get("/api/v1/admin/events/:eventId/registrations/business-card-archive", async ({ params }) => {
-    if (realLoginEnabled) return passthrough();
+    if (realEventsEnabled) return passthrough();
     const rejected = rejectNonAdmin();
     if (rejected) return rejected;
     const eventId = Number(params.eventId);
@@ -398,14 +403,14 @@ export const eventHandlers = [
   }),
 
   http.get("/api/v1/public/business-cards/:publicId", ({ params }) => {
-    if (realLoginEnabled) return passthrough();
+    if (realEventsEnabled) return passthrough();
     const card = registrations.find((item) => item.businessCard?.publicId === params.publicId)?.businessCard;
     if (!card) return apiError(404, "EVENT_REGISTRATION_NOT_FOUND", "명함을 찾을 수 없습니다.");
     return HttpResponse.json({ profileUrl: card.profileUrl }, { headers: { "Cache-Control": "no-store" } });
   }),
 
   http.get("/api/v1/public/business-cards/:publicId/visit", ({ params, request }) => {
-    if (realLoginEnabled) return passthrough();
+    if (realEventsEnabled) return passthrough();
     const registration = registrations.find((item) => item.businessCard?.publicId === params.publicId);
     const card = registration?.businessCard;
     if (!registration || !card) return apiError(404, "EVENT_REGISTRATION_NOT_FOUND", "명함을 찾을 수 없습니다.");
@@ -419,7 +424,7 @@ export const eventHandlers = [
   }),
 
   http.get("/api/v1/admin/events/:eventId/business-card/visits", ({ params, request }) => {
-    if (realLoginEnabled) return passthrough();
+    if (realEventsEnabled) return passthrough();
     const rejected = rejectNonAdmin();
     if (rejected) return rejected;
     const days = Number(new URL(request.url).searchParams.get("days") ?? 14);
@@ -435,7 +440,7 @@ export const eventHandlers = [
   }),
 
   http.put("/api/v1/admin/events/:eventId/registrations/:registrationId/business-card", async ({ params, request }) => {
-    if (realLoginEnabled) return passthrough();
+    if (realEventsEnabled) return passthrough();
     const rejected = rejectNonAdmin();
     if (rejected) return rejected;
     const index = registrations.findIndex((item) => item.id === Number(params.registrationId)
@@ -451,7 +456,7 @@ export const eventHandlers = [
   }),
 
   http.post("/api/v1/admin/events/:eventId/registrations/:registrationId/business-card/member", async ({ params, request }) => {
-    if (realMemberLinkEnabled) return passthrough();
+    if (realEventsEnabled) return passthrough();
     const rejected = rejectNonAdmin();
     if (rejected) return rejected;
     const index = registrations.findIndex((item) => item.id === Number(params.registrationId)
@@ -468,7 +473,7 @@ export const eventHandlers = [
   }),
 
   http.delete("/api/v1/admin/events/:eventId/registrations/:registrationId/business-card/member", ({ params }) => {
-    if (realMemberLinkEnabled) return passthrough();
+    if (realEventsEnabled) return passthrough();
     const rejected = rejectNonAdmin();
     if (rejected) return rejected;
     const index = registrations.findIndex((item) => item.id === Number(params.registrationId)
@@ -481,7 +486,7 @@ export const eventHandlers = [
   }),
 
   http.delete("/api/v1/admin/events/:eventId/registrations/:registrationId", async ({ params }) => {
-    if (realLoginEnabled) return passthrough();
+    if (realEventsEnabled) return passthrough();
     await delay(120);
     const rejected = rejectNonAdmin();
     if (rejected) return rejected;
@@ -493,7 +498,7 @@ export const eventHandlers = [
   }),
 
   http.post("/api/v1/admin/event-images/uploads", async ({ request }) => {
-    if (realLoginEnabled) return passthrough();
+    if (realEventsEnabled) return passthrough();
     await delay(120);
     const rejected = rejectNonAdmin();
     if (rejected) return rejected;
@@ -525,7 +530,7 @@ export const eventHandlers = [
   }),
 
   http.get("/api/v1/admin/events", async () => {
-    if (realLoginEnabled) return passthrough();
+    if (realEventsEnabled) return passthrough();
     await delay(120);
     const rejected = rejectNonAdmin();
     if (rejected) return rejected;
@@ -533,7 +538,7 @@ export const eventHandlers = [
   }),
 
   http.post("/api/v1/admin/events", async ({ request }) => {
-    if (realLoginEnabled) return passthrough();
+    if (realEventsEnabled) return passthrough();
     await delay(150);
     const rejected = rejectNonAdmin();
     if (rejected) return rejected;
@@ -553,7 +558,7 @@ export const eventHandlers = [
   }),
 
   http.get("/api/v1/admin/events/:eventId", async ({ params }) => {
-    if (realLoginEnabled) return passthrough();
+    if (realEventsEnabled) return passthrough();
     const rejected = rejectNonAdmin();
     if (rejected) return rejected;
     const event = events.find((candidate) => candidate.id === Number(params.eventId));
@@ -561,7 +566,7 @@ export const eventHandlers = [
   }),
 
   http.put("/api/v1/admin/events/:eventId", async ({ params, request }) => {
-    if (realLoginEnabled) return passthrough();
+    if (realEventsEnabled) return passthrough();
     await delay(150);
     const rejected = rejectNonAdmin();
     if (rejected) return rejected;
@@ -575,19 +580,25 @@ export const eventHandlers = [
   }),
 
   http.delete("/api/v1/admin/events/:eventId", async ({ params }) => {
-    if (realLoginEnabled) return passthrough();
+    if (realEventsEnabled) return passthrough();
     await delay(120);
     const rejected = rejectNonAdmin();
     if (rejected) return rejected;
     const index = events.findIndex((candidate) => candidate.id === Number(params.eventId));
     if (index < 0) return apiError(404, "EVENT_NOT_FOUND", "이벤트를 찾을 수 없습니다.");
-    cardVisits.delete(Number(params.eventId));
+    const eventId = Number(params.eventId);
+    for (let registrationIndex = registrations.length - 1; registrationIndex >= 0; registrationIndex--) {
+      if (registrationEventIds.get(registrations[registrationIndex].id) !== eventId) continue;
+      registrationEventIds.delete(registrations[registrationIndex].id);
+      registrations.splice(registrationIndex, 1);
+    }
+    cardVisits.delete(eventId);
     events.splice(index, 1);
     return new HttpResponse(null, { status: 204 });
   }),
 
   http.patch("/api/v1/admin/events/:eventId/status", async ({ params, request }) => {
-    if (realLoginEnabled) return passthrough();
+    if (realEventsEnabled) return passthrough();
     await delay(120);
     const rejected = rejectNonAdmin();
     if (rejected) return rejected;

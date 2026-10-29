@@ -71,6 +71,7 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -111,6 +112,9 @@ class EventRegistrationServiceTest {
 
     @Autowired
     private PlatformTransactionManager transactionManager;
+
+    @Autowired
+    private JdbcTemplate jdbc;
 
     @Autowired
     private EventService eventService;
@@ -193,6 +197,39 @@ class EventRegistrationServiceTest {
         assertTrue(registration.businessCard().url()
                 .endsWith("/events/cards/" + registration.businessCard().publicId()));
         assertNull(businessCardService.destination(registration.businessCard().publicId()));
+    }
+
+    @Test
+    void concurrentAdminReadsRecoverMissingQrKeyOnlyOnce() throws Exception {
+        long eventId = openEvent();
+        long id = registrationService.register(eventId, actor("010-1234-5678"), uploadedPhoto(eventId), true);
+        // 최초 마이그레이션 뒤 구버전 서버가 저장한 신청을 재현한다.
+        jdbc.update("update event_registrations set business_card_key = null where id = ?", id);
+        try (java.util.concurrent.ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            List<Future<String>> results = java.util.stream.IntStream.range(0, 2)
+                    .mapToObj(index -> executor.submit(() ->
+                            registrationService.findAllForAdmin(eventId).getFirst()
+                                    .businessCard().publicId())).toList();
+            String key = results.getFirst().get(10, TimeUnit.SECONDS);
+            assertEquals(4, UUID.fromString(key).version());
+            assertEquals(key, results.getLast().get(10, TimeUnit.SECONDS));
+            assertEquals(key, registrationRepository.findById(id).orElseThrow().getBusinessCardKey());
+            assertEquals(key, registrationService.findAllForAdmin(eventId).getFirst()
+                    .businessCard().publicId());
+        }
+    }
+
+    @Test
+    void editingLegacyCardRecoversKeyWithoutOpeningAdminListFirst() {
+        long eventId = openEvent();
+        long id = registrationService.register(eventId, actor("010-1234-5678"), uploadedPhoto(eventId), true);
+        jdbc.update("update event_registrations set business_card_key = null where id = ?", id);
+        EventBusinessCardResult card = businessCardService.updateProfile(
+                ADMIN_ID, eventId, id, "https://example.test/actor");
+        assertEquals(card.publicId(), registrationRepository.findById(id).orElseThrow().getBusinessCardKey());
+        assertEquals("https://example.test/actor", businessCardService.visit(card.publicId()));
+        assertEquals(card.publicId(), registrationService.findAllForAdmin(eventId).getFirst()
+                .businessCard().publicId());
     }
 
     @Test
@@ -279,11 +316,14 @@ class EventRegistrationServiceTest {
     @Test
     void codeConnectsMemberWhileProfileEditsAndUnlinkingKeepThePrintedQr() {
         long eventId = openEvent();
-        long registrationId = registrationService.register(
+        final long registrationId = registrationService.register(
                 eventId, actor("010-1234-5678"), uploadedPhoto(eventId), true);
         final EventBusinessCardResult original = registrationService.findAllForAdmin(eventId).getFirst().businessCard();
         Member member = memberRepository.saveAndFlush(Member.ofApplicant());
-        String code = memberLinkCodeService.issue(member.getId()).code();
+        var issued = memberLinkCodeService.issue(member.getId());
+        assertEquals(600, issued.expiresInSeconds());
+        assertEquals(30, issued.reissueAfterSeconds());
+        String code = issued.code();
         assertCode(MemberLinkCodeErrorCode.COOLDOWN, () -> memberLinkCodeService.issue(member.getId()));
         assertEquals(MemberLinkCode.hash(code), memberLinkCodeRepository.findById(member.getId()).orElseThrow()
                 .getCodeHash());

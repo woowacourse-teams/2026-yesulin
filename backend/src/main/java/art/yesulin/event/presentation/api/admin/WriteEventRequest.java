@@ -43,7 +43,7 @@ public record WriteEventRequest(
         boolean registrationConfirmationEnabled,
         @Size(max = Event.MAX_REGISTRATION_NOTICE_LENGTH) String registrationConfirmationMessage,
         @Min(1) Integer registrationCapacity,
-        @Valid BankAccount registrationBankAccount
+        BankAccount registrationBankAccount
 ) {
 
     private static final int MAX_IMAGE_URL_LENGTH = 1000;
@@ -53,7 +53,8 @@ public record WriteEventRequest(
                 title, summary, body, startsOn, endsOn, applyUrl, applyLabel,
                 registrationEnabled, registrationNotice, detailBody, businessCardClosesAt,
                 registrationConfirmationEnabled, registrationConfirmationMessage, registrationCapacity,
-                registrationBankAccount == null ? null : registrationBankAccount.toDomain()
+                registrationEnabled && registrationConfirmationEnabled && registrationBankAccount != null
+                        ? registrationBankAccount.toDomain() : null
         );
     }
 
@@ -71,9 +72,9 @@ public record WriteEventRequest(
     }
 
     public record BankAccount(
-            @NotBlank @Size(max = EventBankAccount.MAX_LENGTH) String bankName,
-            @NotBlank @Size(max = EventBankAccount.MAX_LENGTH) String accountNumber,
-            @NotBlank @Size(max = EventBankAccount.MAX_LENGTH) String accountHolder
+            String bankName,
+            String accountNumber,
+            String accountHolder
     ) {
 
         EventBankAccount toDomain() {

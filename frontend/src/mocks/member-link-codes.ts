@@ -27,6 +27,6 @@ export const memberLinkCodeHandlers = [
     const bytes = crypto.getRandomValues(new Uint8Array(8));
     const code = Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join("");
     current = { code, issuedAt: now, expiresAt: now + 600_000, used: false };
-    return HttpResponse.json({ code: `${code.slice(0, 4)}-${code.slice(4)}`, expiresAt: new Date(current.expiresAt).toISOString(), reissueAvailableAt: new Date(now + 30_000).toISOString() }, { headers: { "Cache-Control": "no-store" } });
+    return HttpResponse.json({ code: `${code.slice(0, 4)}-${code.slice(4)}`, expiresAt: new Date(current.expiresAt).toISOString(), reissueAvailableAt: new Date(now + 30_000).toISOString(), expiresInSeconds: 600, reissueAfterSeconds: 30 }, { headers: { "Cache-Control": "no-store" } });
   }),
 ];

@@ -29,6 +29,9 @@ public interface EventRegistrationRepository extends JpaRepository<EventRegistra
 
     Optional<EventRegistration> findByBusinessCardKey(String businessCardKey);
 
+    @Query("select registration.eventId from EventRegistration registration where registration.businessCardKey = :key")
+    Optional<Long> findEventIdByBusinessCardKey(@Param("key") String key);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select registration from EventRegistration registration where registration.businessCardKey = :key")
     Optional<EventRegistration> findByBusinessCardKeyForUpdate(@Param("key") String key);
