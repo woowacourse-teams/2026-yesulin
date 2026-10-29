@@ -26,6 +26,9 @@ import { AdminActionButton, AdminActionLink, AdminEmptyState, AdminShell } from 
 
 type Phase = "loading" | "ready" | "failed" | "unauthorized";
 
+const isUnauthorized = (cause: unknown) => cause instanceof AdminApiError && (cause.status === 401 || cause.status === 403);
+const messageOf = (cause: unknown, fallback: string) => cause instanceof Error ? cause.message : fallback;
+
 function producerLabel(producer: AdminProducer) {
   return `${producer.companyName ?? "회사명 없음"} · ${producer.email} · 회원 #${producer.memberId}${producer.status === "PENDING" ? " (이메일 인증 대기)" : ""}`;
 }
@@ -41,28 +44,37 @@ export function AdminAuditionPostOwners() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
-  const [producers, setProducers] = useState<readonly AdminProducer[]>([]);
+  /** 가입 회원 목록. 불러오지 못했으면 null이고, 빈 목록과 구분해 오류를 보인다. */
+  const [producers, setProducers] = useState<readonly AdminProducer[] | null>(null);
+  const [producerError, setProducerError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [fill, setFill] = useState<AdminAuditionPostAuthorFill | null>(null);
 
+  /** 회원 목록을 못 읽어도 연결 현황은 보여 준다. 권한이 없으면 어느 쪽이든 권한 화면으로 보낸다. */
   useEffect(() => {
     let active = true;
-    Promise.all([fetchAuditionPostOwners(), fetchProducers()])
-      .then(([next, members]) => {
+    Promise.allSettled([fetchAuditionPostOwners(), fetchProducers()])
+      .then(([owners, members]) => {
         if (!active) return;
-        setOverview(next);
-        setProducers(members);
-        setError(null);
-        setPhase("ready");
-      })
-      .catch((cause: unknown) => {
-        if (!active) return;
-        if (cause instanceof AdminApiError && (cause.status === 401 || cause.status === 403)) {
+        if ([owners, members].some((result) => result.status === "rejected" && isUnauthorized(result.reason))) {
           setPhase("unauthorized");
           return;
         }
-        setError(cause instanceof Error ? cause.message : "회원 연결 정보를 불러오지 못했습니다.");
-        setPhase("failed");
+        if (members.status === "fulfilled") {
+          setProducers(members.value);
+          setProducerError(null);
+        } else {
+          setProducers(null);
+          setProducerError(messageOf(members.reason, "가입 회원 목록을 불러오지 못했어요."));
+        }
+        if (owners.status === "rejected") {
+          setError(messageOf(owners.reason, "회원 연결 정보를 불러오지 못했습니다."));
+          setPhase("failed");
+          return;
+        }
+        setOverview(owners.value);
+        setError(null);
+        setPhase("ready");
       });
     return () => { active = false; };
   }, [reloadToken]);
@@ -78,7 +90,7 @@ export function AdminAuditionPostOwners() {
       reload();
       return true;
     } catch (cause) {
-      if (cause instanceof AdminApiError && (cause.status === 401 || cause.status === 403)) {
+      if (isUnauthorized(cause)) {
         setPhase("unauthorized");
         return false;
       }
@@ -150,6 +162,7 @@ export function AdminAuditionPostOwners() {
                     key={`${author.source}-${author.sourceAuthorId ?? `@${author.authorName}`}`}
                     author={author}
                     producers={producers}
+                    producerError={producerError}
                     busy={busy}
                     onLink={(ownerId) => link(author, ownerId)}
                   />
@@ -166,7 +179,7 @@ export function AdminAuditionPostOwners() {
             ) : (
               <ul className="flex flex-col gap-3">
                 {overview.owners.map((owner) => (
-                  <OwnerRow key={owner.ownerId} owner={owner} producer={producers.find((member) => member.memberId === owner.ownerId)} busy={busy} onUnlink={(authorLink) => void unlink(owner, authorLink)} />
+                  <OwnerRow key={owner.ownerId} owner={owner} producer={producers?.find((member) => member.memberId === owner.ownerId)} busy={busy} onUnlink={(authorLink) => void unlink(owner, authorLink)} />
                 ))}
               </ul>
             )}
@@ -220,9 +233,10 @@ function OwnerRow({ owner, producer, busy, onUnlink }: {
   );
 }
 
-function UnlinkedAuthorRow({ author, producers, busy, onLink }: {
+function UnlinkedAuthorRow({ author, producers, producerError, busy, onLink }: {
   readonly author: AdminUnlinkedAuthor;
-  readonly producers: readonly AdminProducer[];
+  readonly producers: readonly AdminProducer[] | null;
+  readonly producerError: string | null;
   readonly busy: boolean;
   readonly onLink: (ownerId: number) => Promise<boolean>;
 }) {
@@ -239,13 +253,14 @@ function UnlinkedAuthorRow({ author, producers, busy, onLink }: {
       ) : choosing ? (
         <div className="flex w-full flex-wrap items-center gap-2 sm:ml-auto sm:w-auto">
           <label htmlFor={selectId} className="w-full font-medium">{author.authorName}의 공고를 관리할 가입 회원</label>
-          <FieldSelect id={selectId} value={selected} disabled={busy || producers.length === 0} onChange={(event) => setSelected(event.target.value)} className="w-full min-w-0 sm:w-96">
-            <option value="" disabled>{producers.length > 0 ? "회사명·이메일을 확인하고 회원을 선택해 주세요" : "가입한 기획사·제작사 회원이 없어요"}</option>
-            {producers.map((producer) => <option key={producer.memberId} value={producer.memberId}>{producerLabel(producer)}</option>)}
+          <FieldSelect id={selectId} value={selected} disabled={busy || !producers?.length} onChange={(event) => setSelected(event.target.value)} className="w-full min-w-0 sm:w-96">
+            <option value="" disabled>{!producers ? "가입 회원 목록을 불러오지 못했어요" : producers.length > 0 ? "회사명·이메일을 확인하고 회원을 선택해 주세요" : "가입한 기획사·제작사 회원이 없어요"}</option>
+            {producers?.map((producer) => <option key={producer.memberId} value={producer.memberId}>{producerLabel(producer)}</option>)}
           </FieldSelect>
           <AdminActionButton tone="primary" disabled={busy || !selected} onClick={() => void onLink(Number(selected)).then((linked) => { if (linked) setChoosing(false); })}>이 회원에게 공고 연결</AdminActionButton>
           <AdminActionButton disabled={busy} onClick={() => setChoosing(false)}>취소</AdminActionButton>
-          {producers.find((producer) => producer.memberId === Number(selected))?.status === "PENDING" ? <p className="w-full text-xs text-warn">이 회원은 이메일 인증 대기 중이에요. 인증을 마치면 연결된 공고를 확인할 수 있어요.</p> : null}
+          {producerError ? <p role="alert" className="w-full text-xs text-fail">{producerError} 위의 새로고침을 눌러 다시 불러와 주세요.</p> : null}
+          {producers?.find((producer) => producer.memberId === Number(selected))?.status === "PENDING" ? <p className="w-full text-xs text-warn">이 회원은 이메일 인증 대기 중이에요. 인증을 마치면 연결된 공고를 확인할 수 있어요.</p> : null}
         </div>
       ) : (
         <AdminActionButton disabled={busy} onClick={() => setChoosing(true)} className="ml-auto">가입 회원 선택</AdminActionButton>

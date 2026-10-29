@@ -63,11 +63,34 @@ it("OTR 회원 번호와 가입 회원 ID로 연결하고 갱신된 연결 결�
 
 it("연결 실패 시 선택한 회원을 유지해 다시 시도할 수 있다", async () => {
   const connect = await selectMember();
-  vi.mocked(linkAuditionPostAuthor).mockRejectedValue(new Error("연결을 저장하지 못했어요."));
+  vi.mocked(linkAuditionPostAuthor).mockRejectedValueOnce(new Error("연결을 저장하지 못했어요."));
   await act(async () => connect.click());
   expect(container.querySelector('[role="alert"]')?.textContent).toContain("연결을 저장하지 못했어요.");
   expect(container.querySelector<HTMLSelectElement>("select")?.value).toBe("10");
   expect(connect.disabled).toBe(false);
+
+  vi.mocked(linkAuditionPostAuthor).mockResolvedValueOnce({
+    id: 1, source: "OTR", sourceAuthorId: "48", sourceAuthorName: "OTR 닉네임",
+    ownerId: 10, ownerName: "극단 예술", connectedPostCount: 2,
+  });
+  await act(async () => connect.click());
+  expect(linkAuditionPostAuthor).toHaveBeenCalledTimes(2);
+  expect(container.querySelector('[role="status"]')?.textContent).toContain("기존 공고 2건");
+});
+
+it("가입 회원 목록을 못 읽어도 연결 현황은 보이고, 빈 목록 대신 불러오기 오류를 알린다", async () => {
+  vi.mocked(fetchProducers).mockRejectedValue(new Error("회원 목록 서버 오류"));
+  await act(async () => root.render(<AdminAuditionPostOwners />));
+  expect(container.querySelector('[aria-labelledby="unlinked-title"]')?.textContent).toContain("OTR 닉네임");
+  expect(container.querySelector('[aria-labelledby="owner-list-title"]')).not.toBeNull();
+
+  const choose = Array.from(container.querySelectorAll("button")).find((button) => button.textContent === "가입 회원 선택")!;
+  await act(async () => choose.click());
+  const select = container.querySelector<HTMLSelectElement>("select")!;
+  expect(select.disabled).toBe(true);
+  expect(select.textContent).toContain("가입 회원 목록을 불러오지 못했어요");
+  expect(select.textContent).not.toContain("가입한 기획사·제작사 회원이 없어요");
+  expect(container.querySelector('[role="alert"]')?.textContent).toContain("회원 목록 서버 오류");
 });
 
 it("이메일 인증 대기 회원을 선택하면 공고 확인 조건을 안내한다", async () => {
