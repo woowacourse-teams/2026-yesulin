@@ -3,8 +3,8 @@ const SPRINT = "https://sprint.yesulin.art/index.html";
 
 export const technicalStories = [
   {
-    id: "discovery", label: "공고 조회 성능", status: "DEV 측정", title: "기회를 찾는 시간은 짧게",
-    audience: "오디션을 찾는 배우를 위해", value: "공고를 둘러보는 흐름이 막히지 않도록, 조회 과정의 반복 작업을 줄였어요",
+    id: "discovery", label: "공고 조회 성능", status: "DEV 측정", title: "공고를 기다리는 시간은 짧게",
+    audience: "오디션 찾기", value: "공고를 찾는 데 집중하도록, 화면을 여는 기다림을 줄이는 작업을 했어요",
     metric: "400 RPS", unit: "DEV 공고 목록 API · 60초 본 측정",
     problem: "페이지 계산과 모집 상태 집계를 따로 처리하면서 같은 공고를 반복해서 읽어 요청이 몰리면 기다림이 길어졌어요",
     solution: "집계 SQL을 3개에서 1개로 합치고, 필요한 정보를 인덱스에서 읽도록 조회 경로를 바꿨어요",
@@ -27,8 +27,8 @@ export const technicalStories = [
     links: [{ label: "배포·롤백 검증 기록", href: "https://github.com/woowacourse-teams/2026-yesulin/blob/dev/design/zero-downtime-deployment-record.md" }, { label: "스프린트 기록", href: SPRINT }],
   },
   {
-    id: "pdf", label: "AI 지원서 정리", status: "스프린트 3 기록 · DEV · 운영 미반영", title: "흩어진 PDF를, 한눈에 보는 프로필로",
-    audience: "지원서를 검토하는 공연사를 위해", value: "배우의 정보를 정리하는 일은 돕고, 심사의 결정은 담당자에게 남기는 기능을 준비하고 있어요",
+    id: "pdf", label: "AI 지원서 정리", status: "스프린트 3 기록 · DEV · 운영 미반영", title: "배우의 이력을 읽기 쉽게",
+    audience: "지원서 심사", value: "흩어진 PDF 속 정보를 한곳에 모아요 최종 심사는 사람이 결정해요",
     metric: "원문 대조", unit: "AI가 정리한 정보의 근거를 서버에서 확인",
     problem: "이메일로 받은 지원서 PDF를 하나씩 열어 보며 배우와 지원 배역을 정리해야 했어요",
     solution: "브라우저가 S3에 직접 업로드하면 Lambda가 글과 이미지를 추출해요 AI가 프로필을 정리하고, 서버가 근거 문장과 등록된 배역을 검증해요",
@@ -51,8 +51,8 @@ export const technicalStories = [
     links: [{ label: "백업·복구 기록", href: `${REPOSITORY}/design/db-backup-record.md` }, { label: "복구 절차", href: `${REPOSITORY}/backend/docs/operations/backup.md` }],
   },
   {
-    id: "reservation", label: "예매 동시성 제어", status: "구현 · 테스트 시나리오", title: "마지막 한 자리도 정확하게",
-    audience: "무료 공연을 예매하는 관객을 위해", value: "여러 사람이 동시에 예매해도 회차 정원 안에서 확정하도록, 같은 잔여석을 확인하는 순서를 제어해요",
+    id: "reservation", label: "예매 동시성 제어", status: "구현 · 테스트 시나리오", title: "예매한 자리가 겹치지 않도록",
+    audience: "무료 공연 예매", value: "예매가 몰려도 정원을 넘지 않도록, 남은 자리를 확인한 뒤 확정해요",
     metric: "9 / 10석", unit: "동시 예매 테스트에 정의된 확정 좌석 수",
     problem: "같은 회차에 예매가 겹치면 여러 요청이 같은 잔여석을 보고 정원을 넘길 수 있어요",
     solution: "공연과 회차를 순서대로 잠그고, READ COMMITTED에서 확정 매수를 다시 확인한 뒤 정원 안에서 예매를 확정해요",

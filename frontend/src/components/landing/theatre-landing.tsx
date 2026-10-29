@@ -8,7 +8,7 @@ import { BackstageTechnology } from "./backstage-technology";
 import { ServiceGuide } from "./service-guide";
 import styles from "./theatre-landing.module.css";
 
-const STAGE_IMAGE = "/images/landing/audition-room-v2.webp";
+const STAGE_IMAGE = "/images/landing/audition-room.webp";
 const LAMP_ANCHOR = { x: 0.7808014354, y: 0.6424017003 };
 const team = [
   { nickname: "피노", name: "문해찬" },
@@ -162,7 +162,7 @@ export function TheatreLanding() {
             <div className={styles.galleryHeading}><h2 id="gallery-title">다음 장면을 만나보세요</h2><Link href="/auditions" className={styles.textLink}>공고 전체 보기</Link></div>
             <div className={styles.posterViewport} tabIndex={0} role="region" aria-label="예술in 공고 아카이브, 가로로 스크롤할 수 있어요">
               <div className={styles.posterTrack} ref={trackRef}>
-                {landingPosters.map((poster) => <Link href={`/posts/${poster.id}`} className={styles.poster} key={poster.id}><div className={styles.posterImage}><Image src={poster.image} alt={`${poster.caption} 오디션 포스터`} fill sizes="(max-width: 760px) 72vw, 330px" /><span className={styles.posterVisit}><Arrow /></span></div><h3>{poster.caption}</h3></Link>)}
+                {landingPosters.map((poster) => <Link href={`/posts/${poster.id}`} className={styles.poster} key={poster.id}><div className={styles.posterImage}><Image src={poster.image} alt={`${poster.caption} 오디션 포스터`} fill sizes="(max-width: 760px) 82vw, 440px" /><span className={styles.posterVisit}><Arrow /></span></div><h3>{poster.caption}</h3></Link>)}
               </div>
             </div>
           </div>

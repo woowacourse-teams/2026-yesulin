@@ -68,9 +68,9 @@
 .posterViewport::-webkit-scrollbar { display: none; }
 .posterTrack { display: flex; gap: 28px; width: max-content; padding: 0 var(--gutter); transform: translateX(var(--gallery-x, 0px)); will-change: transform; }
 .posterViewport:focus-within .posterTrack { transform: none; }
-.poster { display: block; flex-shrink: 0; width: clamp(225px, 24vw, 330px); }
+.poster { display: block; flex-shrink: 0; width: clamp(300px, 31vw, 440px); }
 .poster:nth-child(even) { padding-top: 28px; }
-.posterImage { position: relative; height: clamp(285px, 30vw, 410px); background: #292923; overflow: hidden; }
+.posterImage { position: relative; height: clamp(400px, 57svh, 590px); background: #292923; overflow: hidden; }
 .posterImage > img { object-fit: cover; object-position: top; filter: saturate(.7) brightness(.9); transition: transform .5s, filter .5s; }
 .poster:hover .posterImage > img, .poster:focus-visible .posterImage > img { transform: scale(1.035); filter: saturate(1) brightness(1); }
 .posterVisit { display: flex; align-items: center; justify-content: center; position: absolute; bottom: 12px; right: 12px; width: 36px; height: 36px; border-radius: 50%; background: #f0ece3; color: #161714; opacity: 0; transform: translateY(8px); transition: opacity .2s, transform .2s; }
@@ -123,7 +123,8 @@
   .galleryPin { padding-top: 90px; min-height: 650px; }
   .galleryHeading h2 { font-size: 32px; }
   .posterViewport { margin-top: 24px; }
-  .posterImage { height: 310px; }
+  .poster { width: clamp(280px, 28vw, 360px); }
+  .posterImage { height: max(300px, calc(100svh - 330px)); }
   .teamPhoto { height: 310px; }
 }
 @media (max-width: 760px) {
@@ -149,8 +150,8 @@
   .galleryHeading .textLink { margin-top: 18px; font-size: 11px; }
   .posterViewport { margin-top: 28px; padding-top: 0; scroll-snap-type: x mandatory; }
   .posterTrack { padding: 0 24px; gap: 18px; transform: none; }
-  .poster { width: 69vw; max-width: 340px; scroll-snap-align: center; }
-  .posterImage { height: 87vw; max-height: 440px; }
+  .poster { width: 82vw; max-width: 400px; scroll-snap-align: center; }
+  .posterImage { height: 108vw; max-height: 540px; }
   .poster:nth-child(even) { padding-top: 24px; }
   .poster h3 { font-size: 16px; margin-top: 14px; }
   .posterVisit { opacity: 1; transform: none; width: 30px; height: 30px; }
