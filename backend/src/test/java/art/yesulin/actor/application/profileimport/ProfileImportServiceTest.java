@@ -35,6 +35,8 @@ import art.yesulin.pdfextraction.application.FakePdfExtractionStorage;
 import art.yesulin.pdfextraction.application.PdfExtractionResultParser;
 import art.yesulin.pdfextraction.application.PdfExtractionResultReceiver;
 import art.yesulin.pdfextraction.application.PdfExtractionService;
+import art.yesulin.pdfextraction.application.ai.PdfAiProperties;
+import art.yesulin.pdfextraction.application.ai.PdfAiQueueService;
 import art.yesulin.pdfextraction.domain.PdfExtractionErrorCode;
 import art.yesulin.pdfextraction.domain.PdfExtractionJob;
 import art.yesulin.pdfextraction.domain.PdfExtractionJobRepository;
@@ -42,6 +44,9 @@ import art.yesulin.pdfextraction.domain.PdfExtractionOwnerType;
 import art.yesulin.pdfextraction.domain.PdfExtractionPayload;
 import art.yesulin.pdfextraction.domain.PdfExtractionPayloadRepository;
 import art.yesulin.pdfextraction.domain.PdfExtractionPurpose;
+import art.yesulin.pdfextraction.domain.ai.PdfAiGateRepository;
+import art.yesulin.pdfextraction.domain.ai.PdfAiJob;
+import art.yesulin.pdfextraction.domain.ai.PdfAiJobRepository;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -66,6 +71,8 @@ class ProfileImportServiceTest {
     private final Map<String, PdfExtractionPayload> storedPayloads = new HashMap<>();
     private final AtomicReference<Instant> now = new AtomicReference<>(NOW);
     private final FakePdfExtractionStorage storage = new FakePdfExtractionStorage();
+    private final PdfAiJobRepository aiJobs =
+            mock(PdfAiJobRepository.class);
     private final FileService files = mock(FileService.class);
     private final PhotoLibraryService photos = mock(PhotoLibraryService.class);
     private PdfExtractionService extraction;
@@ -78,12 +85,19 @@ class ProfileImportServiceTest {
         PdfExtractionPayloadRepository payloads = payloadRepository();
         Clock clock = mock(Clock.class);
         when(clock.instant()).thenAnswer(call -> now.get());
-        extraction = new PdfExtractionService(repository, payloads, storage, MAPPER, clock);
+        extraction = new PdfExtractionService(repository, payloads, storage, MAPPER, clock,
+                mock(PdfAiJobRepository.class), event -> {});
+        when(aiJobs.save(any())).thenAnswer(call -> call.getArgument(0));
+        PdfAiProperties properties = new PdfAiProperties(false, "gemini", "test-model", "unused", 1, 3,
+                Duration.ofMinutes(2), Duration.ofSeconds(10));
+        PdfAiQueueService queue = new PdfAiQueueService(aiJobs, mock(PdfAiGateRepository.class), payloads,
+                MAPPER, event -> {}, properties, clock);
         receiver = new PdfExtractionResultReceiver(repository, payloads,
-                new PdfExtractionResultParser(storage, MAPPER), storage, event -> {}, MAPPER, clock);
+                new PdfExtractionResultParser(storage, MAPPER), storage, event -> {}, MAPPER, clock, queue);
         MemberRepository members = mock(MemberRepository.class);
         when(members.findForUpdate(anyLong())).thenReturn(Optional.of(Member.ofApplicant()));
-        service = new ProfileImportService(repository, payloads, storage, extraction, files, photos, clock, members);
+        service = new ProfileImportService(repository, payloads, storage, extraction, files, photos, clock,
+                members, aiJobs);
         when(photos.findPhotos(ACTOR)).thenReturn(new PhotoLibraryResult(List.of()));
     }
 
@@ -228,6 +242,43 @@ class ProfileImportServiceTest {
         verify(files, times(1)).createPrivateActorPhoto(anyLong(), anyString(), anyString(), any());
     }
 
+    @Test
+    void closingAnImportAlsoDeletesItsStoredAiProfile() {
+        String jobId = uploaded();
+        receive(jobId, true);
+        PdfAiJob ai = completedAi(jobId);
+
+        service.close(ACTOR, jobId);
+
+        verify(aiJobs).delete(ai);
+        assertTrue(jobs.get(jobId).isDeleted());
+        assertFalse(storedPayloads.containsKey(jobId));
+    }
+
+    @Test
+    void retentionCleanupAlsoDeletesItsStoredAiProfile() {
+        String jobId = uploaded();
+        receive(jobId, true);
+        PdfAiJob ai = completedAi(jobId);
+        now.set(NOW.plus(Duration.ofHours(24)).plusSeconds(1));
+
+        assertEquals(1, service.deleteExpired());
+
+        verify(aiJobs).delete(ai);
+        assertTrue(jobs.get(jobId).isDeleted());
+        assertFalse(storedPayloads.containsKey(jobId));
+    }
+
+    private PdfAiJob completedAi(String jobId) {
+        PdfAiJob ai =
+                new PdfAiJob(jobId, null, ACTOR, "[]", NOW);
+        String token = ai.acquire(NOW, Duration.ofMinutes(2), "gemini", "test-model", "v1");
+        ai.complete(token, "{\"applicantName\":\"가상배우\"}", NOW);
+        when(aiJobs.findForUpdate(jobId)).thenReturn(Optional.of(ai));
+        when(aiJobs.findById(jobId)).thenReturn(Optional.of(ai));
+        return ai;
+    }
+
     private String uploaded() {
         String jobId = service.prepare(ACTOR, "프로필.pdf", 1_000).jobId();
         service.complete(ACTOR, jobId);
@@ -288,13 +339,14 @@ class ProfileImportServiceTest {
                         .filter(job -> job.getPurpose() == call.getArgument(1))
                         .filter(job -> !job.getCreatedAt().isBefore(call.getArgument(2)))
                         .toList());
-        when(repository.findExpired(any(), any(), any())).thenAnswer(call -> {
+        when(repository.findExpiredIds(any(), any(), any())).thenAnswer(call -> {
             Instant before = call.getArgument(1);
             return jobs.values().stream()
                     .filter(job -> job.getPurpose() == call.getArgument(0) && !job.isDeleted())
                     .filter(job -> (job.getFinishedAt() == null ? job.getCreatedAt() : job.getFinishedAt())
                             .isBefore(before))
                     .sorted((left, right) -> left.getCreatedAt().compareTo(right.getCreatedAt()))
+                    .map(PdfExtractionJob::getId)
                     .toList();
         });
         return repository;

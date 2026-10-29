@@ -97,6 +97,20 @@ MSW도 한국 시간의 게시일 필터·정렬·합계를 동일하게 적용�
 
 제목·배역으로 심사를 생성해 지원서를 연결하는 후속 흐름은 [PDF 지원서 심사](pdf-reviews.md)를 따른다.
 
+Spring AI 작업으로 이전해도 기존 `result.applicantInfo`의 이름·배역·프로필 응답 형식은 유지한다.
+심사 진행률의 `waiting`은 PDF 콜백 대기와 AI 작업의 대기·실행을 포함하므로 기존 폴링을 그대로 사용한다.
+AI 실패가 PDF 추출 실패를 뜻하지 않으며 원본 PDF와 추출 결과는 계속 조회할 수 있다.
+진행률 응답에는 PDF 단계 `pdf`와 AI 단계 `ai` 건수가 함께 오며, 지원서 항목의 선택적 `processingStatus`
+(`UPLOADING`→`EXTRACTING`→`ENRICHING`→`READY`/`NEEDS_REVIEW`, 추출 실패는 `FAILED`)는 판정·배역 일치와 별개로 표시한다.
+이전 응답에는 이 필드들이 없을 수 있어 타입이 선택값이다.
+
+심사 생성의 모집 배역은 선택이다. 비워 두면 `roles: []`로 보내며 서버는 이를 배역 구분이 없는 자유 배역 심사로 저장한다.
+화면은 `roles.length === 0`일 때 배역 필터를 "자유 배역" 하나로 표시하고, 지원서는 배역 일치를 찾지 못해 확인 필요로 남는다.
+배역이 있는 심사는 서버의 중복·개수(50)·이름(100자) 검증 오류를 그대로 보여 준다.
+
+서버 추출 모드에서 PUT 뒤 completion 호출이 사라져도 서버가 업로드 URL 만료 후 60초까지만 원본을 찾아 확정한다.
+그 뒤에는 화면이 completion을 다시 호출해야 하며(`UPLOAD_EXPIRED` 행의 "업로드 완료 확인"), 300건 규모의 업로드 부하는 검증하지 않았다.
+
 `features/pdf-extractions`가 `/api/v1/pdf-extractions/**`를 호출하고 `components/pdf-extractions`가 다중 파일 선택과
 파일별 상태·원본 viewer·추출 텍스트·이미지를 표시한다. `/producers/pdf-extractions`는 기존 공연사 세션을 사용한다.
 파일은 하나씩 URL을 발급받아 동시에 2개만 읽고 PUT한다. 전체 선택 파일을 미리 arrayBuffer로 읽지 않는다.
@@ -187,3 +201,7 @@ LocalStack·Lambda·Spring 실행 방법은 [로컬 추출 실행 안내](../../
 모두 꺼진 순수 목에서는 이벤트 삭제 시 신청·QR·방문 기록도 함께 지운다.
 회원 연결 코드는 서버의 `expiresInSeconds`·`reissueAfterSeconds`를 받아 응답 수신 후 `performance.now()`의 경과 시간으로
 계산한다. 기기의 날짜·시각이 틀리거나 바뀌어도 유효시간과 재발급 대기를 절대 시각으로 재계산하지 않는다.
+PDF 심사 피드백 UI는 기존 PATCH 계약을 유지하며, 보류 버튼은 decision=HOLD와 현재 메모를 보낸다.
+대기/합격/보류/불합격 탭은 각각 PENDING/PASS/HOLD/FAIL을 따로 표시한다. SNS·영상은 기존 추출 pages[].text의
+명시된 Instagram/YouTube 웹 주소를 표시하는 화면 변환이며 응답 필드나 모델 출력 계약은 추가하지 않는다.
+PDF 심사 API의 MSW passthrough는 유지한다. 자세한 업로드·화면 동작은 [PDF 심사 화면](pdf-reviews.md)을 따른다.

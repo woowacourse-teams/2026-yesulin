@@ -84,9 +84,20 @@ UNKNOWN은 자동 재전송하지 않는다. FAILED 중 code=RETRIED는 후속 �
 전체 응답은 `Cache-Control: no-store`다. 제목·배역 기반 심사 등록과 선택적 AI 정보 정리(v1/v2 프로필)와 `PATCH /api/v1/pdf-reviews/{id}/role-assignments`는
 [PDF 심사 API](pdf-reviews.md)를 따른다.
 `GET /api/v1/pdf-reviews/{reviewId}/progress`는 본인 심사의 DB 작업 상태만 집계한
-`{total,uploading,waiting,completed,partial,failed,complete}`를 반환한다. PDF·S3·모델은 조회하지 않는다.
+`{total,uploading,waiting,completed,partial,failed,complete,pdf,ai}`를 반환한다. PDF·S3·모델은 조회하지 않는다.
+`pdf`는 `{uploading,queued,completed,partial,failed}`, `ai`는 `{notQueued,pending,running,completed,failed,skipped}` 건수다.
 `complete`는 처리 종료 여부이며 실패가 없다는 뜻은 아니다. 상세 집계 규칙은 같은 PDF 심사 API 문서를 따른다.
-AI 호출은 Lambda에서 수행하며 OCR은 포함하지 않는다. 완료 결과에는 선택적으로 `applicantInfo`가 포함된다.
+심사 생성 요청의 `roles`는 빈 배열도 받는다(최대 50개, 중복 불가, 이름 100자 이하). 빈 배열은 배역 구분이 없는 자유 배역 심사이며,
+이때 규칙·AI 모두 일치하는 배역을 찾지 못해 지원서는 `matchStatus=NEEDS_CHECK`, `roleId=null`이 된다.
+지원서 항목의 `processingStatus`(`UPLOADING`,`EXTRACTING`,`ENRICHING`,`READY`,`NEEDS_REVIEW`,`FAILED`)는 파일 처리 단계이며
+판정·배역 일치와 독립이다.
+AI 보정은 `YESULIN_PDF_AI_ENABLED=true`일 때 Spring의 DB 작업자가 수행하며 OCR은 포함하지 않는다.
+모델은 `YESULIN_PDF_AI_MODEL_ID`로 지정한다. 로컬은 Gemini, dev·prod는 Bedrock이며 Bedrock 기본 모델 ID는 Haiku
+(`global.anthropic.claude-haiku-5-5`)다. Luna 등 다른 모델은 같은 설정의 모델 ID 교체로 지정하며 코드에 모델별 분기는 없다.
+Dev EC2 InvokeModel로 Haiku·Luna 호출 성공을 확인했다. 배포 Spring Converse 경로와 Prod 역할은 미확인이다. Bedrock 실패 시 Gemini로 대체하지 않는다.
+상세 응답의 선택적 `applicantInfo` 형식은 유지한다. 기존 Lambda가 보낸 AI 결과도 계속 받아 배포 순서를 보장한다.
+Spring AI 결과는 별도 테이블에서 응답에 조립하며 원래 콜백 payload와 멱등 해시는 바꾸지 않는다.
+PDF 처리·오류·재시도 경계는 [공용 PDF 흐름](../src/main/java/art/yesulin/pdfextraction/docs/flows/pdf-extraction.md)을 따른다.
 
 | Method | URL | 요청 / 응답 |
 | --- | --- | --- |
@@ -96,23 +107,23 @@ AI 호출은 Lambda에서 수행하며 OCR은 포함하지 않는다. 완료 결
 | GET | `/api/v1/pdf-extractions/{jobId}?includeResult=false` | 파일별 상태 조회. DB 상태만 읽고 S3는 조회하지 않음 |
 | GET | `/api/v1/pdf-extractions/{jobId}?includeResult=true` | 원본 임시 GET URL과 페이지별 텍스트·추출 이미지 URL을 포함한 job. 최종 상태일 때만 DB에 저장된 결과를 읽음 |
 | POST | `/internal/v1/pdf-extractions/completions` | Lambda 전용. 아래 "Lambda 결과 전달" 참고. 성공 시 200 `{jobId,status}` |
-| GET | `/internal/v1/pdf-extractions/{jobId}/review-context` | 워커 Bearer 전용. 작업 목적과 등록 심사·배역, 결과 저장 여부. [PDF 심사](pdf-reviews.md) 참고 |
 
 job은 `jobId,originalFilename,size,createdAt,uploadedAt,status,sourceFileKey,resultFileKey,sourceUrl,result`다.
 목록·상태 조회의 `sourceUrl,result`는 null이며, 상세 조회에서만 채운다. result는 `status,sourceSha256,errorCode,warnings,pages`와
 선택적 `applicantInfo`(이전 워커는 생략)이고,
 page는 `number,text,needsOcr,images`, image는 `fileKey,url,classification=UNCLASSIFIED`다.
 URL은 응답 시 새로 서명하며 DB에는 저장하지 않는다. 원본·이미지는 공개 CDN으로 바꾸지 않는다.
-`resultFileKey`는 Lambda 재시도용 `result.json` 위치를 알려 줄 뿐 Spring은 이 객체를 읽지 않는다.
+`resultFileKey`는 Lambda 재시도용 `result.json` 위치를 알려 줄 뿐 조회 API는 이 객체를 읽지 않는다. Lambda만 재시도 때 재사용한다.
 
-파일당 PDF 25MiB, 파일명 255자 이하를 받는다. 프론트는 최대 800개를 선택하되 파일별로 URL을 발급하고 동시에 2개만 PUT한다.
+파일당 PDF 25MiB, 파일명 255자 이하를 받는다. 서버는 파일명(NFC 정규화, `.pdf`)과 크기를 검증하고 확장자 `pdf`·`application/pdf`를
+고정하며 생성 후 바꾸지 않는다. 심사 프론트는 최대 300개를 선택하고 파일별로 URL을 발급해 제한된 수로 PUT한다. 독립 추출 진단 화면의 선택 상한은 별도다.
 URL은 파일 한 개의 PUT을 서명하며 파일 여러 개를 한 URL에 넣지 않는다. 크기·Content-Type·`If-None-Match: *`를 서명해
 같은 원본 키를 덮어쓰지 않는다. URL 만료는 새 PUT만 막는다. 본인 작업의 원본이 이미 있고 크기·형식·PDF 서명이 맞으면
 만료 후 시간이 지나도 completion이 확인하며, 확인을 마친 작업의 재확인은 멱등이다. 조회(GET)는 원본을 찾거나 확인하지 않는다.
 
 PUT 완료가 Lambda 완료를 뜻하지 않는다. completion은 업로드만 확인하며 Lambda를 호출하지 않는다.
 설정된 S3 ObjectCreated 트리거가 파일별 비동기 처리를 시작한다.
-완료 알림은 로그인한 공연사의 SSE 연결(`/api/v1/pdf-extractions/events`)로 보낸다. 화면은 연결·재연결·완료 알림 때 DB 목록을 동기화하고, 정기적인 상태 폴링은 하지 않는다. 연결이 끊기면 수동 새로고침으로도 확인할 수 있다.
+심사 화면은 진행률을 폴링하고 종료 시 DB 목록을 동기화한다. 별도 추출 진단 화면은 SSE(`/api/v1/pdf-extractions/events`)를 사용한다. SSE는 처리 보장의 필수 조건이 아니다.
 
 상태는 `UPLOADING`, `UPLOAD_EXPIRED`, `QUEUED`, `DELAYED`, `COMPLETED`, `PARTIAL`, `FAILED`다.
 10분 이상 결과가 없어도 실패로 단정하지 않고 DELAYED로 표시한다. `needsOcr`는 텍스트가 비었다는 힌트이며 OCR 수행 결과가 아니다.
@@ -134,13 +145,15 @@ status,warnings,pages[number,text,needsOcr,images[status,key]]`)다. 소유자�
   `status`가 `COMPLETED/PARTIAL/FAILED`이며 직렬화 2MiB 이하, 50쪽 이하, 이미지 100개 이하, 쪽당 문자 100,000자 이하(전체 결과 JSON은 2MiB 이하),
   쪽 번호가 1 이상이고 중복이 없어야 한다. 어긋나면 `400 INVALID_PDF_EXTRACTION_RESULT`, 없는 작업은 `404 PDF_EXTRACTION_NOT_FOUND`다.
 - 저장: 검증한 결과(경고는 표시 문장으로 변환, 이미지는 `EXTRACTED`만, URL 제외)를 작업당 한 번 `pdf_extraction_payloads`에
-  JSON과 서버가 계산한 SHA-256으로 저장하고 작업 상태·`uploadedAt`을 같은 트랜잭션에서 갱신한다. 프론트 completion보다 먼저 와도
+  JSON과 서버가 계산한 SHA-256으로 저장한다(저장 뒤 수정하지 않으며 AI 결과는 별도 작업에 둔다). 작업 상태·`uploadedAt`을 같은 트랜잭션에서 갱신한다. 프론트 completion보다 먼저 와도
   유효하며 이때 `uploadedAt`을 기록한다. 이후 프론트 completion은 최종 상태를 덮지 않는다.
+- 배우 프로필(`ACTOR_PROFILE`)은 추출 결과를 저장한 뒤 AI가 대기/실행 중이면 작업 상태를 `QUEUED`로 유지한다.
+  AI 완료·최종 실패·생략 시 결과를 확정하고 종료 시각·일일 사용 여부를 기록한다. 공연사 추출 완료와 AI 완료는 별개다.
 - 멱등성: 같은 작업에 같은 결과를 다시 보내면 `200`이고 이벤트를 다시 발행하지 않는다. 다른 결과는 `409 PDF_EXTRACTION_RESULT_CONFLICT`다.
-- 이벤트: 최초 접수 시 실패 결과도 포함해 같은 트랜잭션에서 `PdfExtractionCompletedEvent(jobId, ownerId, text)`를 동기 발행한다.
+- 이벤트: 최초 접수 시 실패 결과도 포함해 같은 트랜잭션에서 `PdfExtractionCompletedEvent(jobId, ownerId, text, applicantInfo)`를 동기 발행한다.
   `text`는 쪽 번호 순서로 `\n\n`으로 이은 추출 문자다. 리스너가 실패하면 저장과 상태 변경 전체를 되돌려 Lambda가 재시도할 수 있다.
 
-Spring은 `result.json`을 읽거나 목록 조회하지 않는다. 상세 조회는 DB 결과를 읽고 이미지·원본 URL만 새로 서명한다.
+조회 API는 `result.json`을 읽거나 목록 조회하지 않는다. 상세 조회는 DB 결과를 읽고 이미지·원본 URL만 새로 서명한다.
 
 - `400 INVALID_PDF`: 확장자·크기·PDF 서명이 부적절하다.
 - `409 PDF_UPLOAD_NOT_READY`: 아직 객체가 없거나 업로드 크기·형식이 맞지 않는다.
@@ -1035,8 +1048,8 @@ proposals: name, birthDate, age, height, education ({value, evidence} 또는 nul
   가져오기를 했는지다.
 - status는 PDF 추출 확인과 같다(`UPLOADING`, `UPLOAD_EXPIRED`, `QUEUED`, `DELAYED`, `COMPLETED`, `PARTIAL`, `FAILED`).
   proposals는 결과가 나왔을 때만 있다. 화면은 몇 초 간격으로 상태를 다시 읽으며, 공연사 완료 알림(SSE)은 쓰지 않는다.
-- 제안 값은 워커가 원문에서 옮겨 적은 문자열 그대로이고 근거 구절을 함께 준다. 날짜·키 단위·장르를 바꾸거나 추정하지 않는다.
-  워커가 옮기는 경력은 원문 순서로 최대 5개다. photos는 워커가 사진일 가능성이 높다고 분류한(`CANDIDATE`) 이미지만 담고,
+- 제안 값은 Spring AI가 원문에서 옮겨 적고 근거를 검증한 문자열이며 근거 구절을 함께 준다. 날짜·키 단위·장르를 바꾸거나 추정하지 않는다.
+  AI가 옮기는 경력은 원문 순서로 최대 5개다. photos는 워커가 사진일 가능성이 높다고 분류한(`CANDIDATE`) 이미지만 담고,
   url은 잠시 동안만 쓸 수 있는 비공개 주소다. 자동으로 프로필에 저장하지 않는다.
 - 하루 1회(한국 날짜)다. 실패와 제안 값이 하나도 없는 결과는 세지 않고, 일부만 나온 결과는 1회로 센다. 닫거나 지운 작업도
   센다. 이미 썼으면 업로드 준비가 `409 PROFILE_IMPORT_DAILY_LIMIT`이다. 올리는 중이거나 읽는 중인 작업이 있으면 새 업로드와

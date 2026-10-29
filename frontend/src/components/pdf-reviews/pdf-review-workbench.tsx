@@ -8,6 +8,7 @@ import { matchesDecision, matchesFilter, type DecisionFilter, type EntryFilter, 
 import { useReviewProgress } from "@/features/pdf-reviews/use-review-progress";
 import { usePdfReviews } from "@/features/pdf-reviews/use-pdf-reviews";
 import { useReviewUploads } from "@/features/pdf-reviews/use-review-uploads";
+import { collectDroppedPdfs } from "@/features/pdf-reviews/upload-selection";
 import { ReviewCreateForm } from "./review-create-form";
 import { ReviewList } from "./review-list";
 import { ReviewLoginGate, SessionExpiredNotice } from "./review-session";
@@ -40,7 +41,11 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
   const [view, setView] = useState<"single" | "card" | "table">("single");
   const [detailRefresh, setDetailRefresh] = useState(0);
   const [drag, setDrag] = useState(false);
+  const [selectionError, setSelectionError] = useState("");
+  const [collecting, setCollecting] = useState(false);
+  const collectingRef = useRef(false);
   const uploadInput = useRef<HTMLInputElement>(null);
+  const uploadFolderInput = useRef<HTMLInputElement>(null);
   const dirty = useRef(false);
   const onDirtyChange = useCallback((value: boolean) => { dirty.current = value; }, []);
   const [pendingNavigation, setPendingNavigation] = useState<{ action: () => void } | null>(null);
@@ -66,19 +71,29 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
   function openReview(id: ReviewKey) { navigate(() => { setFilter("ALL"); setDecision("PENDING"); setHome(false); reviews.open(id); }); }
   function created(next: ReviewDetail) { closeCreate(); setFilter("ALL"); setDecision("PENDING"); setHome(false); reviews.created(next); }
   function manualRefresh() { setExpired(false); setDetailRefresh(value => value + 1); void reviews.refresh(); }
-  const chips: { value: EntryFilter; label: string }[] = [{ value: "ALL", label: "전체 배역" },
-    ...(review?.roles ?? []).map(role => ({ value: { roleId: role.id }, label: role.name })), { value: "NEEDS_CHECK", label: "미기재" }];
+  const chips: { value: EntryFilter; label: string }[] = review?.roles.length === 0
+    ? [{ value: "ALL", label: "자유 배역" }]
+    : [{ value: "ALL", label: "전체 배역" }, ...(review?.roles ?? []).map(role => ({ value: { roleId: role.id }, label: role.name })), { value: "NEEDS_CHECK", label: "미기재" }];
   const filterKey = typeof filter === "object" ? String(filter.roleId) : filter;
-  const uploadProps = { busy: uploads.busy,
+  const uploadProps = { busy: uploads.busy || collecting,
     disabled: expired,
-    onChoose: (files: FileList | readonly File[] | null) => { if (review) uploads.choose(review.id, files, review.entries.length); },
+    onChoose: (files: FileList | readonly File[] | null) => { setSelectionError(""); if (review) uploads.choose(review.id, files, review.entries.length); },
   };
+  async function dropFiles(transfer: DataTransfer) {
+    if (!review || uploads.busy || expired || collectingRef.current) return;
+    // 수집을 시작한 심사를 고정한다. 도중에 화면을 바꿔도 다른 심사에 파일을 올리지 않는다.
+    const destination = { id: review.id, count: review.entries.length };
+    collectingRef.current = true; setCollecting(true); setSelectionError("");
+    try { uploads.choose(destination.id, await collectDroppedPdfs(transfer), destination.count); }
+    catch (cause) { setSelectionError(cause instanceof Error ? cause.message : "폴더를 읽지 못했습니다. 다시 선택해 주세요."); }
+    finally { collectingRef.current = false; setCollecting(false); }
+  }
   const uploadMessage = String(uploads.messageReviewId) === String(review?.id) ? uploads.message : "";
   return <div className={`${styles.root} ${home ? "" : `${styles.integrated} ${review?.entries.length ? styles.compactInbox : ""}`}`}
-    onDragOver={event => { if (!home && event.dataTransfer.types.includes("Files")) { event.preventDefault(); event.dataTransfer.dropEffect = uploads.busy || expired ? "none" : "copy"; setDrag(!uploads.busy && !expired); } }}
+    onDragOver={event => { if (!home && event.dataTransfer.types.includes("Files")) { event.preventDefault(); event.dataTransfer.dropEffect = uploadProps.busy || expired ? "none" : "copy"; setDrag(!uploadProps.busy && !expired); } }}
     onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setDrag(false); }}
-    onDrop={event => { if (!home) { event.preventDefault(); setDrag(false); if (!uploads.busy && !expired) uploadProps.onChoose(event.dataTransfer.files); } }}
-    onPaste={event => { if (!home && !(event.target as HTMLElement).closest('input,textarea,[contenteditable=true]') && event.clipboardData.files.length && !uploads.busy && !expired) { event.preventDefault(); uploadProps.onChoose(event.clipboardData.files); } }}>
+    onDrop={event => { if (!home) { event.preventDefault(); setDrag(false); void dropFiles(event.dataTransfer); } }}
+    onPaste={event => { if (!home && !(event.target as HTMLElement).closest('input,textarea,[contenteditable=true]') && event.clipboardData.files.length && !uploadProps.busy && !expired) { event.preventDefault(); uploadProps.onChoose(event.clipboardData.files); } }}>
     {drag && !!review?.entries.length && <div className={styles.dropOverlay}>PDF를 여기에 놓으세요</div>}
     {!authorized ? <ReviewLoginGate local={local} ready={sessionReady} /> : <>
       {expired && <SessionExpiredNotice local={local} onRecheck={manualRefresh} />}
@@ -90,28 +105,32 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
           <header className={styles.header}><nav className={styles.breadcrumb} aria-label="심사함 경로"><ol><li><button type="button" className={styles.homeLink} onClick={() => navigate(() => setHome(true))}>심사함</button></li><li aria-hidden="true" className={styles.breadcrumbSeparator}>›</li><li aria-current="page"><h1 title={review.title}>{review.title}</h1></li></ol></nav>
             <p className={styles.reviewCounts}><span>전체 <b className="num">{review.entries.length}</b>명</span><span>판정 완료 <b className="num">{review.entries.filter(item => item.decision === "PASS" || item.decision === "FAIL").length}</b>명</span></p>
           </header>
-          <ReviewUploadPanel {...uploadProps} inputRef={uploadInput}>
+          <ReviewUploadPanel {...uploadProps} inputRef={uploadInput} folderInputRef={uploadFolderInput}>
             <nav className={styles.roleBar} aria-label="배역별 지원자"><div className={styles.roleChips}>{chips.map(chip => {
               const key = typeof chip.value === "object" ? String(chip.value.roleId) : chip.value;
               return <button type="button" key={key} aria-pressed={filterKey === key} onClick={() => navigate(() => setFilter(chip.value))}>{chip.label}<span className="num">{review.entries.filter(item => matchesFilter(item, chip.value)).length}</span></button>;
             })}</div></nav>
           </ReviewUploadPanel>
-          {filter === "NEEDS_CHECK" && <p className={styles.roleHint}>심사 배역이 아직 지정되지 않은 지원자입니다. PDF의 지원 배역을 확인하고 ‘배역 변경’으로 지정해 주세요.</p>}
+          {filter === "NEEDS_CHECK" && <p className={styles.roleHint}>심사 배역이 아직 지정되지 않은 지원자입니다. ‘배역 설정’에서 분류해 주세요.</p>}
+          {selectionError && <p role="alert" className="text-sm text-fail">{selectionError}</p>}
           {reviews.detailError && <p role="alert" className="text-fail">{reviews.detailError}</p>}
         </div>
         <div className="px-4 md:px-6 xl:px-8">
           <div className={styles.boardToolbar}>
-            <div role="group" aria-label="심사 상태" className={styles.decisionTabs}>{([['PENDING','대기'],['PASS','합격'],['FAIL','불합격']] as const).map(([value,label]) => <button type="button" key={value} aria-pressed={decision === value} onClick={() => navigate(() => setDecision(value))}>{label}<span className="num">{review.entries.filter(item => matchesFilter(item, filter) && matchesDecision(item, value)).length}</span></button>)}</div>
+            <div role="group" aria-label="심사 상태" className={styles.decisionTabs}>{([['PENDING','대기'],['PASS','합격'],['HOLD','보류'],['FAIL','불합격']] as const).map(([value,label]) => <button type="button" key={value} aria-pressed={decision === value} onClick={() => navigate(() => setDecision(value))}>{label}<span className="num">{review.entries.filter(item => matchesFilter(item, filter) && matchesDecision(item, value)).length}</span></button>)}</div>
             <div role="group" aria-label="보기 방식" className={styles.viewTabs}>{([['single','한 명씩'],['card','카드'],['table','표']] as const).map(([value,label]) => <button type="button" key={value} aria-pressed={view === value} onClick={() => navigate(() => setView(value))}>{label}</button>)}</div>
           </div>
           {!visible.length ? review.entries.length ? <div className={styles.emptyDrop}><h2>이 조건에 해당하는 지원자가 없습니다.</h2><p>배역이나 심사 상태를 바꿔 확인해 주세요.</p></div> :
-            <button type="button" className={styles.uploadDropzone} data-dragging={drag} disabled={uploads.busy || expired} onClick={() => uploadInput.current?.click()} aria-labelledby="pdf-drop-title" aria-describedby="pdf-drop-description pdf-drop-limit">
+            <div className={styles.uploadDropzone} data-dragging={drag} aria-labelledby="pdf-drop-title" aria-describedby="pdf-drop-description pdf-drop-limit">
               <span className={styles.dropIcon} aria-hidden="true"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6M12 18v-7m-3 3 3-3 3 3" /></svg></span>
-              <span id="pdf-drop-title" className={styles.dropTitle}>{uploads.busy ? "PDF를 올리고 있어요" : drag ? "여기에 놓으면 업로드가 시작돼요" : "지원자 PDF를 여기에 끌어 놓으세요"}</span>
-              <span id="pdf-drop-description" className={styles.dropDescription}>{uploads.busy ? "준비된 지원자부터 바로 심사할 수 있어요." : "한 명씩, 또는 여러 명의 지원서를 한 번에 추가할 수 있어요."}</span>
-              <span className={styles.dropChoose} aria-hidden="true">{uploads.busy ? "업로드 중…" : "파일 선택하기"}<span aria-hidden="true">{uploads.busy ? "" : "→"}</span></span>
+              <span id="pdf-drop-title" className={styles.dropTitle}>{uploads.busy ? "PDF를 올리고 있어요" : drag ? "여기에 놓으면 업로드가 시작돼요" : "지원서 PDF나 폴더를 한 번에 끌어 놓으세요"}</span>
+              <span id="pdf-drop-description" className={styles.dropDescription}>{uploads.busy ? "준비된 지원자부터 바로 심사할 수 있어요." : "여러 파일을 함께 선택하거나 폴더째 올릴 수 있어요. 폴더 안의 PDF만 가져옵니다."}</span>
+              <div className="flex flex-wrap justify-center gap-3">
+                <button type="button" className={styles.dropChoose} disabled={uploadProps.busy || expired} onClick={() => uploadInput.current?.click()}>파일 선택하기 <span aria-hidden="true">→</span></button>
+                <button type="button" className={styles.dropChoose} disabled={uploadProps.busy || expired} onClick={() => uploadFolderInput.current?.click()}>폴더 선택하기 <span aria-hidden="true">→</span></button>
+              </div>
               <span id="pdf-drop-limit" className={styles.dropLimit}>PDF · 한 번에 최대 300개 · 파일당 최대 25MiB</span>
-            </button>
+            </div>
             : <ScreeningBoard key={`${review.id}-${filterKey}-${decision}-${view}`} review={review} entries={visible} decision={decision} view={view} refreshKey={detailRefresh} onSaved={reviews.replaceEntry} onUnauthorized={markExpired} onDirtyChange={onDirtyChange} onApplicantOpened={recheckProgress} navigate={navigate} />}
         </div>
       </>}

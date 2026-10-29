@@ -29,15 +29,15 @@ public interface PdfExtractionJobRepository extends JpaRepository<PdfExtractionJ
             long ownerId, PdfExtractionPurpose purpose, Instant from
     );
 
-    /** 24시간이 지난 배우 가져오기 결과. 결과가 없는 작업은 만든 지 24시간이 지나면 함께 지운다. */
+    /** 정리 후보는 ID만 읽어 AI → 원본 행 순서로 잠그기 전의 오래된 엔티티를 보관하지 않는다. */
     @Query("""
-            select job from PdfExtractionJob job
+            select job.id from PdfExtractionJob job
             where job.purpose = :purpose and job.deletedAt is null
               and ((job.finishedAt is not null and job.finishedAt < :before)
                 or (job.finishedAt is null and job.createdAt < :before))
             order by job.createdAt
             """)
-    List<PdfExtractionJob> findExpired(PdfExtractionPurpose purpose, Instant before, Pageable pageable);
+    List<String> findExpiredIds(PdfExtractionPurpose purpose, Instant before, Pageable pageable);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select job from PdfExtractionJob job where job.id = :id")

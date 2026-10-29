@@ -4,14 +4,13 @@ import static art.yesulin.pdfextraction.domain.PdfExtractionErrorCode.INVALID_PD
 
 import art.yesulin.global.exception.BusinessException;
 import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import java.text.Normalizer;
 import java.time.Instant;
-import java.util.Locale;
 import java.util.Objects;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -24,7 +23,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PdfExtractionJob {
 
-    public static final long MAX_FILE_BYTES = 25L * 1024 * 1024;
+    public static final long MAX_FILE_BYTES = PdfFileMetadata.MAX_BYTES;
 
     @Id
     @Column(length = 36)
@@ -33,11 +32,11 @@ public class PdfExtractionJob {
     @Column(nullable = false, updatable = false)
     private long ownerId;
 
-    @Column(nullable = false, updatable = false, length = 255)
-    private String originalFilename;
+    @Embedded
+    private PdfFileMetadata fileMetadata;
 
-    @Column(nullable = false, updatable = false)
-    private long size;
+    @Column(length = 1024, updatable = false)
+    private String fileKey;
 
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
@@ -77,18 +76,12 @@ public class PdfExtractionJob {
     }
 
     public PdfExtractionJob(long ownerId, String filename, long size, Instant now, Instant expiresAt, String reviewId) {
-        String normalized = Normalizer.normalize(Objects.requireNonNullElse(filename, "").strip(),
-                Normalizer.Form.NFC);
-        if (ownerId < 1 || normalized.isEmpty() || normalized.length() > 255
-                || !normalized.toLowerCase(Locale.ROOT).endsWith(".pdf")
-                || normalized.chars().anyMatch(Character::isISOControl)
-                || size <= 0 || size > MAX_FILE_BYTES) {
-            throw new BusinessException(INVALID_PDF, "PDF 파일을 선택해 주세요. 파일당 최대 25MiB까지 올릴 수 있습니다.");
+        if (ownerId < 1) {
+            throw new BusinessException(INVALID_PDF, "PDF 파일을 올릴 수 없습니다.");
         }
         this.id = UUID.randomUUID().toString();
         this.ownerId = ownerId;
-        this.originalFilename = normalized;
-        this.size = size;
+        this.fileMetadata = new PdfFileMetadata(filename, size);
         this.createdAt = Objects.requireNonNull(now);
         this.uploadExpiresAt = Objects.requireNonNull(expiresAt);
         this.reviewId = reviewId == null ? null : UUID.fromString(reviewId).toString();
@@ -105,6 +98,21 @@ public class PdfExtractionJob {
         job.purpose = PdfExtractionPurpose.ACTOR_PROFILE;
         job.ownerType = PdfExtractionOwnerType.APPLICANT;
         return job;
+    }
+
+    public String getOriginalFilename() {
+        return fileMetadata.getOriginalFilename();
+    }
+
+    public long getSize() {
+        return fileMetadata.getSize();
+    }
+
+    public void identifySource(String key) {
+        if (key == null || key.isBlank() || key.length() > 1024 || (fileKey != null && !fileKey.equals(key))) {
+            throw new IllegalArgumentException("PDF source file key cannot change");
+        }
+        fileKey = key;
     }
 
     public void confirmUpload(Instant now) {

@@ -13,6 +13,15 @@
 공통 제품 규칙이 바뀌는 작업에서만 `../docs/domain.md`를 읽는다. 미구현·미결정 문서는 그 범위를 직접
 구현하거나 결정할 때만 읽는다. 개인정보·약관 문서는 정식 출시 정책 작업이 아니면 읽지 않는다.
 
+## 도메인 문서와 평가
+
+[공통 문서 라우터](../docs/README.md)에서 대상 기능(예: `src/main/java/art/yesulin/audit`)의
+`docs/README.md`를 찾아 먼저 읽고, 연결된 `docs/AGENTS.md`와 대상 흐름·정책을 적용한다.
+도메인 `docs/flows/`와 `docs/policies/`를 기준으로 평가표를 만들며 공통 평가·PR 기록 의무는
+[최상위 규칙](../AGENTS.md)과 [평가 절차](../docs/agent-review.md)를 따른다.
+세부 문서를 `application`·`domain`·`infrastructure` 패키지별 README에 중복 작성하지 않는다.
+HTTP 형식은 `docs/api.md`에 유지하고 도메인 동작·정책은 도메인 문서를 링크한다.
+
 ## 검증
 
 ```bash

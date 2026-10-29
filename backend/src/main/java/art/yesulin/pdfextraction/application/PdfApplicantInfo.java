@@ -8,7 +8,7 @@ import java.util.Set;
 import java.util.UUID;
 import tools.jackson.databind.JsonNode;
 
-/** Lambda가 PDF 텍스트에서 AI로 정규화해 보낸 지원자 정보. 제안일 뿐이며 합격·불합격 판단은 담지 않는다. */
+/** PDF 원문에 근거한 AI 지원자 정보. 레거시 콜백과 Spring 후처리에서 함께 사용하며 합불 판단은 담지 않는다. */
 public record PdfApplicantInfo(
         String version,
         String status,

@@ -21,4 +21,6 @@
 - 수동 Checkstyle: 루트에서 `npm run checkstyle`
 - push 전에 `git fetch origin main`, `git rebase origin/main`을 수행하고 검증 결과를 확인한다.
 - PR에는 변경 목적, 주요 내용, 검증 결과와 미검증 항목을 적는다.
+- 매 작업의 독립 평가 결과와 문제 ID·발견/해결/미해결·심각도·미확인 건수를 반드시 남긴다.
+  [공통 평가 규칙](agent-review.md)과 [PR 양식](../.github/pull_request_template.md)을 따른다.
 

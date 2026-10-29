@@ -7,6 +7,7 @@ import type { Applicant } from "@/features/pdf-reviews/screening-types";
 import { ApplicantPhotoImage } from "./applicant-photo";
 import { useBoard } from "./board-context";
 import { StatusBadge } from "@/components/auditions/status-badge";
+import { ApplicantSocialLinks } from "./applicant-social-links";
 
 export function ApplicantTable({ rows }: { rows: readonly Applicant[] }) {
   const { source, board, selected, toggleSelected, openApplicant } = useBoard();
@@ -20,7 +21,7 @@ export function ApplicantTable({ rows }: { rows: readonly Applicant[] }) {
               <th className="w-11 border-b border-border pl-1.5 text-left">
                 <span className="sr-only">배우 선택</span>
               </th>
-              {(source.kind === "PDF" ? ["지원자", "파일명", "연락처", "준비 상태", "상태"] : ["배우", "주요 경력", "학교 · 학과", "키", "성별 · 나이", "상태"]).map((label) => (
+              {(source.kind === "PDF" ? ["지원자", "파일명", "SNS · 영상", "준비 상태", "상태"] : ["배우", "주요 경력", "학교 · 학과", "키", "성별 · 나이", "상태"]).map((label) => (
                 <th
                   key={label}
                   className={`${headerClassName(label)} whitespace-nowrap border-b border-border px-3 py-2 text-left text-xs font-semibold tracking-[0.03em] text-muted`}
@@ -97,7 +98,7 @@ export function ApplicantTable({ rows }: { rows: readonly Applicant[] }) {
                 </td>
                 {source.kind === "PDF" ? <>
                   <td className="max-w-64 border-b border-border-soft px-3 py-2 text-xs text-muted"><span className="block truncate" title={applicant.sourceDocument?.filename}>{applicant.sourceDocument?.filename}</span></td>
-                  <td className="border-b border-border-soft px-3 py-2 text-xs text-muted"><span className="block">{applicant.phone || "연락처 미확인"}</span><span className="block max-w-48 truncate">{applicant.email || "이메일 미확인"}</span></td>
+                  <td className="border-b border-border-soft px-3 py-2 text-xs text-muted">{applicant.links.length ? <ApplicantSocialLinks links={applicant.links} /> : "미기재"}</td>
                   <td className="border-b border-border-soft px-3 py-2 text-xs text-muted">{applicant.sourceDocument?.preparation}</td>
                 </> : <><td className="hidden border-b border-border-soft px-3 py-2 text-xs text-muted 2xl:table-cell">
                   <CareerSummary applicant={applicant} />

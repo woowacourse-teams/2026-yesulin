@@ -4,15 +4,19 @@ import static art.yesulin.pdfextraction.domain.PdfExtractionErrorCode.PDF_EXTRAC
 import static art.yesulin.pdfextraction.domain.PdfExtractionErrorCode.PDF_EXTRACTION_RESULT_CONFLICT;
 
 import art.yesulin.global.exception.BusinessException;
+import art.yesulin.pdfextraction.application.ai.PdfAiQueueService;
 import art.yesulin.pdfextraction.domain.PdfExtractionJob;
 import art.yesulin.pdfextraction.domain.PdfExtractionJobRepository;
 import art.yesulin.pdfextraction.domain.PdfExtractionPayload;
 import art.yesulin.pdfextraction.domain.PdfExtractionPayloadRepository;
+import art.yesulin.pdfextraction.domain.ai.PdfAiJob;
+import art.yesulin.pdfextraction.domain.ai.PdfAiStatus;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.util.HexFormat;
+import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -33,6 +37,7 @@ public class PdfExtractionResultReceiver {
     private final ApplicationEventPublisher events;
     private final ObjectMapper mapper;
     private final Clock clock;
+    private final PdfAiQueueService aiQueue;
 
     @Transactional
     public Receipt receive(ReceivePdfExtractionResultCommand command) {
@@ -54,11 +59,24 @@ public class PdfExtractionResultReceiver {
             return new Receipt(job.getId(), job.getStatus().name());
         }
         payloads.save(new PdfExtractionPayload(job.getId(), payloadJson, digest, clock.instant()));
-        job.receiveResult(result.status(), clock.instant());
-        job.recordDailyQuotaUse(result.hasProfileProposal());
+        if (job.isActorProfile()) {
+            job.confirmUpload(clock.instant());
+            PdfAiJob aiJob = aiQueue.enqueue(job.getId(), null, job.getOwnerId(), result.extractedText(),
+                    List.of(), result.applicantInfo());
+            if (aiJob.getStatus() != PdfAiStatus.PENDING && aiJob.getStatus() != PdfAiStatus.RUNNING) {
+                finish(job, result);
+            }
+        } else {
+            finish(job, result);
+        }
         events.publishEvent(new PdfExtractionCompletedEvent(job.getId(), job.getOwnerId(), result.extractedText(),
                 result.applicantInfo()));
         return new Receipt(job.getId(), job.getStatus().name());
+    }
+
+    private void finish(PdfExtractionJob job, PdfExtractionResult result) {
+        job.receiveResult(result.status(), clock.instant());
+        job.recordDailyQuotaUse(result.hasProfileProposal());
     }
 
     private String sha256(String value) {

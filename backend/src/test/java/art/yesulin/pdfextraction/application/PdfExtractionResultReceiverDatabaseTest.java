@@ -14,6 +14,7 @@ import art.yesulin.auth.domain.member.MemberStatus;
 import art.yesulin.auth.domain.member.MemberType;
 import art.yesulin.global.exception.BusinessException;
 import art.yesulin.infrastructure.persistence.QueryDslConfiguration;
+import art.yesulin.pdfextraction.application.ai.PdfAiQueueService;
 import art.yesulin.pdfextraction.domain.PdfExtractionJob;
 import art.yesulin.pdfextraction.domain.PdfExtractionJobRepository;
 import art.yesulin.pdfextraction.domain.PdfExtractionPayload;
@@ -33,6 +34,7 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.event.EventListener;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
@@ -48,6 +50,9 @@ import tools.jackson.databind.json.JsonMapper;
         PdfExtractionResultReceiverDatabaseTest.TestConfig.class, QueryDslConfiguration.class})
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class PdfExtractionResultReceiverDatabaseTest {
+
+    @MockitoBean
+    private PdfAiQueueService aiQueue;
 
     @Autowired
     private PdfExtractionResultReceiver receiver;

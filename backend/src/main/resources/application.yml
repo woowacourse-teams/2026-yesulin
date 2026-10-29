@@ -84,6 +84,15 @@ management:
           include: readinessState,db
 
 yesulin:
+  pdf-ai:
+    enabled: ${YESULIN_PDF_AI_ENABLED:false}
+    provider: ${YESULIN_PDF_AI_PROVIDER:bedrock}
+    model-id: ${YESULIN_PDF_AI_MODEL_ID:global.anthropic.claude-haiku-5-5}
+    region: ${YESULIN_PDF_AI_REGION:ap-northeast-2}
+    concurrency: ${YESULIN_PDF_AI_CONCURRENCY:1}
+    max-attempts: ${YESULIN_PDF_AI_MAX_ATTEMPTS:3}
+    lease-duration: PT2M
+    request-interval: ${YESULIN_PDF_AI_REQUEST_INTERVAL:PT10S}
   pdf-extraction:
     enabled: ${YESULIN_PDF_EXTRACTION_ENABLED:false}
   audition-post:
@@ -169,3 +178,15 @@ yesulin:
         jwk-set-uri: https://www.googleapis.com/oauth2/v3/certs
         client-id: ${GOOGLE_OIDC_CLIENT_ID:}
         client-secret: ${GOOGLE_OIDC_CLIENT_SECRET:}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: "dev | prod"
+yesulin:
+  pdf-ai:
+    enabled: ${YESULIN_PDF_AI_ENABLED:${YESULIN_PDF_EXTRACTION_ENABLED:false}}
+    provider: bedrock
+    model-id: ${YESULIN_PDF_AI_MODEL_ID:global.anthropic.claude-haiku-5-5}
+    region: ap-northeast-2
