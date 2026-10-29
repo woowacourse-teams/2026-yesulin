@@ -107,3 +107,8 @@ PRECHECK 0 / INDEPENDENT_REVIEW 4 / POST_FIX_CHECK 2 / EXTERNAL 1.
 | E12 | 2026-10-30-audit-lambda-only-F06 | FIXED | 2026-10-30T02:07:14+09:00 | 키보드 테스트 포함 전체 600개 PASS / PR PENDING |
 | E13 | 2026-10-30-audit-lambda-only-F07 | CONFIRMED | 2026-10-30T02:07:14+09:00 | INDEPENDENT_REVIEW; F01~F04 최초 시각 미보존 / PR PENDING |
 | E14 | 2026-10-30-audit-lambda-only-F07 | FIXED | 2026-10-30T02:07:14+09:00 | 실제 테스트명과 문서 링크 확인 / PR PENDING |
+
+## PR 최초 게시 연결
+
+2026-10-30T02:09:50+09:00: [PR #453](https://github.com/woowacourse-teams/2026-yesulin/pull/453)에 최초 게시했다.
+이 기록의 최초 PR은 #453이다. 앞선 사건의 PENDING과 당시 시각·상태는 보존하며 이 연결을 적용한다.

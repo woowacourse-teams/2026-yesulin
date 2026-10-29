@@ -76,3 +76,8 @@ PR 게시 시 기존 사건은 보존하고 PR 번호 연결을 덧붙인다. �
 - 직전 작업의 backend build·1151개 테스트와 가상 PDF의 LocalStack Lambda→Spring 콜백 성공은 이전 증거이며 새 실행 건수로 세지 않는다.
 - 이번에는 ZIP 재빌드·HTTP 요청·Dev Spring Converse·Prod 역할·300건 부하를 실행하지 않았다.
   해당 검증은 업무 런타임 변경 범위에 포함될 때 적용한다. 정적 문서 평가의 PASS를 배포 성공으로 확대하지 않는다.
+
+## PR 최초 게시 연결
+
+2026-10-30T02:09:50+09:00: [PR #453](https://github.com/woowacourse-teams/2026-yesulin/pull/453)에 최초 게시했다.
+이 기록의 최초 PR은 #453이다. 앞선 사건의 PENDING과 당시 시각·상태는 보존하며 이 연결을 적용한다.

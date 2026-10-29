@@ -28,3 +28,8 @@ E04는 평가 당시 기록 전이라 UNVERIFIED였고, 이번 결과 반영 후
 - PRECHECK 0 / INDEPENDENT_REVIEW 0 / POST_FIX_CHECK 0 / EXTERNAL 0.
 - 확정 문제가 없어 문제 ID·사건 이력은 추가하지 않았다. PR 미생성/미갱신, 최초 기록 PR은 해당 없음.
 - 업무 코드·AWS·실제 모델 호출·성능은 변경/검증하지 않았다. 문서 경로 검증을 배포 검증으로 확대하지 않는다.
+
+## PR 최초 게시 연결
+
+2026-10-30T02:09:50+09:00: [PR #453](https://github.com/woowacourse-teams/2026-yesulin/pull/453)에 최초 게시했다.
+이 기록의 최초 PR은 #453이다. 앞선 사건의 PENDING과 당시 시각·상태는 보존하며 이 연결을 적용한다.
