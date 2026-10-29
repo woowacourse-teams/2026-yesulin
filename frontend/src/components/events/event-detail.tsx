@@ -56,7 +56,6 @@ function EventDetail({ event }: { readonly event: PublicEvent }) {
           {period ? <span className="num text-muted-strong">{period}</span> : null}
         </div>
         <h1 className="mt-3 break-words text-[clamp(24px,3.4vw,32px)] font-bold leading-snug tracking-[-0.03em]">{event.title}</h1>
-        {event.registrationEnabled && event.registrationCapacity !== null ? <p className="mt-3 text-sm font-semibold text-brand">총 {event.registrationCapacity}명 선착순 모집 · {event.registrationCount}명 접수</p> : null}
         {event.summary ? <p className="mt-2 wrap-anywhere text-base leading-7 text-muted-strong">{event.summary}</p> : null}
       </header>
       {event.coverImageUrl ? <EventDetailImage key={event.coverImageUrl} src={event.coverImageUrl} title={event.title} /> : null}
