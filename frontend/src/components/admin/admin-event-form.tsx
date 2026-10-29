@@ -109,11 +109,18 @@ export function AdminEventForm({ initial, submitLabel, onSave, onCancel, onUnaut
               신청 전 안내 팝업 사용
             </label>
             <p className="text-xs text-muted">입력을 마치고 신청하기를 누르면 안내가 떠요. 안내를 확인한 뒤 최종 신청해요. 끄면 바로 접수돼요.</p>
-            {draft.registrationConfirmationEnabled ? (
+            {draft.registrationConfirmationEnabled ? <>
               <Field id="event-registration-confirmation" label="팝업 안내 내용" required hint="신청서 위의 안내와 별도로 설정해요. 줄바꿈을 그대로 보여요.">
                 <FieldTextarea id="event-registration-confirmation" rows={5} value={draft.registrationConfirmationMessage} maxLength={2000} onChange={(event) => set("registrationConfirmationMessage", event.target.value)} />
               </Field>
-            ) : null}
+              <p className="text-sm font-semibold">입금 계좌 (선택)</p>
+              <p className="text-xs text-muted">입력하면 신청 팝업에 계좌와 계좌번호 복사 버튼을 보여요. 사용할 때는 세 항목을 모두 입력해 주세요.</p>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <Field id="event-bank-name" label="은행명"><FieldInput id="event-bank-name" maxLength={50} value={draft.registrationBankName} onChange={event => set("registrationBankName", event.target.value)} /></Field>
+                <Field id="event-account-number" label="계좌번호"><FieldInput id="event-account-number" inputMode="numeric" maxLength={50} value={draft.registrationAccountNumber} onChange={event => set("registrationAccountNumber", event.target.value)} /></Field>
+                <Field id="event-account-holder" label="예금주"><FieldInput id="event-account-holder" maxLength={50} value={draft.registrationAccountHolder} onChange={event => set("registrationAccountHolder", event.target.value)} /></Field>
+              </div>
+            </> : null}
           </div>
         ) : null}
         {draft.registrationEnabled ? (

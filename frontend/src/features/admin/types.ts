@@ -2,7 +2,7 @@ import type { ActorPageAutoHiddenReason, ActorPageSettings } from "../actor-page
 import type { ActorPageContent } from "../actor-pages/types";
 import type { VenueAddress } from "../auditions/creation-types";
 import type { CompanyField, CompanyWrite } from "../companies/profile-draft";
-import type { EventActivityField, EventParticipantType, EventPhase, EventRegistrationCareer, EventSnsPlatform, EventPaymentStatus, EventRegistrationStatus } from "../events/types";
+import type { EventActivityField, EventBankAccount, EventParticipantType, EventPhase, EventRegistrationCareer, EventSnsPlatform, EventPaymentStatus, EventRegistrationStatus } from "../events/types";
 
 export type MemberStatus = "PENDING" | "ACTIVE";
 
@@ -614,6 +614,7 @@ export type AdminEvent = {
   /** 신청 전 확인 팝업 설정. 켜면 안내 내용을 확인한 뒤 신청한다. */
   readonly registrationConfirmationEnabled: boolean;
   readonly registrationConfirmationMessage: string | null;
+  readonly registrationBankAccount?: EventBankAccount | null;
   /** 배우의 프로필 명함 제작 희망을 받는 마감 시각(ISO). 없으면 신청 기간 내내 받는다. */
   readonly businessCardClosesAt: string | null;
   readonly coverImageUrl: string | null;
@@ -646,6 +647,7 @@ export type AdminEventWrite = {
   /** 신청 전 확인 팝업 설정. 켜면 안내 내용을 확인한 뒤 신청한다. */
   readonly registrationConfirmationEnabled: boolean;
   readonly registrationConfirmationMessage: string | null;
+  readonly registrationBankAccount?: EventBankAccount | null;
   readonly businessCardClosesAt: string | null;
   readonly coverImageUrl: string | null;
   readonly banner: AdminEventBanner;
@@ -681,6 +683,23 @@ export type AdminEventRegistration = {
   readonly createdAt: string;
   readonly paymentStatus: EventPaymentStatus;
   readonly paymentConfirmedAt: string | null;
+  readonly businessCard: AdminEventBusinessCard | null;
+};
+
+export type AdminEventBusinessCard = {
+  readonly publicId: string;
+  readonly url: string;
+  readonly profileUrl: string | null;
+  readonly memberId: number | null;
+};
+
+export type AdminEventBusinessCardVisitStats = {
+  readonly fromDate: string;
+  readonly toDate: string;
+  readonly daily: readonly {
+    readonly date: string;
+    readonly visits: number;
+  }[];
 };
 
 

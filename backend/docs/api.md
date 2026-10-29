@@ -1256,6 +1256,35 @@ S3 삭제 실패 시 `DELETING` 상태가 남으며 같은 파일 ID로 재시�
 
 인가 공통 오류는 `401 AUTH_UNAUTHENTICATED`, `403 AUTH_FORBIDDEN`, `403 AUTH_INACTIVE_MEMBER`다.
 
+### 이벤트 명함 연결과 입금 계좌
+
+이벤트 생성·수정, 운영 결과와 공개 상세는 선택 필드 `registrationBankAccount`를 함께 쓴다.
+값은 `{bankName, accountNumber, accountHolder}`이며 앞뒤 공백을 제거한 값이 각 1~50자다. 사용할 때 모두 필요하고
+계좌번호는 숫자·공백·하이픈만 허용한다. 생략·null은 미사용이며 참가 신청서나 확인 팝업을 끄면 지운다.
+팝업 안내 문구와 별도이고 복사는 접수를 발생시키지 않는다.
+
+| API | 인증 | 계약 |
+| --- | --- | --- |
+| `GET /api/v1/public/business-cards/{publicId}` | 없음 | `{profileUrl}`. 목적지 미설정은 null, 없는/삭제된 명함은 404 |
+| `GET /api/v1/public/business-cards/{publicId}/visit` | 없음 | 같은 응답과 이벤트 날짜별 방문 기록. HEAD는 기록하지 않음 |
+| `PUT /api/v1/admin/events/{eventId}/registrations/{registrationId}/business-card` | Admin | `{profileUrl}`. null은 목적지 제거. HTTPS 주소만 받고 QR 경유 주소 순환은 거절 |
+| `POST /api/v1/applicants/me/member-link-code` | Active Applicant | `{code, expiresAt, reissueAvailableAt, expiresInSeconds, reissueAfterSeconds}`. 코드 유효 10분·재발급 대기 30초 |
+| `POST /api/v1/admin/events/{eventId}/registrations/{registrationId}/business-card/member` | Admin | `{code}`를 한 번 소비해 회원 연결 |
+| `DELETE /api/v1/admin/events/{eventId}/registrations/{registrationId}/business-card/member` | Admin | 회원 연결만 해제 |
+| `GET /api/v1/admin/events/{eventId}/business-card/visits?days=14` | Admin | 1~90일, `{fromDate, toDate, daily:[{date, visits}]}` |
+
+운영 신청 결과에는 `businessCard: {publicId, url, profileUrl, memberId} | null`이 추가된다. 명함 요청만 UUID v4를
+발급하며 `/events/cards/{publicId}` 주소는 목적지·회원 연결을 변경해도 유지한다. 운영 변경 응답도 같은 명함 객체다.
+배포 중 구버전이 접수해 QR 키가 빠진 명함은 관리자 목록 조회·입금 변경·명함 연결 변경 시 누락분만 발급·저장한다.
+코드 응답의 `expiresInSeconds`(600)·`reissueAfterSeconds`(30)는 서버 기준 남은 초이며, 화면은 응답을 받은 뒤
+단조 시계로 경과 시간을 계산한다. 절대 시각 필드는 호환성을 위해 유지하고 기기 시각과 직접 비교하지 않는다.
+명함 신청은 공개 참가 신청 API에서 직접 작성한 값으로만 접수하며 프로필 자동 연결은 제공하지 않는다.
+공개 목적지·통계·코드 응답은 `Cache-Control: no-store`다. 코드는 해시만 보관하고 잘못된·만료·사용된 코드는
+`400 MEMBER_LINK_CODE_INVALID`, 재발급 대기는 `409 MEMBER_LINK_CODE_COOLDOWN`이다.
+운영 변경은 `EVENT_BUSINESS_CARD_CONNECTED`로 기록하며 대상 신청 ID만 남기고 주소·코드는 남기지 않는다.
+프론트 QR 라우트는 GET에서 방문 API를 호출하고 집계 실패 시 목적지 조회로 대체한다. HEAD는 조회만 한다.
+목적지가 없으면 `/networking/{publicId}` 안내, 명함이 없으면 404이며 리다이렉션도 캐시하지 않는다.
+
 ### PDF 완료 알림
 
 `GET /api/v1/pdf-extractions/events`는 Active Producer 세션으로 접근하는 SSE다. `connected`와 `completed` 이벤트를 보내며 완료 데이터는 `{jobId}`만 포함한다. 본인 작업만 전달하고 DB 커밋 후 알린다. 15초 heartbeat와 3분 연결 만료 후 재연결을 사용한다. 알림 이력을 영구 보관하지 않으므로 재연결 시 DB 목록으로 동기화한다. 현재 인스턴스에 연결된 화면만 즉시 알림을 받으며 다중 인스턴스 간 알림 중계는 별도 범위다.

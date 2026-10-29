@@ -53,7 +53,7 @@ export function EventBusinessCardEditor({ open, eventId, draft, preview, photoUr
       className="event-card-editor public-theme flex max-h-[calc(100dvh-32px)] w-[min(1080px,calc(100vw-24px))] flex-col overflow-hidden rounded-modal border border-border bg-card shadow-[var(--shadow-modal)]">
       <header className="event-card-editor-header shrink-0 border-b border-border-soft px-5 py-4 lg:px-7 lg:py-5">
         <div className="flex items-center justify-between gap-3">
-          <h2 id="card-editor-title" className="text-lg font-bold lg:text-xl">프로필 명함 만들기</h2>
+          <h2 id="card-editor-title" className="text-lg font-bold lg:text-xl">명함 정보 입력</h2>
           <button type="button" disabled={busy} aria-label="명함 작성 닫기" onClick={close} className="flex size-11 shrink-0 items-center justify-center rounded-control text-muted-strong hover:bg-surface disabled:opacity-40"><SiteIcon name="close" /></button>
         </div>
         <p className="mt-2 hidden text-sm text-muted-strong lg:block">입력하면서 미리보기를 확인해 주세요. 명함을 작성한 뒤 행사 참가 신청을 마칠 수 있습니다.</p>

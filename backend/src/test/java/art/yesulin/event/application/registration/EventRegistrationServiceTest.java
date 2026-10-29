@@ -5,7 +5,19 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
+import art.yesulin.auth.application.AuthErrorCode;
+import art.yesulin.auth.application.memberlink.MemberLinkCodeService;
+import art.yesulin.auth.domain.member.Member;
+import art.yesulin.auth.domain.member.MemberRepository;
+import art.yesulin.auth.domain.memberlink.MemberLinkCode;
+import art.yesulin.auth.domain.memberlink.MemberLinkCodeErrorCode;
+import art.yesulin.auth.domain.memberlink.MemberLinkCodeRepository;
 import art.yesulin.event.application.AdminEventResult;
 import art.yesulin.event.application.EventService;
 import art.yesulin.event.domain.EventContent;
@@ -21,11 +33,14 @@ import art.yesulin.event.domain.registration.EventRegistrationForm;
 import art.yesulin.event.domain.registration.EventRegistrationPhotoUploadRepository;
 import art.yesulin.event.domain.registration.EventRegistrationRepository;
 import art.yesulin.event.domain.registration.EventSnsPlatform;
+import art.yesulin.event.domain.registration.visit.EventBusinessCardVisit;
+import art.yesulin.event.domain.registration.visit.EventBusinessCardVisitRepository;
 import art.yesulin.file.application.storage.ObjectUpload;
 import art.yesulin.global.audit.AdminAction;
 import art.yesulin.global.audit.AdminAuditLog;
 import art.yesulin.global.audit.AdminAuditLogRepository;
 import art.yesulin.global.exception.BusinessException;
+import art.yesulin.global.exception.ErrorCode;
 import art.yesulin.support.FakeObjectStorage;
 import art.yesulin.support.ObjectStorageTestConfiguration;
 import java.io.ByteArrayInputStream;
@@ -35,11 +50,13 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -54,6 +71,10 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:h2:mem:event-registration-service;MODE=MySQL;DB_CLOSE_DELAY=-1",
@@ -70,6 +91,30 @@ class EventRegistrationServiceTest {
 
     @Autowired
     private EventRegistrationService registrationService;
+
+    @MockitoBean
+    private EventRegistrationNotifier registrationNotifier;
+
+    @Autowired
+    private EventBusinessCardService businessCardService;
+
+    @Autowired
+    private EventBusinessCardVisitRepository visitRepository;
+
+    @Autowired
+    private MemberRepository memberRepository;
+
+    @Autowired
+    private MemberLinkCodeService memberLinkCodeService;
+
+    @Autowired
+    private MemberLinkCodeRepository memberLinkCodeRepository;
+
+    @Autowired
+    private PlatformTransactionManager transactionManager;
+
+    @Autowired
+    private JdbcTemplate jdbc;
 
     @Autowired
     private EventService eventService;
@@ -94,10 +139,39 @@ class EventRegistrationServiceTest {
 
     @BeforeEach
     void setUp() {
+        reset(registrationNotifier);
+        memberLinkCodeRepository.deleteAll();
         registrationRepository.deleteAll();
         uploadRepository.deleteAll();
         eventRepository.deleteAll();
         auditLogRepository.deleteAll();
+    }
+
+    @Test
+    void notifiesOnlyAfterRegistrationCommits() {
+        long eventId = openEvent();
+        long[] id = new long[1];
+        new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
+            id[0] = registrationService.register(eventId, EventRegistrationForm.withoutBusinessCard(
+                    EventParticipantType.ACTOR, "알림 확인", "010-1234-8001", null), null, true);
+            verifyNoInteractions(registrationNotifier);
+        });
+        verify(registrationNotifier).notifyRegistered(new EventRegisteredEvent(
+                eventId, eventRepository.findById(eventId).orElseThrow().getTitle(), id[0],
+                EventParticipantType.ACTOR, false
+        ));
+    }
+
+    @Test
+    void doesNotNotifyWhenRegistrationRollsBack() {
+        long eventId = openEvent();
+        new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
+            registrationService.register(eventId, EventRegistrationForm.withoutBusinessCard(
+                    EventParticipantType.ACTOR, "롤백 확인", "010-1234-8002", null), null, true);
+            status.setRollbackOnly();
+        });
+        verifyNoInteractions(registrationNotifier);
+        assertEquals(0, registrationRepository.countByEventId(eventId));
     }
 
     @Test
@@ -119,6 +193,231 @@ class EventRegistrationServiceTest {
         assertEquals(List.of(new AdminEventRegistrationResult.Career("2025-09", "연극 <달빛 정거장>", "민수 역")),
                 registration.careers());
         assertTrue(uploadRepository.findByObjectKey(photoKey).isEmpty());
+        assertEquals(4, UUID.fromString(registration.businessCard().publicId()).version());
+        assertTrue(registration.businessCard().url()
+                .endsWith("/events/cards/" + registration.businessCard().publicId()));
+        assertNull(businessCardService.destination(registration.businessCard().publicId()));
+    }
+
+    @Test
+    void concurrentAdminReadsRecoverMissingQrKeyOnlyOnce() throws Exception {
+        long eventId = openEvent();
+        long id = registrationService.register(eventId, actor("010-1234-5678"), uploadedPhoto(eventId), true);
+        // 최초 마이그레이션 뒤 구버전 서버가 저장한 신청을 재현한다.
+        jdbc.update("update event_registrations set business_card_key = null where id = ?", id);
+        try (java.util.concurrent.ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            List<Future<String>> results = java.util.stream.IntStream.range(0, 2)
+                    .mapToObj(index -> executor.submit(() ->
+                            registrationService.findAllForAdmin(eventId).getFirst()
+                                    .businessCard().publicId())).toList();
+            String key = results.getFirst().get(10, TimeUnit.SECONDS);
+            assertEquals(4, UUID.fromString(key).version());
+            assertEquals(key, results.getLast().get(10, TimeUnit.SECONDS));
+            assertEquals(key, registrationRepository.findById(id).orElseThrow().getBusinessCardKey());
+            assertEquals(key, registrationService.findAllForAdmin(eventId).getFirst()
+                    .businessCard().publicId());
+        }
+    }
+
+    @Test
+    void editingLegacyCardRecoversKeyWithoutOpeningAdminListFirst() {
+        long eventId = openEvent();
+        long id = registrationService.register(eventId, actor("010-1234-5678"), uploadedPhoto(eventId), true);
+        jdbc.update("update event_registrations set business_card_key = null where id = ?", id);
+        EventBusinessCardResult card = businessCardService.updateProfile(
+                ADMIN_ID, eventId, id, "https://example.test/actor");
+        assertEquals(card.publicId(), registrationRepository.findById(id).orElseThrow().getBusinessCardKey());
+        assertEquals("https://example.test/actor", businessCardService.visit(card.publicId()));
+        assertEquals(card.publicId(), registrationService.findAllForAdmin(eventId).getFirst()
+                .businessCard().publicId());
+    }
+
+    @Test
+    void aggregatesAllCardsWithinEventWithoutIndividualVisitRecords() {
+        long eventId = openEvent();
+        long firstId = registrationService.register(
+                eventId, actor("010-1234-5678"), uploadedPhoto(eventId), true);
+        long secondId = registrationService.register(
+                eventId, actor("010-2345-6789"), uploadedPhoto(eventId), true);
+        String firstKey = registrationRepository.findById(firstId).orElseThrow().getBusinessCardKey();
+        final String secondKey = registrationRepository.findById(secondId).orElseThrow().getBusinessCardKey();
+        assertNull(businessCardService.destination(firstKey));
+        assertEquals(0, businessCardService.visitStats(eventId, 1).daily().getFirst().visits());
+
+        assertNull(businessCardService.visit(firstKey));
+        businessCardService.updateProfile(ADMIN_ID, eventId, secondId, "https://example.test/actor");
+        assertEquals("https://example.test/actor", businessCardService.visit(secondKey));
+        businessCardService.visit(secondKey);
+        businessCardService.destination(firstKey);
+        registrationService.findAllForAdmin(eventId);
+        assertEquals(3, businessCardService.visitStats(eventId, 1).daily().getFirst().visits());
+
+        long otherEventId = openEvent();
+        long otherId = registrationService.register(
+                otherEventId, actor("010-3456-7890"), uploadedPhoto(otherEventId), true);
+        businessCardService.visit(registrationRepository.findById(otherId).orElseThrow().getBusinessCardKey());
+        assertEquals(1, businessCardService.visitStats(otherEventId, 1).daily().getFirst().visits());
+        assertEquals(3, businessCardService.visitStats(eventId, 1).daily().getFirst().visits());
+        assertCode(EventErrorCode.NOT_FOUND, () -> businessCardService.visitStats(Long.MAX_VALUE, 14));
+        assertCode(EventErrorCode.INVALID_INPUT, () -> businessCardService.visitStats(eventId, 91));
+        assertCode(EventErrorCode.INVALID_INPUT, () -> businessCardService.visitStats(eventId, 0));
+        assertCode(EventErrorCode.REGISTRATION_NOT_FOUND, () -> businessCardService.visit("not-a-key"));
+
+        registrationService.delete(ADMIN_ID, eventId, firstId);
+        assertCode(EventErrorCode.REGISTRATION_NOT_FOUND, () -> businessCardService.visit(firstKey));
+        assertEquals(3, businessCardService.visitStats(eventId, 1).daily().getFirst().visits());
+        eventService.delete(ADMIN_ID, eventId);
+        assertEquals(1, visitRepository.count());
+        assertEquals(1, businessCardService.visitStats(otherEventId, 1).daily().getFirst().visits());
+    }
+
+    @Test
+    void dailyStatsUseKoreanMidnightAndFillDatesWithoutVisits() {
+        long eventId = openEvent();
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
+        Instant midnight = today.atStartOfDay(ZoneId.of("Asia/Seoul")).toInstant();
+        visitRepository.saveAllAndFlush(List.of(
+                new EventBusinessCardVisit(eventId, midnight.minusSeconds(30 * 86_400L)),
+                new EventBusinessCardVisit(eventId, midnight.minusSeconds(1)),
+                new EventBusinessCardVisit(eventId, midnight),
+                new EventBusinessCardVisit(eventId, midnight.plusSeconds(1))
+        ));
+
+        EventBusinessCardVisitStats stats = businessCardService.visitStats(eventId, 2);
+
+        assertEquals(2, stats.daily().size());
+        assertEquals(today.minusDays(1), stats.fromDate());
+        assertEquals(today, stats.toDate());
+        assertEquals(1, stats.daily().getFirst().visits());
+        assertEquals(2, stats.daily().getLast().visits());
+        assertEquals(0, businessCardService.visitStats(eventId, 7).daily().getFirst().visits());
+        assertEquals(4, visitRepository.count());
+        eventService.delete(ADMIN_ID, eventId);
+        assertEquals(0, visitRepository.count());
+    }
+
+    @Test
+    void concurrentVisitsAreAllRecorded() throws Exception {
+        long eventId = openEvent();
+        long registrationId = registrationService.register(
+                eventId, actor("010-1234-5678"), uploadedPhoto(eventId), true);
+        businessCardService.updateProfile(ADMIN_ID, eventId, registrationId, "https://example.test/profile");
+        String key = registrationService.findAllForAdmin(eventId).getFirst().businessCard().publicId();
+        try (java.util.concurrent.ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            List<Future<String>> visits = java.util.stream.IntStream.range(0, 20)
+                    .mapToObj(index -> executor.submit(() -> businessCardService.visit(key))).toList();
+            for (Future<String> visit : visits) {
+                assertEquals("https://example.test/profile", visit.get(10, TimeUnit.SECONDS));
+            }
+        }
+        assertEquals(20, businessCardService.visitStats(eventId, 1).daily().getFirst().visits());
+    }
+
+    @Test
+    void codeConnectsMemberWhileProfileEditsAndUnlinkingKeepThePrintedQr() {
+        long eventId = openEvent();
+        final long registrationId = registrationService.register(
+                eventId, actor("010-1234-5678"), uploadedPhoto(eventId), true);
+        final EventBusinessCardResult original = registrationService.findAllForAdmin(eventId).getFirst().businessCard();
+        Member member = memberRepository.saveAndFlush(Member.ofApplicant());
+        var issued = memberLinkCodeService.issue(member.getId());
+        assertEquals(600, issued.expiresInSeconds());
+        assertEquals(30, issued.reissueAfterSeconds());
+        String code = issued.code();
+        assertCode(MemberLinkCodeErrorCode.COOLDOWN, () -> memberLinkCodeService.issue(member.getId()));
+        assertEquals(MemberLinkCode.hash(code), memberLinkCodeRepository.findById(member.getId()).orElseThrow()
+                .getCodeHash());
+        businessCardService.updateProfile(ADMIN_ID, eventId, registrationId, "https://example.test/actor/first");
+
+        EventBusinessCardResult connected = businessCardService.connectMember(ADMIN_ID, eventId, registrationId, code);
+
+        assertEquals(original.publicId(), connected.publicId());
+        assertEquals(original.url(), connected.url());
+        assertEquals(member.getId(), connected.memberId());
+        assertEquals("https://example.test/actor/first", connected.profileUrl());
+        assertCode(MemberLinkCodeErrorCode.INVALID,
+                () -> businessCardService.connectMember(ADMIN_ID, eventId, registrationId, code));
+        businessCardService.updateProfile(ADMIN_ID, eventId, registrationId, "https://example.test/actor/new");
+        assertEquals(member.getId(), registrationService.findAllForAdmin(eventId).getFirst().businessCard().memberId());
+        businessCardService.disconnectMember(ADMIN_ID, eventId, registrationId);
+        assertEquals("https://example.test/actor/new", businessCardService.destination(original.publicId()));
+        businessCardService.updateProfile(ADMIN_ID, eventId, registrationId, null);
+        assertNull(businessCardService.destination(original.publicId()));
+        assertEquals(original.url(), registrationService.findAllForAdmin(eventId).getFirst().businessCard().url());
+        assertTrue(auditLogRepository.findAll().stream()
+                .anyMatch(log -> log.getAction() == AdminAction.EVENT_BUSINESS_CARD_CONNECTED));
+        memberRepository.delete(member);
+    }
+
+    @Test
+    void failedRegistrationLookupDoesNotConsumeCodeAndWrongRolesCannotIssue() {
+        long eventId = openEvent();
+        final long registrationId = registrationService.register(
+                eventId, actor("010-1234-5678"), uploadedPhoto(eventId), true);
+        Member producer = memberRepository.saveAndFlush(Member.ofProducer("qr-producer@example.test", "unused"));
+        Member member = memberRepository.saveAndFlush(Member.ofApplicant());
+        String code = memberLinkCodeService.issue(member.getId()).code();
+
+        assertCode(AuthErrorCode.FORBIDDEN, () -> memberLinkCodeService.issue(producer.getId()));
+        assertCode(AuthErrorCode.FORBIDDEN, () -> memberLinkCodeService.issue(Long.MAX_VALUE));
+        assertThrows(IllegalStateException.class, () -> new TransactionTemplate(transactionManager).execute(status -> {
+            memberLinkCodeService.consume(code);
+            throw new IllegalStateException("연결 저장 실패");
+        }));
+        assertCode(EventErrorCode.REGISTRATION_NOT_FOUND,
+                () -> businessCardService.connectMember(ADMIN_ID, eventId + 1, registrationId, code));
+        assertNull(memberLinkCodeRepository.findById(member.getId()).orElseThrow().getUsedAt());
+        assertEquals(member.getId(), businessCardService.connectMember(
+                ADMIN_ID, eventId, registrationId, code).memberId());
+        memberRepository.delete(member);
+        memberRepository.delete(producer);
+    }
+
+    @Test
+    void expiredCodeCannotConnectButReissueInvalidatesOldCodeAndWorks() {
+        long eventId = openEvent();
+        long registrationId = registrationService.register(
+                eventId, actor("010-1234-5678"), uploadedPhoto(eventId), true);
+        Member member = memberRepository.saveAndFlush(Member.ofApplicant());
+        memberLinkCodeRepository.saveAndFlush(new MemberLinkCode(
+                member.getId(), MemberLinkCode.hash("ABCDEFGH"), Instant.now().minusSeconds(601)));
+
+        assertCode(MemberLinkCodeErrorCode.INVALID,
+                () -> businessCardService.connectMember(ADMIN_ID, eventId, registrationId, "abcd-efgh"));
+        String replacement = memberLinkCodeService.issue(member.getId()).code();
+        assertCode(MemberLinkCodeErrorCode.INVALID,
+                () -> businessCardService.connectMember(ADMIN_ID, eventId, registrationId, "ABCDEFGH"));
+        assertNull(registrationService.findAllForAdmin(eventId).getFirst().businessCard().memberId());
+        assertEquals(member.getId(), businessCardService.connectMember(
+                ADMIN_ID, eventId, registrationId, replacement).memberId());
+        memberRepository.delete(member);
+    }
+
+    @Test
+    void concurrentAdminsCanUseOneCodeForOnlyOneRegistration() throws Exception {
+        long eventId = openEvent();
+        long first = registrationService.register(eventId, actor("010-1234-5678"), uploadedPhoto(eventId), true);
+        long second = registrationService.register(eventId, actor("010-2345-6789"), uploadedPhoto(eventId), true);
+        Member member = memberRepository.saveAndFlush(Member.ofApplicant());
+        String code = memberLinkCodeService.issue(member.getId()).code();
+        CountDownLatch start = new CountDownLatch(1);
+        try (java.util.concurrent.ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            List<Future<Integer>> results = List.of(first, second).stream().map(id -> executor.submit(() -> {
+                assertTrue(start.await(5, TimeUnit.SECONDS));
+                try {
+                    businessCardService.connectMember(ADMIN_ID, eventId, id, code);
+                    return 1;
+                } catch (BusinessException exception) {
+                    assertEquals(MemberLinkCodeErrorCode.INVALID, exception.getErrorCode());
+                    return 0;
+                }
+            })).toList();
+            start.countDown();
+            assertEquals(1, results.getFirst().get(10, TimeUnit.SECONDS) + results.getLast().get(10, TimeUnit.SECONDS));
+        }
+        assertEquals(1, registrationService.findAllForAdmin(eventId).stream()
+                .filter(item -> member.getId().equals(item.businessCard().memberId())).count());
+        memberRepository.delete(member);
     }
 
     @Test
@@ -232,6 +531,7 @@ class EventRegistrationServiceTest {
         BusinessException exception = assertThrows(BusinessException.class, () ->
                 registrationService.register(eventId, actor("01012345678"), uploadedPhoto(eventId), true));
         assertEquals(EventErrorCode.REGISTRATION_DUPLICATE, exception.getErrorCode());
+        verify(registrationNotifier, times(1)).notifyRegistered(any(EventRegisteredEvent.class));
     }
 
     @Test
@@ -326,7 +626,7 @@ class EventRegistrationServiceTest {
         );
     }
 
-    private static void assertCode(EventErrorCode code, Runnable action) {
+    private static void assertCode(ErrorCode code, Runnable action) {
         BusinessException exception = assertThrows(BusinessException.class, action::run);
         assertEquals(code, exception.getErrorCode());
     }

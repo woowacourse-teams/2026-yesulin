@@ -3,6 +3,17 @@ import { bannerRatioWarning, emptyEventDraft, eventDraftProblem, writeOfEvent } 
 import { formatEventPeriod } from "./types";
 
 describe("이벤트 폼", () => {
+  it("입금 계좌는 세 항목을 함께 확인하고 팝업을 끄면 계좌도 보내지 않는다", () => {
+    const draft = { ...emptyEventDraft(), title: "행사", body: "소개", registrationEnabled: true, registrationConfirmationEnabled: true, registrationConfirmationMessage: "입금 안내", registrationBankName: " 테스트은행 ", registrationAccountNumber: " 001-002-003 ", registrationAccountHolder: " 예술인 " };
+    expect(eventDraftProblem(draft)).toBeNull();
+    expect(writeOfEvent(draft).registrationBankAccount).toEqual({ bankName: "테스트은행", accountNumber: "001-002-003", accountHolder: "예술인" });
+    expect(eventDraftProblem({ ...draft, registrationAccountHolder: "" })).toContain("모두 입력");
+    expect(eventDraftProblem({ ...draft, registrationAccountNumber: "https://example.com" })).toContain("계좌번호");
+    expect(writeOfEvent({ ...draft, registrationConfirmationEnabled: false }).registrationBankAccount).toBeNull();
+    expect(writeOfEvent({ ...draft, registrationEnabled: false }).registrationBankAccount).toBeNull();
+    expect(writeOfEvent(emptyEventDraft()).registrationBankAccount).toBeNull();
+  });
+
   it("신청 전 팝업은 켰을 때 내용을 요구하고 끄면 저장할 내용을 비운다", () => {
     const draft = { ...emptyEventDraft(), title: "행사", body: "소개", registrationEnabled: true, registrationConfirmationEnabled: true };
     expect(eventDraftProblem(draft)).toContain("팝업");

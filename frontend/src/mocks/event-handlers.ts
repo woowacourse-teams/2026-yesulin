@@ -1,6 +1,8 @@
+import { eventBankAccountProblem } from "@/features/events/bank-account";
+import { businessCardProfileUrlProblem } from "@/features/events/business-card";
+import { consumeMockMemberLinkCode, invalidMemberLinkCode, realMemberLinkEnabled } from "./member-link-codes";
 import { delay, http, HttpResponse, passthrough } from "msw";
-import { frontendEnvironment } from "@/config/environment";
-import type { AdminEvent, AdminEventRegistration, AdminEventStatus, AdminEventWrite } from "@/features/admin/types";
+import type { AdminEvent, AdminEventBusinessCard, AdminEventRegistration, AdminEventStatus, AdminEventWrite } from "@/features/admin/types";
 import { MAX_EVENT_DETAIL_IMAGES, registrationClosedMessage } from "@/features/events/types";
 import type { EventBanner, EventPhase, EventRegistrationStatus, EventRegistrationWrite, PublicEvent, PublicEventSummary } from "@/features/events/types";
 import { mockSessionRole } from "./auth-handlers";
@@ -13,9 +15,11 @@ import { registrationSnsProblem } from "@/features/events/registration-draft";
  */
 type Mutable<T> = { -readonly [K in keyof T]: T[K] };
 
-const realLoginEnabled = frontendEnvironment.producerLoginEnabled;
+// 실제 회원 코드를 쓰는 환경에서는 신청·사진·QR·운영 관리도 같은 백엔드에 저장한다.
+const realEventsEnabled = realMemberLinkEnabled;
 const MOCK_STORAGE = "/mock-storage/event-images";
 const mockImages = new Map<string, Blob>();
+const cardVisits = new Map<number, string[]>();
 const now = new Date().toISOString();
 
 const events: Mutable<AdminEvent>[] = [
@@ -166,6 +170,7 @@ function toPublic(event: AdminEvent): PublicEvent {
     registrationNotice: event.registrationNotice,
     registrationConfirmationEnabled: event.registrationConfirmationEnabled,
     registrationConfirmationMessage: event.registrationConfirmationMessage,
+    registrationBankAccount: event.registrationBankAccount ?? null,
     businessCardClosesAt: event.businessCardClosesAt,
     businessCardOpen: acceptsBusinessCards(event),
   };
@@ -218,6 +223,8 @@ function invalidWrite(write: AdminEventWrite): string | null {
     if (!write.registrationConfirmationMessage?.trim()) return "신청 전 팝업 안내 내용을 입력해 주세요.";
     if (write.registrationConfirmationMessage.length > 2000) return "신청 전 팝업 안내는 2000자 이내여야 합니다.";
   }
+  const bankProblem = write.registrationEnabled && write.registrationConfirmationEnabled ? eventBankAccountProblem(write.registrationBankAccount) : null;
+  if (bankProblem) return bankProblem;
   const banner = write.banner;
   if (banner?.enabled && (!banner.desktopImageUrl || !banner.mobileImageUrl || !banner.alt?.trim())) {
     return "배너를 노출하려면 PC·모바일 배너 이미지와 대체 문구가 모두 필요합니다.";
@@ -239,6 +246,9 @@ function apply(target: Mutable<AdminEvent>, write: AdminEventWrite) {
   target.registrationNotice = target.registrationEnabled ? write.registrationNotice?.trim() || null : null;
   target.registrationConfirmationEnabled = target.registrationEnabled && Boolean(write.registrationConfirmationEnabled);
   target.registrationConfirmationMessage = target.registrationConfirmationEnabled ? write.registrationConfirmationMessage?.trim().replace(/\r\n?/g, "\n") || null : null;
+  target.registrationBankAccount = target.registrationConfirmationEnabled && write.registrationBankAccount ? {
+    bankName: write.registrationBankAccount.bankName.trim(), accountNumber: write.registrationBankAccount.accountNumber.trim(), accountHolder: write.registrationBankAccount.accountHolder.trim(),
+  } : null;
   target.businessCardClosesAt = target.registrationEnabled ? write.businessCardClosesAt || null : null;
   target.applyLabel = target.applyUrl || target.registrationEnabled ? write.applyLabel?.trim() || null : null;
   target.coverImageUrl = write.coverImageUrl || null;
@@ -257,23 +267,27 @@ const published = () => events.filter((event) => event.status === "PUBLISHED").m
 
 export const eventHandlers = [
   http.get("/api/v1/public/events", async () => {
+    if (realEventsEnabled) return passthrough();
     await delay(120);
     return HttpResponse.json({ events: published().sort((left, right) => right.id - left.id).map(toSummary) });
   }),
 
   // `:eventId`보다 먼저 둬야 `banners`를 이벤트 번호로 읽지 않는다.
   http.get("/api/v1/public/events/banners", async () => {
+    if (realEventsEnabled) return passthrough();
     await delay(80);
     return HttpResponse.json({ banners: shownBanners(koreaToday()).map(toBanner) });
   }),
 
   http.get("/api/v1/public/events/:eventId", async ({ params }) => {
+    if (realEventsEnabled) return passthrough();
     await delay(120);
     const event = published().find((candidate) => candidate.id === Number(params.eventId));
     return event ? HttpResponse.json(toPublic(event)) : apiError(404, "EVENT_NOT_FOUND", "이벤트를 찾을 수 없습니다.");
   }),
 
   http.post("/api/v1/public/events/:eventId/registrations/photo-uploads", async ({ params, request }) => {
+    if (realEventsEnabled) return passthrough();
     await delay(120);
     const event = published().find((candidate) => candidate.id === Number(params.eventId));
     if (!event) return apiError(404, "EVENT_NOT_FOUND", "이벤트를 찾을 수 없습니다.");
@@ -296,6 +310,7 @@ export const eventHandlers = [
   }),
 
   http.post("/api/v1/public/events/:eventId/registrations", async ({ params, request }) => {
+    if (realEventsEnabled) return passthrough();
     await delay(150);
     const event = published().find((candidate) => candidate.id === Number(params.eventId));
     if (!event) return apiError(404, "EVENT_NOT_FOUND", "이벤트를 찾을 수 없습니다.");
@@ -309,6 +324,7 @@ export const eventHandlers = [
     }
     const actor = write.participantType === "ACTOR";
     const card = actor && write.businessCardRequested;
+    const publicId = card ? crypto.randomUUID() : null;
     if (card && !acceptsBusinessCards(event)) {
       return apiError(409, "EVENT_BUSINESS_CARD_CLOSED", "프로필 명함 제작 신청 기간이 끝났습니다. 명함 희망을 끄고 신청해 주십시오.");
     }
@@ -333,6 +349,7 @@ export const eventHandlers = [
       careers: card && !write.noCareer ? write.careers : [],
       intro: card ? write.intro?.trim() || null : null,
       createdAt: new Date().toISOString(),
+      businessCard: publicId ? { publicId, url: `${window.location.origin}/events/cards/${publicId}`, profileUrl: null, memberId: null } : null,
       paymentStatus: "PENDING",
       paymentConfirmedAt: null,
     });
@@ -341,7 +358,7 @@ export const eventHandlers = [
   }),
 
   http.patch("/api/v1/admin/events/:eventId/registration-status", async ({ params, request }) => {
-    if (realLoginEnabled) return passthrough();
+    if (realEventsEnabled) return passthrough();
     const rejected = rejectNonAdmin(); if (rejected) return rejected;
     const event = events.find((item) => item.id === Number(params.eventId));
     if (!event) return apiError(404, "EVENT_NOT_FOUND", "이벤트를 찾을 수 없습니다.");
@@ -353,7 +370,7 @@ export const eventHandlers = [
   }),
 
   http.patch("/api/v1/admin/events/:eventId/registrations/:registrationId/payment-status", async ({ params, request }) => {
-    if (realLoginEnabled) return passthrough();
+    if (realEventsEnabled) return passthrough();
     const rejected = rejectNonAdmin(); if (rejected) return rejected;
     if (!events.some((item) => item.id === Number(params.eventId))) return apiError(404, "EVENT_NOT_FOUND", "이벤트를 찾을 수 없습니다.");
     const index = registrations.findIndex((item) => item.id === Number(params.registrationId) && registrationEventIds.get(item.id) === Number(params.eventId));
@@ -366,7 +383,7 @@ export const eventHandlers = [
   }),
 
   http.get("/api/v1/admin/events/:eventId/registrations", async ({ params }) => {
-    if (realLoginEnabled) return passthrough();
+    if (realEventsEnabled) return passthrough();
     await delay(120);
     const rejected = rejectNonAdmin();
     if (rejected) return rejected;
@@ -377,7 +394,7 @@ export const eventHandlers = [
 
   // 목에서는 zip 대신 명함 희망자 JSON만 내려 준다. 실제 서버는 CSV·JSON·사진을 묶은 zip을 준다.
   http.get("/api/v1/admin/events/:eventId/registrations/business-card-archive", async ({ params }) => {
-    if (realLoginEnabled) return passthrough();
+    if (realEventsEnabled) return passthrough();
     const rejected = rejectNonAdmin();
     if (rejected) return rejected;
     const eventId = Number(params.eventId);
@@ -385,8 +402,91 @@ export const eventHandlers = [
     return new HttpResponse(JSON.stringify(cards, null, 2), { headers: { "Content-Type": "application/zip" } });
   }),
 
+  http.get("/api/v1/public/business-cards/:publicId", ({ params }) => {
+    if (realEventsEnabled) return passthrough();
+    const card = registrations.find((item) => item.businessCard?.publicId === params.publicId)?.businessCard;
+    if (!card) return apiError(404, "EVENT_REGISTRATION_NOT_FOUND", "명함을 찾을 수 없습니다.");
+    return HttpResponse.json({ profileUrl: card.profileUrl }, { headers: { "Cache-Control": "no-store" } });
+  }),
+
+  http.get("/api/v1/public/business-cards/:publicId/visit", ({ params, request }) => {
+    if (realEventsEnabled) return passthrough();
+    const registration = registrations.find((item) => item.businessCard?.publicId === params.publicId);
+    const card = registration?.businessCard;
+    if (!registration || !card) return apiError(404, "EVENT_REGISTRATION_NOT_FOUND", "명함을 찾을 수 없습니다.");
+    if (request.method === "GET") {
+      const eventId = registrationEventIds.get(registration.id)!;
+      const visits = cardVisits.get(eventId) ?? [];
+      visits.push(koreaToday());
+      cardVisits.set(eventId, visits);
+    }
+    return HttpResponse.json({ profileUrl: card.profileUrl }, { headers: { "Cache-Control": "no-store" } });
+  }),
+
+  http.get("/api/v1/admin/events/:eventId/business-card/visits", ({ params, request }) => {
+    if (realEventsEnabled) return passthrough();
+    const rejected = rejectNonAdmin();
+    if (rejected) return rejected;
+    const days = Number(new URL(request.url).searchParams.get("days") ?? 14);
+    if (!Number.isInteger(days) || days < 1 || days > 90) return apiError(400, "EVENT_INVALID_INPUT", "조회 기간은 1일부터 90일까지 선택해 주세요.");
+    const eventId = Number(params.eventId);
+    if (!events.some((event) => event.id === eventId)) return apiError(404, "EVENT_NOT_FOUND", "이벤트를 찾을 수 없습니다.");
+    const toDate = koreaToday();
+    const dates = Array.from({ length: days }, (_, index) => new Date(Date.parse(`${toDate}T00:00:00Z`) - (days - index - 1) * 86_400_000).toISOString().slice(0, 10));
+    const visits = cardVisits.get(eventId) ?? [];
+    return HttpResponse.json({ fromDate: dates[0], toDate,
+      daily: dates.map((date) => ({ date, visits: visits.filter((visitedOn) => visitedOn === date).length })) },
+    { headers: { "Cache-Control": "no-store" } });
+  }),
+
+  http.put("/api/v1/admin/events/:eventId/registrations/:registrationId/business-card", async ({ params, request }) => {
+    if (realEventsEnabled) return passthrough();
+    const rejected = rejectNonAdmin();
+    if (rejected) return rejected;
+    const index = registrations.findIndex((item) => item.id === Number(params.registrationId)
+      && registrationEventIds.get(item.id) === Number(params.eventId));
+    const registration = registrations[index];
+    if (!registration?.businessCard) return apiError(404, "EVENT_REGISTRATION_NOT_FOUND", "명함을 찾을 수 없습니다.");
+    const write = await request.json() as Pick<AdminEventBusinessCard, "profileUrl">;
+    const invalid = businessCardProfileUrlProblem(write.profileUrl ?? "");
+    if (invalid) return apiError(400, "EVENT_INVALID_INPUT", invalid);
+    const businessCard = { ...registration.businessCard, profileUrl: write.profileUrl?.trim() || null };
+    registrations[index] = { ...registration, businessCard };
+    return HttpResponse.json(businessCard);
+  }),
+
+  http.post("/api/v1/admin/events/:eventId/registrations/:registrationId/business-card/member", async ({ params, request }) => {
+    if (realEventsEnabled) return passthrough();
+    const rejected = rejectNonAdmin();
+    if (rejected) return rejected;
+    const index = registrations.findIndex((item) => item.id === Number(params.registrationId)
+      && registrationEventIds.get(item.id) === Number(params.eventId));
+    const registration = registrations[index];
+    if (!registration?.businessCard) return apiError(404, "EVENT_REGISTRATION_NOT_FOUND", "명함을 찾을 수 없습니다.");
+    const write = await request.json() as { code?: unknown };
+    if (typeof write.code !== "string") return invalidMemberLinkCode();
+    const memberId = consumeMockMemberLinkCode(write.code);
+    if (memberId === null) return invalidMemberLinkCode();
+    const businessCard = { ...registration.businessCard, memberId };
+    registrations[index] = { ...registration, businessCard };
+    return HttpResponse.json(businessCard);
+  }),
+
+  http.delete("/api/v1/admin/events/:eventId/registrations/:registrationId/business-card/member", ({ params }) => {
+    if (realEventsEnabled) return passthrough();
+    const rejected = rejectNonAdmin();
+    if (rejected) return rejected;
+    const index = registrations.findIndex((item) => item.id === Number(params.registrationId)
+      && registrationEventIds.get(item.id) === Number(params.eventId));
+    const registration = registrations[index];
+    if (!registration?.businessCard) return apiError(404, "EVENT_REGISTRATION_NOT_FOUND", "명함을 찾을 수 없습니다.");
+    const businessCard = { ...registration.businessCard, memberId: null };
+    registrations[index] = { ...registration, businessCard };
+    return HttpResponse.json(businessCard);
+  }),
+
   http.delete("/api/v1/admin/events/:eventId/registrations/:registrationId", async ({ params }) => {
-    if (realLoginEnabled) return passthrough();
+    if (realEventsEnabled) return passthrough();
     await delay(120);
     const rejected = rejectNonAdmin();
     if (rejected) return rejected;
@@ -398,7 +498,7 @@ export const eventHandlers = [
   }),
 
   http.post("/api/v1/admin/event-images/uploads", async ({ request }) => {
-    if (realLoginEnabled) return passthrough();
+    if (realEventsEnabled) return passthrough();
     await delay(120);
     const rejected = rejectNonAdmin();
     if (rejected) return rejected;
@@ -430,7 +530,7 @@ export const eventHandlers = [
   }),
 
   http.get("/api/v1/admin/events", async () => {
-    if (realLoginEnabled) return passthrough();
+    if (realEventsEnabled) return passthrough();
     await delay(120);
     const rejected = rejectNonAdmin();
     if (rejected) return rejected;
@@ -438,7 +538,7 @@ export const eventHandlers = [
   }),
 
   http.post("/api/v1/admin/events", async ({ request }) => {
-    if (realLoginEnabled) return passthrough();
+    if (realEventsEnabled) return passthrough();
     await delay(150);
     const rejected = rejectNonAdmin();
     if (rejected) return rejected;
@@ -458,7 +558,7 @@ export const eventHandlers = [
   }),
 
   http.get("/api/v1/admin/events/:eventId", async ({ params }) => {
-    if (realLoginEnabled) return passthrough();
+    if (realEventsEnabled) return passthrough();
     const rejected = rejectNonAdmin();
     if (rejected) return rejected;
     const event = events.find((candidate) => candidate.id === Number(params.eventId));
@@ -466,7 +566,7 @@ export const eventHandlers = [
   }),
 
   http.put("/api/v1/admin/events/:eventId", async ({ params, request }) => {
-    if (realLoginEnabled) return passthrough();
+    if (realEventsEnabled) return passthrough();
     await delay(150);
     const rejected = rejectNonAdmin();
     if (rejected) return rejected;
@@ -480,18 +580,25 @@ export const eventHandlers = [
   }),
 
   http.delete("/api/v1/admin/events/:eventId", async ({ params }) => {
-    if (realLoginEnabled) return passthrough();
+    if (realEventsEnabled) return passthrough();
     await delay(120);
     const rejected = rejectNonAdmin();
     if (rejected) return rejected;
     const index = events.findIndex((candidate) => candidate.id === Number(params.eventId));
     if (index < 0) return apiError(404, "EVENT_NOT_FOUND", "이벤트를 찾을 수 없습니다.");
+    const eventId = Number(params.eventId);
+    for (let registrationIndex = registrations.length - 1; registrationIndex >= 0; registrationIndex--) {
+      if (registrationEventIds.get(registrations[registrationIndex].id) !== eventId) continue;
+      registrationEventIds.delete(registrations[registrationIndex].id);
+      registrations.splice(registrationIndex, 1);
+    }
+    cardVisits.delete(eventId);
     events.splice(index, 1);
     return new HttpResponse(null, { status: 204 });
   }),
 
   http.patch("/api/v1/admin/events/:eventId/status", async ({ params, request }) => {
-    if (realLoginEnabled) return passthrough();
+    if (realEventsEnabled) return passthrough();
     await delay(120);
     const rejected = rejectNonAdmin();
     if (rejected) return rejected;

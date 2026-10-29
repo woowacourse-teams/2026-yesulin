@@ -2,6 +2,7 @@ package art.yesulin.event.presentation.api.admin;
 
 import art.yesulin.event.application.EventImageUrls;
 import art.yesulin.event.domain.Event;
+import art.yesulin.event.domain.EventBankAccount;
 import art.yesulin.event.domain.EventBannerSetting;
 import art.yesulin.event.domain.EventContent;
 import art.yesulin.event.domain.EventImages;
@@ -41,7 +42,8 @@ public record WriteEventRequest(
         Instant businessCardClosesAt,
         boolean registrationConfirmationEnabled,
         @Size(max = Event.MAX_REGISTRATION_NOTICE_LENGTH) String registrationConfirmationMessage,
-        @Min(1) Integer registrationCapacity
+        @Min(1) Integer registrationCapacity,
+        BankAccount registrationBankAccount
 ) {
 
     private static final int MAX_IMAGE_URL_LENGTH = 1000;
@@ -50,7 +52,9 @@ public record WriteEventRequest(
         return new EventContent(
                 title, summary, body, startsOn, endsOn, applyUrl, applyLabel,
                 registrationEnabled, registrationNotice, detailBody, businessCardClosesAt,
-                registrationConfirmationEnabled, registrationConfirmationMessage, registrationCapacity
+                registrationConfirmationEnabled, registrationConfirmationMessage, registrationCapacity,
+                registrationEnabled && registrationConfirmationEnabled && registrationBankAccount != null
+                        ? registrationBankAccount.toDomain() : null
         );
     }
 
@@ -65,6 +69,17 @@ public record WriteEventRequest(
                 banner == null ? null : banner.mobileImageUrl(),
                 detailImageUrls
         );
+    }
+
+    public record BankAccount(
+            String bankName,
+            String accountNumber,
+            String accountHolder
+    ) {
+
+        EventBankAccount toDomain() {
+            return new EventBankAccount(bankName, accountNumber, accountHolder);
+        }
     }
 
     /**

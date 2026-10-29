@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -60,6 +61,8 @@ public class EventRegistrationService {
     private final EventRegistrationPhotoStorage storage;
     private final AdminAuditLogRepository auditLogRepository;
     private final Clock clock;
+    private final EventBusinessCardService businessCardService;
+    private final ApplicationEventPublisher eventPublisher;
 
     /** 신청을 받고 명함 제작 마감 전인 이벤트에서만 명함 사진 올릴 자리를 준다. */
     @Transactional
@@ -104,7 +107,12 @@ public class EventRegistrationService {
                 : null;
         EventRegistration registration = new EventRegistration(event.getId(), form, photoKey, today(), clock.instant());
         try {
-            return repository.saveAndFlush(registration).getId();
+            long id = repository.saveAndFlush(registration).getId();
+            eventPublisher.publishEvent(new EventRegisteredEvent(
+                    event.getId(), event.getTitle(), id, registration.getParticipantType(),
+                    registration.isBusinessCardRequested()
+            ));
+            return id;
         } catch (DataIntegrityViolationException exception) {
             throw duplicate();
         }
@@ -139,22 +147,21 @@ public class EventRegistrationService {
             auditLogRepository.save(new AdminAuditLog(adminId, AdminAction.EVENT_REGISTRATION_PAYMENT_CHANGED,
                     TARGET_TYPE, registration.getId(), "%s → %s".formatted(previous, status)));
         }
-        return AdminEventRegistrationResult.from(registration,
-                registration.getPhotoKey() == null ? null : storage.downloadUrl(registration.getPhotoKey()));
+        return adminResult(registration);
     }
 
-    /** 이벤트의 참가 신청을 먼저 온 순서로 준다. 사진은 잠깐 열리는 내려받기 주소로 준다. */
-    @Transactional(readOnly = true)
+    /** 참가 신청을 접수 순서로 준다. 배포 중 구버전이 만든 명함의 누락 QR 키는 이벤트 잠금 안에서 보완한다. */
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public List<AdminEventRegistrationResult> findAllForAdmin(long eventId) {
-        if (!eventRepository.existsById(eventId)) {
-            throw eventNotFound();
-        }
-        return repository.findAllByEventIdOrderByIdAsc(eventId).stream()
-                .map(registration -> AdminEventRegistrationResult.from(
-                        registration,
-                        registration.getPhotoKey() == null ? null : storage.downloadUrl(registration.getPhotoKey())
-                ))
-                .toList();
+        eventRepository.findByIdForUpdate(eventId).orElseThrow(EventRegistrationService::eventNotFound);
+        return repository.findAllByEventIdOrderByIdAsc(eventId).stream().map(this::adminResult).toList();
+    }
+
+    private AdminEventRegistrationResult adminResult(EventRegistration registration) {
+        registration.ensureBusinessCardKey();
+        return AdminEventRegistrationResult.from(registration,
+                registration.getPhotoKey() == null ? null : storage.downloadUrl(registration.getPhotoKey()),
+                businessCardService.describe(registration));
     }
 
     /**

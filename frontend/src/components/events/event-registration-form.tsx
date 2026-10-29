@@ -13,7 +13,7 @@ import {
   writeOfRegistration,
   type RegistrationDraft,
 } from "@/features/events/registration-draft";
-import { EVENT_PARTICIPANT_LABELS, MAX_EVENT_AFFILIATION_LENGTH, MAX_EVENT_CURRENT_WORK_LENGTH, type EventParticipantType, type EventRegistrationWrite } from "@/features/events/types";
+import { EVENT_PARTICIPANT_LABELS, MAX_EVENT_AFFILIATION_LENGTH, MAX_EVENT_CURRENT_WORK_LENGTH, type EventBankAccount, type EventParticipantType, type EventRegistrationWrite } from "@/features/events/types";
 import { EventBusinessCardEditor } from "./event-business-card-editor";
 import { EventBusinessCardPreview, type CardPreviewSide } from "./event-business-card-preview";
 import { EventRegistrationConfirmation } from "./event-registration-confirmation";
@@ -28,13 +28,14 @@ const PARTICIPANT_HINTS: Readonly<Record<EventParticipantType, string>> = {
  * 로그인 없이 쓰는 참가 신청서. 참가 구분을 먼저 고르면 이름·휴대폰 칸이 열리고, 공연사 관계자는 소속과 지금 하는 일을,
  * 프로필 명함을 희망한 배우는 명함에 들어갈 정보를 더 적는다.
  */
-export function EventRegistrationForm({ eventId, businessCardOpen, businessCardClosesAt, registrationConfirmationEnabled, registrationConfirmationMessage, onDone }: {
+export function EventRegistrationForm({ eventId, businessCardOpen, businessCardClosesAt, registrationConfirmationEnabled, registrationConfirmationMessage, registrationBankAccount, onDone }: {
   readonly eventId: number;
   /** 지금 명함 제작 희망을 받는지. 마감 시각이 지나면 명함 체크 칸 대신 현장 안내를 보인다. */
   readonly businessCardOpen: boolean;
   readonly businessCardClosesAt: string | null;
   readonly registrationConfirmationEnabled: boolean;
   readonly registrationConfirmationMessage: string | null;
+  readonly registrationBankAccount?: EventBankAccount | null;
   readonly onDone: () => void;
 }) {
   const [draft, setDraft] = useState<RegistrationDraft>(emptyRegistrationDraft);
@@ -204,6 +205,7 @@ export function EventRegistrationForm({ eventId, businessCardOpen, businessCardC
       <EventRegistrationConfirmation
         open={pending !== null}
         message={registrationConfirmationMessage ?? ""}
+        bankAccount={registrationBankAccount}
         busy={submitting}
         onClose={() => setPending(null)}
         onConfirm={() => { if (pending) void send(pending); }}

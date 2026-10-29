@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from "react";
 import { AddButton, FieldInput, FieldSelect, SecondaryButton, TextButton } from "@/components/ui/controls";
-import { shrinkPhoto } from "@/features/companies/photo-image";
+import { SiteIcon } from "@/components/ui/site-icon";
+import { MAX_SOURCE_BYTES, shrinkPhoto } from "@/features/companies/photo-image";
 import { uploadEventRegistrationPhoto } from "@/features/events/api";
 import { careerYears, emptyCareer, toggleActivityField, type CareerDraft, type RegistrationDraft } from "@/features/events/registration-draft";
 import { EVENT_ACTIVITY_FIELDS, EVENT_ACTIVITY_LABELS, EVENT_SNS_LABELS, EVENT_SNS_PLATFORMS, MAX_EVENT_SNS_HANDLE_LENGTH, MAX_REGISTRATION_CAREERS, MAX_REGISTRATION_INTRO, type EventSnsPlatform } from "@/features/events/types";
@@ -35,6 +36,7 @@ export function BusinessCardFields({ eventId, draft, preview, photoUrl, mobileVi
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,.85fr)]">
         <div id="event-card-panel-input" role="tabpanel" aria-labelledby="event-card-tab-input" className={`min-w-0 flex-col gap-6 lg:flex ${mobileView === "input" ? "flex" : "hidden"}`}>
           <div className="flex flex-col gap-5" onFocusCapture={() => onPreviewSideChange("front")}>
+            <PhotoField eventId={eventId} preview={photoUrl} onBusyChange={onPhotoBusyChange} onChange={onPhotoChange} />
             <RegistrationField id="registration-card-name" label="명함에 들어갈 이름" required>
               <FieldInput id="registration-card-name" value={draft.name} maxLength={50} onChange={(event) => onChange({ name: event.target.value })} />
             </RegistrationField>
@@ -57,7 +59,6 @@ export function BusinessCardFields({ eventId, draft, preview, photoUrl, mobileVi
               <p id="registration-sns-count" className="num text-right text-xs text-muted">{draft.snsHandle.length} / {MAX_EVENT_SNS_HANDLE_LENGTH}자</p>
             </fieldset>
             <BirthDateField value={draft.birthDate} today={koreaToday()} onChange={(birthDate) => onChange({ birthDate })} />
-            <PhotoField eventId={eventId} preview={photoUrl} onBusyChange={onPhotoBusyChange} onChange={onPhotoChange} />
           </div>
 
           <fieldset className="flex flex-col gap-2" onFocusCapture={() => onPreviewSideChange("back")}>
@@ -190,22 +191,25 @@ function PhotoField({ eventId, preview, onBusyChange, onChange }: {
 
   const busy = status !== "idle";
   return (
-    <div role="group" aria-labelledby="registration-photo-title" className="flex min-w-0 flex-col gap-1.5">
-      <span id="registration-photo-title" className="text-sm font-semibold">프로필 사진<RequiredMark /></span>
-      {preview ? (
-        // eslint-disable-next-line @next/next/no-img-element -- 브라우저에서 줄인 사진을 그대로 미리 보여 준다.
-        <img src={preview} alt="올린 프로필 사진 미리 보기" className="h-32 w-24 rounded-control border border-border-soft bg-surface object-cover sm:h-48 sm:w-36" />
-      ) : null}
-      <div>
-        <input ref={input} type="file" accept="image/*,.heic,.heif" className="sr-only" disabled={busy} onChange={(event) => void choose(event)} aria-label="프로필 사진 고르기" />
-        <SecondaryButton disabled={busy} onClick={() => input.current?.click()} aria-describedby="registration-photo-hint">
-          {status === "shrinking" ? "사진 줄이는 중…" : status === "uploading" ? "올리는 중…" : preview ? "사진 바꾸기" : "사진 올리기"}
-        </SecondaryButton>
+    <div role="group" aria-labelledby="registration-photo-title" aria-busy={busy} className="flex min-w-0 flex-col gap-2">
+      <span id="registration-photo-title" className="text-sm font-semibold">명함에 넣을 사진<RequiredMark /></span>
+      <div className={`flex min-w-0 items-start gap-4 rounded-card border p-4 ${preview ? "border-pass/30 bg-pass-bg/30" : "border-brand/40 bg-brand-soft/40"}`}>
+        {preview ? (
+          // eslint-disable-next-line @next/next/no-img-element -- 브라우저에서 줄인 사진을 그대로 미리 보여 준다.
+          <img src={preview} alt="등록한 명함 사진" className="h-28 w-20 shrink-0 rounded-control border border-border-soft bg-card object-cover" />
+        ) : <div aria-hidden="true" className="flex h-28 w-20 shrink-0 items-center justify-center rounded-control border border-dashed border-brand/40 bg-card text-brand"><SiteIcon name="image" className="size-8" /></div>}
+        <div className="min-w-0 flex-1">
+          <p role="status" className={`text-sm font-semibold leading-6 ${preview && !busy && !error ? "text-pass" : "text-foreground"}`}>
+            {status === "shrinking" ? "사진을 준비하고 있어요…" : status === "uploading" ? "사진을 업로드하고 있어요…" : preview ? error ? "기존에 등록한 사진이 유지돼요" : "사진 등록 완료 · 1장" : "명함에 사용할 사진을 올려 주세요"}
+          </p>
+          <p id="registration-photo-hint" className="mt-1 text-xs leading-5 text-muted-strong">선택하면 자동으로 업로드돼요.<br />사진 1장 · 원본 최대 {MAX_SOURCE_BYTES / 1024 / 1024}MB</p>
+          <input ref={input} type="file" accept="image/*,.heic,.heif" className="hidden" disabled={busy} onChange={(event) => void choose(event)} aria-label="명함 사진 파일" />
+          <SecondaryButton disabled={busy} onClick={() => input.current?.click()} aria-describedby="registration-photo-hint" className="mt-3 w-full justify-center border-brand text-brand">
+            {busy ? "사진 업로드 중…" : preview ? "다른 사진으로 변경" : "사진 선택해서 올리기"}
+          </SecondaryButton>
+        </div>
       </div>
-      <p id="registration-photo-hint" className="text-xs text-muted">
-        명함에 들어갈 프로필 사진 1장입니다.
-      </p>
-      {error ? <p role="alert" className="text-xs font-semibold text-fail">{error}</p> : null}
+      {error ? <p role="alert" className="text-sm font-semibold text-fail">{error}</p> : null}
     </div>
   );
 }

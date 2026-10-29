@@ -18,6 +18,7 @@ import java.time.LocalDate;
  * @param businessCardClosesAt 배우의 프로필 명함 제작 희망을 받는 마감 시각. 비우면 신청 기간 내내 받고, 신청서를 끄면 지운다.
  * @param registrationConfirmationEnabled 신청을 보내기 전에 안내 팝업을 보여 주는지
  * @param registrationConfirmationMessage 팝업 안내문. 팝업을 켜면 필수이며 신청서를 끄면 지운다.
+ * @param registrationBankAccount 팝업에 공개할 입금 계좌. 계좌 안내를 사용하지 않으면 null이다.
  */
 public record EventContent(
         String title,
@@ -33,7 +34,8 @@ public record EventContent(
         Instant businessCardClosesAt,
         boolean registrationConfirmationEnabled,
         String registrationConfirmationMessage,
-        Integer registrationCapacity
+        Integer registrationCapacity,
+        EventBankAccount registrationBankAccount
 ) {
 
     /** 정원을 두지 않은 기존 이벤트 글. */
@@ -45,7 +47,19 @@ public record EventContent(
     ) {
         this(title, summary, body, startsOn, endsOn, applyUrl, applyLabel, registrationEnabled, registrationNotice,
                 detailBody, businessCardClosesAt, registrationConfirmationEnabled,
-                registrationConfirmationMessage, null);
+                registrationConfirmationMessage, null, null);
+    }
+
+    /** 계좌 안내를 사용하지 않는 기존 이벤트 요청. */
+    public EventContent(
+            String title, String summary, String body, LocalDate startsOn, LocalDate endsOn,
+            String applyUrl, String applyLabel, boolean registrationEnabled, String registrationNotice,
+            String detailBody, Instant businessCardClosesAt, boolean registrationConfirmationEnabled,
+            String registrationConfirmationMessage, Integer registrationCapacity
+    ) {
+        this(title, summary, body, startsOn, endsOn, applyUrl, applyLabel, registrationEnabled, registrationNotice,
+                detailBody, businessCardClosesAt, registrationConfirmationEnabled, registrationConfirmationMessage,
+                registrationCapacity, null);
     }
 
     /** 팝업 안내 없이 쓰는 글. */
