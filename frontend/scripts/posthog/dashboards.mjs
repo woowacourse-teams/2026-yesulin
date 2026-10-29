@@ -53,6 +53,21 @@ export function dashboardDefinitions(environment = "production") {
         ) SELECT uniq(person_id) AS \`공고 조회자\`, uniqIf(person_id, converted = 1) AS \`양식 클릭자\`,
           round(100.0 * uniqIf(person_id, converted = 1) / nullIf(uniq(person_id), 0), 1) AS \`전환율 퍼센트\` FROM matched`,
           "지원 양식이 확인된 공고만 포함. 같은 사용자·같은 공고를 연결합니다. 최초 관측 조회 후 7일이 지난 대상만 비교하며, 최근 7일 방문자는 아직 관측 중입니다. 분모가 없으면 빈칸입니다.", "-35d"),
+        table("공고를 본 사람들은 어디서 들어오나요?", `WITH first_views AS (
+          SELECT person_id,
+            argMin(if(properties.attribution_version = 1, toString(properties.acquisition_channel), 'unmeasured'), timestamp) AS channel
+          FROM events WHERE event = 'audition_post_viewed' AND ${base} AND {filters}
+          GROUP BY person_id
+        ), counts AS (
+          SELECT multiIf(channel = 'openchat', '오픈채팅', channel = 'naver', '네이버',
+            channel = 'google', '구글', channel = 'instagram', '인스타그램',
+            channel = 'other_external', '기타 외부 사이트', channel = 'other_tagged', '기타 표시 링크',
+            channel = 'direct_unknown', '직접 방문·출처 불명', '측정 시작 전') AS channel_name,
+            count() AS people FROM first_views GROUP BY channel_name
+        ) SELECT channel_name AS \`유입 경로\`, people AS \`공고 조회자\`,
+          round(100.0 * people / sum(people) OVER (), 1) AS \`비중 퍼센트\`
+          FROM counts ORDER BY people DESC, channel_name`,
+          "선택 기간에 각 사람이 처음 본 공고의 방문 출처로 한 번만 분류합니다. 합계는 해당 기간 공고 조회자(주별 수의 합 아님). 새 측정은 2026-10-30 배포 후부터이며 이전 기록은 ‘측정 시작 전’. 표시 링크 우선, 없으면 이전 사이트로 분류합니다. 네이버·구글은 검색뿐 아니라 해당 서비스 유입도 포함. 직접 방문·출처 불명에는 표시 없는 카톡 링크도 포함됩니다. 기존 오픈채팅 차트는 기간 중 한 번이라도 알림 링크로 온 사람이라 수치가 다를 수 있습니다.", "-12w"),
         trend("오픈채팅 알림으로 얼마나 들어오나요?", "openchat_landed", "src=kakao_openchat 또는 utm_source=kakao_openchat으로 표시된 링크 유입. 방 인원 대비 비율은 메시지 열람자 기준 클릭률이 아닙니다."),
         table("어떤 공고 알림을 많이 열어 보나요?", `SELECT properties.post_id AS \`공고 번호\`, uniq(person_id) AS \`유입 사용자\` FROM events WHERE event = 'openchat_landed' AND ${base} AND {filters} GROUP BY properties.post_id ORDER BY \`유입 사용자\` DESC`, "선택 기간, 공고별 중복 제거. 공고 번호는 사이트 상세 주소 /posts/번호와 대응합니다. 공고 제목·본문은 분석에 보내지 않습니다."),
         table("알림을 보고 다른 공고도 살펴보나요?", `WITH visits AS (

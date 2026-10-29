@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function AnalyticsPrivacyPage() {
   return <PolicyLayout title="PostHog 방문 분석 안내" description="공고와 서비스 기능이 어떻게 이용되는지 확인하고 개선하기 위해 PostHog를 사용합니다."
-    version="분석 안내 1.0" effectiveDate="2026-10-29" navigation={[
+    version="분석 안내 1.1" effectiveDate="2026-10-30" navigation={[
       { href: "#collection", label: "1. 수집하는 정보" },
       { href: "#transfer", label: "2. 전송과 보관" },
       { href: "#choice", label: "3. 분석 끄기와 문의" },
@@ -20,6 +20,7 @@ export default function AnalyticsPrivacyPage() {
       <ul className="list-disc space-y-2 pl-5">
         <li>브라우저에 저장하는 방문 식별자, 로그인 시 원래 회원 번호를 변환한 가명 계정 식별자, 방문 세션 식별자와 이용자 역할</li>
         <li>공고 조회·첨부 클릭·오픈채팅 알림 유입, 공연 조회·예매 단계와 성공·실패, 공연사의 게시·관리 기능 이용</li>
+        <li>오픈채팅·네이버·구글·인스타그램 등 유입 경로의 분류명. 링크 표시와 이전 사이트 주소를 브라우저에서 분류하며, 원문 주소·검색어·임의 캠페인 값은 보내지 않습니다.</li>
         <li>PDF 업로드·추출·적용·저장 단계의 성공·실패, 처리 결과를 확인하기까지의 시간, 지원자 검토 화면 이용 시간과 저장 여부</li>
         <li>행동 시각, 연결에 필요한 공고·공연·PDF 작업·심사 대상 식별자, 수량·제한된 오류 코드, 운영·개발 및 내부 테스트 구분</li>
       </ul>
