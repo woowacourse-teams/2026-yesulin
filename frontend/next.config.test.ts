@@ -93,6 +93,14 @@ describe("actor page address", () => {
     expect(response.headers.get("location")).toBeNull();
   });
 
+  it.each(["/@minzzun", "/@minzzun/posts"])("does not serve the retired address %s", async (path) => {
+    const { default: nextConfig } = await import("./next.config");
+    const response = await unstable_getResponseFromNextConfig({ url: `https://yesulin.art${path}`, nextConfig });
+
+    expect(getRewrittenUrl(response)).toBeNull();
+    expect(response.headers.get("location")).toBeNull();
+  });
+
   it("keeps the actor page rewrite next to the backend rewrite", async () => {
     vi.stubEnv("API_ORIGIN", "https://api.yesulin.art");
     const { default: nextConfig } = await import("./next.config");
