@@ -165,7 +165,7 @@ export function AdminEventForm({ initial, submitLabel, onSave, onCancel, onUnaut
           <input type="checkbox" checked={draft.bannerEnabled} onChange={(event) => set("bannerEnabled", event.target.checked)} className="size-4 accent-brand" />
           메인 상단 배너에 노출
         </label>
-        <p className="-mt-3 text-xs text-muted">공개 중인 글만 보여요. 배너를 누르면 이 이벤트 상세로 가요.</p>
+        <p className="-mt-3 text-xs text-muted">공개 중인 글만 보여요. 이벤트 배너는 고정 배너보다 먼저, 순서가 작은 것부터 5개까지 보여요. 배너를 누르면 이 이벤트 상세로 가요.</p>
         <div className="grid gap-4 lg:grid-cols-2">
           <ImageField label={`PC 배너 (${BANNER_RATIOS.bannerDesktop.label})`} hint="예: 2160×675. 글자는 가운데 쪽에 두세요." {...imageProps("bannerDesktop", "bannerDesktopImageUrl")} />
           <ImageField label={`모바일 배너 (${BANNER_RATIOS.bannerMobile.label})`} hint="예: 1440×1080. 640px 이하 화면에서 보여요." {...imageProps("bannerMobile", "bannerMobileImageUrl")} />
@@ -177,7 +177,7 @@ export function AdminEventForm({ initial, submitLabel, onSave, onCancel, onUnaut
           <Field id="event-banner-ends-on" label="노출 종료일" hint="이 날까지 보여요. 비우면 내릴 때까지 보여요.">
             <FieldInput id="event-banner-ends-on" type="date" value={draft.bannerEndsOn} onChange={(event) => set("bannerEndsOn", event.target.value)} />
           </Field>
-          <Field id="event-banner-order" label="순서" hint="0~99. 작은 숫자가 먼저 보여요.">
+          <Field id="event-banner-order" label="순서" hint="0~99. 이벤트 배너끼리 작은 숫자가 먼저 보여요.">
             <FieldInput id="event-banner-order" type="number" min={0} max={99} inputMode="numeric" value={draft.bannerOrder} onChange={(event) => set("bannerOrder", event.target.value)} />
           </Field>
         </div>
