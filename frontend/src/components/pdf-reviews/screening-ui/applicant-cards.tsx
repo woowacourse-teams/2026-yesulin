@@ -6,6 +6,7 @@ import type { Applicant } from "@/features/pdf-reviews/screening-types";
 import { ApplicantPhotoImage } from "./applicant-photo";
 import { useBoard } from "./board-context";
 import { StatusBadge } from "@/components/auditions/status-badge";
+import { ApplicantSocialLinks } from "./applicant-social-links";
 
 export function ApplicantCards({ rows }: { rows: readonly Applicant[] }) {
   const { board, selected, toggleSelected, openApplicant } = useBoard();
@@ -77,6 +78,8 @@ export function ApplicantCards({ rows }: { rows: readonly Applicant[] }) {
                 </span>
               </span>
             </button>
+
+            {applicant.links.length > 0 && <div className="border-t border-border-soft px-4 py-3"><ApplicantSocialLinks links={applicant.links} /></div>}
 
             <label className="absolute left-2 top-2 z-3 inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-control bg-white/92 p-2 shadow-[var(--shadow-1)] transition-colors hover:bg-white lg:min-h-10 lg:min-w-10">
               <span className="sr-only">{applicant.name} 선택</span>

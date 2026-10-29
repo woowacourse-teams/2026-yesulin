@@ -2,11 +2,11 @@ export type ReviewKey = string | number;
 
 export type MatchStatus = "WAITING" | "MATCHED" | "NEEDS_CHECK";
 export type ReviewDecision = "PENDING" | "PASS" | "FAIL" | "HOLD";
-export type DecisionFilter = "PENDING" | "PASS" | "FAIL";
+export type DecisionFilter = ReviewDecision;
 
-/** 기존 보류 항목도 판정 대기에서 계속 확인할 수 있다. */
+/** 대기와 보류는 별도로 모아 본다. 다음 지원자 이동은 결정을 바꾸지 않는다. */
 export function matchesDecision(entry: Pick<ReviewEntry, "decision">, filter: DecisionFilter) {
-  return filter === "PENDING" ? entry.decision === "PENDING" || entry.decision === "HOLD" : entry.decision === filter;
+  return entry.decision === filter;
 }
 
 export type ReviewSummary = {
@@ -29,6 +29,7 @@ export type ReviewEntry = {
   readonly matchEvidence: string | null;
   readonly memo: string | null;
   readonly decision: ReviewDecision;
+  readonly processingStatus?: "UPLOADING" | "EXTRACTING" | "ENRICHING" | "READY" | "NEEDS_REVIEW" | "FAILED";
 };
 
 export type ReviewDetail = {
@@ -48,7 +49,11 @@ export type ReviewProgress = {
   readonly failed: number;
   /** 실패·일부 완료도 처리 종료에 포함한다. 브라우저의 아직 미접수 파일은 포함하지 않는다. */
   readonly complete: boolean;
+  readonly pdf?: { readonly uploading: number; readonly queued: number; readonly completed: number; readonly partial: number; readonly failed: number };
+  readonly ai?: { readonly notQueued: number; readonly pending: number; readonly running: number; readonly completed: number; readonly failed: number; readonly skipped: number };
 };
+
+export const applicantProcessingLabels = { UPLOADING: "업로드 확인 중", EXTRACTING: "PDF 추출 중", ENRICHING: "AI 정리 중", READY: "정리 완료", NEEDS_REVIEW: "원본 확인 필요", FAILED: "추출 실패" } as const;
 
 export const matchStatusLabels: Record<MatchStatus, string> = {
   WAITING: "내용 정리 중", MATCHED: "지원 배역 확인됨", NEEDS_CHECK: "미기재",

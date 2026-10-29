@@ -19,6 +19,8 @@ import art.yesulin.pdfextraction.domain.PdfExtractionJob;
 import art.yesulin.pdfextraction.domain.PdfExtractionJobRepository;
 import art.yesulin.pdfextraction.domain.PdfExtractionPayload;
 import art.yesulin.pdfextraction.domain.PdfExtractionPayloadRepository;
+import art.yesulin.pdfextraction.domain.ai.PdfAiJob;
+import art.yesulin.pdfextraction.domain.ai.PdfAiJobRepository;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.ZoneOffset;
@@ -37,11 +39,13 @@ class PdfExtractionServiceTest {
     private PdfExtractionJobRepository repository;
     private PdfExtractionPayloadRepository payloads;
     private PdfExtractionService service;
+    private PdfAiJobRepository aiJobs;
 
     @BeforeEach
     void setUp() {
         repository = mock(PdfExtractionJobRepository.class);
         payloads = mock(PdfExtractionPayloadRepository.class);
+        aiJobs = mock(PdfAiJobRepository.class);
         when(repository.save(any())).thenAnswer(call -> {
             PdfExtractionJob job = call.getArgument(0);
             jobs.put(job.getId(), job);
@@ -167,7 +171,26 @@ class PdfExtractionServiceTest {
         assertEquals(signedBefore, storage.signedUrls());
     }
 
+    @Test
+    void presentsAiResultThroughExistingContractWithoutRewritingImmutablePayload() {
+        String id = service.prepare(1L, "synthetic.pdf", 100).jobId();
+        jobs.get(id).receiveResult("COMPLETED", NOW);
+        PdfExtractionResult original = new PdfExtractionResult("COMPLETED", "sha", null, List.of(), List.of());
+        String originalJson = MAPPER.writeValueAsString(original);
+        storedPayloads.put(id, new PdfExtractionPayload(id, originalJson, "original-sha", NOW));
+        PdfAiJob aiJob = new PdfAiJob(id, "review", 1L, "[]", NOW);
+        String lease = aiJob.acquire(NOW, Duration.ofMinutes(2), "bedrock", "model", "v1");
+        PdfApplicantInfo info = new PdfApplicantInfo("applicant-info-v2", "COMPLETED", "bedrock", "model",
+                "가상배우", "가상배우", null, null, "");
+        aiJob.complete(lease, MAPPER.writeValueAsString(info), NOW);
+        when(aiJobs.findById(id)).thenReturn(Optional.of(aiJob));
+        assertEquals("가상배우", service.find(1L, id, true).result().applicantInfo().applicantName());
+        assertEquals(originalJson, storedPayloads.get(id).getPayloadJson());
+        assertEquals("original-sha", storedPayloads.get(id).getPayloadSha256());
+    }
+
     private PdfExtractionService serviceAt(Clock clock) {
-        return new PdfExtractionService(repository, payloads, storage, MAPPER, clock);
+        return new PdfExtractionService(repository, payloads, storage, MAPPER, clock,
+                aiJobs, event -> {});
     }
 }

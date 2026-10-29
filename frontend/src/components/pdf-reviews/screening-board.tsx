@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { roleId, postingId, type SubmissionId, type ReviewStatus } from "@/features/auditions/types";
 import { fetchPdfExtraction } from "@/features/pdf-extractions/api";
 import type { PdfExtractionJob } from "@/features/pdf-extractions/types";
@@ -19,6 +19,8 @@ type Props = { review: ReviewDetail; entries: readonly ReviewEntry[]; decision: 
   refreshKey: number; onSaved: (entry: ReviewEntry) => void; onUnauthorized: () => void;
   onDirtyChange: (dirty: boolean) => void; onApplicantOpened?: () => void; navigate: (action: () => void) => void };
 
+const entrySignature = (entry: ReviewEntry) => `${entry.matchStatus}:${entry.processingStatus ?? ""}`;
+
 export function ScreeningBoard({ review, entries, decision, view, refreshKey, onSaved, onUnauthorized, onDirtyChange, onApplicantOpened, navigate }: Props) {
   const [jobs, setJobs] = useState<Record<string, PdfExtractionJob>>({});
   const cache = useRef(new Map<string, { job: PdfExtractionJob; signature: string; at: number; refresh: number }>());
@@ -33,7 +35,7 @@ export function ScreeningBoard({ review, entries, decision, view, refreshKey, on
   const [savedMessage, setSavedMessage] = useState("");
   const latest = useRef({ review, entries, onUnauthorized });
   useEffect(() => { latest.current = { review, entries, onUnauthorized }; });
-  const signature = entries.map(entry => `${entry.jobId}:${entry.matchStatus}`).join("|");
+  const signature = entries.map(entry => `${entry.jobId}:${entrySignature(entry)}`).join("|");
   const single = view === "single" || focused !== null;
   const refreshApplicant = useCallback((id: SubmissionId) => {
     const entry = latest.current.entries.find(item => sameKey(item.id, id));
@@ -41,7 +43,7 @@ export function ScreeningBoard({ review, entries, decision, view, refreshKey, on
     const controller = new AbortController();
     void fetchPdfExtraction(entry.jobId, true, controller.signal).then(job => {
       if (controller.signal.aborted) return;
-      cache.current.set(entry.jobId, { job, signature: entry.matchStatus, at: Date.now(), refresh: refreshKey });
+      cache.current.set(entry.jobId, { job, signature: entrySignature(entry), at: Date.now(), refresh: refreshKey });
       setJobs(current => ({ ...current, [entry.jobId]: job }));
     }).catch(cause => {
       if (controller.signal.aborted) return;
@@ -56,7 +58,7 @@ export function ScreeningBoard({ review, entries, decision, view, refreshKey, on
     const controller = new AbortController();
     const pending = latest.current.entries.filter(entry => {
       const cached = cache.current.get(entry.jobId);
-      return !cached || cached.signature !== entry.matchStatus || cached.refresh !== refreshKey || Date.now() - cached.at > 300_000;
+      return !cached || cached.signature !== entrySignature(entry) || cached.refresh !== refreshKey || Date.now() - cached.at > 300_000;
     });
     let cursor = 0;
     async function worker() {
@@ -65,7 +67,7 @@ export function ScreeningBoard({ review, entries, decision, view, refreshKey, on
         try {
           const job = await fetchPdfExtraction(entry.jobId, true, controller.signal);
           if (controller.signal.aborted) return;
-          cache.current.set(entry.jobId, { job, signature: entry.matchStatus, at: Date.now(), refresh: refreshKey });
+          cache.current.set(entry.jobId, { job, signature: entrySignature(entry), at: Date.now(), refresh: refreshKey });
           setJobs(current => ({ ...current, [entry.jobId]: job }));
         } catch (cause) {
           if (controller.signal.aborted) return;
@@ -80,7 +82,7 @@ export function ScreeningBoard({ review, entries, decision, view, refreshKey, on
     }
     return () => controller.abort();
   }, [signature, refreshKey, loadAttempt, single]);
-  const rows = entries.map(entry => screeningApplicant(review, entry, jobs[entry.jobId]));
+  const rows = useMemo(() => entries.map(entry => screeningApplicant(review, entry, jobs[entry.jobId])), [review, entries, jobs]);
   const entryFor = (id: string) => latest.current.review.entries.find(entry => sameKey(entry.id, id));
   const save = async (id: SubmissionId, status: ReviewStatus, note?: string) => {
     if (savingRef.current) return null;
@@ -91,7 +93,7 @@ export function ScreeningBoard({ review, entries, decision, view, refreshKey, on
       onSaved(updated); onDirtyChange(false); setSavedMessage("저장했습니다.");
       const next = latest.current.entries.map(item => sameKey(item.id, updated.id) ? updated : item)
         .filter(item => matchesDecision(item, decision));
-      if (focused && !next.some(item => sameKey(item.id, focused))) setFocused(null);
+      if (focused && next.length === 0) setFocused(null);
       return { applicants: next.map(item => screeningApplicant(review, item, jobs[item.jobId])) };
     } catch (cause) {
       if (isUnauthorized(cause)) onUnauthorized();
@@ -111,15 +113,15 @@ export function ScreeningBoard({ review, entries, decision, view, refreshKey, on
     finally { savingRef.current = false; setSaving(false); }
   }
   const allEntries = review.entries;
-  const done = allEntries.filter(entry => entry.decision !== "PENDING").length;
-  const counts = { all: allEntries.length, pending: allEntries.length - done, done,
+  const done = allEntries.filter(entry => entry.decision === "PASS" || entry.decision === "FAIL").length;
+  const counts = { all: allEntries.length, pending: allEntries.filter(entry => entry.decision === "PENDING").length, done,
     pass: allEntries.filter(entry => entry.decision === "PASS").length,
     fail: allEntries.filter(entry => entry.decision === "FAIL").length,
     etc: allEntries.filter(entry => entry.decision === "HOLD").length };
   return <BoardProvider value={{ source: { kind: "PDF" }, board: { role: { id: roleId(String(review.id)), postingId: postingId(String(review.id)), name: "PDF 지원자", description: "", quota: 0, gender: "ANY", ageMin: 0, ageMax: 0, applicantCount: allEntries.length, activeRound: 1, allRoundsClosed: false, counts, progress: { done, total: allEntries.length, percent: allEntries.length ? Math.round(done / allEntries.length * 100) : 0 } } },
     filters: { work: decision === "PENDING" ? "PENDING" : "DONE" }, selected, saving, reviewLocked: false,
     toggleSelected: id => setSelected(current => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next; }),
-    openApplicant: id => navigate(() => setFocused(id)), assignRoles: openAssignment, requestNavigation: navigate, onNoteDirty: noteDirty,
+    openApplicant: id => navigate(() => setFocused(id)), assignRoles: review.roles.length ? openAssignment : undefined, requestNavigation: navigate, onNoteDirty: noteDirty,
     onApplicantViewed: refreshApplicant,
     onApplicantOpened,
     applicantRefreshKey: `${refreshKey}:${loadAttempt}:${signature}`,
@@ -130,14 +132,14 @@ export function ScreeningBoard({ review, entries, decision, view, refreshKey, on
     {!single && !error && entries.some(entry => !jobs[entry.jobId]) && <p role="status" className="sr-only">사진과 프로필을 불러오는 중입니다.</p>}
     <p role="status" className="sr-only">{saving ? "저장 중…" : savedMessage}</p>
     {view === "single" || focused ? <ApplicantFocusReview key={focused ?? "single"} rows={rows} initialId={focused ?? undefined} onBack={focused ? () => navigate(() => setFocused(null)) : undefined} /> : <>
-      <div className="mb-3 flex min-h-11 items-center gap-4 text-sm">
+      <div className="mb-3 flex min-h-11 flex-wrap items-center gap-4 text-sm">
         <label className="flex items-center gap-2"><input type="checkbox" checked={rows.length > 0 && rows.every(row => selected.has(row.id))} onChange={event => setSelected(new Set(event.target.checked ? rows.map(row => row.id) : []))} />전체 선택</label>
-        <span>{selected.size}명 선택</span><SecondaryButton disabled={!selected.size || saving} onClick={() => openAssignment([...selected])}>배역 변경</SecondaryButton>
+        <span>{selected.size}명 선택</span>{review.roles.length > 0 && <SecondaryButton disabled={!selected.size || saving} onClick={() => openAssignment([...selected])}>배역 설정</SecondaryButton>}
       </div>
       {view === "card" ? <ApplicantCards rows={rows} /> : <ApplicantTable rows={rows} />}
     </>}
     <ModalShell open={targets.length > 0} onClose={() => { if (!saving) setTargets([]); }} labelledBy="assign-role-title" className={styles.roleModal}>
-      <form onSubmit={event => void assign(event)}><h2 id="assign-role-title">{targets.length}명 배역 변경</h2><p>선택한 배역으로 분류합니다. 심사 결과와 메모는 유지됩니다.</p>
+      <form onSubmit={event => void assign(event)}><h2 id="assign-role-title">{targets.length}명 배역 설정</h2><p>선택한 배역으로 분류합니다. 심사 결과와 메모는 유지됩니다.</p>
         <label htmlFor="assignment-role">심사할 배역</label><select id="assignment-role" value={role} onChange={event => setRole(event.target.value)}><option value="">미기재</option>{review.roles.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select>
         {error && <p role="alert" className="text-fail">{error}</p>}<div className={styles.modalActions}><button type="button" disabled={saving} onClick={() => setTargets([])}>취소</button><button type="submit" disabled={saving} className="bg-brand text-white">{saving ? "저장 중…" : "배역 저장"}</button></div>
       </form>

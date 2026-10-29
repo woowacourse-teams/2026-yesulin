@@ -6,6 +6,9 @@
 
 | 작업 | 읽을 문서 |
 | --- | --- |
+| 작업 평가·문제 건수·PR 기록 | [agent-review.md](./agent-review.md) |
+| 공용 PDF 추출·AI | [PDF 문서](../backend/src/main/java/art/yesulin/pdfextraction/docs/README.md) |
+| PDF 심사 흐름·정책·평가 | [Audit 문서](../backend/src/main/java/art/yesulin/audit/docs/README.md) |
 | 공통 도메인·상태·권한 | [domain.md](./domain.md) |
 | 용어와 ID 의미 | [glossary.md](./glossary.md) |
 | HTTP 공통 규칙 | [api-conventions.md](./api-conventions.md) |
@@ -32,7 +35,10 @@
 ## 문서 원칙
 
 1. 현재 동작은 코드와 테스트를 우선해 확인한다.
-2. 확정된 제품 규칙은 `docs/`, 프론트 구현은 `frontend/docs/`, 백엔드 구현과 API는 `backend/docs/`가 책임진다.
+2. 공통 규칙은 `docs/`, 도메인 세부 흐름·정책은 각 도메인 루트의 `docs/`가 책임진다.
+   프론트 공통 구현은 `frontend/docs/`, 백엔드 공통 구현·HTTP 계약은 `backend/docs/`에 둔다.
+   도메인의 `docs/README.md` → `docs/AGENTS.md` → 해당 기능의 flows/policies 순서로 필요한 문서만 읽는다.
+   도메인 AGENTS가 docs에 있어 코드에 자동 적용되지 않더라도 최상위 규칙에 따라 명시적으로 읽는다.
 3. 미구현·미결정·출시 전 개인정보 정책을 현재 정본에 섞지 않는다.
 4. 같은 사실은 한 문서에서만 설명하고 다른 문서는 링크한다.
 5. 구현이나 계약이 바뀌면 해당 영역 정본을 같은 작업에서 갱신한다.

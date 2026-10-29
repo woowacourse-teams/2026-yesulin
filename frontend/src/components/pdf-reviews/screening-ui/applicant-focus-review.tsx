@@ -17,6 +17,7 @@ import { ZoomablePhoto } from "./zoomable-photo";
 import { PdfCareerList } from "@/components/pdf-reviews/career-list";
 import { ScreeningReferencePanel } from "./screening-reference-panel";
 import { StatusBadge } from "@/components/auditions/status-badge";
+import { ApplicantSocialLinks } from "./applicant-social-links";
 import styles from "../screening.module.css";
 
 /**
@@ -92,6 +93,7 @@ function FocusReviewContent({
   const [expanded, setExpanded] = useState(false);
   const photoTrigger = useRef<"image" | "toolbar">("image");
   const sectionRef = useRef<HTMLElement>(null);
+  useEffect(() => { sectionRef.current?.focus({ preventScroll: true }); }, [applicant.id]);
   const focusHeight = useViewportFitHeight(sectionRef);
 
   const [photoAspect, setPhotoAspect] = useState<{ url: string; ratio: number } | null>(null);
@@ -117,12 +119,13 @@ function FocusReviewContent({
     if (!nextBoard) return;
     setOtherOpen(false);
 
-    // 검토 대기 목록에서는 결과를 저장한 지원자가 빠지므로 같은 자리의 다음 사람을 연다.
-    if (filters.work === "PENDING") moveAfterSaving(nextBoard.applicants);
-  }, [applicant, filters.work, moveAfterSaving, reviewFocused, reviewLocked, note]);
+    // 현재 분류에서 빠지면 같은 자리의 다음 사람으로 이동한다. 카드·표에서 연 경우도 유지한다.
+    if (!nextBoard.applicants.some(candidate => candidate.id === applicant.id)) moveAfterSaving(nextBoard.applicants);
+  }, [applicant, moveAfterSaving, reviewFocused, reviewLocked, note]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey || event.repeat || event.isComposing) return;
       const target = event.target;
       if (document.querySelector('[role="dialog"][aria-modal="true"]') || (target instanceof HTMLElement && target.closest("[data-screening-reference]"))) return;
       if (
@@ -140,6 +143,10 @@ function FocusReviewContent({
         event.preventDefault();
         void saveDecision("FAIL");
       }
+      if (event.key.toLowerCase() === "s" && decidable && pdfProfile) {
+        event.preventDefault();
+        void saveDecision("ETC");
+      }
       if (event.key.toLowerCase() === "n" && next) {
         event.preventDefault();
         navigate(next);
@@ -155,7 +162,7 @@ function FocusReviewContent({
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [next, navigate, saveDecision, saving, reviewLocked, showPrevious, showNext]);
+  }, [next, navigate, saveDecision, saving, reviewLocked, showPrevious, showNext, pdfProfile]);
 
   const careers = orderedCareersByRecency(applicant.career);
   const pdfCareers = applicant.sourceDocument?.careers ?? [];
@@ -169,7 +176,8 @@ function FocusReviewContent({
   return (
     <section
       ref={sectionRef}
-      aria-label="한 명씩 심사"
+      tabIndex={-1}
+      aria-label={`${applicant.name} · 지원자 ${index + 1} / ${rows.length} 심사`}
       style={pdfProfile || focusHeight === null ? undefined : { height: `${focusHeight}px` }}
       className={`mx-auto flex w-full flex-col gap-3 ${pdfProfile ? styles.focusReview : "max-w-6xl"}`}
     >
@@ -292,6 +300,9 @@ function FocusReviewContent({
               >
                 <CrossIcon />
               </FocusAction>
+              {pdfProfile && <FocusAction caption="보류" label="보류" hint="S" tone="etc" size="lg"
+                active={applicant.review.status === "ETC"} disabled={!canDecide}
+                onClick={() => void saveDecision("ETC")}><TriangleIcon /></FocusAction>}
               <FocusAction
                 caption="합격"
                 label={applicant.review.status === "PASS" ? "합격 처리됨" : "합격"}
@@ -364,9 +375,10 @@ function FocusReviewContent({
         <aside aria-label="지원자 정보" className={pdfProfile ? styles.profilePanel : "min-h-0 rounded-card border border-border bg-card p-4 lg:p-5 overflow-y-auto"}>
           {pdfProfile && <>
             <div className={styles.profileHeading}><h2>지원자 정보</h2><div className={styles.profileTools}>
-              {assignRoles && <SecondaryButton disabled={saving} onClick={() => assignRoles([applicant.id])}>배역 변경</SecondaryButton>}
+              {assignRoles && <SecondaryButton disabled={saving} onClick={() => assignRoles([applicant.id])}>배역 설정</SecondaryButton>}
               {renderDocument && <SecondaryButton aria-expanded={documentOpen} onClick={() => setDocumentOpen(open => !open)}>{documentOpen ? "PDF 닫기" : "원본 PDF"}</SecondaryButton>}
             </div></div>
+            {applicant.sourceDocument && <InfoRow label="처리 상태">{applicant.sourceDocument.preparation}</InfoRow>}
             <InfoRow label="이름"><p className="font-semibold">{applicant.name}</p></InfoRow>
             <InfoRow label="배역">{applicant.roleName}</InfoRow>
           </>}
@@ -378,6 +390,8 @@ function FocusReviewContent({
           <InfoRow label="키">{pdfProfile ? applicant.sourceDocument?.heightText || "미확인" : measurementText(applicant.height, "cm")}</InfoRow>
           {!pdfProfile && <InfoRow label="몸무게">{measurementText(applicant.weight, "kg")}</InfoRow>}
           <InfoRow label="학력">{pdfProfile ? applicant.sourceDocument?.educationText || "미확인" : applicantEducationText(applicant)}</InfoRow>
+
+          {pdfProfile && <FocusSection title="SNS · 영상"><ApplicantSocialLinks links={applicant.links} empty /></FocusSection>}
 
           <FocusSection title={pdfProfile && careerCount > 5 ? "경력 · 최근 5건" : `경력 ${careerCount > 0 ? `${careerCount}건` : ""}`}>
             {pdfProfile && pdfCareers.length > 0 ? <PdfCareerList careers={pdfCareers} /> : careers.length === 0 ? <p className="text-sm text-muted">{pdfProfile ? "미확인" : "등록한 경력이 없습니다."}</p> : (
@@ -430,7 +444,7 @@ function FocusReviewContent({
           </FocusSection>
 
           <p className="mt-4 hidden border-t border-border-soft pt-3 text-xs leading-5 text-muted lg:block">
-            <Shortcut>A</Shortcut> 합격 · <Shortcut>D</Shortcut> 불합격 · <Shortcut>N</Shortcut> 다음 · <Shortcut>←</Shortcut><Shortcut>→</Shortcut> 사진
+            <Shortcut>A</Shortcut> 합격 · <Shortcut>S</Shortcut> 보류 · <Shortcut>D</Shortcut> 불합격 · <Shortcut>N</Shortcut> 다음 · <Shortcut>←</Shortcut><Shortcut>→</Shortcut> 사진
           </p>
         </aside>
         {documentOpen && renderDocument && <ScreeningReferencePanel onClose={() => setDocumentOpen(false)}>{renderDocument(applicant)}</ScreeningReferencePanel>}
@@ -663,6 +677,10 @@ function EllipsisIcon() {
       <circle cx="19" cy="12" r="2" />
     </svg>
   );
+}
+
+function TriangleIcon() {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinejoin="round" aria-hidden="true"><path d="M12 4 21 20H3Z" /></svg>;
 }
 
 function ArrowRightIcon() {

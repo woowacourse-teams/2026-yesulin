@@ -9,8 +9,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE = ROOT / "build/package"
-
-
 def main():
     shutil.rmtree(PACKAGE, ignore_errors=True)
     PACKAGE.mkdir(parents=True)
