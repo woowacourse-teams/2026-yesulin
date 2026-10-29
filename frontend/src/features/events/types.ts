@@ -1,5 +1,12 @@
 export const MAX_EVENT_DETAIL_IMAGES = 10;
 
+/** 운영자가 신청 확인 팝업에 공개하는 입금 계좌. */
+export type EventBankAccount = {
+  readonly bankName: string;
+  readonly accountNumber: string;
+  readonly accountHolder: string;
+};
+
 /** 진행 기간으로 본 이벤트 단계. 백엔드가 한국 날짜로 계산한다. 기간을 비운 이벤트는 늘 진행 중이다. */
 export type EventPhase = "UPCOMING" | "ONGOING" | "ENDED";
 export type EventRegistrationStatus = "OPEN" | "CLOSED" | "FULL" | "ENDED" | "DISABLED";
@@ -54,6 +61,7 @@ export type PublicEvent = PublicEventSummary & {
   /** 신청 전 확인 팝업 설정. 켜면 안내 내용을 확인한 뒤 신청한다. */
   readonly registrationConfirmationEnabled: boolean;
   readonly registrationConfirmationMessage: string | null;
+  readonly registrationBankAccount?: EventBankAccount | null;
   /** 배우의 프로필 명함 제작 희망을 받는 마감 시각(ISO). 없으면 신청 기간 내내 받는다. */
   readonly businessCardClosesAt: string | null;
   /** 지금 명함 제작 희망을 받는지. 참가 신청을 받는 중이고 마감 시각 전이어야 true다. */

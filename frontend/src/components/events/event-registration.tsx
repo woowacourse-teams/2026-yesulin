@@ -84,6 +84,7 @@ function Registration({ event }: { readonly event: PublicEvent }) {
           businessCardClosesAt={event.businessCardClosesAt}
           registrationConfirmationEnabled={event.registrationConfirmationEnabled}
           registrationConfirmationMessage={event.registrationConfirmationMessage}
+          registrationBankAccount={event.registrationBankAccount}
           onDone={() => { setDone(true); window.scrollTo({ top: 0, behavior: "smooth" }); }}
         />
       )}

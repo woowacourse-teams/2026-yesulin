@@ -7,10 +7,14 @@ import art.yesulin.auth.domain.member.MemberType;
 import art.yesulin.event.application.registration.AdminEventRegistrationResult;
 import art.yesulin.event.application.registration.BusinessCardArchive;
 import art.yesulin.event.application.registration.BusinessCardEntry;
+import art.yesulin.event.application.registration.EventBusinessCardResult;
+import art.yesulin.event.application.registration.EventBusinessCardService;
 import art.yesulin.event.application.registration.EventRegistrationService;
 import art.yesulin.event.domain.registration.EventPaymentStatus;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ContentDisposition;
@@ -21,6 +25,8 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -35,6 +41,40 @@ public class AdminEventRegistrationController {
 
     private final EventRegistrationService registrationService;
     private final BusinessCardArchive businessCardArchive;
+    private final EventBusinessCardService businessCardService;
+
+    @PutMapping("/{registrationId}/business-card")
+    public ResponseEntity<EventBusinessCardResult> connectBusinessCard(
+            @LoginMember(roles = MemberType.ADMIN) MemberPrincipal principal,
+            @PathVariable long eventId,
+            @PathVariable long registrationId,
+            @Valid @RequestBody ConnectBusinessCardRequest request
+    ) {
+        return ResponseEntity.ok(businessCardService.updateProfile(
+                principal.memberId(), eventId, registrationId, request.profileUrl()
+        ));
+    }
+
+    @PostMapping("/{registrationId}/business-card/member")
+    public ResponseEntity<EventBusinessCardResult> connectMember(
+            @LoginMember(roles = MemberType.ADMIN) MemberPrincipal principal,
+            @PathVariable long eventId,
+            @PathVariable long registrationId,
+            @Valid @RequestBody ConnectMemberRequest request
+    ) {
+        return ResponseEntity.ok(businessCardService.connectMember(
+                principal.memberId(), eventId, registrationId, request.code()
+        ));
+    }
+
+    @DeleteMapping("/{registrationId}/business-card/member")
+    public ResponseEntity<EventBusinessCardResult> disconnectMember(
+            @LoginMember(roles = MemberType.ADMIN) MemberPrincipal principal,
+            @PathVariable long eventId,
+            @PathVariable long registrationId
+    ) {
+        return ResponseEntity.ok(businessCardService.disconnectMember(principal.memberId(), eventId, registrationId));
+    }
 
     @GetMapping
     public ResponseEntity<AdminEventRegistrationsResponse> findAll(
@@ -86,5 +126,16 @@ public class AdminEventRegistrationController {
     }
 
     public record AdminEventRegistrationsResponse(List<AdminEventRegistrationResult> registrations) {
+    }
+
+    public record ConnectBusinessCardRequest(@Size(max = 2000) String profileUrl) {
+    }
+
+    public record ConnectMemberRequest(@NotBlank @Size(max = 32) String code) {
+
+        @Override
+        public String toString() {
+            return "ConnectMemberRequest[code=[REDACTED]]";
+        }
     }
 }

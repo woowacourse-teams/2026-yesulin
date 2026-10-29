@@ -7,6 +7,7 @@ import static art.yesulin.event.domain.EventErrorCode.REGISTRATION_CLOSED;
 import static art.yesulin.event.domain.EventErrorCode.REGISTRATION_DUPLICATE;
 import static art.yesulin.event.domain.EventErrorCode.REGISTRATION_NOT_FOUND;
 
+import art.yesulin.actor.application.page.PublicActorPageService;
 import art.yesulin.event.application.registration.EventRegistrationPhotoStorage.PreparedPhoto;
 import art.yesulin.event.domain.Event;
 import art.yesulin.event.domain.EventRegistrationStatus;
@@ -60,6 +61,8 @@ public class EventRegistrationService {
     private final EventRegistrationPhotoStorage storage;
     private final AdminAuditLogRepository auditLogRepository;
     private final Clock clock;
+    private final EventBusinessCardService businessCardService;
+    private final PublicActorPageService publicActorPageService;
 
     /** 신청을 받고 명함 제작 마감 전인 이벤트에서만 명함 사진 올릴 자리를 준다. */
     @Transactional
@@ -86,6 +89,24 @@ public class EventRegistrationService {
      */
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public long register(long eventId, EventRegistrationForm form, String photoUploadKey, boolean privacyAgreed) {
+        return saveRegistration(eventId, form, photoUploadKey, privacyAgreed, null, null);
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public long registerWithProfile(
+            long memberId, long eventId, EventRegistrationForm form, String photoUploadKey, boolean privacyAgreed
+    ) {
+        if (form == null || form.participantType() != EventParticipantType.ACTOR || !form.businessCardRequested()) {
+            throw new BusinessException(INVALID_INPUT, "프로필 연결은 배우 명함 신청에서만 사용할 수 있습니다.");
+        }
+        String handle = publicActorPageService.requirePublicHandle(memberId);
+        return saveRegistration(eventId, form, photoUploadKey, privacyAgreed, memberId, handle);
+    }
+
+    private long saveRegistration(
+            long eventId, EventRegistrationForm form, String photoUploadKey, boolean privacyAgreed,
+            Long memberId, String handle
+    ) {
         Event event = acceptingEvent(eventId, true);
         if (!privacyAgreed) {
             throw new BusinessException(INVALID_INPUT, "개인정보 수집·이용에 동의해 주세요.");
@@ -103,6 +124,9 @@ public class EventRegistrationService {
                 ? claimPhoto(photoUploadKey)
                 : null;
         EventRegistration registration = new EventRegistration(event.getId(), form, photoKey, today(), clock.instant());
+        if (memberId != null) {
+            businessCardService.connectApplicantProfile(registration, memberId, handle);
+        }
         try {
             return repository.saveAndFlush(registration).getId();
         } catch (DataIntegrityViolationException exception) {
@@ -140,7 +164,8 @@ public class EventRegistrationService {
                     TARGET_TYPE, registration.getId(), "%s → %s".formatted(previous, status)));
         }
         return AdminEventRegistrationResult.from(registration,
-                registration.getPhotoKey() == null ? null : storage.downloadUrl(registration.getPhotoKey()));
+                registration.getPhotoKey() == null ? null : storage.downloadUrl(registration.getPhotoKey()),
+                businessCardService.describe(registration));
     }
 
     /** 이벤트의 참가 신청을 먼저 온 순서로 준다. 사진은 잠깐 열리는 내려받기 주소로 준다. */
@@ -152,7 +177,8 @@ public class EventRegistrationService {
         return repository.findAllByEventIdOrderByIdAsc(eventId).stream()
                 .map(registration -> AdminEventRegistrationResult.from(
                         registration,
-                        registration.getPhotoKey() == null ? null : storage.downloadUrl(registration.getPhotoKey())
+                        registration.getPhotoKey() == null ? null : storage.downloadUrl(registration.getPhotoKey()),
+                        businessCardService.describe(registration)
                 ))
                 .toList();
     }

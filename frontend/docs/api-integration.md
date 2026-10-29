@@ -175,3 +175,12 @@ LocalStack·Lambda·Spring 실행 방법은 [로컬 추출 실행 안내](../../
 - 참가 구분은 ACTOR·PRODUCER 두 가지이며 PRODUCER는 관계자로 표시한다. 일반 참가자는 안내에 따라 ACTOR를 선택하고 관리자에서도 배우로 집계한다. 명함 제작은 선택 사항이다.
 - 운영 명단의 paymentStatus는 PENDING·CONFIRMED다. payment-status PATCH가 성공한 결과로만 상태와 확인 시각을 갱신하고 실패 시 이전 값을 유지한다.
 - MSW도 합산 정원·수동 마감·입금 변경과 재조회, 일반인 신청을 같은 계약으로 재현한다. 최종 정원 판정은 서버가 한다.
+
+## 이벤트 프로필 명함과 계좌 안내
+
+`registerForEvent`는 프로필 경로일 때 `/v1/applicants/me/events/{eventId}/registrations`로 보내고 수기는 공개 API를 쓴다.
+기존 프로필·PDF 가져오기·배우 페이지 공개 설정을 재사용하며, `eventId` 쿼리를 로그인·가입·프로필 편집까지 유지한다.
+신청 초안은 이벤트별 sessionStorage에 한 시간만 보관하고 복귀 시 한 번 소비한다. 프로필은 빈 항목만 채우며 수정값을 원본에 쓰지 않는다.
+계좌는 이벤트의 `registrationBankAccount`를 확인 팝업에 표시하고 숫자만 복사한다. 복사 실패는 재시도를 안내한다.
+운영 신청 목록은 `businessCard`의 고정 URL로 QR SVG를 만들며 목적지 변경·회원 연결·날짜별 통계는 운영 API로 처리한다.
+신규 API와 은행 필드는 MSW에도 같은 동작을 제공한다. 실제 인증·프로필 API가 켜진 환경은 회원 관련 요청을 서버로 넘긴다.

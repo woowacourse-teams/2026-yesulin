@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import art.yesulin.event.application.image.EventImageService;
 import art.yesulin.event.application.image.EventImageUploadResult;
+import art.yesulin.event.domain.EventBankAccount;
 import art.yesulin.event.domain.EventBannerSetting;
 import art.yesulin.event.domain.EventContent;
 import art.yesulin.event.domain.EventErrorCode;
@@ -94,8 +95,9 @@ class EventServiceTest {
 
     @Test
     void persistsConfirmationSettingsForAdminAndPublicDetail() {
+        EventBankAccount account = new EventBankAccount("테스트은행", "001-002-003", "예술인");
         EventContent content = new EventContent("행사", null, "소개", null, null, null, null,
-                true, null, null, null, true, " 안내\r\n둘째 줄 ");
+                true, null, null, null, true, " 안내\r\n둘째 줄 ", null, account);
         AdminEventResult created = eventService.create(ADMIN_ID, content, null, null);
         eventService.changeStatus(ADMIN_ID, created.id(), EventStatus.PUBLISHED);
 
@@ -105,11 +107,14 @@ class EventServiceTest {
         PublicEventResult published = eventService.findPublic(created.id());
         assertTrue(published.registrationConfirmationEnabled());
         assertEquals(stored.registrationConfirmationMessage(), published.registrationConfirmationMessage());
+        assertEquals(account, stored.registrationBankAccount());
+        assertEquals(account, published.registrationBankAccount());
 
         eventService.update(ADMIN_ID, created.id(), content("행사"), null, null);
         PublicEventResult disabled = eventService.findPublic(created.id());
         assertFalse(disabled.registrationConfirmationEnabled());
         assertNull(disabled.registrationConfirmationMessage());
+        assertNull(disabled.registrationBankAccount());
     }
 
     @Test

@@ -1,5 +1,7 @@
 "use client";
 
+import { AdminEventBusinessCardStats } from "./admin-event-business-card-stats";
+
 import { useEffect, useRef, useState } from "react";
 import { FieldInput, FieldSelect } from "@/components/ui/controls";
 import { ConfirmDialog } from "@/components/shows/manage/confirm-dialog";
@@ -8,6 +10,7 @@ import type { AdminEventRegistration } from "@/features/admin/types";
 import { EVENT_ACTIVITY_LABELS, EVENT_PARTICIPANT_LABELS, EVENT_SNS_LABELS, EVENT_PAYMENT_STATUS_LABELS, type EventPaymentStatus, type EventParticipantType } from "@/features/events/types";
 import { formatDateTime } from "./admin-format";
 import { AdminActionButton } from "./admin-shell";
+import { AdminEventBusinessCardPanel } from "./admin-event-business-card";
 
 const PARTICIPANT_BADGE_TONES: Readonly<Record<EventParticipantType, string>> = {
   ACTOR: "border-brand-line bg-brand-soft text-brand-strong",
@@ -151,6 +154,7 @@ export function AdminEventRegistrations({ eventId, onUnauthorized, onChanged }: 
       {error ? <p role="alert" className="text-sm text-fail">{error}</p> : null}
       {!registrations && !error ? <p role="status" className="text-sm text-muted">신청자를 불러오는 중이에요.</p> : null}
       {registrations?.length === 0 ? <p className="text-sm text-muted">아직 신청자가 없어요.</p> : null}
+      <AdminEventBusinessCardStats eventId={eventId} onUnauthorized={onUnauthorized} />
       {visible.length > 0 ? (
         <ol className="flex flex-col gap-4">
           {visible.map(({ registration, order }) => (
@@ -190,6 +194,9 @@ export function AdminEventRegistrations({ eventId, onUnauthorized, onChanged }: 
                 </div>
                 <AdminActionButton tone="destructive" disabled={paymentSaving !== null} className="mt-5" onClick={() => setDeleting(registration)}>삭제</AdminActionButton>
               </div>
+
+              {registration.businessCard ? <div className="min-w-0 basis-full"><AdminEventBusinessCardPanel eventId={eventId} registration={registration} card={registration.businessCard} onUnauthorized={onUnauthorized}
+                onSaved={(businessCard) => setRegistrations((current) => current?.map((item) => item.id === registration.id ? { ...item, businessCard } : item) ?? null)} /></div> : null}
             </li>
           ))}
         </ol>

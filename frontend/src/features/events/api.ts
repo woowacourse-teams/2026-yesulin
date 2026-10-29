@@ -23,8 +23,9 @@ export async function getEventBanners(): Promise<readonly EventBanner[]> {
   return response.banners;
 }
 
-export function registerForEvent(eventId: number | string, write: EventRegistrationWrite): Promise<{ readonly id: number }> {
-  return request<{ readonly id: number }>(eventApiPaths.registrations(eventId), {
+export function registerForEvent(eventId: number | string, write: EventRegistrationWrite, withProfile = false): Promise<{ readonly id: number }> {
+  const path = withProfile ? `/v1/applicants/me/events/${encodeURIComponent(String(eventId))}/registrations` : eventApiPaths.registrations(eventId);
+  return request<{ readonly id: number }>(path, {
     method: "POST",
     body: JSON.stringify(write),
   });

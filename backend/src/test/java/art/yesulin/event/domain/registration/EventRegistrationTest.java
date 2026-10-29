@@ -11,6 +11,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class EventRegistrationTest {
@@ -22,6 +23,34 @@ class EventRegistrationTest {
     private static final List<EventRegistrationCareer> CAREERS = List.of(
             new EventRegistrationCareer("2025-09", " 연극 <달빛 정거장> ", " 민수 역 ")
     );
+
+    @Test
+    void businessCardKeyIsRandomAndSurvivesConnectingAndDisconnecting() {
+        EventRegistration first = cardWith(BIRTH_DATE, "photo-key", "first@example.test");
+        EventRegistration second = cardWith(BIRTH_DATE, "photo-key", "second@example.test");
+        String key = first.getBusinessCardKey();
+        assertEquals(4, UUID.fromString(key).version());
+        assertFalse(key.equals(second.getBusinessCardKey()));
+        assertNull(first.getBusinessCardProfileUrl());
+        first.connectBusinessCard(" https://example.test/actors/first ", 10L);
+        assertEquals("https://example.test/actors/first", first.getBusinessCardProfileUrl());
+        assertEquals(10L, first.getBusinessCardMemberId());
+        first.connectBusinessCard(null, null);
+        assertEquals(key, first.getBusinessCardKey());
+        assertNull(first.getBusinessCardProfileUrl());
+        assertNull(first.getBusinessCardMemberId());
+    }
+
+    @Test
+    void businessCardDestinationMustBePublicHttpsAndCannotPointBackToQr() {
+        EventRegistration registration = cardWith(BIRTH_DATE, "photo-key", "actor@example.test");
+        for (String url : List.of("javascript:alert(1)", "http://example.test", "//example.test",
+                "https://user:password@example.test/a", "https://example.test/n/another-card",
+                "https://example.test/events/cards/another-card", "https://example.test/%65vents/cards/another-card",
+                "https://example.test/%6e/another-card", "https://example.test/a\r\nLocation:x")) {
+            assertThrows(BusinessException.class, () -> registration.connectBusinessCard(url, null));
+        }
+    }
 
     @Test
     void actorWithBusinessCardKeepsCardInformation() {
@@ -72,6 +101,8 @@ class EventRegistrationTest {
         ), "photo-key", TODAY, NOW);
 
         assertFalse(registration.isBusinessCardRequested());
+        assertNull(registration.getBusinessCardKey());
+        assertThrows(BusinessException.class, () -> registration.connectBusinessCard("https://example.test/a", null));
         assertNull(registration.getEmail());
         assertNull(registration.getSnsHandle());
         assertNull(registration.getBirthDate());

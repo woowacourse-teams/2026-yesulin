@@ -3,7 +3,12 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import Image from "next/image";
 import { FieldInput, FieldTextarea, PrimaryButton, TextButton } from "@/components/ui/controls";
-import { registerForEvent } from "@/features/events/api";
+import { registerForEvent, uploadEventRegistrationPhoto } from "@/features/events/api";
+import { getApplicantProfile } from "@/features/applicants/profile-api";
+import { getActorPageSettings } from "@/features/actor-pages/owner-api";
+import { ApplicantRequestError } from "@/features/applicants/request";
+import { shrinkPhoto } from "@/features/companies/photo-image";
+import { consumeEventRegistration, eventProfileEditorPath, prefillEventRegistration, rememberEventRegistration } from "@/features/events/profile-registration";
 import { formatKoreaDeadline } from "@/features/events/korea-time";
 import {
   businessCardProblem,
@@ -13,8 +18,9 @@ import {
   writeOfRegistration,
   type RegistrationDraft,
 } from "@/features/events/registration-draft";
-import { EVENT_PARTICIPANT_LABELS, MAX_EVENT_AFFILIATION_LENGTH, MAX_EVENT_CURRENT_WORK_LENGTH, type EventParticipantType, type EventRegistrationWrite } from "@/features/events/types";
+import { EVENT_PARTICIPANT_LABELS, MAX_EVENT_AFFILIATION_LENGTH, MAX_EVENT_CURRENT_WORK_LENGTH, type EventBankAccount, type EventParticipantType, type EventRegistrationWrite } from "@/features/events/types";
 import { EventBusinessCardEditor } from "./event-business-card-editor";
+import { EventBusinessCardEntry } from "./event-business-card-entry";
 import { EventBusinessCardPreview, type CardPreviewSide } from "./event-business-card-preview";
 import { EventRegistrationConfirmation } from "./event-registration-confirmation";
 import { RegistrationField, RequiredMark, koreaToday } from "./event-registration-field";
@@ -28,27 +34,101 @@ const PARTICIPANT_HINTS: Readonly<Record<EventParticipantType, string>> = {
  * 로그인 없이 쓰는 참가 신청서. 참가 구분을 먼저 고르면 이름·휴대폰 칸이 열리고, 공연사 관계자는 소속과 지금 하는 일을,
  * 프로필 명함을 희망한 배우는 명함에 들어갈 정보를 더 적는다.
  */
-export function EventRegistrationForm({ eventId, businessCardOpen, businessCardClosesAt, registrationConfirmationEnabled, registrationConfirmationMessage, onDone }: {
+export function EventRegistrationForm({ eventId, businessCardOpen, businessCardClosesAt, registrationConfirmationEnabled, registrationConfirmationMessage, registrationBankAccount, onDone }: {
   readonly eventId: number;
   /** 지금 명함 제작 희망을 받는지. 마감 시각이 지나면 명함 체크 칸 대신 현장 안내를 보인다. */
   readonly businessCardOpen: boolean;
   readonly businessCardClosesAt: string | null;
   readonly registrationConfirmationEnabled: boolean;
   readonly registrationConfirmationMessage: string | null;
+  readonly registrationBankAccount?: EventBankAccount | null;
   readonly onDone: () => void;
 }) {
   const [draft, setDraft] = useState<RegistrationDraft>(emptyRegistrationDraft);
   const [photoBusy, setPhotoBusy] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [cardEditorOpen, setCardEditorOpen] = useState(false);
+  const [cardEntryOpen, setCardEntryOpen] = useState(false);
   const [cardEditorError, setCardEditorError] = useState<string | null>(null);
   const [cardSide, setCardSide] = useState<CardPreviewSide>("front");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState<EventRegistrationWrite | null>(null);
+  const [cardSource, setCardSource] = useState<"manual" | "profile" | null>(null);
+  const [profileBusy, setProfileBusy] = useState(false);
+  const restored = useRef(false);
+  const active = useRef(true);
   const sending = useRef(false);
   const update = (patch: Partial<RegistrationDraft>) => setDraft((current) => ({ ...current, ...patch }));
   useEffect(() => () => { if (photoUrl) URL.revokeObjectURL(photoUrl); }, [photoUrl]);
+  useEffect(() => { active.current = true; return () => { active.current = false; }; }, []);
+
+  const openProfileEditor = async (current: RegistrationDraft) => {
+    let preview: string | null = null;
+    if (photoUrl) {
+      const blob = await fetch(photoUrl).then(response => response.blob());
+      preview = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result)); reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(blob);
+      });
+    }
+    rememberEventRegistration(eventId, current, preview);
+    window.location.assign(eventProfileEditorPath(eventId));
+  };
+
+  const loadProfile = async (current: RegistrationDraft) => {
+    if (profileBusy) return;
+    setProfileBusy(true); setError(null);
+    try {
+      const [profile, page] = await Promise.all([getApplicantProfile(), getActorPageSettings()]);
+      if (!active.current) return;
+      if (page.status !== "PUBLIC" || !page.readiness.ready || page.locked) {
+        await openProfileEditor(current); return;
+      }
+      let next = prefillEventRegistration(current, profile);
+      if (!next.photoUploadKey) {
+        const photo = profile.photoLibrary.find(item => item.visibility === "PUBLIC") ?? profile.photoLibrary.find(item => item.representative) ?? profile.photoLibrary[0];
+        if (photo) {
+          const response = await fetch(photo.url, { credentials: "include", cache: "no-store" });
+          if (!response.ok) throw new Error("프로필 사진을 가져오지 못했습니다. 다시 시도해 주세요.");
+          const blob = await response.blob();
+          const image = await shrinkPhoto(new File([blob], "profile-photo", { type: blob.type }));
+          const photoUploadKey = await uploadEventRegistrationPhoto(eventId, image);
+          if (!active.current) return;
+          next = { ...next, photoUploadKey };
+          setPhotoUrl(URL.createObjectURL(image));
+        }
+      }
+      if (!active.current) return;
+      setDraft(next); setCardSource("profile"); setCardEntryOpen(false); setCardEditorError(null); setCardEditorOpen(true);
+      // 새로고침으로 사용자가 고친 내용을 다시 불러오지 않도록 복귀 표시를 한 번만 소비한다.
+      const url = new URL(window.location.href);
+      url.searchParams.delete("prefill");
+      window.history.replaceState(null, "", url.pathname + url.search);
+    } catch (cause) {
+      if (!active.current) return;
+      if (cause instanceof ApplicantRequestError && cause.status === 401) {
+        try { await openProfileEditor(current); }
+        catch { setError("작성한 내용을 보관하지 못했습니다. 브라우저 저장 공간을 확인해 주세요."); }
+      } else setError(cause instanceof Error ? cause.message : "프로필을 불러오지 못했습니다. 다시 시도해 주세요.");
+    } finally { if (active.current) setProfileBusy(false); }
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    void Promise.resolve().then(() => {
+      if (cancelled || restored.current) return;
+      restored.current = true;
+      const saved = consumeEventRegistration(eventId);
+      const current = saved?.draft ?? emptyRegistrationDraft();
+      if (saved) { setDraft(current); setPhotoUrl(saved.photoUrl); }
+      if (businessCardOpen && new URLSearchParams(window.location.search).get("prefill") === "1") void loadProfile(current);
+    });
+    return () => { cancelled = true; };
+    // 이벤트별 첫 복귀에서만 저장한 신청서를 복원한다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventId]);
 
   const send = async (write: EventRegistrationWrite) => {
     if (sending.current) return;
@@ -56,7 +136,8 @@ export function EventRegistrationForm({ eventId, businessCardOpen, businessCardC
     setSubmitting(true);
     setError(null);
     try {
-      await registerForEvent(eventId, write);
+      if (cardSource === "profile" && write.businessCardRequested) await registerForEvent(eventId, write, true);
+      else await registerForEvent(eventId, write);
       onDone();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "신청을 보내지 못했습니다. 다시 시도해 주십시오.");
@@ -69,7 +150,7 @@ export function EventRegistrationForm({ eventId, businessCardOpen, businessCardC
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (sending.current || photoBusy || pending || cardEditorOpen) return;
+    if (sending.current || photoBusy || profileBusy || pending || cardEditorOpen || cardEntryOpen) return;
     const current = businessCardOpen ? draft : { ...draft, businessCardRequested: false };
     const problem = registrationProblem(current, koreaToday());
     if (problem) {
@@ -92,11 +173,11 @@ export function EventRegistrationForm({ eventId, businessCardOpen, businessCardC
   // 명함 제작을 취소하거나 공연사 관계자로 바꾸면 명함 사진도 해제한다. 모달을 닫을 때는 유지한다.
   const clearPhoto = () => { setPhotoUrl(null); setPhotoBusy(false); };
   const chooseType = (participantType: EventParticipantType) => {
-    if (participantType !== "ACTOR") { clearPhoto(); setCardEditorOpen(false); }
+    if (participantType !== "ACTOR") { clearPhoto(); setCardEditorOpen(false); setCardSource(null); }
     setDraft((current) => ({ ...current, participantType, photoUploadKey: participantType === "ACTOR" ? current.photoUploadKey : null }));
   };
   const chooseCard = (businessCardRequested: boolean) => {
-    if (!businessCardRequested) { clearPhoto(); setCardEditorOpen(false); }
+    if (!businessCardRequested) { clearPhoto(); setCardEditorOpen(false); setCardSource(null); }
     setDraft((current) => ({ ...current, businessCardRequested, photoUploadKey: businessCardRequested ? current.photoUploadKey : null }));
   };
   const editCard = () => { chooseCard(true); setCardEditorError(null); setCardEditorOpen(true); };
@@ -116,7 +197,7 @@ export function EventRegistrationForm({ eventId, businessCardOpen, businessCardC
         <div className="event-participant-options">
           {(["ACTOR", "PRODUCER"] as const).map((option) => (
             <label key={option} className="event-participant-option">
-              <input type="radio" name="participant-type" value={option} checked={type === option} onChange={() => chooseType(option)} aria-label={`${EVENT_PARTICIPANT_LABELS[option]} ${PARTICIPANT_HINTS[option]}`} className="sr-only" />
+              <input type="radio" name="participant-type" value={option} checked={type === option} disabled={profileBusy} onChange={() => chooseType(option)} aria-label={`${EVENT_PARTICIPANT_LABELS[option]} ${PARTICIPANT_HINTS[option]}`} className="sr-only" />
               <span>{EVENT_PARTICIPANT_LABELS[option]}</span>
             </label>
           ))}
@@ -129,10 +210,10 @@ export function EventRegistrationForm({ eventId, businessCardOpen, businessCardC
         <>
           <div className="grid gap-4 sm:grid-cols-2">
             <RegistrationField id="registration-name" label="이름" required>
-              <FieldInput id="registration-name" autoComplete="name" value={draft.name} maxLength={50} onFocus={() => setCardSide("front")} onChange={(event) => update({ name: event.target.value })} />
+              <FieldInput id="registration-name" autoComplete="name" value={draft.name} disabled={profileBusy} maxLength={50} onFocus={() => setCardSide("front")} onChange={(event) => update({ name: event.target.value })} />
             </RegistrationField>
             <RegistrationField id="registration-phone" label="휴대폰 번호" required hint="참가 확인과 행사 안내 연락에만 사용합니다.">
-              <FieldInput id="registration-phone" type="tel" inputMode="numeric" autoComplete="tel" placeholder="010-1234-5678" value={draft.phone} onChange={(event) => update({ phone: formatPhoneInput(event.target.value) })} />
+              <FieldInput id="registration-phone" type="tel" inputMode="numeric" autoComplete="tel" disabled={profileBusy} placeholder="010-1234-5678" value={draft.phone} onChange={(event) => update({ phone: formatPhoneInput(event.target.value) })} />
             </RegistrationField>
           </div>
 
@@ -168,12 +249,13 @@ export function EventRegistrationForm({ eventId, businessCardOpen, businessCardC
                   </div>
                   <div className="border-t border-border-soft p-5">
                     <div className="flex flex-wrap items-center gap-3">
-                      <PrimaryButton onClick={editCard} aria-haspopup="dialog">{draft.businessCardRequested ? "명함 정보 수정" : "무료 명함 만들기"}</PrimaryButton>
+                      {draft.businessCardRequested ? <PrimaryButton onClick={editCard} aria-haspopup="dialog">명함 정보 수정</PrimaryButton> : <PrimaryButton disabled={profileBusy} onClick={() => { setError(null); setCardEntryOpen(true); }} aria-haspopup="dialog">무료 명함 만들기</PrimaryButton>}
                       {draft.businessCardRequested ? <TextButton onClick={() => chooseCard(false)}>명함 제작 취소</TextButton> : null}
                     </div>
                     {draft.businessCardRequested ? (
                       <p className="mt-3 text-sm text-muted-strong" role="status">{cardComplete ? "명함 정보 입력 완료 · 행사 신청 시 함께 접수됩니다." : "명함 정보를 작성 중입니다. 명함 정보 수정을 눌러 이어서 작성해 주세요."}</p>
                     ) : <p className="mt-3 text-xs text-muted-strong">선택 혜택입니다. 명함 제작을 신청하지 않아도 행사에 참가할 수 있습니다.</p>}
+                    {cardSource === "profile" ? <p className="mt-2 text-sm leading-6 text-brand">프로필 정보를 불러왔어요. 활동 분야와 경력의 월을 확인해 주세요. 신청을 마치면 명함 QR이 내 공개 프로필로 자동 연결됩니다. 여기서 수정한 내용은 원래 프로필에 반영되지 않아요.</p> : null}
                   </div>
                 </section>
               ) : (
@@ -187,13 +269,16 @@ export function EventRegistrationForm({ eventId, businessCardOpen, businessCardC
 
           {error ? <p role="alert" className="rounded-control border border-fail/30 bg-fail-bg px-4 py-3 text-sm text-fail">{error}</p> : null}
           <div className="flex flex-col gap-4 border-t border-border-soft pt-5 sm:flex-row sm:items-start sm:justify-between">
-            <PrivacyConsent checked={draft.privacyAgreed} onChange={(privacyAgreed) => update({ privacyAgreed })} />
-            <PrimaryButton type="submit" disabled={submitting || photoBusy} className="w-full shrink-0 sm:w-auto">
+            <PrivacyConsent checked={draft.privacyAgreed} disabled={profileBusy} onChange={(privacyAgreed) => update({ privacyAgreed })} />
+            <PrimaryButton type="submit" disabled={submitting || photoBusy || profileBusy} className="w-full shrink-0 sm:w-auto">
               {submitting ? "보내는 중…" : photoBusy ? "사진 올리는 중…" : "신청하기"}
             </PrimaryButton>
           </div>
         </>
       ) : null}
+      <EventBusinessCardEntry open={cardEntryOpen} busy={profileBusy} error={error}
+        onClose={() => setCardEntryOpen(false)} onProfile={() => void loadProfile(draft)}
+        onManual={() => { setCardEntryOpen(false); setError(null); setCardSource("manual"); editCard(); }} />
       <EventBusinessCardEditor
         open={cardEditorOpen && draft.participantType === "ACTOR" && businessCardOpen}
         eventId={eventId} draft={draft} preview={cardPreview} photoUrl={photoUrl} busy={photoBusy} error={cardEditorError}
@@ -204,6 +289,7 @@ export function EventRegistrationForm({ eventId, businessCardOpen, businessCardC
       <EventRegistrationConfirmation
         open={pending !== null}
         message={registrationConfirmationMessage ?? ""}
+        bankAccount={registrationBankAccount}
         busy={submitting}
         onClose={() => setPending(null)}
         onConfirm={() => { if (pending) void send(pending); }}
@@ -212,11 +298,11 @@ export function EventRegistrationForm({ eventId, businessCardOpen, businessCardC
   );
 }
 
-function PrivacyConsent({ checked, onChange }: { readonly checked: boolean; readonly onChange: (checked: boolean) => void }) {
+function PrivacyConsent({ checked, disabled, onChange }: { readonly checked: boolean; readonly disabled: boolean; readonly onChange: (checked: boolean) => void }) {
   return (
     <div className="min-w-0 flex-1 text-sm">
       <label className="flex min-h-11 cursor-pointer items-center gap-3 font-semibold">
-        <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="size-4 shrink-0 accent-brand" />
+        <input type="checkbox" checked={checked} disabled={disabled} onChange={(event) => onChange(event.target.checked)} className="size-4 shrink-0 accent-brand" />
         <span>개인정보 수집·이용에 동의합니다<RequiredMark /></span>
       </label>
       <details className="mt-1">

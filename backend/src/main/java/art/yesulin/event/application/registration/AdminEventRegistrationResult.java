@@ -43,10 +43,13 @@ public record AdminEventRegistrationResult(
         EventSnsPlatform snsPlatform,
         EventPaymentStatus paymentStatus,
         Instant paymentConfirmedAt,
-        String currentWork
+        String currentWork,
+        EventBusinessCardResult businessCard
 ) {
 
-    static AdminEventRegistrationResult from(EventRegistration registration, String photoUrl) {
+    static AdminEventRegistrationResult from(
+            EventRegistration registration, String photoUrl, EventBusinessCardResult businessCard
+    ) {
         return new AdminEventRegistrationResult(
                 registration.getId(),
                 registration.getParticipantType(),
@@ -67,7 +70,8 @@ public record AdminEventRegistrationResult(
                 registration.getSnsPlatform(),
                 registration.getPaymentStatus(),
                 registration.getPaymentConfirmedAt(),
-                registration.getCurrentWork()
+                registration.getCurrentWork(),
+                businessCard
         );
     }
 

@@ -3,10 +3,15 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { registerForEvent, uploadEventRegistrationPhoto } from "@/features/events/api";
+import { getApplicantProfile } from "@/features/applicants/profile-api";
+import { getActorPageSettings } from "@/features/actor-pages/owner-api";
 import { shrinkPhoto } from "@/features/companies/photo-image";
 import { EventRegistrationForm } from "./event-registration-form";
 
 vi.mock("@/features/events/api", () => ({ registerForEvent: vi.fn(), uploadEventRegistrationPhoto: vi.fn() }));
+vi.mock("@/features/applicants/profile-api", () => ({ getApplicantProfile: vi.fn() }));
+vi.mock("@/features/actor-pages/owner-api", () => ({ getActorPageSettings: vi.fn() }));
+vi.mock("@/features/monitoring/report-error", () => ({ reportError: vi.fn() }));
 vi.mock("@/features/companies/photo-image", () => ({ shrinkPhoto: vi.fn() }));
 
 let root: Root;
@@ -63,9 +68,27 @@ async function actorCard() {
   await open();
   await act(async () => document.querySelector<HTMLInputElement>('[type="radio"]')!.click());
   await act(async () => button("무료 명함 만들기").click());
+  await act(async () => button("프로필 등록 없이 직접 작성하기").click());
 }
 
 describe("참가 신청 전 안내", () => {
+  it("무료 명함 버튼 하나에서 안내 팝업을 열고 프로필 경로를 우선 안내한다", async () => {
+    await open(false);
+    await act(async () => document.querySelector<HTMLInputElement>('[type="radio"]')!.click());
+    expect(button("무료 명함 만들기")).toBeDefined();
+    expect(button("프로필 등록하고 명함 만들기")).toBeUndefined();
+    await act(async () => button("무료 명함 만들기").click());
+    const dialog = document.querySelector('[role="dialog"]')!;
+    expect(dialog.textContent).toContain("명함 정보 자동 채움");
+    expect(dialog.textContent).toContain("내 공개 프로필로 연결되는 QR");
+    expect(button("프로필 등록하고 명함 만들기")).toBeDefined();
+    expect(button("프로필 등록 없이 직접 작성하기")).toBeDefined();
+    expect(document.querySelector("#registration-email")).toBeNull();
+    await act(async () => document.querySelector<HTMLButtonElement>('[aria-label="명함 만들기 안내 닫기"]')!.click());
+    expect(document.querySelector('[role="dialog"]')).toBeNull();
+    expect(registerForEvent).not.toHaveBeenCalled();
+  });
+
   it("입력 오류가 있으면 팝업과 접수 전에 오류를 보여 준다", async () => {
     await open();
     await act(async () => document.querySelector<HTMLInputElement>('[type="radio"]')!.click());
@@ -112,6 +135,7 @@ describe("참가 신청 전 안내", () => {
     expect(document.querySelector("#registration-email")).toBeNull();
     expect(container.querySelectorAll('[type="checkbox"]').length).toBe(1);
     await act(async () => button("무료 명함 만들기").click());
+  await act(async () => button("프로필 등록 없이 직접 작성하기").click());
     expect(document.querySelector('[role="dialog"]')?.textContent).toContain("프로필 명함 만들기");
     expect(container.contains(example)).toBe(true);
     await input("#registration-email", "saved@example.test");
@@ -287,3 +311,47 @@ it("일반 참가자도 두 구분 중 배우를 선택하고 명함 없이 신�
   await submit();
   expect(registerForEvent).toHaveBeenCalledWith(2, expect.objectContaining({ participantType: "ACTOR", affiliation: null, businessCardRequested: false }));
 });
+
+it("공개 프로필과 사진을 불러온 뒤 명함 수정값으로 본인 프로필 연결 신청을 보낸다", async () => {
+    vi.mocked(getApplicantProfile).mockResolvedValue({
+      answers: [{ key: "NAME", label: "이름", value: "김배우" }, { key: "PHONE", label: "전화", value: "010-1234-5678" }, { key: "EMAIL", label: "이메일", value: "profile@example.com" }, { key: "BIRTH", label: "생년월일", value: "2000-03-14" }],
+      photoLibrary: [{ id: "1", name: "대표", url: "/api/v1/files/1/content", representative: true }],
+      videoLibrary: [], completeness: { filled: 4, standardTotal: 8 },
+    });
+    vi.mocked(getActorPageSettings).mockResolvedValue({ status: "PUBLIC", handle: "actor", handleEditable: false,
+      locked: false, lockReason: null, autoHiddenReason: null, consentVersion: "actor-page-publish-v1.0",
+      fieldVisibilities: { education: "PRIVATE", careers: "PRIVATE", coverLetter: "PRIVATE", specialty: "PRIVATE", hobbies: "PRIVATE", nationality: "PRIVATE", links: "PRIVATE" },
+      publicId: "actor-id", unlockedAt: null, firstPublishedAt: null, publishedAt: null, publishPromptShown: true, pageRepresentativePhotoId: 1,
+      readiness: { ready: true, missing: [], underAge: false, locked: false } });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(new Blob(["photo"], { type: "image/jpeg" }))));
+    await open(false);
+    await act(async () => document.querySelector<HTMLInputElement>('[type="radio"]')!.click());
+    await input("#registration-name", "명함용 예명");
+    await act(async () => button("무료 명함 만들기").click());
+    await act(async () => button("프로필 등록하고 명함 만들기").click());
+    expect(document.querySelector<HTMLInputElement>("#registration-card-name")!.value).toBe("명함용 예명");
+    expect(document.querySelector<HTMLInputElement>("#registration-email")!.value).toBe("profile@example.com");
+    expect(uploadEventRegistrationPhoto).toHaveBeenCalledTimes(1);
+    await input("#registration-email", "card@example.com");
+    const field = [...document.querySelectorAll<HTMLLabelElement>("label")].find(label => label.textContent === "연극")!.querySelector("input")!;
+    const noCareer = [...document.querySelectorAll<HTMLLabelElement>("label")].find(label => label.textContent?.includes("경력 없음 (신입)"))!.querySelector("input")!;
+    await act(async () => { field.click(); noCareer.click(); });
+    await act(async () => button("명함 정보 완료").click());
+    await act(async () => container.querySelector<HTMLInputElement>('[type="checkbox"]')!.click());
+    await submit();
+    expect(registerForEvent).toHaveBeenCalledWith(2, expect.objectContaining({ name: "명함용 예명", email: "card@example.com", photoUploadKey: "photo-upload-key" }), true);
+    expect(done).toHaveBeenCalledTimes(1);
+  });
+
+  it("프로필 조회 실패를 표시하고 직접 작성 경로를 계속 사용할 수 있다", async () => {
+    vi.mocked(getApplicantProfile).mockRejectedValue(new Error("프로필 조회 실패"));
+    vi.mocked(getActorPageSettings).mockRejectedValue(new Error("프로필 조회 실패"));
+    await open(false);
+    await act(async () => document.querySelector<HTMLInputElement>('[type="radio"]')!.click());
+    await act(async () => button("무료 명함 만들기").click());
+    await act(async () => button("프로필 등록하고 명함 만들기").click());
+    expect(document.querySelector('[role="dialog"]')?.textContent).toContain("프로필 조회 실패");
+    await act(async () => button("프로필 등록 없이 직접 작성하기").click());
+    expect(document.querySelector('[role="dialog"]')).not.toBeNull();
+    expect(registerForEvent).not.toHaveBeenCalled();
+  });

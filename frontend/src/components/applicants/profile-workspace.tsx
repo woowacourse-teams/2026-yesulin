@@ -9,7 +9,7 @@ import { ScreenError } from "@/components/auditions/screen-status";
 import { ProfileEditor, type ProfileTab } from "./profile-editor";
 import { WorkspaceBreadcrumb, WorkspacePageHeading } from "@/components/landing/workspace-page-heading";
 
-export function ApplicantProfileWorkspace({ initialTab }: { readonly initialTab?: ProfileTab }) {
+export function ApplicantProfileWorkspace({ initialTab, eventId }: { readonly initialTab?: ProfileTab; readonly eventId?: number }) {
   const query = useAuditionQuery("applicant-profile", getApplicantProfile, "프로필을 불러오지 못했습니다.");
   const [saved, setSaved] = useState<ApplicantProfileResponse | null>(null);
   if (query.loading) return <ProfileSkeleton />;
@@ -22,7 +22,7 @@ export function ApplicantProfileWorkspace({ initialTab }: { readonly initialTab?
       description={<>한 번 저장한 정보로 다음 지원을 편리하게 준비하세요.<br />이미 제출한 지원서는 프로필을 수정해도 바뀌지 않아요.</>}
       action={<div className="applicant-profile-meter"><div><span>필수 기본정보</span><strong className="num">{profile.completeness.filled} / {profile.completeness.standardTotal}</strong></div><div className="workspace-progress" role="progressbar" aria-label="필수 기본정보 작성률" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}><span style={{ width: percent + "%" }} /></div></div>}
     />
-    <ProfileEditor profile={profile} onSaved={setSaved} initialTab={initialTab} />
+    <ProfileEditor eventId={eventId} profile={profile} onSaved={setSaved} initialTab={initialTab} />
   </Container>;
 }
 

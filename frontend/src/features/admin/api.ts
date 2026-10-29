@@ -29,6 +29,8 @@ import type {
   AdminCompanyWrite,
   AdminEvent,
   AdminEventRegistration,
+  AdminEventBusinessCard,
+  AdminEventBusinessCardVisitStats,
   AdminEventStatus,
   AdminEventWrite,
   AdminPostCompanyProfile,
@@ -608,6 +610,31 @@ export async function downloadBusinessCardArchive(eventId: number): Promise<void
   link.click();
   link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+export function fetchEventBusinessCardVisitStats(eventId: number, days = 14): Promise<AdminEventBusinessCardVisitStats> {
+  return getJson(`/events/${eventId}/business-card/visits?days=${days}`, "명함 접속 통계를 불러오지 못했습니다.");
+}
+
+/** 공개 프로필 주소만 바꾼다. 회원 연결은 유지한다. */
+export async function connectEventBusinessCard(
+  eventId: number, registrationId: number, profileUrl: string | null,
+): Promise<AdminEventBusinessCard> {
+  return await sendJson(`/events/${eventId}/registrations/${registrationId}/business-card`, "PUT",
+    { profileUrl }, "명함 연결을 저장하지 못했습니다.") as AdminEventBusinessCard;
+}
+
+export async function connectEventBusinessCardMember(eventId: number, registrationId: number, code: string): Promise<AdminEventBusinessCard> {
+  return await sendJson(`/events/${eventId}/registrations/${registrationId}/business-card/member`, "POST",
+    { code }, "회원 연결을 저장하지 못했습니다.") as AdminEventBusinessCard;
+}
+
+export async function disconnectEventBusinessCardMember(eventId: number, registrationId: number): Promise<AdminEventBusinessCard> {
+  const response = await fetch(`${API_BASE_PATH}/events/${eventId}/registrations/${registrationId}/business-card/member`, {
+    method: "DELETE", credentials: "include", headers: await withCsrfHeaders(),
+  });
+  if (!response.ok) throw await readAdminError(response, "회원 연결을 해제하지 못했습니다.");
+  return response.json() as Promise<AdminEventBusinessCard>;
 }
 
 /** 참가 신청을 지운다. 되돌릴 수 없고 사진도 함께 지운다. */

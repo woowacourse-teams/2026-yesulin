@@ -11,6 +11,7 @@ import type { ApplicantAnswerValue, ApplicantProfileResponse } from "@/features/
 import { APPLICATION_FIELD_OPTIONS } from "@/features/auditions/creation-types";
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
 import { useToast } from "@/components/auditions/toast";
+import { eventProfileReturnPath } from "@/features/events/profile-registration";
 import { PrimaryButton } from "@/components/ui/controls";
 import { ActorPagePublishDialog } from "@/components/actor-pages/actor-page-publish-dialog";
 import { ActorPageSettingsPanel, publishedActorPageToast, useActorPageSettings } from "@/components/actor-pages/actor-page-settings";
@@ -43,7 +44,7 @@ const standardFields: readonly ApplicationFieldInput[] = APPLICATION_FIELD_OPTIO
   section: field.section, inputType: field.inputType, order: field.order, layout: field.layout, config: field.config,
 }));
 
-export function ProfileEditor({ profile, onSaved, initialTab = "BASIC" }: { readonly profile: ApplicantProfileResponse; readonly onSaved: (profile: ApplicantProfileResponse) => void; readonly initialTab?: ProfileTab }) {
+export function ProfileEditor({ profile, onSaved, eventId, initialTab = "BASIC" }: { readonly profile: ApplicantProfileResponse; readonly onSaved: (profile: ApplicantProfileResponse) => void; readonly initialTab?: ProfileTab; readonly eventId?: number }) {
   const toast = useToast();
   const actorPage = useActorPageSettings();
   const [publishPrompt, setPublishPrompt] = useState<ActorPageSettings | null>(null);
@@ -129,6 +130,11 @@ export function ProfileEditor({ profile, onSaved, initialTab = "BASIC" }: { read
   const informationTab = activeTab === "BASIC" || activeTab === "ADDITIONAL";
 
   return <div className="applicant-profile-editor">
+    {eventId ? <div className="mb-5 rounded-control bg-brand-soft p-4 text-sm leading-7">
+      <p>프로필을 저장하고 ‘배우 페이지’ 탭에서 공개해 주세요. PDF로 프로필 채우기도 사용할 수 있어요.</p>
+      <PrimaryButton className="mt-3" disabled={saving || changeCount > 0 || actorPage.settings?.status !== "PUBLIC" || !actorPage.settings?.readiness.ready || actorPage.settings?.locked} onClick={() => window.location.assign(eventProfileReturnPath(eventId))}>프로필로 명함 채우기</PrimaryButton>
+      {changeCount ? <p>변경한 프로필을 먼저 저장해 주세요.</p> : null}
+    </div> : null}
     <nav aria-label="프로필 항목" className="applicant-profile-tabs">{tabs.map((tab) => {
       const active = activeTab === tab.id;
       return <button key={tab.id} type="button" aria-current={active ? "page" : undefined} onClick={() => { setActiveTab(tab.id); setError(""); }} className="applicant-profile-tab"><span className="flex items-center justify-between gap-2"><strong className="text-sm">{tab.label}</strong><span className="num text-xs">{tabCount(tab.id)}</span></span><span className="mt-1 hidden text-xs lg:block">{tab.description}</span></button>;

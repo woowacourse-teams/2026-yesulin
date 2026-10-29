@@ -2,6 +2,7 @@ import type { SubmissionId } from "@/features/auditions/types";
 
 export const applicantRoutes = {
   home: "/applicants",
+  memberLink: "/applicants/member-link",
   submissions: "/applicants/submissions",
   submission: (id: SubmissionId) => `/applicants/submissions/${id}`,
   applicationDraft: (postingId: string) => `/apply/${postingId}/write/basic?resumeDraft=1`,
