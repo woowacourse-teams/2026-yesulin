@@ -14,6 +14,8 @@
   현재 모집 상태를 의미하지 않는다
 - 추가 포스터 12개는 예술in 공개 API의 `thumbnailUrl`에서 원본을 보관했다
   공개 API `/api/v1/public/audition-posts`의 공고 ID와 연결하며 총 18개다
+- 포스터는 배포 용량을 줄이려고 가로 1080px 이하로 줄여 다시 압축했다(화면 표시 폭은 최대 440px)
+  JPEG는 품질 80, 글자 위주 PNG는 256색 PNG, 사진형 PNG는 JPEG로 저장하며 새 포스터도 같은 기준을 따른다
 - `MaruBuri-Regular.woff2`: 네이버 마루부리 Regular
   공식 출처: https://hangeul.pstatic.net/hangeul_static/css/maru-buri.css
   SIL OFL 1.1 전문과 저작권은 `MaruBuri-LICENSE.txt`에 보관한다

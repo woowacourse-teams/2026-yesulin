@@ -69,7 +69,7 @@ export const landingPosters = [
     "caption": "우당탕탕 크리스마스",
     "title": "🎭 [배우 모집] 아동극 〈우당탕탕 크리스마스 : 두 번째 이야기〉 상시 오디션 🎄",
     "category": "연극",
-    "image": "/images/landing/poster-97.png"
+    "image": "/images/landing/poster-97.jpg"
   },
   {
     "id": 122,
