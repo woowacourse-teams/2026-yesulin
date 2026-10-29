@@ -1,3 +1,4 @@
+import { trackPdfStep } from "@/features/analytics/pdf-analytics";
 import { putPdf } from "@/features/pdf-extractions/api";
 import type { PreparedPdfUpload } from "@/features/pdf-extractions/types";
 import { PROFILE_CAREER_GENRES, type ProfileCareerGenre } from "./career-genre";
@@ -70,7 +71,9 @@ export async function startProfileImport(file: File): Promise<ProfileImport> {
     { method: "POST", body: JSON.stringify({ originalFilename: file.name, size: file.size }) },
   );
   await putPdf(file, prepared.upload);
-  return applicantRequest<ProfileImport>(`${BASE_PATH}/${encodeURIComponent(prepared.jobId)}/completion`, { method: "POST" });
+  const job = await applicantRequest<ProfileImport>(`${BASE_PATH}/${encodeURIComponent(prepared.jobId)}/completion`, { method: "POST" });
+  void trackPdfStep({ workflow: "actor_pdf", operation_id: job.jobId, step: "upload", outcome: "success" }, true);
+  return job;
 }
 
 export const getProfileImport = (jobId: string) =>

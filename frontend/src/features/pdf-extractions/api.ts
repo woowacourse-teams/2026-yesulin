@@ -1,3 +1,4 @@
+import { observePdfExtraction } from "@/features/analytics/pdf-analytics";
 import { withCsrfHeaders } from "../csrf";
 import { readErrorDetail, readErrorMessage } from "../api-error";
 import type { PdfExtractionJob, PreparedPdfUpload } from "./types";
@@ -35,8 +36,10 @@ export function completePdfUpload(jobId: string) {
   return json<PdfExtractionJob>(`/${encodeURIComponent(jobId)}/completion`, {});
 }
 
-export function fetchPdfExtraction(jobId: string, includeResult = false, signal?: AbortSignal) {
-  return json<PdfExtractionJob>(`/${encodeURIComponent(jobId)}?includeResult=${includeResult}`, undefined, signal);
+export async function fetchPdfExtraction(jobId: string, includeResult = false, signal?: AbortSignal) {
+  const job = await json<PdfExtractionJob>(`/${encodeURIComponent(jobId)}?includeResult=${includeResult}`, undefined, signal);
+  if (!signal?.aborted) observePdfExtraction(job);
+  return job;
 }
 
 /** 읽기/업로드 메모리는 이 함수가 실행되는 파일에만 할당한다. 전체 선택 파일을 한꺼번에 읽지 않는다. */

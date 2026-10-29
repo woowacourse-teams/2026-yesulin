@@ -1,3 +1,4 @@
+import { trackProductEvent } from "@/features/analytics/product-analytics";
 import { producerRequest } from "./api-client";
 import { completeScreening, getAuditionBoard, getAuditionSubmission, saveReview } from "./api";
 import type { ScreeningBoardResource, ScreeningCompletionResource, ScreeningSubmissionDetailResource } from "./backend-resources";
@@ -55,6 +56,7 @@ export async function saveScreeningReview(source: ScreeningSource, body: SaveRev
     method: "PATCH",
     body: JSON.stringify(review),
   });
+  if (body.status !== undefined) for (const id of body.submissionIds) void trackProductEvent("review_saved", { workflow: "otr", review_id: source.auditionId, item_id: String(id), round, eligible: body.status !== "PENDING" });
   return getScreeningBoard(source, roleId, round, condition);
 }
 

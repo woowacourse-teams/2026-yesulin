@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { rememberOpenchatEntry } from "@/features/analytics/product-analytics";
 import { cleanOpenChatSource, recordOpenChatVisit, type OpenChatVisitTarget } from "@/features/audition-posts/openchat-visit";
 
 /** 공개 상세에서는 주소만 정리하고, 원문 경유는 기록을 최대 1.5초 기다린 뒤 기존 이동 경로를 연다. */
@@ -8,6 +9,7 @@ export function OpenChatLinkVisit({ kind, id, dedupKey, destination }: OpenChatV
   readonly destination?: string;
 }) {
   useEffect(() => {
+    rememberOpenchatEntry(kind, id);
     let active = true;
     let finished = false;
     const finish = () => {

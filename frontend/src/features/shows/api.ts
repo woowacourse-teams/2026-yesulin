@@ -1,4 +1,5 @@
 import { request } from "@/features/auditions/api-client";
+import { trackProductEvent } from "@/features/analytics/product-analytics";
 import type { CreateReservation, PublicShow, PublicShowSummary, ReservationReceipt } from "./types";
 
 const PUBLIC_SHOWS_PATH = "/v1/public/shows";
@@ -14,6 +15,7 @@ export function getPublicShow(showId: string): Promise<PublicShow> {
 
 /** 외부 링크 공연에서 예매하기를 누르면 예술in을 거쳐 예매하러 간 기록을 남긴다. 관객 이동은 기다리지 않는다. */
 export function recordExternalReservationVisit(showId: string): Promise<void> {
+  void trackProductEvent("external_booking_clicked", { show_id: showId });
   return request<void>(`${PUBLIC_SHOWS_PATH}/${encodeURIComponent(showId)}/external-reservation-visits`, { method: "POST" });
 }
 

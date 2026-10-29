@@ -1,3 +1,5 @@
+import { registerPdfReviewJob } from "@/features/analytics/pdf-analytics";
+import { trackProductEvent } from "@/features/analytics/product-analytics";
 import { withCsrfHeaders } from "../csrf";
 import { readErrorDetail, readErrorMessage } from "../api-error";
 import type { PreparedPdfUpload } from "../pdf-extractions/types";
@@ -40,8 +42,11 @@ export async function listPdfReviews(signal?: AbortSignal) {
   return (await request<{ reviews: ReviewSummary[] }>("", "GET", undefined, signal)).reviews;
 }
 
-export function fetchPdfReview(id: ReviewKey, signal?: AbortSignal) {
-  return request<ReviewDetail>(reviewPath(id), "GET", undefined, signal);
+export async function fetchPdfReview(id: ReviewKey, signal?: AbortSignal) {
+  const detail = await request<ReviewDetail>(reviewPath(id), "GET", undefined, signal);
+  detail.entries.forEach(entry => registerPdfReviewJob(entry.jobId, String(id)));
+  if (!signal?.aborted) void trackProductEvent("review_progress", { workflow: "producer_pdf", review_id: String(id), total_count: detail.entries.length, completed_count: detail.entries.filter(e => e.decision !== "PENDING").length });
+  return detail;
 }
 
 export function fetchPdfReviewProgress(id: ReviewKey, signal?: AbortSignal) {
@@ -52,8 +57,10 @@ export function preparePdfReviewUpload(reviewId: ReviewKey, file: File) {
   return request<PreparedPdfUpload>(`${reviewPath(reviewId)}/uploads`, "POST", { originalFilename: file.name, size: file.size });
 }
 
-export function updatePdfReviewEntry(reviewId: ReviewKey, entryId: ReviewKey, change: { readonly memo: string; readonly decision: ReviewDecision }) {
-  return request<ReviewEntry>(`${reviewPath(reviewId)}/entries/${encodeURIComponent(String(entryId))}`, "PATCH", change);
+export async function updatePdfReviewEntry(reviewId: ReviewKey, entryId: ReviewKey, change: { readonly memo: string; readonly decision: ReviewDecision }) {
+  const entry = await request<ReviewEntry>(`${reviewPath(reviewId)}/entries/${encodeURIComponent(String(entryId))}`, "PATCH", change);
+  void trackProductEvent("review_saved", { workflow: "producer_pdf", review_id: String(reviewId), item_id: String(entryId), eligible: entry.decision !== "PENDING" });
+  return entry;
 }
 
 export function assignPdfReviewRoles(reviewId: ReviewKey, entryIds: readonly ReviewKey[], roleId: ReviewKey | null) {
