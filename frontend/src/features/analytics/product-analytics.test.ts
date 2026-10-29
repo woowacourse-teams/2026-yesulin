@@ -33,6 +33,7 @@ describe("PostHog 수집 경계", () => {
     await sending;
     expect(sdk.capture.mock.calls.find(c => c[0] === "audition_post_viewed")?.[1].source).toBe("openchat");
     expect(sdk.capture.mock.calls.filter(c => c[0] === "openchat_landed")).toHaveLength(1);
+    expect(sdk.capture.mock.calls.find(c => c[0] === "openchat_landed")?.[1]).toMatchObject({ acquisition_channel: "openchat", attribution_version: 1 });
   });
   it("OTR 경유 출처는 같은 원문의 공고에만 연결한다", async () => {
     const { rememberOpenchatEntry, trackPostView } = await import("./product-analytics");
@@ -50,6 +51,7 @@ describe("PostHog 수집 경계", () => {
     const { trackProductEvent } = await import("./product-analytics");
     expect(await trackProductEvent("audition_post_viewed", { post_id: "10" })).toBe(false);
     expect(fetch).not.toHaveBeenCalled(); expect(init).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem("yesulin:acquisition:v1")).toBeNull();
   });
   it("운영 키 설정으로 localhost에서 수집하지 않는다", async () => {
     vi.stubEnv("NEXT_PUBLIC_POSTHOG_ENV", "production");
@@ -76,11 +78,12 @@ describe("PostHog 수집 경계", () => {
     localStorage.setItem("yesulin:analytics-consent:v1", "denied"); resetProductAnalytics();
     resolve({ ok: true, json: async () => ({ enabled: true }) });
     expect(await sending).toBe(false); expect(sdk.capture).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem("yesulin:acquisition:v1")).toBeNull();
   });
   it("최종 전송에서 URL·페이지 제목·자동 사용자 속성을 제거하고 수집 토큰은 유지한다", async () => {
     const { startProductAnalytics } = await import("./product-analytics"); await startProductAnalytics();
     const clean = init.mock.calls[0][1].before_send({ event: "audition_post_viewed", properties: {
-      token: "phc_test", distinct_id: "anonymous", post_id: "10", $current_url: "https://example.com/private", $title: "지원자 이름",
+      token: "phc_test", distinct_id: "anonymous", post_id: "10", acquisition_channel: "private-name", attribution_version: 42, $current_url: "https://example.com/private", $title: "지원자 이름",
       email: "private@example.com", $referrer: "https://example.com/token",
     }, $set_once: { $initial_current_url: "https://private" }, $set: { name: "홍길동" } });
     expect(clean.properties).toEqual({ token: "phc_test", distinct_id: "anonymous", post_id: "10" });
@@ -100,6 +103,6 @@ describe("PostHog 수집 경계", () => {
     vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => ({ enabled: true, internal: false, actor: "anonymous", testObjects: ["post_id:10"], formAttachments: {} }) })));
     const { trackProductEvent } = await import("./product-analytics");
     await trackProductEvent("audition_post_viewed", { post_id: "10" });
-    expect(sdk.capture.mock.calls[0][1]).toMatchObject({ internal: true, test_object: true, environment: "development" });
+    expect(sdk.capture.mock.calls[0][1]).toMatchObject({ internal: true, test_object: true, environment: "development", acquisition_channel: "direct_unknown", attribution_version: 1 });
   });
 });
