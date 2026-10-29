@@ -1,5 +1,5 @@
 flowchart TD
-    OTR_TREE["오디션 공고 관리 트리"] --> OTR_LIST["GET /api/v1/otr-auditions<br>공연사별 목록"]
+    OTR_TREE["지원서 접수·심사 트리"] --> OTR_LIST["GET /api/v1/otr-auditions<br>공연사별 목록"]
     OTR_LIST --> OTR_CREATE["POST /api/v1/otr-auditions<br>번호·제목·배역·마감일"]
     OTR_CREATE --> OTR_LIST
     OTR_LIST --> OTR_SOURCE["OTR 원문 링크 열기"]
@@ -16,9 +16,12 @@ flowchart TD
     RESET_MAIL --> RESET["GET token 확인 → PATCH 새 비밀번호"]
     RESET --> LOGIN_FORM
     FORGOT -- 아니오 --> LOGIN["POST /api/v1/sessions"]
-    LOGIN --> FREE_SHOW["무료 공연 관리<br>/producers/shows"]
-    LOGIN --> OTR_LIST
-    LOGIN --> POSTS["공고 게시<br>/producers/audition-posts"]
+    LOGIN --> POSTS["내 오디션 공고 — 기본 진입<br>/producers/audition-posts<br>직접 올린 공고 + 관리자가 연결한 공고"]
+    POSTS --> FREE_SHOW["메뉴: 무료 공연 관리<br>/producers/shows"]
+    POSTS --> OTR_LIST
+    OTR_IMPORT["OTR 공고 수집<br>작성자 회원 번호 저장"] --> MEMBER_LINK["관리자 회원 연결<br>OTR 작성자 → 가입 회원<br>회사명·이메일·인증 상태 확인"]
+    SIGNUP --> MEMBER_LINK
+    MEMBER_LINK --> POSTS
     POSTS --> POST_NEW["공고 올리기<br>POST /api/v1/producers/me/audition-posts<br>바로 공개·운영자 Slack 알림"]
     POSTS --> POST_EDIT["공고 수정<br>PUT .../audition-posts/{postId}<br>바로 반영·바뀐 항목 Slack 알림"]
     POST_NEW --> POSTS

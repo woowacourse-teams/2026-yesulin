@@ -81,9 +81,9 @@ export function MobileProducerNavigation() {
             </button>
           </header>
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-2">
+            <AuditionPostManagementNav onNavigate={closeDisclosure} />
             <PdfReviewNavigation onNavigate={closeDisclosure} />
             <ShowManagementNav onNavigate={closeDisclosure} />
-            <AuditionPostManagementNav onNavigate={closeDisclosure} />
             <ActorBookmarkNav onNavigate={closeDisclosure} />
             <OtrAuditionTreeNav onNavigate={closeDisclosure} />
           </div>

@@ -151,7 +151,7 @@ function PostSummary({ post }: { readonly post: EditableAuditionPost }) {
 }
 
 function ownerLabel(producer: AdminProducer) {
-  return producer.companyName ? `${producer.companyName} · ${producer.email}` : producer.email;
+  return `${producer.companyName ?? "회사명 없음"} · ${producer.email} · 회원 #${producer.memberId}${producer.status === "PENDING" ? " (이메일 인증 대기)" : ""}`;
 }
 
 /**
@@ -215,15 +215,15 @@ function OwnerPanel({ post, onChanged, onUnauthorized }: {
 
   return (
     <section aria-labelledby={`${selectId}-title`} className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-card border border-border bg-card px-4 py-3 text-sm sm:px-5">
-      <h2 id={`${selectId}-title`} className="font-bold">연결된 기획사</h2>
+      <h2 id={`${selectId}-title`} className="font-bold">공고를 관리할 가입 회원</h2>
       <span className={post.owner ? "font-semibold text-foreground" : "text-muted"}>
         {post.owner ? post.owner.companyName ?? `회원 ${post.owner.memberId}` : "없음"}
       </span>
       {choosing ? (
         <span className="flex w-full flex-wrap items-center gap-2 sm:ml-auto sm:w-auto">
-          <label htmlFor={selectId} className="sr-only">연결할 기획사</label>
+          <label htmlFor={selectId} className="sr-only">연결할 가입 회원</label>
           <FieldSelect id={selectId} value={selected} disabled={busy || !producers} onChange={(event) => setSelected(event.target.value)} className="min-w-0 flex-1 sm:w-72 sm:flex-none">
-            <option value="" disabled>{producers ? "기획사를 골라 주세요" : "불러오는 중…"}</option>
+            <option value="" disabled>{producers ? "가입 회원을 골라 주세요" : "불러오는 중…"}</option>
             {producers?.map((producer) => (
               <option key={producer.memberId} value={producer.memberId}>{ownerLabel(producer)}</option>
             ))}
@@ -233,23 +233,23 @@ function OwnerPanel({ post, onChanged, onUnauthorized }: {
           {canLinkAuthor ? (
             <label className="flex w-full items-start gap-2 text-sm">
               <input type="checkbox" checked={linkAuthor} disabled={busy} onChange={(event) => setLinkAuthor(event.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-brand" />
-              <span>같은 OTR 작성자({post.authorName} #{post.sourceAuthorId})의 다른 공고와 앞으로 가져올 공고도 이 기획사에 연결</span>
+              <span>같은 OTR 작성자({post.authorName} #{post.sourceAuthorId})의 다른 공고와 앞으로 가져올 공고도 이 회원에게 연결</span>
             </label>
           ) : null}
         </span>
       ) : (
         <span className="ml-auto flex flex-wrap gap-2">
           {post.owner ? <AdminActionButton disabled={busy} onClick={() => void change(null)}>연결 끊기</AdminActionButton> : null}
-          <AdminActionButton disabled={busy} onClick={() => void startChoosing()}>{post.owner ? "다른 기획사로" : "기획사 연결"}</AdminActionButton>
+          <AdminActionButton disabled={busy} onClick={() => void startChoosing()}>{post.owner ? "다른 회원으로" : "가입 회원 연결"}</AdminActionButton>
         </span>
       )}
       {post.authorLink ? (
         <p className="w-full text-sm text-muted-strong">
           OTR 작성자 #{post.sourceAuthorId}는 <strong className="font-semibold">{post.authorLink.companyName ?? `회원 ${post.authorLink.ownerId}`}</strong>에 자동 연결돼 있어요.
-          {" "}<Link href={adminAuditionPostRoutes.owners} className="font-semibold text-brand underline underline-offset-2">업체별 보기</Link>에서 해제할 수 있어요.
+          {" "}<Link href={adminAuditionPostRoutes.owners} className="font-semibold text-brand underline underline-offset-2">회원 연결</Link>에서 해제할 수 있어요.
         </p>
       ) : null}
-      <p className="w-full text-xs text-muted">연결한 기획사는 기획사 관리 화면에서 이 공고를 직접 고칠 수 있어요. 고치면 Slack으로 알려 드려요.</p>
+      <p className="w-full text-xs text-muted">연결한 회원은 로그인 후 ‘내 오디션 공고’에서 이 공고를 확인하고 수정할 수 있어요.</p>
       {error ? <p role="alert" className="w-full text-sm text-fail">{error}</p> : null}
     </section>
   );

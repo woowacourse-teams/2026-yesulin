@@ -10,7 +10,7 @@ import { actorPageRoutes } from "@/features/actor-pages/types";
 import { applicantRoutes } from "@/features/applicants/routes";
 import { TrackedLoginLink } from "@/components/analytics/tracked-login-link";
 import { PolicyLinks } from "@/components/policies/policy-links";
-import { AUDITION_ALERT_CHAT_URL, auditionPostRoutes } from "@/features/audition-posts/types";
+import { AUDITION_ALERT_CHAT_URL, auditionPostRoutes, producerAuditionPostRoutes } from "@/features/audition-posts/types";
 import { eventRoutes } from "@/features/events/types";
 import { showRoutes } from "@/features/shows/types";
 import { SiteIcon } from "@/components/ui/site-icon";
@@ -46,7 +46,7 @@ function HeaderAccountLinks({ service, producerLinkClassName }: { readonly servi
   if (session) return <>
     {session.role === "APPLICANT"
       ? <Link href={applicantRoutes.submissions}>내 지원서</Link>
-      : <Link href="/producers/shows">공연사 대시보드</Link>}
+      : <Link href={producerAuditionPostRoutes.list}>내 오디션 공고</Link>}
     <LogoutButton />
   </>;
   const producer = service === "producer";

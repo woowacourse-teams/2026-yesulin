@@ -16,6 +16,8 @@ const UNPUBLISHED_NOTICE = {
   HIDDEN: "운영자가 숨긴 공고예요. 다시 공개하려면 예술in 카카오톡 채널로 문의해 주세요.",
 } as const;
 
+const MEMBER_LINK_REQUEST_URL = "http://pf.kakao.com/_pbTBX/chat";
+
 type ListState =
   | { readonly status: "loading" }
   | { readonly status: "error"; readonly message: string }
@@ -43,9 +45,9 @@ export function ProducerAuditionPostList() {
       <div className="mx-auto w-full max-w-[1120px] break-keep wrap-break-word">
         <header className="mb-8 flex flex-wrap items-start gap-4">
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-brand">예술in 메인</p>
-            <h1 className="mt-1 text-2xl font-bold tracking-[-0.025em] md:text-[28px]">공고 게시</h1>
-            <p className="mt-2 text-sm text-muted-strong">공고를 올리면 예술in 메인에 바로 공개돼요. 지원 방법은 본문에 적어 주세요.</p>
+            <p className="text-sm font-semibold text-brand">기획사·제작사</p>
+            <h1 className="mt-1 text-2xl font-bold tracking-[-0.025em] md:text-[28px]">내 오디션 공고</h1>
+            <p className="mt-2 text-sm text-muted-strong">직접 올린 공고와 관리자가 회원님께 연결한 OTR 공고를 확인하고 수정할 수 있어요.</p>
           </div>
           <PrimaryLink href={producerAuditionPostRoutes.create} className="whitespace-nowrap">공고 올리기</PrimaryLink>
         </header>
@@ -53,7 +55,7 @@ export function ProducerAuditionPostList() {
         {state.status === "error" ? <ScreenError message={state.message} onRetry={() => { setState({ status: "loading" }); load(); }} /> : null}
         {state.status === "loading" ? <p role="status" className="rounded-card border border-border bg-card px-5 py-14 text-center text-muted">공고를 불러오는 중…</p> : null}
         {state.status === "ready" && state.posts.length === 0 ? (
-          <PickerEmpty title="아직 올린 공고가 없습니다" description="모집 내용과 지원 방법을 적어 올리면 배우들이 예술in 메인에서 바로 볼 수 있어요." />
+          <PickerEmpty title="아직 연결되거나 직접 올린 공고가 없어요" description="OTR에 올린 공고가 있다면 예술in 카카오톡 채널로 회원 연결을 요청해 주세요. 관리자가 확인해 연결하면 여기에 표시돼요. 새 공고를 직접 올릴 수도 있어요." />
         ) : null}
         {state.status === "ready" && state.posts.length > 0 ? (
           <section aria-labelledby="producer-post-list-title" className="overflow-hidden rounded-card border border-border bg-card">
@@ -66,8 +68,19 @@ export function ProducerAuditionPostList() {
             </ul>
           </section>
         ) : null}
+        {state.status === "ready" ? <MemberLinkRequest /> : null}
       </div>
     </PickerScreen>
+  );
+}
+
+/** 직접 올린 공고가 있어도 OTR 공고 연결을 요청할 수 있게 목록 상태와 무관하게 보인다. */
+function MemberLinkRequest() {
+  return (
+    <p className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-center text-sm text-muted-strong">
+      OTR에 올린 공고가 보이지 않나요?
+      <a href={MEMBER_LINK_REQUEST_URL} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center rounded-control border border-brand-line px-4 text-sm font-semibold text-brand hover:bg-brand-soft">회원 연결 문의</a>
+    </p>
   );
 }
 

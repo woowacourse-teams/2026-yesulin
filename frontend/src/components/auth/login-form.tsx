@@ -12,6 +12,7 @@ import {
 } from "@/features/auth/session-api";
 import { DEFAULT_APPLICANT_LOGIN_RETURN_TO, rememberSocialLoginReturnTo } from "@/features/auth/social-login-return-to";
 import { frontendEnvironment } from "@/config/environment";
+import { producerAuditionPostRoutes } from "@/features/audition-posts/types";
 import {
   createFrontendCredential,
   type SocialProvider,
@@ -72,7 +73,7 @@ export function LoginForm({ returnTo, applicationFlow = false }: { readonly retu
       return;
     }
 
-    const producerAttribution = loginAttributionFor("/producers/shows", "producer");
+    const producerAttribution = loginAttributionFor(producerAuditionPostRoutes.list, "producer");
     trackLoginAttempt("password", producerAttribution);
 
     let serverSession: Awaited<ReturnType<typeof requestLogin>> | null = null;
@@ -107,9 +108,9 @@ export function LoginForm({ returnTo, applicationFlow = false }: { readonly retu
       displayName: trimmedIdentifier,
       producerStatus: serverSession?.status ?? "ACTIVE",
     });
-    trackLoginSuccess("/producers/shows", producerAttribution);
+    trackLoginSuccess(producerAuditionPostRoutes.list, producerAttribution);
     toast("기획사/제작사 계정으로 로그인했습니다.", { type: "success" });
-    router.push("/producers/shows");
+    router.push(producerAuditionPostRoutes.list);
   }
 
   async function handleSocialLogin(provider: SocialProvider) {
