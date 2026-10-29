@@ -5,7 +5,8 @@ import { ModalShell } from "@/components/auditions/modal-shell";
 import { PrimaryButton, SecondaryButton } from "@/components/ui/controls";
 import { publishActorPage, type PublishedActorPage } from "@/features/actor-pages/owner-api";
 import {
-  ACTOR_PAGE_CONSENT_TEXT,
+  ACTOR_PAGE_CONSENT_LABEL,
+  ACTOR_PAGE_CONSENT_NOTICE,
   canPublish,
   missingFieldLabel,
   publishBlockers,
@@ -37,6 +38,7 @@ export function ActorPagePublishDialog({
 }) {
   const titleId = useId();
   const consentId = useId();
+  const noticeId = useId();
   const [agreed, setAgreed] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState("");
@@ -77,16 +79,20 @@ export function ActorPagePublishDialog({
             {mode === "prompt" ? " 항목별 공개 설정은 ‘배우 페이지’ 탭에서 바꿀 수 있어요." : ""}
           </p>
           <div className="mt-5 rounded-card border border-border bg-surface p-4">
-            <label htmlFor={consentId} className="flex cursor-pointer items-start gap-3 text-sm leading-6">
+            <div id={noticeId} className="grid gap-2 text-sm leading-6 text-muted-strong">
+              {ACTOR_PAGE_CONSENT_NOTICE.map((sentence) => <p key={sentence}>{sentence}</p>)}
+            </div>
+            <label htmlFor={consentId} className="mt-4 flex cursor-pointer items-start gap-3 border-t border-border-soft pt-4 text-sm leading-6">
               <input
                 id={consentId}
+                aria-describedby={noticeId}
                 type="checkbox"
                 checked={agreed}
                 disabled={publishing}
                 onChange={(event) => { setAgreed(event.target.checked); setError(""); }}
                 className="mt-0.5 h-5 w-5 shrink-0 rounded border-border accent-brand"
               />
-              <span><strong className="font-semibold">(필수)</strong> {ACTOR_PAGE_CONSENT_TEXT}</span>
+              <span>{ACTOR_PAGE_CONSENT_LABEL} <strong className="font-semibold">(공개 시 필수)</strong></span>
             </label>
           </div>
         </>

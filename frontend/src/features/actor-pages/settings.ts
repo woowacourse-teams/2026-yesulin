@@ -39,16 +39,23 @@ export type ActorHandleAvailability = {
   readonly reason: ActorHandleUnavailableReason | null;
 };
 
-/** 문구 초안이다. 출시 전에 확정한다. */
-export const ACTOR_PAGE_CONSENT_TEXT =
-  "이름, 성별, 출생연도·나이, 입력한 키·몸무게와 내가 공개로 설정한 사진·항목을 누구나 볼 수 있고 검색엔진에도 노출될 수 있어요.";
+/**
+ * 공개할 때마다 보여 주는 고지와 동의 문구. 서버의 동의 버전(`actor-page-publish-v1.0`)과 짝이며, 뜻이 바뀌게 고치면
+ * 서버·목의 버전과 `docs/policies/public/privacy-consents.md`를 함께 올린다.
+ */
+export const ACTOR_PAGE_CONSENT_NOTICE = [
+  "배우 페이지를 공개하면 이름, 성별, 출생연도·나이, 입력한 키·몸무게와 공개로 설정한 사진·영상·항목을 누구나 볼 수 있습니다.",
+  "배우 목록에 표시되며 검색엔진에 수집·노출될 수 있습니다. 연락처, 전체 생년월일, 거주지, 병역 정보는 공개 페이지에 표시하지 않습니다.",
+  "언제든 배우 페이지를 비공개로 바꿀 수 있습니다. 이미 외부에서 저장한 사본이나 검색 결과는 즉시 사라지지 않을 수 있습니다.",
+] as const;
+export const ACTOR_PAGE_CONSENT_LABEL = "위 내용을 확인하고 배우 페이지 공개에 동의합니다.";
 
 /** 문구 초안이다. '공연사만' 영상을 볼 수 있는 사람이 바뀌면 함께 고친다. */
 export const PRODUCER_ONLY_VIDEO_GUIDE = "지금은 예술in 운영자만 볼 수 있어요. 공연사 인증이 생기면 인증된 공연사에게 보여요.";
 
 export const ACTOR_HANDLE_CONTACT_EMAIL = "contact@yesulin.art";
 
-/** 화면에 보이는 페이지 주소. `yesulin.art/@아이디`처럼 프로토콜을 뺀다. */
+/** 화면에 보이는 페이지 주소. `yesulin.art/actors/@아이디`처럼 프로토콜을 뺀다. */
 export function actorPageAddress(handle: string): string {
   return `${SITE_URL.replace(/^https?:\/\//, "")}${actorPageRoutes.detail(handle)}`;
 }

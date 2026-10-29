@@ -39,7 +39,7 @@ function initializeAnalytics() {
 }
 
 it("StrictMode와 분석 준비 신호가 반복돼도 한 번만 보내고 배우 이름·아이디·실제 주소는 보내지 않는다", async () => {
-  window.history.replaceState(null, "", "/@secret.actor?name=private");
+  window.history.replaceState(null, "", "/actors/@secret.actor?name=private");
   document.title = "비공개이름 | 예술in";
 
   await act(async () => root.render(<StrictMode><ActorScreenView screen="actor_page" /></StrictMode>));

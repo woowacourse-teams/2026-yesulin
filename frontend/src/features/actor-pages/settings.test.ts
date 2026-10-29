@@ -116,5 +116,5 @@ describe("profile value", () => {
 });
 
 it("writes the page address without the protocol", () => {
-  expect(actorPageAddress("min.zzun_")).toBe("yesulin.art/@min.zzun_");
+  expect(actorPageAddress("min.zzun_")).toBe("yesulin.art/actors/@min.zzun_");
 });

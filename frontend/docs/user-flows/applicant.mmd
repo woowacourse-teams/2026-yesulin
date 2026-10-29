@@ -43,4 +43,4 @@ flowchart TD
     AP_TAB --> AP_CONSENT
     AP_CONSENT --> AP_COPY["사본 없는 공개 사진의 공개 사본 생성: 실패한 사진만 제외"]
     AP_COPY --> AP_PUBLISH["PUT /api/v1/applicants/me/actor-page/publication"]
-    AP_PUBLISH --> AP_PAGE["/@아이디 공개, 아이디 고정"]
+    AP_PUBLISH --> AP_PAGE["/actors/@아이디 공개, 아이디 고정"]
