@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -61,6 +62,7 @@ public class EventRegistrationService {
     private final AdminAuditLogRepository auditLogRepository;
     private final Clock clock;
     private final EventBusinessCardService businessCardService;
+    private final ApplicationEventPublisher eventPublisher;
 
     /** 신청을 받고 명함 제작 마감 전인 이벤트에서만 명함 사진 올릴 자리를 준다. */
     @Transactional
@@ -105,7 +107,12 @@ public class EventRegistrationService {
                 : null;
         EventRegistration registration = new EventRegistration(event.getId(), form, photoKey, today(), clock.instant());
         try {
-            return repository.saveAndFlush(registration).getId();
+            long id = repository.saveAndFlush(registration).getId();
+            eventPublisher.publishEvent(new EventRegisteredEvent(
+                    event.getId(), event.getTitle(), id, registration.getParticipantType(),
+                    registration.isBusinessCardRequested()
+            ));
+            return id;
         } catch (DataIntegrityViolationException exception) {
             throw duplicate();
         }

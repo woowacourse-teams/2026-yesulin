@@ -5,6 +5,11 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 import art.yesulin.auth.application.AuthErrorCode;
 import art.yesulin.auth.application.memberlink.MemberLinkCodeService;
@@ -66,6 +71,7 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -84,6 +90,9 @@ class EventRegistrationServiceTest {
 
     @Autowired
     private EventRegistrationService registrationService;
+
+    @MockitoBean
+    private EventRegistrationNotifier registrationNotifier;
 
     @Autowired
     private EventBusinessCardService businessCardService;
@@ -126,11 +135,39 @@ class EventRegistrationServiceTest {
 
     @BeforeEach
     void setUp() {
+        reset(registrationNotifier);
         memberLinkCodeRepository.deleteAll();
         registrationRepository.deleteAll();
         uploadRepository.deleteAll();
         eventRepository.deleteAll();
         auditLogRepository.deleteAll();
+    }
+
+    @Test
+    void notifiesOnlyAfterRegistrationCommits() {
+        long eventId = openEvent();
+        long[] id = new long[1];
+        new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
+            id[0] = registrationService.register(eventId, EventRegistrationForm.withoutBusinessCard(
+                    EventParticipantType.ACTOR, "알림 확인", "010-1234-8001", null), null, true);
+            verifyNoInteractions(registrationNotifier);
+        });
+        verify(registrationNotifier).notifyRegistered(new EventRegisteredEvent(
+                eventId, eventRepository.findById(eventId).orElseThrow().getTitle(), id[0],
+                EventParticipantType.ACTOR, false
+        ));
+    }
+
+    @Test
+    void doesNotNotifyWhenRegistrationRollsBack() {
+        long eventId = openEvent();
+        new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
+            registrationService.register(eventId, EventRegistrationForm.withoutBusinessCard(
+                    EventParticipantType.ACTOR, "롤백 확인", "010-1234-8002", null), null, true);
+            status.setRollbackOnly();
+        });
+        verifyNoInteractions(registrationNotifier);
+        assertEquals(0, registrationRepository.countByEventId(eventId));
     }
 
     @Test
@@ -454,6 +491,7 @@ class EventRegistrationServiceTest {
         BusinessException exception = assertThrows(BusinessException.class, () ->
                 registrationService.register(eventId, actor("01012345678"), uploadedPhoto(eventId), true));
         assertEquals(EventErrorCode.REGISTRATION_DUPLICATE, exception.getErrorCode());
+        verify(registrationNotifier, times(1)).notifyRegistered(any(EventRegisteredEvent.class));
     }
 
     @Test

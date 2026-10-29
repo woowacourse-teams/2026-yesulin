@@ -61,7 +61,16 @@ Incoming Webhook으로 보내며, 비어 있으면 `TIMETABLE_MESSAGES_QUEUED` �
 | `YESULIN_TIMETABLE_SLACK_WEBHOOK_URL` | 로컬 및 dev용 알림 채널 | 스케줄 알림 채널 |
 | `YESULIN_ERROR_SLACK_WEBHOOK_URL` | 로컬 및 dev용 알림 채널 | 버그 알림 채널 |
 
-Slack 웹훅 세 개(OTR 공고 `YESULIN_SLACK_WEBHOOK_URL` 포함)는 `src/main/resources/properties/slack.yml`의 `yesulin.slack.*`로
+이벤트 참가 신청 완료 알림은 `YESULIN_EVENT_REGISTRATION_SLACK_WEBHOOK_URL`에 연결된 전용 채널로 보낸다.
+비어 있으면 `EVENT_REGISTERED` 로그만 남긴다. 저장 커밋 뒤 가상 스레드에서 보내며, 전송 실패는
+`EVENT_REGISTRATION_SLACK_FAILED` 로그로 남기고 자동 재전송하지 않는다. 접수 데이터는 유지된다.
+메시지에는 이벤트명·신청 번호·참가 구분·명함 희망 여부·관리자 명단 링크만 포함한다.
+관리자 링크의 프론트 origin은 `YESULIN_EVENT_REGISTRATION_ADMIN_BASE_URL`로 지정하고, 비우면
+`YESULIN_NOTICE_LINK_BASE_URL`을 쓴다. DEV 알림에서 DEV 명단을 열려면 `https://dev.yesulin.art`를 별도로 설정한다.
+Slack에서 전용 채널을 만든 뒤 [공식 Incoming Webhook 안내](https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks/)에 따라
+해당 채널에 연결한 Webhook 주소를 환경별 서버 설정에 등록한다.
+
+Slack 웹훅 네 개(OTR 공고 `YESULIN_SLACK_WEBHOOK_URL` 포함)는 `src/main/resources/properties/slack.yml`의 `yesulin.slack.*`로
 읽고 `application.yml`이 이 파일을 import한다. DEV·PROD 값은 다른 설정과 같이 `config/server/{환경}.env`에 SOPS로 편집하고,
 로컬은 Git에서 제외된 `config/server/local.env`에 둔다. 로컬과 DEV가 같은 채널을 쓰므로 메시지 앞의 `[LOCAL]`·`[DEV]`로 구분한다.
 
