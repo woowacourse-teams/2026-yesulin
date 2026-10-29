@@ -600,7 +600,7 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 공개 상세도 팝업 설정 두 필드를 포함한다. 팝업은 입력 검사를 통과한 뒤 표시하며 최종 확인 전에는 신청을 보내지 않는다.
 `phase`는 한국 날짜로 시작일 전이면 `UPCOMING`, 종료일이 지났으면 `ENDED`, 나머지(기간을 비운 글 포함)는 `ONGOING`이다.
 배너 API는 `PUBLISHED`이고 배너를 켰으며 노출 종료일이 지나지 않은 글을 `order` 순(같으면 최근 글 먼저)으로 5개까지
-`eventId`, `title`, `alt`, `desktopImageUrl`, `mobileImageUrl`로 준다. 화면은 이 배너를 고정 배너 사이에 넣고 누르면 이벤트 상세로 간다.
+`eventId`, `title`, `alt`, `desktopImageUrl`, `mobileImageUrl`로 준다. 화면은 이 배너를 고정 배너 앞에 넣고 누르면 이벤트 상세로 간다.
 
 이미지는 대표 이미지와 PC(3.2:1)·모바일(4:3) 배너 세 자리다. 배너는 이미지 안에 글자가 있어 브라우저가 줄이지 않고 원본을
 `event-images/uploads`로 올릴 자리를 받아 저장소에 바로 올린다. 형식은 `image/jpeg`·`image/png`·`image/webp`, 크기는 5MB까지이며 그 밖은

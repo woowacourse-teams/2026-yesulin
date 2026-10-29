@@ -24,7 +24,7 @@ function subscribeVisibility(onChange: () => void) {
 }
 
 /**
- * 배너별 링크와 기존 공고 알림 집계를 유지하는 방향성 슬라이드. 고정 배너 사이에 노출 중인 이벤트 배너를 넣는다.
+ * 배너별 링크와 기존 공고 알림 집계를 유지하는 방향성 슬라이드. 고정 배너 앞에 노출 중인 이벤트 배너를 넣는다.
  * 서버가 이벤트 배너를 읽지 않았으면(null) 브라우저에서 읽고, 실패하면 고정 배너만 보인다.
  */
 export function AuditionAlertBanner({ initialEventBanners = null }: { readonly initialEventBanners?: readonly EventBanner[] | null }) {

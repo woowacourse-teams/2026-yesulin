@@ -42,10 +42,9 @@ export const HOME_BANNERS: readonly HomeBanner[] = [
 const EVENT_DESKTOP_SIZE = { width: 2160, height: 675 } as const;
 const EVENT_MOBILE_SIZE = { width: 1440, height: 1080 } as const;
 
-/** 오디션 알림 다음, 배우 정보 공유방 앞에 노출 중인 이벤트 배너를 서버가 준 순서대로 넣는다. */
+/** 노출 중인 이벤트 배너를 서버가 준 순서대로 고정 배너 앞에 넣는다. */
 export function homeBanners(events: readonly EventBanner[]): readonly HomeBanner[] {
-  const [first, ...rest] = HOME_BANNERS;
-  return [first, ...events.map(eventHomeBanner), ...rest];
+  return [...events.map(eventHomeBanner), ...HOME_BANNERS];
 }
 
 function eventHomeBanner(event: EventBanner): HomeBanner {
