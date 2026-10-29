@@ -90,10 +90,21 @@ PR CI의 `deploy/scripts/check_flyway_contract_changes.sh`는 새 마이그레�
 사유를 적어 통과시킨다. 길이만 늘리는 `modify ... not null`처럼 안전한 변경도 같은 방식으로 표시한다. 2026-10-21에 #328의 컬럼 삭제
 마이그레이션 때문에 직전 버전(#327)으로의 롤백이 시작 단계에서 실패했다([검증 기록](../../../design/zero-downtime-deployment-record.md)).
 
+테스트는 H2로 마이그레이션을 실행하므로 MySQL 고유 제한은 잡지 못한다. 특히 InnoDB 한 행의 VARCHAR 최대 바이트 합은
+65,535를 넘을 수 없고 utf8mb4는 글자당 4바이트로 계산한다. 긴 글은 `VARCHAR(수천)` 대신 `TEXT`로 둔다. MySQL DDL은 문장마다
+확정되므로 여러 문장 중 하나가 실패하면 앞 문장만 적용된 채 Flyway에 실패 기록이 남고, 이후 모든 배포가 시작 단계에서 멈춘다.
+이때는 고친 마이그레이션을 dev에 먼저 머지하고 대기 중인 배포가 없을 때 반쯤 적용된 변경과 `flyway_schema_history`의 실패 행을
+지운 뒤 다시 배포한다(2026-10-28 사례: [트러블슈팅 기록](../../../design/deploy-troubleshooting-record.md)).
+
 PROD는 앱 2대(ASG 2-2)이고 배포 그룹 `yesulin-backend-prod`는 로드 밸런서 연동을 켠 `CodeDeployDefault.OneAtATime`이다.
 CodeDeploy가 한 대를 대상 그룹에서 빼고(드레이닝 60초) 배포·검증한 뒤 다시 넣고, 다음 대로 넘어간다. 그동안 다른 한 대가
 요청을 받으므로 배포 중 끊기지 않는다. 한 대만 있을 때는 이 첫 단계에서 유일한 서버가 빠져 배포 시간 내내 503이 난다.
 배포가 실패하면 그 서버에서 멈추고 마지막 성공 리비전으로 자동 롤백한다.
+
+앱 서버 루트 디스크가 차면 `DownloadBundle`에서 `No space left on device`로 실패하고, 그 서버에는 Session Manager도 붙지 않는다.
+EC2를 직접 종료할 수 없으므로 남길 서버에 축소 보호를 걸고 ASG 원하는 용량을 한 대 늘렸다가 되돌려 그 서버만 교체한 뒤 보호를
+해제한다. 실패 배포의 자동 롤백이 응답 없는 서버에 걸려 "진행 중"으로 남으면 배포 그룹이 잠기므로, 재시도 전에 그 롤백을
+"배포 중지"한다(2026-10-29 사례: [트러블슈팅 기록](../../../design/deploy-troubleshooting-record.md)).
 
 배포는 성공했지만 동작이 잘못돼 되돌릴 때는 CodeDeploy로 직전 리비전을 다시 배포한다.
 
