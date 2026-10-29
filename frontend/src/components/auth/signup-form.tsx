@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { PrimaryButton } from "@/components/ui/controls";
 import { useToast } from "@/components/auditions/toast";
 import { signupProducer } from "@/features/auth/api";
+import { producerAuditionPostRoutes } from "@/features/audition-posts/types";
 import { login as requestLogin } from "@/features/auth/session-api";
 import { AuthInput, PasswordInput } from "./auth-fields";
 import { ProducerSignupFields } from "./producer-signup-fields";
@@ -83,7 +84,7 @@ export function SignupForm() {
         producerStatus: serverSession.status,
       });
       toast("기획사/제작사 가입과 로그인이 완료되었습니다.", { type: "success" });
-      router.replace("/producers/shows");
+      router.replace(producerAuditionPostRoutes.list);
     } catch (cause) {
       console.error("[회원가입 실패]", cause);
       toast(cause instanceof Error ? cause.message : "기획사/제작사 계정을 만들지 못했습니다.", { type: "error" });

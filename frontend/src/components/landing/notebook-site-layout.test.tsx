@@ -25,10 +25,11 @@ describe("공개 헤더의 계정 이동", () => {
     expect(html).not.toContain('href="/producer-service"');
   });
 
-  it("공연사 세션은 기존 공연 관리로 연결한다", () => {
+  it("기획사·제작사 세션은 내 오디션 공고로 연결한다", () => {
     auth.session = { credential: "fixture", role: "PRODUCER", displayName: "공연사" };
     const html = renderToStaticMarkup(<NotebookHeader />);
-    expect(html).toContain('href="/producers/shows"');
+    expect(html).toContain('href="/producers/audition-posts"');
+    expect(html).toContain("내 오디션 공고");
     expect(html).not.toContain('href="/applicants/submissions"');
     expect(html).toContain("로그아웃");
     expect(html).not.toContain('href="/producer-service"');

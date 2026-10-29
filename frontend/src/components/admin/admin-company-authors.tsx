@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { FieldInput, FieldSelect } from "@/components/ui/controls";
 import {
   AdminApiError,
@@ -13,6 +14,7 @@ import {
 } from "@/features/admin/api";
 import type { AdminCompany, AdminCompanyAuthor, AdminCompanyAuthorOverview } from "@/features/admin/types";
 import { AUDITION_POST_STATUS_LABELS } from "@/features/audition-posts/editing";
+import { adminAuditionPostRoutes } from "@/features/admin/audition-posts";
 import { AdminActionButton, AdminEmptyState } from "./admin-shell";
 
 /**
@@ -181,6 +183,9 @@ function AuthorsHeading() {
       <h2 id="company-authors" className="text-base font-semibold">OTR 작성자별 묶기</h2>
       <p className="mt-1 text-xs text-muted">
         같은 OTR 회원이 올린 공고는 한 공연사로 묶어요. 닉네임은 바뀔 수 있어 회원 번호로 묶고, 묶은 뒤 가져오는 공고도 자동으로 연결돼요.
+      </p>
+      <p className="mt-1 text-xs text-muted">
+        가입 회원이 로그인해서 공고를 관리하게 하려면 <Link href={adminAuditionPostRoutes.owners} className="font-semibold text-brand underline underline-offset-2">회원 연결</Link>에서 OTR 작성자와 가입 회원을 연결해 주세요.
       </p>
     </div>
   );

@@ -27,7 +27,7 @@ import { AdminActionButton, AdminActionLink, AdminEmptyState, AdminShell } from 
 type Phase = "loading" | "ready" | "failed" | "unauthorized";
 
 function producerLabel(producer: AdminProducer) {
-  return producer.companyName ? `${producer.companyName} · ${producer.email}` : producer.email;
+  return `${producer.companyName ?? "회사명 없음"} · ${producer.email} · 회원 #${producer.memberId}${producer.status === "PENDING" ? " (이메일 인증 대기)" : ""}`;
 }
 
 /**
@@ -41,16 +41,18 @@ export function AdminAuditionPostOwners() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
-  const [producers, setProducers] = useState<readonly AdminProducer[] | null>(null);
+  const [producers, setProducers] = useState<readonly AdminProducer[]>([]);
   const [busy, setBusy] = useState(false);
   const [fill, setFill] = useState<AdminAuditionPostAuthorFill | null>(null);
 
   useEffect(() => {
     let active = true;
-    fetchAuditionPostOwners()
-      .then((next) => {
+    Promise.all([fetchAuditionPostOwners(), fetchProducers()])
+      .then(([next, members]) => {
         if (!active) return;
         setOverview(next);
+        setProducers(members);
+        setError(null);
         setPhase("ready");
       })
       .catch((cause: unknown) => {
@@ -59,7 +61,7 @@ export function AdminAuditionPostOwners() {
           setPhase("unauthorized");
           return;
         }
-        setError(cause instanceof Error ? cause.message : "업체별 공고를 불러오지 못했습니다.");
+        setError(cause instanceof Error ? cause.message : "회원 연결 정보를 불러오지 못했습니다.");
         setPhase("failed");
       });
     return () => { active = false; };
@@ -74,30 +76,23 @@ export function AdminAuditionPostOwners() {
     try {
       setNotice(await action());
       reload();
+      return true;
     } catch (cause) {
       if (cause instanceof AdminApiError && (cause.status === 401 || cause.status === 403)) {
         setPhase("unauthorized");
-        return;
+        return false;
       }
       setError(cause instanceof Error ? cause.message : fallback);
+      return false;
     } finally {
       setBusy(false);
-    }
-  };
-
-  const loadProducers = async () => {
-    if (producers) return;
-    try {
-      setProducers(await fetchProducers());
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "기획사 목록을 불러오지 못했어요.");
     }
   };
 
   const link = (author: AdminUnlinkedAuthor, ownerId: number) => run(async () => {
     if (!author.sourceAuthorId) return null;
     const result = await linkAuditionPostAuthor(author.source, author.sourceAuthorId, ownerId);
-    return `${author.authorName}(#${result.sourceAuthorId})을(를) ${result.ownerName}에 연결했어요. 기존 공고 ${result.connectedPostCount}건을 함께 연결했어요.`;
+    return `OTR ${author.authorName}(#${result.sourceAuthorId}) → ${result.ownerName} 회원에게 연결했어요. 기존 공고 ${result.connectedPostCount}건을 연결했고, 이후 가져오는 공고도 이 회원의 ‘내 오디션 공고’에 표시돼요.`;
   }, "원문 작성자를 연결하지 못했어요.");
 
   const unlink = (owner: AdminAuditionPostOwner, authorLink: AdminAuditionPostAuthorLink) => run(async () => {
@@ -117,47 +112,37 @@ export function AdminAuditionPostOwners() {
     <AdminShell
       current="posts"
       title="공고 관리"
-      description="기획사별로 공고를 보고, OTR 작성자를 기획사에 자동 연결해요. 연결한 공고는 기획사 이름으로 보이고 기획사가 직접 고칠 수 있어요."
+      description="OTR 작성자를 예술in에 가입한 기획사·제작사 회원에게 연결해요. 연결한 회원은 로그인 후 자기 공고를 확인하고 수정할 수 있어요."
       actions={<AdminActionButton onClick={reload}>새로고침</AdminActionButton>}
     >
       <AdminAuditionPostTabs current="owners" />
+      <section aria-label="회원 연결 안내" className="rounded-card border border-brand-line bg-brand-soft p-4 text-sm leading-6 sm:px-5">
+        <h2 className="font-semibold">OTR 작성자 → 가입 회원 → 내 오디션 공고</h2>
+        <p className="mt-1 text-muted-strong">OTR 작성자 이름·회원 번호와 가입 회원의 회사명·이메일을 확인한 뒤 연결해 주세요. 다른 회원에게 연결되지 않은 기존 공고와 이후 가져오는 공고가 함께 연결돼요.</p>
+        <p className="mt-1 text-muted-strong">공연사 정보는 공고에 표시할 공개 프로필이에요. 로그인 후 보이는 공고 목록은 이곳에서 가입 회원에게 연결해 주세요.</p>
+      </section>
       {notice ? <p role="status" className="rounded-control border border-pass/30 bg-pass-bg px-4 py-3 text-sm text-pass">{notice}</p> : null}
       {error ? (
         <p role="alert" className="rounded-control border border-fail/30 bg-fail-bg px-4 py-3 text-sm text-fail">
           {error} {phase === "failed" ? <button type="button" onClick={reload} className="font-semibold underline">다시 시도</button> : null}
         </p>
       ) : null}
-      {phase === "loading" ? <p role="status" className="text-sm text-muted">업체별 공고를 불러오는 중이에요.</p> : null}
+      {phase === "loading" ? <p role="status" className="text-sm text-muted">회원 연결 정보를 불러오는 중이에요.</p> : null}
 
       {phase === "ready" && overview ? (
         <>
-          <section aria-labelledby="owner-list-title" className="flex flex-col gap-3">
-            <h2 id="owner-list-title" className="text-base font-semibold">
-              기획사 <span className="num ml-1 text-sm font-normal text-muted">{overview.owners.length}곳</span>
-            </h2>
-            {overview.owners.length === 0 ? (
-              <AdminEmptyState title="기획사에 연결된 공고가 없어요" description="아래에서 OTR 작성자를 기획사에 연결하거나, 공고 수정 화면에서 기획사를 연결해 주세요." />
-            ) : (
-              <ul className="flex flex-col gap-3">
-                {overview.owners.map((owner) => (
-                  <OwnerRow key={owner.ownerId} owner={owner} busy={busy} onUnlink={(authorLink) => void unlink(owner, authorLink)} />
-                ))}
-              </ul>
-            )}
-          </section>
-
           <section aria-labelledby="unlinked-title" className="flex flex-col gap-3">
             <div>
               <h2 id="unlinked-title" className="text-base font-semibold">
-                연결 안 된 OTR 작성자 <span className="num ml-1 text-sm font-normal text-muted">{overview.unlinkedAuthors.length}명</span>
+                회원에게 연결할 OTR 작성자 <span className="num ml-1 text-sm font-normal text-muted">{overview.unlinkedAuthors.length}명</span>
               </h2>
-              <p className="mt-1 text-sm text-muted">공고가 많은 순서예요. 기획사에 연결하면 이 작성자의 기존 공고와 앞으로 가져올 공고가 함께 연결돼요.</p>
+              <p className="mt-1 text-sm text-muted">공고가 많은 순서예요. 가입 회원이 없다면 먼저 기획사·제작사 회원가입을 안내해 주세요.</p>
             </div>
             {overview.missingAuthorIdCount > 0 || fill ? (
               <FillPanel missing={overview.missingAuthorIdCount} fill={fill} busy={busy} onRead={(beforeId) => void readAuthors(beforeId)} />
             ) : null}
             {overview.unlinkedAuthors.length === 0 ? (
-              <AdminEmptyState title="연결 안 된 OTR 작성자가 없어요" description="OTR에서 가져온 공고가 모두 기획사에 연결돼 있어요." />
+              <AdminEmptyState title="현재 회원에게 연결할 OTR 작성자가 없어요" />
             ) : (
               <ul className="flex flex-col gap-2">
                 {overview.unlinkedAuthors.map((author) => (
@@ -166,9 +151,22 @@ export function AdminAuditionPostOwners() {
                     author={author}
                     producers={producers}
                     busy={busy}
-                    onOpen={() => void loadProducers()}
                     onLink={(ownerId) => link(author, ownerId)}
                   />
+                ))}
+              </ul>
+            )}
+          </section>
+          <section aria-labelledby="owner-list-title" className="flex flex-col gap-3">
+            <h2 id="owner-list-title" className="text-base font-semibold">
+              공고가 연결된 가입 회원 <span className="num ml-1 text-sm font-normal text-muted">{overview.owners.length}명</span>
+            </h2>
+            {overview.owners.length === 0 ? (
+              <AdminEmptyState title="아직 공고가 연결된 회원이 없어요" description="위에서 OTR 작성자와 가입 회원을 연결해 주세요." />
+            ) : (
+              <ul className="flex flex-col gap-3">
+                {overview.owners.map((owner) => (
+                  <OwnerRow key={owner.ownerId} owner={owner} producer={producers.find((member) => member.memberId === owner.ownerId)} busy={busy} onUnlink={(authorLink) => void unlink(owner, authorLink)} />
                 ))}
               </ul>
             )}
@@ -179,15 +177,19 @@ export function AdminAuditionPostOwners() {
   );
 }
 
-function OwnerRow({ owner, busy, onUnlink }: {
+function OwnerRow({ owner, producer, busy, onUnlink }: {
   readonly owner: AdminAuditionPostOwner;
+  readonly producer: AdminProducer | undefined;
   readonly busy: boolean;
   readonly onUnlink: (authorLink: AdminAuditionPostAuthorLink) => void;
 }) {
   return (
     <li className="rounded-card border border-border bg-card p-4 sm:px-5">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <h3 className="min-w-0 break-words text-base font-semibold">{owner.companyName ?? `기획사 회원 ${owner.ownerId}`}</h3>
+        <div className="min-w-0 break-words">
+          <h3 className="text-base font-semibold">{owner.companyName ?? `가입 회원 #${owner.ownerId}`}</h3>
+          <p className="mt-1 text-xs text-muted-strong">{producer ? `${producer.email} · ` : ""}예술in 회원 #{owner.ownerId}{producer?.status === "PENDING" ? " · 이메일 인증 후 공고 확인 가능" : ""}</p>
+        </div>
         <span className="text-sm text-muted-strong">
           공개 <span className="num font-semibold">{owner.publishedCount}</span> · 검토 전 <span className="num font-semibold">{owner.pendingCount}</span> · 숨김 <span className="num font-semibold">{owner.hiddenCount}</span>
         </span>
@@ -218,12 +220,11 @@ function OwnerRow({ owner, busy, onUnlink }: {
   );
 }
 
-function UnlinkedAuthorRow({ author, producers, busy, onOpen, onLink }: {
+function UnlinkedAuthorRow({ author, producers, busy, onLink }: {
   readonly author: AdminUnlinkedAuthor;
-  readonly producers: readonly AdminProducer[] | null;
+  readonly producers: readonly AdminProducer[];
   readonly busy: boolean;
-  readonly onOpen: () => void;
-  readonly onLink: (ownerId: number) => Promise<void>;
+  readonly onLink: (ownerId: number) => Promise<boolean>;
 }) {
   const selectId = useId();
   const [choosing, setChoosing] = useState(false);
@@ -236,17 +237,18 @@ function UnlinkedAuthorRow({ author, producers, busy, onOpen, onLink }: {
       {!author.sourceAuthorId ? (
         <span className="ml-auto text-xs text-muted">번호를 읽어야 연결할 수 있어요</span>
       ) : choosing ? (
-        <span className="flex w-full flex-wrap items-center gap-2 sm:ml-auto sm:w-auto">
-          <label htmlFor={selectId} className="sr-only">{author.authorName}을 연결할 기획사</label>
-          <FieldSelect id={selectId} value={selected} disabled={busy || !producers} onChange={(event) => setSelected(event.target.value)} className="min-w-0 flex-1 sm:w-72 sm:flex-none">
-            <option value="" disabled>{producers ? "기획사를 골라 주세요" : "불러오는 중…"}</option>
-            {producers?.map((producer) => <option key={producer.memberId} value={producer.memberId}>{producerLabel(producer)}</option>)}
+        <div className="flex w-full flex-wrap items-center gap-2 sm:ml-auto sm:w-auto">
+          <label htmlFor={selectId} className="w-full font-medium">{author.authorName}의 공고를 관리할 가입 회원</label>
+          <FieldSelect id={selectId} value={selected} disabled={busy || producers.length === 0} onChange={(event) => setSelected(event.target.value)} className="w-full min-w-0 sm:w-96">
+            <option value="" disabled>{producers.length > 0 ? "회사명·이메일을 확인하고 회원을 선택해 주세요" : "가입한 기획사·제작사 회원이 없어요"}</option>
+            {producers.map((producer) => <option key={producer.memberId} value={producer.memberId}>{producerLabel(producer)}</option>)}
           </FieldSelect>
-          <AdminActionButton tone="primary" disabled={busy || !selected} onClick={() => void onLink(Number(selected)).then(() => setChoosing(false))}>연결</AdminActionButton>
+          <AdminActionButton tone="primary" disabled={busy || !selected} onClick={() => void onLink(Number(selected)).then((linked) => { if (linked) setChoosing(false); })}>이 회원에게 공고 연결</AdminActionButton>
           <AdminActionButton disabled={busy} onClick={() => setChoosing(false)}>취소</AdminActionButton>
-        </span>
+          {producers.find((producer) => producer.memberId === Number(selected))?.status === "PENDING" ? <p className="w-full text-xs text-warn">이 회원은 이메일 인증 대기 중이에요. 인증을 마치면 연결된 공고를 확인할 수 있어요.</p> : null}
+        </div>
       ) : (
-        <AdminActionButton disabled={busy} onClick={() => { setChoosing(true); onOpen(); }} className="ml-auto">기획사에 연결</AdminActionButton>
+        <AdminActionButton disabled={busy} onClick={() => setChoosing(true)} className="ml-auto">가입 회원 선택</AdminActionButton>
       )}
     </li>
   );

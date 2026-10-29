@@ -12,7 +12,7 @@ export function ProducerAuditionPostFrame({ title, description, children }: {
     <div className="mx-auto flex w-full max-w-[1040px] flex-col gap-6 px-4 py-6 break-keep lg:px-8 lg:py-8">
       <header className="flex flex-wrap items-start gap-4">
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-brand">공고 게시</p>
+          <p className="text-sm font-semibold text-brand">내 오디션 공고</p>
           <h1 className="mt-1 text-2xl font-bold tracking-[-0.025em] md:text-[28px]">{title}</h1>
           <p className="mt-2 text-sm text-muted-strong">{description}</p>
         </div>

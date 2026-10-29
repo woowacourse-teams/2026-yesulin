@@ -52,7 +52,7 @@ export function ApplicantReview({
       <Breadcrumb
         items={[
           source.kind === "OTR"
-            ? { label: "오디션 공고 관리", href: "/producers/otr-auditions" }
+            ? { label: "지원서 접수·심사", href: "/producers/otr-auditions" }
             : { label: "전체 공연", href: auditionRoutes.performances },
           ...(source.kind === "OTR" ? [] : [{
             label: board?.performance.title ?? "공연",

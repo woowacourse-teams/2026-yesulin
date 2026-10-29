@@ -18,7 +18,7 @@ export function OtrAuditionTreeNav({ onNavigate }: { readonly onNavigate?: () =>
         <span aria-hidden="true" className={`inline-block border-y-4 border-l-[6px] border-y-transparent border-l-current transition-transform ${open ? "rotate-90" : ""}`} />
       </button>
       <Link href={otrAuditionRoutes.list} onClick={onNavigate} aria-current={pathname === otrAuditionRoutes.list ? "page" : undefined} className={`flex min-h-11 flex-1 items-center rounded-control py-2 pl-0.5 pr-1.5 text-left text-base font-bold transition-colors hover:bg-sidebar-hover lg:min-h-0 lg:text-dense ${isActive ? "text-brand-line" : "text-sidebar-muted hover:text-white"}`}>
-        오디션 공고 관리
+        지원서 접수·심사
       </Link>
       <Link href={otrAuditionRoutes.create} onClick={onNavigate} aria-label="오디션 공고 만들기" title="오디션 공고 만들기" className="grid h-11 w-11 shrink-0 place-items-center rounded-control text-lg font-semibold text-sidebar-muted hover:bg-sidebar-hover hover:text-white lg:h-[30px] lg:w-[30px]">+</Link>
     </div>
