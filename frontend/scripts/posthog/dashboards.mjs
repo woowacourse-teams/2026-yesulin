@@ -23,7 +23,28 @@ export function dashboardDefinitions(environment = "production") {
       name: `${environment === "production" ? "01 예술in 한눈에 보기" : "개발 테스트 — 성과 보고용 아님 · 핵심"}`,
       description: descriptions + " 핵심 지표 = 주간 공고 상세 조회 사용자 수. 이번 주 수치는 진행 중이므로 지난 온전한 주와 단순 비교하지 마세요.",
       insights: [
-        trend("이번 주 공고를 본 사람은 몇 명인가요?", "audition_post_viewed", "공고 상세가 정상적으로 표시된 사용자. 목록 방문 제외, 체류 시간 조건 없음. 주간 고유 사용자 수(WAU), 한 사람이 여러 공고를 봐도 주당 한 명."),
+        { name: "이번 주 공고를 본 사람은 몇 명인가요?",
+          description: "한국 시간 월~일, 공고 상세를 본 고유 사용자 수. 운영만 포함하며 내부·테스트 기록은 제외합니다. 조회 횟수가 아닌 사람 수입니다. 수집된 첫 주부터 마지막 주까지 표시하며 이번 주는 진행 중입니다. 2026-10-29 수집 시작.",
+          // 익명 사용자 상세 창의 누락 인원 중복 합산을 피하고 동일한 WAU를 집계 그래프로 표시한다.
+          query: {
+            kind: "DataVisualizationNode",
+            source: { kind: "HogQLQuery", filters: { dateRange: { date_from: "-12w" } }, query: `SELECT
+  ${week} AS \`주 시작일\`,
+  uniqExact(person_id) AS \`공고 조회자\`
+FROM events
+WHERE event = 'audition_post_viewed'
+  AND ${base}
+  AND {filters}
+GROUP BY \`주 시작일\`
+ORDER BY \`주 시작일\` WITH FILL STEP INTERVAL 1 WEEK` },
+            display: "ActionsLineGraph",
+            chartSettings: {
+              xAxis: { column: "주 시작일" },
+              yAxis: [{ column: "공고 조회자", settings: { formatting: { style: "number", decimalPlaces: 0, suffix: "명" } } }],
+              showLegend: false, showValuesOnSeries: true, leftYAxisSettings: { startAtZero: true },
+            },
+          },
+        },
         table("공고를 봤던 사람들이 1주·4주 뒤 다시 오나요?", `WITH activity AS (
           SELECT DISTINCT person_id, ${week} AS week FROM events WHERE event = 'audition_post_viewed' AND ${base}
         ), cohorts AS (
