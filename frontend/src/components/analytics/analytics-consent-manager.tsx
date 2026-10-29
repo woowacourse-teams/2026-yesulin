@@ -12,23 +12,21 @@ import {
   clearGoogleAnalyticsCookies,
   isAnalyticsEnabled,
   readAnalyticsConsent,
-  resetLegacyAnalyticsRefusal,
   writeAnalyticsConsent,
 } from "@/features/analytics/consent";
 import type { AnalyticsConsent, AnalyticsConsentState } from "@/features/analytics/consent";
 import { clearLoginAnalyticsState, trackLoginReturnIfPending } from "@/features/analytics/events";
 import { setAnalyticsSettingsOpener } from "@/features/analytics/settings-entry";
+import { resetProductAnalytics, startProductAnalytics } from "@/features/analytics/product-analytics";
 
 export function AnalyticsConsentManager({ gtmId }: { readonly gtmId?: string }) {
   const pathname = usePathname();
   const titleId = useId();
   const [consent, setConsent] = useState<AnalyticsConsentState>();
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [refusalResetNotice, setRefusalResetNotice] = useState(false);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
-      setRefusalResetNotice(resetLegacyAnalyticsRefusal());
       setConsent(readAnalyticsConsent());
     });
     return () => window.cancelAnimationFrame(frame);
@@ -37,6 +35,13 @@ export function AnalyticsConsentManager({ gtmId }: { readonly gtmId?: string }) 
   useEffect(() => {
     trackLoginReturnIfPending(pathname);
   }, [pathname]);
+
+  useEffect(() => {
+    if (consent === undefined || !isAnalyticsEnabled(consent)) return;
+    void startProductAnalytics().then(ready => {
+      if (ready) window.dispatchEvent(new Event(ANALYTICS_READY_EVENT));
+    });
+  }, [consent]);
 
   useEffect(() => {
     if (!gtmId || consent === undefined || !isAnalyticsEnabled(consent)) return;
@@ -82,6 +87,7 @@ export function AnalyticsConsentManager({ gtmId }: { readonly gtmId?: string }) 
       if (event.key !== ANALYTICS_CONSENT_STORAGE_KEY) return;
       const next = readAnalyticsConsent();
       if (consent !== undefined && isAnalyticsEnabled(consent) && !isAnalyticsEnabled(next)) {
+        resetProductAnalytics();
         clearLoginAnalyticsState();
         clearGoogleAnalyticsCookies();
         window.location.reload();
@@ -101,6 +107,7 @@ export function AnalyticsConsentManager({ gtmId }: { readonly gtmId?: string }) 
     setConsent(readAnalyticsConsent());
     setSettingsOpen(false);
     if (!revoking) return;
+    resetProductAnalytics();
     clearLoginAnalyticsState();
     clearGoogleAnalyticsCookies();
     if (saved) {
@@ -114,13 +121,6 @@ export function AnalyticsConsentManager({ gtmId }: { readonly gtmId?: string }) 
   const enabled = isAnalyticsEnabled(consent);
 
   return <>
-    {refusalResetNotice && enabled ? <RefusalResetNotice
-      onKeep={() => setRefusalResetNotice(false)}
-      onTurnOff={() => {
-        setRefusalResetNotice(false);
-        choose("denied");
-      }}
-    /> : null}
     <ModalShell
       open={settingsOpen}
       onClose={() => setSettingsOpen(false)}
@@ -150,30 +150,16 @@ const pushGoogleConsent = function () {
   window.dataLayer?.push(arguments);
 } as (...command: unknown[]) => void;
 
-/**
- * 1.0 배너에서 거부했던 이용자에게 한 번만 띄운다. 화면을 가리지 않게 하단에 작게 두고,
- * 끄기 버튼은 확인 버튼과 같은 크기로 보여 바로 다시 거부할 수 있게 한다.
- */
-function RefusalResetNotice({ onKeep, onTurnOff }: { readonly onKeep: () => void; readonly onTurnOff: () => void }) {
-  return <section aria-labelledby="analytics-reset-title" className="fixed left-[max(12px,env(safe-area-inset-left))] right-[max(12px,env(safe-area-inset-right))] bottom-[max(12px,env(safe-area-inset-bottom))] z-70 mx-auto max-w-md rounded-card border border-border bg-card p-4 shadow-[var(--shadow-modal)] md:left-auto md:right-6 md:mx-0 md:w-[400px]">
-    <h2 id="analytics-reset-title" className="text-sm font-bold text-foreground">방문 분석 방식이 바뀌었어요</h2>
-    <p className="mt-1.5 text-sm leading-6 text-muted-strong">처리방침 개정으로 이전에 거부하신 설정도 지금은 켜져 있어요. 공고·공연 화면을 개선하는 데 이동 흐름만 쓰고, 이름·연락처·지원서 내용은 보내지 않아요. <Link href="/privacy#analytics" className="font-medium text-brand hover:underline">자세히</Link></p>
-    <div className="mt-3 grid grid-cols-2 gap-2">
-      <SecondaryButton onClick={onTurnOff}>분석 끄기</SecondaryButton>
-      <PrimaryButton onClick={onKeep}>확인</PrimaryButton>
-    </div>
-  </section>;
-}
-
 function ConsentDetails({ enabled, googleAnalyticsEnabled }: { readonly enabled: boolean; readonly googleAnalyticsEnabled: boolean }) {
   return <div className="space-y-4 px-5 py-6 text-sm leading-6 text-muted-strong md:px-6">
     <p className="rounded-control border border-brand-line bg-brand-soft px-4 py-3"><strong className="block text-foreground">현재 선택</strong>{enabled ? "방문 분석이 켜져 있습니다." : "방문 분석을 껐습니다."}</p>
     <dl className="grid grid-cols-[92px_1fr] gap-x-3 gap-y-2">
-      <dt className="font-semibold text-foreground">도구</dt><dd>예술in 링크 방문 집계{googleAnalyticsEnabled ? " · Google Analytics 4 · Google Tag Manager" : ""}</dd>
-      <dt className="font-semibold text-foreground">목적</dt><dd>공고 알림 링크의 방문 수 확인{googleAnalyticsEnabled ? ", 페이지 이용과 지원 단계별 이탈 분석" : ""}</dd>
+      <dt className="font-semibold text-foreground">도구</dt><dd>예술in 링크 방문 집계{googleAnalyticsEnabled ? " · Google Analytics 4 · Google Tag Manager" : ""}{process.env.NEXT_PUBLIC_POSTHOG_KEY ? " · PostHog" : ""}</dd>
+      <dt className="font-semibold text-foreground">목적</dt><dd>공고 이용·재방문, 예매·PDF·심사 기능의 이용 흐름과 개선 효과 확인</dd>
+      {process.env.NEXT_PUBLIC_POSTHOG_KEY && <><dt className="font-semibold text-foreground">PostHog</dt><dd>방문·가명 계정 식별자와 이용 행동을 미국 리전에 전송합니다. <Link href="/privacy/analytics" className="text-brand underline">수집 항목과 거부 방법</Link></dd></>}
       <dt className="font-semibold text-foreground">수집 제외</dt><dd>이름, 이메일, 전화번호, 지원서 답변, 사진·영상 URL</dd>
-      <dt className="font-semibold text-foreground">브라우저 저장</dt><dd>공고별 링크 방문 집계 여부{googleAnalyticsEnabled ? ", _ga 계열 쿠키(Google 기본 설정 기준 최대 2년)" : ""}</dd>
+      <dt className="font-semibold text-foreground">브라우저 저장</dt><dd>공고별 링크 방문 집계 여부{googleAnalyticsEnabled ? ", _ga 계열 쿠키(Google 기본 설정 기준 최대 2년)" : ""}{process.env.NEXT_PUBLIC_POSTHOG_KEY ? ", PostHog 방문 식별자(로컬 저장소)" : ""}</dd>
     </dl>
-    <p className="text-xs leading-5 text-muted">끄면 링크 방문을 전송하지 않아요. Google 분석이 연결된 환경에서는 GTM을 불러오지 않고 현재 브라우저의 Google Analytics 쿠키도 삭제해요.</p>
+    <p className="text-xs leading-5 text-muted">끄면 링크 방문과 PostHog 분석 전송을 멈추고 PostHog 방문 식별자를 초기화해요. Google 분석이 연결된 환경에서는 GTM을 불러오지 않고 현재 브라우저의 Google Analytics 쿠키도 삭제해요. PDF 원문·사진·연락처·심사 메모는 분석 도구에 보내지 않아요.</p>
   </div>;
 }

@@ -1,3 +1,4 @@
+import { trackPdfStep, registerPdfReviewJob } from "@/features/analytics/pdf-analytics";
 import { useEffect, useRef, useState } from "react";
 import { completePdfUpload, PdfExtractionApiError, putPdf } from "../pdf-extractions/api";
 import type { PreparedPdfUpload } from "../pdf-extractions/types";
@@ -93,6 +94,7 @@ export function useReviewUploads({ onUploaded, onUnauthorized }: Options) {
     async function prepare(source: File) {
       const prepared = await preparePdfReviewUpload(row.reviewId, source);
       pendingJobId = prepared.jobId;
+      registerPdfReviewJob(prepared.jobId, String(row.reviewId));
       targets.current.set(row.id, prepared.upload);
       if (mounted.current) patch(row.id, { pendingJobId: prepared.jobId });
       return prepared;
@@ -122,12 +124,14 @@ export function useReviewUploads({ onUploaded, onUnauthorized }: Options) {
         }
         if (!uploaded) await completePdfUpload(jobId);
       }
+      void trackPdfStep({ workflow: "producer_pdf", review_id: String(row.reviewId), operation_id: pendingJobId, step: "upload", outcome: "success" }, true);
       targets.current.delete(row.id);
       if (mounted.current) setRows(current => current.filter(item => item.id !== row.id));
       if (mounted.current) setNotices(current => current.map(item => item.id === row.id ? { ...item, phase: "UPLOADED", error: "" } : item));
       if (mounted.current) callbacks.current.onUploaded();
       return true;
     } catch (cause) {
+      void trackPdfStep({ workflow: "producer_pdf", review_id: String(row.reviewId), operation_id: pendingJobId, step: "upload", outcome: "failure", error_code: "upload" });
       if (mounted.current && isUnauthorized(cause)) callbacks.current.onUnauthorized();
       if (mounted.current) patch(row.id, { phase: "ERROR", pendingJobId, error: failure(cause) });
       return false;

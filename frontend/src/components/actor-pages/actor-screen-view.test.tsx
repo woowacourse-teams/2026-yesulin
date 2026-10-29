@@ -15,7 +15,6 @@ beforeEach(() => {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   vi.stubEnv("NEXT_PUBLIC_GTM_ID", "GTM-TEST");
   window.localStorage.clear();
-  window.localStorage.setItem("yesulin:analytics-refusal-reset:v1", "done");
   document.getElementById(ANALYTICS_SCRIPT_ID)?.remove();
   window.dataLayer = [];
   container = document.createElement("div");
@@ -37,6 +36,18 @@ function initializeAnalytics() {
   document.head.append(script);
   window.dispatchEvent(new Event(ANALYTICS_READY_EVENT));
 }
+
+it("이전 거부 기록이 있으면 관리자를 초기화해도 수집을 다시 켜지 않는다", async () => {
+  window.localStorage.setItem(ANALYTICS_CONSENT_STORAGE_KEY, "denied");
+  let initialize: FrameRequestCallback | undefined;
+  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => { initialize = callback; return 1; });
+  vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  await act(async () => root.render(<><ActorScreenView screen="actor_list" /><AnalyticsConsentManager gtmId="GTM-TEST" /></>));
+  await act(async () => initialize!(0));
+  expect(window.localStorage.getItem(ANALYTICS_CONSENT_STORAGE_KEY)).toBe("denied");
+  expect(document.getElementById(ANALYTICS_SCRIPT_ID)).toBeNull();
+  expect(window.dataLayer).toEqual([]);
+});
 
 it("StrictMode와 분석 준비 신호가 반복돼도 한 번만 보내고 배우 이름·아이디·실제 주소는 보내지 않는다", async () => {
   window.history.replaceState(null, "", "/actors/@secret.actor?name=private");

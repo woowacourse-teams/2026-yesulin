@@ -2,7 +2,9 @@
 
 import { AuditionRequestError } from "@/features/auditions/api-client";
 import { ScreenError } from "@/components/auditions/screen-status";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { ANALYTICS_READY_EVENT } from "@/features/analytics/consent";
+import { trackPostView } from "@/features/analytics/product-analytics";
 import { getAuditionPost, recordAuditionPostView } from "@/features/audition-posts/api";
 import { deadlineBadge, formatDeadline, formatPostedDate, kstToday } from "@/features/audition-posts/format";
 import type { AuditionPost } from "@/features/audition-posts/types";
@@ -52,6 +54,15 @@ export function AuditionPostRoute({ postId, initialPost }: {
 }
 
 function AuditionPostDetail({ post }: { readonly post: AuditionPost }) {
+  const analyticsViewKey = useRef<string | null>(null);
+  useEffect(() => {
+    analyticsViewKey.current ??= crypto.randomUUID();
+    const key = `${post.id}:${analyticsViewKey.current}`;
+    const record = () => { void trackPostView(post.id, key, post.sourceUrl); };
+    record();
+    window.addEventListener(ANALYTICS_READY_EVENT, record);
+    return () => window.removeEventListener(ANALYTICS_READY_EVENT, record);
+  }, [post.id, post.sourceUrl]);
   const [today] = useState(() => kstToday());
   const [now] = useState(() => viewCountClock());
   const [viewCount, setViewCount] = useState(post.viewCount);
@@ -96,7 +107,7 @@ function AuditionPostDetail({ post }: { readonly post: AuditionPost }) {
           </dl>
         </header>
 
-        <AuditionPostContent post={post} />
+        <AuditionPostContent post={post} analyticsPostId={post.id} />
       </article>
       {post.company ? <CompanySummaryCard company={post.company} /> : <CompanyPendingCard authorName={post.authorName} />}
     </>

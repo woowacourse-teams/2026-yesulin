@@ -1,3 +1,4 @@
+import { trackProductEvent } from "@/features/analytics/product-analytics";
 import { producerRequest as request } from "@/features/auditions/api-client";
 import { safeUpload } from "@/features/files/safe-upload";
 import { reportUploadDiagnostic } from "@/features/files/upload-diagnostics";
@@ -36,8 +37,10 @@ export function fetchMyAuditionPost(postId: string): Promise<EditableAuditionPos
   return request<EditableAuditionPost>(postPath(postId));
 }
 
-export function publishAuditionPost(write: AuditionPostWrite): Promise<ProducerAuditionPost> {
-  return request<ProducerAuditionPost>(POSTS_PATH, { method: "POST", body: JSON.stringify(toBody(write)) });
+export async function publishAuditionPost(write: AuditionPostWrite): Promise<ProducerAuditionPost> {
+  const post = await request<ProducerAuditionPost>(POSTS_PATH, { method: "POST", body: JSON.stringify(toBody(write)) });
+  void trackProductEvent("producer_post_published", { post_id: String(post.id) });
+  return post;
 }
 
 export function updateMyAuditionPost(postId: string, write: AuditionPostWrite): Promise<ProducerAuditionPost> {

@@ -1,10 +1,14 @@
+"use client";
+
 import { SiteIcon } from "@/components/ui/site-icon";
+import { trackAttachment } from "@/features/analytics/product-analytics";
 import type { EditableAuditionPost } from "@/features/audition-posts/editing";
 import { formatFileSize } from "@/features/audition-posts/format";
 
 /** 공개 상세와 관리자 미리보기에서 같은 본문·첨부·태그를 읽는다. */
-export function AuditionPostContent({ post }: {
+export function AuditionPostContent({ post, analyticsPostId }: {
   readonly post: Pick<EditableAuditionPost, "bodyHtml" | "attachments" | "tags">;
+  readonly analyticsPostId?: number;
 }) {
   return (
     <>
@@ -12,11 +16,12 @@ export function AuditionPostContent({ post }: {
         <section aria-labelledby="post-attachments" className="border-t border-border-soft px-5 py-6 sm:px-8">
           <h2 id="post-attachments" className="text-base font-bold">첨부파일 <span className="num text-muted">{post.attachments.length}</span></h2>
           <ul className="mt-3 flex flex-col gap-2">
-            {post.attachments.map((attachment) => (
+            {post.attachments.map((attachment, index) => (
               <li key={attachment.url}>
                 <a
                   href={attachment.url}
                   download={attachment.name}
+                  onClick={() => { if (analyticsPostId !== undefined) void trackAttachment(analyticsPostId, index); }}
                   className="flex min-h-12 items-center gap-3 rounded-control border border-border bg-surface px-4 py-2 text-sm hover:border-brand-line hover:bg-brand-soft"
                 >
                   <SiteIcon name="download" size={18} className="text-muted" />

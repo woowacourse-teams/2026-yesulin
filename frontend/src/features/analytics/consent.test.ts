@@ -3,7 +3,6 @@ import {
   ANALYTICS_CONSENT_STORAGE_KEY,
   canSendAnalytics,
   readAnalyticsConsent,
-  resetLegacyAnalyticsRefusal,
   writeAnalyticsConsent,
 } from "./consent";
 
@@ -39,27 +38,25 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-describe("이전 동의 배너의 거부 기록", () => {
-  it("한 번만 지우고 안내가 필요하다고 알린다", () => {
+describe("기본 수집과 기존 선택 유지", () => {
+  it("이전 버전의 거부 기록도 여러 번 읽어도 유지한다", () => {
+    vi.stubEnv("NEXT_PUBLIC_GTM_ID", "GTM-TEST");
     stubStorage({ [ANALYTICS_CONSENT_STORAGE_KEY]: "denied" });
-
-    expect(resetLegacyAnalyticsRefusal()).toBe(true);
-    expect(readAnalyticsConsent()).toBeNull();
-  });
-
-  it("되돌린 뒤 다시 거부하면 그 선택을 유지한다", () => {
-    stubStorage({ [ANALYTICS_CONSENT_STORAGE_KEY]: "denied" });
-    resetLegacyAnalyticsRefusal();
-    window.localStorage.setItem(ANALYTICS_CONSENT_STORAGE_KEY, "denied");
-
-    expect(resetLegacyAnalyticsRefusal()).toBe(false);
     expect(readAnalyticsConsent()).toBe("denied");
+    expect(canSendAnalytics()).toBe(false);
+    expect(readAnalyticsConsent()).toBe("denied");
+    expect(window.localStorage.getItem(ANALYTICS_CONSENT_STORAGE_KEY)).toBe("denied");
   });
 
-  it("거부 기록이 없으면 안내하지 않는다", () => {
-    stubStorage({ [ANALYTICS_CONSENT_STORAGE_KEY]: "granted" });
+  it("선택한 적 없는 방문자는 기본으로 수집한다", () => {
+    vi.stubEnv("NEXT_PUBLIC_GTM_ID", "GTM-TEST");
+    stubStorage({});
+    expect(readAnalyticsConsent()).toBeNull();
+    expect(canSendAnalytics()).toBe(true);
+  });
 
-    expect(resetLegacyAnalyticsRefusal()).toBe(false);
+  it("직접 켠 선택을 유지한다", () => {
+    stubStorage({ [ANALYTICS_CONSENT_STORAGE_KEY]: "granted" });
     expect(readAnalyticsConsent()).toBe("granted");
   });
 });

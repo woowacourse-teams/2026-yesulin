@@ -12,6 +12,10 @@
 - `SENTRY_ORG`: `in-front`
 - `SENTRY_PROJECT`: `javascript-nextjs`
 
+PostHog 무료 프로젝트는 운영·개발이 공유하되 환경 표시·대시보드 필터와 식별자 비밀값을 분리한다. 환경 변수 목록, 내부 계정 제외,
+대시보드 생성과 배포 후 검증은 [PostHog 연결 안내](./posthog-setup.md)를 따른다.
+`POSTHOG_COLLECTION_ENABLED`는 기본 `false`이며 실제 프로젝트·처리방침 연결 전에는 수집하지 않는다.
+
 Preview(`dev.yesulin.art` 포함)는 Vercel이 넣는 `VERCEL_ENV`로 판별해 모든 응답에 `X-Robots-Tag: noindex`를 붙인다.
 robots.txt는 운영과 같이 수집을 허용해 로봇이 이 헤더를 읽게 한다. `VERCEL_ENV`가 없는 로컬 빌드에는 붙이지 않는다.
 
@@ -33,8 +37,8 @@ DEV `/admin`에 별도로 집계되며, 두 환경 모두 백엔드의 JSON 파�
 배포 후 Vercel 상태, 브라우저 오류, MSW 비활성, 실제 API 상태 코드와 미디어 URL을 확인한다. GTM을
 활성화한 Production에서는 Tag Assistant로 다음을 확인한다.
 
-- 분석 미선택·거부 상태에는 `googletagmanager.com`, `google-analytics.com` 요청이 없다.
-- 분석 동의 후 `GTM-PZXXR8RG`가 로드되고 GA4가 `G-JSQZT648EC`로 이벤트를 받는다.
+- 분석 거부 상태에는 `googletagmanager.com`, `google-analytics.com` 요청이 없다.
+- 기본 수집 또는 분석을 다시 켠 상태에서 `GTM-PZXXR8RG`가 로드되고 GA4가 `G-JSQZT648EC`로 이벤트를 받는다.
 - 동의 철회 후 페이지를 다시 불러오며 `_ga` 계열 쿠키와 추가 분석 요청이 없다.
 
 Sentry의 DSN은 브라우저에 공개되는 프로젝트 주소지만 `SENTRY_AUTH_TOKEN`은 비밀값이다. 토큰은 저장소나
