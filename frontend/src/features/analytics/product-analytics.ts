@@ -1,5 +1,6 @@
 "use client";
 
+import { clearAcquisition, observeAcquisition, rememberOpenchatAcquisition } from "./acquisition";
 import type { PostHog } from "posthog-js";
 import { isAnalyticsEnabled, readAnalyticsConsent } from "./consent";
 import {
@@ -18,6 +19,7 @@ const OPENCHAT_ENTRY = "yesulin:posthog:openchat-entry:v1";
 /** 주소 정리·OTR 리디렉션보다 먼저, 해당 공고에 한정한 출처를 잠시 보관한다. */
 export function rememberOpenchatEntry(kind: "post" | "otr", id: string) {
   if (!enabled()) return;
+  rememberOpenchatAcquisition();
   try { sessionStorage.setItem(OPENCHAT_ENTRY, JSON.stringify({ kind, id, at: Date.now() })); } catch { /* optional storage */ }
 }
 
@@ -41,6 +43,7 @@ function enabled() {
 
 /** 분석 거부·로그아웃 시 대기 중인 전송도 중단한다. */
 export function resetProductAnalytics() {
+  clearAcquisition();
   refreshProductContext();
   client?.reset(true);
   client?.opt_out_capturing();
@@ -57,6 +60,7 @@ export function refreshProductContext() {
 
 export async function startProductAnalytics() {
   if (!enabled()) return false;
+  observeAcquisition();
   if (starting) return starting;
   const version = generation;
   starting = (async () => {
@@ -114,7 +118,7 @@ export async function trackProductEvent(event: ProductEvent, properties: Product
     if (onceKey) pending.delete(onceKey);
     return false;
   }
-  const safe = safeProductProperties(properties);
+  const safe = safeProductProperties({ ...properties, acquisition_channel: observeAcquisition(), attribution_version: 1 });
   client.capture(event, {
     ...safe, environment: process.env.NEXT_PUBLIC_POSTHOG_ENV,
     internal: context.internal || isInternalBrowser(), actor: context.actor,

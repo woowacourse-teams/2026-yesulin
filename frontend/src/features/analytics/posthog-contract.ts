@@ -1,3 +1,5 @@
+import { ACQUISITION_CHANNELS, type AcquisitionChannel } from "./acquisition";
+
 /** PostHog에만 쓰는 계약. GA dataLayer에는 식별자를 전달하지 않는다. */
 export type ProductProperties = {
   post_id?: string;
@@ -9,6 +11,8 @@ export type ProductProperties = {
   attachment_kind?: "application_form" | "reference" | "unknown";
   has_application_form?: boolean;
   source?: "openchat" | "other";
+  acquisition_channel?: AcquisitionChannel;
+  attribution_version?: 1;
   workflow?: "actor_pdf" | "producer_pdf" | "standard" | "otr";
   step?: "upload" | "extract" | "apply" | "save";
   outcome?: "success" | "failure";
@@ -62,12 +66,15 @@ const PROPERTY_KEYS = new Set<keyof ProductProperties>([
   "has_application_form", "source", "workflow", "step", "outcome", "error_code", "duration_ms", "active_ms",
   "extraction_status", "ticket_count", "eligible", "round", "total_count", "completed_count", "missing_field_count",
   "capacity", "reserved_tickets", "cancelled_count", "reservation_count", "session_id",
+  "acquisition_channel", "attribution_version",
 ]);
 
 /** 실행 시에도 허용 키를 제한해 PDF 본문·URL·이름의 혼입을 방지한다. */
 export function safeProductProperties(properties: ProductProperties): ProductProperties {
   return Object.fromEntries(Object.entries(properties).filter(([key, value]) => {
     if (!PROPERTY_KEYS.has(key as keyof ProductProperties)) return false;
+    if (key === "acquisition_channel") return ACQUISITION_CHANNELS.includes(value as AcquisitionChannel);
+    if (key === "attribution_version") return value === 1;
     if (typeof value === "boolean") return true;
     if (typeof value === "number") return Number.isFinite(value) && value >= 0;
     if (typeof value !== "string" || value.length > 160) return false;
