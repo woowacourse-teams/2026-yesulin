@@ -28,6 +28,10 @@ DEV 공고 알림도 기본 공유 링크는 `https://yesulin.art`로 발급한�
 `totalClicks`·`links` 외에 `environment`, `available`, `truncated`, 한국 날짜 범위와 조회 시각을 표시한다.
 조회 실패·로그 없음은 0건으로 대체하지 않는다. MSW에는 화면 확인용 DEV 집계 fixture를 제공한다.
 
+오픈채팅방 관리의 `GET /api/v1/admin/openchat/visits`는 `page`와 선택한 게시일 범위의 `startDate`·`endDate`를 함께 보낸다.
+전체는 날짜를 생략한다. 서버가 누적 링크 방문 수순으로 페이지를 나누며 `totalVisits`는 선택한 범위의 전체 페이지 합계다.
+MSW도 한국 시간의 게시일 필터·정렬·합계를 동일하게 적용한다.
+
 - `/api/v1/sessions`, `/api/v1/auth/email-verifications`, `/api/v1/auth/password-resets`
 - `/api/v1/producers`, `/api/v1/producers/me`
 - `/api/v1/performances`, `/api/v1/performance-posters`
@@ -44,11 +48,19 @@ DEV 공고 알림도 기본 공유 링크는 `https://yesulin.art`로 발급한�
 - `/api/v1/timetables/**` (오디션 일정표. 관리·배우 열쇠를 `X-Timetable-Key` 헤더로 보낸다.)
 - `/api/v1/public/audition-posts/**` (메인·분야별 공고 목록·상세). 분야별 목록은 `category=뮤지컬` 또는 `category=연극`을
   보내며 서버가 분야를 적용한 뒤 페이지를 나눈다. `openCount`·`allCount`도 선택한 분야의 수다.
-  분류를 생략하면 기존 전체 분야 목록이며, 지원하지 않는 값은 `400 INVALID_REQUEST`다. MSW도 분야별 목록·개수를 응답한다.
+  분류를 생략하면 기존 전체 분야 목록이며, 지원하지 않는 값은 `400 INVALID_REQUEST`다.
+  최신순은 `sort`를 생략하고, 마감 임박순은 `sort=deadline`을 보낸다. 서버가 전체 결과를 정렬한 뒤 페이지를 나누며,
+  분야·모집 상태·페이지 이동에서도 선택한 정렬을 주소에 유지한다. MSW도 같은 정렬과 분야별 목록·개수를 응답한다.
 - `/api/v1/public/companies/**` (공연사 화면과 그 공연사의 공개 공고). 공고 상세 응답의 `company`도 같은 요약이다. MSW가 공연사
   3곳과 고정 연결을 응답하고, 운영자 공연사 관리(`/api/v1/admin/companies/**`)도 같은 메모리로 응답한다.
 - `/api/v1/public/events/**` (이벤트 목록·상세와 메인 이벤트 배너)와 `/api/v1/admin/events/**`, `/api/v1/admin/event-images/uploads`
-  (운영자 이벤트 관리·이미지 업로드). MSW가 마감된 1기 서포터즈 모집 글 하나로 시작하는 메모리 목을 응답한다.
+  (운영자 이벤트 관리·이미지 업로드). `body`는 자유 형식 개요로 유지하며, 하단 상세 설명 `detailBody`와 순서가 있는
+  `detailImageUrls`는 별도로 저장한다. 운영자 폼에서 `registrationConfirmationEnabled`·`registrationConfirmationMessage`로
+  신청 전 안내 팝업을 설정한다. 팝업을 켜면 입력 검사를 통과한 뒤 안내를 열고, 최종 확인 시에만 참가 신청을 보낸다.
+  팝업 안내는 2000자까지이며 켜면 필수다. MSW도 같은 설정·검증을 따른다.
+  SNS는 `snsPlatform`(`INSTAGRAM`·`THREADS`·`YOUTUBE`)과 20자 이하의 계정명·채널명 `snsHandle`을 함께 보내거나 둘 다 null로 보낸다.
+  URL은 거절하며 관리자 신청자 목록에도 유형을 표시한다. MSW는 같은 검증을 따른다.
+  MSW는 서포터즈 모집과 참가 신청 행사로 시작하는 메모리 목을 응답한다.
 - `/api/v1/admin/audition-posts/**` (OTR 공고 가져오기·직접 쓰기·수정·사진과 첨부 업로드·공개 상태·기획사 연결·공연사 연결)와 `/api/v1/producers/me/audition-posts/**` (기획사 공고 올리기·수정·업로드). OTR·저장소에 실제로 접속해야 하므로 MSW가 켜져 있어도 서버로 넘긴다.
 
 `/admin/files`의 미사용 파일 조회·최대 100개 일괄 삭제도 실제 API를 사용한다. MSW가 켜져 있어도 해당 경로는 서버로 전달하며,
@@ -80,6 +92,28 @@ DEV 공고 알림도 기본 공유 링크는 `https://yesulin.art`로 발급한�
 발송 시도는 본문 해시별 UUID를 sessionStorage에 저장해
 같은 탭의 응답 유실 재시도에 재사용한다. 원문과 연락처는 이 저장소에 기록하지 않는다.
 탭을 닫은 뒤에는 발송 내역을 먼저 확인한다. 마감 잠금은 심사 변경에만 적용하며 문자 기능을 막지 않는다.
+
+## PDF 추출 확인
+
+제목·배역으로 심사를 생성해 지원서를 연결하는 후속 흐름은 [PDF 지원서 심사](pdf-reviews.md)를 따른다.
+
+`features/pdf-extractions`가 `/api/v1/pdf-extractions/**`를 호출하고 `components/pdf-extractions`가 다중 파일 선택과
+파일별 상태·원본 viewer·추출 텍스트·이미지를 표시한다. `/producers/pdf-extractions`는 기존 공연사 세션을 사용한다.
+파일은 하나씩 URL을 발급받아 동시에 2개만 읽고 PUT한다. 전체 선택 파일을 미리 arrayBuffer로 읽지 않는다.
+상태는 SSE 연결·재연결·완료 알림에 DB 목록을 병합해 갱신한다. 정기 폴링은 하지 않으며, 상세 텍스트와 이미지 URL은 선택한 파일만 보관한다.
+업로드 재시도는 기존 작업의 completion을 먼저 호출해 PUT 응답 유실을 복구한다. 원본이 없다는 409이고 저장된
+업로드 주소의 `expiresAt`이 지났으며 File이 남아 있을 때만 새 URL을 발급한다. 인증·서버·네트워크 오류에서는 새 작업을 만들지 않는다.
+새로고침한 `UPLOAD_EXPIRED` 행도 "업로드 완료 확인"으로 completion을 다시 호출할 수 있고, 원본이 없으면 파일 재선택을 안내한다.
+새로고침하면 본인의 최근 800개 메타데이터를 읽는다. 원본·추출 내용·presigned URL을 localStorage에 저장하지 않는다.
+
+이 기능은 MSW 활성 중에도 실제 백엔드로 전달하며 가짜 추출 성공을 반환하지 않는다.
+쓰기·상태·상세 계약은 [백엔드 API의 PDF 추출 확인](../../backend/docs/api.md#pdf-추출-확인)을 따른다.
+S3 PUT에는 서버가 반환한 헤더만 전달하고 세션 Cookie나 CSRF 토큰을 보내지 않는다.
+
+별도 로컬 확인은 `API_ORIGIN=http://127.0.0.1:8093 PDF_EXTRACTION_LOCAL=true npm run dev -- --hostname 127.0.0.1 --port 3201`로
+실행한 `/dev/pdf-extractions`다. Vercel 또는 로컬 플래그가 없는 빌드에서는 이 경로가 404다.
+이 화면의 테스트 계정 버튼은 별도 H2 DB의 가상 계정으로 정상 세션 로그인을 수행한다. 운영 인증을 우회하지 않는다.
+LocalStack·Lambda·Spring 실행 방법은 [로컬 추출 실행 안내](../../ops/pdf-extraction-lambda/README.md)를 따른다.
 
 ## MSW 전용 계약
 
@@ -132,3 +166,12 @@ DEV 공고 알림도 기본 공유 링크는 `https://yesulin.art`로 발급한�
 공연 공개 목록은 숨기지 않은 `OPEN`·`CLOSED`를 모두 반환하고 항목에 `status`가 있다. 관리 목록·상세와 운영 대시보드에는
 `hidden`이 있으며 기획사·관리자 `PATCH .../shows/{id}/visibility`에 `{ hidden: boolean }`을 보내 숨김·해제한다.
 숨김 해제는 기존 예매 상태를 유지한다. 숨긴 공연의 공개 상세·예매·외부 이동 기록은 404다.
+
+
+## 이벤트 정원과 입금 관리
+
+- 이벤트 쓰기는 registrationCapacity(number|null)를 보낸다. 공개 목록은 registrationStatus, 상세와 관리자 글은 총정원·신청 수·수동 마감 여부를 함께 받는다.
+- 모집 마감은 PATCH /api/v1/admin/events/{id}/registration-status의 closed로 바꾼다. 신청서를 끄는 동작과 분리해 안내와 기존 명단을 유지한다.
+- 참가 구분은 ACTOR·PRODUCER 두 가지이며 PRODUCER는 관계자로 표시한다. 일반 참가자는 안내에 따라 ACTOR를 선택하고 관리자에서도 배우로 집계한다. 명함 제작은 선택 사항이다.
+- 운영 명단의 paymentStatus는 PENDING·CONFIRMED다. payment-status PATCH가 성공한 결과로만 상태와 확인 시각을 갱신하고 실패 시 이전 값을 유지한다.
+- MSW도 합산 정원·수동 마감·입금 변경과 재조회, 일반인 신청을 같은 계약으로 재현한다. 최종 정원 판정은 서버가 한다.

@@ -1,6 +1,8 @@
+import type { ActorPageAutoHiddenReason, ActorPageSettings } from "../actor-pages/settings";
+import type { ActorPageContent } from "../actor-pages/types";
 import type { VenueAddress } from "../auditions/creation-types";
 import type { CompanyField, CompanyWrite } from "../companies/profile-draft";
-import type { EventPhase } from "../events/types";
+import type { EventActivityField, EventParticipantType, EventPhase, EventRegistrationCareer, EventSnsPlatform, EventPaymentStatus, EventRegistrationStatus } from "../events/types";
 
 export type MemberStatus = "PENDING" | "ACTIVE";
 
@@ -569,6 +571,8 @@ export type AdminOpenChatVisits = {
   readonly size: number;
   readonly totalPages: number;
   readonly totalElements: number;
+  /** 선택한 게시일 범위에 속한 모든 공고의 누적 링크 방문 합계. */
+  readonly totalVisits: number;
 };
 
 /** 공고 알림 오픈채팅방 인원 기록 한 건. */
@@ -597,10 +601,21 @@ export type AdminEvent = {
   readonly title: string;
   readonly summary: string | null;
   readonly body: string;
+  readonly detailBody: string | null;
+  readonly detailImageUrls: readonly string[];
   readonly startsOn: string | null;
   readonly endsOn: string | null;
   readonly applyUrl: string | null;
   readonly applyLabel: string | null;
+  /** 켜면 신청 버튼이 외부 주소 대신 예술in 참가 신청서를 연다. */
+  readonly registrationEnabled: boolean;
+  /** 참가 신청서 위에 보일 보증금·계좌 같은 안내 */
+  readonly registrationNotice: string | null;
+  /** 신청 전 확인 팝업 설정. 켜면 안내 내용을 확인한 뒤 신청한다. */
+  readonly registrationConfirmationEnabled: boolean;
+  readonly registrationConfirmationMessage: string | null;
+  /** 배우의 프로필 명함 제작 희망을 받는 마감 시각(ISO). 없으면 신청 기간 내내 받는다. */
+  readonly businessCardClosesAt: string | null;
   readonly coverImageUrl: string | null;
   readonly banner: AdminEventBanner;
   /** 지금 메인 배너에 보이는지. 공개 상태와 노출 종료일까지 본 결과다. */
@@ -609,6 +624,10 @@ export type AdminEvent = {
   readonly phase: EventPhase;
   readonly createdAt: string;
   readonly updatedAt: string;
+  readonly registrationCapacity: number | null;
+  readonly registrationCount: number;
+  readonly registrationClosed: boolean;
+  readonly registrationStatus: EventRegistrationStatus;
 };
 
 /** 이벤트를 통째로 저장하는 요청. 백엔드 `WriteEventRequest`와 같고, 빈 값은 지운다. */
@@ -616,13 +635,54 @@ export type AdminEventWrite = {
   readonly title: string;
   readonly summary: string | null;
   readonly body: string;
+  readonly detailBody: string | null;
+  readonly detailImageUrls: readonly string[];
   readonly startsOn: string | null;
   readonly endsOn: string | null;
   readonly applyUrl: string | null;
   readonly applyLabel: string | null;
+  readonly registrationEnabled: boolean;
+  readonly registrationNotice: string | null;
+  /** 신청 전 확인 팝업 설정. 켜면 안내 내용을 확인한 뒤 신청한다. */
+  readonly registrationConfirmationEnabled: boolean;
+  readonly registrationConfirmationMessage: string | null;
+  readonly businessCardClosesAt: string | null;
   readonly coverImageUrl: string | null;
   readonly banner: AdminEventBanner;
+  readonly registrationCapacity: number | null;
 };
+
+/** 운영 화면의 이벤트 참가 신청 한 건. 백엔드 `AdminEventRegistrationResult`와 같다. */
+export type AdminEventRegistration = {
+  readonly id: number;
+  readonly participantType: EventParticipantType;
+  readonly name: string;
+  readonly phone: string;
+  /** 배우가 프로필 명함 제작을 희망했는지. 아니면 이메일·사진 같은 명함 정보가 비어 있다. */
+  readonly businessCardRequested: boolean;
+  readonly email: string | null;
+  readonly snsHandle: string | null;
+  readonly snsPlatform: EventSnsPlatform | null;
+  /** `YYYY-MM-DD`. 명함을 희망한 배우만 있다. */
+  readonly birthDate: string | null;
+  /** 공연사 관계자의 소속. 소속과 하는 일을 한 칸에 받던 기존 신청은 두 내용이 함께 들어 있다. */
+  readonly affiliation: string | null;
+  /** 공연사 관계자가 지금 하고 계신 일. 기존 신청은 null이다. */
+  readonly currentWork: string | null;
+  /** 배우 프로필 사진을 잠깐 열 수 있는 주소. 공연사 관계자는 null이다. */
+  readonly photoUrl: string | null;
+  /** 연극·뮤지컬·매체·유튜브·기타 순서 */
+  readonly activityFields: readonly EventActivityField[];
+  readonly otherActivity: string | null;
+  readonly noCareer: boolean;
+  readonly careers: readonly EventRegistrationCareer[];
+  /** 명함 뒷면에 넣을 한 줄 소개 */
+  readonly intro: string | null;
+  readonly createdAt: string;
+  readonly paymentStatus: EventPaymentStatus;
+  readonly paymentConfirmedAt: string | null;
+};
+
 
 /** 브라우저가 이벤트 이미지를 저장소로 바로 올릴 주소. 백엔드 `EventImageUploadResult`와 같다. */
 export type EventImageUpload = {
@@ -632,4 +692,40 @@ export type EventImageUpload = {
   readonly expiresAt: string;
   /** 올린 뒤의 공개 주소. 이벤트를 저장할 때 이 주소로 확정한다. */
   readonly imageUrl: string;
+};
+
+/** 운영자 목록의 배우 페이지 한 줄. 잠그면 상태도 비공개가 된다. */
+export type AdminActorPageSummary = {
+  readonly publicId: string;
+  readonly handle: string | null;
+  readonly name: string | null;
+  readonly status: "PUBLIC" | "PRIVATE";
+  readonly autoHiddenReason: ActorPageAutoHiddenReason | null;
+  readonly locked: boolean;
+  readonly lastPublicActivityAt: string | null;
+  readonly updatedAt: string;
+};
+
+export type AdminActorPageList = {
+  readonly actorPages: readonly AdminActorPageSummary[];
+  readonly page: number;
+  readonly size: number;
+  readonly totalPages: number;
+  readonly totalElements: number;
+};
+
+/** 운영자 상세. 공개 페이지 내용에 '공연사만' 영상과 연락처를 더한다. 연락처는 화면에만 쓰고 저장하거나 기록하지 않는다. */
+export type AdminActorPage = Omit<AdminActorPageSummary, "name" | "updatedAt"> & {
+  readonly ownerMemberId: number;
+  readonly lockReason: string | null;
+  readonly lockedAt: string | null;
+  readonly unlockedAt: string | null;
+  readonly firstPublishedAt: string | null;
+  readonly publishedAt: string | null;
+  readonly readiness: ActorPageSettings["readiness"];
+  /** 배우가 누구나 보도록 설정한 내용. 사진은 공개 사본만 담아 비공개·잠금 페이지는 비어 있다. */
+  readonly content: ActorPageContent;
+  readonly producerOnlyVideos: readonly { readonly url: string; readonly youtubeId: string }[];
+  readonly phone: string | null;
+  readonly email: string | null;
 };

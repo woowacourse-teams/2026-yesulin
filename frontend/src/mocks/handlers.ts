@@ -27,12 +27,14 @@ import {
 } from "./auditions/manage";
 import { patchProducerProfile, producerProfile } from "./auditions/producer-profile";
 import { applicantHandlers } from "./applicants/handlers";
+import { profileImportHandlers } from "./applicants/profile-import-handlers";
 import { screeningHandlers } from "./auditions/screening-handlers";
 import { validatePostingDraft } from "./auditions/posting-validation";
 import { authHandlers } from "./auth-handlers";
 import { adminHandlers } from "./admin-handlers";
 import { adminLogHandlers } from "./admin-log-handlers";
 import { adminFileHandlers } from "./admin-file-handlers";
+import { actorPageHandlers } from "./actor-page-handlers";
 import { eventHandlers } from "./event-handlers";
 import { auditionPostHandlers } from "./audition-post-handlers";
 import { otrAuditionHandlers } from "./otr-audition-handlers";
@@ -43,6 +45,19 @@ import { noticeHandlers } from "./auditions/notice-handlers";
 const apiPath = "/api";
 const realProducerApiEnabled = frontendEnvironment.producerApiEnabled;
 
+const pdfPassthroughPaths = [
+  "/api/v1/pdf-extractions",
+  "/api/v1/pdf-extractions/events",
+  "/api/v1/pdf-extractions/*",
+  "/api/v1/pdf-reviews",
+  "/api/v1/pdf-reviews/:reviewId",
+  "/api/v1/pdf-reviews/:reviewId/progress",
+  "/api/v1/pdf-reviews/:reviewId/uploads",
+  "/api/v1/pdf-reviews/:reviewId/role-assignments",
+  "/api/v1/pdf-reviews/:reviewId/entries/:entryId",
+  "/api/v1/pdf-reviews/*",
+];
+
 const notFound = (message: string) => HttpResponse.json({ message }, { status: 404 });
 const badRequest = (message: string) => HttpResponse.json({ message }, { status: 400 });
 const apiError = (status: number, code: string, message: string) =>
@@ -52,12 +67,15 @@ const hasText = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0;
 
 export const handlers = [
+  // PDF 추출·심사는 MSW가 켜져 있어도 저장소·추출 결과·심사 기록을 가짜 성공으로 대체하지 않는다. SSE도 서버로 넘긴다.
+  ...pdfPassthroughPaths.map(path => http.all(path, () => passthrough())),
   ...noticeHandlers,
   ...authHandlers,
   ...adminHandlers,
   ...adminLogHandlers,
   ...adminFileHandlers,
   ...eventHandlers,
+  ...actorPageHandlers,
   ...auditionPostHandlers,
   ...otrAuditionHandlers,
   ...showHandlers,
@@ -81,6 +99,7 @@ export const handlers = [
   }),
 
   ...applicantHandlers,
+  ...profileImportHandlers,
 
   http.get(`${apiPath}/v1/producers/me/navigation-tree`, async () => {
     if (realProducerApiEnabled) return passthrough();

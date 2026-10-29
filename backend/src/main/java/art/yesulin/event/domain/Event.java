@@ -4,21 +4,28 @@ import static art.yesulin.event.domain.EventErrorCode.INVALID_INPUT;
 import static art.yesulin.global.validation.DomainValidator.requirePositive;
 
 import art.yesulin.global.exception.BusinessException;
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OrderColumn;
 import jakarta.persistence.Table;
 import java.net.URI;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.BatchSize;
 
 /**
  * 운영자가 쓰는 이벤트 글. 공개해야 이벤트 화면에 보이고, 배너 노출을 켜면 노출 종료일까지 메인 상단 배너에도 보인다.
@@ -32,11 +39,12 @@ public class Event {
 
     public static final int MAX_TITLE_LENGTH = 100;
     public static final int MAX_SUMMARY_LENGTH = 200;
-    public static final int MAX_BODY_LENGTH = 5000;
+    public static final int MAX_BODY_LENGTH = 2000;
     public static final int MAX_URL_LENGTH = 500;
     public static final int MAX_APPLY_LABEL_LENGTH = 30;
     public static final int MAX_BANNER_ALT_LENGTH = 200;
     public static final int MAX_BANNER_ORDER = 99;
+    public static final int MAX_REGISTRATION_NOTICE_LENGTH = 2000;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -51,6 +59,16 @@ public class Event {
     @Column(nullable = false, length = MAX_BODY_LENGTH)
     private String body;
 
+    @Column(name = "detail_body", length = MAX_BODY_LENGTH)
+    private String detailBody;
+
+    @BatchSize(size = 50)
+    @ElementCollection
+    @CollectionTable(name = "event_detail_images", joinColumns = @JoinColumn(name = "event_id"))
+    @OrderColumn(name = "image_order")
+    @Column(name = "object_key", nullable = false, length = 500)
+    private List<String> detailImageKeys = new ArrayList<>();
+
     @Column(name = "starts_on")
     private LocalDate startsOn;
 
@@ -62,6 +80,28 @@ public class Event {
 
     @Column(name = "apply_label", length = MAX_APPLY_LABEL_LENGTH)
     private String applyLabel;
+
+    @Column(name = "registration_enabled", nullable = false)
+    private boolean registrationEnabled;
+
+    @Column(name = "registration_capacity")
+    private Integer registrationCapacity;
+
+    @Column(name = "registration_closed", nullable = false)
+    private boolean registrationClosed;
+
+    @Column(name = "registration_notice", length = MAX_REGISTRATION_NOTICE_LENGTH)
+    private String registrationNotice;
+
+    @Column(name = "registration_confirmation_enabled", nullable = false)
+    private boolean registrationConfirmationEnabled;
+
+    /** events 행이 MySQL 한 행 한도(65,535바이트)에 가까워 VARCHAR 대신 TEXT로 둔다. 길이는 도메인에서 제한한다. */
+    @Column(name = "registration_confirmation_message", columnDefinition = "text")
+    private String registrationConfirmationMessage;
+
+    @Column(name = "business_card_closes_at")
+    private Instant businessCardClosesAt;
 
     @Column(name = "cover_image_key", length = 500)
     private String coverImageKey;
@@ -112,10 +152,19 @@ public class Event {
         this.title = normalized.title();
         this.summary = normalized.summary();
         this.body = normalized.body();
+        this.detailBody = normalized.detailBody();
+        this.detailImageKeys.clear();
+        this.detailImageKeys.addAll(keys.detailKeys());
         this.startsOn = normalized.startsOn();
         this.endsOn = normalized.endsOn();
         this.applyUrl = normalized.applyUrl();
         this.applyLabel = normalized.applyLabel();
+        this.registrationEnabled = normalized.registrationEnabled();
+        this.registrationCapacity = normalized.registrationCapacity();
+        this.registrationNotice = normalized.registrationNotice();
+        this.registrationConfirmationEnabled = normalized.registrationConfirmationEnabled();
+        this.registrationConfirmationMessage = normalized.registrationConfirmationMessage();
+        this.businessCardClosesAt = normalized.businessCardClosesAt();
         this.coverImageKey = blankToNull(keys.coverKey());
         this.bannerDesktopKey = blankToNull(keys.bannerDesktopKey());
         this.bannerMobileKey = blankToNull(keys.bannerMobileKey());
@@ -149,6 +198,42 @@ public class Event {
         return isPublished() && bannerEnabled && (bannerEndsOn == null || !today.isAfter(bannerEndsOn));
     }
 
+    /** 공개한 글이고 참가 신청서를 켰으며 종료일이 지나지 않았으면 참가 신청을 받는다. */
+    public boolean isAcceptingRegistrationsOn(LocalDate today) {
+        return isPublished() && registrationEnabled && !registrationClosed && phaseOn(today) != EventPhase.ENDED;
+    }
+
+    /** 입금 여부와 무관하게 저장된 신청 수로 총정원의 남은 자리를 판단한다. */
+    public EventRegistrationStatus registrationStatusOn(LocalDate today, long registrationCount) {
+        if (!isPublished() || !registrationEnabled) {
+            return EventRegistrationStatus.DISABLED;
+        }
+        if (phaseOn(today) == EventPhase.ENDED) {
+            return EventRegistrationStatus.ENDED;
+        }
+        if (registrationClosed) {
+            return EventRegistrationStatus.CLOSED;
+        }
+        if (registrationCapacity != null && registrationCount >= registrationCapacity) {
+            return EventRegistrationStatus.FULL;
+        }
+        return EventRegistrationStatus.OPEN;
+    }
+
+    /** 신청과 안내 설정을 그대로 두고 수동 접수 마감 여부만 바꾼다. */
+    public void changeRegistrationClosed(boolean closed, Instant now) {
+        if (!registrationEnabled) {
+            throw invalid("참가 신청서를 사용하는 이벤트만 모집 상태를 바꿀 수 있습니다.");
+        }
+        this.registrationClosed = closed;
+        this.updatedAt = now;
+    }
+
+    /** 참가 신청을 받는 동안 배우의 프로필 명함 제작 희망도 받는지. 마감 시각을 비우면 신청 기간 내내 받는다. */
+    public boolean isAcceptingBusinessCardsAt(Instant now) {
+        return businessCardClosesAt == null || now.isBefore(businessCardClosesAt);
+    }
+
     public EventPhase phaseOn(LocalDate today) {
         if (startsOn != null && today.isBefore(startsOn)) {
             return EventPhase.UPCOMING;
@@ -160,10 +245,13 @@ public class Event {
     }
 
     public EventImages images() {
-        return new EventImages(coverImageKey, bannerDesktopKey, bannerMobileKey);
+        return new EventImages(coverImageKey, bannerDesktopKey, bannerMobileKey, detailImageKeys);
     }
 
-    /** 내용 규칙에 맞는지 확인하고 앞뒤 공백과 빈 칸을 정리한다. 신청 링크가 없으면 버튼 문구도 지운다. */
+    /**
+     * 내용 규칙에 맞는지 확인하고 앞뒤 공백과 빈 칸을 정리한다. 신청 링크와 참가 신청서가 모두 없으면 버튼 문구도 지우고,
+     * 참가 신청서를 끄면 안내 문구와 명함 제작 마감 시각도 지운다.
+     */
     private static EventContent normalize(EventContent content) {
         if (content == null) {
             throw invalid("이벤트 내용은 필수입니다.");
@@ -176,7 +264,22 @@ public class Event {
         if (content.startsOn() != null && content.endsOn() != null && content.endsOn().isBefore(content.startsOn())) {
             throw invalid("종료일은 시작일보다 앞설 수 없습니다.");
         }
+        if (content.registrationCapacity() != null && content.registrationCapacity() < 1) {
+            throw invalid("모집 정원은 1명 이상이어야 합니다.");
+        }
         String applyUrl = webAddress(content.applyUrl(), "신청 링크");
+        boolean registration = content.registrationEnabled();
+        String notice = registration
+                ? optional(normalizeLines(content.registrationNotice()), MAX_REGISTRATION_NOTICE_LENGTH, "신청 안내")
+                : null;
+        boolean confirmation = registration && content.registrationConfirmationEnabled();
+        String confirmationMessage = confirmation
+                ? optional(normalizeLines(content.registrationConfirmationMessage()),
+                        MAX_REGISTRATION_NOTICE_LENGTH, "신청 전 팝업 안내") : null;
+        if (confirmation && confirmationMessage == null) {
+            throw invalid("신청 전 안내 팝업을 켜려면 안내 내용을 입력해야 합니다.");
+        }
+        boolean hasButton = applyUrl != null || registration;
         return new EventContent(
                 title,
                 optional(content.summary(), MAX_SUMMARY_LENGTH, "요약"),
@@ -184,7 +287,14 @@ public class Event {
                 content.startsOn(),
                 content.endsOn(),
                 applyUrl,
-                applyUrl == null ? null : optional(content.applyLabel(), MAX_APPLY_LABEL_LENGTH, "신청 버튼 문구")
+                hasButton ? optional(content.applyLabel(), MAX_APPLY_LABEL_LENGTH, "신청 버튼 문구") : null,
+                registration,
+                notice,
+                optional(normalizeLines(content.detailBody()), MAX_BODY_LENGTH, "상세 설명"),
+                registration ? content.businessCardClosesAt() : null,
+                confirmation,
+                confirmationMessage,
+                content.registrationCapacity()
         );
     }
 

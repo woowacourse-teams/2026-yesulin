@@ -11,6 +11,7 @@ type BackendVideo = {
   readonly youtubeId: string;
   readonly displayOrder: number;
   readonly createdAt: string;
+  readonly visibility: "PUBLIC" | "PRODUCER";
 };
 
 type BackendVideoLibrary = { readonly videos: readonly BackendVideo[] };
@@ -95,6 +96,22 @@ export async function moveApplicantProfileVideo(
   return { ...current, videoLibrary: toVideos(result.videos) };
 }
 
+/** 영상의 배우 페이지 공개 범위를 바꾼다. '공연사만'은 공개 페이지에 나오지 않는다. */
+export async function changeApplicantProfileVideoVisibility(
+  current: ApplicantProfileResponse,
+  id: string,
+  visibility: "PUBLIC" | "PRODUCER",
+): Promise<ApplicantProfileResponse> {
+  if (!applicantProfileApiEnabled) {
+    return updateLegacyVideos(current, current.videoLibrary.map((video) => video.id === id ? { ...video, visibility } : video));
+  }
+  const result = await applicantRequest<BackendVideoLibrary>(`/v1/applicants/me/video-library/videos/${id}/visibility`, {
+    method: "PATCH",
+    body: JSON.stringify({ visibility }),
+  });
+  return { ...current, videoLibrary: toVideos(result.videos) };
+}
+
 function assembleProfile(
   information: BackendProfileResponse,
   photoLibrary: ApplicantProfileResponse["photoLibrary"],
@@ -106,7 +123,7 @@ function assembleProfile(
 function toVideos(videos: readonly BackendVideo[]): readonly ApplicantProfileVideo[] {
   return [...videos]
     .sort((left, right) => left.displayOrder - right.displayOrder)
-    .map((video) => ({ id: String(video.id), url: video.url, youtubeId: video.youtubeId }));
+    .map((video) => ({ id: String(video.id), url: video.url, youtubeId: video.youtubeId, visibility: video.visibility }));
 }
 
 async function refreshVideos(current: ApplicantProfileResponse) {

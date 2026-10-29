@@ -1,7 +1,7 @@
 import { safeAuthReturnTo } from "./return-to";
 
 const SOCIAL_LOGIN_RETURN_TO_KEY = "yesulin:social-login:return-to";
-const DEFAULT_RETURN_TO = "/applicants";
+export const DEFAULT_APPLICANT_LOGIN_RETURN_TO = "/";
 
 export function rememberSocialLoginReturnTo(returnTo?: string) {
   if (typeof window === "undefined") return;
@@ -19,13 +19,13 @@ export function rememberSocialLoginReturnTo(returnTo?: string) {
 }
 
 export function consumeSocialLoginReturnTo() {
-  if (typeof window === "undefined") return DEFAULT_RETURN_TO;
+  if (typeof window === "undefined") return DEFAULT_APPLICANT_LOGIN_RETURN_TO;
 
   try {
     const storedReturnTo = window.sessionStorage.getItem(SOCIAL_LOGIN_RETURN_TO_KEY) ?? undefined;
     window.sessionStorage.removeItem(SOCIAL_LOGIN_RETURN_TO_KEY);
-    return safeAuthReturnTo(storedReturnTo) ?? DEFAULT_RETURN_TO;
+    return safeAuthReturnTo(storedReturnTo) ?? DEFAULT_APPLICANT_LOGIN_RETURN_TO;
   } catch {
-    return DEFAULT_RETURN_TO;
+    return DEFAULT_APPLICANT_LOGIN_RETURN_TO;
   }
 }

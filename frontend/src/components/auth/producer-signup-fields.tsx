@@ -17,7 +17,7 @@ export function ProducerSignupFields({ values, errors, onUpdate }: {
       <div className="rounded-control border border-brand-line bg-brand-soft px-4 py-3">
         <h2 id="producer-company-heading" className="text-sm font-semibold text-brand-strong">가입 후 이메일 인증을 완료해 주세요</h2>
         <p className="mt-1 text-sm leading-relaxed text-muted-strong">
-          기본 계정 정보를 등록하면 바로 로그인되어 공연 관리 화면으로 이동합니다.
+          가입하면 바로 로그인됩니다. 이메일 인증 후 내 오디션 공고를 확인할 수 있어요.
         </p>
       </div>
       <AuthInput

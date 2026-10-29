@@ -246,3 +246,11 @@
   남아 있어도 한 번 마감할 수 있고, 다음 차수 대상이 없으면 이후 빈 차수도 함께 마감한다.
 - 마감 후 해당 차수 review 변경은 `INVALID_SCREENING_REVIEW`다. 현재 진행 중인 차수가 아닌 차수를 마감하면
   `SCREENING_ROUND_NOT_READY`다.
+
+
+## 이벤트 선착순 모집
+
+- Event 행이 총정원·수동 마감을 소유하고 실제 신청 수는 EventRegistration에서 집계한다. 목록은 이벤트 ID별 집계 쿼리 한 번을 사용한다.
+- 접수·이벤트 변경/마감·삭제·신청 삭제·입금 변경은 같은 Event 행을 PESSIMISTIC_WRITE로 잠근다. 정원 검사와 접수는
+  READ_COMMITTED 트랜잭션에서 잠금 후 최신 신청 수를 읽고 저장한다. MySQL REPEATABLE READ의 이전 스냅샷을 피한다.
+- 수동 모집 마감은 registrationClosed만 바꾸며 신청서 안내와 기존 신청을 지우지 않는다. 입금 상태는 정원과 별개다.

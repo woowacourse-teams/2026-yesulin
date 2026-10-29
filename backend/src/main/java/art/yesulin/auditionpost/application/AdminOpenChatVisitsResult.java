@@ -11,7 +11,8 @@ public record AdminOpenChatVisitsResult(
         int page,
         int size,
         int totalPages,
-        long totalElements
+        long totalElements,
+        long totalVisits
 ) {
 
     public record Post(

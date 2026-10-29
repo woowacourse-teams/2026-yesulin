@@ -3,24 +3,26 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { NotebookFooter, NotebookHeader } from "@/components/landing/notebook-site-layout";
 import { NotebookPageMain } from "@/components/landing/notebook-page-main";
-import { EVENT_PHASE_LABELS, eventRoutes, type EventPhase } from "@/features/events/types";
+import { EVENT_PHASE_LABELS, eventRoutes, type EventPhase, type EventRegistrationStatus } from "@/features/events/types";
 
 /** 이벤트 목록·상세가 함께 쓰는 틀. 상세에서는 목록으로 돌아가는 링크를 보인다. */
-export function EventScreen({ backToList = false, children }: { readonly backToList?: boolean; readonly children: ReactNode }) {
+export function EventScreen({ backToList = false, contentClassName, children }: { readonly backToList?: boolean; readonly contentClassName?: string; readonly children: ReactNode }) {
   return (
     <div className="public-notebook">
       <a className="notebook-skip" href="#main">본문으로 바로가기</a>
       <NotebookHeader />
       <NotebookPageMain>
-        {backToList ? (
-          <Link
-            href={eventRoutes.list}
-            className="-ml-2 inline-flex min-h-11 items-center rounded-control px-2 text-sm font-semibold text-muted-strong hover:bg-white hover:text-foreground"
-          >
-            이벤트 목록
-          </Link>
-        ) : null}
-        {children}
+        <div className={contentClassName}>
+          {backToList ? (
+            <Link
+              href={eventRoutes.list}
+              className="-ml-2 inline-flex min-h-11 items-center rounded-control px-2 text-sm font-semibold text-muted-strong hover:bg-white hover:text-foreground"
+            >
+              이벤트 목록
+            </Link>
+          ) : null}
+          {children}
+        </div>
       </NotebookPageMain>
       <NotebookFooter />
     </div>
@@ -33,7 +35,10 @@ const PHASE_TONES: Readonly<Record<EventPhase, string>> = {
   ENDED: "bg-border-soft text-muted-strong",
 };
 
-export function EventPhaseBadge({ phase }: { readonly phase: EventPhase }) {
+export function EventPhaseBadge({ phase, registrationStatus }: { readonly phase: EventPhase; readonly registrationStatus?: EventRegistrationStatus }) {
+  if (phase !== "ENDED" && (registrationStatus === "FULL" || registrationStatus === "CLOSED")) {
+    return <span className="rounded-full bg-border-soft px-2.5 py-0.5 text-xs font-bold text-muted-strong">{registrationStatus === "FULL" ? "선착순 마감" : "모집 마감"}</span>;
+  }
   return <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${PHASE_TONES[phase]}`}>{EVENT_PHASE_LABELS[phase]}</span>;
 }
 

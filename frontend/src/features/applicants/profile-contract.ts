@@ -1,3 +1,4 @@
+import type { ProfileCareerGenre } from "./career-genre";
 import type {
   ApplicantAnswer,
   ApplicantAnswerValue,
@@ -34,6 +35,7 @@ export type BackendProfileResponse = {
       readonly year: number;
       readonly title: string;
       readonly roleName: string;
+      readonly genre?: ProfileCareerGenre | null;
     }[];
   };
   readonly completeness: {
@@ -89,6 +91,7 @@ export function toProfileInformation(response: BackendProfileResponse) {
       year: career.year,
       title: career.title,
       part: career.roleName,
+      genre: career.genre ?? null,
     }))),
   ].filter((answer): answer is ApplicantAnswer => answer !== null);
 
@@ -125,6 +128,7 @@ export function toBackendProfileUpdate(values: ApplicantProfileValues): BackendP
         year: career.year,
         title: career.title.trim(),
         roleName: career.part.trim(),
+        genre: career.genre ?? null,
       })),
     },
   };

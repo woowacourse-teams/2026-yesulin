@@ -34,10 +34,13 @@ export type AuditionPostPage = {
 };
 
 /** 목록 주소 조건. `page`는 0부터 시작한다. */
+export type AuditionPostSort = "latest" | "deadline";
+
 export type AuditionPostQuery = {
   readonly page: number;
   readonly includeClosed: boolean;
   readonly category?: AuditionLandingCategory;
+  readonly sort?: AuditionPostSort;
 };
 
 export type AuditionPostAttachment = {
@@ -78,9 +81,10 @@ export const AUDITION_POST_PAGE_SIZE = 12;
 
 /** 백엔드 공개 API 경로(`/api` 앞부분 제외). 브라우저와 서버 조회가 함께 쓴다. */
 export const auditionPostApiPaths = {
-  list: ({ page, includeClosed, category }: AuditionPostQuery, size = AUDITION_POST_PAGE_SIZE) => {
+  list: ({ page, includeClosed, category, sort }: AuditionPostQuery, size = AUDITION_POST_PAGE_SIZE) => {
     const params = new URLSearchParams({ page: String(page), size: String(size), includeClosed: String(includeClosed) });
     if (category) params.set("category", category);
+    if (sort === "deadline") params.set("sort", sort);
     return `/v1/public/audition-posts?${params}`;
   },
   detail: (postId: number | string) => `/v1/public/audition-posts/${encodeURIComponent(String(postId))}`,
@@ -112,12 +116,13 @@ export function auditionLandingCategory(slug: string): AuditionLandingCategory |
 
 export const auditionPostRoutes = {
   /** 기본값(첫 페이지·모집 중만)은 주소에서 뺀다. */
-  list: ({ page = 0, includeClosed = false, category }: Partial<AuditionPostQuery> = {}) => {
+  list: ({ page = 0, includeClosed = false, category, sort }: Partial<AuditionPostQuery> = {}) => {
     const slug = Object.entries(AUDITION_LANDING_CATEGORIES).find(([, label]) => label === category)?.[0];
     const path = slug ? `/auditions/${slug}` : "/auditions";
     const params = new URLSearchParams();
     if (includeClosed) params.set("closed", "1");
     if (page > 0) params.set("page", String(page + 1));
+    if (sort === "deadline") params.set("sort", sort);
     const query = params.toString();
     return query ? `${path}?${query}` : path;
   },
@@ -131,15 +136,17 @@ export const producerAuditionPostRoutes = {
   edit: (postId: number | string) => `/producers/audition-posts/${encodeURIComponent(String(postId))}/edit`,
 } as const;
 
-/** 주소의 `?page=2&closed=1`을 서버 조건으로 바꾼다. 잘못된 값은 첫 페이지·모집 중으로 본다. */
+/** 주소 조건을 서버 조건으로 바꾼다. 잘못된 값은 첫 페이지·모집 중·최신순으로 본다. */
 export function parseAuditionPostQuery(params: {
   readonly page?: string | readonly string[];
   readonly closed?: string | readonly string[];
+  readonly sort?: string | readonly string[];
 }): AuditionPostQuery {
   const first = (value: string | readonly string[] | undefined) => Array.isArray(value) ? value[0] : value;
   const page = Number(first(params.page));
   return {
     page: Number.isInteger(page) && page >= 1 && page <= 10_000 ? page - 1 : 0,
     includeClosed: first(params.closed) === "1",
+    ...(first(params.sort) === "deadline" ? { sort: "deadline" as const } : {}),
   };
 }

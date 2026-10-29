@@ -6,7 +6,11 @@ import art.yesulin.global.exception.ErrorType;
 public enum EventErrorCode implements ErrorCode {
 
     INVALID_INPUT("EVENT_INVALID_INPUT", ErrorType.BAD_REQUEST),
-    NOT_FOUND("EVENT_NOT_FOUND", ErrorType.NOT_FOUND);
+    NOT_FOUND("EVENT_NOT_FOUND", ErrorType.NOT_FOUND),
+    REGISTRATION_CLOSED("EVENT_REGISTRATION_CLOSED", ErrorType.CONFLICT),
+    REGISTRATION_DUPLICATE("EVENT_REGISTRATION_DUPLICATE", ErrorType.CONFLICT),
+    BUSINESS_CARD_CLOSED("EVENT_BUSINESS_CARD_CLOSED", ErrorType.CONFLICT),
+    REGISTRATION_NOT_FOUND("EVENT_REGISTRATION_NOT_FOUND", ErrorType.NOT_FOUND);
 
     private final String code;
     private final ErrorType type;

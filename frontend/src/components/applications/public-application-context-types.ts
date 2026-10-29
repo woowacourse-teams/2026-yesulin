@@ -5,7 +5,7 @@ import type { ApplicationType } from "@/features/applications/application-type";
 import type { applicationFormSteps, applicationStepProgress } from "@/features/applications/application-form";
 import type { ApplicationWriteRouteKey } from "@/features/applications/application-form";
 import type { ApplicationPhoto, CareerDraft, SubmissionState } from "@/features/applications/application-form-state";
-import type { ProfilePrefillResponse } from "@/features/applicants/types";
+import type { CareerEntry, ProfilePrefillResponse } from "@/features/applicants/types";
 import type { DraftSaveStatus } from "./use-public-application-draft";
 
 export type SubmissionReceipt = {
@@ -13,6 +13,7 @@ export type SubmissionReceipt = {
   readonly submittedAt: string;
   /** 프로필 저장을 선택했을 때만 채워진다. false면 제출은 성공했지만 프로필 저장에 실패한 상태다. */
   readonly profileSaved?: boolean;
+  readonly profileCareerOverflowCount?: number;
 };
 
 export type EditableSection = "BASIC" | "ADDITIONAL" | "INTRODUCTION" | "MATERIALS" | "CAREER" | "CUSTOM";
@@ -85,6 +86,7 @@ export type PublicApplicationMeta = {
   readonly authenticated: boolean;
   /** 서버 세션을 아직 확인 중인 상태. 비로그인과 구분해야 로그인 사용자에게 로그인 안내가 뜨지 않는다. */
   readonly authChecking: boolean;
+  readonly profileCareers?: readonly CareerEntry[];
   readonly prefillSummary?: Pick<ProfilePrefillResponse, "filledCount" | "requiredCount" | "missingKeys">;
   readonly onBack: () => void;
 };

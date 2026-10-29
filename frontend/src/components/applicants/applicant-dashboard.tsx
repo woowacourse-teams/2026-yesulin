@@ -2,8 +2,12 @@
 
 import { ApplicantPageContainer as PageContainer } from "./applicant-page-container";
 import Image from "next/image";
+import { WorkspaceBreadcrumb, WorkspacePageHeading } from "@/components/landing/workspace-page-heading";
+import { SiteIcon } from "@/components/ui/site-icon";
+import { ApplicantProfileOverview, profileAnswerText } from "./applicant-profile-overview";
 import Link from "next/link";
 import { getApplicantSubmissions, getApplicantProfile, getRecommendedPostings } from "@/features/applicants/api";
+import { getActorPageSettings } from "@/features/actor-pages/owner-api";
 import { frontendEnvironment } from "@/config/environment";
 import { formatApplicantDate } from "@/features/applicants/presentation";
 import { applicantRoutes } from "@/features/applicants/routes";
@@ -20,40 +24,45 @@ const recommendationsAvailable = frontendEnvironment.apiMockingEnabled;
  * 실패하면 홈 전체를 다시 시도하도록 그대로 던진다.
  */
 async function loadDashboard() {
-  const [profile, submissions, recommendations] = await Promise.all([
+  const [profile, submissions, recommendations, actorPage] = await Promise.all([
     getApplicantProfile(),
     getApplicantSubmissions().then((response) => response.submissions, () => null),
     recommendationsAvailable
       ? getRecommendedPostings(undefined, 3).then((response) => response.postings, () => [])
       : Promise.resolve([]),
+    getActorPageSettings().catch((cause: unknown) => { console.error("[배우 페이지 설정 조회 실패]", cause); return null; }),
   ]);
-  return { profile, submissions, recommendations };
+  return { profile, submissions, recommendations, actorPage };
 }
 
 export function ApplicantDashboard() {
   const query = useAuditionQuery("applicant-dashboard", loadDashboard, "배우 홈을 불러오지 못했습니다.");
   if (query.loading) return <DashboardSkeleton />;
   if (query.error || !query.data) return <PageContainer><ScreenError message={query.error} onRetry={query.reload} /></PageContainer>;
-  const { profile, submissions, recommendations } = query.data;
-  const percent = Math.round((profile.completeness.filled / profile.completeness.standardTotal) * 100);
+  const { profile, submissions, recommendations, actorPage } = query.data;
+  const name = profileAnswerText(profile, "NAME");
 
   return <PageContainer>
-    <header className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-      <div><p className="text-sm font-semibold text-brand">안녕하세요, 배우님</p><h1 className="mt-2 text-[clamp(28px,4vw,38px)] font-bold tracking-[-0.035em]">다음 지원을 준비해 볼까요?</h1><p className="mt-3 text-base leading-7 text-muted-strong">저장한 프로필과 지원 이력을 한곳에서 관리할 수 있어요.</p></div>
-      <Link href={applicantRoutes.profile} className="inline-flex min-h-12 items-center justify-center self-start rounded-control bg-brand px-5 font-semibold text-white hover:bg-brand-strong">프로필 이어서 작성</Link>
-    </header>
-
-    <section className="mt-9 grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-      <article className="rounded-card bg-sidebar p-6 text-white md:p-7">
-        <div className="flex items-start justify-between gap-4"><div><p className="text-sm font-semibold text-brand-line">내 프로필</p><h2 className="mt-2 text-xl font-bold text-white">기본 정보 {profile.completeness.filled} / {profile.completeness.standardTotal}개 저장</h2></div><strong className="num text-2xl text-white">{percent}%</strong></div>
-        <div className="mt-6 h-2 overflow-hidden rounded-full bg-white/15"><div className="h-full rounded-full bg-brand-line" style={{ width: `${percent}%` }} /></div>
-        <p className="mt-4 text-sm leading-6 text-sidebar-muted">프로필은 지원서의 빈칸을 미리 채우는 데 사용돼요. 이미 제출한 지원서 내용은 바뀌지 않습니다.</p>
-        <Link href={applicantRoutes.profile} className="mt-5 inline-flex min-h-11 items-center rounded-control border border-sidebar-line px-4 text-sm font-semibold text-white hover:bg-sidebar-hover">프로필 관리</Link>
-      </article>
-      <article className="rounded-card border border-border bg-card p-6 md:p-7">
-        <div className="flex items-center justify-between gap-4"><div><p className="text-sm font-semibold text-brand">최근 지원</p><h2 className="mt-1 text-xl font-bold">제출한 지원서</h2></div><Link href={applicantRoutes.submissions} className="min-h-11 rounded-control px-3 py-2 text-sm font-semibold text-brand hover:bg-brand-soft">전체 보기</Link></div>
-        {submissions === null ? <DashboardEmpty title="지원서를 불러오지 못했어요" detail="잠시 후 새로고침하면 다시 확인할 수 있어요." /> : submissions.length ? <ul className="mt-5 divide-y divide-border-soft">{submissions.slice(0, 2).map((submission) => <RecentSubmission key={submission.id} submission={submission} />)}</ul> : <DashboardEmpty title="아직 제출한 지원서가 없어요" detail="외부 공고의 예술in 지원 링크에서 지원서를 작성하면 여기에 모아 볼 수 있어요." />}
-      </article>
+    <WorkspaceBreadcrumb items={[{ label: "마이페이지" }]} />
+    <WorkspacePageHeading
+      eyebrow={name ? "안녕하세요, " + name + " 배우님" : "안녕하세요, 배우님"}
+      title="마이페이지"
+      description="저장한 프로필과 제출한 지원서를 한눈에 확인하세요."
+      action={<Link href="/auditions" className="workspace-text-link">오디션 공고 둘러보기 <SiteIcon name="next" size={16} /></Link>}
+    />
+    <ApplicantProfileOverview profile={profile} actorPage={actorPage} />
+    <section className="applicant-recent" aria-labelledby="recent-submissions-title">
+      <div className="workspace-section-heading">
+        <div><h2 id="recent-submissions-title">최근 제출한 지원서</h2><p>지원서에 담은 내용과 제출 내역을 확인하세요.</p></div>
+        <Link href={applicantRoutes.submissions} className="workspace-text-link">전체 보기 <SiteIcon name="next" size={16} /></Link>
+      </div>
+      {submissions === null
+        ? <DashboardEmpty title="지원서를 불러오지 못했어요" detail="잠시 후 새로고침하면 다시 확인할 수 있어요." />
+        : submissions.length ? <div className="applicant-history">
+          <div className="applicant-history-labels" aria-hidden="true"><span>작품 · 공고</span><span>지원 배역</span><span>제출일</span><span>상태</span><span /></div>
+          <ul>{submissions.slice(0, 2).map((submission) => <RecentSubmission key={submission.id} submission={submission} />)}</ul>
+        </div> : <DashboardEmpty title="아직 제출한 지원서가 없어요" detail="외부 공고의 예술in 지원 링크에서 지원서를 작성하면 여기에 모아 볼 수 있어요." />}
+      <p className="workspace-caption mt-3">지원 결과와 후속 일정은 각 공연사의 안내를 확인해주세요.</p>
     </section>
 
     {recommendationsAvailable ? <section aria-labelledby="dashboard-recommendations" className="mt-12">
@@ -65,7 +74,13 @@ export function ApplicantDashboard() {
 
 function RecentSubmission({ submission }: { readonly submission: ApplicantSubmissionSummary }) {
   const roles = submission.selectedRoles.map((role) => role.roleName).join(" · ");
-  return <li><Link href={applicantRoutes.submission(submission.id)} className="group grid grid-cols-[52px_minmax(0,1fr)_auto] items-center gap-3 py-4"><Image src={submission.posterUrl} alt="" width={52} height={68} unoptimized className="h-[68px] w-[52px] rounded-md object-cover" /><span className="min-w-0"><strong className="block truncate group-hover:text-brand">{submission.performanceTitle}</strong><span className="mt-1 block truncate text-sm text-muted-strong">{roles} · {formatApplicantDate(submission.submittedAt)} 제출</span></span><span className="rounded-full border border-border bg-surface px-2.5 py-1 text-xs font-semibold text-muted-strong">제출 완료</span></Link></li>;
+  return <li><Link href={applicantRoutes.submission(submission.id)} className="applicant-history-row">
+    <span className="applicant-history-work"><Image src={submission.posterUrl} alt="" width={42} height={56} unoptimized /><span><strong>{submission.performanceTitle}</strong><small>{submission.postingTitle}</small></span></span>
+    <span className="applicant-history-roles">{roles || "—"}</span>
+    <span className="applicant-history-date num">{formatApplicantDate(submission.submittedAt)}</span>
+    <span className="applicant-history-status"><span className="workspace-tag workspace-tag-success">제출 완료</span></span>
+    <SiteIcon name="next" size={18} className="applicant-history-arrow" />
+  </Link></li>;
 }
 
 function RecommendationCard({ posting }: { readonly posting: RecommendedPosting }) {

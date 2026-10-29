@@ -1,0 +1,162 @@
+package art.yesulin.actor.application.photolibrary;
+
+import static art.yesulin.actor.domain.photolibrary.PhotoLibraryErrorCode.PHOTO_NOT_FOUND;
+import static art.yesulin.file.domain.FileErrorCode.NOT_FOUND;
+
+import art.yesulin.actor.application.page.ActorPageContentState;
+import art.yesulin.actor.application.page.ActorPageContentSync;
+import art.yesulin.actor.application.page.PublicPhotoCopyStorage;
+import art.yesulin.actor.domain.photolibrary.PhotoLibrary;
+import art.yesulin.actor.domain.photolibrary.PhotoLibraryItem;
+import art.yesulin.actor.domain.photolibrary.PhotoLibraryRepository;
+import art.yesulin.actor.domain.photolibrary.PhotoVisibility;
+import art.yesulin.file.application.FileService;
+import art.yesulin.file.application.FileUsageService;
+import art.yesulin.file.domain.FileAsset;
+import art.yesulin.file.domain.FileAssetRepository;
+import art.yesulin.file.domain.FileReference;
+import art.yesulin.file.domain.FileReferenceRepository;
+import art.yesulin.global.exception.BusinessException;
+import java.time.Clock;
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@RequiredArgsConstructor
+public class PhotoLibraryService {
+
+    public static final String FILE_REFERENCE_TYPE = "PHOTO_LIBRARY_ITEM";
+
+    private final ActorPageContentSync contentSync;
+    private final PhotoLibraryRepository photoLibraryRepository;
+    private final FileAssetRepository fileAssetRepository;
+    private final FileReferenceRepository fileReferenceRepository;
+    private final FileService fileService;
+    private final FileUsageService fileUsageService;
+    private final PublicPhotoCopyStorage publicCopies;
+    private final Clock clock;
+
+    @Transactional
+    public PhotoLibraryItemResult addPhoto(long ownerId, AddPhotoToLibraryCommand command) {
+        final ActorPageContentState pageState = contentSync.lock(ownerId);
+        FileAsset fileAsset = findUsableOwnedFile(ownerId, command.fileId());
+        PhotoLibrary library = photoLibraryRepository.findByOwnerIdForUpdate(ownerId)
+                .orElseGet(() -> new PhotoLibrary(ownerId));
+        library.addPhoto(fileAsset.getId());
+
+        PhotoLibrary savedLibrary = photoLibraryRepository.saveAndFlush(library);
+        PhotoLibraryItem savedItem = savedLibrary.getPhotos().getLast();
+        fileReferenceRepository.save(new FileReference(FILE_REFERENCE_TYPE, savedItem.getId(), fileAsset.getId()));
+        contentSync.synchronize(pageState);
+        return toResult(savedItem, fileAsset);
+    }
+
+    @Transactional(readOnly = true)
+    public PhotoLibraryResult findPhotos(long ownerId) {
+        List<PhotoLibraryItem> items = findPhotoItems(ownerId);
+        return toLibraryResult(items);
+    }
+
+    @Transactional
+    public PhotoLibraryResult makeRepresentative(long ownerId, long photoId) {
+        final ActorPageContentState pageState = contentSync.lock(ownerId);
+        PhotoLibrary library = findOwnedLibraryForUpdate(ownerId);
+        library.movePhotoToFront(photoId);
+        contentSync.synchronize(pageState);
+        return toLibraryResult(library.getPhotos());
+    }
+
+    @Transactional
+    public PhotoLibraryResult movePhoto(long ownerId, long photoId, int displayOrder) {
+        final ActorPageContentState pageState = contentSync.lock(ownerId);
+        PhotoLibrary library = findOwnedLibraryForUpdate(ownerId);
+        library.movePhoto(photoId, displayOrder);
+        contentSync.synchronize(pageState);
+        return toLibraryResult(library.getPhotos());
+    }
+
+    @Transactional
+    public void deletePhoto(long ownerId, long photoId) {
+        final ActorPageContentState pageState = contentSync.lock(ownerId);
+        PhotoLibrary library = findOwnedLibraryForUpdate(ownerId);
+        PhotoLibraryItem deletedPhoto = library.deletePhoto(photoId, Instant.now(clock));
+        long removed = fileReferenceRepository.deleteByReferenceTypeAndReferenceIdAndFileId(
+                FILE_REFERENCE_TYPE,
+                deletedPhoto.getId(),
+                deletedPhoto.getFileId()
+        );
+        if (removed > 0) {
+            fileUsageService.markReferencesRemoved(List.of(deletedPhoto.getFileId()));
+        }
+        contentSync.synchronize(pageState);
+    }
+
+    @Transactional
+    public PhotoLibraryResult changeVisibility(long ownerId, long itemId, PhotoVisibility visibility) {
+        final ActorPageContentState pageState = contentSync.lock(ownerId);
+        PhotoLibrary library = findOwnedLibraryForUpdate(ownerId);
+        library.changeVisibility(itemId, visibility);
+        contentSync.synchronize(pageState);
+        return toLibraryResult(library.getPhotos());
+    }
+
+    private PhotoLibraryResult toLibraryResult(List<PhotoLibraryItem> items) {
+        Map<Long, FileAsset> fileAssetsById = findFileAssetsById(items);
+        return new PhotoLibraryResult(toResults(items, fileAssetsById));
+    }
+
+    private PhotoLibrary findOwnedLibraryForUpdate(long ownerId) {
+        return photoLibraryRepository.findByOwnerIdForUpdate(ownerId)
+                .orElseThrow(() -> new BusinessException(PHOTO_NOT_FOUND, "사진보관함에서 사진을 찾을 수 없습니다."));
+    }
+
+    private List<PhotoLibraryItem> findPhotoItems(long ownerId) {
+        return photoLibraryRepository.findByOwnerId(ownerId)
+                .map(PhotoLibrary::getPhotos)
+                .orElseGet(List::of);
+    }
+
+    private Map<Long, FileAsset> findFileAssetsById(List<PhotoLibraryItem> items) {
+        List<Long> fileIds = items.stream().map(PhotoLibraryItem::getFileId).toList();
+        return fileAssetRepository.findAllById(fileIds).stream()
+                .collect(Collectors.toMap(FileAsset::getId, Function.identity()));
+    }
+
+    private List<PhotoLibraryItemResult> toResults(
+            List<PhotoLibraryItem> items,
+            Map<Long, FileAsset> fileAssetsById
+    ) {
+        return items.stream()
+                .map(item -> toResult(item, findFileAsset(fileAssetsById, item.getFileId())))
+                .toList();
+    }
+
+    private FileAsset findFileAsset(Map<Long, FileAsset> fileAssets, long fileId) {
+        FileAsset fileAsset = fileAssets.get(fileId);
+        if (fileAsset == null) {
+            throw new BusinessException(NOT_FOUND, "사진 파일을 찾을 수 없습니다.");
+        }
+        return fileAsset;
+    }
+
+    private PhotoLibraryItemResult toResult(PhotoLibraryItem item, FileAsset fileAsset) {
+        String publicCopyUrl = item.hasPublicCopy() ? publicCopies.publicUrl(item.getPublicCopyObjectKey()) : null;
+        return PhotoLibraryItemResult.from(item, fileService.privateContentUrl(fileAsset.getId()), publicCopyUrl);
+    }
+
+    private FileAsset findUsableOwnedFile(long ownerId, long fileId) {
+        FileAsset fileAsset = fileAssetRepository.findByIdAndOwnerIdForUpdate(fileId, ownerId)
+                .orElseThrow(() -> new BusinessException(NOT_FOUND, "파일을 찾을 수 없습니다."));
+        fileAsset.ensureUsable();
+        if (!fileAsset.getObjectKey().startsWith("private/actor-photos/")) {
+            throw new BusinessException(NOT_FOUND, "파일을 찾을 수 없습니다.");
+        }
+        return fileAsset;
+    }
+}

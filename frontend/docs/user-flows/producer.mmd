@@ -1,5 +1,5 @@
 flowchart TD
-    OTR_TREE["오디션 공고 관리 트리"] --> OTR_LIST["GET /api/v1/otr-auditions<br>공연사별 목록"]
+    OTR_TREE["지원서 접수·심사 트리"] --> OTR_LIST["GET /api/v1/otr-auditions<br>공연사별 목록"]
     OTR_LIST --> OTR_CREATE["POST /api/v1/otr-auditions<br>번호·제목·배역·마감일"]
     OTR_CREATE --> OTR_LIST
     OTR_LIST --> OTR_SOURCE["OTR 원문 링크 열기"]
@@ -16,13 +16,20 @@ flowchart TD
     RESET_MAIL --> RESET["GET token 확인 → PATCH 새 비밀번호"]
     RESET --> LOGIN_FORM
     FORGOT -- 아니오 --> LOGIN["POST /api/v1/sessions"]
-    LOGIN --> FREE_SHOW["무료 공연 관리<br>/producers/shows"]
-    LOGIN --> OTR_LIST
-    LOGIN --> POSTS["공고 게시<br>/producers/audition-posts"]
+    LOGIN --> POSTS["내 오디션 공고 — 기본 진입<br>/producers/audition-posts<br>직접 올린 공고 + 관리자가 연결한 공고"]
+    POSTS --> FREE_SHOW["메뉴: 무료 공연 관리<br>/producers/shows"]
+    POSTS --> OTR_LIST
+    OTR_IMPORT["OTR 공고 수집<br>작성자 회원 번호 저장"] --> MEMBER_LINK["관리자 회원 연결<br>OTR 작성자 → 가입 회원<br>회사명·이메일·인증 상태 확인"]
+    SIGNUP --> MEMBER_LINK
+    MEMBER_LINK --> POSTS
     POSTS --> POST_NEW["공고 올리기<br>POST /api/v1/producers/me/audition-posts<br>바로 공개·운영자 Slack 알림"]
     POSTS --> POST_EDIT["공고 수정<br>PUT .../audition-posts/{postId}<br>바로 반영·바뀐 항목 Slack 알림"]
     POST_NEW --> POSTS
     POST_EDIT --> POSTS
+    LOGIN --> BOOKMARKS["관심 배우<br>/producers/actor-bookmarks<br>저장 N/300명·숨긴 수 안내"]
+    BOOKMARKS --> ACTORS["배우 목록·배우 페이지<br>GET /api/v1/producers/me/actor-bookmark-ids로 버튼 상태"]
+    ACTORS --> BOOKMARK_TOGGLE["관심 배우 저장·해제<br>PUT·DELETE .../actor-bookmarks/{publicId}<br>300명 한도는 숨긴 저장 포함"]
+    BOOKMARK_TOGGLE --> BOOKMARKS
     FREE_SHOW --> FREE_SESSION["회차·예매 관리"]
     FREE_SESSION --> FREE_RESERVATIONS["회차별 예매자 관리"]
     FREE_RESERVATIONS --> PHONE_LIST["전화번호 복사 모달<br>번호 목록·3일 이내 삭제 안내 확인"]

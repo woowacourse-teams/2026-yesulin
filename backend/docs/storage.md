@@ -25,6 +25,10 @@ Content-Type·크기와 다르면 `READY`로 전환하지 않는다.
   `http://localhost:3200`을 허용한다.
 - 배우 사진은 `private/actor-photos/{UTC yyyyMMdd}/{UUID}` 논리 키로 저장한다. private 키는 CloudFront
   URL로 변환하지 않는다.
+- PDF로 프로필 채우기에서 보관함에 넣은 사진 후보는 서버가 추출 이미지를 읽어 같은 배우 사진 키로 새로 올린다.
+  원본 PDF(`private/pdf-extractions/inputs/{jobId}/`)와 추출 결과·이미지(`private/pdf-extractions/results/{jobId}/`)는
+  배우가 결과를 닫거나 결과가 나온 뒤 24시간이 지나면 접두사째 지우고, 추출 결과 DB 행도 함께 지운다. 공연사 PDF 심사의
+  원본·결과는 이 규칙으로 지우지 않는다.
 - S3 실제 키는 논리 키 앞에 `YESULIN_STORAGE_S3_KEY_PREFIX`를 붙인다. 현재 staging 기준으로 포스터는
   `yesulin/public/files/...`, 배우 사진은 `yesulin/private/actor-photos/...`이다.
 
@@ -69,9 +73,31 @@ presigned PUT으로 바로 올려서 버킷 CORS에 다른 헤더를 허용하�
   시간) 정리 작업이 객체와 기록을 함께 지운다.
 - 대표 사진을 바꾸거나 지우면 이전 공개 객체를, 수정 요청을 적용하거나 반려하면 비공개 요청 사진을 커밋 뒤 지운다.
 
+## 배우 페이지 공개 사진 사본
+
+배우 사진 원본은 비공개 경로에 그대로 두고, 배우 페이지에는 공개용 사본을 CDN으로 준다. 화면이 원본
+(`GET /api/v1/files/{fileId}/content`, 소유 배우 허용)을 받아 공연사 대표 사진과 같은 방법으로 긴 변 1600px JPEG로 줄이고
+presigned PUT으로 올린다. 다시 그리므로 EXIF는 남지 않는다. 서버는 JPEG 10MB까지 받는다.
+
+- 사본은 `public/files/actor-pages/{UTC yyyyMMdd}/{UUID}`에 둔다. 공연 포스터와 같은 `/files/*` CDN 동작으로 제공하므로
+  CloudFront 설정을 바꾸지 않는다. 확정할 때 HEAD로 형식·크기를, 객체 앞 3바이트로 JPEG 서명을 확인하고
+  `Cache-Control: public, max-age=600`을 붙인다. 지워지는 객체라 다른 공개 파일의 1년 `immutable`을 쓰지 않는다.
+- 저장소 키는 `photo_library_items.public_copy_object_key`에 둔다. 공개 사진에만 붙이며 `file_assets`·`file_references`에는
+  기록하지 않는다.
+- 올릴 자리는 `photo_public_copy_uploads`에 키·배우·사진·형식·크기로 기록하고, 같은 배우가 같은 사진에 확정할 때 지운다.
+  하루가 지나도록 확정하지 않은 업로드는 매일 05:00(한국 시간) 정리 작업이 객체와 기록을 함께 지운다.
+- 사진을 비공개로 바꾸거나 지우거나 사본을 새로 붙이면 이전 사본을, 공개 중이던 페이지가 비공개 요청·자동 비공개·운영자 잠금으로
+  내려가면 모든 사본을 커밋 뒤 지운다. 지운 사본은 CDN 캐시 무효화를 요청한다. 지우지 못한 사본은 공개 주소로 계속 열리므로
+  키를 `photo_public_copy_deletions`에 남기고, 매일 05:00 정리 작업이 다시 지운 뒤 무효화를 요청하고 기록을 지운다.
+- 무효화는 `YESULIN_STORAGE_CLOUDFRONT_DISTRIBUTION_ID`에 배포 ID를 넣은 환경에서만 요청한다. 서버 실행 역할에
+  `cloudfront:CreateInvalidation` 권한이 있어야 하며, 비워 두면 요청하지 않고 지운 사본은 캐시 기간(10분) 안에 사라진다.
+  보는 사람이 요청하는 경로(`/dev/files/...`)와 CDN 함수가 환경 접두사를 뗀 경로(`/files/...`)를 함께 무효화한다.
+  요청이 실패해도 사용자 요청은 실패시키지 않고 WARN 로그만 남긴다.
+- 지원서에 첨부된 사진과 원본의 비공개 접근 규칙은 바꾸지 않는다.
+
 ## 이벤트 이미지
 
-이벤트 대표 이미지와 PC·모바일 배너 이미지도 presigned PUT으로 올린다. 배너는 이미지 안에 글자가 있어 브라우저가 줄이거나 다시
+이벤트 대표·상세 이미지와 PC·모바일 배너 이미지도 presigned PUT으로 올린다. 배너는 이미지 안에 글자가 있어 브라우저가 줄이거나 다시
 그리지 않고 원본을 올리며, 서버는 JPEG·PNG·WebP 5MB까지 받는다.
 
 - 운영자만 올리고 `public/files/events/{UTC yyyyMMdd}/{UUID}`에 둔다. 공연 포스터와 같은 `/files/*` CDN 동작으로 제공하므로
@@ -79,7 +105,7 @@ presigned PUT으로 바로 올려서 버킷 CORS에 다른 헤더를 허용하�
 - 올릴 자리는 `event_image_uploads`에 키·올린 운영자·형식·크기로 기록하고, 이벤트를 저장하며 확정할 때 지운다. 확정할 때 HEAD로
   형식·크기를, 객체 앞 12바이트로 서명을 확인하고 공고 파일과 같은 `Cache-Control`을 붙인다. 다시 그리지 않으므로 EXIF는 지우지 않는다.
 - 하루가 지나도록 확정하지 않은 업로드는 매일 04:50(한국 시간) 정리 작업이 객체와 기록을 함께 지운다. 이미지를 바꾸거나 지우면
-  이전 객체를 커밋 뒤 지운다.
+  이전 객체를 커밋 뒤 지운다. 상세 이미지는 `event_detail_images`에 순서대로 저장하며, 같은 이벤트의 대표·배너·상세 중 다른 위치에서 계속 쓰는 객체는 지우지 않는다.
 
 ## 소유권과 참조
 
@@ -111,6 +137,7 @@ presigned PUT으로 바로 올려서 버킷 CORS에 다른 헤더를 허용하�
 
 ## 현재 하지 않는 것
 
-공연사 대표 사진·이벤트 이미지를 뺀 파일의 magic byte 검사, 공연사 대표 사진을 뺀 파일의 EXIF 제거, 이미지 디코딩, 악성 파일 검사와
+공연사 대표 사진·이벤트 이미지·배우 페이지 사진 사본을 뺀 파일의 magic byte 검사, 공연사 대표 사진·배우 페이지 사진 사본을 뺀
+파일의 EXIF 제거, 이미지 디코딩, 악성 파일 검사와
 미참조 객체의 자동 정리는 아직 구현되지 않았다. 이벤트 이미지는 원본을 그대로 올리므로 EXIF가 남는다. 이 항목은
 [미구현 사항](../../docs/implementation-gaps.md)에서만 관리한다.

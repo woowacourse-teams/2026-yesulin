@@ -15,8 +15,8 @@ const FOCUSABLE_SELECTOR = [
   "input:not([disabled]):not([type='hidden'])",
   "select:not([disabled])",
   "textarea:not([disabled])",
-  "[tabindex]:not([tabindex='-1'])",
-].join(",");
+  "[tabindex]",
+].map((selector) => `${selector}:not([tabindex='-1'])`).join(",");
 
 const subscribeToClientReady = () => () => {};
 const getClientReadySnapshot = () => true;
@@ -27,6 +27,8 @@ const PLACEMENT_CLASS = {
   left: "bottom-0 left-0 top-0",
   responsiveSheet:
     "inset-x-0 bottom-0 top-auto md:bottom-auto md:left-1/2 md:right-auto md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2",
+  responsiveFull:
+    "left-0 top-0 lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2",
 } as const;
 
 /** Escape로 닫고, 배경을 눌러도 닫히는 공용 다이얼로그 껍데기. */

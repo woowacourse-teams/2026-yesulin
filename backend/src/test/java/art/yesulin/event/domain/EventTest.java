@@ -86,6 +86,44 @@ class EventTest {
     }
 
     @Test
+    void acceptsRegistrationsOnlyWhilePublishedEnabledAndNotEnded() {
+        Event event = event(new EventContent(
+                "월요살롱", null, "본문", null, TODAY, null, "참가 신청하기", true, " 보증금 5,000원\r\n현장 반환 "
+        ));
+
+        assertEquals("보증금 5,000원\n현장 반환", event.getRegistrationNotice());
+        assertEquals("참가 신청하기", event.getApplyLabel());
+        assertFalse(event.isAcceptingRegistrationsOn(TODAY));
+        event.changeStatus(EventStatus.PUBLISHED, NOW);
+        assertTrue(event.isAcceptingRegistrationsOn(TODAY));
+        assertFalse(event.isAcceptingRegistrationsOn(TODAY.plusDays(1)));
+    }
+
+    @Test
+    void turningRegistrationOffClearsNotice() {
+        Event event = event(new EventContent(
+                "제목", null, "본문", null, null, null, "신청", false, "안내", null, NOW.plusSeconds(60)
+        ));
+
+        assertFalse(event.isRegistrationEnabled());
+        assertNull(event.getRegistrationNotice());
+        assertNull(event.getApplyLabel());
+        assertNull(event.getBusinessCardClosesAt());
+    }
+
+    @Test
+    void acceptsBusinessCardsUntilDeadlineOrAlwaysWithoutOne() {
+        Event withDeadline = event(new EventContent(
+                "제목", null, "본문", null, null, null, null, true, null, null, NOW
+        ));
+        Event withoutDeadline = event(new EventContent("제목", null, "본문", null, null, null, null, true, null));
+
+        assertTrue(withDeadline.isAcceptingBusinessCardsAt(NOW.minusSeconds(1)));
+        assertFalse(withDeadline.isAcceptingBusinessCardsAt(NOW));
+        assertTrue(withoutDeadline.isAcceptingBusinessCardsAt(NOW.plusSeconds(86_400)));
+    }
+
+    @Test
     void decidedEventCannotGoBackToPending() {
         Event event = event(content("제목", "본문", null, null));
         event.changeStatus(EventStatus.PUBLISHED, NOW);
@@ -93,11 +131,77 @@ class EventTest {
         assertThrows(BusinessException.class, () -> event.changeStatus(EventStatus.PENDING, NOW));
     }
 
+    @Test
+    void overviewAndDetailTextAreIndependentAndKeepLineBreaks() {
+        Event event = event(new EventContent(
+                "제목", null, " 자유 개요\r\n둘째 줄 ", null, null, null, null,
+                false, null, " 자세한 설명\r\n다음 줄 "
+        ));
+
+        assertEquals("자유 개요\n둘째 줄", event.getBody());
+        assertEquals("자세한 설명\n다음 줄", event.getDetailBody());
+        assertThrows(BusinessException.class, () -> event(new EventContent(
+                "제목", null, "개요", null, null, null, null, false, null, "가".repeat(5001)
+        )));
+    }
+
+    @Test
+    void detailImagesPreserveOrderAndRejectDuplicatesAndExcess() {
+        EventImages images = new EventImages(null, null, null, java.util.List.of("second", "first"));
+
+        assertEquals(java.util.List.of("second", "first"), images.detailKeys());
+        assertThrows(UnsupportedOperationException.class, () -> images.detailKeys().add("third"));
+        assertThrows(BusinessException.class, () -> new EventImages(null, null, null,
+                java.util.List.of("same", "same")));
+        assertThrows(BusinessException.class, () -> new EventImages(null, null, null,
+                java.util.List.of(" ")));
+        assertThrows(BusinessException.class, () -> new EventImages(null, null, null,
+                java.util.stream.IntStream.range(0, 11).mapToObj(Integer::toString).toList()));
+    }
+
     private static Event event(EventContent content) {
         return new Event(content, EventBannerSetting.disabled(), EventImages.none(), 1L, NOW);
+    }
+
+    @Test
+    void confirmationNeedsMessageAndClearsWhenDisabled() {
+        Event event = event(confirmation(true, true, " 안내\r\n둘째 줄 "));
+        assertTrue(event.isRegistrationConfirmationEnabled());
+        assertEquals("안내\n둘째 줄", event.getRegistrationConfirmationMessage());
+        assertThrows(BusinessException.class, () -> event(confirmation(true, true, " ")));
+        assertThrows(BusinessException.class, () -> event(confirmation(true, true, "가".repeat(2001))));
+
+        event.write(confirmation(true, false, "기존 안내"), null, null, NOW);
+        assertFalse(event.isRegistrationConfirmationEnabled());
+        assertNull(event.getRegistrationConfirmationMessage());
+        event.write(confirmation(false, true, "기존 안내"), null, null, NOW);
+        assertFalse(event.isRegistrationConfirmationEnabled());
+        assertNull(event.getRegistrationConfirmationMessage());
+    }
+
+    private static EventContent confirmation(boolean registration, boolean enabled, String message) {
+        return new EventContent("제목", null, "본문", null, null, null, null,
+                registration, null, null, null, enabled, message);
     }
 
     private static EventContent content(String title, String body, LocalDate startsOn, LocalDate endsOn) {
         return new EventContent(title, null, body, startsOn, endsOn, null, null);
     }
+    @Test
+    void capacityMustBePositiveAndDefaultsToUnlimited() {
+        Event event = new Event(capacityContent(null), null, null, 1L, NOW);
+        event.changeStatus(EventStatus.PUBLISHED, NOW);
+        assertEquals(EventRegistrationStatus.OPEN, event.registrationStatusOn(TODAY, 100));
+        event.write(capacityContent(2), null, null, NOW);
+        assertEquals(EventRegistrationStatus.OPEN, event.registrationStatusOn(TODAY, 1));
+        assertEquals(EventRegistrationStatus.FULL, event.registrationStatusOn(TODAY, 2));
+        assertThrows(BusinessException.class, () -> event.write(capacityContent(0), null, null, NOW));
+        assertThrows(BusinessException.class, () -> event.write(capacityContent(-1), null, null, NOW));
+    }
+
+    private static EventContent capacityContent(Integer capacity) {
+        return new EventContent("모집 이벤트", null, "본문", null, null, null, null,
+                true, "안내", null, null, false, null, capacity);
+    }
+
 }

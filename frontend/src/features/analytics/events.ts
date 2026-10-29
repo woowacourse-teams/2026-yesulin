@@ -1,7 +1,7 @@
 "use client";
 
 import type { ApplicationStepKey } from "@/features/applications/application-form";
-import { canSendAnalytics } from "./consent";
+import { canSendAnalytics, isAnalyticsInitialized } from "./consent";
 
 declare global {
   interface Window {
@@ -22,6 +22,7 @@ export type LoginEntryPoint =
 
 export type LoginReason = "account_access" | "application_start" | "photo_library" | "application_submit" | "manage_production";
 export type ActorType = "applicant" | "producer" | "unknown";
+export type ActorScreenName = "actor_list" | "actor_page";
 export type LoginProvider = "kakao" | "naver" | "google" | "password" | "unknown";
 export type LoginReturnTarget =
   | "application_basic"
@@ -55,6 +56,7 @@ export type LoginAttribution = {
 };
 
 type AnalyticsEventParameters = {
+  actor_screen_view: { screen_name: ActorScreenName; page_title: string; page_location: string; page_referrer: string };
   view_posting: { posting_status: string; role_count: number };
   login_prompt_view: { login_reason: LoginReason; has_draft?: boolean };
   login_prompt_action: { login_reason: LoginReason; action: "login" | "continue_guest" | "close"; has_draft?: boolean };
@@ -98,6 +100,18 @@ export function trackAnalyticsEvent<Name extends keyof AnalyticsEventParameters>
   );
   window.dataLayer = window.dataLayer ?? [];
   window.dataLayer.push({ event, ...definedParameters });
+}
+
+/** 배우 이름·아이디가 있는 실제 주소·문서 제목 대신 고정된 화면 정보만 보낸다. */
+export function trackActorScreenView(screen: ActorScreenName): boolean {
+  if (!canSendAnalytics() || !isAnalyticsInitialized()) return false;
+  trackAnalyticsEvent("actor_screen_view", {
+    screen_name: screen,
+    page_title: screen === "actor_list" ? "배우 목록" : "배우 페이지",
+    page_location: new URL(screen === "actor_list" ? "/actors" : "/actors/profile", window.location.origin).href,
+    page_referrer: "",
+  });
+  return true;
 }
 
 /** 분석 동의가 없어 보내지 않았으면 false를 돌려준다. 나중에 다시 보낼지 판단할 때 쓴다. */

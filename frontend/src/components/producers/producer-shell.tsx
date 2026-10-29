@@ -2,17 +2,20 @@
 
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { LogoutButton } from "@/components/auth/logout-button";
 import { ModalShell } from "@/components/auditions/modal-shell";
 import { OtrAuditionProvider } from "@/components/otr-auditions/otr-audition-context";
 import { OtrAuditionTreeNav } from "@/components/otr-auditions/otr-audition-tree";
 import { ShowManagementNav } from "@/components/shows/manage/show-management-nav";
 import { AuditionPostManagementNav } from "@/components/audition-posts/manage/audition-post-management-nav";
+import { ActorBookmarkNav } from "@/components/actor-pages/actor-bookmark-nav";
 import { SidebarResizer } from "./sidebar-resizer";
 import { MobileProducerNavigation } from "./mobile-producer-navigation";
 import { ProducerAccountPanel } from "./producer-account-panel";
 import { ProducerNavigationProvider } from "./producer-navigation-context";
 import { ProducerSidebarHeader } from "./producer-sidebar-header";
 import { ProducerSidebarToggle } from "./producer-sidebar-toggle";
+import { PdfReviewNavigation } from "./pdf-review-navigation";
 import { useRouteDisclosure } from "./use-route-disclosure";
 
 const DESKTOP_NAVIGATION_TITLE = "focused-producer-navigation-title";
@@ -68,8 +71,10 @@ function ProducerShellFrame({
             <aside className="fixed bottom-0 left-0 top-0 z-30 hidden flex-col overflow-hidden rounded-r-modal border-r border-sidebar-line bg-sidebar text-sidebar-text lg:flex lg:w-[var(--sidebar-width)]">
               <ProducerSidebarHeader onClose={() => setDesktopSidebarOpen(false)} />
               <div className="min-h-0 flex-1 overflow-y-auto py-2">
-                <ShowManagementNav />
                 <AuditionPostManagementNav />
+                <PdfReviewNavigation />
+                <ShowManagementNav />
+                <ActorBookmarkNav />
                 <OtrAuditionTreeNav />
               </div>
               <ProducerAccountPanel />
@@ -88,8 +93,10 @@ function ProducerShellFrame({
         >
           <ProducerSidebarHeader titleId={DESKTOP_NAVIGATION_TITLE} autoFocus onClose={closeFocusNavigation} />
           <div className="min-h-0 flex-1 overflow-y-auto py-2">
-            <ShowManagementNav onNavigate={closeFocusNavigation} />
             <AuditionPostManagementNav onNavigate={closeFocusNavigation} />
+            <PdfReviewNavigation onNavigate={closeFocusNavigation} />
+            <ShowManagementNav onNavigate={closeFocusNavigation} />
+            <ActorBookmarkNav onNavigate={closeFocusNavigation} />
             <OtrAuditionTreeNav onNavigate={closeFocusNavigation} />
           </div>
           <ProducerAccountPanel />
@@ -97,11 +104,12 @@ function ProducerShellFrame({
 
         <div className={`min-w-0 ${focusMode || !desktopSidebarOpen ? "" : "lg:ml-[var(--sidebar-width)]"}`}>
           <MobileProducerNavigation />
-          {!focusMode && !desktopSidebarOpen ? (
-            <div className="glass-surface hidden min-h-16 items-center border-b border-border px-6 py-2 lg:flex">
-              <ProducerSidebarToggle />
+          <div className="glass-surface hidden min-h-16 items-center justify-between border-b border-border px-6 py-2 lg:flex">
+            {!focusMode ? <ProducerSidebarToggle /> : null}
+            <div className="ml-auto">
+              <LogoutButton className="min-h-11 rounded-control px-3 text-sm font-semibold text-muted-strong hover:bg-brand-soft hover:text-brand" />
             </div>
-          ) : null}
+          </div>
           <main id="producer-main" className="min-h-screen">
             {children}
           </main>

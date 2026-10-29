@@ -1,3 +1,4 @@
+import type { EventPaymentStatus } from "@/features/events/types";
 import { withCsrfHeaders } from "../csrf";
 import { safeUpload } from "../files/safe-upload";
 import { reportUploadDiagnostic } from "../files/upload-diagnostics";
@@ -9,6 +10,8 @@ import type {
   EditableAuditionPost,
 } from "../audition-posts/editing";
 import type {
+  AdminActorPage,
+  AdminActorPageList,
   AdminAlertChatMembers,
   AdminOpenChatVisits,
   AdminAuditLogPage,
@@ -25,6 +28,7 @@ import type {
   AdminCompanyStatus,
   AdminCompanyWrite,
   AdminEvent,
+  AdminEventRegistration,
   AdminEventStatus,
   AdminEventWrite,
   AdminPostCompanyProfile,
@@ -519,8 +523,16 @@ export async function unlinkCompanyAuthor(linkId: number): Promise<void> {
   if (!response.ok) throw await readAdminError(response, "묶음을 풀지 못했습니다.");
 }
 
-export function fetchOpenChatVisits(page = 0): Promise<AdminOpenChatVisits> {
-  return getJson(`/openchat/visits?page=${page}`, "오픈채팅방 링크 방문을 불러오지 못했습니다.");
+export function fetchOpenChatVisits(
+  page = 0,
+  range: { readonly startDate: string; readonly endDate: string } | null = null,
+): Promise<AdminOpenChatVisits> {
+  const params = new URLSearchParams({ page: String(page) });
+  if (range) {
+    params.set("startDate", range.startDate);
+    params.set("endDate", range.endDate);
+  }
+  return getJson(`/openchat/visits?${params}`, "오픈채팅방 링크 방문을 불러오지 못했습니다.");
 }
 
 export function fetchAlertChatMembers(): Promise<AdminAlertChatMembers> {
@@ -537,6 +549,10 @@ export async function fetchAdminEvents(): Promise<readonly AdminEvent[]> {
   return response.events;
 }
 
+export function fetchAdminEvent(eventId: number): Promise<AdminEvent> {
+  return getJson(`/events/${eventId}`, "이벤트를 불러오지 못했습니다.");
+}
+
 /** 새 이벤트는 검토 전으로 만들어지고, 공개해야 이벤트 화면과 메인 배너에 보인다. */
 export async function createEvent(write: AdminEventWrite): Promise<AdminEvent> {
   return await sendJson("/events", "POST", write, "이벤트를 만들지 못했습니다.") as AdminEvent;
@@ -550,6 +566,16 @@ export async function changeEventStatus(eventId: number, status: AdminEventStatu
   return await sendJson(`/events/${eventId}/status`, "PATCH", { status }, "공개 상태를 바꾸지 못했습니다.") as AdminEvent;
 }
 
+/** 안내·신청자를 유지하면서 모집만 마감하거나 다시 연다. */
+export async function changeEventRegistrationClosed(eventId: number, closed: boolean): Promise<AdminEvent> {
+  return await sendJson(`/events/${eventId}/registration-status`, "PATCH", { closed }, "모집 상태를 바꾸지 못했습니다.") as AdminEvent;
+}
+
+/** 운영자가 확인한 입금 상태를 저장한다. */
+export async function changeEventPaymentStatus(eventId: number, registrationId: number, paymentStatus: EventPaymentStatus): Promise<AdminEventRegistration> {
+  return await sendJson(`/events/${eventId}/registrations/${registrationId}/payment-status`, "PATCH", { paymentStatus }, "입금 상태를 저장하지 못했습니다.") as AdminEventRegistration;
+}
+
 /** 글과 이미지를 되돌릴 수 없게 지운다. */
 export async function deleteEvent(eventId: number): Promise<void> {
   const response = await fetch(`${API_BASE_PATH}/events/${eventId}`, {
@@ -558,6 +584,40 @@ export async function deleteEvent(eventId: number): Promise<void> {
     headers: await withCsrfHeaders(),
   });
   if (!response.ok) throw await readAdminError(response, "이벤트를 지우지 못했습니다.");
+}
+
+/** 이벤트 참가 신청을 먼저 온 순서로 준다. 배우 사진 주소는 잠깐만 열린다. */
+export async function fetchEventRegistrations(eventId: number): Promise<readonly AdminEventRegistration[]> {
+  const response = await getJson<{ readonly registrations: readonly AdminEventRegistration[] }>(
+    `/events/${eventId}/registrations`, "참가 신청자를 불러오지 못했습니다.",
+  );
+  return response.registrations;
+}
+
+/** 명함 희망 배우의 정보(CSV·JSON)와 사진을 zip 하나로 내려받는다. 브라우저 다운로드로 저장한다. */
+export async function downloadBusinessCardArchive(eventId: number): Promise<void> {
+  const response = await fetch(`${API_BASE_PATH}/events/${eventId}/registrations/business-card-archive`, {
+    credentials: "include",
+  });
+  if (!response.ok) throw await readAdminError(response, "명함 자료를 내려받지 못했습니다.");
+  const url = URL.createObjectURL(await response.blob());
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `business-cards-event-${eventId}.zip`;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/** 참가 신청을 지운다. 되돌릴 수 없고 사진도 함께 지운다. */
+export async function deleteEventRegistration(eventId: number, registrationId: number): Promise<void> {
+  const response = await fetch(`${API_BASE_PATH}/events/${eventId}/registrations/${registrationId}`, {
+    method: "DELETE",
+    credentials: "include",
+    headers: await withCsrfHeaders(),
+  });
+  if (!response.ok) throw await readAdminError(response, "참가 신청을 지우지 못했습니다.");
 }
 
 /**
@@ -587,6 +647,33 @@ export async function uploadEventImage(image: File): Promise<string> {
     reportDiagnostic: reportUploadDiagnostic,
   });
   return imageUrl;
+}
+
+/** 최근에 바뀐 페이지부터 보인다. 아이디 일부로 찾을 수 있다. */
+export function fetchAdminActorPages(handle: string, page: number): Promise<AdminActorPageList> {
+  const query = new URLSearchParams({ page: String(page), size: "20" });
+  if (handle.trim()) query.set("handle", handle.trim());
+  return getJson<AdminActorPageList>(`/actor-pages?${query}`, "배우 페이지 목록을 불러오지 못했습니다.");
+}
+
+/** 연락처가 담겨 있어 화면에서만 쓰고 저장하지 않는다. */
+export function fetchAdminActorPage(publicId: string): Promise<AdminActorPage> {
+  return getJson<AdminActorPage>(`/actor-pages/${encodeURIComponent(publicId)}`, "배우 페이지를 불러오지 못했습니다.");
+}
+
+/** 잠그면 페이지가 비공개로 내려가고 사유가 배우 편집 화면에 보인다. 이미 잠겨 있으면 사유만 바꾼다. */
+export async function lockActorPage(publicId: string, reason: string): Promise<AdminActorPage> {
+  return await sendJson(`/actor-pages/${encodeURIComponent(publicId)}/lock`, "PUT", { reason: reason.trim() }, "배우 페이지를 잠그지 못했습니다.") as AdminActorPage;
+}
+
+/** 풀어도 비공개로 두고, 배우가 내용을 확인한 뒤 직접 다시 공개한다. */
+export async function unlockActorPage(publicId: string): Promise<AdminActorPage> {
+  return await sendJson(`/actor-pages/${encodeURIComponent(publicId)}/lock`, "DELETE", undefined, "잠금을 풀지 못했습니다.") as AdminActorPage;
+}
+
+/** 옛 아이디는 바로 풀려 옛 주소는 끊기고 다른 배우가 곧바로 쓸 수 있다. */
+export async function changeActorPageHandle(publicId: string, handle: string): Promise<AdminActorPage> {
+  return await sendJson(`/actor-pages/${encodeURIComponent(publicId)}/handle`, "PUT", { handle }, "아이디를 바꾸지 못했습니다.") as AdminActorPage;
 }
 
 async function sendJson(path: string, method: string, body: unknown, fallback: string): Promise<unknown> {

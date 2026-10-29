@@ -1,6 +1,6 @@
 export type MockScenarioDefinition = {
   readonly id: string;
-  readonly area: "지원 양식" | "심사 흐름" | "무료 공연" | "오디션 일정표" | "공연사";
+  readonly area: "지원 양식" | "심사 흐름" | "무료 공연" | "오디션 일정표" | "공연사" | "배우 페이지";
   readonly title: string;
   readonly description: string;
   readonly href: string;
@@ -178,5 +178,85 @@ export const MOCK_SCENARIOS: readonly MockScenarioDefinition[] = [
     description: "공연사 정보와 소개, 공연사가 알려 준 주소 지도, 이 공연사의 공고를 봅니다.",
     href: "/companies/1",
     checks: ["연락처와 소개가 보인다", "공연사 위치 지도에서 주소 복사·길찾기를 쓸 수 있다", "공개 전인 /companies/3은 찾을 수 없음 화면이다"],
+  },
+  {
+    id: "actor-list",
+    area: "배우 페이지",
+    title: "배우 목록",
+    description: "메인 '배우' 탭에서 공개 배우 페이지 14개를 12개씩 나눠 봅니다.",
+    href: "/actors",
+    checks: ["메인 메뉴에서 '배우' 탭이 선택된다", "카드에 대표 사진·이름·성별·출생연도(만 나이)·입력한 키/몸무게가 보인다", "대표 사진이 없는 카드는 이미지 준비 중으로 보인다", "2페이지로 넘기면 주소가 /actors?page=2가 된다"],
+  },
+  {
+    id: "actor-page",
+    area: "배우 페이지",
+    title: "배우 페이지",
+    description: "마침표·밑줄이 들어간 아이디의 배우 페이지에서 공개 항목만 봅니다.",
+    href: "/actors/@min.zzun_",
+    checks: ["자기소개·사진·영상·경력(장르별, 미분류는 맨 뒤)·특기·학력·국적·취미·링크가 보인다", "연락 안내와 하단 문의 링크가 카카오톡 채널로 열린다", "페이지 공유는 공유 창을 열거나 주소를 복사한다", "/actors/@MIN.ZZUN_으로 열면 소문자 주소로 바뀐다"],
+  },
+  {
+    id: "actor-page-missing",
+    area: "배우 페이지",
+    title: "찾을 수 없는 배우 페이지",
+    description: "비공개 페이지와 없는 아이디가 같은 화면으로 보이는지 봅니다.",
+    href: "/actors/@hidden.actor",
+    checks: ["비공개 배우는 찾을 수 없음 화면이다", "/actors/@nobody도 같은 화면이다", "/actors/@min.zzun_/posts는 404다"],
+  },
+  {
+    id: "actor-page-settings",
+    area: "배우 페이지",
+    title: "배우 페이지 설정과 공개",
+    description: "편집 화면의 '배우 페이지' 탭에서 아이디·공개 항목·사진을 정하고 동의 후 공개합니다.",
+    href: "/applicants/profile?tab=actor-page",
+    checks: ["아이디 입력 중 min.zzun_은 사용 중, admin은 쓸 수 없음으로 보인다", "사진 하나를 공개로 바꾸면 페이지 대표 표시가 붙고 공개하기가 켜진다", "동의를 체크해야 공개되고, 공개하면 아이디가 고정된다", "미리보기에는 공개로 설정한 항목·사진만 보인다", "공개 중에 마지막 공개 사진을 비공개로 바꾸면 자동 비공개 이유가 보인다"],
+  },
+  {
+    id: "actor-page-prompt",
+    area: "배우 페이지",
+    title: "프로필 저장 후 공개 팝업",
+    description: "프로필을 처음 저장하면 배우 페이지 공개 팝업이 한 번만 뜹니다.",
+    href: "/applicants/profile",
+    checks: ["기본정보를 고쳐 저장하면 공개 팝업이 뜬다", "부족한 항목(아이디, 공개 사진)과 '배우 페이지 설정하기'가 보인다", "다시 저장하면 팝업이 뜨지 않는다"],
+  },
+  {
+    id: "actor-page-locked",
+    area: "배우 페이지",
+    title: "잠긴 배우 페이지",
+    description: "운영자가 잠근 페이지의 사유와 문의 안내를 봅니다.",
+    href: "/applicants/profile?tab=actor-page&mockActorPage=locked",
+    checks: ["잠금 사유와 카카오톡 문의 링크가 보인다", "공개하기가 꺼져 있다", "?mockActorPage=unlocked는 잠금 해제 안내 뒤 다시 공개할 수 있다"],
+  },
+  {
+    id: "actor-page-auto-hidden",
+    area: "배우 페이지",
+    title: "자동 비공개된 배우 페이지",
+    description: "공개 사진이 없어 비공개로 바뀐 페이지의 이유와 다시 공개하는 길을 봅니다.",
+    href: "/applicants/profile?tab=actor-page&mockActorPage=auto-hidden",
+    checks: ["공개 사진이 빠져 비공개로 바뀌었다는 안내가 보인다", "사진을 공개로 바꾸면 다시 공개할 수 있다", "/applicants?mockActorPage=public은 마이페이지 홈에 공개 중과 주소가 보인다"],
+  },
+  {
+    id: "actor-profile-import",
+    area: "배우 페이지",
+    title: "PDF로 프로필 채우기",
+    description: "PDF 프로필에서 읽은 값을 골라 편집 화면 입력란에 넣고 사진 후보를 보관함에 넣습니다.",
+    href: "/applicants/profile",
+    checks: ["'PDF로 채우기'에서 아무 PDF나 올리면 몇 초 뒤 결과가 보인다", "지금 값과 같은 항목은 고를 수 없고, 다른 키는 바꿀지 직접 고른다", "두 자리 연도·배역이 없는 경력은 빈칸으로 들어가고, 이미 있는 경력은 고를 수 없다", "넣은 뒤 '프로필 저장'을 눌러야 저장된다", "?mockProfileImport=used는 오늘 이미 썼다는 안내, failed는 읽지 못한 결과, result는 바로 결과를 보여 준다"],
+  },
+  {
+    id: "actor-page-admin",
+    area: "배우 페이지",
+    title: "운영자 배우 페이지 관리",
+    description: "실제 운영자 세션과 API로 확인합니다. 브라우저 목 로그인만으로는 운영 화면이 404입니다.",
+    href: "/admin/actor-pages",
+    checks: ["/login의 기획사/제작사 폼에서 실제 운영자로 로그인한다", "아이디 일부로 찾고 상세에서 공개 내용·공연사만 영상·연락처를 본다", "사유 없이는 잠글 수 없고, 사유를 고친 뒤 풀어도 비공개로 남는다", "아이디 중복 오류와 옛 링크 경고를 확인하고 첫 공개 뒤에도 아이디를 바꿀 수 있다", "잠금·해제·아이디 변경만 변경 기록에 남고 연락처 열람은 남지 않는다"],
+  },
+  {
+    id: "actor-bookmarks",
+    area: "배우 페이지",
+    title: "공연사 관심 배우",
+    description: "목 공연사로 로그인한 뒤 배우 목록·배우 페이지에서 관심 배우를 저장하고 대시보드에서 모아 봅니다.",
+    href: "/login",
+    checks: ["기획사/제작사로 목 로그인하면 사이드바에 '관심 배우'가 보인다", "저장 3/300명과 비공개로 바뀐 배우 1명 안내가 보인다", "'배우 둘러보기'로 간 목록 카드와 배우 페이지에서 저장·해제된다", "비로그인·배우 계정에는 저장 버튼이 없다"],
   },
 ];

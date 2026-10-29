@@ -10,14 +10,37 @@ flowchart TD
     LOAD -- seed --> MOCK["MSW 공개 공고"]
     REAL --> WRITE["단계별 지원서 작성"]
     MOCK --> WRITE
-    WRITE --> DRAFT["IndexedDB Draft 저장"]
+    WRITE --> CAREER["최근 연도 경력 10개 자동 채우기·프로필 경력 교체"]
+    CAREER --> DRAFT["IndexedDB Draft 저장: 교체용 프로필 목록 제외"]
     DRAFT --> REVIEW["최종 검토와 필수 동의"]
     REVIEW --> AUTH{"배우 세션 존재?"}
     AUTH -- 아니오 --> LOGIN["OIDC 로그인 후 returnTo 복귀"]
     LOGIN --> REVIEW
     AUTH -- 예 --> SUBMIT["POST /api/v1/auditions/{auditionId}/submissions"]
     SUBMIT --> PROFILE{"프로필에도 저장?"}
-    PROFILE -- 예 --> PATCH["PATCH /api/v1/applicants/me/profile"]
+    PROFILE -- 예 --> PATCH["프로필 경력·장르 유지·신규 경력만 최대 30개까지 병합 후 PATCH"]
     PROFILE -- 아니오 --> DONE["제출 완료"]
-    PATCH --> DONE
+    PATCH --> OVERFLOW["추가하지 못한 경력 수 안내"]
+    OVERFLOW --> DONE
     DONE --> HISTORY["GET /api/v1/applicants/me/submissions"]
+    PDF_OPEN["/applicants/profile PDF로 채우기: GET profile-imports, 404면 버튼 숨김"] --> PDF_STATE{"지우지 않은 결과?"}
+    PDF_STATE -- 아니오 --> PDF_LIMIT{"오늘 이미 씀?"}
+    PDF_LIMIT -- 예 --> PDF_TOMORROW["내일 다시 쓸 수 있다는 안내"]
+    PDF_LIMIT -- 아니오 --> PDF_UPLOAD["POST uploads → 저장소 PUT → POST completion"]
+    PDF_UPLOAD --> PDF_POLL["3초마다 GET /{jobId}: 창을 닫아도 계속 읽음"]
+    PDF_STATE -- 예 --> PDF_RESULT
+    PDF_POLL --> PDF_RESULT["제안 값·근거와 지금 값 비교: 빈 항목만 미리 고르고 같은 값·같은 경력은 막음"]
+    PDF_RESULT --> PDF_APPLY["고른 값만 입력란에 넣기: 못 읽은 연도·배역은 빈칸"]
+    PDF_APPLY --> PROFILE_SAVE
+    PDF_RESULT --> PDF_PHOTO["사진 후보 POST photos: 보관함에 바로 저장"]
+    PDF_RESULT --> PDF_CLOSE["결과 지우기 DELETE /{jobId}"]
+    PROFILE_SAVE["/applicants/profile 프로필 저장"] --> PROMPT{"비공개·잠금 아님·공개 팝업 처음?"}
+    PROMPT -- 예 --> PROMPT_SHOW["공개 팝업 표시와 POST publish-prompt 기록"]
+    PROMPT_SHOW --> PROMPT_READY{"공개 조건 충족?"}
+    PROMPT_READY -- 아니오 --> AP_TAB["배우 페이지 탭: 아이디·항목·사진·영상 공개 설정"]
+    PROMPT_READY -- 예 --> AP_CONSENT["필수 공개 동의 체크"]
+    AP_TAB --> AP_PREVIEW["GET /api/v1/applicants/me/actor-page/preview 미리보기"]
+    AP_TAB --> AP_CONSENT
+    AP_CONSENT --> AP_COPY["사본 없는 공개 사진의 공개 사본 생성: 실패한 사진만 제외"]
+    AP_COPY --> AP_PUBLISH["PUT /api/v1/applicants/me/actor-page/publication"]
+    AP_PUBLISH --> AP_PAGE["/actors/@아이디 공개, 아이디 고정"]

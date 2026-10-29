@@ -2,9 +2,11 @@ package art.yesulin.event.application;
 
 import art.yesulin.event.domain.Event;
 import art.yesulin.event.domain.EventPhase;
+import art.yesulin.event.domain.EventRegistrationStatus;
 import art.yesulin.event.domain.EventStatus;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.function.UnaryOperator;
 
 /**
@@ -17,29 +19,47 @@ public record AdminEventResult(
         String title,
         String summary,
         String body,
+        String detailBody,
+        List<String> detailImageUrls,
         LocalDate startsOn,
         LocalDate endsOn,
         String applyUrl,
         String applyLabel,
+        boolean registrationEnabled,
+        String registrationNotice,
+        Instant businessCardClosesAt,
         String coverImageUrl,
         Banner banner,
         boolean bannerVisible,
         EventStatus status,
         EventPhase phase,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        boolean registrationConfirmationEnabled,
+        String registrationConfirmationMessage,
+        Integer registrationCapacity,
+        long registrationCount,
+        boolean registrationClosed,
+        EventRegistrationStatus registrationStatus
 ) {
 
-    static AdminEventResult from(Event event, UnaryOperator<String> urlOf, LocalDate today, boolean bannerVisible) {
+    static AdminEventResult from(
+            Event event, UnaryOperator<String> urlOf, LocalDate today, boolean bannerVisible, long registrationCount
+    ) {
         return new AdminEventResult(
                 event.getId(),
                 event.getTitle(),
                 event.getSummary(),
                 event.getBody(),
+                event.getDetailBody(),
+                event.getDetailImageKeys().stream().map(urlOf).toList(),
                 event.getStartsOn(),
                 event.getEndsOn(),
                 event.getApplyUrl(),
                 event.getApplyLabel(),
+                event.isRegistrationEnabled(),
+                event.getRegistrationNotice(),
+                event.getBusinessCardClosesAt(),
                 urlOf.apply(event.getCoverImageKey()),
                 new Banner(
                         event.isBannerEnabled(),
@@ -53,7 +73,13 @@ public record AdminEventResult(
                 event.getStatus(),
                 event.phaseOn(today),
                 event.getCreatedAt(),
-                event.getUpdatedAt()
+                event.getUpdatedAt(),
+                event.isRegistrationConfirmationEnabled(),
+                event.getRegistrationConfirmationMessage(),
+                event.getRegistrationCapacity(),
+                registrationCount,
+                event.isRegistrationClosed(),
+                event.registrationStatusOn(today, registrationCount)
         );
     }
 

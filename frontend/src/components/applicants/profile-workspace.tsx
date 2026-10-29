@@ -6,18 +6,23 @@ import { getApplicantProfile } from "@/features/applicants/api";
 import type { ApplicantProfileResponse } from "@/features/applicants/types";
 import { useAuditionQuery } from "@/features/auditions/use-audition-query";
 import { ScreenError } from "@/components/auditions/screen-status";
-import { ProfileEditor } from "./profile-editor";
+import { ProfileEditor, type ProfileTab } from "./profile-editor";
+import { WorkspaceBreadcrumb, WorkspacePageHeading } from "@/components/landing/workspace-page-heading";
 
-export function ApplicantProfileWorkspace() {
+export function ApplicantProfileWorkspace({ initialTab }: { readonly initialTab?: ProfileTab }) {
   const query = useAuditionQuery("applicant-profile", getApplicantProfile, "프로필을 불러오지 못했습니다.");
   const [saved, setSaved] = useState<ApplicantProfileResponse | null>(null);
   if (query.loading) return <ProfileSkeleton />;
   if (query.error || !query.data) return <Container><ScreenError message={query.error} onRetry={query.reload} /></Container>;
   const profile = saved ?? query.data;
-  const percent = Math.round((profile.completeness.filled / profile.completeness.standardTotal) * 100);
+  const percent = Math.min(100, Math.max(0, Math.round(profile.completeness.filled / Math.max(1, profile.completeness.standardTotal) * 100)));
   return <Container>
-    <header className="grid gap-6 md:grid-cols-[minmax(0,1fr)_280px] md:items-end"><div><p className="text-sm font-semibold text-brand">내 프로필</p><h1 className="mt-2 text-[clamp(28px,4vw,38px)] font-bold tracking-[-0.035em]">한 번 저장하고, 다음 지원에 활용하세요.</h1><p className="mt-3 max-w-2xl leading-7 text-muted-strong">기본·추가정보와 사진·영상을 보관해 두면 공고가 요구하는 항목에 맞춰 다시 사용할 수 있어요. 프로필 수정은 이미 제출한 지원서에 영향을 주지 않습니다.</p></div><div className="rounded-card border border-brand-line bg-brand-soft p-4"><div className="flex items-end justify-between"><span className="text-sm font-semibold text-brand">필수 기본정보</span><strong className="num text-xl text-brand">{profile.completeness.filled} / {profile.completeness.standardTotal}</strong></div><div className="mt-3 h-2 overflow-hidden rounded-full bg-card"><div className="h-full rounded-full bg-brand" style={{ width: `${percent}%` }} /></div></div></header>
-    <div className="max-w-[976px]"><ProfileEditor profile={profile} onSaved={setSaved} /></div>
+    <WorkspaceBreadcrumb items={[{ label: "마이페이지", href: "/applicants" }, { label: "내 프로필" }]} />
+    <WorkspacePageHeading eyebrow="배우 프로필" title="내 프로필"
+      description={<>한 번 저장한 정보로 다음 지원을 편리하게 준비하세요.<br />이미 제출한 지원서는 프로필을 수정해도 바뀌지 않아요.</>}
+      action={<div className="applicant-profile-meter"><div><span>필수 기본정보</span><strong className="num">{profile.completeness.filled} / {profile.completeness.standardTotal}</strong></div><div className="workspace-progress" role="progressbar" aria-label="필수 기본정보 작성률" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}><span style={{ width: percent + "%" }} /></div></div>}
+    />
+    <ProfileEditor profile={profile} onSaved={setSaved} initialTab={initialTab} />
   </Container>;
 }
 

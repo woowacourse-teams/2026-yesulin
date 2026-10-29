@@ -6,12 +6,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import art.yesulin.actor.application.photolibrary.AddPhotoToLibraryCommand;
+import art.yesulin.actor.application.photolibrary.PhotoLibraryItemResult;
+import art.yesulin.actor.application.photolibrary.PhotoLibraryService;
 import art.yesulin.auth.application.MemberPrincipal;
 import art.yesulin.auth.domain.member.MemberStatus;
 import art.yesulin.auth.domain.member.MemberType;
-import art.yesulin.dormant.application.photolibrary.AddPhotoToLibraryCommand;
-import art.yesulin.dormant.application.photolibrary.PhotoLibraryItemResult;
-import art.yesulin.dormant.application.photolibrary.PhotoLibraryService;
 import art.yesulin.dormant.domain.submission.ApplicantSnapshot;
 import art.yesulin.dormant.domain.submission.AuditionSnapshot;
 import art.yesulin.dormant.domain.submission.MilitaryServiceStatus;

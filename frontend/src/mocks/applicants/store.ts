@@ -1,6 +1,8 @@
+import { mergeProfileCareers, profileCareersError } from "@/features/applicants/profile-careers";
 import { submissionId, type SubmissionId } from "@/features/auditions/types";
 import type {
   ApplicantAnswer,
+  CareerEntry,
   ApplicantSubmissionDetail,
   ApplicantSubmissionSummary,
   ApplicantProfileResponse,
@@ -25,7 +27,7 @@ const seededAnswers: ApplicantAnswer[] = [
   { key: "HEIGHT", label: "키", value: 166 },
   { key: "WEIGHT", label: "몸무게", value: 52 },
   { key: "SCHOOL", label: "학력", value: { level: "UNIVERSITY", school: "한국예술종합학교", major: "연극원 연기과" } },
-  { key: "CAREER", label: "경력", value: [{ year: 2025, title: "푸른 방", part: "윤서" }] },
+  { key: "CAREER", label: "경력", value: [{ year: 2025, title: "푸른 방", part: "윤서", genre: "THEATER" }] },
   { key: "LINK", label: "SNS / 외부 링크", value: "https://example.com/harin" },
   { key: "NATIONALITY", label: "국적", value: "대한민국" },
   { key: "COVER_LETTER", label: "자기소개", value: "인물의 작은 선택이 장면 전체의 온도를 바꾼다고 믿습니다. 상대 배우의 호흡을 세심하게 듣고 반복되는 연습에서도 새로운 반응을 발견하는 배우 김하린입니다." },
@@ -45,11 +47,11 @@ const seededAnswers: ApplicantAnswer[] = [
 const reusableKeys = new Set(["NAME", "HEIGHT", "WEIGHT", "BIRTH", "GENDER", "PHONE", "EMAIL", "ADDRESS", "SCHOOL", "CAREER", "LINK", "NATIONALITY", "COVER_LETTER", "SPECIALTY", "HOBBIES", "MILITARY"]);
 let profileAnswers: ApplicantAnswer[] = seededAnswers.filter((answer) => reusableKeys.has(answer.key));
 let photoLibrary: ApplicantProfilePhoto[] = [
-  { id: "seed-photo-1", name: "김하린 프로필.jpg", url: "/images/applicants/kim-harin-profile.png", representative: true },
-  { id: "seed-photo-2", name: "김하린 전신.jpg", url: "/images/applicants/kim-harin-full-body.png", representative: false },
-  { id: "seed-photo-3", name: "김하린 연기 이미지 1.jpg", url: "/images/applicants/kim-harin-acting-1.png", representative: false },
+  { id: "seed-photo-1", name: "김하린 프로필.jpg", url: "/images/applicants/kim-harin-profile.png", representative: true, visibility: "PRIVATE" },
+  { id: "seed-photo-2", name: "김하린 전신.jpg", url: "/images/applicants/kim-harin-full-body.png", representative: false, visibility: "PRIVATE" },
+  { id: "seed-photo-3", name: "김하린 연기 이미지 1.jpg", url: "/images/applicants/kim-harin-acting-1.png", representative: false, visibility: "PRIVATE" },
 ];
-let videoLibrary: ApplicantProfileVideo[] = [{ id: "seed-video-1", url: "https://youtu.be/aqz-KE-bpKQ", youtubeId: "aqz-KE-bpKQ" }];
+let videoLibrary: ApplicantProfileVideo[] = [{ id: "seed-video-1", url: "https://youtu.be/aqz-KE-bpKQ", youtubeId: "aqz-KE-bpKQ", visibility: "PRODUCER" }];
 let submissions: ApplicantSubmissionDetail[] = [{
   id: submissionId("00000000-0000-4000-8000-000026081201"), postingId: "seed_posting_1", performanceTitle: "달빛 아래 우리", postingTitle: "2026 하반기 주·조연 배우 모집",
   posterUrl: "/images/performances/moonlight.jpg", companyName: "예술in 스테이지",
@@ -70,19 +72,61 @@ export function applicantProfile(): ApplicantProfileResponse {
 }
 
 export function patchApplicantProfile(body: UpdateProfileRequest): ApplicantProfileResponse {
+  const incomingCareers = body.answers?.find((answer) => answer.key === "CAREER");
+  if (incomingCareers) {
+    const error = profileCareersError(incomingCareers.value);
+    if (error) throw new Error(error);
+  }
   const remove = new Set(body.removeKeys ?? []);
   profileAnswers = profileAnswers.filter((answer) => !remove.has(answer.key));
   for (const next of body.answers ?? []) {
     if (!reusableKeys.has(next.key)) continue;
     const current = profileAnswers.find((answer) => answer.key === next.key);
-    const answer: ApplicantAnswer = { ...current, ...next, label: next.label ?? current?.label ?? next.key, updatedAt: new Date().toISOString() };
+    const value = next.key === "CAREER"
+      ? (next.value as readonly CareerEntry[]).map((career) => ({ ...career, genre: career.genre ?? null }))
+      : next.value;
+    const answer: ApplicantAnswer = { ...current, ...next, value, label: next.label ?? current?.label ?? next.key, updatedAt: new Date().toISOString() };
     profileAnswers = current
       ? profileAnswers.map((candidate) => candidate.key === next.key ? answer : candidate)
       : [...profileAnswers, answer];
   }
-  if (body.photoLibrary) photoLibrary = clone(body.photoLibrary).slice(0, MAX_ACTOR_PHOTO_COUNT);
-  if (body.videoLibrary) videoLibrary = clone(body.videoLibrary).slice(0, 10);
+  if (body.photoLibrary) photoLibrary = clone(body.photoLibrary).slice(0, MAX_ACTOR_PHOTO_COUNT)
+    .map((photo) => ({ ...photo, visibility: photo.visibility ?? "PRIVATE" }));
+  if (body.videoLibrary) videoLibrary = clone(body.videoLibrary).slice(0, 10)
+    .map((video) => ({ ...video, visibility: video.visibility ?? "PRODUCER" }));
   return applicantProfile();
+}
+
+/** 서버가 만든 사진(PDF 사진 후보 복사 등)을 보관함 맨 뒤에 넣는다. 가득 찼으면 넣지 않고 null이다. */
+export function addApplicantLibraryPhoto(photo: Omit<ApplicantProfilePhoto, "representative" | "visibility">): ApplicantProfilePhoto | null {
+  if (photoLibrary.length >= MAX_ACTOR_PHOTO_COUNT) return null;
+  const added: ApplicantProfilePhoto = { ...photo, representative: photoLibrary.length === 0, visibility: "PRIVATE" };
+  photoLibrary = [...photoLibrary, added];
+  return clone(added);
+}
+
+/** 배우 페이지가 비공개가 되면 서버처럼 공개 사본을 모두 지운다. */
+export function clearApplicantPhotoPublicCopies() {
+  photoLibrary = photoLibrary.map((photo) => ({ ...photo, publicCopyUrl: null }));
+}
+
+/** 배우 페이지 목 시나리오의 시작 상태. 고른 사진만 공개로 두고, 목에서는 원본 주소를 공개 사본 대신 쓴다. */
+export function seedApplicantPhotoVisibility(publicPhotoIds: readonly string[], withPublicCopies: boolean) {
+  photoLibrary = photoLibrary.map((photo) => {
+    const isPublic = publicPhotoIds.includes(photo.id);
+    return { ...photo, visibility: isPublic ? "PUBLIC" : "PRIVATE", publicCopyUrl: isPublic && withPublicCopies ? photo.url : null };
+  });
+}
+
+export function saveSubmissionAnswersToProfile(answers: readonly ApplicantAnswer[]) {
+  const current = applicantProfile().answers.find((answer) => answer.key === "CAREER")?.value;
+  const submitted = answers.find((answer) => answer.key === "CAREER")?.value;
+  const merged = mergeProfileCareers(
+    Array.isArray(current) ? current as readonly CareerEntry[] : [],
+    Array.isArray(submitted) ? submitted as readonly CareerEntry[] : [],
+  );
+  patchApplicantProfile({ answers: answers.map((answer) => answer.key === "CAREER" ? { ...answer, value: merged.careers } : answer) });
+  return merged.skippedCareerCount;
 }
 
 function toSummary(detail: ApplicantSubmissionDetail): ApplicantSubmissionSummary {

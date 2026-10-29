@@ -3,11 +3,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { LogoutButton } from "@/components/auth/logout-button";
 import { ModalShell } from "@/components/auditions/modal-shell";
 import { ProducerAccountPanel } from "./producer-account-panel";
 import { OtrAuditionTreeNav } from "@/components/otr-auditions/otr-audition-tree";
 import { ShowManagementNav } from "@/components/shows/manage/show-management-nav";
 import { AuditionPostManagementNav } from "@/components/audition-posts/manage/audition-post-management-nav";
+import { ActorBookmarkNav } from "@/components/actor-pages/actor-bookmark-nav";
+import { PdfReviewNavigation } from "./pdf-review-navigation";
 import { useRouteDisclosure } from "./use-route-disclosure";
 
 const TITLE_ID = "mobile-producer-navigation-title";
@@ -50,6 +53,9 @@ export function MobileProducerNavigation() {
           </span>
           <span className="ml-2 truncate text-base font-semibold">예술in 관리</span>
         </Link>
+        <div className="ml-auto shrink-0">
+          <LogoutButton className="min-h-11 rounded-control px-3 text-sm font-semibold text-muted-strong hover:bg-brand-soft hover:text-brand" />
+        </div>
       </header>
 
       <ModalShell
@@ -75,8 +81,10 @@ export function MobileProducerNavigation() {
             </button>
           </header>
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-2">
-            <ShowManagementNav onNavigate={closeDisclosure} />
             <AuditionPostManagementNav onNavigate={closeDisclosure} />
+            <PdfReviewNavigation onNavigate={closeDisclosure} />
+            <ShowManagementNav onNavigate={closeDisclosure} />
+            <ActorBookmarkNav onNavigate={closeDisclosure} />
             <OtrAuditionTreeNav onNavigate={closeDisclosure} />
           </div>
           <ProducerAccountPanel />

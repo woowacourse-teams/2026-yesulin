@@ -13,6 +13,7 @@ Google Tag Manager 컨테이너는 `NEXT_PUBLIC_GTM_ID`가 설정된 환경에�
 - 처리방침 1.0 동의 배너에서 남은 `denied`는 브라우저마다 한 번만 지운다(`yesulin:analytics-refusal-reset:v1`). 지운 방문에서 하단 안내 카드로 바뀐 사실을 알리고 `분석 끄기`를 같은 크기로 제공한다. 이후의 `denied`는 지우지 않는다.
 - 분석 설정 버튼은 화면 머리말이 아니라 하단 정책 링크(`PolicyLinks`)와 기획사 사이드바 계정 영역(`ProducerAccountPanel`)에 둔다. 랜딩 푸터가 없는 공연 예매·배우·공고 지원 상세·지원서 작성·검토 화면은 `SiteFooter`로 같은 링크를 보여 준다. 처리방침이 이 버튼을 거부 방법으로 안내한다. GTM 미설정 환경에서도 자체 링크 방문 집계를 켜고 끌 수 있다.
 - GTM을 불러오기 전에 모든 consent 기본값을 `denied`로 선언한 다음 `analytics_storage`만 `granted`로 갱신한다. 광고 관련 consent 값은 항상 `denied`로 둔다.
+- 배우 화면 이벤트는 동의 명령과 `gtm.js`를 큐에 넣은 뒤부터 보낸다. 초기화 전에는 준비 신호를 기다리고, 초기화 후 화면에 진입하면 바로 보낸다.
 - 분석 동의는 지원서의 개인정보 수집·이용 및 제3자 제공 동의와 별개다.
 - 광고, 맞춤 추천, Google Signals와 User-ID는 사용하지 않는다.
 
@@ -33,6 +34,7 @@ Google Tag Manager 컨테이너는 `NEXT_PUBLIC_GTM_ID`가 설정된 환경에�
 
 | 이벤트 | 발생 기준 | 주요 파라미터 |
 | --- | --- | --- |
+| `actor_screen_view` | 배우 목록·공개 배우 페이지를 성공적으로 읽어 렌더링. 화면 방문마다 한 번, 분석을 껐다가 켜면 그때 한 번 | `screen_name`(`actor_list`, `actor_page`), 고정 화면 제목·주소, 빈 유입 주소 |
 | `view_posting` | 공개 공고 화면 렌더링 | `posting_status`, `role_count` |
 | `login_prompt_view` | 로그인 유도 UI 노출 | `login_reason`, `has_draft` |
 | `login_prompt_action` | 유도 UI에서 로그인·비회원 계속·닫기 선택 | `login_reason`, `action`, `has_draft` |
@@ -63,6 +65,38 @@ GA4는 단계별 이탈을 보는 용도다.
 않는다.
 
 ## GTM 설정
+
+배우 화면의 `actor_screen_view`는 `screen_name`으로 목록(`actor_list`)과 공개 상세(`actor_page`)를 구분한다.
+목록 페이지 번호·검색어, 배우 이름·아이디·publicId는 보내지 않는다. 본인 미리보기·운영자 화면과 조회 실패는 이 이벤트에 포함하지 않는다.
+`page_title`은 `배우 목록`·`배우 페이지`, `page_location`은 현재 origin 아래 `/actors`·`/actors/profile`로 고정하고
+`page_referrer`는 빈 문자열로 보낸다. `/actors/profile`은 분석용 이름이며 실제 배우 주소가 아니다.
+
+GTM의 해당 GA4 이벤트 태그에는 이 세 페이지 매개변수도 Data Layer Variable로 명시적으로 연결한다.
+커스텀 이벤트만 정제하거나 자동 `page_view`만 끄는 것으로는 아래 자동 수집 경로를 막을 수 없다.
+현재 게시된 GTM·GA4 설정은 이 저장소에서 확인하지 못했으며, 다음 항목은 배우 분석을 운영에 반영하기 전 필수 검증 조건이다.
+
+- **모든 이벤트의 페이지 정보:** Google 태그가 처음 초기화되기 전부터 배우 경로(`/actors`로 시작하는 주소)의 `page_location`, `page_title`,
+  `page_referrer`를 위 고정값으로 설정한다. 커스텀 이벤트 태그뿐 아니라 Google 태그의 공통 설정에 적용해 `first_visit`,
+  `session_start`, `user_engagement`, 자동 `page_view`와 향상된 측정에도 실제 아이디·이름이 붙지 않게 한다.
+  이를 보장할 수 없으면 배우 경로에서는 Google 태그 초기화·수집을 차단한다. 이미 다른 화면에서 태그를 불러온 뒤 배우 화면으로
+  이동하는 경우에도 같은 보호가 필요하다. 브라우저 기록 변경 자동 측정과 배우 상세에서 다른 화면으로 이동한 뒤의 `page_referrer`도 확인한다.
+- **배우가 입력한 외부 링크:** GA4 향상된 측정의 외부 클릭(`click`)은 실제 주소를 `link_url`로 보낼 수 있다.
+  파일 링크는 `file_download`의 `link_url`, `link_text`, `file_name`으로도 수집될 수 있다. 이 자동 측정을 끄고 GTM의 별도
+  링크 클릭·다운로드 태그에서도 배우가 입력한 링크를 제외한다. `actor_screen_view`에 페이지 고정값을 넣는 것으로 이 링크 값이 정제되지는 않는다.
+  링크 이용 분석이 필요하면 이름·아이디·원본 URL을 담지 않는 별도 이벤트 계약을 먼저 정한다.
+
+게시 전 Preview와 실제 GA4 요청에서 다음 흐름을 확인한다. 문서 수정이나 코드 배포만으로 설정 적용·검증이 완료되지는 않는다.
+
+| 확인 흐름 | 완료 기준 |
+| --- | --- |
+| 새 방문자의 `/actors/@아이디` 직접 진입 | `first_visit`, `session_start`를 포함한 모든 이벤트에 실제 아이디·이름·URL이 없음. 페이지 정보는 고정값이거나 수집되지 않음 |
+| 배우 간 이동, 다른 화면에서 배우 화면 진입·이탈 | 자동 페이지 변경·참여 이벤트와 다음 화면의 유입 주소에도 배우 주소가 남지 않음 |
+| 배우의 일반 외부 링크·파일 링크 선택 | 자동 `click`·`file_download`와 별도 GTM 태그가 배우의 링크·표시 문구·파일명을 전송하지 않음 |
+| 분석 끄기·다시 켜기 | 꺼진 동안 수집하지 않고, 다시 켜면 초기화 명령 뒤에 화면 이벤트를 한 번 보냄 |
+
+공식 동작은 [GA4 자동 수집 이벤트](https://support.google.com/analytics/answer/9234069?hl=en),
+[향상된 측정](https://support.google.com/analytics/answer/9216061?hl=en),
+[페이지 조회 설정](https://developers.google.com/analytics/devguides/collection/ga4/views)을 따른다.
 
 GTM의 Google 태그는 GA4 측정 ID `G-JSQZT648EC`에 연결한다. Google 태그의 구성 매개변수에는
 `allow_google_signals=false`, `allow_ad_personalization_signals=false`를 지정한다. 커스텀 이벤트를 GA4로

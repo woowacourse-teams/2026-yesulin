@@ -7,6 +7,7 @@ import { HOME_DESCRIPTION, HOME_TITLE, SHARE_IMAGE } from "@/features/seo/auditi
 import "./globals.css";
 import "./interactions.css";
 import "./notebook.css";
+import "./workspace.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -50,6 +51,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link
           rel="stylesheet"
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
+        />
+        <link
+          rel="stylesheet"
+          href="https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans@v1.0.3/packages/wanted-sans/fonts/webfonts/variable/split/WantedSansVariable.min.css"
         />
       </head>
       <body className="min-h-full" suppressHydrationWarning>

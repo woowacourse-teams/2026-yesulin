@@ -8,7 +8,7 @@ import { auditionListMetadata } from "@/features/seo/audition-metadata";
 
 type Props = {
   readonly params: Promise<{ category: string }>;
-  readonly searchParams: Promise<{ page?: string | string[]; closed?: string | string[] }>;
+  readonly searchParams: Promise<{ page?: string | string[]; closed?: string | string[]; sort?: string | string[] }>;
 };
 
 async function listQuery({ params, searchParams }: Props) {
@@ -26,7 +26,7 @@ export default async function AuditionCategoryPage(props: Props) {
   const initialPage = await publishedAuditionPostPageForServer(query);
   return (
     <MswProvider>
-      <AuditionPostList key={`${query.category}-${query.page}-${query.includeClosed}`} query={query} initialPage={initialPage} />
+      <AuditionPostList key={`${query.category}-${query.page}-${query.includeClosed}-${query.sort ?? "latest"}`} query={query} initialPage={initialPage} />
     </MswProvider>
   );
 }

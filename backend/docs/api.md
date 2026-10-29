@@ -75,6 +75,78 @@ UNKNOWN은 자동 재전송하지 않는다. FAILED 중 code=RETRIED는 후속 �
 - `404 SMS_NOT_FOUND`: 본인 공고/배역/발송 기록이 아니거나 없는 경우.
 - `400 INVALID_REQUEST`: 합격자가 아닌 대상, 과거 일시, 잘못된 재전송 대상 등.
 
+## PDF 추출 확인
+
+`YESULIN_PDF_EXTRACTION_ENABLED=true`일 때만 아래 mapping을 등록한다. `/api/v1/**` 요청은 Active Producer를 요구하며,
+본인 작업이 아니거나 없는 UUID에는 동일하게 `404 PDF_EXTRACTION_NOT_FOUND`를 반환한다. 쓰기는 CSRF가 필요하다.
+이 API는 공연사 심사 작업(`PDF_REVIEW`)만 다룬다. 배우의 PDF로 프로필 채우기 작업은
+[별도 API](#pdf로-프로필-채우기배우용--6개)가 다룬다.
+전체 응답은 `Cache-Control: no-store`다. 제목·배역 기반 심사 등록과 선택적 AI 정보 정리(v1/v2 프로필)와 `PATCH /api/v1/pdf-reviews/{id}/role-assignments`는
+[PDF 심사 API](pdf-reviews.md)를 따른다.
+`GET /api/v1/pdf-reviews/{reviewId}/progress`는 본인 심사의 DB 작업 상태만 집계한
+`{total,uploading,waiting,completed,partial,failed,complete}`를 반환한다. PDF·S3·모델은 조회하지 않는다.
+`complete`는 처리 종료 여부이며 실패가 없다는 뜻은 아니다. 상세 집계 규칙은 같은 PDF 심사 API 문서를 따른다.
+AI 호출은 Lambda에서 수행하며 OCR은 포함하지 않는다. 완료 결과에는 선택적으로 `applicantInfo`가 포함된다.
+
+| Method | URL | 요청 / 응답 |
+| --- | --- | --- |
+| POST | `/api/v1/pdf-extractions/uploads` | `{originalFilename,size}` → 201 `{jobId,fileKey,upload:{url,method,expiresAt,headers}}` |
+| POST | `/api/v1/pdf-extractions/{jobId}/completion` | 빈 JSON → 202 job. 원본 크기·형식·PDF 서명 확인. 이미 확인한 작업은 재사용 |
+| GET | `/api/v1/pdf-extractions` | 최근 본인 작업 최대 800개 `{jobs:[job]}`. DB 메타데이터만 반환 |
+| GET | `/api/v1/pdf-extractions/{jobId}?includeResult=false` | 파일별 상태 조회. DB 상태만 읽고 S3는 조회하지 않음 |
+| GET | `/api/v1/pdf-extractions/{jobId}?includeResult=true` | 원본 임시 GET URL과 페이지별 텍스트·추출 이미지 URL을 포함한 job. 최종 상태일 때만 DB에 저장된 결과를 읽음 |
+| POST | `/internal/v1/pdf-extractions/completions` | Lambda 전용. 아래 "Lambda 결과 전달" 참고. 성공 시 200 `{jobId,status}` |
+| GET | `/internal/v1/pdf-extractions/{jobId}/review-context` | 워커 Bearer 전용. 작업 목적과 등록 심사·배역, 결과 저장 여부. [PDF 심사](pdf-reviews.md) 참고 |
+
+job은 `jobId,originalFilename,size,createdAt,uploadedAt,status,sourceFileKey,resultFileKey,sourceUrl,result`다.
+목록·상태 조회의 `sourceUrl,result`는 null이며, 상세 조회에서만 채운다. result는 `status,sourceSha256,errorCode,warnings,pages`와
+선택적 `applicantInfo`(이전 워커는 생략)이고,
+page는 `number,text,needsOcr,images`, image는 `fileKey,url,classification=UNCLASSIFIED`다.
+URL은 응답 시 새로 서명하며 DB에는 저장하지 않는다. 원본·이미지는 공개 CDN으로 바꾸지 않는다.
+`resultFileKey`는 Lambda 재시도용 `result.json` 위치를 알려 줄 뿐 Spring은 이 객체를 읽지 않는다.
+
+파일당 PDF 25MiB, 파일명 255자 이하를 받는다. 프론트는 최대 800개를 선택하되 파일별로 URL을 발급하고 동시에 2개만 PUT한다.
+URL은 파일 한 개의 PUT을 서명하며 파일 여러 개를 한 URL에 넣지 않는다. 크기·Content-Type·`If-None-Match: *`를 서명해
+같은 원본 키를 덮어쓰지 않는다. URL 만료는 새 PUT만 막는다. 본인 작업의 원본이 이미 있고 크기·형식·PDF 서명이 맞으면
+만료 후 시간이 지나도 completion이 확인하며, 확인을 마친 작업의 재확인은 멱등이다. 조회(GET)는 원본을 찾거나 확인하지 않는다.
+
+PUT 완료가 Lambda 완료를 뜻하지 않는다. completion은 업로드만 확인하며 Lambda를 호출하지 않는다.
+설정된 S3 ObjectCreated 트리거가 파일별 비동기 처리를 시작한다.
+완료 알림은 로그인한 공연사의 SSE 연결(`/api/v1/pdf-extractions/events`)로 보낸다. 화면은 연결·재연결·완료 알림 때 DB 목록을 동기화하고, 정기적인 상태 폴링은 하지 않는다. 연결이 끊기면 수동 새로고침으로도 확인할 수 있다.
+
+상태는 `UPLOADING`, `UPLOAD_EXPIRED`, `QUEUED`, `DELAYED`, `COMPLETED`, `PARTIAL`, `FAILED`다.
+10분 이상 결과가 없어도 실패로 단정하지 않고 DELAYED로 표시한다. `needsOcr`는 텍스트가 비었다는 힌트이며 OCR 수행 결과가 아니다.
+로고와 사람 사진을 자동 분류하지 않는다. 추출 상세 JSON은 최대 2MiB다.
+
+### Lambda 결과 전달
+
+`POST /internal/v1/pdf-extractions/completions`는 `/api/v1`과 별도 보안 체인(`/internal/v1/pdf-extractions/**`, 전체 메서드)이며
+세션을 쓰지 않고 CSRF 예외는 이 POST 하나뿐이다. 모든 요청은 `Authorization: Bearer <secret>`을 요구하고, secret은 `YESULIN_PDF_EXTRACTION_CALLBACK_SECRET`
+(`yesulin.pdf-extraction.callback-secret`)과 상수 시간으로 비교한다. 32자 미만이거나 미설정이면 모든 요청을 거부한다.
+인증 실패는 본문 없는 `401`이며 secret과 본문은 기록하지 않는다. 로컬 프로필의 값은 가짜 토큰이다.
+
+요청은 `{jobId,sourceFileKey,pipelineVersion,result}`다. `sourceFileKey`는 응답 job의 `sourceFileKey`(물리 키)이고
+`pipelineVersion`은 `pdfium-v1`이다. `result`는 Lambda `result.json`과 같은 manifest(`jobId,pipelineVersion,source.key/sha256,
+status,warnings,pages[number,text,needsOcr,images[status,key]]`)다. 소유자는 `jobId`로 DB에서 찾으며 요청 값을 신뢰하지 않는다.
+요청에 포함된 URL은 읽지도 저장하지도 않는다.
+
+- 검증: `jobId`·`source.key`·`pipelineVersion`·이미지 key prefix(`.../results/{jobId}/pdfium-v1/images/*.png`)가 맞고,
+  `status`가 `COMPLETED/PARTIAL/FAILED`이며 직렬화 2MiB 이하, 50쪽 이하, 이미지 100개 이하, 쪽당 문자 100,000자 이하(전체 결과 JSON은 2MiB 이하),
+  쪽 번호가 1 이상이고 중복이 없어야 한다. 어긋나면 `400 INVALID_PDF_EXTRACTION_RESULT`, 없는 작업은 `404 PDF_EXTRACTION_NOT_FOUND`다.
+- 저장: 검증한 결과(경고는 표시 문장으로 변환, 이미지는 `EXTRACTED`만, URL 제외)를 작업당 한 번 `pdf_extraction_payloads`에
+  JSON과 서버가 계산한 SHA-256으로 저장하고 작업 상태·`uploadedAt`을 같은 트랜잭션에서 갱신한다. 프론트 completion보다 먼저 와도
+  유효하며 이때 `uploadedAt`을 기록한다. 이후 프론트 completion은 최종 상태를 덮지 않는다.
+- 멱등성: 같은 작업에 같은 결과를 다시 보내면 `200`이고 이벤트를 다시 발행하지 않는다. 다른 결과는 `409 PDF_EXTRACTION_RESULT_CONFLICT`다.
+- 이벤트: 최초 접수 시 실패 결과도 포함해 같은 트랜잭션에서 `PdfExtractionCompletedEvent(jobId, ownerId, text)`를 동기 발행한다.
+  `text`는 쪽 번호 순서로 `\n\n`으로 이은 추출 문자다. 리스너가 실패하면 저장과 상태 변경 전체를 되돌려 Lambda가 재시도할 수 있다.
+
+Spring은 `result.json`을 읽거나 목록 조회하지 않는다. 상세 조회는 DB 결과를 읽고 이미지·원본 URL만 새로 서명한다.
+
+- `400 INVALID_PDF`: 확장자·크기·PDF 서명이 부적절하다.
+- `409 PDF_UPLOAD_NOT_READY`: 아직 객체가 없거나 업로드 크기·형식이 맞지 않는다.
+
+미확인 작업은 업로드 URL 만료 60초 뒤부터 목록·상태에서 `UPLOAD_EXPIRED`로 표시하지만 completion은 계속 가능하다.
+
 ## Health와 인증 — 9개
 
 | Method | URL | 인증 | Request | Response |
@@ -230,7 +302,7 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 
 | Method | URL | 인증 | Request | Response |
 | --- | --- | --- | --- | --- |
-| GET | `/api/v1/public/audition-posts` | 공개 | `page`(0부터, 기본 0), `size`(1~48, 기본 12), `includeClosed`(기본 false), `category`(선택: 연극·퍼포먼스·뮤지컬·단원·기획사) query | `200 PublicAuditionPostPageResult(posts, page, size, totalPages, totalElements, openCount, allCount)` |
+| GET | `/api/v1/public/audition-posts` | 공개 | `page`(0부터, 기본 0), `size`(1~48, 기본 12), `includeClosed`(기본 false), `category`(선택: 연극·퍼포먼스·뮤지컬·단원·기획사), `sort`(`latest` 기본 / `deadline`) query | `200 PublicAuditionPostPageResult(posts, page, size, totalPages, totalElements, openCount, allCount)` |
 | GET | `/api/v1/public/audition-posts/{postId}` | 공개 | 없음 | `200 PublicAuditionPostResult`, 공개 중이 아니면 `302 Location: {원문 주소}`, 원문 없는 공고는 `404` |
 | POST | `/api/v1/public/audition-posts/{postId}/views` | 공개 | 없음 | `204`, 공개 중이 아니거나 없는 공고는 `404` |
 | POST | `/api/v1/public/audition-posts/{postId}/redirects` | 공개 | 없음 | `204`, 공개 중·없는 공고는 `404` |
@@ -251,14 +323,18 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 | POST | `/api/v1/admin/alert-chat-members` | Admin | `RecordAlertChatMembersRequest(memberCount)` | `201 AdminAlertChatMembersResult` |
 | POST | `/api/v1/public/audition-posts/{postId}/openchat-visits` | 없음(CSRF 필요) | 없음 | `204` |
 | POST | `/api/v1/public/otr/{externalId}/openchat-visits` | 없음(CSRF 필요) | 없음 | `204` |
-| GET | `/api/v1/admin/openchat/visits` | Admin | `page`(기본 0) | `200 AdminOpenChatVisitsResult(posts, page, size, totalPages, totalElements)` |
+| GET | `/api/v1/admin/openchat/visits` | Admin | `page` 기본 0, 선택 `startDate`·`endDate`(게시일, 함께 지정) | `200 AdminOpenChatVisitsResult(posts, page, size, totalPages, totalElements, totalVisits)` |
 | GET | `/api/v1/producers/me/audition-posts` | Active Producer | 없음 | `200 ProducerAuditionPostsResponse(posts)` |
 | POST | `/api/v1/producers/me/audition-posts` | Active Producer | `ProducerWriteAuditionPostRequest(category, title, pay, deadlineText, bodyHtml?, tags, attachmentUrls)` | `201 ProducerAuditionPostResult` |
 | POST | `/api/v1/producers/me/audition-posts/uploads` | Active Producer | `PrepareAuditionPostUploadRequest(kind: IMAGE/ATTACHMENT, filename, contentType?, size)` | `201 AuditionPostUploadResult(url, method, headers, expiresAt, publicUrl)` |
 | GET | `/api/v1/producers/me/audition-posts/{postId}` | Active Producer | 없음 | `200 AuditionPostEditResult` |
 | PUT | `/api/v1/producers/me/audition-posts/{postId}` | Active Producer | `ProducerWriteAuditionPostRequest(category, title, pay, deadlineText, bodyHtml?, tags, attachmentUrls)` | `200 ProducerAuditionPostResult` |
 
-공개 목록은 `PUBLISHED`만 원문 작성 시각 최신순으로 반환한다. 작성 시각을 읽지 못한 공고는 뒤에 온다.
+공개 목록은 `PUBLISHED`만 반환하고, `sort=latest`(기본)는 원문 작성 시각 최신순이다. 작성 시각을 읽지 못한 공고는 뒤에 온다.
+`sort=deadline`은 한국 날짜 기준 오늘을 포함한 모집 중 날짜 공고를 마감일 오름차순으로 먼저 보여 준다.
+날짜가 없는 상시 공고가 다음이며, `includeClosed=true`로 포함한 지난 마감 공고는 마지막에 최근 마감일부터 보여 준다.
+같은 마감일·날짜 없는 공고끼리는 원문 작성 시각 최신순, 같은 작성 시각은 ID 내림차순이다.
+정렬과 분야·모집 상태 필터를 전체 공고에 적용한 뒤 페이지를 나눈다.
 기본은 모집 중(마감일이 없거나 한국 날짜로 오늘 이후)인 공고만 세고, `includeClosed=true`면 마감된 공고도 포함한다.
 `category`는 선택 사항이며 연극·퍼포먼스·뮤지컬·단원·기획사 중 하나다. 앞뒤 공백을 제거하고 비교한다.
 분야를 지정하면 해당 분야만 대상으로 페이지를 나눈다. 생략하면 전체 분야다.
@@ -276,7 +352,7 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 브라우저를 원문으로 보낸다. 없는 공고는 `404 AUDITION_POST_NOT_FOUND`이고, 조회수 기록은 공개 중이 아니어도 404다.
 원문 이동 수는 프론트 서버가 공개 중이 아닌 공고를 원문으로 보내기 직전에 `redirects` POST를 한 번 보내 늘린다. 상세 GET은 세지 않는다.
 DB에서 1을 더하고 다시 가져와도 유지한다.
-page·size 범위 오류와 지원하지 않는 category는 `400 INVALID_REQUEST`다.
+page·size 범위 오류와 지원하지 않는 category·sort는 `400 INVALID_REQUEST`다.
 
 오픈채팅방 링크 방문은 상세 GET·메타데이터 조회가 아니라 공유용 출처 표시를 읽은 브라우저의 `openchat-visits` POST로만
 늘린다. 브라우저가 공고별 집계 표시를 저장해 중복 전송을 줄이며, 서버에는 방문자 ID·쿠키 값·개별 방문 이력을 저장하지 않는다.
@@ -284,9 +360,13 @@ page·size 범위 오류와 지원하지 않는 category는 `400 INVALID_REQUEST
 관리자 로그인 상태면 증가 없이 `204`다. 일반 공고 POST는 공개 상세 또는 원문 이동이 가능한 공고만 허용하고 나머지는
 `404 AUDITION_POST_NOT_FOUND`다. OTR POST는 숫자 1~30자 원문 번호이며 해당 OTR 알림이 없으면 같은 404다.
 형식 오류는 `400 INVALID_REQUEST`다. GET·미리보기는 이 숫자를 늘리지 않는다.
-관리자 응답은 전체 공고를 ID 최신순으로 20개씩 반환하고 0회도 표시한다. 각 항목은 `postId`, `title`, `status`,
+관리자 조회는 `startDate`·`endDate`(`YYYY-MM-DD`)를 함께 지정하면 한국 시간의 원문 게시일(`source_posted_at`)로
+양 끝 날짜를 포함해 거른다. 둘 다 생략하면 게시일이 없는 공고까지 포함한 전체 기간이다. 한쪽만 지정하거나
+시작일이 종료일보다 늦으면 `400 INVALID_REQUEST`다. 방문 발생일로 거르는 것이 아니므로 선택 기간 이후의 방문도 누적 수에 포함된다.
+관리자 응답은 누적 링크 방문 수 내림차순, 동률이면 ID 내림차순으로 20개씩 반환하고 0회도 표시한다. 각 항목은 `postId`, `title`, `status`,
 `postedAt`(Instant 또는 null), `visitCount`다. 가져오기 전 경유 방문 숫자는 원문 출처·번호로 연결된 알림에서 합산하며,
-아직 가져오지 않은 알림의 숫자는 공고를 가져온 뒤 목록에 나타난다. 음수 page는 `400 INVALID_REQUEST`다.
+아직 가져오지 않은 알림의 숫자는 공고를 가져온 뒤 목록에 나타난다. `totalElements`와 `totalVisits`는 페이지와 관계없이
+선택한 게시일 범위의 전체 공고 수와 누적 링크 방문 합계다. 음수 page는 `400 INVALID_REQUEST`다.
 브라우저 저장값 삭제·동시 탭·요청 재시도 등에 따라 중복될 수 있는 대략적인 지표다.
 
 `bodyHtml`은 서버가 Jsoup relaxed 허용 목록에서 `div`와 크기 속성을 뺀 태그만 남긴 HTML이다. 인라인 스타일과 스크립트는 없다.
@@ -466,7 +546,7 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 이미 연결된 공고는 그대로 둔다. 이후 가져오는 공고는 기획사 자동 연결과 함께 묶음 규칙으로 공연사가 없는 공고에 공연사를 연결한다.
 `admin_audit_logs`에 `AUDITION_POST_COMPANY_AUTHOR_LINKED`·`AUDITION_POST_COMPANY_AUTHOR_UNLINKED`로 남긴다.
 
-## 이벤트 — 10개
+## 이벤트 — 17개
 
 운영자가 쓰는 이벤트 글(`Event`)과 메인 상단 이벤트 배너다. 공개 API는 로그인 없이, 운영 API는 `ADMIN`만 호출한다. `eventId`는 숫자 ID다.
 
@@ -482,23 +562,42 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 | PUT | `/api/v1/admin/events/{eventId}` | Admin | `WriteEventRequest` | `200 AdminEventResult` |
 | PATCH | `/api/v1/admin/events/{eventId}/status` | Admin | `ChangeEventStatusRequest(status: PUBLISHED/HIDDEN)` | `200 AdminEventResult` |
 | DELETE | `/api/v1/admin/events/{eventId}` | Admin | 없음 | `204` |
+| POST | `/api/v1/public/events/{eventId}/registrations/photo-uploads` | 공개 | `PreparePhotoUploadRequest(contentType, size)` | `201 EventRegistrationPhotoUploadResult(url, method, headers, expiresAt, uploadKey)` |
+| POST | `/api/v1/public/events/{eventId}/registrations` | 공개 | `RegisterRequest` | `201 CreatedResponse(id)` |
+| GET | `/api/v1/admin/events/{eventId}/registrations` | Admin | 없음 | `200 AdminEventRegistrationsResponse(registrations)` |
+| GET | `/api/v1/admin/events/{eventId}/registrations/business-card-archive` | Admin | 없음 | `200 application/zip` |
+| DELETE | `/api/v1/admin/events/{eventId}/registrations/{registrationId}` | Admin | 없음 | `204` |
+| PATCH | `/api/v1/admin/events/{eventId}/registration-status` | Admin | `{ closed: boolean }` | `200 AdminEventResult` |
+| PATCH | `/api/v1/admin/events/{eventId}/registrations/{registrationId}/payment-status` | Admin | `{ paymentStatus: PENDING 또는 CONFIRMED }` | `200 AdminEventRegistrationResult` |
 
-`WriteEventRequest`는 `title`(필수, 100자), `summary`(목록 소개, 200자), `body`(필수, 줄바꿈을 살린 텍스트, 5000자),
+`WriteEventRequest`는 `title`(필수, 100자), `summary`(목록 소개, 200자), `body`(필수 개요, 대표 이미지 옆에 보이는 자유 형식 텍스트, 줄바꿈 유지, 2000자),
+`registrationCapacity`(관계자·배우(일반 참가자 포함) 합산 총정원, null은 무제한, 1명 이상의 정수),
 `startsOn`·`endsOn`(`YYYY-MM-DD`, 종료일이 시작일보다 앞서면 400), `applyUrl`(http·https 주소, 500자), `applyLabel`(신청 버튼 문구,
-30자, `applyUrl`이 없으면 지운다), `coverImageUrl`(대표 이미지), `banner(enabled, desktopImageUrl, mobileImageUrl, alt, endsOn, order)`다.
+30자, `applyUrl`도 참가 신청서도 없으면 지운다), `registrationEnabled`(켜면 신청 버튼이 외부 주소 대신 예술in 참가 신청서를 연다),
+`registrationNotice`(참가 신청서 위에 보일 보증금·계좌 같은 안내, 줄바꿈을 살린 2000자, 신청서를 끄면 지운다),
+`registrationConfirmationEnabled`(기본 false, 신청 전 확인 팝업 사용), `registrationConfirmationMessage`(팝업 안내, 줄바꿈 유지, 2000자,
+팝업을 켜면 필수이며 공백만 있는 값은 거절한다. 팝업이나 참가 신청서를 끄면 내용을 지운다),
+`businessCardClosesAt`(배우의 프로필 명함 제작 희망을 받는 마감 시각, ISO-8601, 비우면 신청 기간 내내 받고 신청서를 끄면 지운다), `coverImageUrl`(대표 이미지), `detailBody`(선택적 하단 상세 설명, 줄바꿈 유지, 2000자),
+`detailImageUrls`(선택적 하단 상세 이미지 주소 배열, 순서 유지, 최대 10장, 빈 주소·중복 거절), `banner(enabled, desktopImageUrl, mobileImageUrl, alt, endsOn, order)`다.
+`detailBody`와 `detailImageUrls`는 각각 독립적이라 설명만 또는 이미지만 등록할 수 있다. 상세 이미지 배열을 생략하거나 null·빈 배열로 보내면 모두 지운다.
+이미지는 기존 이벤트 이미지 업로드 API로 올리며, 이 이벤트에서 이미 쓰는 주소 또는 해당 운영자가 새로 올린 주소만 확정한다.
 글을 통째로 바꾸며 빈 문자열이나 null인 항목은 지우고, `banner`가 null이면 배너를 끈다. 배너를 켜려면 PC·모바일 배너 이미지와 `alt`(200자)가
 모두 있어야 한다. `banner.endsOn`은 이 날(한국 날짜)까지 노출하고 비우면 내릴 때까지 노출한다. `order`는 0~99이고 작은 순서가 먼저다.
 검증 오류는 `400 EVENT_INVALID_INPUT`이다.
 
 새 글은 `PENDING`이다. 상태 변경은 `PUBLISHED`와 `HIDDEN`만 받으며, 공개하거나 내린 글을 `PENDING`으로 되돌리면 400이다.
-`AdminEventResult`는 저장된 모든 항목과 이미지 공개 주소(`coverImageUrl`, `banner.desktopImageUrl`, `banner.mobileImageUrl`),
+`AdminEventResult`는 저장된 모든 항목(`detailBody`, `detailImageUrls` 포함)과 이미지 공개 주소(`coverImageUrl`, `banner.desktopImageUrl`, `banner.mobileImageUrl`),
 지금 메인 배너에 보이는지(`bannerVisible`, 아래 배너 API와 같은 기준이라 5개 제한에 밀린 글은 false), `phase`, `status`, `createdAt`, `updatedAt`을 담는다. 운영 목록은 최근 만든 200건까지 준다.
-삭제는 다른 기능이 참조하지 않는 운영자 글이라 행을 바로 지우고(되돌릴 수 없다) 대표·배너 이미지도 커밋 뒤 저장소에서 지운다.
+삭제는 운영자 글이라 행을 바로 지우고(되돌릴 수 없다) 받은 참가 신청과 대표·상세·배너 이미지·신청 사진도 커밋 뒤 저장소에서 지운다. 같은 이벤트의 다른 이미지 위치에서 계속 쓰는 객체는 수정 시 지우지 않는다.
 없는 글은 `404 EVENT_NOT_FOUND`다. 생성·수정·상태 변경·삭제는 `admin_audit_logs`에 `EVENT_CREATED`·`EVENT_EDITED`·
 `EVENT_STATUS_CHANGED`·`EVENT_DELETED`로 남기며 글 원문은 담지 않는다.
 
 공개 목록·상세는 `PUBLISHED`인 글만 보여 주고, 없거나 공개 전·내린 글은 `404 EVENT_NOT_FOUND`다. 목록은 최근 만든 순으로 100건까지
-`id`, `title`, `summary`, `startsOn`, `endsOn`, `phase`, `coverImageUrl`을 준다. 상세는 여기에 `body`, `applyUrl`, `applyLabel`을 더한다.
+`id`, `title`, `summary`, `startsOn`, `endsOn`, `phase`, `coverImageUrl`을 준다. 상세는 여기에 `body`(개요), `detailBody`, `detailImageUrls`(등록 순서), `applyUrl`, `applyLabel`,
+`registrationEnabled`, `registrationOpen`(지금 참가 신청을 받는지), `registrationNotice`, `businessCardClosesAt`,
+`businessCardOpen`(참가 신청을 받는 중이고 명함 제작 마감 시각 전인지)을 더한다. 운영 결과도 `registrationEnabled`,
+`registrationNotice`, `businessCardClosesAt`, `registrationConfirmationEnabled`, `registrationConfirmationMessage`를 준다.
+공개 상세도 팝업 설정 두 필드를 포함한다. 팝업은 입력 검사를 통과한 뒤 표시하며 최종 확인 전에는 신청을 보내지 않는다.
 `phase`는 한국 날짜로 시작일 전이면 `UPCOMING`, 종료일이 지났으면 `ENDED`, 나머지(기간을 비운 글 포함)는 `ONGOING`이다.
 배너 API는 `PUBLISHED`이고 배너를 켰으며 노출 종료일이 지나지 않은 글을 `order` 순(같으면 최근 글 먼저)으로 5개까지
 `eventId`, `title`, `alt`, `desktopImageUrl`, `mobileImageUrl`로 준다. 화면은 이 배너를 고정 배너 사이에 넣고 누르면 이벤트 상세로 간다.
@@ -509,6 +608,55 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 그대로, 이 운영자가 올린 이미지면 바꾸고, 비우면 지운다. 다른 주소나 다른 운영자의 업로드, 형식·크기·파일 앞부분(JPEG·PNG·WebP 서명)이
 다른 업로드는 400이다. 바꾸거나 지운 이미지는 커밋 뒤 저장소에서 지우고, 하루가 지나도록 확정하지 않은 업로드는 매일 04:50(한국 시간)
 정리 작업이 지운다.
+
+### 이벤트 참가 신청
+
+`registrationEnabled`를 켠 이벤트는 로그인 없이 예술in 참가 신청서로 신청을 받는다. 공개했고 참가 신청서를 켰으며 한국 날짜로
+종료일이 지나지 않은 이벤트만 받는다. 공개하지 않은 이벤트는 `404 EVENT_NOT_FOUND`, 신청서를 끄거나 종료일이 지난 이벤트는
+`409 EVENT_REGISTRATION_CLOSED`다. 명함 제작 마감 시각이 지나면 참가 신청은 계속 받되, 명함 희망 신청과 명함 사진 업로드는
+`409 EVENT_BUSINESS_CARD_CLOSED`다. 쓰기 요청은 CSRF 헤더가 필요하다.
+
+`RegisterRequest`는 `participantType`(`ACTOR` 배우/일반 참가자·`PRODUCER` 관계자), `name`(50자), `phone`(`010-1234-5678`, 숫자만 적어도 같은 형식으로 정리),
+`affiliation`(공연사 관계자만 필수인 소속, 100자), `currentWork`(공연사 관계자만 필수인 지금 하고 계신 일, 500자), `businessCardRequested`(배우가 프로필 명함 제작을 희망하는지),
+`privacyAgreed`(true 필수)다. 명함을 희망한 배우는 명함에 들어갈 `email`(254자), 선택적인 `snsPlatform`(`INSTAGRAM`·`THREADS`·`YOUTUBE`)과
+`snsHandle`(계정명 또는 채널명, 20자 이내, URL 불가), `birthDate`(미래 날짜 불가),
+`photoUploadKey`, `activityFields`(하나 이상, `THEATER`·`MUSICAL`·`MEDIA`·`YOUTUBE`·`OTHER`), `otherActivity`(`OTHER`를 고르면 필수, 50자),
+`noCareer`(신입이라 경력 없음), `careers`(`noCareer`가 아니면 1~10줄, 각 `performedMonth`(`YYYY-MM`)·`workTitle`(100자)·`role`(선택, 50자).
+`noCareer`면 비워야 한다), `intro`(뒷면 한 줄 소개, 선택, 40자)를 더 적는다. 휴대폰 번호는 명함에 넣지 않는다. 구분에 맞지 않는 칸과 명함을 원하지 않는 배우의 명함 정보는
+저장하지 않는다. SNS 유형과 계정명은 함께 입력하거나 둘 다 비운다. 예전 신청의 긴 SNS 값은 보존하고 유형을 추정해 채우지 않는다.
+같은 이벤트에 같은 휴대폰 번호로
+다시 신청하면 `409 EVENT_REGISTRATION_DUPLICATE`, 검증 오류는 `400 EVENT_INVALID_INPUT`이다.
+
+명함을 희망한 배우는 먼저 `photo-uploads`로 비공개 경로(`private/event-registration-photos/...`)에 올릴 자리를 받아 저장소에 바로 올린 뒤, 받은 `uploadKey`를
+신청에 담는다. 형식·크기·파일 앞부분 기준은 이벤트 이미지와 같다(JPEG·PNG·WebP, 5MB). 신청할 때 올라온 사진을 확인해 한 번만 확정하고,
+하루가 지나도록 확정하지 않은 업로드는 매일 04:55(한국 시간) 정리 작업이 지운다.
+
+운영 목록은 이벤트의 신청을 먼저 온 순서로 주며, 배우 사진은 잠깐 열리는 내려받기 주소(`photoUrl`)로 주고, 명함 희망 여부(`businessCardRequested`)와
+SNS 유형(`snsPlatform`, 기존 신청은 null 가능)과 관계자의 지금 하는 일(`currentWork`, 기존 신청은 null)을 함께 준다. 명함 자료 내려받기의 JSON과 CSV에도 SNS 유형을 포함한다. 분야는 위 순서대로,
+경력은 적은 순서대로 준다. 없는 이벤트는 `404 EVENT_NOT_FOUND`다.
+신청 삭제는 되돌릴 수 없고 사진도 커밋 뒤 저장소에서 지우며, `admin_audit_logs`에 `EVENT_REGISTRATION_DELETED`로 남기되 신청 내용은 담지 않는다.
+이 이벤트에 없는 신청은 `404 EVENT_REGISTRATION_NOT_FOUND`다. 이벤트를 지우면 받은 신청과 사진도 함께 지운다.
+
+참가 신청은 입금 여부와 무관하게 접수 완료 순으로 총정원을 차지한다. 정원 도달·수동 마감·기간 종료 후 POST와 사진 업로드는
+`409 EVENT_REGISTRATION_CLOSED`로 거절한다. 기존 신청과 안내는 유지한다. 정원 축소 시 기존 신청을 지우지 않는다.
+관리자·공개 상세는 `registrationCapacity`, `registrationCount`, `registrationClosed`, `registrationStatus`를 포함한다.
+공개 목록도 `registrationStatus`를 포함하며 값은 `OPEN`·`CLOSED`(수동)·`FULL`(정원 도달)·`ENDED`·`DISABLED`다.
+`registrationOpen`은 이 상태가 OPEN일 때만 true다. 공개 여부·종료일·수동 마감·정원 순으로 판정한다.
+
+모집 상태 PATCH는 참가 신청서를 사용하는 이벤트의 수동 마감 여부만 바꾼다. 안내·팝업·명함 마감·신청자는 유지한다.
+false로 바꿔도 종료일과 정원 조건을 다시 검사한다. 변경은 `EVENT_REGISTRATION_STATUS_CHANGED`로 기록한다.
+신청 삭제로 빈자리가 생기면 자동 마감은 해제되지만 수동 마감은 유지한다.
+
+운영 명단은 `paymentStatus`(`PENDING` 기본·`CONFIRMED`)와 `paymentConfirmedAt`(미확인은 null)을 포함한다.
+입금 상태 PATCH는 해당 이벤트의 신청만 수정한다. 없는 신청·다른 이벤트의 신청은 404, 누락·잘못된 상태는 400이다.
+동일 상태는 확인 시각과 감사 기록을 추가하지 않는다. 실제 변경은 `EVENT_REGISTRATION_PAYMENT_CHANGED`로 남긴다.
+기존 데이터도 미확인으로 시작하며 은행 조회는 하지 않는다. 일반 참가자는 `ACTOR`로 신청하며 명함 제작을 선택하지 않으면 이름·휴대폰·동의만 필요하다. 별도 일반인 구분은 없다.
+
+명함 자료 내려받기(`business-card-archive`)는 명함을 희망한 배우만 먼저 온 순서로 zip 하나에 담는다. `business-cards.json`(명함 생성용,
+`id`·`name`·`birthDate`·`email`·`snsHandle`·`snsPlatform`·`activityFields`·`otherActivity`·`noCareer`·`careers`·`intro`·`photoFile`·`createdAt`),
+`business-cards.csv`(엑셀용 UTF-8 BOM, 수식으로 읽히지 않게 `=`·`+`·`-`·`@`로 시작하는 칸 앞에 `'`), `photos/{신청 번호}.{jpg|png|webp}`를 넣는다.
+휴대폰 번호와 저장소 키는 넣지 않는다. 사진은 한 장씩 읽어 바로 내보내며, 읽지 못한 사진은 `photoFile`을 비운다.
+내려받을 때마다 `admin_audit_logs`에 `EVENT_REGISTRATION_EXPORTED`(인원 수만)로 남긴다. 없는 이벤트는 `404 EVENT_NOT_FOUND`다.
 
 ## 무료 공연과 비회원 예매 — 21개
 
@@ -640,7 +788,7 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 `400 TIMETABLE_INVALID_INPUT`이다. 기획사가 시간을 옮긴 배우의 응답은 `UNANSWERED`로 돌아간다. 시간 변경 문의는 300자 이하이며 열린 문의가 있으면 내용을 바꾸고, 담당자 문의
 알림은 아직 보내지 않은 알림이 없을 때만 대기열에 넣는다.
 
-## 배우 프로필과 보관함·비공개 파일 — 14개
+## 배우 프로필과 보관함·비공개 파일 — 18개
 
 | Method | URL | 인증 | Request | Response |
 | --- | --- | --- | --- | --- |
@@ -652,19 +800,253 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 | POST | `/api/v1/applicants/me/photo-library/photos` | Applicant | `AddPhotoToLibraryRequest(fileId)` | `201 PhotoLibraryItemResult` |
 | PATCH | `/api/v1/applicants/me/photo-library/photos/{photoId}/representative` | Applicant | 없음 | `200 PhotoLibraryResult` |
 | PATCH | `/api/v1/applicants/me/photo-library/photos/{photoId}` | Applicant | `MovePhotoRequest(displayOrder)` | `200 PhotoLibraryResult` |
+| PATCH | `/api/v1/applicants/me/photo-library/photos/{photoId}/visibility` | Applicant | `{visibility: PUBLIC/PRIVATE}` | `200 PhotoLibraryResult` |
+| POST | `/api/v1/applicants/me/photo-library/photos/{photoId}/public-copy/upload-requests` | Applicant | `{contentType, size}` | `201 {url, method, headers, expiresAt, uploadKey}` |
+| PATCH | `/api/v1/applicants/me/photo-library/photos/{photoId}/public-copy/completion` | Applicant | `{uploadKey}` | `200 PhotoLibraryItemResult` |
 | DELETE | `/api/v1/applicants/me/photo-library/photos/{photoId}` | Applicant | 없음 | `204` |
 | GET | `/api/v1/applicants/me/video-library/videos` | Applicant | 없음 | `200 VideoLibraryResult` |
 | POST | `/api/v1/applicants/me/video-library/videos` | Applicant | `AddVideoToLibraryRequest(url)` | `201 VideoLibraryItemResult` |
 | PATCH | `/api/v1/applicants/me/video-library/videos/{videoId}` | Applicant | `MoveVideoRequest(displayOrder)` | `200 VideoLibraryResult` |
+| PATCH | `/api/v1/applicants/me/video-library/videos/{videoId}/visibility` | Applicant | `{visibility: PUBLIC/PRODUCER}` | `200 VideoLibraryResult` |
 | DELETE | `/api/v1/applicants/me/video-library/videos/{videoId}` | Applicant | 없음 | `204` |
 | GET | `/api/v1/files/{fileId}/content` | 세션 | 없음 | `200` 원본 Content-Type의 파일 바이트 |
 
 프로필 기본 정보는 이름, 양수 키·몸무게, 미래가 아닌 생년월일, 성별, `000-0000-0000` 연락처, email과 거주 지역이다.
 거주 지역은 100자 문자열이고, 프론트가 `시·도 시·군·구` 형태로만 채운다.
-추가 정보의 학력은 `educationLevel`(`NONE`·`HIGH_SCHOOL`·`UNIVERSITY`), `school`, `major`로 표현한다. 학력 없음은 학교·전공 없이, 고등학교 졸업은 학교만, 대학교 졸업은 학교와 전공을 함께 보낸다. 링크 최대 5개, 경력 최대 10개다.
+추가 정보의 학력은 `educationLevel`(`NONE`·`HIGH_SCHOOL`·`UNIVERSITY`), `school`, `major`로 표현한다. 학력 없음은 학교·전공 없이, 고등학교 졸업은 학교만, 대학교 졸업은 학교와 전공을 함께 보낸다. 링크 최대 5개, 프로필 경력 최대 30개다.
+프로필 경력은 `{year, title, roleName, genre?}`이며 genre는 선택 값이다. 생략하거나 null이면 미분류로 유지한다.
+장르 값은 `THEATER`(연극), `MUSICAL`(뮤지컬), `DANCE`(무용), `FILM`(영화), `DRAMA`(드라마),
+`WEB_DRAMA`(웹드라마), `SHORT_FORM`(숏폼), `COMMERCIAL`(광고), `OTHER`(기타)다. 잘못된 값은 `400 INVALID_REQUEST`다.
+지원서 제출 경력은 기존대로 최대 10개이고 `{year, title, roleName}`만 받으며 장르는 포함하지 않는다.
 배우 사진은 JPEG·PNG·WebP 최대 20MB, 사진 보관함 최대 3개, 영상 보관함 최대 3개다.
+사진 항목 응답은 `{id, fileId, imageUrl, displayOrder, representative, createdAt, visibility, publicCopyUrl}`이며 visibility는
+`PUBLIC/PRIVATE`(기존 행·새 사진 모두 기본 PRIVATE)다. `publicCopyUrl`은 배우 페이지용 공개 사본의 CDN 주소이고, 사본이 없으면
+null이다. 영상 항목 응답은 `{id, url, youtubeId, displayOrder, createdAt, visibility}`이며 `PUBLIC/PRODUCER`(기본 PRODUCER)다.
+기존 대표 사진(`representative`)은 지원서용 보관함 첫 사진이고, 페이지 대표는 공개 사본이 있는 PUBLIC 사진 중 첫 사진이다.
+
+공개 사본은 화면이 보관함 원본(`imageUrl`)을 받아 JPEG로 줄인 뒤 만든다. 업로드 준비는 PUBLIC 사진에만 할 수 있고
+`contentType`은 `image/jpeg`, `size`는 10MB 이하여야 한다. 받은 `url`에 `headers`를 그대로 붙여 PUT하고, 같은 사진의
+completion에 `uploadKey`를 보내면 서버가 형식·크기·JPEG 서명을 확인한 뒤 사진에 붙이고 그 사진 항목을 돌려준다.
+이미 붙은 키로 다시 확정하면 같은 결과를 돌려준다. 새 사본을 붙이면 이전 사본은 커밋 뒤 지운다.
+
+| 코드 | 상태 | 상황 |
+| --- | --- | --- |
+| PHOTO_LIBRARY_PHOTO_NOT_PUBLIC | 409 | 비공개 사진에 사본을 준비하거나 확정 |
+| PHOTO_LIBRARY_INVALID_PUBLIC_COPY | 400 | JPEG가 아니거나 10MB 초과, 이 배우·사진에 준비하지 않은 업로드 키 |
+| FILE_METADATA_MISMATCH | 409 | 아직 올리지 않았거나 크기·형식이 다르거나 JPEG가 아님. 같은 주소로 다시 올린 뒤 확정한다 |
+다른 회원의 사진·영상 ID와 없는 ID는 기존 보관함 NOT_FOUND 규칙을 따른다.
 비공개 사진 내용은 파일 소유 배우나 그 파일이 첨부된 지원서의 공고 소유 공연사만 조회한다. 사진을 찾을 수 없거나 접근할
 수 없으면 모두 `404 FILE_NOT_FOUND`를 반환하고, `Cache-Control: no-store, must-revalidate`를 사용한다.
+
+## 배우 페이지 설정(배우용) — 8개
+
+모두 Applicant 세션이 필요하고 쓰기는 기존 CSRF 규칙을 따른다. 설정 조회는 페이지가 없어도 저장하지 않은 기본값을 반환한다.
+
+| Method | URL | Request | Response |
+| --- | --- | --- | --- |
+| GET | `/api/v1/applicants/me/actor-page` | 없음 | `200 ActorPageSettingsResult` |
+| GET | `/api/v1/applicants/me/actor-page/preview` | 없음 | `200 PublicActorPageResult` |
+| GET | `/api/v1/applicants/me/actor-page/handle-availability?handle=` | handle query | `200 {handle, available, reason}` |
+| PUT | `/api/v1/applicants/me/actor-page/handle` | `{handle}` | `200 ActorPageSettingsResult` |
+| PATCH | `/api/v1/applicants/me/actor-page/visibility` | `{education?, careers?, coverLetter?, specialty?, hobbies?, nationality?, links?}` | `200 ActorPageSettingsResult` |
+| PUT | `/api/v1/applicants/me/actor-page/publication` | `{agreed, consentVersion}` | `200 ActorPageSettingsResult` |
+| DELETE | `/api/v1/applicants/me/actor-page/publication` | 없음 | `200 ActorPageSettingsResult` |
+| POST | `/api/v1/applicants/me/actor-page/publish-prompt` | 없음 | `204` |
+
+`ActorPageSettingsResult`는 다음 필드를 반환한다.
+
+```text
+publicId(UUID, 미저장 기본값은 null), handle(null 가능), handleEditable, status(PRIVATE/PUBLIC),
+autoHiddenReason(null/UNDER_14/MISSING_REQUIRED), locked, lockReason, unlockedAt,
+firstPublishedAt, publishedAt,
+fieldVisibilities{education, careers, coverLetter, specialty, hobbies, nationality, links},
+readiness{ready, missing[], underAge, locked}, publishPromptShown, consentVersion,
+pageRepresentativePhotoId(null 가능)
+```
+
+항목별 visibility는 PUBLIC/PRIVATE이고 생략된 항목은 유지한다. 저장된 설정이 없으면 PRIVATE다.
+readiness.missing은 HANDLE, NAME, GENDER, BIRTH_DATE, PUBLIC_PHOTO 중 부족한 항목이며, 만 14세 미만이거나 잠금 중이면 ready=false다.
+PUBLIC_PHOTO는 공개 사본이 있는 PUBLIC 사진이 하나도 없다는 뜻이다. PUBLIC 사진이어도 사본이 없으면 채우지 않는다.
+비공개 요청(DELETE)은 공개 중이던 페이지의 모든 사진 사본을 지운다. 다시 공개하려면 사본을 다시 만든다.
+현재 consentVersion은 `actor-page-publish-v1.0`이다. 공개 요청은 동의·현재 버전, 잠금, readiness 순으로 검사한다.
+이미 공개 중이면 시각·동의 기록을 추가하지 않고, 비공개 요청도 멱등이다. 팝업 표시 시각은 최초 한 번만 기록한다.
+
+아이디는 앞뒤 공백 제거·소문자로 정규화하고 영문 소문자·숫자·마침표·밑줄 1~30자만 허용한다.
+마침표 시작·끝·연속은 금지한다. 예약어는 admin, administrator, yesulin, official, support, help, api, www,
+me, root, system, null, undefined이며 정확히 일치할 때만 금지한다. 처음 공개한 후에는 배우가 변경할 수 없다.
+availability는 정규화된 handle과 available, reason(null/INVALID_FORMAT/RESERVED/TAKEN/LOCKED)을 반환한다.
+내 현재 아이디는 available=true이며, 다른 아이디는 handleEditable=false일 때 LOCKED다.
+
+| 코드 | 상태 | 상황 |
+| --- | --- | --- |
+| ACTOR_HANDLE_INVALID | 400 | 아이디 형식 위반 |
+| ACTOR_HANDLE_RESERVED | 400 | 예약어 |
+| ACTOR_HANDLE_TAKEN | 409 | 다른 페이지에서 사용 중(동시 요청의 DB 중복 포함) |
+| ACTOR_HANDLE_LOCKED | 409 | 처음 공개 후 아이디 변경 |
+| ACTOR_PAGE_CONSENT_REQUIRED | 400 | 동의 없음·버전 불일치 |
+| ACTOR_PAGE_LOCKED | 409 | 잠금 중 공개 시도 |
+| ACTOR_PAGE_NOT_READY | 409 | 공개 조건 부족(한국어 메시지) |
+| ACTOR_PAGE_CONFLICT | 409 | 프로필이 없는 회원의 첫 쓰기 요청이 동시에 들어와 페이지 생성이 겹침. 다시 시도하면 된다 |
+
+잘못된 enum과 필수 값 누락은 기존 `400 INVALID_REQUEST`다. 공개 조회와 운영자 API는 아래 절을 따른다.
+
+미리보기는 공개 상태·공개 조건과 무관하게 지금 공개하면 보일 내용을 공개 조회(`PublicActorPageResult`)와 같은 모양으로 준다.
+항목·영상 공개 규칙은 공개 조회와 같고, 사진은 PUBLIC 사진을 보관함 순서로 담되 공개 사본이 없으면 본인만 받는 원본 주소
+(`/api/v1/files/{fileId}/content`)를 쓴다. 페이지를 만든 적이 없으면 publicId·handle이 null이고 모든 항목이 비공개다.
+이름·성별·생년월일을 입력하지 않았으면 name·gender·birthYear·age도 null이다. `Cache-Control: no-store`로 응답한다.
+
+## 배우 목록과 배우 페이지(공개) — 2개
+
+세션을 읽지 않으므로 로그인 여부·역할과 무관하게 같은 응답이다. 비공개 전환이 바로 보이도록 `Cache-Control: no-store`로 응답한다.
+
+| Method | URL | 인증 | Request | Response |
+| --- | --- | --- | --- | --- |
+| GET | `/api/v1/public/actor-pages?page=0&size=12&sort=recent` | 공개 | query | `200 PublicActorPagePageResult(actorPages, page, size, totalPages, totalElements)` |
+| GET | `/api/v1/public/actor-pages/by-handle/{handle}` | 공개 | 없음 | `200 PublicActorPageResult` |
+
+목록은 공개 중이고 잠기지 않은 페이지만 담는다. page는 0 이상, size는 1~48이고 sort는 `recent`만 받는다(그 밖은 `400`).
+`recent`는 `lastPublicActivityAt` 내림차순, 같으면 페이지 ID 내림차순이다. 카드(`PublicActorPageSummaryResult`)는 다음 필드다.
+
+```text
+publicId, handle, name, gender(FEMALE/MALE), birthYear, age, height(null 가능), weight(null 가능),
+representativePhotoUrl(null 가능)
+```
+
+`PublicActorPageResult`는 카드 필드에 다음 필드를 더한다.
+
+```text
+photos[{url}], videos[{url, youtubeId}], careerGroups[{genre(null=미분류), careers[{year, title, roleName}]}],
+coverLetter, specialty, hobbies, nationality, education{level, school, major}(null 가능), links[{url}]
+```
+
+- age는 한국 날짜 기준 만 나이다. 생년월일 전체·연락처·주소·병역은 담지 않는다.
+- 학력·경력·자기소개·특기·취미·국적·외부 링크는 배우가 공개로 설정한 항목만 담고, 나머지는 null 또는 빈 배열이다.
+  학력은 공개여도 입력한 값이 없으면 null이다.
+- photos는 공개 사본이 있는 PUBLIC 사진을 보관함 순서로 담은 공개 사본 주소이고, 첫 번째가 representativePhotoUrl이다.
+  videos는 PUBLIC 영상만 담는다. PRODUCER 영상은 누가 보더라도 담지 않는다.
+- careerGroups는 장르 순서(THEATER, MUSICAL, DANCE, FILM, DRAMA, WEB_DRAMA, SHORT_FORM, COMMERCIAL, OTHER) 뒤에
+  미분류를 둔다. 묶음 안에서는 연도가 최근인 순이고, 같은 연도는 프로필 순서다.
+- handle은 대소문자를 구분하지 않고 찾는다. 응답의 handle이 정규 아이디이므로 프론트가 다르면 정규 주소로 이동한다.
+
+| 코드 | 상태 | 상황 |
+| --- | --- | --- |
+| ACTOR_PAGE_NOT_FOUND | 404 | 아이디 형식 위반, 없는 아이디, 비공개·운영자 잠금·자동 비공개·공개 조건 미충족. 모두 같은 응답이다 |
+
+공연사의 관심 저장 여부는 이 응답에 넣지 않는다. 저장 버튼은 아래 공연사 관심 배우 API로 상태를 받아 화면에서 그린다.
+
+## 배우 페이지 관리(운영자용) — 5개
+
+모두 Admin 세션이 필요하고 쓰기는 기존 CSRF 규칙을 따른다. `publicId`는 배우 페이지의 UUID이며 아이디가 바뀌어도 유지된다.
+
+| Method | URL | Request | Response |
+| --- | --- | --- | --- |
+| GET | `/api/v1/admin/actor-pages?handle=&page=0&size=20` | query | `200 AdminActorPagePageResult(actorPages, page, size, totalPages, totalElements)` |
+| GET | `/api/v1/admin/actor-pages/{publicId}` | 없음 | `200 AdminActorPageResult` |
+| PUT | `/api/v1/admin/actor-pages/{publicId}/lock` | `{reason}` | `200 AdminActorPageResult` |
+| DELETE | `/api/v1/admin/actor-pages/{publicId}/lock` | 없음 | `200 AdminActorPageResult` |
+| PUT | `/api/v1/admin/actor-pages/{publicId}/handle` | `{handle}` | `200 AdminActorPageResult` |
+
+목록은 공개·비공개·잠금·자동 비공개 페이지를 모두 포함한다. `handle`은 앞뒤 공백 제거·소문자 정규화 후 부분 일치로 찾고,
+생략하거나 비우면 전체다. `page`는 0 이상, `size`는 1~100이며 범위를 벗어나면 `400 INVALID_REQUEST`다.
+`updatedAt` 내림차순, 같으면 페이지 ID 내림차순이다. 목록 항목(`AdminActorPageSummaryResult`)은 다음 필드다.
+
+```text
+publicId, handle(null 가능), name(null 가능), status(PRIVATE/PUBLIC), autoHiddenReason,
+locked, lastPublicActivityAt(null 가능), updatedAt
+```
+
+상세와 변경 성공 응답은 연락처가 있어 `Cache-Control: no-store`로 응답한다. `AdminActorPageResult`는 다음 필드다.
+
+```text
+publicId, handle(null 가능), ownerMemberId, status, autoHiddenReason, locked, lockReason,
+lockedAt, unlockedAt, firstPublishedAt, publishedAt, lastPublicActivityAt,
+readiness{ready, missing[], underAge, locked}, content(PublicActorPageResult),
+producerOnlyVideos[{url, youtubeId}], phone(null 가능), email(null 가능)
+```
+
+- `content`는 페이지 상태와 무관하게 배우가 공개로 설정한 항목과 PUBLIC 영상을 담는다. 사진은 공개 사본만 담고
+  원본 주소로 대체하지 않는다. 잠금 등으로 공개 사본을 지운 페이지는 사진이 비어 있다.
+- `producerOnlyVideos`는 PRODUCER 영상이며, `phone`·`email`은 현재 프로필 연락처다. 연락처 열람은 기록하지 않는다.
+- 잠금 사유는 공백만 있는 값을 허용하지 않고 500자 이하다. 앞뒤 공백을 제거해 저장하며 배우 설정 화면에 그대로 보인다.
+  잠그면 비공개로 전환하고 모든 공개 사본을 뗀다. 이미 잠겨 있으면 사유와 잠금 시각을 바꾼다.
+- 해제해도 비공개로 남고 해제 시각을 기록한다. 배우가 내용을 확인하고 공개 사본을 다시 만든 뒤 직접 공개한다.
+  잠기지 않은 페이지의 해제 요청은 변경·감사 기록 없이 현재 상세를 반환한다.
+- 운영자는 처음 공개한 뒤에도 아이디를 바꿀 수 있다. 배우용과 같은 정규화·형식·예약어·중복 규칙을 적용하지만
+  `ACTOR_HANDLE_LOCKED`는 적용하지 않는다. 옛 아이디는 바로 풀리며 옛 주소에서 새 주소로 이동시키지 않는다.
+  같은 아이디 요청은 변경·감사 기록 없이 현재 상세를 반환한다.
+- 잠금(사유 수정 포함)·해제·아이디 변경은 `ACTOR_PAGE_LOCKED`, `ACTOR_PAGE_UNLOCKED`, `ACTOR_PAGE_HANDLE_CHANGED`로
+  운영자 변경 기록에 남긴다. 대상 유형은 `ACTOR_PAGE`, 대상 ID는 내부 페이지 ID이며 사유 원문·연락처는 기록하지 않는다.
+
+없는 페이지는 `404 ACTOR_PAGE_NOT_FOUND`다. 잘못된 UUID·필수 값 누락·잠금 사유 위반은 `400 INVALID_REQUEST`이며,
+아이디 변경은 `400 ACTOR_HANDLE_INVALID`, `400 ACTOR_HANDLE_RESERVED`, `409 ACTOR_HANDLE_TAKEN`을 반환할 수 있다.
+
+## 공연사 관심 배우 — 4개
+
+모두 이메일 인증을 마친 공연사(`PRODUCER + ACTIVE`) 세션이 필요하고 쓰기는 기존 CSRF 규칙을 따른다. 저장은 아이디가 아니라
+배우 페이지의 `publicId`를 쓴다.
+
+| Method | URL | Request | Response |
+| --- | --- | --- | --- |
+| GET | `/api/v1/producers/me/actor-bookmarks?page=0&size=12` | query | `200 ProducerActorBookmarkPageResult` |
+| GET | `/api/v1/producers/me/actor-bookmark-ids` | 없음 | `200 {publicIds}` |
+| PUT | `/api/v1/producers/me/actor-bookmarks/{publicId}` | 없음 | `204` |
+| DELETE | `/api/v1/producers/me/actor-bookmarks/{publicId}` | 없음 | `204` |
+
+```text
+ProducerActorBookmarkPageResult: actorPages[카드], page, size, totalPages, totalElements,
+savedCount, hiddenCount, limit
+```
+
+- 목록은 배우 목록과 같은 기준(공개 중이고 잠기지 않음)으로 보이는 저장만 저장한 최신순으로 담는다. 카드는 배우 목록 카드와 같다.
+  page는 0 이상, size는 1~48이다(그 밖은 `400`). totalElements는 보이는 저장 수다.
+- 배우가 비공개·잠금·자동 비공개가 되면 저장은 지우지 않고 목록에서만 숨긴다. savedCount는 숨긴 저장도 포함한 수이고
+  hiddenCount는 그중 숨긴 수다. 다시 공개되면 목록에 다시 보인다.
+- publicIds는 저장 버튼 상태용으로 숨긴 저장도 포함해 저장한 최신순으로 준다(최대 300개).
+- 저장·해제는 같은 요청을 반복해도 결과가 같다. 이미 저장했으면 배우가 지금 비공개여도 `204`다. 새로 저장할 때는 배우 목록에
+  보이는 페이지만 받고, 없는 ID·비공개 페이지는 공개 조회와 같은 `404 ACTOR_PAGE_NOT_FOUND`다. 해제는 저장하지 않았거나 없는
+  ID여도 `204`다.
+- 공연사당 300명까지이며 숨긴 저장도 포함한다. 한도에 닿은 상태에서 새로 저장하면 `409 ACTOR_BOOKMARK_LIMIT_EXCEEDED`이고,
+  메시지에 숨긴 저장 수를 함께 적는다. 같은 공연사의 저장·해제는 회원 행을 잠가 순서대로 처리하므로 동시 요청도 한도를 넘지 않는다.
+- 배우에게 누가, 몇 명이 저장했는지 알려 주는 API는 없다.
+
+## PDF로 프로필 채우기(배우용) — 6개
+
+`YESULIN_PDF_EXTRACTION_ENABLED=true`일 때만 등록한다. 모두 Applicant 세션이 필요하고 쓰기는 기존 CSRF 규칙을 따른다.
+응답은 `Cache-Control: no-store`다. 업로드·추출은 [PDF 추출 확인](#pdf-추출-확인)과 같은 흐름이지만 작업 목적이
+`ACTOR_PROFILE`이라 공연사 PDF API와 서로의 작업을 보지 않는다. 본인 작업이 아니거나 없거나 지운 작업은 같은
+`404 PROFILE_IMPORT_NOT_FOUND`다.
+
+| Method | URL | Request | Response |
+| --- | --- | --- | --- |
+| GET | `/api/v1/applicants/me/profile-imports` | 없음 | `200 {usedToday, current}` |
+| POST | `/api/v1/applicants/me/profile-imports/uploads` | `{originalFilename,size}` | `201 {jobId,upload:{url,method,expiresAt,headers}}` |
+| POST | `/api/v1/applicants/me/profile-imports/{jobId}/completion` | 없음 | `200 ProfileImportResult` |
+| GET | `/api/v1/applicants/me/profile-imports/{jobId}` | 없음 | `200 ProfileImportResult` |
+| POST | `/api/v1/applicants/me/profile-imports/{jobId}/photos` | `{fileKey}` | `201 PhotoLibraryItemResult` |
+| DELETE | `/api/v1/applicants/me/profile-imports/{jobId}` | 없음 | `204` |
+
+```text
+ProfileImportResult: jobId, status, originalFilename, createdAt, deletesAt, analysisStatus, analysisReason, proposals
+proposals: name, birthDate, age, height, education ({value, evidence} 또는 null),
+           careers[{title, part, genre, period, venue, company, evidence}], photos[{fileKey, url}]
+```
+
+- `current`는 아직 지우지 않은 가장 최근 가져오기이고 없으면 null이다. `usedToday`는 오늘(한국 날짜) 제안 값이 나온
+  가져오기를 했는지다.
+- status는 PDF 추출 확인과 같다(`UPLOADING`, `UPLOAD_EXPIRED`, `QUEUED`, `DELAYED`, `COMPLETED`, `PARTIAL`, `FAILED`).
+  proposals는 결과가 나왔을 때만 있다. 화면은 몇 초 간격으로 상태를 다시 읽으며, 공연사 완료 알림(SSE)은 쓰지 않는다.
+- 제안 값은 워커가 원문에서 옮겨 적은 문자열 그대로이고 근거 구절을 함께 준다. 날짜·키 단위·장르를 바꾸거나 추정하지 않는다.
+  워커가 옮기는 경력은 원문 순서로 최대 5개다. photos는 워커가 사진일 가능성이 높다고 분류한(`CANDIDATE`) 이미지만 담고,
+  url은 잠시 동안만 쓸 수 있는 비공개 주소다. 자동으로 프로필에 저장하지 않는다.
+- 하루 1회(한국 날짜)다. 실패와 제안 값이 하나도 없는 결과는 세지 않고, 일부만 나온 결과는 1회로 센다. 닫거나 지운 작업도
+  센다. 이미 썼으면 업로드 준비가 `409 PROFILE_IMPORT_DAILY_LIMIT`이다. 올리는 중이거나 읽는 중인 작업이 있으면 새 업로드와
+  닫기가 `409 PROFILE_IMPORT_IN_PROGRESS`다. 업로드 준비는 회원 행을 잠가 순서대로 처리하므로 첫 업로드가 겹쳐도 작업은 하나만 만든다.
+- 사진 추가는 결과의 사진 후보 키만 받는다(아니면 `404 PROFILE_IMPORT_PHOTO_NOT_FOUND`, 결과 전이면
+  `409 PROFILE_IMPORT_NOT_FINISHED`). 이미지를 새 비공개 배우 사진 파일로 복사해 사진 보관함 맨 뒤에 넣으며, 보관함 한도는
+  기존 `409 PHOTO_LIBRARY_LIMIT_EXCEEDED`다. 넣은 사진은 추출 결과를 지워도 남는다.
+- 닫으면 원본 PDF·추출 본문·이미지를 바로 지우고, 이미 지운 작업을 다시 닫아도 `204`다. 닫지 않아도 결과가 나온 뒤(결과가
+  없으면 올린 뒤) 24시간이 지나면 30분마다 도는 정리 작업이 지운다. `deletesAt`은 정리 대상이 되는 시각이다. 지운 뒤 늦게 온 워커 결과는
+  저장하지 않고 워커가 남긴 객체를 다시 지운다.
 
 ## 지원서 — 3개
 
@@ -873,3 +1255,7 @@ S3 삭제 실패 시 `DELETING` 상태가 남으며 같은 파일 ID로 재시�
 | 운영 | `MEMBER_NOT_FOUND`, `MEMBER_STATUS_CHANGE_NOT_ALLOWED`, `ADMIN_DELETION_CONFIRMATION_FAILED` |
 
 인가 공통 오류는 `401 AUTH_UNAUTHENTICATED`, `403 AUTH_FORBIDDEN`, `403 AUTH_INACTIVE_MEMBER`다.
+
+### PDF 완료 알림
+
+`GET /api/v1/pdf-extractions/events`는 Active Producer 세션으로 접근하는 SSE다. `connected`와 `completed` 이벤트를 보내며 완료 데이터는 `{jobId}`만 포함한다. 본인 작업만 전달하고 DB 커밋 후 알린다. 15초 heartbeat와 3분 연결 만료 후 재연결을 사용한다. 알림 이력을 영구 보관하지 않으므로 재연결 시 DB 목록으로 동기화한다. 현재 인스턴스에 연결된 화면만 즉시 알림을 받으며 다중 인스턴스 간 알림 중계는 별도 범위다.

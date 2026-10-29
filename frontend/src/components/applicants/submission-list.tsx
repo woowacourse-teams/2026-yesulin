@@ -2,6 +2,7 @@
 
 import { ApplicantPageContainer as Container } from "./applicant-page-container";
 import Image from "next/image";
+import { WorkspaceBreadcrumb, WorkspacePageHeading } from "@/components/landing/workspace-page-heading";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getApplicantSubmissions } from "@/features/applicants/api";
@@ -29,8 +30,10 @@ export function ApplicantSubmissionList() {
   const empty = !draftsLoading && drafts.length === 0 && submissions.length === 0;
 
   return <Container>
-    <header><p className="text-sm font-semibold text-brand">내 지원서</p><h1 className="mt-2 text-[clamp(28px,4vw,38px)] font-bold tracking-[-0.035em]">작성 중인 내용과 제출 이력을 확인하세요.</h1><p className="mt-3 max-w-2xl leading-7 text-muted-strong">이 기기에 저장된 작성 중 지원서와 제출 당시 내용이 보존된 지원서를 한곳에서 확인할 수 있어요.</p><div className="mt-5 flex flex-wrap gap-2"><SummaryChip label="작성 중" count={drafts.length} loading={draftsLoading} targetId="draft-submissions-title" /><SummaryChip label="제출 완료" count={submissions.length} targetId="submitted-submissions-title" /></div></header>
-    <div className="max-w-[916px]">
+    <WorkspaceBreadcrumb items={[{ label: "마이페이지", href: applicantRoutes.home }, { label: "내 지원서" }]} />
+    <WorkspacePageHeading eyebrow="지원 내역" title="내 지원서" description="이 기기에 저장된 작성 중 지원서와 제출 당시 내용이 보존된 지원서를 한곳에서 확인할 수 있어요." />
+    <div className="flex flex-wrap gap-2"><SummaryChip label="작성 중" count={drafts.length} loading={draftsLoading} targetId="draft-submissions-title" /><SummaryChip label="제출 완료" count={submissions.length} targetId="submitted-submissions-title" /></div>
+    <div>
     {draftsLoading || drafts.length ? <section aria-labelledby="draft-submissions-title" className="mt-10"><SectionHeader id="draft-submissions-title" eyebrow="이 기기에 저장됨" title="작성 중" detail="제출 전 내용은 기획사/제작사에 공개되지 않아요." />{draftsLoading ? <div className="mt-4 h-40 animate-pulse rounded-card bg-border-soft" /> : <ul className="mt-4 grid gap-4">{drafts.map((draft) => <DraftCard key={draft.postingId} draft={draft} />)}</ul>}</section> : null}
     {submissions.length ? <section aria-labelledby="submitted-submissions-title" className="mt-10"><SectionHeader id="submitted-submissions-title" eyebrow="읽기 전용 스냅샷" title="제출 완료" detail="제출 당시의 지원 정보와 사진·영상은 이후 프로필을 변경해도 그대로 보존됩니다." /><ul className="mt-4 grid gap-4">{submissions.map((submission) => <SubmittedCard key={submission.id} submission={submission} />)}</ul></section> : null}
     {empty ? <EmptySubmissions /> : null}

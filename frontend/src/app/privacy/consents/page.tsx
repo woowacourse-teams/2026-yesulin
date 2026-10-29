@@ -1,25 +1,27 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PolicyLayout, PolicyNotice, PolicySection, PolicyTable } from "@/components/policies/policy-layout";
+import { ACTOR_PAGE_CONSENT_LABEL, ACTOR_PAGE_CONSENT_NOTICE } from "@/features/actor-pages/settings";
 
 export const metadata: Metadata = {
   title: "개인정보 동의문",
-  description: "예술in 지원서 제출 시 적용되는 개인정보 수집·이용 및 제3자 제공 동의문을 안내합니다.",
+  description: "예술in 지원서 제출과 배우 페이지 공개 때 적용되는 개인정보 동의문을 안내합니다.",
 };
 
 const navigation = [
   { href: "#collection", label: "1. 수집·이용 동의" },
   { href: "#third-party", label: "2. 제3자 제공 동의" },
   { href: "#profile", label: "3. 프로필 저장" },
+  { href: "#actor-page", label: "4. 배우 페이지 공개 동의" },
 ] as const;
 
 export default function PrivacyConsentsPage() {
   return (
     <PolicyLayout
       title="개인정보 동의문"
-      description="지원서를 제출할 때 적용되는 필수 동의와 선택형 프로필 저장 기능을 안내합니다. 실제 제출 화면에는 선택한 공고의 기획사명과 수집 항목이 구체적으로 표시됩니다."
-      version="1.0"
-      effectiveDate="2026-09-07"
+      description="지원서를 제출할 때 적용되는 필수 동의와 선택형 프로필 저장 기능, 배우 페이지를 공개할 때 받는 동의를 안내합니다. 실제 제출 화면에는 선택한 공고의 기획사명과 수집 항목이 구체적으로 표시됩니다."
+      version="1.1"
+      effectiveDate="2026-10-29"
       navigation={navigation}
     >
       <PolicyNotice>
@@ -60,6 +62,23 @@ export default function PrivacyConsentsPage() {
           <li>프로필에 저장된 항목은 프로필 화면에서 수정·삭제할 수 있습니다.</li>
           <li>프로필 저장이 실패해도 지원서 제출 성공에는 영향을 주지 않습니다.</li>
         </ul>
+      </PolicySection>
+
+      <PolicySection id="actor-page" title="4. 배우 페이지 공개 동의 — 공개할 때 필수">
+        <p>배우 페이지는 기본 비공개입니다. 배우가 공개로 바꿀 때마다(공개 팝업이든 설정 화면이든) 아래 내용을 보여 주고 동의를 받습니다.</p>
+        <PolicyTable headers={["고지 사항", "내용"]} rows={[
+          ["문서 버전", <code key="version">actor-page-publish-v1.0</code>],
+          ["공개 대상", "비로그인 이용자를 포함한 누구나. 배우 목록에 표시되고 검색엔진에 수집·노출될 수 있음"],
+          ["공개 항목", "아이디, 이름, 성별, 출생연도·만 나이, 입력한 키·몸무게, 배우가 공개로 설정한 사진·영상과 학력·경력·자기소개·특기·취미·국적·외부 링크"],
+          ["공개하지 않는 항목", "연락처, 이메일, 전체 생년월일, 거주지, 병역 정보, 비공개로 둔 항목·사진, ‘공연사만’으로 둔 영상"],
+          ["공개 중단", "언제든 비공개로 바꿀 수 있음. 이미 외부에서 저장한 사본이나 검색 결과는 즉시 사라지지 않을 수 있음"],
+          ["동의 기록 보관", "동의 문서 버전·동의 시각·회원·페이지를 회원 탈퇴 시까지 보관"],
+          ["거부권과 불이익", "동의하지 않아도 프로필 저장·편집과 공고 지원은 그대로 이용할 수 있으며, 배우 페이지만 공개되지 않습니다."],
+        ]} />
+        <div className="grid gap-2 rounded-control border border-border bg-surface px-4 py-3">
+          {ACTOR_PAGE_CONSENT_NOTICE.map((sentence) => <p key={sentence}>{sentence}</p>)}
+          <p className="font-semibold text-foreground">□ {ACTOR_PAGE_CONSENT_LABEL} (공개 시 필수)</p>
+        </div>
       </PolicySection>
     </PolicyLayout>
   );

@@ -21,6 +21,7 @@ public class FakeObjectStorage implements ObjectStorage {
     private final Map<String, StoredObjectContent> objects = new ConcurrentHashMap<>();
     private final AtomicBoolean failNextDelete = new AtomicBoolean();
     private final Map<String, String> dispositions = new ConcurrentHashMap<>();
+    private final Map<String, String> cacheControls = new ConcurrentHashMap<>();
 
     @Override
     public PresignedUpload createUpload(String objectKey, String contentType, long size) {
@@ -40,7 +41,7 @@ public class FakeObjectStorage implements ObjectStorage {
     }
 
     @Override
-    public void replaceHeaders(String objectKey, String contentType, String contentDisposition) {
+    public void replaceHeaders(String objectKey, String contentType, String contentDisposition, String cacheControl) {
         StoredObjectContent object = objects.get(objectKey);
         if (object == null) {
             throw new IllegalStateException("없는 객체의 헤더는 바꿀 수 없습니다.");
@@ -51,6 +52,7 @@ public class FakeObjectStorage implements ObjectStorage {
         } else {
             dispositions.put(objectKey, contentDisposition);
         }
+        cacheControls.put(objectKey, cacheControl);
     }
 
     @Override
@@ -88,6 +90,20 @@ public class FakeObjectStorage implements ObjectStorage {
             throw new IllegalArgumentException("발급되지 않은 업로드 URL입니다.");
         }
         objects.put(objectKey, new StoredObjectContent(contentType, new byte[Math.toIntExact(size)]));
+    }
+
+    /** 내용까지 정해서 올린다. 파일 앞부분으로 형식을 확인하는 업로드에 쓴다. */
+    public void upload(String uploadUrl, String contentType, byte[] content) {
+        String objectKey = uploadTargets.get(uploadUrl);
+        if (objectKey == null) {
+            throw new IllegalArgumentException("발급되지 않은 업로드 URL입니다.");
+        }
+        objects.put(objectKey, new StoredObjectContent(contentType, content.clone()));
+        cacheControls.remove(objectKey);
+    }
+
+    public String cacheControl(String objectKey) {
+        return cacheControls.get(objectKey);
     }
 
     public void failNextDelete() {

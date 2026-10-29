@@ -1,18 +1,20 @@
 package art.yesulin.event.presentation.scheduler;
 
 import art.yesulin.event.application.image.EventImageService;
+import art.yesulin.event.application.registration.EventRegistrationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-/** 이벤트에 넣지 않은 채 하루가 지난 이미지 업로드를 매일 새벽에 저장소에서 지운다. 모든 환경에서 실행한다. */
+/** 확정하지 않은 채 하루가 지난 이벤트 이미지와 참가 신청 사진 업로드를 매일 새벽에 저장소에서 지운다. 모든 환경에서 실행한다. */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class EventImageUploadCleanupScheduler {
 
     private final EventImageService imageService;
+    private final EventRegistrationService registrationService;
 
     @Scheduled(cron = "0 50 4 * * *", zone = "Asia/Seoul")
     public void deleteUnclaimedUploads() {
@@ -23,6 +25,18 @@ public class EventImageUploadCleanupScheduler {
             }
         } catch (RuntimeException exception) {
             log.error("이벤트 이미지 업로드 정리 중 예외 발생", exception);
+        }
+    }
+
+    @Scheduled(cron = "0 55 4 * * *", zone = "Asia/Seoul")
+    public void deleteUnclaimedRegistrationPhotos() {
+        try {
+            int deleted = registrationService.deleteUnclaimedPhotos();
+            if (deleted > 0) {
+                log.info("확정하지 않은 참가 신청 사진 업로드 {}개를 지움", deleted);
+            }
+        } catch (RuntimeException exception) {
+            log.error("참가 신청 사진 업로드 정리 중 예외 발생", exception);
         }
     }
 }

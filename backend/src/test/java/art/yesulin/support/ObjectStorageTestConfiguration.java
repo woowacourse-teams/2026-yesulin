@@ -12,4 +12,10 @@ public class ObjectStorageTestConfiguration {
     FakeObjectStorage fakeObjectStorage() {
         return new FakeObjectStorage();
     }
+
+    @Bean
+    @Primary
+    FakePublicObjectCache fakePublicObjectCache() {
+        return new FakePublicObjectCache();
+    }
 }

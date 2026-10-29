@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
+vi.mock("@/features/actor-pages/server", () => ({ actorHandlesForSitemap: async () => [] }));
 
 import sitemap from "@/app/sitemap";
 import { auditionPostForServer, auditionPostIdsForSitemap, auditionPostPageForServer, recordAuditionPostRedirect } from "./server";
@@ -101,7 +102,7 @@ describe("공개 공고 사이트맵", () => {
       "https://yesulin.art/auditions/musical", "https://yesulin.art/auditions/theater",
       "https://yesulin.art/auditions/performance", "https://yesulin.art/auditions/troupe", "https://yesulin.art/auditions/agency", "https://yesulin.art/shows",
       "https://yesulin.art/shows/show-1", "https://yesulin.art/posts/123",
-      "https://yesulin.art/posts/124", "https://yesulin.art/posts/125",
+      "https://yesulin.art/posts/124", "https://yesulin.art/posts/125", "https://yesulin.art/actors",
     ]);
     const requests = fetchMock.mock.calls.map(([url]) => url as URL)
       .filter((url) => url.pathname.endsWith("/audition-posts"));

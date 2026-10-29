@@ -4,6 +4,7 @@ import { applicantRequest } from "./request";
 import { safeUpload, type UploadResource } from "../files/safe-upload";
 import { reportUploadDiagnostic } from "../files/upload-diagnostics";
 import { MAX_ACTOR_PHOTO_COUNT } from "../files/photo-policy";
+import { ensurePublicCopies } from "./photo-public-copy";
 
 type BackendPhoto = {
   readonly id: number;
@@ -12,6 +13,8 @@ type BackendPhoto = {
   readonly displayOrder: number;
   readonly representative: boolean;
   readonly createdAt: string;
+  readonly visibility: "PUBLIC" | "PRIVATE";
+  readonly publicCopyUrl: string | null;
 };
 
 type BackendPhotoLibrary = { readonly photos: readonly BackendPhoto[] };
@@ -106,6 +109,47 @@ export async function moveApplicantProfilePhoto(
   return updateLegacyPhotos(next);
 }
 
+/** 배우 페이지 공개 여부를 바꾼다. 비공개로 바꾸면 서버가 공개 사본을 지운다. */
+export async function changeApplicantProfilePhotoVisibility(
+  current: ApplicantProfileResponse,
+  id: string,
+  visibility: "PUBLIC" | "PRIVATE",
+): Promise<ApplicantProfileResponse> {
+  if (!applicantProfileApiEnabled) {
+    return updateLegacyPhotos(current.photoLibrary.map((photo) => photo.id === id
+      ? { ...photo, visibility, publicCopyUrl: visibility === "PUBLIC" ? photo.publicCopyUrl : null }
+      : photo));
+  }
+  const result = await applicantRequest<BackendPhotoLibrary>(
+    `/v1/applicants/me/photo-library/photos/${id}/visibility`,
+    { method: "PATCH", body: JSON.stringify({ visibility }) },
+  );
+  return { ...current, photoLibrary: toPhotos(result.photos, current.photoLibrary) };
+}
+
+/**
+ * 공개로 설정했지만 공개 사본이 없는 사진의 사본을 만든다. 실패한 사진은 빼고 진행하며 다시 시도하도록 알려 준다.
+ * 목 환경은 사본 대신 원본 주소를 붙여 저장한다.
+ */
+export async function prepareApplicantPhotoPublicCopies(
+  current: ApplicantProfileResponse,
+): Promise<{ readonly profile: ApplicantProfileResponse; readonly failedPhotoIds: readonly string[] }> {
+  const result = await ensurePublicCopies(current.photoLibrary);
+  if (!applicantProfileApiEnabled && result.photos.some((photo, index) => photo !== current.photoLibrary[index])) {
+    return { profile: await updateLegacyPhotos(result.photos), failedPhotoIds: result.failedPhotoIds };
+  }
+  return { profile: { ...current, photoLibrary: result.photos }, failedPhotoIds: result.failedPhotoIds };
+}
+
+/** 서버가 사진을 바꾼 뒤(비공개 전환으로 사본 삭제 등) 보관함을 다시 읽는다. */
+export async function reloadApplicantProfilePhotos(current: ApplicantProfileResponse): Promise<ApplicantProfileResponse> {
+  if (!applicantProfileApiEnabled) {
+    const legacy = await applicantRequest<ApplicantProfileResponse>("/me/profile");
+    return { ...current, photoLibrary: legacy.photoLibrary };
+  }
+  return refreshPhotos(current);
+}
+
 function toPhotos(
   photos: readonly BackendPhoto[],
   previous: readonly ApplicantProfilePhoto[] = [],
@@ -120,6 +164,8 @@ function toPhotos(
       url: photo.imageUrl,
       representative: photo.representative,
       fileId: photo.fileId,
+      visibility: photo.visibility,
+      publicCopyUrl: photo.publicCopyUrl,
     }));
 }
 

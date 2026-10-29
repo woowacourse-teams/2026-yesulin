@@ -4,16 +4,22 @@ import art.yesulin.event.application.EventImageUrls;
 import art.yesulin.event.domain.Event;
 import art.yesulin.event.domain.EventBannerSetting;
 import art.yesulin.event.domain.EventContent;
+import art.yesulin.event.domain.EventImages;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * 이벤트 글을 통째로 저장한다. 제목과 본문 말고는 비워 둘 수 있고, 비운 항목은 지운다.
  *
+ * @param registrationEnabled 켜면 신청 버튼이 외부 주소 대신 예술in 참가 신청서를 연다.
+ * @param registrationNotice 참가 신청서 위에 보여 줄 보증금·계좌 같은 안내
+ * @param businessCardClosesAt 배우의 프로필 명함 제작 희망을 받는 마감 시각. 비우면 신청 기간 내내 받는다.
  * @param coverImageUrl 대표 이미지 공개 주소. 지금 이미지면 그대로 두고, 새로 올린 이미지면 바꾸고, 비우면 지운다.
  * @param banner 메인 배너 설정. 비우면 배너를 끈다.
  */
@@ -25,14 +31,27 @@ public record WriteEventRequest(
         LocalDate endsOn,
         @Size(max = Event.MAX_URL_LENGTH) String applyUrl,
         @Size(max = Event.MAX_APPLY_LABEL_LENGTH) String applyLabel,
+        boolean registrationEnabled,
+        @Size(max = Event.MAX_REGISTRATION_NOTICE_LENGTH) String registrationNotice,
         @Size(max = MAX_IMAGE_URL_LENGTH) String coverImageUrl,
-        @Valid Banner banner
+        @Size(max = Event.MAX_BODY_LENGTH) String detailBody,
+        @Size(max = EventImages.MAX_DETAIL_IMAGES)
+        List<@NotBlank @Size(max = MAX_IMAGE_URL_LENGTH) String> detailImageUrls,
+        @Valid Banner banner,
+        Instant businessCardClosesAt,
+        boolean registrationConfirmationEnabled,
+        @Size(max = Event.MAX_REGISTRATION_NOTICE_LENGTH) String registrationConfirmationMessage,
+        @Min(1) Integer registrationCapacity
 ) {
 
     private static final int MAX_IMAGE_URL_LENGTH = 1000;
 
     public EventContent toContent() {
-        return new EventContent(title, summary, body, startsOn, endsOn, applyUrl, applyLabel);
+        return new EventContent(
+                title, summary, body, startsOn, endsOn, applyUrl, applyLabel,
+                registrationEnabled, registrationNotice, detailBody, businessCardClosesAt,
+                registrationConfirmationEnabled, registrationConfirmationMessage, registrationCapacity
+        );
     }
 
     public EventBannerSetting toBannerSetting() {
@@ -43,7 +62,8 @@ public record WriteEventRequest(
         return new EventImageUrls(
                 coverImageUrl,
                 banner == null ? null : banner.desktopImageUrl(),
-                banner == null ? null : banner.mobileImageUrl()
+                banner == null ? null : banner.mobileImageUrl(),
+                detailImageUrls
         );
     }
 
