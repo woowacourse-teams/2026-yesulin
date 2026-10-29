@@ -102,6 +102,7 @@ export function formatPhoneInput(value: string): string {
 export function registrationProblem(draft: RegistrationDraft, today: string): string | null {
   if (!draft.participantType) return "참가 구분을 선택해 주십시오.";
   if (!draft.name.trim()) return "이름을 입력해 주십시오.";
+  if (draft.name.trim().length > 50) return "이름은 50자 이내로 입력해 주십시오.";
   if (!PHONE.test(formatPhoneInput(draft.phone))) return "휴대폰 번호를 010-1234-5678 형식으로 입력해 주십시오.";
   if (draft.participantType === "PRODUCER" && !draft.affiliation.trim()) return "소속을 입력해 주십시오.";
   if (draft.participantType === "PRODUCER" && !draft.currentWork.trim()) return "지금 하고 계신 일을 입력해 주십시오.";
@@ -114,6 +115,7 @@ export function registrationProblem(draft: RegistrationDraft, today: string): st
 }
 
 export function businessCardProblem(draft: RegistrationDraft, today: string): string | null {
+  if (draft.name.trim().length > 50) return "명함에 들어갈 이름은 50자 이내로 입력해 주십시오.";
   if (!EMAIL.test(draft.email.trim())) return "이메일 주소를 확인해 주십시오.";
   const snsProblem = registrationSnsProblem(draft.snsPlatform || null, draft.snsHandle);
   if (snsProblem) return snsProblem;
@@ -128,6 +130,8 @@ export function businessCardProblem(draft: RegistrationDraft, today: string): st
   if (careers.length > MAX_REGISTRATION_CAREERS) return `경력은 ${MAX_REGISTRATION_CAREERS}줄까지 입력할 수 있습니다.`;
   if (careers.some((career) => !career.year || !career.month)) return "경력마다 연도와 월을 선택해 주십시오.";
   if (careers.some((career) => !career.workTitle.trim())) return "경력마다 작품명을 입력해 주십시오.";
+  if (careers.some((career) => career.workTitle.trim().length > 100)) return "명함에 들어갈 경력 작품명은 100자 이내로 줄여 주세요.";
+  if (careers.some((career) => career.role.trim().length > 50)) return "명함에 들어갈 경력 역할은 50자 이내로 줄여 주세요.";
   return null;
 }
 

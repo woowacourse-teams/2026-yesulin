@@ -7,7 +7,7 @@ import { shrinkPhoto } from "@/features/companies/photo-image";
 import { EventRegistrationForm } from "./event-registration-form";
 
 vi.mock("@/features/events/api", () => ({ registerForEvent: vi.fn(), uploadEventRegistrationPhoto: vi.fn() }));
-vi.mock("@/features/companies/photo-image", () => ({ shrinkPhoto: vi.fn() }));
+vi.mock("@/features/companies/photo-image", async (importOriginal) => ({ ...await importOriginal<typeof import("@/features/companies/photo-image")>(), shrinkPhoto: vi.fn() }));
 
 let root: Root;
 let container: HTMLDivElement;
@@ -112,7 +112,9 @@ describe("참가 신청 전 안내", () => {
     expect(document.querySelector("#registration-email")).toBeNull();
     expect(container.querySelectorAll('[type="checkbox"]').length).toBe(1);
     await act(async () => button("무료 명함 만들기").click());
-    expect(document.querySelector('[role="dialog"]')?.textContent).toContain("프로필 명함 만들기");
+    expect(document.querySelector('[role="dialog"]')?.textContent).toContain("명함 정보 입력");
+    expect(document.querySelector("#registration-email")).not.toBeNull();
+    expect(button("프로필 등록하고 명함 만들기")).toBeUndefined();
     expect(container.contains(example)).toBe(true);
     await input("#registration-email", "saved@example.test");
     await act(async () => button("닫기").click());
@@ -206,6 +208,8 @@ describe("참가 신청 전 안내", () => {
       photoInput.dispatchEvent(new Event("change", { bubbles: true }));
     });
     expect(uploadEventRegistrationPhoto).toHaveBeenCalledTimes(1);
+    expect(document.querySelector('[role="group"][aria-labelledby="registration-photo-title"]')?.textContent).toContain("사진 등록 완료 · 1장");
+    expect(button("다른 사진으로 변경").disabled).toBe(false);
     expect(preview().querySelector("img")?.getAttribute("src")).toBe("blob:profile-photo");
     await act(async () => button("닫기").click());
     await act(async () => button("명함 제작 취소").click());
@@ -223,6 +227,7 @@ describe("참가 신청 전 안내", () => {
       photoInput.dispatchEvent(new Event("change", { bubbles: true }));
     });
     expect(button("닫기").disabled).toBe(true);
+    expect(button("사진 업로드 중…").disabled).toBe(true);
     await act(async () => document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
     expect(document.querySelector('[role="dialog"]')).not.toBeNull();
     await act(async () => finish("upload-key"));

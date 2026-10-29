@@ -96,6 +96,9 @@ yesulin:
   kopis:
     # 공연예술통합전산망 Open API 인증키. 비우면 운영자 공연사 정보 쓰기에서 KOPIS 조회를 끈다.
     api-key: ${KOPIS_API_KEY:}
+  event:
+    # QR은 신청을 받은 환경의 프론트로 연결한다. 공고 알림의 운영 주소와 별도로 설정한다.
+    business-card-base-url: ${YESULIN_EVENT_BUSINESS_CARD_BASE_URL:${yesulin.notice.link-base-url}}
   notice:
     link-base-url: ${YESULIN_NOTICE_LINK_BASE_URL}
   timetable:

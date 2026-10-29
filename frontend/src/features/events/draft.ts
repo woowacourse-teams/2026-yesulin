@@ -1,5 +1,6 @@
 import { fromKoreaLocalInput, toKoreaLocalInput } from "./korea-time";
-import { MAX_EVENT_DETAIL_IMAGES } from "./types";
+import { MAX_EVENT_DETAIL_IMAGES, type EventBankAccount } from "./types";
+import { eventBankAccountProblem } from "./bank-account";
 import type { AdminEvent, AdminEventWrite } from "@/features/admin/types";
 
 /** 운영자 이벤트 폼 상태. 입력 칸은 모두 문자열이고 저장할 때 빈 칸을 null로 바꾼다. */
@@ -18,6 +19,9 @@ export type EventDraft = {
   readonly registrationNotice: string;
   readonly registrationConfirmationEnabled: boolean;
   readonly registrationConfirmationMessage: string;
+  readonly registrationBankName: string;
+  readonly registrationAccountNumber: string;
+  readonly registrationAccountHolder: string;
   /** 명함 제작 마감 시각. `datetime-local` 입력 값이고 한국 시각이다. */
   readonly businessCardClosesAt: string;
   readonly coverImageUrl: string | null;
@@ -56,6 +60,9 @@ export function emptyEventDraft(): EventDraft {
     registrationNotice: "",
     registrationConfirmationEnabled: false,
     registrationConfirmationMessage: "",
+    registrationBankName: "",
+    registrationAccountNumber: "",
+    registrationAccountHolder: "",
     businessCardClosesAt: "",
     coverImageUrl: null,
     bannerEnabled: false,
@@ -83,6 +90,9 @@ export function draftOfEvent(event: AdminEvent): EventDraft {
     registrationNotice: event.registrationNotice ?? "",
     registrationConfirmationEnabled: event.registrationConfirmationEnabled ?? false,
     registrationConfirmationMessage: event.registrationConfirmationMessage ?? "",
+    registrationBankName: event.registrationBankAccount?.bankName ?? "",
+    registrationAccountNumber: event.registrationBankAccount?.accountNumber ?? "",
+    registrationAccountHolder: event.registrationBankAccount?.accountHolder ?? "",
     businessCardClosesAt: toKoreaLocalInput(event.businessCardClosesAt),
     coverImageUrl: event.coverImageUrl,
     bannerEnabled: event.banner.enabled,
@@ -112,6 +122,7 @@ export function writeOfEvent(draft: EventDraft): AdminEventWrite {
     registrationConfirmationEnabled: draft.registrationEnabled && draft.registrationConfirmationEnabled,
     registrationConfirmationMessage: draft.registrationEnabled && draft.registrationConfirmationEnabled
       ? blankToNull(draft.registrationConfirmationMessage) : null,
+    registrationBankAccount: bankAccountOfDraft(draft),
     businessCardClosesAt: draft.registrationEnabled ? fromKoreaLocalInput(draft.businessCardClosesAt) : null,
     coverImageUrl: draft.coverImageUrl,
     banner: {
@@ -149,6 +160,8 @@ export function eventDraftProblem(draft: EventDraft): string | null {
   if (draft.registrationEnabled && draft.registrationConfirmationEnabled) {
     if (!draft.registrationConfirmationMessage.trim()) return "신청 전 팝업 안내 내용을 입력해 주세요.";
     if (draft.registrationConfirmationMessage.length > 2000) return "신청 전 팝업 안내는 2000자 이내로 입력해 주세요.";
+    const bankProblem = eventBankAccountProblem(bankAccountOfDraft(draft));
+    if (bankProblem) return bankProblem;
   }
   if (draft.bannerEnabled && (!draft.bannerDesktopImageUrl || !draft.bannerMobileImageUrl || !draft.bannerAlt.trim())) {
     return "배너를 노출하려면 PC·모바일 배너 이미지와 대체 문구가 모두 필요해요.";
@@ -156,6 +169,12 @@ export function eventDraftProblem(draft: EventDraft): string | null {
   const order = Number(draft.bannerOrder);
   if (!Number.isInteger(order) || order < 0 || order > 99) return "배너 순서는 0부터 99까지 적어 주세요.";
   return null;
+}
+
+function bankAccountOfDraft(draft: EventDraft): EventBankAccount | null {
+  if (!draft.registrationEnabled || !draft.registrationConfirmationEnabled) return null;
+  const account = { bankName: draft.registrationBankName.trim(), accountNumber: draft.registrationAccountNumber.trim(), accountHolder: draft.registrationAccountHolder.trim() };
+  return Object.values(account).some(Boolean) ? account : null;
 }
 
 /** 배너 이미지 비율이 칸과 크게 다르면 안내 문구를 준다. 막지는 않는다. */

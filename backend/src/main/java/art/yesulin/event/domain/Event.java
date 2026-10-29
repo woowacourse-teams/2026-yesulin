@@ -7,6 +7,7 @@ import art.yesulin.global.exception.BusinessException;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -100,6 +101,9 @@ public class Event {
     @Column(name = "registration_confirmation_message", columnDefinition = "text")
     private String registrationConfirmationMessage;
 
+    @Embedded
+    private EventBankAccount registrationBankAccount;
+
     @Column(name = "business_card_closes_at")
     private Instant businessCardClosesAt;
 
@@ -164,6 +168,7 @@ public class Event {
         this.registrationNotice = normalized.registrationNotice();
         this.registrationConfirmationEnabled = normalized.registrationConfirmationEnabled();
         this.registrationConfirmationMessage = normalized.registrationConfirmationMessage();
+        this.registrationBankAccount = normalized.registrationBankAccount();
         this.businessCardClosesAt = normalized.businessCardClosesAt();
         this.coverImageKey = blankToNull(keys.coverKey());
         this.bannerDesktopKey = blankToNull(keys.bannerDesktopKey());
@@ -294,7 +299,8 @@ public class Event {
                 registration ? content.businessCardClosesAt() : null,
                 confirmation,
                 confirmationMessage,
-                content.registrationCapacity()
+                content.registrationCapacity(),
+                confirmation ? content.registrationBankAccount() : null
         );
     }
 

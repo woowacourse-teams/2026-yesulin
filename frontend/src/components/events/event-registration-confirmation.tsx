@@ -2,10 +2,14 @@
 
 import { DialogFooter, ModalShell } from "@/components/auditions/modal-shell";
 import { PrimaryButton, SecondaryButton } from "@/components/ui/controls";
+import { useState } from "react";
+import { accountNumberToCopy } from "@/features/events/bank-account";
+import type { EventBankAccount } from "@/features/events/types";
 
-export function EventRegistrationConfirmation({ open, message, busy, onClose, onConfirm }: {
+export function EventRegistrationConfirmation({ open, message, bankAccount, busy, onClose, onConfirm }: {
   readonly open: boolean;
   readonly message: string;
+  readonly bankAccount?: EventBankAccount | null;
   readonly busy: boolean;
   readonly onClose: () => void;
   readonly onConfirm: () => void;
@@ -19,6 +23,7 @@ export function EventRegistrationConfirmation({ open, message, busy, onClose, on
       </header>
       <div className="min-h-0 overflow-y-auto px-5 py-6 sm:px-6">
         <p className="whitespace-pre-wrap break-words text-sm leading-7">{message}</p>
+        {bankAccount ? <BankAccountDetails key={`${bankAccount.bankName}:${bankAccount.accountNumber}:${bankAccount.accountHolder}`} account={bankAccount} /> : null}
       </div>
       <DialogFooter>
         <SecondaryButton disabled={busy} onClick={onClose}>돌아가기</SecondaryButton>
@@ -26,4 +31,22 @@ export function EventRegistrationConfirmation({ open, message, busy, onClose, on
       </DialogFooter>
     </ModalShell>
   );
+}
+
+function BankAccountDetails({ account }: { readonly account: EventBankAccount }) {
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(accountNumberToCopy(account));
+      setCopyState("copied");
+    } catch { setCopyState("error"); }
+  };
+  return <section aria-label="입금 계좌" className="mt-5 rounded-control border border-brand-line bg-brand-soft p-4">
+    <h3 className="text-sm font-bold">입금 계좌</h3>
+    <p className="mt-3 text-sm font-semibold">{account.bankName}</p>
+    <p className="num mt-1 select-all break-all text-lg font-bold">{account.accountNumber}</p>
+    <p className="mt-2 break-words text-sm text-muted-strong">예금주: {account.accountHolder}</p>
+    <SecondaryButton onClick={() => void copy()} className="mt-4 w-full">{copyState === "copied" ? "계좌번호 복사됨" : "계좌번호 복사"}</SecondaryButton>
+    {copyState === "copied" ? <p role="status" className="mt-2 text-xs leading-6 text-brand">계좌번호를 복사했어요. 은행 앱에 붙여 넣어 주세요.</p> : copyState === "error" ? <p role="alert" className="mt-2 text-xs leading-6 text-fail">복사하지 못했어요. 위 계좌번호를 길게 누르거나 선택해 직접 복사해 주세요.</p> : null}
+  </section>;
 }

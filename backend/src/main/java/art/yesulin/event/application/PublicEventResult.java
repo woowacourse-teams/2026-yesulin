@@ -1,6 +1,7 @@
 package art.yesulin.event.application;
 
 import art.yesulin.event.domain.Event;
+import art.yesulin.event.domain.EventBankAccount;
 import art.yesulin.event.domain.EventPhase;
 import art.yesulin.event.domain.EventRegistrationStatus;
 import java.time.Instant;
@@ -42,7 +43,8 @@ public record PublicEventResult(
         Integer registrationCapacity,
         long registrationCount,
         boolean registrationClosed,
-        EventRegistrationStatus registrationStatus
+        EventRegistrationStatus registrationStatus,
+        EventBankAccount registrationBankAccount
 ) {
 
     static PublicEventResult from(
@@ -72,7 +74,8 @@ public record PublicEventResult(
                 event.getRegistrationCapacity(),
                 registrationCount,
                 event.isRegistrationClosed(),
-                event.registrationStatusOn(today, registrationCount)
+                event.registrationStatusOn(today, registrationCount),
+                event.getRegistrationBankAccount()
         );
     }
 }

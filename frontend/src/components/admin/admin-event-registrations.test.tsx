@@ -6,6 +6,7 @@ import { changeEventPaymentStatus, fetchEventRegistrations } from "@/features/ad
 import type { AdminEventRegistration } from "@/features/admin/types";
 import { AdminEventRegistrations } from "./admin-event-registrations";
 
+vi.mock("./admin-event-business-card-stats", () => ({ AdminEventBusinessCardStats: () => null }));
 vi.mock("@/features/admin/api", () => ({
   AdminApiError: class extends Error { status = 500; },
   changeEventPaymentStatus: vi.fn(), fetchEventRegistrations: vi.fn(),
@@ -15,7 +16,8 @@ let root: Root;
 let container: HTMLDivElement;
 const pending: AdminEventRegistration = {
   id: 1, participantType: "ACTOR", name: "일반 참가자", phone: "010-1234-5678",
-  businessCardRequested: false, email: null, snsHandle: null, snsPlatform: null, birthDate: null,
+  businessCardRequested: false,
+  businessCard: null, email: null, snsHandle: null, snsPlatform: null, birthDate: null,
   affiliation: null, currentWork: null, photoUrl: null, activityFields: [], otherActivity: null, noCareer: false,
   careers: [], intro: null, createdAt: "2026-10-28T06:00:00Z", paymentStatus: "PENDING", paymentConfirmedAt: null,
 };

@@ -6,9 +6,12 @@ import art.yesulin.auth.application.annotation.LoginRequired;
 import art.yesulin.auth.domain.member.MemberType;
 import art.yesulin.event.application.AdminEventResult;
 import art.yesulin.event.application.EventService;
+import art.yesulin.event.application.registration.EventBusinessCardService;
+import art.yesulin.event.application.registration.EventBusinessCardVisitStats;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -19,6 +22,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** 운영자가 이벤트 글을 쓰고 고친 뒤 공개한다. 공개해야 이벤트 화면과 메인 배너에 보인다. 필요 없는 글은 지운다. */
@@ -29,6 +33,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminEventController {
 
     private final EventService eventService;
+    private final EventBusinessCardService businessCardService;
+
+    @GetMapping("/{eventId}/business-card/visits")
+    public ResponseEntity<EventBusinessCardVisitStats> visitStats(
+            @LoginMember(roles = MemberType.ADMIN) MemberPrincipal principal,
+            @PathVariable long eventId,
+            @RequestParam(defaultValue = "14") int days
+    ) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore())
+                .body(businessCardService.visitStats(eventId, days));
+    }
 
     @GetMapping
     public ResponseEntity<AdminEventsResponse> findAll(
