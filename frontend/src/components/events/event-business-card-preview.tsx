@@ -4,7 +4,8 @@ import { useLayoutEffect, useRef, type ReactNode } from "react";
 import Image from "next/image";
 import { SecondaryButton } from "@/components/ui/controls";
 import type { RegistrationDraft } from "@/features/events/registration-draft";
-import { EVENT_ACTIVITY_LABELS, EVENT_SNS_LABELS } from "@/features/events/types";
+import { EVENT_ACTIVITY_LABELS } from "@/features/events/types";
+import { EventSnsLogo } from "./event-sns-logo";
 
 export type CardPreviewSide = "front" | "back";
 
@@ -41,7 +42,7 @@ export function EventBusinessCardPreview({ draft, photoUrl, side, onSideChange, 
                 <p className="event-card-example-name">활동 분야 · 경력</p>
                 {fields.length ? <ul className="event-card-example-fields">{fields.map((field, index) => <li key={index}>{field}</li>)}</ul> : <p>활동 분야</p>}
                 <div className="event-card-example-rule" />
-                {draft.noCareer ? <p>신입 · 경력 없음</p> : careers.length ? (
+                {draft.noCareer ? <p>신입</p> : careers.length ? (
                   <ul className="event-card-example-careers">
                     {careers.map((career) => <li key={career.key}>
                       {[ [career.year, career.month].filter(Boolean).join("."), career.workTitle.trim(), career.role.trim() ].filter(Boolean).join(" · ")}
@@ -66,7 +67,9 @@ export function EventBusinessCardPreview({ draft, photoUrl, side, onSideChange, 
                 <div className="event-card-example-rule" />
                 <p>Actor</p><p>{draft.birthDate.replaceAll("-", ".") || "생년월일"}</p>
                 <p>{draft.email.trim() || "이메일"}</p>
-                <p>{draft.snsPlatform ? `${EVENT_SNS_LABELS[draft.snsPlatform]} · ${draft.snsHandle.trim() || "계정명"}` : draft.snsHandle.trim() || "SNS (선택)"}</p>
+                {draft.snsPlatform ? (
+                  <p className="event-card-example-sns"><EventSnsLogo platform={draft.snsPlatform} />{draft.snsHandle.trim() || "@계정명"}</p>
+                ) : <p>{draft.snsHandle.trim() || "SNS (선택)"}</p>}
               </AutoFitText>
             </>
           )}

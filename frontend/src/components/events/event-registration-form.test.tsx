@@ -48,7 +48,8 @@ async function ready() {
   await act(async () => document.querySelectorAll<HTMLInputElement>('[type="radio"]')[1].click());
   await input("#registration-name", "테스트 참가자");
   await input("#registration-phone", "01012345678");
-  await input("#registration-affiliation", "극단 · 제작 담당");
+  await input("#registration-affiliation", "극단");
+  await input("#registration-current-work", "제작 담당");
   await act(async () => document.querySelector<HTMLInputElement>('[type="checkbox"]')!.click());
 }
 async function submit() {
@@ -146,14 +147,16 @@ describe("참가 신청 전 안내", () => {
       snsType.value = "YOUTUBE"; snsType.dispatchEvent(new Event("change", { bubbles: true }));
       year.value = "1998"; year.dispatchEvent(new Event("change", { bubbles: true }));
     });
-    await input("#registration-sns", "예술배우");
+    await input("#registration-sns", "@yesulin_actor");
     expect(document.querySelector<HTMLInputElement>("#registration-sns")?.maxLength).toBe(20);
     await input("#registration-sns", "가".repeat(21));
     expect(document.querySelector<HTMLInputElement>("#registration-sns")?.value).toBe("가".repeat(20));
-    await input("#registration-sns", "예술배우");
+    await input("#registration-sns", "@yesulin_actor");
     await act(async () => document.querySelector<HTMLButtonElement>("#event-card-tab-preview")!.click());
     expect(document.querySelector("#event-card-tab-preview")?.getAttribute("aria-selected")).toBe("true");
-    expect(preview().textContent).toContain("유튜브 · 예술배우");
+    expect(preview().textContent).toContain("@yesulin_actor");
+    expect(preview().textContent).not.toContain("유튜브");
+    expect(preview().querySelector(".event-card-example-sns-logo")).not.toBeNull();
     await act(async () => document.querySelector<HTMLButtonElement>("#event-card-tab-input")!.click());
     expect(document.querySelector<HTMLInputElement>("#registration-email")?.value).toBe("actor@example.test");
     expect(year.value).toBe("1998");
@@ -188,7 +191,8 @@ describe("참가 신청 전 안내", () => {
     expect(preview().textContent).toContain("달빛 정거장 · 민수 역");
     const noCareer = [...document.querySelectorAll<HTMLLabelElement>("label")].find((label) => label.textContent?.includes("경력 없음 (신입)"))!.querySelector("input")!;
     await act(async () => noCareer.click());
-    expect(preview().textContent).toContain("신입 · 경력 없음");
+    expect(preview().textContent).toContain("신입");
+    expect(preview().textContent).not.toContain("경력 없음");
     expect(preview().textContent).not.toContain("달빛 정거장");
     await act(async () => document.querySelector<HTMLInputElement>("#registration-email")!.focus());
     expect(preview().querySelector('[aria-label="명함 앞면"]')).not.toBeNull();

@@ -617,7 +617,7 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 `409 EVENT_BUSINESS_CARD_CLOSED`다. 쓰기 요청은 CSRF 헤더가 필요하다.
 
 `RegisterRequest`는 `participantType`(`ACTOR` 배우/일반 참가자·`PRODUCER` 관계자), `name`(50자), `phone`(`010-1234-5678`, 숫자만 적어도 같은 형식으로 정리),
-`affiliation`(공연사 관계자만 필수인 소속과 하는 일, 500자), `businessCardRequested`(배우가 프로필 명함 제작을 희망하는지),
+`affiliation`(공연사 관계자만 필수인 소속, 100자), `currentWork`(공연사 관계자만 필수인 지금 하고 계신 일, 500자), `businessCardRequested`(배우가 프로필 명함 제작을 희망하는지),
 `privacyAgreed`(true 필수)다. 명함을 희망한 배우는 명함에 들어갈 `email`(254자), 선택적인 `snsPlatform`(`INSTAGRAM`·`THREADS`·`YOUTUBE`)과
 `snsHandle`(계정명 또는 채널명, 20자 이내, URL 불가), `birthDate`(미래 날짜 불가),
 `photoUploadKey`, `activityFields`(하나 이상, `THEATER`·`MUSICAL`·`MEDIA`·`YOUTUBE`·`OTHER`), `otherActivity`(`OTHER`를 고르면 필수, 50자),
@@ -632,7 +632,7 @@ POST는 작성자를 공연사에 묶고 그 작성자의 공연사 없는 공�
 하루가 지나도록 확정하지 않은 업로드는 매일 04:55(한국 시간) 정리 작업이 지운다.
 
 운영 목록은 이벤트의 신청을 먼저 온 순서로 주며, 배우 사진은 잠깐 열리는 내려받기 주소(`photoUrl`)로 주고, 명함 희망 여부(`businessCardRequested`)와
-SNS 유형(`snsPlatform`, 기존 신청은 null 가능)을 함께 준다. 명함 자료 내려받기의 JSON과 CSV에도 SNS 유형을 포함한다. 분야는 위 순서대로,
+SNS 유형(`snsPlatform`, 기존 신청은 null 가능)과 관계자의 지금 하는 일(`currentWork`, 기존 신청은 null)을 함께 준다. 명함 자료 내려받기의 JSON과 CSV에도 SNS 유형을 포함한다. 분야는 위 순서대로,
 경력은 적은 순서대로 준다. 없는 이벤트는 `404 EVENT_NOT_FOUND`다.
 신청 삭제는 되돌릴 수 없고 사진도 커밋 뒤 저장소에서 지우며, `admin_audit_logs`에 `EVENT_REGISTRATION_DELETED`로 남기되 신청 내용은 담지 않는다.
 이 이벤트에 없는 신청은 `404 EVENT_REGISTRATION_NOT_FOUND`다. 이벤트를 지우면 받은 신청과 사진도 함께 지운다.

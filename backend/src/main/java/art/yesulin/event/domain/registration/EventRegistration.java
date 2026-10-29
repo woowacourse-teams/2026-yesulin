@@ -32,7 +32,7 @@ import lombok.NoArgsConstructor;
 
 /**
  * 로그인 없이 받은 이벤트 참가 신청 한 건. 같은 이벤트에는 휴대폰 번호 하나로 한 번만 신청한다. 모두 이름과 휴대폰을 적고,
- * 공연사 관계자는 소속과 하는 일을 더 적는다. 배우는 프로필 명함 제작을 희망할 때만 명함에 들어갈 이메일·SNS·생년월일·
+ * 공연사 관계자는 소속과 지금 하는 일을 따로 더 적는다. 배우는 프로필 명함 제작을 희망할 때만 명함에 들어갈 이메일·SNS·생년월일·
  * 프로필 사진·활동 분야와 경력(신입이면 경력 없음)을 적는다. 휴대폰 번호는 명함에 넣지 않는다.
  */
 @Getter
@@ -48,7 +48,8 @@ public class EventRegistration {
             "https?://|www\\.|[/\\\\]|youtu\\.be", Pattern.CASE_INSENSITIVE
     );
     public static final int MAX_INTRO_LENGTH = 40;
-    public static final int MAX_AFFILIATION_LENGTH = 500;
+    public static final int MAX_AFFILIATION_LENGTH = 100;
+    public static final int MAX_CURRENT_WORK_LENGTH = 500;
     public static final int MAX_OTHER_ACTIVITY_LENGTH = 50;
     public static final int MAX_CAREERS = 10;
     private static final Pattern PHONE = Pattern.compile("01[016789]-\\d{3,4}-\\d{4}");
@@ -102,8 +103,12 @@ public class EventRegistration {
     @Column(name = "photo_key", updatable = false, length = 500)
     private String photoKey;
 
-    @Column(updatable = false, length = MAX_AFFILIATION_LENGTH)
+    // 소속과 하는 일을 한 칸에 받던 기존 신청의 값을 보존하고 새 신청에만 소속 100자 제한을 적용한다.
+    @Column(updatable = false, length = 500)
     private String affiliation;
+
+    @Column(name = "current_work", updatable = false, length = MAX_CURRENT_WORK_LENGTH)
+    private String currentWork;
 
     @Enumerated(EnumType.STRING)
     @ElementCollection
@@ -142,7 +147,8 @@ public class EventRegistration {
         this.name = required(form.name(), MAX_NAME_LENGTH, "이름");
         this.phone = phone(form.phone());
         if (participantType == EventParticipantType.PRODUCER) {
-            this.affiliation = required(form.affiliation(), MAX_AFFILIATION_LENGTH, "소속과 하는 일");
+            this.affiliation = required(form.affiliation(), MAX_AFFILIATION_LENGTH, "소속");
+            this.currentWork = required(form.currentWork(), MAX_CURRENT_WORK_LENGTH, "지금 하고 계신 일");
         } else if (participantType == EventParticipantType.ACTOR && form.businessCardRequested()) {
             writeBusinessCard(form, photoKey, today);
         }

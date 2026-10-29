@@ -89,7 +89,7 @@ export function AdminEventForm({ initial, submitLabel, onSave, onCancel, onUnaut
           예술in 참가 신청서로 신청 받기
         </label>
         <p className="-mt-3 text-xs text-muted">
-          켜면 신청 버튼이 위 신청 링크 대신 로그인 없이 쓰는 신청서를 열어요. 모두 이름·휴대폰을 받고, 공연사 관계자는 소속과 하는 일을, 프로필 명함을 희망한 배우는 이메일·SNS·생년월일·사진·분야·경력을 받아요.
+          켜면 신청 버튼이 위 신청 링크 대신 로그인 없이 쓰는 신청서를 열어요. 모두 이름·휴대폰을 받고, 공연사 관계자는 소속과 지금 하는 일을, 프로필 명함을 희망한 배우는 이메일·SNS·생년월일·사진·분야·경력을 받아요.
           종료일이 지나거나 총정원이 차면 신청을 닫아요. 모집 마감 버튼은 기존 안내와 신청자를 유지해요.
         </p>
         {draft.registrationEnabled ? (

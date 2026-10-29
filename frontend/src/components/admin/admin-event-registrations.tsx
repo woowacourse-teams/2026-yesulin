@@ -84,7 +84,7 @@ export function AdminEventRegistrations({ eventId, onUnauthorized, onChanged }: 
   const matching = (registrations ?? []).map((registration, index) => ({ registration, order: index + 1 })).filter(({ registration }) => (
     (participantType === "ALL" || registration.participantType === participantType)
     && (paymentFilter === "ALL" || registration.paymentStatus === paymentFilter)
-    && (!normalizedQuery || [registration.name, registration.phone, registration.email, registration.affiliation]
+    && (!normalizedQuery || [registration.name, registration.phone, registration.email, registration.affiliation, registration.currentWork]
       .some((value) => value?.toLocaleLowerCase().replace(/[\s-]/g, "").includes(normalizedQuery)))
   ));
   const pageCount = Math.max(1, Math.ceil(matching.length / 20));
@@ -126,7 +126,7 @@ export function AdminEventRegistrations({ eventId, onUnauthorized, onChanged }: 
         <div role="search" aria-label="참가자 검색 및 필터" className="grid gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]">
           <div className="min-w-0">
             <label htmlFor="event-participant-search" className="mb-1 block text-xs font-semibold text-muted-strong">참가자 검색</label>
-            <FieldInput id="event-participant-search" type="search" placeholder="이름, 전화번호, 이메일, 소속" value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} />
+            <FieldInput id="event-participant-search" type="search" placeholder="이름, 전화번호, 이메일, 소속, 하는 일" value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} />
           </div>
           <div>
             <label htmlFor="event-participant-type" className="mb-1 block text-xs font-semibold text-muted-strong">참가 유형</label>
@@ -171,7 +171,8 @@ export function AdminEventRegistrations({ eventId, onUnauthorized, onChanged }: 
                 <p className="num mt-2 break-all text-muted-strong">
                   {[registration.phone, registration.email, registration.snsHandle ? `${registration.snsPlatform ? `${EVENT_SNS_LABELS[registration.snsPlatform]}: ` : ""}${registration.snsHandle}` : null, registration.birthDate].filter(Boolean).join(" · ")}
                 </p>
-                {registration.affiliation ? <p className="mt-1 whitespace-pre-line break-words text-muted-strong">{registration.affiliation}</p> : null}
+                {registration.affiliation ? <p className="mt-1 whitespace-pre-line break-words text-muted-strong">{registration.currentWork ? <><span className="font-semibold">소속</span> {registration.affiliation}</> : registration.affiliation}</p> : null}
+                {registration.currentWork ? <p className="mt-1 whitespace-pre-line break-words text-muted-strong"><span className="font-semibold">하는 일</span> {registration.currentWork}</p> : null}
                 {registration.businessCardRequested ? <details className="mt-1">
                   <summary className="flex min-h-11 cursor-pointer items-center text-xs font-semibold text-brand">명함 정보 보기</summary>
                   <ActorDetails registration={registration} />

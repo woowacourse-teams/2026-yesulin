@@ -126,11 +126,12 @@ class EventRegistrationServiceTest {
         long eventId = openEvent();
 
         registrationService.register(eventId, EventRegistrationForm.withoutBusinessCard(
-                EventParticipantType.PRODUCER, "이도현", "010-2345-6789", "남극장 · 캐스팅 담당"
+                EventParticipantType.PRODUCER, "이도현", "010-2345-6789", "남극장", "캐스팅 담당"
         ), null, true);
 
         AdminEventRegistrationResult registration = registrationService.findAllForAdmin(eventId).getFirst();
-        assertEquals("남극장 · 캐스팅 담당", registration.affiliation());
+        assertEquals("남극장", registration.affiliation());
+        assertEquals("캐스팅 담당", registration.currentWork());
         assertNull(registration.photoUrl());
     }
 
@@ -346,7 +347,7 @@ class EventRegistrationServiceTest {
                 EventParticipantType.ACTOR, EventParticipantType.PRODUCER, EventParticipantType.ACTOR);
         for (int index = 0; index < types.size(); index++) {
             registrationService.register(eventId, EventRegistrationForm.withoutBusinessCard(
-                    types.get(index), "참가자", "010-0000-%04d".formatted(index), "극단 · 관계자"
+                    types.get(index), "참가자", "010-0000-%04d".formatted(index), "극단", "관계자"
             ), null, true);
         }
         assertEquals(3, registrationRepository.countByEventId(eventId));

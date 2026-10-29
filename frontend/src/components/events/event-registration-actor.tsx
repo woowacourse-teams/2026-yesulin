@@ -52,7 +52,7 @@ export function BusinessCardFields({ eventId, draft, preview, photoUrl, mobileVi
                   <option value="">선택 안 함</option>
                   {EVENT_SNS_PLATFORMS.map((platform) => <option key={platform} value={platform}>{EVENT_SNS_LABELS[platform]}</option>)}
                 </FieldSelect>
-                <FieldInput id="registration-sns" aria-label="SNS 계정명 또는 채널명" aria-describedby="registration-sns-hint registration-sns-count" placeholder="예: 예술배우" autoCapitalize="none" autoCorrect="off" value={draft.snsHandle} maxLength={MAX_EVENT_SNS_HANDLE_LENGTH} onChange={(event) => onChange({ snsHandle: event.target.value.slice(0, MAX_EVENT_SNS_HANDLE_LENGTH) })} />
+                <FieldInput id="registration-sns" aria-label="SNS 계정명 또는 채널명" aria-describedby="registration-sns-hint registration-sns-count" placeholder="예: @yesulin_actor" autoCapitalize="none" autoCorrect="off" value={draft.snsHandle} maxLength={MAX_EVENT_SNS_HANDLE_LENGTH} onChange={(event) => onChange({ snsHandle: event.target.value.slice(0, MAX_EVENT_SNS_HANDLE_LENGTH) })} />
               </div>
               <p id="registration-sns-count" className="num text-right text-xs text-muted">{draft.snsHandle.length} / {MAX_EVENT_SNS_HANDLE_LENGTH}자</p>
             </fieldset>

@@ -16,8 +16,10 @@ export type RegistrationDraft = {
   readonly participantType: EventParticipantType | null;
   readonly name: string;
   readonly phone: string;
-  /** 공연사 관계자의 소속과 하는 일 */
+  /** 공연사 관계자의 소속 */
   readonly affiliation: string;
+  /** 공연사 관계자가 지금 하고 계신 일 */
+  readonly currentWork: string;
   /** 배우가 프로필 명함 제작을 희망하는지. 켜야 아래 명함 정보를 적는다. */
   readonly businessCardRequested: boolean;
   readonly email: string;
@@ -51,6 +53,7 @@ export function emptyRegistrationDraft(): RegistrationDraft {
     name: "",
     phone: "",
     affiliation: "",
+    currentWork: "",
     businessCardRequested: false,
     email: "",
     snsHandle: "",
@@ -100,7 +103,8 @@ export function registrationProblem(draft: RegistrationDraft, today: string): st
   if (!draft.participantType) return "참가 구분을 선택해 주십시오.";
   if (!draft.name.trim()) return "이름을 입력해 주십시오.";
   if (!PHONE.test(formatPhoneInput(draft.phone))) return "휴대폰 번호를 010-1234-5678 형식으로 입력해 주십시오.";
-  if (draft.participantType === "PRODUCER" && !draft.affiliation.trim()) return "소속과 지금 하는 일을 입력해 주십시오.";
+  if (draft.participantType === "PRODUCER" && !draft.affiliation.trim()) return "소속을 입력해 주십시오.";
+  if (draft.participantType === "PRODUCER" && !draft.currentWork.trim()) return "지금 하고 계신 일을 입력해 주십시오.";
   if (draft.participantType === "ACTOR" && draft.businessCardRequested) {
     const problem = businessCardProblem(draft, today);
     if (problem) return problem;
@@ -146,6 +150,7 @@ export function writeOfRegistration(draft: RegistrationDraft): EventRegistration
     name: draft.name.trim(),
     phone: formatPhoneInput(draft.phone),
     affiliation: draft.participantType === "PRODUCER" ? blankToNull(draft.affiliation) : null,
+    currentWork: draft.participantType === "PRODUCER" ? blankToNull(draft.currentWork) : null,
     businessCardRequested: card,
     email: card ? blankToNull(draft.email) : null,
     snsHandle: card ? blankToNull(draft.snsHandle) : null,
