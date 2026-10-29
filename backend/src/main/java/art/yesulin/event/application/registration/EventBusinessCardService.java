@@ -58,10 +58,6 @@ public class EventBusinessCardService {
         );
     }
 
-    public void connectApplicantProfile(EventRegistration registration, long memberId, String handle) {
-        registration.connectBusinessCard("/actors/@" + handle, memberId);
-    }
-
     /** 공개 응답에는 목적지만 포함하며 신청자나 연결 회원 정보는 노출하지 않는다. */
     @Transactional(readOnly = true)
     public String destination(String publicId) {

@@ -12,7 +12,7 @@ export function ApplicantAuthGuard({ children }: { readonly children: React.Reac
 
   useEffect(() => {
     if (serverSessionEnabled && sessionReady && !applicantAuthenticated) {
-      router.replace(`/login?returnTo=${encodeURIComponent(pathname + window.location.search)}`);
+      router.replace(`/login?returnTo=${encodeURIComponent(pathname)}`);
     }
   }, [applicantAuthenticated, pathname, router, serverSessionEnabled, sessionReady]);
 

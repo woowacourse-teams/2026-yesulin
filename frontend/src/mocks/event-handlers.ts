@@ -1,4 +1,3 @@
-import { ownerPublicActorPage } from "./actor-page-owner-handlers";
 import { eventBankAccountProblem } from "@/features/events/bank-account";
 import { businessCardProfileUrlProblem } from "@/features/events/business-card";
 import { consumeMockMemberLinkCode, invalidMemberLinkCode, realMemberLinkEnabled } from "./member-link-codes";
@@ -306,14 +305,9 @@ export const eventHandlers = [
     }, { status: 201 });
   }),
 
-  http.post(/\/api\/v1\/(?:public|applicants\/me)\/events\/(\d+)\/registrations$/, async ({ params, request }) => {
-    const withProfile = new URL(request.url).pathname.includes("/applicants/me/");
-    if (withProfile && realMemberLinkEnabled) return passthrough();
-    if (withProfile && mockSessionRole() !== "APPLICANT") return apiError(401, "AUTH_UNAUTHENTICATED", "배우 계정으로 로그인해 주세요.");
-    const profile = withProfile ? ownerPublicActorPage() : null;
-    if (withProfile && !profile) return apiError(409, "ACTOR_PAGE_NOT_READY", "프로필을 저장하고 배우 페이지를 공개한 뒤 명함을 신청해 주세요.");
+  http.post("/api/v1/public/events/:eventId/registrations", async ({ params, request }) => {
     await delay(150);
-    const event = published().find((candidate) => candidate.id === Number(params[0]));
+    const event = published().find((candidate) => candidate.id === Number(params.eventId));
     if (!event) return apiError(404, "EVENT_NOT_FOUND", "이벤트를 찾을 수 없습니다.");
     if (!acceptsRegistrations(event)) return apiError(409, "EVENT_REGISTRATION_CLOSED", registrationClosedMessage(registrationStatusOf(event)));
     const write = await request.json() as EventRegistrationWrite;
@@ -325,7 +319,6 @@ export const eventHandlers = [
     }
     const actor = write.participantType === "ACTOR";
     const card = actor && write.businessCardRequested;
-    if (withProfile && !card) return apiError(400, "EVENT_INVALID_INPUT", "프로필 연결은 배우 명함 신청에서만 사용할 수 있습니다.");
     const publicId = card ? crypto.randomUUID() : null;
     if (card && !acceptsBusinessCards(event)) {
       return apiError(409, "EVENT_BUSINESS_CARD_CLOSED", "프로필 명함 제작 신청 기간이 끝났습니다. 명함 희망을 끄고 신청해 주십시오.");
@@ -351,7 +344,7 @@ export const eventHandlers = [
       careers: card && !write.noCareer ? write.careers : [],
       intro: card ? write.intro?.trim() || null : null,
       createdAt: new Date().toISOString(),
-      businessCard: publicId ? { publicId, url: `${window.location.origin}/events/cards/${publicId}`, profileUrl: profile ? `${window.location.origin}/actors/@${profile.handle}` : null, memberId: profile ? 3001 : null } : null,
+      businessCard: publicId ? { publicId, url: `${window.location.origin}/events/cards/${publicId}`, profileUrl: null, memberId: null } : null,
       paymentStatus: "PENDING",
       paymentConfirmedAt: null,
     });

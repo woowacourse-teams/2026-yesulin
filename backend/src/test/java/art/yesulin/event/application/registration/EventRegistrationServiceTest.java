@@ -6,18 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import art.yesulin.actor.domain.page.ActorPage;
-import art.yesulin.actor.domain.page.ActorPageErrorCode;
-import art.yesulin.actor.domain.page.ActorPageHandle;
-import art.yesulin.actor.domain.page.ActorPageReadiness;
-import art.yesulin.actor.domain.page.ActorPageRepository;
-import art.yesulin.actor.domain.photolibrary.PhotoLibrary;
-import art.yesulin.actor.domain.photolibrary.PhotoLibraryRepository;
-import art.yesulin.actor.domain.photolibrary.PhotoVisibility;
-import art.yesulin.actor.domain.profile.ApplicantProfile;
-import art.yesulin.actor.domain.profile.ApplicantProfileRepository;
-import art.yesulin.actor.domain.profile.ProfileBasicInformation;
-import art.yesulin.actor.domain.profile.ProfileGender;
 import art.yesulin.auth.application.AuthErrorCode;
 import art.yesulin.auth.application.memberlink.MemberLinkCodeService;
 import art.yesulin.auth.domain.member.Member;
@@ -43,9 +31,6 @@ import art.yesulin.event.domain.registration.EventSnsPlatform;
 import art.yesulin.event.domain.registration.visit.EventBusinessCardVisit;
 import art.yesulin.event.domain.registration.visit.EventBusinessCardVisitRepository;
 import art.yesulin.file.application.storage.ObjectUpload;
-import art.yesulin.file.domain.FileAsset;
-import art.yesulin.file.domain.FileAssetRepository;
-import art.yesulin.file.domain.FileMetadata;
 import art.yesulin.global.audit.AdminAction;
 import art.yesulin.global.audit.AdminAuditLog;
 import art.yesulin.global.audit.AdminAuditLogRepository;
@@ -139,18 +124,6 @@ class EventRegistrationServiceTest {
     @Autowired
     private BusinessCardArchive businessCardArchive;
 
-    @Autowired
-    private ApplicantProfileRepository profileRepository;
-
-    @Autowired
-    private PhotoLibraryRepository photoLibraryRepository;
-
-    @Autowired
-    private ActorPageRepository actorPageRepository;
-
-    @Autowired
-    private FileAssetRepository fileAssetRepository;
-
     @BeforeEach
     void setUp() {
         memberLinkCodeRepository.deleteAll();
@@ -158,61 +131,6 @@ class EventRegistrationServiceTest {
         uploadRepository.deleteAll();
         eventRepository.deleteAll();
         auditLogRepository.deleteAll();
-    }
-
-    @Test
-    void profileRegistrationConnectsOwnerAndAdminCanReplaceDestinationWithoutChangingQr() {
-        long eventId = openEvent();
-        long ownerId = memberRepository.saveAndFlush(Member.ofApplicant()).getId();
-        String handle = "event_actor_" + ownerId;
-        new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
-            ApplicantProfile profile = new ApplicantProfile(ownerId);
-            ProfileBasicInformation basic = new ProfileBasicInformation("프로필 배우", 170, 60, BIRTH_DATE,
-                    ProfileGender.FEMALE, "010-1234-5678", "actor@example.com", "서울특별시", LocalDate.now());
-            profile.replaceBasicInformation(basic);
-            profileRepository.saveAndFlush(profile);
-            PhotoLibrary photos = new PhotoLibrary(ownerId);
-            FileAsset photo = fileAssetRepository.saveAndFlush(new FileAsset(
-                    "private/actor-photos/test-" + ownerId, ownerId, new FileMetadata("photo.jpg", "image/jpeg", 12)));
-            photo.completeUpload("image/jpeg", 12, java.time.Instant.now());
-            photos.addPhoto(photo.getId());
-            photoLibraryRepository.saveAndFlush(photos);
-            photos.changeVisibility(photos.getPhotos().getFirst().getId(), PhotoVisibility.PUBLIC);
-            photos.attachPublicCopy(photos.getPhotos().getFirst().getId(), "public/files/actor-photos/test-" + ownerId);
-            ActorPage page = new ActorPage(ownerId);
-            page.changeHandle(new ActorPageHandle(handle));
-            page.publish(true, ActorPage.CONSENT_VERSION,
-                    ActorPageReadiness.assess(handle, basic, true, false, LocalDate.now()), java.time.Instant.now());
-            actorPageRepository.saveAndFlush(page);
-        });
-        final long id = registrationService.registerWithProfile(
-                ownerId, eventId, actor("010-1234-5678"), uploadedPhoto(eventId), true);
-        EventBusinessCardResult connected = registrationService.findAllForAdmin(eventId).getFirst().businessCard();
-        assertEquals(ownerId, connected.memberId());
-        assertTrue(connected.profileUrl().endsWith("/actors/@" + handle));
-        assertEquals(connected.profileUrl(), businessCardService.destination(connected.publicId()));
-        EventBusinessCardResult changed = businessCardService.updateProfile(
-                ADMIN_ID, eventId, id, "https://example.test/new-profile");
-        assertEquals(connected.publicId(), changed.publicId());
-        assertEquals(connected.url(), changed.url());
-        assertEquals(ownerId, changed.memberId());
-        assertEquals("https://example.test/new-profile", businessCardService.destination(connected.publicId()));
-        registrationService.register(eventId, actor("010-2345-6789"), uploadedPhoto(eventId), true);
-        EventBusinessCardResult manual = registrationService.findAllForAdmin(eventId).getLast().businessCard();
-        assertFalse(manual.publicId().equals(connected.publicId()));
-        assertNull(manual.profileUrl());
-        assertNull(manual.memberId());
-    }
-
-    @Test
-    void profileRegistrationRequiresOwnersPublicPageBeforeClaimingPhoto() {
-        long eventId = openEvent();
-        long ownerId = memberRepository.saveAndFlush(Member.ofApplicant()).getId();
-        String key = uploadedPhoto(eventId);
-        assertCode(ActorPageErrorCode.ACTOR_PAGE_NOT_READY, () -> registrationService.registerWithProfile(
-                ownerId, eventId, actor("010-1234-5678"), key, true));
-        assertTrue(uploadRepository.findByObjectKey(key).isPresent());
-        assertTrue(registrationService.findAllForAdmin(eventId).isEmpty());
     }
 
     @Test

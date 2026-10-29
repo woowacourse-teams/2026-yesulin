@@ -44,18 +44,6 @@ public class PublicActorPageService {
     private final PublicPhotoCopyStorage publicCopies;
     private final FileService fileService;
 
-    /** 명함 신청은 로그인한 배우 본인의 현재 공개 가능한 페이지에만 연결한다. */
-    @Transactional(readOnly = true)
-    public String requirePublicHandle(long ownerId) {
-        ActorPageContentState state = contentSync.read(ownerId);
-        ActorPage page = state.page();
-        if (page == null || !page.isPublic() || !state.readiness(page, contentSync.today()).ready()) {
-            throw new BusinessException(art.yesulin.actor.domain.page.ActorPageErrorCode.ACTOR_PAGE_NOT_READY,
-                    "프로필을 저장하고 배우 페이지를 공개한 뒤 명함을 신청해 주세요.");
-        }
-        return page.getHandle();
-    }
-
     /** 대문자가 섞인 아이디는 소문자로 찾고, 응답의 아이디로 정규 주소를 알려 준다. */
     @Transactional(readOnly = true)
     public PublicActorPageResult findByHandle(String handle) {

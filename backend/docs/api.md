@@ -1265,7 +1265,6 @@ S3 삭제 실패 시 `DELETING` 상태가 남으며 같은 파일 ID로 재시�
 
 | API | 인증 | 계약 |
 | --- | --- | --- |
-| `POST /api/v1/applicants/me/events/{eventId}/registrations` | Active Applicant | 공개 신청과 같은 요청·201 `{id}`. 배우 명함 신청만 받으며 본인 공개 페이지와 회원을 자동 연결 |
 | `GET /api/v1/public/business-cards/{publicId}` | 없음 | `{profileUrl}`. 목적지 미설정은 null, 없는/삭제된 명함은 404 |
 | `GET /api/v1/public/business-cards/{publicId}/visit` | 없음 | 같은 응답과 이벤트 날짜별 방문 기록. HEAD는 기록하지 않음 |
 | `PUT /api/v1/admin/events/{eventId}/registrations/{registrationId}/business-card` | Admin | `{profileUrl}`. null은 목적지 제거. HTTPS 주소만 받고 QR 경유 주소 순환은 거절 |
@@ -1276,7 +1275,7 @@ S3 삭제 실패 시 `DELETING` 상태가 남으며 같은 파일 ID로 재시�
 
 운영 신청 결과에는 `businessCard: {publicId, url, profileUrl, memberId} | null`이 추가된다. 명함 요청만 UUID v4를
 발급하며 `/events/cards/{publicId}` 주소는 목적지·회원 연결을 변경해도 유지한다. 운영 변경 응답도 같은 명함 객체다.
-프로필 연결은 로그인 회원의 공개 상태·잠금·필수 정보 충족을 재검증하며 실패는 `409 ACTOR_PAGE_NOT_READY`다.
+명함 신청은 공개 참가 신청 API에서 직접 작성한 값으로만 접수하며 프로필 자동 연결은 제공하지 않는다.
 공개 목적지·통계·코드 응답은 `Cache-Control: no-store`다. 코드는 해시만 보관하고 잘못된·만료·사용된 코드는
 `400 MEMBER_LINK_CODE_INVALID`, 재발급 대기는 `409 MEMBER_LINK_CODE_COOLDOWN`이다.
 운영 변경은 `EVENT_BUSINESS_CARD_CONNECTED`로 기록하며 대상 신청 ID만 남기고 주소·코드는 남기지 않는다.
