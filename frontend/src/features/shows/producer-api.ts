@@ -1,3 +1,4 @@
+import { trackProductEvent } from "@/features/analytics/product-analytics";
 import { producerRequest as request } from "@/features/auditions/api-client";
 import type { FileUploadResource } from "@/features/auditions/backend-resources";
 import { safeUpload } from "@/features/files/safe-upload";
@@ -21,8 +22,14 @@ export async function getProducerShows(): Promise<readonly ProducerShowSummary[]
   return response.shows;
 }
 
-export function getProducerShow(showId: string): Promise<ProducerShow> {
-  return request<ProducerShow>(showPath(showId));
+export async function getProducerShow(showId: string): Promise<ProducerShow> {
+  const show = await request<ProducerShow>(showPath(showId));
+  if (!show.externalReservationUrl) void trackProductEvent("show_inventory_observed", {
+    show_id: show.id,
+    capacity: show.sessions.reduce((sum, session) => sum + session.capacity, 0),
+    reserved_tickets: show.sessions.reduce((sum, session) => sum + session.reservedTickets, 0),
+  });
+  return show;
 }
 
 export function createShow(input: SaveShow): Promise<ProducerShow> {
@@ -37,8 +44,10 @@ export function deleteShow(showId: string): Promise<void> {
   return request<void>(showPath(showId), { method: "DELETE" });
 }
 
-export function openShow(showId: string): Promise<ProducerShow> {
-  return request<ProducerShow>(`${showPath(showId)}/opening`, { method: "POST" });
+export async function openShow(showId: string): Promise<ProducerShow> {
+  const show = await request<ProducerShow>(`${showPath(showId)}/opening`, { method: "POST" });
+  void trackProductEvent("producer_show_published", { show_id: showId });
+  return show;
 }
 
 export function closeShow(showId: string): Promise<ProducerShow> {
@@ -68,6 +77,10 @@ export async function getSessionReservations(
   const response = await request<{ readonly reservations: readonly ProducerReservation[] }>(
     `${sessionPath(showId, sessionId)}/reservations`,
   );
+  void trackProductEvent("booking_inventory_observed", {
+    show_id: showId, session_id: String(sessionId), reservation_count: response.reservations.length,
+    cancelled_count: response.reservations.filter(r => r.status === "CANCELED").length,
+  });
   return response.reservations;
 }
 

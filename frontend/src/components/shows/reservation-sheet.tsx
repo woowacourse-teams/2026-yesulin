@@ -1,5 +1,6 @@
 "use client";
 
+import { trackProductEvent } from "@/features/analytics/product-analytics";
 import { useState } from "react";
 import { DialogFooter, DialogHeader, ModalShell } from "@/components/auditions/modal-shell";
 import { FieldInput, PrimaryButton, SecondaryButton } from "@/components/ui/controls";
@@ -75,9 +76,11 @@ export function ReservationSheet({ open, show, session, onClose, onReserved, onS
     try {
       const receipt = await createReservation(show.id, session.id, { ...values, ticketCount: count });
       trackReservationEvent("reservation_submit_success", { ticket_count: count });
+      void trackProductEvent("booking_succeeded", { show_id: show.id, ticket_count: count });
       onReserved(receipt);
     } catch (cause) {
       trackReservationEvent("reservation_submit_error", { error_code: reservationAnalyticsErrorCode(cause) });
+      void trackProductEvent("booking_failed", { show_id: show.id });
       const code = cause instanceof AuditionRequestError ? cause.code : null;
       setFormError(reservationErrorMessage(cause, show.inquiryPhone));
       if (code && STALE_CODES.has(code)) await onStale();

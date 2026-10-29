@@ -1,0 +1,139 @@
+/** 선언형 대시보드. 계정·토큰 없이도 --dry-run으로 구성과 쿼리를 검토할 수 있다. */
+export function dashboardDefinitions(environment = "production") {
+  if (!["production", "development"].includes(environment)) throw new Error("Invalid environment");
+  const properties = [
+    { key: "environment", value: environment, operator: "exact", type: "event" },
+    { key: "internal", value: false, operator: "exact", type: "event" },
+    { key: "test_object", value: false, operator: "exact", type: "event" },
+  ];
+  const base = `properties.environment = '${environment}' AND properties.internal = false AND properties.test_object = false`;
+  const week = "toStartOfWeek(toTimeZone(timestamp, 'Asia/Seoul'), 1)";
+  const nowWeek = "toStartOfWeek(toTimeZone(now(), 'Asia/Seoul'), 1)";
+  const trend = (name, event, description, extra = [], math = "dau") => ({ name, description, query: {
+    kind: "TrendsQuery", series: [{ kind: "EventsNode", event, name, math, properties: extra }],
+    properties, interval: "week", dateRange: { date_from: "-12w" }, trendsFilter: { display: "ActionsLineGraph" },
+  } });
+  const table = (name, sql, description, dateFrom = "-28d") => ({ name, description, query: {
+    kind: "DataVisualizationNode", source: { kind: "HogQLQuery", query: sql, filters: { dateRange: { date_from: dateFrom } } }, display: "ActionsTable",
+  } });
+  const eventFilter = (key, value) => ({ key, value, type: "event", operator: "exact" });
+  const descriptions = "운영 성과는 내부 사용자·테스트 자료 제외. 한국 시간·월~일 기준. 비로그인은 브라우저 기준이며 분석 거부·차단 이용자는 빠집니다. 빈 차트는 ‘측정 전 또는 해당 기간 기록 없음’이고, 실제 사용자가 0명이라는 증거는 아닙니다.";
+  const dashboards = [
+    {
+      name: `${environment === "production" ? "01 예술in 한눈에 보기" : "개발 테스트 — 성과 보고용 아님 · 핵심"}`,
+      description: descriptions + " 핵심 지표 = 주간 공고 상세 조회 사용자 수. 이번 주 수치는 진행 중이므로 지난 온전한 주와 단순 비교하지 마세요.",
+      insights: [
+        trend("이번 주 공고를 본 사람은 몇 명인가요?", "audition_post_viewed", "공고 상세가 정상적으로 표시된 사용자. 목록 방문 제외, 체류 시간 조건 없음. 주간 고유 사용자 수(WAU), 한 사람이 여러 공고를 봐도 주당 한 명."),
+        table("공고를 봤던 사람들이 1주·4주 뒤 다시 오나요?", `WITH activity AS (
+          SELECT DISTINCT person_id, ${week} AS week FROM events WHERE event = 'audition_post_viewed' AND ${base}
+        ), cohorts AS (
+          SELECT a.week, a.person_id,
+            max(if(b.week = a.week + INTERVAL 1 WEEK, 1, 0)) AS w1,
+            max(if(b.week = a.week + INTERVAL 4 WEEK, 1, 0)) AS w4
+          FROM activity a LEFT JOIN activity b ON a.person_id = b.person_id
+          GROUP BY a.week, a.person_id
+        ) SELECT week AS \`기준 주\`, count() AS \`기준 인원\`,
+          if(week + INTERVAL 2 WEEK <= ${nowWeek}, sum(w1), NULL) AS \`1주 뒤 인원\`,
+          if(week + INTERVAL 5 WEEK <= ${nowWeek}, sum(w4), NULL) AS \`4주 뒤 인원\`,
+          if(week + INTERVAL 5 WEEK <= ${nowWeek}, round(100.0 * sum(w4) / count(), 1), NULL) AS \`W4 비율 퍼센트\`
+          FROM cohorts GROUP BY week HAVING {filters(week AS timestamp)} ORDER BY week DESC LIMIT 26`,
+          "기준 주의 전체 활성 사용자 중 정확히 1주·4주 뒤 해당 주에도 공고를 조회한 사람. 해당 주가 끝나지 않으면 빈칸=관측 중. 첫 방문자만의 리텐션과 구분합니다.", "-26w"),
+        trend("양식을 내려받으려는 사람은 몇 명인가요?", "attachment_download_clicked", "지원 양식으로 확인된 첨부의 다운로드 클릭 사용자 수. 파일 저장 완료나 실제 지원 완료를 뜻하지 않습니다.", [eventFilter("attachment_kind", "application_form")]),
+        table("공고를 본 뒤 7일 안에 양식을 누르나요?", `WITH views AS (
+          SELECT person_id, properties.post_id AS post_id, min(timestamp) AS viewed
+          FROM events WHERE event = 'audition_post_viewed' AND properties.has_application_form = true AND ${base}
+          GROUP BY person_id, post_id HAVING {filters(viewed AS timestamp)} AND viewed < now() - INTERVAL 7 DAY
+        ), downloads AS (
+          SELECT person_id, properties.post_id AS post_id, timestamp FROM events
+          WHERE event = 'attachment_download_clicked' AND properties.attachment_kind = 'application_form' AND ${base}
+        ), matched AS (
+          SELECT v.person_id, v.post_id, max(if(d.timestamp >= v.viewed AND d.timestamp <= v.viewed + INTERVAL 7 DAY, 1, 0)) AS converted
+          FROM views v LEFT JOIN downloads d ON v.person_id = d.person_id AND v.post_id = d.post_id
+          GROUP BY v.person_id, v.post_id
+        ) SELECT uniq(person_id) AS \`공고 조회자\`, uniqIf(person_id, converted = 1) AS \`양식 클릭자\`,
+          round(100.0 * uniqIf(person_id, converted = 1) / nullIf(uniq(person_id), 0), 1) AS \`전환율 퍼센트\` FROM matched`,
+          "지원 양식이 확인된 공고만 포함. 같은 사용자·같은 공고를 연결합니다. 최초 관측 조회 후 7일이 지난 대상만 비교하며, 최근 7일 방문자는 아직 관측 중입니다. 분모가 없으면 빈칸입니다.", "-35d"),
+        trend("오픈채팅 알림으로 얼마나 들어오나요?", "openchat_landed", "src=kakao_openchat 또는 utm_source=kakao_openchat으로 표시된 링크 유입. 방 인원 대비 비율은 메시지 열람자 기준 클릭률이 아닙니다."),
+        table("어떤 공고 알림을 많이 열어 보나요?", `SELECT properties.post_id AS \`공고 번호\`, uniq(person_id) AS \`유입 사용자\` FROM events WHERE event = 'openchat_landed' AND ${base} AND {filters} GROUP BY properties.post_id ORDER BY \`유입 사용자\` DESC`, "선택 기간, 공고별 중복 제거. 공고 번호는 사이트 상세 주소 /posts/번호와 대응합니다. 공고 제목·본문은 분석에 보내지 않습니다."),
+        table("알림을 보고 다른 공고도 살펴보나요?", `WITH visits AS (
+          SELECT person_id, properties.$session_id AS session_id,
+            max(if(event = 'openchat_landed', 1, 0)) AS landed,
+            max(if(event = 'another_post_viewed', 1, 0)) AS explored
+          FROM events WHERE event IN ('openchat_landed', 'another_post_viewed') AND ${base} AND {filters}
+          GROUP BY person_id, session_id
+        ) SELECT uniqIf(person_id, landed = 1) AS \`알림 유입자\`, uniqIf(person_id, landed = 1 AND explored = 1) AS \`다른 공고 탐색자\`,
+          round(100.0 * uniqIf(person_id, landed = 1 AND explored = 1) / nullIf(uniqIf(person_id, landed = 1), 0), 1) AS \`탐색률 퍼센트\` FROM visits`,
+          "선택 기간 알림 유입 중 동일 방문에서 다른 공고를 연 사람의 비율. 새로고침은 다른 공고 탐색으로 세지 않습니다."),
+      ],
+    },
+    {
+      name: "02 예매와 공연사 업무", description: descriptions + " 예매 행동 통계와 DB 확정 좌석은 다릅니다. 현재 행동 기록만으로 전체 확정 좌석·취소율을 계산하지 않습니다.",
+      insights: [
+        { name: "예매는 어느 단계에서 멈추나요?", description: "예매 가능한 내부 예매 공연만 포함. 같은 사용자·공연 조합의 1일 이내 상세 조회→예매 시작→저장 성공. 한 사람이 여러 공연을 예매하면 여러 조합으로 셉니다. 외부 예매 이동은 별도입니다.", query: {
+          kind: "FunnelsQuery", properties, dateRange: { date_from: "-28d" },
+          series: [
+            { kind: "EventsNode", event: "show_viewed", properties: [eventFilter("eligible", true)] },
+            { kind: "EventsNode", event: "booking_started" }, { kind: "EventsNode", event: "booking_succeeded" },
+          ], funnelsFilter: { funnelWindowInterval: 1, funnelWindowIntervalUnit: "day", funnelOrderType: "ordered", funnelVizType: "steps", funnelStepReference: "total", funnelAggregateByHogQL: "concat(toString(person_id), ':', properties.show_id)" },
+          aggregation_group_type_index: null,
+          filterTestAccounts: false,
+          // property별 연결이 가능한 SQL 검증 표를 함께 제공한다.
+        } },
+        table("같은 공연에서 예매를 완료했나요?", `WITH starts AS (SELECT person_id, properties.show_id AS show_id, min(timestamp) AS started FROM events WHERE event='booking_started' AND ${base} AND {filters} GROUP BY person_id, show_id), done AS (SELECT person_id, properties.show_id AS show_id, timestamp FROM events WHERE event='booking_succeeded' AND ${base}) SELECT uniq(s.person_id) AS \`예매 시작자\`, uniqIf(s.person_id, d.timestamp >= s.started AND d.timestamp <= s.started + INTERVAL 1 DAY) AS \`동일 공연 예매 완료자\` FROM starts s LEFT JOIN done d ON s.person_id=d.person_id AND s.show_id=d.show_id`, "서로 다른 공연을 본 행동이 한 전환으로 연결되지 않도록 공연별로 확인합니다. 최근 1일 시작자는 아직 전환 가능 시간이 남아 있습니다."),
+        trend("예매 실패가 늘었나요?", "booking_failed", "예매 요청 실패 횟수. 입력 검증에서 막혀 요청하지 않은 경우는 제외합니다.", [], "total"),
+        table("최근 확인한 공연별 확정 좌석은 몇 석인가요?", `SELECT properties.show_id AS \`공연 번호\`, argMax(toFloat(properties.capacity),timestamp) AS \`전체 좌석\`, argMax(toFloat(properties.reserved_tickets),timestamp) AS \`확정 좌석\`, max(timestamp) AS \`마지막 확인\` FROM events WHERE event='show_inventory_observed' AND ${base} AND {filters} GROUP BY properties.show_id`, "공연사가 관리 화면에서 조회한 서버 현황의 마지막 관측값입니다. 모든 공연을 자동 동기화한 실시간 전체 수치는 아닙니다. 분석 거부·내부 계정의 조회는 포함되지 않습니다."),
+        table("최근 확인한 회차별 예매 취소율은 얼마인가요?", `SELECT properties.show_id AS \`공연 번호\`, properties.session_id AS \`회차 번호\`, argMax(toFloat(properties.reservation_count),timestamp) AS \`전체 예매 건\`, argMax(toFloat(properties.cancelled_count),timestamp) AS \`취소 건\`, round(100.0 * argMax(toFloat(properties.cancelled_count),timestamp)/nullIf(argMax(toFloat(properties.reservation_count),timestamp),0),1) AS \`취소율 퍼센트\`, max(timestamp) AS \`마지막 확인\` FROM events WHERE event='booking_inventory_observed' AND ${base} AND {filters} GROUP BY properties.show_id, properties.session_id`, "회차 예매자 목록을 조회한 시점의 서버 현황. 좌석 수가 아닌 예매 건수 기준이며, 마지막 확인 이후 변경은 다음 조회 때 반영됩니다."),
+        trend("공고를 실제로 게시한 공연사는 몇 곳인가요?", "producer_post_published", "게시 API 성공 기준. 로그인 계정별 고유 수이며 한 회사가 여러 계정을 쓰면 여러 곳으로 보일 수 있습니다."),
+        trend("공연을 공개한 공연사는 몇 곳인가요?", "producer_show_published", "공연 공개 API 성공 기준. 가입·로그인만 한 계정은 제외합니다."),
+        table("다음 프로젝트에서도 다시 사용하나요?", `WITH per_account AS (
+          SELECT person_id, uniqIf(properties.post_id, event='producer_post_published') AS posts,
+            uniqIf(properties.show_id, event='producer_show_published') AS shows,
+            uniqIf(properties.review_id, event='review_saved') AS reviews
+          FROM events WHERE event IN ('producer_post_published','producer_show_published','review_saved') AND ${base} AND {filters} GROUP BY person_id
+        ) SELECT '공고 게시' AS \`업무\`, countIf(posts > 0) AS \`이용 계정\`, countIf(posts >= 2) AS \`두 번째 이상 이용 계정\`, round(100.0*countIf(posts>=2)/nullIf(countIf(posts>0),0),1) AS \`재사용 비율 퍼센트\` FROM per_account
+        UNION ALL SELECT '공연 공개', countIf(shows>0), countIf(shows>=2), round(100.0*countIf(shows>=2)/nullIf(countIf(shows>0),0),1) FROM per_account
+        UNION ALL SELECT '심사 저장', countIf(reviews>0), countIf(reviews>=2), round(100.0*countIf(reviews>=2)/nullIf(countIf(reviews>0),0),1) FROM per_account`,
+          "선택 기간에 서로 다른 공고·공연·심사에서 두 번 이상 업무를 수행한 계정의 비율입니다. 같은 프로젝트의 반복 저장은 재사용으로 늘리지 않습니다. 업무별 분모가 다르며 회사 수와 계정 수는 다를 수 있습니다."),
+      ],
+    },
+    {
+      name: "03 PDF와 심사 시간", description: descriptions + " 출시 전 빈 차트는 미출시·측정 전입니다. PDF 원문·이름·연락처·심사 메모는 수집하지 않습니다.",
+      insights: [
+        table("PDF를 올린 뒤 어디까지 사용했나요?", `SELECT if(properties.workflow='actor_pdf', '배우 PDF', '공연사 PDF') AS \`기능\`, multiIf(properties.step='upload','업로드',properties.step='extract','추출',properties.step='apply','결과 적용','프로필 저장') AS \`단계\`, if(properties.outcome='success','성공','실패') AS \`결과\`, uniq(person_id) AS \`사용자 수\`, uniq(properties.operation_id) AS \`관측된 PDF 작업 수\` FROM events WHERE event IN ('pdf_step_completed','pdf_step_failed') AND ${base} AND {filters} GROUP BY \`기능\`, \`단계\`, \`결과\``, "배우: 업로드→추출→적용→프로필 저장. 공연사: 업로드→추출 후 아래 심사 저장을 확인합니다. 추출 완료는 브라우저에서 결과를 관측한 작업만 포함하므로 전체 서버 처리 성공률과 다릅니다. 실패 전 작업 ID가 없으면 작업 수에 빠질 수 있습니다."),
+        table("공연사 PDF가 실제 심사로 이어지나요?", `SELECT properties.review_id AS \`심사 번호\`, uniqIf(properties.operation_id, event='pdf_step_completed' AND properties.step='upload') AS \`업로드 PDF 수\`, uniqIf(properties.item_id, event='review_item_viewed') AS \`열람 지원자 수\`, uniqIf(properties.item_id, event='review_saved' AND properties.eligible=true) AS \`결과 저장 지원자 수\` FROM events WHERE properties.workflow='producer_pdf' AND event IN ('pdf_step_completed','review_item_viewed','review_saved') AND ${base} AND {filters} GROUP BY properties.review_id`, "같은 심사 안에서 업로드·열람·저장을 비교합니다. 다음 지원자로 이동한 것만으로 심사 완료로 보지 않습니다. 저장 후 판정을 대기로 되돌린 현재 상태는 아래 완료 현황 표를 확인하세요."),
+        table("심사에 총 몇 분을 쓰고 있나요?", `SELECT properties.workflow AS \`심사 종류\`, properties.review_id AS \`심사 번호\`, uniq(properties.item_id) AS \`관측 지원자 수\`, round(sum(toFloat(properties.active_ms))/60000,1) AS \`합산 작업 시간(분)\`, round(sum(toFloat(properties.active_ms))/1000/nullIf(uniq(properties.item_id),0),1) AS \`지원자당 평균(초)\`, round(sum(toFloat(properties.active_ms))/60000/nullIf(uniq(properties.item_id),0)*200,1) AS \`200명 환산(분·추정)\` FROM events WHERE event='review_active_time' AND ${base} AND {filters} GROUP BY properties.workflow, properties.review_id`, "선택 기간의 근사치. 다른 탭·포커스 이탈·2분 이상 무조작 제외. 재열람 시간은 누적합니다. 여러 심사위원의 시간은 인시 합계이며 경과 시간이 아닙니다. 200명 값은 준비·휴식을 제외한 추정이고 실제 완료 시간으로 제시하면 안 됩니다."),
+        table("심사를 몇 명까지 끝냈나요?", `SELECT properties.review_id AS \`심사 번호\`, argMax(toFloat(properties.total_count),timestamp) AS \`전체 대상\`, argMax(toFloat(properties.completed_count),timestamp) AS \`저장된 판정 수\`, max(timestamp) AS \`마지막 관측\` FROM events WHERE event='review_progress' AND ${base} AND {filters} GROUP BY properties.review_id`, "PDF 심사 상세 API를 마지막으로 읽은 시점의 전체 현황. 최신 데이터가 항상 자동 동기화되는 DB 대시보드는 아닙니다. 미검토 외 보류·합격·불합격을 판정 저장으로 집계합니다."),
+      ],
+    },
+    {
+      name: "04 측정 점검 — 성과 보고용 아님", description: "팀원·테스트 기록과 미분류 첨부를 확인하는 개발·운영 점검 화면입니다. 이 화면의 수치는 성과 보고에 사용하지 마세요.",
+      insights: [
+        table("팀원·테스트 표시가 들어오나요?", `SELECT event AS \`행동\`, properties.internal AS \`내부 사용자\`, properties.test_object AS \`테스트 자료\`, count() AS \`기록 수\` FROM events WHERE properties.environment='${environment}' AND {filters} GROUP BY event, properties.internal, properties.test_object ORDER BY \`기록 수\` DESC`, "테스트 후 internal=true인지 확인하세요. 새 기기와 시크릿 모드는 내부 브라우저 표시가 필요합니다."),
+        table("어떤 첨부를 지원 양식으로 분류해야 하나요?", `SELECT properties.post_id AS \`공고 번호\`, properties.attachment_index AS \`첨부 순번(0부터)\`, count() AS \`클릭 횟수\` FROM events WHERE event='attachment_download_clicked' AND properties.attachment_kind='unknown' AND properties.environment='${environment}' AND {filters} GROUP BY properties.post_id, properties.attachment_index`, "지원 양식과 대본·참고 자료를 파일 확장자로 추측하지 않습니다. POSTHOG_FORM_ATTACHMENTS에 검증된 공고·첨부 순번을 등록해야 양식 전환율에 포함됩니다. 과거 조회의 분류는 자동 수정되지 않습니다."),
+      ],
+    },
+  ];
+  dashboards[0].insights.splice(2, 0, {
+    name: "시간이 지나도 공고를 다시 보러 오나요?",
+    description: "기준 주에 공고를 본 사람의 0~4주 뒤 재방문 비율입니다. 선마다 기준 주가 다르며, 관측이 끝난 주만 표시합니다. 매주 비율은 오르내릴 수 있습니다.",
+    query: {
+      kind: "DataVisualizationNode", display: "ActionsLineGraph",
+      source: { kind: "HogQLQuery", filters: { dateRange: { date_from: "-26w" } }, query: `WITH activity AS (
+        SELECT DISTINCT person_id, ${week} AS week FROM events WHERE event='audition_post_viewed' AND ${base}
+      ), cohorts AS (
+        SELECT a.week AS week, ages.age AS age, a.person_id AS person_id,
+          max(if(b.week = a.week + toIntervalWeek(ages.age), 1, 0)) AS returned
+        FROM activity a CROSS JOIN (SELECT arrayJoin([0,1,2,3,4]) AS age) ages
+        LEFT JOIN activity b ON a.person_id=b.person_id GROUP BY a.week, ages.age, a.person_id
+      ) SELECT age AS \`지난 주 수\`, toString(week) AS \`기준 주\`, sum(returned)/count() AS \`재방문 비율\`
+      FROM cohorts WHERE week + toIntervalWeek(age + 1) <= ${nowWeek} AND {filters(week AS timestamp)}
+      GROUP BY week, age ORDER BY week, age` },
+      chartSettings: { xAxis: { column: "지난 주 수" }, yAxis: [{ column: "재방문 비율", settings: { formatting: { style: "percent", decimalPlaces: 1 } } }], seriesBreakdownColumn: "기준 주", showLegend: true, showNullsAsZero: false },
+    },
+  });
+  if (environment === "development") {
+    return [{ ...dashboards[3], name: "개발 전용 · 측정 점검", description: "개발 사이트와 로컬 테스트 기록만 확인합니다. 운영 성과에 합산하지 않습니다.",
+      insights: dashboards[3].insights.map(insight => ({ ...insight, name: `개발 · ${insight.name}` })) }];
+  }
+  return dashboards;
+}

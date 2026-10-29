@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+import { clearPdfApplied, trackPdfProfileSaved } from "@/features/analytics/pdf-analytics";
 import { useState } from "react";
 import { updateApplicantProfile } from "@/features/applicants/api";
 import { notifyApplicantProfileChanged } from "@/features/applicants/events";
@@ -49,6 +51,7 @@ export function ProfileEditor({ profile, onSaved, initialTab = "BASIC" }: { read
   const [activeTab, setActiveTab] = useState<ProfileTab>(initialTab);
   const [values, setValues] = useState<DraftValues>(initial);
   const [saving, setSaving] = useState(false);
+  useEffect(() => () => clearPdfApplied(), []);
   const [error, setError] = useState("");
   const changedKeys = [...INFORMATION_KEYS].filter((key) => hasValue(normalizedValue(key, values[key])) && JSON.stringify(normalizedValue(key, values[key])) !== JSON.stringify(normalizedValue(key, initial[key])));
   const removeKeys = [...INFORMATION_KEYS].filter((key) => hasValue(normalizedValue(key, initial[key])) && !hasValue(normalizedValue(key, values[key])));
@@ -72,6 +75,7 @@ export function ProfileEditor({ profile, onSaved, initialTab = "BASIC" }: { read
         [...INFORMATION_KEYS].map((key) => [key, normalizedValue(key, values[key])]),
       ) as ApplicantProfileValues;
       const next = await updateApplicantProfile(normalized, profile);
+      trackPdfProfileSaved();
       toast("프로필 정보를 저장했어요. 다음 지원서의 미리 채우기에 사용됩니다.", { type: "success" });
       notifyApplicantProfileChanged();
       onSaved(next);
