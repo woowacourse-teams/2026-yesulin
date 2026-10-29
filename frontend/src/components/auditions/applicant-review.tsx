@@ -1,5 +1,6 @@
 "use client";
 
+import { ReviewMeasurement } from "@/components/analytics/review-measurement";
 import { useCallback, useState } from "react";
 import Link from "next/link";
 import { getScreeningSubmission, screeningRoleHref, standardScreeningSource, type ScreeningSource } from "@/features/auditions/screening-source";
@@ -49,6 +50,7 @@ export function ApplicantReview({
 
   return (
     <>
+      {board && applicant ? <ReviewMeasurement workflow={source.kind === "OTR" ? "otr" : "standard"} reviewId={source.kind === "OTR" ? source.auditionId : String(roleId)} itemId={String(submissionId)} round={round} /> : null}
       <Breadcrumb
         items={[
           source.kind === "OTR"

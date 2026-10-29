@@ -1,5 +1,6 @@
 "use client";
 
+import { trackProductEvent } from "@/features/analytics/product-analytics";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FallbackImage as Image } from "@/components/ui/fallback-image";
 import { PublicScreen } from "@/components/landing/public-screen";
@@ -52,6 +53,7 @@ export function PublicShowDetail({ show, onReserved, onStale }: {
   };
   const openReservation = () => {
     trackReservationEvent("reservation_start", {});
+    void trackProductEvent("booking_started", { show_id: show.id });
     setSheetOpen(true);
   };
   const action = {
@@ -63,6 +65,13 @@ export function PublicShowDetail({ show, onReserved, onStale }: {
   // 이 화면에서 분석에 동의하면 그때 한 번 보낸다. 실제로 보낸 뒤에만 보낸 공연으로 기록한다.
   const viewedShowIdRef = useRef<PublicShow["id"] | null>(null);
   const sessionCount = show.sessions.length;
+  const productView = useRef<string | null>(null);
+  useEffect(() => {
+    productView.current ??= crypto.randomUUID();
+    const record = () => { void trackProductEvent("show_viewed", { show_id: show.id, eligible: !external && show.status === "OPEN" && show.sessions.some(s => s.bookable) }, `show:${show.id}:${productView.current}`); };
+    record(); window.addEventListener(ANALYTICS_READY_EVENT, record);
+    return () => window.removeEventListener(ANALYTICS_READY_EVENT, record);
+  }, [show, external]);
   useEffect(() => {
     const trackView = () => {
       if (viewedShowIdRef.current === show.id) return;

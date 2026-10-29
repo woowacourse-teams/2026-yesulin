@@ -1,5 +1,6 @@
 "use client";
 
+import { startReviewTimer } from "@/features/analytics/review-timer";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { applicantEducationText } from "@/features/auditions/education-text";
 import { orderedCareersByRecency } from "@/features/auditions/featured-careers";
@@ -60,7 +61,10 @@ function FocusReviewContent({
   readonly next: Applicant | undefined;
   readonly onMove: (candidate: Applicant | undefined) => void;
 }) {
-  const { filters, saving, reviewLocked, reviewFocused, patchReview, openApplicant } = useBoard();
+  const { board, source, filters, saving, reviewLocked, reviewFocused, patchReview, openApplicant } = useBoard();
+  const reviewId = source.kind === "OTR" ? source.auditionId : String(board.role.id);
+  const workflow = source.kind === "OTR" ? "otr" : "standard";
+  useEffect(() => startReviewTimer({ workflow, review_id: reviewId, item_id: String(applicant.id), round: board.round }), [workflow, reviewId, applicant.id, board.round]);
   const [otherOpen, setOtherOpen] = useState(false);
   const [otherReason, setOtherReason] = useState(
     applicant.review.status === "ETC" ? applicant.review.memo : "",

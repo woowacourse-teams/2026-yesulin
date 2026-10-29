@@ -1,5 +1,6 @@
 "use client";
 
+import { trackPdfStep, markPdfApplied } from "@/features/analytics/pdf-analytics";
 import Image from "next/image";
 import { useEffect, useEffectEvent, useId, useRef, useState, type ChangeEvent, type ReactNode } from "react";
 import { DialogHeader, ModalShell } from "@/components/auditions/modal-shell";
@@ -81,6 +82,16 @@ export function ProfileImport({
 
   const reading = current !== null && isProfileImportReading(current.status);
   const jobId = current?.jobId;
+  useEffect(() => {
+    if (!current || isProfileImportReading(current.status)) return;
+    const failed = current.status === "FAILED" || current.status === "UPLOAD_EXPIRED";
+    const fields = current.proposals;
+    void trackPdfStep({ workflow: "actor_pdf", operation_id: current.jobId, step: "extract",
+      outcome: failed ? "failure" : "success", extraction_status: current.status,
+      duration_ms: Math.max(0, Date.now() - Date.parse(current.createdAt)),
+      missing_field_count: fields ? [fields.name, fields.birthDate, fields.height, fields.education].filter(v => !v).length : 4,
+    }, true);
+  }, [current]);
   const reloadAfterMissing = useEffectEvent(reload);
   /** 한 번 조회에 실패해도 다음 간격에 다시 읽는다. 결과가 지워졌으면(404) 상태를 다시 읽고 멈춘다. */
   useEffect(() => {
@@ -125,7 +136,7 @@ export function ProfileImport({
       <DialogHeader id={titleId} title="PDF로 채우기" subtitle="PDF 프로필에서 읽은 값을 골라 입력란에 넣어요. 저장은 ‘프로필 저장’으로 해요." />
       <div className="px-5 py-5 md:px-6">
         {current
-          ? <ImportProgress key={current.jobId} importJob={current} values={values} photoCount={photoCount} onClosed={closed} onApply={(updates, needsInput) => { onApply(updates, needsInput); setOpen(false); }} addedPhotos={addedPhotos} onPhotoAdded={async (fileKey) => { setAddedPhotos((added) => new Set(added).add(fileKey)); await onPhotoAdded(); }} />
+          ? <ImportProgress key={current.jobId} importJob={current} values={values} photoCount={photoCount} onClosed={closed} onApply={(updates, needsInput) => { markPdfApplied(current.jobId); onApply(updates, needsInput); setOpen(false); }} addedPhotos={addedPhotos} onPhotoAdded={async (fileKey) => { setAddedPhotos((added) => new Set(added).add(fileKey)); await onPhotoAdded(); }} />
           : <ImportStart usedToday={overview.usedToday} onStarted={setCurrent} onFailed={reload} />}
       </div>
       <div className="flex justify-end border-t border-border px-5 py-3 md:px-6">
@@ -160,6 +171,7 @@ function ImportStart({ usedToday, onStarted, onFailed }: {
     try {
       onStarted(await startProfileImport(file));
     } catch (cause) {
+      void trackPdfStep({ workflow: "actor_pdf", step: "upload", outcome: "failure", error_code: "upload" });
       console.error("[PDF로 채우기 업로드 실패]", cause);
       setError(errorMessage(cause, "PDF를 올리지 못했어요. 잠시 후 다시 시도해 주세요."));
       onFailed();

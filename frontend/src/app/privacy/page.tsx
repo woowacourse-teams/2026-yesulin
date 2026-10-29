@@ -34,6 +34,7 @@ export default function PrivacyPolicyPage() {
       navigation={navigation}
     >
       <div className="pt-8">
+        <PolicyNotice>2026-10-29부터 추가하는 PostHog 방문 분석의 수집 항목·미국 리전 전송·거부 방법은 <Link href="/privacy/analytics" className="font-semibold text-brand hover:underline">PostHog 방문 분석 안내</Link>에서 확인할 수 있습니다. 기존 분석 끄기 선택은 유지합니다.</PolicyNotice>
         <PolicyNotice>
           <strong className="text-foreground">개정 안내</strong><br />
           배우 페이지 공개(배우 목록·검색엔진 노출), 기획사/제작사의 관심 배우 저장, PDF로 채우기 기능을 더하면서 처리하는 개인정보와 위탁 업무를 추가했습니다. 이 처리방침(1.2)은 2026-10-29에 공고하고 2026-11-05부터 시행하며, 그 전까지는 <Link href="/privacy/v1.1" className="font-semibold text-brand hover:underline">이전 처리방침(1.1)</Link>이 적용됩니다.
@@ -151,7 +152,7 @@ export default function PrivacyPolicyPage() {
         <p>예술in은 로그인 유지와 보안을 위해 JavaScript가 읽을 수 없는 HttpOnly Session Cookie를 사용합니다. 기본 미사용 만료시간은 12시간입니다. 필요한 쿠키를 차단하면 로그인 등 일부 기능이 제한될 수 있습니다.</p>
         <p>작성 중 지원서와 사진은 현재 브라우저의 IndexedDB에 저장되며 다른 기기에서 이어 쓸 수 없습니다. 복원할 때 필수 동의 체크 상태는 복원하지 않습니다.</p>
         <p>광고·맞춤형 추천 쿠키, Google Signals와 User-ID는 사용하지 않습니다. 방문 분석은 기본으로 켜져 있으며, 이용자가 끄지 않은 경우 Google Tag Manager를 통해 Google Analytics 4를 불러옵니다. 이때 이름·이메일·전화번호·지원서 답변·사진·영상 URL과 내부 ID를 분석 이벤트에 넣지 않습니다.</p>
-        <p>페이지 하단의 분석 설정에서 언제든지 끄거나 다시 켤 수 있습니다. 끄면 현재 브라우저의 Google Analytics 쿠키를 삭제하고 Analytics를 다시 불러오지 않습니다. 처리방침 1.0에서 분석을 거부한 경우에도 1.1 시행 뒤 첫 방문 때 변경 사실을 안내하고 기본 설정을 적용하며, 안내에서 바로 끌 수 있습니다. 그 뒤에 끈 설정은 그대로 유지합니다.</p>
+        <p>페이지 하단의 분석 설정에서 언제든지 끄거나 다시 켤 수 있습니다. 끄면 현재 브라우저의 Google Analytics 쿠키를 삭제하고 Analytics를 다시 불러오지 않습니다. 이전 버전에서 꺼 둔 선택도 그대로 유지합니다. PostHog의 수집 범위와 거부 방법은 <Link href="/privacy/analytics" className="text-brand underline">PostHog 방문 분석 안내</Link>를 확인해 주세요.</p>
         <p>PC 브라우저에서는 Google이 제공하는 <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noreferrer" className="text-brand hover:underline">Google Analytics 차단 부가기능</a>으로도 거부할 수 있습니다. 브라우저 설정에서 쿠키를 차단할 수도 있지만, 모든 쿠키를 차단하면 로그인 등 일부 기능이 제한되므로 분석만 거부하려면 분석 설정을 이용해 주세요. 메뉴 이름은 브라우저 버전에 따라 다를 수 있습니다.</p>
         <ul className="list-disc space-y-2 pl-5 marker:text-brand">
           <li>Chrome: 설정 &gt; 개인정보 보호 및 보안 &gt; 사이트 설정 &gt; 추가 콘텐츠 설정 &gt; 온디바이스 사이트 데이터</li>

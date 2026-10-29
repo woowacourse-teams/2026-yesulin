@@ -1,5 +1,6 @@
 "use client";
 
+import { startReviewTimer } from "@/features/analytics/review-timer";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type CSSProperties } from "react";
 import { applicantEducationText } from "@/features/auditions/education-text";
 import { orderedCareersByRecency } from "@/features/auditions/featured-careers";
@@ -67,11 +68,12 @@ function FocusReviewContent({
   readonly onBack?: () => void;
   readonly onMove: (candidate: Applicant | undefined) => void;
 }) {
-  const { assignRoles, confirmNavigation, requestNavigation, source, renderDocument, renderProfile, onNoteDirty, onApplicantViewed, onApplicantOpened, applicantRefreshKey, filters, saving, reviewLocked, reviewFocused, patchReview, openApplicant } = useBoard();
+  const { board, assignRoles, confirmNavigation, requestNavigation, source, renderDocument, renderProfile, onNoteDirty, onApplicantViewed, onApplicantOpened, applicantRefreshKey, filters, saving, reviewLocked, reviewFocused, patchReview, openApplicant } = useBoard();
   useEffect(() => onApplicantViewed?.(applicant.id), [applicant.id, onApplicantViewed, applicantRefreshKey]);
   useEffect(() => onApplicantOpened?.(), [applicant.id, onApplicantOpened]);
   const [documentOpen, setDocumentOpen] = useState(false);
   const pdfProfile = source.kind === "PDF";
+  useEffect(() => startReviewTimer({ workflow: "producer_pdf", review_id: String(board.role.id), item_id: String(applicant.id) }), [board.role.id, applicant.id]);
   const [otherOpen, setOtherOpen] = useState(false);
   const [otherReason, setOtherReason] = useState(
     applicant.review.status === "ETC" ? applicant.review.memo : "",

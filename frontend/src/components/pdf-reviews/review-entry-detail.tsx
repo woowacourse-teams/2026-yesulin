@@ -1,5 +1,6 @@
 "use client";
 
+import { startReviewTimer } from "@/features/analytics/review-timer";
 import { useEffect, useId, useRef, useState } from "react";
 import { ModalShell } from "@/components/auditions/modal-shell";
 import { PdfOriginalViewer } from "@/components/pdf-extractions/pdf-original-viewer";
@@ -28,6 +29,7 @@ type Props = {
 export function ReviewEntryDetail({ review, entry, refreshKey, onSaved, onUnauthorized, onDirtyChange,
   onPrevious, onNext, hasPrevious, hasNext, position }: Props) {
   const id = useId();
+  useEffect(() => startReviewTimer({ workflow: "producer_pdf", review_id: String(review.id), item_id: String(entry.id) }), [review.id, entry.id]);
   const photoArea = useRef<HTMLDivElement>(null);
   const [photoHeight, setPhotoHeight] = useState(360);
   const [job, setJob] = useState<PdfExtractionJob | null>(null);

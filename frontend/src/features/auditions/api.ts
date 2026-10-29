@@ -1,3 +1,4 @@
+import { trackProductEvent } from "@/features/analytics/product-analytics";
 import { producerRequest as request } from "./api-client";
 import type { FileUploadResource, PerformanceResource, PerformanceResourceList, ProducerProfileResource } from "./backend-resources";
 import { safeUpload } from "../files/safe-upload";
@@ -119,6 +120,7 @@ export async function saveReview(body: SaveReviewRequest, condition: ScreeningSe
     method: "PATCH",
     body: JSON.stringify(review),
   });
+  if (body.status !== undefined) for (const id of body.submissionIds) void trackProductEvent("review_saved", { workflow: "standard", review_id: String(roleId), item_id: String(id), round, eligible: body.status !== "PENDING" });
   return getAuditionBoard(roleId, round, condition);
 }
 
