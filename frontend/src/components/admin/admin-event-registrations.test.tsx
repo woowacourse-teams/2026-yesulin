@@ -16,7 +16,7 @@ let container: HTMLDivElement;
 const pending: AdminEventRegistration = {
   id: 1, participantType: "ACTOR", name: "일반 참가자", phone: "010-1234-5678",
   businessCardRequested: false, email: null, snsHandle: null, snsPlatform: null, birthDate: null,
-  affiliation: null, photoUrl: null, activityFields: [], otherActivity: null, noCareer: false,
+  affiliation: null, currentWork: null, photoUrl: null, activityFields: [], otherActivity: null, noCareer: false,
   careers: [], intro: null, createdAt: "2026-10-28T06:00:00Z", paymentStatus: "PENDING", paymentConfirmedAt: null,
 };
 beforeEach(() => {

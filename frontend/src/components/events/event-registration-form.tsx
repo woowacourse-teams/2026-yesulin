@@ -13,7 +13,7 @@ import {
   writeOfRegistration,
   type RegistrationDraft,
 } from "@/features/events/registration-draft";
-import { EVENT_PARTICIPANT_LABELS, type EventParticipantType, type EventRegistrationWrite } from "@/features/events/types";
+import { EVENT_PARTICIPANT_LABELS, MAX_EVENT_AFFILIATION_LENGTH, MAX_EVENT_CURRENT_WORK_LENGTH, type EventParticipantType, type EventRegistrationWrite } from "@/features/events/types";
 import { EventBusinessCardEditor } from "./event-business-card-editor";
 import { EventBusinessCardPreview, type CardPreviewSide } from "./event-business-card-preview";
 import { EventRegistrationConfirmation } from "./event-registration-confirmation";
@@ -25,7 +25,7 @@ const PARTICIPANT_HINTS: Readonly<Record<EventParticipantType, string>> = {
 };
 
 /**
- * 로그인 없이 쓰는 참가 신청서. 참가 구분을 먼저 고르면 이름·휴대폰 칸이 열리고, 공연사 관계자는 소속과 하는 일을,
+ * 로그인 없이 쓰는 참가 신청서. 참가 구분을 먼저 고르면 이름·휴대폰 칸이 열리고, 공연사 관계자는 소속과 지금 하는 일을,
  * 프로필 명함을 희망한 배우는 명함에 들어갈 정보를 더 적는다.
  */
 export function EventRegistrationForm({ eventId, businessCardOpen, businessCardClosesAt, registrationConfirmationEnabled, registrationConfirmationMessage, onDone }: {
@@ -138,8 +138,11 @@ export function EventRegistrationForm({ eventId, businessCardOpen, businessCardC
 
           {type === "PRODUCER" ? (
             <div className="flex flex-col gap-2 rounded-control border border-border-soft p-4">
-              <RegistrationField id="registration-affiliation" label="소속과 지금 하는 일" required hint="예: 남극장 · 캐스팅과 제작 담당">
-                <FieldTextarea id="registration-affiliation" rows={3} value={draft.affiliation} maxLength={500} onChange={(event) => update({ affiliation: event.target.value })} />
+              <RegistrationField id="registration-affiliation" label="소속" required hint="예: 남극장">
+                <FieldInput id="registration-affiliation" autoComplete="organization" value={draft.affiliation} maxLength={MAX_EVENT_AFFILIATION_LENGTH} onChange={(event) => update({ affiliation: event.target.value })} />
+              </RegistrationField>
+              <RegistrationField id="registration-current-work" label="지금 하고 계신 일" required hint="예: 캐스팅과 제작 담당">
+                <FieldTextarea id="registration-current-work" rows={3} value={draft.currentWork} maxLength={MAX_EVENT_CURRENT_WORK_LENGTH} onChange={(event) => update({ currentWork: event.target.value })} />
               </RegistrationField>
               <p className="text-xs text-muted">공연사 관계자는 프로필 명함을 제작하지 않습니다.</p>
             </div>
@@ -219,7 +222,7 @@ function PrivacyConsent({ checked, onChange }: { readonly checked: boolean; read
       <details className="mt-1">
         <summary className="min-h-11 cursor-pointer content-center text-sm text-muted-strong underline underline-offset-4">수집 항목·이용 목적 등 상세 보기</summary>
         <ul className="mt-2 list-disc space-y-1 pl-5 text-muted-strong">
-          <li>수집 항목: 이름, 휴대폰 번호, 공연사 관계자는 소속과 하는 일, 명함을 희망한 배우는 이메일·SNS 유형·계정명(선택)·생년월일·프로필 사진·활동 분야·경력</li>
+          <li>수집 항목: 이름, 휴대폰 번호, 공연사 관계자는 소속·지금 하는 일, 명함을 희망한 배우는 이메일·SNS 유형·계정명(선택)·생년월일·프로필 사진·활동 분야·경력</li>
           <li>이용 목적: 참가 확인과 행사 안내 연락, 배우 프로필 명함 제작</li>
           <li>명함에 들어갈 정보는 명함 제작 업체에 전달합니다. 휴대폰 번호는 전달하지 않습니다.</li>
           <li>보관 기간: 행사 종료 후 15일 이내 파기합니다.</li>

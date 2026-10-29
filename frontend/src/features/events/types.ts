@@ -95,6 +95,8 @@ export const MAX_REGISTRATION_CAREERS = 10;
 
 /** 명함 뒷면 한 줄 소개는 이 글자 수까지 적는다. */
 export const MAX_REGISTRATION_INTRO = 40;
+export const MAX_EVENT_AFFILIATION_LENGTH = 100;
+export const MAX_EVENT_CURRENT_WORK_LENGTH = 500;
 export type EventSnsPlatform = "INSTAGRAM" | "THREADS" | "YOUTUBE";
 export const EVENT_SNS_PLATFORMS: readonly EventSnsPlatform[] = ["INSTAGRAM", "THREADS", "YOUTUBE"];
 export const EVENT_SNS_LABELS: Readonly<Record<EventSnsPlatform, string>> = {
@@ -115,8 +117,10 @@ export type EventRegistrationWrite = {
   readonly snsPlatform: EventSnsPlatform | null;
   /** `YYYY-MM-DD`. 명함을 희망한 배우만 필수다. */
   readonly birthDate: string | null;
-  /** 공연사 관계자만 필수인 소속과 지금 하는 일 */
+  /** 공연사 관계자만 필수인 소속 */
   readonly affiliation: string | null;
+  /** 공연사 관계자만 필수인 지금 하고 계신 일 */
+  readonly currentWork: string | null;
   /** 배우가 올린 프로필 사진의 업로드 키 */
   readonly photoUploadKey: string | null;
   /** 배우만 하나 이상 고른다. */

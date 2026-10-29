@@ -665,8 +665,10 @@ export type AdminEventRegistration = {
   readonly snsPlatform: EventSnsPlatform | null;
   /** `YYYY-MM-DD`. 명함을 희망한 배우만 있다. */
   readonly birthDate: string | null;
-  /** 공연사 관계자의 소속과 하는 일 */
+  /** 공연사 관계자의 소속. 소속과 하는 일을 한 칸에 받던 기존 신청은 두 내용이 함께 들어 있다. */
   readonly affiliation: string | null;
+  /** 공연사 관계자가 지금 하고 계신 일. 기존 신청은 null이다. */
+  readonly currentWork: string | null;
   /** 배우 프로필 사진을 잠깐 열 수 있는 주소. 공연사 관계자는 null이다. */
   readonly photoUrl: string | null;
   /** 연극·뮤지컬·매체·유튜브·기타 순서 */

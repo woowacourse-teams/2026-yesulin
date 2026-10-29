@@ -20,6 +20,8 @@ import java.util.List;
  * @param noCareer 신입이라 경력이 없다고 한 배우
  * @param careers 배우 경력. 적은 순서대로다.
  * @param intro 명함 뒷면에 넣을 한 줄 소개
+ * @param affiliation 공연사 관계자의 소속. 소속과 하는 일을 한 칸에 받던 기존 신청은 두 내용이 함께 들어 있다.
+ * @param currentWork 공연사 관계자가 지금 하고 계신 일. 기존 신청은 null이다.
  */
 public record AdminEventRegistrationResult(
         long id,
@@ -40,7 +42,8 @@ public record AdminEventRegistrationResult(
         Instant createdAt,
         EventSnsPlatform snsPlatform,
         EventPaymentStatus paymentStatus,
-        Instant paymentConfirmedAt
+        Instant paymentConfirmedAt,
+        String currentWork
 ) {
 
     static AdminEventRegistrationResult from(EventRegistration registration, String photoUrl) {
@@ -63,7 +66,8 @@ public record AdminEventRegistrationResult(
                 registration.getCreatedAt(),
                 registration.getSnsPlatform(),
                 registration.getPaymentStatus(),
-                registration.getPaymentConfirmedAt()
+                registration.getPaymentConfirmedAt(),
+                registration.getCurrentWork()
         );
     }
 

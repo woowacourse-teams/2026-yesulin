@@ -60,13 +60,14 @@ public class PublicEventRegistrationController {
      * @param businessCardRequested 배우가 프로필 명함 제작을 희망하는지. 켜면 아래 명함 정보가 필수다.
      * @param email 명함을 희망한 배우만 필수
      * @param birthDate 명함을 희망한 배우만 필수
-     * @param affiliation 공연사 관계자만 필수인 소속과 지금 하는 일
+     * @param affiliation 공연사 관계자만 필수인 소속
      * @param photoUploadKey 명함을 희망한 배우가 올린 프로필 사진의 업로드 키
      * @param activityFields 명함을 희망한 배우가 활동하거나 준비하는 분야. 하나 이상 필수다.
      * @param otherActivity 기타 분야를 고른 배우가 직접 적은 분야
      * @param noCareer 신입이라 경력이 없는 배우
      * @param careers 배우 경력. 경력 없음이 아니면 한 줄 이상 필수다.
      * @param intro 명함 뒷면에 넣을 한 줄 소개. 선택이다.
+     * @param currentWork 공연사 관계자만 필수인 지금 하고 계신 일
      */
     public record RegisterRequest(
             @NotNull EventParticipantType participantType,
@@ -84,7 +85,8 @@ public class PublicEventRegistrationController {
             @Size(max = EventRegistration.MAX_CAREERS) List<@Valid @NotNull CareerRequest> careers,
             @Size(max = EventRegistration.MAX_INTRO_LENGTH) String intro,
             boolean privacyAgreed,
-            EventSnsPlatform snsPlatform
+            EventSnsPlatform snsPlatform,
+            @Size(max = EventRegistration.MAX_CURRENT_WORK_LENGTH) String currentWork
     ) {
 
         EventRegistrationForm toForm() {
@@ -98,7 +100,8 @@ public class PublicEventRegistrationController {
                     noCareer,
                     card && careers != null ? careers.stream().map(CareerRequest::toCareer).toList() : List.of(),
                     intro,
-                    snsPlatform
+                    snsPlatform,
+                    currentWork
             );
         }
     }

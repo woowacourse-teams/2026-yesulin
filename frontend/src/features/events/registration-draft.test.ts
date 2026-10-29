@@ -40,7 +40,8 @@ const producer: RegistrationDraft = {
   ...cardActor,
   participantType: "PRODUCER",
   businessCardRequested: false,
-  affiliation: " 남극장 · 캐스팅 담당 ",
+  affiliation: " 남극장 ",
+  currentWork: " 캐스팅 담당 ",
 };
 
 describe("참가 신청서", () => {
@@ -79,6 +80,7 @@ describe("참가 신청서", () => {
       name: "김하늘",
       phone: "010-1234-5678",
       affiliation: null,
+      currentWork: null,
       businessCardRequested: true,
       email: "haneul@test.com",
       snsHandle: null,
@@ -104,11 +106,13 @@ describe("참가 신청서", () => {
       activityFields: [],
       careers: [],
       affiliation: null,
+      currentWork: null,
     });
 
     expect(registrationProblem(producer, TODAY)).toBeNull();
     expect(writeOfRegistration({ ...producer, businessCardRequested: true })).toMatchObject({
-      affiliation: "남극장 · 캐스팅 담당",
+      affiliation: "남극장",
+      currentWork: "캐스팅 담당",
       businessCardRequested: false,
       email: null,
       photoUploadKey: null,
@@ -140,6 +144,7 @@ describe("참가 신청서", () => {
     expect(registrationProblem({ ...cardActor, careers: [{ key: 1, year: "2025", month: "", workTitle: "작품", role: "" }] }, TODAY)).toContain("연도와 월");
     expect(registrationProblem({ ...cardActor, careers: [{ key: 1, year: "2025", month: "09", workTitle: " ", role: "역" }] }, TODAY)).toContain("작품명");
     expect(registrationProblem({ ...producer, affiliation: " " }, TODAY)).toContain("소속");
+    expect(registrationProblem({ ...producer, currentWork: " " }, TODAY)).toContain("하고 계신 일");
     expect(registrationProblem({ ...cardActor, privacyAgreed: false }, TODAY)).toContain("동의");
   });
 });

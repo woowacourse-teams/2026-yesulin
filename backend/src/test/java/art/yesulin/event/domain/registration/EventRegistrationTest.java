@@ -108,10 +108,11 @@ class EventRegistrationTest {
     void producerKeepsAffiliationOnly() {
         EventRegistration registration = new EventRegistration(1L, new EventRegistrationForm(
                 EventParticipantType.PRODUCER, "이도현", "010-2345-6789", true, "dohyun@test.com", "@dohyun",
-                BIRTH_DATE, " 남극장 · 캐스팅 담당 ", THEATER, null, false, CAREERS
+                BIRTH_DATE, " 남극장 ", THEATER, null, false, CAREERS, null, null, " 캐스팅과 제작 담당 "
         ), "photo-key", TODAY, NOW);
 
-        assertEquals("남극장 · 캐스팅 담당", registration.getAffiliation());
+        assertEquals("남극장", registration.getAffiliation());
+        assertEquals("캐스팅과 제작 담당", registration.getCurrentWork());
         assertFalse(registration.isBusinessCardRequested());
         assertNull(registration.getEmail());
         assertNull(registration.getSnsHandle());
@@ -120,9 +121,13 @@ class EventRegistrationTest {
     }
 
     @Test
-    void producerNeedsAffiliation() {
-        assertThrows(BusinessException.class, () -> new EventRegistration(1L,
-                EventRegistrationForm.withoutBusinessCard(EventParticipantType.PRODUCER, "이도현", "010-2345-6789", " "),
+    void producerNeedsAffiliationAndCurrentWork() {
+        assertThrows(BusinessException.class, () -> new EventRegistration(1L, EventRegistrationForm.withoutBusinessCard(
+                EventParticipantType.PRODUCER, "이도현", "010-2345-6789", " ", "캐스팅 담당"), null, TODAY, NOW));
+        assertThrows(BusinessException.class, () -> new EventRegistration(1L, EventRegistrationForm.withoutBusinessCard(
+                EventParticipantType.PRODUCER, "이도현", "010-2345-6789", "남극장", " "), null, TODAY, NOW));
+        assertThrows(BusinessException.class, () -> new EventRegistration(1L, EventRegistrationForm.withoutBusinessCard(
+                EventParticipantType.PRODUCER, "이도현", "010-2345-6789", "가".repeat(101), "캐스팅 담당"),
                 null, TODAY, NOW));
     }
 

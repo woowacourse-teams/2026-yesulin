@@ -188,7 +188,8 @@ function invalidRegistration(write: EventRegistrationWrite): string | null {
     if (write.activityFields.includes("OTHER") && !write.otherActivity?.trim()) return "기타 분야를 입력해 주세요.";
     if (write.noCareer ? write.careers?.length : !write.careers?.length) return "경력을 한 줄 이상 적거나 경력 없음을 골라 주세요.";
   }
-  if (write.participantType === "PRODUCER" && !write.affiliation?.trim()) return "소속과 하는 일을 입력해 주세요.";
+  if (write.participantType === "PRODUCER" && !write.affiliation?.trim()) return "소속을 입력해 주세요.";
+  if (write.participantType === "PRODUCER" && !write.currentWork?.trim()) return "지금 하고 계신 일을 입력해 주세요.";
   if (!write.privacyAgreed) return "개인정보 수집·이용에 동의해 주세요.";
   return null;
 }
@@ -324,6 +325,7 @@ export const eventHandlers = [
       snsPlatform: card && write.snsHandle?.trim() ? write.snsPlatform ?? null : null,
       birthDate: card ? write.birthDate : null,
       affiliation: write.participantType === "PRODUCER" ? write.affiliation?.trim() || null : null,
+      currentWork: write.participantType === "PRODUCER" ? write.currentWork?.trim() || null : null,
       photoUrl: card ? `${MOCK_STORAGE}/${write.photoUploadKey}` : null,
       activityFields: card ? write.activityFields : [],
       otherActivity: card && write.activityFields.includes("OTHER") ? write.otherActivity : null,
