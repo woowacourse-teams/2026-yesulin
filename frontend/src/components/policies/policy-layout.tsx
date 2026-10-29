@@ -12,6 +12,7 @@ export function PolicyLayout({
   description,
   version,
   effectiveDate,
+  announcedDate,
   navigation,
   children,
 }: {
@@ -19,6 +20,8 @@ export function PolicyLayout({
   readonly description: string;
   readonly version: string;
   readonly effectiveDate: string;
+  /** 시행일보다 먼저 알린 개정이면 공고일을 따로 보인다. 없으면 공고일과 시행일이 같다. */
+  readonly announcedDate?: string;
   readonly navigation: readonly PolicyNavigationItem[];
   readonly children: React.ReactNode;
 }) {
@@ -55,7 +58,10 @@ export function PolicyLayout({
             <p className="mt-4 max-w-3xl text-base leading-7 text-muted-strong">{description}</p>
             <dl className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted">
               <div className="flex gap-2"><dt className="font-semibold text-muted-strong">문서 버전</dt><dd>{version}</dd></div>
-              <div className="flex gap-2"><dt className="font-semibold text-muted-strong">공고일·시행일</dt><dd className="num">{effectiveDate}</dd></div>
+              {announcedDate ? <>
+                <div className="flex gap-2"><dt className="font-semibold text-muted-strong">공고일</dt><dd className="num">{announcedDate}</dd></div>
+                <div className="flex gap-2"><dt className="font-semibold text-muted-strong">시행일</dt><dd className="num">{effectiveDate}</dd></div>
+              </> : <div className="flex gap-2"><dt className="font-semibold text-muted-strong">공고일·시행일</dt><dd className="num">{effectiveDate}</dd></div>}
             </dl>
           </header>
           <div className="policy-content pt-2">{children}</div>

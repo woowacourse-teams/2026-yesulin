@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { PolicyLayout, PolicyNotice, PolicySection } from "@/components/policies/policy-layout";
 
 export const metadata: Metadata = {
@@ -6,13 +7,11 @@ export const metadata: Metadata = {
   description: "예술in 서비스 이용약관을 안내합니다.",
 };
 
-const navigation = Array.from({ length: 15 }, (_, index) => ({
-  href: `#article-${index + 1}`,
-  label: `${index + 1}. ${[
-    "목적", "용어", "게시와 변경", "이용계약과 계정", "서비스 내용", "기획사 의무", "지원서 관리", "심사 관리",
-    "게시물과 권리", "금지행위", "서비스 변경", "탈퇴", "책임", "통지와 문의", "준거법",
-  ][index]}`,
-}));
+const navigation = ([
+  ["1", "목적"], ["2", "용어"], ["3", "게시와 변경"], ["4", "이용계약과 계정"], ["5", "서비스 내용"], ["6", "기획사 의무"],
+  ["7", "지원서 관리"], ["7-2", "배우 페이지"], ["7-3", "PDF로 채우기"], ["8", "심사 관리"], ["9", "게시물과 권리"],
+  ["10", "금지행위"], ["11", "서비스 변경"], ["12", "탈퇴"], ["13", "책임"], ["14", "통지와 문의"], ["15", "준거법"],
+] as const).map(([number, label]) => ({ href: `#article-${number}`, label: `${number.replace("-", "의")}. ${label}` }));
 
 const orderedClass = "list-decimal space-y-2 pl-5 marker:font-semibold marker:text-foreground";
 
@@ -21,21 +20,29 @@ export default function TermsPage() {
     <PolicyLayout
       title="서비스 이용약관"
       description="예술in 서비스 이용과 관련한 운영팀과 이용자의 권리, 의무 및 책임사항을 안내합니다."
-      version="1.0"
-      effectiveDate="2026-09-07"
+      version="1.1"
+      announcedDate="2026-10-29"
+      effectiveDate="2026-11-05"
       navigation={navigation}
     >
+      <div className="pt-8">
+        <PolicyNotice>
+          <strong className="text-foreground">개정 안내</strong><br />
+          배우 페이지 공개, 기획사/제작사의 관심 배우 저장, PDF로 채우기 기능을 더하면서 관련 용어와 제7조의2·제7조의3을 추가했습니다. 이 약관(1.1)은 2026-10-29에 공고하고 2026-11-05부터 시행하며, 그 전까지는 <Link href="/terms/v1.0" className="font-semibold text-brand hover:underline">이전 약관(1.0)</Link>이 적용됩니다.
+        </PolicyNotice>
+      </div>
       <PolicySection id="article-1" title="제1조 목적">
         <p>이 약관은 예술in 프로젝트팀(대표자 강민준, 이하 “운영팀”)이 제공하는 예술in 서비스의 이용과 관련하여 운영팀과 이용자의 권리·의무 및 책임사항을 정하는 것을 목적으로 합니다.</p>
       </PolicySection>
 
       <PolicySection id="article-2" title="제2조 용어">
         <ol className={orderedClass}>
-          <li>“서비스”란 공연예술 오디션 공고의 등록·열람, 지원서 제출·관리, 배우 심사 관리를 지원하는 예술in 웹 서비스를 말합니다.</li>
+          <li>“서비스”란 공연예술 오디션 공고의 등록·열람, 지원서 제출·관리, 배우 심사 관리, 배우 페이지 공개와 관심 배우 저장을 지원하는 예술in 웹 서비스를 말합니다.</li>
           <li>“배우”란 공고를 열람하고 지원서를 제출하거나 프로필을 관리하는 이용자를 말합니다.</li>
           <li>“기획사/제작사”란 공연·공고를 등록하고 해당 공고의 지원서를 심사하는 이용자를 말합니다.</li>
           <li>“회원”이란 약관에 동의하고 계정을 만든 배우 또는 기획사/제작사를 말합니다.</li>
           <li>“게시물”이란 기획사/제작사 또는 배우가 서비스에 입력·업로드·연결한 공고, 글, 사진, 포스터, 경력, 지원서 답변, 영상 링크 등 정보를 말합니다.</li>
+          <li>“배우 페이지”란 배우가 공개를 선택한 프로필을 배우 목록과 /actors/@아이디 주소로 누구나 볼 수 있게 보여 주는 화면을 말합니다.</li>
         </ol>
       </PolicySection>
 
@@ -62,7 +69,7 @@ export default function TermsPage() {
 
       <PolicySection id="article-5" title="제5조 서비스의 내용과 운영팀의 역할">
         <ol className={orderedClass}>
-          <li>운영팀은 공고 등록·열람, 지원서 제출·조회, 프로필 관리, 기획사/제작사의 배우 심사 관리 기능을 제공합니다.</li>
+          <li>운영팀은 공고 등록·열람, 지원서 제출·조회, 프로필 관리와 PDF로 채우기, 배우 페이지 공개, 기획사/제작사의 배우 심사 관리와 관심 배우 저장 기능을 제공합니다.</li>
           <li>운영팀은 배우와 기획사/제작사 사이의 오디션 정보 전달과 관리 도구를 제공하며, 공연의 사용자·고용주 또는 당사자를 대신하여 합격, 계약 체결, 보수 지급을 보증하지 않습니다.</li>
           <li>기획사/제작사가 서비스 밖의 전화·이메일·메신저 등으로 보내는 심사 결과와 계약 조건은 해당 기획사/제작사의 책임으로 관리됩니다.</li>
           <li>운영팀은 현재 결제·환불, 서비스 자체의 문자·이메일 심사 결과 발송 기능을 제공하지 않습니다.</li>
@@ -104,6 +111,27 @@ export default function TermsPage() {
         </ol>
       </PolicySection>
 
+      <PolicySection id="article-7-2" title="제7조의2 배우 페이지">
+        <ol className={orderedClass}>
+          <li>배우는 본인이 공개 권한을 가진 자료로 배우 페이지를 만들고 항목·사진·영상의 공개 범위를 선택할 수 있습니다. 배우 페이지는 기본 비공개이며, 공개할 때마다 공개 범위와 검색엔진 노출을 확인하고 동의해야 합니다.</li>
+          <li>공개한 페이지는 비로그인 이용자를 포함해 누구나 볼 수 있고 배우 목록과 검색엔진에 노출될 수 있습니다. 연락처, 이메일, 전체 생년월일, 거주지, 병역 정보는 공개하지 않습니다.</li>
+          <li>배우는 언제든 배우 페이지를 비공개로 바꿀 수 있습니다. 공개 범위를 바꾸더라도 다른 이용자나 검색엔진이 이미 별도로 저장한 자료의 회수까지 보장되지는 않습니다.</li>
+          <li>만 14세 미만은 배우 페이지를 공개할 수 없습니다. 공개 중에 이름·성별·생년월일·공개 사진이 빠지거나 만 14세 미만이 되면 배우 페이지는 자동으로 비공개가 되며, 배우가 내용을 채운 뒤 직접 다시 공개합니다.</li>
+          <li>배우 페이지 아이디는 처음 공개하기 전까지 배우가 바꿀 수 있고, 처음 공개한 뒤에는 운영팀에 요청해 바꿉니다. 아이디가 바뀌면 이전 주소는 연결되지 않으며 다른 배우가 그 아이디를 쓸 수 있습니다.</li>
+          <li>운영팀은 권리 침해 문의나 제10조의 사유가 있으면 사유를 알리고 배우 페이지를 잠가 비공개로 할 수 있습니다. 잠금이 풀리면 배우가 내용을 확인한 뒤 직접 다시 공개합니다.</li>
+          <li>기획사/제작사는 공개된 배우 페이지를 관심 배우로 최대 300명까지 저장할 수 있습니다. 배우에게는 누가 저장했는지 알리지 않습니다. 배우에게 연락하려면 운영팀에 문의하며, 운영팀이 배우에게 연결합니다.</li>
+        </ol>
+      </PolicySection>
+
+      <PolicySection id="article-7-3" title="제7조의3 PDF로 채우기">
+        <ol className={orderedClass}>
+          <li>배우는 본인이 이용 권한을 가진 PDF 프로필을 올려 프로필 입력값을 제안받을 수 있습니다. 이 기능은 하루(한국 날짜)에 한 번 쓸 수 있으며, PDF를 읽지 못했거나 제안할 값이 없으면 횟수에 넣지 않습니다.</li>
+          <li>추출·정리 결과에는 오류나 누락이 있을 수 있습니다. 배우는 원문 근거를 확인하고 필요한 값만 골라 수정한 뒤 직접 프로필을 저장해야 하며, 운영팀은 결과를 프로필에 자동으로 저장하지 않습니다.</li>
+          <li>사진 후보를 보관함에 넣는 선택은 즉시 저장됩니다. 보관함에 넣은 사진은 PDF 결과와 따로 관리합니다.</li>
+          <li>배우가 결과를 지우면 올린 PDF와 추출 자료를 바로 삭제하고, 지우지 않은 결과는 결과가 나온 뒤 24시간이 지나면 삭제합니다.</li>
+        </ol>
+      </PolicySection>
+
       <PolicySection id="article-8" title="제8조 심사 관리">
         <ol className={orderedClass}>
           <li>심사 결과는 지원서·배역·전형 차수별로 관리합니다.</li>
@@ -118,7 +146,7 @@ export default function TermsPage() {
       <PolicySection id="article-9" title="제9조 게시물과 지식재산권">
         <ol className={orderedClass}>
           <li>회원이 작성한 게시물의 권리는 회원 또는 적법한 권리자에게 남습니다.</li>
-          <li>회원은 운영팀에 서비스 제공에 필요한 범위에서 게시물을 저장, 복제, 형식 변환, 전송, 화면 표시할 수 있는 비독점적·무상 이용권을 부여합니다.</li>
+          <li>회원은 운영팀에 서비스 제공에 필요한 범위에서 게시물을 저장, 복제, 형식 변환, 전송, 화면 표시할 수 있는 비독점적·무상 이용권을 부여합니다. 이용 목적은 공고 게시, 지원서 제출·심사, 배우가 공개를 선택한 배우 페이지 게시, PDF로 채우기 처리, 백업, 보안 및 장애 대응으로 제한됩니다.</li>
           <li>운영팀은 별도 동의 없이 게시물을 광고, 인공지능 모델 학습, 제3자 판매 등 다른 목적으로 이용하지 않습니다.</li>
           <li>회원은 타인의 저작권·초상권·개인정보를 침해하는 게시물을 등록해서는 안 됩니다.</li>
           <li>서비스 탈퇴·지원서 파기 시 법령상 보존 또는 분쟁 대응에 필요한 경우를 제외하고 관련 게시물을 삭제합니다.</li>
@@ -179,7 +207,7 @@ export default function TermsPage() {
           <li>분쟁이 발생하면 운영팀과 이용자는 성실히 협의합니다.</li>
           <li>협의로 해결되지 않는 분쟁은 민사소송법 등 관계 법령이 정한 관할법원에 제기할 수 있습니다.</li>
         </ol>
-        <PolicyNotice><strong className="text-foreground">부칙</strong><br />이 약관은 2026년 9월 7일부터 시행합니다. 운영팀은 회원이 동의한 약관의 문서 종류·버전·동의 시각과 동의 주체를 기록합니다.</PolicyNotice>
+        <PolicyNotice><strong className="text-foreground">부칙</strong><br />이 약관은 2026년 11월 5일부터 시행합니다. 2026년 9월 7일부터 시행한 이전 약관(1.0)은 <Link href="/terms/v1.0" className="text-brand hover:underline">/terms/v1.0</Link>에 보관합니다. 운영팀은 회원이 동의한 약관의 문서 종류·버전·동의 시각과 동의 주체를 기록합니다.</PolicyNotice>
       </PolicySection>
     </PolicyLayout>
   );
