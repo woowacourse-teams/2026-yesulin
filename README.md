@@ -35,6 +35,9 @@ cd backend
 ./gradlew bootRun
 ```
 
+로컬 백엔드의 실행 프로필은 **`local`**, 설정 정본은 **`backend/src/main/resources/application-local.yml`**이다.
+PDF 심사도 같은 프로필을 사용하고, 기능별 로컬 YAML을 따로 만들지 않는다.
+
 `bootRun` 전에 기존 루트 `.env`의 백엔드 값을 `config/server/local.env`로 옮기거나 새 파일을 작성한다.
 기존 파일이 있다면 저장소 루트에서 `cp -n .env config/server/local.env`로 복사할 수 있다.
 복사한 뒤에는 `chmod 600 config/server/local.env`를 적용하고, 필요한 로컬 DB 설정도 확인한다.
@@ -83,3 +86,6 @@ ops/              백업·모니터링 스크립트
 ```
 
 문서는 [문서 라우터](./docs/README.md)에서 현재 작업에 필요한 것만 선택한다.
+
+도메인 세부 규칙은 각 도메인 루트 `AGENTS.md`, CLAUDE.md·README.md와 흐름·정책은 그 안의 `docs/`에서 관리한다.
+매 작업의 평가와 PR 문제 집계는 [공통 평가 규칙](docs/agent-review.md)을 따른다.

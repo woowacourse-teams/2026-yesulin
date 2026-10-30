@@ -22,6 +22,7 @@ import art.yesulin.pdfextraction.domain.PdfExtractionJob;
 import art.yesulin.pdfextraction.domain.PdfExtractionJobRepository;
 import art.yesulin.pdfextraction.domain.PdfExtractionPayloadRepository;
 import art.yesulin.pdfextraction.domain.PdfExtractionPurpose;
+import art.yesulin.pdfextraction.domain.ai.PdfAiJobRepository;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -62,6 +63,7 @@ public class ProfileImportService {
     private final PhotoLibraryService photos;
     private final Clock clock;
     private final MemberRepository members;
+    private final PdfAiJobRepository aiJobs;
 
     @Transactional(readOnly = true)
     public ProfileImportOverview findCurrent(long ownerId) {
@@ -91,6 +93,7 @@ public class ProfileImportService {
         PdfExtractionJob job = jobs.save(
                 PdfExtractionJob.forActorProfile(ownerId, filename, size, now, now.plus(UPLOAD_WINDOW))
         );
+        job.identifySource(storage.sourceFileKey(job));
         return new PreparedProfileImport(job.getId(), storage.prepare(job));
     }
 
@@ -140,6 +143,7 @@ public class ProfileImportService {
     /** 결과를 닫으면 원본·추출 본문·이미지를 바로 지운다. 이미 지웠으면 그대로 성공한다. 읽는 중에는 닫지 못한다. */
     @Transactional
     public void close(long ownerId, String jobId) {
+        aiJobs.findForUpdate(jobId);
         PdfExtractionJob job = jobs.findOwnedForUpdate(jobId, ownerId, PURPOSE)
                 .orElseThrow(ProfileImportService::notFound);
         if (job.isDeleted()) {
@@ -154,16 +158,22 @@ public class ProfileImportService {
     /** 결과가 나온 뒤(결과가 없으면 올린 뒤) 24시간이 지난 가져오기를 지운다. 한 건이 실패해도 나머지는 계속 지운다. */
     @Transactional
     public int deleteExpired() {
-        List<PdfExtractionJob> expired = jobs.findExpired(
-                PURPOSE, clock.instant().minus(KEEP_FOR), PageRequest.of(0, CLEANUP_BATCH)
+        Instant before = clock.instant().minus(KEEP_FOR);
+        List<String> expired = jobs.findExpiredIds(
+                PURPOSE, before, PageRequest.of(0, CLEANUP_BATCH)
         );
         int deleted = 0;
-        for (PdfExtractionJob job : expired) {
+        for (String jobId : expired) {
             try {
-                delete(job);
-                deleted++;
+                aiJobs.findForUpdate(jobId);
+                PdfExtractionJob locked = jobs.findForUpdate(jobId).orElseThrow();
+                Instant base = locked.getFinishedAt() == null ? locked.getCreatedAt() : locked.getFinishedAt();
+                if (!locked.isDeleted() && base.isBefore(before)) {
+                    delete(locked);
+                    deleted++;
+                }
             } catch (RuntimeException exception) {
-                log.error("PDF로 채우기 결과를 지우지 못함 jobId={}", job.getId(), exception);
+                log.error("PDF로 채우기 결과를 지우지 못함 jobId={}", jobId, exception);
             }
         }
         return deleted;
@@ -173,6 +183,7 @@ public class ProfileImportService {
     private void delete(PdfExtractionJob job) {
         storage.deleteAll(job);
         payloads.findById(job.getId()).ifPresent(payloads::delete);
+        aiJobs.findById(job.getId()).ifPresent(aiJobs::delete);
         job.markDeleted(clock.instant());
     }
 

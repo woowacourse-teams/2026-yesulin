@@ -47,6 +47,19 @@ class PdfExtractionJobTest {
         assertEquals(PdfExtractionStatus.COMPLETED, job.getStatus());
     }
 
+    @Test
+    void sourceFileMetadataPreservesFilenameAndSizeAndIdentifiesOneStableStorageKey() {
+        PdfExtractionJob source = job("  지원서.PDF  ", 100);
+        source.identifySource("private/inputs/synthetic/source.pdf");
+        source.identifySource("private/inputs/synthetic/source.pdf");
+        assertEquals("지원서.PDF", source.getOriginalFilename());
+        assertEquals(100L, source.getSize());
+        assertEquals(PdfSourceFileType.PDF, source.getFileMetadata().getType());
+        assertEquals("pdf", source.getFileMetadata().getExtension());
+        assertEquals("application/pdf", source.getFileMetadata().getContentType());
+        assertThrows(IllegalArgumentException.class, () -> source.identifySource("different.pdf"));
+    }
+
     private PdfExtractionJob job(String filename, long size) {
         return new PdfExtractionJob(1L, filename, size, NOW, NOW.plusSeconds(600));
     }

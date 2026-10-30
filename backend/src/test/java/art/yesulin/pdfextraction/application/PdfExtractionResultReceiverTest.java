@@ -284,7 +284,8 @@ class PdfExtractionResultReceiverTest {
     void lateFrontendCompletionDoesNotOverwriteFinalStatus() {
         receiver.receive(command(job, storage, manifest(job, storage, "COMPLETED", "본문")));
         PdfExtractionService service = new PdfExtractionService(repository, payloads, storage, MAPPER,
-                Clock.fixed(NOW.plusSeconds(60), ZoneOffset.UTC));
+                Clock.fixed(NOW.plusSeconds(60), ZoneOffset.UTC),
+                mock(art.yesulin.pdfextraction.domain.ai.PdfAiJobRepository.class), event -> {});
 
         PdfExtractionView view = service.complete(7L, job.getId());
 
@@ -296,7 +297,8 @@ class PdfExtractionResultReceiverTest {
     private PdfExtractionResultReceiver receiverPublishingTo(ApplicationEventPublisher publisher) {
         return new PdfExtractionResultReceiver(repository, payloads,
                 new PdfExtractionResultParser(storage, MAPPER), storage, publisher, MAPPER,
-                Clock.fixed(NOW, ZoneOffset.UTC));
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                mock(art.yesulin.pdfextraction.application.ai.PdfAiQueueService.class));
     }
 
     private ObjectNode withApplicantInfo(ObjectNode manifest, String name) {

@@ -25,29 +25,22 @@ class CompletionApi:
             raise ValueError("INVALID_COMPLETION_API_TOKEN")
         self.store, self.url, self.token = store, url, token
         self.opener = urllib.request.build_opener(NoRedirect())
-        self.processor = None
-        self.remaining_ms = None
-
-    def context(self, job_id):
-        import uuid
-        if str(uuid.UUID(job_id)) != job_id:
-            raise ValueError("INVALID_JOB_ID")
-        url = self.url.removesuffix("/completions") + "/" + job_id + "/review-context"
-        request = urllib.request.Request(url, headers={"Authorization": "Bearer " + self.token})
-        try:
-            with self.opener.open(request, timeout=10) as response:
-                body = response.read(32_769)
-            if len(body) > 32_768:
-                raise ValueError("REVIEW_CONTEXT_TOO_LARGE")
-            return json.loads(body)
-        except (urllib.error.URLError, OSError, TimeoutError, ValueError):
-            raise RuntimeError("REVIEW_CONTEXT_UNAVAILABLE") from None
 
     def notify(self, completion):
         # The cache belongs to the worker. Spring receives the full payload and never fetches this JSON.
         result = self.store.read_json(completion["resultKey"])
-        if self.processor is not None:
-            result = self.processor.enrich(completion, result, self.store, self.remaining_ms)
+        # Previously delivered AI fields must survive a retry after this deployment.
+        # Read legacy immutable caches only; never call a model or review-context.
+        if isinstance(result, dict) and "applicantInfo" not in result:
+            prefix = completion["resultKey"].removesuffix("result.json")
+            for version in ("applicant-info-v2", "applicant-info-v1"):
+                cached = self.store.read_json(prefix + version + ".json")
+                if cached is None:
+                    continue
+                if cached.get("sourceFingerprint") != result.get("fingerprint"):
+                    raise RuntimeError("LEGACY_RESULT_FINGERPRINT_MISMATCH")
+                result = {**result, "applicantInfo": cached["applicantInfo"]}
+                break
         body = json.dumps(completion_body(completion, result), ensure_ascii=False).encode("utf-8")
         request = urllib.request.Request(self.url, data=body, method="POST", headers={
             "Content-Type": "application/json", "Authorization": "Bearer " + self.token})

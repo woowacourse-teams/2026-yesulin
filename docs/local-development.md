@@ -35,6 +35,36 @@ docker compose down
 
 MySQL data와 로그 volume까지 제거하는 `docker compose down --volumes`는 로컬 데이터를 지워도 되는 경우에만 사용한다.
 
+## PDF 심사 로컬 실행
+
+로컬 백엔드는 **`local` 프로필과 `backend/src/main/resources/application-local.yml` 하나**를 사용한다.
+기능별 로컬 YAML을 추가하지 않는다. 개인 설정·키는 Git 비추적 `config/server/local.env`에 둔다.
+기본 DB는 기존 로컬 MySQL이다. 기존 PDF 검증용 H2 DB는 표준 `SPRING_DATASOURCE_*` 환경변수로 선택할 수 있다.
+
+Lambda까지 검증할 때는 `ops/pdf-extraction-lambda/compose.local.yml`의 LocalStack을 띄우고
+동일 폴더의 `scripts/build.py`, `scripts/setup_local.py`로 추출 전용 함수를 준비한다.
+이 보조 환경과 연결하는 `config/server/local.env` 값은 다음과 같다. 실제 AWS 키는 사용하지 않는다.
+
+```dotenv
+SERVER_ADDRESS=127.0.0.1
+SERVER_PORT=8093
+YESULIN_PDF_EXTRACTION_ENABLED=true
+YESULIN_PDF_EXTRACTION_CALLBACK_SECRET=local-pdf-worker-token-for-localstack-only
+YESULIN_STORAGE_LOCALSTACK_TESTCONTAINERS_ENABLED=false
+YESULIN_STORAGE_LOCALSTACK_ENDPOINT=http://localhost:4568
+YESULIN_STORAGE_S3_BUCKET=yesulin-pdf-local
+YESULIN_STORAGE_S3_KEY_PREFIX=yesulin/local
+YESULIN_STORAGE_S3_PUBLIC_BASE_URL=http://localhost:4568/yesulin-pdf-local/yesulin/local/public
+YESULIN_PDF_AI_ENABLED=false
+```
+
+`cd backend && ./gradlew bootRun --args='--spring.profiles.active=local'`로 실행한다.
+프론트는 `API_ORIGIN=http://127.0.0.1:8093 PDF_EXTRACTION_LOCAL=true npm run dev -- --port 3201`로 실행한다.
+AI가 꺼져 있어도 PDF 추출·원본 보기·심사는 가능하다. Gemini를 사용할 때만
+`YESULIN_PDF_AI_ENABLED=true`와 `GEMINI_API_KEY_FILE`을 설정한다. 키를 Lambda에는 전달하지 않는다.
+가상 공연사 계정이 필요하면 `YESULIN_AUDIT_LOCAL_FIXTURES_ENABLED=true`를 명시한다.
+이 값은 `local`에서만 동작하며, `YESULIN_MAIL_ENABLED=false`인 검증 환경에 메일 대체 발송기도 제공한다.
+
 ## 오디션 안내 문자 (솔라피 기본, 알리고 전환 지원)
 
 기본값은 `SMS_ENABLED=false`다. 실발송 없이 초안과 미리보기를 확인할 수 있다.

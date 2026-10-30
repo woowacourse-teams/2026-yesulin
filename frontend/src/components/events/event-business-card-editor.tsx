@@ -7,6 +7,7 @@ import { SiteIcon } from "@/components/ui/site-icon";
 import type { RegistrationDraft } from "@/features/events/registration-draft";
 import type { CardPreviewSide } from "./event-business-card-preview";
 import { BusinessCardFields } from "./event-registration-actor";
+import { EventRegistrationHelp } from "./event-registration-help";
 
 export function EventBusinessCardEditor({ open, eventId, draft, preview, photoUrl, busy, error, onChange, onPreviewSideChange, onPhotoChange, onPhotoBusyChange, onClose, onDone }: {
   readonly open: boolean;
@@ -76,6 +77,7 @@ export function EventBusinessCardEditor({ open, eventId, draft, preview, photoUr
       </div>
       <footer className="event-card-editor-footer shrink-0 border-t border-border-soft bg-card px-5 py-3 lg:px-7 lg:py-4">
         {error ? <p role="alert" className="mb-3 text-sm font-semibold text-fail">{error}</p> : null}
+        <div className="mb-3"><EventRegistrationHelp /></div>
         <div className="flex justify-end gap-2">
           <SecondaryButton disabled={busy} onClick={close} className="hidden lg:inline-flex">닫기</SecondaryButton>
           <PrimaryButton disabled={busy} onClick={() => { selectView("input"); onDone(); }} className="w-full lg:w-auto">{busy ? "사진 올리는 중…" : "명함 정보 완료"}</PrimaryButton>

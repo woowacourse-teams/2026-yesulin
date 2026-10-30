@@ -16,6 +16,7 @@ RUN apt-get update \
     && apt-get install --yes --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
 
+
 WORKDIR /app
 
 COPY --from=build /workspace/build/libs/application.jar ./application.jar

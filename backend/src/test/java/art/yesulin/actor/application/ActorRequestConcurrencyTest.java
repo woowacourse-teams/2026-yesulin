@@ -74,6 +74,7 @@ class ActorRequestConcurrencyTest {
     void prepareStorage() {
         FakePdfExtractionStorage fake = new FakePdfExtractionStorage();
         when(storage.prepare(any())).thenAnswer(invocation -> fake.prepare(invocation.getArgument(0)));
+        when(storage.sourceFileKey(any())).thenAnswer(invocation -> fake.sourceFileKey(invocation.getArgument(0)));
     }
 
     @Test

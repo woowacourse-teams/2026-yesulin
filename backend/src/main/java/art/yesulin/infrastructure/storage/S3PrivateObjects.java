@@ -1,13 +1,22 @@
 package art.yesulin.infrastructure.storage;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.Delete;
 import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest;
@@ -29,6 +38,9 @@ import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignReques
 /** 기능과 무관한 비공개 S3 객체 접근. 업무 경로·결과 형식·소유권은 호출한 기능이 결정한다. */
 @RequiredArgsConstructor
 public class S3PrivateObjects {
+
+    private static final ScheduledExecutorService READ_TIMEOUTS = Executors.newSingleThreadScheduledExecutor(
+            Thread.ofPlatform().daemon().name("s3-read-timeout").factory());
 
     private final S3Client client;
     private final S3Presigner presigner;
@@ -68,11 +80,13 @@ public class S3PrivateObjects {
     public Optional<byte[]> readIfPresent(String logicalKey, int maxBytes) {
         String key = physicalKey(logicalKey);
         ListObjectsV2Response listing = client.listObjectsV2(ListObjectsV2Request.builder()
-                .bucket(bucket).prefix(key).maxKeys(1).build());
+                .bucket(bucket).prefix(key).maxKeys(1)
+                .overrideConfiguration(config -> config.apiCallTimeout(Duration.ofSeconds(30))).build());
         if (listing.contents().stream().noneMatch(object -> object.key().equals(key))) {
             return Optional.empty();
         }
-        GetObjectRequest request = GetObjectRequest.builder().bucket(bucket).key(key).build();
+        GetObjectRequest request = GetObjectRequest.builder().bucket(bucket).key(key)
+                .overrideConfiguration(config -> config.apiCallTimeout(Duration.ofSeconds(30))).build();
         return Optional.of(read(request, maxBytes, true));
     }
 
@@ -118,9 +132,75 @@ public class S3PrivateObjects {
         return keyPrefix + "/" + logicalKey;
     }
 
+    public void downloadTo(String logicalKey, Path target, long expectedBytes) throws IOException {
+        HeadObjectResponse head = client.headObject(HeadObjectRequest.builder().bucket(bucket)
+                .key(physicalKey(logicalKey)).overrideConfiguration(config -> config
+                        .apiCallTimeout(Duration.ofSeconds(30))).build());
+        if (head.contentLength() != expectedBytes) {
+            throw new IOException("Object size mismatch");
+        }
+        GetObjectRequest request = GetObjectRequest.builder().bucket(bucket).key(physicalKey(logicalKey))
+                .ifMatch(head.eTag()).overrideConfiguration(config -> config
+                        .apiCallTimeout(Duration.ofSeconds(30))).build();
+        try (ResponseInputStream<GetObjectResponse> input = client.getObject(request);
+                OutputStream output = Files.newOutputStream(target)) {
+            ScheduledFuture<Object> timeout = abortAfter(input);
+            try {
+                copy(input, output, expectedBytes);
+            } finally {
+                timeout.cancel(false);
+            }
+        }
+    }
+
+    private void copy(InputStream input, OutputStream output, long expectedBytes) throws IOException {
+        byte[] buffer = new byte[64 * 1024];
+        long size = 0;
+        int read;
+        while ((read = input.read(buffer)) != -1) {
+            size += read;
+            if (size > expectedBytes) {
+                throw new IOException("Object exceeds size limit");
+            }
+            output.write(buffer, 0, read);
+        }
+        if (size != expectedBytes) {
+            throw new IOException("Object size mismatch");
+        }
+    }
+
+    public boolean uploadFileOnce(String logicalKey, Path source, String contentType) {
+        try {
+            client.putObject(PutObjectRequest.builder().bucket(bucket).key(physicalKey(logicalKey))
+                    .contentType(contentType).cacheControl("no-store").serverSideEncryption("AES256")
+                    .ifNoneMatch("*")
+                    .overrideConfiguration(config -> config.apiCallTimeout(Duration.ofSeconds(30))).build(),
+                    RequestBody.fromFile(source));
+            return true;
+        } catch (S3Exception exception) {
+            if (exception.statusCode() == 412) {
+                return false;
+            }
+            throw exception;
+        }
+    }
+
+    private ScheduledFuture<Object> abortAfter(ResponseInputStream<GetObjectResponse> stream) {
+        return READ_TIMEOUTS.schedule(() -> {
+            stream.abort();
+            return null;
+        }, 30, TimeUnit.SECONDS);
+    }
+
     private byte[] read(GetObjectRequest request, int maxBytes, boolean rejectLarger) {
         try (ResponseInputStream<GetObjectResponse> stream = client.getObject(request)) {
-            byte[] bytes = stream.readNBytes(maxBytes + (rejectLarger ? 1 : 0));
+            ScheduledFuture<Object> timeout = abortAfter(stream);
+            byte[] bytes;
+            try {
+                bytes = stream.readNBytes(maxBytes + (rejectLarger ? 1 : 0));
+            } finally {
+                timeout.cancel(false);
+            }
             if (rejectLarger && bytes.length > maxBytes) {
                 throw new IllegalStateException("저장소 객체 읽기 상한을 넘었습니다.");
             }

@@ -43,6 +43,7 @@ dependencies {
     implementation("at.favre.lib:bcrypt:0.10.2")
     implementation("software.amazon.awssdk:s3")
     implementation("software.amazon.awssdk:cloudfront")
+    implementation("software.amazon.awssdk:bedrockruntime")
     implementation("software.amazon.awssdk:url-connection-client")
     implementation("org.testcontainers:testcontainers-localstack")
     implementation("org.springframework.boot:spring-boot-starter-security-oauth2-client")
@@ -76,6 +77,7 @@ tasks.withType<Test> {
 tasks.bootJar {
     archiveFileName = "application.jar"
 }
+
 
 tasks.register<JavaExec>("adminDeletionPasswordHash") {
     group = "application"

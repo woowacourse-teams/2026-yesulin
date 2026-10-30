@@ -1,6 +1,5 @@
 """Configure only loopback LocalStack. Never discover real AWS credentials or endpoints."""
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -28,26 +27,17 @@ def main():
         "AllowedOrigins": ["http://localhost:3201", "http://127.0.0.1:3201"],
         "AllowedMethods": ["PUT", "GET", "HEAD"], "AllowedHeaders": ["*"],
         "ExposeHeaders": ["ETag"], "MaxAgeSeconds": 300}]})
+    if "--storage-only" in sys.argv:
+        print(json.dumps({"mode": "localstack-storage-only", "bucket": BUCKET,
+                          "lambdaChanged": False, "sqs": False}))
+        return
     package = (ROOT / "build/yesulin-pdf-extractor-arm64.zip").read_bytes()
     environment = {"Variables": {"PDF_BUCKET": BUCKET, "PDF_INPUT_PREFIX": PREFIX + "inputs/",
                     "PDF_RESULT_PREFIX": PREFIX + "results/", "PDF_S3_ENDPOINT": "http://localstack:4566",
                     "PDF_COMPLETION_API_URL": "http://host.docker.internal:8093/internal/v1/pdf-extractions/completions",
                     "PDF_COMPLETION_API_TOKEN": "local-pdf-worker-token-for-localstack-only",
                     "PDF_LOCAL_CALLBACK": "true"}}
-    provider = os.environ.get("PDF_AI_PROVIDER", "none")
-    if provider not in {"none", "gemini", "bedrock"}:
-        raise ValueError("INVALID_PDF_AI_PROVIDER")
-    environment["Variables"]["PDF_AI_PROVIDER"] = provider
-    if provider == "gemini":
-        key_path = os.environ.get("GEMINI_API_KEY_FILE")
-        key = Path(key_path).read_text().strip() if key_path else os.environ.get("GEMINI_API_KEY", "")
-        if not key or any(character.isspace() for character in key):
-            raise ValueError("GEMINI_CONFIGURATION_REQUIRED")
-        environment["Variables"].update(GEMINI_API_KEY=key,
-            GEMINI_MODEL=os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite"))
-    if provider == "bedrock":
-        # LocalStack cannot substitute real Bedrock model access. Never use real AWS credentials here.
-        raise ValueError("BEDROCK_REQUIRES_AWS_RUNTIME_USE_GEMINI_FOR_LOCAL_MODEL_SMOKE")
+    provider = "none"
     if not any(f["FunctionName"] == FUNCTION for f in lamb.list_functions()["Functions"]):
         lamb.create_function(FunctionName=FUNCTION, Runtime="python3.12", Handler="s3_handler.handler",
                              Role="arn:aws:iam::000000000000:role/pdf-extraction-local",

@@ -4,6 +4,7 @@ import { completePdfUpload, PdfExtractionApiError, putPdf } from "../pdf-extract
 import type { PreparedPdfUpload } from "../pdf-extractions/types";
 import { isUnauthorized, preparePdfReviewUpload } from "./api";
 import { sameKey, type ReviewKey } from "./types";
+import { MAX_SELECTION } from "./upload-selection";
 
 export const MAX_FILES = 800;
 export const MAX_BYTES = 25 * 1024 * 1024;
@@ -65,7 +66,7 @@ export function useReviewUploads({ onUploaded, onUnauthorized }: Options) {
     if (!selected?.length || running.current) return;
     setMessageReviewId(reviewId);
     setValidationError("");
-    if (selected.length > 300) { setMessage("한 번에 PDF 300개까지 선택해 주세요."); setValidationError("한 번에 PDF 300개까지 선택해 주세요."); return; }
+    if (selected.length > MAX_SELECTION) { setMessage("한 번에 PDF 300개까지 선택해 주세요."); setValidationError("한 번에 PDF 300개까지 선택해 주세요."); return; }
     const queued = rows.filter(row => sameKey(row.reviewId, reviewId)).length;
     if (entryCount + queued + selected.length > MAX_FILES) {
       setMessage("한 심사에는 최대 800개까지 올릴 수 있습니다."); setValidationError("한 심사에는 최대 800개까지 올릴 수 있습니다."); return;

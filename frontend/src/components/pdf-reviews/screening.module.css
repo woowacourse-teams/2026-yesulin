@@ -202,6 +202,7 @@
 .integrated .reviewCounts b { color:var(--muted-strong); font-weight:600; }
 .integrated .uploadToolbar { display:flex; flex-wrap:nowrap; align-items:center; gap:12px; padding:4px 0 8px; }
 .integrated .uploadToolbar .roleBar { order:0; flex:1; min-width:0; flex-basis:0; }
+.uploadButtons { display:flex; align-items:center; flex-shrink:0; gap:8px; }
 .integrated .roleChips { gap:4px; padding:2px 0; scrollbar-width:thin; }
 .integrated .controls .roleChips button { min-height:44px; border:0; border-radius:8px; padding:8px 10px; background:transparent; font-size:13px; }
 .integrated .controls .roleChips button[aria-pressed=true] { color:var(--brand); background:var(--brand-soft); }
@@ -245,6 +246,9 @@
   .integrated .breadcrumb { flex-basis:100%; }
   .integrated .header .reviewCounts { margin:0 0 4px 4px; gap:12px; }
   .integrated .uploadToolbar { gap:8px; }
+  .integrated .uploadToolbar { flex-wrap:wrap; }
+  .integrated .uploadToolbar .roleBar { flex-basis:100%; }
+  .uploadButtons { margin-left:auto; }
   .decisionTabs button { padding:8px; gap:4px; }
   .viewTabs button { padding:6px 9px; }
   .boardToolbar { gap:4px 8px; }

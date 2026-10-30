@@ -23,8 +23,7 @@ export function ReviewCreateForm({ onCreated, onUnauthorized, onBusyChange }: Pr
       roles,
       errors: {
         title: nextTitle.trim() ? undefined : "심사 제목을 입력해 주세요.",
-        roles: !roles.length ? "배역을 1개 이상 입력해 주세요."
-          : duplicate ? `'${duplicate}' 배역이 두 번 입력되었습니다. 하나만 남겨 주세요.` : undefined,
+        roles: duplicate ? `'${duplicate}' 배역이 두 번 입력되었습니다. 하나만 남겨 주세요.` : undefined,
       },
     };
   }
@@ -53,8 +52,9 @@ export function ReviewCreateForm({ onCreated, onUnauthorized, onBusyChange }: Pr
       aria-invalid={!!errors.title} aria-describedby={errors.title ? `${id}-title-error` : undefined}
       onChange={event => setTitle(event.target.value)} onBlur={() => setErrors(current => ({ ...current, title: validate().errors.title }))} className="mt-2" />
     {errors.title ? <p id={`${id}-title-error`} className="mt-2 px-1 text-sm text-fail">{errors.title}</p> : null}
-    <label htmlFor={`${id}-roles`} className="mt-4 block px-1 text-sm font-semibold">모집 배역</label>
-    <FieldInput id={`${id}-roles`} value={rolesText} placeholder="예: 예린, 허징, 진방글, 앙상블" autoComplete="off" disabled={busy}
+    <label htmlFor={`${id}-roles`} className="mt-4 block px-1 text-sm font-semibold">모집 배역 <span className="font-normal text-muted">선택</span></label>
+    <p className="mt-1 px-1 text-sm text-muted">배역 구분이 없거나 한 배역만 모집하면 비워 두세요. 자유 배역으로 표시됩니다.</p>
+    <FieldInput id={`${id}-roles`} value={rolesText} placeholder="비워 두면 자유 배역 · 여러 배역은 쉼표로 구분" autoComplete="off" disabled={busy}
       aria-invalid={!!errors.roles} aria-describedby={errors.roles ? `${id}-roles-error` : undefined}
       onChange={event => setRolesText(event.target.value)} onBlur={() => setErrors(current => ({ ...current, roles: validate().errors.roles }))} className="mt-2 resize-y" />
     {errors.roles ? <p id={`${id}-roles-error`} className="mt-2 px-1 text-sm text-fail">{errors.roles}</p> : null}

@@ -45,7 +45,7 @@ public class PdfExtractionStorageService implements PdfExtractionStorage {
 
     @Override
     public String sourceFileKey(PdfExtractionJob job) {
-        return objects.physicalKey(sourceKey(job));
+        return job.getFileKey() == null ? objects.physicalKey(sourceKey(job)) : job.getFileKey();
     }
 
     @Override

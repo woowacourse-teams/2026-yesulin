@@ -34,6 +34,8 @@ export type PdfExtractionResult = {
 export type PdfExtractionJob = {
   readonly jobId: string;
   readonly originalFilename: string;
+  readonly extension?: "pdf";
+  readonly contentType?: "application/pdf";
   readonly size: number;
   readonly createdAt: string;
   readonly uploadedAt: string | null;

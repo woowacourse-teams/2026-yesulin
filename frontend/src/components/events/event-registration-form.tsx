@@ -17,6 +17,7 @@ import { EVENT_PARTICIPANT_LABELS, MAX_EVENT_AFFILIATION_LENGTH, MAX_EVENT_CURRE
 import { EventBusinessCardEditor } from "./event-business-card-editor";
 import { EventBusinessCardPreview, type CardPreviewSide } from "./event-business-card-preview";
 import { EventRegistrationConfirmation } from "./event-registration-confirmation";
+import { EventRegistrationHelp } from "./event-registration-help";
 import { RegistrationField, RequiredMark, koreaToday } from "./event-registration-field";
 
 const PARTICIPANT_HINTS: Readonly<Record<EventParticipantType, string>> = {
@@ -112,6 +113,7 @@ export function EventRegistrationForm({ eventId, businessCardOpen, businessCardC
   const type = draft.participantType;
   return (
     <form onSubmit={(event) => void submit(event)} noValidate className="flex flex-col gap-6 px-5 py-6 sm:px-8 sm:py-8">
+      <EventRegistrationHelp />
       <fieldset className="flex flex-col gap-2" aria-describedby="registration-participant-guide registration-participant-hint">
         <legend className="mb-2 text-sm font-semibold">참가 구분<RequiredMark /></legend>
         <div className="event-participant-options">

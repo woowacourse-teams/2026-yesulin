@@ -19,6 +19,15 @@
 공통 도메인 규칙을 바꾸는 작업에서만 `../docs/domain.md`를 읽는다. 미구현·미결정 문서는 해당 범위를
 직접 다루는 작업에서만 읽는다. 개인정보·약관과 `docs/policies/internal/`은 출시 정책 작업이 아니면 읽지 않는다.
 
+## 도메인 규칙과 평가
+
+기능의 `docs/README.md`에서 연결한 `docs/AGENTS.md`를 공통 규칙 다음에 명시적으로 읽고 적용한다. 여러 화면이 같은 백엔드 도메인을
+사용하면 해당 도메인의 흐름·정책도 읽는다. 심사 기능은
+[Audit 규칙](../backend/src/main/java/art/yesulin/audit/docs/README.md)을 따르며, PDF 추출/프로필 가져오기는
+[공용 PDF 규칙](../backend/src/main/java/art/yesulin/pdfextraction/docs/README.md)도 읽는다.
+모든 작업의 독립 평가·미사용 파일 점검·PR 집계 의무는 [최상위 규칙](../AGENTS.md)과
+[평가 절차](../docs/agent-review.md)를 따른다. 화면별 별도 의무로 대체하지 않는다.
+
 ## 실행과 검증
 
 모든 명령은 `frontend/`에서 실행한다.
@@ -31,7 +40,7 @@ npm run build
 
 - UI 변경은 최소 lint를 실행한다.
 - 타입·라우팅·빌드 결과에 영향이 있으면 build까지 실행한다.
-- 별도 테스트 러너는 아직 없다.
+- 테스트 러너는 Vitest이며 `npm test`로 실행한다. 변경한 흐름의 관련 테스트를 확인한다.
 
 ## 코드 규칙
 

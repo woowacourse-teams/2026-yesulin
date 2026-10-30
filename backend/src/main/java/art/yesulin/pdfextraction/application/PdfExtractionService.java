@@ -7,12 +7,16 @@ import art.yesulin.pdfextraction.domain.PdfExtractionJob;
 import art.yesulin.pdfextraction.domain.PdfExtractionJobRepository;
 import art.yesulin.pdfextraction.domain.PdfExtractionPayloadRepository;
 import art.yesulin.pdfextraction.domain.PdfExtractionPurpose;
+import art.yesulin.pdfextraction.domain.ai.PdfAiJob;
+import art.yesulin.pdfextraction.domain.ai.PdfAiJobRepository;
+import art.yesulin.pdfextraction.domain.ai.PdfAiStatus;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
@@ -33,6 +37,8 @@ public class PdfExtractionService {
     private final PdfExtractionStorage storage;
     private final ObjectMapper mapper;
     private final Clock clock;
+    private final PdfAiJobRepository aiJobs;
+    private final ApplicationEventPublisher events;
 
     @Transactional
     public PreparedUpload prepare(long ownerId, String filename, long size) {
@@ -43,6 +49,7 @@ public class PdfExtractionService {
     public PreparedUpload prepare(long ownerId, String reviewId, String filename, long size) {
         Instant now = clock.instant();
         PdfExtractionJob job = new PdfExtractionJob(ownerId, filename, size, now, now.plus(UPLOAD_WINDOW), reviewId);
+        job.identifySource(storage.sourceFileKey(job));
         repository.save(job);
         return new PreparedUpload(job.getId(), storage.sourceFileKey(job), storage.prepare(job));
     }
@@ -53,6 +60,7 @@ public class PdfExtractionService {
         if (job.getUploadedAt() == null) {
             storage.verifySource(job);
             job.confirmUpload(clock.instant());
+            events.publishEvent(new PdfExtractionUploadedEvent(job.getId()));
         }
         return PdfExtractionView.of(job, pendingStatus(job), storage, null, false);
     }
@@ -76,11 +84,33 @@ public class PdfExtractionService {
     public PdfExtractionResult storedResult(PdfExtractionJob job) {
         return payloads.findById(job.getId())
                 .map(payload -> mapper.readValue(payload.getPayloadJson(), PdfExtractionResult.class))
+                .map(result -> withAiResult(job.getId(), result))
                 .map(result -> result.withImageUrls(fileKey -> storage.imageUrl(job, fileKey)))
                 .orElse(null);
     }
 
-    /** 화면에 보일 상태. 업로드 만료와 10분 넘게 결과가 없는 대기를 따로 알려 준다. */
+    private PdfExtractionResult withAiResult(String jobId, PdfExtractionResult result) {
+        // 응답 조립만 바꾼다. 추출 payload와 멱등성 해시는 수정하지 않는다.
+        PdfApplicantInfo info = aiJobs.findById(jobId)
+                .map(this::aiResult)
+                .orElse(result.applicantInfo());
+        return new PdfExtractionResult(result.status(), result.sourceSha256(), result.errorCode(),
+                result.warnings(), result.pages(), info);
+    }
+
+    private PdfApplicantInfo aiResult(PdfAiJob job) {
+        if (job.getStatus() == PdfAiStatus.COMPLETED) {
+            return mapper.readValue(job.getResultJson(), PdfApplicantInfo.class);
+        }
+        if (job.getStatus() == PdfAiStatus.FAILED) {
+            String reason = "INVALID_MODEL_OUTPUT".equals(job.getErrorCode())
+                    ? "INVALID_MODEL_OUTPUT" : "PROVIDER_ERROR";
+            return new PdfApplicantInfo(PdfApplicantInfo.PROFILE_VERSION, PdfApplicantInfo.FAILED,
+                    job.getProvider(), job.getModelId(), null, null, null, null, reason);
+        }
+        return null;
+    }
+
     public String pendingStatus(PdfExtractionJob job) {
         Instant now = clock.instant();
         if (job.getStatus().isFinal()) {
