@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
+import org.springframework.mock.env.MockEnvironment;
 
 class PdfAiWorkerTest {
 
@@ -26,7 +27,8 @@ class PdfAiWorkerTest {
     private final PdfAiClient client = mock(PdfAiClient.class);
     private final PdfAiPrompt prompt = mock(PdfAiPrompt.class);
     private final PdfAiResponseParser parser = mock(PdfAiResponseParser.class);
-    private final PdfAiWorker worker = new PdfAiWorker(queue, client, prompt, parser);
+    private final PdfAiWorker worker = new PdfAiWorker(queue, client, prompt, parser,
+            new PdfAiDiagnostics(new MockEnvironment()));
 
     @Test
     void neverCallsProviderWithoutClaimingCapacity() {

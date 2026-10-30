@@ -18,6 +18,7 @@ import { PdfCareerList } from "@/components/pdf-reviews/career-list";
 import { ScreeningReferencePanel } from "./screening-reference-panel";
 import { StatusBadge } from "@/components/auditions/status-badge";
 import { ApplicantSocialLinks } from "./applicant-social-links";
+import { PdfPreparationStatus } from "./pdf-preparation-status";
 import styles from "../screening.module.css";
 
 /**
@@ -267,7 +268,10 @@ function FocusReviewContent({
               </>
             ) : (
               <div className="flex h-full flex-col items-center justify-center gap-3 px-4 py-3 text-center text-sm text-muted">
-                {pdfProfile ? <>
+                {pdfProfile && applicant.sourceDocument?.processing ? <>
+                  <PdfPreparationStatus document={applicant.sourceDocument} />
+                  <p className="text-xs leading-5">준비되면 사진과 정보를 자동으로 표시합니다.</p>
+                </> : pdfProfile ? <>
                   <p className="font-semibold text-muted-strong">사진을 자동으로 확인하지 못했습니다</p>
                   <p className="text-xs leading-5">원문 PDF에서 사진을 확인해 주세요.</p>
                   {renderDocument && <SecondaryButton onClick={() => setDocumentOpen(true)} className="shrink-0 whitespace-nowrap">원본 PDF 보기</SecondaryButton>}
@@ -378,7 +382,7 @@ function FocusReviewContent({
               {assignRoles && <SecondaryButton disabled={saving} onClick={() => assignRoles([applicant.id])}>배역 설정</SecondaryButton>}
               {renderDocument && <SecondaryButton aria-expanded={documentOpen} onClick={() => setDocumentOpen(open => !open)}>{documentOpen ? "PDF 닫기" : "원본 PDF"}</SecondaryButton>}
             </div></div>
-            {applicant.sourceDocument && <InfoRow label="처리 상태">{applicant.sourceDocument.preparation}</InfoRow>}
+            {applicant.sourceDocument && <InfoRow label="처리 상태"><PdfPreparationStatus document={applicant.sourceDocument} /></InfoRow>}
             <InfoRow label="이름"><p className="font-semibold">{applicant.name}</p></InfoRow>
             <InfoRow label="배역">{applicant.roleName}</InfoRow>
           </>}

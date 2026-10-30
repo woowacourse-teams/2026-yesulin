@@ -7,6 +7,7 @@ import { ApplicantPhotoImage } from "./applicant-photo";
 import { useBoard } from "./board-context";
 import { StatusBadge } from "@/components/auditions/status-badge";
 import { ApplicantSocialLinks } from "./applicant-social-links";
+import { PdfPreparationStatus } from "./pdf-preparation-status";
 
 export function ApplicantCards({ rows }: { rows: readonly Applicant[] }) {
   const { board, selected, toggleSelected, openApplicant } = useBoard();
@@ -68,7 +69,7 @@ export function ApplicantCards({ rows }: { rows: readonly Applicant[] }) {
 
                 <span className="mt-3 block truncate text-sm text-muted-strong" title={applicant.sourceDocument?.filename}>{applicant.sourceDocument?.filename ?? applicantEducationText(applicant)}</span>
                 <span className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted">
-                  <span className="rounded-lg bg-surface px-2 py-1">{applicant.sourceDocument?.preparation ?? (applicant.videos.length > 0 ? `영상 ${applicant.videos.length}개` : "영상 없음")}</span>
+                  <span className="rounded-lg bg-surface px-2 py-1">{applicant.sourceDocument ? <PdfPreparationStatus document={applicant.sourceDocument} /> : applicant.videos.length > 0 ? `영상 ${applicant.videos.length}개` : "영상 없음"}</span>
                   <span className="num">{submittedDate(applicant.submittedAt)} 접수</span>
                 </span>
 

@@ -1,6 +1,7 @@
 package art.yesulin.pdfextraction.infrastructure.ai;
 
 import art.yesulin.pdfextraction.application.ai.PdfAiClient;
+import art.yesulin.pdfextraction.application.ai.PdfAiDiagnostics;
 import art.yesulin.pdfextraction.application.ai.PdfAiFailure;
 import art.yesulin.pdfextraction.application.ai.PdfAiProperties;
 import java.util.stream.Collectors;
@@ -38,6 +39,7 @@ public class BedrockPdfAiClient implements PdfAiClient {
 
     private final BedrockRuntimeClient client;
     private final PdfAiProperties properties;
+    private final PdfAiDiagnostics diagnostics;
 
     @Override
     public String generate(String systemPrompt, String userPrompt) {
@@ -66,18 +68,28 @@ public class BedrockPdfAiClient implements PdfAiClient {
     }
 
     private String text(ConverseResponse response) {
+        String text = responseText(response);
+        diagnostics.providerResponse(response.stopReasonAsString(),
+                response.usage() == null ? null : response.usage().inputTokens(),
+                response.usage() == null ? null : response.usage().outputTokens(), text);
         if (response.stopReason() != StopReason.END_TURN || response.output() == null
                 || response.output().message() == null) {
-            throw new PdfAiFailure(INVALID_MODEL_OUTPUT, false);
+            throw new PdfAiFailure(INVALID_MODEL_OUTPUT, false, "PROVIDER_STOP_OR_MISSING_MESSAGE");
         }
-        String text = response.output().message().content().stream()
+        if (text.isBlank()) {
+            throw new PdfAiFailure(INVALID_MODEL_OUTPUT, false, "EMPTY_PROVIDER_RESPONSE");
+        }
+        return text;
+    }
+
+    private String responseText(ConverseResponse response) {
+        if (response.output() == null || response.output().message() == null) {
+            return "";
+        }
+        return response.output().message().content().stream()
                 .map(ContentBlock::text)
                 .filter(value -> value != null)
                 .collect(Collectors.joining());
-        if (text.isBlank()) {
-            throw new PdfAiFailure(INVALID_MODEL_OUTPUT, false);
-        }
-        return text;
     }
 
     private boolean retryable(BedrockRuntimeException exception) {

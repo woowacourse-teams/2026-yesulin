@@ -18,6 +18,7 @@ public class PdfAiWorker {
     private final PdfAiClient client;
     private final PdfAiPrompt prompt;
     private final PdfAiResponseParser parser;
+    private final PdfAiDiagnostics diagnostics;
 
     // 외부 호출에는 DB 트랜잭션/행 잠금을 유지하지 않는다.
     public boolean tick() {
@@ -29,7 +30,8 @@ public class PdfAiWorker {
         long started = System.nanoTime();
         log.debug("PDF_FLOW stage=AI_REQUEST_STARTED jobId={}", work.jobId());
         try {
-            String response = client.generate(prompt.systemPrompt(), prompt.userPrompt(work.text(), work.roles()));
+            String response = diagnostics.withJob(work.jobId(),
+                    () -> client.generate(prompt.systemPrompt(), prompt.userPrompt(work.text(), work.roles())));
             log.debug("PDF_FLOW stage=AI_RESPONSE_RECEIVED jobId={} elapsedMs={}", work.jobId(), elapsed(started));
             PdfApplicantInfo info = parser.parse(response, work.text(), work.roles(),
                     work.provider(), work.modelId());
@@ -39,6 +41,7 @@ public class PdfAiWorker {
                 log.debug("PDF_FLOW stage=RESULT_IGNORED jobId={} reason=STALE_OR_DELETED", work.jobId());
             }
         } catch (PdfAiFailure failure) {
+            diagnostics.failed(work.jobId(), failure.reason());
             queue.fail(work, failure);
             log.debug("PDF_FLOW stage=AI_ATTEMPT_FAILED jobId={} code={} retryable={} elapsedMs={}",
                     work.jobId(), failure.code(), failure.retryable(), elapsed(started));

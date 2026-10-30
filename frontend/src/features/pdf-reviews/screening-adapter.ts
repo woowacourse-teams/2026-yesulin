@@ -32,6 +32,7 @@ export function screeningApplicant(review: ReviewDetail, entry: ReviewEntry, job
       .map((image, index) => ({ label: `프로필 사진 ${index + 1}`, url: image.url, fallbackUrl: "" })),
     review: saved, reviewHistory: { 1: saved, 2: null, 3: null, 4: null, 5: null }, mismatchReasons: [],
     sourceDocument: { filename: entry.originalFilename, ageText, heightText: profile?.height.value ?? undefined,
+      processing: entry.processingStatus === "UPLOADING" || entry.processingStatus === "EXTRACTING" || entry.processingStatus === "ENRICHING",
       educationText: profile?.education.value ?? undefined,
       preparation: entry.processingStatus ? applicantProcessingLabels[entry.processingStatus] : !job || entry.matchStatus === "WAITING" ? "정보 읽는 중" : info?.status === "COMPLETED" ? "정보 추출됨" : "원본 확인 필요",
       careers: (profile?.careers ?? []).map(c => ({ text: c.evidence, title: [c.title, c.venue].filter(Boolean).join(" / "),

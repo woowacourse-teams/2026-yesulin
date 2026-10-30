@@ -36,6 +36,22 @@ class PdfAiResponseParserTest {
     private final PdfAiResponseParser parser = new PdfAiResponseParser(JsonMapper.builder().build());
 
     @Test
+    void reportsValidationStageWhileKeepingPermanentFailureCode() {
+        PdfAiFailure boundary = assertThrows(PdfAiFailure.class, () -> parse("```json\n" + FULL + "\n```"));
+        assertEquals("JSON_OBJECT_BOUNDARY", boundary.reason());
+        PdfAiFailure syntax = assertThrows(PdfAiFailure.class, () -> parse("{invalid}"));
+        assertEquals("JSON_SYNTAX", syntax.reason());
+        PdfAiFailure evidence = assertThrows(PdfAiFailure.class,
+                () -> parse(FULL.replace("성명: 김가상", "원문에 없는 구절")));
+        assertEquals("APPLICANT_NAME_EVIDENCE_MISMATCH", evidence.reason());
+        PdfAiFailure profile = assertThrows(PdfAiFailure.class,
+                () -> parse(FULL.replace("나이: 만 29세", "나이: 만 28세")));
+        assertEquals("PROFILE_EVIDENCE_MISMATCH", profile.reason());
+        assertEquals(PdfAiResponseParser.INVALID_MODEL_OUTPUT, profile.code());
+        assertFalse(profile.retryable());
+    }
+
+    @Test
     void parsesCompleteResponseIntoCompletedV2Info() {
         PdfApplicantInfo info = parse(FULL);
 

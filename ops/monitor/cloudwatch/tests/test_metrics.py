@@ -2,6 +2,7 @@
 
 import importlib.util
 import json
+import re
 import contextlib
 import io
 import tempfile
@@ -106,6 +107,18 @@ class ConfigurationTest(unittest.TestCase):
         self.assertEqual("/yesulin/dev/backend", recovered["logs"]["logs_collected"]["files"]["collect_list"][0]["log_group_name"])
         with self.assertRaises(ValueError):
             agent.render(original, "prod", "backend")
+
+    def test_pdf_messages_are_collected_only_in_dev(self):
+        flow = json.dumps({"message": "PDF_FLOW stage=AI_COMPLETED jobId=synthetic", "level": "DEBUG"})
+        failure = json.dumps({"message": "PDF_AI_FAILED jobId=synthetic code=PROVIDER_ERROR retryable=true"})
+        for environment in ("dev", "prod"):
+            rendered = agent.render({}, environment, "backend")
+            expression = rendered["logs"]["logs_collected"]["files"]["collect_list"][0]["filters"][0]["expression"]
+            for message in (flow, failure):
+                self.assertEqual(environment == "dev", bool(re.search(expression, message)))
+            self.assertIsNotNone(re.search(expression, json.dumps({"event": "HTTP_REQUEST"})))
+            self.assertIsNone(re.search(expression, json.dumps({"message": "unrelated PDF_FLOW text"})))
+            self.assertIsNone(re.search(expression, json.dumps({"message": "PDF_FLOW_PRIVATE payload"})))
 
     def test_keeps_infrastructure_and_unrelated_widgets(self):
         infra = {"type": "metric", "properties": {"title": "EC2 CPU"}}
