@@ -77,14 +77,14 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
   const filterKey = typeof filter === "object" ? String(filter.roleId) : filter;
   const uploadProps = { busy: uploads.busy || collecting,
     disabled: expired,
-    onChoose: (files: FileList | readonly File[] | null) => { setSelectionError(""); if (review) uploads.choose(review.id, files, review.entries.length); },
+    onChoose: (files: FileList | readonly File[] | null) => { setSelectionError(""); if (review) uploads.choose(review.id, files); },
   };
   async function dropFiles(transfer: DataTransfer) {
     if (!review || uploads.busy || expired || collectingRef.current) return;
     // 수집을 시작한 심사를 고정한다. 도중에 화면을 바꿔도 다른 심사에 파일을 올리지 않는다.
-    const destination = { id: review.id, count: review.entries.length };
+    const destinationId = review.id;
     collectingRef.current = true; setCollecting(true); setSelectionError("");
-    try { uploads.choose(destination.id, await collectDroppedPdfs(transfer), destination.count); }
+    try { uploads.choose(destinationId, await collectDroppedPdfs(transfer)); }
     catch (cause) { setSelectionError(cause instanceof Error ? cause.message : "폴더를 읽지 못했습니다. 다시 선택해 주세요."); }
     finally { collectingRef.current = false; setCollecting(false); }
   }

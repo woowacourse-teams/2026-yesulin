@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { ReviewProgress } from "@/features/pdf-reviews/types";
 import { isUploadable, type UploadNotice, type UploadRow } from "@/features/pdf-reviews/use-review-uploads";
 
-const phaseLabel = { SELECTED: "대기", UPLOADING: "업로드 중", UPLOADED: "업로드 완료", ERROR: "확인 필요" } as const;
+const phaseLabel = { SELECTED: "대기", UPLOADING: "업로드 중", UPLOADED: "업로드 완료", DUPLICATE: "이미 등록된 PDF · 중복 제외", ERROR: "확인 필요" } as const;
 
 export function ReviewProcessingProgress({ progress, uploading, uploadMessage, uploadError, error, onRetry, notices, rows, uploadBusy, disabled, onRemove, onClearUploaded, onRetryUpload }: {
   readonly progress: ReviewProgress | null; readonly uploading: boolean; readonly uploadMessage: string;
@@ -47,13 +47,13 @@ export function ReviewProcessingProgress({ progress, uploading, uploadMessage, u
         </tbody>
       </table>}
       {!!notices.length && <>
-        <div className="flex items-center justify-between border-t border-border py-1"><h3 className="font-semibold">업로드 내역</h3><button type="button" onClick={onClearUploaded} disabled={!notices.some(item => item.phase === "UPLOADED")} className="min-h-11 px-2 font-semibold text-muted-strong disabled:opacity-40">완료 내역 지우기</button></div>
+        <div className="flex items-center justify-between border-t border-border py-1"><h3 className="font-semibold">업로드 내역</h3><button type="button" onClick={onClearUploaded} disabled={!notices.some(item => item.phase === "UPLOADED" || item.phase === "DUPLICATE")} className="min-h-11 px-2 font-semibold text-muted-strong disabled:opacity-40">완료 내역 지우기</button></div>
         <ul aria-label="PDF 업로드 내역" className="divide-y divide-border-soft">{notices.map(item => {
           const row = retryRows.get(item.id);
           const retryable = row && item.phase === "ERROR" && isUploadable(row);
           return <li key={item.id} className="py-2">
             <div className="flex items-start gap-2"><div className="min-w-0 flex-1"><p className="break-all font-medium text-foreground">{item.name}</p><p className={`mt-1 ${item.phase === "ERROR" ? "text-fail" : "text-muted"}`}>{phaseLabel[item.phase]} · {(item.size / 1024 / 1024).toFixed(2)}MiB</p></div>
-              {(item.phase === "UPLOADED" || item.phase === "ERROR") && <button type="button" disabled={uploadBusy} onClick={() => onRemove(item.id)} aria-label={`${item.name} 알림에서 지우기`} className="grid h-11 w-11 shrink-0 place-items-center rounded-control text-base hover:bg-surface disabled:opacity-40">×</button>}
+              {(item.phase === "UPLOADED" || item.phase === "DUPLICATE" || item.phase === "ERROR") && <button type="button" disabled={uploadBusy} onClick={() => onRemove(item.id)} aria-label={`${item.name} 알림에서 지우기`} className="grid h-11 w-11 shrink-0 place-items-center rounded-control text-base hover:bg-surface disabled:opacity-40">×</button>}
             </div>
             {item.error && <p className="mt-1 break-words text-fail">{item.error}</p>}
             {retryable && <button type="button" disabled={uploadBusy || disabled} onClick={() => onRetryUpload(row)} className="min-h-11 px-2 font-semibold text-brand disabled:opacity-40">{row.file ? "업로드 다시 시도" : "업로드 완료 확인"}</button>}

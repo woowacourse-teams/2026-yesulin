@@ -19,6 +19,7 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -27,6 +28,7 @@ import tools.jackson.databind.ObjectMapper;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 @ConditionalOnProperty(prefix = "yesulin.pdf-extraction", name = "enabled", havingValue = "true")
 public class PdfExtractionResultReceiver {
 
@@ -43,12 +45,19 @@ public class PdfExtractionResultReceiver {
     public Receipt receive(ReceivePdfExtractionResultCommand command) {
         PdfExtractionJob job = jobs.findForUpdate(command.jobId()).orElseThrow(() ->
                 new BusinessException(PDF_EXTRACTION_NOT_FOUND, "PDF 추출 작업을 찾을 수 없습니다."));
+        log.debug("PDF_FLOW stage=EXTRACTION_RECEIVED jobId={}", job.getId());
         if (job.isDeleted()) {
             // 배우가 닫았거나 보관 기간이 지나 지운 작업이다. 늦게 온 결과는 저장하지 않고 워커가 남긴 객체를 다시 지운다.
             storage.deleteAll(job);
+            log.debug("PDF_FLOW stage=RESULT_IGNORED jobId={} reason=DELETED", job.getId());
             return new Receipt(job.getId(), job.getStatus().name());
         }
         PdfExtractionResult result = parser.parse(job, command);
+        if (job.getSourceSha256() == null && job.getReviewId() != null
+                && result.sourceSha256() != null && result.sourceSha256().matches("[0-9a-f]{64}")
+                && !jobs.existsByReviewIdAndSourceSha256(job.getReviewId(), result.sourceSha256())) {
+            job.identifySourceSha256(result.sourceSha256());
+        }
         String payloadJson = mapper.writeValueAsString(result);
         String digest = sha256(payloadJson);
         Optional<PdfExtractionPayload> stored = payloads.findById(job.getId());
@@ -56,6 +65,7 @@ public class PdfExtractionResultReceiver {
             if (!stored.get().hasSameDigest(digest)) {
                 throw new BusinessException(PDF_EXTRACTION_RESULT_CONFLICT, "이미 다른 PDF 추출 결과가 저장되어 있습니다.");
             }
+            log.debug("PDF_FLOW stage=CALLBACK_REUSED jobId={}", job.getId());
             return new Receipt(job.getId(), job.getStatus().name());
         }
         payloads.save(new PdfExtractionPayload(job.getId(), payloadJson, digest, clock.instant()));

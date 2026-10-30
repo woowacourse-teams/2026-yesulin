@@ -5,6 +5,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useReviewUploads } from "./use-review-uploads";
 import { completePdfUpload, putPdf } from "../pdf-extractions/api";
 import { preparePdfReviewUpload } from "./api";
+import { trackPdfStep } from "@/features/analytics/pdf-analytics";
+
+vi.mock("@/features/analytics/pdf-analytics", () => ({ trackPdfStep: vi.fn(), registerPdfReviewJob: vi.fn() }));
 
 vi.mock("./api", () => ({ preparePdfReviewUpload: vi.fn(), isUnauthorized: () => false }));
 vi.mock("../pdf-extractions/api", () => ({
@@ -58,9 +61,49 @@ afterEach(() => {
 });
 
 describe("PDF 다중 업로드 접수", () => {
+  it("같은 묶음의 미확인 동일 작업은 한 번만 전송하고 두 번째는 중복 제외한다", async () => {
+    mount();
+    const gate = deferred();
+    vi.mocked(preparePdfReviewUpload).mockResolvedValue({
+      jobId: "shared", fileKey: "key", duplicate: true,
+      upload: { url: "http://example.test/never-requested", method: "PUT", expiresAt: "2099-01-01T00:00:00Z", headers: {} },
+    });
+    vi.mocked(putPdf).mockImplementation(async () => gate.promise);
+
+    act(() => uploads.choose("review", files(2)));
+    await settle(() => expect(preparePdfReviewUpload).toHaveBeenCalledTimes(2));
+    expect(putPdf).toHaveBeenCalledTimes(1);
+    await act(async () => gate.resolve());
+    await settle(() => expect(uploaded).toHaveBeenCalledTimes(2));
+
+    expect(completePdfUpload).toHaveBeenCalledTimes(1);
+    expect(trackPdfStep).toHaveBeenCalledTimes(1);
+    expect(uploads.message).toContain("업로드 완료 1개 · 중복 제외 1개");
+    expect(uploads.notices.map(item => item.phase).sort()).toEqual(["DUPLICATE", "UPLOADED"]);
+  });
+  it("기존 PDF는 추가 업로드·완료·성공 분석 없이 중복 제외하고 목록만 갱신한다", async () => {
+    mount();
+    vi.mocked(preparePdfReviewUpload).mockResolvedValue({
+      jobId: "existing", fileKey: "key", duplicate: true, upload: null,
+    });
+
+    act(() => uploads.choose("review", files(2)));
+    await settle(() => expect(uploaded).toHaveBeenCalledTimes(2));
+    expect(uploads.busy).toBe(false);
+
+    expect(putPdf).not.toHaveBeenCalled();
+    expect(completePdfUpload).not.toHaveBeenCalled();
+    expect(trackPdfStep).not.toHaveBeenCalled();
+    expect(uploads.rows).toHaveLength(0);
+    expect(uploads.notices.every(item => item.phase === "DUPLICATE")).toBe(true);
+    expect(uploads.message).toContain("중복 제외 2개");
+    expect(uploads.message).toContain("실패 0개");
+    act(() => uploads.clearUploaded("review"));
+    expect(uploads.notices).toHaveLength(0);
+  });
   it("가상 PDF 7개를 한 번에 선택하면 갱신 중에도 7개 모두 접수한다", async () => {
     mount();
-    act(() => uploads.choose("review", files(7), 0));
+    act(() => uploads.choose("review", files(7)));
     await settle(() => expect(uploaded).toHaveBeenCalledTimes(7));
     expect(preparePdfReviewUpload).toHaveBeenCalledTimes(7);
     expect(putPdf).toHaveBeenCalledTimes(7);
@@ -75,7 +118,7 @@ describe("PDF 다중 업로드 접수", () => {
     mount();
     const selected = files(7);
     const liveList = { get length() { return selected.length; }, [Symbol.iterator]: () => selected[Symbol.iterator]() } as unknown as FileList;
-    act(() => { uploads.choose("review", liveList, 0); selected.length = 0; });
+    act(() => { uploads.choose("review", liveList); selected.length = 0; });
     await settle(() => expect(uploaded).toHaveBeenCalledTimes(7));
     expect(preparePdfReviewUpload).toHaveBeenCalledTimes(7);
   });
@@ -89,7 +132,7 @@ describe("PDF 다중 업로드 접수", () => {
       active += 1; maximum = Math.max(maximum, active);
       await gate.promise; active -= 1;
     });
-    act(() => uploads.choose("review", files(7), 0));
+    act(() => uploads.choose("review", files(7)));
     await settle(() => expect(putPdf).toHaveBeenCalledTimes(2));
     expect(preparePdfReviewUpload).toHaveBeenCalledTimes(2);
     await act(async () => { gate.resolve(); });
@@ -105,7 +148,7 @@ describe("PDF 다중 업로드 접수", () => {
       if (file.name === "sample-2.pdf") await second.promise;
       if (file.name === "sample-3.pdf") await third.promise;
     });
-    act(() => uploads.choose("review", files(7), 0));
+    act(() => uploads.choose("review", files(7)));
     await settle(() => expect(preparePdfReviewUpload).toHaveBeenCalledTimes(3));
     act(() => root!.unmount());
     root = null;
@@ -121,7 +164,7 @@ describe("PDF 다중 업로드 접수", () => {
       if (file.name === "sample-3.pdf") throw new Error("mock preparation failure");
       return original(id, file);
     });
-    act(() => uploads.choose("review", files(7), 0));
+    act(() => uploads.choose("review", files(7)));
     await settle(() => expect(uploaded).toHaveBeenCalledTimes(6));
     expect(uploads.busy).toBe(false);
     expect(preparePdfReviewUpload).toHaveBeenCalledTimes(7);
@@ -135,7 +178,7 @@ describe("PDF 다중 업로드 접수", () => {
     mount();
     const selected = files(7);
     for (const file of selected.slice(3)) Object.defineProperty(file, "size", { value: 26 * 1024 * 1024 });
-    act(() => uploads.choose("review", selected, 0));
+    act(() => uploads.choose("review", selected));
     await settle(() => expect(uploaded).toHaveBeenCalledTimes(3));
     expect(uploads.rows).toHaveLength(4);
     expect(uploads.message).toContain("선택 7개");
@@ -147,7 +190,7 @@ describe("PDF 다중 업로드 접수", () => {
     mount();
     const gate = deferred();
     vi.mocked(putPdf).mockImplementation(async () => gate.promise);
-    act(() => uploads.choose("review", files(7), 0));
+    act(() => uploads.choose("review", files(7)));
     await settle(() => expect(putPdf).toHaveBeenCalledTimes(2));
     act(() => root!.unmount()); root = null;
     const during = new Event("beforeunload", { cancelable: true });
@@ -167,7 +210,7 @@ describe("PDF 다중 업로드 접수", () => {
       if (file.name === "sample-2.pdf") throw new Error("temporary failure");
       return original(id, file);
     });
-    act(() => uploads.choose("review", files(3), 0));
+    act(() => uploads.choose("review", files(3)));
     await settle(() => expect(uploaded).toHaveBeenCalledTimes(2));
     expect(uploads.busy).toBe(false);
     expect(uploads.notices).toHaveLength(3);

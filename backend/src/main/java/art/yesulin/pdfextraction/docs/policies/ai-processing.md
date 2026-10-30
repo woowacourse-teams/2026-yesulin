@@ -6,14 +6,22 @@
 잘못된 모델 출력이나 경력/프로필의 원문 근거 불일치는 `INVALID_MODEL_OUTPUT`으로 기록한다.
 
 `pdf_ai_worker_gate`의 한 행을 잠근 트랜잭션에서 유효한 RUNNING 수를 세고 작업을 획득한다.
-기본 전체 상한은 1건이며 서버별 스레드 수로 전체 상한을 판단하지 않는다.
-ShedLock은 주기 실행을 조정하고, 전용 실행자는 노드당 한 작업만 수행해 다른 스케줄러를 막지 않는다.
+기본 전체 상한은 4건이며 서버별 스레드 수로 전체 상한을 판단하지 않는다.
+커밋 뒤 즉시 실행 신호와 주기 실행은 같은 Dispatcher를 사용한다. ShedLock은 주기 신호만 조정하며,
+실제 전역 실행권은 DB Gate/lease가 소유한다. 전용 실행자는 노드에서도 concurrency 설정(1~50) 이하로만 실행하고
+콜백 수만큼 메모리 작업을 쌓지 않는다. 처리 중 새 신호는 합쳐서 확인한다. 모델 호출은 HTTP 콜백 스레드와 분리한다.
+새 작업 이벤트는 AFTER_COMMIT에만 전달되며, 신호 유실·실행자 거절·서버 재시작은 기본 5초 주기 신호로 회수한다.
+작업 획득 커밋 뒤에는 다음 요청 간격에 신호 하나를 예약해 비어 있는 슬롯을 채운다. 예약은 노드당 하나로 합치며
+새 획득이 있으면 마지막 획득 이후 간격을 지킨다. 빈 큐에는 예약을 이어 만들지 않는다.
+호출 간격이 양수면 신호 하나당 새 실행자도 하나만 시작해, 동시성 상한이 커도 예약 신호마다
+수십 개의 실행자가 같은 DB gate를 조회하지 않도록 한다. 0 간격을 명시한 경우에는 빈 슬롯을 함께 깨운다.
 모델 호출 기한은 Bedrock 35초이며 임대는 최소 2분이다. 임대 만료 작업은 다음 tick에서 복구하고
 임대 토큰이 바뀌었거나 만료된 이전 작업자의 응답은 반영하지 않는다.
 임대는 논리적 실행권이므로 프로세스 장기 정지나 응답 유실에서 모델 호출 자체의 정확히 한 번 실행·과금을 보장하지 않는다.
-동시성 1은 모델의 RPM/TPM 쿼터를 대신하지 않는다.
-기본 요청 간격은 전체 서버 합산 10초(최대 6RPM)이며 gate의 `next_request_at`을 같은 트랜잭션에서 예약한다.
-재시도도 간격을 다시 획득한다. `YESULIN_PDF_AI_REQUEST_INTERVAL=PT10S`로 설정하며,
+동시성 제한은 모델의 RPM/TPM 쿼터를 대신하지 않는다.
+사용자가 확인한 분당 300회 기준으로 기본 요청 간격은 전체 서버 합산 0.2초(최대 300RPM)이며
+gate의 `next_request_at`을 같은 트랜잭션에서 예약한다. 재시도도 간격을 다시 획득한다.
+`YESULIN_PDF_AI_REQUEST_INTERVAL=PT0.2S`로 설정하며,
 요청 간격 제한은 정확한 TPM 제한을 대신하지 않는다. 시계가 동기화된 서버를 전제로 하며 계정 쿼터를 관찰해 조정한다.
 
 기능이 꺼져 있거나 텍스트가 없거나 32,000자를 넘으면 SKIPPED로 종료하고 원문·규칙 결과는 유지한다.
@@ -24,7 +32,7 @@ ShedLock은 주기 실행을 조정하고, 전용 실행자는 노드당 한 작
 
 설정: `YESULIN_PDF_AI_ENABLED`(base/local false, dev·prod는 PDF 기능 활성 시 기본 true), `YESULIN_PDF_AI_PROVIDER`(bedrock),
 `YESULIN_PDF_AI_MODEL_ID`(초기값 `global.anthropic.claude-haiku-5-5`), `YESULIN_PDF_AI_REGION`(ap-northeast-2),
-`YESULIN_PDF_AI_CONCURRENCY`(1, 허용 1~4), `YESULIN_PDF_AI_MAX_ATTEMPTS`(3, 허용 1~5).
+`YESULIN_PDF_AI_CONCURRENCY`(4, 허용 1~50), `YESULIN_PDF_AI_MAX_ATTEMPTS`(3, 허용 1~5).
 로컬 `local` 프로필에서만 provider=gemini와
 `yesulin.pdf-ai.gemini-api-key-file`과 Gemini 모델 ID를 명시해 기존 Gemini 검증을 사용할 수 있다.
 Bedrock 오류 시 Gemini로 자동 우회하지 않는다.
@@ -32,7 +40,16 @@ Bedrock 오류 시 Gemini로 자동 우회하지 않는다.
 현재 Bedrock 기본 설정은 `global.anthropic.claude-haiku-5-5`다. Dev EC2 InvokeModel 성공은 확인했고, 배포 Spring Converse·Prod 역할 검증은 남아 있다.
 다른 Converse 지원 모델은 `YESULIN_PDF_AI_MODEL_ID`로 지정한다.
 서울(`ap-northeast-2`) endpoint를 사용하지만 글로벌 추론 프로필이므로 실제 추론 위치를 서울로 한정하지 않는다.
-출력 상한은 4096 tokens이며 temperature는 강제하지 않는다. 출력이 잘리면 부분 JSON을 반영하지 않는다.
+출력 상한은 Bedrock 4096 tokens(상수), 로컬 Gemini 6000 tokens이며 temperature는 Bedrock에서 강제하지 않는다.
+이는 생성량을 제한하는 현재 설정이며 대표 지원서의 출력 토큰 분포·최대 필드 길이로 충분성을 입증한 값은 아니다.
+출력이 잘리면 부분 JSON을 반영하지 않고 INVALID_MODEL_OUTPUT으로 종료한다. 상한 조정은 실제 출력 사용량과
+잘림 빈도를 측정한 뒤 판단한다. 요청 수 상한(RPM), 입력/출력 토큰 처리량(TPM), 출력 토큰 상한은 서로 다른 제한이다.
+동시 실행 기본 4건은 초기 실행 수 설정이며 300RPM의 실제 달성을 보장하지 않는다. 평균 모델 응답시간과
+입력/출력 토큰 처리량에 따라 실제 처리 속도가 달라진다. 배포 환경에 기존 환경 변수 값이 있으면 기본값보다 우선한다.
+예를 들어 평균 10초/호출이라면 초당 5회 시작에 필요한 동시성은 약 50건이다. 이는 설정 산식이며 실측값이 아니다.
+`YESULIN_PDF_AI_CONCURRENCY=50`으로 조정할 수 있다. PDF 추출 Lambda의 동시성은 이 설정과 독립이다.
+확인한 계정/모델 쿼터에 맞춰 YESULIN_PDF_AI_CONCURRENCY와 YESULIN_PDF_AI_REQUEST_INTERVAL을 조정한다.
+이 설정을 늘려도 전역 DB 상한은 모든 서버에 합산 적용된다.
 모델 지원·역할 허용과 서비스 처리량은 별개다. Gemini보다 높은 정확도나 더 짧은 시간을 보장하지 않는다.
 모델별 접근·쿼터는 대상 EC2 역할과 모델 ID로 확인한다.
 

@@ -41,8 +41,11 @@ public class PdfExtractionJob {
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
 
-    @Column(nullable = false, updatable = false)
+    @Column(nullable = false)
     private Instant uploadExpiresAt;
+
+    @Column(length = 64)
+    private String sourceSha256;
 
     private Instant uploadedAt;
 
@@ -113,6 +116,21 @@ public class PdfExtractionJob {
             throw new IllegalArgumentException("PDF source file key cannot change");
         }
         fileKey = key;
+    }
+
+    public void identifySourceSha256(String sha256) {
+        if (sha256 == null || !sha256.matches("[0-9a-f]{64}")
+                || (sourceSha256 != null && !sourceSha256.equals(sha256))) {
+            throw new BusinessException(INVALID_PDF, "PDF 파일의 체크섬이 올바르지 않습니다.");
+        }
+        sourceSha256 = sha256;
+    }
+
+    public void renewUploadWindow(Instant expiresAt) {
+        if (uploadedAt != null || isFinished() || isDeleted()) {
+            throw new IllegalStateException("Only an unconfirmed upload can renew its upload window");
+        }
+        uploadExpiresAt = Objects.requireNonNull(expiresAt);
     }
 
     public void confirmUpload(Instant now) {

@@ -18,17 +18,25 @@ Active Producer 세션을 요구하고 쓰기는 CSRF, 응답은 `Cache-Control:
 | GET | `/api/v1/pdf-reviews` | `{reviews:[{id,title,createdAt,roleCount,entryCount}]}` 최신순 |
 | GET | `/api/v1/pdf-reviews/{id}` | ReviewDetail |
 | GET | `/api/v1/pdf-reviews/{id}/progress` | `{total,uploading,waiting,completed,partial,failed,complete,pdf,ai}` |
-| POST | `/api/v1/pdf-reviews/{id}/uploads` | `{originalFilename,size}` → 201 PreparedUpload |
+| POST | `/api/v1/pdf-reviews/{id}/uploads` | `{originalFilename,size,sha256}` → 신규 201 / 기존 원본 재사용 200 PreparedUpload |
 | PATCH | `/api/v1/pdf-reviews/{id}/entries/{entryId}` | `{memo,decision}` → 200 EntryView |
 | PATCH | `/api/v1/pdf-reviews/{id}/role-assignments` | `{entryIds:[UUID],roleId:UUID 또는 null}` → 200 EntryView[] |
 
 - ReviewDetail은 `id,title,createdAt,roles:[{id,name}],entries:[EntryView]`이다. 배역은 입력 순서, 항목은 파일 이름순이다.
 - EntryView는 `id,jobId,originalFilename,applicantName,roleId,matchStatus,matchEvidence,memo,decision,processingStatus`이다.
   `applicantName`·`roleId`는 null일 수 있다.
-- `POST /uploads`는 기존 `POST /api/v1/pdf-extractions/uploads`와 같은 PreparedUpload
-  `{jobId,fileKey,upload:{url,method,expiresAt,headers}}`를 돌려준다. 검증도 같다(PDF, 25MiB 이하, 파일명 255자 이하,
+- `POST /uploads`는 `{jobId,fileKey,duplicate,upload:{url,method,expiresAt,headers} 또는 null}`을 돌려준다.
+  sha256은 브라우저가 원본 바이트에서 계산한 소문자 64자리 SHA-256이며 필수다. 파일명·크기로 동일성을 판단하지 않는다.
+  같은 심사·같은 SHA는 기존 jobId/항목을 재사용한다. 이미 원본 업로드가 확인됐으면 duplicate=true·upload=null이고
+  브라우저는 PUT/completion/새 업로드 성공 분석을 생략한다. 미확인 작업은 duplicate=true·upload를 발급해 같은 작업으로
+  이어 올린다. 만료 시에도 같은 작업의 업로드 창을 갱신한다. 다른 심사 또는 다른 바이트는 별도 접수다.
+  신규 PUT에는 원본 SHA를 Base64로 바꾼 `x-amz-checksum-sha256`도 서명하므로 다른 바이트를 업로드할 수 없다.
+  S3 CORS의 AllowedHeaders에 이 헤더를 허용해야 한다(로컬 설정은 `*`).
+  검증은 PDF, 25MiB 이하, 파일명 255자 이하,
   실패 시 `400 INVALID_PDF`이며 항목은 생기지 않는다). 응답을 받은 브라우저가 S3에 PUT하고, 이후
   `POST /api/v1/pdf-extractions/{jobId}/completion`과 상태 조회는 기존 API를 쓴다.
+  최대 800건은 서버가 중복 제외 뒤 새 항목에만 적용한다. 동시 접수는 심사 행 잠금과 원본 SHA 유일 인덱스로 보호한다.
+  기존 완료 결과는 migration에서 저장된 sourceSha256으로 대표 작업을 채운다. 기존 중복 항목의 메모·판정은 삭제하지 않는다.
 - PATCH는 `memo`(필수, 빈 문자열 가능, 2000자 이하)와 `decision`(필수)을 모두 받는다. 항목 행을 잠근 뒤 바꾸므로
   같은 항목에 대한 자동 반영과 겹쳐도 서로의 값을 덮어쓰지 않는다.
 - 오류: 형식·길이·중복 배역 `400 INVALID_REQUEST` 또는 `400 INVALID_PDF_REVIEW`, 없는 심사·항목 `404`.

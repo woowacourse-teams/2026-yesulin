@@ -3,6 +3,10 @@ package art.yesulin.pdfextraction.application.ai;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 import art.yesulin.audit.domain.Audit;
 import art.yesulin.audit.domain.AuditRepository;
@@ -12,6 +16,7 @@ import art.yesulin.auth.domain.member.MemberStatus;
 import art.yesulin.auth.domain.member.MemberType;
 import art.yesulin.infrastructure.persistence.QueryDslConfiguration;
 import art.yesulin.pdfextraction.application.PdfApplicantInfo;
+import art.yesulin.pdfextraction.application.PdfExtractionCompletedEvent;
 import art.yesulin.pdfextraction.application.PdfExtractionResult;
 import art.yesulin.pdfextraction.domain.PdfExtractionJob;
 import art.yesulin.pdfextraction.domain.PdfExtractionJobRepository;
@@ -20,6 +25,12 @@ import art.yesulin.pdfextraction.domain.PdfExtractionPayloadRepository;
 import art.yesulin.pdfextraction.domain.ai.PdfAiJob;
 import art.yesulin.pdfextraction.domain.ai.PdfAiJobRepository;
 import art.yesulin.pdfextraction.domain.ai.PdfAiStatus;
+import art.yesulin.pdfextraction.presentation.event.PdfAiQueuedEventHandler;
+import art.yesulin.pdfextraction.presentation.event.PdfFlowEventHandler;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Duration;
@@ -37,26 +48,34 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.event.EventListener;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
 @DataJpaTest(showSql = false, properties = {
         "spring.datasource.url=jdbc:h2:mem:pdf-ai-queue;MODE=MySQL;DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=10000",
         "spring.jpa.hibernate.ddl-auto=validate",
-        "yesulin.pdf-extraction.enabled=true"
+        "yesulin.pdf-extraction.enabled=true",
+        "yesulin.pdf-ai.enabled=true"
 })
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Import({PdfAiQueueService.class, PdfAiQueueServiceDatabaseTest.Config.class, QueryDslConfiguration.class})
+@Import({PdfAiQueueService.class, PdfAiQueuedEventHandler.class, PdfFlowEventHandler.class,
+        PdfAiQueueServiceDatabaseTest.Config.class, QueryDslConfiguration.class})
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class PdfAiQueueServiceDatabaseTest {
 
@@ -81,12 +100,157 @@ class PdfAiQueueServiceDatabaseTest {
     private JdbcTemplate jdbc;
     @Autowired
     private FailureRecorder failures;
+    @Autowired
+    private PlatformTransactionManager transactions;
+    @MockitoBean
+    private PdfAiDispatcher dispatcher;
+    @MockitoSpyBean
+    private PdfAiProperties properties;
+    @Autowired
+    private ApplicationEventPublisher events;
 
     @BeforeEach
     void resetGateAndClock() {
         aiJobs.deleteAllInBatch();
         clock.set(NOW);
         jdbc.update("update pdf_ai_worker_gate set next_request_at = ?", Timestamp.from(NOW));
+        reset(dispatcher);
+    }
+
+    @Test
+    void newPendingWorkSignalsOnlyAfterOuterCallbackTransactionCommits() {
+        new TransactionTemplate(transactions).executeWithoutResult(transaction -> {
+            enqueue();
+            verifyNoInteractions(dispatcher);
+        });
+
+        verify(dispatcher).wakeUp();
+        assertEquals(1, aiJobs.count());
+    }
+
+    @Test
+    void rolledBackCallbackNeverSignalsOrLeavesAiWork() {
+        new TransactionTemplate(transactions).executeWithoutResult(transaction -> {
+            enqueue();
+            transaction.setRollbackOnly();
+        });
+
+        verifyNoInteractions(dispatcher);
+        assertEquals(0, aiJobs.count());
+    }
+
+    @Test
+    void duplicateAndSkippedEnqueuesDoNotSignalAnotherModelRun() {
+        String jobId = enqueue();
+        reset(dispatcher);
+        PdfExtractionJob job = jobs.findById(jobId).orElseThrow();
+
+        queue.enqueue(jobId, job.getReviewId(), job.getOwnerId(), "이름: 가상배우", List.of(), null);
+        enqueue("FAILED", null);
+
+        verifyNoInteractions(dispatcher);
+        assertEquals(2, aiJobs.count());
+    }
+
+    @Test
+    void increasedCapacityAllowsParallelClaimsWithoutExceedingGlobalLimit() throws Exception {
+        doReturn(2).when(properties).concurrency();
+        doReturn(Duration.ZERO).when(properties).requestInterval();
+        enqueue();
+        enqueue();
+        enqueue();
+        CountDownLatch ready = new CountDownLatch(3);
+        CountDownLatch start = new CountDownLatch(1);
+        try (java.util.concurrent.ExecutorService pool = Executors.newFixedThreadPool(3)) {
+            Future<Optional<PdfAiWork>> first = pool.submit(() -> claim(ready, start));
+            Future<Optional<PdfAiWork>> second = pool.submit(() -> claim(ready, start));
+            Future<Optional<PdfAiWork>> third = pool.submit(() -> claim(ready, start));
+            assertTrue(ready.await(5, TimeUnit.SECONDS));
+            start.countDown();
+            List<Optional<PdfAiWork>> claims = List.of(first.get(10, TimeUnit.SECONDS),
+                    second.get(10, TimeUnit.SECONDS), third.get(10, TimeUnit.SECONDS));
+
+            assertEquals(2, claims.stream().filter(Optional::isPresent).count());
+            assertEquals(2, aiJobs.countByStatusAndLeaseExpiresAtAfter(PdfAiStatus.RUNNING, NOW));
+            assertTrue(queue.claim().isEmpty());
+        }
+    }
+
+    @Test
+    void claimedWorkSchedulesNextAdmissionOnlyAfterClaimCommit() {
+        enqueue();
+        reset(dispatcher);
+
+        new TransactionTemplate(transactions).executeWithoutResult(transaction -> {
+            assertTrue(queue.claim().isPresent());
+            verifyNoInteractions(dispatcher);
+        });
+
+        verify(dispatcher).wakeUpAfterInterval();
+    }
+
+    @Test
+    void rolledBackClaimDoesNotScheduleNextAdmissionOrConsumeAttempt() {
+        final String jobId = enqueue();
+        reset(dispatcher);
+
+        new TransactionTemplate(transactions).executeWithoutResult(transaction -> {
+            assertTrue(queue.claim().isPresent());
+            transaction.setRollbackOnly();
+        });
+
+        verifyNoInteractions(dispatcher);
+        PdfAiJob stored = aiJobs.findById(jobId).orElseThrow();
+        assertEquals(PdfAiStatus.PENDING, stored.getStatus());
+        assertEquals(0, stored.getAttempts());
+    }
+
+    @Test
+    void flowLogsExtractionThenAiReadinessOnlyAfterCommitWithoutPayload() {
+        Logger logger = (Logger) LoggerFactory.getLogger(PdfFlowEventHandler.class);
+        final Level originalLevel = logger.getLevel();
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        logger.setLevel(Level.DEBUG);
+        try {
+            String jobId = new TransactionTemplate(transactions).execute(transaction -> {
+                String id = enqueue();
+                events.publishEvent(new PdfExtractionCompletedEvent(id, 1, "SECRET_SOURCE"));
+                assertTrue(appender.list.isEmpty());
+                return id;
+            });
+            List<String> messages = appender.list.stream().map(ILoggingEvent::getFormattedMessage).toList();
+            assertEquals(List.of("PDF_FLOW stage=EXTRACTION_COMMITTED jobId=" + jobId,
+                    "PDF_FLOW stage=AI_READY jobId=" + jobId), messages);
+            assertFalse(String.join("\n", messages).contains("SECRET_SOURCE"));
+        } finally {
+            logger.detachAppender(appender);
+            logger.setLevel(originalLevel);
+            appender.stop();
+        }
+    }
+
+    @Test
+    void rolledBackWorkProducesNoCommittedFlowLog() {
+        Logger logger = (Logger) LoggerFactory.getLogger(PdfFlowEventHandler.class);
+        final Level originalLevel = logger.getLevel();
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        logger.setLevel(Level.DEBUG);
+        try {
+            new TransactionTemplate(transactions).executeWithoutResult(transaction -> {
+                String jobId = enqueue();
+                events.publishEvent(new PdfExtractionCompletedEvent(jobId, 1, "SECRET_SOURCE"));
+                transaction.setRollbackOnly();
+            });
+            assertTrue(appender.list.isEmpty());
+        } finally {
+            logger.detachAppender(appender);
+            logger.setLevel(originalLevel);
+            appender.stop();
+        }
     }
 
     @Test

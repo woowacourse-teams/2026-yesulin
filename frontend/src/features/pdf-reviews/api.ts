@@ -53,8 +53,22 @@ export function fetchPdfReviewProgress(id: ReviewKey, signal?: AbortSignal) {
   return request<ReviewProgress>(`${reviewPath(id)}/progress`, "GET", undefined, signal);
 }
 
-export function preparePdfReviewUpload(reviewId: ReviewKey, file: File) {
-  return request<PreparedPdfUpload>(`${reviewPath(reviewId)}/uploads`, "POST", { originalFilename: file.name, size: file.size });
+export type PreparedReviewUpload = Omit<PreparedPdfUpload, "upload"> & {
+  readonly duplicate?: boolean;
+  readonly upload: PreparedPdfUpload["upload"] | null;
+};
+
+export async function preparePdfReviewUpload(reviewId: ReviewKey, file: File) {
+  const sha256 = await pdfSourceSha256(file);
+  return request<PreparedReviewUpload>(`${reviewPath(reviewId)}/uploads`, "POST", {
+    originalFilename: file.name, size: file.size, sha256,
+  });
+}
+
+/** 내용으로 비교한다. 파일명·수정 시각은 원본의 동일성 근거가 아니다. 읽기는 업로드 워커 안에서만 한다. */
+export async function pdfSourceSha256(file: File) {
+  const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
+  return Array.from(new Uint8Array(digest), value => value.toString(16).padStart(2, "0")).join("");
 }
 
 export async function updatePdfReviewEntry(reviewId: ReviewKey, entryId: ReviewKey, change: { readonly memo: string; readonly decision: ReviewDecision }) {

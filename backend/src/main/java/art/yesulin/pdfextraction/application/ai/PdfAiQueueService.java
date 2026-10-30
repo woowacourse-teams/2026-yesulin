@@ -15,6 +15,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
@@ -24,6 +25,7 @@ import tools.jackson.databind.ObjectMapper;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 @ConditionalOnProperty(prefix = "yesulin.pdf-extraction", name = "enabled", havingValue = "true")
 public class PdfAiQueueService {
 
@@ -58,7 +60,13 @@ public class PdfAiQueueService {
         } else if (text.codePointCount(0, text.length()) > PdfAiProperties.MAX_TEXT_LENGTH) {
             job.skip("TEXT_LIMIT_EXCEEDED", now);
         }
-        return jobs.save(job);
+        PdfAiJob saved = jobs.save(job);
+        if (saved.getStatus() == PdfAiStatus.PENDING) {
+            events.publishEvent(new PdfAiQueuedEvent(saved.getJobId()));
+        } else {
+            log.debug("PDF_FLOW stage=AI_SKIP_DECIDED jobId={} reason={}", saved.getJobId(), saved.getErrorCode());
+        }
+        return saved;
     }
 
     @Transactional
@@ -88,6 +96,7 @@ public class PdfAiQueueService {
                     PdfAiWork work = acquire(job, now);
                     if (work != null) {
                         gate.reserve(now, properties.requestInterval());
+                        events.publishEvent(new PdfAiClaimedEvent(work.jobId()));
                     }
                     return work;
                 });

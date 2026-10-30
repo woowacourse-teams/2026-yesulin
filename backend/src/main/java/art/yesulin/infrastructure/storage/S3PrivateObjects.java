@@ -7,6 +7,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -50,12 +53,22 @@ public class S3PrivateObjects {
     private final Duration downloadExpiration;
 
     public Upload createOnce(String logicalKey, String contentType, long size) {
-        PutObjectRequest put = PutObjectRequest.builder().bucket(bucket).key(physicalKey(logicalKey))
-                .contentType(contentType).contentLength(size).ifNoneMatch("*").build();
+        return createOnce(logicalKey, contentType, size, null);
+    }
+
+    public Upload createOnce(String logicalKey, String contentType, long size, String sourceSha256) {
+        PutObjectRequest.Builder put = PutObjectRequest.builder().bucket(bucket).key(physicalKey(logicalKey))
+                .contentType(contentType).contentLength(size).ifNoneMatch("*");
+        Map<String, String> headers = new HashMap<>(Map.of("Content-Type", contentType, "If-None-Match", "*"));
+        if (sourceSha256 != null) {
+            String checksum = Base64.getEncoder().encodeToString(HexFormat.of().parseHex(sourceSha256));
+            put.checksumSHA256(checksum);
+            headers.put("x-amz-checksum-sha256", checksum);
+        }
         PresignedPutObjectRequest signed = presigner.presignPutObject(PutObjectPresignRequest.builder()
-                .signatureDuration(uploadExpiration).putObjectRequest(put).build());
+                .signatureDuration(uploadExpiration).putObjectRequest(put.build()).build());
         return new Upload(signed.url().toString(), "PUT", signed.expiration(),
-                Map.of("Content-Type", contentType, "If-None-Match", "*"));
+                Map.copyOf(headers));
     }
 
     public Optional<Metadata> inspect(String logicalKey) {

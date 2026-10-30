@@ -101,7 +101,7 @@ PDF 처리·오류·재시도 경계는 [공용 PDF 흐름](../src/main/java/art
 
 | Method | URL | 요청 / 응답 |
 | --- | --- | --- |
-| POST | `/api/v1/pdf-extractions/uploads` | `{originalFilename,size}` → 201 `{jobId,fileKey,upload:{url,method,expiresAt,headers}}` |
+| POST | `/api/v1/pdf-extractions/uploads` | `{originalFilename,size}` → 201 `{jobId,fileKey,duplicate:false,upload:{url,method,expiresAt,headers}}` |
 | POST | `/api/v1/pdf-extractions/{jobId}/completion` | 빈 JSON → 202 job. 원본 크기·형식·PDF 서명 확인. 이미 확인한 작업은 재사용 |
 | GET | `/api/v1/pdf-extractions` | 최근 본인 작업 최대 800개 `{jobs:[job]}`. DB 메타데이터만 반환 |
 | GET | `/api/v1/pdf-extractions/{jobId}?includeResult=false` | 파일별 상태 조회. DB 상태만 읽고 S3는 조회하지 않음 |

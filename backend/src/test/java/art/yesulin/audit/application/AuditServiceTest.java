@@ -41,6 +41,7 @@ import org.junit.jupiter.api.Test;
 class AuditServiceTest {
 
     private static final Instant NOW = Instant.parse("2026-10-24T00:00:00Z");
+    private static final String SHA = "a".repeat(64);
     private static final long OWNER = 1L;
     private static final long OTHER_OWNER = 2L;
 
@@ -59,9 +60,10 @@ class AuditServiceTest {
         extraction = mock(PdfExtractionService.class);
         stubReviewRepository();
         stubEntryRepository();
-        when(extraction.prepare(anyLong(), anyString(), anyString(), anyLong())).thenAnswer(call -> new PreparedUpload(
-                UUID.randomUUID().toString(), "key", new PdfExtractionStorage.UploadTarget(
-                        "http://localhost/upload", "PUT", NOW.plusSeconds(600), Map.of())));
+        when(extraction.prepareReview(anyLong(), anyString(), anyString(), anyLong(), anyString()))
+                .thenAnswer(call -> new PreparedUpload(UUID.randomUUID().toString(), "key",
+                        new PdfExtractionStorage.UploadTarget("http://localhost/upload", "PUT",
+                                NOW.plusSeconds(600), Map.of())));
         service = new AuditService(reviewRepository, entryRepository, extraction,
                 Clock.fixed(NOW, ZoneOffset.UTC));
         art.yesulin.pdfextraction.application.ai.PdfAiQueueService aiQueue =
@@ -83,7 +85,7 @@ class AuditServiceTest {
         assertEquals(List.of("햄릿", "오필리아"), created.roles().stream().map(AuditDetail.RoleView::name).toList());
         assertEquals(List.of(), created.entries());
 
-        service.prepareUpload(OWNER, created.id(), "a.pdf", 10);
+        service.prepareUpload(OWNER, created.id(), "a.pdf", 10, SHA);
         List<AuditSummary> summaries = service.list(OWNER);
 
         assertEquals(1, summaries.size());
@@ -107,9 +109,9 @@ class AuditServiceTest {
         String entryId = uploadEntry(created.id()).id();
 
         assertNotFound(() -> service.find(OTHER_OWNER, created.id()));
-        assertNotFound(() -> service.prepareUpload(OTHER_OWNER, created.id(), "b.pdf", 10));
+        assertNotFound(() -> service.prepareUpload(OTHER_OWNER, created.id(), "b.pdf", 10, SHA));
         assertNotFound(() -> service.editEntry(OTHER_OWNER, created.id(), entryId, "메모", AuditDecision.PASS));
-        verify(extraction, never()).prepare(OTHER_OWNER, created.id(), "b.pdf", 10);
+        verify(extraction, never()).prepareReview(OTHER_OWNER, created.id(), "b.pdf", 10, SHA);
         assertEquals(1, entries.size());
         assertEquals(AuditDecision.PENDING, entries.get(entryId).getDecision());
     }
@@ -118,7 +120,7 @@ class AuditServiceTest {
     void uploadCreatesWaitingEntryOwnedByTheReview() {
         AuditDetail created = service.create(OWNER, "제목", List.of("햄릿"));
 
-        PreparedUpload upload = service.prepareUpload(OWNER, created.id(), "지원서.pdf", 10);
+        PreparedUpload upload = service.prepareUpload(OWNER, created.id(), "지원서.pdf", 10, SHA);
 
         AuditApplicantView entry = service.find(OWNER, created.id()).entries().get(0);
         assertEquals(upload.jobId(), entry.jobId());
@@ -133,11 +135,26 @@ class AuditServiceTest {
     @Test
     void rejectedUploadLeavesNoEntry() {
         AuditDetail created = service.create(OWNER, "제목", List.of("햄릿"));
-        when(extraction.prepare(anyLong(), anyString(), anyString(), anyLong()))
+        when(extraction.prepareReview(anyLong(), anyString(), anyString(), anyLong(), anyString()))
                 .thenThrow(new BusinessException(PdfExtractionErrorCode.INVALID_PDF, "PDF가 아닙니다."));
 
-        assertThrows(BusinessException.class, () -> service.prepareUpload(OWNER, created.id(), "a.txt", 10));
+        assertThrows(BusinessException.class, () -> service.prepareUpload(OWNER, created.id(), "a.txt", 10, SHA));
 
+        assertEquals(0, entries.size());
+    }
+
+    @Test
+    void fullReviewRejectsNewSourcesButStillAcceptsExistingSource() {
+        AuditDetail review = service.create(OWNER, "제목", List.of());
+        when(entryRepository.countByReviewId(review.id())).thenReturn(800L);
+        assertThrows(BusinessException.class,
+                () -> service.prepareUpload(OWNER, review.id(), "new.pdf", 10, SHA));
+        when(extraction.prepareReview(OWNER, review.id(), "existing.pdf", 10, SHA))
+                .thenReturn(new PreparedUpload("existing", "key", null, true));
+
+        PreparedUpload reused = service.prepareUpload(OWNER, review.id(), "existing.pdf", 10, SHA);
+
+        assertEquals("existing", reused.jobId());
         assertEquals(0, entries.size());
     }
 
@@ -313,7 +330,7 @@ class AuditServiceTest {
         AuditDetail review = service.create(OWNER, "제목", List.of("햄릿"));
         AuditDetail other = service.create(OTHER_OWNER, "다른 심사", List.of("햄릿"));
         AuditApplicantView uploaded = uploadEntry(review.id());
-        service.prepareUpload(OTHER_OWNER, other.id(), "foreign.pdf", 10);
+        service.prepareUpload(OTHER_OWNER, other.id(), "foreign.pdf", 10, SHA);
         AuditApplicantView foreign = service.find(OTHER_OWNER, other.id()).entries().get(0);
         assertNotFound(() -> service.assignRoles(OTHER_OWNER, review.id(), List.of(uploaded.id()), null));
         assertThrows(BusinessException.class, () -> service.assignRoles(OWNER, review.id(),
@@ -331,7 +348,7 @@ class AuditServiceTest {
     }
 
     private AuditApplicantView uploadEntry(String reviewId) {
-        service.prepareUpload(OWNER, reviewId, "a.pdf", 10);
+        service.prepareUpload(OWNER, reviewId, "a.pdf", 10, SHA);
         return service.find(OWNER, reviewId).entries().stream().reduce((first, second) -> second).orElseThrow();
     }
 
@@ -347,6 +364,9 @@ class AuditServiceTest {
             return review;
         });
         when(reviewRepository.findByIdAndOwnerId(anyString(), anyLong())).thenAnswer(call ->
+                Optional.ofNullable(reviews.get(call.getArgument(0)))
+                        .filter(review -> review.isOwnedBy((long) call.getArgument(1))));
+        when(reviewRepository.findOwnedForUpdate(anyString(), anyLong())).thenAnswer(call ->
                 Optional.ofNullable(reviews.get(call.getArgument(0)))
                         .filter(review -> review.isOwnedBy((long) call.getArgument(1))));
         when(reviewRepository.findByOwnerIdOrderByCreatedAtDesc(anyLong())).thenAnswer(call ->
