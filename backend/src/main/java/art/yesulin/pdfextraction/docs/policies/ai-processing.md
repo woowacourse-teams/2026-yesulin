@@ -31,16 +31,21 @@ gate의 `next_request_at`을 같은 트랜잭션에서 예약한다. 재시도�
 모든 필드는 불확실하면 null이고 원문을 대신하는 합격 판단은 하지 않는다.
 
 설정: `YESULIN_PDF_AI_ENABLED`(base/local false, dev·prod는 PDF 기능 활성 시 기본 true), `YESULIN_PDF_AI_PROVIDER`(bedrock),
-`YESULIN_PDF_AI_MODEL_ID`(초기값 `global.anthropic.claude-haiku-5-5`), `YESULIN_PDF_AI_REGION`(ap-northeast-2),
+`YESULIN_PDF_AI_MODEL_ID`(초기값 `global.openai.gpt-6-luna`), `YESULIN_PDF_AI_REGION`(ap-northeast-2),
 `YESULIN_PDF_AI_CONCURRENCY`(4, 허용 1~50), `YESULIN_PDF_AI_MAX_ATTEMPTS`(3, 허용 1~5).
 로컬 `local` 프로필에서만 provider=gemini와
 `yesulin.pdf-ai.gemini-api-key-file`과 Gemini 모델 ID를 명시해 기존 Gemini 검증을 사용할 수 있다.
 Bedrock 오류 시 Gemini로 자동 우회하지 않는다.
 
-현재 Bedrock 기본 설정은 `global.anthropic.claude-haiku-5-5`다. Dev EC2 InvokeModel 성공은 확인했고, 배포 Spring Converse·Prod 역할 검증은 남아 있다.
+현재 Bedrock 기본 설정은 `global.openai.gpt-6-luna`, reasoning effort는 `none`이다.
+Dev EC2의 실제 지원서 Converse 실험은 확인했고, 변경 코드의 배포와 Prod 역할 검증은 별도로 수행한다.
 다른 Converse 지원 모델은 `YESULIN_PDF_AI_MODEL_ID`로 지정한다.
 서울(`ap-northeast-2`) endpoint를 사용하지만 글로벌 추론 프로필이므로 실제 추론 위치를 서울로 한정하지 않는다.
-출력 상한은 Bedrock 4096 tokens(상수), 로컬 Gemini 6000 tokens이며 temperature는 Bedrock에서 강제하지 않는다.
+출력 상한은 Bedrock 4096 tokens(상수), 로컬 Gemini 6000 tokens다. Bedrock Luna와 Haiku 5.5는 temperature를 생략한다.
+실제 Luna Converse에서 temperature=0은 HTTP 400으로 거부되어 사용하지 않는다.
+`YESULIN_PDF_AI_REASONING_EFFORT`는 none(기본), low, medium, high, xhigh, max 중 하나다.
+Luna는 additionalModelRequestFields.reasoning.effort로 전달한다. Haiku 5.5는 none일 때 thinking.type=disabled,
+그 외는 adaptive와 output_config.effort를 전달한다. 다른 모델은 기존처럼 추가 추론 옵션을 생략한다.
 이는 생성량을 제한하는 현재 설정이며 대표 지원서의 출력 토큰 분포·최대 필드 길이로 충분성을 입증한 값은 아니다.
 출력이 잘리면 부분 JSON을 반영하지 않고 INVALID_MODEL_OUTPUT으로 종료한다. 상한 조정은 실제 출력 사용량과
 잘림 빈도를 측정한 뒤 판단한다. 요청 수 상한(RPM), 입력/출력 토큰 처리량(TPM), 출력 토큰 상한은 서로 다른 제한이다.
@@ -98,3 +103,26 @@ CloudWatch dev 필터는 기존 `PDF_FLOW ` 접두사로 수집한다. 필터 �
 - 2026-10-29 Dev EC2 역할의 서울 `InvokeModel` 재시험: Haiku 5.5와 GPT-6 Luna 모두 HTTP 200, OK 응답.
   최초 권한 거부 뒤 재시험이 성공했다. Prod 역할과 배포된 Spring Converse 경로의 실제 호출은 별도 확인이 필요하다.
 - 응답 형식은 프롬프트와 응답 파서(`PdfAiResponseParser`)로 검증한다. Gemini는 JSON MIME 타입만 지정하고 스키마 강제는 쓰지 않는다.
+
+## 실패 알림과 수동 재분석
+
+최종 FAILED 커밋 뒤 Slack 알림을 비동기로 보낸다. 일시 실패의 자동 재시도 중에는 보내지 않는다.
+알림에는 환경·작업 ID·모델·오류 코드·시도 횟수만 포함하며 지원자 이름·파일명·원문·응답은 넣지 않는다.
+Slack 전송 실패는 작업 상태를 되돌리지 않고 PDF_AI_SLACK_ALERT_FAILED 로그로 남긴다.
+알림은 best-effort이며 프로세스 종료나 Slack 장애 중의 전송을 영속 큐로 보장하지 않는다.
+
+공연사 심사의 유효한 실패 작업에는 AI 재분석 요청 URL 버튼을 넣는다. 클릭은 현재 환경의
+`/pdf-ai/retry` 확인 화면을 열 뿐이며 GET·링크 미리보기로 작업을 실행하지 않는다. 사용자가 로그인한 뒤
+재분석 실행을 눌러 기존 세션·CSRF 보호 POST를 보낸다. 본인 작업의 Active Producer 또는 Active Admin만 가능하다.
+Slack Signing Secret·Interactivity 수신 경로는 사용하지 않는다. LOCAL 링크는 기본 localhost:3000,
+DEV는 dev.yesulin.art, PROD는 yesulin.art다. 다른 프론트는 YESULIN_PDF_AI_SLACK_RETRY_BASE_URL로 지정한다.
+
+FAILED인 같은 실패 세대·시도·실패 시각을 AI 행 잠금 아래 확인하고 PENDING으로 바꾼다.
+retry_generation을 증가시키므로 시계나 시도 횟수가 같아져도 이전 알림으로 다시 실행할 수 없다.
+중복 클릭은 이미 처리 중으로 응답하고, 완료·생략·원본 추출 실패·삭제·배우 가져오기·원문 없음은 재등록하지 않는다.
+기존 callback payload·배역 스냅샷을 유지하고 새 재시도 묶음의 attempts는 0부터 시작한다.
+재등록·화면 ENRICHING 반영은 같은 트랜잭션이며 커밋 뒤 기존 Dispatcher를 깨운다.
+성공/실패/재등록 변경은 기존 소유자 SSE에도 알리고 재조회 시 DB 상태로 동기화한다.
+담당자의 수동 배역·메모·판정은 보존한다.
+
+알림 채널의 환경 설정은 [배포 문서](../../../../../../../../docs/operations/deployment.md)가 정본이다.

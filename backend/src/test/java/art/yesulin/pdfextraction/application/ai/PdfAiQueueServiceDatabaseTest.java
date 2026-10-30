@@ -74,7 +74,7 @@ import tools.jackson.databind.json.JsonMapper;
         "yesulin.pdf-ai.enabled=true"
 })
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Import({PdfAiQueueService.class, PdfAiQueuedEventHandler.class, PdfFlowEventHandler.class,
+@Import({PdfAiQueueService.class, PdfAiRetryService.class, PdfAiQueuedEventHandler.class, PdfFlowEventHandler.class,
         PdfAiQueueServiceDatabaseTest.Config.class, QueryDslConfiguration.class})
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class PdfAiQueueServiceDatabaseTest {
@@ -82,6 +82,8 @@ class PdfAiQueueServiceDatabaseTest {
     private static final Instant NOW = Instant.parse("2026-10-26T00:00:00Z");
     @Autowired
     private PdfAiQueueService queue;
+    @Autowired
+    private PdfAiRetryService retries;
     @Autowired
     private PdfAiJobRepository aiJobs;
     @Autowired
@@ -378,6 +380,55 @@ class PdfAiQueueServiceDatabaseTest {
         aiJobs.deleteAllInBatch();
     }
 
+    @Test
+    void concurrentManualRetriesLockTheSameFailureAndOnlySignalOnce() throws Exception {
+        String jobId = enqueue();
+        PdfAiWork work = queue.claim().orElseThrow();
+        queue.fail(work, new PdfAiFailure("INVALID_MODEL_OUTPUT", false));
+        new TransactionTemplate(transactions).executeWithoutResult(tx ->
+                jobs.findById(jobId).orElseThrow().receiveResult("COMPLETED", NOW));
+        PdfAiJob failed = aiJobs.findById(jobId).orElseThrow();
+        PdfAiRetryRequest request = new PdfAiRetryRequest(jobId, failed.getAttempts(),
+                failed.getUpdatedAt().toEpochMilli(), failed.getRetryGeneration());
+        reset(dispatcher);
+        CountDownLatch start = new CountDownLatch(1);
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            List<Future<PdfAiRetryService.Result>> results = java.util.stream.IntStream.range(0, 2)
+                    .mapToObj(index -> executor.submit(() -> {
+                        start.await();
+                        return retries.request(request, work.ownerId(), false);
+                    })).toList();
+            start.countDown();
+            List<PdfAiRetryService.Result> outcomes = List.of(results.get(0).get(10, TimeUnit.SECONDS),
+                    results.get(1).get(10, TimeUnit.SECONDS));
+            assertTrue(outcomes.contains(PdfAiRetryService.Result.QUEUED));
+            assertTrue(outcomes.contains(PdfAiRetryService.Result.ALREADY_PROCESSING));
+        }
+        assertEquals(1, aiJobs.findById(jobId).orElseThrow().getRetryGeneration());
+        verify(dispatcher).wakeUp();
+    }
+
+    @Test
+    void rolledBackManualRetryPreservesFailureAndNeverWakesWorker() {
+        String jobId = enqueue();
+        PdfAiWork work = queue.claim().orElseThrow();
+        queue.fail(work, new PdfAiFailure("INVALID_MODEL_OUTPUT", false));
+        new TransactionTemplate(transactions).executeWithoutResult(tx ->
+                jobs.findById(jobId).orElseThrow().receiveResult("COMPLETED", NOW));
+        PdfAiJob failed = aiJobs.findById(jobId).orElseThrow();
+        PdfAiRetryRequest request = new PdfAiRetryRequest(jobId, failed.getAttempts(),
+                failed.getUpdatedAt().toEpochMilli(), failed.getRetryGeneration());
+        reset(dispatcher);
+        new TransactionTemplate(transactions).executeWithoutResult(tx -> {
+            assertEquals(PdfAiRetryService.Result.QUEUED, retries.request(request, work.ownerId(), false));
+            verifyNoInteractions(dispatcher);
+            tx.setRollbackOnly();
+        });
+        assertEquals(PdfAiStatus.FAILED, aiJobs.findById(jobId).orElseThrow().getStatus());
+        assertEquals(0, aiJobs.findById(jobId).orElseThrow().getRetryGeneration());
+        verifyNoInteractions(dispatcher);
+    }
+
     private Optional<PdfAiWork> claim(CountDownLatch ready, CountDownLatch start) throws InterruptedException {
         ready.countDown();
         if (!start.await(5, TimeUnit.SECONDS)) {
@@ -424,7 +475,7 @@ class PdfAiQueueServiceDatabaseTest {
         @Bean
         PdfAiProperties properties() {
             return new PdfAiProperties(true, "bedrock", "test-model", "ap-northeast-2", 1, 3,
-                    Duration.ofMinutes(2), Duration.ofSeconds(10));
+                    Duration.ofMinutes(2), Duration.ofSeconds(10), "none");
         }
     }
 

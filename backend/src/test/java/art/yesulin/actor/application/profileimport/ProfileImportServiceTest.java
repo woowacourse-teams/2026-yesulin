@@ -89,7 +89,7 @@ class ProfileImportServiceTest {
                 mock(PdfAiJobRepository.class), event -> {});
         when(aiJobs.save(any())).thenAnswer(call -> call.getArgument(0));
         PdfAiProperties properties = new PdfAiProperties(false, "gemini", "test-model", "unused", 1, 3,
-                Duration.ofMinutes(2), Duration.ofSeconds(10));
+                Duration.ofMinutes(2), Duration.ofSeconds(10), "none");
         PdfAiQueueService queue = new PdfAiQueueService(aiJobs, mock(PdfAiGateRepository.class), payloads,
                 MAPPER, event -> {}, properties, clock);
         receiver = new PdfExtractionResultReceiver(repository, payloads,

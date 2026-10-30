@@ -5,6 +5,7 @@ import art.yesulin.pdfextraction.application.PdfExtractionCompletedEvent;
 import art.yesulin.pdfextraction.application.PdfExtractionUploadedEvent;
 import art.yesulin.pdfextraction.application.ai.PdfAiCompletedEvent;
 import art.yesulin.pdfextraction.application.ai.PdfAiFailedEvent;
+import art.yesulin.pdfextraction.application.ai.PdfAiRetriedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.event.EventListener;
@@ -36,5 +37,10 @@ public class AuditExtractionEventHandler {
     @EventListener
     public void handleAiFailure(PdfAiFailedEvent event) {
         service.applyAiFailure(event.jobId());
+    }
+
+    @EventListener
+    public void retried(PdfAiRetriedEvent event) {
+        service.restartAnalysis(event.jobId());
     }
 }

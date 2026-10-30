@@ -126,7 +126,7 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
           {!visible.length ? preparing ? <div className={styles.emptyDrop} role="status" aria-live="polite">
             <div aria-hidden="true" className="mx-auto mb-5 h-10 w-10 animate-spin rounded-full border-4 border-brand-soft border-t-brand motion-reduce:animate-none" />
             <h2>{uploading ? "PDF를 올리고 있어요" : "지원서를 준비하고 있어요"}</h2>
-            <p>PDF 추출과 AI 정리가 끝난 지원서부터 자동으로 표시됩니다.</p>
+            <p>이미지 추출과 지원자 분석이 끝난 지원서부터 자동으로 표시됩니다.</p>
           </div> : review.entries.length ? <div className={styles.emptyDrop}><h2>이 조건에 해당하는 지원자가 없습니다.</h2><p>배역이나 심사 상태를 바꿔 확인해 주세요.</p></div> :
             <div className={styles.uploadDropzone} data-dragging={drag} aria-labelledby="pdf-drop-title" aria-describedby="pdf-drop-description pdf-drop-limit">
               <span className={styles.dropIcon} aria-hidden="true"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6M12 18v-7m-3 3 3-3 3 3" /></svg></span>

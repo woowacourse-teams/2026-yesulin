@@ -41,10 +41,10 @@ export function ReviewProcessingProgress({ progress, uploading, uploadMessage, u
     {expanded && <div className="max-h-[min(45dvh,360px)] overflow-y-auto overscroll-contain border-t border-border px-3 pb-3 text-xs leading-5 text-muted-strong">
       {uploadMessage && <p className="break-words py-2">{uploadMessage}</p>}
       {progress && <p className="pb-2">전체 {progress.total} · 업로드 중 {progress.uploading} · 대기/처리 중 {progress.waiting} · 완료 {progress.completed} · 일부 {progress.partial} · 실패 {progress.failed}</p>}
-      {progress?.pdf && <table aria-label="PDF 추출·AI 정리 상태" className="mb-3 w-full border-collapse text-left">
+      {progress?.pdf && <table aria-label="이미지 추출·지원자 분석 상태" className="mb-3 w-full border-collapse text-left">
         <thead><tr className="border-b border-border"><th className="py-2">단계</th><th>대기</th><th>처리 중</th><th>완료</th><th>확인 필요</th></tr></thead>
-        <tbody><tr className="border-b border-border-soft"><th className="py-2 font-medium">PDF 추출</th><td>{progress.pdf.uploading}</td><td>{progress.pdf.queued}</td><td>{progress.pdf.completed}</td><td>{progress.pdf.failed + progress.pdf.partial}</td></tr>
-          {progress.ai && <tr><th className="py-2 font-medium">AI 정리</th><td>{progress.ai.pending}</td><td>{progress.ai.running}</td><td>{progress.ai.completed}</td><td>{progress.ai.failed + progress.ai.skipped}</td></tr>}
+        <tbody><tr className="border-b border-border-soft"><th className="py-2 font-medium">이미지 추출</th><td>{progress.pdf.uploading}</td><td>{progress.pdf.queued}</td><td>{progress.pdf.completed}</td><td>{progress.pdf.failed + progress.pdf.partial}</td></tr>
+          {progress.ai && <tr><th className="py-2 font-medium">지원자 분석</th><td>{progress.ai.pending}</td><td>{progress.ai.running}</td><td>{progress.ai.completed}</td><td>{progress.ai.failed + progress.ai.skipped}</td></tr>}
         </tbody>
       </table>}
       {!!notices.length && <>

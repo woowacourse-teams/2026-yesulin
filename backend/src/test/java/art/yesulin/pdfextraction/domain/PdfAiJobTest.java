@@ -55,6 +55,35 @@ class PdfAiJobTest {
         assertTrue(skipped.getAttempts() == 0);
     }
 
+    @Test
+    void retryInvalidatesOldButtonEvenWhenClockAndAttemptCountRepeat() {
+        PdfAiJob job = job();
+        String first = acquire(job, NOW);
+        job.fail(first, "INVALID_MODEL_OUTPUT", false, 3, NOW);
+        assertFalse(job.requestRetry(1, NOW.toEpochMilli(), 1, NOW));
+        assertTrue(job.requestRetry(1, NOW.toEpochMilli(), 0, NOW));
+        assertEquals(0, job.getAttempts());
+        assertEquals(1, job.getRetryGeneration());
+        assertFalse(job.requestRetry(1, NOW.toEpochMilli(), 0, NOW));
+        String second = acquire(job, NOW);
+        assertFalse(job.ownsLease(first, NOW));
+        job.fail(second, "INVALID_MODEL_OUTPUT", false, 3, NOW);
+        assertFalse(job.requestRetry(1, NOW.toEpochMilli(), 0, NOW));
+        assertTrue(job.requestRetry(1, NOW.toEpochMilli(), 1, NOW));
+    }
+
+    @Test
+    void retryDoesNotReopenCompletedOrSkippedJobs() {
+        PdfAiJob job = job();
+        String token = acquire(job, NOW);
+        job.complete(token, "result", NOW);
+        assertFalse(job.requestRetry(1, NOW.toEpochMilli(), 0, NOW));
+        assertEquals("result", job.getResultJson());
+        PdfAiJob skipped = job();
+        skipped.skip("NO_TEXT", NOW);
+        assertFalse(skipped.requestRetry(0, NOW.toEpochMilli(), 0, NOW));
+    }
+
     private PdfAiJob job() {
         return new PdfAiJob("job", "review", 1L, "[]", NOW);
     }
