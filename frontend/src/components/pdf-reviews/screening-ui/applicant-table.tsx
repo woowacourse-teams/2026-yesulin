@@ -8,6 +8,7 @@ import { ApplicantPhotoImage } from "./applicant-photo";
 import { useBoard } from "./board-context";
 import { StatusBadge } from "@/components/auditions/status-badge";
 import { ApplicantSocialLinks } from "./applicant-social-links";
+import { PdfPreparationStatus } from "./pdf-preparation-status";
 
 export function ApplicantTable({ rows }: { rows: readonly Applicant[] }) {
   const { source, board, selected, toggleSelected, openApplicant } = useBoard();
@@ -99,7 +100,7 @@ export function ApplicantTable({ rows }: { rows: readonly Applicant[] }) {
                 {source.kind === "PDF" ? <>
                   <td className="max-w-64 border-b border-border-soft px-3 py-2 text-xs text-muted"><span className="block truncate" title={applicant.sourceDocument?.filename}>{applicant.sourceDocument?.filename}</span></td>
                   <td className="border-b border-border-soft px-3 py-2 text-xs text-muted">{applicant.links.length ? <ApplicantSocialLinks links={applicant.links} /> : "미기재"}</td>
-                  <td className="border-b border-border-soft px-3 py-2 text-xs text-muted">{applicant.sourceDocument?.preparation}</td>
+                  <td className="border-b border-border-soft px-3 py-2 text-xs text-muted"><PdfPreparationStatus document={applicant.sourceDocument} /></td>
                 </> : <><td className="hidden border-b border-border-soft px-3 py-2 text-xs text-muted 2xl:table-cell">
                   <CareerSummary applicant={applicant} />
                 </td>
