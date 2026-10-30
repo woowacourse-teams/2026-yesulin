@@ -33,3 +33,5 @@ lint·TypeScript 검사 통과. 실제 Dev 화면의 시각 검증은 범위 밖
 | --- | --- | --- | --- | --- |
 | E01 | 2026-10-30-pdf-processing-spinner-F01 | CONFIRMED | 2026-10-30T14:26:00+09:00 | 독립 검토에서 준비 화면의 detailError·토스트의 disabled 누락 확인 |
 | E02 | 2026-10-30-pdf-processing-spinner-F01 | FIXED | 2026-10-30T14:26:00+09:00 | preparing의 detailError, spinning의 disabled/error 검사와 오류 전달로 차단. 수정 조건 표적 검토 |
+
+최초 게시 연결: 위 F01 및 E01·E02의 최초 기록 PR은 [#466](https://github.com/woowacourse-teams/2026-yesulin/pull/466)이다. 최초 확정·해결 시각은 그대로 보존한다. 작업 이슈는 [#465](https://github.com/woowacourse-teams/2026-yesulin/issues/465).
