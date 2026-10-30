@@ -19,6 +19,12 @@ MSW 전용 경로를 어떻게 구분하는지만 설명한다.
 
 ## 실제 API 사용 영역
 
+Slack URL 버튼의 `/pdf-ai/retry`는 로그인 확인과 명시적 실행 버튼만 제공한다.
+페이지 진입·미리보기·세션 GET에서 쓰기 요청을 보내지 않는다. 버튼 클릭은
+`POST /api/v1/pdf-extractions/{jobId}/ai-retry`에 기존 CSRF 헤더·세션 쿠키를 붙인다.
+해당 경로는 MSW에서도 실제 서버로 통과하며 가짜 성공으로 대체하지 않는다.
+운영자는 공개 AuthSessionContext에서 제외되므로 이 화면은 세션 API에서 역할을 직접 확인한다.
+
 OTR 공유 링크 `/otr?vid={번호}`는 `app/otr` 페이지가 받아 `/api/v1/otr?vid={번호}`로 이동시키고,
 이 요청은 Next.js rewrite로 백엔드에 전달되어 302 응답으로 예술in 상세나 원문을 연다. 이동 자체는 DTO·MSW handler 없이
 실제 백엔드를 사용한다. `src=kakao_openchat`이 있으면 이동 전에 오픈채팅방 링크 방문 POST를 보내며, 이 POST는 MSW handler가 있다.

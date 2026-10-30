@@ -190,7 +190,7 @@ class PdfAiDispatcherTest {
 
     private PdfAiDispatcher dispatcher(int concurrency, Duration interval) {
         PdfAiProperties properties = new PdfAiProperties(true, "bedrock", "test-model", "ap-northeast-2",
-                concurrency, 3, Duration.ofMinutes(2), interval);
+                concurrency, 3, Duration.ofMinutes(2), interval, "none");
         return new PdfAiDispatcher(worker, properties, executor, wakeups, nanoTime::get);
     }
 

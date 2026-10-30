@@ -63,6 +63,11 @@ public class AuditExtractionService {
         entries.findByJobIdForUpdate(jobId).ifPresent(AuditApplicant::markNeedsReview);
     }
 
+    @Transactional
+    public void restartAnalysis(String jobId) {
+        entries.findByJobIdForUpdate(jobId).ifPresent(AuditApplicant::markEnriching);
+    }
+
     private void applyProcessingStatus(AuditApplicant entry, PdfAiJob aiJob) {
         switch (aiJob.getStatus()) {
             case PENDING, RUNNING -> entry.markEnriching();

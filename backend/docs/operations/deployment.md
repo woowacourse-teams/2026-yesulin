@@ -1,5 +1,24 @@
 # 백엔드 배포
 
+## PDF 분석 오류 알림과 재분석 링크
+
+LOCAL·DEV의 서버 오류와 PDF 지원자 분석 최종 실패는 항상 지정된 개발/로컬 오류 채널로 보낸다.
+`YESULIN_ERROR_SLACK_WEBHOOK_URL`과 `YESULIN_PDF_AI_SLACK_WEBHOOK_URL`에 같은 지정 웹훅을 사용한다.
+실제 URL은 DEV의 SOPS 암호화 `config/server/dev.env`와 Git 제외 `config/server/local.env`에만 보관한다.
+웹훅을 문서·PR·로그·예제에 복사하지 않는다. PROD의 기존 오류 채널은 분리해 유지한다.
+
+Slack 버튼은 환경별 프론트 `/pdf-ai/retry`로 이동하는 URL 버튼이다. Signing Secret/Interactivity 설정은
+필요 없다. 확인 화면에서 본인 공연사 또는 운영자 세션으로 로그인하고 명시적인 POST를 실행한다.
+LOCAL 기본 localhost:3000, DEV 기본 https://dev.yesulin.art, PROD 기본 https://yesulin.art다.
+다른 프론트 주소는 `YESULIN_PDF_AI_SLACK_RETRY_BASE_URL`에 해당 환경의 origin을 지정한다.
+
+모델 전환은 `YESULIN_PDF_AI_MODEL_ID=global.openai.gpt-6-luna`,
+`YESULIN_PDF_AI_REASONING_EFFORT=none`을 사용한다. 이 옵션을 전달하는 코드의 최초 배포가 필요하다.
+이후 환경 변수만 조정할 때도 프로세스 재시작이 필요하며, 릴리스 환경 파일 직접 수정 대신
+config commit/push와 config-version.txt·submodule 버전 고정 절차를 사용한다.
+
+## 배포 절차
+
 CodeBuild는 `buildspec.yml`로 `backend/build/deployment/` 묶음을 만들고 CodeDeploy가 EC2에 배포한다.
 운영 요청은 `ALB(HTTPS 443) -> target group(HTTP 80) -> Spring Boot` 순서로 전달한다.
 DEV와 PROD의 Build 액션은 각각 `DEPLOY_ENV=dev`, `DEPLOY_ENV=prod`를 명시적으로 전달한다.
@@ -74,7 +93,7 @@ Incoming Webhook으로 보내며, 비어 있으면 `TIMETABLE_MESSAGES_QUEUED` �
 Slack에서 전용 채널을 만든 뒤 [공식 Incoming Webhook 안내](https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks/)에 따라
 해당 채널에 연결한 Webhook 주소를 환경별 서버 설정에 등록한다.
 
-Slack 웹훅 네 개(OTR 공고 `YESULIN_SLACK_WEBHOOK_URL` 포함)는 `src/main/resources/properties/slack.yml`의 `yesulin.slack.*`로
+Slack 웹훅(OTR 공고 `YESULIN_SLACK_WEBHOOK_URL` 포함)은 `src/main/resources/properties/slack.yml`의 `yesulin.slack.*`로
 읽고 `application.yml`이 이 파일을 import한다. DEV·PROD 값은 다른 설정과 같이 `config/server/{환경}.env`에 SOPS로 편집하고,
 로컬은 Git에서 제외된 `config/server/local.env`에 둔다. 로컬과 DEV가 같은 채널을 쓰므로 메시지 앞의 `[LOCAL]`·`[DEV]`로 구분한다.
 

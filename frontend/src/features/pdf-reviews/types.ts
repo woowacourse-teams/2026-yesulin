@@ -53,7 +53,7 @@ export type ReviewProgress = {
   readonly ai?: { readonly notQueued: number; readonly pending: number; readonly running: number; readonly completed: number; readonly failed: number; readonly skipped: number };
 };
 
-export const applicantProcessingLabels = { UPLOADING: "업로드 확인 중", EXTRACTING: "PDF 추출 중", ENRICHING: "AI 정리 중", READY: "정리 완료", NEEDS_REVIEW: "원본 확인 필요", FAILED: "추출 실패" } as const;
+export const applicantProcessingLabels = { UPLOADING: "업로드 확인 중", EXTRACTING: "이미지 추출 중", ENRICHING: "지원자 분석 중", READY: "정리 완료", NEEDS_REVIEW: "원본 확인 필요", FAILED: "추출 실패" } as const;
 
 export const matchStatusLabels: Record<MatchStatus, string> = {
   WAITING: "내용 정리 중", MATCHED: "지원 배역 확인됨", NEEDS_CHECK: "미기재",

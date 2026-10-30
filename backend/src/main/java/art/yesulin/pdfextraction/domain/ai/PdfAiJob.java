@@ -35,6 +35,8 @@ public class PdfAiJob {
     @Column(nullable = false)
     private int attempts;
     @Column(nullable = false)
+    private int retryGeneration;
+    @Column(nullable = false)
     private Instant nextAttemptAt;
     private Instant leaseExpiresAt;
     @Column(length = 36)
@@ -109,6 +111,21 @@ public class PdfAiJob {
     public void recoverExpired(int maxAttempts, Instant now) {
         require(status == PdfAiStatus.RUNNING && !leaseExpiresAt.isAfter(now));
         retryOrFail("LEASE_EXPIRED", true, maxAttempts, now);
+    }
+
+    public boolean requestRetry(int failedAttempts, long failedAt, int generation, Instant now) {
+        if (status != PdfAiStatus.FAILED || attempts != failedAttempts || updatedAt.toEpochMilli() != failedAt
+                || retryGeneration != generation) {
+            return false;
+        }
+        this.status = PdfAiStatus.PENDING;
+        this.attempts = 0;
+        this.retryGeneration++;
+        this.errorCode = null;
+        this.resultJson = null;
+        this.nextAttemptAt = now;
+        release(now);
+        return true;
     }
 
     private void retryOrFail(String code, boolean retryable, int maxAttempts, Instant now) {
