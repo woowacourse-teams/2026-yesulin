@@ -42,15 +42,25 @@ PRECHECK 0 / INDEPENDENT_REVIEW 2 / POST_FIX_CHECK 0 / EXTERNAL 0, 오탐 0.
 
 | 문제 ID | 심각도·유형·유입 | 발견 경로 | 최초 확정 / 최초 PR | 해결 시각 | 근거·조치·검증 |
 | --- | --- | --- | --- | --- | --- |
-| 2026-10-30-pdfextraction-ai-slack-retry-F01 | P2/FLOW/INTRODUCED | INDEPENDENT_REVIEW | 2026-10-30T21:04:00+09:00 / PENDING | 2026-10-30T21:04:57+09:00 | 공연사 로그인은 returnTo를 무시해 기존 링크를 잃었다. 로그인 새 탭과 기존 화면의 세션 재확인으로 수정. DOM 테스트에서 원래 링크 보존·조회만으로 POST 없음 확인. |
-| 2026-10-30-pdfextraction-ai-slack-retry-F02 | P3/CODE/INTRODUCED | INDEPENDENT_REVIEW | 2026-10-30T21:04:57+09:00 / PENDING | 2026-10-30T21:05:30+09:00 | `지원자 분석가` 조사 오탈자를 `지원자 분석이`로 수정. 소스 확인. |
+| 2026-10-30-pdfextraction-ai-slack-retry-F01 | P2/FLOW/INTRODUCED | INDEPENDENT_REVIEW | 2026-10-30T21:04:00+09:00 / #468 | 2026-10-30T21:04:57+09:00 | 공연사 로그인은 returnTo를 무시해 기존 링크를 잃었다. 로그인 새 탭과 기존 화면의 세션 재확인으로 수정. DOM 테스트에서 원래 링크 보존·조회만으로 POST 없음 확인. |
+| 2026-10-30-pdfextraction-ai-slack-retry-F02 | P3/CODE/INTRODUCED | INDEPENDENT_REVIEW | 2026-10-30T21:04:57+09:00 / #468 | 2026-10-30T21:05:30+09:00 | `지원자 분석가` 조사 오탈자를 `지원자 분석이`로 수정. 소스 확인. |
 
 ## 추가 전용 상태 이력
 
 | 사건 ID | 문제 ID | 종류 | 시각(+09:00) | 근거·관련 PR |
 | --- | --- | --- | --- | --- |
-| E01 | 2026-10-30-pdfextraction-ai-slack-retry-F01 | CONFIRMED | 2026-10-30T21:04:00+09:00 | 독립 검토의 LoginForm producer 목적지 확인 / PENDING |
-| E02 | 2026-10-30-pdfextraction-ai-slack-retry-F01 | FIXED | 2026-10-30T21:04:57+09:00 | 새 탭·세션 재확인 4개 화면 테스트 성공 / PENDING |
-| E03 | 2026-10-30-pdfextraction-ai-slack-retry-F02 | CONFIRMED | 2026-10-30T21:04:57+09:00 | 독립 검토의 표시 문구 확인 / PENDING |
-| E04 | 2026-10-30-pdfextraction-ai-slack-retry-F02 | FIXED | 2026-10-30T21:05:30+09:00 | 오탈자 수정 소스 확인 / PENDING |
+| E01 | 2026-10-30-pdfextraction-ai-slack-retry-F01 | CONFIRMED | 2026-10-30T21:04:00+09:00 | 독립 검토의 LoginForm producer 목적지 확인 / #468 |
+| E02 | 2026-10-30-pdfextraction-ai-slack-retry-F01 | FIXED | 2026-10-30T21:04:57+09:00 | 새 탭·세션 재확인 4개 화면 테스트 성공 / #468 |
+| E03 | 2026-10-30-pdfextraction-ai-slack-retry-F02 | CONFIRMED | 2026-10-30T21:04:57+09:00 | 독립 검토의 표시 문구 확인 / #468 |
+| E04 | 2026-10-30-pdfextraction-ai-slack-retry-F02 | FIXED | 2026-10-30T21:05:30+09:00 | 오탈자 수정 소스 확인 / #468 |
 
+
+## 후속 검증 기록
+
+- 2026-10-30T21:09:00+09:00: PR #468 게시. LOCAL 비밀 설정을 메모리에서 읽어 지정 채널로
+  `[LOCAL][TEST]` URL 버튼 알림 1회 발송, HTTP 200/ok 확인. 실제 장애가 아님과 표시 확인용임을 본문에 명시했다.
+  테스트 버튼은 존재하지 않는 합성 작업 ID이며 유효 실패 작업의 재분석 성공 근거로 사용하지 않는다.
+- 수동 배역·메모·판정을 지정한 뒤 `restartAnalysis`와 AI 완료를 실행하는 application 테스트 추가 성공.
+  프론트 로그인 새 탭/같은 링크 세션 재확인을 포함한 관련 3파일 9테스트와 lint 성공.
+- 로컬 production 화면에서 로그인 새 탭·재확인 안내 렌더 확인. 로컬 API 서버를 연결하지 않았으므로
+  세션 조회 오류가 표시되었고 실제 로그인 성공/재분석 완료로 기록하지 않는다.
