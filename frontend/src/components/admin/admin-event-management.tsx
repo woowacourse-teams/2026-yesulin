@@ -12,14 +12,15 @@ import { logout } from "@/features/auth/session-api";
 import { draftOfEvent } from "@/features/events/draft";
 import { EVENT_REGISTRATION_STATUS_LABELS, eventRoutes, formatEventPeriod } from "@/features/events/types";
 import { AdminEventForm } from "./admin-event-form";
+import { AdminEventBusinessCardStats } from "./admin-event-business-card-stats";
 import { AdminEventRegistrations } from "./admin-event-registrations";
 import { AdminSessionEnded } from "./admin-session-ended";
 import { AdminActionButton, AdminActionLink, AdminShell } from "./admin-shell";
 
-type Props = { readonly eventId: number; readonly tab: "participants" | "settings" };
+type Props = { readonly eventId: number; readonly tab: "participants" | "settings" | "history" };
 type Phase = "loading" | "ready" | "unauthorized" | "failed" | "missing";
 
-/** 한 행사의 참가자와 설정을 독립된 주소에서 관리한다. */
+/** 한 행사의 참가자와 설정, 접속 기록을 독립된 주소에서 관리한다. */
 export function AdminEventManagement({ eventId, tab }: Props) {
   const router = useRouter();
   const [loadedEvent, setEvent] = useState<AdminEvent | null>(null);
@@ -91,11 +92,14 @@ export function AdminEventManagement({ eventId, tab }: Props) {
           {event.registrationEnabled ? <AdminActionButton disabled={busy} onClick={() => void change(() => changeEventRegistrationClosed(event.id, !event.registrationClosed))} title="기존 신청과 안내를 유지합니다. 정원이 차 있으면 다시 열어도 접수되지 않습니다.">{busy ? "변경 중…" : event.registrationClosed ? "모집 다시 열기" : "모집 마감"}</AdminActionButton> : null}
         </div>
       </header>
-      <nav aria-label="이벤트 관리 메뉴" className="flex gap-6 border-b border-border">
+      <nav aria-label="이벤트 관리 메뉴" className="flex flex-wrap gap-x-6 border-b border-border">
         <Link href={adminEventRoutes.detail(eventId)} aria-current={tab === "participants" ? "page" : undefined} className={`flex min-h-11 items-center border-b-2 px-1 text-sm font-semibold ${tab === "participants" ? "border-foreground text-foreground" : "border-transparent text-muted hover:text-foreground"}`}>참가자 관리</Link>
         <Link href={adminEventRoutes.settings(eventId)} aria-current={tab === "settings" ? "page" : undefined} className={`flex min-h-11 items-center border-b-2 px-1 text-sm font-semibold ${tab === "settings" ? "border-foreground text-foreground" : "border-transparent text-muted hover:text-foreground"}`}>이벤트 설정</Link>
+        <Link href={adminEventRoutes.history(eventId)} aria-current={tab === "history" ? "page" : undefined} className={`flex min-h-11 items-center border-b-2 px-1 text-sm font-semibold ${tab === "history" ? "border-foreground text-foreground" : "border-transparent text-muted hover:text-foreground"}`}>기록</Link>
       </nav>
-      {tab === "participants" ? <AdminEventRegistrations key={eventId} eventId={eventId} onUnauthorized={unauthorized} onChanged={refresh} /> : <section aria-label="이벤트 설정" className="flex max-w-4xl flex-col gap-5">
+      {tab === "participants" ? <AdminEventRegistrations key={eventId} eventId={eventId} onUnauthorized={unauthorized} onChanged={refresh} /> : null}
+      {tab === "history" ? <AdminEventBusinessCardStats key={eventId} eventId={eventId} onUnauthorized={unauthorized} /> : null}
+      {tab === "settings" ? <section aria-label="이벤트 설정" className="flex max-w-4xl flex-col gap-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h3 className="font-semibold">공개 설정</h3>
           <AdminActionButton disabled={busy} onClick={() => void change(() => changeEventStatus(event.id, event.status === "PUBLISHED" ? "HIDDEN" : "PUBLISHED"))}>{event.status === "PUBLISHED" ? "숨기기" : "공개하기"}</AdminActionButton>
@@ -108,7 +112,7 @@ export function AdminEventManagement({ eventId, tab }: Props) {
           <p className="text-sm text-muted-strong">이벤트를 삭제하면 받은 신청과 사진도 함께 지워집니다.</p>
           <AdminActionButton tone="destructive" disabled={busy} onClick={() => setDeleting(true)}>이벤트 삭제</AdminActionButton>
         </div>
-      </section>}
+      </section> : null}
     </> : null}
     {deleting && event ? <ConfirmDialog title="이벤트를 지울까요?" destructive confirmLabel="이벤트 삭제" busy={busy} onClose={() => setDeleting(false)} onConfirm={() => void remove()} description={<><strong>{event.title}</strong> 글과 이미지, 받은 참가 신청과 사진을 지웁니다. 되돌릴 수 없습니다. 잠시 내리려면 숨기기를 사용해 주세요.</>} /> : null}
   </AdminShell>;

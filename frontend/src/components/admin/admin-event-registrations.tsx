@@ -1,7 +1,5 @@
 "use client";
 
-import { AdminEventBusinessCardStats } from "./admin-event-business-card-stats";
-
 import { useEffect, useRef, useState } from "react";
 import { FieldInput, FieldSelect } from "@/components/ui/controls";
 import { ConfirmDialog } from "@/components/shows/manage/confirm-dialog";
@@ -154,7 +152,6 @@ export function AdminEventRegistrations({ eventId, onUnauthorized, onChanged }: 
       {error ? <p role="alert" className="text-sm text-fail">{error}</p> : null}
       {!registrations && !error ? <p role="status" className="text-sm text-muted">신청자를 불러오는 중이에요.</p> : null}
       {registrations?.length === 0 ? <p className="text-sm text-muted">아직 신청자가 없어요.</p> : null}
-      <AdminEventBusinessCardStats eventId={eventId} onUnauthorized={onUnauthorized} />
       {visible.length > 0 ? (
         <ol className="flex flex-col gap-4">
           {visible.map(({ registration, order }) => (

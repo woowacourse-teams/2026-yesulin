@@ -6,7 +6,6 @@ import { changeEventPaymentStatus, fetchEventRegistrations } from "@/features/ad
 import type { AdminEventRegistration } from "@/features/admin/types";
 import { AdminEventRegistrations } from "./admin-event-registrations";
 
-vi.mock("./admin-event-business-card-stats", () => ({ AdminEventBusinessCardStats: () => null }));
 vi.mock("@/features/admin/api", () => ({
   AdminApiError: class extends Error { status = 500; },
   changeEventPaymentStatus: vi.fn(), fetchEventRegistrations: vi.fn(),

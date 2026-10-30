@@ -17,6 +17,7 @@ vi.mock("@/features/admin/api", () => ({
 }));
 vi.mock("@/features/auth/session-api", () => ({ logout: vi.fn() }));
 vi.mock("./admin-event-registrations", () => ({ AdminEventRegistrations: ({ eventId }: { eventId: number }) => <section aria-label="참가 신청자">행사 {eventId} 참가자</section> }));
+vi.mock("./admin-event-business-card-stats", () => ({ AdminEventBusinessCardStats: ({ eventId }: { eventId: number }) => <section aria-label="명함 접속 기록">행사 {eventId} 접속 통계</section> }));
 vi.mock("./admin-shell", async () => {
   const { SecondaryButton, SecondaryLink } = await import("@/components/ui/controls");
   return {
@@ -52,6 +53,8 @@ it("행사 번호로 직접 조회하고 참가자 관리와 설정 주소를 �
   expect(fetchAdminEvents).not.toHaveBeenCalled();
   expect(container.textContent).toContain("행사 6 참가자");
   expect(container.querySelector('a[href="/admin/events/6?tab=settings"]')).not.toBeNull();
+  expect(container.querySelector('a[href="/admin/events/6?tab=history"]')?.textContent).toBe("기록");
+  expect(container.querySelector('[aria-label="명함 접속 기록"]')).toBeNull();
   vi.mocked(changeEventRegistrationClosed).mockResolvedValue({ ...event, registrationClosed: true, registrationStatus: "CLOSED" });
   await act(async () => [...container.querySelectorAll("button")].find((button) => button.textContent === "모집 마감")!.click());
   expect(changeEventRegistrationClosed).toHaveBeenCalledWith(6, true);
@@ -61,6 +64,7 @@ it("행사 번호로 직접 조회하고 참가자 관리와 설정 주소를 �
 it("설정 탭의 정원 변경을 같은 행사에 저장하며 안내를 유지한다", async () => {
   await act(async () => root.render(<AdminEventManagement eventId={6} tab="settings" />));
   expect(container.querySelector('[aria-label="참가 신청자"]')).toBeNull();
+  expect(container.querySelector('[aria-label="명함 접속 기록"]')).toBeNull();
   const field = container.querySelector<HTMLInputElement>("#event-registration-capacity")!;
   await act(async () => {
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(field, "5");
@@ -70,6 +74,14 @@ it("설정 탭의 정원 변경을 같은 행사에 저장하며 안내를 유�
   await act(async () => container.querySelector("form")!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
   expect(updateEvent).toHaveBeenCalledWith(6, expect.objectContaining({ registrationCapacity: 5, registrationNotice: "보증금 안내" }));
   expect(container.textContent).toContain("이벤트 설정을 저장했습니다.");
+});
+
+it("기록 탭은 해당 행사의 명함 접속 통계를 참가자와 설정 폼 없이 보여 준다", async () => {
+  await act(async () => root.render(<AdminEventManagement eventId={6} tab="history" />));
+  expect(container.querySelector('[aria-label="명함 접속 기록"]')?.textContent).toBe("행사 6 접속 통계");
+  expect(container.querySelector('[aria-label="참가 신청자"]')).toBeNull();
+  expect(container.querySelector("form")).toBeNull();
+  expect(container.querySelector('nav a[aria-current="page"]')?.textContent).toBe("기록");
 });
 
 it("다른 행사 주소를 여는 동안 이전 행사의 참가자와 작업 버튼을 노출하지 않는다", async () => {
