@@ -204,6 +204,19 @@ class PdfExtractionResultReceiverTest {
     }
 
     @Test
+    void callbackCannotReplaceTheChecksumReservedBeforeUpload() {
+        job.identifySourceSha256("a".repeat(64));
+        ObjectNode result = manifest(job, storage, "COMPLETED", "본문");
+        ((ObjectNode) result.get("source")).put("sha256", "b".repeat(64));
+
+        assertInvalid(command(job, storage, result));
+
+        assertEquals("a".repeat(64), job.getSourceSha256());
+        verify(payloads, never()).save(any());
+        assertTrue(events.isEmpty());
+    }
+
+    @Test
     void imageKeyOutsideJobPrefixOrWithUnsafeNameIsRejected() {
         for (String key : List.of(
                 "yesulin/results/other/pdfium-v1/images/p1.png",

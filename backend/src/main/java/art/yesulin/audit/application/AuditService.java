@@ -1,5 +1,6 @@
 package art.yesulin.audit.application;
 
+import static art.yesulin.audit.domain.AuditErrorCode.INVALID_PDF_REVIEW;
 import static art.yesulin.audit.domain.AuditErrorCode.PDF_REVIEW_ENTRY_NOT_FOUND;
 import static art.yesulin.audit.domain.AuditErrorCode.PDF_REVIEW_NOT_FOUND;
 
@@ -59,11 +60,17 @@ public class AuditService {
         return AuditDetail.of(review, entries.findByReviewIdOrderByOriginalFilenameAscIdAsc(reviewId));
     }
 
-    @Transactional
-    public PreparedUpload prepareUpload(long ownerId, String reviewId, String filename, long size) {
-        Audit review = findOwned(ownerId, reviewId);
-        PreparedUpload upload = extraction.prepare(ownerId, review.getId(), filename, size);
-        entries.save(new AuditApplicant(review.getId(), upload.jobId(), filename));
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public PreparedUpload prepareUpload(long ownerId, String reviewId, String filename, long size, String sha256) {
+        Audit review = reviews.findOwnedForUpdate(reviewId, ownerId).orElseThrow(() ->
+                new BusinessException(PDF_REVIEW_NOT_FOUND, "PDF 심사를 찾을 수 없습니다."));
+        PreparedUpload upload = extraction.prepareReview(ownerId, review.getId(), filename, size, sha256);
+        if (!upload.duplicate()) {
+            if (entries.countByReviewId(review.getId()) >= 800) {
+                throw new BusinessException(INVALID_PDF_REVIEW, "한 심사에는 최대 800개까지 올릴 수 있습니다.");
+            }
+            entries.save(new AuditApplicant(review.getId(), upload.jobId(), filename));
+        }
         return upload;
     }
 

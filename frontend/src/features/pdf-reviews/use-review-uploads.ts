@@ -6,7 +6,6 @@ import { isUnauthorized, preparePdfReviewUpload } from "./api";
 import { sameKey, type ReviewKey } from "./types";
 import { MAX_SELECTION } from "./upload-selection";
 
-export const MAX_FILES = 800;
 export const MAX_BYTES = 25 * 1024 * 1024;
 const CONCURRENCY = 2;
 
@@ -24,7 +23,7 @@ export type UploadRow = {
 
 type Options = { readonly onUploaded: () => void; readonly onUnauthorized: () => void };
 export type UploadNotice = Pick<UploadRow, "id" | "reviewId" | "name" | "size" | "error"> & {
-  readonly phase: UploadRow["phase"] | "UPLOADED";
+  readonly phase: UploadRow["phase"] | "UPLOADED" | "DUPLICATE";
 };
 
 const SESSION_EXPIRED = "로그인이 만료되었습니다. 다시 로그인한 뒤 이어서 올려 주세요.";
@@ -62,15 +61,11 @@ export function useReviewUploads({ onUploaded, onUnauthorized }: Options) {
     }
   };
 
-  function choose(reviewId: ReviewKey, selected: FileList | readonly File[] | null, entryCount: number) {
+  function choose(reviewId: ReviewKey, selected: FileList | readonly File[] | null) {
     if (!selected?.length || running.current) return;
     setMessageReviewId(reviewId);
     setValidationError("");
     if (selected.length > MAX_SELECTION) { setMessage("한 번에 PDF 300개까지 선택해 주세요."); setValidationError("한 번에 PDF 300개까지 선택해 주세요."); return; }
-    const queued = rows.filter(row => sameKey(row.reviewId, reviewId)).length;
-    if (entryCount + queued + selected.length > MAX_FILES) {
-      setMessage("한 심사에는 최대 800개까지 올릴 수 있습니다."); setValidationError("한 심사에는 최대 800개까지 올릴 수 있습니다."); return;
-    }
     const next = Array.from(selected).map((file): UploadRow => {
       const valid = /\.pdf$/i.test(file.name) && file.size > 0 && file.size <= MAX_BYTES;
       return {
@@ -88,7 +83,7 @@ export function useReviewUploads({ onUploaded, onUnauthorized }: Options) {
     void run(uploadable, next.length, next.length - uploadable.length);
   }
 
-  async function uploadOne(row: UploadRow) {
+  async function uploadOne(row: UploadRow, transfers: Map<string, Promise<void>>) {
     patch(row.id, { phase: "UPLOADING", error: "" });
     let pendingJobId = row.pendingJobId;
     const file = row.file;
@@ -96,16 +91,19 @@ export function useReviewUploads({ onUploaded, onUnauthorized }: Options) {
       const prepared = await preparePdfReviewUpload(row.reviewId, source);
       pendingJobId = prepared.jobId;
       registerPdfReviewJob(prepared.jobId, String(row.reviewId));
-      targets.current.set(row.id, prepared.upload);
+      if (prepared.upload) targets.current.set(row.id, prepared.upload);
       if (mounted.current) patch(row.id, { pendingJobId: prepared.jobId });
       return prepared;
     }
     try {
       let uploaded = false;
+      let duplicate = false;
       let upload: PreparedPdfUpload["upload"] | undefined;
       if (!pendingJobId) {
         if (!file) throw new Error("파일을 다시 선택해 주세요.");
-        upload = (await prepare(file)).upload;
+        const prepared = await prepare(file);
+        if (prepared.upload) upload = prepared.upload;
+        else duplicate = true;
       } else {
         // 재시도는 PUT 응답만 유실됐을 수 있으므로 기존 작업의 완료부터 확인한다.
         try { await completePdfUpload(pendingJobId); uploaded = true; }
@@ -113,29 +111,44 @@ export function useReviewUploads({ onUploaded, onUnauthorized }: Options) {
           if (!(cause instanceof PdfExtractionApiError && cause.status === 409)) throw cause;
           if (!file) throw new Error("업로드된 원본을 찾지 못했습니다. 파일을 다시 선택해 주세요.");
           upload = targets.current.get(row.id);
-          if (!upload || Date.parse(upload.expiresAt) <= Date.now()) upload = (await prepare(file)).upload;
+          if (!upload || Date.parse(upload.expiresAt) <= Date.now()) {
+            const prepared = await prepare(file);
+            if (prepared.upload) upload = prepared.upload;
+            else duplicate = true;
+          }
         }
       }
-      if (!uploaded) {
+      if (!duplicate) {
         const jobId = pendingJobId!;
-        try { await putPdf(file!, upload!); }
-        catch (cause) {
-          // PUT 응답만 유실됐을 수 있으므로 같은 작업의 완료를 확인한다. 원본을 덮어쓰지 않는다.
-          try { await completePdfUpload(jobId); uploaded = true; } catch { throw cause; }
+        const prior = transfers.get(jobId);
+        if (prior) {
+          await prior;
+          duplicate = true;
+        } else {
+          const transfer = (async () => {
+            if (uploaded) return;
+            try { await putPdf(file!, upload!); }
+            catch (cause) {
+              // PUT 응답만 유실됐을 수 있으므로 같은 작업의 완료를 확인한다. 원본을 덮어쓰지 않는다.
+              try { await completePdfUpload(jobId); uploaded = true; } catch { throw cause; }
+            }
+            if (!uploaded) await completePdfUpload(jobId);
+          })();
+          transfers.set(jobId, transfer);
+          await transfer;
         }
-        if (!uploaded) await completePdfUpload(jobId);
       }
-      void trackPdfStep({ workflow: "producer_pdf", review_id: String(row.reviewId), operation_id: pendingJobId, step: "upload", outcome: "success" }, true);
+      if (!duplicate) void trackPdfStep({ workflow: "producer_pdf", review_id: String(row.reviewId), operation_id: pendingJobId, step: "upload", outcome: "success" }, true);
       targets.current.delete(row.id);
       if (mounted.current) setRows(current => current.filter(item => item.id !== row.id));
-      if (mounted.current) setNotices(current => current.map(item => item.id === row.id ? { ...item, phase: "UPLOADED", error: "" } : item));
+      if (mounted.current) setNotices(current => current.map(item => item.id === row.id ? { ...item, phase: duplicate ? "DUPLICATE" : "UPLOADED", error: "" } : item));
       if (mounted.current) callbacks.current.onUploaded();
-      return true;
+      return duplicate ? "duplicate" : "uploaded";
     } catch (cause) {
       void trackPdfStep({ workflow: "producer_pdf", review_id: String(row.reviewId), operation_id: pendingJobId, step: "upload", outcome: "failure", error_code: "upload" });
       if (mounted.current && isUnauthorized(cause)) callbacks.current.onUnauthorized();
       if (mounted.current) patch(row.id, { phase: "ERROR", pendingJobId, error: failure(cause) });
-      return false;
+      return "failed";
     }
   }
 
@@ -146,16 +159,20 @@ export function useReviewUploads({ onUploaded, onUnauthorized }: Options) {
     setBusy(true);
     let cursor = 0;
     let uploaded = 0;
+    let duplicates = 0;
     let finished = 0;
+    const transfers = new Map<string, Promise<void>>();
     const showProgress = () => {
-      if (mounted.current) setMessage(`선택 ${selectedCount}개 · 업로드 완료 ${uploaded}개 · 실패 ${finished - uploaded}개 · 진행/대기 ${queue.length - finished}개 · 제외 ${excludedCount}개`);
+      if (mounted.current) setMessage(`선택 ${selectedCount}개 · 업로드 완료 ${uploaded}개 · 중복 제외 ${duplicates}개 · 실패 ${finished - uploaded - duplicates}개 · 진행/대기 ${queue.length - finished}개 · 제외 ${excludedCount}개`);
     };
     showProgress();
     async function worker() {
       // A component remount must stop UI updates, not silently cancel accepted files.
       // File reads remain bounded to the two active workers.
       while (cursor < queue.length) {
-        if (await uploadOne(queue[cursor++])) uploaded += 1;
+        const outcome = await uploadOne(queue[cursor++], transfers);
+        if (outcome === "uploaded") uploaded += 1;
+        if (outcome === "duplicate") duplicates += 1;
         finished += 1;
         showProgress();
       }
@@ -185,9 +202,9 @@ export function useReviewUploads({ onUploaded, onUnauthorized }: Options) {
         && !notices.some(row => row.id !== id && sameKey(row.reviewId, removed.reviewId))) setMessage("");
     },
     clearUploaded: (reviewId: ReviewKey) => {
-      setNotices(current => current.filter(row => !sameKey(row.reviewId, reviewId) || row.phase !== "UPLOADED"));
+      setNotices(current => current.filter(row => !sameKey(row.reviewId, reviewId) || (row.phase !== "UPLOADED" && row.phase !== "DUPLICATE")));
       if (sameKey(messageReviewId, reviewId)
-        && !notices.some(row => sameKey(row.reviewId, reviewId) && row.phase !== "UPLOADED")) setMessage("");
+        && !notices.some(row => sameKey(row.reviewId, reviewId) && row.phase !== "UPLOADED" && row.phase !== "DUPLICATE")) setMessage("");
     },
   };
 }

@@ -39,6 +39,8 @@ public class PdfExtractionResultParser {
         requireValid(root != null && root.isObject(), "PDF 추출 결과가 올바르지 않습니다.");
         requireValid(mapper.writeValueAsBytes(root).length <= MAX_RESULT_BYTES, "PDF 추출 결과가 너무 큽니다.");
         String status = root.path("status").asText();
+        requireValid(job.getSourceSha256() == null || job.getSourceSha256().equals(
+                root.path("source").path("sha256").asText()), "PDF 원본의 체크섬이 일치하지 않습니다.");
         requireValid(job.getId().equals(command.jobId())
                 && PIPELINE_VERSION.equals(command.pipelineVersion())
                 && storage.sourceFileKey(job).equals(command.sourceFileKey())

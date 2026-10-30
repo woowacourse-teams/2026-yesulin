@@ -89,10 +89,10 @@ yesulin:
     provider: ${YESULIN_PDF_AI_PROVIDER:bedrock}
     model-id: ${YESULIN_PDF_AI_MODEL_ID:global.anthropic.claude-haiku-5-5}
     region: ${YESULIN_PDF_AI_REGION:ap-northeast-2}
-    concurrency: ${YESULIN_PDF_AI_CONCURRENCY:1}
+    concurrency: ${YESULIN_PDF_AI_CONCURRENCY:4}
     max-attempts: ${YESULIN_PDF_AI_MAX_ATTEMPTS:3}
     lease-duration: PT2M
-    request-interval: ${YESULIN_PDF_AI_REQUEST_INTERVAL:PT10S}
+    request-interval: ${YESULIN_PDF_AI_REQUEST_INTERVAL:PT0.2S}
   pdf-extraction:
     enabled: ${YESULIN_PDF_EXTRACTION_ENABLED:false}
   audition-post:
@@ -190,3 +190,12 @@ yesulin:
     provider: bedrock
     model-id: ${YESULIN_PDF_AI_MODEL_ID:global.anthropic.claude-haiku-5-5}
     region: ap-northeast-2
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+logging:
+  level:
+    art.yesulin.pdfextraction: DEBUG
