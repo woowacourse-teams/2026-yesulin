@@ -21,6 +21,7 @@ export function ReviewProcessingProgress({ progress, uploading, uploadMessage, u
   const processing = uploading || pendingUploads || (progress !== null && !progress.complete) || !!error;
   const canDismiss = !processing;
   const complete = !!progress?.complete && !processing;
+  const spinning = !disabled && !error && (uploading || pendingUploads || (progress !== null && progress.total > 0 && !progress.complete));
   const snapshot = JSON.stringify([progress, uploading, uploadMessage, uploadError, error, notices.map(item => [item.id, item.phase])]);
   if ((!progress?.total && !error && !uploading && !notices.length && !uploadMessage && !uploadError) || (canDismiss && dismissed === snapshot)) return null;
   const uploadErrors = notices.filter(item => item.phase === "ERROR").length;
@@ -28,7 +29,7 @@ export function ReviewProcessingProgress({ progress, uploading, uploadMessage, u
   const title = error ? "진행 상황 확인 오류" : uploading ? "PDF 업로드 중" : uploadErrors || uploadError ? "업로드 확인 필요" : complete ? "PDF 처리 완료" : progress?.total ? "PDF 처리 중" : "업로드 알림";
   return <section aria-label="PDF 처리 알림" data-pdf-processing-toast data-expanded={expanded} className="fixed bottom-[max(12px,env(safe-area-inset-bottom))] right-3 z-40 w-[calc(100vw-24px)] max-w-sm overflow-hidden rounded-card border border-border bg-card text-sm shadow-[var(--shadow-3)] sm:bottom-4 sm:right-6">
     <div className="flex items-center gap-2 px-3 py-2">
-      <span aria-hidden="true" className={`grid h-7 w-7 shrink-0 place-items-center rounded-full ${needsCheck ? "bg-fail-bg text-fail" : complete ? "bg-pass-bg text-pass" : "bg-brand-soft text-brand"}`}>{needsCheck ? "!" : complete ? "✓" : "↑"}</span>
+      <span aria-hidden="true" className={`grid h-7 w-7 shrink-0 place-items-center rounded-full ${needsCheck ? "bg-fail-bg text-fail" : complete ? "bg-pass-bg text-pass" : "bg-brand-soft text-brand"}`}>{needsCheck ? "!" : complete ? "✓" : spinning ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-brand/25 border-t-brand motion-reduce:animate-none" /> : "↑"}</span>
       <div role="status" aria-live="polite" className="min-w-0 flex-1">
         <p className="font-semibold">{title}</p>
         {uploadErrors && !uploading ? <p className="num mt-0.5 text-xs text-fail">업로드 확인이 필요한 파일 {uploadErrors}개</p> : progress?.total ? <p className="num mt-0.5 text-xs text-muted-strong">{complete ? `완료 ${progress.completed} · 일부 ${progress.partial} · 실패 ${progress.failed}` : `${finished} / ${progress.total}개 처리 종료`}</p> : null}
