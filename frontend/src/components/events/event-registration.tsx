@@ -66,7 +66,6 @@ function Registration({ event }: { readonly event: PublicEvent }) {
         <p className="text-sm font-semibold text-brand">참가 신청</p>
         <h1 className="mt-2 break-words text-[clamp(22px,3.2vw,30px)] font-bold leading-snug tracking-[-0.03em]">{event.title}</h1>
         {period ? <p className="num mt-2 text-sm text-muted-strong">{period}</p> : null}
-        {event.registrationCapacity !== null ? <p className="mt-3 text-sm text-brand">총 {event.registrationCapacity}명 선착순 모집 · 현재 {event.registrationCount}명 접수<br /><span className="text-muted-strong">참가 구분과 입금 여부에 관계없이 신청 완료 순으로 접수됩니다.</span></p> : null}
       </header>
       {event.registrationNotice ? <Notice text={event.registrationNotice} /> : null}
       {done ? (

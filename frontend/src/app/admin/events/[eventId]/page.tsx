@@ -8,5 +8,5 @@ export default async function AdminEventPage({ params, searchParams }: {
   const [{ eventId }, { tab }] = await Promise.all([params, searchParams]);
   const id = Number(eventId);
   if (!/^\d+$/.test(eventId) || !Number.isSafeInteger(id) || id < 1) notFound();
-  return <AdminEventManagement eventId={id} tab={tab === "settings" ? "settings" : "participants"} />;
+  return <AdminEventManagement eventId={id} tab={tab === "settings" || tab === "history" ? tab : "participants"} />;
 }

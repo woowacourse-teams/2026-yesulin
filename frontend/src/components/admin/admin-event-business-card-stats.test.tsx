@@ -52,3 +52,27 @@ it("does not turn request failures into zero visits and supports retry", async (
   expect(container.querySelector('[role="alert"]')).toBeNull();
   expect(container.textContent).toContain("0회");
 });
+
+it("접속이 없는 기간은 빈 상태로 안내하고 날짜별 표는 접어 둔다", async () => {
+  vi.mocked(fetchEventBusinessCardVisitStats).mockResolvedValue({ ...stats, daily: [{ date: "2026-10-28", visits: 0 }] });
+  await open();
+  expect(container.querySelector("dd")?.textContent).toBe("0회");
+  expect(container.textContent).toContain("이 기간에는 명함 접속 기록이 없어요.");
+  expect(container.querySelector("svg")).toBeNull();
+  expect(container.querySelector("details")?.open).toBe(false);
+  await act(async () => container.querySelector("summary")!.click());
+  expect(container.querySelector("details")?.open).toBe(true);
+  expect(container.querySelector("tbody")?.textContent).toContain("0회");
+});
+
+it("날짜별 접속을 합산하고 0회인 날짜도 추이와 상세 기록에 유지한다", async () => {
+  vi.mocked(fetchEventBusinessCardVisitStats).mockResolvedValue({ ...stats, daily: [
+    { date: "2026-10-26", visits: 2 }, { date: "2026-10-27", visits: 0 }, { date: "2026-10-28", visits: 8 },
+  ] });
+  await open();
+  expect(container.querySelector("dd")?.textContent).toBe("10회");
+  expect(container.querySelector('svg[role="img"]')?.getAttribute("aria-label")).toContain("최대 8회");
+  expect(container.querySelectorAll("svg rect")).toHaveLength(3);
+  expect(container.querySelectorAll("tbody tr")).toHaveLength(3);
+  expect(container.querySelector("tbody tr")?.textContent).toContain("8회");
+});
