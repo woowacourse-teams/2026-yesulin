@@ -67,6 +67,18 @@ Bedrock 오류 시 Gemini로 자동 우회하지 않는다.
 권한 확인 후 새 합성 PDF 작업을 업로드해 `PENDING → COMPLETED`와 프로필 반영을 확인한다.
 비활성 상태에서 이미 SKIPPED가 된 작업은 이 검증을 대신하지 않는다.
 
+## dev 실험용 응답 DEBUG
+
+사용자 요청에 따라 `dev`가 활성이고 `prod`는 비활성인 경우에만 `PdfAiDiagnostics`가 모델 응답 텍스트를
+DEBUG 구조화 필드 `aiResponse`에 기록한다. prod·dev+prod·local·무프로필에서는 로그 수준을 DEBUG로 바꿔도 기록하지 않는다.
+Bedrock 응답의 종료 상태·본문 검증 전에 기록하므로 `max_tokens` 등으로 거부한 응답도 확인할 수 있다.
+`PDF_FLOW stage=AI_PROVIDER_RESPONSE`의 jobId, `stopReason`, `inputTokens`, `outputTokens`로 호출을 연결한다.
+요청 원문·시스템 프롬프트·API 키·헤더는 추가 기록하지 않는다. 모델 응답에는 지원자 정보가 포함될 수 있다.
+과대 응답은 최대 131,072자로 제한하며 `responseCharacters`와 `responseTruncated`로 기록 잘림을 표시한다.
+`PDF_FLOW stage=AI_FAILURE_DETAIL`은 JSON 형식, 이름·배역 근거, 프로필 스키마/근거 등 검증 실패 지점을 구분한다.
+DB 오류 코드 `INVALID_MODEL_OUTPUT`, 영구 실패 판정·재시도 횟수·출력 토큰 상한은 유지한다.
+CloudWatch dev 필터는 기존 `PDF_FLOW ` 접두사로 수집한다. 필터 적용 전 로컬 파일만 기록된 응답은 CloudWatch에 소급 전송하지 않는다.
+
 ## 어댑터와 검증 범위
 
  큐·재시도·결과 반영은 [AI 흐름](../flows/ai-enrichment.md)가 맡고, 여기는 모델 호출만 한다.

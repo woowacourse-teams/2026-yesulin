@@ -25,7 +25,11 @@ Agent 바이너리는 미설치일 때만 AWS 공식 Ubuntu ARM64 패키지로 �
 수집 이벤트는 `HTTP_REQUEST`, `UNEXPECTED_ERROR`, `UNEXPECTED_SERVICE_ERROR`, `SLOW_SERVICE`,
 `RUNTIME_METRICS`, `RUNTIME_METRICS_FAILURE`다. 요청 본문·Cookie·사용자 식별자를 추가로 기록하지 않는다.
 DEV는 message가 `PDF_FLOW ` 또는 `PDF_AI_FAILED `로 시작하는 PDF 처리 로그도 수집한다.
-이 로그에는 작업 ID·단계·결과 코드·소요 시간만 기록한다. PROD 수집 필터는 기존 이벤트 목록을 유지한다.
+흐름 로그는 작업 ID·단계·결과 코드·소요 시간을 기록한다. dev 실험용 `AI_PROVIDER_RESPONSE`는
+DEBUG에서 응답 원문(`aiResponse`)·종료 사유·토큰 수도 기록하며, 세부 범위는
+[AI 정책](../../src/main/java/art/yesulin/pdfextraction/docs/policies/ai-processing.md#dev-실험용-응답-debug)을 따른다.
+응답 원문은 dev 활성·prod 비활성 조건으로 차단하여 prod에서 DEBUG를 켜도 출력하지 않는다.
+PROD 수집 필터는 기존 이벤트 목록을 유지한다.
 필터는 다음 백엔드 배포의 monitoring hook에서 갱신되며, 과거 수집에서 제외한 로그는 CloudWatch에 소급 반영되지 않는다.
 파일의 ISO 시각대 `+09:00`을 해석하기 위해 Agent 서비스에만 `TZ=Asia/Seoul`을 설정하고 Local timestamp를 쓴다.
 기존 backend 로그 그룹 보관 설정은 바꾸지 않는다. 현재 DEV 30일, PROD 14일이며 새 그룹은 별도로 보관 기간을 지정한다.
