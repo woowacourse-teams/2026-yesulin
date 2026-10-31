@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { fetchPdfReview, isUnauthorized, listPdfReviews } from "./api";
+import { fetchPdfReview, isUnauthorized, listPdfReviews, observeReviewProgress } from "./api";
 import { sameKey, type ReviewDetail, type ReviewEntry, type ReviewKey, type ReviewSummary } from "./types";
 
 type Options = { readonly enabled: boolean; readonly onUnauthorized: () => void };
@@ -66,6 +66,8 @@ export function usePdfReviews({ enabled, onUnauthorized }: Options) {
     }).finally(() => { if (active && seq === listSeq.current) setListLoading(false); });
     return () => { active = false; };
   }, [enabled]);
+
+  useEffect(() => { if (enabled && detail) observeReviewProgress(detail); }, [enabled, detail]);
 
   function open(id: ReviewKey) {
     if (sameKey(selected.current, id)) return;

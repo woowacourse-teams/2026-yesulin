@@ -12,7 +12,10 @@ export function registerPdfReviewJob(jobId: string, reviewId: string) { reviews.
 export function observePdfExtraction(job: import("@/features/pdf-extractions/types").PdfExtractionJob) {
   const reviewId = reviews.get(job.jobId);
   if (!reviewId || !["COMPLETED", "PARTIAL", "FAILED", "UPLOAD_EXPIRED"].includes(job.status)) return;
-  const profile = job.result?.applicantInfo?.profile;
+  const info = job.result?.applicantInfo;
+  const profile = info?.profile;
+  void observeProcessing(job, reviewId, "extract", job.status);
+  if (info) void observeProcessing(job, reviewId, "analyze", info.status);
   void trackPdfStep({ workflow: "producer_pdf", review_id: reviewId, operation_id: job.jobId, step: "extract",
     outcome: job.status === "FAILED" || job.status === "UPLOAD_EXPIRED" ? "failure" : "success",
     extraction_status: job.status,
@@ -48,3 +51,19 @@ export function trackPdfProfileSaved() {
 }
 
 export function clearPdfApplied() { applied.clear(); }
+
+/** v2: 원문 추출과 정보 정리를 구분하고 나중에 도착한 분석 결과도 독립적으로 관측한다. */
+async function observeProcessing(job: import("@/features/pdf-extractions/types").PdfExtractionJob,
+  reviewId: string, stage: "extract" | "analyze", status: string) {
+  const key = `yesulin:pdf-processing:v2:${job.jobId}:${stage}:${status}`;
+  if (seen.has(key)) return;
+  try { if (sessionStorage.getItem(key)) return; } catch { /* optional storage */ }
+  seen.add(key);
+  const sent = await trackProductEvent("pdf_processing_observed", {
+    metric_version: 2, workflow: "producer_pdf", review_id: reviewId, operation_id: job.jobId,
+    processing_stage: stage, extraction_status: status,
+    outcome: status === "FAILED" || status === "UPLOAD_EXPIRED" ? "failure" : "success",
+  });
+  if (!sent) seen.delete(key);
+  else try { sessionStorage.setItem(key, "1"); } catch { /* optional storage */ }
+}

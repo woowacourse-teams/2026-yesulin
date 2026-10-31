@@ -1,5 +1,6 @@
 "use client";
 import { createContext, use, type ReactNode } from "react";
+import type { ReviewAction, ReviewInput } from "@/features/analytics/review-actions";
 import type { Applicant, ReviewStatus, SubmissionId } from "@/features/pdf-reviews/screening-types";
 import type { RoleSummary } from "@/features/auditions/types";
 export type BoardContextValue = {
@@ -13,6 +14,7 @@ export type BoardContextValue = {
   onNoteDirty?: (dirty: boolean) => void;
   onApplicantViewed?: (id: SubmissionId) => (() => void) | void;
   onApplicantOpened?: () => void;
+  onBasicAction?: (id: SubmissionId, action: ReviewAction, input?: ReviewInput) => void;
   applicantRefreshKey?: string;
   reviewFocused: (id: SubmissionId, status: ReviewStatus, memo?: string, note?: string, revision?: number) => Promise<{ applicants: Applicant[] } | null>;
   patchReview: (id: SubmissionId, patch: { memo?: string; note?: string; revision?: number }) => Promise<void>;

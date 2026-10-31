@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReviewInput } from "@/features/analytics/review-actions";
 import { startReviewTimer } from "@/features/analytics/review-timer";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type CSSProperties } from "react";
 import { applicantEducationText } from "@/features/auditions/education-text";
@@ -70,7 +71,7 @@ function FocusReviewContent({
   readonly onBack?: () => void;
   readonly onMove: (candidate: Applicant | undefined) => void;
 }) {
-  const { board, assignRoles, confirmNavigation, requestNavigation, source, renderDocument, renderProfile, onNoteDirty, onApplicantViewed, onApplicantOpened, applicantRefreshKey, filters, saving, reviewLocked, reviewFocused, patchReview, openApplicant } = useBoard();
+  const { board, assignRoles, confirmNavigation, requestNavigation, source, renderDocument, renderProfile, onNoteDirty, onApplicantViewed, onApplicantOpened, onBasicAction, applicantRefreshKey, filters, saving, reviewLocked, reviewFocused, patchReview, openApplicant } = useBoard();
   useEffect(() => onApplicantViewed?.(applicant.id), [applicant.id, onApplicantViewed, applicantRefreshKey]);
   useEffect(() => onApplicantOpened?.(), [applicant.id, onApplicantOpened]);
   const [documentOpen, setDocumentOpen] = useState(false);
@@ -82,10 +83,12 @@ function FocusReviewContent({
   );
   const [note, setNote] = useState(applicant.review.note);
   const noteRevision = useRef(applicant.review.revision);
-  const navigate = useCallback((candidate: Applicant | undefined) => {
+  const navigate = useCallback((candidate: Applicant | undefined, input: ReviewInput = "button") => {
+    if (!candidate) return;
+    onBasicAction?.(candidate.id, candidate.id === previous?.id ? "previous" : "next", input);
     if (requestNavigation) requestNavigation(() => onMove(candidate));
     else if (!confirmNavigation || confirmNavigation()) onMove(candidate);
-  }, [confirmNavigation, requestNavigation, onMove]);
+  }, [confirmNavigation, requestNavigation, onMove, onBasicAction, previous?.id]);
   useEffect(() => {
     onNoteDirty?.(note !== applicant.review.note);
     return () => onNoteDirty?.(false);
@@ -114,15 +117,16 @@ function FocusReviewContent({
     onMove(nextRows[Math.min(Math.max(index, 0), nextRows.length - 1)]);
   }, [index, onMove]);
 
-  const saveDecision = useCallback(async (status: ReviewStatus, memo?: string) => {
-    if (reviewLocked) return;
+  const saveDecision = useCallback(async (status: ReviewStatus, memo?: string, input: ReviewInput = "button") => {
+    if (reviewLocked || saving) return;
+    onBasicAction?.(applicant.id, "decision_save", input);
     const nextBoard = await reviewFocused(applicant.id, status, memo, note !== applicant.review.note ? note : undefined, note !== applicant.review.note ? noteRevision.current : undefined);
     if (!nextBoard) return;
     setOtherOpen(false);
 
     // 현재 분류에서 빠지면 같은 자리의 다음 사람으로 이동한다. 카드·표에서 연 경우도 유지한다.
     if (!nextBoard.applicants.some(candidate => candidate.id === applicant.id)) moveAfterSaving(nextBoard.applicants);
-  }, [applicant, moveAfterSaving, reviewFocused, reviewLocked, note]);
+  }, [applicant, moveAfterSaving, reviewFocused, reviewLocked, saving, note, onBasicAction]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -138,19 +142,19 @@ function FocusReviewContent({
       const decidable = !saving && !reviewLocked;
       if (event.key.toLowerCase() === "a" && decidable) {
         event.preventDefault();
-        void saveDecision("PASS");
+        void saveDecision("PASS", undefined, "shortcut");
       }
       if (event.key.toLowerCase() === "d" && decidable) {
         event.preventDefault();
-        void saveDecision("FAIL");
+        void saveDecision("FAIL", undefined, "shortcut");
       }
       if (event.key.toLowerCase() === "s" && decidable && pdfProfile) {
         event.preventDefault();
-        void saveDecision("ETC");
+        void saveDecision("ETC", undefined, "shortcut");
       }
       if (event.key.toLowerCase() === "n" && next) {
         event.preventDefault();
-        navigate(next);
+        navigate(next, "shortcut");
       }
       if (event.key === "ArrowLeft") {
         event.preventDefault();
