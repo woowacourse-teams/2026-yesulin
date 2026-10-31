@@ -62,13 +62,24 @@ Lambda 설정: Python 3.12 / ARM64 / `s3_handler.handler`.
 
 새 서버의 공용 AI·목적별 배우 처리까지 배포한 뒤 추출 전용 ZIP과 새 작업으로 전체 흐름을 확인한다.
 삭제한 모델 문맥 API를 호출하는 옛 배포 함수를 그대로 두고 서버를 교체하지 않는다.
-Prod Lambda의 현재 코드/설정은 이번 코드 검증만으로 확인된 것이 아니다.
 
-현재 Dev 대상은 `yesulin-pdf-benchmark-dev`, 버킷은 `techcourse-project-2026`,
-원본 prefix는 `yesulin/dev/private/pdf-extractions/inputs/`,
-콜백은 `https://dev-api.yesulin.art/internal/v1/pdf-extractions/completions`다.
+| 환경 | 함수 | 원본 prefix | 콜백 |
+| --- | --- | --- | --- |
+| Dev | `yesulin-pdf-benchmark-dev` | `yesulin/dev/private/pdf-extractions/inputs/` | `https://dev-api.yesulin.art/internal/v1/pdf-extractions/completions` |
+| Prod | `yesulin-pdf-extractor-prod` | `yesulin/prod/private/pdf-extractions/inputs/` | `https://api.yesulin.art/internal/v1/pdf-extractions/completions` |
+
+두 함수 모두 버킷 `techcourse-project-2026`, 실행 역할 `lambda-basic`, 같은 ZIP을 쓴다.
+결과 prefix는 원본 prefix의 `inputs/`를 `results/`로 바꾼 값이고, 콜백 토큰은 같은 환경의
+`YESULIN_PDF_EXTRACTION_CALLBACK_SECRET`이다.
+
+공용 버킷 정책은 `lambda-basic`을 함수 세션(`aws:userid` = `역할ID:함수이름`)으로 구분한다.
+함수마다 `yesulin/*` 공개 읽기 거부 예외, 자기 환경 PDF 경로 밖 읽기 거부, 자기 환경 PDF를 서버 역할·함수 외 읽기 거부,
+원본·결과 읽기, 결과 쓰기, 결과 목록 조회 문이 있다. 함수 이름을 바꾸거나 환경을 추가하면 이 문들도 함께 바꾼다.
+
 Dev의 추출 전용 함수 전환과 EC2의 모델 단독 호출은 이전에 확인했다.
-배포된 새 Spring Converse 전체 경로·Prod 역할·300건 부하는 별도 확인이 필요하다.
+Prod 함수·트리거는 미리 만들어 두었고, 2026-10-31에 설정이 Dev와 같음을 확인하고 버킷 정책에 Prod 문을 추가했다.
+Prod 실제 업로드 전체 경로,
+Prod EC2 역할(`ec2-project`)의 Bedrock 호출, 300건 부하는 별도 확인이 필요하다.
 
 ## 로컬
 
