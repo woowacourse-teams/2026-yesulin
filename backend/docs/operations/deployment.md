@@ -238,6 +238,11 @@ AMI에 평문 secret이 남지 않았는지는 별도로 검증해야 한다. pr
 `sops` 설치 및 배포 전용 키를 포함한 AMI를 지정해야 한다. 새 인스턴스에서 키를 읽을 수 없다면 `AfterInstall`이 실패하며,
 릴리스 환경 파일이 없으면 `ApplicationStart`가 실패한다.
 
+PDF AI는 서버가 Bedrock을 호출하므로 실행 중인 DEV·PROD 앱 인스턴스에는 `team-bedrock-service-yesulin` 역할을
+붙여 두었다(PROD는 2026-10-31). 두 Launch Template은 아직 `ec2-project`라 ASG가 새로 띄운 인스턴스는
+AI 분석만 `PROVIDER_ERROR`로 실패한다. 이 경우 콘솔 "IAM 역할 수정"으로 같은 역할을 붙이고 같은 리비전을 재배포한다.
+교체 후 S3 읽기·CodeDeploy·로그 수집은 확인했고 S3 쓰기와 SSM은 미확인이다.
+
 DEV ASG(`yesulin-backend-asg`)는 이 경로를 확인했다. 새 인스턴스가 뜨면 배포 그룹 `yesulin-backend-staging`의
 CodeDeploy 시작 후크가 마지막 성공 리비전을 배포한다. 2026-09-22에는 ELB 상태 확인 실패로 인스턴스가 자동 교체됐고,
 2026-10-09에는 용량을 늘려 띄운 t4g.micro 인스턴스가 배포까지 성공했다. PROD ASG(`yesulin-backend-prod-asg`)도
