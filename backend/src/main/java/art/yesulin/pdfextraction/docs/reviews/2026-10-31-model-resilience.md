@@ -62,8 +62,8 @@ CloudWatch 쿼리는 실행 예시이며 실제 dev 쿼리 실행/데이터 수�
 
 | 문제 ID | 심각도·유형·유입 | 발견 경로 | 최초 확정(+09:00) / 최초 PR | 해결 시각(+09:00) | 근거·조치·수정 후 검증 |
 | --- | --- | --- | --- | --- | --- |
-| 2026-10-31-pdfextraction-model-resilience-F01 | P2/CODE/INTRODUCED | INDEPENDENT_REVIEW | 2026-10-31T19:17:24+09:00 / PENDING | 2026-10-31T19:18:30+09:00 | TOKEN_USAGE 캐시 입력 누락. cacheRead/cacheWrite 별도 필드·집계 추가, 로컬 SDK 캐시50/20 확인. FIXED |
-| 2026-10-31-pdfextraction-model-resilience-F02 | P2/CODE/INTRODUCED | INDEPENDENT_REVIEW | 2026-10-31T19:17:24+09:00 / PENDING | 2026-10-31T19:18:30+09:00 | HTTP 성공의 잘림/빈 응답을 일반 오류로 혼합. RESPONSE_REJECTED 분리·계약 정정, Worker 지표 테스트 PASS. FIXED |
+| 2026-10-31-pdfextraction-model-resilience-F01 | P2/CODE/INTRODUCED | INDEPENDENT_REVIEW | 2026-10-31T19:17:24+09:00 / #476 | 2026-10-31T19:18:30+09:00 | TOKEN_USAGE 캐시 입력 누락. cacheRead/cacheWrite 별도 필드·집계 추가, 로컬 SDK 캐시50/20 확인. FIXED |
+| 2026-10-31-pdfextraction-model-resilience-F02 | P2/CODE/INTRODUCED | INDEPENDENT_REVIEW | 2026-10-31T19:17:24+09:00 / #476 | 2026-10-31T19:18:30+09:00 | HTTP 성공의 잘림/빈 응답을 일반 오류로 혼합. RESPONSE_REJECTED 분리·계약 정정, Worker 지표 테스트 PASS. FIXED |
 
 | 사건 ID | 문제 ID | 종류 | 시각(+09:00) | 근거·관련 PR |
 | --- | --- | --- | --- | --- |
@@ -149,3 +149,7 @@ filter event = 'PDF_AI_RESILIENCE' and kind in ['CIRCUIT_STATE', 'CALL_SKIPPED']
 ```
 
 실제 Sol PDF 표본의 정답 대조와 계정 적용 할당량은 UNVERIFIED다. 과거 Luna/Haiku 1 PDF 실험을 Sol 성과로 재사용하지 않는다.
+
+
+최초 게시: [PR #476](https://github.com/woowacourse-teams/2026-yesulin/pull/476), base dev.
+E01~E04 생성 당시 PENDING이었던 관련 PR은 #476이다. 사건 시각·과거 상태는 그대로 보존한다.
