@@ -16,8 +16,8 @@ const selected: PassedContact[] = [{ entry: { id: "entry", jobId: "job", origina
   roleName: "미기재", contact: { status: "MISSING", phone: null }, email: { status: "MISSING", email: null } }];
 let root: Root;
 let container: HTMLDivElement;
-let unauthorized: ReturnType<typeof vi.fn>;
-let dirtyChange: ReturnType<typeof vi.fn>;
+let unauthorized: ReturnType<typeof vi.fn<() => void>>;
+let dirtyChange: ReturnType<typeof vi.fn<(dirty: boolean) => void>>;
 async function click(text: string) {
   const button = [...container.querySelectorAll("button")].find(item => item.textContent === text);
   expect(button).toBeDefined();

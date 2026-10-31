@@ -7,6 +7,8 @@ import { usePassedContacts, type PassedContact } from "@/features/pdf-reviews/us
 vi.mock("@/features/pdf-reviews/use-passed-contacts", () => ({ usePassedContacts: vi.fn() }));
 vi.mock("./review-original-document", () => ({ ReviewOriginalDocument: () => null }));
 vi.mock("./review-timetable-panel", () => ({ ReviewTimetablePanel: () => null }));
+const capture = vi.hoisted(() => vi.fn());
+vi.mock("@/features/analytics/product-analytics", () => ({ trackProductEvent: capture }));
 const rows: PassedContact[] = [
   { entry: { id: "1", jobId: "1", originalFilename: "a.pdf", applicantName: "가람", roleId: null, decision: "PASS", memo: "", matchStatus: "MATCHED", matchEvidence: "" }, roleName: "주연", contact: { status: "FOUND", phone: "010-0000-0001" }, email: { status: "FOUND", email: "actor@example.test" } },
   { entry: { id: "2", jobId: "2", originalFilename: "b.pdf", applicantName: "=이름\t확인\n필요", roleId: null, decision: "PASS", memo: "", matchStatus: "MATCHED", matchEvidence: "" }, roleName: "앙상블", contact: { status: "MULTIPLE", phone: null }, email: { status: "MISSING", email: null } },
@@ -63,4 +65,15 @@ describe("합격자 연락처 복사", () => {
     await render(false, [], "조회 실패"); expect(container.textContent).not.toContain("명 연락처 복사");
     expect(writeText).toHaveBeenCalledTimes(1);
   });
+});
+
+it("연락처 원본 클릭은 내용 없이 별도 경로로 기록하고 닫기·재렌더는 제외한다", async () => {
+  await render(); expect(capture).not.toHaveBeenCalled();
+  await act(async () => button("PDF 보기").click());
+  expect(capture).toHaveBeenCalledExactlyOnceWith("review_original_pdf_clicked", {
+    metric_version: 1, workflow: "producer_pdf", review_id: "1", item_id: "1", pdf_open_source: "passed_contacts",
+  });
+  await act(async () => [...document.querySelectorAll<HTMLButtonElement>('[role="dialog"] button')].find(b => b.textContent === "닫기")!.click());
+  await render(); expect(capture).toHaveBeenCalledTimes(1);
+  await act(async () => button("PDF 보기").click()); expect(capture).toHaveBeenCalledTimes(2);
 });

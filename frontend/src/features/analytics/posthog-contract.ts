@@ -2,6 +2,7 @@ import { ACQUISITION_CHANNELS, type AcquisitionChannel } from "./acquisition";
 
 /** PostHog에만 쓰는 계약. GA dataLayer에는 식별자를 전달하지 않는다. */
 export type ProductProperties = {
+  pdf_open_source?: "review_detail" | "passed_contacts";
   review_action?: "open" | "decision_save" | "next" | "previous";
   input_method?: "button" | "shortcut";
   review_view?: "single" | "card" | "table";
@@ -43,7 +44,7 @@ export type ProductProperties = {
 };
 
 export const PRODUCT_EVENTS = [
-  "review_basic_action",
+  "review_basic_action", "review_original_pdf_clicked",
   "review_progress_v2", "review_save_attempted", "review_save_result", "pdf_processing_observed",
   "audition_post_viewed", "openchat_landed", "another_post_viewed", "attachment_download_clicked",
   "show_viewed", "booking_started", "booking_succeeded", "booking_failed", "external_booking_clicked",
@@ -73,7 +74,7 @@ export function environmentMatchesHost(environment: string | undefined, hostname
 }
 
 const PROPERTY_KEYS = new Set<keyof ProductProperties>([
-  "review_action", "input_method", "review_view",
+  "pdf_open_source", "review_action", "input_method", "review_view",
   "metric_version", "pending_count", "held_count", "final_count", "save_kind", "processing_stage",
   "post_id", "show_id", "review_id", "item_id", "operation_id", "attachment_index", "attachment_kind",
   "has_application_form", "source", "workflow", "step", "outcome", "error_code", "duration_ms", "active_ms",

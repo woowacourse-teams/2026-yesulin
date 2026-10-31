@@ -1,5 +1,6 @@
 "use client";
 
+import { trackOriginalPdfClick } from "@/features/analytics/review-actions";
 import { useEffect, useRef, useState } from "react";
 import { ModalShell } from "@/components/auditions/modal-shell";
 import { PrimaryButton, SecondaryButton } from "@/components/ui/controls";
@@ -91,7 +92,7 @@ export function ReviewPassedContacts({ reviewId, onBack, onUnauthorized, onDirty
                 : <span className={contact.status === "ERROR" ? "text-fail" : "text-muted-strong"}>{contactLabels[contact.status]}</span>}</td>
               <td className="min-w-48 max-w-64 break-all px-4 py-4">{email.status === "FOUND" ? <span className="select-all font-medium">{email.email}</span>
                 : <span className={email.status === "ERROR" ? "text-fail" : "text-muted-strong"}>{emailLabels[email.status]}</span>}</td>
-              <td className="px-4 py-3"><SecondaryButton aria-label={`${entry.applicantName || entry.originalFilename} 원본 PDF 보기`} onClick={() => setDocumentJobId(entry.jobId)}>PDF 보기</SecondaryButton></td>
+              <td className="px-4 py-3"><SecondaryButton aria-label={`${entry.applicantName || entry.originalFilename} 원본 PDF 보기`} onClick={() => { trackOriginalPdfClick(String(reviewId), String(entry.id), "passed_contacts"); setDocumentJobId(entry.jobId); }}>PDF 보기</SecondaryButton></td>
             </tr>)}</tbody>
           </table>
         </div>}

@@ -14,6 +14,7 @@ export type BoardContextValue = {
   onNoteDirty?: (dirty: boolean) => void;
   onApplicantViewed?: (id: SubmissionId) => (() => void) | void;
   onApplicantOpened?: () => void;
+  onOriginalPdfClick?: (id: SubmissionId) => void;
   onBasicAction?: (id: SubmissionId, action: ReviewAction, input?: ReviewInput) => void;
   applicantRefreshKey?: string;
   reviewFocused: (id: SubmissionId, status: ReviewStatus, memo?: string, note?: string, revision?: number) => Promise<{ applicants: Applicant[] } | null>;

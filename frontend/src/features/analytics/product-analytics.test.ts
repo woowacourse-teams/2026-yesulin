@@ -25,6 +25,22 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 
 describe("PostHog 수집 경계", () => {
+  it("원본 PDF 클릭은 매번 기록하며 내부·테스트·개발 표시와 거부를 유지한다", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => ({ enabled: true, internal: true, actor: "producer", testObjects: ["review_id:review"], formAttachments: {} }) })));
+    const { trackProductEvent, resetProductAnalytics } = await import("./product-analytics");
+    const properties = { metric_version: 1, workflow: "producer_pdf" as const, review_id: "review", item_id: "a", review_view: "card" as const };
+    await trackProductEvent("review_original_pdf_clicked", properties);
+    await trackProductEvent("review_original_pdf_clicked", properties);
+    expect(sdk.capture).toHaveBeenCalledTimes(2);
+    expect(sdk.capture.mock.calls[0][1]).toMatchObject({ ...properties, environment: "development", internal: true, test_object: true });
+    const clean = init.mock.calls[0][1].before_send({ event: "review_original_pdf_clicked", properties: {
+      ...properties, filename: "private.pdf", sourceUrl: "https://private", name: "private", $current_url: "https://private", memo: "private",
+    } });
+    expect(clean.properties).toEqual(properties);
+    localStorage.setItem("yesulin:analytics-consent:v1", "denied"); resetProductAnalytics();
+    expect(await trackProductEvent("review_original_pdf_clicked", properties)).toBe(false);
+    expect(sdk.capture).toHaveBeenCalledTimes(2);
+  });
   it("초기화 중 주소에서 src가 지워져도 오픈채팅 출처를 보존한다", async () => {
     window.history.replaceState(null, "", "/posts/10?src=kakao_openchat");
     const { trackPostView } = await import("./product-analytics");

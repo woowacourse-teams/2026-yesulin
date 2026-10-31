@@ -12,3 +12,11 @@ export function trackReviewAction(reviewId: string, itemId: string, view: Review
     review_action: action, input_method: input, review_view: view,
   });
 }
+
+/** 원본 열기를 누른 의도. 표시 성공·읽기 완료가 아니며 매 클릭을 별도로 센다. */
+export function trackOriginalPdfClick(reviewId: string, itemId: string, source: NonNullable<ProductProperties["pdf_open_source"]>, view?: ReviewView) {
+  trackProductEvent("review_original_pdf_clicked", {
+    metric_version: 1, workflow: "producer_pdf", review_id: reviewId, item_id: itemId,
+    pdf_open_source: source, ...(view ? { review_view: view } : {}),
+  });
+}
