@@ -26,8 +26,8 @@
 
 | ID | 심각도·유형·유입 | 발견 경로 | 최초 확정(+09:00) | 최초 기록 PR | 상태·근거·조치 |
 | --- | --- | --- | --- | --- | --- |
-| 2026-11-01-audit-original-metrics-F01 | P2 FLOW INTRODUCED | INDEPENDENT_REVIEW | 2026-11-01T00:26:42+09:00 | PENDING | FIXED: 활성 연락처 PDF 보기 누락. 해당 버튼도 계측하고 상세/연락처 구분, 비율은 상세만 사용. 00:28:39 표적 검토 통과 |
-| 2026-11-01-audit-original-metrics-F02 | P3 TEST INTRODUCED | PRECHECK | 2026-11-01T00:27:45+09:00 | PENDING | FIXED: 모달은 portal인데 테스트가 container에서 닫기 버튼 조회. dialog 범위로 수정, 00:28:16 관련 테스트 통과 |
+| 2026-11-01-audit-original-metrics-F01 | P2 FLOW INTRODUCED | INDEPENDENT_REVIEW | 2026-11-01T00:26:42+09:00 | #485 | FIXED: 활성 연락처 PDF 보기 누락. 해당 버튼도 계측하고 상세/연락처 구분, 비율은 상세만 사용. 00:28:39 표적 검토 통과 |
+| 2026-11-01-audit-original-metrics-F02 | P3 TEST INTRODUCED | PRECHECK | 2026-11-01T00:27:45+09:00 | #485 | FIXED: 모달은 portal인데 테스트가 container에서 닫기 버튼 조회. dialog 범위로 수정, 00:28:16 관련 테스트 통과 |
 
 신규 발견 2 / 해결 2 / 미해결 0, P0 0 / P1 0 / P2 1 / P3 1.
 PRECHECK 1 / INDEPENDENT_REVIEW 1 / POST_FIX_CHECK 0 / EXTERNAL 0 / REJECTED 0.
@@ -37,8 +37,8 @@ PRECHECK 1 / INDEPENDENT_REVIEW 1 / POST_FIX_CHECK 0 / EXTERNAL 0 / REJECTED 0.
 
 | 사건 ID | 문제 ID | 종류 | 시각(+09:00) | 근거·관련 PR |
 | --- | --- | --- | --- | --- |
-| E01 | F01 | CONFIRMED | 2026-11-01T00:26:42+09:00 | 독립 평가, 연락처 활성 경로 누락, PR PENDING |
+| E01 | F01 | CONFIRMED | 2026-11-01T00:26:42+09:00 | 독립 평가, 연락처 활성 경로 누락, PR #485 |
 | E02 | F01 | FIXED | 2026-11-01T00:28:39+09:00 | 연락처 클릭 별도 속성과 분모 분리, 표적 검토·테스트 |
-| E03 | F02 | CONFIRMED | 2026-11-01T00:27:45+09:00 | 연락처 테스트 portal 버튼 조회 실패, PR PENDING |
+| E03 | F02 | CONFIRMED | 2026-11-01T00:27:45+09:00 | 연락처 테스트 portal 버튼 조회 실패, PR #485 |
 | E04 | F02 | FIXED | 2026-11-01T00:28:16+09:00 | dialog 범위 조회로 관련 테스트 통과 |
 
