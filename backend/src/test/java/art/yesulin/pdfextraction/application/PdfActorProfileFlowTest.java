@@ -18,6 +18,7 @@ import art.yesulin.pdfextraction.application.ai.PdfAiFailedEvent;
 import art.yesulin.pdfextraction.application.ai.PdfAiFailure;
 import art.yesulin.pdfextraction.application.ai.PdfAiProperties;
 import art.yesulin.pdfextraction.application.ai.PdfAiQueueService;
+import art.yesulin.pdfextraction.application.ai.PdfAiRoutingService;
 import art.yesulin.pdfextraction.application.ai.PdfAiWork;
 import art.yesulin.pdfextraction.domain.PdfExtractionJob;
 import art.yesulin.pdfextraction.domain.PdfExtractionJobRepository;
@@ -88,7 +89,7 @@ class PdfActorProfileFlowTest {
         PdfAiProperties properties = new PdfAiProperties(true, "gemini", "test-model", "unused", 1, 3,
                 Duration.ofMinutes(2), Duration.ofSeconds(10), "none");
         queue = new PdfAiQueueService(aiJobs, mock(PdfAiGateRepository.class), payloads, MAPPER,
-                events, properties, clock);
+                events, properties, clock, mock(PdfAiRoutingService.class));
         receiver = new PdfExtractionResultReceiver(jobs, payloads, new PdfExtractionResultParser(storage, MAPPER),
                 storage, events, MAPPER, clock, queue);
     }
@@ -217,7 +218,8 @@ class PdfActorProfileFlowTest {
 
     private PdfAiWork acquire(PdfAiJob ai) {
         String token = ai.acquire(now.get(), Duration.ofMinutes(2), "gemini", "test-model", "v1");
-        return new PdfAiWork(job.getId(), token, job.getOwnerId(), TEXT, List.of(), "gemini", "test-model");
+        return new PdfAiWork(job.getId(), token, job.getOwnerId(), TEXT, List.of(),
+                "gemini", "test-model", -1, null, false, 0);
     }
 
     private PdfApplicantInfo proposal() {

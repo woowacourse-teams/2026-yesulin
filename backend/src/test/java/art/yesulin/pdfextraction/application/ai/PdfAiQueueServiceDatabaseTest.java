@@ -24,8 +24,11 @@ import art.yesulin.pdfextraction.domain.PdfExtractionPayload;
 import art.yesulin.pdfextraction.domain.PdfExtractionPayloadRepository;
 import art.yesulin.pdfextraction.domain.ai.PdfAiJob;
 import art.yesulin.pdfextraction.domain.ai.PdfAiJobRepository;
+import art.yesulin.pdfextraction.domain.ai.PdfAiModelCircuit;
+import art.yesulin.pdfextraction.domain.ai.PdfAiModelCircuitRepository;
 import art.yesulin.pdfextraction.domain.ai.PdfAiStatus;
 import art.yesulin.pdfextraction.presentation.event.PdfAiQueuedEventHandler;
+import art.yesulin.pdfextraction.presentation.event.PdfAiResilienceMetricHandler;
 import art.yesulin.pdfextraction.presentation.event.PdfFlowEventHandler;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
@@ -74,7 +77,9 @@ import tools.jackson.databind.json.JsonMapper;
         "yesulin.pdf-ai.enabled=true"
 })
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Import({PdfAiQueueService.class, PdfAiRetryService.class, PdfAiQueuedEventHandler.class, PdfFlowEventHandler.class,
+@Import({PdfAiRoutingService.class, PdfAiResilienceProperties.class, PdfAiQueueService.class,
+        PdfAiRetryService.class, PdfAiQueuedEventHandler.class, PdfAiResilienceMetricHandler.class,
+        PdfFlowEventHandler.class,
         PdfAiQueueServiceDatabaseTest.Config.class, QueryDslConfiguration.class})
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class PdfAiQueueServiceDatabaseTest {
@@ -110,13 +115,263 @@ class PdfAiQueueServiceDatabaseTest {
     private PdfAiProperties properties;
     @Autowired
     private ApplicationEventPublisher events;
+    @Autowired
+    private PdfAiModelCircuitRepository circuits;
+    @MockitoSpyBean
+    private PdfAiResilienceProperties resilience;
 
     @BeforeEach
     void resetGateAndClock() {
         aiJobs.deleteAllInBatch();
+        jdbc.update("delete from pdf_ai_model_circuits");
         clock.set(NOW);
         jdbc.update("update pdf_ai_worker_gate set next_request_at = ?", Timestamp.from(NOW));
         reset(dispatcher);
+    }
+
+    @Test
+    void validationFailureEscalatesOnceAndSolRetriesKeepItsModelAndSharedInterval() {
+        enableResilience();
+        final String id = enqueue();
+        PdfAiWork luna = queue.claim().orElseThrow();
+        queue.fail(luna, qualityFailure());
+        assertTrue(aiJobs.findById(id).orElseThrow().isEscalationPending());
+        assertTrue(queue.claim().isEmpty());
+        clock.set(NOW.plusSeconds(1));
+        PdfAiWork sol = queue.claim().orElseThrow();
+        assertEquals("global.openai.gpt-6-sol", sol.modelId());
+        assertTrue(sol.escalated());
+        queue.fail(sol, new PdfAiFailure("RATE_LIMITED", true));
+        clock.set(NOW.plusSeconds(16));
+        PdfAiWork retry = queue.claim().orElseThrow();
+        assertEquals(sol.modelId(), retry.modelId());
+        queue.fail(retry, qualityFailure());
+        assertEquals(PdfAiStatus.FAILED, aiJobs.findById(id).orElseThrow().getStatus());
+        assertEquals(2, aiJobs.findById(id).orElseThrow().getAttempts());
+    }
+
+    @Test
+    void throttleOpensSharedCircuitWithoutSwitchingModelOrConsumingBlockedAttempts() throws Exception {
+        enableResilience();
+        doReturn(4).when(properties).concurrency();
+        for (int i = 0; i < 5; i++) {
+            enqueue();
+        }
+        for (int i = 0; i < 3; i++) {
+            clock.set(NOW.plusSeconds(i));
+            PdfAiWork work = queue.claim().orElseThrow();
+            assertFalse(work.escalated());
+            queue.fail(work, new PdfAiFailure("RATE_LIMITED", true));
+        }
+        clock.set(NOW.plusSeconds(3));
+        assertTrue(queue.claim().isEmpty());
+        assertEquals(3, aiJobs.findAll().stream().mapToInt(PdfAiJob::getAttempts).sum());
+        assertEquals(1, circuits.count());
+        // Fresh transactions from two nodes must share one half-open probe, even with spare capacity.
+        clock.set(NOW.plusSeconds(62));
+        CountDownLatch ready = new CountDownLatch(2);
+        CountDownLatch start = new CountDownLatch(1);
+        try (java.util.concurrent.ExecutorService pool = Executors.newFixedThreadPool(2)) {
+            Future<Optional<PdfAiWork>> first = pool.submit(() -> claim(ready, start));
+            Future<Optional<PdfAiWork>> second = pool.submit(() -> claim(ready, start));
+            assertTrue(ready.await(5, TimeUnit.SECONDS));
+            start.countDown();
+            List<Optional<PdfAiWork>> claims = List.of(first.get(10, TimeUnit.SECONDS),
+                    second.get(10, TimeUnit.SECONDS));
+            assertEquals(1, claims.stream().filter(Optional::isPresent).count());
+        }
+        assertEquals(PdfAiModelCircuit.State.HALF_OPEN, circuits.findAll().getFirst().getState());
+        clock.set(NOW.plusSeconds(63));
+        assertTrue(queue.claim().isEmpty());
+    }
+
+    @Test
+    void openPrimaryDoesNotStarveEligibleEscalatedWork() {
+        enableResilience();
+        final String id = enqueue();
+        queue.fail(queue.claim().orElseThrow(), qualityFailure());
+        enqueue();
+        new TransactionTemplate(transactions).executeWithoutResult(tx -> {
+            PdfAiModelCircuit circuit = circuits.findForUpdate(properties.modelId()).orElseThrow();
+            PdfAiModelCircuit.Permit permit = circuit.acquire(NOW, Duration.ofMinutes(2)).orElseThrow();
+            for (int i = 0; i < 3; i++) {
+                circuit.rateLimited(permit, NOW, 3, Duration.ofSeconds(60), Duration.ofMinutes(5));
+            }
+        });
+        clock.set(NOW.plusSeconds(1));
+        PdfAiWork work = queue.claim().orElseThrow();
+        assertEquals(id, work.jobId());
+        assertTrue(work.escalated());
+        assertTrue(queue.complete(work, completed(work)));
+        assertEquals(work.modelId(), aiJobs.findById(id).orElseThrow().getModelId());
+    }
+
+    @Test
+    void rollbackRestoresQualityFailureAndCircuitStateTogether() {
+        enableResilience();
+        final String id = enqueue();
+        PdfAiWork work = queue.claim().orElseThrow();
+        reset(dispatcher);
+        new TransactionTemplate(transactions).executeWithoutResult(tx -> {
+            queue.fail(work, qualityFailure());
+            tx.setRollbackOnly();
+        });
+        assertEquals(PdfAiStatus.RUNNING, aiJobs.findById(id).orElseThrow().getStatus());
+        assertFalse(aiJobs.findById(id).orElseThrow().isEscalationPending());
+        verifyNoInteractions(dispatcher);
+    }
+
+    @Test
+    void controlledNinetySecondOutageMeasuresProtectionAgainstExhaustedRetries() {
+        enableResilience();
+        int[] baseline = outage(false);
+        int[] protectedRun = outage(true);
+        assertEquals(30, baseline[0]);
+        assertEquals(0, baseline[2]);
+        assertEquals(14, protectedRun[0]);
+        assertEquals(4, protectedRun[1]);
+        assertEquals(10, protectedRun[2]);
+        assertEquals(0, protectedRun[3]);
+        System.out.println("PDF_AI_EXPERIMENT baseline=" + java.util.Arrays.toString(baseline)
+                + " circuit=" + java.util.Arrays.toString(protectedRun));
+    }
+
+    private int[] outage(boolean protectedRun) {
+        aiJobs.deleteAllInBatch();
+        jdbc.update("delete from pdf_ai_model_circuits");
+        jdbc.update("update pdf_ai_worker_gate set next_request_at = ?", Timestamp.from(NOW));
+        clock.set(NOW);
+        doReturn(protectedRun).when(resilience).circuitEnabled();
+        for (int i = 0; i < 10; i++) {
+            enqueue();
+        }
+        int calls = 0;
+        int throttles = 0;
+        int endedAt = 0;
+        for (int second = 0; second < 601; second++) {
+            clock.set(NOW.plusSeconds(second));
+            Optional<PdfAiWork> next = queue.claim();
+            if (next.isPresent()) {
+                calls++;
+                if (second < 90) {
+                    throttles++;
+                    queue.fail(next.get(), new PdfAiFailure("RATE_LIMITED", true));
+                } else {
+                    queue.complete(next.get(), completed(next.get()));
+                }
+            }
+            if (aiJobs.findAll().stream().noneMatch(job -> job.getStatus() == PdfAiStatus.PENDING
+                    || job.getStatus() == PdfAiStatus.RUNNING)) {
+                endedAt = second;
+                break;
+            }
+        }
+        int completed = (int) aiJobs.findAll().stream().filter(job -> job.getStatus() == PdfAiStatus.COMPLETED).count();
+        int failed = (int) aiJobs.findAll().stream().filter(job -> job.getStatus() == PdfAiStatus.FAILED).count();
+        return new int[]{calls, throttles, completed, failed, endedAt};
+    }
+
+    private void enableResilience() {
+        doReturn("global.openai.gpt-6-luna").when(properties).modelId();
+        doReturn(Duration.ofSeconds(1)).when(properties).requestInterval();
+        doReturn(true).when(resilience).circuitEnabled();
+        doReturn(true).when(resilience).escalationEnabled();
+    }
+
+    @Test
+    void committedMetricsExcludeRolledBackResultsAndSensitiveContent() {
+        enableResilience();
+        enqueue();
+        PdfAiWork work = queue.claim().orElseThrow();
+        Logger logger = (Logger) LoggerFactory.getLogger(PdfAiResilienceMetricHandler.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            new TransactionTemplate(transactions).executeWithoutResult(tx -> {
+                queue.complete(work, completed(work));
+                tx.setRollbackOnly();
+            });
+            assertTrue(appender.list.isEmpty());
+            assertTrue(queue.complete(work, completed(work)));
+            assertEquals(1, appender.list.size());
+            var values = appender.list.getFirst().getKeyValuePairs();
+            assertTrue(values.stream().anyMatch(value -> value.key.equals("outcome")
+                    && value.value.equals("COMPLETED")));
+            assertFalse(values.toString().contains(work.text()));
+            assertFalse(values.toString().contains("aiResponse"));
+        } finally {
+            logger.detachAppender(appender);
+            appender.stop();
+        }
+    }
+
+    @Test
+    void normalWorkloadMaintainsCompletionTimeWithCircuitEnabled() {
+        enableResilience();
+        assertEquals(List.of(10, 9), normalWorkload(false));
+        assertEquals(List.of(10, 9), normalWorkload(true));
+        assertEquals(PdfAiModelCircuit.State.CLOSED, circuits.findAll().getFirst().getState());
+    }
+
+    private List<Integer> normalWorkload(boolean protectedRun) {
+        aiJobs.deleteAllInBatch();
+        jdbc.update("delete from pdf_ai_model_circuits");
+        jdbc.update("update pdf_ai_worker_gate set next_request_at = ?", Timestamp.from(NOW));
+        clock.set(NOW);
+        doReturn(protectedRun).when(resilience).circuitEnabled();
+        for (int i = 0; i < 10; i++) {
+            enqueue();
+        }
+        for (int second = 0; second < 10; second++) {
+            clock.set(NOW.plusSeconds(second));
+            PdfAiWork work = queue.claim().orElseThrow();
+            assertFalse(work.escalated());
+            assertTrue(queue.complete(work, completed(work)));
+            assertTrue(queue.claim().isEmpty());
+        }
+        int completed = (int) aiJobs.findAll().stream().filter(job -> job.getStatus() == PdfAiStatus.COMPLETED).count();
+        return List.of(completed, (int) Duration.between(NOW, clock.instant()).toSeconds());
+    }
+
+    @Test
+    void bothModelCircuitsBlockWithoutAttemptsAndRecoverIndependently() {
+        enableResilience();
+        enqueue();
+        queue.fail(queue.claim().orElseThrow(), qualityFailure());
+        enqueue();
+        new TransactionTemplate(transactions).executeWithoutResult(tx -> {
+            for (String model : List.of(properties.modelId(), resilience.escalationModelId())) {
+                PdfAiModelCircuit circuit = circuits.findForUpdate(model)
+                        .orElseGet(() -> circuits.saveAndFlush(new PdfAiModelCircuit(model, NOW)));
+                var permit = circuit.acquire(NOW, Duration.ofMinutes(2)).orElseThrow();
+                for (int i = 0; i < 3; i++) {
+                    circuit.rateLimited(permit, NOW, 3, Duration.ofSeconds(60), Duration.ofMinutes(5));
+                }
+            }
+        });
+        clock.set(NOW.plusSeconds(1));
+        assertTrue(queue.claim().isEmpty());
+        assertEquals(0, aiJobs.findAll().stream().mapToInt(PdfAiJob::getAttempts).sum());
+        clock.set(NOW.plusSeconds(60));
+        PdfAiWork first = queue.claim().orElseThrow();
+        assertTrue(queue.complete(first, completed(first)));
+        clock.set(NOW.plusSeconds(61));
+        PdfAiWork second = queue.claim().orElseThrow();
+        assertFalse(first.modelId().equals(second.modelId()));
+        assertTrue(queue.complete(second, completed(second)));
+        assertTrue(circuits.findAll().stream()
+                .allMatch(circuit -> circuit.getState() == PdfAiModelCircuit.State.CLOSED));
+        assertTrue(aiJobs.findAll().stream().allMatch(job -> job.getStatus() == PdfAiStatus.COMPLETED));
+    }
+
+    private PdfAiFailure qualityFailure() {
+        return new PdfAiFailure("INVALID_MODEL_OUTPUT", false, "PROFILE_EVIDENCE_MISMATCH");
+    }
+
+    private PdfApplicantInfo completed(PdfAiWork work) {
+        return new PdfApplicantInfo("applicant-info-v1", "COMPLETED", "bedrock", work.modelId(),
+                null, null, null, null, null);
     }
 
     @Test
@@ -217,7 +472,7 @@ class PdfAiQueueServiceDatabaseTest {
         logger.setLevel(Level.DEBUG);
         try {
             String jobId = new TransactionTemplate(transactions).execute(transaction -> {
-                String id = enqueue();
+                final String id = enqueue();
                 events.publishEvent(new PdfExtractionCompletedEvent(id, 1, "SECRET_SOURCE"));
                 assertTrue(appender.list.isEmpty());
                 return id;
@@ -283,6 +538,7 @@ class PdfAiQueueServiceDatabaseTest {
             assertTrue(queue.claim().isPresent());
         }
         aiJobs.deleteAllInBatch();
+        jdbc.update("delete from pdf_ai_model_circuits");
     }
 
     @Test
@@ -378,6 +634,7 @@ class PdfAiQueueServiceDatabaseTest {
         queue.enqueue(jobId, job.getReviewId(), job.getOwnerId(), "이름: 가상배우", List.of(), null);
         assertEquals(1, aiJobs.count());
         aiJobs.deleteAllInBatch();
+        jdbc.update("delete from pdf_ai_model_circuits");
     }
 
     @Test

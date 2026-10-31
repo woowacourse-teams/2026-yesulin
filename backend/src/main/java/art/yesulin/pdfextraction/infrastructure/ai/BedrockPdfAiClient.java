@@ -4,9 +4,12 @@ import art.yesulin.pdfextraction.application.ai.PdfAiClient;
 import art.yesulin.pdfextraction.application.ai.PdfAiDiagnostics;
 import art.yesulin.pdfextraction.application.ai.PdfAiFailure;
 import art.yesulin.pdfextraction.application.ai.PdfAiProperties;
+import art.yesulin.pdfextraction.application.ai.PdfAiResilienceProperties;
+import art.yesulin.pdfextraction.application.ai.PdfAiWork;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
@@ -28,6 +31,7 @@ import software.amazon.awssdk.services.bedrockruntime.model.SystemContentBlock;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 @Profile("dev | prod")
 @ConditionalOnExpression("${yesulin.pdf-ai.enabled:false} and '${yesulin.pdf-ai.provider:bedrock}' == 'bedrock'")
 public class BedrockPdfAiClient implements PdfAiClient {
@@ -42,41 +46,82 @@ public class BedrockPdfAiClient implements PdfAiClient {
     private final BedrockRuntimeClient client;
     private final PdfAiProperties properties;
     private final PdfAiDiagnostics diagnostics;
+    private final PdfAiResilienceProperties resilience;
 
     @Override
     public String generate(String systemPrompt, String userPrompt) {
+        return generate(properties.modelId(), properties.reasoningEffort(), MAX_TOKENS, systemPrompt, userPrompt, null);
+    }
+
+    @Override
+    public String generate(PdfAiWork work, String systemPrompt, String userPrompt) {
+        return generate(work.modelId(), work.escalated() ? resilience.escalationReasoningEffort()
+                        : properties.reasoningEffort(),
+                work.escalated() ? resilience.escalationMaxTokens() : MAX_TOKENS,
+                systemPrompt, userPrompt, work);
+    }
+
+    private String generate(String modelId, String effort, int maxTokens, String systemPrompt, String userPrompt,
+                            PdfAiWork work) {
         ConverseRequest.Builder request = ConverseRequest.builder()
-                .modelId(properties.modelId())
+                .modelId(modelId)
                 .system(SystemContentBlock.builder().text(systemPrompt).build())
                 .messages(Message.builder()
                         .role(ConversationRole.USER)
                         .content(ContentBlock.fromText(userPrompt))
                         .build())
                 .inferenceConfig(InferenceConfiguration.builder()
-                        .maxTokens(MAX_TOKENS)
+                        .maxTokens(maxTokens)
                         .build());
-        if (properties.modelId().contains("openai.gpt-6-luna")) {
+        if (modelId.contains("openai.gpt-6-luna") || modelId.contains("openai.gpt-6-sol")) {
             request.additionalModelRequestFields(Document.fromMap(Map.of("reasoning",
-                    Document.fromMap(Map.of("effort", Document.fromString(properties.reasoningEffort()))))));
-        } else if (properties.modelId().contains("anthropic.claude-haiku-5-5")) {
-            boolean disabled = "none".equals(properties.reasoningEffort());
+                    Document.fromMap(Map.of("effort", Document.fromString(effort))))));
+        } else if (modelId.contains("anthropic.claude-haiku-5-5")) {
+            boolean disabled = "none".equals(effort);
             request.additionalModelRequestFields(Document.fromMap(Map.of(
                     "thinking", Document.fromMap(Map.of("type",
                             Document.fromString(disabled ? "disabled" : "adaptive"))),
                     "output_config", Document.fromMap(Map.of("effort",
-                            Document.fromString(disabled ? "medium" : properties.reasoningEffort()))))));
+                            Document.fromString(disabled ? "medium" : effort))))));
         }
-        return text(converse(request.build()));
+        ConverseResponse response = converse(request.build());
+        if (response.usage() != null) {
+            log.atInfo().addKeyValue("event", "PDF_AI_RESILIENCE").addKeyValue("kind", "TOKEN_USAGE")
+                    .addKeyValue("jobId", work == null ? null : work.jobId())
+                    .addKeyValue("generation", work == null ? null : work.retryGeneration())
+                    .addKeyValue("modelId", modelId).addKeyValue("inputTokens", response.usage().inputTokens())
+                    .addKeyValue("cacheReadInputTokens", response.usage().cacheReadInputTokens())
+                    .addKeyValue("cacheWriteInputTokens", response.usage().cacheWriteInputTokens())
+                    .addKeyValue("outputTokens", response.usage().outputTokens())
+                    .addKeyValue("totalTokens", response.usage().totalTokens()).log("PDF_AI_RESILIENCE");
+        }
+        return text(response);
     }
 
     private ConverseResponse converse(ConverseRequest request) {
         try {
             return client.converse(request);
         } catch (BedrockRuntimeException exception) {
+            if (rateLimited(exception)) {
+                throw new PdfAiFailure("RATE_LIMITED", true, "PROVIDER_RATE_LIMITED");
+            }
             throw new PdfAiFailure(PROVIDER_ERROR, retryable(exception));
         } catch (SdkClientException exception) {
             throw new PdfAiFailure(PROVIDER_ERROR, retryable(exception));
         }
+    }
+
+    private boolean rateLimited(BedrockRuntimeException exception) {
+        // ModelNotReady may also use HTTP 429; it is not a quota rejection.
+        if (exception instanceof ModelNotReadyException) {
+            return false;
+        }
+        return exception.statusCode() == TOO_MANY_REQUESTS_STATUS
+                || exception.awsErrorDetails() != null
+                && "ThrottlingException".equals(exception.awsErrorDetails().errorCode())
+                || exception instanceof ModelErrorException modelError
+                && modelError.originalStatusCode() != null
+                && modelError.originalStatusCode() == TOO_MANY_REQUESTS_STATUS;
     }
 
     private String text(ConverseResponse response) {

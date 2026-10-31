@@ -117,6 +117,8 @@ class ConfigurationTest(unittest.TestCase):
             for message in (flow, failure):
                 self.assertEqual(environment == "dev", bool(re.search(expression, message)))
             self.assertIsNotNone(re.search(expression, json.dumps({"event": "HTTP_REQUEST"})))
+            self.assertIsNotNone(re.search(expression, json.dumps({"event": "PDF_AI_RESILIENCE"})))
+            self.assertIsNone(re.search(expression, json.dumps({"event": "PDF_AI_RESILIENCE_PRIVATE"})))
             self.assertIsNone(re.search(expression, json.dumps({"message": "unrelated PDF_FLOW text"})))
             self.assertIsNone(re.search(expression, json.dumps({"message": "PDF_FLOW_PRIVATE payload"})))
 

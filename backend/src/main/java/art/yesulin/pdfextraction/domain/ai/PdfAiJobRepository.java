@@ -17,8 +17,9 @@ public interface PdfAiJobRepository extends JpaRepository<PdfAiJob, String> {
     List<PdfAiJob> findByStatusAndLeaseExpiresAtLessThanEqual(PdfAiStatus status, Instant now, Pageable pageable);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    List<PdfAiJob> findByStatusAndNextAttemptAtLessThanEqualOrderByNextAttemptAtAscCreatedAtAsc(
-            PdfAiStatus status, Instant now, Pageable pageable);
+    @Query("select job from PdfAiJob job where job.status = :status and job.nextAttemptAt <= :now "
+            + "and job.escalationPending = :escalated order by job.nextAttemptAt, job.createdAt")
+    List<PdfAiJob> findEligible(PdfAiStatus status, Instant now, boolean escalated, Pageable pageable);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select job from PdfAiJob job where job.jobId = :jobId")

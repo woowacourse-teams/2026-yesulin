@@ -37,6 +37,8 @@ public class PdfAiJob {
     @Column(nullable = false)
     private int retryGeneration;
     @Column(nullable = false)
+    private boolean escalationPending;
+    @Column(nullable = false)
     private Instant nextAttemptAt;
     private Instant leaseExpiresAt;
     @Column(length = 36)
@@ -108,6 +110,16 @@ public class PdfAiJob {
         retryOrFail(code, retryable, maxAttempts, now);
     }
 
+    public void requestEscalation(String token, Instant now) {
+        require(ownsLease(token, now) && !escalationPending);
+        status = PdfAiStatus.PENDING;
+        escalationPending = true;
+        attempts--;
+        nextAttemptAt = now;
+        errorCode = "QUALITY_ESCALATION";
+        release(now);
+    }
+
     public void recoverExpired(int maxAttempts, Instant now) {
         require(status == PdfAiStatus.RUNNING && !leaseExpiresAt.isAfter(now));
         retryOrFail("LEASE_EXPIRED", true, maxAttempts, now);
@@ -121,6 +133,7 @@ public class PdfAiJob {
         this.status = PdfAiStatus.PENDING;
         this.attempts = 0;
         this.retryGeneration++;
+        this.escalationPending = false;
         this.errorCode = null;
         this.resultJson = null;
         this.nextAttemptAt = now;

@@ -10,6 +10,7 @@ import art.yesulin.pdfextraction.domain.ai.PdfAiJob;
 import art.yesulin.pdfextraction.domain.ai.PdfAiJobRepository;
 import art.yesulin.pdfextraction.domain.ai.PdfAiStatus;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
@@ -36,6 +37,7 @@ public class PdfAiQueueService {
     private final ApplicationEventPublisher events;
     private final PdfAiProperties properties;
     private final Clock clock;
+    private final PdfAiRoutingService routing;
 
     // 호출자는 추출 Job을 잠근 콜백 트랜잭션이다. 같은 Job의 결과·AI 작업을 함께 커밋한다.
     @Transactional
@@ -90,20 +92,34 @@ public class PdfAiQueueService {
         if (jobs.countByStatusAndLeaseExpiresAtAfter(PdfAiStatus.RUNNING, now) >= properties.concurrency()) {
             return Optional.empty();
         }
-        return jobs.findByStatusAndNextAttemptAtLessThanEqualOrderByNextAttemptAtAscCreatedAtAsc(
-                        PdfAiStatus.PENDING, now, PageRequest.of(0, 1)).stream().findFirst()
-                .map(job -> {
-                    PdfAiWork work = acquire(job, now);
-                    if (work != null) {
-                        gate.reserve(now, properties.requestInterval());
-                        events.publishEvent(new PdfAiClaimedEvent(work.jobId()));
-                    }
-                    return work;
-                });
+        // Each route contributes its oldest candidate so an open Luna circuit cannot starve Sol work.
+        List<PdfAiJob> candidates = new java.util.ArrayList<>();
+        for (boolean escalated : List.of(false, true)) {
+            candidates.addAll(jobs.findEligible(PdfAiStatus.PENDING, now, escalated, PageRequest.of(0, 1)));
+        }
+        candidates.sort(java.util.Comparator.comparing(PdfAiJob::getNextAttemptAt)
+                .thenComparing(PdfAiJob::getCreatedAt));
+        for (PdfAiJob job : candidates) {
+            Optional<PdfAiRoute> route = routing.reserve(job, now);
+            if (route.isEmpty()) {
+                continue;
+            }
+            PdfAiWork work = acquire(job, route.get(), now);
+            if (work != null) {
+                gate.reserve(now, properties.requestInterval());
+                events.publishEvent(new PdfAiClaimedEvent(work.jobId()));
+                if (work.escalated()) {
+                    metric(job, "ESCALATION_CLAIMED", true, now);
+                }
+                return Optional.of(work);
+            }
+            routing.abandon(route.get(), now);
+        }
+        return Optional.empty();
     }
 
-    private PdfAiWork acquire(PdfAiJob job, Instant now) {
-        String token = job.acquire(now, properties.leaseDuration(), properties.provider(), properties.modelId(),
+    private PdfAiWork acquire(PdfAiJob job, PdfAiRoute route, Instant now) {
+        String token = job.acquire(now, properties.leaseDuration(), properties.provider(), route.modelId(),
                 PdfAiProperties.PROMPT_VERSION);
         Optional<PdfExtractionPayload> payload = payloads.findById(job.getJobId());
         try {
@@ -111,7 +127,8 @@ public class PdfAiQueueService {
                     .extractedText();
             List<PdfAiRole> roles = Arrays.asList(mapper.readValue(job.getRolesJson(), PdfAiRole[].class));
             return new PdfAiWork(job.getJobId(), token, job.getOwnerId(), text, roles,
-                    job.getProvider(), job.getModelId());
+                    job.getProvider(), job.getModelId(), route.circuitGeneration(), route.probeToken(),
+                    !route.modelId().equals(properties.modelId()), job.getRetryGeneration());
         } catch (RuntimeException exception) {
             // DB 조회 실패는 이 catch 바깥이다. 손상된 입력 하나가 전체 대기열을 막지 않게 종료한다.
             job.fail(token, "INVALID_SOURCE", false, properties.maxAttempts(), now);
@@ -131,9 +148,11 @@ public class PdfAiQueueService {
         if (!job.ownsLease(work.leaseToken(), now)) {
             return false;
         }
+        routing.observe(work, null);
         job.complete(work.leaseToken(), mapper.writeValueAsString(info), now);
         // 심사 반영도 같은 트랜잭션이다. 반영 실패 시 결과 저장을 함께 롤백한다.
         events.publishEvent(new PdfAiCompletedEvent(work.jobId(), work.ownerId(), work.text(), info));
+        metric(job, "COMPLETED", work.escalated(), now);
         return true;
     }
 
@@ -146,6 +165,16 @@ public class PdfAiQueueService {
         PdfAiJob job = found.get();
         Instant now = clock.instant();
         if (job.ownsLease(work.leaseToken(), now)) {
+            routing.observe(work, failure);
+            if (failure.qualityRejected()) {
+                metric(job, "VALIDATION_REJECTED", work.escalated(), now);
+            }
+            if (failure.qualityRejected() && !job.isEscalationPending() && routing.canEscalate(work)) {
+                job.requestEscalation(work.leaseToken(), now);
+                metric(job, "ESCALATION_QUEUED", false, now);
+                events.publishEvent(new PdfAiQueuedEvent(job.getJobId()));
+                return;
+            }
             job.fail(work.leaseToken(), failure.code(), failure.retryable(), properties.maxAttempts(), now);
             publishIfFailed(job);
         }
@@ -154,6 +183,13 @@ public class PdfAiQueueService {
     private void publishIfFailed(PdfAiJob job) {
         if (job.getStatus() == PdfAiStatus.FAILED) {
             events.publishEvent(new PdfAiFailedEvent(job.getJobId(), job.getOwnerId()));
+            metric(job, "FAILED", !job.getModelId().equals(properties.modelId()), clock.instant());
         }
+    }
+
+    private void metric(PdfAiJob job, String outcome, boolean escalated, Instant now) {
+        events.publishEvent(new PdfAiJobMetricEvent(job.getJobId(), job.getRetryGeneration(), job.getModelId(),
+                outcome, job.getAttempts(),
+                Math.max(0, Duration.between(job.getCreatedAt(), now).toMillis()), escalated));
     }
 }

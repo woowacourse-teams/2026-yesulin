@@ -2,7 +2,8 @@
 
 작업 상태는 `PENDING → RUNNING → COMPLETED`, 일시 실패는 `PENDING`으로 복귀하고
 영구 실패·최대 시도 횟수 소진은 `FAILED`다. 기본은 총 3회 시도이며 재시도 간격은 15초, 30초로 늘어난다.
-429·네트워크 시간 초과·5xx는 재시도하고 권한·모델 설정·잘못된 출력은 영구 실패한다.
+429·네트워크 시간 초과·5xx는 재시도하고 권한·모델 설정 오류는 영구 실패한다.
+잘못된 출력은 아래 dev 모델 승격 조건을 만족할 때 한 번 보정하며, 그 외는 영구 실패한다.
 잘못된 모델 출력이나 경력/프로필의 원문 근거 불일치는 `INVALID_MODEL_OUTPUT`으로 기록한다.
 
 `pdf_ai_worker_gate`의 한 행을 잠근 트랜잭션에서 유효한 RUNNING 수를 세고 작업을 획득한다.
@@ -22,6 +23,8 @@
 사용자가 확인한 분당 300회 기준으로 기본 요청 간격은 전체 서버 합산 0.2초(최대 300RPM)이며
 gate의 `next_request_at`을 같은 트랜잭션에서 예약한다. 재시도도 간격을 다시 획득한다.
 `YESULIN_PDF_AI_REQUEST_INTERVAL=PT0.2S`로 설정하며,
+dev는 계정 할당량 재확인 전 보수적인 `PT1S`(전체 모델 합산 최대 1RPS/60RPM)를 기본값으로 사용한다.
+이미 설정한 환경 변수는 기본값보다 우선한다.
 요청 간격 제한은 정확한 TPM 제한을 대신하지 않는다. 시계가 동기화된 서버를 전제로 하며 계정 쿼터를 관찰해 조정한다.
 
 기능이 꺼져 있거나 텍스트가 없거나 32,000자를 넘으면 SKIPPED로 종료하고 원문·규칙 결과는 유지한다.
@@ -44,7 +47,7 @@ Dev EC2의 실제 지원서 Converse 실험은 확인했고, 변경 코드의 �
 출력 상한은 Bedrock 4096 tokens(상수), 로컬 Gemini 6000 tokens다. Bedrock Luna와 Haiku 5.5는 temperature를 생략한다.
 실제 Luna Converse에서 temperature=0은 HTTP 400으로 거부되어 사용하지 않는다.
 `YESULIN_PDF_AI_REASONING_EFFORT`는 none(기본), low, medium, high, xhigh, max 중 하나다.
-Luna는 additionalModelRequestFields.reasoning.effort로 전달한다. Haiku 5.5는 none일 때 thinking.type=disabled,
+Luna와 Sol은 additionalModelRequestFields.reasoning.effort로 전달한다. Haiku 5.5는 none일 때 thinking.type=disabled,
 그 외는 adaptive와 output_config.effort를 전달한다. 다른 모델은 기존처럼 추가 추론 옵션을 생략한다.
 이는 생성량을 제한하는 현재 설정이며 대표 지원서의 출력 토큰 분포·최대 필드 길이로 충분성을 입증한 값은 아니다.
 출력이 잘리면 부분 JSON을 반영하지 않고 INVALID_MODEL_OUTPUT으로 종료한다. 상한 조정은 실제 출력 사용량과
@@ -81,7 +84,7 @@ Bedrock 응답의 종료 상태·본문 검증 전에 기록하므로 `max_token
 요청 원문·시스템 프롬프트·API 키·헤더는 추가 기록하지 않는다. 모델 응답에는 지원자 정보가 포함될 수 있다.
 과대 응답은 최대 131,072자로 제한하며 `responseCharacters`와 `responseTruncated`로 기록 잘림을 표시한다.
 `PDF_FLOW stage=AI_FAILURE_DETAIL`은 JSON 형식, 이름·배역 근거, 프로필 스키마/근거 등 검증 실패 지점을 구분한다.
-DB 오류 코드 `INVALID_MODEL_OUTPUT`, 영구 실패 판정·재시도 횟수·출력 토큰 상한은 유지한다.
+DB 오류 코드 `INVALID_MODEL_OUTPUT`은 유지한다. 모델 승격 조건은 다음 절을 따른다.
 CloudWatch dev 필터는 기존 `PDF_FLOW ` 접두사로 수집한다. 필터 적용 전 로컬 파일만 기록된 응답은 CloudWatch에 소급 전송하지 않는다.
 
 ## 어댑터와 검증 범위
@@ -90,7 +93,7 @@ CloudWatch dev 필터는 기존 `PDF_FLOW ` 접두사로 수집한다. 필터 �
 
 | 어댑터 | 등록 조건 | 비고 |
 | --- | --- | --- |
-| `BedrockPdfAiClient` | `dev` 또는 `prod` 프로필, `yesulin.pdf-ai.enabled=true`, `provider=bedrock` | Bedrock Converse API. 모델 ID는 설정(`model-id`)이며 기본은 Haiku. dev·prod 대상. |
+| `BedrockPdfAiClient` | `dev` 또는 `prod` 프로필, `yesulin.pdf-ai.enabled=true`, `provider=bedrock` | Bedrock Converse API. 기본 Luna, dev 검증 실패 승격은 Sol. |
 | `GeminiPdfAiClient` | `local` 프로필, enabled=true, `provider=gemini` | 로컬 전용. API 키는 환경 변수 또는 키 파일로 받으며 저장소에 두지 않는다. |
 
 - 로컬은 기존 `application-local.yml`과 `local` 프로필로 LocalStack Lambda와 Spring Gemini를 함께 쓴다.
@@ -126,3 +129,41 @@ retry_generation을 증가시키므로 시계나 시도 횟수가 같아져도 �
 담당자의 수동 배역·메모·판정은 보존한다.
 
 알림 채널의 환경 설정은 [배포 문서](../../../../../../../../docs/operations/deployment.md)가 정본이다.
+
+## dev 검증 실패 승격과 요청량 보호 (2026-10-31)
+
+기본/운영/로컬은 새 승격·서킷을 기본 비활성화하고 dev에서만 기본 활성화한다. Haiku로 quota를 우회하지 않는다.
+`PdfAiFailure.qualityRejected()`의 허용 목록에 든 JSON 형식·필드 스키마·원문 근거 오류만
+Luna→Sol로 한 번 승격한다. 허용된 null은 정상이다. 토큰 상한/빈 응답/과대 응답/입력 손상,
+권한·네트워크·429는 품질 승격 대상이 아니다. 검증 통과가 모든 필드의 의미 정확도를 보장하지는 않는다.
+Sol도 같은 원문·배역·프롬프트·파서로 처리한다. Sol 검증 실패는 최종 실패이며 다른 모델로 다시 돌리지 않는다.
+이미 승격된 작업은 설정을 꺼도 Sol 선택을 유지한다. 이 설정은 새 승격만 막는다.
+
+Luna는 기존 `none`/4096, Sol은 명시적 `low`/8192로 시작한다. Sol 토큰 예산은 추론과 JSON 출력을 위한
+실험값이며 충분성·정확도 개선은 아직 실측하지 않았다. temperature는 생략한다.
+승격 시 Luna 한 번을 보정 묶음으로 처리하여 attempts를 1 돌려주고, Sol의 일시 실패는 기존 백오프/상한을 따른다.
+max-attempts=3이면 자동 물리 호출은 작업 세대당 최대 4회다. 실제 과금/호출 수는 attempts와 다르다.
+수동 재분석은 새 retry_generation으로 구분하고 Luna부터 다시 시작한다.
+
+`pdf_ai_model_circuits`의 모델별 행은 전역 gate 아래 생성하고 비관적 잠금으로 공유한다.
+실제 quota 거부(RATE_LIMITED) 연속 3회면 OPEN 60초, 실패한 탐색마다 120/240/300초로 늘린다.
+ModelNotReady의 429는 quota로 분류하지 않는다. 이 서킷은 quota 전용이며 5xx·권한 오류의 포괄적인 차단 장치는 아니다.
+OPEN에서는 외부 호출/작업 시도 횟수를 소비하지 않고, 시간이 되면 HALF_OPEN 탐색 1개만 2분 lease로 허용한다.
+재시작·서버 증설에도 DB 상태를 공유하고 오래된 세대 응답은 무시한다. 응답이 quota 거부가 아니면 서킷을 닫는다.
+스케줄러는 계속 DB를 조회하므로 CALL_SKIPPED는 유일 작업 수나 절약 과금액이 아니다.
+호출량은 모든 모델·재시도를 합산한 DB gate가 제한한다. 쿼터가 알려지면 요청 간격을 조정한다.
+RPS는 모델별 TPM·공통 일일 토큰 상한을 대신하지 않으며 서킷도 첫 거부를 예방하지 못한다.
+
+| 환경 변수 | 기본값 / 의미 |
+| --- | --- |
+| `YESULIN_PDF_AI_ESCALATION_ENABLED` | dev true, 그 외 false / 신규 품질 승격 |
+| `YESULIN_PDF_AI_ESCALATION_MODEL_ID` | `global.openai.gpt-6-sol` |
+| `YESULIN_PDF_AI_ESCALATION_REASONING_EFFORT` | `low` |
+| `YESULIN_PDF_AI_ESCALATION_MAX_TOKENS` | 8192 / 허용 4096~32768 |
+| `YESULIN_PDF_AI_CIRCUIT_ENABLED` | dev true, 그 외 false |
+| `YESULIN_PDF_AI_CIRCUIT_FAILURE_THRESHOLD` | 3 / 허용 1~50 |
+| `YESULIN_PDF_AI_CIRCUIT_OPEN_DURATION` | PT60S / 최소 1초 |
+| `YESULIN_PDF_AI_CIRCUIT_MAX_OPEN_DURATION` | PT5M / 초기 차단 이상, 최대 1시간 |
+
+측정 정의·실험 결과·Logs Insights 쿼리는 [평가 기록](../reviews/2026-10-31-model-resilience.md)을 따른다.
+모델별 InvokeModel 권한과 실제 Sol 응답은 dev 배포 후 확인한다. 현재 계정의 적용 RPM/TPM은 미확인이다.

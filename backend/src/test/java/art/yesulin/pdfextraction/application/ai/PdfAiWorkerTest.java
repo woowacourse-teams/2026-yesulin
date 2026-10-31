@@ -34,17 +34,18 @@ class PdfAiWorkerTest {
     void neverCallsProviderWithoutClaimingCapacity() {
         when(queue.claim()).thenReturn(Optional.empty());
         assertFalse(worker.tick());
-        verify(client, never()).generate(anyString(), anyString());
+        verify(client, never()).generate(any(), anyString(), anyString());
     }
 
     @Test
     void retryableProviderFailureIsPersistedInsteadOfLostInMemory() {
-        PdfAiWork work = new PdfAiWork("job", "lease", 1, "가상 배우", List.of(), "bedrock", "model");
+        PdfAiWork work = new PdfAiWork("job", "lease", 1, "가상 배우", List.of(),
+                "bedrock", "model", -1, null, false, 0);
         when(queue.claim()).thenReturn(Optional.of(work));
         when(prompt.systemPrompt()).thenReturn("system");
         when(prompt.userPrompt(work.text(), work.roles())).thenReturn("input");
         PdfAiFailure failure = new PdfAiFailure("PROVIDER_ERROR", true);
-        when(client.generate("system", "input")).thenThrow(failure);
+        when(client.generate(work, "system", "input")).thenThrow(failure);
         assertTrue(worker.tick());
         verify(queue).fail(work, failure);
         verify(queue, never()).complete(eq(work), any());
@@ -52,9 +53,10 @@ class PdfAiWorkerTest {
 
     @Test
     void flowShowsCommittedCompletionWithoutSourceOrModelResponse() {
-        PdfAiWork work = new PdfAiWork("flow-job", "lease", 1, "SECRET_SOURCE", List.of(), "bedrock", "model");
+        PdfAiWork work = new PdfAiWork("flow-job", "lease", 1, "SECRET_SOURCE", List.of(),
+                "bedrock", "model", -1, null, false, 0);
         when(queue.claim()).thenReturn(Optional.of(work));
-        when(client.generate(any(), any())).thenReturn("SECRET_MODEL_RESPONSE");
+        when(client.generate(any(), any(), any())).thenReturn("SECRET_MODEL_RESPONSE");
         when(queue.complete(eq(work), any())).thenReturn(true);
         Logger logger = (Logger) LoggerFactory.getLogger(PdfAiWorker.class);
         final Level originalLevel = logger.getLevel();
@@ -64,7 +66,8 @@ class PdfAiWorkerTest {
         logger.setLevel(Level.DEBUG);
         try {
             worker.tick();
-            List<String> messages = appender.list.stream().map(ILoggingEvent::getFormattedMessage).toList();
+            List<String> messages = appender.list.stream().filter(event -> event.getLevel() == Level.DEBUG)
+                    .map(ILoggingEvent::getFormattedMessage).toList();
             assertEquals(3, messages.size());
             assertTrue(messages.get(0).contains("stage=AI_REQUEST_STARTED jobId=flow-job"));
             assertTrue(messages.get(1).contains("stage=AI_RESPONSE_RECEIVED jobId=flow-job"));
@@ -73,6 +76,29 @@ class PdfAiWorkerTest {
         } finally {
             logger.detachAppender(appender);
             logger.setLevel(originalLevel);
+            appender.stop();
+        }
+    }
+
+    @Test
+    void truncatedProviderResponseHasItsOwnMetricOutcome() {
+        PdfAiWork work = new PdfAiWork("job", "lease", 1, "source", List.of(),
+                "bedrock", "model", -1, null, false, 0);
+        when(queue.claim()).thenReturn(Optional.of(work));
+        when(client.generate(any(), any(), any())).thenThrow(
+                new PdfAiFailure("INVALID_MODEL_OUTPUT", false, "PROVIDER_STOP_OR_MISSING_MESSAGE"));
+        Logger logger = (Logger) LoggerFactory.getLogger(PdfAiWorker.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            worker.tick();
+            var metrics = appender.list.stream().filter(event -> event.getKeyValuePairs() != null).toList();
+            assertEquals(1, metrics.size());
+            assertTrue(metrics.getFirst().getKeyValuePairs().stream().anyMatch(value -> value.key.equals("outcome")
+                    && value.value.equals("RESPONSE_REJECTED")));
+        } finally {
+            logger.detachAppender(appender);
             appender.stop();
         }
     }
