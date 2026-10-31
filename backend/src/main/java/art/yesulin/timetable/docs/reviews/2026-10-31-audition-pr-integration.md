@@ -6,7 +6,7 @@
 | ID | 기대 결과 / 실패 경계 | 검증 | 필수 | 결과 |
 | --- | --- | --- | --- | --- |
 | P1 | 심사·연락처·일정 전체 프론트 회귀 및 빌드 | Vitest/lint/build | Y | PASS |
-| P2 | 신규 migration과 익명/소유 일정 백엔드 회귀 | Gradle test/build/checkstyle | Y | PASS |
+| P2 | 신규 migration과 익명/소유 일정 백엔드 회귀 | Gradle test/build/checkstyle | Y | UNVERIFIED |
 | P3 | 최신 dev 통합·관련 변경만 커밋 | fetch/rebase/diff/secret·미사용 점검 | Y | PASS |
 | P4 | 독립 평가1회·기존 문제 상태/이력 보존 | 읽기 전용 평가·후속 정정 기록 | Y | PASS |
 | P5 | dev PR·이슈·검증/문제 집계 게시 | 원격 PR 확인 | Y | UNVERIFIED |
@@ -24,3 +24,19 @@
 - 기존 regression-F01 해결은 기존 ID에 FIXED 사건 추가. 기존 regression-F02는 재점검 식별자를 정정했지만 이전 원본 이력은 추정하지 않아 OPEN. UX 알림/저장 맥락 두 문제는 새 발견이 아닌 ID 정정 후 FIXED 기록.
 - 신규 발견0 / 해결0 / 미해결0, P0~P3각0, PRECHECK/INDEPENDENT_REVIEW/POST_FIX_CHECK/EXTERNAL각0, 오탐0. 기존 문제 해결1(H2), UX2개는 이전 시각 변경 작업에서 해결된 근거를 현재 재확인한 기록이다.
 - 운영 MySQL 적용·실데이터·배포·실제 문자/메일·300건 부하 미검증. 소유 일정은 확정/배우 공개/발송을 연결하지 않음. 로컬 합성 DB는 앞선 미커밋 migration checksum과 달라 다음 재기동 전 별도 로컬 정리가 필요할 수 있고, 실제 DB의 Flyway 이력을 임의로 고치지 않았다.
+
+## 게시 직전 dev 추가 반영
+
+최종 fetch에서 origin/dev `ab88d623` (#476)이 추가되어 재배치했다. 신규 PDF AI 모델 migration `20261031190000`보다 우리 `20261031150000`이 낮아 순서 검사가 거절되는 것을 재현했다. 아직 병합되지 않은 일정 migration만 `V20261031200000__add_owned_timetable_rosters.sql`로 변경했다. SQL 본문은 단일 ALTER 수정 후 그대로이며 기존 dev migration은 수정하지 않았다.
+`check_flyway_migration_order.sh origin/dev` 및 `check_flyway_contract_changes.sh origin/dev` PASS. 최종 dev AI 변경을 포함한 backend 전체 build는 별도로 재실행한다.
+
+| 문제 ID | 심각도 / 유형 / 유입 | 발견 경로 | 상태 | 근거·조치 |
+| --- | --- | --- | --- | --- |
+| 2026-10-31-audition-pr-integration-F01 | P2 / CODE / INTRODUCED | POST_FIX_CHECK | FIXED | 추가 dev 통합 후 신규 migration 버전이 기준보다 낮음. 파일 버전을200000으로 올리고 순서/호환 검사 통과 |
+
+| 사건 ID | 문제 ID | 사건 종류 | 발생 시각 | 근거 | 최초 PR |
+| --- | --- | --- | --- | --- | --- |
+| E01 | 2026-10-31-audition-pr-integration-F01 | CONFIRMED | 2026-10-31T19:48:13+09:00 | check_flyway_migration_order.sh가150000≤190000거절 | PENDING |
+| E02 | 2026-10-31-audition-pr-integration-F01 | FIXED | 2026-10-31T19:48:13+09:00 | 신규 파일명 변경 후 순서/contract검사PASS | PENDING |
+
+후속 신규 집계: 발견1/해결1/미해결0, P0=0/P1=0/P2=1/P3=0, PRECHECK0/INDEPENDENT_REVIEW0/POST_FIX_CHECK1/EXTERNAL0, 오탐0. 위 신규0 집계는 최종 fetch 이전 검토 이력이다.
