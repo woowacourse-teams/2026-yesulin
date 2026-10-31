@@ -71,12 +71,16 @@ function FocusReviewContent({
   readonly onBack?: () => void;
   readonly onMove: (candidate: Applicant | undefined) => void;
 }) {
-  const { board, assignRoles, confirmNavigation, requestNavigation, source, renderDocument, renderProfile, onNoteDirty, onApplicantViewed, onApplicantOpened, onBasicAction, applicantRefreshKey, filters, saving, reviewLocked, reviewFocused, patchReview, openApplicant } = useBoard();
+  const { board, assignRoles, confirmNavigation, requestNavigation, source, renderDocument, renderProfile, onNoteDirty, onApplicantViewed, onApplicantOpened, onBasicAction, onOriginalPdfClick, applicantRefreshKey, filters, saving, reviewLocked, reviewFocused, patchReview, openApplicant } = useBoard();
   useEffect(() => onApplicantViewed?.(applicant.id), [applicant.id, onApplicantViewed, applicantRefreshKey]);
   useEffect(() => onApplicantOpened?.(), [applicant.id, onApplicantOpened]);
   const [documentOpen, setDocumentOpen] = useState(false);
+  const openDocument = () => {
+    onOriginalPdfClick?.(applicant.id);
+    setDocumentOpen(true);
+  };
   const pdfProfile = source.kind === "PDF";
-  useEffect(() => startReviewTimer({ workflow: "producer_pdf", review_id: String(board.role.id), item_id: String(applicant.id) }), [board.role.id, applicant.id]);
+  useEffect(() => startReviewTimer({ metric_version: 1, workflow: "producer_pdf", review_id: String(board.role.id), item_id: String(applicant.id) }), [board.role.id, applicant.id]);
   const [otherOpen, setOtherOpen] = useState(false);
   const [otherReason, setOtherReason] = useState(
     applicant.review.status === "ETC" ? applicant.review.memo : "",
@@ -278,7 +282,7 @@ function FocusReviewContent({
                 </> : pdfProfile ? <>
                   <p className="font-semibold text-muted-strong">사진을 자동으로 확인하지 못했습니다</p>
                   <p className="text-xs leading-5">원문 PDF에서 사진을 확인해 주세요.</p>
-                  {renderDocument && <SecondaryButton onClick={() => setDocumentOpen(true)} className="shrink-0 whitespace-nowrap">원본 PDF 보기</SecondaryButton>}
+                  {renderDocument && <SecondaryButton onClick={openDocument} className="shrink-0 whitespace-nowrap">원본 PDF 보기</SecondaryButton>}
                 </> : "제출된 사진이 없습니다."}
               </div>
             )}
@@ -384,7 +388,7 @@ function FocusReviewContent({
           {pdfProfile && <>
             <div className={styles.profileHeading}><h2>지원자 정보</h2><div className={styles.profileTools}>
               {assignRoles && <SecondaryButton disabled={saving} onClick={() => assignRoles([applicant.id])}>배역 설정</SecondaryButton>}
-              {renderDocument && <SecondaryButton aria-expanded={documentOpen} onClick={() => setDocumentOpen(open => !open)}>{documentOpen ? "PDF 닫기" : "원본 PDF"}</SecondaryButton>}
+              {renderDocument && <SecondaryButton aria-expanded={documentOpen} onClick={() => { if (documentOpen) setDocumentOpen(false); else openDocument(); }}>{documentOpen ? "PDF 닫기" : "원본 PDF"}</SecondaryButton>}
             </div></div>
             {applicant.sourceDocument && <InfoRow label="처리 상태"><PdfPreparationStatus document={applicant.sourceDocument} /></InfoRow>}
             <InfoRow label="이름"><p className={styles.profileName}>{applicant.name}</p></InfoRow>

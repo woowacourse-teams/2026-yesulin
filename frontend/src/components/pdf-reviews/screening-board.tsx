@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { trackReviewAction } from "@/features/analytics/review-actions";
+import { trackOriginalPdfClick, trackReviewAction } from "@/features/analytics/review-actions";
 import { roleId, postingId, type SubmissionId, type ReviewStatus } from "@/features/auditions/types";
 import { fetchPdfExtraction } from "@/features/pdf-extractions/api";
 import type { PdfExtractionJob } from "@/features/pdf-extractions/types";
@@ -122,6 +122,7 @@ export function ScreeningBoard({ review, entries, decision, view, refreshKey, on
     filters: { work: decision === "PENDING" ? "PENDING" : "DONE" }, selected, saving, reviewLocked: false,
     toggleSelected: id => setSelected(current => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next; }),
     openApplicant: id => { trackReviewAction(String(review.id), String(id), view, "open"); navigate(() => setFocused(id)); }, assignRoles: review.roles.length ? openAssignment : undefined, requestNavigation: navigate, onNoteDirty: noteDirty,
+    onOriginalPdfClick: id => trackOriginalPdfClick(String(review.id), String(id), "review_detail", view),
     onBasicAction: (id, action, input) => trackReviewAction(String(review.id), String(id), view, action, input),
     onApplicantViewed: refreshApplicant,
     onApplicantOpened,
