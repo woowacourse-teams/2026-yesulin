@@ -80,3 +80,9 @@
 
 - F07 (`2026-10-31-pdf-observability-F07`): P2/TEST/EXISTING, PRECHECK. `review-timetable-panel.test.tsx`의 넓은 mock 타입이 React callback에 대입되지 않는 문제. 기능 동작 변경 없이 두 타입만 제한. 최초 기록 PR은 개발 통합 PR(PENDING), 운영 #482 신규 문제로 집계하지 않는다.
 - E13 / F07 / CONFIRMED / 2026-10-31T20:13:00+09:00 / origin/dev 동일 코드 및 tsc TS2322 확인.
+- E14 / F07 / FIXED / 2026-10-31T20:14:00+09:00 / 13개 테스트·tsc 통과, 독립 표적 평가 확인.
+- F08 (`2026-10-31-pdf-observability-F08`): P2/CODE/INTRODUCED, INDEPENDENT_REVIEW. 개발 통합 때 압축한 표 시작 y=2와 안내 h=3이 겹침. PDF 안내 h=2로 맞춰 기존 실제 대시보드 배치와 일치시켰다. 신규 대시보드 생성 때만 해당하며 실제 운영 타일은 이미 h=2라 겹치지 않았다.
+- E15 / F08 / CONFIRMED / 2026-10-31T20:14:00+09:00 / setup.mjs 배치값 표적 평가, 최초 개발 PR PENDING.
+- E16 / F08 / FIXED / 2026-10-31T20:14:00+09:00 / 안내 y0+h2=첫 표 y2, 이후 표 y2+4n/h4로 비중첩 정적 확인.
+
+개발 통합 PR의 신규 발견 2 / 해결 2 / 미해결 0 (P2 2, PRECHECK 1 / INDEPENDENT_REVIEW 1). F01~F06은 #482 기존 참조로 신규 발견에서 제외.

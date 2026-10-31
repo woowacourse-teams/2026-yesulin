@@ -62,7 +62,7 @@ for (const definition of definitions) {
     ? await request(`dashboards/${dashboard.id}/`, "PATCH", body)
     : await request("dashboards/", "POST", body);
   if (creating) await request(`dashboards/${dashboard.id}/create_text_tile/`, "POST", {
-    body: introduction(definition), layouts: { sm: { x: 0, y: 0, w: 12, h: 3 } },
+    body: introduction(definition), layouts: { sm: { x: 0, y: 0, w: 12, h: definition.name.startsWith("03 ") ? 2 : 3 } },
   });
   let order = 0;
   for (const insight of definition.insights) {
