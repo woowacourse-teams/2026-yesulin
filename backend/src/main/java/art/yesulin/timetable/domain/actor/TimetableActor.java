@@ -31,13 +31,15 @@ import org.hibernate.annotations.DynamicUpdate;
 
 /**
  * 기획사가 일정표에 등록한 합격 배우다. 회원이 아니며 문자로 받은 개인 링크의 열쇠로 자기 일정만 본다.
- * 시간 칸은 기획사의 배정과 배우의 직접 변경으로만 바뀌고, 둘 다 일정표 행을 잠근 뒤 {@link TimetableBoard}를 거친다.
+ * 익명 일정의 배정은 일정표 행을 잠근 뒤 {@link TimetableBoard}를 거친다.
+ * 계정 일정은 소유권 잠금 뒤 자유 날짜·시각을 배정하며 초대하지 않는다.
  */
 @Entity
 @DynamicUpdate
 @Table(name = "timetable_actors", uniqueConstraints = {
         @UniqueConstraint(name = "uk_timetable_actors_access_key", columnNames = "access_key"),
-        @UniqueConstraint(name = "uk_timetable_actors_phone", columnNames = {"timetable_id", "phone"})
+        @UniqueConstraint(name = "uk_timetable_actors_phone", columnNames = {"timetable_id", "phone"}),
+        @UniqueConstraint(name = "uk_timetable_actors_source", columnNames = {"timetable_id", "source_applicant_id"})
 })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -56,11 +58,23 @@ public class TimetableActor {
     @AttributeOverride(name = "value", column = @Column(name = "access_key", nullable = false, updatable = false))
     private TimetableKey accessKey;
 
-    @Column(nullable = false, updatable = false, length = MAX_NAME_LENGTH)
+    @Column(nullable = false, length = MAX_NAME_LENGTH)
     private String name;
 
-    @Column(nullable = false, updatable = false, length = MobilePhone.LENGTH)
+    @Column(length = MobilePhone.LENGTH)
     private String phone;
+
+    @Column(nullable = false, length = 254)
+    private String email = "";
+
+    @Column(name = "source_review_id", length = 36, updatable = false)
+    private String sourceReviewId;
+
+    @Column(name = "source_applicant_id", length = 36, updatable = false)
+    private String sourceApplicantId;
+
+    @Column(name = "role_name", nullable = false, length = 100)
+    private String roleName = "";
 
     @Getter(AccessLevel.NONE)
     @Column(name = "slot_date")
@@ -90,6 +104,32 @@ public class TimetableActor {
         this.accessKey = TimetableKey.generate();
         this.name = requireName(name);
         this.phone = MobilePhone.require(phone, "‘" + this.name + "’ 배우의");
+    }
+
+    public static TimetableActor imported(long timetableId, String reviewId, String applicantId,
+                                         String name, String phone, String email, String roleName) {
+        TimetableActor actor = new TimetableActor();
+        actor.timetableId = requirePositive(timetableId, "일정표 ID가 필요합니다.");
+        actor.accessKey = TimetableKey.generate();
+        actor.sourceReviewId = requireNonNull(reviewId, "심사함 ID가 필요합니다.");
+        actor.sourceApplicantId = requireNonNull(applicantId, "지원자 ID가 필요합니다.");
+        actor.roleName = requireNonNull(roleName, "배역 정보가 필요합니다.");
+        actor.updateContact(name, phone, email);
+        return actor;
+    }
+
+    /** 공연사 전용 초안 서비스에서만 호출한다. 누락된 번호는 null로 저장해 빈 번호끼리 중복되지 않는다. */
+    public void updateContact(String name, String phone, String email) {
+        String nextName = requireName(name);
+        String nextPhone = phone == null || phone.isBlank() ? null : MobilePhone.require(phone, nextName);
+        String nextEmail = email == null ? "" : email.trim();
+        if (nextEmail.length() > 254 || (!nextEmail.isEmpty()
+                && !nextEmail.matches("[^\\s@]+@[^\\s@]+\\.[^\\s@]+"))) {
+            throw new BusinessException(INVALID_INPUT, "이메일 주소를 확인해 주세요.");
+        }
+        this.name = nextName;
+        this.phone = nextPhone;
+        this.email = nextEmail;
     }
 
     /** 배정되지 않았으면 null이다. */

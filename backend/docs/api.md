@@ -749,7 +749,42 @@ false로 바꿔도 종료일과 정원 조건을 다시 검사한다. 변경은 
 정원은 확정 매수보다 줄일 수 없고(`409 SHOW_SESSION_CAPACITY_BELOW_RESERVED`), 예매 기록이 있는 회차와 공연은
 삭제할 수 없다(`409 SHOW_SESSION_HAS_RESERVATIONS`, `409 SHOW_HAS_RESERVATIONS`).
 
-## 오디션 일정표 — 12개
+## 오디션 일정표 — 19개
+
+### 공연사 계정의 일정 명단 — 7개
+
+`/api/v1/producer-timetables`는 ACTIVE 공연사 로그인과 본인 소유권을 요구한다.
+쓰기는 CSRF 필수, 응답은 no-store/성공 200이며 관리 열쇠를 반환하지 않는다.
+
+| Method | Path (위 접두사 기준) | 요청 | 응답 |
+| --- | --- | --- | --- |
+| GET | `/` | 없음 | `[{id,title,actorCount}]` |
+| POST | `/` | `{creationKey: UUID,title: 1~60자}` | 일정 명단 |
+| GET | `/{id}` | 없음 | 일정 명단 |
+| POST | `/{id}/imports` | `{reviewId: UUID,actors:[{entryId: UUID,name,phone?,email?}]}` | 일정 명단 |
+| PATCH | `/{id}/actors/{actorId}` | `{name,phone?,email?,previousName,previousPhone,previousEmail}` | 일정 명단 |
+| DELETE | `/{id}/actors/{actorId}` | 없음 | 일정 명단 |
+| PATCH | `/{id}/assignments` | `{assignments:[{actorId,slot,previousSlot}]}` | 일정 명단 |
+
+명단은 `{id,title,actors:[{id,name,phone,email,roleName,sourceReviewId,sourceApplicantId,sourceDecision,slot}]}`다.
+전화 미입력은 null, 이메일 미입력은 빈 문자열이다. name 1~30자, 입력한 phone은 기존 휴대폰 형식(최대 13자),
+email은 이메일 형식(최대 254자)이다. sourceDecision은 현재 원본 판정이며 출처가 없으면 null이다.
+같은 creationKey로 생성 재시도 시 기존 일정과 제목을 유지한다. 가져오기는 같은 심사의 서로 다른 출처 1~300건을 받아
+새 출처의 본인 소유·PASS 여부를 잠금 안에서 확인한다. 같은 일정에 등록한 동일 출처는 건너뛰며 기존 연락처를 유지한다.
+다른 출처의 번호 중복은 409 TIMETABLE_DUPLICATE_ACTOR, 총 300명 초과는 409 TIMETABLE_TOO_MANY_ACTORS,
+PASS 변경 또는 연락처 previous 불일치는 409 TIMETABLE_ASSIGNMENT_CONFLICT다. 실패 시 전체 요청을 롤백한다.
+타인/없는 일정·원본·일정에 속하지 않은 배우는 404 TIMETABLE_NOT_FOUND다.
+`slot`은 미배정이면 null, 배정이면 `{date:"YYYY-MM-DD",startTime:"HH:mm:ss"}`다.
+배정 PATCH는 서로 다른 배우 1~300명을 받으며 변경한 행만 전송한다. `slot:null`은 배정 해제,
+`previousSlot`은 편집 시작 시 조회값(미배정은 null)이다. 날짜는 1000~9999년, 한국 시간 분 단위이며
+요청 시각은 `HH:mm` 또는 초가 00인 `HH:mm:ss`다. 날짜/시각 중 하나만 있는 slot은 400이다.
+같은 시간 여러 명·과거 날짜를 허용하고 시간 칸/정원을 강제하지 않는다. 현재 값이 요청 slot과 같으면
+재시도 성공으로 처리한다. 그렇지 않고 previousSlot과 다르면 409 TIMETABLE_ASSIGNMENT_CONFLICT다.
+일정 소유권과 배우 소속을 잠금 안에서 확인하고 한 행이라도 실패하면 전체 배정을 롤백한다.
+배정 API는 날짜/시각만 변경한다. 명단 작업·배정은 확정·초대·메시지 발송을 하지 않으며
+심사 판정 저장으로 집계하지 않는다.
+
+### 기존 비로그인 일정표
 
 로그인 없이 링크 열쇠로 쓰는 독립 일정표다. 관리 API는 기획사의 관리 링크 열쇠, 배우 API는 배우의 개인 링크 열쇠를
 `X-Timetable-Key` 헤더로 받는다. 열쇠는 URL-safe Base64 22자다. 열쇠는 요청 로그에 남지 않도록 경로·쿼리에 넣지 않는다. 헤더가 없으면

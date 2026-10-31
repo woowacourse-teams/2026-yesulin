@@ -66,6 +66,15 @@
 
 ## 오디션 일정표
 
+계정 명단 경로는 `ProducerTimetableService`가 담당한다. owner_id/creation_key가 있는 일정은 관리 키 없이
+생성하고 빈 시간 칸/0분/0명인 준비 상태다. 공통 모델을 사용하되 익명 API에서 계정 일정을 차단한다.
+배우의 출처 심사/지원자 ID와 배역·이메일을 저장하고 전화 누락을 허용한다. 회원 행 잠금으로 생성 재시도,
+일정 행/지원자 행 잠금과 유일 제약으로 가져오기 재시도를 보호한다. 기존 생성자·연락처 검증은 유지한다.
+상세는 [명단 정책](../src/main/java/art/yesulin/timetable/docs/policies/producer-roster.md)을 따른다.
+공연사 자유 배정은 `ProducerTimetableService.assign`에서 소유 일정 잠금 후 변경 행의 기존 slot을 비교하고
+`TimetableActor.assign`으로 저장한다. 익명 `TimetableBoard`의 시간 칸·정원 규칙은 별도 경로에 유지한다.
+아래는 기존 독립 일정의 구조다.
+
 - `Timetable`은 관리 열쇠, 안내 정보(`TimetableProfile`), 소요 시간·정원과 정렬된 `TimetableWindow` 목록
   (`timetable_windows` element collection), `DRAFT/PUBLISHED`를 저장한다. 시간 칸(`TimeSlot`)은 저장하지
   않고 시간대에서 계산한다. 공연·공고·회원과 연결하지 않는다. `updateSetting`은 새 시간 칸이 기존 시간 칸을 모두 포함하고
