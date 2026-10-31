@@ -41,6 +41,9 @@ public class TimetableMessenger {
 
     public void sendManageLink(long timetableId) {
         Timetable timetable = timetableRepository.findById(timetableId).orElseThrow();
+        if (timetable.isOwned()) {
+            return;
+        }
         String body = compose(
                 "오디션 일정표 관리 링크",
                 """

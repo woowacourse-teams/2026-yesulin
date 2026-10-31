@@ -37,7 +37,8 @@ import org.springframework.data.domain.AbstractAggregateRoot;
 @Entity
 @DynamicUpdate
 @Table(name = "timetables", uniqueConstraints = {
-        @UniqueConstraint(name = "uk_timetables_manage_key", columnNames = "manage_key")
+        @UniqueConstraint(name = "uk_timetables_manage_key", columnNames = "manage_key"),
+        @UniqueConstraint(name = "uk_timetables_owner_creation", columnNames = {"owner_id", "creation_key"})
 })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -47,8 +48,14 @@ public class Timetable extends AbstractAggregateRoot<Timetable> {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "owner_id", updatable = false)
+    private Long ownerId;
+
+    @Column(name = "creation_key", length = 36, updatable = false)
+    private String creationKey;
+
     @Embedded
-    @AttributeOverride(name = "value", column = @Column(name = "manage_key", nullable = false, updatable = false))
+    @AttributeOverride(name = "value", column = @Column(name = "manage_key", updatable = false))
     private TimetableKey manageKey;
 
     @Embedded
@@ -77,6 +84,21 @@ public class Timetable extends AbstractAggregateRoot<Timetable> {
         updateProfile(profile);
         this.setting = requireNonNull(setting, "시간 칸 설정은 필수입니다.");
         this.invitationTemplate = InvitationTemplate.defaultTemplate();
+    }
+
+    public static Timetable ownedDraft(long ownerId, String creationKey, String title) {
+        Timetable timetable = new Timetable();
+        timetable.ownerId = art.yesulin.global.validation.DomainValidator.requirePositive(ownerId, "소유자가 필요합니다.");
+        timetable.creationKey = java.util.UUID.fromString(creationKey).toString();
+        timetable.profile = TimetableProfile.draft(title);
+        timetable.setting = TimetableSetting.unplanned();
+        timetable.invitationTemplate = InvitationTemplate.defaultTemplate();
+        timetable.status = TimetableStatus.DRAFT;
+        return timetable;
+    }
+
+    public boolean isOwned() {
+        return ownerId != null;
     }
 
     public void updateProfile(TimetableProfile profile) {
@@ -113,6 +135,8 @@ public class Timetable extends AbstractAggregateRoot<Timetable> {
     
     @PostPersist
     private void registerCreatedEvent() {
-        registerEvent(new TimetableCreatedEvent(id));
+        if (!isOwned()) {
+            registerEvent(new TimetableCreatedEvent(id));
+        }
     }
 }

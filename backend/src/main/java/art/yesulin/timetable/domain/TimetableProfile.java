@@ -55,6 +55,17 @@ public class TimetableProfile {
         this.guide = optional(guide, MAX_GUIDE_LENGTH, "안내 사항은 %d자를 넘을 수 없습니다.");
     }
 
+    public static TimetableProfile draft(String title) {
+        TimetableProfile profile = new TimetableProfile();
+        profile.title = required(title, MAX_TITLE_LENGTH, "일정 이름을 입력해 주세요.", "일정 이름은 %d자 이하로 입력해 주세요.");
+        profile.organizerName = "";
+        profile.contactName = "";
+        profile.organizerPhone = "";
+        profile.location = "";
+        profile.guide = "";
+        return profile;
+    }
+
     private static String required(String value, int maxLength, String emptyMessage, String tooLongMessage) {
         String normalized = optional(value, maxLength, tooLongMessage);
         if (normalized.isEmpty()) {

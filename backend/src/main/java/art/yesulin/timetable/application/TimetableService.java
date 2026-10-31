@@ -56,6 +56,7 @@ public class TimetableService {
     public TimetableBoardResult find(String manageKey) {
         Timetable timetable = TimetableKey.parse(manageKey)
                 .flatMap(timetableRepository::findByManageKey)
+                .filter(item -> !item.isOwned())
                 .orElseThrow(this::notFound);
         return boardOf(timetable, actorsOf(timetable));
     }
@@ -188,6 +189,7 @@ public class TimetableService {
     private Timetable lock(String manageKey) {
         return TimetableKey.parse(manageKey)
                 .flatMap(timetableRepository::findByManageKeyForUpdate)
+                .filter(item -> !item.isOwned())
                 .orElseThrow(this::notFound);
     }
 

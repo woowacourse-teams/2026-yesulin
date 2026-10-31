@@ -383,7 +383,7 @@ function FocusReviewContent({
               {renderDocument && <SecondaryButton aria-expanded={documentOpen} onClick={() => setDocumentOpen(open => !open)}>{documentOpen ? "PDF 닫기" : "원본 PDF"}</SecondaryButton>}
             </div></div>
             {applicant.sourceDocument && <InfoRow label="처리 상태"><PdfPreparationStatus document={applicant.sourceDocument} /></InfoRow>}
-            <InfoRow label="이름"><p className="font-semibold">{applicant.name}</p></InfoRow>
+            <InfoRow label="이름"><p className={styles.profileName}>{applicant.name}</p></InfoRow>
             <InfoRow label="배역">{applicant.roleName}</InfoRow>
           </>}
           {!pdfProfile && <SecondaryButton onClick={() => openApplicant(applicant.id)} className="mb-3 min-h-9 w-full text-xs">
@@ -436,12 +436,12 @@ function FocusReviewContent({
               value={note}
               onChange={(event) => { if (note === applicant.review.note) noteRevision.current = applicant.review.revision; setNote(event.target.value); onNoteDirty?.(event.target.value !== applicant.review.note); }}
               maxLength={2000}
-              className="min-h-20 w-full resize-none rounded-control border border-border bg-card px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand-soft disabled:bg-surface"
+              className={`${styles.profileMemo} min-h-20 w-full resize-none rounded-control border border-border bg-card px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand-soft disabled:bg-surface`}
             />
             <SecondaryButton
               disabled={reviewLocked || saving || note === applicant.review.note}
               onClick={() => void patchReview(applicant.id, { note, revision: noteRevision.current })}
-              className="mt-2 min-h-9 w-full text-xs"
+              className={`${styles.memoSave} mt-2 min-h-9 w-full text-xs`}
             >
               메모 저장
             </SecondaryButton>
@@ -627,7 +627,7 @@ function GalleryArrow({ label, direction, disabled, onClick }: { label: string; 
 
 function InfoRow({ label, children }: { readonly label: string; readonly children: ReactNode }) {
   return (
-    <div className="flex gap-4 border-b border-border-soft py-3 text-sm leading-6 first:pt-0">
+    <div className={`${styles.profileInfoRow} flex gap-4 border-b border-border-soft py-3 text-sm leading-6 first:pt-0`}>
       <span className="w-14 shrink-0 text-muted">{label}</span>
       <span className="min-w-0 break-words font-medium text-foreground">{children}</span>
     </div>
@@ -636,7 +636,7 @@ function InfoRow({ label, children }: { readonly label: string; readonly childre
 
 function FocusSection({ title, children }: { readonly title: string; readonly children: ReactNode }) {
   return (
-    <section className="mt-4">
+    <section className={`${styles.profileSection} mt-4`}>
       <h3 className="mb-3 text-sm font-semibold text-muted-strong">{title}</h3>
       {children}
     </section>
