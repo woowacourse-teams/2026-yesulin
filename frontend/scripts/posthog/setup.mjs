@@ -36,6 +36,14 @@ async function list(path) {
   return all;
 }
 
+const previousNames = {
+  "03 PDF · 실제 활용과 조작 편의": "03 PDF와 심사 시간",
+  "① PDF 기능은 어느 단계에서 막히나요?": "PDF를 올린 뒤 어디까지 사용했나요?",
+  "② 공연사가 실제로 열어보고 판정을 저장하나요?": "공연사 PDF가 실제 심사로 이어지나요?",
+  "참고 · 개별 지원자 화면에 머문 시간": "심사에 총 몇 분을 쓰고 있나요?",
+  "검토·보류·최종 판정은 각각 몇 명인가요?": "심사를 몇 명까지 끝냈나요?",
+};
+const matchesName = (actual, name) => actual === name || actual === previousNames[name];
 // 이름과 자체 태그로만 갱신한다. 팀원이 만든 다른 대시보드는 수정·삭제하지 않는다.
 const tag = "yesulin-analytics-v1";
 const projectInfo = await request("");
@@ -46,7 +54,7 @@ if (projectInfo.timezone !== "Asia/Seoul" || projectInfo.week_start_day !== 1) {
 const dashboards = await list("dashboards/?limit=100");
 const insights = await list("insights/?limit=100");
 for (const definition of definitions) {
-  let dashboard = dashboards.find(d => d.name === definition.name && d.tags?.includes(tag) && !d.deleted);
+  let dashboard = dashboards.find(d => matchesName(d.name, definition.name) && d.tags?.includes(tag) && !d.deleted);
   const creating = !dashboard;
   const primary = environment === "production" && definition === definitions[0];
   const body = { name: definition.name, description: definition.description, tags: [tag, environment], pinned: primary };
@@ -62,7 +70,7 @@ for (const definition of definitions) {
     const query = insight.query.source ?? insight.query;
     const checked = await request("query/", "POST", { query });
     if (checked.error || checked.query_status?.error) throw new Error(`쿼리 검증 실패: ${insight.name}`);
-    const existing = insights.find(i => i.name === insight.name && i.tags?.includes(tag) &&
+    const existing = insights.find(i => matchesName(i.name, insight.name) && i.tags?.includes(tag) &&
       (i.dashboards?.includes(dashboard.id) || i.dashboard_tiles?.some(t => t.dashboard_id === dashboard.id && !t.deleted)) && !i.deleted);
     const data = { ...insight, dashboards: [dashboard.id], tags: [tag], order: order++, saved: true };
     if (existing) await request(`insights/${existing.id}/`, "PATCH", data);
@@ -72,7 +80,7 @@ for (const definition of definitions) {
   const tiles = definition.insights.map((insight, index) => {
     const tile = saved.tiles.find(t => t.insight?.name === insight.name);
     if (!tile) throw new Error(`저장된 차트를 찾을 수 없습니다: ${insight.name}`);
-    return { id: tile.id, layouts: { sm: insightLayout(index, definition.insights.length) }, show_description: true };
+    return { id: tile.id, layouts: { sm: definition.name.startsWith("03 ") ? { x: 0, y: 4 + index * 7, w: 12, h: 7 } : insightLayout(index, definition.insights.length) }, show_description: true };
   });
   await request(`dashboards/${dashboard.id}/`, "PATCH", { tiles });
   console.log(`${definition.name}: ${host}/project/${project}/dashboard/${dashboard.id}`);
