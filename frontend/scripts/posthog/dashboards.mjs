@@ -174,6 +174,27 @@ ORDER BY \`주 시작일\` WITH FILL STEP INTERVAL 1 WEEK` },
     },
   });
   dashboards[2].insights = [0, 6, 1, 5, 2, 3, 7, 8, 4].map(index => dashboards[2].insights[index]);
+  dashboards[2].insights.splice(4, 0, table("원본 PDF를 얼마나 다시 확인하나요?", `
+    WITH per_reviewer AS (
+      SELECT person_id, properties.review_id AS review_id, properties.item_id AS item_id,
+        countIf(event='review_item_viewed') AS views,
+        countIf(event='review_original_pdf_clicked') AS clicks,
+        countIf(event='review_original_pdf_clicked' AND properties.pdf_open_source='review_detail') AS detail_clicks
+      FROM events
+      WHERE event IN ('review_item_viewed','review_original_pdf_clicked')
+        AND properties.workflow='producer_pdf' AND properties.metric_version=1
+        AND ${base} AND {filters}
+      GROUP BY person_id, review_id, item_id
+    )
+    SELECT review_id AS \`심사 번호\`, sum(clicks) AS \`원본 클릭 횟수\`,
+      uniqIf(item_id,views>0) AS \`열람 지원자 수\`,
+      uniqIf(item_id,views>0 AND detail_clicks>0) AS \`원본 확인 지원자 수\`,
+      round(100.0*uniqIf(item_id,views>0 AND detail_clicks>0)/nullIf(uniqIf(item_id,views>0),0),1) AS \`원본 확인 비율 퍼센트\`,
+      sum(greatest(clicks-1,0)) AS \`반복 클릭 횟수\`
+    FROM per_reviewer GROUP BY review_id`,
+    "2026-11-01 구현·배포 이후 v1 기록만 집계. 클릭은 원본 열기 시도이며 표시·독서 성공이 아닙니다. 비율=같은 기간·심사자의 상세 열람과 상세 화면 원본 클릭이 모두 있는 지원자/상세 열람 지원자. 총 클릭은 합격자 연락처도 포함. 지원자는 심사별 중복 제거. 반복은 같은 심사자·지원자의 첫 클릭을 뺀 추가 횟수이며 기간을 바꾸면 달라집니다. PDF 닫기·뷰어 내부 새 창/다운로드·기본 심사 버튼 수와 분리합니다. 빈 비율은 분모 없음."));
+
+  dashboards[2].insights.splice(5, 0, table("원본 PDF 버튼은 어디에서 누르나요?", `SELECT properties.review_id AS \`심사 번호\`, if(properties.pdf_open_source='passed_contacts','합격자 연락처','심사 상세') AS \`버튼 위치\`, count() AS \`원본 클릭 횟수\` FROM events WHERE event='review_original_pdf_clicked' AND properties.metric_version=1 AND ${base} AND {filters} GROUP BY properties.review_id, properties.pdf_open_source`, "심사 상세의 원본 PDF·사진 미추출 안내 버튼과 합격자 연락처의 PDF 보기 버튼을 구분합니다. 새 창·다운로드 등 뷰어 내부 조작은 제외합니다. 클릭 횟수이며 PDF 표시 성공이 아닙니다."));
   if (environment === "development") {
     return [{ ...dashboards[3], name: "개발 전용 · 측정 점검", description: "개발 사이트와 로컬 테스트 기록만 확인합니다. 운영 성과에 합산하지 않습니다.",
       insights: dashboards[3].insights.map(insight => ({ ...insight, name: `개발 · ${insight.name}` })) }];

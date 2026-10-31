@@ -62,7 +62,7 @@ for (const definition of definitions) {
     ? await request(`dashboards/${dashboard.id}/`, "PATCH", body)
     : await request("dashboards/", "POST", body);
   if (creating) await request(`dashboards/${dashboard.id}/create_text_tile/`, "POST", {
-    body: introduction(definition), layouts: { sm: { x: 0, y: 0, w: 12, h: 3 } },
+    body: introduction(definition), layouts: { sm: { x: 0, y: 0, w: 12, h: definition.name.startsWith("03 ") ? 2 : 3 } },
   });
   let order = 0;
   for (const insight of definition.insights) {
@@ -80,7 +80,7 @@ for (const definition of definitions) {
   const tiles = definition.insights.map((insight, index) => {
     const tile = saved.tiles.find(t => t.insight?.name === insight.name);
     if (!tile) throw new Error(`저장된 차트를 찾을 수 없습니다: ${insight.name}`);
-    return { id: tile.id, layouts: { sm: definition.name.startsWith("03 ") ? { x: 0, y: 4 + index * 7, w: 12, h: 7 } : insightLayout(index, definition.insights.length) }, show_description: true };
+    return { id: tile.id, layouts: { sm: definition.name.startsWith("03 ") ? { x: 0, y: 2 + index * 4, w: 12, h: 4 } : insightLayout(index, definition.insights.length) }, show_description: true };
   });
   await request(`dashboards/${dashboard.id}/`, "PATCH", { tiles });
   console.log(`${definition.name}: ${host}/project/${project}/dashboard/${dashboard.id}`);
