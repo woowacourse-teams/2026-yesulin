@@ -45,7 +45,8 @@ async function executeRequest<T>(
 ): Promise<T> {
   const method = (init?.method ?? "GET").toUpperCase();
   const baseHeaders = { "Content-Type": "application/json", ...init?.headers } as Record<string, string>;
-  const csrfHeaders = WRITE_METHODS.has(method) ? await withCsrfHeaders(baseHeaders) : baseHeaders;
+  const csrfHeaders = WRITE_METHODS.has(method) ? await withCsrfHeaders(baseHeaders, init?.signal ?? undefined) : baseHeaders;
+  init?.signal?.throwIfAborted();
   const correlated = withRequestId(csrfHeaders);
   let response: Response;
   try {
@@ -55,6 +56,7 @@ async function executeRequest<T>(
       headers: correlated.headers,
     });
   } catch (cause) {
+    init?.signal?.throwIfAborted();
     reportError(cause, {
       feature: "api",
       operation: "request",
@@ -63,8 +65,10 @@ async function executeRequest<T>(
     throw cause;
   }
 
+  init?.signal?.throwIfAborted();
   if (!response.ok) {
     const body: unknown = await response.json().catch(() => null);
+    init?.signal?.throwIfAborted();
     const detail = readErrorDetail(body);
     const error = new AuditionRequestError(
       readErrorMessage(body, detail),

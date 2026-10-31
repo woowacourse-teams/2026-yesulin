@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from "react";
 import { AddButton, FieldInput, FieldSelect, SecondaryButton, TextButton } from "@/components/ui/controls";
 import { SiteIcon } from "@/components/ui/site-icon";
-import { MAX_SOURCE_BYTES, shrinkPhoto } from "@/features/companies/photo-image";
-import { uploadEventRegistrationPhoto } from "@/features/events/api";
+import { MAX_SOURCE_BYTES } from "@/features/companies/photo-image";
+import { startEventPhotoUpload, type EventPhotoTask, type EventPhotoProgress } from "@/features/events/photo-upload-task";
 import { careerYears, emptyCareer, toggleActivityField, type CareerDraft, type RegistrationDraft } from "@/features/events/registration-draft";
 import { EVENT_ACTIVITY_FIELDS, EVENT_ACTIVITY_LABELS, EVENT_SNS_LABELS, EVENT_SNS_PLATFORMS, MAX_EVENT_SNS_HANDLE_LENGTH, MAX_REGISTRATION_CAREERS, MAX_REGISTRATION_INTRO, type EventSnsPlatform } from "@/features/events/types";
 import { BirthDateField } from "./event-registration-birth-date";
@@ -162,34 +162,45 @@ function PhotoField({ eventId, preview, onBusyChange, onChange }: {
   readonly onChange: (uploadKey: string, photo: Blob) => void;
 }) {
   const input = useRef<HTMLInputElement>(null);
-  const active = useRef(true);
-  const [status, setStatus] = useState<"idle" | "shrinking" | "uploading">("idle");
+  const currentTask = useRef<EventPhotoTask | null>(null);
+  const [progress, setProgress] = useState<EventPhotoProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [cancelled, setCancelled] = useState(false);
 
-  useEffect(() => { active.current = true; return () => { active.current = false; }; }, []);
+  useEffect(() => () => { currentTask.current?.cancel(); currentTask.current = null; }, []);
+
+  const cancel = () => {
+    currentTask.current?.cancel();
+    currentTask.current = null;
+    setProgress(null);
+    setCancelled(true);
+    onBusyChange(false);
+  };
 
   const choose = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
+    currentTask.current?.cancel();
     setError(null);
+    setCancelled(false);
     onBusyChange(true);
+    const task = startEventPhotoUpload(eventId, file, (next) => {
+      if (currentTask.current === task) setProgress(next);
+    });
+    currentTask.current = task;
     try {
-      setStatus("shrinking");
-      const photo = await shrinkPhoto(file);
-      if (!active.current) return;
-      setStatus("uploading");
-      const uploadKey = await uploadEventRegistrationPhoto(eventId, photo);
-      if (!active.current) return;
+      const { photo, uploadKey } = await task.result;
+      if (currentTask.current !== task) return;
       onChange(uploadKey, photo);
     } catch (cause) {
-      if (active.current) setError(cause instanceof Error ? cause.message : "사진을 올리지 못했습니다. 다시 시도해 주십시오.");
+      if (currentTask.current === task) setError(cause instanceof Error ? cause.message : "사진을 올리지 못했습니다. 다시 시도해 주십시오.");
     } finally {
-      if (active.current) { setStatus("idle"); onBusyChange(false); }
+      if (currentTask.current === task) { currentTask.current = null; setProgress(null); onBusyChange(false); }
     }
   };
 
-  const busy = status !== "idle";
+  const busy = progress !== null;
   return (
     <div role="group" aria-labelledby="registration-photo-title" aria-busy={busy} className="flex min-w-0 flex-col gap-2">
       <span id="registration-photo-title" className="text-sm font-semibold">명함에 넣을 사진<RequiredMark /></span>
@@ -200,13 +211,15 @@ function PhotoField({ eventId, preview, onBusyChange, onChange }: {
         ) : <div aria-hidden="true" className="flex h-28 w-20 shrink-0 items-center justify-center rounded-control border border-dashed border-brand/40 bg-card text-brand"><SiteIcon name="image" className="size-8" /></div>}
         <div className="min-w-0 flex-1">
           <p role="status" className={`text-sm font-semibold leading-6 ${preview && !busy && !error ? "text-pass" : "text-foreground"}`}>
-            {status === "shrinking" ? "사진을 준비하고 있어요…" : status === "uploading" ? "사진을 업로드하고 있어요…" : preview ? error ? "기존에 등록한 사진이 유지돼요" : "사진 등록 완료 · 1장" : "명함에 사용할 사진을 올려 주세요"}
+            {progress?.stage === "PREPARING" ? "사진을 준비하고 있어요…" : progress?.stage === "UPLOADING" ? "사진을 업로드하고 있어요…" : cancelled ? preview ? "사진 변경을 취소했어요. 기존 사진은 유지돼요." : "사진 업로드를 취소했어요. 다시 선택할 수 있어요." : preview ? error ? "기존에 등록한 사진이 유지돼요" : "사진 등록 완료 · 1장" : "명함에 사용할 사진을 올려 주세요"}
           </p>
+          {progress?.slow ? <p role="status" className="mt-2 text-sm leading-6 text-muted-strong">사진 {progress.stage === "PREPARING" ? "준비" : "전송"}가 평소보다 오래 걸리고 있어요. 잠시 기다리거나 취소 후 다시 선택해 주세요.</p> : null}
           <p id="registration-photo-hint" className="mt-1 text-xs leading-5 text-muted-strong">선택하면 자동으로 업로드돼요.<br />사진 1장 · 원본 최대 {MAX_SOURCE_BYTES / 1024 / 1024}MB</p>
           <input ref={input} type="file" accept="image/*,.heic,.heif" className="hidden" disabled={busy} onChange={(event) => void choose(event)} aria-label="명함 사진 파일" />
           <SecondaryButton disabled={busy} onClick={() => input.current?.click()} aria-describedby="registration-photo-hint" className="mt-3 w-full justify-center border-brand text-brand">
             {busy ? "사진 업로드 중…" : preview ? "다른 사진으로 변경" : "사진 선택해서 올리기"}
           </SecondaryButton>
+          {busy ? <TextButton onClick={cancel} className="mt-2 min-h-11 w-full">사진 업로드 취소</TextButton> : null}
         </div>
       </div>
       {error ? <p role="alert" className="text-sm font-semibold text-fail">{error}</p> : null}
