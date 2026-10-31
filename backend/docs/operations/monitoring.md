@@ -29,7 +29,9 @@ DEV는 message가 `PDF_FLOW ` 또는 `PDF_AI_FAILED `로 시작하는 PDF 처리
 DEBUG에서 응답 원문(`aiResponse`)·종료 사유·토큰 수도 기록하며, 세부 범위는
 [AI 정책](../../src/main/java/art/yesulin/pdfextraction/docs/policies/ai-processing.md#dev-실험용-응답-debug)을 따른다.
 응답 원문은 dev 활성·prod 비활성 조건으로 차단하여 prod에서 DEBUG를 켜도 출력하지 않는다.
-PROD 수집 필터는 기존 이벤트 목록을 유지한다.
+`PDF_AI_RESILIENCE`는 dev/prod 공통 INFO 이벤트로 수집한다. 작업 ID·세대·모델·결과·지연·토큰 수만 포함하며
+원문·응답·비밀은 넣지 않는다. 이는 일반 JSON 로그이며 custom metric/EMF/새 공개 endpoint는 추가하지 않는다.
+지표 정의와 집계 쿼리는 [모델 보호 평가 기록](../../src/main/java/art/yesulin/pdfextraction/docs/reviews/2026-10-31-model-resilience.md)을 따른다.
 필터는 다음 백엔드 배포의 monitoring hook에서 갱신되며, 과거 수집에서 제외한 로그는 CloudWatch에 소급 반영되지 않는다.
 파일의 ISO 시각대 `+09:00`을 해석하기 위해 Agent 서비스에만 `TZ=Asia/Seoul`을 설정하고 Local timestamp를 쓴다.
 기존 backend 로그 그룹 보관 설정은 바꾸지 않는다. 현재 DEV 30일, PROD 14일이며 새 그룹은 별도로 보관 기간을 지정한다.

@@ -37,6 +37,7 @@ import art.yesulin.pdfextraction.application.PdfExtractionResultReceiver;
 import art.yesulin.pdfextraction.application.PdfExtractionService;
 import art.yesulin.pdfextraction.application.ai.PdfAiProperties;
 import art.yesulin.pdfextraction.application.ai.PdfAiQueueService;
+import art.yesulin.pdfextraction.application.ai.PdfAiRoutingService;
 import art.yesulin.pdfextraction.domain.PdfExtractionErrorCode;
 import art.yesulin.pdfextraction.domain.PdfExtractionJob;
 import art.yesulin.pdfextraction.domain.PdfExtractionJobRepository;
@@ -91,7 +92,7 @@ class ProfileImportServiceTest {
         PdfAiProperties properties = new PdfAiProperties(false, "gemini", "test-model", "unused", 1, 3,
                 Duration.ofMinutes(2), Duration.ofSeconds(10), "none");
         PdfAiQueueService queue = new PdfAiQueueService(aiJobs, mock(PdfAiGateRepository.class), payloads,
-                MAPPER, event -> {}, properties, clock);
+                MAPPER, event -> {}, properties, clock, mock(PdfAiRoutingService.class));
         receiver = new PdfExtractionResultReceiver(repository, payloads,
                 new PdfExtractionResultParser(storage, MAPPER), storage, event -> {}, MAPPER, clock, queue);
         MemberRepository members = mock(MemberRepository.class);

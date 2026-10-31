@@ -94,6 +94,15 @@ yesulin:
     lease-duration: PT2M
     request-interval: ${YESULIN_PDF_AI_REQUEST_INTERVAL:PT0.2S}
     reasoning-effort: ${YESULIN_PDF_AI_REASONING_EFFORT:none}
+    resilience:
+      escalation-enabled: ${YESULIN_PDF_AI_ESCALATION_ENABLED:false}
+      escalation-model-id: ${YESULIN_PDF_AI_ESCALATION_MODEL_ID:global.openai.gpt-6-sol}
+      escalation-reasoning-effort: ${YESULIN_PDF_AI_ESCALATION_REASONING_EFFORT:low}
+      escalation-max-tokens: ${YESULIN_PDF_AI_ESCALATION_MAX_TOKENS:8192}
+      circuit-enabled: ${YESULIN_PDF_AI_CIRCUIT_ENABLED:false}
+      failure-threshold: ${YESULIN_PDF_AI_CIRCUIT_FAILURE_THRESHOLD:3}
+      open-duration: ${YESULIN_PDF_AI_CIRCUIT_OPEN_DURATION:PT60S}
+      max-open-duration: ${YESULIN_PDF_AI_CIRCUIT_MAX_OPEN_DURATION:PT5M}
   pdf-extraction:
     enabled: ${YESULIN_PDF_EXTRACTION_ENABLED:false}
   audition-post:
@@ -197,6 +206,12 @@ spring:
   config:
     activate:
       on-profile: dev
+yesulin:
+  pdf-ai:
+    request-interval: ${YESULIN_PDF_AI_REQUEST_INTERVAL:PT1S}
+    resilience:
+      escalation-enabled: ${YESULIN_PDF_AI_ESCALATION_ENABLED:true}
+      circuit-enabled: ${YESULIN_PDF_AI_CIRCUIT_ENABLED:true}
 logging:
   level:
     art.yesulin.pdfextraction: DEBUG

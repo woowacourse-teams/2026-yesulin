@@ -20,7 +20,7 @@ def render(existing, environment, role):
         "log_stream_name": "{instance_id}",
     }
     if role == "backend":
-        expression = r'"event"\s*:\s*"(HTTP_REQUEST|RUNTIME_METRICS|RUNTIME_METRICS_FAILURE|UNEXPECTED_ERROR|UNEXPECTED_SERVICE_ERROR|SLOW_SERVICE)"'
+        expression = r'"event"\s*:\s*"(HTTP_REQUEST|RUNTIME_METRICS|RUNTIME_METRICS_FAILURE|UNEXPECTED_ERROR|UNEXPECTED_SERVICE_ERROR|SLOW_SERVICE|PDF_AI_RESILIENCE)"'
         if environment == "dev":
             expression += r'|"message"\s*:\s*"PDF_(FLOW|AI_FAILED)(\s|")'
         owned.update(timestamp_format="%Y-%m-%dT%H:%M:%S.%f", timezone="Local", filters=[{

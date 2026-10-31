@@ -88,6 +88,22 @@ class PdfAiJobTest {
         return new PdfAiJob("job", "review", 1L, "[]", NOW);
     }
 
+    @Test
+    void escalationIsStickyAcrossExpiredLeasesAndResetsOnlyForExplicitRetry() {
+        PdfAiJob job = job();
+        job.requestEscalation(acquire(job, NOW), NOW);
+        assertEquals(0, job.getAttempts());
+        String sol = acquire(job, NOW);
+        assertThrows(IllegalStateException.class, () -> job.requestEscalation(sol, NOW));
+        job.recoverExpired(3, NOW.plusSeconds(120));
+        assertTrue(job.isEscalationPending());
+        String second = acquire(job, NOW.plusSeconds(135));
+        job.fail(second, "INVALID_MODEL_OUTPUT", false, 3, NOW.plusSeconds(135));
+        assertTrue(job.requestRetry(2, NOW.plusSeconds(135).toEpochMilli(), 0, NOW.plusSeconds(136)));
+        assertFalse(job.isEscalationPending());
+        assertEquals(0, job.getAttempts());
+    }
+
     private String acquire(PdfAiJob job, Instant now) {
         return job.acquire(now, Duration.ofMinutes(2), "bedrock", "test-model", "prompt-v1");
     }

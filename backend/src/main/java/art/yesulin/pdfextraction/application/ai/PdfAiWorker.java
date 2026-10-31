@@ -29,9 +29,16 @@ public class PdfAiWorker {
         PdfAiWork work = next.get();
         long started = System.nanoTime();
         log.debug("PDF_FLOW stage=AI_REQUEST_STARTED jobId={}", work.jobId());
+        boolean providerResponded = false;
+        boolean providerCalled = false;
         try {
-            String response = diagnostics.withJob(work.jobId(),
-                    () -> client.generate(prompt.systemPrompt(), prompt.userPrompt(work.text(), work.roles())));
+            String system = prompt.systemPrompt();
+            String user = prompt.userPrompt(work.text(), work.roles());
+            providerCalled = true;
+            final String response = diagnostics.withJob(work.jobId(),
+                    () -> client.generate(work, system, user));
+            providerResponded = true;
+            providerMetric(work, "SUCCESS", started);
             log.debug("PDF_FLOW stage=AI_RESPONSE_RECEIVED jobId={} elapsedMs={}", work.jobId(), elapsed(started));
             PdfApplicantInfo info = parser.parse(response, work.text(), work.roles(),
                     work.provider(), work.modelId());
@@ -41,18 +48,34 @@ public class PdfAiWorker {
                 log.debug("PDF_FLOW stage=RESULT_IGNORED jobId={} reason=STALE_OR_DELETED", work.jobId());
             }
         } catch (PdfAiFailure failure) {
+            if (providerCalled && !providerResponded) {
+                String outcome = failure.rateLimited() ? "RATE_LIMITED"
+                        : "INVALID_MODEL_OUTPUT".equals(failure.code()) ? "RESPONSE_REJECTED" : "ERROR";
+                providerMetric(work, outcome, started);
+            }
             diagnostics.failed(work.jobId(), failure.reason());
             queue.fail(work, failure);
             log.debug("PDF_FLOW stage=AI_ATTEMPT_FAILED jobId={} code={} retryable={} elapsedMs={}",
                     work.jobId(), failure.code(), failure.retryable(), elapsed(started));
             log.warn("PDF_AI_FAILED jobId={} code={} retryable={}", work.jobId(), failure.code(), failure.retryable());
         } catch (RuntimeException exception) {
+            if (providerCalled && !providerResponded) {
+                providerMetric(work, "ERROR", started);
+            }
             queue.fail(work, new PdfAiFailure("PROCESSING_ERROR", true));
             log.debug("PDF_FLOW stage=AI_ATTEMPT_FAILED jobId={} code=PROCESSING_ERROR elapsedMs={}",
                     work.jobId(), elapsed(started));
             log.warn("PDF_AI_FAILED jobId={} code=PROCESSING_ERROR", work.jobId());
         }
         return true;
+    }
+
+    private void providerMetric(PdfAiWork work, String outcome, long started) {
+        log.atInfo().addKeyValue("event", "PDF_AI_RESILIENCE").addKeyValue("kind", "PROVIDER_RESULT")
+                .addKeyValue("jobId", work.jobId()).addKeyValue("generation", work.retryGeneration())
+                .addKeyValue("modelId", work.modelId()).addKeyValue("escalated", work.escalated())
+                .addKeyValue("outcome", outcome).addKeyValue("elapsedMs", elapsed(started))
+                .log("PDF_AI_RESILIENCE");
     }
 
     private long elapsed(long started) {
