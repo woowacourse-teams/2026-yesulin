@@ -9,6 +9,7 @@ import { useBoard } from "./board-context";
 import { StatusBadge } from "@/components/auditions/status-badge";
 import { ApplicantSocialLinks } from "./applicant-social-links";
 import { PdfPreparationStatus } from "./pdf-preparation-status";
+import styles from "../screening.module.css";
 
 export function ApplicantTable({ rows }: { rows: readonly Applicant[] }) {
   const { source, board, selected, toggleSelected, openApplicant } = useBoard();
@@ -16,7 +17,7 @@ export function ApplicantTable({ rows }: { rows: readonly Applicant[] }) {
   return (
     <>
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse overflow-hidden rounded-control border border-border bg-card">
+        <table className={`${source.kind === "PDF" ? styles.applicantTable : ""} w-full border-collapse overflow-hidden rounded-control border border-border bg-card`}>
           <thead>
             <tr>
               <th className="w-11 border-b border-border pl-1.5 text-left">

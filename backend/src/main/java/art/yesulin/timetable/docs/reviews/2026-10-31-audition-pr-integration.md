@@ -1,0 +1,54 @@
+# 오디션 관리 dev PR 통합
+
+작업 ID: 2026-10-31-audition-pr-integration. 평가일 2026-10-31, Audit/Timetable v1.
+기존 feat/audition-management 작업을 dev 대상 PR로 게시한다. 제품 기능 확대 없이 회귀 오류와 평가 기록 정합성을 정리한다.
+
+| ID | 기대 결과 / 실패 경계 | 검증 | 필수 | 결과 |
+| --- | --- | --- | --- | --- |
+| P1 | 심사·연락처·일정 전체 프론트 회귀 및 빌드 | Vitest/lint/build | Y | PASS |
+| P2 | 신규 migration과 익명/소유 일정 백엔드 회귀 | Gradle test/build/checkstyle | Y | PASS |
+| P3 | 최신 dev 통합·관련 변경만 커밋 | fetch/rebase/diff/secret·미사용 점검 | Y | PASS |
+| P4 | 독립 평가1회·기존 문제 상태/이력 보존 | 읽기 전용 평가·후속 정정 기록 | Y | PASS |
+| P5 | dev PR·이슈·검증/문제 집계 게시 | 원격 PR 확인 | Y | PASS |
+
+기존 2026-10-31-audition-regression-F01(H2 migration) 해결 대상. F02(평가 ID 충돌)는 과거 이력을 추정 복원하지 않고 명시적 정정/별도 식별로 정리한다. 관련 외부 가이드 최종본만 포함하고 tmp 캡처·다른 작업의 output은 제외한다. 운영 배포/실데이터/300건 부하/문자 발송은 실행하지 않는다.
+
+## 실행 결과
+
+- 프론트 `npm test`: 136파일 745테스트 PASS, lint 종료0. `/private/tmp/yesulin-pr-frontend-tests.log`, `/private/tmp/yesulin-pr-frontend-lint.log`.
+- 프론트 dev 통합 후 `npm run build`: 종료0, 타입·정적 생성 완료. `/private/tmp/yesulin-pr-frontend-build.log`.
+- 백엔드 `./gradlew build`: 233클래스 1404테스트(실패/오류/건너뜀0), Checkstyle 및 패키징 PASS. `/private/tmp/yesulin-pr-backend-build.log`.
+- dev 통합: origin/dev `252415ee`. 이미 squash 병합된 명함 사진 수정 두 커밋은 변경 파일 전체를 대조해 dev와 동일함을 확인 후 중복 제외. config는 dev의 기존 핀을 사용하며 이번 PR에서 변경하지 않음.
+- 관련74파일만 최초 커밋. 최종21쪽 PDF 포함, tmp 캡처와 무관한 output·개인 설정·실제 지원자 자료 제외. 원본 사용자 PDF와 evidence.md 미수정.
+- 독립 평가1회 완료. 상대 도구 미제공으로 기존 별도 평가자에게 읽기 전용 위임. 소유권·부모행 잠금·300명 상한·합격 재확인·일괄 원자성·익명 API 분리·초안 보존·401 개인정보 제거·신규 소비 경로 대조, 신규 결함0. 검토 시 실행 대기였던 전체 검증은 위 실제 결과로 후속 확인.
+- 기존 regression-F01 해결은 기존 ID에 FIXED 사건 추가. 기존 regression-F02는 재점검 식별자를 정정했지만 이전 원본 이력은 추정하지 않아 OPEN. UX 알림/저장 맥락 두 문제는 새 발견이 아닌 ID 정정 후 FIXED 기록.
+- 신규 발견0 / 해결0 / 미해결0, P0~P3각0, PRECHECK/INDEPENDENT_REVIEW/POST_FIX_CHECK/EXTERNAL각0, 오탐0. 기존 문제 해결1(H2), UX2개는 이전 시각 변경 작업에서 해결된 근거를 현재 재확인한 기록이다.
+- 운영 MySQL 적용·실데이터·배포·실제 문자/메일·300건 부하 미검증. 소유 일정은 확정/배우 공개/발송을 연결하지 않음. 로컬 합성 DB는 앞선 미커밋 migration checksum과 달라 다음 재기동 전 별도 로컬 정리가 필요할 수 있고, 실제 DB의 Flyway 이력을 임의로 고치지 않았다.
+
+## 게시 직전 dev 추가 반영
+
+최종 fetch에서 origin/dev `ab88d623` (#476)이 추가되어 재배치했다. 신규 PDF AI 모델 migration `20261031190000`보다 우리 `20261031150000`이 낮아 순서 검사가 거절되는 것을 재현했다. 아직 병합되지 않은 일정 migration만 `V20261031200000__add_owned_timetable_rosters.sql`로 변경했다. SQL 본문은 단일 ALTER 수정 후 그대로이며 기존 dev migration은 수정하지 않았다.
+`check_flyway_migration_order.sh origin/dev` 및 `check_flyway_contract_changes.sh origin/dev` PASS. 최종 dev AI 변경을 포함한 backend 전체 build는 별도로 재실행한다.
+
+| 문제 ID | 심각도 / 유형 / 유입 | 발견 경로 | 상태 | 근거·조치 |
+| --- | --- | --- | --- | --- |
+| 2026-10-31-audition-pr-integration-F01 | P2 / CODE / INTRODUCED | POST_FIX_CHECK | FIXED | 추가 dev 통합 후 신규 migration 버전이 기준보다 낮음. 파일 버전을200000으로 올리고 순서/호환 검사 통과 |
+
+| 사건 ID | 문제 ID | 사건 종류 | 발생 시각 | 근거 | 최초 PR |
+| --- | --- | --- | --- | --- | --- |
+| E01 | 2026-10-31-audition-pr-integration-F01 | CONFIRMED | 2026-10-31T19:48:13+09:00 | check_flyway_migration_order.sh가150000≤190000거절 | PENDING |
+| E02 | 2026-10-31-audition-pr-integration-F01 | FIXED | 2026-10-31T19:48:13+09:00 | 신규 파일명 변경 후 순서/contract검사PASS | PENDING |
+
+후속 신규 집계: 발견1/해결1/미해결0, P0=0/P1=0/P2=1/P3=0, PRECHECK0/INDEPENDENT_REVIEW0/POST_FIX_CHECK1/EXTERNAL0, 오탐0. 위 신규0 집계는 최종 fetch 이전 검토 이력이다.
+
+## 최초 PR 연결
+
+최초 게시 PR: [#479](https://github.com/woowacourse-teams/2026-yesulin/pull/479), 대상 dev, 관련 이슈 #478.
+위 PENDING/PR 미생성 표기는 당시 작업 이력이며 이 절로 최초 게시 번호를 연결한다. 기존 문제 ID·확정/해결 시각은 변경하지 않는다.
+
+후속 표적 검토: 신규 migration 이름 변경의 SQL 본문 동일성, 최종 가이드만 포함된 변경 목록, 재점검 ID 정정과 regression-F02 OPEN 유지 확인. 추가 결함0. PR #479의 base=dev/head=feat/audition-management 및 이슈 프로젝트 In Progress 연결 확인. 최종 backend 실행 완료 전 draft로 게시했다.
+
+## 최종 게시 검증
+
+origin/dev `ab88d623`를 반영한 최종 `./gradlew build` 종료0: 235클래스 1418테스트, 실패0/오류0/건너뜀0. Checkstyle·패키징도 통과. 로그 `/private/tmp/yesulin-pr-backend-final.log`.
+필수 PASS5/FAIL0/UNVERIFIED0/N/A0. 신규 발견1/해결1/미해결0(P2 1), POST_FIX_CHECK1·나머지0, 오탐0. 독립 평가1회 및 후속 수정 표적 검토 완료. 기존 문제/미검증 범위는 상기 기록대로 유지한다.

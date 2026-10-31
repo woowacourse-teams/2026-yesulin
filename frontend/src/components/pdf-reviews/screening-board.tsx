@@ -8,12 +8,11 @@ import { screeningApplicant } from "@/features/pdf-reviews/screening-adapter";
 import { matchesDecision, sameKey, type DecisionFilter, type ReviewDetail, type ReviewEntry } from "@/features/pdf-reviews/types";
 import { ModalShell } from "@/components/auditions/modal-shell";
 import { ReviewOriginalDocument } from "./review-original-document";
-import { SecondaryButton } from "@/components/ui/controls";
+import { FieldSelect, PrimaryButton, SecondaryButton } from "@/components/ui/controls";
 import { BoardProvider } from "./screening-ui/board-context";
 import { ApplicantFocusReview } from "./screening-ui/applicant-focus-review";
 import { ApplicantCards } from "./screening-ui/applicant-cards";
 import { ApplicantTable } from "./screening-ui/applicant-table";
-import styles from "./screening.module.css";
 
 type Props = { review: ReviewDetail; entries: readonly ReviewEntry[]; decision: DecisionFilter; view: "single" | "card" | "table";
   refreshKey: number; onSaved: (entry: ReviewEntry) => void; onUnauthorized: () => void;
@@ -132,16 +131,32 @@ export function ScreeningBoard({ review, entries, decision, view, refreshKey, on
     {!single && !error && entries.some(entry => !jobs[entry.jobId]) && <p role="status" className="sr-only">사진과 프로필을 불러오는 중입니다.</p>}
     <p role="status" className="sr-only">{saving ? "저장 중…" : savedMessage}</p>
     {view === "single" || focused ? <ApplicantFocusReview key={focused ?? "single"} rows={rows} initialId={focused ?? undefined} onBack={focused ? () => navigate(() => setFocused(null)) : undefined} /> : <>
-      <div className="mb-3 flex min-h-11 flex-wrap items-center gap-4 text-sm">
-        <label className="flex items-center gap-2"><input type="checkbox" checked={rows.length > 0 && rows.every(row => selected.has(row.id))} onChange={event => setSelected(new Set(event.target.checked ? rows.map(row => row.id) : []))} />전체 선택</label>
+      <div className="mb-4 flex min-h-11 flex-wrap items-center gap-3 rounded-control border border-border bg-surface px-3 py-2 text-sm">
+        <label className="flex min-h-11 cursor-pointer items-center gap-2.5 font-medium"><input className="h-5 w-5 accent-brand" type="checkbox" checked={rows.length > 0 && rows.every(row => selected.has(row.id))} onChange={event => setSelected(new Set(event.target.checked ? rows.map(row => row.id) : []))} />전체 선택</label>
         <span>{selected.size}명 선택</span>{review.roles.length > 0 && <SecondaryButton disabled={!selected.size || saving} onClick={() => openAssignment([...selected])}>배역 설정</SecondaryButton>}
       </div>
       {view === "card" ? <ApplicantCards rows={rows} /> : <ApplicantTable rows={rows} />}
     </>}
-    <ModalShell open={targets.length > 0} onClose={() => { if (!saving) setTargets([]); }} labelledBy="assign-role-title" className={styles.roleModal}>
-      <form onSubmit={event => void assign(event)}><h2 id="assign-role-title">{targets.length}명 배역 설정</h2><p>선택한 배역으로 분류합니다. 심사 결과와 메모는 유지됩니다.</p>
-        <label htmlFor="assignment-role">심사할 배역</label><select id="assignment-role" value={role} onChange={event => setRole(event.target.value)}><option value="">미기재</option>{review.roles.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select>
-        {error && <p role="alert" className="text-fail">{error}</p>}<div className={styles.modalActions}><button type="button" disabled={saving} onClick={() => setTargets([])}>취소</button><button type="submit" disabled={saving} className="bg-brand text-white">{saving ? "저장 중…" : "배역 저장"}</button></div>
+    <ModalShell open={targets.length > 0} onClose={() => { if (!saving) setTargets([]); }} labelledBy="assign-role-title"
+      className="w-[calc(100vw-32px)] max-w-lg max-h-[90dvh] overflow-y-auto rounded-modal border border-border bg-card p-6 text-foreground shadow-[var(--shadow-modal)]">
+      <form onSubmit={event => void assign(event)} className="flex flex-col gap-6">
+        <header>
+          <h2 id="assign-role-title" className="text-xl font-bold">{targets.length}명 배역 설정</h2>
+          <p id="assignment-role-description" className="mt-2 text-sm leading-6 text-muted-strong">선택한 지원자를 지정한 배역으로 분류합니다.<br />심사 결과와 메모는 유지됩니다.</p>
+        </header>
+        <div>
+          <label htmlFor="assignment-role" className="mb-2 block text-sm font-semibold">심사할 배역</label>
+          <FieldSelect id="assignment-role" value={role} disabled={saving} aria-describedby="assignment-role-description" data-autofocus="true"
+            onChange={event => setRole(event.target.value)}>
+            <option value="">미기재</option>
+            {review.roles.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
+          </FieldSelect>
+        </div>
+        {error && <p role="alert" className="rounded-control bg-fail-bg p-3 text-sm text-fail">{error}</p>}
+        <footer className="flex justify-end gap-2 border-t border-border pt-4">
+          <SecondaryButton disabled={saving} onClick={() => setTargets([])}>취소</SecondaryButton>
+          <PrimaryButton type="submit" disabled={saving}>{saving ? "저장 중…" : "배역 저장"}</PrimaryButton>
+        </footer>
       </form>
     </ModalShell>
   </BoardProvider>;

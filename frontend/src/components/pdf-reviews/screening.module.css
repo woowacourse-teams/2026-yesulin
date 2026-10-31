@@ -1,6 +1,6 @@
 .root { color: var(--color-foreground, #111722); background: var(--color-surface, #f7f9fc); min-height: 100dvh; padding: 32px; font-size: 14px; }
-.root:has([data-pdf-processing-toast]) { --pdf-processing-toast-offset:88px; padding-bottom:calc(16px + var(--pdf-processing-toast-offset)); }
-.root:has([data-pdf-processing-toast][data-expanded=true]) { --pdf-processing-toast-offset:320px; }
+.root:has([data-pdf-processing-toast]:not([data-inline=true])) { --pdf-processing-toast-offset:88px; padding-bottom:calc(16px + var(--pdf-processing-toast-offset)); }
+.root:has([data-pdf-processing-toast][data-expanded=true]:not([data-inline=true])) { --pdf-processing-toast-offset:320px; }
 .controls * { box-sizing: border-box; }
 .controls button, .controls input, .controls select, .controls textarea { font: inherit; }
 .controls button, .controls select, .controls input:not([type=checkbox]), .controls textarea { border: 1px solid #dce3ec; border-radius: 10px; background: white; min-height: 44px; padding: 10px 12px; }
@@ -147,15 +147,7 @@
 .roleChips span { font-size:12px; opacity:.75; }
 
 .roleHint { font-size:12px; color:var(--muted); margin:0 0 12px; }
-.roleModal { width:calc(100vw - 32px); max-width:480px; max-height:90dvh; overflow-y:auto; border-radius:20px; padding:24px; background:var(--card); box-shadow:0 24px 80px #0003; }
-.roleModal h2 { font-size:20px; font-weight:700; }
-.roleModal p { margin:10px 0; font-size:14px; color:var(--muted-strong); }
-.roleModal label { display:block; margin:20px 0 8px; font-size:14px; font-weight:600; }
-.roleModal input, .roleModal select { width:100%; min-height:48px; border:1px solid var(--border); border-radius:12px; padding:10px 12px; background:var(--card); }
-.roleModal small { display:block; margin-top:8px; font-size:12px; color:var(--muted); }
 .registeredRoles { padding:12px; border-radius:12px; background:var(--surface); overflow-wrap:anywhere; }
-.modalActions { display:flex; justify-content:flex-end; gap:8px; margin-top:24px; }
-.modalActions button { min-height:44px; padding:10px 16px; border-radius:12px; font-weight:600; }
 
 
 .uploadToolbar { display:flex; align-items:center; gap:16px; padding:8px 0 12px; min-width:0; }
@@ -190,48 +182,65 @@
 @media(prefers-reduced-motion:reduce) { .uploadDropzone { transition:none; } }
 
 /* PDF 심사: 사진과 판정을 먼저, 정보와 관리 동작은 그 아래에 둔다. */
-.integrated .header { gap:8px 20px; padding-block:4px 8px; }
+.integrated .header { gap:8px 20px; padding-block:4px 12px; }
 .integrated .breadcrumb { flex:1; min-width:0; }
 .integrated .breadcrumb ol { flex-wrap:nowrap; gap:8px; }
 .integrated .breadcrumb li:last-child { flex:1; overflow:hidden; }
-.integrated .breadcrumb h1 { margin:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:16px; font-weight:600; line-height:1.5; letter-spacing:-.02em; }
+.integrated .breadcrumb h1 { margin:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:20px; font-weight:700; line-height:1.5; letter-spacing:-.02em; }
 .integrated .breadcrumbSeparator { font-size:16px; }
-.integrated .controls .homeLink { padding:0 4px; color:var(--muted-strong); font-size:13px; }
-.integrated .header .reviewCounts { display:flex; flex-wrap:wrap; gap:12px; width:auto; padding:0; font-size:12px; line-height:1.5; color:var(--muted); }
+.integrated .controls .homeLink { padding:0 8px; color:var(--ink-60); font-size:14px; }
+.integrated .header .reviewCounts { display:flex; flex-wrap:wrap; gap:12px; width:auto; padding:0; font-size:14px; line-height:1.5; color:var(--ink-60); }
 .integrated .reviewCounts span { padding:0; }
-.integrated .reviewCounts b { color:var(--muted-strong); font-weight:600; }
-.integrated .uploadToolbar { display:flex; flex-wrap:nowrap; align-items:center; gap:12px; padding:4px 0 8px; }
+.integrated .reviewCounts b { color:var(--ink-60); font-weight:600; }
+.integrated .uploadToolbar { display:flex; flex-wrap:nowrap; align-items:center; gap:16px; padding:4px 0 12px; }
 .integrated .uploadToolbar .roleBar { order:0; flex:1; min-width:0; flex-basis:0; }
 .uploadButtons { display:flex; align-items:center; flex-shrink:0; gap:8px; }
-.integrated .roleChips { gap:4px; padding:2px 0; scrollbar-width:thin; }
-.integrated .controls .roleChips button { min-height:44px; border:0; border-radius:8px; padding:8px 10px; background:transparent; font-size:13px; }
+.integrated .roleChips { gap:6px; padding:2px 0; scrollbar-width:thin; }
+.integrated .controls .roleChips button { min-height:44px; border:0; border-radius:10px; padding:10px 12px; background:transparent; font-size:14px; }
+.integrated .roleChips button span { display:inline-flex; align-items:center; justify-content:center; min-width:24px; padding:1px 6px; border-radius:6px; background:var(--paper); color:var(--ink-60); font-size:13px; }
+.integrated .roleChips button[aria-pressed=true] span { color:var(--brand-pressed); background:var(--white); }
 .integrated .controls .roleChips button[aria-pressed=true] { color:var(--brand); background:var(--brand-soft); }
 .integrated .controls .roleChips button[aria-pressed=true]:hover { background:var(--brand-soft); border-color:transparent; }
-.integrated .controls .uploadAction { min-height:44px; margin:0; padding:8px 12px; gap:6px; font-size:13px; }
-.integrated .roleHint { margin:0 0 8px; font-size:12px; }
-.boardToolbar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px 20px; padding:4px 0 10px; margin-bottom:8px; border-bottom:1px solid var(--border); }
+.integrated .controls .uploadAction { min-height:44px; margin:0; padding:10px 14px; gap:8px; font-size:14px; }
+.integrated .roleHint { margin:0 0 12px; font-size:14px; }
+.boardToolbar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px 20px; padding:8px 0 12px; margin-bottom:16px; border-bottom:1px solid var(--line); }
+.boardActions { display:flex; align-items:center; flex-wrap:wrap; justify-content:flex-end; gap:12px; margin-left:auto; min-width:0; }
+.boardActions > button { min-height:44px; padding:10px 14px; font-size:14px; white-space:nowrap; }
+.boardToolbar button:focus-visible { outline:2px solid var(--brand); outline-offset:3px; }
 .decisionTabs { display:flex; flex-shrink:0; gap:4px; }
-.decisionTabs button { display:flex; align-items:center; gap:6px; min-height:44px; padding:8px 12px; border-bottom:2px solid transparent; color:var(--muted); font-size:13px; font-weight:600; }
-.decisionTabs button[aria-pressed=true] { border-color:var(--foreground); color:var(--foreground); }
-.decisionTabs span { font-size:12px; }
-.viewTabs { display:flex; flex-shrink:0; margin-left:auto; padding:3px; border:1px solid var(--border); border-radius:10px; background:var(--surface); }
-.viewTabs button { min-height:44px; min-width:44px; padding:6px 12px; border-radius:7px; color:var(--muted); font-size:13px; font-weight:500; }
-.viewTabs button[aria-pressed=true] { background:var(--card); color:var(--foreground); box-shadow:0 1px 3px #11172215; }
+.decisionTabs button { display:flex; align-items:center; gap:6px; min-height:44px; padding:10px 14px; border-bottom:2px solid transparent; color:var(--ink-60); font-size:14px; font-weight:600; }
+.decisionTabs button[aria-pressed=true] { border-color:var(--ink); color:var(--ink); }
+.decisionTabs span { min-width:20px; font-size:14px; text-align:center; }
+.decisionTabs button:hover { background:var(--paper); }
+.viewTabs { display:flex; flex-shrink:0; padding:3px; border:1px solid var(--line); border-radius:10px; background:var(--paper); }
+.viewTabs button { min-height:44px; min-width:44px; padding:6px 12px; border-radius:7px; color:var(--ink-60); font-size:14px; font-weight:600; }
+.viewTabs button[aria-pressed=true] { background:var(--white); color:var(--ink); box-shadow:0 1px 3px #11172215; }
 .focusReview { max-width:1400px; }
 .focusGrid { display:grid; grid-template-columns:minmax(0,1fr); align-items:start; gap:24px; min-width:0; }
 .photoColumn { display:flex; flex-direction:column; align-items:center; gap:8px; min-width:0; }
-.applicantPosition { display:flex; align-items:center; justify-content:space-between; min-height:24px; width:100%; color:var(--muted); font-size:12px; }
+.applicantPosition { display:flex; align-items:center; justify-content:space-between; min-height:24px; width:100%; color:var(--ink-60); font-size:14px; }
 .gallery { --review-photo-height:clamp(460px,72svh,880px); display:flex; justify-content:center; align-items:stretch; width:100%; min-width:0; gap:12px; }
-.photoFrame { position:relative; order:1; flex:0 1 auto; width:calc(var(--review-photo-height) * var(--review-photo-aspect, .75)); max-width:100%; aspect-ratio:var(--review-photo-aspect, .75); min-width:0; overflow:hidden; border:1px solid var(--border); border-radius:16px; background:var(--surface); }
+.photoFrame { position:relative; order:1; flex:0 1 auto; width:calc(var(--review-photo-height) * var(--review-photo-aspect, .75)); max-width:100%; aspect-ratio:var(--review-photo-aspect, .75); min-width:0; overflow:hidden; border:1px solid var(--line); border-radius:16px; background:var(--paper); }
 .gallery:has(.thumbnails) .photoFrame { max-width:calc(100% - 60px); }
 .thumbnails { contain:size; align-self:stretch; display:flex; order:0; flex:0 0 48px; flex-direction:column; min-width:0; gap:8px; overflow-x:hidden; overflow-y:auto; padding:2px; scrollbar-width:thin; }
 .thumbnails button { width:44px; height:60px; }
-.photoActions { width:100%; flex-shrink:0; padding:4px 0 12px; background:var(--background); }
-.profilePanel { width:100%; min-width:0; align-self:start; border:1px solid var(--border); border-radius:16px; background:var(--card); padding:20px; }
-.profileHeading { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; padding-bottom:12px; }
-.profileHeading h2 { font-size:14px; font-weight:600; color:var(--muted-strong); }
-.profileTools { display:flex; gap:6px; margin-left:auto; }
-.profileTools button { min-height:44px; padding:8px 10px; font-size:12px; }
+.photoActions { width:100%; flex-shrink:0; padding:4px 0 12px; background:var(--white); }
+.profilePanel { width:100%; min-width:0; align-self:start; border:1px solid var(--line); border-radius:16px; background:var(--white); padding:20px; }
+.profileHeading { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; padding-bottom:16px; margin-bottom:4px; border-bottom:1px solid var(--line); }
+.profileHeading h2 { font-size:16px; font-weight:700; color:var(--ink); }
+.profileTools { display:flex; flex-wrap:wrap; gap:8px; margin-left:auto; }
+.profileTools button { min-height:44px; padding:8px 12px; font-size:14px; }
+.profilePanel .profileInfoRow { padding-block:14px; font-size:15px; line-height:1.65; }
+.profilePanel .profileInfoRow > span:first-child { width:72px; color:var(--ink-60); font-size:14px; }
+.profileName { font-size:18px; font-weight:700; line-height:1.5; }
+.profilePanel .profileSection { margin-top:24px; }
+.profilePanel .profileSection h3 { margin-bottom:10px; color:var(--ink-60); font-size:14px; }
+.profilePanel .profileMemo { min-height:112px; padding:12px; font-size:16px; line-height:1.65; resize:vertical; }
+.profilePanel .memoSave { min-height:44px; font-size:14px; }
+.applicantTable { min-width:860px; }
+.applicantTable td:nth-child(2) { min-width:200px; }
+.applicantTable th { padding-block:14px; background:var(--paper); font-size:14px; color:var(--ink-60); letter-spacing:0; }
+.applicantTable td { padding-block:12px; font-size:14px; color:var(--ink-60); }
 @media(min-width:1200px) {
   .focusGrid { grid-template-columns:minmax(0,1fr) 360px; gap:28px; }
   .gallery { --review-photo-height:clamp(520px,76svh,920px); }
@@ -251,10 +260,15 @@
   .uploadButtons { margin-left:auto; }
   .decisionTabs button { padding:8px; gap:4px; }
   .viewTabs button { padding:6px 9px; }
-  .boardToolbar { gap:4px 8px; }
+  .boardToolbar { gap:12px 8px; }
+  .boardActions { width:100%; justify-content:space-between; gap:8px; }
+  .boardActions > button { padding-inline:10px; }
+  .decisionTabs { width:100%; }
+  .decisionTabs button { flex:1; justify-content:center; }
+  .integrated .breadcrumb h1 { font-size:18px; }
   .profilePanel { padding:16px; }
 }
 @media(max-width:700px) {
-  .photoActions { position:sticky; bottom:max(8px,env(safe-area-inset-bottom)); z-index:20; padding:10px 0 8px; border:1px solid var(--border); border-radius:16px; background:var(--card); box-shadow:0 4px 20px #1117220a; }
+  .photoActions { position:sticky; bottom:max(8px,env(safe-area-inset-bottom)); z-index:20; padding:10px 0 8px; border:1px solid var(--line); border-radius:16px; background:var(--white); box-shadow:0 4px 20px #1117220a; }
   .root:has([data-review-actions]) [data-pdf-processing-toast] { bottom:calc(124px + env(safe-area-inset-bottom)); }
 }

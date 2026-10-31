@@ -9,6 +9,16 @@ import org.springframework.data.repository.query.Param;
 
 public interface TimetableRepository extends JpaRepository<Timetable, Long> {
 
+    java.util.List<Timetable> findByOwnerIdOrderByIdDesc(long ownerId);
+
+    Optional<Timetable> findByOwnerIdAndCreationKey(long ownerId, String creationKey);
+
+    Optional<Timetable> findByIdAndOwnerId(long id, long ownerId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select timetable from Timetable timetable where timetable.id = :id and timetable.ownerId = :ownerId")
+    Optional<Timetable> findOwnedForUpdate(long id, long ownerId);
+
     Optional<Timetable> findByManageKey(TimetableKey manageKey);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

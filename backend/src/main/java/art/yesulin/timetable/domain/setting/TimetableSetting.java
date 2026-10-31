@@ -30,6 +30,13 @@ public class TimetableSetting {
     @Embedded
     private TimetableWindows windows;
 
+    /** 공연사 명단 준비 단계. 날짜와 칸을 아직 정하지 않았으며 공개 일정에는 사용하지 않는다. */
+    public static TimetableSetting unplanned() {
+        TimetableSetting setting = new TimetableSetting();
+        setting.windows = new TimetableWindows();
+        return setting;
+    }
+
     public TimetableSetting(int slotMinutes, int slotCapacity, List<TimetableWindow> windows) {
         this.slotMinutes = requireSlotMinutes(slotMinutes);
         this.slotCapacity = requireSlotCapacity(slotCapacity);

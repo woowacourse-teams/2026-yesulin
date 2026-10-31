@@ -10,6 +10,7 @@
 | 이벤트 참가 신청·무료 명함·사진 업로드 | [이벤트 문서](../backend/src/main/java/art/yesulin/event/docs/README.md) |
 | 공용 PDF 추출·AI | [PDF 문서](../backend/src/main/java/art/yesulin/pdfextraction/docs/README.md) |
 | PDF 심사 흐름·정책·평가 | [Audit 문서](../backend/src/main/java/art/yesulin/audit/docs/README.md) |
+| 공연사 일정 명단 | [일정표 문서](../backend/src/main/java/art/yesulin/timetable/docs/README.md) |
 | 공통 도메인·상태·권한 | [domain.md](./domain.md) |
 | 용어와 ID 의미 | [glossary.md](./glossary.md) |
 | HTTP 공통 규칙 | [api-conventions.md](./api-conventions.md) |

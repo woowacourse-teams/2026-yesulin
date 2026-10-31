@@ -35,12 +35,15 @@ describe("PDF 측정 흐름", () => {
     const { registerPdfReviewJob, observePdfExtraction } = await import("./pdf-analytics");
     const job: PdfExtractionJob = { jobId: "synthetic-job", originalFilename: "private-name.pdf", size: 10,
       createdAt: new Date().toISOString(), uploadedAt: null, status, sourceFileKey: "private-key", resultFileKey: "private-result",
-      sourceUrl: "https://example.com/private.pdf", result: null };
+      sourceUrl: "https://example.com/private.pdf", result: {
+        status: "COMPLETED", sourceSha256: "private-sha", errorCode: "", warnings: [],
+        pages: [{ number: 1, text: "합성가람 연락처 010-0000-0001 이메일 actor@example.test", needsOcr: false, images: [] }],
+      } };
     observePdfExtraction(job); expect(capture).not.toHaveBeenCalled();
     registerPdfReviewJob(job.jobId, "synthetic-review"); observePdfExtraction(job);
     expect(capture).toHaveBeenCalledWith(outcome === "failure" ? "pdf_step_failed" : "pdf_step_completed", {
       workflow: "producer_pdf", review_id: "synthetic-review", operation_id: "synthetic-job", step: "extract",
-      outcome, extraction_status: status, duration_ms: expect.any(Number),
+      outcome, extraction_status: status, duration_ms: expect.any(Number), missing_field_count: 3,
     });
   });
 });
