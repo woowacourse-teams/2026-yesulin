@@ -35,30 +35,34 @@ public class PdfAiResponseParser {
 
     public PdfApplicantInfo parse(String response, String source, List<PdfAiRole> roles,
                                   String provider, String model) {
+        String stage = "JSON_SYNTAX";
         try {
             JsonNode root = readStrictObject(response);
             ObjectNode envelope = envelope(root, source, roles, provider, model);
+            stage = "APPLICANT_OR_PROFILE_SCHEMA";
             PdfApplicantInfo info = PdfApplicantInfo.parse(envelope);
             if (info.profile() != null) {
+                stage = "PROFILE_EVIDENCE_MISMATCH";
                 info.profile().validateEvidence(source);
             }
             return info;
         } catch (JacksonException | BusinessException exception) {
-            throw invalid();
+            throw invalid(stage);
         }
     }
 
     private JsonNode readStrictObject(String response) {
-        require(response != null && response.length() <= MAX_RESPONSE_SIZE
-                && response.getBytes(StandardCharsets.UTF_8).length <= MAX_RESPONSE_SIZE);
+        require(response != null, "MISSING_RESPONSE");
+        require(response.length() <= MAX_RESPONSE_SIZE
+                && response.getBytes(StandardCharsets.UTF_8).length <= MAX_RESPONSE_SIZE, "RESPONSE_TOO_LARGE");
         String json = response.strip();
-        require(json.startsWith("{") && json.endsWith("}"));
+        require(json.startsWith("{") && json.endsWith("}"), "JSON_OBJECT_BOUNDARY");
         ObjectReader reader = mapper.readerFor(JsonNode.class)
                 .with(DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
                 .with(StreamReadFeature.STRICT_DUPLICATE_DETECTION);
         JsonNode root = reader.readTree(json);
-        require(root != null && root.isObject());
-        root.propertyNames().forEach(name -> require(FIELDS.contains(name)));
+        require(root != null && root.isObject(), "JSON_OBJECT_REQUIRED");
+        root.propertyNames().forEach(name -> require(FIELDS.contains(name), "UNKNOWN_TOP_LEVEL_FIELD"));
         return root;
     }
 
@@ -73,13 +77,14 @@ public class PdfAiResponseParser {
             nameEvidence = null;
         } else {
             require(nameEvidence != null && normalizedSource.contains(normalize(nameEvidence))
-                    && normalize(nameEvidence).contains(normalize(name)));
+                    && normalize(nameEvidence).contains(normalize(name)), "APPLICANT_NAME_EVIDENCE_MISMATCH");
         }
         if (roleId == null) {
             roleEvidence = null;
         } else {
-            require(roles.stream().anyMatch(role -> role.id().equals(roleId))
-                    && roleEvidence != null && normalizedSource.contains(normalize(roleEvidence)));
+            require(roles.stream().anyMatch(role -> role.id().equals(roleId)), "UNKNOWN_ROLE_ID");
+            require(roleEvidence != null && normalizedSource.contains(normalize(roleEvidence)),
+                    "ROLE_EVIDENCE_MISMATCH");
         }
         ObjectNode envelope = mapper.createObjectNode();
         envelope.put("version", PdfApplicantInfo.PROFILE_VERSION);
@@ -98,7 +103,7 @@ public class PdfAiResponseParser {
         if (profile == null || profile.isNull()) {
             return mapper.nullNode();
         }
-        require(profile.isObject());
+        require(profile.isObject(), "PROFILE_OBJECT_REQUIRED");
         ObjectNode normalized = (ObjectNode) profile.deepCopy();
         for (String fact : FACTS) {
             JsonNode node = normalized.get(fact);
@@ -111,7 +116,7 @@ public class PdfAiResponseParser {
         if (careers == null || careers.isNull()) {
             careers = normalized.putArray("careers");
         }
-        require(careers.isArray() && careers.size() <= MAX_CAREERS);
+        require(careers.isArray() && careers.size() <= MAX_CAREERS, "CAREERS_ARRAY_OR_LIMIT");
         careers.forEach(career -> fillMissing(career, CAREER_FIELDS));
         return normalized;
     }
@@ -128,7 +133,7 @@ public class PdfAiResponseParser {
         if (value == null || value.isNull()) {
             return null;
         }
-        require(value.isString());
+        require(value.isString(), "INVALID_FIELD_TYPE:" + field);
         String text = value.asText();
         return text.isBlank() ? null : text;
     }
@@ -137,13 +142,13 @@ public class PdfAiResponseParser {
         return Normalizer.normalize(text, Normalizer.Form.NFC).replaceAll("(?U)\\s+", " ").trim();
     }
 
-    private void require(boolean valid) {
+    private void require(boolean valid, String reason) {
         if (!valid) {
-            throw invalid();
+            throw invalid(reason);
         }
     }
 
-    private PdfAiFailure invalid() {
-        return new PdfAiFailure(INVALID_MODEL_OUTPUT, false);
+    private PdfAiFailure invalid(String reason) {
+        return new PdfAiFailure(INVALID_MODEL_OUTPUT, false, reason);
     }
 }

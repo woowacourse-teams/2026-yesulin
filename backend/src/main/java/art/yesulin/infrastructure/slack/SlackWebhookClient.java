@@ -39,19 +39,22 @@ public class SlackWebhookClient {
     }
 
     public void post(String webhookUrl, String text) {
+        post(webhookUrl, Map.of("text", text, "mrkdwn", false, "unfurl_links", false, "unfurl_media", false));
+    }
+
+    public void post(String webhookUrl, Map<String, Object> message) {
+        send(webhookUri(webhookUrl), message);
+    }
+
+    private void send(URI uri, Map<String, Object> message) {
         String body;
         try {
-            body = objectMapper.writeValueAsString(Map.of(
-                    "text", text,
-                    "mrkdwn", false,
-                    "unfurl_links", false,
-                    "unfurl_media", false
-            ));
+            body = objectMapper.writeValueAsString(message);
         } catch (JacksonException exception) {
             throw new IllegalStateException("Slack 알림을 생성하지 못했습니다.");
         }
 
-        HttpRequest request = HttpRequest.newBuilder(webhookUri(webhookUrl))
+        HttpRequest request = HttpRequest.newBuilder(uri)
                 .timeout(REQUEST_TIMEOUT)
                 .header("Content-Type", "application/json; charset=utf-8")
                 .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8))
@@ -86,6 +89,7 @@ public class SlackWebhookClient {
             if (!"https".equals(uri.getScheme())
                     || !("hooks.slack.com".equals(uri.getHost())
                     || "hooks.slack-gov.com".equals(uri.getHost()))
+                    || uri.getPort() != -1 || uri.getUserInfo() != null || uri.getFragment() != null
                     || uri.getPath() == null || !uri.getPath().startsWith("/services/")) {
                 throw new IllegalArgumentException("Slack Webhook URL 형식이 올바르지 않습니다.");
             }

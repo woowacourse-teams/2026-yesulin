@@ -11,6 +11,11 @@ import org.springframework.data.jpa.repository.Query;
 
 public interface PdfExtractionJobRepository extends JpaRepository<PdfExtractionJob, String> {
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<PdfExtractionJob> findByReviewIdAndSourceSha256(String reviewId, String sourceSha256);
+
+    boolean existsByReviewIdAndSourceSha256(String reviewId, String sourceSha256);
+
     Optional<PdfExtractionJob> findByIdAndOwnerIdAndPurpose(String id, long ownerId, PdfExtractionPurpose purpose);
 
     List<PdfExtractionJob> findTop800ByOwnerIdAndPurposeOrderByCreatedAtDesc(

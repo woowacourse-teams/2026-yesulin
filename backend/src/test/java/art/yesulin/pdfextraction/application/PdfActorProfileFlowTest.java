@@ -86,7 +86,7 @@ class PdfActorProfileFlowTest {
             }
         };
         PdfAiProperties properties = new PdfAiProperties(true, "gemini", "test-model", "unused", 1, 3,
-                Duration.ofMinutes(2), Duration.ofSeconds(10));
+                Duration.ofMinutes(2), Duration.ofSeconds(10), "none");
         queue = new PdfAiQueueService(aiJobs, mock(PdfAiGateRepository.class), payloads, MAPPER,
                 events, properties, clock);
         receiver = new PdfExtractionResultReceiver(jobs, payloads, new PdfExtractionResultParser(storage, MAPPER),

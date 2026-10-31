@@ -1,13 +1,16 @@
 package art.yesulin.pdfextraction.infrastructure.ai;
 
 import art.yesulin.pdfextraction.application.ai.PdfAiClient;
+import art.yesulin.pdfextraction.application.ai.PdfAiDiagnostics;
 import art.yesulin.pdfextraction.application.ai.PdfAiFailure;
 import art.yesulin.pdfextraction.application.ai.PdfAiProperties;
+import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
+import software.amazon.awssdk.core.document.Document;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 import software.amazon.awssdk.services.bedrockruntime.model.BedrockRuntimeException;
@@ -38,10 +41,11 @@ public class BedrockPdfAiClient implements PdfAiClient {
 
     private final BedrockRuntimeClient client;
     private final PdfAiProperties properties;
+    private final PdfAiDiagnostics diagnostics;
 
     @Override
     public String generate(String systemPrompt, String userPrompt) {
-        ConverseRequest request = ConverseRequest.builder()
+        ConverseRequest.Builder request = ConverseRequest.builder()
                 .modelId(properties.modelId())
                 .system(SystemContentBlock.builder().text(systemPrompt).build())
                 .messages(Message.builder()
@@ -50,9 +54,19 @@ public class BedrockPdfAiClient implements PdfAiClient {
                         .build())
                 .inferenceConfig(InferenceConfiguration.builder()
                         .maxTokens(MAX_TOKENS)
-                        .build())
-                .build();
-        return text(converse(request));
+                        .build());
+        if (properties.modelId().contains("openai.gpt-6-luna")) {
+            request.additionalModelRequestFields(Document.fromMap(Map.of("reasoning",
+                    Document.fromMap(Map.of("effort", Document.fromString(properties.reasoningEffort()))))));
+        } else if (properties.modelId().contains("anthropic.claude-haiku-5-5")) {
+            boolean disabled = "none".equals(properties.reasoningEffort());
+            request.additionalModelRequestFields(Document.fromMap(Map.of(
+                    "thinking", Document.fromMap(Map.of("type",
+                            Document.fromString(disabled ? "disabled" : "adaptive"))),
+                    "output_config", Document.fromMap(Map.of("effort",
+                            Document.fromString(disabled ? "medium" : properties.reasoningEffort()))))));
+        }
+        return text(converse(request.build()));
     }
 
     private ConverseResponse converse(ConverseRequest request) {
@@ -66,18 +80,28 @@ public class BedrockPdfAiClient implements PdfAiClient {
     }
 
     private String text(ConverseResponse response) {
+        String text = responseText(response);
+        diagnostics.providerResponse(response.stopReasonAsString(),
+                response.usage() == null ? null : response.usage().inputTokens(),
+                response.usage() == null ? null : response.usage().outputTokens(), text);
         if (response.stopReason() != StopReason.END_TURN || response.output() == null
                 || response.output().message() == null) {
-            throw new PdfAiFailure(INVALID_MODEL_OUTPUT, false);
+            throw new PdfAiFailure(INVALID_MODEL_OUTPUT, false, "PROVIDER_STOP_OR_MISSING_MESSAGE");
         }
-        String text = response.output().message().content().stream()
+        if (text.isBlank()) {
+            throw new PdfAiFailure(INVALID_MODEL_OUTPUT, false, "EMPTY_PROVIDER_RESPONSE");
+        }
+        return text;
+    }
+
+    private String responseText(ConverseResponse response) {
+        if (response.output() == null || response.output().message() == null) {
+            return "";
+        }
+        return response.output().message().content().stream()
                 .map(ContentBlock::text)
                 .filter(value -> value != null)
                 .collect(Collectors.joining());
-        if (text.isBlank()) {
-            throw new PdfAiFailure(INVALID_MODEL_OUTPUT, false);
-        }
-        return text;
     }
 
     private boolean retryable(BedrockRuntimeException exception) {

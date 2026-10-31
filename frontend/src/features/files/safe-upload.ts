@@ -40,12 +40,15 @@ class MemoryBlobSizeMismatchError extends Error {
 const preparedMemoryBlobs = new WeakSet<Blob>();
 
 export async function safeUpload(input: SafeUploadInput): Promise<SafeUploadResult> {
+  input.signal?.throwIfAborted();
   const incidentId = (input.createIncidentId ?? defaultIncidentId)();
   const context = { incidentId };
   let body: Blob;
   try {
     body = preparedMemoryBlobs.has(input.source) ? input.source : await prepareMemoryBlob(input.source);
+    input.signal?.throwIfAborted();
   } catch (cause) {
+    input.signal?.throwIfAborted();
     throw finalFailure(input, context, "PREPARE", 1, classifyPrepareFailure(cause), cause);
   }
 
@@ -55,15 +58,18 @@ export async function safeUpload(input: SafeUploadInput): Promise<SafeUploadResu
       { originalFilename: input.originalFilename, contentType: body.type, size: body.size },
       context,
     );
+    input.signal?.throwIfAborted();
   } catch (cause) {
+    input.signal?.throwIfAborted();
     throw finalFailure(input, context, "UPLOAD_REQUEST", 1, classifyRequestFailure(cause), cause);
   }
 
   const put = input.put ?? putBlob;
   try {
-    await uploadAttempt(resource, body, context, input.completeUpload, put);
+    await uploadAttempt(resource, body, context, input.completeUpload, put, input.signal);
     return { fileId: resource.fileId, incidentId, retried: false };
   } catch (caught) {
+    input.signal?.throwIfAborted();
     const failure = attemptFailure(caught);
     const classification = classifyAttemptFailure(failure);
     if (!classification.retryable) {
@@ -71,7 +77,7 @@ export async function safeUpload(input: SafeUploadInput): Promise<SafeUploadResu
     }
 
     try {
-      await uploadAttempt(resource, body, context, input.completeUpload, put);
+      await uploadAttempt(resource, body, context, input.completeUpload, put, input.signal);
       emitDiagnostic(input, {
         ...context,
         uploadFlow: input.flow,
@@ -94,6 +100,7 @@ export async function safeUpload(input: SafeUploadInput): Promise<SafeUploadResu
       }
       return { fileId: resource.fileId, incidentId, retried: true };
     } catch (retryCaught) {
+      input.signal?.throwIfAborted();
       const retryFailure = attemptFailure(retryCaught);
       throw finalFailure(input, context, "RETRY", 2, classifyAttemptFailure(retryFailure), retryFailure.cause);
     }
@@ -123,22 +130,26 @@ async function uploadAttempt(
   context: IncidentContext,
   completeUpload: SafeUploadInput["completeUpload"],
   put: NonNullable<SafeUploadInput["put"]>,
+  signal?: AbortSignal,
 ) {
   try {
-    const response = await put(resource, body);
+    signal?.throwIfAborted();
+    const response = await put(resource, body, signal);
+    signal?.throwIfAborted();
     if (!response.ok) throw new PutRejectedError(response.status);
   } catch (cause) {
     throw new AttemptFailure("PUT", cause);
   }
   try {
     await completeUpload(resource.fileId, context);
+    signal?.throwIfAborted();
   } catch (cause) {
     throw new AttemptFailure("COMPLETION", cause);
   }
 }
 
-function putBlob(resource: UploadResource, body: Blob) {
-  return fetch(resource.uploadUrl, { method: resource.method, headers: resource.headers, body });
+function putBlob(resource: UploadResource, body: Blob, signal?: AbortSignal) {
+  return fetch(resource.uploadUrl, { method: resource.method, headers: resource.headers, body, signal });
 }
 
 function finalFailure(

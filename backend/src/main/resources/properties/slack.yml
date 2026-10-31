@@ -8,6 +8,10 @@ yesulin:
     timetable-webhook-url: ${YESULIN_TIMETABLE_SLACK_WEBHOOK_URL:}
     # 예상하지 못한 서버 오류(버그 알림) 채널
     error-webhook-url: ${YESULIN_ERROR_SLACK_WEBHOOK_URL:}
+    # 지원자 분석 최종 실패. LOCAL·DEV는 동일한 개발 오류 채널을 사용한다.
+    pdf-ai-error-webhook-url: ${YESULIN_PDF_AI_SLACK_WEBHOOK_URL:${YESULIN_ERROR_SLACK_WEBHOOK_URL:}}
+    # 비우면 현재 실행 환경의 프론트 주소를 사용한다. Slack 앱 Interactivity 설정은 필요 없다.
+    pdf-ai-retry-base-url: ${YESULIN_PDF_AI_SLACK_RETRY_BASE_URL:}
     # 이벤트 참가 신청 완료 전용 채널. 비어 있으면 접수 로그만 남긴다.
     event-registration-webhook-url: ${YESULIN_EVENT_REGISTRATION_SLACK_WEBHOOK_URL:}
     # 관리자 명단 링크는 신청을 받은 환경의 프론트 주소를 사용한다.

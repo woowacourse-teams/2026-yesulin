@@ -12,6 +12,8 @@ public interface AuditApplicantRepository extends JpaRepository<AuditApplicant, 
 
     List<AuditApplicant> findByReviewIdOrderByOriginalFilenameAscIdAsc(String reviewId);
 
+    long countByReviewId(String reviewId);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select item from AuditApplicant item where item.id = :id and item.reviewId = :reviewId")
     Optional<AuditApplicant> findInReviewForUpdate(String id, String reviewId);

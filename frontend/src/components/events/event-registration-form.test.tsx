@@ -5,7 +5,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { registerForEvent, uploadEventRegistrationPhoto } from "@/features/events/api";
 import { shrinkPhoto } from "@/features/companies/photo-image";
 import { EventRegistrationForm } from "./event-registration-form";
+import { EVENT_PHOTO_TIMEOUT_MS, EVENT_PHOTO_SLOW_MS } from "@/features/events/photo-upload-task";
 
+vi.mock("@sentry/nextjs", () => ({ captureEvent: vi.fn() }));
 vi.mock("@/features/events/api", () => ({ registerForEvent: vi.fn(), uploadEventRegistrationPhoto: vi.fn() }));
 vi.mock("@/features/companies/photo-image", async (importOriginal) => ({ ...await importOriginal<typeof import("@/features/companies/photo-image")>(), shrinkPhoto: vi.fn() }));
 
@@ -30,7 +32,7 @@ beforeEach(() => {
   vi.mocked(shrinkPhoto).mockResolvedValue(new Blob(["photo"], { type: "image/jpeg" }));
   vi.mocked(uploadEventRegistrationPhoto).mockResolvedValue("photo-upload-key");
 });
-afterEach(() => { act(() => root.unmount()); container.remove(); vi.unstubAllGlobals(); });
+afterEach(() => { act(() => root.unmount()); container.remove(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 
 async function open(popup = true) {
   await act(async () => root.render(<EventRegistrationForm eventId={2} businessCardOpen businessCardClosesAt={null}
@@ -64,6 +66,87 @@ async function actorCard() {
   await act(async () => document.querySelector<HTMLInputElement>('[type="radio"]')!.click());
   await act(async () => button("무료 명함 만들기").click());
 }
+
+async function choosePhoto() {
+  const field = document.querySelector<HTMLInputElement>('[type="file"]')!;
+  await act(async () => {
+    Object.defineProperty(field, "files", { configurable: true, value: [new File(["photo"], "profile.jpg", { type: "image/jpeg" })] });
+    field.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+}
+
+describe("명함 사진 처리 복구", () => {
+  it.each(["PREPARING", "UPLOADING"] as const)("%s 지연 안내 후 시간 초과 시 닫기·재선택을 복구한다", async (stage) => {
+    if (stage === "PREPARING") vi.mocked(shrinkPhoto).mockReturnValueOnce(new Promise(() => {}));
+    else vi.mocked(uploadEventRegistrationPhoto).mockReturnValueOnce(new Promise(() => {}));
+    await actorCard();
+    vi.useFakeTimers();
+    await choosePhoto();
+    expect(button("사진 업로드 취소").disabled).toBe(false);
+    await act(async () => { await vi.advanceTimersByTimeAsync(EVENT_PHOTO_SLOW_MS); });
+    expect(document.body.textContent).toContain("평소보다 오래 걸리고 있어요");
+    await act(async () => { await vi.advanceTimersByTimeAsync(EVENT_PHOTO_TIMEOUT_MS[stage]); });
+    expect(document.querySelector('[role="alert"]')?.textContent).toContain("시간이 초과됐어요");
+    expect(document.querySelector('[role="alert"]')?.textContent).toContain("오류 ID");
+    expect(button("사진 선택해서 올리기").disabled).toBe(false);
+    expect(button("닫기").disabled).toBe(false);
+  });
+
+  it("취소한 업로드가 나중에 끝나도 새 사진을 덮어쓰지 않는다", async () => {
+    let finishOld!: (key: string) => void;
+    vi.mocked(uploadEventRegistrationPhoto).mockReturnValueOnce(new Promise((resolve) => { finishOld = resolve; }));
+    await actorCard();
+    await choosePhoto();
+    const oldSignal = vi.mocked(uploadEventRegistrationPhoto).mock.calls[0][2]!.signal!;
+    await act(async () => button("사진 업로드 취소").click());
+    expect(oldSignal.aborted).toBe(true);
+    expect(button("닫기").disabled).toBe(false);
+    await choosePhoto();
+    expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+    await act(async () => finishOld("obsolete-key"));
+    expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+    expect(document.body.textContent).toContain("사진 등록 완료 · 1장");
+  });
+
+  it("사진 교체가 실패해도 기존 사진과 입력값을 유지한다", async () => {
+    await actorCard();
+    await input("#registration-card-name", "김예술");
+    await choosePhoto();
+    vi.mocked(shrinkPhoto).mockRejectedValueOnce(new Error("decoder failed"));
+    await choosePhoto();
+    expect(preview().querySelector("img")?.getAttribute("src")).toBe("blob:profile-photo");
+    expect(document.querySelector<HTMLInputElement>("#registration-card-name")!.value).toBe("김예술");
+    expect(button("다른 사진으로 변경").disabled).toBe(false);
+    expect(document.body.textContent).toContain("기존에 등록한 사진이 유지돼요");
+    expect(URL.revokeObjectURL).not.toHaveBeenCalled();
+  });
+
+  it("준비 시간 초과 후 다시 선택한 사진을 늦은 이전 변환이 덮어쓰지 않는다", async () => {
+    let finishOld!: (photo: Blob) => void;
+    vi.mocked(shrinkPhoto).mockReturnValueOnce(new Promise((resolve) => { finishOld = resolve; }));
+    await actorCard();
+    vi.useFakeTimers();
+    await choosePhoto();
+    await act(async () => { await vi.advanceTimersByTimeAsync(EVENT_PHOTO_TIMEOUT_MS.PREPARING); });
+    await choosePhoto();
+    await act(async () => finishOld(new Blob(["old-photo"], { type: "image/jpeg" })));
+    expect(uploadEventRegistrationPhoto).toHaveBeenCalledTimes(1);
+    expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+    expect(document.body.textContent).toContain("사진 등록 완료 · 1장");
+  });
+
+  it("화면 이탈 시 준비를 취소하고 늦은 변환 뒤에 업로드하지 않는다", async () => {
+    let finish!: (photo: Blob) => void;
+    vi.mocked(shrinkPhoto).mockReturnValueOnce(new Promise((resolve) => { finish = resolve; }));
+    await actorCard();
+    await choosePhoto();
+    const signal = vi.mocked(shrinkPhoto).mock.calls[0][1]!;
+    await act(async () => root.render(null));
+    expect(signal.aborted).toBe(true);
+    await act(async () => finish(new Blob(["old-photo"], { type: "image/jpeg" })));
+    expect(uploadEventRegistrationPhoto).not.toHaveBeenCalled();
+  });
+});
 
 describe("참가 신청 전 안내", () => {
   it("입력 오류가 있으면 팝업과 접수 전에 오류를 보여 준다", async () => {

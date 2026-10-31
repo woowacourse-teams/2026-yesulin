@@ -121,6 +121,27 @@ class AuditExtractionServiceTest {
         assertEquals(AuditDecision.HOLD, applicant.getDecision());
     }
 
+    @Test
+    void retryAndItsResultPreserveManualRoleMemoAndDecision() {
+        applicant.assignRole("manual-role");
+        applicant.review("유지할 메모", AuditDecision.HOLD);
+        applicant.markNeedsReview();
+
+        service.restartAnalysis("job-1");
+        assertEquals(AuditApplicantStatus.ENRICHING, applicant.getProcessingStatus());
+        assertEquals("manual-role", applicant.getRoleId());
+        assertEquals("유지할 메모", applicant.getMemo());
+        assertEquals(AuditDecision.HOLD, applicant.getDecision());
+
+        PdfApplicantInfo info = new PdfApplicantInfo("applicant-info-v2", "COMPLETED", "bedrock", "test-model",
+                "가상배우", "이름: 가상배우", null, null, "");
+        service.applyAi("job-1", OWNER, "이름: 가상배우", info);
+        assertEquals(AuditApplicantStatus.READY, applicant.getProcessingStatus());
+        assertEquals("manual-role", applicant.getRoleId());
+        assertEquals("유지할 메모", applicant.getMemo());
+        assertEquals(AuditDecision.HOLD, applicant.getDecision());
+    }
+
     private void givenAiJob(Consumer<PdfAiJob> setup) {
         PdfAiJob job = new PdfAiJob("job-1", review.getId(), OWNER, "[]", NOW);
         setup.accept(job);

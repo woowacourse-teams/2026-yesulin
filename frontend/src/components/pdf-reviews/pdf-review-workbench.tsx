@@ -68,6 +68,9 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
     reviewId: authorized && !home ? review?.id ?? null : null, uploading,
     refreshKey: `${detailRefresh}:${review?.entries.length ?? 0}`, onChanged: sync, onUnauthorized: markExpired,
   });
+  const preparing = decision === "PENDING" && !expired && !progressError && !reviews.detailError && (uploading || (progress
+    ? progress.total > 0 && !progress.complete
+    : review?.entries.some(entry => entry.processingStatus === "UPLOADING" || entry.processingStatus === "EXTRACTING" || entry.processingStatus === "ENRICHING")));
   function openReview(id: ReviewKey) { navigate(() => { setFilter("ALL"); setDecision("PENDING"); setHome(false); reviews.open(id); }); }
   function created(next: ReviewDetail) { closeCreate(); setFilter("ALL"); setDecision("PENDING"); setHome(false); reviews.created(next); }
   function manualRefresh() { setExpired(false); setDetailRefresh(value => value + 1); void reviews.refresh(); }
@@ -77,14 +80,14 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
   const filterKey = typeof filter === "object" ? String(filter.roleId) : filter;
   const uploadProps = { busy: uploads.busy || collecting,
     disabled: expired,
-    onChoose: (files: FileList | readonly File[] | null) => { setSelectionError(""); if (review) uploads.choose(review.id, files, review.entries.length); },
+    onChoose: (files: FileList | readonly File[] | null) => { setSelectionError(""); if (review) uploads.choose(review.id, files); },
   };
   async function dropFiles(transfer: DataTransfer) {
     if (!review || uploads.busy || expired || collectingRef.current) return;
     // 수집을 시작한 심사를 고정한다. 도중에 화면을 바꿔도 다른 심사에 파일을 올리지 않는다.
-    const destination = { id: review.id, count: review.entries.length };
+    const destinationId = review.id;
     collectingRef.current = true; setCollecting(true); setSelectionError("");
-    try { uploads.choose(destination.id, await collectDroppedPdfs(transfer), destination.count); }
+    try { uploads.choose(destinationId, await collectDroppedPdfs(transfer)); }
     catch (cause) { setSelectionError(cause instanceof Error ? cause.message : "폴더를 읽지 못했습니다. 다시 선택해 주세요."); }
     finally { collectingRef.current = false; setCollecting(false); }
   }
@@ -120,7 +123,11 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
             <div role="group" aria-label="심사 상태" className={styles.decisionTabs}>{([['PENDING','대기'],['PASS','합격'],['HOLD','보류'],['FAIL','불합격']] as const).map(([value,label]) => <button type="button" key={value} aria-pressed={decision === value} onClick={() => navigate(() => setDecision(value))}>{label}<span className="num">{review.entries.filter(item => matchesFilter(item, filter) && matchesDecision(item, value)).length}</span></button>)}</div>
             <div role="group" aria-label="보기 방식" className={styles.viewTabs}>{([['single','한 명씩'],['card','카드'],['table','표']] as const).map(([value,label]) => <button type="button" key={value} aria-pressed={view === value} onClick={() => navigate(() => setView(value))}>{label}</button>)}</div>
           </div>
-          {!visible.length ? review.entries.length ? <div className={styles.emptyDrop}><h2>이 조건에 해당하는 지원자가 없습니다.</h2><p>배역이나 심사 상태를 바꿔 확인해 주세요.</p></div> :
+          {!visible.length ? preparing ? <div className={styles.emptyDrop} role="status" aria-live="polite">
+            <div aria-hidden="true" className="mx-auto mb-5 h-10 w-10 animate-spin rounded-full border-4 border-brand-soft border-t-brand motion-reduce:animate-none" />
+            <h2>{uploading ? "PDF를 올리고 있어요" : "지원서를 준비하고 있어요"}</h2>
+            <p>이미지 추출과 지원자 분석이 끝난 지원서부터 자동으로 표시됩니다.</p>
+          </div> : review.entries.length ? <div className={styles.emptyDrop}><h2>이 조건에 해당하는 지원자가 없습니다.</h2><p>배역이나 심사 상태를 바꿔 확인해 주세요.</p></div> :
             <div className={styles.uploadDropzone} data-dragging={drag} aria-labelledby="pdf-drop-title" aria-describedby="pdf-drop-description pdf-drop-limit">
               <span className={styles.dropIcon} aria-hidden="true"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6M12 18v-7m-3 3 3-3 3 3" /></svg></span>
               <span id="pdf-drop-title" className={styles.dropTitle}>{uploads.busy ? "PDF를 올리고 있어요" : drag ? "여기에 놓으면 업로드가 시작돼요" : "지원서 PDF나 폴더를 한 번에 끌어 놓으세요"}</span>
@@ -135,7 +142,7 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
         </div>
       </>}
     </>}
-    {authorized && !home && review && <ReviewProcessingProgress key={review.id} progress={progress} uploading={uploading} uploadMessage={uploadMessage} uploadError={String(uploads.messageReviewId) === String(review.id) ? uploads.validationError : ""} error={progressError} onRetry={manualRefresh}
+    {authorized && !home && review && <ReviewProcessingProgress key={review.id} progress={progress} uploading={uploading} uploadMessage={uploadMessage} uploadError={String(uploads.messageReviewId) === String(review.id) ? uploads.validationError : ""} error={progressError || reviews.detailError} onRetry={manualRefresh}
       notices={uploads.notices.filter(item => String(item.reviewId) === String(review.id))} rows={uploads.rows}
       uploadBusy={uploads.busy} disabled={expired} onRemove={uploads.remove} onClearUploaded={() => uploads.clearUploaded(review.id)} onRetryUpload={row => void uploads.retry(row)} />}
     <ModalShell open={authorized && createOpen} onClose={() => { if (!createBusy) closeCreate(); }} labelledBy="create-review-title" className={`${styles.createDialog} ${styles.controls} w-[calc(100vw-32px)] max-w-lg max-h-[90dvh] overflow-y-auto rounded-modal bg-card p-6 shadow-xl`}>

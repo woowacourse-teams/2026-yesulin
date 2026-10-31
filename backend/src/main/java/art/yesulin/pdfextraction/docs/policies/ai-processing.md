@@ -6,14 +6,22 @@
 잘못된 모델 출력이나 경력/프로필의 원문 근거 불일치는 `INVALID_MODEL_OUTPUT`으로 기록한다.
 
 `pdf_ai_worker_gate`의 한 행을 잠근 트랜잭션에서 유효한 RUNNING 수를 세고 작업을 획득한다.
-기본 전체 상한은 1건이며 서버별 스레드 수로 전체 상한을 판단하지 않는다.
-ShedLock은 주기 실행을 조정하고, 전용 실행자는 노드당 한 작업만 수행해 다른 스케줄러를 막지 않는다.
+기본 전체 상한은 4건이며 서버별 스레드 수로 전체 상한을 판단하지 않는다.
+커밋 뒤 즉시 실행 신호와 주기 실행은 같은 Dispatcher를 사용한다. ShedLock은 주기 신호만 조정하며,
+실제 전역 실행권은 DB Gate/lease가 소유한다. 전용 실행자는 노드에서도 concurrency 설정(1~50) 이하로만 실행하고
+콜백 수만큼 메모리 작업을 쌓지 않는다. 처리 중 새 신호는 합쳐서 확인한다. 모델 호출은 HTTP 콜백 스레드와 분리한다.
+새 작업 이벤트는 AFTER_COMMIT에만 전달되며, 신호 유실·실행자 거절·서버 재시작은 기본 5초 주기 신호로 회수한다.
+작업 획득 커밋 뒤에는 다음 요청 간격에 신호 하나를 예약해 비어 있는 슬롯을 채운다. 예약은 노드당 하나로 합치며
+새 획득이 있으면 마지막 획득 이후 간격을 지킨다. 빈 큐에는 예약을 이어 만들지 않는다.
+호출 간격이 양수면 신호 하나당 새 실행자도 하나만 시작해, 동시성 상한이 커도 예약 신호마다
+수십 개의 실행자가 같은 DB gate를 조회하지 않도록 한다. 0 간격을 명시한 경우에는 빈 슬롯을 함께 깨운다.
 모델 호출 기한은 Bedrock 35초이며 임대는 최소 2분이다. 임대 만료 작업은 다음 tick에서 복구하고
 임대 토큰이 바뀌었거나 만료된 이전 작업자의 응답은 반영하지 않는다.
 임대는 논리적 실행권이므로 프로세스 장기 정지나 응답 유실에서 모델 호출 자체의 정확히 한 번 실행·과금을 보장하지 않는다.
-동시성 1은 모델의 RPM/TPM 쿼터를 대신하지 않는다.
-기본 요청 간격은 전체 서버 합산 10초(최대 6RPM)이며 gate의 `next_request_at`을 같은 트랜잭션에서 예약한다.
-재시도도 간격을 다시 획득한다. `YESULIN_PDF_AI_REQUEST_INTERVAL=PT10S`로 설정하며,
+동시성 제한은 모델의 RPM/TPM 쿼터를 대신하지 않는다.
+사용자가 확인한 분당 300회 기준으로 기본 요청 간격은 전체 서버 합산 0.2초(최대 300RPM)이며
+gate의 `next_request_at`을 같은 트랜잭션에서 예약한다. 재시도도 간격을 다시 획득한다.
+`YESULIN_PDF_AI_REQUEST_INTERVAL=PT0.2S`로 설정하며,
 요청 간격 제한은 정확한 TPM 제한을 대신하지 않는다. 시계가 동기화된 서버를 전제로 하며 계정 쿼터를 관찰해 조정한다.
 
 기능이 꺼져 있거나 텍스트가 없거나 32,000자를 넘으면 SKIPPED로 종료하고 원문·규칙 결과는 유지한다.
@@ -23,16 +31,30 @@ ShedLock은 주기 실행을 조정하고, 전용 실행자는 노드당 한 작
 모든 필드는 불확실하면 null이고 원문을 대신하는 합격 판단은 하지 않는다.
 
 설정: `YESULIN_PDF_AI_ENABLED`(base/local false, dev·prod는 PDF 기능 활성 시 기본 true), `YESULIN_PDF_AI_PROVIDER`(bedrock),
-`YESULIN_PDF_AI_MODEL_ID`(초기값 `global.anthropic.claude-haiku-5-5`), `YESULIN_PDF_AI_REGION`(ap-northeast-2),
-`YESULIN_PDF_AI_CONCURRENCY`(1, 허용 1~4), `YESULIN_PDF_AI_MAX_ATTEMPTS`(3, 허용 1~5).
+`YESULIN_PDF_AI_MODEL_ID`(초기값 `global.openai.gpt-6-luna`), `YESULIN_PDF_AI_REGION`(ap-northeast-2),
+`YESULIN_PDF_AI_CONCURRENCY`(4, 허용 1~50), `YESULIN_PDF_AI_MAX_ATTEMPTS`(3, 허용 1~5).
 로컬 `local` 프로필에서만 provider=gemini와
 `yesulin.pdf-ai.gemini-api-key-file`과 Gemini 모델 ID를 명시해 기존 Gemini 검증을 사용할 수 있다.
 Bedrock 오류 시 Gemini로 자동 우회하지 않는다.
 
-현재 Bedrock 기본 설정은 `global.anthropic.claude-haiku-5-5`다. Dev EC2 InvokeModel 성공은 확인했고, 배포 Spring Converse·Prod 역할 검증은 남아 있다.
+현재 Bedrock 기본 설정은 `global.openai.gpt-6-luna`, reasoning effort는 `none`이다.
+Dev EC2의 실제 지원서 Converse 실험은 확인했고, 변경 코드의 배포와 Prod 역할 검증은 별도로 수행한다.
 다른 Converse 지원 모델은 `YESULIN_PDF_AI_MODEL_ID`로 지정한다.
 서울(`ap-northeast-2`) endpoint를 사용하지만 글로벌 추론 프로필이므로 실제 추론 위치를 서울로 한정하지 않는다.
-출력 상한은 4096 tokens이며 temperature는 강제하지 않는다. 출력이 잘리면 부분 JSON을 반영하지 않는다.
+출력 상한은 Bedrock 4096 tokens(상수), 로컬 Gemini 6000 tokens다. Bedrock Luna와 Haiku 5.5는 temperature를 생략한다.
+실제 Luna Converse에서 temperature=0은 HTTP 400으로 거부되어 사용하지 않는다.
+`YESULIN_PDF_AI_REASONING_EFFORT`는 none(기본), low, medium, high, xhigh, max 중 하나다.
+Luna는 additionalModelRequestFields.reasoning.effort로 전달한다. Haiku 5.5는 none일 때 thinking.type=disabled,
+그 외는 adaptive와 output_config.effort를 전달한다. 다른 모델은 기존처럼 추가 추론 옵션을 생략한다.
+이는 생성량을 제한하는 현재 설정이며 대표 지원서의 출력 토큰 분포·최대 필드 길이로 충분성을 입증한 값은 아니다.
+출력이 잘리면 부분 JSON을 반영하지 않고 INVALID_MODEL_OUTPUT으로 종료한다. 상한 조정은 실제 출력 사용량과
+잘림 빈도를 측정한 뒤 판단한다. 요청 수 상한(RPM), 입력/출력 토큰 처리량(TPM), 출력 토큰 상한은 서로 다른 제한이다.
+동시 실행 기본 4건은 초기 실행 수 설정이며 300RPM의 실제 달성을 보장하지 않는다. 평균 모델 응답시간과
+입력/출력 토큰 처리량에 따라 실제 처리 속도가 달라진다. 배포 환경에 기존 환경 변수 값이 있으면 기본값보다 우선한다.
+예를 들어 평균 10초/호출이라면 초당 5회 시작에 필요한 동시성은 약 50건이다. 이는 설정 산식이며 실측값이 아니다.
+`YESULIN_PDF_AI_CONCURRENCY=50`으로 조정할 수 있다. PDF 추출 Lambda의 동시성은 이 설정과 독립이다.
+확인한 계정/모델 쿼터에 맞춰 YESULIN_PDF_AI_CONCURRENCY와 YESULIN_PDF_AI_REQUEST_INTERVAL을 조정한다.
+이 설정을 늘려도 전역 DB 상한은 모든 서버에 합산 적용된다.
 모델 지원·역할 허용과 서비스 처리량은 별개다. Gemini보다 높은 정확도나 더 짧은 시간을 보장하지 않는다.
 모델별 접근·쿼터는 대상 EC2 역할과 모델 ID로 확인한다.
 
@@ -49,6 +71,18 @@ Bedrock 오류 시 Gemini로 자동 우회하지 않는다.
 글로벌 추론 프로필과 해당 프로필이 전달할 수 있는 리전의 기반 모델에 대한 `bedrock:InvokeModel` 허용이 필요하다.
 권한 확인 후 새 합성 PDF 작업을 업로드해 `PENDING → COMPLETED`와 프로필 반영을 확인한다.
 비활성 상태에서 이미 SKIPPED가 된 작업은 이 검증을 대신하지 않는다.
+
+## dev 실험용 응답 DEBUG
+
+사용자 요청에 따라 `dev`가 활성이고 `prod`는 비활성인 경우에만 `PdfAiDiagnostics`가 모델 응답 텍스트를
+DEBUG 구조화 필드 `aiResponse`에 기록한다. prod·dev+prod·local·무프로필에서는 로그 수준을 DEBUG로 바꿔도 기록하지 않는다.
+Bedrock 응답의 종료 상태·본문 검증 전에 기록하므로 `max_tokens` 등으로 거부한 응답도 확인할 수 있다.
+`PDF_FLOW stage=AI_PROVIDER_RESPONSE`의 jobId, `stopReason`, `inputTokens`, `outputTokens`로 호출을 연결한다.
+요청 원문·시스템 프롬프트·API 키·헤더는 추가 기록하지 않는다. 모델 응답에는 지원자 정보가 포함될 수 있다.
+과대 응답은 최대 131,072자로 제한하며 `responseCharacters`와 `responseTruncated`로 기록 잘림을 표시한다.
+`PDF_FLOW stage=AI_FAILURE_DETAIL`은 JSON 형식, 이름·배역 근거, 프로필 스키마/근거 등 검증 실패 지점을 구분한다.
+DB 오류 코드 `INVALID_MODEL_OUTPUT`, 영구 실패 판정·재시도 횟수·출력 토큰 상한은 유지한다.
+CloudWatch dev 필터는 기존 `PDF_FLOW ` 접두사로 수집한다. 필터 적용 전 로컬 파일만 기록된 응답은 CloudWatch에 소급 전송하지 않는다.
 
 ## 어댑터와 검증 범위
 
@@ -69,3 +103,26 @@ Bedrock 오류 시 Gemini로 자동 우회하지 않는다.
 - 2026-10-29 Dev EC2 역할의 서울 `InvokeModel` 재시험: Haiku 5.5와 GPT-6 Luna 모두 HTTP 200, OK 응답.
   최초 권한 거부 뒤 재시험이 성공했다. Prod 역할과 배포된 Spring Converse 경로의 실제 호출은 별도 확인이 필요하다.
 - 응답 형식은 프롬프트와 응답 파서(`PdfAiResponseParser`)로 검증한다. Gemini는 JSON MIME 타입만 지정하고 스키마 강제는 쓰지 않는다.
+
+## 실패 알림과 수동 재분석
+
+최종 FAILED 커밋 뒤 Slack 알림을 비동기로 보낸다. 일시 실패의 자동 재시도 중에는 보내지 않는다.
+알림에는 환경·작업 ID·모델·오류 코드·시도 횟수만 포함하며 지원자 이름·파일명·원문·응답은 넣지 않는다.
+Slack 전송 실패는 작업 상태를 되돌리지 않고 PDF_AI_SLACK_ALERT_FAILED 로그로 남긴다.
+알림은 best-effort이며 프로세스 종료나 Slack 장애 중의 전송을 영속 큐로 보장하지 않는다.
+
+공연사 심사의 유효한 실패 작업에는 AI 재분석 요청 URL 버튼을 넣는다. 클릭은 현재 환경의
+`/pdf-ai/retry` 확인 화면을 열 뿐이며 GET·링크 미리보기로 작업을 실행하지 않는다. 사용자가 로그인한 뒤
+재분석 실행을 눌러 기존 세션·CSRF 보호 POST를 보낸다. 본인 작업의 Active Producer 또는 Active Admin만 가능하다.
+Slack Signing Secret·Interactivity 수신 경로는 사용하지 않는다. LOCAL 링크는 기본 localhost:3000,
+DEV는 dev.yesulin.art, PROD는 yesulin.art다. 다른 프론트는 YESULIN_PDF_AI_SLACK_RETRY_BASE_URL로 지정한다.
+
+FAILED인 같은 실패 세대·시도·실패 시각을 AI 행 잠금 아래 확인하고 PENDING으로 바꾼다.
+retry_generation을 증가시키므로 시계나 시도 횟수가 같아져도 이전 알림으로 다시 실행할 수 없다.
+중복 클릭은 이미 처리 중으로 응답하고, 완료·생략·원본 추출 실패·삭제·배우 가져오기·원문 없음은 재등록하지 않는다.
+기존 callback payload·배역 스냅샷을 유지하고 새 재시도 묶음의 attempts는 0부터 시작한다.
+재등록·화면 ENRICHING 반영은 같은 트랜잭션이며 커밋 뒤 기존 Dispatcher를 깨운다.
+성공/실패/재등록 변경은 기존 소유자 SSE에도 알리고 재조회 시 DB 상태로 동기화한다.
+담당자의 수동 배역·메모·판정은 보존한다.
+
+알림 채널의 환경 설정은 [배포 문서](../../../../../../../../docs/operations/deployment.md)가 정본이다.

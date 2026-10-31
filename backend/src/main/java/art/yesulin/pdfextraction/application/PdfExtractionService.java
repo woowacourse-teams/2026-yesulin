@@ -1,5 +1,6 @@
 package art.yesulin.pdfextraction.application;
 
+import static art.yesulin.pdfextraction.domain.PdfExtractionErrorCode.INVALID_PDF;
 import static art.yesulin.pdfextraction.domain.PdfExtractionErrorCode.PDF_EXTRACTION_NOT_FOUND;
 
 import art.yesulin.global.exception.BusinessException;
@@ -52,6 +53,30 @@ public class PdfExtractionService {
         job.identifySource(storage.sourceFileKey(job));
         repository.save(job);
         return new PreparedUpload(job.getId(), storage.sourceFileKey(job), storage.prepare(job));
+    }
+
+    /** 호출자는 본인 심사 행을 잠근다. 동일 원본은 기존 항목과 작업을 그대로 재사용한다. */
+    @Transactional
+    public PreparedUpload prepareReview(long ownerId, String reviewId, String filename, long size, String sha256) {
+        Instant now = clock.instant();
+        PdfExtractionJob candidate = new PdfExtractionJob(ownerId, filename, size, now,
+                now.plus(UPLOAD_WINDOW), reviewId);
+        candidate.identifySourceSha256(sha256);
+        PdfExtractionJob existing = repository.findByReviewIdAndSourceSha256(reviewId, sha256).orElse(null);
+        if (existing != null) {
+            if (existing.getOwnerId() != ownerId || existing.getSize() != size) {
+                throw new BusinessException(INVALID_PDF, "기존 PDF와 업로드 정보가 일치하지 않습니다.");
+            }
+            if (existing.getUploadedAt() != null || existing.isFinished()) {
+                return new PreparedUpload(existing.getId(), storage.sourceFileKey(existing), null, true);
+            }
+            existing.renewUploadWindow(now.plus(UPLOAD_WINDOW));
+            return new PreparedUpload(existing.getId(), storage.sourceFileKey(existing),
+                    storage.prepare(existing), true);
+        }
+        candidate.identifySource(storage.sourceFileKey(candidate));
+        repository.save(candidate);
+        return new PreparedUpload(candidate.getId(), storage.sourceFileKey(candidate), storage.prepare(candidate));
     }
 
     @Transactional
@@ -126,6 +151,10 @@ public class PdfExtractionService {
         return new BusinessException(PDF_EXTRACTION_NOT_FOUND, "PDF 추출 작업을 찾을 수 없습니다.");
     }
 
-    public record PreparedUpload(String jobId, String fileKey, PdfExtractionStorage.UploadTarget upload) {
+    public record PreparedUpload(String jobId, String fileKey, PdfExtractionStorage.UploadTarget upload,
+                                 boolean duplicate) {
+        public PreparedUpload(String jobId, String fileKey, PdfExtractionStorage.UploadTarget upload) {
+            this(jobId, fileKey, upload, false);
+        }
     }
 }

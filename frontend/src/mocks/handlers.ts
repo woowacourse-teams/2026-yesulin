@@ -47,6 +47,7 @@ const apiPath = "/api";
 const realProducerApiEnabled = frontendEnvironment.producerApiEnabled;
 
 const pdfPassthroughPaths = [
+  "/api/v1/pdf-extractions/:jobId/ai-retry",
   "/api/v1/pdf-extractions",
   "/api/v1/pdf-extractions/events",
   "/api/v1/pdf-extractions/*",

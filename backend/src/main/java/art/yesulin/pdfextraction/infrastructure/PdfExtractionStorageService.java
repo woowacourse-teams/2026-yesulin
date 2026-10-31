@@ -26,7 +26,8 @@ public class PdfExtractionStorageService implements PdfExtractionStorage {
 
     @Override
     public UploadTarget prepare(PdfExtractionJob job) {
-        S3PrivateObjects.Upload upload = objects.createOnce(sourceKey(job), "application/pdf", job.getSize());
+        S3PrivateObjects.Upload upload = objects.createOnce(sourceKey(job), "application/pdf", job.getSize(),
+                job.getSourceSha256());
         return new UploadTarget(upload.url(), upload.method(), upload.expiresAt(), upload.headers());
     }
 

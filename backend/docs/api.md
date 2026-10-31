@@ -101,7 +101,7 @@ PDF 처리·오류·재시도 경계는 [공용 PDF 흐름](../src/main/java/art
 
 | Method | URL | 요청 / 응답 |
 | --- | --- | --- |
-| POST | `/api/v1/pdf-extractions/uploads` | `{originalFilename,size}` → 201 `{jobId,fileKey,upload:{url,method,expiresAt,headers}}` |
+| POST | `/api/v1/pdf-extractions/uploads` | `{originalFilename,size}` → 201 `{jobId,fileKey,duplicate:false,upload:{url,method,expiresAt,headers}}` |
 | POST | `/api/v1/pdf-extractions/{jobId}/completion` | 빈 JSON → 202 job. 원본 크기·형식·PDF 서명 확인. 이미 확인한 작업은 재사용 |
 | GET | `/api/v1/pdf-extractions` | 최근 본인 작업 최대 800개 `{jobs:[job]}`. DB 메타데이터만 반환 |
 | GET | `/api/v1/pdf-extractions/{jobId}?includeResult=false` | 파일별 상태 조회. DB 상태만 읽고 S3는 조회하지 않음 |
@@ -1022,7 +1022,18 @@ savedCount, hiddenCount, limit
   메시지에 숨긴 저장 수를 함께 적는다. 같은 공연사의 저장·해제는 회원 행을 잠가 순서대로 처리하므로 동시 요청도 한도를 넘지 않는다.
 - 배우에게 누가, 몇 명이 저장했는지 알려 주는 API는 없다.
 
+## PDF 지원자 재분석 요청
+
+공연사 심사의 재분석은 `POST /api/v1/pdf-extractions/{jobId}/ai-retry`를 사용한다.
+Active Producer 본인 작업 또는 Active Admin 세션과 기존 CSRF 헤더가 필요하다. GET은 지원하지 않는다.
+요청은 `{failedAttempts:1,failedAt:1793340000000,generation:0}`이며 failedAttempts 1~5, 나머지는 0 이상이다.
+Slack 실패 알림의 같은 실패 세대를 사용한다. 타인·없는 작업은 같은 404, 배우 계정·미승인 계정은 403이다.
+응답은 no-store의 `{status,message}`다. 202 QUEUED는 기존 대기열 등록, 200 ALREADY_PROCESSING은 중복 요청이다.
+409 UNAVAILABLE은 완료·삭제·이전 실패 세대·유효하지 않은 원본, 409 DISABLED는 AI 비활성 상태다.
+이미지를 다시 추출하거나 수동 심사 정보를 변경하지 않는다. 배우 가져오기 작업은 이 API로 재분석할 수 없다.
+
 ## PDF로 프로필 채우기(배우용) — 6개
+
 
 `YESULIN_PDF_EXTRACTION_ENABLED=true`일 때만 등록한다. 모두 Applicant 세션이 필요하고 쓰기는 기존 CSRF 규칙을 따른다.
 응답은 `Cache-Control: no-store`다. 업로드·추출은 [PDF 추출 확인](#pdf-추출-확인)과 같은 흐름이지만 작업 목적이
@@ -1300,4 +1311,4 @@ S3 삭제 실패 시 `DELETING` 상태가 남으며 같은 파일 ID로 재시�
 
 ### PDF 완료 알림
 
-`GET /api/v1/pdf-extractions/events`는 Active Producer 세션으로 접근하는 SSE다. `connected`와 `completed` 이벤트를 보내며 완료 데이터는 `{jobId}`만 포함한다. 본인 작업만 전달하고 DB 커밋 후 알린다. 15초 heartbeat와 3분 연결 만료 후 재연결을 사용한다. 알림 이력을 영구 보관하지 않으므로 재연결 시 DB 목록으로 동기화한다. 현재 인스턴스에 연결된 화면만 즉시 알림을 받으며 다중 인스턴스 간 알림 중계는 별도 범위다.
+`GET /api/v1/pdf-extractions/events`는 Active Producer 세션으로 접근하는 SSE다. `connected`와 `completed` 이벤트를 보내며 데이터는 `{jobId}`만 포함한다. `completed`는 추출 완료와 AI 완료·최종 실패·수동 재분석 접수 후 DB를 다시 읽으라는 변경 신호이며, 성공 판정을 의미하지 않는다. 본인 작업만 전달하고 DB 커밋 후 알린다. 15초 heartbeat와 3분 연결 만료 후 재연결을 사용한다. 알림 이력을 영구 보관하지 않으므로 재연결 시 DB 목록으로 동기화한다. 현재 인스턴스에 연결된 화면만 즉시 알림을 받으며 다중 인스턴스 간 알림 중계는 별도 범위다.

@@ -42,6 +42,18 @@ export async function fetchPdfExtraction(jobId: string, includeResult = false, s
   return job;
 }
 
+export type PdfAiRetryParameters = {
+  readonly failedAttempts: number;
+  readonly failedAt: number;
+  readonly generation: number;
+};
+
+export function retryPdfAnalysis(jobId: string, parameters: PdfAiRetryParameters) {
+  return json<{ status: "QUEUED" | "ALREADY_PROCESSING"; message: string }>(
+    `/${encodeURIComponent(jobId)}/ai-retry`, parameters,
+  );
+}
+
 /** 읽기/업로드 메모리는 이 함수가 실행되는 파일에만 할당한다. 전체 선택 파일을 한꺼번에 읽지 않는다. */
 export async function putPdf(file: File, target: PreparedPdfUpload["upload"]) {
   const buffer = await file.arrayBuffer();

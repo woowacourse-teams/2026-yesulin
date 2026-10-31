@@ -1,6 +1,9 @@
 package art.yesulin.pdfextraction.presentation.api;
 
 import art.yesulin.pdfextraction.application.PdfExtractionCompletedEvent;
+import art.yesulin.pdfextraction.application.ai.PdfAiCompletedEvent;
+import art.yesulin.pdfextraction.application.ai.PdfAiFailedEvent;
+import art.yesulin.pdfextraction.application.ai.PdfAiRetriedEvent;
 import jakarta.annotation.PreDestroy;
 import java.io.IOException;
 import java.util.Map;
@@ -34,9 +37,28 @@ public class PdfExtractionNotifications {
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void completed(PdfExtractionCompletedEvent event) {
+        changed(event.ownerId(), event.jobId());
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void aiCompleted(PdfAiCompletedEvent event) {
+        changed(event.ownerId(), event.jobId());
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void aiFailed(PdfAiFailedEvent event) {
+        changed(event.ownerId(), event.jobId());
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void aiRetried(PdfAiRetriedEvent event) {
+        changed(event.ownerId(), event.jobId());
+    }
+
+    private void changed(long memberId, String jobId) {
         connections.forEach((emitter, ownerId) -> {
-            if (ownerId == event.ownerId()) {
-                send(emitter, "completed", Map.of("jobId", event.jobId()));
+            if (ownerId == memberId) {
+                send(emitter, "completed", Map.of("jobId", jobId));
             }
         });
     }

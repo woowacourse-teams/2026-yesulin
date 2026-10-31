@@ -79,9 +79,10 @@ public class AuditController {
             @PathVariable UUID reviewId,
             @Valid @RequestBody PrepareAuditUploadRequest request
     ) {
-        return ResponseEntity.status(HttpStatus.CREATED).cacheControl(CacheControl.noStore())
-                .body(service.prepareUpload(principal.memberId(), reviewId.toString(),
-                        request.originalFilename(), request.size()));
+        PreparedUpload upload = service.prepareUpload(principal.memberId(), reviewId.toString(),
+                request.originalFilename(), request.size(), request.sha256());
+        return ResponseEntity.status(upload.duplicate() ? HttpStatus.OK : HttpStatus.CREATED)
+                .cacheControl(CacheControl.noStore()).body(upload);
     }
 
     @PatchMapping("/{reviewId}/entries/{entryId}")

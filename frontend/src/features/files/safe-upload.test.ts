@@ -39,6 +39,34 @@ function input(overrides: Partial<Parameters<typeof safeUpload>[0]> = {}) {
 describe("safeUpload", () => {
   beforeEach(() => vi.clearAllMocks());
 
+  it("메모리 읽기 중 취소되면 늦은 읽기 완료 후에도 업로드 요청을 만들지 않는다", async () => {
+    const controller = new AbortController();
+    let finish!: (buffer: ArrayBuffer) => void;
+    const source = new Blob(["x"]);
+    vi.spyOn(source, "arrayBuffer").mockReturnValue(new Promise((resolve) => { finish = resolve; }));
+    const spec = input({ source, signal: controller.signal });
+    const outcome = safeUpload(spec).catch((error: unknown) => error);
+    controller.abort();
+    finish(new ArrayBuffer(1));
+    expect(await outcome).toMatchObject({ name: "AbortError" });
+    expect(spec.requestUpload).not.toHaveBeenCalled();
+    expect(spec.reportDiagnostic).not.toHaveBeenCalled();
+    expect(sentry.captureException).not.toHaveBeenCalled();
+  });
+
+  it("전송 취소는 재시도·completion·실패 진단을 만들지 않는다", async () => {
+    const controller = new AbortController();
+    const spec = input({ signal: controller.signal, put: vi.fn(async () => {
+      controller.abort();
+      throw new TypeError("Failed to fetch");
+    }) });
+    await expect(safeUpload(spec)).rejects.toMatchObject({ name: "AbortError" });
+    expect(spec.put).toHaveBeenCalledTimes(1);
+    expect(spec.completeUpload).not.toHaveBeenCalled();
+    expect(spec.reportDiagnostic).not.toHaveBeenCalled();
+    expect(sentry.captureException).not.toHaveBeenCalled();
+  });
+
   it("disk-backed File 대신 같은 크기와 타입의 메모리 Blob을 PUT한다", async () => {
     const spec = input();
 
