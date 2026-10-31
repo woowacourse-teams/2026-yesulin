@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { trackReviewAction } from "@/features/analytics/review-actions";
 import { roleId, postingId, type SubmissionId, type ReviewStatus } from "@/features/auditions/types";
 import { fetchPdfExtraction } from "@/features/pdf-extractions/api";
 import type { PdfExtractionJob } from "@/features/pdf-extractions/types";
@@ -83,12 +84,12 @@ export function ScreeningBoard({ review, entries, decision, view, refreshKey, on
   }, [signature, refreshKey, loadAttempt, single]);
   const rows = useMemo(() => entries.map(entry => screeningApplicant(review, entry, jobs[entry.jobId])), [review, entries, jobs]);
   const entryFor = (id: string) => latest.current.review.entries.find(entry => sameKey(entry.id, id));
-  const save = async (id: SubmissionId, status: ReviewStatus, note?: string) => {
+  const save = async (id: SubmissionId, status: ReviewStatus, note?: string, saveKind: "decision" | "memo" = "decision") => {
     if (savingRef.current) return null;
     const entry = entryFor(id); if (!entry) return null;
     savingRef.current = true; setSaving(true); setError(""); setSavedMessage("");
     try {
-      const updated = await updatePdfReviewEntry(review.id, entry.id, { decision: status === "ETC" ? "HOLD" : status, memo: note ?? entry.memo ?? "" });
+      const updated = await updatePdfReviewEntry(review.id, entry.id, { decision: status === "ETC" ? "HOLD" : status, memo: note ?? entry.memo ?? "" }, saveKind);
       onSaved(updated); onDirtyChange(false); setSavedMessage("저장했습니다.");
       const next = latest.current.entries.map(item => sameKey(item.id, updated.id) ? updated : item)
         .filter(item => matchesDecision(item, decision));
@@ -100,7 +101,7 @@ export function ScreeningBoard({ review, entries, decision, view, refreshKey, on
     } finally { savingRef.current = false; setSaving(false); }
   };
   const patch = async (id: SubmissionId, change: { note?: string }) => {
-    const entry = entryFor(id); if (entry) await save(id, entry.decision === "HOLD" ? "ETC" : entry.decision, change.note);
+    const entry = entryFor(id); if (entry) await save(id, entry.decision === "HOLD" ? "ETC" : entry.decision, change.note, "memo");
   };
   const noteDirty = useCallback((dirty: boolean) => onDirtyChange(dirty), [onDirtyChange]);
   function openAssignment(ids: readonly SubmissionId[]) { navigate(() => { setTargets(ids); setRole(String(entryFor(ids[0])?.roleId ?? "")); setError(""); }); }
@@ -120,7 +121,8 @@ export function ScreeningBoard({ review, entries, decision, view, refreshKey, on
   return <BoardProvider value={{ source: { kind: "PDF" }, board: { role: { id: roleId(String(review.id)), postingId: postingId(String(review.id)), name: "PDF 지원자", description: "", quota: 0, gender: "ANY", ageMin: 0, ageMax: 0, applicantCount: allEntries.length, activeRound: 1, allRoundsClosed: false, counts, progress: { done, total: allEntries.length, percent: allEntries.length ? Math.round(done / allEntries.length * 100) : 0 } } },
     filters: { work: decision === "PENDING" ? "PENDING" : "DONE" }, selected, saving, reviewLocked: false,
     toggleSelected: id => setSelected(current => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next; }),
-    openApplicant: id => navigate(() => setFocused(id)), assignRoles: review.roles.length ? openAssignment : undefined, requestNavigation: navigate, onNoteDirty: noteDirty,
+    openApplicant: id => { trackReviewAction(String(review.id), String(id), view, "open"); navigate(() => setFocused(id)); }, assignRoles: review.roles.length ? openAssignment : undefined, requestNavigation: navigate, onNoteDirty: noteDirty,
+    onBasicAction: (id, action, input) => trackReviewAction(String(review.id), String(id), view, action, input),
     onApplicantViewed: refreshApplicant,
     onApplicantOpened,
     applicantRefreshKey: `${refreshKey}:${loadAttempt}:${signature}`,

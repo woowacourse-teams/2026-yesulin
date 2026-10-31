@@ -19,9 +19,10 @@ describe('심사 키보드 조작', () => {
     const entry = { id: 'entry', jobId: 'job', originalFilename: 'synthetic.pdf', applicantName: 'Synthetic',
       roleId: null, matchStatus: 'NEEDS_CHECK' as const, matchEvidence: null, memo: '', decision: 'PENDING' as const };
     const applicant = screeningApplicant(review, entry);
+    const action = vi.fn();
     const save = vi.fn().mockResolvedValue({ applicants: [applicant] });
     state.board = { board: { role: { id: review.id } }, source: { kind: 'PDF' }, filters: { work: 'PENDING' }, saving: false, reviewLocked: false,
-      reviewFocused: save, patchReview: vi.fn(), openApplicant: vi.fn() };
+      onBasicAction: action, reviewFocused: save, patchReview: vi.fn(), openApplicant: vi.fn() };
     const host = document.createElement('div'); document.body.append(host);
     const root = createRoot(host);
     try {
@@ -32,8 +33,17 @@ describe('심사 키보드 조작', () => {
         }
       });
       expect(save).not.toHaveBeenCalled();
+      expect(action).not.toHaveBeenCalled();
       await act(async () => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 's' })); });
       expect(save).toHaveBeenCalledTimes(1);
+      expect(action).toHaveBeenCalledExactlyOnceWith(applicant.id, "decision_save", "shortcut");
+      action.mockClear();
+      await act(async () => root.render(<ApplicantFocusReview rows={[applicant]} />));
+      expect(action).not.toHaveBeenCalled();
+      const hold = [...host.querySelectorAll("button")].find(button => button.getAttribute("aria-label")?.startsWith("보류"));
+      expect(hold).toBeTruthy();
+      await act(async () => hold!.click());
+      expect(action).toHaveBeenCalledExactlyOnceWith(applicant.id, "decision_save", "button");
       expect(save.mock.calls[0].slice(0, 2)).toEqual([applicant.id, 'ETC']);
       expect(document.activeElement).toBe(host.querySelector('section'));
     } finally { await act(async () => root.unmount()); host.remove(); }
