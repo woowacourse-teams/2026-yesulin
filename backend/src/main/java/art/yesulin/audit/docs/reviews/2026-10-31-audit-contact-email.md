@@ -29,3 +29,8 @@
 
 필수 PASS5 / FAIL0 / UNVERIFIED0 / N/A0. 5/5는 위 확인 범위이며 이메일 추출 정확도나 운영 품질 점수가 아니다.
 PR 없음(PENDING). 발견/해결/미해결 0/0/0, P0~P3 모두0. PRECHECK0 / INDEPENDENT_REVIEW0 / POST_FIX_CHECK0 / EXTERNAL0. 오탐0 / 미확인0. 문제 상태 사건 없음.
+
+## 최초 PR 연결
+
+최초 게시 PR: [#479](https://github.com/woowacourse-teams/2026-yesulin/pull/479), 대상 dev, 관련 이슈 #478.
+위 PENDING/PR 미생성 표기는 당시 작업 이력이며 이 절로 최초 게시 번호를 연결한다. 기존 문제 ID·확정/해결 시각은 변경하지 않는다.

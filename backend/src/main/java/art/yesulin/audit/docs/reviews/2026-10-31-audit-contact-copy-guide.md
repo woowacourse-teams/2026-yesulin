@@ -44,3 +44,8 @@ API 권한·300건 성능·실제 추출 정확도·운영 배포 N/A(변경하�
 | E02 | 2026-10-31-audit-contact-copy-guide-F01 | FIXED | 2026-10-31T19:12:42+09:00 | 독립 평가 확정 결과 및 수정 후 최종 테스트·브라우저 검증 기록 | PENDING |
 | E03 | 2026-10-31-audit-contact-copy-guide-F02 | CONFIRMED | 2026-10-31T19:12:42+09:00 | 독립 평가 확정 결과 및 수정 후 최종 테스트·브라우저 검증 기록 | PENDING |
 | E04 | 2026-10-31-audit-contact-copy-guide-F02 | FIXED | 2026-10-31T19:12:42+09:00 | 독립 평가 확정 결과 및 수정 후 최종 테스트·브라우저 검증 기록 | PENDING |
+
+## 최초 PR 연결
+
+최초 게시 PR: [#479](https://github.com/woowacourse-teams/2026-yesulin/pull/479), 대상 dev, 관련 이슈 #478.
+위 PENDING/PR 미생성 표기는 당시 작업 이력이며 이 절로 최초 게시 번호를 연결한다. 기존 문제 ID·확정/해결 시각은 변경하지 않는다.

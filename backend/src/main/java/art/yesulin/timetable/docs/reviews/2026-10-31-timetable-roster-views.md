@@ -43,3 +43,8 @@ API 변경 없음. 일정 정책 변경 없음. 대규모 검색/날짜 정렬�
 최종 실제 브라우저 표적 검증: 테스트새봄 연락처 편집 → 배정 보기 → 연락처 보기 → 취소 후 activeElement가 해당 행의 연락처 수정 버튼임을 확인, 편집 폼 0개. DB 쓰기 없음.
 
 최종 검증: 테스트 11/11 PASS, 수정 파일 ESLint PASS, `npm run build` PASS(exit 0). `/private/tmp/yesulin-roster-views-build-final.log`. 최초 제한 환경 빌드는 정체되어 종료 후 재실행했고, 타입 오류 수정 뒤 최종 빌드까지 통과했다.
+
+## 최초 PR 연결
+
+최초 게시 PR: [#479](https://github.com/woowacourse-teams/2026-yesulin/pull/479), 대상 dev, 관련 이슈 #478.
+위 PENDING/PR 미생성 표기는 당시 작업 이력이며 이 절로 최초 게시 번호를 연결한다. 기존 문제 ID·확정/해결 시각은 변경하지 않는다.

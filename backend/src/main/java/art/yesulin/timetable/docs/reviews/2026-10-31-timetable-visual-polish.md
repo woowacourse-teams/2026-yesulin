@@ -31,3 +31,8 @@
 독립 읽기전용 평가1회: 상대 도구 미제공으로 별도 동종 평가자 사용. `/private/tmp/yesulin-design-before/` 6개 원본과 현재 diff, 새 CSS, 디자인 문서, 최종 로그 및 데스크톱/모바일 화면 대조. 신규 확정 결함 없음. 기존 API/상태 갱신·저장·검증 유지 및 신규 CSS 사용처 확인. 추가 의존성/설정 없음. 이번 작업에 새로 남은 미사용 제품 파일 없음.
 필수 PASS5/FAIL0/UNVERIFIED0/N/A0, 검증률5/5. 신규 발견0/해결0/미해결0/P0=0/P1=0/P2=0/P3=0. PRECHECK0/INDEPENDENT_REVIEW0/POST_FIX_CHECK0/오탐0. 신규 문제 사건 없음. PR 생성/게시 없음.
 이는 시각 변경과 관련 회귀 검증 범위의 판정이며 기존 backend 실패·운영 배포·실물 모바일 키보드·보조기기·300명 부하의 통과를 의미하지 않는다.
+
+## 최초 PR 연결
+
+최초 게시 PR: [#479](https://github.com/woowacourse-teams/2026-yesulin/pull/479), 대상 dev, 관련 이슈 #478.
+위 PENDING/PR 미생성 표기는 당시 작업 이력이며 이 절로 최초 게시 번호를 연결한다. 기존 문제 ID·확정/해결 시각은 변경하지 않는다.

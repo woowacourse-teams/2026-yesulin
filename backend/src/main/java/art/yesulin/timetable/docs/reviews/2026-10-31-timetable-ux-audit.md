@@ -59,3 +59,8 @@ PR 생성 없음. 해결 시각 없음. 이번에는 사용자 요청에 따라 
 | C03 | 2026-10-31-timetable-ux-recheck-F01 | FIXED | 2026-10-31T19:42:28+09:00 | visual-polish의 기존 검증 근거 및 통합 코드·테스트 재확인. 이전 정확한 해결 시각 미보존으로 이번 확인 시각 사용 | PENDING |
 | C02 | 2026-10-31-timetable-ux-recheck-F02 | CONFIRMED | 2026-10-31T19:14:40+09:00 | E02 식별자 정정·대체. 정정 기록 2026-10-31T19:42:28+09:00. 기존 식별자의 해당 사건은 집계 제외 | PENDING |
 | C04 | 2026-10-31-timetable-ux-recheck-F02 | FIXED | 2026-10-31T19:42:28+09:00 | visual-polish의 기존 검증 근거 및 통합 코드·테스트 재확인. 이전 정확한 해결 시각 미보존으로 이번 확인 시각 사용 | PENDING |
+
+## 최초 PR 연결
+
+최초 게시 PR: [#479](https://github.com/woowacourse-teams/2026-yesulin/pull/479), 대상 dev, 관련 이슈 #478.
+위 PENDING/PR 미생성 표기는 당시 작업 이력이며 이 절로 최초 게시 번호를 연결한다. 기존 문제 ID·확정/해결 시각은 변경하지 않는다.

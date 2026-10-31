@@ -56,3 +56,8 @@ Audit 공통 평가표와 PDF 흐름·payload 보존 정책에 따라 이번 기
 - 기존 MySQL 볼륨을 유지했다. Docker를 켰고 backend의 기존 Testcontainers 설정이 로컬 S3를 시작했다. 로그는 `/private/tmp/yesulin-local-backend.log`.
 - PDF 기능 플래그만 실행 환경에서 활성화했다. callback secret/추출 Lambda가 준비되지 않아 새 PDF 자동 분석은 동작하지 않는다는 한계를 사용자에게 알렸다. 기존 추출 결과가 로컬 저장소에 존재한다는 보장은 하지 않는다.
 - 실행 평가: 필수 PASS 4 / FAIL 0 / UNVERIFIED 0. 신규 발견/해결/미해결 0/0/0, P0~P3 모두 0. 코드·DB 마이그레이션 변경 작업이 아니며 별도 PR 없음.
+
+## 최초 PR 연결
+
+최초 게시 PR: [#479](https://github.com/woowacourse-teams/2026-yesulin/pull/479), 대상 dev, 관련 이슈 #478.
+위 PENDING/PR 미생성 표기는 당시 작업 이력이며 이 절로 최초 게시 번호를 연결한다. 기존 문제 ID·확정/해결 시각은 변경하지 않는다.

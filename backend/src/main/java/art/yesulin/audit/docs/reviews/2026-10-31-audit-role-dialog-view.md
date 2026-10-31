@@ -49,3 +49,8 @@ PRECHECK 0 / INDEPENDENT_REVIEW 0 / POST_FIX_CHECK 0 / EXTERNAL 1. 오탐 0 / �
 평가자는 공통 토큰의 정의, 취소 버튼 type=button, 필드 접근성, 저장 로직 불변, 삭제한 스타일의 참조 부재를 확인했다. 신규 문제는 발견하지 않았다. 작성자의 좁은 화면/Escape/취소 QA와 임시 경로 삭제 근거를 함께 전달했다.
 
 기존 `2026-10-31-audit-pdf-flow-check-F01`(301명 이상 일괄 배역 지정)은 이번 표시 수정 범위 밖이며 해결했다고 주장하지 않는다. 기존 평가 기록·사용자 미추적 가이드·output/tmp 자료는 보존했다.
+
+## 최초 PR 연결
+
+최초 게시 PR: [#479](https://github.com/woowacourse-teams/2026-yesulin/pull/479), 대상 dev, 관련 이슈 #478.
+위 PENDING/PR 미생성 표기는 당시 작업 이력이며 이 절로 최초 게시 번호를 연결한다. 기존 문제 ID·확정/해결 시각은 변경하지 않는다.

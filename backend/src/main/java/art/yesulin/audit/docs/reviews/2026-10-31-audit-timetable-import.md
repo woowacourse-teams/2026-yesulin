@@ -77,3 +77,8 @@ PR 미생성. 향후 PR 본문에 아래 작업별 집계와 문제 ID를 유지
 | E03 | 2026-10-31-audit-timetable-import-F02 | CONFIRMED | 2026-10-31T15:10:04+09:00 | 독립 평가의 요청 중 상위 이동 보호 누락 확정 / PENDING |
 | E04 | 2026-10-31-audit-timetable-import-F02 | FIXED | 2026-10-31T15:10:04+09:00 | busy 전달 및 pending Promise 표적 테스트 통과 / PENDING |
 
+
+## 최초 PR 연결
+
+최초 게시 PR: [#479](https://github.com/woowacourse-teams/2026-yesulin/pull/479), 대상 dev, 관련 이슈 #478.
+위 PENDING/PR 미생성 표기는 당시 작업 이력이며 이 절로 최초 게시 번호를 연결한다. 기존 문제 ID·확정/해결 시각은 변경하지 않는다.

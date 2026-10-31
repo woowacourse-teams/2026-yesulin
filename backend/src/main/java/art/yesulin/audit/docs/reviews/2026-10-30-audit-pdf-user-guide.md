@@ -63,3 +63,8 @@ A01~A07의 런타임 회귀 검증은 N/A: 사용자 가이드만 작성하며 �
 | E05 | 2026-10-30-audit-pdf-user-guide-F03 | CONFIRMED | 2026-10-30T15:03:32+09:00 | 독립 평가의 5·8쪽 캡처 가독성 발견 / PENDING |
 | E06 | 2026-10-30-audit-pdf-user-guide-F03 | FIXED | 2026-10-30T15:05:00+09:00 | 알림 crop 보정·배역 crop y458/h171로 레이블 전체 포함 확인 / PENDING |
 | E07 | 2026-10-30-audit-pdf-user-guide-F03 | FIXED | 2026-10-30T15:05:27+09:00 | 시각 정정: E06의 예정 시각을 취소·대체하며, 최종 PDF 5·8쪽 표적 확인 직후 읽은 실제 시각으로 확정. 집계에서는 E06 제외 / PENDING |
+
+## 최초 PR 연결
+
+최초 게시 PR: [#479](https://github.com/woowacourse-teams/2026-yesulin/pull/479), 대상 dev, 관련 이슈 #478.
+위 PENDING/PR 미생성 표기는 당시 작업 이력이며 이 절로 최초 게시 번호를 연결한다. 기존 문제 ID·확정/해결 시각은 변경하지 않는다.

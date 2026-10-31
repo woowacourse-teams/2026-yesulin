@@ -72,3 +72,8 @@
 | E03 | 2026-10-31-audit-review-readability-F02 | CONFIRMED | 2026-10-31T14:11:03+09:00 | 기존 무최소폭 표 레이아웃·520px 재현 / PENDING |
 | E04 | 2026-10-31-audit-review-readability-F02 | FIXED | 2026-10-31T14:11:03+09:00 | 최소폭 지정·391px 재확인 / PENDING |
 
+
+## 최초 PR 연결
+
+최초 게시 PR: [#479](https://github.com/woowacourse-teams/2026-yesulin/pull/479), 대상 dev, 관련 이슈 #478.
+위 PENDING/PR 미생성 표기는 당시 작업 이력이며 이 절로 최초 게시 번호를 연결한다. 기존 문제 ID·확정/해결 시각은 변경하지 않는다.

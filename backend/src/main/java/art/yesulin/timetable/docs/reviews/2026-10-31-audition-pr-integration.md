@@ -6,10 +6,10 @@
 | ID | 기대 결과 / 실패 경계 | 검증 | 필수 | 결과 |
 | --- | --- | --- | --- | --- |
 | P1 | 심사·연락처·일정 전체 프론트 회귀 및 빌드 | Vitest/lint/build | Y | PASS |
-| P2 | 신규 migration과 익명/소유 일정 백엔드 회귀 | Gradle test/build/checkstyle | Y | UNVERIFIED |
+| P2 | 신규 migration과 익명/소유 일정 백엔드 회귀 | Gradle test/build/checkstyle | Y | PASS |
 | P3 | 최신 dev 통합·관련 변경만 커밋 | fetch/rebase/diff/secret·미사용 점검 | Y | PASS |
 | P4 | 독립 평가1회·기존 문제 상태/이력 보존 | 읽기 전용 평가·후속 정정 기록 | Y | PASS |
-| P5 | dev PR·이슈·검증/문제 집계 게시 | 원격 PR 확인 | Y | UNVERIFIED |
+| P5 | dev PR·이슈·검증/문제 집계 게시 | 원격 PR 확인 | Y | PASS |
 
 기존 2026-10-31-audition-regression-F01(H2 migration) 해결 대상. F02(평가 ID 충돌)는 과거 이력을 추정 복원하지 않고 명시적 정정/별도 식별로 정리한다. 관련 외부 가이드 최종본만 포함하고 tmp 캡처·다른 작업의 output은 제외한다. 운영 배포/실데이터/300건 부하/문자 발송은 실행하지 않는다.
 
@@ -40,3 +40,15 @@
 | E02 | 2026-10-31-audition-pr-integration-F01 | FIXED | 2026-10-31T19:48:13+09:00 | 신규 파일명 변경 후 순서/contract검사PASS | PENDING |
 
 후속 신규 집계: 발견1/해결1/미해결0, P0=0/P1=0/P2=1/P3=0, PRECHECK0/INDEPENDENT_REVIEW0/POST_FIX_CHECK1/EXTERNAL0, 오탐0. 위 신규0 집계는 최종 fetch 이전 검토 이력이다.
+
+## 최초 PR 연결
+
+최초 게시 PR: [#479](https://github.com/woowacourse-teams/2026-yesulin/pull/479), 대상 dev, 관련 이슈 #478.
+위 PENDING/PR 미생성 표기는 당시 작업 이력이며 이 절로 최초 게시 번호를 연결한다. 기존 문제 ID·확정/해결 시각은 변경하지 않는다.
+
+후속 표적 검토: 신규 migration 이름 변경의 SQL 본문 동일성, 최종 가이드만 포함된 변경 목록, 재점검 ID 정정과 regression-F02 OPEN 유지 확인. 추가 결함0. PR #479의 base=dev/head=feat/audition-management 및 이슈 프로젝트 In Progress 연결 확인. 최종 backend 실행 완료 전 draft로 게시했다.
+
+## 최종 게시 검증
+
+origin/dev `ab88d623`를 반영한 최종 `./gradlew build` 종료0: 235클래스 1418테스트, 실패0/오류0/건너뜀0. Checkstyle·패키징도 통과. 로그 `/private/tmp/yesulin-pr-backend-final.log`.
+필수 PASS5/FAIL0/UNVERIFIED0/N/A0. 신규 발견1/해결1/미해결0(P2 1), POST_FIX_CHECK1·나머지0, 오탐0. 독립 평가1회 및 후속 수정 표적 검토 완료. 기존 문제/미검증 범위는 상기 기록대로 유지한다.

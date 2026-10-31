@@ -41,3 +41,8 @@
 - 신규 발견 1 / 해결 1 / 미해결 0. P0 0 / P1 0 / P2 0 / P3 1. PRECHECK 1 / INDEPENDENT_REVIEW 신규 0 / POST_FIX_CHECK 신규 0 / EXTERNAL 0. 오탐 0.
 - 이번 가이드 범위 미확인 0. 운영 배포·실제 지원자 데이터·제품 전체 회귀는 이번 문서 작업의 검증 대상이 아니다. 기존 H2 및 과거 평가 ID 이슈는 상태를 바꾸지 않는다.
 - PR 미생성. 후속 PR에 본 작업 ID와 집계를 포함한다.
+
+## 최초 PR 연결
+
+최초 게시 PR: [#479](https://github.com/woowacourse-teams/2026-yesulin/pull/479), 대상 dev, 관련 이슈 #478.
+위 PENDING/PR 미생성 표기는 당시 작업 이력이며 이 절로 최초 게시 번호를 연결한다. 기존 문제 ID·확정/해결 시각은 변경하지 않는다.
