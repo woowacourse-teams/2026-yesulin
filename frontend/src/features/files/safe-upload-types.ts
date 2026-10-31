@@ -35,6 +35,7 @@ export type UploadResource = {
 export type IncidentContext = { readonly incidentId: string };
 
 export type SafeUploadInput = {
+  readonly signal?: AbortSignal;
   readonly flow: UploadFlow;
   readonly source: Blob;
   readonly originalFilename: string;
@@ -43,7 +44,7 @@ export type SafeUploadInput = {
     context: IncidentContext,
   ) => Promise<UploadResource>;
   readonly completeUpload: (fileId: number, context: IncidentContext) => Promise<void>;
-  readonly put?: (resource: UploadResource, body: Blob) => Promise<Response>;
+  readonly put?: (resource: UploadResource, body: Blob, signal?: AbortSignal) => Promise<Response>;
   readonly createIncidentId?: () => string;
   readonly reportDiagnostic?: (diagnostic: UploadDiagnostic & IncidentContext) => void;
 };

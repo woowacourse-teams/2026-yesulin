@@ -12,7 +12,7 @@ const QUALITIES = [0.85, 0.75, 0.6] as const;
 const IMAGE_EXTENSIONS = /\.(jpe?g|png|webp|gif|bmp|heic|heif|avif|tiff?)$/i;
 
 export class PhotoProcessingError extends Error {
-  constructor(message: string) {
+  constructor(message: string, readonly code = "PHOTO_PROCESSING_FAILED") {
     super(message);
     this.name = "PhotoProcessingError";
   }
@@ -32,28 +32,31 @@ export function fitWithin(width: number, height: number, maxEdge = MAX_EDGE): { 
 }
 
 /** 고른 파일을 확인하고 줄인 JPEG로 바꾼다. 열 수 없는 파일이면 {@link PhotoProcessingError}를 던진다. */
-export async function shrinkPhoto(file: File): Promise<Blob> {
-  if (!isLikelyImage(file)) throw new PhotoProcessingError("사진 파일만 올릴 수 있어요.");
+export async function shrinkPhoto(file: File, signal?: AbortSignal): Promise<Blob> {
+  signal?.throwIfAborted();
+  if (!isLikelyImage(file)) throw new PhotoProcessingError("사진 파일만 올릴 수 있어요.", "PHOTO_NOT_IMAGE");
   if (file.size > MAX_SOURCE_BYTES) {
-    throw new PhotoProcessingError(`사진이 너무 커요. ${MAX_SOURCE_BYTES / 1024 / 1024}MB 이하로 골라 주세요.`);
+    throw new PhotoProcessingError(`사진이 너무 커요. ${MAX_SOURCE_BYTES / 1024 / 1024}MB 이하로 골라 주세요.`, "PHOTO_TOO_LARGE");
   }
-  const image = await decode(file);
+  const image = await decode(file, signal);
   try {
+    signal?.throwIfAborted();
     const size = fitWithin(image.width, image.height);
     const canvas = document.createElement("canvas");
     canvas.width = size.width;
     canvas.height = size.height;
     const context = canvas.getContext("2d");
-    if (!context) throw new PhotoProcessingError("이 브라우저에서는 사진을 줄일 수 없어요.");
+    if (!context) throw new PhotoProcessingError("이 브라우저에서는 사진을 줄일 수 없어요.", "PHOTO_CANVAS_UNAVAILABLE");
     // 투명한 PNG가 JPEG에서 검게 보이지 않게 흰 배경을 깐다.
     context.fillStyle = "#ffffff";
     context.fillRect(0, 0, size.width, size.height);
     context.drawImage(image.source, 0, 0, size.width, size.height);
     for (const quality of QUALITIES) {
       const blob = await toJpeg(canvas, quality);
+      signal?.throwIfAborted();
       if (blob.size <= MAX_OUTPUT_BYTES) return blob;
     }
-    throw new PhotoProcessingError("사진을 충분히 줄이지 못했어요. 다른 사진을 골라 주세요.");
+    throw new PhotoProcessingError("사진을 충분히 줄이지 못했어요. 다른 사진을 골라 주세요.", "PHOTO_OUTPUT_TOO_LARGE");
   } finally {
     image.close();
   }
@@ -67,21 +70,27 @@ type DecodedImage = {
 };
 
 /** EXIF 방향을 반영해 연다. createImageBitmap이 없거나 실패하면 img 요소로 다시 연다. */
-async function decode(file: File): Promise<DecodedImage> {
+async function decode(file: File, signal?: AbortSignal): Promise<DecodedImage> {
   if (typeof createImageBitmap === "function") {
     try {
       const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+      if (signal?.aborted) { bitmap.close(); signal.throwIfAborted(); }
       return { source: bitmap, width: bitmap.width, height: bitmap.height, close: () => bitmap.close() };
     } catch {
+      signal?.throwIfAborted();
       // HEIC처럼 createImageBitmap이 못 여는 형식은 img 요소가 열 수 있는 브라우저(사파리)가 있다.
     }
   }
   const url = URL.createObjectURL(file);
+  const element = new Image();
+  const abort = () => { element.src = ""; URL.revokeObjectURL(url); };
+  signal?.addEventListener("abort", abort, { once: true });
   try {
-    const element = new Image();
+    signal?.throwIfAborted();
     element.decoding = "async";
     element.src = url;
     await element.decode();
+    signal?.throwIfAborted();
     return {
       source: element,
       width: element.naturalWidth,
@@ -90,14 +99,17 @@ async function decode(file: File): Promise<DecodedImage> {
     };
   } catch {
     URL.revokeObjectURL(url);
-    throw new PhotoProcessingError("이 사진은 열 수 없어요. JPG나 PNG로 바꿔서 올려 주세요.");
+    signal?.throwIfAborted();
+    throw new PhotoProcessingError("이 사진은 열 수 없어요. JPG나 PNG로 바꿔서 올려 주세요.", "PHOTO_DECODE_FAILED");
+  } finally {
+    signal?.removeEventListener("abort", abort);
   }
 }
 
 function toJpeg(canvas: HTMLCanvasElement, quality: number): Promise<Blob> {
   return new Promise((resolve, reject) => {
     canvas.toBlob(
-      (blob) => blob ? resolve(blob) : reject(new PhotoProcessingError("사진을 저장하지 못했어요. 다시 시도해 주세요.")),
+      (blob) => blob ? resolve(blob) : reject(new PhotoProcessingError("사진을 저장하지 못했어요. 다시 시도해 주세요.", "PHOTO_ENCODE_FAILED")),
       "image/jpeg",
       quality,
     );
