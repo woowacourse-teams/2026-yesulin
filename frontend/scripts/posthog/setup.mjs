@@ -80,7 +80,7 @@ for (const definition of definitions) {
   const tiles = definition.insights.map((insight, index) => {
     const tile = saved.tiles.find(t => t.insight?.name === insight.name);
     if (!tile) throw new Error(`저장된 차트를 찾을 수 없습니다: ${insight.name}`);
-    return { id: tile.id, layouts: { sm: insightLayout(index, definition.insights.length) }, show_description: true };
+    return { id: tile.id, layouts: { sm: definition.name.startsWith("03 ") ? { x: 0, y: 4 + index * 7, w: 12, h: 7 } : insightLayout(index, definition.insights.length) }, show_description: true };
   });
   await request(`dashboards/${dashboard.id}/`, "PATCH", { tiles });
   console.log(`${definition.name}: ${host}/project/${project}/dashboard/${dashboard.id}`);

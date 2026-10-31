@@ -173,6 +173,7 @@ ORDER BY \`주 시작일\` WITH FILL STEP INTERVAL 1 WEEK` },
       chartSettings: { xAxis: { column: "지난 주 수" }, yAxis: [{ column: "재방문 비율", settings: { formatting: { style: "percent", decimalPlaces: 1 } } }], seriesBreakdownColumn: "기준 주", showLegend: true, showNullsAsZero: false },
     },
   });
+  dashboards[2].insights = [0, 6, 1, 5, 2, 3, 7, 8, 4].map(index => dashboards[2].insights[index]);
   if (environment === "development") {
     return [{ ...dashboards[3], name: "개발 전용 · 측정 점검", description: "개발 사이트와 로컬 테스트 기록만 확인합니다. 운영 성과에 합산하지 않습니다.",
       insights: dashboards[3].insights.map(insight => ({ ...insight, name: `개발 · ${insight.name}` })) }];
