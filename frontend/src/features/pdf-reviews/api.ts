@@ -45,7 +45,7 @@ export async function listPdfReviews(signal?: AbortSignal) {
 export async function fetchPdfReview(id: ReviewKey, signal?: AbortSignal) {
   const detail = await request<ReviewDetail>(reviewPath(id), "GET", undefined, signal);
   detail.entries.forEach(entry => registerPdfReviewJob(entry.jobId, String(id)));
-  if (!signal?.aborted) void trackProductEvent("review_progress", { workflow: "producer_pdf", review_id: String(id), total_count: detail.entries.length, completed_count: detail.entries.filter(e => e.decision !== "PENDING").length });
+
   return detail;
 }
 
@@ -71,10 +71,35 @@ export async function pdfSourceSha256(file: File) {
   return Array.from(new Uint8Array(digest), value => value.toString(16).padStart(2, "0")).join("");
 }
 
-export async function updatePdfReviewEntry(reviewId: ReviewKey, entryId: ReviewKey, change: { readonly memo: string; readonly decision: ReviewDecision }) {
-  const entry = await request<ReviewEntry>(`${reviewPath(reviewId)}/entries/${encodeURIComponent(String(entryId))}`, "PATCH", change);
-  void trackProductEvent("review_saved", { workflow: "producer_pdf", review_id: String(reviewId), item_id: String(entryId), eligible: entry.decision !== "PENDING" });
-  return entry;
+export async function updatePdfReviewEntry(reviewId: ReviewKey, entryId: ReviewKey,
+  change: { readonly memo: string; readonly decision: ReviewDecision }, saveKind: "decision" | "memo" = "decision") {
+  const properties = { metric_version: 2, workflow: "producer_pdf" as const, review_id: String(reviewId),
+    item_id: String(entryId), operation_id: crypto.randomUUID(), save_kind: saveKind };
+  const started = performance.now();
+  void trackProductEvent("review_save_attempted", properties);
+  try {
+    const entry = await request<ReviewEntry>(`${reviewPath(reviewId)}/entries/${encodeURIComponent(String(entryId))}`, "PATCH", change);
+    void trackProductEvent("review_save_result", { ...properties, outcome: "success", duration_ms: Math.round(performance.now() - started) });
+    void trackProductEvent("review_saved", { workflow: "producer_pdf", review_id: String(reviewId), item_id: String(entryId), eligible: entry.decision !== "PENDING" });
+    return entry;
+  } catch (cause) {
+    const status = cause instanceof PdfReviewApiError ? cause.status : 0;
+    const error_code = status === 401 ? "unauthorized" : status === 403 ? "forbidden" : status === 404 ? "not_found"
+      : status >= 500 ? "server" : status >= 400 ? "invalid_input" : cause instanceof TypeError ? "network" : "unknown";
+    void trackProductEvent("review_save_result", { ...properties, outcome: "failure", error_code, duration_ms: Math.round(performance.now() - started) });
+    throw cause;
+  }
+}
+
+export function observeReviewProgress(detail: ReviewDetail) {
+  const properties = { workflow: "producer_pdf" as const, review_id: String(detail.id), total_count: detail.entries.length,
+    completed_count: detail.entries.filter(e => e.decision !== "PENDING").length };
+  // 기존 시계열은 의미를 유지한다. v2의 최종 판정/보류와 섞지 않는다.
+  void trackProductEvent("review_progress", properties);
+  void trackProductEvent("review_progress_v2", { ...properties, metric_version: 2,
+    pending_count: detail.entries.filter(e => e.decision === "PENDING").length,
+    held_count: detail.entries.filter(e => e.decision === "HOLD").length,
+    final_count: detail.entries.filter(e => e.decision === "PASS" || e.decision === "FAIL").length });
 }
 
 export function assignPdfReviewRoles(reviewId: ReviewKey, entryIds: readonly ReviewKey[], roleId: ReviewKey | null) {

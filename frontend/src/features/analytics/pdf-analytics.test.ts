@@ -47,3 +47,16 @@ describe("PDF 측정 흐름", () => {
     });
   });
 });
+
+it("추출 후 늦게 도착한 AI 결과를 별도로 관측하고 재조회는 중복 제거한다", async () => {
+  const { registerPdfReviewJob, observePdfExtraction } = await import("./pdf-analytics");
+  const job = { jobId: "late-ai", createdAt: new Date().toISOString(), uploadedAt: null, status: "COMPLETED", result: null } as PdfExtractionJob;
+  registerPdfReviewJob(job.jobId, "review"); observePdfExtraction(job);
+  const enriched = { ...job, result: { applicantInfo: { status: "COMPLETED" } } } as PdfExtractionJob;
+  observePdfExtraction(enriched); observePdfExtraction(enriched);
+  await Promise.resolve();
+  expect(capture.mock.calls.filter(call => call[0] === "pdf_processing_observed")).toEqual([
+    ["pdf_processing_observed", expect.objectContaining({processing_stage: "extract", extraction_status:"COMPLETED"})],
+    ["pdf_processing_observed", expect.objectContaining({processing_stage: "analyze", extraction_status:"COMPLETED"})],
+  ]);
+});

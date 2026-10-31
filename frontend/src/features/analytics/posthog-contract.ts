@@ -2,6 +2,15 @@ import { ACQUISITION_CHANNELS, type AcquisitionChannel } from "./acquisition";
 
 /** PostHog에만 쓰는 계약. GA dataLayer에는 식별자를 전달하지 않는다. */
 export type ProductProperties = {
+  review_action?: "open" | "decision_save" | "next" | "previous";
+  input_method?: "button" | "shortcut";
+  review_view?: "single" | "card" | "table";
+  metric_version?: number;
+  pending_count?: number;
+  held_count?: number;
+  final_count?: number;
+  save_kind?: "decision" | "memo";
+  processing_stage?: "extract" | "analyze";
   post_id?: string;
   show_id?: string;
   review_id?: string;
@@ -16,7 +25,7 @@ export type ProductProperties = {
   workflow?: "actor_pdf" | "producer_pdf" | "standard" | "otr";
   step?: "upload" | "extract" | "apply" | "save";
   outcome?: "success" | "failure";
-  error_code?: "upload" | "extract" | "network" | "unknown";
+  error_code?: "upload" | "extract" | "network" | "unknown" | "unauthorized" | "forbidden" | "not_found" | "invalid_input" | "server";
   extraction_status?: string;
   duration_ms?: number;
   active_ms?: number;
@@ -34,6 +43,8 @@ export type ProductProperties = {
 };
 
 export const PRODUCT_EVENTS = [
+  "review_basic_action",
+  "review_progress_v2", "review_save_attempted", "review_save_result", "pdf_processing_observed",
   "audition_post_viewed", "openchat_landed", "another_post_viewed", "attachment_download_clicked",
   "show_viewed", "booking_started", "booking_succeeded", "booking_failed", "external_booking_clicked",
   "producer_post_published", "producer_show_published", "review_saved", "review_item_viewed",
@@ -62,6 +73,8 @@ export function environmentMatchesHost(environment: string | undefined, hostname
 }
 
 const PROPERTY_KEYS = new Set<keyof ProductProperties>([
+  "review_action", "input_method", "review_view",
+  "metric_version", "pending_count", "held_count", "final_count", "save_kind", "processing_stage",
   "post_id", "show_id", "review_id", "item_id", "operation_id", "attachment_index", "attachment_kind",
   "has_application_form", "source", "workflow", "step", "outcome", "error_code", "duration_ms", "active_ms",
   "extraction_status", "ticket_count", "eligible", "round", "total_count", "completed_count", "missing_field_count",
