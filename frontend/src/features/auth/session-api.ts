@@ -58,6 +58,7 @@ export async function fetchCurrentSession(): Promise<SessionResponse | null> {
   const response = await fetch(`${API_BASE_PATH}/sessions/current`, {
     method: "GET",
     credentials: "include",
+    cache: "no-store",
   });
   if (response.status === 401) return null;
   if (!response.ok) {

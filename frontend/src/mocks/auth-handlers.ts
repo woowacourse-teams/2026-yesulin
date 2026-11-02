@@ -2,11 +2,13 @@ import { delay, http, HttpResponse, passthrough } from "msw";
 import { frontendEnvironment } from "@/config/environment";
 import type { ProducerSignupRequest } from "@/features/auth/api";
 import type { SessionRole } from "@/features/auth/session-api";
-import { registerPendingProducer } from "./auditions/producer-profile";
+import { producerProfile, registerActiveProducer, registerPendingProducer } from "./auditions/producer-profile";
+import { issueMockEmailVerification, verifyMockEmailCode } from "./auth-email-verifications";
 
 const emails = new Set<string>();
 const pendingProducerEmails = new Set<string>();
 let mockSession: { memberId: number; role: SessionRole; status: "PENDING" | "ACTIVE" } | null = null;
+let currentProducerEmail = "";
 /** 목 로그인에서 이 접두사의 이메일은 운영 대시보드용 ADMIN 세션이 된다. */
 const MOCK_ADMIN_EMAIL_PREFIX = "admin@";
 const realProducerLoginEnabled = frontendEnvironment.producerLoginEnabled;
@@ -37,6 +39,7 @@ export const authHandlers = [
     if (!/^\S+@\S+\.\S+$/.test(email) || !body.password) {
       return error("INVALID_REQUEST", "요청 값을 확인해 주세요.");
     }
+    currentProducerEmail = email;
     mockSession = email.startsWith(MOCK_ADMIN_EMAIL_PREFIX)
       ? { memberId: 900, role: "ADMIN", status: "ACTIVE" }
       : {
@@ -64,11 +67,13 @@ export const authHandlers = [
   http.post("/api/v1/auth/email-verifications", async () => {
     if (realProducerLoginEnabled) return passthrough();
     await delay(320);
-    if (!mockSession) return error("AUTH_UNAUTHENTICATED", "로그인이 필요합니다.", 401);
-    if (mockSession.role !== "PRODUCER" || mockSession.status !== "PENDING") {
-      return error("AUTH_INACTIVE_MEMBER", "이메일 인증 대기 계정만 재전송할 수 있습니다.", 403);
-    }
-    return new HttpResponse(null, { status: 204 });
+    return resendMockCode();
+  }),
+
+  http.patch("/api/v1/auth/email-verifications", async ({ request }) => {
+    if (realProducerLoginEnabled) return passthrough();
+    await delay(240);
+    return verifyMockProducer(await request.json().catch(() => null));
   }),
 
   http.post("/api/v1/auth/password-resets", async ({ request }) => {
@@ -140,6 +145,7 @@ export const authHandlers = [
     if (emails.has(email)) return error("EMAIL_ALREADY_EXISTS", "이미 가입된 이메일입니다.", 409);
     emails.add(email);
     pendingProducerEmails.add(email);
+    issueMockEmailVerification(email);
     registerPendingProducer({ companyName: body.companyName, email, phone });
     return HttpResponse.json({
       memberId: 1,
@@ -150,3 +156,43 @@ export const authHandlers = [
     }, { status: 201 });
   }),
 ];
+
+function pendingMockSessionError() {
+  if (!mockSession) return error("AUTH_UNAUTHENTICATED", "로그인이 필요합니다.", 401);
+  if (mockSession.role !== "PRODUCER") return error("AUTH_FORBIDDEN", "권한이 없습니다.", 403);
+  if (mockSession.status !== "PENDING") {
+    return error("AUTH_INACTIVE_MEMBER", "이메일 인증 대기 계정만 요청할 수 있습니다.", 403);
+  }
+  return null;
+}
+
+function resendMockCode() {
+  const authorization = pendingMockSessionError();
+  if (authorization) return authorization;
+  const failure = issueMockEmailVerification(currentProducerEmail);
+  if (failure) return error(failure.code, failure.message, failure.status);
+  return new HttpResponse(null, { status: 204 });
+}
+
+function verifyMockProducer(body: unknown) {
+  const authorization = pendingMockSessionError();
+  if (authorization) return authorization;
+  const code = readMockCode(body);
+  if (typeof code !== "string") return code;
+  const failure = verifyMockEmailCode(currentProducerEmail, code);
+  if (failure) return error(failure.code, failure.message, failure.status);
+  return activateMockProducer();
+}
+
+function readMockCode(body: unknown) {
+  if (isRequestBody(body) && typeof body.code === "string" && /^[0-9]{6}$/.test(body.code)) return body.code;
+  return validationError("code", "인증번호는 숫자 6자리로 입력해 주세요.");
+}
+
+function activateMockProducer() {
+  if (!mockSession) return error("AUTH_UNAUTHENTICATED", "로그인이 필요합니다.", 401);
+  mockSession = { ...mockSession, status: "ACTIVE" };
+  pendingProducerEmails.delete(currentProducerEmail);
+  registerActiveProducer(producerProfile());
+  return HttpResponse.json(mockSession);
+}
