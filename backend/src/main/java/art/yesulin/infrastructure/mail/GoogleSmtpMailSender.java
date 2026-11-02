@@ -1,7 +1,10 @@
 package art.yesulin.infrastructure.mail;
 
 import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeBodyPart;
 import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeMultipart;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -31,14 +34,22 @@ public class GoogleSmtpMailSender implements MailSender {
     public void send(MailMessage message) {
         MimeMessage mimeMessage = javaMailSender.createMimeMessage();
         try {
-            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, StandardCharsets.UTF_8.name());
-            helper.setFrom(from);
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, StandardCharsets.UTF_8.name());
+            helper.setFrom(from, "예술in");
             helper.setTo(message.recipient());
             helper.setSubject(message.subject());
-            helper.setText(message.textContent(), message.htmlContent());
-        } catch (MessagingException exception) {
+            mimeMessage.setContent(alternativeContent(message));
+        } catch (MessagingException | UnsupportedEncodingException exception) {
             throw new IllegalStateException("메일을 생성하지 못했습니다.", exception);
         }
         javaMailSender.send(mimeMessage);
+    }
+
+    private MimeMultipart alternativeContent(MailMessage message) throws MessagingException {
+        MimeBodyPart text = new MimeBodyPart();
+        text.setText(message.textContent(), StandardCharsets.UTF_8.name());
+        MimeBodyPart html = new MimeBodyPart();
+        html.setText(message.htmlContent(), StandardCharsets.UTF_8.name(), "html");
+        return new MimeMultipart("alternative", text, html);
     }
 }
