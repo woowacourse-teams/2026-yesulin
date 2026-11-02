@@ -2,7 +2,7 @@
 
 - 이슈: [#487](https://github.com/woowacourse-teams/2026-yesulin/issues/487)
 - 프로젝트: [#131](https://github.com/orgs/woowacourse-teams/projects/131), In Progress
-- 브랜치: `hotfix/producer-auth-flow`, `origin/main` 기준 별도 worktree
+- 브랜치: `hotfix/producer-auth-flow`, `origin/dev` 기준 별도 worktree
 - 각 기능 커밋에 코드, 검증 결과, 해당 체크박스 갱신을 함께 포함한다.
 - 1~2는 TDD 요청 전에 작성한 코드이며 회귀 검증으로 기록한다. 3번부터 RED → GREEN → REFACTOR를 따른다.
 
@@ -65,6 +65,10 @@
 
 - 백엔드 전체 테스트 1,438개, 프론트 전체 테스트 779개 통과. Checkstyle, lint, build, 최종 TypeScript 확인 통과.
 - 독립 평가에서 발견한 문제는 모두 수정하고 표적 검증을 마쳤다. 최초 복구와 승인 후 추가 범위의 평가 기록을 구분했다.
-- 최신 origin/main 위로 rebase하고 hook을 통과해 push했다.
-- main 대상 [PR 초안 #488](https://github.com/woowacourse-teams/2026-yesulin/pull/488)을 만들고 이슈 #487에 연결했다.
+- 최신 origin/dev 위로 rebase하고 hook을 통과해 push했다.
+- dev 대상 [PR #488](https://github.com/woowacourse-teams/2026-yesulin/pull/488)을 만들고 이슈 #487에 연결했다.
 - 운영 메일 수신 원인과 MySQL 실측 경합은 미확인으로 남긴다. 운영 배포는 수행하지 않았다.
+
+### 개발 환경 우선 반영
+
+사용자 지시에 따라 PR #488의 대상을 dev로 변경하고 최신 origin/dev 위로 기능 커밋을 rebase했다. main과 운영 배포는 진행하지 않는다.
