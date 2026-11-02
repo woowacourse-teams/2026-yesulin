@@ -29,12 +29,12 @@
 
 | 문제 ID | 심각도/유형/유입 | 발견 경로 | 근거와 조치 | 상태 | 최초 확정/해결 | 최초 PR |
 | --- | --- | --- | --- | --- | --- | --- |
-| 2026-11-02-auth-verification-code-F01 | P2/FLOW/INTRODUCED | INDEPENDENT_REVIEW | PATCH 성공 뒤 GET 실패가 인증을 오류로 표시. PATCH 응답을 동일 회원 세션에 적용, 별도 GET 의존 제거. 추가 GET/로그아웃 단위 테스트 통과 | FIXED | 2026-11-02 UNKNOWN / 2026-11-02 UNKNOWN | PENDING |
-| 2026-11-02-auth-verification-code-F02 | P2/CODE/INTRODUCED | INDEPENDENT_REVIEW | legacy 토큰 선조회로 삭제된 관리 엔티티에 재잠금 시500. 평가자가 H2/Hibernate7.4에서 재현. scalar 회원ID→회원잠금→토큰 잠금 소비로 변경, 중복/재전송 통합 테스트 통과 | FIXED | 2026-11-02 UNKNOWN / 2026-11-02 UNKNOWN | PENDING |
-| 2026-11-02-auth-verification-code-F03 | P3/TEST/INTRODUCED | INDEPENDENT_REVIEW | MSW ADMIN PATCH가 실제와 다른 AUTH_INACTIVE_MEMBER. AUTH_FORBIDDEN으로 분리하고 RED→GREEN 계약 테스트 통과 | FIXED | 2026-11-02 UNKNOWN / 2026-11-02 UNKNOWN | PENDING |
-| 2026-11-02-auth-verification-code-F04 | P2/CODE/INTRODUCED | PRECHECK | 트랜잭션 밖 ResultStream이 종료된 ResultSet을 읽어 실패. getResultList 후 stream으로 변경, DB 통합 테스트 통과 | FIXED | 2026-11-02 UNKNOWN / 2026-11-02 UNKNOWN | PENDING |
-| 2026-11-02-auth-verification-code-F05 | P2/TEST/INTRODUCED | PRECHECK | 복수 컬럼 ALTER가 H2 Flyway에서 구문 실패. MySQL/H2 공통 개별 ALTER로 변경, 기존 migration 테스트 통과 | FIXED | 2026-11-02 UNKNOWN / 2026-11-02 UNKNOWN | PENDING |
-| 2026-11-02-auth-verification-code-F06 | P3/UNUSED/INTRODUCED | PRECHECK | 코드 전환으로 URL 설정 소비자가 사라짐. Settings/Properties/YAML/env example/README에서 제거, 기존 링크는 요청 URI로 호환 | FIXED | 2026-11-02 UNKNOWN / 2026-11-02 UNKNOWN | PENDING |
+| 2026-11-02-auth-verification-code-F01 | P2/FLOW/INTRODUCED | INDEPENDENT_REVIEW | PATCH 성공 뒤 GET 실패가 인증을 오류로 표시. PATCH 응답을 동일 회원 세션에 적용, 별도 GET 의존 제거. 추가 GET/로그아웃 단위 테스트 통과 | FIXED | 2026-11-02 UNKNOWN / 2026-11-02 UNKNOWN | #488 |
+| 2026-11-02-auth-verification-code-F02 | P2/CODE/INTRODUCED | INDEPENDENT_REVIEW | legacy 토큰 선조회로 삭제된 관리 엔티티에 재잠금 시500. 평가자가 H2/Hibernate7.4에서 재현. scalar 회원ID→회원잠금→토큰 잠금 소비로 변경, 중복/재전송 통합 테스트 통과 | FIXED | 2026-11-02 UNKNOWN / 2026-11-02 UNKNOWN | #488 |
+| 2026-11-02-auth-verification-code-F03 | P3/TEST/INTRODUCED | INDEPENDENT_REVIEW | MSW ADMIN PATCH가 실제와 다른 AUTH_INACTIVE_MEMBER. AUTH_FORBIDDEN으로 분리하고 RED→GREEN 계약 테스트 통과 | FIXED | 2026-11-02 UNKNOWN / 2026-11-02 UNKNOWN | #488 |
+| 2026-11-02-auth-verification-code-F04 | P2/CODE/INTRODUCED | PRECHECK | 트랜잭션 밖 ResultStream이 종료된 ResultSet을 읽어 실패. getResultList 후 stream으로 변경, DB 통합 테스트 통과 | FIXED | 2026-11-02 UNKNOWN / 2026-11-02 UNKNOWN | #488 |
+| 2026-11-02-auth-verification-code-F05 | P2/TEST/INTRODUCED | PRECHECK | 복수 컬럼 ALTER가 H2 Flyway에서 구문 실패. MySQL/H2 공통 개별 ALTER로 변경, 기존 migration 테스트 통과 | FIXED | 2026-11-02 UNKNOWN / 2026-11-02 UNKNOWN | #488 |
+| 2026-11-02-auth-verification-code-F06 | P3/UNUSED/INTRODUCED | PRECHECK | 코드 전환으로 URL 설정 소비자가 사라짐. Settings/Properties/YAML/env example/README에서 제거, 기존 링크는 요청 URI로 호환 | FIXED | 2026-11-02 UNKNOWN / 2026-11-02 UNKNOWN | #488 |
 
 ## 검증과 배포 조건
 
@@ -65,3 +65,9 @@
 | 2026-11-02-auth-verification-code-F05-E02 | 2026-11-02-auth-verification-code-F05 | FIXED | 2026-11-02T13:42:52+09:00 | 위 수정 후 검증 기록, 실제 수정 시각 UNKNOWN / PR PENDING |
 | 2026-11-02-auth-verification-code-F06-E01 | 2026-11-02-auth-verification-code-F06 | CONFIRMED | 2026-11-02T13:42:52+09:00 | 위 근거 확인 기록, 최초 확정 시각 UNKNOWN / PR PENDING |
 | 2026-11-02-auth-verification-code-F06-E02 | 2026-11-02-auth-verification-code-F06 | FIXED | 2026-11-02T13:42:52+09:00 | 위 수정 후 검증 기록, 실제 수정 시각 UNKNOWN / PR PENDING |
+
+## 최초 게시 연결
+
+- 기록 시각: 2026-11-02T13:46:56+09:00
+- 최초 기록 PR: [#488](https://github.com/woowacourse-teams/2026-yesulin/pull/488)
+- 위 상태 사건의 당시 `PR PENDING` 표시는 보존하며, 문제 목록의 최초 PR을 #488로 연결했다. 상태 변경 사건은 추가하지 않았다.

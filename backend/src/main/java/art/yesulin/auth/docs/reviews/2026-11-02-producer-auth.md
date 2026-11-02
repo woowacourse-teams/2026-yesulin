@@ -24,9 +24,9 @@
 
 | 문제 ID | 심각도/유형/유입 | 발견 경로 | 근거와 조치 | 상태 | 최초 확정/해결 | 최초 PR |
 | --- | --- | --- | --- | --- | --- | --- |
-| 2026-11-02-auth-producer-auth-F01 | P1/FLOW/EXISTING | PRECHECK | current가 저장된 principal만 반환해 외부 인증 후 PENDING 유지. `AuthService.findCurrent`로 DB 상태를 읽고 세션 갱신 | FIXED | 2026-11-02 UNKNOWN / 2026-11-02 UNKNOWN | PENDING |
-| 2026-11-02-auth-producer-auth-F02 | P1/FLOW/EXISTING | PRECHECK | AFTER_COMMIT SMTP 예외가 이미 완료된 가입 응답을 실패시킴. 초기 발송 실패만 격리하고 안전한 오류 신호 기록 | FIXED | 2026-11-02 UNKNOWN / 2026-11-02 UNKNOWN | PENDING |
-| 2026-11-02-auth-producer-auth-F03 | P2/CODE/INTRODUCED | INDEPENDENT_REVIEW | 과거 조회 실패가 최신 조회보다 먼저 sessionReady를 확정. `SessionSynchronizer`로 성공/실패 모두 revision 검사 | FIXED | 2026-11-02 UNKNOWN / 2026-11-02 UNKNOWN | PENDING |
+| 2026-11-02-auth-producer-auth-F01 | P1/FLOW/EXISTING | PRECHECK | current가 저장된 principal만 반환해 외부 인증 후 PENDING 유지. `AuthService.findCurrent`로 DB 상태를 읽고 세션 갱신 | FIXED | 2026-11-02 UNKNOWN / 2026-11-02 UNKNOWN | #488 |
+| 2026-11-02-auth-producer-auth-F02 | P1/FLOW/EXISTING | PRECHECK | AFTER_COMMIT SMTP 예외가 이미 완료된 가입 응답을 실패시킴. 초기 발송 실패만 격리하고 안전한 오류 신호 기록 | FIXED | 2026-11-02 UNKNOWN / 2026-11-02 UNKNOWN | #488 |
+| 2026-11-02-auth-producer-auth-F03 | P2/CODE/INTRODUCED | INDEPENDENT_REVIEW | 과거 조회 실패가 최신 조회보다 먼저 sessionReady를 확정. `SessionSynchronizer`로 성공/실패 모두 revision 검사 | FIXED | 2026-11-02 UNKNOWN / 2026-11-02 UNKNOWN | #488 |
 
 ## 검증 환경
 
@@ -47,3 +47,9 @@
 | 2026-11-02-auth-producer-auth-F02-E02 | 2026-11-02-auth-producer-auth-F02 | FIXED | 2026-11-02T13:42:52+09:00 | 위 수정 후 검증 기록, 실제 수정 시각 UNKNOWN / PR PENDING |
 | 2026-11-02-auth-producer-auth-F03-E01 | 2026-11-02-auth-producer-auth-F03 | CONFIRMED | 2026-11-02T13:42:52+09:00 | 위 근거 확인 기록, 최초 확정 시각 UNKNOWN / PR PENDING |
 | 2026-11-02-auth-producer-auth-F03-E02 | 2026-11-02-auth-producer-auth-F03 | FIXED | 2026-11-02T13:42:52+09:00 | 위 수정 후 검증 기록, 실제 수정 시각 UNKNOWN / PR PENDING |
+
+## 최초 게시 연결
+
+- 기록 시각: 2026-11-02T13:46:56+09:00
+- 최초 기록 PR: [#488](https://github.com/woowacourse-teams/2026-yesulin/pull/488)
+- 위 상태 사건의 당시 `PR PENDING` 표시는 보존하며, 문제 목록의 최초 PR을 #488로 연결했다. 상태 변경 사건은 추가하지 않았다.
