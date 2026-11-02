@@ -123,6 +123,22 @@ it("인증번호가 6자리가 아니면 서버 요청 없이 입력 오류를 �
   expect(container.textContent).toContain("숫자 6자리");
 });
 
+it("여섯 칸에 공백이 포함된 인증번호를 한 번에 붙여넣어 인증한다", async () => {
+  auth.session = { credential: "member-10", role: "PRODUCER", displayName: "극단", producerStatus: "PENDING" };
+  vi.mocked(verifyProducerEmailCode).mockResolvedValue({ memberId: 10, role: "PRODUCER", status: "ACTIVE" });
+  await act(async () => root.render(<ProducerAccessGate><p>공고 목록</p></ProducerAccessGate>));
+  const input = container.querySelector<HTMLInputElement>("#producer-verification-code")!;
+  const paste = new Event("paste", { bubbles: true, cancelable: true });
+  Object.defineProperty(paste, "clipboardData", { value: { getData: () => "000 123" } });
+
+  await act(async () => input.dispatchEvent(paste));
+  expect(input.value).toBe("000123");
+  await act(async () => container.querySelector("form")!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
+
+  expect(verifyProducerEmailCode).toHaveBeenCalledWith("000123");
+  expect(auth.completeProducerVerification).toHaveBeenCalledWith({ memberId: 10, role: "PRODUCER", status: "ACTIVE" });
+});
+
 it("서버가 코드를 거절하면 입력을 유지하고 재시도 가능한 오류를 보여준다", async () => {
   // given
   auth.session = { credential: "member-10", role: "PRODUCER", displayName: "극단", producerStatus: "PENDING" };
