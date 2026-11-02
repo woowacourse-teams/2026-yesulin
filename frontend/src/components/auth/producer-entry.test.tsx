@@ -8,9 +8,10 @@ import { LoginForm } from "./login-form";
 import { SignupForm } from "./signup-form";
 import { ProducerAccessGate } from "@/components/producers/producer-access-gate";
 import type { FrontendAuthSession } from "./auth-session";
+import { openProducerWorkspace } from "@/features/auth/producer-navigation";
 
 const auth = vi.hoisted(() => ({
-  push: vi.fn(), replace: vi.fn(), setSession: vi.fn(), toast: vi.fn(),
+  push: vi.fn(), replace: vi.fn(), setSession: vi.fn(), refreshSession: vi.fn(), toast: vi.fn(),
   session: null as FrontendAuthSession | null,
 }));
 vi.mock("next/navigation", () => ({
@@ -18,6 +19,7 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/producers/audition-posts",
 }));
 vi.mock("./auth-session", () => ({ useAuthSession: () => auth }));
+vi.mock("@/features/auth/producer-navigation", () => ({ openProducerWorkspace: vi.fn() }));
 vi.mock("@/components/auditions/toast", () => ({ useToast: () => auth.toast }));
 vi.mock("@/config/environment", () => ({ frontendEnvironment: { apiMockingEnabled: false } }));
 vi.mock("@/features/auth/session-api", async (original) => ({
@@ -53,7 +55,8 @@ it("기획사 로그인 후 내 오디션 공고를 바로 연다", async () => 
   await act(async () => { typeInto("login-identifier", "producer@example.com"); typeInto("login-password", "password123"); });
   await act(async () => container.querySelector("form")!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
   expect(login).toHaveBeenCalledWith("producer@example.com", "password123");
-  expect(auth.push).toHaveBeenCalledWith("/producers/audition-posts");
+  expect(openProducerWorkspace).toHaveBeenCalled();
+  expect(auth.push).not.toHaveBeenCalled();
   expect(auth.setSession).toHaveBeenCalledWith(expect.objectContaining({ role: "PRODUCER", producerStatus: "ACTIVE" }));
 });
 
@@ -71,11 +74,22 @@ it("가입 직후에도 내 공고 경로로 이동하고 이메일 인증 대�
   });
   await act(async () => container.querySelector("form")!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
   expect(signupProducer).toHaveBeenCalled();
-  expect(auth.replace).toHaveBeenCalledWith("/producers/audition-posts");
+  expect(openProducerWorkspace).toHaveBeenCalled();
+  expect(auth.replace).not.toHaveBeenCalled();
   expect(auth.setSession).toHaveBeenCalledWith(expect.objectContaining({ producerStatus: "PENDING" }));
 
   auth.session = { credential: "member-10", role: "PRODUCER", displayName: "극단 예술", producerStatus: "PENDING" };
   await act(async () => root.render(<ProducerAccessGate><p>연결된 공고 목록</p></ProducerAccessGate>));
-  expect(container.textContent).toContain("이메일로 인증 안내");
+  expect(container.textContent).toContain("이메일의 인증 링크");
   expect(container.textContent).not.toContain("연결된 공고 목록");
+});
+
+it("인증 대기 화면에서 페이지를 닫지 않고 인증 상태를 다시 확인한다", async () => {
+  auth.session = { credential: "member-10", role: "PRODUCER", displayName: "극단", producerStatus: "PENDING" };
+  auth.refreshSession.mockResolvedValue(undefined);
+  await act(async () => root.render(<ProducerAccessGate><p>공고 목록</p></ProducerAccessGate>));
+  const check = [...container.querySelectorAll("button")].find((button) => button.textContent === "인증 상태 확인")!;
+  await act(async () => check.click());
+  expect(auth.refreshSession).toHaveBeenCalledOnce();
+  expect(container.textContent).toContain("인증 상태를 확인했습니다");
 });
