@@ -31,6 +31,11 @@ class FakeEmailVerificationRepository implements EmailVerificationRepository {
         return verifications.values().stream().filter(current -> current.memberId() == memberId).findFirst();
     }
 
+    @Override
+    public Optional<Long> findMemberIdByToken(String token) {
+        return findByToken(token).map(EmailVerification::memberId);
+    }
+
     public void recordFailure(String token) {
         EmailVerification verification = verifications.get(token);
         verifications.put(token, verification.withFailedAttempts(verification.failedAttempts() + 1));

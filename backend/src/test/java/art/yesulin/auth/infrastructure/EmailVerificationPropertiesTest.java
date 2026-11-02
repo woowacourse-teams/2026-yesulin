@@ -2,26 +2,22 @@ package art.yesulin.auth.infrastructure;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.net.URI;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
+import jakarta.validation.ValidatorFactory;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
 
 class EmailVerificationPropertiesTest {
 
     @Test
-    void requiresBothVerificationAndRedirectUrlsToBeAbsolute() {
-        EmailVerificationProperties valid = new EmailVerificationProperties(
-                Duration.ofMinutes(5),
-                URI.create("https://api.yesulin.art/api/v1/auth/email-verifications"),
-                URI.create("https://yesulin.art/producers")
-        );
-        EmailVerificationProperties invalidRedirect = new EmailVerificationProperties(
-                Duration.ofMinutes(5),
-                URI.create("https://api.yesulin.art/api/v1/auth/email-verifications"),
-                URI.create("/producers")
-        );
-
-        assertThat(valid.isAbsoluteUrl()).isTrue();
-        assertThat(invalidRedirect.isAbsoluteUrl()).isFalse();
+    void requiresPositiveExpirationWithoutRedirectSettings() {
+        // given
+        try (ValidatorFactory factory = Validation.buildDefaultValidatorFactory()) {
+            Validator validator = factory.getValidator();
+            // when, then
+            assertThat(validator.validate(new EmailVerificationProperties(Duration.ofMinutes(5)))).isEmpty();
+            assertThat(validator.validate(new EmailVerificationProperties(Duration.ZERO))).isNotEmpty();
+        }
     }
 }

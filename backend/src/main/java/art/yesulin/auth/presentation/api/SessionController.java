@@ -31,11 +31,14 @@ public class SessionController {
     ) {
         MemberPrincipal principal = authService.login(loginRequest.email(), loginRequest.password());
 
+        startSession(request, principal);
+        return ResponseEntity.ok(SessionResponse.from(principal));
+    }
+
+    private void startSession(HttpServletRequest request, MemberPrincipal principal) {
         HttpSession session = request.getSession(true);
         request.changeSessionId();
         session.setAttribute(MemberPrincipal.SESSION_ATTRIBUTE, principal);
-
-        return ResponseEntity.ok(SessionResponse.from(principal));
     }
 
     @GetMapping("/current")

@@ -76,6 +76,13 @@ public class JpaEmailVerificationRepository implements EmailVerificationReposito
     }
 
     @Override
+    public Optional<Long> findMemberIdByToken(String token) {
+        return entityManager.createQuery(
+                        "select memberId from EmailVerificationEntity where token = :token", Long.class)
+                .setParameter("token", token).getResultList().stream().findFirst();
+    }
+
+    @Override
     @Transactional
     public void recordFailure(String token) {
         EmailVerificationEntity entity = entityManager.find(EmailVerificationEntity.class, token,

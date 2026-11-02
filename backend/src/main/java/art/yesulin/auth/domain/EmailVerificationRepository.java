@@ -13,5 +13,7 @@ public interface EmailVerificationRepository {
 
     Optional<EmailVerification> findByMemberId(long memberId);
 
+    Optional<Long> findMemberIdByToken(String token);
+
     void recordFailure(String token);
 }

@@ -14,7 +14,6 @@ import art.yesulin.auth.domain.member.MemberStatus;
 import art.yesulin.auth.domain.member.MemberType;
 import art.yesulin.global.exception.BusinessException;
 import art.yesulin.infrastructure.mail.MailMessage;
-import java.net.URI;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -116,8 +115,7 @@ class EmailVerificationCodeServiceTest {
     }
 
     private EmailVerificationService createService() {
-        EmailVerificationSettings settings = new EmailVerificationSettings(Duration.ofMinutes(5),
-                URI.create("https://api.example.com/verify"), URI.create("https://example.com/producers"));
+        EmailVerificationSettings settings = new EmailVerificationSettings(Duration.ofMinutes(5));
         return new EmailVerificationService(repository, members, () -> "random-token",
                 new EmailVerificationMailFactory(),
                 message -> mail = message, clock, settings, () -> new VerificationCode("000123"), encoder);

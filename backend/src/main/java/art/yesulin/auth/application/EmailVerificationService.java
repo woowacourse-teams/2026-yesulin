@@ -123,28 +123,32 @@ public class EmailVerificationService {
 
     @Transactional
     public MemberPrincipal verify(String token) {
-        EmailVerification verification = verificationRepository.findByToken(requireToken(token))
-                .orElseThrow(() -> invalidVerification("유효하지 않은 이메일 인증 링크입니다."));
-        Member member = legacyVerificationMember(verification);
-        consumeLegacyVerification(verification);
+        String validToken = requireToken(token);
+        Member member = legacyVerificationMember(validToken);
+        consumeLegacyVerification(validToken, member);
         member.activate();
         return MemberPrincipal.from(member);
     }
 
-    private Member legacyVerificationMember(EmailVerification verification) {
-        return memberRepository.findForUpdate(verification.memberId())
-                .filter(candidate -> verification.email().equals(candidate.getEmail()))
+    private Member legacyVerificationMember(String token) {
+        long memberId = verificationRepository.findMemberIdByToken(token)
+                .orElseThrow(() -> invalidVerification("유효하지 않은 이메일 인증 링크입니다."));
+        return memberRepository.findForUpdate(memberId)
                 .filter(candidate -> candidate.getType() == MemberType.PRODUCER)
                 .orElseThrow(() -> invalidVerification("인증할 기획사·제작사 계정을 찾을 수 없습니다."));
     }
 
-    private void consumeLegacyVerification(EmailVerification verification) {
-        if (verification.hasCode()) {
-            throw invalidVerification("가입 화면에 인증번호를 입력해 주세요.");
-        }
-        verificationRepository.removeByToken(verification.token())
+    private void consumeLegacyVerification(String token, Member member) {
+        EmailVerification verification = verificationRepository.removeByToken(token)
                 .orElseThrow(() -> invalidVerification("이미 사용한 인증 링크입니다."));
+        ensureLegacyVerification(verification, member);
         ensureNotExpired(verification);
+    }
+
+    private void ensureLegacyVerification(EmailVerification verification, Member member) {
+        if (verification.hasCode() || !verification.email().equals(member.getEmail())) {
+            throw invalidVerification("가입 화면에서 새 인증번호를 입력해 주세요.");
+        }
     }
 
     private void ensureNotExpired(EmailVerification verification) {

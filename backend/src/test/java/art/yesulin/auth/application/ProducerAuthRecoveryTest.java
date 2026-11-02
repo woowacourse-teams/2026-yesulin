@@ -7,6 +7,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
+import art.yesulin.auth.domain.EmailVerification;
 import art.yesulin.auth.domain.EmailVerificationRepository;
 import art.yesulin.auth.domain.VerificationCode;
 import art.yesulin.auth.domain.member.Member;
@@ -21,6 +22,13 @@ import art.yesulin.producer.domain.ProducerRepository;
 import art.yesulin.support.ObjectStorageTestConfiguration;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -148,5 +156,72 @@ class ProducerAuthRecoveryTest {
         MemberPrincipal principal = verificationService.verifyCode(result.memberId(), new VerificationCode("456789"));
         assertThat(principal.status()).isEqualTo(MemberStatus.ACTIVE);
         assertThat(verifications.findByMemberId(result.memberId())).isEmpty();
+    }
+
+    @Test
+    void consumesConcurrentLegacyRequestsOnceWithoutUnexpectedFailure() throws Exception {
+        // given
+        ProducerResult result = signUpService.signUp(command());
+        verifications.save(new EmailVerification("legacy-token", result.memberId(), EMAIL, NOW.plusSeconds(300)), NOW);
+        // when
+        List<String> outcomes = race(() -> verificationService.verify("legacy-token"),
+                () -> verificationService.verify("legacy-token"));
+        // then
+        assertThat(outcomes).containsExactlyInAnyOrder("SUCCESS", "AUTH_INVALID_EMAIL_VERIFICATION");
+    }
+
+    @Test
+    void serializesLegacyVerificationAndResendWithoutUnexpectedFailure() throws Exception {
+        // given
+        ProducerResult result = signUpService.signUp(command());
+        verifications.save(new EmailVerification("legacy-token", result.memberId(), EMAIL, NOW.plusSeconds(300)), NOW);
+        // when
+        List<String> outcomes = race(() -> verificationService.verify("legacy-token"),
+                () -> verificationService.resendVerification(result.memberId()));
+        // then
+        assertThat(outcomes).containsExactlyInAnyOrder("SUCCESS", "AUTH_INVALID_EMAIL_VERIFICATION");
+    }
+
+    @Test
+    void serializesCodeVerificationAndResendWithoutUnexpectedFailure() throws Exception {
+        // given
+        ProducerResult result = signUpService.signUp(command());
+        when(clock.instant()).thenReturn(NOW.plusSeconds(61));
+        when(codeGenerator.generate()).thenReturn(new VerificationCode("456789"));
+        // when
+        List<String> outcomes = race(
+                () -> verificationService.verifyCode(result.memberId(), new VerificationCode("000123")),
+                () -> verificationService.resendVerification(result.memberId()));
+        // then
+        assertThat(outcomes).containsExactlyInAnyOrder("SUCCESS", "AUTH_INVALID_EMAIL_VERIFICATION");
+    }
+
+    private List<String> race(Runnable first, Runnable second) throws Exception {
+        try (ExecutorService executor = Executors.newFixedThreadPool(2)) {
+            CountDownLatch ready = new CountDownLatch(2);
+            CountDownLatch start = new CountDownLatch(1);
+            Future<String> firstResult = executor.submit(afterStart(first, ready, start));
+            Future<String> secondResult = executor.submit(afterStart(second, ready, start));
+            assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue();
+            start.countDown();
+            return List.of(firstResult.get(10, TimeUnit.SECONDS), secondResult.get(10, TimeUnit.SECONDS));
+        }
+    }
+
+    private Callable<String> afterStart(Runnable action, CountDownLatch ready, CountDownLatch start) {
+        return () -> {
+            ready.countDown();
+            start.await();
+            return resultOf(action);
+        };
+    }
+
+    private String resultOf(Runnable action) {
+        try {
+            action.run();
+            return "SUCCESS";
+        } catch (BusinessException exception) {
+            return exception.getErrorCode().code();
+        }
     }
 }

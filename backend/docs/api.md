@@ -160,7 +160,7 @@ status,warnings,pages[number,text,needsOcr,images[status,key]]`)다. 소유자�
 
 미확인 작업은 업로드 URL 만료 60초 뒤부터 목록·상태에서 `UPLOAD_EXPIRED`로 표시하지만 completion은 계속 가능하다.
 
-## Health와 인증 — 9개
+## Health와 인증 — 10개
 
 | Method | URL | 인증 | Request | Response |
 | --- | --- | --- | --- | --- |
@@ -169,6 +169,7 @@ status,warnings,pages[number,text,needsOcr,images[status,key]]`)다. 소유자�
 | GET | `/api/v1/sessions/current` | 세션 | 없음 | `200 SessionResponse` |
 | DELETE | `/api/v1/sessions/current` | 공개 | 없음 | `204` |
 | POST | `/api/v1/auth/email-verifications` | Pending Producer | 없음 | `204` |
+| PATCH | `/api/v1/auth/email-verifications` | Pending Producer | `{ code: 숫자 6자리 문자열 }` | `200 SessionResponse`, 현재 세션을 ACTIVE로 갱신 |
 | GET | `/api/v1/auth/email-verifications` | 공개 | query `token`, `redirectUri` | `302 Location: redirectUri` |
 | POST | `/api/v1/auth/password-resets` | 공개 | `PasswordResetMailRequest(email)` | `204` |
 | GET | `/api/v1/auth/password-resets` | 공개 | query `token` | `204` |
@@ -177,9 +178,14 @@ status,warnings,pages[number,text,needsOcr,images[status,key]]`)다. 소유자�
 로그인은 email 형식과 password 존재를 검증한다. 로그아웃은 세션이 없어도 204를 반환한다.
 현재 세션 조회는 세션의 회원 ID로 DB의 최신 역할과 인증 상태를 읽고 기존 세션에도 갱신한다. 삭제된 회원이면
 401이며 응답은 `Cache-Control: no-store`다. 다른 브라우저에서 인증해도 기존 탭이 세션을 다시 조회하면 활성화가 반영된다.
-기획사/제작사 가입과 인증 메일 재전송은 5분 유효한 일회용 token을 발급한다. GET 인증은 성공 시 같은 브라우저의
-PENDING 세션을 ACTIVE로 갱신하고 요청의 `redirectUri`로 302 redirect한다. 서버 설정의
-`EMAIL_VERIFICATION_REDIRECT_URI`는 발송 메일 링크에 넣을 기본 Frontend 경로다.
+기획사/제작사 가입과 재전송은 5분 유효한 숫자 6자리 인증번호를 메일로 보낸다. PATCH는 로그인한 본인의
+인증번호만 검증하고, 성공하면 코드 발급 정보를 삭제한 뒤 세션을 ACTIVE로 바꾼다. 원문 대신 해시를 저장한다.
+오입력은 발급당 5회까지 DB에 누적하며 5회째부터 `409 AUTH_EMAIL_VERIFICATION_ATTEMPTS_EXCEEDED`다.
+재전송은 발급 후 60초가 지나야 가능하며, 이르면 `409 AUTH_EMAIL_VERIFICATION_RESEND_TOO_SOON`이다.
+재전송은 이전 발급 정보를 교체하고 실패 횟수를 초기화한다. 만료는 `400 AUTH_EXPIRED_EMAIL_VERIFICATION`,
+코드 불일치는 `400 AUTH_INVALID_EMAIL_VERIFICATION`이다. 흐름은 [인증 문서](../src/main/java/art/yesulin/auth/docs/README.md)를 따른다.
+전환 전 발급된 링크는 기존 만료까지 GET으로 호환하며 같은 회원의 기존 세션만 갱신한다. 새 코드 발급 정보는
+GET 링크로 검증할 수 없다. 신규 메일에는 URL이나 `redirectUri`를 넣지 않는다.
 가입이 커밋된 뒤 최초 메일 요청이 실패해도 가입은 201로 응답한다. 미인증 계정으로 로그인한 뒤 재전송할 수 있으며,
 재전송 발송 실패는 성공 응답으로 숨기지 않는다. 메일 전송 요청 성공이 수신함 도착을 보장하지는 않는다.
 

@@ -15,7 +15,6 @@ import art.yesulin.auth.domain.member.MemberType;
 import art.yesulin.global.exception.BusinessException;
 import art.yesulin.infrastructure.mail.MailMessage;
 import art.yesulin.infrastructure.mail.MailSender;
-import java.net.URI;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -42,11 +41,7 @@ class EmailVerificationServiceTest {
         memberRepository = mock(MemberRepository.class);
         tokenGenerator = mock(VerificationTokenGenerator.class);
         mailSender = mock(MailSender.class);
-        EmailVerificationSettings settings = new EmailVerificationSettings(
-                EXPIRATION,
-                URI.create("https://api.yesulin.art/api/v1/auth/email-verifications"),
-                URI.create("https://yesulin.art/producers")
-        );
+        EmailVerificationSettings settings = new EmailVerificationSettings(EXPIRATION);
         PasswordEncoder encoder = mock(PasswordEncoder.class);
         when(encoder.encode("000123")).thenReturn("hashed-code");
         service = new EmailVerificationService(
