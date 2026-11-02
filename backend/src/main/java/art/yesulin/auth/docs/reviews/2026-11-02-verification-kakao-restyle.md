@@ -35,7 +35,7 @@
 
 | 문제 ID | 심각도/유형/유입 | 경로 | 근거·조치·수정 후 확인 | 상태 | 최초 확정 | 해결 | 최초 PR |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 2026-11-02-auth-verification-kakao-restyle-F01 | P3/CODE/INTRODUCED | INDEPENDENT_REVIEW | 표시 문구 ‘카카오톡 문의하기’와 aria-label ‘카카오톡으로 문의하기’ 불일치. aria-label에서 ‘으로’ 제거, 모바일 AX·DOM 확인 | FIXED | 2026-11-02T19:06:53+09:00 | 2026-11-02T19:06:53+09:00 | PENDING |
+| 2026-11-02-auth-verification-kakao-restyle-F01 | P3/CODE/INTRODUCED | INDEPENDENT_REVIEW | 표시 문구 ‘카카오톡 문의하기’와 aria-label ‘카카오톡으로 문의하기’ 불일치. aria-label에서 ‘으로’ 제거, 모바일 AX·DOM 확인 | FIXED | 2026-11-02T19:06:53+09:00 | 2026-11-02T19:06:53+09:00 | #491 |
 
 ## 추가 전용 상태 사건
 
@@ -43,3 +43,10 @@
 | --- | --- | --- | --- | --- |
 | 2026-11-02-auth-verification-kakao-restyle-F01-E01 | 2026-11-02-auth-verification-kakao-restyle-F01 | CONFIRMED | 2026-11-02T19:06:53+09:00 | 독립 평가의 Label in Name 불일치 확인 / PENDING |
 | 2026-11-02-auth-verification-kakao-restyle-F01-E02 | 2026-11-02-auth-verification-kakao-restyle-F01 | FIXED | 2026-11-02T19:06:53+09:00 | aria-label 수정, 이후 브라우저 표시 문구와 접근 가능한 이름 확인 / PENDING |
+
+## 최초 게시 연결
+
+- 기록 시각: 2026-11-02T19:12:02+09:00
+- 최초 기록 PR: [#491](https://github.com/woowacourse-teams/2026-yesulin/pull/491), 연결 이슈 #490.
+- 위 PR 미생성/PENDING 문구와 상태 사건은 작성 당시 이력으로 보존한다. 이번 연결은 발견·해결 시각을 변경하지 않는다.
+- 최종 구현은 여섯 칸 입력·상시 안내·폼 폭에 맞춘 자체 카카오 문의 버튼이다. 이전 접힌 도움말·공식 PNG 시안의 평가는 과거 이력이며 현재 사용 요소가 아니다.

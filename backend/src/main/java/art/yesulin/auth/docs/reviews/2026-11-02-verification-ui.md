@@ -38,7 +38,7 @@
 
 | 문제 ID | 심각도/유형/유입 | 경로 | 근거와 조치 | 상태 | 최초 확정 | 해결 | 최초 PR |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 2026-11-02-auth-verification-ui-F01 | P3/POLICY/INTRODUCED | INDEPENDENT_REVIEW | 새 summary 터치 높이 약 28px. min-h-11 적용 후 브라우저에서 약 44px 확인. 키보드 Enter 토글 정상 | FIXED | 2026-11-02T18:51:07+09:00 | 2026-11-02T18:51:07+09:00 | PENDING |
+| 2026-11-02-auth-verification-ui-F01 | P3/POLICY/INTRODUCED | INDEPENDENT_REVIEW | 새 summary 터치 높이 약 28px. min-h-11 적용 후 브라우저에서 약 44px 확인. 키보드 Enter 토글 정상 | FIXED | 2026-11-02T18:51:07+09:00 | 2026-11-02T18:51:07+09:00 | #491 |
 
 ## 추가 전용 상태 사건 이력
 
@@ -46,3 +46,10 @@
 | --- | --- | --- | --- | --- |
 | 2026-11-02-auth-verification-ui-F01-E01 | 2026-11-02-auth-verification-ui-F01 | CONFIRMED | 2026-11-02T18:51:07+09:00 | 독립 평가에서 디자인 시스템 최소 44px 미달 확인 / PENDING |
 | 2026-11-02-auth-verification-ui-F01-E02 | 2026-11-02-auth-verification-ui-F01 | FIXED | 2026-11-02T18:51:07+09:00 | min-h-11 적용. 이후 모바일 DOM 실측 43.993px(렌더링 반올림), Enter 동작 및 대상 eslint 확인 / PENDING |
+
+## 최초 게시 연결
+
+- 기록 시각: 2026-11-02T19:12:02+09:00
+- 최초 기록 PR: [#491](https://github.com/woowacourse-teams/2026-yesulin/pull/491), 연결 이슈 #490.
+- 위 PR 미생성/PENDING 문구와 상태 사건은 작성 당시 이력으로 보존한다. 이번 연결은 발견·해결 시각을 변경하지 않는다.
+- 최종 구현은 여섯 칸 입력·상시 안내·폼 폭에 맞춘 자체 카카오 문의 버튼이다. 이전 접힌 도움말·공식 PNG 시안의 평가는 과거 이력이며 현재 사용 요소가 아니다.

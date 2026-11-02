@@ -36,3 +36,10 @@
 - S06: 독립 평가에서 라이브러리 import/render·package/lock 일치·React19 peer 호환, 이전 details/placeholder 제거와 미사용 코드·파일·설정·의존성·문서 링크 점검. 확정 문제 없음.
 - 스크린샷: `/private/tmp/yesulin-verification-slots-desktop.png`, `/private/tmp/yesulin-verification-slots-mobile.png` (로컬 증거이며 영구 저장소 파일 아님).
 - 운영 SMTP·API와 실기기 자동완성은 이 화면 변경의 검증 범위 밖이다. 브라우저 입력 값은 도구에서 마스킹되므로 값 비교 결과를 근거로 사용하지 않고 시각 표시와 단위 테스트를 근거로 사용했다.
+
+## 최초 게시 연결
+
+- 기록 시각: 2026-11-02T19:12:02+09:00
+- 최초 기록 PR: [#491](https://github.com/woowacourse-teams/2026-yesulin/pull/491), 연결 이슈 #490.
+- 위 PR 미생성/PENDING 문구와 상태 사건은 작성 당시 이력으로 보존한다. 이번 연결은 발견·해결 시각을 변경하지 않는다.
+- 최종 구현은 여섯 칸 입력·상시 안내·폼 폭에 맞춘 자체 카카오 문의 버튼이다. 이전 접힌 도움말·공식 PNG 시안의 평가는 과거 이력이며 현재 사용 요소가 아니다.

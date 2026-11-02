@@ -32,3 +32,10 @@
 - K03: 기존 href `http://pf.kakao.com/_pbTBX/chat`·target=_blank 유지, rel=noopener noreferrer. 채팅을 열거나 메시지를 보내지 않았다. 기존 인증 테스트8개와 `npm run lint` 종료0. 인증 훅·API·상태 전이 미변경.
 - K04: 별도 평가가 추가 hunk·이미지·평가 기록을 기준으로 소비·자산 크기·구성·참조를 점검. 신규 SDK·의존성 없음, 이전 링크 중복 없음. `git diff --check` 종료0.
 - 스크린샷: `/private/tmp/yesulin-verification-kakao-desktop.png`, `/private/tmp/yesulin-verification-kakao-mobile.png` (로컬 시각 증거, 영구 저장소 아님).
+
+## 최초 게시 연결
+
+- 기록 시각: 2026-11-02T19:12:02+09:00
+- 최초 기록 PR: [#491](https://github.com/woowacourse-teams/2026-yesulin/pull/491), 연결 이슈 #490.
+- 위 PR 미생성/PENDING 문구와 상태 사건은 작성 당시 이력으로 보존한다. 이번 연결은 발견·해결 시각을 변경하지 않는다.
+- 최종 구현은 여섯 칸 입력·상시 안내·폼 폭에 맞춘 자체 카카오 문의 버튼이다. 이전 접힌 도움말·공식 PNG 시안의 평가는 과거 이력이며 현재 사용 요소가 아니다.
