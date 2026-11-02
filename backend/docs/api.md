@@ -175,9 +175,13 @@ status,warnings,pages[number,text,needsOcr,images[status,key]]`)다. 소유자�
 | PATCH | `/api/v1/auth/password-resets` | 공개 | `PasswordResetChangeRequest(token, password, passwordConfirm)` | `204` |
 
 로그인은 email 형식과 password 존재를 검증한다. 로그아웃은 세션이 없어도 204를 반환한다.
+현재 세션 조회는 세션의 회원 ID로 DB의 최신 역할과 인증 상태를 읽고 기존 세션에도 갱신한다. 삭제된 회원이면
+401이며 응답은 `Cache-Control: no-store`다. 다른 브라우저에서 인증해도 기존 탭이 세션을 다시 조회하면 활성화가 반영된다.
 기획사/제작사 가입과 인증 메일 재전송은 5분 유효한 일회용 token을 발급한다. GET 인증은 성공 시 같은 브라우저의
 PENDING 세션을 ACTIVE로 갱신하고 요청의 `redirectUri`로 302 redirect한다. 서버 설정의
 `EMAIL_VERIFICATION_REDIRECT_URI`는 발송 메일 링크에 넣을 기본 Frontend 경로다.
+가입이 커밋된 뒤 최초 메일 요청이 실패해도 가입은 201로 응답한다. 미인증 계정으로 로그인한 뒤 재전송할 수 있으며,
+재전송 발송 실패는 성공 응답으로 숨기지 않는다. 메일 전송 요청 성공이 수신함 도착을 보장하지는 않는다.
 
 비밀번호 재설정 메일 요청은 계정 존재 여부를 노출하지 않고 항상 204를 반환한다. 기획사/제작사 이메일 계정에만 5분
 유효한 일회용 링크를 보내며, GET으로 링크를 확인한 뒤 PATCH에서 8~64자의 새 비밀번호와 확인 값을 받는다.

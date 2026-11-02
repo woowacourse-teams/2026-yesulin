@@ -11,11 +11,13 @@ import art.yesulin.infrastructure.mail.MailSender;
 import java.time.Clock;
 import java.time.Instant;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class EmailVerificationService {
 
     private final EmailVerificationRepository verificationRepository;
@@ -25,6 +27,16 @@ public class EmailVerificationService {
     private final MailSender mailSender;
     private final Clock clock;
     private final EmailVerificationSettings settings;
+
+    public void sendInitialVerification(String email) {
+        try {
+            sendVerification(email);
+        } catch (RuntimeException exception) {
+            log.atError().addKeyValue("event", "UNEXPECTED_SERVICE_ERROR")
+                    .addKeyValue("exception", exception.getClass().getSimpleName())
+                    .log("INITIAL_VERIFICATION_FAILED");
+        }
+    }
 
     public void sendVerification(String email) {
         Member member = memberRepository.findByEmail(email)

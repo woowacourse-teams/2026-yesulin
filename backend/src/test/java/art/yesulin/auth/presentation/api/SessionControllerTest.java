@@ -95,12 +95,13 @@ class SessionControllerTest {
 
     @Test
     void findsCurrentSession() throws Exception {
-        MemberPrincipal principal = new MemberPrincipal(1L, MemberType.PRODUCER, MemberStatus.ACTIVE);
+        Member member = memberRepository.findByEmail(EMAIL).orElseThrow();
+        MemberPrincipal principal = new MemberPrincipal(member.getId(), MemberType.PRODUCER, MemberStatus.PENDING);
 
         mockMvc.perform(get("/api/v1/sessions/current")
                         .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, principal))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.memberId").value(1))
+                .andExpect(jsonPath("$.memberId").value(member.getId()))
                 .andExpect(jsonPath("$.role").value("PRODUCER"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"));
     }

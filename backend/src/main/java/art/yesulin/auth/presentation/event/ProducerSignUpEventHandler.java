@@ -15,6 +15,6 @@ public class ProducerSignUpEventHandler {
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handle(ProducerSignedUpEvent event) {
-        emailVerificationService.sendVerification(event.email());
+        emailVerificationService.sendInitialVerification(event.email());
     }
 }

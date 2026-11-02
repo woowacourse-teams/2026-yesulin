@@ -15,6 +15,13 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
 
     @Transactional(readOnly = true)
+    public MemberPrincipal findCurrent(long memberId) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new BusinessException(AuthErrorCode.UNAUTHENTICATED, "로그인이 필요합니다."));
+        return MemberPrincipal.from(member);
+    }
+
+    @Transactional(readOnly = true)
     public MemberPrincipal login(String email, String password) {
         Member member = memberRepository.findByEmail(email)
                 .orElseThrow(() -> new BusinessException(
