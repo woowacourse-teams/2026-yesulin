@@ -25,6 +25,7 @@ type AuthSessionContextValue = {
   readonly serverSessionEnabled: boolean;
   readonly setSession: (session: FrontendAuthSession | null) => void;
   readonly refreshSession: () => Promise<void>;
+  readonly completeProducerVerification: (session: SessionResponse) => void;
   readonly logoutSession: (redirectOnUnauthorized?: boolean) => Promise<void>;
 };
 
@@ -36,14 +37,18 @@ const serverSessionEnabled =
 
 /** 운영자 세션은 /admin 화면이 따로 다루므로 공개 서비스에서는 비로그인으로 둔다. */
 function toFrontendSession(session: SessionResponse | null): FrontendAuthSession | null {
-  if (!session) return null;
-  if (session.role === "ADMIN") return null;
-  return {
-    credential: `member-${session.memberId}`,
-    role: session.role,
-    displayName: session.role === "APPLICANT" ? "배우" : "기획사/제작사",
-    producerStatus: session.role === "PRODUCER" ? session.status : undefined,
-  };
+  if (!session || session.role === "ADMIN") return null;
+  const account = { credential: `member-${session.memberId}`, role: session.role, displayName: "배우" };
+  if (session.role === "PRODUCER") {
+    return { ...account, displayName: "기획사/제작사", producerStatus: session.status };
+  }
+  return account;
+}
+
+function verifiedProducerSession(current: FrontendAuthSession | null, verified: SessionResponse) {
+  if (current?.role !== "PRODUCER" || current.credential !== `member-${verified.memberId}`) return current;
+  if (verified.role !== "PRODUCER" || verified.status !== "ACTIVE") return current;
+  return { ...current, producerStatus: verified.status };
 }
 
 export function createFrontendCredential() {
@@ -80,6 +85,10 @@ export function AuthSessionProvider({ children }: { readonly children: React.Rea
     if (!serverSessionEnabled) return;
     await synchronizer.refresh();
   }, [synchronizer]);
+  const completeProducerVerification = useCallback((verified: SessionResponse) => {
+    synchronizer.invalidate();
+    updateSession((current) => verifiedProducerSession(current, verified));
+  }, [synchronizer]);
   const logoutSession = useCallback(async (redirectOnUnauthorized = false) => {
     if (serverSessionEnabled) await requestLogout(redirectOnUnauthorized);
     setSession(null);
@@ -103,8 +112,9 @@ export function AuthSessionProvider({ children }: { readonly children: React.Rea
     serverSessionEnabled,
     setSession,
     refreshSession,
+    completeProducerVerification,
     logoutSession,
-  }), [logoutSession, refreshSession, session, sessionReady, setSession]);
+  }), [completeProducerVerification, logoutSession, refreshSession, session, sessionReady, setSession]);
 
   return <AuthSessionContext value={value}>{children}</AuthSessionContext>;
 }

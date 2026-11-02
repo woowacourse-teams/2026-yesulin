@@ -19,6 +19,7 @@ function SessionProbe() {
     <button onClick={() => auth.setSession({ credential: "member-20", role: "PRODUCER", displayName: "극단", producerStatus: "ACTIVE" })}>login</button>
     <button onClick={() => void auth.logoutSession()}>logout</button>
     <button onClick={() => void auth.refreshSession()}>refresh</button>
+    <button onClick={() => auth.completeProducerVerification({ ...pending, status: "ACTIVE" })}>verified</button>
   </>;
 }
 
@@ -120,4 +121,25 @@ it("숨긴 탭에서는 불필요한 조회를 보내지 않는다", async () =>
   // then
   expect(fetchCurrentSession).toHaveBeenCalledTimes(1);
   vi.restoreAllMocks();
+});
+
+it("코드 검증 응답을 추가 GET 없이 ACTIVE로 반영한다", async () => {
+  // given
+  await renderSession();
+  vi.mocked(fetchCurrentSession).mockRejectedValue(new Error("offline"));
+  // when
+  await act(async () => button("verified").click());
+  // then
+  expect(container.querySelector("output")?.textContent).toBe("ACTIVE");
+  expect(fetchCurrentSession).toHaveBeenCalledTimes(1);
+});
+
+it("로그아웃 뒤 늦은 코드 인증 응답이 계정을 되살리지 않는다", async () => {
+  // given
+  await renderSession();
+  await act(async () => button("logout").click());
+  // when
+  await act(async () => button("verified").click());
+  // then
+  expect(container.querySelector("output")?.textContent).toBe("anonymous");
 });
