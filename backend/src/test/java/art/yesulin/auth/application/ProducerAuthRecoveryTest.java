@@ -5,7 +5,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.when;
 
+import art.yesulin.auth.domain.EmailVerificationRepository;
+import art.yesulin.auth.domain.VerificationCode;
 import art.yesulin.auth.domain.member.Member;
 import art.yesulin.auth.domain.member.MemberRepository;
 import art.yesulin.auth.domain.member.MemberStatus;
@@ -16,6 +19,8 @@ import art.yesulin.producer.application.ProducerSignUpService;
 import art.yesulin.producer.application.SignUpProducerCommand;
 import art.yesulin.producer.domain.ProducerRepository;
 import art.yesulin.support.ObjectStorageTestConfiguration;
+import java.time.Clock;
+import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +40,7 @@ class ProducerAuthRecoveryTest {
 
     private static final String EMAIL = "recovery@yesulin.art";
     private static final String PASSWORD = "password1234";
+    private static final Instant NOW = Instant.parse("2026-11-02T00:00:00Z");
 
     @Autowired
     private ProducerSignUpService signUpService;
@@ -48,11 +54,19 @@ class ProducerAuthRecoveryTest {
     private ProducerRepository producerRepository;
     @MockitoBean
     private MailSender mailSender;
+    @Autowired
+    private EmailVerificationRepository verifications;
+    @MockitoBean
+    private Clock clock;
+    @MockitoBean
+    private VerificationCodeGenerator codeGenerator;
 
     @BeforeEach
     void cleanUp() {
         producerRepository.deleteAll();
         memberRepository.deleteAll();
+        when(clock.instant()).thenReturn(NOW);
+        when(codeGenerator.generate()).thenReturn(new VerificationCode("000123"));
     }
 
     @Test
@@ -65,9 +79,11 @@ class ProducerAuthRecoveryTest {
     }
 
     private void assertResendFailureAndRecovery(long memberId) {
+        when(clock.instant()).thenReturn(NOW.plusSeconds(61));
         assertThatThrownBy(() -> verificationService.resendVerification(memberId))
                 .isInstanceOf(MailSendException.class);
         doNothing().when(mailSender).send(any());
+        when(clock.instant()).thenReturn(NOW.plusSeconds(122));
         verificationService.resendVerification(memberId);
         assertThat(authService.findCurrent(memberId).status()).isEqualTo(MemberStatus.PENDING);
     }
@@ -97,5 +113,40 @@ class ProducerAuthRecoveryTest {
 
     private SignUpProducerCommand command() {
         return new SignUpProducerCommand("복구 극단", "01012345678", EMAIL, PASSWORD);
+    }
+
+    @Test
+    void persistsWrongCodeAttemptsAcrossTransactions() {
+        // given
+        ProducerResult result = signUpService.signUp(command());
+        // when
+        for (int attempt = 0; attempt < 5; attempt++) {
+            assertThatThrownBy(() -> verificationService.verifyCode(result.memberId(), new VerificationCode("999999")))
+                    .isInstanceOf(BusinessException.class);
+        }
+        // then
+        assertThat(verifications.findByMemberId(result.memberId()).orElseThrow().failedAttempts()).isEqualTo(5);
+        assertThatThrownBy(() -> verificationService.verifyCode(result.memberId(), new VerificationCode("000123")))
+                .isInstanceOfSatisfying(BusinessException.class, exception -> assertThat(exception.getErrorCode())
+                        .isEqualTo(AuthErrorCode.EMAIL_VERIFICATION_ATTEMPTS_EXCEEDED));
+    }
+
+    @Test
+    void enforcesResendDelayAndInvalidatesPreviousCode() {
+        // given
+        ProducerResult result = signUpService.signUp(command());
+        assertThatThrownBy(() -> verificationService.resendVerification(result.memberId()))
+                .isInstanceOfSatisfying(BusinessException.class, exception -> assertThat(exception.getErrorCode())
+                        .isEqualTo(AuthErrorCode.EMAIL_VERIFICATION_RESEND_TOO_SOON));
+        // when
+        when(clock.instant()).thenReturn(NOW.plusSeconds(61));
+        when(codeGenerator.generate()).thenReturn(new VerificationCode("456789"));
+        verificationService.resendVerification(result.memberId());
+        // then
+        assertThatThrownBy(() -> verificationService.verifyCode(result.memberId(), new VerificationCode("000123")))
+                .isInstanceOf(BusinessException.class);
+        MemberPrincipal principal = verificationService.verifyCode(result.memberId(), new VerificationCode("456789"));
+        assertThat(principal.status()).isEqualTo(MemberStatus.ACTIVE);
+        assertThat(verifications.findByMemberId(result.memberId())).isEmpty();
     }
 }

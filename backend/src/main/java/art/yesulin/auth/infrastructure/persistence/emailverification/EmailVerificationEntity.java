@@ -29,23 +29,34 @@ class EmailVerificationEntity {
     @Column(name = "expires_at", nullable = false, updatable = false)
     private Instant expiresAt;
 
-    private EmailVerificationEntity(String token, long memberId, String email, Instant expiresAt) {
-        this.token = token;
-        this.memberId = memberId;
-        this.email = email;
-        this.expiresAt = expiresAt;
+    @Column(name = "code_hash", length = 100)
+    private String codeHash;
+
+    @Column(name = "failed_attempts", nullable = false)
+    private int failedAttempts;
+
+    @Column(name = "issued_at", updatable = false)
+    private Instant issuedAt;
+
+    private EmailVerificationEntity(EmailVerification verification) {
+        this.token = verification.token();
+        this.memberId = verification.memberId();
+        this.email = verification.email();
+        this.expiresAt = verification.expiresAt();
+        this.codeHash = verification.codeHash();
+        this.failedAttempts = verification.failedAttempts();
+        this.issuedAt = verification.issuedAt();
     }
 
     static EmailVerificationEntity from(EmailVerification verification) {
-        return new EmailVerificationEntity(
-                verification.token(),
-                verification.memberId(),
-                verification.email(),
-                verification.expiresAt()
-        );
+        return new EmailVerificationEntity(verification);
     }
 
     EmailVerification toDomain() {
-        return new EmailVerification(token, memberId, email, expiresAt);
+        return new EmailVerification(token, memberId, email, expiresAt, codeHash, failedAttempts, issuedAt);
+    }
+
+    void recordFailure() {
+        failedAttempts += 1;
     }
 }
