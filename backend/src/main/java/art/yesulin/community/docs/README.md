@@ -8,3 +8,4 @@
 - 통합 평가: [2026-11-03 dev 통합](reviews/2026-11-03-community-dev-merge.md)
 
 - 쿠키 이전 평가: [2026-11-03 HttpOnly 이전](reviews/2026-11-03-community-cookie.md)
+- 화면 개편 평가: [2026-11-03 스레드형 개편](reviews/2026-11-03-community-thread-redesign.md)
