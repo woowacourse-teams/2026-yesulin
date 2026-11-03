@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import art.yesulin.community.domain.CommunityIdentity;
 import art.yesulin.global.exception.BusinessException;
 import art.yesulin.support.ObjectStorageTestConfiguration;
 import java.util.List;
@@ -34,6 +35,20 @@ class CommunityParticipationTest {
 
     @Autowired
     private CommunityLikeService likes;
+
+    @Test
+    void migratedCookieKeepsExistingPostsCommentsLikesAndNumbers() {
+        long id = post(OWNER).id();
+        EntryResult reply = comment(id, OWNER);
+        likes.like(id, OWNER);
+        String migrated = CommunityIdentity.issue(null, OWNER);
+        assertEquals("익명1", service.editComment(id, reply.id(), migrated, "수정").author());
+        assertTrue(service.editPost(id, migrated, "수정", "내용").liked());
+        service.deleteComment(id, reply.id(), migrated);
+        assertEquals(0, service.post(id, migrated).commentCount());
+        service.deletePost(id, migrated);
+        assertThrows(BusinessException.class, () -> service.post(id, null));
+    }
 
     @Test
     void likesAndCancelsIdempotentlyPerBrowser() {

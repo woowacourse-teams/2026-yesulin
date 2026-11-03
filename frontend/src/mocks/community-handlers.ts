@@ -156,8 +156,8 @@ function compareEntries(left: StoredEntry, right: StoredEntry, parent: number | 
   return left.value.id - right.value.id;
 }
 
-function ownerOf(request: Request) {
-  const value = request.headers.get("X-Community-Key") ?? "";
+function ownerOf(request: Request, cookies: Record<string, string>) {
+  const value = cookies["yesulin-community-owner"] ?? "";
   if (request.method === "GET" && !value) return "";
   if (!/^[a-f0-9]{64}$/.test(value)) throw new Error("작성한 브라우저 정보를 확인할 수 없어요.");
   return value;
@@ -190,19 +190,48 @@ export function createCommunityHandlers() {
   const store = new CommunityStore();
   const base = "*/api/v1/public/community/posts";
   return [
-    http.get(base, ({ request }) => respond(() => store.list(null, cursorOf(request, "before", Number.MAX_SAFE_INTEGER, 1), ownerOf(request)))),
-    http.put(`${base}/:id/likes`, ({ request, params }) => respond(() => store.react(Number(params.id), ownerOf(request), true))),
-    http.delete(`${base}/:id/likes`, ({ request, params }) => respond(() => store.react(Number(params.id), ownerOf(request), false))),
-    http.get(`${base}/:id`, ({ request, params }) => respond(() => store.view(store.post(Number(params.id)), ownerOf(request)))),
-    http.post(base, ({ request }) => respond(async () => store.create(null, ownerOf(request), await request.json() as Payload), 201)),
-    http.put(`${base}/:id`, ({ request, params }) => respond(async () => store.edit(store.post(Number(params.id)), ownerOf(request), await request.json() as Payload))),
-    http.delete(`${base}/:id`, ({ request, params }) => respond(() => store.remove(store.post(Number(params.id)), ownerOf(request)))),
-    http.get(`${base}/:postId/comments`, ({ request, params }) => respond(() => store.list(Number(params.postId), cursorOf(request, "after", 0, 0), ownerOf(request)))),
-    http.post(`${base}/:postId/comments`, ({ request, params }) => respond(async () => store.create(Number(params.postId), ownerOf(request), await request.json() as Payload), 201)),
-    http.put(`${base}/:postId/comments/:id`, ({ request, params }) => respond(async () => store.edit(store.comment(Number(params.postId), Number(params.id)), ownerOf(request), await request.json() as Payload))),
-    http.delete(`${base}/:postId/comments/:id`, ({ request, params }) => respond(() => store.remove(store.comment(Number(params.postId), Number(params.id)), ownerOf(request)))),
-    http.post("*/api/v1/public/community/entries/:id/reports", ({ request, params }) => respond(async () => store.report(Number(params.id), ownerOf(request), await request.json() as Payload))),
+    http.get("*/api/v1/public/community/identity", ({ request, cookies }) => identityResponse(request, cookies, false)),
+    http.post("*/api/v1/public/community/identity", ({ request, cookies }) => identityResponse(request, cookies, true)),
+    http.get(base, ({ request, cookies }) => respond(() => store.list(null, cursorOf(request, "before", Number.MAX_SAFE_INTEGER, 1), ownerOf(request, cookies)))),
+    http.put(`${base}/:id/likes`, ({ request, params, cookies }) => respond(() => store.react(Number(params.id), ownerOf(request, cookies), true))),
+    http.delete(`${base}/:id/likes`, ({ request, params, cookies }) => respond(() => store.react(Number(params.id), ownerOf(request, cookies), false))),
+    http.get(`${base}/:id`, ({ request, params, cookies }) => respond(() => store.view(store.post(Number(params.id)), ownerOf(request, cookies)))),
+    http.post(base, ({ request, cookies }) => respond(async () => store.create(null, ownerOf(request, cookies), await request.json() as Payload), 201)),
+    http.put(`${base}/:id`, ({ request, params, cookies }) => respond(async () => store.edit(store.post(Number(params.id)), ownerOf(request, cookies), await request.json() as Payload))),
+    http.delete(`${base}/:id`, ({ request, params, cookies }) => respond(() => store.remove(store.post(Number(params.id)), ownerOf(request, cookies)))),
+    http.get(`${base}/:postId/comments`, ({ request, params, cookies }) => respond(() => store.list(Number(params.postId), cursorOf(request, "after", 0, 0), ownerOf(request, cookies)))),
+    http.post(`${base}/:postId/comments`, ({ request, params, cookies }) => respond(async () => store.create(Number(params.postId), ownerOf(request, cookies), await request.json() as Payload), 201)),
+    http.put(`${base}/:postId/comments/:id`, ({ request, params, cookies }) => respond(async () => store.edit(store.comment(Number(params.postId), Number(params.id)), ownerOf(request, cookies), await request.json() as Payload))),
+    http.delete(`${base}/:postId/comments/:id`, ({ request, params, cookies }) => respond(() => store.remove(store.comment(Number(params.postId), Number(params.id)), ownerOf(request, cookies)))),
+    http.post("*/api/v1/public/community/entries/:id/reports", ({ request, params, cookies }) => respond(async () => store.report(Number(params.id), ownerOf(request, cookies), await request.json() as Payload))),
   ];
 }
 
 export const communityHandlers = createCommunityHandlers();
+
+function identityResponse(request: Request, cookies: Record<string, string>, create: boolean): Response {
+  try {
+    const current = validatedIdentity(cookies["yesulin-community-owner"]);
+    const legacy = validatedIdentity(request.headers.get("X-Community-Legacy-Key"));
+    if (!create) return identityStatus(current, legacy);
+    if (current && legacy && current !== legacy) throw new MockFailure(409, "COMMUNITY_IDENTITY_CONFLICT", "서로 다른 관리 정보가 있어요.");
+    const identity = current || legacy || Array.from(crypto.getRandomValues(new Uint8Array(32)), byte => byte.toString(16).padStart(2, "0")).join("");
+    return new HttpResponse(null, { status: 204, headers: identityHeaders(identity) });
+  } catch (error) { return failureResponse(error); }
+}
+
+function validatedIdentity(value: string | null | undefined): string {
+  if (value == null) return "";
+  if (!/^[a-f0-9]{64}$/.test(value)) throw new Error("작성한 브라우저 정보를 확인할 수 없어요.");
+  return value;
+}
+
+function identityStatus(current: string, legacy: string) {
+  const ready = Boolean(current && (!legacy || current === legacy));
+  if (ready) return HttpResponse.json({ ready }, { headers: identityHeaders(current) });
+  return HttpResponse.json({ ready }, { headers: { "Cache-Control": "no-store" } });
+}
+
+function identityHeaders(value: string) {
+  return { "Cache-Control": "no-store", "Set-Cookie": `yesulin-community-owner=${value}; Path=/api/v1/public/community; HttpOnly; SameSite=Lax; Max-Age=34560000` };
+}
