@@ -91,7 +91,7 @@ function CareerSection({ value, onChange }: { readonly value: readonly CareerEnt
   return <section className="border-t border-border-soft pt-7">
     <div className="flex items-start justify-between gap-3">
       <div><h3 className="font-bold">경력 <span className="text-xs font-normal text-muted">(선택)</span></h3>
-        <p className="mt-1 text-sm leading-6 text-muted">지원서에는 최근 연도 경력 10개가 먼저 채워지고, 지원서에서 바꿀 수 있어요.</p></div>
+        <p className="mt-1 text-sm leading-6 text-muted">추가하거나 수정하는 경력은 연도와 월을 모두 선택해 주세요. 지원서에는 최근 경력 10개가 먼저 채워져요.</p></div>
       <span className="num shrink-0 text-xs text-muted">{value.length} / {MAX_PROFILE_CAREER_COUNT}</span>
     </div>
     <div className="mt-4 space-y-4">{value.map((career, index) => <article key={index} className="rounded-card border border-border bg-surface p-4">
@@ -99,17 +99,20 @@ function CareerSection({ value, onChange }: { readonly value: readonly CareerEnt
         <span className="text-xs text-muted">{profileCareerGenreLabel(career.genre)}</span>
         <TextButton onClick={() => onChange(value.filter((_, candidate) => candidate !== index))} aria-label={`경력 ${index + 1} 삭제`} className="ml-auto px-3 text-fail hover:bg-fail-bg hover:text-fail">삭제</TextButton>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[100px_140px_minmax(0,1fr)_160px]">
-        <label><span className="mb-1 block text-xs text-muted">연도</span><FieldInput type="number" min={1000} max={9999} value={career.year || ""} onChange={(event) => patch(index, { year: Number(event.target.value) })} /></label>
-        <label><span className="mb-1 block text-xs text-muted">장르</span><FieldSelect aria-label={`경력 ${index + 1} 장르`} value={career.genre ?? ""} onChange={(event) => patch(index, { genre: event.target.value ? event.target.value as ProfileCareerGenre : null })}>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <label><span className="mb-1 block text-xs text-muted">연도</span><FieldInput type="number" min={1000} max={9999} data-career-index={index} data-career-field="year" value={career.year || ""} onChange={(event) => patch(index, { year: Number(event.target.value) })} /></label>
+        <label><span className="mb-1 block text-xs text-muted">월</span><FieldSelect data-career-month data-career-index={index} data-career-field="month" aria-label={`경력 ${index + 1} 월`} value={career.month ?? ""} onChange={(event) => patch(index, { month: event.target.value ? Number(event.target.value) : null })}>
+          <option value="">월 선택</option>{Array.from({ length: 12 }, (_, month) => <option key={month + 1} value={month + 1}>{month + 1}월</option>)}
+        </FieldSelect></label>
+        <label><span className="mb-1 block text-xs text-muted">장르</span><FieldSelect data-career-index={index} data-career-field="genre" aria-label={`경력 ${index + 1} 장르`} value={career.genre ?? ""} onChange={(event) => patch(index, { genre: event.target.value ? event.target.value as ProfileCareerGenre : null })}>
           <option value="">선택 안 함</option>{PROFILE_CAREER_GENRES.map((genre) => <option key={genre.value} value={genre.value}>{genre.label}</option>)}
         </FieldSelect></label>
-        <label className="min-w-0"><span className="mb-1 block text-xs text-muted">작품명</span><FieldInput value={career.title} onChange={(event) => patch(index, { title: event.target.value })} /></label>
-        <label className="min-w-0"><span className="mb-1 block text-xs text-muted">배역</span><FieldInput value={career.part} onChange={(event) => patch(index, { part: event.target.value })} /></label>
+        <label className="min-w-0"><span className="mb-1 block text-xs text-muted">작품명</span><FieldInput data-career-index={index} data-career-field="title" value={career.title} onChange={(event) => patch(index, { title: event.target.value })} /></label>
+        <label className="min-w-0"><span className="mb-1 block text-xs text-muted">배역</span><FieldInput data-career-index={index} data-career-field="part" value={career.part} onChange={(event) => patch(index, { part: event.target.value })} /></label>
       </div>
     </article>)}
       {value.length === 0 ? <div className="rounded-card border border-dashed border-border bg-surface px-5 py-8 text-center text-sm text-muted">저장한 경력이 없어요.</div> : null}
-      {value.length < MAX_PROFILE_CAREER_COUNT ? <AddButton onClick={() => onChange([...value, { year: new Date().getFullYear(), title: "", part: "", genre: null }])} className="min-h-12 w-full">+ 경력 추가</AddButton> : <p className="text-sm text-muted">경력은 최대 {MAX_PROFILE_CAREER_COUNT}개까지 추가할 수 있어요.</p>}
+      {value.length < MAX_PROFILE_CAREER_COUNT ? <AddButton onClick={() => onChange([...value, { year: new Date().getFullYear(), month: null, title: "", part: "", genre: null }])} className="min-h-12 w-full">+ 경력 추가</AddButton> : <p className="text-sm text-muted">경력은 최대 {MAX_PROFILE_CAREER_COUNT}개까지 추가할 수 있어요.</p>}
     </div>
   </section>;
 }

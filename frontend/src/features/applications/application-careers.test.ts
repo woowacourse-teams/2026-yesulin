@@ -4,8 +4,8 @@ import { applicationDraftFromPrefill, submissionValue } from "./public-applicati
 import type { CareerEntry } from "@/features/applicants/types";
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
 
-const career = (year: number, title: string): CareerEntry => ({ year, title, part: "배역", genre: "THEATER" });
-const draft = (year: string, title: string) => ({ id: title, year, title, part: "배역" });
+const career = (year: number, title: string): CareerEntry => ({ year, month: 3, title, part: "배역", genre: "THEATER" });
+const draft = (year: string, title: string) => ({ id: title, year, month: "3", title, part: "배역" });
 
 describe("프로필 경력의 지원서 선택", () => {
   it("최근 연도순으로 10개를 넣고 같은 연도의 프로필 순서는 유지한다", () => {
@@ -16,7 +16,7 @@ describe("프로필 경력의 지원서 선택", () => {
     expect(result.slice(0, 3).map((entry) => entry.title)).toEqual(["같은 해 첫 작품", "같은 해 두 번째", "작품 0"]);
     expect(result.every((entry, index) => index === 0 || Number(result[index - 1]!.year) >= Number(entry.year))).toBe(true);
     expect(profile[0]!.title).toBe("오래된 작품");
-    expect(Object.keys(result[0]!)).toEqual(["id", "title", "part", "year"]);
+    expect(Object.keys(result[0]!)).toEqual(["id", "title", "part", "year", "month"]);
   });
 
   it("10개 이하인 프로필은 전부 넣고 교체용 전체 목록은 원래 순서와 장르로 보존한다", () => {
@@ -26,7 +26,7 @@ describe("프로필 경력의 지원서 선택", () => {
     expect(result.profileCareers).toEqual(profile);
     const field = { id: "CAREER" } as ApplicationFieldInput;
     expect(submissionValue(field, { ...result, noCareer: false })).toEqual([
-      { year: 2026, title: "최근 작품", part: "배역" }, { year: 2023, title: "첫 작품", part: "배역" },
+      { year: 2026, month: 3, title: "최근 작품", part: "배역" }, { year: 2023, month: 3, title: "첫 작품", part: "배역" },
     ]);
   });
 
@@ -45,7 +45,14 @@ describe("프로필 경력의 지원서 선택", () => {
     const removed = selected.slice(1);
     const result = appendProfileCareer(removed, career(2025, "다른 작품"), "new");
     expect(result).toHaveLength(10);
-    expect(result.at(-1)).toEqual({ id: "new", year: "2025", title: "다른 작품", part: "배역" });
+    expect(result.at(-1)).toEqual({ id: "new", year: "2025", month: "3", title: "다른 작품", part: "배역" });
     expect(appendProfileCareer(removed, career(2026, "작품 1"), "duplicate")).toBe(removed);
   });
+});
+
+it("같은 해는 월 최신순이고 같은 월은 입력 순서, 미상 월은 마지막이다", () => {
+  const input = [{ ...career(2026, "과거 데이터"), month: null }, { ...career(2026, "봄"), month: 3 },
+    { ...career(2026, "가을1"), month: 10 }, { ...career(2026, "가을2"), month: 10 }];
+  expect(applicationCareersFromProfile(input).map((row) => row.title)).toEqual(["가을1", "가을2", "봄", "과거 데이터"]);
+  expect(profileCareerChoices([{ ...career(2026, "재공연"), month: 10 }], [{ ...draft("2026", "재공연"), month: "3" }])).toHaveLength(1);
 });

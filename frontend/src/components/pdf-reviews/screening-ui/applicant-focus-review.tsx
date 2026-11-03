@@ -444,7 +444,7 @@ function FocusReviewContent({
               value={note}
               onChange={(event) => { if (note === applicant.review.note) noteRevision.current = applicant.review.revision; setNote(event.target.value); onNoteDirty?.(event.target.value !== applicant.review.note); }}
               maxLength={2000}
-              className={`${styles.profileMemo} min-h-20 w-full resize-none rounded-control border border-border bg-card px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand-soft disabled:bg-surface`}
+              className={`${styles.profileMemo} min-h-20 w-full resize-none rounded-control border border-border bg-card px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand disabled:bg-surface`}
             />
             <SecondaryButton
               disabled={reviewLocked || saving || note === applicant.review.note}

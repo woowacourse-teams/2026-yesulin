@@ -428,7 +428,7 @@ function HandleSection({ settings, onChanged, onDirtyChange }: { readonly settin
     <p className="mt-1 text-sm leading-6 text-muted">페이지 주소에 쓰여요. 처음 공개하기 전까지만 직접 바꿀 수 있어요.</p>
     <form className="mt-3 flex flex-col gap-2 sm:flex-row" onSubmit={(event) => { event.preventDefault(); if (savable && !saving) void save(); }}>
       <label htmlFor={inputId} className="sr-only">아이디</label>
-      <div className="flex min-h-12 min-w-0 flex-1 items-center rounded-control border border-border bg-card px-3 focus-within:border-brand focus-within:ring-2 focus-within:ring-brand-soft">
+      <div className={`flex min-h-12 min-w-0 flex-1 items-center rounded-control border bg-card px-3 focus-within:ring-1 ${status.tone === "fail" ? "border-fail focus-within:border-fail focus-within:ring-fail" : "border-border focus-within:border-brand focus-within:ring-brand"}`}>
         <span aria-hidden="true" className="text-muted">@</span>
         <input
           id={inputId}

@@ -10,6 +10,7 @@ import jakarta.persistence.Embeddable;
 @Embeddable
 public record SubmissionCareer(
         @Column(name = "career_year", nullable = false) int year,
+        @Column(name = "career_month") Integer month,
         @Column(name = "title", nullable = false, length = MAX_TITLE_LENGTH) String title,
         @Column(name = "role_name", nullable = false, length = MAX_ROLE_NAME_LENGTH) String roleName
 ) {
@@ -23,6 +24,9 @@ public record SubmissionCareer(
     public SubmissionCareer {
         if (year < MINIMUM_YEAR || year > MAXIMUM_YEAR) {
             throw new BusinessException(INVALID_SUBMISSION, "경력 연도는 네 자리 숫자여야 합니다.");
+        }
+        if (month != null && (month < 1 || month > 12)) {
+            throw new BusinessException(INVALID_SUBMISSION, "경력 월은 1~12여야 합니다.");
         }
         title = requireText(title, "경력 작품명은 필수입니다.");
         if (title.length() > MAX_TITLE_LENGTH) {

@@ -83,7 +83,7 @@ export function applicantProfile(): ApplicantProfileResponse {
 export function patchApplicantProfile(body: UpdateProfileRequest): ApplicantProfileResponse {
   const incomingCareers = body.answers?.find((answer) => answer.key === "CAREER");
   if (incomingCareers) {
-    const error = profileCareersError(incomingCareers.value);
+    const error = profileCareersError(incomingCareers.value, (profileAnswers.find((answer) => answer.key === "CAREER")?.value ?? []) as readonly CareerEntry[]);
     if (error) throw new Error(error);
   }
   const remove = new Set(body.removeKeys ?? []);

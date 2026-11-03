@@ -131,7 +131,7 @@ export function ApplicantReviewDecision({
           onBlur={() => {
             if (note !== applicant.review.note) void commit({ note }, "내부 메모를 저장했습니다.");
           }}
-          className="mt-2 min-h-16 w-full resize-none rounded-control border border-border bg-card px-3 py-2 text-xs leading-relaxed outline-none focus:border-brand focus:ring-2 focus:ring-brand-soft disabled:bg-border-soft"
+          className="mt-2 min-h-16 w-full resize-none rounded-control border border-border bg-card px-3 py-2 text-xs leading-relaxed outline-none focus:border-brand focus:ring-1 focus:ring-brand disabled:bg-border-soft"
         />
       </label>
     </aside>

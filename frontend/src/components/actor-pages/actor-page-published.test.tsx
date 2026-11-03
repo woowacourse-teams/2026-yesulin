@@ -19,7 +19,7 @@ beforeEach(() => {
   vi.clearAllMocks(); vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: copy } });
   Object.defineProperty(navigator, "share", { configurable: true, value: undefined });
-  vi.mocked(QRCode.toString).mockResolvedValue("<svg></svg>");
+  vi.mocked(QRCode.toString).mockImplementation(() => Promise.resolve("<svg></svg>"));
   container = document.createElement("div"); document.body.append(container); root = createRoot(container);
 });
 afterEach(() => { act(() => root.unmount()); container.remove(); vi.unstubAllGlobals(); });

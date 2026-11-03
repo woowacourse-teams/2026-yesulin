@@ -28,10 +28,14 @@ const FEATURED: PublicActorPage = {
   videos: [{ url: "https://youtu.be/aqz-KE-bpKQ", youtubeId: "aqz-KE-bpKQ" }],
   careerGroups: [
     { genre: "THEATER", careers: [
-      { year: 2025, title: "햄릿", roleName: "오필리아" },
-      { year: 2023, title: "갈매기", roleName: "니나" },
+      { year: 2025, month: 11, title: "햄릿", roleName: "오필리아" },
+      { year: 2023, month: 6, title: "갈매기", roleName: "니나" },
     ] },
-    { genre: "MUSICAL", careers: [{ year: 2024, title: "레미제라블", roleName: "코제트" }] },
+    { genre: "MUSICAL", careers: [{ year: 2024, month: 9, title: "레미제라블", roleName: "코제트" }] },
+    // 화면 확인용 가상 작품과 배역이다.
+    { genre: "FILM", careers: [{ year: 2026, month: 8, title: "여름의 끝에서", roleName: "서윤" }] },
+    { genre: "DRAMA", careers: [{ year: 2025, month: 5, title: "우리의 계절", roleName: "지수" }] },
+    { genre: "WEB_DRAMA", careers: [{ year: 2024, month: 3, title: "오후 세 시의 고백", roleName: "하은" }] },
     { genre: null, careers: [{ year: 2022, title: "졸업 공연", roleName: "주연" }] },
   ],
   coverLetter: "무대 위에서 오래 숨 쉬는 배우가 되고 싶어요.\n작은 역할도 끝까지 책임지는 배우 김하린입니다.",
@@ -39,7 +43,13 @@ const FEATURED: PublicActorPage = {
   hobbies: "등산",
   nationality: "대한민국",
   education: { level: "UNIVERSITY", school: "예술대학교", major: "연기" },
-  links: [{ url: "https://www.instagram.com/" }],
+  // 화면 확인용 서비스 홈 주소이며 실제 배우 계정이 아니다.
+  links: [
+    { url: "https://www.instagram.com/" },
+    { url: "https://www.threads.com/" },
+    { url: "https://www.youtube.com/" },
+    { url: "https://blog.naver.com/" },
+  ],
 };
 
 const NAMES = ["이도윤", "박서연", "최지호", "정하은", "강민준", "윤서아", "임도현", "한지우", "오시우", "서예린", "신준서", "권나은", "황지안"];

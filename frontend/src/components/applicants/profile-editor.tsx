@@ -5,9 +5,10 @@ import { clearPdfApplied, trackPdfProfileSaved } from "@/features/analytics/pdf-
 import { useRef, useState } from "react";
 import { updateApplicantProfile } from "@/features/applicants/api";
 import { notifyApplicantProfileChanged } from "@/features/applicants/events";
+import { profileCareerIssue } from "@/features/applicants/profile-careers";
 import { integerMeasurementError, isIntegerMeasurement, isValidEmail, isValidKoreanPhone, profileBirthDateError } from "@/features/applicants/profile-input";
 import type { ApplicantProfileValues } from "@/features/applicants/profile-contract";
-import type { ApplicantAnswerValue, ApplicantProfileResponse } from "@/features/applicants/types";
+import type { ApplicantAnswerValue, ApplicantProfileResponse, CareerEntry } from "@/features/applicants/types";
 import { APPLICATION_FIELD_OPTIONS } from "@/features/auditions/creation-types";
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
 import { useToast } from "@/components/auditions/toast";
@@ -97,6 +98,16 @@ export function ProfileEditor({ profile, onSaved, initialTab = "BASIC", onComple
       return (typeof value === "number" || typeof value === "string") && !isIntegerMeasurement(value);
     });
     if (decimalMeasurement) { invalidBasic(decimalMeasurement, integerMeasurementError(MEASUREMENT_LABELS[decimalMeasurement])); return; }
+    const careersError = values.CAREER ? profileCareerIssue(values.CAREER, (profile.answers.find((answer) => answer.key === "CAREER")?.value ?? []) as readonly CareerEntry[]) : null;
+    if (careersError) {
+      setActiveTab("ADDITIONAL");
+      setError(careersError.message);
+      requestAnimationFrame(() => {
+        const selector = `[data-career-index="${careersError.index}"][data-career-field="${careersError.field}"]`;
+        (document.querySelector<HTMLElement>(selector) ?? document.getElementById("profile-section-title"))?.focus();
+      });
+      return;
+    }
     saveInFlight.current = true;
     setSaving(true);
     setError("");
@@ -146,7 +157,7 @@ export function ProfileEditor({ profile, onSaved, initialTab = "BASIC", onComple
     setError("");
     setActiveTab(needsCareerInput || !BASIC_KEYS.some((key) => key in updates) ? "ADDITIONAL" : "BASIC");
     toast(needsCareerInput
-      ? "고른 값을 입력란에 넣었어요. 빈 경력 연도·배역을 채운 뒤 '프로필 저장'을 눌러 주세요."
+      ? "고른 값을 입력란에 넣었어요. 빈 경력 연도·월·배역을 채운 뒤 '프로필 저장'을 눌러 주세요."
       : "고른 값을 입력란에 넣었어요. '프로필 저장'을 눌러야 저장돼요.", { type: "success" });
   };
   const importedPhotoAdded = async () => {
@@ -205,7 +216,7 @@ export function ProfileEditor({ profile, onSaved, initialTab = "BASIC", onComple
       return <button key={tab.id} type="button" aria-current={active ? "page" : undefined} data-optional={tab.id === "ADDITIONAL" || tab.id === "VIDEOS" ? "true" : undefined} onClick={() => openTab(tab.id)} className="applicant-profile-tab"><span className="flex items-center justify-between gap-2"><strong className="text-sm">{tab.label}</strong><span className="num text-xs">{tabCount(tab.id)}</span></span></button>;
     })}</nav>
     <section className="workspace-panel min-w-0">
-      <div className="flex flex-wrap items-start gap-3 border-b border-border-soft pb-5"><div className="min-w-0 flex-1"><h2 id="profile-section-title" tabIndex={-1} className="text-xl font-bold outline-none">{tabs.find((tab) => tab.id === activeTab)?.label}</h2><p className="mt-2 text-sm leading-6 text-muted">{activeTab === "BASIC" ? "이름·생년월일·성별부터 입력하세요. 작성한 항목만 저장할 수 있어요." : activeTab === "ADDITIONAL" ? "필요할 때 천천히 채워도 괜찮아요. 프로필에 저장한 내용은 다음 지원서에 활용할 수 있어요." : activeTab === "ACTOR_PAGE" ? "아이디와 공개할 사진을 고른 뒤 내 페이지를 공개해 보세요." : "추가·삭제·순서 변경 내용은 즉시 저장됩니다."}</p></div>{informationTab ? <ProfileImport values={values} photoCount={profile.photoLibrary.length} onApply={applyImport} onPhotoAdded={importedPhotoAdded} /> : null}</div>
+      <div className="flex flex-col items-start gap-4 border-b border-border-soft pb-5 sm:flex-row sm:gap-3"><div className="w-full min-w-0 sm:w-auto sm:flex-1"><h2 id="profile-section-title" tabIndex={-1} className="text-xl font-bold outline-none">{tabs.find((tab) => tab.id === activeTab)?.label}</h2><p className="mt-2 text-sm leading-6 text-muted">{activeTab === "BASIC" ? "이름·생년월일·성별부터 입력하세요. 작성한 항목만 저장할 수 있어요." : activeTab === "ADDITIONAL" ? "필요할 때 천천히 채워도 괜찮아요. 프로필에 저장한 내용은 다음 지원서에 활용할 수 있어요." : activeTab === "ACTOR_PAGE" ? "아이디와 공개할 사진을 고른 뒤 내 페이지를 공개해 보세요." : "추가·삭제·순서 변경 내용은 즉시 저장됩니다."}</p></div>{informationTab ? <ProfileImport values={values} photoCount={profile.photoLibrary.length} onApply={applyImport} onPhotoAdded={importedPhotoAdded} /> : null}</div>
       {activeTab === "BASIC" ? <ProfileInformationSection tab="BASIC" fields={basicFields} values={values} onChange={change} invalidField={invalidField} /> : null}
       {activeTab === "ADDITIONAL" ? <ProfileInformationSection tab="ADDITIONAL" fields={additionalFields} values={values} onChange={change} invalidField={invalidField} /> : null}
       {activeTab === "PHOTOS" ? <ProfilePhotoLibrary profile={profile} onSaved={libraryChanged} onContinue={() => openTab("ACTOR_PAGE")} pagePublic={actorPage.settings?.status === "PUBLIC"} /> : null}

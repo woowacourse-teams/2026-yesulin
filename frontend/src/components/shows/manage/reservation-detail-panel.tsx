@@ -123,7 +123,7 @@ function TicketCountEditor({ reservation, remainingSeats, onSaved }: {
           onKeyDown={(event) => { if (event.key === "Enter") void save(); }}
           aria-invalid={inputError ? true : undefined}
           aria-describedby={ids.hint}
-          className={`num h-8 min-h-0! w-12 rounded-control border bg-card px-1 text-center text-sm font-semibold outline-none [appearance:textfield] focus:border-brand focus:ring-2 focus:ring-brand-soft [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${inputError ? "border-fail" : "border-border"}`}
+          className={`num h-8 min-h-0! w-12 rounded-control border bg-card px-1 text-center text-sm font-semibold outline-none [appearance:textfield] focus:border-brand focus:ring-1 focus:ring-brand [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${inputError ? "border-fail" : "border-border"}`}
         />
         <CompactButton tone="step" aria-label="1매 늘리기" disabled={saving || base >= max} onClick={() => update(String(base + 1))}>+</CompactButton>
         <span className="ml-0.5 text-xs text-muted">매 · 최대 <span className="num">{max}</span>매</span>
@@ -187,7 +187,7 @@ function MemoEditor({ reservation, onSaved }: {
         onChange={(event) => setMemo(event.target.value)}
         placeholder="예: 휠체어 이용, 입구 경사로 쪽으로 안내 / 7세 아이 동반"
         aria-describedby={hintId}
-        className="mt-1.5 block w-full resize-none rounded-control border border-border bg-card px-3 py-2 text-sm leading-6 text-foreground outline-none transition-[border-color,box-shadow] placeholder:text-muted-soft hover:border-muted-soft focus:border-brand focus:ring-2 focus:ring-brand-soft"
+        className="mt-1.5 block w-full resize-none rounded-control border border-border bg-card px-3 py-2 text-sm leading-6 text-foreground outline-none transition-[border-color,box-shadow] placeholder:text-muted-soft hover:border-muted-soft focus:border-brand focus:ring-1 focus:ring-brand"
       />
       <div className="mt-1.5 flex items-start justify-between gap-3">
         <p id={hintId} className="min-w-0 flex-1 text-xs leading-5 text-muted">

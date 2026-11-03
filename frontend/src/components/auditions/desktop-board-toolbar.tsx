@@ -18,7 +18,7 @@ export function DesktopBoardToolbar({ onOpenFilter }: { onOpenFilter: () => void
           <select
             value={filters.status}
             onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value as StatusFilter }))}
-            className="min-h-10 rounded-control border border-border bg-card px-2.5 text-dense font-semibold text-foreground outline-none focus:border-brand focus:ring-2 focus:ring-brand-soft"
+            className="min-h-10 rounded-control border border-border bg-card px-2.5 text-dense font-semibold text-foreground outline-none focus:border-brand focus:ring-1 focus:ring-brand"
           >
             {(["ALL", ...selectableStatuses()] as const).map((status) => (
               <option key={status} value={status}>
@@ -37,7 +37,7 @@ export function DesktopBoardToolbar({ onOpenFilter }: { onOpenFilter: () => void
           value={filters.query}
           onChange={(event) => setFilters((current) => ({ ...current, query: event.target.value }))}
           placeholder="이름·학교·연락처 검색"
-          className="min-h-10 w-full rounded-control border border-border bg-card py-2 pl-9 pr-8 text-dense text-foreground outline-none placeholder:text-muted-soft hover:border-muted-soft focus:border-brand focus:ring-2 focus:ring-brand-soft"
+          className="min-h-10 w-full rounded-control border border-border bg-card py-2 pl-9 pr-8 text-dense text-foreground outline-none placeholder:text-muted-soft hover:border-muted-soft focus:border-brand focus:ring-1 focus:ring-brand"
         />
         {filters.query ? (
           <button

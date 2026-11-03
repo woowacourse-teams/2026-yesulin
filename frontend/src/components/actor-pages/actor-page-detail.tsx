@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useState, type ReactNode } from "react";
 import { ScreenError } from "@/components/auditions/screen-status";
 import { ContentSkeleton, ContentState } from "@/components/ui/content-state";
+import { SiteIcon } from "@/components/ui/site-icon";
 import { getActorPage } from "@/features/actor-pages/api";
 import {
   ACTOR_PAGE_INQUIRY_URL,
@@ -12,6 +13,7 @@ import {
   type ActorPageContent,
   type PublicActorPage,
 } from "@/features/actor-pages/types";
+import { careerDateLabel } from "@/features/applicants/career-identity";
 import { profileCareerGenreLabel } from "@/features/applicants/career-genre";
 import { educationText } from "@/features/applicants/education";
 import { AuditionRequestError } from "@/features/auditions/api-client";
@@ -140,9 +142,9 @@ export function ActorPageView({ actorPage, preview = false, compact = false }: {
               </dl>
             ) : null}
             <ActorSocialLinks links={actorPage.links} />
-            <div className="mt-5 border-t border-border-soft pt-4">
-              <a href={ACTOR_PAGE_INQUIRY_URL} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-control bg-brand px-4 text-sm font-semibold text-white hover:bg-brand-strong">캐스팅 문의<span className="sr-only"> · 카카오톡 (새 창에서 열림)</span></a>
-              <p className="mt-2 text-xs leading-5 text-muted-strong">예술in이 배우에게 문의를 전달해 드려요.</p>
+            <div className="mt-5 flex flex-col gap-3 border-t border-border-soft pt-4 min-[761px]:flex-row min-[761px]:items-center min-[761px]:justify-between">
+              <p className="min-w-0 text-sm leading-6 text-muted-strong">예술in이 배우에게 문의를 전달해 드려요.</p>
+              <a href={ACTOR_PAGE_INQUIRY_URL} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-control bg-brand px-4 text-sm font-semibold text-white hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">캐스팅 문의<span className="sr-only"> · 카카오톡 (새 창에서 열림)</span></a>
             </div>
           </header>
 
@@ -174,16 +176,27 @@ export function ActorPageView({ actorPage, preview = false, compact = false }: {
             <Section preview={preview} title="경력">
               <div className="grid gap-6">
                 {actorPage.careerGroups.map((group) => (
-                  <section key={group.genre ?? "UNCLASSIFIED"} aria-label={profileCareerGenreLabel(group.genre)}>
-                    <GroupHeading className="text-sm font-bold text-muted-strong">{profileCareerGenreLabel(group.genre)}</GroupHeading>
-                    <ul className="mt-2 divide-y divide-border-soft border-y border-border-soft">
-                      {group.careers.map((career, index) => (
-                        <li key={`${career.year}-${career.title}-${index}`} className="flex gap-4 py-2.5 text-sm">
-                          <span className="num w-12 shrink-0 text-muted">{career.year}</span>
-                          <span className="min-w-0 break-words"><strong className="font-semibold">{career.title}</strong> <span className="text-muted-strong">{career.roleName} 역</span></span>
-                        </li>
-                      ))}
-                    </ul>
+                  <section key={group.genre ?? "UNCLASSIFIED"} aria-label={profileCareerGenreLabel(group.genre ?? "OTHER")}>
+                    <GroupHeading className="text-sm font-bold text-muted-strong">{profileCareerGenreLabel(group.genre ?? "OTHER")}</GroupHeading>
+                    <table aria-label={`${profileCareerGenreLabel(group.genre ?? "OTHER")} 경력`} className="mt-3 w-full table-fixed border-b border-border-soft text-left text-sm leading-6">
+                      <colgroup><col className="w-20 min-[761px]:w-24" /><col /><col className="w-20 min-[761px]:w-28" /></colgroup>
+                      <thead className="border-y border-border bg-surface text-muted-strong">
+                        <tr>
+                          <th scope="col" className="py-2.5 pr-3 font-medium">연월</th>
+                          <th scope="col" className="py-2.5 pr-4 font-medium">작품명</th>
+                          <th scope="col" className="py-2.5 font-medium">배역</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border-soft">
+                        {group.careers.map((career, index) => (
+                          <tr key={`${career.year}-${career.title}-${index}`}>
+                            <td className="num py-3 pr-3 align-top text-muted-strong">{careerDateLabel(career.year, career.month)}</td>
+                            <td className="break-words py-3 pr-4 align-top font-semibold leading-6">{career.title}</td>
+                            <td className="break-words py-3 align-top leading-6 text-muted-strong">{career.roleName || "—"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </section>
                 ))}
               </div>
@@ -266,8 +279,8 @@ function ShareButton({ name, handle }: { readonly name: string; readonly handle:
   };
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <button type="button" onClick={() => void share()} className="inline-flex min-h-11 items-center rounded-control border border-border bg-card px-4 text-sm font-semibold hover:border-brand-line">
-        페이지 공유
+      <button type="button" aria-label="페이지 공유" title="페이지 공유" onClick={() => void share()} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-control border border-border bg-card hover:border-brand-line hover:bg-brand-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
+        <SiteIcon name="share" size={21} />
       </button>
       <p role="status" className="text-sm text-muted-strong">
         {status === "copied" ? "페이지 주소를 복사했어요." : status === "failed" ? "주소를 복사하지 못했어요. 주소창의 주소를 복사해 주세요." : ""}

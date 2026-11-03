@@ -143,6 +143,16 @@ public class ProfileAdditionalInformation {
         return List.copyOf(safeCareers);
     }
 
+    /** 월이 없는 과거 경력은 그대로 남길 수 있지만 새로 추가하거나 바꾸려면 월이 필요하다. */
+    public void validateCareerMonths(List<ProfileCareer> previous) {
+        List<ProfileCareer> retained = new ArrayList<>(previous);
+        for (ProfileCareer career : careers) {
+            if (career.month() == null && !retained.remove(career)) {
+                throw new BusinessException(INVALID_PROFILE, "추가하거나 수정한 경력의 월을 입력해 주세요.");
+            }
+        }
+    }
+
     private static String normalizeNullable(String value) {
         if (value == null || value.isBlank()) {
             return null;

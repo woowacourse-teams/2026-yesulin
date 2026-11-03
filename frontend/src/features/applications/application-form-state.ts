@@ -33,7 +33,7 @@ export function orderedApplicationPhotos(photos: readonly ApplicationPhoto[]): r
     .map(({ photo }) => photo);
 }
 
-export type CareerDraft = { readonly id: string; readonly title: string; readonly part: string; readonly year: string };
+export type CareerDraft = { readonly id: string; readonly title: string; readonly part: string; readonly year: string; readonly month?: string };
 export type SubmissionState = "IDLE" | "SUBMITTING" | "ERROR";
 export type ApplicationStepIssue = { readonly message: string; readonly fieldId: string };
 
@@ -171,16 +171,21 @@ export function applicationStepIssue({
   if (field) {
     if (field.required && !noCareer && careers.length === 0) return { fieldId: field.id, message: `${objectParticle(field.label)} 추가하거나 경력 없음에 체크해 주세요.` };
     const invalidCareer = careers.find((career) => careerDraftError(career));
-    if (!noCareer && invalidCareer) return { fieldId: `${field.id}-${invalidCareer.id}`, message: `${field.label}의 작품명, 배역, 연도를 모두 입력해 주세요.` };
+    if (!noCareer && invalidCareer) return { fieldId: `${field.id}-${invalidCareer.id}`, message: `${field.label}의 작품명, 배역, 연도와 월을 모두 입력해 주세요.` };
   }
   return null;
 }
 
-export function careerDraftError(career: CareerDraft): string | null {
-  if (!career.title.trim()) return "작품명을 입력해 주세요.";
-  if (!career.part.trim()) return "맡은 배역을 입력해 주세요.";
-  if (!/^\d{4}$/.test(career.year)) return "연도를 네 자리로 입력해 주세요.";
+export function careerDraftIssue(career: CareerDraft): { field: "title" | "part" | "year" | "month"; message: string } | null {
+  if (!career.title.trim()) return { field: "title", message: "작품명을 입력해 주세요." };
+  if (!career.part.trim()) return { field: "part", message: "맡은 배역을 입력해 주세요." };
+  if (!/^\d{4}$/.test(career.year)) return { field: "year", message: "연도를 네 자리로 입력해 주세요." };
+  if (!/^(0?[1-9]|1[0-2])$/.test(career.month ?? "")) return { field: "month", message: "월을 선택해 주세요." };
   return null;
+}
+
+export function careerDraftError(career: CareerDraft): string | null {
+  return careerDraftIssue(career)?.message ?? null;
 }
 
 function applicationFieldError(field: ApplicationFormStep["fields"][number], values: Readonly<Record<string, string>>) {

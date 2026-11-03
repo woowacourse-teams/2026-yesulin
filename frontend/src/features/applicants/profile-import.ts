@@ -144,25 +144,32 @@ export function careerGenreOf(value: string | null): ProfileCareerGenre | null {
 
 export type ImportedCareer = {
   readonly entry: CareerEntry;
-  /** 연도나 배역을 읽지 못해 저장하기 전에 직접 채워야 한다. */
+  /** 연도·월이나 배역을 읽지 못해 저장하기 전에 직접 채워야 한다. */
   readonly needsInput: boolean;
-  /** 프로필이나 앞선 제안에 같은 연도·작품·배역이 있다. */
+  /** 프로필이나 앞선 제안에 같은 연도·월·작품·배역이 있다. */
   readonly duplicate: boolean;
   /** 연도나 배역을 읽지 못했는데 같은 작품 경력이 이미 있다. 같은 경력일 수 있어 미리 고르지 않는다. */
   readonly similar: boolean;
 };
 
-/** 경력 제안을 입력란 경력으로 바꾼다. 읽지 못한 연도는 0(빈칸), 배역은 빈 문자열로 둔다. */
+/** 경력 제안을 입력란 경력으로 바꾼다. 읽지 못한 연도는 0(빈칸), 월은 null, 배역은 빈 문자열로 둔다. */
 export function importedCareers(careers: readonly ProfileImportCareer[], current: readonly CareerEntry[], today = new Date()) {
   const existing = new Set(current.map(careerIdentity));
   const titles = new Set(current.map((career) => career.title.trim()));
   return careers.map((career): ImportedCareer => {
     const year = careerYearOf(career.period, today);
-    const entry: CareerEntry = { year: year ?? 0, title: career.title.trim(), part: career.part?.trim() ?? "", genre: careerGenreOf(career.genre) };
-    const needsInput = year === null || !entry.part;
+    const month = careerMonthOf(career.period);
+    const entry: CareerEntry = { year: year ?? 0, month, title: career.title.trim(), part: career.part?.trim() ?? "", genre: careerGenreOf(career.genre) };
+    const needsInput = year === null || month === null || !entry.part;
     const identity = careerIdentity(entry);
     const duplicate = year !== null && existing.has(identity);
     if (year !== null) existing.add(identity);
     return { entry, needsInput, duplicate, similar: !duplicate && needsInput && titles.has(entry.title) };
   });
+}
+
+/** 명시된 단일 연월만 읽는다. 기간·여러 날짜·월 미기재를 임의로 시작월로 바꾸지 않는다. */
+export function careerMonthOf(period: string | null): number | null {
+  const match = period?.trim().match(/^\d{4}\s*(?:[./-]|년)\s*(0?[1-9]|1[0-2])\s*월?\.?$/);
+  return match ? Number(match[1]) : null;
 }

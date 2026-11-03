@@ -12,7 +12,8 @@ const SOCIAL_ICONS: Record<ActorSocialPlatform, IconType> = {
 export function ActorSocialLinks({ links }: { readonly links: readonly { readonly url: string }[] }) {
   const items = actorExternalLinks(links);
   if (!items.length) return null;
-  return <nav aria-label="배우 SNS와 외부 링크" className="mt-4">
+  return <nav aria-label="배우 SNS와 외부 링크" className="mt-6 border-t border-border pt-5">
+    <p className="mb-3 text-sm font-semibold text-foreground">SNS · 외부 링크</p>
     <ul className="flex min-w-0 flex-wrap gap-2">
       {items.map((link) => {
         const Icon = link.platform ? SOCIAL_ICONS[link.platform] : null;

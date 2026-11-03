@@ -95,7 +95,7 @@ class SubmitSubmissionRequestTest {
                         null,
                         null,
                         "UNKNOWN",
-                        List.of(new SubmitCareerRequest(999, "햄릿", "오필리어"))
+                        List.of(new SubmitCareerRequest(999, java.math.BigDecimal.valueOf(3), "햄릿", "오필리어"))
                 ),
                 List.of(0L),
                 new SubmitFormAnswersRequest(
@@ -144,7 +144,7 @@ class SubmitSubmissionRequestTest {
                         "현대무용",
                         "영화 감상",
                         "not_applicable",
-                        List.of(new SubmitCareerRequest(2025, "햄릿", "오필리어"))
+                        List.of(new SubmitCareerRequest(2025, java.math.BigDecimal.valueOf(3), "햄릿", "오필리어"))
                 ),
                 List.of(11L, 12L),
                 new SubmitFormAnswersRequest(

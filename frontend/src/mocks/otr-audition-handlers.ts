@@ -87,8 +87,8 @@ function mockBoard(context: NonNullable<ReturnType<typeof screeningContext>>, se
       submittedAt: submission.submittedAt,
       career: Array.isArray(submission.additionalInformation.careers)
         ? submission.additionalInformation.careers.map((career) => {
-          const item = career as { year: number; title: string; roleName: string };
-          return { year: item.year, title: item.title, part: item.roleName };
+          const item = career as { year: number; month?: number | null; title: string; roleName: string };
+          return { year: item.year, month: item.month ?? null, title: item.title, part: item.roleName };
         }) : [],
       coverLetter: submission.additionalInformation.coverLetter ?? null, questions: [],
       photos: submission.photoFileIds.map((id) => ({ label: "사진", url: `/api/v1/files/${id}/content` })),
@@ -156,6 +156,10 @@ export const otrAuditionHandlers = [
     };
     if (input.postingSnapshotVersion !== `${audition.id}:테스트 공연사`) {
       return HttpResponse.json({ code: "OTR_AUDITION_STALE_POSTING_SNAPSHOT", message: "공연사 정보가 변경되었습니다. 지원 페이지를 새로고침해 주세요." }, { status: 409 });
+    }
+    const careerRows = input.additionalInformation?.careers;
+    if (careerRows != null && (!Array.isArray(careerRows) || careerRows.some((row: { month?: number }) => !Number.isInteger(row?.month) || Number(row.month) < 1 || Number(row.month) > 12))) {
+      return HttpResponse.json({ code: "INVALID_SUBMISSION", message: "경력마다 월을 선택해 주세요." }, { status: 400 });
     }
     const photoFileIds = input.photoFileIds ?? [];
     const videoUrls = input.videoUrls ?? [];

@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { mergeProfileCareers, profileCareersError } from "./profile-careers";
+import { mergeProfileCareers, profileCareersError, profileCareerIssue } from "./profile-careers";
 import type { CareerEntry } from "./types";
 
-const career = (title: string): CareerEntry => ({ year: 2026, title, part: "주연", genre: "MUSICAL" });
+const career = (title: string): CareerEntry => ({ year: 2026, month: 3, title, part: "주연", genre: "MUSICAL" });
 
 describe("제출 후 프로필 경력 병합", () => {
   it("기존 경력·장르·순서를 유지하고 새 경력만 null 장르로 뒤에 붙인다", () => {
     const current = [career("기존 작품"), { ...career("남겨 둘 작품"), genre: null }];
-    const result = mergeProfileCareers(current, [{ year: " 2026 ", title: " 기존 작품 ", part: " 주연 " }, { year: 2025, title: " 새 작품 ", part: " 조연 " }]);
-    expect(result.careers).toEqual([...current, { year: 2025, title: "새 작품", part: "조연", genre: null }]);
+    const result = mergeProfileCareers(current, [{ year: " 2026 ", month: 3, title: " 기존 작품 ", part: " 주연 " }, { year: 2025, month: 3, title: " 새 작품 ", part: " 조연 " }]);
+    expect(result.careers).toEqual([...current, { year: 2025, month: 3, title: "새 작품", part: "조연", genre: null }]);
     expect(result.skippedCareerCount).toBe(0);
     expect(current).toHaveLength(2);
   });
@@ -16,12 +16,12 @@ describe("제출 후 프로필 경력 병합", () => {
   it("지원서에서 뺀 경력은 남기고 고친 경력은 새 항목으로 추가한다", () => {
     const current = [career("기존 작품"), career("지원서에서 뺀 작품")];
     expect(mergeProfileCareers(current, [{ ...career("고친 작품"), part: "조연" }]).careers)
-      .toEqual([...current, { year: 2026, title: "고친 작품", part: "조연", genre: null }]);
+      .toEqual([...current, { year: 2026, month: 3, title: "고친 작품", part: "조연", genre: null }]);
   });
 
   it("지원서끼리도 숫자 연도·공백 기준으로 중복 제거한다", () => {
-    const result = mergeProfileCareers([], [career("작품"), { year: "2026", title: " 작품 ", part: " 주연 " }]);
-    expect(result.careers).toEqual([{ year: 2026, title: "작품", part: "주연", genre: null }]);
+    const result = mergeProfileCareers([], [career("작품"), { year: "2026", month: 3, title: " 작품 ", part: " 주연 " }]);
+    expect(result.careers).toEqual([{ year: 2026, month: 3, title: "작품", part: "주연", genre: null }]);
   });
 
   it("30개까지만 붙이고 초과한 새 경력의 중복을 뺀 개수를 반환한다", () => {
@@ -45,4 +45,22 @@ describe("제출 후 프로필 경력 병합", () => {
     expect(profileCareersError(Array.from({ length: 31 }, () => career("작품")))).toContain("30개");
     expect(profileCareersError([{ ...career("작품"), genre: "INVALID" }])).not.toBeNull();
   });
+});
+
+it("기존 월 미상 경력은 그대로 보존하고 새 경력·수정·중복 복제에는 월을 요구한다", () => {
+  const legacy = { year: 2024, title: "옛 작품", part: "주연", genre: null };
+  expect(profileCareersError([legacy], [legacy])).toBeNull();
+  expect(profileCareersError([legacy])).toContain("월");
+  expect(profileCareersError([{ ...legacy, title: "수정" }], [legacy])).toContain("월");
+  expect(profileCareersError([legacy, legacy], [legacy])).toContain("월");
+  expect(profileCareersError([{ ...legacy, month: 6, title: "수정" }], [legacy])).toBeNull();
+  for (const month of [0, 13, 1.5]) expect(profileCareersError([{ ...legacy, month }])).toContain("월");
+});
+
+
+it("오류가 난 경력 행과 실제 입력칸을 반환한다", () => {
+  const valid = { year: 2026, month: 3, title: "정상", part: "주연" };
+  expect(profileCareerIssue([valid, { ...valid, month: null }])).toMatchObject({ index: 1, field: "month" });
+  expect(profileCareerIssue([{ ...valid, year: 0 }])).toMatchObject({ index: 0, field: "year" });
+  expect(profileCareerIssue([{ ...valid, title: "" }])).toMatchObject({ index: 0, field: "title" });
 });
