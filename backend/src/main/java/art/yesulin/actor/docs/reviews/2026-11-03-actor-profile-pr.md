@@ -31,3 +31,9 @@
 | G-E02 | 2026-11-03-actor-profile-pr-F01 | FIXED | 2026-11-03T18:29:31+09:00 | 끝 빈 줄 정리·diff check PASS, PENDING |
 
 현재 G01/G02/G03/G04 PASS, G05 게시 연결 대기 UNVERIFIED. 필수 PASS4 / FAIL0 / UNVERIFIED1, 독립 평가1회. 신규 발견1 / 해결1 / 미해결0 / P0=0·P1=0·P2=0·P3=1 / PRECHECK0·INDEPENDENT_REVIEW1·POST_FIX_CHECK0·EXTERNAL0 / 오탐0. 실제 PR 연결 후 별도 게시 결과를 추가한다.
+
+## 최초 PR 게시 연결
+
+- 2026-11-03T18:30:17+09:00: 이 작업 기록과 문제 ID·추가 전용 사건 이력을 최초 게시 PR [#501](https://github.com/woowacourse-teams/2026-yesulin/pull/501)에 연결했다. 이전 `PENDING`·PR 미생성 문구는 당시 이력이며 최초 확정/해결 시각을 바꾸지 않는다. 본 기록에 있는 문제의 최초 기록 PR은 #501이다.
+- 이슈 #499를 담당자 배정·프로젝트 #131 In Progress로 연결했고 dev 대상 PR을 게시했다. G05 PASS. 최종 필수 PASS5 / FAIL0 / UNVERIFIED0, 독립 평가1회, 신규 발견1·해결1·미해결0(P3=1), 발견 경로 INDEPENDENT_REVIEW1, 오탐0. 제품·iPhone 잔여 미확인은 각 원본 기록과 PR에 유지한다.
+- 최종 분리 빌드는 webpack 컴파일·TypeScript·정적 페이지58개 생성 및 종료0, 후속 clean tsc 종료0을 확인했다. 해당 임시 빌드 복사본은 검증 뒤 삭제했고 로그만 유지했다.

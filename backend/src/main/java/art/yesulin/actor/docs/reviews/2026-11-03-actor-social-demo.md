@@ -21,3 +21,7 @@
 - 브라우저 새로고침 후 상단 SNS 영역에 네 링크와 새 창 안내 확인. 1234px viewport에서 문서 scrollWidth 1218px, overflow 없음. 브랜드 버튼 약 44px, 블로그 링크 약 152px.
 - 화면 증거 `output/actor-social-demo-2026-11-03/desktop.jpg` (로컬 산출물). 이번 고정 데이터 추가의 별도 모바일 실기기 검증은 범위 밖이다. 기존 flex-wrap 동작은 변경하지 않았다.
 - 독립 평가에서 목→공개 상세→ActorSocialLinks 소비 경로 확인. 미사용 코드·파일·설정·의존성·깨진 문서 링크 문제 없음. `git diff --check` PASS. PR 미생성.
+
+## 최초 PR 게시 연결
+
+- 2026-11-03T18:30:17+09:00: 이 작업 기록과 문제 ID·추가 전용 사건 이력을 최초 게시 PR [#501](https://github.com/woowacourse-teams/2026-yesulin/pull/501)에 연결했다. 이전 `PENDING`·PR 미생성 문구는 당시 이력이며 최초 확정/해결 시각을 바꾸지 않는다. 본 기록에 있는 문제의 최초 기록 PR은 #501이다.

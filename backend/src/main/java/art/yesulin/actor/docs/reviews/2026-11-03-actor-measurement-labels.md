@@ -28,3 +28,7 @@
 신규 확정 문제 발견 0 / 해결 0 / 미해결 0 / P0 0 / P1 0 / P2 0 / P3 0.
 PRECHECK 0 / INDEPENDENT_REVIEW 0 / POST_FIX_CHECK 0 / EXTERNAL 0, 오탐 0 / 미확인 0.
 문제 ID·상태 사건 이력은 신규 확정 결함이 없어 해당 없음. PR 생성하지 않음. 다음 PR에 이 평가 기록을 포함한다.
+
+## 최초 PR 게시 연결
+
+- 2026-11-03T18:30:17+09:00: 이 작업 기록과 문제 ID·추가 전용 사건 이력을 최초 게시 PR [#501](https://github.com/woowacourse-teams/2026-yesulin/pull/501)에 연결했다. 이전 `PENDING`·PR 미생성 문구는 당시 이력이며 최초 확정/해결 시각을 바꾸지 않는다. 본 기록에 있는 문제의 최초 기록 PR은 #501이다.

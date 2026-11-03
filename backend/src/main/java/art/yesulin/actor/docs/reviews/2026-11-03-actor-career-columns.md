@@ -23,3 +23,7 @@
 - R03 공개·미리보기 공통 ActorPageView이며 각 table의 장르별 aria-label과 th scope=col 3개 확인. 공개 데이터 공급·연도 원본·월 미지원 계약 유지.
 - 독립 평가에서 의미 있는 표 구조·기존 공개 범위 유지·미사용 코드/파일/설정/의존성 없음 확인. `git diff --check` PASS.
 - 화면 증거 `output/actor-career-columns-2026-11-03/{desktop,mobile}.jpg`. 개발 갱신 중 일시적인 목 조회 실패는 새로고침으로 복원. 실기기·월 입력은 범위 밖이다.
+
+## 최초 PR 게시 연결
+
+- 2026-11-03T18:30:17+09:00: 이 작업 기록과 문제 ID·추가 전용 사건 이력을 최초 게시 PR [#501](https://github.com/woowacourse-teams/2026-yesulin/pull/501)에 연결했다. 이전 `PENDING`·PR 미생성 문구는 당시 이력이며 최초 확정/해결 시각을 바꾸지 않는다. 본 기록에 있는 문제의 최초 기록 PR은 #501이다.

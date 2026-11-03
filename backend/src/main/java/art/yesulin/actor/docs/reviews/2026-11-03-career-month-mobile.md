@@ -52,3 +52,7 @@
 - 독립 평가 1회 / 필수 PASS5·FAIL0·UNVERIFIED0 / N/A: 실기기·키보드, 외부 전송·실제 제출·운영 변경.
 - 신규 확정 발견4 / 해결4 / 미해결0 / P0=0·P1=0·P2=2·P3=2 / PRECHECK=2 / INDEPENDENT_REVIEW=1 / POST_FIX_CHECK=1 / 오탐0.
 - 검증률 5/5(이번 평가표 범위). 실기기 Safari/Chrome과 화면 키보드는 미확인. PR은 생성·게시하지 않았고 다음 PR에 이 기록을 포함한다.
+
+## 최초 PR 게시 연결
+
+- 2026-11-03T18:30:17+09:00: 이 작업 기록과 문제 ID·추가 전용 사건 이력을 최초 게시 PR [#501](https://github.com/woowacourse-teams/2026-yesulin/pull/501)에 연결했다. 이전 `PENDING`·PR 미생성 문구는 당시 이력이며 최초 확정/해결 시각을 바꾸지 않는다. 본 기록에 있는 문제의 최초 기록 PR은 #501이다.

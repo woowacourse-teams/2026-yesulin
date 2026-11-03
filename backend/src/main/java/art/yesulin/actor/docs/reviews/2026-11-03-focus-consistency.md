@@ -89,3 +89,7 @@
 최종: 독립 평가1회 / 필수 PASS6·FAIL0·UNVERIFIED0 / 검증률6/6(본 평가표 범위) / 발견4·해결4·미해결0 / P0=0·P1=0·P2=0·P3=4 / PRECHECK=3·INDEPENDENT_REVIEW=1·POST_FIX_CHECK=0 / 오탐0. 미확인 실기기 범위는 별도 Safari 점검 기록에 유지한다. 새 PR을 게시하지 않았으며 이후 관련 PR 본문에 이 기록을 포함한다.
 
 - 마무리: 브라우저 viewport override reset 및 이번 점검용 탭12 종료 완료. 기존 사용자 탭과 기존 개발 서버는 유지했다.
+
+## 최초 PR 게시 연결
+
+- 2026-11-03T18:30:17+09:00: 이 작업 기록과 문제 ID·추가 전용 사건 이력을 최초 게시 PR [#501](https://github.com/woowacourse-teams/2026-yesulin/pull/501)에 연결했다. 이전 `PENDING`·PR 미생성 문구는 당시 이력이며 최초 확정/해결 시각을 바꾸지 않는다. 본 기록에 있는 문제의 최초 기록 PR은 #501이다.

@@ -20,3 +20,7 @@
 - PC 1234px 화면에서 기본정보→구분선→SNS 제목→링크→문의 구분 확인. 모바일 viewport 390×844 설정(환경에서 관측 CSS innerWidth 433, scrollWidth 416)에서 가로 넘침 없으며 전체 캡처에서 제목·링크·문의 구분 확인. 검사 후 viewport 복원.
 - 화면 증거: `output/actor-social-separation-2026-11-03/desktop.jpg`, `mobile-full.jpg`. 실제 기기·외부 목적지 응답은 검증하지 않았다.
 - 독립 평가에서 접근 가능한 이름·44px 조작 영역·빈 링크 조기 반환 유지, 미사용 파일·코드·설정·의존성 추가 없음 확인. `git diff --check` PASS.
+
+## 최초 PR 게시 연결
+
+- 2026-11-03T18:30:17+09:00: 이 작업 기록과 문제 ID·추가 전용 사건 이력을 최초 게시 PR [#501](https://github.com/woowacourse-teams/2026-yesulin/pull/501)에 연결했다. 이전 `PENDING`·PR 미생성 문구는 당시 이력이며 최초 확정/해결 시각을 바꾸지 않는다. 본 기록에 있는 문제의 최초 기록 PR은 #501이다.

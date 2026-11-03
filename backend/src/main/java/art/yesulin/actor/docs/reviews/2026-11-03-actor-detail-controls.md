@@ -23,3 +23,7 @@
 - 기존 공유 함수는 변경하지 않았으며 공유 시트·클립보드 실제 클릭 검증은 실행하지 않았다. 네이티브 취소·복사 실패 처리는 코드로 확인. 미리보기 공유 숨김과 원본·편집 화면 미분류 유지 확인.
 - 독립 평가에서 설치된 PiShareNetwork export 및 share 키 소비 확인. 미사용 파일·코드·설정·의존성 없음. `git diff --check` PASS.
 - 화면 증거 `output/actor-detail-controls-2026-11-03/{desktop,mobile-full}.jpg`. 실제 기기·외부 서비스 응답은 범위 밖이다.
+
+## 최초 PR 게시 연결
+
+- 2026-11-03T18:30:17+09:00: 이 작업 기록과 문제 ID·추가 전용 사건 이력을 최초 게시 PR [#501](https://github.com/woowacourse-teams/2026-yesulin/pull/501)에 연결했다. 이전 `PENDING`·PR 미생성 문구는 당시 이력이며 최초 확정/해결 시각을 바꾸지 않는다. 본 기록에 있는 문제의 최초 기록 PR은 #501이다.

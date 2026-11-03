@@ -62,3 +62,7 @@ F01·F02·F04의 확정 시각은 검증 근거를 수합해 현황을 확정한
 | E08 | 2026-11-03-career-month-F04 | FIXED | 2026-11-03T15:13:23+09:00 | 위 표적 검증 / PENDING |
 
 - 최종 표적 검증: 신규 지원서 월0/13 거절·12 보존을 포함한 `SubmitSubmissionCommandTest` 3항목 PASS, CheckstyleTest PASS. 수정 후 frontend lint·tsc PASS.
+
+## 최초 PR 게시 연결
+
+- 2026-11-03T18:30:17+09:00: 이 작업 기록과 문제 ID·추가 전용 사건 이력을 최초 게시 PR [#501](https://github.com/woowacourse-teams/2026-yesulin/pull/501)에 연결했다. 이전 `PENDING`·PR 미생성 문구는 당시 이력이며 최초 확정/해결 시각을 바꾸지 않는다. 본 기록에 있는 문제의 최초 기록 PR은 #501이다.
