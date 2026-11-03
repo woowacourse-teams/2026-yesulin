@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { PiArrowClockwise, PiChatCircle, PiLink, PiPlus } from "react-icons/pi";
 import { communityListMemory, recentCommunityList } from "@/features/community/list-memory";
 import { getPosts } from "@/features/community/api";
+import { trackListViewed, useTrackOnce } from "@/features/community/analytics";
 import { useCommunityFeed } from "@/features/community/hooks";
 import { copyLink, postUrl } from "@/features/community/share";
 import type { CommunityEntry, CommunityLikeState } from "@/features/community/types";
@@ -20,6 +21,7 @@ export function CommunityList() {
   const [initial] = useState(recentCommunityList);
   const feed = useCommunityFeed(getPosts, initial);
   const toast = useCommunityToast();
+  useTrackOnce(!feed.loading && !feed.error, trackListViewed);
   useEffect(() => { if (initial) window.scrollTo(0, communityListMemory.scroll); }, [initial]);
   useEffect(() => {
     if (feed.loading || feed.error) return;

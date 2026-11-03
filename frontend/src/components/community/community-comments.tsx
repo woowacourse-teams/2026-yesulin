@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { PiArrowUp } from "react-icons/pi";
 import { createComment, deleteComment, editComment, getComments } from "@/features/community/api";
+import { trackCommentCreated } from "@/features/community/analytics";
 import { normalizeComment, SubmissionAttempt } from "@/features/community/draft";
 import { useCommunityAction, useCommunityFeed, useDraftGuard } from "@/features/community/hooks";
 import type { CommunityEntry } from "@/features/community/types";
@@ -59,6 +60,7 @@ function useCommentSubmit(postId: number, comment: CommunityEntry | undefined, o
     const input = normalizeComment(body);
     const result = await saveComment(postId, comment, input.body, attempt.current.idFor(input));
     done();
+    if (!comment) trackCommentCreated();
     attempt.current.reset();
     await onSaved(result.id);
   });

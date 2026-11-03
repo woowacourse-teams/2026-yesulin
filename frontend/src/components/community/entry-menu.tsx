@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { PiDotsThree, PiFlag, PiLink, PiPencilSimple, PiTrash } from "react-icons/pi";
 import { SubmissionAttempt } from "@/features/community/draft";
+import { trackReportSubmitted } from "@/features/community/analytics";
 import { useCommunityAction } from "@/features/community/hooks";
 import { copyLink } from "@/features/community/share";
 import type { CommunityEntry } from "@/features/community/types";
@@ -38,7 +39,7 @@ export function EntryMenu(props: MenuProps) {
 
 function MenuStep(props: StepProps) {
   const { entry, step, close, notify, attempt, markReported } = props;
-  const sent = () => { markReported(); close(); notify("신고가 접수되었어요. 팀에서 확인할게요."); };
+  const sent = () => { markReported(); close(); trackReportSubmitted(entry); notify("신고가 접수되었어요. 팀에서 확인할게요."); };
   if (step === "report") return <ReportForm entryId={entry.id} attempt={attempt} onSent={sent} />;
   if (step === "delete") return <DeleteConfirm {...props} />;
   return <MenuActions {...props} />;
