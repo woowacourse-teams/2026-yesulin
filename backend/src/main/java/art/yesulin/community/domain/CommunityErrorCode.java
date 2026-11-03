@@ -7,7 +7,8 @@ public enum CommunityErrorCode implements ErrorCode {
 
     NOT_FOUND(ErrorType.NOT_FOUND),
     NOT_OWNER(ErrorType.FORBIDDEN),
-    REQUEST_CONFLICT(ErrorType.CONFLICT);
+    REQUEST_CONFLICT(ErrorType.CONFLICT),
+    IDENTITY_CONFLICT(ErrorType.CONFLICT);
 
     private final ErrorType type;
 

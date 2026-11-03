@@ -47,5 +47,5 @@ function TextPart({ text }: { readonly text: string }) {
 
 export function BrowserOwnershipNotice() {
   return <p className="community-hint">로그인 없이 익명으로 올릴 수 있어요. 수정·삭제는 작성한 브라우저에서만 가능해요.
-    브라우저 데이터를 지우거나 시크릿 창을 닫으면 수정·삭제할 수 없고 익명 번호도 달라질 수 있어요.</p>;
+    쿠키가 만료되거나 브라우저 데이터를 지우거나 시크릿 창을 닫으면 수정·삭제할 수 없고 익명 번호도 달라질 수 있어요.</p>;
 }

@@ -1360,13 +1360,24 @@ S3 삭제 실패 시 `DELETING` 상태가 남으며 같은 파일 ID로 재시�
 ## 공개 익명 커뮤니티
 
 모든 경로는 로그인 없이 사용한다. 쓰기는 기존 CSRF 쿠키·헤더가 필요하며 인증 설정을 우회하지 않는다.
-작성·수정·삭제·신고·좋아요·좋아요 취소는 `X-Community-Key` 헤더에 브라우저에서 만든 32바이트 난수의 소문자 hex 64자를 보낸다.
-서버에는 SHA-256 해시만 저장하고 공개 응답·URL·로그에는 원문이나 해시를 넣지 않는다.
-읽기는 헤더 없이 가능하다. 선택적으로 헤더를 보내면 상세·댓글의 `editable`이 본인 여부를, 글 목록·상세의 `liked`가 좋아요 여부를 나타낸다.
-글·댓글 조회 응답은 `Cache-Control: no-store`다.
+익명 권한은 서버가 발급하는 `yesulin-community-owner` HttpOnly 쿠키로 전달한다. 쿠키 경로는
+`/api/v1/public/community`이며 Domain을 지정하지 않는다. SameSite=Lax, Max-Age=400일이고 기존 쿠키를 확인할 때 갱신한다.
+local/test의 HTTP 실행 외에는 Secure를 항상 적용하며 HTTPS 요청에서는 프로필과 무관하게 Secure다.
+일반 글·댓글·신고·좋아요 API는 `X-Community-Key` 헤더를 사용하지 않는다. 쓰기에 쿠키가 없으면 400이다.
+서버에는 기존과 동일한 SHA-256 소유권 해시만 저장하고 키 원문·해시는 JSON 응답·URL·로그에 넣지 않는다.
+쿠키 없는 공개 읽기는 가능하다. 쿠키가 있으면 상세·댓글의 `editable`과 글의 `liked`를 계산한다.
+조회·이전 응답은 `Cache-Control: no-store`다.
+
+기존 localStorage 키는 `X-Community-Legacy-Key` 헤더로 이전 전용 identity API에만 전달한다.
+서버는 기존 키를 HttpOnly 쿠키로 옮겨 소유권 해시·좋아요·익명 번호를 유지한다. 기존 쿠키와 이전 키가 다르면
+409 `COMMUNITY_IDENTITY_CONFLICT`로 거절하고 기존 쿠키를 교체하지 않는다. 형식이 잘못된 값은 400이다.
+POST 성공만으로 저장됐다고 판단하지 않고 GET에서 같은 이전 키로 `ready: true`를 확인한 후 localStorage를 지운다.
+응답 유실·쿠키 차단 때는 기존 키를 유지하고 동일한 키로 재시도한다. 키를 이미 잃은 브라우저의 복구 API는 없다.
 
 | Method | 경로 (`/api/v1/public/community` 뒤) | 요청 / 응답 |
 | --- | --- | --- |
+| GET | `/identity` | `{ready: boolean}`. 쿠키 확인만 하며 새 키는 발급하지 않음. 이전 헤더가 있으면 해당 키와 쿠키의 일치도 확인 |
+| POST | `/identity` | 본문 없음, CSRF 필수 → 204 + HttpOnly Set-Cookie. 기존 쿠키 재사용, 기존 키 이전 또는 서버 32바이트 난수 신규 발급 |
 | GET | `/posts?before={id}` | 최신 글 20개. 생략 시 처음부터. `before`는 양수, 해당 ID 미포함 |
 | POST | `/posts` | `{requestId: UUID, title, body}` → 201 작성물 |
 | GET | `/posts/{postId}` | 200 작성물, 없거나 삭제되었으면 404 |
@@ -1383,7 +1394,7 @@ S3 삭제 실패 시 `DELETING` 상태가 남으며 같은 파일 ID로 재시�
 작성물 응답은 `{id, title, body, author, createdAt, updatedAt, commentCount, editable, likeCount, liked}`다.
 `author`는 글쓴이 `익명1`, 다른 댓글 작성 브라우저는 첫 작성 순서의 `익명2`·`익명3`이다. 같은 글 안에서만 유지한다.
 삭제된 댓글도 번호 배정에 포함하며 기존 글·댓글에도 같은 규칙을 적용한다. 공개 응답에는 작성자 해시를 넣지 않는다.
-`likeCount`는 글의 좋아요 수이며 `liked`는 해당 브라우저의 선택 여부다. 헤더가 없으면 `liked`는 false다.
+`likeCount`는 글의 좋아요 수이며 `liked`는 해당 브라우저의 선택 여부다. 쿠키가 없으면 `liked`는 false다.
 댓글에는 좋아요를 지원하지 않아 `likeCount: 0`, `liked: false`다.
 댓글의 `title`은 null이며 글 목록에도 본문을 포함한다. 글 목록의 `editable`은 항상 false다. 댓글의 `commentCount`는 0이다.
 목록은 `{items: 작성물[], nextCursor: number | null}`이고 다음 페이지가 없으면 null이다.

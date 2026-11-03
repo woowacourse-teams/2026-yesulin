@@ -1,14 +1,16 @@
 import { request } from "@/features/auditions/api-client";
 import { communityListMemory } from "./list-memory";
-import { readIdentity, writeIdentity } from "./identity";
+import { prepareIdentity } from "./identity";
 import { communityPath, type CommunityEntry, type CommunityLikeState, type CommunityPage, type ReportReason } from "./types";
 
-function read<T>(path: string): Promise<T> {
-  return request<T>(path, { headers: readIdentity(), cache: "no-store" });
+async function read<T>(path: string): Promise<T> {
+  await prepareIdentity(false).catch(() => {});
+  return request<T>(path, { cache: "no-store" });
 }
 
 async function write<T>(path: string, method: string, payload?: object): Promise<T> {
-  const result = await request<T>(path, { method, headers: await writeIdentity(), body: JSON.stringify(payload) });
+  await prepareIdentity(true);
+  const result = await request<T>(path, { method, body: JSON.stringify(payload) });
   communityListMemory.page = null;
   communityListMemory.scroll = 0;
   return result;
