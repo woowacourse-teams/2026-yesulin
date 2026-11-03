@@ -9,3 +9,4 @@
 
 - 쿠키 이전 평가: [2026-11-03 HttpOnly 이전](reviews/2026-11-03-community-cookie.md)
 - 화면 개편 평가: [2026-11-03 스레드형 개편](reviews/2026-11-03-community-thread-redesign.md)
+- 지표 이벤트 평가: [2026-11-03 익명게시판 이벤트](reviews/2026-11-03-community-analytics.md)

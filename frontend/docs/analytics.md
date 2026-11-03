@@ -79,6 +79,18 @@ PostHog 수집 항목·미국 리전·거부 방법은 `/privacy/analytics`의 �
 | `review_saved` | 심사 API 저장 성공. `eligible`로 미검토 상태 복귀와 구분, 판정 내용·메모 미전송 |
 | `review_active_time` | 지원자별 누적 검토 시간 조각. 다른 탭·포커스 이탈·2분 무조작 제외 |
 | `review_progress` | PDF 심사 상세의 전체 대상·미검토 이외 판정 수, 마지막 관측 시각과 함께 표시 |
+| `community_list_viewed`, `community_post_viewed` | 익명게시판 목록·글 상세를 정상적으로 불러옴. 화면 진입마다 한 번 |
+| `community_compose_started`, `community_post_created` | 새 글 화면 진입, 새 글 작성 API 성공. 글 수정은 제외 |
+| `community_compose_abandoned` | 새 글에 내용을 쓴 뒤 올리지 않고 다른 화면으로 이동. 탭 닫기·새로고침은 빠질 수 있음 |
+| `community_comment_created` | 댓글 작성 API 성공. 댓글 수정 제외 |
+| `community_like_toggled` | 좋아요·취소 API 성공. `liked`로 결과 상태 구분 |
+| `community_report_submitted` | 신고 API 성공. `community_target`(`post`·`comment`)만 전송 |
+
+익명게시판 이벤트에는 글·댓글 번호, 제목·본문, 익명 번호, 신고 사유·설명을 넣지 않는다. 로그인 이용자는 다른 이벤트처럼
+가명 계정 식별자가 붙으므로 글별 식별자를 보내면 익명 글과 계정이 연결될 수 있기 때문이다. 다만 작성 이벤트 시각과
+글 작성 시각을 DB에서 대조하면 연결을 추정할 수 있으므로, 분석 데이터와 게시판 DB를 함께 조회해 작성자를 추정하지 않는다.
+대상 식별자가 없어 `test_object`로 테스트 글을 제외할 수 없다. 팀원 확인은 내부 계정 또는 내부 브라우저 표시를 켠 상태에서만 한다.
+좋아요는 서버 상태가 실제로 바뀐 경우만 보낸다. 오래된 목록에서 이미 누른 좋아요를 다시 눌러 상태가 그대로면 보내지 않는다.
 
 PDF 추출은 브라우저에서 결과를 관측한 작업에 한정된다. 전체 백그라운드 작업의 성공률이 아니다.
 같은 심사의 이미 업로드된 원본 재선택은 중복 제외이며 새 upload 성공 이벤트를 보내지 않는다.
