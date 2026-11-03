@@ -482,7 +482,7 @@ function TimeInput({ label, value, onChange, invalid, disabled, size }: {
         const normalized = normalizeTimeInput(event.target.value);
         if (normalized !== event.target.value) onChange(normalized);
       }}
-      className={`num min-w-0 rounded-control border border-border bg-card text-center text-foreground outline-none transition-[border-color,box-shadow] placeholder:text-muted-soft hover:border-muted-soft focus:border-brand focus:ring-2 focus:ring-brand-soft aria-invalid:border-fail aria-invalid:ring-2 aria-invalid:ring-fail-bg disabled:bg-border-soft disabled:text-muted ${
+      className={`num min-w-0 rounded-control border border-border bg-card text-center text-foreground outline-none transition-[border-color,box-shadow] placeholder:text-muted-soft hover:border-muted-soft focus:border-brand focus:ring-1 focus:ring-brand aria-invalid:border-fail aria-invalid:focus:border-fail aria-invalid:focus:ring-fail disabled:bg-border-soft disabled:text-muted ${
         size === "sm" ? "h-11 w-16 text-sm" : "h-11 w-[4.5rem] text-base md:text-sm"
       }`}
     />

@@ -1,5 +1,7 @@
 "use client";
 
+import { careerDateLabel } from "@/features/applicants/career-identity";
+
 import Image from "next/image";
 import { useEffect, useId, useRef, useState } from "react";
 import { TrackedLoginLink } from "@/components/analytics/tracked-login-link";
@@ -225,4 +227,4 @@ function MediaSummary({ fields, values, photos, videoUrl }: { fields: readonly A
   </div>;
 }
 function externalHttpHref(value: string) { const trimmed = value.trim(); if (!trimmed) return null; try { const url = new URL(/^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`); return url.protocol === "http:" || url.protocol === "https:" ? url.href : null; } catch { return null; } }
-function CareerSummary({ noCareer, careers }: { noCareer: boolean; careers: readonly CareerDraft[] }) { if (noCareer) return <p className="text-sm font-medium text-foreground">경력 없음 (신인)</p>; if (!careers.length) return <p className="text-sm font-medium text-muted">경력 미입력</p>; return <ul className="divide-y divide-border-soft">{careers.map((career) => <li key={career.id} className="grid grid-cols-[56px_minmax(0,1fr)_auto] gap-3 py-3 text-sm"><span className="num text-muted">{career.year}</span><span className="min-w-0 break-words font-medium">{career.title}</span><span className="text-muted">{career.part}</span></li>)}</ul>; }
+function CareerSummary({ noCareer, careers }: { noCareer: boolean; careers: readonly CareerDraft[] }) { if (noCareer) return <p className="text-sm font-medium text-foreground">경력 없음 (신인)</p>; if (!careers.length) return <p className="text-sm font-medium text-muted">경력 미입력</p>; return <ul className="divide-y divide-border-soft">{careers.map((career) => <li key={career.id} className="grid grid-cols-[80px_minmax(0,1fr)_auto] gap-3 py-3 text-sm"><span className="num text-muted">{careerDateLabel(career.year, career.month)}</span><span className="min-w-0 break-words font-medium">{career.title}</span><span className="text-muted">{career.part}</span></li>)}</ul>; }

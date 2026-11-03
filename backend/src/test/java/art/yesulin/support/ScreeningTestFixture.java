@@ -120,7 +120,7 @@ public class ScreeningTestFixture {
                 new SubmissionAdditionalInformation(
                         "한국예술종합학교", List.of("https://example.com"), "대한민국", "자기소개",
                         "현대무용", "영화 감상", MilitaryServiceStatus.NOT_APPLICABLE,
-                        List.of(new SubmissionCareer(2025, "리어왕", "코델리아"))
+                        List.of(new SubmissionCareer(2025, 3, "리어왕", "코델리아"))
                 ),
                 new SubmissionFieldSnapshot(List.of(), List.of()),
                 SUBMITTED_AT,

@@ -25,7 +25,7 @@ class SubmissionTest {
         );
         SubmissionAdditionalInformation additionalInformation = new SubmissionAdditionalInformation(
                 "한국예술종합학교", List.of("https://example.com/harin"), "대한민국", "자기소개",
-                "현대무용", "영화 감상", null, List.of(new SubmissionCareer(2025, "햄릿", "오필리어"))
+                "현대무용", "영화 감상", null, List.of(new SubmissionCareer(2025, 3, "햄릿", "오필리어"))
         );
         AuditionSnapshot auditionSnapshot = auditionSnapshot(" 햄릿 배우 모집 ");
         ApplicantSnapshot applicantSnapshot = new ApplicantSnapshot(

@@ -872,10 +872,10 @@ PASS 변경 또는 연락처 previous 불일치는 409 TIMETABLE_ASSIGNMENT_CONF
 프로필 기본 정보는 이름, 양수 키·몸무게, 미래가 아닌 생년월일, 성별, `000-0000-0000` 연락처, email과 거주 지역이다.
 거주 지역은 100자 문자열이고, 프론트가 `시·도 시·군·구` 형태로만 채운다.
 추가 정보의 학력은 `educationLevel`(`NONE`·`HIGH_SCHOOL`·`UNIVERSITY`), `school`, `major`로 표현한다. 학력 없음은 학교·전공 없이, 고등학교 졸업은 학교만, 대학교 졸업은 학교와 전공을 함께 보낸다. 링크 최대 5개, 프로필 경력 최대 30개다.
-프로필 경력은 `{year, title, roleName, genre?}`이며 genre는 선택 값이다. 생략하거나 null이면 미분류로 유지한다.
+프로필 경력은 `{year, month, title, roleName, genre?}`이며 month는 1~12 정수다. 신규·수정 경력의 월은 필수이며, 월이 없던 기존 경력은 연도·작품명·배역·장르가 그대로인 항목만 null/생략으로 보존할 수 있다. 같은 기존 항목을 월 없이 복제할 수 없다. genre는 선택 값이다. 생략하거나 null이면 미분류로 유지한다.
 장르 값은 `THEATER`(연극), `MUSICAL`(뮤지컬), `DANCE`(무용), `FILM`(영화), `DRAMA`(드라마),
 `WEB_DRAMA`(웹드라마), `SHORT_FORM`(숏폼), `COMMERCIAL`(광고), `OTHER`(기타)다. 잘못된 값은 `400 INVALID_REQUEST`다.
-지원서 제출 경력은 기존대로 최대 10개이고 `{year, title, roleName}`만 받으며 장르는 포함하지 않는다.
+지원서 제출 경력은 최대 10개이며 `{year, month, title, roleName}`를 받는다. 신규 제출은 month(1~12)가 필수이고 장르는 포함하지 않는다. 기존 제출 스냅샷의 월은 null로 보존한다.
 배우 사진은 JPEG·PNG·WebP 최대 20MB, 사진 보관함 최대 3개, 영상 보관함 최대 3개다.
 사진 항목 응답은 `{id, fileId, imageUrl, displayOrder, representative, createdAt, visibility, publicCopyUrl}`이며 visibility는
 `PUBLIC/PRIVATE`(기존 행·새 사진 모두 기본 PRIVATE)다. `publicCopyUrl`은 배우 페이지용 공개 사본의 CDN 주소이고, 사본이 없으면
@@ -973,7 +973,7 @@ representativePhotoUrl(null 가능)
 `PublicActorPageResult`는 카드 필드에 다음 필드를 더한다.
 
 ```text
-photos[{url}], videos[{url, youtubeId}], careerGroups[{genre(null=미분류), careers[{year, title, roleName}]}],
+photos[{url}], videos[{url, youtubeId}], careerGroups[{genre(null=미분류), careers[{year, month(null=과거 월 미상), title, roleName}]}],
 coverLetter, specialty, hobbies, nationality, education{level, school, major}(null 가능), links[{url}]
 ```
 

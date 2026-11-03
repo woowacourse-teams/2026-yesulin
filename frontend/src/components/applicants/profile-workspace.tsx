@@ -12,17 +12,16 @@ import { WorkspaceBreadcrumb, WorkspacePageHeading } from "@/components/landing/
 export function ApplicantProfileWorkspace({ initialTab }: { readonly initialTab?: ProfileTab }) {
   const query = useAuditionQuery("applicant-profile", getApplicantProfile, "프로필을 불러오지 못했습니다.");
   const [saved, setSaved] = useState<ApplicantProfileResponse | null>(null);
+  const [completed, setCompleted] = useState(false);
   if (query.loading) return <ProfileSkeleton />;
   if (query.error || !query.data) return <Container><ScreenError message={query.error} onRetry={query.reload} /></Container>;
   const profile = saved ?? query.data;
-  const percent = Math.min(100, Math.max(0, Math.round(profile.completeness.filled / Math.max(1, profile.completeness.standardTotal) * 100)));
   return <Container>
     <WorkspaceBreadcrumb items={[{ label: "마이페이지", href: "/applicants" }, { label: "내 프로필" }]} />
-    <WorkspacePageHeading eyebrow="배우 프로필" title="내 프로필"
-      description={<>한 번 저장한 정보로 다음 지원을 편리하게 준비하세요.<br />이미 제출한 지원서는 프로필을 수정해도 바뀌지 않아요.</>}
-      action={<div className="applicant-profile-meter"><div><span>필수 기본정보</span><strong className="num">{profile.completeness.filled} / {profile.completeness.standardTotal}</strong></div><div className="workspace-progress" role="progressbar" aria-label="필수 기본정보 작성률" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}><span style={{ width: percent + "%" }} /></div></div>}
-    />
-    <ProfileEditor profile={profile} onSaved={setSaved} initialTab={initialTab} />
+    {!completed ? <WorkspacePageHeading eyebrow="배우 프로필" title="내 프로필"
+      description={<>기본정보와 사진으로 내 배우 페이지를 만들어 보세요.<br />추가정보와 영상은 나중에 채워도 괜찮아요.</>}
+    /> : null}
+    <ProfileEditor profile={profile} onSaved={setSaved} initialTab={initialTab} onCompletionChange={setCompleted} />
   </Container>;
 }
 

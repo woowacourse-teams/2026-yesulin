@@ -9,7 +9,7 @@ describe("프로필 경력 편집", () => {
     expect(html).toContain('aria-label="경력 1 장르"');
     expect(html).toContain("미분류");
     const labels = ["선택 안 함", ...PROFILE_CAREER_GENRES.map(({ label }) => label)];
-    const options = [...html.matchAll(/<option[^>]*>([^<]+)<\/option>/g)].map((match) => match[1]);
+    const options = [...html.match(/<select[^>]*aria-label="경력 1 장르"[^>]*>([\s\S]*?)<\/select>/)![1]!.matchAll(/<option[^>]*>([^<]+)<\/option>/g)].map((match) => match[1]);
     expect(options).toEqual(labels);
   });
 

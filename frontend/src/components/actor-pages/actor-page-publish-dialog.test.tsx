@@ -4,8 +4,10 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { ACTOR_PAGE_CONSENT_NOTICE, type ActorPageSettings } from "@/features/actor-pages/settings";
 import type { ApplicantProfileResponse } from "@/features/applicants/types";
+import { publishActorPage } from "@/features/actor-pages/owner-api";
 import { ActorPagePublishDialog } from "./actor-page-publish-dialog";
 
+vi.mock("@/features/actor-pages/owner-api", () => ({ publishActorPage: vi.fn() }));
 vi.mock("@sentry/nextjs", () => ({ captureException: vi.fn(), captureMessage: vi.fn() }));
 
 let root: Root;
@@ -37,6 +39,7 @@ const profile: ApplicantProfileResponse = {
 };
 
 beforeEach(() => {
+  vi.clearAllMocks();
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   vi.stubGlobal("requestAnimationFrame", () => 0);
   vi.stubGlobal("cancelAnimationFrame", vi.fn());
@@ -66,4 +69,33 @@ it("공개 범위·검색엔진·비공개 후 외부 사본 고지를 보여 �
   expect(publish.disabled).toBe(true);
   await act(async () => consent.click());
   expect(publish.disabled).toBe(false);
+});
+
+it("동의 후 연속 클릭은 한 번만 공개하고 성공 응답을 받은 뒤에만 완료를 알린다", async () => {
+  const published = vi.fn();
+  let complete!: (result: Awaited<ReturnType<typeof publishActorPage>>) => void;
+  vi.mocked(publishActorPage).mockImplementationOnce(() => new Promise((resolve) => { complete = resolve; }));
+  await act(async () => root.render(<ActorPagePublishDialog mode="publish" settings={settings} profile={profile} onClose={vi.fn()} onPublished={published} />));
+  const dialog = document.querySelector('[role="dialog"]')!;
+  await act(async () => dialog.querySelector<HTMLInputElement>('input[type="checkbox"]')!.click());
+  const publish = [...dialog.querySelectorAll("button")].find((button) => button.textContent === "공개하기")!;
+  await act(async () => { publish.click(); publish.click(); });
+  expect(publishActorPage).toHaveBeenCalledExactlyOnceWith(profile, settings.consentVersion);
+  expect(published).not.toHaveBeenCalled();
+  const result = { settings: { ...settings, status: "PUBLIC" as const }, profile, failedPhotoIds: [] };
+  await act(async () => complete(result));
+  expect(published).toHaveBeenCalledExactlyOnceWith(result);
+});
+it("공개 실패는 완료로 넘기지 않고 동의 상태와 오류·재시도를 유지한다", async () => {
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  vi.mocked(publishActorPage).mockRejectedValueOnce(new Error("연결을 확인해 주세요."));
+  const published = vi.fn();
+  await act(async () => root.render(<ActorPagePublishDialog mode="publish" settings={settings} profile={profile} onClose={vi.fn()} onPublished={published} />));
+  const dialog = document.querySelector('[role="dialog"]')!;
+  const checkbox = dialog.querySelector<HTMLInputElement>('input[type="checkbox"]')!;
+  await act(async () => checkbox.click());
+  await act(async () => [...dialog.querySelectorAll("button")].find((button) => button.textContent === "공개하기")!.click());
+  expect(published).not.toHaveBeenCalled();
+  expect(dialog.textContent).toContain("연결을 확인해 주세요");
+  expect(checkbox.checked).toBe(true);
 });

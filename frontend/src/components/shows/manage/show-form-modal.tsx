@@ -57,7 +57,7 @@ import { useShowManagementApi } from "./show-management-api-context";
 
 const TITLE_ID = "show-form-title";
 const KEEP_WRITING_ID = "show-form-keep-writing";
-const FIELD_ERROR_CLASS = "border-fail focus:border-fail focus:ring-fail-bg";
+const FIELD_ERROR_CLASS = "border-fail focus:border-fail focus:ring-fail";
 
 /** 오류 항목에서 포커스를 받을 입력. 공용 포스터·장소 필드는 id를 받지 않아 감싼 영역 안에서 찾는다. */
 const FIELD_FOCUS_SELECTOR: Record<ShowFormField, string> = {

@@ -8,7 +8,7 @@ vi.mock("@/features/applicants/request", () => ({ applicantRequest: request }));
 const current: BackendProfileResponse = {
   basicInformation: { name: "배우", height: null, weight: null, birthDate: "2000-01-01", gender: "FEMALE", phone: null, email: null, address: null },
   additionalInformation: { educationLevel: null, school: null, major: null, links: [], nationality: null, coverLetter: null, specialty: null, hobbies: null, militaryServiceStatus: null,
-    careers: Array.from({ length: 30 }, (_, index) => ({ year: 2026, title: `작품 ${index}`, roleName: "주연", genre: "THEATER" as const })) },
+    careers: Array.from({ length: 30 }, (_, index) => ({ year: 2026, month: 3, title: `작품 ${index}`, roleName: "주연", genre: "THEATER" as const })) },
   completeness: { filled: 3, total: 8 },
 };
 
@@ -18,7 +18,7 @@ describe("프로필 저장 요청", () => {
   it("지원서의 10개를 저장해도 프로필 30개와 장르를 보존하고 새 경력 초과 수를 반환한다", async () => {
     request.mockResolvedValue(current);
     const submitted: ApplicantInformation = { basicInformation: current.basicInformation, additionalInformation: { ...current.additionalInformation,
-      careers: [...current.additionalInformation.careers.slice(0, 9).map(({ year, title, roleName }) => ({ year, title, roleName })), { year: 2025, title: "새 작품", roleName: "조연" }] } };
+      careers: [...current.additionalInformation.careers.slice(0, 9).map(({ year, month, title, roleName }) => ({ year, month, title, roleName })), { year: 2025, month: 3, title: "새 작품", roleName: "조연" }] } };
     expect(await saveSubmissionInformationToProfile(submitted)).toEqual({ skippedCareerCount: 1 });
     const body = JSON.parse(request.mock.calls[1]![1].body);
     expect(body.additionalInformation.careers).toEqual(current.additionalInformation.careers);

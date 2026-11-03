@@ -211,7 +211,7 @@ class AdminSubmissionControllerTest {
                         new SubmissionAdditionalInformation(
                                 "예술대학교", List.of(), "대한민국", "소개", "연기", "독서",
                                 MilitaryServiceStatus.NOT_APPLICABLE,
-                                List.of(new SubmissionCareer(2025, "리어왕", "코델리아"))
+                                List.of(new SubmissionCareer(2025, 3, "리어왕", "코델리아"))
                         ),
                         new SubmissionFieldSnapshot(List.of(), List.of()),
                         SUBMITTED_AT,

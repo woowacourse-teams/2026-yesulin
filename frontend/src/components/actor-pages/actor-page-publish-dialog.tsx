@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { ModalShell } from "@/components/auditions/modal-shell";
 import { PrimaryButton, SecondaryButton } from "@/components/ui/controls";
 import { publishActorPage, type PublishedActorPage } from "@/features/actor-pages/owner-api";
@@ -41,12 +41,15 @@ export function ActorPagePublishDialog({
   const noticeId = useId();
   const [agreed, setAgreed] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const inFlight = useRef(false);
   const [error, setError] = useState("");
   const blockers = publishBlockers(settings, profile.photoLibrary);
   const ready = canPublish(blockers);
 
   const publish = async () => {
+    if (inFlight.current) return;
     if (!agreed) { setError("공개에 동의해야 공개할 수 있어요."); return; }
+    inFlight.current = true;
     setPublishing(true);
     setError("");
     try {
@@ -55,6 +58,7 @@ export function ActorPagePublishDialog({
       console.error("[배우 페이지 공개 실패]", cause);
       setError(errorMessage(cause, "배우 페이지를 공개하지 못했어요. 잠시 후 다시 시도해 주세요."));
     } finally {
+      inFlight.current = false;
       setPublishing(false);
     }
   };

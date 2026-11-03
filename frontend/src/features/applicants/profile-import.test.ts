@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_PROFILE_IMPORT_BYTES, birthDateOf, careerGenreOf, careerYearOf, heightOf, importedCareers, profileImportFileError } from "./profile-import";
+import { MAX_PROFILE_IMPORT_BYTES, birthDateOf, careerGenreOf, careerMonthOf, careerYearOf, heightOf, importedCareers, profileImportFileError } from "./profile-import";
 
 const TODAY = new Date("2026-10-29T00:00:00+09:00");
 
@@ -68,16 +68,16 @@ describe("imported careers", () => {
     const careers = importedCareers([
       { title: "햄릿", part: "오필리아", genre: "연극", period: "2025", venue: null, company: null, evidence: "연극 햄릿 오필리아 2025" },
       { title: "빨래", part: null, genre: "뮤지컬", period: "23.03 ~ 04", venue: null, company: null, evidence: "뮤지컬 빨래 23.03 ~ 04" },
-    ], [{ year: 2025, title: "햄릿", part: "오필리아", genre: null }], TODAY);
+    ], [{ year: 2025, month: null, title: "햄릿", part: "오필리아", genre: null }], TODAY);
 
-    expect(careers[0]).toEqual({ entry: { year: 2025, title: "햄릿", part: "오필리아", genre: "THEATER" }, needsInput: false, duplicate: true, similar: false });
-    expect(careers[1]).toEqual({ entry: { year: 0, title: "빨래", part: "", genre: "MUSICAL" }, needsInput: true, duplicate: false, similar: false });
+    expect(careers[0]).toEqual({ entry: { year: 2025, month: null, title: "햄릿", part: "오필리아", genre: "THEATER" }, needsInput: true, duplicate: true, similar: false });
+    expect(careers[1]).toEqual({ entry: { year: 0, month: null, title: "빨래", part: "", genre: "MUSICAL" }, needsInput: true, duplicate: false, similar: false });
   });
 
   it("flags a career with an unreadable year when the same title is already saved", () => {
     const [career] = importedCareers(
       [{ title: "빨래", part: null, genre: "뮤지컬", period: "23.03 ~ 04", venue: null, company: null, evidence: "뮤지컬 빨래 23.03 ~ 04" }],
-      [{ year: 2023, title: "빨래", part: "앙상블", genre: "MUSICAL" }],
+      [{ year: 2023, month: 3, title: "빨래", part: "앙상블", genre: "MUSICAL" }],
       TODAY,
     );
 
@@ -97,4 +97,9 @@ it.each([
   const file = new File(["x"], "profile.pdf", { type: "application/pdf" });
   Object.defineProperty(file, "size", { value: size });
   expect(profileImportFileError(file)).toBe(expected);
+});
+
+
+it.each([["2026.03", 3], ["2026년 12월", 12], ["2026-08", 8], ["2026", null], ["2026.03 ~ 04", null], ["26.03", null], ["2026.13", null], [null, null]])("PDF 기간 %s에서 명시된 단일 월만 읽는다", (period, month) => {
+  expect(careerMonthOf(period as string | null)).toBe(month);
 });

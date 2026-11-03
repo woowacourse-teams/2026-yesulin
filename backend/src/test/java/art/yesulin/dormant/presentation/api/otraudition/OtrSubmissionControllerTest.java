@@ -386,7 +386,7 @@ class OtrSubmissionControllerTest {
                     "educationLevel": "UNIVERSITY", "school": "한국예술종합학교", "major": "연기과",
                     "links": ["https://example.com/actor"], "nationality": "대한민국", "coverLetter": "자기소개",
                     "specialty": "현대무용", "hobbies": "영화 감상", "militaryServiceStatus": "NOT_APPLICABLE",
-                    "careers": [{"year": 2025, "title": "햄릿", "roleName": "오필리어"}]
+                    "careers": [{"year": 2025, "month": 3, "title": "햄릿", "roleName": "오필리어"}]
                   },
                   "photoFileIds": [%d,%d,%d],
                   "videoUrls": ["https://youtu.be/aaaaaaaaaaa", "https://youtu.be/bbbbbbbbbbb", "https://youtu.be/ccccccccccc"],

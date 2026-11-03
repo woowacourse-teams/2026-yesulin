@@ -50,7 +50,7 @@ export type V1SubmissionRequest = {
     readonly specialty: string | null;
     readonly hobbies: string | null;
     readonly militaryServiceStatus: "COMPLETED" | "NOT_COMPLETED" | "NOT_APPLICABLE" | null;
-    readonly careers: readonly { readonly year: number; readonly title: string; readonly roleName: string }[];
+    readonly careers: readonly { readonly year: number; readonly month?: number | null; readonly title: string; readonly roleName: string }[];
   };
   readonly selectedRoleIds: readonly number[];
   readonly formAnswers: {
@@ -124,7 +124,7 @@ export function applicantInformation(input: ApplicantInformationInput): Applican
       hobbies: text("HOBBIES"),
       militaryServiceStatus: militaryStatusOf(text("MILITARY")),
       careers: enabledKeys.has("CAREER") && !input.noCareer
-        ? input.careers.map((career) => ({ year: Number(career.year), title: career.title.trim(), roleName: career.part.trim() }))
+        ? input.careers.map((career) => ({ year: Number(career.year), month: Number(career.month), title: career.title.trim(), roleName: career.part.trim() }))
         : [],
     },
   };
