@@ -154,7 +154,7 @@ function military(answer?: ApplicantAnswer): "COMPLETED" | "NOT_COMPLETED" | "NO
 
 function careers(answer?: ApplicantAnswer) {
   return array(answer?.value).flatMap((value) => isCareer(value)
-    ? [{ year: value.year, title: value.title, roleName: value.part }]
+    ? [{ year: value.year, month: value.month ?? null, title: value.title, roleName: value.part }]
     : []);
 }
 

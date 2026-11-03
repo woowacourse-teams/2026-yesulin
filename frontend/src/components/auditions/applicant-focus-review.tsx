@@ -1,5 +1,7 @@
 "use client";
 
+import { careerDateLabel } from "@/features/applicants/career-identity";
+
 import { startReviewTimer } from "@/features/analytics/review-timer";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { applicantEducationText } from "@/features/auditions/education-text";
@@ -327,8 +329,8 @@ function FocusReviewContent({
             {careers.length === 0 ? <p className="text-sm text-muted">등록한 경력이 없습니다.</p> : (
               <ul className="space-y-1.5">
                 {careers.map((career) => (
-                  <li key={`${career.year}-${career.title}-${career.part}`} className="flex gap-2 text-sm">
-                    <span className="num shrink-0 text-muted">{career.year}</span>
+                  <li key={`${careerDateLabel(career.year, career.month)}-${career.title}-${career.part}`} className="flex gap-2 text-sm">
+                    <span className="num shrink-0 text-muted">{careerDateLabel(career.year, career.month)}</span>
                     <span className="min-w-0">
                       <strong className="font-semibold text-foreground">{career.title}</strong>
                       <span className="text-muted"> · {career.part}</span>
@@ -360,7 +362,7 @@ function FocusReviewContent({
               value={note}
               onChange={(event) => setNote(event.target.value)}
               maxLength={255}
-              className="min-h-20 w-full resize-none rounded-control border border-border bg-card px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand-soft disabled:bg-surface"
+              className="min-h-20 w-full resize-none rounded-control border border-border bg-card px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand disabled:bg-surface"
             />
             <SecondaryButton
               disabled={reviewLocked || saving || note === applicant.review.note}

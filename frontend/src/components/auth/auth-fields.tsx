@@ -61,7 +61,7 @@ export function AuthInput({ id, label, error, hint, className = "", ...props }: 
         id={id}
         aria-invalid={error ? true : undefined}
         aria-describedby={descriptionId}
-        className={`${fieldControlClass} mt-2 ${error ? "border-fail focus:border-fail focus:ring-fail-bg" : ""} ${className}`}
+        className={`${fieldControlClass} mt-2 ${error ? "border-fail focus:border-fail focus:ring-fail" : ""} ${className}`}
         {...props}
       />
       {error ? <span id={`${id}-error`} className="mt-1.5 block text-sm font-medium text-fail">{error}</span> : null}
@@ -84,7 +84,7 @@ export function PasswordInput(props: Omit<AuthInputProps, "type">) {
           type={visible ? "text" : "password"}
           aria-invalid={error ? true : undefined}
           aria-describedby={descriptionId}
-          className={`${fieldControlClass} pr-16 ${error ? "border-fail focus:border-fail focus:ring-fail-bg" : ""} ${className}`}
+          className={`${fieldControlClass} pr-16 ${error ? "border-fail focus:border-fail focus:ring-fail" : ""} ${className}`}
         />
         <button
           type="button"
@@ -115,7 +115,7 @@ export function ActionInput({ label, error, hint, actionLabel, onAction, ...prop
           {...props}
           aria-invalid={error ? true : undefined}
           aria-describedby={descriptionId}
-          className={`${fieldControlClass} pr-28 ${error ? "border-fail focus:border-fail focus:ring-fail-bg" : ""}`}
+          className={`${fieldControlClass} pr-28 ${error ? "border-fail focus:border-fail focus:ring-fail" : ""}`}
         />
         <button
           type="button"

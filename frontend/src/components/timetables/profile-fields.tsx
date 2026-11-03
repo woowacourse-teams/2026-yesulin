@@ -6,8 +6,6 @@ import { formatPhoneInput } from "@/features/timetables/contacts";
 import type { ProfileFormErrors } from "@/features/timetables/profile-form";
 import { TIMETABLE_LIMITS, type TimetableProfile } from "@/features/timetables/types";
 
-const INVALID_CLASS = "aria-invalid:border-fail aria-invalid:ring-2 aria-invalid:ring-fail-bg";
-
 export function ProfileFields({ form, errors, onChange, disabled = false }: {
   readonly form: TimetableProfile;
   readonly errors: ProfileFormErrors;
@@ -36,17 +34,17 @@ export function ProfileFields({ form, errors, onChange, disabled = false }: {
     <div className="grid gap-5 sm:grid-cols-2">
       <div className="sm:col-span-2">
         {label("title", "작품명", true)}
-        <FieldInput {...field("title")} maxLength={TIMETABLE_LIMITS.titleLength} placeholder="예: 햄릿" className={`mt-2 ${INVALID_CLASS}`} />
+        <FieldInput {...field("title")} maxLength={TIMETABLE_LIMITS.titleLength} placeholder="예: 햄릿" className="mt-2" />
         {error("title")}
       </div>
       <div>
         {label("organizerName", "단체명", true)}
-        <FieldInput {...field("organizerName")} maxLength={TIMETABLE_LIMITS.organizerNameLength} placeholder="예: 극단 하늘" className={`mt-2 ${INVALID_CLASS}`} />
+        <FieldInput {...field("organizerName")} maxLength={TIMETABLE_LIMITS.organizerNameLength} placeholder="예: 극단 하늘" className="mt-2" />
         {error("organizerName")}
       </div>
       <div>
         {label("contactName", "담당자명", false)}
-        <FieldInput {...field("contactName")} maxLength={TIMETABLE_LIMITS.contactNameLength} placeholder="예: 김하늘" className={`mt-2 ${INVALID_CLASS}`} />
+        <FieldInput {...field("contactName")} maxLength={TIMETABLE_LIMITS.contactNameLength} placeholder="예: 김하늘" className="mt-2" />
         {error("contactName")}
       </div>
       <div>
@@ -59,18 +57,18 @@ export function ProfileFields({ form, errors, onChange, disabled = false }: {
           autoComplete="tel"
           maxLength={13}
           placeholder="010-1234-5678"
-          className={`mt-2 ${INVALID_CLASS}`}
+          className="mt-2"
         />
         {error("organizerPhone")}
       </div>
       <div>
         {label("location", "오디션 장소", false)}
-        <FieldInput {...field("location")} maxLength={TIMETABLE_LIMITS.locationLength} placeholder="예: 대학로 ○○빌딩 3층 연습실" className={`mt-2 ${INVALID_CLASS}`} />
+        <FieldInput {...field("location")} maxLength={TIMETABLE_LIMITS.locationLength} placeholder="예: 대학로 ○○빌딩 3층 연습실" className="mt-2" />
         {error("location")}
       </div>
       <div className="sm:col-span-2">
         {label("guide", "안내 사항", false)}
-        <FieldTextarea {...field("guide")} rows={3} maxLength={TIMETABLE_LIMITS.guideLength} placeholder="예: 지정 대사 1분, 움직이기 편한 복장" className={`mt-2 resize-y ${INVALID_CLASS}`} />
+        <FieldTextarea {...field("guide")} rows={3} maxLength={TIMETABLE_LIMITS.guideLength} placeholder="예: 지정 대사 1분, 움직이기 편한 복장" className="mt-2 resize-y" />
         {error("guide")}
       </div>
     </div>

@@ -152,10 +152,10 @@ public record SubmissionDetailResult(
         }
     }
 
-    public record CareerResult(int year, String title, String roleName) {
+    public record CareerResult(int year, Integer month, String title, String roleName) {
 
         private static CareerResult from(SubmissionCareer career) {
-            return new CareerResult(career.year(), career.title(), career.roleName());
+            return new CareerResult(career.year(), career.month(), career.title(), career.roleName());
         }
     }
 

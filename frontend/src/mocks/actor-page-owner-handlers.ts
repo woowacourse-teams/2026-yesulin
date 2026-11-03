@@ -17,6 +17,7 @@ import {
 } from "@/features/actor-pages/types";
 import { PROFILE_CAREER_GENRES } from "@/features/applicants/career-genre";
 import { isEducationInformation } from "@/features/applicants/education";
+import { compareCareerRecency } from "@/features/applicants/career-identity";
 import type { ApplicantAnswerValue, CareerEntry } from "@/features/applicants/types";
 import { applicantProfile, clearApplicantPhotoPublicCopies, seedApplicantPhotoVisibility } from "./applicants/store";
 
@@ -165,8 +166,8 @@ function careerGroups(value: ApplicantAnswerValue | undefined): ActorCareerGroup
   const genres = [...PROFILE_CAREER_GENRES.map((option) => option.value), null];
   return genres.flatMap((genre) => {
     const group = careers.filter((career) => (career.genre ?? null) === genre)
-      .sort((left, right) => right.year - left.year)
-      .map((career) => ({ year: career.year, title: career.title, roleName: career.part }));
+      .sort(compareCareerRecency)
+      .map((career) => ({ year: career.year, month: career.month ?? null, title: career.title, roleName: career.part }));
     return group.length ? [{ genre, careers: group }] : [];
   });
 }

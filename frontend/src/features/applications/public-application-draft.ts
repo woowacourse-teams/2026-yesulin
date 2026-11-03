@@ -61,7 +61,7 @@ export function submissionValue(field: ApplicationFieldInput, draft: {
       ? requirements.map((requirement) => draft.values[`${field.id}.${requirement.id}`] ?? "")
       : draft.videoUrl;
   }
-  if (field.id === "CAREER") return draft.noCareer ? [] : draft.careers.map((career) => ({ year: Number(career.year), title: career.title, part: career.part }));
+  if (field.id === "CAREER") return draft.noCareer ? [] : draft.careers.map((career) => ({ year: Number(career.year), month: Number(career.month), title: career.title, part: career.part }));
   if (field.id === "SCHOOL") return {
     level: educationLevel(draft.values["SCHOOL.educationLevel"]),
     school: draft.values["SCHOOL.school"] ?? "",

@@ -52,6 +52,7 @@ let photoLibrary: ApplicantProfilePhoto[] = [
   { id: "seed-photo-3", name: "김하린 연기 이미지 1.jpg", url: "/images/applicants/kim-harin-acting-1.png", representative: false, visibility: "PRIVATE" },
 ];
 let videoLibrary: ApplicantProfileVideo[] = [{ id: "seed-video-1", url: "https://youtu.be/aqz-KE-bpKQ", youtubeId: "aqz-KE-bpKQ", visibility: "PRODUCER" }];
+let profileScenarioInitialized = false;
 let submissions: ApplicantSubmissionDetail[] = [{
   id: submissionId("00000000-0000-4000-8000-000026081201"), postingId: "seed_posting_1", performanceTitle: "달빛 아래 우리", postingTitle: "2026 하반기 주·조연 배우 모집",
   posterUrl: "/images/performances/moonlight.jpg", companyName: "예술in 스테이지",
@@ -65,6 +66,14 @@ const claims = new Map<string, { readonly submissionId: SubmissionId; readonly e
 const clone = <T>(value: T): T => structuredClone(value);
 
 export function applicantProfile(): ApplicantProfileResponse {
+  if (!profileScenarioInitialized) {
+    profileScenarioInitialized = true;
+    if (new URLSearchParams(globalThis.location?.search ?? "").get("mockApplicantProfile") === "empty") {
+      profileAnswers = [];
+      photoLibrary = [];
+      videoLibrary = [];
+    }
+  }
   const answer = (key: string) => profileAnswers.find((candidate) => candidate.key === key)?.value;
   const basicValues = [answer("NAME"), answer("HEIGHT"), answer("WEIGHT"), answer("BIRTH"), answer("GENDER"), answer("PHONE"), answer("EMAIL"), answer("ADDRESS")];
   const filled = basicValues.filter((value) => typeof value === "number" ? value > 0 : typeof value === "string" && value.trim().length > 0).length;
@@ -74,7 +83,7 @@ export function applicantProfile(): ApplicantProfileResponse {
 export function patchApplicantProfile(body: UpdateProfileRequest): ApplicantProfileResponse {
   const incomingCareers = body.answers?.find((answer) => answer.key === "CAREER");
   if (incomingCareers) {
-    const error = profileCareersError(incomingCareers.value);
+    const error = profileCareersError(incomingCareers.value, (profileAnswers.find((answer) => answer.key === "CAREER")?.value ?? []) as readonly CareerEntry[]);
     if (error) throw new Error(error);
   }
   const remove = new Set(body.removeKeys ?? []);

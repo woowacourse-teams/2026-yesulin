@@ -46,11 +46,6 @@
   transition:background-color .18s,border-color .18s,box-shadow .18s;
 }
 
-.public-notebook :is(a,button,summary,input,select,textarea):focus-visible {
-  outline:3px solid #2564a8;
-  outline-offset:4px;
-}
-
 .notebook-skip {
   position:fixed;
   top:8px;
@@ -139,11 +134,6 @@
   color:var(--brand);
   text-decoration:underline;
   text-underline-offset:5px;
-}
-
-.notebook-account :is(a,button):focus-visible {
-  outline:2px solid var(--brand);
-  outline-offset:4px;
 }
 
 .notebook-mobile-navigation { display:none; }
@@ -422,8 +412,8 @@
 }
 
 .notebook-search:focus-within {
-  outline:2px solid #2564a8;
-  outline-offset:3px;
+  border-color:var(--focus);
+  box-shadow:0 0 0 1px var(--focus);
 }
 
 .notebook-search input::placeholder {

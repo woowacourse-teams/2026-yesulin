@@ -161,7 +161,7 @@ export function AuditionPostBodyEditor({ editorRef, id, labelledBy, describedBy,
   if (!editor) return <BodyEditorLoading />;
 
   return (
-    <div className="overflow-hidden rounded-control border border-border bg-card focus-within:border-brand focus-within:ring-2 focus-within:ring-brand-soft">
+    <div className="overflow-hidden rounded-control border border-border bg-card focus-within:border-brand focus-within:ring-1 focus-within:ring-brand">
       <div role="group" aria-label="본문 서식" className="flex flex-wrap gap-1 border-b border-border-soft bg-surface p-1.5">
         {TOOLS.map((tool, index) => (
           <button
@@ -259,7 +259,7 @@ function LinkTool({ editor, active, inputId }: {
               placeholder="https://"
               aria-invalid={error ? true : undefined}
               aria-describedby={error ? `${inputId}-error` : undefined}
-              className="min-h-11 min-w-0 flex-1 rounded-control border border-border bg-card px-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand-soft"
+              className="min-h-11 min-w-0 flex-1 rounded-control border border-border bg-card px-3 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand"
             />
             <button type="button" onClick={apply} className={`${TOOL_CLASS} border border-border bg-card`}>적용</button>
           </div>

@@ -223,7 +223,8 @@ public class OtrScreeningService {
                 submission.getLinks(), submission.getNationality(), submission.getSpecialty(), submission.getHobbies(),
                 submission.getMilitaryServiceStatus() == null ? null : submission.getMilitaryServiceStatus().name(),
                 submission.getSubmittedAt(), submission.getCareers().stream().map(career ->
-                        new ScreeningApplicantResult.Career(career.year(), career.title(), career.roleName())).toList(),
+                        new ScreeningApplicantResult.Career(
+                                career.year(), career.month(), career.title(), career.roleName())).toList(),
                 submission.getCoverLetter(), List.of(),
                 submission.getPhotoFileIds().stream().map(id ->
                         new ScreeningApplicantResult.Photo("사진", photoUrls.get(id))).toList(),

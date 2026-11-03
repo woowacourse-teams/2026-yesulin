@@ -38,8 +38,8 @@ export function ApplicantProfileOverview({ profile, actorPage }: { readonly prof
         </div>
       </div>
       <div className="applicant-completeness">
-        <div><span>필수 기본정보</span><strong className="num">{profile.completeness.filled} / {profile.completeness.standardTotal}개</strong></div>
-        <div className="workspace-progress" role="progressbar" aria-label="필수 기본정보 작성률" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}><span style={{ width: percent + "%" }} /></div>
+        <div><span>저장한 기본정보</span><strong className="num">{profile.completeness.filled} / {profile.completeness.standardTotal}개</strong></div>
+        <div className="workspace-progress" role="progressbar" aria-label="기본정보 작성률" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}><span style={{ width: percent + "%" }} /></div>
         <p className="workspace-caption">기본정보를 채워두면 다음 지원서에 활용할 수 있어요.</p>
       </div>
       {actorPage ? <ActorPageSummary settings={actorPage} /> : null}

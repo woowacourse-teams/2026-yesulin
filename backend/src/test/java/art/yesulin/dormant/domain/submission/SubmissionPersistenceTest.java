@@ -78,8 +78,8 @@ class SubmissionPersistenceTest {
         );
         assertEquals(
                 List.of(
-                        new SubmissionCareer(2024, "리어왕", "코델리아"),
-                        new SubmissionCareer(2025, "햄릿", "오필리어")
+                        new SubmissionCareer(2024, 3, "리어왕", "코델리아"),
+                        new SubmissionCareer(2025, 3, "햄릿", "오필리어")
                 ),
                 found.getApplicantSnapshot().getAdditionalInformation().careers()
         );
@@ -155,8 +155,8 @@ class SubmissionPersistenceTest {
                 "영화 감상",
                 MilitaryServiceStatus.NOT_APPLICABLE,
                 List.of(
-                        new SubmissionCareer(2024, "리어왕", "코델리아"),
-                        new SubmissionCareer(2025, "햄릿", "오필리어")
+                        new SubmissionCareer(2024, 3, "리어왕", "코델리아"),
+                        new SubmissionCareer(2025, 3, "햄릿", "오필리어")
                 )
         );
         SubmissionFieldSnapshot fields = new SubmissionFieldSnapshot(
