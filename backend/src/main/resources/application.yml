@@ -105,6 +105,9 @@ yesulin:
       max-open-duration: ${YESULIN_PDF_AI_CIRCUIT_MAX_OPEN_DURATION:PT5M}
   pdf-extraction:
     enabled: ${YESULIN_PDF_EXTRACTION_ENABLED:false}
+  community:
+    link-base-url: ${YESULIN_COMMUNITY_LINK_BASE_URL:}
+    notifications-enabled: ${YESULIN_COMMUNITY_NOTIFICATIONS_ENABLED:true}
   audition-post:
     count-cache:
       enabled: ${YESULIN_AUDITION_COUNT_CACHE_ENABLED:true}

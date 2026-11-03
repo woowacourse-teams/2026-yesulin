@@ -16,3 +16,4 @@ yesulin:
     event-registration-webhook-url: ${YESULIN_EVENT_REGISTRATION_SLACK_WEBHOOK_URL:}
     # 관리자 명단 링크는 신청을 받은 환경의 프론트 주소를 사용한다.
     event-registration-admin-base-url: ${YESULIN_EVENT_REGISTRATION_ADMIN_BASE_URL:${YESULIN_NOTICE_LINK_BASE_URL}}
+    community-webhook-url: ${YESULIN_COMMUNITY_SLACK_WEBHOOK_URL:}
