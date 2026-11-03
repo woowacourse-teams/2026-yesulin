@@ -47,7 +47,7 @@ function HeaderAccountLinks({ service, producerLinkClassName }: { readonly servi
   const { session } = useAuthSession();
   if (session) return <>
     {session.role === "APPLICANT"
-      ? <Link href={applicantRoutes.submissions}>내 지원서</Link>
+      ? <Link href={applicantRoutes.home}>마이페이지</Link>
       : <Link href={producerAuditionPostRoutes.list}>내 오디션 공고</Link>}
     <LogoutButton />
   </>;

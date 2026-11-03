@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { ApplicantAnswerValue, CareerEntry } from "@/features/applicants/types";
 import { MAX_PROFILE_CAREER_COUNT, PROFILE_CAREER_GENRES, profileCareerGenreLabel, type ProfileCareerGenre } from "@/features/applicants/career-genre";
 import { educationInformation } from "@/features/applicants/education";
-import { formatKoreanPhone, integerMeasurementError, isIntegerMeasurement, isValidEmail, isValidKoreanPhone } from "@/features/applicants/profile-input";
+import { formatKoreanPhone, integerMeasurementError, isIntegerMeasurement, isValidEmail, isValidKoreanPhone, profileBirthDateError } from "@/features/applicants/profile-input";
 import { usePhoneInput } from "@/features/applications/phone-number";
 import type { ApplicationFieldInput } from "@/features/auditions/creation-types";
 import { CalendarDateRangeField } from "@/components/auditions/calendar-date-range-field";
@@ -20,33 +20,46 @@ type InformationSectionProps = {
   readonly fields: readonly ApplicationFieldInput[];
   readonly values: Readonly<Record<string, ApplicantAnswerValue>>;
   readonly onChange: (key: string, value: ApplicantAnswerValue) => void;
+  readonly invalidField?: string | null;
 };
 
-export function ProfileInformationSection({ tab, fields, values, onChange }: InformationSectionProps) {
+export function ProfileInformationSection({ tab, fields, values, onChange, invalidField }: InformationSectionProps) {
   const visibleFields = fields.filter((field) => field.id !== "CAREER");
+  const startingKeys = ["NAME", "BIRTH", "GENDER"];
+  const startingFields = tab === "BASIC" ? startingKeys.flatMap((key) => visibleFields.find((field) => field.id === key) ?? []) : visibleFields;
+  const otherFields = tab === "BASIC" ? visibleFields.filter((field) => !startingKeys.includes(field.id)) : [];
+  const renderFields = (items: readonly ApplicationFieldInput[]) => <div className="grid gap-5 md:grid-cols-2">{items.map((field) => <StandardField key={field.id} field={field} value={values[field.id]} forceError={invalidField === field.id} onChange={(value) => onChange(field.id, value)} />)}</div>;
   return <div className="mt-6 space-y-7">
-    <div className="grid gap-5 md:grid-cols-2">{visibleFields.map((field) => <StandardField key={field.id} field={field} value={values[field.id]} onChange={(value) => onChange(field.id, value)} />)}</div>
+    {renderFields(startingFields)}
+    {otherFields.length ? <details className="profile-optional-fields rounded-control border border-border px-4 py-1 open:pb-4">
+      <summary className="min-h-11 cursor-pointer py-3 text-sm font-semibold">지원서용 정보 더 입력하기 <span className="font-normal text-muted">(선택)</span></summary>
+      <p className="mb-5 mt-3 text-sm leading-6 text-muted">키·몸무게·연락처 등을 미리 저장할 수 있어요. 연락처와 거주 지역은 배우 페이지에 공개되지 않아요.</p>
+      {renderFields(otherFields)}
+    </details> : null}
     {tab === "ADDITIONAL" ? <CareerSection value={careerValue(values.CAREER)} onChange={(value) => onChange("CAREER", value)} /> : null}
   </div>;
 }
 
-function StandardField({ field, value, onChange }: { readonly field: ApplicationFieldInput; readonly value?: ApplicantAnswerValue; readonly onChange: (value: ApplicantAnswerValue) => void }) {
+function StandardField({ field, value, onChange, forceError }: { readonly field: ApplicationFieldInput; readonly value?: ApplicantAnswerValue; readonly onChange: (value: ApplicantAnswerValue) => void; readonly forceError: boolean }) {
   const onPhoneChange = usePhoneInput(formatKoreanPhone);
   const [touched, setTouched] = useState(false);
   const id = `profile-${field.id}`;
   const width = field.layout === "FULL" || field.inputType === "TEXTAREA" || field.inputType === "COMPOSITE" ? "md:col-span-2" : "";
-  const label = <>{field.label}<span className="ml-1 text-xs font-normal text-muted">(선택)</span></>;
+  const publicBasic = ["NAME", "BIRTH", "GENDER"].includes(field.id);
+  const label = <>{field.label}<span className="ml-1 text-xs font-normal text-muted">({publicBasic ? "페이지 공개 시 필요" : "선택"})</span></>;
   if (field.id === "LINK") return <ExternalLinksField value={linkValue(value)} onChange={onChange} />;
   if (field.id === "SCHOOL") return <EducationField value={value} onChange={onChange} />;
   const text = typeof value === "string" || typeof value === "number" ? String(value) : "";
-  const contactError = touched && field.id === "PHONE" && text && !isValidKoreanPhone(text) ? "연락처를 확인해 주세요. 예: 010-1234-5678" : "";
-  const emailError = touched && field.id === "EMAIL" && text && !isValidEmail(text) ? "이메일 주소 형식을 확인해 주세요. 예: actor@example.com" : "";
-  const measurementError = touched && field.inputType === "NUMBER" && !isIntegerMeasurement(text) ? integerMeasurementError(field.label) : "";
-  const fieldError = contactError || emailError || measurementError;
-  if (field.id === "BIRTH") return <label htmlFor={id} className={width}><span className="mb-2 block text-sm font-semibold">{label}</span><BirthDateInput id={id} value={text} required={field.required} invalid={false} onChange={onChange} /></label>;
+  const showError = touched || forceError;
+  const contactError = showError && field.id === "PHONE" && text && !isValidKoreanPhone(text) ? "연락처를 확인해 주세요. 예: 010-1234-5678" : "";
+  const emailError = showError && field.id === "EMAIL" && text && !isValidEmail(text) ? "이메일 주소 형식을 확인해 주세요. 예: actor@example.com" : "";
+  const measurementError = showError && field.inputType === "NUMBER" && !isIntegerMeasurement(text) ? integerMeasurementError(field.label) : "";
+  const birthError = field.id === "BIRTH" && showError ? profileBirthDateError(text) : "";
+  const fieldError = contactError || emailError || measurementError || birthError;
+  if (field.id === "BIRTH") return <label htmlFor={id} className={width}><span className="mb-2 block text-sm font-semibold">{label}</span><BirthDateInput id={id} value={text} required={field.required} invalid={Boolean(birthError)} describedBy={birthError ? `${id}-error` : undefined} onBlur={() => setTouched(true)} onChange={onChange} />{birthError ? <span id={`${id}-error`} role="alert" className="mt-2 block text-sm font-medium text-fail">{birthError}</span> : null}</label>;
   if (field.inputType === "DATE") return <fieldset className={width}><legend className="mb-2 text-sm font-semibold">{label}</legend><CalendarDateRangeField single variant="compact" start={text} end="" startLabel={field.label} onStartChange={onChange} onEndChange={() => undefined} /></fieldset>;
   if (field.inputType === "REGION") return <fieldset className={width}><legend className="mb-2 text-sm font-semibold">{label}</legend><RegionSelect id={id} value={text} onChange={onChange} /></fieldset>;
-  const control = <FieldInput id={id} type={field.id === "EMAIL" ? "email" : field.inputType === "TEL" ? "tel" : field.inputType === "URL" ? "url" : field.inputType === "NUMBER" ? "number" : "text"} inputMode={field.id === "PHONE" ? "tel" : field.id === "EMAIL" ? "email" : field.inputType === "NUMBER" ? "numeric" : undefined} autoComplete={field.id === "PHONE" ? "tel" : field.id === "EMAIL" ? "email" : undefined} min={field.inputType === "NUMBER" ? 1 : undefined} step={field.inputType === "NUMBER" ? 1 : undefined} maxLength={field.id === "PHONE" ? 13 : undefined} value={text} placeholder={field.config.placeholder} aria-invalid={Boolean(fieldError) || undefined} aria-describedby={fieldError ? `${id}-error` : undefined} className={field.config.unit ? "pr-12" : ""} onBlur={() => setTouched(true)} onChange={(event) => field.id === "PHONE" ? onPhoneChange(event, onChange) : onChange(field.inputType === "NUMBER" ? Number(event.target.value) : event.target.value)} />;
+  const control = <FieldInput id={id} type={field.id === "EMAIL" ? "email" : field.inputType === "TEL" ? "tel" : field.inputType === "URL" ? "url" : field.inputType === "NUMBER" ? "number" : "text"} inputMode={field.id === "PHONE" ? "tel" : field.id === "EMAIL" ? "email" : field.inputType === "NUMBER" ? "numeric" : undefined} autoComplete={field.id === "PHONE" ? "tel" : field.id === "EMAIL" ? "email" : undefined} min={field.inputType === "NUMBER" ? 1 : undefined} step={field.inputType === "NUMBER" ? 1 : undefined} maxLength={field.id === "PHONE" ? 13 : undefined} value={text} placeholder={field.config.placeholder} aria-invalid={Boolean(fieldError) || undefined} aria-describedby={fieldError ? `${id}-error` : undefined} className={field.config.unit ? "pr-12" : ""} onBlur={() => setTouched(true)} onChange={(event) => field.id === "PHONE" ? onPhoneChange(event, onChange) : onChange(field.inputType === "NUMBER" && event.target.value !== "" ? Number(event.target.value) : event.target.value)} />;
   const textInput = <>{field.config.unit ? <span className="relative block">{control}<UnitSuffix unit={field.config.unit} /></span> : control}{fieldError ? <span id={`${id}-error`} role="alert" className="mt-2 block text-sm font-medium text-fail">{fieldError}</span> : null}</>;
   return <label htmlFor={id} className={width}><span className="mb-2 block text-sm font-semibold">{label}</span>{field.inputType === "TEXTAREA" ? <><FieldTextarea id={id} rows={6} maxLength={field.config.maxLength} value={text} placeholder={field.config.placeholder} onChange={(event) => onChange(event.target.value)} />{field.config.maxLength ? <span className="num mt-2 block text-right text-xs text-muted">{text.length.toLocaleString("ko-KR")} / {field.config.maxLength.toLocaleString("ko-KR")}자</span> : null}</> : field.inputType === "SELECT" ? <FieldSelect id={id} value={text} onChange={(event) => onChange(event.target.value)}><option value="">선택하지 않음</option>{field.config.options?.map((option) => <option key={option}>{option}</option>)}</FieldSelect> : textInput}</label>;
 }

@@ -1,8 +1,7 @@
 import { MAX_ACTOR_PHOTO_COUNT } from "@/features/files/photo-policy";
 import type { ApplicationFormStep } from "./application-form";
 import { isCompleteKoreaRegion } from "@/features/applicants/korea-regions";
-import { integerMeasurementError, isIntegerMeasurement } from "@/features/applicants/profile-input";
-import { isValidBirthDate } from "@/components/ui/birth-date-input";
+import { integerMeasurementError, isIntegerMeasurement, isValidBirthDate } from "@/features/applicants/profile-input";
 import { applicationLinks } from "./application-links";
 import { objectParticle, topicParticle } from "@/features/korean";
 

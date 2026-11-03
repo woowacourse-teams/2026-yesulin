@@ -66,17 +66,33 @@
 .applicant-history-work strong { display:block; font-size:13px; font-weight:650; }
 .applicant-history-work small { display:block; margin-top:6px; color:var(--ink-40); font-size:11px; }
 .applicant-history-date { color:var(--ink-40); font-size:11px; }
-.applicant-profile-meter { width:220px; padding:16px 18px; border:1px solid var(--line); border-radius:12px; background:var(--brand-soft); font-size:12px; }
-.applicant-profile-meter>div:first-child { display:flex; justify-content:space-between; gap:14px; }
-.applicant-profile-meter .workspace-progress { margin-bottom:0; background:var(--white); }
 .applicant-profile-editor { display:grid; grid-template-columns:220px minmax(0,1fr); align-items:start; gap:24px; }
+.profile-composer-toolbar { display:flex; width:fit-content; gap:4px; margin-bottom:20px; padding:4px; border:1px solid var(--line); border-radius:12px; background:var(--white); }
+.profile-composer-toolbar button { min-height:44px; padding:0 16px; border-radius:8px; font-size:14px; font-weight:600; color:var(--ink-40); }
+.profile-composer-toolbar button[aria-pressed=true] { background:var(--brand-soft); color:var(--brand); }
+.profile-composer-body { display:grid; align-items:start; gap:24px; }
+@media(min-width:1101px) {
+  .profile-composer[data-preview=true] .profile-composer-body { grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
+  .profile-composer[data-preview=true] .applicant-profile-editor { grid-template-columns:1fr; }
+  .profile-composer[data-preview=true] .applicant-profile-tabs { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .profile-composer[data-preview=true] .profile-photo-grid { grid-template-columns:1fr; }
+  .profile-composer[data-preview=true] .profile-photo-card { display:grid; }
+}
+@media(max-width:1100px) {
+  .profile-composer[data-preview=true] .profile-composer-edit { display:none; }
+  .profile-composer-toolbar { position:sticky; top:76px; z-index:10; max-width:100%; }
+}
 .applicant-profile-tabs { display:flex; flex-direction:column; gap:3px; padding:8px; border:1px solid var(--line); border-radius:14px; background:var(--white); }
 .applicant-profile-tab { min-height:58px; padding:12px; border-radius:9px; text-align:left; font-size:12px; }
 .applicant-profile-tab[aria-current=page] { background:var(--brand-soft); color:var(--brand); }
 .applicant-profile-tab:hover { background:var(--brand-soft); }
 .applicant-profile-tab>span:first-child strong { font-size:12px; }
 .applicant-profile-tab>span:first-child>span { font-size:11px; }
-.applicant-profile-tab>span:nth-child(2) { display:none; }
+.applicant-profile-tab>span:nth-child(2) { display:block; color:var(--ink-40); line-height:1.6; }
+.applicant-profile-tab[data-optional=true] { border-top:1px solid var(--line); border-radius:0; }
+.profile-photo-card { display:grid; grid-template-columns:80px minmax(0,1fr); align-items:start; }
+.profile-photo-image { width:100%; }
+@media(min-width:640px) { .profile-photo-card { display:block; } }
 .timetable-create-layout { display:grid; grid-template-columns:minmax(0,1fr) 284px; align-items:start; gap:24px; }
 .timetable-create-fields { display:grid; gap:20px; min-width:0; }
 .timetable-create-fields label,
@@ -114,7 +130,6 @@
   .workspace-eyebrow { font-size:11px; margin-bottom:8px; }
   .workspace-description { font-size:12px; line-height:1.8; }
   .workspace-heading-action:has(>.workspace-text-link) { display:none; }
-  .applicant-profile-meter { width:100%; }
   .workspace-panel { padding:22px 20px; border-radius:13px; }
   .workspace-panel-heading { gap:10px; }
   .workspace-panel-heading h2 { font-size:17px; }
@@ -144,11 +159,18 @@
   .applicant-history-roles { color:var(--ink-40); font-size:11px; }
   .applicant-history-date { font-size:10px; }
   .applicant-history-arrow { grid-column:2; grid-row:1 / 5; }
-  .applicant-profile-tabs { flex-direction:row; gap:3px; overflow-x:auto; padding:5px; border-radius:10px; }
-  .applicant-profile-tab { flex:1; min-width:60px; min-height:44px; padding:10px 8px; text-align:center; }
+  .applicant-profile-tabs { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:3px; padding:5px; border-radius:10px; }
+  .applicant-profile-tab { grid-column:span 2; min-width:0; min-height:44px; padding:10px 4px; text-align:center; }
+  .applicant-profile-tab[data-optional=true] { grid-column:span 3; padding-block:8px; }
   .applicant-profile-tab>span:first-child { display:block; white-space:nowrap; }
   .applicant-profile-tab>span:first-child strong { font-size:11px; }
   .applicant-profile-tab>span:first-child>span { display:none; }
+  .applicant-profile-tab>span:nth-child(2) { display:none; }
+  .applicant-profile-tab[data-optional=true]>span:first-child strong::after { content:" · 선택"; color:var(--ink-40); font-weight:400; }
+  .applicant-theme .applicant-profile-editor :is(input:not([type=checkbox]):not([type=radio]),select,textarea) { font-size:16px; }
+  .profile-save-actions>p { flex-basis:100%; }
+  .profile-save-actions>div { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); width:100%; }
+  .profile-save-actions>div>button { padding-inline:8px; font-size:12px; }
   .timetable-create-aside { position:static; }
   .timetable-create-summary { padding:22px; }
   .timetable-create-guide { margin-top:18px; }

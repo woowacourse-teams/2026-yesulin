@@ -2,13 +2,12 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useState, type ReactNode } from "react";
 import { ScreenError } from "@/components/auditions/screen-status";
 import { ContentSkeleton, ContentState } from "@/components/ui/content-state";
 import { getActorPage } from "@/features/actor-pages/api";
 import {
   ACTOR_PAGE_INQUIRY_URL,
-  actorBodyLine,
   actorPageRoutes,
   type ActorPageContent,
   type PublicActorPage,
@@ -91,15 +90,15 @@ export function MissingActorPage() {
  * 배우 페이지 본문. 본인 미리보기(`preview`)는 마이페이지 안에 그려 제목 단계를 한 단계 내리고, 아직 입력하지 않은 이름·성별·
  * 생년월일과 정하지 않은 아이디는 비워 두며 공유 버튼을 숨긴다.
  */
-export function ActorPageView({ actorPage, preview = false }: { readonly actorPage: ActorPageContent; readonly preview?: boolean }) {
+export function ActorPageView({ actorPage, preview = false, compact = false }: { readonly actorPage: ActorPageContent; readonly preview?: boolean; readonly compact?: boolean }) {
   const name = actorPage.name ?? "이름 미입력";
   const NameHeading = preview ? "h2" : "h1";
   const { gender, birthYear, age } = actorPage;
-  const body = actorBodyLine(actorPage);
   const basicInformation = [
     gender ? { label: "성별", value: gender === "FEMALE" ? "여성" : "남성" } : null,
     birthYear !== null ? { label: "출생", value: `${birthYear}년생${age !== null ? ` (만 ${age}세)` : ""}` } : null,
-    body ? { label: "신체", value: body } : null,
+    actorPage.height ? { label: "키", value: `${actorPage.height}cm` } : null,
+    actorPage.weight ? { label: "몸무게", value: `${actorPage.weight}kg` } : null,
   ].filter((item) => item !== null);
   const GroupHeading = preview ? "h4" : "h3";
   const otherInformation = [
@@ -110,8 +109,8 @@ export function ActorPageView({ actorPage, preview = false }: { readonly actorPa
 
   return (
     <article className="mt-4">
-      <div className="grid items-start gap-7 min-[901px]:grid-cols-[minmax(0,340px)_minmax(0,1fr)] min-[901px]:gap-10">
-        <div className="min-w-0 min-[901px]:sticky min-[901px]:top-[104px] min-[901px]:-m-2 min-[901px]:max-h-[calc(100dvh-120px)] min-[901px]:overflow-y-auto min-[901px]:p-2">
+      <div className={`grid items-start gap-7 ${compact ? "" : "min-[901px]:grid-cols-[minmax(0,340px)_minmax(0,1fr)] min-[901px]:gap-10"}`}>
+        <div className={`min-w-0 ${compact ? "" : "min-[901px]:sticky min-[901px]:top-[104px] min-[901px]:-m-2 min-[901px]:max-h-[calc(100dvh-120px)] min-[901px]:overflow-y-auto min-[901px]:p-2"}`}>
           <ActorPhotoGallery name={name} representativePhotoUrl={actorPage.representativePhotoUrl} photos={actorPage.photos} />
         </div>
 
@@ -139,17 +138,13 @@ export function ActorPageView({ actorPage, preview = false }: { readonly actorPa
                 ))}
               </dl>
             ) : null}
+            <div className="mt-5 border-t border-border-soft pt-4">
+              <a href={ACTOR_PAGE_INQUIRY_URL} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-control bg-brand px-4 text-sm font-semibold text-white hover:bg-brand-strong">캐스팅 문의<span className="sr-only"> · 카카오톡 (새 창에서 열림)</span></a>
+              <p className="mt-2 text-xs leading-5 text-muted-strong">예술in이 배우에게 문의를 전달해 드려요.</p>
+            </div>
           </header>
 
-          <aside className="rounded-card border border-brand-line bg-brand-soft p-5 text-sm leading-6">
-            <p className="font-semibold">이 배우와 함께하고 싶다면</p>
-            <p className="mt-1 text-muted-strong">연락처 대신 예술in이 배우에게 문의를 전달해 드려요.</p>
-            <a href={ACTOR_PAGE_INQUIRY_URL} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex min-h-11 items-center rounded-control bg-brand px-4 font-semibold text-white hover:bg-brand-strong">
-              카카오톡으로 문의하기<span className="sr-only"> (새 창에서 열림)</span>
-            </a>
-          </aside>
-
-          {actorPage.coverLetter ? <Section preview={preview} title="자기소개"><p className="whitespace-pre-line break-words leading-7">{actorPage.coverLetter}</p></Section> : null}
+          {actorPage.coverLetter ? <Section preview={preview} title="자기소개"><ActorIntroduction text={actorPage.coverLetter} /></Section> : null}
 
           {actorPage.videos.length > 0 ? (
             <Section preview={preview} title="영상">
@@ -226,10 +221,25 @@ export function ActorPageView({ actorPage, preview = false }: { readonly actorPa
   );
 }
 
+function ActorIntroduction({ text }: { readonly text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const [overflows, setOverflows] = useState(false);
+  const id = useId();
+  const measure = useCallback((node: HTMLParagraphElement | null) => {
+    if (!node) return;
+    const check = () => { if (!expanded) setOverflows(node.scrollHeight > node.clientHeight + 1); };
+    check();
+    const observer = new ResizeObserver(check);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [expanded]);
+  return <><p id={id} ref={measure} className={`whitespace-pre-line break-words leading-7 ${expanded ? "" : "line-clamp-3"}`}>{text}</p>{overflows || expanded ? <button type="button" aria-expanded={expanded} aria-controls={id} onClick={() => setExpanded((value) => !value)} className="mt-2 min-h-11 text-sm font-semibold text-brand underline underline-offset-4">{expanded ? "소개 접기" : "소개 더 보기"}</button> : null}</>;
+}
+
 function Section({ title, preview, children }: { readonly title: string; readonly preview: boolean; readonly children: ReactNode }) {
   const Heading = preview ? "h3" : "h2";
   return (
-    <section className="min-w-0 rounded-card border border-border bg-card p-5 min-[761px]:p-7">
+    <section className="min-w-0 border-t border-border pt-6">
       <Heading className="mb-4 text-lg font-bold tracking-tight">{title}</Heading>
       {children}
     </section>

@@ -26,7 +26,6 @@ export function ActorPagePreviewScreen() {
       eyebrow="배우 페이지"
       title="미리보기"
       description="로그인하지 않은 방문자에게 보일 모습이에요. 공개로 설정한 항목·사진·영상만 보여요."
-      action={settingsLink}
     />
     {query.loading ? <div role="status" aria-label="미리보기 불러오는 중" className="workspace-panel animate-pulse"><div className="grid gap-6 min-[761px]:grid-cols-[minmax(0,320px)_1fr]"><div className="aspect-[3/4] rounded-card bg-border-soft" /><div><div className="h-8 w-1/3 rounded bg-border-soft" /><div className="mt-3 h-5 w-1/2 rounded bg-border-soft" /></div></div></div> : null}
     {!query.loading && (query.error || !query.data) ? <ScreenError message={query.error || "배우 페이지 미리보기를 불러오지 못했어요."} onRetry={query.reload} /> : null}
@@ -40,5 +39,6 @@ export function ActorPagePreviewScreen() {
         <ActorPageView actorPage={query.data.preview} preview />
       </section>
     </> : null}
+    <div className="mt-6">{settingsLink}</div>
   </Container>;
 }
