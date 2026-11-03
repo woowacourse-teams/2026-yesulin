@@ -32,12 +32,12 @@ const ADDITIONAL_KEYS = ["SCHOOL", "LINK", "NATIONALITY", "MILITARY", "SPECIALTY
 const INFORMATION_KEYS = new Set<string>([...BASIC_KEYS, ...ADDITIONAL_KEYS]);
 const MEASUREMENT_KEYS = ["HEIGHT", "WEIGHT"] as const;
 const MEASUREMENT_LABELS: Record<(typeof MEASUREMENT_KEYS)[number], string> = { HEIGHT: "키", WEIGHT: "몸무게" };
-const tabs: readonly { id: ProfileTab; label: string; description: string }[] = [
-  { id: "BASIC", label: "기본정보", description: "1. 이름·생년월일·성별" },
-  { id: "PHOTOS", label: "사진", description: "2. 프로필 사진 추가" },
-  { id: "ACTOR_PAGE", label: "배우 페이지", description: "3. 아이디 정하고 공개" },
-  { id: "ADDITIONAL", label: "추가정보", description: "선택 · 경력·자기소개 등" },
-  { id: "VIDEOS", label: "영상", description: "선택 · YouTube 영상" },
+const tabs: readonly { id: ProfileTab; label: string }[] = [
+  { id: "BASIC", label: "기본정보" },
+  { id: "PHOTOS", label: "사진" },
+  { id: "ACTOR_PAGE", label: "배우 페이지" },
+  { id: "ADDITIONAL", label: "추가정보" },
+  { id: "VIDEOS", label: "영상" },
 ];
 
 const standardFields: readonly ApplicationFieldInput[] = APPLICATION_FIELD_OPTIONS.map((field) => ({
@@ -202,7 +202,7 @@ export function ProfileEditor({ profile, onSaved, initialTab = "BASIC", onComple
     <div className="applicant-profile-editor profile-composer-edit">
     <nav aria-label="프로필 항목" className="applicant-profile-tabs">{tabs.map((tab) => {
       const active = activeTab === tab.id;
-      return <button key={tab.id} type="button" aria-current={active ? "page" : undefined} data-optional={tab.id === "ADDITIONAL" || tab.id === "VIDEOS" ? "true" : undefined} onClick={() => openTab(tab.id)} className="applicant-profile-tab"><span className="flex items-center justify-between gap-2"><strong className="text-sm">{tab.label}</strong><span className="num text-xs">{tabCount(tab.id)}</span></span><span className="mt-1 text-xs">{tab.description}</span></button>;
+      return <button key={tab.id} type="button" aria-current={active ? "page" : undefined} data-optional={tab.id === "ADDITIONAL" || tab.id === "VIDEOS" ? "true" : undefined} onClick={() => openTab(tab.id)} className="applicant-profile-tab"><span className="flex items-center justify-between gap-2"><strong className="text-sm">{tab.label}</strong><span className="num text-xs">{tabCount(tab.id)}</span></span></button>;
     })}</nav>
     <section className="workspace-panel min-w-0">
       <div className="flex flex-wrap items-start gap-3 border-b border-border-soft pb-5"><div className="min-w-0 flex-1"><h2 id="profile-section-title" tabIndex={-1} className="text-xl font-bold outline-none">{tabs.find((tab) => tab.id === activeTab)?.label}</h2><p className="mt-2 text-sm leading-6 text-muted">{activeTab === "BASIC" ? "이름·생년월일·성별부터 입력하세요. 작성한 항목만 저장할 수 있어요." : activeTab === "ADDITIONAL" ? "필요할 때 천천히 채워도 괜찮아요. 프로필에 저장한 내용은 다음 지원서에 활용할 수 있어요." : activeTab === "ACTOR_PAGE" ? "아이디와 공개할 사진을 고른 뒤 내 페이지를 공개해 보세요." : "추가·삭제·순서 변경 내용은 즉시 저장됩니다."}</p></div>{informationTab ? <ProfileImport values={values} photoCount={profile.photoLibrary.length} onApply={applyImport} onPhotoAdded={importedPhotoAdded} /> : null}</div>

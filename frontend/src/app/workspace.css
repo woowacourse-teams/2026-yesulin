@@ -83,12 +83,12 @@
   .profile-composer-toolbar { position:sticky; top:76px; z-index:10; max-width:100%; }
 }
 .applicant-profile-tabs { display:flex; flex-direction:column; gap:3px; padding:8px; border:1px solid var(--line); border-radius:14px; background:var(--white); }
-.applicant-profile-tab { min-height:58px; padding:12px; border-radius:9px; text-align:left; font-size:12px; }
+.applicant-profile-tab { min-height:48px; padding:12px; border-radius:9px; text-align:left; font-size:12px; }
 .applicant-profile-tab[aria-current=page] { background:var(--brand-soft); color:var(--brand); }
 .applicant-profile-tab:hover { background:var(--brand-soft); }
-.applicant-profile-tab>span:first-child strong { font-size:12px; }
+.applicant-profile-tab>span:first-child strong { font-size:14px; }
 .applicant-profile-tab>span:first-child>span { font-size:11px; }
-.applicant-profile-tab>span:nth-child(2) { display:block; color:var(--ink-40); line-height:1.6; }
+.applicant-profile-tab[data-optional=true]>span:first-child strong::after { content:" · 선택"; color:var(--ink-40); font-size:12px; font-weight:400; }
 .applicant-profile-tab[data-optional=true] { border-top:1px solid var(--line); border-radius:0; }
 .profile-photo-card { display:grid; grid-template-columns:80px minmax(0,1fr); align-items:start; }
 .profile-photo-image { width:100%; }
@@ -163,10 +163,8 @@
   .applicant-profile-tab { grid-column:span 2; min-width:0; min-height:44px; padding:10px 4px; text-align:center; }
   .applicant-profile-tab[data-optional=true] { grid-column:span 3; padding-block:8px; }
   .applicant-profile-tab>span:first-child { display:block; white-space:nowrap; }
-  .applicant-profile-tab>span:first-child strong { font-size:11px; }
+  .applicant-profile-tab>span:first-child strong { font-size:13px; }
   .applicant-profile-tab>span:first-child>span { display:none; }
-  .applicant-profile-tab>span:nth-child(2) { display:none; }
-  .applicant-profile-tab[data-optional=true]>span:first-child strong::after { content:" · 선택"; color:var(--ink-40); font-weight:400; }
   .applicant-theme .applicant-profile-editor :is(input:not([type=checkbox]):not([type=radio]),select,textarea) { font-size:16px; }
   .profile-save-actions>p { flex-basis:100%; }
   .profile-save-actions>div { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); width:100%; }
