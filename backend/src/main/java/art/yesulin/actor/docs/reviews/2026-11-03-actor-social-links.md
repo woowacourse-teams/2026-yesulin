@@ -27,4 +27,3 @@
 - 스크린샷 `output/actor-social-links-2026-11-03/{desktop,mobile-320}.jpg`는 로컬 산출물로 커밋 제외.
 - 독립 평가: 제품 소비자·문서 연결 정상, 옛 ExternalLink 및 중복 렌더 제거, 불필요한 파일·설정·의존성 없음. 기존 react-icons의 브랜드 SVG와 공통 SiteIcon만 사용하며 외부 SDK·계정 조회 없음.
 - 실제 기기와 SNS 외부 목적지의 로그인·서비스 응답은 검증 범위 밖이다. 저장·공개 설정·API 계약 변경 없음. GitHub 인증 만료로 이슈/PR은 미생성.
-

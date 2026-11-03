@@ -52,4 +52,3 @@
 - 독립 평가 1회 / 필수 PASS5·FAIL0·UNVERIFIED0 / N/A: 실기기·키보드, 외부 전송·실제 제출·운영 변경.
 - 신규 확정 발견4 / 해결4 / 미해결0 / P0=0·P1=0·P2=2·P3=2 / PRECHECK=2 / INDEPENDENT_REVIEW=1 / POST_FIX_CHECK=1 / 오탐0.
 - 검증률 5/5(이번 평가표 범위). 실기기 Safari/Chrome과 화면 키보드는 미확인. PR은 생성·게시하지 않았고 다음 PR에 이 기록을 포함한다.
-

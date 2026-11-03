@@ -72,4 +72,3 @@ it("새로 입력한 아이디도 저장하기 전에는 공개하지 않고 저
   expect(changeActorHandle).toHaveBeenCalledWith("new.actor");
   expect(button("공개하기").disabled).toBe(false);
 });
-
