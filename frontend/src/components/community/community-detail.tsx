@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { PiArrowLeft, PiChatCircle, PiLink } from "react-icons/pi";
 import { AuditionRequestError } from "@/features/auditions/api-client";
 import { deletePost, getPost } from "@/features/community/api";
+import { trackPostViewed, useTrackOnce } from "@/features/community/analytics";
 import { errorMessage } from "@/features/community/hooks";
 import { copyLink, postUrl } from "@/features/community/share";
 import type { CommunityEntry, CommunityLikeState } from "@/features/community/types";
@@ -25,6 +26,7 @@ export function CommunityDetail({ id }: { readonly id: number }) {
   const [missing, setMissing] = useState(false);
   const [editing, setEditing] = useState(false);
   const toast = useCommunityToast();
+  useTrackOnce(post !== null, trackPostViewed);
   const reload = useCallback(async () => {
     try { setPost(await getPost(id)); setError(""); }
     catch (cause) {

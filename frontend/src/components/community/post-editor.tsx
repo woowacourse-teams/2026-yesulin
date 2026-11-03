@@ -3,6 +3,7 @@
 import { useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createPost, editPost } from "@/features/community/api";
+import { trackComposeStarted, trackPostCreated, useAbandonTracking, useTrackOnce } from "@/features/community/analytics";
 import { normalizePost, SubmissionAttempt } from "@/features/community/draft";
 import { useCommunityAction, useDraftGuard } from "@/features/community/hooks";
 import type { CommunityEntry } from "@/features/community/types";
@@ -24,12 +25,15 @@ export function PostEditor({ post, onSaved, onCancel }: Props) {
   const [saved, setSaved] = useState(false);
   const dirty = fields.title !== original.title || fields.body !== original.body;
   useDraftGuard(dirty && !saved);
+  useTrackOnce(!post, trackComposeStarted);
+  useAbandonTracking(!post, dirty && !saved);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     await action.run(async () => {
       const input = normalizePost(fields.title, fields.body);
       const result = await savePost(post, input, attempt.current.idFor(input));
       setSaved(true);
+      if (!post) trackPostCreated();
       if (onSaved) return onSaved();
       router.replace(`/community/${result.id}`);
     });
