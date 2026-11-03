@@ -51,7 +51,7 @@ export type BackendSubmissionDetail = BackendSubmissionSummary & {
       readonly specialty: string | null;
       readonly hobbies: string | null;
       readonly militaryServiceStatus: "COMPLETED" | "NOT_COMPLETED" | "NOT_APPLICABLE" | null;
-      readonly careers: readonly { readonly year: number; readonly title: string; readonly roleName: string }[];
+      readonly careers: readonly { readonly year: number; readonly month?: number | null; readonly title: string; readonly roleName: string }[];
     };
     readonly fieldSnapshot: {
       readonly basicFields: readonly BasicField[];
@@ -238,7 +238,7 @@ function additionalValue(resource: BackendSubmissionDetail, key: AdditionalField
   const additional = resource.applicant.additionalInformation;
   const military = additional.militaryServiceStatus;
   const careers: CareerEntry[] = additional.careers.map((career) => ({
-    year: career.year,
+    year: career.year, month: career.month ?? null,
     title: career.title,
     part: career.roleName,
   }));

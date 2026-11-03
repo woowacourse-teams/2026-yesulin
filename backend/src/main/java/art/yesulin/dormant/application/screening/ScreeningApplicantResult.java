@@ -85,7 +85,7 @@ public record ScreeningApplicantResult(
                 additional.nationality(), additional.specialty(), additional.hobbies(), enumName(additional.military()),
                 submission.getSubmittedAt(),
                 additional.careers().stream().map(career -> new Career(
-                        career.year(), career.title(), career.roleName()
+                        career.year(), career.month(), career.title(), career.roleName()
                 )).toList(),
                 additional.coverLetter(),
                 answers.questionAnswers().values().stream()
@@ -155,7 +155,7 @@ public record ScreeningApplicantResult(
         return value == null ? null : value.name();
     }
 
-    public record Career(int year, String title, String part) {
+    public record Career(int year, Integer month, String title, String part) {
     }
 
     public record Question(String question, String answer) {

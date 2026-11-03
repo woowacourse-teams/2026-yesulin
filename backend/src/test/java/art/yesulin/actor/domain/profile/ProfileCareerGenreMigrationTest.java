@@ -51,6 +51,7 @@ class ProfileCareerGenreMigrationTest {
                 """);
         Flyway.configure().dataSource(url, "sa", "").locations("classpath:db/migration").load().migrate();
         assertNull(jdbc.queryForObject("select genre from applicant_profile_careers", String.class));
+        assertNull(jdbc.queryForObject("select career_month from applicant_profile_careers", Integer.class));
         assertEquals("기존 작품", jdbc.queryForObject("select title from applicant_profile_careers", String.class));
     }
 }

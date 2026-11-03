@@ -16,10 +16,12 @@ describe("공개 헤더의 계정 이동", () => {
     expect(html).not.toContain("로그아웃");
   });
 
-  it("배우는 공개 공고에서 내 지원서로 돌아갈 수 있다", () => {
+  it("배우는 공개 화면에서 마이페이지로 돌아갈 수 있다", () => {
     auth.session = { credential: "fixture", role: "APPLICANT", displayName: "배우" };
     const html = renderToStaticMarkup(<NotebookHeader />);
-    expect(html).toContain('href="/applicants/submissions"');
+    expect(html).toContain('href="/applicants"');
+    expect(html).toContain("마이페이지");
+    expect(html).not.toContain('href="/applicants/submissions"');
     expect(html).not.toContain('href="/login"');
     expect(html).toContain("로그아웃");
     expect(html).not.toContain('href="/producer-service"');

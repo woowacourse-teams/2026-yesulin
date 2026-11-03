@@ -10,9 +10,9 @@ const profileFixture: BackendProfileResponse = {
 
 describe("프로필 경력 장르 계약", () => {
   it.each([...PROFILE_CAREER_GENRES.map(({ value }) => value), null, undefined])("장르 %s를 왕복하고 없는 값은 null로 보낸다", (genre) => {
-    const response = { ...profileFixture, additionalInformation: { ...profileFixture.additionalInformation, careers: [{ year: 2026, title: "작품", roleName: "배역", genre }] } };
+    const response = { ...profileFixture, additionalInformation: { ...profileFixture.additionalInformation, careers: [{ year: 2026, month: 3, title: "작품", roleName: "배역", genre }] } };
     const information = toProfileInformation(response);
     const values = Object.fromEntries(information.answers.map((answer) => [answer.key, answer.value]));
-    expect(toBackendProfileUpdate(values).additionalInformation.careers).toEqual([{ year: 2026, title: "작품", roleName: "배역", genre: genre ?? null }]);
+    expect(toBackendProfileUpdate(values).additionalInformation.careers).toEqual([{ year: 2026, month: 3, title: "작품", roleName: "배역", genre: genre ?? null }]);
   });
 });

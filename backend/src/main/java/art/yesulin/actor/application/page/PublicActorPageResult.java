@@ -85,10 +85,11 @@ public record PublicActorPageResult(
             careers = List.copyOf(careers);
         }
 
-        /** 장르 순서대로 묶고 미분류를 맨 뒤에 둔다. 묶음 안에서는 연도가 최근인 순이고, 같은 연도는 프로필 순서를 지킨다. */
+        /** 장르 순서대로 묶고 미분류를 맨 뒤에 둔다. 묶음 안에서는 연월 최신순이다. 미상 월은 같은 해 마지막이며 같은 연월은 프로필 순서를 지킨다. */
         static List<CareerGroup> groupsOf(List<ProfileCareer> careers) {
             List<ProfileCareer> recentFirst = careers.stream()
-                    .sorted(Comparator.comparingInt(ProfileCareer::year).reversed())
+                    .sorted(Comparator.comparingInt(ProfileCareer::year)
+                            .thenComparingInt(career -> career.month() == null ? 0 : career.month()).reversed())
                     .toList();
             List<CareerGroup> groups = new ArrayList<>();
             for (ProfileCareerGenre genre : ProfileCareerGenre.values()) {
@@ -101,7 +102,7 @@ public record PublicActorPageResult(
         private static void addGroup(List<CareerGroup> groups, ProfileCareerGenre genre, List<ProfileCareer> careers) {
             List<Career> matched = careers.stream()
                     .filter(career -> career.genre() == genre)
-                    .map(career -> new Career(career.year(), career.title(), career.roleName()))
+                    .map(career -> new Career(career.year(), career.month(), career.title(), career.roleName()))
                     .toList();
             if (!matched.isEmpty()) {
                 groups.add(new CareerGroup(genre, matched));
@@ -110,7 +111,7 @@ public record PublicActorPageResult(
     }
 
     /** 경력 한 건. */
-    public record Career(int year, String title, String roleName) {
+    public record Career(int year, Integer month, String title, String roleName) {
     }
 
     /** 학력. 공개로 설정했어도 입력한 값이 하나도 없으면 응답에 넣지 않는다. */

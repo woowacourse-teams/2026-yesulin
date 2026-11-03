@@ -181,6 +181,9 @@
 
   button:focus-visible,
   a:focus-visible,
+  summary:focus-visible,
+  [role="button"]:focus-visible,
+  [role="tab"]:focus-visible,
   input:focus-visible,
   select:focus-visible,
   textarea:focus-visible {

@@ -2,17 +2,18 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useState, type ReactNode } from "react";
 import { ScreenError } from "@/components/auditions/screen-status";
 import { ContentSkeleton, ContentState } from "@/components/ui/content-state";
+import { SiteIcon } from "@/components/ui/site-icon";
 import { getActorPage } from "@/features/actor-pages/api";
 import {
   ACTOR_PAGE_INQUIRY_URL,
-  actorBodyLine,
   actorPageRoutes,
   type ActorPageContent,
   type PublicActorPage,
 } from "@/features/actor-pages/types";
+import { careerDateLabel } from "@/features/applicants/career-identity";
 import { profileCareerGenreLabel } from "@/features/applicants/career-genre";
 import { educationText } from "@/features/applicants/education";
 import { AuditionRequestError } from "@/features/auditions/api-client";
@@ -20,6 +21,7 @@ import { ActorBookmarkButton } from "./actor-bookmarks";
 import { ActorPageScreen } from "./actor-page-screen";
 import { ActorPhotoGallery } from "./actor-photo-gallery";
 import { ActorScreenView } from "./actor-screen-view";
+import { ActorSocialLinks } from "./actor-social-links";
 
 type PageState =
   | { readonly status: "loading" }
@@ -91,15 +93,15 @@ export function MissingActorPage() {
  * 배우 페이지 본문. 본인 미리보기(`preview`)는 마이페이지 안에 그려 제목 단계를 한 단계 내리고, 아직 입력하지 않은 이름·성별·
  * 생년월일과 정하지 않은 아이디는 비워 두며 공유 버튼을 숨긴다.
  */
-export function ActorPageView({ actorPage, preview = false }: { readonly actorPage: ActorPageContent; readonly preview?: boolean }) {
+export function ActorPageView({ actorPage, preview = false, compact = false }: { readonly actorPage: ActorPageContent; readonly preview?: boolean; readonly compact?: boolean }) {
   const name = actorPage.name ?? "이름 미입력";
   const NameHeading = preview ? "h2" : "h1";
   const { gender, birthYear, age } = actorPage;
-  const body = actorBodyLine(actorPage);
   const basicInformation = [
     gender ? { label: "성별", value: gender === "FEMALE" ? "여성" : "남성" } : null,
     birthYear !== null ? { label: "출생", value: `${birthYear}년생${age !== null ? ` (만 ${age}세)` : ""}` } : null,
-    body ? { label: "신체", value: body } : null,
+    actorPage.height ? { label: "키", value: `${actorPage.height}cm` } : null,
+    actorPage.weight ? { label: "몸무게", value: `${actorPage.weight}kg` } : null,
   ].filter((item) => item !== null);
   const GroupHeading = preview ? "h4" : "h3";
   const otherInformation = [
@@ -110,8 +112,8 @@ export function ActorPageView({ actorPage, preview = false }: { readonly actorPa
 
   return (
     <article className="mt-4">
-      <div className="grid items-start gap-7 min-[901px]:grid-cols-[minmax(0,340px)_minmax(0,1fr)] min-[901px]:gap-10">
-        <div className="min-w-0 min-[901px]:sticky min-[901px]:top-[104px] min-[901px]:-m-2 min-[901px]:max-h-[calc(100dvh-120px)] min-[901px]:overflow-y-auto min-[901px]:p-2">
+      <div className={`grid items-start gap-7 ${compact ? "" : "min-[901px]:grid-cols-[minmax(0,340px)_minmax(0,1fr)] min-[901px]:gap-10"}`}>
+        <div className={`min-w-0 ${compact ? "" : "min-[901px]:sticky min-[901px]:top-[104px] min-[901px]:-m-2 min-[901px]:max-h-[calc(100dvh-120px)] min-[901px]:overflow-y-auto min-[901px]:p-2"}`}>
           <ActorPhotoGallery name={name} representativePhotoUrl={actorPage.representativePhotoUrl} photos={actorPage.photos} />
         </div>
 
@@ -139,17 +141,14 @@ export function ActorPageView({ actorPage, preview = false }: { readonly actorPa
                 ))}
               </dl>
             ) : null}
+            <ActorSocialLinks links={actorPage.links} />
+            <div className="mt-5 flex flex-col gap-3 border-t border-border-soft pt-4 min-[761px]:flex-row min-[761px]:items-center min-[761px]:justify-between">
+              <p className="min-w-0 text-sm leading-6 text-muted-strong">예술in이 배우에게 문의를 전달해 드려요.</p>
+              <a href={ACTOR_PAGE_INQUIRY_URL} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-control bg-brand px-4 text-sm font-semibold text-white hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">캐스팅 문의<span className="sr-only"> · 카카오톡 (새 창에서 열림)</span></a>
+            </div>
           </header>
 
-          <aside className="rounded-card border border-brand-line bg-brand-soft p-5 text-sm leading-6">
-            <p className="font-semibold">이 배우와 함께하고 싶다면</p>
-            <p className="mt-1 text-muted-strong">연락처 대신 예술in이 배우에게 문의를 전달해 드려요.</p>
-            <a href={ACTOR_PAGE_INQUIRY_URL} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex min-h-11 items-center rounded-control bg-brand px-4 font-semibold text-white hover:bg-brand-strong">
-              카카오톡으로 문의하기<span className="sr-only"> (새 창에서 열림)</span>
-            </a>
-          </aside>
-
-          {actorPage.coverLetter ? <Section preview={preview} title="자기소개"><p className="whitespace-pre-line break-words leading-7">{actorPage.coverLetter}</p></Section> : null}
+          {actorPage.coverLetter ? <Section preview={preview} title="자기소개"><ActorIntroduction text={actorPage.coverLetter} /></Section> : null}
 
           {actorPage.videos.length > 0 ? (
             <Section preview={preview} title="영상">
@@ -177,16 +176,27 @@ export function ActorPageView({ actorPage, preview = false }: { readonly actorPa
             <Section preview={preview} title="경력">
               <div className="grid gap-6">
                 {actorPage.careerGroups.map((group) => (
-                  <section key={group.genre ?? "UNCLASSIFIED"} aria-label={profileCareerGenreLabel(group.genre)}>
-                    <GroupHeading className="text-sm font-bold text-muted-strong">{profileCareerGenreLabel(group.genre)}</GroupHeading>
-                    <ul className="mt-2 divide-y divide-border-soft border-y border-border-soft">
-                      {group.careers.map((career, index) => (
-                        <li key={`${career.year}-${career.title}-${index}`} className="flex gap-4 py-2.5 text-sm">
-                          <span className="num w-12 shrink-0 text-muted">{career.year}</span>
-                          <span className="min-w-0 break-words"><strong className="font-semibold">{career.title}</strong> <span className="text-muted-strong">{career.roleName} 역</span></span>
-                        </li>
-                      ))}
-                    </ul>
+                  <section key={group.genre ?? "UNCLASSIFIED"} aria-label={profileCareerGenreLabel(group.genre ?? "OTHER")}>
+                    <GroupHeading className="text-sm font-bold text-muted-strong">{profileCareerGenreLabel(group.genre ?? "OTHER")}</GroupHeading>
+                    <table aria-label={`${profileCareerGenreLabel(group.genre ?? "OTHER")} 경력`} className="mt-3 w-full table-fixed border-b border-border-soft text-left text-sm leading-6">
+                      <colgroup><col className="w-20 min-[761px]:w-24" /><col /><col className="w-20 min-[761px]:w-28" /></colgroup>
+                      <thead className="border-y border-border bg-surface text-muted-strong">
+                        <tr>
+                          <th scope="col" className="py-2.5 pr-3 font-medium">연월</th>
+                          <th scope="col" className="py-2.5 pr-4 font-medium">작품명</th>
+                          <th scope="col" className="py-2.5 font-medium">배역</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border-soft">
+                        {group.careers.map((career, index) => (
+                          <tr key={`${career.year}-${career.title}-${index}`}>
+                            <td className="num py-3 pr-3 align-top text-muted-strong">{careerDateLabel(career.year, career.month)}</td>
+                            <td className="break-words py-3 pr-4 align-top font-semibold leading-6">{career.title}</td>
+                            <td className="break-words py-3 align-top leading-6 text-muted-strong">{career.roleName || "—"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </section>
                 ))}
               </div>
@@ -195,7 +205,7 @@ export function ActorPageView({ actorPage, preview = false }: { readonly actorPa
 
           {actorPage.specialty ? <Section preview={preview} title="특기"><p className="whitespace-pre-line break-words leading-7">{actorPage.specialty}</p></Section> : null}
 
-          {otherInformation.length > 0 || actorPage.links.length > 0 ? (
+          {otherInformation.length > 0 ? (
             <Section preview={preview} title="더 알아보기">
               <dl className="grid gap-3 text-sm">
                 {otherInformation.map((item) => (
@@ -204,12 +214,6 @@ export function ActorPageView({ actorPage, preview = false }: { readonly actorPa
                     <dd className="min-w-0 break-words">{item.value}</dd>
                   </div>
                 ))}
-                {actorPage.links.length > 0 ? (
-                  <div className="grid grid-cols-[4rem_1fr] gap-3">
-                    <dt className="font-semibold text-muted-strong">링크</dt>
-                    <dd className="grid min-w-0 gap-1">{actorPage.links.map((link) => <ExternalLink key={link.url} url={link.url} />)}</dd>
-                  </div>
-                ) : null}
               </dl>
             </Section>
           ) : null}
@@ -226,23 +230,28 @@ export function ActorPageView({ actorPage, preview = false }: { readonly actorPa
   );
 }
 
+function ActorIntroduction({ text }: { readonly text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const [overflows, setOverflows] = useState(false);
+  const id = useId();
+  const measure = useCallback((node: HTMLParagraphElement | null) => {
+    if (!node) return;
+    const check = () => { if (!expanded) setOverflows(node.scrollHeight > node.clientHeight + 1); };
+    check();
+    const observer = new ResizeObserver(check);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [expanded]);
+  return <><p id={id} ref={measure} className={`whitespace-pre-line break-words leading-7 ${expanded ? "" : "line-clamp-3"}`}>{text}</p>{overflows || expanded ? <button type="button" aria-expanded={expanded} aria-controls={id} onClick={() => setExpanded((value) => !value)} className="mt-2 min-h-11 text-sm font-semibold text-brand underline underline-offset-4">{expanded ? "소개 접기" : "소개 더 보기"}</button> : null}</>;
+}
+
 function Section({ title, preview, children }: { readonly title: string; readonly preview: boolean; readonly children: ReactNode }) {
   const Heading = preview ? "h3" : "h2";
   return (
-    <section className="min-w-0 rounded-card border border-border bg-card p-5 min-[761px]:p-7">
+    <section className="min-w-0 border-t border-border pt-6">
       <Heading className="mb-4 text-lg font-bold tracking-tight">{title}</Heading>
       {children}
     </section>
-  );
-}
-
-/** 배우가 입력한 링크라 http·https 주소만 링크로 만들고 검색엔진에 추천하지 않는다. */
-function ExternalLink({ url }: { readonly url: string }) {
-  if (!/^https?:\/\//i.test(url)) return <span className="break-all">{url}</span>;
-  return (
-    <a href={url} target="_blank" rel="nofollow ugc noopener noreferrer" className="break-all text-brand hover:underline">
-      {url}<span className="sr-only"> (새 창에서 열림)</span>
-    </a>
   );
 }
 
@@ -270,8 +279,8 @@ function ShareButton({ name, handle }: { readonly name: string; readonly handle:
   };
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <button type="button" onClick={() => void share()} className="inline-flex min-h-11 items-center rounded-control border border-border bg-card px-4 text-sm font-semibold hover:border-brand-line">
-        페이지 공유
+      <button type="button" aria-label="페이지 공유" title="페이지 공유" onClick={() => void share()} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-control border border-border bg-card hover:border-brand-line hover:bg-brand-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
+        <SiteIcon name="share" size={21} />
       </button>
       <p role="status" className="text-sm text-muted-strong">
         {status === "copied" ? "페이지 주소를 복사했어요." : status === "failed" ? "주소를 복사하지 못했어요. 주소창의 주소를 복사해 주세요." : ""}

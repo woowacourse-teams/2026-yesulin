@@ -1,6 +1,7 @@
 package art.yesulin.dormant.application.submission;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import art.yesulin.dormant.domain.submission.MilitaryServiceStatus;
 import art.yesulin.dormant.domain.submission.SubmissionAdditionalInformation;
@@ -29,7 +30,7 @@ class SubmitSubmissionCommandTest {
                         "현대무용",
                         "영화 감상",
                         MilitaryServiceStatus.NOT_APPLICABLE,
-                        List.of(new SubmitCareerCommand(2025, "햄릿", "오필리어"))
+                        List.of(new SubmitCareerCommand(2025, 3, "햄릿", "오필리어"))
                 ),
                 List.of(1L),
                 emptyFormAnswers(),
@@ -72,7 +73,7 @@ class SubmitSubmissionCommandTest {
         assertEquals(List.of(1L), command.selectedRoleIds());
 
         links.add("https://example.com/changed");
-        careers.add(new SubmitCareerCommand(2025, "햄릿", "오필리어"));
+        careers.add(new SubmitCareerCommand(2025, 3, "햄릿", "오필리어"));
         selectedRoleIds.add(2L);
         questionAnswers.add(new SubmitQuestionAnswerCommand(1L, "답변"));
         photoAnswers.add(new SubmitPhotoRequirementAnswerCommand(1L, 1L));
@@ -84,6 +85,15 @@ class SubmitSubmissionCommandTest {
         assertEquals(List.of(), command.formAnswers().questionAnswers());
         assertEquals(List.of(), command.formAnswers().photoRequirementAnswers());
         assertEquals(List.of(), command.formAnswers().videoRequirementAnswers());
+    }
+
+    @Test
+    void newSubmissionCareerRequiresValidMonth() {
+        for (int month : List.of(0, 13)) {
+            assertThrows(art.yesulin.global.exception.BusinessException.class,
+                    () -> new SubmitCareerCommand(2026, month, "작품", "주연").toCareer());
+        }
+        assertEquals(12, new SubmitCareerCommand(2026, 12, "작품", "주연").toCareer().month());
     }
 
     private SubmitBasicInformationCommand emptyBasicInformation() {

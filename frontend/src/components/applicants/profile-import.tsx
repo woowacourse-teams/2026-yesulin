@@ -1,5 +1,7 @@
 "use client";
 
+import { careerDateLabel } from "@/features/applicants/career-identity";
+
 import { trackPdfStep, markPdfApplied } from "@/features/analytics/pdf-analytics";
 import Image from "next/image";
 import { useEffect, useEffectEvent, useId, useRef, useState, type ChangeEvent, type ReactNode } from "react";
@@ -350,7 +352,7 @@ function ImportSuggestions({
 
     {careers.length ? <section aria-labelledby="profile-import-careers">
       <h3 id="profile-import-careers" className="font-bold">경력</h3>
-      <p className="mt-1 text-sm leading-6 text-muted">기존 경력 뒤에 더해요. 연도는 네 자리로 적힌 것만, 장르는 정해진 이름과 같을 때만 넣어요.</p>
+      <p className="mt-1 text-sm leading-6 text-muted">기존 경력 뒤에 더해요. 명확한 연월만 넣고, 읽지 못한 월은 직접 선택해야 해요. 장르는 정해진 이름과 같을 때만 넣어요.</p>
       <ul className="mt-3 divide-y divide-border-soft rounded-card border border-border">
         {careers.map((career, index) => <CareerRow key={`${career.entry.title}-${index}`} career={career} evidence={proposals.careers[index]!.evidence} checked={Boolean(selection.careers[index])} onChange={(checked) => select({ careers: selection.careers.map((value, candidate) => candidate === index ? checked : value) })} />)}
       </ul>
@@ -447,13 +449,13 @@ function CareerRow({
   return <li className="flex gap-3 px-4 py-3">
     <input id={id} type="checkbox" checked={checked} disabled={career.duplicate} onChange={(event) => onChange(event.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-brand" />
     <label htmlFor={id} className="min-w-0 flex-1 text-sm">
-      <span className="num text-muted">{entry.year || "연도 ?"}</span>{" "}
+      <span className="num text-muted">{entry.year ? careerDateLabel(entry.year, entry.month) : "연월 ?"}</span>{" "}
       <span className="font-semibold">{entry.title}</span>{" "}
       <span className="text-muted-strong">{entry.part ? `${entry.part} 역` : "배역 ?"}</span>{" "}
       <span className="text-xs text-muted">· {profileCareerGenreLabel(entry.genre)}</span>
       {career.duplicate ? <span className="mt-1 block text-xs text-muted">이미 있는 경력이에요.</span> : null}
       {career.similar ? <span className="mt-1 block text-xs text-muted-strong">같은 작품 경력이 이미 있어요. 다른 경력이면 골라 주세요.</span> : null}
-      {!career.duplicate && career.needsInput ? <span className="mt-1 block text-xs text-fail">넣은 뒤 빈 연도·배역을 채워야 저장돼요.</span> : null}
+      {!career.duplicate && career.needsInput ? <span className="mt-1 block text-xs text-fail">넣은 뒤 빈 연도·월·배역을 채워야 저장돼요.</span> : null}
       <Evidence value={evidence} />
     </label>
   </li>;

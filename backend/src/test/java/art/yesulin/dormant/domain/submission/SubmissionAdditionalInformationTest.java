@@ -38,7 +38,7 @@ class SubmissionAdditionalInformationTest {
     void copiesListValuesAndNormalizesOptionalText() {
         List<String> sourceLinks = new ArrayList<>(List.of(" https://example.com/profile "));
         List<SubmissionCareer> sourceCareers = new ArrayList<>(List.of(
-                new SubmissionCareer(2025, " 햄릿 ", " 오필리어 ")
+                new SubmissionCareer(2025, 3, " 햄릿 ", " 오필리어 ")
         ));
         SubmissionAdditionalInformation information = new SubmissionAdditionalInformation(
                 " ", sourceLinks, " 대한민국 ", null, null, null,
@@ -46,13 +46,13 @@ class SubmissionAdditionalInformationTest {
         );
 
         sourceLinks.add("https://example.com/changed");
-        sourceCareers.add(new SubmissionCareer(2024, "리어왕", "코델리아"));
+        sourceCareers.add(new SubmissionCareer(2024, 3, "리어왕", "코델리아"));
 
         assertNull(information.school());
         assertEquals("대한민국", information.nationality());
         assertEquals(MilitaryServiceStatus.COMPLETED, information.military());
         assertEquals(List.of("https://example.com/profile"), information.links());
-        assertEquals(List.of(new SubmissionCareer(2025, "햄릿", "오필리어")), information.careers());
+        assertEquals(List.of(new SubmissionCareer(2025, 3, "햄릿", "오필리어")), information.careers());
     }
 
     @Test
@@ -73,7 +73,7 @@ class SubmissionAdditionalInformationTest {
     void rejectsMoreThanTenCareers() {
         List<SubmissionCareer> careers = new ArrayList<>();
         for (int index = 0; index < 11; index++) {
-            careers.add(new SubmissionCareer(2025, "작품 " + index, "배역 " + index));
+            careers.add(new SubmissionCareer(2025, 3, "작품 " + index, "배역 " + index));
         }
 
         BusinessException exception = assertThrows(
@@ -144,16 +144,14 @@ class SubmissionAdditionalInformationTest {
         assertAll(
                 () -> assertThrows(
                         BusinessException.class,
-                        () -> new SubmissionCareer(
-                                2025,
+                        () -> new SubmissionCareer(2025, 3,
                                 "가".repeat(SubmissionCareer.MAX_TITLE_LENGTH + 1),
                                 "배역"
                         )
                 ),
                 () -> assertThrows(
                         BusinessException.class,
-                        () -> new SubmissionCareer(
-                                2025,
+                        () -> new SubmissionCareer(2025, 3,
                                 "작품",
                                 "가".repeat(SubmissionCareer.MAX_ROLE_NAME_LENGTH + 1)
                         )

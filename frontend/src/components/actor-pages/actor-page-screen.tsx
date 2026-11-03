@@ -4,6 +4,7 @@ import { NotebookFooter, NotebookHeader } from "@/components/landing/notebook-si
 import { NotebookPageMain } from "@/components/landing/notebook-page-main";
 import { FallbackImage } from "@/components/ui/fallback-image";
 import { actorPageRoutes } from "@/features/actor-pages/types";
+import { SiteIcon } from "@/components/ui/site-icon";
 
 /** 배우 목록·배우 페이지가 함께 쓰는 틀. 배우 페이지에서는 목록으로 돌아가는 링크를 보인다. */
 export function ActorPageScreen({ backToList = false, children }: { readonly backToList?: boolean; readonly children: ReactNode }) {
@@ -15,8 +16,9 @@ export function ActorPageScreen({ backToList = false, children }: { readonly bac
         {backToList ? (
           <Link
             href={actorPageRoutes.list()}
-            className="-ml-2 inline-flex min-h-11 items-center rounded-control px-2 text-sm font-semibold text-muted-strong hover:bg-white hover:text-foreground"
+            className="inline-flex min-h-11 items-center gap-2 rounded-control border border-brand-line bg-card px-4 text-sm font-semibold text-brand transition-colors hover:bg-brand-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
+            <SiteIcon name="previous" size={18} />
             배우 목록
           </Link>
         ) : null}

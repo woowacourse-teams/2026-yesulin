@@ -22,7 +22,7 @@ export async function saveSubmissionInformationToProfile(submitted: ApplicantInf
     additionalInformation: {
       ...mergeAdditionalInformation(current.additionalInformation, submitted.additionalInformation),
       careers: merged.careers.map((career) => ({
-        year: career.year, title: career.title, roleName: career.part, genre: career.genre ?? null,
+        year: career.year, month: career.month ?? null, title: career.title, roleName: career.part, genre: career.genre ?? null,
       })),
     },
   };

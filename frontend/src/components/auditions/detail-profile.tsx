@@ -1,3 +1,4 @@
+import { careerDateLabel } from "@/features/applicants/career-identity";
 import type { Applicant, RoundState } from "@/features/auditions/types";
 import { featuredCareers, orderedCareersByRecency } from "@/features/auditions/featured-careers";
 import { safeExternalUrl } from "@/features/auditions/safe-external-url";
@@ -129,8 +130,8 @@ function CareerList({ careers }: { careers: readonly Applicant["career"][number]
   return (
     <ul className="text-dense">
       {careers.map((entry, index) => (
-        <li key={`${entry.year}-${entry.title}-${index}`} className="mb-1 border-l-2 border-border py-2 pl-3.5 last:mb-0">
-          <span className="num block text-xs tracking-[0.02em] text-muted">{entry.year}</span>
+        <li key={`${careerDateLabel(entry.year, entry.month)}-${entry.title}-${index}`} className="mb-1 border-l-2 border-border py-2 pl-3.5 last:mb-0">
+          <span className="num block text-xs tracking-[0.02em] text-muted">{careerDateLabel(entry.year, entry.month)}</span>
           {entry.title} — {entry.part}
         </li>
       ))}

@@ -204,6 +204,14 @@ export const MOCK_SCENARIOS: readonly MockScenarioDefinition[] = [
     checks: ["비공개 배우는 찾을 수 없음 화면이다", "/actors/@nobody도 같은 화면이다", "/actors/@min.zzun_/posts는 404다"],
   },
   {
+    id: "actor-profile-first-registration",
+    area: "배우 페이지",
+    title: "처음 프로필 등록부터 공개까지",
+    description: "빈 프로필에서 이름·생년월일·성별, 사진, 아이디를 차례로 채웁니다.",
+    href: "/applicants/profile?mockApplicantProfile=empty",
+    checks: ["기본정보 3개부터 입력하고 저장 후 사진으로 이동한다", "사진을 추가하고 공개할 사진을 고른다", "아이디를 저장하고 미리보기를 확인한다", "공개 동의를 확인한 뒤 공개한다", "추가정보와 영상은 나중에 작성할 수 있다"],
+  },
+  {
     id: "actor-page-settings",
     area: "배우 페이지",
     title: "배우 페이지 설정과 공개",
