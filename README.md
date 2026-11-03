@@ -56,9 +56,8 @@ sh scripts/config/compare-env-keys.sh config/server/local.env config/server/prod
 배포 설정 변경과 버전 반영은 [config 변경 안내](./config/docs/workflow.md)를 따른다.
 
 기획사/제작사 인증 메일은 Google SMTP를 사용한다. `config/server/local.env`에 `GOOGLE_SMTP_USERNAME`,
-`GOOGLE_SMTP_APP_PASSWORD`, `GOOGLE_SMTP_FROM`, `EMAIL_VERIFICATION_URL`,
-`EMAIL_VERIFICATION_REDIRECT_URI`, `PASSWORD_RESET_URL`을 설정한다. 실제 Google 계정 비밀번호가 아니라
-2단계 인증에서 발급한 앱 비밀번호를 사용한다. 로컬도 같은 SMTP 설정으로 실제 인증 메일을 발송하며,
+`GOOGLE_SMTP_APP_PASSWORD`, `GOOGLE_SMTP_FROM`, `PASSWORD_RESET_URL`을 설정한다. 실제 Google 계정 비밀번호가 아니라
+2단계 인증에서 발급한 앱 비밀번호를 사용한다. 이메일 인증은 메일로 받은 6자리 코드를 가입 화면에 입력한다. 로컬도 같은 SMTP 설정으로 실제 인증 메일을 발송하며,
 테스트에서만 Fake 발송기로 대체한다.
 
 로컬 통합 실행은 [Docker 안내](./docs/local-development.md)를 따른다.

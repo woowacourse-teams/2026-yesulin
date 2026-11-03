@@ -2,11 +2,11 @@
 
 import { createContext, use, useCallback, useEffect, useMemo, useState } from "react";
 import {
-  fetchCurrentSession,
   logout as requestLogout,
   type SessionResponse,
 } from "@/features/auth/session-api";
 import { frontendEnvironment } from "@/config/environment";
+import { SessionSynchronizer } from "@/features/auth/session-synchronizer";
 
 export type SocialProvider = "kakao" | "naver" | "google";
 export type ProducerAccountStatus = "PENDING" | "ACTIVE";
@@ -24,6 +24,8 @@ type AuthSessionContextValue = {
   readonly sessionReady: boolean;
   readonly serverSessionEnabled: boolean;
   readonly setSession: (session: FrontendAuthSession | null) => void;
+  readonly refreshSession: () => Promise<void>;
+  readonly completeProducerVerification: (session: SessionResponse) => void;
   readonly logoutSession: (redirectOnUnauthorized?: boolean) => Promise<void>;
 };
 
@@ -34,58 +36,85 @@ const serverSessionEnabled =
   || frontendEnvironment.socialLoginEnabled;
 
 /** 운영자 세션은 /admin 화면이 따로 다루므로 공개 서비스에서는 비로그인으로 둔다. */
-function toFrontendSession(session: SessionResponse): FrontendAuthSession | null {
-  if (session.role === "ADMIN") return null;
-  return {
-    credential: `member-${session.memberId}`,
-    role: session.role,
-    displayName: session.role === "APPLICANT" ? "배우" : "기획사/제작사",
-    producerStatus: session.role === "PRODUCER" ? session.status : undefined,
-  };
+function toFrontendSession(session: SessionResponse | null): FrontendAuthSession | null {
+  if (!session || session.role === "ADMIN") return null;
+  const account = { credential: `member-${session.memberId}`, role: session.role, displayName: "배우" };
+  if (session.role === "PRODUCER") {
+    return { ...account, displayName: "기획사/제작사", producerStatus: session.status };
+  }
+  return account;
+}
+
+function verifiedProducerSession(current: FrontendAuthSession | null, verified: SessionResponse) {
+  if (current?.role !== "PRODUCER" || current.credential !== `member-${verified.memberId}`) return current;
+  if (verified.role !== "PRODUCER" || verified.status !== "ACTIVE") return current;
+  return { ...current, producerStatus: verified.status };
 }
 
 export function createFrontendCredential() {
   return globalThis.crypto?.randomUUID?.() ?? `mock-${Date.now()}`;
 }
 
+function refreshVisibleSession(refresh: () => Promise<void>) {
+  if (document.visibilityState === "hidden") return;
+  void refresh().catch((cause) => console.error("[로그인 세션 확인 실패]", cause));
+}
+
+function subscribeToSessionRefresh(synchronize: () => void) {
+  window.addEventListener("focus", synchronize);
+  document.addEventListener("visibilitychange", synchronize);
+  return () => {
+    window.removeEventListener("focus", synchronize);
+    document.removeEventListener("visibilitychange", synchronize);
+  };
+}
+
 export function AuthSessionProvider({ children }: { readonly children: React.ReactNode }) {
-  const [session, setSession] = useState<FrontendAuthSession | null>(null);
+  const [session, updateSession] = useState<FrontendAuthSession | null>(null);
   const [sessionReady, setSessionReady] = useState(!serverSessionEnabled);
+  const [synchronizer] = useState(() => new SessionSynchronizer(
+    (current) => updateSession(toFrontendSession(current)),
+    () => setSessionReady(true),
+  ));
+  const setSession = useCallback((nextSession: FrontendAuthSession | null) => {
+    synchronizer.invalidate();
+    updateSession(nextSession);
+    setSessionReady(true);
+  }, [synchronizer]);
+  const refreshSession = useCallback(async () => {
+    if (!serverSessionEnabled) return;
+    await synchronizer.refresh();
+  }, [synchronizer]);
+  const completeProducerVerification = useCallback((verified: SessionResponse) => {
+    synchronizer.invalidate();
+    updateSession((current) => verifiedProducerSession(current, verified));
+  }, [synchronizer]);
   const logoutSession = useCallback(async (redirectOnUnauthorized = false) => {
     if (serverSessionEnabled) await requestLogout(redirectOnUnauthorized);
     setSession(null);
-  }, []);
+  }, [setSession]);
 
   useEffect(() => {
     if (!serverSessionEnabled) return;
 
-    let active = true;
-    void fetchCurrentSession()
-      .then((currentSession) => {
-        if (!active || !currentSession) return;
-        const frontendSession = toFrontendSession(currentSession);
-        if (frontendSession) setSession(frontendSession);
-      })
-      .catch((cause) => {
-        console.error("[로그인 세션 확인 실패]", cause);
-        // 서버 세션을 확인할 수 없으면 비로그인 상태를 유지한다.
-      })
-      .finally(() => {
-        if (active) setSessionReady(true);
-      });
-
+    const synchronize = () => refreshVisibleSession(refreshSession);
+    synchronize();
+    const unsubscribe = subscribeToSessionRefresh(synchronize);
     return () => {
-      active = false;
+      synchronizer.invalidate();
+      unsubscribe();
     };
-  }, []);
+  }, [refreshSession, synchronizer]);
 
   const value = useMemo<AuthSessionContextValue>(() => ({
     session,
     sessionReady,
     serverSessionEnabled,
     setSession,
+    refreshSession,
+    completeProducerVerification,
     logoutSession,
-  }), [logoutSession, session, sessionReady]);
+  }), [completeProducerVerification, logoutSession, refreshSession, session, sessionReady, setSession]);
 
   return <AuthSessionContext value={value}>{children}</AuthSessionContext>;
 }

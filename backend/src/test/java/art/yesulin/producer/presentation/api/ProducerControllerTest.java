@@ -9,13 +9,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import art.yesulin.auth.application.MemberPrincipal;
+import art.yesulin.auth.application.VerificationCodeGenerator;
 import art.yesulin.auth.application.VerificationTokenGenerator;
+import art.yesulin.auth.domain.EmailVerification;
+import art.yesulin.auth.domain.EmailVerificationRepository;
+import art.yesulin.auth.domain.VerificationCode;
+import art.yesulin.auth.domain.member.Member;
 import art.yesulin.auth.domain.member.MemberRepository;
 import art.yesulin.auth.domain.member.MemberStatus;
 import art.yesulin.infrastructure.mail.MailMessage;
 import art.yesulin.infrastructure.mail.MailSender;
 import art.yesulin.producer.domain.ProducerRepository;
 import art.yesulin.support.ObjectStorageTestConfiguration;
+import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,6 +59,9 @@ class ProducerControllerTest {
     @Autowired
     private FakeMailSender mailSender;
 
+    @Autowired
+    private EmailVerificationRepository verifications;
+
     @BeforeEach
     void cleanUp() {
         producerRepository.deleteAll();
@@ -73,10 +82,10 @@ class ProducerControllerTest {
 
         assertThat(mailSender.message.recipient()).isEqualTo("producer@yesulin.art");
         assertThat(mailSender.message.subject()).contains("이메일 인증");
-        assertThat(mailSender.message.htmlContent()).contains("token=" + VERIFICATION_TOKEN);
+        assertThat(mailSender.message.htmlContent()).contains("000123");
         assertThat(mailSender.message.textContent())
-                .contains("redirectUri=")
-                .contains("localhost:3000");
+                .contains("000123")
+                .doesNotContain("redirectUri=");
     }
 
     @Test
@@ -87,6 +96,7 @@ class ProducerControllerTest {
                         .content(signUpRequest("producer@yesulin.art")))
                 .andExpect(status().isCreated());
 
+        issueLegacyLink();
         mockMvc.perform(get("/api/v1/auth/email-verifications")
                         .param("token", VERIFICATION_TOKEN)
                         .param("redirectUri", REDIRECT_URI))
@@ -112,6 +122,7 @@ class ProducerControllerTest {
                         .content(signUpRequest("producer@yesulin.art")))
                 .andExpect(status().isCreated());
 
+        issueLegacyLink();
         String requestedRedirectUri = "https://yesulin.art/producers";
         mockMvc.perform(get("/api/v1/auth/email-verifications")
                         .param("token", VERIFICATION_TOKEN)
@@ -128,8 +139,9 @@ class ProducerControllerTest {
                         .content(signUpRequest("producer@yesulin.art")))
                 .andExpect(status().isCreated());
 
-        var member = memberRepository.findByEmail("producer@yesulin.art").orElseThrow();
+        Member member = memberRepository.findByEmail("producer@yesulin.art").orElseThrow();
         mailSender.clear();
+        issueLegacyLink();
 
         mockMvc.perform(post("/api/v1/auth/email-verifications")
                         .with(csrf())
@@ -140,7 +152,7 @@ class ProducerControllerTest {
                 .andExpect(status().isNoContent());
 
         assertThat(mailSender.message.recipient()).isEqualTo("producer@yesulin.art");
-        assertThat(mailSender.message.htmlContent()).contains("token=" + VERIFICATION_TOKEN);
+        assertThat(mailSender.message.htmlContent()).contains("000123");
     }
 
     @Test
@@ -199,6 +211,12 @@ class ProducerControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
+    private void issueLegacyLink() {
+        Member member = memberRepository.findByEmail("producer@yesulin.art").orElseThrow();
+        verifications.save(new EmailVerification(VERIFICATION_TOKEN, member.getId(), member.getEmail(),
+                Instant.now().plusSeconds(300)), Instant.now());
+    }
+
     private String signUpRequest(String email) {
         return """
                 {
@@ -214,6 +232,12 @@ class ProducerControllerTest {
 
     @TestConfiguration
     static class MailTestConfiguration {
+
+        @Bean
+        @Primary
+        VerificationCodeGenerator fixedCodeGenerator() {
+            return () -> new VerificationCode("000123");
+        }
 
         @Bean
         @Primary

@@ -13,6 +13,7 @@ import {
 import { DEFAULT_APPLICANT_LOGIN_RETURN_TO, rememberSocialLoginReturnTo } from "@/features/auth/social-login-return-to";
 import { frontendEnvironment } from "@/config/environment";
 import { producerAuditionPostRoutes } from "@/features/audition-posts/types";
+import { openProducerWorkspace } from "@/features/auth/producer-navigation";
 import {
   createFrontendCredential,
   type SocialProvider,
@@ -110,6 +111,10 @@ export function LoginForm({ returnTo, applicationFlow = false }: { readonly retu
     });
     trackLoginSuccess(producerAuditionPostRoutes.list, producerAttribution);
     toast("기획사/제작사 계정으로 로그인했습니다.", { type: "success" });
+    if (serverSession) {
+      openProducerWorkspace();
+      return;
+    }
     router.push(producerAuditionPostRoutes.list);
   }
 

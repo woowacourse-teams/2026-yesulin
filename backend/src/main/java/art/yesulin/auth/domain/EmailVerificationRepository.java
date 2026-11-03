@@ -10,4 +10,10 @@ public interface EmailVerificationRepository {
     Optional<EmailVerification> findByToken(String token);
 
     Optional<EmailVerification> removeByToken(String token);
+
+    Optional<EmailVerification> findByMemberId(long memberId);
+
+    Optional<Long> findMemberIdByToken(String token);
+
+    void recordFailure(String token);
 }

@@ -11,6 +11,8 @@ import { login as requestLogin } from "@/features/auth/session-api";
 import { AuthInput, PasswordInput } from "./auth-fields";
 import { ProducerSignupFields } from "./producer-signup-fields";
 import { useAuthSession } from "./auth-session";
+import { frontendEnvironment } from "@/config/environment";
+import { openProducerWorkspace } from "@/features/auth/producer-navigation";
 
 type SignupField = "company" | "phone" | "email" | "password" | "passwordConfirm" | "terms";
 type SignupErrors = Partial<Record<SignupField, string>>;
@@ -38,6 +40,7 @@ export function SignupForm() {
   const [terms, setTerms] = useState(false);
   const [errors, setErrors] = useState<SignupErrors>({});
   const [submitting, setSubmitting] = useState(false);
+  const [accountCreated, setAccountCreated] = useState(false);
 
   function update(field: keyof typeof values, value: string) {
     setValues((current) => ({ ...current, [field]: field === "phone" ? formatPhoneNumber(value) : value }));
@@ -75,6 +78,7 @@ export function SignupForm() {
         passwordConfirm: values.passwordConfirm,
         termsAgreed: terms,
       });
+      setAccountCreated(true);
       const serverSession = await requestLogin(response.email, values.password);
       setSession({
         credential: `member-${serverSession.memberId}`,
@@ -84,12 +88,26 @@ export function SignupForm() {
         producerStatus: serverSession.status,
       });
       toast("기획사/제작사 가입과 로그인이 완료되었습니다.", { type: "success" });
+      if (!frontendEnvironment.apiMockingEnabled || frontendEnvironment.producerLoginEnabled) {
+        openProducerWorkspace();
+        return;
+      }
       router.replace(producerAuditionPostRoutes.list);
     } catch (cause) {
       console.error("[회원가입 실패]", cause);
       toast(cause instanceof Error ? cause.message : "기획사/제작사 계정을 만들지 못했습니다.", { type: "error" });
       setSubmitting(false);
     }
+  }
+
+  if (accountCreated && !submitting) {
+    return (
+      <section className="space-y-4" role="status">
+        <h2 className="text-xl font-bold">회원가입은 완료됐습니다</h2>
+        <p>자동 로그인에 실패했습니다. 로그인 화면에서 기획사/제작사를 선택해 다시 로그인해 주세요.</p>
+        <Link href="/login" className="inline-flex min-h-12 items-center font-semibold text-brand">로그인 화면으로 이동</Link>
+      </section>
+    );
   }
 
   return (
