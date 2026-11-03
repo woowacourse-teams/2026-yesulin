@@ -19,6 +19,7 @@ import { ActorBookmarkButton } from "./actor-bookmarks";
 import { ActorPageScreen } from "./actor-page-screen";
 import { ActorPhotoGallery } from "./actor-photo-gallery";
 import { ActorScreenView } from "./actor-screen-view";
+import { ActorSocialLinks } from "./actor-social-links";
 
 type PageState =
   | { readonly status: "loading" }
@@ -138,6 +139,7 @@ export function ActorPageView({ actorPage, preview = false, compact = false }: {
                 ))}
               </dl>
             ) : null}
+            <ActorSocialLinks links={actorPage.links} />
             <div className="mt-5 border-t border-border-soft pt-4">
               <a href={ACTOR_PAGE_INQUIRY_URL} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-control bg-brand px-4 text-sm font-semibold text-white hover:bg-brand-strong">캐스팅 문의<span className="sr-only"> · 카카오톡 (새 창에서 열림)</span></a>
               <p className="mt-2 text-xs leading-5 text-muted-strong">예술in이 배우에게 문의를 전달해 드려요.</p>
@@ -190,7 +192,7 @@ export function ActorPageView({ actorPage, preview = false, compact = false }: {
 
           {actorPage.specialty ? <Section preview={preview} title="특기"><p className="whitespace-pre-line break-words leading-7">{actorPage.specialty}</p></Section> : null}
 
-          {otherInformation.length > 0 || actorPage.links.length > 0 ? (
+          {otherInformation.length > 0 ? (
             <Section preview={preview} title="더 알아보기">
               <dl className="grid gap-3 text-sm">
                 {otherInformation.map((item) => (
@@ -199,12 +201,6 @@ export function ActorPageView({ actorPage, preview = false, compact = false }: {
                     <dd className="min-w-0 break-words">{item.value}</dd>
                   </div>
                 ))}
-                {actorPage.links.length > 0 ? (
-                  <div className="grid grid-cols-[4rem_1fr] gap-3">
-                    <dt className="font-semibold text-muted-strong">링크</dt>
-                    <dd className="grid min-w-0 gap-1">{actorPage.links.map((link) => <ExternalLink key={link.url} url={link.url} />)}</dd>
-                  </div>
-                ) : null}
               </dl>
             </Section>
           ) : null}
@@ -243,16 +239,6 @@ function Section({ title, preview, children }: { readonly title: string; readonl
       <Heading className="mb-4 text-lg font-bold tracking-tight">{title}</Heading>
       {children}
     </section>
-  );
-}
-
-/** 배우가 입력한 링크라 http·https 주소만 링크로 만들고 검색엔진에 추천하지 않는다. */
-function ExternalLink({ url }: { readonly url: string }) {
-  if (!/^https?:\/\//i.test(url)) return <span className="break-all">{url}</span>;
-  return (
-    <a href={url} target="_blank" rel="nofollow ugc noopener noreferrer" className="break-all text-brand hover:underline">
-      {url}<span className="sr-only"> (새 창에서 열림)</span>
-    </a>
   );
 }
 

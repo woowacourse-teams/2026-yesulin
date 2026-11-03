@@ -36,3 +36,30 @@ it("긴 소개를 펼치고 다시 접을 수 있으며 문의는 기본정보 �
   expect(container.querySelector("dl")!.textContent).toContain("키165cm");
   expect(container.querySelector("dl")!.textContent).not.toContain("몸무게");
 });
+
+it.each([false, true])("공개·미리보기(%s)에서 공개 응답의 SNS를 기본정보 아래에 한 번만 배치한다", async (preview) => {
+  await act(async () => root.render(<ActorPageView actorPage={{ ...page, nationality: "대한민국", links: [
+    { url: "https://www.instagram.com/actor/" }, { url: "https://www.youtube.com/@actor" },
+    { url: "https://portfolio.example/actor" }, { url: "https://www.instagram.com/actor/" },
+  ] }} preview={preview} />));
+  const nav = container.querySelector('header nav[aria-label="배우 SNS와 외부 링크"]')!;
+  expect(nav).not.toBeNull();
+  expect(nav.querySelectorAll("a")).toHaveLength(3);
+  const instagram = nav.querySelector<HTMLAnchorElement>('a[href="https://www.instagram.com/actor/"]')!;
+  expect(instagram.getAttribute("aria-label")).toContain("인스타그램 · www.instagram.com/actor/ (새 창에서 열림)");
+  expect(instagram.target).toBe("_blank");
+  expect(instagram.rel).toContain("noopener noreferrer");
+  expect(instagram.querySelector("svg")!.getAttribute("aria-hidden")).toBe("true");
+  expect(nav.querySelector('a[href="https://portfolio.example/actor"]')!.textContent).toBe("portfolio.example");
+  expect(container.querySelectorAll('a[href="https://www.instagram.com/actor/"]')).toHaveLength(1);
+  expect(container.querySelector("dl")!.compareDocumentPosition(nav) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  const inquiry = container.querySelector('header a[href="https://pf.kakao.com/_pbTBX/chat"]')!;
+  expect(nav.compareDocumentPosition(inquiry) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(container.textContent).toContain("대한민국");
+});
+
+it.each([{ links: [] }, { links: [{ url: "javascript:alert(1)" }] }])("표시할 링크가 없으면 SNS 영역과 빈 더 알아보기 구역을 생략한다", async ({ links }) => {
+  await act(async () => root.render(<ActorPageView actorPage={{ ...page, links }} />));
+  expect(container.querySelector('nav[aria-label="배우 SNS와 외부 링크"]')).toBeNull();
+  expect(container.textContent).not.toContain("더 알아보기");
+});
