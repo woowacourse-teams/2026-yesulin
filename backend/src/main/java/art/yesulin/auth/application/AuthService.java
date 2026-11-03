@@ -15,17 +15,30 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
 
     @Transactional(readOnly = true)
+    public MemberPrincipal findCurrent(long memberId) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new BusinessException(AuthErrorCode.UNAUTHENTICATED, "로그인이 필요합니다."));
+        return MemberPrincipal.from(member);
+    }
+
+    @Transactional(readOnly = true)
     public MemberPrincipal login(String email, String password) {
-        Member member = memberRepository.findByEmail(email)
+        Member member = findMemberByEmail(email);
+        verifyPassword(member, password);
+        return MemberPrincipal.from(member);
+    }
+
+    private Member findMemberByEmail(String email) {
+        return memberRepository.findByEmail(email)
                 .orElseThrow(() -> new BusinessException(
                         AuthErrorCode.INVALID_CREDENTIALS, "이메일 또는 비밀번호가 올바르지 않습니다."
                 ));
+    }
 
+    private void verifyPassword(Member member, String password) {
         if (!member.hasPassword() || !passwordEncoder.matches(password, member.getPassword())) {
             throw new BusinessException(
                     AuthErrorCode.INVALID_CREDENTIALS, "이메일 또는 비밀번호가 올바르지 않습니다.");
         }
-
-        return MemberPrincipal.from(member);
     }
 }

@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,17 +31,25 @@ public class SessionController {
     ) {
         MemberPrincipal principal = authService.login(loginRequest.email(), loginRequest.password());
 
+        startSession(request, principal);
+        return ResponseEntity.ok(SessionResponse.from(principal));
+    }
+
+    private void startSession(HttpServletRequest request, MemberPrincipal principal) {
         HttpSession session = request.getSession(true);
         request.changeSessionId();
         session.setAttribute(MemberPrincipal.SESSION_ATTRIBUTE, principal);
-
-        return ResponseEntity.ok(SessionResponse.from(principal));
     }
 
     @GetMapping("/current")
     @LoginRequired
-    public ResponseEntity<SessionResponse> findCurrent(@LoginMember MemberPrincipal principal) {
-        return ResponseEntity.ok(SessionResponse.from(principal));
+    public ResponseEntity<SessionResponse> findCurrent(
+            @LoginMember MemberPrincipal principal,
+            HttpSession session
+    ) {
+        MemberPrincipal current = authService.findCurrent(principal.memberId());
+        session.setAttribute(MemberPrincipal.SESSION_ATTRIBUTE, current);
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(SessionResponse.from(current));
     }
 
     @DeleteMapping("/current")
