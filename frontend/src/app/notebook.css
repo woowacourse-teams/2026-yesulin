@@ -1201,4 +1201,20 @@
   .home-main .notebook-banner-peek picture, .home-main .notebook-banner-peek img { display:block; width:100%; height:100%; object-fit:cover; }
   .home-main .notebook-banner-direction.is-previous { left:16px; }
   .home-main .notebook-banner-direction.is-next { right:16px; }
+  /* 가운데 배너가 옆 배너 자리까지 실제로 미끄러지고, 새 옆 배너는 전환이 끝날 즈음 서서히 나타난다. */
+  .home-main .notebook-banner-viewport { z-index:2; overflow:visible; background:transparent; }
+  .home-main .notebook-banner-slide { overflow:hidden; border-radius:20px; background:var(--banner-paper); }
+  .home-main .notebook-banner-slide.is-outgoing { animation:home-banner-out-next .5s cubic-bezier(.22,.61,.36,1) both; }
+  .home-main .notebook-banner-slide.is-entering { animation:home-banner-in-next .5s cubic-bezier(.22,.61,.36,1) both; }
+  .home-main .notebook-banner-viewport[data-direction=previous] .is-outgoing { animation-name:home-banner-out-previous; }
+  .home-main .notebook-banner-viewport[data-direction=previous] .is-entering { animation-name:home-banner-in-previous; }
+  .home-main .notebook-banner-peek { animation:home-banner-peek-in .35s ease-out .3s both; }
+}
+@keyframes home-banner-in-next { from { transform:translateX(calc(100% + 20px)); } to { transform:translateX(0); } }
+@keyframes home-banner-out-next { from { transform:translateX(0); } to { transform:translateX(calc(-100% - 20px)); } }
+@keyframes home-banner-in-previous { from { transform:translateX(calc(-100% - 20px)); } to { transform:translateX(0); } }
+@keyframes home-banner-out-previous { from { transform:translateX(0); } to { transform:translateX(calc(100% + 20px)); } }
+@keyframes home-banner-peek-in { from { opacity:0; } to { opacity:1; } }
+@media(prefers-reduced-motion:reduce) {
+  .home-main .notebook-banner-peek { animation:none; }
 }

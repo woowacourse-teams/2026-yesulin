@@ -21,7 +21,7 @@ export function AuditionPostHome({ initialLatest = null, initialDeadline = null,
     <main id="main" className="notebook-container notebook-content home-main">
       <h1 className="sr-only">예술in 오디션 공고와 무료 공연</h1>
       <AuditionAlertBanner initialEventBanners={initialEventBanners} />
-      <CategoryShortcuts />
+      <CategoryShortcuts posts={initialLatest?.posts ?? null} />
       <HomePostRows initialLatest={initialLatest} initialDeadline={initialDeadline} />
       <QuickBanners />
       <HomeShowSection initialShows={initialShows} />

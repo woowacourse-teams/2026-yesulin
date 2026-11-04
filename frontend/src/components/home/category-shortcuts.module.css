@@ -117,11 +117,17 @@
 @keyframes sweep { from { transform: translate(-50%, -100%) rotate(-34deg); } to { transform: translate(-50%, -100%) rotate(34deg); } }
 @keyframes star { 0% { opacity: 0; transform: translate(calc(-50% + var(--sx)), calc(-50% + var(--sy))) scale(0) rotate(0); } 30% { opacity: 1; transform: translate(calc(-50% + var(--sx)), calc(-50% + var(--sy))) scale(1.25) rotate(45deg); } 70%, 100% { opacity: 0; transform: translate(calc(-50% + var(--sx)), calc(-50% + var(--sy))) scale(.6) rotate(90deg); } }
 
+/* 마지막 확인 이후 새 공고 수. 카카오톡 안 읽음 배지처럼 타일 오른쪽 위에 붙는다. */
+.badge { position: absolute; top: -20px; right: -26px; z-index: 3; min-width: 22px; height: 20px; padding: 0 6px; border-radius: 999px; background: #f04452; color: #fff;
+  font-size: 12px; font-weight: 800; line-height: 20px; text-align: center; font-variant-numeric: tabular-nums; box-shadow: 0 0 0 2px #fff; animation: badge-pop .35s cubic-bezier(.2, .9, .25, 1.4) both; }
+@keyframes badge-pop { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
 @media (max-width: 760px) {
   .stage { margin-top: 20px; }
   .act { gap: 6px; padding: 8px 0 10px; }
   .ic { margin: 12px 0 4px; font-size: 24px; }
   .ic::before { inset: -13px; }
+  .badge { top: -18px; right: -22px; }
   .dance .ic { font-size: 30px; }
   .label { font-size: 13px; }
   .cone { width: 100px; height: 130px; bottom: 16px; }

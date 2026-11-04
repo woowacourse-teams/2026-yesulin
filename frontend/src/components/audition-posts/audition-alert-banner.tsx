@@ -147,7 +147,7 @@ function BannerPeek({ banners, active, side, onMove }: {
   if (banners.length < 2) return null;
   const delta = PEEK_DELTA[side];
   const banner = banners[(active + delta + banners.length) % banners.length];
-  return <button type="button" tabIndex={-1} aria-hidden="true" className={`notebook-banner-peek is-${side}`} onClick={() => onMove(delta)}><PeekPicture banner={banner} /></button>;
+  return <button key={banner.id} type="button" tabIndex={-1} aria-hidden="true" className={`notebook-banner-peek is-${side}`} onClick={() => onMove(delta)}><PeekPicture banner={banner} /></button>;
 }
 
 const PEEK_DELTA = { previous: -1, next: 1 } as const;

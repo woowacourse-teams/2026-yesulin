@@ -4,6 +4,8 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CategoryShortcuts } from "./category-shortcuts";
 
+vi.mock("@/features/audition-posts/api", () => ({ getAuditionPosts: vi.fn(() => new Promise(() => undefined)) }));
+
 let root: Root;
 let container: HTMLDivElement;
 let reveal: (visible: boolean) => void;
@@ -16,7 +18,7 @@ function playing(): string[] {
   return [...container.querySelectorAll("a[data-playing]")].map((link) => link.textContent ?? "");
 }
 
-async function render() { await act(async () => root.render(<CategoryShortcuts />)); }
+async function render() { await act(async () => root.render(<CategoryShortcuts posts={[]} />)); }
 async function tick(ms: number) { await act(async () => { await vi.advanceTimersByTimeAsync(ms); }); }
 
 beforeEach(() => {

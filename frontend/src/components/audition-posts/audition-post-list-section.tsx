@@ -8,6 +8,7 @@ import { ScreenError } from "@/components/auditions/screen-status";
 import { NotebookListHeading } from "@/components/landing/notebook-page-main";
 import { getAuditionPosts } from "@/features/audition-posts/api";
 import { kstToday } from "@/features/audition-posts/format";
+import { markCategorySeen } from "@/features/audition-posts/category-seen";
 import { AUDITION_LANDING_CATEGORIES, auditionPostRoutes, type AuditionPostPage, type AuditionPostQuery } from "@/features/audition-posts/types";
 import { viewCountClock } from "@/features/audition-posts/view-count";
 import { AuditionPostCard } from "./audition-post-card";
@@ -38,6 +39,7 @@ export function AuditionPostListSection({ query, initialPage, preview = false }:
     return () => { active = false; };
   }, [page, includeClosed, category, sort]);
   useEffect(() => { if (!initialPage) return load(); }, [initialPage, load]);
+  useEffect(() => { if (category) markCategorySeen(category); }, [category]);
   const normalizedSearch = search.trim().toLocaleLowerCase();
   const matching = state.status === "ready" ? state.page.posts.filter((post) => !normalizedSearch || `${post.title} ${post.authorName}`.toLocaleLowerCase().includes(normalizedSearch)) : [];
 
