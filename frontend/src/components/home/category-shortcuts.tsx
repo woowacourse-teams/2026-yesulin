@@ -1,20 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { PiBuildings, PiMaskHappy, PiMaskSad, PiMusicNote, PiMusicNoteSimple, PiMusicNotes, PiSparkle, PiStarFour, PiUser, PiUsersThree } from "react-icons/pi";
-import { getAuditionPosts } from "@/features/audition-posts/api";
 import { auditionPostRoutes, type AuditionLandingCategory } from "@/features/audition-posts/types";
 import { Dancer } from "./dancer";
 import styles from "./category-shortcuts.module.css";
 
-export type CategoryOpenCounts = Readonly<Record<AuditionLandingCategory, number>>;
-
-const TOUCH_SCENE_MS = 1800;
-
-function classNames(...names: readonly (string | false | null)[]): string {
-  return names.filter(Boolean).join(" ");
-}
+const AUTOPLAY_SCENE_MS = 2400;
 
 const scenes: readonly { readonly category: AuditionLandingCategory; readonly className: string; readonly art: ReactNode }[] = [
   { category: "뮤지컬", className: styles.musical, art: <><span className={styles.main}><PiMusicNotes /></span><span className={`${styles.fx} ${styles.n1}`}><PiMusicNote /></span><span className={`${styles.fx} ${styles.n2}`}><PiMusicNoteSimple /></span><span className={`${styles.fx} ${styles.n3}`}><PiMusicNote /></span><span className={`${styles.fx} ${styles.n4}`}><PiMusicNoteSimple /></span></> },
@@ -24,42 +17,44 @@ const scenes: readonly { readonly category: AuditionLandingCategory; readonly cl
   { category: "기획사", className: styles.agency, art: <><span className={`${styles.fx} ${styles.beam}`} /><span className={`${styles.fx} ${styles.s1}`}><PiSparkle /></span><span className={`${styles.fx} ${styles.s2}`}><PiStarFour /></span><span className={`${styles.fx} ${styles.s3}`}><PiSparkle /></span><span className={styles.main}><PiBuildings /></span></> },
 ];
 
-async function loadCounts(): Promise<CategoryOpenCounts> {
-  const pages = await Promise.all(scenes.map(({ category }) => getAuditionPosts({ page: 0, includeClosed: false, category }, 1)));
-  return Object.fromEntries(scenes.map(({ category }, index) => [category, pages[index].openCount])) as CategoryOpenCounts;
+function classNames(...names: readonly (string | false | null)[]): string {
+  return names.filter(Boolean).join(" ");
 }
 
-/** 분야 바로가기 무대. 마우스를 올리거나 누른 분야에만 조명이 떨어지고 분야별 짧은 장면이 재생된다. */
-export function CategoryShortcuts({ initialCounts = null }: { readonly initialCounts?: CategoryOpenCounts | null }) {
-  const [counts, setCounts] = useState<CategoryOpenCounts | null>(initialCounts);
-  const [touched, setTouched] = useState<AuditionLandingCategory | null>(null);
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+function canAutoplay(): boolean {
+  return window.matchMedia("(hover: none)").matches && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+/** 마우스가 없는 기기에서는 무대가 화면에 보이는 동안 분야 장면을 하나씩 차례로 재생한다. */
+function useAutoplayScene(target: RefObject<HTMLElement | null>): number | null {
+  const [playing, setPlaying] = useState<number | null>(null);
   useEffect(() => {
-    if (initialCounts) return;
-    let active = true;
-    loadCounts().then((next) => { if (active) setCounts(next); }).catch(() => undefined);
-    return () => { active = false; };
-  }, [initialCounts]);
-  useEffect(() => () => clearTimeout(timer.current), []);
-  const playOnTouch = (category: AuditionLandingCategory) => (event: PointerEvent) => {
-    if (event.pointerType === "mouse") return;
-    setTouched(category);
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => setTouched(null), TOUCH_SCENE_MS);
-  };
-  return <nav aria-label="분야 바로가기" className={classNames(styles.stage, touched && styles.hasOn)}>
-    {scenes.map(({ category, className, art }) => <Link key={category} href={auditionPostRoutes.list({ category })} onPointerDown={playOnTouch(category)}
-      className={classNames(styles.act, className, touched === category && styles.on)}>
+    const element = target.current;
+    if (!element || !canAutoplay()) return;
+    let timer: ReturnType<typeof setInterval> | undefined;
+    const stop = () => { clearInterval(timer); setPlaying(null); };
+    const start = () => {
+      setPlaying(0);
+      timer = setInterval(() => setPlaying((current) => ((current ?? -1) + 1) % scenes.length), AUTOPLAY_SCENE_MS);
+    };
+    const observer = new IntersectionObserver(([entry]) => { stop(); if (entry.isIntersecting) start(); }, { threshold: 0.6 });
+    observer.observe(element);
+    return () => { observer.disconnect(); clearInterval(timer); };
+  }, [target]);
+  return playing;
+}
+
+/** 분야 바로가기. 마우스를 올린 분야에만 조명이 떨어지고 분야별 짧은 장면이 재생된다. */
+export function CategoryShortcuts() {
+  const stage = useRef<HTMLElement>(null);
+  const playing = useAutoplayScene(stage);
+  return <nav ref={stage} aria-label="분야 바로가기" className={classNames(styles.stage, playing !== null && styles.hasOn)}>
+    {scenes.map(({ category, className, art }, index) => <Link key={category} href={auditionPostRoutes.list({ category })}
+      className={classNames(styles.act, className, playing === index && styles.on)} data-playing={playing === index || undefined}>
       <span className={styles.cone} aria-hidden="true" />
       <span className={styles.pool} aria-hidden="true" />
       <span className={styles.ic} aria-hidden="true">{art}</span>
-      <b className={styles.label}>{category}</b>{" "}
-      <OpenCount count={counts?.[category]} />
+      <span className={styles.label}>{category}</span>
     </Link>)}
   </nav>;
-}
-
-function OpenCount({ count }: { readonly count?: number }) {
-  if (count === undefined) return <small className={styles.count} aria-hidden="true">&nbsp;</small>;
-  return <small className={`${styles.count} num`}>모집 중 {count.toLocaleString("ko-KR")}</small>;
 }

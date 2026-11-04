@@ -7,7 +7,7 @@ const { redirect, readPosts, readShows, readEventBanners } = vi.hoisted(() => ({
   readEventBanners: vi.fn(async () => []),
 }));
 vi.mock("next/navigation", () => ({ redirect, usePathname: () => "/" }));
-vi.mock("@/features/audition-posts/server", () => ({ auditionPostPageForServer: readPosts, categoryOpenCountsForServer: vi.fn(async () => null) }));
+vi.mock("@/features/audition-posts/server", () => ({ auditionPostPageForServer: readPosts }));
 vi.mock("@/features/shows/server", () => ({ publicShowsForServer: readShows }));
 vi.mock("@/features/events/server", () => ({ eventBannersForServer: readEventBanners }));
 

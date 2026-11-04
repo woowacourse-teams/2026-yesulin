@@ -1,6 +1,6 @@
 import "server-only";
 import { cache } from "react";
-import { AUDITION_POST_CATEGORIES, auditionPostApiPaths, type AuditionLandingCategory, type AuditionPost, type AuditionPostPage, type AuditionPostQuery } from "./types";
+import { auditionPostApiPaths, type AuditionPost, type AuditionPostPage, type AuditionPostQuery } from "./types";
 
 const REDIRECT_COUNT_TIMEOUT_MS = 1_500;
 const READ_TIMEOUT_MS = 10_000;
@@ -43,13 +43,6 @@ export async function auditionPostPageForServer(query: AuditionPostQuery, size?:
   } catch {
     return null;
   }
-}
-
-/** 홈 분야 바로가기의 분야별 모집 중 공고 수. 하나라도 읽지 못하면 브라우저에서 다시 읽도록 null을 돌려준다. */
-export async function categoryOpenCountsForServer(): Promise<Readonly<Record<AuditionLandingCategory, number>> | null> {
-  const pages = await Promise.all(AUDITION_POST_CATEGORIES.map((category) => auditionPostPageForServer({ page: 0, includeClosed: false, category }, 1)));
-  if (pages.some((page) => !page)) return null;
-  return Object.fromEntries(AUDITION_POST_CATEGORIES.map((category, index) => [category, pages[index]!.openCount])) as Record<AuditionLandingCategory, number>;
 }
 
 /** 분야별 목록·피드는 조회 실패를 빈 공고 목록으로 바꾸지 않는다. */
