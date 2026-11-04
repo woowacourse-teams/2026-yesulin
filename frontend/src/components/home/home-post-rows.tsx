@@ -4,13 +4,12 @@ import { useEffect, useState } from "react";
 import { ScreenError } from "@/components/auditions/screen-status";
 import { NotebookPostCard } from "@/components/audition-posts/notebook-post-card";
 import { getAuditionPosts } from "@/features/audition-posts/api";
+import { HOME_DEADLINE_SIZE, HOME_LATEST_POOL_SIZE } from "@/features/audition-posts/home-query";
 import { kstToday } from "@/features/audition-posts/format";
 import { AUDITION_POST_CATEGORIES, auditionPostRoutes, type AuditionPostPage, type AuditionPostSummary } from "@/features/audition-posts/types";
 import { publicViewCount, viewCountClock } from "@/features/audition-posts/view-count";
 import { PosterRow, PosterRowSkeleton } from "./poster-row";
 
-export const HOME_LATEST_POOL_SIZE = 48;
-export const HOME_DEADLINE_SIZE = 12;
 const ROW_SIZE = 12;
 const RANKING_SIZE = 10;
 const ALL_CATEGORIES = "전체";

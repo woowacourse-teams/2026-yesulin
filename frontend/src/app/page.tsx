@@ -4,7 +4,7 @@ import { AuditionPostHome } from "@/components/audition-posts/audition-post-home
 import { MswProvider } from "@/components/mocks/msw-provider";
 import { JsonLd } from "@/components/seo/json-ld";
 import { auditionPostPageForServer } from "@/features/audition-posts/server";
-import { HOME_DEADLINE_SIZE, HOME_LATEST_POOL_SIZE } from "@/components/home/home-post-rows";
+import { HOME_DEADLINE_SIZE, HOME_LATEST_POOL_SIZE } from "@/features/audition-posts/home-query";
 import { eventBannersForServer } from "@/features/events/server";
 import { auditionPostRoutes, parseAuditionPostQuery } from "@/features/audition-posts/types";
 import { HOME_DESCRIPTION, HOME_TITLE, socialMetadata } from "@/features/seo/audition-metadata";

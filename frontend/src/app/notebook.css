@@ -1053,9 +1053,7 @@
 }
 
 /* 공고·공연 카드는 3:4 포스터 틀에 원본 전체를 담고, 남는 여백은 같은 이미지를 흐리게 채운다. */
-.notebook-post-grid,
-.notebook-show-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px 12px; }
-.notebook-show-grid li { min-width:0; }
+.notebook-post-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px 12px; }
 .notebook-poster-card { display:flex; flex-direction:column; height:100%; color:var(--ink); border-radius:8px; }
 .notebook-poster-card:focus-visible { outline:2px solid var(--focus); outline-offset:4px; }
 .notebook-poster { position:relative; isolation:isolate; container-type:inline-size; aspect-ratio:3 / 4; overflow:hidden; border-radius:8px; background:#1b2a3a; }
@@ -1087,10 +1085,10 @@
 .notebook-poster-meta dd { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .notebook-poster-skeleton { aspect-ratio:3 / 4; border-radius:8px; background:#f2f4f6; }
 @media(min-width:761px) {
-  .notebook-post-grid,.notebook-show-grid { grid-template-columns:repeat(4,minmax(0,1fr)); gap:32px 16px; }
+  .notebook-post-grid { grid-template-columns:repeat(4,minmax(0,1fr)); gap:32px 16px; }
 }
 @media(min-width:1100px) {
-  .notebook-post-grid,.notebook-show-grid { grid-template-columns:repeat(6,minmax(0,1fr)); gap:32px 18px; }
+  .notebook-post-grid { grid-template-columns:repeat(6,minmax(0,1fr)); gap:32px 18px; }
 }
 @media(prefers-reduced-motion:reduce) {
   .notebook-poster .notebook-poster-image { transition:none; }
