@@ -7,7 +7,7 @@
   --ink-40:#516e88;
   --line:#c9ddee;
   --line-soft:#e5eef6;
-  --paper:#f5faff;
+  --paper:#ffffff;
   --brand:#2564a8;
   --brand-strong:#1d528d;
   --brand-pressed:#174677;
@@ -67,8 +67,9 @@
   position:sticky;
   top:0;
   z-index:30;
-  background:#f5fafff5;
-  border-bottom:1px solid #c9ddee;
+  background:#ffffffeb;
+  backdrop-filter:saturate(180%) blur(12px);
+  border-bottom:1px solid #eef1f4;
 }
 
 .notebook-header-inner {
@@ -85,7 +86,7 @@
 }
 
 .notebook-logo img {
-  width:86px;
+  width:108px;
   height:auto;
 }
 
@@ -563,8 +564,8 @@
 
 
 .notebook-footer {
-  background:#edf4fa;
-  border-top:1px solid var(--line);
+  background:#f9fafb;
+  border-top:1px solid #eef1f4;
   color:#456b8c;
 }
 
@@ -769,7 +770,7 @@
     gap:12px;
   }
   .notebook-logo img {
-    width:75px;
+    width:92px;
   }
   .notebook-content {
     padding-top:20px;
@@ -922,7 +923,7 @@
 .notebook-main-nav :is(a,button):hover::after,.notebook-main-nav a[aria-current=page]::after { background:var(--brand); }
 .notebook-footer-brand { display:flex; align-items:center; gap:16px; min-width:0; }
 .notebook-footer-logo { display:inline-flex; align-items:center; min-height:44px; }
-.notebook-footer-logo img { width:78px; height:auto; }
+.notebook-footer-logo img { width:96px; height:auto; }
 .notebook-footer-brand .notebook-footer-slogan { margin:0; font-size:14px; font-weight:400; line-height:1.6; color:var(--ink-60); }
 .notebook-email-address { max-width:100%; overflow-wrap:anywhere; user-select:all; font-size:14px; font-weight:400; color:var(--ink-60); }
 .public-show-card.is-ended img { filter:grayscale(1); opacity:.5; }
@@ -1078,7 +1079,7 @@
 .notebook-poster-meta>div { display:flex; gap:4px; min-width:0; }
 .notebook-poster-meta>div:first-child { flex-basis:100%; color:var(--ink-60); }
 .notebook-poster-meta dd { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.notebook-poster-skeleton { aspect-ratio:3 / 4; border-radius:8px; background:#dbe8f4; }
+.notebook-poster-skeleton { aspect-ratio:3 / 4; border-radius:8px; background:#f2f4f6; }
 @media(min-width:761px) {
   .notebook-post-grid,.notebook-show-grid { grid-template-columns:repeat(4,minmax(0,1fr)); gap:32px 16px; }
 }
