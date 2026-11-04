@@ -842,12 +842,6 @@
   }
   .notebook-footer-top { flex-direction:column; align-items:flex-start; gap:8px; }
   .notebook-footer-links { justify-content:flex-start; column-gap:16px; }
-  .notebook-footer-bottom {
-    flex-direction:column;
-    align-items:flex-start;
-    gap:4px;
-    font-size:11px;
-  }
   .notebook-about-hero {
     grid-template-columns:minmax(0,1fr);
     padding:28px 24px;
@@ -1094,4 +1088,18 @@
 @media(prefers-reduced-motion:reduce) {
   .notebook-poster .notebook-poster-image { transition:none; }
   .notebook-poster-card:hover .notebook-poster-image { transform:none; }
+}
+
+/* 모바일 푸터는 상단과 겹치는 로고·이메일을 숨기고 도움말 링크와 정책 링크 두 줄만 둔다. */
+@layer components {
+  @media(max-width:760px) {
+    .notebook-footer { padding-block:12px 8px; }
+  }
+}
+@media(max-width:760px) {
+  .notebook-footer .notebook-footer-brand,
+  .notebook-footer .notebook-email-address { display:none; }
+  .notebook-footer-links { font-size:13px; }
+  .notebook-footer-bottom { flex-wrap:wrap; gap:0 16px; margin-top:0; padding-top:0; border-top:0; font-size:13px; }
+  .notebook-footer-bottom nav { order:-1; font-size:13px; }
 }
