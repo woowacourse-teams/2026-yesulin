@@ -45,8 +45,8 @@
 
 | 문제 ID | 심각도·유형·유입 | 발견 경로 | 최초 확정(+09:00) / 최초 기록 PR | 해결 시각(+09:00) | 근거·조치·상태 |
 | --- | --- | --- | --- | --- | --- |
-| 2026-11-04-design-only-release-F01 | P3·UNUSED·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-04T17:51:30+09:00 / PENDING | — | AuditionPostListSection.preview와 notebook-toolbar.is-preview CSS는 새 HomePostRows 전환 후 소비자 없음. OPEN. 유일 호출 audition-post-list.tsx는 preview 미전달. 이번 로고·선택 릴리스에서 분기 제거 리팩터링은 하지 않고 후속 홈/목록 정리에서 prop·분기·CSS를 함께 제거한다. |
-| 2026-11-04-design-only-release-F02 | P3·DOC·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-04T17:51:30+09:00 / PENDING | 2026-11-04T17:51:30+09:00 | design-system.md의 배우·일정표 폭 설명이 공통 1200px과 달리 1080px로 남음. FIXED. 1200px로 수정하고 실제 notebook-container 사용 및 문서 참조를 대조했다. |
+| 2026-11-04-design-only-release-F01 | P3·UNUSED·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-04T17:51:30+09:00 / #512 | — | AuditionPostListSection.preview와 notebook-toolbar.is-preview CSS는 새 HomePostRows 전환 후 소비자 없음. OPEN. 유일 호출 audition-post-list.tsx는 preview 미전달. 이번 로고·선택 릴리스에서 분기 제거 리팩터링은 하지 않고 후속 홈/목록 정리에서 prop·분기·CSS를 함께 제거한다. |
+| 2026-11-04-design-only-release-F02 | P3·DOC·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-04T17:51:30+09:00 / #512 | 2026-11-04T17:51:30+09:00 | design-system.md의 배우·일정표 폭 설명이 공통 1200px과 달리 1080px로 남음. FIXED. 1200px로 수정하고 실제 notebook-container 사용 및 문서 참조를 대조했다. |
 
 최초 확정 시각은 별도 평가의 근거를 판별하고 이 기록에 확정한 시각이다.
 #510에서 발견한 문제는 해당 평가 기록의 기존 ID를 유지하며 이번 신규 2건에 중복 합산하지 않는다.
@@ -63,3 +63,8 @@
 
 운영 배포·실제 휴대폰·운영 API 연동과 배너가 전환되는 도중의 시각적 연속성은 이번 선택 릴리스에서 확인하지 않았다.
 이 항목은 R08(실제 배포 이후 확인)에 해당한다. 기존 배너 이미지 안의 이전 로고도 이번 범위에서 교체하지 않는다.
+
+## 최초 게시 연결
+
+PR #512에 처음 게시했다. 위 문제의 최초 기록 PR은 #512이며, E01~E03의 PENDING은 게시 전 상태다.
+과거 사건 행은 보존하고 이 연결을 추가한다. 발견·해결 시각은 PR 생성 시각으로 바꾸지 않는다.
