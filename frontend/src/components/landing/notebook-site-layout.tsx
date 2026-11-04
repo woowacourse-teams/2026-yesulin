@@ -27,7 +27,7 @@ export function NotebookHeader({ service = "applicant" }: { readonly service?: "
   const pathname = usePathname() ?? "/";
   const current = currentMenu(pathname);
   return <header className="notebook-header"><div className="notebook-container notebook-header-inner">
-    <Link href="/" aria-label="예술in 홈" className="notebook-logo"><Image src="/images/yesulin-logo-transparent.png" alt="예술in" width={96} height={56} priority /></Link>
+    <Link href="/" aria-label="예술in 홈" className="notebook-logo"><Image src="/images/yesulin-wordmark.png" alt="예술in" width={707} height={320} priority /></Link>
     <nav aria-label="주요 메뉴" className="notebook-main-nav">{menuItems.map((item) => <Link key={item.key} href={item.href} aria-current={current === item.key ? "page" : undefined}>{item.label}</Link>)}</nav>
     <div className="notebook-account"><HeaderAccountLinks service={service} producerLinkClassName="notebook-producer-link" /></div>
     <MobileNavigation key={pathname} current={current} service={service} />
@@ -84,7 +84,7 @@ export function NotebookFooter({ className = "" }: { readonly className?: string
   return <footer className={`notebook-footer ${className}`}><div className="notebook-container">
     <div className="notebook-footer-top">
       <div className="notebook-footer-brand">
-        <Link className="notebook-footer-logo" href="/" aria-label="예술in 홈"><Image src="/images/yesulin-logo-transparent.png" alt="예술in" width={86} height={50} /></Link>
+        <Link className="notebook-footer-logo" href="/" aria-label="예술in 홈"><Image src="/images/yesulin-wordmark.png" alt="예술in" width={707} height={320} /></Link>
         <p className="notebook-footer-slogan">예술의 문을 열다, 예술in</p>
       </div>
       <nav aria-label="도움말·문의" className="notebook-footer-links">

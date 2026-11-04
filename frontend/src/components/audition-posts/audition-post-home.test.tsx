@@ -19,18 +19,18 @@ const data: AuditionPostPage = {
 vi.mock("@/components/auth/auth-session", () => ({ useAuthSession: () => ({ session: null }) }));
 
 describe("메인과 오디션 전용 목록", () => {
-  it("기본 홈은 첫 페이지 공고 12개를 포스터로 소개하고 전체 목록을 여는 경로를 제공한다", () => {
+  it("홈은 분야 바로가기와 공고·공연 포스터 줄을 보여 주고 전체 목록으로 연결한다", () => {
     pathname.mockReturnValue("/");
-    const html = renderToStaticMarkup(<AuditionPostHome initialPage={data} initialShows={[]} />);
+    const html = renderToStaticMarkup(<AuditionPostHome initialLatest={data} initialDeadline={data} initialShows={[]} />);
+    expect(html).toContain('aria-label="분야 바로가기"');
+    expect(html).toContain('href="/auditions/musical"');
+    expect(html).toContain("새로 올라온 공고");
+    expect(html).toContain("마감 임박 공고");
+    expect(html).toContain("많이 본 공고");
     expect(html).toContain('href="/posts/12"');
-    expect(html).toContain('class="notebook-poster-card"');
-    expect(html).not.toContain('type="search"');
-    expect(html).not.toContain("전체 공고 보기");
-    expect(html).not.toContain('aria-label="모집 상태"');
-    expect(html).not.toContain('aria-label="공고 정렬"');
-    expect(html).toMatch(/class="notebook-toolbar is-preview">[\s\S]*?<\/nav><a[^>]*>전체 보기<\/a><\/div>/);
-    expect(html).not.toContain("공개 공고 30개 · 3개 미리보기");
     expect(html).toContain('href="/auditions"');
+    expect(html).toContain('href="/auditions?sort=deadline"');
+    expect(html).toContain('aria-label="1위"');
     expect(html).toContain('id="shows"');
     expect(html).toContain('id="faq"');
     expect(html).not.toContain('aria-current="page"');
@@ -66,17 +66,9 @@ describe("메인과 오디션 전용 목록", () => {
     expect(html).toMatch(/<a\b(?=[^>]*href="\/auditions\/theater\?closed=1&amp;sort=deadline")(?=[^>]*aria-current="true")[^>]*>마감 임박순<\/a>/);
   });
 
-  it("홈은 정렬 버튼 없이 전체 목록 링크에 기존 정렬 조건을 유지한다", () => {
-    const html = renderToStaticMarkup(<AuditionPostHome initialPage={data} initialShows={[]} sort="deadline" />);
-    expect(html).not.toContain('aria-label="공고 정렬"');
-    expect(html).toContain('href="/auditions?sort=deadline"');
-    expect(html).not.toContain("모집 조건과 마감일을 확인해보세요.");
-  });
-
   it("서버 조회가 없는 상태를 빈 데이터로 단정하지 않는다", () => {
-    const html = renderToStaticMarkup(<AuditionPostHome initialPage={null} initialShows={null} />);
-    expect(html).toContain("공고 목록 불러오는 중");
-    expect(html).toContain("공연 목록 불러오는 중");
+    const html = renderToStaticMarkup(<AuditionPostHome initialLatest={null} initialDeadline={null} initialShows={null} />);
+    expect(html).toContain("포스터 불러오는 중");
     expect(html).not.toContain("지금 예매할 수 있는 공연이 없어요");
   });
 });

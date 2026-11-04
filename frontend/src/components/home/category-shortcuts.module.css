@@ -1,0 +1,138 @@
+/* 홈 분야 바로가기: 흰 홈 위에서 마우스를 올린 분야에만 은은한 조명이 떨어지고 분야별 장면이 재생된다. */
+.stage {
+  --ink: #4e5968;
+  --ink-strong: #191f28;
+  --light: #22a6e8;
+  --light-2: #6a5bc4;
+  --spark: #ffb020;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  max-width: 720px;
+  margin: 28px auto 0;
+}
+
+.act { position: relative; z-index: 1; display: grid; justify-items: center; gap: 10px; min-height: 44px; padding: 10px 4px 12px; border-radius: 14px; color: var(--ink); transition: color .25s, opacity .25s; }
+.act:focus-visible { outline: 2px solid var(--light); outline-offset: 2px; }
+.cone { position: absolute; left: 50%; bottom: 18px; width: 150px; height: 170px; transform: translateX(-50%); pointer-events: none; opacity: 0; transition: opacity .3s;
+  background: conic-gradient(from 180deg at 50% 0, transparent 162deg, rgb(34 166 232 / .14) 172deg, rgb(106 91 196 / .18) 180deg, rgb(34 166 232 / .14) 188deg, transparent 198deg);
+  -webkit-mask: linear-gradient(180deg, transparent, #000 45%); mask: linear-gradient(180deg, transparent, #000 45%); }
+.pool { position: absolute; left: 50%; bottom: 22px; width: 84px; height: 16px; transform: translateX(-50%); border-radius: 50%; background: radial-gradient(closest-side, rgb(34 166 232 / .28), transparent); opacity: 0; transition: opacity .3s; }
+.label { position: relative; font-size: 15px; font-weight: 700; letter-spacing: -.02em; color: #333d4b; transition: color .25s; }
+
+.stage:hover .act, .stage:focus-within .act, .hasOn .act { opacity: .45; }
+.act:is(:hover, :focus-visible, .on) { opacity: 1 !important; }
+.act:is(:hover, :focus-visible, .on) :is(.cone, .pool) { opacity: 1; }
+.act:is(:hover, :focus-visible, .on) .label { color: var(--ink-strong); }
+
+.ic { position: relative; display: grid; place-items: center; width: 1em; height: 1em; margin: 14px 0 6px; font-size: 30px; }
+.ic::before { content: ""; position: absolute; inset: -15px; z-index: 0; border-radius: 30%; background: #f2f4f6; box-shadow: inset 0 0 0 1px rgb(0 0 0 / .02); transition: background-color .25s, transform .3s; }
+.act:is(:hover, :focus-visible, .on) .ic::before { background: #e8f4fd; transform: scale(1.04); }
+.main { position: relative; z-index: 2; display: grid; place-items: center; transition: transform .45s cubic-bezier(.2, .9, .25, 1.3), color .3s; }
+.fx { position: absolute; left: 50%; top: 50%; display: grid; place-items: center; opacity: 0; transform: translate(-50%, -50%); pointer-events: none; }
+.act:is(:hover, :focus-visible, .on) .main { color: var(--light); }
+
+/* 뮤지컬: 음표가 하나씩 떠오른다. */
+.musical .fx { font-size: .55em; color: var(--light-2); }
+.musical:is(:hover, :focus-visible, .on) .main { animation: bob .6s ease-in-out infinite; }
+.musical:is(:hover, :focus-visible, .on) .fx { animation: note-up 1.8s ease-out infinite; }
+.n1 { --x: -34px; --r: -24deg; }
+.n2 { --x: 28px; --r: 18deg; animation-delay: .45s !important; }
+.n3 { --x: -10px; --r: -8deg; animation-delay: .9s !important; }
+.n4 { --x: 40px; --r: 28deg; animation-delay: 1.35s !important; }
+@keyframes note-up { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.4); } 15% { opacity: 1; } 100% { opacity: 0; transform: translate(calc(-50% + var(--x)), calc(-50% - 62px)) scale(1) rotate(var(--r)); } }
+@keyframes bob { 0%, 100% { transform: translateY(0) scale(1.12); } 50% { transform: translateY(-5px) scale(1.12) rotate(-6deg); } }
+
+/* 연극: 희극 가면 옆으로 비극 가면이 나온다. */
+.sad { z-index: 1; color: var(--light-2); transition: transform .5s cubic-bezier(.2, .9, .25, 1.4), opacity .3s; }
+.theater:is(:hover, :focus-visible, .on) .main { transform: translateX(-13px) rotate(-16deg) scale(1.05); }
+.theater:is(:hover, :focus-visible, .on) .sad { opacity: 1; transform: translate(calc(-50% + 15px), -50%) rotate(16deg) scale(.95); animation: sway 1.6s ease-in-out .5s infinite; }
+@keyframes sway { 0%, 100% { transform: translate(calc(-50% + 15px), -50%) rotate(16deg) scale(.95); } 50% { transform: translate(calc(-50% + 15px), calc(-50% - 3px)) rotate(8deg) scale(.95); } }
+
+/* 퍼포먼스: 관절이 따로 움직이며 춤춘다. */
+.dance .ic { font-size: 36px; }
+.dance .pool { background: radial-gradient(closest-side, rgb(255 120 190 / .4), transparent); }
+.dance:is(:hover, :focus-visible, .on) .pool { animation: disco 4s linear infinite; }
+.dancer :is(g, circle) { transform-box: view-box; }
+.dAll { transform-origin: 128px 234px; }
+.dTorso { transform-origin: 128px 148px; }
+.dHead { transform-origin: 128px 70px; }
+.dArm { transform-origin: 128px 94px; }
+.dForeL { transform-origin: 94px 118px; }
+.dForeR { transform-origin: 162px 118px; transform: rotate(-30deg); }
+.dLeg { transform-origin: 128px 148px; }
+.dShinL { transform-origin: 106px 190px; }
+.dShinR { transform-origin: 150px 190px; }
+.dArmL { transform: rotate(-18deg); }
+.dArmR { transform: rotate(40deg); }
+.dance:is(:hover, :focus-visible, .on) .dAll { animation: d-bounce .6s ease-in-out infinite; }
+.dance:is(:hover, :focus-visible, .on) .dTorso { animation: d-sway 1.2s ease-in-out infinite; }
+.dance:is(:hover, :focus-visible, .on) .dHead { animation: d-head .6s ease-in-out infinite alternate; }
+.dance:is(:hover, :focus-visible, .on) .dArmL { animation: d-arm-l 1.2s ease-in-out infinite; }
+.dance:is(:hover, :focus-visible, .on) .dArmR { animation: d-arm-r 1.2s ease-in-out infinite; }
+.dance:is(:hover, :focus-visible, .on) .dForeL { animation: d-fore-l 1.2s ease-in-out infinite; }
+.dance:is(:hover, :focus-visible, .on) .dForeR { animation: d-fore-r 1.2s ease-in-out infinite; }
+.dance:is(:hover, :focus-visible, .on) .dLegL { animation: d-leg-l 1.2s ease-in-out infinite; }
+.dance:is(:hover, :focus-visible, .on) .dLegR { animation: d-leg-r 1.2s ease-in-out infinite; }
+.dance:is(:hover, :focus-visible, .on) .dShinL { animation: d-shin-l 1.2s ease-in-out infinite; }
+.dance:is(:hover, :focus-visible, .on) .dShinR { animation: d-shin-r 1.2s ease-in-out infinite; }
+@keyframes d-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(9px) scaleY(.97); } }
+@keyframes d-sway { 0%, 100% { transform: rotate(-7deg); } 50% { transform: rotate(7deg); } }
+@keyframes d-head { from { transform: rotate(-12deg); } to { transform: rotate(12deg); } }
+@keyframes d-arm-l { 0%, 100% { transform: rotate(-18deg); } 50% { transform: rotate(72deg); } }
+@keyframes d-fore-l { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-42deg); } }
+@keyframes d-arm-r { 0%, 100% { transform: rotate(-72deg); } 50% { transform: rotate(18deg); } }
+@keyframes d-fore-r { 0%, 100% { transform: rotate(42deg); } 50% { transform: rotate(0deg); } }
+@keyframes d-leg-l { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(38deg); } }
+@keyframes d-shin-l { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-62deg); } }
+@keyframes d-leg-r { 0%, 100% { transform: rotate(-38deg); } 50% { transform: rotate(0deg); } }
+@keyframes d-shin-r { 0%, 100% { transform: rotate(62deg); } 50% { transform: rotate(0deg); } }
+@keyframes disco { from { filter: hue-rotate(0deg); } to { filter: hue-rotate(360deg); } }
+
+/* 단원: 양옆과 뒤에서 사람들이 모여든다. */
+.troupe .fx { font-size: .62em; color: #8b95a1; transition: transform .55s cubic-bezier(.2, .9, .25, 1.3), opacity .35s; }
+.m1 { transform: translate(calc(-50% - 70px), -30%); }
+.m2 { transform: translate(calc(-50% + 70px), -30%); }
+.m3 { transform: translate(calc(-50% - 50px), -120%); transition-delay: .08s; }
+.m4 { transform: translate(calc(-50% + 50px), -120%); transition-delay: .08s; }
+.troupe:is(:hover, :focus-visible, .on) .m1 { opacity: 1; transform: translate(calc(-50% - 27px), -18%); }
+.troupe:is(:hover, :focus-visible, .on) .m2 { opacity: 1; transform: translate(calc(-50% + 27px), -18%); }
+.troupe:is(:hover, :focus-visible, .on) .m3 { opacity: .8; transform: translate(calc(-50% - 14px), -105%) scale(.85); }
+.troupe:is(:hover, :focus-visible, .on) .m4 { opacity: .8; transform: translate(calc(-50% + 14px), -105%) scale(.85); }
+.troupe:is(:hover, :focus-visible, .on) .main { transform: scale(1.1); animation: cheer .5s ease-in-out .5s 2; }
+@keyframes cheer { 50% { transform: scale(1.1) translateY(-4px); } }
+
+/* 기획사: 옥상 서치라이트가 새 얼굴을 찾는다. */
+.beam { top: 0; width: 26px; height: 70px; transform-origin: 50% 100%; transform: translate(-50%, -100%) rotate(-30deg);
+  background: linear-gradient(0deg, rgb(34 166 232 / .45), rgb(34 166 232 / 0)); clip-path: polygon(42% 100%, 58% 100%, 100% 0, 0 0); }
+.s1, .s2, .s3 { font-size: .5em; color: var(--spark); }
+.s1 { --sx: -40px; --sy: -66px; }
+.s2 { --sx: 38px; --sy: -58px; font-size: .42em; }
+.s3 { --sx: -6px; --sy: -76px; font-size: .38em; }
+.agency:is(:hover, :focus-visible, .on) .beam { opacity: 1; animation: sweep 1.6s ease-in-out infinite alternate; }
+.agency:is(:hover, :focus-visible, .on) .s1 { animation: star 1.6s ease-out .2s infinite; }
+.agency:is(:hover, :focus-visible, .on) .s2 { animation: star 1.6s ease-out 1s infinite; }
+.agency:is(:hover, :focus-visible, .on) .s3 { animation: star 1.6s ease-out .6s infinite; }
+.agency:is(:hover, :focus-visible, .on) .main { transform: scale(1.08); }
+@keyframes sweep { from { transform: translate(-50%, -100%) rotate(-34deg); } to { transform: translate(-50%, -100%) rotate(34deg); } }
+@keyframes star { 0% { opacity: 0; transform: translate(calc(-50% + var(--sx)), calc(-50% + var(--sy))) scale(0) rotate(0); } 30% { opacity: 1; transform: translate(calc(-50% + var(--sx)), calc(-50% + var(--sy))) scale(1.25) rotate(45deg); } 70%, 100% { opacity: 0; transform: translate(calc(-50% + var(--sx)), calc(-50% + var(--sy))) scale(.6) rotate(90deg); } }
+
+/* 마지막 확인 이후 새 공고 수. 카카오톡 안 읽음 배지처럼 타일 오른쪽 위에 붙는다. */
+.badge { position: absolute; top: -20px; right: -26px; z-index: 3; min-width: 22px; height: 20px; padding: 0 6px; border-radius: 999px; background: #f04452; color: #fff;
+  font-size: 12px; font-weight: 800; line-height: 20px; text-align: center; font-variant-numeric: tabular-nums; box-shadow: 0 0 0 2px #fff; animation: badge-pop .35s cubic-bezier(.2, .9, .25, 1.4) both; }
+@keyframes badge-pop { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+@media (max-width: 760px) {
+  .stage { margin-top: 20px; }
+  .act { gap: 6px; padding: 8px 0 10px; }
+  .ic { margin: 12px 0 4px; font-size: 24px; }
+  .ic::before { inset: -13px; }
+  .badge { top: -18px; right: -22px; }
+  .dance .ic { font-size: 30px; }
+  .label { font-size: 13px; }
+  .cone { width: 100px; height: 130px; bottom: 16px; }
+  .pool { width: 64px; bottom: 18px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .act, .act *, .main, .fx { animation: none !important; transition: none !important; }
+}
