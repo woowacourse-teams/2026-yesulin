@@ -44,6 +44,12 @@
   text-wrap:balance;
 }
 
+/* 페이지·섹션 제목은 홈 포스터 줄 제목과 같은 굵기와 자간을 쓴다. 카드 안 공고 제목은 제외한다. */
+.public-notebook :is(h1,h2):not(.notebook-poster-title) {
+  font-weight:800;
+  letter-spacing:-.03em;
+}
+
 .public-notebook a,.public-notebook button {
   transition:background-color .18s,border-color .18s,box-shadow .18s;
 }
