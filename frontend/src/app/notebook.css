@@ -35,7 +35,7 @@
 }
 
 .notebook-container {
-  width:min(1080px,calc(100% - 128px));
+  width:min(1200px,calc(100% - 128px));
   margin-inline:auto;
 }
 
@@ -1167,4 +1167,35 @@
 @media(prefers-reduced-motion:reduce) {
   .home-shortcut-icon, .home-quick-banner { transition:none; }
   .home-shortcut:hover .home-shortcut-icon, .home-quick-banner:hover { transform:none; }
+}
+
+/* 홈 포스터 줄은 데스크톱 5장, 태블릿 4장, 모바일 2.3장이 보이는 크기로 맞춘다. */
+.home-row-scroller { gap:20px; }
+.home-row-scroller > li { flex-basis:calc((100% - 4 * 20px) / 5); }
+.home-row .notebook-poster, .home-row .notebook-poster-skeleton { border-radius:12px; }
+.home-row .notebook-poster-title { margin-top:14px; font-size:17px; line-height:1.4; color:#191f28; }
+.home-row .notebook-poster-byline, .home-row .notebook-poster-meta { font-size:14px; color:#6b7684; }
+.home-row .notebook-poster-meta > div:first-child { color:#4e5968; }
+.home-row .notebook-poster-rank { left:14px; bottom:8px; font-size:52px; font-style:normal; font-weight:800; }
+.home-row-arrow { top:calc(50% - 60px); }
+.home-row-heading h2 { font-size:26px; }
+.home-shortcuts { justify-content:center; gap:36px; margin:32px 0 4px; }
+.home-shortcut { flex:0 0 auto; gap:6px; font-size:13px; font-weight:500; color:#4e5968; }
+.home-shortcut-icon { width:44px; height:44px; border-radius:14px; }
+.home-shortcut-icon svg { width:22px; height:22px; }
+@media(max-width:1099px) {
+  .home-row-scroller { gap:16px; }
+  .home-row-scroller > li { flex-basis:calc((100% - 3 * 16px) / 4); }
+}
+@media(max-width:760px) {
+  .home-row-scroller { gap:10px; }
+  .home-row-scroller > li { flex-basis:calc((100% - 2 * 10px) / 2.3); }
+  .home-row .notebook-poster-title { margin-top:10px; font-size:15px; }
+  .home-row .notebook-poster-byline, .home-row .notebook-poster-meta { font-size:13px; }
+  .home-row .notebook-poster-rank { font-size:40px; left:10px; bottom:6px; }
+  .home-row-heading h2 { font-size:20px; }
+  .home-shortcuts { justify-content:space-between; gap:0; margin-top:20px; }
+  .home-shortcut { flex:0 0 auto; min-width:44px; }
+  .home-shortcut-icon { width:40px; height:40px; border-radius:12px; }
+  .home-shortcut-icon svg { width:20px; height:20px; }
 }
