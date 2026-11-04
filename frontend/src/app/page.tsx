@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { AuditionPostHome } from "@/components/audition-posts/audition-post-home";
 import { MswProvider } from "@/components/mocks/msw-provider";
 import { JsonLd } from "@/components/seo/json-ld";
-import { auditionPostPageForServer } from "@/features/audition-posts/server";
+import { auditionPostPageForServer, categoryOpenCountsForServer } from "@/features/audition-posts/server";
 import { HOME_DEADLINE_SIZE, HOME_LATEST_POOL_SIZE } from "@/components/home/home-post-rows";
 import { eventBannersForServer } from "@/features/events/server";
 import { auditionPostRoutes, parseAuditionPostQuery } from "@/features/audition-posts/types";
@@ -22,9 +22,10 @@ export default async function HomePage({ searchParams }: { readonly searchParams
   const query = parseAuditionPostQuery(await searchParams);
   // 기존 공유 목록 주소를 새 목록 페이지에서 계속 사용할 수 있게 한다.
   if (query.page > 0 || query.includeClosed) redirect(auditionPostRoutes.list(query));
-  const [initialLatest, initialDeadline, initialShows, initialEventBanners] = await Promise.all([
+  const [initialLatest, initialDeadline, initialCategoryCounts, initialShows, initialEventBanners] = await Promise.all([
     auditionPostPageForServer({ page: 0, includeClosed: false }, HOME_LATEST_POOL_SIZE),
     auditionPostPageForServer({ page: 0, includeClosed: false, sort: "deadline" }, HOME_DEADLINE_SIZE),
+    categoryOpenCountsForServer(),
     publicShowsForServer().catch(() => null),
     // 이벤트 배너를 읽지 못해도 메인은 고정 배너로 보인다.
     eventBannersForServer().catch(() => []),
@@ -36,6 +37,7 @@ export default async function HomePage({ searchParams }: { readonly searchParams
         <AuditionPostHome
           initialLatest={initialLatest}
           initialDeadline={initialDeadline}
+          initialCategoryCounts={initialCategoryCounts}
           initialShows={initialShows}
           initialEventBanners={initialEventBanners}
         />

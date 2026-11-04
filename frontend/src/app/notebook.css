@@ -1113,12 +1113,6 @@
 
 /* 홈: 분야 아이콘 줄과 가로 포스터 줄을 쌓는다. */
 .home-main { padding-bottom:24px; }
-.home-shortcuts { display:flex; justify-content:space-between; gap:8px; margin:28px 0 8px; overflow-x:auto; scrollbar-width:none; }
-.home-shortcuts::-webkit-scrollbar { display:none; }
-.home-shortcut { display:flex; flex:1 0 72px; flex-direction:column; align-items:center; gap:8px; min-height:44px; padding:6px 0; font-size:14px; font-weight:600; color:#333d4b; border-radius:12px; }
-.home-shortcut-icon { display:grid; place-items:center; width:56px; height:56px; border-radius:18px; background:#f2f4f6; color:#3a6fd8; transition:background-color .15s ease, transform .15s ease; }
-.home-shortcut:hover .home-shortcut-icon { background:#e8f0fe; transform:translateY(-2px); }
-.home-shortcut:focus-visible { outline:2px solid var(--focus); outline-offset:2px; }
 .home-row { margin-top:44px; }
 .home-row-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:16px; }
 .home-row-heading h2 { font-size:24px; font-weight:800; letter-spacing:-.03em; color:#191f28; }
@@ -1151,9 +1145,6 @@
   .home-row-arrow { display:none; }
 }
 @media(max-width:760px) {
-  .home-shortcuts { justify-content:flex-start; gap:4px; margin-top:20px; }
-  .home-shortcut { flex:0 0 68px; font-size:13px; }
-  .home-shortcut-icon { width:52px; height:52px; border-radius:16px; }
   .home-row { margin-top:36px; }
   .home-row-heading { margin-bottom:12px; }
   .home-row-heading h2 { font-size:20px; }
@@ -1165,8 +1156,6 @@
   .home-quick-banner strong br { display:none; }
 }
 @media(prefers-reduced-motion:reduce) {
-  .home-shortcut-icon, .home-quick-banner { transition:none; }
-  .home-shortcut:hover .home-shortcut-icon, .home-quick-banner:hover { transform:none; }
 }
 
 /* 홈 포스터 줄은 데스크톱 5장, 태블릿 4장, 모바일 2.3장이 보이는 크기로 맞춘다. */
@@ -1179,10 +1168,6 @@
 .home-row .notebook-poster-rank { left:14px; bottom:8px; font-size:52px; font-style:normal; font-weight:800; }
 .home-row-arrow { top:calc(50% - 60px); }
 .home-row-heading h2 { font-size:26px; }
-.home-shortcuts { justify-content:center; gap:48px; margin:32px 0 4px; }
-.home-shortcut { flex:0 0 auto; gap:6px; font-size:13px; font-weight:500; color:#4e5968; }
-.home-shortcut-icon { width:44px; height:44px; border-radius:14px; }
-.home-shortcut-icon svg { width:22px; height:22px; }
 @media(max-width:1099px) {
   .home-row-scroller { gap:16px; }
   .home-row-scroller > li { flex-basis:calc((100% - 3 * 16px) / 4); }
@@ -1194,8 +1179,4 @@
   .home-row .notebook-poster-byline, .home-row .notebook-poster-meta { font-size:13px; }
   .home-row .notebook-poster-rank { font-size:40px; left:10px; bottom:6px; }
   .home-row-heading h2 { font-size:20px; }
-  .home-shortcuts { justify-content:space-around; gap:0; margin-top:20px; }
-  .home-shortcut { flex:0 0 auto; min-width:44px; }
-  .home-shortcut-icon { width:40px; height:40px; border-radius:12px; }
-  .home-shortcut-icon svg { width:20px; height:20px; }
 }
