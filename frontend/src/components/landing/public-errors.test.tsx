@@ -18,7 +18,7 @@ describe("공개 상세의 서버 404 복귀 동선", () => {
     expect(html).toContain(title);
     expect(html).toContain(`href="${list}"`);
     expect(html).toContain('aria-label="예술in 홈"');
-    expect(html).toContain('aria-label="푸터 서비스"');
+    expect(html).toContain('aria-label="도움말·문의"');
     expect(html).not.toContain("This page could not be found");
   });
 });

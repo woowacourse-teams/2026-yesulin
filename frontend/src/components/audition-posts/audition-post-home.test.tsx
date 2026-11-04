@@ -19,11 +19,12 @@ const data: AuditionPostPage = {
 vi.mock("@/components/auth/auth-session", () => ({ useAuthSession: () => ({ session: null }) }));
 
 describe("메인과 오디션 전용 목록", () => {
-  it("기본 홈은 3개를 소개하고 전체 목록을 여는 경로를 제공한다", () => {
+  it("기본 홈은 첫 페이지 공고 12개를 포스터로 소개하고 전체 목록을 여는 경로를 제공한다", () => {
     pathname.mockReturnValue("/");
     const html = renderToStaticMarkup(<AuditionPostHome initialPage={data} initialShows={[]} />);
-    expect(html).toContain('href="/posts/3"');
-    expect(html).not.toContain('href="/posts/4"');
+    expect(html).toContain('href="/posts/12"');
+    expect(html).toContain('class="notebook-poster-card"');
+    expect(html).not.toContain('type="search"');
     expect(html).not.toContain("전체 공고 보기");
     expect(html).not.toContain('aria-label="모집 상태"');
     expect(html).not.toContain('aria-label="공고 정렬"');
