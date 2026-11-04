@@ -79,6 +79,7 @@ function MobileNavigation({ current, service }: { readonly current?: string; rea
   </div>;
 }
 
+/** 헤더 메뉴를 반복하지 않고 소개·도움말·문의와 정책 링크만 둔다. */
 export function NotebookFooter({ className = "" }: { readonly className?: string }) {
   return <footer className={`notebook-footer ${className}`}><div className="notebook-container">
     <div className="notebook-footer-top">
@@ -86,16 +87,13 @@ export function NotebookFooter({ className = "" }: { readonly className?: string
         <Link className="notebook-footer-logo" href="/" aria-label="예술in 홈"><Image src="/images/yesulin-logo-transparent.png" alt="예술in" width={86} height={50} /></Link>
         <p className="notebook-footer-slogan">예술의 문을 열다, 예술in</p>
       </div>
-      <div className="notebook-footer-navigation">
-        <nav aria-label="푸터 서비스" className="notebook-footer-nav">
-          <strong>둘러보기</strong>
-          <div className="notebook-footer-links"><Link href="/about">서비스 소개</Link><Link href={auditionPostRoutes.list()}>오디션 공고</Link><Link href={showRoutes.list}>무료 공연</Link><Link href={eventRoutes.list}>이벤트</Link><Link href={actorPageRoutes.list()}>배우</Link><Link href="/community">익명게시판</Link><Link href="/#faq">자주 묻는 질문</Link></div>
-        </nav>
-        <nav aria-label="문의" className="notebook-footer-nav">
-          <strong>소식·문의</strong>
-          <div className="notebook-footer-links"><span className="notebook-email-address">contact@yesulin.art</span><a href="https://pf.kakao.com/_pbTBX/chat" target="_blank" rel="noopener noreferrer" aria-label="카카오톡 문의 (새 창에서 열림)">카카오톡 문의</a><a href={AUDITION_ALERT_CHAT_URL} target="_blank" rel="noopener noreferrer" aria-label="공고 알림 (새 창에서 열림)">공고 알림</a></div>
-        </nav>
-      </div>
+      <nav aria-label="도움말·문의" className="notebook-footer-links">
+        <Link href="/about">서비스 소개</Link>
+        <Link href="/#faq">자주 묻는 질문</Link>
+        <a href="https://pf.kakao.com/_pbTBX/chat" target="_blank" rel="noopener noreferrer" aria-label="카카오톡 문의 (새 창에서 열림)">카카오톡 문의</a>
+        <a href={AUDITION_ALERT_CHAT_URL} target="_blank" rel="noopener noreferrer" aria-label="공고 알림 (새 창에서 열림)">공고 알림</a>
+        <span className="notebook-email-address">contact@yesulin.art</span>
+      </nav>
     </div><div className="notebook-footer-bottom"><p>© 2026 예술in 프로젝트팀. All rights reserved.</p><PolicyLinks includeConsent={false} includeContact={false} /></div>
   </div></footer>;
 }

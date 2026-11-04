@@ -20,6 +20,8 @@
 }
 
 .public-notebook {
+  display:flex;
+  flex-direction:column;
   background:var(--paper);
   color:var(--ink);
   min-height:100dvh;
@@ -571,32 +573,17 @@
   .notebook-footer { padding:32px 0 16px; }
 }
 
+/* 내용이 짧은 화면에서도 푸터를 화면 아래에 붙인다. */
+.public-notebook > .notebook-footer { margin-top:auto; }
+
 .notebook-footer-top {
-  display:grid;
-  grid-template-columns:minmax(220px,.8fr) minmax(0,1.6fr);
-  align-items:start;
-  gap:48px;
-}
-
-.notebook-footer-navigation { min-width:0; display:grid; gap:8px; }
-.notebook-footer-nav {
-  display:flex;
-  align-items:flex-start;
-  gap:16px;
-  font-size:14px;
-}
-
-.notebook-footer-nav strong {
   display:flex;
   align-items:center;
-  flex:0 0 64px;
-  min-height:44px;
-  font-size:13px;
-  font-weight:600;
-  color:var(--ink);
+  justify-content:space-between;
+  gap:24px 48px;
 }
 
-.notebook-footer-links { display:flex; flex-wrap:wrap; align-items:center; min-width:0; gap:0 20px; }
+.notebook-footer-links { display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; min-width:0; gap:0 20px; font-size:14px; }
 
 .notebook-footer-links :is(a,button,.notebook-email-address) {
   display:inline-flex;
@@ -764,9 +751,6 @@
     padding:34px;
     gap:32px;
   }
-  .notebook-footer-top {
-    gap:24px;
-  }
 }
 
 @media(max-width:760px) {
@@ -856,9 +840,8 @@
     padding:15px 18px 20px 50px;
     font-size:13px;
   }
-  .notebook-footer-top { grid-template-columns:minmax(0,1fr); gap:20px; }
-  .notebook-footer-nav { font-size:13px; gap:12px; }
-  .notebook-footer-links { column-gap:16px; }
+  .notebook-footer-top { flex-direction:column; align-items:flex-start; gap:8px; }
+  .notebook-footer-links { justify-content:flex-start; column-gap:16px; }
   .notebook-footer-bottom {
     flex-direction:column;
     align-items:flex-start;
@@ -943,7 +926,7 @@
 .notebook-main-nav :is(a,button)::after { content:""; position:absolute; bottom:3px; left:14px; right:14px; height:2px; background:transparent; }
 .notebook-main-nav :is(a,button):hover,.notebook-main-nav a[aria-current=page] { background:transparent; color:var(--brand); }
 .notebook-main-nav :is(a,button):hover::after,.notebook-main-nav a[aria-current=page]::after { background:var(--brand); }
-.notebook-footer-brand { display:flex; flex-direction:column; align-items:flex-start; gap:12px; min-width:0; }
+.notebook-footer-brand { display:flex; align-items:center; gap:16px; min-width:0; }
 .notebook-footer-logo { display:inline-flex; align-items:center; min-height:44px; }
 .notebook-footer-logo img { width:78px; height:auto; }
 .notebook-footer-brand .notebook-footer-slogan { margin:0; font-size:14px; font-weight:400; line-height:1.6; color:var(--ink-60); }
