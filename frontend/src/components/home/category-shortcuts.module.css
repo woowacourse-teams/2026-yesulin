@@ -12,7 +12,7 @@
   margin: 28px auto 0;
 }
 
-.act { position: relative; z-index: 1; display: grid; justify-items: center; gap: 8px; min-height: 44px; padding: 10px 4px 12px; border-radius: 14px; color: var(--ink); transition: color .25s, opacity .25s; }
+.act { position: relative; z-index: 1; display: grid; justify-items: center; gap: 10px; min-height: 44px; padding: 10px 4px 12px; border-radius: 14px; color: var(--ink); transition: color .25s, opacity .25s; }
 .act:focus-visible { outline: 2px solid var(--light); outline-offset: 2px; }
 .cone { position: absolute; left: 50%; bottom: 18px; width: 150px; height: 170px; transform: translateX(-50%); pointer-events: none; opacity: 0; transition: opacity .3s;
   background: conic-gradient(from 180deg at 50% 0, transparent 162deg, rgb(34 166 232 / .14) 172deg, rgb(106 91 196 / .18) 180deg, rgb(34 166 232 / .14) 188deg, transparent 198deg);
@@ -25,7 +25,9 @@
 .act:is(:hover, :focus-visible, .on) :is(.cone, .pool) { opacity: 1; }
 .act:is(:hover, :focus-visible, .on) .label { color: var(--ink-strong); }
 
-.ic { position: relative; display: grid; place-items: center; width: 1em; height: 1em; font-size: 32px; }
+.ic { position: relative; display: grid; place-items: center; width: 1em; height: 1em; margin: 14px 0 6px; font-size: 30px; }
+.ic::before { content: ""; position: absolute; inset: -15px; z-index: 0; border-radius: 30%; background: #f2f4f6; box-shadow: inset 0 0 0 1px rgb(0 0 0 / .02); transition: background-color .25s, transform .3s; }
+.act:is(:hover, :focus-visible, .on) .ic::before { background: #e8f4fd; transform: scale(1.04); }
 .main { position: relative; z-index: 2; display: grid; place-items: center; transition: transform .45s cubic-bezier(.2, .9, .25, 1.3), color .3s; }
 .fx { position: absolute; left: 50%; top: 50%; display: grid; place-items: center; opacity: 0; transform: translate(-50%, -50%); pointer-events: none; }
 .act:is(:hover, :focus-visible, .on) .main { color: var(--light); }
@@ -118,7 +120,8 @@
 @media (max-width: 760px) {
   .stage { margin-top: 20px; }
   .act { gap: 6px; padding: 8px 0 10px; }
-  .ic { font-size: 26px; }
+  .ic { margin: 12px 0 4px; font-size: 24px; }
+  .ic::before { inset: -13px; }
   .dance .ic { font-size: 30px; }
   .label { font-size: 13px; }
   .cone { width: 100px; height: 130px; bottom: 16px; }

@@ -1186,3 +1186,19 @@
   .home-row .notebook-poster-rank { font-size:40px; left:10px; bottom:6px; }
   .home-row-heading h2 { font-size:20px; }
 }
+
+/* 홈 상단 배너: 화면 양끝까지 넓히고 가운데 배너 옆으로 이전·다음 배너 끝을 보여 준다. */
+.public-notebook { overflow-x:clip; }
+.notebook-banner-peek { display:none; }
+@media(min-width:761px) {
+  .home-main .notebook-banner { width:100vw; margin-left:calc(50% - 50vw); }
+  .home-main .notebook-banner-stage { width:min(1200px,calc(100vw - 128px)); margin-inline:auto; }
+  .home-main .notebook-banner-viewport { border:0; border-radius:20px; }
+  .home-main .notebook-banner-peek { position:absolute; top:0; z-index:1; display:block; width:100%; height:100%; overflow:hidden; border-radius:20px; cursor:pointer; transition:opacity .2s; }
+  .home-main .notebook-banner-peek.is-previous { right:calc(100% + 20px); }
+  .home-main .notebook-banner-peek.is-next { left:calc(100% + 20px); }
+  .home-main .notebook-banner-peek:hover { opacity:.85; }
+  .home-main .notebook-banner-peek picture, .home-main .notebook-banner-peek img { display:block; width:100%; height:100%; object-fit:cover; }
+  .home-main .notebook-banner-direction.is-previous { left:16px; }
+  .home-main .notebook-banner-direction.is-next { right:16px; }
+}
