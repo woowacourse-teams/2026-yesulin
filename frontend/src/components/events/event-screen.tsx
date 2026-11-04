@@ -35,10 +35,20 @@ const PHASE_TONES: Readonly<Record<EventPhase, string>> = {
   ENDED: "bg-border-soft text-muted-strong",
 };
 
+const REGISTRATION_CLOSED_LABELS: Readonly<Partial<Record<EventRegistrationStatus, string>>> = {
+  FULL: "선착순 마감",
+  CLOSED: "모집 마감",
+};
+
+/** 진행 중인 이벤트라도 신청이 닫혔으면 신청 마감 문구를 먼저 보여 준다. */
+export function registrationClosedLabel(phase: EventPhase, registrationStatus?: EventRegistrationStatus): string | undefined {
+  if (phase === "ENDED" || !registrationStatus) return undefined;
+  return REGISTRATION_CLOSED_LABELS[registrationStatus];
+}
+
 export function EventPhaseBadge({ phase, registrationStatus }: { readonly phase: EventPhase; readonly registrationStatus?: EventRegistrationStatus }) {
-  if (phase !== "ENDED" && (registrationStatus === "FULL" || registrationStatus === "CLOSED")) {
-    return <span className="rounded-full bg-border-soft px-2.5 py-0.5 text-xs font-bold text-muted-strong">{registrationStatus === "FULL" ? "선착순 마감" : "모집 마감"}</span>;
-  }
+  const closedLabel = registrationClosedLabel(phase, registrationStatus);
+  if (closedLabel) return <span className="rounded-full bg-border-soft px-2.5 py-0.5 text-xs font-bold text-muted-strong">{closedLabel}</span>;
   return <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${PHASE_TONES[phase]}`}>{EVENT_PHASE_LABELS[phase]}</span>;
 }
 

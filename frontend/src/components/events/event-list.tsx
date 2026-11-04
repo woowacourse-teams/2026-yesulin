@@ -6,8 +6,9 @@ import { useCallback, useEffect, useState } from "react";
 import { ScreenError } from "@/components/auditions/screen-status";
 import { NotebookListHeading } from "@/components/landing/notebook-page-main";
 import { getEvents } from "@/features/events/api";
-import { eventRoutes, formatEventPeriod, type PublicEventSummary } from "@/features/events/types";
-import { EventImage, EventPhaseBadge, EventScreen } from "./event-screen";
+import { PosterImage } from "@/components/ui/poster-image";
+import { EVENT_PHASE_LABELS, eventRoutes, formatEventPeriod, type PublicEventSummary } from "@/features/events/types";
+import { EventScreen, registrationClosedLabel } from "./event-screen";
 
 type ListState =
   | { readonly status: "loading" }
@@ -40,7 +41,7 @@ export function EventsRoute({ initialEvents }: { readonly initialEvents: readonl
     <EventScreen>
       <NotebookListHeading title="이벤트" />
       <div>
-        {state.status === "loading" ? <ContentSkeleton label="이벤트 목록 불러오는 중"><div className="grid grid-cols-1 gap-4 min-[761px]:grid-cols-2 min-[1100px]:grid-cols-4">{[0, 1, 2, 3].map((item) => <div key={item} className="h-40 rounded-card border border-border bg-card p-4"><div className="h-5 w-1/4 rounded bg-border-soft" /><div className="mt-4 h-6 w-2/3 rounded bg-border-soft" /></div>)}</div></ContentSkeleton> : null}
+        {state.status === "loading" ? <ContentSkeleton label="이벤트 목록 불러오는 중"><div className="notebook-event-grid">{[0, 1, 2, 3].map((item) => <div key={item} className="notebook-poster-skeleton" />)}</div></ContentSkeleton> : null}
         {state.status === "error" ? (
           <ScreenError message="이벤트를 불러오지 못했어요." onRetry={() => { setState({ status: "loading" }); load(); }} />
         ) : null}
@@ -48,7 +49,7 @@ export function EventsRoute({ initialEvents }: { readonly initialEvents: readonl
           <ContentState title="지금 열린 이벤트가 없어요" description="새 소식이 생기면 이곳에 안내할게요." />
         ) : null}
         {state.status === "ready" && state.events.length > 0 ? (
-          <ul className="grid grid-cols-1 gap-4 min-[761px]:grid-cols-2 min-[1100px]:grid-cols-4">
+          <ul className="notebook-event-grid">
             {state.events.map((event) => <EventCard key={event.id} event={event} />)}
           </ul>
         ) : null}
@@ -57,24 +58,40 @@ export function EventsRoute({ initialEvents }: { readonly initialEvents: readonl
   );
 }
 
+const EVENT_POSTER_SIZES = "(min-width: 1100px) 260px, (min-width: 761px) 33vw, 50vw";
+
+/** 이벤트 포스터도 공고 카드처럼 3:4 틀에 잘리지 않게 담는다. */
 function EventCard({ event }: { readonly event: PublicEventSummary }) {
   const period = formatEventPeriod(event.startsOn, event.endsOn);
   return (
     <li className="min-w-0">
-      <Link
-        href={eventRoutes.detail(event.id)}
-        className={`block h-full overflow-hidden rounded-card border border-border bg-card transition-colors hover:border-brand-line ${event.phase === "ENDED" ? "opacity-80" : ""}`}
-      >
-        {event.coverImageUrl ? <EventImage src={event.coverImageUrl} className="aspect-[4/3] object-cover" /> : null}
-        <div className="p-4">
-          <div className="flex flex-wrap items-center gap-2 text-xs">
-            <EventPhaseBadge phase={event.phase} registrationStatus={event.registrationStatus} />
-            {period ? <span className="num text-muted">{period}</span> : null}
-          </div>
-          <h2 className="mt-2 break-words text-base font-bold leading-snug">{event.title}</h2>
-          {event.summary ? <p className="mt-1 text-sm leading-6 text-muted-strong">{event.summary}</p> : null}
+      <Link href={eventRoutes.detail(event.id)} className="notebook-poster-card" data-ended={event.phase === "ENDED" || undefined}>
+        <div className="notebook-poster">
+          <EventPosterBadge event={event} />
+          <EventPoster event={event} />
         </div>
+        <h2 className="notebook-poster-title">{event.title}</h2>
+        {Boolean(period) && <p className="notebook-poster-meta num">{period}</p>}
+        {Boolean(event.summary) && <p className="notebook-event-summary">{event.summary}</p>}
       </Link>
     </li>
   );
+}
+
+function EventPosterBadge({ event }: { readonly event: PublicEventSummary }) {
+  const closedLabel = registrationClosedLabel(event.phase, event.registrationStatus);
+  if (closedLabel) return <span className="notebook-poster-badge" data-kind="closed">{closedLabel}</span>;
+  return <span className="notebook-poster-badge" data-kind={EVENT_BADGE_KINDS[event.phase]}>{EVENT_PHASE_LABELS[event.phase]}</span>;
+}
+
+const EVENT_BADGE_KINDS: Readonly<Record<PublicEventSummary["phase"], string>> = {
+  UPCOMING: "open",
+  ONGOING: "open",
+  ENDED: "closed",
+};
+
+function EventPoster({ event }: { readonly event: PublicEventSummary }) {
+  const fallback = <span className="notebook-poster-default" aria-hidden="true"><span className="notebook-poster-kind">이벤트</span><span className="notebook-poster-headline">{event.title}</span><span className="notebook-poster-mark">예술in</span></span>;
+  if (!event.coverImageUrl) return fallback;
+  return <PosterImage key={event.coverImageUrl} src={event.coverImageUrl} alt="" sizes={EVENT_POSTER_SIZES} fallback={fallback} />;
 }
