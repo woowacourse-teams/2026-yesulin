@@ -10,13 +10,14 @@ import { publicViewCount } from "@/features/audition-posts/view-count";
 const POSTER_SIZES = "(min-width: 1100px) 180px, (min-width: 761px) 25vw, 50vw";
 
 /** 공개 목록의 포스터형 공고 카드. 마감 상태는 포스터 위 배지 글자로 보여 준다. */
-export function NotebookPostCard({ post, today, now }: { readonly post: AuditionPostSummary; readonly today: string; readonly now: number }) {
+export function NotebookPostCard({ post, today, now, rank }: { readonly post: AuditionPostSummary; readonly today: string; readonly now: number; readonly rank?: number }) {
   const badge = deadlineBadge(post, today);
   return <li className="min-w-0">
     <Link href={auditionPostRoutes.detail(post.id)} className="notebook-poster-card" data-ended={post.closed || undefined}>
       <div className="notebook-poster">
         <span className="notebook-poster-badge num" data-kind={badge.kind}>{badge.label}</span>
         <PostArtwork post={post} />
+        {rank !== undefined && <span className="notebook-poster-rank num" aria-label={`${rank}위`}>{rank}</span>}
       </div>
       <h2 className="notebook-poster-title">{post.title}</h2>
       <PostByline post={post} />

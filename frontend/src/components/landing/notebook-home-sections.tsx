@@ -2,16 +2,17 @@
 
 import { FallbackImage as Image } from "@/components/ui/fallback-image";
 import { PosterImage } from "@/components/ui/poster-image";
+import { PosterRow, PosterRowSkeleton } from "@/components/home/poster-row";
 import { ContentState } from "@/components/ui/content-state";
 import { ScreenError } from "@/components/auditions/screen-status";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { AUDITION_ALERT_CHAT_URL, auditionPostRoutes } from "@/features/audition-posts/types";
 import { getPublicShows } from "@/features/shows/api";
 import { formatShowDateTime, isShowBookingClosed, orderPublicShows } from "@/features/shows/format";
 import { SHOW_GENRE_LABELS, showRoutes, type PublicShowSummary } from "@/features/shows/types";
 
-const HOME_SHOW_COUNT = 6;
+const HOME_SHOW_COUNT = 12;
 
 type ShowState = { readonly status: "loading" } | { readonly status: "error" } | { readonly status: "ready"; readonly shows: readonly PublicShowSummary[] };
 
@@ -24,13 +25,17 @@ export function HomeShowSection({ initialShows = null }: { readonly initialShows
     return () => { active = false; };
   }, []);
   useEffect(() => { if (initialShows === null) return load(); }, [initialShows, load]);
-  return <section id="shows" className="notebook-section notebook-shows">
-    <div className="notebook-section-heading"><div className="notebook-section-title"><h2>무료 공연</h2></div><Link href={showRoutes.list} className="notebook-text-link">전체 보기</Link></div>
-    {state.status === "loading" ? <div className="notebook-show-grid" role="status" aria-label="공연 목록 불러오는 중">{Array.from({ length: HOME_SHOW_COUNT }, (_, item) => <div key={item} className="notebook-poster-skeleton animate-pulse motion-reduce:animate-none" />)}</div> : null}
-    {state.status === "error" ? <ScreenError message="공연 목록을 불러오지 못했어요." onRetry={() => { setState({ status: "loading" }); load(); }} /> : null}
-    {state.status === "ready" && state.shows.length === 0 ? <ContentState title="지금 예매할 수 있는 공연이 없어요" description="새 공연이 열리면 이곳에 안내할게요." /> : null}
-    {state.status === "ready" && state.shows.length > 0 ? <ul className="notebook-show-grid">{orderPublicShows(state.shows, now).slice(0, HOME_SHOW_COUNT).map((show) => <HomeShowCard key={show.id} show={show} now={now} />)}</ul> : null}
-  </section>;
+  return <PosterRow id="shows" title="무료 공연" label="무료 공연" moreHref={showRoutes.list} fallback={showFallback(state, () => { setState({ status: "loading" }); load(); })}>
+    {state.status === "ready" && orderPublicShows(state.shows, now).slice(0, HOME_SHOW_COUNT).map((show) => <HomeShowCard key={show.id} show={show} now={now} />)}
+  </PosterRow>;
+}
+
+/** 공연 목록 대신 보여 줄 상태. 보여 줄 공연이 있으면 undefined다. */
+function showFallback(state: ShowState, onRetry: () => void): ReactNode {
+  if (state.status === "loading") return <PosterRowSkeleton />;
+  if (state.status === "error") return <ScreenError message="공연 목록을 불러오지 못했어요." onRetry={onRetry} />;
+  if (state.shows.length === 0) return <ContentState title="지금 예매할 수 있는 공연이 없어요" description="새 공연이 열리면 이곳에 안내할게요." />;
+  return undefined;
 }
 
 function HomeShowCard({ show, now }: { readonly show: PublicShowSummary; readonly now: number }) {

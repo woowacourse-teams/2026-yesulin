@@ -3,13 +3,13 @@ import { describe, expect, it } from "vitest";
 import { HomeShowSection } from "./notebook-home-sections";
 
 describe("홈 무료 공연 섹션", () => {
-  it("실제 공개 공연을 최대 6개 소개하고 기존 상세·전체 목록으로 연결한다", () => {
-    const html = renderToStaticMarkup(<HomeShowSection initialShows={Array.from({ length: 7 }, (_, index) => ({
+  it("실제 공개 공연을 최대 12개 소개하고 기존 상세·전체 목록으로 연결한다", () => {
+    const html = renderToStaticMarkup(<HomeShowSection initialShows={Array.from({ length: 13 }, (_, index) => ({
       id: `show-${index + 1}`, title: `공연 ${index + 1}`, hostName: "공연사", genre: "PLAY", status: "OPEN",
       posterUrl: "/images/performances/moonlight.jpg", venueName: "극장", nextSessionStartsAt: null, runningMinutes: 60,
     }))} />);
-    expect(html).toContain('href="/shows/show-6"');
-    expect(html).not.toContain('href="/shows/show-7"');
+    expect(html).toContain('href="/shows/show-12"');
+    expect(html).not.toContain('href="/shows/show-13"');
     expect(html).toContain('href="/shows"');
     expect(html).toContain("예매 가능한 회차 없음");
   });

@@ -18,7 +18,8 @@ beforeEach(() => vi.clearAllMocks());
 describe("메인과 과거 공고 목록 주소", () => {
   it("기본 메인은 첫 모집 중 공고와 공연을 조회하고 홈 canonical을 유지한다", async () => {
     await HomePage({ searchParams: Promise.resolve({}) });
-    expect(readPosts).toHaveBeenCalledWith({ page: 0, includeClosed: false });
+    expect(readPosts).toHaveBeenCalledWith({ page: 0, includeClosed: false }, 48);
+    expect(readPosts).toHaveBeenCalledWith({ page: 0, includeClosed: false, sort: "deadline" }, 12);
     expect(readShows).toHaveBeenCalledOnce();
     expect(readEventBanners).toHaveBeenCalledOnce();
     expect(redirect).not.toHaveBeenCalled();
