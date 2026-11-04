@@ -16,7 +16,7 @@ import { SiteIcon } from "@/components/ui/site-icon";
 
 type ListState = { readonly status: "loading" } | { readonly status: "error" } | { readonly status: "ready"; readonly page: AuditionPostPage };
 
-/** 공고 조회·필터·빈 상태를 공유하고 메인에서만 최대 3개를 보여 준다. */
+/** 공고 조회·필터·빈 상태를 공유하고 메인에서는 첫 페이지 공고만 보여 준다. */
 export function AuditionPostListSection({ query, initialPage, preview = false }: {
   readonly query: AuditionPostQuery;
   readonly initialPage: AuditionPostPage | null;
@@ -56,7 +56,7 @@ export function AuditionPostListSection({ query, initialPage, preview = false }:
       <SortFilters query={query} />
       <label className="notebook-search"><SiteIcon name="search" /><span className="sr-only">이 페이지 공고 검색</span><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="이 페이지 공고명·작성자 검색" /></label>
     </div> : null}
-    {state.status === "loading" ? <div role="status" aria-label="공고 목록 불러오는 중" className="notebook-post-grid animate-pulse motion-reduce:animate-none">{Array.from({ length: preview ? 3 : 12 }, (_, item) => <div key={item} className="h-72 rounded-card border border-border bg-card" />)}</div> : null}
+    {state.status === "loading" ? <div role="status" aria-label="공고 목록 불러오는 중" className="notebook-post-grid animate-pulse motion-reduce:animate-none">{Array.from({ length: 12 }, (_, item) => <div key={item} className="notebook-poster-skeleton" />)}</div> : null}
     {state.status === "error" ? <ScreenError message="공고 목록을 불러오지 못했어요." onRetry={() => { setState({ status: "loading" }); load(); }} /> : null}
     {state.status === "ready" ? <PostList data={state.page} matching={matching} query={query} today={today} now={now} search={normalizedSearch} preview={preview} onResetSearch={() => setSearch("")} /> : null}
   </section>;
@@ -73,9 +73,8 @@ function PostList({ data, matching, query, today, now, search, preview, onResetS
   readonly onResetSearch: () => void;
 }) {
   const { includeClosed, category, sort } = query;
-  const visible = preview ? matching.slice(0, 3) : matching;
   return <>
-    {visible.length ? <ul className="notebook-post-grid" id="audition-post-list">{visible.map((post) => <AuditionPostCard key={post.id} post={post} today={today} now={now} notebook />)}</ul> : search ? <ContentState title="검색어와 일치하는 공고가 없어요" description="이 페이지의 공고명·작성자를 검색해요. 검색어를 바꾸거나 초기화해 주세요." action={<SecondaryButton onClick={onResetSearch}>검색 초기화</SecondaryButton>} /> : <EmptyPosts data={data} query={query} />}
+    {matching.length ? <ul className="notebook-post-grid" id="audition-post-list">{matching.map((post) => <AuditionPostCard key={post.id} post={post} today={today} now={now} notebook />)}</ul> : search ? <ContentState title="검색어와 일치하는 공고가 없어요" description="이 페이지의 공고명·작성자를 검색해요. 검색어를 바꾸거나 초기화해 주세요." action={<SecondaryButton onClick={onResetSearch}>검색 초기화</SecondaryButton>} /> : <EmptyPosts data={data} query={query} />}
     {!preview ? <AuditionPostPagination page={data.page} totalPages={data.totalPages} includeClosed={includeClosed} category={category} sort={sort} /> : null}
   </>;
 }
