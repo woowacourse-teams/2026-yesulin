@@ -36,10 +36,10 @@ function httpsLocation(response: Response): string | null {
   }
 }
 
-export async function auditionPostPageForServer(query: AuditionPostQuery): Promise<AuditionPostPage | null> {
+export async function auditionPostPageForServer(query: AuditionPostQuery, size?: number): Promise<AuditionPostPage | null> {
   // 메인 목록은 기존처럼 조회 실패 시 브라우저에서 재시도한다.
   try {
-    return await publishedAuditionPostPageForServer(query);
+    return await publishedAuditionPostPageForServer(query, size);
   } catch {
     return null;
   }

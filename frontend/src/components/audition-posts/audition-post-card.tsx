@@ -1,28 +1,15 @@
 "use client";
 
-import Image from "next/image";
 import { FallbackImage } from "@/components/ui/fallback-image";
 import Link from "next/link";
 import { deadlineBadge, formatPostedDate } from "@/features/audition-posts/format";
 import { auditionPostRoutes, type AuditionPostSummary } from "@/features/audition-posts/types";
 import { publicViewCount } from "@/features/audition-posts/view-count";
 import { DeadlineChip } from "./audition-post-badges";
-
-const categoryArtwork: Readonly<Record<string, string>> = {
-  연극: "/images/thumbnails/audition-theater.webp",
-  뮤지컬: "/images/thumbnails/audition-musical.webp",
-  퍼포먼스: "/images/thumbnails/audition-performance.webp",
-  단원: "/images/thumbnails/audition-troupe.webp",
-  기획사: "/images/thumbnails/audition-agency.webp",
-};
-
-/** 사진이 없거나 사진을 불러오지 못한 공고의 분야별 기본 그림. */
-function DefaultPostArtwork({ category, className = "" }: { readonly category: string; readonly className?: string }) {
-  const artwork = categoryArtwork[category] ?? "/images/thumbnails/audition-default.webp";
-  return <div className={`notebook-post-image notebook-post-placeholder ${className}`} data-category={category || undefined} aria-hidden="true"><Image src={artwork} alt="" fill sizes="(min-width: 1100px) 320px, (min-width: 761px) 45vw, 90vw" className="notebook-default-art" /><span className="notebook-default-copy"><Image src="/images/yesulin-logo-transparent.png" alt="" width={90} height={52} className="notebook-default-logo" /><span><span className="notebook-default-label">{category || "오디션"}</span><span className="notebook-default-caption">오디션 공고</span></span></span></div>;
-}
+import { NotebookPostCard } from "./notebook-post-card";
 
 export function AuditionPostCard({ post, today, now, notebook = false }: { readonly post: AuditionPostSummary; readonly today: string; readonly now: number; readonly notebook?: boolean }) {
+  if (notebook) return <NotebookPostCard post={post} today={today} now={now} />;
   const badge = deadlineBadge(post, today);
   const postedDate = formatPostedDate(post.postedAt);
 
@@ -30,9 +17,8 @@ export function AuditionPostCard({ post, today, now, notebook = false }: { reado
     <li className="min-w-0">
       <Link
         href={auditionPostRoutes.detail(post.id)}
-        className={`group flex h-full min-h-36 gap-4 rounded-card border border-border bg-card p-4 transition-[border-color,box-shadow] hover:border-brand-line hover:shadow-[var(--shadow-1)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand sm:p-5 ${post.closed ? "opacity-70" : ""} ${notebook ? "notebook-post-card" : ""}`}
+        className={`group flex h-full min-h-36 gap-4 rounded-card border border-border bg-card p-4 transition-[border-color,box-shadow] hover:border-brand-line hover:shadow-[var(--shadow-1)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand sm:p-5 ${post.closed ? "opacity-70" : ""}`}
       >
-        {notebook ? post.thumbnailUrl ? <div className="notebook-post-image"><FallbackImage src={post.thumbnailUrl} alt="" fill unoptimized sizes="(min-width: 768px) 360px, 90vw" fallback={<DefaultPostArtwork category={post.category} className="absolute inset-0" />} /></div> : <DefaultPostArtwork category={post.category} /> : null}
         <div className="flex min-w-0 flex-1 flex-col">
           <p className="flex min-w-0 items-center gap-2 text-xs">
             {post.category ? <span className="shrink-0 font-semibold text-brand">{post.category}</span> : null}
@@ -63,7 +49,7 @@ export function AuditionPostCard({ post, today, now, notebook = false }: { reado
             ) : null}
           </dl>
         </div>
-        {!notebook && post.thumbnailUrl ? (
+        {post.thumbnailUrl ? (
           <div className="relative hidden h-24 w-20 shrink-0 overflow-hidden rounded-control bg-border-soft min-[400px]:block">
             <FallbackImage
               src={post.thumbnailUrl}

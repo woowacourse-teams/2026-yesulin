@@ -121,6 +121,8 @@ export function AuditionAlertBanner({ initialEventBanners = null }: { readonly i
       {state.previous !== null ? <BannerArtwork key={`out-${state.previous}`} banner={banners[state.previous]} outgoing /> : null}
       <BannerArtwork key={`in-${state.active}`} banner={active} entering={state.previous !== null} onAnimationEnd={finish} />
     </div>
+      <BannerPeek banners={banners} active={state.active} side="previous" onMove={move} />
+      <BannerPeek banners={banners} active={state.active} side="next" onMove={move} />
       {/* 전환 중 입력은 reducer가 무시한다. disabled로 막으면 누른 버튼의 키보드 포커스가 body로 빠진다. */}
       <button type="button" className="notebook-banner-direction is-previous" aria-label="이전 배너" onClick={() => move(-1)}><SiteIcon name="previous" size={26} /></button>
       <button type="button" className="notebook-banner-direction is-next" aria-label="다음 배너" onClick={() => move(1)}><SiteIcon name="next" size={26} /></button>
@@ -130,6 +132,29 @@ export function AuditionAlertBanner({ initialEventBanners = null }: { readonly i
       {banners.map((banner, index) => <button key={banner.id} type="button" className="notebook-banner-page" aria-label={`${banner.title} 배너 보기`} aria-pressed={index === state.active} onClick={() => move(index - state.active)}><span /></button>)}
     </div>
   </section>;
+}
+
+/**
+ * 넓은 화면에서 가운데 배너 양옆에 이전·다음 배너 끝을 보여 준다. 누르면 그쪽으로 넘긴다.
+ * 키보드와 보조기술은 기존 이전·다음 버튼을 쓰므로 여기서는 숨긴다.
+ */
+function BannerPeek({ banners, active, side, onMove }: {
+  readonly banners: readonly HomeBanner[];
+  readonly active: number;
+  readonly side: "previous" | "next";
+  readonly onMove: (delta: number) => void;
+}) {
+  if (banners.length < 2) return null;
+  const delta = PEEK_DELTA[side];
+  const banner = banners[(active + delta + banners.length) % banners.length];
+  return <button key={banner.id} type="button" tabIndex={-1} aria-hidden="true" className={`notebook-banner-peek is-${side}`} onClick={() => onMove(delta)}><PeekPicture banner={banner} /></button>;
+}
+
+const PEEK_DELTA = { previous: -1, next: 1 } as const;
+
+function PeekPicture({ banner }: { readonly banner: HomeBanner }) {
+  if (banner.remote) return <RemoteBannerPicture banner={banner} />;
+  return <OptimizedBannerPicture banner={banner} />;
 }
 
 function BannerArtwork({ banner, outgoing = false, entering = false, onAnimationEnd }: {
