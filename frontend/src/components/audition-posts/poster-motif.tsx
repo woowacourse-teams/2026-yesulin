@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { PosterSpark } from "./poster-spark";
 
 const motifs: Readonly<Record<string, ReactNode>> = {
   연극: <path fill="currentColor" d="M216 40H40a16 16 0 0 0-16 16v48c0 61 49 104 104 112 55-8 104-51 104-112V56a16 16 0 0 0-16-16ZM90 116a14 14 0 1 1 14-14 14 14 0 0 1-14 14Zm76 0a14 14 0 1 1 14-14 14 14 0 0 1-14 14Zm-38 72c-24 0-44-14-50-34h100c-6 20-26 34-50 34Z" />,
@@ -12,7 +13,7 @@ const motifs: Readonly<Record<string, ReactNode>> = {
 export function PosterArt({ category }: { readonly category?: string }) {
   return <>
     <PosterMotif category={category} />
-    <span className="notebook-poster-spark" />
+    <PosterSpark />
   </>;
 }
 
