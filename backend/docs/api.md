@@ -1379,6 +1379,8 @@ S3 삭제 실패 시 `DELETING` 상태가 남으며 같은 파일 ID로 재시�
 PUT·DELETE는 저장된 소유 유형으로 확인한다. 기존 비회원 글은 유효 쿠키만으로 관리 가능하며 로그인 강제를 추가하지 않는다.
 회원 작성물은 본인 활성 배우 세션이 필요하고 쿠키가 같아도 다른 계정의 권한이 되지 않는다.
 
+글 응답의 `topic`은 FREE(자유), AUDITION_REVIEW(오디션 후기), PRACTICE(연습/발성), QUESTION(질문), PERFORMANCE(공연 소식) 중 하나다. 댓글 응답은 null이다. 생성 시 생략하면 FREE, 수정 시 생략하면 기존 주제를 유지한다. 지원하지 않는 주제명은 400이다. 동일 생성 키로 주제만 바꿔 재시도하면 409다.
+
 기존 소유권·비회원 좋아요·신고는 서버 발급 `yesulin-community-owner` HttpOnly 쿠키를 사용한다.
 Path=/api/v1/public/community, SameSite=Lax, Max-Age=400일, host-only다. local/test HTTP 외에는 Secure를 적용한다.
 쿠키 확인 때 갱신하며 기존 헤더 `X-Community-Key`는 사용하지 않는다. 좋아요·신고에 쿠키가 없으면 400이다.
@@ -1396,11 +1398,12 @@ POST 성공만으로 저장됐다고 판단하지 않고 GET에서 같은 이전
 | --- | --- | --- |
 | GET | `/identity` | `{ready: boolean}`. 쿠키 확인만 하며 새 키는 발급하지 않음. 이전 헤더가 있으면 해당 키와 쿠키의 일치도 확인 |
 | POST | `/identity` | 본문 없음, CSRF 필수 → 204 + HttpOnly Set-Cookie. 기존 쿠키 재사용, 기존 키 이전 또는 서버 32바이트 난수 신규 발급 |
-| GET | `/posts?before={id}` | 최신 글 5개. 첫 페이지는 공개, 이전 페이지는 로그인 필요(401). `before`는 양수, 해당 ID 미포함 |
-| POST | `/posts` | `{requestId: UUID, title, body, authorMode, expectedMemberId}` → 201 작성물 |
+| GET | `/posts?topic={topic}&before={id}` | 두 파라미터 모두 선택. 해당 주제의 최신 글 5개, topic 생략 시 전체. 첫 페이지는 공개, 이전 페이지는 로그인 필요(401). `before`는 양수, 해당 ID 미포함 |
+| GET | `/posts/popular` | 공개. 최근 7일 점수순 최대 5개. `[{id, title}]`; 없으면 빈 배열 |
+| POST | `/posts` | `{requestId: UUID, title, body, topic?, authorMode, expectedMemberId}` → 201 작성물 |
 | GET | `/posts/participation?postId={id}` | 본인 참여 상태. postId 생략 시 새 글. `{memberId, canWrite, fixedMode, profile: {name, photoUrl, path} 또는 null}`. fixedMode는 호환용으로 항상 null. 비로그인은 memberId/profile/fixedMode null·canWrite false. 회원 ID는 이 본인 응답에만 포함 |
 | GET | `/posts/{postId}` | 200 작성물, 없거나 삭제되었으면 404 |
-| PUT | `/posts/{postId}` | `{title, body}` → 200 수정 작성물 |
+| PUT | `/posts/{postId}` | `{title, body, topic?}` → 200 수정 작성물 |
 | DELETE | `/posts/{postId}` | 204, 본인만 가능 |
 | GET | `/posts/{postId}/comments?after={id}` | 오래된 댓글부터 20개. `after` 기본 0, 해당 ID 미포함 |
 | POST | `/posts/{postId}/comments` | `{requestId: UUID, body, authorMode, expectedMemberId, replyToId?}` → 201 작성물 |

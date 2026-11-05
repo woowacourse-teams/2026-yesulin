@@ -1,5 +1,6 @@
-import { CommunityList } from "@/components/community/community-list";
+import { Suspense } from "react";
+import { CommunityList, FeedSkeleton } from "@/components/community/community-list";
 
 export default function CommunityPage() {
-  return <CommunityList />;
+  return <Suspense fallback={<FeedSkeleton />}><CommunityList /></Suspense>;
 }

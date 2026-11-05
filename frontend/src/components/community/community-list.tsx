@@ -2,8 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useReducer, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AuditionRequestError } from "@/features/auditions/api-client";
 import { useAuthSession } from "@/components/auth/auth-session";
 import { PiBell, PiChatCircle, PiPencilSimple } from "react-icons/pi";
@@ -12,35 +12,66 @@ import { getPosts } from "@/features/community/api";
 import { trackListViewed, useTrackOnce } from "@/features/community/analytics";
 import { useCommunityFeed } from "@/features/community/hooks";
 import { postUrl } from "@/features/community/share";
-import type { CommunityEntry, CommunityLikeState } from "@/features/community/types";
+import { isCommunityTopic, topicLabels, type CommunityTopic, type CommunityEntry, type CommunityLikeState } from "@/features/community/types";
 import { feedAuthor } from "@/features/community/author-name";
 import { CommunityPhoto, CommunityByline, CommunityError, CommunityToast, useCommunityToast } from "./community-ui";
 import { EntryMenu } from "./entry-menu";
 import { LikeButton } from "./like-button";
+import { PopularPostsCard } from "./popular-posts-card";
 import { CommunityDeadlines } from "./community-deadlines";
 import { communityNoticeRoute } from "./notice-row";
 import { useUnreadCommentCount } from "./received-comments-context";
 
-const moreLogin = "/login?returnTo=%2Fcommunity%3Fmore%3D1";
+type TopicFilter = { readonly topic?: CommunityTopic };
+
+function moreLogin(topic?: CommunityTopic) {
+  const query = new URLSearchParams({ more: "1" });
+  if (topic) query.set("topic", topic);
+  return `/login?returnTo=${encodeURIComponent(`/community?${query}`)}`;
+}
 
 type Feed = ReturnType<typeof useCommunityFeed>;
 type Notify = (message: string) => void;
 
 export function CommunityList() {
+  const selected = useSearchParams().get("topic");
+  let topic: CommunityTopic | undefined;
+  if (isCommunityTopic(selected)) topic = selected;
   const { session, sessionReady } = useAuthSession();
   if (!sessionReady) return <FeedSkeleton />;
-  return <CommunityFeed key={session?.credential ?? "guest"} signedIn={Boolean(session)} />;
+  return <LoungeContent key={session?.credential ?? "guest"} topic={topic} signedIn={Boolean(session)} />;
 }
 
-function CommunityFeed({ signedIn }: { readonly signedIn: boolean }) {
+function LoungeContent({ topic, signedIn }: TopicFilter & { readonly signedIn: boolean }) {
+  useEffect(() => { window.scrollTo(0, communityListMemory.scroll); }, []);
+  const [rankingVersion, refreshRanking] = useReducer((version: number) => version + 1, 0);
+  const tracked = useRef(false);
+  const trackLoaded = useCallback(() => {
+    if (tracked.current) return;
+    tracked.current = true;
+    trackListViewed();
+  }, []);
+  return <section className="community-lounge">
+    <LoungeIntro />
+    <div className="community-lounge-feed"><ComposePrompt />
+      <TopicMenu topic={topic} />
+      <CommunityFeed key={topic ?? "all"} topic={topic} signedIn={signedIn} trackLoaded={trackLoaded} onLikeSaved={refreshRanking} />
+    </div>
+    <div className="community-lounge-side"><PopularPostsCard version={rankingVersion} /><CommunityDeadlines /></div>
+  </section>;
+}
+
+type FeedProps = TopicFilter & { signedIn: boolean; trackLoaded: () => void; onLikeSaved: () => void };
+
+function CommunityFeed({ signedIn, topic, trackLoaded, onLikeSaved }: FeedProps) {
   const router = useRouter();
   const loader = useCallback(async (before?: number) => {
-    try { return await getPosts(before); }
+    try { return await getPosts(before, topic); }
     catch (cause) {
-      if (before && cause instanceof AuditionRequestError && cause.status === 401) router.replace(moreLogin);
+      if (before && cause instanceof AuditionRequestError && cause.status === 401) router.replace(moreLogin(topic));
       throw cause;
     }
-  }, [router]);
+  }, [router, topic]);
   const feed = useCommunityFeed(loader);
   const resumed = useRef(false);
   const { cursor, load } = feed;
@@ -53,17 +84,26 @@ function CommunityFeed({ signedIn }: { readonly signedIn: boolean }) {
     void load(cursor);
   }, [signedIn, cursor, load]);
   const toast = useCommunityToast();
-  useTrackOnce(!feed.loading && !feed.error, trackListViewed);
-  useEffect(() => { window.scrollTo(0, communityListMemory.scroll); }, []);
-  return <section className="community-lounge">
-    <LoungeIntro />
-    <div className="community-lounge-feed">
-      <ComposePrompt />
-      <div className="community-feed-panel"><FeedBody feed={feed} signedIn={signedIn} notify={toast.show} /></div>
-    </div>
-    <CommunityDeadlines />
+  useTrackOnce(!feed.loading && !feed.error, trackLoaded);
+  return <div className="community-feed-panel">
+    <FeedBody feed={feed} signedIn={signedIn} notify={toast.show} topic={topic} onLikeSaved={onLikeSaved} />
     <CommunityToast message={toast.message} />
-  </section>;
+  </div>;
+}
+
+function TopicMenu({ topic }: TopicFilter) {
+  function filterLink(label: string, selected?: CommunityTopic) {
+    let href = "/community";
+    if (selected) href += `?topic=${selected}`;
+    return <Link key={label} href={href} aria-current={topic === selected && "page"} onNavigate={event => {
+      event.preventDefault();
+      if (topic !== selected) window.history.pushState(null, "", href);
+    }}>{label}</Link>;
+  }
+  return <nav className="community-topic-nav" aria-label="글 주제">
+    {filterLink("전체")}
+    {Object.keys(topicLabels).filter(isCommunityTopic).map(value => filterLink(topicLabels[value], value))}
+  </nav>;
 }
 
 function LoungeIntro() {
@@ -95,14 +135,20 @@ function ComposePrompt() {
   </Link>;
 }
 
-function FeedBody({ feed, signedIn, notify }: { readonly feed: Feed; readonly signedIn: boolean; readonly notify: Notify }) {
+type FeedBodyProps = Omit<FeedProps, "trackLoaded"> & { feed: Feed; notify: Notify };
+
+function FeedBody({ feed, signedIn, notify, topic, onLikeSaved }: FeedBodyProps) {
+  function updateLike(id: number, state: CommunityLikeState) {
+    feed.update(id, state);
+    onLikeSaved();
+  }
   if (feed.loading && feed.items.length === 0) return <FeedSkeleton />;
   return <><CommunityError message={feed.error} retry={() => void feed.load(feed.cursor ?? undefined)} />
-    {!feed.loading && !feed.error && feed.items.length === 0 && <FeedEmpty />}
+    {!feed.loading && !feed.error && feed.items.length === 0 && <FeedEmpty topic={topic} />}
     <ul className="community-list" onClick={() => { communityListMemory.scroll = window.scrollY; }}>
-      {feed.items.map(entry => <FeedPost key={entry.id} post={entry} notify={notify} onLiked={state => feed.update(entry.id, state)} />)}</ul>
+      {feed.items.map(entry => <FeedPost key={entry.id} post={entry} notify={notify} onLiked={state => updateLike(entry.id, state)} />)}</ul>
     {feed.loading && <p className="community-status" role="status">이야기를 더 불러오고 있어요.</p>}
-    {!feed.loading && feed.cursor !== null && !signedIn && <Link className="community-more" href={moreLogin}>로그인하고 더 보기</Link>}
+    {!feed.loading && feed.cursor !== null && !signedIn && <Link className="community-more" href={moreLogin(topic)}>로그인하고 더 보기</Link>}
     {!feed.loading && feed.cursor !== null && signedIn && <button type="button" className="community-more" onClick={() => void feed.load(feed.cursor!)}>이야기 더 보기</button>}</>;
 }
 
@@ -111,7 +157,8 @@ export function FeedSkeleton() {
     {[0, 1, 2].map(index => <div key={index} className="community-skeleton-item" aria-hidden="true"><span /><div><i /><i /><i /></div></div>)}</div>;
 }
 
-function FeedEmpty() {
+function FeedEmpty({ topic }: TopicFilter) {
+  if (topic) return <div className="community-empty"><h2>아직 {topicLabels[topic]} 글이 없어요</h2></div>;
   return <div className="community-empty"><PiChatCircle size={36} aria-hidden="true" /><h2>첫 이야기를 기다리고 있어요</h2>
     <p>오늘 연습 이야기, 오디션 질문, 가벼운 인사도 좋아요.</p></div>;
 }
@@ -132,7 +179,7 @@ function FeedPost({ post, notify, onLiked }: PostProps) {
 function FeedByline({ post, notify }: Omit<PostProps, "onLiked">) {
   return <div className="community-feed-byline">
     <CommunityPhoto photoUrl={post.authorPhotoUrl} label={feedAuthor(post)} seed={`${post.id}:${post.author}`} />
-    <CommunityByline author={feedAuthor(post)} authorPath={post.authorPath} showProfileBadge createdAt={post.createdAt} updatedAt={post.updatedAt} />
+    <CommunityByline author={feedAuthor(post)} authorPath={post.authorPath} showProfileBadge topic={post.topic ?? "FREE"} createdAt={post.createdAt} updatedAt={post.updatedAt} />
     <EntryMenu entry={post} label={`${post.title} 글 메뉴`} notify={notify} shareUrl={() => postUrl(post.id)} />
   </div>;
 }

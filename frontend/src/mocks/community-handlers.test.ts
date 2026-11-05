@@ -135,3 +135,35 @@ it("댓글과 대댓글 알림을 직접 수신자에게만 보여 주고 읽음
   await write(`${comments}/${comment.id}`, "DELETE", {}, other);
   expect(await inbox(secret)).not.toContainEqual(expect.objectContaining({ commentId: comment.id }));
 });
+
+it("주제별 다음 페이지와 수정 전 요청의 주제를 보존한다", async () => {
+  const input = { requestId: crypto.randomUUID(), title: "연습", body: "본문", topic: "PRACTICE" };
+  const first = await (await write(base, "POST", input)).json();
+  for (let i = 0; i < 5; i++) {
+    await write(base, "POST", { ...input, requestId: crypto.randomUUID() });
+    await write(base, "POST", { ...input, requestId: crypto.randomUUID(), topic: "FREE" });
+  }
+  const page = await (await fetch(`${base}?topic=PRACTICE`)).json();
+  expect(page.items.map((entry: { topic: string }) => entry.topic)).toEqual(Array(5).fill("PRACTICE"));
+  const next = await (await fetch(`${base}?topic=PRACTICE&before=${page.nextCursor}`, {
+    headers: { Cookie: `yesulin-community-owner=${secret}` },
+  })).json();
+  expect(next.items.map((entry: { id: number }) => entry.id)).toEqual([first.id]);
+  expect((await write(`${base}/${first.id}`, "PUT", { ...input, topic: "QUESTION" })).status).toBe(200);
+  expect((await (await write(base, "POST", input)).json()).topic).toBe("QUESTION");
+  expect((await write(base, "POST", { ...input, topic: "QUESTION" })).status).toBe(409);
+  expect((await fetch(`${base}?topic=unknown`)).status).toBe(400);
+});
+
+it("인기 글은 공개 조회로 글 번호와 제목만 제공하고 삭제하면 빠진다", async () => {
+  const input = { requestId: crypto.randomUUID(), title: "인기 후보", body: "본문" };
+  const post = await (await write(base, "POST", input)).json();
+  expect(post.topic).toBe("FREE");
+  const popular = async () => (await fetch(`${base}/popular`)).json();
+  await write(`${base}/${post.id}/comments`, "POST", { ...input, requestId: crypto.randomUUID() });
+  expect(await popular()).not.toContainEqual(expect.objectContaining({ id: post.id }));
+  await write(`${base}/${post.id}/likes`, "PUT", {});
+  expect(await popular()).toContainEqual({ id: post.id, title: input.title });
+  await write(`${base}/${post.id}`, "DELETE", {});
+  expect(await popular()).not.toContainEqual(expect.objectContaining({ id: post.id }));
+});

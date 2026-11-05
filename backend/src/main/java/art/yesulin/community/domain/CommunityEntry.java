@@ -38,6 +38,10 @@ public class CommunityEntry {
     @Column(nullable = false, length = 20, updatable = false)
     private CommunityAuthorMode authorMode = CommunityAuthorMode.ANONYMOUS;
 
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private CommunityTopic topic;
+
     @Column(length = 100)
     private String title;
 
@@ -76,17 +80,29 @@ public class CommunityEntry {
     }
 
     public static CommunityEntry post(String owner, UUID requestId, String title, String body, Instant now) {
+        return post(owner, requestId, new PostContent(title, body, CommunityTopic.FREE), now);
+    }
+
+    public static CommunityEntry post(String owner, UUID requestId, PostContent content, Instant now) {
         CommunityEntry entry = new CommunityEntry(null, owner, requestId, now);
-        entry.write(title, body);
-        entry.originalDigest = entry.digest(title, body);
+        entry.write(content.title(), content.body());
+        entry.topic = content.topic();
+        entry.originalDigest = entry.digest(content.title(), content.body(), entry.topic);
         return entry;
     }
 
     public static CommunityEntry comment(long parentId, String owner, UUID requestId, String body, Instant now) {
         CommunityEntry entry = new CommunityEntry(parentId, owner, requestId, now);
         entry.write(null, body);
-        entry.originalDigest = entry.digest(null, body);
+        entry.originalDigest = entry.digest(null, body, null);
         return entry;
+    }
+
+    public CommunityTopic getTopic() {
+        if (parentId != null) {
+            return null;
+        }
+        return topic;
     }
 
     public void replyTo(CommunityEntry target) {
@@ -122,6 +138,11 @@ public class CommunityEntry {
         updatedAt = now;
     }
 
+    public void editPost(String owner, String title, String body, CommunityTopic selected, Instant now) {
+        edit(owner, title, body, now);
+        topic = Objects.requireNonNullElse(selected, topic);
+    }
+
     public void delete(String owner, Instant now) {
         requireOwner(owner);
         requireVisible();
@@ -149,7 +170,12 @@ public class CommunityEntry {
     }
 
     public void verifyRetry(String owner, Long parent, String title, String body) {
-        if (!isOwnedBy(owner) || !Objects.equals(parentId, parent) || !originalDigest.equals(digest(title, body))) {
+        verifyRetry(owner, parent, title, body, CommunityTopic.FREE);
+    }
+
+    public void verifyRetry(String owner, Long parent, String title, String body, CommunityTopic requestedTopic) {
+        String requestedDigest = digest(title, body, requestedTopic);
+        if (!isOwnedBy(owner) || !Objects.equals(parentId, parent) || !originalDigest.equals(requestedDigest)) {
             throw new BusinessException(CommunityErrorCode.REQUEST_CONFLICT, "이미 사용한 요청 번호예요. 내용을 확인해 주세요.");
         }
         requireVisible();
@@ -208,10 +234,14 @@ public class CommunityEntry {
         return 5000;
     }
 
-    private String digest(String title, String body) {
+    private String digest(String title, String body, CommunityTopic selected) {
         String normalizedTitle = Objects.toString(normalizeTitle(title), "");
         String normalizedBody = CommunityText.required(body, bodyLimit());
-        return CommunityDigest.hash(normalizedTitle.length() + ":" + normalizedTitle + normalizedBody);
+        String content = normalizedTitle.length() + ":" + normalizedTitle + normalizedBody;
+        if (selected == null || selected == CommunityTopic.FREE) {
+            return CommunityDigest.hash(content);
+        }
+        return CommunityDigest.hash(selected.name() + ":" + content);
     }
 
     private BusinessException notFound() {

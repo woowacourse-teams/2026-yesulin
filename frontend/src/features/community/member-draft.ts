@@ -1,8 +1,8 @@
-import type { CommunityAuthorMode } from "./types";
+import { isCommunityTopic, type CommunityTopic, type CommunityAuthorMode } from "./types";
 
 const PREFIX = "yesulin.community.draft:";
 const LIFETIME = 30 * 60 * 1000;
-export type MemberDraft = { title: string; body: string; authorMode: CommunityAuthorMode; requestId: string };
+export type MemberDraft = { topic?: CommunityTopic; title: string; body: string; authorMode: CommunityAuthorMode; requestId: string };
 
 export function saveCommunityDraft(scope: string, member: number, draft: MemberDraft, now = Date.now()) {
   sessionStorage.setItem(`${PREFIX}${member}:${scope}`, JSON.stringify({ ...draft, savedAt: now }));
@@ -23,7 +23,7 @@ export function readCommunityDraft(scope: string, member: number, now = Date.now
 function validDraft(value: unknown): value is MemberDraft & { savedAt: number } {
   if (!value || typeof value !== "object") return false;
   const draft = value as Record<string, unknown>;
-  return typeof draft.title === "string" && typeof draft.body === "string" && typeof draft.requestId === "string"
+  return (draft.topic === undefined || isCommunityTopic(draft.topic)) && typeof draft.title === "string" && typeof draft.body === "string" && typeof draft.requestId === "string"
     && typeof draft.savedAt === "number" && Number.isFinite(draft.savedAt)
     && (draft.authorMode === "ANONYMOUS" || draft.authorMode === "PROFILE");
 }

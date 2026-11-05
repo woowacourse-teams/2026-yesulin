@@ -1,6 +1,7 @@
 package art.yesulin.community.domain;
 
 import jakarta.persistence.LockModeType;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Pageable;
@@ -25,8 +26,18 @@ public interface CommunityEntryRepository extends JpaRepository<CommunityEntry, 
     Optional<Long> findRootId(long id);
 
     @Query("select e from CommunityEntry e where e.parentId is null and e.deletedAt is null "
-            + "and e.id < :before order by e.id desc")
-    List<CommunityEntry> posts(long before, Pageable pageable);
+            + "and (:topic is null or e.topic = :topic) and e.id < :before order by e.id desc")
+    List<CommunityEntry> posts(long before, CommunityTopic topic, Pageable pageable);
+
+    @Query("""
+            select new art.yesulin.community.domain.PopularPost(e.id, e.title)
+            from CommunityEntry e left join CommunityLike l on l.postId = e.id
+            where e.parentId is null and e.deletedAt is null and e.createdAt between :since and :now
+            group by e.id, e.title, e.commentCount, e.createdAt
+            having count(l.id) + e.commentCount * 2 >= 3
+            order by count(l.id) + e.commentCount * 2 desc, e.createdAt desc, e.id desc
+            """)
+    List<PopularPost> popular(Instant since, Instant now, Pageable pageable);
 
     @Query("select e from CommunityEntry e where e.parentId = :postId and e.deletedAt is null "
             + "and e.id > :after order by e.id")

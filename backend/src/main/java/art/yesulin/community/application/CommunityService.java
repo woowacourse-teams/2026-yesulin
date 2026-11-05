@@ -6,8 +6,13 @@ import art.yesulin.community.domain.CommunityDigest;
 import art.yesulin.community.domain.CommunityEntry;
 import art.yesulin.community.domain.CommunityEntryRepository;
 import art.yesulin.community.domain.CommunityErrorCode;
+import art.yesulin.community.domain.CommunityTopic;
+import art.yesulin.community.domain.PopularPost;
+import art.yesulin.community.domain.PostContent;
 import art.yesulin.global.exception.BusinessException;
 import java.time.Clock;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -35,9 +40,20 @@ public class CommunityService {
 
     @Transactional(readOnly = true)
     public CommunityPage posts(long before, String secret) {
-        List<EntryResult> results = repository.posts(before, PageRequest.of(0, 6)).stream()
+        return posts(before, secret, null);
+    }
+
+    @Transactional(readOnly = true)
+    public CommunityPage posts(long before, String secret, CommunityTopic topic) {
+        List<EntryResult> results = repository.posts(before, topic, PageRequest.of(0, 6)).stream()
                 .map(EntryResult::summary).toList();
         return CommunityPage.of(likes.enrich(results, CommunityDigest.viewer(secret)), 5);
+    }
+
+    @Transactional(readOnly = true)
+    public List<PopularPost> popular() {
+        Instant now = clock.instant();
+        return repository.popular(now.minus(7, ChronoUnit.DAYS), now, PageRequest.of(0, 5));
     }
 
     @Transactional(readOnly = true)
@@ -48,26 +64,26 @@ public class CommunityService {
     }
 
     public EntryResult createPost(String secret, UUID requestId, String title, String body) {
-        return publishPost(CommunityDigest.owner(secret), null, CommunityAuthorMode.ANONYMOUS, requestId, title, body);
+        return publishPost(CommunityDigest.owner(secret), null, CommunityAuthorMode.ANONYMOUS, requestId,
+                new PostContent(title, body, CommunityTopic.FREE));
     }
 
-    EntryResult publishPost(String owner, Long member, CommunityAuthorMode mode, UUID requestId, String title,
-                String body) {
+    EntryResult publishPost(String owner, Long member, CommunityAuthorMode mode, UUID requestId, PostContent content) {
         try {
-            return transactions.execute(status -> createOrReplayPost(owner, member, mode, requestId, title, body));
+            return transactions.execute(status -> createOrReplayPost(owner, member, mode, requestId, content));
         } catch (DataIntegrityViolationException exception) {
-            return transactions.execute(status -> replayPost(owner, mode, requestId, title, body));
+            return transactions.execute(status -> replayPost(owner, mode, requestId, content));
         }
     }
 
     @Transactional
     public EntryResult editPost(long id, String secret, String title, String body) {
-        return editOwnedPost(id, CommunityDigest.owner(secret), title, body);
+        return editOwnedPost(id, CommunityDigest.owner(secret), title, body, null);
     }
 
-    EntryResult editOwnedPost(long id, String owner, String title, String body) {
+    EntryResult editOwnedPost(long id, String owner, String title, String body, CommunityTopic topic) {
         CommunityEntry post = lockPost(id);
-        post.edit(owner, title, body, clock.instant());
+        post.editPost(owner, title, body, topic, clock.instant());
         return result(post, owner);
     }
 
@@ -137,18 +153,24 @@ public class CommunityService {
     }
 
     private EntryResult createOrReplayPost(String owner, Long member, CommunityAuthorMode mode,
-                                          UUID requestId, String title, String body) {
+                                          UUID requestId, PostContent content) {
         return repository.findByRequestKey(requestId.toString())
-                .map(entry -> replay(entry, owner, mode, null, title, body))
+                .map(entry -> replayPost(entry, owner, mode, content))
                 .orElseGet(() -> result(repository.saveAndFlush(
-                        CommunityEntry.post(owner, requestId, title, body, clock.instant()).authoredBy(member,
-                mode)), owner));
+                        CommunityEntry.post(owner, requestId, content, clock.instant())
+                                .authoredBy(member, mode)), owner));
     }
 
-    private EntryResult replayPost(String owner, CommunityAuthorMode mode, UUID requestId, String title, String body) {
+    private EntryResult replayPost(String owner, CommunityAuthorMode mode, UUID requestId, PostContent content) {
         CommunityEntry entry = repository.findByRequestKey(requestId.toString())
                 .orElseThrow(() -> new BusinessException(CommunityErrorCode.REQUEST_CONFLICT, "요청이 충돌했어요."));
-        return replay(entry, owner, mode, null, title, body);
+        return replayPost(entry, owner, mode, content);
+    }
+
+    private EntryResult replayPost(CommunityEntry entry, String owner, CommunityAuthorMode mode, PostContent content) {
+        entry.requireMode(mode);
+        entry.verifyRetry(owner, null, content.title(), content.body(), content.topic());
+        return result(entry, owner);
     }
 
     private EntryResult replay(CommunityEntry entry, String owner, CommunityAuthorMode mode,
