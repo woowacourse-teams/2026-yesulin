@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { beforeEach, expect, it, vi } from "vitest";
 import { request } from "@/features/auditions/api-client";
 import { getPost, setPostLike } from "./api";
 import { prepareIdentity } from "./identity";
@@ -9,17 +9,16 @@ vi.mock("./identity", () => ({ prepareIdentity: vi.fn() }));
 beforeEach(() => {
   vi.mocked(request).mockReset();
   vi.mocked(prepareIdentity).mockReset().mockResolvedValue(undefined);
-  communityListMemory.page = { items: [], nextCursor: null };
+  communityListMemory.scroll = 120;
 });
-afterEach(() => { communityListMemory.page = null; });
 
 it("응답 유실 후에도 쿠키를 재확인하고 같은 등록 요청으로 재시도한다", async () => {
   vi.mocked(request).mockRejectedValueOnce(new Error("연결 실패"));
   vi.mocked(request).mockResolvedValueOnce({ likeCount: 1, liked: true });
   await expect(setPostLike(4, true)).rejects.toThrow("연결 실패");
-  expect(communityListMemory.page).not.toBeNull();
+  expect(communityListMemory.scroll).toBe(120);
   await expect(setPostLike(4, true)).resolves.toEqual({ likeCount: 1, liked: true });
-  expect(communityListMemory.page).toBeNull();
+  expect(communityListMemory.scroll).toBe(0);
   expect(prepareIdentity).toHaveBeenCalledWith(true);
   expect(request).toHaveBeenNthCalledWith(1, "/v1/public/community/posts/4/likes", { method: "PUT", body: undefined });
   expect(request).toHaveBeenNthCalledWith(2, "/v1/public/community/posts/4/likes", { method: "PUT", body: undefined });

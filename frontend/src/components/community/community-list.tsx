@@ -1,16 +1,16 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { PiArrowClockwise, PiChatCircle, PiLink, PiPlus } from "react-icons/pi";
-import { communityListMemory, recentCommunityList } from "@/features/community/list-memory";
+import { useEffect } from "react";
+import { PiArrowClockwise, PiChatCircle, PiPencilSimple } from "react-icons/pi";
+import { communityListMemory } from "@/features/community/list-memory";
 import { getPosts } from "@/features/community/api";
 import { trackListViewed, useTrackOnce } from "@/features/community/analytics";
 import { useCommunityFeed } from "@/features/community/hooks";
-import { copyLink, postUrl } from "@/features/community/share";
+import { postUrl } from "@/features/community/share";
 import type { CommunityEntry, CommunityLikeState } from "@/features/community/types";
-import { CommunitySubbar } from "./community-shell";
-import { AnonymousAvatar, CommunityByline, CommunityError, CommunityToast, EntryRail, useCommunityToast } from "./community-ui";
+import { AnonymousAvatar, CommunityByline, CommunityError, CommunityToast, useCommunityToast } from "./community-ui";
 import { EntryMenu } from "./entry-menu";
 import { LikeButton } from "./like-button";
 
@@ -18,29 +18,28 @@ type Feed = ReturnType<typeof useCommunityFeed>;
 type Notify = (message: string) => void;
 
 export function CommunityList() {
-  const [initial] = useState(recentCommunityList);
-  const feed = useCommunityFeed(getPosts, initial);
+  const feed = useCommunityFeed(getPosts);
   const toast = useCommunityToast();
   useTrackOnce(!feed.loading && !feed.error, trackListViewed);
-  useEffect(() => { if (initial) window.scrollTo(0, communityListMemory.scroll); }, [initial]);
-  useEffect(() => {
-    if (feed.loading || feed.error) return;
-    communityListMemory.page = { items: feed.items, nextCursor: feed.cursor };
-    communityListMemory.savedAt = Date.now();
-  }, [feed.items, feed.cursor, feed.loading, feed.error]);
-  return <><ListSubbar feed={feed} /><FeedComposer /><FeedBody feed={feed} notify={toast.show} />
-    <Link className="community-fab" href="/community/new" aria-label="새 글 쓰기"><PiPlus size={24} aria-hidden="true" /></Link>
-    <CommunityToast message={toast.message} /></>;
+  useEffect(() => { window.scrollTo(0, communityListMemory.scroll); }, []);
+  return <section className="community-lounge">
+    <LoungeHeader />
+    <div className="community-feed-panel"><FeedBody feed={feed} notify={toast.show} /></div>
+    <button className="community-refresh" type="button" disabled={feed.loading} onClick={() => void feed.load()}>
+      <PiArrowClockwise aria-hidden="true" />새로고침
+    </button>
+    <CommunityToast message={toast.message} />
+  </section>;
 }
 
-function ListSubbar({ feed }: { readonly feed: Feed }) {
-  return <CommunitySubbar><h1 className="community-subbar-title">익명게시판</h1><div className="community-subbar-actions">
-    <button type="button" className="community-icon-button" disabled={feed.loading} onClick={() => void feed.load()} aria-label="새로고침"><PiArrowClockwise size={19} aria-hidden="true" /></button>
-    <Link className="community-pill" href="/community/new"><PiPlus size={14} aria-hidden="true" />글쓰기</Link></div></CommunitySubbar>;
-}
-
-function FeedComposer() {
-  return <Link className="community-composer" href="/community/new"><AnonymousAvatar /><span>지금 어떤 생각을 하고 있나요?</span></Link>;
+function LoungeHeader() {
+  return <header className="community-lounge-header">
+    <h1 className="community-lounge-title">배우 <span>수다방</span></h1>
+    <Link className="community-lounge-write" href="/community/new">
+      <Image src="/images/community-star-chat.png" alt="" width={40} height={40} />
+      글쓰기<PiPencilSimple size={15} aria-hidden="true" />
+    </Link>
+  </header>;
 }
 
 function FeedBody({ feed, notify }: { readonly feed: Feed; readonly notify: Notify }) {
@@ -60,23 +59,35 @@ export function FeedSkeleton() {
 
 function FeedEmpty() {
   return <div className="community-empty"><PiChatCircle size={36} aria-hidden="true" /><h2>첫 이야기를 기다리고 있어요</h2>
-    <p>오늘 연습 이야기, 오디션 질문, 가벼운 인사도 좋아요.</p><Link href="/community/new" className="community-pill"><PiPlus size={14} aria-hidden="true" />첫 이야기 쓰기</Link></div>;
+    <p>오늘 연습 이야기, 오디션 질문, 가벼운 인사도 좋아요.</p></div>;
 }
 
 type PostProps = { readonly post: CommunityEntry; readonly notify: Notify; readonly onLiked: (state: CommunityLikeState) => void };
 
 function FeedPost({ post, notify, onLiked }: PostProps) {
-  const threaded = post.commentCount > 0;
-  return <li className="community-entry"><article aria-labelledby={`post-title-${post.id}`}><EntryRail author={post.author} threaded={threaded} />
-    <div className="community-entry-main"><div className="community-entry-head"><CommunityByline author={post.author} createdAt={post.createdAt} updatedAt={post.updatedAt} />
-      <EntryMenu entry={post} label={`${post.title} 글 메뉴`} notify={notify} shareUrl={() => postUrl(post.id)} /></div>
-      <Link href={`/community/${post.id}`} className="community-post-link"><h2 id={`post-title-${post.id}`}>{post.title}</h2><p className="community-preview">{post.body}</p></Link>
-      <FeedActions post={post} notify={notify} onLiked={onLiked} />
-      {threaded && <Link className="community-replies" href={`/community/${post.id}#comments-heading`}>댓글 {post.commentCount}개 보기</Link>}</div></article></li>;
+  return <li className="community-entry"><article aria-labelledby={`post-title-${post.id}`}>
+    <FeedByline post={post} notify={notify} />
+    <Link href={`/community/${post.id}`} className="community-post-link">
+      <h2 id={`post-title-${post.id}`}>{post.title}</h2>
+      <p className="community-preview">{post.body}</p>
+    </Link>
+    <FeedActions post={post} onLiked={onLiked} />
+  </article></li>;
 }
 
-function FeedActions({ post, notify, onLiked }: PostProps) {
-  return <div className="community-reactions"><LikeButton post={post} onChanged={onLiked} />
-    <Link href={`/community/${post.id}#comments-heading`} aria-label={`댓글 ${post.commentCount}개 보기`}><PiChatCircle size={19} aria-hidden="true" /><span>{post.commentCount}</span></Link>
-    <button type="button" onClick={() => void copyLink(postUrl(post.id), notify)} aria-label="글 링크 복사"><PiLink size={19} aria-hidden="true" /></button></div>;
+function FeedByline({ post, notify }: Omit<PostProps, "onLiked">) {
+  return <div className="community-feed-byline">
+    <AnonymousAvatar author={post.author.slice(0, 1)} photoUrl={post.authorPhotoUrl} />
+    <CommunityByline author={post.author} authorPath={post.authorPath} showProfileBadge createdAt={post.createdAt} updatedAt={post.updatedAt} />
+    <EntryMenu entry={post} label={`${post.title} 글 메뉴`} notify={notify} shareUrl={() => postUrl(post.id)} />
+  </div>;
+}
+
+function FeedActions({ post, onLiked }: Omit<PostProps, "notify">) {
+  return <div className="community-reactions">
+    <LikeButton post={post} onChanged={onLiked} />
+    <Link href={`/community/${post.id}#comments-heading`} aria-label={`댓글 ${post.commentCount}개 보기`}>
+      <PiChatCircle size={19} aria-hidden="true" /><span>{post.commentCount}</span>
+    </Link>
+  </div>;
 }

@@ -53,7 +53,7 @@ describe("useAbandonTracking", () => {
     await render(<Editor active unsaved={false} />);
     await render(<Editor active unsaved />);
     await unmount();
-    expect(track.mock.calls).toEqual([["community_compose_abandoned"]]);
+    expect(track.mock.calls).toEqual([["community_compose_abandoned", { metric_version: 2 }]]);
   });
 
   it("저장에 성공한 뒤 떠나거나 글 수정 화면이면 보내지 않는다", async () => {

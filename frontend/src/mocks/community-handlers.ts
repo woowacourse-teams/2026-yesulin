@@ -1,9 +1,12 @@
+import { mockCurrentSession } from "./auth-handlers";
+import type { SessionResponse } from "@/features/auth/session-api";
+import type { CommunityProfile, CommunityAuthorMode } from "@/features/community/types";
 import { http, HttpResponse } from "msw";
 import { normalizeComment, normalizePost } from "@/features/community/draft";
 import { reportReasons, type CommunityEntry, type CommunityPage } from "@/features/community/types";
 
 type StoredEntry = { value: CommunityEntry; owner: string; parent: number | null; deleted: boolean; requestId: string; original: string };
-type Payload = { requestId?: string; title?: string; body?: string; reason?: string; detail?: string };
+type Payload = { authorMode?: CommunityAuthorMode; expectedMemberId?: number; requestId?: string; title?: string; body?: string; reason?: string; detail?: string };
 
 class MockFailure extends Error {
   constructor(readonly status: number, readonly code: string, message: string) { super(message); }
@@ -14,6 +17,22 @@ class CommunityStore {
   private reports = new Map<string, string>();
   private sequence = 0;
   private likes = new Map<number, Set<string>>();
+
+  constructor(private readonly profile: (member: number) => CommunityProfile | null) {}
+
+  private publicProfile(entry: StoredEntry) {
+    if (entry.value.authorMode !== "PROFILE") return {};
+    const profile = this.profile(Number(entry.owner.slice(7)));
+    if (!profile?.path) return { author: "프로필 비공개", authorPhotoUrl: null, authorPath: null };
+    return { author: profile.name, authorPhotoUrl: profile.photoUrl, authorPath: profile.path };
+  }
+
+  fixedMode(postId: number | null, owner: string) {
+    if (postId === null) return null;
+    this.post(postId);
+    const entry = [...this.entries.values()].find(item => item.owner === owner && (item.value.id === postId || item.parent === postId));
+    return entry?.value.authorMode ?? null;
+  }
 
   find(id: number): StoredEntry {
     const entry = this.entries.get(id);
@@ -35,9 +54,11 @@ class CommunityStore {
     return entry;
   }
 
-  view(entry: StoredEntry, owner: string): CommunityEntry {
+  view(entry: StoredEntry, owner: string, browser = owner): CommunityEntry {
     const likes = this.likes.get(entry.value.id) ?? new Set<string>();
-    return { ...entry.value, editable: entry.owner === owner, likeCount: likes.size, liked: likes.has(owner) };
+    const editable = entry.owner === owner || (!entry.owner.startsWith("member:") && entry.owner === browser);
+    const profile = this.publicProfile(entry);
+    return { ...entry.value, ...profile, editable, likeCount: likes.size, liked: likes.has(browser) };
   }
 
   react(id: number, owner: string, liked: boolean) {
@@ -59,11 +80,11 @@ class CommunityStore {
     return `익명${[...owners].indexOf(owner) + 1}`;
   }
 
-  list(parent: number | null, cursor: number, owner: string): CommunityPage {
+  list(parent: number | null, cursor: number, owner: string, browser = owner): CommunityPage {
     if (parent !== null) this.post(parent);
     const entries = [...this.entries.values()].filter(entry => eligible(entry, parent, cursor));
     entries.sort((left, right) => compareEntries(left, right, parent));
-    const items = entries.slice(0, 20).map(entry => this.listView(entry, owner, parent));
+    const items = entries.slice(0, 20).map(entry => this.view(entry, owner, browser));
     let nextCursor: number | null = null;
     if (entries.length > 20) nextCursor = items[19].id;
     return { items, nextCursor };
@@ -72,7 +93,11 @@ class CommunityStore {
   create(parent: number | null, owner: string, input: Payload) {
     requireRequestId(input.requestId);
     if (parent !== null) this.post(parent);
-    const content = normalized(parent, input);
+    if (input.authorMode !== "ANONYMOUS" && input.authorMode !== "PROFILE") throw new Error("작성 방식을 선택해 주세요.");
+    const fixed = this.fixedMode(parent, owner);
+    if (fixed && fixed !== input.authorMode) throw conflict();
+    if (input.authorMode === "PROFILE" && !this.profile(Number(owner.slice(7)))?.path) throw new MockFailure(409, "COMMUNITY_PROFILE_REQUIRED", "공개된 배우 페이지가 필요해요.");
+    const content = { ...normalized(parent, input), authorMode: input.authorMode };
     const original = JSON.stringify({ parent, ...content });
     const retry = [...this.entries.values()].find(entry => entry.requestId === input.requestId);
     if (retry) return this.replay(retry, owner, original);
@@ -102,10 +127,10 @@ class CommunityStore {
     this.reports.set(input.requestId!, content);
   }
 
-  private insert(parent: number | null, owner: string, requestId: string, content: { title: string | null; body: string }, original: string) {
+  private insert(parent: number | null, owner: string, requestId: string, content: { title: string | null; body: string; authorMode: CommunityAuthorMode }, original: string) {
     const id = ++this.sequence;
     const createdAt = new Date().toISOString();
-    const value = { id, ...content, author: this.author(parent, owner), createdAt, updatedAt: createdAt, commentCount: 0, editable: false, likeCount: 0, liked: false };
+    const value = { id, ...content, memberOwned: true, authorPhotoUrl: null, authorPath: null, postAuthor: parent === null || this.post(parent).owner === owner, author: this.author(parent, owner), createdAt, updatedAt: createdAt, commentCount: 0, editable: false, likeCount: 0, liked: false };
     const entry = { value, owner, parent, deleted: false, requestId, original };
     this.entries.set(id, entry);
     if (parent !== null) this.changeCount(parent, 1);
@@ -122,10 +147,7 @@ class CommunityStore {
     entry.value = { ...entry.value, commentCount: entry.value.commentCount + change };
   }
 
-  private listView(entry: StoredEntry, owner: string, parent: number | null) {
-    if (parent === null) return { ...this.view(entry, owner), editable: false };
-    return this.view(entry, owner);
-  }
+
 }
 
 function requireOwner(entry: StoredEntry, owner: string) {
@@ -186,23 +208,62 @@ function cursorOf(request: Request, name: string, fallback: number, minimum: num
   return cursor;
 }
 
-export function createCommunityHandlers() {
-  const store = new CommunityStore();
+type MockContext = {
+  session: (request: Request) => SessionResponse | null;
+  profile: (member: number) => CommunityProfile | null;
+};
+
+export function createCommunityHandlers(context: MockContext = { session: mockCurrentSession, profile: () => null }) {
+  const store = new CommunityStore(context.profile);
   const base = "*/api/v1/public/community/posts";
+  const memberKey = (request: Request) => {
+    const session = context.session(request);
+    if (!session || session.role !== "APPLICANT" || session.status !== "ACTIVE") return "";
+    return `member:${session.memberId}`;
+  };
+  const manager = (entry: StoredEntry, request: Request, cookies: Record<string, string>) => {
+    if (entry.owner.startsWith("member:")) return memberKey(request);
+    return ownerOf(request, cookies);
+  };
+  const create = async (parent: number | null, request: Request) => {
+    const session = context.session(request);
+    if (!session) throw new MockFailure(401, "AUTH_UNAUTHENTICATED", "로그인이 필요합니다.");
+    const owner = memberKey(request);
+    if (!owner) throw new MockFailure(403, "AUTH_FORBIDDEN", "배우 계정으로 참여해 주세요.");
+    const input = await request.json() as Payload;
+    if (input.expectedMemberId !== session.memberId) throw conflict();
+    return store.create(parent, owner, input);
+  };
   return [
     http.get("*/api/v1/public/community/identity", ({ request, cookies }) => identityResponse(request, cookies, false)),
     http.post("*/api/v1/public/community/identity", ({ request, cookies }) => identityResponse(request, cookies, true)),
-    http.get(base, ({ request, cookies }) => respond(() => store.list(null, cursorOf(request, "before", Number.MAX_SAFE_INTEGER, 1), ownerOf(request, cookies)))),
+    http.get(`${base}/participation`, ({ request }) => respond(() => {
+      const session = context.session(request);
+      const postId = new URL(request.url).searchParams.get("postId");
+      return { memberId: session?.memberId ?? null, canWrite: Boolean(memberKey(request)),
+        fixedMode: store.fixedMode(Number(postId) || null, memberKey(request)), profile: context.profile(session?.memberId ?? 0) };
+    })),
+    http.get(base, ({ request, cookies }) => respond(() => store.list(null, cursorOf(request, "before", Number.MAX_SAFE_INTEGER, 1), memberKey(request), ownerOf(request, cookies)))),
     http.put(`${base}/:id/likes`, ({ request, params, cookies }) => respond(() => store.react(Number(params.id), ownerOf(request, cookies), true))),
     http.delete(`${base}/:id/likes`, ({ request, params, cookies }) => respond(() => store.react(Number(params.id), ownerOf(request, cookies), false))),
-    http.get(`${base}/:id`, ({ request, params, cookies }) => respond(() => store.view(store.post(Number(params.id)), ownerOf(request, cookies)))),
-    http.post(base, ({ request, cookies }) => respond(async () => store.create(null, ownerOf(request, cookies), await request.json() as Payload), 201)),
-    http.put(`${base}/:id`, ({ request, params, cookies }) => respond(async () => store.edit(store.post(Number(params.id)), ownerOf(request, cookies), await request.json() as Payload))),
-    http.delete(`${base}/:id`, ({ request, params, cookies }) => respond(() => store.remove(store.post(Number(params.id)), ownerOf(request, cookies)))),
-    http.get(`${base}/:postId/comments`, ({ request, params, cookies }) => respond(() => store.list(Number(params.postId), cursorOf(request, "after", 0, 0), ownerOf(request, cookies)))),
-    http.post(`${base}/:postId/comments`, ({ request, params, cookies }) => respond(async () => store.create(Number(params.postId), ownerOf(request, cookies), await request.json() as Payload), 201)),
-    http.put(`${base}/:postId/comments/:id`, ({ request, params, cookies }) => respond(async () => store.edit(store.comment(Number(params.postId), Number(params.id)), ownerOf(request, cookies), await request.json() as Payload))),
-    http.delete(`${base}/:postId/comments/:id`, ({ request, params, cookies }) => respond(() => store.remove(store.comment(Number(params.postId), Number(params.id)), ownerOf(request, cookies)))),
+    http.get(`${base}/:id`, ({ request, params, cookies }) => respond(() => store.view(store.post(Number(params.id)), memberKey(request), ownerOf(request, cookies)))),
+    http.post(base, ({ request }) => respond(() => create(null, request), 201)),
+    http.put(`${base}/:id`, ({ request, params, cookies }) => respond(async () => {
+      const entry = store.post(Number(params.id));
+      return store.edit(entry, manager(entry, request, cookies), await request.json() as Payload);
+    })),
+    http.delete(`${base}/:id`, ({ request, params, cookies }) => respond(() => {
+      const entry = store.post(Number(params.id)); store.remove(entry, manager(entry, request, cookies));
+    })),
+    http.get(`${base}/:postId/comments`, ({ request, params, cookies }) => respond(() => store.list(Number(params.postId), cursorOf(request, "after", 0, 0), memberKey(request), ownerOf(request, cookies)))),
+    http.post(`${base}/:postId/comments`, ({ request, params }) => respond(() => create(Number(params.postId), request), 201)),
+    http.put(`${base}/:postId/comments/:id`, ({ request, params, cookies }) => respond(async () => {
+      const entry = store.comment(Number(params.postId), Number(params.id));
+      return store.edit(entry, manager(entry, request, cookies), await request.json() as Payload);
+    })),
+    http.delete(`${base}/:postId/comments/:id`, ({ request, params, cookies }) => respond(() => {
+      const entry = store.comment(Number(params.postId), Number(params.id)); store.remove(entry, manager(entry, request, cookies));
+    })),
     http.post("*/api/v1/public/community/entries/:id/reports", ({ request, params, cookies }) => respond(async () => store.report(Number(params.id), ownerOf(request, cookies), await request.json() as Payload))),
   ];
 }

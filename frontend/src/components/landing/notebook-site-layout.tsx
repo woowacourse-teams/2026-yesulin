@@ -20,7 +20,7 @@ const menuItems = [
   { key: "shows", href: showRoutes.list, label: "무료 공연" },
   { key: "events", href: eventRoutes.list, label: "이벤트" },
   { key: "actors", href: actorPageRoutes.list(), label: "배우" },
-  { key: "community", href: "/community", label: "익명게시판" },
+  { key: "community", href: "/community", label: "커뮤니티" },
 ] as const;
 
 export function NotebookHeader({ service = "applicant" }: { readonly service?: "applicant" | "producer" }) {

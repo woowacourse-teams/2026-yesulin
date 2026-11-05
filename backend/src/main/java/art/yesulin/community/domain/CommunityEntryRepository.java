@@ -14,6 +14,10 @@ public interface CommunityEntryRepository extends JpaRepository<CommunityEntry, 
             + "group by e.ownerHash order by min(e.id)")
     List<String> authors(long postId);
 
+    @Query("select e from CommunityEntry e where (e.id = :postId or e.parentId = :postId) "
+            + "and e.ownerHash = :owner order by e.id")
+    List<CommunityEntry> participation(long postId, String owner, Pageable pageable);
+
     Optional<CommunityEntry> findByRequestKey(String requestKey);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

@@ -2,17 +2,24 @@ import { afterAll, beforeAll, expect, it } from "vitest";
 import { setupServer } from "msw/node";
 import { createCommunityHandlers } from "./community-handlers";
 
-const server = setupServer(...createCommunityHandlers());
+const server = setupServer(...createCommunityHandlers({
+  session: request => {
+    const key = /yesulin-community-owner=([a-f0-9]+)/.exec(request.headers.get("Cookie") ?? "")?.[1];
+    if (!key) return null;
+    return { memberId: key.charCodeAt(0), role: "APPLICANT", status: "ACTIVE" };
+  },
+  profile: () => null,
+}));
 const base = "http://localhost/api/v1/public/community/posts";
 const secret = "a".repeat(64);
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 afterAll(() => server.close());
 
 function write(url: string, method: string, body: object, key = secret) {
-  return fetch(url, { method, headers: { "Content-Type": "application/json", Cookie: `yesulin-community-owner=${key}` }, body: JSON.stringify(body) });
+  return fetch(url, { method, headers: { "Content-Type": "application/json", Cookie: `yesulin-community-owner=${key}` }, body: JSON.stringify({ authorMode: "ANONYMOUS", expectedMemberId: key.charCodeAt(0), ...body }) });
 }
 
-it("비회원 작성, 같은 요청 재시도, 다른 브라우저의 수정 거절을 모사한다", async () => {
+it("회원 작성, 같은 요청 재시도, 다른 계정의 수정 거절을 모사한다", async () => {
   const input = { requestId: crypto.randomUUID(), title: "익명 글", body: "내용" };
   const created = await (await write(base, "POST", input)).json();
   const retry = await (await write(base, "POST", input)).json();
@@ -47,7 +54,7 @@ it("글 좋아요의 반복·취소와 브라우저별 목록 상태를 모사�
   expect(await (await write(url, "PUT", {})).json()).toEqual({ likeCount: 1, liked: true });
   await write(url, "PUT", {}, "b".repeat(64));
   const list = await (await fetch(base, { headers: { Cookie: `yesulin-community-owner=${secret}` } })).json();
-  expect(list.items[0]).toMatchObject({ id: post.id, likeCount: 2, liked: true, editable: false });
+  expect(list.items[0]).toMatchObject({ id: post.id, likeCount: 2, liked: true, editable: true });
   expect(await (await write(url, "DELETE", {})).json()).toEqual({ likeCount: 1, liked: false });
   expect(await (await write(url, "DELETE", {})).json()).toEqual({ likeCount: 1, liked: false });
   await write(`${base}/${post.id}`, "DELETE", {});
@@ -81,5 +88,5 @@ it("이전 전용 API에서만 기존 키를 받아 쿠키로 확인하고 충�
 
 it("일반 글 API는 기존 관리 헤더만으로 쓰기를 허용하지 않는다", async () => {
   const response = await fetch(base, { method: "POST", headers: { "Content-Type": "application/json", "X-Community-Key": secret }, body: JSON.stringify({ requestId: crypto.randomUUID(), title: "제목", body: "내용" }) });
-  expect(response.status).toBe(400);
+  expect(response.status).toBe(401);
 });

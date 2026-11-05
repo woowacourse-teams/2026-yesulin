@@ -1,5 +1,6 @@
 package art.yesulin.community.application;
 
+import art.yesulin.community.domain.CommunityAuthorMode;
 import art.yesulin.community.domain.CommunityAuthors;
 import art.yesulin.community.domain.CommunityDigest;
 import art.yesulin.community.domain.CommunityEntry;
@@ -13,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -45,25 +47,36 @@ public class CommunityService {
     }
 
     public EntryResult createPost(String secret, UUID requestId, String title, String body) {
-        String owner = CommunityDigest.owner(secret);
+        return publishPost(CommunityDigest.owner(secret), null, CommunityAuthorMode.ANONYMOUS, requestId, title, body);
+    }
+
+    EntryResult publishPost(String owner, Long member, CommunityAuthorMode mode, UUID requestId, String title,
+                String body) {
         try {
-            return transactions.execute(status -> createOrReplayPost(owner, requestId, title, body));
+            return transactions.execute(status -> createOrReplayPost(owner, member, mode, requestId, title, body));
         } catch (DataIntegrityViolationException exception) {
-            return transactions.execute(status -> replayPost(owner, requestId, title, body));
+            return transactions.execute(status -> replayPost(owner, mode, requestId, title, body));
         }
     }
 
     @Transactional
     public EntryResult editPost(long id, String secret, String title, String body) {
+        return editOwnedPost(id, CommunityDigest.owner(secret), title, body);
+    }
+
+    EntryResult editOwnedPost(long id, String owner, String title, String body) {
         CommunityEntry post = lockPost(id);
-        String owner = CommunityDigest.owner(secret);
         post.edit(owner, title, body, clock.instant());
         return result(post, owner);
     }
 
     @Transactional
     public void deletePost(long id, String secret) {
-        lockPost(id).delete(CommunityDigest.owner(secret), clock.instant());
+        deleteOwnedPost(id, CommunityDigest.owner(secret));
+    }
+
+    void deleteOwnedPost(long id, String owner) {
+        lockPost(id).delete(owner, clock.instant());
     }
 
     @Transactional(readOnly = true)
@@ -76,65 +89,87 @@ public class CommunityService {
     }
 
     public EntryResult createComment(long postId, String secret, UUID requestId, String body) {
-        String owner = CommunityDigest.owner(secret);
+        return publishComment(postId, CommunityDigest.owner(secret), null, CommunityAuthorMode.ANONYMOUS,
+                requestId, body);
+    }
+
+    EntryResult publishComment(long postId, String owner, Long member, CommunityAuthorMode mode,
+                UUID requestId, String body) {
+        TransactionTemplate current = new TransactionTemplate(transactions.getTransactionManager());
+        current.setIsolationLevel(TransactionDefinition.ISOLATION_READ_COMMITTED);
         try {
-            return transactions.execute(status -> createOrReplayComment(postId, owner, requestId, body));
+            return current.execute(status -> createOrReplayComment(postId, owner, member, mode, requestId, body));
         } catch (DataIntegrityViolationException exception) {
-            return transactions.execute(status -> replayComment(postId, owner, requestId, body));
+            return current.execute(status -> replayComment(postId, owner, mode, requestId, body));
         }
     }
 
-    private EntryResult createOrReplayComment(long postId, String owner, UUID requestId, String body) {
+    private EntryResult createOrReplayComment(long postId, String owner, Long member,
+                                             CommunityAuthorMode mode, UUID requestId, String body) {
         CommunityEntry post = lockPost(postId);
+        repository.participation(postId, owner, PageRequest.of(0, 1)).forEach(entry -> entry.requireMode(mode));
         return repository.findByRequestKey(requestId.toString())
-                .map(entry -> replay(entry, owner, postId, null, body))
-                .orElseGet(() -> addComment(post, owner, requestId, body));
+                .map(entry -> replay(entry, owner, mode, postId, null, body))
+                .orElseGet(() -> addComment(post, owner, member, mode, requestId, body));
     }
 
     @Transactional
     public EntryResult editComment(long postId, long id, String secret, String body) {
+        return editOwnedComment(postId, id, CommunityDigest.owner(secret), body);
+    }
+
+    EntryResult editOwnedComment(long postId, long id, String owner, String body) {
         lockPost(postId);
         CommunityEntry comment = comment(postId, id);
-        String owner = CommunityDigest.owner(secret);
         comment.edit(owner, null, body, clock.instant());
         return result(comment, owner);
     }
 
     @Transactional
     public void deleteComment(long postId, long id, String secret) {
+        deleteOwnedComment(postId, id, CommunityDigest.owner(secret));
+    }
+
+    void deleteOwnedComment(long postId, long id, String owner) {
         CommunityEntry post = lockPost(postId);
-        comment(postId, id).delete(CommunityDigest.owner(secret), clock.instant());
+        comment(postId, id).delete(owner, clock.instant());
         post.removeComment();
     }
 
-    private EntryResult createOrReplayPost(String owner, UUID requestId, String title, String body) {
+    private EntryResult createOrReplayPost(String owner, Long member, CommunityAuthorMode mode,
+                                          UUID requestId, String title, String body) {
         return repository.findByRequestKey(requestId.toString())
-                .map(entry -> replay(entry, owner, null, title, body))
+                .map(entry -> replay(entry, owner, mode, null, title, body))
                 .orElseGet(() -> result(repository.saveAndFlush(
-                        CommunityEntry.post(owner, requestId, title, body, clock.instant())), owner));
+                        CommunityEntry.post(owner, requestId, title, body, clock.instant()).authoredBy(member,
+                mode)), owner));
     }
 
-    private EntryResult replayPost(String owner, UUID requestId, String title, String body) {
+    private EntryResult replayPost(String owner, CommunityAuthorMode mode, UUID requestId, String title, String body) {
         CommunityEntry entry = repository.findByRequestKey(requestId.toString())
                 .orElseThrow(() -> new BusinessException(CommunityErrorCode.REQUEST_CONFLICT, "요청이 충돌했어요."));
-        return replay(entry, owner, null, title, body);
+        return replay(entry, owner, mode, null, title, body);
     }
 
-    private EntryResult replay(CommunityEntry entry, String owner, Long parent, String title, String body) {
+    private EntryResult replay(CommunityEntry entry, String owner, CommunityAuthorMode mode,
+                               Long parent, String title, String body) {
+        entry.requireMode(mode);
         entry.verifyRetry(owner, parent, title, body);
         return result(entry, owner);
     }
 
-    private EntryResult replayComment(long postId, String owner, UUID requestId, String body) {
+    private EntryResult replayComment(long postId, String owner, CommunityAuthorMode mode, UUID requestId,
+                String body) {
         lockPost(postId);
         CommunityEntry entry = repository.findByRequestKey(requestId.toString())
                 .orElseThrow(() -> new BusinessException(CommunityErrorCode.REQUEST_CONFLICT, "요청이 충돌했어요."));
-        return replay(entry, owner, postId, null, body);
+        return replay(entry, owner, mode, postId, null, body);
     }
 
-    private EntryResult addComment(CommunityEntry post, String owner, UUID requestId, String body) {
+    private EntryResult addComment(CommunityEntry post, String owner, Long member, CommunityAuthorMode mode,
+                                   UUID requestId, String body) {
         CommunityEntry comment = repository.save(CommunityEntry.comment(
-                post.getId(), owner, requestId, body, clock.instant()));
+                post.getId(), owner, requestId, body, clock.instant()).authoredBy(member, mode));
         post.addComment();
         return result(comment, owner);
     }

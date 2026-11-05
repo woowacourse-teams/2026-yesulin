@@ -1359,14 +1359,17 @@ S3 삭제 실패 시 `DELETING` 상태가 남으며 같은 파일 ID로 재시�
 `GET /api/v1/pdf-extractions/events`는 Active Producer 세션으로 접근하는 SSE다. `connected`와 `completed` 이벤트를 보내며 데이터는 `{jobId}`만 포함한다. `completed`는 추출 완료와 AI 완료·최종 실패·수동 재분석 접수 후 DB를 다시 읽으라는 변경 신호이며, 성공 판정을 의미하지 않는다. 본인 작업만 전달하고 DB 커밋 후 알린다. 15초 heartbeat와 3분 연결 만료 후 재연결을 사용한다. 알림 이력을 영구 보관하지 않으므로 재연결 시 DB 목록으로 동기화한다. 현재 인스턴스에 연결된 화면만 즉시 알림을 받으며 다중 인스턴스 간 알림 중계는 별도 범위다.
 ## 공개 익명 커뮤니티
 
-모든 경로는 로그인 없이 사용한다. 쓰기는 기존 CSRF 쿠키·헤더가 필요하며 인증 설정을 우회하지 않는다.
-익명 권한은 서버가 발급하는 `yesulin-community-owner` HttpOnly 쿠키로 전달한다. 쿠키 경로는
-`/api/v1/public/community`이며 Domain을 지정하지 않는다. SameSite=Lax, Max-Age=400일이고 기존 쿠키를 확인할 때 갱신한다.
-local/test의 HTTP 실행 외에는 Secure를 항상 적용하며 HTTPS 요청에서는 프로필과 무관하게 Secure다.
-일반 글·댓글·신고·좋아요 API는 `X-Community-Key` 헤더를 사용하지 않는다. 쓰기에 쿠키가 없으면 400이다.
-서버에는 기존과 동일한 SHA-256 소유권 해시만 저장하고 키 원문·해시는 JSON 응답·URL·로그에 넣지 않는다.
-쿠키 없는 공개 읽기는 가능하다. 쿠키가 있으면 상세·댓글의 `editable`과 글의 `liked`를 계산한다.
-조회·이전 응답은 `Cache-Control: no-store`다.
+공개 읽기와 좋아요·신고는 비회원도 사용한다. 새 글·댓글 POST는 활성 배우 계정 세션이 필요하다.
+제작사·관리자 등 다른 역할은 403, 비로그인 생성은 401이다. 쓰기는 기존 CSRF 쿠키·헤더 검증을 유지한다.
+신규 작성물은 세션 회원 소유이고, `expectedMemberId`가 세션과 다르면 409로 거절한다. 본문 회원 ID로 소유권을 부여하지 않는다.
+PUT·DELETE는 저장된 소유 유형으로 확인한다. 기존 비회원 글은 유효 쿠키만으로 관리 가능하며 로그인 강제를 추가하지 않는다.
+회원 작성물은 본인 활성 배우 세션이 필요하고 쿠키가 같아도 다른 계정의 권한이 되지 않는다.
+
+기존 소유권·비회원 좋아요·신고는 서버 발급 `yesulin-community-owner` HttpOnly 쿠키를 사용한다.
+Path=/api/v1/public/community, SameSite=Lax, Max-Age=400일, host-only다. local/test HTTP 외에는 Secure를 적용한다.
+쿠키 확인 때 갱신하며 기존 헤더 `X-Community-Key`는 사용하지 않는다. 좋아요·신고에 쿠키가 없으면 400이다.
+기존 SHA-256 소유 해시는 유지한다. 회원 참여 키는 별도 member 접두사이며 공개 응답·URL·로그에 넣지 않는다.
+조회·이전·참여 상태 응답은 `Cache-Control: no-store`다.
 
 기존 localStorage 키는 `X-Community-Legacy-Key` 헤더로 이전 전용 identity API에만 전달한다.
 서버는 기존 키를 HttpOnly 쿠키로 옮겨 소유권 해시·좋아요·익명 번호를 유지한다. 기존 쿠키와 이전 키가 다르면
@@ -1379,24 +1382,30 @@ POST 성공만으로 저장됐다고 판단하지 않고 GET에서 같은 이전
 | GET | `/identity` | `{ready: boolean}`. 쿠키 확인만 하며 새 키는 발급하지 않음. 이전 헤더가 있으면 해당 키와 쿠키의 일치도 확인 |
 | POST | `/identity` | 본문 없음, CSRF 필수 → 204 + HttpOnly Set-Cookie. 기존 쿠키 재사용, 기존 키 이전 또는 서버 32바이트 난수 신규 발급 |
 | GET | `/posts?before={id}` | 최신 글 20개. 생략 시 처음부터. `before`는 양수, 해당 ID 미포함 |
-| POST | `/posts` | `{requestId: UUID, title, body}` → 201 작성물 |
+| POST | `/posts` | `{requestId: UUID, title, body, authorMode, expectedMemberId}` → 201 작성물 |
+| GET | `/posts/participation?postId={id}` | 본인 참여 상태. postId 생략 시 새 글. `{memberId, canWrite, fixedMode, profile: {name, photoUrl, path} 또는 null}`. 비로그인은 memberId/profile/fixedMode null·canWrite false. 회원 ID는 이 본인 응답에만 포함 |
 | GET | `/posts/{postId}` | 200 작성물, 없거나 삭제되었으면 404 |
 | PUT | `/posts/{postId}` | `{title, body}` → 200 수정 작성물 |
 | DELETE | `/posts/{postId}` | 204, 본인만 가능 |
 | GET | `/posts/{postId}/comments?after={id}` | 오래된 댓글부터 20개. `after` 기본 0, 해당 ID 미포함 |
-| POST | `/posts/{postId}/comments` | `{requestId: UUID, body}` → 201 작성물 |
+| POST | `/posts/{postId}/comments` | `{requestId: UUID, body, authorMode, expectedMemberId}` → 201 작성물 |
 | PUT | `/posts/{postId}/comments/{commentId}` | `{body}` → 200 수정 작성물 |
 | DELETE | `/posts/{postId}/comments/{commentId}` | 204, 본인만 가능 |
 | PUT | `/posts/{postId}/likes` | 본문 없음 → 200 `{likeCount, liked: true}`. 반복해도 한 번만 반영 |
 | DELETE | `/posts/{postId}/likes` | 본문 없음 → 200 `{likeCount, liked: false}`. 이미 취소했어도 200 |
 | POST | `/entries/{entryId}/reports` | `{requestId: UUID, reason, detail?}` → 204 접수 |
 
-작성물 응답은 `{id, title, body, author, createdAt, updatedAt, commentCount, editable, likeCount, liked}`다.
-`author`는 글쓴이 `익명1`, 다른 댓글 작성 브라우저는 첫 작성 순서의 `익명2`·`익명3`이다. 같은 글 안에서만 유지한다.
-삭제된 댓글도 번호 배정에 포함하며 기존 글·댓글에도 같은 규칙을 적용한다. 공개 응답에는 작성자 해시를 넣지 않는다.
+작성물 응답은 `{id, title, body, author, authorPhotoUrl, authorPath, authorMode, postAuthor, memberOwned, createdAt, updatedAt, commentCount, editable, likeCount, liked}`다.
+`memberOwned`는 회원 소유 여부이며, 기존 쿠키 소유 작성물의 로그인 없는 관리 화면을 구분한다. 회원 식별자는 포함하지 않는다.
+`authorMode`는 `ANONYMOUS` 또는 `PROFILE`이며 생성 요청에서 필수다. `postAuthor`는 글쓴이 여부다.
+익명은 글별 전체 첫 참여 순서의 익명1·익명2로 표시하고 사진·경로는 null이다. 공개 참여자도 번호를 차지한다.
+공개 모드는 현재 공개 배우 페이지의 이름·사진·경로만 반환한다. 비공개/잠금/공개 조건 미충족은 `프로필 비공개`,
+계정 없음은 `알 수 없는 사용자`이며 사진·경로는 null이다. 공개 가능한 페이지 없이 PROFILE로 생성하면 409 COMMUNITY_PROFILE_REQUIRED다.
+한 글에서 처음 정한 모드와 다르게 작성하거나, 같은 생성 요청 번호에 다른 계정·모드·대상·내용을 보내면 409 COMMUNITY_REQUEST_CONFLICT다.
+기존 번호는 보존하며 삭제된 댓글도 참여 순서에 포함한다. 익명 작성자 회원 ID·해시·프로필 연결 정보는 반환하지 않는다.
 `likeCount`는 글의 좋아요 수이며 `liked`는 해당 브라우저의 선택 여부다. 쿠키가 없으면 `liked`는 false다.
 댓글에는 좋아요를 지원하지 않아 `likeCount: 0`, `liked: false`다.
-댓글의 `title`은 null이며 글 목록에도 본문을 포함한다. 글 목록의 `editable`은 항상 false다. 댓글의 `commentCount`는 0이다.
+댓글의 `title`은 null이며 글 목록에도 본문을 포함한다. 목록·상세의 `editable`은 현재 소유 권한에 따라 계산한다. 댓글의 `commentCount`는 0이다.
 목록은 `{items: 작성물[], nextCursor: number | null}`이고 다음 페이지가 없으면 null이다.
 날짜는 ISO Instant이며 `updatedAt`이 `createdAt`과 다르면 수정 표시를 한다.
 제목은 1~100자, 글 본문 1~5,000자, 댓글 1~1,000자다. 요청의 최대 길이를 검사한 뒤 줄바꿈·앞뒤 공백을 정리한다.

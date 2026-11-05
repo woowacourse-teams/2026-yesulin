@@ -1,15 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { PiChatCircle } from "react-icons/pi";
 import { fullTime, relativeTime } from "@/features/community/time";
 
-const POST_WRITER = "익명1";
-
-export function AnonymousAvatar({ author, small = false }: { readonly author?: string; readonly small?: boolean }) {
+export function AnonymousAvatar({ author, photoUrl, small = false }: { readonly author?: string; readonly photoUrl?: string | null; readonly small?: boolean }) {
   let className = "community-avatar";
   if (small) className += " community-avatar-small";
+  if (photoUrl) return <Image className={className} src={photoUrl} alt="" width={40} height={40} unoptimized />;
   return <span className={className} aria-hidden="true">{avatarLabel(author)}</span>;
 }
 
@@ -18,15 +18,11 @@ function avatarLabel(author?: string) {
   return author.replace("익명", "익");
 }
 
-export function EntryRail({ author, threaded, small = false }: { readonly author: string; readonly threaded: boolean; readonly small?: boolean }) {
-  return <div className="community-rail"><AnonymousAvatar author={author} small={small} />{threaded && <span className="community-rail-line" />}</div>;
-}
+type BylineProps = { readonly author: string; readonly createdAt: string; readonly updatedAt: string; readonly showProfileBadge?: boolean; readonly markWriter?: boolean; readonly authorPath?: string | null };
 
-type BylineProps = { readonly author: string; readonly createdAt: string; readonly updatedAt: string; readonly markWriter?: boolean };
-
-export function CommunityByline({ author, createdAt, updatedAt, markWriter = false }: BylineProps) {
-  return <div className="community-byline"><strong>{author}</strong>
-    {markWriter && author === POST_WRITER && <span className="community-writer">글쓴이</span>}
+export function CommunityByline({ author, createdAt, updatedAt, markWriter = false, authorPath, showProfileBadge }: BylineProps) {
+  return <div className="community-byline"><strong>{authorPath && <Link href={authorPath}>{author}{showProfileBadge && <span className="community-profile-badge">프로필</span>}</Link>}{!authorPath && author}</strong>
+    {markWriter && <span className="community-writer">글쓴이</span>}
     <CommunityTime createdAt={createdAt} updatedAt={updatedAt} /></div>;
 }
 

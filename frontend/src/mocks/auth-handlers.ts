@@ -30,6 +30,15 @@ export function mockSessionRole(): SessionRole | null {
   return mockSession?.role ?? null;
 }
 
+export function mockCurrentSession() {
+  return mockSession;
+}
+
+export function mockApplicantLogin() {
+  mockSession = { memberId: 2, role: "APPLICANT", status: "ACTIVE" };
+  return mockSession;
+}
+
 export const authHandlers = [
   http.post("/api/v1/sessions", async ({ request }) => {
     if (realProducerLoginEnabled) return passthrough();

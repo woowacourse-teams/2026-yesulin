@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AuditionRequestError } from "@/features/auditions/api-client";
+import { loadThroughComment, mergeComments } from "./comments";
 import type { CommunityEntry, CommunityPage } from "./types";
 import { communityDraftNavigation } from "./draft-navigation";
 
@@ -11,6 +13,7 @@ export function errorMessage(error: unknown) {
 
 export function useCommunityAction() {
   const running = useRef(false);
+  const [needsLogin, setNeedsLogin] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   async function run(operation: () => Promise<void>) {
@@ -18,11 +21,15 @@ export function useCommunityAction() {
     running.current = true;
     setBusy(true);
     setError("");
-    await operation().catch(cause => setError(errorMessage(cause)));
+    setNeedsLogin(false);
+    await operation().catch(cause => {
+      setNeedsLogin(cause instanceof AuditionRequestError && cause.status === 401);
+      setError(errorMessage(cause));
+    });
     running.current = false;
     setBusy(false);
   }
-  return { busy, error, run };
+  return { busy, error, needsLogin, run };
 }
 
 export function useCommunityFeed(loader: (cursor?: number) => Promise<CommunityPage>, initial: CommunityPage | null = null) {
@@ -69,7 +76,18 @@ export function useCommunityFeed(loader: (cursor?: number) => Promise<CommunityP
       return entry;
     }));
   };
-  return { items, cursor, loading, error, load, update };
+  const appendThrough = async (target: number) => {
+    const current = ++generation.current;
+    setLoading(true);
+    try {
+      const page = await loadThroughComment(loader, items.at(-1)?.id ?? 0, target);
+      if (current !== generation.current) return;
+      setItems(previous => mergeComments(previous, page.items));
+      setCursor(page.nextCursor); setError("");
+    } catch (cause) { if (current === generation.current) setError(errorMessage(cause)); }
+    finally { if (current === generation.current) setLoading(false); }
+  };
+  return { items, cursor, loading, error, load, update, appendThrough };
 }
 
 function mergePage(previous: readonly CommunityEntry[], incoming: readonly CommunityEntry[], cursor?: number, replace = false) {
@@ -84,4 +102,10 @@ export function useDraftGuard(dirty: boolean) {
     if (!dirty) return;
     return communityDraftNavigation().register();
   }, [dirty]);
+}
+
+export function useCurrentCommunityForm() {
+  const active = useRef(true);
+  useEffect(() => { active.current = true; return () => { active.current = false; }; }, []);
+  return active;
 }

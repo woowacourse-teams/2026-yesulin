@@ -13,15 +13,15 @@ export function trackPostViewed() {
 }
 
 export function trackComposeStarted() {
-  void trackProductEvent("community_compose_started");
+  void trackProductEvent("community_compose_started", { metric_version: 2 });
 }
 
 export function trackPostCreated() {
-  void trackProductEvent("community_post_created");
+  void trackProductEvent("community_post_created", { metric_version: 2 });
 }
 
 export function trackCommentCreated() {
-  void trackProductEvent("community_comment_created");
+  void trackProductEvent("community_comment_created", { metric_version: 2 });
 }
 
 export function trackLikeToggled(liked: boolean) {
@@ -50,6 +50,6 @@ export function useAbandonTracking(active: boolean, unsaved: boolean) {
   const latest = useRef(unsaved);
   useEffect(() => { latest.current = unsaved; }, [unsaved]);
   useEffect(() => () => {
-    if (active && latest.current) void trackProductEvent("community_compose_abandoned");
+    if (active && latest.current) void trackProductEvent("community_compose_abandoned", { metric_version: 2 });
   }, [active]);
 }
