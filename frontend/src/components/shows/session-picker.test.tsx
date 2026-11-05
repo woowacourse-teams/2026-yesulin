@@ -1,5 +1,8 @@
+// @vitest-environment jsdom
+import { act } from "react";
+import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { groupSessionsByDay } from "@/features/shows/format";
 import type { PublicShow, PublicShowSession } from "@/features/shows/types";
 import { SessionPicker } from "./session-picker";
@@ -32,5 +35,19 @@ describe("공연 회차 날짜 띠", () => {
   it("예매할 수 있는 회차가 없는 날짜는 흐리게 표시한다", () => {
     const html = renderToStaticMarkup(<SessionPicker show={show} sectionId="show-sessions" selectedId={null} onSelect={() => undefined} />);
     expect(html).toMatch(/aria-label="11월 18일 \(수\), 회차 1개"[^>]*data-closed="true"/);
+  });
+
+  it("날짜를 바꾸면 이전 날짜의 회차 선택을 지우고, 예매할 회차가 하나뿐이면 그 회차를 고른다", () => {
+    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    const onSelect = vi.fn();
+    const container = document.createElement("div");
+    document.body.append(container);
+    act(() => createRoot(container).render(<SessionPicker show={show} sectionId="show-sessions" selectedId={1} onSelect={onSelect} />));
+    const dateButton = (label: string) => container.querySelector<HTMLButtonElement>(`[aria-label^="${label}"]`)!;
+    act(() => dateButton("11월 21일").click());
+    act(() => dateButton("11월 18일").click());
+    act(() => dateButton("11월 17일").click());
+    expect(onSelect.mock.calls).toEqual([[null], [null], [1]]);
+    container.remove();
   });
 });
