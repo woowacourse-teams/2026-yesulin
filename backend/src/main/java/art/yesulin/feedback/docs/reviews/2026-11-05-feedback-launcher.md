@@ -55,3 +55,8 @@
 신규 확정 11 / 해결 11 / 미해결 0, P0=0 P1=1 P2=2 P3=8. PRECHECK0 / INDEPENDENT_REVIEW10 / POST_FIX_CHECK1 / EXTERNAL0, 오탐0.
 미확인: 실제 MySQL·실제 HTTP 요청(병합 후 dev에서 확인), 실제 슬랙 수신(이슈 #536), 슬랙의 `<!channel>` 해석 여부(경로에서 꺾쇠를 막아 영향 없음),
 여러 서버 인스턴스에서의 횟수 제한(서버마다 따로 셈).
+
+## 최초 PR 연결
+
+최초 게시 PR: [#537](https://github.com/woowacourse-teams/2026-yesulin/pull/537), 대상 dev.
+위 사건 표의 PENDING은 당시 이력이며 이 절로 최초 게시 번호를 연결한다. 문제 ID와 확정·해결 시각은 바꾸지 않는다.
