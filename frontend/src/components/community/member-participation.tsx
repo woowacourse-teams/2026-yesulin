@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { applicantRoutes } from "@/features/applicants/routes";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 import { useAuthSession } from "@/components/auth/auth-session";
 import { communityReturnTo } from "@/features/community/navigation";
 import { getParticipation } from "@/features/community/api";
@@ -42,6 +42,7 @@ export function MemberParticipation({ postId, returnTo = communityReturnTo(postI
 
 type ChoiceProps = { readonly participation: CommunityParticipation; readonly mode: CommunityAuthorMode; readonly onChange: (mode: CommunityAuthorMode) => void };
 export function AuthorChoice({ participation, mode, onChange }: ChoiceProps) {
+  const reasonId = useId();
   const profile = participation.profile;
   const anonymous = mode === "ANONYMOUS";
   const fixed = participation.fixedMode !== null;
@@ -59,8 +60,9 @@ export function AuthorChoice({ participation, mode, onChange }: ChoiceProps) {
     {mode === "PROFILE" && !profile?.path && <span>프로필 비공개</span>}
     {!profile?.path && (!fixed || !anonymous) && <Link href={applicantRoutes.actorPageSettings}>프로필 공개 설정</Link>}
     <label title={reason}>
-      <input type="checkbox" checked={anonymous} disabled={fixed || needsProfile} aria-description={reason} onChange={toggle} />
+      <input type="checkbox" checked={anonymous} disabled={fixed || needsProfile} aria-describedby={reason && reasonId} onChange={toggle} />
       익명
     </label>
+    {reason && <span id={reasonId} className="community-sr-only">{reason}</span>}
   </div>;
 }
