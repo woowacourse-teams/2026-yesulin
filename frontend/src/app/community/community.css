@@ -243,10 +243,3 @@
 .community-back-link { display: block; width: fit-content; margin: 12px auto 0; text-decoration: underline; }
 .community-member-prompt > p { margin-bottom: 16px; }
 a.community-more { display: block; text-align: center; }
-.community-feed-tools, .community-inbox-button, .community-inbox-head { display: flex; align-items: center; gap: 6px; }
-.community-inbox-button { min-height: 44px; color: var(--ink-60); font-size: 13px; }
-.community-inbox-button strong, .community-inbox-items b { color: var(--brand); }
-.community-inbox-head { justify-content: space-between; margin-bottom: 12px; }
-.community-inbox-items { max-height: 55vh; overflow-y: auto; }
-.community-inbox-items button { width: 100%; display: grid; gap: 3px; padding: 12px 0; border-bottom: 1px solid var(--line); text-align: start; }
-.community-inbox-items span { font-size: 12px; }

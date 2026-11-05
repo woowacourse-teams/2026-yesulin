@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NotebookFooter, NotebookHeader } from "@/components/landing/notebook-site-layout";
+import { UnreadCommentDot } from "@/components/community/received-comments-context";
 import { applicantRoutes } from "@/features/applicants/routes";
 
 const navigation = [
   { href: applicantRoutes.home, label: "마이페이지" },
   { href: applicantRoutes.submissions, label: "내 지원서" },
   { href: applicantRoutes.profile, label: "내 프로필" },
+  { href: applicantRoutes.receivedComments, label: "받은 댓글" },
 ] as const;
 
 export function ApplicantShell({ children }: { readonly children: React.ReactNode }) {
@@ -20,7 +22,7 @@ export function ApplicantShell({ children }: { readonly children: React.ReactNod
       <div className="notebook-container">
         {navigation.map((item) => {
           const active = item.href === applicantRoutes.home ? pathname === item.href : pathname.startsWith(item.href);
-          return <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined}>{item.label}</Link>;
+          return <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined}>{item.label}{item.href === applicantRoutes.receivedComments && <UnreadCommentDot />}</Link>;
         })}
         <span className="workspace-account-label">배우 계정</span>
       </div>

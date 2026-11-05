@@ -3,6 +3,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { AnalyticsConsentManager } from "@/components/analytics/analytics-consent-manager";
 import { ProductAnalyticsProvider } from "@/components/analytics/product-analytics-provider";
 import { AuthSessionProvider } from "@/components/auth/auth-session";
+import { ReceivedCommentsProvider } from "@/components/community/received-comments-provider";
 import { CommunityNavigationGuard } from "@/components/community/community-navigation-guard";
 import { SITE_URL } from "@/config/site";
 import { HOME_DESCRIPTION, HOME_TITLE, SHARE_IMAGE } from "@/features/seo/audition-metadata";
@@ -61,7 +62,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-full" suppressHydrationWarning>
         <CommunityNavigationGuard />
-        <AuthSessionProvider><ProductAnalyticsProvider />{children}</AuthSessionProvider>
+        <AuthSessionProvider><ProductAnalyticsProvider /><ReceivedCommentsProvider>{children}</ReceivedCommentsProvider></AuthSessionProvider>
         <AnalyticsConsentManager gtmId={gtmId} />
         <SpeedInsights />
       </body>

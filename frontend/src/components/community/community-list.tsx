@@ -15,7 +15,6 @@ import { postUrl } from "@/features/community/share";
 import type { CommunityEntry, CommunityLikeState } from "@/features/community/types";
 import { feedAuthor } from "@/features/community/author-name";
 import { CommunityPhoto, CommunityByline, CommunityError, CommunityToast, useCommunityToast } from "./community-ui";
-import { CommunityInbox } from "./community-inbox";
 import { EntryMenu } from "./entry-menu";
 import { LikeButton } from "./like-button";
 
@@ -54,20 +53,19 @@ function CommunityFeed({ signedIn }: { readonly signedIn: boolean }) {
   useTrackOnce(!feed.loading && !feed.error, trackListViewed);
   useEffect(() => { window.scrollTo(0, communityListMemory.scroll); }, []);
   return <section className="community-lounge">
-    <LoungeHeader signedIn={signedIn} />
+    <LoungeHeader />
     <div className="community-feed-panel"><FeedBody feed={feed} signedIn={signedIn} notify={toast.show} /></div>
     <CommunityToast message={toast.message} />
   </section>;
 }
 
-function LoungeHeader({ signedIn }: { readonly signedIn: boolean }) {
+function LoungeHeader() {
   return <header className="community-lounge-header">
     <h1 className="community-lounge-title">배우 <span>수다방</span></h1>
-    <div className="community-feed-tools">{signedIn && <CommunityInbox />}
     <Link className="community-lounge-write" href="/community/new">
       <Image src="/images/community-star-chat.png" alt="" width={40} height={40} />
       글쓰기<PiPencilSimple size={15} aria-hidden="true" />
-    </Link></div>
+    </Link>
   </header>;
 }
 
