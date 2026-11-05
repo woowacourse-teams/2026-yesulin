@@ -2,21 +2,20 @@
 import { createContext, use, type ReactNode } from "react";
 import type { ReviewAction, ReviewInput } from "@/features/analytics/review-actions";
 import type { Applicant, ReviewStatus, SubmissionId } from "@/features/pdf-reviews/screening-types";
+import type { ReviewKey, ReviewRole } from "@/features/pdf-reviews/types";
 import type { RoleSummary } from "@/features/auditions/types";
 export type BoardContextValue = {
   source: { kind: "PDF" }; board: { role: RoleSummary }; filters: { work: "PENDING" | "DONE" };
   selected: ReadonlySet<SubmissionId>; saving: boolean; reviewLocked: boolean;
   toggleSelected: (id: SubmissionId) => void; openApplicant: (id: SubmissionId) => void;
-  assignRoles?: (ids: readonly SubmissionId[]) => void;
+  roleOptions?: readonly ReviewRole[];
+  currentRole?: (id: SubmissionId) => ReviewKey | null;
+  changeRole?: (id: SubmissionId, roleId: string | null) => void;
   renderDocument?: (applicant: Applicant) => ReactNode;
-  renderProfile?: (applicant: Applicant) => ReactNode;
-  confirmNavigation?: () => boolean; requestNavigation?: (action: () => void) => void;
+  requestNavigation?: (action: () => void) => void;
   onNoteDirty?: (dirty: boolean) => void;
-  onApplicantViewed?: (id: SubmissionId) => (() => void) | void;
   onApplicantOpened?: () => void;
-  onOriginalPdfClick?: (id: SubmissionId) => void;
   onBasicAction?: (id: SubmissionId, action: ReviewAction, input?: ReviewInput) => void;
-  applicantRefreshKey?: string;
   reviewFocused: (id: SubmissionId, status: ReviewStatus, memo?: string, note?: string, revision?: number) => Promise<{ applicants: Applicant[] } | null>;
   patchReview: (id: SubmissionId, patch: { memo?: string; note?: string; revision?: number }) => Promise<void>;
 };

@@ -1,7 +1,7 @@
 import { roleId, submissionId } from "../auditions/types";
 import type { PdfExtractionJob, PdfExtractionResult } from "../pdf-extractions/types";
 import { displayAge } from "./profile-display";
-import { sameKey, matchStatusLabels, applicantProcessingLabels, type ReviewDetail, type ReviewEntry } from "./types";
+import { sameKey, applicantProcessingLabels, type ReviewDetail, type ReviewEntry } from "./types";
 import type { Applicant } from "./screening-types";
 import { extractedSocialLinks } from "./social-links";
 
@@ -24,7 +24,7 @@ export function screeningApplicant(review: ReviewDetail, entry: ReviewEntry, job
   const ageText = displayAge(profile);
   return {
     id: submissionId(String(entry.id)), name: entry.applicantName || "이름 미확인",
-    roleId: roleId(String(entry.roleId ?? review.id)), roleName: review.roles.length === 0 ? "자유 배역" : review.roles.find(role => sameKey(role.id, entry.roleId))?.name ?? matchStatusLabels[entry.matchStatus],
+    roleId: roleId(String(entry.roleId ?? review.id)), roleName: review.roles.length === 0 ? "자유 배역" : review.roles.find(role => sameKey(role.id, entry.roleId))?.name ?? "미기재",
     gender: null, age: null, height: null, weight: null, birth: "", phone: "", email: "", address: "",
     educationLevel: null, school: "", major: "", links: linksFor(job?.result), nationality: "", specialty: "", hobbies: "", militaryServiceStatus: "",
     submittedAt: job?.uploadedAt ?? job?.createdAt ?? review.createdAt, career: [], coverLetter: "", questions: [], videos: [],

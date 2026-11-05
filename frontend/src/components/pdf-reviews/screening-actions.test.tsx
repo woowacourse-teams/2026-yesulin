@@ -7,6 +7,7 @@ import type { ReviewDetail, ReviewEntry } from "@/features/pdf-reviews/types";
 
 const capture = vi.hoisted(() => vi.fn());
 vi.mock("@/features/analytics/product-analytics", () => ({ trackProductEvent: capture }));
+vi.mock("./review-original-document", () => ({ ReviewOriginalDocument: () => <div data-original-test>원본 PDF</div> }));
 vi.mock("@/features/pdf-extractions/api", () => ({ fetchPdfExtraction: vi.fn().mockResolvedValue({ id: "job", status: "FAILED" }) }));
 vi.mock("@/features/pdf-reviews/api", () => ({
   isUnauthorized: () => false, assignPdfReviewRoles: vi.fn(),
@@ -18,7 +19,7 @@ function entry(id: string): ReviewEntry {
 }
 afterEach(() => { vi.unstubAllGlobals(); capture.mockClear(); });
 
-it.each(["card", "table"] as const)("%s: 직접 열기·이동·저장은 각각 1회, 자동 이동·재렌더·사진 영역은 0회", async view => {
+it.each(["card", "table"] as const)("%s: 직접 열기·이동·저장은 각각 1회, 자동 이동·재렌더·원본 영역은 0회", async view => {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
   vi.stubGlobal("matchMedia", () => ({ matches: false, addEventListener() {}, removeEventListener() {} }));
@@ -36,7 +37,7 @@ it.each(["card", "table"] as const)("%s: 직접 열기·이동·저장은 각각
   try {
     await act(async () => root.render(<StrictMode><Harness /></StrictMode>));
     expect(actions()).toEqual([]);
-    const open = view === "card" ? [...host.querySelectorAll("button")].find(b => b.textContent?.includes("Synthetic a"))! : host.querySelector<HTMLElement>('tr[aria-label="Synthetic a 배우 상세 보기"]')!;
+    const open = [...host.querySelectorAll("button")].find(b => b.textContent?.includes(view === "card" ? "원본으로 심사하기" : "PDF 심사"))!;
     expect(open).toBeTruthy(); await act(async () => open.click());
     expect(actions()).toHaveLength(1);
     expect(actions()[0]).toMatchObject({ review_action: "open", item_id: "a", review_view: view, input_method: "button" });
@@ -51,43 +52,27 @@ it.each(["card", "table"] as const)("%s: 직접 열기·이동·저장은 각각
     expect(actions()[4]).toMatchObject({ review_action: "decision_save", item_id: "b" });
     expect(host.querySelector("section")?.getAttribute("aria-label")).toContain("Synthetic c");
     await act(async () => root.render(<StrictMode><Harness /></StrictMode>));
-    await act(async () => host.querySelector<HTMLElement>("[data-review-photo]")!.click());
+    await act(async () => host.querySelector<HTMLElement>("[data-original-test]")!.click());
     expect(actions()).toHaveLength(5);
   } finally { await act(async () => root.unmount()); host.remove(); }
 });
 
-it.each(["single", "card", "table"] as const)("%s: 원본 열기 2곳·반복만 집계하고 닫기·재렌더·기본 조작과 분리한다", async view => {
+it.each(["single", "card", "table"] as const)("%s: 자동 원본 표시는 클릭이 아니며 새 상세 열람 v2로 구분한다", async view => {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
-  vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
-  vi.stubGlobal("matchMedia", () => ({ matches: false, addEventListener() {}, removeEventListener() {} }));
-  const host = document.createElement("div"); document.body.append(host);
-  const root = createRoot(host);
+  const host = document.createElement("div"); document.body.append(host); const root = createRoot(host);
   const entries = [entry("a")];
-  const review: ReviewDetail = { id: "review", title: "Synthetic", createdAt: "2026-11-01", roles: [], entries };
-  const render = () => <StrictMode><ScreeningBoard review={review} entries={entries} decision="PENDING" view={view}
-    refreshKey={0} onSaved={() => {}} onUnauthorized={() => {}} onDirtyChange={() => {}} navigate={action => action()} /></StrictMode>;
-  const original = () => capture.mock.calls.filter(c => c[0] === "review_original_pdf_clicked");
-  const basicCount = () => capture.mock.calls.filter(c => c[0] === "review_basic_action").length;
-  const button = (text: string) => [...host.querySelectorAll("button")].find(b => b.textContent === text)!;
+  const review: ReviewDetail = { id: "review", title: "Synthetic", createdAt: "2026-11-05", roles: [], entries };
+  const render = () => <ScreeningBoard review={review} entries={entries} decision="PENDING" view={view} refreshKey={0} onSaved={() => {}} onUnauthorized={() => {}} onDirtyChange={() => {}} navigate={action => action()} />;
   try {
     await act(async () => root.render(render()));
-    if (view !== "single") {
-      const open = view === "card" ? [...host.querySelectorAll("button")].find(b => b.textContent?.includes("Synthetic a"))! : host.querySelector<HTMLElement>('tr[aria-label="Synthetic a 배우 상세 보기"]')!;
+    if(view !== "single") {
+      const open = [...host.querySelectorAll("button")].find(b => b.textContent?.includes(view === "card" ? "원본으로 심사하기" : "PDF 심사"))!;
       await act(async () => open.click());
     }
-    expect(original()).toHaveLength(0);
-    expect(capture.mock.calls.filter(c => c[0] === "review_item_viewed").at(-1)?.[1]).toMatchObject({ metric_version: 1, review_id: "review", item_id: "a" });
-    const before = basicCount();
-    await act(async () => button("원본 PDF").click());
-    expect(original()).toHaveLength(1);
-    expect(original()[0][1]).toEqual({ metric_version: 1, workflow: "producer_pdf", review_id: "review", item_id: "a", review_view: view, pdf_open_source: "review_detail" });
+    expect(host.querySelector('[data-original-test]')).not.toBeNull();
+    expect(capture.mock.calls.filter(c=>c[0]==="review_original_pdf_clicked")).toHaveLength(0);
+    expect(capture.mock.calls.filter(c=>c[0]==="review_item_viewed").at(-1)?.[1]).toMatchObject({ metric_version: 2,review_id: "review",item_id: "a" });
     await act(async () => root.render(render()));
-    await act(async () => button("PDF 닫기").click());
-    expect(original()).toHaveLength(1);
-    await act(async () => button("원본 PDF 보기").click());
-    expect(original()).toHaveLength(2);
-    await act(async () => button("원본 PDF 보기").click());
-    expect(original()).toHaveLength(3);
-    expect(basicCount()).toBe(before);
+    expect(capture.mock.calls.filter(c=>c[0]==="review_original_pdf_clicked")).toHaveLength(0);
   } finally { await act(async () => root.unmount()); host.remove(); }
 });

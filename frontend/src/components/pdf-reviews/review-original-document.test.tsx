@@ -74,4 +74,23 @@ describe("원본 PDF 서명 주소", () => {
     expect(container.querySelector("[data-view-mode]")?.getAttribute("data-view-mode")).toBe("original");
   });
 
+  it("401이면 권한 만료를 알리고 원본을 표시하지 않는다", async () => {
+    vi.mocked(fetchPdfExtraction).mockRejectedValueOnce(Object.assign(new Error("로그인 필요"), { status: 401 }));
+    await open();
+    expect(unauthorized).toHaveBeenCalledOnce();
+    expect(container.querySelector("a")).toBeNull();
+  });
+
+  it("A→B 전환 후 늦은 A 응답이 B의 원본을 덮지 않는다", async () => {
+    let resolveA!: (value: PdfExtractionJob) => void;
+    vi.mocked(fetchPdfExtraction).mockReturnValueOnce(new Promise(resolve => { resolveA = resolve; }))
+      .mockResolvedValueOnce(job("https://s3.example.test/b.pdf"));
+    await open();
+    await act(async () => root.render(<ReviewOriginalDocument jobId="b" onUnauthorized={unauthorized} initialMode="canvas" />));
+    expect(vi.mocked(fetchPdfExtraction).mock.calls[0][2]?.aborted).toBe(true);
+    await act(async () => resolveA(job("https://s3.example.test/a.pdf")));
+    expect(container.querySelector("a")?.getAttribute("href")).toContain("b.pdf");
+    expect(container.querySelector("[data-view-mode]")?.getAttribute("data-view-mode")).toBe("canvas");
+  });
+
 });

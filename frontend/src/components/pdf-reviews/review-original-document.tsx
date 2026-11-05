@@ -7,9 +7,9 @@ import { fetchPdfExtraction } from "@/features/pdf-extractions/api";
 import { isUnauthorized } from "@/features/pdf-reviews/api";
 
 /** Refresh the signed source URL each time the original is opened, independently of the profile cache. */
-export function ReviewOriginalDocument({ jobId, onUnauthorized }: { readonly jobId: string; readonly onUnauthorized: () => void }) {
+export function ReviewOriginalDocument({ jobId, onUnauthorized, initialMode = "original" }: { readonly jobId: string; readonly onUnauthorized: () => void; readonly initialMode?: PdfViewMode }) {
   const [attempt, setAttempt] = useState(0);
-  const [viewPreference, setViewPreference] = useState<{ jobId: string; mode: PdfViewMode }>({ jobId, mode: "original" });
+  const [viewPreference, setViewPreference] = useState<{ jobId: string; mode: PdfViewMode }>({ jobId, mode: initialMode });
   const [source, setSource] = useState<{ jobId: string; attempt: number; url: string; filename: string } | null>(null);
   const [failure, setFailure] = useState<{ jobId: string; attempt: number; message: string } | null>(null);
   const unauthorized = useEffectEvent(onUnauthorized);
@@ -29,6 +29,6 @@ export function ReviewOriginalDocument({ jobId, onUnauthorized }: { readonly job
   const error = failure?.jobId === jobId && failure.attempt === attempt ? failure.message : null;
   if (error) return <div className="p-6"><p role="alert" className="mb-3 text-sm text-fail">{error}</p><SecondaryButton onClick={() => setAttempt(value => value + 1)}>원본 다시 불러오기</SecondaryButton></div>;
   return source?.jobId === jobId && source.attempt === attempt
-    ? <div className="h-full min-h-0 p-3"><PdfOriginalViewer key={source.url} url={source.url} filename={source.filename} initialMode={viewPreference.jobId === jobId ? viewPreference.mode : "original"} onModeChange={mode => setViewPreference({ jobId, mode })} onRefresh={() => setAttempt(value => value + 1)} /></div>
+    ? <div className="h-full min-h-0 p-3"><PdfOriginalViewer key={source.url} url={source.url} filename={source.filename} initialMode={viewPreference.jobId === jobId ? viewPreference.mode : initialMode} onModeChange={mode => setViewPreference({ jobId, mode })} onRefresh={() => setAttempt(value => value + 1)} /></div>
     : <p role="status" className="p-6">원본 PDF를 불러오는 중입니다…</p>;
 }

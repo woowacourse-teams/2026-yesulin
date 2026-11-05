@@ -45,7 +45,7 @@ describe('심사 키보드 조작', () => {
       await act(async () => hold!.click());
       expect(action).toHaveBeenCalledExactlyOnceWith(applicant.id, "decision_save", "button");
       expect(save.mock.calls[0].slice(0, 2)).toEqual([applicant.id, 'ETC']);
-      expect(document.activeElement).toBe(host.querySelector('section'));
+      expect(document.activeElement).toBe(host.querySelector('h2'));
     } finally { await act(async () => root.unmount()); host.remove(); }
   });
 });
