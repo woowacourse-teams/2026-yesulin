@@ -97,6 +97,18 @@ public class AuditController {
                         request.memo(), request.decision()));
     }
 
+    @PatchMapping("/{reviewId}/entries/{entryId}/memo")
+    public ResponseEntity<AuditApplicantView> updateMemo(
+            @LoginMember(roles = MemberType.PRODUCER, statuses = MemberStatus.ACTIVE) MemberPrincipal principal,
+            @PathVariable UUID reviewId,
+            @PathVariable UUID entryId,
+            @Valid @RequestBody UpdateAuditMemoRequest request
+    ) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore())
+                .body(service.updateMemo(principal.memberId(), reviewId.toString(), entryId.toString(),
+                        request.memo()));
+    }
+
     @PatchMapping("/{reviewId}/entries/{entryId}/title")
     public ResponseEntity<AuditApplicantView> renameEntry(
             @LoginMember(roles = MemberType.PRODUCER, statuses = MemberStatus.ACTIVE) MemberPrincipal principal,

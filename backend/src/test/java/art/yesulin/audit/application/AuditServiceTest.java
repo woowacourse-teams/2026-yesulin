@@ -103,6 +103,33 @@ class AuditServiceTest {
     }
 
     @Test
+    void memoAutosavePreservesLatestDecisionAndTitle() {
+        AuditDetail review = service.create(OWNER, "심사", List.of("주연"));
+        AuditApplicantView uploaded = uploadEntry(review.id());
+        service.renameEntry(OWNER, review.id(), uploaded.id(), "변경 제목");
+        service.editEntry(OWNER, review.id(), uploaded.id(), "이전 메모", AuditDecision.PASS);
+        AuditApplicantView saved = service.updateMemo(OWNER, review.id(), uploaded.id(), "새 메모");
+        assertEquals(AuditDecision.PASS, saved.decision());
+        assertEquals("변경 제목", saved.title());
+        assertEquals("새 메모", saved.memo());
+        assertEquals(uploaded.originalFilename(), saved.originalFilename());
+    }
+
+    @Test
+    void memoAutosaveRejectsForeignEntriesAndTooLongInputWithoutMutation() {
+        AuditDetail review = service.create(OWNER, "심사", List.of());
+        AuditDetail other = service.create(OWNER, "다른 심사", List.of());
+        AuditApplicantView uploaded = uploadEntry(review.id());
+        assertThrows(BusinessException.class,
+                () -> service.updateMemo(OTHER_OWNER, review.id(), uploaded.id(), "메모"));
+        assertThrows(BusinessException.class,
+                () -> service.updateMemo(OWNER, other.id(), uploaded.id(), "메모"));
+        assertThrows(BusinessException.class,
+                () -> service.updateMemo(OWNER, review.id(), uploaded.id(), "가".repeat(2001)));
+        assertEquals("", service.find(OWNER, review.id()).entries().get(0).memo());
+    }
+
+    @Test
     void createsReviewWithOrderedRolesAndListsCounts() {
         AuditDetail created = service.create(OWNER, " 가을 공연 ", List.of("햄릿", "오필리아"));
 

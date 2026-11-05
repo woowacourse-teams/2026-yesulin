@@ -78,7 +78,10 @@ export async function updatePdfReviewEntry(reviewId: ReviewKey, entryId: ReviewK
   const started = performance.now();
   void trackProductEvent("review_save_attempted", properties);
   try {
-    const entry = await request<ReviewEntry>(`${reviewPath(reviewId)}/entries/${encodeURIComponent(String(entryId))}`, "PATCH", change);
+    let path = `${reviewPath(reviewId)}/entries/${encodeURIComponent(String(entryId))}`;
+    let payload: unknown = change;
+    if (saveKind === "memo") { path += "/memo"; payload = { memo: change.memo }; }
+    const entry = await request<ReviewEntry>(path, "PATCH", payload);
     void trackProductEvent("review_save_result", { ...properties, outcome: "success", duration_ms: Math.round(performance.now() - started) });
     void trackProductEvent("review_saved", { workflow: "producer_pdf", review_id: String(reviewId), item_id: String(entryId), eligible: entry.decision !== "PENDING" });
     return entry;

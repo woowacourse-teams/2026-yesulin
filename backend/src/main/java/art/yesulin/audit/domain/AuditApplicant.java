@@ -148,6 +148,10 @@ public class AuditApplicant {
         this.processingStatus = AuditApplicantStatus.FAILED;
     }
 
+    public void updateMemo(String memo) {
+        review(memo, decision);
+    }
+
     public void review(String memo, AuditDecision decision) {
         String value = Objects.requireNonNullElse(memo, "");
         if (decision == null || AuditText.length(value) > MAX_MEMO_LENGTH) {

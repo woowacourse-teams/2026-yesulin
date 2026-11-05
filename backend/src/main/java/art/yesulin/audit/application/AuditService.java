@@ -85,6 +85,15 @@ public class AuditService {
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
+    public AuditApplicantView updateMemo(long ownerId, String reviewId, String entryId, String memo) {
+        findOwned(ownerId, reviewId);
+        AuditApplicant entry = entries.findInReviewForUpdate(entryId, reviewId)
+                .orElseThrow(() -> new BusinessException(PDF_REVIEW_ENTRY_NOT_FOUND, "지원 항목을 찾을 수 없습니다."));
+        entry.updateMemo(memo);
+        return AuditApplicantView.of(entry);
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public AuditApplicantView renameEntry(long ownerId, String reviewId, String entryId, String title) {
         findOwned(ownerId, reviewId);
         AuditApplicant entry = entries.findInReviewForUpdate(entryId, reviewId)

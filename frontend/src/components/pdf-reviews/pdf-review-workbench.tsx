@@ -51,7 +51,23 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
   const dirty = useRef(false);
   const onDirtyChange = useCallback((value: boolean) => { dirty.current = value; }, []);
   const [pendingNavigation, setPendingNavigation] = useState<{ action: () => void } | null>(null);
-  const navigate = useCallback((action: () => void) => { if (dirty.current) setPendingNavigation({ action }); else action(); }, []);
+  const beforeNavigation = useRef<(() => Promise<boolean>) | null>(null);
+  const navigating = useRef(false);
+  const registerNavigationSave = useCallback((flush: () => Promise<boolean>) => {
+    beforeNavigation.current = flush;
+    return () => { if (beforeNavigation.current === flush) beforeNavigation.current = null; };
+  }, []);
+  const navigate = useCallback((action: () => void) => {
+    const flush = beforeNavigation.current;
+    if (flush) {
+      if (navigating.current) return;
+      navigating.current = true;
+      void flush().then(saved => { if (saved) action(); }).finally(() => { navigating.current = false; });
+      return;
+    }
+    if (dirty.current) { setPendingNavigation({ action }); return; }
+    action();
+  }, []);
   const uploadSync = useRef<ReturnType<typeof setTimeout>>(undefined);
   const markExpired = useCallback(() => setExpired(true), []);
   const reviews = usePdfReviews({ enabled: authorized, onUnauthorized: markExpired });
@@ -148,7 +164,7 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
               </div>
               <span id="pdf-drop-limit" className={styles.dropLimit}>PDF · 한 번에 최대 300개 · 파일당 최대 25MiB</span>
             </div>
-            : <ScreeningBoard key={`${review.id}-${filterKey}-${decision}-${view}`} review={review} entries={visible} decision={decision} view={view} refreshKey={detailRefresh} onSaved={reviews.replaceEntry} onUnauthorized={markExpired} onDirtyChange={onDirtyChange} onApplicantOpened={recheckProgress} navigate={navigate} />}
+            : <ScreeningBoard key={`${review.id}-${filterKey}-${decision}-${view}`} review={review} entries={visible} decision={decision} view={view} refreshKey={detailRefresh} onSaved={reviews.replaceEntry} onUnauthorized={markExpired} onDirtyChange={onDirtyChange} registerNavigationSave={registerNavigationSave} onApplicantOpened={recheckProgress} navigate={navigate} />}
           </>}
         </div>
       </>}

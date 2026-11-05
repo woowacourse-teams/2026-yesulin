@@ -11,14 +11,15 @@ export type BoardContextValue = {
   roleOptions?: readonly ReviewRole[];
   currentRole?: (id: SubmissionId) => ReviewKey | null;
   changeRole?: (id: SubmissionId, roleId: string | null) => void;
-  renameTitle?: (id: SubmissionId, title: string) => Promise<boolean>;
+  renameTitle?: (id: SubmissionId, title: string) => Promise<string | null>;
+  saveMemo?: (id: SubmissionId, memo: string) => Promise<string | null>;
+  registerNavigationSave?: (flush: () => Promise<boolean>) => () => void;
   renderDocument?: (applicant: Applicant) => ReactNode;
   requestNavigation?: (action: () => void) => void;
   onNoteDirty?: (dirty: boolean) => void;
   onApplicantOpened?: () => void;
   onBasicAction?: (id: SubmissionId, action: ReviewAction, input?: ReviewInput) => void;
   reviewFocused: (id: SubmissionId, status: ReviewStatus, memo?: string, note?: string, revision?: number) => Promise<{ applicants: Applicant[] } | null>;
-  patchReview: (id: SubmissionId, patch: { memo?: string; note?: string; revision?: number }) => Promise<void>;
 };
 const Context = createContext<BoardContextValue | null>(null);
 export const BoardProvider = Context;

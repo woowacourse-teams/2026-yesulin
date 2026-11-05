@@ -29,21 +29,21 @@ it('추출 실패/대기여도 원본을 표시하고 카드·표에서는 프�
   }
   expect(mocks.extraction).not.toHaveBeenCalled();
 });
-it('판정 저장 실패는 메모·현재 원본을 유지하며 성공하면 함께 저장하고 다음 지원서로 간다', async () => {
-  mocks.save.mockRejectedValueOnce(new Error('저장 실패')).mockImplementationOnce(async (_review,id,change)=>({...entries[0],id,...change}));
-  await act(async () => root.render(<Harness />)); await memo('확인할 내용'); await button('합격');
-  expect(host.textContent).toContain('저장 실패'); expect(host.querySelector('textarea')?.value).toBe('확인할 내용');
+it('메모 저장 실패는 이동을 막고 재시도한 뒤에만 다음 지원서로 간다', async () => {
+  mocks.save.mockRejectedValueOnce(new Error('network')).mockImplementation(async (_review,id,change)=>({...entries[0],id,...change}));
+  await act(async () => root.render(<Harness />)); await memo('확인할 내용'); await button('다음 지원서');
+  expect(host.textContent).toContain('저장하지 못했어요'); expect(host.querySelector('textarea')?.value).toBe('확인할 내용');
   expect(host.querySelector('[data-job-id]')?.getAttribute('data-job-id')).toBe('job-a');
-  await button('합격'); expect(mocks.save).toHaveBeenLastCalledWith('review','a',{ decision:'PASS',memo:'확인할 내용' },'decision');
+  await button('다음 지원서');
+  expect(mocks.save).toHaveBeenLastCalledWith('review','a',{ decision:'PENDING',memo:'확인할 내용' },'memo');
   expect(host.querySelector('[data-job-id]')?.getAttribute('data-job-id')).toBe('job-b');
 });
-it('미저장 메모가 있으면 다음 이동과 배역 변경을 같은 이동 보호에 맡긴다', async () => {
-  const navigate=vi.fn(); await act(async () => root.render(<Harness navigate={navigate} />)); await memo('작성 중');
-  await button('다음 지원서'); expect(navigate).toHaveBeenCalledTimes(1); expect(mocks.save).not.toHaveBeenCalled();
-  await act(async () => host.querySelector<HTMLButtonElement>('[role="combobox"]')!.click());
-  await act(async () => [...host.querySelectorAll<HTMLElement>('[role="option"]')].find(e=>e.textContent?.includes('주연'))!.click());
-  expect(navigate).toHaveBeenCalledTimes(2); expect(mocks.role).not.toHaveBeenCalled();
-  expect(host.querySelector('textarea')?.value).toBe('작성 중');
+it('판정하기 전에 메모 저장을 완료하고 판정과 함께 다음 지원서로 간다', async () => {
+  mocks.save.mockImplementation(async (_review,id,change)=>({...entries[0],id,...change}));
+  await act(async () => root.render(<Harness />)); await memo('작성 중'); await button('합격');
+  expect(mocks.save.mock.calls.map(call => call[3])).toEqual(['memo','decision']);
+  expect(mocks.save).toHaveBeenLastCalledWith('review','a',{ decision:'PASS',memo:'작성 중' },'decision');
+  expect(host.querySelector('[data-job-id]')?.getAttribute('data-job-id')).toBe('job-b');
 });
 it('배역 저장 실패는 기존 값을 유지하고 다시 선택해서 저장할 수 있다', async () => {
   mocks.role.mockRejectedValueOnce(new Error('배역 실패')).mockResolvedValueOnce([{...entries[0],roleId:'lead',matchStatus:'MATCHED'}]);
@@ -57,33 +57,31 @@ it('배역 저장 실패는 기존 값을 유지하고 다시 선택해서 저�
   expect(host.querySelector('[role="combobox"]')?.textContent).toContain('주연');
 });
 
-it('기존 판정을 대기로 되돌릴 때 저장된 메모를 보존한다', async () => {
-  const passed: ReviewEntry = {...entries[0],decision:'PASS',memo:'저장된 메모'};
-  mocks.save.mockImplementationOnce(async (_review,id,change)=>({...passed,id,...change}));
-  await act(async () => root.render(<Harness initialRows={[passed]} decision="PASS" />));
-  await button('대기로 되돌리기');
-  expect(mocks.save).toHaveBeenCalledExactlyOnceWith('review','a',{ decision:'PENDING',memo:'저장된 메모' },'decision');
-});
-
-it('제목 저장 실패는 초안을 유지하고 성공하면 원본 파일명과 메모를 보존한다', async () => {
-  mocks.rename.mockRejectedValueOnce(new Error('network')).mockResolvedValueOnce({...entries[0],title:'가람 배우 지원서'});
+it('수동 저장·대기 복원·원본 파일명·설명 문구를 표시하지 않는다', async () => {
   await act(async () => root.render(<Harness />));
-  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="지원서 제목 수정"]')!.click());
-  const input=host.querySelector<HTMLInputElement>('#review-document-title')!;
-  await act(async () => {Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value')!.set!.call(input,'가람 배우 지원서');input.dispatchEvent(new Event('input',{bubbles:true}));});
-  expect(mocks.dirty).toHaveBeenLastCalledWith(true);
-  expect(host.querySelector<HTMLButtonElement>('[aria-label="합격"]')?.disabled).toBe(true);
-  await button('제목 저장'); expect(host.textContent).toContain('제목을 저장하지 못했습니다'); expect(input.value).toBe('가람 배우 지원서');
-  await button('제목 저장');
-  expect(mocks.rename).toHaveBeenLastCalledWith('review','a','가람 배우 지원서');
-  expect(host.querySelector('h2')?.textContent).toBe('가람 배우 지원서');expect(host.textContent).toContain('원본 파일 · a.pdf');
-  expect(mocks.save).not.toHaveBeenCalled();
+  for (const text of ['메모 저장','대기로 되돌리기','원본 파일 ·','심사 기록']) expect(host.textContent).not.toContain(text);
+  expect(host.querySelector<HTMLInputElement>('[aria-label="지원서 제목"]')?.value).toBe('a.pdf');
 });
-it('제목 입력 중 다음 지원서 이동도 보호하며 저장 성공 전에는 변경되지 않는다', async () => {
-  const navigate=vi.fn();await act(async () => root.render(<Harness navigate={navigate} />));
-  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="지원서 제목 수정"]')!.click());
-  const input=host.querySelector<HTMLInputElement>('#review-document-title')!;
-  await act(async () => {Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value')!.set!.call(input,'작성 중 제목');input.dispatchEvent(new Event('input',{bubbles:true}));});
-  await button('다음 지원서');expect(navigate).toHaveBeenCalledOnce();expect(mocks.dirty).toHaveBeenLastCalledWith(true);
-  expect(mocks.rename).not.toHaveBeenCalled();expect(input.value).toBe('작성 중 제목');
+async function title(value: string) {
+  const input=host.querySelector<HTMLInputElement>('[aria-label="지원서 제목"]')!;
+  await act(async () => {Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value')!.set!.call(input,value);input.dispatchEvent(new Event('input',{bubbles:true}));});
+  return input;
+}
+it('항상 편집 가능한 제목은 blur에 저장하고 실패 입력을 유지해 재시도한다', async () => {
+  mocks.rename.mockRejectedValueOnce(new Error('network')).mockResolvedValueOnce({...entries[0],title:'가람 배우 지원서'});
+  await act(async () => root.render(<Harness />)); const input=await title('가람 배우 지원서');
+  await act(async () => input.dispatchEvent(new FocusEvent('focusout',{bubbles:true})));
+  expect(host.textContent).toContain('저장하지 못했어요');expect(input.value).toBe('가람 배우 지원서');
+  await button('저장 재시도');expect(mocks.rename).toHaveBeenLastCalledWith('review','a','가람 배우 지원서');
+  expect(input.value).toBe('가람 배우 지원서');expect(host.querySelector('textarea')?.value).toBe('');
+});
+it('제목 저장이 완료될 때까지 다음 이동을 기다리고 제목·메모 응답을 필드별 병합한다', async () => {
+  let resolve!: (entry: ReviewEntry) => void;
+  mocks.rename.mockReturnValue(new Promise<ReviewEntry>(r=>{resolve=r;}));
+  mocks.save.mockResolvedValue({...entries[0],memo:'최신 메모'});
+  const navigate=vi.fn(); await act(async () => root.render(<Harness navigate={navigate} />));
+  await title('최신 제목');await memo('최신 메모');await button('다음 지원서');expect(navigate).not.toHaveBeenCalled();
+  await act(async()=>resolve({...entries[0],title:'최신 제목'}));
+  expect(navigate).toHaveBeenCalledOnce();expect(host.querySelector<HTMLInputElement>('[aria-label="지원서 제목"]')?.value).toBe('최신 제목');
+  expect(host.querySelector('textarea')?.value).toBe('최신 메모');expect(mocks.dirty).toHaveBeenLastCalledWith(false);
 });
