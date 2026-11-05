@@ -88,10 +88,10 @@ function CommunityNoticeLink() {
 }
 
 function ComposePrompt() {
-  return <Link className="community-compose" href="/community/new">
+  return <Link className="community-compose-prompt" href="/community/new">
     <Image src="/images/community-star-chat.png" alt="" width={40} height={40} />
     <span>오늘 연습은 어땠어요? 가볍게 남겨 보세요</span>
-    <span className="community-compose-action">글쓰기<PiPencilSimple size={15} aria-hidden="true" /></span>
+    <span className="community-compose-prompt-action">글쓰기<PiPencilSimple size={15} aria-hidden="true" /></span>
   </Link>;
 }
 

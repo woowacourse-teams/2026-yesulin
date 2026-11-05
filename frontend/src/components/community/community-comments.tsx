@@ -58,6 +58,13 @@ export function CommunityComments({ postId, count, notify, onChanged }: Comments
     requestAnimationFrame(() => document.getElementById(`comment-${id}`)?.scrollIntoView({ block: "nearest" }));
   };
   const target = feed.items.find(item => item.id === replyToId);
+  const composerArea = (inline: boolean) => <div ref={composer} className={composerClass(inline)}>
+    {replyToId > 0 && <div className="community-reply-target"><strong>{target?.author} 댓글에 대댓글</strong>
+      <button type="button" disabled={sending} onClick={() => { if (discardDraft.current?.() !== false) closeReply(); }}>취소</button></div>}
+    <MemberParticipation postId={postId} returnTo={composerReturnTo(postId, replyToId)}>
+      {participation => <CommentComposer key={replyToId} discardDraft={discardDraft} postId={postId} replyToId={replyToId}
+        participation={participation} onSending={setSending} onSaved={created} />}</MemberParticipation></div>;
+  const inlineReply = replyToId > 0 && target !== undefined && !target.replyToId;
   return <><section className="community-comments" aria-labelledby="comments-heading">
     <h2 id="comments-heading" className="community-comments-head">댓글 {count}</h2>
     {partial && <EarlierComments disabled={feed.loading} load={() => {
@@ -66,24 +73,28 @@ export function CommunityComments({ postId, count, notify, onChanged }: Comments
       void feed.load();
     }} />}
     {!feed.loading && !feed.error && !feed.items.length && <p className="community-comments-empty">첫 댓글을 남겨 주세요.</p>}
-    <CommentList items={feed.items} postId={postId} notify={notify} sending={sending} onChanged={changed} onReply={selectReply} />
+    <CommentList items={feed.items} postId={postId} notify={notify} sending={sending} onChanged={changed} onReply={selectReply}
+      replyToId={replyToId} replyComposer={inlineReply && composerArea(true)} />
     <CommunityError message={feed.error} retry={() => void feed.load(feed.cursor ?? undefined)} />
     {feed.loading && <p className="community-status" role="status">댓글을 불러오고 있어요.</p>}
     {!feed.loading && feed.cursor !== null && <button type="button" className="community-more" onClick={() => void feed.load(feed.cursor!)}>댓글 더 보기</button>}
-  </section><div ref={composer} className="community-comment-dock">
-    {replyToId > 0 && <div className="community-reply-target"><strong>{target?.author} 댓글에 대댓글</strong>
-      <button type="button" disabled={sending} onClick={() => { if (discardDraft.current?.() !== false) closeReply(); }}>취소</button></div>}
-    <MemberParticipation postId={postId} returnTo={composerReturnTo(postId, replyToId)}>
-      {participation => <CommentComposer key={replyToId} discardDraft={discardDraft} postId={postId} replyToId={replyToId}
-        participation={participation} onSending={setSending} onSaved={created} />}</MemberParticipation></div></>;
+  </section>{!inlineReply && composerArea(false)}</>;
+}
+
+/** 대댓글을 쓸 때는 그 댓글 바로 아래에, 일반 댓글은 맨 아래에 입력칸을 둔다. */
+function composerClass(inline: boolean): string {
+  if (inline) return "community-comment-dock community-reply-inline";
+  return "community-comment-dock";
 }
 
 type ListProps = Pick<ItemProps, "postId" | "notify" | "onChanged" | "sending"> & {
   readonly items: readonly CommunityEntry[];
   readonly onReply: (id: number) => void;
+  readonly replyToId: number;
+  readonly replyComposer: React.ReactNode;
 };
 
-function CommentList({ items, postId, notify, sending, onChanged, onReply }: ListProps) {
+function CommentList({ items, postId, notify, sending, onChanged, onReply, replyToId, replyComposer }: ListProps) {
   return <ol>{commentThreads(items).map(thread => <li key={thread.id} className="community-comment-thread">
       {thread.root && <CommentItem key={thread.root.updatedAt} comment={thread.root} postId={postId}
         notify={notify} onChanged={onChanged} sending={sending} onReply={() => onReply(thread.id)} />}
@@ -91,6 +102,7 @@ function CommentList({ items, postId, notify, sending, onChanged, onReply }: Lis
       {thread.replies.length > 0 && <ol className="community-replies" aria-label="대댓글">
         {thread.replies.map(reply => <li key={reply.id}><CommentItem key={reply.updatedAt} comment={reply}
           postId={postId} notify={notify} onChanged={onChanged} /></li>)}</ol>}
+      {thread.id === replyToId && replyComposer}
     </li>)}</ol>;
 }
 

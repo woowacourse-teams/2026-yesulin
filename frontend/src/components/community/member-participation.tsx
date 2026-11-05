@@ -14,10 +14,20 @@ export function CommunityLogin({ returnTo }: { readonly returnTo: string }) {
 }
 
 type GateProps = { readonly postId?: number; readonly returnTo?: string; readonly children: (value: CommunityParticipation) => ReactNode };
+
+/** 같은 화면에서 입력칸 위치가 바뀌어 다시 그려져도 마지막 참여 정보를 바로 보이고 뒤에서 새로 확인한다. */
+const recentParticipation = new Map<string, CommunityParticipation>();
+
+function remembered(postId: number | undefined, credential: string) {
+  const value = recentParticipation.get(`${postId ?? ""}:${credential}`);
+  if (!value) return null;
+  return { credential, value };
+}
+
 export function MemberParticipation({ postId, returnTo = communityReturnTo(postId), children }: GateProps) {
   const { session } = useAuthSession();
   const credential = session?.credential ?? "";
-  const [state, setState] = useState<{ credential: string; value: CommunityParticipation } | null>(null);
+  const [state, setState] = useState<{ credential: string; value: CommunityParticipation } | null>(() => remembered(postId, credential));
   const [error, setError] = useState("");
   useEffect(() => {
     let current = true;
@@ -25,7 +35,7 @@ export function MemberParticipation({ postId, returnTo = communityReturnTo(postI
     const refresh = () => {
       const request = ++generation;
       return getParticipation(postId).then(value => {
-      if (current && request === generation) { setState({ credential, value }); setError(""); }
+      if (current && request === generation) { recentParticipation.set(`${postId ?? ""}:${credential}`, value); setState({ credential, value }); setError(""); }
     }).catch(() => { if (current && request === generation) setError("참여 정보를 확인하지 못했어요. 다시 시도해 주세요."); });
     };
     void refresh();
