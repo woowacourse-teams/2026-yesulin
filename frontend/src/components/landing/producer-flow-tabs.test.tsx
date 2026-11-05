@@ -38,4 +38,10 @@ describe("공연사 랜딩 진행 단계 탭", () => {
     const focusable = container.querySelectorAll('[role="tab"][tabindex="0"]');
     expect(focusable).toHaveLength(1);
   });
+
+  it("세로 탭 목록이고 탭 패널에 키보드로 들어갈 수 있다", () => {
+    const container = renderTabs();
+    expect(container.querySelector('[role="tablist"]')?.getAttribute("aria-orientation")).toBe("vertical");
+    expect(container.querySelector('[role="tabpanel"]')?.getAttribute("tabindex")).toBe("0");
+  });
 });

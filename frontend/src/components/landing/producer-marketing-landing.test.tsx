@@ -23,4 +23,20 @@ describe("공연사 서비스 랜딩", () => {
     expect(html).not.toContain("영원히");
     expect(html).toContain("베타 기간");
   });
+
+  it("오픈채팅 공유를 자동 발송처럼 말하지 않는다", () => {
+    expect(html).not.toContain("알림 보내기");
+    expect(html).not.toContain("알림 발송");
+    expect(html).toContain("운영팀이 배우 오픈채팅에 공유");
+  });
+
+  it("예시 지원자 세 명 모두 얼굴 사진을 쓴다", () => {
+    expect(html).toContain("park-doyun-profile.jpg");
+    expect(html).toContain("lee-seoyeon-profile.jpg");
+  });
+
+  it("포스터 자동 이동을 멈출 수 있다", () => {
+    expect(html).toContain('aria-pressed="false"');
+    expect(html).toContain("포스터 움직임 멈추기");
+  });
 });
