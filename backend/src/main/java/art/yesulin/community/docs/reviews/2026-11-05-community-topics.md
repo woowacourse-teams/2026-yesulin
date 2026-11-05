@@ -41,3 +41,8 @@
 
 필수 PASS 7 / FAIL 0 / UNVERIFIED 0 / N/A 0. 발견 2 / 해결 2 / 미해결 0.
 P0 0 / P1 0 / P2 1 / P3 1. PRECHECK 0 / INDEPENDENT_REVIEW 2 / POST_FIX_CHECK 0 / EXTERNAL 0 / 오탐 0.
+
+## 최초 PR 연결
+
+최초 게시 PR [#542](https://github.com/woowacourse-teams/2026-yesulin/pull/542), 대상 dev, 이슈 #541.
+사건 표의 PENDING은 최초 기록 당시 상태이며 이 절이 최초 PR 연결이다. 최종 프론트 테스트 1,023개·lint·빌드 통과.
