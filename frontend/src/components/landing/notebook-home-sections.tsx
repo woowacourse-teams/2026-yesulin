@@ -1,16 +1,16 @@
 "use client";
 
 import { FallbackImage as Image } from "@/components/ui/fallback-image";
-import { PosterImage } from "@/components/ui/poster-image";
 import { PosterRow, PosterRowSkeleton } from "@/components/home/poster-row";
+import { ShowPosterCard } from "@/components/shows/show-poster-card";
 import { ContentState } from "@/components/ui/content-state";
 import { ScreenError } from "@/components/auditions/screen-status";
 import Link from "next/link";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { AUDITION_ALERT_CHAT_URL, auditionPostRoutes } from "@/features/audition-posts/types";
 import { getPublicShows } from "@/features/shows/api";
-import { formatShowDateTime, isShowBookingClosed, orderPublicShows } from "@/features/shows/format";
-import { SHOW_GENRE_LABELS, showRoutes, type PublicShowSummary } from "@/features/shows/types";
+import { orderPublicShows } from "@/features/shows/format";
+import { showRoutes, type PublicShowSummary } from "@/features/shows/types";
 
 const HOME_SHOW_COUNT = 12;
 
@@ -26,7 +26,7 @@ export function HomeShowSection({ initialShows = null }: { readonly initialShows
   }, []);
   useEffect(() => { if (initialShows === null) return load(); }, [initialShows, load]);
   return <PosterRow id="shows" title="무료 공연" label="무료 공연" moreHref={showRoutes.list} fallback={showFallback(state, () => { setState({ status: "loading" }); load(); })}>
-    {state.status === "ready" && orderPublicShows(state.shows, now).slice(0, HOME_SHOW_COUNT).map((show) => <HomeShowCard key={show.id} show={show} now={now} />)}
+    {state.status === "ready" && orderPublicShows(state.shows, now).slice(0, HOME_SHOW_COUNT).map((show) => <ShowPosterCard key={show.id} show={show} now={now} />)}
   </PosterRow>;
 }
 
@@ -36,29 +36,6 @@ function showFallback(state: ShowState, onRetry: () => void): ReactNode {
   if (state.status === "error") return <ScreenError message="공연 목록을 불러오지 못했어요." onRetry={onRetry} />;
   if (state.shows.length === 0) return <ContentState title="지금 예매할 수 있는 공연이 없어요" description="새 공연이 열리면 이곳에 안내할게요." />;
   return undefined;
-}
-
-function HomeShowCard({ show, now }: { readonly show: PublicShowSummary; readonly now: number }) {
-  const ended = isShowBookingClosed(show, now);
-  return <li><Link href={showRoutes.detail(show.id)} className="notebook-poster-card" data-ended={ended || undefined}>
-    <div className="notebook-poster">
-      <ShowBadge ended={ended} />
-      <PosterImage key={show.posterUrl} src={show.posterUrl} alt={`${show.title} 포스터`} sizes="(min-width: 1100px) 180px, (min-width: 761px) 25vw, 50vw" fallback={<span className="notebook-poster-empty">포스터 준비 중</span>} />
-    </div>
-    <h3 className="notebook-poster-title">{show.title}</h3>
-    <p className="notebook-poster-byline">{SHOW_GENRE_LABELS[show.genre]} · {show.venueName}</p>
-    <ShowSchedule show={show} ended={ended} />
-  </Link></li>;
-}
-
-function ShowBadge({ ended }: { readonly ended: boolean }) {
-  if (ended) return <span className="notebook-poster-badge" data-kind="closed">예매 마감</span>;
-  return <span className="notebook-poster-badge" data-kind="open">무료 관람</span>;
-}
-
-function ShowSchedule({ show, ended }: { readonly show: PublicShowSummary; readonly ended: boolean }) {
-  if (ended || !show.nextSessionStartsAt) return <p className="notebook-poster-meta">예매 가능한 회차 없음</p>;
-  return <p className="notebook-poster-meta num">{formatShowDateTime(show.nextSessionStartsAt)}</p>;
 }
 
 export function HomeFaqSection() {
