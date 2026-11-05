@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useImperativeHandle, useRef, useState, type Ref, type FormEvent, type KeyboardEvent } from "react";
 import { commentThreads } from "@/features/community/comments";
 import { createComment, deleteComment, editComment, getComments } from "@/features/community/api";
 import { trackCommentCreated } from "@/features/community/analytics";
@@ -24,13 +24,14 @@ export function CommunityComments({ postId, count, notify, onChanged }: Comments
   const [partial, setPartial] = useState(() => linkedCommentCursor() > 0);
   const [replyToId, setReplyToId] = useState(() => queryCommentId("replyTo"));
   const [sending, setSending] = useState(false);
+  const discardDraft = useRef<() => boolean>(null);
   const composer = useRef<HTMLDivElement>(null);
   const focusComposer = () => requestAnimationFrame(() => {
     composer.current?.scrollIntoView({ block: "nearest" });
     composer.current?.querySelector<HTMLElement>("textarea, a")?.focus();
   });
   const selectReply = (id: number) => { setReplyToId(id); focusComposer(); };
-  const cancelReply = () => {
+  const closeReply = () => {
     const url = new URL(window.location.href);
     url.searchParams.delete("replyTo");
     window.history.replaceState(window.history.state, "", url);
@@ -48,7 +49,7 @@ export function CommunityComments({ postId, count, notify, onChanged }: Comments
   const changed = async () => { setPartial(linkedCommentCursor() > 0); await Promise.all([feed.load(undefined, true), onChanged()]); };
   const created = async (id: number) => {
     await Promise.all([feed.appendThrough(id), onChanged()]);
-    cancelReply();
+    closeReply();
     requestAnimationFrame(() => document.getElementById(`comment-${id}`)?.scrollIntoView({ block: "nearest" }));
   };
   return <><section className="community-comments" aria-labelledby="comments-heading">
@@ -65,9 +66,9 @@ export function CommunityComments({ postId, count, notify, onChanged }: Comments
     {!feed.loading && feed.cursor !== null && <button type="button" className="community-more" onClick={() => void feed.load(feed.cursor!)}>댓글 더 보기</button>}
   </section><div ref={composer} className="community-comment-dock">
     {replyToId > 0 && <div className="community-reply-target"><strong>{feed.items.find(item => item.id === replyToId)?.author} 댓글에 대댓글</strong>
-      <button type="button" disabled={sending} onClick={cancelReply}>취소</button></div>}
+      <button type="button" disabled={sending} onClick={() => { if (discardDraft.current?.() !== false) closeReply(); }}>취소</button></div>}
     <MemberParticipation postId={postId} returnTo={composerReturnTo(postId, replyToId)}>
-      {participation => <CommentComposer key={replyToId} postId={postId} replyToId={replyToId}
+      {participation => <CommentComposer key={replyToId} discardDraft={discardDraft} postId={postId} replyToId={replyToId}
         participation={participation} onSending={setSending} onSaved={created} />}</MemberParticipation></div></>;
 }
 
@@ -97,9 +98,9 @@ function composerReturnTo(postId: number, replyToId: number) {
   return communityReturnTo(postId);
 }
 
-type ComposerProps = { readonly onSending: (busy: boolean) => void; readonly replyToId: number; readonly postId: number; readonly onSaved: (id: number) => Promise<void> };
+type ComposerProps = { readonly discardDraft: Ref<() => boolean>; readonly onSending: (busy: boolean) => void; readonly replyToId: number; readonly postId: number; readonly onSaved: (id: number) => Promise<void> };
 
-function CommentComposer({ postId, replyToId, onSaved, participation, onSending }: ComposerProps & { readonly participation: CommunityParticipation }) {
+function CommentComposer({ postId, replyToId, onSaved, participation, onSending, discardDraft }: ComposerProps & { readonly participation: CommunityParticipation }) {
   const active = useCurrentCommunityForm();
   let scope = `comment:${postId}`;
   let label = "댓글";
@@ -109,6 +110,11 @@ function CommentComposer({ postId, replyToId, onSaved, participation, onSending 
   }
   const savedDraft = useMemberDraft(scope, participation.memberId!, participation.fixedMode);
   const { body, authorMode, requestId } = savedDraft.draft;
+  useImperativeHandle(discardDraft, () => () => {
+    if (body && !window.confirm("작성 중인 대댓글을 지울까요?")) return false;
+    savedDraft.clear();
+    return true;
+  });
   const [focused, setFocused] = useState(false);
   const action = useCommunityAction();
   useDraftGuard(body !== "");
