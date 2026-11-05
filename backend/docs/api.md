@@ -1151,6 +1151,20 @@ MDC에 같은 값이 남는다. Request는 업로드 흐름·단계·1~2회 시�
 HTTP status·서비스 워커 제어 여부·거친 플랫폼과 브라우저 분류만 받는다. 파일명, 파일 내용, URL, 전체 User-Agent,
 지원서 답변은 받거나 로그에 남기지 않는다.
 
+## 의견 보내기 — 1개
+
+| Method | URL | 인증 | Request | Response |
+| --- | --- | --- | --- | --- |
+| POST | `/api/v1/public/feedback` | 없음(로그인했으면 회원 번호 함께 저장) | `FeedbackRequest` | `201 { id }` |
+
+쓰기 요청이므로 CSRF header가 필요하다. `FeedbackRequest`는 `type`(`INCONVENIENCE`·`BUG`·`SUGGESTION`, 필수),
+`content`(앞뒤 공백 제거 후 1~1000자, 필수), `contact`(0~100자, 선택), `pagePath`(보낸 화면 경로, 선택)다.
+`pagePath`는 쿼리·해시를 버리고 300자로 자른 뒤 `/`로 시작하는 URL 경로 문자만 있을 때 저장한다. 줄바꿈·공백·꺾쇠 등이 섞이거나
+`//`로 시작하면 빈 값으로 저장하고 접수는 막지 않는다. 서버는 User-Agent를 300자까지 함께 저장한다.
+같은 접속 주소에서 10분 안에 5건을 넘기면 `429 FEEDBACK_TOO_FREQUENT`를 돌려준다(서버 메모리 기준, 재시작 시 초기화).
+저장이 커밋되면 `YESULIN_FEEDBACK_SLACK_WEBHOOK_URL` 채널로 종류·보낸 사람 구분(배우·공연사·운영자·비회원)·화면·내용 500자를
+보낸다. 연락처 원문과 회원 번호는 알림에 넣지 않는다. 알림 실패는 접수 결과에 영향을 주지 않는다.
+
 ## 심사 — 4개
 
 | Method | URL | 인증 | Request | Response |
