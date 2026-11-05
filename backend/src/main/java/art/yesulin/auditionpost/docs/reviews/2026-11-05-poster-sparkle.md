@@ -44,3 +44,8 @@
 필수 PASS4 / FAIL0 / UNVERIFIED0 / N/A0, 검증률 4/4.
 신규 확정 5 / 해결 5 / 미해결 0, P0=0 P1=1 P2=0 P3=4. PRECHECK0 / INDEPENDENT_REVIEW4 / POST_FIX_CHECK1 / EXTERNAL0, 오탐0.
 미확인: 실제 브라우저에서 화면에 들어올 때 돌기(병합 후 dev 크롬·휴대폰), 카드가 많을 때 페인트 비용 측정.
+
+## 최초 PR 연결
+
+최초 게시 PR: [#540](https://github.com/woowacourse-teams/2026-yesulin/pull/540), 대상 dev.
+위 사건 표의 PENDING은 당시 이력이며 이 절로 최초 게시 번호를 연결한다. 문제 ID와 확정·해결 시각은 바꾸지 않는다.
