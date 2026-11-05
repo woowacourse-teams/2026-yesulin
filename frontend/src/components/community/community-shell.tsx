@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { NotebookHeader } from "@/components/landing/notebook-site-layout";
 import { PolicyLinks } from "@/components/policies/policy-links";
+import { FeedbackLauncher } from "@/components/feedback/feedback-launcher";
 
 export function CommunityShell({ children }: { readonly children: ReactNode }) {
   return <div className="public-notebook community-app"><a className="notebook-skip" href="#main">본문으로 바로가기</a><NotebookHeader />
@@ -12,5 +13,5 @@ export function CommunitySubbar({ children }: { readonly children: ReactNode }) 
 }
 
 function CommunityFooter() {
-  return <footer className="community-footer"><p>© 2026 예술in</p><PolicyLinks className="community-footer-links" includeConsent={false} /></footer>;
+  return <footer className="community-footer"><p>© 2026 예술in</p><PolicyLinks className="community-footer-links" includeConsent={false} /><FeedbackLauncher /></footer>;
 }

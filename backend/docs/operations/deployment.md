@@ -283,6 +283,7 @@ Spring 로그 기본 경로는 `/var/log/yesulin/yesulin.log`이며 한 이벤�
 | 환경 변수 | 의미 |
 | --- | --- |
 | `YESULIN_COMMUNITY_SLACK_WEBHOOK_URL` | 커뮤니티 신고 채널의 Incoming Webhook. 비어 있으면 전송하지 않고 DB 대기열에 유지 |
+| `YESULIN_FEEDBACK_SLACK_WEBHOOK_URL` | 화면 "의견 보내기" 채널의 Incoming Webhook. 비어 있으면 의견을 저장하고 로그만 남긴다 |
 | `YESULIN_COMMUNITY_LINK_BASE_URL` | 같은 환경의 프론트 origin. 예: DEV `https://dev.yesulin.art`, PROD `https://yesulin.art`. 웹훅을 설정하면 필수 |
 | `YESULIN_COMMUNITY_NOTIFICATIONS_ENABLED` | 기본 true. false면 커뮤니티 알림 스케줄러만 멈추며 신고는 계속 저장 |
 

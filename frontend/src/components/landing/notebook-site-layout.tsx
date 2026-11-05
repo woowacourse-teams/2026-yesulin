@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { FeedbackLauncher } from "@/components/feedback/feedback-launcher";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useAuthSession } from "@/components/auth/auth-session";
@@ -100,5 +101,5 @@ export function NotebookFooter({ className = "" }: { readonly className?: string
         <span className="notebook-email-address">contact@yesulin.art</span>
       </nav>
     </div><div className="notebook-footer-bottom"><p>© 2026 예술in 프로젝트팀. All rights reserved.</p><PolicyLinks includeConsent={false} includeContact={false} /></div>
-  </div></footer>;
+  </div><FeedbackLauncher /></footer>;
 }

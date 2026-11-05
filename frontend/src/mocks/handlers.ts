@@ -37,6 +37,7 @@ import { adminFileHandlers } from "./admin-file-handlers";
 import { actorPageHandlers } from "./actor-page-handlers";
 import { memberLinkCodeHandlers } from "./member-link-codes";
 import { communityHandlers } from "./community-handlers";
+import { feedbackHandlers } from "./feedback-handlers";
 import { eventHandlers } from "./event-handlers";
 import { auditionPostHandlers } from "./audition-post-handlers";
 import { otrAuditionHandlers } from "./otr-audition-handlers";
@@ -75,6 +76,7 @@ export const handlers = [
   // PDF 추출·심사는 MSW가 켜져 있어도 저장소·추출 결과·심사 기록을 가짜 성공으로 대체하지 않는다. SSE도 서버로 넘긴다.
   ...pdfPassthroughPaths.map(path => http.all(path, () => passthrough())),
   ...communityHandlers,
+  ...feedbackHandlers,
   ...noticeHandlers,
   ...authHandlers,
   ...adminHandlers,
