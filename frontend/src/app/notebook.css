@@ -1066,7 +1066,24 @@
 .notebook-poster-headline { display:-webkit-box; flex-shrink:0; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden; margin-top:3cqi; font-size:12cqi; font-weight:800; line-height:1.25; letter-spacing:-.03em; word-break:keep-all; overflow-wrap:anywhere; text-wrap:balance; }
 .notebook-poster-mark { margin-top:auto; max-width:72%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:6.5cqi; font-weight:600; line-height:1.4; opacity:.88; }
 .notebook-poster-motif { position:absolute; right:-18cqi; bottom:-14cqi; z-index:-1; width:92cqi; height:92cqi; color:#fff; opacity:.2; }
-.notebook-poster-spark { position:absolute; top:max(10px,6cqi); right:6cqi; width:13cqi; height:13cqi; background:#fff; opacity:.92; -webkit-mask:url("/images/yesulin-sparkle.png") center / contain no-repeat; mask:url("/images/yesulin-sparkle.png") center / contain no-repeat; }
+/* 글씨만 있는 카드의 반짝이. 처음 화면에 들어올 때와 마우스를 올릴 때(data-spinning) 크기 그대로 한 바퀴 돌며 오른쪽 위 긴 꽃잎 끝만 금빛으로 물들었다 돌아온다. */
+@property --spark-petal { syntax:"<percentage>"; inherits:false; initial-value:0%; }
+.notebook-poster-spark { position:absolute; top:max(10px,6cqi); right:6cqi; width:13cqi; height:13cqi; background:radial-gradient(circle at 84% 12%, #ffd66b 0, #ffd66b var(--spark-petal, 0%), #fff calc(var(--spark-petal, 0%) + 10%)); opacity:.92; -webkit-mask:url("/images/yesulin-sparkle.png") center / contain no-repeat; mask:url("/images/yesulin-sparkle.png") center / contain no-repeat; }
+.notebook-poster-spark[data-spinning] { animation:notebook-spark-spin 1.1s cubic-bezier(.3,.7,.2,1); }
+@keyframes notebook-spark-spin { 0% { transform:rotate(-360deg); --spark-petal:0%; } 50% { --spark-petal:22%; } 100% { transform:rotate(0); --spark-petal:0%; } }
+/* 마우스를 올리면 이미지 포스터처럼 글씨 카드 앞면도 살짝 커지고, 터치 화면은 누르는 동안 카드가 살짝 작아진다. */
+.notebook-poster .notebook-poster-default { transition:transform .2s ease; }
+.notebook-poster-card:hover .notebook-poster-default { transform:scale(1.03); }
+@media (hover:none) {
+  .notebook-poster { transition:transform .12s ease; }
+  .notebook-poster-card:active .notebook-poster { transform:scale(.98); }
+  .notebook-poster-card:hover .notebook-poster-default { transform:none; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .notebook-poster-spark[data-spinning] { animation:none; }
+  .notebook-poster, .notebook-poster .notebook-poster-default { transition:none; }
+  .notebook-poster-card:hover .notebook-poster-default, .notebook-poster-card:active .notebook-poster { transform:none; }
+}
 .notebook-poster-title { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; margin-top:10px; font-size:15px; font-weight:700; line-height:1.45; }
 .notebook-poster-card:hover .notebook-poster-title { color:var(--brand); }
 .notebook-poster-byline { margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; color:var(--ink-40); }
