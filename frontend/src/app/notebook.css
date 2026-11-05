@@ -733,6 +733,8 @@
 }
 
 .notebook-post-detail { border-radius:var(--radius-card); }
+.notebook-post-detail .post-body img { cursor:zoom-in; }
+.notebook-post-detail .post-body a img { cursor:pointer; }
 .notebook-auth { display:flex; justify-content:center; padding-block:48px 64px; }
 .notebook-auth.is-compact { padding-block:32px 48px; }
 .notebook-auth-card { width:100%; max-width:480px; background:#fff; border:1px solid #e5e8eb; border-radius:var(--radius-card); padding:32px; }
