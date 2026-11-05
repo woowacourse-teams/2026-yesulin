@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, type ReactNode } from "react";
+import { applicantRoutes } from "@/features/applicants/routes";
+import { useEffect, useId, useState, type ReactNode } from "react";
 import { useAuthSession } from "@/components/auth/auth-session";
 import { communityReturnTo } from "@/features/community/navigation";
 import { getParticipation } from "@/features/community/api";
 import type { CommunityAuthorMode, CommunityParticipation } from "@/features/community/types";
-import { AnonymousAvatar, CommunityError } from "./community-ui";
+import { CommunityPhoto, CommunityError } from "./community-ui";
 
 export function CommunityLogin({ returnTo }: { readonly returnTo: string }) {
   return <Link className="community-pill" href={`/login?returnTo=${encodeURIComponent(returnTo)}`}>로그인하고 작성하기</Link>;
@@ -41,14 +42,27 @@ export function MemberParticipation({ postId, returnTo = communityReturnTo(postI
 
 type ChoiceProps = { readonly participation: CommunityParticipation; readonly mode: CommunityAuthorMode; readonly onChange: (mode: CommunityAuthorMode) => void };
 export function AuthorChoice({ participation, mode, onChange }: ChoiceProps) {
+  const reasonId = useId();
   const profile = participation.profile;
+  const anonymous = mode === "ANONYMOUS";
   const fixed = participation.fixedMode !== null;
+  const needsProfile = !fixed && anonymous && !profile?.path;
+  let reason: string | undefined;
+  if (needsProfile) reason = "배우 페이지를 공개하면 익명을 해제할 수 있어요.";
+  if (fixed) reason = "이 글에서는 처음 선택한 작성 방식이 유지돼요.";
+  const toggle = () => {
+    if (anonymous) return onChange("PROFILE");
+    onChange("ANONYMOUS");
+  };
   return <div className="community-author-choice">
-    <label>작성자 <select aria-label="작성자 공개 방식" value={mode} disabled={fixed} onChange={event => onChange(event.target.value as CommunityAuthorMode)}>
-      <option value="ANONYMOUS">익명</option><option value="PROFILE" disabled={!profile?.path}>배우 프로필 공개</option></select></label>
     {mode === "PROFILE" && profile?.path && <Link href={profile.path} className="community-profile-preview">
-      <AnonymousAvatar author={profile.name} photoUrl={profile.photoUrl} small /><span>{profile.name}</span></Link>}
+      <CommunityPhoto photoUrl={profile.photoUrl} small /><span>{profile.name}</span></Link>}
     {mode === "PROFILE" && !profile?.path && <span>프로필 비공개</span>}
-    {!profile?.path && <Link href="/applicants/profile">배우 페이지 설정</Link>}
+    {!profile?.path && (!fixed || !anonymous) && <Link href={applicantRoutes.actorPageSettings}>프로필 공개 설정</Link>}
+    <label title={reason}>
+      <input type="checkbox" checked={anonymous} disabled={fixed || needsProfile} aria-describedby={reason && reasonId} onChange={toggle} />
+      익명
+    </label>
+    {reason && <span id={reasonId} className="community-sr-only">{reason}</span>}
   </div>;
 }

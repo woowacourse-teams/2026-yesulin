@@ -1,3 +1,5 @@
+import { frontendEnvironment } from "@/config/environment";
+import { headers } from "next/headers";
 import type { Metadata } from "next";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { LoginForm } from "@/components/auth/login-form";
@@ -6,6 +8,15 @@ import { applicationAuthContextForServer } from "@/features/auth/application-aut
 import { authSuccessReturnTo, safeAuthReturnTo } from "@/features/auth/return-to";
 
 export const metadata: Metadata = { title: { absolute: "예술in" } };
+
+async function localActorLoginEnabled() {
+  if (process.env.NODE_ENV !== "development" || process.env.LOCAL_COMMUNITY_ACTOR_LOGIN !== "true") return false;
+  if (frontendEnvironment.apiMockingEnabled || !process.env.API_ORIGIN) return false;
+  const loopback = ["localhost", "127.0.0.1", "[::1]"];
+  if (!loopback.includes(new URL(process.env.API_ORIGIN).hostname)) return false;
+  const host = (await headers()).get("host") ?? "";
+  return /^(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/.test(host);
+}
 
 export default async function LoginPage({ searchParams }: {
   readonly searchParams: Promise<{ returnTo?: string; socialLoginError?: string }>;
@@ -31,7 +42,7 @@ export default async function LoginPage({ searchParams }: {
           소셜 로그인을 완료하지 못했습니다. 다시 시도해 주세요.
         </p>
       ) : null}
-      <LoginForm returnTo={authSuccessReturnTo(safeReturnTo)} applicationFlow={Boolean(applicationContext)} />
+      <LoginForm localActorLogin={await localActorLoginEnabled()} returnTo={authSuccessReturnTo(safeReturnTo)} applicationFlow={Boolean(applicationContext)} />
     </AuthShell>
   );
 }

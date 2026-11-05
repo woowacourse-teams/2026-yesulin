@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { clearCommunityDrafts, readCommunityDraft, saveCommunityDraft } from "./member-draft";
-import { loadThroughComment, mergeComments } from "./comments";
+import { commentThreads, loadThroughComment, mergeComments } from "./comments";
 import type { CommunityEntry } from "./types";
 
 beforeEach(() => {
@@ -43,4 +43,13 @@ it("새 댓글까지 여러 페이지를 읽고 중간 댓글을 건너뛰지 �
   }, 1, 3);
   expect(cursors).toEqual([1, 2]);
   expect(result.items.map(item => item.id)).toEqual([2, 3]);
+});
+
+it("원댓글이 앞 페이지에 있거나 삭제돼도 답글을 같은 원댓글 아래에 모은다", () => {
+  const items = [entry(4), { ...entry(7), replyToId: 2 }, { ...entry(8), replyToId: 2 }];
+  const missing = commentThreads(items);
+  expect(missing.map(thread => thread.id)).toEqual([2, 4]);
+  expect(missing[0].root).toBeUndefined();
+  expect(missing[0].replies.map(reply => reply.id)).toEqual([7, 8]);
+  expect(commentThreads(mergeComments(items, [entry(2)]))[0].root?.id).toBe(2);
 });

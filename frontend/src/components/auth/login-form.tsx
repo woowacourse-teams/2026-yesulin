@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { PrimaryButton, TextLink } from "@/components/ui/controls";
 import { useToast } from "@/components/auditions/toast";
 import { AuthInput, PasswordInput, RoleField, type AccountRole } from "./auth-fields";
+import { LocalActorLogin } from "./local-actor-login";
 import { SocialButtons } from "./social-buttons";
 import {
   SessionApiError,
@@ -38,7 +39,7 @@ const PROVIDER_LABELS: Record<SocialProvider, string> = {
   google: "Google",
 };
 
-export function LoginForm({ returnTo, applicationFlow = false }: { readonly returnTo?: string; readonly applicationFlow?: boolean }) {
+export function LoginForm({ returnTo, applicationFlow = false, localActorLogin = false }: { readonly localActorLogin?: boolean; readonly returnTo?: string; readonly applicationFlow?: boolean }) {
   const toast = useToast();
   const router = useRouter();
   const { setSession } = useAuthSession();
@@ -151,7 +152,10 @@ export function LoginForm({ returnTo, applicationFlow = false }: { readonly retu
       {!applicationFlow ? <RoleField value={role} onChange={changeRole} /> : null}
 
       {applicantLogin ? (
-        <SocialButtons pendingProvider={pendingProvider} onSelect={(provider) => void handleSocialLogin(provider)} />
+        <>
+          <SocialButtons pendingProvider={pendingProvider} onSelect={(provider) => void handleSocialLogin(provider)} />
+          {localActorLogin && <LocalActorLogin returnTo={returnTo} />}
+        </>
       ) : (
         <form onSubmit={(event) => void handleProducerLogin(event)} noValidate className="space-y-4">
           <div className="space-y-3">

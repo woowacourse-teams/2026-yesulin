@@ -1370,6 +1370,7 @@ Path=/api/v1/public/community, SameSite=Lax, Max-Age=400일, host-only다. local
 쿠키 확인 때 갱신하며 기존 헤더 `X-Community-Key`는 사용하지 않는다. 좋아요·신고에 쿠키가 없으면 400이다.
 기존 SHA-256 소유 해시는 유지한다. 회원 참여 키는 별도 member 접두사이며 공개 응답·URL·로그에 넣지 않는다.
 조회·이전·참여 상태 응답은 `Cache-Control: no-store`다.
+댓글 생성 시 선택 필드 `replyToId`에 같은 글의 보이는 최상위 댓글 ID를 전달한다. 생략 또는 null은 일반 댓글이다. 글·댓글 응답에 `replyToId`(답글 대상 또는 null)를 포함하며, 댓글 목록은 답글도 생성 ID 순으로 페이지에 포함한다. 다른 글·삭제된 댓글·답글을 대상으로 새로 쓰면 404, 같은 요청 번호의 대상을 바꾸면 409다. 원댓글을 삭제해도 기존 답글은 조회된다.
 
 기존 localStorage 키는 `X-Community-Legacy-Key` 헤더로 이전 전용 identity API에만 전달한다.
 서버는 기존 키를 HttpOnly 쿠키로 옮겨 소유권 해시·좋아요·익명 번호를 유지한다. 기존 쿠키와 이전 키가 다르면
@@ -1388,7 +1389,7 @@ POST 성공만으로 저장됐다고 판단하지 않고 GET에서 같은 이전
 | PUT | `/posts/{postId}` | `{title, body}` → 200 수정 작성물 |
 | DELETE | `/posts/{postId}` | 204, 본인만 가능 |
 | GET | `/posts/{postId}/comments?after={id}` | 오래된 댓글부터 20개. `after` 기본 0, 해당 ID 미포함 |
-| POST | `/posts/{postId}/comments` | `{requestId: UUID, body, authorMode, expectedMemberId}` → 201 작성물 |
+| POST | `/posts/{postId}/comments` | `{requestId: UUID, body, authorMode, expectedMemberId, replyToId?}` → 201 작성물 |
 | PUT | `/posts/{postId}/comments/{commentId}` | `{body}` → 200 수정 작성물 |
 | DELETE | `/posts/{postId}/comments/{commentId}` | 204, 본인만 가능 |
 | PUT | `/posts/{postId}/likes` | 본문 없음 → 200 `{likeCount, liked: true}`. 반복해도 한 번만 반영 |

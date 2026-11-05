@@ -6,7 +6,7 @@ import { normalizeComment, normalizePost } from "@/features/community/draft";
 import { reportReasons, type CommunityEntry, type CommunityPage } from "@/features/community/types";
 
 type StoredEntry = { value: CommunityEntry; owner: string; parent: number | null; deleted: boolean; requestId: string; original: string };
-type Payload = { authorMode?: CommunityAuthorMode; expectedMemberId?: number; requestId?: string; title?: string; body?: string; reason?: string; detail?: string };
+type Payload = { replyToId?: number | null; authorMode?: CommunityAuthorMode; expectedMemberId?: number; requestId?: string; title?: string; body?: string; reason?: string; detail?: string };
 
 class MockFailure extends Error {
   constructor(readonly status: number, readonly code: string, message: string) { super(message); }
@@ -98,10 +98,14 @@ class CommunityStore {
     if (fixed && fixed !== input.authorMode) throw conflict();
     if (input.authorMode === "PROFILE" && !this.profile(Number(owner.slice(7)))?.path) throw new MockFailure(409, "COMMUNITY_PROFILE_REQUIRED", "공개된 배우 페이지가 필요해요.");
     const content = { ...normalized(parent, input), authorMode: input.authorMode };
-    const original = JSON.stringify({ parent, ...content });
+    const replyToId = replyTarget(parent, input);
+    const original = JSON.stringify({ parent, ...content, replyToId });
     const retry = [...this.entries.values()].find(entry => entry.requestId === input.requestId);
     if (retry) return this.replay(retry, owner, original);
-    return this.insert(parent, owner, input.requestId!, content, original);
+    if (parent !== null && replyToId !== null && this.comment(parent, replyToId).value.replyToId != null) {
+      throw new MockFailure(404, "COMMUNITY_NOT_FOUND", "원댓글을 찾을 수 없어요.");
+    }
+    return this.insert(parent, owner, input.requestId!, { ...content, replyToId }, original);
   }
 
   edit(entry: StoredEntry, owner: string, input: Payload) {
@@ -127,7 +131,7 @@ class CommunityStore {
     this.reports.set(input.requestId!, content);
   }
 
-  private insert(parent: number | null, owner: string, requestId: string, content: { title: string | null; body: string; authorMode: CommunityAuthorMode }, original: string) {
+  private insert(parent: number | null, owner: string, requestId: string, content: { replyToId: number | null; title: string | null; body: string; authorMode: CommunityAuthorMode }, original: string) {
     const id = ++this.sequence;
     const createdAt = new Date().toISOString();
     const value = { id, ...content, memberOwned: true, authorPhotoUrl: null, authorPath: null, postAuthor: parent === null || this.post(parent).owner === owner, author: this.author(parent, owner), createdAt, updatedAt: createdAt, commentCount: 0, editable: false, likeCount: 0, liked: false };
@@ -148,6 +152,12 @@ class CommunityStore {
   }
 
 
+}
+
+function replyTarget(postId: number | null, input: Payload) {
+  if (postId === null || input.replyToId == null) return null;
+  if (!Number.isSafeInteger(input.replyToId) || input.replyToId < 1) throw new Error("답글 대상을 확인해 주세요.");
+  return input.replyToId;
 }
 
 function requireOwner(entry: StoredEntry, owner: string) {

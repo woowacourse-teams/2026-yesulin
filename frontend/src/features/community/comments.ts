@@ -17,3 +17,17 @@ export async function loadThroughComment(loader: (after?: number) => Promise<Com
   }
   return { items, nextCursor: page.nextCursor };
 }
+
+type CommentThread = { id: number; root?: CommunityEntry; replies: CommunityEntry[] };
+
+export function commentThreads(items: readonly CommunityEntry[]) {
+  const threads = new Map<number, CommentThread>();
+  for (const item of items) {
+    const id = item.replyToId ?? item.id;
+    const thread: CommentThread = threads.get(id) ?? { id, replies: [] };
+    threads.set(id, thread);
+    if (item.replyToId != null) thread.replies.push(item);
+    if (item.replyToId == null) thread.root = item;
+  }
+  return [...threads.values()].sort((left, right) => left.id - right.id);
+}

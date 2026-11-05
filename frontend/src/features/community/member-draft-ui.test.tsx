@@ -68,3 +68,35 @@ it("수정 완료 후 갱신·새로고침해도 복귀용 수정 양식이 다�
   finishCommunityEdit();
   expect(window.location.pathname + window.location.search + window.location.hash).toBe("/community/3?reply=1#comments-heading");
 });
+
+it("익명 체크를 해제하면 공개를 선택하고 글에서 고정된 방식은 바꿀 수 없다", async () => {
+  const actor = { memberId: 2, canWrite: true, fixedMode: null, profile: { name: "배우", photoUrl: null, path: "/actors/@a" } };
+  const change = vi.fn();
+  await act(async () => root.render(<AuthorChoice participation={actor} mode="ANONYMOUS" onChange={change} />));
+  const checkbox = container.querySelector<HTMLInputElement>("input[type=checkbox]")!;
+  expect(checkbox.checked).toBe(true);
+  await act(async () => checkbox.click());
+  expect(change).toHaveBeenCalledWith("PROFILE");
+  await act(async () => root.render(<AuthorChoice participation={{ ...actor, fixedMode: "PROFILE" }} mode="PROFILE" onChange={change} />));
+  expect(checkbox.disabled).toBe(true);
+  expect(checkbox.checked).toBe(false);
+});
+
+it("공개 페이지가 없는 첫 참여에서는 익명 표시와 실제 공개 설정 링크를 보여준다", async () => {
+  const actor = { memberId: 2, canWrite: true, fixedMode: null, profile: null };
+  await act(async () => root.render(<AuthorChoice participation={actor} mode="ANONYMOUS" onChange={vi.fn()} />));
+  const checkbox = container.querySelector<HTMLInputElement>("input[type=checkbox]");
+  expect(checkbox?.checked).toBe(true);
+  expect(checkbox?.disabled).toBe(true);
+  expect(container.querySelector("a")?.getAttribute("href")).toBe("/applicants/profile?tab=actor-page");
+});
+
+it("공개 참여 후 배우 페이지를 숨기면 현재의 비공개 상태만 표시한다", async () => {
+  const actor = { memberId: 2, canWrite: true, fixedMode: "PROFILE" as const, profile: null };
+  await act(async () => root.render(<AuthorChoice participation={actor} mode="PROFILE" onChange={vi.fn()} />));
+  expect(container.textContent).toContain("프로필 비공개");
+  expect(container.querySelector("a")?.getAttribute("href")).toBe("/applicants/profile?tab=actor-page");
+  expect(container.querySelector<HTMLInputElement>("input")?.checked).toBe(false);
+  expect(container.querySelector<HTMLInputElement>("input")?.disabled).toBe(true);
+  expect(container.querySelector("img")).toBeNull();
+});

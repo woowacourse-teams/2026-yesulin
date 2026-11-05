@@ -11,7 +11,7 @@ import { errorMessage } from "@/features/community/hooks";
 import { copyLink, postUrl } from "@/features/community/share";
 import type { CommunityEntry, CommunityLikeState } from "@/features/community/types";
 import { CommunitySubbar } from "./community-shell";
-import { AnonymousAvatar, CommunityByline, CommunityError, CommunityMissing, CommunityToast, PlainText, useCommunityToast } from "./community-ui";
+import { CommunityPhoto, CommunityByline, CommunityError, CommunityMissing, CommunityToast, PlainText, useCommunityToast } from "./community-ui";
 import { CommunityComments } from "./community-comments";
 import { EntryMenu } from "./entry-menu";
 import { FeedSkeleton } from "./community-list";
@@ -76,7 +76,7 @@ function DetailSubbar({ post, notify, edit }: SubbarProps) {
 type ArticleProps = { readonly post: CommunityEntry; readonly notify: Notify; readonly onLiked: (state: CommunityLikeState) => void };
 
 function PostArticle({ post, notify, onLiked }: ArticleProps) {
-  return <article className="community-post"><div className="community-post-author"><AnonymousAvatar author={post.author} photoUrl={post.authorPhotoUrl} />
+  return <article className="community-post"><div className="community-post-author"><CommunityPhoto photoUrl={post.authorPhotoUrl} />
     <CommunityByline author={post.author} authorPath={post.authorPath} createdAt={post.createdAt} updatedAt={post.updatedAt} /></div>
     <h1>{post.title}</h1><PlainText text={post.body ?? ""} />
     <div className="community-reactions community-post-reactions"><LikeButton post={post} onChanged={onLiked} labelled />
