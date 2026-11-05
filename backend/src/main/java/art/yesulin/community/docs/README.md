@@ -14,3 +14,4 @@
 - 로그인 전환 요구사항 평가: [2026-11-04 계획 검토](reviews/2026-11-04-community-membership-plan.md)
 
 - 회원 참여 구현 평가: [2026-11-04 구현 검증](reviews/2026-11-04-community-membership.md)
+- 3단 구성·익명 별 아바타 평가: [2026-11-05 수다방 화면](reviews/2026-11-05-community-board-layout.md)

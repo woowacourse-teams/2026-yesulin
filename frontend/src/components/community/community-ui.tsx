@@ -4,13 +4,19 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { PiChatCircle } from "react-icons/pi";
+import { avatarHue } from "@/features/community/avatar";
 import { fullTime, relativeTime } from "@/features/community/time";
 
-export function CommunityPhoto({ photoUrl, small = false }: { readonly photoUrl?: string | null; readonly small?: boolean }) {
-  if (!photoUrl) return null;
+type PhotoProps = { readonly photoUrl?: string | null; readonly small?: boolean; readonly label?: string; readonly seed?: string };
+
+/** 사진이 없으면 글 번호와 이름으로 색을 정한 별 마스코트를 보인다. label이 없으면 아무것도 그리지 않는다. */
+export function CommunityPhoto({ photoUrl, small = false, label, seed }: PhotoProps) {
   let className = "community-avatar";
   if (small) className += " community-avatar-small";
-  return <Image className={className} src={photoUrl} alt="" width={40} height={40} unoptimized />;
+  if (photoUrl) return <Image className={className} src={photoUrl} alt="" width={40} height={40} unoptimized />;
+  if (!label) return null;
+  return <span className={`${className} community-avatar-star`} style={{ filter: `hue-rotate(${avatarHue(seed ?? label)}deg)` }} aria-hidden="true">
+    <Image src="/images/community-star-chat.png" alt="" width={40} height={37} /></span>;
 }
 
 type BylineProps = { readonly author: string; readonly createdAt: string; readonly updatedAt: string; readonly showProfileBadge?: boolean; readonly markWriter?: boolean; readonly authorPath?: string | null };
