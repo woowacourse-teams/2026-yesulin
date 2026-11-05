@@ -39,4 +39,9 @@ describe("공연사 서비스 랜딩", () => {
     expect(html).toContain('aria-pressed="false"');
     expect(html).toContain("포스터 움직임 멈추기");
   });
+
+  it("문구를 가운데 점으로 이어 붙이지 않고 같은 숫자를 반복하지 않는다", () => {
+    expect(html).not.toContain(" · ");
+    expect(html.match(/240\+/g)).toHaveLength(1);
+  });
 });
