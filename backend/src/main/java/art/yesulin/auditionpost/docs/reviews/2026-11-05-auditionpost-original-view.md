@@ -54,3 +54,8 @@
 필수 PASS7 / FAIL0 / UNVERIFIED0 / N/A0, 검증률 7/7.
 신규 발견3 / 해결3 / 미해결0, P0=0 P1=0 P2=1 P3=2. PRECHECK0 / INDEPENDENT_REVIEW3 / POST_FIX_CHECK0 / EXTERNAL0, 오탐1.
 미확인: 사진 클릭으로 연 뒤 닫을 때의 포커스 복귀(기존 `ModalShell` 동작), 실제 iOS·Android 손가락 확대, 운영 데이터 전체 공고, `npm run build`.
+
+## 최초 PR 연결
+
+최초 게시 PR: [#529](https://github.com/woowacourse-teams/2026-yesulin/pull/529), 대상 dev.
+위 사건 표의 PENDING은 당시 이력이며 이 절로 최초 게시 번호를 연결한다. 문제 ID와 확정·해결 시각은 바꾸지 않는다.
