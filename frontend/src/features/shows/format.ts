@@ -37,6 +37,28 @@ function showDateTimeParts(value: string): ShowDateTimeParts | null {
   };
 }
 
+/** 상세의 날짜 띠 한 칸. 같은 한국 날짜의 회차를 시작 순서대로 묶는다. */
+export type ShowSessionDay<T extends { readonly startsAt: string }> = {
+  readonly key: string;
+  readonly day: string;
+  readonly weekday: string;
+  readonly label: string;
+  readonly sessions: readonly T[];
+};
+
+export function groupSessionsByDay<T extends { readonly startsAt: string }>(sessions: readonly T[]): ShowSessionDay<T>[] {
+  const days = new Map<string, { day: string; weekday: string; label: string; sessions: T[] }>();
+  sessions.forEach((session) => {
+    const parts = showDateTimeParts(session.startsAt);
+    if (!parts) return;
+    const key = `${parts.year}-${parts.month}-${parts.day}`;
+    const day = days.get(key) ?? { day: parts.day, weekday: parts.weekday, label: `${parts.month}월 ${parts.day}일 (${parts.weekday})`, sessions: [] };
+    day.sessions.push(session);
+    days.set(key, day);
+  });
+  return [...days.entries()].map(([key, day]) => ({ key, ...day }));
+}
+
 export function formatShowDate(value: string) {
   const parts = showDateTimeParts(value);
   return parts ? `${parts.month}월 ${parts.day}일 (${parts.weekday})` : "일정 확인 중";
