@@ -1222,3 +1222,40 @@
 .notebook-show-when.is-muted { font-weight:600; color:var(--ink-40); }
 .notebook-show-when + .notebook-poster-title { margin-top:2px; }
 .notebook-show-genres { margin:0 0 20px; }
+
+/* 공연 상세 회차 선택: 공연 있는 날짜 띠 → 고른 날짜의 시작 시각 칩. */
+.show-dates { display:flex; gap:8px; margin-top:20px; overflow-x:auto; padding:2px 2px 4px; scrollbar-width:none; }
+.show-dates::-webkit-scrollbar { display:none; }
+.show-date { flex:0 0 auto; display:grid; justify-items:center; gap:2px; width:58px; padding:10px 0; border:1px solid #e5e8eb; border-radius:14px; background:#fff; color:#191f28; transition:background-color .15s, border-color .15s; }
+.show-date small { font-size:13px; color:#6b7684; }
+.show-date[data-weekday="토"] small { color:#2272eb; }
+.show-date[data-weekday="일"] small { color:#f04452; }
+.show-date b { font-size:20px; font-weight:800; line-height:1.2; }
+.show-date-count { font-size:12px; font-weight:700; color:#2272eb; }
+.show-date[data-closed] { color:#b0b8c1; }
+.show-date:hover { border-color:#c9d3df; }
+.show-date[aria-pressed=true] { border-color:#191f28; background:#191f28; color:#fff; }
+.show-date[aria-pressed=true] :is(small,.show-date-count) { color:#c9ced6; }
+.show-date:focus-visible { outline:2px solid var(--focus); outline-offset:2px; }
+.show-times { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; margin-top:16px; }
+.show-time { display:flex; align-items:center; justify-content:space-between; gap:10px; min-height:56px; padding:12px 16px; border:1px solid #e5e8eb; border-radius:14px; background:#fff; cursor:pointer; transition:border-color .15s, background-color .15s; }
+.show-time b { font-size:18px; font-weight:800; color:#191f28; }
+.show-time:hover { border-color:#c9d3df; }
+.show-time[data-selected] { border-color:#2272eb; background:#e8f1fd; box-shadow:inset 0 0 0 1px #2272eb; }
+.show-time[data-disabled] { cursor:default; background:#f2f4f6; }
+.show-time[data-disabled] b { color:#b0b8c1; }
+.show-time:has(:focus-visible) { outline:2px solid var(--focus); outline-offset:2px; }
+
+/* 공연 상세 정보 탭 */
+.show-tabs { padding-top:8px; }
+.show-tab-list { position:sticky; top:88px; z-index:5; display:flex; gap:24px; border-bottom:1px solid #e5e8eb; background:#fff; }
+.show-tab-list [role=tab] { min-height:52px; padding:0 2px; margin-bottom:-1px; border-bottom:2px solid transparent; font-size:16px; font-weight:700; color:#6b7684; }
+.show-tab-list [role=tab][aria-selected=true] { color:#191f28; border-bottom-color:#191f28; }
+.show-tab-list [role=tab]:focus-visible { outline:2px solid var(--focus); outline-offset:-2px; }
+.show-tab-panel { padding:24px 0 8px; }
+@media(max-width:760px) {
+  .show-date { width:52px; }
+  .show-times { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .show-tab-list { top:72px; gap:18px; }
+  .show-tab-list [role=tab] { font-size:15px; }
+}
