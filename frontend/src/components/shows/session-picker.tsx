@@ -23,17 +23,17 @@ export function SessionPicker({ show, sectionId, selectedId, onSelect }: {
   readonly show: PublicShow;
   readonly sectionId: string;
   readonly selectedId: number | null;
-  readonly onSelect: (id: number) => void;
+  readonly onSelect: (id: number | null) => void;
 }) {
   const days = groupSessionsByDay(show.sessions);
   const [dayKey, setDayKey] = useState(() => initialDay(days, selectedId)?.key ?? null);
   const day = days.find((candidate) => candidate.key === dayKey) ?? days[0];
   const chooseDay = (next: SessionDay) => {
     setDayKey(next.key);
-    selectOnlySession(next, onSelect);
+    onSelect(onlyBookableId(next));
   };
   // 처음 펼친 날짜에 예매할 회차가 하나뿐이면 바로 고른 상태로 둔다.
-  useEffect(() => { if (selectedId === null && day) selectOnlySession(day, onSelect); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (selectedId === null && day) onSelect(onlyBookableId(day)); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   return <section id={sectionId} className="border-b border-border py-8 sm:py-10">
     <fieldset>
       <legend className="text-xl font-bold tracking-[-0.02em]">회차 선택</legend>
@@ -50,9 +50,10 @@ export function SessionPicker({ show, sectionId, selectedId, onSelect }: {
   </section>;
 }
 
-function selectOnlySession(day: SessionDay, onSelect: (id: number) => void): void {
+function onlyBookableId(day: SessionDay): number | null {
   const bookable = day.sessions.filter((session) => session.bookable);
-  if (bookable.length === 1) onSelect(bookable[0]!.id);
+  if (bookable.length !== 1) return null;
+  return bookable[0]!.id;
 }
 
 function sessionGuide(show: PublicShow): string {
