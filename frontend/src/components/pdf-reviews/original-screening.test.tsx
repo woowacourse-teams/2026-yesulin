@@ -59,11 +59,11 @@ it('배역 저장 실패는 기존 값을 유지하고 다시 선택해서 저�
 
 it('수동 저장·대기 복원·원본 파일명·설명 문구를 표시하지 않는다', async () => {
   await act(async () => root.render(<Harness />));
-  for (const text of ['메모 저장','대기로 되돌리기','원본 파일 ·','심사 기록']) expect(host.textContent).not.toContain(text);
-  expect(host.querySelector<HTMLInputElement>('[aria-label="지원서 제목"]')?.value).toBe('a.pdf');
+  for (const text of ['메모 저장','대기로 되돌리기','원본 파일 ·','심사 기록','저장됨','저장 대기 중']) expect(host.textContent).not.toContain(text);
+  expect(host.querySelector<HTMLInputElement>('[aria-label="배우 이름"]')?.value).toBe('');
 });
 async function title(value: string) {
-  const input=host.querySelector<HTMLInputElement>('[aria-label="지원서 제목"]')!;
+  const input=host.querySelector<HTMLInputElement>('[aria-label="배우 이름"]')!;
   await act(async () => {Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value')!.set!.call(input,value);input.dispatchEvent(new Event('input',{bubbles:true}));});
   return input;
 }
@@ -82,6 +82,6 @@ it('제목 저장이 완료될 때까지 다음 이동을 기다리고 제목·�
   const navigate=vi.fn(); await act(async () => root.render(<Harness navigate={navigate} />));
   await title('최신 제목');await memo('최신 메모');await button('다음 지원서');expect(navigate).not.toHaveBeenCalled();
   await act(async()=>resolve({...entries[0],title:'최신 제목'}));
-  expect(navigate).toHaveBeenCalledOnce();expect(host.querySelector<HTMLInputElement>('[aria-label="지원서 제목"]')?.value).toBe('최신 제목');
+  expect(navigate).toHaveBeenCalledOnce();expect(host.querySelector<HTMLInputElement>('[aria-label="배우 이름"]')?.value).toBe('최신 제목');
   expect(host.querySelector('textarea')?.value).toBe('최신 메모');expect(mocks.dirty).toHaveBeenLastCalledWith(false);
 });

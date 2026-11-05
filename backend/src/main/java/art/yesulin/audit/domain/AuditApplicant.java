@@ -26,7 +26,8 @@ public class AuditApplicant {
     public static final int MAX_FILENAME_LENGTH = 255;
     public static final int MAX_APPLICANT_NAME_LENGTH = 100;
     public static final int MAX_EVIDENCE_LENGTH = 1000;
-    public static final int MAX_MEMO_LENGTH = 2000;
+    public static final int MAX_MEMO_LENGTH = 500;
+    public static final int MEMO_STORAGE_LENGTH = 2000;
 
     @Id
     @Column(length = 36)
@@ -57,7 +58,7 @@ public class AuditApplicant {
     @Column(nullable = false, length = MAX_EVIDENCE_LENGTH)
     private String matchEvidence;
 
-    @Column(nullable = false, length = MAX_MEMO_LENGTH)
+    @Column(nullable = false, length = MEMO_STORAGE_LENGTH)
     private String memo;
 
     @Enumerated(EnumType.STRING)
@@ -84,11 +85,16 @@ public class AuditApplicant {
     }
 
     public String getTitle() {
-        return Objects.requireNonNullElse(displayTitle, originalFilename);
+        return Objects.requireNonNullElse(displayTitle, "");
     }
 
     public void rename(String title) {
-        this.displayTitle = AuditText.requireName(title, MAX_FILENAME_LENGTH, "지원서 제목");
+        String normalized = AuditText.normalize(title);
+        if (title == null || AuditText.length(normalized) > MAX_FILENAME_LENGTH
+                || normalized.chars().anyMatch(Character::isISOControl)) {
+            throw new BusinessException(INVALID_PDF_REVIEW, "배우 이름은 255자 이하로 입력해 주세요.");
+        }
+        this.displayTitle = normalized;
     }
 
     public static AuditApplicant forManualReview(String reviewId, String jobId, String originalFilename) {
@@ -154,7 +160,7 @@ public class AuditApplicant {
 
     public void review(String memo, AuditDecision decision) {
         String value = Objects.requireNonNullElse(memo, "");
-        if (decision == null || AuditText.length(value) > MAX_MEMO_LENGTH) {
+        if (decision == null || (AuditText.length(value) > MAX_MEMO_LENGTH && !value.equals(this.memo))) {
             throw new BusinessException(INVALID_PDF_REVIEW,
                     "메모는 %d자 이하로 입력하고 판정을 선택해 주세요.", MAX_MEMO_LENGTH);
         }

@@ -5,3 +5,6 @@
 .page canvas[aria-hidden="true"] { visibility: hidden; }
 .loading { position: absolute; inset: 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; padding: 20px; font-size: 13px; color: #64748b; }
 @media (max-width: 767px) { .reader { height: 65dvh; min-height: 320px; } }
+
+.documentLink { position: absolute; z-index: 1; display: block; border-radius: 3px; cursor: pointer; }
+.documentLink:hover, .documentLink:focus-visible { outline: 2px solid #2463eb; background: rgb(36 99 235 / 8%); }

@@ -39,10 +39,11 @@ it("실패하면 이동을 막고 입력을 유지하며 명시적 재시도로 
   await vi.advanceTimersByTimeAsync(5000); expect(save).toHaveBeenCalledTimes(1);
   expect(await store.flush()).toBe(true); expect(store.getSnapshot().dirty).toBe(false);
 });
-it("빈 제목·긴 메모는 전송하지 않으며 제목의 서버 정규화 값을 반영한다", async () => {
-  const { store, save } = setup(); store.change("title", "  "); expect(await store.flush()).toBe(false); expect(save).not.toHaveBeenCalled();
+it("배우 이름을 지울 수 있고 500자 메모 경계를 검증한다", async () => {
+  const { store, save } = setup(); store.change("title", "  "); expect(await store.flush()).toBe(true); expect(save).toHaveBeenCalledWith("title", "");
   store.change("title", " 배우 프로필 "); expect(await store.flush()).toBe(true); expect(store.getSnapshot().title).toBe("배우 프로필");
-  store.change("memo", "가".repeat(2001)); expect(await store.flush()).toBe(false); expect(save).toHaveBeenCalledTimes(1);
+  store.change("memo", "가".repeat(500)); expect(await store.flush()).toBe(true);
+  store.change("memo", "가".repeat(501)); expect(await store.flush()).toBe(false); expect(save).toHaveBeenCalledTimes(3);
 });
 it("외부 갱신은 편집 중인 필드를 덮지 않고 종료된 화면은 추가 요청하지 않는다", async () => {
   const { store, save } = setup(); store.change("memo", "작성 중"); store.sync({ title: "외부 제목", memo: "외부 메모" });

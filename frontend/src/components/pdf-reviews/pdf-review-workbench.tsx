@@ -123,7 +123,7 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
       </div> : !review ? <p role="status" className="p-8">{reviews.detailError || "심사함을 불러오고 있습니다…"}</p> : <>
         <div className={`${styles.controls} px-4 md:px-6 xl:px-8`}>
           <header className={styles.header}><nav className={styles.breadcrumb} aria-label="심사함 경로"><ol><li><button type="button" className={styles.homeLink} onClick={() => navigate(() => setHome(true))}>심사함</button></li><li aria-hidden="true" className={styles.breadcrumbSeparator}>›</li><li aria-current="page"><h1 title={review.title}>{review.title}</h1></li></ol></nav>
-            <p className={styles.reviewCounts}><span>전체 <b className="num">{review.entries.length}</b>명</span><span>판정 완료 <b className="num">{review.entries.filter(item => item.decision === "PASS" || item.decision === "FAIL").length}</b>명</span></p>
+
           </header>
           {!contactsOpen && <ReviewUploadPanel {...uploadProps} inputRef={uploadInput} folderInputRef={uploadFolderInput}>
             <nav className={styles.roleBar} aria-label="배역별 지원자"><div className={styles.roleChips}>{chips.map(chip => {
@@ -146,7 +146,7 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
             <div role="group" aria-label="심사 상태" className={styles.decisionTabs}>{([['PENDING','대기'],['PASS','합격'],['HOLD','보류'],['FAIL','불합격']] as const).map(([value,label]) => <button type="button" key={value} aria-pressed={decision === value} onClick={() => navigate(() => setDecision(value))}>{label}<span className="num">{review.entries.filter(item => matchesFilter(item, filter) && matchesDecision(item, value)).length}</span></button>)}</div>
             <div className={styles.boardActions}>
             <div role="group" aria-label="보기 방식" className={styles.viewTabs}>{([['single','한 명씩'],['card','카드'],['table','표']] as const).map(([value,label]) => <button type="button" key={value} aria-pressed={view === value} onClick={() => navigate(() => setView(value))}>{label}</button>)}</div>
-            <SecondaryButton disabled={expired} onClick={() => navigate(() => setContactsOpen(true))}>합격자 연락처</SecondaryButton>
+            {decision === "PASS" && <SecondaryButton disabled={expired} onClick={() => navigate(() => setContactsOpen(true))}>합격자 연락처</SecondaryButton>}
             </div>
           </div>
           {!visible.length ? preparing ? <div className={styles.emptyDrop} role="status" aria-live="polite">

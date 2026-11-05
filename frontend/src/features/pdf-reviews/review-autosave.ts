@@ -85,8 +85,8 @@ export class ReviewAutosave {
   }
 
   private invalid(field: DraftField, value: string) {
-    if (field === "title" && (!value.trim() || value.trim().length > 255)) return "제목은 1~255자로 입력해 주세요.";
-    if (field === "memo" && value.length > 2000) return "메모는 2,000자 이하로 입력해 주세요.";
+    if (field === "title" && (value.trim().length > 255)) return "배우 이름은 255자 이하로 입력해 주세요.";
+    if (field === "memo" && value.length > 500) return "메모는 500자 이하로 입력해 주세요.";
     return "";
   }
 

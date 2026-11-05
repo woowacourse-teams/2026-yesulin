@@ -50,6 +50,13 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); container.remove(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 describe("합격자 일정 등록", () => {
+  it("직접 입력한 배우 이름을 자동 추출 이름보다 우선해서 일정에 가져온다", async () => {
+    const named = selected.map(row => ({ ...row, entry: { ...row.entry, title: "수동 이름" } }));
+    await act(async () => root.render(<ReviewTimetablePanel reviewId="review" selected={named}
+      onClose={vi.fn()} onDirtyChange={dirtyChange} onUnauthorized={unauthorized} />));
+    await choose();
+    expect(container.querySelector<HTMLInputElement>("#import-0-name")!.value).toBe("수동 이름");
+  });
   it("새 일정 입력을 명시적으로 열고 닫아도 이름·재시도 키와 기존 일정은 보존한다", async () => {
     await render(); await choose();
     expect(container.querySelector("#roster-title")).toBeNull();

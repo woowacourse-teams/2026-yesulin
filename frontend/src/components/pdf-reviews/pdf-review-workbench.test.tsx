@@ -52,7 +52,7 @@ afterEach(() => { act(() => root.unmount()); container.remove(); vi.unstubAllGlo
 describe("합격자 연락처 세션 경계", () => {
   it.each(["원문 조회", "상위 진행률 조회"])("%s에서 401을 받으면 이미 표시된 연락처와 원문 모달도 제거한다", async source => {
     await act(async () => root.render(<PdfReviewWorkbench />));
-    await click("합성 심사"); await click("합격자 연락처");
+    await click("합성 심사"); await click("합격"); await click("합격자 연락처");
     expect(container.textContent).toContain("합성가람"); expect(container.textContent).toContain("010-0000-0001");
     expect(container.textContent).toContain("actor@example.test");
     expect(container.textContent).toContain("이메일 확인 1명");
@@ -69,7 +69,7 @@ describe("합격자 연락처 세션 경계", () => {
     await act(async () => root.render(<PdfReviewWorkbench />));
     await click("합성 심사");
     expect(container.querySelector('[data-pdf-processing-toast]')).toBeNull();
-    await click("합격자 연락처"); await click("심사로 돌아가기");
+    await click("합격"); await click("합격자 연락처"); await click("심사로 돌아가기");
     expect(container.querySelector('[data-pdf-processing-toast]')).toBeNull();
   });
 

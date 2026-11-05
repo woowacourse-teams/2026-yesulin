@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { PDFDocumentLoadingTask, PDFDocumentProxy } from "pdfjs-dist";
+import { PdfQrDecoder } from "./pdf-qr-decoder";
 import { PdfRenderQueue } from "./pdf-render-queue";
 import { PdfScrollPage, type PdfPageSize } from "./pdf-scroll-page";
 import styles from "./pdf-viewer.module.css";
@@ -11,7 +12,10 @@ export function PdfCanvasViewer({ url, filename, onRetry }: { readonly url: stri
   const [loaded, setLoaded] = useState<{ url: string; document: PDFDocumentProxy; pages: PdfPageSize[] } | null>(null);
   const [view, setView] = useState({ width: 0, zoom: 1, revision: 0 });
   const [failure, setFailure] = useState("");
+  const [decoder] = useState(() => new PdfQrDecoder(() => new Worker(new URL("./pdf-qr.worker.ts", import.meta.url), { type: "module" })));
+  useEffect(() => decoder.dispose, [decoder]);
   const [queue] = useState(() => new PdfRenderQueue());
+  const [scanQueue] = useState(() => new PdfRenderQueue());
   const zoomRef = useRef(1);
   const anchor = useRef<{ zoom: number; left: number; top: number; x: number; y: number } | null>(null);
   useEffect(() => {
@@ -86,6 +90,6 @@ export function PdfCanvasViewer({ url, filename, onRetry }: { readonly url: stri
   return <div ref={reader} tabIndex={0} role="region" aria-label="지원서 원본 연속 보기" className={styles.reader} data-pdf-zoom={view.zoom}>
     {!ready && failure !== url && <div role="status" className="p-8 text-center text-sm text-muted">PDF를 불러오고 있어요</div>}
     {failure === url && <p role="alert" className="p-6 text-sm text-fail">PDF를 불러오지 못했어요. {onRetry && <button type="button" onClick={onRetry} className="min-h-11 px-3 font-semibold">다시 시도</button>}</p>}
-    {ready && <div className={styles.document}>{loaded.pages.map((size, index) => <PdfScrollPage key={index} document={loaded.document} page={index + 1} size={size} width={view.width} zoom={view.zoom} revision={view.revision} reader={reader} queue={queue} filename={filename} />)}</div>}
+    {ready && <div className={styles.document}>{loaded.pages.map((size, index) => <PdfScrollPage key={index} document={loaded.document} page={index + 1} size={size} width={view.width} zoom={view.zoom} revision={view.revision} reader={reader} queue={queue} scanQueue={scanQueue} decoder={decoder} filename={filename} />)}</div>}
   </div>;
 }

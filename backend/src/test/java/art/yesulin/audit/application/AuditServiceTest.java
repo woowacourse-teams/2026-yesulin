@@ -99,7 +99,7 @@ class AuditServiceTest {
                 () -> service.renameEntry(OTHER_OWNER, review.id(), uploaded.id(), "제목"));
         assertThrows(BusinessException.class,
                 () -> service.renameEntry(OWNER, other.id(), uploaded.id(), "제목"));
-        assertEquals(uploaded.originalFilename(), service.find(OWNER, review.id()).entries().get(0).title());
+        assertEquals("", service.find(OWNER, review.id()).entries().get(0).title());
     }
 
     @Test
@@ -125,7 +125,7 @@ class AuditServiceTest {
         assertThrows(BusinessException.class,
                 () -> service.updateMemo(OWNER, other.id(), uploaded.id(), "메모"));
         assertThrows(BusinessException.class,
-                () -> service.updateMemo(OWNER, review.id(), uploaded.id(), "가".repeat(2001)));
+                () -> service.updateMemo(OWNER, review.id(), uploaded.id(), "가".repeat(501)));
         assertEquals("", service.find(OWNER, review.id()).entries().get(0).memo());
     }
 

@@ -3,6 +3,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { PdfCanvasViewer } from "./pdf-canvas-viewer";
+vi.mock("./pdf-page-links", () => ({ PdfPageLinks: () => null }));
 type Task = { page: number; resolve: () => void; reject: (error: Error) => void; cancel: ReturnType<typeof vi.fn> };
 const state = vi.hoisted(() => ({ tasks: [] as Task[], destroy: vi.fn(), cleanup: vi.fn(), brokenMetadata: false }));
 vi.mock("pdfjs-dist", () => ({ GlobalWorkerOptions: {}, version: "test", getDocument: () => ({ destroy: state.destroy.mockResolvedValue(undefined),

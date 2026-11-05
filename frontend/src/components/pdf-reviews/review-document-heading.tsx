@@ -5,7 +5,7 @@ export function ReviewDocumentHeading({ title, disabled, onChange, onBlur, onCom
   readonly onChange: (title: string) => void; readonly onBlur: () => void;
   readonly onCompositionStart: () => void; readonly onCompositionEnd: (value: string) => void;
 }) {
-  return <input aria-label="지원서 제목" value={title} maxLength={255} disabled={disabled}
+  return <input aria-label="배우 이름" placeholder="배우 이름을 입력해 주세요" value={title} maxLength={255} disabled={disabled}
     onChange={event => onChange(event.target.value)} onBlur={onBlur}
     onCompositionStart={onCompositionStart} onCompositionEnd={event => onCompositionEnd(event.currentTarget.value)}
     onKeyDown={event => { if (event.key === "Enter" && !event.nativeEvent.isComposing) { event.preventDefault(); event.currentTarget.blur(); } }}

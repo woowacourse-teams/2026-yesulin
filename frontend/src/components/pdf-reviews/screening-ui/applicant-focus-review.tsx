@@ -27,7 +27,7 @@ function FocusReviewContent({ applicant, rows, index, onBack, onMove }: {
   const decisionPending = useRef(false);
   const section = useRef<HTMLElement>(null);
   useEffect(() => { section.current?.focus({ preventScroll: true }); }, [applicant.id]);
-  const draft = useReviewAutosave({ title: applicant.sourceDocument?.title || applicant.sourceDocument?.filename || applicant.name, memo: applicant.review.note },
+  const draft = useReviewAutosave({ title: applicant.sourceDocument?.title ?? "", memo: applicant.review.note },
     (field, value) => {
       if (field === "title" && renameTitle) return renameTitle(applicant.id, value);
       if (field === "memo" && saveMemo) return saveMemo(applicant.id, value);
@@ -86,11 +86,8 @@ function FocusReviewContent({ applicant, rows, index, onBack, onMove }: {
       <div className="min-w-0 overflow-hidden rounded-card border border-border bg-card">{renderDocument?.(applicant)}</div>
       <aside className="min-w-0 space-y-5 rounded-card border border-border bg-card p-4 md:sticky md:top-4" aria-label="지원자 심사">
         {!!roleOptions?.length && changeRole && <ReviewRoleSelect label="배역 배정" roles={roleOptions} value={currentRole?.(applicant.id) ?? null} disabled={disabled} onChange={roleId => void navigate(() => changeRole(applicant.id, roleId))} />}
-        <div><label htmlFor="pdf-review-memo" className="mb-2 block text-sm font-semibold">내부 메모</label><textarea id="pdf-review-memo" value={draft.memo} maxLength={2000} disabled={disabled || reviewLocked} rows={8} onChange={event => draft.change("memo", event.target.value)} onBlur={() => void flush()} onCompositionStart={() => draft.compose("memo", true)} onCompositionEnd={event => draft.compose("memo", false, event.currentTarget.value)} className="w-full resize-y rounded-control border border-border bg-surface p-3 text-sm" /></div>
-        <div role="status" aria-live="polite" className="min-h-5 text-xs text-muted">
-          {draft.status === "pending" && "저장 대기 중"}{draft.status === "saving" && "저장 중…"}{draft.status === "saved" && "저장됨"}
-          {draft.status === "error" && <><span className="text-fail">{draft.error}</span><button type="button" onClick={() => void flush()} className="mt-1 block min-h-11 text-sm font-semibold text-brand">저장 재시도</button></>}
-        </div>
+        <div><label htmlFor="pdf-review-memo" className="mb-2 block text-sm font-semibold">내부 메모</label><textarea id="pdf-review-memo" value={draft.memo} maxLength={500} disabled={disabled || reviewLocked} rows={6} onChange={event => draft.change("memo", event.target.value)} onBlur={() => void flush()} onCompositionStart={() => draft.compose("memo", true)} onCompositionEnd={event => draft.compose("memo", false, event.currentTarget.value)} className="h-44 w-full resize-none rounded-control border border-border bg-surface p-3 text-sm" /></div>
+        {draft.status === "error" && <div role="alert" className="text-xs text-fail"><span>{draft.error}</span><button type="button" onClick={() => void flush()} className="mt-1 block min-h-11 text-sm font-semibold text-brand">저장 재시도</button></div>}
         <div role="group" aria-label="지원자 심사 판정" className="grid grid-cols-3 gap-2">{([['FAIL','불합격','border-fail text-fail'],['ETC','보류','border-border text-muted-strong'],['PASS','합격','border-brand text-brand']] as const).map(([status,label,color]) => <button key={status} type="button" aria-label={label} aria-pressed={applicant.review.status === status} disabled={disabled || reviewLocked} onClick={() => void save(status)} className={`min-h-12 rounded-control border bg-card px-2 py-3 text-sm font-bold hover:bg-surface aria-pressed:bg-surface aria-pressed:ring-2 aria-pressed:ring-current disabled:opacity-50 ${color}`}>{label}</button>)}</div>
       </aside>
     </div>

@@ -11,9 +11,9 @@ import org.junit.jupiter.api.Test;
 class AuditApplicantTitleTest {
 
     @Test
-    void missingDisplayTitleUsesOriginalFilenameAndRenameOnlyChangesDisplayTitle() {
+    void missingNameStartsEmptyAndRenameOnlyChangesDisplayTitle() {
         AuditApplicant entry = AuditApplicant.forManualReview("review", "job", "source.pdf");
-        assertEquals("source.pdf", entry.getTitle());
+        assertEquals("", entry.getTitle());
         entry.review("메모", AuditDecision.PASS);
         entry.rename("  배우   지원서 ");
         assertEquals("배우 지원서", entry.getTitle());
@@ -26,10 +26,12 @@ class AuditApplicantTitleTest {
     @Test
     void rejectsInvalidTitlesWithoutChangingThePreviousTitle() {
         AuditApplicant entry = AuditApplicant.forManualReview("review", "job", "source.pdf");
-        assertThrows(BusinessException.class, () -> entry.rename("  "));
+        entry.rename("배우");
         assertThrows(BusinessException.class, () -> entry.rename("가".repeat(256)));
         assertThrows(BusinessException.class, () -> entry.rename(null));
-        assertEquals("source.pdf", entry.getTitle());
+        assertEquals("배우", entry.getTitle());
+        entry.rename("  ");
+        assertEquals("", entry.getTitle());
     }
 
     @Test
