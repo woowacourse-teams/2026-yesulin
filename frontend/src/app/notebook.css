@@ -749,17 +749,6 @@
 .notebook-auth-card h1 { font-size:28px; font-weight:750; line-height:1.4; }
 .notebook-auth-description { margin-top:10px; font-size:15px; line-height:1.7; color:#6b7684; }
 .notebook-auth-footer { margin-top:24px; font-size:14px; line-height:1.7; color:#6b7684; }
-.notebook-producer-intro { padding-top:32px; }
-.notebook-producer-hero { display:grid; grid-template-columns:1fr 1fr; align-items:center; gap:40px; background:#e3f0ff; border-radius:14px; padding:36px; }
-.notebook-producer-hero h1 { margin-top:18px; font-size:clamp(28px,3.2vw,40px); line-height:1.35; font-weight:750; }
-.notebook-producer-description { margin-top:20px; max-width:30rem; font-size:16px; line-height:1.8; color:#4e5968; }
-.notebook-producer-preview { min-width:0; }
-.notebook-producer-features { padding-block:48px; display:grid; grid-template-columns:1fr 1.4fr; gap:40px; }
-.notebook-producer-features h2 { font-size:26px; line-height:1.5; font-weight:700; }
-.notebook-producer-features article { padding-block:22px; border-bottom:1px solid #e5e8eb; }
-.notebook-producer-features article:first-child { padding-top:0; }
-.notebook-producer-features h3 { font-size:20px; font-weight:650; }
-.notebook-producer-features p { margin-top:8px; font-size:15px; line-height:1.8; color:#6b7684; }
 
 @media(max-width:1080px) {
   .notebook-account, .notebook-main-nav { display:none; }
@@ -777,9 +766,6 @@
   .notebook-auth { padding-block:28px 40px; }
   .notebook-auth-card { padding:24px 20px; }
   .notebook-auth-card h1 { font-size:25px; }
-  .notebook-producer-intro { padding-top:20px; }
-  .notebook-producer-hero { grid-template-columns:minmax(0,1fr); padding:28px 22px; gap:28px; }
-  .notebook-producer-features { grid-template-columns:minmax(0,1fr); gap:24px; padding-block:36px; }
   .notebook-container {
     width:calc(100% - 40px);
   }
