@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { reportReviewError } from "@/features/pdf-reviews/report-review-error";
 import { trackReviewAction } from "@/features/analytics/review-actions";
 import { roleId, postingId, type SubmissionId, type ReviewStatus } from "@/features/auditions/types";
 import { assignPdfReviewRoles, isUnauthorized, renamePdfReviewEntry, updatePdfReviewEntry } from "@/features/pdf-reviews/api";
@@ -39,6 +40,7 @@ export function ScreeningBoard({ review, entries, decision, view, refreshKey, on
       if (focused && next.length === 0) setFocused(null);
       return { applicants: next.map(item => screeningApplicant(review, item)) };
     } catch (cause) {
+      reportReviewError(cause, "review_save");
       if (isUnauthorized(cause)) onUnauthorized();
       setError(cause instanceof Error ? cause.message : "저장하지 못했습니다. 다시 시도해 주세요."); return null;
     } finally { savingRef.current = false; setSaving(false); }
@@ -51,6 +53,7 @@ export function ScreeningBoard({ review, entries, decision, view, refreshKey, on
       const changed = await assignPdfReviewRoles(review.id, ids, roleId);
       changed.forEach(onSaved); setSelected(new Set()); setSavedMessage("배역을 저장했습니다.");
     } catch (cause) {
+      reportReviewError(cause, "review_save");
       if (isUnauthorized(cause)) onUnauthorized();
       setError(cause instanceof Error ? cause.message : "배역을 저장하지 못했습니다. 다시 선택해 주세요.");
     } finally { savingRef.current = false; setSaving(false); }
@@ -68,14 +71,14 @@ export function ScreeningBoard({ review, entries, decision, view, refreshKey, on
       const updated = await renamePdfReviewEntry(review.id, id, title);
       const confirmed = updated.title ?? title;
       publishField(id, { title: confirmed }); return confirmed;
-    } catch (cause) { if (isUnauthorized(cause)) onUnauthorized(); return null; }
+    } catch (cause) { reportReviewError(cause, "autosave"); if (isUnauthorized(cause)) onUnauthorized(); return null; }
   };
   const saveMemo = async (id: SubmissionId, memo: string) => {
     const entry = entryFor(id); if (!entry) return null;
     try {
       const updated = await updatePdfReviewEntry(review.id, id, { memo, decision: entry.decision }, "memo");
       publishField(id, { memo: updated.memo ?? "" }); return updated.memo ?? "";
-    } catch (cause) { if (isUnauthorized(cause)) onUnauthorized(); return null; }
+    } catch (cause) { reportReviewError(cause, "autosave"); if (isUnauthorized(cause)) onUnauthorized(); return null; }
   };
   const allEntries = review.entries;
   const done = allEntries.filter(entry => entry.decision === "PASS" || entry.decision === "FAIL").length;
@@ -96,7 +99,7 @@ export function ScreeningBoard({ review, entries, decision, view, refreshKey, on
   }}>
     {error && <p role="alert" className="mb-3 rounded-control bg-fail-bg p-3 text-sm text-fail">{error}</p>}
     <p role="status" className="sr-only">{saving ? "저장 중…" : savedMessage}</p>
-    {view === "single" || focused ? <ApplicantFocusReview key={focused ?? "single"} rows={rows} initialId={focused ?? undefined} onBack={focused ? () => navigate(() => setFocused(null)) : undefined} /> : <>
+    {view === "single" || focused ? <ApplicantFocusReview key={focused ?? "single"} rows={rows} initialId={focused ?? undefined} onBack={focused ? () => setFocused(null) : undefined} /> : <>
       <div className="mb-4 flex min-h-11 flex-wrap items-center gap-3 rounded-control border border-border bg-surface px-3 py-2 text-sm">
         <label className="flex min-h-11 cursor-pointer items-center gap-2.5 font-medium"><input className="h-5 w-5 accent-brand" type="checkbox" checked={rows.length > 0 && rows.every(row => selected.has(row.id))} onChange={event => setSelected(new Set(event.target.checked ? rows.map(row => row.id) : []))} />전체 선택</label>
         <span>{selected.size}명 선택</span>{review.roles.length > 0 && <ReviewRoleSelect label="선택한 지원자 배역" allowReselect roles={review.roles} value={null} disabled={!selected.size || selected.size > 300 || saving} onChange={roleId => void assignRole([...selected], roleId)} />}

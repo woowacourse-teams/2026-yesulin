@@ -9,7 +9,14 @@ export function PdfPageLinks({ document, page, visible, queue, scanQueue, decode
   readonly document: PDFDocumentProxy; readonly page: number; readonly visible: boolean;
   readonly queue: PdfRenderQueue; readonly scanQueue: PdfRenderQueue; readonly decoder: PdfQrDecoder;
 }) {
-  const [known, setKnown] = useState<{ document: PDFDocumentProxy; links: DocumentLink[]; scanned: boolean } | null>(null);
+  const [known, setKnown] = useState<{ document: PDFDocumentProxy; links: DocumentLink[] } | null>(null);
+  const [embedded, setEmbedded] = useState<{ document: PDFDocumentProxy; links: DocumentLink[] } | null>(null);
+  useEffect(() => {
+    if (!visible || embedded?.document === document) return;
+    let active = true;
+    void document.getPage(page).then(embeddedDocumentLinks).then(links => { if (active) setEmbedded({ document, links }); }).catch(() => {});
+    return () => { active = false; };
+  }, [document, page, visible, embedded?.document]);
   const scanned = useRef<PDFDocumentProxy | null>(null);
   useEffect(() => {
     if (!visible || scanned.current === document) return;
@@ -20,9 +27,7 @@ export function PdfPageLinks({ document, page, visible, queue, scanQueue, decode
       const pixels = await queue.enqueue(async () => {
         if (!active) return null;
         original = await document.getPage(page);
-        const embedded = await embeddedDocumentLinks(original).catch(() => []);
         if (!active) return null;
-        setKnown({ document, links: embedded, scanned: false });
         const base = original.getViewport({ scale: 1 });
         const scale = Math.min(3000 / Math.max(base.width, base.height), Math.sqrt(8_000_000 / (base.width * base.height)));
         const viewport = original.getViewport({ scale });
@@ -37,12 +42,15 @@ export function PdfPageLinks({ document, page, visible, queue, scanQueue, decode
       const qr = await decoder.decode(pixels, controller.signal);
       if (active) {
         scanned.current = document;
-        setKnown(current => ({ document, links: [...current?.links ?? [], ...qr], scanned: true }));
+        setKnown({ document, links: qr });
       }
     }).catch(() => {}).finally(() => { canvas.width = 0; canvas.height = 0; }); }, 0);
     return () => { active = false; clearTimeout(timer); controller.abort(); task?.cancel(); canvas.width = 0; canvas.height = 0; };
   }, [document, page, visible, queue, scanQueue, decoder]);
-  if (known?.document !== document || !visible) return null;
+  if (!visible) return null;
+  const links: DocumentLink[] = [];
+  if (embedded?.document === document) links.push(...embedded.links);
+  if (known?.document === document) links.push(...known.links);
   const labels = { qr: "QR 링크", link: "문서 링크" };
-  return known.links.map((link, index) => <a key={`${index}:${link.url}`} href={link.url} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" className={styles.documentLink} aria-label={`${labels[link.kind]} 열기: ${new URL(link.url).hostname}`} title={link.url} style={{ left: `${link.left * 100}%`, top: `${link.top * 100}%`, width: `${link.width * 100}%`, height: `${link.height * 100}%` }} />);
+  return links.map((link, index) => <a key={`${index}:${link.url}`} href={link.url} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" className={styles.documentLink} aria-label={`${labels[link.kind]} 열기: ${new URL(link.url).hostname}`} title={link.url} style={{ left: `${link.left * 100}%`, top: `${link.top * 100}%`, width: `${link.width * 100}%`, height: `${link.height * 100}%` }} />);
 }

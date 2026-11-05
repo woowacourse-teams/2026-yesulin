@@ -4,8 +4,10 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fetchPdfExtraction } from "@/features/pdf-extractions/api";
 import type { PdfExtractionJob } from "@/features/pdf-extractions/types";
+import { trackProductEvent } from "@/features/analytics/product-analytics";
 import { ReviewOriginalDocument } from "./review-original-document";
 
+vi.mock("@/features/analytics/product-analytics", () => ({ trackProductEvent: vi.fn() }));
 vi.mock("@/features/pdf-extractions/api", () => ({ fetchPdfExtraction: vi.fn() }));
 vi.mock("@/components/pdf-extractions/pdf-original-viewer", () => ({
   PdfOriginalViewer: ({ url, onRefresh }: { url: string; onRefresh: () => void }) => <>
@@ -32,6 +34,10 @@ beforeEach(() => {
 afterEach(() => { act(() => root.unmount()); vi.unstubAllGlobals(); });
 
 describe("원본 PDF 서명 주소", () => {
+  it("자동 원본 표시는 원본 클릭 분석 이벤트를 만들지 않는다", async () => {
+    vi.mocked(fetchPdfExtraction).mockResolvedValueOnce(job("https://example.test/auto.pdf"));await open();
+    expect(trackProductEvent).not.toHaveBeenCalledWith("review_original_pdf_clicked", expect.anything());
+  });
   it("열 때마다 메타데이터 API에서 최신 S3 주소를 받아 사용한다", async () => {
     vi.mocked(fetchPdfExtraction).mockResolvedValueOnce(job("https://s3.example.test/original.pdf?signature=first"))
       .mockResolvedValueOnce(job("https://s3.example.test/original.pdf?signature=renewed"));

@@ -20,7 +20,7 @@ async function request<T>(path: string, method: "GET" | "POST" | "PATCH", body?:
   const response = await fetch(BASE + path, {
     method, credentials: "include", cache: "no-store", signal,
     ...(body === undefined ? {} : {
-      headers: await withCsrfHeaders({ "Content-Type": "application/json" }), body: JSON.stringify(body),
+      headers: await withCsrfHeaders({ "Content-Type": "application/json" }, signal), body: JSON.stringify(body),
     }),
   });
   if (!response.ok) {
@@ -30,6 +30,18 @@ async function request<T>(path: string, method: "GET" | "POST" | "PATCH", body?:
     throw new PdfReviewApiError(response.status, data ? readErrorMessage(data, readErrorDetail(data)) : fallback);
   }
   return response.json() as Promise<T>;
+}
+
+async function boundedSave<T>(path: string, payload: unknown): Promise<T> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(new DOMException("Save timed out", "TimeoutError")), 15_000);
+  try { return await request<T>(path, "PATCH", payload, controller.signal); }
+  finally { clearTimeout(timer); }
+}
+
+async function saveEntry(path: string, payload: unknown, kind: "memo" | "decision") {
+  if (kind === "memo") return boundedSave<ReviewEntry>(path, payload);
+  return request<ReviewEntry>(path, "PATCH", payload);
 }
 
 const reviewPath = (id: ReviewKey) => `/${encodeURIComponent(String(id))}`;
@@ -81,7 +93,7 @@ export async function updatePdfReviewEntry(reviewId: ReviewKey, entryId: ReviewK
     let path = `${reviewPath(reviewId)}/entries/${encodeURIComponent(String(entryId))}`;
     let payload: unknown = change;
     if (saveKind === "memo") { path += "/memo"; payload = { memo: change.memo }; }
-    const entry = await request<ReviewEntry>(path, "PATCH", payload);
+    const entry = await saveEntry(path, payload, saveKind);
     void trackProductEvent("review_save_result", { ...properties, outcome: "success", duration_ms: Math.round(performance.now() - started) });
     void trackProductEvent("review_saved", { workflow: "producer_pdf", review_id: String(reviewId), item_id: String(entryId), eligible: entry.decision !== "PENDING" });
     return entry;
@@ -110,5 +122,5 @@ export function assignPdfReviewRoles(reviewId: ReviewKey, entryIds: readonly Rev
 }
 
 export function renamePdfReviewEntry(reviewId: ReviewKey, entryId: ReviewKey, title: string) {
-  return request<ReviewEntry>(`${reviewPath(reviewId)}/entries/${encodeURIComponent(String(entryId))}/title`, "PATCH", { title });
+  return boundedSave<ReviewEntry>(`${reviewPath(reviewId)}/entries/${encodeURIComponent(String(entryId))}/title`, { title });
 }

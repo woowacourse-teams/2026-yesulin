@@ -2,16 +2,17 @@
 
 import { useEffect, useRef, useState, type RefObject } from "react";
 import type { PDFDocumentProxy, PDFPageProxy, RenderTask } from "pdfjs-dist";
+import { reportPdfError } from "@/features/pdf-extractions/report-pdf-error";
 import { PdfPageLinks } from "./pdf-page-links";
 import type { PdfQrDecoder } from "./pdf-qr-decoder";
 import { PdfRenderQueue } from "./pdf-render-queue";
 import styles from "./pdf-viewer.module.css";
 
 export type PdfPageSize = { readonly width: number; readonly height: number };
-export function PdfScrollPage({ document, page, size, width, zoom, revision, reader, queue, scanQueue, decoder, filename }: {
+export function PdfScrollPage({ document, page, size, width, zoom, revision, reader, queue, scanQueue, decoder, filename, onRetry }: {
   readonly document: PDFDocumentProxy; readonly page: number; readonly size: PdfPageSize;
   readonly width: number; readonly zoom: number; readonly revision: number;
-  readonly reader: RefObject<HTMLDivElement | null>; readonly queue: PdfRenderQueue; readonly scanQueue: PdfRenderQueue; readonly decoder: PdfQrDecoder; readonly filename: string;
+  readonly reader: RefObject<HTMLDivElement | null>; readonly queue: PdfRenderQueue; readonly scanQueue: PdfRenderQueue; readonly decoder: PdfQrDecoder; readonly filename: string; readonly onRetry?: () => void;
 }) {
   const wrapper = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -19,7 +20,7 @@ export function PdfScrollPage({ document, page, size, width, zoom, revision, rea
   const [painted, setPainted] = useState("");
   const [failure, setFailure] = useState("");
   const [attempt, setAttempt] = useState(0);
-  const key = `${revision}:${visibility.revision}:${attempt}:${width}:${zoom}`;
+  const key = `${revision}:${visibility.revision}:${attempt}:${width}:${zoom}:${size.width}:${size.height}`;
   const ready = visibility.inside && painted === key;
   const failed = visibility.inside && failure === key;
   const cssWidth = Math.max(1, width * zoom);
@@ -52,7 +53,7 @@ export function PdfScrollPage({ document, page, size, width, zoom, revision, rea
       task = original.render({ canvas: target, viewport });
       await task.promise;
       if (active) setPainted(key);
-    }).catch(() => { if (active) setFailure(key); }).finally(() => { if (!active) original?.cleanup(); });
+    }).catch(cause => { if (active) { reportPdfError(cause, "render_page"); setFailure(key); } }).finally(() => { if (!active) original?.cleanup(); });
     return () => {
       active = false; task?.cancel();
       target.width = 0; target.height = 0; original?.cleanup();
@@ -62,6 +63,6 @@ export function PdfScrollPage({ document, page, size, width, zoom, revision, rea
     <PdfPageLinks document={document} page={page} visible={ready} queue={queue} scanQueue={scanQueue} decoder={decoder} />
     <canvas ref={canvas} role="img" aria-label={`${filename} ${page}페이지`} aria-hidden={!ready} />
     {visibility.inside && !ready && !failed && <div role="status" className={styles.loading}>불러오는 중…</div>}
-    {failed && <div role="alert" className={styles.loading}>이 부분을 표시하지 못했어요.<button type="button" className="min-h-11 rounded-lg px-3 font-semibold text-brand" onClick={() => setAttempt(value => value + 1)}>다시 시도</button></div>}
+    {failed && <div role="alert" className={styles.loading}>이 부분을 표시하지 못했어요.<button type="button" className="min-h-11 rounded-lg px-3 font-semibold text-brand" onClick={() => { if (onRetry) { onRetry(); return; } setAttempt(value => value + 1); }}>다시 시도</button></div>}
   </div>;
 }

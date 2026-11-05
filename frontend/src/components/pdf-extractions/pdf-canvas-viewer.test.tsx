@@ -3,11 +3,12 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { PdfCanvasViewer } from "./pdf-canvas-viewer";
+vi.mock("@/features/monitoring/report-error", () => ({ reportError: vi.fn() }));
 vi.mock("./pdf-page-links", () => ({ PdfPageLinks: () => null }));
 type Task = { page: number; resolve: () => void; reject: (error: Error) => void; cancel: ReturnType<typeof vi.fn> };
-const state = vi.hoisted(() => ({ tasks: [] as Task[], destroy: vi.fn(), cleanup: vi.fn(), brokenMetadata: false }));
+const state = vi.hoisted(() => ({ tasks: [] as Task[], destroy: vi.fn(), cleanup: vi.fn(), brokenMetadata: false, waitForSecond: false }));
 vi.mock("pdfjs-dist", () => ({ GlobalWorkerOptions: {}, version: "test", getDocument: () => ({ destroy: state.destroy.mockResolvedValue(undefined),
-  promise: Promise.resolve({ numPages: 3, getPage: async (page: number) => { if (page === 3 && state.brokenMetadata) throw new Error("broken metadata"); return ({ cleanup: state.cleanup,
+  promise: Promise.resolve({ numPages: 3, getPage: async (page: number) => { if (page === 2 && state.waitForSecond) await new Promise(() => {}); if (page === 3 && state.brokenMetadata) throw new Error("broken metadata"); return ({ cleanup: state.cleanup,
     getViewport: ({ scale }: { scale: number }) => ({ width: 100 * scale, height: 140 * scale }),
     render: () => { const cancel = vi.fn(); const promise = new Promise<void>((resolve, reject) => state.tasks.push({ page, resolve, reject, cancel })); return { promise, cancel }; },
   }); } }),
@@ -22,7 +23,7 @@ beforeEach(() => {
     observe(target: Element) { observers.set(target, inside => this.callback([{ isIntersecting: inside }])); }
     disconnect() {}
   });
-  observers.clear(); state.brokenMetadata = false; state.tasks.length = 0; host = document.createElement("div"); document.body.append(host); root = createRoot(host);
+  observers.clear(); state.brokenMetadata = false; state.waitForSecond = false; state.tasks.length = 0; host = document.createElement("div"); document.body.append(host); root = createRoot(host);
 });
 afterEach(() => { act(() => root.unmount()); host.remove(); vi.unstubAllGlobals(); });
 async function visible(page: number, inside = true) { await act(async () => observers.get(host.querySelector(`[data-pdf-page="${page}"]`)!)!(inside)); }
@@ -72,4 +73,21 @@ it("원본 전환 때 이전 렌더를 취소하고 새 문서의 완료만 표�
   expect(canvas(1).getAttribute("aria-hidden")).toBe("true");
   await act(async()=>state.tasks[1].resolve());expect(canvas(1).getAttribute("aria-label")).toBe("b.pdf 1페이지");
   expect(canvas(1).getAttribute("aria-hidden")).toBe("false");
+});
+
+it("뒷페이지 metadata가 끝나지 않아도 첫페이지를 먼저 표시한다", async()=>{
+  state.waitForSecond=true;await render();expect(host.querySelectorAll('[data-pdf-page]')).toHaveLength(3);
+  await visible(1);await act(async()=>state.tasks[0].resolve());expect(canvas(1).getAttribute('aria-hidden')).toBe('false');
+});
+it("최대 배율에서 반복 확대는 완료 canvas를 지우거나 다시 렌더하지 않는다",async()=>{
+  await render();const reader=host.querySelector('[role="region"]')!;
+  await act(async()=>{for(let i=0;i<12;i++)reader.dispatchEvent(new KeyboardEvent('keydown',{key:'+',ctrlKey:true,cancelable:true}));});
+  await visible(1);await act(async()=>state.tasks[0].resolve());const count=state.tasks.length;
+  await act(async()=>reader.dispatchEvent(new WheelEvent('wheel',{ctrlKey:true,deltaY:-100,cancelable:true})));
+  expect(reader.getAttribute('data-pdf-zoom')).toBe('3');expect(state.tasks).toHaveLength(count);expect(canvas(1).getAttribute('aria-hidden')).toBe('false');
+});
+it("페이지 렌더 오류 재시도는 만료 원본의 주소 갱신 callback을 사용한다",async()=>{
+  const retry=vi.fn();await act(async()=>root.render(<PdfCanvasViewer url="https://example.test/expired.pdf" filename="a.pdf" onRetry={retry} />));
+  await visible(1);await act(async()=>state.tasks[0].reject(new Error('expired')));
+  await act(async()=>host.querySelector<HTMLButtonElement>('[data-pdf-page="1"] button')!.click());expect(retry).toHaveBeenCalledOnce();
 });

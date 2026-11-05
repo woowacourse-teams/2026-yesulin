@@ -46,3 +46,10 @@ it('느린 QR 응답이 다음 원본 페이지 렌더 queue를 막지 않는다
   const display=vi.fn(async()=>{});await queue.enqueue(display);expect(display).toHaveBeenCalledOnce();
   await act(async()=>resolve([qr]));
 });
+
+it('다른 페이지 QR이 응답하지 않아도 뒤 페이지 내장 링크는 즉시 표시한다',async()=>{
+  let resolve!: (value: typeof qr[])=>void;decoder.decode.mockReturnValueOnce(new Promise(r=>{resolve=r;}));
+  await render();await act(async()=>finish());
+  await act(async()=>root.render(<><PdfPageLinks document={documentProxy} page={1} visible queue={queue} scanQueue={scanQueue} decoder={decoder as unknown as PdfQrDecoder}/><PdfPageLinks document={documentProxy} page={2} visible queue={queue} scanQueue={scanQueue} decoder={decoder as unknown as PdfQrDecoder}/></>));
+  expect(host.querySelectorAll('a[href="https://example.test/embedded"]')).toHaveLength(2);await act(async()=>resolve([qr]));
+});

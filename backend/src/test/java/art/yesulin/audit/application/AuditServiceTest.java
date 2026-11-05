@@ -337,11 +337,13 @@ class AuditServiceTest {
         AuditApplicantView uploaded = uploadEntry(created.id());
 
         extractionService.applyExtraction(UUID.randomUUID().toString(), OWNER, "지원배역: 햄릿");
-        extractionService.applyExtraction(uploaded.jobId(), OTHER_OWNER, "지원배역: 햄릿");
+        extractionService.applyExtraction(uploaded.jobId(), OTHER_OWNER, "이름: 외부 배우\n지원배역: 햄릿");
 
         AuditApplicantView entry = service.find(OWNER, created.id()).entries().get(0);
         assertEquals(AuditMatchStatus.NEEDS_CHECK, entry.matchStatus());
         assertNull(entry.roleId());
+        assertNull(entry.applicantName());
+        assertEquals(art.yesulin.audit.domain.AuditApplicantStatus.UPLOADING, entry.processingStatus());
     }
 
     @Test

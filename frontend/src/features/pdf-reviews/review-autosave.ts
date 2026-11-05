@@ -1,6 +1,6 @@
 export type DraftField = "title" | "memo";
 export type ReviewDraft = Readonly<Record<DraftField, string>>;
-export type AutosaveSnapshot = ReviewDraft & { readonly dirty: boolean; readonly status: "saved" | "pending" | "saving" | "error"; readonly error: string };
+export type AutosaveSnapshot = ReviewDraft & { readonly dirty: boolean; readonly status: "saved" | "pending" | "saving" | "error"; readonly error: string; readonly errorField: DraftField | null };
 type Options = { initial: ReviewDraft; save: (field: DraftField, value: string) => Promise<string | null>; onDirty: (dirty: boolean) => void; delay?: number };
 
 export class ReviewAutosave {
@@ -13,13 +13,15 @@ export class ReviewAutosave {
   private running: Promise<boolean> | null = null;
   private disposed = false;
   private error = "";
+  private errorField: DraftField | null = null;
+  private external: ReviewDraft | null = null;
   private inFlight: DraftField | null = null;
   private uncertain = new Set<DraftField>();
 
   constructor(private readonly options: Options) {
     this.draft = { ...options.initial };
     this.saved = { ...options.initial };
-    this.snapshot = { ...this.draft, dirty: false, status: "saved", error: "" };
+    this.snapshot = { ...this.draft, dirty: false, status: "saved", error: "", errorField: null };
   }
 
   getSnapshot = () => this.snapshot;
@@ -30,14 +32,14 @@ export class ReviewAutosave {
 
   private publish(status: AutosaveSnapshot["status"]) {
     if (this.disposed) return;
-    this.snapshot = { ...this.draft, dirty: this.dirty(), status, error: this.error };
+    this.snapshot = { ...this.draft, dirty: this.dirty(), status, error: this.error, errorField: this.errorField };
     this.options.onDirty(this.snapshot.dirty);
     this.listeners.forEach(listener => listener());
   }
 
   change = (field: DraftField, value: string) => {
     this.draft = { ...this.draft, [field]: value };
-    this.error = "";
+    this.error = ""; this.errorField = null;
     if (this.dirty()) this.publish("pending");
     if (!this.dirty()) this.publish("saved");
     this.schedule();
@@ -52,7 +54,8 @@ export class ReviewAutosave {
   };
 
   sync = (values: ReviewDraft) => {
-    if (this.running || this.disposed) return;
+    if (this.disposed) return;
+    if (this.running) { this.external = values; return; }
     let changed = false;
     for (const field of ["title", "memo"] as const) {
       if (this.uncertain.has(field) || this.draft[field] !== this.saved[field] || values[field] === this.saved[field]) continue;
@@ -73,8 +76,8 @@ export class ReviewAutosave {
     if (this.disposed || this.composing.size) return Promise.resolve(false);
     if (this.running) return this.running;
     if (!this.dirty()) { this.publish("saved"); return Promise.resolve(true); }
-    this.error = "";
-    this.running = Promise.resolve().then(() => this.drain()).finally(() => { this.running = null; });
+    this.error = ""; this.errorField = null;
+    this.running = Promise.resolve().then(() => this.drain()).finally(() => { this.running = null; const external = this.external; this.external = null; if (external) this.sync(external); });
     return this.running;
   };
 
@@ -90,11 +93,11 @@ export class ReviewAutosave {
     return "";
   }
 
-  private fail(message: string) { this.error = message; this.publish("error"); return false; }
+  private fail(field: DraftField, message: string) { this.errorField = field; this.error = message; this.publish("error"); return false; }
 
   private async saveField(field: DraftField, draft: string) {
     const invalid = this.invalid(field, draft);
-    if (invalid) return this.fail(invalid);
+    if (invalid) return this.fail(field, invalid);
     this.inFlight = field;
     this.publish("saving");
     let value = draft;
@@ -102,8 +105,9 @@ export class ReviewAutosave {
     let confirmed: string | null = null;
     try { confirmed = await this.options.save(field, value); } catch { confirmed = null; }
     this.inFlight = null;
-    if (confirmed === null) { this.uncertain.add(field); return this.fail("저장하지 못했어요. 입력은 유지됩니다."); }
+    if (confirmed === null) { this.uncertain.add(field); return this.fail(field, "저장하지 못했어요. 입력은 유지됩니다."); }
     this.uncertain.delete(field);
+    if (this.external) this.external = { ...this.external, [field]: confirmed };
     this.saved = { ...this.saved, [field]: confirmed };
     if (this.draft[field] === draft) this.draft = { ...this.draft, [field]: confirmed };
     return true;

@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { PDFDocumentLoadingTask, PDFDocumentProxy } from "pdfjs-dist";
+import { reportPdfError } from "@/features/pdf-extractions/report-pdf-error";
 import { PdfQrDecoder } from "./pdf-qr-decoder";
 import { PdfRenderQueue } from "./pdf-render-queue";
 import { PdfScrollPage, type PdfPageSize } from "./pdf-scroll-page";
@@ -28,17 +29,21 @@ export function PdfCanvasViewer({ url, filename, onRetry }: { readonly url: stri
       loading = pdfjs.getDocument({ url, withCredentials: false, enableXfa: false, cMapUrl: `${assets}cmaps/`, cMapPacked: true,
         standardFontDataUrl: `${assets}standard_fonts/`, wasmUrl: `${assets}wasm/`, iccUrl: `${assets}iccs/`, maxImageSize: -1, canvasMaxAreaInBytes: 32 * 1024 * 1024 });
       const document = await loading.promise;
-      const pages: PdfPageSize[] = [];
+      const pages: PdfPageSize[] = Array.from({ length: document.numPages }, () => ({ width: 595, height: 842 }));
+      if (!active) return;
+      setLoaded({ url, document, pages });
       for (let page = 1; page <= document.numPages; page++) {
-        if (!active) return;
-        try {
-          const original = await document.getPage(page);
+        void document.getPage(page).then(original => {
+          if (!active) return;
           const size = original.getViewport({ scale: 1 });
-          pages.push({ width: size.width, height: size.height });
-        } catch { pages.push(pages[0] ?? { width: 595, height: 842 }); }
+          setLoaded(current => {
+            if (current?.document !== document) return current;
+            const next = [...current.pages]; next[page - 1] = { width: size.width, height: size.height };
+            return { ...current, pages: next };
+          });
+        }).catch(() => {});
       }
-      if (active) setLoaded({ url, document, pages });
-    }).catch(() => { if (active) setFailure(url); });
+    }).catch(cause => { if (active) { reportPdfError(cause, "load_document"); setFailure(url); } });
     return () => { active = false; if (loading) void loading.destroy().catch(() => {}); };
   }, [url]);
   useEffect(() => {
@@ -59,7 +64,7 @@ export function PdfCanvasViewer({ url, filename, onRetry }: { readonly url: stri
       const rect = target.getBoundingClientRect();
       anchor.current = { zoom: zoomRef.current, left: target.scrollLeft, top: target.scrollTop, x: event.clientX - rect.left, y: event.clientY - rect.top };
       const factor = Math.exp(-Math.max(-100, Math.min(100, event.deltaY)) * .005);
-      setView(current => ({ ...current, zoom: Math.max(.5, Math.min(3, current.zoom * factor)), revision: current.revision + 1 }));
+      setView(current => { const zoom = Math.max(.5, Math.min(3, current.zoom * factor)); if (zoom === current.zoom) return current; return { ...current, zoom, revision: current.revision + 1 }; });
     };
     const keyboard = (event: KeyboardEvent) => {
       if (!event.ctrlKey && !event.metaKey) return;
@@ -69,7 +74,9 @@ export function PdfCanvasViewer({ url, filename, onRetry }: { readonly url: stri
         let zoom = current.zoom * 1.2;
         if (event.key === "-") zoom = current.zoom / 1.2;
         if (event.key === "0") zoom = 1;
-        return { ...current, zoom: Math.max(.5, Math.min(3, zoom)), revision: current.revision + 1 };
+        zoom = Math.max(.5, Math.min(3, zoom));
+        if (zoom === current.zoom) return current;
+        return { ...current, zoom, revision: current.revision + 1 };
       });
     };
     target.addEventListener("wheel", wheel, { passive: false }); target.addEventListener("keydown", keyboard);
@@ -90,6 +97,6 @@ export function PdfCanvasViewer({ url, filename, onRetry }: { readonly url: stri
   return <div ref={reader} tabIndex={0} role="region" aria-label="지원서 원본 연속 보기" className={styles.reader} data-pdf-zoom={view.zoom}>
     {!ready && failure !== url && <div role="status" className="p-8 text-center text-sm text-muted">PDF를 불러오고 있어요</div>}
     {failure === url && <p role="alert" className="p-6 text-sm text-fail">PDF를 불러오지 못했어요. {onRetry && <button type="button" onClick={onRetry} className="min-h-11 px-3 font-semibold">다시 시도</button>}</p>}
-    {ready && <div className={styles.document}>{loaded.pages.map((size, index) => <PdfScrollPage key={index} document={loaded.document} page={index + 1} size={size} width={view.width} zoom={view.zoom} revision={view.revision} reader={reader} queue={queue} scanQueue={scanQueue} decoder={decoder} filename={filename} />)}</div>}
+    {ready && <div className={styles.document}>{loaded.pages.map((size, index) => <PdfScrollPage key={index} document={loaded.document} page={index + 1} size={size} width={view.width} zoom={view.zoom} revision={view.revision} reader={reader} queue={queue} scanQueue={scanQueue} decoder={decoder} filename={filename} onRetry={onRetry} />)}</div>}
   </div>;
 }

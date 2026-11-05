@@ -33,6 +33,11 @@ export type ReviewEntry = {
   readonly processingStatus?: "UPLOADING" | "EXTRACTING" | "ENRICHING" | "READY" | "NEEDS_REVIEW" | "FAILED";
 };
 
+export function reviewEntryName(entry: Pick<ReviewEntry, "title" | "applicantName">): string {
+  if (entry.title !== undefined) return entry.title;
+  return entry.applicantName ?? "";
+}
+
 export type ReviewDetail = {
   readonly id: ReviewKey;
   readonly title: string;

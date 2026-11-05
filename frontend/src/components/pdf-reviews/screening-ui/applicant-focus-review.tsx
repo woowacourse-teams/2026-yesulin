@@ -72,9 +72,11 @@ function FocusReviewContent({ applicant, rows, index, onBack, onMove }: {
   }, [saving, reviewLocked, save, rows, index, move]);
   const disabled = saving || deciding;
   const navigate = async (action: () => void) => { if (!await flush()) return; if (requestNavigation) { requestNavigation(action); return; } action(); };
+  const errorIds: { title?: string; memo?: string } = {};
+  if (draft.errorField) errorIds[draft.errorField] = "pdf-review-save-error";
   return <section ref={section} tabIndex={-1} aria-label={`${applicant.name} · 지원자 ${index + 1} / ${rows.length} 심사`} className="pb-8 outline-none">
     <header className="mb-3 flex flex-col gap-2 px-1 md:flex-row md:items-center md:justify-between">
-      <ReviewDocumentHeading title={draft.title} disabled={disabled} onChange={value => draft.change("title", value)} onBlur={() => void flush()} onCompositionStart={() => draft.compose("title", true)} onCompositionEnd={value => draft.compose("title", false, value)} />
+      <ReviewDocumentHeading errorId={errorIds.title} title={draft.title} disabled={disabled} onChange={value => draft.change("title", value)} onBlur={() => void flush()} onCompositionStart={() => draft.compose("title", true)} onCompositionEnd={value => draft.compose("title", false, value)} />
       <nav aria-label="지원서 이동" className="flex shrink-0 items-center justify-between gap-2">
         {onBack && <SecondaryButton disabled={disabled} onClick={() => void navigate(onBack)}>목록</SecondaryButton>}
         <SecondaryButton aria-label="이전 지원서" disabled={!rows[index - 1] || disabled} onClick={() => void move(rows[index - 1])}>← 이전</SecondaryButton>
@@ -86,8 +88,8 @@ function FocusReviewContent({ applicant, rows, index, onBack, onMove }: {
       <div className="min-w-0 overflow-hidden rounded-card border border-border bg-card">{renderDocument?.(applicant)}</div>
       <aside className="min-w-0 space-y-5 rounded-card border border-border bg-card p-4 md:sticky md:top-4" aria-label="지원자 심사">
         {!!roleOptions?.length && changeRole && <ReviewRoleSelect label="배역 배정" roles={roleOptions} value={currentRole?.(applicant.id) ?? null} disabled={disabled} onChange={roleId => void navigate(() => changeRole(applicant.id, roleId))} />}
-        <div><label htmlFor="pdf-review-memo" className="mb-2 block text-sm font-semibold">내부 메모</label><textarea id="pdf-review-memo" value={draft.memo} maxLength={500} disabled={disabled || reviewLocked} rows={6} onChange={event => draft.change("memo", event.target.value)} onBlur={() => void flush()} onCompositionStart={() => draft.compose("memo", true)} onCompositionEnd={event => draft.compose("memo", false, event.currentTarget.value)} className="h-44 w-full resize-none rounded-control border border-border bg-surface p-3 text-sm" /></div>
-        {draft.status === "error" && <div role="alert" className="text-xs text-fail"><span>{draft.error}</span><button type="button" onClick={() => void flush()} className="mt-1 block min-h-11 text-sm font-semibold text-brand">저장 재시도</button></div>}
+        <div><label htmlFor="pdf-review-memo" className="mb-2 block text-sm font-semibold">내부 메모</label><textarea aria-invalid={draft.errorField === "memo"} aria-describedby={errorIds.memo} id="pdf-review-memo" value={draft.memo} maxLength={500} disabled={disabled || reviewLocked} rows={6} onChange={event => draft.change("memo", event.target.value)} onBlur={() => void flush()} onCompositionStart={() => draft.compose("memo", true)} onCompositionEnd={event => draft.compose("memo", false, event.currentTarget.value)} className="h-44 w-full resize-none rounded-control border border-border bg-surface p-3 text-sm" /></div>
+        {draft.status === "error" && <div id="pdf-review-save-error" role="alert" className="text-xs text-fail"><span>{draft.error}</span><button type="button" onClick={() => void flush()} className="mt-1 block min-h-11 text-sm font-semibold text-brand">저장 재시도</button></div>}
         <div role="group" aria-label="지원자 심사 판정" className="grid grid-cols-3 gap-2">{([['FAIL','불합격','border-fail text-fail'],['ETC','보류','border-border text-muted-strong'],['PASS','합격','border-brand text-brand']] as const).map(([status,label,color]) => <button key={status} type="button" aria-label={label} aria-pressed={applicant.review.status === status} disabled={disabled || reviewLocked} onClick={() => void save(status)} className={`min-h-12 rounded-control border bg-card px-2 py-3 text-sm font-bold hover:bg-surface aria-pressed:bg-surface aria-pressed:ring-2 aria-pressed:ring-current disabled:opacity-50 ${color}`}>{label}</button>)}</div>
       </aside>
     </div>

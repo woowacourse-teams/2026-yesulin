@@ -1,20 +1,23 @@
 // @vitest-environment jsdom
-import { act, useState } from "react";
+import { act, useRef, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { ScreeningBoard } from "./screening-board";
 import type { ReviewDetail, ReviewEntry } from "@/features/pdf-reviews/types";
 const mocks = vi.hoisted(() => ({ save: vi.fn(), role: vi.fn(), extraction: vi.fn(), rename: vi.fn(), dirty: vi.fn() }));
+vi.mock("@/features/monitoring/report-error", () => ({ reportError: vi.fn() }));
 vi.mock('./review-original-document', () => ({ ReviewOriginalDocument: ({ jobId }: { jobId: string }) => <div data-job-id={jobId}>원본 PDF</div> }));
 vi.mock('@/features/analytics/product-analytics', () => ({ trackProductEvent: vi.fn() }));
 vi.mock('@/features/pdf-extractions/api', () => ({ fetchPdfExtraction: mocks.extraction }));
 vi.mock('@/features/pdf-reviews/api', () => ({ updatePdfReviewEntry: mocks.save, assignPdfReviewRoles: mocks.role, renamePdfReviewEntry: mocks.rename, isUnauthorized: (e: { status?: number }) => e?.status === 401 }));
 let host: HTMLDivElement, root: Root;
 const entries: ReviewEntry[] = ['a','b'].map(id => ({ id, jobId: `job-${id}`, originalFilename: `${id}.pdf`, applicantName: null, roleId: null, matchStatus: 'WAITING', memo: '', matchEvidence: null, decision: 'PENDING', processingStatus: 'FAILED' }));
-function Harness({ navigate = (action: () => void) => action(), view = 'single', initialRows = entries, decision = 'PENDING' }: { navigate?: (action: () => void) => void; view?: 'single'|'card'|'table'; initialRows?: ReviewEntry[]; decision?: ReviewEntry['decision'] }) {
+function Harness({ navigate, view = 'single', initialRows = entries, decision = 'PENDING' }: { navigate?: (action: () => void) => void; view?: 'single'|'card'|'table'; initialRows?: ReviewEntry[]; decision?: ReviewEntry['decision'] }) {
   const [rows, setRows] = useState(initialRows);
+  const navigating = useRef(false);
+  const guarded = (action: () => void) => { if (navigating.current) return; navigating.current = true; action(); navigating.current = false; };
   const review: ReviewDetail = { id: 'review', title: '검증', createdAt: '2026-11-05', roles: [{ id: 'lead', name: '주연' }], entries: rows };
-  return <ScreeningBoard review={review} entries={rows.filter(r => r.decision === decision)} decision={decision} view={view} refreshKey={0} onSaved={updated => setRows(current => current.map(row => row.id === updated.id ? updated : row))} onDirtyChange={mocks.dirty} onUnauthorized={() => {}} navigate={navigate} />;
+  return <ScreeningBoard review={review} entries={rows.filter(r => r.decision === decision)} decision={decision} view={view} refreshKey={0} onSaved={updated => setRows(current => current.map(row => row.id === updated.id ? updated : row))} onDirtyChange={mocks.dirty} onUnauthorized={() => {}} navigate={navigate ?? guarded} />;
 }
 async function button(name: string) { const target = [...host.querySelectorAll('button')].find(b => b.getAttribute("aria-label") === name || b.textContent === name || b.textContent === `${name} →`)!; expect(target).toBeDefined(); await act(async () => target.click()); }
 async function memo(text: string) { const field = host.querySelector('textarea')!; await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value')!.set!.call(field,text); field.dispatchEvent(new Event('input',{ bubbles:true })); }); }
@@ -79,9 +82,22 @@ it('제목 저장이 완료될 때까지 다음 이동을 기다리고 제목·�
   let resolve!: (entry: ReviewEntry) => void;
   mocks.rename.mockReturnValue(new Promise<ReviewEntry>(r=>{resolve=r;}));
   mocks.save.mockResolvedValue({...entries[0],memo:'최신 메모'});
-  const navigate=vi.fn(); await act(async () => root.render(<Harness navigate={navigate} />));
+  const navigate=vi.fn(); await act(async () => root.render(<Harness navigate={navigate ?? guarded} />));
   await title('최신 제목');await memo('최신 메모');await button('다음 지원서');expect(navigate).not.toHaveBeenCalled();
   await act(async()=>resolve({...entries[0],title:'최신 제목'}));
   expect(navigate).toHaveBeenCalledOnce();expect(host.querySelector<HTMLInputElement>('[aria-label="배우 이름"]')?.value).toBe('최신 제목');
   expect(host.querySelector('textarea')?.value).toBe('최신 메모');expect(mocks.dirty).toHaveBeenLastCalledWith(false);
+});
+
+it.each(['card','table'] as const)('카드·표 원본 상세에서 목록 버튼은 이동 보호를 한 번만 거쳐 복귀한다: %s',async view=>{
+  await act(async()=>root.render(<Harness view={view} />));
+  const open=[...host.querySelectorAll('button')].find(b=>b.textContent?.includes('원본으로 심사하기') || b.textContent==='PDF 심사')!;
+  await act(async()=>open.click());expect(host.querySelector('[data-job-id]')).not.toBeNull();
+  await button('목록');expect(host.querySelector('[data-job-id]')).toBeNull();expect(host.textContent).toContain('전체 선택');
+});
+it('저장 실패를 해당 이름 입력과 연결하고 메모 오류와 구분한다',async()=>{
+  mocks.rename.mockRejectedValueOnce(new Error('private'));await act(async()=>root.render(<Harness />));const input=await title('수정 이름');
+  await act(async()=>input.dispatchEvent(new FocusEvent('focusout',{bubbles:true})));
+  expect(input.getAttribute('aria-invalid')).toBe('true');expect(input.getAttribute('aria-describedby')).toBe('pdf-review-save-error');
+  expect(host.querySelector('textarea')?.getAttribute('aria-invalid')).toBe('false');
 });

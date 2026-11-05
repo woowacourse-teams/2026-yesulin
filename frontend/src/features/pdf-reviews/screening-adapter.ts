@@ -1,3 +1,4 @@
+import { reviewEntryName } from "./types";
 import { roleId, submissionId } from "../auditions/types";
 import type { PdfExtractionJob, PdfExtractionResult } from "../pdf-extractions/types";
 import { displayAge } from "./profile-display";
@@ -23,7 +24,7 @@ export function screeningApplicant(review: ReviewDetail, entry: ReviewEntry, job
   const saved: Applicant["review"] = { status, memo: "", note: entry.memo ?? "" };
   const ageText = displayAge(profile);
   return {
-    id: submissionId(String(entry.id)), name: entry.title || entry.applicantName || "이름 미입력",
+    id: submissionId(String(entry.id)), name: reviewEntryName(entry) || "이름 미입력",
     roleId: roleId(String(entry.roleId ?? review.id)), roleName: review.roles.length === 0 ? "자유 배역" : review.roles.find(role => sameKey(role.id, entry.roleId))?.name ?? "미배정",
     gender: null, age: null, height: null, weight: null, birth: "", phone: "", email: "", address: "",
     educationLevel: null, school: "", major: "", links: linksFor(job?.result), nationality: "", specialty: "", hobbies: "", militaryServiceStatus: "",

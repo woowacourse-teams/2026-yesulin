@@ -70,3 +70,14 @@ it("전송 결과가 불명확해도 되돌린 값을 재전송해 서버 상태
   first.resolve(null); expect(await pending).toBe(false); expect(store.getSnapshot().dirty).toBe(true);
   expect(await store.flush()).toBe(true); expect(save).toHaveBeenLastCalledWith("memo", "");
 });
+
+it('실패한 메모 요청 중 받은 외부 이름은 요청 종료 후 반영한다',async()=>{
+  const first=deferred();const {store}=setup(vi.fn().mockReturnValueOnce(first.promise));store.change('memo','보존 메모');const pending=store.flush();await Promise.resolve();
+  store.sync({title:'다른 곳에서 수정한 이름',memo:''});first.resolve(null);expect(await pending).toBe(false);
+  expect(store.getSnapshot()).toMatchObject({title:'다른 곳에서 수정한 이름',memo:'보존 메모',errorField:'memo',status:'error',dirty:true});
+});
+it('자신의 저장 정규화 값은 대기 중 외부 snapshot의 과거 값으로 되돌리지 않는다',async()=>{
+  const first=deferred();const {store}=setup(vi.fn().mockReturnValueOnce(first.promise));store.change('title',' 새 이름 ');const pending=store.flush();await Promise.resolve();
+  store.sync({title:'지원서',memo:'외부 메모'});first.resolve('새 이름');expect(await pending).toBe(true);
+  expect(store.getSnapshot()).toMatchObject({title:'새 이름',memo:'외부 메모',dirty:false});
+});

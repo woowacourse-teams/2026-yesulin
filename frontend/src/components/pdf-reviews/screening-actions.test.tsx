@@ -6,6 +6,7 @@ import { ScreeningBoard } from "./screening-board";
 import type { ReviewDetail, ReviewEntry } from "@/features/pdf-reviews/types";
 
 const capture = vi.hoisted(() => vi.fn());
+vi.mock("@/features/monitoring/report-error", () => ({ reportError: vi.fn() }));
 vi.mock("@/features/analytics/product-analytics", () => ({ trackProductEvent: capture }));
 vi.mock("./review-original-document", () => ({ ReviewOriginalDocument: () => <div data-original-test>원본 PDF</div> }));
 vi.mock("@/features/pdf-extractions/api", () => ({ fetchPdfExtraction: vi.fn().mockResolvedValue({ id: "job", status: "FAILED" }) }));

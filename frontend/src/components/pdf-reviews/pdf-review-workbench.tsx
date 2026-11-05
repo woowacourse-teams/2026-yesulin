@@ -5,6 +5,7 @@ import { useAuthSession } from "@/components/auth/auth-session";
 import { ModalShell } from "@/components/auditions/modal-shell";
 import { PrimaryButton, SecondaryButton } from "@/components/ui/controls";
 import { matchesDecision, matchesFilter, type DecisionFilter, type EntryFilter, type ReviewDetail, type ReviewKey } from "@/features/pdf-reviews/types";
+import { useReviewExitGuard } from "@/features/pdf-reviews/use-review-exit-guard";
 import { useReviewProgress } from "@/features/pdf-reviews/use-review-progress";
 import { usePdfReviews } from "@/features/pdf-reviews/use-pdf-reviews";
 import { useReviewUploads } from "@/features/pdf-reviews/use-review-uploads";
@@ -68,6 +69,7 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
     if (dirty.current) { setPendingNavigation({ action }); return; }
     action();
   }, []);
+  useReviewExitGuard(authorized && !home, navigate, href => router.push(href));
   const uploadSync = useRef<ReturnType<typeof setTimeout>>(undefined);
   const markExpired = useCallback(() => setExpired(true), []);
   const reviews = usePdfReviews({ enabled: authorized, onUnauthorized: markExpired });
