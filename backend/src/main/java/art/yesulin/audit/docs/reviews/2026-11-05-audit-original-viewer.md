@@ -73,3 +73,7 @@ GitHub 이슈 생성은 자동 승인 검토가 명시적 외부 등록 승인 �
 Rebased onto origin/dev ca830f0d. Preserved the existing original-PDF click v1 contract: automatic PDF display emits no click event. New original-first detail views and activity use metric_version=2; the historical click ratio dashboard remains restricted to v1. Direct PDF opens from passed contacts retain the existing v1 event. Basic actions and API save success points are unchanged.
 
 Final validation: 26 test files / 194 tests PASS (including analytics consent/PII, pending restoration with memo preservation, and keyboard active-option scrolling across 50 roles). Lint and production build PASS. PC/mobile browser verification used the same original-first UI before this integration; subsequent runtime edits only distinguish metric versions. No Dev/Prod deployment or real SMS delivery was performed.
+
+## 최초 PR 연결 (2026-11-05T18:00:02+09:00)
+
+이 작업의 모든 문제 ID와 위 추가 전용 상태 이력은 [PR #533](https://github.com/woowacourse-teams/2026-yesulin/pull/533)에 최초 게시했다. 이전 PENDING 기록은 당시 이력을 보존하며 최초 기록 PR을 #533으로 연결한다. 발견·해결 시각은 위 사건 시각을 유지한다.

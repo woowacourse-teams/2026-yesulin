@@ -54,3 +54,7 @@ PRECHECK1 / INDEPENDENT_REVIEW2 / POST_FIX_CHECK0 / EXTERNAL0 / REJECTED0. 최�
 | E04 | 2026-11-05-audit-continuous-autosave-F02 | FIXED | 2026-11-05T13:39:02+09:00 | 위 수정·표적 검증 / PENDING |
 | E05 | 2026-11-05-audit-continuous-autosave-F03 | CONFIRMED | 2026-11-05T13:39:02+09:00 | 위 수정·표적 검증 / PENDING |
 | E06 | 2026-11-05-audit-continuous-autosave-F03 | FIXED | 2026-11-05T13:39:02+09:00 | 위 수정·표적 검증 / PENDING |
+
+## 최초 PR 연결 (2026-11-05T18:00:02+09:00)
+
+이 작업의 모든 문제 ID와 위 추가 전용 상태 이력은 [PR #533](https://github.com/woowacourse-teams/2026-yesulin/pull/533)에 최초 게시했다. 이전 PENDING 기록은 당시 이력을 보존하며 최초 기록 PR을 #533으로 연결한다. 발견·해결 시각은 위 사건 시각을 유지한다.
