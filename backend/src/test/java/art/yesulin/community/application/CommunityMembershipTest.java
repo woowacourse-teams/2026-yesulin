@@ -2,6 +2,7 @@ package art.yesulin.community.application;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -255,6 +256,26 @@ class CommunityMembershipTest {
         assertTrue(notices.recent(author.memberId()).getFirst().seen());
         members.deletePost(post, null, author);
         assertTrue(notices.recent(visitor.memberId()).isEmpty());
+    }
+
+    @Test
+    void inboxShowsThreadNamePreviewAndCanBeReadAtOnce() {
+        var author = actor();
+        var first = actor();
+        var second = actor();
+        long post = post(author).id();
+        reply(post, null, first, UUID.randomUUID());
+        members.createComment(post, second, UUID.randomUUID(), "  긴   댓글\n" + "가".repeat(100),
+                CommunityAuthorMode.ANONYMOUS);
+        var latest = notices.recent(author.memberId()).getFirst();
+        assertEquals("익명3", latest.author());
+        assertTrue(latest.preview().startsWith("긴 댓글 가"));
+        assertTrue(latest.preview().endsWith("…"));
+        assertEquals(81, latest.preview().length());
+        assertNotNull(latest.createdAt());
+        assertEquals("익명2", notices.recent(author.memberId()).get(1).author());
+        notices.markAllSeen(author.memberId());
+        assertTrue(notices.recent(author.memberId()).stream().allMatch(CommunityNoticeResult::seen));
     }
 
     private MemberPrincipal actor() {

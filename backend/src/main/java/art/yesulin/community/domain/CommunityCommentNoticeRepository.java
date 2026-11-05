@@ -17,4 +17,8 @@ public interface CommunityCommentNoticeRepository extends JpaRepository<Communit
     @Modifying
     @Query("update CommunityCommentNotice n set n.seen = true where n.commentId = :id and n.recipientId = :member")
     void markSeen(long member, long id);
+
+    @Modifying
+    @Query("update CommunityCommentNotice n set n.seen = true where n.recipientId = :member and n.seen = false")
+    void markAllSeen(long member);
 }

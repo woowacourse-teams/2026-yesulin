@@ -1425,7 +1425,7 @@ POST 성공만으로 저장됐다고 판단하지 않고 GET에서 같은 이전
 날짜는 ISO Instant이며 `updatedAt`이 `createdAt`과 다르면 수정 표시를 한다.
 제목은 1~100자, 글 본문 1~5,000자, 댓글 1~1,000자다. 요청의 최대 길이를 검사한 뒤 줄바꿈·앞뒤 공백을 정리한다.
 
-로그인 회원의 `GET /api/v1/community/notifications`는 최신 알림 최대 20개를 `[{commentId, postId, title, replyToId, seen}]`으로 반환한다. `PUT /api/v1/community/notifications/{commentId}/read`는 자신의 알림만 읽음 처리하고 204를 반환한다. 두 경로 모두 비회원은 401이다.
+로그인 회원의 `GET /api/v1/community/notifications`는 최신 알림 최대 20개를 `[{commentId, postId, title, replyToId, seen, author, preview, createdAt}]`으로 반환한다. `author`는 글에서 보이는 이름과 같다(익명 댓글은 글 안의 `익명N`, 프로필 공개 댓글은 지금의 공개 이름이나 `프로필 비공개`·`알 수 없는 사용자`). `preview`는 댓글 본문의 공백을 한 칸으로 줄인 앞 80자(넘으면 `…`), `createdAt`은 댓글 작성 시각이다. `PUT /api/v1/community/notifications/{commentId}/read`는 자신의 알림만 읽음 처리하고, `PUT /api/v1/community/notifications/read-all`은 자신의 알림을 모두 읽음 처리한다. 둘 다 204를 반환하며 모든 경로에서 비회원은 401이다.
 
 신고 사유는 `SPAM`, `HARASSMENT`, `PERSONAL_INFORMATION`, `OTHER`이고 선택 설명은 최대 1,000자다.
 신고 원문·신고자·접수 목록을 공개하는 API는 없다. 접수 성공은 Slack 수신 완료를 뜻하지 않는다.

@@ -48,4 +48,9 @@ export type CommunityNotice = {
   title: string;
   replyToId: number | null;
   seen: boolean;
+  /** 글에서 보이는 댓글 작성자 이름(익명N, 공개 이름, 프로필 비공개). */
+  author: string;
+  /** 댓글 본문 앞 80자를 한 줄로 줄인 미리보기. */
+  preview: string;
+  createdAt: string;
 };

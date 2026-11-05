@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { AuditionRequestError } from "@/features/auditions/api-client";
 import { useAuthSession } from "@/components/auth/auth-session";
-import { PiChatCircle, PiPencilSimple } from "react-icons/pi";
+import { PiBell, PiChatCircle, PiPencilSimple } from "react-icons/pi";
 import { communityListMemory } from "@/features/community/list-memory";
 import { getPosts } from "@/features/community/api";
 import { trackListViewed, useTrackOnce } from "@/features/community/analytics";
@@ -18,6 +18,8 @@ import { CommunityPhoto, CommunityByline, CommunityError, CommunityToast, useCom
 import { EntryMenu } from "./entry-menu";
 import { LikeButton } from "./like-button";
 import { CommunityDeadlines } from "./community-deadlines";
+import { communityNoticeRoute } from "./notice-row";
+import { useUnreadCommentCount } from "./received-comments-context";
 
 const moreLogin = "/login?returnTo=%2Fcommunity%3Fmore%3D1";
 
@@ -68,11 +70,21 @@ function LoungeIntro() {
   return <header className="community-lounge-header">
     <h1 className="community-lounge-title">배우 <span>수다방</span></h1>
     <p className="community-lounge-intro">오디션 후기, 연습 고민, 가벼운 수다까지. 익명으로도 편하게 이야기해요.</p>
+    <CommunityNoticeLink />
     <ul className="community-lounge-guide">
       <li>글마다 익명이나 배우 프로필 공개를 고를 수 있어요.</li>
       <li>불편한 글은 메뉴의 신고로 알려 주세요.</li>
     </ul>
   </header>;
+}
+
+function CommunityNoticeLink() {
+  const { session } = useAuthSession();
+  const unread = useUnreadCommentCount();
+  if (session?.role !== "APPLICANT") return null;
+  return <Link className="community-lounge-notices" href={communityNoticeRoute}>
+    <PiBell size={17} aria-hidden="true" />내 알림{unread > 0 && <span className="num"> {unread}</span>}
+  </Link>;
 }
 
 function ComposePrompt() {

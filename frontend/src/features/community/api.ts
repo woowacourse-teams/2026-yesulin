@@ -76,6 +76,10 @@ export function getNotifications(signal: AbortSignal) {
   return request<readonly CommunityNotice[]>(inboxPath, { cache: "no-store", signal });
 }
 
+export function readAllNotifications() {
+  return request<void>(`${inboxPath}/read-all`, { method: "PUT" });
+}
+
 export function readNotification(commentId: number) {
   return request<void>(`${inboxPath}/${commentId}/read`, { method: "PUT" });
 }

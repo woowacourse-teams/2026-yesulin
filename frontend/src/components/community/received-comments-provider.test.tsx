@@ -5,21 +5,26 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { useAuthSession } from "@/components/auth/auth-session";
 import { AuditionRequestError } from "@/features/auditions/api-client";
 import { getNotifications } from "@/features/community/api";
-import { UnreadCommentDot } from "./received-comments-context";
+import { useUnreadCommentCount } from "./received-comments-context";
+
+function UnreadProbe() {
+  if (!useUnreadCommentCount()) return null;
+  return <span>읽지 않은 댓글</span>;
+}
 import { ReceivedCommentsProvider } from "./received-comments-provider";
 
 vi.mock("@/components/auth/auth-session", () => ({ useAuthSession: vi.fn() }));
 vi.mock("@/features/community/api", () => ({ getNotifications: vi.fn(), readNotification: vi.fn() }));
 vi.mock("@/features/monitoring/report-error", () => ({ reportError: vi.fn() }));
 
-const notice = { commentId: 1, postId: 2, replyToId: null, title: "글", seen: false };
+const notice = { commentId: 1, postId: 2, replyToId: null, title: "글", seen: false, author: "익명2", preview: "좋아요", createdAt: "2026-11-05T00:00:00Z" };
 let root: Root;
 let host: HTMLDivElement;
 function renderAccount(credential: string) {
   vi.mocked(useAuthSession).mockReturnValue({
     session: { role: "APPLICANT", displayName: "배우", credential },
   } as ReturnType<typeof useAuthSession>);
-  return act(async () => root.render(<ReceivedCommentsProvider><UnreadCommentDot /></ReceivedCommentsProvider>));
+  return act(async () => root.render(<ReceivedCommentsProvider><UnreadProbe /></ReceivedCommentsProvider>));
 }
 function refresh() {
   return act(async () => { window.dispatchEvent(new Event("focus")); });
