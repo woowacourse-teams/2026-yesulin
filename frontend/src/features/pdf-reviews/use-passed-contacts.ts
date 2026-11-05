@@ -43,7 +43,7 @@ export function usePassedContacts(reviewId: ReviewKey, onUnauthorized: () => voi
         const rows: PassedContact[] = review.entries.filter(entry => entry.decision === "PASS").map(entry => ({
           entry,
           roleName: review.roles.find(role => String(role.id) === String(entry.roleId))?.name
-            ?? (review.roles.length ? "미기재" : "자유 배역"),
+            ?? (review.roles.length ? "미배정" : "자유 배역"),
           ...emptyContacts("LOADING"),
         }));
         setResult({ key, rows, loading: rows.length > 0, error: "" });
