@@ -47,3 +47,8 @@
 | 2026-11-05-community-board-layout-F07 | P2 / CODE / INTRODUCED | EXTERNAL | FIXED | 사용자 제보. 유도 카드와 글쓰기 폼 클래스 이름 충돌. 2026-11-05T19:45:00+09:00 확정, 2026-11-05T20:01:45+09:00 해결 |
 
 미확인: 로그인한 배우 계정으로 실제 대댓글·글쓰기 화면(병합 후 dev), 실제 기기.
+
+## 최초 PR 연결
+
+최초 게시 PR: [#539](https://github.com/woowacourse-teams/2026-yesulin/pull/539), 대상 dev.
+위 사건 표의 PENDING은 당시 이력이며 이 절로 최초 게시 번호를 연결한다. 문제 ID와 확정·해결 시각은 바꾸지 않는다.
