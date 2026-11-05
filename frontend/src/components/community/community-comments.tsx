@@ -64,7 +64,7 @@ export function CommunityComments({ postId, count, notify, onChanged }: Comments
     {feed.loading && <p className="community-status" role="status">댓글을 불러오고 있어요.</p>}
     {!feed.loading && feed.cursor !== null && <button type="button" className="community-more" onClick={() => void feed.load(feed.cursor!)}>댓글 더 보기</button>}
   </section><div ref={composer} className="community-comment-dock">
-    {replyToId > 0 && <div className="community-reply-target"><strong>{feed.items.find(item => item.id === replyToId)?.author} 댓글에 답글</strong>
+    {replyToId > 0 && <div className="community-reply-target"><strong>{feed.items.find(item => item.id === replyToId)?.author} 댓글에 대댓글</strong>
       <button type="button" disabled={sending} onClick={cancelReply}>취소</button></div>}
     <MemberParticipation postId={postId} returnTo={composerReturnTo(postId, replyToId)}>
       {participation => <CommentComposer key={replyToId} postId={postId} replyToId={replyToId}
@@ -81,7 +81,7 @@ function CommentList({ items, postId, notify, sending, onChanged, onReply }: Lis
       {thread.root && <CommentItem key={thread.root.updatedAt} comment={thread.root} postId={postId}
         notify={notify} onChanged={onChanged} sending={sending} onReply={() => onReply(thread.id)} />}
       {!thread.root && <p className="community-parent-missing">원댓글을 볼 수 없어요.</p>}
-      {thread.replies.length > 0 && <ol className="community-replies" aria-label="답글">
+      {thread.replies.length > 0 && <ol className="community-replies" aria-label="대댓글">
         {thread.replies.map(reply => <li key={reply.id}><CommentItem key={reply.updatedAt} comment={reply}
           postId={postId} notify={notify} onChanged={onChanged} /></li>)}</ol>}
     </li>)}</ol>;
@@ -105,7 +105,7 @@ function CommentComposer({ postId, replyToId, onSaved, participation, onSending 
   let label = "댓글";
   if (replyToId) {
     scope += `:reply:${replyToId}`;
-    label = "답글";
+    label = "대댓글";
   }
   const savedDraft = useMemberDraft(scope, participation.memberId!, participation.fixedMode);
   const { body, authorMode, requestId } = savedDraft.draft;
@@ -201,10 +201,13 @@ function CommentItem({ comment, postId, notify, onChanged, onReply, sending }: I
   const remove = async () => { await deleteComment(postId, comment.id); await onChanged(); };
   return <article id={`comment-${comment.id}`} className="community-comment"><CommunityPhoto photoUrl={comment.authorPhotoUrl} small />
     <div className="community-entry-main"><div className="community-entry-head"><CommunityByline author={comment.author} createdAt={comment.createdAt} updatedAt={comment.updatedAt} markWriter={comment.postAuthor} authorPath={comment.authorPath} />
-      {!editing && <EntryMenu entry={comment} label={`${comment.author} 댓글 메뉴`} notify={notify} onEdit={() => setEditing(true)} onDelete={remove} deleteQuestion="댓글을 삭제할까요?" />}</div>
+      {!editing && <div className="community-comment-actions">
+        {onReply && <button type="button" className="community-write-reply" disabled={sending} onClick={onReply}>대댓글</button>}
+        <EntryMenu entry={comment} label={`${comment.author} 댓글 메뉴`} notify={notify} onEdit={() => setEditing(true)} onDelete={remove} deleteQuestion="댓글을 삭제할까요?" />
+      </div>}</div>
       {editing && <CommentEditForm postId={postId} comment={comment} onCancel={() => setEditing(false)} onSaved={async () => { setEditing(false); await onChanged(); }} />}
       {!editing && <PlainText text={comment.body ?? ""} />}
-      {!editing && onReply && <button type="button" className="community-write-reply" disabled={sending} onClick={onReply}>답글 쓰기</button>}</div></article>;
+    </div></article>;
 }
 
 function linkedCommentCursor() {

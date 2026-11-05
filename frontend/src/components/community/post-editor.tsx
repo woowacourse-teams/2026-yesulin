@@ -77,8 +77,9 @@ function PostForm({ post, onSaved, onCancel, participation, memberDraft }: FormP
         {!post && participation && memberDraft && <AuthorChoice participation={participation} mode={memberDraft.draft.authorMode}
           onChange={authorMode => memberDraft.change({ authorMode })} />}
         <button type="submit" className="community-publish" disabled={action.busy || !ready}
-          aria-label={submitLabel(Boolean(post), action.busy)} title={submitLabel(Boolean(post), action.busy)}>
-          {post && "저장"}{!post && <Image src="/images/community-star-chat.png" width={38} height={38} alt="" />}
+          aria-busy={action.busy}>
+          {!post && <Image src="/images/community-star-chat.png" width={32} height={32} alt="" />}
+          <span>{submitLabel(Boolean(post), action.busy)}</span>
         </button>
       </div>
     </fieldset>

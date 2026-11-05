@@ -46,6 +46,9 @@ export function AuthorChoice({ participation, mode, onChange }: ChoiceProps) {
   const anonymous = mode === "ANONYMOUS";
   const fixed = participation.fixedMode !== null;
   const needsProfile = !fixed && anonymous && !profile?.path;
+  let reason: string | undefined;
+  if (needsProfile) reason = "배우 페이지를 공개하면 익명을 해제할 수 있어요.";
+  if (fixed) reason = "이 글에서는 처음 선택한 작성 방식이 유지돼요.";
   const toggle = () => {
     if (anonymous) return onChange("PROFILE");
     onChange("ANONYMOUS");
@@ -54,10 +57,10 @@ export function AuthorChoice({ participation, mode, onChange }: ChoiceProps) {
     {mode === "PROFILE" && profile?.path && <Link href={profile.path} className="community-profile-preview">
       <CommunityPhoto photoUrl={profile.photoUrl} small /><span>{profile.name}</span></Link>}
     {mode === "PROFILE" && !profile?.path && <span>프로필 비공개</span>}
-    {fixed && anonymous && <span>이 글에서는 익명</span>}
-    {fixed && !anonymous && profile?.path && <span>이 글에서는 프로필 공개</span>}
-    {needsProfile && <span>익명</span>}
     {!profile?.path && (!fixed || !anonymous) && <Link href={applicantRoutes.actorPageSettings}>프로필 공개 설정</Link>}
-    {!fixed && !needsProfile && <label><input type="checkbox" checked={anonymous} onChange={toggle} />익명</label>}
+    <label title={reason}>
+      <input type="checkbox" checked={anonymous} disabled={fixed || needsProfile} aria-description={reason} onChange={toggle} />
+      익명
+    </label>
   </div>;
 }
