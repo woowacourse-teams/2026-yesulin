@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { PosterImage } from "@/components/ui/poster-image";
+import { PosterArt } from "./poster-motif";
 import { deadlineBadge, formatPostedDate } from "@/features/audition-posts/format";
 import { posterHeadline } from "@/features/audition-posts/poster-headline";
 import { auditionPostRoutes, type AuditionPostSummary } from "@/features/audition-posts/types";
@@ -32,12 +33,13 @@ function PostArtwork({ post }: { readonly post: AuditionPostSummary }) {
   return <PosterImage key={post.thumbnailUrl} src={post.thumbnailUrl} alt="" sizes={POSTER_SIZES} fallback={fallback} />;
 }
 
-/** 이미지가 없는 공고는 분야 색 바탕에 작품명을 크게 쓴 포스터로 대신한다. */
+/** 이미지가 없는 공고는 분야 그라데이션·실루엣 위에 작품명을 크게 쓴 포스터로 대신한다. */
 function DefaultPoster({ post }: { readonly post: AuditionPostSummary }) {
   return <span className="notebook-poster-default" data-category={post.category || undefined} aria-hidden="true">
     <span className="notebook-poster-kind">{[post.category, "오디션"].filter(Boolean).join(" ")}</span>
     <span className="notebook-poster-headline">{posterHeadline(post.title)}</span>
-    <span className="notebook-poster-mark">예술in</span>
+    <span className="notebook-poster-mark">{post.authorName || "예술in"}</span>
+    <PosterArt category={post.category} />
   </span>;
 }
 

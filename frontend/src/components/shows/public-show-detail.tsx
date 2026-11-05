@@ -22,6 +22,8 @@ import {
 import { showRoutes } from "@/features/shows/types";
 import type { PublicShow, PublicShowSession, ReservationReceipt } from "@/features/shows/types";
 import { ReservationSheet } from "./reservation-sheet";
+import { SessionPicker } from "./session-picker";
+import { ShowInfoTabs, type ShowInfoTab } from "./show-info-tabs";
 import { ShowLinkButtons } from "./show-links";
 import { ImageLightbox } from "@/components/ui/image-lightbox";
 import { SessionAvailabilityText, ShowGenreBadge, ShowStatusBadge } from "./show-status";
@@ -89,18 +91,8 @@ export function PublicShowDetail({ show, onReserved, onStale }: {
             <ShowHero show={show} availability={availability} />
             {external
               ? <SessionSchedule show={show} />
-              : <SessionSelection show={show} selectedId={selectedSession?.id ?? null} onSelect={setSelectedId} />}
-            {external ? <ExternalReservationNotice show={show} /> : <ReservationNotice show={show} />}
-            {show.description ? (
-              <InfoSection title="공연 소개">
-                <p className="whitespace-pre-line text-base leading-7 text-muted-strong">{show.description}</p>
-              </InfoSection>
-            ) : null}
-            {show.imageUrls.length ? <DetailImages show={show} /> : null}
-            <InfoSection title="오시는 길" last>
-              <PublicVenueGuide venue={show.venue.name} address={show.venue} note="공연이 열리는 장소입니다. 공연 시작 전까지 도착해 주세요." />
-              {show.guides.length ? <ShowGuides guides={show.guides} /> : null}
-            </InfoSection>
+              : <SessionPicker show={show} sectionId={SESSIONS_SECTION_ID} selectedId={selectedSession?.id ?? null} onSelect={setSelectedId} />}
+            <ShowInfoTabs tabs={infoTabs(show, external)} />
           </article>
           <aside className="hidden min-[1200px]:block"><DesktopAction {...action} /></aside>
         </div>
@@ -153,70 +145,6 @@ function ShowHero({ show, availability }: { readonly show: PublicShow; readonly 
   );
 }
 
-function SessionSelection({ show, selectedId, onSelect }: {
-  readonly show: PublicShow;
-  readonly selectedId: number | null;
-  readonly onSelect: (id: number) => void;
-}) {
-  const closed = show.status === "CLOSED";
-  const description = closed
-    ? "예매가 종료된 공연이에요. 공연 정보는 계속 확인할 수 있어요."
-    : "관람할 회차를 선택해 주세요. 모든 시각은 한국 시간 기준입니다.";
-  return (
-    <section id={SESSIONS_SECTION_ID} className="border-b border-border py-8 sm:py-10">
-      <fieldset>
-        <legend className="text-xl font-bold tracking-[-0.02em]">회차 선택</legend>
-        <p id="show-sessions-description" className="mt-2 text-sm text-muted-strong">{description}</p>
-        {show.sessions.length ? (
-          <div aria-describedby="show-sessions-description" className="mt-5 grid gap-3 sm:grid-cols-2">
-            {show.sessions.map((session) => (
-              <SessionCard key={session.id} session={session} selected={session.id === selectedId} onSelect={onSelect} />
-            ))}
-          </div>
-        ) : (
-          <p className="mt-5 rounded-card border border-border bg-card px-4 py-3 text-sm text-muted-strong">회차를 준비하고 있어요.</p>
-        )}
-      </fieldset>
-    </section>
-  );
-}
-
-function SessionCard({ session, selected, onSelect }: {
-  readonly session: PublicShowSession;
-  readonly selected: boolean;
-  readonly onSelect: (id: number) => void;
-}) {
-  const availability = sessionAvailability(session);
-  const disabled = !session.bookable;
-  // 배경색 클래스가 둘 이상 붙으면 CSS 순서로 한쪽이 무시되므로 상태별로 하나만 고른다.
-  const tone = selected
-    ? "cursor-pointer border-brand bg-brand-soft shadow-[var(--shadow-1)]"
-    : disabled ? "cursor-default border-border bg-border-soft" : "cursor-pointer border-border bg-card hover:border-brand-line";
-  return (
-    <label className={`block rounded-card border p-4 transition-[border-color,background-color,box-shadow] has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-brand ${tone}`}>
-      <input
-        type="radio"
-        name="show-session"
-        value={session.id}
-        checked={selected}
-        disabled={disabled}
-        onChange={() => onSelect(session.id)}
-        className="sr-only"
-      />
-      <span className="flex items-center gap-3">
-        <span aria-hidden="true" className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border-2 ${selected ? "border-brand bg-brand" : "border-muted-soft bg-card"}`}>
-          <span className={`text-xs font-bold text-white ${selected ? "block" : "hidden"}`}>•</span>
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className={`num block text-base font-bold ${disabled ? "text-muted" : ""}`}>{formatShowDate(session.startsAt)}</span>
-          <span className={`num mt-0.5 block text-sm ${disabled ? "text-muted" : "text-muted-strong"}`}>{formatShowTime(session.startsAt)} 시작</span>
-        </span>
-        <SessionAvailabilityText availability={availability} />
-      </span>
-    </label>
-  );
-}
-
 /** 외부 예매 공연은 회차를 고르지 않으므로 일정만 보여 준다. 잔여석은 알 수 없어 시작한 회차에만 마감을 표시한다. */
 function SessionSchedule({ show }: { readonly show: PublicShow }) {
   const description = show.status === "CLOSED"
@@ -247,7 +175,7 @@ function SessionSchedule({ show }: { readonly show: PublicShow }) {
 
 function ReservationNotice({ show }: { readonly show: PublicShow }) {
   return (
-    <InfoSection title="예매 안내">
+    <>
       <ul className="grid gap-2 text-base leading-7 text-muted-strong md:text-sm md:leading-6">
         <NoticeItem>무료 공연이며 좌석은 따로 지정하지 않아요.</NoticeItem>
         <NoticeItem>한 번에 최대 <strong className="font-semibold text-foreground">{show.maxTicketsPerReservation}매</strong>까지 예매할 수 있어요. 더 많은 인원은 단체 관람으로 문의해 주세요.</NoticeItem>
@@ -255,21 +183,21 @@ function ReservationNotice({ show }: { readonly show: PublicShow }) {
       </ul>
       <InquiryPhoneLink show={show} label="취소·단체 문의" />
       <ShowNews show={show} />
-    </InfoSection>
+    </>
   );
 }
 
 /** 예매 수와 취소 규칙은 외부 예매 페이지가 정하므로 예술in 예매 규칙(매수 상한, 취소 마감)은 보여 주지 않는다. */
 function ExternalReservationNotice({ show }: { readonly show: PublicShow }) {
   return (
-    <InfoSection title="예매 안내">
+    <>
       <ul className="grid gap-2 text-base leading-7 text-muted-strong md:text-sm md:leading-6">
         <NoticeItem>무료 공연이며 <strong className="font-semibold text-foreground">주최 측 예매 페이지</strong>에서 예매를 받아요.</NoticeItem>
         <NoticeItem>예매하기를 누르면 예매 페이지가 새 창으로 열려요. 회차 선택과 예매 확인·취소는 그 페이지의 안내를 따라 주세요.</NoticeItem>
       </ul>
       <InquiryPhoneLink show={show} label="예매 문의" />
       <ShowNews show={show} />
-    </InfoSection>
+    </>
   );
 }
 
@@ -322,8 +250,9 @@ function DetailImages({ show }: { readonly show: PublicShow }) {
   const closeLightbox = useCallback(() => setOpenIndex(null), []);
 
   return (
-    <InfoSection title="상세 정보">
-      <p className="mb-4 text-sm text-muted-strong">이미지를 누르면 크게 볼 수 있어요.</p>
+    <div className="mt-8">
+      <h3 className="text-base font-bold">상세 이미지</h3>
+      <p className="mb-4 mt-1 text-sm text-muted-strong">이미지를 누르면 크게 볼 수 있어요.</p>
       <div className="grid gap-4">
         {show.imageUrls.map((url, index) => (
           <button
@@ -353,21 +282,32 @@ function DetailImages({ show }: { readonly show: PublicShow }) {
           onClose={closeLightbox}
         />
       ) : null}
-    </InfoSection>
+    </div>
   );
 }
 
-function InfoSection({ title, last = false, children }: {
-  readonly title: string;
-  readonly last?: boolean;
-  readonly children: React.ReactNode;
-}) {
-  return (
-    <section className={`py-8 sm:py-10 ${last ? "" : "border-b border-border"}`}>
-      <h2 className="text-xl font-bold tracking-[-0.02em]">{title}</h2>
-      <div className="mt-5">{children}</div>
-    </section>
-  );
+/** 공연 소개(설명·상세 이미지), 오시는 길(장소·추가 안내), 예매 안내를 탭으로 나눈다. 내용이 없는 탭은 만들지 않는다. */
+function infoTabs(show: PublicShow, external: boolean): ShowInfoTab[] {
+  const tabs: ShowInfoTab[] = [];
+  if (show.description || show.imageUrls.length) tabs.push({ id: "intro", label: "공연 소개", content: <ShowIntroduction show={show} /> });
+  tabs.push({ id: "venue", label: "오시는 길", content: <>
+    <PublicVenueGuide venue={show.venue.name} address={show.venue} note="공연이 열리는 장소입니다. 공연 시작 전까지 도착해 주세요." />
+    {show.guides.length > 0 && <ShowGuides guides={show.guides} />}
+  </> });
+  tabs.push({ id: "booking", label: "예매 안내", content: <BookingNotice show={show} external={external} /> });
+  return tabs;
+}
+
+function BookingNotice({ show, external }: { readonly show: PublicShow; readonly external: boolean }) {
+  if (external) return <ExternalReservationNotice show={show} />;
+  return <ReservationNotice show={show} />;
+}
+
+function ShowIntroduction({ show }: { readonly show: PublicShow }) {
+  return <>
+    {Boolean(show.description) && <p className="whitespace-pre-line text-base leading-7 text-muted-strong">{show.description}</p>}
+    {show.imageUrls.length > 0 && <DetailImages show={show} />}
+  </>;
 }
 
 type ActionProps = {
