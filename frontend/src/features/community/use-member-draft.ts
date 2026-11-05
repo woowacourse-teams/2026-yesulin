@@ -2,10 +2,9 @@
 
 import { useState } from "react";
 import { readCommunityDraft, removeCommunityDraft, saveCommunityDraft, type MemberDraft } from "./member-draft";
-import type { CommunityAuthorMode } from "./types";
 
-export function useMemberDraft(scope: string, member: number, fixedMode: CommunityAuthorMode | null = null, initial = { title: "", body: "" }) {
-  const [draft, setDraft] = useState<MemberDraft>(() => initialDraft(scope, member, fixedMode, initial));
+export function useMemberDraft(scope: string, member: number, initial = { title: "", body: "" }) {
+  const [draft, setDraft] = useState<MemberDraft>(() => initialDraft(scope, member, initial));
   const [storageError, setStorageError] = useState("");
   const change = (patch: Partial<MemberDraft>) => {
     const next = { ...draft, ...patch, requestId: crypto.randomUUID() };
@@ -17,9 +16,8 @@ export function useMemberDraft(scope: string, member: number, fixedMode: Communi
   return { draft, change, clear, storageError };
 }
 
-function initialDraft(scope: string, member: number, mode: CommunityAuthorMode | null, initial: { title: string; body: string }): MemberDraft {
+function initialDraft(scope: string, member: number, initial: { title: string; body: string }): MemberDraft {
   const stored = readCommunityDraft(scope, member);
-  if (stored && mode && stored.authorMode !== mode) return { ...stored, authorMode: mode, requestId: crypto.randomUUID() };
   if (stored) return stored;
-  return { ...initial, authorMode: mode ?? "ANONYMOUS", requestId: crypto.randomUUID() };
+  return { ...initial, authorMode: "ANONYMOUS", requestId: crypto.randomUUID() };
 }

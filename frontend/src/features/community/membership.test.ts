@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { clearCommunityDrafts, readCommunityDraft, saveCommunityDraft } from "./member-draft";
-import { commentThreads, loadThroughComment, mergeComments } from "./comments";
+import { commentThreads, linkedCommentPage, loadThroughComment, mergeComments } from "./comments";
 import type { CommunityEntry } from "./types";
 
 beforeEach(() => {
@@ -52,4 +52,16 @@ it("원댓글이 앞 페이지에 있거나 삭제돼도 답글을 같은 원댓
   expect(missing[0].root).toBeUndefined();
   expect(missing[0].replies.map(reply => reply.id)).toEqual([7, 8]);
   expect(commentThreads(mergeComments(items, [entry(2)]))[0].root?.id).toBe(2);
+});
+
+it("멀리 떨어진 대댓글 알림은 원댓글 하나를 함께 불러오고 이어보기 위치를 유지한다", async () => {
+  const target = { ...entry(95), replyToId: 4 };
+  const fetchPage = vi.fn(async (after: number) => {
+    if (after === 94) return { items: [target, entry(96)], nextCursor: 96 };
+    return { items: [entry(4), entry(5)], nextCursor: 5 };
+  });
+  const page = await linkedCommentPage(fetchPage, 94);
+  expect(fetchPage.mock.calls).toEqual([[94], [3]]);
+  expect(page.items.map(item => item.id)).toEqual([4, 95, 96]);
+  expect(page.nextCursor).toBe(96);
 });

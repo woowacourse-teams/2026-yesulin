@@ -5,7 +5,6 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { AuthorChoice } from "@/components/community/member-participation";
 import { useMemberDraft } from "./use-member-draft";
 import { readCommunityDraft, saveCommunityDraft } from "./member-draft";
-import type { CommunityAuthorMode } from "./types";
 import { finishCommunityEdit } from "./navigation";
 
 vi.mock("@/features/monitoring/report-error", () => ({ reportError: vi.fn() }));
@@ -13,8 +12,8 @@ vi.mock("@/features/monitoring/report-error", () => ({ reportError: vi.fn() }));
 let root: Root;
 let container: HTMLElement;
 
-function Probe({ mode, scope = "comment:3", member = 1 }: { readonly mode: CommunityAuthorMode | null; readonly scope?: string; readonly member?: number }) {
-  const { draft } = useMemberDraft(scope, member, mode, { title: "원래 제목", body: "원래 본문" });
+function Probe({ scope = "comment:3", member = 1 }: { readonly scope?: string; readonly member?: number }) {
+  const { draft } = useMemberDraft(scope, member, { title: "원래 제목", body: "원래 본문" });
   return <output data-mode={draft.authorMode} data-request={draft.requestId}>{draft.title}|{draft.body}</output>;
 }
 
@@ -26,21 +25,21 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => root.unmount()); vi.unstubAllGlobals(); });
 
-it("다른 탭이 표시 방식을 고정하면 내용은 유지하고 요청번호와 모드만 바꾼다", async () => {
+it("같은 계정의 초안은 작성 방식과 재시도 번호를 복구한다", async () => {
   saveCommunityDraft("comment:3", 1, { title: "", body: "작성 중", authorMode: "ANONYMOUS", requestId: "old" });
-  await act(async () => root.render(<Probe key="1:null" mode={null} />));
+  await act(async () => root.render(<Probe key="1:null" />));
   expect(container.textContent).toBe("|작성 중");
-  await act(async () => root.render(<Probe key="1:PROFILE" mode="PROFILE" />));
+  await act(async () => root.render(<Probe key="restored" />));
   expect(container.textContent).toBe("|작성 중");
-  expect(container.querySelector("output")?.dataset.mode).toBe("PROFILE");
-  expect(container.querySelector("output")?.dataset.request).not.toBe("old");
+  expect(container.querySelector("output")?.dataset.mode).toBe("ANONYMOUS");
+  expect(container.querySelector("output")?.dataset.request).toBe("old");
 });
 
 it("회원 글 수정 초안은 같은 글·같은 계정에서만 복구한다", async () => {
   saveCommunityDraft("post:edit:7", 1, { title: "수정 제목", body: "수정 본문", authorMode: "ANONYMOUS", requestId: "saved" });
-  await act(async () => root.render(<Probe key="1" mode={null} scope="post:edit:7" />));
+  await act(async () => root.render(<Probe key="1" scope="post:edit:7" />));
   expect(container.textContent).toBe("수정 제목|수정 본문");
-  await act(async () => root.render(<Probe key="2" mode={null} member={2} scope="post:edit:7" />));
+  await act(async () => root.render(<Probe key="2" member={2} scope="post:edit:7" />));
   expect(container.textContent).toBe("원래 제목|원래 본문");
   expect(readCommunityDraft("post:new", 1)).toBeNull();
 });
@@ -56,9 +55,9 @@ it("공개 선택 전에 이름·사진·연결될 배우 페이지를 확인할
 
 it("댓글 수정 초안은 새 댓글이나 다른 계정의 수정 초안과 섞이지 않는다", async () => {
   saveCommunityDraft("comment:edit:27", 1, { title: "", body: "수정 중 댓글", authorMode: "ANONYMOUS", requestId: "editing" });
-  await act(async () => root.render(<Probe key="1" mode={null} scope="comment:edit:27" />));
+  await act(async () => root.render(<Probe key="1" scope="comment:edit:27" />));
   expect(container.textContent).toBe("|수정 중 댓글");
-  await act(async () => root.render(<Probe key="2" mode={null} member={2} scope="comment:edit:27" />));
+  await act(async () => root.render(<Probe key="2" member={2} scope="comment:edit:27" />));
   expect(container.textContent).toBe("원래 제목|원래 본문");
   expect(readCommunityDraft("comment:3", 1)).toBeNull();
 });
@@ -69,7 +68,7 @@ it("수정 완료 후 갱신·새로고침해도 복귀용 수정 양식이 다�
   expect(window.location.pathname + window.location.search + window.location.hash).toBe("/community/3?reply=1#comments-heading");
 });
 
-it("익명 체크를 해제하면 공개를 선택하고 글에서 고정된 방식은 바꿀 수 없다", async () => {
+it("댓글마다 익명과 프로필 공개를 선택한다", async () => {
   const actor = { memberId: 2, canWrite: true, fixedMode: null, profile: { name: "배우", photoUrl: null, path: "/actors/@a" } };
   const change = vi.fn();
   await act(async () => root.render(<AuthorChoice participation={actor} mode="ANONYMOUS" onChange={change} />));
@@ -77,26 +76,34 @@ it("익명 체크를 해제하면 공개를 선택하고 글에서 고정된 방
   expect(checkbox.checked).toBe(true);
   await act(async () => checkbox.click());
   expect(change).toHaveBeenCalledWith("PROFILE");
-  await act(async () => root.render(<AuthorChoice participation={{ ...actor, fixedMode: "PROFILE" }} mode="PROFILE" onChange={change} />));
-  expect(checkbox.disabled).toBe(true);
+  await act(async () => root.render(<AuthorChoice participation={actor} mode="PROFILE" onChange={change} />));
+  expect(checkbox.disabled).toBe(false);
   expect(checkbox.checked).toBe(false);
 });
 
-it("공개 페이지가 없는 첫 참여에서는 익명 표시와 실제 공개 설정 링크를 보여준다", async () => {
+it("공개 페이지가 없는 배우도 익명 체크를 조작할 수 있다", async () => {
   const actor = { memberId: 2, canWrite: true, fixedMode: null, profile: null };
   await act(async () => root.render(<AuthorChoice participation={actor} mode="ANONYMOUS" onChange={vi.fn()} />));
   const checkbox = container.querySelector<HTMLInputElement>("input[type=checkbox]");
   expect(checkbox?.checked).toBe(true);
-  expect(checkbox?.disabled).toBe(true);
-  expect(container.querySelector("a")?.getAttribute("href")).toBe("/applicants/profile?tab=actor-page");
+  expect(checkbox?.disabled).toBe(false);
+  expect(container.querySelector("a")).toBeNull();
 });
 
 it("공개 참여 후 배우 페이지를 숨기면 현재의 비공개 상태만 표시한다", async () => {
   const actor = { memberId: 2, canWrite: true, fixedMode: "PROFILE" as const, profile: null };
   await act(async () => root.render(<AuthorChoice participation={actor} mode="PROFILE" onChange={vi.fn()} />));
-  expect(container.textContent).toContain("프로필 비공개");
+  expect(container.textContent).toContain("배우 페이지 공개 후 등록");
   expect(container.querySelector("a")?.getAttribute("href")).toBe("/applicants/profile?tab=actor-page");
   expect(container.querySelector<HTMLInputElement>("input")?.checked).toBe(false);
-  expect(container.querySelector<HTMLInputElement>("input")?.disabled).toBe(true);
+  expect(container.querySelector<HTMLInputElement>("input")?.disabled).toBe(false);
   expect(container.querySelector("img")).toBeNull();
+});
+
+it("글쓰기에서 익명 체크를 해제해도 프로필 사진과 이름이 나타나지 않는다", async () => {
+  const participation = { memberId: 2, canWrite: true, fixedMode: null, profile: { name: "배우", photoUrl: null, path: "/actors/@a" } };
+  await act(async () => root.render(<AuthorChoice preview={false} participation={participation} mode="PROFILE" onChange={vi.fn()} />));
+  expect(container.querySelector("input")?.checked).toBe(false);
+  expect(container.querySelector("a, img")).toBeNull();
+  expect(container.textContent).not.toContain("배우");
 });

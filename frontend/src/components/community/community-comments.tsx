@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useImperativeHandle, useRef, useState, type Ref, type FormEvent, type KeyboardEvent } from "react";
-import { commentThreads } from "@/features/community/comments";
+import { commentThreads, linkedCommentPage } from "@/features/community/comments";
 import { createComment, deleteComment, editComment, getComments } from "@/features/community/api";
 import { trackCommentCreated } from "@/features/community/analytics";
 import { normalizeComment } from "@/features/community/draft";
@@ -9,6 +9,7 @@ import { useCommunityAction, useCommunityFeed, useCurrentCommunityForm, useDraft
 import { communityCommentEditReturnTo, communityReturnTo, finishCommunityEdit } from "@/features/community/navigation";
 import { useMemberDraft } from "@/features/community/use-member-draft";
 import type { CommunityEntry, CommunityParticipation } from "@/features/community/types";
+import { authorName } from "@/features/community/author-name";
 import { CommunityPhoto, CommunityByline, CommunityError, PlainText } from "./community-ui";
 import { AuthorChoice, CommunityLogin, MemberParticipation } from "./member-participation";
 import { EntryMenu } from "./entry-menu";
@@ -19,7 +20,12 @@ type Notify = (message: string) => void;
 type CommentsProps = { readonly postId: number; readonly count: number; readonly notify: Notify; readonly onChanged: () => Promise<void> };
 
 export function CommunityComments({ postId, count, notify, onChanged }: CommentsProps) {
-  const loader = useCallback((cursor?: number) => getComments(postId, cursor ?? linkedCommentCursor()), [postId]);
+  const loader = useCallback((cursor?: number) => {
+    if (cursor !== undefined) return getComments(postId, cursor);
+    const after = linkedCommentCursor();
+    if (after > 0) return linkedCommentPage(position => getComments(postId, position), after);
+    return getComments(postId);
+  }, [postId]);
   const feed = useCommunityFeed(loader);
   const [partial, setPartial] = useState(() => linkedCommentCursor() > 0);
   const [replyToId, setReplyToId] = useState(() => queryCommentId("replyTo"));
@@ -52,6 +58,7 @@ export function CommunityComments({ postId, count, notify, onChanged }: Comments
     closeReply();
     requestAnimationFrame(() => document.getElementById(`comment-${id}`)?.scrollIntoView({ block: "nearest" }));
   };
+  const target = feed.items.find(item => item.id === replyToId);
   return <><section className="community-comments" aria-labelledby="comments-heading">
     <h2 id="comments-heading" className="community-comments-head">댓글 {count}</h2>
     {partial && <EarlierComments disabled={feed.loading} load={() => {
@@ -65,7 +72,7 @@ export function CommunityComments({ postId, count, notify, onChanged }: Comments
     {feed.loading && <p className="community-status" role="status">댓글을 불러오고 있어요.</p>}
     {!feed.loading && feed.cursor !== null && <button type="button" className="community-more" onClick={() => void feed.load(feed.cursor!)}>댓글 더 보기</button>}
   </section><div ref={composer} className="community-comment-dock">
-    {replyToId > 0 && <div className="community-reply-target"><strong>{feed.items.find(item => item.id === replyToId)?.author} 댓글에 대댓글</strong>
+    {replyToId > 0 && <div className="community-reply-target"><strong>{target && authorName(target, postId)} 댓글에 대댓글</strong>
       <button type="button" disabled={sending} onClick={() => { if (discardDraft.current?.() !== false) closeReply(); }}>취소</button></div>}
     <MemberParticipation postId={postId} returnTo={composerReturnTo(postId, replyToId)}>
       {participation => <CommentComposer key={replyToId} discardDraft={discardDraft} postId={postId} replyToId={replyToId}
@@ -108,7 +115,7 @@ function CommentComposer({ postId, replyToId, onSaved, participation, onSending,
     scope += `:reply:${replyToId}`;
     label = "대댓글";
   }
-  const savedDraft = useMemberDraft(scope, participation.memberId!, participation.fixedMode);
+  const savedDraft = useMemberDraft(scope, participation.memberId!);
   const { body, authorMode, requestId } = savedDraft.draft;
   useImperativeHandle(discardDraft, () => () => {
     if (body && !window.confirm("작성 중인 대댓글을 지울까요?")) return false;
@@ -120,15 +127,15 @@ function CommentComposer({ postId, replyToId, onSaved, participation, onSending,
   useDraftGuard(body !== "");
   const expanded = focused || body !== "";
   async function publish() {
+    if (authorMode === "PROFILE" && !participation.profile?.path) return;
     const input = normalizeComment(body);
     const result = await createComment(postId, input.body, requestId, authorMode, participation.memberId!, replyToId || undefined);
     if (!active.current) return;
-    savedDraft.change({ body: "" });
+    savedDraft.change({ body: "", authorMode: "ANONYMOUS" });
     savedDraft.clear();
     setFocused(false);
     trackCommentCreated();
     await onSaved(result.id);
-    window.dispatchEvent(new Event("community:participation-changed"));
   }
   const send = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -138,13 +145,13 @@ function CommentComposer({ postId, replyToId, onSaved, participation, onSending,
     });
   };
   return <form className="community-comment-composer" onSubmit={send}
-    onFocus={() => setFocused(true)} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false); }}>
+    onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false); }}>
     <fieldset disabled={action.busy}><label htmlFor="comment-body-new" className="community-sr-only">{label}</label>
-      <textarea id="comment-body-new" name="body" autoFocus={replyToId > 0 || queryCommentId("reply") === 1} required maxLength={COMMENT_LIMIT} rows={composerRows(expanded)} value={body}
+      <textarea id="comment-body-new" name="body" onFocus={() => setFocused(true)} autoFocus={replyToId > 0 || queryCommentId("reply") === 1} required maxLength={COMMENT_LIMIT} rows={composerRows(expanded)} value={body}
         onChange={event => savedDraft.change({ body: event.target.value })} onKeyDown={submitOnEnter} placeholder={`${label}을 입력하세요`} />
       <div className="community-comment-tools">
         <AuthorChoice participation={participation} mode={authorMode} onChange={mode => savedDraft.change({ authorMode: mode })} />
-        <button className="community-send" disabled={!body.trim()} aria-label={`${label} 등록`}>등록</button>
+        <button className="community-send" disabled={!body.trim() || (authorMode === "PROFILE" && !participation.profile?.path)} aria-label={`${label} 등록`}>등록</button>
       </div></fieldset>
     <CommunityError message={action.error || savedDraft.storageError} />
     {action.needsLogin && <CommunityLogin returnTo={composerReturnTo(postId, replyToId)} />}
@@ -160,7 +167,7 @@ function CommentEditForm(props: EditProps) {
 }
 
 function MemberCommentEdit(props: EditProps & { readonly participation: CommunityParticipation }) {
-  const draft = useMemberDraft(`comment:edit:${props.comment.id}`, props.participation.memberId!, props.participation.fixedMode,
+  const draft = useMemberDraft(`comment:edit:${props.comment.id}`, props.participation.memberId!,
     { title: "", body: props.comment.body });
   return <CommentEditFields {...props} memberDraft={draft} />;
 }
@@ -206,10 +213,10 @@ function CommentItem({ comment, postId, notify, onChanged, onReply, sending }: I
   const [editing, setEditing] = useState(() => comment.editable && editedCommentId() === comment.id);
   const remove = async () => { await deleteComment(postId, comment.id); await onChanged(); };
   return <article id={`comment-${comment.id}`} className="community-comment"><CommunityPhoto photoUrl={comment.authorPhotoUrl} small />
-    <div className="community-entry-main"><div className="community-entry-head"><CommunityByline author={comment.author} createdAt={comment.createdAt} updatedAt={comment.updatedAt} markWriter={comment.postAuthor} authorPath={comment.authorPath} />
+    <div className="community-entry-main"><div className="community-entry-head"><CommunityByline author={authorName(comment, postId)} createdAt={comment.createdAt} updatedAt={comment.updatedAt} markWriter={comment.postAuthor} authorPath={comment.authorPath} />
       {!editing && <div className="community-comment-actions">
         {onReply && <button type="button" className="community-write-reply" disabled={sending} onClick={onReply}>대댓글</button>}
-        <EntryMenu entry={comment} label={`${comment.author} 댓글 메뉴`} notify={notify} onEdit={() => setEditing(true)} onDelete={remove} deleteQuestion="댓글을 삭제할까요?" />
+        <EntryMenu entry={comment} label={`${authorName(comment, postId)} 댓글 메뉴`} notify={notify} onEdit={() => setEditing(true)} onDelete={remove} deleteQuestion="댓글을 삭제할까요?" />
       </div>}</div>
       {editing && <CommentEditForm postId={postId} comment={comment} onCancel={() => setEditing(false)} onSaved={async () => { setEditing(false); await onChanged(); }} />}
       {!editing && <PlainText text={comment.body ?? ""} />}

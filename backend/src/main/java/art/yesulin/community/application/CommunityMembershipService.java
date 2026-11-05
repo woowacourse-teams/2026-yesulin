@@ -16,7 +16,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -57,6 +56,9 @@ public class CommunityMembershipService {
 
     @Transactional(readOnly = true)
     public CommunityPage posts(long before, String cookie, MemberPrincipal principal) {
+        if (before != Long.MAX_VALUE && principal == null) {
+            throw new BusinessException(AuthErrorCode.UNAUTHENTICATED, "이전 글을 보려면 로그인해 주세요.");
+        }
         return decorate(entries.posts(before, cookie), cookie, principal);
     }
 
@@ -101,17 +103,10 @@ public class CommunityMembershipService {
         if (!canWrite(current)) {
             return new CommunityParticipation(current.memberId(), false, null, null);
         }
-        return new CommunityParticipation(current.memberId(), true, fixedMode(postId, current.memberId()),
-                profiles.find(current.memberId()));
-    }
-
-    private CommunityAuthorMode fixedMode(Long postId, long member) {
-        if (postId == null) {
-            return null;
+        if (postId != null) {
+            repository.findById(postId).orElseThrow(this::notFound).requirePost();
         }
-        repository.findById(postId).orElseThrow(this::notFound).requirePost();
-        return repository.participation(postId, key(member), PageRequest.of(0, 1)).stream()
-                .map(CommunityEntry::getAuthorMode).findFirst().orElse(null);
+        return new CommunityParticipation(current.memberId(), true, null, profiles.find(current.memberId()));
     }
 
     private long requireWriter(MemberPrincipal principal, CommunityAuthorMode mode) {

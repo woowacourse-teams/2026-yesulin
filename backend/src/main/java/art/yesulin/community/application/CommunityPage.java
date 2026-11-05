@@ -8,9 +8,9 @@ public record CommunityPage(List<EntryResult> items, Long nextCursor) {
         items = List.copyOf(items);
     }
 
-    public static CommunityPage of(List<EntryResult> entries) {
-        if (entries.size() > 20) {
-            return new CommunityPage(entries.subList(0, 20), entries.get(19).id());
+    public static CommunityPage of(List<EntryResult> entries, int size) {
+        if (entries.size() > size) {
+            return new CommunityPage(entries.subList(0, size), entries.get(size - 1).id());
         }
         return new CommunityPage(entries, null);
     }

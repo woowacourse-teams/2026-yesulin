@@ -11,6 +11,7 @@ import { errorMessage } from "@/features/community/hooks";
 import { copyLink, postUrl } from "@/features/community/share";
 import type { CommunityEntry, CommunityLikeState } from "@/features/community/types";
 import { CommunitySubbar } from "./community-shell";
+import { authorName } from "@/features/community/author-name";
 import { CommunityPhoto, CommunityByline, CommunityError, CommunityMissing, CommunityToast, PlainText, useCommunityToast } from "./community-ui";
 import { CommunityComments } from "./community-comments";
 import { EntryMenu } from "./entry-menu";
@@ -77,7 +78,7 @@ type ArticleProps = { readonly post: CommunityEntry; readonly notify: Notify; re
 
 function PostArticle({ post, notify, onLiked }: ArticleProps) {
   return <article className="community-post"><div className="community-post-author"><CommunityPhoto photoUrl={post.authorPhotoUrl} />
-    <CommunityByline author={post.author} authorPath={post.authorPath} createdAt={post.createdAt} updatedAt={post.updatedAt} /></div>
+    <CommunityByline author={authorName(post, post.id)} authorPath={post.authorPath} createdAt={post.createdAt} updatedAt={post.updatedAt} /></div>
     <h1>{post.title}</h1><PlainText text={post.body ?? ""} />
     <div className="community-reactions community-post-reactions"><LikeButton post={post} onChanged={onLiked} labelled />
       <a href="#comments-heading"><PiChatCircle size={19} aria-hidden="true" /><span>댓글 {post.commentCount}</span></a>

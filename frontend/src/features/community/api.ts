@@ -1,7 +1,7 @@
 import { request } from "@/features/auditions/api-client";
 import { communityListMemory } from "./list-memory";
 import { prepareIdentity } from "./identity";
-import { communityPath, type CommunityEntry, type CommunityLikeState, type CommunityPage, type ReportReason, type CommunityAuthorMode, type CommunityParticipation } from "./types";
+import { communityPath, type CommunityEntry, type CommunityLikeState, type CommunityNotice, type CommunityPage, type ReportReason, type CommunityAuthorMode, type CommunityParticipation } from "./types";
 
 async function read<T>(path: string): Promise<T> {
   await prepareIdentity(false).catch(() => {});
@@ -68,4 +68,14 @@ export function getParticipation(postId?: number): Promise<CommunityParticipatio
   let path = `${communityPath}/participation`;
   if (postId) path += `?postId=${postId}`;
   return request(path, { cache: "no-store" });
+}
+
+const inboxPath = "/v1/community/notifications";
+
+export function getNotifications(signal: AbortSignal) {
+  return request<readonly CommunityNotice[]>(inboxPath, { cache: "no-store", signal });
+}
+
+export function readNotification(commentId: number) {
+  return request<void>(`${inboxPath}/${commentId}/read`, { method: "PUT" });
 }

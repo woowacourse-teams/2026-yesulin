@@ -29,7 +29,7 @@ function MemberPostForm(props: Props & { readonly participation: CommunityPartic
   let scope = "post:new";
   if (props.post) scope = `post:edit:${props.post.id}`;
   const initial = { title: props.post?.title ?? "", body: props.post?.body ?? "" };
-  const draft = useMemberDraft(scope, props.participation.memberId!, props.participation.fixedMode, initial);
+  const draft = useMemberDraft(scope, props.participation.memberId!, initial);
   return <PostForm {...props} memberDraft={draft} />;
 }
 
@@ -48,8 +48,10 @@ function PostForm({ post, onSaved, onCancel, participation, memberDraft }: FormP
   useDraftGuard(dirty && !saved);
   useTrackOnce(!post && Boolean(participation), trackComposeStarted);
   useAbandonTracking(!post, dirty && !saved);
+  const needsProfile = !post && memberDraft?.draft.authorMode === "PROFILE" && !participation?.profile?.path;
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (needsProfile) return;
     await action.run(async () => {
       const input = normalizePost(fields.title, fields.body);
       const result = await savePost(post, input, memberDraft?.draft.requestId ?? attempt.current.idFor(input), participation, memberDraft?.draft.authorMode);
@@ -74,9 +76,9 @@ function PostForm({ post, onSaved, onCancel, participation, memberDraft }: FormP
       <ComposeFields fields={fields} onChange={setFields} />
       <div className="community-compose-footer">
         <p className="community-count" data-near={fields.body.length >= BODY_LIMIT * NEAR_LIMIT}>{fields.body.length.toLocaleString()} / 5,000</p>
-        {!post && participation && memberDraft && <AuthorChoice participation={participation} mode={memberDraft.draft.authorMode}
+        {!post && participation && memberDraft && <AuthorChoice preview={false} participation={participation} mode={memberDraft.draft.authorMode}
           onChange={authorMode => memberDraft.change({ authorMode })} />}
-        <button type="submit" className="community-publish" disabled={action.busy || !ready}
+        <button type="submit" className="community-publish" disabled={action.busy || !ready || needsProfile}
           aria-busy={action.busy}>
           {!post && <Image src="/images/community-star-chat.png" width={32} height={32} alt="" />}
           <span>{submitLabel(Boolean(post), action.busy)}</span>

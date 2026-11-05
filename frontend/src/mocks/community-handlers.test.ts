@@ -105,3 +105,33 @@ it("답글을 한 단계로 묶고 원댓글 삭제 후에도 답글과 재시�
   const page = await (await fetch(url)).json();
   expect(page.items.map((item: { id: number }) => item.id)).toEqual([reply.id]);
 });
+
+it("비회원은 최신 5개만 받고 로그인하면 커서 다음 글을 읽는다", async () => {
+  for (let index = 0; index < 6; index++) {
+    await write(base, "POST", { requestId: crypto.randomUUID(), title: "목록", body: "내용" });
+  }
+  const preview = await (await fetch(base)).json();
+  expect(preview.items).toHaveLength(5);
+  const next = `${base}?before=${preview.nextCursor}`;
+  expect((await fetch(next)).status).toBe(401);
+  const page = await (await fetch(next, { headers: { Cookie: `yesulin-community-owner=${secret}` } })).json();
+  expect(page.items[0].id).toBeLessThan(preview.nextCursor);
+});
+
+it("댓글과 대댓글 알림을 직접 수신자에게만 보여 주고 읽음 상태를 보호한다", async () => {
+  const post = await (await write(base, "POST", { requestId: crypto.randomUUID(), title: "알림", body: "내용" })).json();
+  const other = "c".repeat(64);
+  const comments = `${base}/${post.id}/comments`;
+  const comment = await (await write(comments, "POST", { requestId: crypto.randomUUID(), body: "댓글" }, other)).json();
+  const reply = await (await write(comments, "POST", { requestId: crypto.randomUUID(), body: "답변", replyToId: comment.id })).json();
+  const url = "http://localhost/api/v1/community/notifications";
+  const inbox = async (key: string) => (await fetch(url, { headers: { Cookie: `yesulin-community-owner=${key}` } })).json();
+  expect((await fetch(url)).status).toBe(401);
+  expect((await inbox(other))[0]).toMatchObject({ commentId: reply.id, seen: false });
+  await write(`${url}/${comment.id}/read`, "PUT", {}, other);
+  expect((await inbox(secret))[0]).toMatchObject({ commentId: comment.id, seen: false });
+  await write(`${url}/${comment.id}/read`, "PUT", {});
+  expect((await inbox(secret))[0].seen).toBe(true);
+  await write(`${comments}/${comment.id}`, "DELETE", {}, other);
+  expect(await inbox(secret)).not.toContainEqual(expect.objectContaining({ commentId: comment.id }));
+});

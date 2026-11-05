@@ -30,37 +30,37 @@ export function MemberParticipation({ postId, returnTo = communityReturnTo(postI
     };
     void refresh();
     window.addEventListener("focus", refresh);
-    window.addEventListener("community:participation-changed", refresh);
-    return () => { current = false; window.removeEventListener("focus", refresh); window.removeEventListener("community:participation-changed", refresh); };
+    return () => { current = false; window.removeEventListener("focus", refresh); };
   }, [postId, credential]);
   if (error) return <CommunityError message={error} retry={() => window.location.reload()} />;
   if (!state || state.credential !== credential) return <p role="status">참여 정보를 확인하고 있어요.</p>;
+  if (state.value.memberId === null && !postId) return <div className="community-member-prompt">
+    <p>사용하던 소셜 계정으로 빠르게 글쓰기를 시작하세요.</p>
+    <CommunityLogin returnTo={returnTo} /><Link className="community-back-link" href="/community">목록으로 돌아가기</Link>
+  </div>;
   if (state.value.memberId === null) return <div className="community-member-prompt"><CommunityLogin returnTo={returnTo} /></div>;
   if (!state.value.canWrite) return <p className="community-member-prompt">배우 계정으로 글과 댓글을 작성할 수 있어요.</p>;
-  return <div key={`${state.value.memberId}:${state.value.fixedMode}`}>{children(state.value)}</div>;
+  return <div key={state.value.memberId}>{children(state.value)}</div>;
 }
 
-type ChoiceProps = { readonly participation: CommunityParticipation; readonly mode: CommunityAuthorMode; readonly onChange: (mode: CommunityAuthorMode) => void };
-export function AuthorChoice({ participation, mode, onChange }: ChoiceProps) {
+type ChoiceProps = { readonly preview?: boolean; readonly participation: CommunityParticipation; readonly mode: CommunityAuthorMode; readonly onChange: (mode: CommunityAuthorMode) => void };
+export function AuthorChoice({ participation, mode, onChange, preview = true }: ChoiceProps) {
   const reasonId = useId();
   const profile = participation.profile;
   const anonymous = mode === "ANONYMOUS";
-  const fixed = participation.fixedMode !== null;
-  const needsProfile = !fixed && anonymous && !profile?.path;
+  const needsProfile = !anonymous && !profile?.path;
   let reason: string | undefined;
-  if (needsProfile) reason = "배우 페이지를 공개하면 익명을 해제할 수 있어요.";
-  if (fixed) reason = "이 글에서는 처음 선택한 작성 방식이 유지돼요.";
+  if (needsProfile) reason = "프로필로 등록하려면 배우 페이지를 먼저 공개해 주세요.";
   const toggle = () => {
     if (anonymous) return onChange("PROFILE");
     onChange("ANONYMOUS");
   };
   return <div className="community-author-choice">
-    {mode === "PROFILE" && profile?.path && <Link href={profile.path} className="community-profile-preview">
+    {preview && mode === "PROFILE" && profile?.path && <Link href={profile.path} className="community-profile-preview">
       <CommunityPhoto photoUrl={profile.photoUrl} small /><span>{profile.name}</span></Link>}
-    {mode === "PROFILE" && !profile?.path && <span>프로필 비공개</span>}
-    {!profile?.path && (!fixed || !anonymous) && <Link href={applicantRoutes.actorPageSettings}>프로필 공개 설정</Link>}
+    {needsProfile && <Link href={applicantRoutes.actorPageSettings}>배우 페이지 공개 후 등록</Link>}
     <label title={reason}>
-      <input type="checkbox" checked={anonymous} disabled={fixed || needsProfile} aria-describedby={reason && reasonId} onChange={toggle} />
+      <input type="checkbox" checked={anonymous} aria-describedby={reason && reasonId} onChange={toggle} />
       익명
     </label>
     {reason && <span id={reasonId} className="community-sr-only">{reason}</span>}

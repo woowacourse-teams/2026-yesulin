@@ -16,6 +16,22 @@ class CommunityStore {
   private entries = new Map<number, StoredEntry>();
   private reports = new Map<string, string>();
   private sequence = 0;
+  private notices = new Map<number, { recipient: string; seen: boolean }>();
+
+  inbox(owner: string) {
+    return [...this.notices.entries()].reverse().flatMap(([id, notice]) => {
+      const comment = this.entries.get(id);
+      const post = this.entries.get(comment?.parent ?? -1);
+      if (notice.recipient !== owner || !comment || comment.deleted || !post || post.deleted) return [];
+      return [{ commentId: id, postId: post.value.id, title: post.value.title, replyToId: comment.value.replyToId, seen: notice.seen }];
+    }).slice(0, 20);
+  }
+
+  readNotice(owner: string, id: number) {
+    const notice = this.notices.get(id);
+    if (notice?.recipient === owner) notice.seen = true;
+  }
+
   private likes = new Map<number, Set<string>>();
 
   constructor(private readonly profile: (member: number) => CommunityProfile | null) {}
@@ -25,13 +41,6 @@ class CommunityStore {
     const profile = this.profile(Number(entry.owner.slice(7)));
     if (!profile?.path) return { author: "프로필 비공개", authorPhotoUrl: null, authorPath: null };
     return { author: profile.name, authorPhotoUrl: profile.photoUrl, authorPath: profile.path };
-  }
-
-  fixedMode(postId: number | null, owner: string) {
-    if (postId === null) return null;
-    this.post(postId);
-    const entry = [...this.entries.values()].find(item => item.owner === owner && (item.value.id === postId || item.parent === postId));
-    return entry?.value.authorMode ?? null;
   }
 
   find(id: number): StoredEntry {
@@ -70,23 +79,27 @@ class CommunityStore {
     return { likeCount: likes.size, liked: likes.has(owner) };
   }
 
-  private author(parent: number | null, owner: string) {
+  private author(parent: number | null, owner: string, mode: CommunityAuthorMode) {
     if (parent === null) return "익명1";
-    const owners = new Set([this.post(parent).owner]);
+    const post = this.post(parent);
+    const owners = new Set([`${post.owner}:${post.value.authorMode}`]);
     for (const entry of this.entries.values()) {
-      if (entry.parent === parent) owners.add(entry.owner);
+      if (entry.parent === parent) owners.add(`${entry.owner}:${entry.value.authorMode}`);
     }
-    owners.add(owner);
-    return `익명${[...owners].indexOf(owner) + 1}`;
+    const participant = `${owner}:${mode}`;
+    owners.add(participant);
+    return `익명${[...owners].indexOf(participant) + 1}`;
   }
 
   list(parent: number | null, cursor: number, owner: string, browser = owner): CommunityPage {
     if (parent !== null) this.post(parent);
     const entries = [...this.entries.values()].filter(entry => eligible(entry, parent, cursor));
     entries.sort((left, right) => compareEntries(left, right, parent));
-    const items = entries.slice(0, 20).map(entry => this.view(entry, owner, browser));
+    let size = 20;
+    if (parent === null) size = 5;
+    const items = entries.slice(0, size).map(entry => this.view(entry, owner, browser));
     let nextCursor: number | null = null;
-    if (entries.length > 20) nextCursor = items[19].id;
+    if (entries.length > size) nextCursor = items[size - 1].id;
     return { items, nextCursor };
   }
 
@@ -94,8 +107,6 @@ class CommunityStore {
     requireRequestId(input.requestId);
     if (parent !== null) this.post(parent);
     if (input.authorMode !== "ANONYMOUS" && input.authorMode !== "PROFILE") throw new Error("작성 방식을 선택해 주세요.");
-    const fixed = this.fixedMode(parent, owner);
-    if (fixed && fixed !== input.authorMode) throw conflict();
     if (input.authorMode === "PROFILE" && !this.profile(Number(owner.slice(7)))?.path) throw new MockFailure(409, "COMMUNITY_PROFILE_REQUIRED", "공개된 배우 페이지가 필요해요.");
     const content = { ...normalized(parent, input), authorMode: input.authorMode };
     const replyToId = replyTarget(parent, input);
@@ -134,9 +145,12 @@ class CommunityStore {
   private insert(parent: number | null, owner: string, requestId: string, content: { replyToId: number | null; title: string | null; body: string; authorMode: CommunityAuthorMode }, original: string) {
     const id = ++this.sequence;
     const createdAt = new Date().toISOString();
-    const value = { id, ...content, memberOwned: true, authorPhotoUrl: null, authorPath: null, postAuthor: parent === null || this.post(parent).owner === owner, author: this.author(parent, owner), createdAt, updatedAt: createdAt, commentCount: 0, editable: false, likeCount: 0, liked: false };
+    const value = { id, ...content, memberOwned: true, authorPhotoUrl: null, authorPath: null, postAuthor: parent === null || (this.post(parent).owner === owner && this.post(parent).value.authorMode === content.authorMode), author: this.author(parent, owner, content.authorMode), createdAt, updatedAt: createdAt, commentCount: 0, editable: false, likeCount: 0, liked: false };
     const entry = { value, owner, parent, deleted: false, requestId, original };
     this.entries.set(id, entry);
+    const target = content.replyToId ?? parent;
+    const recipient = this.entries.get(target ?? -1)?.owner;
+    if (recipient?.startsWith("member:") && recipient !== owner) this.notices.set(id, { recipient, seen: false });
     if (parent !== null) this.changeCount(parent, 1);
     return this.view(entry, owner);
   }
@@ -244,16 +258,28 @@ export function createCommunityHandlers(context: MockContext = { session: mockCu
     if (input.expectedMemberId !== session.memberId) throw conflict();
     return store.create(parent, owner, input);
   };
+  const inboxOwner = (request: Request) => {
+    const session = context.session(request);
+    if (!session) throw new MockFailure(401, "AUTH_UNAUTHENTICATED", "로그인이 필요합니다.");
+    return `member:${session.memberId}`;
+  };
   return [
+    http.get("*/api/v1/community/notifications", ({ request }) => respond(() => store.inbox(inboxOwner(request)))),
+    http.put("*/api/v1/community/notifications/:id/read", ({ request, params }) => respond(() => store.readNotice(inboxOwner(request), Number(params.id)))),
     http.get("*/api/v1/public/community/identity", ({ request, cookies }) => identityResponse(request, cookies, false)),
     http.post("*/api/v1/public/community/identity", ({ request, cookies }) => identityResponse(request, cookies, true)),
     http.get(`${base}/participation`, ({ request }) => respond(() => {
       const session = context.session(request);
       const postId = new URL(request.url).searchParams.get("postId");
+      if (postId && memberKey(request)) store.post(Number(postId));
       return { memberId: session?.memberId ?? null, canWrite: Boolean(memberKey(request)),
-        fixedMode: store.fixedMode(Number(postId) || null, memberKey(request)), profile: context.profile(session?.memberId ?? 0) };
+        fixedMode: null, profile: context.profile(session?.memberId ?? 0) };
     })),
-    http.get(base, ({ request, cookies }) => respond(() => store.list(null, cursorOf(request, "before", Number.MAX_SAFE_INTEGER, 1), memberKey(request), ownerOf(request, cookies)))),
+    http.get(base, ({ request, cookies }) => respond(() => {
+      const cursor = cursorOf(request, "before", Number.MAX_SAFE_INTEGER, 1);
+      if (cursor !== Number.MAX_SAFE_INTEGER && !context.session(request)) throw new MockFailure(401, "AUTH_UNAUTHENTICATED", "이전 글을 보려면 로그인해 주세요.");
+      return store.list(null, cursor, memberKey(request), ownerOf(request, cookies));
+    })),
     http.put(`${base}/:id/likes`, ({ request, params, cookies }) => respond(() => store.react(Number(params.id), ownerOf(request, cookies), true))),
     http.delete(`${base}/:id/likes`, ({ request, params, cookies }) => respond(() => store.react(Number(params.id), ownerOf(request, cookies), false))),
     http.get(`${base}/:id`, ({ request, params, cookies }) => respond(() => store.view(store.post(Number(params.id)), memberKey(request), ownerOf(request, cookies)))),

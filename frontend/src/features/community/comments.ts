@@ -18,6 +18,17 @@ export async function loadThroughComment(loader: (after?: number) => Promise<Com
   return { items, nextCursor: page.nextCursor };
 }
 
+export async function linkedCommentPage(loader: (after: number) => Promise<CommunityPage>, after: number) {
+  const page = await loader(after);
+  const target = page.items[0];
+  const parent = target?.replyToId;
+  if (target?.id !== after + 1 || !parent) return page;
+  const earlier = await loader(parent - 1);
+  const root = earlier.items.find(item => item.id === parent);
+  if (!root) return page;
+  return { ...page, items: mergeComments([root], page.items) };
+}
+
 type CommentThread = { id: number; root?: CommunityEntry; replies: CommunityEntry[] };
 
 export function commentThreads(items: readonly CommunityEntry[]) {

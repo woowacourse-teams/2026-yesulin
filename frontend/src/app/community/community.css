@@ -230,10 +230,23 @@
 .community-feed-byline strong { font-size: 12px; }
 .community-feed-byline .community-time { margin-left: auto; font-size: 11px; }
 .community-entry .community-reactions { margin-top: 0; gap: 6px; }
-.community-refresh { display: flex; align-items: center; gap: 5px; min-height: 44px; margin: 8px auto 0; padding: 0 12px; font-size: 12px; color: var(--ink-60); }
 @media (max-width: 620px) {
   .community-main:has(.community-lounge) { padding: 20px 0 24px; }
   .community-column:has(> .community-lounge) { width: calc(100% - 32px); }
   .community-entry > article { padding: 16px 18px; }
   .community-feed-byline .community-avatar { width: 28px; height: 28px; }
 }
+.community-entry > article { position: relative; }
+.community-post-link::after { content: ""; position: absolute; inset: 0; }
+.community-feed-byline :is(a, button), .community-entry .community-reactions :is(a, button) { position: relative; z-index: 1; }
+.community-popular { margin-inline-end: 8px; color: var(--brand); font-size: 12px; }
+.community-back-link { display: block; width: fit-content; margin: 12px auto 0; text-decoration: underline; }
+.community-member-prompt > p { margin-bottom: 16px; }
+a.community-more { display: block; text-align: center; }
+.community-feed-tools, .community-inbox-button, .community-inbox-head { display: flex; align-items: center; gap: 6px; }
+.community-inbox-button { min-height: 44px; color: var(--ink-60); font-size: 13px; }
+.community-inbox-button strong, .community-inbox-items b { color: var(--brand); }
+.community-inbox-head { justify-content: space-between; margin-bottom: 12px; }
+.community-inbox-items { max-height: 55vh; overflow-y: auto; }
+.community-inbox-items button { width: 100%; display: grid; gap: 3px; padding: 12px 0; border-bottom: 1px solid var(--line); text-align: start; }
+.community-inbox-items span { font-size: 12px; }

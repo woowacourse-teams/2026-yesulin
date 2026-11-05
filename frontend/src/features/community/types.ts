@@ -41,3 +41,11 @@ export type CommunityParticipation = {
   fixedMode: CommunityAuthorMode | null;
   profile: CommunityProfile | null;
 };
+
+export type CommunityNotice = {
+  commentId: number;
+  postId: number;
+  title: string;
+  replyToId: number | null;
+  seen: boolean;
+};
