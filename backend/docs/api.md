@@ -1382,9 +1382,9 @@ POST 성공만으로 저장됐다고 판단하지 않고 GET에서 같은 이전
 | --- | --- | --- |
 | GET | `/identity` | `{ready: boolean}`. 쿠키 확인만 하며 새 키는 발급하지 않음. 이전 헤더가 있으면 해당 키와 쿠키의 일치도 확인 |
 | POST | `/identity` | 본문 없음, CSRF 필수 → 204 + HttpOnly Set-Cookie. 기존 쿠키 재사용, 기존 키 이전 또는 서버 32바이트 난수 신규 발급 |
-| GET | `/posts?before={id}` | 최신 글 20개. 생략 시 처음부터. `before`는 양수, 해당 ID 미포함 |
+| GET | `/posts?before={id}` | 최신 글 5개. 첫 페이지는 공개, 이전 페이지는 로그인 필요(401). `before`는 양수, 해당 ID 미포함 |
 | POST | `/posts` | `{requestId: UUID, title, body, authorMode, expectedMemberId}` → 201 작성물 |
-| GET | `/posts/participation?postId={id}` | 본인 참여 상태. postId 생략 시 새 글. `{memberId, canWrite, fixedMode, profile: {name, photoUrl, path} 또는 null}`. 비로그인은 memberId/profile/fixedMode null·canWrite false. 회원 ID는 이 본인 응답에만 포함 |
+| GET | `/posts/participation?postId={id}` | 본인 참여 상태. postId 생략 시 새 글. `{memberId, canWrite, fixedMode, profile: {name, photoUrl, path} 또는 null}`. fixedMode는 호환용으로 항상 null. 비로그인은 memberId/profile/fixedMode null·canWrite false. 회원 ID는 이 본인 응답에만 포함 |
 | GET | `/posts/{postId}` | 200 작성물, 없거나 삭제되었으면 404 |
 | PUT | `/posts/{postId}` | `{title, body}` → 200 수정 작성물 |
 | DELETE | `/posts/{postId}` | 204, 본인만 가능 |
@@ -1398,11 +1398,11 @@ POST 성공만으로 저장됐다고 판단하지 않고 GET에서 같은 이전
 
 작성물 응답은 `{id, title, body, author, authorPhotoUrl, authorPath, authorMode, postAuthor, memberOwned, createdAt, updatedAt, commentCount, editable, likeCount, liked}`다.
 `memberOwned`는 회원 소유 여부이며, 기존 쿠키 소유 작성물의 로그인 없는 관리 화면을 구분한다. 회원 식별자는 포함하지 않는다.
-`authorMode`는 `ANONYMOUS` 또는 `PROFILE`이며 생성 요청에서 필수다. `postAuthor`는 글쓴이 여부다.
-익명은 글별 전체 첫 참여 순서의 익명1·익명2로 표시하고 사진·경로는 null이다. 공개 참여자도 번호를 차지한다.
+`authorMode`는 `ANONYMOUS` 또는 `PROFILE`이며 생성 요청에서 필수다. `postAuthor`는 글쓴이가 글과 같은 방식으로 작성했는지 나타낸다.
+익명은 글별 작성자·공개 방식 조합의 첫 참여 순서에 따라 익명1·익명2로 표시하고 사진·경로는 null이다. 공개 참여자도 번호를 차지한다.
 공개 모드는 현재 공개 배우 페이지의 이름·사진·경로만 반환한다. 비공개/잠금/공개 조건 미충족은 `프로필 비공개`,
 계정 없음은 `알 수 없는 사용자`이며 사진·경로는 null이다. 공개 가능한 페이지 없이 PROFILE로 생성하면 409 COMMUNITY_PROFILE_REQUIRED다.
-한 글에서 처음 정한 모드와 다르게 작성하거나, 같은 생성 요청 번호에 다른 계정·모드·대상·내용을 보내면 409 COMMUNITY_REQUEST_CONFLICT다.
+새 댓글마다 모드를 선택한다. 같은 생성 요청 번호에 다른 계정·모드·대상·내용을 보내면 409 COMMUNITY_REQUEST_CONFLICT다.
 기존 번호는 보존하며 삭제된 댓글도 참여 순서에 포함한다. 익명 작성자 회원 ID·해시·프로필 연결 정보는 반환하지 않는다.
 `likeCount`는 글의 좋아요 수이며 `liked`는 해당 브라우저의 선택 여부다. 쿠키가 없으면 `liked`는 false다.
 댓글에는 좋아요를 지원하지 않아 `likeCount: 0`, `liked: false`다.
@@ -1410,6 +1410,8 @@ POST 성공만으로 저장됐다고 판단하지 않고 GET에서 같은 이전
 목록은 `{items: 작성물[], nextCursor: number | null}`이고 다음 페이지가 없으면 null이다.
 날짜는 ISO Instant이며 `updatedAt`이 `createdAt`과 다르면 수정 표시를 한다.
 제목은 1~100자, 글 본문 1~5,000자, 댓글 1~1,000자다. 요청의 최대 길이를 검사한 뒤 줄바꿈·앞뒤 공백을 정리한다.
+
+로그인 회원의 `GET /api/v1/community/notifications`는 최신 알림 최대 20개를 `[{commentId, postId, title, replyToId, seen}]`으로 반환한다. `PUT /api/v1/community/notifications/{commentId}/read`는 자신의 알림만 읽음 처리하고 204를 반환한다. 두 경로 모두 비회원은 401이다.
 
 신고 사유는 `SPAM`, `HARASSMENT`, `PERSONAL_INFORMATION`, `OTHER`이고 선택 설명은 최대 1,000자다.
 신고 원문·신고자·접수 목록을 공개하는 API는 없다. 접수 성공은 Slack 수신 완료를 뜻하지 않는다.

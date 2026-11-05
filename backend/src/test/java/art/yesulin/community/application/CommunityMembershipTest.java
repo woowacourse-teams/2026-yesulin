@@ -39,6 +39,9 @@ class CommunityMembershipTest {
     private CommunityMembershipService members;
 
     @Autowired
+    private CommunityInbox notices;
+
+    @Autowired
     private CommunityService legacy;
 
     @Autowired
@@ -95,7 +98,7 @@ class CommunityMembershipTest {
     }
 
     @Test
-    void publicParticipantsOccupyNumbersAndKeepTheirMode() {
+    void eachCommentChoosesItsOwnIdentity() {
         MemberPrincipal author = actor();
         when(profiles.find(author.memberId())).thenReturn(new CommunityProfile("배우", null, "/actors/@actor"));
         long id = post(actor()).id();
@@ -104,9 +107,14 @@ class CommunityMembershipTest {
         assertEquals("배우", publicReply.author());
         assertEquals("익명3", members.createComment(id, actor(), UUID.randomUUID(), "익명",
                 CommunityAuthorMode.ANONYMOUS).author());
-        assertThrows(BusinessException.class, () -> members.createComment(id, author, UUID.randomUUID(), "변경",
-                CommunityAuthorMode.ANONYMOUS));
-        assertEquals(CommunityAuthorMode.PROFILE, members.participation(author, id).fixedMode());
+        EntryResult switched = members.createComment(id, author, UUID.randomUUID(), "변경",
+                CommunityAuthorMode.ANONYMOUS);
+        assertEquals("익명4", switched.author());
+        assertEquals(null, switched.authorPath());
+        assertEquals(null, members.participation(author, id).fixedMode());
+        long ownPost = post(author).id();
+        assertFalse(members.createComment(ownPost, author, UUID.randomUUID(), "공개", CommunityAuthorMode.PROFILE)
+                .postAuthor());
     }
 
     @Test
@@ -215,6 +223,38 @@ class CommunityMembershipTest {
             assertEquals(1, successes);
         }
         assertEquals(1, legacy.post(id, null).commentCount());
+    }
+
+    @Test
+    void guestsCanPreviewFivePostsAndOnlyMembersCanContinue() {
+        MemberPrincipal member = actor();
+        for (int count = 0; count < 6; count++) {
+            post(member);
+        }
+        CommunityPage preview = members.posts(Long.MAX_VALUE, null, null);
+        assertEquals(5, preview.items().size());
+        assertThrows(BusinessException.class, () -> members.posts(preview.nextCursor(), null, null));
+        assertTrue(members.posts(preview.nextCursor(), null, member).items().getFirst().id() < preview.nextCursor());
+    }
+
+    @Test
+    void inboxIsPrivateAndRetriesAndSelfRepliesDoNotNotifyTwice() {
+        var author = actor();
+        var visitor = actor();
+        long post = post(author).id();
+        UUID key = UUID.randomUUID();
+        long comment = reply(post, null, visitor, key).id();
+        reply(post, null, visitor, key);
+        reply(post, null, author, UUID.randomUUID());
+        long nested = reply(post, comment, author, UUID.randomUUID()).id();
+        assertEquals(1, notices.recent(author.memberId()).size());
+        assertEquals(nested, notices.recent(visitor.memberId()).getFirst().commentId());
+        notices.markSeen(visitor.memberId(), comment);
+        assertFalse(notices.recent(author.memberId()).getFirst().seen());
+        notices.markSeen(author.memberId(), comment);
+        assertTrue(notices.recent(author.memberId()).getFirst().seen());
+        members.deletePost(post, null, author);
+        assertTrue(notices.recent(visitor.memberId()).isEmpty());
     }
 
     private MemberPrincipal actor() {

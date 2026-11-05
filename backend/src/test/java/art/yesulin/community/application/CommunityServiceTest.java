@@ -91,7 +91,7 @@ class CommunityServiceTest {
         }
         CommunityPage first = service.posts(Long.MAX_VALUE);
         CommunityPage next = service.posts(first.nextCursor());
-        assertEquals(20, first.items().size());
+        assertEquals(5, first.items().size());
         assertFalse(next.items().isEmpty());
         assertTrue(next.items().stream().allMatch(item -> item.id() < first.nextCursor()));
     }

@@ -1250,3 +1250,7 @@
   .show-tab-list { top:72px; gap:18px; }
   .show-tab-list [role=tab] { font-size:15px; }
 }
+
+.received-comment-dot { display:inline-block; width:7px; height:7px; flex:none; margin-inline-start:5px; border-radius:50%; background:#57b8eb; border:1px solid #348fbd; }
+.notebook-menu-toggle { position:relative; }
+.notebook-menu-toggle .received-comment-dot { position:absolute; top:6px; right:5px; }

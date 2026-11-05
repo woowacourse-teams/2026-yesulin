@@ -111,7 +111,7 @@ public class CommunityEntry {
 
     public void requireMode(CommunityAuthorMode mode) {
         if (authorMode != mode) {
-            throw new BusinessException(CommunityErrorCode.REQUEST_CONFLICT, "이 글에서 처음 선택한 작성 방식을 유지해 주세요.");
+            throw new BusinessException(CommunityErrorCode.REQUEST_CONFLICT, "이미 다른 작성 방식에 사용한 요청 번호예요.");
         }
     }
 

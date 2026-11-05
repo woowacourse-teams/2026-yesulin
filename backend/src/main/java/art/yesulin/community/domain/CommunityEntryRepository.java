@@ -10,13 +10,10 @@ import org.springframework.data.jpa.repository.Query;
 
 public interface CommunityEntryRepository extends JpaRepository<CommunityEntry, Long> {
 
-    @Query("select e.ownerHash from CommunityEntry e where e.id = :postId or e.parentId = :postId "
-            + "group by e.ownerHash order by min(e.id)")
-    List<String> authors(long postId);
-
-    @Query("select e from CommunityEntry e where (e.id = :postId or e.parentId = :postId) "
-            + "and e.ownerHash = :owner order by e.id")
-    List<CommunityEntry> participation(long postId, String owner, Pageable pageable);
+    @Query("select new art.yesulin.community.domain.CommunityParticipant(e.ownerHash, e.authorMode) "
+            + "from CommunityEntry e where e.id = :postId or e.parentId = :postId "
+            + "group by e.ownerHash, e.authorMode order by min(e.id)")
+    List<CommunityParticipant> authors(long postId);
 
     Optional<CommunityEntry> findByRequestKey(String requestKey);
 

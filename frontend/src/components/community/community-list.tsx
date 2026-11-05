@@ -2,32 +2,59 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect } from "react";
-import { PiArrowClockwise, PiChatCircle, PiPencilSimple } from "react-icons/pi";
+import { useCallback, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { AuditionRequestError } from "@/features/auditions/api-client";
+import { useAuthSession } from "@/components/auth/auth-session";
+import { PiChatCircle, PiPencilSimple } from "react-icons/pi";
 import { communityListMemory } from "@/features/community/list-memory";
 import { getPosts } from "@/features/community/api";
 import { trackListViewed, useTrackOnce } from "@/features/community/analytics";
 import { useCommunityFeed } from "@/features/community/hooks";
 import { postUrl } from "@/features/community/share";
 import type { CommunityEntry, CommunityLikeState } from "@/features/community/types";
+import { feedAuthor } from "@/features/community/author-name";
 import { CommunityPhoto, CommunityByline, CommunityError, CommunityToast, useCommunityToast } from "./community-ui";
 import { EntryMenu } from "./entry-menu";
 import { LikeButton } from "./like-button";
+
+const moreLogin = "/login?returnTo=%2Fcommunity%3Fmore%3D1";
 
 type Feed = ReturnType<typeof useCommunityFeed>;
 type Notify = (message: string) => void;
 
 export function CommunityList() {
-  const feed = useCommunityFeed(getPosts);
+  const { session, sessionReady } = useAuthSession();
+  if (!sessionReady) return <FeedSkeleton />;
+  return <CommunityFeed key={session?.credential ?? "guest"} signedIn={Boolean(session)} />;
+}
+
+function CommunityFeed({ signedIn }: { readonly signedIn: boolean }) {
+  const router = useRouter();
+  const loader = useCallback(async (before?: number) => {
+    try { return await getPosts(before); }
+    catch (cause) {
+      if (before && cause instanceof AuditionRequestError && cause.status === 401) router.replace(moreLogin);
+      throw cause;
+    }
+  }, [router]);
+  const feed = useCommunityFeed(loader);
+  const resumed = useRef(false);
+  const { cursor, load } = feed;
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (!signedIn || !cursor || resumed.current || !url.searchParams.has("more")) return;
+    resumed.current = true;
+    url.searchParams.delete("more");
+    window.history.replaceState(window.history.state, "", url);
+    void load(cursor);
+  }, [signedIn, cursor, load]);
   const toast = useCommunityToast();
   useTrackOnce(!feed.loading && !feed.error, trackListViewed);
   useEffect(() => { window.scrollTo(0, communityListMemory.scroll); }, []);
   return <section className="community-lounge">
     <LoungeHeader />
-    <div className="community-feed-panel"><FeedBody feed={feed} notify={toast.show} /></div>
-    <button className="community-refresh" type="button" disabled={feed.loading} onClick={() => void feed.load()}>
-      <PiArrowClockwise aria-hidden="true" />새로고침
-    </button>
+    <div className="community-feed-panel"><FeedBody feed={feed} signedIn={signedIn} notify={toast.show} /></div>
     <CommunityToast message={toast.message} />
   </section>;
 }
@@ -42,14 +69,15 @@ function LoungeHeader() {
   </header>;
 }
 
-function FeedBody({ feed, notify }: { readonly feed: Feed; readonly notify: Notify }) {
+function FeedBody({ feed, signedIn, notify }: { readonly feed: Feed; readonly signedIn: boolean; readonly notify: Notify }) {
   if (feed.loading && feed.items.length === 0) return <FeedSkeleton />;
   return <><CommunityError message={feed.error} retry={() => void feed.load(feed.cursor ?? undefined)} />
     {!feed.loading && !feed.error && feed.items.length === 0 && <FeedEmpty />}
     <ul className="community-list" onClick={() => { communityListMemory.scroll = window.scrollY; }}>
       {feed.items.map(entry => <FeedPost key={entry.id} post={entry} notify={notify} onLiked={state => feed.update(entry.id, state)} />)}</ul>
     {feed.loading && <p className="community-status" role="status">이야기를 더 불러오고 있어요.</p>}
-    {!feed.loading && feed.cursor !== null && <button type="button" className="community-more" onClick={() => void feed.load(feed.cursor!)}>이야기 더 보기</button>}</>;
+    {!feed.loading && feed.cursor !== null && !signedIn && <Link className="community-more" href={moreLogin}>로그인하고 더 보기</Link>}
+    {!feed.loading && feed.cursor !== null && signedIn && <button type="button" className="community-more" onClick={() => void feed.load(feed.cursor!)}>이야기 더 보기</button>}</>;
 }
 
 export function FeedSkeleton() {
@@ -68,7 +96,7 @@ function FeedPost({ post, notify, onLiked }: PostProps) {
   return <li className="community-entry"><article aria-labelledby={`post-title-${post.id}`}>
     <FeedByline post={post} notify={notify} />
     <Link href={`/community/${post.id}`} className="community-post-link">
-      <h2 id={`post-title-${post.id}`}>{post.title}</h2>
+      <h2 id={`post-title-${post.id}`}>{post.likeCount >= 10 && <span className="community-popular">인기</span>}{post.title}</h2>
       <p className="community-preview">{post.body}</p>
     </Link>
     <FeedActions post={post} onLiked={onLiked} />
@@ -78,7 +106,7 @@ function FeedPost({ post, notify, onLiked }: PostProps) {
 function FeedByline({ post, notify }: Omit<PostProps, "onLiked">) {
   return <div className="community-feed-byline">
     <CommunityPhoto photoUrl={post.authorPhotoUrl} />
-    <CommunityByline author={post.author} authorPath={post.authorPath} showProfileBadge createdAt={post.createdAt} updatedAt={post.updatedAt} />
+    <CommunityByline author={feedAuthor(post)} authorPath={post.authorPath} showProfileBadge createdAt={post.createdAt} updatedAt={post.updatedAt} />
     <EntryMenu entry={post} label={`${post.title} 글 메뉴`} notify={notify} shareUrl={() => postUrl(post.id)} />
   </div>;
 }

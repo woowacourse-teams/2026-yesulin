@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useAuthSession } from "@/components/auth/auth-session";
+import { UnreadCommentDot, useUnreadCommentCount } from "@/components/community/received-comments-context";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { actorPageRoutes } from "@/features/actor-pages/types";
 import { applicantRoutes } from "@/features/applicants/routes";
@@ -43,12 +44,12 @@ function currentMenu(pathname: string): (typeof menuItems)[number]["key"] | unde
   return undefined;
 }
 
-function HeaderAccountLinks({ service, producerLinkClassName }: { readonly service: "applicant" | "producer"; readonly producerLinkClassName?: string }) {
+function HeaderAccountLinks({ service, producerLinkClassName, mobile = false }: { readonly service: "applicant" | "producer"; readonly mobile?: boolean; readonly producerLinkClassName?: string }) {
   const { session } = useAuthSession();
   if (session) return <>
-    {session.role === "APPLICANT"
-      ? <Link href={applicantRoutes.home}>마이페이지</Link>
-      : <Link href={producerAuditionPostRoutes.list}>내 오디션 공고</Link>}
+    {session.role === "APPLICANT" && <Link href={applicantRoutes.home}>마이페이지{!mobile && <UnreadCommentDot />}</Link>}
+    {session.role === "APPLICANT" && mobile && <Link href={applicantRoutes.receivedComments}>받은 댓글<UnreadCommentDot /></Link>}
+    {session.role === "PRODUCER" && <Link href={producerAuditionPostRoutes.list}>내 오디션 공고</Link>}
     <LogoutButton />
   </>;
   const producer = service === "producer";
@@ -60,6 +61,10 @@ function HeaderAccountLinks({ service, producerLinkClassName }: { readonly servi
 
 function MobileNavigation({ current, service }: { readonly current?: string; readonly service: "applicant" | "producer" }) {
   const [open, setOpen] = useState(false);
+  const unread = useUnreadCommentCount();
+  let menuLabel = "메뉴 열기";
+  if (open) menuLabel = "메뉴 닫기";
+  if (unread) menuLabel += ", 읽지 않은 댓글 있음";
   const rootRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -71,10 +76,10 @@ function MobileNavigation({ current, service }: { readonly current?: string; rea
     return () => { document.removeEventListener("pointerdown", outside); document.removeEventListener("keydown", escape); };
   }, [open]);
   return <div ref={rootRef} className="notebook-mobile-navigation" onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOpen(false); }}>
-    <button ref={buttonRef} type="button" className="notebook-menu-toggle" aria-label={open ? "메뉴 닫기" : "메뉴 열기"} aria-expanded={open} aria-controls="notebook-mobile-menu" onClick={() => setOpen(!open)}><SiteIcon name={open ? "close" : "menu"} size={26} /></button>
+    <button ref={buttonRef} type="button" className="notebook-menu-toggle" aria-label={menuLabel} aria-expanded={open} aria-controls="notebook-mobile-menu" onClick={() => setOpen(!open)}><SiteIcon name={open ? "close" : "menu"} size={26} /><UnreadCommentDot /></button>
     {open ? <nav id="notebook-mobile-menu" aria-label="모바일 주요 메뉴" className="notebook-mobile-menu" onClick={(event) => { if ((event.target as HTMLElement).closest("a")) setOpen(false); }}>
       {menuItems.map((item) => <Link key={item.key} href={item.href} aria-current={current === item.key ? "page" : undefined}>{item.label}</Link>)}
-      <div className="notebook-mobile-account"><HeaderAccountLinks service={service} /></div>
+      <div className="notebook-mobile-account"><HeaderAccountLinks service={service} mobile /></div>
     </nav> : null}
   </div>;
 }

@@ -23,6 +23,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 public class CommunityService {
 
     private final CommunityEntryRepository repository;
+    private final CommunityInbox inbox;
     private final TransactionTemplate transactions;
     private final Clock clock;
     private final CommunityLikeService likes;
@@ -34,9 +35,9 @@ public class CommunityService {
 
     @Transactional(readOnly = true)
     public CommunityPage posts(long before, String secret) {
-        List<EntryResult> results = repository.posts(before, PageRequest.of(0, 21)).stream()
+        List<EntryResult> results = repository.posts(before, PageRequest.of(0, 6)).stream()
                 .map(EntryResult::summary).toList();
-        return CommunityPage.of(likes.enrich(results, CommunityDigest.viewer(secret)));
+        return CommunityPage.of(likes.enrich(results, CommunityDigest.viewer(secret)), 5);
     }
 
     @Transactional(readOnly = true)
@@ -85,7 +86,7 @@ public class CommunityService {
         String owner = CommunityDigest.viewer(secret);
         CommunityAuthors authors = new CommunityAuthors(repository.authors(postId));
         return CommunityPage.of(repository.comments(postId, after, PageRequest.of(0, 21)).stream()
-                .map(entry -> EntryResult.from(entry, owner, authors.nameOf(entry.getOwnerHash()))).toList());
+                .map(entry -> EntryResult.from(entry, owner, authors.nameOf(entry))).toList(), 20);
     }
 
     public EntryResult createComment(long postId, String secret, UUID requestId, String body) {
@@ -107,8 +108,6 @@ public class CommunityService {
     private EntryResult createOrReplayComment(CommentTarget target, String owner, Long member,
                                              CommunityAuthorMode mode, UUID requestId, String body) {
         CommunityEntry post = lockPost(target.postId());
-        repository.participation(target.postId(), owner, PageRequest.of(0, 1))
-                .forEach(entry -> entry.requireMode(mode));
         return repository.findByRequestKey(requestId.toString())
                 .map(entry -> replayComment(entry, target, owner, mode, body))
                 .orElseGet(() -> addComment(post, owner, member, mode, requestId, body, target.replyToId()));
@@ -177,10 +176,13 @@ public class CommunityService {
                                    UUID requestId, String body, Long replyToId) {
         CommunityEntry comment = CommunityEntry.comment(post.getId(), owner, requestId, body, clock.instant())
                 .authoredBy(member, mode);
+        CommunityEntry target = post;
         if (replyToId != null) {
-            comment.replyTo(find(replyToId));
+            target = find(replyToId);
+            comment.replyTo(target);
         }
         repository.save(comment);
+        inbox.record(target.getMemberId(), comment);
         post.addComment();
         return result(comment, owner);
     }
@@ -190,7 +192,7 @@ public class CommunityService {
             return likes.enrich(List.of(EntryResult.from(entry, owner)), owner).getFirst();
         }
         CommunityAuthors authors = new CommunityAuthors(repository.authors(entry.getParentId()));
-        return EntryResult.from(entry, owner, authors.nameOf(entry.getOwnerHash()));
+        return EntryResult.from(entry, owner, authors.nameOf(entry));
     }
 
     private CommunityEntry comment(long postId, long id) {
