@@ -211,7 +211,7 @@ type ItemProps = { readonly sending?: boolean; readonly onReply?: () => void; re
 function CommentItem({ comment, postId, notify, onChanged, onReply, sending }: ItemProps) {
   const [editing, setEditing] = useState(() => comment.editable && editedCommentId() === comment.id);
   const remove = async () => { await deleteComment(postId, comment.id); await onChanged(); };
-  return <article id={`comment-${comment.id}`} className="community-comment"><CommunityPhoto photoUrl={comment.authorPhotoUrl} small />
+  return <article id={`comment-${comment.id}`} className="community-comment"><CommunityPhoto photoUrl={comment.authorPhotoUrl} small label={comment.author} seed={`${postId}:${comment.author}`} />
     <div className="community-entry-main"><div className="community-entry-head"><CommunityByline author={comment.author} createdAt={comment.createdAt} updatedAt={comment.updatedAt} markWriter={comment.postAuthor} authorPath={comment.authorPath} />
       {!editing && <div className="community-comment-actions">
         {onReply && <button type="button" className="community-write-reply" disabled={sending} onClick={onReply}>대댓글</button>}

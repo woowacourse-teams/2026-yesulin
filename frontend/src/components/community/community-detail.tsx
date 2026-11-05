@@ -76,7 +76,7 @@ function DetailSubbar({ post, notify, edit }: SubbarProps) {
 type ArticleProps = { readonly post: CommunityEntry; readonly notify: Notify; readonly onLiked: (state: CommunityLikeState) => void };
 
 function PostArticle({ post, notify, onLiked }: ArticleProps) {
-  return <article className="community-post"><div className="community-post-author"><CommunityPhoto photoUrl={post.authorPhotoUrl} />
+  return <article className="community-post"><div className="community-post-author"><CommunityPhoto photoUrl={post.authorPhotoUrl} label={post.author} seed={`${post.id}:${post.author}`} />
     <CommunityByline author={post.author} authorPath={post.authorPath} createdAt={post.createdAt} updatedAt={post.updatedAt} /></div>
     <h1>{post.title}</h1><PlainText text={post.body ?? ""} />
     <div className="community-reactions community-post-reactions"><LikeButton post={post} onChanged={onLiked} labelled />

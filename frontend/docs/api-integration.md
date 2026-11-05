@@ -214,7 +214,7 @@ PDF 심사 피드백 UI는 기존 PATCH 계약을 유지하며, 보류 버튼은
 PDF 심사 API의 MSW passthrough는 유지한다. 자세한 업로드·화면 동작은 [PDF 심사 화면](pdf-reviews.md)을 따른다.
 ## 익명 커뮤니티
 
-`/community`, `/community/new`, `/community/{postId}`는 공개 라우트다. 목록은 본문을 최대 5줄 미리 보는 피드이며,
+`/community`, `/community/new`, `/community/{postId}`는 공개 라우트다. 목록은 본문을 최대 3줄 미리 보는 피드이며, 옆에 공개 공고 목록 API(`sort=deadline`, 5개)로 마감 임박 공고를 함께 보인다(실패하면 영역을 숨긴다).
 글의 댓글 버튼은 상세의 댓글 영역으로 이동한다. `features/community`가
 공통 `request`의 CSRF 처리를 그대로 사용해 공개 커뮤니티 API를 호출한다. 회원 전용 요청 함수를 사용하지 않는다.
 읽기만 하는 새 브라우저에는 키를 발급하지 않는다. 첫 쓰기 전 identity API에서 서버 발급 HttpOnly 쿠키를

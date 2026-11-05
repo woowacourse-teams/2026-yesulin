@@ -17,6 +17,7 @@ import { feedAuthor } from "@/features/community/author-name";
 import { CommunityPhoto, CommunityByline, CommunityError, CommunityToast, useCommunityToast } from "./community-ui";
 import { EntryMenu } from "./entry-menu";
 import { LikeButton } from "./like-button";
+import { CommunityDeadlines } from "./community-deadlines";
 
 const moreLogin = "/login?returnTo=%2Fcommunity%3Fmore%3D1";
 
@@ -53,20 +54,33 @@ function CommunityFeed({ signedIn }: { readonly signedIn: boolean }) {
   useTrackOnce(!feed.loading && !feed.error, trackListViewed);
   useEffect(() => { window.scrollTo(0, communityListMemory.scroll); }, []);
   return <section className="community-lounge">
-    <LoungeHeader />
-    <div className="community-feed-panel"><FeedBody feed={feed} signedIn={signedIn} notify={toast.show} /></div>
+    <LoungeIntro />
+    <div className="community-lounge-feed">
+      <ComposePrompt />
+      <div className="community-feed-panel"><FeedBody feed={feed} signedIn={signedIn} notify={toast.show} /></div>
+    </div>
+    <CommunityDeadlines />
     <CommunityToast message={toast.message} />
   </section>;
 }
 
-function LoungeHeader() {
+function LoungeIntro() {
   return <header className="community-lounge-header">
     <h1 className="community-lounge-title">배우 <span>수다방</span></h1>
-    <Link className="community-lounge-write" href="/community/new">
-      <Image src="/images/community-star-chat.png" alt="" width={40} height={40} />
-      글쓰기<PiPencilSimple size={15} aria-hidden="true" />
-    </Link>
+    <p className="community-lounge-intro">오디션 후기, 연습 고민, 가벼운 수다까지. 익명으로도 편하게 이야기해요.</p>
+    <ul className="community-lounge-guide">
+      <li>글마다 익명이나 배우 프로필 공개를 고를 수 있어요.</li>
+      <li>불편한 글은 메뉴의 신고로 알려 주세요.</li>
+    </ul>
   </header>;
+}
+
+function ComposePrompt() {
+  return <Link className="community-compose" href="/community/new">
+    <Image src="/images/community-star-chat.png" alt="" width={40} height={40} />
+    <span>오늘 연습은 어땠어요? 가볍게 남겨 보세요</span>
+    <span className="community-compose-action">글쓰기<PiPencilSimple size={15} aria-hidden="true" /></span>
+  </Link>;
 }
 
 function FeedBody({ feed, signedIn, notify }: { readonly feed: Feed; readonly signedIn: boolean; readonly notify: Notify }) {
@@ -105,7 +119,7 @@ function FeedPost({ post, notify, onLiked }: PostProps) {
 
 function FeedByline({ post, notify }: Omit<PostProps, "onLiked">) {
   return <div className="community-feed-byline">
-    <CommunityPhoto photoUrl={post.authorPhotoUrl} />
+    <CommunityPhoto photoUrl={post.authorPhotoUrl} label={feedAuthor(post)} seed={`${post.id}:${post.author}`} />
     <CommunityByline author={feedAuthor(post)} authorPath={post.authorPath} showProfileBadge createdAt={post.createdAt} updatedAt={post.updatedAt} />
     <EntryMenu entry={post} label={`${post.title} 글 메뉴`} notify={notify} shareUrl={() => postUrl(post.id)} />
   </div>;
