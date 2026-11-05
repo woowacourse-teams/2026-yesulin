@@ -44,8 +44,14 @@ public class CommunityMembershipService {
 
     public EntryResult createComment(long postId, MemberPrincipal principal, UUID request, String body,
                                      CommunityAuthorMode mode) {
+        return createComment(postId, principal, request, body, mode, null);
+    }
+
+    public EntryResult createComment(long postId, MemberPrincipal principal, UUID request, String body,
+                                     CommunityAuthorMode mode, Long replyToId) {
         long member = requireWriter(principal, mode);
-        EntryResult result = entries.publishComment(postId, key(member), member, mode, request, body);
+        EntryResult result = entries.publishComment(new CommentTarget(postId, replyToId), key(member), member,
+                mode, request, body);
         return decorate(result, null, principal, new HashMap<>());
     }
 

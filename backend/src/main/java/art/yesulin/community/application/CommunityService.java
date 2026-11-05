@@ -89,28 +89,29 @@ public class CommunityService {
     }
 
     public EntryResult createComment(long postId, String secret, UUID requestId, String body) {
-        return publishComment(postId, CommunityDigest.owner(secret), null, CommunityAuthorMode.ANONYMOUS,
-                requestId, body);
+        return publishComment(new CommentTarget(postId, null), CommunityDigest.owner(secret), null,
+                CommunityAuthorMode.ANONYMOUS, requestId, body);
     }
 
-    EntryResult publishComment(long postId, String owner, Long member, CommunityAuthorMode mode,
+    EntryResult publishComment(CommentTarget target, String owner, Long member, CommunityAuthorMode mode,
                 UUID requestId, String body) {
         TransactionTemplate current = new TransactionTemplate(transactions.getTransactionManager());
         current.setIsolationLevel(TransactionDefinition.ISOLATION_READ_COMMITTED);
         try {
-            return current.execute(status -> createOrReplayComment(postId, owner, member, mode, requestId, body));
+            return current.execute(status -> createOrReplayComment(target, owner, member, mode, requestId, body));
         } catch (DataIntegrityViolationException exception) {
-            return current.execute(status -> replayComment(postId, owner, mode, requestId, body));
+            return current.execute(status -> replayComment(target, owner, mode, requestId, body));
         }
     }
 
-    private EntryResult createOrReplayComment(long postId, String owner, Long member,
+    private EntryResult createOrReplayComment(CommentTarget target, String owner, Long member,
                                              CommunityAuthorMode mode, UUID requestId, String body) {
-        CommunityEntry post = lockPost(postId);
-        repository.participation(postId, owner, PageRequest.of(0, 1)).forEach(entry -> entry.requireMode(mode));
+        CommunityEntry post = lockPost(target.postId());
+        repository.participation(target.postId(), owner, PageRequest.of(0, 1))
+                .forEach(entry -> entry.requireMode(mode));
         return repository.findByRequestKey(requestId.toString())
-                .map(entry -> replay(entry, owner, mode, postId, null, body))
-                .orElseGet(() -> addComment(post, owner, member, mode, requestId, body));
+                .map(entry -> replayComment(entry, target, owner, mode, body))
+                .orElseGet(() -> addComment(post, owner, member, mode, requestId, body, target.replyToId()));
     }
 
     @Transactional
@@ -158,18 +159,28 @@ public class CommunityService {
         return result(entry, owner);
     }
 
-    private EntryResult replayComment(long postId, String owner, CommunityAuthorMode mode, UUID requestId,
+    private EntryResult replayComment(CommentTarget target, String owner, CommunityAuthorMode mode, UUID requestId,
                 String body) {
-        lockPost(postId);
+        lockPost(target.postId());
         CommunityEntry entry = repository.findByRequestKey(requestId.toString())
                 .orElseThrow(() -> new BusinessException(CommunityErrorCode.REQUEST_CONFLICT, "요청이 충돌했어요."));
-        return replay(entry, owner, mode, postId, null, body);
+        return replayComment(entry, target, owner, mode, body);
+    }
+
+    private EntryResult replayComment(CommunityEntry entry, CommentTarget target, String owner,
+                                      CommunityAuthorMode mode, String body) {
+        entry.requireReplyTarget(target.replyToId());
+        return replay(entry, owner, mode, target.postId(), null, body);
     }
 
     private EntryResult addComment(CommunityEntry post, String owner, Long member, CommunityAuthorMode mode,
-                                   UUID requestId, String body) {
-        CommunityEntry comment = repository.save(CommunityEntry.comment(
-                post.getId(), owner, requestId, body, clock.instant()).authoredBy(member, mode));
+                                   UUID requestId, String body, Long replyToId) {
+        CommunityEntry comment = CommunityEntry.comment(post.getId(), owner, requestId, body, clock.instant())
+                .authoredBy(member, mode);
+        if (replyToId != null) {
+            comment.replyTo(find(replyToId));
+        }
+        repository.save(comment);
         post.addComment();
         return result(comment, owner);
     }

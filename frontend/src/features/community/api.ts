@@ -40,8 +40,8 @@ export function getComments(id: number, after = 0): Promise<CommunityPage> {
   return read(`${communityPath}/${id}/comments?after=${after}`);
 }
 
-export function createComment(id: number, body: string, requestId: string, authorMode: CommunityAuthorMode, expectedMemberId: number): Promise<CommunityEntry> {
-  return write(`${communityPath}/${id}/comments`, "POST", { body, requestId, authorMode, expectedMemberId });
+export function createComment(id: number, body: string, requestId: string, authorMode: CommunityAuthorMode, expectedMemberId: number, replyToId?: number): Promise<CommunityEntry> {
+  return write(`${communityPath}/${id}/comments`, "POST", { body, requestId, authorMode, expectedMemberId, replyToId });
 }
 
 export function editComment(postId: number, id: number, body: string): Promise<CommunityEntry> {

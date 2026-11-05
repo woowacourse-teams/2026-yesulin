@@ -6,16 +6,11 @@ import { useEffect, useRef, useState } from "react";
 import { PiChatCircle } from "react-icons/pi";
 import { fullTime, relativeTime } from "@/features/community/time";
 
-export function AnonymousAvatar({ author, photoUrl, small = false }: { readonly author?: string; readonly photoUrl?: string | null; readonly small?: boolean }) {
+export function CommunityPhoto({ photoUrl, small = false }: { readonly photoUrl?: string | null; readonly small?: boolean }) {
+  if (!photoUrl) return null;
   let className = "community-avatar";
   if (small) className += " community-avatar-small";
-  if (photoUrl) return <Image className={className} src={photoUrl} alt="" width={40} height={40} unoptimized />;
-  return <span className={className} aria-hidden="true">{avatarLabel(author)}</span>;
-}
-
-function avatarLabel(author?: string) {
-  if (!author) return "익";
-  return author.replace("익명", "익");
+  return <Image className={className} src={photoUrl} alt="" width={40} height={40} unoptimized />;
 }
 
 type BylineProps = { readonly author: string; readonly createdAt: string; readonly updatedAt: string; readonly showProfileBadge?: boolean; readonly markWriter?: boolean; readonly authorPath?: string | null };

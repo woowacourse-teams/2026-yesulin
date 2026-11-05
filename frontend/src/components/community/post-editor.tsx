@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, type FormEvent } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { createPost, editPost } from "@/features/community/api";
 import { trackComposeStarted, trackPostCreated, useAbandonTracking, useTrackOnce } from "@/features/community/analytics";
@@ -10,7 +11,7 @@ import { communityReturnTo, finishCommunityEdit } from "@/features/community/nav
 import { useMemberDraft } from "@/features/community/use-member-draft";
 import type { CommunityEntry, CommunityParticipation } from "@/features/community/types";
 import { AuthorChoice, CommunityLogin, MemberParticipation } from "./member-participation";
-import { AnonymousAvatar, CommunityError } from "./community-ui";
+import { CommunityError } from "./community-ui";
 
 const TITLE_LIMIT = 100;
 const BODY_LIMIT = 5000;
@@ -68,20 +69,29 @@ function PostForm({ post, onSaved, onCancel, participation, memberDraft }: FormP
   }
   const ready = fields.title.trim() !== "" && fields.body.trim() !== "";
   return <form className="community-compose" onSubmit={submit}>
-    <ComposeBar editing={Boolean(post)} busy={action.busy} ready={ready} cancel={cancel} />
-    {!post && participation && memberDraft && <AuthorChoice participation={participation} mode={memberDraft.draft.authorMode} onChange={authorMode => memberDraft.change({ authorMode })} />}
-    <fieldset disabled={action.busy} className="community-compose-body"><AnonymousAvatar author={post?.author} />
-      <ComposeFields fields={fields} author={post?.author ?? ""} onChange={setFields} /></fieldset>
+    <ComposeBar editing={Boolean(post)} busy={action.busy} cancel={cancel} />
+    <fieldset disabled={action.busy} className="community-compose-body">
+      <ComposeFields fields={fields} onChange={setFields} />
+      <div className="community-compose-footer">
+        <p className="community-count" data-near={fields.body.length >= BODY_LIMIT * NEAR_LIMIT}>{fields.body.length.toLocaleString()} / 5,000</p>
+        {!post && participation && memberDraft && <AuthorChoice participation={participation} mode={memberDraft.draft.authorMode}
+          onChange={authorMode => memberDraft.change({ authorMode })} />}
+        <button type="submit" className="community-publish" disabled={action.busy || !ready}
+          aria-busy={action.busy}>
+          {!post && <Image src="/images/community-star-chat.png" width={32} height={32} alt="" />}
+          <span>{submitLabel(Boolean(post), action.busy)}</span>
+        </button>
+      </div>
+    </fieldset>
     <CommunityError message={action.error || memberDraft?.storageError || ""} />
     {action.needsLogin && <CommunityLogin returnTo={communityReturnTo(post?.id, Boolean(post))} />}</form>;
 }
 
-type BarProps = { readonly editing: boolean; readonly busy: boolean; readonly ready: boolean; readonly cancel: () => void };
+type BarProps = { readonly editing: boolean; readonly busy: boolean; readonly cancel: () => void };
 
-function ComposeBar({ editing, busy, ready, cancel }: BarProps) {
+function ComposeBar({ editing, busy, cancel }: BarProps) {
   return <div className="community-compose-bar"><button type="button" className="community-text-button" disabled={busy} onClick={cancel}>취소</button>
-    <h1>{editing && "글 수정"}{!editing && "새 이야기"}</h1>
-    <button className="community-primary-button" disabled={busy || !ready}>{submitLabel(editing, busy)}</button></div>;
+    <h1>{editing && "글 수정"}{!editing && "새 이야기"}</h1></div>;
 }
 
 function submitLabel(editing: boolean, busy: boolean) {
@@ -90,15 +100,15 @@ function submitLabel(editing: boolean, busy: boolean) {
   return "올리기";
 }
 
-function ComposeFields({ fields, onChange, author }: { readonly author: string; readonly fields: Fields; readonly onChange: (fields: Fields) => void }) {
-  return <div className="community-compose-fields">{author && <strong>{author}</strong>}
-    <label htmlFor="post-title" className="community-sr-only">제목 (최대 100자)</label>
-    <input id="post-title" name="title" autoFocus required maxLength={TITLE_LIMIT} value={fields.title} placeholder="제목"
+function ComposeFields({ fields, onChange }: { readonly fields: Fields; readonly onChange: (fields: Fields) => void }) {
+  return <div className="community-compose-fields">
+    <label htmlFor="post-title">제목</label>
+    <input id="post-title" name="title" autoFocus required maxLength={TITLE_LIMIT} value={fields.title} placeholder="제목을 입력하세요"
       onChange={event => onChange({ ...fields, title: event.target.value })} />
-    <label htmlFor="post-body" className="community-sr-only">내용 (최대 5,000자)</label>
+    <label htmlFor="post-body">본문</label>
     <textarea id="post-body" name="body" required maxLength={BODY_LIMIT} rows={10} value={fields.body} placeholder="자유롭게 이야기를 적어 주세요."
       onChange={event => onChange({ ...fields, body: event.target.value })} />
-    <p className="community-count" data-near={fields.body.length >= BODY_LIMIT * NEAR_LIMIT}>본문 {fields.body.length.toLocaleString()} / 5,000</p></div>;
+  </div>;
 }
 
 function savePost(post: CommunityEntry | undefined, input: Fields, requestId: string,
