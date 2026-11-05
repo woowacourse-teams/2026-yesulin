@@ -3,6 +3,11 @@ export type CommunityEntry = {
   readonly title: string | null;
   readonly body: string;
   readonly author: string;
+  readonly authorPhotoUrl?: string | null;
+  readonly authorPath?: string | null;
+  readonly postAuthor?: boolean;
+  readonly memberOwned?: boolean;
+  readonly authorMode?: CommunityAuthorMode;
   readonly createdAt: string;
   readonly updatedAt: string;
   readonly commentCount: number;
@@ -26,3 +31,12 @@ export const reportReasons = {
   OTHER: "기타",
 } as const;
 export type ReportReason = keyof typeof reportReasons;
+
+export type CommunityAuthorMode = "ANONYMOUS" | "PROFILE";
+export type CommunityProfile = { name: string; photoUrl: string | null; path: string | null };
+export type CommunityParticipation = {
+  memberId: number | null;
+  canWrite: boolean;
+  fixedMode: CommunityAuthorMode | null;
+  profile: CommunityProfile | null;
+};

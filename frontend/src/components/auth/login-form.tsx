@@ -130,8 +130,10 @@ export function LoginForm({ returnTo, applicationFlow = false }: { readonly retu
     }
 
     await new Promise((resolve) => window.setTimeout(resolve, 240));
+    const { mockApplicantLogin } = await import("@/mocks/auth-handlers");
+    const mockApplicant = mockApplicantLogin();
     setSession({
-      credential: createFrontendCredential(),
+      credential: `member-${mockApplicant.memberId}`,
       role: "APPLICANT",
       displayName: `${PROVIDER_LABELS[provider]} 배우`,
       socialProvider: provider,

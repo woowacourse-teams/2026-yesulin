@@ -4,9 +4,13 @@
 
 - 제품 흐름·정책: [공통 도메인](../../../../../../../../docs/domain.md#익명-커뮤니티)
 - 기능·완료 기준: [구현 체크리스트](../../../../../../../../docs/community-requirements.md)
+- 회원 참여 전환: [로그인 참여·익명/프로필 공개 요구사항](../../../../../../../../docs/community-membership-requirements.md)
 - HTTP 계약: [공개 익명 커뮤니티](../../../../../../../docs/api.md#공개-익명-커뮤니티)
 - 통합 평가: [2026-11-03 dev 통합](reviews/2026-11-03-community-dev-merge.md)
 
 - 쿠키 이전 평가: [2026-11-03 HttpOnly 이전](reviews/2026-11-03-community-cookie.md)
 - 화면 개편 평가: [2026-11-03 스레드형 개편](reviews/2026-11-03-community-thread-redesign.md)
 - 지표 이벤트 평가: [2026-11-03 익명게시판 이벤트](reviews/2026-11-03-community-analytics.md)
+- 로그인 전환 요구사항 평가: [2026-11-04 계획 검토](reviews/2026-11-04-community-membership-plan.md)
+
+- 회원 참여 구현 평가: [2026-11-04 구현 검증](reviews/2026-11-04-community-membership.md)

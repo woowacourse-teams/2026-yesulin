@@ -17,14 +17,20 @@ import { EntryMenu } from "./entry-menu";
 import { FeedSkeleton } from "./community-list";
 import { LikeButton } from "./like-button";
 import { PostEditor } from "./post-editor";
+import { useAuthSession } from "@/components/auth/auth-session";
 
 type Notify = (message: string) => void;
 
 export function CommunityDetail({ id }: { readonly id: number }) {
+  const { session } = useAuthSession();
+  return <DetailContent key={`${id}:${session?.credential ?? "visitor"}`} id={id} />;
+}
+
+function DetailContent({ id }: { readonly id: number }) {
   const [post, setPost] = useState<CommunityEntry | null>(null);
   const [error, setError] = useState("");
   const [missing, setMissing] = useState(false);
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("edit") === "1");
   const toast = useCommunityToast();
   useTrackOnce(post !== null, trackPostViewed);
   const reload = useCallback(async () => {
@@ -44,7 +50,7 @@ export function CommunityDetail({ id }: { readonly id: number }) {
     return () => { active = false; };
   }, [id]);
   if (missing) return <CommunityMissing />;
-  if (editing && post) return <PostEditor post={post} onCancel={() => setEditing(false)} onSaved={() => { setEditing(false); void reload(); }} />;
+  if (editing && post?.editable) return <PostEditor post={post} onCancel={() => setEditing(false)} onSaved={() => { setEditing(false); void reload(); }} />;
   const liked = (state: CommunityLikeState) => setPost(current => {
     if (!current) return current;
     return { ...current, ...state };
@@ -62,7 +68,7 @@ type SubbarProps = { readonly post: CommunityEntry | null; readonly notify: Noti
 function DetailSubbar({ post, notify, edit }: SubbarProps) {
   const router = useRouter();
   const remove = async () => { await deletePost(post!.id); router.replace("/community"); };
-  return <CommunitySubbar><Link className="community-back" href="/community"><PiArrowLeft size={18} aria-hidden="true" />익명게시판</Link>
+  return <CommunitySubbar><Link className="community-back" href="/community"><PiArrowLeft size={18} aria-hidden="true" />배우 수다방</Link>
     {post && <EntryMenu entry={post} label="글 메뉴" notify={notify} shareUrl={() => postUrl(post.id)} onEdit={edit} onDelete={remove}
       deleteQuestion="글을 삭제할까요? 댓글도 함께 보이지 않게 돼요." />}</CommunitySubbar>;
 }
@@ -70,8 +76,8 @@ function DetailSubbar({ post, notify, edit }: SubbarProps) {
 type ArticleProps = { readonly post: CommunityEntry; readonly notify: Notify; readonly onLiked: (state: CommunityLikeState) => void };
 
 function PostArticle({ post, notify, onLiked }: ArticleProps) {
-  return <article className="community-post"><div className="community-post-author"><AnonymousAvatar author={post.author} />
-    <CommunityByline author={post.author} createdAt={post.createdAt} updatedAt={post.updatedAt} /></div>
+  return <article className="community-post"><div className="community-post-author"><AnonymousAvatar author={post.author} photoUrl={post.authorPhotoUrl} />
+    <CommunityByline author={post.author} authorPath={post.authorPath} createdAt={post.createdAt} updatedAt={post.updatedAt} /></div>
     <h1>{post.title}</h1><PlainText text={post.body ?? ""} />
     <div className="community-reactions community-post-reactions"><LikeButton post={post} onChanged={onLiked} labelled />
       <a href="#comments-heading"><PiChatCircle size={19} aria-hidden="true" /><span>댓글 {post.commentCount}</span></a>

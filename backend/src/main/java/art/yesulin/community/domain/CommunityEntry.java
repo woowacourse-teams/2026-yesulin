@@ -3,6 +3,8 @@ package art.yesulin.community.domain;
 import art.yesulin.global.exception.BusinessException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -25,6 +27,13 @@ public class CommunityEntry {
     private Long id;
 
     private Long parentId;
+
+    @Column(updatable = false)
+    private Long memberId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20, updatable = false)
+    private CommunityAuthorMode authorMode = CommunityAuthorMode.ANONYMOUS;
 
     @Column(length = 100)
     private String title;
@@ -75,6 +84,18 @@ public class CommunityEntry {
         entry.write(null, body);
         entry.originalDigest = entry.digest(null, body);
         return entry;
+    }
+
+    public CommunityEntry authoredBy(Long member, CommunityAuthorMode mode) {
+        this.memberId = member;
+        this.authorMode = Objects.requireNonNull(mode);
+        return this;
+    }
+
+    public void requireMode(CommunityAuthorMode mode) {
+        if (authorMode != mode) {
+            throw new BusinessException(CommunityErrorCode.REQUEST_CONFLICT, "이 글에서 처음 선택한 작성 방식을 유지해 주세요.");
+        }
     }
 
     public void edit(String owner, String title, String body, Instant now) {
@@ -145,7 +166,7 @@ public class CommunityEntry {
 
     private void requireOwner(String owner) {
         if (!isOwnedBy(owner)) {
-            throw new BusinessException(CommunityErrorCode.NOT_OWNER, "작성한 브라우저에서만 수정·삭제할 수 있어요.");
+            throw new BusinessException(CommunityErrorCode.NOT_OWNER, "작성자만 수정·삭제할 수 있어요.");
         }
     }
 

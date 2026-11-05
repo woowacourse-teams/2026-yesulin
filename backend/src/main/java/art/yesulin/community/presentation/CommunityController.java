@@ -1,10 +1,15 @@
 package art.yesulin.community.presentation;
 
+import art.yesulin.auth.application.MemberPrincipal;
+import art.yesulin.auth.application.annotation.LoginMember;
+import art.yesulin.auth.domain.member.MemberType;
 import art.yesulin.community.application.CommunityLikeService;
+import art.yesulin.community.application.CommunityMembershipService;
 import art.yesulin.community.application.CommunityPage;
-import art.yesulin.community.application.CommunityService;
+import art.yesulin.community.application.CommunityParticipation;
 import art.yesulin.community.application.EntryResult;
 import art.yesulin.community.application.LikeResult;
+import art.yesulin.community.domain.CommunityAuthorMode;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
@@ -35,7 +40,7 @@ public class CommunityController {
 
     private static final String OWNER_COOKIE = CommunityIdentityController.COOKIE_NAME;
 
-    private final CommunityService service;
+    private final CommunityMembershipService service;
     private final CommunityLikeService likes;
 
     @ModelAttribute
@@ -45,14 +50,16 @@ public class CommunityController {
 
     @GetMapping
     public CommunityPage posts(@RequestParam(defaultValue = "9223372036854775807") @Positive long before,
-                               @CookieValue(value = OWNER_COOKIE, required = false) String secret) {
-        return service.posts(before, secret);
+                               @CookieValue(value = OWNER_COOKIE, required = false) String secret,
+                               @LoginMember(required = false) MemberPrincipal member) {
+        return service.posts(before, secret, member);
     }
 
     @GetMapping("/{id}")
     public EntryResult post(@PathVariable @Positive long id,
-                            @CookieValue(value = OWNER_COOKIE, required = false) String secret) {
-        return service.post(id, secret);
+                            @CookieValue(value = OWNER_COOKIE, required = false) String secret,
+                            @LoginMember(required = false) MemberPrincipal member) {
+        return service.post(id, secret, member);
     }
 
     @PutMapping("/{id}/likes")
@@ -67,58 +74,78 @@ public class CommunityController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public EntryResult create(@CookieValue(OWNER_COOKIE) String secret, @Valid @RequestBody CreatePost request) {
-        return service.createPost(secret, request.requestId(), request.title(), request.body());
+    public EntryResult create(@LoginMember(roles = MemberType.APPLICANT) MemberPrincipal member,
+                              @Valid @RequestBody CreatePost request) {
+        service.confirmWriter(member, request.expectedMemberId());
+        return service.createPost(member, request.requestId(), request.title(), request.body(), request.authorMode());
     }
 
     @PutMapping("/{id}")
-    public EntryResult edit(@PathVariable @Positive long id, @CookieValue(OWNER_COOKIE) String secret,
+    public EntryResult edit(@PathVariable @Positive long id,
+                            @CookieValue(value = OWNER_COOKIE, required = false) String secret,
+                            @LoginMember(required = false) MemberPrincipal member,
                             @Valid @RequestBody EditPost request) {
-        return service.editPost(id, secret, request.title(), request.body());
+        return service.editPost(id, secret, member, request.title(), request.body());
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable @Positive long id, @CookieValue(OWNER_COOKIE) String secret) {
-        service.deletePost(id, secret);
+    public void delete(@PathVariable @Positive long id,
+                       @CookieValue(value = OWNER_COOKIE, required = false) String secret,
+                       @LoginMember(required = false) MemberPrincipal member) {
+        service.deletePost(id, secret, member);
     }
 
     @GetMapping("/{postId}/comments")
     public CommunityPage comments(@PathVariable @Positive long postId,
                                    @RequestParam(defaultValue = "0") @Min(0) long after,
-                                   @CookieValue(value = OWNER_COOKIE, required = false) String secret) {
-        return service.comments(postId, after, secret);
+                                   @CookieValue(value = OWNER_COOKIE, required = false) String secret,
+                                   @LoginMember(required = false) MemberPrincipal member) {
+        return service.comments(postId, after, secret, member);
     }
 
     @PostMapping("/{postId}/comments")
     @ResponseStatus(HttpStatus.CREATED)
-    public EntryResult comment(@PathVariable @Positive long postId, @CookieValue(OWNER_COOKIE) String secret,
+    public EntryResult comment(@PathVariable @Positive long postId,
+                               @LoginMember(roles = MemberType.APPLICANT) MemberPrincipal member,
                                @Valid @RequestBody CreateComment request) {
-        return service.createComment(postId, secret, request.requestId(), request.body());
+        service.confirmWriter(member, request.expectedMemberId());
+        return service.createComment(postId, member, request.requestId(), request.body(), request.authorMode());
     }
 
     @PutMapping("/{postId}/comments/{id}")
     public EntryResult editComment(@PathVariable @Positive long postId, @PathVariable @Positive long id,
-                                   @CookieValue(OWNER_COOKIE) String secret,
+                                   @CookieValue(value = OWNER_COOKIE, required = false) String secret,
+                                   @LoginMember(required = false) MemberPrincipal member,
                                    @Valid @RequestBody EditComment request) {
-        return service.editComment(postId, id, secret, request.body());
+        return service.editComment(postId, id, secret, member, request.body());
     }
 
     @DeleteMapping("/{postId}/comments/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteComment(@PathVariable @Positive long postId, @PathVariable @Positive long id,
-                              @CookieValue(OWNER_COOKIE) String secret) {
-        service.deleteComment(postId, id, secret);
+                              @CookieValue(value = OWNER_COOKIE, required = false) String secret,
+                              @LoginMember(required = false) MemberPrincipal member) {
+        service.deleteComment(postId, id, secret, member);
+    }
+
+    @GetMapping("/participation")
+    public CommunityParticipation participation(@LoginMember(required = false) MemberPrincipal member,
+                                               @RequestParam(required = false) @Positive Long postId) {
+        return service.participation(member, postId);
     }
 
     public record CreatePost(@NotNull UUID requestId, @NotBlank @Size(max = 100) String title,
-                             @NotBlank @Size(max = 5000) String body) {
+                             @NotBlank @Size(max = 5000) String body, @NotNull CommunityAuthorMode authorMode,
+                             @NotNull @Positive Long expectedMemberId) {
     }
 
     public record EditPost(@NotBlank @Size(max = 100) String title, @NotBlank @Size(max = 5000) String body) {
     }
 
-    public record CreateComment(@NotNull UUID requestId, @NotBlank @Size(max = 1000) String body) {
+    public record CreateComment(@NotNull UUID requestId, @NotBlank @Size(max = 1000) String body,
+                                @NotNull CommunityAuthorMode authorMode,
+                             @NotNull @Positive Long expectedMemberId) {
     }
 
     public record EditComment(@NotBlank @Size(max = 1000) String body) {

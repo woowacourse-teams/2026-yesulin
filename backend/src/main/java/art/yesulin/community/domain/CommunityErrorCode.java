@@ -6,6 +6,7 @@ import art.yesulin.global.exception.ErrorType;
 public enum CommunityErrorCode implements ErrorCode {
 
     NOT_FOUND(ErrorType.NOT_FOUND),
+    PROFILE_REQUIRED(ErrorType.CONFLICT),
     NOT_OWNER(ErrorType.FORBIDDEN),
     REQUEST_CONFLICT(ErrorType.CONFLICT),
     IDENTITY_CONFLICT(ErrorType.CONFLICT);

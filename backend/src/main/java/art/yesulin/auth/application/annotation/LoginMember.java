@@ -15,6 +15,8 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface LoginMember {
 
+    boolean required() default true;
+
     MemberType[] roles() default {};
 
     MemberStatus[] statuses() default {};

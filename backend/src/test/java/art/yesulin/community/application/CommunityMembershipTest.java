@@ -1,0 +1,204 @@
+package art.yesulin.community.application;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.when;
+
+import art.yesulin.auth.application.MemberPrincipal;
+import art.yesulin.auth.domain.member.Member;
+import art.yesulin.auth.domain.member.MemberRepository;
+import art.yesulin.community.domain.CommunityAuthorMode;
+import art.yesulin.global.exception.BusinessException;
+import art.yesulin.support.ObjectStorageTestConfiguration;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Executors;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+
+@SpringBootTest(properties = {
+        "spring.datasource.url=jdbc:h2:mem:community-membership;MODE=MySQL;DB_CLOSE_DELAY=-1",
+        "spring.datasource.driver-class-name=org.h2.Driver",
+        "spring.flyway.enabled=true",
+        "spring.jpa.hibernate.ddl-auto=validate"
+})
+@Import(ObjectStorageTestConfiguration.class)
+class CommunityMembershipTest {
+
+    private static final String COOKIE = "a".repeat(64);
+
+    @Autowired
+    private CommunityMembershipService members;
+
+    @Autowired
+    private CommunityService legacy;
+
+    @Autowired
+    private MemberRepository accounts;
+
+    @MockitoBean
+    private CommunityProfiles profiles;
+
+    @BeforeEach
+    void hideProfilesByDefault() {
+        when(profiles.find(anyLong())).thenReturn(CommunityProfile.hidden());
+    }
+
+    @Test
+    void publicProfileUsesCurrentVisibilityAndDoesNotRevealAnonymousPosts() {
+        MemberPrincipal author = actor();
+        when(profiles.find(author.memberId())).thenReturn(new CommunityProfile("배우", "https://test/photo",
+                "/actors/@actor"));
+        EntryResult anonymous = post(author);
+        EntryResult visible = members.createPost(author, UUID.randomUUID(), "공개", "내용", CommunityAuthorMode.PROFILE);
+        assertEquals("배우", visible.author());
+        assertEquals("/actors/@actor", visible.authorPath());
+        assertEquals("익명1", members.post(anonymous.id(), null, null).author());
+        when(profiles.find(author.memberId())).thenReturn(CommunityProfile.hidden());
+        EntryResult hidden = members.post(visible.id(), null, null);
+        assertEquals("프로필 비공개", hidden.author());
+        assertEquals(null, hidden.authorPath());
+        assertEquals(null, hidden.authorPhotoUrl());
+        when(profiles.find(author.memberId())).thenReturn(new CommunityProfile("새 이름", null, "/actors/@new"));
+        assertEquals("새 이름", members.post(visible.id(), null, null).author());
+    }
+
+    @Test
+    void publicParticipantsOccupyNumbersAndKeepTheirMode() {
+        MemberPrincipal author = actor();
+        when(profiles.find(author.memberId())).thenReturn(new CommunityProfile("배우", null, "/actors/@actor"));
+        long id = post(actor()).id();
+        EntryResult publicReply = members.createComment(id, author, UUID.randomUUID(), "공개",
+                CommunityAuthorMode.PROFILE);
+        assertEquals("배우", publicReply.author());
+        assertEquals("익명3", members.createComment(id, actor(), UUID.randomUUID(), "익명",
+                CommunityAuthorMode.ANONYMOUS).author());
+        assertThrows(BusinessException.class, () -> members.createComment(id, author, UUID.randomUUID(), "변경",
+                CommunityAuthorMode.ANONYMOUS));
+        assertEquals(CommunityAuthorMode.PROFILE, members.participation(author, id).fixedMode());
+    }
+
+    @Test
+    void memberOwnsPostAcrossBrowsersButCookieAndOtherAccountCannotManage() {
+        MemberPrincipal author = actor();
+        assertThrows(BusinessException.class, () -> members.confirmWriter(author, actor().memberId()));
+        EntryResult post = post(author);
+        assertTrue(members.post(post.id(), null, author).editable());
+        assertFalse(members.post(post.id(), COOKIE, actor()).editable());
+        assertFalse(legacy.post(post.id(), COOKIE).editable());
+        assertThrows(BusinessException.class, () -> members.editPost(post.id(), COOKIE, actor(), "수정", "본문"));
+        assertEquals("수정", members.editPost(post.id(), null, author, "수정", "본문").title());
+    }
+
+    @Test
+    void legacyCookieKeepsRightsRegardlessOfCurrentAccount() {
+        EntryResult old = legacy.createPost(COOKIE, UUID.randomUUID(), "기존", "본문");
+        assertTrue(members.post(old.id(), COOKIE, actor()).editable());
+        assertFalse(members.post(old.id(), null, actor()).editable());
+        assertEquals("변경", members.editPost(old.id(), COOKIE, actor(), "변경", "본문").title());
+        members.deletePost(old.id(), COOKIE, null);
+        assertThrows(BusinessException.class, () -> legacy.post(old.id(), null));
+    }
+
+    @Test
+    void onlyActiveApplicantsCanCreateAndPublicModeNeedsPublicPage() {
+        assertThrows(BusinessException.class, () -> post(null));
+        Member producer = accounts.save(Member.ofProducer(UUID.randomUUID() + "@test.invalid", "hash"));
+        producer.activate();
+        assertThrows(BusinessException.class, () -> post(MemberPrincipal.from(accounts.save(producer))));
+        MemberPrincipal actor = actor();
+        assertThrows(BusinessException.class, () -> members.createPost(actor, UUID.randomUUID(), "제목", "본문",
+                CommunityAuthorMode.PROFILE));
+        Member inactive = accounts.findById(actor.memberId()).orElseThrow();
+        inactive.deactivate();
+        accounts.save(inactive);
+        assertThrows(BusinessException.class, () -> post(actor));
+    }
+
+    @Test
+    void retriesUseAccountAndModeAndDeletedCommentsKeepNumber() {
+        MemberPrincipal author = actor();
+        long id = post(author).id();
+        MemberPrincipal second = actor();
+        UUID request = UUID.randomUUID();
+        EntryResult reply = members.createComment(id, second, request, "댓글", CommunityAuthorMode.ANONYMOUS);
+        assertEquals(reply.id(), members.createComment(id, second, request, "댓글", CommunityAuthorMode.ANONYMOUS).id());
+        assertThrows(BusinessException.class, () -> members.createComment(id, actor(), request, "댓글",
+                CommunityAuthorMode.ANONYMOUS));
+        assertThrows(BusinessException.class, () -> members.createComment(id, second, request, "다른 내용",
+                CommunityAuthorMode.ANONYMOUS));
+        assertThrows(BusinessException.class, () -> members.createComment(id, second, UUID.randomUUID(), "댓글",
+                CommunityAuthorMode.PROFILE));
+        members.deleteComment(id, reply.id(), null, second);
+        assertEquals("익명2", members.createComment(id, second, UUID.randomUUID(), "다시",
+                CommunityAuthorMode.ANONYMOUS).author());
+        assertEquals("익명1", members.createComment(id, author, UUID.randomUUID(), "답변",
+                CommunityAuthorMode.ANONYMOUS).author());
+    }
+
+    @Test
+    void concurrentRetriesAndFirstParticipationKeepOneNumber() throws Exception {
+        long id = post(actor()).id();
+        MemberPrincipal author = actor();
+        UUID request = UUID.randomUUID();
+        Callable<EntryResult> write = () -> members.createComment(id, author, request, "동시",
+                CommunityAuthorMode.ANONYMOUS);
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            var results = executor.invokeAll(List.of(write, write, write));
+            for (var result : results) {
+                assertEquals("익명2", result.get().author());
+            }
+        }
+        assertEquals(1, legacy.post(id, null).commentCount());
+        assertThrows(BusinessException.class, () -> legacy.deletePost(id, COOKIE));
+    }
+
+    @Test
+    void concurrentCommentDeletionChangesCountExactlyOnce() throws Exception {
+        MemberPrincipal author = actor();
+        long id = post(author).id();
+        long comment = members.createComment(id, author, UUID.randomUUID(), "삭제", CommunityAuthorMode.ANONYMOUS).id();
+        members.createComment(id, author, UUID.randomUUID(), "남김", CommunityAuthorMode.ANONYMOUS);
+        var start = new java.util.concurrent.CountDownLatch(1);
+        Callable<Boolean> delete = () -> {
+            start.await();
+            try {
+                members.deleteComment(id, comment, null, author);
+                return true;
+            } catch (BusinessException rejected) {
+                return false;
+            }
+        };
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            var results = new java.util.ArrayList<java.util.concurrent.Future<Boolean>>();
+            for (int i = 0; i < 8; i++) {
+                results.add(executor.submit(delete));
+            }
+            start.countDown();
+            int successes = 0;
+            for (var result : results) {
+                if (result.get()) {
+                    successes++;
+                }
+            }
+            assertEquals(1, successes);
+        }
+        assertEquals(1, legacy.post(id, null).commentCount());
+    }
+
+    private MemberPrincipal actor() {
+        return MemberPrincipal.from(accounts.save(Member.ofApplicant()));
+    }
+
+    private EntryResult post(MemberPrincipal author) {
+        return members.createPost(author, UUID.randomUUID(), "제목", "본문", CommunityAuthorMode.ANONYMOUS);
+    }
+}

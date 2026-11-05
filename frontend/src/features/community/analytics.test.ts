@@ -18,8 +18,8 @@ describe("익명게시판 이벤트", () => {
     analytics.trackPostCreated();
     analytics.trackCommentCreated();
     expect(track.mock.calls).toEqual([
-      ["community_list_viewed"], ["community_post_viewed"], ["community_compose_started"],
-      ["community_post_created"], ["community_comment_created"],
+      ["community_list_viewed"], ["community_post_viewed"], ["community_compose_started", { metric_version: 2 }],
+      ["community_post_created", { metric_version: 2 }], ["community_comment_created", { metric_version: 2 }],
     ]);
   });
 

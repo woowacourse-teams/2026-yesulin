@@ -6,6 +6,7 @@ import {
   type SessionResponse,
 } from "@/features/auth/session-api";
 import { frontendEnvironment } from "@/config/environment";
+import { clearCommunityDrafts } from "@/features/community/member-draft";
 import { SessionSynchronizer } from "@/features/auth/session-synchronizer";
 
 export type SocialProvider = "kakao" | "naver" | "google";
@@ -91,6 +92,7 @@ export function AuthSessionProvider({ children }: { readonly children: React.Rea
   }, [synchronizer]);
   const logoutSession = useCallback(async (redirectOnUnauthorized = false) => {
     if (serverSessionEnabled) await requestLogout(redirectOnUnauthorized);
+    clearCommunityDrafts();
     setSession(null);
   }, [setSession]);
 
