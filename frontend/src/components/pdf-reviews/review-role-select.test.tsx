@@ -21,7 +21,7 @@ it("키보드로 선택하고 저장 응답 전에는 기존 배역을 유지한
   await act(async () => button.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
   expect(host.querySelector('[role="listbox"]')).toBeNull();
 });
-it("일괄 배역 해제는 표시가 미기재여도 실제 저장을 요청한다", async () => {
+it("일괄 배역 해제는 표시가 미배정이어도 실제 저장을 요청한다", async () => {
   const change = vi.fn();
   await act(async () => root.render(<ReviewRoleSelect roles={roles} value={null} allowReselect onChange={change} />));
   await act(async () => host.querySelector<HTMLButtonElement>('button')!.click());

@@ -97,6 +97,18 @@ public class AuditController {
                         request.memo(), request.decision()));
     }
 
+    @PatchMapping("/{reviewId}/entries/{entryId}/title")
+    public ResponseEntity<AuditApplicantView> renameEntry(
+            @LoginMember(roles = MemberType.PRODUCER, statuses = MemberStatus.ACTIVE) MemberPrincipal principal,
+            @PathVariable UUID reviewId,
+            @PathVariable UUID entryId,
+            @Valid @RequestBody RenameAuditApplicantRequest request
+    ) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore())
+                .body(service.renameEntry(principal.memberId(), reviewId.toString(), entryId.toString(),
+                        request.title()));
+    }
+
     @PatchMapping("/{reviewId}/role-assignments")
     public ResponseEntity<List<AuditApplicantView>> assignRoles(
             @LoginMember(roles = MemberType.PRODUCER, statuses = MemberStatus.ACTIVE) MemberPrincipal principal,

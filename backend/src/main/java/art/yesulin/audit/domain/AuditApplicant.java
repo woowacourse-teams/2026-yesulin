@@ -44,6 +44,9 @@ public class AuditApplicant {
     @Column(length = MAX_APPLICANT_NAME_LENGTH)
     private String applicantName;
 
+    @Column(length = MAX_FILENAME_LENGTH)
+    private String displayTitle;
+
     @Column(length = 36)
     private String roleId;
 
@@ -78,6 +81,20 @@ public class AuditApplicant {
         this.memo = "";
         this.decision = AuditDecision.PENDING;
         this.processingStatus = AuditApplicantStatus.UPLOADING;
+    }
+
+    public String getTitle() {
+        return Objects.requireNonNullElse(displayTitle, originalFilename);
+    }
+
+    public void rename(String title) {
+        this.displayTitle = AuditText.requireName(title, MAX_FILENAME_LENGTH, "지원서 제목");
+    }
+
+    public static AuditApplicant forManualReview(String reviewId, String jobId, String originalFilename) {
+        AuditApplicant entry = new AuditApplicant(reviewId, jobId, originalFilename);
+        entry.assignRole(null);
+        return entry;
     }
 
     public void applyAnalysis(AuditAnalysis analysis) {

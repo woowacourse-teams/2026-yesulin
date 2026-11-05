@@ -12,7 +12,7 @@
 
 `AuditProgress`(집계 모델)는 `application`에 있고 도메인 상태를 DB에서 세기만 한다.
 
-이름·배역 자동 반영의 레이블·정확 일치 규칙은 [규칙 기반 정책](rule-based-analysis.md)을 따른다.
+기존 이름 분석과 레이블 해석 규칙은 [규칙 기반 정책](rule-based-analysis.md)을 따른다.
 
 ## 상태 흐름
 
@@ -20,7 +20,7 @@
   배역이 없으면 `AuditAnalyzer`가 일치하는 배역을 찾지 못해 항상 `NEEDS_CHECK`가 되고 `roleId`는 null이다.
 - 지원서 처리(`AuditApplicantStatus`): `UPLOADING` → `EXTRACTING` → `ENRICHING` → `READY`/`NEEDS_REVIEW`,
   추출 실패는 `FAILED`. 판정·배역 일치와 독립이다. 전이 근거는 [AI 흐름](../flows/ai-enrichment.md)를 따른다.
-- 배역 일치(`AuditMatchStatus`): `WAITING` → `MATCHED`/`NEEDS_CHECK`. 담당자가 배역을 지정하면
+- 배역 배정(`AuditMatchStatus`): 신규 항목은 `NEEDS_CHECK`(미배정)로 시작하고 담당자가 지정하면 `MATCHED`다. 배역을 지정하면
   `roleManuallyAssigned`가 되어 이후 규칙·AI 분석이 배역과 근거를 덮어쓰지 않는다. 배역 해제(null)도 수동 지정으로 취급한다.
 - 판정(`AuditDecision`): `PENDING`/`PASS`/`FAIL`/`HOLD`. 메모는 2000자 이하다.
 
@@ -41,3 +41,7 @@
 기존 완료 결과의 sourceSha256은 migration으로 채우며 JSON을 한 행씩 읽는다. 기존 PDF를 다시 내려받지 않는다.
 배포 전부터 원본 SHA가 없는 미완료 작업은 결과 도착 후 해시를 연결한다. 그 이전에는 내용 동일성을 알 수 없다.
 이미 등록된 항목은 판정·메모가 있으므로 자동 삭제하지 않는다. 지원자 삭제·실행 취소는 별도 기능이다.
+
+## 원본 중심 수동 배역·제목
+
+신규 항목은 미배정에서 시작하고, 배역은 운영자만 지정한다. 기존 항목은 현재 배역을 유지한 채 수동 보호로 전환한다. 지원서 표시 제목은 display_title에 별도로 저장하며 미설정 시 원본 파일명으로 표시한다. 원본·SHA·판정·메모는 제목 수정으로 바뀌지 않는다.

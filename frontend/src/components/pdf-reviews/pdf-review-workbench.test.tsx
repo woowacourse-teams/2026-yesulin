@@ -65,17 +65,11 @@ describe("합격자 연락처 세션 경계", () => {
     expect(container.textContent).not.toContain("actor@example.test");
     expect(document.querySelector('[role="dialog"]')).toBeNull();
   });
-  it("연락처 보기로 이동해도 처리알림 펼침·닫기 상태를 유지한다", async () => {
+  it("원본 심사 화면은 업로드가 끝나면 추출·AI 진행 알림을 기다리지 않는다", async () => {
     await act(async () => root.render(<PdfReviewWorkbench />));
-    await click("합성 심사"); await click("내역");
-    const toast = container.querySelector('[data-pdf-processing-toast]');
-    expect(toast?.getAttribute("data-expanded")).toBe("true");
-    await click("합격자 연락처");
-    expect(container.querySelector('[data-pdf-processing-toast]')).toBe(toast);
-    expect(toast?.getAttribute("data-inline")).toBe("true");
-    expect(toast?.getAttribute("data-expanded")).toBe("true");
-    await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="PDF 처리 알림 닫기"]')!.click());
-    await click("심사로 돌아가기");
+    await click("합성 심사");
+    expect(container.querySelector('[data-pdf-processing-toast]')).toBeNull();
+    await click("합격자 연락처"); await click("심사로 돌아가기");
     expect(container.querySelector('[data-pdf-processing-toast]')).toBeNull();
   });
 

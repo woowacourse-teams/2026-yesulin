@@ -11,6 +11,7 @@ export type BoardContextValue = {
   roleOptions?: readonly ReviewRole[];
   currentRole?: (id: SubmissionId) => ReviewKey | null;
   changeRole?: (id: SubmissionId, roleId: string | null) => void;
+  renameTitle?: (id: SubmissionId, title: string) => Promise<boolean>;
   renderDocument?: (applicant: Applicant) => ReactNode;
   requestNavigation?: (action: () => void) => void;
   onNoteDirty?: (dirty: boolean) => void;

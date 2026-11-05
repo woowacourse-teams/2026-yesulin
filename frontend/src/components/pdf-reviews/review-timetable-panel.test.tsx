@@ -13,7 +13,7 @@ vi.mock("@/features/pdf-reviews/timetables", async original => ({
 }));
 const selected: PassedContact[] = [{ entry: { id: "entry", jobId: "job", originalFilename: "test.pdf",
   applicantName: "가람", roleId: null, decision: "PASS", memo: "", matchStatus: "MATCHED", matchEvidence: "" },
-  roleName: "미기재", contact: { status: "MISSING", phone: null }, email: { status: "MISSING", email: null } }];
+  roleName: "미배정", contact: { status: "MISSING", phone: null }, email: { status: "MISSING", email: null } }];
 let root: Root;
 let container: HTMLDivElement;
 let unauthorized: ReturnType<typeof vi.fn<() => void>>;
@@ -77,7 +77,7 @@ describe("합격자 일정 등록", () => {
   });
   it("이미 가져온 지원자는 다시 추가하지 않는다", async () => {
     vi.mocked(api.fetchRoster).mockResolvedValue({ id: 1, title: "2차", actors: [{ id: 3, name: "가람", phone: null,
-      email: "", roleName: "미기재", sourceApplicantId: "entry", sourceReviewId: "review", sourceDecision: "PASS", slot: null }] });
+      email: "", roleName: "미배정", sourceApplicantId: "entry", sourceReviewId: "review", sourceDecision: "PASS", slot: null }] });
     await render(); await choose();
     expect(container.textContent).toContain("이미 등록됨");
     expect([...container.querySelectorAll("button")].find(b => b.textContent === "선택한 0명 일정에 등록")!.disabled).toBe(true);

@@ -8,10 +8,8 @@ import { ReviewOriginalDocument } from "./review-original-document";
 
 vi.mock("@/features/pdf-extractions/api", () => ({ fetchPdfExtraction: vi.fn() }));
 vi.mock("@/components/pdf-extractions/pdf-original-viewer", () => ({
-  PdfOriginalViewer: ({ url, initialMode, onModeChange, onRefresh }: { url: string; initialMode: string; onModeChange: (mode: string) => void; onRefresh: () => void }) => <>
-    <a href={url}>원본</a><span data-view-mode={initialMode} />
-    <button type="button" onClick={() => onModeChange("canvas")}>앱 보기 선택</button>
-    <button type="button" onClick={onRefresh}>주소 새로고침</button>
+  PdfOriginalViewer: ({ url, onRefresh }: { url: string; onRefresh: () => void }) => <>
+    <a href={url}>원본</a><button type="button" onClick={onRefresh}>주소 새로고침</button>
   </>,
 }));
 
@@ -54,24 +52,12 @@ describe("원본 PDF 서명 주소", () => {
     expect(container.querySelector("a")?.getAttribute("href")).toBe("https://s3.example.test/ready.pdf");
   });
 
-  it("같은 PDF의 주소를 새로 받아도 사용자가 고른 앱 보기를 유지한다", async () => {
-    vi.mocked(fetchPdfExtraction).mockResolvedValueOnce(job("https://s3.example.test/original.pdf?signature=first"))
-      .mockResolvedValueOnce(job("https://s3.example.test/original.pdf?signature=renewed"));
-    await open();
-    await act(async () => [...container.querySelectorAll("button")].find(button => button.textContent === "앱 보기 선택")!.click());
-    await act(async () => [...container.querySelectorAll("button")].find(button => button.textContent === "주소 새로고침")!.click());
-    expect(container.querySelector("a")?.getAttribute("href")).toContain("signature=renewed");
-    expect(container.querySelector("[data-view-mode]")?.getAttribute("data-view-mode")).toBe("canvas");
-  });
-
-  it("다른 PDF를 열면 브라우저 보기 우선 정책으로 돌아온다", async () => {
+  it("주소 갱신 뒤에도 새 원본을 PDF.js 뷰어에 전달한다", async () => {
     vi.mocked(fetchPdfExtraction).mockResolvedValueOnce(job("https://s3.example.test/first.pdf"))
-      .mockResolvedValueOnce(job("https://s3.example.test/second.pdf"));
+      .mockResolvedValueOnce(job("https://s3.example.test/renewed.pdf"));
     await open();
-    await act(async () => [...container.querySelectorAll("button")].find(button => button.textContent === "앱 보기 선택")!.click());
-    await act(async () => root.render(<ReviewOriginalDocument jobId="another-synthetic-job" onUnauthorized={unauthorized} />));
-    expect(container.querySelector("a")?.getAttribute("href")).toContain("second.pdf");
-    expect(container.querySelector("[data-view-mode]")?.getAttribute("data-view-mode")).toBe("original");
+    await act(async () => container.querySelector("button")!.click());
+    expect(container.querySelector("a")?.getAttribute("href")).toContain("renewed.pdf");
   });
 
   it("401이면 권한 만료를 알리고 원본을 표시하지 않는다", async () => {
@@ -86,11 +72,10 @@ describe("원본 PDF 서명 주소", () => {
     vi.mocked(fetchPdfExtraction).mockReturnValueOnce(new Promise(resolve => { resolveA = resolve; }))
       .mockResolvedValueOnce(job("https://s3.example.test/b.pdf"));
     await open();
-    await act(async () => root.render(<ReviewOriginalDocument jobId="b" onUnauthorized={unauthorized} initialMode="canvas" />));
+    await act(async () => root.render(<ReviewOriginalDocument jobId="b" onUnauthorized={unauthorized} />));
     expect(vi.mocked(fetchPdfExtraction).mock.calls[0][2]?.aborted).toBe(true);
     await act(async () => resolveA(job("https://s3.example.test/a.pdf")));
     expect(container.querySelector("a")?.getAttribute("href")).toContain("b.pdf");
-    expect(container.querySelector("[data-view-mode]")?.getAttribute("data-view-mode")).toBe("canvas");
   });
 
 });

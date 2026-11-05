@@ -1,23 +1,16 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const PdfCanvasViewer = dynamic(() => import("./pdf-canvas-viewer").then(module => module.PdfCanvasViewer), {
   ssr: false,
   loading: () => <p role="status" className="p-4 text-sm text-muted">원본 PDF를 불러오는 중입니다…</p>,
 });
 
-export type PdfViewMode = "original" | "canvas";
-
-/** 두 뷰어 모두 S3의 원본을 읽는다. 브라우저 보기를 우선하고 표시되지 않으면 앱 보기로 전환한다. */
-export function PdfOriginalViewer({ url, filename, onRefresh, initialMode = "original", onModeChange }: {
+export function PdfOriginalViewer({ url, filename, onRefresh }: {
   readonly url: string; readonly filename: string; readonly onRefresh?: () => void;
-  readonly initialMode?: PdfViewMode; readonly onModeChange?: (mode: PdfViewMode) => void;
 }) {
-  const [mode, setMode] = useState<PdfViewMode>(initialMode);
-  const chooseMode = (next: PdfViewMode) => { setMode(next); onModeChange?.(next); };
-  const helpId = useId();
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState("");
   const active = useRef(true);
@@ -61,26 +54,15 @@ export function PdfOriginalViewer({ url, filename, onRefresh, initialMode = "ori
     }
   }
 
-  return <div className="flex h-full min-h-0 flex-col gap-2" data-original-pdf-viewer>
-    <div className="flex shrink-0 flex-wrap items-center gap-2 text-xs">
-      <div role="group" aria-label="PDF 보기 방식" aria-describedby={helpId} className="flex rounded-control border border-border bg-surface p-1">
-        <button type="button" aria-pressed={mode === "original"} onClick={() => chooseMode("original")} className={`min-h-11 rounded-lg px-3 font-semibold ${mode === "original" ? "bg-card text-foreground shadow-sm" : "text-muted"}`}>브라우저 보기</button>
-        <button type="button" aria-pressed={mode === "canvas"} onClick={() => chooseMode("canvas")} className={`min-h-11 rounded-lg px-3 font-semibold ${mode === "canvas" ? "bg-card text-foreground shadow-sm" : "text-muted"}`}>앱에서 보기</button>
-      </div>
-      {onRefresh && <button type="button" onClick={onRefresh} className="min-h-11 rounded-control px-3 font-semibold text-muted-strong hover:bg-surface">다시 불러오기</button>}
-      <div className="ml-auto flex gap-2">
-        <button type="button" disabled={downloading} onClick={() => void downloadOriginal()} className="min-h-11 rounded-control border border-border px-3 font-semibold disabled:opacity-50">{downloading ? "저장 중…" : "원본 다운로드"}</button>
-        <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-control border border-border px-3 font-semibold">원본 새 창<span className="sr-only">에서 열기 (새 창)</span><span aria-hidden="true" className="ml-1">↗</span></a>
-      </div>
-    </div>
-    {downloadError && <p role="alert" className="shrink-0 text-xs text-fail">{downloadError}</p>}
-    <div id={helpId} className="shrink-0 rounded-control bg-surface px-3 py-2 text-xs leading-5 text-muted-strong">
-      <p>{mode === "original"
-        ? "Chrome·Safari에서는 브라우저 보기를 권장해요. GPT 브라우저에서 화면이 비어 있으면 ‘앱에서 보기’로 전환해 주세요."
-        : "Safari에서 표시되지 않으면 ‘브라우저 보기’로 전환해 주세요."}</p>
-      <p className="mt-0.5 text-muted">두 보기 모두 같은 원본 PDF를 사용해요. 계속 보이지 않으면 원본을 다운로드해 주세요.</p>
-    </div>
-    {mode === "original" ? <iframe title={`${filename} 원본 PDF`} src={url} referrerPolicy="no-referrer" className="block min-h-[55dvh] w-full flex-1 rounded-control border border-border bg-slate-100" />
-      : <div className="min-h-0 flex-1 overflow-auto"><PdfCanvasViewer url={url} filename={filename} /></div>}
+  const actions = <div className="flex flex-wrap items-center gap-1.5">
+    {onRefresh && <button type="button" onClick={onRefresh} className="min-h-11 rounded-lg px-3 text-xs font-semibold text-muted-strong hover:bg-card">다시 불러오기</button>}
+    <button type="button" disabled={downloading} onClick={() => void downloadOriginal()} className="min-h-11 rounded-lg px-3 text-xs font-semibold text-muted-strong hover:bg-card disabled:opacity-50">
+      {downloading && "저장 중…"}{!downloading && "다운로드"}
+    </button>
+    <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-lg px-3 text-xs font-semibold text-muted-strong hover:bg-card">새 창 ↗<span className="sr-only">에서 원본 PDF 열기</span></a>
+  </div>;
+  return <div className="min-h-0" data-original-pdf-viewer>
+    {downloadError && <p role="alert" className="border-b border-border bg-fail-bg px-4 py-3 text-xs text-fail">{downloadError}</p>}
+    <PdfCanvasViewer url={url} filename={filename} actions={actions} />
   </div>;
 }

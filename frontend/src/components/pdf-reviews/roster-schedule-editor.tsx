@@ -55,7 +55,7 @@ export function RosterScheduleEditor({ actors, value, onChange, disabled }: {
               selected: event.target.checked ? [...value.selected, actor.id] : value.selected.filter(id => id !== actor.id) })} />
           <span className="break-words">{actor.name}</span></label>
           <div className="ml-7 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-strong">
-            <span>{actor.roleName || "미기재"}</span>
+            <span>{actor.roleName || "미배정"}</span>
             <span className={actor.slot ? styles.assigned : styles.unassigned}>{actor.slot ? "배정됨" : "미배정"}</span>
           </div>
           <p className="sr-only">저장된 시간: {slotLabel(actor.slot)}</p>

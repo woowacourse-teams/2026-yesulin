@@ -105,3 +105,7 @@ export function observeReviewProgress(detail: ReviewDetail) {
 export function assignPdfReviewRoles(reviewId: ReviewKey, entryIds: readonly ReviewKey[], roleId: ReviewKey | null) {
   return request<ReviewEntry[]>(`${reviewPath(reviewId)}/role-assignments`, "PATCH", { entryIds, roleId });
 }
+
+export function renamePdfReviewEntry(reviewId: ReviewKey, entryId: ReviewKey, title: string) {
+  return request<ReviewEntry>(`${reviewPath(reviewId)}/entries/${encodeURIComponent(String(entryId))}/title`, "PATCH", { title });
+}

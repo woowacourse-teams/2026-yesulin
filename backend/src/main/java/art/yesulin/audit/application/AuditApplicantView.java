@@ -9,6 +9,7 @@ public record AuditApplicantView(
         String id,
         String jobId,
         String originalFilename,
+        String title,
         String applicantName,
         String roleId,
         AuditMatchStatus matchStatus,
@@ -19,7 +20,7 @@ public record AuditApplicantView(
 ) {
 
     public static AuditApplicantView of(AuditApplicant entry) {
-        return new AuditApplicantView(entry.getId(), entry.getJobId(), entry.getOriginalFilename(),
+        return new AuditApplicantView(entry.getId(), entry.getJobId(), entry.getOriginalFilename(), entry.getTitle(),
                 entry.getApplicantName(), entry.getRoleId(), entry.getMatchStatus(), entry.getMatchEvidence(),
                 entry.getMemo(), entry.getDecision(), entry.getProcessingStatus());
     }

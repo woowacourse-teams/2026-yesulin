@@ -16,7 +16,7 @@ export function ReviewRoleSelect({ roles, value, disabled, label = "심사 배�
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
-  const options = [{ id: "", name: "미기재" }, ...roles.map(role => ({ id: String(role.id), name: role.name }))];
+  const options = [{ id: "", name: "미배정" }, ...roles.map(role => ({ id: String(role.id), name: role.name }))];
   const current = String(value ?? "");
   const [active, setActive] = useState(0);
   const expanded = open && !disabled;
@@ -46,7 +46,7 @@ export function ReviewRoleSelect({ roles, value, disabled, label = "심사 배�
         } else if (event.key === "Escape" && expanded) { event.preventDefault(); setOpen(false); }
         else if ((event.key === "Enter" || event.key === " ") && expanded) { event.preventDefault(); choose(active); }
       }}>
-      <span id={`${id}-value`} className="truncate">{options.find(option => option.id === current)?.name ?? "미기재"}</span>
+      <span id={`${id}-value`} className="truncate">{options.find(option => option.id === current)?.name ?? "미배정"}</span>
       <span aria-hidden="true" className={`text-muted transition-transform ${expanded ? "rotate-180" : ""}`}>⌄</span>
     </button>
     {expanded && <div id={id} role="listbox" aria-labelledby={`${id}-label`} className="absolute inset-x-0 top-full z-30 mt-2 max-h-64 overflow-y-auto rounded-control border border-border bg-card p-1 shadow-[var(--shadow-modal)]">

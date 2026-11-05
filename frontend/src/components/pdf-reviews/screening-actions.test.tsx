@@ -41,8 +41,8 @@ it.each(["card", "table"] as const)("%s: 직접 열기·이동·저장은 각각
     expect(open).toBeTruthy(); await act(async () => open.click());
     expect(actions()).toHaveLength(1);
     expect(actions()[0]).toMatchObject({ review_action: "open", item_id: "a", review_view: view, input_method: "button" });
-    await act(async () => button("다음 지원자").click());
-    await act(async () => button("이전 지원자").click());
+    await act(async () => button("다음 지원서").click());
+    await act(async () => button("이전 지원서").click());
     await act(async () => window.dispatchEvent(new KeyboardEvent("keydown", { key: "n" })));
     expect(actions().map(a => [a.review_action, a.item_id, a.input_method])).toEqual([
       ["open", "a", "button"], ["next", "b", "button"], ["previous", "a", "button"], ["next", "b", "shortcut"],

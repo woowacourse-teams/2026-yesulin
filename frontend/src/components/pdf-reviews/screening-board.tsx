@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { trackReviewAction } from "@/features/analytics/review-actions";
 import { roleId, postingId, type SubmissionId, type ReviewStatus } from "@/features/auditions/types";
-import { assignPdfReviewRoles, isUnauthorized, updatePdfReviewEntry } from "@/features/pdf-reviews/api";
+import { assignPdfReviewRoles, isUnauthorized, renamePdfReviewEntry, updatePdfReviewEntry } from "@/features/pdf-reviews/api";
 import { screeningApplicant } from "@/features/pdf-reviews/screening-adapter";
 import { matchesDecision, sameKey, type DecisionFilter, type ReviewDetail, type ReviewEntry } from "@/features/pdf-reviews/types";
 import { ReviewOriginalDocument } from "./review-original-document";
@@ -58,6 +58,19 @@ export function ScreeningBoard({ review, entries, decision, view, refreshKey, on
       setError(cause instanceof Error ? cause.message : "배역을 저장하지 못했습니다. 다시 선택해 주세요.");
     } finally { savingRef.current = false; setSaving(false); }
   };
+  const renameTitle = async (id: SubmissionId, title: string) => {
+    if (savingRef.current) return false;
+    savingRef.current = true; setSaving(true); setError("");
+    try {
+      const updated = await renamePdfReviewEntry(review.id, id, title);
+      onSaved(updated); setSavedMessage("지원서 제목을 저장했습니다.");
+      return true;
+    } catch (cause) {
+      if (isUnauthorized(cause)) onUnauthorized();
+      setError("제목을 저장하지 못했습니다. 입력 내용을 확인하고 다시 시도해 주세요.");
+      return false;
+    } finally { savingRef.current = false; setSaving(false); }
+  };
   const allEntries = review.entries;
   const done = allEntries.filter(entry => entry.decision === "PASS" || entry.decision === "FAIL").length;
   const counts = { all: allEntries.length, pending: allEntries.filter(entry => entry.decision === "PENDING").length, done,
@@ -69,11 +82,11 @@ export function ScreeningBoard({ review, entries, decision, view, refreshKey, on
     toggleSelected: id => setSelected(current => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next; }),
     openApplicant: id => { trackReviewAction(String(review.id), String(id), view, "open"); navigate(() => setFocused(id)); }, roleOptions: review.roles,
     currentRole: id => review.entries.find(entry => sameKey(entry.id, id))?.roleId ?? null,
-    changeRole: (id, roleId) => void assignRole([id], roleId), requestNavigation: navigate, onNoteDirty: noteDirty,
+    changeRole: (id, roleId) => void assignRole([id], roleId), renameTitle, requestNavigation: navigate, onNoteDirty: noteDirty,
     onBasicAction: (id, action, input) => trackReviewAction(String(review.id), String(id), view, action, input),
     onApplicantOpened,
     reviewFocused: (id, status, _memo, note) => save(id, status, note), patchReview: patch,
-    renderDocument: applicant => { const entry = entryFor(applicant.id); return entry ? <ReviewOriginalDocument key={`${entry.jobId}:${refreshKey}`} jobId={entry.jobId} onUnauthorized={onUnauthorized} initialMode="canvas" /> : null; },
+    renderDocument: applicant => { const entry = entryFor(applicant.id); if (!entry) return null; return <ReviewOriginalDocument key={`${entry.jobId}:${refreshKey}`} jobId={entry.jobId} onUnauthorized={onUnauthorized} />; },
   }}>
     {error && <p role="alert" className="mb-3 rounded-control bg-fail-bg p-3 text-sm text-fail">{error}</p>}
     <p role="status" className="sr-only">{saving ? "저장 중…" : savedMessage}</p>

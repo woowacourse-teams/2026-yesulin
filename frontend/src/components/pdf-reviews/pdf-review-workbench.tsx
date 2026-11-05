@@ -66,19 +66,18 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
     window.addEventListener("beforeunload", handler); return () => window.removeEventListener("beforeunload", handler);
   }, [uploads.rows.length]);
   const uploading = uploads.busy && String(uploads.messageReviewId) === String(review?.id);
-  const { progress, error: progressError, recheck: recheckProgress } = useReviewProgress({
-    reviewId: authorized && !home ? review?.id ?? null : null, uploading,
+  const originalUploading = review?.entries.some(entry => entry.processingStatus === "UPLOADING") ?? false;
+  const { error: progressError, recheck: recheckProgress } = useReviewProgress({
+    reviewId: authorized && !home && (uploading || originalUploading) ? review?.id ?? null : null, uploading,
     refreshKey: `${detailRefresh}:${review?.entries.length ?? 0}`, onChanged: sync, onUnauthorized: markExpired,
   });
-  const preparing = decision === "PENDING" && !expired && !progressError && !reviews.detailError && (uploading || (progress
-    ? progress.total > 0 && !progress.complete
-    : review?.entries.some(entry => entry.processingStatus === "UPLOADING" || entry.processingStatus === "EXTRACTING" || entry.processingStatus === "ENRICHING")));
+  const preparing = decision === "PENDING" && !expired && !progressError && !reviews.detailError && (uploading || originalUploading);
   function openReview(id: ReviewKey) { navigate(() => { setContactsOpen(false); setFilter("ALL"); setDecision("PENDING"); setHome(false); reviews.open(id); }); }
   function created(next: ReviewDetail) { closeCreate(); setContactsOpen(false); setFilter("ALL"); setDecision("PENDING"); setHome(false); reviews.created(next); }
   function manualRefresh() { setExpired(false); setDetailRefresh(value => value + 1); void reviews.refresh(); }
   const chips: { value: EntryFilter; label: string }[] = review?.roles.length === 0
     ? [{ value: "ALL", label: "자유 배역" }]
-    : [{ value: "ALL", label: "전체 배역" }, ...(review?.roles ?? []).map(role => ({ value: { roleId: role.id }, label: role.name })), { value: "NEEDS_CHECK", label: "미기재" }];
+    : [{ value: "ALL", label: "전체 배역" }, ...(review?.roles ?? []).map(role => ({ value: { roleId: role.id }, label: role.name })), { value: "NEEDS_CHECK", label: "미배정" }];
   const filterKey = typeof filter === "object" ? String(filter.roleId) : filter;
   const uploadProps = { busy: uploads.busy || collecting,
     disabled: expired,
@@ -116,11 +115,11 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
               return <button type="button" key={key} aria-pressed={filterKey === key} onClick={() => navigate(() => setFilter(chip.value))}>{chip.label}<span className="num">{review.entries.filter(item => matchesFilter(item, chip.value)).length}</span></button>;
             })}</div></nav>
           </ReviewUploadPanel>}
-          {!contactsOpen && filter === "NEEDS_CHECK" && <p className={styles.roleHint}>심사 배역이 아직 지정되지 않은 지원자입니다. ‘배역 설정’에서 분류해 주세요.</p>}
+          {!contactsOpen && filter === "NEEDS_CHECK" && <p className={styles.roleHint}>배역이 아직 배정되지 않은 지원서입니다. 각 지원서의 ‘배역 배정’에서 선택해 주세요.</p>}
           {selectionError && <p role="alert" className="text-sm text-fail">{selectionError}</p>}
           {reviews.detailError && <p role="alert" className="text-fail">{reviews.detailError}</p>}
         </div>
-        <ReviewProcessingProgress key={review.id} inline={contactsOpen} progress={progress} uploading={uploading} uploadMessage={uploadMessage} uploadError={String(uploads.messageReviewId) === String(review.id) ? uploads.validationError : ""} error={progressError || reviews.detailError} onRetry={manualRefresh}
+        <ReviewProcessingProgress key={review.id} inline={contactsOpen} progress={null} uploading={uploading} uploadMessage={uploadMessage} uploadError={String(uploads.messageReviewId) === String(review.id) ? uploads.validationError : ""} error={progressError || reviews.detailError} onRetry={manualRefresh}
           notices={uploads.notices.filter(item => String(item.reviewId) === String(review.id))} rows={uploads.rows}
           uploadBusy={uploads.busy} disabled={expired} onRemove={uploads.remove} onClearUploaded={() => uploads.clearUploaded(review.id)} onRetryUpload={row => void uploads.retry(row)} />
         <div className="px-4 md:px-6 xl:px-8">
@@ -160,7 +159,7 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
       {createOpen && <ReviewCreateForm onCreated={created} onUnauthorized={markExpired} onBusyChange={setCreateBusy} />}
     </ModalShell>
     <ModalShell open={pendingNavigation !== null} onClose={() => setPendingNavigation(null)} labelledBy="unsaved-review-title" className="w-[calc(100vw-32px)] max-w-md rounded-modal bg-card p-6 shadow-xl">
-      <h2 id="unsaved-review-title" className="text-lg font-bold">저장하지 않은 메모가 있어요</h2><p className="mt-3 text-sm text-muted-strong">메모를 남겨두려면 취소 후 저장해 주세요.</p>
+      <h2 id="unsaved-review-title" className="text-lg font-bold">저장하지 않은 변경사항이 있어요</h2><p className="mt-3 text-sm text-muted-strong">제목이나 메모를 남겨두려면 취소 후 저장해 주세요.</p>
       <div className="mt-6 flex justify-end gap-2"><SecondaryButton onClick={() => setPendingNavigation(null)}>취소</SecondaryButton><PrimaryButton onClick={() => { const action = pendingNavigation?.action; dirty.current = false; setPendingNavigation(null); action?.(); }}>저장하지 않고 이동</PrimaryButton></div>
     </ModalShell>
   </div>;
