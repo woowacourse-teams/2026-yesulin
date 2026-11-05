@@ -11,7 +11,7 @@ describe("홈 무료 공연 섹션", () => {
     expect(html).toContain('href="/shows/show-12"');
     expect(html).not.toContain('href="/shows/show-13"');
     expect(html).toContain('href="/shows"');
-    expect(html).toContain("예매 가능한 회차 없음");
+    expect(html).toContain("예정 회차 없음");
   });
 
   it("빈 목록을 예시 공연으로 채우지 않는다", () => {

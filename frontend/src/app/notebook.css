@@ -932,10 +932,8 @@
 .notebook-footer-logo img { width:84px; height:auto; }
 .notebook-footer-brand .notebook-footer-slogan { margin:0; font-size:14px; font-weight:400; line-height:1.6; color:var(--ink-60); }
 .notebook-email-address { max-width:100%; overflow-wrap:anywhere; user-select:all; font-size:14px; font-weight:400; color:var(--ink-60); }
-.public-show-card.is-ended img { filter:grayscale(1); opacity:.5; }
-.public-show-card.is-ended { background:var(--paper); }
 .notebook-show-group+.notebook-show-group { margin-top:40px; padding-top:32px; border-top:1px solid var(--line); }
-.notebook-show-group-heading { display:flex; align-items:center; gap:8px; margin-bottom:16px; font-size:18px; font-weight:700; }
+.notebook-show-group-heading { display:flex; align-items:baseline; gap:8px; margin-bottom:18px; font-size:22px; }
 .notebook-show-group-heading span { font-size:14px; color:var(--ink-40); font-weight:500; }
 
 @media(max-width:760px) {
@@ -1218,3 +1216,9 @@
 @media(prefers-reduced-motion:reduce) {
   .home-main .notebook-banner-peek { animation:none; }
 }
+
+/* 공연 포스터 카드: 예매 중인 공연의 다음 회차를 제목 위에 파란색으로 강조한다. */
+.notebook-show-when { margin-top:12px; font-size:15px; font-weight:700; line-height:1.4; color:#2272eb; }
+.notebook-show-when.is-muted { font-weight:600; color:var(--ink-40); }
+.notebook-show-when + .notebook-poster-title { margin-top:2px; }
+.notebook-show-genres { margin:0 0 20px; }
