@@ -3,7 +3,7 @@ package art.yesulin.community.presentation;
 import art.yesulin.auth.application.MemberPrincipal;
 import art.yesulin.auth.application.annotation.LoginMember;
 import art.yesulin.community.application.CommunityInbox;
-import art.yesulin.community.domain.CommunityInboxItem;
+import art.yesulin.community.application.CommunityNoticeResult;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -23,9 +23,15 @@ public class CommunityInboxController {
     private final CommunityInbox notices;
 
     @GetMapping
-    public List<CommunityInboxItem> inbox(@LoginMember MemberPrincipal member, HttpServletResponse response) {
+    public List<CommunityNoticeResult> inbox(@LoginMember MemberPrincipal member, HttpServletResponse response) {
         response.setHeader("Cache-Control", "no-store");
         return notices.recent(member.memberId());
+    }
+
+    @PutMapping("/read-all")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void readAll(@LoginMember MemberPrincipal member) {
+        notices.markAllSeen(member.memberId());
     }
 
     @PutMapping("/{id}/read")

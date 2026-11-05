@@ -266,3 +266,18 @@
 .community-back-link { display: block; width: fit-content; margin: 12px auto 0; text-decoration: underline; }
 .community-member-prompt > p { margin-bottom: 16px; }
 a.community-more { display: block; text-align: center; }
+
+/* 커뮤니티 알림 화면. */
+.community-notices { width:min(680px, 100%); margin-inline:auto; display:flex; flex-direction:column; gap:14px; }
+.community-notices h1 { font-size:26px; font-weight:800; letter-spacing:-.03em; }
+.community-notices-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.community-notices-filters { display:flex; gap:8px; overflow-x:auto; scrollbar-width:none; }
+.community-notices-filters button { flex:none; min-height:42px; padding:0 16px; border:1px solid var(--line); border-radius:999px; background:var(--white); color:var(--ink-60); font-size:14px; font-weight:600; }
+.community-notices-filters button[aria-pressed=true] { border-color:var(--ink); background:var(--ink); color:var(--white); }
+.community-notices-period h2 { margin:6px 0 6px 6px; font-size:14px; font-weight:700; color:var(--ink-40); }
+.community-notices-period ul { margin:0; padding:6px; list-style:none; border:1px solid var(--line); border-radius:20px; background:var(--white); }
+.community-notices-state { padding:12px 4px; font-size:14px; line-height:1.6; color:var(--ink-60); }
+.community-notices-state button { text-decoration:underline; }
+.community-notices .community-pill { align-self:flex-start; }
+.community-column:has(> .community-notices) { width:min(720px, calc(100% - 40px)); background:transparent; border:0; overflow:visible; }
+.community-lounge-notices { display:inline-flex; align-items:center; gap:6px; min-height:44px; font-size:14px; font-weight:600; color:var(--brand); }

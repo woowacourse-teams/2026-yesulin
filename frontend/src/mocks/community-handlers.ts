@@ -8,6 +8,14 @@ import { reportReasons, type CommunityEntry, type CommunityPage } from "@/featur
 type StoredEntry = { value: CommunityEntry; owner: string; parent: number | null; deleted: boolean; requestId: string; original: string };
 type Payload = { replyToId?: number | null; authorMode?: CommunityAuthorMode; expectedMemberId?: number; requestId?: string; title?: string; body?: string; reason?: string; detail?: string };
 
+const PREVIEW_MAX = 80;
+
+function previewOf(body: string) {
+  const line = body.replace(/\s+/g, " ").trim();
+  if (line.length <= PREVIEW_MAX) return line;
+  return `${line.slice(0, PREVIEW_MAX)}…`;
+}
+
 class MockFailure extends Error {
   constructor(readonly status: number, readonly code: string, message: string) { super(message); }
 }
@@ -23,13 +31,19 @@ class CommunityStore {
       const comment = this.entries.get(id);
       const post = this.entries.get(comment?.parent ?? -1);
       if (notice.recipient !== owner || !comment || comment.deleted || !post || post.deleted) return [];
-      return [{ commentId: id, postId: post.value.id, title: post.value.title, replyToId: comment.value.replyToId, seen: notice.seen }];
+      const author = { author: comment.value.author, ...this.publicProfile(comment) }.author;
+      const preview = previewOf(comment.value.body);
+      return [{ commentId: id, postId: post.value.id, title: post.value.title, replyToId: comment.value.replyToId, seen: notice.seen, author, preview, createdAt: comment.value.createdAt }];
     }).slice(0, 20);
   }
 
   readNotice(owner: string, id: number) {
     const notice = this.notices.get(id);
     if (notice?.recipient === owner) notice.seen = true;
+  }
+
+  readAllNotices(owner: string) {
+    for (const notice of this.notices.values()) if (notice.recipient === owner) notice.seen = true;
   }
 
   private likes = new Map<number, Set<string>>();
@@ -265,6 +279,7 @@ export function createCommunityHandlers(context: MockContext = { session: mockCu
   };
   return [
     http.get("*/api/v1/community/notifications", ({ request }) => respond(() => store.inbox(inboxOwner(request)))),
+    http.put("*/api/v1/community/notifications/read-all", ({ request }) => respond(() => store.readAllNotices(inboxOwner(request)))),
     http.put("*/api/v1/community/notifications/:id/read", ({ request, params }) => respond(() => store.readNotice(inboxOwner(request), Number(params.id)))),
     http.get("*/api/v1/public/community/identity", ({ request, cookies }) => identityResponse(request, cookies, false)),
     http.post("*/api/v1/public/community/identity", ({ request, cookies }) => identityResponse(request, cookies, true)),

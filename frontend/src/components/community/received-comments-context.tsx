@@ -3,7 +3,14 @@
 import { createContext, use } from "react";
 import type { CommunityNotice } from "@/features/community/types";
 
-type Inbox = { items: readonly CommunityNotice[] | null; error: string; refresh: () => void; markRead: (id: number) => Promise<boolean> };
+type Inbox = {
+  items: readonly CommunityNotice[] | null;
+  error: string;
+  refresh: () => void;
+  markRead: (id: number) => Promise<boolean>;
+  markGroupRead: (ids: readonly number[]) => Promise<boolean>;
+  markAllRead: () => Promise<boolean>;
+};
 export const InboxContext = createContext<Inbox | null>(null);
 
 export function useReceivedComments() {
@@ -16,7 +23,3 @@ export function useUnreadCommentCount() {
   return use(InboxContext)?.items?.filter(item => !item.seen).length ?? 0;
 }
 
-export function UnreadCommentDot() {
-  if (!useUnreadCommentCount()) return null;
-  return <span className="received-comment-dot"><span className="sr-only">읽지 않은 댓글 있음</span></span>;
-}

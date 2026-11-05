@@ -197,12 +197,3 @@
   .applicant-submissions-footer { flex-direction:column; align-items:flex-start; gap:4px; }
 }
 
-.received-comments { max-width:720px; }
-.received-comments h1 { font-size:clamp(24px,4vw,32px); font-weight:700; margin-bottom:20px; }
-.received-comments > p { color:var(--ink-60); padding-block:12px; }
-.received-comments > p button { text-decoration:underline; }
-.received-comments li { border-bottom:1px solid var(--line); }
-.received-comments li button { display:grid; gap:4px; padding:14px 4px; width:100%; text-align:start; }
-.received-comments li button:hover { background:#f5f9fd; }
-.received-comments li button > span { display:flex; align-items:center; gap:6px; color:var(--ink-60); font-size:13px; }
-.received-comments li .received-comment-dot { margin:0; }

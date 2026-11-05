@@ -1,8 +1,6 @@
-import type { Metadata } from "next";
-import { CommunityInbox } from "@/components/community/community-inbox";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = { title: "받은 댓글" };
-
+/** 받은 댓글은 커뮤니티 알림 화면으로 옮겼다. 예전 주소로 들어오면 그곳으로 보낸다. */
 export default function ReceivedCommentsPage() {
-  return <CommunityInbox />;
+  redirect("/community/notifications");
 }

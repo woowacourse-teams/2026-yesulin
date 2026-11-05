@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { useAuthSession } from "@/components/auth/auth-session";
 import { InboxContext } from "./received-comments-context";
 import { AuditionRequestError } from "@/features/auditions/api-client";
-import { getNotifications, readNotification } from "@/features/community/api";
+import { getNotifications, readAllNotifications, readNotification } from "@/features/community/api";
 import type { CommunityNotice } from "@/features/community/types";
 
 type Notices = readonly CommunityNotice[];
@@ -17,8 +17,8 @@ function failedSnapshot(current: Snapshot | null, scope: Owner, cause: unknown):
   return { scope, items, error: "받은 댓글을 불러오지 못했어요." };
 }
 
-function seenNotice(item: CommunityNotice, id: number) {
-  if (item.commentId === id) return { ...item, seen: true };
+function seenNotice(item: CommunityNotice, ids: readonly number[] | "all") {
+  if (ids === "all" || ids.includes(item.commentId)) return { ...item, seen: true };
   return item;
 }
 
@@ -55,19 +55,22 @@ export function ReceivedCommentsProvider({ children }: { children: ReactNode }) 
       document.removeEventListener("visibilitychange", refresh);
     };
   }, [owner, refresh]);
-  async function markRead(id: number) {
+  async function markSeen(ids: readonly number[] | "all", send: () => Promise<unknown>) {
     if (active.current !== owner) return false;
-    await readNotification(id);
+    await send();
     if (active.current !== owner) return false;
     pending.current?.abort();
     setState(current => {
       if (!current?.items || current.scope !== owner) return current;
-      return { ...current, items: current.items.map(item => seenNotice(item, id)) };
+      return { ...current, items: current.items.map(item => seenNotice(item, ids)) };
     });
     refresh();
     return true;
   }
+  const markRead = (id: number) => markSeen([id], () => readNotification(id));
+  const markGroupRead = (ids: readonly number[]) => markSeen(ids, () => Promise.all(ids.map(readNotification)));
+  const markAllRead = () => markSeen("all", readAllNotifications);
   let current: Snapshot | null = null;
   if (state?.scope === owner) current = state;
-  return <InboxContext value={{ items: current?.items ?? null, error: current?.error ?? "", refresh, markRead }}>{children}</InboxContext>;
+  return <InboxContext value={{ items: current?.items ?? null, error: current?.error ?? "", refresh, markRead, markGroupRead, markAllRead }}>{children}</InboxContext>;
 }
