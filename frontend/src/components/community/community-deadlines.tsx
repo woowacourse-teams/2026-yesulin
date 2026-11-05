@@ -13,13 +13,13 @@ export function CommunityDeadlines() {
   const posts = useDeadlinePosts();
   if (!posts?.length) return null;
   return (
-    <aside className="community-lounge-side" aria-labelledby="community-deadlines-title"><section className="community-side-card">
+    <aside aria-labelledby="community-deadlines-title" className="community-side-card">
       <h2 id="community-deadlines-title">마감 임박 공고</h2>
       <ul className="community-deadlines">
         {posts.map((post) => <DeadlineItem key={post.id} post={post} />)}
       </ul>
       <Link href={auditionPostRoutes.list({ sort: "deadline" })} className="community-side-more">전체 공고 보기</Link>
-    </section></aside>
+    </aside>
   );
 }
 

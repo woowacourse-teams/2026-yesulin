@@ -10,6 +10,8 @@ import art.yesulin.community.domain.CommunityDigest;
 import art.yesulin.community.domain.CommunityEntry;
 import art.yesulin.community.domain.CommunityEntryRepository;
 import art.yesulin.community.domain.CommunityErrorCode;
+import art.yesulin.community.domain.CommunityTopic;
+import art.yesulin.community.domain.PostContent;
 import art.yesulin.global.exception.BusinessException;
 import java.util.HashMap;
 import java.util.Map;
@@ -36,8 +38,13 @@ public class CommunityMembershipService {
 
     public EntryResult createPost(MemberPrincipal principal, UUID request, String title, String body,
                                   CommunityAuthorMode mode) {
+        return createPost(principal, request, new PostContent(title, body, CommunityTopic.FREE), mode);
+    }
+
+    public EntryResult createPost(MemberPrincipal principal, UUID request, PostContent content,
+                                  CommunityAuthorMode mode) {
         long member = requireWriter(principal, mode);
-        EntryResult result = entries.publishPost(key(member), member, mode, request, title, body);
+        EntryResult result = entries.publishPost(key(member), member, mode, request, content);
         return decorate(result, null, principal, new HashMap<>());
     }
 
@@ -56,10 +63,15 @@ public class CommunityMembershipService {
 
     @Transactional(readOnly = true)
     public CommunityPage posts(long before, String cookie, MemberPrincipal principal) {
+        return posts(before, cookie, principal, null);
+    }
+
+    @Transactional(readOnly = true)
+    public CommunityPage posts(long before, String cookie, MemberPrincipal principal, CommunityTopic topic) {
         if (before != Long.MAX_VALUE && principal == null) {
             throw new BusinessException(AuthErrorCode.UNAUTHENTICATED, "이전 글을 보려면 로그인해 주세요.");
         }
-        return decorate(entries.posts(before, cookie), cookie, principal);
+        return decorate(entries.posts(before, cookie, topic), cookie, principal);
     }
 
     @Transactional(readOnly = true)
@@ -74,7 +86,13 @@ public class CommunityMembershipService {
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public EntryResult editPost(long id, String cookie, MemberPrincipal principal, String title, String body) {
-        entries.editOwnedPost(id, owner(id, id, cookie, principal), title, body);
+        return editPost(id, cookie, principal, title, body, null);
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public EntryResult editPost(long id, String cookie, MemberPrincipal principal, String title, String body,
+                                CommunityTopic topic) {
+        entries.editOwnedPost(id, owner(id, id, cookie, principal), title, body, topic);
         return post(id, cookie, principal);
     }
 

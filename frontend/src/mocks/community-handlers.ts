@@ -3,10 +3,10 @@ import type { SessionResponse } from "@/features/auth/session-api";
 import type { CommunityProfile, CommunityAuthorMode } from "@/features/community/types";
 import { http, HttpResponse } from "msw";
 import { normalizeComment, normalizePost } from "@/features/community/draft";
-import { reportReasons, type CommunityEntry, type CommunityPage } from "@/features/community/types";
+import { isCommunityTopic, type CommunityTopic, reportReasons, type CommunityEntry, type CommunityPage } from "@/features/community/types";
 
 type StoredEntry = { value: CommunityEntry; owner: string; parent: number | null; deleted: boolean; requestId: string; original: string };
-type Payload = { replyToId?: number | null; authorMode?: CommunityAuthorMode; expectedMemberId?: number; requestId?: string; title?: string; body?: string; reason?: string; detail?: string };
+type Payload = { topic?: CommunityTopic; replyToId?: number | null; authorMode?: CommunityAuthorMode; expectedMemberId?: number; requestId?: string; title?: string; body?: string; reason?: string; detail?: string };
 
 const PREVIEW_MAX = 80;
 
@@ -105,9 +105,21 @@ class CommunityStore {
     return `익명${[...owners].indexOf(participant) + 1}`;
   }
 
-  list(parent: number | null, cursor: number, owner: string, browser = owner): CommunityPage {
+  popular(now = Date.now()) {
+    const since = now - 7 * 24 * 60 * 60 * 1000;
+    return [...this.entries.values()]
+      .filter(entry => entry.parent === null && !entry.deleted)
+      .map(({ value }) => ({ id: value.id, title: value.title, created: Date.parse(value.createdAt),
+        score: (this.likes.get(value.id)?.size ?? 0) + value.commentCount * 2 }))
+      .filter(post => post.created >= since && post.created <= now && post.score >= 3)
+      .sort((a, b) => b.score - a.score || b.created - a.created || b.id - a.id)
+      .slice(0, 5).map(({ id, title }) => ({ id, title }));
+  }
+
+  list(parent: number | null, cursor: number, owner: string, browser = owner, topic?: CommunityTopic): CommunityPage {
     if (parent !== null) this.post(parent);
-    const entries = [...this.entries.values()].filter(entry => eligible(entry, parent, cursor));
+    const entries = [...this.entries.values()].filter(entry => eligible(entry, parent, cursor)
+      && (!topic || topic === entry.value.topic));
     entries.sort((left, right) => compareEntries(left, right, parent));
     let size = 20;
     if (parent === null) size = 5;
@@ -122,7 +134,7 @@ class CommunityStore {
     if (parent !== null) this.post(parent);
     if (input.authorMode !== "ANONYMOUS" && input.authorMode !== "PROFILE") throw new Error("작성 방식을 선택해 주세요.");
     if (input.authorMode === "PROFILE" && !this.profile(Number(owner.slice(7)))?.path) throw new MockFailure(409, "COMMUNITY_PROFILE_REQUIRED", "공개된 배우 페이지가 필요해요.");
-    const content = { ...normalized(parent, input), authorMode: input.authorMode };
+    const content = { ...normalized(parent, input, "FREE"), authorMode: input.authorMode };
     const replyToId = replyTarget(parent, input);
     const original = JSON.stringify({ parent, ...content, replyToId });
     const retry = [...this.entries.values()].find(entry => entry.requestId === input.requestId);
@@ -135,7 +147,7 @@ class CommunityStore {
 
   edit(entry: StoredEntry, owner: string, input: Payload) {
     requireOwner(entry, owner);
-    entry.value = { ...entry.value, ...normalized(entry.parent, input), updatedAt: new Date().toISOString() };
+    entry.value = { ...entry.value, ...normalized(entry.parent, input, entry.value.topic ?? "FREE"), updatedAt: new Date().toISOString() };
     return this.view(entry, owner);
   }
 
@@ -200,9 +212,15 @@ function requireRequestId(value: string | undefined) {
   if (!value || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) throw new Error("요청 번호가 올바르지 않아요.");
 }
 
-function normalized(parent: number | null, input: Payload) {
-  if (parent !== null) return { title: null, ...normalizeComment(input.body ?? "") };
-  return normalizePost(input.title ?? "", input.body ?? "");
+function optionalTopic(value: unknown): CommunityTopic | undefined {
+  if (value == null) return undefined;
+  if (isCommunityTopic(value)) return value;
+  throw new Error("주제를 확인해 주세요.");
+}
+
+function normalized(parent: number | null, input: Payload, defaultTopic: CommunityTopic) {
+  if (parent !== null) return { title: null, topic: null, ...normalizeComment(input.body ?? "") };
+  return { ...normalizePost(input.title ?? "", input.body ?? ""), topic: optionalTopic(input.topic) ?? defaultTopic };
 }
 
 function eligible(entry: StoredEntry, parent: number | null, cursor: number) {
@@ -290,10 +308,12 @@ export function createCommunityHandlers(context: MockContext = { session: mockCu
       return { memberId: session?.memberId ?? null, canWrite: Boolean(memberKey(request)),
         fixedMode: null, profile: context.profile(session?.memberId ?? 0) };
     })),
+    http.get(`${base}/popular`, () => respond(() => store.popular())),
     http.get(base, ({ request, cookies }) => respond(() => {
       const cursor = cursorOf(request, "before", Number.MAX_SAFE_INTEGER, 1);
       if (cursor !== Number.MAX_SAFE_INTEGER && !context.session(request)) throw new MockFailure(401, "AUTH_UNAUTHENTICATED", "이전 글을 보려면 로그인해 주세요.");
-      return store.list(null, cursor, memberKey(request), ownerOf(request, cookies));
+      const topic = optionalTopic(new URL(request.url).searchParams.get("topic") || undefined);
+      return store.list(null, cursor, memberKey(request), ownerOf(request, cookies), topic);
     })),
     http.put(`${base}/:id/likes`, ({ request, params, cookies }) => respond(() => store.react(Number(params.id), ownerOf(request, cookies), true))),
     http.delete(`${base}/:id/likes`, ({ request, params, cookies }) => respond(() => store.react(Number(params.id), ownerOf(request, cookies), false))),

@@ -9,7 +9,7 @@ import { normalizePost, SubmissionAttempt } from "@/features/community/draft";
 import { useCommunityAction, useCurrentCommunityForm, useDraftGuard } from "@/features/community/hooks";
 import { communityReturnTo, finishCommunityEdit } from "@/features/community/navigation";
 import { useMemberDraft } from "@/features/community/use-member-draft";
-import type { CommunityEntry, CommunityParticipation } from "@/features/community/types";
+import { topicLabels, isCommunityTopic, type CommunityTopic, type CommunityEntry, type CommunityParticipation } from "@/features/community/types";
 import { AuthorChoice, CommunityLogin, MemberParticipation } from "./member-participation";
 import { CommunityError } from "./community-ui";
 
@@ -18,7 +18,7 @@ const BODY_LIMIT = 5000;
 const NEAR_LIMIT = 0.9;
 
 type Props = { readonly post?: CommunityEntry; readonly onSaved?: () => void; readonly onCancel?: () => void };
-type Fields = { readonly title: string; readonly body: string };
+type Fields = { readonly topic?: CommunityTopic; readonly title: string; readonly body: string };
 
 export function PostEditor(props: Props) {
   if (props.post && !props.post.memberOwned) return <PostForm {...props} />;
@@ -39,21 +39,23 @@ function PostForm({ post, onSaved, onCancel, participation, memberDraft }: FormP
   const active = useCurrentCommunityForm();
   const action = useCommunityAction();
   const attempt = useRef(new SubmissionAttempt());
-  const original = { title: post?.title ?? "", body: post?.body ?? "" };
+  const original = { topic: post?.topic ?? "FREE", title: post?.title ?? "", body: post?.body ?? "" };
   const [edited, setEdited] = useState<Fields>(original);
-  const fields = memberDraft?.draft ?? edited;
+  const current = memberDraft?.draft ?? edited;
+  const fields = { ...current, topic: current.topic ?? original.topic };
   const setFields = (next: Fields) => { if (memberDraft) return memberDraft.change(next); setEdited(next); };
   const [saved, setSaved] = useState(false);
-  const dirty = fields.title !== original.title || fields.body !== original.body;
+  const contentChanged = fields.title !== original.title || fields.body !== original.body;
+  const dirty = contentChanged || fields.topic !== original.topic;
   useDraftGuard(dirty && !saved);
   useTrackOnce(!post && Boolean(participation), trackComposeStarted);
-  useAbandonTracking(!post, dirty && !saved);
+  useAbandonTracking(!post, contentChanged && !saved);
   const needsProfile = !post && memberDraft?.draft.authorMode === "PROFILE" && !participation?.profile?.path;
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (needsProfile) return;
     await action.run(async () => {
-      const input = normalizePost(fields.title, fields.body);
+      const input = { ...normalizePost(fields.title, fields.body), topic: fields.topic };
       const result = await savePost(post, input, memberDraft?.draft.requestId ?? attempt.current.idFor(input), participation, memberDraft?.draft.authorMode);
       if (!active.current) return;
       memberDraft?.clear();
@@ -104,6 +106,11 @@ function submitLabel(editing: boolean, busy: boolean) {
 
 function ComposeFields({ fields, onChange }: { readonly fields: Fields; readonly onChange: (fields: Fields) => void }) {
   return <div className="community-compose-fields">
+    <label htmlFor="post-topic">주제</label>
+    <select id="post-topic" value={fields.topic} onChange={event => {
+      const topic = event.target.value;
+      if (isCommunityTopic(topic)) onChange({ ...fields, topic });
+    }}>{Object.entries(topicLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
     <label htmlFor="post-title">제목</label>
     <input id="post-title" name="title" autoFocus required maxLength={TITLE_LIMIT} value={fields.title} placeholder="제목을 입력하세요"
       onChange={event => onChange({ ...fields, title: event.target.value })} />

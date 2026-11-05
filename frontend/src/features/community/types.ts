@@ -1,5 +1,21 @@
+export const topicLabels = {
+  FREE: "자유",
+  AUDITION_REVIEW: "오디션 후기",
+  PRACTICE: "연습/발성",
+  QUESTION: "질문",
+  PERFORMANCE: "공연 소식",
+} as const;
+
+export type CommunityTopic = keyof typeof topicLabels;
+export type PopularPost = { readonly id: number; readonly title: string };
+
+export function isCommunityTopic(value: unknown): value is CommunityTopic {
+  return typeof value === "string" && Object.hasOwn(topicLabels, value);
+}
+
 export type CommunityEntry = {
   readonly id: number;
+  readonly topic?: CommunityTopic | null;
   readonly replyToId?: number | null;
   readonly title: string | null;
   readonly body: string;

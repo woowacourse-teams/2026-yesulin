@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { PiChatCircle } from "react-icons/pi";
+import { topicLabels, type CommunityTopic } from "@/features/community/types";
 import { avatarHue } from "@/features/community/avatar";
 import { fullTime, relativeTime } from "@/features/community/time";
 
@@ -19,10 +20,11 @@ export function CommunityPhoto({ photoUrl, small = false, label, seed }: PhotoPr
     <Image src="/images/community-star-chat.png" alt="" width={40} height={37} /></span>;
 }
 
-type BylineProps = { readonly author: string; readonly createdAt: string; readonly updatedAt: string; readonly showProfileBadge?: boolean; readonly markWriter?: boolean; readonly authorPath?: string | null };
+type BylineProps = { readonly topic?: CommunityTopic; readonly author: string; readonly createdAt: string; readonly updatedAt: string; readonly showProfileBadge?: boolean; readonly markWriter?: boolean; readonly authorPath?: string | null };
 
-export function CommunityByline({ author, createdAt, updatedAt, markWriter = false, authorPath, showProfileBadge }: BylineProps) {
+export function CommunityByline({ author, createdAt, updatedAt, markWriter = false, authorPath, showProfileBadge, topic }: BylineProps) {
   return <div className="community-byline"><strong>{authorPath && <Link href={authorPath}>{author}{showProfileBadge && <span className="community-profile-badge">프로필</span>}</Link>}{!authorPath && author}</strong>
+    {topic && <span className="community-topic-chip">{topicLabels[topic]}</span>}
     {markWriter && <span className="community-writer">글쓴이</span>}
     <CommunityTime createdAt={createdAt} updatedAt={updatedAt} /></div>;
 }
