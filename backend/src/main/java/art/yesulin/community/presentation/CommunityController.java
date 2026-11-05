@@ -110,7 +110,8 @@ public class CommunityController {
                                @LoginMember(roles = MemberType.APPLICANT) MemberPrincipal member,
                                @Valid @RequestBody CreateComment request) {
         service.confirmWriter(member, request.expectedMemberId());
-        return service.createComment(postId, member, request.requestId(), request.body(), request.authorMode());
+        return service.createComment(postId, member, request.requestId(), request.body(), request.authorMode(),
+                request.replyToId());
     }
 
     @PutMapping("/{postId}/comments/{id}")
@@ -145,7 +146,7 @@ public class CommunityController {
 
     public record CreateComment(@NotNull UUID requestId, @NotBlank @Size(max = 1000) String body,
                                 @NotNull CommunityAuthorMode authorMode,
-                             @NotNull @Positive Long expectedMemberId) {
+                                @NotNull @Positive Long expectedMemberId, @Positive Long replyToId) {
     }
 
     public record EditComment(@NotBlank @Size(max = 1000) String body) {

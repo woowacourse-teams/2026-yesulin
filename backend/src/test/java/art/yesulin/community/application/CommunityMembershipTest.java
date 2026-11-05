@@ -72,6 +72,29 @@ class CommunityMembershipTest {
     }
 
     @Test
+    void repliesStayWithTheirPostAndSurviveRemovalOfTheirParent() {
+        MemberPrincipal author = actor();
+        long post = post(author).id();
+        long root = members.createComment(post, author, UUID.randomUUID(), "댓글", CommunityAuthorMode.ANONYMOUS).id();
+        UUID request = UUID.randomUUID();
+        EntryResult reply = reply(post, root, author, request);
+        assertEquals(root, reply.replyToId());
+        assertEquals(reply.id(), reply(post, root, author, request).id());
+        assertThrows(BusinessException.class, () -> reply(post(author).id(), root, author, UUID.randomUUID()));
+        assertThrows(BusinessException.class, () -> reply(post, reply.id(), author, UUID.randomUUID()));
+        assertThrows(BusinessException.class, () -> reply(post, null, author, request));
+        members.deleteComment(post, root, null, author);
+        assertThrows(BusinessException.class, () -> reply(post, root, author, UUID.randomUUID()));
+        assertEquals(reply.id(), reply(post, root, author, request).id());
+        assertEquals(1, members.post(post, null, null).commentCount());
+        assertEquals(root, members.comments(post, 0, null, null).items().getFirst().replyToId());
+    }
+
+    private EntryResult reply(long post, Long target, MemberPrincipal author, UUID request) {
+        return members.createComment(post, author, request, "답글", CommunityAuthorMode.ANONYMOUS, target);
+    }
+
+    @Test
     void publicParticipantsOccupyNumbersAndKeepTheirMode() {
         MemberPrincipal author = actor();
         when(profiles.find(author.memberId())).thenReturn(new CommunityProfile("배우", null, "/actors/@actor"));

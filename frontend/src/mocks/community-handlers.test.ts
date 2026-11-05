@@ -90,3 +90,18 @@ it("일반 글 API는 기존 관리 헤더만으로 쓰기를 허용하지 않�
   const response = await fetch(base, { method: "POST", headers: { "Content-Type": "application/json", "X-Community-Key": secret }, body: JSON.stringify({ requestId: crypto.randomUUID(), title: "제목", body: "내용" }) });
   expect(response.status).toBe(401);
 });
+
+it("답글을 한 단계로 묶고 원댓글 삭제 후에도 답글과 재시도 결과를 보존한다", async () => {
+  const post = await (await write(base, "POST", { requestId: crypto.randomUUID(), title: "제목", body: "본문" })).json();
+  const url = `${base}/${post.id}/comments`;
+  const root = await (await write(url, "POST", { requestId: crypto.randomUUID(), body: "댓글" })).json();
+  expect((await write(url, "POST", { requestId: crypto.randomUUID(), body: "답글", replyToId: 0 })).status).toBe(400);
+  const input = { requestId: crypto.randomUUID(), body: "답글", replyToId: root.id };
+  const reply = await (await write(url, "POST", input)).json();
+  expect(reply.replyToId).toBe(root.id);
+  expect((await write(url, "POST", { ...input, requestId: crypto.randomUUID(), replyToId: reply.id })).status).toBe(404);
+  await write(`${url}/${root.id}`, "DELETE", {});
+  expect((await (await write(url, "POST", input)).json()).id).toBe(reply.id);
+  const page = await (await fetch(url)).json();
+  expect(page.items.map((item: { id: number }) => item.id)).toEqual([reply.id]);
+});

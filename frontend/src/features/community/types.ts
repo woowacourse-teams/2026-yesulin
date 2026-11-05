@@ -1,5 +1,6 @@
 export type CommunityEntry = {
   readonly id: number;
+  readonly replyToId?: number | null;
   readonly title: string | null;
   readonly body: string;
   readonly author: string;

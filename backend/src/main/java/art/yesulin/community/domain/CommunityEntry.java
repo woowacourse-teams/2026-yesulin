@@ -29,6 +29,9 @@ public class CommunityEntry {
     private Long parentId;
 
     @Column(updatable = false)
+    private Long replyToId;
+
+    @Column(updatable = false)
     private Long memberId;
 
     @Enumerated(EnumType.STRING)
@@ -84,6 +87,20 @@ public class CommunityEntry {
         entry.write(null, body);
         entry.originalDigest = entry.digest(null, body);
         return entry;
+    }
+
+    public void replyTo(CommunityEntry target) {
+        target.requireCommentOf(parentId);
+        if (target.replyToId != null) {
+            throw notFound();
+        }
+        replyToId = target.id;
+    }
+
+    public void requireReplyTarget(Long expected) {
+        if (!Objects.equals(replyToId, expected)) {
+            throw new BusinessException(CommunityErrorCode.REQUEST_CONFLICT, "이미 다른 댓글에 사용한 요청 번호예요.");
+        }
     }
 
     public CommunityEntry authoredBy(Long member, CommunityAuthorMode mode) {

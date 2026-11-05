@@ -42,13 +42,17 @@ export function MemberParticipation({ postId, returnTo = communityReturnTo(postI
 type ChoiceProps = { readonly participation: CommunityParticipation; readonly mode: CommunityAuthorMode; readonly onChange: (mode: CommunityAuthorMode) => void };
 export function AuthorChoice({ participation, mode, onChange }: ChoiceProps) {
   const profile = participation.profile;
-  const fixed = participation.fixedMode !== null;
+  const anonymous = mode === "ANONYMOUS";
+  const locked = participation.fixedMode !== null || (anonymous && !profile?.path);
+  const toggle = () => {
+    if (anonymous) return onChange("PROFILE");
+    onChange("ANONYMOUS");
+  };
   return <div className="community-author-choice">
-    <label>작성자 <select aria-label="작성자 공개 방식" value={mode} disabled={fixed} onChange={event => onChange(event.target.value as CommunityAuthorMode)}>
-      <option value="ANONYMOUS">익명</option><option value="PROFILE" disabled={!profile?.path}>배우 프로필 공개</option></select></label>
     {mode === "PROFILE" && profile?.path && <Link href={profile.path} className="community-profile-preview">
-      <AnonymousAvatar author={profile.name} photoUrl={profile.photoUrl} small /><span>{profile.name}</span></Link>}
+      <AnonymousAvatar author={profile.name.slice(0, 1)} photoUrl={profile.photoUrl} small /><span>{profile.name}</span></Link>}
     {mode === "PROFILE" && !profile?.path && <span>프로필 비공개</span>}
     {!profile?.path && <Link href="/applicants/profile">배우 페이지 설정</Link>}
+    <label><input type="checkbox" checked={anonymous} disabled={locked} onChange={toggle} />익명</label>
   </div>;
 }

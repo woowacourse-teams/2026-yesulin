@@ -68,3 +68,16 @@ it("수정 완료 후 갱신·새로고침해도 복귀용 수정 양식이 다�
   finishCommunityEdit();
   expect(window.location.pathname + window.location.search + window.location.hash).toBe("/community/3?reply=1#comments-heading");
 });
+
+it("익명 체크를 해제하면 공개를 선택하고 글에서 고정된 방식은 바꿀 수 없다", async () => {
+  const actor = { memberId: 2, canWrite: true, fixedMode: null, profile: { name: "배우", photoUrl: null, path: "/actors/@a" } };
+  const change = vi.fn();
+  await act(async () => root.render(<AuthorChoice participation={actor} mode="ANONYMOUS" onChange={change} />));
+  const checkbox = container.querySelector<HTMLInputElement>("input[type=checkbox]")!;
+  expect(checkbox.checked).toBe(true);
+  await act(async () => checkbox.click());
+  expect(change).toHaveBeenCalledWith("PROFILE");
+  await act(async () => root.render(<AuthorChoice participation={{ ...actor, fixedMode: "PROFILE" }} mode="PROFILE" onChange={change} />));
+  expect(checkbox.checked).toBe(false);
+  expect(checkbox.disabled).toBe(true);
+});
