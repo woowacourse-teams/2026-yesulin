@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, type FormEvent } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { createPost, editPost } from "@/features/community/api";
 import { trackComposeStarted, trackPostCreated, useAbandonTracking, useTrackOnce } from "@/features/community/analytics";
@@ -68,25 +69,28 @@ function PostForm({ post, onSaved, onCancel, participation, memberDraft }: FormP
   }
   const ready = fields.title.trim() !== "" && fields.body.trim() !== "";
   return <form className="community-compose" onSubmit={submit}>
-    <ComposeBar editing={Boolean(post)} busy={action.busy} ready={ready} cancel={cancel} />
+    <ComposeBar editing={Boolean(post)} busy={action.busy} cancel={cancel} />
     <fieldset disabled={action.busy} className="community-compose-body">
       <ComposeFields fields={fields} onChange={setFields} />
       <div className="community-compose-footer">
         <p className="community-count" data-near={fields.body.length >= BODY_LIMIT * NEAR_LIMIT}>{fields.body.length.toLocaleString()} / 5,000</p>
         {!post && participation && memberDraft && <AuthorChoice participation={participation} mode={memberDraft.draft.authorMode}
           onChange={authorMode => memberDraft.change({ authorMode })} />}
+        <button type="submit" className="community-publish" disabled={action.busy || !ready}
+          aria-label={submitLabel(Boolean(post), action.busy)} title={submitLabel(Boolean(post), action.busy)}>
+          {post && "저장"}{!post && <Image src="/images/community-star-chat.png" width={38} height={38} alt="" />}
+        </button>
       </div>
     </fieldset>
     <CommunityError message={action.error || memberDraft?.storageError || ""} />
     {action.needsLogin && <CommunityLogin returnTo={communityReturnTo(post?.id, Boolean(post))} />}</form>;
 }
 
-type BarProps = { readonly editing: boolean; readonly busy: boolean; readonly ready: boolean; readonly cancel: () => void };
+type BarProps = { readonly editing: boolean; readonly busy: boolean; readonly cancel: () => void };
 
-function ComposeBar({ editing, busy, ready, cancel }: BarProps) {
+function ComposeBar({ editing, busy, cancel }: BarProps) {
   return <div className="community-compose-bar"><button type="button" className="community-text-button" disabled={busy} onClick={cancel}>취소</button>
-    <h1>{editing && "글 수정"}{!editing && "새 이야기"}</h1>
-    <button className="community-primary-button" disabled={busy || !ready}>{submitLabel(editing, busy)}</button></div>;
+    <h1>{editing && "글 수정"}{!editing && "새 이야기"}</h1></div>;
 }
 
 function submitLabel(editing: boolean, busy: boolean) {

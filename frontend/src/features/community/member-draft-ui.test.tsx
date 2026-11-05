@@ -78,6 +78,22 @@ it("익명 체크를 해제하면 공개를 선택하고 글에서 고정된 방
   await act(async () => checkbox.click());
   expect(change).toHaveBeenCalledWith("PROFILE");
   await act(async () => root.render(<AuthorChoice participation={{ ...actor, fixedMode: "PROFILE" }} mode="PROFILE" onChange={change} />));
-  expect(checkbox.checked).toBe(false);
-  expect(checkbox.disabled).toBe(true);
+  expect(container.querySelector("input")).toBeNull();
+  expect(container.textContent).toContain("이 글에서는 프로필 공개");
+});
+
+it("공개 페이지가 없는 첫 참여에서는 익명 표시와 실제 공개 설정 링크를 보여준다", async () => {
+  const actor = { memberId: 2, canWrite: true, fixedMode: null, profile: null };
+  await act(async () => root.render(<AuthorChoice participation={actor} mode="ANONYMOUS" onChange={vi.fn()} />));
+  expect(container.querySelector("input")).toBeNull();
+  expect(container.textContent).toContain("익명");
+  expect(container.querySelector("a")?.getAttribute("href")).toBe("/applicants/profile?tab=actor-page");
+});
+
+it("공개 참여 후 배우 페이지를 숨기면 현재의 비공개 상태만 표시한다", async () => {
+  const actor = { memberId: 2, canWrite: true, fixedMode: "PROFILE" as const, profile: null };
+  await act(async () => root.render(<AuthorChoice participation={actor} mode="PROFILE" onChange={vi.fn()} />));
+  expect(container.textContent).toBe("프로필 비공개프로필 공개 설정");
+  expect(container.querySelector("a")?.getAttribute("href")).toBe("/applicants/profile?tab=actor-page");
+  expect(container.querySelector("input, img")).toBeNull();
 });

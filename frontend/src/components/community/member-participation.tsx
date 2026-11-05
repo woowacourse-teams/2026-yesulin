@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { applicantRoutes } from "@/features/applicants/routes";
 import { useEffect, useState, type ReactNode } from "react";
 import { useAuthSession } from "@/components/auth/auth-session";
 import { communityReturnTo } from "@/features/community/navigation";
 import { getParticipation } from "@/features/community/api";
 import type { CommunityAuthorMode, CommunityParticipation } from "@/features/community/types";
-import { AnonymousAvatar, CommunityError } from "./community-ui";
+import { CommunityPhoto, CommunityError } from "./community-ui";
 
 export function CommunityLogin({ returnTo }: { readonly returnTo: string }) {
   return <Link className="community-pill" href={`/login?returnTo=${encodeURIComponent(returnTo)}`}>로그인하고 작성하기</Link>;
@@ -43,16 +44,20 @@ type ChoiceProps = { readonly participation: CommunityParticipation; readonly mo
 export function AuthorChoice({ participation, mode, onChange }: ChoiceProps) {
   const profile = participation.profile;
   const anonymous = mode === "ANONYMOUS";
-  const locked = participation.fixedMode !== null || (anonymous && !profile?.path);
+  const fixed = participation.fixedMode !== null;
+  const needsProfile = !fixed && anonymous && !profile?.path;
   const toggle = () => {
     if (anonymous) return onChange("PROFILE");
     onChange("ANONYMOUS");
   };
   return <div className="community-author-choice">
     {mode === "PROFILE" && profile?.path && <Link href={profile.path} className="community-profile-preview">
-      <AnonymousAvatar author={profile.name.slice(0, 1)} photoUrl={profile.photoUrl} small /><span>{profile.name}</span></Link>}
+      <CommunityPhoto photoUrl={profile.photoUrl} small /><span>{profile.name}</span></Link>}
     {mode === "PROFILE" && !profile?.path && <span>프로필 비공개</span>}
-    {!profile?.path && <Link href="/applicants/profile">배우 페이지 설정</Link>}
-    <label><input type="checkbox" checked={anonymous} disabled={locked} onChange={toggle} />익명</label>
+    {fixed && anonymous && <span>이 글에서는 익명</span>}
+    {fixed && !anonymous && profile?.path && <span>이 글에서는 프로필 공개</span>}
+    {needsProfile && <span>익명</span>}
+    {!profile?.path && (!fixed || !anonymous) && <Link href={applicantRoutes.actorPageSettings}>프로필 공개 설정</Link>}
+    {!fixed && !needsProfile && <label><input type="checkbox" checked={anonymous} onChange={toggle} />익명</label>}
   </div>;
 }

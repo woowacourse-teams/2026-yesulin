@@ -10,7 +10,7 @@ import { trackListViewed, useTrackOnce } from "@/features/community/analytics";
 import { useCommunityFeed } from "@/features/community/hooks";
 import { postUrl } from "@/features/community/share";
 import type { CommunityEntry, CommunityLikeState } from "@/features/community/types";
-import { AnonymousAvatar, CommunityByline, CommunityError, CommunityToast, useCommunityToast } from "./community-ui";
+import { CommunityPhoto, CommunityByline, CommunityError, CommunityToast, useCommunityToast } from "./community-ui";
 import { EntryMenu } from "./entry-menu";
 import { LikeButton } from "./like-button";
 
@@ -77,7 +77,7 @@ function FeedPost({ post, notify, onLiked }: PostProps) {
 
 function FeedByline({ post, notify }: Omit<PostProps, "onLiked">) {
   return <div className="community-feed-byline">
-    <AnonymousAvatar author={post.author.slice(0, 1)} photoUrl={post.authorPhotoUrl} />
+    <CommunityPhoto photoUrl={post.authorPhotoUrl} />
     <CommunityByline author={post.author} authorPath={post.authorPath} showProfileBadge createdAt={post.createdAt} updatedAt={post.updatedAt} />
     <EntryMenu entry={post} label={`${post.title} 글 메뉴`} notify={notify} shareUrl={() => postUrl(post.id)} />
   </div>;

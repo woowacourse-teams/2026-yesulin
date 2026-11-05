@@ -9,7 +9,7 @@ import { useCommunityAction, useCommunityFeed, useCurrentCommunityForm, useDraft
 import { communityCommentEditReturnTo, communityReturnTo, finishCommunityEdit } from "@/features/community/navigation";
 import { useMemberDraft } from "@/features/community/use-member-draft";
 import type { CommunityEntry, CommunityParticipation } from "@/features/community/types";
-import { AnonymousAvatar, CommunityByline, CommunityError, PlainText } from "./community-ui";
+import { CommunityPhoto, CommunityByline, CommunityError, PlainText } from "./community-ui";
 import { AuthorChoice, CommunityLogin, MemberParticipation } from "./member-participation";
 import { EntryMenu } from "./entry-menu";
 
@@ -199,7 +199,7 @@ type ItemProps = { readonly sending?: boolean; readonly onReply?: () => void; re
 function CommentItem({ comment, postId, notify, onChanged, onReply, sending }: ItemProps) {
   const [editing, setEditing] = useState(() => comment.editable && editedCommentId() === comment.id);
   const remove = async () => { await deleteComment(postId, comment.id); await onChanged(); };
-  return <article id={`comment-${comment.id}`} className="community-comment"><AnonymousAvatar author={comment.author} photoUrl={comment.authorPhotoUrl} small />
+  return <article id={`comment-${comment.id}`} className="community-comment"><CommunityPhoto photoUrl={comment.authorPhotoUrl} small />
     <div className="community-entry-main"><div className="community-entry-head"><CommunityByline author={comment.author} createdAt={comment.createdAt} updatedAt={comment.updatedAt} markWriter={comment.postAuthor} authorPath={comment.authorPath} />
       {!editing && <EntryMenu entry={comment} label={`${comment.author} 댓글 메뉴`} notify={notify} onEdit={() => setEditing(true)} onDelete={remove} deleteQuestion="댓글을 삭제할까요?" />}</div>
       {editing && <CommentEditForm postId={postId} comment={comment} onCancel={() => setEditing(false)} onSaved={async () => { setEditing(false); await onChanged(); }} />}
