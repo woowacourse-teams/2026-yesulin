@@ -98,9 +98,10 @@ export const AUDITION_ALERT_CHAT_URL = "https://open.kakao.com/o/pCRrDXOi";
 /** 우리 서비스가 게시하는 공고 분류. 백엔드 `AuditionCategory`와 같다. */
 export const AUDITION_POST_CATEGORIES = ["연극", "퍼포먼스", "뮤지컬", "단원", "기획사"] as const;
 
+/** 분야 탭·바로가기 순서. 공고와 조회가 가장 많은 연극을 먼저 둔다. */
 export const AUDITION_LANDING_CATEGORIES = {
-  musical: "뮤지컬",
   theater: "연극",
+  musical: "뮤지컬",
   performance: "퍼포먼스",
   troupe: "단원",
   agency: "기획사",

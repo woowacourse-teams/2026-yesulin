@@ -47,7 +47,7 @@ describe("분야 바로가기 무대", () => {
     mockDevice({ touch: false });
     await render();
     expect([...container.querySelectorAll("a")].map((link) => link.getAttribute("href"))).toEqual([
-      "/auditions/musical", "/auditions/theater", "/auditions/performance", "/auditions/troupe", "/auditions/agency",
+      "/auditions/theater", "/auditions/musical", "/auditions/performance", "/auditions/troupe", "/auditions/agency",
     ]);
   });
 
@@ -56,11 +56,11 @@ describe("분야 바로가기 무대", () => {
     await render();
     expect(playing()).toEqual([]);
     await act(async () => reveal(true));
-    expect(playing()).toEqual(["뮤지컬"]);
-    await tick(2_400);
     expect(playing()).toEqual(["연극"]);
-    await tick(2_400 * 4);
+    await tick(2_400);
     expect(playing()).toEqual(["뮤지컬"]);
+    await tick(2_400 * 4);
+    expect(playing()).toEqual(["연극"]);
     await act(async () => reveal(false));
     expect(playing()).toEqual([]);
   });
