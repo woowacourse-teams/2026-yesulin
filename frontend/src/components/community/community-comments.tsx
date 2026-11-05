@@ -9,7 +9,6 @@ import { useCommunityAction, useCommunityFeed, useCurrentCommunityForm, useDraft
 import { communityCommentEditReturnTo, communityReturnTo, finishCommunityEdit } from "@/features/community/navigation";
 import { useMemberDraft } from "@/features/community/use-member-draft";
 import type { CommunityEntry, CommunityParticipation } from "@/features/community/types";
-import { authorName } from "@/features/community/author-name";
 import { CommunityPhoto, CommunityByline, CommunityError, PlainText } from "./community-ui";
 import { AuthorChoice, CommunityLogin, MemberParticipation } from "./member-participation";
 import { EntryMenu } from "./entry-menu";
@@ -72,7 +71,7 @@ export function CommunityComments({ postId, count, notify, onChanged }: Comments
     {feed.loading && <p className="community-status" role="status">댓글을 불러오고 있어요.</p>}
     {!feed.loading && feed.cursor !== null && <button type="button" className="community-more" onClick={() => void feed.load(feed.cursor!)}>댓글 더 보기</button>}
   </section><div ref={composer} className="community-comment-dock">
-    {replyToId > 0 && <div className="community-reply-target"><strong>{target && authorName(target, postId)} 댓글에 대댓글</strong>
+    {replyToId > 0 && <div className="community-reply-target"><strong>{target?.author} 댓글에 대댓글</strong>
       <button type="button" disabled={sending} onClick={() => { if (discardDraft.current?.() !== false) closeReply(); }}>취소</button></div>}
     <MemberParticipation postId={postId} returnTo={composerReturnTo(postId, replyToId)}>
       {participation => <CommentComposer key={replyToId} discardDraft={discardDraft} postId={postId} replyToId={replyToId}
@@ -213,10 +212,10 @@ function CommentItem({ comment, postId, notify, onChanged, onReply, sending }: I
   const [editing, setEditing] = useState(() => comment.editable && editedCommentId() === comment.id);
   const remove = async () => { await deleteComment(postId, comment.id); await onChanged(); };
   return <article id={`comment-${comment.id}`} className="community-comment"><CommunityPhoto photoUrl={comment.authorPhotoUrl} small />
-    <div className="community-entry-main"><div className="community-entry-head"><CommunityByline author={authorName(comment, postId)} createdAt={comment.createdAt} updatedAt={comment.updatedAt} markWriter={comment.postAuthor} authorPath={comment.authorPath} />
+    <div className="community-entry-main"><div className="community-entry-head"><CommunityByline author={comment.author} createdAt={comment.createdAt} updatedAt={comment.updatedAt} markWriter={comment.postAuthor} authorPath={comment.authorPath} />
       {!editing && <div className="community-comment-actions">
         {onReply && <button type="button" className="community-write-reply" disabled={sending} onClick={onReply}>대댓글</button>}
-        <EntryMenu entry={comment} label={`${authorName(comment, postId)} 댓글 메뉴`} notify={notify} onEdit={() => setEditing(true)} onDelete={remove} deleteQuestion="댓글을 삭제할까요?" />
+        <EntryMenu entry={comment} label={`${comment.author} 댓글 메뉴`} notify={notify} onEdit={() => setEditing(true)} onDelete={remove} deleteQuestion="댓글을 삭제할까요?" />
       </div>}</div>
       {editing && <CommentEditForm postId={postId} comment={comment} onCancel={() => setEditing(false)} onSaved={async () => { setEditing(false); await onChanged(); }} />}
       {!editing && <PlainText text={comment.body ?? ""} />}
