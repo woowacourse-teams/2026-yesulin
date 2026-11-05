@@ -6,7 +6,7 @@ import { NotebookPostCard } from "@/components/audition-posts/notebook-post-card
 import { getAuditionPosts } from "@/features/audition-posts/api";
 import { HOME_DEADLINE_SIZE, HOME_LATEST_POOL_SIZE } from "@/features/audition-posts/home-query";
 import { kstToday } from "@/features/audition-posts/format";
-import { AUDITION_POST_CATEGORIES, auditionPostRoutes, type AuditionPostPage, type AuditionPostSummary } from "@/features/audition-posts/types";
+import { AUDITION_LANDING_CATEGORIES, auditionPostRoutes, type AuditionPostPage, type AuditionPostSummary } from "@/features/audition-posts/types";
 import { publicViewCount, viewCountClock } from "@/features/audition-posts/view-count";
 import { PosterRow, PosterRowSkeleton } from "./poster-row";
 
@@ -78,7 +78,7 @@ function PopularRow({ posts, today, now }: { readonly posts: readonly AuditionPo
   const ranked = rankByViews(posts, category, now);
   if (posts.length === 0) return null;
   const chips = <div className="home-chips" role="group" aria-label="많이 본 공고 분야">
-    {[ALL_CATEGORIES, ...AUDITION_POST_CATEGORIES].map((item) => <button key={item} type="button" aria-pressed={category === item} onClick={() => setCategory(item)}>{item}</button>)}
+    {[ALL_CATEGORIES, ...Object.values(AUDITION_LANDING_CATEGORIES)].map((item) => <button key={item} type="button" aria-pressed={category === item} onClick={() => setCategory(item)}>{item}</button>)}
   </div>;
   return <PosterRow title="많이 본 공고" label="많이 본 공고" toolbar={chips}>
     {ranked.map((post, index) => <NotebookPostCard key={post.id} post={post} today={today} now={now} rank={index + 1} />)}

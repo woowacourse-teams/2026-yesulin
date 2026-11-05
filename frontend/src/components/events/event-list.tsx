@@ -7,6 +7,7 @@ import { ScreenError } from "@/components/auditions/screen-status";
 import { NotebookListHeading } from "@/components/landing/notebook-page-main";
 import { getEvents } from "@/features/events/api";
 import { PosterImage } from "@/components/ui/poster-image";
+import { PosterArt } from "@/components/audition-posts/poster-motif";
 import { EVENT_PHASE_LABELS, eventRoutes, formatEventPeriod, type PublicEventSummary } from "@/features/events/types";
 import { EventScreen, registrationClosedLabel } from "./event-screen";
 
@@ -91,7 +92,7 @@ const EVENT_BADGE_KINDS: Readonly<Record<PublicEventSummary["phase"], string>> =
 };
 
 function EventPoster({ event }: { readonly event: PublicEventSummary }) {
-  const fallback = <span className="notebook-poster-default" aria-hidden="true"><span className="notebook-poster-kind">이벤트</span><span className="notebook-poster-headline">{event.title}</span><span className="notebook-poster-mark">예술in</span></span>;
+  const fallback = <span className="notebook-poster-default" aria-hidden="true"><span className="notebook-poster-kind">이벤트</span><span className="notebook-poster-headline">{event.title}</span><span className="notebook-poster-mark">예술in</span><PosterArt /></span>;
   if (!event.coverImageUrl) return fallback;
   return <PosterImage key={event.coverImageUrl} src={event.coverImageUrl} alt="" sizes={EVENT_POSTER_SIZES} fallback={fallback} />;
 }
