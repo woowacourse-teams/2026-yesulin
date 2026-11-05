@@ -1,23 +1,28 @@
 "use client";
 
 import { ApplicantPageContainer as PageContainer } from "./applicant-page-container";
-import Image from "next/image";
-import { WorkspaceBreadcrumb, WorkspacePageHeading } from "@/components/landing/workspace-page-heading";
-import { SiteIcon } from "@/components/ui/site-icon";
-import { ApplicantProfileOverview, profileAnswerText } from "./applicant-profile-overview";
+import { useState } from "react";
+import { WorkspaceBreadcrumb } from "@/components/landing/workspace-page-heading";
 import Link from "next/link";
+import { SiteIcon } from "@/components/ui/site-icon";
 import { getApplicantSubmissions, getApplicantProfile, getRecommendedPostings } from "@/features/applicants/api";
 import { getActorPageSettings } from "@/features/actor-pages/owner-api";
 import { frontendEnvironment } from "@/config/environment";
 import { formatApplicantDate } from "@/features/applicants/presentation";
-import { applicantRoutes } from "@/features/applicants/routes";
-import type { ApplicantSubmissionSummary, RecommendedPosting } from "@/features/applicants/types";
+import type { ApplicantProfileResponse, ApplicantSubmissionSummary, RecommendedPosting } from "@/features/applicants/types";
 import { useAuditionQuery } from "@/features/auditions/use-audition-query";
 import { ScreenError } from "@/components/auditions/screen-status";
 import { PostingStatusBadge } from "@/components/applications/public-posting-status";
+import { ApplicantStageHero } from "./applicant-stage-hero";
+import { DashboardEmpty, LibraryPanel, SubmissionsPanel } from "./applicant-dashboard-panels";
 
 /** 추천 공고 Backend API가 아직 없어 목 검증 환경에서만 영역을 노출한다. */
 const recommendationsAvailable = frontendEnvironment.apiMockingEnabled;
+
+async function loadRecommendations(): Promise<readonly RecommendedPosting[]> {
+  if (!recommendationsAvailable) return [];
+  return getRecommendedPostings(undefined, 3).then((response) => response.postings, () => []);
+}
 
 /**
  * 한 조각이 실패해도 나머지 영역은 보여 준다. 프로필은 화면의 기준 정보라
@@ -27,9 +32,7 @@ async function loadDashboard() {
   const [profile, submissions, recommendations, actorPage] = await Promise.all([
     getApplicantProfile(),
     getApplicantSubmissions().then((response) => response.submissions, () => null),
-    recommendationsAvailable
-      ? getRecommendedPostings(undefined, 3).then((response) => response.postings, () => [])
-      : Promise.resolve([]),
+    loadRecommendations(),
     getActorPageSettings().catch((cause: unknown) => { console.error("[배우 페이지 설정 조회 실패]", cause); return null; }),
   ]);
   return { profile, submissions, recommendations, actorPage };
@@ -40,47 +43,37 @@ export function ApplicantDashboard() {
   if (query.loading) return <DashboardSkeleton />;
   if (query.error || !query.data) return <PageContainer><ScreenError message={query.error} onRetry={query.reload} /></PageContainer>;
   const { profile, submissions, recommendations, actorPage } = query.data;
-  const name = profileAnswerText(profile, "NAME");
 
   return <PageContainer>
     <WorkspaceBreadcrumb items={[{ label: "마이페이지" }]} />
-    <WorkspacePageHeading
-      eyebrow={name ? "안녕하세요, " + name + " 배우님" : "안녕하세요, 배우님"}
-      title="마이페이지"
-      description="저장한 프로필과 제출한 지원서를 한눈에 확인하세요."
-      action={<Link href="/auditions" className="workspace-text-link">오디션 공고 둘러보기 <SiteIcon name="next" size={16} /></Link>}
-    />
-    <ApplicantProfileOverview profile={profile} actorPage={actorPage} />
-    <section className="applicant-recent" aria-labelledby="recent-submissions-title">
-      <div className="workspace-section-heading">
-        <div><h2 id="recent-submissions-title">최근 제출한 지원서</h2><p>지원서에 담은 내용과 제출 내역을 확인하세요.</p></div>
-        <Link href={applicantRoutes.submissions} className="workspace-text-link">전체 보기 <SiteIcon name="next" size={16} /></Link>
-      </div>
-      {submissions === null
-        ? <DashboardEmpty title="지원서를 불러오지 못했어요" detail="잠시 후 새로고침하면 다시 확인할 수 있어요." />
-        : submissions.length ? <div className="applicant-history">
-          <div className="applicant-history-labels" aria-hidden="true"><span>작품 · 공고</span><span>지원 배역</span><span>제출일</span><span>상태</span><span /></div>
-          <ul>{submissions.slice(0, 2).map((submission) => <RecentSubmission key={submission.id} submission={submission} />)}</ul>
-        </div> : <DashboardEmpty title="아직 제출한 지원서가 없어요" detail="외부 공고의 예술in 지원 링크에서 지원서를 작성하면 여기에 모아 볼 수 있어요." />}
-      <p className="workspace-caption mt-3">지원 결과와 후속 일정은 각 공연사의 안내를 확인해주세요.</p>
-    </section>
-
-    {recommendationsAvailable ? <section aria-labelledby="dashboard-recommendations" className="mt-12">
-      <div className="max-w-2xl"><p className="text-sm font-semibold text-brand">다음 기회</p><h2 id="dashboard-recommendations" className="mt-1 text-2xl font-bold tracking-[-0.025em]">둘러볼 수 있는 공고</h2><p className="mt-2 leading-7 text-muted-strong">예술in은 현재 기획사/제작사가 공유한 링크 중심으로 접수합니다. 아래 공고는 다음 지원을 위한 제안이에요.</p></div>
-      {recommendations.length ? <ul className="mt-6 grid gap-4 md:grid-cols-3">{recommendations.map((posting) => <RecommendationCard key={posting.id} posting={posting} />)}</ul> : <DashboardEmpty title="지금은 다른 공고가 없어요" detail="새로운 공고가 생기면 이 영역에서 확인할 수 있어요." />}
-    </section> : null}
+    <h1 className="sr-only">마이페이지</h1>
+    <ApplicantStageHero profile={profile} actorPage={actorPage} />
+    <DashboardSections profile={profile} submissions={submissions} />
+    {recommendationsAvailable && <Recommendations recommendations={recommendations} />}
   </PageContainer>;
 }
 
-function RecentSubmission({ submission }: { readonly submission: ApplicantSubmissionSummary }) {
-  const roles = submission.selectedRoles.map((role) => role.roleName).join(" · ");
-  return <li><Link href={applicantRoutes.submission(submission.id)} className="applicant-history-row">
-    <span className="applicant-history-work"><Image src={submission.posterUrl} alt="" width={42} height={56} unoptimized /><span><strong>{submission.performanceTitle}</strong><small>{submission.postingTitle}</small></span></span>
-    <span className="applicant-history-roles">{roles || "—"}</span>
-    <span className="applicant-history-date num">{formatApplicantDate(submission.submittedAt)}</span>
-    <span className="applicant-history-status"><span className="workspace-tag workspace-tag-success">제출 완료</span></span>
-    <SiteIcon name="next" size={18} className="applicant-history-arrow" />
-  </Link></li>;
+type Section = "library" | "submissions";
+
+function DashboardSections({ profile, submissions }: { readonly profile: ApplicantProfileResponse; readonly submissions: readonly ApplicantSubmissionSummary[] | null }) {
+  const [section, setSection] = useState<Section>("library");
+  return <section className="applicant-sections" aria-label="내 자료">
+    <div className="applicant-section-switch" role="group" aria-label="보기 선택">
+      <button type="button" aria-pressed={section === "library"} onClick={() => setSection("library")}>보관함</button>
+      <button type="button" aria-pressed={section === "submissions"} onClick={() => setSection("submissions")}>지원서 {submissions && <span className="num">{submissions.length}</span>}</button>
+      <Link href="/auditions" className="workspace-text-link applicant-section-link">오디션 공고 둘러보기 <SiteIcon name="next" size={16} /></Link>
+    </div>
+    {section === "library" && <LibraryPanel profile={profile} />}
+    {section === "submissions" && <SubmissionsPanel submissions={submissions} />}
+  </section>;
+}
+
+function Recommendations({ recommendations }: { readonly recommendations: readonly RecommendedPosting[] }) {
+  return <section aria-labelledby="dashboard-recommendations" className="mt-12">
+    <div className="max-w-2xl"><p className="text-sm font-semibold text-brand">다음 기회</p><h2 id="dashboard-recommendations" className="mt-1 text-2xl font-bold tracking-[-0.025em]">둘러볼 수 있는 공고</h2><p className="mt-2 leading-7 text-muted-strong">예술in은 현재 기획사/제작사가 공유한 링크 중심으로 접수합니다. 아래 공고는 다음 지원을 위한 제안이에요.</p></div>
+    {recommendations.length > 0 && <ul className="mt-6 grid gap-4 md:grid-cols-3">{recommendations.map((posting) => <RecommendationCard key={posting.id} posting={posting} />)}</ul>}
+    {recommendations.length === 0 && <div className="mt-5"><DashboardEmpty title="지금은 다른 공고가 없어요" detail="새로운 공고가 생기면 이 영역에서 확인할 수 있어요." /></div>}
+  </section>;
 }
 
 function RecommendationCard({ posting }: { readonly posting: RecommendedPosting }) {
@@ -89,11 +82,6 @@ function RecommendationCard({ posting }: { readonly posting: RecommendedPosting 
   return <li><Link href={`/apply/${posting.id}?prefill=1`} className="group flex min-h-52 flex-col rounded-card border border-border bg-card p-5 transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:border-brand-line hover:shadow-[var(--shadow-1)]"><div className="flex items-center gap-2"><PostingStatusBadge status={posting.status} /><span className="truncate text-xs text-muted">{posting.companyName}</span></div><strong className="mt-5 line-clamp-2 text-lg leading-7 group-hover:text-brand">{posting.performanceTitle}</strong><span className="mt-1 line-clamp-1 text-sm text-muted-strong">{posting.title}</span><span className="num mt-auto pt-5 text-sm font-medium text-muted">{label} · {formatApplicantDate(date)}</span></Link></li>;
 }
 
-
-function DashboardEmpty({ title, detail }: { readonly title: string; readonly detail: string }) {
-  return <div className="mt-5 rounded-card border border-dashed border-border bg-surface px-5 py-8 text-center"><strong>{title}</strong><p className="mt-2 text-sm leading-6 text-muted">{detail}</p></div>;
-}
-
 function DashboardSkeleton() {
-  return <PageContainer><div role="status" aria-label="배우 홈 불러오는 중" className="animate-pulse"><div className="h-9 w-72 rounded-lg bg-border" /><div className="mt-4 h-5 w-96 max-w-full rounded bg-border-soft" /><div className="mt-9 grid gap-4 lg:grid-cols-2"><div className="h-64 rounded-modal bg-border" /><div className="h-64 rounded-modal bg-border-soft" /></div><div className="mt-12 h-52 rounded-modal bg-border-soft" /></div></PageContainer>;
+  return <PageContainer><div role="status" aria-label="배우 홈 불러오는 중" className="animate-pulse"><div className="h-9 w-72 rounded-lg bg-border" /><div className="mt-4 h-5 w-96 max-w-full rounded bg-border-soft" /><div className="mt-9 h-80 rounded-modal bg-border" /><div className="mt-12 h-52 rounded-modal bg-border-soft" /></div></PageContainer>;
 }
