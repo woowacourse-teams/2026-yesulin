@@ -48,3 +48,8 @@ API 계약·분석 이벤트는 바꾸지 않았다.
 필수 PASS7 / FAIL0 / UNVERIFIED0 / N/A0, 검증률 7/7.
 신규 발견5 / 해결5 / 미해결0, P0=0 P1=0 P2=1 P3=4. PRECHECK0 / INDEPENDENT_REVIEW5 / POST_FIX_CHECK0 / EXTERNAL0, 오탐0.
 미확인: 실제 로그인 상태의 `/applicants` 화면(실제 API·사진 주소), 실제 iOS·Android 기기, `npm run build`.
+
+## 최초 PR 연결
+
+최초 게시 PR: [#532](https://github.com/woowacourse-teams/2026-yesulin/pull/532), 대상 dev.
+위 사건 표의 PENDING은 당시 이력이며 이 절로 최초 게시 번호를 연결한다. 문제 ID와 확정·해결 시각은 바꾸지 않는다.
