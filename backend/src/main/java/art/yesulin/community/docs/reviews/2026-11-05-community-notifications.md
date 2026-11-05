@@ -48,3 +48,8 @@
 필수 PASS6 / FAIL0 / UNVERIFIED0 / N/A0, 검증률 6/6.
 신규 확정 7 / 해결 7 / 미해결 0, P0=0 P1=0 P2=1 P3=6. PRECHECK0 / INDEPENDENT_REVIEW7 / POST_FIX_CHECK0 / EXTERNAL0, 오탐1.
 미확인: 로그인한 배우 계정으로 실제 헤더 종(특히 761~1080px)·실제 API 응답 확인(병합 후 dev), 비회원 401 통합 요청.
+
+## 최초 PR 연결
+
+최초 게시 PR: [#538](https://github.com/woowacourse-teams/2026-yesulin/pull/538), 대상 dev.
+위 사건 표의 PENDING은 당시 이력이며 이 절로 최초 게시 번호를 연결한다. 문제 ID와 확정·해결 시각은 바꾸지 않는다.
