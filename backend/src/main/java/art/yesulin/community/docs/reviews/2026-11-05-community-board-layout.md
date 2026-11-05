@@ -50,3 +50,8 @@ design-lab 시안 A(3단 보드)의 1단계다. 주제 분류·인기 글·공�
 필수 PASS7 / FAIL0 / UNVERIFIED0 / N/A0, 검증률 7/7.
 신규 확정 5 / 해결 5 / 미해결 0, P0=0 P1=0 P2=1 P3=4. PRECHECK0 / INDEPENDENT_REVIEW5 / POST_FIX_CHECK0 / EXTERNAL0, 오탐1.
 미확인: 실제 글이 있는 dev 데이터에서의 목록·상세 화면, 실제 기기, `npm run build`.
+
+## 최초 PR 연결
+
+최초 게시 PR: [#535](https://github.com/woowacourse-teams/2026-yesulin/pull/535), 대상 dev.
+위 사건 표의 PENDING은 당시 이력이며 이 절로 최초 게시 번호를 연결한다. 문제 ID와 확정·해결 시각은 바꾸지 않는다.
