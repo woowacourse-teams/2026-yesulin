@@ -21,7 +21,6 @@ import { PopularPostsCard } from "./popular-posts-card";
 import { CommunityDeadlines } from "./community-deadlines";
 import { communityNoticeRoute } from "./notice-row";
 import { useUnreadCommentCount } from "./received-comments-context";
-import { CommunityLoginRibbon } from "./community-login-ribbon";
 
 const moreLogin = `/login?returnTo=${encodeURIComponent("/community?more=1")}`;
 
@@ -44,7 +43,6 @@ function LoungeContent({ signedIn }: { readonly signedIn: boolean }) {
     trackListViewed();
   }, []);
   return <section className="community-lounge">
-    <CommunityLoginRibbon />
     <LoungeIntro />
     <div className="community-lounge-feed"><ComposePrompt />
       <CommunityFeed signedIn={signedIn} trackLoaded={trackLoaded} onLikeSaved={refreshRanking} />
