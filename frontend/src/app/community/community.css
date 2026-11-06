@@ -290,4 +290,18 @@ a.community-more { display: block; text-align: center; }
 .community-ranked-posts li::marker { color: #315f97; font-weight: 700; }
 .community-ranked-posts a { display: block; padding: 9px 3px; color: var(--ink); font-size: 14px; overflow-wrap: anywhere; }
 .community-ranked-posts a:hover { color: var(--brand); text-decoration: underline; }
+.community-login-ribbon { grid-column:1 / -1; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px 24px; padding:18px 24px; border-radius:14px; background:#eef5ff; }
+.community-login-ribbon h2 { margin:0; color:var(--ink); font-size:20px; font-weight:800; letter-spacing:-.03em; white-space:nowrap; }
+.community-login-ribbon .social-login-actions { min-width:0; }
+.community-login-providers { display:flex; flex-wrap:wrap; gap:8px; }
+.community-login-provider { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:44px; padding:10px 16px; border-width:1px; border-radius:10px; font-size:13px; font-weight:600; }
+.community-login-provider svg { width:20px; height:20px; flex:none; }
+.community-login-provider[data-provider=naver] { color:#153c27; }
+.community-login-provider:disabled { cursor:wait; opacity:.65; }
+@media(max-width:540px) {
+  .community-login-ribbon { padding:16px; gap:12px; }
+  .community-login-ribbon .social-login-actions { width:100%; }
+  .community-login-providers { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .community-login-provider { flex-direction:column; gap:5px; padding:10px 4px; font-size:12px; }
+}
 .community-compose-fields select { justify-self: start; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--white); }
