@@ -38,6 +38,24 @@ if ! grep -q "must be greater than 20260825203000" "$TEMP_DIRECTORY/late.log"; t
   exit 1
 fi
 
+allowed_repository="$TEMP_DIRECTORY/allowed"
+create_repository "$allowed_repository"
+allowed_base="$(git -C "$allowed_repository" rev-parse HEAD)"
+: > "$allowed_repository/backend/src/main/resources/db/migration/V20260825170000__late.sql"
+mkdir -p "$allowed_repository/backend/deploy"
+printf '# reason\n20260825170000 # released later\n' > "$allowed_repository/backend/deploy/flyway-out-of-order-allowlist.txt"
+
+if ! sh "$CHECK_SCRIPT" "$allowed_base" "$allowed_repository" > "$TEMP_DIRECTORY/allowed.log" 2>&1; then
+  cat "$TEMP_DIRECTORY/allowed.log" >&2
+  echo "Expected an allowlisted late migration to pass" >&2
+  exit 1
+fi
+if ! grep -q "Allowed out-of-order Flyway migration V20260825170000__late.sql" "$TEMP_DIRECTORY/allowed.log"; then
+  cat "$TEMP_DIRECTORY/allowed.log" >&2
+  echo "Expected the allowlisted migration to be reported" >&2
+  exit 1
+fi
+
 valid_repository="$TEMP_DIRECTORY/valid"
 create_repository "$valid_repository"
 valid_base="$(git -C "$valid_repository" rev-parse HEAD)"
