@@ -17,7 +17,7 @@ export function NotebookPostCard({ post, today, now, rank }: { readonly post: Au
     <Link href={auditionPostRoutes.detail(post.id)} className="notebook-poster-card" data-ended={post.closed || undefined}>
       <div className="notebook-poster">
         <span className="notebook-poster-badge num" data-kind={badge.kind}>{badge.label}</span>
-        <PostArtwork post={post} />
+        <PostArtwork post={post} showMark={rank === undefined} />
         {rank !== undefined && <span className="notebook-poster-rank num" aria-label={`${rank}위`}>{rank}</span>}
       </div>
       <h2 className="notebook-poster-title">{post.title}</h2>
@@ -27,18 +27,18 @@ export function NotebookPostCard({ post, today, now, rank }: { readonly post: Au
   </li>;
 }
 
-function PostArtwork({ post }: { readonly post: AuditionPostSummary }) {
-  const fallback = <DefaultPoster post={post} />;
+function PostArtwork({ post, showMark }: { readonly post: AuditionPostSummary; readonly showMark: boolean }) {
+  const fallback = <DefaultPoster post={post} showMark={showMark} />;
   if (!post.thumbnailUrl) return fallback;
   return <PosterImage key={post.thumbnailUrl} src={post.thumbnailUrl} alt="" sizes={POSTER_SIZES} fallback={fallback} />;
 }
 
 /** 이미지가 없는 공고는 분야 그라데이션·실루엣 위에 작품명을 크게 쓴 포스터로 대신한다. */
-function DefaultPoster({ post }: { readonly post: AuditionPostSummary }) {
+function DefaultPoster({ post, showMark }: { readonly post: AuditionPostSummary; readonly showMark: boolean }) {
   return <span className="notebook-poster-default" data-category={post.category || undefined} aria-hidden="true">
     <span className="notebook-poster-kind">{[post.category, "오디션"].filter(Boolean).join(" ")}</span>
     <span className="notebook-poster-headline">{posterHeadline(post.title)}</span>
-    <span className="notebook-poster-mark">{post.authorName || "예술in"}</span>
+    {showMark && <span className="notebook-poster-mark">{post.authorName || "예술in"}</span>}
     <PosterArt category={post.category} />
   </span>;
 }
