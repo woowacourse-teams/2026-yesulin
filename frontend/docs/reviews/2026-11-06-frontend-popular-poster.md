@@ -36,7 +36,7 @@
 
 | 문제 ID | 심각도·유형·유입 | 발견 경로 | 최초 확정 / 최초 PR | 해결 시각 | 근거·조치·상태 |
 | --- | --- | --- | --- | --- | --- |
-| 2026-11-06-frontend-popular-poster-F01 | P3·CODE·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-06T11:12:00+09:00 / PENDING | 2026-11-06T11:14:00+09:00 | `DefaultPoster` 주석에 `showMark` 동작을 반복하는 문장 추가. 원래 한 줄 주석으로 되돌림, lint·테스트 통과. FIXED |
+| 2026-11-06-frontend-popular-poster-F01 | P3·CODE·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-06T11:12:00+09:00 / #545 | 2026-11-06T11:14:00+09:00 | `DefaultPoster` 주석에 `showMark` 동작을 반복하는 문장 추가. 원래 한 줄 주석으로 되돌림, lint·테스트 통과. FIXED |
 
 ## 사건 이력
 
