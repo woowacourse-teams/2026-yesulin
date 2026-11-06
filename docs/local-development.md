@@ -35,6 +35,13 @@ docker compose down
 
 MySQL data와 로그 volume까지 제거하는 `docker compose down --volumes`는 로컬 데이터를 지워도 되는 경우에만 사용한다.
 
+## 커뮤니티의 로컬 배우 로그인
+
+카카오 대신 로컬 테스트 계정을 사용하려면 프론트의 Git 비추적 `frontend/.env.development.local`에
+`LOCAL_COMMUNITY_ACTOR_LOGIN=true`를 둔다. API 모킹을 끈 상태에서 Next 개발 서버와 `API_ORIGIN`이 모두 loopback일 때 배우 로그인 화면에
+테스트 비밀번호 입력칸이 나타난다. 프론트는 `npm run dev -- --hostname 127.0.0.1`, 백엔드는 `SERVER_ADDRESS=127.0.0.1`로 이 컴퓨터에만 바인딩한다. 계정은 격리된 로컬 DB의 `community-actor@local.invalid`로, 활성 배우와
+BCrypt 비밀번호가 준비되어 있어야 한다. 기존 세션 API를 사용하며 비밀번호는 개인 로컬 환경에서 관리한다.
+
 ## PDF 심사 로컬 실행
 
 로컬 백엔드는 **`local` 프로필과 `backend/src/main/resources/application-local.yml` 하나**를 사용한다.

@@ -121,6 +121,7 @@ OTR `/sms-*`는 producer API 활성화 시 passthrough하고, 목 모드에서�
 | 배우 페이지 | `/actors/@min.zzun_` | 공개 항목 전체, 장르별 경력과 미분류, 연락 안내, 공유, 대문자 주소의 소문자 이동 |
 | 찾을 수 없음 | `/actors/@hidden.actor` | 비공개 배우와 없는 아이디가 같은 화면, `/actors/@아이디/posts`는 404 |
 | 설정과 공개 | `/applicants/profile?tab=actor-page` | 아이디 사용 가능 여부, 항목·사진·영상 공개 범위, 동의 후 공개, 미리보기, 자동 비공개 |
+| 처음 등록·행사 체험 | `/applicants/profile?mockApplicantProfile=empty` | 빈 기본정보·사진·영상에서 기본 3항목→사진→아이디와 동의 후 공개. 첫 프로필 조회 때 한 번만 초기화 |
 | 공개 팝업 | `/applicants/profile` | 프로필을 처음 저장하면 한 번 뜨는 공개 팝업과 부족한 항목 안내 |
 | 잠김·해제·자동 비공개 | `?tab=actor-page&mockActorPage=locked`, `unlocked`, `auto-hidden` | 잠금 사유, 잠금 해제 안내, 자동 비공개 이유 |
 | PDF로 채우기 | `/applicants/profile` → 'PDF로 채우기' | 아무 PDF나 올리면 약 3초 뒤 결과, 지금 값과 비교해 고르기, 빈 연도·배역 경력, 이미 있는 경력, 사진 후보 넣기, 결과 지우기 |

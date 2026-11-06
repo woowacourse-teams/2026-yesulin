@@ -10,7 +10,10 @@ import { deadlineBadge, formatDeadline, formatPostedDate, kstToday } from "@/fea
 import type { AuditionPost } from "@/features/audition-posts/types";
 import { publicViewCount, viewCountClock } from "@/features/audition-posts/view-count";
 import { CompanyPendingCard, CompanySummaryCard } from "@/components/companies/company-summary-card";
+import { ImageLightbox } from "@/components/ui/image-lightbox";
+import { SiteIcon } from "@/components/ui/site-icon";
 import { AuditionPostContent } from "./audition-post-content";
+import { useOriginalImages } from "./use-original-images";
 import { DeadlineChip } from "./audition-post-badges";
 import { AuditionPostScreen, MissingAuditionPost } from "./audition-post-screen";
 
@@ -75,10 +78,11 @@ function AuditionPostDetail({ post }: { readonly post: AuditionPost }) {
     return () => { active = false; };
   }, [post.id]);
   const postedDate = formatPostedDate(post.postedAt);
+  const original = useOriginalImages(post.bodyHtml);
 
   return (
     <>
-      <article className="notebook-post-detail mt-3 overflow-hidden rounded-card border border-border bg-card">
+      <article onClick={(event) => original.openClicked(event.target)} className="notebook-post-detail mt-3 overflow-hidden rounded-card border border-border bg-card">
         <header className="border-b border-border-soft px-5 py-6 sm:px-8 sm:py-8">
           <p className="flex flex-wrap items-center gap-2 text-sm">
             {post.category ? <span className="font-semibold text-brand">{post.category}</span> : null}
@@ -105,12 +109,30 @@ function AuditionPostDetail({ post }: { readonly post: AuditionPost }) {
               </MetaRow>
             ) : null}
           </dl>
+          {original.images.length > 0 && <OriginalViewButton count={original.images.length} onOpen={() => original.open(0)} />}
         </header>
 
         <AuditionPostContent post={post} analyticsPostId={post.id} />
       </article>
+      {original.index !== null && (
+        <ImageLightbox title={post.title} imageUrls={original.images} index={original.index} onSelect={original.open} onClose={original.close} />
+      )}
       {post.company ? <CompanySummaryCard company={post.company} /> : <CompanyPendingCard authorName={post.authorName} />}
     </>
+  );
+}
+
+function OriginalViewButton({ count, onOpen }: { readonly count: number; readonly onOpen: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-control border border-border bg-surface px-4 text-sm font-semibold hover:border-brand-line hover:bg-brand-soft"
+    >
+      <SiteIcon name="image" size={18} className="text-muted" />
+      원문 크게 보기
+      {count > 1 && <span className="num text-muted">{count}장</span>}
+    </button>
   );
 }
 

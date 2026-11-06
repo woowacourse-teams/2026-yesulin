@@ -78,10 +78,7 @@ export async function makeApplicantProfilePhotoRepresentative(
   id: string,
 ): Promise<ApplicantProfileResponse> {
   if (!applicantProfileApiEnabled) {
-    return updateLegacyPhotos(current.photoLibrary.map((photo) => ({
-      ...photo,
-      representative: photo.id === id,
-    })));
+    return moveApplicantProfilePhoto(current, current.photoLibrary.findIndex((photo) => photo.id === id), 0);
   }
   const result = await applicantRequest<BackendPhotoLibrary>(
     `/v1/applicants/me/photo-library/photos/${id}/representative`,
@@ -95,6 +92,7 @@ export async function moveApplicantProfilePhoto(
   index: number,
   target: number,
 ): Promise<ApplicantProfileResponse> {
+  if (index < 0 || target < 0 || index >= current.photoLibrary.length || target >= current.photoLibrary.length || index === target) return current;
   if (applicantProfileApiEnabled) {
     const photo = current.photoLibrary[index];
     if (!photo) return current;
@@ -105,7 +103,8 @@ export async function moveApplicantProfilePhoto(
     return { ...current, photoLibrary: toPhotos(result.photos, current.photoLibrary) };
   }
   const next = [...current.photoLibrary];
-  [next[index], next[target]] = [next[target]!, next[index]!];
+  const [photo] = next.splice(index, 1);
+  next.splice(target, 0, photo);
   return updateLegacyPhotos(next);
 }
 
@@ -200,6 +199,6 @@ async function refreshPhotos(current: ApplicantProfileResponse) {
 function updateLegacyPhotos(photos: readonly ApplicantProfilePhoto[]) {
   return applicantRequest<ApplicantProfileResponse>("/me/profile", {
     method: "PATCH",
-    body: JSON.stringify({ photoLibrary: photos }),
+    body: JSON.stringify({ photoLibrary: photos.map((photo, index) => ({ ...photo, representative: index === 0 })) }),
   });
 }

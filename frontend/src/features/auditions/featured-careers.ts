@@ -1,3 +1,4 @@
+import { compareCareerRecency } from "@/features/applicants/career-identity";
 import type { CareerEntry } from "./types";
 
 const FEATURED_CAREER_COUNT = 3;
@@ -5,7 +6,7 @@ const FEATURED_CAREER_COUNT = 3;
 export function orderedCareersByRecency(careers: readonly CareerEntry[]): readonly CareerEntry[] {
   return careers
     .map((career, index) => ({ career, index }))
-    .sort((left, right) => right.career.year - left.career.year || left.index - right.index)
+    .sort((left, right) => compareCareerRecency(left.career, right.career) || left.index - right.index)
     .map(({ career }) => career);
 }
 

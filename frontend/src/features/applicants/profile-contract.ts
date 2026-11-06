@@ -32,7 +32,7 @@ export type BackendProfileResponse = {
     readonly hobbies: string | null;
     readonly militaryServiceStatus: "COMPLETED" | "NOT_COMPLETED" | "NOT_APPLICABLE" | null;
     readonly careers: readonly {
-      readonly year: number;
+      readonly year: number; readonly month?: number | null;
       readonly title: string;
       readonly roleName: string;
       readonly genre?: ProfileCareerGenre | null;
@@ -89,6 +89,7 @@ export function toProfileInformation(response: BackendProfileResponse) {
     profileAnswer("MILITARY", militaryLabel(additional.militaryServiceStatus)),
     profileAnswer("CAREER", additional.careers.map((career) => ({
       year: career.year,
+      month: career.month ?? null,
       title: career.title,
       part: career.roleName,
       genre: career.genre ?? null,
@@ -126,6 +127,7 @@ export function toBackendProfileUpdate(values: ApplicantProfileValues): BackendP
       militaryServiceStatus: militaryValue(values.MILITARY),
       careers: careerArray(values.CAREER).map((career) => ({
         year: career.year,
+      month: career.month ?? null,
         title: career.title.trim(),
         roleName: career.part.trim(),
         genre: career.genre ?? null,

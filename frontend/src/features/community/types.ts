@@ -1,0 +1,66 @@
+const communityTopics = ["FREE", "AUDITION_REVIEW", "PRACTICE", "QUESTION", "PERFORMANCE"] as const;
+
+export type CommunityTopic = typeof communityTopics[number];
+export type PopularPost = { readonly id: number; readonly title: string };
+
+export function isCommunityTopic(value: unknown): value is CommunityTopic {
+  return communityTopics.some(topic => topic === value);
+}
+
+export type CommunityEntry = {
+  readonly id: number;
+  readonly topic?: CommunityTopic | null;
+  readonly replyToId?: number | null;
+  readonly title: string | null;
+  readonly body: string;
+  readonly author: string;
+  readonly authorPhotoUrl?: string | null;
+  readonly authorPath?: string | null;
+  readonly postAuthor?: boolean;
+  readonly memberOwned?: boolean;
+  readonly authorMode?: CommunityAuthorMode;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+  readonly commentCount: number;
+  readonly editable: boolean;
+  readonly likeCount: number;
+  readonly liked: boolean;
+};
+
+export type CommunityLikeState = Pick<CommunityEntry, "likeCount" | "liked">;
+
+export type CommunityPage = {
+  readonly items: readonly CommunityEntry[];
+  readonly nextCursor: number | null;
+};
+
+export const communityPath = "/v1/public/community/posts";
+export const reportReasons = {
+  SPAM: "광고·스팸",
+  HARASSMENT: "욕설·괴롭힘",
+  PERSONAL_INFORMATION: "개인정보 노출",
+  OTHER: "기타",
+} as const;
+export type ReportReason = keyof typeof reportReasons;
+
+export type CommunityAuthorMode = "ANONYMOUS" | "PROFILE";
+export type CommunityProfile = { name: string; photoUrl: string | null; path: string | null };
+export type CommunityParticipation = {
+  memberId: number | null;
+  canWrite: boolean;
+  fixedMode: CommunityAuthorMode | null;
+  profile: CommunityProfile | null;
+};
+
+export type CommunityNotice = {
+  commentId: number;
+  postId: number;
+  title: string;
+  replyToId: number | null;
+  seen: boolean;
+  /** 글에서 보이는 댓글 작성자 이름(익명N, 공개 이름, 프로필 비공개). */
+  author: string;
+  /** 댓글 본문 앞 80자를 한 줄로 줄인 미리보기. */
+  preview: string;
+  createdAt: string;
+};

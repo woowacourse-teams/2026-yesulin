@@ -1,3 +1,4 @@
+import { careerDateLabel } from "@/features/applicants/career-identity";
 import type { ApplicantAnswerValue } from "./types";
 import { educationText, isEducationInformation } from "./education";
 
@@ -20,7 +21,7 @@ export function answerValueText(value: ApplicantAnswerValue) {
     if (typeof value[0] === "string") return value.join("\n");
     return value.map((entry) => {
       if (typeof entry === "object" && entry && "year" in entry && "title" in entry && "part" in entry) {
-        return `${entry.year} · ${entry.title} · ${entry.part}`;
+        return `${careerDateLabel(entry.year, entry.month)} · ${entry.title} · ${entry.part}`;
       }
       return String(entry);
     }).join("\n");

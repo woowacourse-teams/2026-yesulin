@@ -41,6 +41,8 @@ export type ProductProperties = {
   total_count?: number;
   completed_count?: number;
   missing_field_count?: number;
+  liked?: boolean;
+  community_target?: "post" | "comment";
 };
 
 export const PRODUCT_EVENTS = [
@@ -51,6 +53,8 @@ export const PRODUCT_EVENTS = [
   "producer_post_published", "producer_show_published", "review_saved", "review_item_viewed",
   "review_active_time", "review_progress", "pdf_step_completed", "pdf_step_failed",
   "show_inventory_observed", "booking_inventory_observed",
+  "community_list_viewed", "community_post_viewed", "community_compose_started", "community_post_created",
+  "community_compose_abandoned", "community_comment_created", "community_like_toggled", "community_report_submitted",
 ] as const;
 export type ProductEvent = typeof PRODUCT_EVENTS[number];
 
@@ -80,7 +84,7 @@ const PROPERTY_KEYS = new Set<keyof ProductProperties>([
   "has_application_form", "source", "workflow", "step", "outcome", "error_code", "duration_ms", "active_ms",
   "extraction_status", "ticket_count", "eligible", "round", "total_count", "completed_count", "missing_field_count",
   "capacity", "reserved_tickets", "cancelled_count", "reservation_count", "session_id",
-  "acquisition_channel", "attribution_version",
+  "acquisition_channel", "attribution_version", "liked", "community_target",
 ]);
 
 /** 실행 시에도 허용 키를 제한해 PDF 본문·URL·이름의 혼입을 방지한다. */

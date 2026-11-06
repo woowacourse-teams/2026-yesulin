@@ -32,3 +32,21 @@ export function isIntegerMeasurement(value: string | number) {
 export function integerMeasurementError(label: string) {
   return `${topicParticle(label)} 소수점 없이 정수로 입력해 주세요.`;
 }
+
+/** 입력 도중인 숫자와 존재하지 않는 날짜를 저장 가능한 날짜와 구분한다. */
+export function isValidBirthDate(value: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return false;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+}
+
+export function profileBirthDateError(value: string, now = new Date()) {
+  if (!value) return "";
+  if (!isValidBirthDate(value)) return "생년월일을 올바른 날짜의 숫자 8자리로 입력해 주세요. 예: 19990315";
+  const today = new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Seoul" }).format(now);
+  return value > today ? "생년월일은 오늘 또는 이전 날짜로 입력해 주세요." : "";
+}

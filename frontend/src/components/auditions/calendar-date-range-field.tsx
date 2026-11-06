@@ -104,10 +104,10 @@ export function CalendarDateRangeField({
     <div className="flex items-center justify-between gap-2">
       <button type="button" aria-label="이전 달" onClick={() => setVisibleMonth(shiftMonth(visibleMonth, -1))} className="grid h-11 w-11 place-items-center rounded-control text-xl text-muted-strong hover:bg-surface hover:text-foreground">‹</button>
       <div className="flex min-w-0 items-center justify-center gap-2">
-        <select aria-label="연도 선택" value={visibleMonth.getFullYear()} onChange={(event) => setVisibleMonth(new Date(Number(event.target.value), visibleMonth.getMonth(), 1))} className="h-11 rounded-control border border-border bg-card px-2 text-sm font-bold outline-none focus:border-brand focus:ring-2 focus:ring-brand-soft sm:px-3">
+        <select aria-label="연도 선택" value={visibleMonth.getFullYear()} onChange={(event) => setVisibleMonth(new Date(Number(event.target.value), visibleMonth.getMonth(), 1))} className="h-11 rounded-control border border-border bg-card px-2 text-sm font-bold outline-none focus:border-brand focus:ring-1 focus:ring-brand sm:px-3">
           {calendarYears().map((year) => <option key={year} value={year}>{year}년</option>)}
         </select>
-        <select aria-label="월 선택" value={visibleMonth.getMonth()} onChange={(event) => setVisibleMonth(new Date(visibleMonth.getFullYear(), Number(event.target.value), 1))} className="h-11 rounded-control border border-border bg-card px-2 text-sm font-bold outline-none focus:border-brand focus:ring-2 focus:ring-brand-soft sm:px-3">
+        <select aria-label="월 선택" value={visibleMonth.getMonth()} onChange={(event) => setVisibleMonth(new Date(visibleMonth.getFullYear(), Number(event.target.value), 1))} className="h-11 rounded-control border border-border bg-card px-2 text-sm font-bold outline-none focus:border-brand focus:ring-1 focus:ring-brand sm:px-3">
           {Array.from({ length: 12 }, (_, month) => <option key={month} value={month}>{month + 1}월</option>)}
         </select>
       </div>
@@ -155,7 +155,7 @@ function DateTrigger({ label, value, emptyValueLabel, includeTime, disabled, inv
 }
 
 function TimeInput({ label, value, fallback, onChange }: { readonly label: string; readonly value: string; readonly fallback: string; readonly onChange: (time: string) => void }) {
-  return <label className="block"><span className="mb-1 block text-xs font-semibold text-muted">{label}</span><input type="time" step={60} disabled={!dateOf(value)} value={timeOf(value, fallback)} onChange={(event) => onChange(event.target.value)} className="min-h-11 rounded-control border border-border bg-card px-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand-soft disabled:bg-border-soft disabled:text-muted" /></label>;
+  return <label className="block"><span className="mb-1 block text-xs font-semibold text-muted">{label}</span><input type="time" step={60} disabled={!dateOf(value)} value={timeOf(value, fallback)} onChange={(event) => onChange(event.target.value)} className="min-h-11 rounded-control border border-border bg-card px-3 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand disabled:bg-border-soft disabled:text-muted" /></label>;
 }
 
 function CalendarMonth({ month, start, end, position, minDate, maxDate, onSelect }: { readonly month: Date; readonly start: string; readonly end: string; readonly position: RangePosition; readonly minDate?: string; readonly maxDate?: string; readonly onSelect: (value: string) => void }) {

@@ -1,3 +1,4 @@
+import { careerDateLabel } from "@/features/applicants/career-identity";
 import type { Applicant, PerformanceRef, RoundNumber } from "./types";
 import { ageText, ROUND_LABELS } from "./labels";
 import { ROUND_NUMBERS } from "./types";
@@ -95,8 +96,8 @@ function printableCard(applicant: Applicant, performance: PerformanceRef) {
   <section class="pp-sec"><h3>경력 ${applicant.career.length}건</h3>
     ${
       applicant.career.length > 0
-        ? `<table class="pp-tbl"><thead><tr><th>연도</th><th>작품명</th><th>역할</th></tr></thead><tbody>${applicant.career
-            .map((entry) => `<tr><td>${entry.year}</td><td>${escapeHtml(entry.title)}</td><td>${escapeHtml(entry.part)}</td></tr>`)
+        ? `<table class="pp-tbl"><thead><tr><th>연월</th><th>작품명</th><th>역할</th></tr></thead><tbody>${applicant.career
+            .map((entry) => `<tr><td>${careerDateLabel(entry.year, entry.month)}</td><td>${escapeHtml(entry.title)}</td><td>${escapeHtml(entry.part)}</td></tr>`)
             .join("")}</tbody></table>`
         : '<p class="pp-empty">등록된 경력이 없습니다.</p>'
     }</section>

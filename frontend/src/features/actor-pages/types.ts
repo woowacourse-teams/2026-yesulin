@@ -27,7 +27,7 @@ export type PublicActorPageList = {
 export type ActorCareerGroup = {
   /** 장르를 고르지 않은 경력(미분류)은 null이다. */
   readonly genre: ProfileCareerGenre | null;
-  readonly careers: readonly { readonly year: number; readonly title: string; readonly roleName: string }[];
+  readonly careers: readonly { readonly year: number; readonly month?: number | null; readonly title: string; readonly roleName: string }[];
 };
 
 /** 누구나 보는 배우 페이지. 서버가 배우가 공개로 설정한 항목만 담아 보낸다. */

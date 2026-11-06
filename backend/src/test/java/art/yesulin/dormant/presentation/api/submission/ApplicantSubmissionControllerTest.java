@@ -206,7 +206,7 @@ class ApplicantSubmissionControllerTest {
                         "현대무용",
                         "영화 감상",
                         MilitaryServiceStatus.NOT_APPLICABLE,
-                        List.of(new SubmissionCareer(2025, "햄릿", "오필리어"))
+                        List.of(new SubmissionCareer(2025, 3, "햄릿", "오필리어"))
                 ),
                 new SubmissionFieldSnapshot(
                         List.of(SubmissionBasicInformationField.NAME),

@@ -183,7 +183,7 @@ class ApplicantProfileControllerTest {
                     "hobbies": null,
                     "militaryServiceStatus": "NOT_APPLICABLE",
                     "careers": [
-                      {"year": 2025, "title": "햄릿", "roleName": "오필리어"}
+                      {"year": 2025, "month": 3, "title": "햄릿", "roleName": "오필리어"}
                     ]
                   }
                 }

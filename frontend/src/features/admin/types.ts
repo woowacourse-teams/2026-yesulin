@@ -256,7 +256,7 @@ export type AdminSubmissionDetail = {
       readonly specialty: string | null;
       readonly hobbies: string | null;
       readonly militaryServiceStatus: "COMPLETED" | "NOT_COMPLETED" | "NOT_APPLICABLE" | null;
-      readonly careers: readonly { readonly year: number; readonly title: string; readonly roleName: string }[];
+      readonly careers: readonly { readonly year: number; readonly month?: number | null; readonly title: string; readonly roleName: string }[];
     };
     readonly ageAtRecruitmentDeadline: number | null;
   };
@@ -747,4 +747,24 @@ export type AdminActorPage = Omit<AdminActorPageSummary, "name" | "updatedAt"> &
   readonly producerOnlyVideos: readonly { readonly url: string; readonly youtubeId: string }[];
   readonly phone: string | null;
   readonly email: string | null;
+};
+
+export type AdminFeedbackType = "INCONVENIENCE" | "BUG" | "SUGGESTION";
+
+/** 받은 의견 한 건. memberId가 없으면 비회원이 보냈다. imageUrls는 잠깐만 열리는 주소다. */
+export type AdminFeedbackItem = {
+  readonly id: number;
+  readonly type: AdminFeedbackType;
+  readonly content: string;
+  readonly contact: string;
+  readonly pagePath: string;
+  readonly memberId: number | null;
+  readonly userAgent: string;
+  readonly createdAt: string;
+  readonly imageUrls: readonly string[];
+};
+
+export type AdminFeedbackPage = {
+  readonly items: readonly AdminFeedbackItem[];
+  readonly hasNext: boolean;
 };

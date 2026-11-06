@@ -220,7 +220,7 @@ export type ScreeningSubmissionResource = {
   readonly hobbies: string | null;
   readonly militaryServiceStatus: string | null;
   readonly submittedAt: string;
-  readonly career: readonly { readonly year: number; readonly title: string; readonly part: string }[];
+  readonly career: readonly { readonly year: number; readonly month?: number | null; readonly title: string; readonly part: string }[];
   readonly coverLetter: string | null;
   readonly questions: readonly { readonly question: string; readonly answer: string }[];
   readonly photos: readonly { readonly label: string; readonly url: string }[];

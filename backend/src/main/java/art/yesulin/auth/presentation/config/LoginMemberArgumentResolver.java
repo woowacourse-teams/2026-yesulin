@@ -35,6 +35,9 @@ public class LoginMemberArgumentResolver implements HandlerMethodArgumentResolve
         Object principal = webRequest.getAttribute(
                 MemberPrincipal.SESSION_ATTRIBUTE, RequestAttributes.SCOPE_SESSION);
 
+        if (principal == null && !annotation.required()) {
+            return null;
+        }
         if (principal == null) {
             throw new BusinessException(AuthErrorCode.UNAUTHENTICATED, "로그인이 필요합니다.");
         }

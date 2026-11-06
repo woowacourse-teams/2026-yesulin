@@ -12,6 +12,7 @@ const hasText = (value: unknown): value is string => typeof value === "string" &
 function validCareer(value: unknown) {
   return Array.isArray(value) && value.length <= MAX_APPLICATION_CAREERS && value.every((item) => typeof item === "object" && item !== null
     && "year" in item && Number.isInteger(item.year)
+    && "month" in item && typeof item.month === "number" && Number.isInteger(item.month) && item.month >= 1 && item.month <= 12
     && "title" in item && hasText(item.title)
     && "part" in item && hasText(item.part));
 }

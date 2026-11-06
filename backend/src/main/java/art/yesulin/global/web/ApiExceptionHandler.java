@@ -16,6 +16,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 @RestControllerAdvice(basePackages = "art.yesulin")
 public class ApiExceptionHandler {
@@ -35,6 +36,7 @@ public class ApiExceptionHandler {
             case UNAUTHORIZED -> HttpStatus.UNAUTHORIZED;
             case NOT_FOUND -> HttpStatus.NOT_FOUND;
             case CONFLICT -> HttpStatus.CONFLICT;
+            case TOO_MANY_REQUESTS -> HttpStatus.TOO_MANY_REQUESTS;
         };
         return ResponseEntity.status(status).body(response);
     }
@@ -97,6 +99,18 @@ public class ApiExceptionHandler {
                 request,
                 "%s 값이 필요합니다.".formatted(exception.getParameterName()),
                 Map.of(exception.getParameterName(), "필수 값입니다.")
+        );
+    }
+
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<ErrorResponse> handleMissingServletRequestPartException(
+            MissingServletRequestPartException exception,
+            HttpServletRequest request
+    ) {
+        return badRequest(
+                request,
+                "%s 값이 필요합니다.".formatted(exception.getRequestPartName()),
+                Map.of(exception.getRequestPartName(), "필수 값입니다.")
         );
     }
 

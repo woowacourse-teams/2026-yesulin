@@ -12,6 +12,7 @@ import jakarta.persistence.Embeddable;
 @Embeddable
 public record ProfileCareer(
         @Column(name = "career_year", nullable = false) int year,
+        @Column(name = "career_month") Integer month,
         @Column(name = "title", nullable = false, length = MAX_TITLE_LENGTH) String title,
         @Column(name = "role_name", nullable = false, length = MAX_ROLE_NAME_LENGTH) String roleName,
         @Convert(converter = ProfileCareerGenreConverter.class)
@@ -24,13 +25,16 @@ public record ProfileCareer(
     private static final int MINIMUM_YEAR = 1_000;
     private static final int MAXIMUM_YEAR = 9_999;
 
-    public ProfileCareer(int year, String title, String roleName) {
-        this(year, title, roleName, null);
+    public ProfileCareer(int year, Integer month, String title, String roleName) {
+        this(year, month, title, roleName, null);
     }
 
     public ProfileCareer {
         if (year < MINIMUM_YEAR || year > MAXIMUM_YEAR) {
             throw new BusinessException(INVALID_PROFILE, "경력 연도는 네 자리 숫자여야 합니다.");
+        }
+        if (month != null && (month < 1 || month > 12)) {
+            throw new BusinessException(INVALID_PROFILE, "경력 월은 1~12여야 합니다.");
         }
         title = requireText(title, "경력 작품명은 필수입니다.");
         if (title.length() > MAX_TITLE_LENGTH) {

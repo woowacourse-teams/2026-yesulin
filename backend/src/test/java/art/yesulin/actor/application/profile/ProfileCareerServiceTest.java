@@ -40,8 +40,9 @@ class ProfileCareerServiceTest {
     @NullSource
     void savesAndReloadsNullableGenreThroughConverter(ProfileCareerGenre genre) {
         long owner = members.saveAndFlush(Member.ofApplicant()).getId();
-        profiles.update(owner, command(List.of(new UpdateProfileCareerCommand(2026, "작품", "배역", genre))));
+        profiles.update(owner, command(List.of(new UpdateProfileCareerCommand(2026, 3, "작품", "배역", genre))));
         entityManager.clear();
+        assertEquals(3, profiles.find(owner).additionalInformation().careers().getFirst().month());
         assertEquals(genre, profiles.find(owner).additionalInformation().careers().getFirst().genre());
     }
 
@@ -49,12 +50,24 @@ class ProfileCareerServiceTest {
     void savesThirtyCareersAndPreservesLegacyGenreDefault() {
         long owner = members.saveAndFlush(Member.ofApplicant()).getId();
         List<UpdateProfileCareerCommand> careers = IntStream.range(0, 30)
-                .mapToObj(index -> new UpdateProfileCareerCommand(2026, "작품 " + index, "배역")).toList();
+                .mapToObj(index -> new UpdateProfileCareerCommand(2026, 3, "작품 " + index, "배역")).toList();
         profiles.update(owner, command(careers));
         entityManager.clear();
         List<ProfileCareerResult> result = profiles.find(owner).additionalInformation().careers();
         assertEquals(30, result.size());
         assertNull(result.getFirst().genre());
+    }
+
+    @Test
+    void reloadsCareersEvenWhenAllBasicInformationColumnsAreEmpty() {
+        long owner = members.saveAndFlush(Member.ofApplicant()).getId();
+        UpdateApplicantProfileCommand update = command(List.of(
+                new UpdateProfileCareerCommand(2026, 3, "작품", "배역")));
+        profiles.update(owner, new UpdateApplicantProfileCommand(null, update.additionalInformation()));
+        entityManager.clear();
+        assertNull(profiles.find(owner).basicInformation().name());
+        assertEquals(3, profiles.find(owner).additionalInformation().careers().getFirst().month());
+        profiles.update(owner, new UpdateApplicantProfileCommand(null, update.additionalInformation()));
     }
 
     private UpdateApplicantProfileCommand command(List<UpdateProfileCareerCommand> careers) {

@@ -195,6 +195,21 @@ ORDER BY \`주 시작일\` WITH FILL STEP INTERVAL 1 WEEK` },
     "2026-11-01 구현·배포 이후 v1 기록만 집계. 클릭은 원본 열기 시도이며 표시·독서 성공이 아닙니다. 비율=같은 기간·심사자의 상세 열람과 상세 화면 원본 클릭이 모두 있는 지원자/상세 열람 지원자. 총 클릭은 합격자 연락처도 포함. 지원자는 심사별 중복 제거. 반복은 같은 심사자·지원자의 첫 클릭을 뺀 추가 횟수이며 기간을 바꾸면 달라집니다. PDF 닫기·뷰어 내부 새 창/다운로드·기본 심사 버튼 수와 분리합니다. 빈 비율은 분모 없음."));
 
   dashboards[2].insights.splice(5, 0, table("원본 PDF 버튼은 어디에서 누르나요?", `SELECT properties.review_id AS \`심사 번호\`, if(properties.pdf_open_source='passed_contacts','합격자 연락처','심사 상세') AS \`버튼 위치\`, count() AS \`원본 클릭 횟수\` FROM events WHERE event='review_original_pdf_clicked' AND properties.metric_version=1 AND ${base} AND {filters} GROUP BY properties.review_id, properties.pdf_open_source`, "심사 상세의 원본 PDF·사진 미추출 안내 버튼과 합격자 연락처의 PDF 보기 버튼을 구분합니다. 새 창·다운로드 등 뷰어 내부 조작은 제외합니다. 클릭 횟수이며 PDF 표시 성공이 아닙니다."));
+  dashboards.push({
+    name: "05 익명게시판", description: descriptions + " 글·댓글 번호, 본문, 익명 번호는 수집하지 않으므로 글별 지표는 없습니다. 2026-11 이벤트 추가 이후 기록만 집계합니다.",
+    insights: [
+      trend("익명게시판을 둘러본 사람은 몇 명인가요?", "community_list_viewed", "목록을 정상적으로 불러온 주간 고유 사용자입니다. 공유 링크로 글에 바로 들어온 사람은 글 조회 차트에서 봅니다."),
+      trend("글을 읽은 사람은 몇 명인가요?", "community_post_viewed", "글 상세를 정상적으로 불러온 주간 고유 사용자입니다. 같은 사람이 여러 글을 읽어도 한 명입니다."),
+      { name: "글쓰기를 시작한 사람 중 몇 명이 올리나요?", description: "배우 로그인 후 작성 화면 진입부터 1일 이내 작성 성공(metric_version=2). 이전 비회원 작성 퍼널과 분리합니다. 글 수정은 제외합니다. 화면을 여러 번 열면 첫 진입 기준입니다.", query: {
+        kind: "FunnelsQuery", properties, dateRange: { date_from: "-28d" },
+        series: [{ kind: "EventsNode", event: "community_compose_started", properties: [{ key: "metric_version", value: 2, operator: "exact", type: "event" }] }, { kind: "EventsNode", event: "community_post_created", properties: [{ key: "metric_version", value: 2, operator: "exact", type: "event" }] }],
+        funnelsFilter: { funnelWindowInterval: 1, funnelWindowIntervalUnit: "day", funnelOrderType: "ordered", funnelVizType: "steps", funnelStepReference: "total" },
+        aggregation_group_type_index: null, filterTestAccounts: false,
+      } },
+      table("주마다 글·댓글·좋아요·신고는 몇 건인가요?", `SELECT ${week} AS \`주 시작\`, coalesce(properties.metric_version, 1) AS \`측정 버전\`, countIf(event='community_post_created') AS \`글\`, countIf(event='community_comment_created') AS \`댓글\`, countIf(event='community_like_toggled' AND properties.liked=true) AS \`좋아요\`, countIf(event='community_report_submitted') AS \`신고\`, countIf(event='community_compose_abandoned') AS \`작성 포기\`, uniqIf(person_id, event IN ('community_post_created','community_comment_created')) AS \`작성한 사람\` FROM events WHERE event IN ('community_post_created','community_comment_created','community_like_toggled','community_report_submitted','community_compose_abandoned') AND ${base} AND {filters} GROUP BY \`주 시작\`, \`측정 버전\` ORDER BY \`주 시작\` DESC`,
+        "버전 1은 비회원 작성, 버전 2는 배우 회원 작성입니다. 성공한 요청만 셉니다. 좋아요는 누른 횟수이며 취소는 제외합니다. 작성 포기는 내용을 쓰다 올리지 않고 다른 화면으로 이동한 횟수이며 탭 닫기는 빠질 수 있습니다. 신고 수는 Slack 알림 수와 다를 수 있습니다.", "-84d"),
+    ],
+  });
   if (environment === "development") {
     return [{ ...dashboards[3], name: "개발 전용 · 측정 점검", description: "개발 사이트와 로컬 테스트 기록만 확인합니다. 운영 성과에 합산하지 않습니다.",
       insights: dashboards[3].insights.map(insight => ({ ...insight, name: `개발 · ${insight.name}` })) }];

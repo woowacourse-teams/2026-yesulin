@@ -106,7 +106,7 @@ class PublicActorPageServiceTest {
         profiles.update(owner, new UpdateApplicantProfileCommand(null, new UpdateProfileAdditionalInformationCommand(
                 ProfileEducationLevel.UNIVERSITY, "예술대학교", "연기", List.of("https://instagram.com/actor"),
                 "대한민국", "무대에 서는 배우입니다.", "탭댄스", "등산", null,
-                List.of(new UpdateProfileCareerCommand(2025, "햄릿", "오필리아", ProfileCareerGenre.THEATER))
+                List.of(new UpdateProfileCareerCommand(2025, 3, "햄릿", "오필리아", ProfileCareerGenre.THEATER))
         )));
         long publicVideo = videos.addVideo(owner, new AddVideoToLibraryCommand(youtube("aaaaaaaaaaa"))).id();
         videos.addVideo(owner, new AddVideoToLibraryCommand(youtube("bbbbbbbbbbb")));
@@ -145,11 +145,11 @@ class PublicActorPageServiceTest {
         publicPhotoWithCopy(owner);
         profiles.update(owner, new UpdateApplicantProfileCommand(null, new UpdateProfileAdditionalInformationCommand(
                 null, null, null, List.of(), null, null, null, null, null, List.of(
-                        new UpdateProfileCareerCommand(2023, "광고 A", "모델"),
-                        new UpdateProfileCareerCommand(2021, "갈매기", "니나", ProfileCareerGenre.THEATER),
-                        new UpdateProfileCareerCommand(2024, "레미제라블", "코제트", ProfileCareerGenre.MUSICAL),
-                        new UpdateProfileCareerCommand(2024, "햄릿", "오필리아", ProfileCareerGenre.THEATER),
-                        new UpdateProfileCareerCommand(2024, "벚꽃동산", "아냐", ProfileCareerGenre.THEATER)
+                        new UpdateProfileCareerCommand(2023, 3, "광고 A", "모델"),
+                        new UpdateProfileCareerCommand(2021, 3, "갈매기", "니나", ProfileCareerGenre.THEATER),
+                        new UpdateProfileCareerCommand(2024, 3, "레미제라블", "코제트", ProfileCareerGenre.MUSICAL),
+                        new UpdateProfileCareerCommand(2024, 3, "햄릿", "오필리아", ProfileCareerGenre.THEATER),
+                        new UpdateProfileCareerCommand(2024, 9, "벚꽃동산", "아냐", ProfileCareerGenre.THEATER)
                 )
         )));
         pages.changeVisibilities(owner, Map.of(ActorPageField.CAREERS, ActorPageVisibility.PUBLIC));
@@ -159,7 +159,7 @@ class PublicActorPageServiceTest {
 
         assertEquals(Arrays.asList(ProfileCareerGenre.THEATER, ProfileCareerGenre.MUSICAL, null),
                 groups.stream().map(CareerGroup::genre).toList());
-        assertEquals(List.of("햄릿", "벚꽃동산", "갈매기"),
+        assertEquals(List.of("벚꽃동산", "햄릿", "갈매기"),
                 groups.getFirst().careers().stream().map(Career::title).toList());
     }
 

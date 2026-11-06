@@ -872,10 +872,10 @@ PASS 변경 또는 연락처 previous 불일치는 409 TIMETABLE_ASSIGNMENT_CONF
 프로필 기본 정보는 이름, 양수 키·몸무게, 미래가 아닌 생년월일, 성별, `000-0000-0000` 연락처, email과 거주 지역이다.
 거주 지역은 100자 문자열이고, 프론트가 `시·도 시·군·구` 형태로만 채운다.
 추가 정보의 학력은 `educationLevel`(`NONE`·`HIGH_SCHOOL`·`UNIVERSITY`), `school`, `major`로 표현한다. 학력 없음은 학교·전공 없이, 고등학교 졸업은 학교만, 대학교 졸업은 학교와 전공을 함께 보낸다. 링크 최대 5개, 프로필 경력 최대 30개다.
-프로필 경력은 `{year, title, roleName, genre?}`이며 genre는 선택 값이다. 생략하거나 null이면 미분류로 유지한다.
+프로필 경력은 `{year, month, title, roleName, genre?}`이며 month는 1~12 정수다. 신규·수정 경력의 월은 필수이며, 월이 없던 기존 경력은 연도·작품명·배역·장르가 그대로인 항목만 null/생략으로 보존할 수 있다. 같은 기존 항목을 월 없이 복제할 수 없다. genre는 선택 값이다. 생략하거나 null이면 미분류로 유지한다.
 장르 값은 `THEATER`(연극), `MUSICAL`(뮤지컬), `DANCE`(무용), `FILM`(영화), `DRAMA`(드라마),
 `WEB_DRAMA`(웹드라마), `SHORT_FORM`(숏폼), `COMMERCIAL`(광고), `OTHER`(기타)다. 잘못된 값은 `400 INVALID_REQUEST`다.
-지원서 제출 경력은 기존대로 최대 10개이고 `{year, title, roleName}`만 받으며 장르는 포함하지 않는다.
+지원서 제출 경력은 최대 10개이며 `{year, month, title, roleName}`를 받는다. 신규 제출은 month(1~12)가 필수이고 장르는 포함하지 않는다. 기존 제출 스냅샷의 월은 null로 보존한다.
 배우 사진은 JPEG·PNG·WebP 최대 20MB, 사진 보관함 최대 3개, 영상 보관함 최대 3개다.
 사진 항목 응답은 `{id, fileId, imageUrl, displayOrder, representative, createdAt, visibility, publicCopyUrl}`이며 visibility는
 `PUBLIC/PRIVATE`(기존 행·새 사진 모두 기본 PRIVATE)다. `publicCopyUrl`은 배우 페이지용 공개 사본의 CDN 주소이고, 사본이 없으면
@@ -973,7 +973,7 @@ representativePhotoUrl(null 가능)
 `PublicActorPageResult`는 카드 필드에 다음 필드를 더한다.
 
 ```text
-photos[{url}], videos[{url, youtubeId}], careerGroups[{genre(null=미분류), careers[{year, title, roleName}]}],
+photos[{url}], videos[{url, youtubeId}], careerGroups[{genre(null=미분류), careers[{year, month(null=과거 월 미상), title, roleName}]}],
 coverLetter, specialty, hobbies, nationality, education{level, school, major}(null 가능), links[{url}]
 ```
 
@@ -1151,6 +1151,25 @@ MDC에 같은 값이 남는다. Request는 업로드 흐름·단계·1~2회 시�
 HTTP status·서비스 워커 제어 여부·거친 플랫폼과 브라우저 분류만 받는다. 파일명, 파일 내용, URL, 전체 User-Agent,
 지원서 답변은 받거나 로그에 남기지 않는다.
 
+## 의견 보내기 — 1개
+
+| Method | URL | 인증 | Request | Response |
+| --- | --- | --- | --- | --- |
+| POST | `/api/v1/public/feedback` | 없음(로그인했으면 회원 번호 함께 저장) | `FeedbackRequest` (JSON) 또는 multipart | `201 { id }` |
+
+쓰기 요청이므로 CSRF header가 필요하다. `FeedbackRequest`는 `type`(`INCONVENIENCE`·`BUG`·`SUGGESTION`, 필수),
+`content`(앞뒤 공백 제거 후 1~1000자, 필수), `contact`(0~100자, 선택), `pagePath`(보낸 화면 경로, 선택)다.
+`pagePath`는 쿼리·해시를 버리고 300자로 자른 뒤 `/`로 시작하는 URL 경로 문자만 있을 때 저장한다. 줄바꿈·공백·꺾쇠 등이 섞이거나
+`//`로 시작하면 빈 값으로 저장하고 접수는 막지 않는다. 서버는 User-Agent를 300자까지 함께 저장한다.
+사진을 첨부하면 `multipart/form-data`로 보낸다. `request` 파트에 같은 `FeedbackRequest` JSON(`application/json`)을,
+`images` 파트에 사진을 0~3장 담는다. 사진은 JPEG·PNG·WebP 한 장 5MB 이하이며 서버가 파일 앞부분으로 형식을 다시 확인한다.
+형식·크기·장수가 맞지 않으면 아무것도 저장하지 않고 `400 FEEDBACK_INVALID_IMAGE`, 요청 전체가 16MB를 넘으면 `413`이다.
+`request` 파트가 없으면 `400 INVALID_REQUEST`다. 사진은 비공개 저장소 `private/feedback-images/{yyyyMMdd}/{uuid}`에 `Cache-Control: private, no-store`로 두며,
+의견 저장에 실패하면 올린 사진을 지운다. 사진 없는 JSON 요청도 그대로 받는다.
+같은 접속 주소에서 10분 안에 5건을 넘기면 `429 FEEDBACK_TOO_FREQUENT`를 돌려준다(서버 메모리 기준, 재시작 시 초기화).
+저장이 커밋되면 `YESULIN_FEEDBACK_SLACK_WEBHOOK_URL` 채널(비어 있으면 `YESULIN_ERROR_SLACK_WEBHOOK_URL` 버그 알림 채널)로 종류·보낸 사람 구분(배우·공연사·운영자·비회원)·사진 장수·화면·
+운영자 화면 링크(`/admin/feedback`)·내용 500자를 보낸다. 연락처 원문·회원 번호·사진은 알림에 넣지 않는다. 알림 실패는 접수 결과에 영향을 주지 않는다.
+
 ## 심사 — 4개
 
 | Method | URL | 인증 | Request | Response |
@@ -1167,7 +1186,7 @@ submission ID와 변경할 status·memo·note 중 하나 이상을 요구한다.
 미선택자는 `PENDING`으로 보존하며, `PASS`만 다음 차수로 승격한다. 다음 차수 대상이 없으면 이후 빈 차수도
 자동 마감한다. 마감한 차수의 결과는 수정하거나 되돌릴 수 없다.
 
-## 운영 대시보드 — 18개
+## 운영 대시보드 — 19개
 
 개발팀 전용 경로다. 모두 `ADMIN` 세션만 통과하며 다른 역할은 `403 AUTH_FORBIDDEN`이다.
 
@@ -1184,6 +1203,7 @@ submission ID와 변경할 status·memo·note 중 하나 이상을 요구한다.
 | GET | `/api/v1/admin/audit-logs` | Admin | `page` query (선택, 0부터) | `200 AdminAuditLogsResponse` |
 | GET | `/api/v1/admin/logs` | Admin | `keyword`, `limit`, `date`(`yyyy-MM-dd`) query (선택) | `200 AdminLogResponse` |
 | GET | `/api/v1/admin/otr-redirects` | Admin | `days` query (1~14, 기본 14) | `200 OtrRedirectReport` |
+| GET | `/api/v1/admin/feedback` | Admin | `before` query (양수, 선택. 이 번호보다 오래된 의견) | `200 AdminFeedbackPage` |
 | GET | `/api/v1/admin/files/unreferenced` | Admin | `status` (`PENDING`/`READY`/`DELETING`), `page`(0부터), `size`(1~100) query, 모두 선택 | `200 UnusedFilesResult` |
 | DELETE | `/api/v1/admin/files/{fileId}` | Admin | `DeleteAdminFileRequest(confirmationPassword)` | `204` |
 | POST | `/api/v1/admin/files/deletions` | Admin | `BatchDeleteAdminFilesRequest(fileIds, confirmationPassword)` | `200 BatchFileDeletionResult` |
@@ -1212,6 +1232,9 @@ submission ID와 변경할 status·memo·note 중 하나 이상을 요구한다.
 수를 담는다. 한 배우가 여러 소셜 계정을 연결하면 경로마다 센다. 로그인·방문 기록은 저장하지 않으므로 활성 사용자 수는
 제공하지 않는다. `AdminActivity.days`는 오늘을 포함한 최근 14일을 한국 날짜 오래된 순으로 담고, 날마다 신규 배우·기획사,
 지원서, OTR 지원서, 현재 확정 상태인 예매 건수·매수를 0 포함으로 반환한다.
+
+`AdminFeedbackPage`는 최신순 20건의 `items`와 `hasNext`다. 더 볼 때는 마지막 항목의 `id`를 `before`로 보낸다. 각 항목은 `id`, `type`, `content`, `contact`(원문), `pagePath`,
+`memberId`(비회원이면 null), `userAgent`, `createdAt`, `imageUrls`(잠깐만 열리는 비공개 저장소 주소)다. 응답은 `Cache-Control: no-store`다.
 
 `OtrRedirectReport`는 `environment`(`DEV`·`PROD`·`LOCAL`), 한국 날짜 `startDate`·`endDate`,
 `totalClicks`, `links: [{otrId, clicks, lastClickedAt}]`, `available`, `truncated`, `readAt`을 반환한다.
@@ -1357,3 +1380,77 @@ S3 삭제 실패 시 `DELETING` 상태가 남으며 같은 파일 ID로 재시�
 ### PDF 완료 알림
 
 `GET /api/v1/pdf-extractions/events`는 Active Producer 세션으로 접근하는 SSE다. `connected`와 `completed` 이벤트를 보내며 데이터는 `{jobId}`만 포함한다. `completed`는 추출 완료와 AI 완료·최종 실패·수동 재분석 접수 후 DB를 다시 읽으라는 변경 신호이며, 성공 판정을 의미하지 않는다. 본인 작업만 전달하고 DB 커밋 후 알린다. 15초 heartbeat와 3분 연결 만료 후 재연결을 사용한다. 알림 이력을 영구 보관하지 않으므로 재연결 시 DB 목록으로 동기화한다. 현재 인스턴스에 연결된 화면만 즉시 알림을 받으며 다중 인스턴스 간 알림 중계는 별도 범위다.
+## 공개 익명 커뮤니티
+
+공개 읽기와 좋아요·신고는 비회원도 사용한다. 새 글·댓글 POST는 활성 배우 계정 세션이 필요하다.
+제작사·관리자 등 다른 역할은 403, 비로그인 생성은 401이다. 쓰기는 기존 CSRF 쿠키·헤더 검증을 유지한다.
+신규 작성물은 세션 회원 소유이고, `expectedMemberId`가 세션과 다르면 409로 거절한다. 본문 회원 ID로 소유권을 부여하지 않는다.
+PUT·DELETE는 저장된 소유 유형으로 확인한다. 기존 비회원 글은 유효 쿠키만으로 관리 가능하며 로그인 강제를 추가하지 않는다.
+회원 작성물은 본인 활성 배우 세션이 필요하고 쿠키가 같아도 다른 계정의 권한이 되지 않는다.
+
+글 응답의 `topic`은 FREE(자유), AUDITION_REVIEW(오디션 후기), PRACTICE(연습/발성), QUESTION(질문), PERFORMANCE(공연 소식) 중 하나다. 댓글 응답은 null이다. 생성 시 생략하면 FREE, 수정 시 생략하면 기존 주제를 유지한다. 지원하지 않는 주제명은 400이다. 동일 생성 키로 주제만 바꿔 재시도하면 409다.
+
+기존 소유권·비회원 좋아요·신고는 서버 발급 `yesulin-community-owner` HttpOnly 쿠키를 사용한다.
+Path=/api/v1/public/community, SameSite=Lax, Max-Age=400일, host-only다. local/test HTTP 외에는 Secure를 적용한다.
+쿠키 확인 때 갱신하며 기존 헤더 `X-Community-Key`는 사용하지 않는다. 좋아요·신고에 쿠키가 없으면 400이다.
+기존 SHA-256 소유 해시는 유지한다. 회원 참여 키는 별도 member 접두사이며 공개 응답·URL·로그에 넣지 않는다.
+조회·이전·참여 상태 응답은 `Cache-Control: no-store`다.
+댓글 생성 시 선택 필드 `replyToId`에 같은 글의 보이는 최상위 댓글 ID를 전달한다. 생략 또는 null은 일반 댓글이다. 글·댓글 응답에 `replyToId`(답글 대상 또는 null)를 포함하며, 댓글 목록은 답글도 생성 ID 순으로 페이지에 포함한다. 다른 글·삭제된 댓글·답글을 대상으로 새로 쓰면 404, 같은 요청 번호의 대상을 바꾸면 409다. 원댓글을 삭제해도 기존 답글은 조회된다.
+
+기존 localStorage 키는 `X-Community-Legacy-Key` 헤더로 이전 전용 identity API에만 전달한다.
+서버는 기존 키를 HttpOnly 쿠키로 옮겨 소유권 해시·좋아요·익명 번호를 유지한다. 기존 쿠키와 이전 키가 다르면
+409 `COMMUNITY_IDENTITY_CONFLICT`로 거절하고 기존 쿠키를 교체하지 않는다. 형식이 잘못된 값은 400이다.
+POST 성공만으로 저장됐다고 판단하지 않고 GET에서 같은 이전 키로 `ready: true`를 확인한 후 localStorage를 지운다.
+응답 유실·쿠키 차단 때는 기존 키를 유지하고 동일한 키로 재시도한다. 키를 이미 잃은 브라우저의 복구 API는 없다.
+
+| Method | 경로 (`/api/v1/public/community` 뒤) | 요청 / 응답 |
+| --- | --- | --- |
+| GET | `/identity` | `{ready: boolean}`. 쿠키 확인만 하며 새 키는 발급하지 않음. 이전 헤더가 있으면 해당 키와 쿠키의 일치도 확인 |
+| POST | `/identity` | 본문 없음, CSRF 필수 → 204 + HttpOnly Set-Cookie. 기존 쿠키 재사용, 기존 키 이전 또는 서버 32바이트 난수 신규 발급 |
+| GET | `/posts?topic={topic}&before={id}` | 두 파라미터 모두 선택. 해당 주제의 최신 글 5개, topic 생략 시 전체. 첫 페이지는 공개, 이전 페이지는 로그인 필요(401). `before`는 양수, 해당 ID 미포함 |
+| GET | `/posts/popular` | 공개. 최근 7일 점수순 최대 5개. `[{id, title}]`; 없으면 빈 배열 |
+| POST | `/posts` | `{requestId: UUID, title, body, topic?, authorMode, expectedMemberId}` → 201 작성물 |
+| GET | `/posts/participation?postId={id}` | 본인 참여 상태. postId 생략 시 새 글. `{memberId, canWrite, fixedMode, profile: {name, photoUrl, path} 또는 null}`. fixedMode는 호환용으로 항상 null. 비로그인은 memberId/profile/fixedMode null·canWrite false. 회원 ID는 이 본인 응답에만 포함 |
+| GET | `/posts/{postId}` | 200 작성물, 없거나 삭제되었으면 404 |
+| PUT | `/posts/{postId}` | `{title, body, topic?}` → 200 수정 작성물 |
+| DELETE | `/posts/{postId}` | 204, 본인만 가능 |
+| GET | `/posts/{postId}/comments?after={id}` | 오래된 댓글부터 20개. `after` 기본 0, 해당 ID 미포함 |
+| POST | `/posts/{postId}/comments` | `{requestId: UUID, body, authorMode, expectedMemberId, replyToId?}` → 201 작성물 |
+| PUT | `/posts/{postId}/comments/{commentId}` | `{body}` → 200 수정 작성물 |
+| DELETE | `/posts/{postId}/comments/{commentId}` | 204, 본인만 가능 |
+| PUT | `/posts/{postId}/likes` | 본문 없음 → 200 `{likeCount, liked: true}`. 반복해도 한 번만 반영 |
+| DELETE | `/posts/{postId}/likes` | 본문 없음 → 200 `{likeCount, liked: false}`. 이미 취소했어도 200 |
+| POST | `/entries/{entryId}/reports` | `{requestId: UUID, reason, detail?}` → 204 접수 |
+
+작성물 응답은 `{id, title, body, author, authorPhotoUrl, authorPath, authorMode, postAuthor, memberOwned, createdAt, updatedAt, commentCount, editable, likeCount, liked}`다.
+`memberOwned`는 회원 소유 여부이며, 기존 쿠키 소유 작성물의 로그인 없는 관리 화면을 구분한다. 회원 식별자는 포함하지 않는다.
+`authorMode`는 `ANONYMOUS` 또는 `PROFILE`이며 생성 요청에서 필수다. `postAuthor`는 글쓴이가 글과 같은 방식으로 작성했는지 나타낸다.
+익명은 글별 작성자·공개 방식 조합의 첫 참여 순서에 따라 익명1·익명2로 표시하고 사진·경로는 null이다. 공개 참여자도 번호를 차지한다.
+공개 모드는 현재 공개 배우 페이지의 이름·사진·경로만 반환한다. 비공개/잠금/공개 조건 미충족은 `프로필 비공개`,
+계정 없음은 `알 수 없는 사용자`이며 사진·경로는 null이다. 공개 가능한 페이지 없이 PROFILE로 생성하면 409 COMMUNITY_PROFILE_REQUIRED다.
+새 댓글마다 모드를 선택한다. 같은 생성 요청 번호에 다른 계정·모드·대상·내용을 보내면 409 COMMUNITY_REQUEST_CONFLICT다.
+기존 번호는 보존하며 삭제된 댓글도 참여 순서에 포함한다. 익명 작성자 회원 ID·해시·프로필 연결 정보는 반환하지 않는다.
+`likeCount`는 글의 좋아요 수이며 `liked`는 해당 브라우저의 선택 여부다. 쿠키가 없으면 `liked`는 false다.
+댓글에는 좋아요를 지원하지 않아 `likeCount: 0`, `liked: false`다.
+댓글의 `title`은 null이며 글 목록에도 본문을 포함한다. 목록·상세의 `editable`은 현재 소유 권한에 따라 계산한다. 댓글의 `commentCount`는 0이다.
+목록은 `{items: 작성물[], nextCursor: number | null}`이고 다음 페이지가 없으면 null이다.
+날짜는 ISO Instant이며 `updatedAt`이 `createdAt`과 다르면 수정 표시를 한다.
+제목은 1~100자, 글 본문 1~5,000자, 댓글 1~1,000자다. 요청의 최대 길이를 검사한 뒤 줄바꿈·앞뒤 공백을 정리한다.
+
+로그인 회원의 `GET /api/v1/community/notifications`는 최신 알림 최대 20개를 `[{commentId, postId, title, replyToId, seen, author, preview, createdAt}]`으로 반환한다. `author`는 글에서 보이는 이름과 같다(익명 댓글은 글 안의 `익명N`, 프로필 공개 댓글은 지금의 공개 이름이나 `프로필 비공개`·`알 수 없는 사용자`). `preview`는 댓글 본문의 공백을 한 칸으로 줄인 앞 80자(넘으면 `…`), `createdAt`은 댓글 작성 시각이다. `PUT /api/v1/community/notifications/{commentId}/read`는 자신의 알림만 읽음 처리하고, `PUT /api/v1/community/notifications/read-all`은 자신의 알림을 모두 읽음 처리한다. 둘 다 204를 반환하며 모든 경로에서 비회원은 401이다.
+
+신고 사유는 `SPAM`, `HARASSMENT`, `PERSONAL_INFORMATION`, `OTHER`이고 선택 설명은 최대 1,000자다.
+신고 원문·신고자·접수 목록을 공개하는 API는 없다. 접수 성공은 Slack 수신 완료를 뜻하지 않는다.
+
+생성 요청 번호는 글·댓글 전체에서 고유하며, 신고 요청 번호는 신고 전체에서 고유하다.
+같은 번호·같은 권한·같은 원래 내용·같은 대상의 재시도는 중복 저장하지 않는다(생성 재시도도 201).
+편집 후에도 원래 생성 내용으로 재시도할 수 있고, 현재 작성물을 반환한다. 삭제 뒤 재시도는 404다.
+쓰기 도중 타임아웃이 나면 같은 번호로 재시도한다. 다른 내용이나 브라우저에서 번호를 재사용하면
+409 `COMMUNITY_REQUEST_CONFLICT`다. 잘못된 입력은 400, 다른 작성자의 수정·삭제는
+403 `COMMUNITY_NOT_OWNER`, 없는 글·댓글이나 다른 글에 속한 댓글은 404 `COMMUNITY_NOT_FOUND`다.
+삭제 API를 다시 호출하면 404이며 댓글 수는 두 번 차감되지 않는다.
+
+글 행을 잠근 상태에서 글 수정·삭제, 댓글 변경·신고·좋아요 등록/취소를 처리해 상태를 함께 맞춘다.
+좋아요는 `(post_id, owner_hash)` 고유 제약을 두며 토글 요청 대신 원하는 상태를 PUT/DELETE로 지정한다.
+두 요청이 동시에 오면 서버에서 처리한 순서대로 반영한다. 삭제·없는 글과 댓글 ID에 대한 좋아요 요청은 404다.
+최초 신고 알림도 같은 트랜잭션에 기록한다. 별도 사용자 추적·조회수·분석 API는 없다.
