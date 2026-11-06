@@ -69,7 +69,7 @@ public class AuditService {
             if (entries.countByReviewId(review.getId()) >= 800) {
                 throw new BusinessException(INVALID_PDF_REVIEW, "한 심사에는 최대 800개까지 올릴 수 있습니다.");
             }
-            entries.save(new AuditApplicant(review.getId(), upload.jobId(), filename));
+            entries.save(AuditApplicant.forManualReview(review.getId(), upload.jobId(), filename));
         }
         return upload;
     }
@@ -81,6 +81,24 @@ public class AuditService {
         AuditApplicant entry = entries.findInReviewForUpdate(entryId, reviewId)
                 .orElseThrow(() -> new BusinessException(PDF_REVIEW_ENTRY_NOT_FOUND, "지원 항목을 찾을 수 없습니다."));
         entry.review(memo, decision);
+        return AuditApplicantView.of(entry);
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public AuditApplicantView updateMemo(long ownerId, String reviewId, String entryId, String memo) {
+        findOwned(ownerId, reviewId);
+        AuditApplicant entry = entries.findInReviewForUpdate(entryId, reviewId)
+                .orElseThrow(() -> new BusinessException(PDF_REVIEW_ENTRY_NOT_FOUND, "지원 항목을 찾을 수 없습니다."));
+        entry.updateMemo(memo);
+        return AuditApplicantView.of(entry);
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public AuditApplicantView renameEntry(long ownerId, String reviewId, String entryId, String title) {
+        findOwned(ownerId, reviewId);
+        AuditApplicant entry = entries.findInReviewForUpdate(entryId, reviewId)
+                .orElseThrow(() -> new BusinessException(PDF_REVIEW_ENTRY_NOT_FOUND, "지원 항목을 찾을 수 없습니다."));
+        entry.rename(title);
         return AuditApplicantView.of(entry);
     }
 

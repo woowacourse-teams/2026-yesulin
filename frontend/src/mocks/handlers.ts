@@ -61,6 +61,8 @@ const pdfPassthroughPaths = [
   "/api/v1/pdf-reviews/:reviewId/uploads",
   "/api/v1/pdf-reviews/:reviewId/role-assignments",
   "/api/v1/pdf-reviews/:reviewId/entries/:entryId",
+  "/api/v1/pdf-reviews/:reviewId/entries/:entryId/title",
+  "/api/v1/pdf-reviews/:reviewId/entries/:entryId/memo",
   "/api/v1/pdf-reviews/*",
 ];
 
