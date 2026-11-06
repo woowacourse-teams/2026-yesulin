@@ -56,3 +56,14 @@ PRECHECK 0 / INDEPENDENT_REVIEW 4 / POST_FIX_CHECK 0 / EXTERNAL 0 / 오탐 0.
 
 최초 게시 PR [#549](https://github.com/woowacourse-teams/2026-yesulin/pull/549), 대상 dev, 이슈 #547.
 사건 표의 PENDING은 최초 기록 당시 상태이며 이 절이 최초 PR 연결이다.
+
+## 추가 변경: 버그 알림 채널 함께 쓰기 (2026-11-06)
+
+사용자 결정으로 의견 전용 슬랙 채널을 만들기 전까지 기존 버그 알림 채널(`YESULIN_ERROR_SLACK_WEBHOOK_URL`)로 보낸다.
+`slack.yml`의 `feedback-webhook-url`에 PDF 분석 실패 알림과 같은 대체 방식을 적용했다. DEV·PROD 암호화 설정에는 오류 웹훅 변수가 있고
+의견 전용 변수는 없음을 변수 이름으로 확인했다. 따라서 config 변경 없이 배포만으로 알림이 간다.
+
+- 검증: `FeedbackWebhookFallbackTest`에서 전용 변수가 없을 때 오류 웹훅 값을 쓰는지 확인했다. 작성 중 전용 변수를 빈 값으로 두면
+  Spring이 대체하지 않는 것을 확인해 `slack.yml`·`deployment.md`에 "전용 채널 전에는 변수를 넣지 않는다"고 적었다.
+- 이 추가 변경은 설정 한 줄과 문서라 별도 독립 평가를 하지 않았고, 위 테스트와 feedback 테스트 16개·checkstyle로 확인했다.
+  실제 슬랙 수신은 DEV 배포 후 확인한다.

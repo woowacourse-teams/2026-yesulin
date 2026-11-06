@@ -1169,7 +1169,7 @@ HTTP status·서비스 워커 제어 여부·거친 플랫폼과 브라우저 �
 `request` 파트가 없으면 `400 INVALID_REQUEST`다. 사진은 비공개 저장소 `private/feedback-images/{yyyyMMdd}/{uuid}`에 `Cache-Control: private, no-store`로 두며,
 의견 저장에 실패하면 올린 사진을 지운다. 사진 없는 JSON 요청도 그대로 받는다.
 같은 접속 주소에서 10분 안에 5건을 넘기면 `429 FEEDBACK_TOO_FREQUENT`를 돌려준다(서버 메모리 기준, 재시작 시 초기화).
-저장이 커밋되면 `YESULIN_FEEDBACK_SLACK_WEBHOOK_URL` 채널로 종류·보낸 사람 구분(배우·공연사·운영자·비회원)·사진 장수·화면·
+저장이 커밋되면 `YESULIN_FEEDBACK_SLACK_WEBHOOK_URL` 채널(비어 있으면 `YESULIN_ERROR_SLACK_WEBHOOK_URL` 버그 알림 채널)로 종류·보낸 사람 구분(배우·공연사·운영자·비회원)·사진 장수·화면·
 운영자 화면 링크(`/admin/feedback`)·내용 500자를 보낸다. 연락처 원문·회원 번호·사진은 알림에 넣지 않는다. 알림 실패는 접수 결과에 영향을 주지 않는다.
 
 ## 심사 — 4개
