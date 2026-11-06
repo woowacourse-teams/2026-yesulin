@@ -5,7 +5,8 @@ import art.yesulin.global.exception.ErrorType;
 
 public enum FeedbackErrorCode implements ErrorCode {
 
-    TOO_FREQUENT(ErrorType.TOO_MANY_REQUESTS);
+    TOO_FREQUENT(ErrorType.TOO_MANY_REQUESTS),
+    INVALID_IMAGE(ErrorType.BAD_REQUEST);
 
     private final ErrorType type;
 

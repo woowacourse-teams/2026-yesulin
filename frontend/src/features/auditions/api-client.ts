@@ -44,7 +44,7 @@ async function executeRequest<T>(
   fetcher: typeof fetch,
 ): Promise<T> {
   const method = (init?.method ?? "GET").toUpperCase();
-  const baseHeaders = { "Content-Type": "application/json", ...init?.headers } as Record<string, string>;
+  const baseHeaders = defaultHeaders(init);
   const csrfHeaders = WRITE_METHODS.has(method) ? await withCsrfHeaders(baseHeaders, init?.signal ?? undefined) : baseHeaders;
   init?.signal?.throwIfAborted();
   const correlated = withRequestId(csrfHeaders);
@@ -91,4 +91,11 @@ async function executeRequest<T>(
 
   if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
+}
+
+/** FormData는 브라우저가 경계 값이 든 multipart 형식을 직접 붙이므로 JSON 형식을 넣지 않는다. */
+function defaultHeaders(init: RequestInit | undefined): Record<string, string> {
+  const headers = { ...init?.headers } as Record<string, string>;
+  if (init?.body instanceof FormData) return headers;
+  return { "Content-Type": "application/json", ...headers };
 }

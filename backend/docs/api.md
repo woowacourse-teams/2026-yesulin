@@ -1157,15 +1157,20 @@ HTTP status·서비스 워커 제어 여부·거친 플랫폼과 브라우저 �
 
 | Method | URL | 인증 | Request | Response |
 | --- | --- | --- | --- | --- |
-| POST | `/api/v1/public/feedback` | 없음(로그인했으면 회원 번호 함께 저장) | `FeedbackRequest` | `201 { id }` |
+| POST | `/api/v1/public/feedback` | 없음(로그인했으면 회원 번호 함께 저장) | `FeedbackRequest` (JSON) 또는 multipart | `201 { id }` |
 
 쓰기 요청이므로 CSRF header가 필요하다. `FeedbackRequest`는 `type`(`INCONVENIENCE`·`BUG`·`SUGGESTION`, 필수),
 `content`(앞뒤 공백 제거 후 1~1000자, 필수), `contact`(0~100자, 선택), `pagePath`(보낸 화면 경로, 선택)다.
 `pagePath`는 쿼리·해시를 버리고 300자로 자른 뒤 `/`로 시작하는 URL 경로 문자만 있을 때 저장한다. 줄바꿈·공백·꺾쇠 등이 섞이거나
 `//`로 시작하면 빈 값으로 저장하고 접수는 막지 않는다. 서버는 User-Agent를 300자까지 함께 저장한다.
+사진을 첨부하면 `multipart/form-data`로 보낸다. `request` 파트에 같은 `FeedbackRequest` JSON(`application/json`)을,
+`images` 파트에 사진을 0~3장 담는다. 사진은 JPEG·PNG·WebP 한 장 5MB 이하이며 서버가 파일 앞부분으로 형식을 다시 확인한다.
+형식·크기·장수가 맞지 않으면 아무것도 저장하지 않고 `400 FEEDBACK_INVALID_IMAGE`, 요청 전체가 16MB를 넘으면 `413`이다.
+`request` 파트가 없으면 `400 INVALID_REQUEST`다. 사진은 비공개 저장소 `private/feedback-images/{yyyyMMdd}/{uuid}`에 `Cache-Control: private, no-store`로 두며,
+의견 저장에 실패하면 올린 사진을 지운다. 사진 없는 JSON 요청도 그대로 받는다.
 같은 접속 주소에서 10분 안에 5건을 넘기면 `429 FEEDBACK_TOO_FREQUENT`를 돌려준다(서버 메모리 기준, 재시작 시 초기화).
-저장이 커밋되면 `YESULIN_FEEDBACK_SLACK_WEBHOOK_URL` 채널로 종류·보낸 사람 구분(배우·공연사·운영자·비회원)·화면·내용 500자를
-보낸다. 연락처 원문과 회원 번호는 알림에 넣지 않는다. 알림 실패는 접수 결과에 영향을 주지 않는다.
+저장이 커밋되면 `YESULIN_FEEDBACK_SLACK_WEBHOOK_URL` 채널(비어 있으면 `YESULIN_ERROR_SLACK_WEBHOOK_URL` 버그 알림 채널)로 종류·보낸 사람 구분(배우·공연사·운영자·비회원)·사진 장수·화면·
+운영자 화면 링크(`/admin/feedback`)·내용 500자를 보낸다. 연락처 원문·회원 번호·사진은 알림에 넣지 않는다. 알림 실패는 접수 결과에 영향을 주지 않는다.
 
 ## 심사 — 4개
 
@@ -1183,7 +1188,7 @@ submission ID와 변경할 status·memo·note 중 하나 이상을 요구한다.
 미선택자는 `PENDING`으로 보존하며, `PASS`만 다음 차수로 승격한다. 다음 차수 대상이 없으면 이후 빈 차수도
 자동 마감한다. 마감한 차수의 결과는 수정하거나 되돌릴 수 없다.
 
-## 운영 대시보드 — 18개
+## 운영 대시보드 — 19개
 
 개발팀 전용 경로다. 모두 `ADMIN` 세션만 통과하며 다른 역할은 `403 AUTH_FORBIDDEN`이다.
 
@@ -1200,6 +1205,7 @@ submission ID와 변경할 status·memo·note 중 하나 이상을 요구한다.
 | GET | `/api/v1/admin/audit-logs` | Admin | `page` query (선택, 0부터) | `200 AdminAuditLogsResponse` |
 | GET | `/api/v1/admin/logs` | Admin | `keyword`, `limit`, `date`(`yyyy-MM-dd`) query (선택) | `200 AdminLogResponse` |
 | GET | `/api/v1/admin/otr-redirects` | Admin | `days` query (1~14, 기본 14) | `200 OtrRedirectReport` |
+| GET | `/api/v1/admin/feedback` | Admin | `before` query (양수, 선택. 이 번호보다 오래된 의견) | `200 AdminFeedbackPage` |
 | GET | `/api/v1/admin/files/unreferenced` | Admin | `status` (`PENDING`/`READY`/`DELETING`), `page`(0부터), `size`(1~100) query, 모두 선택 | `200 UnusedFilesResult` |
 | DELETE | `/api/v1/admin/files/{fileId}` | Admin | `DeleteAdminFileRequest(confirmationPassword)` | `204` |
 | POST | `/api/v1/admin/files/deletions` | Admin | `BatchDeleteAdminFilesRequest(fileIds, confirmationPassword)` | `200 BatchFileDeletionResult` |
@@ -1228,6 +1234,9 @@ submission ID와 변경할 status·memo·note 중 하나 이상을 요구한다.
 수를 담는다. 한 배우가 여러 소셜 계정을 연결하면 경로마다 센다. 로그인·방문 기록은 저장하지 않으므로 활성 사용자 수는
 제공하지 않는다. `AdminActivity.days`는 오늘을 포함한 최근 14일을 한국 날짜 오래된 순으로 담고, 날마다 신규 배우·기획사,
 지원서, OTR 지원서, 현재 확정 상태인 예매 건수·매수를 0 포함으로 반환한다.
+
+`AdminFeedbackPage`는 최신순 20건의 `items`와 `hasNext`다. 더 볼 때는 마지막 항목의 `id`를 `before`로 보낸다. 각 항목은 `id`, `type`, `content`, `contact`(원문), `pagePath`,
+`memberId`(비회원이면 null), `userAgent`, `createdAt`, `imageUrls`(잠깐만 열리는 비공개 저장소 주소)다. 응답은 `Cache-Control: no-store`다.
 
 `OtrRedirectReport`는 `environment`(`DEV`·`PROD`·`LOCAL`), 한국 날짜 `startDate`·`endDate`,
 `totalClicks`, `links: [{otrId, clicks, lastClickedAt}]`, `available`, `truncated`, `readAt`을 반환한다.
