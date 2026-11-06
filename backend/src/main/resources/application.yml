@@ -23,6 +23,9 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+    # 운영에 늦게 들어가는 #533 마이그레이션(V20261105231338)을 적용하기 위해 켠다. 새 마이그레이션 순서는
+    # CI의 check_flyway_migration_order.sh가 계속 막는다. 운영 적용을 확인하면 허용 목록과 함께 끈다.
+    out-of-order: true
   mail:
     host: smtp.gmail.com
     port: 587
