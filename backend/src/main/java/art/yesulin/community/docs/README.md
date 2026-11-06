@@ -18,3 +18,4 @@
 - 받은 댓글 알림 개편 평가: [2026-11-05 알림 종·알림 화면](reviews/2026-11-05-community-notifications.md)
 - 대댓글 위치·글쓰기 칸 수정 평가: [2026-11-05 대댓글·글쓰기](reviews/2026-11-05-community-reply-and-editor.md)
 - 주제·지금 인기 글 평가: [2026-11-05 수다방 2단계](reviews/2026-11-05-community-topics.md)
+- 주제 숨김·무한스크롤 평가: [2026-11-06 수다방 피드](reviews/2026-11-06-community-feed.md)

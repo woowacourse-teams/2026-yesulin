@@ -1,7 +1,7 @@
 import { request } from "@/features/auditions/api-client";
 import { communityListMemory } from "./list-memory";
 import { prepareIdentity } from "./identity";
-import { communityPath, type PopularPost, type CommunityTopic, type CommunityEntry, type CommunityLikeState, type CommunityNotice, type CommunityPage, type ReportReason, type CommunityAuthorMode, type CommunityParticipation } from "./types";
+import { communityPath, type PopularPost, type CommunityEntry, type CommunityLikeState, type CommunityNotice, type CommunityPage, type ReportReason, type CommunityAuthorMode, type CommunityParticipation } from "./types";
 
 async function read<T>(path: string): Promise<T> {
   await prepareIdentity(false).catch(() => {});
@@ -15,11 +15,8 @@ async function write<T>(path: string, method: string, payload?: object): Promise
   return result;
 }
 
-export function getPosts(before?: number, topic?: CommunityTopic): Promise<CommunityPage> {
-  const query = new URLSearchParams();
-  if (before) query.set("before", String(before));
-  if (topic) query.set("topic", topic);
-  if (query.size) return read(`${communityPath}?${query}`);
+export function getPosts(before?: number): Promise<CommunityPage> {
+  if (before) return read(`${communityPath}?before=${before}`);
   return read(communityPath);
 }
 
@@ -31,11 +28,11 @@ export function getPost(id: number): Promise<CommunityEntry> {
   return read(`${communityPath}/${id}`);
 }
 
-export function createPost(input: { topic?: CommunityTopic; title: string; body: string; authorMode: CommunityAuthorMode; expectedMemberId: number }, requestId: string): Promise<CommunityEntry> {
+export function createPost(input: { title: string; body: string; authorMode: CommunityAuthorMode; expectedMemberId: number }, requestId: string): Promise<CommunityEntry> {
   return write(communityPath, "POST", { ...input, requestId });
 }
 
-export function editPost(id: number, input: { topic?: CommunityTopic; title: string; body: string }): Promise<CommunityEntry> {
+export function editPost(id: number, input: { title: string; body: string }): Promise<CommunityEntry> {
   return write(`${communityPath}/${id}`, "PUT", input);
 }
 
