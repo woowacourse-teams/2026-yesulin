@@ -37,3 +37,8 @@ Codex(읽기 전용)가 staged diff와 평가표로 평가했다.
 필수 PASS 7 / FAIL 0 / UNVERIFIED 0 / N/A 0. 발견 1 / 해결 1 / 미해결 0.
 P0 0 / P1 0 / P2 1 / P3 0. PRECHECK 0 / INDEPENDENT_REVIEW 1 / POST_FIX_CHECK 0 / EXTERNAL 0 / 오탐 0.
 평가자가 T7을 UNVERIFIED로 남긴 부분은 구현자가 `topic`·`topicLabels`·`community-topic` 검색으로 잔재가 MSW·서버 계약 타입뿐임을 확인해 PASS로 판정했다.
+
+## 최초 PR 연결
+
+최초 게시 PR [#548](https://github.com/woowacourse-teams/2026-yesulin/pull/548), 대상 dev, 이슈 #546.
+사건 표의 PENDING은 최초 기록 당시 상태이며 이 절이 최초 PR 연결이다.
