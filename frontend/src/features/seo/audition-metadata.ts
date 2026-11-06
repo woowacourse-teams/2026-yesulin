@@ -7,8 +7,15 @@ export const HOME_DESCRIPTION = "뮤지컬·연극 배우 모집 공고를 모�
 export const AUDITION_LIST_TITLE = "예술in | 오디션 공고";
 const AUDITION_LIST_DESCRIPTION = "뮤지컬·연극·퍼포먼스와 단원·기획사 모집 공고를 확인하세요. 모집 배역, 마감일, 지원 방법을 예술in에서 한곳에 안내합니다.";
 
+const SHARE_IMAGE_PATH = "/images/og-image.png?v=20261106-open-door";
+
+export function shareImageUrl(deploymentEnvironment = process.env.VERCEL_ENV): string {
+  if (deploymentEnvironment === "preview") return `https://dev.yesulin.art${SHARE_IMAGE_PATH}`;
+  return SHARE_IMAGE_PATH;
+}
+
 export const SHARE_IMAGE = {
-  url: "/images/og-image.png?v=20261106-open-door",
+  url: shareImageUrl(),
   width: 1200,
   height: 630,
   alt: "예술의 문을 열다 — 예술in 로고와 빛이 퍼지는 청록·보라색 문",

@@ -7,6 +7,7 @@ import {
   auditionPostSearchTitle,
   AUDITION_LIST_TITLE,
   SHARE_IMAGE,
+  shareImageUrl,
 } from "./audition-metadata";
 
 const post: AuditionPost = {
@@ -29,6 +30,17 @@ const post: AuditionPost = {
   updatedAt: "2026-10-18T00:00:00Z",
   company: null,
 };
+
+describe("공유 이미지 주소", () => {
+  it("Vercel preview에서는 dev 배포의 이미지를 가리킨다", () => {
+    expect(shareImageUrl("preview")).toBe("https://dev.yesulin.art/images/og-image.png?v=20261106-open-door");
+  });
+
+  it("production과 local에서는 메타데이터 base의 같은 origin 이미지 경로를 쓴다", () => {
+    expect(shareImageUrl("production")).toBe("/images/og-image.png?v=20261106-open-door");
+    expect(shareImageUrl(undefined)).toBe("/images/og-image.png?v=20261106-open-door");
+  });
+});
 
 describe("공고 상세 검색 정보", () => {
   it("검색·공유 제목에서만 반복 기호와 지난 마감 머리말을 걷어 낸다", () => {
