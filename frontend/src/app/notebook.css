@@ -1139,6 +1139,7 @@
 .home-row-arrow.is-previous { left:-22px; }
 .home-row-arrow.is-next { right:-22px; }
 .home-row-arrow:hover { background:#f9fafb; }
+.home-row-arrow[hidden] { display:none; }
 .home-chips { display:flex; gap:8px; margin:-4px 0 16px; overflow-x:auto; scrollbar-width:none; }
 .home-chips::-webkit-scrollbar { display:none; }
 .home-chips button { flex-shrink:0; min-height:40px; padding:0 16px; border-radius:999px; background:#f2f4f6; font-size:14px; font-weight:600; color:#4e5968; }
@@ -1153,7 +1154,7 @@
 .home-quick-banner.is-shows { background:linear-gradient(135deg,#e3f2ff,#d4e6ff); }
 .home-quick-banner.is-producer { background:linear-gradient(135deg,#efe9ff,#e1d8ff); }
 .home-main .notebook-faq { margin-top:24px; }
-@media(max-width:1080px) {
+@media(max-width:760px) {
   .home-row-arrow { display:none; }
 }
 @media(max-width:760px) {
@@ -1173,6 +1174,9 @@
 /* 홈 포스터 줄은 데스크톱 5장, 태블릿 4장, 모바일 2.3장이 보이는 크기로 맞춘다. */
 .home-row-scroller { gap:20px; }
 .home-row-scroller > li { flex-basis:calc((100% - 4 * 20px) / 5); }
+@media(min-width:761px) {
+  .home-row-scroller > li:last-child { margin-inline-end:var(--home-row-tail,0px); }
+}
 .home-row .notebook-poster, .home-row .notebook-poster-skeleton { border-radius:12px; }
 .home-row .notebook-poster-title { margin-top:14px; font-size:17px; line-height:1.4; color:#191f28; }
 .home-row .notebook-poster-byline, .home-row .notebook-poster-meta { font-size:14px; color:#6b7684; }
