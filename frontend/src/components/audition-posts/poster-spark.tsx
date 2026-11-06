@@ -16,7 +16,7 @@ export function PosterSpark() {
     const card = spark.closest(".notebook-poster-card");
     const replay = () => spin(spark);
     const stop = () => spark.removeAttribute("data-spinning");
-    const observer = watchFirstView(spark, replay);
+    const observer = card && watchFirstView(card, replay);
     card?.addEventListener("mouseenter", replay);
     spark.addEventListener("animationend", stop);
     return () => { observer?.disconnect(); card?.removeEventListener("mouseenter", replay); spark.removeEventListener("animationend", stop); };
@@ -30,13 +30,13 @@ function spin(spark: HTMLElement) {
   spark.setAttribute("data-spinning", "");
 }
 
-function watchFirstView(spark: HTMLElement, onView: () => void) {
+function watchFirstView(card: Element, onView: () => void) {
   if (typeof IntersectionObserver === "undefined") return null;
   const observer = new IntersectionObserver((entries) => {
-    if (!entries.some((entry) => entry.isIntersecting)) return;
+    if (!entries.some((entry) => entry.isIntersecting && entry.intersectionRatio >= VISIBLE_RATIO)) return;
     observer.disconnect();
     onView();
   }, { threshold: VISIBLE_RATIO });
-  observer.observe(spark);
+  observer.observe(card);
   return observer;
 }
