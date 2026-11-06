@@ -2,6 +2,7 @@
 
 - 작업 ID: `2026-11-06-og-preview-image-host`, 평가표 v1
 - 범위: Vercel Preview 메타데이터가 preview 배포 이미지를 공유 크롤러에 전달하도록 수정
+- 영향: 공유 링크가 운영에서 dev로 이동하는 코드 설정은 PR #564에 들어갔고, 이 후속 문제는 Preview의 `og:image`가 운영 호스트를 가리켜 dev 카드가 이전 이미지를 받게 한 점임
 - 근거: 사용자 스크린샷 및 HTTP 검사에서 `dev.yesulin.art` 문서의 `og:image`가 운영 `yesulin.art`를 가리키고, 그 URL 응답은 변경 전 686329-byte 이미지였음. 같은 경로의 dev 응답은 변경된 977630-byte 이미지였음
 
 | ID | 실패 조건 | 기대 결과 | 검증 방법 | 필수 | 결과 |
@@ -26,13 +27,15 @@
 - `npm run lint`: 성공
 - 관련 3개 테스트 파일 28개 통과
 - Preview 실제 HTML·이미지 HTTP 확인과 Vercel PR 검사는 진행 전
-- 독립 평가 1회 진행 중
+- 독립 평가 1회 완료: 수정 코드 신규 결함0, P01·P02·P04 PASS, P03·P05 UNVERIFIED, P06 N/A
+- 검토 중 지적된 문서 집계 불일치(미확인5)는 고쳤고, 미확인은 P03·P05 2건임을 확인
+- 모든 Preview가 dev 도메인의 최신 이미지 자산을 읽으므로 PR 전용 Preview 이미지와 혼동하지 않음
 - 현재 필수 PASS3 / FAIL0 / UNVERIFIED1, 비필수 UNVERIFIED1 / N/A1, 필수 검증률75%(3/4)
 
 ## 문제와 집계
 
 | 문제 ID | 심각도·유형·유입 | 최초 확정 / 최초 PR | 해결 시각 | 근거·상태 |
 | --- | --- | --- | --- | --- |
-| 2026-11-06-og-preview-image-host-F01 | P2·CODE·INTRODUCED | 2026-11-06T23:33:01+09:00 / PENDING | 미해결 | 이전 공유 메타 설정이 preview 페이지에서 운영 이미지 호스트를 생성, 사용자 화면 및 HTTP 해시로 확인, OPEN |
+| 2026-11-06-og-preview-image-host-F01 | P2·CODE·INTRODUCED | 2026-11-06T23:33:01+09:00 / #564 | 미해결 | #564의 공통 이미지 URL이 preview에서 운영 호스트를 생성, 사용자 화면 및 HTTP 해시로 확인, 이 후속 PR에서 수정 중, OPEN |
 
-발견1 / 해결0 / 미해결1 / P0 0 / P1 0 / P2 1 / P3 0, PRECHECK0 / INDEPENDENT_REVIEW0 / POST_FIX_CHECK0 / EXTERNAL1, 오탐0, 미확인5
+발견1 / 해결0 / 미해결1 / P0 0 / P1 0 / P2 1 / P3 0, PRECHECK0 / INDEPENDENT_REVIEW0 / POST_FIX_CHECK0 / EXTERNAL1, 오탐0, 미확인2
