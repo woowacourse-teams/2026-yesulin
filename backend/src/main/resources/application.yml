@@ -7,6 +7,12 @@ spring:
     active: ${SPRING_PROFILES_ACTIVE:local}
   application:
     name: yesulin
+  servlet:
+    multipart:
+      # 의견 보내기 첨부 사진(한 장 5MB, 최대 3장)만 서버로 직접 받는다. 다른 파일은 저장소에 바로 올린다.
+      # 한 장 크기는 서비스가 400 FEEDBACK_INVALID_IMAGE로 거절하도록 파일 상한은 요청 상한과 같게 둔다.
+      max-file-size: 16MB
+      max-request-size: 16MB
   lifecycle:
     # systemd TimeoutStopSec(30s) 안에 진행 중인 요청을 마칠 시간을 준다.
     timeout-per-shutdown-phase: 25s

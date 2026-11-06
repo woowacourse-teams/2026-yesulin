@@ -5,6 +5,7 @@ import { PiChatTeardropText } from "react-icons/pi";
 import { DialogFooter, DialogHeader, ModalShell } from "@/components/auditions/modal-shell";
 import { FieldInput, FieldTextarea, PrimaryButton, SecondaryButton } from "@/components/ui/controls";
 import { FEEDBACK_CONTACT_MAX, FEEDBACK_CONTENT_MAX, FEEDBACK_TYPES, type FeedbackType } from "@/features/feedback/types";
+import { FeedbackImageField, useFeedbackImages } from "./feedback-images";
 
 type Status = "editing" | "sending" | "sent";
 
@@ -38,12 +39,13 @@ function FeedbackForm({ onClose }: { readonly onClose: () => void }) {
       <div className="flex flex-col gap-5 px-5 py-5 md:px-6">
         <TypePicker value={form.type} onChange={form.setType} />
         <ContentField value={form.content} onChange={form.setContent} />
+        <FeedbackImageField state={form.images} disabled={form.status === "sending"} />
         <ContactField value={form.contact} onChange={form.setContact} />
         {form.error && <p role="alert" className="text-sm text-fail">{form.error}</p>}
       </div>
       <DialogFooter>
         <SecondaryButton type="button" onClick={onClose}>닫기</SecondaryButton>
-        <PrimaryButton type="submit" disabled={form.status === "sending"}>{sendLabel(form.status)}</PrimaryButton>
+        <PrimaryButton type="submit" disabled={form.status === "sending" || form.images.processing}>{sendLabel(form.status)}</PrimaryButton>
       </DialogFooter>
     </form>
   );
@@ -60,27 +62,40 @@ function useFeedbackForm() {
   const [contact, setContact] = useState("");
   const [status, setStatus] = useState<Status>("editing");
   const [error, setError] = useState("");
+  const images = useFeedbackImages();
   const send = async () => {
     setStatus("sending");
     setError("");
     const { submitFeedback } = await import("@/features/feedback/api");
-    await submitFeedback({ type, content, contact, pagePath: window.location.pathname })
+    await submitFeedback({ type, content, contact, pagePath: window.location.pathname, images: images.blobs })
       .then(() => setStatus("sent"))
       .catch((cause: unknown) => { setStatus("editing"); setError(failureMessage(cause)); });
   };
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    if (status === "sending") return;
+    if (status === "sending" || images.processing) return;
     if (!content.trim()) return setError("내용을 입력해 주세요.");
     await send();
   };
-  return { type, setType, content, setContent, contact, setContact, status, error, submit };
+  return { type, setType, content, setContent, contact, setContact, images, status, error, submit };
 }
 
 /** 요청 모듈을 화면 공통 꼬리말에 미리 싣지 않으려고 오류의 status만 본다. */
 function failureMessage(cause: unknown): string {
-  if (typeof cause === "object" && cause !== null && "status" in cause && cause.status === 429) return "잠시 후 다시 보내 주세요. 짧은 시간에 여러 번 보내면 잠시 막혀요.";
+  const status = failureStatus(cause);
+  if (status === 429) return "잠시 후 다시 보내 주세요. 짧은 시간에 여러 번 보내면 잠시 막혀요.";
+  if (status === 413) return "사진이 너무 커요. 사진을 빼거나 다른 사진으로 바꿔 주세요.";
+  if (isImageRejected(cause)) return "사진은 JPG·PNG·WebP로 한 장 5MB, 최대 3장까지 보낼 수 있어요.";
   return "보내지 못했어요. 작성한 내용은 그대로 있으니 다시 시도해 주세요.";
+}
+
+function failureStatus(cause: unknown): unknown {
+  if (typeof cause !== "object" || cause === null || !("status" in cause)) return null;
+  return cause.status;
+}
+
+function isImageRejected(cause: unknown): boolean {
+  return typeof cause === "object" && cause !== null && "code" in cause && cause.code === "FEEDBACK_INVALID_IMAGE";
 }
 
 function TypePicker({ value, onChange }: { readonly value: FeedbackType; readonly onChange: (type: FeedbackType) => void }) {

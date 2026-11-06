@@ -52,6 +52,7 @@ import type {
   AdminSubmissionSummary,
   AdminTimetableMessage,
   AdminTimetableMessages,
+  AdminFeedbackPage,
   AdminTimetableMessageStatus,
   AdminUnusedFileStatus,
   AdminUnusedFilesPage,
@@ -265,6 +266,13 @@ export async function deleteAdminSubmission(
     body: JSON.stringify({ confirmationPassword }),
   });
   if (!response.ok) throw await readAdminError(response, "지원서를 삭제하지 못했습니다.");
+}
+
+/** 받은 의견을 최신순으로 20개씩 본다. `before`를 주면 그 번호보다 오래된 의견을 이어 준다. */
+export function fetchFeedback(before?: number): Promise<AdminFeedbackPage> {
+  let path = "/feedback";
+  if (before !== undefined) path += `?before=${before}`;
+  return getJson<AdminFeedbackPage>(path, "받은 의견을 불러오지 못했습니다.");
 }
 
 export function fetchTimetableMessages(status: AdminTimetableMessageStatus): Promise<AdminTimetableMessages> {

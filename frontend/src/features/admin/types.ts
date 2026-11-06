@@ -748,3 +748,23 @@ export type AdminActorPage = Omit<AdminActorPageSummary, "name" | "updatedAt"> &
   readonly phone: string | null;
   readonly email: string | null;
 };
+
+export type AdminFeedbackType = "INCONVENIENCE" | "BUG" | "SUGGESTION";
+
+/** 받은 의견 한 건. memberId가 없으면 비회원이 보냈다. imageUrls는 잠깐만 열리는 주소다. */
+export type AdminFeedbackItem = {
+  readonly id: number;
+  readonly type: AdminFeedbackType;
+  readonly content: string;
+  readonly contact: string;
+  readonly pagePath: string;
+  readonly memberId: number | null;
+  readonly userAgent: string;
+  readonly createdAt: string;
+  readonly imageUrls: readonly string[];
+};
+
+export type AdminFeedbackPage = {
+  readonly items: readonly AdminFeedbackItem[];
+  readonly hasNext: boolean;
+};

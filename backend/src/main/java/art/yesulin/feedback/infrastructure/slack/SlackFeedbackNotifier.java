@@ -10,7 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
-/** 저장된 의견을 전용 채널로 비동기 전송한다. 웹훅이 없으면 로그만 남긴다. 연락처 원문은 보내지 않는다. */
+/** 저장된 의견을 전용 채널로 비동기 전송한다. 웹훅이 없으면 로그만 남긴다. 연락처 원문과 이미지는 보내지 않는다. */
 @Component
 public class SlackFeedbackNotifier implements FeedbackNotifier {
 
@@ -57,8 +57,10 @@ public class SlackFeedbackNotifier implements FeedbackNotifier {
 
     private String message(FeedbackSubmittedEvent event) {
         return prefix + "[의견 보내기] " + event.type().label() + " #" + event.feedbackId() + '\n'
-                + "보낸 사람: " + event.writer().label() + " · 연락처 " + contactLabel(event) + '\n'
+                + "보낸 사람: " + event.writer().label() + " · 연락처 " + contactLabel(event)
+                + " · 사진 " + event.imageCount() + "장" + '\n'
                 + "화면: " + page(event) + '\n'
+                + "관리자에서 보기: " + siteBaseUrl + "/admin/feedback" + '\n'
                 + "────\n" + preview(event.content());
     }
 

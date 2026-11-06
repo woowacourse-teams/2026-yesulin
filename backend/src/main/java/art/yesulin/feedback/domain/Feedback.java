@@ -1,14 +1,20 @@
 package art.yesulin.feedback.domain;
 
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OrderColumn;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -52,8 +58,18 @@ public class Feedback {
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
 
+    @ElementCollection
+    @CollectionTable(name = "feedback_images", joinColumns = @JoinColumn(name = "feedback_id"))
+    @OrderColumn(name = "sort_order")
+    private List<FeedbackImage> images = new ArrayList<>();
+
     public Feedback(FeedbackType type, String content, String contact, FeedbackPage page, Long memberId,
                     Instant createdAt) {
+        this(type, content, contact, page, memberId, createdAt, List.of());
+    }
+
+    public Feedback(FeedbackType type, String content, String contact, FeedbackPage page, Long memberId,
+                    Instant createdAt, List<FeedbackImage> images) {
         this.type = Objects.requireNonNull(type);
         this.content = FeedbackText.required(content, CONTENT_MAX);
         this.contact = FeedbackText.optional(contact, CONTACT_MAX);
@@ -61,6 +77,15 @@ public class Feedback {
         this.userAgent = page.userAgent();
         this.memberId = memberId;
         this.createdAt = Objects.requireNonNull(createdAt);
+        this.images = new ArrayList<>(images);
+    }
+
+    public List<FeedbackImage> getImages() {
+        return List.copyOf(images);
+    }
+
+    public int imageCount() {
+        return images.size();
     }
 
     public boolean hasContact() {
