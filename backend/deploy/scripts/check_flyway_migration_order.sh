@@ -9,6 +9,7 @@ fi
 base_ref="$1"
 repository_root="${2:-$(git rev-parse --show-toplevel)}"
 migration_directory="backend/src/main/resources/db/migration"
+allowlist_file="backend/deploy/flyway-out-of-order-allowlist.txt"
 
 cd "$repository_root"
 
@@ -58,6 +59,11 @@ find "$migration_directory" -maxdepth 1 -type f -name 'V*__*.sql' -print \
       if [ -z "$version" ]; then
         echo "Invalid Flyway migration filename: $relative_path" >&2
         exit 1
+      fi
+
+      if [ -f "$allowlist_file" ] && sed 's/#.*//' "$allowlist_file" | tr -d ' \t' | grep -qx "$version"; then
+        echo "Allowed out-of-order Flyway migration $filename (listed in $allowlist_file)"
+        continue
       fi
 
       if [ "$version" -le "$base_max_version" ]; then
