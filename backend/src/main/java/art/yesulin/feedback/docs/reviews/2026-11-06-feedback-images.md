@@ -51,3 +51,8 @@ Codex(읽기 전용)가 staged diff와 평가표로 평가했다. 첫 실행은 
 발견 4 / 해결 4 / 미해결 0. P0 0 / P1 2 / P2 2 / P3 0.
 PRECHECK 0 / INDEPENDENT_REVIEW 4 / POST_FIX_CHECK 0 / EXTERNAL 0 / 오탐 0.
 평가자가 UNVERIFIED로 둔 F3·F6·F8은 위 테스트 근거로 구현자가 PASS 판정했다. 실제 S3 중간 실패와 DB 커넥션 점유는 코드 구조로만 확인했다.
+
+## 최초 PR 연결
+
+최초 게시 PR [#549](https://github.com/woowacourse-teams/2026-yesulin/pull/549), 대상 dev, 이슈 #547.
+사건 표의 PENDING은 최초 기록 당시 상태이며 이 절이 최초 PR 연결이다.
