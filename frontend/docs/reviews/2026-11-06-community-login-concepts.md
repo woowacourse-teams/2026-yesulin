@@ -1,7 +1,7 @@
 # 커뮤니티 로그인 안내 위치와 시안 평가
 
 - 작업 ID: `2026-11-06-community-login-concepts`
-- 평가일: 2026-11-06, Asia/Seoul. 최초 PR PENDING, 게시·커밋·배포 없음.
+- 평가일: 2026-11-06, Asia/Seoul. 최초 PR #559, 게시·커밋·배포 없음.
 - 범위: 비로그인 안내 위치 조사, 외부 레퍼런스 확인, 독립 시안 5개. 커뮤니티 제품 코드는 수정하지 않았다.
 - 기준: 루트/프론트 규칙 → community/docs/README → AGENTS 및 community-membership-requirements의 읽기·작성·익명 선택 정책.
 - 산출물: `/Users/moon/.codex/visualizations/2026/11/06/01a1b054-165e-77f1-a4e0-79c89204bf99/community-login-concepts.html`.
@@ -29,11 +29,18 @@
 
 | 문제 ID | 심각도·유형·유입 | 발견 경로 | 최초 확정 / 최초 PR | 해결 시각 | 근거·조치·상태 |
 | --- | --- | --- | --- | --- | --- |
-| 2026-11-06-community-login-concepts-F01 | P2·CODE·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-06T19:25:47+09:00 / PENDING | 2026-11-06T19:27:54+09:00 | 네이버 녹색 위 흰색 라벨 대비 약2.25:1. 라벨 #153c27, N 마크만 흰색 유지. 계산 검증 후 FIXED |
+| 2026-11-06-community-login-concepts-F01 | P2·CODE·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-06T19:25:47+09:00 / #559 | 2026-11-06T19:27:54+09:00 | 네이버 녹색 위 흰색 라벨 대비 약2.25:1. 라벨 #153c27, N 마크만 흰색 유지. 계산 검증 후 FIXED |
 
 | 사건 ID | 문제 ID | 종류 | 발생 시각 | 근거·관련 PR |
 | --- | --- | --- | --- | --- |
-| E01 | 2026-11-06-community-login-concepts-F01 | CONFIRMED | 2026-11-06T19:25:47+09:00 | 독립 평가 대비 계산, PR PENDING |
-| E02 | 2026-11-06-community-login-concepts-F01 | FIXED | 2026-11-06T19:27:54+09:00 | 라벨색 변경 후 Python 상대휘도 계산 4.5:1 이상, PR PENDING |
+| E01 | 2026-11-06-community-login-concepts-F01 | CONFIRMED | 2026-11-06T19:25:47+09:00 | 독립 평가 대비 계산, PR #559 |
+| E02 | 2026-11-06-community-login-concepts-F01 | FIXED | 2026-11-06T19:27:54+09:00 | 라벨색 변경 후 Python 상대휘도 계산 4.5:1 이상, PR #559 |
 
 신규 발견1 / 해결1 / 미해결0 / P0 0 / P1 0 / P2 1 / P3 0. PRECHECK0 / INDEPENDENT_REVIEW1 / POST_FIX_CHECK0 / EXTERNAL0. 오탐0, 미확인1.
+
+## PR 최초 게시
+
+- 최초 기록 PR: [#559](https://github.com/woowacourse-teams/2026-yesulin/pull/559), 대상 dev.
+- 위의 PR 미게시·커밋/배포 없음 문구는 최초 점검 시점의 기록이며, 게시 후에도 과거 검증 결과와 상태 사건은 보존한다.
+- 게시 전 독립 일관성 검토에서 문제 ID 중복 제거 발견3/해결3/P2 3,4개 작업별 평가와20파일 범위 일치를 확인했다.
+- 병합 직전 최신 dev 기준 rebase 확인 및 관련8파일50테스트 통과. 실제 인증/모바일 미확인 범위는 그대로 유지한다.

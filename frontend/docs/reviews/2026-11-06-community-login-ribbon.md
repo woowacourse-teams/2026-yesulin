@@ -3,7 +3,7 @@
 - 작업 ID: `2026-11-06-community-login-ribbon`
 - 사용자 선택: 3번 상단 띠, 비로그인에게만 노출. 부가 설명 없이 `1초 로그인`과 소셜3개 버튼.
 - 기준: 루트/프론트 규칙, community/docs/README → AGENTS, 로그인 참여 요구사항, auth/docs/README → AGENTS. 실제 소셜 인증·복귀 계약 재사용.
-- 사전 평가표 v1. 구현 전 작성. PR PENDING.
+- 사전 평가표 v1. 구현 전 작성. PR #559.
 - 후속 사용자 요청: 로그인 화면의 설명·이용 목적·계정별 부연·자동 생성 안내 제거. 계정 선택 접근 가능한 이름과 기존 제작사·지원서 인증 흐름은 유지한다.
 - 독립 평가 1회 완료. 상대 CLI 인증이 준비되지 않아 별도 Codex 에이전트를 사용했다. 읽기 전용 검토 및 관련34개 테스트 독립 재실행. 신규 확정 결함 없음.
 - 판정: 구현 및 로컬 목 검증 완료, 실OAuth 왕복·모바일 실기기·키보드 실브라우저는 조건부 미확인. PR·배포 없음.
@@ -29,3 +29,10 @@ PRECHECK0 / INDEPENDENT_REVIEW0 / POST_FIX_CHECK0 / EXTERNAL0, 오탐0, 미확�
 - `npm test -- src/components/community/community-login-ribbon.test.tsx src/components/auth/producer-entry.test.tsx src/features/auth/social-login-return-to.test.ts src/features/analytics/events.test.ts src/app/\(auth\)/login/page.test.tsx`: 5파일34테스트 통과, 평가자 재실행 동일.
 - 작업 폴더 전체 빌드는 이전 점검에서 확인한 기존 미추적 `design-preview/page.tsx`의 initialPage 타입 오류가 있어 통과로 주장하지 않는다. 기존 실험 파일을 건드리지 않고 추적 frontend+이번 신규 파일을 `/private/tmp/yesulin-home-pagination-build`에 복사해 `npm run build -- --webpack` 실행: 타입 검사 및62페이지 빌드 통과.
 - 브라우저는 명시적 MSW 환경. 커뮤니티 guest→목카카오 로그인→글쓰기→로그인한 목록 숨김→로그아웃→로그인 화면→제작사 radio 선택을 확인했다. 실제 인증/운영 데이터/공고 등록은 하지 않았다.
+
+## PR 최초 게시
+
+- 최초 기록 PR: [#559](https://github.com/woowacourse-teams/2026-yesulin/pull/559), 대상 dev.
+- 위의 PR 미게시·커밋/배포 없음 문구는 최초 점검 시점의 기록이며, 게시 후에도 과거 검증 결과와 상태 사건은 보존한다.
+- 게시 전 독립 일관성 검토에서 문제 ID 중복 제거 발견3/해결3/P2 3,4개 작업별 평가와20파일 범위 일치를 확인했다.
+- 병합 직전 최신 dev 기준 rebase 확인 및 관련8파일50테스트 통과. 실제 인증/모바일 미확인 범위는 그대로 유지한다.

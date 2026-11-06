@@ -28,13 +28,13 @@
 
 | 문제 ID | 심각도·유형·유입 | 발견 경로 | 최초 확정 / 최초 PR | 해결 시각 | 근거·조치·상태 |
 | --- | --- | --- | --- | --- | --- |
-| 2026-11-06-home-navigation-inspection-F01 | P2·CODE·EXISTING | PRECHECK | 2026-11-06T19:09:14+09:00 / PENDING | — | 이동 경계·overflow 검사 없이 양쪽 버튼 활성. scrollLeft와 scrollWidth/clientWidth로 가능한 방향만 제공하도록 제안. OPEN |
-| 2026-11-06-home-navigation-inspection-F02 | P2·CODE·EXISTING | PRECHECK | 2026-11-06T19:09:14+09:00 / PENDING | — | 동작 감소 조건 없이 JS smooth 지정. 설정에 따라 instant/smooth 선택 제안. 정적 불일치는 확정, 실제 환경 재현은 H04 미확인. OPEN |
+| 2026-11-06-home-navigation-inspection-F01 | P2·CODE·EXISTING | PRECHECK | 2026-11-06T19:09:14+09:00 / #559 | — | 이동 경계·overflow 검사 없이 양쪽 버튼 활성. scrollLeft와 scrollWidth/clientWidth로 가능한 방향만 제공하도록 제안. OPEN |
+| 2026-11-06-home-navigation-inspection-F02 | P2·CODE·EXISTING | PRECHECK | 2026-11-06T19:09:14+09:00 / #559 | — | 동작 감소 조건 없이 JS smooth 지정. 설정에 따라 instant/smooth 선택 제안. 정적 불일치는 확정, 실제 환경 재현은 H04 미확인. OPEN |
 
 | 사건 ID | 문제 ID | 종류 | 발생 시각 | 근거·관련 PR |
 | --- | --- | --- | --- | --- |
-| E01 | 2026-11-06-home-navigation-inspection-F01 | CONFIRMED | 2026-11-06T19:09:14+09:00 | 운영 화면 및 poster-row.tsx:18–30, PR PENDING |
-| E02 | 2026-11-06-home-navigation-inspection-F02 | CONFIRMED | 2026-11-06T19:09:14+09:00 | poster-row.tsx:19 및 독립 평가, PR PENDING |
+| E01 | 2026-11-06-home-navigation-inspection-F01 | CONFIRMED | 2026-11-06T19:09:14+09:00 | 운영 화면 및 poster-row.tsx:18–30, PR #559 |
+| E02 | 2026-11-06-home-navigation-inspection-F02 | CONFIRMED | 2026-11-06T19:09:14+09:00 | poster-row.tsx:19 및 독립 평가, PR #559 |
 
 신규 확정 발견 2 / 해결 0 / 미해결 2 / P0 0 / P1 0 / P2 2 / P3 0.
 발견 경로 PRECHECK 2 / INDEPENDENT_REVIEW 0 / POST_FIX_CHECK 0 / EXTERNAL 0. 오탐 0. 미확인 2.
@@ -46,7 +46,14 @@
 
 | 사건 ID | 문제 ID | 종류 | 발생 시각 | 근거·관련 PR |
 | --- | --- | --- | --- | --- |
-| E03 | 2026-11-06-home-navigation-inspection-F01 | FIXED | 2026-11-06T19:25:47+09:00 | use-poster-navigation에서 scroll 경계 확인 및 버튼 hidden 처리, 0/4/5건 테스트와 실제 PC 시작·끝 검증. PR PENDING |
-| E04 | 2026-11-06-home-navigation-inspection-F02 | FIXED | 2026-11-06T19:25:47+09:00 | matchMedia 동작 감소 설정에 따라 instant 선택, DOM 테스트 통과. 실제 OS 환경은 미확인. PR PENDING |
+| E03 | 2026-11-06-home-navigation-inspection-F01 | FIXED | 2026-11-06T19:25:47+09:00 | use-poster-navigation에서 scroll 경계 확인 및 버튼 hidden 처리, 0/4/5건 테스트와 실제 PC 시작·끝 검증. PR #559 |
+| E04 | 2026-11-06-home-navigation-inspection-F02 | FIXED | 2026-11-06T19:25:47+09:00 | matchMedia 동작 감소 설정에 따라 instant 선택, DOM 테스트 통과. 실제 OS 환경은 미확인. PR #559 |
 
 현재 문제 상태: F01 FIXED / F02 FIXED. 누적 발견2 / 해결2 / 미해결0 / P0 0 / P1 0 / P2 2 / P3 0. 과거 CONFIRMED 시각 및 최초 점검 결과는 보존한다.
+
+## PR 최초 게시
+
+- 최초 기록 PR: [#559](https://github.com/woowacourse-teams/2026-yesulin/pull/559), 대상 dev.
+- 위의 PR 미게시·커밋/배포 없음 문구는 최초 점검 시점의 기록이며, 게시 후에도 과거 검증 결과와 상태 사건은 보존한다.
+- 게시 전 독립 일관성 검토에서 문제 ID 중복 제거 발견3/해결3/P2 3,4개 작업별 평가와20파일 범위 일치를 확인했다.
+- 병합 직전 최신 dev 기준 rebase 확인 및 관련8파일50테스트 통과. 실제 인증/모바일 미확인 범위는 그대로 유지한다.
