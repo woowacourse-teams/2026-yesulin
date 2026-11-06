@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, type ReactNode } from "react";
+import { Children, type ReactNode } from "react";
 import { SiteIcon } from "@/components/ui/site-icon";
+import { usePosterNavigation } from "./use-poster-navigation";
 
 /** 홈의 가로 포스터 줄. 모바일은 스와이프, 데스크톱은 양옆 버튼으로 넘긴다. */
 export function PosterRow({ id, title, moreHref, toolbar, label, fallback, children }: {
@@ -15,8 +16,10 @@ export function PosterRow({ id, title, moreHref, toolbar, label, fallback, child
   readonly fallback?: ReactNode;
   readonly children?: ReactNode;
 }) {
-  const scroller = useRef<HTMLUListElement>(null);
-  const move = (direction: number) => scroller.current?.scrollBy({ left: direction * scroller.current.clientWidth * 0.85, behavior: "smooth" });
+  const contentKey = Children.toArray(children).map((child) => {
+    if (typeof child === "object" && "key" in child) return child.key;
+    return child;
+  }).join("|");
   return <section id={id} className="home-row" aria-label={label}>
     <div className="home-row-heading">
       <h2>{title}</h2>
@@ -24,12 +27,17 @@ export function PosterRow({ id, title, moreHref, toolbar, label, fallback, child
     </div>
     {toolbar}
     {fallback}
-    {!fallback && <div className="home-row-body">
-      <ul ref={scroller} className="home-row-scroller">{children}</ul>
-      <button type="button" className="home-row-arrow is-previous" aria-label={`${title} 이전 포스터`} onClick={() => move(-1)}><SiteIcon name="previous" size={20} /></button>
-      <button type="button" className="home-row-arrow is-next" aria-label={`${title} 다음 포스터`} onClick={() => move(1)}><SiteIcon name="next" size={20} /></button>
-    </div>}
+    {!fallback && <PosterScroller key={contentKey} title={title}>{children}</PosterScroller>}
   </section>;
+}
+
+function PosterScroller({ title, children }: { readonly title: string; readonly children: ReactNode }) {
+  const { scroller, navigation, move } = usePosterNavigation();
+  return <div className="home-row-body">
+    <ul ref={scroller} className="home-row-scroller" tabIndex={0} aria-label={`${title} 포스터 목록`}>{children}</ul>
+    <button type="button" hidden={!navigation.previous} className="home-row-arrow is-previous" data-poster-direction="previous" aria-label={`${title} 이전 포스터`} onClick={() => move(-1)}><SiteIcon name="previous" size={20} /></button>
+    <button type="button" hidden={!navigation.next} className="home-row-arrow is-next" data-poster-direction="next" aria-label={`${title} 다음 포스터`} onClick={() => move(1)}><SiteIcon name="next" size={20} /></button>
+  </div>;
 }
 
 export function PosterRowSkeleton({ count = 6 }: { readonly count?: number }) {
