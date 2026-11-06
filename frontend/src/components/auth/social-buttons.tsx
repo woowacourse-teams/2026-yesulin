@@ -31,35 +31,30 @@ const providers = [
   readonly className: string;
 }>;
 
-export function SocialButtons({ pendingProvider, onSelect, compact = false }: {
+export function SocialButtons({ pendingProvider, onSelect }: {
   readonly pendingProvider?: SocialProvider;
   readonly onSelect: (provider: SocialProvider) => void;
-  readonly compact?: boolean;
 }) {
-  let sectionClass = "space-y-2.5";
-  let buttonClass = "inline-flex min-h-[52px] w-full items-center justify-center gap-2.5 rounded-control border px-4 text-sm font-semibold transition-[background-color,border-color,filter,transform] active:scale-[0.99] disabled:cursor-wait disabled:opacity-65";
-  if (compact) {
-    sectionClass = "community-login-providers";
-    buttonClass = "community-login-provider";
-  }
   return (
-    <section aria-label="배우 소셜 로그인" className={sectionClass}>
+    <section aria-label="배우 소셜 로그인" className="space-y-2.5">
       {providers.map((provider) => {
         const pending = pendingProvider === provider.id;
         return (
           <button
             key={provider.id}
             type="button"
-            data-provider={provider.id}
             disabled={Boolean(pendingProvider)}
             onClick={() => onSelect(provider.id)}
-            className={`${buttonClass} ${provider.className}`}
+            className={`inline-flex min-h-[52px] w-full items-center justify-center gap-2.5 rounded-control border px-4 text-sm font-semibold transition-[background-color,border-color,filter,transform] active:scale-[0.99] disabled:cursor-wait disabled:opacity-65 ${provider.className}`}
           >
             {provider.mark}
             {pending ? provider.pendingLabel : provider.label}
           </button>
         );
       })}
+      <p className="pt-2 text-center text-sm leading-6 text-muted">
+        처음 이용해도 소셜 로그인과 함께 배우 계정이 자동으로 만들어집니다.
+      </p>
     </section>
   );
 }

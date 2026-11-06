@@ -6,16 +6,18 @@ import { PrimaryButton, TextLink } from "@/components/ui/controls";
 import { useToast } from "@/components/auditions/toast";
 import { AuthInput, PasswordInput, RoleField, type AccountRole } from "./auth-fields";
 import { LocalActorLogin } from "./local-actor-login";
-import { SocialLogin } from "./social-login";
+import { SocialButtons } from "./social-buttons";
 import {
   SessionApiError,
   login as requestLogin,
 } from "@/features/auth/session-api";
+import { DEFAULT_APPLICANT_LOGIN_RETURN_TO, rememberSocialLoginReturnTo } from "@/features/auth/social-login-return-to";
 import { frontendEnvironment } from "@/config/environment";
 import { producerAuditionPostRoutes } from "@/features/audition-posts/types";
 import { openProducerWorkspace } from "@/features/auth/producer-navigation";
 import {
   createFrontendCredential,
+  type SocialProvider,
   useAuthSession,
 } from "./auth-session";
 import {
@@ -29,6 +31,14 @@ type LoginErrors = Partial<Record<"identifier" | "password", string>>;
 
 const mockingDisabled = !frontendEnvironment.apiMockingEnabled;
 const realProducerLoginEnabled = frontendEnvironment.producerLoginEnabled;
+const realSocialLoginEnabled = frontendEnvironment.socialLoginEnabled;
+
+const PROVIDER_LABELS: Record<SocialProvider, string> = {
+  kakao: "카카오",
+  naver: "네이버",
+  google: "Google",
+};
+
 export function LoginForm({ returnTo, applicationFlow = false, localActorLogin = false }: { readonly localActorLogin?: boolean; readonly returnTo?: string; readonly applicationFlow?: boolean }) {
   const toast = useToast();
   const router = useRouter();
@@ -37,6 +47,7 @@ export function LoginForm({ returnTo, applicationFlow = false, localActorLogin =
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<LoginErrors>({});
+  const [pendingProvider, setPendingProvider] = useState<SocialProvider>();
   const [submitting, setSubmitting] = useState(false);
   const [pageAttribution] = useState(() => loginAttributionFor(returnTo, applicationFlow ? "applicant" : "unknown"));
 
@@ -108,13 +119,33 @@ export function LoginForm({ returnTo, applicationFlow = false, localActorLogin =
     router.push(producerAuditionPostRoutes.list);
   }
 
-  const applicantLogin = applicationFlow || role === "applicant";
+  async function handleSocialLogin(provider: SocialProvider) {
+    setPendingProvider(provider);
+    const applicantAttribution = loginAttributionFor(returnTo, "applicant");
+    trackLoginAttempt(provider, applicantAttribution);
 
-  function socialLoginSucceeded() {
-    let message = "배우 계정으로 로그인했습니다.";
-    if (applicationFlow) message = "로그인했습니다. 지원서 검토 화면으로 돌아갑니다.";
-    toast(message, { type: "success" });
+    if (realSocialLoginEnabled || mockingDisabled) {
+      rememberSocialLoginReturnTo(returnTo);
+      window.location.assign(`/oauth2/authorization/${provider}`);
+      return;
+    }
+
+    await new Promise((resolve) => window.setTimeout(resolve, 240));
+    const { mockApplicantLogin } = await import("@/mocks/auth-handlers");
+    const mockApplicant = mockApplicantLogin();
+    setSession({
+      credential: `member-${mockApplicant.memberId}`,
+      role: "APPLICANT",
+      displayName: `${PROVIDER_LABELS[provider]} 배우`,
+      socialProvider: provider,
+    });
+    const destination = returnTo ?? DEFAULT_APPLICANT_LOGIN_RETURN_TO;
+    trackLoginSuccess(destination, applicantAttribution);
+    toast(applicationFlow ? "로그인했습니다. 지원서 검토 화면으로 돌아갑니다." : "배우 계정으로 로그인했습니다.", { type: "success" });
+    router.push(destination);
   }
+
+  const applicantLogin = applicationFlow || role === "applicant";
 
   return (
     <div className="space-y-5">
@@ -122,7 +153,7 @@ export function LoginForm({ returnTo, applicationFlow = false, localActorLogin =
 
       {applicantLogin ? (
         <>
-          <SocialLogin returnTo={returnTo} onSuccess={socialLoginSucceeded} />
+          <SocialButtons pendingProvider={pendingProvider} onSelect={(provider) => void handleSocialLogin(provider)} />
           {localActorLogin && <LocalActorLogin returnTo={returnTo} />}
         </>
       ) : (
