@@ -90,6 +90,30 @@ export function useCommunityFeed(loader: (cursor?: number) => Promise<CommunityP
   return { items, cursor, loading, error, load, update, appendThrough };
 }
 
+const PRELOAD_MARGIN = "400px 0px";
+
+export function useNextPageLoader(cursor: number | null, load: (cursor: number) => unknown) {
+  const requested = useRef<number | null>(null);
+  return useCallback(() => {
+    if (cursor === null || requested.current === cursor) return;
+    requested.current = cursor;
+    void load(cursor);
+  }, [cursor, load]);
+}
+
+export function useLoadWhenVisible(enabled: boolean, onVisible: () => void) {
+  const [target, setTarget] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    if (!enabled || !target || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(entries => {
+      if (entries.some(entry => entry.isIntersecting)) onVisible();
+    }, { rootMargin: PRELOAD_MARGIN });
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [enabled, target, onVisible]);
+  return setTarget;
+}
+
 function mergePage(previous: readonly CommunityEntry[], incoming: readonly CommunityEntry[], cursor?: number, replace = false) {
   if (!cursor || replace) return incoming;
   const entries = new Map(previous.map(entry => [entry.id, entry]));

@@ -284,11 +284,6 @@ a.community-more { display: block; text-align: center; }
 .community-lounge-notices { display:inline-flex; align-items:center; gap:6px; min-height:44px; font-size:14px; font-weight:600; color:var(--brand); }
 
 .community-lounge-side:empty { display: none; }
-.community-topic-nav { display: flex; align-items: center; gap: 3px; min-width: 0; overflow-x: auto; padding: 3px; }
-.community-topic-nav a { flex: none; white-space: nowrap; padding: 8px 10px; border-radius: 10px; font-size: 13px; color: var(--ink-60); }
-.community-topic-nav a:hover, .community-topic-nav a[aria-current=page] { background: #e8f2ff; color: #23558d; }
-.community-topic-nav a[aria-current=page] { font-weight: 700; }
-.community-topic-chip { padding: 2px 8px; border-radius: 8px; background: #edf3fc; color: #355c89; font-size: 12px; }
 .community-ranked-posts h2 { display: flex; gap: 6px; align-items: center; }
 .community-ranked-posts h2 svg { color: #c45b38; }
 .community-ranked-posts ol { padding-inline-start: 1.4em; list-style: decimal; }

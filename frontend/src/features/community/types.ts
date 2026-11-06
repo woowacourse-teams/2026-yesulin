@@ -1,16 +1,10 @@
-export const topicLabels = {
-  FREE: "자유",
-  AUDITION_REVIEW: "오디션 후기",
-  PRACTICE: "연습/발성",
-  QUESTION: "질문",
-  PERFORMANCE: "공연 소식",
-} as const;
+const communityTopics = ["FREE", "AUDITION_REVIEW", "PRACTICE", "QUESTION", "PERFORMANCE"] as const;
 
-export type CommunityTopic = keyof typeof topicLabels;
+export type CommunityTopic = typeof communityTopics[number];
 export type PopularPost = { readonly id: number; readonly title: string };
 
 export function isCommunityTopic(value: unknown): value is CommunityTopic {
-  return typeof value === "string" && Object.hasOwn(topicLabels, value);
+  return communityTopics.some(topic => topic === value);
 }
 
 export type CommunityEntry = {
