@@ -41,7 +41,7 @@ describe("합격자 연락처 조회", () => {
     await render();
     expect(state.rows.map(row => row.entry.id)).toEqual(["1", "2"]);
     expect(state.rows.map(row => row.contact.status)).toEqual(["FOUND", "MISSING"]);
-    expect(state.rows[1].roleName).toBe("미기재");
+    expect(state.rows[1].roleName).toBe("미배정");
     expect(fetchPdfExtraction).toHaveBeenCalledTimes(2);
     expect(state.loading).toBe(false);
   });

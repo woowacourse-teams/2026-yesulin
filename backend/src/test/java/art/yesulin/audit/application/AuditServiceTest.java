@@ -78,6 +78,58 @@ class AuditServiceTest {
     }
 
     @Test
+    void renamedTitlePersistsWithoutChangingOriginalOrReview() {
+        AuditDetail review = service.create(OWNER, "심사", List.of("주연"));
+        AuditApplicantView uploaded = uploadEntry(review.id());
+        service.editEntry(OWNER, review.id(), uploaded.id(), "검토 메모", AuditDecision.PASS);
+        AuditApplicantView renamed = service.renameEntry(OWNER, review.id(), uploaded.id(), "배우 지원서");
+        assertEquals("배우 지원서", service.find(OWNER, review.id()).entries().get(0).title());
+        assertEquals(uploaded.originalFilename(), renamed.originalFilename());
+        assertEquals(uploaded.jobId(), renamed.jobId());
+        assertEquals("검토 메모", renamed.memo());
+        assertEquals(AuditDecision.PASS, renamed.decision());
+    }
+
+    @Test
+    void titleRenameRejectsAnotherOwnerOrAnotherReviewsEntry() {
+        AuditDetail review = service.create(OWNER, "심사", List.of());
+        AuditDetail other = service.create(OWNER, "다른 심사", List.of());
+        AuditApplicantView uploaded = uploadEntry(review.id());
+        assertThrows(BusinessException.class,
+                () -> service.renameEntry(OTHER_OWNER, review.id(), uploaded.id(), "제목"));
+        assertThrows(BusinessException.class,
+                () -> service.renameEntry(OWNER, other.id(), uploaded.id(), "제목"));
+        assertEquals("", service.find(OWNER, review.id()).entries().get(0).title());
+    }
+
+    @Test
+    void memoAutosavePreservesLatestDecisionAndTitle() {
+        AuditDetail review = service.create(OWNER, "심사", List.of("주연"));
+        AuditApplicantView uploaded = uploadEntry(review.id());
+        service.renameEntry(OWNER, review.id(), uploaded.id(), "변경 제목");
+        service.editEntry(OWNER, review.id(), uploaded.id(), "이전 메모", AuditDecision.PASS);
+        AuditApplicantView saved = service.updateMemo(OWNER, review.id(), uploaded.id(), "새 메모");
+        assertEquals(AuditDecision.PASS, saved.decision());
+        assertEquals("변경 제목", saved.title());
+        assertEquals("새 메모", saved.memo());
+        assertEquals(uploaded.originalFilename(), saved.originalFilename());
+    }
+
+    @Test
+    void memoAutosaveRejectsForeignEntriesAndTooLongInputWithoutMutation() {
+        AuditDetail review = service.create(OWNER, "심사", List.of());
+        AuditDetail other = service.create(OWNER, "다른 심사", List.of());
+        AuditApplicantView uploaded = uploadEntry(review.id());
+        assertThrows(BusinessException.class,
+                () -> service.updateMemo(OTHER_OWNER, review.id(), uploaded.id(), "메모"));
+        assertThrows(BusinessException.class,
+                () -> service.updateMemo(OWNER, other.id(), uploaded.id(), "메모"));
+        assertThrows(BusinessException.class,
+                () -> service.updateMemo(OWNER, review.id(), uploaded.id(), "가".repeat(501)));
+        assertEquals("", service.find(OWNER, review.id()).entries().get(0).memo());
+    }
+
+    @Test
     void createsReviewWithOrderedRolesAndListsCounts() {
         AuditDetail created = service.create(OWNER, " 가을 공연 ", List.of("햄릿", "오필리아"));
 
@@ -117,7 +169,7 @@ class AuditServiceTest {
     }
 
     @Test
-    void uploadCreatesWaitingEntryOwnedByTheReview() {
+    void uploadCreatesManuallyUnassignedEntryOwnedByTheReview() {
         AuditDetail created = service.create(OWNER, "제목", List.of("햄릿"));
 
         PreparedUpload upload = service.prepareUpload(OWNER, created.id(), "지원서.pdf", 10, SHA);
@@ -125,7 +177,7 @@ class AuditServiceTest {
         AuditApplicantView entry = service.find(OWNER, created.id()).entries().get(0);
         assertEquals(upload.jobId(), entry.jobId());
         assertEquals("지원서.pdf", entry.originalFilename());
-        assertEquals(AuditMatchStatus.WAITING, entry.matchStatus());
+        assertEquals(AuditMatchStatus.NEEDS_CHECK, entry.matchStatus());
         assertEquals(AuditDecision.PENDING, entry.decision());
         assertNull(entry.applicantName());
         assertNull(entry.roleId());
@@ -170,8 +222,8 @@ class AuditServiceTest {
         assertEquals("다시 보기", edited.memo());
         assertEquals(AuditDecision.HOLD, edited.decision());
         assertEquals("홍길동", edited.applicantName());
-        assertEquals(created.roles().get(0).id(), edited.roleId());
-        assertEquals(AuditMatchStatus.MATCHED, edited.matchStatus());
+        assertNull(edited.roleId());
+        assertEquals(AuditMatchStatus.NEEDS_CHECK, edited.matchStatus());
         assertEquals(uploaded.jobId(), edited.jobId());
         assertEquals("a.pdf", edited.originalFilename());
     }
@@ -201,8 +253,8 @@ class AuditServiceTest {
         extractionService.applyExtraction(uploaded.jobId(), OWNER, "이름: 김영희\n지원 배역: 오필리아");
 
         AuditApplicantView entry = service.find(OWNER, created.id()).entries().get(0);
-        assertEquals(AuditMatchStatus.MATCHED, entry.matchStatus());
-        assertEquals(created.roles().get(1).id(), entry.roleId());
+        assertEquals(AuditMatchStatus.NEEDS_CHECK, entry.matchStatus());
+        assertNull(entry.roleId());
         assertEquals("김영희", entry.applicantName());
         assertEquals("메모", entry.memo());
         assertEquals(AuditDecision.PASS, entry.decision());
@@ -219,8 +271,8 @@ class AuditServiceTest {
                 applicantInfo("COMPLETED", "", "홍길동", "성명: 홍길동", ophelia, "오필리아 지원"));
 
         AuditApplicantView entry = service.find(OWNER, created.id()).entries().get(0);
-        assertEquals(AuditMatchStatus.MATCHED, entry.matchStatus());
-        assertEquals(ophelia, entry.roleId());
+        assertEquals(AuditMatchStatus.NEEDS_CHECK, entry.matchStatus());
+        assertNull(entry.roleId());
         assertEquals("홍길동", entry.applicantName());
         assertEquals("메모", entry.memo());
         assertEquals(AuditDecision.PASS, entry.decision());
@@ -285,11 +337,13 @@ class AuditServiceTest {
         AuditApplicantView uploaded = uploadEntry(created.id());
 
         extractionService.applyExtraction(UUID.randomUUID().toString(), OWNER, "지원배역: 햄릿");
-        extractionService.applyExtraction(uploaded.jobId(), OTHER_OWNER, "지원배역: 햄릿");
+        extractionService.applyExtraction(uploaded.jobId(), OTHER_OWNER, "이름: 외부 배우\n지원배역: 햄릿");
 
         AuditApplicantView entry = service.find(OWNER, created.id()).entries().get(0);
-        assertEquals(AuditMatchStatus.WAITING, entry.matchStatus());
+        assertEquals(AuditMatchStatus.NEEDS_CHECK, entry.matchStatus());
         assertNull(entry.roleId());
+        assertNull(entry.applicantName());
+        assertEquals(art.yesulin.audit.domain.AuditApplicantStatus.UPLOADING, entry.processingStatus());
     }
 
     @Test
