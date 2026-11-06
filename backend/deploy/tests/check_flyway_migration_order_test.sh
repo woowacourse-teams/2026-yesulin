@@ -56,6 +56,23 @@ if ! grep -q "Allowed out-of-order Flyway migration V20260825170000__late.sql" "
   exit 1
 fi
 
+other_repository="$TEMP_DIRECTORY/other"
+create_repository "$other_repository"
+other_base="$(git -C "$other_repository" rev-parse HEAD)"
+: > "$other_repository/backend/src/main/resources/db/migration/V20260825180000__other_late.sql"
+mkdir -p "$other_repository/backend/deploy"
+printf '  20260825170000   # other version only\n' > "$other_repository/backend/deploy/flyway-out-of-order-allowlist.txt"
+
+if sh "$CHECK_SCRIPT" "$other_base" "$other_repository" > "$TEMP_DIRECTORY/other.log" 2>&1; then
+  echo "Expected a late migration not in the allowlist to fail" >&2
+  exit 1
+fi
+if ! grep -q "must be greater than 20260825203000" "$TEMP_DIRECTORY/other.log"; then
+  cat "$TEMP_DIRECTORY/other.log" >&2
+  echo "Expected the non-allowlisted migration to fail the version requirement" >&2
+  exit 1
+fi
+
 valid_repository="$TEMP_DIRECTORY/valid"
 create_repository "$valid_repository"
 valid_base="$(git -C "$valid_repository" rev-parse HEAD)"
