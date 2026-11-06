@@ -33,37 +33,27 @@ beforeEach(() => {
 });
 afterEach(() => { act(() => root.unmount()); vi.clearAllMocks(); vi.unstubAllGlobals(); });
 
-async function selectTopic(value: string) {
-  const select = host.querySelector("select")!;
-  select.value = value;
-  await act(async () => { select.dispatchEvent(new Event("change", { bubbles: true })); });
-}
 async function submit() {
   await act(async () => { host.querySelector("form")!.dispatchEvent(new Event("submit", { bubbles: true })); });
 }
 
-it("로그인 배우는 자유로 시작하며 초안에 선택한 주제를 저장해 작성한다", async () => {
+it("글쓰기에는 주제 칸이 없고 주제 없이 작성한다", async () => {
   await act(async () => root.render(<PostEditor />));
-  expect(host.querySelector("select")?.value).toBe("FREE");
-  await selectTopic("QUESTION");
+  expect(host.querySelector("select")).toBeNull();
   const draftKey = "yesulin.community.draft:42:post:new";
-  const draft = JSON.parse(sessionStorage.getItem(draftKey)!);
-  expect(draft.topic).toBe("QUESTION");
-  sessionStorage.setItem(draftKey, JSON.stringify({ ...draft, title: "질문", body: "본문" }));
+  const draft = { topic: "QUESTION", title: "질문", body: "본문", authorMode: "ANONYMOUS", requestId: crypto.randomUUID(), savedAt: Date.now() };
+  sessionStorage.setItem(draftKey, JSON.stringify(draft));
   await act(async () => root.render(<PostEditor key="restored" />));
-  expect(host.querySelector("select")?.value).toBe("QUESTION");
   vi.mocked(createPost).mockResolvedValue({ id: 42 } as CommunityEntry);
   await submit();
-  expect(createPost).toHaveBeenCalledWith(expect.objectContaining({ topic: "QUESTION", title: "질문" }), draft.requestId);
+  expect(createPost).toHaveBeenCalledWith({ title: "질문", body: "본문", authorMode: "ANONYMOUS", expectedMemberId: 42 }, draft.requestId);
 });
 
-it("글 수정에서 기존 주제를 보여주고 새 주제를 전송한다", async () => {
+it("글 수정은 주제를 보내지 않아 서버가 기존 주제를 유지한다", async () => {
   const post = { id: 11, title: "제목", body: "본문", topic: "AUDITION_REVIEW", memberOwned: true } as CommunityEntry;
   await act(async () => root.render(<PostEditor post={post} onSaved={vi.fn()} />));
-  expect(host.querySelector("select")?.value).toBe("AUDITION_REVIEW");
-  await selectTopic("PRACTICE");
   await submit();
-  expect(editPost).toHaveBeenCalledWith(11, { title: "제목", body: "본문", topic: "PRACTICE" });
+  expect(editPost).toHaveBeenCalledWith(11, { title: "제목", body: "본문" });
 });
 
 it("인기 글은 제목 링크만 보이고 빈 응답과 실패는 카드만 숨긴다", async () => {
