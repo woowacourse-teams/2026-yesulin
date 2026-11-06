@@ -83,25 +83,10 @@ class AuditTest {
         assertEquals(AuditMatchStatus.WAITING, entry.getMatchStatus());
         assertEquals(AuditDecision.PENDING, entry.getDecision());
         assertEquals("", entry.getMemo());
-        assertThrows(BusinessException.class, () -> entry.review("가".repeat(501), AuditDecision.PASS));
+        assertThrows(BusinessException.class, () -> entry.review("가".repeat(2001), AuditDecision.PASS));
         assertThrows(BusinessException.class, () -> entry.review("메모", null));
-        entry.review("가".repeat(500), AuditDecision.FAIL);
-        assertEquals(500, entry.getMemo().length());
-    }
-
-    @Test
-    void legacyMemoIsPreservedWhenOnlyTheDecisionChanges() throws ReflectiveOperationException {
-        AuditApplicant entry = new AuditApplicant("review", "job", "지원서.pdf");
-        java.lang.reflect.Field field = AuditApplicant.class.getDeclaredField("memo");
-        field.setAccessible(true);
-        String legacy = "가".repeat(2000);
-        field.set(entry, legacy);
-        entry.review(legacy, AuditDecision.PASS);
-        assertEquals(legacy, entry.getMemo());
-        assertEquals(AuditDecision.PASS, entry.getDecision());
-        assertThrows(BusinessException.class, () -> entry.updateMemo("나".repeat(501)));
-        entry.updateMemo("짧은 메모");
-        assertEquals("짧은 메모", entry.getMemo());
+        entry.review("가".repeat(2000), AuditDecision.FAIL);
+        assertEquals(2000, entry.getMemo().length());
     }
 
     @Test

@@ -83,8 +83,6 @@ UNKNOWN은 자동 재전송하지 않는다. FAILED 중 code=RETRIED는 후속 �
 [별도 API](#pdf로-프로필-채우기배우용--6개)가 다룬다.
 전체 응답은 `Cache-Control: no-store`다. 제목·배역 기반 심사 등록과 선택적 AI 정보 정리(v1/v2 프로필)와 `PATCH /api/v1/pdf-reviews/{id}/role-assignments`는
 [PDF 심사 API](pdf-reviews.md)를 따른다.
-`PATCH /api/v1/pdf-reviews/{reviewId}/entries/{entryId}/title`은 Active Producer가 자기 지원서의 표시 제목만 수정한다. `{title}`과 EntryView 계약은 [PDF 심사 API](pdf-reviews.md)를 따른다.
-`PATCH /api/v1/pdf-reviews/{reviewId}/entries/{entryId}/memo`는 메모만 자동 저장하며 현재 판정·제목·배역을 유지한다. `{memo}`(빈 문자열 허용, 필수, 최대500자)와 소유권/오류 계약은 [PDF 심사 API](pdf-reviews.md)를 따른다.
 `GET /api/v1/pdf-reviews/{reviewId}/progress`는 본인 심사의 DB 작업 상태만 집계한
 `{total,uploading,waiting,completed,partial,failed,complete,pdf,ai}`를 반환한다. PDF·S3·모델은 조회하지 않는다.
 `pdf`는 `{uploading,queued,completed,partial,failed}`, `ai`는 `{notQueued,pending,running,completed,failed,skipped}` 건수다.

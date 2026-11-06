@@ -20,12 +20,10 @@ Active Producer 세션을 요구하고 쓰기는 CSRF, 응답은 `Cache-Control:
 | GET | `/api/v1/pdf-reviews/{id}/progress` | `{total,uploading,waiting,completed,partial,failed,complete,pdf,ai}` |
 | POST | `/api/v1/pdf-reviews/{id}/uploads` | `{originalFilename,size,sha256}` → 신규 201 / 기존 원본 재사용 200 PreparedUpload |
 | PATCH | `/api/v1/pdf-reviews/{id}/entries/{entryId}` | `{memo,decision}` → 200 EntryView |
-| PATCH | `/api/v1/pdf-reviews/{id}/entries/{entryId}/memo` | `{memo}`(필수 문자열、0~500자) → 200 EntryView. 판정·배역·제목 유지 |
-| PATCH | `/api/v1/pdf-reviews/{id}/entries/{entryId}/title` | `{title}`(0~255자, 공백 정규화) → 200 EntryView |
 | PATCH | `/api/v1/pdf-reviews/{id}/role-assignments` | `{entryIds:[UUID],roleId:UUID 또는 null}` → 200 EntryView[] |
 
 - ReviewDetail은 `id,title,createdAt,roles:[{id,name}],entries:[EntryView]`이다. 배역은 입력 순서, 항목은 파일 이름순이다.
-- EntryView는 `id,jobId,originalFilename,title,applicantName,roleId,matchStatus,matchEvidence,memo,decision,processingStatus`이다.
+- EntryView는 `id,jobId,originalFilename,applicantName,roleId,matchStatus,matchEvidence,memo,decision,processingStatus`이다.
   `applicantName`·`roleId`는 null일 수 있다.
 - `POST /uploads`는 `{jobId,fileKey,duplicate,upload:{url,method,expiresAt,headers} 또는 null}`을 돌려준다.
   sha256은 브라우저가 원본 바이트에서 계산한 소문자 64자리 SHA-256이며 필수다. 파일명·크기로 동일성을 판단하지 않는다.
@@ -72,29 +70,3 @@ Active Producer 세션을 요구하고 쓰기는 CSRF, 응답은 `Cache-Control:
 추출 payload와 AI 결과는 별도로 저장하며 조회에서만 applicantInfo를 조립한다.
 legacy v1/v2 수신 형식·근거·프로필 상한은 [프로필 계약](../src/main/java/art/yesulin/pdfextraction/docs/policies/profile-contract.md),
 모델·재시도·DB 상한은 [AI 정책](../src/main/java/art/yesulin/pdfextraction/docs/policies/ai-processing.md).
-
-## 원본 중심 심사: 지원서 제목과 수동 배역
-
-- `title`은 화면 표시용 지원서 제목이다. 미설정 항목은 빈 문자열을 반환하고 배우 이름 입력을 안내한다. 기존에 직접 저장한 제목은 유지한다. 빈 문자열 저장으로 이름을 지울 수 있다. 수정해도 원본 파일명·S3 키·바이트·SHA·정렬 순서·메모·판정·배역은 유지한다.
-- 제목 PATCH는 소유 공연사 확인 후 항목 행 잠금으로 저장한다. 다른 심사 항목·다른 소유자는 기존 정책과 동일한404다. null/누락/255자 초과는400이다.
-- 주요 배역은 심사함 생성 시 운영자가 입력한다. 새 지원서는 roleId=null·NEEDS_CHECK(표시: 미배정)로 시작하며 규칙/AI가 배역을 자동으로 배정하지 않는다.
-- 배역 PATCH로 명시적으로 배정/해제한다. 기존 항목은 마이그레이션에서 현재 배역을 유지한 채 수동 보호 상태로 전환한다.
-- 원본 전용 조회 API 분리와 합격자 전용 연락처 추출은 후속이다.
-
-## 연속 보기와 자동 저장 (2026-11-05, 로컬 검토)
-
-PDF.js 공용 뷰어는 전체 페이지를 연속 스크롤로 표시한다. 기본 너비는 뷰어에 맞추고 Ctrl/Cmd+휠 또는 트랙패드 핀치로 확대한다. 뷰어에 포커스가 있을 때 Ctrl/Cmd+플러스·마이너스·0도 지원한다. 화면 근처 페이지를 직렬 렌더링하고 벗어난 canvas는 비워, 모든 페이지를 거대한 bitmap으로 합치지 않는다. 일반 도구 모음 없이 실패한 부분에서만 재시도를 제공한다.
-
-제목·메모는 입력이 800ms 멈추거나 포커스를 벗어나면 직렬 자동 저장한다. 한글 조합 중에는 전송을 기다린다. 지원서 이동·필터·보기·배역 변경·판정 전에는 최신 입력 저장이 성공해야 진행한다. 실패하면 현재 입력을 유지하고 이동을 막으며 재시도할 수 있다. 서버 도착 여부를 모르는 실패도 미저장 상태를 유지한다. 요청 중 이전 값으로 복원해도 마지막 값 저장 전에는 이탈 보호를 해제하지 않는다. 탭 종료 자체의 저장 보장은 없으며 미저장 시 브라우저 확인을 사용한다.
-
-메모 전용 PATCH는 제목과 같은 소유권·CSRF·행 잠금·no-store 정책을 적용한다. 빈 메모는 허용하고 null/누락/500자 초과는400, 다른 소유자·다른 심사 항목은404다. 현재 서버 판정을 보존하므로 자동 메모 저장이 예전 판정을 재전송하지 않는다. 판정은 기존 메모+판정 PATCH를 사용한다. 화면에는 합격·보류·불합격만 두고 대기 복원 버튼은 표시하지 않는다(기존 API의 PENDING은 유지).
-
-## 간소화한 이름·메모와 QR (2026-11-05, 로컬 검토)
-
-표시 제목(`title`)은 이제 배우 이름 입력란으로 사용한다. 초기값과 공백 정규화 결과가 빈 문자열이어도 허용한다. 원본 파일명은 별도 필드로 보존하고 입력에 자동으로 채우지 않는다. 이름이 비어 있어도 열람·판정·이동은 가능하다. 새 메모/변경한 메모는500자 이하이며 저장 컬럼은 기존2000자를 유지한다. 이미500자를 넘는 메모는 잘라내지 않는다. 메모를 바꾸지 않은 판정 요청은 허용하고 새로 고치는 경우500자 이하로 작성한다. 메모 전용 PATCH는 최대500자, 기존 메모+판정 PATCH의 DTO2000자 수신은 기존 메모 보존 호환을 위해 유지하며 변경된 값은 도메인에서500자로 검사한다.
-
-연락처 진입은 합격 탭에서만 표시한다. 중복 상단 집계·정상 저장 문구·메모 크기 조절 손잡이는 제거하고 실패와 재시도만 표시한다. 자동 저장 성공 지점과 분석 이벤트 계약은 유지한다.
-
-공용 PDF 뷰어는 내장 외부 링크(annotation)를 복원하고 화면 근처 페이지를 최대변3000px/8MP 한도로 별도 렌더해 ZXing WASM Worker에서 QR을 검사한다. PDF 렌더는 표시 queue로 직렬 처리하며 QR CPU 대기는 별도 scan queue라 다음 원본 표시를 막지 않는다. 검사 입력과 WASM은 브라우저/같은 출처 안에서 처리하고 외부 OCR·AI API로 PDF나 QR을 전송하지 않는다. WASM은 기존 predev/prebuild 자산 복사에서 제공한다. 화면 밖/문서 종료 시 취소, Worker 응답이15초 없으면 종료한다.
-
-클릭 영역은 페이지 비율 좌표여서 확대/회전 렌더에 따라간다. http(s) URL만 허용하고 javascript/data/file/상대주소/인증정보가 포함된 URL은 거부한다. 외부 페이지는 클릭할 때만 새 탭으로 열고 opener/referrer를 전달하지 않는다. 모든 QR의 인식을 보장하지 않으며 인식 실패가 원본 표시/내장 링크를 차단하지 않는다.

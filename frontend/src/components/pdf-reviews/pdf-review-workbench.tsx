@@ -5,7 +5,6 @@ import { useAuthSession } from "@/components/auth/auth-session";
 import { ModalShell } from "@/components/auditions/modal-shell";
 import { PrimaryButton, SecondaryButton } from "@/components/ui/controls";
 import { matchesDecision, matchesFilter, type DecisionFilter, type EntryFilter, type ReviewDetail, type ReviewKey } from "@/features/pdf-reviews/types";
-import { useReviewExitGuard } from "@/features/pdf-reviews/use-review-exit-guard";
 import { useReviewProgress } from "@/features/pdf-reviews/use-review-progress";
 import { usePdfReviews } from "@/features/pdf-reviews/use-pdf-reviews";
 import { useReviewUploads } from "@/features/pdf-reviews/use-review-uploads";
@@ -52,24 +51,7 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
   const dirty = useRef(false);
   const onDirtyChange = useCallback((value: boolean) => { dirty.current = value; }, []);
   const [pendingNavigation, setPendingNavigation] = useState<{ action: () => void } | null>(null);
-  const beforeNavigation = useRef<(() => Promise<boolean>) | null>(null);
-  const navigating = useRef(false);
-  const registerNavigationSave = useCallback((flush: () => Promise<boolean>) => {
-    beforeNavigation.current = flush;
-    return () => { if (beforeNavigation.current === flush) beforeNavigation.current = null; };
-  }, []);
-  const navigate = useCallback((action: () => void) => {
-    const flush = beforeNavigation.current;
-    if (flush) {
-      if (navigating.current) return;
-      navigating.current = true;
-      void flush().then(saved => { if (saved) action(); }).finally(() => { navigating.current = false; });
-      return;
-    }
-    if (dirty.current) { setPendingNavigation({ action }); return; }
-    action();
-  }, []);
-  useReviewExitGuard(authorized && !home, navigate, href => router.push(href));
+  const navigate = useCallback((action: () => void) => { if (dirty.current) setPendingNavigation({ action }); else action(); }, []);
   const uploadSync = useRef<ReturnType<typeof setTimeout>>(undefined);
   const markExpired = useCallback(() => setExpired(true), []);
   const reviews = usePdfReviews({ enabled: authorized, onUnauthorized: markExpired });
@@ -84,18 +66,19 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
     window.addEventListener("beforeunload", handler); return () => window.removeEventListener("beforeunload", handler);
   }, [uploads.rows.length]);
   const uploading = uploads.busy && String(uploads.messageReviewId) === String(review?.id);
-  const originalUploading = review?.entries.some(entry => entry.processingStatus === "UPLOADING") ?? false;
-  const { error: progressError, recheck: recheckProgress } = useReviewProgress({
-    reviewId: authorized && !home && (uploading || originalUploading) ? review?.id ?? null : null, uploading,
+  const { progress, error: progressError, recheck: recheckProgress } = useReviewProgress({
+    reviewId: authorized && !home ? review?.id ?? null : null, uploading,
     refreshKey: `${detailRefresh}:${review?.entries.length ?? 0}`, onChanged: sync, onUnauthorized: markExpired,
   });
-  const preparing = decision === "PENDING" && !expired && !progressError && !reviews.detailError && (uploading || originalUploading);
+  const preparing = decision === "PENDING" && !expired && !progressError && !reviews.detailError && (uploading || (progress
+    ? progress.total > 0 && !progress.complete
+    : review?.entries.some(entry => entry.processingStatus === "UPLOADING" || entry.processingStatus === "EXTRACTING" || entry.processingStatus === "ENRICHING")));
   function openReview(id: ReviewKey) { navigate(() => { setContactsOpen(false); setFilter("ALL"); setDecision("PENDING"); setHome(false); reviews.open(id); }); }
   function created(next: ReviewDetail) { closeCreate(); setContactsOpen(false); setFilter("ALL"); setDecision("PENDING"); setHome(false); reviews.created(next); }
   function manualRefresh() { setExpired(false); setDetailRefresh(value => value + 1); void reviews.refresh(); }
   const chips: { value: EntryFilter; label: string }[] = review?.roles.length === 0
     ? [{ value: "ALL", label: "자유 배역" }]
-    : [{ value: "ALL", label: "전체 배역" }, ...(review?.roles ?? []).map(role => ({ value: { roleId: role.id }, label: role.name })), { value: "NEEDS_CHECK", label: "미배정" }];
+    : [{ value: "ALL", label: "전체 배역" }, ...(review?.roles ?? []).map(role => ({ value: { roleId: role.id }, label: role.name })), { value: "NEEDS_CHECK", label: "미기재" }];
   const filterKey = typeof filter === "object" ? String(filter.roleId) : filter;
   const uploadProps = { busy: uploads.busy || collecting,
     disabled: expired,
@@ -125,7 +108,7 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
       </div> : !review ? <p role="status" className="p-8">{reviews.detailError || "심사함을 불러오고 있습니다…"}</p> : <>
         <div className={`${styles.controls} px-4 md:px-6 xl:px-8`}>
           <header className={styles.header}><nav className={styles.breadcrumb} aria-label="심사함 경로"><ol><li><button type="button" className={styles.homeLink} onClick={() => navigate(() => setHome(true))}>심사함</button></li><li aria-hidden="true" className={styles.breadcrumbSeparator}>›</li><li aria-current="page"><h1 title={review.title}>{review.title}</h1></li></ol></nav>
-
+            <p className={styles.reviewCounts}><span>전체 <b className="num">{review.entries.length}</b>명</span><span>판정 완료 <b className="num">{review.entries.filter(item => item.decision === "PASS" || item.decision === "FAIL").length}</b>명</span></p>
           </header>
           {!contactsOpen && <ReviewUploadPanel {...uploadProps} inputRef={uploadInput} folderInputRef={uploadFolderInput}>
             <nav className={styles.roleBar} aria-label="배역별 지원자"><div className={styles.roleChips}>{chips.map(chip => {
@@ -133,11 +116,11 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
               return <button type="button" key={key} aria-pressed={filterKey === key} onClick={() => navigate(() => setFilter(chip.value))}>{chip.label}<span className="num">{review.entries.filter(item => matchesFilter(item, chip.value)).length}</span></button>;
             })}</div></nav>
           </ReviewUploadPanel>}
-          {!contactsOpen && filter === "NEEDS_CHECK" && <p className={styles.roleHint}>배역이 아직 배정되지 않은 지원서입니다. 각 지원서의 ‘배역 배정’에서 선택해 주세요.</p>}
+          {!contactsOpen && filter === "NEEDS_CHECK" && <p className={styles.roleHint}>심사 배역이 아직 지정되지 않은 지원자입니다. ‘배역 설정’에서 분류해 주세요.</p>}
           {selectionError && <p role="alert" className="text-sm text-fail">{selectionError}</p>}
           {reviews.detailError && <p role="alert" className="text-fail">{reviews.detailError}</p>}
         </div>
-        <ReviewProcessingProgress key={review.id} inline={contactsOpen} progress={null} uploading={uploading} uploadMessage={uploadMessage} uploadError={String(uploads.messageReviewId) === String(review.id) ? uploads.validationError : ""} error={progressError || reviews.detailError} onRetry={manualRefresh}
+        <ReviewProcessingProgress key={review.id} inline={contactsOpen} progress={progress} uploading={uploading} uploadMessage={uploadMessage} uploadError={String(uploads.messageReviewId) === String(review.id) ? uploads.validationError : ""} error={progressError || reviews.detailError} onRetry={manualRefresh}
           notices={uploads.notices.filter(item => String(item.reviewId) === String(review.id))} rows={uploads.rows}
           uploadBusy={uploads.busy} disabled={expired} onRemove={uploads.remove} onClearUploaded={() => uploads.clearUploaded(review.id)} onRetryUpload={row => void uploads.retry(row)} />
         <div className="px-4 md:px-6 xl:px-8">
@@ -148,13 +131,13 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
             <div role="group" aria-label="심사 상태" className={styles.decisionTabs}>{([['PENDING','대기'],['PASS','합격'],['HOLD','보류'],['FAIL','불합격']] as const).map(([value,label]) => <button type="button" key={value} aria-pressed={decision === value} onClick={() => navigate(() => setDecision(value))}>{label}<span className="num">{review.entries.filter(item => matchesFilter(item, filter) && matchesDecision(item, value)).length}</span></button>)}</div>
             <div className={styles.boardActions}>
             <div role="group" aria-label="보기 방식" className={styles.viewTabs}>{([['single','한 명씩'],['card','카드'],['table','표']] as const).map(([value,label]) => <button type="button" key={value} aria-pressed={view === value} onClick={() => navigate(() => setView(value))}>{label}</button>)}</div>
-            {decision === "PASS" && <SecondaryButton disabled={expired} onClick={() => navigate(() => setContactsOpen(true))}>합격자 연락처</SecondaryButton>}
+            <SecondaryButton disabled={expired} onClick={() => navigate(() => setContactsOpen(true))}>합격자 연락처</SecondaryButton>
             </div>
           </div>
           {!visible.length ? preparing ? <div className={styles.emptyDrop} role="status" aria-live="polite">
             <div aria-hidden="true" className="mx-auto mb-5 h-10 w-10 animate-spin rounded-full border-4 border-brand-soft border-t-brand motion-reduce:animate-none" />
             <h2>{uploading ? "PDF를 올리고 있어요" : "지원서를 준비하고 있어요"}</h2>
-            <p>업로드된 원본 PDF를 보며 심사할 수 있습니다.</p>
+            <p>이미지 추출과 지원자 분석이 끝난 지원서부터 자동으로 표시됩니다.</p>
           </div> : review.entries.length ? <div className={styles.emptyDrop}><h2>이 조건에 해당하는 지원자가 없습니다.</h2><p>배역이나 심사 상태를 바꿔 확인해 주세요.</p></div> :
             <div className={styles.uploadDropzone} data-dragging={drag} aria-labelledby="pdf-drop-title" aria-describedby="pdf-drop-description pdf-drop-limit">
               <span className={styles.dropIcon} aria-hidden="true"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6M12 18v-7m-3 3 3-3 3 3" /></svg></span>
@@ -166,7 +149,7 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
               </div>
               <span id="pdf-drop-limit" className={styles.dropLimit}>PDF · 한 번에 최대 300개 · 파일당 최대 25MiB</span>
             </div>
-            : <ScreeningBoard key={`${review.id}-${filterKey}-${decision}-${view}`} review={review} entries={visible} decision={decision} view={view} refreshKey={detailRefresh} onSaved={reviews.replaceEntry} onUnauthorized={markExpired} onDirtyChange={onDirtyChange} registerNavigationSave={registerNavigationSave} onApplicantOpened={recheckProgress} navigate={navigate} />}
+            : <ScreeningBoard key={`${review.id}-${filterKey}-${decision}-${view}`} review={review} entries={visible} decision={decision} view={view} refreshKey={detailRefresh} onSaved={reviews.replaceEntry} onUnauthorized={markExpired} onDirtyChange={onDirtyChange} onApplicantOpened={recheckProgress} navigate={navigate} />}
           </>}
         </div>
       </>}
@@ -177,7 +160,7 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
       {createOpen && <ReviewCreateForm onCreated={created} onUnauthorized={markExpired} onBusyChange={setCreateBusy} />}
     </ModalShell>
     <ModalShell open={pendingNavigation !== null} onClose={() => setPendingNavigation(null)} labelledBy="unsaved-review-title" className="w-[calc(100vw-32px)] max-w-md rounded-modal bg-card p-6 shadow-xl">
-      <h2 id="unsaved-review-title" className="text-lg font-bold">저장하지 않은 변경사항이 있어요</h2><p className="mt-3 text-sm text-muted-strong">제목이나 메모를 남겨두려면 취소 후 저장해 주세요.</p>
+      <h2 id="unsaved-review-title" className="text-lg font-bold">저장하지 않은 메모가 있어요</h2><p className="mt-3 text-sm text-muted-strong">메모를 남겨두려면 취소 후 저장해 주세요.</p>
       <div className="mt-6 flex justify-end gap-2"><SecondaryButton onClick={() => setPendingNavigation(null)}>취소</SecondaryButton><PrimaryButton onClick={() => { const action = pendingNavigation?.action; dirty.current = false; setPendingNavigation(null); action?.(); }}>저장하지 않고 이동</PrimaryButton></div>
     </ModalShell>
   </div>;

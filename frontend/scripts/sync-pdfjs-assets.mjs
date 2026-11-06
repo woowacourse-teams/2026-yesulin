@@ -8,9 +8,3 @@ await mkdir(destination, { recursive: true });
 await Promise.all(["wasm", "cmaps", "standard_fonts", "iccs", "LICENSE"].map(name =>
   cp(new URL(name, source), new URL(name, destination), { recursive: true }),
 ));
-
-const qrSource = new URL("../node_modules/zxing-wasm/", import.meta.url);
-const qrDestination = new URL("../public/pdfjs/qr/", import.meta.url);
-await mkdir(qrDestination, { recursive: true });
-await cp(new URL("dist/reader/zxing_reader.wasm", qrSource), new URL("zxing_reader.wasm", qrDestination));
-await cp(new URL("LICENSE", qrSource), new URL("LICENSE", qrDestination));

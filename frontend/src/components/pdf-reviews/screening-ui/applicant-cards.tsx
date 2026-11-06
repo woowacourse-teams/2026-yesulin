@@ -1,12 +1,104 @@
 "use client";
+
+import { ageText, genderText, mismatchDetailText } from "@/features/auditions/labels";
+import { applicantEducationText } from "@/features/auditions/education-text";
 import type { Applicant } from "@/features/pdf-reviews/screening-types";
-import { StatusBadge } from "@/components/auditions/status-badge";
+import { ApplicantPhotoImage } from "./applicant-photo";
 import { useBoard } from "./board-context";
-export function ApplicantCards({ rows }: { readonly rows: readonly Applicant[] }) {
-  const { selected, toggleSelected, openApplicant } = useBoard();
-  return <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{rows.map(applicant => <article key={applicant.id} className={`min-w-0 rounded-card border bg-card p-4 ${selected.has(applicant.id) ? 'border-brand' : 'border-border'}`}>
-    <div className="mb-4 flex items-center justify-between gap-3"><label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" checked={selected.has(applicant.id)} onChange={() => toggleSelected(applicant.id)} className="h-5 w-5 accent-brand" /><span className="sr-only">{applicant.name} 선택</span><span aria-hidden="true" className="font-semibold text-muted-strong">PDF 지원서</span></label><StatusBadge status={applicant.review.status} size="sm" /></div>
-    <button type="button" onClick={() => openApplicant(applicant.id)} className="block min-h-28 w-full text-left"><h3 className="break-all font-semibold">{applicant.name}</h3><p className="mt-2 text-sm text-muted-strong">{applicant.roleName}</p><span className="mt-4 inline-block text-sm font-semibold text-brand">원본으로 심사하기 →</span></button>
-    {applicant.review.note && <p className="mt-3 line-clamp-2 whitespace-pre-wrap break-words border-t border-border pt-3 text-sm text-muted-strong">{applicant.review.note}</p>}
-  </article>)}</div>;
+import { StatusBadge } from "@/components/auditions/status-badge";
+import { ApplicantSocialLinks } from "./applicant-social-links";
+import { PdfPreparationStatus } from "./pdf-preparation-status";
+
+export function ApplicantCards({ rows }: { rows: readonly Applicant[] }) {
+  const { board, selected, toggleSelected, openApplicant } = useBoard();
+
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:justify-start sm:[grid-template-columns:repeat(auto-fill,minmax(220px,280px))] xl:justify-stretch xl:[grid-template-columns:repeat(4,minmax(0,1fr))]">
+      {rows.map((applicant, index) => {
+        const picked = selected.has(applicant.id);
+
+        return (
+          <article
+            key={applicant.id}
+            className={`group relative min-w-0 overflow-hidden rounded-card border bg-card transition-[background-color,border-color,box-shadow,transform] duration-150 active:scale-[0.995] ${
+              picked
+                ? "border-brand shadow-[var(--shadow-selection)]"
+                : "border-border hover:border-brand-line hover:shadow-[var(--shadow-1)]"
+            }`}
+          >
+            <button type="button" onClick={() => openApplicant(applicant.id)} className="block w-full text-left">
+              <span className="relative block aspect-[4/5] w-full overflow-hidden bg-border-soft">
+                <ApplicantPhotoImage
+                  photo={applicant.photos[0]}
+                        emptyMessage={applicant.sourceDocument ? "사진을 자동으로 확인하지 못했습니다" : undefined}
+                  alt={`${applicant.name} 프로필 사진`}
+                  sizes="(min-width: 1024px) 280px, (min-width: 640px) 240px, 90vw"
+                  priority={index === 0}
+                  className="object-cover object-[center_20%] transition-transform duration-200 group-hover:scale-[1.015]"
+                />
+                <span className="absolute right-3 top-3 z-2 rounded-full bg-foreground/65 px-2 py-1 text-xs font-semibold text-white backdrop-blur-sm">
+                  {applicant.sourceDocument && applicant.photos.length === 0 ? "사진 미확인" : `사진 ${applicant.photos.length}장`}
+                </span>
+                <span className="absolute bottom-3 left-3 z-2">
+                  {applicant.review.status === "PENDING" ? (
+                    <span className="rounded-full bg-white/92 px-2.5 py-1 text-xs font-semibold text-foreground shadow-[var(--shadow-1)]">검토 대기</span>
+                  ) : (
+                    <StatusBadge status={applicant.review.status} memo={applicant.review.memo} size="sm" onPhoto />
+                  )}
+                </span>
+              </span>
+
+              <span className="block p-4">
+                <span className="flex min-w-0 items-start justify-between gap-3">
+                  <span className="min-w-0">
+                    <strong className="block truncate text-lg font-bold tracking-[-0.015em] group-hover:text-brand">{applicant.name}</strong>
+                    <span className="num mt-0.5 block text-sm leading-5 text-muted">
+                      {applicant.sourceDocument ? applicant.roleName : <>{genderText(applicant.gender)} · {ageText(applicant.age)} · {measurementText(applicant.height, "cm", "키 미수집")} · {measurementText(applicant.weight, "kg", "몸무게 미수집")}</>}
+                    </span>
+                  </span>
+                  {applicant.mismatchReasons.length > 0 ? (
+                    <span className="shrink-0 rounded-full border border-fail/30 bg-fail-bg px-2 py-1 text-xs font-semibold text-fail">조건 불일치</span>
+                  ) : null}
+                </span>
+
+                {applicant.mismatchReasons.length > 0 ? (
+                  <span className="mt-2 block text-xs leading-5 font-medium text-fail">
+                    {mismatchDetailText(applicant, board.role).map((detail) => <span key={detail} className="block">{detail}</span>)}
+                  </span>
+                ) : null}
+
+                <span className="mt-3 block truncate text-sm text-muted-strong" title={applicant.sourceDocument?.filename}>{applicant.sourceDocument?.filename ?? applicantEducationText(applicant)}</span>
+                <span className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted">
+                  <span className="rounded-lg bg-surface px-2 py-1">{applicant.sourceDocument ? <PdfPreparationStatus document={applicant.sourceDocument} /> : applicant.videos.length > 0 ? `영상 ${applicant.videos.length}개` : "영상 없음"}</span>
+                  <span className="num">{submittedDate(applicant.submittedAt)} 접수</span>
+                </span>
+
+                <span className="mt-4 flex items-center justify-between border-t border-border-soft pt-3 text-sm font-semibold text-muted-strong group-hover:text-brand">
+                  지원서 검토
+                  <svg aria-hidden="true" viewBox="0 0 20 20" className="h-4 w-4 fill-none stroke-current stroke-2"><path d="m7.5 4.5 5 5-5 5" /></svg>
+                </span>
+              </span>
+            </button>
+
+            {applicant.links.length > 0 && <div className="border-t border-border-soft px-4 py-3"><ApplicantSocialLinks links={applicant.links} /></div>}
+
+            <label className="absolute left-2 top-2 z-3 inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-control bg-white/92 p-2 shadow-[var(--shadow-1)] transition-colors hover:bg-white lg:min-h-10 lg:min-w-10">
+              <span className="sr-only">{applicant.name} 선택</span>
+              <input type="checkbox" checked={picked} onChange={() => toggleSelected(applicant.id)} className="m-0 block h-[18px] w-[18px] cursor-pointer accent-brand" />
+            </label>
+          </article>
+        );
+      })}
+    </div>
+  );
+}
+
+function submittedDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("ko-KR", { month: "numeric", day: "numeric" }).format(date);
+}
+
+function measurementText(value: number | null, unit: string, empty: string) {
+  return value === null ? empty : `${value}${unit}`;
 }

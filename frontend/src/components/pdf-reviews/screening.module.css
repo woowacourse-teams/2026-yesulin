@@ -22,7 +22,8 @@
 .breadcrumb ol { display:flex; align-items:center; flex-wrap:wrap; gap:10px; list-style:none; padding:0; margin:0; }
 .breadcrumb li { min-width:0; }
 .breadcrumbSeparator { color:var(--color-muted, #64748b); font-size:20px; }
-@media(max-width:700px) { .header:has(.breadcrumb) { flex-wrap:wrap; gap:0; } }
+.header .reviewCounts { flex-shrink:0; margin:0; font-size:12px; }
+@media(max-width:700px) { .header:has(.breadcrumb) { flex-wrap:wrap; gap:0; } .header .reviewCounts { width:100%; padding-bottom:8px; } }
 .eyebrow { font-weight: 700; color: #246bfe; margin-bottom: 18px !important; }
 .home h1 { font-size: 38px; letter-spacing: -.04em; line-height: 1.4; }
 .description { margin-top: 20px !important; color: #637086; max-width: 570px; font-size: 16px; line-height: 1.8; }
@@ -188,6 +189,9 @@
 .integrated .breadcrumb h1 { margin:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:20px; font-weight:700; line-height:1.5; letter-spacing:-.02em; }
 .integrated .breadcrumbSeparator { font-size:16px; }
 .integrated .controls .homeLink { padding:0 8px; color:var(--ink-60); font-size:14px; }
+.integrated .header .reviewCounts { display:flex; flex-wrap:wrap; gap:12px; width:auto; padding:0; font-size:14px; line-height:1.5; color:var(--ink-60); }
+.integrated .reviewCounts span { padding:0; }
+.integrated .reviewCounts b { color:var(--ink-60); font-weight:600; }
 .integrated .uploadToolbar { display:flex; flex-wrap:nowrap; align-items:center; gap:16px; padding:4px 0 12px; }
 .integrated .uploadToolbar .roleBar { order:0; flex:1; min-width:0; flex-basis:0; }
 .uploadButtons { display:flex; align-items:center; flex-shrink:0; gap:8px; }
@@ -249,6 +253,7 @@
 @media(max-width:700px) {
   .integrated .header { flex-wrap:wrap; gap:0; }
   .integrated .breadcrumb { flex-basis:100%; }
+  .integrated .header .reviewCounts { margin:0 0 4px 4px; gap:12px; }
   .integrated .uploadToolbar { gap:8px; }
   .integrated .uploadToolbar { flex-wrap:wrap; }
   .integrated .uploadToolbar .roleBar { flex-basis:100%; }

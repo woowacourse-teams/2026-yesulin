@@ -84,15 +84,15 @@ export function ReviewPassedContacts({ reviewId, onBack, onUnauthorized, onDirty
               <th scope="col" className="px-4 py-3 font-semibold">전화번호</th><th scope="col" className="px-4 py-3 font-semibold">이메일</th><th scope="col" className="px-4 py-3 font-semibold">원문</th>
             </tr></thead>
             <tbody className="divide-y divide-border-soft">{rows.map(({ entry, roleName, contact, email }) => <tr key={entry.id}>
-              <td className="px-2"><label className="flex min-h-11 min-w-11 cursor-pointer items-center justify-center"><span className="sr-only">{entry.title || entry.applicantName || entry.originalFilename} 대상 선택</span><input type="checkbox" className="h-5 w-5 accent-brand" disabled={loading || copying} checked={selected.has(String(entry.id))} onChange={event => { setCopied(""); setManualCopy(""); setSelected(current => { const next = new Set(current); if (event.target.checked) next.add(String(entry.id)); else next.delete(String(entry.id)); return next; }); }} /></label></td>
-              <th scope="row" className="max-w-[280px] px-4 py-4 font-normal"><span className="font-semibold">{entry.title || entry.applicantName || "이름 미입력"}</span>
+              <td className="px-2"><label className="flex min-h-11 min-w-11 cursor-pointer items-center justify-center"><span className="sr-only">{entry.applicantName || entry.originalFilename} 대상 선택</span><input type="checkbox" className="h-5 w-5 accent-brand" disabled={loading || copying} checked={selected.has(String(entry.id))} onChange={event => { setCopied(""); setManualCopy(""); setSelected(current => { const next = new Set(current); if (event.target.checked) next.add(String(entry.id)); else next.delete(String(entry.id)); return next; }); }} /></label></td>
+              <th scope="row" className="max-w-[280px] px-4 py-4 font-normal"><span className="font-semibold">{entry.applicantName || "이름 미확인"}</span>
                 <span className="mt-1 block break-all text-xs text-muted">{entry.originalFilename}</span></th>
               <td className="max-w-[180px] break-words px-4 py-4">{roleName}</td>
               <td className="whitespace-nowrap px-4 py-4">{contact.status === "FOUND" ? <span className="num select-all font-medium">{contact.phone}</span>
                 : <span className={contact.status === "ERROR" ? "text-fail" : "text-muted-strong"}>{contactLabels[contact.status]}</span>}</td>
               <td className="min-w-48 max-w-64 break-all px-4 py-4">{email.status === "FOUND" ? <span className="select-all font-medium">{email.email}</span>
                 : <span className={email.status === "ERROR" ? "text-fail" : "text-muted-strong"}>{emailLabels[email.status]}</span>}</td>
-              <td className="px-4 py-3"><SecondaryButton aria-label={`${entry.title || entry.applicantName || entry.originalFilename} 원본 PDF 보기`} onClick={() => { trackOriginalPdfClick(String(reviewId), String(entry.id), "passed_contacts"); setDocumentJobId(entry.jobId); }}>PDF 보기</SecondaryButton></td>
+              <td className="px-4 py-3"><SecondaryButton aria-label={`${entry.applicantName || entry.originalFilename} 원본 PDF 보기`} onClick={() => { trackOriginalPdfClick(String(reviewId), String(entry.id), "passed_contacts"); setDocumentJobId(entry.jobId); }}>PDF 보기</SecondaryButton></td>
             </tr>)}</tbody>
           </table>
         </div>}

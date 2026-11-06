@@ -26,8 +26,7 @@ public class AuditApplicant {
     public static final int MAX_FILENAME_LENGTH = 255;
     public static final int MAX_APPLICANT_NAME_LENGTH = 100;
     public static final int MAX_EVIDENCE_LENGTH = 1000;
-    public static final int MAX_MEMO_LENGTH = 500;
-    public static final int MEMO_STORAGE_LENGTH = 2000;
+    public static final int MAX_MEMO_LENGTH = 2000;
 
     @Id
     @Column(length = 36)
@@ -45,9 +44,6 @@ public class AuditApplicant {
     @Column(length = MAX_APPLICANT_NAME_LENGTH)
     private String applicantName;
 
-    @Column(length = MAX_FILENAME_LENGTH)
-    private String displayTitle;
-
     @Column(length = 36)
     private String roleId;
 
@@ -58,7 +54,7 @@ public class AuditApplicant {
     @Column(nullable = false, length = MAX_EVIDENCE_LENGTH)
     private String matchEvidence;
 
-    @Column(nullable = false, length = MEMO_STORAGE_LENGTH)
+    @Column(nullable = false, length = MAX_MEMO_LENGTH)
     private String memo;
 
     @Enumerated(EnumType.STRING)
@@ -82,25 +78,6 @@ public class AuditApplicant {
         this.memo = "";
         this.decision = AuditDecision.PENDING;
         this.processingStatus = AuditApplicantStatus.UPLOADING;
-    }
-
-    public String getTitle() {
-        return Objects.requireNonNullElse(displayTitle, "");
-    }
-
-    public void rename(String title) {
-        String normalized = AuditText.normalize(title);
-        if (title == null || AuditText.length(normalized) > MAX_FILENAME_LENGTH
-                || normalized.chars().anyMatch(Character::isISOControl)) {
-            throw new BusinessException(INVALID_PDF_REVIEW, "배우 이름은 255자 이하로 입력해 주세요.");
-        }
-        this.displayTitle = normalized;
-    }
-
-    public static AuditApplicant forManualReview(String reviewId, String jobId, String originalFilename) {
-        AuditApplicant entry = new AuditApplicant(reviewId, jobId, originalFilename);
-        entry.assignRole(null);
-        return entry;
     }
 
     public void applyAnalysis(AuditAnalysis analysis) {
@@ -154,13 +131,9 @@ public class AuditApplicant {
         this.processingStatus = AuditApplicantStatus.FAILED;
     }
 
-    public void updateMemo(String memo) {
-        review(memo, decision);
-    }
-
     public void review(String memo, AuditDecision decision) {
         String value = Objects.requireNonNullElse(memo, "");
-        if (decision == null || (AuditText.length(value) > MAX_MEMO_LENGTH && !value.equals(this.memo))) {
+        if (decision == null || AuditText.length(value) > MAX_MEMO_LENGTH) {
             throw new BusinessException(INVALID_PDF_REVIEW,
                     "메모는 %d자 이하로 입력하고 판정을 선택해 주세요.", MAX_MEMO_LENGTH);
         }
