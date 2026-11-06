@@ -42,7 +42,7 @@ export function ReviewTimetablePanel({ reviewId, selected, onClose, onUnauthoriz
   }
   const [creationKey, setCreationKey] = useState(() => crypto.randomUUID());
   const [contacts, setContacts] = useState<RosterContact[]>(() => selected.map(row => ({
-    entryId: String(row.entry.id), name: row.entry.applicantName ?? "",
+    entryId: String(row.entry.id), name: row.entry.title || row.entry.applicantName || "",
     phone: row.contact.phone ?? "", email: row.email.email ?? "",
   })));
   const [editing, setEditing] = useState<RosterActor | null>(null);

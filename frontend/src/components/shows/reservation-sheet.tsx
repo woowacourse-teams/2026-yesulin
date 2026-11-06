@@ -184,7 +184,7 @@ function TextField({ field, label, value, error, hint, inputProps, onChange, onB
         aria-describedby={[hintId, errorId].filter(Boolean).join(" ") || undefined}
         onChange={(event) => onChange(event.target.value, event)}
         onBlur={onBlur}
-        className={error ? "border-fail focus:border-fail focus:ring-fail-bg" : ""}
+        className={error ? "border-fail focus:border-fail focus:ring-fail" : ""}
         {...inputProps}
       />
       {hint ? <p id={hintId} className="mt-2 text-xs leading-5 text-muted">{hint}</p> : null}

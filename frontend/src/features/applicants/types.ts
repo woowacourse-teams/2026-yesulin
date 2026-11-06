@@ -4,7 +4,7 @@ import type { SubmissionId } from "@/features/auditions/types";
 
 export type CareerEntry = {
   readonly genre?: ProfileCareerGenre | null;
-  readonly year: number;
+  readonly year: number; readonly month?: number | null;
   readonly title: string;
   readonly part: string;
 };

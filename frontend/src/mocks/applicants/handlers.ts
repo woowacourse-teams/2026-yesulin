@@ -1,6 +1,6 @@
 import { profileCareersError } from "@/features/applicants/profile-careers";
 import { delay, http, HttpResponse } from "msw";
-import type { CreateSubmissionRequest, UpdateProfileRequest } from "@/features/applicants/types";
+import type { CreateSubmissionRequest, UpdateProfileRequest, CareerEntry } from "@/features/applicants/types";
 import { publicPostingById } from "@/features/applications/public-posting";
 import { submissionId, postingId } from "@/features/auditions/types";
 import { findPerformance, findPosting } from "../auditions/aggregate";
@@ -21,7 +21,7 @@ export const applicantHandlers = [
     const body = (await request.json()) as UpdateProfileRequest;
     if (!(body.answers?.length || body.removeKeys?.length || body.photoLibrary || body.videoLibrary)) return apiError(400, "NOTHING_TO_UPDATE", "변경할 프로필 항목이 없습니다.");
     const careers = body.answers?.find((answer) => answer.key === "CAREER");
-    const careerError = careers ? profileCareersError(careers.value) : null;
+    const careerError = careers ? profileCareersError(careers.value, (applicantProfile().answers.find((answer) => answer.key === "CAREER")?.value ?? []) as readonly CareerEntry[]) : null;
     if (careerError) return apiError(400, "PROFILE_INVALID", careerError);
     return HttpResponse.json(patchApplicantProfile(body));
   }),

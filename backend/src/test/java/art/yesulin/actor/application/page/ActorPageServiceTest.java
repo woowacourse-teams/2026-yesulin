@@ -375,7 +375,7 @@ class ActorPageServiceTest {
     private UpdateApplicantProfileCommand career(ProfileCareerGenre genre) {
         return new UpdateApplicantProfileCommand(null, new UpdateProfileAdditionalInformationCommand(
                 null, null, null, List.of(), null, null, null, null, null,
-                List.of(new UpdateProfileCareerCommand(2026, "작품", "배역", genre))
+                List.of(new UpdateProfileCareerCommand(2026, 3, "작품", "배역", genre))
         ));
     }
 

@@ -2,7 +2,7 @@
 
 import { CalendarDateRangeField } from "./calendar-date-range-field";
 
-const selectClass = "min-h-12 min-w-0 rounded-control border border-border bg-card px-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand-soft";
+const selectClass = "min-h-12 min-w-0 rounded-control border border-border bg-card px-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand";
 
 export function NoticeAppointmentField({ value, onChange, label }: {
   value: string | null; onChange: (value: string) => void; label: string;

@@ -23,6 +23,7 @@ export type ReviewEntry = {
   readonly id: ReviewKey;
   readonly jobId: string;
   readonly originalFilename: string;
+  readonly title?: string;
   readonly applicantName: string | null;
   readonly roleId: ReviewKey | null;
   readonly matchStatus: MatchStatus;
@@ -31,6 +32,11 @@ export type ReviewEntry = {
   readonly decision: ReviewDecision;
   readonly processingStatus?: "UPLOADING" | "EXTRACTING" | "ENRICHING" | "READY" | "NEEDS_REVIEW" | "FAILED";
 };
+
+export function reviewEntryName(entry: Pick<ReviewEntry, "title" | "applicantName">): string {
+  if (entry.title !== undefined) return entry.title;
+  return entry.applicantName ?? "";
+}
 
 export type ReviewDetail = {
   readonly id: ReviewKey;
@@ -56,7 +62,7 @@ export type ReviewProgress = {
 export const applicantProcessingLabels = { UPLOADING: "업로드 확인 중", EXTRACTING: "이미지 추출 중", ENRICHING: "지원자 분석 중", READY: "정리 완료", NEEDS_REVIEW: "원본 확인 필요", FAILED: "추출 실패" } as const;
 
 export const matchStatusLabels: Record<MatchStatus, string> = {
-  WAITING: "내용 정리 중", MATCHED: "지원 배역 확인됨", NEEDS_CHECK: "미기재",
+  WAITING: "내용 정리 중", MATCHED: "배역 배정됨", NEEDS_CHECK: "미배정",
 };
 
 export const decisionLabels: Record<ReviewDecision, string> = {
@@ -70,11 +76,12 @@ export type EntryFilter = "ALL" | "WAITING" | "NEEDS_CHECK" | { readonly roleId:
 export const sameKey = (a: ReviewKey | null | undefined, b: ReviewKey | null | undefined) =>
   a != null && b != null && String(a) === String(b);
 
-/** 자동으로 명확히 매칭된 항목만 배역에 속하고, 나머지는 '미기재'로 남긴다. */
+/** 배역 ID로 수동 배정 여부를 구분한다. */
 export function matchesFilter(entry: ReviewEntry, filter: EntryFilter) {
   if (filter === "ALL") return true;
-  if (filter === "WAITING" || filter === "NEEDS_CHECK") return entry.matchStatus === filter;
-  return entry.matchStatus === "MATCHED" && sameKey(entry.roleId, filter.roleId);
+  if (filter === "NEEDS_CHECK") return entry.roleId == null;
+  if (filter === "WAITING") return entry.matchStatus === filter;
+  return sameKey(entry.roleId, filter.roleId);
 }
 
 /** 배역 입력란은 쉼표·줄바꿈 단위다. 공백만 있는 줄은 버리고 같은 이름은 오류로 돌려준다. */

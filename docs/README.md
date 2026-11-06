@@ -8,10 +8,14 @@
 | --- | --- |
 | 작업 평가·문제 건수·PR 기록 | [agent-review.md](./agent-review.md) |
 | 공연사 가입·인증·세션 복구 | [인증 문서](../backend/src/main/java/art/yesulin/auth/docs/README.md) |
+| 배우 프로필 입력·검증 | [배우 프로필 문서](../backend/src/main/java/art/yesulin/actor/docs/README.md) |
 | 이벤트 참가 신청·무료 명함·사진 업로드 | [이벤트 문서](../backend/src/main/java/art/yesulin/event/docs/README.md) |
 | 공용 PDF 추출·AI | [PDF 문서](../backend/src/main/java/art/yesulin/pdfextraction/docs/README.md) |
 | PDF 심사 흐름·정책·평가 | [Audit 문서](../backend/src/main/java/art/yesulin/audit/docs/README.md) |
+| 공개 공고 상세·원문 보기 | [공고 문서](../backend/src/main/java/art/yesulin/auditionpost/docs/README.md) |
+| 화면 의견 보내기 | [의견 보내기 문서](../backend/src/main/java/art/yesulin/feedback/docs/README.md) |
 | 공연사 일정 명단 | [일정표 문서](../backend/src/main/java/art/yesulin/timetable/docs/README.md) |
+| 익명 커뮤니티·좋아요·신고 | [커뮤니티 문서](../backend/src/main/java/art/yesulin/community/docs/README.md) |
 | 공통 도메인·상태·권한 | [domain.md](./domain.md) |
 | 용어와 ID 의미 | [glossary.md](./glossary.md) |
 | HTTP 공통 규칙 | [api-conventions.md](./api-conventions.md) |

@@ -124,8 +124,9 @@ export function PublicApplicationProvider({
   const focusIssue = (issue: ApplicationStepIssue) => {
     window.requestAnimationFrame(() => {
       const field = document.getElementById(`application-field-${issue.fieldId}`);
-      const control = field?.querySelector<HTMLElement>("input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled])");
-      field?.scrollIntoView({ behavior: "smooth", block: "center" });
+      const control = field?.querySelector<HTMLElement>('[aria-invalid="true"]:not([disabled])')
+        ?? field?.querySelector<HTMLElement>("input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled])");
+      (control ?? field)?.scrollIntoView({ behavior: "smooth", block: "center" });
       control?.focus({ preventScroll: true });
     });
   };

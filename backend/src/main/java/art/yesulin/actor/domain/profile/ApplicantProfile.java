@@ -58,10 +58,17 @@ public class ApplicantProfile {
     }
 
     public void replaceAdditionalInformation(ProfileAdditionalInformation additionalInformation) {
-        this.additionalInformation = requireNonNull(additionalInformation, "프로필 추가 정보는 필수입니다.");
+        ProfileAdditionalInformation next = requireNonNull(additionalInformation, "프로필 추가 정보는 필수입니다.");
+        next.validateCareerMonths(this.additionalInformation.careers());
+        this.additionalInformation = next;
+    }
+
+    /** 모든 기본정보 열이 null인 과거 프로필도 빈 기본정보로 읽는다. */
+    public ProfileBasicInformation getBasicInformation() {
+        return basicInformation == null ? ProfileBasicInformation.empty() : basicInformation;
     }
 
     public int filledBasicInformationCount() {
-        return basicInformation.filledCount();
+        return getBasicInformation().filledCount();
     }
 }

@@ -94,11 +94,11 @@ export function ImageLightbox({ title, imageUrls, index = 0, onSelect, onClose }
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-2 border-t border-white/10 px-4 py-2 sm:px-5">
+      <div className={footerClassName(imageUrls.length)}>
         {imageUrls.length > 1 ? (
           <button type="button" disabled={index === 0} onClick={() => selectImage(index - 1)} className="min-h-11 rounded-control px-3 text-sm font-semibold text-white hover:bg-white/10 disabled:opacity-35">이전</button>
         ) : <span />}
-        <button type="button" aria-pressed={zoomed} onClick={() => setZoomed((current) => !current)} className="min-h-11 rounded-control border border-white/25 px-4 text-sm font-semibold text-white hover:bg-white/10">
+        <button type="button" aria-pressed={zoomed} onClick={() => setZoomed((current) => !current)} className="min-h-11 rounded-control border border-white/25 px-4 text-sm font-semibold text-white hover:bg-white/10 pointer-coarse:hidden">
           {zoomed ? "맞춤 보기" : "2배 확대"}
         </button>
         {imageUrls.length > 1 ? (
@@ -107,4 +107,12 @@ export function ImageLightbox({ title, imageUrls, index = 0, onSelect, onClose }
       </div>
     </ModalShell>
   );
+}
+
+const FOOTER_CLASS = "flex items-center justify-between gap-2 border-t border-white/10 px-4 py-2 sm:px-5";
+
+/** 터치 화면은 손가락으로 확대하므로 확대 버튼만 남는 한 장짜리 하단 막대를 감춘다. */
+function footerClassName(imageCount: number): string {
+  if (imageCount > 1) return FOOTER_CLASS;
+  return `${FOOTER_CLASS} pointer-coarse:hidden`;
 }

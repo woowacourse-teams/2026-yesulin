@@ -36,6 +36,8 @@ import { adminLogHandlers } from "./admin-log-handlers";
 import { adminFileHandlers } from "./admin-file-handlers";
 import { actorPageHandlers } from "./actor-page-handlers";
 import { memberLinkCodeHandlers } from "./member-link-codes";
+import { communityHandlers } from "./community-handlers";
+import { feedbackHandlers } from "./feedback-handlers";
 import { eventHandlers } from "./event-handlers";
 import { auditionPostHandlers } from "./audition-post-handlers";
 import { otrAuditionHandlers } from "./otr-audition-handlers";
@@ -59,6 +61,8 @@ const pdfPassthroughPaths = [
   "/api/v1/pdf-reviews/:reviewId/uploads",
   "/api/v1/pdf-reviews/:reviewId/role-assignments",
   "/api/v1/pdf-reviews/:reviewId/entries/:entryId",
+  "/api/v1/pdf-reviews/:reviewId/entries/:entryId/title",
+  "/api/v1/pdf-reviews/:reviewId/entries/:entryId/memo",
   "/api/v1/pdf-reviews/*",
 ];
 
@@ -73,6 +77,8 @@ const hasText = (value: unknown): value is string =>
 export const handlers = [
   // PDF 추출·심사는 MSW가 켜져 있어도 저장소·추출 결과·심사 기록을 가짜 성공으로 대체하지 않는다. SSE도 서버로 넘긴다.
   ...pdfPassthroughPaths.map(path => http.all(path, () => passthrough())),
+  ...communityHandlers,
+  ...feedbackHandlers,
   ...noticeHandlers,
   ...authHandlers,
   ...adminHandlers,

@@ -137,7 +137,7 @@ export type ApplicantPhoto = {
 };
 
 export type CareerEntry = {
-  readonly year: number;
+  readonly year: number; readonly month?: number | null;
   readonly title: string;
   readonly part: string;
 };
