@@ -31,6 +31,7 @@
 - 독립 평가 1회 완료: 수정 코드 신규 결함0, P01·P02·P04 PASS, P03 Preview 런타임 검증 대기 권고, P05 카카오 갱신 UNVERIFIED, P06 N/A
 - 검토 중 지적된 문서 집계 불일치(미확인5)는 고쳤고, 미확인은 P03·P05 2건임을 확인
 - 모든 Preview가 dev 도메인의 최신 이미지 자산을 읽으므로 PR 전용 Preview 이미지와 혼동하지 않음
+- dev alias 후속 확인: `https://dev.yesulin.art/`에서 카카오 크롤러 User-Agent가 OG와 Twitter 모두 dev 호스트 이미지 URL을 받고, 자산 응답 200·977630 bytes·SHA256 일치를 확인
 - 후속 표적 확인으로 P03 PASS 갱신, 카카오 실제 카드 재요청만 미검증
 - 최종 필수 PASS4 / FAIL0 / UNVERIFIED0, 비필수 UNVERIFIED1 / N/A1, 필수 검증률100%(4/4)
 
@@ -38,6 +39,13 @@
 
 | 문제 ID | 심각도·유형·유입 | 최초 확정 / 최초 PR | 해결 시각 | 근거·상태 |
 | --- | --- | --- | --- | --- |
-| 2026-11-06-og-preview-image-host-F01 | P2·CODE·INTRODUCED | 2026-11-06T23:33:01+09:00 / #564 | 미해결 | #564의 공통 이미지 URL이 preview에서 운영 호스트를 생성, 사용자 화면·HTTP 해시로 확인, #567 Preview에서 수정 출력 검증. dev alias 배포 및 실제 카카오 카드 확인 전 OPEN |
+| 2026-11-06-og-preview-image-host-F01 | P2·CODE·INTRODUCED | 2026-11-06T23:33:01+09:00 / #564 | 2026-11-07T10:07:45+09:00 / #567 | #564의 공통 이미지 URL이 preview에서 운영 호스트를 생성, 사용자 화면·HTTP 해시로 확인. #567 수정 후 dev alias에서 크롤러 메타와 이미지 응답을 확인해 FIXED. 실제 카카오 카드 캐시 갱신은 미확인 |
 
-발견1 / 해결0 / 미해결1 / P0 0 / P1 0 / P2 1 / P3 0, PRECHECK0 / INDEPENDENT_REVIEW0 / POST_FIX_CHECK0 / EXTERNAL1, 오탐0, 미확인2
+## 추가 전용 상태 사건 이력
+
+| 사건 ID | 문제 ID | 사건 | 발생 시각(+09:00) | 근거·관련 PR |
+| --- | --- | --- | --- | --- |
+| 2026-11-06-og-preview-image-host-E01 | 2026-11-06-og-preview-image-host-F01 | CONFIRMED | 2026-11-06T23:33:01+09:00 | 사용자 카카오톡 캡처와 dev HTML의 운영 이미지 호스트·이미지 해시 불일치 / #564 |
+| 2026-11-06-og-preview-image-host-E02 | 2026-11-06-og-preview-image-host-F01 | FIXED | 2026-11-07T10:07:45+09:00 | dev alias가 OG·Twitter에 dev 이미지 URL을 전달하고 이미지 200·977630 bytes·SHA256 일치 / #567 |
+
+발견1 / 해결1 / 미해결0 / P0 0 / P1 0 / P2 1 / P3 0, PRECHECK0 / INDEPENDENT_REVIEW0 / POST_FIX_CHECK1 / EXTERNAL1, 오탐0, 미확인1
