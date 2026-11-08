@@ -28,9 +28,9 @@ PDF 지원자 심사의 한 명씩 보기에서 원본 PDF를 눌러 전체화�
 
 | 문제 ID | 심각도 | 유형 | 유입 | 발견 경로 | 최초 확정 | 해결 | 최초 PR | 상태 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 2026-11-08-pdf-review-fullscreen-F01 | P2 | FLOW | INTRODUCED | INDEPENDENT_REVIEW | 2026-11-08T12:28:06+09:00 | 2026-11-08T12:30:53+09:00 | PENDING | FIXED |
-| 2026-11-08-pdf-review-fullscreen-F02 | P2 | FLOW | INTRODUCED | INDEPENDENT_REVIEW | 2026-11-08T12:28:06+09:00 | 2026-11-08T12:30:53+09:00 | PENDING | FIXED |
-| 2026-11-08-pdf-review-fullscreen-F03 | P3 | CODE | INTRODUCED | INDEPENDENT_REVIEW | 2026-11-08T12:28:06+09:00 | 2026-11-08T12:30:53+09:00 | PENDING | FIXED |
+| 2026-11-08-pdf-review-fullscreen-F01 | P2 | FLOW | INTRODUCED | INDEPENDENT_REVIEW | 2026-11-08T12:28:06+09:00 | 2026-11-08T12:30:53+09:00 | #569 | FIXED |
+| 2026-11-08-pdf-review-fullscreen-F02 | P2 | FLOW | INTRODUCED | INDEPENDENT_REVIEW | 2026-11-08T12:28:06+09:00 | 2026-11-08T12:30:53+09:00 | #569 | FIXED |
+| 2026-11-08-pdf-review-fullscreen-F03 | P3 | CODE | INTRODUCED | INDEPENDENT_REVIEW | 2026-11-08T12:28:06+09:00 | 2026-11-08T12:30:53+09:00 | #569 | FIXED |
 
 - F01: `aria-modal`만 두고 배경을 막지 않아 전체화면 중 뒤쪽 메모·판정 버튼에 초점이 갔다. → 펼친 동안 상위 경로의 형제 요소를 `inert`로 막고 닫을 때 복원. 테스트: 배경 textarea inert 확인, 브라우저에서 Tab 순환과 배경 focus 실패 확인.
 - F02: 일반 보기에서 확대한 배율이 전체화면에 남아 페이지가 화면보다 컸다. → 맞춤 방식이 바뀌면 배율을 1로 초기화. 테스트 `맞춤 방식이 바뀌면 이전 확대 배율을 버리고…`, 브라우저 1.2→1 확인.
@@ -94,9 +94,9 @@ PDF 지원자 심사의 한 명씩 보기에서 원본 PDF를 눌러 전체화�
 
 | 문제 ID | 심각도 | 유형 | 유입 | 발견 경로 | 최초 확정 | 해결 | 최초 PR | 상태 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 2026-11-08-pdf-review-fullscreen-shortcuts-F01 | P2 | FLOW | INTRODUCED | INDEPENDENT_REVIEW | 2026-11-08T13:26:11+09:00 | 2026-11-08T13:28:59+09:00 | PENDING | FIXED |
-| 2026-11-08-pdf-review-fullscreen-shortcuts-F02 | P2 | FLOW | INTRODUCED | INDEPENDENT_REVIEW | 2026-11-08T13:26:11+09:00 | 2026-11-08T13:28:59+09:00 | PENDING | FIXED |
-| 2026-11-08-pdf-review-fullscreen-shortcuts-F03 | P3 | CODE | INTRODUCED | INDEPENDENT_REVIEW | 2026-11-08T13:26:11+09:00 | 2026-11-08T13:28:59+09:00 | PENDING | FIXED |
+| 2026-11-08-pdf-review-fullscreen-shortcuts-F01 | P2 | FLOW | INTRODUCED | INDEPENDENT_REVIEW | 2026-11-08T13:26:11+09:00 | 2026-11-08T13:28:59+09:00 | #569 | FIXED |
+| 2026-11-08-pdf-review-fullscreen-shortcuts-F02 | P2 | FLOW | INTRODUCED | INDEPENDENT_REVIEW | 2026-11-08T13:26:11+09:00 | 2026-11-08T13:28:59+09:00 | #569 | FIXED |
+| 2026-11-08-pdf-review-fullscreen-shortcuts-F03 | P3 | CODE | INTRODUCED | INDEPENDENT_REVIEW | 2026-11-08T13:26:11+09:00 | 2026-11-08T13:28:59+09:00 | #569 | FIXED |
 
 - F01: 판정·자동 저장 실패 안내가 전체화면 밖(메모 쪽은 inert)에 있어 보이지 않았다. → `saveError`를 BoardContext로 넘기고 자동 저장 오류와 함께 전체화면 캡션의 `role="alert"`로 표시. 1024px 미만에서도 오류만은 보인다. 테스트로 alert 문구 확인, 800×700 브라우저에서 닫기 버튼과 겹치지 않음 확인.
 - F02: 지원자 이동 시 부모 section의 초점 효과가 자식의 dialog 초점을 덮어 초점이 대화상자 밖으로 나갔다. → 전체화면일 때 section 초점 이동을 생략. 테스트로 판정 후 `activeElement === dialog` 확인.
