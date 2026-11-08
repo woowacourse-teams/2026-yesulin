@@ -156,8 +156,8 @@ PDF 지원자 심사의 한 명씩 보기에서 원본 PDF를 눌러 전체화�
 
 | 문제 ID | 심각도 | 유형 | 유입 | 발견 경로 | 최초 확정 | 해결 | 최초 PR | 상태 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 2026-11-08-pdf-review-fullscreen-band-F01 | P2 | FLOW | EXISTING | INDEPENDENT_REVIEW | 2026-11-08T14:30:54+09:00 | 2026-11-08T14:33:26+09:00 | PENDING | FIXED |
-| 2026-11-08-pdf-review-fullscreen-band-F02 | P2 | FLOW | EXISTING | INDEPENDENT_REVIEW | 2026-11-08T14:30:54+09:00 | 2026-11-08T14:33:26+09:00 | PENDING | FIXED |
+| 2026-11-08-pdf-review-fullscreen-band-F01 | P2 | FLOW | EXISTING | INDEPENDENT_REVIEW | 2026-11-08T14:30:54+09:00 | 2026-11-08T14:33:26+09:00 | #572 | FIXED |
+| 2026-11-08-pdf-review-fullscreen-band-F02 | P2 | FLOW | EXISTING | INDEPENDENT_REVIEW | 2026-11-08T14:30:54+09:00 | 2026-11-08T14:33:26+09:00 | #572 | FIXED |
 
 - F01: 64px 여백이 스크롤 영역 안에 있어 스크롤하면 페이지가 안내 밑으로 들어갔다. → 원본 스크롤 영역(`reader`)을 띠 아래에 절대 배치하고 맞춤에서 아래 여백 16px만 뺀다. 브라우저에서 스크롤 후 띠 위치 확인.
 - F02: 오류 안내가 상세 안내에 더해져 띠(64px)를 넘었다. → 오류가 있으면 상세 안내를 대체하고 최대 두 줄로 제한. 브라우저에서 10~36px 확인.
