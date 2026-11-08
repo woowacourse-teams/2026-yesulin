@@ -91,3 +91,22 @@ it("페이지 렌더 오류 재시도는 만료 원본의 주소 갱신 callback
   await visible(1);await act(async()=>state.tasks[0].reject(new Error('expired')));
   await act(async()=>host.querySelector<HTMLButtonElement>('[data-pdf-page="1"] button')!.click());expect(retry).toHaveBeenCalledOnce();
 });
+
+it("전체화면 맞춤은 페이지 비율로 화면 높이에 맞추고 너비를 넘지 않는다", async () => {
+  const { fittedPageWidth } = await import("./pdf-canvas-viewer");
+  const portrait = { width: 595, height: 842 };
+  expect(fittedPageWidth({ width: 1400, height: 900 }, portrait, "width")).toBe(1400);
+  expect(fittedPageWidth({ width: 1400, height: 900 }, portrait, "page")).toBe(Math.floor(868 * 595 / 842));
+  expect(fittedPageWidth({ width: 390, height: 844 }, portrait, "page")).toBe(390);
+  expect(fittedPageWidth({ width: 1400, height: 0 }, portrait, "page")).toBe(1400);
+});
+
+it("맞춤 방식이 바뀌면 이전 확대 배율을 버리고 맞춤 배율로 다시 시작한다", async () => {
+  await render();
+  const reader = host.querySelector<HTMLElement>("[data-pdf-zoom]")!;
+  await act(async () => reader.dispatchEvent(new KeyboardEvent("keydown", { key: "+", ctrlKey: true, bubbles: true })));
+  expect(Number(reader.dataset.pdfZoom)).toBeCloseTo(1.2);
+  await act(async () => root.render(<PdfCanvasViewer url="https://example.test/a.pdf" filename="a.pdf" fit="page" />));
+  expect(reader.dataset.pdfZoom).toBe("1");
+  expect(reader.dataset.pdfFit).toBe("page");
+});

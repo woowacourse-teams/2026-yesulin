@@ -8,11 +8,25 @@ import { PdfRenderQueue } from "./pdf-render-queue";
 import { PdfScrollPage, type PdfPageSize } from "./pdf-scroll-page";
 import styles from "./pdf-viewer.module.css";
 
-export function PdfCanvasViewer({ url, filename, onRetry }: { readonly url: string; readonly filename: string; readonly onRetry?: () => void }) {
+const PAGE_FIT_GAP = 32;
+export type PdfFit = "width" | "page";
+type ReaderSize = { readonly width: number; readonly height: number };
+
+export function fittedPageWidth(reader: ReaderSize, page: PdfPageSize, fit: PdfFit) {
+  if (fit === "width" || reader.height <= PAGE_FIT_GAP) return reader.width;
+  return Math.min(reader.width, Math.floor((reader.height - PAGE_FIT_GAP) * page.width / page.height));
+}
+
+export function PdfCanvasViewer({ url, filename, onRetry, fit = "width" }: { readonly url: string; readonly filename: string; readonly onRetry?: () => void; readonly fit?: PdfFit }) {
   const reader = useRef<HTMLDivElement>(null);
   const [loaded, setLoaded] = useState<{ url: string; document: PDFDocumentProxy; pages: PdfPageSize[] } | null>(null);
-  const [view, setView] = useState({ width: 0, zoom: 1, revision: 0 });
+  const [view, setView] = useState({ width: 0, height: 0, zoom: 1, revision: 0 });
   const [failure, setFailure] = useState("");
+  const [appliedFit, setAppliedFit] = useState(fit);
+  if (appliedFit !== fit) {
+    setAppliedFit(fit);
+    setView(current => ({ ...current, zoom: 1, revision: current.revision + 1 }));
+  }
   const [decoder] = useState(() => new PdfQrDecoder(() => new Worker(new URL("./pdf-qr.worker.ts", import.meta.url), { type: "module" })));
   useEffect(() => decoder.dispose, [decoder]);
   const [queue] = useState(() => new PdfRenderQueue());
@@ -51,7 +65,8 @@ export function PdfCanvasViewer({ url, filename, onRetry }: { readonly url: stri
     if (!target) return;
     const observer = new ResizeObserver(entries => {
       const width = Math.floor(entries[0].contentRect.width);
-      setView(current => { if (current.width === width) return current; return { ...current, width, revision: current.revision + 1 }; });
+      const height = Math.floor(entries[0].contentRect.height || 0);
+      setView(current => { if (current.width === width && current.height === height) return current; return { ...current, width, height, revision: current.revision + 1 }; });
     });
     observer.observe(target); return () => observer.disconnect();
   }, []);
@@ -94,9 +109,9 @@ export function PdfCanvasViewer({ url, filename, onRetry }: { readonly url: stri
     zoomRef.current = view.zoom;
   }, [view.zoom]);
   const ready = loaded?.url === url;
-  return <div ref={reader} tabIndex={0} role="region" aria-label="지원서 원본 연속 보기" className={styles.reader} data-pdf-zoom={view.zoom}>
+  return <div ref={reader} tabIndex={0} role="region" aria-label="지원서 원본 연속 보기" className={styles.reader} data-pdf-zoom={view.zoom} data-pdf-fit={fit}>
     {!ready && failure !== url && <div role="status" className="p-8 text-center text-sm text-muted">PDF를 불러오고 있어요</div>}
     {failure === url && <p role="alert" className="p-6 text-sm text-fail">PDF를 불러오지 못했어요. {onRetry && <button type="button" onClick={onRetry} className="min-h-11 px-3 font-semibold">다시 시도</button>}</p>}
-    {ready && <div className={styles.document}>{loaded.pages.map((size, index) => <PdfScrollPage key={index} document={loaded.document} page={index + 1} size={size} width={view.width} zoom={view.zoom} revision={view.revision} reader={reader} queue={queue} scanQueue={scanQueue} decoder={decoder} filename={filename} onRetry={onRetry} />)}</div>}
+    {ready && <div className={styles.document}>{loaded.pages.map((size, index) => <PdfScrollPage key={index} document={loaded.document} page={index + 1} size={size} width={fittedPageWidth(view, size, fit)} zoom={view.zoom} revision={view.revision} reader={reader} queue={queue} scanQueue={scanQueue} decoder={decoder} filename={filename} onRetry={onRetry} />)}</div>}
   </div>;
 }
