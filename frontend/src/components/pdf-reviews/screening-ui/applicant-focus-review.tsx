@@ -11,6 +11,8 @@ import { ReviewRoleSelect } from "../review-role-select";
 import { useBoard } from "./board-context";
 import { FullscreenCaption } from "./fullscreen-caption";
 
+const shortcutDecisions: Readonly<Record<string, ReviewStatus>> = { KeyA: "PASS", KeyS: "ETC", KeyD: "FAIL" };
+
 export function ApplicantFocusReview({ rows, onBack, initialId }: { readonly rows: readonly Applicant[]; readonly onBack?: () => void; readonly initialId?: string }) {
   const [activeId, setActiveId] = useState(initialId ?? rows[0]?.id ?? null);
   const [documentExpanded, setDocumentExpanded] = useState(false);
@@ -68,10 +70,9 @@ function FocusReviewContent({ applicant, rows, index, onBack, onMove, documentEx
       if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey || event.repeat || event.isComposing) return;
       if (document.querySelector('[role="dialog"][aria-modal="true"]:not([data-fullscreen-viewer])')) return;
       if (event.target instanceof HTMLElement && event.target.closest('input,textarea,select,button,a,[role="combobox"],[contenteditable=true]')) return;
-      const key = event.key.toLowerCase();
-      const decisions: Record<string, ReviewStatus> = { a: "PASS", s: "ETC", d: "FAIL" };
-      if (decisions[key] && !saving && !reviewLocked) { event.preventDefault(); void save(decisions[key], "shortcut"); }
-      if (key === "n" && rows[index + 1]) { event.preventDefault(); void move(rows[index + 1], "shortcut"); }
+      const decision = shortcutDecisions[event.code];
+      if (decision && !saving && !reviewLocked) { event.preventDefault(); void save(decision, "shortcut"); }
+      if (event.code === "KeyN" && rows[index + 1]) { event.preventDefault(); void move(rows[index + 1], "shortcut"); }
     };
     window.addEventListener("keydown", keyboard); return () => window.removeEventListener("keydown", keyboard);
   }, [saving, reviewLocked, save, rows, index, move]);
