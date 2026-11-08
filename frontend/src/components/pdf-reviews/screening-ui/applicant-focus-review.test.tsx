@@ -12,7 +12,7 @@ vi.mock('./board-context', () => ({ useBoard: () => state.board }));
 afterEach(() => { vi.unstubAllGlobals(); });
 
 describe('심사 키보드 조작', () => {
-  it('브라우저 단축키와 키 반복으로 심사 결과를 저장하지 않는다', async () => {
+  it('브라우저 단축키와 키 반복은 무시하고 한글 입력 상태에서도 키 자리로 판정한다', async () => {
     vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
     vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} });
     vi.stubGlobal('matchMedia', () => ({ matches: false, addEventListener() {}, removeEventListener() {} }));
@@ -30,12 +30,12 @@ describe('심사 키보드 조작', () => {
       await act(async () => root.render(<ApplicantFocusReview rows={[applicant]} />));
       await act(async () => {
         for (const modifier of ['ctrlKey', 'metaKey', 'altKey', 'repeat']) {
-          for (const key of ['a', 's', 'd']) window.dispatchEvent(new KeyboardEvent('keydown', { key, [modifier]: true }));
+          for (const code of ['KeyA', 'KeyS', 'KeyD']) window.dispatchEvent(new KeyboardEvent('keydown', { key: code.slice(3).toLowerCase(), code, [modifier]: true }));
         }
       });
       expect(save).not.toHaveBeenCalled();
       expect(action).not.toHaveBeenCalled();
-      await act(async () => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 's' })); });
+      await act(async () => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ㄴ', code: 'KeyS' })); });
       expect(save).toHaveBeenCalledTimes(1);
       expect(action).toHaveBeenCalledExactlyOnceWith(applicant.id, "decision_save", "shortcut");
       action.mockClear();
@@ -50,7 +50,7 @@ describe('심사 키보드 조작', () => {
     } finally { await act(async () => root.unmount()); host.remove(); }
   });
 
-  it('원본 전체화면에서도 단축키로 판정하고 다음 지원자로 넘어가도 전체화면과 초점을 유지한다', async () => {
+  it('원본 전체화면에서도 한글 입력 상태의 단축키로 넘기고 판정하며 전체화면과 초점을 유지한다', async () => {
     vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
     const review = { id: 'review', title: 'synthetic', createdAt: '2026-10-29', roles: [], entries: [] };
     const entry = (id: string) => ({ id, jobId: `job-${id}`, originalFilename: 'synthetic.pdf', applicantName: `Synthetic ${id}`,
@@ -70,12 +70,15 @@ describe('심사 키보드 조작', () => {
       await act(async () => [...host.querySelectorAll('button')].find(item => item.textContent === '전체화면')!.click());
       expect(dialog()?.textContent).toContain('1 / 2');
       expect(dialog()?.textContent).toContain('미판정');
-      await act(async () => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'a' })); });
-      expect(save.mock.calls[0].slice(0, 2)).toEqual([first.id, 'PASS']);
+      await act(async () => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ㅜ', code: 'KeyN' })); });
       expect(dialog()?.textContent).toContain(`원본 ${second.id}`);
+      expect(dialog()?.textContent).toContain('2 / 2');
       expect(document.activeElement).toBe(dialog());
+      await act(async () => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ㅁ', code: 'KeyA' })); });
+      expect(save.mock.calls[0].slice(0, 2)).toEqual([second.id, 'PASS']);
+      expect(dialog()).not.toBeNull();
       const blocker = document.createElement('div'); blocker.setAttribute('role', 'dialog'); blocker.setAttribute('aria-modal', 'true'); document.body.append(blocker);
-      await act(async () => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'd' })); });
+      await act(async () => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'd', code: 'KeyD' })); });
       expect(save).toHaveBeenCalledTimes(1);
       blocker.remove();
       state.board = { ...board, saveError: '네트워크 오류' };
