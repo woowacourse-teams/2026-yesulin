@@ -92,11 +92,11 @@ it("페이지 렌더 오류 재시도는 만료 원본의 주소 갱신 callback
   await act(async()=>host.querySelector<HTMLButtonElement>('[data-pdf-page="1"] button')!.click());expect(retry).toHaveBeenCalledOnce();
 });
 
-it("전체화면 맞춤은 페이지 비율로 화면 높이에 맞추고 너비를 넘지 않는다", async () => {
+it("전체화면 맞춤은 상단 안내 띠를 뺀 높이에 페이지 비율로 맞추고 너비를 넘지 않는다", async () => {
   const { fittedPageWidth } = await import("./pdf-canvas-viewer");
   const portrait = { width: 595, height: 842 };
   expect(fittedPageWidth({ width: 1400, height: 900 }, portrait, "width")).toBe(1400);
-  expect(fittedPageWidth({ width: 1400, height: 900 }, portrait, "page")).toBe(Math.floor(868 * 595 / 842));
+  expect(fittedPageWidth({ width: 1400, height: 900 }, portrait, "page")).toBe(Math.floor(820 * 595 / 842));
   expect(fittedPageWidth({ width: 390, height: 844 }, portrait, "page")).toBe(390);
   expect(fittedPageWidth({ width: 1400, height: 0 }, portrait, "page")).toBe(1400);
 });
