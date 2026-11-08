@@ -8,9 +8,7 @@ import { PdfRenderQueue } from "./pdf-render-queue";
 import { PdfScrollPage, type PdfPageSize } from "./pdf-scroll-page";
 import styles from "./pdf-viewer.module.css";
 
-const PAGE_FIT_TOP_BAND = 64;
-const PAGE_FIT_BOTTOM_GAP = 16;
-const PAGE_FIT_GAP = PAGE_FIT_TOP_BAND + PAGE_FIT_BOTTOM_GAP;
+const PAGE_FIT_GAP = 16;
 export type PdfFit = "width" | "page";
 type ReaderSize = { readonly width: number; readonly height: number };
 

@@ -125,3 +125,62 @@ PDF 지원자 심사의 한 명씩 보기에서 원본 PDF를 눌러 전체화�
 
 앞 작업의 `PdfOriginalViewer`의 `expandable` prop은 제어형 `PdfExpandableFrame`으로 옮기며 제거했다. 새 prop(`frame`, `fit`, `saveError`)과 스타일은 모두 사용된다.
 남은 의심: 1024px 부근 화면에서 캡션(최소 200px)이 세로 PDF와 겹칠 가능성, 모바일에서 오류 안내가 원본 상단을 가릴 수 있음(실기기 미확인, 결함 미집계).
+
+
+---
+
+# 2026-11-08-pdf-review-fullscreen-band
+
+#569 반영 후 dev 확인과 사용자 제보로 나온 두 가지 수정.
+
+- #570: 가로형 PDF에서 전체화면 왼쪽 위 안내가 원본과 겹침 → 맨 위 64px 띠에 안내·닫기를 두고 원본 스크롤 영역을 그 아래에서 시작한다. 저장 실패 시 상세 안내 대신 오류를 띠 안에 최대 두 줄로 표시한다.
+- #571: 심사 단축키가 `KeyboardEvent.key`로 판단해 한글 입력 상태에서 동작하지 않음 → `KeyboardEvent.code`(KeyA/KeyS/KeyD/KeyN)로 판단한다.
+- 평가: 독립 평가 1회(읽기 전용). 평가자는 Vitest 대신 실제 함수·컴포넌트를 jsdom으로 실행했다.
+
+## 평가표
+
+| ID | 기대 결과 | 필수 | 독립 평가 | 수정 후 |
+| --- | --- | --- | --- | --- |
+| B01 | 가로·세로 PDF 모두 안내·닫기와 페이지가 겹치지 않음(스크롤 포함) | Y | FAIL(F01·F02) | PASS: 1400×860에서 원본 영역 top 64, 스크롤 500px 후에도 띠 위치는 띠 요소, 오류 안내 10~36px |
+| B02 | 페이지가 원본 영역 안, 폭 이내, 배율 초기화 유지 | Y | PASS | PASS: 페이지 779px ≤ 796−16 |
+| B03 | 저장 실패 안내·1024px 미만 표시 유지 | Y | PASS | PASS |
+| B04 | 한글 입력 상태 A/S/D/N, 기존 차단 규칙 유지 | Y | UNVERIFIED(실제 입력기) | UNVERIFIED: jsdom 합성 이벤트(`ㅁ`/KeyA, `ㅜ`/KeyN)로만 확인 |
+| B05 | 키 자리 기준 의도와 분석 이벤트 의미 불변 | Y | PASS | PASS |
+| B06 | 일반 보기에도 같은 단축키 적용, 회귀 없음 | Y | PASS | PASS |
+| B07 | 코드 규칙, 미사용 없음, 문서 일치 | Y | FAIL(F01·F02와 같은 원인) | PASS |
+| B08 | 실제 dev 화면 확인 | N | UNVERIFIED | 병합 후 확인 예정 |
+
+필수 결과(수정 후): PASS 6 / FAIL 0 / UNVERIFIED 1(B04) / N/A 0. 조건부 결과다.
+
+## 문제
+
+| 문제 ID | 심각도 | 유형 | 유입 | 발견 경로 | 최초 확정 | 해결 | 최초 PR | 상태 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 2026-11-08-pdf-review-fullscreen-band-F01 | P2 | FLOW | EXISTING | INDEPENDENT_REVIEW | 2026-11-08T14:30:54+09:00 | 2026-11-08T14:33:26+09:00 | PENDING | FIXED |
+| 2026-11-08-pdf-review-fullscreen-band-F02 | P2 | FLOW | EXISTING | INDEPENDENT_REVIEW | 2026-11-08T14:30:54+09:00 | 2026-11-08T14:33:26+09:00 | PENDING | FIXED |
+
+- F01: 64px 여백이 스크롤 영역 안에 있어 스크롤하면 페이지가 안내 밑으로 들어갔다. → 원본 스크롤 영역(`reader`)을 띠 아래에 절대 배치하고 맞춤에서 아래 여백 16px만 뺀다. 브라우저에서 스크롤 후 띠 위치 확인.
+- F02: 오류 안내가 상세 안내에 더해져 띠(64px)를 넘었다. → 오류가 있으면 상세 안내를 대체하고 최대 두 줄로 제한. 브라우저에서 10~36px 확인.
+- 관련: 겹침 자체는 #569 반영 후 dev 확인에서 처음 보였고 이 작업의 이슈(#570)로 다뤘다. 한글 단축키 문제(#571)는 #569 이전부터 있던 기존 동작이다.
+
+집계: 발견 2 = 해결 2 + 미해결 0, P0 0 / P1 0 / P2 2 / P3 0. INDEPENDENT_REVIEW 2, POST_FIX_CHECK 0, PRECHECK 0. 오탐 0. 미확인 2(B04 필수, B08 선택).
+
+## 사건 이력
+
+| 사건 ID | 문제 ID | 종류 | 시각 | 근거 |
+| --- | --- | --- | --- | --- |
+| B-E01 | band-F01 | CONFIRMED | 2026-11-08T14:30:54+09:00 | 독립 평가 |
+| B-E02 | band-F02 | CONFIRMED | 2026-11-08T14:30:54+09:00 | 독립 평가 |
+| B-E03 | band-F01 | FIXED | 2026-11-08T14:33:26+09:00 | vitest 75 통과, 로컬 브라우저 스크롤 확인 |
+| B-E04 | band-F02 | FIXED | 2026-11-08T14:33:26+09:00 | vitest 75 통과, 로컬 브라우저 확인 |
+
+## 검증 근거
+
+- `npx vitest run src/components/pdf-extractions src/components/pdf-reviews`: 16파일 75테스트 통과
+- `npx eslint src/components/pdf-extractions src/components/pdf-reviews`: 통과
+- 로컬 임시 페이지(확인 후 삭제): 900×1300·1400×860 확인.
+
+## 미사용 점검
+
+추가 상수·스타일은 모두 사용된다. 기존 테스트(`screening-actions.test.tsx`)의 키 이벤트에 실제 브라우저처럼 `code`를 함께 넣었다.
+남은 의심: `safe-area-inset-top`이 큰 기기에서 닫기 버튼 위치(띠 높이에 inset을 더해 영역은 내려가지만 실기기 미확인).
