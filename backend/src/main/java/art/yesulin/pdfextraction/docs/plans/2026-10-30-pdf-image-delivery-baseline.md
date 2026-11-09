@@ -1,8 +1,8 @@
 # PDF 추출 사진 전달 기준선
 
-> 상태: **측정 기록·개선 전**. 정본이 아니다. 기준 코드는 `dev` `3721eac5`(2026-10-30)다.
-> 개선은 스프린트 4에서 한다. 이 문서는 개선 전 구조와 수치를 고정해 개선 후와 비교하기 위해 둔다.
-> 아래 "개선 후보"는 결정이 아니다.
+> 상태: **측정 기록·1차 개선 적용(로컬 측정)**. 정본이 아니다. 정책은 [저장·멱등·실패](../policies/pdf-processing.md)를 따른다.
+> 기준선은 `dev` `3721eac5`(2026-10-30), 개선 전 재측정과 개선은 `dev` `27d0bec1`(2026-11-08) 위에서 했다.
+> 아래 "현재 흐름"과 "기준선 결과"는 10/30 기록이다. 11/8에 바뀐 구조는 [다시 확인한 구조](#다시-확인한-구조-2026-11-08)에 있다.
 
 ## 가정
 
@@ -27,7 +27,7 @@
 | 비효율 | 위치 |
 | --- | --- |
 | PDF 안의 JPEG를 무압축 PNG로 다시 저장한다. 원래보다 약 5.5배 커진다. | [extraction.py:64](../../../../../../../../../ops/pdf-extraction-lambda/src/application/extraction.py) |
-| 카드에 작게 보여도 긴 변 1600px 원본 하나만 있다. 썸네일이 없다. | [extraction.py:25](../../../../../../../../../ops/pdf-extraction-lambda/src/application/extraction.py), [applicant-photo.tsx:41](../../../../../../../../../frontend/src/components/pdf-reviews/screening-ui/applicant-photo.tsx) |
+| 카드에 작게 보여도 긴 변 1600px 원본 하나만 있다. 썸네일이 없다. | [extraction.py:25](../../../../../../../../../ops/pdf-extraction-lambda/src/application/extraction.py), `screening-ui/applicant-photo.tsx:41`(10/30 당시, #533에서 삭제) |
 | S3 객체와 서명 URL 응답이 모두 `no-store`라 브라우저가 저장하지 않는다. | [aws_storage.py:58](../../../../../../../../../ops/pdf-extraction-lambda/src/infrastructure/aws_storage.py), [S3PrivateObjects.java:136](../../../infrastructure/storage/S3PrivateObjects.java) |
 | 조회할 때마다 서명 URL이 바뀌어 같은 사진도 새 주소가 된다. | [PdfExtractionService.java:113](../../application/PdfExtractionService.java) |
 | 보드 키에 필터·판정·보기가 들어 있어, 바꿀 때마다 그 탭의 결과를 캐시 없이 다시 받는다. 남아 있는 보드의 캐시도 5분이다(타이머로 자동 재조회하지는 않는다). | [pdf-review-workbench.tsx:152](../../../../../../../../../frontend/src/components/pdf-reviews/pdf-review-workbench.tsx), [screening-board.tsx:61](../../../../../../../../../frontend/src/components/pdf-reviews/screening-board.tsx) |
@@ -78,14 +78,16 @@ python scripts/measure_image_delivery.py --count 300 --label baseline-2026-10-30
 - 보기·필터·판정을 바꾸면 그 탭의 양을 다시 받는다. 브라우저 캐시가 없으므로 줄어들지 않는다.
 - 참고 환산: 338.7 MiB는 100Mbps에서 약 28초, 30Mbps에서 약 95초다(전송만, 동시 연결 제한 미포함).
 
-## 실제 환경에서 더 확인할 것 (미확인)
+## 실제 환경에서 더 확인할 것 (10/30 기록)
+
+11/8 기준 남은 확인은 [아직 확인하지 않은 것](#아직-확인하지-않은-것)에 있다. 카드 사진 요청은 #533 이후 없다.
 
 1. Dev·Prod의 실제 사진 크기. 아직 실행하지 않았다.
    - DB의 `pdf_extraction_payloads`는 Spring이 다시 만든 결과라 사진 크기(`sizeBytes`)가 없다.
    - S3 결과 폴더의 PNG 객체 크기를 읽기 전용으로 센다. 버킷과 키 접두사는 환경 설정 값이다.
 
    ```bash
-   aws s3api list-objects-v2 --bucket <bucket> --prefix "<keyPrefix>private/pdf-extractions/results/" --query "Contents[?ends_with(Key, '.png')].Size" --output text
+   aws s3api list-objects-v2 --bucket <bucket> --prefix "<keyPrefix>private/pdf-extractions/results/" --query "Contents[?contains(Key, '/images/')].Size" --output text
    ```
 
    - 분류(`CANDIDATE`)까지 보려면 같은 폴더의 Lambda `result.json`에서 `sizeBytes`와 `classification`을 읽는다.
@@ -93,27 +95,71 @@ python scripts/measure_image_delivery.py --count 300 --label baseline-2026-10-30
 2. Dev 브라우저 네트워크 탭에서 카드 보기를 처음 열 때와 보기를 한 번 바꿨을 때의 이미지 요청 수·전송량, 첫 화면 사진이 다 뜨는 시간.
 3. 실제 결과 API 응답 크기와 서명 URL 길이. 위 JSON 추정값을 이 값으로 바꾼다.
 
-## 개선 후 비교 방법 (스프린트 4)
+## 다시 확인한 구조 (2026-11-08)
 
-- 같은 명령을 `--label after-<변경>`으로 다시 돌린다. 가정(`--count 300`, `--photos 1,2,3`)은 바꾸지 않는다.
-- 썸네일을 추가하면 보드 사진 계산을 썸네일 크기 기준으로 바꾼다. 그때 바꾼 계산식도 같이 기록한다.
-- 아래 표를 채워 PR과 스프린트 기록에 쓴다.
+#533(원본 PDF 중심 심사) 이후 카드·표 보기는 지원자 결과와 사진을 받지 않는다. 기준선의 "보드 한 번 338.7 MiB"는
+최적화 없이 0이 됐다. 남은 비효율은 다음 두 가지였다.
 
-| 항목 | 개선 전 | 개선 후 | 변화 |
+| 비효율 | 위치(11/8 dev) |
+| --- | --- |
+| 심사 화면이 쓰지 않는 심사 PDF의 사진을 Lambda가 무압축 PNG로 계속 저장한다. 300건이면 약 672 MiB다. | `s3_handler.py`의 `extractImages: True`, `extraction.py`의 PNG 저장 |
+| 한 명씩 심사할 때 지원서를 열 때마다 결과를 다시 조회하고 원본 PDF를 `no-store`로 다시 받는다. 다음 지원서를 미리 받지 않는다. | `review-original-document.tsx` |
+
+추출 사진을 쓰는 곳은 배우 프로필 가져오기(사진 보관함 복사)와 개발용 진단 화면뿐이다. 심사 화면과 AI는 사진을 쓰지 않는다.
+
+## 적용한 개선 (2026-11-08)
+
+1. **심사 PDF는 사진을 추출하지 않는다.** S3 트리거가 키에 reviewId가 있으면 `extractImages: false`로 실행한다.
+   원본 PDF 안의 사진은 심사 화면에서 그대로 보인다.
+2. **추출 사진은 WebP(품질 85)로 저장한다.** 배우 프로필·진단 경로만 해당한다. Spring은 `.webp`와 이전 결과의 `.png`를 함께 받고,
+   배우 사진 보관함 복사본의 형식도 원본 확장자를 따른다.
+3. **원본 PDF를 탭 메모리에서 다시 쓴다.** 한 명씩 보기와 합격자 연락처가 받은 원본을 Blob으로 최근 3개까지 두고,
+   다음 지원서 원본을 미리 받는다. S3 응답의 `no-store`와 디스크 캐시 금지는 그대로다. 미리 받기는 분석 이벤트를 만들지 않는다.
+
+## 개선 후 결과 (2026-11-08)
+
+같은 합성 PDF 300개(사진 1~3장)로 측정했다. "로컬 Lambda"는 LocalStack에서 ARM64 Lambda를 에뮬레이션한 값이라
+절대 시간보다 전후 비율을 본다.
+
+| 항목 | 개선 전 | 개선 후 | 측정 방법 |
 | --- | --- | --- | --- |
-| 추출 사진 한 장 평균 | 1,147 KiB | | |
-| 추출 사진 저장 합계 (300명) | 672.0 MiB | | |
-| 보드 한 번 사진 전송량 | 338.7 MiB | | |
-| 보기 전환 시 다시 받는 양 | 338.7 MiB | | |
-| 추출 시간 중앙값 (로컬) | 572ms | | |
-| Dev 첫 화면 사진 표시 시간 | 미측정 | | |
+| 심사 PDF 300건의 추출 사진 (S3) | 600장 · 677.0 MiB | 0장 · 0 MiB | LocalStack 실제 업로드 후 S3 목록 |
+| 심사 PDF 300건 S3 쓰기 수 | 900회 | 300회 | 사진 + result.json |
+| 심사 PDF 추출 시간 중앙값 (로컬 Lambda) | 3,262 ms | 40 ms | result.json `durationMs` |
+| 심사 PDF 추출 시간 합계 (로컬 Lambda) | 853 s | 12.5 s | 같은 값의 합 |
+| 배우·진단 추출 사진 한 장 평균 | 1,147 KiB | 51 KiB | `measure_image_delivery.py --purpose profile` |
+| 배우·진단 추출 사진 300명 합계 | 672.0 MiB | 30.2 MiB | 같은 명령 |
+| 배우·진단 추출 시간 중앙값 (로컬 Python) | 412 ms | 439 ms | 같은 명령, 실행마다 수십 ms 흔들림 |
+| 한 명씩 10번 이동 중 클릭 뒤 원본을 기다린 횟수 | 10회 | 1회 | 개발 서버 브라우저, 다음 5·이전 2·다음 3 |
+| 같은 10번 이동 중 이미 본 원본을 다시 받은 횟수 | 4회 | 2회(그중 기다린 것 1회) | 미리 받기 1칸을 빼면 지나온 지원서는 1명만 보관된다 |
+| 원본 표시까지 걸린 시간 중앙값 (로컬) | 156 ms | 63 ms | 클릭부터 첫 canvas까지, 네트워크 지연 없음 |
 
-## 개선 후보 (결정 아님)
+- 개선 전 재측정(`before-2026-11-08`)은 10/30 기준선과 사진 수치가 같다(672.0 MiB, 평균 1,147 KiB).
+  LocalStack의 677.0 MiB는 Lambda 고정 버전(pypdfium2 5.14.0, Pillow 12.3.0)으로 만든 값이다.
+- 한 명씩 보기는 개선 후에도 이동 1회당 원본 1개를 받는다. 다만 다음 지원서를 미리 받으므로 클릭 뒤에 기다리지 않는다.
+  개발 서버의 StrictMode 때문에 개선 전 결과 조회가 이동마다 2번(1번은 취소) 찍혔다. 운영 빌드에서는 1번이다.
+- 로컬은 같은 PC의 LocalStack이라 원본 다운로드 지연이 거의 없다. 실제 네트워크에서는 원본 크기만큼 차이가 커진다.
 
-- Lambda에서 WebP 또는 JPEG로 압축해 저장한다. Spring의 `.png` 파일명 검사([PdfExtractionResultParser.java:100](../../application/PdfExtractionResultParser.java))와
-  배우 프로필 사진 저장의 `image/png`([ProfileImportService.java:139](../../../actor/application/profileimport/ProfileImportService.java))를 같이 바꾼다.
-  결과가 달라지므로 `PIPELINE_VERSION`을 올릴지 정해야 한다.
-- 카드용 썸네일(예: 긴 변 400px)을 따로 만들고, 크게 볼 때만 원본을 받는다.
-- 보드를 다시 마운트해도 받은 결과와 서명 URL을 유효 시간 안에서 재사용하거나, 짧은 `private` 캐시를 허용한다. 개인정보 보관과 관련된 결정이다.
-- 사람이 직접 올리는 사진을 브라우저에서 WebP로 바꾸는 별도 작업(미병합)의 기준인 품질 0.85·긴 변 제한을 참고한다.
-  그 작업은 PDF 추출 사진에 바로 적용되지 않는다.
+### 아직 확인하지 않은 것
+
+- Dev·Prod Lambda 배포 뒤 실제 S3 크기와 처리 시간
+- Dev 브라우저 네트워크 탭의 실제 원본 다운로드 시간
+- 실제 지원서(스캔·고해상도 사진)의 WebP 품질과 크기. 측정은 저장소 데모 사진만 썼다.
+
+## 다시 측정하는 방법
+
+```bash
+cd ops/pdf-extraction-lambda
+python scripts/measure_image_delivery.py --count 300 --purpose review --label after-review-<날짜>
+python scripts/measure_image_delivery.py --count 300 --purpose profile --label after-profile-<날짜>
+```
+
+- 가정(`--count 300`, `--photos 1,2,3`)은 바꾸지 않는다. `--purpose`는 S3 트리거와 같은 옵션을 고른다. 기본은 `review`다.
+- 결과 JSON의 `detailJsonMiB`는 지원자 300명을 한 번씩 열 때의 결과 조회 합계 추정이다.
+  10/30 기준선의 `boardJsonMiB`와 같은 계산이며, 카드 사진 계산(`boardPhoto*`)은 화면에서 사라져 뺐다.
+
+## 정하지 않은 것
+
+- `PIPELINE_VERSION`은 올리지 않았다. 결과 경로와 Spring 검증이 `pdfium-v1`에 묶여 있고, 이전 PNG 결과를 그대로 읽는다.
+- 썸네일은 만들지 않았다. 지금 화면에 작은 사진을 보여 주는 곳이 없다.
+- 원본 PDF의 브라우저 디스크 캐시(`private` 캐시)는 개인정보 보관 정책 결정이 필요해 적용하지 않았다.

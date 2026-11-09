@@ -5,6 +5,7 @@
 3. S3 ObjectCreated가 Lambda를 비동기 실행한다. 브라우저 completion은 업로드 확인이며 Lambda를 호출하지 않는다.
    두 신호의 순서는 고정하지 않는다. completion 전 결과 도착도 수신한다.
 4. Lambda의 PDFium이 텍스트·이미지를 추출하고 이미지/result.json을 S3에 저장한다. 모델을 호출하지 않는다.
+   심사 원본(키에 reviewId가 있음)은 원본 PDF로 심사하므로 사진을 추출하지 않고 텍스트만 저장한다.
 5. 인증된 완료 API로 작업 ID·문자·이미지 키를 직접 POST한다. Spring은 payload를 저장하고 목적별 후처리와 AI 작업을 연결한다.
 6. 일반 조회는 DB payload와 AI 결과를 조립한다. Spring이 S3 result.json을 다시 읽지 않는다.
 
