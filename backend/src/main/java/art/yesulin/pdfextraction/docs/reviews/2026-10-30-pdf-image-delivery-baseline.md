@@ -41,32 +41,32 @@ PRECHECK 0 / INDEPENDENT_REVIEW 8 / POST_FIX_CHECK 0 / EXTERNAL 0, 오탐 0.
 
 | 문제 ID | 심각도·유형·유입 | 발견 경로 | 최초 확정 / 최초 PR | 해결 시각 | 근거·조치·검증 |
 | --- | --- | --- | --- | --- | --- |
-| 2026-10-30-pdfextraction-image-delivery-baseline-F01 | P2/DOC/INTRODUCED | INDEPENDENT_REVIEW | 2026-10-30T22:05:00+09:00 / PENDING | 2026-10-30T22:14:00+09:00 | 실측 SQL이 `pdf_extraction_payloads`의 `sizeBytes`를 읽었다. 이 테이블은 Spring 결과라 해당 값이 없다(PdfExtractionResultParser `Image(key, null, classification)`). S3 PNG 객체 크기와 Lambda `result.json`을 읽는 방법으로 교체했다. 수정한 문서를 확인했다. |
-| 2026-10-30-pdfextraction-image-delivery-baseline-F02 | P2/FLOW/INTRODUCED | INDEPENDENT_REVIEW | 2026-10-30T22:05:00+09:00 / PENDING | 2026-10-30T22:14:00+09:00 | 보드는 `entries={visible}`만 받는다. 5분 캐시도 타이머가 아니라 effect가 다시 돌 때만 검사한다. 흐름과 표 문장을 "현재 탭", "다시 조회할 때"로 고쳤다. 수정한 문서를 확인했다. |
-| 2026-10-30-pdfextraction-image-delivery-baseline-F03 | P3/TEST/INTRODUCED | INDEPENDENT_REVIEW | 2026-10-30T22:05:00+09:00 / PENDING | 2026-10-30T22:14:00+09:00 | 측정은 텍스트 영역을 켰고 운영 S3 트리거(s3_handler.py:38)는 끈다. 스크립트를 `include_regions=False`로 맞추고 300건을 다시 측정했다. |
-| 2026-10-30-pdfextraction-image-delivery-baseline-F04 | P3/DOC/INTRODUCED | INDEPENDENT_REVIEW | 2026-10-30T22:05:00+09:00 / PENDING | 2026-10-30T22:14:00+09:00 | JSON 추정 가정(fileKey·AI 결과·고정 필드)과 Pillow 버전 차이가 문서에 없었다. 문서에 추가하고, summary에 `pillowVersion`을 기록하게 했다. |
-| 2026-10-30-pdfextraction-image-delivery-baseline-F05 | P3/DOC/INTRODUCED | INDEPENDENT_REVIEW | 2026-10-30T22:05:00+09:00 / PENDING | 2026-11-05T10:47:00+09:00 | README가 커밋되지 않은 OCR 계획 문서 링크를 함께 가진다. OCR을 진행하지 않기로 해 계획 문서와 링크를 뺐다. |
-| 2026-10-30-pdfextraction-image-delivery-baseline-F06 | P3/DOC/EXISTING | INDEPENDENT_REVIEW | 2026-11-05T10:47:00+09:00 / PENDING | 2026-11-05T10:47:00+09:00 | 보드 키 근거가 `pdf-review-workbench.tsx:141`이었으나 이후 코드 변경으로 152행이다. 줄 번호를 고쳤다. |
-| 2026-10-30-pdfextraction-image-delivery-baseline-F07 | P3/DOC/INTRODUCED | INDEPENDENT_REVIEW | 2026-11-05T10:47:00+09:00 / PENDING | 2026-11-05T10:47:00+09:00 | 원격 없는 로컬 브랜치 이름을 근거로 들어 다른 사람이 확인할 수 없었다. 참고 기준만 남기고 브랜치 이름을 뺐다. |
-| 2026-10-30-pdfextraction-image-delivery-baseline-F08 | P3/CODE/INTRODUCED | INDEPENDENT_REVIEW | 2026-11-05T10:47:00+09:00 / PENDING | 2026-11-05T10:47:00+09:00 | `--photos`에 4 이상을 주면 사진 칸 목록에서 IndexError가 났다. 1~3 범위를 검사하고 도움말에 적었다. |
+| 2026-10-30-pdfextraction-image-delivery-baseline-F01 | P2/DOC/INTRODUCED | INDEPENDENT_REVIEW | 2026-10-30T22:05:00+09:00 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) | 2026-10-30T22:14:00+09:00 | 실측 SQL이 `pdf_extraction_payloads`의 `sizeBytes`를 읽었다. 이 테이블은 Spring 결과라 해당 값이 없다(PdfExtractionResultParser `Image(key, null, classification)`). S3 PNG 객체 크기와 Lambda `result.json`을 읽는 방법으로 교체했다. 수정한 문서를 확인했다. |
+| 2026-10-30-pdfextraction-image-delivery-baseline-F02 | P2/FLOW/INTRODUCED | INDEPENDENT_REVIEW | 2026-10-30T22:05:00+09:00 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) | 2026-10-30T22:14:00+09:00 | 보드는 `entries={visible}`만 받는다. 5분 캐시도 타이머가 아니라 effect가 다시 돌 때만 검사한다. 흐름과 표 문장을 "현재 탭", "다시 조회할 때"로 고쳤다. 수정한 문서를 확인했다. |
+| 2026-10-30-pdfextraction-image-delivery-baseline-F03 | P3/TEST/INTRODUCED | INDEPENDENT_REVIEW | 2026-10-30T22:05:00+09:00 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) | 2026-10-30T22:14:00+09:00 | 측정은 텍스트 영역을 켰고 운영 S3 트리거(s3_handler.py:38)는 끈다. 스크립트를 `include_regions=False`로 맞추고 300건을 다시 측정했다. |
+| 2026-10-30-pdfextraction-image-delivery-baseline-F04 | P3/DOC/INTRODUCED | INDEPENDENT_REVIEW | 2026-10-30T22:05:00+09:00 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) | 2026-10-30T22:14:00+09:00 | JSON 추정 가정(fileKey·AI 결과·고정 필드)과 Pillow 버전 차이가 문서에 없었다. 문서에 추가하고, summary에 `pillowVersion`을 기록하게 했다. |
+| 2026-10-30-pdfextraction-image-delivery-baseline-F05 | P3/DOC/INTRODUCED | INDEPENDENT_REVIEW | 2026-10-30T22:05:00+09:00 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) | 2026-11-05T10:47:00+09:00 | README가 커밋되지 않은 OCR 계획 문서 링크를 함께 가진다. OCR을 진행하지 않기로 해 계획 문서와 링크를 뺐다. |
+| 2026-10-30-pdfextraction-image-delivery-baseline-F06 | P3/DOC/EXISTING | INDEPENDENT_REVIEW | 2026-11-05T10:47:00+09:00 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) | 2026-11-05T10:47:00+09:00 | 보드 키 근거가 `pdf-review-workbench.tsx:141`이었으나 이후 코드 변경으로 152행이다. 줄 번호를 고쳤다. |
+| 2026-10-30-pdfextraction-image-delivery-baseline-F07 | P3/DOC/INTRODUCED | INDEPENDENT_REVIEW | 2026-11-05T10:47:00+09:00 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) | 2026-11-05T10:47:00+09:00 | 원격 없는 로컬 브랜치 이름을 근거로 들어 다른 사람이 확인할 수 없었다. 참고 기준만 남기고 브랜치 이름을 뺐다. |
+| 2026-10-30-pdfextraction-image-delivery-baseline-F08 | P3/CODE/INTRODUCED | INDEPENDENT_REVIEW | 2026-11-05T10:47:00+09:00 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) | 2026-11-05T10:47:00+09:00 | `--photos`에 4 이상을 주면 사진 칸 목록에서 IndexError가 났다. 1~3 범위를 검사하고 도움말에 적었다. |
 
 ## 추가 전용 상태 이력
 
 | 사건 ID | 문제 ID | 종류 | 시각(+09:00) | 근거·관련 PR |
 | --- | --- | --- | --- | --- |
-| E01 | 2026-10-30-pdfextraction-image-delivery-baseline-F01 | CONFIRMED | 2026-10-30T22:05:00+09:00 | PdfExtractionResultReceiver·Parser 확인 / PENDING |
-| E02 | 2026-10-30-pdfextraction-image-delivery-baseline-F02 | CONFIRMED | 2026-10-30T22:05:00+09:00 | pdf-review-workbench.tsx:58,141, screening-board.tsx:61,84 / PENDING |
-| E03 | 2026-10-30-pdfextraction-image-delivery-baseline-F03 | CONFIRMED | 2026-10-30T22:05:00+09:00 | s3_handler.py:38 / PENDING |
-| E04 | 2026-10-30-pdfextraction-image-delivery-baseline-F04 | CONFIRMED | 2026-10-30T22:05:00+09:00 | 스크립트 api_body_bytes / PENDING |
-| E05 | 2026-10-30-pdfextraction-image-delivery-baseline-F05 | CONFIRMED | 2026-10-30T22:05:00+09:00 | README 링크 대상 미추적 / PENDING |
-| E06 | 2026-10-30-pdfextraction-image-delivery-baseline-F01 | FIXED | 2026-10-30T22:14:00+09:00 | 문서 수정 / PENDING |
-| E07 | 2026-10-30-pdfextraction-image-delivery-baseline-F02 | FIXED | 2026-10-30T22:14:00+09:00 | 문서 수정 / PENDING |
-| E08 | 2026-10-30-pdfextraction-image-delivery-baseline-F03 | FIXED | 2026-10-30T22:14:00+09:00 | 300건 재측정 / PENDING |
-| E09 | 2026-10-30-pdfextraction-image-delivery-baseline-F04 | FIXED | 2026-10-30T22:14:00+09:00 | 문서·스크립트 수정 / PENDING |
-| E10 | 2026-10-30-pdfextraction-image-delivery-baseline-F05 | FIXED | 2026-11-05T10:47:00+09:00 | OCR 계획·README 링크 제거 / PENDING |
-| E11 | 2026-10-30-pdfextraction-image-delivery-baseline-F06 | CONFIRMED | 2026-11-05T10:47:00+09:00 | pdf-review-workbench.tsx:152 / PENDING |
-| E12 | 2026-10-30-pdfextraction-image-delivery-baseline-F07 | CONFIRMED | 2026-11-05T10:47:00+09:00 | plans 문서 개선 후보 / PENDING |
-| E13 | 2026-10-30-pdfextraction-image-delivery-baseline-F08 | CONFIRMED | 2026-11-05T10:47:00+09:00 | measure_image_delivery.py BOXES / PENDING |
-| E14 | 2026-10-30-pdfextraction-image-delivery-baseline-F06 | FIXED | 2026-11-05T10:47:00+09:00 | 문서 수정 / PENDING |
-| E15 | 2026-10-30-pdfextraction-image-delivery-baseline-F07 | FIXED | 2026-11-05T10:47:00+09:00 | 문서 수정 / PENDING |
-| E16 | 2026-10-30-pdfextraction-image-delivery-baseline-F08 | FIXED | 2026-11-05T10:47:00+09:00 | 스크립트 수정 / PENDING |
+| E01 | 2026-10-30-pdfextraction-image-delivery-baseline-F01 | CONFIRMED | 2026-10-30T22:05:00+09:00 | PdfExtractionResultReceiver·Parser 확인 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) |
+| E02 | 2026-10-30-pdfextraction-image-delivery-baseline-F02 | CONFIRMED | 2026-10-30T22:05:00+09:00 | pdf-review-workbench.tsx:58,141, screening-board.tsx:61,84 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) |
+| E03 | 2026-10-30-pdfextraction-image-delivery-baseline-F03 | CONFIRMED | 2026-10-30T22:05:00+09:00 | s3_handler.py:38 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) |
+| E04 | 2026-10-30-pdfextraction-image-delivery-baseline-F04 | CONFIRMED | 2026-10-30T22:05:00+09:00 | 스크립트 api_body_bytes / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) |
+| E05 | 2026-10-30-pdfextraction-image-delivery-baseline-F05 | CONFIRMED | 2026-10-30T22:05:00+09:00 | README 링크 대상 미추적 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) |
+| E06 | 2026-10-30-pdfextraction-image-delivery-baseline-F01 | FIXED | 2026-10-30T22:14:00+09:00 | 문서 수정 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) |
+| E07 | 2026-10-30-pdfextraction-image-delivery-baseline-F02 | FIXED | 2026-10-30T22:14:00+09:00 | 문서 수정 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) |
+| E08 | 2026-10-30-pdfextraction-image-delivery-baseline-F03 | FIXED | 2026-10-30T22:14:00+09:00 | 300건 재측정 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) |
+| E09 | 2026-10-30-pdfextraction-image-delivery-baseline-F04 | FIXED | 2026-10-30T22:14:00+09:00 | 문서·스크립트 수정 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) |
+| E10 | 2026-10-30-pdfextraction-image-delivery-baseline-F05 | FIXED | 2026-11-05T10:47:00+09:00 | OCR 계획·README 링크 제거 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) |
+| E11 | 2026-10-30-pdfextraction-image-delivery-baseline-F06 | CONFIRMED | 2026-11-05T10:47:00+09:00 | pdf-review-workbench.tsx:152 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) |
+| E12 | 2026-10-30-pdfextraction-image-delivery-baseline-F07 | CONFIRMED | 2026-11-05T10:47:00+09:00 | plans 문서 개선 후보 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) |
+| E13 | 2026-10-30-pdfextraction-image-delivery-baseline-F08 | CONFIRMED | 2026-11-05T10:47:00+09:00 | measure_image_delivery.py BOXES / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) |
+| E14 | 2026-10-30-pdfextraction-image-delivery-baseline-F06 | FIXED | 2026-11-05T10:47:00+09:00 | 문서 수정 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) |
+| E15 | 2026-10-30-pdfextraction-image-delivery-baseline-F07 | FIXED | 2026-11-05T10:47:00+09:00 | 문서 수정 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) |
+| E16 | 2026-10-30-pdfextraction-image-delivery-baseline-F08 | FIXED | 2026-11-05T10:47:00+09:00 | 스크립트 수정 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) |

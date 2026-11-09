@@ -49,40 +49,40 @@ PRECHECK 1 / INDEPENDENT_REVIEW 9 / POST_FIX_CHECK 0 / EXTERNAL 0, 오탐 1.
 
 | 문제 ID | 심각도·유형·유입 | 발견 경로 | 최초 확정 / 최초 PR | 해결 시각 | 근거·조치·검증 |
 | --- | --- | --- | --- | --- | --- |
-| 2026-11-08-pdfextraction-image-delivery-optimization-F01 | P3/CODE/INTRODUCED | PRECHECK | 2026-11-08T23:28:00+09:00 / PENDING | 2026-11-08T23:30:00+09:00 | `ProfileImportService` 새 줄이 121자로 Checkstyle 위반. 줄을 나눴고 Checkstyle 통과 |
-| 2026-11-08-pdfextraction-image-delivery-optimization-F02 | P2/DOC/INTRODUCED | INDEPENDENT_REVIEW | 2026-11-08T23:33:00+09:00 / PENDING | 2026-11-08T23:41:00+09:00 | 기준선 문서가 #533에서 삭제된 `applicant-photo.tsx`에 링크. 10/30 당시 표기로 바꿈 |
-| 2026-11-08-pdfextraction-image-delivery-optimization-F03 | P3/FLOW/INTRODUCED | INDEPENDENT_REVIEW | 2026-11-08T23:33:00+09:00 / PENDING | 2026-11-08T23:35:00+09:00 | 배포 전 결과 저장 후 콜백만 실패한 심사 작업은 배포 뒤 재시도가 옵션 불일치로 실패. 사진 없는 요청은 사진까지 뽑은 이전 결과를 재사용하게 하고 테스트·정책 문구 추가 |
-| 2026-11-08-pdfextraction-image-delivery-optimization-F04 | P3/DOC/INTRODUCED | INDEPENDENT_REVIEW | 2026-11-08T23:33:00+09:00 / PENDING | 2026-11-08T23:41:00+09:00 | "이미 본 원본 재다운로드 1회"는 기다린 것만 센 값. 2회(기다린 것 1회)로 정정 |
-| 2026-11-08-pdfextraction-image-delivery-optimization-F05 | P3/DOC/INTRODUCED | INDEPENDENT_REVIEW | 2026-11-08T23:33:00+09:00 / PENDING | 2026-11-08T23:41:00+09:00 | 10/30 확인 목록이 PNG·카드 사진 기준으로 남음. 10/30 기록으로 표시하고 새 목록 링크, S3 조회를 `/images/` 기준으로 변경 |
-| 2026-11-08-pdfextraction-image-delivery-optimization-F06 | P3/DOC/INTRODUCED | INDEPENDENT_REVIEW | 2026-11-08T23:33:00+09:00 / PENDING | 2026-11-08T23:41:00+09:00 | `frontend/docs/pdf-reviews.md`가 메모리 보관·미리 받기를 설명하지 않음. 원본 열기 단계에 추가 |
-| 2026-11-08-pdfextraction-image-delivery-optimization-F07 | P3/FLOW/INTRODUCED | INDEPENDENT_REVIEW | 2026-11-08T23:33:00+09:00 / PENDING | 2026-11-08T23:39:00+09:00 | 원본 다운로드가 PDF.js 밖으로 나와 네트워크 실패가 보고되지 않고 브라우저 오류 문구가 노출. `load_document`로 보고하고 안내 문구로 바꿈, 테스트 추가 |
-| 2026-11-08-pdfextraction-image-delivery-optimization-F08 | P3/FLOW/INTRODUCED | INDEPENDENT_REVIEW | 2026-11-08T23:33:00+09:00 / PENDING | 2026-11-08T23:39:00+09:00 | 밀려나거나 화면을 떠난 다운로드가 끝까지 진행. 항목마다 AbortController를 두고 놓아 줄 때 취소, 테스트 추가 |
-| 2026-11-08-pdfextraction-image-delivery-optimization-F09 | P3/POLICY/INTRODUCED | INDEPENDENT_REVIEW | 2026-11-08T23:33:00+09:00 / PENDING | 2026-11-08T23:41:00+09:00 | 보관한 원본을 다시 열면 결과를 다시 조회하지 않아 늦은 AI 상태 관측이 늦어짐. 이벤트 의미는 유지하고 관측 범위 변화를 `analytics.md`에 시점과 함께 기록 |
-| 2026-11-08-pdfextraction-image-delivery-optimization-F10 | P3/CODE/INTRODUCED | INDEPENDENT_REVIEW | 2026-11-08T23:33:00+09:00 / PENDING | 2026-11-08T23:39:00+09:00 | 새 코드 규칙: 원본 보기 effect 14줄, 측정 스크립트 삼항·긴 `main`. effect 분리, 배치표로 삼항 제거, `main`을 인자·측정·요약으로 분리. 6건 재실행으로 결과 동일 확인 |
-| 2026-11-08-pdfextraction-image-delivery-optimization-F11 | P1/CODE/INTRODUCED 주장 | INDEPENDENT_REVIEW | 2026-11-08T23:33:00+09:00 / PENDING | - | REJECTED: `config` 서브모듈 포인터 변경은 이 작업 시작 전부터 작업 트리에 있던 사용자 상태(세션 시작 git status `M config`). 이번 커밋에서 제외 |
+| 2026-11-08-pdfextraction-image-delivery-optimization-F01 | P3/CODE/INTRODUCED | PRECHECK | 2026-11-08T23:28:00+09:00 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) | 2026-11-08T23:30:00+09:00 | `ProfileImportService` 새 줄이 121자로 Checkstyle 위반. 줄을 나눴고 Checkstyle 통과 |
+| 2026-11-08-pdfextraction-image-delivery-optimization-F02 | P2/DOC/INTRODUCED | INDEPENDENT_REVIEW | 2026-11-08T23:33:00+09:00 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) | 2026-11-08T23:41:00+09:00 | 기준선 문서가 #533에서 삭제된 `applicant-photo.tsx`에 링크. 10/30 당시 표기로 바꿈 |
+| 2026-11-08-pdfextraction-image-delivery-optimization-F03 | P3/FLOW/INTRODUCED | INDEPENDENT_REVIEW | 2026-11-08T23:33:00+09:00 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) | 2026-11-08T23:35:00+09:00 | 배포 전 결과 저장 후 콜백만 실패한 심사 작업은 배포 뒤 재시도가 옵션 불일치로 실패. 사진 없는 요청은 사진까지 뽑은 이전 결과를 재사용하게 하고 테스트·정책 문구 추가 |
+| 2026-11-08-pdfextraction-image-delivery-optimization-F04 | P3/DOC/INTRODUCED | INDEPENDENT_REVIEW | 2026-11-08T23:33:00+09:00 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) | 2026-11-08T23:41:00+09:00 | "이미 본 원본 재다운로드 1회"는 기다린 것만 센 값. 2회(기다린 것 1회)로 정정 |
+| 2026-11-08-pdfextraction-image-delivery-optimization-F05 | P3/DOC/INTRODUCED | INDEPENDENT_REVIEW | 2026-11-08T23:33:00+09:00 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) | 2026-11-08T23:41:00+09:00 | 10/30 확인 목록이 PNG·카드 사진 기준으로 남음. 10/30 기록으로 표시하고 새 목록 링크, S3 조회를 `/images/` 기준으로 변경 |
+| 2026-11-08-pdfextraction-image-delivery-optimization-F06 | P3/DOC/INTRODUCED | INDEPENDENT_REVIEW | 2026-11-08T23:33:00+09:00 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) | 2026-11-08T23:41:00+09:00 | `frontend/docs/pdf-reviews.md`가 메모리 보관·미리 받기를 설명하지 않음. 원본 열기 단계에 추가 |
+| 2026-11-08-pdfextraction-image-delivery-optimization-F07 | P3/FLOW/INTRODUCED | INDEPENDENT_REVIEW | 2026-11-08T23:33:00+09:00 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) | 2026-11-08T23:39:00+09:00 | 원본 다운로드가 PDF.js 밖으로 나와 네트워크 실패가 보고되지 않고 브라우저 오류 문구가 노출. `load_document`로 보고하고 안내 문구로 바꿈, 테스트 추가 |
+| 2026-11-08-pdfextraction-image-delivery-optimization-F08 | P3/FLOW/INTRODUCED | INDEPENDENT_REVIEW | 2026-11-08T23:33:00+09:00 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) | 2026-11-08T23:39:00+09:00 | 밀려나거나 화면을 떠난 다운로드가 끝까지 진행. 항목마다 AbortController를 두고 놓아 줄 때 취소, 테스트 추가 |
+| 2026-11-08-pdfextraction-image-delivery-optimization-F09 | P3/POLICY/INTRODUCED | INDEPENDENT_REVIEW | 2026-11-08T23:33:00+09:00 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) | 2026-11-08T23:41:00+09:00 | 보관한 원본을 다시 열면 결과를 다시 조회하지 않아 늦은 AI 상태 관측이 늦어짐. 이벤트 의미는 유지하고 관측 범위 변화를 `analytics.md`에 시점과 함께 기록 |
+| 2026-11-08-pdfextraction-image-delivery-optimization-F10 | P3/CODE/INTRODUCED | INDEPENDENT_REVIEW | 2026-11-08T23:33:00+09:00 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) | 2026-11-08T23:39:00+09:00 | 새 코드 규칙: 원본 보기 effect 14줄, 측정 스크립트 삼항·긴 `main`. effect 분리, 배치표로 삼항 제거, `main`을 인자·측정·요약으로 분리. 6건 재실행으로 결과 동일 확인 |
+| 2026-11-08-pdfextraction-image-delivery-optimization-F11 | P1/CODE/INTRODUCED 주장 | INDEPENDENT_REVIEW | 2026-11-08T23:33:00+09:00 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) | - | REJECTED: `config` 서브모듈 포인터 변경은 이 작업 시작 전부터 작업 트리에 있던 사용자 상태(세션 시작 git status `M config`). 이번 커밋에서 제외 |
 
 ## 추가 전용 상태 이력
 
 | 사건 ID | 문제 ID | 종류 | 시각(+09:00) | 근거·관련 PR |
 | --- | --- | --- | --- | --- |
-| E01 | 2026-11-08-pdfextraction-image-delivery-optimization-F01 | CONFIRMED | 2026-11-08T23:28:00+09:00 | Checkstyle 보고서 / PENDING |
-| E02 | 2026-11-08-pdfextraction-image-delivery-optimization-F01 | FIXED | 2026-11-08T23:30:00+09:00 | Checkstyle 통과 / PENDING |
-| E03 | 2026-11-08-pdfextraction-image-delivery-optimization-F02 | CONFIRMED | 2026-11-08T23:33:00+09:00 | 독립 평가 / PENDING |
-| E04 | 2026-11-08-pdfextraction-image-delivery-optimization-F03 | CONFIRMED | 2026-11-08T23:33:00+09:00 | 독립 평가, `jobs.py` / PENDING |
-| E05 | 2026-11-08-pdfextraction-image-delivery-optimization-F04 | CONFIRMED | 2026-11-08T23:33:00+09:00 | 독립 평가, `nav-after.json` / PENDING |
-| E06 | 2026-11-08-pdfextraction-image-delivery-optimization-F05 | CONFIRMED | 2026-11-08T23:33:00+09:00 | 독립 평가 / PENDING |
-| E07 | 2026-11-08-pdfextraction-image-delivery-optimization-F06 | CONFIRMED | 2026-11-08T23:33:00+09:00 | 독립 평가 / PENDING |
-| E08 | 2026-11-08-pdfextraction-image-delivery-optimization-F07 | CONFIRMED | 2026-11-08T23:33:00+09:00 | 독립 평가 / PENDING |
-| E09 | 2026-11-08-pdfextraction-image-delivery-optimization-F08 | CONFIRMED | 2026-11-08T23:33:00+09:00 | 독립 평가 / PENDING |
-| E10 | 2026-11-08-pdfextraction-image-delivery-optimization-F09 | CONFIRMED | 2026-11-08T23:33:00+09:00 | 독립 평가 / PENDING |
-| E11 | 2026-11-08-pdfextraction-image-delivery-optimization-F10 | CONFIRMED | 2026-11-08T23:33:00+09:00 | 독립 평가 / PENDING |
-| E12 | 2026-11-08-pdfextraction-image-delivery-optimization-F11 | REJECTED | 2026-11-08T23:34:00+09:00 | 세션 시작 시 작업 트리 상태 / PENDING |
-| E13 | 2026-11-08-pdfextraction-image-delivery-optimization-F03 | FIXED | 2026-11-08T23:35:00+09:00 | Lambda 테스트 23개 / PENDING |
-| E14 | 2026-11-08-pdfextraction-image-delivery-optimization-F07 | FIXED | 2026-11-08T23:39:00+09:00 | 캐시 테스트 / PENDING |
-| E15 | 2026-11-08-pdfextraction-image-delivery-optimization-F08 | FIXED | 2026-11-08T23:39:00+09:00 | 캐시 테스트 / PENDING |
-| E16 | 2026-11-08-pdfextraction-image-delivery-optimization-F10 | FIXED | 2026-11-08T23:39:00+09:00 | 테스트·스크립트 재실행 / PENDING |
-| E17 | 2026-11-08-pdfextraction-image-delivery-optimization-F02 | FIXED | 2026-11-08T23:41:00+09:00 | 문서 수정 / PENDING |
-| E18 | 2026-11-08-pdfextraction-image-delivery-optimization-F04 | FIXED | 2026-11-08T23:41:00+09:00 | 문서 수정 / PENDING |
-| E19 | 2026-11-08-pdfextraction-image-delivery-optimization-F05 | FIXED | 2026-11-08T23:41:00+09:00 | 문서 수정 / PENDING |
-| E20 | 2026-11-08-pdfextraction-image-delivery-optimization-F06 | FIXED | 2026-11-08T23:41:00+09:00 | 문서 수정 / PENDING |
-| E21 | 2026-11-08-pdfextraction-image-delivery-optimization-F09 | FIXED | 2026-11-08T23:41:00+09:00 | 문서 수정 / PENDING |
+| E01 | 2026-11-08-pdfextraction-image-delivery-optimization-F01 | CONFIRMED | 2026-11-08T23:28:00+09:00 | Checkstyle 보고서 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) |
+| E02 | 2026-11-08-pdfextraction-image-delivery-optimization-F01 | FIXED | 2026-11-08T23:30:00+09:00 | Checkstyle 통과 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) |
+| E03 | 2026-11-08-pdfextraction-image-delivery-optimization-F02 | CONFIRMED | 2026-11-08T23:33:00+09:00 | 독립 평가 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) |
+| E04 | 2026-11-08-pdfextraction-image-delivery-optimization-F03 | CONFIRMED | 2026-11-08T23:33:00+09:00 | 독립 평가, `jobs.py` / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) |
+| E05 | 2026-11-08-pdfextraction-image-delivery-optimization-F04 | CONFIRMED | 2026-11-08T23:33:00+09:00 | 독립 평가, `nav-after.json` / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) |
+| E06 | 2026-11-08-pdfextraction-image-delivery-optimization-F05 | CONFIRMED | 2026-11-08T23:33:00+09:00 | 독립 평가 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) |
+| E07 | 2026-11-08-pdfextraction-image-delivery-optimization-F06 | CONFIRMED | 2026-11-08T23:33:00+09:00 | 독립 평가 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) |
+| E08 | 2026-11-08-pdfextraction-image-delivery-optimization-F07 | CONFIRMED | 2026-11-08T23:33:00+09:00 | 독립 평가 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) |
+| E09 | 2026-11-08-pdfextraction-image-delivery-optimization-F08 | CONFIRMED | 2026-11-08T23:33:00+09:00 | 독립 평가 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) |
+| E10 | 2026-11-08-pdfextraction-image-delivery-optimization-F09 | CONFIRMED | 2026-11-08T23:33:00+09:00 | 독립 평가 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) |
+| E11 | 2026-11-08-pdfextraction-image-delivery-optimization-F10 | CONFIRMED | 2026-11-08T23:33:00+09:00 | 독립 평가 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) |
+| E12 | 2026-11-08-pdfextraction-image-delivery-optimization-F11 | REJECTED | 2026-11-08T23:34:00+09:00 | 세션 시작 시 작업 트리 상태 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) |
+| E13 | 2026-11-08-pdfextraction-image-delivery-optimization-F03 | FIXED | 2026-11-08T23:35:00+09:00 | Lambda 테스트 23개 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) |
+| E14 | 2026-11-08-pdfextraction-image-delivery-optimization-F07 | FIXED | 2026-11-08T23:39:00+09:00 | 캐시 테스트 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) |
+| E15 | 2026-11-08-pdfextraction-image-delivery-optimization-F08 | FIXED | 2026-11-08T23:39:00+09:00 | 캐시 테스트 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) |
+| E16 | 2026-11-08-pdfextraction-image-delivery-optimization-F10 | FIXED | 2026-11-08T23:39:00+09:00 | 테스트·스크립트 재실행 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) |
+| E17 | 2026-11-08-pdfextraction-image-delivery-optimization-F02 | FIXED | 2026-11-08T23:41:00+09:00 | 문서 수정 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) |
+| E18 | 2026-11-08-pdfextraction-image-delivery-optimization-F04 | FIXED | 2026-11-08T23:41:00+09:00 | 문서 수정 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) |
+| E19 | 2026-11-08-pdfextraction-image-delivery-optimization-F05 | FIXED | 2026-11-08T23:41:00+09:00 | 문서 수정 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) |
+| E20 | 2026-11-08-pdfextraction-image-delivery-optimization-F06 | FIXED | 2026-11-08T23:41:00+09:00 | 문서 수정 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) |
+| E21 | 2026-11-08-pdfextraction-image-delivery-optimization-F09 | FIXED | 2026-11-08T23:41:00+09:00 | 문서 수정 / [#573](https://github.com/woowacourse-teams/2026-yesulin/pull/573) |
