@@ -7,7 +7,7 @@ import uuid
 from dataclasses import dataclass
 from pathlib import Path
 
-from application.extraction import PIPELINE_VERSION, ExtractionError, Limits, extract_pdf
+from application.extraction import IMAGE_CONTENT_TYPE, PIPELINE_VERSION, ExtractionError, Limits, extract_pdf
 
 
 @dataclass(frozen=True)
@@ -25,6 +25,24 @@ class Settings:
                 raise ValueError("INVALID_STORAGE_PREFIX")
         if self.input_prefix.startswith(self.result_prefix) or self.result_prefix.startswith(self.input_prefix):
             raise ValueError("INPUT_AND_RESULT_PREFIXES_MUST_BE_SEPARATE")
+
+
+def s3_trigger_options(review_id):
+    """Review PDFs are screened from the original, so only profile and diagnostic uploads keep photos."""
+    return {"extractImages": review_id is None, "includeRegions": False}
+
+
+def result_fingerprint(source, identity, options):
+    return hashlib.sha256(json.dumps({"source": source, "identity": identity, "options": options,
+                                      "pipeline": PIPELINE_VERSION}, sort_keys=True).encode()).hexdigest()
+
+
+def reusable_fingerprints(source, identity, options):
+    """A cached result that also extracted photos still serves a request without photos (review jobs before 11/8)."""
+    accepted = {result_fingerprint(source, identity, options)}
+    if not options["extractImages"]:
+        accepted.add(result_fingerprint(source, identity, {**options, "extractImages": True}))
+    return accepted
 
 
 def validate_request(event, settings):
@@ -66,13 +84,12 @@ def process_job(event, settings, store, notify, remaining_ms=None):
     identity = store.inspect(source["key"], source.get("versionId"))
     if identity["sizeBytes"] > settings.limits.max_file_bytes:
         raise ExtractionError("FILE_SIZE_LIMIT_EXCEEDED")
-    fingerprint = hashlib.sha256(json.dumps({"source": source, "identity": identity, "options": options,
-                                            "pipeline": PIPELINE_VERSION}, sort_keys=True).encode()).hexdigest()
+    fingerprint = result_fingerprint(source, identity, options)
     scope = f"{event['reviewId']}/" if event.get("reviewId") else ""
     result_key = f"{settings.result_prefix}{scope}{job_id}/{PIPELINE_VERSION}/result.json"
     existing = store.read_json(result_key)
     if existing is not None:
-        if existing.get("fingerprint") != fingerprint:
+        if existing.get("fingerprint") not in reusable_fingerprints(source, identity, options):
             raise ValueError("JOB_SOURCE_OR_OPTIONS_CHANGED_USE_NEW_JOB_ID")
         completion = {"jobId": job_id, "status": existing["status"], "resultKey": result_key,
                       "pipelineVersion": PIPELINE_VERSION, "reused": True}
@@ -107,7 +124,7 @@ def process_job(event, settings, store, notify, remaining_ms=None):
             result.update({"status": "FAILED", "errorCode": "RESULT_SIZE_LIMIT_EXCEEDED", "pages": []})
         else:
             for path, key in uploads:
-                store.upload(path, key, "image/png")
+                store.upload(path, key, IMAGE_CONTENT_TYPE)
         store.write_json(result_key, result)
     completion = {"jobId": job_id, "status": result["status"], "resultKey": result_key,
                   "pipelineVersion": PIPELINE_VERSION, "reused": False}

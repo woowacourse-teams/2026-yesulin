@@ -12,7 +12,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
 from application.extraction import ExtractionError, Limits, extract_pdf
-from application.jobs import Settings, process_job
+from application.jobs import Settings, process_job, s3_trigger_options
 
 
 def sample_pdf(text="Yesulin PDF test", image=True, pages=1, rotation=0):
@@ -56,6 +56,7 @@ class MemoryStore:
     def __init__(self, data):
         self.data = data
         self.objects = {}
+        self.content_types = {}
         self.downloads = 0
 
     def inspect(self, key, version=None):
@@ -70,6 +71,7 @@ class MemoryStore:
 
     def upload(self, path, key, content_type):
         self.objects[key] = path.read_bytes()
+        self.content_types[key] = content_type
 
     def write_json(self, key, result):
         self.objects[key] = copy.deepcopy(result)
@@ -92,7 +94,10 @@ class JobsTest(unittest.TestCase):
         self.assertIn("Yesulin PDF test", result["pages"][0]["text"])
         image = result["pages"][0]["images"][0]
         self.assertTrue(image["key"].startswith(self.settings.result_prefix))
-        self.assertTrue(store.objects[image["key"]].startswith(b"\x89PNG"))
+        self.assertTrue(image["key"].endswith(".webp"))
+        stored = store.objects[image["key"]]
+        self.assertEqual((b"RIFF", b"WEBP"), (stored[:4], stored[8:12]))
+        self.assertEqual("image/webp", store.content_types[image["key"]])
         self.assertEqual(hashlib.sha256(original).hexdigest(), result["source"]["sha256"])
         self.assertEqual(original, store.data)
         self.assertNotIn("Yesulin PDF test", json.dumps(completion))
@@ -110,6 +115,22 @@ class JobsTest(unittest.TestCase):
                         .startswith(root + "images/"))
         with self.assertRaises(ValueError):
             process_job({**event, "reviewId": self.job_id}, self.settings, store, lambda value: None)
+
+    def test_s3_review_upload_skips_photos_but_profile_upload_keeps_them(self):
+        self.assertEqual({"extractImages": False, "includeRegions": False},
+                         s3_trigger_options("34c1f694-43b5-400c-b987-e1194d05b931"))
+        self.assertEqual({"extractImages": True, "includeRegions": False}, s3_trigger_options(None))
+
+    def test_photo_free_retry_reuses_a_cached_result_that_already_has_photos(self):
+        store = MemoryStore(sample_pdf())
+        process_job(self.event, self.settings, store, lambda result: None)
+        without_photos = {**self.event, "options": {"extractImages": False, "includeRegions": True}}
+        completion = process_job(without_photos, self.settings, store, lambda result: None)
+        self.assertTrue(completion["reused"])
+        self.assertEqual(1, store.downloads)
+        with_regions_off = {**self.event, "options": {"extractImages": True, "includeRegions": False}}
+        with self.assertRaisesRegex(ValueError, "CHANGED_USE_NEW_JOB_ID"):
+            process_job(with_regions_off, self.settings, store, lambda result: None)
 
     def test_callback_retry_reuses_result_without_downloading_pdf(self):
         store = MemoryStore(sample_pdf())
