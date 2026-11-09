@@ -143,7 +143,7 @@ PUT 완료가 Lambda 완료를 뜻하지 않는다. completion은 업로드만 �
 status,warnings,pages[number,text,needsOcr,images[status,key]]`)다. 소유자는 `jobId`로 DB에서 찾으며 요청 값을 신뢰하지 않는다.
 요청에 포함된 URL은 읽지도 저장하지도 않는다.
 
-- 검증: `jobId`·`source.key`·`pipelineVersion`·이미지 key prefix(`.../results/{jobId}/pdfium-v1/images/*.png`)가 맞고,
+- 검증: `jobId`·`source.key`·`pipelineVersion`·이미지 key prefix(`.../results/{jobId}/pdfium-v1/images/*.webp`, 이전 결과는 `*.png`)가 맞고,
   `status`가 `COMPLETED/PARTIAL/FAILED`이며 직렬화 2MiB 이하, 50쪽 이하, 이미지 100개 이하, 쪽당 문자 100,000자 이하(전체 결과 JSON은 2MiB 이하),
   쪽 번호가 1 이상이고 중복이 없어야 한다. 어긋나면 `400 INVALID_PDF_EXTRACTION_RESULT`, 없는 작업은 `404 PDF_EXTRACTION_NOT_FOUND`다.
 - 저장: 검증한 결과(경고는 표시 문장으로 변환, 이미지는 `EXTRACTED`만, URL 제외)를 작업당 한 번 `pdf_extraction_payloads`에

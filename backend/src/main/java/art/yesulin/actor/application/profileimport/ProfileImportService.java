@@ -15,6 +15,7 @@ import art.yesulin.auth.domain.member.MemberErrorCode;
 import art.yesulin.auth.domain.member.MemberRepository;
 import art.yesulin.file.application.FileService;
 import art.yesulin.global.exception.BusinessException;
+import art.yesulin.pdfextraction.application.PdfExtractedImageFormat;
 import art.yesulin.pdfextraction.application.PdfExtractionResult;
 import art.yesulin.pdfextraction.application.PdfExtractionService;
 import art.yesulin.pdfextraction.application.PdfExtractionStorage;
@@ -134,10 +135,16 @@ public class ProfileImportService {
         if (photos.findPhotos(ownerId).photos().size() >= PhotoLibrary.MAX_PHOTO_COUNT) {
             throw new BusinessException(LIMIT_EXCEEDED, "사진보관함에는 사진을 최대 3장까지 저장할 수 있습니다.");
         }
+        return photos.addPhoto(ownerId, new AddPhotoToLibraryCommand(copyPhoto(ownerId, job, fileKey)));
+    }
+
+    private long copyPhoto(long ownerId, PdfExtractionJob job, String fileKey) {
+        PdfExtractedImageFormat format = PdfExtractedImageFormat.fromFilename(fileKey)
+                .orElseThrow(ProfileImportService::photoNotFound);
         byte[] image = storage.readImage(job, fileKey, MAX_PHOTO_BYTES)
                 .orElseThrow(ProfileImportService::photoNotFound);
-        long fileId = files.createPrivateActorPhoto(ownerId, "pdf-profile-photo.png", "image/png", image);
-        return photos.addPhoto(ownerId, new AddPhotoToLibraryCommand(fileId));
+        return files.createPrivateActorPhoto(
+                ownerId, format.filename("pdf-profile-photo"), format.contentType(), image);
     }
 
     /** 결과를 닫으면 원본·추출 본문·이미지를 바로 지운다. 이미 지웠으면 그대로 성공한다. 읽는 중에는 닫지 못한다. */

@@ -217,6 +217,16 @@ class PdfExtractionResultReceiverTest {
     }
 
     @Test
+    void earlierPngResultIsStillAcceptedNextToCurrentWebpImages() {
+        ObjectNode manifest = manifest(job, storage, "COMPLETED", "본문");
+        images(manifest, 0).add(image(storage.imageFileKeyPrefix(job) + "page-001-image-002.png"));
+
+        receiver.receive(command(job, storage, manifest));
+
+        assertTrue(storedPayloads.get(job.getId()).getPayloadJson().contains("page-001-image-002.png"));
+    }
+
+    @Test
     void imageKeyOutsideJobPrefixOrWithUnsafeNameIsRejected() {
         for (String key : List.of(
                 "yesulin/results/other/pdfium-v1/images/p1.png",
