@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { ModalShell } from "@/components/auditions/modal-shell";
 import { PrimaryButton, SecondaryButton } from "@/components/ui/controls";
 import { usePassedContacts, type PassedContact } from "@/features/pdf-reviews/use-passed-contacts";
+import { usePdfSourceCache } from "@/features/pdf-reviews/pdf-source-cache";
 import type { ReviewKey } from "@/features/pdf-reviews/types";
 import { contactLabels, emailLabels, contactsClipboardText } from "@/features/pdf-reviews/contact-copy";
 import { ReviewOriginalDocument } from "./review-original-document";
@@ -18,6 +19,7 @@ export function ReviewPassedContacts({ reviewId, onBack, onUnauthorized, onDirty
 }) {
   const { rows, loading, error, refresh } = usePassedContacts(reviewId, onUnauthorized);
   const [documentJobId, setDocumentJobId] = useState<string | null>(null);
+  const sources = usePdfSourceCache();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [panelRows, setPanelRows] = useState<readonly PassedContact[] | null>(null);
   const [copying, setCopying] = useState(false);
@@ -100,7 +102,7 @@ export function ReviewPassedContacts({ reviewId, onBack, onUnauthorized, onDirty
     <ModalShell open={documentJobId !== null} onClose={() => setDocumentJobId(null)} labelledBy="contacts-document-title"
       className="flex h-[90dvh] w-[calc(100vw-24px)] max-w-5xl flex-col overflow-hidden rounded-modal border border-border bg-card text-foreground shadow-[var(--shadow-modal)]">
       <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-3"><h2 id="contacts-document-title" className="font-semibold">지원서 원본 PDF</h2><SecondaryButton onClick={() => setDocumentJobId(null)}>닫기</SecondaryButton></header>
-      <div className="min-h-0 flex-1">{documentJobId && <ReviewOriginalDocument key={documentJobId} jobId={documentJobId} onUnauthorized={onUnauthorized} />}</div>
+      <div className="min-h-0 flex-1">{documentJobId && <ReviewOriginalDocument key={documentJobId} jobId={documentJobId} sources={sources} onUnauthorized={onUnauthorized} />}</div>
     </ModalShell>
   </section>;
 }
