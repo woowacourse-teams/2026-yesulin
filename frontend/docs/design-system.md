@@ -56,7 +56,7 @@
 
 ## 공개 서비스 화면
 
-- 로고는 슬로건 없는 워드마크 `public/images/yesulin-wordmark.png`를 쓰고, 탭·앱 아이콘은 워드마크의 파란 ㅇ을 쓴다. 원본 SVG를 받기 전 임시 PNG다.
+- 로고는 슬로건 없는 워드마크 `public/images/yesulin-wordmark.png`를 쓴다. 홈 화면에 추가할 때는 흰 배경에 원본 심볼을 넣은 `src/app/apple-icon.png`(180×180)와 `src/app/icon.png`(512×512)를 제공한다. 기본 파비콘 파일은 `src/app/favicon.ico`다.
 - 모든 영역의 예술in 로고는 서비스 메인 `/`으로 이동한다. 영역별 홈은 별도 메뉴로 접근한다.
 - 공고 상세는 기본 정보 → 첨부파일(있을 때) → 공고 본문 → 공연사 순서로 읽는다.
 
