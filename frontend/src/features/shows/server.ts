@@ -8,18 +8,22 @@ type PublicShowResult =
   | { readonly status: "client-only" };
 
 /** 목 환경은 브라우저 MSW만 응답하므로 서버 조회를 건너뛴다. */
-async function publicResponseForServer(path: string): Promise<Response | null> {
+async function publicResponseForServer(
+  path: string, cacheOptions: Pick<RequestInit, "cache" | "next"> = { cache: "no-store" },
+): Promise<Response | null> {
   const origin = process.env.API_ORIGIN;
   if (!origin || process.env.NEXT_PUBLIC_API_MOCKING === "enabled") return null;
   return fetch(new URL(path, origin), {
-    cache: "no-store",
+    ...cacheOptions,
     signal: AbortSignal.timeout(10_000),
   });
 }
 
 /** 빈 목록과 조회 실패를 구분한다. 실패 시 사이트맵에서 공연 주소를 지우지 않는다. */
-export async function publicShowsForServer(): Promise<readonly PublicShowSummary[] | null> {
-  const response = await publicResponseForServer("/api/v1/public/shows");
+export async function publicShowsForServer(
+  cacheOptions?: Pick<RequestInit, "cache" | "next">,
+): Promise<readonly PublicShowSummary[] | null> {
+  const response = await publicResponseForServer("/api/v1/public/shows", cacheOptions);
   if (!response) return null;
   if (!response.ok) throw new Error(`공개 공연 목록 조회 실패: ${response.status}`);
   const body = await response.json() as { readonly shows: readonly PublicShowSummary[] };
