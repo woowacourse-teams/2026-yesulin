@@ -1,4 +1,4 @@
-﻿# 테스트 기준 정리 (스프린트 4)
+# 테스트 기준 정리 (스프린트 4)
 
 작업 ID 2026-11-11-common-test-criteria · 공통 문서 / test-criteria-v1
 
