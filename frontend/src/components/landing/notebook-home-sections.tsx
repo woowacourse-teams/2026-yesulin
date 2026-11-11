@@ -16,8 +16,10 @@ const HOME_SHOW_COUNT = 12;
 
 type ShowState = { readonly status: "loading" } | { readonly status: "error" } | { readonly status: "ready"; readonly shows: readonly PublicShowSummary[] };
 
-export function HomeShowSection({ initialShows = null }: { readonly initialShows?: readonly PublicShowSummary[] | null }) {
-  const [now] = useState(Date.now);
+export function HomeShowSection({ renderedAt, initialShows = null }: {
+  readonly renderedAt: number;
+  readonly initialShows?: readonly PublicShowSummary[] | null;
+}) {
   const [state, setState] = useState<ShowState>(initialShows === null ? { status: "loading" } : { status: "ready", shows: initialShows });
   const load = useCallback(() => {
     let active = true;
@@ -26,7 +28,7 @@ export function HomeShowSection({ initialShows = null }: { readonly initialShows
   }, []);
   useEffect(() => { if (initialShows === null) return load(); }, [initialShows, load]);
   return <PosterRow id="shows" title="무료 공연" label="무료 공연" moreHref={showRoutes.list} fallback={showFallback(state, () => { setState({ status: "loading" }); load(); })}>
-    {state.status === "ready" && orderPublicShows(state.shows, now).slice(0, HOME_SHOW_COUNT).map((show) => <ShowPosterCard key={show.id} show={show} now={now} />)}
+    {state.status === "ready" && orderPublicShows(state.shows, renderedAt).slice(0, HOME_SHOW_COUNT).map((show) => <ShowPosterCard key={show.id} show={show} now={renderedAt} />)}
   </PosterRow>;
 }
 

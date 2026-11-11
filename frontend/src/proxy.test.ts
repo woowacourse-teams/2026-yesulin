@@ -1,3 +1,4 @@
+import { unstable_doesMiddlewareMatch } from "next/experimental/testing/server";
 import { NextRequest } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -19,6 +20,36 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
+});
+
+describe("과거 홈 공고 목록 주소", () => {
+  it.each([
+    ["/?page=2", "/auditions?page=2"],
+    ["/?closed=1", "/auditions?closed=1"],
+    ["/?page=2&closed=1&sort=deadline&unknown=1", "/auditions?closed=1&page=2&sort=deadline"],
+    ["/?page=2&page=3&closed=0&closed=1", "/auditions?page=2"],
+  ])("%s를 기존 조건으로 정규화해 307로 보낸다", async (path, target) => {
+    const response = await runProxy(request(path));
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe(`https://yesulin.art${target}`);
+  });
+
+  it.each(["/?page=10001", "/?page=0&page=2", "/?closed=0&closed=1", "/?page=abc&sort=deadline"])(
+    "지원 범위 밖 또는 기본 조건 %s는 홈으로 통과시킨다", async (path) => {
+      const fetchMock = vi.fn();
+      vi.stubGlobal("fetch", fetchMock);
+      const response = await runProxy(request(path));
+      expect(response.headers.get("x-middleware-next")).toBe("1");
+      expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([["/", false], ["/?sort=deadline", false], ["/?page=2", true], ["/?closed=1", true], ["/auditions?page=2", false]])(
+    "Next matcher가 %s에서 필요한 경우에만 Proxy를 실행한다", async (url, matched) => {
+      const { config } = await import("./proxy");
+      expect(unstable_doesMiddlewareMatch({ config, url })).toBe(matched);
+    },
+  );
 });
 
 describe("운영자 경로 접근 검사", () => {

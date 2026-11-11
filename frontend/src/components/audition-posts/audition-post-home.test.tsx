@@ -16,12 +16,14 @@ const data: AuditionPostPage = {
   })),
 };
 
+const renderedAt = Date.parse("2026-11-10T14:58:00Z");
+
 vi.mock("@/components/auth/auth-session", () => ({ useAuthSession: () => ({ session: null }) }));
 
 describe("메인과 오디션 전용 목록", () => {
   it("홈은 분야 바로가기와 공고·공연 포스터 줄을 보여 주고 전체 목록으로 연결한다", () => {
     pathname.mockReturnValue("/");
-    const html = renderToStaticMarkup(<AuditionPostHome initialLatest={data} initialDeadline={data} initialShows={[]} />);
+    const html = renderToStaticMarkup(<AuditionPostHome renderedAt={renderedAt} initialLatest={data} initialDeadline={data} initialShows={[]} />);
     expect(html).toContain('aria-label="분야 바로가기"');
     expect(html).toContain('href="/auditions/musical"');
     expect(html).toContain("새로 올라온 공고");
@@ -35,6 +37,30 @@ describe("메인과 오디션 전용 목록", () => {
     expect(html).toContain('id="faq"');
     expect(html).not.toContain('aria-current="page"');
     expect(html).not.toContain('type="search"');
+  });
+
+  it("캐시 생성 뒤 한국 날짜가 바뀌어도 홈의 공고 마감 배지와 공연 표시는 생성 시각으로 렌더링한다", () => {
+    pathname.mockReturnValue("/");
+    const posts = { ...data, posts: [{ ...data.posts[0], deadline: "2026-11-11" }] };
+    const shows = [{
+      id: "show-1", title: "경계 시각 공연", hostName: "공연사", genre: "PLAY", status: "OPEN",
+      posterUrl: null, venueName: "극장", nextSessionStartsAt: "2026-11-10T15:00:00Z", runningMinutes: 60,
+    }] as const;
+    const render = () => renderToStaticMarkup(
+      <AuditionPostHome renderedAt={renderedAt} initialLatest={posts} initialDeadline={posts} initialShows={shows} />,
+    );
+
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(renderedAt);
+      const cached = render();
+      vi.setSystemTime(Date.parse("2026-11-10T15:01:00Z"));
+      expect(cached).toContain("D-1");
+      expect(cached).toContain("경계 시각 공연");
+      expect(render()).toBe(cached);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("전용 목록의 첫 페이지부터 12개를 표시하고 메인 섹션을 포함하지 않는다", () => {
@@ -67,7 +93,7 @@ describe("메인과 오디션 전용 목록", () => {
   });
 
   it("서버 조회가 없는 상태를 빈 데이터로 단정하지 않는다", () => {
-    const html = renderToStaticMarkup(<AuditionPostHome initialLatest={null} initialDeadline={null} initialShows={null} />);
+    const html = renderToStaticMarkup(<AuditionPostHome renderedAt={renderedAt} initialLatest={null} initialDeadline={null} initialShows={null} />);
     expect(html).toContain("포스터 불러오는 중");
     expect(html).not.toContain("지금 예매할 수 있는 공연이 없어요");
   });

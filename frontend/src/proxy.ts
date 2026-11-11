@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { auditionPostRoutes, parseAuditionPostQuery } from "@/features/audition-posts/types";
 
 type CurrentSession = {
   readonly role?: unknown;
@@ -9,6 +10,7 @@ const realProducerSessionEnabled =
   || process.env.NEXT_PUBLIC_PRODUCER_LOGIN === "enabled";
 
 export async function proxy(request: NextRequest) {
+  if (request.nextUrl.pathname === "/") return redirectLegacyHomeList(request);
   const isAdmin = request.nextUrl.pathname === "/admin" || request.nextUrl.pathname.startsWith("/admin/");
   if (!isAdmin && !realProducerSessionEnabled) return NextResponse.next();
   const denied = () => isAdmin ? hiddenAdminResponse() : redirectHome(request);
@@ -38,6 +40,15 @@ export async function proxy(request: NextRequest) {
   }
 }
 
+function redirectLegacyHomeList(request: NextRequest) {
+  const params = request.nextUrl.searchParams;
+  const query = parseAuditionPostQuery({
+    page: params.getAll("page"), closed: params.getAll("closed"), sort: params.getAll("sort"),
+  });
+  if (query.page === 0 && !query.includeClosed) return NextResponse.next();
+  return NextResponse.redirect(new URL(auditionPostRoutes.list(query), request.url));
+}
+
 function currentSessionUrl(request: NextRequest) {
   const apiOrigin = process.env.API_ORIGIN?.trim();
   return new URL("/api/v1/sessions/current", apiOrigin || request.nextUrl.origin);
@@ -63,5 +74,10 @@ function hiddenAdminResponse() {
 }
 
 export const config = {
-  matcher: ["/producers/:path*", "/admin/:path*"],
+  matcher: [
+    "/producers/:path*",
+    "/admin/:path*",
+    { source: "/", has: [{ type: "query", key: "page" }] },
+    { source: "/", has: [{ type: "query", key: "closed" }] },
+  ],
 };

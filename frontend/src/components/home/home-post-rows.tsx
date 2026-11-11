@@ -31,13 +31,14 @@ async function loadPages(): Promise<Pages> {
 }
 
 /** 홈의 공고 줄. 서버가 미리 읽지 못한 목 환경·조회 실패에서는 브라우저에서 다시 읽는다. */
-export function HomePostRows({ initialLatest, initialDeadline }: {
+export function HomePostRows({ renderedAt, initialLatest, initialDeadline }: {
+  readonly renderedAt: number;
   readonly initialLatest: AuditionPostPage | null;
   readonly initialDeadline: AuditionPostPage | null;
 }) {
   const [state, setState] = useState<PagesState>(() => initialState(initialLatest, initialDeadline));
-  const [today] = useState(() => kstToday());
-  const [now] = useState(() => viewCountClock());
+  const today = kstToday(new Date(renderedAt));
+  const now = viewCountClock(renderedAt);
   const retry = () => { setState({ status: "loading" }); };
   useEffect(() => {
     if (state.status !== "loading") return;

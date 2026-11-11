@@ -17,11 +17,11 @@ export type AuditionPostLookup =
  * 메인 목록과 상세의 최초 SSR·메타데이터용 조회. 목 환경은 브라우저 MSW만 응답하므로 null을 돌려주고
  * 화면이 클라이언트에서 다시 조회한다. 실제 조회 오류는 전파하고, 숨긴 공고의 원문 이동은 따라가지 않는다.
  */
-async function fetchForServer(path: string, init?: RequestInit): Promise<Response | null> {
+async function fetchForServer(path: string, init: RequestInit = { cache: "no-store" }): Promise<Response | null> {
   const origin = process.env.API_ORIGIN;
   if (!origin || process.env.NEXT_PUBLIC_API_MOCKING === "enabled") return null;
   return fetch(new URL(path, origin), {
-    cache: "no-store", redirect: "manual", signal: AbortSignal.timeout(READ_TIMEOUT_MS), ...init,
+    redirect: "manual", signal: AbortSignal.timeout(READ_TIMEOUT_MS), ...init,
   });
 }
 
@@ -36,18 +36,22 @@ function httpsLocation(response: Response): string | null {
   }
 }
 
-export async function auditionPostPageForServer(query: AuditionPostQuery, size?: number): Promise<AuditionPostPage | null> {
+export async function auditionPostPageForServer(
+  query: AuditionPostQuery, size?: number, cacheOptions?: Pick<RequestInit, "cache" | "next">,
+): Promise<AuditionPostPage | null> {
   // 메인 목록은 기존처럼 조회 실패 시 브라우저에서 재시도한다.
   try {
-    return await publishedAuditionPostPageForServer(query, size);
+    return await publishedAuditionPostPageForServer(query, size, cacheOptions);
   } catch {
     return null;
   }
 }
 
 /** 분야별 목록·피드는 조회 실패를 빈 공고 목록으로 바꾸지 않는다. */
-export async function publishedAuditionPostPageForServer(query: AuditionPostQuery, size?: number): Promise<AuditionPostPage | null> {
-  const response = await fetchForServer(`/api${auditionPostApiPaths.list(query, size)}`);
+export async function publishedAuditionPostPageForServer(
+  query: AuditionPostQuery, size?: number, cacheOptions?: Pick<RequestInit, "cache" | "next">,
+): Promise<AuditionPostPage | null> {
+  const response = await fetchForServer(`/api${auditionPostApiPaths.list(query, size)}`, cacheOptions);
   if (!response) return null;
   if (!response.ok) throw new Error(`공개 공고 목록 조회 실패: ${response.status}`);
   return response.json() as Promise<AuditionPostPage>;
@@ -85,6 +89,7 @@ export async function recordAuditionPostRedirect(postId: string): Promise<void> 
   try {
     await fetchForServer(`/api${auditionPostApiPaths.redirect(postId)}`, {
       method: "POST",
+      cache: "no-store",
       signal: AbortSignal.timeout(REDIRECT_COUNT_TIMEOUT_MS),
     });
   } catch {

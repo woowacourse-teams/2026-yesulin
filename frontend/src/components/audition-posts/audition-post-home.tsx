@@ -9,7 +9,8 @@ import type { PublicShowSummary } from "@/features/shows/types";
 import { AuditionAlertBanner } from "./audition-alert-banner";
 
 /** 메인은 배너·분야 바로가기 아래에 공고·공연 포스터 줄을 쌓는다. 전체 목록은 /auditions에서 본다. */
-export function AuditionPostHome({ initialLatest = null, initialDeadline = null, initialShows = null, initialEventBanners = null }: {
+export function AuditionPostHome({ renderedAt, initialLatest = null, initialDeadline = null, initialShows = null, initialEventBanners = null }: {
+  readonly renderedAt: number;
   readonly initialLatest?: AuditionPostPage | null;
   readonly initialDeadline?: AuditionPostPage | null;
   readonly initialShows?: readonly PublicShowSummary[] | null;
@@ -22,9 +23,9 @@ export function AuditionPostHome({ initialLatest = null, initialDeadline = null,
       <h1 className="sr-only">예술in 오디션 공고와 무료 공연</h1>
       <AuditionAlertBanner initialEventBanners={initialEventBanners} />
       <CategoryShortcuts posts={initialLatest?.posts ?? null} />
-      <HomePostRows initialLatest={initialLatest} initialDeadline={initialDeadline} />
+      <HomePostRows renderedAt={renderedAt} initialLatest={initialLatest} initialDeadline={initialDeadline} />
       <QuickBanners />
-      <HomeShowSection initialShows={initialShows} />
+      <HomeShowSection renderedAt={renderedAt} initialShows={initialShows} />
       <HomeFaqSection />
     </main><NotebookFooter />
   </div>;
