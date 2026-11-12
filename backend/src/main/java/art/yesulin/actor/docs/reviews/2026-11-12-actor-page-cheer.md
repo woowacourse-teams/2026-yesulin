@@ -1,6 +1,6 @@
 # 배우 페이지 응원 글
 
-- 작업 ID `2026-11-12-actor-page-cheer` / 평가표 v1 / PR PENDING
+- 작업 ID `2026-11-12-actor-page-cheer` / 평가표 v1 / PR #582
 - 활성 일반 회원이 다른 배우의 공개 페이지에 응원 글을 쓰고 작성자만 수정·삭제한다. 작성자는 익명이며 그 페이지에서 처음 응원한 순서대로 `N호 팬` 번호만 보인다. 배우는 자기 페이지에 쓰지 못한다. 신고·운영자 삭제·도배 제한·답글은 이번 범위가 아니다.
 
 | ID | 경계·실패 조건 | 기대 결과 | 검증 | 필수 | 결과 |
@@ -34,21 +34,21 @@
 
 | 문제 ID | 심각도·유형·유입 | 발견 경로 | 최초 확정(+09:00) / 최초 기록 PR | 해결 시각(+09:00) | 문제·근거 | 조치·상태·수정 후 검증 |
 | --- | --- | --- | --- | --- | --- | --- |
-| 2026-11-12-actor-page-cheer-F01 | P3·UNUSED·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-12T18:15:00+09:00 / PENDING | 2026-11-12T18:20:00+09:00 | 좋아요 서비스를 정리하며 `Me.anonymous()`의 호출이 사라져 쓰이지 않았다. | 삭제했다. FIXED, 컴파일·테스트 PASS. |
-| 2026-11-12-actor-page-cheer-F02 | P3·FLOW·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-12T18:15:00+09:00 / PENDING | - | 서로 다른 회원의 글이 동시에 쓰이면 응답의 팬 번호가 잠시 어긋날 수 있다(쓰기에 잠금이 없음). | OPEN, 다시 읽으면 바로잡히고 영향이 작아 정책 문서에 적고 수용한다. |
-| 2026-11-12-actor-page-cheer-F03 | P3·FLOW·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-12T18:15:00+09:00 / PENDING | 2026-11-12T18:21:00+09:00 | 같은 작성자의 수정과 삭제가 겹치면 수정이 `deleted_at`을 덮어써 지운 글이 되살아날 수 있었다. | 수정·삭제가 글 행을 잠가 읽도록 바꾸고 동시성 테스트를 추가했다. FIXED, PASS. |
-| 2026-11-12-actor-page-cheer-F04 | P3·FLOW·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-12T18:15:00+09:00 / PENDING | 2026-11-12T18:23:00+09:00 | 수정·삭제 확인에 들어가거나 취소해도 포커스를 옮기지 않았고 글자 수 표시가 입력마다 읽혔다. | 입력창·확인 버튼으로 포커스를 옮기고 취소하면 눌렀던 버튼으로 되돌리며 라이브 영역을 없앴다. FIXED, 렌더 테스트 PASS. |
-| 2026-11-12-actor-page-cheer-F05 | P3·DOC·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-12T18:15:00+09:00 / PENDING | 2026-11-12T18:21:00+09:00 | `before`가 1 미만일 때 동작이 정의되지 않았다. | 400으로 거절하고 문서·MSW·테스트에 반영했다. FIXED, PASS. |
+| 2026-11-12-actor-page-cheer-F01 | P3·UNUSED·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-12T18:15:00+09:00 / #582 | 2026-11-12T18:20:00+09:00 | 좋아요 서비스를 정리하며 `Me.anonymous()`의 호출이 사라져 쓰이지 않았다. | 삭제했다. FIXED, 컴파일·테스트 PASS. |
+| 2026-11-12-actor-page-cheer-F02 | P3·FLOW·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-12T18:15:00+09:00 / #582 | - | 서로 다른 회원의 글이 동시에 쓰이면 응답의 팬 번호가 잠시 어긋날 수 있다(쓰기에 잠금이 없음). | OPEN, 다시 읽으면 바로잡히고 영향이 작아 정책 문서에 적고 수용한다. |
+| 2026-11-12-actor-page-cheer-F03 | P3·FLOW·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-12T18:15:00+09:00 / #582 | 2026-11-12T18:21:00+09:00 | 같은 작성자의 수정과 삭제가 겹치면 수정이 `deleted_at`을 덮어써 지운 글이 되살아날 수 있었다. | 수정·삭제가 글 행을 잠가 읽도록 바꾸고 동시성 테스트를 추가했다. FIXED, PASS. |
+| 2026-11-12-actor-page-cheer-F04 | P3·FLOW·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-12T18:15:00+09:00 / #582 | 2026-11-12T18:23:00+09:00 | 수정·삭제 확인에 들어가거나 취소해도 포커스를 옮기지 않았고 글자 수 표시가 입력마다 읽혔다. | 입력창·확인 버튼으로 포커스를 옮기고 취소하면 눌렀던 버튼으로 되돌리며 라이브 영역을 없앴다. FIXED, 렌더 테스트 PASS. |
+| 2026-11-12-actor-page-cheer-F05 | P3·DOC·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-12T18:15:00+09:00 / #582 | 2026-11-12T18:21:00+09:00 | `before`가 1 미만일 때 동작이 정의되지 않았다. | 400으로 거절하고 문서·MSW·테스트에 반영했다. FIXED, PASS. |
 
 ## 상태 사건 이력(추가 전용)
 
 | 사건 ID | 문제 ID | 종류 | 발생 시각(+09:00) | 근거·관련 PR |
 | --- | --- | --- | --- | --- |
-| E01 | 2026-11-12-actor-page-cheer-F01 | CONFIRMED | 2026-11-12T18:15:00+09:00 | 독립 평가, PR PENDING |
-| E02 | 2026-11-12-actor-page-cheer-F02 | CONFIRMED | 2026-11-12T18:15:00+09:00 | 독립 평가, PR PENDING |
-| E03 | 2026-11-12-actor-page-cheer-F03 | CONFIRMED | 2026-11-12T18:15:00+09:00 | 독립 평가, PR PENDING |
-| E04 | 2026-11-12-actor-page-cheer-F04 | CONFIRMED | 2026-11-12T18:15:00+09:00 | 독립 평가, PR PENDING |
-| E05 | 2026-11-12-actor-page-cheer-F05 | CONFIRMED | 2026-11-12T18:15:00+09:00 | 독립 평가, PR PENDING |
+| E01 | 2026-11-12-actor-page-cheer-F01 | CONFIRMED | 2026-11-12T18:15:00+09:00 | 독립 평가, PR #582 |
+| E02 | 2026-11-12-actor-page-cheer-F02 | CONFIRMED | 2026-11-12T18:15:00+09:00 | 독립 평가, PR #582 |
+| E03 | 2026-11-12-actor-page-cheer-F03 | CONFIRMED | 2026-11-12T18:15:00+09:00 | 독립 평가, PR #582 |
+| E04 | 2026-11-12-actor-page-cheer-F04 | CONFIRMED | 2026-11-12T18:15:00+09:00 | 독립 평가, PR #582 |
+| E05 | 2026-11-12-actor-page-cheer-F05 | CONFIRMED | 2026-11-12T18:15:00+09:00 | 독립 평가, PR #582 |
 | E06 | 2026-11-12-actor-page-cheer-F01 | FIXED | 2026-11-12T18:20:00+09:00 | 메서드 삭제 |
 | E07 | 2026-11-12-actor-page-cheer-F03 | FIXED | 2026-11-12T18:21:00+09:00 | 행 잠금, 동시성 테스트 PASS |
 | E08 | 2026-11-12-actor-page-cheer-F05 | FIXED | 2026-11-12T18:21:00+09:00 | before 검증 |
