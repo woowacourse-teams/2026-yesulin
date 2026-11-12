@@ -7,11 +7,13 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import art.yesulin.actor.application.bookmark.ProducerActorBookmarkService;
+import art.yesulin.actor.application.cheer.ActorPageCheerService;
 import art.yesulin.actor.application.cheer.ActorPageLikeService;
 import art.yesulin.actor.application.profileimport.ProfileImportService;
 import art.yesulin.actor.domain.bookmark.ProducerActorBookmark;
 import art.yesulin.actor.domain.bookmark.ProducerActorBookmarkErrorCode;
 import art.yesulin.actor.domain.bookmark.ProducerActorBookmarkRepository;
+import art.yesulin.actor.domain.cheer.ActorPageCheerRepository;
 import art.yesulin.actor.domain.cheer.ActorPageLikeRepository;
 import art.yesulin.actor.domain.page.ActorPage;
 import art.yesulin.actor.domain.page.ActorPageHandle;
@@ -68,6 +70,10 @@ class ActorRequestConcurrencyTest {
     private ActorPageLikeService likeService;
     @Autowired
     private ActorPageLikeRepository likes;
+    @Autowired
+    private ActorPageCheerService cheerService;
+    @Autowired
+    private ActorPageCheerRepository cheers;
     @Autowired
     private ProfileImportService imports;
     @Autowired
@@ -129,6 +135,18 @@ class ActorRequestConcurrencyTest {
                 () -> likeService.like(fan, actor.getPublicId()), null);
 
         assertEquals(1, likes.countByActorPageId(actor.getId()));
+    }
+
+    @Test
+    void concurrentEditThenDeleteLeavesCheerDeleted() throws Exception {
+        MemberPrincipal fan = fan();
+        ActorPage actor = pages.saveAndFlush(publicPage(fan.memberId() * 1_000));
+        long cheerId = cheerService.write(fan, actor.getPublicId(), "응원").id();
+
+        assertSerialized(() -> cheerService.edit(fan, actor.getPublicId(), cheerId, "고친 응원"),
+                () -> cheerService.delete(fan, actor.getPublicId(), cheerId), null);
+
+        assertTrue(cheers.findById(cheerId).orElseThrow().isDeleted());
     }
 
     @Test

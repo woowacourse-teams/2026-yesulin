@@ -1095,6 +1095,33 @@ ActorPageLikesResult: count, me{loggedIn, owner, canLike, liked}
 - 배우 목록에 보이는 페이지만 받는다. 없는 ID·비공개·잠금·자동 비공개 페이지는 조회·누르기·취소 모두 `404 ACTOR_PAGE_NOT_FOUND`다.
 - 내 배우 페이지에 누르면 `403 ACTOR_PAGE_SELF_LIKE`다. 로그인하지 않았으면 `401`, 활성 일반 회원이 아니면(공연사·운영자 등) `403`이다.
 
+## 배우 페이지 응원 글 — 4개
+
+응원 글도 아이디가 아니라 배우 페이지의 `publicId`를 쓴다. 조회는 누구나, 쓰기·수정·삭제는 활성 일반 회원(`APPLICANT + ACTIVE`)
+세션이 필요하고 쓰기는 기존 CSRF 규칙을 따른다. 응답은 모두 `Cache-Control: no-store`다.
+
+| Method | URL | 인증 | Request | Response |
+| --- | --- | --- | --- | --- |
+| GET | `/api/v1/public/actor-pages/{publicId}/cheers?before=&size=10` | 공개(로그인하면 내 글 표시 포함) | query | `200 ActorPageCheersResult` |
+| POST | `/api/v1/actor-pages/{publicId}/cheers` | 활성 회원 | `{body}` | `201 ActorPageCheerResult` |
+| PATCH | `/api/v1/actor-pages/{publicId}/cheers/{cheerId}` | 활성 회원 | `{body}` | `200 ActorPageCheerResult` |
+| DELETE | `/api/v1/actor-pages/{publicId}/cheers/{cheerId}` | 활성 회원 | 없음 | `204` |
+
+```text
+ActorPageCheersResult: totalCount, cheers[ActorPageCheerResult], nextBefore(null 가능), me{loggedIn, owner, canWrite}
+ActorPageCheerResult: id, fanNumber, body, mine, createdAt, edited
+```
+
+- 목록은 지우지 않은 응원 글을 최신순으로 담는다. X  다음 요청의 `before`로 쓴다. totalCount는 지우지 않은 글 수다.
+- fanNumber는 그 배우 페이지에서 처음 응원한 순서(삭제한 글 포함)로 매긴 팬 번호이며 같은 회원은 같은 번호를 쓴다. 작성 회원은
+  응답에 담지 않고, mine은 내가 쓴 글인지만 알린다. edited는 쓴 뒤에 고쳤는지다.
+- me는 지금 보는 나의 상태다. owner는 이 페이지의 주인, canWrite는 활성 일반 회원이고 주인이 아니라 쓸 수 있는 경우이며 로그인하지
+  않았으면 모두 false다.
+- body는 앞뒤 공백을 제거하고 줄바꿈을 `\n`으로 맞춘다. 비었거나 500자를 넘으면 `400`이다.
+- 배우 목록에 보이는 페이지만 받는다. 없는 ID·비공개·잠금·자동 비공개 페이지는 조회·쓰기·수정·삭제 모두 `404 ACTOR_PAGE_NOT_FOUND`다.
+- 내 배우 페이지에 쓰면 `403 ACTOR_PAGE_SELF_CHEER`, 남의 글을 고치거나 지우면 `403 ACTOR_CHEER_NOT_AUTHOR`, 없거나 이미 지운 글은
+  `404 ACTOR_CHEER_NOT_FOUND`다. 로그인하지 않았으면 `401`, 활성 일반 회원이 아니면 `403`이다.
+
 ## PDF 지원자 재분석 요청
 
 공연사 심사의 재분석은 `POST /api/v1/pdf-extractions/{jobId}/ai-retry`를 사용한다.

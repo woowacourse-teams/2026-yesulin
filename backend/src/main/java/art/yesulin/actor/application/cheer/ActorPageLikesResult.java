@@ -16,9 +16,5 @@ public record ActorPageLikesResult(long count, Me me) {
      * @param liked 이미 눌렀다.
      */
     public record Me(boolean loggedIn, boolean owner, boolean canLike, boolean liked) {
-
-        public static Me anonymous() {
-            return new Me(false, false, false, false);
-        }
     }
 }
