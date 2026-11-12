@@ -961,11 +961,13 @@ availability는 정규화된 handle과 available, reason(null/INVALID_FORMAT/RES
 
 | Method | URL | 인증 | Request | Response |
 | --- | --- | --- | --- | --- |
-| GET | `/api/v1/public/actor-pages?page=0&size=12&sort=recent` | 공개 | query | `200 PublicActorPagePageResult(actorPages, page, size, totalPages, totalElements)` |
+| GET | `/api/v1/public/actor-pages?page=0&size=12&sort=recent&q=` | 공개 | query | `200 PublicActorPagePageResult(actorPages, page, size, totalPages, totalElements)` |
 | GET | `/api/v1/public/actor-pages/by-handle/{handle}` | 공개 | 없음 | `200 PublicActorPageResult` |
 
 목록은 공개 중이고 잠기지 않은 페이지만 담는다. page는 0 이상, size는 1~48이고 sort는 `recent`만 받는다(그 밖은 `400`).
-`recent`는 `lastPublicActivityAt` 내림차순, 같으면 페이지 ID 내림차순이다. 카드(`PublicActorPageSummaryResult`)는 다음 필드다.
+`recent`는 `lastPublicActivityAt` 내림차순, 같으면 페이지 ID 내림차순이다. `q`는 선택이며 이름이나 아이디의 일부와 대소문자
+구분 없이 맞는 공개 페이지만 담는다. 앞뒤 공백과 앞의 `@`를 떼고, 비면 검색어가 없는 것으로 본다. 30자를 넘으면 `400`이다.
+검색어의 `%`·`_`는 문자 그대로 비교한다. 카드(`PublicActorPageSummaryResult`)는 다음 필드다.
 
 ```text
 publicId, handle, name, gender(FEMALE/MALE), birthYear, age, height(null 가능), weight(null 가능),

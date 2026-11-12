@@ -236,7 +236,13 @@ export const actorPageHandlers = [
     if (!Number.isInteger(page) || page < 0 || !Number.isInteger(size) || size < 1 || size > 48 || (params.get("sort") ?? "recent") !== "recent") {
       return HttpResponse.json({ code: "INVALID_REQUEST", message: "목록 조회 조건이 올바르지 않습니다." }, { status: 400 });
     }
-    const pages = listed();
+    const keyword = (params.get("q") ?? "").trim().replace(/^@/, "").trim().toLowerCase();
+    if (keyword.length > 30) {
+      return HttpResponse.json({ code: "INVALID_REQUEST", message: "검색어는 30자 이하여야 합니다." }, { status: 400 });
+    }
+    const pages = listed().filter((candidate) => !keyword
+      || candidate.handle?.includes(keyword)
+      || candidate.name?.toLowerCase().includes(keyword));
     return HttpResponse.json({
       actorPages: pages.slice(page * size, (page + 1) * size).map(toSummary),
       page,

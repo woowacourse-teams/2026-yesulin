@@ -66,7 +66,7 @@ class PublicActorPageServiceTest {
     private static final Instant NOW = Instant.parse("2026-10-27T00:00:00Z");
     private static final LocalDate BIRTH = LocalDate.of(2000, 10, 28);
     private static final byte[] JPEG = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) 0xE0, 0, 0x10};
-    private static final ActorPageSearchCondition RECENT = new ActorPageSearchCondition(ActorPageSort.RECENT);
+    private static final ActorPageSearchCondition RECENT = new ActorPageSearchCondition(ActorPageSort.RECENT, null);
 
     @Autowired
     private MemberRepository members;
@@ -222,6 +222,57 @@ class PublicActorPageServiceTest {
     }
 
     @Test
+    void searchFindsPublicPagesByNameOrHandleIgnoringCase() {
+        long dajeong = namedActor("김다정");
+        publish(dajeong, "dajeong_y");
+        long minjun = namedActor("박민준");
+        publish(minjun, "minjun.park");
+        long hidden = namedActor("김다정 비공개");
+        publish(hidden, "hidden.dajeong");
+        pages.unpublish(hidden);
+        long locked = namedActor("김다정 잠금");
+        publish(locked, "locked.dajeong");
+        ActorPageContentState state = contentSync.lock(locked);
+        state.page().lock("확인이 필요합니다.", 1L, NOW);
+        contentSync.synchronize(state);
+
+        assertEquals(List.of("dajeong_y"), handles(search("다정")));
+        assertEquals(List.of("minjun.park"), handles(search("MINJUN")));
+        assertEquals(List.of("dajeong_y"), handles(search("@dajeong_y")));
+        assertEquals(List.of("minjun.park", "dajeong_y"), handles(search("j")));
+        assertEquals(2, handles(search("  ")).size());
+        assertTrue(handles(search("없는배우")).isEmpty());
+    }
+
+    @Test
+    void searchTreatsWildcardCharactersAsPlainText() {
+        publish(namedActor("가나"), "ab_cd");
+        publish(namedActor("다라"), "abxcd");
+        publish(namedActor("100% 배우"), "percent");
+
+        assertEquals(List.of("ab_cd"), handles(search("b_c")));
+        assertTrue(handles(search("%")).contains("percent"));
+        assertEquals(1, handles(search("%")).size());
+    }
+
+    @Test
+    void searchPagesKeepRecentOrderAndRejectTooLongKeyword() {
+        publish(namedActor("김하나"), "first");
+        at(NOW.plusSeconds(60));
+        publish(namedActor("김두리"), "second");
+
+        PublicActorPagePageResult result = publicPages.findPage(
+                new ActorPageSearchCondition(ActorPageSort.RECENT, "김"), 0, 1
+        );
+
+        assertEquals(2, result.totalElements());
+        assertEquals("second", result.actorPages().getFirst().handle());
+        assertThrows(IllegalArgumentException.class, () -> new ActorPageSearchCondition(
+                ActorPageSort.RECENT, "가".repeat(ActorPageSearchCondition.MAX_KEYWORD_LENGTH + 1)
+        ));
+    }
+
+    @Test
     void previewShowsWhatWouldBePublicWhilePrivate() {
         final long owner = actor();
         addPhoto(owner);
@@ -275,6 +326,21 @@ class PublicActorPageServiceTest {
         long owner = members.saveAndFlush(Member.ofApplicant()).getId();
         profiles.update(owner, basic("배우"));
         return owner;
+    }
+
+    private long namedActor(String name) {
+        long owner = members.saveAndFlush(Member.ofApplicant()).getId();
+        profiles.update(owner, basic(name));
+        publicPhotoWithCopy(owner);
+        return owner;
+    }
+
+    private List<String> handles(PublicActorPagePageResult result) {
+        return result.actorPages().stream().map(PublicActorPageSummaryResult::handle).toList();
+    }
+
+    private PublicActorPagePageResult search(String keyword) {
+        return publicPages.findPage(new ActorPageSearchCondition(ActorPageSort.RECENT, keyword), 0, 12);
     }
 
     private void publish(long owner, String handle) {
