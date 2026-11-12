@@ -72,14 +72,23 @@ export function isActorHandleAddress(value: string): boolean {
   return HANDLE.test(value.toLowerCase());
 }
 
+export const ACTOR_SEARCH_MAX_LENGTH = 30;
+
 export const actorPageApiPaths = {
-  list: (page: number, size = ACTOR_LIST_PAGE_SIZE) => `/v1/public/actor-pages?page=${page}&size=${size}&sort=recent`,
+  list: (page: number, size = ACTOR_LIST_PAGE_SIZE, keyword = "") =>
+    `/v1/public/actor-pages?page=${page}&size=${size}&sort=recent${keyword ? `&q=${encodeURIComponent(keyword)}` : ""}`,
   detail: (handle: string) => `/v1/public/actor-pages/by-handle/${encodeURIComponent(handle)}`,
 } as const;
 
 export const actorPageRoutes = {
-  /** 목록 주소의 page는 1부터 센다. 첫 페이지는 쿼리를 붙이지 않는다. */
-  list: (page = 0) => page > 0 ? `/actors?page=${page + 1}` : "/actors",
+  /** 목록 주소의 page는 1부터 센다. 첫 페이지와 빈 검색어는 쿼리를 붙이지 않는다. */
+  list: (page = 0, keyword = "") => {
+    const query = new URLSearchParams();
+    if (keyword) query.set("q", keyword);
+    if (page > 0) query.set("page", String(page + 1));
+    const text = query.toString();
+    return text ? `/actors?${text}` : "/actors";
+  },
   detail: (handle: string) => `/actors/@${handle}`,
 } as const;
 
@@ -87,6 +96,20 @@ export const actorPageRoutes = {
 export function parseActorListPage(value: string | readonly string[] | undefined): number {
   const page = Number(Array.isArray(value) ? value[0] : value);
   return Number.isInteger(page) && page >= 1 && page <= 10_000 ? page - 1 : 0;
+}
+
+/** 목록 주소의 `?q=`. 앞뒤 공백과 아이디 앞의 @를 떼고 서버 한도까지만 쓴다. */
+export function parseActorListKeyword(value: string | readonly string[] | undefined): string {
+  const raw = Array.isArray(value) ? value[0] : value;
+  const cut = (raw ?? "").trim().replace(/^@/, "").trim().slice(0, ACTOR_SEARCH_MAX_LENGTH);
+  return /[\uD800-\uDBFF]$/.test(cut) ? cut.slice(0, -1) : cut;
+}
+
+/** 빈 목록에서 되돌아갈 곳. 뒤 페이지는 같은 검색의 첫 페이지로, 첫 페이지의 검색 결과는 전체 목록으로 보낸다. */
+export function emptyListRecovery(page: number, keyword: string): { readonly href: string; readonly label: string } | null {
+  if (page > 0) return { href: actorPageRoutes.list(0, keyword), label: "첫 페이지로" };
+  if (keyword) return { href: actorPageRoutes.list(), label: "전체 배우 보기" };
+  return null;
 }
 
 /** 아이디 입력값을 서버와 같은 규칙(앞뒤 공백 제거·소문자)으로 바꾼다. */

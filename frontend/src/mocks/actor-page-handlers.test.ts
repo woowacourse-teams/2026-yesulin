@@ -27,6 +27,27 @@ afterAll(() => {
 const bookmarkIds = async () => (await (await fetch(`${base}/actor-bookmark-ids`)).json() as { publicIds: string[] }).publicIds;
 const bookmarkList = async () => await (await fetch(`${base}/actor-bookmarks?page=0&size=12`)).json() as ActorBookmarkList;
 
+describe("배우 목록 검색 목", () => {
+  const search = async (query: string) => (await fetch(`http://localhost/api/v1/public/actor-pages?page=0&size=12&sort=recent${query}`));
+
+  it("이름이나 아이디 일부로 공개 배우만 찾는다", async () => {
+    const byName = await (await search("&q=%EA%B9%80%ED%95%98%EB%A6%B0")).json() as PublicActorPageList;
+    const byHandle = await (await search("&q=%40MIN.ZZUN")).json() as PublicActorPageList;
+
+    expect(byName.actorPages.map((actor) => actor.handle)).toContain("min.zzun_");
+    expect(byHandle.actorPages.map((actor) => actor.handle)).toEqual(["min.zzun_"]);
+    expect(byHandle.totalElements).toBe(1);
+  });
+
+  it("맞는 배우가 없으면 빈 목록을 주고 너무 긴 검색어는 거절한다", async () => {
+    const none = await (await search("&q=nobody-here")).json() as PublicActorPageList;
+
+    expect(none.actorPages).toEqual([]);
+    expect(none.totalPages).toBe(0);
+    expect((await search(`&q=${"a".repeat(31)}`)).status).toBe(400);
+  });
+});
+
 describe("관심 배우 목", () => {
   it("비공개가 된 배우의 저장은 목록에서 숨기고 한도에는 센다", async () => {
     const list = await bookmarkList();

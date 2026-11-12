@@ -26,9 +26,10 @@ public class PublicActorPageController {
     public ResponseEntity<PublicActorPagePageResult> findAll(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "12") int size,
-            @RequestParam(defaultValue = "recent") String sort
+            @RequestParam(defaultValue = "recent") String sort,
+            @RequestParam(required = false) String q
     ) {
-        ActorPageSearchCondition condition = new ActorPageSearchCondition(ActorPageSort.from(sort));
+        ActorPageSearchCondition condition = new ActorPageSearchCondition(ActorPageSort.from(sort), q);
         return ResponseEntity.ok()
                 .cacheControl(CacheControl.noStore())
                 .body(publicActorPageService.findPage(condition, page, size));

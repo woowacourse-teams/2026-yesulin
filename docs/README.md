@@ -28,7 +28,7 @@
 | 파일 저장 | [backend/docs/storage.md](../backend/docs/storage.md) |
 | 미사용 파일 관리자 조회·삭제 체크리스트 | [file-lifecycle-requirements.md](./file-lifecycle-requirements.md) |
 | WebKit 업로드 신뢰성·진단 | [upload-reliability.md](./upload-reliability.md) |
-| Git·Issue·PR | [git-workflow.md](./git-workflow.md) |
+| Git·PR | [git-workflow.md](./git-workflow.md) |
 | 테스트 기준·수준·의존 처리 | [test-criteria.md](./test-criteria.md) |
 
 ## 기본 읽기에서 제외
