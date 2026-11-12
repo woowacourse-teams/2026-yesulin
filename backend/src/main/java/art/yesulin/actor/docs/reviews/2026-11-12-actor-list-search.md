@@ -21,7 +21,7 @@
 
 - 2026-11-12 독립 평가 1회 완료. 같은 종류의 별도 읽기 전용 에이전트로 수행했다.
 - 평가 직후 필수 PASS 7 / FAIL 2(S06, S09) / UNVERIFIED 0. 수정 후 표적 검증으로 두 항목이 PASS가 되어 최종 PASS 9 / FAIL 0 / UNVERIFIED 0 / N/A 0.
-- 신규 확정 발견 3 / 해결 2 / 미해결 1. P0 0 / P1 0 / P2 1 / P3 2. 오탐 0. 발견 경로는 INDEPENDENT_REVIEW 3.
+- 신규 확정 발견 5 / 해결 4 / 미해결 1. P0 0 / P1 0 / P2 1 / P3 4. 오탐 0. 발견 경로는 INDEPENDENT_REVIEW 3, EXTERNAL 2(PR 자동 리뷰 지적 F04·F05, 같은 PR에서 해결).
 - `./gradlew test --tests 'art.yesulin.actor.*'` PASS(`PublicActorPageServiceTest` 11건, 검색 3건 포함), `npm run checkstyle` PASS.
 - 프론트 `vitest src/features/actor-pages src/mocks/actor-page-handlers.test.ts` 67건 PASS, 변경 파일 eslint PASS, `npm run build` PASS. `tsc --noEmit`의 `original-screening.test.tsx` 오류 1건은 이번 변경과 무관한 기존 문제다.
 - 브라우저 MSW: `/actors?q=김하` 1명, 검색어가 주소에 남음, `/actors?q=zzzz` 빈 결과를 데스크톱·375px에서 확인했다. 빌드 결과 응답에서 검색 결과 화면은 `noindex, follow`, 일반 목록은 canonical을 유지했다.
@@ -36,6 +36,8 @@
 | 2026-11-12-actor-list-search-F01 | P2·FLOW·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-12T17:02:00+09:00 / #580 | 2026-11-12T17:03:00+09:00 | 첫 페이지의 빈 검색 결과 "전체 배우 보기"가 같은 검색 주소로 되돌아갔다. | 경로 계산을 `emptyListRecovery`로 분리해 전체 목록으로 보냈다. FIXED, 단위 테스트 3건 추가 후 PASS. |
 | 2026-11-12-actor-list-search-F02 | P3·UNUSED·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-12T17:02:00+09:00 / #580 | 2026-11-12T17:03:00+09:00 | `ActorPageSearchCondition`의 1인자 보조 생성자를 테스트 한 곳만 썼고 불필요한 주석이 있었다. | 보조 생성자와 주석을 지우고 테스트를 2인자로 바꿨다. FIXED, actor 테스트·Checkstyle PASS. |
 | 2026-11-12-actor-list-search-F03 | P3·TEST·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-12T17:02:00+09:00 / #580 | - | 잠금 도메인이 상태를 비공개로 바꾸므로 잠금 테스트는 `lockedAt is null` 조건만 따로 검증하지 못한다. 공개이면서 잠긴 상태는 현재 경로로 만들 수 없다. | OPEN, 방어 조건으로 쿼리에 남기고 기능 위험은 없어 수용한다. |
+| 2026-11-12-actor-list-search-F04 | P3·CODE·INTRODUCED | EXTERNAL | 2026-11-12T17:12:00+09:00 / #580 | 2026-11-12T17:17:00+09:00 | 검색어를 30자로 자를 때 끝의 이모지가 반으로 갈라지면 `encodeURIComponent`가 예외를 던진다. | `parseActorListKeyword`가 끝에 남은 앞쪽 대리 문자를 버린다. FIXED, 이모지 경계 단위 테스트 PASS. |
+| 2026-11-12-actor-list-search-F05 | P3·POLICY·INTRODUCED | EXTERNAL | 2026-11-12T17:12:00+09:00 / #580 | 2026-11-12T17:17:00+09:00 | 목록 서비스가 삼항 연산자로 조회를 고르며 else·삼항 금지 규칙을 어겼다. | 조기 반환하는 `findListed`로 분리했다. FIXED, `PublicActorPageServiceTest` 11건 PASS. |
 
 ## 상태 사건 이력(추가 전용)
 
@@ -46,6 +48,10 @@
 | E03 | 2026-11-12-actor-list-search-F03 | CONFIRMED | 2026-11-12T17:02:00+09:00 | 독립 평가, PR #580 |
 | E04 | 2026-11-12-actor-list-search-F01 | FIXED | 2026-11-12T17:03:00+09:00 | `emptyListRecovery` 분리, vitest 67건 PASS |
 | E05 | 2026-11-12-actor-list-search-F02 | FIXED | 2026-11-12T17:03:00+09:00 | 보조 생성자 삭제, actor 테스트 PASS |
+| E06 | 2026-11-12-actor-list-search-F04 | CONFIRMED | 2026-11-12T17:12:00+09:00 | PR 자동 리뷰 지적, PR #580 |
+| E07 | 2026-11-12-actor-list-search-F05 | CONFIRMED | 2026-11-12T17:12:00+09:00 | PR 자동 리뷰 지적, PR #580 |
+| E08 | 2026-11-12-actor-list-search-F04 | FIXED | 2026-11-12T17:17:00+09:00 | 대리 문자 경계 처리, vitest 60건 PASS |
+| E09 | 2026-11-12-actor-list-search-F05 | FIXED | 2026-11-12T17:17:00+09:00 | `findListed` 분리, 서비스 테스트 PASS |
 
 ## 최초 PR 게시 연결
 

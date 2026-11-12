@@ -101,7 +101,8 @@ export function parseActorListPage(value: string | readonly string[] | undefined
 /** 목록 주소의 `?q=`. 앞뒤 공백과 아이디 앞의 @를 떼고 서버 한도까지만 쓴다. */
 export function parseActorListKeyword(value: string | readonly string[] | undefined): string {
   const raw = Array.isArray(value) ? value[0] : value;
-  return (raw ?? "").trim().replace(/^@/, "").trim().slice(0, ACTOR_SEARCH_MAX_LENGTH);
+  const cut = (raw ?? "").trim().replace(/^@/, "").trim().slice(0, ACTOR_SEARCH_MAX_LENGTH);
+  return /[\uD800-\uDBFF]$/.test(cut) ? cut.slice(0, -1) : cut;
 }
 
 /** 빈 목록에서 되돌아갈 곳. 뒤 페이지는 같은 검색의 첫 페이지로, 첫 페이지의 검색 결과는 전체 목록으로 보낸다. */

@@ -72,6 +72,14 @@ describe("actor list keyword", () => {
   it("cuts the keyword at the server limit", () => {
     expect(parseActorListKeyword("가".repeat(40))).toHaveLength(ACTOR_SEARCH_MAX_LENGTH);
   });
+
+  it("does not leave half of an emoji when the cut lands inside it", () => {
+    const keyword = parseActorListKeyword(`${"a".repeat(ACTOR_SEARCH_MAX_LENGTH - 1)}😀`);
+
+    expect(keyword).toBe("a".repeat(ACTOR_SEARCH_MAX_LENGTH - 1));
+    expect(() => encodeURIComponent(keyword)).not.toThrow();
+    expect(parseActorListKeyword(`${"a".repeat(ACTOR_SEARCH_MAX_LENGTH - 2)}😀`)).toHaveLength(ACTOR_SEARCH_MAX_LENGTH);
+  });
 });
 
 describe("actor profile lines", () => {

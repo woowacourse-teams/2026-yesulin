@@ -100,13 +100,17 @@ public class PublicActorPageService {
         if (page < 0 || size < 1 || size > MAX_PAGE_SIZE) {
             throw new IllegalArgumentException("page는 0 이상, size는 1~%d여야 합니다.".formatted(MAX_PAGE_SIZE));
         }
-        PageRequest request = PageRequest.of(page, size, condition.sort().sort());
-        Page<ActorPage> found = condition.hasKeyword()
-                ? pageRepository.searchPublic(ActorPageStatus.PUBLIC, condition.likePattern(), request)
-                : pageRepository.findAllByStatusAndLockedAtIsNull(ActorPageStatus.PUBLIC, request);
+        Page<ActorPage> found = findListed(condition, PageRequest.of(page, size, condition.sort().sort()));
         return new PublicActorPagePageResult(
                 summaries.of(found.getContent()), page, size, found.getTotalPages(), found.getTotalElements()
         );
+    }
+
+    private Page<ActorPage> findListed(ActorPageSearchCondition condition, PageRequest request) {
+        if (condition.hasKeyword()) {
+            return pageRepository.searchPublic(ActorPageStatus.PUBLIC, condition.likePattern(), request);
+        }
+        return pageRepository.findAllByStatusAndLockedAtIsNull(ActorPageStatus.PUBLIC, request);
     }
 
     private List<String> photoUrls(PhotoLibrary photos, ActorPagePublicContent content) {
