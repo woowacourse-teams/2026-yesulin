@@ -13,9 +13,9 @@ vi.mock("@/features/actor-pages/like-api", () => ({
 }));
 vi.mock("@/components/auditions/toast", () => ({ useToast: () => api.toast }));
 
-const likes = (count: number, viewer: Partial<ActorPageLikes["viewer"]> = {}): ActorPageLikes => ({
+const likes = (count: number, me: Partial<ActorPageLikes["me"]> = {}): ActorPageLikes => ({
   count,
-  viewer: { loggedIn: false, owner: false, canLike: false, liked: false, ...viewer },
+  me: { loggedIn: false, owner: false, canLike: false, liked: false, ...me },
 });
 
 let root: Root;

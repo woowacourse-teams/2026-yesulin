@@ -20,7 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 로그인한 배우 계정이 다른 배우의 페이지에 누르는 좋아요. 배우 목록에 보이는 페이지만 받고, 그 밖은 공개 조회처럼 존재
+ * 활성 일반 회원이 다른 배우의 페이지에 누르는 좋아요. 배우 목록에 보이는 페이지만 받고, 그 밖은 공개 조회처럼 존재
  * 여부를 알 수 없는 404다. 누른 사람은 누구에게도 보이지 않고 수만 보인다.
  *
  * <p>좋아요를 누르는 회원 행을 먼저 잠가 같은 회원의 요청을 순서대로 처리하므로, 같은 좋아요를 동시에 보내도 하나만 남는다.
@@ -63,12 +63,12 @@ public class ActorPageLikeService {
     private ActorPageLikesResult result(ActorPage page, MemberPrincipal viewer) {
         long count = likeRepository.countByActorPageId(page.getId());
         if (viewer == null) {
-            return new ActorPageLikesResult(count, ActorPageLikesResult.Viewer.anonymous());
+            return new ActorPageLikesResult(count, ActorPageLikesResult.Me.anonymous());
         }
         boolean owner = page.getOwnerMemberId() == viewer.memberId();
         boolean canLike = viewer.role() == MemberType.APPLICANT && viewer.status() == MemberStatus.ACTIVE && !owner;
         boolean liked = canLike && likeRepository.existsByActorPageIdAndMemberId(page.getId(), viewer.memberId());
-        return new ActorPageLikesResult(count, new ActorPageLikesResult.Viewer(true, owner, canLike, liked));
+        return new ActorPageLikesResult(count, new ActorPageLikesResult.Me(true, owner, canLike, liked));
     }
 
     private ActorPage findListed(UUID publicId) {

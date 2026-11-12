@@ -4,7 +4,7 @@ import { mockCurrentSession } from "./auth-handlers";
 
 /**
  * 배우 페이지 좋아요 목. 고정 배우에는 시드 수를 두고, 목 세션이 누른 페이지만 기억한다. 서버처럼 로그인하지 않았으면 401,
- * 배우 계정이 아니면 403, 내 페이지에는 403으로 답하고 목록에 없는 페이지는 404다.
+ * 공연사·운영자 계정이면 403, 내 페이지에는 403으로 답하고 목록에 없는 페이지는 404다.
  */
 const likedByMock = new Set<string>();
 
@@ -20,7 +20,7 @@ function likesOf(publicId: string, isOwner: boolean): ActorPageLikes {
   const canLike = applicant && !isOwner;
   return {
     count: seedCount(publicId) + (likedByMock.has(publicId) ? 1 : 0),
-    viewer: { loggedIn: session !== null, owner: applicant && isOwner, canLike, liked: canLike && likedByMock.has(publicId) },
+    me: { loggedIn: session !== null, owner: applicant && isOwner, canLike, liked: canLike && likedByMock.has(publicId) },
   };
 }
 
@@ -37,7 +37,7 @@ export function actorPageLikeHandlers(
     const session = mockCurrentSession();
     if (!session) return HttpResponse.json({ code: "AUTH_UNAUTHENTICATED", message: "로그인이 필요합니다." }, { status: 401 });
     if (session.role !== "APPLICANT" || session.status !== "ACTIVE") {
-      return HttpResponse.json({ code: "AUTH_FORBIDDEN", message: "배우 계정으로 참여해 주세요." }, { status: 403 });
+      return HttpResponse.json({ code: "AUTH_FORBIDDEN", message: "일반 회원 계정으로 참여해 주세요." }, { status: 403 });
     }
     if (!findListed(publicId)) return notFound();
     const isOwner = ownerPublicId() === publicId;
@@ -56,7 +56,7 @@ export function actorPageLikeHandlers(
       if (!findListed(publicId)) return notFound();
       return HttpResponse.json(likesOf(publicId, ownerPublicId() === publicId));
     }),
-    http.put("/api/v1/actor-pages/:publicId/likes", write(true)),
-    http.delete("/api/v1/actor-pages/:publicId/likes", write(false)),
+    http.put("/api/v1/actor-pages/:publicId/likes/me", write(true)),
+    http.delete("/api/v1/actor-pages/:publicId/likes/me", write(false)),
   ];
 }

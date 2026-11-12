@@ -33,7 +33,7 @@ export function ActorPageLikeButton({ publicId, handle, name }: {
 
   const toggle = useCallback(async () => {
     if (!likes || pending) return;
-    const wasLiked = likes.viewer.liked;
+    const wasLiked = likes.me.liked;
     setPending(true);
     try {
       setLikes(await (wasLiked ? unlikeActorPage(publicId) : likeActorPage(publicId)));
@@ -46,24 +46,24 @@ export function ActorPageLikeButton({ publicId, handle, name }: {
   }, [likes, pending, publicId, toast]);
 
   if (!likes) return null;
-  const { viewer } = likes;
+  const { me } = likes;
   const count = <span className="num">{likes.count.toLocaleString("ko-KR")}</span>;
 
-  if (viewer.canLike) {
+  if (me.canLike) {
     return (
       <button
         type="button"
-        aria-pressed={viewer.liked}
+        aria-pressed={me.liked}
         aria-label={`${name} 배우 좋아요 ${likes.count.toLocaleString("ko-KR")}`}
         disabled={pending}
         onClick={() => void toggle()}
-        className={`${BASE} disabled:opacity-60 ${viewer.liked ? "border-brand bg-brand text-white hover:bg-brand-strong" : IDLE}`}
+        className={`${BASE} disabled:opacity-60 ${me.liked ? "border-brand bg-brand text-white hover:bg-brand-strong" : IDLE}`}
       >
-        <span aria-hidden="true">{viewer.liked ? "♥" : "♡"}</span>좋아요 {count}
+        <span aria-hidden="true">{me.liked ? "♥" : "♡"}</span>좋아요 {count}
       </button>
     );
   }
-  if (!viewer.loggedIn) {
+  if (!me.loggedIn) {
     return (
       <Link
         href={`/login?returnTo=${encodeURIComponent(actorPageRoutes.detail(handle))}`}
@@ -76,7 +76,7 @@ export function ActorPageLikeButton({ publicId, handle, name }: {
   }
   return (
     <p className={`${BASE} border-border-soft bg-surface text-muted-strong`}>
-      <span aria-hidden="true">♡</span>{viewer.owner ? "받은 좋아요" : "좋아요"} {count}
+      <span aria-hidden="true">♡</span>{me.owner ? "받은 좋아요" : "좋아요"} {count}
     </p>
   );
 }

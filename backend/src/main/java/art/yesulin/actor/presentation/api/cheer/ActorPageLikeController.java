@@ -17,9 +17,9 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** 로그인한 배우 계정이 다른 배우의 페이지에 좋아요를 누르고 취소한다. */
+/** 활성 일반 회원이 다른 배우의 페이지에 좋아요를 누르고 취소한다. */
 @RestController
-@RequestMapping("/api/v1/actor-pages/{publicId}/likes")
+@RequestMapping("/api/v1/actor-pages/{publicId}/likes/me")
 @RequiredArgsConstructor
 @LoginRequired
 public class ActorPageLikeController {

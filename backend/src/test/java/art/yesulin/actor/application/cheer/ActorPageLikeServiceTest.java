@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-import art.yesulin.actor.application.cheer.ActorPageLikesResult.Viewer;
+import art.yesulin.actor.application.cheer.ActorPageLikesResult.Me;
 import art.yesulin.actor.application.page.ActorPageContentState;
 import art.yesulin.actor.application.page.ActorPageContentSync;
 import art.yesulin.actor.application.page.ActorPageService;
@@ -99,11 +99,11 @@ class ActorPageLikeServiceTest {
         ActorPageLikesResult liked = likes.like(fan, page);
 
         assertEquals(1, liked.count());
-        assertTrue(liked.viewer().liked());
+        assertTrue(liked.me().liked());
         likes.unlike(fan, page);
         ActorPageLikesResult unliked = likes.unlike(fan, page);
         assertEquals(0, unliked.count());
-        assertFalse(unliked.viewer().liked());
+        assertFalse(unliked.me().liked());
     }
 
     @Test
@@ -115,10 +115,10 @@ class ActorPageLikeServiceTest {
         likes.like(second, page);
 
         assertEquals(2, likes.findLikes(page, null).count());
-        assertTrue(likes.findLikes(page, first).viewer().liked());
+        assertTrue(likes.findLikes(page, first).me().liked());
         likes.unlike(first, page);
-        assertFalse(likes.findLikes(page, first).viewer().liked());
-        assertTrue(likes.findLikes(page, second).viewer().liked());
+        assertFalse(likes.findLikes(page, first).me().liked());
+        assertTrue(likes.findLikes(page, second).me().liked());
         assertEquals(1, likes.findLikes(page, null).count());
     }
 
@@ -130,22 +130,22 @@ class ActorPageLikeServiceTest {
         BusinessException exception = assertThrows(BusinessException.class, () -> likes.like(owner, page.publicId()));
 
         assertEquals(ActorCheerErrorCode.ACTOR_PAGE_SELF_LIKE, exception.getErrorCode());
-        assertEquals(new Viewer(true, true, false, false), likes.findLikes(page.publicId(), owner).viewer());
+        assertEquals(new Me(true, true, false, false), likes.findLikes(page.publicId(), owner).me());
         assertEquals(0, likes.findLikes(page.publicId(), owner).count());
     }
 
     @Test
-    void viewerStateDependsOnLoginAndAccount() {
+    void meStateDependsOnLoginAndAccount() {
         UUID page = publicPage("target").publicId();
         MemberPrincipal producer = principal(newMember(MemberType.PRODUCER), MemberType.PRODUCER, MemberStatus.ACTIVE);
         MemberPrincipal pending = principal(
                 newMember(MemberType.APPLICANT), MemberType.APPLICANT, MemberStatus.PENDING
         );
 
-        assertEquals(new Viewer(false, false, false, false), likes.findLikes(page, null).viewer());
-        assertEquals(new Viewer(true, false, false, false), likes.findLikes(page, producer).viewer());
-        assertEquals(new Viewer(true, false, false, false), likes.findLikes(page, pending).viewer());
-        assertEquals(new Viewer(true, false, true, false), likes.findLikes(page, fan()).viewer());
+        assertEquals(new Me(false, false, false, false), likes.findLikes(page, null).me());
+        assertEquals(new Me(true, false, false, false), likes.findLikes(page, producer).me());
+        assertEquals(new Me(true, false, false, false), likes.findLikes(page, pending).me());
+        assertEquals(new Me(true, false, true, false), likes.findLikes(page, fan()).me());
     }
 
     @Test
