@@ -1,6 +1,6 @@
 # 배우 페이지 좋아요
 
-- 작업 ID `2026-11-12-actor-page-like` / 평가표 v1 / PR PENDING
+- 작업 ID `2026-11-12-actor-page-like` / 평가표 v1 / PR #581
 - 로그인한 활성 배우 계정이 다른 배우의 공개 페이지에 좋아요를 누르고 취소한다. 한 계정이 한 페이지에 한 번, 내 페이지에는 불가이며 수만 공개한다. `actor`의 `cheer` 하위 패키지로 묶는다.
 
 | ID | 경계·실패 조건 | 기대 결과 | 검증 | 필수 | 결과 |
@@ -32,20 +32,24 @@
 
 | 문제 ID | 심각도·유형·유입 | 발견 경로 | 최초 확정(+09:00) / 최초 기록 PR | 해결 시각(+09:00) | 문제·근거 | 조치·상태·수정 후 검증 |
 | --- | --- | --- | --- | --- | --- | --- |
-| 2026-11-12-actor-page-like-F01 | P2·TEST·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-12T17:20:00+09:00 / PENDING | 2026-11-12T17:23:00+09:00 | 문서가 동시 요청에도 하나만 남는다고 쓰는데 이를 검증하는 동시성 테스트가 없었다. | 같은 좋아요 반복과 좋아요 뒤 취소를 잠금 상태에서 겹치는 테스트 2건을 추가했다. FIXED, PASS. |
-| 2026-11-12-actor-page-like-F02 | P3·POLICY·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-12T17:20:00+09:00 / PENDING | 2026-11-12T17:23:00+09:00 | 정책 문서가 아직 없는 응원 글·답글의 엔티티 이름과 작성 주체를 규칙처럼 적었다. | 좋아요 범위만 남기고 지웠다. FIXED, 링크·표현 확인. |
-| 2026-11-12-actor-page-like-F03 | P3·CODE·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-12T17:20:00+09:00 / PENDING | 2026-11-12T17:23:00+09:00 | `aria-label`이 보이는 좋아요 수를 덮어 스크린리더가 수를 알 수 없었다. | 두 `aria-label`에 수를 넣고 렌더 테스트에 단언을 더했다. FIXED, PASS. |
-| 2026-11-12-actor-page-like-F04 | P3·CODE·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-12T17:20:00+09:00 / PENDING | 2026-11-12T17:23:00+09:00 | `Viewer.anonymous()`가 접근 제어자 없이 package-private이었다. | `public static`으로 명시했다. FIXED, Checkstyle·테스트 PASS. |
+| 2026-11-12-actor-page-like-F01 | P2·TEST·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-12T17:20:00+09:00 / #581 | 2026-11-12T17:23:00+09:00 | 문서가 동시 요청에도 하나만 남는다고 쓰는데 이를 검증하는 동시성 테스트가 없었다. | 같은 좋아요 반복과 좋아요 뒤 취소를 잠금 상태에서 겹치는 테스트 2건을 추가했다. FIXED, PASS. |
+| 2026-11-12-actor-page-like-F02 | P3·POLICY·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-12T17:20:00+09:00 / #581 | 2026-11-12T17:23:00+09:00 | 정책 문서가 아직 없는 응원 글·답글의 엔티티 이름과 작성 주체를 규칙처럼 적었다. | 좋아요 범위만 남기고 지웠다. FIXED, 링크·표현 확인. |
+| 2026-11-12-actor-page-like-F03 | P3·CODE·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-12T17:20:00+09:00 / #581 | 2026-11-12T17:23:00+09:00 | `aria-label`이 보이는 좋아요 수를 덮어 스크린리더가 수를 알 수 없었다. | 두 `aria-label`에 수를 넣고 렌더 테스트에 단언을 더했다. FIXED, PASS. |
+| 2026-11-12-actor-page-like-F04 | P3·CODE·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-12T17:20:00+09:00 / #581 | 2026-11-12T17:23:00+09:00 | `Viewer.anonymous()`가 접근 제어자 없이 package-private이었다. | `public static`으로 명시했다. FIXED, Checkstyle·테스트 PASS. |
 
 ## 상태 사건 이력(추가 전용)
 
 | 사건 ID | 문제 ID | 종류 | 발생 시각(+09:00) | 근거·관련 PR |
 | --- | --- | --- | --- | --- |
-| E01 | 2026-11-12-actor-page-like-F01 | CONFIRMED | 2026-11-12T17:20:00+09:00 | 독립 평가, PR PENDING |
-| E02 | 2026-11-12-actor-page-like-F02 | CONFIRMED | 2026-11-12T17:20:00+09:00 | 독립 평가, PR PENDING |
-| E03 | 2026-11-12-actor-page-like-F03 | CONFIRMED | 2026-11-12T17:20:00+09:00 | 독립 평가, PR PENDING |
-| E04 | 2026-11-12-actor-page-like-F04 | CONFIRMED | 2026-11-12T17:20:00+09:00 | 독립 평가, PR PENDING |
+| E01 | 2026-11-12-actor-page-like-F01 | CONFIRMED | 2026-11-12T17:20:00+09:00 | 독립 평가, PR #581 |
+| E02 | 2026-11-12-actor-page-like-F02 | CONFIRMED | 2026-11-12T17:20:00+09:00 | 독립 평가, PR #581 |
+| E03 | 2026-11-12-actor-page-like-F03 | CONFIRMED | 2026-11-12T17:20:00+09:00 | 독립 평가, PR #581 |
+| E04 | 2026-11-12-actor-page-like-F04 | CONFIRMED | 2026-11-12T17:20:00+09:00 | 독립 평가, PR #581 |
 | E05 | 2026-11-12-actor-page-like-F01 | FIXED | 2026-11-12T17:23:00+09:00 | 동시성 테스트 2건 PASS |
 | E06 | 2026-11-12-actor-page-like-F02 | FIXED | 2026-11-12T17:23:00+09:00 | 정책 문서 정리 |
 | E07 | 2026-11-12-actor-page-like-F03 | FIXED | 2026-11-12T17:23:00+09:00 | vitest PASS |
 | E08 | 2026-11-12-actor-page-like-F04 | FIXED | 2026-11-12T17:23:00+09:00 | Checkstyle PASS |
+
+## 최초 PR 게시 연결
+
+- 2026-11-12T17:40:00+09:00: 이 작업 기록과 문제 ID·추가 전용 사건 이력을 최초 게시 PR [#581](https://github.com/woowacourse-teams/2026-yesulin/pull/581)에 연결했다. 위 표의 `PR PENDING`은 게시 전 당시 표기이며 최초 확정·해결 시각을 바꾸지 않는다. 이 기록 문제의 최초 기록 PR은 #581이다.
