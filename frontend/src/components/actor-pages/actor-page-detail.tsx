@@ -18,6 +18,7 @@ import { profileCareerGenreLabel } from "@/features/applicants/career-genre";
 import { educationText } from "@/features/applicants/education";
 import { AuditionRequestError } from "@/features/auditions/api-client";
 import { ActorBookmarkButton } from "./actor-bookmarks";
+import { ActorPageCheersSection } from "./actor-page-cheers";
 import { ActorPageLikeButton } from "./actor-page-like";
 import { ActorPageScreen } from "./actor-page-screen";
 import { ActorPhotoGallery } from "./actor-photo-gallery";
@@ -221,6 +222,10 @@ export function ActorPageView({ actorPage, preview = false, compact = false }: {
           ) : null}
         </div>
       </div>
+
+      {!preview && actorPage.publicId && actorPage.handle ? (
+        <ActorPageCheersSection publicId={actorPage.publicId} handle={actorPage.handle} name={name} />
+      ) : null}
 
       <footer className="mt-10 border-t border-border pt-5 text-sm text-muted-strong">
         문제가 있는 페이지는 예술in에 알려 주세요.{" "}

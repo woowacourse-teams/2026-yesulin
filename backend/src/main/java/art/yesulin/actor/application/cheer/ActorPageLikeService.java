@@ -1,16 +1,11 @@
 package art.yesulin.actor.application.cheer;
 
-import static art.yesulin.actor.domain.page.ActorPageErrorCode.ACTOR_PAGE_NOT_FOUND;
-
 import art.yesulin.actor.domain.cheer.ActorPageLike;
 import art.yesulin.actor.domain.cheer.ActorPageLikeRepository;
 import art.yesulin.actor.domain.page.ActorPage;
-import art.yesulin.actor.domain.page.ActorPageRepository;
 import art.yesulin.auth.application.MemberPrincipal;
 import art.yesulin.auth.domain.member.MemberErrorCode;
 import art.yesulin.auth.domain.member.MemberRepository;
-import art.yesulin.auth.domain.member.MemberStatus;
-import art.yesulin.auth.domain.member.MemberType;
 import art.yesulin.global.exception.BusinessException;
 import java.time.Clock;
 import java.time.Instant;
@@ -30,21 +25,21 @@ import org.springframework.transaction.annotation.Transactional;
 public class ActorPageLikeService {
 
     private final ActorPageLikeRepository likeRepository;
-    private final ActorPageRepository pageRepository;
+    private final ListedActorPageFinder listedPages;
     private final MemberRepository members;
     private final Clock clock;
 
     /** 세션이 없어도 읽을 수 있고, 로그인했으면 내 상태를 함께 담는다. */
     @Transactional(readOnly = true)
     public ActorPageLikesResult findLikes(UUID publicId, MemberPrincipal viewer) {
-        return result(findListed(publicId), viewer);
+        return result(listedPages.find(publicId), viewer);
     }
 
     /** 같은 요청을 반복해도 결과가 같다. 내 페이지에는 누를 수 없다. */
     @Transactional
     public ActorPageLikesResult like(MemberPrincipal member, UUID publicId) {
         lockMember(member.memberId());
-        ActorPage page = findListed(publicId);
+        ActorPage page = listedPages.find(publicId);
         if (!likeRepository.existsByActorPageIdAndMemberId(page.getId(), member.memberId())) {
             likeRepository.saveAndFlush(ActorPageLike.of(page, member.memberId(), Instant.now(clock)));
         }
@@ -55,26 +50,19 @@ public class ActorPageLikeService {
     @Transactional
     public ActorPageLikesResult unlike(MemberPrincipal member, UUID publicId) {
         lockMember(member.memberId());
-        ActorPage page = findListed(publicId);
+        ActorPage page = listedPages.find(publicId);
         likeRepository.deleteLike(page.getId(), member.memberId());
         return result(page, member);
     }
 
     private ActorPageLikesResult result(ActorPage page, MemberPrincipal viewer) {
         long count = likeRepository.countByActorPageId(page.getId());
-        if (viewer == null) {
-            return new ActorPageLikesResult(count, ActorPageLikesResult.Me.anonymous());
-        }
-        boolean owner = page.getOwnerMemberId() == viewer.memberId();
-        boolean canLike = viewer.role() == MemberType.APPLICANT && viewer.status() == MemberStatus.ACTIVE && !owner;
-        boolean liked = canLike && likeRepository.existsByActorPageIdAndMemberId(page.getId(), viewer.memberId());
-        return new ActorPageLikesResult(count, new ActorPageLikesResult.Me(true, owner, canLike, liked));
-    }
-
-    private ActorPage findListed(UUID publicId) {
-        return pageRepository.findByPublicId(publicId)
-                .filter(page -> page.isPublic() && !page.isLocked())
-                .orElseThrow(() -> new BusinessException(ACTOR_PAGE_NOT_FOUND, "배우 페이지를 찾을 수 없습니다."));
+        ActorPageParticipant participant = ActorPageParticipant.of(page, viewer);
+        boolean liked = participant.canParticipate()
+                && likeRepository.existsByActorPageIdAndMemberId(page.getId(), viewer.memberId());
+        return new ActorPageLikesResult(count, new ActorPageLikesResult.Me(
+                participant.loggedIn(), participant.owner(), participant.canParticipate(), liked
+        ));
     }
 
     private void lockMember(long memberId) {
