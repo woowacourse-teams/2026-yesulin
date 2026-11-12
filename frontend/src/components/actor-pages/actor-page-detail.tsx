@@ -18,6 +18,7 @@ import { profileCareerGenreLabel } from "@/features/applicants/career-genre";
 import { educationText } from "@/features/applicants/education";
 import { AuditionRequestError } from "@/features/auditions/api-client";
 import { ActorBookmarkButton } from "./actor-bookmarks";
+import { ActorPageLikeButton } from "./actor-page-like";
 import { ActorPageScreen } from "./actor-page-screen";
 import { ActorPhotoGallery } from "./actor-photo-gallery";
 import { ActorScreenView } from "./actor-screen-view";
@@ -126,6 +127,7 @@ export function ActorPageView({ actorPage, preview = false, compact = false }: {
               </div>
               {!preview && actorPage.handle ? (
                 <div className="flex flex-wrap items-start gap-2">
+                  {actorPage.publicId ? <ActorPageLikeButton publicId={actorPage.publicId} handle={actorPage.handle} name={name} /> : null}
                   {actorPage.publicId ? <ActorBookmarkButton publicId={actorPage.publicId} name={name} /> : null}
                   <ShareButton name={name} handle={actorPage.handle} />
                 </div>

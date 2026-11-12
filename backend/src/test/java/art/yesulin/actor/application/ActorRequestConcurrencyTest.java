@@ -7,15 +7,18 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import art.yesulin.actor.application.bookmark.ProducerActorBookmarkService;
+import art.yesulin.actor.application.cheer.ActorPageLikeService;
 import art.yesulin.actor.application.profileimport.ProfileImportService;
 import art.yesulin.actor.domain.bookmark.ProducerActorBookmark;
 import art.yesulin.actor.domain.bookmark.ProducerActorBookmarkErrorCode;
 import art.yesulin.actor.domain.bookmark.ProducerActorBookmarkRepository;
+import art.yesulin.actor.domain.cheer.ActorPageLikeRepository;
 import art.yesulin.actor.domain.page.ActorPage;
 import art.yesulin.actor.domain.page.ActorPageHandle;
 import art.yesulin.actor.domain.page.ActorPageReadiness;
 import art.yesulin.actor.domain.page.ActorPageRepository;
 import art.yesulin.actor.domain.profileimport.ProfileImportErrorCode;
+import art.yesulin.auth.application.MemberPrincipal;
 import art.yesulin.auth.domain.member.Member;
 import art.yesulin.auth.domain.member.MemberRepository;
 import art.yesulin.auth.domain.member.MemberStatus;
@@ -61,6 +64,10 @@ class ActorRequestConcurrencyTest {
     private ProducerActorBookmarkRepository bookmarks;
     @Autowired
     private ProducerActorBookmarkService bookmarkService;
+    @Autowired
+    private ActorPageLikeService likeService;
+    @Autowired
+    private ActorPageLikeRepository likes;
     @Autowired
     private ProfileImportService imports;
     @Autowired
@@ -111,6 +118,33 @@ class ActorRequestConcurrencyTest {
                 () -> bookmarkService.save(producer, actor.getPublicId()), null);
 
         assertEquals(1, bookmarks.countByProducerMemberId(producer));
+    }
+
+    @Test
+    void concurrentSameLikeRemainsIdempotent() throws Exception {
+        MemberPrincipal fan = fan();
+        ActorPage actor = pages.saveAndFlush(publicPage(fan.memberId() * 1_000));
+
+        assertSerialized(() -> likeService.like(fan, actor.getPublicId()),
+                () -> likeService.like(fan, actor.getPublicId()), null);
+
+        assertEquals(1, likes.countByActorPageId(actor.getId()));
+    }
+
+    @Test
+    void concurrentUnlikeAfterLikeLeavesNoLike() throws Exception {
+        MemberPrincipal fan = fan();
+        ActorPage actor = pages.saveAndFlush(publicPage(fan.memberId() * 1_000));
+
+        assertSerialized(() -> likeService.like(fan, actor.getPublicId()),
+                () -> likeService.unlike(fan, actor.getPublicId()), null);
+
+        assertEquals(0, likes.countByActorPageId(actor.getId()));
+    }
+
+    private MemberPrincipal fan() {
+        long id = members.saveAndFlush(new Member(null, null, MemberType.APPLICANT, MemberStatus.ACTIVE)).getId();
+        return new MemberPrincipal(id, MemberType.APPLICANT, MemberStatus.ACTIVE);
     }
 
     private long producer() {

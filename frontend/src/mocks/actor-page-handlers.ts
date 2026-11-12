@@ -1,6 +1,7 @@
 import { delay, http, HttpResponse } from "msw";
 import { isActorHandleAddress, normalizeActorHandle, type PublicActorPage, type PublicActorPageSummary } from "@/features/actor-pages/types";
 import type { AdminActorPage, AdminActorPageSummary } from "@/features/admin/types";
+import { actorPageLikeHandlers } from "./actor-page-like-handlers";
 import { actorPageOwnerHandlers, actorPageSeedHandler, isReservedActorHandle, ownerPublicActorPage } from "./actor-page-owner-handlers";
 
 /**
@@ -260,6 +261,11 @@ export const actorPageHandlers = [
   }),
 
   ...actorPageOwnerHandlers((handle) => adminPages().some((candidate) => adminStateOf(candidate).handle === handle)),
+
+  ...actorPageLikeHandlers(
+    (publicId) => listed().find((candidate) => candidate.publicId === publicId),
+    () => ownerPublicActorPage()?.publicId ?? null,
+  ),
 
   http.get("/api/v1/producers/me/actor-bookmark-ids", async () => {
     await delay(100);
