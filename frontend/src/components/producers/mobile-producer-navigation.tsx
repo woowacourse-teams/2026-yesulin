@@ -81,6 +81,13 @@ export function MobileProducerNavigation() {
             </button>
           </header>
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-2">
+            <Link
+              href="/"
+              onNavigate={closeDisclosure}
+              className="mx-4 mb-2 flex min-h-11 items-center rounded-control border border-sidebar-line px-3 text-base font-semibold text-white hover:bg-sidebar-hover"
+            >
+              예술in 홈
+            </Link>
             <AuditionPostManagementNav onNavigate={closeDisclosure} />
             <PdfReviewNavigation onNavigate={closeDisclosure} />
             <ShowManagementNav onNavigate={closeDisclosure} />
