@@ -14,7 +14,7 @@ describe("공연사 서비스 랜딩", () => {
 
   it("가입·로그인·문의로 이어진다", () => {
     expect(html).toContain('href="/signup"');
-    expect(html).toContain('href="/login"');
+    expect(html).toContain('href="/producer-service/login"');
     expect(html).toContain("pf.kakao.com/_pbTBX/chat");
   });
 

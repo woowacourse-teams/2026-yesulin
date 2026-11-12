@@ -153,7 +153,7 @@ Google Tag Manager 컨테이너는 `NEXT_PUBLIC_GTM_ID`가 설정된 환경에�
 | `login_prompt_view` | 로그인 유도 UI 노출 | `login_reason`, `has_draft` |
 | `login_prompt_action` | 유도 UI에서 로그인·비회원 계속·닫기 선택 | `login_reason`, `action`, `has_draft` |
 | `login_entry_click` | 로그인 화면으로 이동하는 링크 선택 | `entry_point`, `login_reason`, `actor_type`, `return_target` |
-| `login_page_view` | 로그인 화면 렌더링 | 로그인 진입 공통 파라미터 |
+| `login_page_view` | 로그인 화면 렌더링 | 로그인 진입 공통 파라미터. 기획사 로그인 화면(`/producer-service/login`)은 `actor_type=producer`로 기록한다 |
 | `login_attempt` | 유효한 입력 또는 소셜 provider 선택 후 인증 시도 | 공통 파라미터, `provider` |
 | `login_success` | 세션 생성 또는 OAuth 복귀 성공 | 공통 파라미터, `provider` |
 | `login_return_success` | 로그인 뒤 목적 화면으로 복귀 | 공통 파라미터, `provider` |

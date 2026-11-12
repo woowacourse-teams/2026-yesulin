@@ -1071,6 +1071,30 @@ savedCount, hiddenCount, limit
   메시지에 숨긴 저장 수를 함께 적는다. 같은 공연사의 저장·해제는 회원 행을 잠가 순서대로 처리하므로 동시 요청도 한도를 넘지 않는다.
 - 배우에게 누가, 몇 명이 저장했는지 알려 주는 API는 없다.
 
+## 배우 페이지 좋아요 — 3개
+
+좋아요는 아이디가 아니라 배우 페이지의 `publicId`를 쓴다. 조회는 누구나, 누르기·취소는 활성 일반 회원(`APPLICANT + ACTIVE`)
+세션이 필요하고 쓰기는 기존 CSRF 규칙을 따른다. 응답은 모두 `Cache-Control: no-store`다.
+
+| Method | URL | 인증 | Response |
+| --- | --- | --- | --- |
+| GET | `/api/v1/public/actor-pages/{publicId}/likes` | 공개(로그인하면 내 상태 포함) | `200 ActorPageLikesResult` |
+| PUT | `/api/v1/actor-pages/{publicId}/likes/me` | 활성 회원 | `200 ActorPageLikesResult` |
+| DELETE | `/api/v1/actor-pages/{publicId}/likes/me` | 활성 회원 | `200 ActorPageLikesResult` |
+
+```text
+ActorPageLikesResult: count, me{loggedIn, owner, canLike, liked}
+```
+
+- 공개 배우 페이지 응답은 보는 사람과 무관하게 같아야 하므로 좋아요 수와 내 상태는 이 API로 따로 받는다. 누른 사람은 누구에게도
+  알려 주지 않는다.
+- me는 지금 보는 나의 상태이며 로그인하지 않았으면 모두 false다. `likes/me`는 "이 페이지에 대한 내 좋아요"를 뜻한다. owner는 이 페이지의 주인, canLike는 활성 일반 회원이고 주인이 아니라 누를 수
+  있는 경우, liked는 내가 이미 누른 경우다. 공연사·운영자 계정과 대기 상태 계정은 canLike가 false다.
+- 누르기·취소는 같은 요청을 반복해도 결과가 같고 갱신된 `ActorPageLikesResult`를 준다. 같은 회원의 요청은 회원 행을 잠가 순서대로
+  처리하므로 동시에 보내도 하나만 남는다.
+- 배우 목록에 보이는 페이지만 받는다. 없는 ID·비공개·잠금·자동 비공개 페이지는 조회·누르기·취소 모두 `404 ACTOR_PAGE_NOT_FOUND`다.
+- 내 배우 페이지에 누르면 `403 ACTOR_PAGE_SELF_LIKE`다. 로그인하지 않았으면 `401`, 활성 일반 회원이 아니면(공연사·운영자 등) `403`이다.
+
 ## PDF 지원자 재분석 요청
 
 공연사 심사의 재분석은 `POST /api/v1/pdf-extractions/{jobId}/ai-retry`를 사용한다.

@@ -1,10 +1,12 @@
 import { frontendEnvironment } from "@/config/environment";
 import { headers } from "next/headers";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { LoginForm } from "@/components/auth/login-form";
 import { ApplicationAuthContextCard } from "@/components/auth/application-auth-context";
 import { applicationAuthContextForServer } from "@/features/auth/application-auth-context-server";
+import { PRODUCER_LOGIN_PATH } from "@/features/auth/producer-navigation";
 import { authSuccessReturnTo, safeAuthReturnTo } from "@/features/auth/return-to";
 
 export const metadata: Metadata = { title: { absolute: "예술in" } };
@@ -31,10 +33,10 @@ export default async function LoginPage({ searchParams }: {
       title={applicationContext ? "지원서 제출을 위한 로그인" : "로그인"}
       description={applicationContext
         ? "소셜 계정으로 로그인하면 작성하던 지원서의 최종 검토 화면으로 돌아갑니다."
-        : "이용할 계정 종류를 선택해주세요."}
+        : "소셜 계정으로 로그인해 주세요."}
       footer={applicationContext
-        ? <span>처음 이용해도 소셜 로그인과 함께 배우 계정이 자동으로 만들어집니다.</span>
-        : undefined}
+        ? <span>처음 이용해도 소셜 로그인과 함께 회원 계정이 자동으로 만들어집니다.</span>
+        : <><span>기획사/제작사이신가요?</span>{" "}<Link href={PRODUCER_LOGIN_PATH} className="font-semibold text-brand hover:text-brand-strong hover:underline">이메일로 로그인</Link></>}
     >
       {applicationContext ? <ApplicationAuthContextCard context={applicationContext} /> : null}
       {socialLoginError === "true" ? (

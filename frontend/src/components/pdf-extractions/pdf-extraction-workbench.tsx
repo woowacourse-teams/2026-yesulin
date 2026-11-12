@@ -1,5 +1,6 @@
 "use client";
 
+import { PRODUCER_LOGIN_PATH } from "@/features/auth/producer-navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuthSession } from "@/components/auth/auth-session";
 import { login } from "@/features/auth/session-api";
@@ -183,7 +184,7 @@ export function PdfExtractionWorkbench({ local = false }: { readonly local?: boo
       <h1 className="text-2xl font-bold tracking-tight md:text-3xl">PDF 추출 확인</h1>
       <p className="mt-3 max-w-3xl text-sm leading-7 text-muted-strong">여러 지원서를 한 번에 선택하고 파일별 텍스트와 이미지를 확인하세요. OCR·AI 정보 정리·심사 결정은 포함하지 않습니다.</p>
       {local ? <p className="mt-3 rounded-control border border-brand-line bg-brand-soft px-4 py-3 text-sm text-brand">파일은 이 PC의 LocalStack에 업로드하고 Lambda 컨테이너에서 실제로 추출합니다. 실제 AWS 서비스와 연결하지 않습니다.</p> : null}
-      {!authorized ? <section className="mt-6 rounded-card border border-border bg-card p-6"><h2 className="font-bold">공연사 로그인이 필요합니다</h2><p className="mt-2 text-sm text-muted-strong">본인이 올린 PDF와 추출 결과만 확인할 수 있습니다.</p>{local ? <button type="button" onClick={() => void localLogin()} disabled={loading} className="mt-5 min-h-12 rounded-control bg-brand px-5 text-sm font-semibold text-white disabled:opacity-50">{loading ? "로그인 중…" : "로컬 테스트 계정으로 시작"}</button> : <a href="/login" className="mt-5 inline-flex min-h-12 items-center font-semibold text-brand">로그인으로 이동</a>}</section> : <>
+      {!authorized ? <section className="mt-6 rounded-card border border-border bg-card p-6"><h2 className="font-bold">공연사 로그인이 필요합니다</h2><p className="mt-2 text-sm text-muted-strong">본인이 올린 PDF와 추출 결과만 확인할 수 있습니다.</p>{local ? <button type="button" onClick={() => void localLogin()} disabled={loading} className="mt-5 min-h-12 rounded-control bg-brand px-5 text-sm font-semibold text-white disabled:opacity-50">{loading ? "로그인 중…" : "로컬 테스트 계정으로 시작"}</button> : <a href={PRODUCER_LOGIN_PATH} className="mt-5 inline-flex min-h-12 items-center font-semibold text-brand">로그인으로 이동</a>}</section> : <>
         <section aria-label="PDF 업로드" className="my-6 rounded-card border border-border bg-card p-5">
           <div className="flex flex-wrap items-center gap-3">
             <label className={`inline-flex min-h-12 cursor-pointer items-center rounded-control border border-brand-line px-5 text-sm font-semibold text-brand focus-within:outline-2 focus-within:outline-brand ${busy || listLoading ? "pointer-events-none opacity-50" : ""}`}>PDF 여러 개 선택<input ref={input} type="file" accept=".pdf,application/pdf" multiple disabled={busy || listLoading} onChange={event => choose(event.target.files)} className="sr-only" /></label>

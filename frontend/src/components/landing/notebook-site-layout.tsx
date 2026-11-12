@@ -1,5 +1,6 @@
 "use client";
 
+import { PRODUCER_LOGIN_PATH } from "@/features/auth/producer-navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { FeedbackLauncher } from "@/components/feedback/feedback-launcher";
@@ -55,7 +56,7 @@ function HeaderAccountLinks({ service, producerLinkClassName }: { readonly servi
   </>;
   const producer = service === "producer";
   return <>
-    <TrackedLoginLink href="/login" analytics={{ entry_point: producer ? "producer_landing_header" : "landing_header", login_reason: producer ? "manage_production" : "account_access", actor_type: service, return_target: producer ? "producer_home" : "other" }}>로그인</TrackedLoginLink>
+    <TrackedLoginLink href={producer ? PRODUCER_LOGIN_PATH : "/login"} analytics={{ entry_point: producer ? "producer_landing_header" : "landing_header", login_reason: producer ? "manage_production" : "account_access", actor_type: service, return_target: producer ? "producer_home" : "other" }}>로그인</TrackedLoginLink>
     <Link href="/producer-service" className={producerLinkClassName}>기획사·제작사 서비스</Link>
   </>;
 }

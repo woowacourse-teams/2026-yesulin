@@ -1,5 +1,6 @@
 "use client";
 
+import { PRODUCER_LOGIN_PATH } from "@/features/auth/producer-navigation";
 import { useEffect, useState } from "react";
 import { AuthInput, PasswordInput } from "./auth-fields";
 import {
@@ -154,7 +155,7 @@ export function PasswordResetForm({ token }: { readonly token?: string }) {
             <PrimaryButton type="submit" disabled={submitting} className="min-h-[52px] w-full text-base">
               {submitting ? "메일 전송 중…" : "재설정 메일 받기"}
             </PrimaryButton>
-            <TextLink href="/login" className="mx-auto flex w-fit">로그인으로 돌아가기</TextLink>
+            <TextLink href={PRODUCER_LOGIN_PATH} className="mx-auto flex w-fit">로그인으로 돌아가기</TextLink>
           </div>
         </form>
       ) : null}
@@ -240,7 +241,7 @@ export function PasswordResetForm({ token }: { readonly token?: string }) {
           title="비밀번호가 변경되었습니다"
           description="새 비밀번호로 기획사/제작사 계정에 로그인해 주세요."
         >
-          <PrimaryLink href="/login" className="min-h-[52px] w-full text-base">로그인하기</PrimaryLink>
+          <PrimaryLink href={PRODUCER_LOGIN_PATH} className="min-h-[52px] w-full text-base">로그인하기</PrimaryLink>
         </StatusPanel>
       ) : null}
     </div>

@@ -16,6 +16,12 @@ describe("공개 헤더의 계정 이동", () => {
     expect(html).not.toContain("로그아웃");
   });
 
+  it("기획사 서비스 화면의 로그인은 이메일 로그인 경로로 간다", () => {
+    const html = renderToStaticMarkup(<NotebookHeader service="producer" />);
+    expect(html).toContain('href="/producer-service/login"');
+    expect(html).not.toContain('href="/login"');
+  });
+
   it("배우는 공개 화면에서 마이페이지로 돌아갈 수 있다", () => {
     auth.session = { credential: "fixture", role: "APPLICANT", displayName: "배우" };
     const html = renderToStaticMarkup(<NotebookHeader />);
