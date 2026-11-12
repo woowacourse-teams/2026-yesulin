@@ -1,6 +1,6 @@
 # 배우 목록 검색
 
-- 작업 ID `2026-11-12-actor-list-search` / 평가표 v1 / PR PENDING
+- 작업 ID `2026-11-12-actor-list-search` / 평가표 v1 / PR #580
 - 공개 배우 목록 API에 `q` 검색어를 더하고 `/actors?q=` 검색창을 붙인다. 이름이나 아이디 일부로 공개 중이고 잠기지 않은 배우만 찾는다.
 
 | ID | 경계·실패 조건 | 기대 결과 | 검증 | 필수 | 결과 |
@@ -33,16 +33,20 @@
 
 | 문제 ID | 심각도·유형·유입 | 발견 경로 | 최초 확정(+09:00) / 최초 기록 PR | 해결 시각(+09:00) | 문제·근거 | 조치·상태·수정 후 검증 |
 | --- | --- | --- | --- | --- | --- | --- |
-| 2026-11-12-actor-list-search-F01 | P2·FLOW·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-12T17:02:00+09:00 / PENDING | 2026-11-12T17:03:00+09:00 | 첫 페이지의 빈 검색 결과 "전체 배우 보기"가 같은 검색 주소로 되돌아갔다. | 경로 계산을 `emptyListRecovery`로 분리해 전체 목록으로 보냈다. FIXED, 단위 테스트 3건 추가 후 PASS. |
-| 2026-11-12-actor-list-search-F02 | P3·UNUSED·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-12T17:02:00+09:00 / PENDING | 2026-11-12T17:03:00+09:00 | `ActorPageSearchCondition`의 1인자 보조 생성자를 테스트 한 곳만 썼고 불필요한 주석이 있었다. | 보조 생성자와 주석을 지우고 테스트를 2인자로 바꿨다. FIXED, actor 테스트·Checkstyle PASS. |
-| 2026-11-12-actor-list-search-F03 | P3·TEST·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-12T17:02:00+09:00 / PENDING | - | 잠금 도메인이 상태를 비공개로 바꾸므로 잠금 테스트는 `lockedAt is null` 조건만 따로 검증하지 못한다. 공개이면서 잠긴 상태는 현재 경로로 만들 수 없다. | OPEN, 방어 조건으로 쿼리에 남기고 기능 위험은 없어 수용한다. |
+| 2026-11-12-actor-list-search-F01 | P2·FLOW·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-12T17:02:00+09:00 / #580 | 2026-11-12T17:03:00+09:00 | 첫 페이지의 빈 검색 결과 "전체 배우 보기"가 같은 검색 주소로 되돌아갔다. | 경로 계산을 `emptyListRecovery`로 분리해 전체 목록으로 보냈다. FIXED, 단위 테스트 3건 추가 후 PASS. |
+| 2026-11-12-actor-list-search-F02 | P3·UNUSED·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-12T17:02:00+09:00 / #580 | 2026-11-12T17:03:00+09:00 | `ActorPageSearchCondition`의 1인자 보조 생성자를 테스트 한 곳만 썼고 불필요한 주석이 있었다. | 보조 생성자와 주석을 지우고 테스트를 2인자로 바꿨다. FIXED, actor 테스트·Checkstyle PASS. |
+| 2026-11-12-actor-list-search-F03 | P3·TEST·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-12T17:02:00+09:00 / #580 | - | 잠금 도메인이 상태를 비공개로 바꾸므로 잠금 테스트는 `lockedAt is null` 조건만 따로 검증하지 못한다. 공개이면서 잠긴 상태는 현재 경로로 만들 수 없다. | OPEN, 방어 조건으로 쿼리에 남기고 기능 위험은 없어 수용한다. |
 
 ## 상태 사건 이력(추가 전용)
 
 | 사건 ID | 문제 ID | 종류 | 발생 시각(+09:00) | 근거·관련 PR |
 | --- | --- | --- | --- | --- |
-| E01 | 2026-11-12-actor-list-search-F01 | CONFIRMED | 2026-11-12T17:02:00+09:00 | 독립 평가, PR PENDING |
-| E02 | 2026-11-12-actor-list-search-F02 | CONFIRMED | 2026-11-12T17:02:00+09:00 | 독립 평가, PR PENDING |
-| E03 | 2026-11-12-actor-list-search-F03 | CONFIRMED | 2026-11-12T17:02:00+09:00 | 독립 평가, PR PENDING |
+| E01 | 2026-11-12-actor-list-search-F01 | CONFIRMED | 2026-11-12T17:02:00+09:00 | 독립 평가, PR #580 |
+| E02 | 2026-11-12-actor-list-search-F02 | CONFIRMED | 2026-11-12T17:02:00+09:00 | 독립 평가, PR #580 |
+| E03 | 2026-11-12-actor-list-search-F03 | CONFIRMED | 2026-11-12T17:02:00+09:00 | 독립 평가, PR #580 |
 | E04 | 2026-11-12-actor-list-search-F01 | FIXED | 2026-11-12T17:03:00+09:00 | `emptyListRecovery` 분리, vitest 67건 PASS |
 | E05 | 2026-11-12-actor-list-search-F02 | FIXED | 2026-11-12T17:03:00+09:00 | 보조 생성자 삭제, actor 테스트 PASS |
+
+## 최초 PR 게시 연결
+
+- 2026-11-12T17:05:00+09:00: 이 작업 기록과 문제 ID·추가 전용 사건 이력을 최초 게시 PR [#580](https://github.com/woowacourse-teams/2026-yesulin/pull/580)에 연결했다. 위 사건 이력의 `PR PENDING`은 게시 전 당시 표기이며 최초 확정·해결 시각을 바꾸지 않는다. 이 기록 문제의 최초 기록 PR은 #580이다.
