@@ -4,7 +4,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { login } from "@/features/auth/session-api";
 import { signupProducer, verifyProducerEmailCode } from "@/features/auth/api";
-import { LoginForm } from "./login-form";
+import { ProducerLoginForm } from "./producer-login-form";
 import { SignupForm } from "./signup-form";
 import { ProducerAccessGate } from "@/components/producers/producer-access-gate";
 import type { FrontendAuthSession } from "./auth-session";
@@ -19,7 +19,7 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/producers/audition-posts",
 }));
 vi.mock("./auth-session", () => ({ useAuthSession: () => auth }));
-vi.mock("@/features/auth/producer-navigation", () => ({ openProducerWorkspace: vi.fn() }));
+vi.mock("@/features/auth/producer-navigation", () => ({ openProducerWorkspace: vi.fn(), PRODUCER_LOGIN_PATH: "/producer-service/login" }));
 vi.mock("@/components/auditions/toast", () => ({ useToast: () => auth.toast }));
 vi.mock("@/config/environment", () => ({ frontendEnvironment: { apiMockingEnabled: false } }));
 vi.mock("@/features/auth/session-api", async (original) => ({
@@ -50,8 +50,7 @@ function typeInto(id: string, value: string) {
 }
 
 it("기획사 로그인 후 내 오디션 공고를 바로 연다", async () => {
-  await act(async () => root.render(<LoginForm />));
-  await act(async () => container.querySelector<HTMLInputElement>('input[value="producer"]')!.click());
+  await act(async () => root.render(<ProducerLoginForm />));
   await act(async () => { typeInto("login-identifier", "producer@example.com"); typeInto("login-password", "password123"); });
   await act(async () => container.querySelector("form")!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
   expect(login).toHaveBeenCalledWith("producer@example.com", "password123");

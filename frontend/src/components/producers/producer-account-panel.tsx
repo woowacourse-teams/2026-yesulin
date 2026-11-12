@@ -1,5 +1,6 @@
 "use client";
 
+import { PRODUCER_LOGIN_PATH } from "@/features/auth/producer-navigation";
 import Link from "next/link";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -25,7 +26,7 @@ export function ProducerAccountPanel() {
   const profile = query.data;
   const logout = () => {
     void logoutSession(true)
-      .then(() => router.replace("/login"))
+      .then(() => router.replace(PRODUCER_LOGIN_PATH))
       .catch((error: unknown) => {
         console.error("[기획사 로그아웃 실패]", error);
         const message = error instanceof SessionApiError

@@ -36,7 +36,7 @@ export function SocialButtons({ pendingProvider, onSelect }: {
   readonly onSelect: (provider: SocialProvider) => void;
 }) {
   return (
-    <section aria-label="배우 소셜 로그인" className="space-y-2.5">
+    <section aria-label="소셜 로그인" className="space-y-2.5">
       {providers.map((provider) => {
         const pending = pendingProvider === provider.id;
         return (
@@ -53,7 +53,7 @@ export function SocialButtons({ pendingProvider, onSelect }: {
         );
       })}
       <p className="pt-2 text-center text-sm leading-6 text-muted">
-        처음 이용해도 소셜 로그인과 함께 배우 계정이 자동으로 만들어집니다.
+        처음 이용해도 소셜 로그인과 함께 회원 계정이 자동으로 만들어집니다.
       </p>
     </section>
   );

@@ -1,3 +1,4 @@
+import { PRODUCER_LOGIN_PATH } from "@/features/auth/producer-navigation";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { TrackedLoginLink } from "@/components/analytics/tracked-login-link";
@@ -32,7 +33,7 @@ function Hero() {
       <h1>오디션 공고부터 배우 심사까지, 한곳에서</h1>
       <p className={styles.lead}>올린 공고는 배우 오픈채팅에 공유되고, 메일로 받은 PDF 지원서도 자동으로 정리돼요.</p>
       <StartButtons />
-      <p className={styles.fine}>이미 계정이 있다면 <TrackedLoginLink href="/login" analytics={{ entry_point: "producer_landing_hero", login_reason: "manage_production", actor_type: "producer", return_target: "producer_home" }} className={styles.inlineLink}>로그인</TrackedLoginLink></p>
+      <p className={styles.fine}>이미 계정이 있다면 <TrackedLoginLink href={PRODUCER_LOGIN_PATH} analytics={{ entry_point: "producer_landing_hero", login_reason: "manage_production", actor_type: "producer", return_target: "producer_home" }} className={styles.inlineLink}>로그인</TrackedLoginLink></p>
     </div>
     <HeroCards />
   </div></section>;

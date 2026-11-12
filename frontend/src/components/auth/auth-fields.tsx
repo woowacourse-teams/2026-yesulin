@@ -4,48 +4,6 @@ import { useState } from "react";
 import type { InputHTMLAttributes } from "react";
 import { fieldControlClass } from "@/components/ui/controls";
 
-export type AccountRole = "applicant" | "producer";
-
-const ROLE_OPTIONS = [
-  { value: "applicant", label: "배우", description: "오디션을 찾고 지원해요" },
-  { value: "producer", label: "기획사/제작사", description: "공고와 배우를 관리해요" },
-] as const;
-
-export function RoleField({ value, onChange, purpose = "default" }: { readonly value: AccountRole; readonly onChange: (role: AccountRole) => void; readonly purpose?: "default" | "application" }) {
-  return (
-    <fieldset>
-      <legend className="text-sm font-semibold text-foreground">이용 목적</legend>
-      <p className="mt-1 text-sm text-muted">{purpose === "application" ? "지원서 제출을 위해 배우가 미리 선택되어 있어요. 기획사/제작사로 바꾸면 지원서 대신 기획사/제작사 화면으로 이동합니다." : "사용할 계정 유형을 선택해 주세요."}</p>
-      <div className="mt-3 grid grid-cols-2 gap-2" role="radiogroup">
-        {ROLE_OPTIONS.map((option) => {
-          const selected = value === option.value;
-          return (
-            <label
-              key={option.value}
-              className={`has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-4 has-[:focus-visible]:outline-brand flex min-h-[76px] cursor-pointer flex-col justify-center rounded-control border px-4 py-3 transition-[border-color,background-color,color,box-shadow,transform] duration-150 active:scale-[0.99] ${
-                selected
-                  ? "border-brand bg-brand text-white shadow-[var(--shadow-1)]"
-                  : "border-border bg-card hover:border-brand-line hover:bg-brand-soft/45"
-              }`}
-            >
-              <input
-                type="radio"
-                name="account-role"
-                value={option.value}
-                checked={selected}
-                onChange={() => onChange(option.value)}
-                className="sr-only"
-              />
-              <span className={`text-base font-semibold ${selected ? "text-white" : "text-foreground"}`}>{option.label}</span>
-              <span className={`mt-0.5 text-xs leading-relaxed ${selected ? "text-white/80" : "text-muted"}`}>{option.description}</span>
-            </label>
-          );
-        })}
-      </div>
-    </fieldset>
-  );
-}
-
 export type AuthInputProps = InputHTMLAttributes<HTMLInputElement> & {
   readonly label: string;
   readonly error?: string;
