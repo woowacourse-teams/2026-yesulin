@@ -8,3 +8,22 @@
 
 .documentLink { position: absolute; z-index: 1; display: block; border-radius: 3px; cursor: pointer; }
 .documentLink:hover, .documentLink:focus-visible { outline: 2px solid #2463eb; background: rgb(36 99 235 / 8%); }
+
+.expandable { position: relative; }
+.expandable .page { cursor: zoom-in; }
+.expanded { position: fixed; inset: 0; z-index: 1000; background: #14171c; }
+.expanded .reader { position: absolute; top: calc(64px + env(safe-area-inset-top, 0px)); right: 0; bottom: 0; left: 0; height: auto; min-height: 0; max-height: none; background: transparent; }
+.expanded .document { gap: 16px; padding-block: 0 16px; background: transparent; }
+.expandButton { position: absolute; top: 12px; right: 24px; z-index: 2; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border: 1px solid rgb(15 23 42 / 12%); border-radius: 12px; background: rgb(255 255 255 / 94%); color: #111722; font-size: 13px; font-weight: 700; box-shadow: 0 2px 8px rgb(15 23 42 / 12%); cursor: pointer; }
+.expandButton kbd { font: inherit; font-size: 11px; font-weight: 600; color: #64748b; }
+.expanded .expandButton { top: max(10px, env(safe-area-inset-top)); right: max(24px, env(safe-area-inset-right)); }
+.expanded { color: #e5e7eb; }
+.expandedCaption { position: absolute; top: max(10px, env(safe-area-inset-top)); left: max(24px, env(safe-area-inset-left)); right: 140px; z-index: 2; display: grid; gap: 4px; font-size: 14px; line-height: 1.4; color: #f1f5f9; pointer-events: none; }
+.expandedCaption p { margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.expandedCaption p + p { font-size: 12px; color: #94a3b8; }
+.expandedCaption [data-caption-error] { width: fit-content; max-width: 100%; white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; padding: 4px 10px; line-height: 1.35; border-radius: 8px; background: #fef2f2; color: #b91c1c; font-size: 13px; font-weight: 600; }
+.expandedCaption kbd { font: inherit; font-weight: 700; padding: 1px 5px; margin-right: 2px; border: 1px solid #475569; border-radius: 4px; color: #e2e8f0; }
+.expandedCaption [data-review-status="PASS"] { color: #4ade80; }
+.expandedCaption [data-review-status="ETC"] { color: #c4b5fd; }
+.expandedCaption [data-review-status="FAIL"] { color: #f87171; }
+@media (max-width: 1023px) { .expandedCaption { right: 120px; } .expandedCaption [data-caption-detail] { display: none; } }

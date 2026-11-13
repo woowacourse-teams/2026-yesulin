@@ -19,8 +19,8 @@ async function fetchForServer(path: string): Promise<Response | null> {
 }
 
 /** 서버에서 읽지 않으면 null이고 화면이 브라우저에서 다시 읽는다. */
-export async function actorPagesForServer(page: number): Promise<PublicActorPageList | null> {
-  const response = await fetchForServer(actorPageApiPaths.list(page));
+export async function actorPagesForServer(page: number, keyword = ""): Promise<PublicActorPageList | null> {
+  const response = await fetchForServer(actorPageApiPaths.list(page, undefined, keyword));
   if (!response) return null;
   if (!response.ok) throw new Error(`배우 목록 조회 실패: ${response.status}`);
   return await response.json() as PublicActorPageList;

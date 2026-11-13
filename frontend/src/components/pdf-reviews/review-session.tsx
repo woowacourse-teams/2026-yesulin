@@ -1,5 +1,6 @@
 "use client";
 
+import { PRODUCER_LOGIN_PATH } from "@/features/auth/producer-navigation";
 import { useState } from "react";
 import { useAuthSession } from "@/components/auth/auth-session";
 import { PrimaryButton, SecondaryButton } from "@/components/ui/controls";
@@ -36,7 +37,7 @@ export function ReviewLoginGate({ local, ready }: { readonly local: boolean; rea
     <div className="mt-5 flex flex-wrap items-center gap-3">
       {!ready ? <p role="status" className="text-sm text-muted-strong">로그인 상태를 확인하고 있습니다…</p>
         : local ? <LocalLoginButton label="로컬 테스트 계정으로 시작" tone="primary" />
-          : <a href="/login" className="inline-flex min-h-12 items-center font-semibold text-brand">로그인으로 이동</a>}
+          : <a href={PRODUCER_LOGIN_PATH} className="inline-flex min-h-12 items-center font-semibold text-brand">로그인으로 이동</a>}
     </div>
   </section>;
 }
@@ -46,7 +47,7 @@ export function SessionExpiredNotice({ local, onRecheck }: { readonly local: boo
   return <div role="alert" className="mt-5 flex flex-wrap items-center gap-3 rounded-control border border-fail/30 bg-fail-bg p-4 text-sm text-fail">
     <p className="min-w-0 flex-1 basis-64">로그인이 만료되었습니다. 이 화면을 닫거나 새로고침하지 말고 다시 로그인해 주세요. 고른 파일은 그대로 남아 있습니다.</p>
     {local ? <LocalLoginButton label="로컬 계정 다시 로그인" tone="secondary" onLoggedIn={onRecheck} /> : <>
-      <a href="/login" target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center font-semibold text-brand">새 창에서 로그인</a>
+      <a href={PRODUCER_LOGIN_PATH} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center font-semibold text-brand">새 창에서 로그인</a>
       <SecondaryButton onClick={onRecheck}>로그인했습니다. 다시 확인</SecondaryButton>
     </>}
   </div>;

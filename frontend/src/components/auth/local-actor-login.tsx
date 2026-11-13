@@ -35,5 +35,5 @@ async function authenticateLocalActor(password: string) {
   const session = await login("community-actor@local.invalid", password);
   if (session.role === "APPLICANT" && session.status === "ACTIVE") return;
   await logout();
-  throw new Error("활성 배우 계정을 확인해 주세요.");
+  throw new Error("활성 회원 계정을 확인해 주세요.");
 }

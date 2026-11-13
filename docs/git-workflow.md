@@ -1,12 +1,5 @@
 # Git 작업 방식
 
-## 이슈와 보드
-
-- 작업 전에 `.github/ISSUE_TEMPLATE/`의 버그 또는 기능/작업 템플릿으로 이슈를 만든다.
-- 제목은 `{type}: {summary}` 형식이고 `type:*`, 필요한 `scope:*`, `priority:p1|p2|p3` 라벨을 붙인다.
-- 작업을 시작하면 담당자를 배정하고 프로젝트 #131의 상태를 `In Progress`로 옮긴다.
-- PR 본문에 `Closes #123`을 넣어 병합 시 이슈를 닫는다.
-
 ## 브랜치와 커밋
 
 - 브랜치: `{type}/{kebab-case-description}`

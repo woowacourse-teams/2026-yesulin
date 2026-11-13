@@ -172,7 +172,7 @@ export function trackLoginSuccess(returnTo?: string, fallback?: LoginAttribution
 }
 
 export function trackLoginReturnIfPending(pathname: string) {
-  if (pathname === "/login" || pathname === "/social-login/complete") return;
+  if (pathname === "/login" || pathname === "/producer-service/login" || pathname === "/social-login/complete") return;
   const pending = readSessionValue<LoginAttribution & { readonly provider: LoginProvider }>(LOGIN_RETURN_PENDING_KEY);
   if (!pending) return;
   trackAnalyticsEvent("login_return_success", { ...pending, return_target: loginReturnTarget(pathname) });

@@ -9,6 +9,7 @@ import { OtrAuditionTreeNav } from "@/components/otr-auditions/otr-audition-tree
 import { ShowManagementNav } from "@/components/shows/manage/show-management-nav";
 import { AuditionPostManagementNav } from "@/components/audition-posts/manage/audition-post-management-nav";
 import { ActorBookmarkNav } from "@/components/actor-pages/actor-bookmark-nav";
+import { SecondaryLink } from "@/components/ui/controls";
 import { SidebarResizer } from "./sidebar-resizer";
 import { MobileProducerNavigation } from "./mobile-producer-navigation";
 import { ProducerAccountPanel } from "./producer-account-panel";
@@ -106,7 +107,8 @@ function ProducerShellFrame({
           <MobileProducerNavigation />
           <div className="glass-surface hidden min-h-16 items-center justify-between border-b border-border px-6 py-2 lg:flex">
             {!focusMode ? <ProducerSidebarToggle /> : null}
-            <div className="ml-auto">
+            <div className="ml-auto flex items-center gap-2">
+              <SecondaryLink href="/">예술in 홈</SecondaryLink>
               <LogoutButton className="min-h-11 rounded-control px-3 text-sm font-semibold text-muted-strong hover:bg-brand-soft hover:text-brand" />
             </div>
           </div>

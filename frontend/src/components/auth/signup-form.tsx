@@ -1,5 +1,6 @@
 "use client";
 
+import { PRODUCER_LOGIN_PATH } from "@/features/auth/producer-navigation";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -104,8 +105,8 @@ export function SignupForm() {
     return (
       <section className="space-y-4" role="status">
         <h2 className="text-xl font-bold">회원가입은 완료됐습니다</h2>
-        <p>자동 로그인에 실패했습니다. 로그인 화면에서 기획사/제작사를 선택해 다시 로그인해 주세요.</p>
-        <Link href="/login" className="inline-flex min-h-12 items-center font-semibold text-brand">로그인 화면으로 이동</Link>
+        <p>자동 로그인에 실패했습니다. 아래 링크에서 다시 로그인해 주세요.</p>
+        <Link href={PRODUCER_LOGIN_PATH} className="inline-flex min-h-12 items-center font-semibold text-brand">로그인 화면으로 이동</Link>
       </section>
     );
   }

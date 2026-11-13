@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
 import { startReviewTimer } from "@/features/analytics/review-timer";
 import type { ReviewInput } from "@/features/analytics/review-actions";
 import type { Applicant, ReviewStatus } from "@/features/pdf-reviews/screening-types";
@@ -9,24 +9,31 @@ import { SecondaryButton } from "@/components/ui/controls";
 import { ReviewDocumentHeading } from "../review-document-heading";
 import { ReviewRoleSelect } from "../review-role-select";
 import { useBoard } from "./board-context";
+import { FullscreenCaption } from "./fullscreen-caption";
+
+const shortcutDecisions: Readonly<Record<string, ReviewStatus>> = { KeyA: "PASS", KeyS: "ETC", KeyD: "FAIL" };
 
 export function ApplicantFocusReview({ rows, onBack, initialId }: { readonly rows: readonly Applicant[]; readonly onBack?: () => void; readonly initialId?: string }) {
   const [activeId, setActiveId] = useState(initialId ?? rows[0]?.id ?? null);
+  const [documentExpanded, setDocumentExpanded] = useState(false);
   const applicant = rows.find(row => row.id === activeId) ?? rows[0];
   if (!applicant) return null;
-  return <FocusReviewContent key={applicant.id} applicant={applicant} rows={rows} index={rows.indexOf(applicant)} onBack={onBack} onMove={id => setActiveId(id)} />;
+  return <FocusReviewContent key={applicant.id} applicant={applicant} rows={rows} index={rows.indexOf(applicant)} onBack={onBack} onMove={id => setActiveId(id)}
+    documentExpanded={documentExpanded} onDocumentExpandedChange={setDocumentExpanded} />;
 }
 
-function FocusReviewContent({ applicant, rows, index, onBack, onMove }: {
+function FocusReviewContent({ applicant, rows, index, onBack, onMove, documentExpanded, onDocumentExpandedChange }: {
   readonly applicant: Applicant; readonly rows: readonly Applicant[]; readonly index: number;
   readonly onBack?: () => void; readonly onMove: (id: string) => void;
+  readonly documentExpanded: boolean; readonly onDocumentExpandedChange: (expanded: boolean) => void;
 }) {
   const boardState = useBoard();
-  const { board, requestNavigation, onNoteDirty, onApplicantOpened, onBasicAction, saving, reviewLocked, reviewFocused, renderDocument, roleOptions, currentRole, changeRole, renameTitle, saveMemo, registerNavigationSave } = boardState;
+  const { board, saveError, requestNavigation, onNoteDirty, onApplicantOpened, onBasicAction, saving, reviewLocked, reviewFocused, renderDocument, roleOptions, currentRole, changeRole, renameTitle, saveMemo, registerNavigationSave } = boardState;
   const [deciding, setDeciding] = useState(false);
   const decisionPending = useRef(false);
   const section = useRef<HTMLElement>(null);
-  useEffect(() => { section.current?.focus({ preventScroll: true }); }, [applicant.id]);
+  const focusSection = useEffectEvent(() => { if (!documentExpanded) section.current?.focus({ preventScroll: true }); });
+  useEffect(() => { focusSection(); }, [applicant.id]);
   const draft = useReviewAutosave({ title: applicant.sourceDocument?.title ?? "", memo: applicant.review.note },
     (field, value) => {
       if (field === "title" && renameTitle) return renameTitle(applicant.id, value);
@@ -61,12 +68,11 @@ function FocusReviewContent({ applicant, rows, index, onBack, onMove }: {
   useEffect(() => {
     const keyboard = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey || event.repeat || event.isComposing) return;
-      if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
+      if (document.querySelector('[role="dialog"][aria-modal="true"]:not([data-fullscreen-viewer])')) return;
       if (event.target instanceof HTMLElement && event.target.closest('input,textarea,select,button,a,[role="combobox"],[contenteditable=true]')) return;
-      const key = event.key.toLowerCase();
-      const decisions: Record<string, ReviewStatus> = { a: "PASS", s: "ETC", d: "FAIL" };
-      if (decisions[key] && !saving && !reviewLocked) { event.preventDefault(); void save(decisions[key], "shortcut"); }
-      if (key === "n" && rows[index + 1]) { event.preventDefault(); void move(rows[index + 1], "shortcut"); }
+      const decision = shortcutDecisions[event.code];
+      if (decision && !saving && !reviewLocked) { event.preventDefault(); void save(decision, "shortcut"); }
+      if (event.code === "KeyN" && rows[index + 1]) { event.preventDefault(); void move(rows[index + 1], "shortcut"); }
     };
     window.addEventListener("keydown", keyboard); return () => window.removeEventListener("keydown", keyboard);
   }, [saving, reviewLocked, save, rows, index, move]);
@@ -85,7 +91,8 @@ function FocusReviewContent({ applicant, rows, index, onBack, onMove }: {
       </nav>
     </header>
     <div className="grid min-w-0 items-start gap-4 md:grid-cols-[minmax(0,1fr)_240px] xl:grid-cols-[minmax(0,1fr)_280px]">
-      <div className="min-w-0 overflow-hidden rounded-card border border-border bg-card">{renderDocument?.(applicant)}</div>
+      <div className="min-w-0 overflow-hidden rounded-card border border-border bg-card">{renderDocument?.(applicant, { expanded: documentExpanded, onExpandedChange: onDocumentExpandedChange,
+        caption: <FullscreenCaption name={applicant.name} status={applicant.review.status} position={index + 1} total={rows.length} error={fullscreenError(draft, saveError)} /> })}</div>
       <aside className="min-w-0 space-y-5 rounded-card border border-border bg-card p-4 md:sticky md:top-4" aria-label="지원자 심사">
         {!!roleOptions?.length && changeRole && <ReviewRoleSelect label="배역 배정" roles={roleOptions} value={currentRole?.(applicant.id) ?? null} disabled={disabled} onChange={roleId => void navigate(() => changeRole(applicant.id, roleId))} />}
         <div><label htmlFor="pdf-review-memo" className="mb-2 block text-sm font-semibold">내부 메모</label><textarea aria-invalid={draft.errorField === "memo"} aria-describedby={errorIds.memo} id="pdf-review-memo" value={draft.memo} maxLength={500} disabled={disabled || reviewLocked} rows={6} onChange={event => draft.change("memo", event.target.value)} onBlur={() => void flush()} onCompositionStart={() => draft.compose("memo", true)} onCompositionEnd={event => draft.compose("memo", false, event.currentTarget.value)} className="h-44 w-full resize-none rounded-control border border-border bg-surface p-3 text-sm" /></div>
@@ -94,4 +101,9 @@ function FocusReviewContent({ applicant, rows, index, onBack, onMove }: {
       </aside>
     </div>
   </section>;
+}
+
+function fullscreenError(draft: { readonly status: string; readonly error?: string | null }, saveError?: string) {
+  if (draft.status === "error") return draft.error || "자동 저장하지 못했습니다.";
+  return saveError;
 }
