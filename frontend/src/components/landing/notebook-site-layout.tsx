@@ -32,7 +32,7 @@ export function NotebookHeader({ service = "applicant" }: { readonly service?: "
   return <header className="notebook-header"><div className="notebook-container notebook-header-inner">
     <Link href="/" aria-label="예술in 홈" className="notebook-logo"><Image src="/images/yesulin-wordmark.png" alt="예술in" width={707} height={320} priority /></Link>
     <nav aria-label="주요 메뉴" className="notebook-main-nav">{menuItems.map((item) => <Link key={item.key} href={item.href} aria-current={current === item.key ? "page" : undefined}>{item.label}</Link>)}</nav>
-    <div className="notebook-account"><HeaderAccountLinks service={service} producerLinkClassName="notebook-producer-link" /></div>
+    <div className="notebook-account"><HeaderAccountLinks service={service} serviceLinkClassName="notebook-producer-link" /></div>
     <NotificationBell />
     <MobileNavigation key={pathname} current={current} service={service} />
   </div></header>;
@@ -47,17 +47,20 @@ function currentMenu(pathname: string): (typeof menuItems)[number]["key"] | unde
   return undefined;
 }
 
-function HeaderAccountLinks({ service, producerLinkClassName }: { readonly service: "applicant" | "producer"; readonly producerLinkClassName?: string }) {
+function HeaderAccountLinks({ service, serviceLinkClassName }: { readonly service: "applicant" | "producer"; readonly serviceLinkClassName?: string }) {
   const { session } = useAuthSession();
+  const producer = service === "producer";
+  const homeLink = <Link href="/" className={serviceLinkClassName}>예술in 홈</Link>;
   if (session) return <>
     {session.role === "APPLICANT" && <Link href={applicantRoutes.home}>마이페이지</Link>}
     {session.role === "PRODUCER" && <Link href={producerAuditionPostRoutes.list}>내 오디션 공고</Link>}
     <LogoutButton />
+    {producer && homeLink}
   </>;
-  const producer = service === "producer";
   return <>
     <TrackedLoginLink href={producer ? PRODUCER_LOGIN_PATH : "/login"} analytics={{ entry_point: producer ? "producer_landing_header" : "landing_header", login_reason: producer ? "manage_production" : "account_access", actor_type: service, return_target: producer ? "producer_home" : "other" }}>로그인</TrackedLoginLink>
-    <Link href="/producer-service" className={producerLinkClassName}>기획사·제작사 서비스</Link>
+    {producer && homeLink}
+    {!producer && <Link href="/producer-service" className={serviceLinkClassName}>기획사·제작사 서비스</Link>}
   </>;
 }
 

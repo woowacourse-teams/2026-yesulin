@@ -16,10 +16,12 @@ describe("공개 헤더의 계정 이동", () => {
     expect(html).not.toContain("로그아웃");
   });
 
-  it("기획사 서비스 화면의 로그인은 이메일 로그인 경로로 간다", () => {
+  it("기획사 서비스 방문자는 이메일 로그인과 예술in 홈으로 이동할 수 있다", () => {
     const html = renderToStaticMarkup(<NotebookHeader service="producer" />);
     expect(html).toContain('href="/producer-service/login"');
+    expect(html).toMatch(/<a[^>]*href="\/"[^>]*>예술in 홈<\/a>/);
     expect(html).not.toContain('href="/login"');
+    expect(html).not.toContain('href="/producer-service"');
   });
 
   it("배우는 공개 화면에서 마이페이지로 돌아갈 수 있다", () => {
@@ -41,5 +43,12 @@ describe("공개 헤더의 계정 이동", () => {
     expect(html).not.toContain('href="/applicants/submissions"');
     expect(html).toContain("로그아웃");
     expect(html).not.toContain('href="/producer-service"');
+  });
+
+  it("기획사 세션으로 서비스 소개를 볼 때 공고 관리와 예술in 홈을 함께 제공한다", () => {
+    auth.session = { credential: "fixture", role: "PRODUCER", displayName: "공연사" };
+    const html = renderToStaticMarkup(<NotebookHeader service="producer" />);
+    expect(html).toContain('href="/producers/audition-posts"');
+    expect(html).toMatch(/<a[^>]*href="\/"[^>]*>예술in 홈<\/a>/);
   });
 });
