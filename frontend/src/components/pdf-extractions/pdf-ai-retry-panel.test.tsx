@@ -60,9 +60,8 @@ it("배우 계정과 손상된 링크는 재분석 실행 버튼을 제공하지
 it("로그인은 새 탭에서 진행하고 기존 재분석 링크에서 세션을 다시 확인한다", async () => {
   vi.mocked(fetchCurrentSession).mockResolvedValueOnce(null);
   await mount();
-  const login = container.querySelector<HTMLAnchorElement>('a[href="/login"]')!;
+  const login = container.querySelector<HTMLAnchorElement>('a[href="/producer-service/login"]')!;
   expect(login.target).toBe("_blank");
-  expect(container.textContent).toContain("기획사/제작사를 선택");
   await act(async () => { container.querySelector("button")!.click(); });
   expect(container.textContent).toContain("재분석 실행");
   expect(fetchCurrentSession).toHaveBeenCalledTimes(2);

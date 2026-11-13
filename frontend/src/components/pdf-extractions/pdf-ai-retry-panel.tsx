@@ -1,5 +1,6 @@
 "use client";
 
+import { PRODUCER_LOGIN_PATH } from "@/features/auth/producer-navigation";
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { PrimaryButton, SecondaryButton } from "@/components/ui/controls";
@@ -57,10 +58,8 @@ export function PdfAiRetryPanel() {
           : !authorized ? <div className="mt-4 space-y-3 text-sm">
             <p>새 탭에서 지원서를 올린 공연사 또는 운영자 계정으로 로그인한 뒤, 이 화면에서 로그인을 다시 확인해 주세요.</p>
             <div className="flex flex-wrap gap-4">
-              <a className="inline-flex min-h-11 items-center font-semibold text-brand" href="/login" target="_blank" rel="noreferrer">공연사 로그인 (새 탭)</a>
-              <a className="inline-flex min-h-11 items-center font-semibold text-brand" href="/admin" target="_blank" rel="noreferrer">운영자 로그인</a>
+              <a className="inline-flex min-h-11 items-center font-semibold text-brand" href={PRODUCER_LOGIN_PATH} target="_blank" rel="noreferrer">공연사·운영자 로그인 (새 탭)</a>
             </div>
-            <p className="text-xs text-muted">공연사 로그인 화면에서 기획사/제작사를 선택해 주세요.</p>
             <SecondaryButton onClick={() => { setReady(false); setError(""); setRefresh(value => value + 1); }}>로그인 다시 확인</SecondaryButton>
           </div>
             : <div className="mt-6">

@@ -961,11 +961,13 @@ availability는 정규화된 handle과 available, reason(null/INVALID_FORMAT/RES
 
 | Method | URL | 인증 | Request | Response |
 | --- | --- | --- | --- | --- |
-| GET | `/api/v1/public/actor-pages?page=0&size=12&sort=recent` | 공개 | query | `200 PublicActorPagePageResult(actorPages, page, size, totalPages, totalElements)` |
+| GET | `/api/v1/public/actor-pages?page=0&size=12&sort=recent&q=` | 공개 | query | `200 PublicActorPagePageResult(actorPages, page, size, totalPages, totalElements)` |
 | GET | `/api/v1/public/actor-pages/by-handle/{handle}` | 공개 | 없음 | `200 PublicActorPageResult` |
 
 목록은 공개 중이고 잠기지 않은 페이지만 담는다. page는 0 이상, size는 1~48이고 sort는 `recent`만 받는다(그 밖은 `400`).
-`recent`는 `lastPublicActivityAt` 내림차순, 같으면 페이지 ID 내림차순이다. 카드(`PublicActorPageSummaryResult`)는 다음 필드다.
+`recent`는 `lastPublicActivityAt` 내림차순, 같으면 페이지 ID 내림차순이다. `q`는 선택이며 이름이나 아이디의 일부와 대소문자
+구분 없이 맞는 공개 페이지만 담는다. 앞뒤 공백과 앞의 `@`를 떼고, 비면 검색어가 없는 것으로 본다. 30자를 넘으면 `400`이다.
+검색어의 `%`·`_`는 문자 그대로 비교한다. 카드(`PublicActorPageSummaryResult`)는 다음 필드다.
 
 ```text
 publicId, handle, name, gender(FEMALE/MALE), birthYear, age, height(null 가능), weight(null 가능),
@@ -1068,6 +1070,57 @@ savedCount, hiddenCount, limit
 - 공연사당 300명까지이며 숨긴 저장도 포함한다. 한도에 닿은 상태에서 새로 저장하면 `409 ACTOR_BOOKMARK_LIMIT_EXCEEDED`이고,
   메시지에 숨긴 저장 수를 함께 적는다. 같은 공연사의 저장·해제는 회원 행을 잠가 순서대로 처리하므로 동시 요청도 한도를 넘지 않는다.
 - 배우에게 누가, 몇 명이 저장했는지 알려 주는 API는 없다.
+
+## 배우 페이지 좋아요 — 3개
+
+좋아요는 아이디가 아니라 배우 페이지의 `publicId`를 쓴다. 조회는 누구나, 누르기·취소는 활성 일반 회원(`APPLICANT + ACTIVE`)
+세션이 필요하고 쓰기는 기존 CSRF 규칙을 따른다. 응답은 모두 `Cache-Control: no-store`다.
+
+| Method | URL | 인증 | Response |
+| --- | --- | --- | --- |
+| GET | `/api/v1/public/actor-pages/{publicId}/likes` | 공개(로그인하면 내 상태 포함) | `200 ActorPageLikesResult` |
+| PUT | `/api/v1/actor-pages/{publicId}/likes/me` | 활성 회원 | `200 ActorPageLikesResult` |
+| DELETE | `/api/v1/actor-pages/{publicId}/likes/me` | 활성 회원 | `200 ActorPageLikesResult` |
+
+```text
+ActorPageLikesResult: count, me{loggedIn, owner, canLike, liked}
+```
+
+- 공개 배우 페이지 응답은 보는 사람과 무관하게 같아야 하므로 좋아요 수와 내 상태는 이 API로 따로 받는다. 누른 사람은 누구에게도
+  알려 주지 않는다.
+- me는 지금 보는 나의 상태이며 로그인하지 않았으면 모두 false다. `likes/me`는 "이 페이지에 대한 내 좋아요"를 뜻한다. owner는 이 페이지의 주인, canLike는 활성 일반 회원이고 주인이 아니라 누를 수
+  있는 경우, liked는 내가 이미 누른 경우다. 공연사·운영자 계정과 대기 상태 계정은 canLike가 false다.
+- 누르기·취소는 같은 요청을 반복해도 결과가 같고 갱신된 `ActorPageLikesResult`를 준다. 같은 회원의 요청은 회원 행을 잠가 순서대로
+  처리하므로 동시에 보내도 하나만 남는다.
+- 배우 목록에 보이는 페이지만 받는다. 없는 ID·비공개·잠금·자동 비공개 페이지는 조회·누르기·취소 모두 `404 ACTOR_PAGE_NOT_FOUND`다.
+- 내 배우 페이지에 누르면 `403 ACTOR_PAGE_SELF_LIKE`다. 로그인하지 않았으면 `401`, 활성 일반 회원이 아니면(공연사·운영자 등) `403`이다.
+
+## 배우 페이지 응원 글 — 4개
+
+응원 글도 아이디가 아니라 배우 페이지의 `publicId`를 쓴다. 조회는 누구나, 쓰기·수정·삭제는 활성 일반 회원(`APPLICANT + ACTIVE`)
+세션이 필요하고 쓰기는 기존 CSRF 규칙을 따른다. 응답은 모두 `Cache-Control: no-store`다.
+
+| Method | URL | 인증 | Request | Response |
+| --- | --- | --- | --- | --- |
+| GET | `/api/v1/public/actor-pages/{publicId}/cheers?before=&size=10` | 공개(로그인하면 내 글 표시 포함) | query | `200 ActorPageCheersResult` |
+| POST | `/api/v1/actor-pages/{publicId}/cheers` | 활성 회원 | `{body}` | `201 ActorPageCheerResult` |
+| PATCH | `/api/v1/actor-pages/{publicId}/cheers/{cheerId}` | 활성 회원 | `{body}` | `200 ActorPageCheerResult` |
+| DELETE | `/api/v1/actor-pages/{publicId}/cheers/{cheerId}` | 활성 회원 | 없음 | `204` |
+
+```text
+ActorPageCheersResult: totalCount, cheers[ActorPageCheerResult], nextBefore(null 가능), me{loggedIn, owner, canWrite}
+ActorPageCheerResult: id, fanNumber, body, mine, createdAt, edited
+```
+
+- 목록은 지우지 않은 응원 글을 최신순으로 담는다. X  다음 요청의 `before`로 쓴다. totalCount는 지우지 않은 글 수다.
+- fanNumber는 그 배우 페이지에서 처음 응원한 순서(삭제한 글 포함)로 매긴 팬 번호이며 같은 회원은 같은 번호를 쓴다. 작성 회원은
+  응답에 담지 않고, mine은 내가 쓴 글인지만 알린다. edited는 쓴 뒤에 고쳤는지다.
+- me는 지금 보는 나의 상태다. owner는 이 페이지의 주인, canWrite는 활성 일반 회원이고 주인이 아니라 쓸 수 있는 경우이며 로그인하지
+  않았으면 모두 false다.
+- body는 앞뒤 공백을 제거하고 줄바꿈을 `\n`으로 맞춘다. 비었거나 500자를 넘으면 `400`이다.
+- 배우 목록에 보이는 페이지만 받는다. 없는 ID·비공개·잠금·자동 비공개 페이지는 조회·쓰기·수정·삭제 모두 `404 ACTOR_PAGE_NOT_FOUND`다.
+- 내 배우 페이지에 쓰면 `403 ACTOR_PAGE_SELF_CHEER`, 남의 글을 고치거나 지우면 `403 ACTOR_CHEER_NOT_AUTHOR`, 없거나 이미 지운 글은
+  `404 ACTOR_CHEER_NOT_FOUND`다. 로그인하지 않았으면 `401`, 활성 일반 회원이 아니면 `403`이다.
 
 ## PDF 지원자 재분석 요청
 

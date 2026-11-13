@@ -4,9 +4,10 @@ import type { ReviewAction, ReviewInput } from "@/features/analytics/review-acti
 import type { Applicant, ReviewStatus, SubmissionId } from "@/features/pdf-reviews/screening-types";
 import type { ReviewKey, ReviewRole } from "@/features/pdf-reviews/types";
 import type { RoleSummary } from "@/features/auditions/types";
+import type { PdfFrameState } from "@/components/pdf-extractions/pdf-expandable-frame";
 export type BoardContextValue = {
   source: { kind: "PDF" }; board: { role: RoleSummary }; filters: { work: "PENDING" | "DONE" };
-  selected: ReadonlySet<SubmissionId>; saving: boolean; reviewLocked: boolean;
+  selected: ReadonlySet<SubmissionId>; saving: boolean; reviewLocked: boolean; saveError?: string;
   toggleSelected: (id: SubmissionId) => void; openApplicant: (id: SubmissionId) => void;
   roleOptions?: readonly ReviewRole[];
   currentRole?: (id: SubmissionId) => ReviewKey | null;
@@ -14,7 +15,7 @@ export type BoardContextValue = {
   renameTitle?: (id: SubmissionId, title: string) => Promise<string | null>;
   saveMemo?: (id: SubmissionId, memo: string) => Promise<string | null>;
   registerNavigationSave?: (flush: () => Promise<boolean>) => () => void;
-  renderDocument?: (applicant: Applicant) => ReactNode;
+  renderDocument?: (applicant: Applicant, frame: PdfFrameState) => ReactNode;
   requestNavigation?: (action: () => void) => void;
   onNoteDirty?: (dirty: boolean) => void;
   onApplicantOpened?: () => void;

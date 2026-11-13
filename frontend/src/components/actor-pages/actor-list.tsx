@@ -1,15 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 import { ScreenError } from "@/components/auditions/screen-status";
 import { NotebookListHeading } from "@/components/landing/notebook-page-main";
 import { ContentSkeleton, ContentState } from "@/components/ui/content-state";
+import { FieldInput, PrimaryButton, SecondaryLink } from "@/components/ui/controls";
+import { SiteIcon } from "@/components/ui/site-icon";
 import { getActorPages } from "@/features/actor-pages/api";
 import {
+  ACTOR_SEARCH_MAX_LENGTH,
   actorBodyLine,
   actorIdentityLine,
   actorPageRoutes,
+  emptyListRecovery,
   type PublicActorPageList,
   type PublicActorPageSummary,
 } from "@/features/actor-pages/types";
@@ -26,32 +30,39 @@ type ListState =
 const GRID = "grid grid-cols-2 gap-x-3 gap-y-6 min-[761px]:grid-cols-3 min-[1100px]:grid-cols-4";
 
 /** 배우 목록은 서버가 미리 읽은 페이지를 쓰고, 목 환경·서버 API 미설정 시 브라우저에서 읽는다. */
-export function ActorListRoute({ page, initialList }: { readonly page: number; readonly initialList: PublicActorPageList | null }) {
+export function ActorListRoute({ page, keyword, initialList }: {
+  readonly page: number;
+  readonly keyword: string;
+  readonly initialList: PublicActorPageList | null;
+}) {
   const [state, setState] = useState<ListState>(() => initialList === null
     ? { status: "loading" }
     : { status: "ready", list: initialList });
 
   const load = useCallback(() => {
     let active = true;
-    getActorPages(page)
+    getActorPages(page, keyword)
       .then((list) => { if (active) setState({ status: "ready", list }); })
       .catch((cause) => {
         console.error("[배우 목록 조회 실패]", cause);
         if (active) setState({ status: "error" });
       });
     return () => { active = false; };
-  }, [page]);
+  }, [page, keyword]);
 
   useEffect(() => {
     if (initialList !== null) return;
     return load();
   }, [initialList, load]);
 
+  const recovery = emptyListRecovery(page, keyword);
+
   return (
     <ActorPageScreen>
       {state.status === "ready" ? <ActorScreenView key={page} screen="actor_list" /> : null}
       <NotebookListHeading title="배우" />
-      <p className="-mt-2 mb-6 text-sm leading-6 text-muted-strong">예술in에 프로필 페이지를 공개한 배우들이에요. 최근 소식이 있는 배우부터 보여요.</p>
+      <p className="-mt-2 mb-5 text-sm leading-6 text-muted-strong">예술in에 프로필 페이지를 공개한 배우들이에요. 최근 소식이 있는 배우부터 보여요.</p>
+      <ActorSearchForm keyword={keyword} resultCount={state.status === "ready" ? state.list.totalElements : null} />
       {state.status === "loading" ? (
         <ContentSkeleton label="배우 목록 불러오는 중">
           <div className={GRID}>{[0, 1, 2, 3].map((item) => <div key={item}><div className="aspect-[3/4] rounded-card bg-border-soft" /><div className="mt-3 h-5 w-1/2 rounded bg-border-soft" /></div>)}</div>
@@ -62,18 +73,61 @@ export function ActorListRoute({ page, initialList }: { readonly page: number; r
       ) : null}
       {state.status === "ready" && state.list.actorPages.length === 0 ? (
         <ContentState
-          title={page > 0 ? "이 페이지에는 배우가 없어요" : "아직 공개된 배우 페이지가 없어요"}
-          description={page > 0 ? "첫 페이지에서 다시 둘러봐 주세요." : "배우가 프로필 페이지를 공개하면 이곳에 보여요."}
-          action={page > 0 ? <Link href={actorPageRoutes.list()} className="font-semibold text-brand hover:underline">첫 페이지로</Link> : undefined}
+          title={emptyTitle(page, keyword)}
+          description={emptyDescription(page, keyword)}
+          action={recovery ? <Link href={recovery.href} className="font-semibold text-brand hover:underline">{recovery.label}</Link> : undefined}
         />
       ) : null}
       {state.status === "ready" && state.list.actorPages.length > 0 ? (
         <>
           <ul className={GRID}>{state.list.actorPages.map((actor) => <ActorCard key={actor.publicId} actor={actor} />)}</ul>
-          <ActorListPagination page={page} totalPages={state.list.totalPages} />
+          <ActorListPagination page={page} totalPages={state.list.totalPages} href={(target) => actorPageRoutes.list(target, keyword)} />
         </>
       ) : null}
     </ActorPageScreen>
+  );
+}
+
+function emptyTitle(page: number, keyword: string): string {
+  if (keyword) return page > 0 ? "이 페이지에는 검색 결과가 없어요" : `‘${keyword}’에 맞는 배우가 없어요`;
+  return page > 0 ? "이 페이지에는 배우가 없어요" : "아직 공개된 배우 페이지가 없어요";
+}
+
+function emptyDescription(page: number, keyword: string): string {
+  if (keyword) return page > 0 ? "첫 페이지에서 다시 확인해 주세요." : "이름이나 아이디를 다시 확인하거나 일부만 입력해 보세요.";
+  return page > 0 ? "첫 페이지에서 다시 둘러봐 주세요." : "배우가 프로필 페이지를 공개하면 이곳에 보여요.";
+}
+
+/** 주소의 `?q=`로 이동하는 검색. 자바스크립트 없이도 제출되고, 검색하면 첫 페이지부터 보인다. */
+function ActorSearchForm({ keyword, resultCount }: { readonly keyword: string; readonly resultCount: number | null }) {
+  const inputId = useId();
+  return (
+    <form role="search" action={actorPageRoutes.list()} method="get" className="mb-6">
+      <label htmlFor={inputId} className="sr-only">배우 이름이나 아이디로 찾기</label>
+      <div className="flex flex-wrap gap-2">
+        <div className="relative min-w-0 flex-1 basis-60">
+          <span aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"><SiteIcon name="search" size={18} /></span>
+          <FieldInput
+            id={inputId}
+            name="q"
+            type="search"
+            defaultValue={keyword}
+            maxLength={ACTOR_SEARCH_MAX_LENGTH}
+            placeholder="배우 이름이나 아이디로 찾기"
+            autoCapitalize="none"
+            autoComplete="off"
+            spellCheck={false}
+            enterKeyHint="search"
+            className="pl-10"
+          />
+        </div>
+        <PrimaryButton type="submit">검색</PrimaryButton>
+        {keyword ? <SecondaryLink href={actorPageRoutes.list()}>검색 지우기</SecondaryLink> : null}
+      </div>
+      {keyword && resultCount !== null ? (
+        <p role="status" className="num mt-3 text-sm text-muted-strong">‘{keyword}’ 검색 결과 {resultCount}명</p>
+      ) : null}
+    </form>
   );
 }
 

@@ -13,7 +13,7 @@
 | 프론트 코드 | `frontend/AGENTS.md`와 그 라우팅 결과 |
 | 백엔드 코드 | `backend/AGENTS.md`와 그 라우팅 결과 |
 | 공통 도메인 변경 | `docs/domain.md` |
-| Git·Issue·PR | `docs/git-workflow.md` |
+| Git·PR | `docs/git-workflow.md` |
 | 문서 구조 자체 | `docs/README.md` |
 | 모든 작업의 평가·PR 기록 | `docs/agent-review.md` |
 

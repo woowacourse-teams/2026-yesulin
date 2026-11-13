@@ -26,6 +26,26 @@ public interface ActorPageRepository extends JpaRepository<ActorPage, Long> {
     /** 배우 목록에 나오는 페이지. 운영자 잠금은 상태를 비공개로 바꾸지만 잠금 여부도 함께 거른다. */
     Page<ActorPage> findAllByStatusAndLockedAtIsNull(ActorPageStatus status, Pageable pageable);
 
+    /**
+     * 배우 목록에서 이름이나 아이디 일부로 찾는다. 패턴은 소문자이고 `%`·`_`·`!`를 `!`로 이스케이프한 값이다.
+     */
+    @Query(value = """
+            select page from ActorPage page, ApplicantProfile profile
+            where profile.ownerId = page.ownerMemberId
+              and page.status = :status and page.lockedAt is null
+              and (page.handle like :pattern escape '!'
+                   or lower(profile.basicInformation.name) like :pattern escape '!')
+            """, countQuery = """
+            select count(page) from ActorPage page, ApplicantProfile profile
+            where profile.ownerId = page.ownerMemberId
+              and page.status = :status and page.lockedAt is null
+              and (page.handle like :pattern escape '!'
+                   or lower(profile.basicInformation.name) like :pattern escape '!')
+            """)
+    Page<ActorPage> searchPublic(
+            @Param("status") ActorPageStatus status, @Param("pattern") String pattern, Pageable pageable
+    );
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select page from ActorPage page where page.ownerMemberId = :ownerMemberId")
     Optional<ActorPage> findByOwnerMemberIdForUpdate(@Param("ownerMemberId") long ownerMemberId);
