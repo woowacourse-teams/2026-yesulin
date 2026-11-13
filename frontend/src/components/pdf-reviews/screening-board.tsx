@@ -6,6 +6,7 @@ import { roleId, postingId, type SubmissionId, type ReviewStatus } from "@/featu
 import { assignPdfReviewRoles, isUnauthorized, renamePdfReviewEntry, updatePdfReviewEntry } from "@/features/pdf-reviews/api";
 import { screeningApplicant } from "@/features/pdf-reviews/screening-adapter";
 import { matchesDecision, sameKey, type DecisionFilter, type ReviewDetail, type ReviewEntry } from "@/features/pdf-reviews/types";
+import { usePdfSourceCache } from "@/features/pdf-reviews/pdf-source-cache";
 import { ReviewOriginalDocument } from "./review-original-document";
 import { BoardProvider } from "./screening-ui/board-context";
 import { ApplicantFocusReview } from "./screening-ui/applicant-focus-review";
@@ -27,7 +28,13 @@ export function ScreeningBoard({ review, entries, decision, view, refreshKey, on
   const latest = useRef({ review, entries, onUnauthorized });
   useEffect(() => { latest.current = { review, entries, onUnauthorized }; });
   const rows = useMemo(() => entries.map(entry => screeningApplicant(review, entry)), [review, entries]);
+  const sources = usePdfSourceCache();
   const entryFor = (id: string) => latest.current.review.entries.find(entry => sameKey(entry.id, id));
+  const nextJobId = (id: SubmissionId) => {
+    const next = rows[rows.findIndex(row => row.id === id) + 1];
+    if (!next) return undefined;
+    return entryFor(next.id)?.jobId;
+  };
   const save = async (id: SubmissionId, status: ReviewStatus, note?: string, saveKind: "decision" | "memo" = "decision") => {
     if (savingRef.current) return null;
     const entry = entryFor(id); if (!entry) return null;
@@ -95,7 +102,7 @@ export function ScreeningBoard({ review, entries, decision, view, refreshKey, on
     onBasicAction: (id, action, input) => trackReviewAction(String(review.id), String(id), view, action, input),
     onApplicantOpened,
     reviewFocused: (id, status, _memo, note) => save(id, status, note),
-    renderDocument: (applicant, frame) => { const entry = entryFor(applicant.id); if (!entry) return null; return <ReviewOriginalDocument key={`${entry.jobId}:${refreshKey}`} jobId={entry.jobId} onUnauthorized={onUnauthorized} frame={frame} />; },
+    renderDocument: (applicant, frame) => { const entry = entryFor(applicant.id); if (!entry) return null; return <ReviewOriginalDocument key={`${entry.jobId}:${refreshKey}`} jobId={entry.jobId} sources={sources} prefetchJobId={nextJobId(applicant.id)} onUnauthorized={onUnauthorized} frame={frame} />; },
   }}>
     {error && <p role="alert" className="mb-3 rounded-control bg-fail-bg p-3 text-sm text-fail">{error}</p>}
     <p role="status" className="sr-only">{saving ? "저장 중…" : savedMessage}</p>

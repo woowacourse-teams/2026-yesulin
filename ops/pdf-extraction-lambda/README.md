@@ -25,6 +25,7 @@ Spring에 PDF Python 프로세스·대기열·추출 스케줄러를 설치하�
 - 심사 원본: `inputs/{reviewId}/{jobId}/source.pdf`
 - 독립/배우 원본: `inputs/{jobId}/source.pdf`
 - 이미지·캐시: 같은 scope의 `results/.../pdfium-v1/`
+- 심사 원본은 사진을 추출하지 않는다. 배우·독립 원본의 사진은 `images/page-NNN-image-NNN.webp`(긴 변 1600px, 품질 85)다.
 
 ObjectCreated prefix는 `inputs/`, suffix는 `/source.pdf`다. `results/`가 다시 추출을 일으키지 않는다.
 키는 Spring이 만들고 제목·파일명을 경로에 쓰지 않는다. 공개 CDN 대신 signed GET으로 원본/이미지를 본다.
@@ -61,6 +62,7 @@ Lambda 설정: Python 3.12 / ARM64 / `s3_handler.handler`.
 - `PDF_COMPLETION_API_TOKEN` (32자 이상 전용 비밀)
 
 새 서버의 공용 AI·목적별 배우 처리까지 배포한 뒤 추출 전용 ZIP과 새 작업으로 전체 흐름을 확인한다.
+WebP 사진 저장(2026-11-08)은 Spring이 `.webp` 키를 받는 버전을 먼저 배포한 뒤 ZIP을 올린다. 이전 Spring은 WebP 키 콜백을 400으로 거부한다.
 삭제한 모델 문맥 API를 호출하는 옛 배포 함수를 그대로 두고 서버를 교체하지 않는다.
 
 | 환경 | 함수 | 원본 prefix | 콜백 |

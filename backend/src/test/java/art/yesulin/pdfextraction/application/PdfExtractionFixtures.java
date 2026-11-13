@@ -33,7 +33,7 @@ public final class PdfExtractionFixtures {
             page.put("number", index + 1);
             page.put("text", pageTexts[index]);
             page.put("needsOcr", false);
-            page.putArray("images").add(image(storage.imageFileKeyPrefix(job) + "p" + (index + 1) + ".png"));
+            page.putArray("images").add(image(storage.imageFileKeyPrefix(job) + "p" + (index + 1) + ".webp"));
         }
         return root;
     }

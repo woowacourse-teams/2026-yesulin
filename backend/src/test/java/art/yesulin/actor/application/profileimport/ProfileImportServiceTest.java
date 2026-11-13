@@ -133,7 +133,7 @@ class ProfileImportServiceTest {
         assertEquals(List.of("햄릿"),
                 proposals.careers().stream().map(ProfileImportResult.Career::title).toList());
         assertEquals(1, proposals.photos().size());
-        assertTrue(proposals.photos().getFirst().fileKey().endsWith("p1.png"));
+        assertTrue(proposals.photos().getFirst().fileKey().endsWith("p1.webp"));
         assertEquals(NOW.plus(Duration.ofHours(24)), result.deletesAt());
     }
 
@@ -226,7 +226,7 @@ class ProfileImportServiceTest {
         String candidate = service.find(ACTOR, jobId).proposals().photos().getFirst().fileKey();
         byte[] image = {1, 2, 3};
         storage.storeImage(candidate, image);
-        when(files.createPrivateActorPhoto(ACTOR, "pdf-profile-photo.png", "image/png", image)).thenReturn(55L);
+        when(files.createPrivateActorPhoto(ACTOR, "pdf-profile-photo.webp", "image/webp", image)).thenReturn(55L);
         PhotoLibraryItemResult added = new PhotoLibraryItemResult(
                 9L, 55L, "/api/v1/files/55/content", 0, true, NOW, PhotoVisibility.PRIVATE, null
         );
@@ -234,7 +234,7 @@ class ProfileImportServiceTest {
 
         assertEquals(added, service.addPhoto(ACTOR, jobId, candidate));
 
-        String other = candidate.replace("p1.png", "p2.png");
+        String other = candidate.replace("p1.webp", "p2.webp");
         assertEquals(ProfileImportErrorCode.PROFILE_IMPORT_PHOTO_NOT_FOUND,
                 errorOf(() -> service.addPhoto(ACTOR, jobId, other)));
         when(photos.findPhotos(ACTOR)).thenReturn(new PhotoLibraryResult(List.of(added, added, added)));

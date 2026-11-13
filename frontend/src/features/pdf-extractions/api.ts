@@ -36,8 +36,13 @@ export function completePdfUpload(jobId: string) {
   return json<PdfExtractionJob>(`/${encodeURIComponent(jobId)}/completion`, {});
 }
 
+/** Reads a job without recording it as observed; callers record the observation when they show it. */
+export function readPdfExtraction(jobId: string, includeResult = false, signal?: AbortSignal) {
+  return json<PdfExtractionJob>(`/${encodeURIComponent(jobId)}?includeResult=${includeResult}`, undefined, signal);
+}
+
 export async function fetchPdfExtraction(jobId: string, includeResult = false, signal?: AbortSignal) {
-  const job = await json<PdfExtractionJob>(`/${encodeURIComponent(jobId)}?includeResult=${includeResult}`, undefined, signal);
+  const job = await readPdfExtraction(jobId, includeResult, signal);
   if (!signal?.aborted) observePdfExtraction(job);
   return job;
 }

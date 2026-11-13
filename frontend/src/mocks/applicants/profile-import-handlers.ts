@@ -159,7 +159,7 @@ export const profileImportHandlers = [
     if (!candidate) return apiError(404, "PROFILE_IMPORT_PHOTO_NOT_FOUND", "사진 후보를 찾을 수 없습니다.");
     const id = `profile-import-photo-${nextPhoto}`;
     nextPhoto += 1;
-    const added = addApplicantLibraryPhoto({ id, name: "pdf-profile-photo.png", url: candidate.url });
+    const added = addApplicantLibraryPhoto({ id, name: "pdf-profile-photo.webp", url: candidate.url });
     if (!added) return apiError(409, "PHOTO_LIBRARY_LIMIT_EXCEEDED", "사진보관함에는 사진을 최대 3장까지 저장할 수 있습니다.");
     return HttpResponse.json({
       id, fileId: 0, imageUrl: added.url, displayOrder: 0, representative: added.representative,

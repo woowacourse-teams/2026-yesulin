@@ -4,6 +4,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ReviewPassedContacts } from "./review-passed-contacts";
 import { usePassedContacts, type PassedContact } from "@/features/pdf-reviews/use-passed-contacts";
+vi.mock("@/features/monitoring/report-error", () => ({ reportError: vi.fn() }));
 vi.mock("@/features/pdf-reviews/use-passed-contacts", () => ({ usePassedContacts: vi.fn() }));
 vi.mock("./review-original-document", () => ({ ReviewOriginalDocument: () => null }));
 vi.mock("./review-timetable-panel", () => ({ ReviewTimetablePanel: () => null }));

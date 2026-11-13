@@ -2,7 +2,7 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { fetchPdfExtraction, PdfExtractionApiError } from "@/features/pdf-extractions/api";
+import { fetchPdfExtraction, PdfExtractionApiError, readPdfExtraction } from "@/features/pdf-extractions/api";
 import { fetchPdfReview } from "@/features/pdf-reviews/api";
 import { PdfReviewWorkbench } from "./pdf-review-workbench";
 
@@ -24,7 +24,7 @@ vi.mock("@/features/pdf-reviews/use-review-progress", () => ({ useReviewProgress
   fixtures.unauthorized = onUnauthorized;
   return { progress: { total: 1, uploading: 0, waiting: 0, completed: 1, partial: 0, failed: 0, complete: true }, error: "", recheck: vi.fn() };
 } }));
-vi.mock("@/features/pdf-extractions/api", async original => ({ ...await original<typeof import("@/features/pdf-extractions/api")>(), fetchPdfExtraction: vi.fn() }));
+vi.mock("@/features/pdf-extractions/api", async original => ({ ...await original<typeof import("@/features/pdf-extractions/api")>(), fetchPdfExtraction: vi.fn(), readPdfExtraction: vi.fn() }));
 vi.mock("@/features/pdf-reviews/api", async original => ({ ...await original<typeof import("@/features/pdf-reviews/api")>(), fetchPdfReview: vi.fn() }));
 
 let root: Root;
@@ -42,6 +42,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   container = document.createElement("div"); document.body.append(container); root = createRoot(container);
   vi.mocked(fetchPdfReview).mockResolvedValue(fixtures.review);
+  vi.mocked(readPdfExtraction).mockRejectedValue(new Error("원본 PDF가 아직 준비되지 않았습니다."));
   vi.mocked(fetchPdfExtraction).mockResolvedValue({ jobId: "job", originalFilename: "합성.pdf", size: 1, createdAt: "2026-10-31", uploadedAt: null,
     status: "COMPLETED", sourceFileKey: "", resultFileKey: "", sourceUrl: null,
     result: { status: "COMPLETED", sourceSha256: "", errorCode: "", warnings: [], pages: [{ number: 1, text: "010-0000-0001\n이메일: actor@example.test", needsOcr: false, images: [] }] },
@@ -57,7 +58,7 @@ describe("합격자 연락처 세션 경계", () => {
     expect(container.textContent).toContain("actor@example.test");
     expect(container.textContent).toContain("이메일 확인 1명");
     if (source === "원문 조회") {
-      vi.mocked(fetchPdfExtraction).mockRejectedValueOnce(new PdfExtractionApiError(401, "로그인 필요"));
+      vi.mocked(readPdfExtraction).mockRejectedValueOnce(new PdfExtractionApiError(401, "로그인 필요"));
       await click("PDF 보기");
     } else await act(async () => fixtures.unauthorized());
     expect(container.textContent).toContain("로그인이 만료되어 연락처를 숨겼습니다");

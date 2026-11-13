@@ -7,7 +7,7 @@ from urllib.parse import unquote_plus
 import boto3
 from botocore.config import Config
 
-from application.jobs import Settings, process_job
+from application.jobs import Settings, process_job, s3_trigger_options
 from infrastructure.aws_storage import S3Store
 from infrastructure.completion_api import CompletionApi
 
@@ -34,8 +34,7 @@ def requests_from_s3(event, settings):
         source = {"bucket": settings.bucket, "key": key}
         if item.get("versionId"):
             source["versionId"] = item["versionId"]
-        request = {"jobId": match[2], "source": source,
-                   "options": {"extractImages": True, "includeRegions": False}}
+        request = {"jobId": match[2], "source": source, "options": s3_trigger_options(match[1])}
         if match[1]:
             request["reviewId"] = match[1]
         requests.append(request)

@@ -10,6 +10,9 @@ import pypdfium2 as pdfium
 from pypdfium2 import raw
 
 PIPELINE_VERSION = "pdfium-v1"
+IMAGE_EXTENSION = "webp"
+IMAGE_CONTENT_TYPE = "image/webp"
+WEBP_QUALITY = 85
 
 
 class ExtractionError(Exception):
@@ -61,7 +64,7 @@ def write_image(obj, path, limits):
     try:
         image = bitmap.to_pil()
         try:
-            image.save(path, format="PNG", optimize=False)
+            image.save(path, format="WEBP", quality=WEBP_QUALITY)
             with path.open("rb") as stream:
                 digest = hashlib.file_digest(stream, "sha256").hexdigest()
             return {"originalWidth": px_width, "originalHeight": px_height,
@@ -145,7 +148,7 @@ def extract_pdf(source, output, *, limits=None, extract_images=True, include_reg
                             warnings.append({"code": "IMAGE_COUNT_LIMIT_EXCEEDED", "page": index + 1})
                             break
                         image_count += 1
-                        name = f"page-{index + 1:03d}-image-{image_count:03d}.png"
+                        name = f"page-{index + 1:03d}-image-{image_count:03d}.{IMAGE_EXTENSION}"
                         metadata = {"number": image_count, "status": "EXTRACTED", "fileName": name,
                                     "classification": "UNCLASSIFIED", "nestedFormDepth": obj.level}
                         path = output / name

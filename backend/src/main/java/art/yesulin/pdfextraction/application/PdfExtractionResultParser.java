@@ -97,7 +97,7 @@ public class PdfExtractionResultParser {
             }
             String key = image.path("key").asText();
             String filename = key.startsWith(prefix) ? key.substring(prefix.length()) : "";
-            requireValid(filename.matches("[a-zA-Z0-9_-]+\\.png"), "PDF 추출 이미지의 저장소 키가 올바르지 않습니다.");
+            requireValid(PdfExtractedImageFormat.isStoredImageName(filename), "PDF 추출 이미지의 저장소 키가 올바르지 않습니다.");
             String classification = image.path("classification").asText(UNCLASSIFIED);
             requireValid(Set.of(UNCLASSIFIED, "CANDIDATE", "OTHER", "UNCERTAIN").contains(classification),
                     "PDF 이미지 분류가 올바르지 않습니다.");
