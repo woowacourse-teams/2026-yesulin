@@ -21,3 +21,20 @@
 - 필수 PASS 5, FAIL 0, UNVERIFIED 0. 운영 미확인 1. 필수 검증률 5/5.
 - 신규 발견 0, 해결 0, 미해결 0. P0 0, P1 0, P2 0, P3 0. 오탐 0.
 - 발견 경로 PRECHECK 0, INDEPENDENT_REVIEW 0, POST_FIX_CHECK 0, EXTERNAL 0.
+
+## dev PR 검증
+
+- 작업 ID `2026-11-15-auth-producer-verification-dev-pr`
+- 평가일 2026-11-15, 인증 평가표 v1, 기준 `origin/dev`의 `f820dee4`
+- 독립 평가 1회, 신규 문제 0건. [PR #587](https://github.com/woowacourse-teams/2026-yesulin/pull/587)
+
+| ID | 확인 범위 | 근거 | 필수 | 판정 |
+| --- | --- | --- | --- | --- |
+| B01 | 인증 메일 진단·알림·관리자 재전송 범위 | `origin/dev`와 구현 커밋의 27개 파일을 대조했다. 설정, 홈 아이콘, 로컬 데모의 변경 없음 | Y | PASS |
+| B02 | 백엔드 회귀와 빌드 | 표적 테스트 82개, Checkstyle main/test와 `bootJar`. SMTP 제공자와 진단 클래스 패키징 확인 | Y | PASS |
+| B03 | 프론트 계약과 빌드 | 표적 테스트 39개, ESLint와 Webpack 프로덕션 빌드. 관리자 API 경로와 MSW 계약 대조 | Y | PASS |
+| B04 | 평가 기록과 정리 | 인증 작업별 기록을 포함하고 두 P2 문제의 사건과 해결 근거를 연결. 운영 수신 미확인 유지, 미사용 항목과 깨진 문서 링크 없음 | Y | PASS |
+
+- 필수 PASS 4, FAIL 0, UNVERIFIED 0, N/A 0.
+- 신규 발견 0, 해결 0, 미해결 0. P0 0, P1 0, P2 0, P3 0. 오탐 0.
+- 발견 경로 PRECHECK 0, INDEPENDENT_REVIEW 0, POST_FIX_CHECK 0, EXTERNAL 0.

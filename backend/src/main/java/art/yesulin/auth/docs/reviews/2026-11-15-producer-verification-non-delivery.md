@@ -20,12 +20,12 @@
 
 | 문제 ID | 심각도·유형·유입 | 발견 경로 | 상태 | 근거와 조치 | 최초 확정 | 최초 PR | 해결 시각 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 2026-11-15-auth-producer-verification-non-delivery-F01 | P2 · POLICY · EXISTING | INDEPENDENT_REVIEW | OPEN | [인증 작업 규칙](../AGENTS.md)은 SMTP 예외 메시지 기록을 금지한다. 재전송 예외는 [공통 요청 필터](../../../global/web/RequestLoggingFilter.java)에서 cause를 포함한 구조화 로그로 전달될 수 있다. 원문이 운영 로그에 실제로 남았는지는 확인하지 않았다. 코드 분석 범위에서 수정과 재검증은 수행하지 않았다. | 2026-11-15T15:04:34+09:00 | PENDING | — |
+| 2026-11-15-auth-producer-verification-non-delivery-F01 | P2 · POLICY · EXISTING | INDEPENDENT_REVIEW | OPEN | [인증 작업 규칙](../AGENTS.md)은 SMTP 예외 메시지 기록을 금지한다. 재전송 예외는 [공통 요청 필터](../../../global/web/RequestLoggingFilter.java)에서 cause를 포함한 구조화 로그로 전달될 수 있다. 원문이 운영 로그에 실제로 남았는지는 확인하지 않았다. 코드 분석 범위에서 수정과 재검증은 수행하지 않았다. | 2026-11-15T15:04:34+09:00 | #587 | — |
 
 | 사건 ID | 문제 ID | 사건 | 발생 시각 | 근거·PR |
 | --- | --- | --- | --- | --- |
-| 2026-11-15-auth-producer-verification-non-delivery-F01-E01 | 2026-11-15-auth-producer-verification-non-delivery-F01 | CONFIRMED | 2026-11-15T15:04:34+09:00 | 재전송 예외 전파와 공통 요청 필터의 cause 기록 경로를 소스로 확인함 · PENDING |
-| 2026-11-15-auth-producer-verification-non-delivery-F01-E02 | 2026-11-15-auth-producer-verification-non-delivery-F01 | FIXED | 2026-11-15T15:23:05+09:00 | SMTP 예외를 안전한 502로 변환하고 재전송의 원인 예외 미전파 테스트 통과 · [후속 작업](2026-11-15-producer-verification-mail-recovery.md) · PENDING |
+| 2026-11-15-auth-producer-verification-non-delivery-F01-E01 | 2026-11-15-auth-producer-verification-non-delivery-F01 | CONFIRMED | 2026-11-15T15:04:34+09:00 | 재전송 예외 전파와 공통 요청 필터의 cause 기록 경로를 소스로 확인함 · #587 |
+| 2026-11-15-auth-producer-verification-non-delivery-F01-E02 | 2026-11-15-auth-producer-verification-non-delivery-F01 | FIXED | 2026-11-15T15:23:05+09:00 | SMTP 예외를 안전한 502로 변환하고 재전송의 원인 예외 미전파 테스트 통과 · [후속 작업](2026-11-15-producer-verification-mail-recovery.md) · #587 |
 
 최초 평가 시점 집계
 

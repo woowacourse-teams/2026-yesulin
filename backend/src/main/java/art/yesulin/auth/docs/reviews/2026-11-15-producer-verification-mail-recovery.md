@@ -25,12 +25,12 @@ Slack은 안전한 인수 전달까지 단위 테스트로 검증했다.
 
 | 문제 ID | 심각도·유형·유입 | 발견 경로 | 상태 | 근거·수정 후 확인 | 최초 확정 기록 | 최초 PR | 해결 시각 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 2026-11-15-auth-producer-verification-mail-recovery-F01 | P2 · CODE · INTRODUCED | INDEPENDENT_REVIEW | FIXED | 초안은 새 재전송 감사 enum을 DB에 저장해 구버전 감사 조회의 `Enum.valueOf`에 실패할 수 있었다. 재전송 요청을 애플리케이션 로그에 남기고 감사 데이터 쓰기를 제거했다. enum diff 없음과 재전송·기존 관리자 상태 변경 테스트 통과를 확인했다. | 2026-11-15T15:22:43+09:00 | PENDING | 2026-11-15T15:23:05+09:00 |
+| 2026-11-15-auth-producer-verification-mail-recovery-F01 | P2 · CODE · INTRODUCED | INDEPENDENT_REVIEW | FIXED | 초안은 새 재전송 감사 enum을 DB에 저장해 구버전 감사 조회의 `Enum.valueOf`에 실패할 수 있었다. 재전송 요청을 애플리케이션 로그에 남기고 감사 데이터 쓰기를 제거했다. enum diff 없음과 재전송·기존 관리자 상태 변경 테스트 통과를 확인했다. | 2026-11-15T15:22:43+09:00 | #587 | 2026-11-15T15:23:05+09:00 |
 
 | 사건 ID | 문제 ID | 사건 | 발생 시각 | 근거·PR |
 | --- | --- | --- | --- | --- |
-| 2026-11-15-auth-producer-verification-mail-recovery-F01-E01 | 2026-11-15-auth-producer-verification-mail-recovery-F01 | CONFIRMED | 2026-11-15T15:22:43+09:00 | 독립 검토에서 초안의 새 DB 값과 기존 읽기 변환기를 대조함 · PENDING |
-| 2026-11-15-auth-producer-verification-mail-recovery-F01-E02 | 2026-11-15-auth-producer-verification-mail-recovery-F01 | FIXED | 2026-11-15T15:23:05+09:00 | DB 감사 enum 변경 제거 후 최종 백엔드 검증 통과 · PENDING |
+| 2026-11-15-auth-producer-verification-mail-recovery-F01-E01 | 2026-11-15-auth-producer-verification-mail-recovery-F01 | CONFIRMED | 2026-11-15T15:22:43+09:00 | 독립 검토에서 초안의 새 DB 값과 기존 읽기 변환기를 대조함 · #587 |
+| 2026-11-15-auth-producer-verification-mail-recovery-F01-E02 | 2026-11-15-auth-producer-verification-mail-recovery-F01 | FIXED | 2026-11-15T15:23:05+09:00 | DB 감사 enum 변경 제거 후 최종 백엔드 검증 통과 · #587 |
 
 - 필수 PASS 7, FAIL 0, UNVERIFIED 0. 운영 미확인 1. 필수 검증률 7/7.
 - 신규 발견 1, 해결 1, 미해결 0. P0 0, P1 0, P2 1, P3 0. 오탐 0.
