@@ -3,6 +3,8 @@ import { withCsrfHeaders } from "../csrf";
 import { safeUpload } from "../files/safe-upload";
 import { reportUploadDiagnostic } from "../files/upload-diagnostics";
 import { readErrorCode, readErrorMessage, readErrorDetail } from "../api-error";
+import { reportError } from "../monitoring/report-error";
+import { withRequestId } from "../monitoring/request-id";
 import type {
   AuditionPostFileKind,
   AuditionPostUpload,
@@ -230,23 +232,46 @@ export async function fetchLogs(keyword: string, limit: number, date: string | n
   return normalizeAdminLog(response);
 }
 
-export async function changeMemberStatus(memberId: number, status: MemberStatus): Promise<void> {
-  const response = await fetch(`${API_BASE_PATH}/members/${memberId}/status`, {
+export function changeMemberStatus(memberId: number, status: MemberStatus): Promise<void> {
+  return sendMemberMutation(`/members/${memberId}/status`, "change_member_status", "상태를 바꾸지 못했습니다.", {
     method: "PATCH",
-    credentials: "include",
-    headers: await withCsrfHeaders({ "Content-Type": "application/json" }),
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ status }),
   });
-  if (!response.ok) throw await readAdminError(response, "상태를 바꾸지 못했습니다.");
 }
 
-export async function resendMemberVerification(memberId: number): Promise<void> {
-  const response = await fetch(`${API_BASE_PATH}/members/${memberId}/email-verifications`, {
-    method: "POST",
+export function resendMemberVerification(memberId: number): Promise<void> {
+  return sendMemberMutation(
+    `/members/${memberId}/email-verifications`,
+    "resend_member_verification",
+    "인증 메일을 다시 보내지 못했습니다.",
+    { method: "POST" },
+  );
+}
+
+async function sendMemberMutation(
+  path: string,
+  operation: string,
+  fallback: string,
+  init: { method: "POST" | "PATCH"; headers?: Record<string, string>; body?: string },
+): Promise<void> {
+  const { headers, requestId } = withRequestId(await withCsrfHeaders(init.headers));
+  const context = { feature: "admin", operation, requestId };
+  const response = await fetch(`${API_BASE_PATH}${path}`, {
+    ...init,
     credentials: "include",
-    headers: await withCsrfHeaders(),
+    headers,
+  }).catch((cause: unknown) => {
+    if (cause instanceof Error && cause.name === "AbortError") throw cause;
+    reportError(new Error("Admin member request network failure"), context);
+    throw cause;
   });
-  if (!response.ok) throw await readAdminError(response, "인증 메일을 다시 보내지 못했습니다.");
+
+  if (response.ok) return;
+  if (response.status >= 500 && response.status < 600) {
+    reportError(new Error("Admin member request server failure"), { ...context, status: response.status });
+  }
+  throw await readAdminError(response, fallback);
 }
 
 export async function fetchAdminSubmissions(auditionId: string): Promise<readonly AdminSubmissionSummary[]> {

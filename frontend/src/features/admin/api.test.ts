@@ -1,10 +1,15 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { reportError } from "../monitoring/report-error";
+import { isRequestId, REQUEST_ID_HEADER } from "../monitoring/request-id";
 import {
-  deleteUnusedFiles, fetchAuditLogs, fetchLogs, fetchOpenChatVisits, fetchOtrRedirects,
+  changeMemberStatus, deleteUnusedFiles, fetchAuditLogs, fetchLogs, fetchOpenChatVisits, fetchOtrRedirects,
   fetchShows, fetchUnusedFiles, normalizeAdminLog, resendMemberVerification,
 } from "./api";
 
+vi.mock("../monitoring/report-error", () => ({ reportError: vi.fn() }));
+
 afterEach(() => {
+  vi.clearAllMocks();
   vi.unstubAllGlobals();
 });
 
@@ -21,11 +26,72 @@ describe("admin API", () => {
 
     await expect(resendMemberVerification(11)).resolves.toBeUndefined();
     expect(fetchMock).toHaveBeenCalledWith("/api/v1/admin/members/11/email-verifications", {
-      method: "POST", credentials: "include", headers: { "X-CSRF-Token": "admin-csrf" },
+      method: "POST",
+      credentials: "include",
+      headers: { "X-CSRF-Token": "admin-csrf", [REQUEST_ID_HEADER]: expect.any(String) },
     });
     await expect(resendMemberVerification(11)).rejects.toMatchObject({
       status: 409, code: "AUTH_EMAIL_VERIFICATION_RESEND_TOO_SOON",
     });
+    const requestIds = fetchMock.mock.calls.map(([, init]) => init.headers[REQUEST_ID_HEADER]);
+    expect(requestIds.every(isRequestId)).toBe(true);
+    expect(new Set(requestIds).size).toBe(2);
+    expect(reportError).not.toHaveBeenCalled();
+  });
+
+  describe.each([
+    { operation: "resend_member_verification", perform: () => resendMemberVerification(11) },
+    { operation: "change_member_status", perform: () => changeMemberStatus(11, "ACTIVE") },
+  ])("$operation 모니터링", ({ operation, perform }) => {
+    it("네트워크 실패를 같은 요청 ID로 한 번 수집하고 원래 오류를 화면에 전달한다", async () => {
+      vi.stubGlobal("document", { cookie: "XSRF-TOKEN=admin-csrf" });
+      const failure = new TypeError("Network failure for demo@example.com");
+      const fetchMock = vi.fn().mockRejectedValue(failure);
+      vi.stubGlobal("fetch", fetchMock);
+
+      await expect(perform()).rejects.toBe(failure);
+
+      const requestId = fetchMock.mock.calls[0][1].headers[REQUEST_ID_HEADER];
+      expect(isRequestId(requestId)).toBe(true);
+      expect(reportError).toHaveBeenCalledExactlyOnceWith(
+        new Error("Admin member request network failure"), { feature: "admin", operation, requestId },
+      );
+      expect(vi.mocked(reportError).mock.calls[0][0]).not.toHaveProperty("cause");
+    });
+
+    it("5xx의 상태와 요청 ID를 수집하고 응답 원문은 화면으로만 전달한다", async () => {
+      vi.stubGlobal("document", { cookie: "XSRF-TOKEN=admin-csrf" });
+      const message = "demo@example.com OTP 123456";
+      const fetchMock = vi.fn().mockResolvedValue(Response.json({ message }, { status: 502 }));
+      vi.stubGlobal("fetch", fetchMock);
+
+      await expect(perform()).rejects.toMatchObject({ status: 502, message });
+
+      const requestId = fetchMock.mock.calls[0][1].headers[REQUEST_ID_HEADER];
+      expect(isRequestId(requestId)).toBe(true);
+      expect(reportError).toHaveBeenCalledExactlyOnceWith(
+        new Error("Admin member request server failure"),
+        { feature: "admin", operation, requestId, status: 502 },
+      );
+      expect(vi.mocked(reportError).mock.calls[0][0]).not.toHaveProperty("cause");
+    });
+
+    it.each([401, 403, 409])("예상된 HTTP %i는 모니터링에 보내지 않는다", async (status) => {
+      vi.stubGlobal("document", { cookie: "XSRF-TOKEN=admin-csrf" });
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ message: "요청 실패" }, { status })));
+
+      await expect(perform()).rejects.toMatchObject({ status, message: "요청 실패" });
+      expect(reportError).not.toHaveBeenCalled();
+    });
+  });
+
+  it("중단된 재전송은 네트워크 장애로 수집하지 않는다", async () => {
+    vi.stubGlobal("document", { cookie: "XSRF-TOKEN=admin-csrf" });
+    const failure = new DOMException("aborted", "AbortError");
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(failure));
+
+    await expect(resendMemberVerification(11)).rejects.toBe(failure);
+    expect(reportError).not.toHaveBeenCalled();
   });
 
   it("오픈채팅 방문 순위는 게시일 범위와 페이지를 보내고 전체 기간은 날짜를 생략한다", async () => {
