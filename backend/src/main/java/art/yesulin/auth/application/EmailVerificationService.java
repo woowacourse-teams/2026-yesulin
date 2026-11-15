@@ -8,9 +8,9 @@ import art.yesulin.auth.domain.member.MemberRepository;
 import art.yesulin.auth.domain.member.MemberStatus;
 import art.yesulin.auth.domain.member.MemberType;
 import art.yesulin.global.exception.BusinessException;
-import art.yesulin.infrastructure.mail.MailSender;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,7 +25,7 @@ public class EmailVerificationService {
     private final MemberRepository memberRepository;
     private final VerificationTokenGenerator tokenGenerator;
     private final EmailVerificationMailFactory mailFactory;
-    private final MailSender mailSender;
+    private final VerificationMailSender mailSender;
     private final Clock clock;
     private final EmailVerificationSettings settings;
     private final VerificationCodeGenerator codeGenerator;
@@ -33,36 +33,38 @@ public class EmailVerificationService {
 
     public void sendInitialVerification(String email) {
         try {
-            sendVerification(email);
+            issueVerification(requirePendingProducer(memberRepository.findByEmail(email)),
+                    VerificationMailSender.Attempt.INITIAL);
         } catch (RuntimeException exception) {
-            log.atError().addKeyValue("event", "UNEXPECTED_SERVICE_ERROR")
-                    .addKeyValue("exception", exception.getClass().getSimpleName())
-                    .log("INITIAL_VERIFICATION_FAILED");
+            mailSender.reportInitialIssueFailure(exception);
         }
     }
 
-    public void sendVerification(String email) {
-        Member member = memberRepository.findByEmail(email)
-                .filter(this::isPendingProducer)
-                .orElseThrow(() -> invalidVerification("인증할 기획사·제작사 계정을 찾을 수 없습니다."));
-
-        issueVerification(member);
-    }
-
     public void resendVerification(long memberId) {
-        Member member = memberRepository.findById(memberId)
-                .filter(this::isPendingProducer)
-                .orElseThrow(() -> invalidVerification("인증할 기획사·제작사 계정을 찾을 수 없습니다."));
-
-        issueVerification(member);
+        issueVerification(requirePendingProducer(memberRepository.findById(memberId)),
+                VerificationMailSender.Attempt.RESEND);
     }
 
-    private void issueVerification(Member member) {
+    public void resendVerificationByAdmin(long adminId, long memberId) {
+        Member member = requirePendingProducer(memberRepository.findById(memberId));
+        log.atInfo().addKeyValue("event", "ADMIN_VERIFICATION_RESEND_REQUESTED")
+                .addKeyValue("actorMemberId", adminId)
+                .addKeyValue("targetMemberId", memberId)
+                .log("ADMIN_VERIFICATION_RESEND_REQUESTED");
+        issueVerification(member, VerificationMailSender.Attempt.ADMIN_RESEND);
+    }
+
+    private Member requirePendingProducer(Optional<Member> member) {
+        return member.filter(this::isPendingProducer)
+                .orElseThrow(() -> invalidVerification("인증할 기획사·제작사 계정을 찾을 수 없습니다."));
+    }
+
+    private void issueVerification(Member member, VerificationMailSender.Attempt attempt) {
         Instant now = clock.instant();
         VerificationCode code = codeGenerator.generate();
         EmailVerification verification = createCodeVerification(member, code, now);
         verificationRepository.save(verification, now);
-        mailSender.send(mailFactory.create(member.getEmail(), code.value(), verification.expiresAt()));
+        mailSender.send(mailFactory.create(member.getEmail(), code.value(), verification.expiresAt()), attempt);
     }
 
     private EmailVerification createCodeVerification(Member member, VerificationCode code, Instant now) {

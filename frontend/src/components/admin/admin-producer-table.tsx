@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { changeMemberStatus } from "@/features/admin/api";
-import type { AdminProducer, MemberStatus } from "@/features/admin/types";
+import { changeMemberStatus, resendMemberVerification } from "@/features/admin/api";
+import type { AdminProducer } from "@/features/admin/types";
 import { formatDateTime, orDash } from "./admin-format";
 import { AdminActionButton, AdminEmptyState } from "./admin-shell";
 
@@ -12,23 +12,46 @@ type Props = {
 };
 
 const HEADERS = ["회사", "담당자", "이메일", "연락처", "가입", "공연", "공고", "상태", ""];
+const STATUS_ACTIONS = {
+  PENDING: { label: "수동 활성화", status: "ACTIVE" },
+  ACTIVE: { label: "비활성화", status: "PENDING" },
+} as const;
 
 export function AdminProducerTable({ producers, onChanged }: Props) {
-  const [pendingId, setPendingId] = useState<number | null>(null);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
-  async function handleChange(producer: AdminProducer, next: MemberStatus) {
-    setPendingId(producer.memberId);
+  async function runAction(action: () => Promise<void>, fallback: string) {
+    setBusy(true);
     setError(null);
+    setNotice(null);
     try {
-      await changeMemberStatus(producer.memberId, next);
-      onChanged();
+      await action();
     } catch (cause) {
-      console.error("[기획사 상태 변경 실패]", cause);
-      setError(cause instanceof Error ? cause.message : "상태를 바꾸지 못했습니다.");
+      if (cause instanceof Error) {
+        setError(cause.message);
+        return;
+      }
+      setError(fallback);
     } finally {
-      setPendingId(null);
+      setBusy(false);
     }
+  }
+
+  function handleChange(producer: AdminProducer) {
+    return runAction(async () => {
+      await changeMemberStatus(producer.memberId, STATUS_ACTIONS[producer.status].status);
+      onChanged();
+    }, "상태를 바꾸지 못했습니다.");
+  }
+
+  function handleResend(producer: AdminProducer) {
+    if (!window.confirm(`${producer.companyName} (${producer.email})에 인증 메일을 다시 보낼까요?`)) return;
+    return runAction(async () => {
+      await resendMemberVerification(producer.memberId);
+      setNotice("인증 메일을 다시 보냈습니다.");
+    }, "인증 메일을 다시 보내지 못했습니다.");
   }
 
   return (
@@ -37,6 +60,7 @@ export function AdminProducerTable({ producers, onChanged }: Props) {
         기획사·제작사 목록 <span className="num ml-1 text-sm font-normal text-muted">{producers.length}곳</span>
       </h2>
       {error ? <p role="alert" className="text-sm text-fail">{error}</p> : null}
+      {notice && <p role="status" className="text-sm text-pass">{notice}</p>}
       {producers.length === 0 ? <AdminEmptyState title="해당 조건의 기획사·제작사가 없어요" description="가입한 기획사·제작사의 정보와 인증 상태를 여기서 확인할 수 있어요." /> : <div className="overflow-x-auto rounded-card border border-border bg-card">
         <table className="w-full min-w-[56rem] text-left text-sm">
           <thead className="bg-surface text-xs text-muted">
@@ -79,13 +103,17 @@ export function AdminProducerTable({ producers, onChanged }: Props) {
                     {producer.status === "PENDING" ? "인증 대기" : "활성"}
                   </span>
                 </td>
-                <td className="px-3 py-2 text-right">
-                  <AdminActionButton
-                    disabled={pendingId === producer.memberId}
-                    onClick={() => handleChange(producer, producer.status === "PENDING" ? "ACTIVE" : "PENDING")}
-                  >
-                    {producer.status === "PENDING" ? "수동 활성화" : "비활성화"}
-                  </AdminActionButton>
+                <td className="px-3 py-2">
+                  <div className="flex flex-wrap justify-end gap-2">
+                    {producer.status === "PENDING" && (
+                      <AdminActionButton disabled={busy} onClick={() => handleResend(producer)}>
+                        인증 메일 재전송
+                      </AdminActionButton>
+                    )}
+                    <AdminActionButton disabled={busy} onClick={() => handleChange(producer)}>
+                      {STATUS_ACTIONS[producer.status].label}
+                    </AdminActionButton>
+                  </div>
                 </td>
               </tr>
             ))}

@@ -12,6 +12,7 @@ import art.yesulin.auth.domain.member.Member;
 import art.yesulin.auth.domain.member.MemberRepository;
 import art.yesulin.auth.domain.member.MemberStatus;
 import art.yesulin.auth.domain.member.MemberType;
+import art.yesulin.global.alert.ErrorAlert;
 import art.yesulin.global.exception.BusinessException;
 import art.yesulin.infrastructure.mail.MailMessage;
 import art.yesulin.infrastructure.mail.MailSender;
@@ -49,7 +50,7 @@ class EmailVerificationServiceTest {
                 memberRepository,
                 tokenGenerator,
                 new EmailVerificationMailFactory(),
-                mailSender,
+                new VerificationMailSender(mailSender, mock(ErrorAlert.class)),
                 Clock.fixed(NOW, ZoneOffset.UTC),
                 settings, () -> new VerificationCode("000123"), encoder
         );
@@ -65,7 +66,7 @@ class EmailVerificationServiceTest {
         when(memberRepository.findByEmail("producer@yesulin.art")).thenReturn(Optional.of(member));
         when(tokenGenerator.generate()).thenReturn("fixed-verification-token");
 
-        service.sendVerification("producer@yesulin.art");
+        service.sendInitialVerification("producer@yesulin.art");
 
         ArgumentCaptor<MailMessage> message = ArgumentCaptor.forClass(MailMessage.class);
         verify(mailSender).send(message.capture());

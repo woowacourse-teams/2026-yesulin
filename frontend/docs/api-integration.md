@@ -50,7 +50,7 @@ MSW도 한국 시간의 게시일 필터·정렬·합계를 동일하게 적용�
 - `/api/v1/auditions/{auditionId}/submissions`, 내 지원서 목록·상세
 - `/api/v1/audition-roles/{roleId}/screening-rounds/**`
 - `/api/v1/upload-diagnostics` (업로드 실패·재시도 성공의 개인정보 없는 진단)
-- `/api/v1/admin/**` (운영 대시보드 전용. 단, 로그 화면 시각 검증을 위한 `/logs` fixture는 MSW에 포함한다.)
+- `/api/v1/admin/**` (운영 대시보드 전용. MSW의 관리자 목 세션으로는 로그 화면과 대기 기획사 인증 메일 재전송을 확인할 수 있다.)
 - `/api/v1/timetables/**` (오디션 일정표. 관리·배우 열쇠를 `X-Timetable-Key` 헤더로 보낸다.)
 - `/api/v1/public/audition-posts/**` (메인·분야별 공고 목록·상세). 분야별 목록은 `category=뮤지컬` 또는 `category=연극`을
   보내며 서버가 분야를 적용한 뒤 페이지를 나눈다. `openCount`·`allCount`도 선택한 분야의 수다.

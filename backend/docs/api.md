@@ -189,7 +189,8 @@ status,warnings,pages[number,text,needsOcr,images[status,key]]`)다. 소유자�
 전환 전 발급된 링크는 기존 만료까지 GET으로 호환하며 같은 회원의 기존 세션만 갱신한다. 새 코드 발급 정보는
 GET 링크로 검증할 수 없다. 신규 메일에는 URL이나 `redirectUri`를 넣지 않는다.
 가입이 커밋된 뒤 최초 메일 요청이 실패해도 가입은 201로 응답한다. 미인증 계정으로 로그인한 뒤 재전송할 수 있으며,
-재전송 발송 실패는 성공 응답으로 숨기지 않는다. 메일 전송 요청 성공이 수신함 도착을 보장하지는 않는다.
+재전송 발송 실패는 `502 AUTH_EMAIL_VERIFICATION_DELIVERY_FAILED`다. DB에 이미 발급된 인증번호의 재발급 제한은 유지한다.
+메일 전송 요청 성공이 수신함 도착을 보장하지는 않는다.
 
 비밀번호 재설정 메일 요청은 계정 존재 여부를 노출하지 않고 항상 204를 반환한다. 기획사/제작사 이메일 계정에만 5분
 유효한 일회용 링크를 보내며, GET으로 링크를 확인한 뒤 PATCH에서 8~64자의 새 비밀번호와 확인 값을 받는다.
@@ -1263,6 +1264,7 @@ submission ID와 변경할 status·memo·note 중 하나 이상을 요구한다.
 | DELETE | `/api/v1/admin/files/{fileId}` | Admin | `DeleteAdminFileRequest(confirmationPassword)` | `204` |
 | POST | `/api/v1/admin/files/deletions` | Admin | `BatchDeleteAdminFilesRequest(fileIds, confirmationPassword)` | `200 BatchFileDeletionResult` |
 | PATCH | `/api/v1/admin/members/{memberId}/status` | Admin | `ChangeMemberStatusRequest(status)` | `200 MemberStatusResult` |
+| POST | `/api/v1/admin/members/{memberId}/email-verifications` | Admin | 없음 | `204` |
 | PUT | `/api/v1/admin/shows/{showId}/host-name` | Admin | `ChangeShowHostNameRequest(hostName)` | `200 AdminShowHostNameResult` |
 | POST | `/api/v1/admin/shows` | Admin | `AdminSaveShowRequest` | `201 ProducerShowResponse`, `Location` |
 | GET | `/api/v1/admin/shows/{showId}` | Admin | 없음 | `200 ProducerShowResponse` |
@@ -1279,6 +1281,11 @@ submission ID와 변경할 status·memo·note 중 하나 이상을 요구한다.
 | DELETE | `/api/v1/admin/submissions/{submissionId}` | Admin | `DeleteAdminSubmissionRequest(confirmationPassword)` | `204` |
 | GET | `/api/v1/admin/timetable-messages` | Admin | `status` query (`PENDING`/`SENT`, 기본 `PENDING`) | `200 AdminTimetableMessagesResult` |
 | POST | `/api/v1/admin/timetable-messages/completion` | Admin | `CompleteTimetableMessagesRequest(messageIds)` | `200 AdminTimetableMessagesResponse` |
+
+관리자 메일 재전송은 CSRF 검증을 거친 뒤 `PENDING` 기획사/제작사의 등록 주소에 새 코드를 보낸다.
+대상이 없거나 상태·유형이 다르면 `400 AUTH_INVALID_EMAIL_VERIFICATION`, 발급 후 60초 이내면
+`409 AUTH_EMAIL_VERIFICATION_RESEND_TOO_SOON`, 발송 실패는 `502 AUTH_EMAIL_VERIFICATION_DELIVERY_FAILED`다.
+유효한 대기 계정에 대한 관리자 요청은 애플리케이션 로그의 `ADMIN_VERIFICATION_RESEND_REQUESTED`로 남는다.
 
 `AdminOverview`는 회원·공연·공고·지원서, OTR 공고·지원서, 무료 공연·확정 예매 매수 집계와 최근 7일 신규 수만 담고
 개인 식별 정보를 담지 않는다. 예매 매수와 최근 7일 예매 수(`newReservationsInLastWeek`)는 현재 확정 상태인 예매만 센다.
