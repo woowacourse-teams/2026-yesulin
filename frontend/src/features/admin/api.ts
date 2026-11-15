@@ -240,6 +240,15 @@ export async function changeMemberStatus(memberId: number, status: MemberStatus)
   if (!response.ok) throw await readAdminError(response, "상태를 바꾸지 못했습니다.");
 }
 
+export async function resendMemberVerification(memberId: number): Promise<void> {
+  const response = await fetch(`${API_BASE_PATH}/members/${memberId}/email-verifications`, {
+    method: "POST",
+    credentials: "include",
+    headers: await withCsrfHeaders(),
+  });
+  if (!response.ok) throw await readAdminError(response, "인증 메일을 다시 보내지 못했습니다.");
+}
+
 export async function fetchAdminSubmissions(auditionId: string): Promise<readonly AdminSubmissionSummary[]> {
   const body = await getJson<{ readonly submissions: readonly AdminSubmissionSummary[] }>(
     `/auditions/${encodeURIComponent(auditionId)}/submissions`,

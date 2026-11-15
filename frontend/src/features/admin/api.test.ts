@@ -1,11 +1,33 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { deleteUnusedFiles, fetchAuditLogs, fetchLogs, fetchOpenChatVisits, fetchOtrRedirects, fetchShows, fetchUnusedFiles, normalizeAdminLog } from "./api";
+import {
+  deleteUnusedFiles, fetchAuditLogs, fetchLogs, fetchOpenChatVisits, fetchOtrRedirects,
+  fetchShows, fetchUnusedFiles, normalizeAdminLog, resendMemberVerification,
+} from "./api";
 
 afterEach(() => {
   vi.unstubAllGlobals();
 });
 
 describe("admin API", () => {
+  it("관리자 인증 메일 재전송은 대상 ID와 세션을 사용하고 60초 제한을 전달한다", async () => {
+    vi.stubGlobal("document", { cookie: "XSRF-TOKEN=admin-csrf" });
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(Response.json({
+        code: "AUTH_EMAIL_VERIFICATION_RESEND_TOO_SOON",
+        message: "발급 후 60초가 지나면 다시 요청할 수 있습니다.",
+      }, { status: 409 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(resendMemberVerification(11)).resolves.toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledWith("/api/v1/admin/members/11/email-verifications", {
+      method: "POST", credentials: "include", headers: { "X-CSRF-Token": "admin-csrf" },
+    });
+    await expect(resendMemberVerification(11)).rejects.toMatchObject({
+      status: 409, code: "AUTH_EMAIL_VERIFICATION_RESEND_TOO_SOON",
+    });
+  });
+
   it("오픈채팅 방문 순위는 게시일 범위와 페이지를 보내고 전체 기간은 날짜를 생략한다", async () => {
     const report = { posts: [], page: 1, size: 20, totalElements: 25, totalPages: 2, totalVisits: 9 };
     const fetchMock = vi.fn().mockImplementation(async () => Response.json(report));
