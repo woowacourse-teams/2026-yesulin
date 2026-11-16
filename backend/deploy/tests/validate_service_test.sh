@@ -29,13 +29,19 @@ cat > "$FAKE_BIN/sleep" <<'EOF'
 exit 0
 EOF
 
+cat > "$FAKE_BIN/date" <<'EOF'
+#!/bin/sh
+# Each simulated request advances the clock by two seconds.
+printf '%s\n' "$(($(cat "$TEST_STATE_FILE") * 2))"
+EOF
+
 cat > "$FAKE_BIN/curl" <<'EOF'
 #!/bin/sh
 call_count="$(cat "$TEST_STATE_FILE")"
 call_count=$((call_count + 1))
 printf '%s\n' "$call_count" > "$TEST_STATE_FILE"
 
-if [ "$TEST_SCENARIO" = "recovers" ] && [ "$call_count" -ge 2 ]; then
+if [ "$TEST_SCENARIO" = "cold_start" ] && [ "$call_count" -ge 125 ]; then
   printf '200'
 elif [ "$TEST_SCENARIO" = "unexpected" ]; then
   printf '418'
@@ -45,7 +51,7 @@ fi
 EOF
 
 chmod +x "$FAKE_BIN/systemctl" "$FAKE_BIN/journalctl" \
-  "$FAKE_BIN/sleep" "$FAKE_BIN/curl"
+  "$FAKE_BIN/sleep" "$FAKE_BIN/date" "$FAKE_BIN/curl"
 
 run_validation() {
   scenario="$1"
@@ -58,8 +64,9 @@ run_validation() {
     sh "$VALIDATE_SCRIPT"
 }
 
-if ! run_validation recovers; then
-  echo "Expected validation to recover after a transient 503" >&2
+if ! run_validation cold_start > "$TEMP_DIRECTORY/cold-start.log" 2>&1; then
+  cat "$TEMP_DIRECTORY/cold-start.log" >&2
+  echo "Expected validation to wait for a slow cold start" >&2
   exit 1
 fi
 
@@ -71,8 +78,8 @@ if run_validation stays_unavailable \
 fi
 
 STAYS_UNAVAILABLE_ATTEMPTS="$(cat "$TEMP_DIRECTORY/stays_unavailable-count")"
-if [ "$STAYS_UNAVAILABLE_ATTEMPTS" -ne 60 ]; then
-  echo "Expected 60 readiness attempts, got $STAYS_UNAVAILABLE_ATTEMPTS" >&2
+if [ "$STAYS_UNAVAILABLE_ATTEMPTS" -ne 210 ]; then
+  echo "Expected validation to stop after 420 seconds, got $STAYS_UNAVAILABLE_ATTEMPTS simulated requests" >&2
   exit 1
 fi
 
@@ -80,8 +87,8 @@ VALIDATE_TIMEOUT="$(awk '
   $1 == "ValidateService:" { in_validate_service = 1; next }
   in_validate_service && $1 == "timeout:" { print $2; exit }
 ' "$APPSPEC_FILE")"
-if [ "$VALIDATE_TIMEOUT" -ne 210 ]; then
-  echo "Expected ValidateService timeout 210, got $VALIDATE_TIMEOUT" >&2
+if [ "$VALIDATE_TIMEOUT" -ne 450 ]; then
+  echo "Expected ValidateService timeout 450, got $VALIDATE_TIMEOUT" >&2
   exit 1
 fi
 
