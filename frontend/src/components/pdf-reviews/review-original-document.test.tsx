@@ -61,6 +61,16 @@ describe("원본 PDF 서명 주소", () => {
     vi.useRealTimers();
   });
 
+  it("기다리다 다시 조회하는 동안에도 올리는 중 문구를 유지한다", async () => {
+    vi.useFakeTimers();
+    vi.mocked(fetchPdfExtraction).mockResolvedValueOnce(job(null)).mockReturnValueOnce(new Promise(() => {}));
+    await open();
+    await act(async () => { await vi.advanceTimersByTimeAsync(SOURCE_WAIT_MS); });
+    expect(fetchPdfExtraction).toHaveBeenCalledTimes(2);
+    expect(container.querySelector('[role="status"]')?.textContent).toContain("올리는 중");
+    vi.useRealTimers();
+  });
+
   it("끝까지 준비되지 않으면 기다리기를 멈추고 수동 재시도를 보인다", async () => {
     vi.useFakeTimers();
     vi.mocked(fetchPdfExtraction).mockResolvedValue(job(null));

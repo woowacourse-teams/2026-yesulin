@@ -15,7 +15,7 @@ vi.mock("@/features/pdf-reviews/api", () => ({
   updatePdfReviewEntry: vi.fn(async (_review, id, change) => ({ ...entry(id), ...change })),
 }));
 function entry(id: string): ReviewEntry {
-  return { id, jobId: `job-${id}`, originalFilename: "synthetic.pdf", applicantName: `Synthetic ${id}`,
+  return { id, jobId: `job-${id}`, originalFilename: `synthetic-${id}.pdf`, applicantName: `Synthetic ${id}`,
     roleId: null, matchStatus: "NEEDS_CHECK", matchEvidence: null, memo: "", decision: "PENDING" };
 }
 afterEach(() => { vi.unstubAllGlobals(); capture.mockClear(); });
@@ -51,7 +51,7 @@ it.each(["card", "table"] as const)("%s: 직접 열기·이동·저장은 각각
     await act(async () => button("보류").click());
     expect(actions()).toHaveLength(5);
     expect(actions()[4]).toMatchObject({ review_action: "decision_save", item_id: "b" });
-    expect(host.querySelector("section")?.getAttribute("aria-label")).toContain("Synthetic c");
+    expect(host.querySelector("section")?.getAttribute("aria-label")).toContain("synthetic-c.pdf");
     await act(async () => root.render(<StrictMode><Harness /></StrictMode>));
     await act(async () => host.querySelector<HTMLElement>("[data-original-test]")!.click());
     expect(actions()).toHaveLength(5);

@@ -39,17 +39,18 @@ export function ReviewOriginalDocument({ jobId, onUnauthorized, frame }: Props) 
     return () => controller.abort();
   }, [jobId, attempt]);
   const current = currentFailure(failure, jobId, attempt);
-  const waiting = !!current?.notReady && attempt < SOURCE_WAIT_LIMIT;
+  const retryScheduled = !!current?.notReady && attempt < SOURCE_WAIT_LIMIT;
+  const waiting = retryScheduled || refetchingAfterWait(failure, jobId, attempt);
   const retry = () => setAttempt(value => value + 1);
   useEffect(() => {
-    if (!waiting) return;
+    if (!retryScheduled) return;
     const timer = setTimeout(() => setAttempt(value => value + 1), SOURCE_WAIT_MS);
     return () => clearTimeout(timer);
-  }, [waiting]);
+  }, [retryScheduled, current]);
   const content = (fit: PdfFit) => {
+    if (source?.jobId === jobId && source.attempt === attempt) return <PdfOriginalViewer key={source.url} url={source.url} filename={source.filename} onRefresh={retry} fit={fit} />;
     if (waiting) return <LoadingStatus>원본 PDF를 올리는 중입니다…</LoadingStatus>;
     if (current) return <div className="p-6"><p role="alert" className="mb-3 text-sm text-fail">{current.message}</p><SecondaryButton onClick={retry}>원본 다시 불러오기</SecondaryButton></div>;
-    if (source?.jobId === jobId && source.attempt === attempt) return <PdfOriginalViewer key={source.url} url={source.url} filename={source.filename} onRefresh={retry} fit={fit} />;
     return <LoadingStatus>원본 PDF를 불러오는 중입니다…</LoadingStatus>;
   };
   if (!frame) return content("width");
@@ -59,6 +60,11 @@ export function ReviewOriginalDocument({ jobId, onUnauthorized, frame }: Props) 
 function currentFailure(failure: Failure | null, jobId: string, attempt: number): Failure | null {
   if (failure?.jobId === jobId && failure.attempt === attempt) return failure;
   return null;
+}
+
+/** 기다리다 다시 조회하는 동안에도 같은 문구를 유지해 1.5초마다 문구와 알림이 바뀌지 않게 한다. */
+function refetchingAfterWait(failure: Failure | null, jobId: string, attempt: number): boolean {
+  return failure?.jobId === jobId && failure.notReady && failure.attempt === attempt - 1;
 }
 
 function failureMessage(cause: unknown): string {

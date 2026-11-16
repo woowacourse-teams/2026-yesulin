@@ -15,7 +15,7 @@ export function ApplicantTable({ rows }: { readonly rows: readonly Applicant[] }
       return <tr key={applicant.id}>
         <td className="px-4 py-3"><label className="inline-flex min-h-11 min-w-11 items-center justify-center"><input type="checkbox" aria-label={`${label.filename} 선택`} checked={selected.has(applicant.id)} onChange={() => toggleSelected(applicant.id)} className="h-5 w-5 accent-brand" /></label></td>
         <th scope="row" className="max-w-80 break-all px-4 py-3 font-semibold">{label.filename}
-          {applicant.sourceDocument?.title && <span className="mt-1 block text-xs font-normal text-muted-strong">{applicant.sourceDocument.title}</span>}
+          {label.name && <span className="mt-1 block text-xs font-normal text-muted-strong">{label.name}</span>}
           {label.uploading && <span className="mt-1 flex items-center gap-2 text-xs font-normal text-muted-strong"><Spinner size="sm" />업로드 중</span>}</th>
         <td className="px-4 py-3">{roleCell(applicant.roleName)}</td><td className="px-4 py-3"><StatusBadge status={applicant.review.status} size="sm" /></td>
         <td className="max-w-64 px-4 py-3"><p className="line-clamp-2 whitespace-pre-wrap break-words">{applicant.review.note || '—'}</p></td><td className="px-4 py-3"><SecondaryButton onClick={() => openApplicant(applicant.id)}>PDF 심사</SecondaryButton></td>
