@@ -111,7 +111,7 @@ Slack 웹훅(OTR 공고 `YESULIN_SLACK_WEBHOOK_URL` 포함)은 `src/main/resourc
 6. ALB target group도 같은 readiness endpoint를 확인한 뒤에만 트래픽을 전달한다.
 7. 최근 릴리스 5개를 유지한다.
 
-여러 인스턴스에 한 대씩 배포하면 배포 중 옛 버전과 새 버전이 같은 DB를 함께 쓰고, 롤백해도 Flyway는 되돌리지 않는다.
+Blue/Green 배포 중에는 옛 버전과 새 버전이 같은 DB를 함께 쓴다. Flyway 마이그레이션은 롤백 후에도 적용된 상태로 남는다.
 그래서 DB 구조는 Expand-Contract(확장-축소, Parallel Change)로 바꾼다. 한 번의 배포에서는 옛 코드가 계속 동작하는
 변경(테이블·인덱스 추가, nullable이거나 default가 있는 컬럼 추가)만 한다(Expand). 컬럼·테이블 삭제, 이름 변경, 기존 컬럼의
 NOT NULL·타입 변경(Contract)은 그 구조를 쓰지 않는 코드를 먼저 PROD까지 배포한 뒤 다음 배포에서 한다. dev에 모았다가
@@ -128,29 +128,42 @@ PR CI의 `deploy/scripts/check_flyway_contract_changes.sh`는 새 마이그레�
 이때는 고친 마이그레이션을 dev에 먼저 머지하고 대기 중인 배포가 없을 때 반쯤 적용된 변경과 `flyway_schema_history`의 실패 행을
 지운 뒤 다시 배포한다(2026-10-28 사례: [트러블슈팅 기록](../../../design/deploy-troubleshooting-record.md)).
 
-PROD는 앱 2대(ASG 2-2)이고 배포 그룹 `yesulin-backend-prod`는 로드 밸런서 연동을 켠 `CodeDeployDefault.OneAtATime`이다.
-CodeDeploy가 한 대를 대상 그룹에서 빼고(드레이닝 60초) 배포·검증한 뒤 다시 넣고, 다음 대로 넘어간다. 그동안 다른 한 대가
-요청을 받으므로 배포 중 끊기지 않는다. 한 대만 있을 때는 이 첫 단계에서 유일한 서버가 빠져 배포 시간 내내 503이 난다.
-배포가 실패하면 그 서버에서 멈추고 마지막 성공 리비전으로 자동 롤백한다.
+### PROD Blue/Green 배포와 DEV 인플레이스 배포
+
+`yesulin-backend-prod-pipeline`의 Deploy 액션은 EC2용 CodeDeploy 배포 그룹 `yesulin-backend-prod`를 호출한다.
+CodeDeploy는 운영 Auto Scaling 그룹을 복제하고 새 인스턴스의 `ValidateService`와 ALB readiness를 확인한다.
+새 인스턴스가 `yesulin-backend-prod-tg`에서 정상 상태가 되면 이전 인스턴스의 트래픽을 드레이닝한다.
+운영 ASG는 평소에 앱 한 대를 유지한다. 배포와 이전 인스턴스 보존 기간에는 두 세대가 함께 실행된다.
+CodeDeploy는 트래픽을 자동으로 전환하고 드레이닝 후 10분 동안 이전 인스턴스를 보존한 뒤 종료한다.
+활성 ASG 이름은 배포할 때 바뀌므로 CodeDeploy 배포 그룹에서 현재 ASG를 확인한다. 평소 한 대 구성에서는 인스턴스 장애 시
+ASG가 교체 인스턴스를 준비하는 동안 요청이 끊길 수 있다.
+
+배포 그룹은 배포 실패와 CloudWatch 경보 발생 시 자동 롤백한다. `yesulin-backend-prod-deploy-no-healthy-target`은
+정상 타깃이 두 분 연속 1대 미만일 때, `yesulin-backend-prod-deploy-target-5xx`는 타깃이 분당 5xx를 3건 이상 반환할 때
+경보 상태가 된다. 배포마다 공개 헬스 상태와 핵심 API의 응답을 확인한다.
+
+DEV 배포 그룹 `yesulin-backend-staging`은 `yesulin-backend-asg` 대상으로 인플레이스 `CodeDeployDefault.AllAtOnce`를 사용한다.
+유일한 인스턴스의 드레이닝과 재시작 중에는 DEV API가 잠시 끊길 수 있다.
 
 앱 서버 루트 디스크가 차면 `DownloadBundle`에서 `No space left on device`로 실패하고, 그 서버에는 Session Manager도 붙지 않는다.
 EC2를 직접 종료할 수 없으므로 남길 서버에 축소 보호를 걸고 ASG 원하는 용량을 한 대 늘렸다가 되돌려 그 서버만 교체한 뒤 보호를
 해제한다. 실패 배포의 자동 롤백이 응답 없는 서버에 걸려 "진행 중"으로 남으면 배포 그룹이 잠기므로, 재시도 전에 그 롤백을
 "배포 중지"한다(2026-10-29 사례: [트러블슈팅 기록](../../../design/deploy-troubleshooting-record.md)).
 
-배포는 성공했지만 동작이 잘못돼 되돌릴 때는 CodeDeploy로 직전 리비전을 다시 배포한다.
+배포가 끝난 뒤 문제가 발견되면 CodeDeploy로 직전 성공 리비전을 다시 배포한다.
 
 1. 배포 그룹 `yesulin-backend-prod`의 배포 내역에서 되돌아갈 직전 성공 배포를 열고 "배포 복사"를 누른다.
-2. 개정 위치는 그대로 두고 파일 형식 `.zip`, 배포 설명에 이유를 적는다. "배포 그룹 재정의"의 배포 구성이 `OneAtATime`인지 본다.
-3. 두 서버가 차례로 성공하고 `/api/v1/health`가 200이면 완료다. 시작·완료 시각을 남긴다.
+2. 개정 위치는 그대로 두고 파일 형식 `.zip`과 되돌리는 이유를 입력한다. 배포 그룹의 Blue/Green 설정을 사용한다.
+3. 교체 인스턴스가 정상이고 대상 그룹에서 트래픽을 받은 뒤 `/api/v1/health`와 핵심 API가 200인지 확인한다.
+   기존 인스턴스가 아직 실행 중이고 긴급 복귀가 필요하면 이전 타깃을 등록해 Healthy를 확인한 뒤 문제 타깃을 드레이닝한다.
+   이 경우 다음 배포 전 CodeDeploy 배포 그룹이 실제 트래픽을 받는 인스턴스의 ASG를 가리키는지 확인한다.
 
 되돌아갈 버전 이후에 컬럼·테이블 삭제 마이그레이션이 나갔다면 그 버전은 시작하지 못한다. 서버 안의 `ops/recover/rollback-release.sh`는
 한 대만 바꾸고 ASG가 새로 띄우는 서버에는 반영되지 않으므로 여러 대 운영에서는 쓰지 않는다. 배포 중 실패 요청과 응답 서버는
 `python ops/loadtest/deploy-availability.py --duration 1200 --out <csv>`로 기록한다.
 
-DEV·PROD target group의 deregistration delay는 60초로 운영한다(PROD는 2026-10-21에 300초에서 변경). 대상이 한 대일 때 드레이닝이 시작되면
-신규 요청을 받을 다른 인스턴스가 없고, 기본값 300초는 이미 처리 중인 요청을 보호하는 대신 배포 중 신규 요청 불가 시간을
-늘린다. 60초는 일반적인 API 요청에는 종료 여유를 주면서 배포마다 발생하던 약 5분의 대기를 줄이기 위한 값이다.
+DEV·PROD 대상 그룹은 등록 취소 후 진행 중인 요청을 60초 동안 드레이닝한다. PROD에서는 교체 인스턴스가 신규 요청을 받는다.
+DEV의 인플레이스 배포에서는 이 시간 동안 신규 요청을 받을 다른 인스턴스가 없다.
 60초를 넘는 응답·다운로드·스트리밍을 도입하거나 target 구성이 바뀌면 요청 시간 분포를 확인하고 다시 결정한다.
 
 AWS CLI 자격 증명과 region을 설정한 운영 환경에서 다음 명령으로 값을 적용한다. 스크립트는 변경 후 실제 적용값도 다시
@@ -234,20 +247,19 @@ CodeDeploy는 EC2에서 각 릴리스의 `yesulin.env`를 복호화하여 root �
 AMI에 평문 secret이 남지 않았는지는 별도로 검증해야 한다. private key는 저장소·build log에 남기지 않는다.
 상세 스크립트는 `backend/deploy/`를 따른다.
 
-새 인스턴스를 자동 생성하는 Launch Template에는 `ec2-project` IAM Instance Profile과 Java 25·CodeDeploy Agent·
+새 인스턴스를 자동 생성하는 Launch Template에는 환경에 맞는 IAM Instance Profile과 Java 25·CodeDeploy Agent·
 `sops` 설치 및 배포 전용 키를 포함한 AMI를 지정해야 한다. 새 인스턴스에서 키를 읽을 수 없다면 `AfterInstall`이 실패하며,
 릴리스 환경 파일이 없으면 `ApplicationStart`가 실패한다.
 
-PDF AI는 서버가 Bedrock을 호출하므로 실행 중인 DEV·PROD 앱 인스턴스에는 `team-bedrock-service-yesulin` 역할을
-붙여 두었다(PROD는 2026-10-31). 두 Launch Template은 아직 `ec2-project`라 ASG가 새로 띄운 인스턴스는
-AI 분석만 `PROVIDER_ERROR`로 실패한다. 이 경우 콘솔 "IAM 역할 수정"으로 같은 역할을 붙이고 같은 리비전을 재배포한다.
-교체 후 S3 읽기·CodeDeploy·로그 수집은 확인했고 S3 쓰기와 SSM은 미확인이다.
+PROD Launch Template `yesulin-backend-prod-lt` 버전 4는 PDF 분석에 필요한 기존 `team-bedrock-service-yesulin`
+Instance Profile을 교체 EC2에 적용한다. 운영 트래픽 전환 전에 새 EC2에 적용된 프로파일을 확인한다.
+DEV Launch Template은 `ec2-project`를 쓰므로 DEV에서 Bedrock이 필요한 경우 콘솔에서 기존 팀 역할을 적용한다.
 
 DEV ASG(`yesulin-backend-asg`)는 이 경로를 확인했다. 새 인스턴스가 뜨면 배포 그룹 `yesulin-backend-staging`의
 CodeDeploy 시작 후크가 마지막 성공 리비전을 배포한다. 2026-09-22에는 ELB 상태 확인 실패로 인스턴스가 자동 교체됐고,
 2026-10-09에는 용량을 늘려 띄운 t4g.micro 인스턴스가 배포까지 성공했다. PROD ASG(`yesulin-backend-prod-asg`)도
 2026-10-19에 같은 방식으로 t4g.micro를 띄워 배포 그룹 `yesulin-backend-prod`의 배포까지 성공했다.
-PROD Launch Template(`yesulin-backend-prod-lt` 버전 2)도 아래와 같은 swap·배포본 설정을 쓴다.
+PROD Launch Template 버전 4는 버전 3의 20GiB 루트 볼륨과 기존 swap·배포본 설정을 사용한다.
 DEV Launch Template(`yesulin-backend-lt` 버전 4)은 t4g.micro이며, 사용자 데이터가 512MiB swap 파일을 만들고
 CodeDeploy 에이전트의 배포본 보관 수(`:max_revisions:`)를 2로 줄인다. 루트 디스크가 8GiB라 배포본을 5개씩 쌓으면
 여유가 부족하다. 계정 정책상 인스턴스를 직접 정지할 수 없으므로 인스턴스 유형은 Launch Template 새 버전으로
