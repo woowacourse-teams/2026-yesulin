@@ -134,7 +134,9 @@ PR CI의 `deploy/scripts/check_flyway_contract_changes.sh`는 새 마이그레�
 CodeDeploy는 운영 Auto Scaling 그룹을 복제하고 새 인스턴스의 `ValidateService`와 ALB readiness를 확인한다.
 새 인스턴스가 `yesulin-backend-prod-tg`에서 정상 상태가 되면 이전 인스턴스의 트래픽을 드레이닝한다.
 운영 ASG는 평소에 앱 한 대를 유지한다. 배포와 이전 인스턴스 보존 기간에는 두 세대가 함께 실행된다.
-CodeDeploy는 트래픽을 자동으로 전환하고 드레이닝 후 10분 동안 이전 인스턴스를 보존한 뒤 종료한다.
+현재 CodeDeploy는 새 인스턴스의 검증을 마친 뒤 최대 1시간 동안 수동 전환을 기다린다.
+전환을 시작하기 전에 새 인스턴스의 프로파일과 readiness, 운영 경보 상태를 확인한다.
+트래픽 인계 후 이전 인스턴스는 복귀를 위해 실행 상태로 보존된다.
 활성 ASG 이름은 배포할 때 바뀌므로 CodeDeploy 배포 그룹에서 현재 ASG를 확인한다. 평소 한 대 구성에서는 인스턴스 장애 시
 ASG가 교체 인스턴스를 준비하는 동안 요청이 끊길 수 있다.
 
