@@ -12,14 +12,22 @@
 | S06 | 심사함 행을 잠가 같은 심사함의 업로드 접수와 겹치지 않음 | 코드 검토 | Y | PASS |
 | S07 | dev 실제 요청으로 삭제와 S3 정리 확인 | dev 배포 후 실행 | Y | UNVERIFIED |
 | S08 | 계약·도메인·흐름 문서, 미사용 정리, Checkstyle, 독립 평가 1회 | 실행·평가 | Y | PASS |
+| S09 | 허용 목록의 회원만 초기화, 그 밖은 403. dev는 시연 계정 하나, local은 환경 변수, 비우면 아무도 허용 안 함 | 정책·바인딩 테스트 | Y | PASS |
 
 ## 검증 근거 (2026-11-16)
 
 - 첫 커밋 기준 백엔드 전체 테스트 1555건 중 1554건 PASS. 실패 1건 `OtrSubmissionPhotoAccessMysqlTest`는 실행 PC의 PATH에 섞인 따옴표 때문에 실행 조건 평가가 실패한 환경 문제로, 이 변경과 무관하다.
-- 평가 지적 수정 후 Checkstyle(main·test) PASS, `art.yesulin.audit.*`·`art.yesulin.pdfextraction.*` 222건 PASS. 수정 후 전체 테스트는 다시 돌리지 않았다.
+- 평가 지적 수정과 허용 목록 추가 뒤 백엔드 `./gradlew build`: Checkstyle PASS, 테스트 1563건 중 1562건 PASS. 실패 1건은 위와 같은 PATH 환경 문제(`OtrSubmissionPhotoAccessMysqlTest`)다.
 - H2(MySQL 모드) DB 테스트 5건: 전체 삭제, 빈 심사함, 다른 공연사 보존, 처리 중 409, S3 실패 롤백·재시도. 조건 테스트 3건: dev·local 등록, prod 미등록(설정 강제), 설정 없음 미등록.
 - 운영 MySQL·AWS·dev 서버는 바꾸지 않았다. dev 실제 요청은 배포 뒤 확인한다.
 - 독립 평가 1회: 상대 도구를 연결할 수 없어 같은 종류의 별도 에이전트가 읽기 전용으로 검토했다. 지적 7건을 모두 고친 뒤 관련 테스트만 다시 실행했다.
+
+## 허용 목록 추가 (2026-11-16, 평가 뒤 사용자 요청)
+
+독립 평가 뒤 사용자가 "dev의 시연 계정만 초기화하도록 막고, 전시회가 끝나면 목록과 기능을 함께 지운다"고 결정했다.
+이메일 대신 회원 번호로 허용한다. 이메일을 공개 저장소 설정에 남기지 않고, 다른 모듈은 `MemberPrincipal`만 쓴다는
+구조 규칙(`backend/docs/architecture.md`)을 지키기 위해서다. 정책 단위 테스트 3건과 설정 바인딩 테스트 1건을 더했다.
+이 추가분은 별도 독립 평가를 다시 하지 않았다(도메인 규칙상 재귀 평가 의무 없음).
 
 ## 미사용·호환 정리
 
@@ -27,7 +35,7 @@
 
 ## 평가 결과
 
-필수 PASS7 / FAIL0 / UNVERIFIED1 / N/A0. MySQL에서 초기화와 AI 작업 완료가 동시에 실행될 때의 잠금 순서는 실행하지 않았다(처리 중 업로드·콜백은 409로 막지만 AI 작업은 막지 않는다).
+필수 PASS8 / FAIL0 / UNVERIFIED1 / N/A0. MySQL에서 초기화와 AI 작업 완료가 동시에 실행될 때의 잠금 순서는 실행하지 않았다(처리 중 업로드·콜백은 409로 막지만 AI 작업은 막지 않는다).
 
 발견7 = 해결7 + 미해결0. P0 0 / P1 0 / P2 1 / P3 6.
 PRECHECK0 / INDEPENDENT_REVIEW7 / POST_FIX_CHECK0 / EXTERNAL0 / REJECTED0. 최초 PR은 모두 PENDING.

@@ -50,6 +50,9 @@ Active Producer 세션을 요구하고 쓰기는 CSRF, 응답은 `Cache-Control:
 `local`·`dev` 프로필이면서 `yesulin.pdf-review.reset-enabled=true`일 때만 등록된다. 이 값은 두 프로필 설정에서만 true다.
 환경 변수나 실행 인자로 값을 켜도 프로필 조건 때문에 `prod`에는 등록되지 않는다(등록되지 않으면 이 경로는 405).
 Active Producer 세션과 CSRF가 필요하고 응답은 `Cache-Control: no-store`다.
+`yesulin.pdf-review.reset-allowed-member-ids`에 있는 회원만 부를 수 있고, 목록에 없으면 `403 PDF_REVIEW_RESET_FORBIDDEN`이다.
+`dev`는 우형 전시회 시연 계정 하나만 허용하고, `local`은 환경 변수 `YESULIN_PDF_REVIEW_RESET_ALLOWED_MEMBER_IDS`(쉼표 구분)로
+지정하며 비우면 아무도 허용하지 않는다. 이 기능과 허용 목록은 2026-11-20 전시회가 끝나면 함께 지운다.
 
 - 심사함·배역·지원서 항목과 그 지원서의 PDF 작업·추출 payload·AI 작업 행을 지우고, S3의 원본·추출 결과도 지운다.
 - 다른 공연사의 심사함은 건드리지 않는다. 심사함이 없으면 `{deletedReviews:0,deletedEntries:0}`이다.
