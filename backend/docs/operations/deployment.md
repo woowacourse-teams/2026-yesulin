@@ -107,7 +107,7 @@ Slack 웹훅(OTR 공고 `YESULIN_SLACK_WEBHOOK_URL` 포함)은 `src/main/resourc
    `AfterInstall`의 후속 hook은 CloudWatch Agent 수집 설정을 설치한다. 권한·검증·DB 별도 설치는
    [모니터링 문서](monitoring.md)를 따른다.
 5. CodeDeploy가 `http://127.0.0.1:80/actuator/health/readiness`의 HTTP 200을 확인한다.
-   일시적인 기동 편차는 최대 60회 재시도로 허용하며, 준비되면 즉시 다음 단계로 진행한다.
+   새 EC2의 초기 기동을 고려해 최대 420초 동안 2초 간격으로 재시도하며, 준비되면 즉시 다음 단계로 진행한다.
 6. ALB target group도 같은 readiness endpoint를 확인한 뒤에만 트래픽을 전달한다.
 7. 최근 릴리스 5개를 유지한다.
 
