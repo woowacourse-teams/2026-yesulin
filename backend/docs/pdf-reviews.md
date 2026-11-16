@@ -23,6 +23,7 @@ Active Producer 세션을 요구하고 쓰기는 CSRF, 응답은 `Cache-Control:
 | PATCH | `/api/v1/pdf-reviews/{id}/entries/{entryId}/memo` | `{memo}`(필수 문자열、0~500자) → 200 EntryView. 판정·배역·제목 유지 |
 | PATCH | `/api/v1/pdf-reviews/{id}/entries/{entryId}/title` | `{title}`(0~255자, 공백 정규화) → 200 EntryView |
 | PATCH | `/api/v1/pdf-reviews/{id}/role-assignments` | `{entryIds:[UUID],roleId:UUID 또는 null}` → 200 EntryView[] |
+| DELETE | `/api/v1/pdf-reviews` | 시연 초기화(로컬·dev 전용). 본문 없음 → 200 `{deletedReviews,deletedEntries}` |
 
 - ReviewDetail은 `id,title,createdAt,roles:[{id,name}],entries:[EntryView]`이다. 배역은 입력 순서, 항목은 파일 이름순이다.
 - EntryView는 `id,jobId,originalFilename,title,applicantName,roleId,matchStatus,matchEvidence,memo,decision,processingStatus`이다.
@@ -42,6 +43,17 @@ Active Producer 세션을 요구하고 쓰기는 CSRF, 응답은 `Cache-Control:
 - PATCH는 `memo`(필수, 빈 문자열 가능, 2000자 이하)와 `decision`(필수)을 모두 받는다. 항목 행을 잠근 뒤 바꾸므로
   같은 항목에 대한 자동 반영과 겹쳐도 서로의 값을 덮어쓰지 않는다.
 - 오류: 형식·길이·중복 배역 `400 INVALID_REQUEST` 또는 `400 INVALID_PDF_REVIEW`, 없는 심사·항목 `404`.
+
+### 시연 초기화 (로컬·dev 전용)
+
+`DELETE /api/v1/pdf-reviews`는 호출한 공연사가 가진 심사함을 모두 지운다. 시연 계정을 처음 상태로 되돌리는 용도이며
+`yesulin.pdf-review.reset-enabled=true`일 때만 등록된다. 이 값은 `local`과 `dev` 프로필에서만 true이고 환경 변수로 바꿀 수 없어
+운영에는 이 경로가 없다. Active Producer 세션과 CSRF가 필요하고 응답은 `Cache-Control: no-store`다.
+
+- 심사함·배역·지원서 항목과 그 지원서의 PDF 작업·추출 payload·AI 작업 행을 지우고, S3의 원본·추출 결과도 지운다.
+- 다른 공연사의 심사함은 건드리지 않는다. 심사함이 없으면 `{deletedReviews:0,deletedEntries:0}`이다.
+- S3 삭제가 실패하면 500이고 DB는 그대로다. 다시 호출하면 이어서 지운다.
+- 이미 일정표 명단으로 가져간 합격자는 지우지 않는다. 처리 중인 작업을 지우면 뒤늦은 콜백은 없는 작업으로 거부된다.
 
 ### 처리 진행률
 

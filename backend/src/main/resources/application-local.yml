@@ -13,6 +13,8 @@ spring:
       - classpath:db/local
 
 yesulin:
+  pdf-review:
+    reset-enabled: true
   pdf-ai:
     enabled: ${YESULIN_PDF_AI_ENABLED:false}
     provider: gemini
