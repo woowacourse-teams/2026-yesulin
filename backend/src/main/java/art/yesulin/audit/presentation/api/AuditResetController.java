@@ -8,7 +8,8 @@ import art.yesulin.auth.application.annotation.LoginRequired;
 import art.yesulin.auth.domain.member.MemberStatus;
 import art.yesulin.auth.domain.member.MemberType;
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -19,7 +20,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/pdf-reviews")
 @LoginRequired
 @RequiredArgsConstructor
-@ConditionalOnBean(AuditResetService.class)
+@Profile({"local", "dev"})
+@ConditionalOnExpression(AuditResetService.ENABLED)
 public class AuditResetController {
 
     private final AuditResetService service;
