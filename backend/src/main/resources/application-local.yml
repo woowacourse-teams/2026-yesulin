@@ -13,6 +13,9 @@ spring:
       - classpath:db/local
 
 yesulin:
+  pdf-review:
+    reset-enabled: true
+    reset-allowed-member-ids: ${YESULIN_PDF_REVIEW_RESET_ALLOWED_MEMBER_IDS:}
   pdf-ai:
     enabled: ${YESULIN_PDF_AI_ENABLED:false}
     provider: gemini
