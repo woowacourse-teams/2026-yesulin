@@ -6,6 +6,8 @@ import { sameKey, applicantProcessingLabels, type ReviewDetail, type ReviewEntry
 import type { Applicant } from "./screening-types";
 import { extractedSocialLinks } from "./social-links";
 
+export const UNASSIGNED_ROLE = "미배정";
+
 const socialCache = new WeakMap<PdfExtractionResult, string[]>();
 function linksFor(result: PdfExtractionResult | null | undefined): string[] {
   if (!result) return [];
@@ -25,7 +27,7 @@ export function screeningApplicant(review: ReviewDetail, entry: ReviewEntry, job
   const ageText = displayAge(profile);
   return {
     id: submissionId(String(entry.id)), name: reviewEntryName(entry) || "이름 미입력",
-    roleId: roleId(String(entry.roleId ?? review.id)), roleName: review.roles.length === 0 ? "자유 배역" : review.roles.find(role => sameKey(role.id, entry.roleId))?.name ?? "미배정",
+    roleId: roleId(String(entry.roleId ?? review.id)), roleName: review.roles.length === 0 ? "자유 배역" : review.roles.find(role => sameKey(role.id, entry.roleId))?.name ?? UNASSIGNED_ROLE,
     gender: null, age: null, height: null, weight: null, birth: "", phone: "", email: "", address: "",
     educationLevel: null, school: "", major: "", links: linksFor(job?.result), nationality: "", specialty: "", hobbies: "", militaryServiceStatus: "",
     submittedAt: job?.uploadedAt ?? job?.createdAt ?? review.createdAt, career: [], coverLetter: "", questions: [], videos: [],
@@ -34,6 +36,7 @@ export function screeningApplicant(review: ReviewDetail, entry: ReviewEntry, job
     review: saved, reviewHistory: { 1: saved, 2: null, 3: null, 4: null, 5: null }, mismatchReasons: [],
     sourceDocument: { filename: entry.originalFilename, title: entry.title ?? "", ageText, heightText: profile?.height.value ?? undefined,
       processing: entry.processingStatus === "UPLOADING" || entry.processingStatus === "EXTRACTING" || entry.processingStatus === "ENRICHING",
+      uploading: entry.processingStatus === "UPLOADING",
       educationText: profile?.education.value ?? undefined,
       preparation: entry.processingStatus ? applicantProcessingLabels[entry.processingStatus] : !job || entry.matchStatus === "WAITING" ? "정보 읽는 중" : info?.status === "COMPLETED" ? "정보 추출됨" : "원본 확인 필요",
       careers: (profile?.careers ?? []).map(c => ({ text: c.evidence, title: [c.title, c.venue].filter(Boolean).join(" / "),

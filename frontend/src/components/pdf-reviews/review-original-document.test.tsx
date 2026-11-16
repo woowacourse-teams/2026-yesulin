@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fetchPdfExtraction } from "@/features/pdf-extractions/api";
 import type { PdfExtractionJob } from "@/features/pdf-extractions/types";
 import { trackProductEvent } from "@/features/analytics/product-analytics";
-import { ReviewOriginalDocument } from "./review-original-document";
+import { ReviewOriginalDocument, SOURCE_WAIT_LIMIT, SOURCE_WAIT_MS } from "./review-original-document";
 
 vi.mock("@/features/analytics/product-analytics", () => ({ trackProductEvent: vi.fn() }));
 vi.mock("@/features/pdf-extractions/api", () => ({ fetchPdfExtraction: vi.fn() }));
@@ -50,12 +50,28 @@ describe("원본 PDF 서명 주소", () => {
     expect(fetchPdfExtraction).toHaveBeenLastCalledWith("synthetic-job", true, expect.any(AbortSignal));
   });
 
-  it("원본이 준비되지 않으면 재시도로 다시 조회한다", async () => {
+  it("업로드 중인 원본은 오류 대신 진행 표시를 보이고 저절로 다시 조회한다", async () => {
+    vi.useFakeTimers();
     vi.mocked(fetchPdfExtraction).mockResolvedValueOnce(job(null)).mockResolvedValueOnce(job("https://s3.example.test/ready.pdf"));
     await open();
-    expect(container.querySelector('[role="alert"]')?.textContent).toContain("아직 준비되지");
-    await act(async () => container.querySelector("button")!.click());
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+    expect(container.querySelector('[role="status"]')?.textContent).toContain("올리는 중");
+    await act(async () => { await vi.advanceTimersByTimeAsync(SOURCE_WAIT_MS); });
     expect(container.querySelector("a")?.getAttribute("href")).toBe("https://s3.example.test/ready.pdf");
+    vi.useRealTimers();
+  });
+
+  it("끝까지 준비되지 않으면 기다리기를 멈추고 수동 재시도를 보인다", async () => {
+    vi.useFakeTimers();
+    vi.mocked(fetchPdfExtraction).mockResolvedValue(job(null));
+    await open();
+    for (let step = 0; step < SOURCE_WAIT_LIMIT + 2; step++) {
+      await act(async () => { await vi.advanceTimersByTimeAsync(SOURCE_WAIT_MS); });
+    }
+    expect(fetchPdfExtraction).toHaveBeenCalledTimes(SOURCE_WAIT_LIMIT + 1);
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain("아직 준비되지");
+    expect(container.querySelector("button")?.textContent).toBe("원본 다시 불러오기");
+    vi.useRealTimers();
   });
 
   it("주소 갱신 뒤에도 새 원본을 PDF.js 뷰어에 전달한다", async () => {
