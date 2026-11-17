@@ -21,16 +21,16 @@
 | C04 | PASS | 시안 저장 경로에 최종 PNG 2장만 있다. 운영 배너 자산, 렌더러, 등록 정보와 링크는 이번 변경에 포함되지 않았다. 미사용 파일·코드·설정·의존성·옛 문서 및 깨진 링크 없음. |
 | C05 | N/A | 운영 연결을 요청하지 않은 이미지 시안 단계여서 서비스 탐색과 실기기 실행 검증은 적용하지 않았다. |
 
-독립 평가 1회. 필수 PASS 4 / FAIL 0 / UNVERIFIED 0, N/A 1. 신규 확정 문제 발견 1 / 해결 1 / 미해결 0. P0 0 · P1 0 · P2 0 · P3 1. PRECHECK 1 · INDEPENDENT_REVIEW 0 · POST_FIX_CHECK 0 · EXTERNAL 0. 오탐 0. 독립 평가는 로고 픽셀, 633px·280px 축소본, 최대 7개 선택 표시와 변경 범위를 확인했다. Claude CLI를 사용할 수 없어 별도 에이전트로 평가했다. 최초 기록 PR은 PENDING.
+독립 평가 1회. 필수 PASS 4 / FAIL 0 / UNVERIFIED 0, N/A 1. 신규 확정 문제 발견 1 / 해결 1 / 미해결 0. P0 0 · P1 0 · P2 0 · P3 1. PRECHECK 1 · INDEPENDENT_REVIEW 0 · POST_FIX_CHECK 0 · EXTERNAL 0. 오탐 0. 독립 평가는 로고 픽셀, 633px·280px 축소본, 최대 7개 선택 표시와 변경 범위를 확인했다. Claude CLI를 사용할 수 없어 별도 에이전트로 평가했다. 최초 기록 PR은 [#596](https://github.com/woowacourse-teams/2026-yesulin/pull/596).
 
 | 문제 ID | 심각도 / 유형 / 유입 | 발견 경로 및 최초 확정 | 근거 및 조치 | 상태 및 해결 시각 | 최초 PR |
 | --- | --- | --- | --- | --- | --- |
-| 2026-11-17-frontend-audition-openchat-banner-F01 | P3 / FLOW / INTRODUCED | PRECHECK · 2026-11-17T09:57:59+09:00 | PC 초안의 CTA 하단은 폭 633px에서 y≈162.36이었다. 선택 표시가 7개일 때 표시 배경 시작 y≈156.81과 겹쳤다. 문구와 CTA를 위로 옮기고, 최종 CTA의 하단 y≈148.87이 전체 선택 영역 시작 y≈149.81보다 위인 것을 확인했다. | FIXED · 2026-11-17T09:58:37+09:00 | PENDING |
+| 2026-11-17-frontend-audition-openchat-banner-F01 | P3 / FLOW / INTRODUCED | PRECHECK · 2026-11-17T09:57:59+09:00 | PC 초안의 CTA 하단은 폭 633px에서 y≈162.36이었다. 선택 표시가 7개일 때 표시 배경 시작 y≈156.81과 겹쳤다. 문구와 CTA를 위로 옮기고, 최종 CTA의 하단 y≈148.87이 전체 선택 영역 시작 y≈149.81보다 위인 것을 확인했다. | FIXED · 2026-11-17T09:58:37+09:00 | [#596](https://github.com/woowacourse-teams/2026-yesulin/pull/596) |
 
 | 사건 ID | 문제 ID 접미사 | 종류 | 시각 (+09:00) | 근거 / 관련 PR |
 | --- | --- | --- | --- | --- |
-| E01 | F01 | CONFIRMED | 2026-11-17T09:57:59+09:00 | 최대 7개 선택 표시 조건에서 초안 좌표 검산 / PENDING |
-| E02 | F01 | FIXED | 2026-11-17T09:58:37+09:00 | 최종 PNG 축소본과 조작부 합성 및 좌표 검산 / PENDING |
+| E01 | F01 | CONFIRMED | 2026-11-17T09:57:59+09:00 | 최대 7개 선택 표시 조건에서 초안 좌표 검산 / [#596](https://github.com/woowacourse-teams/2026-yesulin/pull/596) |
+| E02 | F01 | FIXED | 2026-11-17T09:58:37+09:00 | 최종 PNG 축소본과 조작부 합성 및 좌표 검산 / [#596](https://github.com/woowacourse-teams/2026-yesulin/pull/596) |
 
 ## 생성 프롬프트
 

@@ -27,9 +27,9 @@
 
 | 문제 ID | 심각도 / 유형 / 유입 | 발견 경로 및 최초 확정 | 근거 및 조치 | 상태 및 해결 시각 | 최초 PR |
 | --- | --- | --- | --- | --- | --- |
-| 2026-11-17-frontend-actors-sharing-banner-removal-F01 | P3 / FLOW / INTRODUCED | INDEPENDENT_REVIEW · 2026-11-17T10:30:05+09:00 | 하나만 표시할 때 바깥의 캐러셀 설명을 숨겼지만 안쪽의 `aria-roledescription="슬라이드"`가 남았다. 배너가 여러 개일 때만 슬라이드 설명을 부여하고, 단독·다중 SSR 및 Chromium 동작을 확인했다. | FIXED · 2026-11-17T10:30:50+09:00 | PENDING |
+| 2026-11-17-frontend-actors-sharing-banner-removal-F01 | P3 / FLOW / INTRODUCED | INDEPENDENT_REVIEW · 2026-11-17T10:30:05+09:00 | 하나만 표시할 때 바깥의 캐러셀 설명을 숨겼지만 안쪽의 `aria-roledescription="슬라이드"`가 남았다. 배너가 여러 개일 때만 슬라이드 설명을 부여하고, 단독·다중 SSR 및 Chromium 동작을 확인했다. | FIXED · 2026-11-17T10:30:50+09:00 | [#596](https://github.com/woowacourse-teams/2026-yesulin/pull/596) |
 
 | 사건 ID | 문제 ID 접미사 | 종류 | 시각 (+09:00) | 근거 / 관련 PR |
 | --- | --- | --- | --- | --- |
-| E01 | F01 | CONFIRMED | 2026-11-17T10:30:05+09:00 | 단독 배너와 슬라이드 설명이 함께 렌더링되는 것을 독립 평가로 확인 / PENDING |
-| E02 | F01 | FIXED | 2026-11-17T10:30:50+09:00 | 수정 후 단독·다중 SSR 테스트와 관련 테스트 60개를 재실행 / PENDING |
+| E01 | F01 | CONFIRMED | 2026-11-17T10:30:05+09:00 | 단독 배너와 슬라이드 설명이 함께 렌더링되는 것을 독립 평가로 확인 / [#596](https://github.com/woowacourse-teams/2026-yesulin/pull/596) |
+| E02 | F01 | FIXED | 2026-11-17T10:30:50+09:00 | 수정 후 단독·다중 SSR 테스트와 관련 테스트 60개를 재실행 / [#596](https://github.com/woowacourse-teams/2026-yesulin/pull/596) |

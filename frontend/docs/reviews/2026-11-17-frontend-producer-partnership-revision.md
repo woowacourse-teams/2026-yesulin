@@ -26,15 +26,15 @@
 
 | 문제 ID | 심각도 / 유형 / 유입 | 발견 경로 및 최초 확정 | 근거와 조치 | 상태 및 해결 시각 | 최초 PR |
 | --- | --- | --- | --- | --- | --- |
-| 2026-11-17-frontend-producer-partnership-revision-F01 | P3 / FLOW / INTRODUCED | EXTERNAL · 2026-11-17T10:46:30+09:00 | 사용자가 긴 설명과 기존 디자인에 수정을 요청했다. 설명 두 줄을 한 줄로 줄이고 공연 제작팀을 제목에 적었다. 책자 삽화를 무대 사진으로 바꿨다. | FIXED · 2026-11-17T10:49:06+09:00 | PENDING |
-| 2026-11-17-frontend-producer-partnership-revision-F02 | P3 / FLOW / INTRODUCED | INDEPENDENT_REVIEW · 2026-11-17T10:51:55+09:00 | 줄인 문구에서 인터뷰의 목적이 빠져 오디션 심사 과정의 인터뷰로 읽힐 수 있었다. ‘인터뷰로 기능 개선 · 공고 홍보·심사’로 구체화하고 두 자산과 대체 문구를 맞췄다. | FIXED · 2026-11-17T10:52:48+09:00 | PENDING |
+| 2026-11-17-frontend-producer-partnership-revision-F01 | P3 / FLOW / INTRODUCED | EXTERNAL · 2026-11-17T10:46:30+09:00 | 사용자가 긴 설명과 기존 디자인에 수정을 요청했다. 설명 두 줄을 한 줄로 줄이고 공연 제작팀을 제목에 적었다. 책자 삽화를 무대 사진으로 바꿨다. | FIXED · 2026-11-17T10:49:06+09:00 | [#596](https://github.com/woowacourse-teams/2026-yesulin/pull/596) |
+| 2026-11-17-frontend-producer-partnership-revision-F02 | P3 / FLOW / INTRODUCED | INDEPENDENT_REVIEW · 2026-11-17T10:51:55+09:00 | 줄인 문구에서 인터뷰의 목적이 빠져 오디션 심사 과정의 인터뷰로 읽힐 수 있었다. ‘인터뷰로 기능 개선 · 공고 홍보·심사’로 구체화하고 두 자산과 대체 문구를 맞췄다. | FIXED · 2026-11-17T10:52:48+09:00 | [#596](https://github.com/woowacourse-teams/2026-yesulin/pull/596) |
 
 | 사건 ID | 문제 ID 접미사 | 종류 | 시각 (+09:00) | 근거 / 관련 PR |
 | --- | --- | --- | --- | --- |
-| E01 | F01 | CONFIRMED | 2026-11-17T10:46:30+09:00 | 사용자의 문구 길이와 시각 디자인 피드백 확인 / PENDING |
-| E02 | F01 | FIXED | 2026-11-17T10:49:06+09:00 | 짧은 제목과 한 줄 설명, 새 무대 사진의 PC·모바일 시안 확인 / PENDING |
-| E03 | F02 | CONFIRMED | 2026-11-17T10:51:55+09:00 | 독립 평가에서 인터뷰 목적 누락을 확인 / PENDING |
-| E04 | F02 | FIXED | 2026-11-17T10:52:48+09:00 | 두 비율의 한 줄 설명과 대체 문구 수정 후 테스트를 재실행 / PENDING |
+| E01 | F01 | CONFIRMED | 2026-11-17T10:46:30+09:00 | 사용자의 문구 길이와 시각 디자인 피드백 확인 / [#596](https://github.com/woowacourse-teams/2026-yesulin/pull/596) |
+| E02 | F01 | FIXED | 2026-11-17T10:49:06+09:00 | 짧은 제목과 한 줄 설명, 새 무대 사진의 PC·모바일 시안 확인 / [#596](https://github.com/woowacourse-teams/2026-yesulin/pull/596) |
+| E03 | F02 | CONFIRMED | 2026-11-17T10:51:55+09:00 | 독립 평가에서 인터뷰 목적 누락을 확인 / [#596](https://github.com/woowacourse-teams/2026-yesulin/pull/596) |
+| E04 | F02 | FIXED | 2026-11-17T10:52:48+09:00 | 두 비율의 한 줄 설명과 대체 문구 수정 후 테스트를 재실행 / [#596](https://github.com/woowacourse-teams/2026-yesulin/pull/596) |
 
 ## 생성 프롬프트
 

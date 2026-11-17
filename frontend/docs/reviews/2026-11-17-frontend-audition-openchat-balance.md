@@ -21,13 +21,13 @@
 | B04 | PASS | 신규 검토용 PNG는 위 보정안 한 장이다. 운영 배너, 등록, CSS, 링크, 설정 및 의존성 경로에서 이번 작업의 변경을 발견하지 않았다. 보정안은 이 기록에서 참조한다. |
 | B05 | N/A | 운영 동작 확인 범위에 포함하지 않은 이미지 시안이다. |
 
-독립 평가 1회. 필수 PASS 4 / FAIL 0 / UNVERIFIED 0, N/A 1. 신규 확정 문제 발견 1 / 해결 1 / 미해결 0. P0 0 · P1 0 · P2 0 · P3 1. PRECHECK 1 · INDEPENDENT_REVIEW 0 · POST_FIX_CHECK 0 · EXTERNAL 0. 오탐 0. 평가 에이전트는 원본과 보정안의 여백, 196px로 재합성한 로고, 633px 및 601px 축소본을 별도로 확인했다. Claude CLI를 사용할 수 없어 별도 에이전트로 평가했다. 최초 기록 PR은 PENDING.
+독립 평가 1회. 필수 PASS 4 / FAIL 0 / UNVERIFIED 0, N/A 1. 신규 확정 문제 발견 1 / 해결 1 / 미해결 0. P0 0 · P1 0 · P2 0 · P3 1. PRECHECK 1 · INDEPENDENT_REVIEW 0 · POST_FIX_CHECK 0 · EXTERNAL 0. 오탐 0. 평가 에이전트는 원본과 보정안의 여백, 196px로 재합성한 로고, 633px 및 601px 축소본을 별도로 확인했다. Claude CLI를 사용할 수 없어 별도 에이전트로 평가했다. 최초 기록 PR은 [#596](https://github.com/woowacourse-teams/2026-yesulin/pull/596).
 
 | 문제 ID | 심각도 / 유형 / 유입 | 발견 경로 및 최초 확정 | 근거 및 조치 | 상태 및 해결 시각 | 최초 PR |
 | --- | --- | --- | --- | --- | --- |
-| 2026-11-17-frontend-audition-openchat-balance-F01 | P3 / FLOW / INTRODUCED | PRECHECK · 2026-11-17T10:11:39+09:00 | PC 원본에서 위·아래 여백 차이 89px를 확인했다. 왼쪽 문구를 내리고 간격을 조정했다. 삽화는 조금 줄여 세로 중앙에 놓았고, CTA 하단은 y508에 맞췄다. 축소본과 픽셀 측정으로 확인했다. | FIXED · 2026-11-17T10:11:39+09:00 | PENDING |
+| 2026-11-17-frontend-audition-openchat-balance-F01 | P3 / FLOW / INTRODUCED | PRECHECK · 2026-11-17T10:11:39+09:00 | PC 원본에서 위·아래 여백 차이 89px를 확인했다. 왼쪽 문구를 내리고 간격을 조정했다. 삽화는 조금 줄여 세로 중앙에 놓았고, CTA 하단은 y508에 맞췄다. 축소본과 픽셀 측정으로 확인했다. | FIXED · 2026-11-17T10:11:39+09:00 | [#596](https://github.com/woowacourse-teams/2026-yesulin/pull/596) |
 
 | 사건 ID | 문제 ID 접미사 | 종류 | 시각 (+09:00) | 근거 / 관련 PR |
 | --- | --- | --- | --- | --- |
-| E01 | F01 | CONFIRMED | 2026-11-17T10:11:39+09:00 | PC 원본 배경 대비 픽셀과 육안 비교 / PENDING |
-| E02 | F01 | FIXED | 2026-11-17T10:11:39+09:00 | PC 보정안 픽셀 측정과 캐러셀 조작부 합성 검토 / PENDING |
+| E01 | F01 | CONFIRMED | 2026-11-17T10:11:39+09:00 | PC 원본 배경 대비 픽셀과 육안 비교 / [#596](https://github.com/woowacourse-teams/2026-yesulin/pull/596) |
+| E02 | F01 | FIXED | 2026-11-17T10:11:39+09:00 | PC 보정안 픽셀 측정과 캐러셀 조작부 합성 검토 / [#596](https://github.com/woowacourse-teams/2026-yesulin/pull/596) |

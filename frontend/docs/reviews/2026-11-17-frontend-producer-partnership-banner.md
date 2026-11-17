@@ -28,12 +28,12 @@
 
 | 문제 ID | 심각도 / 유형 / 유입 | 발견 경로 및 최초 확정 | 근거 및 조치 | 상태 및 해결 시각 | 최초 PR |
 | --- | --- | --- | --- | --- | --- |
-| 2026-11-17-frontend-producer-partnership-banner-F01 | P3 / UNUSED / INTRODUCED | INDEPENDENT_REVIEW · 2026-11-17T10:41:32+09:00 | 항상 두 고정 배너를 반환하면서 단일 고정 배너용 화면 분기와 커서 스타일에 도달할 수 없게 됐다. 해당 분기와 스타일을 정리하고 고정 배너 두 개 및 이벤트 포함 상태의 탐색과 링크를 재검증했다. | FIXED · 2026-11-17T10:41:58+09:00 | PENDING |
+| 2026-11-17-frontend-producer-partnership-banner-F01 | P3 / UNUSED / INTRODUCED | INDEPENDENT_REVIEW · 2026-11-17T10:41:32+09:00 | 항상 두 고정 배너를 반환하면서 단일 고정 배너용 화면 분기와 커서 스타일에 도달할 수 없게 됐다. 해당 분기와 스타일을 정리하고 고정 배너 두 개 및 이벤트 포함 상태의 탐색과 링크를 재검증했다. | FIXED · 2026-11-17T10:41:58+09:00 | [#596](https://github.com/woowacourse-teams/2026-yesulin/pull/596) |
 
 | 사건 ID | 문제 ID 접미사 | 종류 | 시각 (+09:00) | 근거 / 관련 PR |
 | --- | --- | --- | --- | --- |
-| E01 | F01 | CONFIRMED | 2026-11-17T10:41:32+09:00 | 두 고정 배너 구성에서 단독 표시 분기가 실행되지 않는 것을 독립 평가로 확인 / PENDING |
-| E02 | F01 | FIXED | 2026-11-17T10:41:58+09:00 | 단독 표시 전용 코드·스타일 제거와 관련 테스트 재실행 / PENDING |
+| E01 | F01 | CONFIRMED | 2026-11-17T10:41:32+09:00 | 두 고정 배너 구성에서 단독 표시 분기가 실행되지 않는 것을 독립 평가로 확인 / [#596](https://github.com/woowacourse-teams/2026-yesulin/pull/596) |
+| E02 | F01 | FIXED | 2026-11-17T10:41:58+09:00 | 단독 표시 전용 코드·스타일 제거와 관련 테스트 재실행 / [#596](https://github.com/woowacourse-teams/2026-yesulin/pull/596) |
 
 ## 생성 프롬프트
 

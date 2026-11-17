@@ -22,15 +22,15 @@
 
 | 문제 ID | 심각도 / 유형 / 유입 | 발견 경로 및 최초 확정 | 근거 및 조치 | 상태 및 해결 시각 | 최초 PR |
 | --- | --- | --- | --- | --- | --- |
-| 2026-11-17-frontend-home-banner-posthog-F01 | P3 / FLOW / INTRODUCED | PRECHECK · 2026-11-17T11:19:30+09:00 | 개발 대시보드 반환 목록에 새 표가 빠졌다. 같은 정의를 운영과 개발의 반환 항목에 추가해 두 환경 dry-run을 확인했다. | FIXED · 2026-11-17T11:20:58+09:00 | PENDING |
-| 2026-11-17-frontend-home-banner-posthog-F02 | P3 / TEST / INTRODUCED | PRECHECK · 2026-11-17T11:19:30+09:00 | jsdom에서 Sentry 번들러 의존성이 파일 URL을 요구해 테스트 초기화에 실패했다. 기존 테스트 패턴으로 Sentry를 대체했다. | FIXED · 2026-11-17T11:20:58+09:00 | PENDING |
-| 2026-11-17-frontend-home-banner-posthog-F03 | P3 / FLOW / INTRODUCED | INDEPENDENT_REVIEW · 2026-11-17T11:25:35+09:00 | 가운데 버튼으로 새 탭을 열면 `click` 대신 `auxclick`이 발생한다. 가운데 버튼만 허용하는 핸들러로 연결하고 기존 GA는 주 이벤트에 유지했다. 주·가운데·오른쪽 버튼의 기록 범위를 비교했다. | FIXED · 2026-11-17T11:26:43+09:00 | PENDING |
+| 2026-11-17-frontend-home-banner-posthog-F01 | P3 / FLOW / INTRODUCED | PRECHECK · 2026-11-17T11:19:30+09:00 | 개발 대시보드 반환 목록에 새 표가 빠졌다. 같은 정의를 운영과 개발의 반환 항목에 추가해 두 환경 dry-run을 확인했다. | FIXED · 2026-11-17T11:20:58+09:00 | [#596](https://github.com/woowacourse-teams/2026-yesulin/pull/596) |
+| 2026-11-17-frontend-home-banner-posthog-F02 | P3 / TEST / INTRODUCED | PRECHECK · 2026-11-17T11:19:30+09:00 | jsdom에서 Sentry 번들러 의존성이 파일 URL을 요구해 테스트 초기화에 실패했다. 기존 테스트 패턴으로 Sentry를 대체했다. | FIXED · 2026-11-17T11:20:58+09:00 | [#596](https://github.com/woowacourse-teams/2026-yesulin/pull/596) |
+| 2026-11-17-frontend-home-banner-posthog-F03 | P3 / FLOW / INTRODUCED | INDEPENDENT_REVIEW · 2026-11-17T11:25:35+09:00 | 가운데 버튼으로 새 탭을 열면 `click` 대신 `auxclick`이 발생한다. 가운데 버튼만 허용하는 핸들러로 연결하고 기존 GA는 주 이벤트에 유지했다. 주·가운데·오른쪽 버튼의 기록 범위를 비교했다. | FIXED · 2026-11-17T11:26:43+09:00 | [#596](https://github.com/woowacourse-teams/2026-yesulin/pull/596) |
 
 | 사건 ID | 문제 ID 접미사 | 종류 | 시각 (+09:00) | 근거 / 관련 PR |
 | --- | --- | --- | --- | --- |
-| E01 | F01 | CONFIRMED | 2026-11-17T11:19:30+09:00 | 개발 dry-run에서 새 차트 탐색 실패 / PENDING |
-| E02 | F02 | CONFIRMED | 2026-11-17T11:19:30+09:00 | Vitest DOM 테스트 초기화 오류 / PENDING |
-| E03 | F01 | FIXED | 2026-11-17T11:20:58+09:00 | 운영 및 개발에서 배너별 집계 쿼리 확인 / PENDING |
-| E04 | F02 | FIXED | 2026-11-17T11:20:58+09:00 | 테스트 62개 통과 / PENDING |
-| E05 | F03 | CONFIRMED | 2026-11-17T11:25:35+09:00 | 독립 평가에서 가운데 버튼 링크 활성화 누락 확인 / PENDING |
-| E06 | F03 | FIXED | 2026-11-17T11:26:43+09:00 | 가운데 버튼 수집·오른쪽 제외·GA 기존 범위 테스트 및 전체 테스트 통과 / PENDING |
+| E01 | F01 | CONFIRMED | 2026-11-17T11:19:30+09:00 | 개발 dry-run에서 새 차트 탐색 실패 / [#596](https://github.com/woowacourse-teams/2026-yesulin/pull/596) |
+| E02 | F02 | CONFIRMED | 2026-11-17T11:19:30+09:00 | Vitest DOM 테스트 초기화 오류 / [#596](https://github.com/woowacourse-teams/2026-yesulin/pull/596) |
+| E03 | F01 | FIXED | 2026-11-17T11:20:58+09:00 | 운영 및 개발에서 배너별 집계 쿼리 확인 / [#596](https://github.com/woowacourse-teams/2026-yesulin/pull/596) |
+| E04 | F02 | FIXED | 2026-11-17T11:20:58+09:00 | 테스트 62개 통과 / [#596](https://github.com/woowacourse-teams/2026-yesulin/pull/596) |
+| E05 | F03 | CONFIRMED | 2026-11-17T11:25:35+09:00 | 독립 평가에서 가운데 버튼 링크 활성화 누락 확인 / [#596](https://github.com/woowacourse-teams/2026-yesulin/pull/596) |
+| E06 | F03 | FIXED | 2026-11-17T11:26:43+09:00 | 가운데 버튼 수집·오른쪽 제외·GA 기존 범위 테스트 및 전체 테스트 통과 / [#596](https://github.com/woowacourse-teams/2026-yesulin/pull/596) |
