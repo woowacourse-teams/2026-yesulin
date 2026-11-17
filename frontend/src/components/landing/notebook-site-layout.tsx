@@ -30,7 +30,10 @@ export function NotebookHeader({ service = "applicant" }: { readonly service?: "
   const pathname = usePathname() ?? "/";
   const current = currentMenu(pathname);
   return <header className="notebook-header"><div className="notebook-container notebook-header-inner">
-    <Link href="/" aria-label="예술in 홈" className="notebook-logo"><Image src="/images/yesulin-wordmark.png" alt="예술in" width={707} height={320} priority /></Link>
+    <Link href="/" aria-label="예술in 홈" className="notebook-logo">
+      <Image src="/images/yesulin-wordmark.png" alt="예술in" width={707} height={320}
+        sizes="(max-width: 760px) 76px, 88px" priority />
+    </Link>
     <nav aria-label="주요 메뉴" className="notebook-main-nav">{menuItems.map((item) => <Link key={item.key} href={item.href} aria-current={current === item.key ? "page" : undefined}>{item.label}</Link>)}</nav>
     <div className="notebook-account"><HeaderAccountLinks service={service} serviceLinkClassName="notebook-producer-link" /></div>
     <NotificationBell />

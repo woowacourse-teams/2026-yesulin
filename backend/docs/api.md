@@ -1470,7 +1470,7 @@ POST 성공만으로 저장됐다고 판단하지 않고 GET에서 같은 이전
 | --- | --- | --- |
 | GET | `/identity` | `{ready: boolean}`. 쿠키 확인만 하며 새 키는 발급하지 않음. 이전 헤더가 있으면 해당 키와 쿠키의 일치도 확인 |
 | POST | `/identity` | 본문 없음, CSRF 필수 → 204 + HttpOnly Set-Cookie. 기존 쿠키 재사용, 기존 키 이전 또는 서버 32바이트 난수 신규 발급 |
-| GET | `/posts?topic={topic}&before={id}` | 두 파라미터 모두 선택. 해당 주제의 최신 글 5개, topic 생략 시 전체. 첫 페이지는 공개, 이전 페이지는 로그인 필요(401). `before`는 양수, 해당 ID 미포함 |
+| GET | `/posts?topic={topic}&before={id}` | 모든 페이지 공개. 두 파라미터 모두 선택. 해당 주제의 최신 글부터 5개씩, topic 생략 시 전체 주제. `before`는 양수이며 해당 ID는 미포함 |
 | GET | `/posts/popular` | 공개. 최근 7일 점수순 최대 5개. `[{id, title}]`; 없으면 빈 배열 |
 | POST | `/posts` | `{requestId: UUID, title, body, topic?, authorMode, expectedMemberId}` → 201 작성물 |
 | GET | `/posts/participation?postId={id}` | 본인 참여 상태. postId 생략 시 새 글. `{memberId, canWrite, fixedMode, profile: {name, photoUrl, path} 또는 null}`. fixedMode는 호환용으로 항상 null. 비로그인은 memberId/profile/fixedMode null·canWrite false. 회원 ID는 이 본인 응답에만 포함 |

@@ -76,7 +76,7 @@ class CommunityTopicsTest {
     }
 
     @Test
-    @DisplayName("선택한 주제로 다섯 개씩 조회하고 비회원은 다음 페이지를 볼 수 없다")
+    @DisplayName("비회원도 선택한 주제로 다섯 개씩 다음 페이지까지 조회한다")
     void filtersBeforeApplyingCursor() {
         final long oldest = post(UUID.randomUUID(), QUESTION).id();
         for (int i = 0; i < 5; i++) {
@@ -85,9 +85,7 @@ class CommunityTopicsTest {
         }
         CommunityPage first = members.posts(Long.MAX_VALUE, null, null, QUESTION);
         assertThat(first.items()).hasSize(5).extracting(EntryResult::topic).containsOnly(QUESTION);
-        assertThatThrownBy(() -> members.posts(first.nextCursor(), null, null, QUESTION))
-                .isInstanceOf(BusinessException.class);
-        var next = members.posts(first.nextCursor(), null, actor, QUESTION);
+        var next = members.posts(first.nextCursor(), null, null, QUESTION);
         assertThat(next.items()).extracting(EntryResult::id).containsExactly(oldest);
         assertThat(next.nextCursor()).isNull();
     }

@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useImperativeHandle, useRef, useState, type Ref, type FormEvent, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useImperativeHandle, useRef, useState, type Ref, type MouseEvent } from "react";
+import { useSearchParams } from "next/navigation";
 import { commentThreads, linkedCommentPage } from "@/features/community/comments";
 import { createComment, deleteComment, editComment, getComments } from "@/features/community/api";
 import { trackCommentCreated } from "@/features/community/analytics";
@@ -10,7 +11,8 @@ import { communityCommentEditReturnTo, communityReturnTo, finishCommunityEdit } 
 import { useMemberDraft } from "@/features/community/use-member-draft";
 import type { CommunityEntry, CommunityParticipation } from "@/features/community/types";
 import { CommunityPhoto, CommunityByline, CommunityError, PlainText } from "./community-ui";
-import { AuthorChoice, CommunityLogin, MemberParticipation } from "./member-participation";
+import { AuthorChoice, MemberParticipation } from "./member-participation";
+import { CommunityLogin } from "./community-login";
 import { EntryMenu } from "./entry-menu";
 
 const COMMENT_LIMIT = 1000;
@@ -19,6 +21,8 @@ type Notify = (message: string) => void;
 type CommentsProps = { readonly postId: number; readonly count: number; readonly notify: Notify; readonly onChanged: () => Promise<void> };
 
 export function CommunityComments({ postId, count, notify, onChanged }: CommentsProps) {
+  const searchParams = useSearchParams();
+  const resumedReplyId = queryCommentId("replyTo", searchParams);
   const loader = useCallback((cursor?: number) => {
     if (cursor !== undefined) return getComments(postId, cursor);
     const after = linkedCommentCursor();
@@ -27,13 +31,24 @@ export function CommunityComments({ postId, count, notify, onChanged }: Comments
   }, [postId]);
   const feed = useCommunityFeed(loader);
   const [partial, setPartial] = useState(() => linkedCommentCursor() > 0);
-  const [replyToId, setReplyToId] = useState(() => queryCommentId("replyTo"));
+  const [replySelection, setReplyToId] = useState<number | null>(null);
+  const replyToId = replySelection ?? resumedReplyId;
+  const requestedReply = useRef(0);
+  const { items, loading, load } = feed;
+  useEffect(() => {
+    if (replySelection !== null || !resumedReplyId || loading || requestedReply.current === resumedReplyId) return;
+    if (items.some(item => item.id === resumedReplyId)) return;
+    requestedReply.current = resumedReplyId;
+    void load(undefined, true).then(() => {
+      if (queryCommentId("replyTo") === resumedReplyId) setPartial(resumedReplyId > 1);
+    });
+  }, [resumedReplyId, replySelection, items, loading, load]);
   const [sending, setSending] = useState(false);
   const discardDraft = useRef<() => boolean>(null);
   const composer = useRef<HTMLDivElement>(null);
   const focusComposer = () => requestAnimationFrame(() => {
     composer.current?.scrollIntoView({ block: "nearest" });
-    composer.current?.querySelector<HTMLElement>("textarea, a")?.focus();
+    composer.current?.querySelector<HTMLElement>("textarea, button[aria-haspopup='dialog']")?.focus();
   });
   const selectReply = (id: number) => { setReplyToId(id); focusComposer(); };
   const closeReply = () => {
@@ -68,6 +83,7 @@ export function CommunityComments({ postId, count, notify, onChanged }: Comments
   return <><section className="community-comments" aria-labelledby="comments-heading">
     <h2 id="comments-heading" className="community-comments-head">댓글 {count}</h2>
     {partial && <EarlierComments disabled={feed.loading} load={() => {
+      setReplyToId(replyToId);
       window.history.replaceState(window.history.state, "", window.location.pathname);
       setPartial(false);
       void feed.load();
@@ -120,6 +136,9 @@ type ComposerProps = { readonly discardDraft: Ref<() => boolean>; readonly onSen
 
 function CommentComposer({ postId, replyToId, onSaved, participation, onSending, discardDraft }: ComposerProps & { readonly participation: CommunityParticipation }) {
   const active = useCurrentCommunityForm();
+  const textarea = useRef<HTMLTextAreaElement>(null);
+  const resumeReply = useSearchParams()?.get("reply") === "1";
+  useEffect(() => { if (resumeReply) textarea.current?.focus(); }, [resumeReply]);
   let scope = `comment:${postId}`;
   let label = "댓글";
   if (replyToId) {
@@ -148,21 +167,22 @@ function CommentComposer({ postId, replyToId, onSaved, participation, onSending,
     trackCommentCreated();
     await onSaved(result.id);
   }
-  const send = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const send = (event: MouseEvent<HTMLButtonElement>) => {
+    if (!event.currentTarget.form?.reportValidity()) return;
     void action.run(async () => {
       onSending(true);
       try { await publish(); } finally { onSending(false); }
     });
   };
-  return <form className="community-comment-composer" onSubmit={send}
+  return <form className="community-comment-composer" onSubmit={event => event.preventDefault()}
     onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false); }}>
     <fieldset disabled={action.busy}><label htmlFor="comment-body-new" className="community-sr-only">{label}</label>
-      <textarea id="comment-body-new" name="body" onFocus={() => setFocused(true)} autoFocus={replyToId > 0 || queryCommentId("reply") === 1} required maxLength={COMMENT_LIMIT} rows={composerRows(expanded)} value={body}
-        onChange={event => savedDraft.change({ body: event.target.value })} onKeyDown={submitOnEnter} placeholder={`${label}을 입력하세요`} />
+      <textarea ref={textarea} id="comment-body-new" name="body" onFocus={() => setFocused(true)} autoFocus={replyToId > 0} required maxLength={COMMENT_LIMIT}
+        rows={composerRows(expanded)} enterKeyHint="enter" value={body} onChange={event => savedDraft.change({ body: event.target.value })} placeholder={`${label}을 입력하세요`} />
       <div className="community-comment-tools">
         <AuthorChoice participation={participation} mode={authorMode} onChange={mode => savedDraft.change({ authorMode: mode })} />
-        <button className="community-send" disabled={!body.trim() || (authorMode === "PROFILE" && !participation.profile?.path)} aria-label={`${label} 등록`}>등록</button>
+        <button type="button" className="community-send" onClick={send} disabled={!body.trim() || (authorMode === "PROFILE" && !participation.profile?.path)}
+          aria-label={`${label} 등록`}>등록</button>
       </div></fieldset>
     <CommunityError message={action.error || savedDraft.storageError} />
     {action.needsLogin && <CommunityLogin returnTo={composerReturnTo(postId, replyToId)} />}
@@ -190,8 +210,8 @@ function CommentEditFields({ postId, comment, onSaved, onCancel, memberDraft }: 
   const change = (value: string) => { if (memberDraft) return memberDraft.change({ body: value }); setEdited(value); };
   const action = useCommunityAction();
   useDraftGuard(body !== comment.body);
-  const save = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const save = (event: MouseEvent<HTMLButtonElement>) => {
+    if (!event.currentTarget.form?.reportValidity()) return;
     void action.run(async () => {
       await editComment(postId, comment.id, normalizeComment(body).body);
       if (!active.current) return;
@@ -204,13 +224,14 @@ function CommentEditFields({ postId, comment, onSaved, onCancel, memberDraft }: 
     if (body !== comment.body && !window.confirm("수정을 취소할까요?")) return;
     memberDraft?.clear(); finishCommunityEdit(); onCancel();
   };
-  return <form className="community-comment-edit" onSubmit={save}><fieldset disabled={action.busy}>
+  return <form className="community-comment-edit" onSubmit={event => event.preventDefault()}><fieldset disabled={action.busy}>
     <label htmlFor={`comment-body-${comment.id}`} className="community-sr-only">댓글 수정</label>
-    <textarea id={`comment-body-${comment.id}`} name="body" autoFocus required maxLength={COMMENT_LIMIT} rows={3} value={body} onChange={event => change(event.target.value)} onKeyDown={submitOnEnter} /></fieldset>
+    <textarea id={`comment-body-${comment.id}`} name="body" autoFocus required maxLength={COMMENT_LIMIT} rows={3} enterKeyHint="enter"
+      value={body} onChange={event => change(event.target.value)} /></fieldset>
     <CommunityError message={action.error || memberDraft?.storageError || ""} />
     {action.needsLogin && <CommunityLogin returnTo={communityCommentEditReturnTo(postId, comment.id)} />}
     <div className="community-edit-buttons"><button type="button" disabled={action.busy} onClick={cancel}>취소</button>
-      <button className="community-primary-button" disabled={action.busy}>{action.busy && "저장 중…"}{!action.busy && "저장"}</button></div></form>;
+      <button type="button" className="community-primary-button" onClick={save} disabled={action.busy}>{action.busy && "저장 중…"}{!action.busy && "저장"}</button></div></form>;
 }
 
 function composerRows(expanded: boolean) {
@@ -251,17 +272,11 @@ function editedCommentId() {
   return queryCommentId("editComment");
 }
 
-function queryCommentId(name: string) {
-  if (typeof window === "undefined") return 0;
-  const id = Number(new URLSearchParams(window.location.search).get(name));
+function queryCommentId(name: string, searchParams?: Pick<URLSearchParams, "get"> | null) {
+  if (!searchParams && typeof window === "undefined") return 0;
+  const id = Number((searchParams ?? new URLSearchParams(window.location.search)).get(name));
   if (!Number.isSafeInteger(id) || id < 1) return 0;
   return id;
-}
-
-function submitOnEnter(event: KeyboardEvent<HTMLTextAreaElement>) {
-  if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return;
-  event.preventDefault();
-  event.currentTarget.form?.requestSubmit();
 }
 
 function isCommentAnchor(hash: string) {

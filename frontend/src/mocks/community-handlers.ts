@@ -311,7 +311,6 @@ export function createCommunityHandlers(context: MockContext = { session: mockCu
     http.get(`${base}/popular`, () => respond(() => store.popular())),
     http.get(base, ({ request, cookies }) => respond(() => {
       const cursor = cursorOf(request, "before", Number.MAX_SAFE_INTEGER, 1);
-      if (cursor !== Number.MAX_SAFE_INTEGER && !context.session(request)) throw new MockFailure(401, "AUTH_UNAUTHENTICATED", "이전 글을 보려면 로그인해 주세요.");
       const topic = optionalTopic(new URL(request.url).searchParams.get("topic") || undefined);
       return store.list(null, cursor, memberKey(request), ownerOf(request, cookies), topic);
     })),

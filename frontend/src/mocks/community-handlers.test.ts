@@ -106,16 +106,18 @@ it("답글을 한 단계로 묶고 원댓글 삭제 후에도 답글과 재시�
   expect(page.items.map((item: { id: number }) => item.id)).toEqual([reply.id]);
 });
 
-it("비회원은 최신 5개만 받고 로그인하면 커서 다음 글을 읽는다", async () => {
-  for (let index = 0; index < 6; index++) {
+it("비회원도 최신 5개 뒤의 글을 쿠키 없이 이어 읽는다", async () => {
+  const older = await (await write(base, "POST", { requestId: crypto.randomUUID(), title: "이전 글", body: "내용" })).json();
+  for (let index = 0; index < 5; index++) {
     await write(base, "POST", { requestId: crypto.randomUUID(), title: "목록", body: "내용" });
   }
-  const preview = await (await fetch(base)).json();
-  expect(preview.items).toHaveLength(5);
-  const next = `${base}?before=${preview.nextCursor}`;
-  expect((await fetch(next)).status).toBe(401);
-  const page = await (await fetch(next, { headers: { Cookie: `yesulin-community-owner=${secret}` } })).json();
-  expect(page.items[0].id).toBeLessThan(preview.nextCursor);
+  const first = await (await fetch(base)).json();
+  expect(first.items).toHaveLength(5);
+  const next = await fetch(`${base}?before=${first.nextCursor}`);
+  expect(next.status).toBe(200);
+  const page = await next.json();
+  expect(page.items[0].id).toBe(older.id);
+  expect(page.items.every((entry: { id: number }) => entry.id < first.nextCursor)).toBe(true);
 });
 
 it("댓글과 대댓글 알림을 직접 수신자에게만 보여 주고 읽음 상태를 보호한다", async () => {
@@ -145,9 +147,7 @@ it("주제별 다음 페이지와 수정 전 요청의 주제를 보존한다", 
   }
   const page = await (await fetch(`${base}?topic=PRACTICE`)).json();
   expect(page.items.map((entry: { topic: string }) => entry.topic)).toEqual(Array(5).fill("PRACTICE"));
-  const next = await (await fetch(`${base}?topic=PRACTICE&before=${page.nextCursor}`, {
-    headers: { Cookie: `yesulin-community-owner=${secret}` },
-  })).json();
+  const next = await (await fetch(`${base}?topic=PRACTICE&before=${page.nextCursor}`)).json();
   expect(next.items.map((entry: { id: number }) => entry.id)).toEqual([first.id]);
   expect((await write(`${base}/${first.id}`, "PUT", { ...input, topic: "QUESTION" })).status).toBe(200);
   expect((await (await write(base, "POST", input)).json()).topic).toBe("QUESTION");
