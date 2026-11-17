@@ -8,6 +8,7 @@ import { ScreenError } from "@/components/auditions/screen-status";
 import Link from "next/link";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { AUDITION_ALERT_CHAT_URL, auditionPostRoutes } from "@/features/audition-posts/types";
+import { AUDITION_ALERT_BANNER } from "@/features/landing/home-banners";
 import { getPublicShows } from "@/features/shows/api";
 import { orderPublicShows } from "@/features/shows/format";
 import { showRoutes, type PublicShowSummary } from "@/features/shows/types";
@@ -39,6 +40,7 @@ function showFallback(state: ShowState, onRetry: () => void): ReactNode {
 }
 
 export function HomeFaqSection() {
+  const { href, linkLabel, alt, mobile } = AUDITION_ALERT_BANNER;
   const items = [
     { question: "오디션 공고는 어떻게 찾나요?", answer: <>상단 메뉴의 <Link href={auditionPostRoutes.list()}>오디션</Link>에서 분야와 모집 상태를 고른 뒤 공고를 살펴보세요. 페이지 이동으로 더 많은 공고를 확인할 수 있습니다. 공고를 누르면 모집 내용과 지원 방법을 볼 수 있어요.</> },
     { question: "무료 공연은 어떻게 예매하나요?", answer: <>무료 공연에서 작품을 선택한 뒤 공연 안내와 회차를 확인해주세요. 예술in에서 예매받는 공연은 로그인 없이 이름과 휴대폰 번호로 신청할 수 있고, 외부 예매 공연은 공연별 신청 페이지로 연결됩니다.</> },
@@ -46,6 +48,12 @@ export function HomeFaqSection() {
   ];
   return <section id="faq" className="notebook-section notebook-faq">
     <div className="notebook-section-heading"><h2>자주 묻는 질문</h2></div>
-    <div className="notebook-faq-layout"><div className="notebook-faq-list">{items.map((item) => <details key={item.question} className="notebook-faq-item"><summary><span aria-hidden="true" className="notebook-faq-q">Q</span>{item.question}<span aria-hidden="true" className="notebook-faq-toggle" /></summary><div className="notebook-faq-answer">{item.answer}</div></details>)}</div><aside className="notebook-chat-note"><a href={AUDITION_ALERT_CHAT_URL} target="_blank" rel="noopener noreferrer" aria-label="예술in 오픈채팅에서 오디션 알림 받기 (새 창에서 열림)"><Image src="/images/banners/openchat-highlight-mobile.webp" alt="새 오디션 소식 카톡으로 받아보세요 · 오디션 알림 받기" width={1448} height={1086} sizes="(min-width: 768px) 420px, 90vw" /></a></aside></div>
+    <div className="notebook-faq-layout"><div className="notebook-faq-list">{items.map((item) => <details key={item.question} className="notebook-faq-item"><summary><span aria-hidden="true" className="notebook-faq-q">Q</span>{item.question}<span aria-hidden="true" className="notebook-faq-toggle" /></summary><div className="notebook-faq-answer">{item.answer}</div></details>)}</div>
+      <aside className="notebook-chat-note">
+        <a href={href} target="_blank" rel="noopener noreferrer" aria-label={`${linkLabel} (새 창에서 열림)`}>
+          <Image {...mobile} alt={alt} sizes="(min-width: 768px) 420px, 90vw" />
+        </a>
+      </aside>
+    </div>
   </section>;
 }

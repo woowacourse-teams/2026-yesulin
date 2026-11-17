@@ -17,6 +17,14 @@ export function dashboardDefinitions(environment = "production") {
     kind: "DataVisualizationNode", source: { kind: "HogQLQuery", query: sql, filters: { dateRange: { date_from: dateFrom } } }, display: "ActionsTable",
   } });
   const eventFilter = (key, value) => ({ key, value, type: "event", operator: "exact" });
+  const homeBannerClicks = table("홈 배너를 몇 명이 누르나요?", `SELECT
+    if(properties.banner_id = 'audition-alert', '오디션 알림', '공연 제작팀 모집') AS \`홈 배너\`,
+    uniqExact(person_id) AS \`누른 사람 수\`, count() AS \`총 클릭 수\`
+    FROM events WHERE event = 'home_banner_clicked'
+      AND properties.banner_id IN ('audition-alert', 'producer-partnership')
+      AND ${base} AND {filters}
+    GROUP BY properties.banner_id ORDER BY \`누른 사람 수\` DESC, \`홈 배너\``,
+    "새 이벤트가 배포된 뒤부터 집계합니다. 선택 기간에 배너별로 사람을 한 번씩 세며 총 클릭에는 반복을 포함합니다. 비로그인은 브라우저 기준입니다. 배너 링크 개방 동작을 세며 카카오톡에서의 참여나 문의 완료는 측정하지 않습니다.");
   const descriptions = "운영 성과는 내부 사용자·테스트 자료 제외. 한국 시간·월~일 기준. 비로그인은 브라우저 기준이며 분석 거부·차단 이용자는 빠집니다. 빈 차트는 ‘측정 전 또는 해당 기간 기록 없음’이고, 실제 사용자가 0명이라는 증거는 아닙니다.";
   const dashboards = [
     {
@@ -90,6 +98,7 @@ ORDER BY \`주 시작일\` WITH FILL STEP INTERVAL 1 WEEK` },
           FROM counts ORDER BY people DESC, channel_name`,
           "선택 기간에 각 사람이 처음 본 공고의 방문 출처로 한 번만 분류합니다. 합계는 해당 기간 공고 조회자(주별 수의 합 아님). 새 측정은 2026-10-30 배포 후부터이며 이전 기록은 ‘측정 시작 전’. 표시 링크 우선, 없으면 이전 사이트로 분류합니다. 네이버·구글은 검색뿐 아니라 해당 서비스 유입도 포함. 직접 방문·출처 불명에는 표시 없는 카톡 링크도 포함됩니다. 기존 오픈채팅 차트는 기간 중 한 번이라도 알림 링크로 온 사람이라 수치가 다를 수 있습니다.", "-12w"),
         trend("오픈채팅 알림으로 얼마나 들어오나요?", "openchat_landed", "src=kakao_openchat 또는 utm_source=kakao_openchat으로 표시된 링크 유입. 방 인원 대비 비율은 메시지 열람자 기준 클릭률이 아닙니다."),
+        homeBannerClicks,
         table("어떤 공고 알림을 많이 열어 보나요?", `SELECT properties.post_id AS \`공고 번호\`, uniq(person_id) AS \`유입 사용자\` FROM events WHERE event = 'openchat_landed' AND ${base} AND {filters} GROUP BY properties.post_id ORDER BY \`유입 사용자\` DESC`, "선택 기간, 공고별 중복 제거. 공고 번호는 사이트 상세 주소 /posts/번호와 대응합니다. 공고 제목·본문은 분석에 보내지 않습니다."),
         table("알림을 보고 다른 공고도 살펴보나요?", `WITH visits AS (
           SELECT person_id, properties.$session_id AS session_id,
@@ -212,7 +221,7 @@ ORDER BY \`주 시작일\` WITH FILL STEP INTERVAL 1 WEEK` },
   });
   if (environment === "development") {
     return [{ ...dashboards[3], name: "개발 전용 · 측정 점검", description: "개발 사이트와 로컬 테스트 기록만 확인합니다. 운영 성과에 합산하지 않습니다.",
-      insights: dashboards[3].insights.map(insight => ({ ...insight, name: `개발 · ${insight.name}` })) }];
+      insights: [...dashboards[3].insights, homeBannerClicks].map(insight => ({ ...insight, name: `개발 · ${insight.name}` })) }];
   }
   return dashboards;
 }

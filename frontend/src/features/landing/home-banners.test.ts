@@ -56,11 +56,17 @@ describe("이벤트 배너 우선 노출", () => {
       { eventId: 3, title: "여름 이벤트", alt: "여름 이벤트", desktopImageUrl: "https://cdn.test/d2.webp", mobileImageUrl: "https://cdn.test/m2.webp" },
     ]);
 
-    expect(banners.map((banner) => banner.id)).toEqual(["event-7", "event-3", "audition-alert", "actors-sharing"]);
+    expect(banners.map((banner) => banner.id)).toEqual(["event-7", "event-3", "audition-alert", "producer-partnership"]);
     expect(banners[0]).toMatchObject({ href: "/events/7", external: false, remote: true, alt: "2기 서포터즈 모집" });
   });
 
-  it("노출 중인 이벤트가 없으면 고정 배너만 보인다", () => {
-    expect(homeBanners([]).map((banner) => banner.id)).toEqual(["audition-alert", "actors-sharing"]);
+  it("이벤트가 없으면 오디션 알림 다음에 공연 제작팀 모집 배너가 보인다", () => {
+    const banners = homeBanners([]);
+    expect(banners.map((banner) => banner.id)).toEqual(["audition-alert", "producer-partnership"]);
+    expect(banners[1]).toMatchObject({
+      href: "https://open.kakao.com/o/sKRpDXOi", external: true, remote: false,
+      desktop: { width: 2160, height: 675 },
+      mobile: { width: 1440, height: 1080 },
+    });
   });
 });
