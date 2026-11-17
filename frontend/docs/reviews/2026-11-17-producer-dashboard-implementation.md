@@ -18,21 +18,21 @@
 
 | 문제 ID | 심각도·유형·유입 | 발견 경로 | 최초 확정 / 최초 PR | 해결 시각 | 근거와 조치 및 상태 |
 | --- | --- | --- | --- | --- | --- |
-| 2026-11-17-producer-dashboard-implementation-F01 | P2·TEST·EXISTING | PRECHECK | 2026-11-17T13:23:07+09:00 / PENDING | 2026-11-17T13:29:55+09:00 | 기존 원본 심사 테스트가 스코프 밖의 `guarded`를 참조해 TypeScript가 실패했다. 하네스에 해당 테스트의 `navigate` 스파이만 전달했다. 전체 테스트와 빌드 통과. FIXED |
-| 2026-11-17-producer-dashboard-implementation-F02 | P2·FLOW·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-17T13:27:21+09:00 / PENDING | 2026-11-17T13:29:55+09:00 | 목록이 공연마다 다음 회차 한 개를 반환한다. 이전 회차의 시작 경계를 넘으면 공연 목록을 다시 조회하게 바꾸고, 두 번째 회차가 표시되는 것을 Chrome에서 확인했다. FIXED |
-| 2026-11-17-producer-dashboard-implementation-F03 | P2·FLOW·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-17T13:27:21+09:00 / PENDING | 2026-11-17T13:29:55+09:00 | 대시보드 PDF 전역 401 이벤트는 이전 계정의 지연 응답이 새 계정을 지울 수 있었다. 기존 목록 조회 함수와 지역 오류 표시를 사용한다. 전역 이벤트 호출 제거 및 요청 해제 시 뒤늦은 결과 폐기 확인. FIXED |
-| 2026-11-17-producer-dashboard-implementation-F04 | P3·DOC·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-17T13:27:21+09:00 / PENDING | 2026-11-17T13:29:55+09:00 | 공개 헤더 경로 설명이 예전 공고 목록을 가리켰다. 실제 대시보드 링크와 헤더 테스트에 맞춰 갱신했다. FIXED |
+| 2026-11-17-producer-dashboard-implementation-F01 | P2·TEST·EXISTING | PRECHECK | 2026-11-17T13:23:07+09:00 / #599 | 2026-11-17T13:29:55+09:00 | 기존 원본 심사 테스트가 스코프 밖의 `guarded`를 참조해 TypeScript가 실패했다. 하네스에 해당 테스트의 `navigate` 스파이만 전달했다. 전체 테스트와 빌드 통과. FIXED |
+| 2026-11-17-producer-dashboard-implementation-F02 | P2·FLOW·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-17T13:27:21+09:00 / #599 | 2026-11-17T13:29:55+09:00 | 목록이 공연마다 다음 회차 한 개를 반환한다. 이전 회차의 시작 경계를 넘으면 공연 목록을 다시 조회하게 바꾸고, 두 번째 회차가 표시되는 것을 Chrome에서 확인했다. FIXED |
+| 2026-11-17-producer-dashboard-implementation-F03 | P2·FLOW·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-17T13:27:21+09:00 / #599 | 2026-11-17T13:29:55+09:00 | 대시보드 PDF 전역 401 이벤트는 이전 계정의 지연 응답이 새 계정을 지울 수 있었다. 기존 목록 조회 함수와 지역 오류 표시를 사용한다. 전역 이벤트 호출 제거 및 요청 해제 시 뒤늦은 결과 폐기 확인. FIXED |
+| 2026-11-17-producer-dashboard-implementation-F04 | P3·DOC·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-17T13:27:21+09:00 / #599 | 2026-11-17T13:29:55+09:00 | 공개 헤더 경로 설명이 예전 공고 목록을 가리켰다. 실제 대시보드 링크와 헤더 테스트에 맞춰 갱신했다. FIXED |
 
 | 사건 ID | 문제 ID | 사건 종류 | 발생 시각 | 근거·관련 PR |
 | --- | --- | --- | --- | --- |
-| E01 | 2026-11-17-producer-dashboard-implementation-F01 | CONFIRMED | 2026-11-17T13:23:07+09:00 | 타입 검사와 HEAD 비교, PENDING |
-| E02 | 2026-11-17-producer-dashboard-implementation-F02 | CONFIRMED | 2026-11-17T13:27:21+09:00 | 공연 요약과 시간 갱신 책임 대조, PENDING |
-| E03 | 2026-11-17-producer-dashboard-implementation-F03 | CONFIRMED | 2026-11-17T13:27:21+09:00 | 계정 키 전환과 비동기 이벤트 대조, PENDING |
-| E04 | 2026-11-17-producer-dashboard-implementation-F04 | CONFIRMED | 2026-11-17T13:27:21+09:00 | 문서와 공개 헤더 대조, PENDING |
-| E05 | 2026-11-17-producer-dashboard-implementation-F01 | FIXED | 2026-11-17T13:29:55+09:00 | 테스트·빌드 성공, PENDING |
-| E06 | 2026-11-17-producer-dashboard-implementation-F02 | FIXED | 2026-11-17T13:29:55+09:00 | 시간 경계에서 다음 회차 확인, PENDING |
-| E07 | 2026-11-17-producer-dashboard-implementation-F03 | FIXED | 2026-11-17T13:29:55+09:00 | 전역 이벤트 호출 제거 확인, PENDING |
-| E08 | 2026-11-17-producer-dashboard-implementation-F04 | FIXED | 2026-11-17T13:29:55+09:00 | 갱신한 문구와 헤더 테스트 확인, PENDING |
+| E01 | 2026-11-17-producer-dashboard-implementation-F01 | CONFIRMED | 2026-11-17T13:23:07+09:00 | 타입 검사와 HEAD 비교, #599 |
+| E02 | 2026-11-17-producer-dashboard-implementation-F02 | CONFIRMED | 2026-11-17T13:27:21+09:00 | 공연 요약과 시간 갱신 책임 대조, #599 |
+| E03 | 2026-11-17-producer-dashboard-implementation-F03 | CONFIRMED | 2026-11-17T13:27:21+09:00 | 계정 키 전환과 비동기 이벤트 대조, #599 |
+| E04 | 2026-11-17-producer-dashboard-implementation-F04 | CONFIRMED | 2026-11-17T13:27:21+09:00 | 문서와 공개 헤더 대조, #599 |
+| E05 | 2026-11-17-producer-dashboard-implementation-F01 | FIXED | 2026-11-17T13:29:55+09:00 | 테스트·빌드 성공, #599 |
+| E06 | 2026-11-17-producer-dashboard-implementation-F02 | FIXED | 2026-11-17T13:29:55+09:00 | 시간 경계에서 다음 회차 확인, #599 |
+| E07 | 2026-11-17-producer-dashboard-implementation-F03 | FIXED | 2026-11-17T13:29:55+09:00 | 전역 이벤트 호출 제거 확인, #599 |
+| E08 | 2026-11-17-producer-dashboard-implementation-F04 | FIXED | 2026-11-17T13:29:55+09:00 | 갱신한 문구와 헤더 테스트 확인, #599 |
 
 필수 PASS 5 / FAIL 0 / UNVERIFIED 0 / N/A 0. 발견 4 / 해결 4 / 미해결 0. P0 0 / P1 0 / P2 3 / P3 1. 미확인 0. 오탐 0. 발견 경로 PRECHECK 1 / INDEPENDENT_REVIEW 3 / POST_FIX_CHECK 0 / EXTERNAL 0.
 
@@ -66,12 +66,12 @@
 
 | 문제 ID | 심각도·유형·유입 | 발견 경로 | 최초 확정 / 최초 PR | 해결 시각 | 근거와 조치 및 상태 |
 | --- | --- | --- | --- | --- | --- |
-| 2026-11-17-producer-login-invalid-credentials-overlay-F01 | P3·CODE·EXISTING | EXTERNAL | 2026-11-17T13:45:26+09:00 / PENDING | 2026-11-17T13:45:26+09:00 | 인증 거절을 `console.error`로 기록해 로컬 개발 배지가 표시됐다. 해당 계약 코드의 콘솔 로그를 생략하고 테스트에서 안내와 재시도 상태를 확인했다. FIXED |
+| 2026-11-17-producer-login-invalid-credentials-overlay-F01 | P3·CODE·EXISTING | EXTERNAL | 2026-11-17T13:45:26+09:00 / #599 | 2026-11-17T13:45:26+09:00 | 인증 거절을 `console.error`로 기록해 로컬 개발 배지가 표시됐다. 해당 계약 코드의 콘솔 로그를 생략하고 테스트에서 안내와 재시도 상태를 확인했다. FIXED |
 
 | 사건 ID | 문제 ID | 사건 종류 | 발생 시각 | 근거·관련 PR |
 | --- | --- | --- | --- | --- |
-| E01 | 2026-11-17-producer-login-invalid-credentials-overlay-F01 | CONFIRMED | 2026-11-17T13:45:26+09:00 | 사용자 증상과 브라우저 콘솔 대조, PENDING |
-| E02 | 2026-11-17-producer-login-invalid-credentials-overlay-F01 | FIXED | 2026-11-17T13:45:26+09:00 | 계약 코드별 로깅과 회귀 테스트, PENDING |
+| E01 | 2026-11-17-producer-login-invalid-credentials-overlay-F01 | CONFIRMED | 2026-11-17T13:45:26+09:00 | 사용자 증상과 브라우저 콘솔 대조, #599 |
+| E02 | 2026-11-17-producer-login-invalid-credentials-overlay-F01 | FIXED | 2026-11-17T13:45:26+09:00 | 계약 코드별 로깅과 회귀 테스트, #599 |
 
 필수 PASS 3 / FAIL 0 / UNVERIFIED 0 / N/A 0. 발견 1 / 해결 1 / 미해결 0. P0 0 / P1 0 / P2 0 / P3 1. 미확인 0. 오탐 0. 발견 경로 PRECHECK 0 / INDEPENDENT_REVIEW 0 / POST_FIX_CHECK 0 / EXTERNAL 1.
 

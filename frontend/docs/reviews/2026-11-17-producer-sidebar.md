@@ -16,15 +16,15 @@
 
 | 문제 ID | 심각도·유형·유입 | 발견 경로 | 최초 확정 / 최초 PR | 해결 시각 | 근거와 조치 및 상태 |
 | --- | --- | --- | --- | --- | --- |
-| 2026-11-17-producer-sidebar-F01 | P3·FLOW·EXISTING | EXTERNAL | 2026-11-17T14:29:59+09:00 / PENDING | 2026-11-17T14:29:59+09:00 | 모바일 메뉴에 공연사 로고 대신 별도 텍스트 헤더가 있었다. 공용 로고 헤더를 사용하고 실제 탭에서 확인했다. FIXED |
-| 2026-11-17-producer-sidebar-F02 | P3·FLOW·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-17T14:31:00+09:00 / PENDING | 2026-11-17T14:31:00+09:00 | 공유 헤더 추가 후 태블릿에서 로고 링크에 처음 초점이 갈 수 있었다. 모바일 닫기 버튼을 초기 초점으로 지정하고 800px에서 검증했다. FIXED |
+| 2026-11-17-producer-sidebar-F01 | P3·FLOW·EXISTING | EXTERNAL | 2026-11-17T14:29:59+09:00 / #599 | 2026-11-17T14:29:59+09:00 | 모바일 메뉴에 공연사 로고 대신 별도 텍스트 헤더가 있었다. 공용 로고 헤더를 사용하고 실제 탭에서 확인했다. FIXED |
+| 2026-11-17-producer-sidebar-F02 | P3·FLOW·INTRODUCED | INDEPENDENT_REVIEW | 2026-11-17T14:31:00+09:00 / #599 | 2026-11-17T14:31:00+09:00 | 공유 헤더 추가 후 태블릿에서 로고 링크에 처음 초점이 갈 수 있었다. 모바일 닫기 버튼을 초기 초점으로 지정하고 800px에서 검증했다. FIXED |
 
 | 사건 ID | 문제 ID | 사건 종류 | 발생 시각 | 근거·관련 PR |
 | --- | --- | --- | --- | --- |
-| E01 | 2026-11-17-producer-sidebar-F01 | CONFIRMED | 2026-11-17T14:29:59+09:00 | 사용자 브라우저 의견과 기존 모바일 헤더 대조, PENDING |
-| E02 | 2026-11-17-producer-sidebar-F01 | FIXED | 2026-11-17T14:29:59+09:00 | 모바일에서 로고와 홈 링크 확인, PENDING |
-| E03 | 2026-11-17-producer-sidebar-F02 | CONFIRMED | 2026-11-17T14:31:00+09:00 | 모달의 768px 키보드 초기 초점 규칙, PENDING |
-| E04 | 2026-11-17-producer-sidebar-F02 | FIXED | 2026-11-17T14:31:00+09:00 | 800px 로컬 화면에서 닫기 초점과 Escape 확인, PENDING |
+| E01 | 2026-11-17-producer-sidebar-F01 | CONFIRMED | 2026-11-17T14:29:59+09:00 | 사용자 브라우저 의견과 기존 모바일 헤더 대조, #599 |
+| E02 | 2026-11-17-producer-sidebar-F01 | FIXED | 2026-11-17T14:29:59+09:00 | 모바일에서 로고와 홈 링크 확인, #599 |
+| E03 | 2026-11-17-producer-sidebar-F02 | CONFIRMED | 2026-11-17T14:31:00+09:00 | 모달의 768px 키보드 초기 초점 규칙, #599 |
+| E04 | 2026-11-17-producer-sidebar-F02 | FIXED | 2026-11-17T14:31:00+09:00 | 800px 로컬 화면에서 닫기 초점과 Escape 확인, #599 |
 
 필수 PASS 6 / FAIL 0 / UNVERIFIED 0 / N/A 0. 발견 2 / 해결 2 / 미해결 0. P0 0 / P1 0 / P2 0 / P3 2. 미확인 0. 오탐 0. 발견 경로 PRECHECK 0 / INDEPENDENT_REVIEW 1 / POST_FIX_CHECK 0 / EXTERNAL 1.
 
