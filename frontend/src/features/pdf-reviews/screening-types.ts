@@ -4,6 +4,7 @@ export type { ApplicantPhoto, ReviewStatus, SubmissionId } from "../auditions/ty
 export type Applicant = BaseApplicant & {
   readonly review: BaseApplicant["review"] & { readonly revision?: number };
   readonly sourceDocument?: { readonly filename: string; readonly title?: string; readonly preparation: string; readonly processing?: boolean;
+    readonly uploading?: boolean;
     readonly educationText?: string; readonly ageText?: string; readonly heightText?: string;
     readonly careers?: readonly { readonly text: string; readonly title?: string; readonly part?: string;
       readonly period?: string; readonly genre?: string; readonly company?: string }[];
