@@ -303,6 +303,7 @@ export function AuditionPostForm({ post, notice, submitLabel, createHint, author
             labelledBy="post-body-label"
             describedBy="post-body-hint"
             initialHtml={post?.bodyHtml ?? ""}
+            draftHtml={bodyHtml}
             onChange={(html) => { setBodyHtml(html); changed(); }}
             onUploadImage={uploadImage}
             onUploadStateChange={setImageUploading}
