@@ -25,6 +25,32 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 
 describe("PostHog 수집 경계", () => {
+  it("홈 배너 클릭은 반복을 포함해 기록하고 허용된 배너 이름만 보낸다", async () => {
+    const { trackProductEvent, setInternalBrowser } = await import("./product-analytics");
+    const alert = { banner_id: "audition-alert" as const };
+    await trackProductEvent("home_banner_clicked", alert);
+    await trackProductEvent("home_banner_clicked", alert);
+    setInternalBrowser(true);
+    await trackProductEvent("home_banner_clicked", { banner_id: "producer-partnership" });
+
+    expect(sdk.capture).toHaveBeenCalledTimes(3);
+    expect(sdk.capture).toHaveBeenNthCalledWith(1, "home_banner_clicked", expect.objectContaining({
+      banner_id: "audition-alert", environment: "development", internal: false, test_object: false,
+    }));
+    expect(sdk.capture).toHaveBeenNthCalledWith(3, "home_banner_clicked", expect.objectContaining({
+      banner_id: "producer-partnership", internal: true, test_object: false,
+    }));
+    const sanitize = init.mock.calls[0][1].before_send;
+    expect(sanitize({ event: "home_banner_clicked", properties: {
+      banner_id: "producer-partnership", email: "private@example.com", $current_url: "https://open.kakao.com/o/test",
+    } }).properties).toEqual({ banner_id: "producer-partnership" });
+    expect(sanitize({ event: "home_banner_clicked", properties: { banner_id: "unknown" } }).properties).toEqual({});
+
+    localStorage.setItem("yesulin:analytics-consent:v1", "denied");
+    expect(await trackProductEvent("home_banner_clicked", alert)).toBe(false);
+    expect(sdk.capture).toHaveBeenCalledTimes(3);
+  });
+
   it("원본 PDF 클릭은 매번 기록하며 내부·테스트·개발 표시와 거부를 유지한다", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => ({ enabled: true, internal: true, actor: "producer", testObjects: ["review_id:review"], formAttachments: {} }) })));
     const { trackProductEvent, resetProductAnalytics } = await import("./product-analytics");

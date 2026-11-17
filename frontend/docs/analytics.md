@@ -69,6 +69,7 @@ PostHog 수집 항목·미국 리전·거부 방법은 `/privacy/analytics`의 �
 | `openchat_landed` | 표시된 알림 링크로 공고 상세 조회 |
 | `another_post_viewed` | 같은 알림 방문에서 최초 공고와 다른 공고 조회 |
 | `attachment_download_clicked` | 첨부 링크 클릭. `application_form`·`reference`·`unknown` 구분 |
+| `home_banner_clicked` | 홈의 오디션 알림·공연 제작팀 모집 배너의 오픈채팅 링크 활성화. `banner_id`는 `audition-alert` 또는 `producer-partnership` |
 | `show_viewed`, `booking_started` | 공연 상세 표시·예매 입력 시트 열기. 전환 분모는 내부 예매 가능 공연 |
 | `booking_succeeded`, `booking_failed` | 예매 API 성공/실패. 개인정보·예매번호 제외 |
 | `external_booking_clicked` | 외부 예매 링크 이동. 예술in 내 예매 완료와 분리 |
@@ -85,6 +86,11 @@ PostHog 수집 항목·미국 리전·거부 방법은 `/privacy/analytics`의 �
 | `community_comment_created` | 댓글 작성 API 성공. 댓글 수정 제외 |
 | `community_like_toggled` | 좋아요·취소 API 성공. `liked`로 결과 상태 구분 |
 | `community_report_submitted` | 신고 API 성공. `community_target`(`post`·`comment`)만 전송 |
+
+홈 배너 클릭은 새 이벤트 배포 이후부터 수집한다. 주 버튼·키보드 활성화와 가운데 버튼 새 탭 열기를 집계한다.
+전환·노출·FAQ 링크는 집계하지 않으며 카카오톡 방 주소도 보내지 않는다.
+‘홈 배너를 몇 명이 누르나요?’는 선택 기간에 배너별 고유 사용자와 반복을 포함한 총 클릭을 함께 보여 준다. 비로그인은 브라우저 기준이다.
+기존 GA4 오디션 알림 클릭과 PostHog의 오픈채팅 공고 유입은 각자 기존 기준으로 집계한다.
 
 익명게시판 이벤트에는 글·댓글 번호, 제목·본문, 익명 번호, 신고 사유·설명을 넣지 않는다. 로그인 이용자는 다른 이벤트처럼
 가명 계정 식별자가 붙으므로 글별 식별자를 보내면 익명 글과 계정이 연결될 수 있기 때문이다. 다만 작성 이벤트 시각과
