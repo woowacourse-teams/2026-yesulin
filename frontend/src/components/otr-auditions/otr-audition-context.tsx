@@ -5,6 +5,7 @@ import { createOtrAudition, getOtrAuditions } from "@/features/otr-auditions/api
 import type { CreateOtrAudition, OtrAudition } from "@/features/otr-auditions/types";
 
 type OtrAuditionContextValue = {
+  readonly enabled: boolean;
   readonly auditions: readonly OtrAudition[];
   readonly loading: boolean;
   readonly error: string | null;
@@ -57,7 +58,7 @@ export function OtrAuditionProvider({ children, enabled }: { readonly children: 
     return created;
   }, []);
 
-  return <OtrAuditionContext value={{ auditions, loading, error, reload, create }}>{children}</OtrAuditionContext>;
+  return <OtrAuditionContext value={{ enabled, auditions, loading, error, reload, create }}>{children}</OtrAuditionContext>;
 }
 
 export function useOtrAuditions() {

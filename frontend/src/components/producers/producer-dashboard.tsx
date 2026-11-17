@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useEffectEvent, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { PiBookOpen, PiFileText, PiPlus, PiTicket, PiTray } from "react-icons/pi";
 import { useOtrAuditions } from "@/components/otr-auditions/otr-audition-context";
 import { PrimaryLink, SecondaryLink } from "@/components/ui/controls";
@@ -17,11 +17,24 @@ import styles from "./producer-dashboard.module.css";
 
 function useScheduleClock(shows: readonly ProducerShowSummary[] | null, reloadShows: () => void) {
   const [now, setNow] = useState(Date.now);
+  const checkedThrough = useRef(now);
   const update = useEffectEvent(() => {
     const current = Date.now();
-    if (shows && hasStartedShowSession(shows, now, current)) reloadShows();
+    if (shows) {
+      const started = hasStartedShowSession(shows, checkedThrough.current, current);
+      checkedThrough.current = current;
+      if (started) reloadShows();
+    }
     setNow(current);
   });
+  useEffect(() => {
+    if (!shows) return;
+    let active = true;
+    queueMicrotask(() => {
+      if (active) update();
+    });
+    return () => { active = false; };
+  }, [shows]);
   useEffect(() => {
     const refreshTime = () => update();
     const timer = window.setInterval(refreshTime, 60_000);

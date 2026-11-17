@@ -15,9 +15,9 @@ type SidebarItemProps = {
 
 export function ProducerSidebarItem({ href, label, exact = false, createLink, onNavigate, children }: SidebarItemProps) {
   const pathname = usePathname();
-  let current: "page" | undefined;
+  let current: "page" | "location" | undefined;
+  if (!exact && pathname.startsWith(`${href}/`)) current = "location";
   if (pathname === href) current = "page";
-  const active = current === "page" || (!exact && pathname.startsWith(`${href}/`));
 
   return (
     <div className="flex items-center gap-0.5">
@@ -25,7 +25,7 @@ export function ProducerSidebarItem({ href, label, exact = false, createLink, on
         href={href}
         onClick={onNavigate}
         aria-current={current}
-        data-active={active}
+        data-active={current !== undefined}
         className="flex min-h-11 min-w-0 flex-1 items-center break-keep rounded-control py-2 pl-3 pr-1.5 text-sm font-semibold text-sidebar-text hover:bg-sidebar-hover hover:text-white data-[active=true]:bg-sidebar-hover data-[active=true]:text-white"
       >
         {label}
