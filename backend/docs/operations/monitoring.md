@@ -38,7 +38,7 @@ DEBUG에서 응답 원문(`aiResponse`)·종료 사유·토큰 수도 기록하�
 
 ### 런타임 값
 
-기존 Actuator/Micrometer registry에서 최대 18개 앱 값을 읽어 **일반 JSON 로그** 한 줄을 1분마다 남긴다.
+기존 Actuator/Micrometer registry에서 최대 18개 앱 값을 읽어 **일반 JSON 로그** 한 줄을 기본 1분마다 남긴다.
 `_aws` metadata·Metric Filter·PutMetricData로 custom metric을 만들지 않는다.
 Linux `/proc/meminfo`의 MemAvailable과 사용 swap bytes 2개도 같은 로그에 남긴다.
 MemAvailable은 reclaim 가능한 cache를 포함한다. 파일이 없거나 읽을 수 없으면 호스트 값만 생략한다.
@@ -47,7 +47,8 @@ MemAvailable은 reclaim 가능한 cache를 포함한다. 파일이 없거나 읽
 별도 암호화 설정 변경 없이 기본 활성화되어 dev 배포 검증 후 main의 prod 배포에도 같은 코드가 적용된다.
 Tomcat MBean registry는 `server.tomcat.mbeanregistry.enabled=true`로 켠다.
 
-- 앱 시작 완료 후 30초부터 전용 daemon 스레드 1개로 실행하며, 완료 후 60초를 기다린다.
+- 앱 시작 완료 후 30초부터 전용 daemon 스레드 1개로 실행하며, 완료 후 `YESULIN_MONITORING_PUBLISH_INTERVAL`만큼 기다린다.
+  기본값은 60초(`PT60S`)이고 DEV·PROD는 바꾸지 않는다. 1초보다 짧은 값은 1초로 올려 쓰고, 빈 값은 기본값으로 본다.
   Servlet 요청 스레드나 기존 Spring 예약 작업의 실행 스레드를 공유하지 않는다. 종료할 때 스레드를 정리한다.
 - 앱은 로컬 파일만 기록하며 네트워크 전송은 Agent가 담당한다. JVM 수집은 DB 쿼리를 실행하지 않는다.
 - `Environment=dev|prod`, `sampleTimestamp`와 숫자 필드를 기록한다.
@@ -127,7 +128,8 @@ DB collector 설치는 DB AMI/user-data 등 DB 서버 배포에도 포함해야 
 
 `ops/monitor/cloudwatch/update_dashboards.py`는 **기존 `DASHBOARD-yesulin` 하나**에 로그 그래프를 추가한다.
 EC2·ALB·알람·스냅샷·다른 운영 메모를 보존하고 원본 JSON을 백업한다. 재실행해도 소유 위젯을 중복하지 않는다.
-별도 Log/Metric 대시보드를 만들지 않는다. 기본 조회는 최근 3시간이다.
+DEV·PROD용 별도 Log/Metric 대시보드를 만들지 않는다. 기본 조회는 최근 3시간이다.
+부하 테스트만 [전용 대시보드](#부하-테스트-환경)를 쓴다.
 DB 그룹이 아직 없으면 설치 안내만 보여주며 DB 설치 후 재실행하면 그래프가 추가된다.
 
 ```bash
@@ -153,11 +155,49 @@ stack_trace/@message를 펼쳐 요청 완료·예외를 추적한다. 4xx는 `ap
 **열기·새로고침마다 검색이 실행되므로 자동 새로고침을 끄고 필요한 시간 범위만 선택한다.**
 로그 검색 그래프는 상시 metric alarm과 같은 방식이 아니며 새 런타임 알람은 만들지 않는다.
 
+### 부하 테스트 환경
+
+부하 테스트는 DEV에서 직접 한다. 별도 인스턴스·로그 그룹을 만들지 않고, 기존 DEV 로그를 1초 구간으로 보는
+전용 대시보드 `DASHBOARD-yesulin-loadtest`만 따로 둔다. DEV는 QA에도 쓰므로 실행 시간을 팀에 먼저 알린다.
+
+요청 지연·요청 수·오류는 요청 로그가 건별로 남으므로 발행 주기와 무관하게 `bin(1s)`로 집계된다.
+Tomcat·Hikari·CPU 같은 순간값만 발행 주기를 따르므로, 테스트하는 동안만 DEV 인스턴스의 주기를 1초로 낮춘다.
+
+```bash
+# DEV 인스턴스(SSM 접속)에서. 앱을 재시작하므로 DEV가 잠시 끊긴다
+sudo mkdir -p /etc/systemd/system/yesulin.service.d
+printf '[Service]\nEnvironment=YESULIN_MONITORING_PUBLISH_INTERVAL=PT1S\n' \
+  | sudo tee /etc/systemd/system/yesulin.service.d/loadtest.conf
+sudo systemctl daemon-reload && sudo systemctl restart yesulin
+
+# 테스트가 끝나면 되돌린다
+sudo rm /etc/systemd/system/yesulin.service.d/loadtest.conf
+sudo systemctl daemon-reload && sudo systemctl restart yesulin
+```
+
+- 이 값을 공용 `dev.env`에 넣지 않는다. systemd는 `EnvironmentFile` 값을 우선하므로 거기에 넣으면 되돌릴 때 재배포가 필요하다.
+- drop-in 파일은 인스턴스에만 있다. ASG가 인스턴스를 교체하면 사라지고 주기는 60초로 돌아간다.
+- **2026-11-17 기준 실제 DEV 인스턴스에서 1초 주기를 켜 본 적은 없다.** 처음 켤 때 `RUNTIME_METRICS` 로그 간격을 확인한다.
+- 대시보드는 2026-11-17 콘솔의 소스 편집으로 `--loadtest --plan` 생성본을 넣어 만들었다. 스크립트의 AWS 실행 경로는
+  아직 돌려 보지 않았고, 그래서 `yesulin/loadtest/*` 저장 쿼리도 아직 없다.
+- 요청 수·지연 그래프는 1초 구간 × API 수만큼 행이 생긴다. 부하 중 조회 결과가 행 상한에 잘리는지는 확인하지 않았다.
+
+```bash
+python3 ops/monitor/cloudwatch/update_dashboards.py --loadtest --plan
+python3 ops/monitor/cloudwatch/update_dashboards.py --loadtest
+```
+
+전용 대시보드는 앱 쿼리를 `bin(1s)`로 바꾸고 예매 전용 쿼리 두 개를 뺀다. DB 쿼리는 수집기 주기에 맞춰 1분 그대로다.
+기본 조회는 최근 15분이다. 직접 추가한 위젯(예: 인스턴스 CPU credit)은 재실행해도 보존하고, 대시보드가 없으면 새로 만든다.
+1초로 바꾼 쿼리 10개만 `yesulin/loadtest/{쿼리 ID}`로 따로 저장해 기존 1분 저장 쿼리를 덮지 않는다.
+`--loadtest`는 통합 대시보드 이름(`DASHBOARD-yesulin`)에는 쓰지 못하고, 두 대시보드는 서로의 위젯을 지우지 않는다.
+1초 구간은 조회 범위가 길수록 검색량이 커지므로 테스트 구간만 조회한다. 대시보드 수에 따른 요금은 청구 내역에서 확인한다.
+
 ### 권한·비용·배포 확인
 
 - 이번 앱/호스트/DB 수집은 **새 CloudWatch custom metric 0개**다. 앞서 계산한 18개 × 환경별 metric 비용은 적용되지 않는다.
   로그 수집·보관·Insights 스캔과 기존 dashboard/알람/API 비용은 남는다. 실제 조회량과 청구 내역을 확인한다.
-- 값을 버리지 않고 한 줄에 앱 18개+호스트 2개, DB 19개를 묶어 1분마다 기록한다.
+- 값을 버리지 않고 한 줄에 앱 18개+호스트 2개, DB 19개를 묶어 기본 1분마다 기록한다.
   기록량/기간/검색 횟수에 따라 로그 비용이 달라지며 무료 사용량이 남았다고 가정하지 않는다.
 - EC2 role에는 로그 그룹/stream 생성·조회·전송, DB 보관 설정에는 `logs:PutRetentionPolicy`가 필요하다.
   이번 수집에는 `cloudwatch:PutMetricData`가 필요 없다. IAM을 자동 변경하지 않는다.
