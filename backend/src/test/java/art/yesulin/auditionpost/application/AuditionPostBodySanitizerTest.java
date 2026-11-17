@@ -56,6 +56,13 @@ class AuditionPostBodySanitizerTest {
         assertEquals(html, sanitize(html));
     }
 
+    @Test
+    void keepsEditorFormattingAndBlankParagraphsWithoutInlineStyles() {
+        String html = "<p><s style=\"color:red\">마감</s></p><p></p><hr style=\"width:10px\"><p>추가 모집</p>";
+
+        assertEquals("<p><s>마감</s></p><p></p><hr><p>추가 모집</p>", sanitize(html));
+    }
+
     private String sanitize(String html) {
         return AuditionPostBodySanitizer.finish(AuditionPostBodySanitizer.clean(html, BASE_URL));
     }

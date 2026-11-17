@@ -14,6 +14,7 @@ public final class AuditionPostBodySanitizer {
 
     private static final String LINK_REL = "noopener noreferrer nofollow";
     private static final Safelist SAFELIST = Safelist.relaxed()
+            .addTags("s", "hr")
             .removeTags("div")
             .removeAttributes("img", "align", "width", "height")
             .removeAttributes("table", "summary", "width")

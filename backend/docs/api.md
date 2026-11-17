@@ -395,7 +395,8 @@ page·size 범위 오류와 지원하지 않는 category·sort는 `400 INVALID_R
 선택한 게시일 범위의 전체 공고 수와 누적 링크 방문 합계다. 음수 page는 `400 INVALID_REQUEST`다.
 브라우저 저장값 삭제·동시 탭·요청 재시도 등에 따라 중복될 수 있는 대략적인 지표다.
 
-`bodyHtml`은 서버가 Jsoup relaxed 허용 목록에서 `div`와 크기 속성을 뺀 태그만 남긴 HTML이다. 인라인 스타일과 스크립트는 없다.
+`bodyHtml`은 서버가 Jsoup relaxed 허용 목록에서 `div`와 크기 속성을 빼고 편집기의 `s`(취소선)와 `hr`(구분선)를 허용한 HTML이다.
+인라인 스타일과 스크립트는 제거한다.
 링크는 `target="_blank" rel="noopener noreferrer nofollow"`이고, 사진 `src`는 응답할 때 공개 저장소 주소로 채운다.
 첨부 `url`은 공개 저장소 주소이며 객체에 `Content-Disposition: attachment`와 원래 파일 이름이 설정돼 있다.
 
