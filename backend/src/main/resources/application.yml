@@ -126,6 +126,8 @@ yesulin:
       maximum-size: 32
   monitoring:
     enabled: ${YESULIN_MONITORING_ENABLED:true}
+    # 부하 테스트하는 동안만 PT1S로 낮춘다. 1초보다 짧으면 1초로 올려 쓴다.
+    publish-interval: ${YESULIN_MONITORING_PUBLISH_INTERVAL:PT60S}
   kopis:
     # 공연예술통합전산망 Open API 인증키. 비우면 운영자 공연사 정보 쓰기에서 KOPIS 조회를 끈다.
     api-key: ${KOPIS_API_KEY:}

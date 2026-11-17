@@ -6,6 +6,7 @@ import re
 import contextlib
 import io
 import tempfile
+from unittest import mock
 from pathlib import Path
 import unittest
 
@@ -141,6 +142,57 @@ class ConfigurationTest(unittest.TestCase):
         complete = dashboards.unified_dashboard(original, queries, groups | {"/yesulin/dev/database"})
         self.assertTrue(any("/yesulin/dev/database'" in w.get("properties", {}).get("query", "")
                             for w in complete["widgets"]))
+
+    def test_loadtest_dashboard_reads_existing_logs_per_second_and_keeps_manual_widgets(self):
+        queries = dashboards.loadtest_queries(json.loads((ROOT / "ops/monitor/cloudwatch/queries.json").read_text()))
+        for excluded in ("reservation-outcomes", "read-reservation-mix", "resource-requests-minute"):
+            self.assertNotIn(excluded, queries)
+        self.assertIn("bin(1s)", queries["resource-requests-second"]["query"])
+        self.assertIn("bin(1m)", queries["database-lock-waits"]["query"])
+        self.assertFalse(any("bin(1m)" in spec["query"] for spec in queries.values()
+                             if spec.get("source", "backend") == "backend"))
+        credit = {"type": "metric", "properties": {"title": "DEV CPU credit"}}
+        copied = {"type": "log", "properties": {"title": "LOG DEV | copied by hand"}}
+        groups = {"/yesulin/dev/backend", "/yesulin/dev/database"}
+        body = dashboards.loadtest_dashboard({"widgets": [credit, copied]}, queries, groups)
+        self.assertEqual("-PT15M", body["start"])
+        self.assertEqual(body, dashboards.loadtest_dashboard(body, queries, groups))
+        self.assertEqual([credit, copied], body["widgets"][:2])
+        owned = [w for w in body["widgets"] if w["type"] == "log" and w != copied]
+        self.assertEqual({"SOURCE '/yesulin/dev/backend'", "SOURCE '/yesulin/dev/database'"},
+                         {w["properties"]["query"].split(" | ")[0] for w in owned})
+        self.assertTrue(all(w["properties"]["title"].startswith("LOG LOADTEST | ") for w in owned))
+        waiting = dashboards.loadtest_dashboard({"widgets": []}, queries, set())
+        self.assertFalse(any(w["type"] == "log" for w in waiting["widgets"]))
+
+    def test_unified_dashboard_keeps_loadtest_widgets_and_loadtest_refuses_the_unified_name(self):
+        loadtest = {"type": "log", "properties": {"title": "LOG LOADTEST | copied by hand"}}
+        self.assertEqual([loadtest], dashboards.base_dashboard({"widgets": [loadtest]})["widgets"])
+        with mock.patch("sys.argv", ["update_dashboards.py", "--loadtest", "--plan", "--base", "DASHBOARD-yesulin"]):
+            with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                dashboards.main()
+
+    def test_only_per_second_queries_are_saved_apart_from_the_minute_queries(self):
+        class Logs:
+            def __init__(self):
+                self.saved = []
+
+            def describe_query_definitions(self, **request):
+                return {"queryDefinitions": [{"name": "yesulin/loadtest/runtime-cpu", "queryDefinitionId": "kept"}]}
+
+            def put_query_definition(self, **request):
+                self.saved.append(request)
+
+        logs = Logs()
+        queries = dashboards.per_second_only(dashboards.loadtest_queries(
+            json.loads((ROOT / "ops/monitor/cloudwatch/queries.json").read_text())))
+        dashboards.save_query_definitions(logs, "loadtest", "dev", queries, {"/yesulin/dev/backend", "/yesulin/dev/database"})
+        self.assertTrue(logs.saved)
+        self.assertTrue(all(request["name"].startswith("yesulin/loadtest/") for request in logs.saved))
+        self.assertTrue(all(request["logGroupNames"] == ["/yesulin/dev/backend"] for request in logs.saved))
+        self.assertTrue(all("bin(1s)" in request["queryString"] for request in logs.saved))
+        updated = next(request for request in logs.saved if request["name"] == "yesulin/loadtest/runtime-cpu")
+        self.assertEqual("kept", updated["queryDefinitionId"])
 
     def test_removes_only_owned_host_metrics_from_previous_config(self):
         old = {"metrics": {"namespace": "CWAgent", "metrics_collected": {
