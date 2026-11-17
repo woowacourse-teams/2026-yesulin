@@ -58,3 +58,5 @@
 | 사건 ID | 문제 ID | 사건 종류 | 발생 시각 | 근거 | 최초 PR |
 | --- | --- | --- | --- | --- | --- |
 | E02 | 2026-11-16-auditionpost-body-line-breaks-F01 | FIXED | 2026-11-17T09:47:06+09:00 | [수정 후 평가](2026-11-16-auditionpost-editor.md) E01. 공용 스타일을 적용한 브라우저에서 빈 문단 한 줄 높이 확인 | PENDING |
+
+최초 기록 PR은 [#595](https://github.com/woowacourse-teams/2026-yesulin/pull/595), 대상은 `dev`다. 위 사건 표의 `PENDING`은 당시 기록이다.

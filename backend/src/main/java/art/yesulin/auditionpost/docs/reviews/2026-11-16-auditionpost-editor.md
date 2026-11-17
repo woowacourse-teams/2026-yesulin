@@ -67,3 +67,17 @@
 | MEDIA-07 | 운영 AWS S3, 모바일 실기기 파일 드롭, 전체 입력 조합 | 해당 환경에서 직접 동작한다 | Chrome과 로컬 에뮬레이터로 검증했다. 별도 관리자 복합 자동화 초회는 타임아웃되어 미디어와 서식 경로를 각각 표적 검증했다 | N | UNVERIFIED |
 
 독립 평가 1회에서 실행 로그와 스크립트를 대조했다. 서식 검증은 명시적인 텍스트 범위 선택과 실제 도구 버튼에 초점을 맞췄다. 링크는 공개 `href` 보존을 확인했다. 독립 평가 뒤 동일한 서식 검증을 관리자 저장 미리보기에도 적용해 확인했다. 신규 발견 0 / 해결 0 / 미해결 0, P0~P3 신규 각 0. PRECHECK 0 / INDEPENDENT_REVIEW 0 / POST_FIX_CHECK 0 / EXTERNAL 0, 오탐 0. 필수 PASS 6 / FAIL 0 / UNVERIFIED 0 / N/A 0, 검증률 6/6. 비필수 UNVERIFIED 1. 테스트 스크립트, 합성 파일, 캡처와 임시 저장소 설정은 저장소에서 추적하지 않는다.
+
+## dev 대상 제출 검증
+
+작업 ID `2026-11-17-auditionpost-dev-pr`, 평가일 2026-11-17, 공고 v1.
+
+| ID | 검증 항목 | 근거 | 필수 | 결과 |
+| --- | --- | --- | --- | --- |
+| PR-01 | 최신 dev 기준과 제출 범위 | `5a2bd232` 위 재배치 및 range-diff, 임시 환경 파일 제외 확인 | Y | PASS |
+| PR-02 | 자동 검증 및 훅 | 프론트 테스트 215개 파일 1,174건, lint와 빌드 통과. 백엔드 본문 테스트와 Checkstyle 확인. 커밋·푸시 훅 실행 | Y | PASS |
+| PR-03 | PR 대상과 본문의 검증 근거 | PR 대상 `dev`, head `fix/audition-post-editor`를 조회했다. 줄바꿈·사진 드롭 근거를 로컬 기록과 대조했다 | Y | PASS |
+
+독립 평가 1회에서 커밋 범위와 PR 초안을 검토했다. 필수 PASS 3 / FAIL 0 / UNVERIFIED 0 / N/A 0. 신규 발견 0 / 해결 0 / 미해결 0, P0~P3 각 0. PRECHECK 0 / INDEPENDENT_REVIEW 0 / POST_FIX_CHECK 0 / EXTERNAL 0, 오탐 0.
+
+최초 기록 PR은 [#595](https://github.com/woowacourse-teams/2026-yesulin/pull/595), 대상은 `dev`다. 위 사건 표의 `PENDING`은 당시 기록이다.
