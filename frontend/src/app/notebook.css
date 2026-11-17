@@ -197,12 +197,6 @@
   margin-inline:auto;
 }
 
-.notebook-banner[data-tone=mint] {
-  --banner-paper:#ddf4e8;
-  --banner-border:#a1cdb7;
-  --banner-ink:#365e51;
-}
-
 .notebook-banner-stage { position:relative; }
 
 .notebook-banner-viewport {
