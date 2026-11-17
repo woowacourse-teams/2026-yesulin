@@ -29,31 +29,61 @@ beforeEach(() => {
   vi.stubGlobal("sessionStorage", storage);
   vi.mocked(getParticipation).mockResolvedValue({ canWrite: true, memberId: 42, fixedMode: null, profile: null });
   host = document.createElement("div");
+  document.body.append(host);
   root = createRoot(host);
 });
-afterEach(() => { act(() => root.unmount()); vi.clearAllMocks(); vi.unstubAllGlobals(); });
+afterEach(() => { act(() => root.unmount()); host.remove(); vi.clearAllMocks(); vi.unstubAllGlobals(); });
 
-async function submit() {
-  await act(async () => { host.querySelector("form")!.dispatchEvent(new Event("submit", { bubbles: true })); });
+function pressEnter(input: HTMLElement, options: KeyboardEventInit = {}) {
+  return input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true, ...options }));
+}
+
+async function expectEditorKeys() {
+  const title = host.querySelector<HTMLInputElement>("#post-title")!;
+  const body = host.querySelector<HTMLTextAreaElement>("#post-body")!;
+  const form = title.form!;
+
+  await act(async () => {
+    title.focus();
+    expect(title.getAttribute("enterkeyhint")).toBe("next");
+    expect(pressEnter(title, { isComposing: true })).toBe(true);
+    expect(pressEnter(title, { keyCode: 229 })).toBe(true);
+    expect(document.activeElement).toBe(title);
+    expect(pressEnter(title)).toBe(false);
+    expect(document.activeElement).toBe(body);
+    expect(body.getAttribute("enterkeyhint")).toBe("enter");
+    expect(pressEnter(body)).toBe(true);
+    form.requestSubmit();
+  });
+  expect(createPost).not.toHaveBeenCalled();
+  expect(editPost).not.toHaveBeenCalled();
+}
+
+async function clickPublish() {
+  await act(async () => host.querySelector<HTMLButtonElement>(".community-publish")!.click());
 }
 
 it("글쓰기에는 주제 칸이 없고 주제 없이 작성한다", async () => {
   await act(async () => root.render(<PostEditor />));
   expect(host.querySelector("select")).toBeNull();
   const draftKey = "yesulin.community.draft:42:post:new";
-  const draft = { topic: "QUESTION", title: "질문", body: "본문", authorMode: "ANONYMOUS", requestId: crypto.randomUUID(), savedAt: Date.now() };
+  const draft = { topic: "QUESTION", title: "질문", body: "첫 문단\n\n둘째 문단", authorMode: "ANONYMOUS", requestId: crypto.randomUUID(), savedAt: Date.now() };
   sessionStorage.setItem(draftKey, JSON.stringify(draft));
   await act(async () => root.render(<PostEditor key="restored" />));
   vi.mocked(createPost).mockResolvedValue({ id: 42 } as CommunityEntry);
-  await submit();
-  expect(createPost).toHaveBeenCalledWith({ title: "질문", body: "본문", authorMode: "ANONYMOUS", expectedMemberId: 42 }, draft.requestId);
+  await expectEditorKeys();
+  await clickPublish();
+  expect(createPost).toHaveBeenCalledExactlyOnceWith(
+    { title: "질문", body: draft.body, authorMode: "ANONYMOUS", expectedMemberId: 42 }, draft.requestId,
+  );
 });
 
 it("글 수정은 주제를 보내지 않아 서버가 기존 주제를 유지한다", async () => {
-  const post = { id: 11, title: "제목", body: "본문", topic: "AUDITION_REVIEW", memberOwned: true } as CommunityEntry;
+  const post = { id: 11, title: "제목", body: "첫 문단\n\n둘째 문단", topic: "AUDITION_REVIEW", memberOwned: true } as CommunityEntry;
   await act(async () => root.render(<PostEditor post={post} onSaved={vi.fn()} />));
-  await submit();
-  expect(editPost).toHaveBeenCalledWith(11, { title: "제목", body: "본문" });
+  await expectEditorKeys();
+  await clickPublish();
+  expect(editPost).toHaveBeenCalledExactlyOnceWith(11, { title: "제목", body: post.body });
 });
 
 it("인기 글은 제목 링크만 보이고 빈 응답과 실패는 카드만 숨긴다", async () => {
