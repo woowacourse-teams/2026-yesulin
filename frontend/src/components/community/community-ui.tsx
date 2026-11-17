@@ -6,6 +6,11 @@ import { useEffect, useRef, useState } from "react";
 import { PiChatCircle } from "react-icons/pi";
 import { avatarHue } from "@/features/community/avatar";
 import { fullTime, relativeTime } from "@/features/community/time";
+import communityStar from "./community-star-chat.webp";
+
+export function CommunityStar({ width, height }: { readonly width: number; readonly height: number }) {
+  return <Image src={communityStar} alt="" width={width} height={height} unoptimized />;
+}
 
 type PhotoProps = { readonly photoUrl?: string | null; readonly small?: boolean; readonly label?: string; readonly seed?: string };
 
@@ -16,7 +21,7 @@ export function CommunityPhoto({ photoUrl, small = false, label, seed }: PhotoPr
   if (photoUrl) return <Image className={className} src={photoUrl} alt="" width={40} height={40} unoptimized />;
   if (!label) return null;
   return <span className={`${className} community-avatar-star`} style={{ filter: `hue-rotate(${avatarHue(seed ?? label)}deg)` }} aria-hidden="true">
-    <Image src="/images/community-star-chat.png" alt="" width={40} height={37} /></span>;
+    <CommunityStar width={40} height={37} /></span>;
 }
 
 type BylineProps = { readonly author: string; readonly createdAt: string; readonly updatedAt: string; readonly showProfileBadge?: boolean; readonly markWriter?: boolean; readonly authorPath?: string | null };

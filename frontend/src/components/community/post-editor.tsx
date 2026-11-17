@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { createPost, editPost } from "@/features/community/api";
 import { trackComposeStarted, trackPostCreated, useAbandonTracking, useTrackOnce } from "@/features/community/analytics";
@@ -12,7 +11,7 @@ import { useMemberDraft } from "@/features/community/use-member-draft";
 import type { CommunityEntry, CommunityParticipation } from "@/features/community/types";
 import { AuthorChoice, MemberParticipation } from "./member-participation";
 import { CommunityLogin } from "./community-login";
-import { CommunityError } from "./community-ui";
+import { CommunityError, CommunityStar } from "./community-ui";
 
 const TITLE_LIMIT = 100;
 const BODY_LIMIT = 5000;
@@ -80,7 +79,7 @@ function PostForm({ post, onSaved, onCancel, participation, memberDraft }: FormP
           onChange={authorMode => memberDraft.change({ authorMode })} />}
         <button type="button" className="community-publish" onClick={submit} disabled={action.busy || !ready || needsProfile}
           aria-busy={action.busy}>
-          {!post && <Image src="/images/community-star-chat.png" width={32} height={32} alt="" />}
+          {!post && <CommunityStar width={32} height={32} />}
           <span>{submitLabel(Boolean(post), action.busy)}</span>
         </button>
       </div>

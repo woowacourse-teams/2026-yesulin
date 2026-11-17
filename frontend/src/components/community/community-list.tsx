@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useReducer, useRef } from "react";
 import { useAuthSession } from "@/components/auth/auth-session";
@@ -12,7 +11,7 @@ import { useCommunityFeed, useLoadWhenVisible, useNextPageLoader } from "@/featu
 import { postUrl } from "@/features/community/share";
 import type { CommunityEntry, CommunityLikeState } from "@/features/community/types";
 import { feedAuthor } from "@/features/community/author-name";
-import { CommunityPhoto, CommunityByline, CommunityError, CommunityToast, useCommunityToast } from "./community-ui";
+import { CommunityPhoto, CommunityByline, CommunityError, CommunityStar, CommunityToast, useCommunityToast } from "./community-ui";
 import { EntryMenu } from "./entry-menu";
 import { LikeButton } from "./like-button";
 import { PopularPostsCard } from "./popular-posts-card";
@@ -83,7 +82,7 @@ function CommunityNoticeLink() {
 
 function ComposePrompt({ signedIn }: { readonly signedIn: boolean }) {
   const content = <>
-    <Image src="/images/community-star-chat.png" alt="" width={40} height={40} />
+    <CommunityStar width={40} height={40} />
     <span>오늘 연습은 어땠어요? 가볍게 남겨 보세요</span>
     <span className="community-compose-prompt-action">글쓰기<PiPencilSimple size={15} aria-hidden="true" /></span>
   </>;
