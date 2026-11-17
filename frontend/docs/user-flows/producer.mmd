@@ -12,8 +12,9 @@ flowchart TD
     SIGNUP["POST /api/v1/producers<br>PENDING + 6자리 인증번호 메일"] --> AUTO_LOGIN["가입 후 자동 로그인<br>POST /api/v1/sessions"]
     AUTO_LOGIN --> CODE_INPUT["인증 대기 화면<br>6자리 입력/재전송/상태 확인"]
     CODE_INPUT --> VERIFY["PATCH /api/v1/auth/email-verifications<br>본인 코드 검증 + 세션 ACTIVE"]
-    VERIFY --> POSTS
-    AUTO_LOGIN -. "자동 로그인 실패 시 가입 완료 안내" .-> LOGIN_FORM["로그인 화면"]
+    VERIFY --> DASHBOARD
+    AUTO_LOGIN -. "자동 로그인 실패 시 가입 완료 안내" .-> LOGIN_FORM["공연사 이메일 로그인<br>/producer-service/login"]
+    MEMBER_LOGIN["일반 소셜 로그인<br>/login"] -- 이메일로 로그인 --> LOGIN_FORM
     LOGIN_FORM --> FORGOT{"비밀번호 분실?"}
     FORGOT -- 예 --> RESET_MAIL["POST /api/v1/auth/password-resets<br>재설정 메일 발송"]
     RESET_MAIL --> RESET["GET token 확인 → PATCH 새 비밀번호"]
@@ -21,9 +22,11 @@ flowchart TD
     FORGOT -- 아니오 --> LOGIN["POST /api/v1/sessions"]
     LOGIN --> STATUS{"이메일 인증 완료?"}
     STATUS -- 아니오 --> CODE_INPUT
-    STATUS -- 예 --> POSTS["내 오디션 공고 — 기본 진입<br>/producers/audition-posts<br>직접 올린 공고 + 관리자가 연결한 공고"]
-    POSTS --> FREE_SHOW["메뉴: 무료 공연 관리<br>/producers/shows"]
-    POSTS --> OTR_LIST
+    STATUS -- 예 --> DASHBOARD["대시보드 — 기본 진입<br>/producers<br>업무 현황·최근 작업·일정·기능 가이드"]
+    DASHBOARD --> POSTS["내 오디션 공고<br>/producers/audition-posts<br>직접 올린 공고 + 관리자가 연결한 공고"]
+    DASHBOARD --> FREE_SHOW["메뉴: 무료 공연 관리<br>/producers/shows"]
+    DASHBOARD --> OTR_LIST
+    DASHBOARD --> PDF_REVIEWS["PDF 심사함<br>/producers/pdf-reviews"]
     OTR_IMPORT["OTR 공고 수집<br>작성자 회원 번호 저장"] --> MEMBER_LINK["관리자 회원 연결<br>OTR 작성자 → 가입 회원<br>회사명·이메일·인증 상태 확인"]
     SIGNUP --> MEMBER_LINK
     MEMBER_LINK --> POSTS

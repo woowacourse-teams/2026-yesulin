@@ -5,6 +5,7 @@ import { createOtrAudition, getOtrAuditions } from "@/features/otr-auditions/api
 import type { CreateOtrAudition, OtrAudition } from "@/features/otr-auditions/types";
 
 type OtrAuditionContextValue = {
+  readonly enabled: boolean;
   readonly auditions: readonly OtrAudition[];
   readonly loading: boolean;
   readonly error: string | null;
@@ -14,9 +15,9 @@ type OtrAuditionContextValue = {
 
 const OtrAuditionContext = createContext<OtrAuditionContextValue | null>(null);
 
-export function OtrAuditionProvider({ children }: { readonly children: React.ReactNode }) {
+export function OtrAuditionProvider({ children, enabled }: { readonly children: React.ReactNode; readonly enabled: boolean }) {
   const [auditions, setAuditions] = useState<readonly OtrAudition[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
   const creationVersion = useRef(0);
@@ -28,6 +29,7 @@ export function OtrAuditionProvider({ children }: { readonly children: React.Rea
   }, []);
 
   useEffect(() => {
+    if (!enabled) return;
     let active = true;
     const requestCreationVersion = creationVersion.current;
     getOtrAuditions().then((result) => {
@@ -47,7 +49,7 @@ export function OtrAuditionProvider({ children }: { readonly children: React.Rea
       }
     });
     return () => { active = false; };
-  }, [reloadToken]);
+  }, [enabled, reloadToken]);
 
   const create = useCallback(async (input: CreateOtrAudition) => {
     const created = await createOtrAudition(input);
@@ -56,7 +58,7 @@ export function OtrAuditionProvider({ children }: { readonly children: React.Rea
     return created;
   }, []);
 
-  return <OtrAuditionContext value={{ auditions, loading, error, reload, create }}>{children}</OtrAuditionContext>;
+  return <OtrAuditionContext value={{ enabled, auditions, loading, error, reload, create }}>{children}</OtrAuditionContext>;
 }
 
 export function useOtrAuditions() {
