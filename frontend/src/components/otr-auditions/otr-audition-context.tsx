@@ -14,9 +14,9 @@ type OtrAuditionContextValue = {
 
 const OtrAuditionContext = createContext<OtrAuditionContextValue | null>(null);
 
-export function OtrAuditionProvider({ children }: { readonly children: React.ReactNode }) {
+export function OtrAuditionProvider({ children, enabled }: { readonly children: React.ReactNode; readonly enabled: boolean }) {
   const [auditions, setAuditions] = useState<readonly OtrAudition[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
   const creationVersion = useRef(0);
@@ -28,6 +28,7 @@ export function OtrAuditionProvider({ children }: { readonly children: React.Rea
   }, []);
 
   useEffect(() => {
+    if (!enabled) return;
     let active = true;
     const requestCreationVersion = creationVersion.current;
     getOtrAuditions().then((result) => {
@@ -47,7 +48,7 @@ export function OtrAuditionProvider({ children }: { readonly children: React.Rea
       }
     });
     return () => { active = false; };
-  }, [reloadToken]);
+  }, [enabled, reloadToken]);
 
   const create = useCallback(async (input: CreateOtrAudition) => {
     const created = await createOtrAudition(input);

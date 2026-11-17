@@ -1,6 +1,8 @@
-import { redirect } from "next/navigation";
-import { producerAuditionPostRoutes } from "@/features/audition-posts/types";
+import type { Metadata } from "next";
+import { ProducerDashboard } from "@/components/producers/producer-dashboard";
+
+export const metadata: Metadata = { title: "공연사 대시보드" };
 
 export default function ProducersPage() {
-  redirect(producerAuditionPostRoutes.list);
+  return <ProducerDashboard />;
 }

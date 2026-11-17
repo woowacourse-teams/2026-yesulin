@@ -7,8 +7,7 @@ import { useToast } from "@/components/auditions/toast";
 import { AuthInput, PasswordInput } from "./auth-fields";
 import { SessionApiError, login as requestLogin } from "@/features/auth/session-api";
 import { frontendEnvironment } from "@/config/environment";
-import { producerAuditionPostRoutes } from "@/features/audition-posts/types";
-import { openProducerWorkspace } from "@/features/auth/producer-navigation";
+import { openProducerWorkspace, PRODUCER_DASHBOARD_PATH } from "@/features/auth/producer-navigation";
 import { createFrontendCredential, useAuthSession } from "./auth-session";
 import {
   loginAttributionFor,
@@ -30,7 +29,7 @@ export function ProducerLoginForm() {
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<LoginErrors>({});
   const [submitting, setSubmitting] = useState(false);
-  const [pageAttribution] = useState(() => loginAttributionFor(producerAuditionPostRoutes.list, "producer"));
+  const [pageAttribution] = useState(() => loginAttributionFor(PRODUCER_DASHBOARD_PATH, "producer"));
 
   useEffect(() => {
     trackLoginPageView(pageAttribution);
@@ -49,7 +48,7 @@ export function ProducerLoginForm() {
       return;
     }
 
-    const producerAttribution = loginAttributionFor(producerAuditionPostRoutes.list, "producer");
+    const producerAttribution = loginAttributionFor(PRODUCER_DASHBOARD_PATH, "producer");
     trackLoginAttempt("password", producerAttribution);
 
     let serverSession: Awaited<ReturnType<typeof requestLogin>> | null = null;
@@ -58,7 +57,9 @@ export function ProducerLoginForm() {
       try {
         serverSession = await requestLogin(trimmedIdentifier, password);
       } catch (error) {
-        console.error("[로그인 실패]", error);
+        if (!(error instanceof SessionApiError && error.code === "AUTH_INVALID_CREDENTIALS")) {
+          console.error("[로그인 실패]", error);
+        }
         const message = error instanceof SessionApiError
           ? error.message
           : "로그인하지 못했습니다. 잠시 후 다시 시도해 주세요.";
@@ -84,13 +85,13 @@ export function ProducerLoginForm() {
       displayName: trimmedIdentifier,
       producerStatus: serverSession?.status ?? "ACTIVE",
     });
-    trackLoginSuccess(producerAuditionPostRoutes.list, producerAttribution);
+    trackLoginSuccess(PRODUCER_DASHBOARD_PATH, producerAttribution);
     toast("기획사/제작사 계정으로 로그인했습니다.", { type: "success" });
     if (serverSession) {
       openProducerWorkspace();
       return;
     }
-    router.push(producerAuditionPostRoutes.list);
+    router.push(PRODUCER_DASHBOARD_PATH);
   }
 
   return (

@@ -1,6 +1,6 @@
 "use client";
 
-import { PRODUCER_LOGIN_PATH } from "@/features/auth/producer-navigation";
+import { PRODUCER_DASHBOARD_PATH, PRODUCER_LOGIN_PATH } from "@/features/auth/producer-navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { FeedbackLauncher } from "@/components/feedback/feedback-launcher";
@@ -13,7 +13,7 @@ import { actorPageRoutes } from "@/features/actor-pages/types";
 import { applicantRoutes } from "@/features/applicants/routes";
 import { TrackedLoginLink } from "@/components/analytics/tracked-login-link";
 import { PolicyLinks } from "@/components/policies/policy-links";
-import { AUDITION_ALERT_CHAT_URL, auditionPostRoutes, producerAuditionPostRoutes } from "@/features/audition-posts/types";
+import { AUDITION_ALERT_CHAT_URL, auditionPostRoutes } from "@/features/audition-posts/types";
 import { eventRoutes } from "@/features/events/types";
 import { showRoutes } from "@/features/shows/types";
 import { SiteIcon } from "@/components/ui/site-icon";
@@ -53,7 +53,7 @@ function HeaderAccountLinks({ service, serviceLinkClassName }: { readonly servic
   const homeLink = <Link href="/" className={serviceLinkClassName}>예술in 홈</Link>;
   if (session) return <>
     {session.role === "APPLICANT" && <Link href={applicantRoutes.home}>마이페이지</Link>}
-    {session.role === "PRODUCER" && <Link href={producerAuditionPostRoutes.list}>내 오디션 공고</Link>}
+    {session.role === "PRODUCER" && <Link href={PRODUCER_DASHBOARD_PATH}>공연사 대시보드</Link>}
     <LogoutButton />
     {producer && homeLink}
   </>;
