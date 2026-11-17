@@ -19,6 +19,13 @@ PostHog 무료 프로젝트는 운영·개발이 공유하되 환경 표시·대
 Preview(`dev.yesulin.art` 포함)는 Vercel이 넣는 `VERCEL_ENV`로 판별해 모든 응답에 `X-Robots-Tag: noindex`를 붙인다.
 robots.txt는 운영과 같이 수집을 허용해 로봇이 이 헤더를 읽게 한다. `VERCEL_ENV`가 없는 로컬 빌드에는 붙이지 않는다.
 
+Production·Preview와 로컬 production 빌드는 `Content-Security-Policy-Report-Only`로 브라우저 정책 위반을 관찰한다.
+Chrome DevTools의 Console에서 위반을 확인한다. `next dev`에서는 관찰 헤더를 생략한다. Next.js의 `X-Powered-By`는
+`poweredByHeader: false`로 끈다.
+
+배포 후 홈·로그인, GTM 동의·거부, S3 직접 업로드, PDF 열기·QR 판독, YouTube 임베드를 확인한다. Next.js 인라인
+부트스트랩 위반은 현재 관찰 대상이다. 차단으로 전환하기 전에 인라인 스크립트 허용 방식과 캐시 영향을 검증한다.
+
 브라우저는 같은 origin의 `/api/v1/**`, `/oauth2/**`, `/login/oauth2/**`를 호출하고 Next.js가 `API_ORIGIN`으로
 rewrite한다. Production·Preview에는 `NEXT_PUBLIC_API_MOCKING`을 설정하지 않는다.
 
