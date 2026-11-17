@@ -27,15 +27,15 @@
 
 | 문제 ID | 분류 | 발견 경로 | 최초 확정 | 최초 PR | 상태·조치 | 수정 후 검증 |
 | --- | --- | --- | --- | --- | --- | --- |
-| 2026-11-17-community-login-modal-F01 | P1 / CODE / INTRODUCED | POST_FIX_CHECK | 2026-11-17T14:54:36+09:00 | PENDING | FIXED. 커뮤니티에서 기존 로그인 폼이 요구하는 ToastProvider를 제공한다. | 목 브라우저에서 모달과 로그인 확인 |
-| 2026-11-17-community-login-modal-F02 | P2 / FLOW / INTRODUCED | POST_FIX_CHECK | 2026-11-17T14:58:38+09:00 | PENDING | FIXED. 댓글 복귀 쿼리가 적용될 때 입력에 초점을 둔다. | 목 브라우저에서 댓글 입력의 활성 초점 확인 |
-| 2026-11-17-community-login-modal-F03 | P2 / FLOW / INTRODUCED | INDEPENDENT_REVIEW | 2026-11-17T15:02:18+09:00 | PENDING | FIXED. 같은 경로에서는 세션보다 늦게 적용된 `replyTo`도 읽고 첫 페이지에 없는 대댓글 대상을 불러온다. | 복귀 URL을 나중에 적용해 다음 페이지에 있는 원댓글을 찾는 회귀 테스트 통과 |
+| 2026-11-17-community-login-modal-F01 | P1 / CODE / INTRODUCED | POST_FIX_CHECK | 2026-11-17T14:54:36+09:00 | #600 | FIXED. 커뮤니티에서 기존 로그인 폼이 요구하는 ToastProvider를 제공한다. | 목 브라우저에서 모달과 로그인 확인 |
+| 2026-11-17-community-login-modal-F02 | P2 / FLOW / INTRODUCED | POST_FIX_CHECK | 2026-11-17T14:58:38+09:00 | #600 | FIXED. 댓글 복귀 쿼리가 적용될 때 입력에 초점을 둔다. | 목 브라우저에서 댓글 입력의 활성 초점 확인 |
+| 2026-11-17-community-login-modal-F03 | P2 / FLOW / INTRODUCED | INDEPENDENT_REVIEW | 2026-11-17T15:02:18+09:00 | #600 | FIXED. 같은 경로에서는 세션보다 늦게 적용된 `replyTo`도 읽고 첫 페이지에 없는 대댓글 대상을 불러온다. | 복귀 URL을 나중에 적용해 다음 페이지에 있는 원댓글을 찾는 회귀 테스트 통과 |
 
 | 사건 ID | 문제 ID | 종류 | 시각 | 근거·관련 PR |
 | --- | --- | --- | --- | --- |
-| E01 | 2026-11-17-community-login-modal-F01 | CONFIRMED | 2026-11-17T14:54:36+09:00 | 브라우저 오류에서 로그인 폼 렌더 실패 / PENDING |
-| E02 | 2026-11-17-community-login-modal-F02 | CONFIRMED | 2026-11-17T14:58:38+09:00 | 목 로그인 뒤 댓글 입력 초점 누락 / PENDING |
-| E03 | 2026-11-17-community-login-modal-F01 | FIXED | 2026-11-17T15:00:27+09:00 | 글쓰기·더 보기 모달과 인증 성공 / PENDING |
-| E04 | 2026-11-17-community-login-modal-F02 | FIXED | 2026-11-17T15:00:27+09:00 | 같은 글에 복귀하며 댓글 입력 초점 확인 / PENDING |
-| E05 | 2026-11-17-community-login-modal-F03 | CONFIRMED | 2026-11-17T15:02:18+09:00 | 독립 평가에서 인증과 복귀 주소의 순서에 따라 대상이 누락되는 경로 확인 / PENDING |
-| E06 | 2026-11-17-community-login-modal-F03 | FIXED | 2026-11-17T15:04:13+09:00 | 늦은 대댓글 주소와 다음 페이지의 원댓글 회귀 검증 / PENDING |
+| E01 | 2026-11-17-community-login-modal-F01 | CONFIRMED | 2026-11-17T14:54:36+09:00 | 브라우저 오류에서 로그인 폼 렌더 실패 / #600 |
+| E02 | 2026-11-17-community-login-modal-F02 | CONFIRMED | 2026-11-17T14:58:38+09:00 | 목 로그인 뒤 댓글 입력 초점 누락 / #600 |
+| E03 | 2026-11-17-community-login-modal-F01 | FIXED | 2026-11-17T15:00:27+09:00 | 글쓰기·더 보기 모달과 인증 성공 / #600 |
+| E04 | 2026-11-17-community-login-modal-F02 | FIXED | 2026-11-17T15:00:27+09:00 | 같은 글에 복귀하며 댓글 입력 초점 확인 / #600 |
+| E05 | 2026-11-17-community-login-modal-F03 | CONFIRMED | 2026-11-17T15:02:18+09:00 | 독립 평가에서 인증과 복귀 주소의 순서에 따라 대상이 누락되는 경로 확인 / #600 |
+| E06 | 2026-11-17-community-login-modal-F03 | FIXED | 2026-11-17T15:04:13+09:00 | 늦은 대댓글 주소와 다음 페이지의 원댓글 회귀 검증 / #600 |

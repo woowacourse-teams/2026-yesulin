@@ -36,12 +36,12 @@
 
 | 문제 ID | 유형·심각도 | 유입 | 최초 확정 | 발견 경로 | 최초 PR | 상태 | 해결 시각 | 근거와 검증 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `2026-11-17-community-image-loading-F01` | CODE · P3 | EXISTING | 2026-11-17T15:26:53+09:00 | PRECHECK | PENDING | FIXED | 2026-11-17T15:30:38+09:00 | I01에서 로고 표시 폭과 응답 후보의 불일치를 확인했다. CSS 분기의 폭을 `sizes`에 지정한 뒤 같은 화면에서 응답 폭·용량을 재검증했다. |
-| `2026-11-17-community-image-loading-F02` | DOC · P3 | INTRODUCED | 2026-11-17T15:32:00+09:00 | INDEPENDENT_REVIEW | PENDING | FIXED | 2026-11-17T15:33:06+09:00 | 평가 초안의 작업·문제 ID와 유형·유입 표기를 공통 평가 규칙에 맞췄다. 문제 표와 사건 이력의 ID 및 집계 합계를 확인했다. |
+| `2026-11-17-community-image-loading-F01` | CODE · P3 | EXISTING | 2026-11-17T15:26:53+09:00 | PRECHECK | #600 | FIXED | 2026-11-17T15:30:38+09:00 | I01에서 로고 표시 폭과 응답 후보의 불일치를 확인했다. CSS 분기의 폭을 `sizes`에 지정한 뒤 같은 화면에서 응답 폭·용량을 재검증했다. |
+| `2026-11-17-community-image-loading-F02` | DOC · P3 | INTRODUCED | 2026-11-17T15:32:00+09:00 | INDEPENDENT_REVIEW | #600 | FIXED | 2026-11-17T15:33:06+09:00 | 평가 초안의 작업·문제 ID와 유형·유입 표기를 공통 평가 규칙에 맞췄다. 문제 표와 사건 이력의 ID 및 집계 합계를 확인했다. |
 
 | 사건 ID | 문제 ID | 종류 | 시각 | 근거·PR |
 | --- | --- | --- | --- | --- |
-| `2026-11-17-community-image-loading-F01-E01` | `2026-11-17-community-image-loading-F01` | CONFIRMED | 2026-11-17T15:26:53+09:00 | 모바일 로고 `currentSrc`의 `w=750`과 표시 폭 76px 확인 · PENDING |
-| `2026-11-17-community-image-loading-F01-E02` | `2026-11-17-community-image-loading-F01` | FIXED | 2026-11-17T15:30:38+09:00 | 같은 브라우저 조건에서 `w=96` 및 2,620B 확인 · PENDING |
-| `2026-11-17-community-image-loading-F02-E01` | `2026-11-17-community-image-loading-F02` | CONFIRMED | 2026-11-17T15:32:00+09:00 | 공통 평가 규칙과 기록 초안의 ID 형식·유형·유입 비교 · PENDING |
-| `2026-11-17-community-image-loading-F02-E02` | `2026-11-17-community-image-loading-F02` | FIXED | 2026-11-17T15:33:06+09:00 | 문제 ID와 사건 이력 연결 및 집계 합계 확인 · PENDING |
+| `2026-11-17-community-image-loading-F01-E01` | `2026-11-17-community-image-loading-F01` | CONFIRMED | 2026-11-17T15:26:53+09:00 | 모바일 로고 `currentSrc`의 `w=750`과 표시 폭 76px 확인 · #600 |
+| `2026-11-17-community-image-loading-F01-E02` | `2026-11-17-community-image-loading-F01` | FIXED | 2026-11-17T15:30:38+09:00 | 같은 브라우저 조건에서 `w=96` 및 2,620B 확인 · #600 |
+| `2026-11-17-community-image-loading-F02-E01` | `2026-11-17-community-image-loading-F02` | CONFIRMED | 2026-11-17T15:32:00+09:00 | 공통 평가 규칙과 기록 초안의 ID 형식·유형·유입 비교 · #600 |
+| `2026-11-17-community-image-loading-F02-E02` | `2026-11-17-community-image-loading-F02` | FIXED | 2026-11-17T15:33:06+09:00 | 문제 ID와 사건 이력 연결 및 집계 합계 확인 · #600 |
