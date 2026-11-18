@@ -1,4 +1,69 @@
-# 로컬 통합 실행
+# 로컬 개발
+
+## 직접 실행
+
+Node.js 24와 Java 25가 필요하다. 처음 한 번 저장소 루트에서 Git hook을 설치한다.
+
+```bash
+npm install
+```
+
+프론트엔드:
+
+```bash
+cd frontend
+npm install
+cp -n .env.example .env.development.local
+npm run dev
+```
+
+백엔드:
+
+```bash
+git submodule update --init --recursive
+cd backend
+./gradlew bootRun
+```
+
+로컬 백엔드의 실행 프로필은 **`local`**, 설정 정본은 **`backend/src/main/resources/application-local.yml`**이다.
+PDF 심사도 같은 프로필을 사용하고, 기능별 로컬 YAML을 따로 만들지 않는다.
+
+`bootRun` 전에 기존 루트 `.env`의 백엔드 값을 `config/server/local.env`로 옮기거나 새 파일을 작성한다.
+기존 파일이 있다면 저장소 루트에서 `cp -n .env config/server/local.env`로 복사할 수 있다.
+복사한 뒤에는 `chmod 600 config/server/local.env`를 적용하고, 필요한 로컬 DB 설정도 확인한다.
+이 파일은 config 저장소에서 Git 추적하지 않으며, 없으면 로컬 Spring Boot가 시작되지 않는다.
+Docker Compose는 변수 치환에 기존 루트 `.env`를 계속 사용하지만, 백엔드 시작에는 `config/server/local.env`도 필요하다.
+
+변수 **이름**의 누락은 저장소 루트에서 비교한다. 복호화 키는 필요 없고 값은 출력하지 않는다.
+
+```sh
+sh scripts/config/compare-env-keys.sh # 기본: local.env와 dev.env
+sh scripts/config/compare-env-keys.sh config/server/local.env config/server/prod.env
+```
+
+종료 코드 `0`은 이름 일치, `1`은 차이 또는 형식 오류, `2`는 파일 누락 또는 SOPS 표시 누락이다.
+환경별로 필요한 이름이 다를 수 있으므로 차이를 무조건 같은 값으로 맞추지 않는다.
+배포 설정 변경과 버전 반영은 [config 변경 안내](../config/docs/workflow.md)를 따른다.
+
+기획사/제작사 인증 메일은 Google SMTP를 사용한다. `config/server/local.env`에 `GOOGLE_SMTP_USERNAME`,
+`GOOGLE_SMTP_APP_PASSWORD`, `GOOGLE_SMTP_FROM`, `PASSWORD_RESET_URL`을 설정한다. 실제 Google 계정 비밀번호가 아니라
+2단계 인증에서 발급한 앱 비밀번호를 사용한다. 이메일 인증은 메일로 받은 6자리 코드를 가입 화면에 입력한다. 로컬도 같은 SMTP 설정으로 실제 인증 메일을 발송하며,
+테스트에서만 Fake 발송기로 대체한다.
+
+## 검증
+
+```bash
+cd frontend
+npm run lint
+npm run build
+
+cd ../backend
+./gradlew build
+```
+
+프론트엔드에는 별도 테스트 러너가 없다. 백엔드는 Gradle build에서 Checkstyle과 테스트를 실행한다.
+
+## Docker 통합 실행
 
 Docker Compose는 MySQL, LocalStack S3, Spring Boot와 Next.js를 하나의 네트워크에서 실행한다.
 실행 전에 `config/server/local.env`를 만든다. Compose는 이 파일을 백엔드 컨테이너에 읽기 전용으로 연결하고,
