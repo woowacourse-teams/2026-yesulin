@@ -40,8 +40,8 @@ public class PosterThumbnailScheduler {
 
     private void run() {
         try {
-            var configuration = new LockConfiguration(
-                    Instant.now(), "posterThumbnailWorker", Duration.ofMinutes(5), Duration.ZERO
+            LockConfiguration configuration = new LockConfiguration(
+                    Instant.now(), "posterThumbnailWorker", Duration.ofMinutes(10), Duration.ZERO
             );
             lockProvider.lock(configuration).ifPresent(this::processLocked);
         } catch (RuntimeException exception) {

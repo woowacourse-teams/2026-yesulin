@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 
 import art.yesulin.auditionpost.domain.AuditionPostFile;
@@ -30,8 +31,9 @@ class AuditionPostFileStorageTest {
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-10-11T23:30:00Z"), ZoneOffset.UTC);
 
     private final RecordingObjectStorage objectStorage = new RecordingObjectStorage();
+    private final PosterThumbnails thumbnails = mock(PosterThumbnails.class);
     private final AuditionPostFileStorage fileStorage = new AuditionPostFileStorage(
-            objectStorage, CLOCK, mock(PosterThumbnails.class)
+            objectStorage, CLOCK, thumbnails
     );
 
     @Test
@@ -112,6 +114,27 @@ class AuditionPostFileStorageTest {
         fileStorage.deleteQuietly(List.of(first, second));
 
         assertTrue(objectStorage.contains(first));
+        assertFalse(objectStorage.contains(second));
+    }
+
+    @Test
+    void deletesOriginalWhenThumbnailRetirementFailsAndReportsIncompleteCleanup() {
+        String key = storeImage("a.png");
+        doThrow(new IllegalStateException("thumbnail retirement failed")).when(thumbnails).retire(key);
+
+        assertFalse(fileStorage.tryDelete(key));
+        assertFalse(objectStorage.contains(key));
+    }
+
+    @Test
+    void quietCleanupDeletesEveryOriginalWhenThumbnailRetirementFails() {
+        String first = storeImage("a.png");
+        String second = storeImage("b.png");
+        doThrow(new IllegalStateException("thumbnail retirement failed")).when(thumbnails).retire(first);
+
+        fileStorage.deleteQuietly(List.of(first, second));
+
+        assertFalse(objectStorage.contains(first));
         assertFalse(objectStorage.contains(second));
     }
 

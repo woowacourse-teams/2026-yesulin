@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -41,7 +42,7 @@ public class PublicShowController {
                 show -> fileService.readPublicObjectKey(show.ownerId(), show.posterFileId()),
                 (first, second) -> first
         ));
-        var urls = thumbnails.publicUrls(keys.values());
+        Function<String, String> urls = thumbnails.publicUrls(keys.values());
         return ResponseEntity.ok(PublicShowListResponse.from(shows, (owner, id) -> urls.apply(keys.get(id))));
     }
 

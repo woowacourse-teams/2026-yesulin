@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -124,7 +125,7 @@ public class AuditionPostService {
     private List<PublicAuditionPostSummaryResult> publicSummaries(List<AuditionPost> posts, LocalDate today) {
         Map<Long, String> ownerNames = owners.namesOf(posts);
         AlertChatMembers alertChatMembers = alertChatMemberService.members();
-        var urls = thumbnails.publicUrls(posts.stream()
+        Function<String, String> urls = thumbnails.publicUrls(posts.stream()
                 .flatMap(post -> post.images().stream().limit(1))
                 .map(image -> image.getObjectKey())
                 .toList());

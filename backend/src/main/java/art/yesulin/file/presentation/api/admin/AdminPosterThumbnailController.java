@@ -1,10 +1,10 @@
-package art.yesulin.operation.presentation.api;
+package art.yesulin.file.presentation.api.admin;
 
 import art.yesulin.auth.application.MemberPrincipal;
 import art.yesulin.auth.application.annotation.LoginMember;
 import art.yesulin.auth.application.annotation.LoginRequired;
 import art.yesulin.auth.domain.member.MemberType;
-import art.yesulin.operation.application.PosterThumbnailBackfill;
+import art.yesulin.file.application.admin.PosterThumbnailBackfill;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;

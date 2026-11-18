@@ -2,6 +2,7 @@ package art.yesulin.file.application.thumbnail;
 
 import com.drew.imaging.ImageMetadataReader;
 import com.drew.imaging.ImageProcessingException;
+import com.drew.metadata.Metadata;
 import com.drew.metadata.exif.ExifIFD0Directory;
 import java.awt.Color;
 import java.awt.Graphics2D;
@@ -11,6 +12,7 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
@@ -33,8 +35,8 @@ public class PosterImageConverter {
     private static final Set<String> FORMATS = Set.of("jpeg", "png", "gif", "webp");
 
     public Optional<byte[]> convert(byte[] original) throws IOException {
-        try (var input = new MemoryCacheImageInputStream(new ByteArrayInputStream(original))) {
-            var readers = ImageIO.getImageReaders(input);
+        try (MemoryCacheImageInputStream input = new MemoryCacheImageInputStream(new ByteArrayInputStream(original))) {
+            Iterator<ImageReader> readers = ImageIO.getImageReaders(input);
             if (!readers.hasNext()) {
                 return Optional.empty();
             }
@@ -72,8 +74,8 @@ public class PosterImageConverter {
 
     private int orientation(byte[] original) throws IOException {
         try {
-            var metadata = ImageMetadataReader.readMetadata(new ByteArrayInputStream(original));
-            var directory = metadata.getFirstDirectoryOfType(ExifIFD0Directory.class);
+            Metadata metadata = ImageMetadataReader.readMetadata(new ByteArrayInputStream(original));
+            ExifIFD0Directory directory = metadata.getFirstDirectoryOfType(ExifIFD0Directory.class);
             return Optional.ofNullable(directory)
                     .map(value -> value.getInteger(ExifIFD0Directory.TAG_ORIENTATION)).orElse(1);
         } catch (ImageProcessingException exception) {
@@ -95,7 +97,7 @@ public class PosterImageConverter {
         double scale = Math.min(1, Math.min((double) MAX_WIDTH / displayWidth, (double) MAX_HEIGHT / cardHeight));
         int targetWidth = Math.max(1, (int) Math.round(displayWidth * scale));
         int targetHeight = Math.max(1, (int) Math.round(cardHeight * scale));
-        var target = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB);
+        BufferedImage target = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB);
         draw(source, target, transform(orientation, width, height), displayWidth, cardHeight);
         return target;
     }
@@ -129,7 +131,7 @@ public class PosterImageConverter {
     private byte[] jpeg(BufferedImage image) throws IOException {
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         ImageWriter writer = ImageIO.getImageWritersByFormatName("jpeg").next();
-        try (var output = new MemoryCacheImageOutputStream(bytes)) {
+        try (MemoryCacheImageOutputStream output = new MemoryCacheImageOutputStream(bytes)) {
             writer.setOutput(output);
             ImageWriteParam options = writer.getDefaultWriteParam();
             options.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);

@@ -55,3 +55,39 @@
 전체 테스트 1,571건 중 1,569건 통과, 2건 건너뜀, 실패·오류 0건이었다. main/test Checkstyle과 JAR 패키징을 포함한 전체 빌드는 2분 58초에 성공했다. 프론트와 API 응답 필드 구조는 기존 계약을 사용한다.
 
 독립 평가 1회, 필수 PASS 3건·FAIL 0건·UNVERIFIED 0건, N/A 0건. 신규 발견·해결·미해결·P0~P3·발견 경로별 신규 확정·오탐 0건. 비필수 미확인 P04 1건. 기존 F01~F04는 같은 ID로 참조한다.
+
+## PR 리뷰 후속
+
+- 작업 ID `2026-11-18-public-poster-review`, 평가일 2026-11-18 (Asia/Seoul), 평가표 v1, 최초 기록 PR #605
+
+| ID | 실패 조건 | 기대 결과 | 검증 방법 | 필수 | 결과 |
+| --- | --- | --- | --- | --- | --- |
+| R01 | 썸네일 정리 등록 실패가 원본 삭제까지 건너뜀 | 원본을 삭제하고 정리 미완료를 반환, 다른 원본 정리도 진행 | 삭제 실패 회귀 테스트 2건 | 예 | PASS |
+| R02 | 백필 코드 이동으로 API·조회 조건·권한이 바뀜 | 같은 경로에서 공개 포스터만 접수, 읽기와 쓰기 모듈의 단방향 의존 유지 | 27개 관리자 접수·401·403·재요청·공개 목록 실검증 | 예 | PASS |
+| R03 | 명시적 타입 규칙 위반 또는 새 코드 미사용 | 변경 범위의 `var` 제거 및 새 조회 포트 연결 | 참조 검색·Checkstyle·독립 평가 | 예 | PASS |
+| R04 | 잠금 여유 변경이 누락되거나 S3 응답 자원 관리 판정이 근거 없음 | 잠금 10분, SDK가 관리하는 응답 해제 계약 확인 | 설정·SDK 바이트코드 및 경계 코드 대조 | 예 | PASS |
+
+- 썸네일 정리 등록을 먼저 시도한 뒤 그 결과와 무관하게 원본 삭제를 시도한다. 정리 등록이 실패하면 `tryDelete`는 false를 반환해 기존 재시도 호출자의 신호를 보존한다.
+- 백필 쓰기와 관리자 Controller를 `file`의 `admin` 패키지로 옮겼다. `file`이 선언한 `PosterThumbnailSources`를 `operation`의 읽기 전용 어댑터가 구현하므로 `file`에서 공고·공연 모듈을 참조하지 않는다.
+- 읽기를 포함한 저장 전 시간 검사는 3분, 저장 요청 제한은 45초다. 잠금 지적의 4분 30초 합산과 차이가 있으며 운영 여유를 늘리기 위해 잠금을 5분에서 10분으로 변경했다. 이 여유 확대는 확정 결함 수에 포함하지 않는다.
+- S3 스트림 누수 지적은 반영하지 않았다. 사용 중인 AWS SDK 2.49.2의 `ResponseTransformer.needsConnectionLeftOpen()` 기본 구현은 false이고, 현재 람다 변환기는 SDK가 관리하는 응답 해제 경로를 사용한다. 초과 원본은 기존 `SKIPPED` 계약을 따른다.
+- 관련 테스트 40건과 main/test Checkstyle, JAR 빌드가 통과했다. 격리 Spring·H2·테스트 저장소에서 기존 원본 27개를 같은 관리자 URL로 다시 변환해 모두 `READY`, 동일 요청 재제출 `READY`, 비로그인 401·배우 403 및 공개 목록 축소본 URL을 확인했다. 변환 결과의 합계와 크기는 기존 검증과 같았다.
+
+| 문제 ID | 심각도·유형·유입 | 발견 경로 | 최초 확정(+09:00) / 최초 기록 PR | 조치·상태 |
+| --- | --- | --- | --- | --- |
+| `2026-11-18-public-poster-review-F01` | P2·CODE·INTRODUCED | EXTERNAL | 2026-11-18T14:46:30+09:00 / #605 | 썸네일 정리 등록과 원본 삭제 실패 경계를 분리, 회귀 테스트 통과. FIXED |
+| `2026-11-18-public-poster-review-F02` | P3·POLICY·INTRODUCED | EXTERNAL | 2026-11-18T14:46:30+09:00 / #605 | 백필 쓰기를 파일 관리자 기능으로 옮기고 원본 조회 포트로 순환 의존 방지. FIXED |
+| `2026-11-18-public-poster-review-F03` | P3·CODE·INTRODUCED | EXTERNAL | 2026-11-18T14:46:30+09:00 / #605 | 새 썸네일 변경의 타입 추론을 명시적 타입으로 교체. FIXED |
+| `2026-11-18-public-poster-review-F04` | P3·CODE·UNKNOWN | EXTERNAL | 미확정 / #605 | SDK가 응답을 관리하는 경로를 확인해 S3 스트림 누수 지적은 오탐 판정. REJECTED |
+
+| 사건 ID | 문제 ID | 종류 | 발생 시각(+09:00) | 근거·PR |
+| --- | --- | --- | --- | --- |
+| `review-F01-E01` | `2026-11-18-public-poster-review-F01` | CONFIRMED | 2026-11-18T14:46:30+09:00 | 정리 등록 예외가 원본 삭제를 건너뛰는 코드 확인, #605 |
+| `review-F02-E01` | `2026-11-18-public-poster-review-F02` | CONFIRMED | 2026-11-18T14:46:30+09:00 | `operation`의 쓰기 및 관리자 패키지 경계 위반 확인, #605 |
+| `review-F03-E01` | `2026-11-18-public-poster-review-F03` | CONFIRMED | 2026-11-18T14:46:30+09:00 | 변경 코드와 명시적 타입 규칙 대조, #605 |
+| `review-F01-E02` | `2026-11-18-public-poster-review-F01` | FIXED | 2026-11-18T14:51:57+09:00 | 삭제 실패 회귀 테스트 2건 통과, #605 |
+| `review-F02-E02` | `2026-11-18-public-poster-review-F02` | FIXED | 2026-11-18T14:51:57+09:00 | 이동한 Controller·조회 포트로 실제 27개 백필 및 권한·재요청·공개 목록 검증, #605 |
+| `review-F03-E02` | `2026-11-18-public-poster-review-F03` | FIXED | 2026-11-18T14:51:57+09:00 | 참조 검색·main/test Checkstyle·JAR 빌드 통과, #605 |
+| `review-F04-E01` | `2026-11-18-public-poster-review-F04` | REJECTED | 2026-11-18T14:51:57+09:00 | AWS SDK 2.49.2의 `needsConnectionLeftOpen=false`와 현재 람다 계약 대조, #605 |
+
+독립 평가 1회, 필수 PASS 4건·FAIL 0건·UNVERIFIED 0건, N/A 0건. 신규 발견 3건·해결 3건·미해결 0건, P0/P1/P2/P3 0/0/1/2. EXTERNAL 3건, PRECHECK·INDEPENDENT_REVIEW·POST_FIX_CHECK 신규 확정 0건, 오탐 1건. 최종 잠금 변경을 포함한 main/test Checkstyle과 JAR 빌드도 통과했다. 평가자는 이동 전 경로 참조 제거, 실제 DI, JAR 패키징, 미사용 코드·설정·의존성 여부를 확인했다. 운영 배포와 운영 27개 배치는 이전 T06·P04의 후속 확인 범위다.

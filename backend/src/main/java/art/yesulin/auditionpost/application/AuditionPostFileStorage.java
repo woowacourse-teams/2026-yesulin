@@ -117,15 +117,25 @@ public class AuditionPostFileStorage {
     /**
      * 저장소 객체 하나를 지운다. 실패는 기록만 하고, 호출자가 다음에 다시 시도할 수 있게 결과를 알려 준다.
      *
-     * @return 지웠으면 true
+     * @return 썸네일 정리 등록과 원본 삭제가 모두 성공했으면 true
      */
     public boolean tryDelete(String objectKey) {
+        boolean thumbnailRetired = retireThumbnail(objectKey);
         try {
-            thumbnails.retire(objectKey);
             storage.delete(objectKey);
-            return true;
+            return thumbnailRetired;
         } catch (RuntimeException exception) {
             log.warn("공고 파일 정리 실패: {}", exception.getClass().getSimpleName());
+            return false;
+        }
+    }
+
+    private boolean retireThumbnail(String objectKey) {
+        try {
+            thumbnails.retire(objectKey);
+            return true;
+        } catch (RuntimeException exception) {
+            log.warn("공고 썸네일 정리 등록 실패: {}", exception.getClass().getSimpleName());
             return false;
         }
     }
