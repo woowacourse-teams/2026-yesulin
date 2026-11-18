@@ -29,14 +29,14 @@
 
 | 사건 ID | 문제 ID | 사건 | 발생 시각 | 최초 기록 PR | 근거 |
 | --- | --- | --- | --- | --- | --- |
-| `F01-E01` | `2026-11-17-public-poster-thumbnails-F01` | CONFIRMED | 2026-11-17T15:41:07+09:00 | PENDING | 독립 평가의 상태 경합 확인 |
-| `F01-E02` | `2026-11-17-public-poster-thumbnails-F01` | FIXED | 2026-11-17T15:41:07+09:00 | PENDING | 삭제와 뒤늦은 등록 작업자 테스트 |
-| `F02-E01` | `2026-11-17-public-poster-thumbnails-F02` | CONFIRMED | 2026-11-17T15:41:07+09:00 | PENDING | 독립 평가의 전체 읽기 지적 |
-| `F02-E02` | `2026-11-17-public-poster-thumbnails-F02` | FIXED | 2026-11-17T15:41:07+09:00 | PENDING | 로컬 HTTP 서버 크기 상한 검증 |
-| `F03-E01` | `2026-11-17-public-poster-thumbnails-F03` | CONFIRMED | 2026-11-17T15:41:07+09:00 | PENDING | 독립 평가의 쓰기 제한 시간 지적 |
-| `F03-E02` | `2026-11-17-public-poster-thumbnails-F03` | FIXED | 2026-11-17T15:41:07+09:00 | PENDING | 제한 시간 적용과 작업자 검증 |
-| `F04-E01` | `2026-11-17-public-poster-thumbnails-F04` | CONFIRMED | 2026-11-17T15:36:42+09:00 | PENDING | 로컬 배치 API 400 |
-| `F04-E02` | `2026-11-17-public-poster-thumbnails-F04` | FIXED | 2026-11-17T15:41:07+09:00 | PENDING | 선택 값 생략 후 관리자 API·27개 변환 성공 |
+| `F01-E01` | `2026-11-17-public-poster-thumbnails-F01` | CONFIRMED | 2026-11-17T15:41:07+09:00 | #605 | 독립 평가의 상태 경합 확인 |
+| `F01-E02` | `2026-11-17-public-poster-thumbnails-F01` | FIXED | 2026-11-17T15:41:07+09:00 | #605 | 삭제와 뒤늦은 등록 작업자 테스트 |
+| `F02-E01` | `2026-11-17-public-poster-thumbnails-F02` | CONFIRMED | 2026-11-17T15:41:07+09:00 | #605 | 독립 평가의 전체 읽기 지적 |
+| `F02-E02` | `2026-11-17-public-poster-thumbnails-F02` | FIXED | 2026-11-17T15:41:07+09:00 | #605 | 로컬 HTTP 서버 크기 상한 검증 |
+| `F03-E01` | `2026-11-17-public-poster-thumbnails-F03` | CONFIRMED | 2026-11-17T15:41:07+09:00 | #605 | 독립 평가의 쓰기 제한 시간 지적 |
+| `F03-E02` | `2026-11-17-public-poster-thumbnails-F03` | FIXED | 2026-11-17T15:41:07+09:00 | #605 | 제한 시간 적용과 작업자 검증 |
+| `F04-E01` | `2026-11-17-public-poster-thumbnails-F04` | CONFIRMED | 2026-11-17T15:36:42+09:00 | #605 | 로컬 배치 API 400 |
+| `F04-E02` | `2026-11-17-public-poster-thumbnails-F04` | FIXED | 2026-11-17T15:41:07+09:00 | #605 | 선택 값 생략 후 관리자 API·27개 변환 성공 |
 
 독립 평가 1회, 필수 PASS 5건·FAIL 0건·UNVERIFIED 0건, N/A 0건. 신규 발견 4건, 해결 4건, 미해결 0건, P0/P1/P2/P3 0/0/2/2. INDEPENDENT_REVIEW 3건, POST_FIX_CHECK 1건, PRECHECK·EXTERNAL·오탐 0건, 운영 적용 미확인 1건. 독립 평가에서 미사용 파일·코드·설정·의존성·문서를 확인했다.
 
