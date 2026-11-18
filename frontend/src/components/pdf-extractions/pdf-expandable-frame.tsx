@@ -7,7 +7,7 @@ import styles from "./pdf-viewer.module.css";
 export type PdfFrameState = { readonly expanded: boolean; readonly onExpandedChange: (expanded: boolean) => void; readonly caption?: ReactNode };
 type ElementRef<T extends HTMLElement> = RefObject<T | null>;
 
-const inlineLayout = { className: styles.expandable, fit: "width" } as const;
+const inlineLayout = { className: styles.expandable, fit: "page" } as const;
 const expandedLayout = { className: styles.expanded, fit: "page", role: "dialog", tabIndex: -1, "aria-modal": true, "aria-label": "지원서 원본 전체화면", "data-fullscreen-viewer": true } as const;
 
 function layoutOf(expanded: boolean) {
@@ -17,7 +17,7 @@ function layoutOf(expanded: boolean) {
 
 const isInteractiveTarget = (event: MouseEvent) => event.target instanceof Element && Boolean(event.target.closest("a, button, [role='alert']"));
 
-export function PdfExpandableFrame({ expanded, onExpandedChange, caption, children }: PdfFrameState & { readonly children: (fit: PdfFit) => ReactNode }) {
+export function PdfExpandableFrame({ expanded, onExpandedChange, caption, children }: PdfFrameState & { readonly children: (fit: PdfFit, expanded: boolean) => ReactNode }) {
   const container = useRef<HTMLDivElement>(null);
   const openButton = useRef<HTMLButtonElement>(null);
   useExpandedLayer(expanded, () => onExpandedChange(false), container, openButton);
@@ -26,7 +26,7 @@ export function PdfExpandableFrame({ expanded, onExpandedChange, caption, childr
   return <div ref={container} data-pdf-frame data-pdf-expanded={expanded} {...layout} onClick={openFromPage}>
     {expanded && caption && <div className={styles.expandedCaption}>{caption}</div>}
     <ExpandToggle expanded={expanded} openButton={openButton} onToggle={onExpandedChange} />
-    {children(fit)}
+    {children(fit, expanded)}
   </div>;
 }
 
